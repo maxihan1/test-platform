@@ -75,6 +75,31 @@
 
 (여기부터 쌓는다. 가장 최근 것이 위로.)
 
+## [환경] 2026-09-16 · `ALLOW_PROTECTED=1 claude`로 띄워도 훅이 계속 막는다
+증상:  SETUP.md §5대로 띄웠는데 protected 훅이 types.ts·docker-compose.yml을 그대로 차단
+원인:  Claude Code가 데몬 구조다. 세션은 터미널이 아니라 상주 데몬에서 태어나므로 터미널 앞에 붙인 환경변수가 세션에 전달되지 않는다
+해법:  `.claude/settings.local.json`에 `{"env":{"ALLOW_PROTECTED":"1"}}`. 설정은 데몬을 거쳐도 전달된다
+주의:  Phase 0·병합 때만 두고 끝나면 지운다. 남겨두면 Phase 1 내내 잠금이 풀린 채로 돈다
+승격:  SETUP.md §5와 HOOKS.md의 실행 방법이 이 버전에서 틀렸다. 고칠 것을 제안한다
+
+## [Phase0] 2026-09-16 · 도커 빌드 컨텍스트를 앱 폴더가 아니라 루트로 잡았다
+증상:  SPEC §9의 `build: ./apps/admin` 그대로 두면 `packages/kit`이 빌드 컨텍스트 밖이라 못 넣는다
+원인:  모노레포는 워크스페이스 전체가 한 덩어리로 설치돼야 모듈이 resolve 된다
+해법:  `context: .` + `dockerfile: apps/<앱>/Dockerfile`. 서비스·포트·볼륨·mem_limit은 SPEC 그대로다
+주의:  SPEC §9는 "구조만"이라고 적혀 있어 계약 변경으로 보지 않았다
+
+## [Phase0] 2026-09-16 · PLATFORM_PARAMS에 expected도 같이 싣는다
+증상:  SPEC §5.2는 "params를 PLATFORM_PARAMS로 주입"인데 WS-C 킥오프는 "params/expected를 주입"이다
+원인:  두 문서가 같은 환경변수를 다르게 적고 있다
+해법:  `{"params":{...},"expected":{...}}` 한 객체로 싣는다. 둘 다 만족하는 유일한 형태다
+주의:  WS-C의 `test()` 래퍼가 이 모양을 그대로 읽어야 한다
+
+## [Phase0] 2026-09-16 · Vitest가 tests/** 의 Playwright 스펙까지 집어간다
+증상:  `npm test`가 `tests/demo/DEMO-*.spec.ts`를 Vitest로 돌리려다 깨진다
+원인:  Vitest 기본 include가 `**/*.spec.ts`라 Playwright 전용 폴더까지 들어온다
+해법:  `vitest.config.ts`의 include를 `apps/**/*.test.ts`·`packages/**/*.test.ts`로 좁힌다
+주의:  단위 테스트 파일은 `*.test.ts`, Playwright는 `*.spec.ts`로 확장자를 갈라 쓴다
+
 ## [환경] 2026-09-16 · Bash로 파일을 고치면 protected/ownership 훅이 안 걸렸다
 증상:  `sed -i`·`>` 리다이렉트로 보호 파일을 고쳐도 통과했다
 원인:  훅 매처가 Edit|Write|MultiEdit에만 걸려 있었다
