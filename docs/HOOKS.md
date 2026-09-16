@@ -60,11 +60,19 @@ Bash 편집 차단은 휴리스틱이다. 명령 문자열에서 `apps/`, `packa
 ## Phase 0는 반드시 예외로 실행한다
 
 Phase 0는 `types.ts`, `db/migrations/`, `docker-compose.yml`을 **처음 만드는** 단계다.
-`protected` 검사가 이걸 막으므로, Phase 0 세션은 반드시 이렇게 띄운다.
+`protected` 검사가 이걸 막으므로, Phase 0 동안은 예외 스위치를 켠다.
 
 ```bash
-ALLOW_PROTECTED=1 claude
+printf '{\n  "env": { "ALLOW_PROTECTED": "1" }\n}\n' > .claude/settings.local.json
 ```
+
+**환경변수를 앞에 붙이는 방식(`ALLOW_PROTECTED=1 claude`)은 쓰지 마라.** 안 먹는다.
+Claude Code는 데몬(백그라운드에 상주하며 세션을 대신 돌리는 관리 프로세스) 구조라,
+세션이 터미널이 아니라 데몬에서 태어난다. 터미널 앞에 붙인 환경변수는 세션까지 오지 않는다.
+설정 파일에 넣어야 전달된다. (2026-09-16 Phase 0에서 확인. Claude Code 2.1.273)
+
+파일을 만든 뒤에는 세션을 한 번 다시 띄운다. 설정은 세션이 뜰 때 읽힌다.
+`.claude/settings.local.json`은 커밋하지 않는다.
 
 Phase 0에서는 `tests` 검사도 같이 꺼진다. Phase 0의 데모 테스트는 `defineCase`/`verify`가
 아직 없어 순수 Playwright(`expect`)로 쓰기 때문이다. WS-C가 `defineCase` 형태로 전환한 뒤부터 걸린다.
@@ -96,13 +104,20 @@ WORKSTREAM=C claude
 병합 단계에서는 여러 폴더를 동시에 건드려야 한다. 그때만 켠다.
 
 ```bash
-ALLOW_PROTECTED=1 claude
+printf '{\n  "env": { "ALLOW_PROTECTED": "1" }\n}\n' > .claude/settings.local.json
+# 끝나면 반드시
+rm .claude/settings.local.json
 ```
 
-`protected`·`ownership`·`tests`와 `bash`의 경로 검사, 그리고 `pre-push`의 검사 기록 확인이 꺼진다.
-`bash`의 위험 명령 차단(강제 push 등)과 `pre-push`의 테스트 실행은 계속 동작한다.
+`protected`·`ownership`·`tests`와 `bash`의 경로 검사가 꺼진다.
+`bash`의 위험 명령 차단(강제 push 등)은 계속 동작한다.
 
-**평소에 켜두지 마라.** 이 검사들이 병렬 작업의 안전장치 전부다.
+`pre-push`는 git이 부르는 훅이라 Claude Code 설정을 보지 못한다. 터미널에서 직접 푸시하면
+`ALLOW_PROTECTED`가 셸에 없으므로 검사 기록 확인이 그대로 걸린다. 의도된 동작이다 —
+설정 파일을 켜뒀어도 사람이 손으로 푸시할 때는 검사 기록을 요구한다.
+
+**평소에 켜두지 마라.** 파일로 남는 스위치라 끄는 것을 잊기 쉽다.
+이 검사들이 병렬 작업의 안전장치 전부다. 지우는 것까지가 한 세트다.
 
 ---
 

@@ -121,18 +121,30 @@ Claude Code에 던지기 전에 Maxi님이 직접 읽으실 순서다. 리뷰 �
 
 ## 5. 내일 첫 명령
 
-Phase 0는 보호 파일을 **처음 만드는** 단계라 예외로 띄운다.
+Phase 0는 보호 파일을 **처음 만드는** 단계라 예외 스위치를 켜고 시작한다.
 
 ```bash
 cd test-platform
-ALLOW_PROTECTED=1 claude
+printf '{\n  "env": { "ALLOW_PROTECTED": "1" }\n}\n' > .claude/settings.local.json
+claude
 ```
+
+**`ALLOW_PROTECTED=1 claude`처럼 앞에 붙이는 방식은 안 먹는다.** Claude Code가 데몬
+(백그라운드에 상주하며 세션을 대신 돌리는 관리 프로세스) 구조라 세션이 터미널이 아니라
+데몬에서 태어나고, 터미널 앞에 붙인 환경변수가 세션까지 전달되지 않기 때문이다.
+설정 파일에 넣어야 한다. 자세한 것은 `HOOKS.md`.
 
 [0] 계획 검토는 2026-09-16에 끝났다 (`docs/reviews/2026-09-16-G0.md`).
 바로 `docs/WORKSTREAMS.md`의 Phase 0 킥오프 프롬프트를 넣는다.
 
-Phase 0가 끝나고 G1을 통과하면, 그다음부터는 예외 없이 그냥 `claude`로 띄운다.
+Phase 0가 끝나고 G1을 통과하면 **스위치를 지운다.**
+
+```bash
+rm .claude/settings.local.json
+```
+
 그 시점부터 `types.ts` · `db/migrations/` · `docker-compose.yml`이 계약으로 잠긴다.
+파일로 남는 스위치라 끄는 것을 잊기 쉽다. 지우는 것까지가 G1이다.
 
 ---
 
