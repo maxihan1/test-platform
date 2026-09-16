@@ -470,9 +470,12 @@ POST   /api/cases/:tcId/param-sets       { name, params, expected } — 저장 �
 DELETE /api/param-sets/:id
 
 # Execution
-POST   /api/runs                         { title, items: [{ tcId, platforms[], params, expected }] } → { runId }
+POST   /api/runs                         { title, triggeredBy?, items: [{ tcId, platforms[], params, expected, timeoutMs? }] } → { runId }
                                          platforms 배열 길이만큼 run_item이 생성된다
+                                         러너를 기다리지 않고 { runId }를 바로 돌려준다. 실행은 디스패처가 뒤에서 이어간다
 GET    /api/runs?page=                   실행 목록
+GET    /api/runs/last-by-case            케이스×환경별 마지막 결과 일괄 조회
+                                         → { items: [{ tcId, platform, status, historyId, runId, durationMs, finishedAt }] }
 GET    /api/runs/:runId                  실행 + 항목 목록
 GET    /api/runs/:runId/items/:historyId 항목 상세 (스텝·검증 문장 포함)
 GET    /api/cases/:tcId/history?platform= 케이스별 이력. platform 생략 시 전 환경
@@ -486,6 +489,18 @@ POST   /api/runs/:runId/evidence         { format } → { filePath }
 GET    /api/evidence/:id                 문서 다운로드
 ```
 
+### 7.1 Execution 세 가지에 대한 결정 (2026-09-16)
+
+| 무엇 | 정한 것 | 왜 |
+|------|--------|-----|
+| `triggeredBy` | 생략 가능. 없으면 `'admin'` | `test_run.triggered_by`가 `NOT NULL`인데 요청에 채울 자리가 없었다. 증적 문서의 실행자 칸이 이 값이다 |
+| `timeoutMs` | 항목마다 생략 가능. 없으면 `300000` | §10의 `DEMO-007`을 "`timeoutMs`를 5000으로 준 실행"으로 검증하려면 요청에서 정할 수 있어야 한다 |
+| `GET /api/runs/last-by-case` | 끝난 항목만, 케이스×환경마다 최신 1건 | §8.1 목록의 `마지막 결과` 칸 때문이다. 케이스마다 이력을 따로 부르면 10건일 때 요청이 11번이 된다. 카탈로그가 `run_item`을 읽으면 컨텍스트 경계가 깨지므로 실행 쪽이 낸다 |
+
+`POST /api/runs`가 실행이 끝날 때까지 기다리지 않는 이유도 같은 자리에 적어 둔다.
+케이스 1건에 최대 5분을 줄 수 있으므로 기다리면 화면이 그만큼 멈춘다.
+끝났는지는 `GET /api/runs/:runId`의 `status`가 `FINISHED`인지로 본다 (§3.2 불변식).
+
 ---
 
 ## 8. 화면
@@ -493,6 +508,8 @@ GET    /api/evidence/:id                 문서 다운로드
 ### 8.1 케이스 목록
 `TC ID | 케이스명(문장형) | 지원 환경 | 마지막 결과 | [실행]`
 → JSON 원문은 목록에 절대 노출하지 않는다.
+`마지막 결과` 칸은 `GET /api/runs/last-by-case` 한 번으로 전부 채운다 (§7.1).
+케이스마다 이력을 따로 부르지 않는다.
 목록 위에 `다시 스캔하기` 버튼과 마지막 스캔 시각·결과(추가/갱신/비활성/중복)를 둔다.
 스캔이 실패했으면 그 사유를 같은 자리에 보여준다.
 
