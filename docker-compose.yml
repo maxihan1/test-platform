@@ -1,0 +1,81 @@
+# SPEC §9 인프라. 상시 컨테이너 4개 + 마이그레이션 일회성 1개
+# 러너와 admin 둘 다 Playwright 공식 이미지에서 시작한다. 이미지 태그와 @playwright/test 버전은 정확히 같아야 한다
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: platform
+      POSTGRES_DB: platform
+    ports:
+      - "5432:5432"        # G1에서 사람이 run_item을 직접 열어봐야 한다
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform -d platform"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    image: ghcr.io/amacneil/dbmate:2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://platform:platform@postgres:5432/platform?sslmode=disable
+    volumes:
+      - ./db:/db:ro
+    command: ["--migrations-dir", "/db/migrations", "--no-dump-schema", "up"]
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://platform:platform@postgres:5432/platform
+      RUNNER_URL: http://runner:4000
+      PLATFORM_TESTS_DIR: /tests
+      PLATFORM_ARTIFACTS_DIR: /artifacts
+      PORT: "3000"
+    volumes:
+      - ./tests:/tests:ro      # 스캔과 실패 지점 코드 발췌가 소스를 읽는다
+      - artifacts:/artifacts   # 스크린샷 서빙, 증적 문서 저장
+
+  runner:
+    build:
+      context: .
+      dockerfile: apps/runner/Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      PLATFORM_TESTS_DIR: /tests
+      PLATFORM_ARTIFACTS_DIR: /artifacts
+      PORT: "4000"
+    volumes:
+      - ./tests:/tests:ro      # 테스트 소스 읽기 전용 마운트
+      - artifacts:/artifacts   # 스크린샷 공유 볼륨 (admin과 공유)
+    mem_limit: 4g              # 폭주해도 admin을 끌고 내려가지 않게
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro   # WS-D가 채운다
+
+volumes:
+  pgdata: {}
+  artifacts: {}
