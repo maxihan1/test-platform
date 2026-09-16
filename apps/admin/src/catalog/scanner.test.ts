@@ -1,10 +1,26 @@
 // 스캐너가 코드에서 명세를 뽑아내는지, tcId 중복을 잡는지 검사한다
 
-import { describe, expect, it } from 'vitest';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
 import { caseFiles, duplicateOf, scan } from './scanner.js';
+
+let 깨진폴더: string;
+
+beforeAll(async () => {
+  깨진폴더 = await mkdtemp(join(tmpdir(), 'ws-a-scan-'));
+  await writeFile(join(깨진폴더, '명세없음.spec.ts'), 'export const notSpec = 1;\n');
+  await writeFile(join(깨진폴더, '문법오류.spec.ts'), 'export const spec = defineCase({\n');
+});
+
+afterAll(async () => {
+  await rm(깨진폴더, { recursive: true, force: true });
+});
 
 function spec(tcId: string, filePath: string): CaseSpec {
   return {
@@ -44,7 +60,9 @@ describe('duplicateOf', () => {
 
 describe('scan', () => {
   it('데모 케이스 10건을 tcId 순으로 돌려준다', async () => {
-    const specs = await scan();
+    const { specs, failures, duplicate } = await scan();
+    expect(failures).toEqual([]);
+    expect(duplicate).toBeNull();
     expect(specs.map((s) => s.tcId)).toEqual([
       'DEMO-001', 'DEMO-002', 'DEMO-003', 'DEMO-004', 'DEMO-005',
       'DEMO-006', 'DEMO-007', 'DEMO-008', 'DEMO-009', 'DEMO-010',
@@ -52,26 +70,33 @@ describe('scan', () => {
   });
 
   it('filePath는 tests 폴더 기준 상대 경로다', async () => {
-    const specs = await scan();
+    const { specs } = await scan();
     expect(specs[0].filePath).toBe('demo/DEMO-001.spec.ts');
   });
 
   it('zod 스키마가 JSON Schema로 변환돼 있고 describe가 라벨로 남는다', async () => {
-    const specs = await scan();
+    const { specs } = await scan();
     const four = specs.find((s) => s.tcId === 'DEMO-004');
     const properties = four?.paramSchema.properties as Record<string, { description?: string }>;
     expect(properties.resource.description).toBe('조회할 자원');
   });
 
   it('없다고 적은 케이스는 빈 객체 스키마가 된다', async () => {
-    const specs = await scan();
+    const { specs } = await scan();
     const one = specs.find((s) => s.tcId === 'DEMO-001');
     expect(one?.paramSchema).toEqual({ type: 'object', properties: {} });
   });
 
   it('환경 2개를 선언한 케이스는 그대로 실려 온다', async () => {
-    const specs = await scan();
+    const { specs } = await scan();
     expect(specs.find((s) => s.tcId === 'DEMO-008')?.platforms).toEqual(['desktop', 'mobile']);
     expect(specs.find((s) => s.tcId === 'DEMO-010')?.platforms).toEqual(['mobile']);
+  });
+
+  it('파일 하나가 깨져도 멈추지 않고 나머지까지 읽는다', async () => {
+    const { specs, failures } = await scan(깨진폴더);
+    expect(specs).toEqual([]);
+    expect(failures.map((f) => f.file).sort()).toEqual(['명세없음.spec.ts', '문법오류.spec.ts']);
+    expect(failures.find((f) => f.file === '명세없음.spec.ts')?.message).toContain('export const spec');
   });
 });
