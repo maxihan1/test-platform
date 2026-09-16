@@ -19,25 +19,25 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   let pool: Pool;
 
   async function 치운다(): Promise<void> {
-    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'ZZB%')");
-    await pool.query("DELETE FROM test_run WHERE title LIKE 'ZZB%'");
+    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'ZZBS%')");
+    await pool.query("DELETE FROM test_run WHERE title LIKE 'ZZBS%'");
   }
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
     await 치운다();
     await pool.query(케이스, [
-      'ZZB-001',
+      'ZZBS-001',
       '두 환경을 지원하는 케이스',
       JSON.stringify(['desktop', 'mobile']),
       JSON.stringify(['사전조건 하나', '사전조건 둘']),
-      'demo/ZZB-001.spec.ts',
+      'demo/ZZBS-001.spec.ts',
     ]);
   });
 
   afterAll(async () => {
     await 치운다();
-    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZB%'");
+    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZBS%'");
     await pool.end();
     const { pool: shared } = await import('../db/index.js');
     await shared.end();
@@ -46,14 +46,14 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   beforeEach(치운다);
 
   const 항목 = {
-    tcId: 'ZZB-001',
+    tcId: 'ZZBS-001',
     platforms: ['desktop', 'mobile'] as const,
     params: { 아이디: 'tester' },
     expected: { 결과: true },
   };
 
   it('platforms 길이만큼 run_item을 만든다', async () => {
-    const run = await createRun({ title: 'ZZB 두 환경', triggeredBy: 'tester', items: [{ ...항목, platforms: [...항목.platforms] }] });
+    const run = await createRun({ title: 'ZZBS 두 환경', triggeredBy: 'tester', items: [{ ...항목, platforms: [...항목.platforms] }] });
     expect(run.items).toHaveLength(2);
     expect(run.items.map((i) => i.platform).sort()).toEqual(['desktop', 'mobile']);
 
@@ -62,7 +62,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('생성 직후에는 판정이 NA이고 끝난 시각이 비어 있다', async () => {
-    const run = await createRun({ title: 'ZZB 생성 직후', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ title: 'ZZBS 생성 직후', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
     const row = await pool.query<{ status: string; finished_at: Date | null; duration_ms: number | null }>(
       'SELECT status, finished_at, duration_ms FROM run_item WHERE run_id = $1',
       [run.runId],
@@ -71,14 +71,14 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('실행 묶음은 RUNNING으로 시작한다', async () => {
-    const run = await createRun({ title: 'ZZB 시작', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ title: 'ZZBS 시작', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
     const row = await pool.query<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [run.runId]);
     expect(row.rows[0]?.status).toBe('RUNNING');
   });
 
   it('케이스명과 사전조건을 스냅샷으로 복사해 나중에 이름이 바뀌어도 그대로다', async () => {
-    const run = await createRun({ title: 'ZZB 스냅샷', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
-    await pool.query('UPDATE test_case SET name = $1 WHERE tc_id = $2', ['이름이 바뀐 케이스', 'ZZB-001']);
+    const run = await createRun({ title: 'ZZBS 스냅샷', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
+    await pool.query('UPDATE test_case SET name = $1 WHERE tc_id = $2', ['이름이 바뀐 케이스', 'ZZBS-001']);
 
     const row = await pool.query<{ tc_name: string; precondition: string[]; params: unknown; expected: unknown }>(
       'SELECT tc_name, precondition, params, expected FROM run_item WHERE run_id = $1',
@@ -89,33 +89,33 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
     expect(row.rows[0]?.params).toEqual({ 아이디: 'tester' });
     expect(row.rows[0]?.expected).toEqual({ 결과: true });
 
-    await pool.query('UPDATE test_case SET name = $1 WHERE tc_id = $2', ['두 환경을 지원하는 케이스', 'ZZB-001']);
+    await pool.query('UPDATE test_case SET name = $1 WHERE tc_id = $2', ['두 환경을 지원하는 케이스', 'ZZBS-001']);
   });
 
   it('러너에 넘길 파일 경로와 제한 시간을 같이 돌려준다', async () => {
     const run = await createRun({
-      title: 'ZZB 제한 시간',
+      title: 'ZZBS 제한 시간',
       triggeredBy: 'tester',
       items: [{ ...항목, platforms: ['desktop'], timeoutMs: 5000 }],
     });
-    expect(run.items[0]).toMatchObject({ filePath: 'demo/ZZB-001.spec.ts', timeoutMs: 5000 });
+    expect(run.items[0]).toMatchObject({ filePath: 'demo/ZZBS-001.spec.ts', timeoutMs: 5000 });
   });
 
   it('제한 시간을 안 주면 5분이 기본이다', async () => {
-    const run = await createRun({ title: 'ZZB 기본 제한', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ title: 'ZZBS 기본 제한', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
     expect(run.items[0]?.timeoutMs).toBe(300_000);
   });
 
   it('카탈로그에 없는 케이스는 그 tcId를 사유에 담아 거절한다', async () => {
     await expect(
-      createRun({ title: 'ZZB 없는 케이스', triggeredBy: 'tester', items: [{ ...항목, tcId: 'ZZB-404', platforms: ['desktop'] }] }),
-    ).rejects.toThrow('ZZB-404');
+      createRun({ title: 'ZZBS 없는 케이스', triggeredBy: 'tester', items: [{ ...항목, tcId: 'ZZBS-404', platforms: ['desktop'] }] }),
+    ).rejects.toThrow('ZZBS-404');
   });
 
   it('같은 케이스와 환경을 두 번 넣으면 거절한다', async () => {
     await expect(
       createRun({
-        title: 'ZZB 중복',
+        title: 'ZZBS 중복',
         triggeredBy: 'tester',
         items: [
           { ...항목, platforms: ['desktop'] },
@@ -126,7 +126,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('빈 목록은 거절한다', async () => {
-    await expect(createRun({ title: 'ZZB 빈 목록', triggeredBy: 'tester', items: [] })).rejects.toThrow();
+    await expect(createRun({ title: 'ZZBS 빈 목록', triggeredBy: 'tester', items: [] })).rejects.toThrow();
   });
 
   const 결과: ExecuteResponse = {
@@ -154,7 +154,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   };
 
   it('결과를 받으면 판정·소요시간·끝난 시각을 채운다', async () => {
-    const run = await createRun({ title: 'ZZB 결과', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ title: 'ZZBS 결과', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
     const historyId = run.items[0]!.historyId;
     await finishItem(historyId, { ...결과, historyId });
 
@@ -168,7 +168,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('절차와 검증 문장을 그대로 저장한다', async () => {
-    const run = await createRun({ title: 'ZZB 절차', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ title: 'ZZBS 절차', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
     const historyId = run.items[0]!.historyId;
     await finishItem(historyId, { ...결과, historyId });
 
@@ -185,7 +185,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('러너가 죽은 항목은 NA와 사유로 남는다', async () => {
-    const run = await createRun({ title: 'ZZB 고장', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ title: 'ZZBS 고장', triggeredBy: 'tester', items: [{ ...항목, platforms: ['desktop'] }] });
     const historyId = run.items[0]!.historyId;
     await finishItem(historyId, { historyId, status: 'NA', durationMs: 30, steps: [], error: { message: 'TIMEOUT' } });
 
@@ -198,7 +198,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('항목이 하나라도 안 끝났으면 실행 묶음은 FINISHED가 되지 않는다', async () => {
-    const run = await createRun({ title: 'ZZB 미완', triggeredBy: 'tester', items: [{ ...항목, platforms: [...항목.platforms] }] });
+    const run = await createRun({ title: 'ZZBS 미완', triggeredBy: 'tester', items: [{ ...항목, platforms: [...항목.platforms] }] });
     await finishItem(run.items[0]!.historyId, { ...결과, historyId: run.items[0]!.historyId });
     await finishRun(run.runId);
 
@@ -207,7 +207,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('항목이 전부 끝나면 FINISHED가 된다', async () => {
-    const run = await createRun({ title: 'ZZB 완료', triggeredBy: 'tester', items: [{ ...항목, platforms: [...항목.platforms] }] });
+    const run = await createRun({ title: 'ZZBS 완료', triggeredBy: 'tester', items: [{ ...항목, platforms: [...항목.platforms] }] });
     for (const item of run.items) await finishItem(item.historyId, { ...결과, historyId: item.historyId });
     await finishRun(run.runId);
 
