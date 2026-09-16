@@ -20,7 +20,7 @@ export interface ScanResult {
   specs: CaseSpec[];
   // 파일 하나가 깨져도 스캔 전체를 버리지 않는다. 그러면 멀쩡한 케이스의 위반까지 함께 묻힌다
   failures: ScanFailure[];
-  duplicate: Duplicate | null;
+  duplicates: Duplicate[];
 }
 
 // kit의 defineCase가 filePath를 만들 때 쓰는 기준과 같아야 한다. 어긋나면 같은 케이스의 상대 경로가 둘로 갈린다
@@ -49,14 +49,16 @@ async function importSpec(file: string, gen: number): Promise<unknown> {
   return mod.spec;
 }
 
-export function duplicateOf(specs: CaseSpec[]): Duplicate | null {
+// 한 쌍만 돌려주면 고치고 다시 돌렸을 때 다음 쌍이 또 나온다. 겹친 것을 한 번에 다 보여준다
+export function duplicatesOf(specs: CaseSpec[]): Duplicate[] {
   const seen = new Map<string, string>();
+  const found: Duplicate[] = [];
   for (const spec of specs) {
     const first = seen.get(spec.tcId);
-    if (first !== undefined) return { tcId: spec.tcId, files: [first, spec.filePath] };
-    seen.set(spec.tcId, spec.filePath);
+    if (first === undefined) seen.set(spec.tcId, spec.filePath);
+    else found.push({ tcId: spec.tcId, files: [first, spec.filePath] });
   }
-  return null;
+  return found;
 }
 
 export async function scan(root: string = testsRoot()): Promise<ScanResult> {
@@ -79,5 +81,5 @@ export async function scan(root: string = testsRoot()): Promise<ScanResult> {
   }
 
   specs.sort((a, b) => a.tcId.localeCompare(b.tcId));
-  return { specs, failures, duplicate: duplicateOf(specs) };
+  return { specs, failures, duplicates: duplicatesOf(specs) };
 }

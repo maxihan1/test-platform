@@ -32,6 +32,77 @@ const UPSERT = `
     scanned_at      = now()
   RETURNING (xmax = 0) AS inserted`;
 
+export interface CaseRow extends CaseSpec {
+  isActive: boolean;
+  scannedAt: string;
+}
+
+interface RawRow {
+  tc_id: string;
+  name: string;
+  platforms: CaseSpec['platforms'];
+  precondition: string[];
+  file_path: string;
+  param_schema: CaseSpec['paramSchema'];
+  expected_schema: CaseSpec['expectedSchema'];
+  is_active: boolean;
+  scanned_at: Date;
+  total?: string;
+}
+
+function toCase(row: RawRow): CaseRow {
+  return {
+    tcId: row.tc_id,
+    name: row.name,
+    platforms: row.platforms,
+    precondition: row.precondition,
+    filePath: row.file_path,
+    paramSchema: row.param_schema,
+    expectedSchema: row.expected_schema,
+    isActive: row.is_active,
+    scannedAt: row.scanned_at.toISOString(),
+  };
+}
+
+const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at';
+
+// ILIKE에서 % 와 _ 는 아무 글자나 맞는 기호다. 사람이 친 검색어는 글자 그대로여야 한다
+function literal(term: string): string {
+  return `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+
+export async function listCases(
+  q: string,
+  page: number,
+  pageSize: number,
+): Promise<{ items: CaseRow[]; total: number; page: number; pageSize: number }> {
+  const pool = await db();
+  const rows = await pool.query<RawRow>(
+    `SELECT ${COLUMNS}, count(*) OVER () AS total
+       FROM test_case
+      WHERE is_active
+        AND ($1 = '' OR tc_id ILIKE $2 ESCAPE '\\' OR name ILIKE $2 ESCAPE '\\')
+      ORDER BY tc_id
+      LIMIT $3 OFFSET $4`,
+    [q, literal(q), pageSize, (page - 1) * pageSize],
+  );
+
+  return {
+    items: rows.rows.map(toCase),
+    total: Number(rows.rows[0]?.total ?? 0),
+    page,
+    pageSize,
+  };
+}
+
+export async function findCase(tcId: string): Promise<CaseRow | null> {
+  const pool = await db();
+  // 비활성 케이스도 돌려준다. 과거 실행 이력이 상세 화면을 열 때 이 경로를 쓴다
+  const rows = await pool.query<RawRow>(`SELECT ${COLUMNS} FROM test_case WHERE tc_id = $1`, [tcId]);
+  const row = rows.rows[0];
+  return row === undefined ? null : toCase(row);
+}
+
 export async function save(specs: CaseSpec[], deactivateMissing: boolean): Promise<SaveResult> {
   const client = await (await db()).connect();
   try {
