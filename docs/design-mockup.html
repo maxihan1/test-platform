@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>테스트 자동화 플랫폼 — 화면 목업</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --paper:#E6E9E2; --sheet:#F8F9F5; --sheet-2:#EFF1EA;
+  --ink:#17201B; --ink-muted:#626C64; --ink-faint:#8B948B;
+  --rule:#C8CEC3; --rule-soft:#DCE0D7;
+  --pass:#0D6A46; --fail:#A62B21; --na:#8A7742;
+  --pass-bg:#E2EDE6; --fail-bg:#F6E4E1; --na-bg:#F1EBDC;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:Pretendard,system-ui,sans-serif;
+  font-size:14px; line-height:1.6;
+  font-feature-settings:"tnum";
+  background-image:linear-gradient(var(--rule-soft) .5px,transparent .5px),
+                   linear-gradient(90deg,var(--rule-soft) .5px,transparent .5px);
+  background-size:28px 28px;
+  padding:32px 16px 80px;
+}
+.wrap{max-width:960px;margin:0 auto}
+.screen{background:var(--sheet);border:1px solid var(--rule);margin-bottom:40px}
+.screen-tag{
+  font-size:12px;color:var(--ink-faint);letter-spacing:.02em;
+  padding:0 0 8px 2px;
+}
+.bar{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:16px;padding:20px 24px 16px;border-bottom:1px solid var(--rule);flex-wrap:wrap;
+}
+.runid{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.runmeta{font-size:12.5px;color:var(--ink-muted);margin-top:2px}
+.tally{display:flex;gap:18px;align-items:center}
+.tally b{font-size:20px;font-weight:800;display:block;line-height:1.2}
+.tally span{font-size:11.5px;color:var(--ink-muted)}
+.stripe{display:flex;height:6px;margin:0 24px;overflow:hidden}
+.stripe i{display:block;height:100%}
+
+.toolbar{display:flex;gap:8px;padding:14px 24px;border-bottom:1px solid var(--rule-soft);flex-wrap:wrap}
+input[type=text],select{
+  font:inherit;font-size:13px;background:var(--sheet);color:var(--ink);
+  border:1px solid var(--rule);border-radius:2px;padding:7px 10px;
+}
+input[type=text]{flex:1;min-width:180px}
+input[type=text]:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
+.chip{
+  font-size:12.5px;padding:6px 12px;border:1px solid var(--rule);border-radius:2px;
+  background:transparent;color:var(--ink-muted);cursor:pointer;font-family:inherit;
+}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+
+.row{
+  display:grid;grid-template-columns:4px 128px 1fr auto;gap:0 16px;
+  align-items:center;border-bottom:1px solid var(--rule-soft);
+}
+.row:hover{background:var(--sheet-2)}
+.gutter{align-self:stretch}
+.tcid{font-size:12.5px;font-weight:600;color:var(--ink-muted);letter-spacing:.01em;padding:14px 0}
+.title{font-size:14.5px;padding:14px 0}
+.title small{display:block;font-size:12px;color:var(--ink-faint);font-weight:400;margin-top:2px}
+.right{display:flex;align-items:center;gap:14px;padding:14px 24px 14px 0}
+.dur{font-size:12.5px;color:var(--ink-faint)}
+.verdict{
+  font-size:12px;font-weight:800;letter-spacing:.06em;
+  padding:4px 10px;border-radius:2px;min-width:52px;text-align:center;
+}
+.v-pass{background:var(--pass-bg);color:var(--pass)}
+.v-fail{background:var(--fail);color:#fff}
+.v-na{background:var(--na-bg);color:var(--na)}
+
+.sec{padding:22px 24px;border-bottom:1px solid var(--rule-soft)}
+.sec:last-child{border-bottom:0}
+.sec-h{
+  font-size:12px;font-weight:600;color:var(--ink-muted);
+  padding-bottom:10px;margin-bottom:14px;border-bottom:1px solid var(--rule);
+}
+.pre{font-size:13.5px;color:var(--ink);padding:3px 0 3px 16px;position:relative}
+.pre::before{content:"";position:absolute;left:2px;top:12px;width:6px;height:1px;background:var(--ink-faint)}
+
+.field{display:grid;grid-template-columns:132px 1fr;gap:10px 16px;align-items:center;padding:7px 0}
+.field label{font-size:13px;color:var(--ink-muted)}
+.field .val{font-size:13.5px}
+.hint{font-size:12px;color:var(--ink-faint);margin-top:4px}
+.opt{font-size:11.5px;color:var(--ink-faint);font-weight:400}
+
+.step{padding:14px 0;border-bottom:1px solid var(--rule-soft)}
+.step:last-child{border-bottom:0}
+.step-h{display:flex;align-items:baseline;gap:10px}
+.step-n{
+  font-size:12px;font-weight:800;color:var(--ink-faint);
+  min-width:18px;
+}
+.step-t{font-size:14px;flex:1}
+.assert{
+  display:grid;grid-template-columns:18px 1fr auto auto;gap:0 12px;
+  align-items:baseline;font-size:13px;padding:5px 0 5px 28px;
+}
+.assert.bad{background:var(--fail-bg);margin:4px -24px 4px -24px;padding:8px 24px 8px 52px}
+.mark{font-weight:800}
+.exp,.act{font-size:12.5px;color:var(--ink-muted);min-width:76px;text-align:right}
+.act b{color:var(--ink);font-weight:600}
+.assert.bad .act b{color:var(--fail)}
+
+.actions{display:flex;gap:10px;padding:18px 24px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.btn{
+  font:inherit;font-size:13.5px;font-weight:600;padding:9px 18px;border-radius:2px;cursor:pointer;
+  border:1px solid var(--ink);background:var(--ink);color:var(--sheet);
+}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn:focus-visible{outline:2px solid var(--fail);outline-offset:2px}
+.note{font-size:12px;color:var(--ink-faint);margin-right:auto}
+@media(max-width:620px){
+  .row{grid-template-columns:4px 1fr;gap:0 12px}
+  .tcid{padding:12px 0 0}
+  .title{padding:2px 0 12px}
+  .right{padding:0 16px 12px 0;justify-content:flex-start}
+  .field{grid-template-columns:1fr;gap:2px}
+  .assert{grid-template-columns:18px 1fr;padding-left:20px}
+  .exp,.act{text-align:left;grid-column:2}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="screen-tag">화면 1 — 실행 결과 목록</p>
+<div class="screen">
+  <div class="bar">
+    <div>
+      <div class="runid">RUN 2111</div>
+      <div class="runmeta">2026년 9월 15일 17:13 · 로그인 회귀 · 실행자 maxi</div>
+    </div>
+    <div class="tally">
+      <div><b style="color:var(--pass)">8</b><span>통과</span></div>
+      <div><b style="color:var(--fail)">1</b><span>실패</span></div>
+      <div><b style="color:var(--na)">1</b><span>미실행</span></div>
+    </div>
+  </div>
+  <div class="stripe">
+    <i style="background:var(--pass);flex:8"></i>
+    <i style="background:var(--fail);flex:1"></i>
+    <i style="background:var(--na);flex:1"></i>
+  </div>
+  <div class="toolbar">
+    <input type="text" placeholder="케이스 이름이나 ID로 찾기">
+    <button class="chip" aria-pressed="true">전체</button>
+    <button class="chip" aria-pressed="false">실패만</button>
+  </div>
+
+  <div class="row">
+    <div class="gutter" style="background:var(--pass)"></div>
+    <div class="tcid">AUTH-001</div>
+    <div class="title">신규 이메일로 가입하면 계정이 생성된다</div>
+    <div class="right"><span class="dur">1.24초</span><span class="verdict v-pass">통과</span></div>
+  </div>
+  <div class="row">
+    <div class="gutter" style="background:var(--fail)"></div>
+    <div class="tcid">AUTH-002</div>
+    <div class="title">유효한 이메일과 비밀번호로 로그인하면 토큰이 발급된다
+      <small>2번 절차에서 실패 — 토큰이 발급된다</small></div>
+    <div class="right"><span class="dur">0.40초</span><span class="verdict v-fail">실패</span></div>
+  </div>
+  <div class="row">
+    <div class="gutter" style="background:var(--pass)"></div>
+    <div class="tcid">AUTH-003</div>
+    <div class="title">로그아웃하면 발급된 토큰이 만료된다</div>
+    <div class="right"><span class="dur">0.88초</span><span class="verdict v-pass">통과</span></div>
+  </div>
+  <div class="row">
+    <div class="gutter" style="background:var(--na)"></div>
+    <div class="tcid">AUTH-004</div>
+    <div class="title">가입된 이메일로 비밀번호 찾기를 요청하면 메일이 발송된다
+      <small>앞 케이스 실패로 실행되지 않음</small></div>
+    <div class="right"><span class="dur">—</span><span class="verdict v-na">미실행</span></div>
+  </div>
+  <div class="row">
+    <div class="gutter" style="background:var(--pass)"></div>
+    <div class="tcid">PROD-001</div>
+    <div class="title">정렬 조건을 지정하면 상품 목록이 해당 순서로 반환된다</div>
+    <div class="right"><span class="dur">2.03초</span><span class="verdict v-pass">통과</span></div>
+  </div>
+</div>
+
+<p class="screen-tag">화면 2 — 실행 설정 (입력 폼 자동 생성)</p>
+<div class="screen">
+  <div class="bar">
+    <div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--ink-muted)">AUTH-002</div>
+      <div style="font-size:19px;font-weight:600;margin-top:4px;letter-spacing:-.01em">유효한 이메일과 비밀번호로 로그인하면 토큰이 발급된다</div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sec-h">사전조건</div>
+    <div class="pre">가입 완료된 사용자 계정이 존재한다</div>
+    <div class="pre">계정이 잠금 상태가 아니다</div>
+  </div>
+  <div class="sec">
+    <div class="sec-h">입력값</div>
+    <div class="field">
+      <label for="f1">아이디</label>
+      <div><input type="text" id="f1" value="testuser" style="width:100%"></div>
+    </div>
+    <div class="field">
+      <label for="f2">비밀번호</label>
+      <div><input type="text" id="f2" value="Password123" style="width:100%"></div>
+    </div>
+    <div class="field">
+      <label for="f3">로그인 경로 <span class="opt">선택</span></label>
+      <div><select id="f3" style="width:100%"><option>웹</option><option>모바일</option><option>API</option></select></div>
+    </div>
+    <p class="hint">저장된 입력값 세트를 불러오면 이 칸이 한 번에 채워집니다.</p>
+  </div>
+  <div class="sec">
+    <div class="sec-h">기대결과</div>
+    <div class="field">
+      <label for="e1">응답 코드</label>
+      <div><input type="text" id="e1" value="200" style="width:120px"></div>
+    </div>
+    <div class="field">
+      <label for="e2">토큰 발급 여부</label>
+      <div><select id="e2" style="width:120px"><option>발급됨</option><option>발급 안 됨</option></select></div>
+    </div>
+  </div>
+  <div class="actions">
+    <span class="note">입력값은 이번 실행 기록에 그대로 저장됩니다.</span>
+    <button class="btn ghost">입력값 세트로 저장</button>
+    <button class="btn">실행하기</button>
+  </div>
+</div>
+
+<p class="screen-tag">화면 3 — 결과 상세 (명세 기반 · 증적 문서와 동일 포맷)</p>
+<div class="screen">
+  <div class="bar">
+    <div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--ink-muted)">AUTH-002 · 이력 537767</div>
+      <div style="font-size:19px;font-weight:600;margin-top:4px;letter-spacing:-.01em">유효한 이메일과 비밀번호로 로그인하면 토큰이 발급된다</div>
+    </div>
+    <span class="verdict v-fail" style="font-size:13px;padding:7px 16px">실패</span>
+  </div>
+  <div class="sec">
+    <div class="sec-h">사전조건</div>
+    <div class="pre">가입 완료된 사용자 계정이 존재한다</div>
+    <div class="pre">계정이 잠금 상태가 아니다</div>
+  </div>
+  <div class="sec">
+    <div class="sec-h">입력값</div>
+    <div class="field"><label>아이디</label><div class="val">testuser</div></div>
+    <div class="field"><label>비밀번호</label><div class="val">●●●●●●●●●●●</div></div>
+    <div class="field"><label>로그인 경로</label><div class="val">웹</div></div>
+  </div>
+  <div class="sec">
+    <div class="sec-h">시험 절차</div>
+    <div class="step">
+      <div class="step-h">
+        <span class="step-n">1</span>
+        <span class="step-t">로그인 API를 호출한다</span>
+        <span class="dur">312ms</span>
+        <span class="verdict v-pass">통과</span>
+      </div>
+      <div class="assert">
+        <span class="mark" style="color:var(--pass)">✓</span>
+        <span>응답 코드가 정상이다</span>
+        <span class="exp">기대 200</span>
+        <span class="act">실제 <b>200</b></span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-h">
+        <span class="step-n">2</span>
+        <span class="step-t">발급된 토큰을 검증한다</span>
+        <span class="dur">88ms</span>
+        <span class="verdict v-fail">실패</span>
+      </div>
+      <div class="assert bad">
+        <span class="mark" style="color:var(--fail)">✗</span>
+        <span>토큰이 발급된다</span>
+        <span class="exp">기대 발급됨</span>
+        <span class="act">실제 <b>발급 안 됨</b></span>
+      </div>
+      <div class="assert">
+        <span class="mark" style="color:var(--na)">–</span>
+        <span style="color:var(--ink-faint)">토큰 유효기간이 3600초다</span>
+        <span class="exp">앞 검증 실패로 건너뜀</span>
+        <span class="act"></span>
+      </div>
+    </div>
+  </div>
+  <div class="actions">
+    <span class="note">이 화면의 구성이 증적 문서에 그대로 출력됩니다.</span>
+    <button class="btn ghost">이 케이스 이력 보기</button>
+    <button class="btn">같은 값으로 다시 실행</button>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,149 @@
+# SETUP.md — 시작 전 세팅
+
+> 내일 Claude Code에 던지기 전에 이 순서대로 한 번만 하면 된다.
+> 소요: 20~30분.
+
+---
+
+## 1. 폴더 구조
+
+```
+test-platform/                      ← 프로젝트 루트 (이름은 자유)
+├── CLAUDE.md                       ★ 루트에 둔다. Claude Code가 자동으로 읽는다
+├── .gitignore
+├── .github/workflows/ci.yml        ★ GitHub Actions. 타입 검사 · 단위 테스트 · 테스트 코드 규칙 검사
+├── .claude/
+│   ├── settings.json               ★ 훅 설정. 커밋한다
+│   ├── scripts/
+│   │   └── guard.mjs               ★ 훅 검사 스크립트
+│   └── skills/
+│       └── spec-review/
+│           └── SKILL.md            ★ SPEC 검사 스킬
+└── docs/
+    ├── SPEC.md                     ★ 무엇을 만드는가
+    ├── WORKFLOW.md                 ★ 어느 단계인가
+    ├── WORKSTREAMS.md              ★ 누가 어느 폴더를 맡는가
+    ├── DESIGN.md                   ★ 화면 기준
+    ├── design-mockup.html          ★ 화면 목업
+    ├── HOOKS.md                    ★ 훅 설명
+    ├── LEARNINGS.md                ★ 세션 간 학습 기록 (비어 있는 상태로 시작)
+    ├── progress/                   ← 빈 폴더. 세션이 채운다
+    └── reviews/                    ← 빈 폴더. 검사 결과가 쌓인다
+```
+
+`apps/`, `packages/`, `db/`, `tests/`, `infra/`는 **만들지 마라.**
+Phase 0에서 Claude Code가 만든다. 미리 만들면 빈 폴더 때문에 구조를 잘못 잡는다.
+
+---
+
+## 2. 명령
+
+```bash
+mkdir -p test-platform && cd test-platform
+git init
+
+mkdir -p .claude/scripts .claude/skills/spec-review
+mkdir -p docs/progress docs/reviews
+
+# 받은 파일들을 위 구조대로 옮긴다
+#   CLAUDE.md          → ./CLAUDE.md
+#   settings.json      → .claude/settings.json
+#   guard.mjs          → .claude/scripts/guard.mjs
+#   SKILL.md           → .claude/skills/spec-review/SKILL.md
+#   나머지 .md와 html  → docs/
+
+# git이 빈 폴더를 추적하지 않으므로
+touch docs/progress/.gitkeep docs/reviews/.gitkeep
+
+cat > .gitignore <<'EOF'
+node_modules/
+dist/
+.env
+artifacts/
+playwright-report/
+test-results/
+EOF
+
+# pre-push 훅
+cp <받은 pre-push 파일> .git/hooks/pre-push
+chmod +x .git/hooks/pre-push
+
+git add -A && git commit -m "프로젝트 문서와 규칙 설정"
+git tag g0-docs
+
+# GitHub에 private 저장소를 만든 뒤
+git remote add origin git@github.com:<계정>/test-platform.git
+git push -u origin main
+```
+
+`.git/hooks/`는 커밋되지 않는다. 다른 데서 클론하면 다시 복사해야 한다.
+
+첫 푸시부터 CI(`.github/workflows/ci.yml`)가 돈다. 골격이 생기기 전에는 "검사할 코드가 없다"로 통과한다.
+무료 플랜의 private 저장소는 서버 쪽 브랜치 보호를 걸 수 없다. CI 초록불 확인은 사람이 한다.
+
+---
+
+## 3. 설치 확인
+
+```bash
+echo '{"tool_input":{"file_path":"packages/kit/src/types.ts"}}' \
+  | node .claude/scripts/guard.mjs protected; echo "exit=$?"
+```
+
+`exit=2`와 차단 메시지가 나오면 정상이다.
+
+```bash
+echo '{"tool_input":{"command":"git push --force"}}' \
+  | node .claude/scripts/guard.mjs bash; echo "exit=$?"
+```
+
+이것도 `exit=2`면 정상이다.
+
+---
+
+## 4. 문서 읽는 순서
+
+Claude Code에 던지기 전에 Maxi님이 직접 읽으실 순서다. 리뷰 관점을 같이 적었다.
+
+| 순서 | 파일 | 볼 것 |
+|------|------|------|
+| 1 | `WORKFLOW.md` | 전체 흐름이 납득되는가. 체크포인트 5개가 할 만한가 |
+| 2 | `SPEC.md` §1~4 | 만들려는 게 맞는가. 특히 §4 명세 선언 방식 |
+| 3 | `design-mockup.html` | 브라우저로 열어본다. 화면이 원하는 모양인가 |
+| 4 | `SPEC.md` §8 | 화면 구성이 목업과 맞는가 |
+| 5 | `WORKSTREAMS.md` | 갈래 나눔이 이해되는가. 킥오프 프롬프트가 읽히는가 |
+| 6 | `CLAUDE.md` | 규칙 중 거슬리는 게 있는가 |
+
+§5~7(타입·DB·API)은 코드에 가까운 부분이라 건너뛰셔도 된다.
+대신 **§11 완료 기준**은 꼭 보시라. 이게 "다 됐다"의 정의다.
+
+---
+
+## 5. 내일 첫 명령
+
+Phase 0는 보호 파일을 **처음 만드는** 단계라 예외로 띄운다.
+
+```bash
+cd test-platform
+ALLOW_PROTECTED=1 claude
+```
+
+[0] 계획 검토는 2026-09-16에 끝났다 (`docs/reviews/2026-09-16-G0.md`).
+바로 `docs/WORKSTREAMS.md`의 Phase 0 킥오프 프롬프트를 넣는다.
+
+Phase 0가 끝나고 G1을 통과하면, 그다음부터는 예외 없이 그냥 `claude`로 띄운다.
+그 시점부터 `types.ts` · `db/migrations/` · `docker-compose.yml`이 계약으로 잠긴다.
+
+---
+
+## 6. 아직 안 정한 것
+
+Phase 0 전에 정해야 했던 5건은 2026-09-16에 결정돼 SPEC에 들어갔다
+(기술 스택 §9.1 · 명세 추출 §3.1 · PDF 위치 §3.3 · 데모 대상 §10 · verify 실패 규칙 §4).
+경위는 `docs/reviews/2026-09-16-G0.md`에 있다.
+
+**나중에 정할 것**
+- 증적 문서 양식 — `SPEC.md` §8.4 레이아웃은 임시. WS-D 시작 전까지
+- 민감 파라미터(비밀번호 등) 마스킹 규칙 — WS-E 시작 전까지
+- `test_run.ABORTED`를 누가 언제 넣는가 — WS-B 시작 전까지
+- 브랜치 전략 — 갈래별 브랜치로 갈지 한 브랜치에서 갈지. Phase 1 시작 전까지
