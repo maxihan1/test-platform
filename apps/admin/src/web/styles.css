@@ -1,0 +1,697 @@
+/* 화면 전체의 디자인 토큰과 공용 조각. 값은 docs/DESIGN.md와 docs/design-mockup.html에서 그대로 가져왔다 */
+
+:root {
+  --paper: #e6e9e2;
+  --sheet: #f8f9f5;
+  --sheet-2: #eff1ea;
+  --ink: #17201b;
+  --ink-muted: #626c64;
+  --ink-faint: #8b948b;
+  --rule: #c8cec3;
+  --rule-soft: #dce0d7;
+  --pass: #0d6a46;
+  --fail: #a62b21;
+  --na: #8a7742;
+  --pass-bg: #e2ede6;
+  --fail-bg: #f6e4e1;
+  --na-bg: #f1ebdc;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Pretendard, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  /* 숫자를 세로로 맞춰야 훑을 수 있다 (DESIGN.md 원칙 3) */
+  font-feature-settings: 'tnum';
+  background-image: linear-gradient(var(--rule-soft) 0.5px, transparent 0.5px),
+    linear-gradient(90deg, var(--rule-soft) 0.5px, transparent 0.5px);
+  background-size: 28px 28px;
+  padding: 24px 16px 80px;
+}
+
+.wrap {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.screen {
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  margin-bottom: 28px;
+}
+
+.screen-tag {
+  font-size: 12px;
+  color: var(--ink-faint);
+  padding: 0 0 8px 2px;
+}
+
+/* 상단 이동 */
+.nav {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.nav a {
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--ink-muted);
+  text-decoration: none;
+  background: transparent;
+}
+
+.nav a[aria-current='page'] {
+  background: var(--ink);
+  color: var(--sheet);
+  border-color: var(--ink);
+}
+
+.nav a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+
+/* 머리 */
+.bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+
+.runid {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.runmeta {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}
+
+.case-tc {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.case-name {
+  font-size: 19px;
+  font-weight: 600;
+  margin-top: 4px;
+  letter-spacing: -0.01em;
+}
+
+.tally {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.tally b {
+  font-size: 20px;
+  font-weight: 800;
+  display: block;
+  line-height: 1.2;
+}
+
+.tally span {
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+
+.stripe {
+  display: flex;
+  height: 6px;
+  margin: 0 24px;
+  overflow: hidden;
+}
+
+.stripe i {
+  display: block;
+  height: 100%;
+}
+
+/* 도구 줄 */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--rule-soft);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+input[type='text'],
+input[type='number'],
+select {
+  font: inherit;
+  font-size: 13px;
+  background: var(--sheet);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 7px 10px;
+}
+
+.toolbar input[type='text'] {
+  flex: 1;
+  min-width: 180px;
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+
+.chip {
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--sheet);
+  border-color: var(--ink);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+
+.filter-label {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-left: 4px;
+}
+
+/* 행 */
+.row {
+  display: grid;
+  grid-template-columns: 4px 128px 1fr auto;
+  gap: 0 16px;
+  align-items: center;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.row:hover {
+  background: var(--sheet-2);
+}
+
+.gutter {
+  align-self: stretch;
+}
+
+.tcid {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  letter-spacing: 0.01em;
+  padding: 14px 0;
+}
+
+.title {
+  font-size: 14.5px;
+  padding: 14px 0;
+}
+
+.title small {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px 14px 0;
+}
+
+.dur {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.verdict {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 2px;
+  min-width: 52px;
+  text-align: center;
+  display: inline-block;
+}
+
+.v-pass {
+  background: var(--pass-bg);
+  color: var(--pass);
+}
+
+.v-fail {
+  background: var(--fail);
+  color: #fff;
+}
+
+.v-na {
+  background: var(--na-bg);
+  color: var(--na);
+}
+
+/* 환경별 판정 묶음. 케이스 1행에 PC·모바일을 나란히 둔다 (SPEC §8.3) */
+.envs {
+  display: flex;
+  gap: 12px;
+}
+
+.env {
+  text-align: center;
+  min-width: 62px;
+}
+
+.env-name {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-bottom: 3px;
+}
+
+.env-dur {
+  display: block;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  margin-top: 3px;
+}
+
+.env-none {
+  display: inline-block;
+  min-width: 52px;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  padding: 4px 10px;
+}
+
+/* 구획 */
+.sec {
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.sec:last-child {
+  border-bottom: 0;
+}
+
+.sec-h {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.pre {
+  font-size: 13.5px;
+  color: var(--ink);
+  padding: 3px 0 3px 16px;
+  position: relative;
+}
+
+.pre::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 12px;
+  width: 6px;
+  height: 1px;
+  background: var(--ink-faint);
+}
+
+/* 입력 칸 */
+.field {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  gap: 10px 16px;
+  align-items: center;
+  padding: 7px 0;
+}
+
+.field label {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.field .val {
+  font-size: 13.5px;
+}
+
+.field input[type='text'],
+.field select {
+  width: 100%;
+}
+
+/* 숫자 칸은 120px (DESIGN.md). 위의 width:100%보다 뒤에 오고 선택자가 같아야 이긴다 */
+.field input.narrow,
+.field select.narrow {
+  width: 120px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-top: 4px;
+}
+
+.opt {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+
+/* 칸 아래 오류 한 줄. 버튼은 비활성화하지 않는다 (SPEC §8.2) */
+.err {
+  grid-column: 2;
+  font-size: 12px;
+  color: var(--fail);
+  margin-top: -4px;
+}
+
+.empty {
+  padding: 28px 24px;
+  color: var(--ink-faint);
+  font-size: 13.5px;
+}
+
+/* 절차 */
+.step {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.step:last-child {
+  border-bottom: 0;
+}
+
+.step-h {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.step-n {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-faint);
+  min-width: 18px;
+}
+
+.step-t {
+  font-size: 14px;
+  flex: 1;
+}
+
+.assert {
+  display: grid;
+  grid-template-columns: 18px 1fr auto auto;
+  gap: 0 12px;
+  align-items: baseline;
+  font-size: 13px;
+  padding: 5px 0 5px 28px;
+}
+
+.assert.bad {
+  background: var(--fail-bg);
+  margin: 4px -24px;
+  padding: 8px 24px 8px 52px;
+}
+
+.mark {
+  font-weight: 800;
+}
+
+.exp,
+.act {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  min-width: 76px;
+  text-align: right;
+}
+
+.act b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.assert.bad .act b {
+  color: var(--fail);
+}
+
+.blocker {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fail);
+  margin-left: 8px;
+}
+
+/* 실패한 검증 문장 아래에 붙는 것들 (SPEC §8.4) */
+.after-assert {
+  padding: 4px 0 8px 52px;
+}
+
+.shot img {
+  display: block;
+  max-width: 260px;
+  border: 1px solid var(--rule);
+  margin: 8px 0;
+}
+
+.code {
+  margin-top: 6px;
+}
+
+.code summary {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.code summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+
+.code pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  background: var(--sheet-2);
+  border: 1px solid var(--rule-soft);
+  padding: 10px 12px;
+  margin-top: 6px;
+  overflow-x: auto;
+}
+
+.code .no {
+  color: var(--ink-faint);
+  margin-right: 12px;
+}
+
+.code .focus {
+  background: var(--fail-bg);
+  display: block;
+}
+
+/* 단추 */
+.actions {
+  display: flex;
+  gap: 10px;
+  padding: 18px 24px;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 2px;
+  cursor: pointer;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--sheet);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--ink);
+}
+
+.btn.small {
+  font-size: 12.5px;
+  padding: 6px 12px;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--fail);
+  outline-offset: 2px;
+}
+
+.note {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-right: auto;
+}
+
+/* 환경 선택 */
+.checks {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.checks label {
+  font-size: 13.5px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+}
+
+/* 쪽 넘김 */
+.pager {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 14px 24px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.pager button {
+  font: inherit;
+  font-size: 12.5px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink);
+  padding: 5px 12px;
+  cursor: pointer;
+}
+
+.pager button:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.pager button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -1px;
+}
+
+/* 스캔 결과 줄 */
+.scan {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--rule-soft);
+  flex-wrap: wrap;
+}
+
+.scan-text {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.scan-error {
+  font-size: 12.5px;
+  color: var(--fail);
+  white-space: pre-wrap;
+  flex-basis: 100%;
+}
+
+@media (max-width: 620px) {
+  .row {
+    grid-template-columns: 4px 1fr;
+    gap: 0 12px;
+  }
+
+  .tcid {
+    padding: 12px 0 0;
+  }
+
+  .title {
+    padding: 2px 0 12px;
+  }
+
+  .right {
+    padding: 0 16px 12px 0;
+    justify-content: flex-start;
+    grid-column: 2;
+  }
+
+  .field {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .err {
+    grid-column: 1;
+  }
+
+  .assert {
+    grid-template-columns: 18px 1fr;
+    padding-left: 20px;
+  }
+
+  .exp,
+  .act {
+    text-align: left;
+    grid-column: 2;
+  }
+
+  .after-assert {
+    padding-left: 20px;
+  }
+}
