@@ -8,6 +8,17 @@ import type { Pool } from 'pg';
 
 export const DEFAULT_TIMEOUT_MS = 300_000;
 
+// 요청이 잘못된 것과 서버가 고장난 것을 라우트가 문자열로 가려내지 않게 한다
+export class RunInputError extends Error {
+  constructor(
+    readonly code: 'CASE_NOT_FOUND' | 'INVALID_REQUEST',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'RunInputError';
+  }
+}
+
 export interface RunItemInput {
   tcId: string;
   platforms: Platform[];
@@ -52,16 +63,16 @@ const INSERT_ITEM = `
   RETURNING history_id`;
 
 export async function createRun(input: CreateRunInput): Promise<{ runId: number; items: PendingItem[] }> {
-  if (input.items.length === 0) throw new Error('실행할 케이스가 하나도 없다');
-  if (input.title.trim() === '') throw new Error('실행 제목이 비어 있다');
+  if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');
+  if (input.title.trim() === '') throw new RunInputError('INVALID_REQUEST', '실행 제목이 비어 있다');
 
   // 같은 실행 안에서 케이스×환경은 한 행뿐이다(run_item의 UNIQUE). 조용히 버리면 뒤에 넣은 입력값이 사라진다
   const seen = new Set<string>();
   for (const item of input.items) {
-    if (item.platforms.length === 0) throw new Error(`${item.tcId}에 실행할 환경이 없다`);
+    if (item.platforms.length === 0) throw new RunInputError('INVALID_REQUEST', `${item.tcId}에 실행할 환경이 없다`);
     for (const platform of item.platforms) {
       const key = `${item.tcId}/${platform}`;
-      if (seen.has(key)) throw new Error(`${item.tcId}의 ${platform} 환경이 두 번 들어 있다`);
+      if (seen.has(key)) throw new RunInputError('INVALID_REQUEST', `${item.tcId}의 ${platform} 환경이 두 번 들어 있다`);
       seen.add(key);
     }
   }
@@ -77,7 +88,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     );
     const cases = new Map(found.rows.map((r) => [r.tc_id, r]));
     const missing = input.items.filter((i) => !cases.has(i.tcId)).map((i) => i.tcId);
-    if (missing.length > 0) throw new Error(`카탈로그에 없는 케이스다: ${missing.join(', ')}`);
+    if (missing.length > 0) throw new RunInputError('CASE_NOT_FOUND', `카탈로그에 없는 케이스다: ${missing.join(', ')}`);
 
     const run = await client.query<{ run_id: string }>(
       "INSERT INTO test_run (title, triggered_by, status) VALUES ($1, $2, 'RUNNING') RETURNING run_id",

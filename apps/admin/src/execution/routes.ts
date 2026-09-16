@@ -1,11 +1,19 @@
 // 실행 컨텍스트의 HTTP 라우트 (SPEC §7 Execution)
 // 규약: default export 한 Fastify 플러그인을 app.ts가 /api 접두사로 등록한다
 
+import { readFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { dispatch } from './dispatcher.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
+import { caseHistory, findItem, findRun, lastByCase, listRuns } from './queries.js';
+import { createRun, RunInputError } from './store.js';
 import { validate } from './validate.js';
+
+const PAGE_SIZE = 50;
 
 const paramSetBody = z.object({
   name: z.string().min(1),
@@ -13,7 +21,98 @@ const paramSetBody = z.object({
   expected: z.record(z.string(), z.unknown()).default({}),
 });
 
+const runBody = z.object({
+  title: z.string().min(1),
+  // test_run.triggered_by는 NOT NULL이다. 화면이 안 적어 보내면 admin이 눌렀다고 남긴다
+  triggeredBy: z.string().min(1).default('admin'),
+  items: z
+    .array(
+      z.object({
+        tcId: z.string().min(1),
+        platforms: z.array(z.enum(['desktop', 'mobile'])).min(1),
+        params: z.record(z.string(), z.unknown()).default({}),
+        expected: z.record(z.string(), z.unknown()).default({}),
+        // SPEC §10의 DEMO-007은 5초로 줘야 러너의 타임아웃 처리를 확인할 수 있다
+        timeoutMs: z.number().int().positive().optional(),
+      }),
+    )
+    .min(1),
+});
+
+// 러너와 어드민이 같은 볼륨을 본다. 경로 규칙은 artifacts/runs/{runId}/{historyId}/{seq}.png (SPEC §9)
+function artifactsDir(): string {
+  return process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts');
+}
+
+function page(raw: string | undefined): number {
+  return Math.max(1, Number(raw ?? 1) || 1);
+}
+
 export default async function executionRoutes(app: FastifyInstance): Promise<void> {
+  app.post('/runs', async (req, reply) => {
+    const parsed = runBody.safeParse(req.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
+    }
+
+    try {
+      const { runId, items } = await createRun(parsed.data);
+      // 기다리지 않는다. 케이스 하나가 5분이면 응답이 5분 동안 열려 있게 된다 (SPEC §7)
+      void dispatch(runId, items).catch((err: unknown) => {
+        app.log.error(`[execution] 실행 ${runId} 분배가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
+      });
+      return { runId };
+    } catch (err) {
+      if (err instanceof RunInputError) {
+        return reply.code(err.code === 'CASE_NOT_FOUND' ? 404 : 400).send({ error: err.code, detail: err.message });
+      }
+      throw err;
+    }
+  });
+
+  app.get<{ Querystring: { page?: string } }>('/runs', async (req) => listRuns(page(req.query.page), PAGE_SIZE));
+
+  // 목록 화면이 케이스마다 이력을 따로 부르지 않게 한 번에 준다 (SPEC §8.1, WS-A 검사 기록 '기타 2')
+  app.get('/runs/last-by-case', async () => ({ items: await lastByCase() }));
+
+  app.get<{ Params: { runId: string } }>('/runs/:runId', async (req, reply) => {
+    const found = await findRun(Number(req.params.runId));
+    if (found === null) return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
+    return found;
+  });
+
+  app.get<{ Params: { runId: string; historyId: string } }>('/runs/:runId/items/:historyId', async (req, reply) => {
+    const found = await findItem(Number(req.params.runId), Number(req.params.historyId));
+    if (found === null) return reply.code(404).send({ error: 'RUN_ITEM_NOT_FOUND', detail: req.params.historyId });
+    return found;
+  });
+
+  app.get<{ Params: { tcId: string }; Querystring: { platform?: string; page?: string } }>(
+    '/cases/:tcId/history',
+    async (req) => caseHistory(req.params.tcId, req.query.platform, page(req.query.page), PAGE_SIZE),
+  );
+
+  app.get<{ Params: { runId: string; historyId: string; seq: string } }>(
+    '/screenshots/:runId/:historyId/:seq.png',
+    async (req, reply) => {
+      const parts = [req.params.runId, req.params.historyId, req.params.seq].map(Number);
+      // 경로를 정수로만 조립한다. 볼륨 밖으로 올라가는 경로가 애초에 만들어지지 않는다
+      if (parts.some((n) => !Number.isInteger(n) || n < 0)) {
+        return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
+      }
+
+      const file = join(artifactsDir(), 'runs', String(parts[0]), String(parts[1]), `${parts[2]}.png`);
+      let png: Buffer;
+      try {
+        png = await readFile(file);
+      } catch {
+        // 내보낼 것을 손에 쥔 뒤에 형식을 정한다. 먼저 image/png로 박아 두면 404 본문을 png로 쓰려다 500이 난다
+        return reply.code(404).send({ error: 'SCREENSHOT_NOT_FOUND', detail: req.url });
+      }
+      return reply.type('image/png').send(png);
+    },
+  );
+
   app.get<{ Params: { tcId: string } }>('/cases/:tcId/param-sets', async (req) => ({
     items: await listParamSets(req.params.tcId),
   }));
