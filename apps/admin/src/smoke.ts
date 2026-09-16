@@ -5,7 +5,7 @@
 import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
 
 // 호스트에서 npm run smoke 한 번으로 돌 수 있게 기본값을 준다. 컨테이너 안에서는 compose가 덮어쓴다
-process.env.DATABASE_URL ??= 'postgres://platform:platform@localhost:5432/platform';
+process.env.DATABASE_URL ??= 'postgres://platform:platform@localhost:5433/platform';
 const runnerUrl = process.env.RUNNER_URL ?? 'http://localhost:4000';
 
 const { pool } = await import('./db/index.js');

@@ -9,6 +9,10 @@ COPY apps/admin/package.json apps/admin/
 COPY apps/runner/package.json apps/runner/
 RUN npm ci
 
+# 스캐너가 /tests의 파일을 동적 import 한다. 읽기 전용이라 그 안에 node_modules를 둘 수 없으므로
+# 루트에 링크를 걸어 /tests 밖에서 모듈이 resolve 되게 한다 (SPEC §3.1, §9)
+RUN ln -s /app/node_modules /node_modules
+
 COPY tsconfig.json playwright.config.ts ./
 COPY packages ./packages
 COPY apps/admin ./apps/admin

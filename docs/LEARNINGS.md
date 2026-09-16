@@ -75,6 +75,18 @@
 
 (여기부터 쌓는다. 가장 최근 것이 위로.)
 
+## [환경] 2026-09-16 · 호스트 5432는 이미 로컬 PostgreSQL이 잡고 있다
+증상:  `npm run smoke`가 `role "platform" does not exist`. 컨테이너 안 psql은 정상이었다
+원인:  맥에 설치된 PostgreSQL이 127.0.0.1:5432를 선점. 도커는 `*:5432`라 localhost 연결은 로컬 쪽이 받는다
+해법:  compose에서 호스트 쪽만 `5433:5432`로 비켜 쓴다. 컨테이너끼리는 그대로 5432
+주의:  호스트에서 DB를 열 때는 5433이다. `docker compose exec postgres psql`은 포트와 무관하다
+
+## [Phase0] 2026-09-16 · /tests 안에서 @playwright/test를 못 찾는다
+증상:  러너에서 `npx playwright test /tests/...` → `Cannot find module '@playwright/test'`
+원인:  Node는 파일 위치에서 루트까지 올라가며 node_modules를 찾는다. `/tests/demo` → `/tests` → `/` 경로는 `/app`을 지나지 않는다
+해법:  이미지에 `ln -s /app/node_modules /node_modules`. 루트까지 올라오면 찾는다
+주의:  admin도 스캔 때 /tests를 동적 import 하므로 양쪽 Dockerfile에 다 넣어야 한다
+
 ## [환경] 2026-09-16 · `ALLOW_PROTECTED=1 claude`로 띄워도 훅이 계속 막는다
 증상:  SETUP.md §5대로 띄웠는데 protected 훅이 types.ts·docker-compose.yml을 그대로 차단
 원인:  Claude Code가 데몬 구조다. 세션은 터미널이 아니라 상주 데몬에서 태어나므로 터미널 앞에 붙인 환경변수가 세션에 전달되지 않는다

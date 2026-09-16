@@ -9,7 +9,9 @@ services:
       POSTGRES_PASSWORD: platform
       POSTGRES_DB: platform
     ports:
-      - "5432:5432"        # G1에서 사람이 run_item을 직접 열어봐야 한다
+      # G1에서 사람이 run_item을 직접 열어봐야 한다. 개발 PC에 이미 PostgreSQL이 깔린 경우가 많아
+      # 호스트 쪽은 5433으로 비켜 쓴다 (컨테이너끼리는 그대로 5432로 통신한다)
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro

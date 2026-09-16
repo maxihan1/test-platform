@@ -11,6 +11,10 @@ COPY apps/admin/package.json apps/admin/
 COPY apps/runner/package.json apps/runner/
 RUN npm ci
 
+# Node는 파일 위치에서 루트까지 올라가며 node_modules를 찾는다. /tests에서 시작하면 /app을 못 지나므로
+# 루트에 링크를 걸어야 @playwright/test·@platform/kit·zod가 resolve 된다 (SPEC §9)
+RUN ln -s /app/node_modules /node_modules
+
 COPY tsconfig.json playwright.config.ts ./
 COPY packages ./packages
 COPY apps/runner ./apps/runner
