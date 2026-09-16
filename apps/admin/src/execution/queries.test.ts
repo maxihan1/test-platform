@@ -4,7 +4,8 @@
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { caseHistory, findItem, findRun, lastByCase, listRuns } from './queries.js';
+import { caseHistory, lastByCase } from './history.js';
+import { findItem, findRun, listRuns } from './queries.js';
 
 const 연결 = process.env.DATABASE_URL;
 

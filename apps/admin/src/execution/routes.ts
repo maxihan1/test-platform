@@ -9,7 +9,8 @@ import { z } from 'zod';
 
 import { dispatch } from './dispatcher.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
-import { caseHistory, findItem, findRun, lastByCase, listRuns } from './queries.js';
+import { caseHistory, lastByCase } from './history.js';
+import { findItem, findRun, listRuns } from './queries.js';
 import { createRun, RunInputError } from './store.js';
 import { validate } from './validate.js';
 
