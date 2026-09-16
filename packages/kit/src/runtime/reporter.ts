@@ -6,7 +6,12 @@ import { readFileSync } from 'node:fs';
 import type { Reporter, TestCase, TestResult } from '@playwright/test/reporter';
 
 import type { ExecuteResponse, ItemStatus, StepResult } from '../types.js';
-import { RESULT_MARKER, STEP_ATTACHMENT } from './protocol.js';
+
+// 이 파일에는 값을 가져오는 상대 import를 두지 않는다. 러너 이미지의 Node 24는 './x.js'를 x.ts로
+// 풀어주지 않아 리포터가 통째로 로드되지 않는다. 타입 import는 지워지므로 괜찮다.
+// protocol.ts와 같은 값이어야 하며 reporter.test.ts가 그것을 지킨다
+export const RESULT_MARKER = '@@RESULT@@';
+export const STEP_ATTACHMENT = 'platform-step';
 
 function collectSteps(result: TestResult): StepResult[] {
   const steps: StepResult[] = [];
@@ -27,9 +32,20 @@ function statusOf(result: TestResult, steps: StepResult[]): ItemStatus {
   return 'PASS';
 }
 
-function errorOf(result: TestResult, steps: StepResult[], status: ItemStatus): ExecuteResponse['error'] {
+// 건너뛴 이유는 실행 중에 붙는다. 선언하지 않은 환경으로 부른 경우가 여기로 온다
+function skipReason(test: TestCase, result: TestResult): string | undefined {
+  const annotations = [...result.annotations, ...test.annotations];
+  return annotations.find((a) => a.type === 'skip')?.description;
+}
+
+function errorOf(
+  result: TestResult,
+  steps: StepResult[],
+  status: ItemStatus,
+  skipped: string | undefined,
+): ExecuteResponse['error'] {
   if (status === 'NA') {
-    return { message: result.error?.message ?? '판정 없이 실행이 끝났다' };
+    return { message: result.error?.message ?? skipped ?? '판정 없이 실행이 끝났다' };
   }
   // 검증 문장으로 갈린 실패는 문장 자체가 사유다. error는 코드가 더 갈 수 없었던 경우에만 채운다
   const byException = steps.length === 0 || steps.some((s) => s.error !== undefined);
@@ -43,10 +59,10 @@ function errorOf(result: TestResult, steps: StepResult[], status: ItemStatus): E
 }
 
 class PlatformReporter implements Reporter {
-  onTestEnd(_test: TestCase, result: TestResult): void {
+  onTestEnd(test: TestCase, result: TestResult): void {
     const steps = collectSteps(result);
     const status = statusOf(result, steps);
-    const error = errorOf(result, steps, status);
+    const error = errorOf(result, steps, status, skipReason(test, result));
 
     const payload: ExecuteResponse = {
       historyId: Number(process.env.PLATFORM_HISTORY_ID ?? 0),

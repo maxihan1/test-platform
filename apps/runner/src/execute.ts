@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { ExecuteRequest, ExecuteResponse, ItemStatus } from '@platform/kit';
 
+import { killTree } from './kill.js';
 import { parseResult, type RunnerResult } from './result.js';
 
 // playwright.config.ts가 있는 곳. 여기서 자식 프로세스를 띄워야 projects 정의가 잡힌다
@@ -61,6 +62,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         PLATFORM_HISTORY_ID: String(req.historyId),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
+      // 타임아웃 때 브라우저까지 한 번에 끊으려면 자식이 자기 프로세스 그룹의 장이어야 한다 (kill.ts)
+      detached: true,
     },
   );
 
@@ -72,7 +75,7 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
-    child.kill('SIGKILL');
+    killTree(child);
   }, req.timeoutMs);
 
   // spawn 실패(프로세스를 못 띄움)는 러너 자체의 고장이므로 던져서 500으로 올린다
