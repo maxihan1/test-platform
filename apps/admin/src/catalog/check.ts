@@ -64,12 +64,12 @@ async function main(): Promise<void> {
     propLines.set(rel(file), result.propLines);
   }
 
-  const { specs, failures, duplicate } = await scan(root);
+  const { specs, failures, duplicates } = await scan(root);
 
   for (const failure of failures) {
     violations.push(k8(failure.file, `명세를 읽지 못했다: ${failure.message}`));
   }
-  if (duplicate !== null) {
+  for (const duplicate of duplicates) {
     const [first, second] = duplicate.files;
     violations.push({
       file: second,

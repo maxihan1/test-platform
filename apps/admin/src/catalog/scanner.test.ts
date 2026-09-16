@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { caseFiles, duplicateOf, scan } from './scanner.js';
+import { caseFiles, duplicatesOf, scan } from './scanner.js';
 
 let 깨진폴더: string;
 
@@ -47,22 +47,32 @@ describe('caseFiles', () => {
   });
 });
 
-describe('duplicateOf', () => {
+describe('duplicatesOf', () => {
   it('같은 tcId가 두 파일에 있으면 양쪽 경로를 돌려준다', () => {
-    const found = duplicateOf([spec('DEMO-001', 'a/one.spec.ts'), spec('DEMO-001', 'b/two.spec.ts')]);
-    expect(found).toEqual({ tcId: 'DEMO-001', files: ['a/one.spec.ts', 'b/two.spec.ts'] });
+    const found = duplicatesOf([spec('DEMO-001', 'a/one.spec.ts'), spec('DEMO-001', 'b/two.spec.ts')]);
+    expect(found).toEqual([{ tcId: 'DEMO-001', files: ['a/one.spec.ts', 'b/two.spec.ts'] }]);
   });
 
-  it('중복이 없으면 null이다', () => {
-    expect(duplicateOf([spec('DEMO-001', 'a.spec.ts'), spec('DEMO-002', 'b.spec.ts')])).toBeNull();
+  it('겹친 쌍이 둘이면 둘 다 돌려준다', () => {
+    const found = duplicatesOf([
+      spec('DEMO-001', 'a.spec.ts'),
+      spec('DEMO-001', 'b.spec.ts'),
+      spec('DEMO-002', 'c.spec.ts'),
+      spec('DEMO-002', 'd.spec.ts'),
+    ]);
+    expect(found.map((d) => d.tcId)).toEqual(['DEMO-001', 'DEMO-002']);
+  });
+
+  it('중복이 없으면 빈 배열이다', () => {
+    expect(duplicatesOf([spec('DEMO-001', 'a.spec.ts'), spec('DEMO-002', 'b.spec.ts')])).toEqual([]);
   });
 });
 
 describe('scan', () => {
   it('데모 케이스 10건을 tcId 순으로 돌려준다', async () => {
-    const { specs, failures, duplicate } = await scan();
+    const { specs, failures, duplicates } = await scan();
     expect(failures).toEqual([]);
-    expect(duplicate).toBeNull();
+    expect(duplicates).toEqual([]);
     expect(specs.map((s) => s.tcId)).toEqual([
       'DEMO-001', 'DEMO-002', 'DEMO-003', 'DEMO-004', 'DEMO-005',
       'DEMO-006', 'DEMO-007', 'DEMO-008', 'DEMO-009', 'DEMO-010',
