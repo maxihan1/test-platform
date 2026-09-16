@@ -75,6 +75,36 @@
 
 (여기부터 쌓는다. 가장 최근 것이 위로.)
 
+## [WS-C] 2026-09-16 · 러너 이미지의 Node 24에서는 리포터의 상대 import가 안 풀린다
+증상:  컨테이너에서만 `Failed to load the ES module: .../protocol.ts` 경고 하나만 남고 실행이 통째로 실패한다. 호스트에서는 멀쩡하다
+원인:  호스트는 Node 22라 Playwright 변환기가 `./x.js`를 `x.ts`로 풀어준다. 이미지의 Node 24는 타입 스트리핑이 기본이라 그 변환을 안 타고, Node는 그 변환을 하지 않는다
+해법:  Playwright가 직접 로드하는 파일(리포터)에는 **값을 가져오는 상대 import를 두지 않는다.** 타입 import는 지워지므로 괜찮다
+주의:  테스트 파일과 kit 본체는 `/tests`에 package.json이 없어 CJS 경로를 타므로 영향이 없다. 러너·admin은 tsx가 풀어준다
+
+## [WS-C] 2026-09-16 · child.kill()은 npx만 죽이고 브라우저가 남는다
+증상:  `timeoutMs: 5000`을 준 DEMO-007이 33초 만에 응답했다. 판정은 NA로 맞지만 시간이 6배다
+원인:  `npx → node → 브라우저`인데 자식만 죽였다. 손자가 stdout 파이프를 쥔 채 남아 close 이벤트가 30초 뒤에야 왔다
+해법:  `spawn(..., { detached: true })`로 띄우고 `process.kill(-pid, 'SIGKILL')`로 그룹째 끊는다
+주의:  admin의 HTTP 타임아웃은 `timeoutMs + 30초`다. 이걸 안 고치면 긴 케이스에서 admin이 먼저 끊긴다
+
+## [WS-C] 2026-09-16 · zod-to-json-schema가 zod 4 스키마에서 빈 결과를 뱉는다
+증상:  `zodToJsonSchema(z.object({...}))`가 `{"$schema":...}` 하나만 돌려준다. properties도 required도 없다
+원인:  설치된 zod는 4.1.12인데 zod-to-json-schema 3.24는 zod 3의 `_def.typeName`을 읽는다. zod 4는 내부 구조가 다르다
+해법:  zod 4 내장 `z.toJSONSchema(schema, { io: 'input' })`를 쓴다. `io:'input'`이라야 `.default()`가 있는 필드가 required에서 빠진다
+주의:  SPEC §9.1 스택 표에는 아직 `zod-to-json-schema`가 적혀 있다. 새 의존성이 아니라 이미 깔린 zod의 API라 추가 설치는 없다
+
+## [WS-C] 2026-09-16 · Playwright가 테스트 위치를 kit의 래퍼 파일로 잡는다
+증상:  `npx playwright test --list`가 모든 케이스를 `packages/kit/src/runtime/test.ts:95`로 표시하고 "1 file"로 센다
+원인:  Playwright는 `test()`를 부른 스택의 첫 프레임을 위치로 쓴다. kit 래퍼가 부르므로 래퍼 파일이 찍힌다
+해법:  기계 검사는 `--list --reporter=json`을 쓴다. `suites[].file`은 케이스 파일이 정확히 들어오고 파일마다 specs가 1건이다
+주의:  WS-A의 K8 검사가 사람이 읽는 `--list` 출력을 파싱하면 어긋난다. JSON으로 봐야 한다
+
+## [WS-C] 2026-09-16 · 스크린샷은 리포터가 아니라 kit이 찍는다
+증상:  킥오프는 "리포터가 실패한 스텝의 스크린샷을 저장한다"인데 리포터에는 `page`가 없다
+원인:  Playwright 리포터는 결과만 받는 관찰자다. 절차 단위로 화면을 찍으려면 실행 중인 픽스처를 쥔 쪽이어야 한다
+해법:  kit의 절차 래퍼가 찍어 경로를 StepResult에 담고, 리포터는 조립·출력만 한다. 계약(`StepResult`)은 그대로다
+주의:  경로에 필요한 runId·historyId는 러너가 `PLATFORM_RUN_ID`·`PLATFORM_HISTORY_ID`로 넘긴다. 화면을 연 적 없는 API 케이스는 찍지 않고 `httpTrace`를 남긴다
+
 ## [환경] 2026-09-16 · 호스트 5432는 이미 로컬 PostgreSQL이 잡고 있다
 증상:  `npm run smoke`가 `role "platform" does not exist`. 컨테이너 안 psql은 정상이었다
 원인:  맥에 설치된 PostgreSQL이 127.0.0.1:5432를 선점. 도커는 `*:5432`라 localhost 연결은 로컬 쪽이 받는다
