@@ -75,6 +75,30 @@
 
 (여기부터 쌓는다. 가장 최근 것이 위로.)
 
+## [WS-B] 2026-09-16 · reply.type()을 먼저 박으면 404 본문이 500으로 나간다
+증상:  없는 스크린샷을 요청하면 404가 아니라 500이 떨어졌다
+원인:  `reply.type('image/png').send(await readFile(...))`는 readFile보다 type()이 먼저 평가된다. 실패해서 catch로 가면 응답은 이미 image/png라 JSON 본문을 직렬화하지 못한다
+해법:  읽을 것을 손에 쥔 뒤에 형식을 정한다. 먼저 buffer를 받고, 성공했을 때만 type()을 건다
+주의:  reply를 체이닝하는 모든 자리에 같은 함정이 있다. 에러 경로가 다른 content-type을 쓴다면 형식은 마지막에 정한다
+
+## [WS-B] 2026-09-16 · 테스트 파일마다 DB fixture 접두사를 갈라야 한다
+증상:  파일 하나만 돌리면 9건 전부 통과, 전체로 돌리면 7건 실패
+원인:  두 테스트 파일이 같은 `ZZB%` 접두사를 쓰고 afterAll에서 `DELETE ... LIKE 'ZZB%'`를 했다. Vitest는 파일을 병렬로 돌리므로 한쪽이 다른 쪽의 케이스 행을 지웠다
+해법:  파일마다 접두사를 다르게 준다 (`ZZBS%`·`ZZBR%`·`ZZBQ%`·`ZZBX%`). WS-A는 `ZZA%`다
+주의:  한 파일만 돌려서 통과하는 것은 증거가 못 된다. DB를 쓰는 테스트는 반드시 전체로 한 번 더 돌린다
+
+## [환경] 2026-09-16 · 컨테이너가 병합 전 이미지를 물고 있으면 케이스가 전부 FAIL로 보인다
+증상:  러너에 DEMO-001을 보내면 `TypeError: (0 , _kit.defineCase) is not a function`. 호스트에서 같은 코드는 멀쩡하다
+원인:  이미지가 `packages/kit`을 빌드 시점에 굽는다. WS-C 병합 전에 뜬 컨테이너는 옛 kit을 그대로 들고 있다
+해법:  `docker compose build runner && docker compose up -d runner`. admin도 같다
+주의:  코드가 아니라 이미지가 낡은 것이다. 러너 응답이 통째로 이상하면 먼저 `docker compose ps`의 CREATED와 마지막 커밋 시각을 대 본다
+
+## [환경] 2026-09-16 · 워크트리 세션의 WORKSTREAM은 메인 체크아웃 설정을 고쳐야 바뀐다
+증상:  WS-B 폴더에 파일을 만들려는데 훅이 "WS-A 소유 경로 밖이다"로 막았다
+원인:  워크스트림은 `.claude/settings.local.json`으로 지정하는데 이 파일은 gitignore라 새 워크트리에 딸려오지 않는다. 세션 환경변수는 메인 체크아웃 쪽에서 온다
+해법:  메인 체크아웃의 `.claude/settings.local.json`을 `{"env":{"WORKSTREAM":"B"}}`로 고친다. 즉시 반영된다 (세션 재시작 불필요)
+제안:  같은 유형(설정이 세션에 전달되는 경로)이 두 번째다. SETUP.md §5나 HOOKS.md에 "워크트리로 갈래를 나눌 때는 메인 쪽 WORKSTREAM을 바꾼다"를 규칙으로 올릴 것을 제안한다
+
 ## [WS-A] 2026-09-16 · PLATFORM_SCAN이 자식 playwright로 새어 K8이 전부 거짓 위반이 됐다
 증상:  `check:tests`가 멀쩡한 10건을 전부 "테스트를 하나도 등록하지 않았다"로 찍었다
 원인:  스캐너가 `process.env.PLATFORM_SCAN = '1'`을 켠 채로 두고, 그 뒤 `--list`를 자식으로 띄웠다. 자식이 그대로 물려받아 kit이 등록을 건너뛴다
