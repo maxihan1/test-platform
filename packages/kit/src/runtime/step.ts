@@ -2,8 +2,16 @@
 
 import type { ItemStatus, StepResult } from '../types.js';
 import { callerLine } from './callsite.js';
-import { stepScope, type RunScope, type StepScope } from './context.js';
+import { runScope, stepScope, type RunScope, type StepScope } from './context.js';
 import { BlockerStop } from './verify.js';
+
+// 멈춘 절차 뒤로는 돌지 않는다는 내부 신호. 케이스 본문을 빠져나가는 용도로만 쓴다 (SPEC §4)
+export class StopTest extends Error {
+  constructor() {
+    super('앞 절차에서 실행이 중단됐다');
+    this.name = 'StopTest';
+  }
+}
 
 export interface StepOptions {
   // 검수 문서에 "이 화면이 이렇게 나왔다"를 넣어야 할 때 쓴다. 기본값은 false (SPEC §4)
@@ -50,6 +58,9 @@ export async function runStep(
   const status: ItemStatus = failed ? 'FAIL' : 'PASS';
   if (failed) run.failed = true;
   if (stopped) run.stopped = true;
+  if (failed && run.firstFailure === undefined) {
+    run.firstFailure = scope.assertions.find((a) => a.status === 'FAIL')?.statement ?? error?.message;
+  }
 
   // 통과한 화면은 아무도 열어보지 않는다. 실패했거나 증적용으로 지정한 절차만 찍는다 (SPEC §4)
   const screenshotPath = failed || options?.capture === true ? await run.capture(seq) : undefined;
@@ -63,4 +74,22 @@ export async function runStep(
   await run.emit(result);
 
   return { stopped, ...(fatal === undefined ? {} : { fatal }) };
+}
+
+// 테스트 코드가 부르는 절차 선언. Playwright의 test.step(title, body, options)과 인자 순서가 같다 (SPEC §4)
+export async function step(
+  title: string,
+  body: () => Promise<void> | void,
+  options?: StepOptions,
+): Promise<void> {
+  const run = runScope.getStore();
+  if (!run) {
+    throw new Error(`절차 '${title}'을 케이스 밖에서 선언했다. kit의 test(spec, ...) 안에서만 부를 수 있다`);
+  }
+  if (run.stopped) throw new StopTest();
+
+  const outcome = await runStep(run, title, body, options);
+  // 예외는 원본 그대로 올린다. Playwright 출력에 원래 메시지와 위치가 남아야 한다
+  if (outcome.fatal !== undefined) throw outcome.fatal;
+  if (outcome.stopped) throw new StopTest();
 }

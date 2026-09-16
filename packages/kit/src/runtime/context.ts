@@ -16,6 +16,8 @@ export interface RunScope {
   seq: number;
   failed: boolean;
   stopped: boolean;
+  // 케이스가 왜 실패했는지 한 줄. 사람이 Playwright 출력만 봐도 알 수 있게 남긴다
+  firstFailure?: string;
   // 스크린샷과 결과 전달은 Playwright에 닿는 일이라 문맥에는 함수로만 담는다. 이 파일이 Playwright를 몰라야 단위 테스트가 가능하다
   capture(seq: number): Promise<string | undefined>;
   emit(result: StepResult): Promise<void>;

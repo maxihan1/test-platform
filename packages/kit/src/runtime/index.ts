@@ -1,4 +1,7 @@
-// 테스트 킷 런타임. defineCase · test 래퍼 · verify는 WS-C가 채운다 (SPEC §4)
-// Phase 0는 배럴이 가리킬 자리만 잡아둔다
+// 테스트 킷 런타임. 테스트 코드는 이 셋만 import 한다 — defineCase · test · verify (SPEC §4)
 
-export {};
+export { defineCase, type CaseHandle, type CaseSchema, type DefineCaseInput } from './defineCase.js';
+export { test, type CaseBody, type CaseBodyArgs } from './test.js';
+export { verify, type VerifyOptions } from './verify.js';
+export { type StepOptions } from './step.js';
+export { RESULT_MARKER } from './protocol.js';
