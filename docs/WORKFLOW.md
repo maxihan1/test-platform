@@ -24,7 +24,9 @@
 
 ★ 표시는 **Maxi님이 직접 클릭해서 확인**하는 지점이다. 건너뛰면 안 된다.
 
-**현재 위치**: [0] 완료 (2026-09-16, `docs/reviews/2026-09-16-G0.md`). 다음은 [1] Phase 0.
+**현재 위치**: [1] Phase 0 구현 완료 (2026-09-16, `docs/progress/WS-0.md` · `docs/reviews/2026-09-16-WS-0.md`).
+게이트 G1은 ★ Maxi님이 직접 확인하는 지점이라 **확인 대기**다. 확인한 뒤 `git tag g1-skeleton`을 찍고
+`.claude/settings.local.json`을 지우면 [2] Phase 1 병렬로 넘어간다.
 단계가 끝날 때마다 이 줄을 고친다.
 
 ---
