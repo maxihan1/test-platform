@@ -88,11 +88,18 @@ Phase 0가 끝나고 게이트 G1을 통과한 뒤부터 예외 없이 띄운다
 
 ## 워크스트림 지정
 
-`ownership` 검사는 환경변수로 지금 세션이 어느 갈래인지 알려줘야 동작한다.
+`ownership` 검사는 지금 세션이 어느 갈래인지 알려줘야 동작한다.
+예외 스위치와 같은 이유로 **터미널 앞에 붙이는 `WORKSTREAM=C claude`는 안 먹는다.**
+같은 설정 파일에 넣는다.
 
 ```bash
-WORKSTREAM=C claude
+printf '{\n  "env": { "WORKSTREAM": "C" }\n}\n' > .claude/settings.local.json
+claude
 ```
+
+갈래를 바꿀 때는 `"C"` 자리만 바꿔 다시 쓴다.
+Phase 0가 끝난 뒤 이 파일에 `ALLOW_PROTECTED`가 남아 있으면 안 된다. 위 명령은 통째로 덮어쓰므로
+잠금을 되돌리는 일과 갈래를 지정하는 일이 한 번에 끝난다.
 
 지정하지 않으면 이 검사만 건너뛴다. 나머지는 그대로 동작한다.
 `docs/`, `.claude/`는 공용이라 항상 허용된다. `tests/`는 WS-C 소유다 (데모 테스트를 defineCase로 전환하는 갈래).
