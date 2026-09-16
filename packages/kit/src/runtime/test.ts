@@ -81,6 +81,13 @@ async function capture(page: Page, seq: number): Promise<string | undefined> {
   }
 }
 
+// desktop·mobile은 코드 안에서만 쓰는 값이다. 사람이 읽는 자리에는 PC·모바일로 적는다 (SPEC §8)
+function platformLabel(project: string): string {
+  if (project === 'desktop') return 'PC';
+  if (project === 'mobile') return '모바일';
+  return project;
+}
+
 async function emit(testInfo: TestInfo, result: StepResult): Promise<void> {
   await testInfo.attach(STEP_ATTACHMENT, {
     body: JSON.stringify(result),
@@ -96,7 +103,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     // 선언하지 않은 환경에서 돌면 케이스의 전제가 깨진다. 판정 대신 건너뛴다
     base.skip(
       !spec.platforms.some((p) => p === testInfo.project.name),
-      `${spec.tcId}은 ${testInfo.project.name} 환경을 선언하지 않았다`,
+      `${spec.tcId}은 ${platformLabel(testInfo.project.name)} 환경을 선언하지 않았다`,
     );
 
     const { params, expected } = resolveInputs(spec, injectedInputs());
