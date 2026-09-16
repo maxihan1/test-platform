@@ -81,12 +81,12 @@
 해법:  읽을 것을 손에 쥔 뒤에 형식을 정한다. 먼저 buffer를 받고, 성공했을 때만 type()을 건다
 주의:  reply를 체이닝하는 모든 자리에 같은 함정이 있다. 에러 경로가 다른 content-type을 쓴다면 형식은 마지막에 정한다
 
-## [공통] 2026-09-16 · DB fixture 접두사 충돌이 갈래 안에서도 갈래 사이에서도 터진다 (같은 유형 2회)
-증상:  1) 내 파일끼리 — 하나만 돌리면 9건 통과, 둘이면 7건 실패  2) WS-A와 — `RunInputError: 카탈로그에 없는 케이스다: ZZBS-001`
-원인:  Vitest는 파일을 병렬로 돌린다. 같은 접두사를 지우는 정리 구문이 남의 fixture를 같이 지운다. 특히 `catalog/store.test.ts`의 `DELETE FROM test_case WHERE tc_id LIKE 'ZZ%'`는 `ZZ`로 시작하는 **모든** 갈래의 fixture를 지운다
-해법:  WS-B는 `ZZ`를 아예 버리고 `XBS`·`XBR`·`XBQ`·`XBX`로 옮겼다. 정리 구문의 LIKE 패턴은 자기 파일 것만 맞아야 한다
-주의:  한 파일만 돌려서 통과하는 것은 증거가 못 된다. DB 테스트는 전체 스위트로, 되도록 여러 번 돌린다. 한 번 통과한 것도 증거가 약하다 — 이번 건은 1회차에 통과하고 2회차에 4건이 깨졌다
-제안:  같은 유형이 두 번째다. `spec-review` 체크리스트에 **G3 — DB fixture 접두사가 갈래마다 유일하고 정리 구문이 남의 것을 지우지 않는가**를 넣고, CLAUDE.md §3에 "DB 테스트 fixture 접두사는 갈래마다 고유하게 정한다"를 한 줄 올릴 것을 제안한다. WS-A의 `ZZ%`는 그 갈래 소유라 고치지 않았다
+## [공통] 2026-09-16 · 테스트 정리 구문의 LIKE 패턴이 넓으면 다른 갈래의 테스트를 지운다 (같은 유형 2회)
+증상:  따로 돌리면 전부 통과, 같이 돌리면 `RunInputError: 카탈로그에 없는 케이스다: ZZBS-001`로 4~7건이 깨진다
+원인:  Vitest는 파일을 **병렬로** 돌린다. `catalog/store.test.ts`의 `DELETE FROM test_case WHERE tc_id LIKE 'ZZ%'`가 `ZZ`로 시작하는 남의 fixture까지, 그쪽이 쓰고 있는 도중에 지웠다
+규칙:  정리 구문의 LIKE 패턴은 **자기 파일 fixture에만** 맞아야 한다. 갈래별 접두사 — WS-A `ZZA`, WS-B `XBS`·`XBR`·`XBQ`·`XBX`. **WS-D·WS-E는 `ZZ`로 시작하는 것을 고르지 마라** (`ZZ%`가 통째로 지워진다). 파일이 여러 개면 파일마다 또 갈라야 한다
+확인:  `DATABASE_URL='postgres://platform:platform@localhost:5433/platform' npx vitest run`을 **연속 3회**. 1회 통과는 증거가 못 된다 — 이번 건도 1회차에 171건 전부 통과하고 2회차에 4건이 깨졌다
+제안:  같은 유형 2회다. CLAUDE.md §3에 "DB 테스트 fixture 접두사는 갈래마다 고유하게, 정리 패턴은 자기 것에만 맞게"를, spec-review에 `G3 — 정리 패턴이 남의 fixture를 지우지 않는가`를 올릴 것을 제안한다. WS-A의 `ZZ%`는 그 갈래 소유라 고치지 않았다
 
 ## [환경] 2026-09-16 · 컨테이너가 병합 전 이미지를 물고 있으면 케이스가 전부 FAIL로 보인다
 증상:  러너에 DEMO-001을 보내면 `TypeError: (0 , _kit.defineCase) is not a function`. 호스트에서 같은 코드는 멀쩡하다
