@@ -11,14 +11,16 @@ export interface Duplicate {
   files: [string, string];
 }
 
-export class ScanError extends Error {
-  duplicate?: Duplicate;
+export interface ScanFailure {
+  file: string;
+  message: string;
+}
 
-  constructor(message: string, duplicate?: Duplicate) {
-    super(message);
-    this.name = 'ScanError';
-    this.duplicate = duplicate;
-  }
+export interface ScanResult {
+  specs: CaseSpec[];
+  // 파일 하나가 깨져도 스캔 전체를 버리지 않는다. 그러면 멀쩡한 케이스의 위반까지 함께 묻힌다
+  failures: ScanFailure[];
+  duplicate: Duplicate | null;
 }
 
 // kit의 defineCase가 filePath를 만들 때 쓰는 기준과 같아야 한다. 어긋나면 같은 케이스의 상대 경로가 둘로 갈린다
@@ -57,34 +59,25 @@ export function duplicateOf(specs: CaseSpec[]): Duplicate | null {
   return null;
 }
 
-export async function scan(root: string = testsRoot()): Promise<CaseSpec[]> {
+export async function scan(root: string = testsRoot()): Promise<ScanResult> {
   // kit의 test() 래퍼가 이 값을 보고 Playwright에 등록하지 않는다. 명세만 읽고 빠져나오기 위한 것이다 (SPEC §3.1)
   process.env.PLATFORM_SCAN = '1';
   const gen = generation++;
 
   const specs: CaseSpec[] = [];
+  const failures: ScanFailure[] = [];
+
   for (const file of await caseFiles(root)) {
-    let loaded: unknown;
+    const at = relative(root, file);
     try {
-      loaded = await importSpec(file, gen);
+      const loaded = await importSpec(file, gen);
+      if (isCaseSpec(loaded)) specs.push(loaded);
+      else failures.push({ file: at, message: 'export const spec이 없다' });
     } catch (err) {
-      throw new ScanError(
-        `${relative(root, file)}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      failures.push({ file: at, message: err instanceof Error ? err.message : String(err) });
     }
-    if (!isCaseSpec(loaded)) {
-      throw new ScanError(`${relative(root, file)}에 export const spec이 없다`);
-    }
-    specs.push(loaded);
   }
 
-  const dup = duplicateOf(specs);
-  if (dup) {
-    throw new ScanError(
-      `tcId ${dup.tcId}이 두 파일에 있다: ${dup.files[0]} · ${dup.files[1]}`,
-      dup,
-    );
-  }
-
-  return specs.sort((a, b) => a.tcId.localeCompare(b.tcId));
+  specs.sort((a, b) => a.tcId.localeCompare(b.tcId));
+  return { specs, failures, duplicate: duplicateOf(specs) };
 }
