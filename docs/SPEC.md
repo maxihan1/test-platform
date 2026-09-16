@@ -953,29 +953,56 @@ Postgres 데이터소스로 `run_item`을 직접 조회한다.
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
+    ports: ["${POSTGRES_PORT:-5433}:5432"]    # 바깥 포트는 .env로 뺀다 (§9.2 인스턴스 복제)
     volumes: ["pgdata:/var/lib/postgresql/data"]
   admin:
     build: ./apps/admin               # FROM mcr.microsoft.com/playwright:<버전>-jammy (증적 PDF용 브라우저)
-    ports: ["3000:3000"]
+    restart: unless-stopped           # 재부팅 뒤 스스로 돌아온다. 기동 시 중단 복구가 돈다 (§3.2)
+    ports: ["${ADMIN_PORT:-3000}:3000"]
     depends_on: [postgres]
+    environment:
+      PLATFORM_INSTANCE_NAME:  "${PLATFORM_INSTANCE_NAME}"    # 화면 띠·탭 제목·증적 머리말 (§8)
+      PLATFORM_INSTANCE_COLOR: "${PLATFORM_INSTANCE_COLOR}"   # 띠 바탕색. 안 읽어도 구분되게
+      PLATFORM_TESTS_REPO:     "${PLATFORM_TESTS_REPO}"       # 적어 두기만 한다. 받아오지 않는다
+      PLATFORM_ENV_URLS:       "${PLATFORM_ENV_URLS}"         # 대상 서버 이름→주소 표 (§9)
     volumes:
       - "./tests:/tests:ro"           # 스캔과 실패 지점 코드 발췌가 소스를 읽는다
       - "artifacts:/artifacts"        # 스크린샷 서빙, 증적 문서 저장
   runner:
     build: ./apps/runner              # FROM mcr.microsoft.com/playwright:<버전>-jammy
-    ports: ["4000:4000"]
+    restart: unless-stopped
+    # 바깥 포트를 열지 않는다. admin이 컨테이너 네트워크 안에서만 부른다.
+    # 러너에는 로그인이 없어 포트가 열려 있으면 인증을 건너뛰는 뒷길이 된다 (§3.5)
     volumes:
       - "./tests:/tests:ro"           # 테스트 소스 읽기 전용 마운트
       - "artifacts:/artifacts"        # 스크린샷 공유 볼륨 (admin과 공유)
     mem_limit: 4g                     # 폭주해도 admin을 끌고 내려가지 않게
   grafana:
     image: grafana/grafana
-    ports: ["3001:3000"]
+    restart: unless-stopped
+    ports: ["${GRAFANA_PORT:-3001}:3000"]
     depends_on: [postgres]
     volumes: ["./infra/grafana/provisioning:/etc/grafana/provisioning:ro"]   # WS-D가 채운다
 volumes:
   pgdata: {}
   artifacts: {}
+# 마이그레이션은 한 번 돌고 끝나는 일회성이라 restart를 붙이지 않는다
+```
+
+```
+[계약 변경 필요]
+대상:    docker-compose.yml · apps/admin/Dockerfile (Phase 0 잠금 파일)
+현재:    바깥 포트가 "3000:3000" · "4000:4000" · "3001:3000" · "5433:5432"로 숫자가 박혀 있다.
+         restart 정책이 없다. 인스턴스 이름·색·저장소를 넘길 자리가 없다.
+         admin 이미지 안에 화면 빌드 단계가 없어 컨테이너로는 화면이 안 뜬다
+제안:    바깥 포트를 .env 값으로 뺀다. 러너의 ports를 지운다.
+         상시 서비스 넷에 restart: unless-stopped를 붙인다.
+         admin에 인스턴스 이름·색·저장소·대상 서버 표를 환경변수로 넘긴다.
+         apps/admin/Dockerfile에 화면 빌드 한 줄을 넣는다
+이유:    포트가 박혀 있으면 한 서버에서 인스턴스를 둘 못 띄운다. 러너 포트가 열려 있으면
+         로그인을 건너뛰는 뒷길이 된다. 화면 빌드가 없으면 컨테이너가 API만 내고 화면은 빈 화면이다
+영향:    WS-0(공용 골격), WS-E(화면이 인스턴스 값을 읽는다), WS-B(대상 서버 표를 읽는다)
 ```
 
 - 대상 서버: 2 vCPU / 16GB EC2 (Ubuntu)
@@ -991,6 +1018,26 @@ volumes:
   러너가 쓰고 어드민이 `/api/screenshots/...`로 서빙한다. 러너는 DB를 여전히 모른다
 - 증적 문서는 `artifacts/evidence/{runId}/{id}.{html|pdf}`에 둔다. `evidence_document.file_path`가 이 경로다
 - Grafana는 읽기 전용 DB 계정으로 붙는다. 계정은 Phase 0에서 만든다 (마이그레이션 또는 postgres init 스크립트)
+- **바깥 포트는 전부 `.env`(컨테이너에 넘길 설정값을 적어 두는 파일)의 값으로 뺀다.** 기본값은 지금 쓰는 숫자 그대로다.
+  서비스마다 인스턴스를 따로 띄우므로(§9.2) 숫자가 박혀 있으면 한 서버에서 둘째 인스턴스가 뜨지 않는다
+- **러너는 바깥 포트를 열지 않는다.** admin만 컨테이너 네트워크 안에서 `http://runner:4000`으로 부르면 된다.
+  러너에는 로그인이 없으므로 4000이 열려 있으면 admin의 로그인 화면을 지나지 않고 아무나 테스트를 돌릴 수 있다
+- **상시 서비스 넷(postgres·admin·runner·grafana)에 `restart: unless-stopped`를 붙인다.**
+  서버가 재부팅돼도 사람이 손대지 않고 돌아온다. DB가 안 뜨면 admin의 재기동 복구(§3.2)도 돌지 못한다.
+  마이그레이션은 한 번 돌고 끝나는 일회성이므로 붙이지 않는다 — 붙이면 끝날 때마다 다시 뜬다
+- **admin 이미지는 안에서 화면을 빌드한다.** `apps/admin/Dockerfile`에 화면 빌드 한 줄이 들어간다.
+  `.dockerignore`(이미지를 만들 때 복사하지 않을 파일을 적어 두는 목록)가 `**/dist`를 막고 있어
+  호스트에서 빌드한 산출물은 이미지에 들어가지 않는다. 이 단계가 없으면 컨테이너는 API만 내고 화면 주소는 빈 화면이 된다.
+  `.dockerignore`는 그대로 둬도 된다 — 이미지 안에서 만든 파일은 복사를 타지 않는다
+- **인스턴스 이름·색·테스트 저장소 주소를 설정으로 받는다**
+  (`PLATFORM_INSTANCE_NAME`·`PLATFORM_INSTANCE_COLOR`·`PLATFORM_TESTS_REPO`).
+  화면 띠와 탭 제목, 증적 문서 머리말이 이 값을 쓴다 (§8·§8.4).
+  저장소 주소는 **적어 두기만 하고 플랫폼이 거기서 코드를 받아오지 않는다**
+- **대상 서버 이름과 주소를 묶은 표는 설정으로 둔다** (`PLATFORM_ENV_URLS`, 예: `dev=https://dev.example.com,qa=https://qa.example.com`).
+  파일이나 DB 표로 만들지 않는다 — 인스턴스마다 서버가 두셋뿐이고, 바뀌면 재기동하면 된다 (2026-09-16 결정).
+  §8.2의 드롭다운 선택지와 §7의 주소 채우기가 이 한 값을 본다
+- 위 설정은 인스턴스마다 한 번 정하면 바뀌지 않는 값이다. 이와 달리 `PLATFORM_BASE_URL`은
+  **실행마다 러너가 자식 프로세스에 넘기는 값**이라 `.env`에 두지 않는다 (§5.2). 두 종류를 섞지 않는다
 
 ### 9.1 기술 스택 (2026-09-16 확정)
 
@@ -1007,6 +1054,27 @@ volumes:
 | PDF | Playwright `page.pdf()` | admin 안에서 (§3.3) |
 
 여기 없는 것을 쓰려면 CLAUDE.md §3 대로 먼저 묻는다.
+
+#### 승인받은 새 부품 1개 (2026-09-16)
+
+§3.5 로그인을 만들려면 아래가 필요하다.
+
+| 층 | 무엇 | 하는 일 | 왜 직접 만들지 않나 |
+|----|------|--------|------------------|
+| 로그인 상태 유지 | Fastify의 쿠키·세션 플러그인 | 로그인한 사람이 누구인지를 요청마다 알아내는 쿠키(브라우저가 서버 대신 들고 다니는 작은 표) 처리 | 서명·만료·재사용 방지를 직접 짜면 틀리기 쉽고, 틀리면 남의 계정으로 들어가진다 |
+
+**비밀번호 해시는 새 부품이 필요 없다.** Node에 이미 들어 있는 `crypto.scrypt`로 되는 것을
+이 저장소의 Node로 실제 돌려 확인했다 (2026-09-16). 해시 생성·같은 값 일치·다른 값 불일치·
+안전한 비교(`timingSafeEqual`)가 전부 내장으로 된다. 그래서 새로 까는 부품은 **하나**다.
+
+```
+[계약 변경 필요]
+대상:    각 package.json (Phase 0 잠금 파일)
+현재:    인증에 쓸 부품이 없다
+제안:    Fastify 쿠키·세션 플러그인을 더한다. 비밀번호 해시는 Node 내장 crypto.scrypt를 쓰므로 추가 설치가 없다
+이유:    §3.5 로그인 없이는 실행자를 가릴 수 없고 증적의 실행자 칸이 거짓이 된다
+영향:    WS-0(공용 골격), WS-B(인증 미들웨어), §7(인증 API), §8.6, §9.2
+```
 
 ### 9.2 운영 (2026-09-16 결정)
 
