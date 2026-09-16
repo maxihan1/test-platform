@@ -8,6 +8,9 @@ import type { Pool } from 'pg';
 
 export const DEFAULT_TIMEOUT_MS = 300_000;
 
+// 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
+const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일' };
+
 // 요청이 잘못된 것과 서버가 고장난 것을 라우트가 문자열로 가려내지 않게 한다
 export class RunInputError extends Error {
   constructor(
@@ -72,7 +75,9 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     if (item.platforms.length === 0) throw new RunInputError('INVALID_REQUEST', `${item.tcId}에 실행할 환경이 없다`);
     for (const platform of item.platforms) {
       const key = `${item.tcId}/${platform}`;
-      if (seen.has(key)) throw new RunInputError('INVALID_REQUEST', `${item.tcId}의 ${platform} 환경이 두 번 들어 있다`);
+      if (seen.has(key)) {
+        throw new RunInputError('INVALID_REQUEST', `${item.tcId}의 ${PLATFORM_LABEL[platform]} 환경이 두 번 들어 있다`);
+      }
       seen.add(key);
     }
   }

@@ -122,7 +122,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
           { ...항목, platforms: ['desktop'] },
         ],
       }),
-    ).rejects.toThrow('desktop');
+    ).rejects.toThrow('PC');
   });
 
   it('빈 목록은 거절한다', async () => {
