@@ -20,8 +20,8 @@
   - ParamSet 저장 전 검증이 칸별 사유를 돌려준다 — "글 제목(title)은 비워 둘 수 없다",
     "작성자 번호(userId)은 숫자여야 한다", "typo은 이 케이스에 선언되지 않은 칸이다"
 - 미완: 없음
-- 막힌 것: 없음. 걸린 네 건(러너 이미지가 낡음, 테스트 fixture 접두사 충돌,
-  reply.type 순서, 워크트리의 WORKSTREAM)은 고쳤고 LEARNINGS에 적었다
+- 막힌 것: 없음. 걸린 다섯 건(러너 이미지가 낡음, 내 파일끼리 fixture 충돌,
+  WS-A와 fixture 충돌, reply.type 순서, 워크트리의 WORKSTREAM)은 고쳤고 LEARNINGS에 적었다
 - SPEC 검사: `docs/reviews/2026-09-16-WS-B.md` — 치명 0 · 중대 0 · 경미 0 (자기검사)
 
 ### 사용자 승인을 받고 SPEC §7에 없던 것을 3개 넣었다 — SPEC 반영 완료
@@ -50,6 +50,7 @@
   전부 `test_case`에서 SQL로 읽는다 (컨텍스트 경계)
 - **DB가 필요한 테스트는 `describe.skipIf(DATABASE_URL 없음)`이다.** 손으로 돌릴 때는
   `DATABASE_URL='postgres://platform:platform@localhost:5433/platform' npx vitest run apps/admin/src/execution/`
-- **DB fixture 접두사는 파일마다 다르다** (`ZZBS`·`ZZBR`·`ZZBQ`·`ZZBX`). 한 파일만 돌려서
-  통과하는 것은 증거가 못 된다 (LEARNINGS)
+- **DB fixture 접두사는 `XBS`·`XBR`·`XBQ`·`XBX`다.** `ZZ`로 시작하면 안 된다 —
+  `catalog/store.test.ts`가 `DELETE FROM test_case WHERE tc_id LIKE 'ZZ%'`로 정리하면서
+  다른 갈래의 fixture까지 지운다. 한 파일만 돌려서 통과하는 것은 증거가 못 된다 (LEARNINGS)
 - **컨테이너로 확인할 때**는 이미지를 다시 굽는다. 병합 전 이미지는 옛 `packages/kit`을 물고 있다

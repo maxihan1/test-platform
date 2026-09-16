@@ -31,7 +31,7 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
   ): Promise<number> {
     const row = await pool.query<{ history_id: string }>(
       `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, duration_ms, finished_at)
-       VALUES ($1, 'ZZBQ-001', $2, '조회용 케이스', '["사전조건 하나"]', '{"아이디":"tester"}', '{"결과":true}', $3, 100, $4)
+       VALUES ($1, 'XBQ-001', $2, '조회용 케이스', '["사전조건 하나"]', '{"아이디":"tester"}', '{"결과":true}', $3, 100, $4)
        RETURNING history_id`,
       [runId, platform, status, 끝났나 ? new Date() : null],
     );
@@ -40,13 +40,13 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
-    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'ZZBQ%')");
-    await pool.query("DELETE FROM test_run WHERE title LIKE 'ZZBQ%'");
+    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBQ%')");
+    await pool.query("DELETE FROM test_run WHERE title LIKE 'XBQ%'");
 
-    먼저 = await 실행하나('ZZBQ 먼저 돈 실행');
+    먼저 = await 실행하나('XBQ 먼저 돈 실행');
     await 항목하나(먼저, 'desktop', 'PASS', true);
 
-    나중 = await 실행하나('ZZBQ 나중에 돈 실행');
+    나중 = await 실행하나('XBQ 나중에 돈 실행');
     실패항목 = await 항목하나(나중, 'desktop', 'FAIL', true);
     await 항목하나(나중, 'mobile', 'NA', false);
 
@@ -59,8 +59,8 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
   });
 
   afterAll(async () => {
-    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'ZZBQ%')");
-    await pool.query("DELETE FROM test_run WHERE title LIKE 'ZZBQ%'");
+    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBQ%')");
+    await pool.query("DELETE FROM test_run WHERE title LIKE 'XBQ%'");
     await pool.end();
     const { pool: shared } = await import('../db/index.js');
     await shared.end();
@@ -68,7 +68,7 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
 
   it('listRuns — 최근 실행이 먼저 나온다', async () => {
     const 목록 = await listRuns(1, 50);
-    const 우리것 = 목록.items.filter((r) => r.title.startsWith('ZZBQ'));
+    const 우리것 = 목록.items.filter((r) => r.title.startsWith('XBQ'));
     expect(우리것[0]?.runId).toBe(나중);
     expect(우리것[1]?.runId).toBe(먼저);
   });
@@ -81,7 +81,7 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
 
   it('findRun — 실행과 항목 목록이 같이 온다', async () => {
     const run = await findRun(나중);
-    expect(run?.title).toBe('ZZBQ 나중에 돈 실행');
+    expect(run?.title).toBe('XBQ 나중에 돈 실행');
     expect(run?.items).toHaveLength(2);
     expect(run?.items.map((i) => i.platform).sort()).toEqual(['desktop', 'mobile']);
     expect(run?.items[0]?.tcName).toBe('조회용 케이스');
@@ -100,7 +100,7 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
     const item = await findItem(나중, 실패항목);
     expect(item?.precondition).toEqual(['사전조건 하나']);
     expect(item?.params).toEqual({ 아이디: 'tester' });
-    expect(item?.runTitle).toBe('ZZBQ 나중에 돈 실행');
+    expect(item?.runTitle).toBe('XBQ 나중에 돈 실행');
     expect(item?.steps).toHaveLength(2);
     expect(item?.steps[1]).toMatchObject({
       seq: 2,
@@ -117,26 +117,26 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
   });
 
   it('caseHistory — 최신이 먼저 나온다', async () => {
-    const 이력 = await caseHistory('ZZBQ-001', undefined, 1, 50);
+    const 이력 = await caseHistory('XBQ-001', undefined, 1, 50);
     expect(이력.total).toBe(3);
     expect(이력.items[0]?.runId).toBe(나중);
-    expect(이력.items[0]?.runTitle).toBe('ZZBQ 나중에 돈 실행');
+    expect(이력.items[0]?.runTitle).toBe('XBQ 나중에 돈 실행');
   });
 
   it('caseHistory — 환경으로 거를 수 있다', async () => {
-    const 이력 = await caseHistory('ZZBQ-001', 'mobile', 1, 50);
+    const 이력 = await caseHistory('XBQ-001', 'mobile', 1, 50);
     expect(이력.items.every((i) => i.platform === 'mobile')).toBe(true);
     expect(이력.total).toBe(1);
   });
 
   it('lastByCase — 케이스와 환경마다 마지막 1건만 준다', async () => {
-    const 마지막 = (await lastByCase()).filter((r) => r.tcId === 'ZZBQ-001');
+    const 마지막 = (await lastByCase()).filter((r) => r.tcId === 'XBQ-001');
     expect(마지막).toHaveLength(1);
     expect(마지막[0]).toMatchObject({ platform: 'desktop', status: 'FAIL', historyId: 실패항목 });
   });
 
   it('lastByCase — 아직 안 끝난 항목은 마지막 결과가 아니다', async () => {
-    const 마지막 = (await lastByCase()).filter((r) => r.tcId === 'ZZBQ-001');
+    const 마지막 = (await lastByCase()).filter((r) => r.tcId === 'XBQ-001');
     expect(마지막.some((r) => r.platform === 'mobile')).toBe(false);
   });
 });

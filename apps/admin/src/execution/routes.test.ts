@@ -34,13 +34,13 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
-    await pool.query("DELETE FROM param_set WHERE tc_id LIKE 'ZZBR%'");
+    await pool.query("DELETE FROM param_set WHERE tc_id LIKE 'XBR%'");
     await pool.query(케이스, [
-      'ZZBR-002',
+      'XBR-002',
       '입력값이 있는 케이스',
       JSON.stringify(['desktop']),
       JSON.stringify([]),
-      'demo/ZZBR-002.spec.ts',
+      'demo/XBR-002.spec.ts',
       JSON.stringify(입력스키마),
       JSON.stringify(기대스키마),
     ]);
@@ -52,8 +52,8 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
 
   afterAll(async () => {
     await app.close();
-    await pool.query("DELETE FROM param_set WHERE tc_id LIKE 'ZZBR%'");
-    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZBR%'");
+    await pool.query("DELETE FROM param_set WHERE tc_id LIKE 'XBR%'");
+    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'XBR%'");
     await pool.end();
     const { pool: shared } = await import('../db/index.js');
     await shared.end();
@@ -62,7 +62,7 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
   it('POST /api/cases/:tcId/param-sets — 스키마에 맞으면 저장한다', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/cases/ZZBR-002/param-sets',
+      url: '/api/cases/XBR-002/param-sets',
       payload: { name: '기본값 묶음', params: { title: '제목', userId: 3 }, expected: { statusCode: 201 } },
     });
     expect(res.statusCode).toBe(200);
@@ -74,14 +74,14 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
   });
 
   it('GET /api/cases/:tcId/param-sets — 저장한 묶음이 목록에 나온다', async () => {
-    const body = (await app.inject({ method: 'GET', url: '/api/cases/ZZBR-002/param-sets' })).json();
+    const body = (await app.inject({ method: 'GET', url: '/api/cases/XBR-002/param-sets' })).json();
     expect(body.items.map((i: { name: string }) => i.name)).toContain('기본값 묶음');
   });
 
   it('입력값이 스키마와 어긋나면 400과 칸별 사유를 돌려준다', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/cases/ZZBR-002/param-sets',
+      url: '/api/cases/XBR-002/param-sets',
       payload: { name: '어긋난 묶음', params: { title: '', userId: '셋' }, expected: {} },
     });
     expect(res.statusCode).toBe(400);
@@ -95,7 +95,7 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
   it('기대값도 expected_schema로 검증한다', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/cases/ZZBR-002/param-sets',
+      url: '/api/cases/XBR-002/param-sets',
       payload: { name: '기대값이 어긋난 묶음', params: { title: '제목' }, expected: { statusCode: '이백일' } },
     });
     expect(res.statusCode).toBe(400);
@@ -105,7 +105,7 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
   it('반드시 채워야 하는 칸이 비면 저장하지 않는다', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/cases/ZZBR-002/param-sets',
+      url: '/api/cases/XBR-002/param-sets',
       payload: { name: '빈 묶음', params: {}, expected: {} },
     });
     expect(res.statusCode).toBe(400);
@@ -115,7 +115,7 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
   it('같은 이름으로 또 저장하면 409로 거절한다', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/cases/ZZBR-002/param-sets',
+      url: '/api/cases/XBR-002/param-sets',
       payload: { name: '기본값 묶음', params: { title: '다른 제목' }, expected: {} },
     });
     expect(res.statusCode).toBe(409);
@@ -125,7 +125,7 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
   it('없는 케이스에는 저장하지 않는다', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/cases/ZZBR-404/param-sets',
+      url: '/api/cases/XBR-404/param-sets',
       payload: { name: '아무거나', params: {}, expected: {} },
     });
     expect(res.statusCode).toBe(404);
@@ -136,7 +136,7 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
     const 만든것 = (
       await app.inject({
         method: 'POST',
-        url: '/api/cases/ZZBR-002/param-sets',
+        url: '/api/cases/XBR-002/param-sets',
         payload: { name: '지울 묶음', params: { title: '제목' }, expected: {} },
       })
     ).json();
@@ -144,7 +144,7 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
     const res = await app.inject({ method: 'DELETE', url: `/api/param-sets/${만든것.id}` });
     expect(res.statusCode).toBe(204);
 
-    const body = (await app.inject({ method: 'GET', url: '/api/cases/ZZBR-002/param-sets' })).json();
+    const body = (await app.inject({ method: 'GET', url: '/api/cases/XBR-002/param-sets' })).json();
     expect(body.items.map((i: { name: string }) => i.name)).not.toContain('지울 묶음');
   });
 

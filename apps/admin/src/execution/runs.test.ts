@@ -28,8 +28,8 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   let 받은요청: ExecuteRequest[] = [];
 
   async function 치운다(): Promise<void> {
-    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'ZZBX%')");
-    await pool.query("DELETE FROM test_run WHERE title LIKE 'ZZBX%'");
+    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBX%')");
+    await pool.query("DELETE FROM test_run WHERE title LIKE 'XBX%'");
   }
 
   // 디스패처는 뒤에서 돈다. POST가 돌려준 runId로 끝날 때까지 지켜본다
@@ -45,7 +45,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
     await 치운다();
-    await pool.query(케이스, ['ZZBX-001', '두 환경 케이스', JSON.stringify(['desktop', 'mobile']), 'demo/ZZBX-001.spec.ts']);
+    await pool.query(케이스, ['XBX-001', '두 환경 케이스', JSON.stringify(['desktop', 'mobile']), 'demo/XBX-001.spec.ts']);
 
     러너 = Fastify();
     러너.post('/execute', async (req) => {
@@ -88,7 +88,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     await app.close();
     await 러너.close();
     await 치운다();
-    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZBX%'");
+    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'XBX%'");
     await pool.end();
     delete process.env.RUNNER_URL;
     delete process.env.PLATFORM_ARTIFACTS_DIR;
@@ -102,9 +102,9 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       method: 'POST',
       url: '/api/runs',
       payload: {
-        title: 'ZZBX 두 환경 실행',
+        title: 'XBX 두 환경 실행',
         triggeredBy: '검수자',
-        items: [{ tcId: 'ZZBX-001', platforms: ['desktop', 'mobile'], params: {}, expected: {} }],
+        items: [{ tcId: 'XBX-001', platforms: ['desktop', 'mobile'], params: {}, expected: {} }],
       },
     });
     expect(res.statusCode).toBe(200);
@@ -123,16 +123,16 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       method: 'POST',
       url: '/api/runs',
       payload: {
-        title: 'ZZBX 제한 시간 실행',
-        items: [{ tcId: 'ZZBX-001', platforms: ['desktop'], params: { 아이디: 'tester' }, expected: {}, timeoutMs: 5000 }],
+        title: 'XBX 제한 시간 실행',
+        items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: { 아이디: 'tester' }, expected: {}, timeoutMs: 5000 }],
       },
     });
     await 끝날때까지(res.json().runId);
 
     expect(받은요청[0]).toMatchObject({
-      tcId: 'ZZBX-001',
+      tcId: 'XBX-001',
       platform: 'desktop',
-      filePath: 'demo/ZZBX-001.spec.ts',
+      filePath: 'demo/XBX-001.spec.ts',
       params: { 아이디: 'tester' },
       timeoutMs: 5000,
     });
@@ -142,7 +142,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
-      payload: { title: 'ZZBX 실행자 없음', items: [{ tcId: 'ZZBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+      payload: { title: 'XBX 실행자 없음', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
     });
     const body = await 끝날때까지(res.json().runId);
     expect(body.triggeredBy).toBe('admin');
@@ -152,10 +152,10 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
-      payload: { title: 'ZZBX 없는 케이스', items: [{ tcId: 'ZZBX-404', platforms: ['desktop'], params: {}, expected: {} }] },
+      payload: { title: 'XBX 없는 케이스', items: [{ tcId: 'XBX-404', platforms: ['desktop'], params: {}, expected: {} }] },
     });
     expect(res.statusCode).toBe(404);
-    expect(res.json().detail).toContain('ZZBX-404');
+    expect(res.json().detail).toContain('XBX-404');
   });
 
   it('같은 케이스와 환경이 두 번 들어오면 400이다', async () => {
@@ -163,10 +163,10 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       method: 'POST',
       url: '/api/runs',
       payload: {
-        title: 'ZZBX 중복',
+        title: 'XBX 중복',
         items: [
-          { tcId: 'ZZBX-001', platforms: ['desktop'], params: {}, expected: {} },
-          { tcId: 'ZZBX-001', platforms: ['desktop'], params: {}, expected: {} },
+          { tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} },
+          { tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} },
         ],
       },
     });
@@ -177,7 +177,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
-      payload: { title: '', items: [{ tcId: 'ZZBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+      payload: { title: '', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
     });
     expect(res.statusCode).toBe(400);
   });
@@ -190,7 +190,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
 
   it('GET /api/runs/:runId/items/:historyId — 절차와 검증 문장이 온다', async () => {
     const 실행 = (await app.inject({ method: 'GET', url: '/api/runs' })).json();
-    const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'ZZBX 두 환경 실행');
+    const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'XBX 두 환경 실행');
     const run = (await app.inject({ method: 'GET', url: `/api/runs/${우리것.runId}` })).json();
     const 실패한것 = run.items.find((i: { platform: string }) => i.platform === 'desktop');
 
@@ -204,7 +204,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
 
   it('모바일 항목은 러너가 준 NA와 사유를 그대로 갖고 있다', async () => {
     const 실행 = (await app.inject({ method: 'GET', url: '/api/runs' })).json();
-    const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'ZZBX 두 환경 실행');
+    const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'XBX 두 환경 실행');
     const run = (await app.inject({ method: 'GET', url: `/api/runs/${우리것.runId}` })).json();
     const 모바일 = run.items.find((i: { platform: string }) => i.platform === 'mobile');
     expect(모바일.status).toBe('NA');
@@ -217,16 +217,16 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   });
 
   it('GET /api/cases/:tcId/history — 케이스 이력을 환경으로 거를 수 있다', async () => {
-    const 전체 = (await app.inject({ method: 'GET', url: '/api/cases/ZZBX-001/history' })).json();
+    const 전체 = (await app.inject({ method: 'GET', url: '/api/cases/XBX-001/history' })).json();
     expect(전체.total).toBeGreaterThanOrEqual(4);
 
-    const 모바일 = (await app.inject({ method: 'GET', url: '/api/cases/ZZBX-001/history?platform=mobile' })).json();
+    const 모바일 = (await app.inject({ method: 'GET', url: '/api/cases/XBX-001/history?platform=mobile' })).json();
     expect(모바일.items.every((i: { platform: string }) => i.platform === 'mobile')).toBe(true);
   });
 
   it('GET /api/runs/last-by-case — 케이스와 환경마다 마지막 1건만 준다', async () => {
     const body = (await app.inject({ method: 'GET', url: '/api/runs/last-by-case' })).json();
-    const 우리것 = body.items.filter((i: { tcId: string }) => i.tcId === 'ZZBX-001');
+    const 우리것 = body.items.filter((i: { tcId: string }) => i.tcId === 'XBX-001');
     expect(우리것).toHaveLength(2);
     expect(우리것.map((i: { platform: string }) => i.platform).sort()).toEqual(['desktop', 'mobile']);
   });
