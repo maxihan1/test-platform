@@ -55,10 +55,28 @@ for (const p of 장들) {
   });
 }
 
+// 색인이 적어 둔 분량이 실제와 맞는지 본다. 어긋나면 세션이 "4장 537줄"을 믿고 계획을 세운다
+const 틀린분량 = [];
+{
+  const 줄수 = (rel) => readFileSync(path.join(ROOT, 'docs', rel), 'utf8').split('\n').length - 1;
+  readFileSync(path.join(ROOT, 'docs/SPEC.md'), 'utf8').split('\n').forEach((l, i) => {
+    const 갈래 = l.startsWith('| **') && l.includes('`spec/') && l.match(/\| (\d+)줄 \|/);
+    if (갈래) {
+      const 합 = [...l.matchAll(/`([^`]+)`/g)].reduce((n, m) => n + 줄수(`${m[1]}.md`), 0);
+      if (합 !== Number(갈래[1])) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${갈래[1]}줄 · 실제 ${합}줄`);
+    }
+    const 장 = l.match(/^\| \[[^\]]+\]\((spec\/[^)]+\.md)\).*\| (\d+) \|/);
+    if (장 && 줄수(장[1]) !== Number(장[2])) {
+      틀린분량.push(`docs/SPEC.md:${i + 1}  ${장[1]} 적힌 ${장[2]}줄 · 실제 ${줄수(장[1])}줄`);
+    }
+  });
+}
+
 console.log(`실재하는 절 ${[...있는절].sort().join(' · ')}`);
-if (깨진참조.length || 깨진링크.length) {
+if (깨진참조.length || 깨진링크.length || 틀린분량.length) {
   if (깨진참조.length) console.error(`\n없는 절을 가리키는 곳 ${깨진참조.length}건\n${깨진참조.join('\n')}`);
   if (깨진링크.length) console.error(`\n깨진 링크 ${깨진링크.length}건\n${깨진링크.join('\n')}`);
+  if (틀린분량.length) console.error(`\n색인 분량이 실제와 다른 곳 ${틀린분량.length}건\n${틀린분량.join('\n')}`);
   process.exit(1);
 }
-console.log('통과 — 없는 절 0건 · 깨진 링크 0건');
+console.log('통과 — 없는 절 0건 · 깨진 링크 0건 · 틀린 분량 0건');

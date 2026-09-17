@@ -57,13 +57,13 @@ units:
     branch: contracts
     kickoff: "workstreams#계약 반영"
     steps:
-      - name: "db/migrations — test_run·run_item 새 칸과 app_user 를 §6 마이그레이션 예시대로 더한다"
-        human_check: ["docker compose up -d 로 마이그레이션이 적용된다", "기존 실행 기록이 화면에 그대로 보인다"]
+      - name: "db/migrations — §6 마이그레이션 예시 그대로. service·service_env·app_user·user_service 신설, test_run·run_item·evidence_document 새 칸, grafana_ro 기본 허용 끄기"
+        human_check: ["docker compose up -d 로 마이그레이션이 적용된다", "기존 실행 기록이 화면에 그대로 보인다", "대시보드 계정으로 app_user 를 읽으면 거부된다"]
       - name: "packages/kit/src/types.ts — ExecuteRequest 에 baseUrl 을 더한다 (§5.1). ItemStatus 는 3종 그대로"
         human_check: ["npm run typecheck 가 통과한다"]
       - { name: "playwright.config.ts — use.baseURL 을 환경변수에서 읽고 retries: 0 을 명시한다 (§5.2)" }
-      - name: "docker-compose.yml·apps/admin/Dockerfile — 포트 설정화, 러너 포트 닫기, 상시 4개 재시작 정책, 인스턴스 설정 전달, 화면 빌드 단계 (§9)"
-        human_check: ["호스트에서 러너 포트가 닫혔다", "화면이 admin 포트로 뜬다"]
+      - name: "docker-compose.yml·apps/admin/Dockerfile — 포트 설정화, 러너 포트 닫기, 상시 4개 재시작 정책, SESSION_SECRET 전달, 화면 빌드 단계 (§9). 인스턴스 환경변수 넷은 DB 로 내려갔으니 넣지 않는다"
+        human_check: ["호스트에서 러너 포트가 닫혔다", "화면이 admin 포트로 뜬다", "SESSION_SECRET 없이 띄우면 admin 이 기동을 거부한다"]
       - name: "package.json — Fastify 쿠키·세션 플러그인 하나만 더한다. 비밀번호 해시는 Node 내장 crypto.scrypt 라 추가 설치가 없다 (§9.1)"
         human_check: ["npm install 뒤 npm test 가 통과한다"]
 
@@ -81,7 +81,8 @@ units:
   - id: WS-F
     name: 인증
     # 2026-09-17 개정 §3.5 로 생긴 갈래. app_user 표와 쿠키·세션 부품이 먼저 서야 한다.
-    # 로그인 **화면**(§8.6)은 WS-E 소유다. 여기서는 확인 함수·미들웨어·계정 만들기 명령만 만든다.
+    # 로그인 **화면**(§8.6)과 설정 **화면**(§8.8)은 WS-E 소유다.
+    # 여기서는 확인 함수·미들웨어·설정 API(/api/settings/**)·첫 계정/서비스 만들기 명령까지다.
     # 미들웨어를 다는 apps/admin/src/app.ts 는 공용 골격이라 contracts 단위가 열어 둔다
     status: pending
     depends_on: [contracts]
@@ -91,7 +92,7 @@ units:
 
   - id: WS-E
     name: 화면
-    # 화면 21개 파일은 이미 main 에 있다. 개정 스펙에 맞춰 **더하고 고치는** 단위다 (킥오프에 11건).
+    # 화면 21개 파일은 이미 main 에 있다. 개정 스펙에 맞춰 **더하고 고치는** 단위다 (킥오프에 18건).
     # 4번(param_schema 박제)과 6번(대상 서버)은 contracts 의 DB 칸이,
     # 9번(증적 버튼)은 WS-D 가, 10번(로그인 화면)은 WS-F 의 API 가 먼저 서야 한다
     status: pending

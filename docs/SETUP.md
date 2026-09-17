@@ -180,18 +180,26 @@ Phase 0 전에 정해야 했던 5건은 2026-09-16에 결정돼 SPEC에 들어�
 | 이름 | 무엇 |
 |------|------|
 | `ADMIN_PORT` · `GRAFANA_PORT` · `POSTGRES_PORT` | 바깥 포트. 지금은 `3000`·`3001`·`5433`으로 하드코딩돼 있다 |
-| `PLATFORM_INSTANCE_NAME` | 이 한 벌을 부르는 이름. 화면 상단 띠·탭 제목·증적 머리말에 나온다 |
-| `PLATFORM_INSTANCE_COLOR` | 상단 띠 색. 글씨를 안 읽어도 어느 인스턴스인지 구분한다 |
-| `PLATFORM_TESTS_REPO` | 테스트 저장소 주소. **적어 두기만 한다** — 플랫폼이 직접 받아오지 않는다 |
-| `PLATFORM_ENV_URLS` | 대상 서버 이름→주소 표. `dev=https://dev.example.com,qa=https://qa.example.com` 꼴 |
+| `SESSION_SECRET` | 로그인 세션을 서명하는 키. **없으면 admin이 기동하지 않는다.** 임시 키를 지어내면 재기동할 때마다 전원 로그아웃된다 |
 
-### 달라질 것 세 가지
+**2026-09-17에 넷이 이 표에서 빠졌다.** `PLATFORM_INSTANCE_NAME`·`_COLOR`·`PLATFORM_TESTS_REPO`·`PLATFORM_ENV_URLS`.
+서비스 이름·색·저장소·대상 서버 주소는 설정 파일이 아니라 **화면에서 정하고 DB에 들어간다** (SPEC §8.8 · §6).
+
+### 달라질 것 네 가지
 
 - **러너 포트가 닫힌다.** 지금은 `localhost:4000`을 직접 찔러 `/health`를 볼 수 있지만,
   개정 §3.5가 "러너를 바깥에 열지 않는다"고 못 박았다. 로그인을 건너뛰는 뒷길이기 때문이다.
   닫힌 뒤에는 `docker compose exec runner wget -qO- localhost:4000/health`처럼 컨테이너 안에서 본다
-- **계정을 만들어야 화면이 열린다.** 회원가입 화면은 없다.
-  `docker compose exec admin node scripts/add-user.js <아이디> <이름>` 으로 만들고,
-  비밀번호는 이 명령이 무작위로 만들어 **한 번만** 찍는다
-- **인스턴스를 하나 더 띄울 수 있다.** 바꿀 것은 여섯 개뿐이다 (SPEC §9.2 표).
-  `docker compose -p <다른이름> up -d` 로 같은 서버에 두 벌을 돌린다
+- **첫 계정과 첫 서비스를 만들어야 화면이 열린다.** 회원가입 화면은 없다.
+
+  ```
+  docker compose exec admin node scripts/add-user.js <아이디> <이름> admin
+  docker compose exec admin node scripts/add-service.js <접두사> <서비스 이름>
+  ```
+
+  비밀번호는 이 명령이 무작위로 만들어 **한 번만** 찍는다.
+  **두 번째부터는 명령을 쓰지 않는다** — 로그인해서 `설정` 자리에서 만든다
+- **서비스를 여러 개 담는다.** 한 벌에 여러 서비스를 두고 맨 위 띠에서 오간다.
+  컨테이너를 서비스마다 따로 띄우지 않는다 (2026-09-17 결정. 앞 판은 그 반대였다)
+- **정기 실행은 HTTP를 거치지 않는다.**
+  `docker compose exec admin node scripts/run-scheduled.js <접두사>` 를 `cron`에 건다
