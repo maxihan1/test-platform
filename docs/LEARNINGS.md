@@ -180,9 +180,8 @@ SPEC과 잠긴 파일은 승인을 받는다. 승인이 필요한 것은 `제안
 
 ## [WS-C] 2026-09-16 · zod-to-json-schema가 zod 4 스키마에서 빈 결과를 뱉는다
 → **코드 · package.json 으로 승격 (2026-09-17).** zod 4 내장 `z.toJSONSchema(schema, { io: 'input' })` 를 쓴다
-   (`io:'input'` 이라야 `.default()` 가 있는 필드가 required 에서 빠진다). 의존성에서 지웠고 테스트 141건 그대로 통과한다.
-   **남은 것** — `packages/kit/src/types.ts` 주석 2줄에 옛 이름이 있다. 잠긴 파일이라 훅이 막았다.
-   그 파일을 정당하게 열 때(§5.1 `ExecuteRequest.baseUrl` 추가 예정) 같이 고친다
+   (`io:'input'` 이라야 `.default()` 가 있는 필드가 required 에서 빠진다).
+   의존성·킥오프 목록·SPEC 스택 표·`types.ts` 주석까지 전부 지웠다. 테스트 141건 그대로 통과한다
 
 ## [WS-C] 2026-09-16 · Playwright가 테스트 위치를 kit의 래퍼 파일로 잡는다
 증상:  `npx playwright test --list`가 모든 케이스를 `packages/kit/src/runtime/test.ts:95`로 표시하고 "1 file"로 센다
