@@ -62,8 +62,8 @@ units:
       - name: "packages/kit/src/types.ts — ExecuteRequest 에 baseUrl 을 더한다 (§5.1). ItemStatus 는 3종 그대로"
         human_check: ["npm run typecheck 가 통과한다"]
       - { name: "playwright.config.ts — use.baseURL 을 환경변수에서 읽고 retries: 0 을 명시한다 (§5.2)" }
-      - name: "docker-compose.yml·apps/admin/Dockerfile — 포트 설정화, 러너 포트 닫기, 상시 4개 재시작 정책, SESSION_SECRET 전달, 화면 빌드 단계 (§9). 인스턴스 환경변수 넷은 DB 로 내려갔으니 넣지 않는다"
-        human_check: ["호스트에서 러너 포트가 닫혔다", "화면이 admin 포트로 뜬다", "SESSION_SECRET 없이 띄우면 admin 이 기동을 거부한다"]
+      - name: "docker-compose.yml·apps/admin/Dockerfile — 포트 설정화, 러너 포트 닫기, 상시 4개 재시작 정책, SESSION_SECRET 전달, 화면 빌드 단계, 글꼴을 이미지에 담기 (§9). 인스턴스 환경변수 넷은 DB 로 내려갔으니 넣지 않는다"
+        human_check: ["호스트에서 러너 포트가 닫혔다", "화면이 admin 포트로 뜬다", "SESSION_SECRET 없이 띄우면 admin 이 기동을 거부한다", "인터넷을 끊고 띄워도 글꼴이 그대로다"]
       - name: "package.json — Fastify 쿠키·세션 플러그인 하나만 더한다. 비밀번호 해시는 Node 내장 crypto.scrypt 라 추가 설치가 없다 (§9.1)"
         human_check: ["npm install 뒤 npm test 가 통과한다"]
 

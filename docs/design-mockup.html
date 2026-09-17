@@ -8,9 +8,9 @@
 <style>
 :root{
   --paper:#E6E9E2; --sheet:#F8F9F5; --sheet-2:#EFF1EA;
-  --ink:#17201B; --ink-muted:#626C64; --ink-faint:#8B948B;
+  --ink:#17201B; --ink-muted:#464D47; --ink-faint:#626A62;
   --rule:#C8CEC3; --rule-soft:#DCE0D7;
-  --pass:#0D6A46; --fail:#A62B21; --na:#8A7742;
+  --pass:#0D6A46; --fail:#A62B21; --na:#79693A;
   --pass-bg:#E2EDE6; --fail-bg:#F6E4E1; --na-bg:#F1EBDC;
   /* 서비스 색 — 맨 위 띠에서만 쓴다. 본문의 색은 언제나 판정이다 (DESIGN.md) */
   --svc-pay:#2F5D50; --svc-mem:#3A4A63;
@@ -18,9 +18,9 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   background:var(--paper); color:var(--ink);
-  font-family:Pretendard,system-ui,sans-serif;
+  font-family:Pretendard,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
   font-size:14px; line-height:1.6;
-  font-feature-settings:"tnum";
+  font-variant-numeric:tabular-nums;
   background-image:linear-gradient(var(--rule-soft) .5px,transparent .5px),
                    linear-gradient(90deg,var(--rule-soft) .5px,transparent .5px);
   background-size:28px 28px;

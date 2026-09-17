@@ -301,6 +301,11 @@ CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
 16. 빈 목록을 세 갈래로 가른다 (SPEC §8.1) — 안 불러옴 / 0건 / 검색에 안 걸림
 17. 증적 문서를 새 창에서 열어 보고 거기서 저장한다. 만든 것은 시각과 함께 줄로 쌓는다 (SPEC §8.4)
 18. 좁은 화면은 **실행 기록 목록과 실행 결과 둘만** 제대로 되게 한다 (SPEC §8 · DESIGN.md)
+19. 색 토큰 셋을 DESIGN.md 새 값으로 바꾼다 — --ink-muted #464D47 · --ink-faint #626A62 · --na #79693A.
+    지금 값은 명암비 기준(4.5:1)에 미달이다. styles.css 의 값만 바꾸면 되고 구조는 그대로다
+20. 글꼴을 이미지 안에서 쓴다 — index.html 의 CDN <link> 를 지우고 글꼴 파일을 번들에 넣는다.
+    styles.css 의 font-feature-settings: "tnum" 을 font-variant-numeric: tabular-nums 로 바꾸고
+    폴백 스택을 DESIGN.md 대로 적는다. 사내망에서 막히면 숫자 정렬이 깨진다 (SPEC §9)
 
 폼 자동 생성이 이 플랫폼의 핵심 기능이다. 고칠 때 깨뜨리지 마라.
 
