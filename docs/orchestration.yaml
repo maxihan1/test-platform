@@ -1,0 +1,70 @@
+# 개발 파이프라인 오케스트레이터(~/Projects/orchestrator)가 읽는 매니페스트.
+# 문서 위치 · 작업 단위와 순서 · 단계별로 먼저 읽을 문서와 쓸 스킬 · 검사 명령 · 크레딧 정책. 그래프는 고정이고 이 파일이 도메인 분기다.
+project: test_platform
+plugin: pipeline
+docs:
+  spec: docs/SPEC.md
+  workflow: docs/WORKFLOW.md
+  workstreams: docs/WORKSTREAMS.md
+  learnings: docs/LEARNINGS.md
+  progress_dir: docs/progress
+  reviews_dir: docs/reviews
+  claude_md: CLAUDE.md
+drivers: [sdk, bg]                 # 둘 다 구독 한도를 쓴다(2026-09-17 /usage 확인). sdk 는 비용이 정확히 찍히고 상한을 걸 수 있어 먼저, 상한을 넘으면 bg
+effort: xhigh
+credit: { monthlyUsd: 40, turnUsd: 5, workstreamUsd: 20 }    # 실측: 단위 하나 로컬 관통 $3.3, 코드리뷰 턴 $1.5. 달러는 구독 한도 소모량의 환산값이지 청구액이 아니다
+exam: { threshold: 0.8, runsOnSessionStart: 1, runsOnConfigChange: 3 }
+stages:
+  plan:
+    required_docs: [spec, learnings, claude_md, "workstreams#{unit}", "progress/{unit}"]
+  implement:
+    required_docs: [spec, learnings]
+    skills: ["superpowers:test-driven-development"]
+  review:
+    required_docs: [spec, learnings]
+    skills: ["/spec-review {unit}", "/code-review high", "/ponytail-review", "/security-review"]
+    report: "docs/reviews/{date}-{unit}.md"
+    must_contain: "치명 0"
+  qa:
+    env: { DATABASE_URL: "postgres://platform:platform@localhost:5433/platform" }   # 없으면 DB 테스트가 조용히 건너뛴다 (LEARNINGS)
+    commands:
+      - "npm run typecheck"
+      - { run: "npm test", repeat: 3 }        # 1회 통과는 증거가 못 된다 (LEARNINGS 공통 2026-09-16)
+      - "npm run check:tests"
+    screen: { skill: "/qa-only", app: "http://localhost:3000", up: "docker compose up -d --build", only_changed: true }
+  ci: { pr: draft, checks: "gh pr checks" }
+  cd: { merge: "gh pr merge --merge --delete-branch", deploy: [] }    # EC2 배포는 오케스트레이터 완성 뒤 명령을 채운다
+  wrapup:
+    required_docs: [learnings, "progress/{unit}"]
+units:
+  - { id: skeleton, name: 골격, status: done }
+  - { id: WS-A, name: 카탈로그, status: done }
+  - { id: WS-B, name: 실행, status: done }
+  - { id: WS-C, name: 러너, status: done }
+  - { id: WS-E, name: 화면, status: done }
+  - id: WS-D
+    name: 리포팅
+    # 2026-09-17 스펙 변경으로 보류. pending 으로 두면 오케스트레이터가 이 단위부터 집는다.
+    # 새 스펙이 정해지면 docs/WORKSTREAMS.md 의 WS-D 절을 고치고 여기를 pending 으로 되돌린다
+    status: blocked
+    env: { WORKSTREAM: D }
+    branch: ws-d-reporting
+    ui: true
+    kickoff: "workstreams#WS-D 리포팅"
+  - id: integration
+    name: 통합·병합
+    status: pending
+    depends_on: [WS-D]
+    env: { ALLOW_PROTECTED: "1" }
+    branch: integration
+    ui: true
+    kickoff: "workstreams#병합 순서"
+    review: { scope: ALL }                       # WORKFLOW [3] 전체 검사 = 이 단위의 코드리뷰
+    final_check: "spec#Phase 1"                  # G4 = SPEC §11 Phase 1 완료 기준
+    steps:
+      - { name: "WS-C 러너를 실제로 띄우고 WS-B 의 가짜 응답을 진짜 호출로 교체", human_check: ["화면에서 실행 1건이 러너를 실제로 탄다"] }
+      - { name: "WS-A 스캔 결과로 WS-E 목록 화면의 목 데이터 교체", human_check: ["케이스 목록이 실제 스캔 결과다"] }
+      - { name: "WS-B 실행 API 로 WS-E 실행 버튼 연결", human_check: ["실행 버튼에서 결과 상세까지 클릭으로 완주된다"] }
+      - { name: "실제 실행 결과로 WS-D 증적 문서 생성", human_check: ["PDF 가 SPEC §8.4 포맷이다"] }
+      - { name: "Grafana 대시보드 확인", human_check: ["성공률 추이가 그려진다"] }
+max_parallel: 2
