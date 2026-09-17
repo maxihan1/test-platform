@@ -91,8 +91,9 @@
   `docker-compose.yml` 을 고칠 때 이 절의 경고 문구를 지우는 것까지가 그 작업이다
 - **`check:tests` 는 아직 K1~K8 만 본다** (`catalog/rules.ts:8`). 개정 §11 Phase 1 완료 기준이
   `K1~K10` 을 요구하므로(`SPEC.md:1471`) WS-A 가 K9·K10 을 넣기 전에는 그 칸에 체크할 수 없다
-- **소유 경로 표의 §3.5 인증 · §8.6 로그인 담당이 아직 비어 있다.** 이번에 결정하지 못했다.
-  `WORKSTREAMS.md` 를 고칠 때 이 한 줄이 남는다
+- **인증은 새 갈래 `WS-F` 가 맡는다** (2026-09-17 결정). 소유 경로는 `apps/admin/src/auth/**` 와 `scripts/**` 다.
+  `.claude/scripts/guard.mjs` 의 `OWNED` 에도 같이 넣었으니 훅이 바로 강제한다.
+  로그인 **화면**(§8.6)은 WS-E 소유 그대로고, 미들웨어를 다는 `app.ts` 는 공용 골격이라 계약 단위가 연다
 - **`orchestration.yaml` 의 WS-D 는 `blocked` 그대로다.** 스펙은 확정됐지만 증적 문서 본체가
   `run_item.param_schema`·`attempt` 를 먼저 필요로 한다. Grafana 패널만 떼면 지금도 돌릴 수 있다
 - 승격 제안 1건 — `spec-review` 체크리스트에 `H1 SPEC이 참조하는 §번호가 실제로 있는가`.

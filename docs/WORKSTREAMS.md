@@ -15,6 +15,12 @@
 | **WS-C** | 러너 + 테스트 킷 | `apps/runner/**`, `packages/kit/src/runtime/**`, `tests/**` | kit 타입 |
 | **WS-D** | 리포팅 | `apps/admin/src/reporting/**`, `infra/grafana/**` | DB 스키마 |
 | **WS-E** | 화면 | `apps/admin/src/web/**` | Admin API 계약 |
+| **WS-F** | 인증 | `apps/admin/src/auth/**`, `scripts/**` | DB 스키마 (`app_user`) |
+
+**WS-F는 2026-09-17 개정 SPEC §3.5로 생긴 갈래다.** 인증을 실행·카탈로그·리포팅에서 떼어 놓는 것이
+§3.5의 요구다 — 나중에 회사 계정(SSO)으로 갈아 끼울 때 바뀌는 곳이 **함수 하나**여야 하기 때문이다.
+로그인 **화면**(§8.6)은 화면이지 인증이 아니므로 WS-E 소유 그대로다.
+서버 미들웨어를 다는 `apps/admin/src/app.ts`는 아래 공용 골격이라 WS-F가 직접 고치지 않는다.
 
 **아무도 건드리지 않는 곳**: `packages/kit/src/types.ts`, `db/migrations/`, `docker-compose.yml`
 
