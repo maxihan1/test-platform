@@ -22,7 +22,9 @@
 로그인 **화면**(§8.6)은 화면이지 인증이 아니므로 WS-E 소유 그대로다.
 서버 미들웨어를 다는 `apps/admin/src/app.ts`는 아래 공용 골격이라 WS-F가 직접 고치지 않는다.
 
-**아무도 건드리지 않는 곳**: `packages/kit/src/types.ts`, `db/migrations/`, `docker-compose.yml`
+**SPEC에 적힌 대로만 바꾸는 곳**: `packages/kit/src/types.ts`(§5.1) · `db/migrations/`(§6) · `docker-compose.yml`(§9)
+훅의 잠금은 2026-09-17에 풀렸다(승인이 끝난 변경까지 막고 있었다). **막는 장치가 없으니
+고치기 전에 SPEC에 그 변경이 적혀 있는지 먼저 본다.** 검사는 spec-review A1~A3이 사후에 한다 (CLAUDE.md §1.3)
 
 **Phase 0가 만들고 이후 잠그는 공용 골격** (훅의 `ownership` 검사가 막는다. 바꿔야 하면 CLAUDE.md §1.2 절차)
 - `apps/admin/src/app.ts` — 서버 부트스트랩. 각 컨텍스트 폴더의 `routes.ts`를 **정해진 규약**으로 불러 등록한다.
@@ -31,8 +33,7 @@
 - `packages/kit/src/index.ts` — kit 배럴. `./types`와 `./runtime`을 재수출한다 (runtime은 Phase 0에서 스텁)
 - admin의 정적 서빙 경로(Vite 빌드 산출물)는 Phase 0가 `app.ts`에 고정한다.
   Vite 설정 자체(`apps/admin/src/web/vite.config.ts`)는 WS-E 소유다
-- 각 `package.json`, `tsconfig`, `playwright.config.ts` — 의존성은 Phase 0에서 한 번에 깐다.
-  갈래가 새 패키지가 필요하면 CLAUDE.md §3 대로 묻는다
+- `tsconfig`, `playwright.config.ts` — Phase 0가 정한다
 - `.github/workflows/ci.yml` — CI. 스크립트 이름(`typecheck`·`test`·`check:tests`)이 계약이다
 
 각 세션은 **자기 폴더 안에서만 파일을 만든다.** 다른 폴더가 필요하면 계약(타입/API)을 통해서만 접근한다.
@@ -53,7 +54,8 @@
 ## Phase 0 킥오프 프롬프트
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다.
+docs/SPEC.md(색인)와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다.
+골격은 전 갈래의 바닥이라 SPEC 12장을 전부 읽는다 (docs/spec/ 아래 공통 7장·도메인 5장).
 
 이번 세션의 목표는 기능 구현이 아니라 계약 확정이다.
 이후 5개 세션이 병렬로 작업할 것이므로, 여기서 만든 타입·스키마·계약이
@@ -76,9 +78,10 @@ docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다.
    브라우저 기동·/tests 읽기 전용 마운트·모듈 해석이 여기서 검증된다
 8. 공용 골격 — WORKSTREAMS.md "Phase 0가 만들고 이후 잠그는 공용 골격" 목록 전부.
    특히 apps/admin/src/app.ts의 라우트 등록 규약을 정하고 각 컨텍스트 폴더에 빈 routes.ts를 둬라
-9. 의존성을 한 번에 깔아라 (갈래 세션은 package.json을 못 고친다).
-   SPEC §9.1의 스택 기준: fastify, @fastify/static, pg, zod, zod-to-json-schema,
+9. 의존성을 한 번에 깔아라 (갈래 세션은 package.json의 의존성 칸을 못 고친다. scripts는 열려 있다).
+   SPEC §9.1의 스택 기준: fastify, @fastify/static, pg, zod,
    react, react-dom, vite, @vitejs/plugin-react, vitest, typescript, tsx, @playwright/test.
+   (JSON Schema 변환은 zod 내장 `z.toJSONSchema`를 쓴다. 별도 패키지를 깔지 않는다)
    설치 전에 목록을 보고하고 승인을 받아라
 10. CI는 이미 있다 (.github/workflows/ci.yml). 루트 package.json에 typecheck · test · check:tests
     스크립트를 그 이름 그대로 만들어라. check:tests는 apps/admin/src/catalog/check.ts를 가리키고,
@@ -104,7 +107,10 @@ docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다.
 ### WS-A 카탈로그
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-A(카탈로그) 담당이다.
+CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-A(카탈로그) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/2-명세선언.md
+  docs/spec/도메인/카탈로그.md · docs/spec/공통/4-데이터모델.md
+다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/admin/src/catalog/** 이다. 이 폴더 밖은 수정하지 마라.
 
 만들 것:
@@ -133,7 +139,10 @@ TDD로 진행하고, 각 단계마다 내가 터미널에서 확인할 명령을
 ### WS-B 실행
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-B(실행) 담당이다.
+CLAUDE.md와 SPEC 중 아래 5장을 읽어줘. 너는 WS-B(실행) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/3-공유계약.md · docs/spec/공통/5-화면공통.md
+  docs/spec/도메인/실행.md · docs/spec/공통/4-데이터모델.md
+다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/admin/src/execution/** 이다. 이 폴더 밖은 수정하지 마라.
 
 만들 것:
@@ -158,7 +167,10 @@ TDD로 진행하고, 각 단계마다 내가 curl로 확인할 방법을 알려�
 ### WS-C 러너 + 테스트 킷
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-C(러너 + 테스트 킷) 담당이다.
+CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-C(러너 + 테스트 킷) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/2-명세선언.md
+  docs/spec/공통/3-공유계약.md · docs/spec/도메인/러너.md
+다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/runner/**, packages/kit/src/runtime/**, tests/** 이다.
 packages/kit/src/types.ts는 읽기만 하고 수정하지 마라.
 
@@ -193,7 +205,10 @@ TDD로 진행하고, 각 단계마다 확인 방법을 알려줘.
 ### WS-D 리포팅
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-D(리포팅) 담당이다.
+CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-D(리포팅) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/5-화면공통.md
+  docs/spec/도메인/리포팅.md · docs/spec/공통/4-데이터모델.md
+다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/admin/src/reporting/** 와 infra/grafana/** 이다.
 이 컨텍스트는 읽기 전용이다. evidence_document 외에는 어떤 테이블에도 쓰지 마라.
 
@@ -238,7 +253,11 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 ### WS-E 화면
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-E(화면) 담당이다.
+CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/5-화면공통.md · docs/DESIGN.md
+  화면 절(§8.x)은 도메인 장에 흩어져 있다 — 카탈로그 §8.1 · 실행 §8.2·8.3 ·
+  리포팅 §8.4·8.5 · 인증 §8.6. 고칠 화면이 속한 도메인 장을 읽는다.
+다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/admin/src/web/** 이다. 서버 코드는 건드리지 마라.
 화면은 React + Vite다 (SPEC §9.1). Vite 설정은 네 폴더 안의 것을 쓴다.
 시작 전에 docs/DESIGN.md와 docs/design-mockup.html을 반드시 열어봐라.
