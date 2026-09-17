@@ -22,7 +22,9 @@
 로그인 **화면**(§8.6)은 화면이지 인증이 아니므로 WS-E 소유 그대로다.
 서버 미들웨어를 다는 `apps/admin/src/app.ts`는 아래 공용 골격이라 WS-F가 직접 고치지 않는다.
 
-**아무도 건드리지 않는 곳**: `packages/kit/src/types.ts`, `db/migrations/`, `docker-compose.yml`
+**SPEC에 적힌 대로만 바꾸는 곳**: `packages/kit/src/types.ts`(§5.1) · `db/migrations/`(§6) · `docker-compose.yml`(§9)
+훅의 잠금은 2026-09-17에 풀렸다(승인이 끝난 변경까지 막고 있었다). **막는 장치가 없으니
+고치기 전에 SPEC에 그 변경이 적혀 있는지 먼저 본다.** 검사는 spec-review A1~A3이 사후에 한다 (CLAUDE.md §1.3)
 
 **Phase 0가 만들고 이후 잠그는 공용 골격** (훅의 `ownership` 검사가 막는다. 바꿔야 하면 CLAUDE.md §1.2 절차)
 - `apps/admin/src/app.ts` — 서버 부트스트랩. 각 컨텍스트 폴더의 `routes.ts`를 **정해진 규약**으로 불러 등록한다.

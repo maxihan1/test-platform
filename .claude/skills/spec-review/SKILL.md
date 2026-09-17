@@ -53,14 +53,19 @@ SPEC 본문은 `docs/spec/` 아래 공통 7장·도메인 5장으로 나뉘어 �
 
 | # | 검사 | 통과 조건 |
 |---|------|----------|
-| A1 | `packages/kit/src/types.ts`가 Phase 0 이후 변경됐는가 | 변경 없음 |
-| A2 | `db/migrations/`가 Phase 0 이후 변경됐는가 | 변경 없음 |
-| A3 | `docker-compose.yml`이 Phase 0 이후 변경됐는가 | 변경 없음 |
+| A1 | `packages/kit/src/types.ts` 변경이 **SPEC §5.1에 적힌 것과 일치**하는가 | 일치 (또는 변경 없음) |
+| A2 | `db/migrations/` 변경이 **SPEC §6에 적힌 것과 일치**하는가 | 일치 (또는 변경 없음) |
+| A3 | `docker-compose.yml` 변경이 **SPEC §9에 적힌 것과 일치**하는가 | 일치 (또는 변경 없음) |
 | A4 | 러너 HTTP 요청·응답이 `ExecuteRequest` / `ExecuteResponse`와 필드까지 일치하는가 | 일치 |
 | A5 | Admin API 경로와 응답 형태가 SPEC §7과 일치하는가 | 일치 |
 | A6 | DB 컬럼명이 SPEC §6과 일치하는가 | 일치 |
 
-A1~A3은 `git log --oneline -- <경로>`로 Phase 0 커밋 이후 변경이 있는지 본다.
+**A1~A3은 2026-09-17부터 "변경 없음"이 아니라 "SPEC 대로인가"를 본다.** 개정 SPEC 이 세 파일의 변경을
+이미 승인했고 훅의 잠금 목록(`guard.mjs`의 `LOCKED`)도 그날 비웠다. 이제 변경되는 것이 정상이다.
+
+`git diff main...HEAD -- packages/kit/src/types.ts db/migrations/ docker-compose.yml` 로 무엇이 바뀌었는지 뽑아
+SPEC 해당 절과 **한 줄씩 대조한다. SPEC 에 없는 변경이 하나라도 있으면 치명이다.**
+잠금이 사라졌으므로 이 검사가 유일한 방어선이다 — 변경이 없으면 "변경 없음"으로 적고 넘어간다.
 
 ### B. 도메인 불변식 — 치명
 
