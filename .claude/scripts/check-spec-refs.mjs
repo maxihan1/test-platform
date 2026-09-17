@@ -28,6 +28,10 @@ for (const p of 장들) {
 // `§1` 이 있으면 `§1.1` 만 있어도 대절은 가리킬 수 있다
 for (const s of [...있는절]) 있는절.add(s.split('.')[0]);
 
+// SPEC 밖에서 절 번호로 가리키는 곳이 몇 군데인지 센다.
+// 색인이 이 숫자를 손으로 적고 있었는데 221 → 305 로 조용히 썩었다. 기계가 센다
+let 밖참조 = 0;
+
 // 가리키는 번호를 모은다.
 // SPEC 안에서는 맨절(`→ §8.8`)로 가리키는 것이 보통이라 `§` 만으로 센다.
 // 밖(코드·훅·스킬)에서는 `SPEC §` 만 센다 — 다른 문서의 절 번호를 우리 것으로 오해하지 않으려고
@@ -38,6 +42,7 @@ for (const p of 훑기(ROOT)) {
   const 무늬 = SPEC문서.has(rel) ? /(?<!CLAUDE\.md )§(\d+(?:\.\d+)?)/g : /SPEC §(\d+(?:\.\d+)?)/g;
   readFileSync(p, 'utf8').split('\n').forEach((l, i) => {
     for (const m of l.matchAll(무늬)) {
+      if (!SPEC문서.has(rel)) 밖참조 += 1;
       if (!있는절.has(m[1])) 깨진참조.push(`${rel}:${i + 1}  §${m[1]}`);
     }
   });
@@ -73,6 +78,7 @@ const 틀린분량 = [];
 }
 
 console.log(`실재하는 절 ${[...있는절].sort().join(' · ')}`);
+console.log(`절 번호로 이 문서를 가리키는 곳 — SPEC 밖에 ${밖참조}군데`);
 if (깨진참조.length || 깨진링크.length || 틀린분량.length) {
   if (깨진참조.length) console.error(`\n없는 절을 가리키는 곳 ${깨진참조.length}건\n${깨진참조.join('\n')}`);
   if (깨진링크.length) console.error(`\n깨진 링크 ${깨진링크.length}건\n${깨진링크.join('\n')}`);
