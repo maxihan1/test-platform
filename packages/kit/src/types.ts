@@ -3,14 +3,14 @@
 export type TcId = string;                         // 'AUTH-002'
 export type Platform = 'desktop' | 'mobile';
 export type ItemStatus = 'PASS' | 'FAIL' | 'NA';
-export type JsonSchema = Record<string, unknown>;  // zod-to-json-schema 출력. 검증하지 않고 그대로 저장·전달한다
+export type JsonSchema = Record<string, unknown>;  // zod 내장 z.toJSONSchema 출력. 검증하지 않고 그대로 저장·전달한다
 
 export interface CaseSpec {
   tcId: TcId;
   name: string;
   platforms: Platform[];        // 비면 ['desktop']
   precondition: string[];
-  paramSchema: JsonSchema;      // zod → zod-to-json-schema 변환 결과. 코드에서 null이면 빈 객체 스키마
+  paramSchema: JsonSchema;      // zod → z.toJSONSchema 변환 결과. 코드에서 null이면 빈 객체 스키마
   expectedSchema: JsonSchema;
   filePath: string;             // 소스 루트 기준 상대 경로
 }
