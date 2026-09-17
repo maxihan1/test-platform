@@ -53,7 +53,8 @@
 ## Phase 0 킥오프 프롬프트
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다.
+docs/SPEC.md(색인)와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다.
+골격은 전 갈래의 바닥이라 SPEC 12장을 전부 읽는다 (docs/spec/ 아래 공통 7장·도메인 5장).
 
 이번 세션의 목표는 기능 구현이 아니라 계약 확정이다.
 이후 5개 세션이 병렬로 작업할 것이므로, 여기서 만든 타입·스키마·계약이
@@ -104,7 +105,10 @@ docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다.
 ### WS-A 카탈로그
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-A(카탈로그) 담당이다.
+CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-A(카탈로그) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/2-명세선언.md
+  docs/spec/도메인/카탈로그.md · docs/spec/공통/4-데이터모델.md
+다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/admin/src/catalog/** 이다. 이 폴더 밖은 수정하지 마라.
 
 만들 것:
@@ -133,7 +137,10 @@ TDD로 진행하고, 각 단계마다 내가 터미널에서 확인할 명령을
 ### WS-B 실행
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-B(실행) 담당이다.
+CLAUDE.md와 SPEC 중 아래 5장을 읽어줘. 너는 WS-B(실행) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/3-공유계약.md · docs/spec/공통/5-화면공통.md
+  docs/spec/도메인/실행.md · docs/spec/공통/4-데이터모델.md
+다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/admin/src/execution/** 이다. 이 폴더 밖은 수정하지 마라.
 
 만들 것:
@@ -158,7 +165,10 @@ TDD로 진행하고, 각 단계마다 내가 curl로 확인할 방법을 알려�
 ### WS-C 러너 + 테스트 킷
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-C(러너 + 테스트 킷) 담당이다.
+CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-C(러너 + 테스트 킷) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/2-명세선언.md
+  docs/spec/공통/3-공유계약.md · docs/spec/도메인/러너.md
+다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/runner/**, packages/kit/src/runtime/**, tests/** 이다.
 packages/kit/src/types.ts는 읽기만 하고 수정하지 마라.
 
@@ -193,7 +203,10 @@ TDD로 진행하고, 각 단계마다 확인 방법을 알려줘.
 ### WS-D 리포팅
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-D(리포팅) 담당이다.
+CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-D(리포팅) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/5-화면공통.md
+  docs/spec/도메인/리포팅.md · docs/spec/공통/4-데이터모델.md
+다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/admin/src/reporting/** 와 infra/grafana/** 이다.
 이 컨텍스트는 읽기 전용이다. evidence_document 외에는 어떤 테이블에도 쓰지 마라.
 
@@ -238,7 +251,11 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 ### WS-E 화면
 
 ```
-docs/SPEC.md와 CLAUDE.md를 읽어줘. 너는 WS-E(화면) 담당이다.
+CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/5-화면공통.md · docs/DESIGN.md
+  화면 절(§8.x)은 도메인 장에 흩어져 있다 — 카탈로그 §8.1 · 실행 §8.2·8.3 ·
+  리포팅 §8.4·8.5 · 인증 §8.6. 고칠 화면이 속한 도메인 장을 읽는다.
+다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/admin/src/web/** 이다. 서버 코드는 건드리지 마라.
 화면은 React + Vite다 (SPEC §9.1). Vite 설정은 네 폴더 안의 것을 쓴다.
 시작 전에 docs/DESIGN.md와 docs/design-mockup.html을 반드시 열어봐라.
