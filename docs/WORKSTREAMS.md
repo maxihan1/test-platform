@@ -31,8 +31,7 @@
 - `packages/kit/src/index.ts` — kit 배럴. `./types`와 `./runtime`을 재수출한다 (runtime은 Phase 0에서 스텁)
 - admin의 정적 서빙 경로(Vite 빌드 산출물)는 Phase 0가 `app.ts`에 고정한다.
   Vite 설정 자체(`apps/admin/src/web/vite.config.ts`)는 WS-E 소유다
-- 각 `package.json`, `tsconfig`, `playwright.config.ts` — 의존성은 Phase 0에서 한 번에 깐다.
-  갈래가 새 패키지가 필요하면 CLAUDE.md §3 대로 묻는다
+- `tsconfig`, `playwright.config.ts` — Phase 0가 정한다
 - `.github/workflows/ci.yml` — CI. 스크립트 이름(`typecheck`·`test`·`check:tests`)이 계약이다
 
 각 세션은 **자기 폴더 안에서만 파일을 만든다.** 다른 폴더가 필요하면 계약(타입/API)을 통해서만 접근한다.
@@ -77,7 +76,7 @@ docs/SPEC.md(색인)와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다
    브라우저 기동·/tests 읽기 전용 마운트·모듈 해석이 여기서 검증된다
 8. 공용 골격 — WORKSTREAMS.md "Phase 0가 만들고 이후 잠그는 공용 골격" 목록 전부.
    특히 apps/admin/src/app.ts의 라우트 등록 규약을 정하고 각 컨텍스트 폴더에 빈 routes.ts를 둬라
-9. 의존성을 한 번에 깔아라 (갈래 세션은 package.json을 못 고친다).
+9. 의존성을 한 번에 깔아라 (갈래 세션은 package.json의 의존성 칸을 못 고친다. scripts는 열려 있다).
    SPEC §9.1의 스택 기준: fastify, @fastify/static, pg, zod, zod-to-json-schema,
    react, react-dom, vite, @vitejs/plugin-react, vitest, typescript, tsx, @playwright/test.
    설치 전에 목록을 보고하고 승인을 받아라
