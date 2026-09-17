@@ -34,12 +34,13 @@ let 밖참조 = 0;
 
 // 가리키는 번호를 모은다.
 // SPEC 안에서는 맨절(`→ §8.8`)로 가리키는 것이 보통이라 `§` 만으로 센다.
-// 밖(코드·훅·스킬)에서는 `SPEC §` 만 센다 — 다른 문서의 절 번호를 우리 것으로 오해하지 않으려고
+// 밖(코드·훅·스킬)에서는 `SPEC §` 만 센다 — 다른 문서의 절 번호를 우리 것으로 오해하지 않으려고.
+// CLAUDE.md 의 절은 맨 이름과 링크 두 모양 다 뺀다
 const SPEC문서 = new Set(장들.map((p) => path.relative(ROOT, p)));
 const 깨진참조 = [];
 for (const p of 훑기(ROOT)) {
   const rel = path.relative(ROOT, p);
-  const 무늬 = SPEC문서.has(rel) ? /(?<!CLAUDE\.md )§(\d+(?:\.\d+)?)/g : /SPEC §(\d+(?:\.\d+)?)/g;
+  const 무늬 = SPEC문서.has(rel) ? /(?<!CLAUDE\.md )(?<!CLAUDE\.md\) )§(\d+(?:\.\d+)?)/g : /SPEC §(\d+(?:\.\d+)?)/g;
   readFileSync(p, 'utf8').split('\n').forEach((l, i) => {
     for (const m of l.matchAll(무늬)) {
       if (!SPEC문서.has(rel)) 밖참조 += 1;
