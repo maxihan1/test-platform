@@ -28,12 +28,16 @@ for (const p of 장들) {
 // `§1` 이 있으면 `§1.1` 만 있어도 대절은 가리킬 수 있다
 for (const s of [...있는절]) 있는절.add(s.split('.')[0]);
 
-// 가리키는 번호를 모은다
+// 가리키는 번호를 모은다.
+// SPEC 안에서는 맨절(`→ §8.8`)로 가리키는 것이 보통이라 `§` 만으로 센다.
+// 밖(코드·훅·스킬)에서는 `SPEC §` 만 센다 — 다른 문서의 절 번호를 우리 것으로 오해하지 않으려고
+const SPEC문서 = new Set(장들.map((p) => path.relative(ROOT, p)));
 const 깨진참조 = [];
 for (const p of 훑기(ROOT)) {
   const rel = path.relative(ROOT, p);
+  const 무늬 = SPEC문서.has(rel) ? /(?<!CLAUDE\.md )§(\d+(?:\.\d+)?)/g : /SPEC §(\d+(?:\.\d+)?)/g;
   readFileSync(p, 'utf8').split('\n').forEach((l, i) => {
-    for (const m of l.matchAll(/SPEC §(\d+(?:\.\d+)?)/g)) {
+    for (const m of l.matchAll(무늬)) {
       if (!있는절.has(m[1])) 깨진참조.push(`${rel}:${i + 1}  §${m[1]}`);
     }
   });
