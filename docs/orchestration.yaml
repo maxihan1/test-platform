@@ -44,7 +44,9 @@ units:
   - { id: WS-E, name: 화면, status: done }
   - id: WS-D
     name: 리포팅
-    status: pending
+    # 2026-09-17 스펙 변경으로 보류. pending 으로 두면 오케스트레이터가 이 단위부터 집는다.
+    # 새 스펙이 정해지면 docs/WORKSTREAMS.md 의 WS-D 절을 고치고 여기를 pending 으로 되돌린다
+    status: blocked
     env: { WORKSTREAM: D }
     branch: ws-d-reporting
     ui: true
