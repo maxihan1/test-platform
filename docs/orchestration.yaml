@@ -57,7 +57,7 @@ units:
     branch: contracts
     kickoff: "workstreams#계약 반영"
     steps:
-      - name: "db/migrations — §6 마이그레이션 예시 그대로. service·service_env·app_user·user_service 신설, test_run·run_item·evidence_document 새 칸, grafana_ro 기본 허용 끄기"
+      - name: "db/migrations — §6 마이그레이션 예시 그대로. service·service_env·app_user·user_service 신설(service.slack_webhook 포함), test_run·run_item·evidence_document 새 칸(notify_slack·notified_at 포함), grafana_ro 기본 허용 끄기"
         human_check: ["docker compose up -d 로 마이그레이션이 적용된다", "기존 실행 기록이 화면에 그대로 보인다", "대시보드 계정으로 app_user 를 읽으면 거부된다"]
       - name: "packages/kit/src/types.ts — ExecuteRequest 에 baseUrl 을 더한다 (§5.1). ItemStatus 는 3종 그대로"
         human_check: ["npm run typecheck 가 통과한다"]

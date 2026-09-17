@@ -306,6 +306,11 @@ CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
 20. 글꼴을 이미지 안에서 쓴다 — index.html 의 CDN <link> 를 지우고 글꼴 파일을 번들에 넣는다.
     styles.css 의 font-feature-settings: "tnum" 을 font-variant-numeric: tabular-nums 로 바꾸고
     폴백 스택을 DESIGN.md 대로 적는다. 사내망에서 막히면 숫자 정렬이 깨진다 (SPEC §9)
+21. 실행 완료 모달 (SPEC §8.9) — 그 실행 결과 화면에서만 뜬다. 다른 화면에서는 §8 알림 줄이
+    「끝났습니다」로 바뀐다. 닫는 길 셋(버튼·Esc·바깥), 포커스 가두기, 모달 규칙은 DESIGN.md
+22. 실행 설정에 `끝나면 Slack 알리기` 체크박스 (SPEC §8.2). 기본 꺼짐.
+    그 서비스에 웹훅이 없으면 칸 자체를 그리지 않는다
+23. 설정 화면에 Slack 웹훅 칸 (SPEC §8.8). 비밀값이라 되돌려 보여주지 않고 `설정됨 · 다시 넣기`만
 
 폼 자동 생성이 이 플랫폼의 핵심 기능이다. 고칠 때 깨뜨리지 마라.
 
@@ -353,7 +358,8 @@ CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-F(인증) 담당이다
   docs/spec/공통/1-제품과-구조.md · docs/spec/공통/5-화면공통.md
   docs/spec/도메인/인증.md · docs/spec/공통/4-데이터모델.md
 소유 경로는 apps/admin/src/auth/** 와 apps/admin/src/settings/** 와 scripts/** 다.
-설정 API(/api/settings/**, SPEC §7)도 네 몫이다 — 서비스·계정·등급·대상 서버 주소를 만든다.
+설정 API(/api/settings/**, SPEC §7)도 네 몫이다 — 서비스·계정·등급·대상 서버 주소·Slack 웹훅을 만든다.
+웹훅 주소는 비밀값이라 **응답에 담지 않는다.** 설정됐는지(hasSlackWebhook)만 준다.
 설정 **화면**은 WS-E 가 만든다 (§8.8). 너는 API 까지다.
 
 만들 것:
