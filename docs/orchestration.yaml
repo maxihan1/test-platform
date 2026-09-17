@@ -44,8 +44,11 @@ units:
   - { id: WS-E, name: 화면, status: done }
   - id: WS-D
     name: 리포팅
-    # 2026-09-17 스펙 변경으로 보류. pending 으로 두면 오케스트레이터가 이 단위부터 집는다.
-    # 새 스펙이 정해지면 docs/WORKSTREAMS.md 의 WS-D 절을 고치고 여기를 pending 으로 되돌린다
+    # 2026-09-17 스펙 확정됨. WORKSTREAMS 의 WS-D 절도 개정 §8.4 로 고쳤다.
+    # 그래도 보류인 이유 — 증적 문서 본체가 run_item.param_schema·attempt 와 test_run 머리말 칸을
+    # 먼저 필요로 한다(개정 §6). 그 전에 만들면 라벨을 test_case 에서 읽게 되고, §3.3 이 금지한 패턴이다.
+    # Grafana 패널 4종은 새 컬럼에 안 기대므로 떼어 내면 지금도 돌릴 수 있다.
+    # 잠긴 파일(계약) 단위가 먼저 서면 여기를 pending 으로 되돌린다
     status: blocked
     env: { WORKSTREAM: D }
     branch: ws-d-reporting
