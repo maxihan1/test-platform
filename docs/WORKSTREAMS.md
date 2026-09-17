@@ -77,8 +77,9 @@ docs/SPEC.md(색인)와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다
 8. 공용 골격 — WORKSTREAMS.md "Phase 0가 만들고 이후 잠그는 공용 골격" 목록 전부.
    특히 apps/admin/src/app.ts의 라우트 등록 규약을 정하고 각 컨텍스트 폴더에 빈 routes.ts를 둬라
 9. 의존성을 한 번에 깔아라 (갈래 세션은 package.json의 의존성 칸을 못 고친다. scripts는 열려 있다).
-   SPEC §9.1의 스택 기준: fastify, @fastify/static, pg, zod, zod-to-json-schema,
+   SPEC §9.1의 스택 기준: fastify, @fastify/static, pg, zod,
    react, react-dom, vite, @vitejs/plugin-react, vitest, typescript, tsx, @playwright/test.
+   (JSON Schema 변환은 zod 내장 `z.toJSONSchema`를 쓴다. 별도 패키지를 깔지 않는다)
    설치 전에 목록을 보고하고 승인을 받아라
 10. CI는 이미 있다 (.github/workflows/ci.yml). 루트 package.json에 typecheck · test · check:tests
     스크립트를 그 이름 그대로 만들어라. check:tests는 apps/admin/src/catalog/check.ts를 가리키고,

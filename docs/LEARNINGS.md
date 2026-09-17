@@ -175,12 +175,10 @@ SPEC과 잠긴 파일은 승인을 받는다. 승인이 필요한 것은 `제안
 주의:  admin의 HTTP 타임아웃은 `timeoutMs + 30초`다. 이걸 안 고치면 긴 케이스에서 admin이 먼저 끊긴다
 
 ## [WS-C] 2026-09-16 · zod-to-json-schema가 zod 4 스키마에서 빈 결과를 뱉는다
-증상:  `zodToJsonSchema(z.object({...}))`가 `{"$schema":...}` 하나만 돌려준다. properties도 required도 없다
-원인:  설치된 zod는 4.1.12인데 zod-to-json-schema 3.24는 zod 3의 `_def.typeName`을 읽는다. zod 4는 내부 구조가 다르다
-해법:  zod 4 내장 `z.toJSONSchema(schema, { io: 'input' })`를 쓴다. `io:'input'`이라야 `.default()`가 있는 필드가 required에서 빠진다
-미완:  **`package.json` 에 `zod-to-json-schema` 가 아직 남아 있다 (2026-09-17 확인).** import 하는 코드는 0곳이고
-       `packages/kit/src/types.ts` 주석에만 이름이 남았다. 의존성 제거와 그 파일은 승인이 필요하다(§1.2·§3).
-       지우고 나면 이 항목도 한 줄로 줄인다
+→ **코드 · package.json 으로 승격 (2026-09-17).** zod 4 내장 `z.toJSONSchema(schema, { io: 'input' })` 를 쓴다
+   (`io:'input'` 이라야 `.default()` 가 있는 필드가 required 에서 빠진다). 의존성에서 지웠고 테스트 141건 그대로 통과한다.
+   **남은 것** — `packages/kit/src/types.ts` 주석 2줄에 옛 이름이 있다. 잠긴 파일이라 훅이 막았다.
+   그 파일을 정당하게 열 때(§5.1 `ExecuteRequest.baseUrl` 추가 예정) 같이 고친다
 
 ## [WS-C] 2026-09-16 · Playwright가 테스트 위치를 kit의 래퍼 파일로 잡는다
 증상:  `npx playwright test --list`가 모든 케이스를 `packages/kit/src/runtime/test.ts:95`로 표시하고 "1 file"로 센다
