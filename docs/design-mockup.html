@@ -115,6 +115,17 @@ input[type=text]:focus,select:focus{outline:2px solid var(--ink);outline-offset:
 .btn.ghost{background:transparent;color:var(--ink)}
 .btn:focus-visible{outline:2px solid var(--fail);outline-offset:2px}
 .note{font-size:12px;color:var(--ink-faint);margin-right:auto}
+
+/* 인스턴스 띠 — 어느 한 벌을 보고 있는지 글자를 읽지 않아도 알아야 한다 (SPEC §9.2) */
+.band{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:8px 24px;font-size:12.5px;font-weight:600;color:#fff;background:#2F5D50;
+}
+.band .who{font-weight:400;opacity:.85}
+.attempt{font-size:12px;color:var(--ink-muted);white-space:nowrap}
+.params{display:block;font-size:12px;color:var(--ink-faint);font-weight:400;margin-top:2px}
+.login{max-width:360px;margin:0 auto}
+.login .sec{border-bottom:0}
 @media(max-width:620px){
   .row{grid-template-columns:4px 1fr;gap:0 12px}
   .tcid{padding:12px 0 0}
@@ -129,12 +140,26 @@ input[type=text]:focus,select:focus{outline:2px solid var(--ink);outline-offset:
 <body>
 <div class="wrap">
 
+<p class="screen-tag">인스턴스 띠 — 모든 화면 맨 위에 붙는다 (로그인 화면 포함)</p>
+<div class="screen" style="margin-bottom:40px">
+  <div class="band" style="background:#2F5D50">
+    <span>결제 서비스 QA</span>
+    <span class="who">김철수 · 로그아웃</span>
+  </div>
+  <p class="note" style="padding:12px 24px;margin:0">이름과 색은 인스턴스 설정에서 온다. 브라우저 탭 제목에도 같은 이름이 들어간다.</p>
+</div>
+
 <p class="screen-tag">화면 1 — 실행 결과 목록</p>
 <div class="screen">
+  <div class="band" style="background:#2F5D50">
+    <span>결제 서비스 QA</span>
+    <span class="who">김철수 · 로그아웃</span>
+  </div>
   <div class="bar">
     <div>
       <div class="runid">RUN 2111</div>
-      <div class="runmeta">2026년 9월 15일 17:13 · 로그인 회귀 · 실행자 maxi</div>
+      <div class="runmeta">2026년 9월 15일 17:13 · 로그인 회귀 · 실행자 김철수<br>
+        대상 서버 <b>qa</b> · https://qa.example.com</div>
     </div>
     <div class="tally">
       <div><b style="color:var(--pass)">8</b><span>통과</span></div>
@@ -147,24 +172,35 @@ input[type=text]:focus,select:focus{outline:2px solid var(--ink);outline-offset:
     <i style="background:var(--fail);flex:1"></i>
     <i style="background:var(--na);flex:1"></i>
   </div>
+  <div class="actions" style="justify-content:flex-start;border-bottom:1px solid var(--rule-soft)">
+    <span class="note">실행이 끝났습니다 · 17:19 완료</span>
+    <button class="btn ghost">증적 문서 만들기</button>
+    <button class="btn ghost" disabled style="opacity:.4">멈춤</button>
+  </div>
   <div class="toolbar">
     <input type="text" placeholder="케이스 이름이나 ID로 찾기">
     <button class="chip" aria-pressed="true">전체</button>
     <button class="chip" aria-pressed="false">실패만</button>
+    <span style="width:1px;background:var(--rule);margin:0 4px"></span>
+    <button class="chip" aria-pressed="true">모든 디바이스</button>
+    <button class="chip" aria-pressed="false">PC</button>
+    <button class="chip" aria-pressed="false">모바일</button>
   </div>
 
   <div class="row">
     <div class="gutter" style="background:var(--pass)"></div>
     <div class="tcid">AUTH-001</div>
-    <div class="title">신규 이메일로 가입하면 계정이 생성된다</div>
+    <div class="title">신규 이메일로 가입하면 계정이 생성된다
+      <small class="params">아이디 testuser · 로그인 경로 웹</small></div>
     <div class="right"><span class="dur">1.24초</span><span class="verdict v-pass">통과</span></div>
   </div>
   <div class="row">
     <div class="gutter" style="background:var(--fail)"></div>
     <div class="tcid">AUTH-002</div>
     <div class="title">유효한 이메일과 비밀번호로 로그인하면 토큰이 발급된다
-      <small>2번 절차에서 실패 — 토큰이 발급된다</small></div>
-    <div class="right"><span class="dur">0.40초</span><span class="verdict v-fail">실패</span></div>
+      <small>2번 절차에서 실패 — 토큰이 발급된다</small>
+      <small class="params">아이디 testuser · 비밀번호 ******** · 로그인 경로 웹</small></div>
+    <div class="right"><span class="attempt">3/5 통과</span><span class="dur">0.40초</span><span class="verdict v-fail">실패</span></div>
   </div>
   <div class="row">
     <div class="gutter" style="background:var(--pass)"></div>
@@ -208,13 +244,39 @@ input[type=text]:focus,select:focus{outline:2px solid var(--ink);outline-offset:
     </div>
     <div class="field">
       <label for="f2">비밀번호</label>
-      <div><input type="text" id="f2" value="Password123" style="width:100%"></div>
+      <div><input type="password" id="f2" value="Password123" style="width:100%"></div>
     </div>
     <div class="field">
       <label for="f3">로그인 경로 <span class="opt">선택</span></label>
       <div><select id="f3" style="width:100%"><option>웹</option><option>모바일</option><option>API</option></select></div>
     </div>
     <p class="hint">저장된 입력값 세트를 불러오면 이 칸이 한 번에 채워집니다.</p>
+    <p class="hint">비밀번호처럼 가려야 하는 칸은 타이핑할 때도 글자가 보이지 않고, 결과 화면과 증적 문서에는 <b>********</b>로 나옵니다.</p>
+  </div>
+  <div class="sec">
+    <div class="sec-h">실행 조건</div>
+    <div class="field">
+      <label for="g1">대상 서버</label>
+      <div><select id="g1" style="width:100%">
+        <option value="" selected>고르세요</option>
+        <option>dev — https://dev.example.com</option>
+        <option>qa — https://qa.example.com</option>
+        <option>staging — https://stg.example.com</option>
+      </select></div>
+    </div>
+    <div class="field">
+      <label for="g2">디바이스</label>
+      <div>
+        <button class="chip" aria-pressed="true">PC</button>
+        <button class="chip" aria-pressed="true">모바일</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="g3">반복 횟수</label>
+      <div><input type="text" id="g3" value="1" style="width:80px"></div>
+    </div>
+    <p class="hint">대상 서버는 기본값이 없습니다. 고르지 않으면 실행할 수 없습니다.</p>
+    <p class="hint">반복은 같은 케이스를 여러 번 돌려 <b>테스트 코드가 흔들리는지</b> 보는 도구입니다. 실패해도 자동으로 다시 돌지 않습니다.</p>
   </div>
   <div class="sec">
     <div class="sec-h">기대결과</div>
@@ -228,7 +290,7 @@ input[type=text]:focus,select:focus{outline:2px solid var(--ink);outline-offset:
     </div>
   </div>
   <div class="actions">
-    <span class="note">입력값은 이번 실행 기록에 그대로 저장됩니다.</span>
+    <span class="note">입력값은 이번 실행 기록에 그대로 저장됩니다 · 실행자 <b>김철수</b></span>
     <button class="btn ghost">입력값 세트로 저장</button>
     <button class="btn">실행하기</button>
   </div>
@@ -296,6 +358,88 @@ input[type=text]:focus,select:focus{outline:2px solid var(--ink);outline-offset:
     <button class="btn ghost">이 케이스 이력 보기</button>
     <button class="btn">같은 값으로 다시 실행</button>
   </div>
+</div>
+
+<p class="screen-tag">화면 4 — 케이스 목록 (검색 조건 다섯)</p>
+<div class="screen">
+  <div class="band" style="background:#2F5D50">
+    <span>결제 서비스 QA</span>
+    <span class="who">김철수 · 로그아웃</span>
+  </div>
+  <div class="bar">
+    <div>
+      <div style="font-size:19px;font-weight:600;letter-spacing:-.01em">케이스 목록</div>
+      <div class="runmeta">마지막 스캔 9월 15일 09:02 · 추가 2 · 갱신 5 · 비활성 1 · 중복 0</div>
+    </div>
+    <button class="btn ghost">다시 스캔하기</button>
+  </div>
+  <div class="toolbar">
+    <input type="text" placeholder="케이스 이름이나 ID로 찾기">
+    <select style="min-width:130px"><option>모든 기능 영역</option><option>AUTH</option><option>PROD</option><option>ORDER</option></select>
+  </div>
+  <div class="toolbar" style="padding-top:0">
+    <button class="chip" aria-pressed="true">모든 디바이스</button>
+    <button class="chip" aria-pressed="false">PC</button>
+    <button class="chip" aria-pressed="false">모바일</button>
+    <span style="width:1px;background:var(--rule);margin:0 4px"></span>
+    <button class="chip" aria-pressed="true">활성만</button>
+    <button class="chip" aria-pressed="false">전체</button>
+    <span style="width:1px;background:var(--rule);margin:0 4px"></span>
+    <button class="chip" aria-pressed="true">마지막 결과 전체</button>
+    <button class="chip" aria-pressed="false">통과</button>
+    <button class="chip" aria-pressed="false">실패</button>
+    <button class="chip" aria-pressed="false">미실행</button>
+  </div>
+
+  <div class="row">
+    <div class="gutter" style="background:var(--pass)"></div>
+    <div class="tcid">AUTH-001</div>
+    <div class="title">신규 이메일로 가입하면 계정이 생성된다
+      <small class="params">지원 디바이스 PC · 모바일</small></div>
+    <div class="right"><span class="verdict v-pass">통과</span><button class="btn">실행</button></div>
+  </div>
+  <div class="row">
+    <div class="gutter" style="background:var(--fail)"></div>
+    <div class="tcid">AUTH-002</div>
+    <div class="title">유효한 이메일과 비밀번호로 로그인하면 토큰이 발급된다
+      <small class="params">지원 디바이스 PC · 모바일</small></div>
+    <div class="right"><span class="verdict v-fail">실패</span><button class="btn">실행</button></div>
+  </div>
+  <div class="row">
+    <div class="gutter" style="background:var(--na)"></div>
+    <div class="tcid">ORDER-003</div>
+    <div class="title">장바구니에서 결제하면 주문이 생성된다
+      <small class="params">지원 디바이스 PC</small></div>
+    <div class="right"><span class="verdict v-na">미실행</span><button class="btn">실행</button></div>
+  </div>
+  <div class="actions">
+    <span class="note">모두 34건 — 안내용 숫자입니다. 다음 페이지가 있는지는 서버가 알려줍니다.</span>
+    <button class="btn ghost" disabled style="opacity:.4">이전</button>
+    <button class="btn ghost">다음</button>
+  </div>
+</div>
+
+<p class="screen-tag">화면 5 — 로그인</p>
+<div class="screen login">
+  <div class="band" style="background:#2F5D50">
+    <span>결제 서비스 QA</span>
+  </div>
+  <div class="sec">
+    <div class="field" style="grid-template-columns:1fr;gap:4px">
+      <label for="l1">아이디</label>
+      <div><input type="text" id="l1" style="width:100%"></div>
+    </div>
+    <div class="field" style="grid-template-columns:1fr;gap:4px">
+      <label for="l2">비밀번호</label>
+      <div><input type="password" id="l2" style="width:100%"></div>
+    </div>
+    <p class="hint" style="color:var(--fail)">아이디 또는 비밀번호가 맞지 않습니다.</p>
+  </div>
+  <div class="actions">
+    <button class="btn" style="width:100%">로그인</button>
+  </div>
+  <p class="note" style="padding:0 24px 18px">회원가입은 없습니다. 계정은 운영자가 만들어 줍니다.<br>
+    어느 쪽이 틀렸는지는 알려주지 않습니다 — 아이디가 있는지를 알려주는 셈이기 때문입니다.</p>
 </div>
 
 </div>
