@@ -131,8 +131,29 @@ CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-A(카탈로그) 담당
    Phase 0가 apps/admin/src/catalog/check.ts를 exit 0 스텁으로 둬 뒀다. 그 파일을 채워라.
    CI(.github/workflows/ci.yml)와 pre-push가 이 이름으로 부른다
 
+2026-09-17 개정으로 더 할 것 (여기부터가 이번에 남은 일이다):
+7. **K9·K10을 검사기에 넣는다** (SPEC §4 표). 지금 K1~K8만 본다.
+   K9 — params 스키마의 칸 이름에 password·passwd·pw·token·secret·apiKey·credential 이
+        들어 있는데 .meta({ secret: true }) 가 없으면 위반 (§4.1)
+   K10 — params·expected 의 모든 칸이 .default() 나 .optional() 을 가져야 한다.
+        변환된 스키마의 required 가 비어 있지 않으면 위반. 정기 실행이 값 없이 돌아야 한다 (§9.2)
+   **§11 Phase 1 완료 기준이 K1~K10 을 요구한다.** 지금은 그 칸에 체크할 수 없다
+8. **접두사 규칙을 자유 형식으로 푼다.** apps/admin/src/catalog/rules.ts 의
+   `/^[A-Z]{2,6}-\d{3}$/` 를 `/^[A-Z][A-Z0-9]{0,11}-\d{3}$/` 로 (SPEC §2 · K2).
+   **접두사의 뜻을 읽는 코드를 만들지 마라** — 플랫폼은 모양과 중복만 본다
+9. **검색 API 에 ?service= 를 넣고 ?domain= 를 뺀다** (SPEC §7 Catalog · §8.1).
+   ?service= 는 필수다. 배정받지 않은 서비스면 403.
+   「기능 영역」 드롭다운은 사라졌다 — 한 서비스로 좁힌 목록은 접두사가 전부 같다
+10. **스캔이 서비스마다 자기 폴더만 훑는다** (SPEC §9.2).
+    읽을 폴더는 service.tests_dir 이고 PLATFORM_TESTS_DIR 아래 상대경로다.
+    다른 서비스 폴더를 보지 않는다. 접두사가 안 맞는 케이스가 섞여 있으면 걸러 낸다
+11. **빈 목록 세 갈래를 화면이 가를 수 있게 응답이 값을 준다** (SPEC §8.1).
+    scannedAt 과 전체 건수다. 새 API 를 만들 필요는 없고 지금 응답에 이미 있는지 확인해라.
+    가르는 것은 화면(WS-E)이 하고 너는 값만 준다
+
 주의: test_case 테이블은 캐시다. 진실의 원천은 코드이므로 스캔 때마다 덮어쓴다.
 packages/kit/src/types.ts는 읽기만 하고 수정하지 마라.
+service·service_env 표는 contracts 단위가 먼저 만든다. 네가 만들지 마라.
 
 TDD로 진행하고, 각 단계마다 내가 터미널에서 확인할 명령을 알려줘.
 ```

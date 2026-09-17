@@ -43,9 +43,16 @@ units:
   - { id: skeleton, name: 골격, status: done }
   - { id: WS-B, name: 실행, status: done }
   - { id: WS-C, name: 러너, status: done }
-  # WS-A 는 K9·K10 검사기가 남아 있다 (개정 §4, §11 Phase 1 기준이 K1~K10 을 요구한다).
-  # 킥오프가 아직 옛 내용이라 되돌리지 않았다 — 킥오프를 개정본으로 고친 뒤 pending 으로 바꾼다
-  - { id: WS-A, name: 카탈로그, status: done }
+  # WS-A 를 2026-09-18 에 되살렸다. 킥오프를 개정본으로 고쳤다 (7~11번이 이번에 남은 일).
+  # K9·K10 검사기가 없으면 §11 Phase 1 기준(K1~K10)을 못 채운다.
+  # contracts 뒤인 이유 — ?service= 필터와 서비스별 스캔 폴더가 service 표를 먼저 필요로 한다
+  - id: WS-A
+    name: 카탈로그
+    status: pending
+    depends_on: [contracts]
+    env: { WORKSTREAM: A }
+    branch: ws-a-catalog-2
+    kickoff: "workstreams#WS-A 카탈로그"
 
   - id: contracts
     name: 계약 반영
@@ -105,7 +112,7 @@ units:
   - id: integration
     name: 통합·병합
     status: pending
-    depends_on: [WS-D, WS-E, WS-F]
+    depends_on: [WS-A, WS-D, WS-E, WS-F]   # WS-A 가 다시 pending 이 됐다. 아래 steps 가 스캔 결과를 쓴다
     env: { ALLOW_PROTECTED: "1" }
     branch: integration
     ui: true
