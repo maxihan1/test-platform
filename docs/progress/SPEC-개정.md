@@ -145,9 +145,39 @@
   절을 옮기거나 더하면 색인의 세 표를 같이 고치고 `npm run check:spec` 을 돌린다
 - **WS-F 킥오프 프롬프트가 아직 없다.** 소유 경로 표에는 WS-F 인증이 들어갔는데
   `WORKSTREAMS.md` 의 Phase 1 킥오프는 WS-A~E 다섯 개뿐이다. WS-F 를 돌리기 전에 써야 한다
-- **오케스트레이터가 장 단위로 문서를 지정하지 못한다.** `orchestrator/src/manifest.ts` 의
-  `Docs` 스키마가 고정 키(`spec`·`workflow`·…)만 받아 `docs:` 에 장을 등록해도 zod 가 버린다.
-  지금은 `spec` 이 색인을 가리키고 세션이 색인을 읽어 스스로 장을 고르는 방식으로 돈다.
-  `Docs` 를 `.catchall(z.string())` 으로 열면 단계별 `required_docs` 에 장을 직접 적을 수 있다
+- ~~오케스트레이터가 장 단위로 문서를 지정하지 못한다~~ → **해결 (같은 날 4차).** 아래 참조
 - `final_check: "spec#Phase 1"` 이 깨질 뻔했다. `extractSection` 은 절을 못 찾으면 예외를 던지는데
   색인에는 §11 본문이 없다. 색인에 `## Phase 1 완료 기준 (G4)` 절을 두어 그 장으로 안내한다
+
+---
+
+## 2026-09-17 (4차) — 오케스트레이터가 색인을 읽고 장을 싣는다
+
+- 완료: 세션을 띄울 때 **그 갈래가 읽을 장만** 자동으로 실린다. `docs/SPEC.md` 의 "갈래별 읽을 장" 표가 그 정본이다
+- 고친 곳: **오케스트레이터** (`~/Projects/orchestrator`) `src/manifest.ts` · `src/graphs/pipeline.ts`,
+  **이 저장소** `docs/SPEC.md` 표와 `docs/orchestration.yaml` 주석
+- 검사: orchestrator `npm test` 87건 통과 · `typecheck` 통과. 이 저장소 `check:spec`·`typecheck`·`test` 141건·`check:tests` 통과
+- 막힌 것: 없음
+
+### 어떻게 도는가
+
+`manifest.ts` 의 **`specChapters(projectDir, m, unitId)`** 가 색인을 한 줄씩 보며
+`**<단위 id>**` 가 있는 표 행을 찾고, 그 행의 **백틱 안 경로**를 장으로 읽는다.
+경로는 색인 파일 기준 상대경로다 (`spec/도메인/리포팅` → `docs/spec/도메인/리포팅.md`).
+`pipeline.ts` 의 `stageDocs()` 가 `spec` 참조를 만나면 **색인 뒤에 그 장들을 붙인다.**
+
+실측 — WS-A 4장 · WS-B 5장 · WS-C 4장 · WS-D 4장 · WS-E 6장 · WS-F 4장,
+`skeleton` 과 `integration` 은 0장(색인만. 전 갈래를 건드리므로 직접 고른다).
+
+### 규약 세 가지
+
+- 읽을 장을 바꾸려면 **매니페스트가 아니라 `docs/SPEC.md` 의 표**를 고친다. 한 곳에만 적는다
+- 장은 **백틱 안에** 적는다. `DESIGN.md` 처럼 `spec/` 밖 문서는 백틱 없이 적어야 장으로 오해받지 않는다
+- 표에 없는 단위나 백틱 없는 행은 **색인 한 장만** 실린다. SPEC 이 한 파일인 다른 프로젝트도 그대로 돈다 (하위 호환)
+
+### 다음 세션이 알아야 할 것
+
+- **장을 옮기거나 더하면 색인의 갈래별 표를 반드시 같이 고친다.** 안 고치면 세션이 옛 장을 읽거나
+  새 장을 못 받는다. `npm run check:spec` 은 링크는 보지만 이 표의 최신성은 못 본다 — 사람이 본다
+- 오케스트레이터 테스트는 `test/manifest.test.ts`(단위 5건)와 `test/pipeline.test.ts`(통합 1건)에 있다.
+  통합 테스트는 확장 코드를 끄면 실제로 실패하는 것을 확인했다 (거짓 초록불이 아니다)
