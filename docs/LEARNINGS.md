@@ -59,15 +59,23 @@
 승격한 항목은 여기서 지우지 말고 `→ CLAUDE.md §3으로 승격`을 덧붙인다.
 나중에 왜 그 규칙이 생겼는지 추적할 수 있어야 한다.
 
+**어디까지 직접 고쳐도 되는지는 CLAUDE.md §2.5 표에 있다.** 검사기·훅·안내 문서는 직접 고치고,
+SPEC과 잠긴 파일은 승인을 받는다. 승인이 필요한 것은 `제안:` 줄로 남기고, 처리되면 그 줄을 승격 표시로 바꾼다.
+
 ---
 
 ## 분량 관리
 
-100줄을 넘으면 정리한다.
+**분량은 목표가 아니라 결과다.** 두 번째 실수를 기계가 막도록 옮기면(CLAUDE.md §2.5) 그 항목은 한 줄로 줄어든다.
+줄지 않고 늘기만 한다면 분량이 문제가 아니라 **승격이 밀린 것**이다. 그때는 항목을 지우지 말고 밀린 것부터 처리한다.
 
-- 이미 승격된 항목은 한 줄로 줄인다
-- 해당 워크스트림이 완료됐고 다시 볼 일 없는 것은 `## 지난 기록` 아래로 내린다
+- 승격한 항목은 **한 줄 + `→ <어디>로 승격 (날짜)`** 로 줄인다. 기계가 막기 시작했으면 더 읽을 필요가 없다
 - 지우지는 않는다. 같은 문제가 재발했을 때 "전에 이랬다"가 남아 있어야 한다
+- **갈래별로 가르지 않는다.** 태그는 "누가 겪었나"이지 "누가 읽어야 하나"가 아니다 —
+  `[WS-A]` 항목이 본문에 "전부 같은 함정이다"라고 적고 있는 예가 있다. 가르면 그 경고가 다른 갈래에 안 간다
+- 250줄을 넘으면 분량을 손대기 전에 **밀린 것부터 센다** — `grep -cE "^(제안|미완):" docs/LEARNINGS.md`.
+  `제안:`은 승인을 기다리는 규칙, `미완:`은 하기로 했는데 안 한 것이다.
+  **승격되면 그 줄을 지우고 항목을 한 줄로 줄인다** — 남겨 두면 이 수치가 거짓이 된다
 
 ---
 
@@ -81,19 +89,12 @@
 해법:  실물을 열어 보니 표는 주인이 하나씩이고(`test_case`→카탈로그 · `evidence_document`→리포팅) API도 `# Auth`·`# Catalog`로 이미 갈려 있었다. 배분하니 45%였다
 주의:  "이건 공유라 못 나눈다"는 판단은 **실물을 열어 배분해 본 뒤에** 한다. 목차만 보고 세면 틀린 숫자로 사용자를 설득하게 된다
 
-## [공통] 2026-09-17 · SPEC이 코드가 모르는 뜻을 계약처럼 적어 놨다
-증상:  §2가 "tcId 접두사는 **기능 영역을 뜻한다**"고 규정했다. 서비스 통합을 검토하며 이 뜻을 바꾸는 비용을 크게 잡았다
-원인:  코드는 접두사의 뜻을 전혀 모른다. 검사하는 곳은 `catalog/rules.ts:152`의 정규식 한 줄(모양만 본다)뿐이고, **접두사를 잘라 쓰는 코드가 어디에도 없다**
-해법:  문서가 규정한 의미가 코드에 실제로 걸려 있는지 먼저 `grep`한다. 안 걸려 있으면 그건 계약이 아니라 **관례**다. 관례는 조직이 정하게 두고 문서에서 뺀다
-주의:  "계약이라 못 바꾼다"고 판단하기 전에 **의존하는 코드를 세어 본다.** 0줄이면 한 줄짜리 변경이다
-재발:  **2026-09-17 두 번째.** `WORKSTREAMS.md` 산문이 `package.json` 을 "잠그는 공용 골격"으로 적어 놔
-       SPEC 검사에서 **없는 위반(C1)을 중대로 보고**했다. 훅(`guard.mjs:22`)의 `LOCKED` 는 세 개뿐이고
-       `CLAUDE.md` §1.3 도 같다. 산문만 넓었다 (`docs/reviews/2026-09-17-SPEC분할.md` 에서 철회)
-승격:  두 번 나왔으므로 규칙으로 올릴 것을 제안한다 → **CLAUDE.md §1.2 에 한 줄.**
-       "문서가 잠금·금지라고 적어도 **강제하는 장치(훅 `LOCKED`·검사기·코드)를 먼저 확인한다.**
-       장치가 없으면 계약이 아니라 관례다." 제안만 하고 고치지 않았다 (CLAUDE.md §2.5)
-제안:  `spec-review` 체크리스트에 `H2 — 같은 규칙이 두 절에 적혀 있으면 내용이 같은가`를 올릴 것을 제안한다. §7과 §8.6이 인증 경계를 정반대로 적고 있었다 (`docs/reviews/2026-09-17-eng-review.md` D1). 위 H1 제안과 같은 가족이다
-       → **spec-review H2로 승격 (2026-09-17).** 장이 12개로 갈리면서 위험이 커져 같이 올렸다
+## [공통] 2026-09-17 · 문서가 규정한 것이 코드에 안 걸려 있다 (2회)
+→ **CLAUDE.md §1.2 · spec-review H2 로 승격 (2026-09-17).**
+   1회차 — §2가 "tcId 접두사는 기능 영역을 뜻한다"고 규정했는데 접두사를 잘라 쓰는 코드가 **0줄**이었다.
+   2회차 — WORKSTREAMS 산문이 `package.json` 을 "잠긴 파일"로 적어 놔 SPEC 검사가 **없는 위반을 중대로 보고**했다
+   (`docs/reviews/2026-09-17-SPEC분할.md` 에서 철회). 규칙 — 잠금·금지·계약이라 적혀 있어도
+   **강제 장치(guard.mjs `LOCKED`·검사기·코드)를 먼저 센다. 0줄이면 계약이 아니라 관례다**
 
 ## [공통] 2026-09-17 · 병합 안 된 브랜치를 안 보고 "그 기능 없다"고 세 번 보고했다
 증상:  대조 분석에서 케이스 검색창·실행 진행 표시·재실행 버튼을 "SPEC에도 코드에도 없다"고 적었다. 셋 다 WS-E가 이미 만들어 뒀다
@@ -102,11 +103,8 @@
 주의:  워크트리는 **origin/main 기준**으로 생긴다. 로컬 main이 낡아도 워크트리는 최신일 수 있어 둘이 다르게 보인다
 
 ## [공통] 2026-09-17 · 문서를 여러 갈래가 나눠 고치면 참조가 허공을 가리킨다
-증상:  SPEC §8.4가 `→ §1.1`을 참조하는데 §1.1이 문서에 없었다. 뒤 절들은 그게 있다고 가정하고 쓰였다
-원인:  변경안을 만드는 중간 단계에서 출력이 길이 제한에 잘려 §1 관련 세 건이 통째로 빠졌다. 잘린 것을 알아채지 못하고 다음 단계로 넘어갔다
-해법:  적용 뒤 `grep -o "§[0-9]\+\.[0-9]\+"`로 참조하는 절과 실제 있는 절을 대조한다. 기계로 셀 수 있다
-제안:  `spec-review` 체크리스트에 `H1 — SPEC이 참조하는 §번호가 실제로 문서에 있는가`를 올릴 것을 제안한다. 문서를 나눠 고칠 때 가장 먼저 깨지는 자리다
-       → **spec-review H1으로 승격 (2026-09-17).** `npm run check:spec` 이 기계로 본다
+→ **spec-review H1 로 승격 (2026-09-17).** `npm run check:spec` 이 §번호와 장 사이 링크를 기계로 본다.
+   원인은 변경안이 길이 제한에 잘려 §1 관련 세 건이 통째로 빠진 것을 못 알아챈 것이다
 
 ## [WS-E] 2026-09-16 · Vite 프록시 접두사 '/api'가 소스 파일 /api.ts까지 가로챈다
 증상:  화면이 통째로 비었다. 콘솔에 에러가 없고 index.html·main.tsx는 200인데 화면만 안 그려진다
@@ -126,12 +124,10 @@
 해법:  읽을 것을 손에 쥔 뒤에 형식을 정한다. 먼저 buffer를 받고, 성공했을 때만 type()을 건다
 주의:  reply를 체이닝하는 모든 자리에 같은 함정이 있다. 에러 경로가 다른 content-type을 쓴다면 형식은 마지막에 정한다
 
-## [공통] 2026-09-16 · 테스트 정리 구문의 LIKE 패턴이 넓으면 다른 갈래의 테스트를 지운다 (같은 유형 2회)
-증상:  따로 돌리면 전부 통과, 같이 돌리면 `RunInputError: 카탈로그에 없는 케이스다: ZZBS-001`로 4~7건이 깨진다
-원인:  Vitest는 파일을 **병렬로** 돌린다. `catalog/store.test.ts`의 `DELETE FROM test_case WHERE tc_id LIKE 'ZZ%'`가 `ZZ`로 시작하는 남의 fixture까지, 그쪽이 쓰고 있는 도중에 지웠다
-규칙:  정리 구문의 LIKE 패턴은 **자기 파일 fixture에만** 맞아야 한다. 갈래별 접두사 — WS-A `ZZA`, WS-B `XBS`·`XBR`·`XBQ`·`XBX`. **WS-D·WS-E는 `ZZ`로 시작하는 것을 고르지 마라** (`ZZ%`가 통째로 지워진다). 파일이 여러 개면 파일마다 또 갈라야 한다
-확인:  `DATABASE_URL='postgres://platform:platform@localhost:5433/platform' npx vitest run`을 **연속 3회**. 1회 통과는 증거가 못 된다 — 이번 건도 1회차에 171건 전부 통과하고 2회차에 4건이 깨졌다
-제안:  같은 유형 2회다. CLAUDE.md §3에 "DB 테스트 fixture 접두사는 갈래마다 고유하게, 정리 패턴은 자기 것에만 맞게"를, spec-review에 `G3 — 정리 패턴이 남의 fixture를 지우지 않는가`를 올릴 것을 제안한다. WS-A의 `ZZ%`는 그 갈래 소유라 고치지 않았다
+## [공통] 2026-09-16 · 테스트 정리 구문의 LIKE 패턴이 넓으면 다른 갈래의 테스트를 지운다 (2회)
+→ **CLAUDE.md §3 · spec-review G3 로 승격 (2026-09-17).**
+   Vitest가 파일을 병렬로 돌려 `DELETE FROM test_case WHERE tc_id LIKE 'ZZ%'` 가 남의 fixture를 쓰는 도중에 지웠다.
+   접두사는 갈래마다 고유하게, 정리 패턴은 자기 것에만. 확인은 **연속 3회** — 1회차 171건 통과, 2회차 4건 실패였다
 
 ## [환경] 2026-09-16 · 컨테이너가 병합 전 이미지를 물고 있으면 케이스가 전부 FAIL로 보인다
 증상:  러너에 DEMO-001을 보내면 `TypeError: (0 , _kit.defineCase) is not a function`. 호스트에서 같은 코드는 멀쩡하다
@@ -139,11 +135,9 @@
 해법:  `docker compose build runner && docker compose up -d runner`. admin도 같다
 주의:  코드가 아니라 이미지가 낡은 것이다. 러너 응답이 통째로 이상하면 먼저 `docker compose ps`의 CREATED와 마지막 커밋 시각을 대 본다
 
-## [환경] 2026-09-16 · 워크트리 세션의 WORKSTREAM은 메인 체크아웃 설정을 고쳐야 바뀐다
-증상:  WS-B 폴더에 파일을 만들려는데 훅이 "WS-A 소유 경로 밖이다"로 막았다
-원인:  워크스트림은 `.claude/settings.local.json`으로 지정하는데 이 파일은 gitignore라 새 워크트리에 딸려오지 않는다. 세션 환경변수는 메인 체크아웃 쪽에서 온다
-해법:  메인 체크아웃의 `.claude/settings.local.json`을 `{"env":{"WORKSTREAM":"B"}}`로 고친다. 즉시 반영된다 (세션 재시작 불필요)
-제안:  같은 유형(설정이 세션에 전달되는 경로)이 두 번째다. SETUP.md §5나 HOOKS.md에 "워크트리로 갈래를 나눌 때는 메인 쪽 WORKSTREAM을 바꾼다"를 규칙으로 올릴 것을 제안한다
+## [환경] 2026-09-16 · 워크트리 세션의 WORKSTREAM은 메인 체크아웃 설정을 고쳐야 바뀐다 (2회)
+→ **HOOKS.md 로 승격 (2026-09-17).** `.claude/settings.local.json` 은 gitignore라 새 워크트리에 안 딸려온다.
+   메인 체크아웃 쪽을 고치면 즉시 반영된다 (세션 재시작 불필요)
 
 ## [WS-A] 2026-09-16 · PLATFORM_SCAN이 자식 playwright로 새어 K8이 전부 거짓 위반이 됐다
 증상:  `check:tests`가 멀쩡한 10건을 전부 "테스트를 하나도 등록하지 않았다"로 찍었다
@@ -184,7 +178,9 @@
 증상:  `zodToJsonSchema(z.object({...}))`가 `{"$schema":...}` 하나만 돌려준다. properties도 required도 없다
 원인:  설치된 zod는 4.1.12인데 zod-to-json-schema 3.24는 zod 3의 `_def.typeName`을 읽는다. zod 4는 내부 구조가 다르다
 해법:  zod 4 내장 `z.toJSONSchema(schema, { io: 'input' })`를 쓴다. `io:'input'`이라야 `.default()`가 있는 필드가 required에서 빠진다
-주의:  SPEC §9.1 스택 표에는 아직 `zod-to-json-schema`가 적혀 있다. 새 의존성이 아니라 이미 깔린 zod의 API라 추가 설치는 없다
+미완:  **`package.json` 에 `zod-to-json-schema` 가 아직 남아 있다 (2026-09-17 확인).** import 하는 코드는 0곳이고
+       `packages/kit/src/types.ts` 주석에만 이름이 남았다. 의존성 제거와 그 파일은 승인이 필요하다(§1.2·§3).
+       지우고 나면 이 항목도 한 줄로 줄인다
 
 ## [WS-C] 2026-09-16 · Playwright가 테스트 위치를 kit의 래퍼 파일로 잡는다
 증상:  `npx playwright test --list`가 모든 케이스를 `packages/kit/src/runtime/test.ts:95`로 표시하고 "1 file"로 센다
@@ -199,47 +195,33 @@
 주의:  경로에 필요한 runId·historyId는 러너가 `PLATFORM_RUN_ID`·`PLATFORM_HISTORY_ID`로 넘긴다. 화면을 연 적 없는 API 케이스는 찍지 않고 `httpTrace`를 남긴다
 
 ## [환경] 2026-09-16 · 호스트 5432는 이미 로컬 PostgreSQL이 잡고 있다
-증상:  `npm run smoke`가 `role "platform" does not exist`. 컨테이너 안 psql은 정상이었다
-원인:  맥에 설치된 PostgreSQL이 127.0.0.1:5432를 선점. 도커는 `*:5432`라 localhost 연결은 로컬 쪽이 받는다
-해법:  compose에서 호스트 쪽만 `5433:5432`로 비켜 쓴다. 컨테이너끼리는 그대로 5432
-주의:  호스트에서 DB를 열 때는 5433이다. `docker compose exec postgres psql`은 포트와 무관하다
+→ **docker-compose.yml 로 승격 (2026-09-16).** 호스트 쪽은 `5433:5432`. 컨테이너끼리는 5432 그대로.
+   호스트에서 DB를 열 때만 5433을 쓴다 (`docker compose exec postgres psql`은 포트와 무관)
 
 ## [Phase0] 2026-09-16 · /tests 안에서 @playwright/test를 못 찾는다
-증상:  러너에서 `npx playwright test /tests/...` → `Cannot find module '@playwright/test'`
-원인:  Node는 파일 위치에서 루트까지 올라가며 node_modules를 찾는다. `/tests/demo` → `/tests` → `/` 경로는 `/app`을 지나지 않는다
-해법:  이미지에 `ln -s /app/node_modules /node_modules`. 루트까지 올라오면 찾는다
-주의:  admin도 스캔 때 /tests를 동적 import 하므로 양쪽 Dockerfile에 다 넣어야 한다
+→ **admin·runner Dockerfile 로 승격 (2026-09-16).** 두 이미지 다 `ln -s /app/node_modules /node_modules`.
+   `/tests/demo` → `/tests` → `/` 경로가 `/app`을 지나지 않아 루트에 링크가 필요하다
 
 ## [환경] 2026-09-16 · `ALLOW_PROTECTED=1 claude`로 띄워도 훅이 계속 막는다
-증상:  SETUP.md §5대로 띄웠는데 protected 훅이 types.ts·docker-compose.yml을 그대로 차단
-원인:  Claude Code가 데몬 구조다. 세션은 터미널이 아니라 상주 데몬에서 태어나므로 터미널 앞에 붙인 환경변수가 세션에 전달되지 않는다
-해법:  `.claude/settings.local.json`에 `{"env":{"ALLOW_PROTECTED":"1"}}`. 설정은 데몬을 거쳐도 전달된다
-주의:  Phase 0·병합 때만 두고 끝나면 지운다. 남겨두면 Phase 1 내내 잠금이 풀린 채로 돈다
-→ SETUP.md §5 · HOOKS.md · setup/install.sh로 승격 (2026-09-16 반영)
+→ **SETUP.md §5 · HOOKS.md · setup/install.sh 로 승격 (2026-09-16).** 환경변수가 아니라
+   `.claude/settings.local.json`에 넣는다 — 세션은 터미널이 아니라 상주 데몬에서 태어난다.
+   Phase 0·병합 때만 두고 끝나면 지운다
 
 ## [Phase0] 2026-09-16 · 도커 빌드 컨텍스트를 앱 폴더가 아니라 루트로 잡았다
-증상:  SPEC §9의 `build: ./apps/admin` 그대로 두면 `packages/kit`이 빌드 컨텍스트 밖이라 못 넣는다
-원인:  모노레포는 워크스페이스 전체가 한 덩어리로 설치돼야 모듈이 resolve 된다
-해법:  `context: .` + `dockerfile: apps/<앱>/Dockerfile`. 서비스·포트·볼륨·mem_limit은 SPEC 그대로다
-주의:  SPEC §9는 "구조만"이라고 적혀 있어 계약 변경으로 보지 않았다
+→ **docker-compose.yml 로 승격 (2026-09-16).** `context: .` + `dockerfile: apps/<앱>/Dockerfile`.
+   모노레포는 워크스페이스 전체가 한 덩어리로 설치돼야 모듈이 풀린다
 
 ## [Phase0] 2026-09-16 · PLATFORM_PARAMS에 expected도 같이 싣는다
-증상:  SPEC §5.2는 "params를 PLATFORM_PARAMS로 주입"인데 WS-C 킥오프는 "params/expected를 주입"이다
-원인:  두 문서가 같은 환경변수를 다르게 적고 있다
-해법:  `{"params":{...},"expected":{...}}` 한 객체로 싣는다. 둘 다 만족하는 유일한 형태다
-주의:  WS-C의 `test()` 래퍼가 이 모양을 그대로 읽어야 한다
+→ **코드로 승격 (2026-09-16).** `{"params":{…},"expected":{…}}` 한 객체
+   (`runner/src/execute.ts` · `kit/src/runtime/inputs.ts`)
 
 ## [Phase0] 2026-09-16 · Vitest가 tests/** 의 Playwright 스펙까지 집어간다
-증상:  `npm test`가 `tests/demo/DEMO-*.spec.ts`를 Vitest로 돌리려다 깨진다
-원인:  Vitest 기본 include가 `**/*.spec.ts`라 Playwright 전용 폴더까지 들어온다
-해법:  `vitest.config.ts`의 include를 `apps/**/*.test.ts`·`packages/**/*.test.ts`로 좁힌다
-주의:  단위 테스트 파일은 `*.test.ts`, Playwright는 `*.spec.ts`로 확장자를 갈라 쓴다
+→ **vitest.config.ts 로 승격 (2026-09-16).** include를 `apps/**/*.test.ts`·`packages/**/*.test.ts`로 좁혔다.
+   단위 테스트는 `*.test.ts`, Playwright는 `*.spec.ts`로 확장자를 가른다
 
 ## [환경] 2026-09-16 · Bash로 파일을 고치면 protected/ownership 훅이 안 걸렸다
-증상:  `sed -i`·`>` 리다이렉트로 보호 파일을 고쳐도 통과했다
-원인:  훅 매처가 Edit|Write|MultiEdit에만 걸려 있었다
-해법:  bash 모드에 "경로 앞 쓰기 연산자" 휴리스틱 추가 (guard.mjs)
-주의:  `python -c` 같은 우회는 못 잡는다. spec-review A1~A3이 최종 방어선
+→ **guard.mjs bash 모드로 승격 (2026-09-16).** `python -c` 같은 우회는 여전히 못 잡는다 —
+   spec-review A1~A3이 최종 방어선이다
 
 ## [환경] 2026-09-16 · bash 훅이 echo 안에 인용된 문구까지 막는다
 증상:  훅 검증용으로 강제 push 문구를 echo로 흘려보내자 그 명령 자체가 차단됐다
