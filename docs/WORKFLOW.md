@@ -24,9 +24,7 @@
 
 ★ 표시는 **Maxi님이 직접 클릭해서 확인**하는 지점이다. 건너뛰면 안 된다.
 
-**현재 위치**: [1] Phase 0 구현 완료 (2026-09-16, `docs/progress/WS-0.md` · `docs/reviews/2026-09-16-WS-0.md`).
-게이트 G1은 ★ Maxi님이 직접 확인하는 지점이라 **확인 대기**다. 확인한 뒤 `git tag g1-skeleton`을 찍고
-`.claude/settings.local.json`을 지우면 [2] Phase 1 병렬로 넘어간다.
+**현재 위치**: [2] Phase 1 병렬 진행 중 (2026-09-17). WS-A·B·C·E 완료. 남은 WS-D 와 [3]·[4]의 통합은 오케스트레이터로 돌린다 (맨 아래 절).
 단계가 끝날 때마다 이 줄을 고친다.
 
 ---
@@ -144,3 +142,27 @@ Claude Code가 아니라 사람이 하는 일. 하루씩 잡아두면 4~6주를 
 | G4 | 증적이 나오는가 | 실행 → PDF 출력 → 화면과 문서가 같은 구조인지 |
 
 G3의 항목이 가장 중요하다. 이 한 번의 클릭이 B1 위반을 잡는다.
+
+---
+
+## 오케스트레이터로 돌릴 때 (2026-09-17 추가)
+
+`~/Projects/orchestrator`가 이 문서의 남은 단계를 대신 돈다. 사람이 하는 일은 터미널에서 질문에 답하는 것뿐이다.
+
+| 이 문서 | 오케스트레이터에서 |
+|------|------|
+| [2] Phase 1 갈래 | 작업 단위 `WS-D` (`docs/orchestration.yaml`의 `units`). 계획 → 구현 → 코드리뷰 → QA → CI → 병합 → 정리 7단계 |
+| [3] 전체 검사 · [4] 병합 · G3 · G4 | 작업 단위 `integration`. 병합 5단계가 `steps`, 단계마다 화면 확인. 전체 spec-review 는 이 단위의 코드리뷰. G4 는 `final_check` |
+| ★ Maxi님 확인 | 인터럽트로 온다 — 계획 승인 · 계약 변경 등 질문 · 코드리뷰 중대 판단 · 단계 확인 체크리스트 · 승격 제안 · 막힘 |
+| 킥오프 프롬프트 | WORKSTREAMS.md 의 절을 그대로 읽는다 (`kickoff: "workstreams#WS-D 리포팅"`) |
+| 세션 이어받기 프롬프트 | 같은 세션을 이어받으므로 필요 없다 |
+| `.claude/settings.local.json` 의 WORKSTREAM | 세션마다 환경변수로 넘긴다. 손대지 않는다 |
+| 세션 시작 | 매번 에이전트 자격 시험(`claude plugin eval`)을 먼저 치르고 통과해야 단계에 들어간다 |
+
+실행은 터미널 두 개.
+
+1. `cd ~/Projects/orchestrator && npm run server` — 상황판 `https://smith.langchain.com/studio?baseUrl=http://localhost:2024`
+2. `cd ~/Projects/orchestrator && npm run orchestrate -- run ~/Projects/test_platform`
+
+현재 위치와 비용은 `npm run orchestrate -- status ~/Projects/test_platform`, 어느 세션이 무엇을 읽고 무엇을 바꿨나는 `npm run orchestrate -- trace ~/Projects/test_platform WS-D`.
+기록은 여전히 세션이 `docs/progress/<단위>.md` · `docs/LEARNINGS.md` · `docs/reviews/`에 쓴다. 오케스트레이터 자체 기록(장부·시험 성적)은 `.orchestrator/`에 두고 git 에는 넣지 않는다.
