@@ -23,6 +23,7 @@
 서버 미들웨어를 다는 `apps/admin/src/app.ts`는 아래 공용 골격이라 WS-F가 직접 고치지 않는다.
 
 **SPEC에 적힌 대로만 바꾸는 곳**: `packages/kit/src/types.ts`(§5.1) · `db/migrations/`(§6) · `docker-compose.yml`(§9)
+이 파일들은 **`contracts`(계약 반영) 단위**가 맡는다 — 담당 갈래가 없는 단위이고, WS-D·WS-E·WS-F가 전부 이것을 기다린다.
 훅의 잠금은 2026-09-17에 풀렸다(승인이 끝난 변경까지 막고 있었다). **막는 장치가 없으니
 고치기 전에 SPEC에 그 변경이 적혀 있는지 먼저 본다.** 검사는 spec-review A1~A3이 사후에 한다 (CLAUDE.md §1.3)
 
@@ -294,6 +295,66 @@ CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
 
 API가 아직 없으면 목 데이터로 먼저 만들고, 붙일 때 교체해라.
 목 데이터는 SPEC §5.1 타입을 정확히 따라야 한다.
+```
+
+### 계약 반영
+
+개정 SPEC이 승인한 잠긴 파일 변경을 한 단위로 묶는다. **담당 갈래가 없다** — 어느 갈래 소유도
+아닌 파일들이고 여러 폴더를 걸친다. WS-D·WS-E·WS-F가 전부 이 단위를 기다린다.
+
+```
+CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 계약 반영 담당이다. 담당 갈래는 없다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/3-공유계약.md
+  docs/spec/공통/4-데이터모델.md · docs/spec/공통/6-인프라.md
+  docs/spec/도메인/러너.md (§5.2 러너 HTTP 계약)
+
+개정 SPEC이 승인한 계약 변경을 코드에 반영한다. 무엇을 어떻게 바꿀지는 전부 SPEC에 적혀 있다.
+SPEC에 없는 변경은 넣지 마라 — spec-review A1~A3이 SPEC과 한 줄씩 대조하고, 없는 변경은 치명이다.
+
+2026-09-17 훅의 잠금(guard.mjs의 LOCKED)이 풀렸다. 계약 파일을 직접 고칠 수 있다는 뜻이자
+막는 장치가 없다는 뜻이다. 고치기 전에 SPEC 해당 절을 먼저 확인해라 (CLAUDE.md §1.3).
+
+step 순서대로 하나씩, 각 step을 커밋한다.
+1. db/migrations — 새 마이그레이션 파일 하나를 더한다. §6의 "새 마이그레이션 파일 예"가 정본이다.
+   기존 마이그레이션 파일은 고치지 마라. 이미 쌓인 행의 새 칸은 ''·'{}'·NULL로 두고 옛 값을 덮지 않는다.
+   grafana_ro에는 app_user 권한을 주지 않는다 — 비밀번호 해시가 대시보드로 새면 안 된다
+2. packages/kit/src/types.ts — ExecuteRequest에 baseUrl을 더한다. ItemStatus는 3종 그대로다
+3. playwright.config.ts — use.baseURL을 환경변수에서 읽고 retries: 0을 명시한다 (§5.2 자동 재시도 금지)
+4. docker-compose.yml · apps/admin/Dockerfile — 포트 설정화, 러너 포트 닫기,
+   상시 4개 재시작 정책, 인스턴스 설정 전달, 화면 빌드 단계 (§9)
+5. package.json — Fastify 쿠키·세션 플러그인 하나만 더한다.
+   비밀번호 해시는 Node 내장 crypto.scrypt로 되는 것을 확인했으므로 추가 설치가 없다 (§9.1)
+
+apps/admin/src/app.ts는 공용 골격이다. WS-F가 인증 미들웨어를 달 자리를 이 단위가 열어 둔다 —
+등록 규약만 만들고 인증 로직은 넣지 마라.
+docs/SETUP.md 7절에 "아직 안 되는 것" 경고가 붙어 있다. 4번을 끝내면 그 문구를 지우는 것까지가 이 step이다.
+```
+
+### WS-F 인증
+
+```
+CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-F(인증) 담당이다.
+  docs/spec/공통/1-제품과-구조.md · docs/spec/공통/5-화면공통.md
+  docs/spec/도메인/인증.md · docs/spec/공통/4-데이터모델.md
+소유 경로는 apps/admin/src/auth/** 와 scripts/** 다.
+
+만들 것:
+1. 확인 함수 하나 — 요청을 받아 { username, displayName }을 돌려준다.
+   **이 함수 하나만 갈아 끼우면 나중에 SSO로 바뀌어야 한다** (§3.5 불변식).
+   실행·카탈로그·리포팅은 그 결과만 받아 쓰고 비밀번호도 세션도 모른다
+2. 로그인·로그아웃·me 세 엔드포인트 (§7 Auth).
+   틀리면 401 INVALID_CREDENTIALS 하나로만 답한다.
+   아이디가 틀렸는지 비밀번호가 틀렸는지 알리지 마라 — 밖에서 계정 존재를 확인할 수 있게 된다
+3. 인증 미들웨어 — POST /api/auth/login과 POST /api/runs를 뺀 모든 /api/**에 로그인을 요구한다.
+   POST /api/runs를 여는 이유는 정기 실행이 로그인 화면을 쓸 수 없어서다.
+   그 통로로 들어온 실행은 실행자를 반드시 `스케줄러`로 박제하고 사람 이름을 실을 수 없게 한다
+4. 계정 만들기 명령 (scripts/**) — 회원가입 화면은 없다. 운영자가 admin 컨테이너 안에서 만든다 (§9.2)
+
+비밀번호는 Node 내장 crypto.scrypt로 해시해 저장한다. 원문은 DB에도 로그에도 남기지 않는다.
+실행자는 로그인한 사람에게서 온다. 요청 본문에 실린 값은 쓰지 마라.
+
+로그인 화면(§8.6)은 WS-E 소유다. 만들지 마라.
+apps/admin/src/app.ts는 공용 골격이다. 미들웨어를 등록할 자리는 계약 반영 단위가 만들어 둔다.
 ```
 
 ---
