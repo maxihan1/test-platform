@@ -155,7 +155,7 @@ G3의 항목이 가장 중요하다. 이 한 번의 클릭이 B1 위반을 잡�
 
 | 이 문서 | 오케스트레이터에서 |
 |------|------|
-| [2] Phase 1 갈래 | 작업 단위 `WS-D` (`docs/orchestration.yaml`의 `units`). 계획 → 구현 → 코드리뷰 → QA → CI → 병합 → 정리 7단계 |
+| [2] Phase 1 갈래 | 작업 단위 `WS-D` (`docs/orchestration.yaml`의 `units`). 계획 → 구현 → 코드리뷰 → QA → 정리 → CI → 병합 7단계 |
 | [3] 전체 검사 · [4] 병합 · G3 · G4 | 작업 단위 `integration`. 병합 5단계가 `steps`, 단계마다 화면 확인. 전체 spec-review 는 이 단위의 코드리뷰. G4 는 `final_check` |
 | ★ Maxi님 확인 | 인터럽트로 온다 — 계획 승인 · 계약 변경 등 질문 · 코드리뷰 중대 판단 · 단계 확인 체크리스트 · 승격 제안 · 막힘 |
 | 킥오프 프롬프트 | WORKSTREAMS.md 의 절을 그대로 읽는다 (`kickoff: "workstreams#WS-D 리포팅"`) |
