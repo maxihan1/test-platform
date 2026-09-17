@@ -10,9 +10,9 @@ docs:
   progress_dir: docs/progress
   reviews_dir: docs/reviews
   claude_md: CLAUDE.md
-drivers: [sdk, bg]                 # 월 SDK 크레딧 안에서는 sdk, 소진되면 백그라운드 세션(구독 한도)
+drivers: [sdk, bg]                 # 둘 다 구독 한도를 쓴다(2026-09-17 /usage 확인). sdk 는 비용이 정확히 찍히고 상한을 걸 수 있어 먼저, 상한을 넘으면 bg
 effort: xhigh
-credit: { monthlyUsd: 100, turnUsd: 15, workstreamUsd: 60 }   # Max 5x. 관통 실험 뒤 조정
+credit: { monthlyUsd: 40, turnUsd: 5, workstreamUsd: 20 }    # 실측: 단위 하나 로컬 관통 $3.3, 코드리뷰 턴 $1.5. 달러는 구독 한도 소모량의 환산값이지 청구액이 아니다
 exam: { threshold: 0.8, runsOnSessionStart: 1, runsOnConfigChange: 3 }
 stages:
   plan:
