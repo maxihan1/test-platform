@@ -12,6 +12,7 @@
     "test": "vitest run",
     "check:tests": "tsx apps/admin/src/catalog/check.ts",
     "check:spec": "node .claude/scripts/check-spec-refs.mjs",
+    "check:workflow": "node --test .claude/scripts/*.test.mjs",
     "smoke": "tsx apps/admin/src/smoke.ts"
   },
   "dependencies": {
