@@ -93,9 +93,49 @@ describe('증적 문서 HTML', () => {
     expect(줄들).toHaveLength(1);
 
     const 줄 = 줄들[0] ?? '';
-    for (const 조각 of ['기대', 'true', '실제', 'false', 'FAIL', '실행 중단']) {
+    for (const 조각 of ['기대', 'true', '실제', 'false', '실패', '실행 중단']) {
       expect(줄).toContain(조각);
     }
+  });
+
+  it('판정은 통과 · 실패 · 미실행 세 낱말로 적는다', () => {
+    const html = renderHtml(
+      문서([
+        항목({ status: 'PASS' }),
+        항목({ status: 'FAIL' }),
+        항목({ status: 'NA', notRunReason: '러너에 닿지 못했습니다' }),
+        항목({ status: 'NOT_RUN', durationMs: null, notRunReason: '실행이 멈춰 돌지 못했습니다' }),
+      ]),
+      옵션,
+    );
+
+    // 화면을 보던 사람이 문서를 받았을 때 다시 배울 것이 없어야 한다 (docs/DESIGN.md)
+    for (const 낱말 of ['통과', '실패', '미실행']) {
+      expect(html).toContain(낱말);
+    }
+    for (const 영문 of ['>PASS<', '>FAIL<', '>NA<', '>NOT_RUN<']) {
+      expect(html).not.toContain(영문);
+    }
+  });
+
+  it('NA 항목도 미실행 배지 옆에 사유를 나란히 적는다', () => {
+    const html = renderHtml(
+      문서([
+        항목({
+          tcId: 'NET-001',
+          status: 'NA',
+          durationMs: 4200,
+          notRunReason: '러너에 닿지 못했습니다',
+        }),
+      ]),
+      옵션,
+    );
+
+    // 사유가 배지와 떨어지면 러너 고장과 사람이 멈춘 것을 구분할 수 없다 (SPEC §8.3)
+    const 머리 = html.split('\n').filter((줄) => 줄.includes('class="item-head"'));
+    expect(머리).toHaveLength(1);
+    expect(머리[0]).toContain('미실행');
+    expect(머리[0]).toContain('러너에 닿지 못했습니다');
   });
 
   it('코드와 httpTrace 가 결과물에 없다', () => {

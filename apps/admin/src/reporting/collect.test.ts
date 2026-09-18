@@ -367,13 +367,15 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
     expect(닫힌것.durationMs).toBeNull();
   });
 
-  it('러너가 판정을 못 준 NA 는 미실행이 아니다 — 돌다가 못 낸 것이다', async () => {
+  it('러너가 판정을 못 준 NA 는 NOT_RUN 이 아니다 — 돌다가 못 낸 것이고 사유만 채운다', async () => {
     const 문서 = await collectRun(닫힌중단실행);
     const 진짜NA = 문서!.items[1]!;
     expect(진짜NA.tcId).toBe('XDC-502');
+    // 판정은 NA 그대로다. 돌긴 돌았으므로 소요시간도 남는다
     expect(진짜NA.status).toBe('NA');
-    expect(진짜NA.notRunReason).toBeNull();
     expect(진짜NA.durationMs).toBe(4200);
+    // 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3 「러너에 닿지 못했을 때」)
+    expect(진짜NA.notRunReason).toBe('러너에 닿지 못했습니다');
   });
 
   it('빈 환경 칸도 기록 없음으로 적는다', async () => {

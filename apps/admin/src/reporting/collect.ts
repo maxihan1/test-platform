@@ -186,6 +186,15 @@ function 미실행사유를찾는다(row: RawItem, 실행상태: RunStatus): str
   return null;
 }
 
+// 위 함수가 null 을 준 NA — 돌긴 돌았는데 판정을 못 낸 항목이다. 판정과 소요시간은 그대로 두고
+// 사유만 채운다. 사유 없이 미실행으로 두면 러너 고장과 사람이 멈춘 것을 구분할 수 없다 (SPEC §8.3)
+function 판정못낸사유(row: RawItem): string | null {
+  if (row.status !== 'NA' || !isPlainObject(row.error)) return null;
+  const message = row.error.message;
+  // 없으면 지어내지 않는다. 빈 문장을 배지 옆에 붙이면 사유를 적은 척만 하게 된다
+  return typeof message === 'string' && message !== '' ? message : null;
+}
+
 export async function collectRun(runId: number): Promise<EvidenceDocument | null> {
   const pool = await db();
   const runs = await pool.query<RawRun>(
@@ -238,7 +247,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
         status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
         // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
         durationMs: 못돈사유 === null ? row.duration_ms : null,
-        notRunReason: 못돈사유,
+        notRunReason: 못돈사유 ?? 판정못낸사유(row),
         precondition: row.precondition,
         params: toFields(row.params, row.param_schema),
         expected: toFields(row.expected, row.expected_schema),

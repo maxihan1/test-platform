@@ -19,6 +19,15 @@ const 판정색: Record<EvidenceItem['status'], string> = {
   NOT_RUN: 'v-na',
 };
 
+// NA 와 NOT_RUN 이 같은 낱말인 것은 겹친 것이 아니라 SPEC 이 정한 표기다. 배지는 셋뿐이고
+// 「돌다가 판정을 못 냈다」와 「아예 안 돌았다」를 가르는 것은 옆에 붙는 사유 한 문장이다 (SPEC §8.3)
+const 판정글자: Record<EvidenceItem['status'], string> = {
+  PASS: '통과',
+  FAIL: '실패',
+  NA: '미실행',
+  NOT_RUN: '미실행',
+};
+
 // 케이스 이름과 검증 문장은 사람이 적은 글이다. < 나 & 가 그대로 나가면 문서가 깨지거나 값이 조용히 사라진다
 function 안전(값: string): string {
   return 값
@@ -29,7 +38,7 @@ function 안전(값: string): string {
 }
 
 function 판정(status: EvidenceItem['status']): string {
-  return `<span class="verdict ${판정색[status]}">${status}</span>`;
+  return `<span class="verdict ${판정색[status]}">${판정글자[status]}</span>`;
 }
 
 function 소요(durationMs: number | null): string {
@@ -80,11 +89,9 @@ function 블록(item: EvidenceItem): string[] {
       ? [`      <div class="none">사전조건 없음</div>`]
       : item.precondition.map((p) => `      <div class="pre">· ${안전(p)}</div>`);
 
-  // 돌지 못한 항목을 빼면 「40건 중 12건 돌았다」가 증적으로 성립하지 않는다 (SPEC §8.4)
-  const 미실행 =
-    item.notRunReason === null
-      ? []
-      : [`    <div class="row">`, `      <div class="row-k">미실행 사유</div>`, `      <div class="row-v"><div class="not-run">${안전(item.notRunReason)}</div></div>`, `    </div>`];
+  // 배지 옆에 붙인다. 떨어뜨리면 러너 고장과 사람이 멈춘 것을 구분할 수 없다 (SPEC §8.3)
+  const 사유 =
+    item.notRunReason === null ? '' : `<span class="not-run">${안전(item.notRunReason)}</span>`;
 
   const 절차 =
     item.steps.length === 0
@@ -93,7 +100,7 @@ function 블록(item: EvidenceItem): string[] {
 
   return [
     `<section class="item">`,
-    `    <h2 class="item-head"><span class="tc-id">${안전(item.tcId)}</span><span class="tc-name">${안전(item.tcName)}</span><span class="badge">${디바이스[item.platform]}</span><span class="badge">${item.attempt}회차</span>${판정(item.status)}${소요(item.durationMs)}</h2>`,
+    `    <h2 class="item-head"><span class="tc-id">${안전(item.tcId)}</span><span class="tc-name">${안전(item.tcName)}</span><span class="badge">${디바이스[item.platform]}</span><span class="badge">${item.attempt}회차</span>${판정(item.status)}${소요(item.durationMs)}${사유}</h2>`,
     `    <div class="row">`,
     `      <div class="row-k">사전조건</div>`,
     `      <div class="row-v">`,
@@ -102,7 +109,6 @@ function 블록(item: EvidenceItem): string[] {
     `    </div>`,
     ...필드행('입력', item.params, '입력 없음'),
     ...필드행('기대 결과', item.expected, '기대 결과 없음'),
-    ...미실행,
     ...절차,
     `</section>`,
   ];
@@ -146,7 +152,7 @@ body{
 .f-label{ width:132px; flex:none; color:var(--ink-muted); }
 .f-value{ flex:1; word-break:break-all; }
 .none{ color:var(--ink-faint); }
-.not-run{ color:var(--na); font-weight:600; }
+.not-run{ font-size:12px; font-weight:600; color:var(--na); }
 .step{ margin-bottom:8px; break-inside:avoid; }
 .step-head{ display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--rule-soft); padding-bottom:3px; }
 .seq{ width:18px; flex:none; color:var(--ink-faint); font-size:12px; font-weight:600; }
