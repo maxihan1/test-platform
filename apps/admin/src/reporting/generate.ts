@@ -4,6 +4,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
+import { chromium } from '@playwright/test';
+
+import { enqueue } from '../execution/dispatcher.js';
 import { collectRun } from './collect.js';
 import { renderHtml } from './html.js';
 import { fail, findDocument, finish, type EvidenceFormat } from './store.js';
@@ -21,10 +24,28 @@ function artifactsDir(): string {
   return process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts');
 }
 
+// HTML 을 그대로 찍는다 — 별도 PDF 레이아웃을 두면 화면과 문서가 갈린다 (SPEC §8.4).
+// 브라우저 기동은 실행과 같은 대기줄에 태운다. 서로 다른 실행의 PDF 를 동시에 누르면
+// 부분 유일 인덱스가 못 막아 Chromium 이 여러 개 뜬다 — 대상 서버는 2코어다 (SPEC §9)
+function 찍는다(html: string, 파일경로: string): Promise<void> {
+  return enqueue(async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage();
+      // 바깥 자원을 받아 오지 않는 인라인 문서다. load 면 그릴 것이 다 그려졌다
+      await page.setContent(html, { waitUntil: 'load' });
+      await writeFile(파일경로, await page.pdf({ format: 'A4', printBackground: true }));
+    } finally {
+      // 여기서 안 닫으면 실패할 때마다 Chromium 프로세스가 남는다
+      await browser.close();
+    }
+  });
+}
+
 export async function generate(id: number, runId: number, format: EvidenceFormat): Promise<void> {
   try {
-    // PDF·XLSX는 아직 없다. PENDING으로 두면 그 형식이 영영 잠기므로 사유를 적고 닫는다
-    if (format !== 'HTML') {
+    // XLSX는 아직 없다. PENDING으로 두면 그 형식이 영영 잠기므로 사유를 적고 닫는다
+    if (format === 'XLSX') {
       await fail(id, '아직 못 만드는 형식입니다');
       return;
     }
@@ -39,7 +60,9 @@ export async function generate(id: number, runId: number, format: EvidenceFormat
     const 폴더 = join(artifactsDir(), 'evidence', String(runId));
     await mkdir(폴더, { recursive: true });
     const 파일경로 = join(폴더, `${String(id)}.${형식표[format].ext}`);
-    await writeFile(파일경로, renderHtml(doc, { generatedAt: 행.generatedAt }), 'utf8');
+    const html = renderHtml(doc, { generatedAt: 행.generatedAt });
+    if (format === 'HTML') await writeFile(파일경로, html, 'utf8');
+    else await 찍는다(html, 파일경로);
 
     await finish(id, 파일경로);
   } catch (err) {
