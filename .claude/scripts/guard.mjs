@@ -53,15 +53,10 @@ const ESCAPE = process.env.ALLOW_PROTECTED === '1';
 
 // 2026-09-17 비움 — 세 파일 변경이 전부 승인됐다. 검사는 spec-review A1~A3 이 한다
 const LOCKED = [];
-const OWNED = {
-  A: ['apps/admin/src/catalog/'],
-  B: ['apps/admin/src/execution/'],
-  C: ['apps/runner/', 'packages/kit/src/runtime/', 'tests/'],
-  D: ['apps/admin/src/reporting/', 'infra/grafana/'],
-  E: ['apps/admin/src/web/'],
-  F: ['apps/admin/src/auth/', 'apps/admin/src/settings/', 'scripts/'],
-};
-const SHARED = ['docs/', '.claude/'];
+// 2026-09-18 소유 경로 판정을 걷어냈다 — OWNED 표 · SHARED · ownership 모드.
+// 갈래를 알려 주는 WORKSTREAM 환경변수가 훅에 닿지 않아 한 번도 켜진 적이 없었고,
+// 여러 세션이 동시에 도는 전제도 사라졌다 (/tpx 는 한 세션에서 순차로 돈다).
+// 범위를 지키는 일은 이제 체인의 계획 단계와 사람이 본다 (CLAUDE.md §1.1).
 
 const lockedMsg = (p, label) =>
 `[차단] ${label}은 Phase 0에서 확정된 계약이다: ${p}
@@ -72,19 +67,6 @@ const lockedMsg = (p, label) =>
 
 병합 단계에서 정당하게 필요하면 ALLOW_PROTECTED=1 로 실행한다.`;
 
-const ownershipMsg = (ws, p, owned) =>
-`[차단] WS-${ws} 소유 경로 밖이다: ${p}
-
-담당 경로: ${owned.join(', ')}
-
-다른 갈래의 파일이 잘못돼 보여도 고치지 마라. 사용자에게 보고만 해라.
-필요한 것이 있으면 타입이나 API 계약을 통해서만 접근한다.`;
-
-const ownedPaths = () => {
-  const ws = process.env.WORKSTREAM;
-  if (!ws) return null;
-  return [ws.toUpperCase(), OWNED[ws.toUpperCase()] ?? null];
-};
 
 if (mode === 'protected') {
   if (ESCAPE) ok();
@@ -107,7 +89,6 @@ if (mode === 'bash') {
   const WRITE_OP = /(^|[^\d&])>{1,2}|&>|\btee\b|\bsed\s+-[a-zA-Z]*i|\bperl\s+-[a-zA-Z]*i|\bmv\b|\bcp\b|\brm\b|\btruncate\b/;
   const PATH_TOKEN = /(?:^|[\s"'=])((?:apps|packages|infra|db|tests|docs)\/[\w.\/-]*|docker-compose\.yml)/g;
   const guide = '\n\n파일 수정은 Edit/Write 도구로만 한다. 그래야 훅이 규칙을 검사할 수 있다.';
-  const wsInfo = ownedPaths();
   for (const m of cmd.matchAll(PATH_TOKEN)) {
     const p = m[1];
     // 같은 명령 구간(; && || | 줄바꿈으로 나뉜 조각) 안에 쓰기 연산자가 있을 때만 수정으로 본다.
@@ -117,13 +98,6 @@ if (mode === 'bash') {
     if (!WRITE_OP.test(segment)) continue;
     for (const [lp, label] of LOCKED) {
       if (p.includes(lp)) block(`[차단] Bash로 보호 경로를 고치려 한다: ${p}\n명령: ${cmd}\n\n` + lockedMsg(p, label) + guide);
-    }
-    if (wsInfo && wsInfo[1]) {
-      const [ws, owned] = wsInfo;
-      if (SHARED.some((s) => p.startsWith(s))) continue;
-      if (!owned.some((o) => p.startsWith(o))) {
-        block(`[차단] Bash로 소유 경로 밖 파일을 고치려 한다: ${p}\n명령: ${cmd}\n\n` + ownershipMsg(ws, p, owned) + guide);
-      }
     }
   }
   ok();
@@ -202,16 +176,6 @@ ${changed.trim().split('\n').slice(0, 8).map((l) => '  ' + l).join('\n')}
 푸시하려면 반드시 필요하다. pre-push 훅이 막는다.`);
     process.exit(1);
   }
-  ok();
-}
-
-if (mode === 'ownership') {
-  if (ESCAPE) ok();
-  const wsInfo = ownedPaths();
-  if (!wsInfo || !wsInfo[1]) ok();
-  const [ws, owned] = wsInfo;
-  if (SHARED.some((p) => rel.startsWith(p))) ok();
-  if (!owned.some((p) => rel.startsWith(p))) block(ownershipMsg(ws, rel, owned));
   ok();
 }
 
