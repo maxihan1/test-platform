@@ -4,9 +4,13 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const mode = process.argv[2];
-const raw = readFileSync(0, 'utf8');
+
+// **mode 가 있을 때만 stdin 을 읽는다.** 판별식이 이 파일을 import 하면 mode 가 없는데,
+// 맨 위에서 readFileSync(0) 을 하면 거기서 영영 막힌다 (2026-09-18 실측 — 테스트가 멈췄다)
 let ev = {};
-try { ev = JSON.parse(raw); } catch { process.exit(0); }
+if (mode) {
+  try { ev = JSON.parse(readFileSync(0, 'utf8')); } catch { process.exit(0); }
+}
 
 const input = ev.tool_input ?? {};
 // 훅은 프로젝트 루트에서 돌지만, 워크트리 세션은 cwd가 다르므로 이벤트의 cwd를 우선한다
@@ -16,6 +20,34 @@ const rel = filePath.replace(cwd + '/', '');
 
 const block = (msg) => { console.error(msg); process.exit(2); };
 const ok = () => process.exit(0);
+
+// CLAUDE.md §5 의 금지 명령. **실행되는 자리에만 건다.**
+// 2026-09-18 — `grep -n "branch -D" file` 같은 조회가 막혔다. 명령 문자열 어디에 있든
+// 걸렸기 때문이다. 따옴표 안을 먼저 걷어내고, 이어 붙인 구간마다 따로 본다.
+const BANNED = [
+  [/\bpush\s+(?:[^;&|]*\s)?(?:--force|-f)(?:\s|$)/, '강제 push'],
+  [/\bbranch\s+-D(?:\s|$)/, '브랜치 강제 삭제'],
+  [/migrate[:\s-]*(?:down|rollback|undo)/i, '마이그레이션 되돌리기'],
+  [/\brm\s+-rf\s+\/(?!home|tmp)/, '루트 경로 삭제'],
+];
+
+/** 금지 명령이면 그 이름을, 아니면 null. 판별식이 이 함수만 부른다 */
+export function isBanned(command) {
+  // 따옴표 **안쪽만** 지운다. 바깥의 진짜 명령은 그대로 남는다 —
+  // `git branch -D "my branch"` 는 여전히 잡히고 `grep "branch -D" f` 는 빠진다
+  const 껍데기 = String(command ?? '')
+    .replace(/'[^']*'/g, "''")
+    .replace(/"[^"]*"/g, '""');
+
+  for (const 구간 of 껍데기.split(/;|&&|\|\||\||\n/)) {
+    const s = 구간.trim();
+    if (!s) continue;
+    for (const [re, label] of BANNED) {
+      if (re.test(s)) return label;
+    }
+  }
+  return null;
+}
 
 const ESCAPE = process.env.ALLOW_PROTECTED === '1';
 
@@ -64,16 +96,9 @@ if (mode === 'protected') {
 
 if (mode === 'bash') {
   const cmd = input.command ?? '';
-  const banned = [
-    [/push\s+.*(--force|-f)\b/, '강제 push'],
-    [/branch\s+-D\b/, '브랜치 강제 삭제'],
-    [/migrate[:\s-]*(down|rollback|undo)/i, '마이그레이션 되돌리기'],
-    [/rm\s+-rf\s+\/(?!home|tmp)/, '루트 경로 삭제'],
-  ];
-  for (const [re, label] of banned) {
-    if (re.test(cmd)) {
-      block(`[차단] ${label}은 허용되지 않는다 (CLAUDE.md §5).\n명령: ${cmd}\n\n필요하다면 사용자에게 이유를 설명하고 직접 실행하게 해라.`);
-    }
+  const 이유 = isBanned(cmd);
+  if (이유) {
+    block(`[차단] ${이유}은 허용되지 않는다 (CLAUDE.md §5).\n명령: ${cmd}\n\n필요하다면 사용자에게 이유를 설명하고 직접 실행하게 해라.`);
   }
 
   // Bash 리다이렉트·sed -i·tee·mv·cp·rm은 Edit/Write 훅을 우회하는 통로다.
@@ -190,4 +215,6 @@ if (mode === 'ownership') {
   ok();
 }
 
-ok();
+// **mode 가 있을 때만 끝낸다.** 판별식이 import 하면 mode 가 없는데, 맨 끝에서 무조건
+// ok()(= process.exit(0))를 부르면 테스트가 첫 건만 돌고 프로세스가 죽는다 (2026-09-18 실측)
+if (mode) ok();

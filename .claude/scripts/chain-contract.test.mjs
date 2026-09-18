@@ -108,6 +108,41 @@ test('diff 기준이 origin/main 이다 — 로컬 main 은 낡을 수 있다', 
   assert.ok(쓰는곳.length >= 3, `origin/main...HEAD 를 쓰는 스킬이 ${쓰는곳.length}개뿐이다`);
 });
 
+// --- 병합 뒤 브랜치 정리 (2026-09-18 — 없어서 12개를 손으로 지웠다) ---
+test('tp-merge 가 원격 브랜치를 병합과 함께 지운다', () => {
+  assert.ok(codeOf('tp-merge').includes('gh pr merge <번호> --merge --delete-branch'),
+    '병합 명령에 --delete-branch 가 없다');
+});
+
+test('tp-merge 가 로컬 브랜치를 -d 로만 치운다', () => {
+  const m = read('tp-merge');
+  const code = codeOf('tp-merge');
+  assert.ok(code.includes('git branch -d'), '로컬 브랜치 정리 명령이 없다');
+  // 강제 삭제는 실행문에 없어야 한다. 「사람이 직접」 안내문의 언급은 울타리 밖이라 걸리지 않는다
+  assert.doesNotMatch(code, /git branch -D(?:\s|$)/m, 'tp-merge 가 강제 삭제를 실행한다');
+  // 순서 — 작업방 제거(Step 4)가 브랜치 삭제(Step 5)보다 먼저다. 뒤집으면 git 이 거부한다
+  const step4 = m.indexOf('## Step 4');
+  const step5 = m.indexOf('## Step 5');
+  assert.ok(step4 >= 0 && step5 >= 0, 'tp-merge 에 Step 4 또는 5 가 없다');
+  assert.ok(step4 < step5, '브랜치 정리가 작업방 제거보다 앞에 있다');
+  // 거부당한 브랜치를 보고하라는 지시
+  assert.match(m, /정리 못 한 브랜치/, '지우지 못한 브랜치를 보고하는 자리가 없다');
+});
+
+test('tp-merge 가 --done 으로 체크리스트를 닫는다', () => {
+  // --step 7 은 7번을 「지금 여기」로만 그리고 끝내 체크하지 않는다 (2026-09-18 실측)
+  const code = codeOf('tp-merge');
+  assert.ok(/pr-update\.mjs[^\n]*--done/.test(code), 'tp-merge 가 --done 을 안 부른다');
+  assert.doesNotMatch(code, /pr-update\.mjs[^\n]*--step 7/, 'tp-merge 가 아직 --step 7 을 쓴다');
+});
+
+test('CLAUDE.md §5 가 가드와 같은 말을 한다', () => {
+  const claude = readFileSync(new URL('../../CLAUDE.md', import.meta.url), 'utf8');
+  // 산문이 「브랜치 삭제」를 통째로 금지하면 안전한 정리까지 못 하는 줄 안다 (2026-09-18)
+  assert.match(claude, /브랜치 강제 삭제/, '§5 가 강제 삭제로 좁혀 적지 않았다');
+  assert.match(claude, /git branch -d/, '§5 가 병합된 브랜치 정리를 허용한다고 안 적었다');
+});
+
 test('tp-start 가 낡은 체크아웃을 먼저 잡는다', () => {
   const s = read('tp-start');
   assert.ok(codeOf('tp-start').includes('git rev-list --count main..origin/main'), 'tp-start 에 뒤처짐 검사가 없다');

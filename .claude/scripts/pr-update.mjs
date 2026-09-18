@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // PR 을 진행 상황판으로 쓴다. 본문의 진행 상태 블록을 덮어쓰거나, 단계 코멘트를 단다.
 //   node .claude/scripts/pr-update.mjs --pr 54 --tier 1 --step 5 --note "8/12" --next "게이트 2"
+//   node .claude/scripts/pr-update.mjs --pr 54 --tier 1 --done       ← 병합 뒤. 전부 [x] 로 닫는다
 //   node .claude/scripts/pr-update.mjs --pr 54 --comment "### [5/7] 구현 완료\n\n본문"
 //
 // 본문은 마커 사이만 갈아 끼운다. 마커 밖(무엇을 만드나 · 확인 방법)은 사람이 쓴 것이라 건드리지 않는다.
@@ -52,14 +53,15 @@ if (comment) {
 
 // --- 본문 진행 상태 갱신 ---
 const tier = Number(arg('tier', '1'));
-const step = Number(arg('step', '1'));
+const done = process.argv.includes('--done'); // 체인이 끝났다 — 전부 [x] 로 닫는다
+const step = done ? 99 : Number(arg('step', '1'));
 const gate = arg('gate');           // '1' | '2' — 그 게이트를 통과했다고 표시
 const note = arg('note');           // 지금 단계 안의 진척. 예 "8/12"
-const next = arg('next', '게이트 2'); // 다음 멈춤
+const next = arg('next', done ? '없음 — 끝' : '게이트 2'); // 다음 멈춤
 const ws = arg('ws');               // 갈래
 const spec = arg('spec');           // 읽은 명세 분량
 
-const passedGate = gate ? Number(gate) : (step >= 5 && tier >= 2 ? 1 : 0);
+const passedGate = done ? 2 : (gate ? Number(gate) : (step >= 5 && tier >= 2 ? 1 : 0));
 
 const lines = [];
 for (const s of STEPS) {
@@ -99,4 +101,4 @@ const next_body = i > -1 && j > i
   : `${block}\n\n${body}`;
 
 ghWithBody(['pr', 'edit', pr], next_body);
-console.log(`PR #${pr} 본문 갱신 — ${step}/7 · 등급 ${tier} · 다음 ${next}`);
+console.log(`PR #${pr} 본문 갱신 — ${done ? '완료 7/7' : `${step}/7`} · 등급 ${tier} · 다음 ${next}`);
