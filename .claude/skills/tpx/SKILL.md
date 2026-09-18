@@ -1,9 +1,9 @@
 ---
-name: tp
+name: tpx
 description: 테스트 자동화 플랫폼의 모든 코드 작업 진입점. 자연어로 하고 싶은 일을 주면 등급을 판정하고 일곱 단계 체인을 끝까지 돌린다. "WS-C 진행해줘", "문서 오타 고쳐줘", "화면에 버튼 더해줘" 처럼 무언가를 만들거나 고치라고 할 때 쓴다. 읽기만 하는 질문·코드 설명·이미 돌던 작업 이어가기에는 쓰지 않는다.
 ---
 
-# /tp
+# /tpx
 
 이 저장소 코드 작업의 **단일 진입점**. 등급을 판정하고 일곱 단계를 컨트롤한다.
 
@@ -12,16 +12,16 @@ description: 테스트 자동화 플랫폼의 모든 코드 작업 진입점. �
 ## 체인 일곱 단계
 
 ```
-[1] tp-start        분류 · 작업방 · 초안 PR
-[2] tp-spec         읽을 장 선택 · 계약 변경 판정            (2등급+)
+[1] tpx-start        분류 · 작업방 · 초안 PR
+[2] tpx-spec         읽을 장 선택 · 계약 변경 판정            (2등급+)
 🛑 게이트 0 — 계약 변경 승인                                  (계약을 건드릴 때만)
-[3] tp-plan         할 일 쪼개기 · §2.7 동반 수정을 할 일로   (2등급+)
-[4] tp-plan-review  계획 검토 — 한 번만                      (2등급+)
+[3] tpx-plan         할 일 쪼개기 · §2.7 동반 수정을 할 일로   (2등급+)
+[4] tpx-plan-review  계획 검토 — 한 번만                      (2등급+)
 🛑 게이트 1 — 계획과 지적을 나란히                            (2등급+)
-[5] tp-impl         구현 (TDD). 0·1등급은 여기서 인라인
-[6] tp-review       검사 2종 병렬 · 게이트 2 요약
+[5] tpx-impl         구현 (TDD). 0·1등급은 여기서 인라인
+[6] tpx-review       검사 2종 병렬 · 게이트 2 요약
 🛑 게이트 2 — 전 등급 필수
-[7] tp-merge        초안 해제 → 병합 → 정리 → 기록
+[7] tpx-merge        초안 해제 → 병합 → 정리 → 기록
 ```
 
 ## A-0. 중단된 작업 감지 (모든 입력에 선행, 필수)
@@ -63,7 +63,7 @@ node .claude/scripts/detect-tier.mjs <바꿀 경로들>
 
 | 언제 | 무엇을 재나 | 어디에 적나 |
 |---|---|---|
-| **[1] 착수 시점** | 이번에 건드릴 경로 → **선언 등급** | PR 본문 · `tp-start` 가 잰다 |
+| **[1] 착수 시점** | 이번에 건드릴 경로 → **선언 등급** | PR 본문 · `tpx-start` 가 잰다 |
 | **[6] 검사 시점** | `git diff --name-only origin/main...HEAD` → **실측 등급** | 게이트 2 요약 |
 
 **둘을 나란히 적는다.** 실측이 선언보다 높아도 **자동 승격하지 않는다** — 게이트 2 에서 사람이 정한다.
@@ -82,9 +82,9 @@ node .claude/scripts/detect-tier.mjs <바꿀 경로들>
 | 코드 검사 | `/code-review` | 위 + 화면이면 `/qa-only` | 위 + `spec-review` | 위 + `/security-review` |
 | 게이트 | 2만 | 2만 | 1+2 | **0+1+2** |
 
-- **0·1등급의 「5 인라인」** — `tp-impl` 을 부르지 않고 이 컨트롤러가 직접 고친다. 규율은 같다
-- **`tp-review` 는 전 등급 호출**한다. 자기 구현을 자기가 검사하면 독립이 아니다
-- **`tp-start` 와 `tp-merge` 도 전 등급 호출**한다. 두 스킬에 사고 방어 절차가 걸려 있다
+- **0·1등급의 「5 인라인」** — `tpx-impl` 을 부르지 않고 이 컨트롤러가 직접 고친다. 규율은 같다
+- **`tpx-review` 는 전 등급 호출**한다. 자기 구현을 자기가 검사하면 독립이 아니다
+- **`tpx-start` 와 `tpx-merge` 도 전 등급 호출**한다. 두 스킬에 사고 방어 절차가 걸려 있다
 
 ## 게이트
 
@@ -98,7 +98,7 @@ node .claude/scripts/detect-tier.mjs <바꿀 경로들>
 
 | 게이트 | 언제 | 선택지 |
 |---|---|---|
-| 🛑 **0** 계약 변경 | `tp-spec` 이 계약을 건드린다고 판정 | `승인 — SPEC 먼저 고친다` / `다른 방법을 찾는다` / `중단` |
+| 🛑 **0** 계약 변경 | `tpx-spec` 이 계약을 건드린다고 판정 | `승인 — SPEC 먼저 고친다` / `다른 방법을 찾는다` / `중단` |
 | 🛑 **1** 계획 | 2등급 이상 | `지적 반영하고 진행` / `그대로 승인` / `중단` |
 | 🛑 **2** 병합 | **전 등급** | `승인하고 병합` / `고치고 재검사` / `보류` |
 
@@ -164,4 +164,4 @@ node .claude/scripts/pr-update.mjs --pr <번호> --comment "### [N/7] <무엇> �
 
 ## 관련 스킬
 
-[tp-start](../tp-start/SKILL.md) · [tp-spec](../tp-spec/SKILL.md) · [tp-plan](../tp-plan/SKILL.md) · [tp-plan-review](../tp-plan-review/SKILL.md) · [tp-impl](../tp-impl/SKILL.md) · [tp-review](../tp-review/SKILL.md) · [tp-merge](../tp-merge/SKILL.md)
+[tpx-start](../tpx-start/SKILL.md) · [tpx-spec](../tpx-spec/SKILL.md) · [tpx-plan](../tpx-plan/SKILL.md) · [tpx-plan-review](../tpx-plan-review/SKILL.md) · [tpx-impl](../tpx-impl/SKILL.md) · [tpx-review](../tpx-review/SKILL.md) · [tpx-merge](../tpx-merge/SKILL.md)

@@ -1,15 +1,15 @@
 ---
-name: tp-start
-description: /tp 체인 1단계 — 등급을 재고 작업방을 만들고 초안 PR 을 연다. 전 등급 호출. 직접 부르지 않는다.
+name: tpx-start
+description: /tpx 체인 1단계 — 등급을 재고 작업방을 만들고 초안 PR 을 연다. 전 등급 호출. 직접 부르지 않는다.
 ---
 
-# /tp-start
+# /tpx-start
 
 체인 [1]. **파일을 하나라도 고치기 전에** 판을 깐다. 전 등급 호출된다.
 
 ## 선행 읽기
 
-**없음.** `/tp` 가 이미 실었다.
+**없음.** `/tpx` 가 이미 실었다.
 
 ## ★ 순서를 어기지 않는다
 
@@ -36,7 +36,7 @@ git rev-list --count main..origin/main
 ```
 
 `0` 이 아니면 **멈추고 보고한다.** 여기서 고치려 하지 않는다 — 워크트리 안에서는
-main 을 갱신할 방법이 git 에 없다 (`tp-merge` Step 4 에 근거).
+main 을 갱신할 방법이 git 에 없다 (`tpx-merge` Step 4 에 근거).
 
 ```
 ⚠️ 메인 체크아웃이 <N>커밋 뒤처졌습니다.
@@ -48,7 +48,7 @@ main 을 갱신할 방법이 git 에 없다 (`tp-merge` Step 4 에 근거).
 ```
 
 **2026-09-18 실측** — 세 번 병합하고 최신화를 안 해 여덟 커밋이 밀렸고,
-새 스킬이 체크아웃에 없어 `/tp` 자체가 안 먹었다. `tp-merge` Step 4 가 이제 막지만,
+새 스킬이 체크아웃에 없어 `/tpx` 자체가 안 먹었다. `tpx-merge` Step 4 가 이제 막지만,
 사람이 직접 병합하거나 다른 기계에서 받아 왔을 때는 여기가 유일한 그물이다.
 
 작업 자체는 `origin/main` 에서 따므로 멀쩡하다. **낡는 것은 사람이 열어 보는 자리와 스킬이다.**
@@ -67,7 +67,7 @@ node .claude/scripts/detect-tier.mjs <경로> [<경로>...]
   게이트 2 요약까지 들고 간다
 - 등급이 애매하면 **높은 쪽**을 선언한다. 실측이 낮으면 게이트 2 에서 내리면 된다
 
-**이것은 선언이다.** 실측은 [6] tp-review 가 `git diff --name-only origin/main...HEAD` 로 다시 잰다.
+**이것은 선언이다.** 실측은 [6] tpx-review 가 `git diff --name-only origin/main...HEAD` 로 다시 잰다.
 **둘을 나란히 게이트 2 요약에 싣는다** — 자동 승격은 하지 않는다.
 
 ## Step 2. 작업방을 만든다
@@ -84,11 +84,21 @@ git worktree list               # 같은 이름이 있으면 -2 접미사
 git worktree add .claude/worktrees/<이름> -b <이름> origin/main
 ```
 
-**갈래 작업이면 소유 경로 잠금을 켠다.** `guard.mjs` 의 `ownership` 모드가 이 환경변수를 본다.
+**`EnterWorktree` 도구를 쓰면 브랜치가 `worktree-<이름>` 이 된다.** 배경 작업에서는 그 도구를
+써야 하므로 이름이 갈린다. **가정하지 말고 `git rev-parse --abbrev-ref HEAD` 로 읽는다** —
+`tpx-merge` Step 5 도 `git branch --merged` 로 후보를 뽑지 이름을 짐작하지 않는다.
+
+**갈래 작업이면 소유 경로 잠금을 켠다.**
 
 ```bash
-export WORKSTREAM=<A|B|C|D|E|F>
+# .claude/settings.local.json 의 env 에 넣는다
+{ "env": { "WORKSTREAM": "<A|B|C|D|E|F>" } }
 ```
+
+> **⚠️ `export WORKSTREAM=C` 는 안 먹는다.** 훅은 별도 프로세스로 뜨므로 Bash 도구 안에서 한
+> `export` 가 닿지 않는다. `docs/HOOKS.md` 「워크스트림 지정」이 같은 말을 한다.
+> **2026-09-18 까지 이 자리가 `export` 라고 적혀 있었다** — 그동안 `ownership` 검사는
+> 켜진 적이 없다. 설정 파일은 추적되지 않으므로 사람이 한 번 넣어야 한다.
 
 갈래가 없는 작업(하네스·계약 반영)이면 **설정하지 않는다.** 설정하면 못 고칠 파일이 생긴다.
 
@@ -110,7 +120,7 @@ gh pr create --draft --title "[작업중] <제목>" --body-file <본문파일>
 **초안(Draft)이라 병합 버튼이 눌리지 않는다.** 이것이 2026-09-17 에 두 번 난 사고
 (#4→#5, #6→#7 — 먼저 병합돼서 뒤 커밋이 누락)를 막는 장치다.
 
-**`gh pr ready` 는 이 스킬에서 절대 부르지 않는다.** 체인 전체에서 [7] tp-merge 한 곳뿐이다.
+**`gh pr ready` 는 이 스킬에서 절대 부르지 않는다.** 체인 전체에서 [7] tpx-merge 한 곳뿐이다.
 판별식 `pr-draft-guard` 가 이 규칙을 강제한다.
 
 제목 앞의 `[작업중]` 도 [7] 에서 뗀다.
@@ -143,19 +153,19 @@ node .claude/scripts/pr-update.mjs --pr <번호> --comment "### [1/7] 시작 완
 npm run check:deps
 ```
 
-누락이 있으면 **내 작업 때문이 아니다.** 고치지 말고 `/tp` 에 그대로 반환한다 —
+누락이 있으면 **내 작업 때문이 아니다.** 고치지 말고 `/tpx` 에 그대로 반환한다 —
 사용자가 `npm install` 을 돌려야 한다. 이 검사가 2026-09-18 에 도구 호출 다섯 번을 잡아먹은
 「내 변경인가 환경인가」 판별을 한 줄로 끝낸다.
 
 ## Step 5. 반환
 
-`/tp` 에 돌려준다. 다음 단계는 컨트롤러가 등급으로 정한다 — 2등급 이상은 `/tp-spec`,
+`/tpx` 에 돌려준다. 다음 단계는 컨트롤러가 등급으로 정한다 — 2등급 이상은 `/tpx-spec`,
 0·1등급은 곧장 구현 인라인.
 
 ## 출력
 
 ```
-🔄 [1/7] tp-start
+🔄 [1/7] tpx-start
    ├─ 선언 등급: <N> · 표면: <목록> · 미분류: <경로 또는 없음>
    ├─ 작업방: .claude/worktrees/<이름> (브랜치 <이름>)
    ├─ 소유 경로 잠금: WORKSTREAM=<갈래> 또는 없음(하네스)
