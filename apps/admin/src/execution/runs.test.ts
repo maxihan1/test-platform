@@ -118,7 +118,6 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       payload: {
         title: 'XBX 두 환경 실행',
         env: 'qa',
-        triggeredBy: '검수자',
         items: [{ tcId: 'XBX-001', platforms: ['desktop', 'mobile'], params: {}, expected: {} }],
       },
     });
@@ -154,14 +153,19 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     });
   });
 
-  it('실행자를 안 적으면 admin으로 남는다', async () => {
+  it('본문에 실행자를 적어 보내도 그 값을 쓰지 않는다', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
-      payload: { title: 'XBX 실행자 없음', env: 'qa', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+      payload: {
+        title: 'XBX 실행자 사칭',
+        env: 'qa',
+        triggeredBy: '사장님',
+        items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }],
+      },
     });
     const body = await 끝날때까지(res.json().runId);
-    expect(body.triggeredBy).toBe('admin');
+    expect(body.triggeredBy).not.toBe('사장님');
   });
 
   it('카탈로그에 없는 케이스는 404다', async () => {

@@ -26,8 +26,8 @@ const paramSetBody = z.object({
 
 const runBody = z.object({
   title: z.string().min(1),
-  // test_run.triggered_by는 NOT NULL이다. 화면이 안 적어 보내면 admin이 눌렀다고 남긴다
-  triggeredBy: z.string().min(1).default('admin'),
+  // 실행자는 여기 없다. 로그인한 사람에게서 온다 — 보내는 쪽이 정할 수 있으면 아무 이름이나
+  // 적을 수 있어 증적이 증적이 아니게 된다 (SPEC §3.5). 본문에 실려 와도 zod가 버린다
   // 대상 서버 키. 기본값을 두지 않는다 — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §6).
   // 주소는 요청이 싣지 않는다. 서버가 그 서비스의 service_env에서 찾는다
   env: z.string().min(1),
@@ -75,8 +75,16 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
 
+    // 문(auth/gate.ts)이 모든 /api 앞에 서므로 여기 닿았으면 사람이 있다.
+    // 문 없이 이 라우트만 띄우는 검사에서만 빈 자리가 생기고, 그때는 이름 칸을 비워 둔다 (SPEC §3.5)
+    const 사람 = req.user ?? null;
+
     try {
-      const { runId, items } = await createRun(parsed.data);
+      const { runId, items } = await createRun({
+        ...parsed.data,
+        triggeredBy: 사람?.username ?? '알 수 없음',
+        triggeredByName: 사람?.displayName,
+      });
       // 기다리지 않는다. 케이스 하나가 5분이면 응답이 5분 동안 열려 있게 된다 (SPEC §7)
       void dispatch(runId, items).catch((err: unknown) => {
         app.log.error(`[execution] 실행 ${runId} 분배가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);

@@ -44,7 +44,11 @@ export interface RunItemInput {
 
 export interface CreateRunInput {
   title: string;
+  // 로그인한 사람의 아이디. 요청 본문이 아니라 문(auth/gate.ts)이 실어 준 값에서 온다 (SPEC §3.5)
   triggeredBy: string;
+  // 실행 당시의 사람 이름을 박제한다. 계정 이름이 바뀌거나 지워져도 과거 증적은 흔들리지 않는다.
+  // 비어 있으면 인증 도입 이전 행이라는 표시다 (SPEC §3.5 · §6 · §8.6)
+  triggeredByName?: string;
   // 대상 서버 키. 기본값을 두지 않는다 — 안 채우면 빈 칸이 아니라 틀린 값이 남는다 (SPEC §6)
   env: string;
   // 회차 수. 요청 최상위에 하나다 — 항목마다 다르면 「실행 항목이 N건 생깁니다」를 셀 수 없다 (SPEC §8.2)
@@ -174,11 +178,13 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
 
     // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)
     const run = await client.query<{ run_id: string }>(
-      `INSERT INTO test_run (title, triggered_by, status, env, service_id, service_name, tests_repo, base_url, notify_slack)
-       VALUES ($1, $2, 'RUNNING', $3, $4, $5, $6, $7, $8) RETURNING run_id`,
+      `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo, base_url, notify_slack)
+       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9) RETURNING run_id`,
       [
         input.title,
         input.triggeredBy,
+        // NULL 이면 「실행자 미상 (인증 도입 이전)」으로 읽힌다. 모르는 것은 모른다고 적는다 (SPEC §8.6)
+        input.triggeredByName ?? null,
         input.env,
         found서비스.id,
         found서비스.name,
