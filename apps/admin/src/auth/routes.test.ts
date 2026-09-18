@@ -42,7 +42,7 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
     );
 
     app = Fastify();
-    await 세션등록(app, 열쇠);
+    세션등록(app, 열쇠);
     await app.register(authRoutes, { prefix: '/api' });
     await app.ready();
   });

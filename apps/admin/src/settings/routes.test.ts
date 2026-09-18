@@ -15,7 +15,7 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
 
   beforeAll(async () => {
     app = Fastify();
-    await 세션등록(app, 열쇠);
+    세션등록(app, 열쇠);
     // 등급을 막는 것은 미들웨어다. 여기서는 설정 API 자체만 본다
     await app.register(settingsRoutes, { prefix: '/api' });
     await app.register(authRoutes, { prefix: '/api' });

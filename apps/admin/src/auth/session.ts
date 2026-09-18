@@ -12,8 +12,11 @@ declare module '@fastify/secure-session' {
 // 소금은 비밀이 아니다 — 열쇠를 늘리는 데만 쓴다. 정확히 16글자여야 한다
 const 소금 = 'platform-session';
 
-export async function 세션등록(app: FastifyInstance, secret: string): Promise<void> {
-  await app.register(secureSession, {
+// 열쇠는 32글자를 넘어야 한다. 짧으면 부품이 기동 중에 던지므로 app.ts 가 먼저 막는다
+export const 열쇠최소길이 = 32;
+
+export function 세션등록(app: FastifyInstance, secret: string): void {
+  app.register(secureSession, {
     secret,
     salt: 소금,
     cookieName: 'platform_session',

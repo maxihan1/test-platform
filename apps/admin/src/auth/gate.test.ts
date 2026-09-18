@@ -61,7 +61,7 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     await 계정넣기('xfu3-admin', 'admin', ['XFS3A']);
 
     app = Fastify();
-    await 세션등록(app, 열쇠);
+    세션등록(app, 열쇠);
     인증등록(app);
     await app.register(authRoutes, { prefix: '/api' });
 
