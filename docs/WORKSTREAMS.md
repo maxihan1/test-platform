@@ -183,6 +183,32 @@ CLAUDE.md와 SPEC 중 아래 5장을 읽어줘. 너는 WS-B(실행) 담당이다
 러너는 아직 스텁일 수 있다. ExecuteResponse 형태의 가짜 응답으로 먼저 만들어라.
 러너 내부 구현은 WS-C 담당이니 apps/runner/**는 절대 건드리지 마라.
 
+2026-09-17~18 개정으로 더 할 것 (여기부터가 이번에 남은 일이다. 코드에 아직 한 줄도 없다):
+A. **실행 멈추기** — POST /api/runs/:runId/abort (SPEC §7 · §3.2).
+   대기 중 항목은 줄에서 빼고, **진행 중 항목도 러너에 끊어 달라고 한다** (§5.2).
+   둘 다 NA + 사유로 닫고 test_run.status = ABORTED.
+   닫는 UPDATE에는 언제나 AND finished_at IS NULL을 붙인다 — 러너 응답과 겹치면
+   나중에 온 쪽이 먼저 기록된 판정을 덮어쓴다 (§7.1)
+B. **반복 실행과 회차** — repeat를 받아 run_item을 그만큼 만들고 attempt를 1부터 기록한다.
+   유일성이 (run_id, tc_id, platform, attempt)로 넓어졌다 (§6)
+C. **실행 항목 1000건 상한** — 넘으면 400 { error: 'TOO_MANY_ITEMS', limit, requested } (§8.2).
+   화면만 막으면 직접 찌르는 요청을 못 막는다
+D. **서비스를 요청에서 받지 않는다** — tcId 접두사에서 알아낸다. 섞이면 400 MIXED_SERVICE (§7).
+   test_run에 service_id와 스냅샷 service_name·tests_repo를 박는다 (§6)
+E. **대상 서버 주소** — env 키를 받아 그 서비스의 service_env에서 주소를 찾아 base_url에 박는다 (§6).
+   요청이 주소를 싣게 두면 아무 데나 쏠 수 있다
+F. **라벨·타임아웃·파일경로 박제** — run_item에 param_schema·expected_schema·timeout_ms·file_path를
+   실행 시점 값으로 넣는다. 카탈로그는 스캔 때마다 덮어쓰는 캐시라 못 믿는다 (§3.3 불변식)
+G. **재기동 복구** — 부팅 직후 status='RUNNING'인 실행의 미완 항목을 닫고 ABORTED로 바꾼다 (§3.2)
+H. **실행 완료 알림을 보내는 주체가 너다** (SPEC §8.9). 실행을 닫는 코드에 붙인다.
+   notify_slack이 true면 그 서비스의 webhook으로 보내고 성공하면 notified_at을 채운다.
+   **보내기 실패는 실행 실패가 아니다.** 재시도하지 않는다. 새 부품이 없다 — Node 20 fetch다.
+   리포팅이 하지 않는다 — §3.3이 그쪽 write를 evidence_document 하나로 막아 뒀다
+I. **GET /api/runs에 ?service= 를 필수로** (§8.7). 배정받지 않은 서비스면 403
+J. **러너에 닿지 못했을 때** — 항목을 NA로 닫고 사유를 `러너에 닿지 못했습니다`로 적는다.
+   사용자가 멈춘 것과 **같은 자리에 다른 문장**이다. 실행 자체는 FINISHED다 (§8.3)
+K. 증적 목록을 실어 줄 때 status를 같이 낸다 (§7 · §6). 화면 버튼 문구가 그 값으로 갈린다
+
 TDD로 진행하고, 각 단계마다 내가 curl로 확인할 방법을 알려줘.
 ```
 
@@ -221,6 +247,17 @@ packages/kit/src/types.ts는 읽기만 하고 수정하지 마라.
 이게 전체에서 가장 까다로운 부분이다. 3번(verify)부터 만들고 데모 테스트 1건으로
 증명한 뒤 나머지로 넘어가라.
 
+2026-09-17~18 개정으로 더 할 것 (코드에 아직 없다):
+A. **ExecuteRequest.baseUrl을 받아 자식 프로세스에 넘긴다** (SPEC §5.2).
+   PLATFORM_BASE_URL로 넘기고, 이 값은 실행마다 바뀌므로 .env에 두지 않는다.
+   types.ts에 칸을 더하는 것은 contracts 단위가 한다 — 너는 받아 쓰기만 한다
+B. **바깥에서 끊을 통로를 낸다** (§5.2 · §3.4). 끊는 코드(kill.ts)는 이미 있다 —
+   타임아웃 때 쓰는 것이 완성돼 있고 **admin이 부를 자리만 없다.**
+   돌아오는 모양은 타임아웃과 같게 한다. WS-B의 abort가 이것을 부른다
+C. **자동 재시도를 켜지 마라.** retries는 0 고정이다 (§5.2). playwright.config.ts는
+   contracts 단위가 고치니 러너가 그 값을 덮어쓰지 않게만 한다
+D. **러너는 DB를 여전히 모른다.** 이 규칙 하나가 §5.3의 모든 이음새를 떠받친다 (§3.4)
+
 TDD로 진행하고, 각 단계마다 확인 방법을 알려줘.
 ```
 
@@ -240,8 +277,8 @@ CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-D(리포팅) 담당이
    JSON 원문을 그대로 노출하지 말 것. 스키마의 describe를 라벨로 쓴다
    문서는 실행(run) 단위로 1부다. 항목마다 블록이 반복되고,
    디바이스가 2개인 케이스는 2번, 반복 실행한 케이스는 회차마다 한 블록씩 나온다
-2. HTML → PDF 변환 — admin 컨테이너 안에서 Playwright의 page.pdf()로 (SPEC §3.3)
-   내는 형식은 PDF 하나다. HTML은 제출물이 아니라 PDF를 만드는 중간 산물이다
+2. HTML → PDF 변환 — admin 컨테이너 안에서 Playwright의 page.pdf()로 (SPEC §3.3).
+   **내는 형식은 SPEC §8.4 표가 정본이다.** HTML도 내준다 — 이미 만들고 있고 주는 비용이 0이다
 3. POST /api/runs/:runId/evidence → { id, format, filePath, generatedAt }
    GET /api/evidence/:id
 4. Grafana 프로비저닝 — Postgres 데이터소스 + 대시보드 JSON
@@ -280,8 +317,8 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 ```
 CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
   docs/spec/공통/1-제품과-구조.md · docs/spec/공통/5-화면공통.md · docs/DESIGN.md
-  화면 절(§8.x)은 도메인 장에 흩어져 있다 — 카탈로그 §8.1 · 실행 §8.2·8.3 ·
-  리포팅 §8.4·8.5 · 인증 §8.6. 고칠 화면이 속한 도메인 장을 읽는다.
+  화면 절(§8.x)은 도메인 장에 흩어져 있다 — 카탈로그 §8.1 · 실행 §8.2·8.3·8.7·8.9 ·
+  리포팅 §8.4·8.5 · 인증 §8.6·8.8. 고칠 화면이 속한 도메인 장을 읽는다.
 다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/admin/src/web/** 이다. 서버 코드는 건드리지 마라.
 화면은 React + Vite다 (SPEC §9.1). Vite 설정은 네 폴더 안의 것을 쓴다.
@@ -366,9 +403,12 @@ step 순서대로 하나씩, 각 step을 커밋한다.
 2. packages/kit/src/types.ts — ExecuteRequest에 baseUrl을 더한다. ItemStatus는 3종 그대로다
 3. playwright.config.ts — use.baseURL을 환경변수에서 읽고 retries: 0을 명시한다 (§5.2 자동 재시도 금지)
 4. docker-compose.yml · apps/admin/Dockerfile — 포트 설정화, 러너 포트 닫기,
-   상시 4개 재시작 정책, 인스턴스 설정 전달, 화면 빌드 단계 (§9)
-5. package.json — Fastify 쿠키·세션 플러그인 하나만 더한다.
-   비밀번호 해시는 Node 내장 crypto.scrypt로 되는 것을 확인했으므로 추가 설치가 없다 (§9.1)
+   상시 4개 재시작 정책, SESSION_SECRET 전달, 화면 빌드 단계, 글꼴을 이미지에 담기 (§9).
+   **인스턴스 환경변수 넷(PLATFORM_INSTANCE_*·PLATFORM_ENV_URLS)은 넣지 않는다** —
+   2026-09-17에 DB로 내려갔다 (§6 service·service_env)
+5. package.json — Fastify 쿠키·세션 플러그인과 exceljs **둘**을 더한다 (§9.1 승인 표).
+   비밀번호 해시(crypto.scrypt)와 Slack 웹훅(fetch)은 Node 내장이라 추가 설치가 없다.
+   exceljs가 없으면 WS-D가 증적 엑셀을 못 만든다 (§8.4)
 
 apps/admin/src/app.ts는 공용 골격이다. WS-F가 인증 미들웨어를 달 자리를 이 단위가 열어 둔다 —
 등록 규약만 만들고 인증 로직은 넣지 마라.
@@ -387,15 +427,21 @@ CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-F(인증) 담당이다
 설정 **화면**은 WS-E 가 만든다 (§8.8). 너는 API 까지다.
 
 만들 것:
-1. 확인 함수 하나 — 요청을 받아 { username, displayName }을 돌려준다.
+1. 확인 함수 하나 — 요청을 받아 { username, displayName, role, services }를 돌려준다 (SPEC §3.5).
+   role은 viewer | operator | admin, services는 배정받은 서비스 목록이다.
+   화면의 등급 처리와 서비스 띠가 이 값을 원천으로 쓴다.
    **이 함수 하나만 갈아 끼우면 나중에 SSO로 바뀌어야 한다** (§3.5 불변식).
    실행·카탈로그·리포팅은 그 결과만 받아 쓰고 비밀번호도 세션도 모른다
 2. 로그인·로그아웃·me 세 엔드포인트 (§7 Auth).
    틀리면 401 INVALID_CREDENTIALS 하나로만 답한다.
    아이디가 틀렸는지 비밀번호가 틀렸는지 알리지 마라 — 밖에서 계정 존재를 확인할 수 있게 된다
-3. 인증 미들웨어 — POST /api/auth/login과 POST /api/runs를 뺀 모든 /api/**에 로그인을 요구한다.
-   POST /api/runs를 여는 이유는 정기 실행이 로그인 화면을 쓸 수 없어서다.
-   그 통로로 들어온 실행은 실행자를 반드시 `스케줄러`로 박제하고 사람 이름을 실을 수 없게 한다
+3. 인증 미들웨어 — POST /api/auth/login을 뺀 **모든 /api/**에 로그인을 요구한다. 예외는 없다 (SPEC §7).
+   **2026-09-17에 POST /api/runs 예외가 삭제됐다.** 정기 실행은 이제 HTTP를 쓰지 않고
+   컨테이너 안 명령으로 만든다 (SPEC §9.2). 예외를 남기면 로그인을 지나지 않는 실행 문이 열린다 —
+   §3.5가 러너 포트를 닫는 이유로 든 뒷길과 같은 성질이다.
+   등급으로 갈리는 자리 셋도 이 미들웨어가 본다 — 읽기 viewer / 실행·멈춤·증적 만들기 operator /
+   /api/settings/** admin. 모자라면 403이고 404로 감추지 않는다 (SPEC §7).
+   배정받지 않은 서비스의 자원도 403이다
 4. 계정 만들기 명령 (scripts/**) — 회원가입 화면은 없다. 운영자가 admin 컨테이너 안에서 만든다 (§9.2)
 
 비밀번호는 Node 내장 crypto.scrypt로 해시해 저장한다. 원문은 DB에도 로그에도 남기지 않는다.

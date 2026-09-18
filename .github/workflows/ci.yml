@@ -33,3 +33,6 @@ jobs:
       - name: 테스트 코드 규칙 검사 (SPEC §4 K1~K8)
         if: steps.skeleton.outputs.ready == '1'
         run: npm run check:tests --if-present
+      - name: SPEC 문서 검사 (없는 절·깨진 링크·색인 분량)
+        if: steps.skeleton.outputs.ready == '1'
+        run: npm run check:spec --if-present

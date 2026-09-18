@@ -34,6 +34,7 @@ stages:
       - "npm run typecheck"
       - { run: "npm test", repeat: 3 }        # 1회 통과는 증거가 못 된다 (LEARNINGS 공통 2026-09-16)
       - "npm run check:tests"
+      - "npm run check:spec"                  # 없는 절·깨진 링크·색인 분량. 문서만 고친 단위도 이건 돈다
     screen: { skill: "/qa-only", app: "http://localhost:3000", up: "docker compose up -d --build", only_changed: true }
   ci: { pr: draft, checks: "gh pr checks" }
   cd: { merge: "gh pr merge --merge --delete-branch", deploy: [] }    # EC2 배포는 오케스트레이터 완성 뒤 명령을 채운다
@@ -41,8 +42,23 @@ stages:
     required_docs: [learnings, "progress/{unit}"]
 units:
   - { id: skeleton, name: 골격, status: done }
-  - { id: WS-B, name: 실행, status: done }
-  - { id: WS-C, name: 러너, status: done }
+  # WS-B·WS-C 를 2026-09-18 에 되살렸다. 개정이 시킨 것이 코드에 한 줄도 없다 —
+  # abort · 회차 · 1000건 상한 · 서비스/주소 박제 · 재기동 복구 · Slack 보내기(§8.9 의 주체가 Execution)
+  # 가 전부 WS-B 몫이고, baseUrl 전달과 끊을 통로가 WS-C 몫이다. 킥오프에 「개정으로 더 할 것」을 넣었다
+  - id: WS-B
+    name: 실행
+    status: pending
+    depends_on: [contracts]
+    env: { WORKSTREAM: B }
+    branch: ws-b-execution-2
+    kickoff: "workstreams#WS-B 실행"
+  - id: WS-C
+    name: 러너
+    status: pending
+    depends_on: [contracts]
+    env: { WORKSTREAM: C }
+    branch: ws-c-runner-2
+    kickoff: "workstreams#WS-C 러너 + 테스트 킷"
   # WS-A 를 2026-09-18 에 되살렸다. 킥오프를 개정본으로 고쳤다 (7~11번이 이번에 남은 일).
   # K9·K10 검사기가 없으면 §11 Phase 1 기준(K1~K10)을 못 채운다.
   # contracts 뒤인 이유 — ?service= 필터와 서비스별 스캔 폴더가 service 표를 먼저 필요로 한다
@@ -99,7 +115,7 @@ units:
 
   - id: WS-E
     name: 화면
-    # 화면 21개 파일은 이미 main 에 있다. 개정 스펙에 맞춰 **더하고 고치는** 단위다 (킥오프에 18건).
+    # 화면 21개 파일은 이미 main 에 있다. 개정 스펙에 맞춰 **더하고 고치는** 단위다 (항목은 킥오프가 정본).
     # 4번(param_schema 박제)과 6번(대상 서버)은 contracts 의 DB 칸이,
     # 9번(증적 버튼)은 WS-D 가, 10번(로그인 화면)은 WS-F 의 API 가 먼저 서야 한다
     status: pending
@@ -112,7 +128,7 @@ units:
   - id: integration
     name: 통합·병합
     status: pending
-    depends_on: [WS-A, WS-D, WS-E, WS-F]   # WS-A 가 다시 pending 이 됐다. 아래 steps 가 스캔 결과를 쓴다
+    depends_on: [WS-A, WS-B, WS-C, WS-D, WS-E, WS-F]   # 되살린 갈래가 셋이다. 아래 steps 가 전부의 결과를 쓴다
     env: { ALLOW_PROTECTED: "1" }
     branch: integration
     ui: true

@@ -78,12 +78,25 @@ const 틀린분량 = [];
   });
 }
 
+// 매니페스트가 가리키는 킥오프가 WORKSTREAMS 에 실제로 있는지 본다.
+// 킥오프는 세션이 SPEC 보다 먼저 읽는 글이라 이름이 어긋나면 파이프라인이 런타임에 깨진다
+const 없는킥오프 = [];
+try {
+  const 매니 = readFileSync(path.join(ROOT, 'docs/orchestration.yaml'), 'utf8');
+  const 갈래문서 = readFileSync(path.join(ROOT, 'docs/WORKSTREAMS.md'), 'utf8');
+  for (const m of 매니.matchAll(/kickoff:\s*"workstreams#([^"]+)"/g)) {
+    const 제목 = 갈래문서.split('\n').some((l) => l === `## ${m[1]}` || l === `### ${m[1]}`);
+    if (!제목) 없는킥오프.push(`docs/orchestration.yaml  → ${m[1]}`);
+  }
+} catch { /* 파일 없음 */ }
+
 console.log(`실재하는 절 ${[...있는절].sort().join(' · ')}`);
 console.log(`절 번호로 이 문서를 가리키는 곳 — SPEC 밖에 ${밖참조}군데`);
-if (깨진참조.length || 깨진링크.length || 틀린분량.length) {
+if (깨진참조.length || 깨진링크.length || 틀린분량.length || 없는킥오프.length) {
   if (깨진참조.length) console.error(`\n없는 절을 가리키는 곳 ${깨진참조.length}건\n${깨진참조.join('\n')}`);
   if (깨진링크.length) console.error(`\n깨진 링크 ${깨진링크.length}건\n${깨진링크.join('\n')}`);
   if (틀린분량.length) console.error(`\n색인 분량이 실제와 다른 곳 ${틀린분량.length}건\n${틀린분량.join('\n')}`);
+  if (없는킥오프.length) console.error(`\n매니페스트가 없는 킥오프를 가리킨다 ${없는킥오프.length}건\n${없는킥오프.join('\n')}`);
   process.exit(1);
 }
-console.log('통과 — 없는 절 0건 · 깨진 링크 0건 · 틀린 분량 0건');
+console.log('통과 — 없는 절 0건 · 깨진 링크 0건 · 틀린 분량 0건 · 없는 킥오프 0건');
