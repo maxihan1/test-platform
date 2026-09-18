@@ -23,6 +23,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
   let 라벨실행: number;
   let 옛실행: number;
   let 중단실행: number;
+  let 닫힌중단실행: number;
   let 진행실행: number;
   let 미기록실행: number;
   let 데스크톱: number;
@@ -185,6 +186,21 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
     // env 를 비워 둔다. 박제 이전 행의 빈 칸을 여기서 같이 본다 (SPEC §6)
     미기록실행 = await 실행만든다('XDC 결과 미기록', 'FINISHED', '');
     await 미실행항목(미기록실행, 'XDC-401');
+
+    // 중단 처리(store.ts CLOSE_UNFINISHED)가 닫고 간 모습 그대로다 —
+    // status 'NA', duration_ms 0, error 'ABORTED', finished_at 채워짐.
+    // 같은 실행에 진짜 NA 를 나란히 둔다. 둘을 error 로만 가를 수 있다
+    닫힌중단실행 = await 실행만든다('XDC 중단 처리 완료', 'ABORTED', 'qa');
+    await pool.query(
+      `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms,
+                             precondition, params, expected, param_schema, expected_schema,
+                             status, duration_ms, error, finished_at)
+       VALUES ($1, 'XDC-501', 'desktop', 1, '멈춤에 걸려 닫힌 케이스', 'demo/XDC-501.spec.ts', 300000,
+               '[]', '{}', '{}', '{}', '{}', 'NA', 0, '{"message":"ABORTED"}', now()),
+              ($1, 'XDC-502', 'desktop', 1, '러너가 판정을 못 준 케이스', 'demo/XDC-502.spec.ts', 300000,
+               '[]', '{}', '{}', '{}', '{}', 'NA', 4200, '{"message":"러너에 닿지 못했습니다"}', now())`,
+      [닫힌중단실행],
+    );
   });
 
   afterAll(async () => {
@@ -338,6 +354,26 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
     const 문서 = await collectRun(미기록실행);
     expect(문서!.items[0]!.status).toBe('NOT_RUN');
     expect(문서!.items[0]!.notRunReason).toBe('실행이 끝났지만 결과가 기록되지 않았습니다');
+  });
+
+  it('중단 처리가 닫고 간 항목도 미실행이다 — finished_at 이 차 있어도', async () => {
+    const 문서 = await collectRun(닫힌중단실행);
+    const 닫힌것 = 문서!.items[0]!;
+    expect(닫힌것.tcId).toBe('XDC-501');
+    expect(닫힌것.status).toBe('NOT_RUN');
+    // 사람이 멈춘 것인지 서버가 죽어 끊긴 것인지 DB 가 구분하지 못한다. 문장도 구분하지 않는다
+    expect(닫힌것.notRunReason).toBe('실행이 멈춰 돌지 못했습니다');
+    // 중단 처리가 박아 넣은 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
+    expect(닫힌것.durationMs).toBeNull();
+  });
+
+  it('러너가 판정을 못 준 NA 는 미실행이 아니다 — 돌다가 못 낸 것이다', async () => {
+    const 문서 = await collectRun(닫힌중단실행);
+    const 진짜NA = 문서!.items[1]!;
+    expect(진짜NA.tcId).toBe('XDC-502');
+    expect(진짜NA.status).toBe('NA');
+    expect(진짜NA.notRunReason).toBeNull();
+    expect(진짜NA.durationMs).toBe(4200);
   });
 
   it('빈 환경 칸도 기록 없음으로 적는다', async () => {

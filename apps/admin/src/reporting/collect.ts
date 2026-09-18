@@ -86,6 +86,7 @@ interface RawItem {
   status: ItemStatus;
   duration_ms: number | null;
   finished_at: Date | null;
+  error: unknown;
   precondition: string[];
   params: unknown;
   expected: unknown;
@@ -168,6 +169,21 @@ function toStep(row: RawStep): EvidenceStep {
   };
 }
 
+// 돌지 못한 항목을 가려낸다. 사유를 돌려주면 미실행, null 이면 그대로 담는다.
+// 판별이 두 갈래인 것은 닫는 쪽이 둘이기 때문이다 — 아무도 안 닫은 행과 중단 처리가 닫은 행
+function 미실행사유를찾는다(row: RawItem, 실행상태: RunStatus): string | null {
+  // 중단 처리(store.ts CLOSE_UNFINISHED)는 finished_at 을 채우고 간다. error 말고는 가려낼 표가 없다
+  if (row.status === 'NA' && isPlainObject(row.error) && row.error.message === 'ABORTED') {
+    // recoverRunning() 도 같은 문자열을 쓴다. 사람이 멈춘 것인지 서버가 죽어 끊긴 것인지
+    // DB 가 구분하지 못하므로 구분하는 척하지 않는다 (SPEC §6)
+    return '실행이 멈춰 돌지 못했습니다';
+  }
+  // 아무도 안 닫은 행. 러너 결과를 저장하다 실패했거나 프로세스가 도중에 죽었다
+  if (row.finished_at === null) return 미실행사유[실행상태];
+  // 그 밖의 NA 는 돌다가 판정을 못 낸 것이지 안 돈 것이 아니다. 손대지 않는다
+  return null;
+}
+
 export async function collectRun(runId: number): Promise<EvidenceDocument | null> {
   const pool = await db();
   const runs = await pool.query<RawRun>(
@@ -179,7 +195,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
   if (run === undefined) return null;
 
   const items = await pool.query<RawItem>(
-    `SELECT history_id, tc_id, tc_name, platform, attempt, status, duration_ms, finished_at,
+    `SELECT history_id, tc_id, tc_name, platform, attempt, status, duration_ms, finished_at, error,
             precondition, params, expected, param_schema, expected_schema
        FROM run_item WHERE run_id = $1 ORDER BY history_id`,
     [runId],
@@ -208,18 +224,19 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
       baseUrl: run.base_url === '' ? 기록없음 : run.base_url,
     },
     items: items.rows.map((row) => {
-      // finished_at 이 비면 결과가 없는 행이다. status 의 'NA' 를 그대로 찍으면
-      // 「돌았는데 판정이 없다」로 읽혀 못 돈 항목이 문서에서 사라진다 (SPEC §8.4)
-      const 못돌았다 = row.finished_at === null;
+      // 못 돈 항목을 'NA' 로 그대로 찍으면 「돌았는데 판정이 없다」로 읽혀 문서에서 사라진다.
+      // 40건 중 12건 돌고 멈춘 실행은 「12건 돌았다」가 아니라 「28건은 이래서 못 돌았다」여야 한다 (SPEC §8.4)
+      const 못돈사유 = 미실행사유를찾는다(row, run.status);
 
       return {
         tcId: row.tc_id,
         tcName: row.tc_name,
         platform: row.platform,
         attempt: row.attempt,
-        status: 못돌았다 ? ('NOT_RUN' as const) : row.status,
-        durationMs: 못돌았다 ? null : row.duration_ms,
-        notRunReason: 못돌았다 ? 미실행사유[run.status] : null,
+        status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
+        // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
+        durationMs: 못돈사유 === null ? row.duration_ms : null,
+        notRunReason: 못돈사유,
         precondition: row.precondition,
         params: toFields(row.params, row.param_schema),
         expected: toFields(row.expected, row.expected_schema),
