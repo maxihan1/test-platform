@@ -49,6 +49,8 @@ export interface CreateRunInput {
   env: string;
   // 회차 수. 요청 최상위에 하나다 — 항목마다 다르면 「실행 항목이 N건 생깁니다」를 셀 수 없다 (SPEC §8.2)
   repeat?: number;
+  // 끝났을 때 Slack 으로 알릴지. 기본은 꺼짐이고 정기 실행만 늘 켠다 (SPEC §8.9)
+  notifySlack?: boolean;
   items: RunItemInput[];
 }
 
@@ -172,8 +174,8 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
 
     // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)
     const run = await client.query<{ run_id: string }>(
-      `INSERT INTO test_run (title, triggered_by, status, env, service_id, service_name, tests_repo, base_url)
-       VALUES ($1, $2, 'RUNNING', $3, $4, $5, $6, $7) RETURNING run_id`,
+      `INSERT INTO test_run (title, triggered_by, status, env, service_id, service_name, tests_repo, base_url, notify_slack)
+       VALUES ($1, $2, 'RUNNING', $3, $4, $5, $6, $7, $8) RETURNING run_id`,
       [
         input.title,
         input.triggeredBy,
@@ -182,6 +184,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
         found서비스.name,
         found서비스.tests_repo,
         found서비스.base_url,
+        input.notifySlack ?? false,
       ],
     );
     const runId = Number(run.rows[0]!.run_id);

@@ -8,6 +8,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { dispatch, markAborted } from './dispatcher.js';
+import { notifyRun } from './notify.js';
 import { abortRunner } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
@@ -32,6 +33,8 @@ const runBody = z.object({
   env: z.string().min(1),
   // 요청 최상위에 하나다. 항목마다 다르면 실행 항목 수를 미리 셀 수 없다 (SPEC §8.2)
   repeat: z.number().int().positive().default(1),
+  // 기본은 꺼짐. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 된다 (SPEC §8.2 · §8.9)
+  notifySlack: z.boolean().default(false),
   items: z
     .array(
       z.object({
@@ -110,6 +113,13 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     // 돌고 있는 자식까지 끊는다. 대기 중인 것만 취소하면 5분짜리 케이스가 도는 중에는
     // 버튼이 아무 일도 안 하는 것처럼 보인다 (SPEC §8.3)
     await Promise.all(미완.map((historyId) => abortRunner(historyId)));
+
+    // 사람이 멈춘 것도 끝난 것이다. 알림이 실패해도 멈춤은 성립한다 (SPEC §8.9)
+    try {
+      await notifyRun(runId);
+    } catch (err) {
+      app.log.error(`[execution] 실행 ${runId}의 Slack 알림을 보내지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    }
 
     return result;
   });

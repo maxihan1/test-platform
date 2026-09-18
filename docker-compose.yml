@@ -56,6 +56,9 @@ services:
       # 로그인 세션을 서명하는 키. DB에 둘 수 없다. 없으면 admin이 기동을 거부한다 (SPEC §9 · §3.5).
       # 서비스 이름·색·저장소·대상 서버 주소는 환경변수가 아니라 DB에 있다 (§6 service·service_env)
       SESSION_SECRET: "${SESSION_SECRET}"
+      # 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 링크가 이 값 위에 붙는다 (§8.9).
+      # 비면 알림에 링크를 넣지 않는다 — 틀린 주소를 보내는 것보다 없는 편이 낫다
+      PLATFORM_PUBLIC_URL: "${PLATFORM_PUBLIC_URL:-}"
     volumes:
       - ./tests:/tests:ro      # 스캔과 실패 지점 코드 발췌가 소스를 읽는다
       - artifacts:/artifacts   # 스크린샷 서빙, 증적 문서 저장

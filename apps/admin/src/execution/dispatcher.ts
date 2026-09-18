@@ -2,6 +2,7 @@
 // 대기줄은 모듈 전역이다. 실행 묶음마다 2개씩 돌면 두 사람이 동시에 누를 때 4개가 돈다 —
 // 대상 서버가 2코어라 그 이상은 느려지기만 한다 (SPEC §9)
 
+import { notifyRun } from './notify.js';
 import { callRunner } from './runner.js';
 import { finishItem, finishRun, type PendingItem } from './store.js';
 
@@ -69,4 +70,11 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   // 표시를 남겨 두면 다음 실행의 같은 번호에서 오판할 수 있어 여기서 치운다
   멈춘실행.delete(runId);
   await finishRun(runId);
+
+  // 알림 전송이 실패해도 실행은 실패가 아니다. 실행은 이미 끝났고 결과는 test_run 에 남아 있다 (SPEC §8.9)
+  try {
+    await notifyRun(runId);
+  } catch (err) {
+    console.error(`[execution] 실행 ${runId}의 Slack 알림을 보내지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }

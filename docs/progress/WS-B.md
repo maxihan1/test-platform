@@ -53,4 +53,41 @@
 - **DB fixture 접두사는 `XBS`·`XBR`·`XBQ`·`XBX`다.** `ZZ`로 시작하면 안 된다 —
   `catalog/store.test.ts`가 `DELETE FROM test_case WHERE tc_id LIKE 'ZZ%'`로 정리하면서
   다른 갈래의 fixture까지 지운다. 한 파일만 돌려서 통과하는 것은 증거가 못 된다 (LEARNINGS)
+  → 2026-09-18 에 그 정리 구문은 `'ZZA%'` 로 좁혀졌고, 진짜 범인이던 `save()` 의
+  비활성 범위도 서비스 접두사 안으로 제한됐다. 접두사 규칙 자체는 그대로 지킨다
 - **컨테이너로 확인할 때**는 이미지를 다시 굽는다. 병합 전 이미지는 옛 `packages/kit`을 물고 있다
+
+## 2026-09-18 — 개정 SPEC 반영 (A~K 전부)
+
+contracts 와 WS-A 를 끝낸 세션이 이어서 돌렸다. 킥오프 A~K 열한 가지를 전부 넣었다.
+
+| 킥오프 | 무엇 |
+|-------|------|
+| D·E·F | 서비스를 `tcId` 접두사에서 알아낸다(섞이면 400 `MIXED_SERVICE`). `env` 키로 `service_env` 에서 주소를 찾아 `test_run.base_url` 에 박제. `run_item` 에 `file_path`·`param_schema`·`expected_schema`·`timeout_ms` 박제 |
+| B·C | `repeat` 로 회차를 1부터 만든다. 만들어질 항목이 1000건을 넘으면 400 `{ error, limit, requested }` |
+| A·G·J | `POST /api/runs/:runId/abort` (이미 끝났으면 409). 부팅 직후 `RUNNING` 복구. 「러너에 닿지 못했습니다」 |
+| H | Slack 알림. `notify_slack` 이 켜진 실행만, 서비스의 웹훅으로 |
+| I·K | `GET /api/runs` 의 `?service=` 필수. 실행 상세에 증적 목록과 상태 |
+
+### 확인 방법
+
+```
+curl -X POST localhost:3000/api/runs -H 'content-type: application/json' \
+  -d '{"title":"확인","env":"qa","items":[{"tcId":"DEMO-001","platforms":["desktop"]}]}'
+curl 'localhost:3000/api/runs?service=DEMO'        # 그 서비스의 실행만
+curl 'localhost:3000/api/runs'                     # 400 SERVICE_REQUIRED
+curl -X POST localhost:3000/api/runs/<끝난RUN>/abort   # 409 NOT_RUNNING
+```
+
+### 다음 세션이 알아야 할 것
+
+- **`createRun` 은 이제 `env` 를 반드시 받는다.** 기본값을 두지 않는 이유는 §6 에 있다 —
+  안 채우면 빈 칸이 아니라 **틀린 값**이 증적에 남는다
+- **주소는 요청이 싣지 않는다.** `service_env` 에서 서버가 찾는다. 요청이 실으면 아무 데나 쏠 수 있다
+- **닫는 UPDATE 에는 언제나 `AND finished_at IS NULL`.** `CLOSE_UNFINISHED` 한 상수로 모아 뒀다.
+  중단·재기동 복구가 같은 구문을 쓴다
+- **`markAborted()` 는 모듈 전역 Set 이다.** 대기줄에 이미 들어간 일은 빼낼 수 없어
+  자기 차례가 왔을 때 스스로 물러나게 했다
+- **Slack 은 `notify.ts` 하나다.** 본문 만들기(`본문`)와 보내기(`notifyRun`)가 갈려 있어
+  본문은 DB·네트워크 없이 테스트한다
+- **`PLATFORM_PUBLIC_URL` 이 새로 생겼다** (§9, 2026-09-18 승인). 비면 알림에 링크를 안 넣는다
