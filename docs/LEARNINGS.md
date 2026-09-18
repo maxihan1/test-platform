@@ -88,13 +88,21 @@ SPEC과 잠긴 파일은 승인을 받는다. 승인이 필요한 것은 `제안
 같은 갈래 안이라 접두사 규칙(§3)은 지켜져 있었고 정리 구문도 멀쩡했다. 9회 중 2회 깨졌다.
 → `spec-review` **G5** 로 승격 (2026-09-18)
 
-## [환경] 2026-09-18 · 워크트리의 node_modules 가 비어 있는데 테스트는 돌았다
-증상:  `package.json` 에 있는 `@fastify/secure-session`·`exceljs` 가 `node_modules` 에 없다. 그런데 `npx vitest` 는 돈다
-원인:  Node 는 모듈을 **상위 폴더로 거슬러 올라가며** 찾는다. 워크트리가 메인 체크아웃 안에 있어
-       `test_platform/node_modules` 가 잡힌다. 거기 없는 새 부품만 조용히 빠진다
-해법:  워크트리에서 `npm install` 을 한 번 돌린다. `package-lock.json` 은 안 바뀐다
-주의:  **부품을 더한 커밋이 "설치했다"고 적어도 그 워크트리에서 확인한 것이 아닐 수 있다.**
-       import 한 줄을 써 보기 전에는 안 드러난다
+## [환경] 2026-09-18 · 선언한 부품이 설치 안 된 채로 병합됐다 (2회)
+증상:  `contracts` 병합 뒤 **어느 브랜치에서든 푸시가 막혔다.** 훅이 `npm test` 로 막는데
+       에러는 `Cannot find package '@fastify/secure-session'` 이라 **내 변경 때문인지
+       환경 문제인지 그 자리에서 구분이 안 된다.** 확인에 도구 호출 다섯 번이 들었다
+원인:  `package.json` 에 부품을 더한 커밋이 병합됐는데 아무도 `npm install` 을 안 돌렸다
+해법:  `npm install`. 그리고 **기계가 먼저 말하게 한다** — `npm run check:deps`
+주의:  **디렉터리 존재로 판정하면 안 된다.** 워크트리에는 자기 `node_modules` 가 없고
+       Node 가 상위로 올라가 루트 것을 쓴다. `npm ls --depth=0` 도 같은 이유로
+       워크트리에서 거짓 양성이다 (루트에 설치된 것까지 `UNMET DEPENDENCY` 로 찍는다).
+       `createRequire().resolve()` 로 **Node 의 해석 경로를 그대로 따라가야** 답이 맞는다
+       → `npm run check:deps` · `spec-review` 밖 판별식으로 승격 (2026-09-18)
+
+1회차 — 워크트리의 `node_modules` 가 비어 있는데 `npx vitest` 는 돌았다. 상위 폴더의
+것이 잡혀서, 거기 없는 새 부품만 조용히 빠졌다. **그때는 "워크트리에서 npm install 을
+한 번 돌린다"로 끝냈다.** 사람이 기억해야 하는 해법이라 두 번째가 왔다.
 
 ## [WS-F] 2026-09-18 · SPEC 이 정하지 않은 자리 셋을 판단했다
 1. **스캔(`POST /api/catalog/scan`)의 등급** — §7 등급 표에 이름으로 없다. 방식으로 갈라 `operator` 로 뒀다
