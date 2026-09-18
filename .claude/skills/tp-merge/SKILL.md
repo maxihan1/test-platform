@@ -59,17 +59,47 @@ gh pr view <번호> --json state -q .state      # MERGED 확인
 
 **`--force` push · 브랜치 삭제 · 마이그레이션 되돌리기는 하지 않는다** (CLAUDE.md §5).
 
-## Step 4. 작업방 정리
+## Step 4. ★ 작업방에서 나와 main 을 최신화한다
 
-```bash
-cd <저장소 루트>
-git worktree remove .claude/worktrees/<이름> 2>/dev/null || echo "이미 제거됨"
-git worktree prune
+**이 순서를 뒤집지 않는다. 나오기 전에는 못 한다.**
+
+2026-09-18 실측 — 워크트리 안에서는 main 을 갱신할 방법이 git 에 **없다.**
+
+```
+$ git fetch origin main:main
+fatal: refusing to fetch into branch 'refs/heads/main' checked out at '<루트>'
 ```
 
-**`--force` 를 먼저 쓰지 않는다.** 거부당하면 남은 것이 있다는 뜻이니 Step 1 로 돌아간다.
+다른 곳에 체크아웃된 브랜치의 ref 는 갱신을 거부한다. `cd <루트>` 도 세션이 워크트리에
+묶여 있으면 하네스가 막는다. **작업방에서 먼저 나와야 한다.**
 
-작업방을 다음 작업에 이어 쓸 거면 **지우지 않는다.** 사용자에게 남긴다고 알린다.
+```
+1. ExitWorktree            ← 작업방을 벗어난다 (남길지 지울지 고른다)
+2. git pull --ff-only origin main
+3. git worktree prune
+```
+
+**빠뜨리면 사용자 체크아웃이 뒤처진 채로 남는다.** 2026-09-18 에 세 번 병합하고 안 했더니
+**여덟 커밋이 밀렸고, 새 스킬이 `.claude/skills/` 에 없어 `/tp` 자체가 안 먹었다.**
+작업은 `origin/main` 에서 따므로 멀쩡한데, **사람이 열어 보는 자리와 스킬을 읽는 자리가 낡는다.**
+
+### 작업방을 남길 때
+
+다음 작업에 이어 쓸 거면 `ExitWorktree` 에서 **남기기**를 고른다. 나온 뒤 pull 은 그대로 한다.
+남긴다는 사실을 사용자에게 알린다.
+
+### `--ff-only` 를 쓰는 이유
+
+루트에 미커밋이 있으면 병합이 아니라 **거부**되게 한다. 조용히 머지 커밋을 만들지 않는다.
+거부당하면 그 사실을 사용자에게 보고한다 — 루트에 정리할 것이 있다는 뜻이다.
+
+### 확인
+
+```bash
+git rev-list --count main..origin/main    # 0 이어야 한다
+```
+
+**0 이 아니면 최신화가 안 된 것이다.** 보고에 그대로 적는다.
 
 ## Step 5. 기록 — 이게 다음 세션의 입력이다
 
@@ -122,6 +152,7 @@ node .claude/scripts/pr-update.mjs --pr <번호> --comment "### [7/7] 병합 완
    ├─ 미커밋 0 ✅ · 미푸시 0 ✅ · 검사 근거 확인 ✅
    ├─ gh pr ready → 초안 해제 · `[작업중]` 뗌
    ├─ 병합: PR #<번호> merged
+   ├─ 작업방에서 나옴 → main 최신화 ✅ (뒤처짐 0)
    ├─ 작업방: 정리 또는 유지
    └─ 기록: progress ✅ · LEARNINGS <N건 또는 해당 없음>
 ```
