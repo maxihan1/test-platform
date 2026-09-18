@@ -172,8 +172,8 @@ Phase 0 전에 정해야 했던 5건은 2026-09-16에 결정돼 SPEC에 들어�
 
 ## 7. 개정 SPEC이 요구하는 설정
 
-> 2026-09-18 계약 반영으로 **설정값과 컨테이너 쪽은 들어왔다.**
-> 계정·서비스를 만드는 명령(`scripts/`)은 아직이다 — WS-F가 만든다.
+> 2026-09-18 에 계약 반영·카탈로그·실행·인증까지 들어왔다.
+> **로그인과 계정·서비스 만들기가 실제로 돈다.** 남은 것은 로그인 **화면**이다 (WS-E).
 
 ### 설정값 (`.env`) — **띄우기 전에 만든다**
 
@@ -187,7 +187,7 @@ openssl rand -hex 32
 
 | 이름 | 무엇 |
 |------|------|
-| `SESSION_SECRET` | 로그인 세션을 서명하는 키. **비우면 admin이 기동을 거부한다.** 임시 키를 지어내면 재기동할 때마다 전원 로그아웃되고, 그 사실을 아무도 모른 채 「가끔 로그인이 풀린다」로 겪는다 |
+| `SESSION_SECRET` | 로그인 세션을 서명하는 키. **비어 있거나 32바이트보다 짧으면 admin이 기동을 거부한다** (`openssl rand -hex 32` 면 충분하다). 임시 키를 지어내면 재기동할 때마다 전원 로그아웃되고, 그 사실을 아무도 모른 채 「가끔 로그인이 풀린다」로 겪는다 |
 | `ADMIN_PORT` · `GRAFANA_PORT` · `POSTGRES_PORT` | 바깥 포트. 비우면 `3000`·`3001`·`5433`으로 뜬다. 한 서버에 다른 것과 같이 띄울 때만 바꾼다 |
 | `PLATFORM_PUBLIC_URL` | 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 「결과 보기」 링크가 이 값 위에 붙는다. **비워 두면 알림에 링크가 안 들어간다** — 틀린 주소를 보내는 것보다 없는 편이 낫다 |
 
@@ -201,11 +201,11 @@ openssl rand -hex 32
   이제는 컨테이너 안에서 본다 — `docker compose exec runner wget -qO- localhost:4000/health`
 - **화면이 admin 포트로 뜬다** (2026-09-18 반영). 전에는 이미지 안에 화면 빌드 단계가 없어
   컨테이너가 API만 냈다. 이제 `http://localhost:3000` 이 화면이다
-- **첫 계정과 첫 서비스를 만들어야 화면이 열린다.** 회원가입 화면은 없다. **아직 안 들어왔다 — WS-F가 만든다.**
+- **첫 계정과 첫 서비스를 만들어야 화면이 열린다.** 회원가입 화면은 없다 (2026-09-18 반영).
 
   ```
-  docker compose exec admin node scripts/add-user.js <아이디> <이름> admin
-  docker compose exec admin node scripts/add-service.js <접두사> <서비스 이름>
+  docker compose exec admin npx tsx scripts/add-user.ts <아이디> <이름> admin
+  docker compose exec admin npx tsx scripts/add-service.ts <접두사> <서비스 이름>
   ```
 
   비밀번호는 이 명령이 무작위로 만들어 **한 번만** 찍는다.
@@ -213,4 +213,4 @@ openssl rand -hex 32
 - **서비스를 여러 개 담는다.** 한 벌에 여러 서비스를 두고 맨 위 띠에서 오간다.
   컨테이너를 서비스마다 따로 띄우지 않는다 (2026-09-17 결정. 앞 판은 그 반대였다)
 - **정기 실행은 HTTP를 거치지 않는다.**
-  `docker compose exec admin node scripts/run-scheduled.js <접두사>` 를 `cron`에 건다
+  `docker compose exec admin npx tsx scripts/run-scheduled.ts <접두사>` 를 `cron`에 건다

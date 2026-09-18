@@ -23,6 +23,7 @@
     "apps/**/*.tsx",
     "packages/**/*.ts",
     "tests/**/*.ts",
+    "scripts/**/*.ts",
     "playwright.config.ts"
   ],
   "exclude": ["node_modules", "**/dist"]
