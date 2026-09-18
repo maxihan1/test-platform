@@ -64,7 +64,7 @@ const passedGate = gate ? Number(gate) : (step >= 5 && tier >= 2 ? 1 : 0);
 const lines = [];
 for (const s of STEPS) {
   if (s.minTier && tier < s.minTier) {
-    lines.push(`- ⤬ ${s.gate ? s.name : `${s.n}. ${s.name}`} — 건너뜀 (${tier}등급)`);
+    lines.push(`- ⤬ ${s.gate ? s.name.replace(' — 승인', '') : `${s.n}. ${s.name}`} — 건너뜀 (${tier}등급)`);
     continue;
   }
   if (s.gate) {
