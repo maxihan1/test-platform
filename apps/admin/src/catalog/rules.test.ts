@@ -1,4 +1,4 @@
-// SPEC §4 케이스 파일 규칙 K1~K7 검사기가 위반을 정확히 집어내는지 검사한다
+// SPEC §4 케이스 파일 규칙 K1~K10 검사기가 위반을 정확히 집어내는지 검사한다
 
 import { describe, expect, it } from 'vitest';
 
@@ -148,6 +148,66 @@ describe('checkSpec', () => {
       paramSchema: { type: 'object', properties: { todo: { type: 'string', description: '할 일' } } },
     });
     expect(checkSpec('x.spec.ts', 라벨있음, lines)).toEqual([]);
+  });
+
+  const 칸 = (name: string, extra: Record<string, unknown> = {}): CaseSpec['paramSchema'] => ({
+    type: 'object',
+    properties: { [name]: { type: 'string', description: '설명', ...extra } },
+  });
+
+  it('K9 — 비밀값 이름인데 꼬리표가 없으면 잡는다', () => {
+    const found = checkSpec('x.spec.ts', spec({ paramSchema: 칸('password') }), lines);
+    expect(found[0].rule).toBe('K9');
+    expect(found[0].what).toContain('password');
+  });
+
+  it('K9 — 꼬리표가 붙어 있으면 통과한다', () => {
+    const 꼬리표 = spec({ paramSchema: 칸('password', { secret: true }) });
+    expect(checkSpec('x.spec.ts', 꼬리표, lines)).toEqual([]);
+  });
+
+  it('K9 — 이름 안에 들어 있기만 해도 잡고 대소문자를 가리지 않는다', () => {
+    for (const name of ['userPassword', 'accessToken', 'apiKey', 'CREDENTIAL', 'pw', 'passwd', 'clientSecret']) {
+      expect(checkSpec('x.spec.ts', spec({ paramSchema: 칸(name) }), lines)[0]?.rule).toBe('K9');
+    }
+  });
+
+  it('K9 — 기대결과 칸은 보지 않는다. 비밀값은 입력에만 있다', () => {
+    const 기대에만 = spec({ expectedSchema: 칸('token') });
+    expect(checkSpec('x.spec.ts', 기대에만, lines).map((v) => v.rule)).not.toContain('K9');
+  });
+
+  it('K9 — 이름이 비슷하지 않은 칸은 지나친다', () => {
+    expect(checkSpec('x.spec.ts', spec({ paramSchema: 칸('todo') }), lines)).toEqual([]);
+  });
+
+  it('K10 — 반드시 받아야 하는 칸이 있으면 잡는다', () => {
+    const 필수 = spec({
+      paramSchema: { ...칸('todo'), required: ['todo'] },
+    });
+    const found = checkSpec('x.spec.ts', 필수, lines);
+    expect(found[0].rule).toBe('K10');
+    expect(found[0].what).toContain('todo');
+  });
+
+  it('K10 — 기대결과 칸도 본다', () => {
+    const 필수 = spec({
+      expectedSchema: { ...칸('statusCode'), required: ['statusCode'] },
+    });
+    expect(checkSpec('x.spec.ts', 필수, lines)[0].rule).toBe('K10');
+  });
+
+  it('K10 — required가 비어 있으면 통과한다', () => {
+    const 기본값 = spec({
+      paramSchema: { ...칸('todo', { default: '첫 번째 할 일' }), required: [] },
+    });
+    expect(checkSpec('x.spec.ts', 기본값, lines)).toEqual([]);
+  });
+
+  it('K10 — 위반은 params가 적힌 줄을 가리킨다', () => {
+    const 줄 = new Map<string, number>([...lines, ['params', 9]]);
+    const 필수 = spec({ paramSchema: { ...칸('todo'), required: ['todo'] } });
+    expect(checkSpec('x.spec.ts', 필수, 줄)[0].line).toBe(9);
   });
 });
 
