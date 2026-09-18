@@ -309,7 +309,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
 
   it('등록되지 않은 접두사는 SERVICE_FORBIDDEN으로 거절한다', async () => {
     await expect(
-      createRun({ title: 'XBS 없는 서비스', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, tcId: 'XBQ-001', platforms: ['desktop'] }] }),
+      createRun({ title: 'XBS 없는 서비스', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, tcId: 'XBR-001', platforms: ['desktop'] }] }),
     ).rejects.toMatchObject({ code: 'SERVICE_FORBIDDEN' });
   });
 
