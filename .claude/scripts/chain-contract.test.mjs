@@ -82,6 +82,43 @@ test('SPEC 을 고칠 때 CLAUDE.md §2.7 여섯 곳이 체인에 배선돼 있�
   assert.match(read('tp-plan'), /§2\.7 을 할 일로 만든다/, 'tp-plan 이 §2.7 을 할 일로 안 만든다');
 });
 
+// --- 병합 뒤 main 최신화 (2026-09-18 — 세 번 병합하고 안 해서 여덟 커밋이 밀렸다) ---
+test('tp-merge 가 작업방에서 나온 뒤 main 을 최신화한다', () => {
+  const m = read('tp-merge');
+  assert.match(m, /ExitWorktree/, 'tp-merge 에 작업방 탈출이 없다');
+  assert.ok(codeOf('tp-merge').includes('git pull --ff-only origin main'), 'main 최신화 명령이 없다');
+  // 순서가 뒤집히면 안 된다 — 나오기 전에는 git 이 거부한다
+  assert.ok(m.indexOf('ExitWorktree') < m.indexOf('git pull --ff-only'), '나오기 전에 pull 하려 한다');
+  // 뒤처짐 0 확인까지 있어야 「했다고 치는」 것을 막는다
+  assert.ok(codeOf('tp-merge').includes('git rev-list --count main..origin/main'), '최신화 확인이 없다');
+});
+
+test('diff 기준이 origin/main 이다 — 로컬 main 은 낡을 수 있다', () => {
+  // 2026-09-18 실측. 로컬 main 이 8커밋 뒤처졌을 때 `main...HEAD` 가 19파일을 냈다.
+  // 실제로 바뀐 것은 3파일이었고, 실측 등급 판정이 통째로 틀렸다
+  const 위반 = [];
+  for (const s of ['tp', ...STEP_SKILLS, 'spec-review']) {
+    for (const [, line] of read(s).split('\n').entries()) {
+      if (/(?<!origin\/)\bmain\.\.\.?HEAD/.test(line)) 위반.push(`${s}: ${line.trim().slice(0, 60)}`);
+    }
+  }
+  assert.deepEqual(위반, [], '로컬 main 을 diff 기준으로 쓴다');
+  // 비-공허 대조군 — 아무 스킬도 diff 를 안 쓰면 이 검사는 공허하다
+  const 쓰는곳 = ['tp', ...STEP_SKILLS].filter((s) => read(s).includes('origin/main...HEAD'));
+  assert.ok(쓰는곳.length >= 3, `origin/main...HEAD 를 쓰는 스킬이 ${쓰는곳.length}개뿐이다`);
+});
+
+test('tp-start 가 낡은 체크아웃을 먼저 잡는다', () => {
+  const s = read('tp-start');
+  assert.ok(codeOf('tp-start').includes('git rev-list --count main..origin/main'), 'tp-start 에 뒤처짐 검사가 없다');
+  // 등급 판정보다 먼저여야 한다. indexOf 가 -1 을 돌려 공허하게 통과하는 것을 막는다
+  const step0 = s.indexOf('## Step 0');
+  const step1 = s.indexOf('## Step 1');
+  assert.ok(step0 >= 0, 'tp-start 에 Step 0 이 없다');
+  assert.ok(step1 >= 0, 'tp-start 에 Step 1 이 없다');
+  assert.ok(step0 < step1, '뒤처짐 검사가 Step 1 뒤에 있다');
+});
+
 // --- 게이트는 도구로 낸다 ---
 test('세 게이트 전부 AskUserQuestion 을 요구한다', () => {
   const tp = read('tp');
