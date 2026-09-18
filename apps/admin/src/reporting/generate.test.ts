@@ -95,6 +95,35 @@ describe.skipIf(연결 === undefined)('증적 문서 생성', () => {
     expect(파일.subarray(0, 4).toString('latin1')).toBe('%PDF');
   });
 
+  // 형식 셋이 전부 같은 규율로 닫히는지 본다. XLSX 만 확인이 빠져 있으면 그 갈래가 조용히 썩는다
+  it('엑셀을 만들면 evidence/<runId>/<id>.xlsx 가 생기고 READY 로 닫힌다', { timeout: 60_000 }, async () => {
+    const 문서 = await claim(runId, 'XLSX');
+
+    await generate(문서.id, runId, 'XLSX');
+
+    const 기대경로 = join(증적폴더, 'evidence', String(runId), `${String(문서.id)}.xlsx`);
+    const 닫힌행 = await findDocument(문서.id);
+    expect(닫힌행).toMatchObject({ status: 'READY', filePath: 기대경로, error: null });
+
+    // xlsx 는 zip 이다. 앞 두 바이트가 PK 가 아니면 엑셀이 못 연다
+    const 파일 = await readFile(기대경로);
+    expect(파일.subarray(0, 2).toString('latin1')).toBe('PK');
+  });
+
+  it('HTML 을 만들면 evidence/<runId>/<id>.html 이 생기고 READY 로 닫힌다', { timeout: 60_000 }, async () => {
+    const 문서 = await claim(runId, 'HTML');
+
+    await generate(문서.id, runId, 'HTML');
+
+    const 기대경로 = join(증적폴더, 'evidence', String(runId), `${String(문서.id)}.html`);
+    const 닫힌행 = await findDocument(문서.id);
+    expect(닫힌행).toMatchObject({ status: 'READY', filePath: 기대경로, error: null });
+
+    // 머리말의 실행 제목이 실제로 박혀 나오는지까지 본다. 빈 껍데기가 READY 로 닫히면 안 된다
+    const 파일 = await readFile(기대경로, 'utf8');
+    expect(파일).toContain(제목);
+  });
+
   it('만들다 깨지면 FAILED 로 닫히고 원문 오류는 DB 에 들어가지 않는다', { timeout: 60_000 }, async () => {
     const 문서 = await claim(runId, 'PDF');
 
