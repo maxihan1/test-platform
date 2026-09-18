@@ -59,9 +59,9 @@ units:
     env: { WORKSTREAM: C }
     branch: ws-c-runner-2
     kickoff: "workstreams#WS-C 러너 + 테스트 킷"
-  # WS-A 를 2026-09-18 에 되살렸다. 킥오프를 개정본으로 고쳤다 (7~11번이 이번에 남은 일).
-  # K9·K10 검사기가 없으면 §11 Phase 1 기준(K1~K10)을 못 채운다.
-  # contracts 뒤인 이유 — ?service= 필터와 서비스별 스캔 폴더가 service 표를 먼저 필요로 한다
+  # WS-A 를 2026-09-18 에 되살렸고 같은 날 7~11번을 전부 끝냈다.
+  # 검사기가 이제 K1~K10 을 보므로 §11 Phase 1 기준의 그 칸을 채울 수 있다.
+  # contracts 뒤였던 이유 — ?service= 필터와 서비스별 스캔 폴더가 service 표를 먼저 필요로 했다
   - id: WS-A
     name: 카탈로그
     # 2026-09-18 완료. contracts 와 한 세션에서 이어서 돌렸다 (docs/reviews/2026-09-18-WS-A.md)
