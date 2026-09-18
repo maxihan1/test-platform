@@ -21,6 +21,19 @@ test('일곱 단계 스킬과 컨트롤러가 전부 실재한다 (공허한 통
   }
 });
 
+// 2026-09-18 개명이 드러낸 구멍 둘. 폴더만 옮기고 frontmatter 를 안 고치면
+// 이름은 옛것 그대로인데 위 단언은 초록이다 — 반쪽 개명이 통과한다
+test('스킬의 frontmatter name 이 폴더 이름과 같다', () => {
+  for (const s of ['tpx', ...STEP_SKILLS]) {
+    assert.match(read(s), new RegExp(`^name: ${s}$`, 'm'), `${s}/SKILL.md 의 name: 이 폴더와 다르다`);
+  }
+});
+
+test('옛 이름 폴더가 남아 있지 않다', () => {
+  const 남은 = readdirSync(new URL('.', DIR)).filter((s) => /^tp(-|$)/.test(s));
+  assert.deepEqual(남은, [], `개명이 반쯤 끝났다: ${남은}`);
+});
+
 test('컨트롤러가 가리키는 하위 스킬이 전부 실재한다', () => {
   const tpx = read('tpx');
   for (const s of STEP_SKILLS) {

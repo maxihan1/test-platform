@@ -10,8 +10,13 @@ import { writeFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const BEGIN = '<!-- tpx:status -->';
-const END = '<!-- /tpx:status -->';
+// 쓸 때는 이름 없는 닻을 쓰고, 읽을 때는 옛 이름도 받는다.
+// 2026-09-18 개명 때 마커에 체인 이름이 박혀 있어 열려 있던 PR 의 블록을 못 찾고
+// 앞에 하나 더 붙였다. 닻은 기계만 읽으므로 이름을 따라갈 이유가 없다.
+const BEGIN = '<!-- chain:status -->';
+const END = '<!-- /chain:status -->';
+const ANY_BEGIN = /<!-- ?\w+:status ?-->/;
+const ANY_END = /<!-- ?\/\w+:status ?-->/;
 
 const STEPS = [
   { n: 1, name: '시작 — 작업방 · 분류' },
@@ -93,11 +98,14 @@ const block = [
 ].join('\n');
 
 const body = JSON.parse(gh(['pr', 'view', pr, '--json', 'body'])).body ?? '';
-const i = body.indexOf(BEGIN);
-const j = body.indexOf(END);
+// 옛 이름의 닻도 찾는다 — 못 찾으면 덮어쓰지 않고 앞에 하나 더 붙어 상황판이 둘이 된다
+const mb = body.match(ANY_BEGIN);
+const me = body.match(ANY_END);
+const i = mb ? mb.index : -1;
+const j = me ? me.index : -1;
 // 마커가 없으면 맨 앞에 붙인다. 있으면 그 사이만 갈아 끼운다
 const next_body = i > -1 && j > i
-  ? body.slice(0, i) + block + body.slice(j + END.length)
+  ? body.slice(0, i) + block + body.slice(j + me[0].length)
   : `${block}\n\n${body}`;
 
 ghWithBody(['pr', 'edit', pr], next_body);
