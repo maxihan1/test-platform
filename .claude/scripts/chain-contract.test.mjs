@@ -59,6 +59,18 @@ test('gh pr ready 는 tpx-merge 에만 있다', () => {
   assert.ok(codeOf('tpx-merge').length > 100, '코드 울타리 추출이 비었다');
 });
 
+// 2026-09-18 CI 가 초안에서 안 돌게 바뀌었다. 잠금을 풀기 전에는 검사 결과가 없으므로
+// ready 뒤에 기다리지 않으면 검사 없이 병합한다
+test('tpx-merge 가 초안을 푼 뒤에 CI 를 기다린다', () => {
+  const 코드 = codeOf('tpx-merge');
+  const ready = 코드.indexOf('gh pr ready');
+  const watch = 코드.search(/gh pr checks[^\n]*--watch/);
+  const merge = 코드.indexOf('gh pr merge');
+  assert.ok(watch > -1, 'tpx-merge 에 gh pr checks --watch 가 없다');
+  assert.ok(ready > -1 && ready < watch, '기다림이 gh pr ready 보다 앞에 있다 — 그 자리엔 검사 결과가 없다');
+  assert.ok(merge > -1 && watch < merge, '기다림이 gh pr merge 보다 뒤에 있다 — 검사 전에 병합한다');
+});
+
 // --- plan-review-loop-guard. 계획 루프 방지 ---
 test('계획 검토가 tpx-plan 을 다시 부르지 않는다', () => {
   const pr = read('tpx-plan-review');
