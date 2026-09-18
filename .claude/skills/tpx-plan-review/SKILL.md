@@ -1,15 +1,15 @@
 ---
-name: tp-plan-review
-description: /tp 체인 4단계 — 작성된 계획을 gstack 렌즈로 검토해 지적만 낸다. 2등급 이상만 진입. 직접 부르지 않는다.
+name: tpx-plan-review
+description: /tpx 체인 4단계 — 작성된 계획을 gstack 렌즈로 검토해 지적만 낸다. 2등급 이상만 진입. 직접 부르지 않는다.
 ---
 
-# /tp-plan-review
+# /tpx-plan-review
 
 체인 [4]. 계획을 **검토만** 한다. 고치지 않는다. 0·1등급은 진입하지 않는다.
 
 ## 선행 읽기
 
-**없음.** `/tp` 가 이미 실었다. **재로드 금지.**
+**없음.** `/tpx` 가 이미 실었다. **재로드 금지.**
 
 ## 하지 않는 것
 
@@ -92,7 +92,7 @@ Skill({
 일곱 턴을 돌고 **구현에 도달하지 못했다.** contracts 단위가 $12.22 를 계획에만 썼다.
 상한이 없는 것이 원인이었다.
 
-판별식 `plan-review-loop-guard` 가 이 본문에 `tp-plan` 을 다시 부르는 문장이 생기면 빨간불을 낸다.
+판별식 `plan-review-loop-guard` 가 이 본문에 `tpx-plan` 을 다시 부르는 문장이 생기면 빨간불을 낸다.
 
 ## PR 갱신
 
@@ -110,7 +110,7 @@ node .claude/scripts/pr-update.mjs --pr <번호> --comment "### [4/7] 계획 검
 ## 출력
 
 ```
-🔄 [4/7] tp-plan-review
+🔄 [4/7] tpx-plan-review
    ├─ 렌즈: <이름> N종 (<등급>등급)
    ├─ 판정: BLOCKER N · 주의 N
    └─ 다음. 🛑 게이트 1
