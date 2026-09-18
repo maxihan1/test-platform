@@ -93,6 +93,21 @@ test('tp-merge 가 작업방에서 나온 뒤 main 을 최신화한다', () => {
   assert.ok(codeOf('tp-merge').includes('git rev-list --count main..origin/main'), '최신화 확인이 없다');
 });
 
+test('diff 기준이 origin/main 이다 — 로컬 main 은 낡을 수 있다', () => {
+  // 2026-09-18 실측. 로컬 main 이 8커밋 뒤처졌을 때 `main...HEAD` 가 19파일을 냈다.
+  // 실제로 바뀐 것은 3파일이었고, 실측 등급 판정이 통째로 틀렸다
+  const 위반 = [];
+  for (const s of ['tp', ...STEP_SKILLS, 'spec-review']) {
+    for (const [, line] of read(s).split('\n').entries()) {
+      if (/(?<!origin\/)\bmain\.\.\.?HEAD/.test(line)) 위반.push(`${s}: ${line.trim().slice(0, 60)}`);
+    }
+  }
+  assert.deepEqual(위반, [], '로컬 main 을 diff 기준으로 쓴다');
+  // 비-공허 대조군 — 아무 스킬도 diff 를 안 쓰면 이 검사는 공허하다
+  const 쓰는곳 = ['tp', ...STEP_SKILLS].filter((s) => read(s).includes('origin/main...HEAD'));
+  assert.ok(쓰는곳.length >= 3, `origin/main...HEAD 를 쓰는 스킬이 ${쓰는곳.length}개뿐이다`);
+});
+
 test('tp-start 가 낡은 체크아웃을 먼저 잡는다', () => {
   const s = read('tp-start');
   assert.ok(codeOf('tp-start').includes('git rev-list --count main..origin/main'), 'tp-start 에 뒤처짐 검사가 없다');

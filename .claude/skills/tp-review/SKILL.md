@@ -19,7 +19,7 @@ description: /tp 체인 6단계 — 구현 결과를 독립 렌즈로 검사하�
 **눈대중으로 적지 않는다.** 선언은 `/tp-start` 가 착수 시점에 쟀고, 여기서 실제 diff 로 다시 잰다.
 
 ```bash
-git diff --name-only main...HEAD | node .claude/scripts/detect-tier.mjs
+git diff --name-only origin/main...HEAD | node .claude/scripts/detect-tier.mjs
 ```
 
 - **선언과 실측을 나란히** 게이트 2 요약에 싣는다

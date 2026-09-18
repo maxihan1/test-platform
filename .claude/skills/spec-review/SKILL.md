@@ -63,7 +63,7 @@ SPEC 본문은 `docs/spec/` 아래 공통 7장·도메인 5장으로 나뉘어 �
 **A1~A3은 2026-09-17부터 "변경 없음"이 아니라 "SPEC 대로인가"를 본다.** 개정 SPEC 이 세 파일의 변경을
 이미 승인했고 훅의 잠금 목록(`guard.mjs`의 `LOCKED`)도 그날 비웠다. 이제 변경되는 것이 정상이다.
 
-`git diff main...HEAD -- packages/kit/src/types.ts db/migrations/ docker-compose.yml` 로 무엇이 바뀌었는지 뽑아
+`git diff origin/main...HEAD -- packages/kit/src/types.ts db/migrations/ docker-compose.yml` 로 무엇이 바뀌었는지 뽑아
 SPEC 해당 절과 **한 줄씩 대조한다. SPEC 에 없는 변경이 하나라도 있으면 치명이다.**
 잠금이 사라졌으므로 이 검사가 유일한 방어선이다 — 변경이 없으면 "변경 없음"으로 적고 넘어간다.
 
