@@ -4,14 +4,17 @@
 services:
   postgres:
     image: postgres:16
+    # 서버가 재부팅돼도 사람이 손대지 않고 돌아온다. DB가 안 뜨면 admin의 재기동 복구도 돌지 못한다 (SPEC §9)
+    restart: unless-stopped
     environment:
       POSTGRES_USER: platform
       POSTGRES_PASSWORD: platform
       POSTGRES_DB: platform
     ports:
       # G1에서 사람이 run_item을 직접 열어봐야 한다. 개발 PC에 이미 PostgreSQL이 깔린 경우가 많아
-      # 호스트 쪽은 5433으로 비켜 쓴다 (컨테이너끼리는 그대로 5432로 통신한다)
-      - "5433:5432"
+      # 호스트 쪽은 5433으로 비켜 쓴다 (컨테이너끼리는 그대로 5432로 통신한다).
+      # 숫자를 박아 두면 한 서버에서 다른 것과 포트를 다툰다. 기본값은 지금 쓰던 숫자 그대로다 (SPEC §9)
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
@@ -36,8 +39,9 @@ services:
     build:
       context: .
       dockerfile: apps/admin/Dockerfile
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${ADMIN_PORT:-3000}:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,6 +53,9 @@ services:
       PLATFORM_TESTS_DIR: /tests
       PLATFORM_ARTIFACTS_DIR: /artifacts
       PORT: "3000"
+      # 로그인 세션을 서명하는 키. DB에 둘 수 없다. 없으면 admin이 기동을 거부한다 (SPEC §9 · §3.5).
+      # 서비스 이름·색·저장소·대상 서버 주소는 환경변수가 아니라 DB에 있다 (§6 service·service_env)
+      SESSION_SECRET: "${SESSION_SECRET}"
     volumes:
       - ./tests:/tests:ro      # 스캔과 실패 지점 코드 발췌가 소스를 읽는다
       - artifacts:/artifacts   # 스크린샷 서빙, 증적 문서 저장
@@ -57,8 +64,10 @@ services:
     build:
       context: .
       dockerfile: apps/runner/Dockerfile
-    ports:
-      - "4000:4000"
+    restart: unless-stopped
+    # 바깥 포트를 열지 않는다. admin이 컨테이너 네트워크 안에서만 부른다.
+    # 러너에는 로그인이 없어 포트가 열려 있으면 인증을 건너뛰는 뒷길이 된다 (SPEC §3.5 · §9).
+    # 손으로 볼 때는 docker compose exec runner wget -qO- localhost:4000/health
     environment:
       PLATFORM_TESTS_DIR: /tests
       PLATFORM_ARTIFACTS_DIR: /artifacts
@@ -70,8 +79,9 @@ services:
 
   grafana:
     image: grafana/grafana
+    restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "${GRAFANA_PORT:-3001}:3000"
     depends_on:
       postgres:
         condition: service_healthy

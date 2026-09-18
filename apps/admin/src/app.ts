@@ -36,6 +36,14 @@ export function buildApp() {
 
 const port = Number(process.env.PORT ?? 3000);
 
+// 임시 키를 지어내면 재기동할 때마다 전원 로그아웃되고, 그 사실을 아무도 모른 채
+// 「가끔 로그인이 풀린다」로 겪는다. 그래서 없으면 기동하지 않는다 (SPEC §9 · §3.5).
+// 검사는 기동 경로에만 둔다 — buildApp()을 부르는 테스트까지 키를 요구할 이유가 없다
+if ((process.env.SESSION_SECRET ?? '') === '') {
+  console.error('SESSION_SECRET이 비어 있다. 로그인 세션을 서명할 키가 없으면 admin은 뜨지 않는다 (SPEC §9)');
+  process.exit(1);
+}
+
 buildApp()
   .listen({ port, host: '0.0.0.0' })
   .catch((err: unknown) => {
