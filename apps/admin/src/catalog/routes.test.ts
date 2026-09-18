@@ -12,6 +12,14 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
+    // 스캔은 서비스마다 자기 폴더만 훑는다 (SPEC §9.2). 데모 케이스를 훑으려면 그 서비스가 있어야 한다
+    const { pool } = await import('../db/index.js');
+    await pool.query(
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+            VALUES ('DEMO', '데모', '#888888', 'https://example.com/demo', 'demo')
+       ON CONFLICT (prefix) DO UPDATE SET is_active = true, tests_dir = 'demo'`,
+    );
+
     app = Fastify();
     await app.register(catalogRoutes, { prefix: '/api' });
     await app.ready();

@@ -25,31 +25,26 @@ function spec(tcId: string, over: Partial<CaseSpec> = {}): CaseSpec {
 
 describe.skipIf(연결 === undefined)('save', () => {
   let pool: Pool;
-  let 원래활성: string[] = [];
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
-    const before = await pool.query<{ tc_id: string }>('SELECT tc_id FROM test_case WHERE is_active');
-    원래활성 = before.rows.map((r) => r.tc_id);
     await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZA%'");
   });
 
   afterAll(async () => {
     await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZA%'");
-    // 이 테스트의 비활성 처리는 다른 케이스까지 건드린다. 원래 상태로 돌려놓는다
-    await pool.query('UPDATE test_case SET is_active = true WHERE tc_id = ANY($1::text[])', [원래활성]);
     await pool.end();
     const { pool: shared } = await import('../db/index.js');
     await shared.end();
   });
 
   it('처음 본 케이스는 added로 센다', async () => {
-    const result = await save([spec('ZZA-001'), spec('ZZA-002')], false);
+    const result = await save([spec('ZZA-001'), spec('ZZA-002')], false, 'ZZA');
     expect(result).toMatchObject({ added: 2, updated: 0, deactivated: 0 });
   });
 
   it('이미 있는 케이스는 updated로 세고 내용을 덮어쓴다', async () => {
-    const result = await save([spec('ZZA-001', { name: '이름이 바뀌었다' }), spec('ZZA-002')], false);
+    const result = await save([spec('ZZA-001', { name: '이름이 바뀌었다' }), spec('ZZA-002')], false, 'ZZA');
     expect(result).toMatchObject({ added: 0, updated: 2 });
 
     const row = await pool.query<{ name: string }>('SELECT name FROM test_case WHERE tc_id = $1', ['ZZA-001']);
@@ -60,7 +55,7 @@ describe.skipIf(연결 === undefined)('save', () => {
     await save([spec('ZZA-001', {
       platforms: ['desktop', 'mobile'],
       paramSchema: { type: 'object', properties: { todo: { type: 'string', description: '할 일' } } },
-    })], false);
+    })], false, 'ZZA');
 
     const row = await pool.query<{ platforms: string[]; param_schema: Record<string, unknown> }>(
       'SELECT platforms, param_schema FROM test_case WHERE tc_id = $1',
@@ -73,8 +68,8 @@ describe.skipIf(연결 === undefined)('save', () => {
   });
 
   it('코드에서 사라진 케이스는 지우지 않고 is_active만 내린다', async () => {
-    await save([spec('ZZA-001'), spec('ZZA-002')], false);
-    await save([spec('ZZA-001')], true);
+    await save([spec('ZZA-001'), spec('ZZA-002')], false, 'ZZA');
+    await save([spec('ZZA-001')], true, 'ZZA');
 
     const gone = await pool.query<{ is_active: boolean }>(
       'SELECT is_active FROM test_case WHERE tc_id = $1',
@@ -85,7 +80,7 @@ describe.skipIf(연결 === undefined)('save', () => {
   });
 
   it('다시 나타난 케이스는 is_active가 올라간다', async () => {
-    await save([spec('ZZA-001'), spec('ZZA-002')], true);
+    await save([spec('ZZA-001'), spec('ZZA-002')], true, 'ZZA');
 
     const back = await pool.query<{ is_active: boolean }>(
       'SELECT is_active FROM test_case WHERE tc_id = $1',
@@ -95,7 +90,7 @@ describe.skipIf(연결 === undefined)('save', () => {
   });
 
   it('스캔 결과가 비면 아무것도 비활성으로 내리지 않는다', async () => {
-    const result = await save([], true);
+    const result = await save([], true, 'ZZA');
     expect(result.deactivated).toBe(0);
 
     const still = await pool.query<{ is_active: boolean }>(
@@ -103,5 +98,19 @@ describe.skipIf(연결 === undefined)('save', () => {
       ['ZZA-001'],
     );
     expect(still.rows[0]?.is_active).toBe(true);
+  });
+
+  it('다른 접두사의 케이스는 비활성으로 내리지 않는다', async () => {
+    await save([spec('ZZA-001'), spec('ZZA-002')], false, 'ZZA');
+    const before = await pool.query<{ n: string }>(
+      "SELECT count(*) AS n FROM test_case WHERE is_active AND tc_id NOT LIKE 'ZZA-%'",
+    );
+
+    await save([spec('ZZA-001')], true, 'ZZA');
+
+    const after = await pool.query<{ n: string }>(
+      "SELECT count(*) AS n FROM test_case WHERE is_active AND tc_id NOT LIKE 'ZZA-%'",
+    );
+    expect(after.rows[0]?.n).toBe(before.rows[0]?.n);
   });
 });

@@ -103,7 +103,28 @@ export async function findCase(tcId: string): Promise<CaseRow | null> {
   return row === undefined ? null : toCase(row);
 }
 
-export async function save(specs: CaseSpec[], deactivateMissing: boolean): Promise<SaveResult> {
+export interface ServiceRow {
+  id: number;
+  prefix: string;
+  name: string;
+  testsDir: string;
+}
+
+// 서비스는 지우지 않고 비활성으로 내린다. 내려간 서비스의 케이스는 더 훑지 않는다 (SPEC §8.8)
+export async function activeServices(): Promise<ServiceRow[]> {
+  const pool = await db();
+  const rows = await pool.query<{ id: string; prefix: string; name: string; tests_dir: string }>(
+    'SELECT id, prefix, name, tests_dir FROM service WHERE is_active ORDER BY prefix',
+  );
+  return rows.rows.map((r) => ({ id: Number(r.id), prefix: r.prefix, name: r.name, testsDir: r.tests_dir }));
+}
+
+export async function findService(prefix: string): Promise<ServiceRow | null> {
+  const found = await activeServices();
+  return found.find((s) => s.prefix === prefix) ?? null;
+}
+
+export async function save(specs: CaseSpec[], deactivateMissing: boolean, prefix: string): Promise<SaveResult> {
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');
@@ -124,12 +145,15 @@ export async function save(specs: CaseSpec[], deactivateMissing: boolean): Promi
     }
 
     // 코드에서 사라진 케이스는 지우지 않는다. 과거 실행 이력이 참조하므로 비활성으로만 둔다 (SPEC §3.1).
-    // 스캔 결과가 통째로 비면 마운트가 빠진 쪽이 훨씬 그럴듯하므로 카탈로그를 전부 내리지 않는다
+    // 스캔 결과가 통째로 비면 마운트가 빠진 쪽이 훨씬 그럴듯하므로 카탈로그를 전부 내리지 않는다.
+    // 범위는 이 서비스의 접두사 안이다 — 서비스마다 자기 폴더만 훑으므로(§9.2) 전체를 범위로 잡으면
+    // 한 서비스를 스캔할 때 다른 서비스의 케이스가 통째로 내려간다
     let deactivated = 0;
     if (deactivateMissing && specs.length > 0) {
       const dropped = await client.query(
-        'UPDATE test_case SET is_active = false WHERE is_active = true AND tc_id <> ALL($1::text[])',
-        [specs.map((s) => s.tcId)],
+        `UPDATE test_case SET is_active = false
+          WHERE is_active = true AND tc_id LIKE $2 AND tc_id <> ALL($1::text[])`,
+        [specs.map((s) => s.tcId), `${prefix}-%`],
       );
       deactivated = dropped.rowCount ?? 0;
     }
