@@ -1,5 +1,33 @@
 # WS-C 진행 기록 — 러너 + 테스트 킷
 
+## 2026-09-19
+- 완료: **개정 SPEC 의 WS-C 할 일 넷이 전부 닫혔다.** 이번에 만든 것은 B 하나다
+  - **B 바깥에서 끊을 통로** — `POST /abort`. `historyId → 자식 프로세스` 지도를 메모리에 두고
+    `killTree` 로 그룹째 끊는다. 끊긴 실행은 타임아웃과 **같은 모양**으로 돌아온다
+    (200 + `NA` + `error.message: 'ABORTED'`). 모르는 `historyId` 는 `200 { aborted: false }` — 404 가 아니다
+  - **A · C · D 는 이미 코드에 있었다.** 착수 때 확인하고 범위에서 뺐다 —
+    `baseUrl` → `PLATFORM_BASE_URL` 전달, `retries: 0` 고정, 러너는 DB 를 모른다
+- 같이 고친 것 (게이트 2 에서 사용자가 「WS-B 2건도 지금 고친다」를 골랐다)
+  - `finishItem()` 에 `AND finished_at IS NULL` 이 없어 **멈춘 실행이 늦게 온 러너 응답에 `PASS` 로 덮어써졌다.**
+    재현 테스트가 실제로 `PASS` 를 뱉었다. 0행이면 절차 기록도 넣지 않고 `ROLLBACK` 한다
+  - `recoverRunning()` 이 DB 전체를 훑어 병렬로 돌던 다른 파일의 fixture 를 닫았다 →
+    `vitest.config.ts` 에 `fileParallelism: false`. 313건 2.6초 → 314건 15.3초
+- 미완: 없음
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것:
+  - **라우트는 이제 `apps/runner/src/routes.ts` 에 있다.** `server.ts` 는 Fastify 를 만들고
+    `registerRoutes(app)` 를 부르고 `listen` 만 한다. 최상위 `listen` 때문에 테스트가 못 붙던 것을 갈랐다.
+    라우트 검사는 `routes.test.ts` 에서 `app.inject()` 로 한다 — 포트를 열지 않는다
+  - **끊는 사유는 `running` 지도의 핸들에 붙는다.** `execute()` 의 지역 변수가 아니다 —
+    `abort()` 는 바깥에서 불려서 지역 변수에 닿을 수 없다. **먼저 찍힌 사유가 이긴다**
+    (제한 시간으로 죽은 것이 「사람이 끊음」으로 뒤집히면 안 된다)
+  - **러너가 정상 종료했는데 `close` 전인 밀리초 창은 러너에서 안 막는다.** 막는 자리는
+    admin 의 `finishItem()` 이고 이번에 가드를 붙였다
+  - **테스트가 순차로 돈다.** 같은 DB 하나를 쓰는 검사 파일들이 서로 간섭해서 끊었다.
+    새 테스트를 더할 때 병렬을 가정하지 않는다
+  - 범위 밖 남은 것 — `docs/spec/도메인/러너.md` 끝의 `[계약 변경 필요]` 블록이
+    **이미 반영이 끝난 제안**인데 아직 「필요」라고 적혀 있다. SPEC 은 3등급이라 손대지 않았다
+
 ## 2026-09-16
 - 완료: 테스트 킷 런타임 전부(`defineCase` · `test()` 래퍼 · `test.step()` · `verify` · 커스텀 리포터),
   러너 `POST /execute`의 실제 결과 조립, 데모 10건 `defineCase` 전환, 단위 테스트 41건

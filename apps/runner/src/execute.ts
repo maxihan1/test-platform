@@ -1,7 +1,7 @@
 // 케이스 1건을 자식 프로세스로 돌리고 결과를 구조화해 돌려준다. 러너는 DB를 모른다 (SPEC §3.4)
 // 판정은 커스텀 리포터가 stdout에 뱉은 한 줄에서 온다. exit code는 그 줄이 없을 때의 대비책이다 (SPEC §5.2)
 
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { dirname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -16,6 +16,38 @@ const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const reporterPath = resolve(appRoot, 'packages/kit/src/runtime/reporter.ts');
 
 export const testsDir = process.env.PLATFORM_TESTS_DIR ?? resolve(appRoot, 'tests');
+
+// 왜 죽였는지. 판정은 둘 다 NA지만 사람이 보는 사유가 갈린다 (SPEC §5.2)
+export type KilledBy = 'TIMEOUT' | 'ABORTED';
+
+export interface Running {
+  child: ChildProcess;
+  // execute()의 지역 변수로 두면 abort()가 닿을 수 없다. 바깥에서 불리는 함수이기 때문이다
+  killedBy: KilledBy | null;
+}
+
+// historyId → 돌고 있는 자식. 메모리에만 산다. 러너가 죽으면 지도도 자식도 같이 사라지고,
+// 남은 항목을 닫는 일은 admin의 재기동 복구가 맡는다 (SPEC §3.4)
+export const running = new Map<number, Running>();
+
+// 끊는 방식은 타임아웃과 완전히 같다. 바깥에서 부를 통로만 새로 낸 것이다 (SPEC §5.2)
+export function abort(historyId: number): boolean {
+  const entry = running.get(historyId);
+  // 이미 끝났거나 모르는 historyId는 경합이지 고장이 아니다. 404로 만들면 admin이 정상 상황마다 에러를 받는다
+  if (entry === undefined) return false;
+
+  // 이미 죽인 것을 또 죽이라는 요청이다. 먼저 찍힌 사유가 이긴다 —
+  // 제한 시간으로 죽은 것이 증적에 '사람이 끊음'으로 남으면 안 된다
+  if (entry.killedBy !== null) return true;
+
+  // 자식이 정상 종료했는데 close가 아직 안 온 창에서는 통과한 케이스가 중단으로 뒤집힌다.
+  // 창이 밀리초라 러너에서 막지 않는다. 막는 자리는 admin의 닫는 UPDATE인데,
+  // 지금 finished_at IS NULL 가드가 CLOSE_UNFINISHED에만 있고 finishItem에는 없다.
+  // 그쪽은 WS-B 소유라 이번 범위에서 고치지 않았다 — 게이트 2 요약으로 넘겼다
+  entry.killedBy = 'ABORTED';
+  killTree(entry.child);
+  return true;
+}
 
 export function statusFromExit(code: number | null, timedOut: boolean): ItemStatus {
   // 타임아웃은 통과도 실패도 아니다. 판정할 근거가 없으므로 NA다 (SPEC §5.2)
@@ -46,6 +78,24 @@ function parseAfterKill(stdout: string): RunnerResult | null {
   }
 }
 
+// 끊긴 실행은 타임아웃과 같은 모양으로 돌아온다. error.message만 갈린다 —
+// 모양이 같아야 admin의 저장 경로에 새 분기가 생기지 않는다 (SPEC §5.2)
+export function killedResponse(
+  historyId: number,
+  killedBy: KilledBy,
+  durationMs: number,
+  stdout: string,
+): ExecuteResponse {
+  return {
+    historyId,
+    status: 'NA',
+    durationMs,
+    // 부분 결과라도 있으면 그대로 넘긴다. 어디까지 갔는지가 사람에게는 정보다
+    steps: parseAfterKill(stdout)?.steps ?? [],
+    error: { message: killedBy },
+  };
+}
+
 export async function execute(req: ExecuteRequest, specPath: string): Promise<ExecuteResponse> {
   const startedAt = Date.now();
 
@@ -70,14 +120,17 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
     },
   );
 
+  // 바깥에서 abort()가 찾을 수 있게 지도에 올린다. 사유를 지역 변수로 두면 그 함수가 닿지 못한다
+  const entry: Running = { child, killedBy: null };
+  running.set(req.historyId, entry);
+
   let stdout = '';
   let stderr = '';
   child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
   child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
 
-  let timedOut = false;
   const timer = setTimeout(() => {
-    timedOut = true;
+    entry.killedBy = 'TIMEOUT';
     killTree(child);
   }, req.timeoutMs);
 
@@ -85,17 +138,13 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   const code = await new Promise<number | null>((done, fail) => {
     child.on('error', fail);
     child.on('close', done);
-  }).finally(() => clearTimeout(timer));
+  }).finally(() => {
+    clearTimeout(timer);
+    running.delete(req.historyId);
+  });
 
-  if (timedOut) {
-    // 부분 결과라도 있으면 그대로 넘긴다. 어디까지 갔는지가 사람에게는 정보다 (SPEC §5.2)
-    return {
-      historyId: req.historyId,
-      status: 'NA',
-      durationMs: Date.now() - startedAt,
-      steps: parseAfterKill(stdout)?.steps ?? [],
-      error: { message: 'TIMEOUT' },
-    };
+  if (entry.killedBy !== null) {
+    return killedResponse(req.historyId, entry.killedBy, Date.now() - startedAt, stdout);
   }
 
   const parsed = parseResult(stdout);
