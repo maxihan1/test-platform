@@ -1,7 +1,7 @@
 // 케이스 1건을 자식 프로세스로 돌리고 결과를 구조화해 돌려준다. 러너는 DB를 모른다 (SPEC §3.4)
 // 판정은 커스텀 리포터가 stdout에 뱉은 한 줄에서 온다. exit code는 그 줄이 없을 때의 대비책이다 (SPEC §5.2)
 
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { dirname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -16,6 +16,33 @@ const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const reporterPath = resolve(appRoot, 'packages/kit/src/runtime/reporter.ts');
 
 export const testsDir = process.env.PLATFORM_TESTS_DIR ?? resolve(appRoot, 'tests');
+
+// 왜 죽였는지. 판정은 둘 다 NA지만 사람이 보는 사유가 갈린다 (SPEC §5.2)
+export type KilledBy = 'TIMEOUT' | 'ABORTED';
+
+export interface Running {
+  child: ChildProcess;
+  // execute()의 지역 변수로 두면 abort()가 닿을 수 없다. 바깥에서 불리는 함수이기 때문이다
+  killedBy: KilledBy | null;
+}
+
+// historyId → 돌고 있는 자식. 메모리에만 산다. 러너가 죽으면 지도도 자식도 같이 사라지고,
+// 남은 항목을 닫는 일은 admin의 재기동 복구가 맡는다 (SPEC §3.4)
+export const running = new Map<number, Running>();
+
+// 끊는 방식은 타임아웃과 완전히 같다. 바깥에서 부를 통로만 새로 낸 것이다 (SPEC §5.2)
+export function abort(historyId: number): boolean {
+  const entry = running.get(historyId);
+  // 이미 끝났거나 모르는 historyId는 경합이지 고장이 아니다. 404로 만들면 admin이 정상 상황마다 에러를 받는다
+  if (entry === undefined) return false;
+
+  // 자식이 이미 끝났는데 close가 아직 안 온 창에서는 통과한 케이스가 중단으로 뒤집힌다.
+  // 여기서 이기려 하지 않는다 — 창이 밀리초이고, admin이 닫는 UPDATE마다 finished_at IS NULL을
+  // 붙여 이미 막고 있다 (apps/admin/src/execution/store.ts). 먼저 닫힌 쪽이 이긴다
+  entry.killedBy = 'ABORTED';
+  killTree(entry.child);
+  return true;
+}
 
 export function statusFromExit(code: number | null, timedOut: boolean): ItemStatus {
   // 타임아웃은 통과도 실패도 아니다. 판정할 근거가 없으므로 NA다 (SPEC §5.2)
