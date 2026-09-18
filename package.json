@@ -15,7 +15,9 @@
     "smoke": "tsx apps/admin/src/smoke.ts"
   },
   "dependencies": {
+    "@fastify/secure-session": "^8.3.0",
     "@fastify/static": "^8.2.0",
+    "exceljs": "^4.4.0",
     "fastify": "^5.6.1",
     "pg": "^8.16.3",
     "react": "^19.2.0",
