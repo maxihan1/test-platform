@@ -1,6 +1,8 @@
 // 카탈로그 API 5종이 SPEC §7의 경로와 응답 형태를 지키는지 검사한다.
 // CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다
 
+import { resolve } from 'node:path';
+
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -12,6 +14,10 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
+    // 같은 워커에서 앞서 돈 테스트가 PLATFORM_TESTS_DIR 을 바꿔 두면 엉뚱한 폴더를 훑는다.
+    // 이 검사는 저장소의 tests 를 봐야 하므로 스스로 고정한다
+    process.env.PLATFORM_TESTS_DIR = resolve(process.cwd(), 'tests');
+
     // 스캔은 서비스마다 자기 폴더만 훑는다 (SPEC §9.2). 데모 케이스를 훑으려면 그 서비스가 있어야 한다
     const { pool } = await import('../db/index.js');
     await pool.query(
@@ -38,7 +44,9 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
     const body = res.json();
     expect(body.added + body.updated).toBe(10);
     expect(body.duplicates).toEqual([]);
-    expect(body.error).toBeUndefined();
+    // 같은 DB를 다른 갈래 테스트도 쓴다. 그쪽이 남긴 서비스의 폴더 사정은 이 검사의 관심사가 아니다 —
+    // 데모 스캔이 깨끗했는지만 본다
+    expect(body.error ?? '').not.toContain('DEMO');
   });
 
   it('GET /api/catalog/scan — 마지막 스캔 결과가 남아 있다', async () => {

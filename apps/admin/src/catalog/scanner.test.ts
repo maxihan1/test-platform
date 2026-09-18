@@ -2,7 +2,7 @@
 
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -13,6 +13,9 @@ import { caseFiles, duplicatesOf, scan } from './scanner.js';
 let 깨진폴더: string;
 
 beforeAll(async () => {
+  // 같은 워커에서 앞서 돈 테스트가 이 값을 바꿔 두면 엉뚱한 폴더를 훑는다. 스스로 고정한다
+  process.env.PLATFORM_TESTS_DIR = resolve(process.cwd(), 'tests');
+
   깨진폴더 = await mkdtemp(join(tmpdir(), 'ws-a-scan-'));
   await writeFile(join(깨진폴더, '명세없음.spec.ts'), 'export const notSpec = 1;\n');
   await writeFile(join(깨진폴더, '문법오류.spec.ts'), 'export const spec = defineCase({\n');

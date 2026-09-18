@@ -40,7 +40,18 @@ async function runScan(log: FastifyBaseLogger): Promise<LastScan> {
 
     for (const service of services) {
       const 어디 = (file: string): string => join(service.testsDir, file);
-      const found = await scan(join(root, service.testsDir));
+
+      // 폴더가 아직 안 채워졌거나 이름이 틀리면 여기서 던진다. 그 서비스만 접고 나머지는 계속 훑는다 —
+      // 한 서비스 때문에 다른 서비스의 케이스까지 사라지면 목록이 통째로 거짓말을 한다 (SPEC §3.1)
+      let found;
+      try {
+        found = await scan(join(root, service.testsDir));
+      } catch (err) {
+        problems.push(
+          `${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        continue;
+      }
 
       duplicates.push(...found.duplicates.map((d) => ({ tcId: d.tcId, files: d.files })));
       problems.push(
