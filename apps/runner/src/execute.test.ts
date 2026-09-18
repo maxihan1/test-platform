@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { resolveSpecPath, statusFromExit } from './execute.js';
+import { killedResponse, resolveSpecPath, statusFromExit } from './execute.js';
 
 describe('statusFromExit', () => {
   it('exit code 0이면 PASS다', () => {
@@ -15,6 +15,33 @@ describe('statusFromExit', () => {
 
   it('타임아웃으로 죽인 경우는 판정 불가라 NA다', () => {
     expect(statusFromExit(null, true)).toBe('NA');
+  });
+});
+
+describe('killedResponse', () => {
+  const 한절차 = { seq: 1, title: '로그인', status: 'PASS', durationMs: 3, assertions: [] };
+  const 결과줄 = `@@RESULT@@${JSON.stringify({ status: 'PASS', durationMs: 5, steps: [한절차] })}\n`;
+
+  it('끊긴 실행도 타임아웃과 같은 모양이고 사유만 갈린다', () => {
+    const 끊김 = killedResponse(7, 'ABORTED', 12, '');
+    const 시간초과 = killedResponse(7, 'TIMEOUT', 12, '');
+
+    expect(끊김.status).toBe('NA');
+    expect(시간초과.status).toBe('NA');
+    expect(끊김.error?.message).toBe('ABORTED');
+    expect(시간초과.error?.message).toBe('TIMEOUT');
+  });
+
+  it('죽이기 전까지 나온 절차는 그대로 남긴다', () => {
+    expect(killedResponse(7, 'ABORTED', 12, 결과줄).steps).toHaveLength(1);
+  });
+
+  it('결과 줄이 없으면 절차는 빈 목록이다', () => {
+    expect(killedResponse(7, 'TIMEOUT', 12, '').steps).toEqual([]);
+  });
+
+  it('죽이는 바람에 결과 줄이 잘렸으면 빈 목록으로 접고 예외를 밖으로 내보내지 않는다', () => {
+    expect(killedResponse(7, 'ABORTED', 12, '@@RESULT@@{"steps":[').steps).toEqual([]);
   });
 });
 

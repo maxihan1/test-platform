@@ -73,6 +73,24 @@ function parseAfterKill(stdout: string): RunnerResult | null {
   }
 }
 
+// 끊긴 실행은 타임아웃과 같은 모양으로 돌아온다. error.message만 갈린다 —
+// 모양이 같아야 admin의 저장 경로에 새 분기가 생기지 않는다 (SPEC §5.2)
+export function killedResponse(
+  historyId: number,
+  killedBy: KilledBy,
+  durationMs: number,
+  stdout: string,
+): ExecuteResponse {
+  return {
+    historyId,
+    status: 'NA',
+    durationMs,
+    // 부분 결과라도 있으면 그대로 넘긴다. 어디까지 갔는지가 사람에게는 정보다
+    steps: parseAfterKill(stdout)?.steps ?? [],
+    error: { message: killedBy },
+  };
+}
+
 export async function execute(req: ExecuteRequest, specPath: string): Promise<ExecuteResponse> {
   const startedAt = Date.now();
 
@@ -97,14 +115,17 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
     },
   );
 
+  // 바깥에서 abort()가 찾을 수 있게 지도에 올린다. 사유를 지역 변수로 두면 그 함수가 닿지 못한다
+  const entry: Running = { child, killedBy: null };
+  running.set(req.historyId, entry);
+
   let stdout = '';
   let stderr = '';
   child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
   child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
 
-  let timedOut = false;
   const timer = setTimeout(() => {
-    timedOut = true;
+    entry.killedBy = 'TIMEOUT';
     killTree(child);
   }, req.timeoutMs);
 
@@ -112,17 +133,13 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   const code = await new Promise<number | null>((done, fail) => {
     child.on('error', fail);
     child.on('close', done);
-  }).finally(() => clearTimeout(timer));
+  }).finally(() => {
+    clearTimeout(timer);
+    running.delete(req.historyId);
+  });
 
-  if (timedOut) {
-    // 부분 결과라도 있으면 그대로 넘긴다. 어디까지 갔는지가 사람에게는 정보다 (SPEC §5.2)
-    return {
-      historyId: req.historyId,
-      status: 'NA',
-      durationMs: Date.now() - startedAt,
-      steps: parseAfterKill(stdout)?.steps ?? [],
-      error: { message: 'TIMEOUT' },
-    };
+  if (entry.killedBy !== null) {
+    return killedResponse(req.historyId, entry.killedBy, Date.now() - startedAt, stdout);
   }
 
   const parsed = parseResult(stdout);
