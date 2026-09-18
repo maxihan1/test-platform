@@ -7,6 +7,7 @@ import Fastify from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { running } from './execute.js';
+import { killTree } from './kill.js';
 import { registerRoutes } from './routes.js';
 
 function 서버() {
@@ -15,8 +16,12 @@ function 서버() {
   return app;
 }
 
-// 지도를 비우는 책임은 execute()의 finally에만 있고 이 테스트는 그 경로를 안 거친다
-afterEach(() => running.clear());
+// 지도를 비우는 책임은 execute()의 finally에만 있고 이 테스트는 그 경로를 안 거친다.
+// 단언이 깨져 끊는 자리까지 못 갔으면 자식이 30초를 더 산다. 비우기 전에 먼저 내린다
+afterEach(() => {
+  for (const { child } of running.values()) killTree(child);
+  running.clear();
+});
 
 describe('GET /health', () => {
   it('이미지와 라이브러리 버전이 어긋났는지 보려고 playwright 버전을 같이 낸다', async () => {

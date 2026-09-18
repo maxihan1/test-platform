@@ -36,9 +36,14 @@ export function abort(historyId: number): boolean {
   // 이미 끝났거나 모르는 historyId는 경합이지 고장이 아니다. 404로 만들면 admin이 정상 상황마다 에러를 받는다
   if (entry === undefined) return false;
 
-  // 자식이 이미 끝났는데 close가 아직 안 온 창에서는 통과한 케이스가 중단으로 뒤집힌다.
-  // 여기서 이기려 하지 않는다 — 창이 밀리초이고, admin이 닫는 UPDATE마다 finished_at IS NULL을
-  // 붙여 이미 막고 있다 (apps/admin/src/execution/store.ts). 먼저 닫힌 쪽이 이긴다
+  // 이미 죽인 것을 또 죽이라는 요청이다. 먼저 찍힌 사유가 이긴다 —
+  // 제한 시간으로 죽은 것이 증적에 '사람이 끊음'으로 남으면 안 된다
+  if (entry.killedBy !== null) return true;
+
+  // 자식이 정상 종료했는데 close가 아직 안 온 창에서는 통과한 케이스가 중단으로 뒤집힌다.
+  // 창이 밀리초라 러너에서 막지 않는다. 막는 자리는 admin의 닫는 UPDATE인데,
+  // 지금 finished_at IS NULL 가드가 CLOSE_UNFINISHED에만 있고 finishItem에는 없다.
+  // 그쪽은 WS-B 소유라 이번 범위에서 고치지 않았다 — 게이트 2 요약으로 넘겼다
   entry.killedBy = 'ABORTED';
   killTree(entry.child);
   return true;
