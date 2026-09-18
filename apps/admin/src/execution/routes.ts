@@ -7,11 +7,12 @@ import { join, resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-import { dispatch } from './dispatcher.js';
+import { dispatch, markAborted } from './dispatcher.js';
+import { abortRunner } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
 import { findItem, findRun, listRuns } from './queries.js';
-import { createRun, RunInputError } from './store.js';
+import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
 
 const PAGE_SIZE = 50;
@@ -55,6 +56,16 @@ function page(raw: string | undefined): number {
 }
 
 export default async function executionRoutes(app: FastifyInstance): Promise<void> {
+  // 재기동으로 분배기가 사라지면 그 항목들은 영원히 끝나지 않아 FINISHED 조건이 결코 만족되지 않는다.
+  // 뜨는 김에 한 번 닫는다. 실패해도 admin 은 떠야 하므로 사유만 남긴다 (SPEC §3.2)
+  void recoverRunning()
+    .then((n) => {
+      if (n > 0) app.log.warn(`[execution] 재기동 전에 돌던 실행 ${n}건을 중단으로 닫았다`);
+    })
+    .catch((err: unknown) => {
+      app.log.error(`[execution] 재기동 복구가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
+    });
+
   app.post('/runs', async (req, reply) => {
     const parsed = runBody.safeParse(req.body);
     if (!parsed.success) {
@@ -80,6 +91,27 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
       }
       throw err;
     }
+  });
+
+  app.post<{ Params: { runId: string } }>('/runs/:runId/abort', async (req, reply) => {
+    const runId = Number(req.params.runId);
+
+    // 끊을 대상을 먼저 손에 쥔다. 닫고 나면 finished_at 이 차서 못 찾는다.
+    // 그 사이에 끝난 것이 섞여도 러너가 모르는 historyId 는 false 를 돌려줄 뿐이다 (SPEC §5.2)
+    const 미완 = await unfinishedItems(runId);
+
+    // DB 에서 먼저 닫는다. 러너 응답과 겹쳐도 finished_at IS NULL 조건이 먼저 온 것만 기록한다 (SPEC §7.1)
+    const result = await abortRun(runId);
+    if (result === null) {
+      return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
+    }
+
+    markAborted(runId);
+    // 돌고 있는 자식까지 끊는다. 대기 중인 것만 취소하면 5분짜리 케이스가 도는 중에는
+    // 버튼이 아무 일도 안 하는 것처럼 보인다 (SPEC §8.3)
+    await Promise.all(미완.map((historyId) => abortRunner(historyId)));
+
+    return result;
   });
 
   app.get<{ Querystring: { page?: string } }>('/runs', async (req) => listRuns(page(req.query.page), PAGE_SIZE));

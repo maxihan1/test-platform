@@ -17,9 +17,27 @@ function runnerUrl(): string {
   return process.env.RUNNER_URL ?? 'http://localhost:4000';
 }
 
-function na(item: PendingItem, message: string): ExecuteResponse {
+function na(item: PendingItem, message: string, stack?: string): ExecuteResponse {
   // 판정할 근거가 없으면 NA다. 실패와 구분돼야 러너 고장과 케이스 실패가 섞이지 않는다 (SPEC §3.2)
-  return { historyId: item.historyId, status: 'NA', durationMs: 0, steps: [], error: { message } };
+  return { historyId: item.historyId, status: 'NA', durationMs: 0, steps: [], error: { message, stack } };
+}
+
+// 돌고 있는 자식 프로세스를 그룹째 끊어 달라고 한다. 이미 끝났거나 러너가 모르는 historyId면 false다 —
+// 경합이지 고장이 아니므로 던지지 않는다 (SPEC §5.2)
+export async function abortRunner(historyId: number): Promise<boolean> {
+  try {
+    const res = await fetch(`${runnerUrl()}/abort`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ historyId }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return false;
+    return ((await res.json()) as { aborted?: boolean }).aborted === true;
+  } catch {
+    // 러너에 닿지 못해도 멈춤 자체는 성립한다. 항목은 이미 DB에서 닫혔다
+    return false;
+  }
 }
 
 export async function callRunner(runId: number, item: PendingItem): Promise<ExecuteResponse> {
@@ -55,8 +73,9 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
 
     return (await res.json()) as ExecuteResponse;
   } catch (err) {
-    // 연결 실패·응답 없음. 이 항목만 NA로 접고 디스패처는 다음 항목으로 넘어간다
+    // 연결 실패·응답 없음. 이 항목만 NA로 접고 디스패처는 다음 항목으로 넘어간다.
+    // 사람이 보는 문장은 사유 한 줄이고 원문(주소·포트)은 상세의 접힌 자리로 간다 (SPEC §8.3)
     const reason = err instanceof Error ? err.message : String(err);
-    return { ...na(item, `러너를 부르지 못했다: ${reason}`), durationMs: Date.now() - startedAt };
+    return { ...na(item, '러너에 닿지 못했습니다', reason), durationMs: Date.now() - startedAt };
   }
 }

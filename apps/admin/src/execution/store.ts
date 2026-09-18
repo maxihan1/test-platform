@@ -272,6 +272,72 @@ export async function finishItem(historyId: number, result: ExecuteResponse): Pr
 }
 
 // 모든 항목이 끝나야 FINISHED다 (SPEC §3.2). 그 조건을 SQL에 박아 부르는 쪽이 세지 않게 한다
+// 닫는 UPDATE에는 언제나 AND finished_at IS NULL 을 붙인다. 중단 처리와 러너 응답이 겹칠 수 있고,
+// 조건이 없으면 나중에 온 쪽이 먼저 기록된 판정을 덮어쓴다 (SPEC §7.1)
+const CLOSE_UNFINISHED = `
+  UPDATE run_item
+     SET status = 'NA', finished_at = now(), duration_ms = COALESCE(duration_ms, 0),
+         error = jsonb_build_object('message', $2::text)
+   WHERE run_id = $1 AND finished_at IS NULL`;
+
+export interface AbortResult {
+  aborted: number;
+}
+
+// 이미 끝났거나 이미 멈춘 실행은 다시 멈출 수 없다. 그 사실을 부르는 쪽이 409로 알린다 (SPEC §7)
+export async function abortRun(runId: number): Promise<AbortResult | null> {
+  const client = await (await db()).connect();
+  try {
+    await client.query('BEGIN');
+
+    const run = await client.query<{ status: string }>(
+      "SELECT status FROM test_run WHERE run_id = $1 FOR UPDATE",
+      [runId],
+    );
+    if (run.rows[0]?.status !== 'RUNNING') {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    const closed = await client.query(CLOSE_UNFINISHED, [runId, 'ABORTED']);
+    // 끝까지 돌아서 끝난 것과 사람이 끊어서 끝난 것은 증적에서 구분돼야 한다 (SPEC §3.2)
+    await client.query("UPDATE test_run SET status = 'ABORTED', finished_at = now() WHERE run_id = $1", [runId]);
+
+    await client.query('COMMIT');
+    return { aborted: closed.rowCount ?? 0 };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+// 아직 끝나지 않은 항목의 historyId. 러너에 끊어 달라고 할 대상이다 (SPEC §5.2).
+// 대기 중인지 도는 중인지 DB로는 갈리지 않으므로 전부에 보낸다 — 러너가 모르는 것은 false를 돌려준다
+export async function unfinishedItems(runId: number): Promise<number[]> {
+  const pool = await db();
+  const rows = await pool.query<{ history_id: string }>(
+    'SELECT history_id FROM run_item WHERE run_id = $1 AND finished_at IS NULL',
+    [runId],
+  );
+  return rows.rows.map((r) => Number(r.history_id));
+}
+
+// 재기동으로 분배기가 사라지면 그 항목들은 영원히 끝나지 않아 FINISHED 조건이 결코 만족되지 않는다.
+// 부팅 직후 한 번 닫는다 (SPEC §3.2)
+export async function recoverRunning(): Promise<number> {
+  const pool = await db();
+  const running = await pool.query<{ run_id: string }>("SELECT run_id FROM test_run WHERE status = 'RUNNING'");
+  for (const row of running.rows) {
+    await pool.query(CLOSE_UNFINISHED, [Number(row.run_id), 'ABORTED']);
+    await pool.query("UPDATE test_run SET status = 'ABORTED', finished_at = now() WHERE run_id = $1", [
+      Number(row.run_id),
+    ]);
+  }
+  return running.rowCount ?? 0;
+}
+
 export async function finishRun(runId: number): Promise<void> {
   const pool = await db();
   await pool.query(

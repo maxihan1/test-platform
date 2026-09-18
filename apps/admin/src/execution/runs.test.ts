@@ -174,6 +174,20 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     expect(res.json().detail).toContain('XBX-404');
   });
 
+  it('POST /api/runs/:runId/abort — 끝난 실행을 멈추려 하면 409다', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: { title: 'XBX 멈춤 대상', env: 'qa', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+    });
+    const runId = res.json().runId;
+    await 끝날때까지(runId);
+
+    const 멈춤 = await app.inject({ method: 'POST', url: `/api/runs/${runId}/abort` });
+    expect(멈춤.statusCode).toBe(409);
+    expect(멈춤.json().error).toBe('NOT_RUNNING');
+  });
+
   it('만들어질 항목이 상한을 넘으면 400에 상한과 요청 건수를 담아 준다', async () => {
     const res = await app.inject({
       method: 'POST',

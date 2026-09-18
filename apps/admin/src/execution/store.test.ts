@@ -6,7 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { ExecuteResponse } from '@platform/kit';
 
-import { createRun, finishItem, finishRun } from './store.js';
+import { abortRun, createRun, finishItem, finishRun, recoverRunning } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -253,6 +253,58 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
       items: [{ ...항목, platforms: ['desktop', 'mobile'] }],
     });
     expect(run.items).toHaveLength(1000);
+  });
+
+  it('멈추면 미완 항목을 NA와 ABORTED로 닫고 묶음을 ABORTED로 바꾼다', async () => {
+    const run = await createRun({ title: 'XBS 멈춤', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop', 'mobile'] }] });
+
+    const result = await abortRun(run.runId);
+    expect(result).toEqual({ aborted: 2 });
+
+    const items = await pool.query<{ status: string; finished_at: Date | null; error: { message: string } }>(
+      'SELECT status, finished_at, error FROM run_item WHERE run_id = $1',
+      [run.runId],
+    );
+    for (const row of items.rows) {
+      expect(row.status).toBe('NA');
+      expect(row.finished_at).not.toBeNull();
+      expect(row.error.message).toBe('ABORTED');
+    }
+
+    const 묶음 = await pool.query<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [run.runId]);
+    expect(묶음.rows[0]?.status).toBe('ABORTED');
+  });
+
+  it('이미 끝난 판정은 멈춤이 덮어쓰지 않는다', async () => {
+    const run = await createRun({ title: 'XBS 겹침', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop', 'mobile'] }] });
+    const historyId = run.items[0]!.historyId;
+    await finishItem(historyId, { ...결과, historyId, status: 'PASS' });
+
+    const result = await abortRun(run.runId);
+    expect(result).toEqual({ aborted: 1 });
+
+    const row = await pool.query<{ status: string }>('SELECT status FROM run_item WHERE history_id = $1', [historyId]);
+    expect(row.rows[0]?.status).toBe('PASS');
+  });
+
+  it('이미 멈춘 실행을 또 멈추면 null이다', async () => {
+    const run = await createRun({ title: 'XBS 두 번 멈춤', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    await abortRun(run.runId);
+    expect(await abortRun(run.runId)).toBeNull();
+  });
+
+  it('재기동 복구가 도는 중이던 실행을 닫는다', async () => {
+    const run = await createRun({ title: 'XBS 재기동', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+
+    expect(await recoverRunning()).toBeGreaterThanOrEqual(1);
+
+    const 묶음 = await pool.query<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [run.runId]);
+    expect(묶음.rows[0]?.status).toBe('ABORTED');
+
+    const item = await pool.query<{ finished_at: Date | null }>('SELECT finished_at FROM run_item WHERE run_id = $1', [
+      run.runId,
+    ]);
+    expect(item.rows[0]?.finished_at).not.toBeNull();
   });
 
   it('등록되지 않은 접두사는 SERVICE_FORBIDDEN으로 거절한다', async () => {
