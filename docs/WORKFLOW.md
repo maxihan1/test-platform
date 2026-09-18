@@ -30,12 +30,11 @@
 「완료」였던 넷을 전부 `pending` 으로 되돌렸고, 개정으로 더 할 것을 각 킥오프에 적었다.
 2026-09-18 에 `contracts`(공용 밑작업) · `WS-A`(카탈로그) · `WS-B`(실행) · `WS-F`(인증)를 한 세션에서 이어서 돌렸다.
 **이제 나머지 갈래가 전부 풀렸다** — `service` 표와 `ExecuteRequest.baseUrl` 이 들어왔다.
-단위 상태와 순서는 `docs/orchestration.yaml` 이 정본이다.
+갈래별 할 일은 `docs/WORKSTREAMS.md` 의 킥오프 절이 정본이다.
 
 **다음에 돌릴 것은 WS-C(러너) 나 WS-D(리포팅) 다.** 둘 다 `contracts` 만 기다리고 있었고 그것은 끝났다.
 `WS-E`(화면)는 `WS-D` 와 `WS-F` 를 함께 기다리는데 `WS-F` 는 섰으므로 `WS-D` 만 남았다.
-**여기까지의 넷은 아직 `main` 에 없다.** 브랜치 `contracts` 에 쌓여 있고 PR 로 올린다 —
-오케스트레이터는 `main` 의 `orchestration.yaml` 을 읽으므로 병합 전에는 이 넷을 못 본다.
+**`contracts` 는 2026-09-18 에 `main` 으로 병합됐다** (PR #12).
 **2026-09-17~18 SPEC이 크게 개정됐다.** 분량은 `docs/SPEC.md` 색인의 장 목록이 정본이다 —
 여기에 숫자를 적지 않는다 (CLAUDE.md §2.7 ⑤).
 발표 스크립트 대조 10건 + 기술·화면 검토 13건 + 사용자 결정 2건이 반영됐고,
@@ -163,24 +162,27 @@ G3의 항목이 가장 중요하다. 이 한 번의 클릭이 B1 위반을 잡�
 
 ---
 
-## 오케스트레이터로 돌릴 때 (2026-09-17 추가)
+## `/tp` 로 돌린다 (2026-09-18)
 
-`~/Projects/orchestrator`가 이 문서의 남은 단계를 대신 돈다. 사람이 하는 일은 터미널에서 질문에 답하는 것뿐이다.
+이 문서의 남은 단계는 **`/tp <하고 싶은 말>`** 로 돈다. 한 세션 안에서 일곱 단계가 끝까지 간다.
 
-| 이 문서 | 오케스트레이터에서 |
+| 이 문서 | `/tp` 에서 |
 |------|------|
-| [2] Phase 1 갈래 | 작업 단위 `WS-D` (`docs/orchestration.yaml`의 `units`). 계획 → 구현 → 코드리뷰 → QA → 정리 → CI → 병합 7단계 |
-| [3] 전체 검사 · [4] 병합 · G3 · G4 | 작업 단위 `integration`. 병합 5단계가 `steps`, 단계마다 화면 확인. 전체 spec-review 는 이 단위의 코드리뷰. G4 는 `final_check` |
-| ★ Maxi님 확인 | 인터럽트로 온다 — 계획 승인 · 계약 변경 등 질문 · 코드리뷰 중대 판단 · 단계 확인 체크리스트 · 승격 제안 · 막힘 |
-| 킥오프 프롬프트 | WORKSTREAMS.md 의 절을 그대로 읽는다 (`kickoff: "workstreams#WS-D 리포팅"`) |
-| 세션 이어받기 프롬프트 | 같은 세션을 이어받으므로 필요 없다 |
-| `.claude/settings.local.json` 의 WORKSTREAM | 세션마다 환경변수로 넘긴다. 손대지 않는다 |
-| 세션 시작 | 매번 에이전트 자격 시험(`claude plugin eval`)을 먼저 치르고 통과해야 단계에 들어간다 |
+| [2] Phase 1 갈래 | `/tp WS-D 리포팅 진행해줘` — 등급 판정 → 명세 대조 → 할 일 쪼개기 → 계획 검토 → 구현 → 검사 → 병합 |
+| [3] 전체 검사 · G3 | 체인 [6] `tp-review` 가 `spec-review` 를 부른다. 병합 직전 전체 범위는 **다른 세션**이 돌린다 (CLAUDE.md §2.3) |
+| [4] 병합 · G4 | 체인 [7] `tp-merge`. §11 완료 기준은 사람이 확인한다 |
+| ★ Maxi님 확인 | 게이트 0(계약 변경) · 게이트 1(계획) · 게이트 2(병합). **선택창으로 뜬다** |
+| 갈래별 할 일 | `docs/WORKSTREAMS.md` 의 킥오프 절 |
+| 세션 이어받기 | **초안 PR 의 마지막 코멘트가 재개 지점이다.** 추정하지 않는다 |
+| `WORKSTREAM` 환경변수 | `tp-start` 가 작업방을 만들 때 세운다. 손대지 않는다 |
 
-실행은 터미널 두 개.
+**절차 정본은 `.claude/skills/tp/SKILL.md` 다.** 여기에 옮겨 적지 않는다.
 
-1. `cd ~/Projects/orchestrator && npm run server` — 상황판 `https://smith.langchain.com/studio?baseUrl=http://localhost:2024`
-2. `cd ~/Projects/orchestrator && npm run orchestrate -- run ~/Projects/test_platform`
+진행 상황은 **PR 이 상황판**이다 — 본문 체크리스트에 지금 어느 단계인지, 마지막 갱신 시각,
+다음 멈춤이 적힌다. 단계마다 코멘트가 쌓여서 터미널을 안 봐도 보인다.
 
-현재 위치와 비용은 `npm run orchestrate -- status ~/Projects/test_platform`, 어느 세션이 무엇을 읽고 무엇을 바꿨나는 `npm run orchestrate -- trace ~/Projects/test_platform WS-D`.
-기록은 여전히 세션이 `docs/progress/<단위>.md` · `docs/LEARNINGS.md` · `docs/reviews/`에 쓴다. 오케스트레이터 자체 기록(장부·시험 성적)은 `.orchestrator/`에 두고 git 에는 넣지 않는다.
+기록은 세션이 `docs/progress/<갈래>.md` · `docs/LEARNINGS.md` · `docs/reviews/` 에 쓴다.
+
+> **2026-09-17~18 에 별도 프로그램(`~/Projects/orchestrator`)으로 돌렸다가 접었다.**
+> 단계마다 세션이 새로 떠서 명세를 처음부터 다시 읽었다 — 하루 14턴 중 13턴이 파일을 0개
+> 바꿨다. 전말은 `docs/plans/2026-09-18-tp-legacy-purge.md`.

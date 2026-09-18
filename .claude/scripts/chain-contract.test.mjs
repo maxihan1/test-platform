@@ -72,8 +72,8 @@ test('선언 등급과 실측 등급을 서로 다른 단계에서 잰다', () =
 test('SPEC 을 고칠 때 CLAUDE.md §2.7 여섯 곳이 체인에 배선돼 있다', () => {
   const spec = read('tp-spec');
   assert.match(spec, /§2\.7/, 'tp-spec 이 §2.7 을 안 가리킨다');
-  // ④ SPEC 밖 일곱 곳이 이름으로 들어 있어야 한다
-  for (const 곳 of ['WORKSTREAMS', 'orchestration.yaml', 'spec-review', 'SETUP', 'WORKFLOW', 'design-mockup', '코드에 박힌 상수']) {
+  // ④ SPEC 밖 여섯 곳이 이름으로 들어 있어야 한다
+  for (const 곳 of ['WORKSTREAMS', 'spec-review', 'SETUP', 'WORKFLOW', 'design-mockup', '코드에 박힌 상수']) {
     assert.ok(spec.includes(곳), `§2.7 ④ 에 "${곳}" 이 빠졌다`);
   }
   // ③ 가장 잘 빠뜨리는 라우터 표

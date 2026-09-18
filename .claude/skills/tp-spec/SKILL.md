@@ -97,12 +97,11 @@ grep -rn "<핵심 낱말>" docs/spec/ docs/SPEC.md
 
 절을 새로 만들면 **번호를 뒤에 더한다.** 기존 번호는 영구 주소다.
 
-### ④ SPEC 밖 일곱 곳
+### ④ SPEC 밖 여섯 곳
 
 | 어디 | 왜 |
 |---|---|
-| `docs/WORKSTREAMS.md` 킥오프 | **세션이 SPEC 보다 먼저 읽는다.** 여기가 틀리면 SPEC 을 열기 전에 이미 틀린다 |
-| `docs/orchestration.yaml` | 킥오프 이름을 `check:spec` 이 대조한다. 제목이 바뀌면 검사가 깨진다 |
+| `docs/WORKSTREAMS.md` 킥오프 | **세션이 SPEC 보다 먼저 읽는다.** 여기가 틀리면 SPEC 을 열기 전에 이미 틀린다. **기계가 안 본다 — 눈으로 대조한다** |
 | `spec-review` 체크리스트 · `npm run check:*` | 검사가 옛 기준이면 **초록불이 거짓말을 한다** |
 | `docs/SETUP.md` · `docs/HOOKS.md` · `docs/DESIGN.md` | 사람이 따라 하는 절차와 화면 기준 |
 | `docs/WORKFLOW.md` | 지금이 어느 단계이고 무엇이 남았는가 |
