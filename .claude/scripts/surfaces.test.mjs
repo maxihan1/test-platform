@@ -1,7 +1,11 @@
 // 등급 판정표의 판별식. 글로브 우선순위가 틀리면 체인 전체가 틀린 절차로 돈다.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { SURFACES, surfaceOf, detectTier } from './surfaces.mjs';
+
+const DETECT = fileURLToPath(new URL('./detect-tier.mjs', import.meta.url));
 
 test('표가 비어 있지 않다 (공허한 통과 방지)', () => {
   assert.ok(SURFACES.length >= 10, `표면이 ${SURFACES.length}개뿐이다`);
@@ -76,4 +80,21 @@ test('규칙 ② — 신호가 없으면 1등급', () => {
 test('`**` 는 경로 조각 0개에도 걸린다', () => {
   assert.equal(surfaceOf('tests/demo.spec.ts').name, 'TESTS');
   assert.equal(surfaceOf('apps/runner/Dockerfile').name, 'COMPOSE');
+});
+
+// 2026-09-18 실측 — git 이 한글 경로를 8진 이스케이프로 감싸 내보낸다 (core.quotepath 기본값).
+// 풀지 않으면 SPEC 12장(전부 한글 경로)이 미분류로 새어 3등급이 2등급으로 내려간다.
+// detect-tier.mjs 가 스스로 푼다 — 부르는 쪽이 깃발을 외우게 하지 않는다
+test('git 이 이스케이프한 한글 경로도 표면을 찾는다', () => {
+  const 이스케이프 = '"docs/spec/\\352\\263\\265\\355\\206\\265/2-\\353\\252\\205\\354\\204\\270\\354\\204\\240\\354\\226\\270.md"';
+  const 나온것 = execFileSync('node', [DETECT, 이스케이프], { encoding: 'utf8' });
+  assert.match(나온것, /등급: 3/, '이스케이프된 SPEC 경로가 3등급으로 안 잡힌다');
+  assert.match(나온것, /표면: SPEC/, '표면이 SPEC 이 아니다');
+  assert.doesNotMatch(나온것, /미분류/, '미분류로 샌다');
+});
+
+test('안 깨진 경로도 그대로 돈다 (위 검사의 대조군)', () => {
+  const 나온것 = execFileSync('node', [DETECT, 'docs/spec/공통/2-명세선언.md'], { encoding: 'utf8' });
+  assert.match(나온것, /등급: 3/);
+  assert.doesNotMatch(나온것, /미분류/);
 });

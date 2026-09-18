@@ -88,7 +88,7 @@ docs/SPEC.md(색인)와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다
 10. CI는 이미 있다 (.github/workflows/ci.yml). 루트 package.json에 typecheck · test · check:tests
     스크립트를 그 이름 그대로 만들어라. check:tests는 apps/admin/src/catalog/check.ts를 가리키고,
     그 파일은 "아직 검사기 없음"을 찍고 exit 0 하는 스텁으로 둔다 (WS-A가 채운다).
-    첫 푸시에서 CI가 초록불인지 확인한다
+    CI 는 PR 을 Ready 로 바꿀 때 돈다. 초안에서 푸시해도 안 돈다 (2026-09-18)
 
 확인할 것:
 - 러너 이미지 태그와 @playwright/test 버전이 정확히 같은가

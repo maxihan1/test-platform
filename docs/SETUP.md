@@ -11,7 +11,7 @@
 test-platform/                      ← 프로젝트 루트 (이름은 자유)
 ├── CLAUDE.md                       ★ 루트에 둔다. Claude Code가 자동으로 읽는다
 ├── .gitignore
-├── .github/workflows/ci.yml        ★ GitHub Actions. 타입 검사 · 단위 테스트 · 테스트 코드 규칙 검사
+├── .github/workflows/ci.yml        ★ GitHub Actions. 타입 · 단위 테스트 · 테스트 코드 규칙 · SPEC 문서
 ├── .claude/
 │   ├── settings.json               ★ 훅 설정. 커밋한다
 │   ├── scripts/
@@ -82,8 +82,13 @@ git push -u origin main
 배선이 걸렸는지는 아무거나 푸시해 보면 안다. `[pre-push] 검사 시작` 이 안 찍히면 안 걸린 것이다.
 **훅은 실패가 아니라 침묵으로 건너뛴다** — 조용하다고 통과한 것이 아니다.
 
-첫 푸시부터 CI(`.github/workflows/ci.yml`)가 돈다. 골격이 생기기 전에는 "검사할 코드가 없다"로 통과한다.
-무료 플랜의 private 저장소는 서버 쪽 브랜치 보호를 걸 수 없다. CI 초록불 확인은 사람이 한다.
+**초안 PR 에서는 CI 가 돌지 않는다** (2026-09-18). 초안을 풀 때(`gh pr ready`)와
+Ready 상태에서 푸시할 때만 돈다. 골격이 생기기 전에는 "검사할 코드가 없다"로 통과한다.
+
+**그리고 CI 가 초록이어야 병합된다** — `main` 에 브랜치 보호가 걸려 있다.
+설정과 되돌리는 명령은 `docs/HOOKS.md` 「CI 와 병합 차단」에 있다.
+이 저장소는 public 이라 서버 쪽 브랜치 보호를 걸 수 있다. **2026-09-18 부터 걸려 있다** —
+`check` 가 초록이 아니면 병합 버튼이 안 눌린다. 사람이 눈으로 확인할 필요가 없다.
 
 ---
 

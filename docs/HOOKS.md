@@ -108,6 +108,60 @@ Phase 0가 끝나고 게이트 G1을 통과한 뒤부터 예외 없이 띄운다
 `spec-review` 스킬은 검사를 마치면 `docs/reviews/2026-10-02-WS-C.md` 형식으로
 결과를 남겨야 한다. 남기지 않으면 경고가 계속 뜨고, 푸시는 pre-push가 막는다.
 
+## CI 와 병합 차단 — 2026-09-18 신설
+
+훅과 별개로 **GitHub 쪽에도 관문이 둘** 있다.
+
+| 무엇 | 언제 | 어디 |
+|---|---|---|
+| GitHub Actions (`ci.yml`) | **초안을 풀 때**와 **Ready 상태에서 푸시할 때** | 저장소 파일 |
+| `main` 브랜치 보호 | CI 가 초록이어야 병합 | **GitHub 설정** (파일 아님) |
+
+초안 단계에서는 CI 가 돌지 않는다. `/tpx` 가 작업 시작 전에 초안 PR 을 열고 단계마다
+푸시하는데 그 구간은 검토 전이라 검사할 이유가 없고, **초안은 GitHub 이 병합을 막는다.**
+
+### ⚠️ 필수 체크 이름이 `ci.yml` 의 job 이름과 묶여 있다
+
+보호가 요구하는 체크 이름은 **`check`** 이고, 그건 `ci.yml` 의 job 키다.
+**그 이름을 바꾸면 체크가 영영 안 떠서 모든 PR 이 잠긴다.** 바꾸려면 보호를 먼저 고친다.
+
+### 지금 설정 보기
+
+```bash
+gh api repos/maxihan1/test-platform/branches/main/protection \
+  -q '.required_status_checks.contexts, .enforce_admins.enabled'
+```
+
+### 거는 명령
+
+```bash
+printf '%s' '{"required_status_checks":{"strict":false,"contexts":["check"]},
+"enforce_admins":false,"required_pull_request_reviews":null,"restrictions":null}' \
+  | gh api -X PUT repos/maxihan1/test-platform/branches/main/protection --input -
+```
+
+### 지우는 명령 (되돌리기)
+
+```bash
+gh api -X DELETE repos/maxihan1/test-platform/branches/main/protection
+```
+
+### 막혔을 때 빠져나가기
+
+`enforce_admins` 가 꺼져 있어 소유자는 뚫을 수 있다. **`/tpx` 체인은 이 깃발을 쓰지 않는다.**
+
+```bash
+gh pr merge <번호> --admin
+```
+
+### 실측 (2026-09-18, PR #22)
+
+- 초안 푸시 → 실행은 뜨지만 `skipped`. **일을 안 한다**
+- **`skipped` 는 필수 체크를 만족시킨다** — 초안에서 `mergeStateStatus=CLEAN` 이었다.
+  그래도 초안이라 GitHub 이 병합을 막는다
+- `gh pr ready` 직후 **5초 미만** 동안 `CLEAN` 이었다가 `BLOCKED` 로 바뀐다.
+  그 창을 뚫으려면 두 버튼을 손으로 연달아 눌러야 한다 — 체인은 `--watch` 로 지나가지 않는다
+
 ## 워크스트림 지정 — 2026-09-18 걷어냈다
 
 `ownership` 검사가 있었다. **한 번도 켜진 적이 없다.**
