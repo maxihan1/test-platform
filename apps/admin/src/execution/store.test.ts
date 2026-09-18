@@ -287,6 +287,26 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
     expect(row.rows[0]?.status).toBe('PASS');
   });
 
+  it('멈춘 뒤 늦게 온 러너 응답이 이미 닫힌 항목을 덮어쓰지 않는다', async () => {
+    const run = await createRun({ title: 'XBS 늦은 응답', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const historyId = run.items[0]!.historyId;
+
+    // 사람이 멈춘 직후다. 그 항목의 러너 호출은 이미 나가 있어서 응답이 뒤늦게 도착한다
+    await abortRun(run.runId);
+    await finishItem(historyId, { ...결과, historyId, status: 'PASS' });
+
+    const row = await pool.query<{ status: string; error: { message: string } }>(
+      'SELECT status, error FROM run_item WHERE history_id = $1',
+      [historyId],
+    );
+    expect(row.rows[0]?.status).toBe('NA');
+    expect(row.rows[0]?.error.message).toBe('ABORTED');
+
+    // 판정을 안 받았으면 절차 기록도 남기지 않는다. 묶음은 ABORTED인데 절차만 PASS로 쌓이면 증적이 어긋난다
+    const steps = await pool.query('SELECT 1 FROM run_item_step WHERE history_id = $1', [historyId]);
+    expect(steps.rowCount).toBe(0);
+  });
+
   it('이미 멈춘 실행을 또 멈추면 null이다', async () => {
     const run = await createRun({ title: 'XBS 두 번 멈춤', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     await abortRun(run.runId);

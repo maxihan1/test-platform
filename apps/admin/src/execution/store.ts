@@ -264,10 +264,17 @@ export async function finishItem(historyId: number, result: ExecuteResponse): Pr
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');
-    await client.query(
-      'UPDATE run_item SET status = $2, duration_ms = $3, error = $4, finished_at = now() WHERE history_id = $1',
+    // 아래 CLOSE_UNFINISHED와 같은 규칙이다 — 닫는 UPDATE에는 언제나 AND finished_at IS NULL 을 붙인다.
+    // 사람이 멈춘 직후에는 그 항목의 러너 호출이 이미 나가 있어 응답이 뒤늦게 도착한다
+    const closed = await client.query(
+      'UPDATE run_item SET status = $2, duration_ms = $3, error = $4, finished_at = now() WHERE history_id = $1 AND finished_at IS NULL',
       [historyId, result.status, result.durationMs, result.error === undefined ? null : JSON.stringify(result.error)],
     );
+    if (closed.rowCount === 0) {
+      // 먼저 닫힌 쪽이 이긴다. 절차 기록도 넣지 않는다 — 묶음은 ABORTED인데 절차만 PASS로 쌓이면 증적이 어긋난다
+      await client.query('ROLLBACK');
+      return;
+    }
     for (const step of result.steps) {
       await client.query(INSERT_STEP, stepValues(historyId, step));
     }
