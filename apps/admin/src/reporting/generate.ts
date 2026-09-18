@@ -10,6 +10,7 @@ import { enqueue } from '../execution/dispatcher.js';
 import { collectRun } from './collect.js';
 import { renderHtml } from './html.js';
 import { fail, findDocument, finish, type EvidenceFormat } from './store.js';
+import { renderXlsx } from './xlsx.js';
 
 /** 확장자와 Content-Type을 한 표에 둔다. 두 곳으로 갈리면 html 파일이 application/pdf로 나간다 */
 export const 형식표: Record<EvidenceFormat, { ext: string; mime: string }> = {
@@ -44,12 +45,6 @@ function 찍는다(html: string, 파일경로: string): Promise<void> {
 
 export async function generate(id: number, runId: number, format: EvidenceFormat): Promise<void> {
   try {
-    // XLSX는 아직 없다. PENDING으로 두면 그 형식이 영영 잠기므로 사유를 적고 닫는다
-    if (format === 'XLSX') {
-      await fail(id, '아직 못 만드는 형식입니다');
-      return;
-    }
-
     // 「만든 시각」은 claim이 박아 둔 DB의 값이다. 여기서 새로 재면 문서와 기록이 갈린다 (SPEC §3.3)
     const 행 = await findDocument(id);
     if (행 === null) throw new Error(`증적 문서 ${String(id)} 행이 사라졌다`);
@@ -60,9 +55,13 @@ export async function generate(id: number, runId: number, format: EvidenceFormat
     const 폴더 = join(artifactsDir(), 'evidence', String(runId));
     await mkdir(폴더, { recursive: true });
     const 파일경로 = join(폴더, `${String(id)}.${형식표[format].ext}`);
-    const html = renderHtml(doc, { generatedAt: 행.generatedAt });
-    if (format === 'HTML') await writeFile(파일경로, html, 'utf8');
-    else await 찍는다(html, 파일경로);
+    // 엑셀만 HTML 을 거치지 않는다. 같은 모델을 표로 따로 편다 (SPEC §8.4)
+    if (format === 'XLSX') await writeFile(파일경로, await renderXlsx(doc, { generatedAt: 행.generatedAt }));
+    else {
+      const html = renderHtml(doc, { generatedAt: 행.generatedAt });
+      if (format === 'HTML') await writeFile(파일경로, html, 'utf8');
+      else await 찍는다(html, 파일경로);
+    }
 
     await finish(id, 파일경로);
   } catch (err) {
