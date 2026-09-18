@@ -51,9 +51,14 @@ gh pr edit <번호> --title "<`[작업중]` 을 뗀 제목>"
 ## Step 3. 병합
 
 ```bash
-gh pr merge <번호> --merge
+gh pr merge <번호> --merge --delete-branch
 gh pr view <번호> --json state -q .state      # MERGED 확인
 ```
+
+**`--delete-branch` 가 원격 브랜치를 함께 지운다.** 병합된 브랜치라 안전하다 (CLAUDE.md §5).
+
+⚠️ **`--delete-branch` 가 「main is already used by worktree」로 실패해도 병합 자체는 성공한 것이다.**
+에러 메시지에 속지 말고 `gh pr view --json state` 로 확인한다. 남은 원격 브랜치는 Step 5 가 치운다.
 
 충돌이 나면 `git pull --rebase origin main` 후 충돌 파일을 표시하고 사용자에게 넘긴다.
 
@@ -101,7 +106,30 @@ git rev-list --count main..origin/main    # 0 이어야 한다
 
 **0 이 아니면 최신화가 안 된 것이다.** 보고에 그대로 적는다.
 
-## Step 5. 기록 — 이게 다음 세션의 입력이다
+## Step 5. 브랜치를 치운다 — `-d` 만 쓴다
+
+**순서를 뒤집지 않는다.** `git branch -d` 는 그 브랜치가 **어느 작업방에든 체크아웃돼 있으면
+거부한다.** Step 4 의 작업방 제거가 먼저다.
+
+```bash
+git worktree prune                       # Step 4 에서 이미 했으면 무해하다
+git branch --merged main | grep -v '^\*\|main'   # 지울 후보를 먼저 본다
+git branch -d <이름>                      # 후보마다
+git push origin --delete <이름>           # Step 3 의 --delete-branch 가 실패했을 때만
+```
+
+**`-D` 를 절대 쓰지 않는다.** `-d` 는 병합 안 된 커밋이 있으면 git 이 스스로 거부한다 —
+**소실이 구조적으로 불가능하다.** 거부당한 브랜치는 **고치려 하지 말고 보고에 싣는다.**
+
+> 정리 못 한 브랜치: `<이름>` (미병합 `<N>`커밋)
+> 버리려면 강제 삭제가 필요하다 — **사람이 직접 친다.**
+
+**명령을 여기 적어 두지 않는다.** 적어 두면 다음 세션이 복사해 쓴다.
+강제 삭제는 `guard.mjs` 가 막고 `CLAUDE.md §5` 가 금지한다. 그 판단은 사람의 몫이다.
+
+**2026-09-18 실측** — 이 단계가 없어서 PR 다섯을 병합하고 **브랜치 12개를 손으로 지웠다.**
+
+## Step 6. 기록 — 이게 다음 세션의 입력이다
 
 ### 진행 기록 (항상)
 
@@ -134,13 +162,19 @@ CLAUDE.md §2.5 의 「적는 기준」에 맞는 것만 적는다.
 직접 고쳐도 되는 곳 — `spec-review` 체크리스트 · `npm run check:*` · `.claude/scripts/` 훅 ·
 안내 문서. SPEC 과 CLAUDE.md 기존 규칙은 승인을 받는다.
 
-## Step 6. PR 을 닫는 코멘트
+## Step 7. PR 을 닫는다 — 체크리스트를 전부 채운다
+
+**`--done` 을 쓴다.** `--step 7` 은 7번을 「지금 여기」로만 그리고 **끝내 체크하지 않는다** —
+그 뒤에 갱신할 자리가 없기 때문이다 (2026-09-18 실측).
 
 ```bash
-node .claude/scripts/pr-update.mjs --pr <번호> --tier <등급> --step 7 --gate 2 --next "없음 — 병합"
+node .claude/scripts/pr-update.mjs --pr <번호> --tier <등급> --done
 node .claude/scripts/pr-update.mjs --pr <번호> --comment "### [7/7] 병합 완료
 <무엇이 main 에 들어갔나 · 사용자가 어디서 확인하나>"
 ```
+
+`--done` 은 일곱 단계와 게이트 둘을 전부 `[x]` 로 닫고 「다음 멈춤」을 `없음 — 끝` 으로 바꾼다.
+**이게 체인의 마지막 명령이다.**
 
 ## 출력
 
@@ -151,9 +185,10 @@ node .claude/scripts/pr-update.mjs --pr <번호> --comment "### [7/7] 병합 완
 🔄 [7/7] tp-merge
    ├─ 미커밋 0 ✅ · 미푸시 0 ✅ · 검사 근거 확인 ✅
    ├─ gh pr ready → 초안 해제 · `[작업중]` 뗌
-   ├─ 병합: PR #<번호> merged
+   ├─ 병합: PR #<번호> merged · 원격 브랜치 삭제 ✅
    ├─ 작업방에서 나옴 → main 최신화 ✅ (뒤처짐 0)
    ├─ 작업방: 정리 또는 유지
+   ├─ 브랜치 정리: <N>개 (`-d`) · 정리 못 한 것 <없음 또는 목록>
    └─ 기록: progress ✅ · LEARNINGS <N건 또는 해당 없음>
 ```
 
