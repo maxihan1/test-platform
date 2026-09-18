@@ -14,13 +14,25 @@ const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모�
 // 요청이 잘못된 것과 서버가 고장난 것을 라우트가 문자열로 가려내지 않게 한다
 export class RunInputError extends Error {
   constructor(
-    readonly code: 'CASE_NOT_FOUND' | 'INVALID_REQUEST' | 'MIXED_SERVICE' | 'ENV_NOT_FOUND' | 'SERVICE_FORBIDDEN',
+    readonly code:
+      | 'CASE_NOT_FOUND'
+      | 'INVALID_REQUEST'
+      | 'MIXED_SERVICE'
+      | 'ENV_NOT_FOUND'
+      | 'SERVICE_FORBIDDEN'
+      | 'TOO_MANY_ITEMS',
     message: string,
+    // TOO_MANY_ITEMS 는 응답에 상한과 요청 건수를 같이 싣는다 (SPEC §8.2)
+    readonly detail: { limit: number; requested: number } | undefined = undefined,
   ) {
     super(message);
     this.name = 'RunInputError';
   }
 }
+
+// 한 번에 만들어질 실행 항목의 상한. 설정값으로 빼지 않는다 — 설정이 늘면 「어느 값이었더라」가 는다.
+// 숫자를 바꾸려면 SPEC §8.2 를 먼저 고친다
+export const MAX_ITEMS = 1000;
 
 export interface RunItemInput {
   tcId: string;
@@ -35,6 +47,8 @@ export interface CreateRunInput {
   triggeredBy: string;
   // 대상 서버 키. 기본값을 두지 않는다 — 안 채우면 빈 칸이 아니라 틀린 값이 남는다 (SPEC §6)
   env: string;
+  // 회차 수. 요청 최상위에 하나다 — 항목마다 다르면 「실행 항목이 N건 생깁니다」를 셀 수 없다 (SPEC §8.2)
+  repeat?: number;
   items: RunItemInput[];
 }
 
@@ -82,8 +96,8 @@ interface CaseRow {
 // 나중에 읽으면 그날 무엇으로 돌렸는지가 달라진다 (SPEC §3.3 · §6)
 const INSERT_ITEM = `
   INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status,
-                        file_path, param_schema, expected_schema, timeout_ms)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11)
+                        file_path, param_schema, expected_schema, timeout_ms, attempt)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12)
   RETURNING history_id`;
 
 export async function createRun(input: CreateRunInput): Promise<{ runId: number; items: PendingItem[] }> {
@@ -110,6 +124,22 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
   }
   const prefix = prefixes[0] ?? '';
   if (input.env.trim() === '') throw new RunInputError('INVALID_REQUEST', '대상 서버를 고르지 않았다');
+
+  const repeat = input.repeat ?? 1;
+  if (!Number.isInteger(repeat) || repeat < 1) {
+    throw new RunInputError('INVALID_REQUEST', '반복 횟수는 1 이상의 정수여야 한다');
+  }
+
+  // 막는 것은 repeat 가 아니라 만들어질 건수다. 그래야 케이스 수가 늘어도 같이 보호된다 (SPEC §8.2).
+  // 동시 실행 2 는 돌아가는 프로세스 수를 막지 INSERT 건수를 막지 않는다
+  const requested = input.items.reduce((n, i) => n + i.platforms.length, 0) * repeat;
+  if (requested > MAX_ITEMS) {
+    throw new RunInputError(
+      'TOO_MANY_ITEMS',
+      `한 번에 ${MAX_ITEMS}건까지 만들 수 있는데 ${requested}건을 요청했다`,
+      { limit: MAX_ITEMS, requested },
+    );
+  }
 
   const client = await (await db()).connect();
   try {
@@ -161,29 +191,33 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
       const spec = cases.get(item.tcId)!;
       const timeoutMs = item.timeoutMs ?? DEFAULT_TIMEOUT_MS;
       for (const platform of item.platforms) {
-        const row = await client.query<{ history_id: string }>(INSERT_ITEM, [
-          runId,
-          item.tcId,
-          platform,
-          spec.name,
-          JSON.stringify(spec.precondition),
-          JSON.stringify(item.params),
-          JSON.stringify(item.expected),
-          spec.file_path,
-          JSON.stringify(spec.param_schema),
-          JSON.stringify(spec.expected_schema),
-          timeoutMs,
-        ]);
-        items.push({
-          historyId: Number(row.rows[0]!.history_id),
-          tcId: item.tcId,
-          platform,
-          filePath: spec.file_path,
-          baseUrl: found서비스.base_url,
-          params: item.params,
-          expected: item.expected,
-          timeoutMs,
-        });
+        // 회차는 1부터다. 러너에는 보이지 않는다 — historyId 만 다른 같은 요청을 N번 보낼 뿐이다 (SPEC §5.2)
+        for (let attempt = 1; attempt <= repeat; attempt += 1) {
+          const row = await client.query<{ history_id: string }>(INSERT_ITEM, [
+            runId,
+            item.tcId,
+            platform,
+            spec.name,
+            JSON.stringify(spec.precondition),
+            JSON.stringify(item.params),
+            JSON.stringify(item.expected),
+            spec.file_path,
+            JSON.stringify(spec.param_schema),
+            JSON.stringify(spec.expected_schema),
+            timeoutMs,
+            attempt,
+          ]);
+          items.push({
+            historyId: Number(row.rows[0]!.history_id),
+            tcId: item.tcId,
+            platform,
+            filePath: spec.file_path,
+            baseUrl: found서비스.base_url,
+            params: item.params,
+            expected: item.expected,
+            timeoutMs,
+          });
+        }
       }
     }
 

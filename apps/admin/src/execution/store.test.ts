@@ -205,6 +205,56 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
     ).rejects.toMatchObject({ code: 'ENV_NOT_FOUND' });
   });
 
+  it('반복 횟수만큼 항목을 만들고 회차를 1부터 기록한다', async () => {
+    const run = await createRun({
+      title: 'XBS 반복',
+      triggeredBy: 'tester',
+      env: 'qa',
+      repeat: 3,
+      items: [{ ...항목, platforms: ['desktop', 'mobile'] }],
+    });
+    expect(run.items).toHaveLength(6);
+
+    const rows = await pool.query<{ platform: string; attempt: number }>(
+      'SELECT platform, attempt FROM run_item WHERE run_id = $1 ORDER BY platform, attempt',
+      [run.runId],
+    );
+    expect(rows.rows.map((r) => `${r.platform}/${r.attempt}`)).toEqual([
+      'desktop/1', 'desktop/2', 'desktop/3', 'mobile/1', 'mobile/2', 'mobile/3',
+    ]);
+  });
+
+  it('반복을 안 주면 회차는 1이고 항목도 하나다', async () => {
+    const run = await createRun({ title: 'XBS 반복 없음', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    expect(run.items).toHaveLength(1);
+
+    const row = await pool.query<{ attempt: number }>('SELECT attempt FROM run_item WHERE run_id = $1', [run.runId]);
+    expect(row.rows[0]?.attempt).toBe(1);
+  });
+
+  it('만들어질 항목이 1000건을 넘으면 상한과 요청 건수를 담아 거절한다', async () => {
+    await expect(
+      createRun({
+        title: 'XBS 너무 많음',
+        triggeredBy: 'tester',
+        env: 'qa',
+        repeat: 501,
+        items: [{ ...항목, platforms: ['desktop', 'mobile'] }],
+      }),
+    ).rejects.toMatchObject({ code: 'TOO_MANY_ITEMS', detail: { limit: 1000, requested: 1002 } });
+  });
+
+  it('딱 1000건은 통과한다', async () => {
+    const run = await createRun({
+      title: 'XBS 딱 상한',
+      triggeredBy: 'tester',
+      env: 'qa',
+      repeat: 500,
+      items: [{ ...항목, platforms: ['desktop', 'mobile'] }],
+    });
+    expect(run.items).toHaveLength(1000);
+  });
+
   it('등록되지 않은 접두사는 SERVICE_FORBIDDEN으로 거절한다', async () => {
     await expect(
       createRun({ title: 'XBS 없는 서비스', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, tcId: 'XBQ-001', platforms: ['desktop'] }] }),

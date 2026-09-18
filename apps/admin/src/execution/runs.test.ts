@@ -174,6 +174,30 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     expect(res.json().detail).toContain('XBX-404');
   });
 
+  it('만들어질 항목이 상한을 넘으면 400에 상한과 요청 건수를 담아 준다', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: {
+        title: 'XBX 상한 초과',
+        env: 'qa',
+        repeat: 600,
+        items: [{ tcId: 'XBX-001', platforms: ['desktop', 'mobile'], params: {}, expected: {} }],
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: 'TOO_MANY_ITEMS', limit: 1000, requested: 1200 });
+  });
+
+  it('대상 서버를 안 주면 400이다', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: { title: 'XBX 환경 없음', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('같은 케이스와 환경이 두 번 들어오면 400이다', async () => {
     const res = await app.inject({
       method: 'POST',

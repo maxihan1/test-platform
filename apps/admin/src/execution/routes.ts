@@ -29,6 +29,8 @@ const runBody = z.object({
   // 대상 서버 키. 기본값을 두지 않는다 — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §6).
   // 주소는 요청이 싣지 않는다. 서버가 그 서비스의 service_env에서 찾는다
   env: z.string().min(1),
+  // 요청 최상위에 하나다. 항목마다 다르면 실행 항목 수를 미리 셀 수 없다 (SPEC §8.2)
+  repeat: z.number().int().positive().default(1),
   items: z
     .array(
       z.object({
@@ -70,6 +72,10 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
       if (err instanceof RunInputError) {
         // 배정받지 않은 서비스는 403이다. 404로 감추지 않는다 (SPEC §3.5)
         const code = err.code === 'CASE_NOT_FOUND' ? 404 : err.code === 'SERVICE_FORBIDDEN' ? 403 : 400;
+        // 상한을 넘겼을 때는 화면이 숫자를 그대로 보여줄 수 있게 상한과 요청 건수를 같이 싣는다 (SPEC §8.2)
+        if (err.detail !== undefined) {
+          return reply.code(code).send({ error: err.code, ...err.detail });
+        }
         return reply.code(code).send({ error: err.code, detail: err.message });
       }
       throw err;
