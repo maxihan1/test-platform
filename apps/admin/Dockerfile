@@ -17,5 +17,10 @@ COPY tsconfig.json playwright.config.ts ./
 COPY packages ./packages
 COPY apps/admin ./apps/admin
 
+# .dockerignore가 **/dist를 막아 호스트에서 빌드한 산출물은 이미지에 안 들어온다.
+# 이 단계가 없으면 컨테이너는 API만 내고 화면 주소는 빈 화면이다 (SPEC §9).
+# 글꼴도 번들에 담겨 여기서 같이 실린다 — 바깥 주소에서 받아오지 않는다 (DESIGN.md)
+RUN npx vite build --config apps/admin/src/web/vite.config.ts
+
 EXPOSE 3000
 CMD ["npx", "tsx", "apps/admin/src/app.ts"]

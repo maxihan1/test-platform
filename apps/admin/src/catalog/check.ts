@@ -1,4 +1,4 @@
-// npm run check:tests 진입점. 스캐너를 DB 없이 돌려 SPEC §4 케이스 파일 규칙 K1~K8을 검사한다.
+// npm run check:tests 진입점. 스캐너를 DB 없이 돌려 SPEC §4 케이스 파일 규칙 K1~K10을 검사한다.
 // CI(.github/workflows/ci.yml)와 pre-push 훅이 이 이름으로 부르므로 위반이 있으면 exit 1 해야 한다
 
 import { execFile } from 'node:child_process';
@@ -86,7 +86,7 @@ async function main(): Promise<void> {
   violations.push(...(await registration(files.map(rel))));
 
   if (violations.length === 0) {
-    console.log(`[check:tests] 케이스 ${files.length}건 · SPEC §4 규칙 K1~K8 통과`);
+    console.log(`[check:tests] 케이스 ${files.length}건 · SPEC §4 규칙 K1~K10 통과`);
     return;
   }
 

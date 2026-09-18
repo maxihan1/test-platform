@@ -7,11 +7,13 @@ import { join, resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-import { dispatch } from './dispatcher.js';
+import { dispatch, markAborted } from './dispatcher.js';
+import { notifyRun } from './notify.js';
+import { abortRunner } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
-import { findItem, findRun, listRuns } from './queries.js';
-import { createRun, RunInputError } from './store.js';
+import { findItem, findRun, listRuns, serviceExists } from './queries.js';
+import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
 
 const PAGE_SIZE = 50;
@@ -24,8 +26,15 @@ const paramSetBody = z.object({
 
 const runBody = z.object({
   title: z.string().min(1),
-  // test_run.triggered_by는 NOT NULL이다. 화면이 안 적어 보내면 admin이 눌렀다고 남긴다
-  triggeredBy: z.string().min(1).default('admin'),
+  // 실행자는 여기 없다. 로그인한 사람에게서 온다 — 보내는 쪽이 정할 수 있으면 아무 이름이나
+  // 적을 수 있어 증적이 증적이 아니게 된다 (SPEC §3.5). 본문에 실려 와도 zod가 버린다
+  // 대상 서버 키. 기본값을 두지 않는다 — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §6).
+  // 주소는 요청이 싣지 않는다. 서버가 그 서비스의 service_env에서 찾는다
+  env: z.string().min(1),
+  // 요청 최상위에 하나다. 항목마다 다르면 실행 항목 수를 미리 셀 수 없다 (SPEC §8.2)
+  repeat: z.number().int().positive().default(1),
+  // 기본은 꺼짐. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 된다 (SPEC §8.2 · §8.9)
+  notifySlack: z.boolean().default(false),
   items: z
     .array(
       z.object({
@@ -50,14 +59,32 @@ function page(raw: string | undefined): number {
 }
 
 export default async function executionRoutes(app: FastifyInstance): Promise<void> {
+  // 재기동으로 분배기가 사라지면 그 항목들은 영원히 끝나지 않아 FINISHED 조건이 결코 만족되지 않는다.
+  // 뜨는 김에 한 번 닫는다. 실패해도 admin 은 떠야 하므로 사유만 남긴다 (SPEC §3.2)
+  void recoverRunning()
+    .then((n) => {
+      if (n > 0) app.log.warn(`[execution] 재기동 전에 돌던 실행 ${n}건을 중단으로 닫았다`);
+    })
+    .catch((err: unknown) => {
+      app.log.error(`[execution] 재기동 복구가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
+    });
+
   app.post('/runs', async (req, reply) => {
     const parsed = runBody.safeParse(req.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
 
+    // 문(auth/gate.ts)이 모든 /api 앞에 서므로 여기 닿았으면 사람이 있다.
+    // 문 없이 이 라우트만 띄우는 검사에서만 빈 자리가 생기고, 그때는 이름 칸을 비워 둔다 (SPEC §3.5)
+    const 사람 = req.user ?? null;
+
     try {
-      const { runId, items } = await createRun(parsed.data);
+      const { runId, items } = await createRun({
+        ...parsed.data,
+        triggeredBy: 사람?.username ?? '알 수 없음',
+        triggeredByName: 사람?.displayName,
+      });
       // 기다리지 않는다. 케이스 하나가 5분이면 응답이 5분 동안 열려 있게 된다 (SPEC §7)
       void dispatch(runId, items).catch((err: unknown) => {
         app.log.error(`[execution] 실행 ${runId} 분배가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
@@ -65,13 +92,55 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
       return { runId };
     } catch (err) {
       if (err instanceof RunInputError) {
-        return reply.code(err.code === 'CASE_NOT_FOUND' ? 404 : 400).send({ error: err.code, detail: err.message });
+        // 배정받지 않은 서비스는 403이다. 404로 감추지 않는다 (SPEC §3.5)
+        const code = err.code === 'CASE_NOT_FOUND' ? 404 : err.code === 'SERVICE_FORBIDDEN' ? 403 : 400;
+        // 상한을 넘겼을 때는 화면이 숫자를 그대로 보여줄 수 있게 상한과 요청 건수를 같이 싣는다 (SPEC §8.2)
+        if (err.detail !== undefined) {
+          return reply.code(code).send({ error: err.code, ...err.detail });
+        }
+        return reply.code(code).send({ error: err.code, detail: err.message });
       }
       throw err;
     }
   });
 
-  app.get<{ Querystring: { page?: string } }>('/runs', async (req) => listRuns(page(req.query.page), PAGE_SIZE));
+  app.post<{ Params: { runId: string } }>('/runs/:runId/abort', async (req, reply) => {
+    const runId = Number(req.params.runId);
+
+    // 끊을 대상을 먼저 손에 쥔다. 닫고 나면 finished_at 이 차서 못 찾는다.
+    // 그 사이에 끝난 것이 섞여도 러너가 모르는 historyId 는 false 를 돌려줄 뿐이다 (SPEC §5.2)
+    const 미완 = await unfinishedItems(runId);
+
+    // DB 에서 먼저 닫는다. 러너 응답과 겹쳐도 finished_at IS NULL 조건이 먼저 온 것만 기록한다 (SPEC §7.1)
+    const result = await abortRun(runId);
+    if (result === null) {
+      return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
+    }
+
+    markAborted(runId);
+    // 돌고 있는 자식까지 끊는다. 대기 중인 것만 취소하면 5분짜리 케이스가 도는 중에는
+    // 버튼이 아무 일도 안 하는 것처럼 보인다 (SPEC §8.3)
+    await Promise.all(미완.map((historyId) => abortRunner(historyId)));
+
+    // 사람이 멈춘 것도 끝난 것이다. 알림이 실패해도 멈춤은 성립한다 (SPEC §8.9)
+    try {
+      await notifyRun(runId);
+    } catch (err) {
+      app.log.error(`[execution] 실행 ${runId}의 Slack 알림을 보내지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    return result;
+  });
+
+  app.get<{ Querystring: { service?: string; page?: string } }>('/runs', async (req, reply) => {
+    // 한 번에 한 서비스만 본다. 섞이면 목록이 남의 실행으로 채워진다 (SPEC §8 · §8.7)
+    const service = req.query.service ?? '';
+    if (service === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
+    if (!(await serviceExists(service))) {
+      return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
+    }
+    return listRuns(service, page(req.query.page), PAGE_SIZE);
+  });
 
   // 목록 화면이 케이스마다 이력을 따로 부르지 않게 한 번에 준다 (SPEC §8.1, WS-A 검사 기록 '기타 2')
   app.get('/runs/last-by-case', async () => ({ items: await lastByCase() }));

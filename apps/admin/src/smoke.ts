@@ -85,6 +85,8 @@ async function main(): Promise<void> {
     tcId: CASE.tcId,
     platform: CASE.platform,
     filePath: CASE.filePath,
+    // 관통 확인용 케이스는 params의 url로 직접 열어서 baseURL을 쓰지 않는다
+    baseUrl: '',
     params: paramSet.params,
     expected: paramSet.expected,
     timeoutMs: 120_000,

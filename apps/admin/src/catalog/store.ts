@@ -2,7 +2,7 @@
 
 import type { Pool } from 'pg';
 
-import type { CaseSpec } from '@platform/kit';
+import type { CaseSpec, Platform } from '@platform/kit';
 
 export interface SaveResult {
   added: number;
@@ -71,27 +71,57 @@ function literal(term: string): string {
   return `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 }
 
-export async function listCases(
-  q: string,
-  page: number,
-  pageSize: number,
-): Promise<{ items: CaseRow[]; total: number; page: number; pageSize: number }> {
+export interface CaseQuery {
+  // 보고 있는 서비스의 접두사. test_case에는 서비스 칸이 없다 — 번호가 이미 서비스를 말한다 (SPEC §1 · §6)
+  service: string;
+  q: string;
+  platform?: Platform;
+  // 화면 칩은 「활성만」과 「전체」 둘이다 (§8.1). 기본은 활성만
+  activeOnly: boolean;
+  page: number;
+  pageSize: number;
+}
+
+export interface CaseList {
+  items: CaseRow[];
+  total: number;
+  // 지금은 세어서 내므로 정확하다. 근사치로 바뀌는 날 화면이 이 값을 보고 판단한다 (§8.1)
+  totalIsExact: boolean;
+  // 화면이 순서를 정하지 않는다. 응답이 준 순서 그대로 그린다 (§8.1)
+  sort: string;
+  page: number;
+  pageSize: number;
+}
+
+export async function listCases(query: CaseQuery): Promise<CaseList> {
   const pool = await db();
   const rows = await pool.query<RawRow>(
     `SELECT ${COLUMNS}, count(*) OVER () AS total
        FROM test_case
-      WHERE is_active
-        AND ($1 = '' OR tc_id ILIKE $2 ESCAPE '\\' OR name ILIKE $2 ESCAPE '\\')
+      WHERE tc_id LIKE $1
+        AND ($2 = '' OR tc_id ILIKE $3 ESCAPE '\\' OR name ILIKE $3 ESCAPE '\\')
+        AND (NOT $4::boolean OR is_active)
+        AND ($5::jsonb IS NULL OR platforms @> $5::jsonb)
       ORDER BY tc_id
-      LIMIT $3 OFFSET $4`,
-    [q, literal(q), pageSize, (page - 1) * pageSize],
+      LIMIT $6 OFFSET $7`,
+    [
+      `${query.service}-%`,
+      query.q,
+      literal(query.q),
+      query.activeOnly,
+      query.platform === undefined ? null : JSON.stringify([query.platform]),
+      query.pageSize,
+      (query.page - 1) * query.pageSize,
+    ],
   );
 
   return {
     items: rows.rows.map(toCase),
     total: Number(rows.rows[0]?.total ?? 0),
-    page,
-    pageSize,
+    totalIsExact: true,
+    sort: 'tcId',
+    page: query.page,
+    pageSize: query.pageSize,
   };
 }
 
@@ -103,7 +133,28 @@ export async function findCase(tcId: string): Promise<CaseRow | null> {
   return row === undefined ? null : toCase(row);
 }
 
-export async function save(specs: CaseSpec[], deactivateMissing: boolean): Promise<SaveResult> {
+export interface ServiceRow {
+  id: number;
+  prefix: string;
+  name: string;
+  testsDir: string;
+}
+
+// 서비스는 지우지 않고 비활성으로 내린다. 내려간 서비스의 케이스는 더 훑지 않는다 (SPEC §8.8)
+export async function activeServices(): Promise<ServiceRow[]> {
+  const pool = await db();
+  const rows = await pool.query<{ id: string; prefix: string; name: string; tests_dir: string }>(
+    'SELECT id, prefix, name, tests_dir FROM service WHERE is_active ORDER BY prefix',
+  );
+  return rows.rows.map((r) => ({ id: Number(r.id), prefix: r.prefix, name: r.name, testsDir: r.tests_dir }));
+}
+
+export async function findService(prefix: string): Promise<ServiceRow | null> {
+  const found = await activeServices();
+  return found.find((s) => s.prefix === prefix) ?? null;
+}
+
+export async function save(specs: CaseSpec[], deactivateMissing: boolean, prefix: string): Promise<SaveResult> {
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');
@@ -124,12 +175,15 @@ export async function save(specs: CaseSpec[], deactivateMissing: boolean): Promi
     }
 
     // 코드에서 사라진 케이스는 지우지 않는다. 과거 실행 이력이 참조하므로 비활성으로만 둔다 (SPEC §3.1).
-    // 스캔 결과가 통째로 비면 마운트가 빠진 쪽이 훨씬 그럴듯하므로 카탈로그를 전부 내리지 않는다
+    // 스캔 결과가 통째로 비면 마운트가 빠진 쪽이 훨씬 그럴듯하므로 카탈로그를 전부 내리지 않는다.
+    // 범위는 이 서비스의 접두사 안이다 — 서비스마다 자기 폴더만 훑으므로(§9.2) 전체를 범위로 잡으면
+    // 한 서비스를 스캔할 때 다른 서비스의 케이스가 통째로 내려간다
     let deactivated = 0;
     if (deactivateMissing && specs.length > 0) {
       const dropped = await client.query(
-        'UPDATE test_case SET is_active = false WHERE is_active = true AND tc_id <> ALL($1::text[])',
-        [specs.map((s) => s.tcId)],
+        `UPDATE test_case SET is_active = false
+          WHERE is_active = true AND tc_id LIKE $2 AND tc_id <> ALL($1::text[])`,
+        [specs.map((s) => s.tcId), `${prefix}-%`],
       );
       deactivated = dropped.rowCount ?? 0;
     }

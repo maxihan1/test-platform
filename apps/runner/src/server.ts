@@ -18,6 +18,7 @@ const executeRequest = z.object({
   tcId: z.string(),
   platform: z.enum(['desktop', 'mobile']),
   filePath: z.string(),
+  baseUrl: z.string(),
   params: z.record(z.string(), z.unknown()),
   expected: z.record(z.string(), z.unknown()),
   timeoutMs: z.number().int().positive().default(300_000),

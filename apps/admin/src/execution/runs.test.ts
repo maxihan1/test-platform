@@ -16,6 +16,17 @@ import executionRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
 
+const 서비스 = `
+  WITH s AS (
+    INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+    VALUES ('XBX', 'XBX 서비스', '#334455', 'https://xbx.example.com', 'xbx')
+    ON CONFLICT (prefix) DO UPDATE SET is_active = true
+    RETURNING id
+  )
+  INSERT INTO service_env (service_id, env, base_url)
+  SELECT id, 'qa', 'https://qa.example.com' FROM s
+  ON CONFLICT (service_id, env) DO UPDATE SET base_url = EXCLUDED.base_url`;
+
 const 케이스 = `
   INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema)
   VALUES ($1, $2, $3, '["로그인 화면에 접근할 수 있다"]', $4, '{"type":"object","properties":{}}', '{"type":"object","properties":{}}')
@@ -45,6 +56,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
     await 치운다();
+    await pool.query(서비스);
     await pool.query(케이스, ['XBX-001', '두 환경 케이스', JSON.stringify(['desktop', 'mobile']), 'demo/XBX-001.spec.ts']);
 
     러너 = Fastify();
@@ -89,6 +101,8 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     await 러너.close();
     await 치운다();
     await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'XBX%'");
+    await pool.query("DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBX')");
+    await pool.query("DELETE FROM service WHERE prefix = 'XBX'");
     await pool.end();
     delete process.env.RUNNER_URL;
     delete process.env.PLATFORM_ARTIFACTS_DIR;
@@ -103,7 +117,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       url: '/api/runs',
       payload: {
         title: 'XBX 두 환경 실행',
-        triggeredBy: '검수자',
+        env: 'qa',
         items: [{ tcId: 'XBX-001', platforms: ['desktop', 'mobile'], params: {}, expected: {} }],
       },
     });
@@ -124,6 +138,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       url: '/api/runs',
       payload: {
         title: 'XBX 제한 시간 실행',
+        env: 'qa',
         items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: { 아이디: 'tester' }, expected: {}, timeoutMs: 5000 }],
       },
     });
@@ -138,24 +153,67 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     });
   });
 
-  it('실행자를 안 적으면 admin으로 남는다', async () => {
+  it('본문에 실행자를 적어 보내도 그 값을 쓰지 않는다', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
-      payload: { title: 'XBX 실행자 없음', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+      payload: {
+        title: 'XBX 실행자 사칭',
+        env: 'qa',
+        triggeredBy: '사장님',
+        items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }],
+      },
     });
     const body = await 끝날때까지(res.json().runId);
-    expect(body.triggeredBy).toBe('admin');
+    expect(body.triggeredBy).not.toBe('사장님');
   });
 
   it('카탈로그에 없는 케이스는 404다', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
-      payload: { title: 'XBX 없는 케이스', items: [{ tcId: 'XBX-404', platforms: ['desktop'], params: {}, expected: {} }] },
+      payload: { title: 'XBX 없는 케이스', env: 'qa', items: [{ tcId: 'XBX-404', platforms: ['desktop'], params: {}, expected: {} }] },
     });
     expect(res.statusCode).toBe(404);
     expect(res.json().detail).toContain('XBX-404');
+  });
+
+  it('POST /api/runs/:runId/abort — 끝난 실행을 멈추려 하면 409다', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: { title: 'XBX 멈춤 대상', env: 'qa', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+    });
+    const runId = res.json().runId;
+    await 끝날때까지(runId);
+
+    const 멈춤 = await app.inject({ method: 'POST', url: `/api/runs/${runId}/abort` });
+    expect(멈춤.statusCode).toBe(409);
+    expect(멈춤.json().error).toBe('NOT_RUNNING');
+  });
+
+  it('만들어질 항목이 상한을 넘으면 400에 상한과 요청 건수를 담아 준다', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: {
+        title: 'XBX 상한 초과',
+        env: 'qa',
+        repeat: 600,
+        items: [{ tcId: 'XBX-001', platforms: ['desktop', 'mobile'], params: {}, expected: {} }],
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toMatchObject({ error: 'TOO_MANY_ITEMS', limit: 1000, requested: 1200 });
+  });
+
+  it('대상 서버를 안 주면 400이다', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: { title: 'XBX 환경 없음', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+    });
+    expect(res.statusCode).toBe(400);
   });
 
   it('같은 케이스와 환경이 두 번 들어오면 400이다', async () => {
@@ -164,6 +222,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       url: '/api/runs',
       payload: {
         title: 'XBX 중복',
+        env: 'qa',
         items: [
           { tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} },
           { tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} },
@@ -177,19 +236,34 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
-      payload: { title: '', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+      payload: { title: '', env: 'qa', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
     });
     expect(res.statusCode).toBe(400);
   });
 
   it('GET /api/runs — 실행 목록이 최근 순으로 나온다', async () => {
-    const body = (await app.inject({ method: 'GET', url: '/api/runs' })).json();
+    const body = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
     expect(body.total).toBeGreaterThan(0);
     expect(body.items[0].runId).toBeGreaterThan(0);
   });
 
+  it('GET /api/runs — service를 안 주면 400, 없는 서비스면 403이다', async () => {
+    expect((await app.inject({ method: 'GET', url: '/api/runs' })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'GET', url: '/api/runs?service=NOPE' })).statusCode).toBe(403);
+  });
+
+  it('GET /api/runs — 그 서비스의 실행만 돌려준다', async () => {
+    const body = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
+    expect(body.items.length).toBeGreaterThan(0);
+    for (const run of body.items) {
+      expect(run.title.startsWith('XBX')).toBe(true);
+      // 실행 기록 목록은 대상 서버를 시각 옆에 적는다 (SPEC §8.7)
+      expect(run.env).toBe('qa');
+    }
+  });
+
   it('GET /api/runs/:runId/items/:historyId — 절차와 검증 문장이 온다', async () => {
-    const 실행 = (await app.inject({ method: 'GET', url: '/api/runs' })).json();
+    const 실행 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
     const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'XBX 두 환경 실행');
     const run = (await app.inject({ method: 'GET', url: `/api/runs/${우리것.runId}` })).json();
     const 실패한것 = run.items.find((i: { platform: string }) => i.platform === 'desktop');
@@ -203,7 +277,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   });
 
   it('모바일 항목은 러너가 준 NA와 사유를 그대로 갖고 있다', async () => {
-    const 실행 = (await app.inject({ method: 'GET', url: '/api/runs' })).json();
+    const 실행 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
     const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'XBX 두 환경 실행');
     const run = (await app.inject({ method: 'GET', url: `/api/runs/${우리것.runId}` })).json();
     const 모바일 = run.items.find((i: { platform: string }) => i.platform === 'mobile');

@@ -5,7 +5,7 @@ import ts from 'typescript';
 
 import type { CaseSpec, JsonSchema } from '@platform/kit';
 
-export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8';
+export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10';
 
 export interface Violation {
   file: string;
@@ -30,6 +30,8 @@ const WHY: Record<RuleId, string> = {
   K6: '절차·판정 칸이 비어 증적이 못 된다',
   K7: '같은 설명이 두 군데 생겨 한쪽이 거짓말을 시작한다',
   K8: '문법 오류나 import 실패로 케이스가 등록되지 않는다',
+  K9: '비밀번호가 화면과 증적 문서에 평문으로 박힌다',
+  K10: '사람이 값을 채워야만 도는 케이스는 정기 실행이 돌리지 못한다',
 };
 
 function v(file: string, line: number, rule: RuleId, what: string, why = WHY[rule]): Violation {
@@ -149,7 +151,9 @@ export function checkSource(file: string, text: string): SourceResult {
   return { violations, propLines };
 }
 
-const TCID = /^[A-Z]{2,6}-\d{3}$/;
+// 접두사는 자유 형식이다. 플랫폼은 뜻을 모르고 모양과 중복만 본다 (SPEC §2, 2026-09-17).
+// 소문자를 막는 이유 — Pay-001과 PAY-001이 서로 다른 케이스가 되면 중복 검출이 조용히 샌다
+const TCID = /^[A-Z][A-Z0-9]{0,11}-\d{3}$/;
 const PLATFORMS = new Set(['desktop', 'mobile']);
 
 function missingDescribe(file: string, line: number, schema: JsonSchema, key: string): Violation[] {
@@ -161,6 +165,32 @@ function missingDescribe(file: string, line: number, schema: JsonSchema, key: st
       return typeof (field as { description?: unknown }).description !== 'string';
     })
     .map(([name]) => v(file, line, 'K4', `${key}.${name}에 describe가 없다`));
+}
+
+// 이름만 보고 판단한다. answer·code처럼 이름으로는 알 수 없는 칸은 그냥 지나친다.
+// 값의 생김새를 추측하는 규칙을 넣으면 오탐이 늘고 아무도 검사기를 안 믿는다 (SPEC §4.1)
+const SECRET_NAMES = ['password', 'passwd', 'pw', 'token', 'secret', 'apikey', 'credential'];
+
+function missingSecretTag(file: string, line: number, schema: JsonSchema): Violation[] {
+  const properties = schema.properties;
+  if (typeof properties !== 'object' || properties === null) return [];
+  return Object.entries(properties as Record<string, unknown>)
+    .filter(([name, field]) => {
+      const lower = name.toLowerCase();
+      if (!SECRET_NAMES.some((word) => lower.includes(word))) return false;
+      if (typeof field !== 'object' || field === null) return true;
+      return (field as { secret?: unknown }).secret !== true;
+    })
+    .map(([name]) => v(file, line, 'K9', `params.${name}이 비밀값 이름인데 .meta({ secret: true })가 없다`));
+}
+
+// 변환된 스키마의 required가 곧 「값을 반드시 받아야 하는 칸」이다.
+// .default()나 .optional()이 붙으면 zod가 여기서 빼 준다
+function requiredFields(file: string, line: number, schema: JsonSchema, key: string): Violation[] {
+  const required = schema.required;
+  if (!Array.isArray(required) || required.length === 0) return [];
+  const names = required.join('·');
+  return [v(file, line, 'K10', `${key}의 ${names}에 .default()나 .optional()이 없다`)];
 }
 
 export interface ListSuite {
@@ -219,7 +249,7 @@ export function checkSpec(file: string, spec: CaseSpec, propLines: Map<string, n
   const out: Violation[] = [];
 
   if (!TCID.test(spec.tcId)) {
-    out.push(v(file, at('tcId'), 'K2', `tcId가 ${spec.tcId}이다. <대문자 2~6자>-<3자리>여야 한다`));
+    out.push(v(file, at('tcId'), 'K2', `tcId가 ${spec.tcId}이다. <접두사>-<3자리>여야 하고 접두사는 대문자로 시작해 대문자·숫자로 이어지는 1~12자다`));
   }
   if (spec.name.trim() === '') {
     out.push(v(file, at('name'), 'K3', 'name이 비어 있다'));
@@ -230,6 +260,10 @@ export function checkSpec(file: string, spec: CaseSpec, propLines: Map<string, n
   }
   out.push(...missingDescribe(file, at('params'), spec.paramSchema, 'params'));
   out.push(...missingDescribe(file, at('expected'), spec.expectedSchema, 'expected'));
+  // 비밀값은 입력에만 있다. 기대결과에 비밀번호를 적을 일이 없다 (SPEC §4.1)
+  out.push(...missingSecretTag(file, at('params'), spec.paramSchema));
+  out.push(...requiredFields(file, at('params'), spec.paramSchema, 'params'));
+  out.push(...requiredFields(file, at('expected'), spec.expectedSchema, 'expected'));
 
   return out;
 }

@@ -16,8 +16,11 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
   let 실패항목: number;
 
   async function 실행하나(title: string): Promise<number> {
+    // 실행 목록은 service_id 로 거른다 (SPEC §6 · §8.7). 그 칸이 비면 목록에 뜨지 않는다
     const run = await pool.query<{ run_id: string }>(
-      "INSERT INTO test_run (title, triggered_by, status) VALUES ($1, 'tester', 'RUNNING') RETURNING run_id",
+      `INSERT INTO test_run (title, triggered_by, status, env, service_id, service_name, tests_repo, base_url)
+       VALUES ($1, 'tester', 'RUNNING', 'qa', (SELECT id FROM service WHERE prefix = 'XBQ'),
+               'XBQ 서비스', 'https://xbq.example.com', 'https://qa.example.com') RETURNING run_id`,
       [title],
     );
     return Number(run.rows[0]!.run_id);
@@ -30,8 +33,10 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
     끝났나: boolean,
   ): Promise<number> {
     const row = await pool.query<{ history_id: string }>(
-      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, duration_ms, finished_at)
-       VALUES ($1, 'XBQ-001', $2, '조회용 케이스', '["사전조건 하나"]', '{"아이디":"tester"}', '{"결과":true}', $3, 100, $4)
+      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, duration_ms, finished_at,
+                             file_path, param_schema, expected_schema, timeout_ms)
+       VALUES ($1, 'XBQ-001', $2, '조회용 케이스', '["사전조건 하나"]', '{"아이디":"tester"}', '{"결과":true}', $3, 100, $4,
+               'demo/XBQ-001.spec.ts', '{"type":"object","properties":{}}', '{"type":"object","properties":{}}', 300000)
        RETURNING history_id`,
       [runId, platform, status, 끝났나 ? new Date() : null],
     );
@@ -42,6 +47,11 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
     pool = new Pool({ connectionString: 연결 });
     await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBQ%')");
     await pool.query("DELETE FROM test_run WHERE title LIKE 'XBQ%'");
+    await pool.query(
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+       VALUES ('XBQ', 'XBQ 서비스', '#667788', 'https://xbq.example.com', 'xbq')
+       ON CONFLICT (prefix) DO UPDATE SET is_active = true`,
+    );
 
     먼저 = await 실행하나('XBQ 먼저 돈 실행');
     await 항목하나(먼저, 'desktop', 'PASS', true);
@@ -59,24 +69,39 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
   });
 
   afterAll(async () => {
+    await pool.query("DELETE FROM evidence_document WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBQ%')");
     await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBQ%')");
     await pool.query("DELETE FROM test_run WHERE title LIKE 'XBQ%'");
+    await pool.query("DELETE FROM service WHERE prefix = 'XBQ'");
     await pool.end();
     const { pool: shared } = await import('../db/index.js');
     await shared.end();
   });
 
   it('listRuns — 최근 실행이 먼저 나온다', async () => {
-    const 목록 = await listRuns(1, 50);
+    const 목록 = await listRuns('XBQ', 1, 50);
     const 우리것 = 목록.items.filter((r) => r.title.startsWith('XBQ'));
     expect(우리것[0]?.runId).toBe(나중);
     expect(우리것[1]?.runId).toBe(먼저);
   });
 
   it('listRuns — 판정 개수를 같이 싣는다. 목록 화면이 실행마다 또 묻지 않게', async () => {
-    const 목록 = await listRuns(1, 50);
+    const 목록 = await listRuns('XBQ', 1, 50);
     const 것 = 목록.items.find((r) => r.runId === 나중);
     expect(것?.counts).toEqual({ total: 2, pass: 0, fail: 1, na: 0, running: 1 });
+  });
+
+  it('findRun — 증적 목록을 상태와 함께 싣는다', async () => {
+    await pool.query(
+      `INSERT INTO evidence_document (run_id, format, status, file_path)
+       VALUES ($1, 'pdf', 'PENDING', NULL)`,
+      [나중],
+    );
+
+    const found = await findRun(나중);
+    expect(found?.evidence).toHaveLength(1);
+    // 화면 버튼 문구가 이 값으로 갈린다. PENDING 이면 파일이 아직 없다 (SPEC §8.4)
+    expect(found?.evidence[0]).toMatchObject({ format: 'pdf', status: 'PENDING', filePath: null });
   });
 
   it('findRun — 실행과 항목 목록이 같이 온다', async () => {

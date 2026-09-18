@@ -14,6 +14,7 @@ const 항목: PendingItem = {
   tcId: 'DEMO-001',
   platform: 'desktop',
   filePath: 'demo/DEMO-001.spec.ts',
+  baseUrl: 'https://qa.example.com',
   params: { 아이디: 'tester' },
   expected: { 결과: true },
   timeoutMs: 5000,
@@ -64,6 +65,7 @@ describe('callRunner', () => {
       tcId: 'DEMO-001',
       platform: 'desktop',
       filePath: 'demo/DEMO-001.spec.ts',
+      baseUrl: 'https://qa.example.com',
       params: { 아이디: 'tester' },
       expected: { 결과: true },
       timeoutMs: 5000,
@@ -116,6 +118,8 @@ describe('callRunner', () => {
     const res = await callRunner(7, 항목);
     expect(res.status).toBe('NA');
     expect(res.historyId).toBe(42);
-    expect(res.error?.message).toContain('러너');
+    // 목록에 그대로 쓰이는 문장이다. 원문 오류는 상세의 접힌 자리로 간다 (SPEC §8.3)
+    expect(res.error?.message).toBe('러너에 닿지 못했습니다');
+    expect(res.error?.stack).toBeTruthy();
   });
 });

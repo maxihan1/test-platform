@@ -41,6 +41,7 @@ export interface ExecuteRequest {
   tcId: TcId;
   platform: Platform;           // Playwright project 이름과 일치시킨다
   filePath: string;
+  baseUrl: string;              // 이번 실행이 두드릴 주소. admin이 대상 서버 이름을 주소로 바꿔 싣는다 (§5.2)
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
   timeoutMs: number;            // 기본 300000
