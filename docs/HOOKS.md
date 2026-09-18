@@ -46,7 +46,16 @@ echo '{"tool_input":{"file_path":"packages/kit/src/types.ts"}}' \
 
 `review`만 예외로 exit code 1(경고)이다. Stop 훅은 세션 종료가 아니라 **매 응답 끝마다** 돌기 때문에,
 여기서 막으면 첫 편집 직후에 의미 없는 자기검사를 강제하게 된다. 경고는 사용자에게 보이고,
-실제 차단은 `setup/pre-push`(테스트 통과 + 오늘 날짜 검사 기록)가 맡는다.
+실제 차단은 **`.claude/hooks/pre-push`**(테스트 통과 + 오늘 날짜 검사 기록)가 맡는다.
+
+**2026-09-18 에 `.git/hooks/` 에서 옮겼다.** 거기는 추적이 안 돼 PR 에 안 실리고
+판별식이 못 보고 새 기계에서 사라진다. 배선은 `git config core.hooksPath .claude/hooks`
+한 번이고 `docs/SETUP.md` 에 적혀 있다 — **그 설정 자체는 여전히 추적되지 않는다.**
+
+**브랜치 삭제 push 는 검사를 건너뛴다.** git 이 stdin 으로 주는 로컬 sha 가 전부 0 이면
+올릴 코드가 없다는 뜻이다. 2026-09-18 에 원격 브랜치 여섯을 지우며 전체 테스트가
+여섯 번 돌았다. 입력이 비면 **검사로 간다** — 삭제로 보면 검사가 새어 나간다.
+계약은 `.claude/scripts/hook-contract.test.mjs` 가 본다.
 
 Bash 편집 차단은 휴리스틱이다. 명령 문자열에서 `apps/`, `packages/`, `db/`, `docker-compose.yml` 같은
 경로 앞에 쓰기 연산자가 보이면 막는다. `python -c`로 파일을 쓰는 식은 못 잡는다.

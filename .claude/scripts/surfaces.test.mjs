@@ -33,6 +33,12 @@ test('마이그레이션과 공유 타입은 3등급', () => {
   assert.equal(detectTier(['packages/kit/src/types.ts']).tier, 3);
 });
 
+test('git 훅은 2등급 — 안전 장치다 (2026-09-18 미분류였다)', () => {
+  assert.equal(surfaceOf('.claude/hooks/pre-push')?.name, 'GUARD');
+  assert.equal(detectTier(['.claude/hooks/pre-push']).tier, 2);
+  assert.deepEqual(detectTier(['.claude/hooks/pre-push']).unmapped, []);
+});
+
 test('서버 본체와 러너는 2등급', () => {
   assert.equal(detectTier(['apps/admin/src/catalog/store.ts']).tier, 2);
   assert.equal(detectTier(['apps/runner/src/execute.ts']).tier, 2);

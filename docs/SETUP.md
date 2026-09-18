@@ -64,9 +64,8 @@ playwright-report/
 test-results/
 EOF
 
-# pre-push 훅
-cp <받은 pre-push 파일> .git/hooks/pre-push
-chmod +x .git/hooks/pre-push
+# pre-push 훅 — 파일은 저장소에 있다. 배선만 걸면 된다
+git config core.hooksPath .claude/hooks
 
 git add -A && git commit -m "프로젝트 문서와 규칙 설정"
 git tag g0-docs
@@ -76,7 +75,12 @@ git remote add origin git@github.com:<계정>/test-platform.git
 git push -u origin main
 ```
 
-`.git/hooks/`는 커밋되지 않는다. 다른 데서 클론하면 다시 복사해야 한다.
+**훅 본체는 `.claude/hooks/pre-push` 로 저장소에 들어 있다** (2026-09-18 이전).
+검토를 받고 판별식이 본다. 다만 **배선(`core.hooksPath`)은 `.git/config` 에 들어가고
+그것은 추적되지 않는다** — 새 기계에서 클론하면 위 한 줄을 **한 번** 쳐야 한다.
+
+배선이 걸렸는지는 아무거나 푸시해 보면 안다. `[pre-push] 검사 시작` 이 안 찍히면 안 걸린 것이다.
+**훅은 실패가 아니라 침묵으로 건너뛴다** — 조용하다고 통과한 것이 아니다.
 
 첫 푸시부터 CI(`.github/workflows/ci.yml`)가 돈다. 골격이 생기기 전에는 "검사할 코드가 없다"로 통과한다.
 무료 플랜의 private 저장소는 서버 쪽 브랜치 보호를 걸 수 없다. CI 초록불 확인은 사람이 한다.
