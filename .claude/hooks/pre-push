@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# 푸시 전 검사. 저장소 안에 두는 이유 — .git/hooks 는 추적이 안 돼 PR 에 안 실리고
+# 판별식이 못 보고 새 기계에서 사라진다. 배선은 로컬이다 (docs/SETUP.md).
+set -e
+
+# ── 삭제 push 는 바로 통과한다 ────────────────────────────────────────────
+# git 이 stdin 으로 줄마다 `<로컬 ref> <로컬 sha> <원격 ref> <원격 sha>` 를 준다.
+# 삭제는 로컬 sha 가 전부 0 이다. 코드를 안 올리므로 검사할 것이 없다.
+#
+# ★ stdin 은 **한 번만 읽힌다.** 여기서 다 읽어 변수에 담고, 아래 검사는 stdin 을
+#   쓰지 않는다. 뒤에서 또 읽으려 하면 빈 값을 받는다.
+# ★ 입력이 비면 **검사로 간다.** 삭제로 보면 검사가 새어 나간다 (보수적).
+#
+# 2026-09-18 — 원격 브랜치 여섯을 지우면서 전체 테스트가 여섯 번 돌았다.
+# 변수명은 ASCII 로 둔다 — bash 는 한글 변수명을 받지 않는다 (2026-09-18 실측)
+REFS=$(cat)
+if [ -n "$REFS" ]; then
+  only_deletes=1
+  while IFS=' ' read -r _local_ref local_sha _remote_ref _remote_sha; do
+    [ -z "$local_sha" ] && continue
+    case "$local_sha" in
+      *[!0]*) only_deletes=0; break ;;
+    esac
+  done <<EOF
+$REFS
+EOF
+  if [ "$only_deletes" = "1" ]; then
+    echo "[pre-push] 브랜치 삭제다. 올릴 코드가 없으므로 검사를 건너뛴다"
+    exit 0
+  fi
+fi
+
+echo "[pre-push] 검사 시작"
+
+if [ -f package.json ]; then
+  if ! npm test --silent; then
+    echo ""
+    echo "[차단] 테스트가 실패했다. 고치고 다시 푸시해라." >&2
+    exit 1
+  fi
+
+  if ! npm run check:tests --if-present --silent; then
+    echo "" >&2
+    echo "[차단] 테스트 코드 규칙 위반 (SPEC §4 K1~K8). 위 메시지대로 고치고 다시 푸시해라." >&2
+    exit 1
+  fi
+else
+  echo "[pre-push] package.json이 없다 (Phase 0 전). 테스트 검사는 건너뛴다."
+fi
+
+if [ "$ALLOW_PROTECTED" = "1" ]; then
+  echo "[pre-push] ALLOW_PROTECTED=1 (Phase 0 또는 병합 단계). 검사 기록 확인은 건너뛴다."
+  echo "[pre-push] 통과"
+  exit 0
+fi
+
+TODAY=$(date +%F)
+if ! ls docs/reviews/${TODAY}-*.md >/dev/null 2>&1; then
+  echo "" >&2
+  echo "[차단] 오늘 날짜의 SPEC 검사 기록이 없다: docs/reviews/${TODAY}-*.md" >&2
+  echo "" >&2
+  echo "Claude Code에서 spec-review 스킬을 돌리고 결과를 저장한 뒤 푸시해라." >&2
+  echo "정말 건너뛰어야 하면: git push --no-verify" >&2
+  exit 1
+fi
+
+echo "[pre-push] 통과"
