@@ -31,11 +31,11 @@ describe.skipIf(연결 === undefined)('save', () => {
     pool = new Pool({ connectionString: 연결 });
     const before = await pool.query<{ tc_id: string }>('SELECT tc_id FROM test_case WHERE is_active');
     원래활성 = before.rows.map((r) => r.tc_id);
-    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZ%'");
+    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZA%'");
   });
 
   afterAll(async () => {
-    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZ%'");
+    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZA%'");
     // 이 테스트의 비활성 처리는 다른 케이스까지 건드린다. 원래 상태로 돌려놓는다
     await pool.query('UPDATE test_case SET is_active = true WHERE tc_id = ANY($1::text[])', [원래활성]);
     await pool.end();
