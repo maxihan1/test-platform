@@ -27,7 +27,7 @@ const OWNED = {
   C: ['apps/runner/', 'packages/kit/src/runtime/', 'tests/'],
   D: ['apps/admin/src/reporting/', 'infra/grafana/'],
   E: ['apps/admin/src/web/'],
-  F: ['apps/admin/src/auth/', 'scripts/'],
+  F: ['apps/admin/src/auth/', 'apps/admin/src/settings/', 'scripts/'],
 };
 const SHARED = ['docs/', '.claude/'];
 

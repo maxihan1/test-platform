@@ -27,9 +27,12 @@ jobs:
       - name: 타입 검사
         if: steps.skeleton.outputs.ready == '1'
         run: npm run typecheck --if-present
-      - name: 단위 테스트
+      - name: 단위 테스트 (연속 3회 — 1회 통과는 증거가 못 된다)
         if: steps.skeleton.outputs.ready == '1'
-        run: npm run test --if-present
+        run: npm run test --if-present && npm run test --if-present && npm run test --if-present
       - name: 테스트 코드 규칙 검사 (SPEC §4 K1~K8)
         if: steps.skeleton.outputs.ready == '1'
         run: npm run check:tests --if-present
+      - name: SPEC 문서 검사 (없는 절·깨진 링크·색인 분량)
+        if: steps.skeleton.outputs.ready == '1'
+        run: npm run check:spec --if-present

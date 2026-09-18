@@ -28,12 +28,22 @@ for (const p of 장들) {
 // `§1` 이 있으면 `§1.1` 만 있어도 대절은 가리킬 수 있다
 for (const s of [...있는절]) 있는절.add(s.split('.')[0]);
 
-// 가리키는 번호를 모은다
+// SPEC 밖에서 절 번호로 가리키는 곳이 몇 군데인지 센다.
+// 색인이 이 숫자를 손으로 적고 있었는데 221 → 305 로 조용히 썩었다. 기계가 센다
+let 밖참조 = 0;
+
+// 가리키는 번호를 모은다.
+// SPEC 안에서는 맨절(`→ §8.8`)로 가리키는 것이 보통이라 `§` 만으로 센다.
+// 밖(코드·훅·스킬)에서는 `SPEC §` 만 센다 — 다른 문서의 절 번호를 우리 것으로 오해하지 않으려고.
+// CLAUDE.md 의 절은 맨 이름과 링크 두 모양 다 뺀다
+const SPEC문서 = new Set(장들.map((p) => path.relative(ROOT, p)));
 const 깨진참조 = [];
 for (const p of 훑기(ROOT)) {
   const rel = path.relative(ROOT, p);
+  const 무늬 = SPEC문서.has(rel) ? /(?<!CLAUDE\.md )(?<!CLAUDE\.md\) )§(\d+(?:\.\d+)?)/g : /SPEC §(\d+(?:\.\d+)?)/g;
   readFileSync(p, 'utf8').split('\n').forEach((l, i) => {
-    for (const m of l.matchAll(/SPEC §(\d+(?:\.\d+)?)/g)) {
+    for (const m of l.matchAll(무늬)) {
+      if (!SPEC문서.has(rel)) 밖참조 += 1;
       if (!있는절.has(m[1])) 깨진참조.push(`${rel}:${i + 1}  §${m[1]}`);
     }
   });
@@ -51,10 +61,42 @@ for (const p of 장들) {
   });
 }
 
+// 색인이 적어 둔 분량이 실제와 맞는지 본다. 어긋나면 세션이 "4장 537줄"을 믿고 계획을 세운다
+const 틀린분량 = [];
+{
+  const 줄수 = (rel) => readFileSync(path.join(ROOT, 'docs', rel), 'utf8').split('\n').length - 1;
+  readFileSync(path.join(ROOT, 'docs/SPEC.md'), 'utf8').split('\n').forEach((l, i) => {
+    const 갈래 = l.startsWith('| **') && l.includes('`spec/') && l.match(/\| (\d+)줄 \|/);
+    if (갈래) {
+      const 합 = [...l.matchAll(/`([^`]+)`/g)].reduce((n, m) => n + 줄수(`${m[1]}.md`), 0);
+      if (합 !== Number(갈래[1])) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${갈래[1]}줄 · 실제 ${합}줄`);
+    }
+    const 장 = l.match(/^\| \[[^\]]+\]\((spec\/[^)]+\.md)\).*\| (\d+) \|/);
+    if (장 && 줄수(장[1]) !== Number(장[2])) {
+      틀린분량.push(`docs/SPEC.md:${i + 1}  ${장[1]} 적힌 ${장[2]}줄 · 실제 ${줄수(장[1])}줄`);
+    }
+  });
+}
+
+// 매니페스트가 가리키는 킥오프가 WORKSTREAMS 에 실제로 있는지 본다.
+// 킥오프는 세션이 SPEC 보다 먼저 읽는 글이라 이름이 어긋나면 파이프라인이 런타임에 깨진다
+const 없는킥오프 = [];
+try {
+  const 매니 = readFileSync(path.join(ROOT, 'docs/orchestration.yaml'), 'utf8');
+  const 갈래문서 = readFileSync(path.join(ROOT, 'docs/WORKSTREAMS.md'), 'utf8');
+  for (const m of 매니.matchAll(/kickoff:\s*"workstreams#([^"]+)"/g)) {
+    const 제목 = 갈래문서.split('\n').some((l) => l === `## ${m[1]}` || l === `### ${m[1]}`);
+    if (!제목) 없는킥오프.push(`docs/orchestration.yaml  → ${m[1]}`);
+  }
+} catch { /* 파일 없음 */ }
+
 console.log(`실재하는 절 ${[...있는절].sort().join(' · ')}`);
-if (깨진참조.length || 깨진링크.length) {
+console.log(`절 번호로 이 문서를 가리키는 곳 — SPEC 밖에 ${밖참조}군데`);
+if (깨진참조.length || 깨진링크.length || 틀린분량.length || 없는킥오프.length) {
   if (깨진참조.length) console.error(`\n없는 절을 가리키는 곳 ${깨진참조.length}건\n${깨진참조.join('\n')}`);
   if (깨진링크.length) console.error(`\n깨진 링크 ${깨진링크.length}건\n${깨진링크.join('\n')}`);
+  if (틀린분량.length) console.error(`\n색인 분량이 실제와 다른 곳 ${틀린분량.length}건\n${틀린분량.join('\n')}`);
+  if (없는킥오프.length) console.error(`\n매니페스트가 없는 킥오프를 가리킨다 ${없는킥오프.length}건\n${없는킥오프.join('\n')}`);
   process.exit(1);
 }
-console.log('통과 — 없는 절 0건 · 깨진 링크 0건');
+console.log('통과 — 없는 절 0건 · 깨진 링크 0건 · 틀린 분량 0건 · 없는 킥오프 0건');

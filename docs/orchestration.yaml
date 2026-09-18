@@ -34,6 +34,7 @@ stages:
       - "npm run typecheck"
       - { run: "npm test", repeat: 3 }        # 1회 통과는 증거가 못 된다 (LEARNINGS 공통 2026-09-16)
       - "npm run check:tests"
+      - "npm run check:spec"                  # 없는 절·깨진 링크·색인 분량. 문서만 고친 단위도 이건 돈다
     screen: { skill: "/qa-only", app: "http://localhost:3000", up: "docker compose up -d --build", only_changed: true }
   ci: { pr: draft, checks: "gh pr checks" }
   cd: { merge: "gh pr merge --merge --delete-branch", deploy: [] }    # EC2 배포는 오케스트레이터 완성 뒤 명령을 채운다
@@ -41,26 +42,98 @@ stages:
     required_docs: [learnings, "progress/{unit}"]
 units:
   - { id: skeleton, name: 골격, status: done }
-  - { id: WS-A, name: 카탈로그, status: done }
-  - { id: WS-B, name: 실행, status: done }
-  - { id: WS-C, name: 러너, status: done }
-  - { id: WS-E, name: 화면, status: done }
+  # WS-B·WS-C 를 2026-09-18 에 되살렸다. 개정이 시킨 것이 코드에 한 줄도 없다 —
+  # abort · 회차 · 1000건 상한 · 서비스/주소 박제 · 재기동 복구 · Slack 보내기(§8.9 의 주체가 Execution)
+  # 가 전부 WS-B 몫이고, baseUrl 전달과 끊을 통로가 WS-C 몫이다. 킥오프에 「개정으로 더 할 것」을 넣었다
+  - id: WS-B
+    name: 실행
+    status: pending
+    depends_on: [contracts]
+    env: { WORKSTREAM: B }
+    branch: ws-b-execution-2
+    kickoff: "workstreams#WS-B 실행"
+  - id: WS-C
+    name: 러너
+    status: pending
+    depends_on: [contracts]
+    env: { WORKSTREAM: C }
+    branch: ws-c-runner-2
+    kickoff: "workstreams#WS-C 러너 + 테스트 킷"
+  # WS-A 를 2026-09-18 에 되살렸다. 킥오프를 개정본으로 고쳤다 (7~11번이 이번에 남은 일).
+  # K9·K10 검사기가 없으면 §11 Phase 1 기준(K1~K10)을 못 채운다.
+  # contracts 뒤인 이유 — ?service= 필터와 서비스별 스캔 폴더가 service 표를 먼저 필요로 한다
+  - id: WS-A
+    name: 카탈로그
+    status: pending
+    depends_on: [contracts]
+    env: { WORKSTREAM: A }
+    branch: ws-a-catalog-2
+    kickoff: "workstreams#WS-A 카탈로그"
+
+  - id: contracts
+    name: 계약 반영
+    # 개정 SPEC 이 승인한 잠긴 파일 변경을 한 단위로 묶는다. 서로 엮여 있다 —
+    # types.ts 의 baseUrl 은 러너 호출에, DB 새 칸은 증적에, 포트 차단은 인증에 걸린다.
+    # **담당 갈래를 두지 않는다**(WORKSTREAM 없음). 어느 갈래 소유도 아닌 파일들이고 여러 폴더를 걸친다.
+    # 2026-09-17 훅의 잠금(LOCKED)이 풀려 이 단위가 계약 파일을 직접 고칠 수 있다 (CLAUDE.md §1.3)
+    # 첫 step 은 계약이 아니라 **QA 게이트를 막고 있는 것**이다. DB 를 붙이면 npm test 가 8회 중 1회
+    # 깨지는데, qa 가 3회 돌리므로 어느 단위든 3분의 1쯤 여기서 멈춘다. contracts 가 가장 먼저 도는
+    # 담당 갈래 없는 단위라 여기에 둔다 — WS-A 킥오프에 두면 contracts 가 먼저 그 함정을 밟는다
+    status: pending
+    branch: contracts
+    kickoff: "workstreams#계약 반영"
+    steps:
+      - name: "apps/admin/src/catalog/store.test.ts — fixture 정리 범위를 좁힌다. LIKE 'ZZ%' 를 'ZZA%' 로(CLAUDE.md §3 이 WS-A 에 준 접두사다), afterAll 의 UPDATE 를 이 테스트가 만든 행에만 건다. 지금은 DB 전체 활성 케이스를 되돌려 병렬로 도는 실제 스캔과 교착한다"
+        human_check: ["DATABASE_URL 을 넣고 npm test 를 연속 8회 돌려 전부 통과한다"]
+      - name: "db/migrations — §6 마이그레이션 예시 그대로. service·service_env·app_user·user_service 신설(service.slack_webhook 포함), test_run·run_item·evidence_document 새 칸(notify_slack·notified_at 포함), grafana_ro 기본 허용 끄기"
+        human_check: ["docker compose up -d 로 마이그레이션이 적용된다", "기존 실행 기록이 화면에 그대로 보인다", "대시보드 계정으로 app_user 를 읽으면 거부된다"]
+      - name: "packages/kit/src/types.ts — ExecuteRequest 에 baseUrl 을 더한다 (§5.1). ItemStatus 는 3종 그대로"
+        human_check: ["npm run typecheck 가 통과한다"]
+      - { name: "playwright.config.ts — use.baseURL 을 환경변수에서 읽고 retries: 0 을 명시한다 (§5.2)" }
+      - name: "docker-compose.yml·apps/admin/Dockerfile — 포트 설정화, 러너 포트 닫기, 상시 4개 재시작 정책, SESSION_SECRET 전달, 화면 빌드 단계, 글꼴을 이미지에 담기 (§9). 인스턴스 환경변수 넷은 DB 로 내려갔으니 넣지 않는다"
+        human_check: ["호스트에서 러너 포트가 닫혔다", "화면이 admin 포트로 뜬다", "SESSION_SECRET 없이 띄우면 admin 이 기동을 거부한다", "인터넷을 끊고 띄워도 글꼴이 그대로다"]
+      - name: "package.json — Fastify 쿠키·세션 플러그인과 exceljs 둘을 더한다. 비밀번호 해시(crypto.scrypt)와 Slack 웹훅(fetch)은 Node 내장이라 추가 설치가 없다 (§9.1)"
+        human_check: ["npm install 뒤 npm test 가 통과한다"]
+
   - id: WS-D
     name: 리포팅
-    # 2026-09-17 스펙 확정됨. WORKSTREAMS 의 WS-D 절도 개정 §8.4 로 고쳤다.
-    # 그래도 보류인 이유 — 증적 문서 본체가 run_item.param_schema·attempt 와 test_run 머리말 칸을
-    # 먼저 필요로 한다(개정 §6). 그 전에 만들면 라벨을 test_case 에서 읽게 되고, §3.3 이 금지한 패턴이다.
-    # Grafana 패널 4종은 새 컬럼에 안 기대므로 떼어 내면 지금도 돌릴 수 있다.
-    # 잠긴 파일(계약) 단위가 먼저 서면 여기를 pending 으로 되돌린다
-    status: blocked
+    # 증적 문서 본체가 run_item.param_schema·attempt 와 test_run 머리말 칸을 먼저 필요로 한다(§6).
+    # 그 전에 만들면 라벨을 test_case 에서 읽게 되고, §3.3 이 이름 붙여 금지한 패턴이다
+    status: pending
+    depends_on: [contracts]
     env: { WORKSTREAM: D }
     branch: ws-d-reporting
     ui: true
     kickoff: "workstreams#WS-D 리포팅"
+
+  - id: WS-F
+    name: 인증
+    # 2026-09-17 개정 §3.5 로 생긴 갈래. app_user 표와 쿠키·세션 부품이 먼저 서야 한다.
+    # 로그인 **화면**(§8.6)과 설정 **화면**(§8.8)은 WS-E 소유다.
+    # 여기서는 확인 함수·미들웨어·설정 API(/api/settings/**)·첫 계정/서비스 만들기 명령까지다.
+    # 미들웨어를 다는 apps/admin/src/app.ts 는 공용 골격이라 contracts 단위가 열어 둔다
+    status: pending
+    depends_on: [contracts]
+    env: { WORKSTREAM: F }
+    branch: ws-f-auth
+    kickoff: "workstreams#WS-F 인증"
+
+  - id: WS-E
+    name: 화면
+    # 화면 21개 파일은 이미 main 에 있다. 개정 스펙에 맞춰 **더하고 고치는** 단위다 (항목은 킥오프가 정본).
+    # 4번(param_schema 박제)과 6번(대상 서버)은 contracts 의 DB 칸이,
+    # 9번(증적 버튼)은 WS-D 가, 10번(로그인 화면)은 WS-F 의 API 가 먼저 서야 한다
+    status: pending
+    depends_on: [contracts, WS-D, WS-F]
+    env: { WORKSTREAM: E }
+    branch: ws-e-web-2
+    ui: true
+    kickoff: "workstreams#WS-E 화면"
+
   - id: integration
     name: 통합·병합
     status: pending
-    depends_on: [WS-D]
+    depends_on: [WS-A, WS-B, WS-C, WS-D, WS-E, WS-F]   # 되살린 갈래가 셋이다. 아래 steps 가 전부의 결과를 쓴다
     env: { ALLOW_PROTECTED: "1" }
     branch: integration
     ui: true
