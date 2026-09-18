@@ -37,27 +37,60 @@ git log origin/<브랜치>..HEAD --oneline      # 미푸시 0
 **`gh pr ready` 는 체인 전체에서 이 줄 하나뿐이다.** 판별식 `pr-draft-guard` 가 강제한다.
 
 ```bash
+# ① 잠금을 풀기 전에 「지금 마지막 실행」의 번호를 적어 둔다
+BEFORE=$(gh run list --branch <브랜치> --limit 1 --json databaseId -q '.[0].databaseId')
+
 gh pr ready <번호>
 gh pr edit <번호> --title "<`[작업중]` 을 뗀 제목>"
-gh pr checks <번호> --watch --fail-fast      # ★ 잠금을 푼 뒤에 CI 가 시작된다. 여기서 기다린다
+
+# ② ready 가 만든 **새 실행**이 뜰 때까지 기다린다 (최대 2분)
+for i in $(seq 1 24); do
+  NOW=$(gh run list --branch <브랜치> --limit 1 --json databaseId -q '.[0].databaseId')
+  [ "$NOW" != "$BEFORE" ] && break
+  sleep 5
+done
+
+# ③ 그 실행이 끝날 때까지. 빨강이면 0 이 아닌 코드로 끝난다
+timeout 900 gh run watch "$NOW" --exit-status
+echo "CI EXIT=$?"
 ```
 
 초안이 잠금 역할을 한다 — 2026-09-17 에 두 번 난 사고(#4→#5, #6→#7, 먼저 병합돼서
 뒤 커밋 누락)를 막는 장치다. **작업 중에는 병합하고 싶어도 버튼이 안 눌린다.**
 
-### ★ 기다림을 건너뛰지 않는다
+### ★ `gh pr checks --watch` 를 쓰지 않는다 — 2026-09-18 실측
 
-`gh pr ready` 가 CI 를 **시작시킨다.** 그 전에는 검사 결과가 없고, 시작 직후에도
-몇십 초 동안 결과가 없다. **기다리지 않고 Step 3 으로 가면 검사 없이 병합한다.**
+처음엔 `gh pr checks <번호> --watch --fail-fast` 를 썼다. **작동하지 않는다.**
 
-`--fail-fast` 는 하나라도 빨강이면 즉시 끝낸다. **빨강이면 병합하지 않는다** —
-고치고 푸시하면 `synchronize` 로 CI 가 다시 돈다.
+```
+17:19:52  $ gh pr checks 22 --watch --fail-fast
+          check   skipping
+17:19:54  → EXIT=0.  2초 만에 끝났다. 안 기다렸다
+```
+
+초안에서 푸시할 때마다 CI 가 **건너뜀(`skipping`)** 으로 딱지를 남긴다.
+`--watch` 는 **대기중(`pending`)이 없으면** 바로 빠져나오는데, `skipping` 은 대기중이 아니다.
+그래서 **묵은 딱지를 읽고 통과시킨다.**
+
+세 명령이 한 덩어리로 2.5초에 끝나므로 **CI 가 한 번도 안 돈 채 병합된다.**
+경쟁 상태가 아니라 **매번** 그렇다. 그래서 위처럼 **실행 번호가 바뀌는 것**을 본다.
+
+### 왜 실행 번호로 보나
+
+| 읽는 것 | 왜 안 되나 |
+|---|---|
+| `gh pr checks --watch` | 묵은 `skipping` 을 통과로 읽는다 (위 실측) |
+| `gh pr view --json mergeStateStatus` | 같은 이유로 `ready` 직후 몇 초간 `CLEAN` 이다 |
+| **실행 번호가 바뀌는 것** | 옛 실행과 새 실행을 **구분할 수 있는 유일한 값**이다 |
+
+### 실패 / 엣지
 
 | 증상 | 어떻게 |
 |---|---|
-| 몇 분이 지나도 안 끝난다 | `Ctrl-C` 로 끊고 `gh pr checks <번호>` 로 상태만 본다. 큐에 걸렸으면 기다린다 |
-| **체크가 아예 안 뜬다** | 워크플로가 안 떴다는 뜻이다. `gh run list --branch <브랜치>` 로 확인한다. **그 상태로 병합하지 않는다** — `main` 브랜치 보호가 막는다 |
-| 보호가 막는데 정말 병합해야 한다 | `gh pr merge --admin`. **체인은 이 깃발을 쓰지 않는다.** 사람이 이유를 대고 직접 친다 |
+| 2분이 지나도 새 실행이 안 뜬다 | 워크플로가 안 떴다. `gh run list --branch <브랜치>` 로 확인하고 **병합하지 않는다** |
+| `timeout` 이 900초에 끊었다 | 큐가 막혔다. `gh run view <번호>` 로 상태를 보고 사용자에게 보고한다. **끊긴 것을 통과로 읽지 않는다** |
+| CI 가 빨강 | **병합하지 않는다.** 고치고 푸시하면 `synchronize` 로 다시 돈다 |
+| 보호가 막는데 정말 병합해야 한다 | 관리자 우회 깃발이 있다. **체인은 절대 쓰지 않는다** — 사람이 이유를 대고 직접 친다. 명령은 `docs/HOOKS.md` 에 있다 |
 
 ## Step 3. 병합
 

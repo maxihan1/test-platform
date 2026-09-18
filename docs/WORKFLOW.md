@@ -91,7 +91,8 @@ WS-C가 가장 오래 걸리므로 가장 먼저 시작한다.
 **갈래별 완료 조건 G2**
 - [ ] 해당 갈래의 테스트가 전부 통과
 - [ ] `spec-review` 치명 0건
-- [ ] GitHub에 푸시해 CI 초록불 (`typecheck` · `test` · `check:tests` · `check:spec`)
+- [ ] PR 을 Ready 로 바꿔 CI 초록불 (`typecheck` · `test` · `check:tests` · `check:spec`).
+      **초안에서는 푸시해도 안 돈다** (2026-09-18)
 - [ ] `npm test` 를 **연속 3회** 돌려 전부 통과 (1회 통과는 증거가 못 된다. DB 를 붙이고 돈다)
 - [ ] `docs/progress/WS-X.md`에 기록됨
 - [ ] `docs/LEARNINGS.md`에 이번에 걸린 것이 있으면 추가됨

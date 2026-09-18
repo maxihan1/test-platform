@@ -60,14 +60,19 @@ test('gh pr ready 는 tpx-merge 에만 있다', () => {
 });
 
 // 2026-09-18 CI 가 초안에서 안 돌게 바뀌었다. 잠금을 풀기 전에는 검사 결과가 없으므로
-// ready 뒤에 기다리지 않으면 검사 없이 병합한다
-test('tpx-merge 가 초안을 푼 뒤에 CI 를 기다린다', () => {
+// ready 뒤에 기다리지 않으면 검사 없이 병합한다.
+//
+// **`gh pr checks --watch` 는 안 된다** — 초안이 남긴 `skipping` 딱지를 통과로 읽고
+// 2초 만에 EXIT=0 으로 빠져나온다 (2026-09-18 실측). 실행 번호가 바뀌는 것을 봐야 한다.
+test('tpx-merge 가 초안을 푼 뒤 새 CI 실행을 기다린다', () => {
   const 코드 = codeOf('tpx-merge');
   const ready = 코드.indexOf('gh pr ready');
-  const watch = 코드.search(/gh pr checks[^\n]*--watch/);
+  const watch = 코드.indexOf('gh run watch');
   const merge = 코드.indexOf('gh pr merge');
-  assert.ok(watch > -1, 'tpx-merge 에 gh pr checks --watch 가 없다');
-  assert.ok(ready > -1 && ready < watch, '기다림이 gh pr ready 보다 앞에 있다 — 그 자리엔 검사 결과가 없다');
+  assert.ok(watch > -1, 'tpx-merge 에 gh run watch 가 없다');
+  assert.match(코드, /--exit-status/, 'gh run watch 가 빨강을 종료 코드로 안 읽는다');
+  assert.match(코드, /BEFORE=|databaseId/, '옛 실행과 새 실행을 구분하는 장치가 없다');
+  assert.ok(ready > -1 && ready < watch, '기다림이 gh pr ready 보다 앞에 있다 — 그 자리엔 새 실행이 없다');
   assert.ok(merge > -1 && watch < merge, '기다림이 gh pr merge 보다 뒤에 있다 — 검사 전에 병합한다');
 });
 
