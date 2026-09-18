@@ -339,7 +339,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
     const 못돈것 = 문서!.items[1]!;
     expect(못돈것.tcId).toBe('XDC-202');
     expect(못돈것.status).toBe('NOT_RUN');
-    expect(못돈것.notRunReason).toBe('사람이 실행을 멈춰 돌지 못했습니다');
+    expect(못돈것.notRunReason).toBe('실행이 멈춰 돌지 못했습니다');
     expect(못돈것.durationMs).toBeNull();
     expect(못돈것.steps).toEqual([]);
   });
