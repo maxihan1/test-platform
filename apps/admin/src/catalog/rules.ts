@@ -151,7 +151,9 @@ export function checkSource(file: string, text: string): SourceResult {
   return { violations, propLines };
 }
 
-const TCID = /^[A-Z]{2,6}-\d{3}$/;
+// 접두사는 자유 형식이다. 플랫폼은 뜻을 모르고 모양과 중복만 본다 (SPEC §2, 2026-09-17).
+// 소문자를 막는 이유 — Pay-001과 PAY-001이 서로 다른 케이스가 되면 중복 검출이 조용히 샌다
+const TCID = /^[A-Z][A-Z0-9]{0,11}-\d{3}$/;
 const PLATFORMS = new Set(['desktop', 'mobile']);
 
 function missingDescribe(file: string, line: number, schema: JsonSchema, key: string): Violation[] {
@@ -247,7 +249,7 @@ export function checkSpec(file: string, spec: CaseSpec, propLines: Map<string, n
   const out: Violation[] = [];
 
   if (!TCID.test(spec.tcId)) {
-    out.push(v(file, at('tcId'), 'K2', `tcId가 ${spec.tcId}이다. <대문자 2~6자>-<3자리>여야 한다`));
+    out.push(v(file, at('tcId'), 'K2', `tcId가 ${spec.tcId}이다. <접두사>-<3자리>여야 하고 접두사는 대문자로 시작해 대문자·숫자로 이어지는 1~12자다`));
   }
   if (spec.name.trim() === '') {
     out.push(v(file, at('name'), 'K3', 'name이 비어 있다'));

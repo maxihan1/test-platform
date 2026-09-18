@@ -125,6 +125,18 @@ describe('checkSpec', () => {
     expect(checkSpec('x.spec.ts', spec({ tcId: 'TOOLONGDOMAIN-001' }), lines)[0].line).toBe(5);
   });
 
+  it('K2 — 접두사는 자유 형식이다. 한 글자도 숫자 섞인 것도 통과한다', () => {
+    for (const tcId of ['A-001', 'PAY-001', 'DEMO2-001', 'ORDERPAYMENT-999']) {
+      expect(checkSpec('x.spec.ts', spec({ tcId }), lines)).toEqual([]);
+    }
+  });
+
+  it('K2 — 열두 글자를 넘거나 소문자이거나 숫자로 시작하면 잡는다', () => {
+    for (const tcId of ['TOOLONGDOMAIN-001', 'Pay-001', '2PAY-001', 'PAY-1']) {
+      expect(checkSpec('x.spec.ts', spec({ tcId }), lines)[0]?.rule).toBe('K2');
+    }
+  });
+
   it('K3 — name이 비면 잡는다', () => {
     expect(checkSpec('x.spec.ts', spec({ name: '  ' }), lines)[0].rule).toBe('K3');
   });
