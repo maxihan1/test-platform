@@ -64,6 +64,7 @@ describe('callRunner', () => {
       tcId: 'DEMO-001',
       platform: 'desktop',
       filePath: 'demo/DEMO-001.spec.ts',
+      baseUrl: '',
       params: { 아이디: 'tester' },
       expected: { 결과: true },
       timeoutMs: 5000,

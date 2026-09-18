@@ -57,6 +57,9 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
       env: {
         ...process.env,
         PLATFORM_PARAMS: JSON.stringify({ params: req.params, expected: req.expected }),
+        // 러너는 어떤 대상 서버가 있는지 모른다. 주소 하나만 받아 그대로 넘기고
+        // playwright.config.ts가 use.baseURL로 받는다 (SPEC §5.2)
+        PLATFORM_BASE_URL: req.baseUrl,
         // 스크린샷을 artifacts/runs/{runId}/{historyId}/ 아래에 쌓으려면 kit이 두 값을 알아야 한다 (SPEC §9)
         PLATFORM_RUN_ID: String(req.runId),
         PLATFORM_HISTORY_ID: String(req.historyId),
