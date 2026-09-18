@@ -150,7 +150,20 @@ function toItem(row: RawItem): RunItemSummary {
   };
 }
 
-export async function findRun(runId: number): Promise<(RunSummary & { items: RunItemSummary[] }) | null> {
+export interface EvidenceSummary {
+  id: number;
+  format: string;
+  // PENDING | READY | FAILED. 화면의 버튼 문구가 이 값으로 갈린다 (SPEC §6 · §8.4)
+  status: string;
+  // PENDING·FAILED 면 파일이 아직 없다
+  filePath: string | null;
+  error: string | null;
+  generatedAt: string;
+}
+
+export async function findRun(
+  runId: number,
+): Promise<(RunSummary & { items: RunItemSummary[]; evidence: EvidenceSummary[] }) | null> {
   const pool = await db();
   const runs = await pool.query<RawRun>(
     `SELECT ${RUN_COLUMNS} FROM test_run r LEFT JOIN run_item i USING (run_id) WHERE r.run_id = $1 GROUP BY r.run_id`,
@@ -163,7 +176,31 @@ export async function findRun(runId: number): Promise<(RunSummary & { items: Run
     `SELECT ${ITEM_COLUMNS} FROM run_item WHERE run_id = $1 ORDER BY tc_id, platform`,
     [runId],
   );
-  return { ...toRun(row), items: items.rows.map(toItem) };
+
+  // 증적 표는 리포팅 소유지만 읽기는 여기서 한다. §3.3 이 막은 것은 그쪽의 write 다
+  const evidence = await pool.query<{
+    id: string;
+    format: string;
+    status: string;
+    file_path: string | null;
+    error: string | null;
+    generated_at: Date;
+  }>('SELECT id, format, status, file_path, error, generated_at FROM evidence_document WHERE run_id = $1 ORDER BY id', [
+    runId,
+  ]);
+
+  return {
+    ...toRun(row),
+    items: items.rows.map(toItem),
+    evidence: evidence.rows.map((e) => ({
+      id: Number(e.id),
+      format: e.format,
+      status: e.status,
+      filePath: e.file_path,
+      error: e.error,
+      generatedAt: e.generated_at.toISOString(),
+    })),
+  };
 }
 
 interface RawStep {

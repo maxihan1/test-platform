@@ -69,6 +69,7 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
   });
 
   afterAll(async () => {
+    await pool.query("DELETE FROM evidence_document WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBQ%')");
     await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBQ%')");
     await pool.query("DELETE FROM test_run WHERE title LIKE 'XBQ%'");
     await pool.query("DELETE FROM service WHERE prefix = 'XBQ'");
@@ -88,6 +89,19 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
     const 목록 = await listRuns('XBQ', 1, 50);
     const 것 = 목록.items.find((r) => r.runId === 나중);
     expect(것?.counts).toEqual({ total: 2, pass: 0, fail: 1, na: 0, running: 1 });
+  });
+
+  it('findRun — 증적 목록을 상태와 함께 싣는다', async () => {
+    await pool.query(
+      `INSERT INTO evidence_document (run_id, format, status, file_path)
+       VALUES ($1, 'pdf', 'PENDING', NULL)`,
+      [나중],
+    );
+
+    const found = await findRun(나중);
+    expect(found?.evidence).toHaveLength(1);
+    // 화면 버튼 문구가 이 값으로 갈린다. PENDING 이면 파일이 아직 없다 (SPEC §8.4)
+    expect(found?.evidence[0]).toMatchObject({ format: 'pdf', status: 'PENDING', filePath: null });
   });
 
   it('findRun — 실행과 항목 목록이 같이 온다', async () => {
