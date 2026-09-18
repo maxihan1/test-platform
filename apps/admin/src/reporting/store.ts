@@ -91,6 +91,18 @@ export async function fail(id: number, reason: string): Promise<void> {
   );
 }
 
+// 만드는 도중에 admin 이 죽으면 PENDING 행이 남고, 부분 유일 인덱스(status = 'PENDING')가
+// 그 실행·그 형식을 영영 붙잡는다. 화면은 「만드는 중입니다」로 굳어 다시 만들 통로가 없다 (SPEC §8.4).
+// 부팅 직후 한 번 닫아 자리를 비운다 — execution/store.ts 의 recoverRunning() 과 같은 몫이다
+export async function recoverPending(): Promise<number> {
+  const pool = await db();
+  const closed = await pool.query(
+    "UPDATE evidence_document SET status = 'FAILED', error = $1, finished_at = now() WHERE status = 'PENDING'",
+    ['만들다 중단됐습니다. 다시 만들어 주세요.'],
+  );
+  return closed.rowCount ?? 0;
+}
+
 export async function findDocument(id: number): Promise<EvidenceRow | null> {
   const pool = await db();
   const rows = await pool.query<RawDocument>(`SELECT ${COLUMNS} FROM evidence_document WHERE id = $1`, [id]);

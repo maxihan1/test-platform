@@ -7,7 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { generate, 형식표 } from './generate.js';
-import { EvidenceBusyError, claim, findDocument } from './store.js';
+import { EvidenceBusyError, claim, findDocument, recoverPending } from './store.js';
 
 const 증적본문 = z.object({
   // 형식은 셋뿐이다. 그 밖의 값은 400 — 만들 수 없는 형식으로 PENDING 행을 남기지 않는다 (SPEC §7)
@@ -27,6 +27,16 @@ function 정수(raw: string): number | null {
 }
 
 export default async function reportingRoutes(app: FastifyInstance): Promise<void> {
+  // 재기동으로 만들던 작업이 사라지면 PENDING 행이 남아 부분 유일 인덱스가 그 형식을 영영 붙잡는다.
+  // 뜨는 김에 한 번 닫는다. 실패해도 admin 은 떠야 하므로 사유만 남긴다 (SPEC §8.4)
+  void recoverPending()
+    .then((n) => {
+      if (n > 0) app.log.warn(`[reporting] 재기동 전에 만들던 증적 ${String(n)}건을 실패로 닫았다`);
+    })
+    .catch((err: unknown) => {
+      app.log.error(`[reporting] 재기동 복구가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
+    });
+
   app.post<{ Params: { runId: string } }>('/runs/:runId/evidence', async (req, reply) => {
     const parsed = 증적본문.safeParse(req.body);
     if (!parsed.success) {
