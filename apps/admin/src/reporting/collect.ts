@@ -32,7 +32,7 @@ export interface EvidenceItem {
   tcName: string;
   platform: Platform;
   attempt: number;
-  /** 'NOT_RUN' 은 돌지 못한 항목이다 (할 일 3 이 채운다) */
+  /** 'NOT_RUN' 은 돌지 못한 항목이다. finished_at 이 빈 행이 여기로 온다 */
   status: ItemStatus | 'NOT_RUN';
   durationMs: number | null;
   notRunReason: string | null;
@@ -63,9 +63,12 @@ async function db(): Promise<Pool> {
   return pool;
 }
 
+type RunStatus = 'RUNNING' | 'FINISHED' | 'ABORTED';
+
 interface RawRun {
   run_id: string;
   title: string;
+  status: RunStatus;
   service_name: string;
   tests_repo: string;
   triggered_by_name: string | null;
@@ -82,6 +85,7 @@ interface RawItem {
   attempt: number;
   status: ItemStatus;
   duration_ms: number | null;
+  finished_at: Date | null;
   precondition: string[];
   params: unknown;
   expected: unknown;
@@ -111,6 +115,14 @@ interface RawStep {
 const 기록없음 = '기록 없음';
 /** 비밀값은 화면과 문서에서만 가린다. DB 에는 평문 그대로다 (SPEC §4.1) */
 const 가림 = '********';
+
+// 검수처가 읽을 한 문장이다. 「40건 중 12건 돌았고 28건은 이래서 못 돌았다」가 증적으로 성립해야 한다 (SPEC §8.4)
+const 미실행사유: Record<RunStatus, string> = {
+  ABORTED: '사람이 실행을 멈춰 돌지 못했습니다',
+  RUNNING: '아직 실행 중입니다',
+  // 러너 결과를 저장하다 실패한 행이 여기로 온다. 증적이 그 상태를 숨기면 안 된다
+  FINISHED: '실행이 끝났지만 결과가 기록되지 않았습니다',
+};
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -159,7 +171,7 @@ function toStep(row: RawStep): EvidenceStep {
 export async function collectRun(runId: number): Promise<EvidenceDocument | null> {
   const pool = await db();
   const runs = await pool.query<RawRun>(
-    `SELECT run_id, title, service_name, tests_repo, triggered_by_name, env, base_url, started_at
+    `SELECT run_id, title, status, service_name, tests_repo, triggered_by_name, env, base_url, started_at
        FROM test_run WHERE run_id = $1`,
     [runId],
   );
@@ -167,7 +179,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
   if (run === undefined) return null;
 
   const items = await pool.query<RawItem>(
-    `SELECT history_id, tc_id, tc_name, platform, attempt, status, duration_ms,
+    `SELECT history_id, tc_id, tc_name, platform, attempt, status, duration_ms, finished_at,
             precondition, params, expected, param_schema, expected_schema
        FROM run_item WHERE run_id = $1 ORDER BY history_id`,
     [runId],
@@ -192,21 +204,27 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
         run.triggered_by_name === null || run.triggered_by_name === ''
           ? '실행자 미상 (인증 도입 이전)'
           : run.triggered_by_name,
-      env: run.env,
+      env: run.env === '' ? 기록없음 : run.env,
       baseUrl: run.base_url === '' ? 기록없음 : run.base_url,
     },
-    items: items.rows.map((row) => ({
-      tcId: row.tc_id,
-      tcName: row.tc_name,
-      platform: row.platform,
-      attempt: row.attempt,
-      status: row.status,
-      durationMs: row.duration_ms,
-      notRunReason: null,
-      precondition: row.precondition,
-      params: toFields(row.params, row.param_schema),
-      expected: toFields(row.expected, row.expected_schema),
-      steps: steps.rows.filter((s) => s.history_id === row.history_id).map(toStep),
-    })),
+    items: items.rows.map((row) => {
+      // finished_at 이 비면 결과가 없는 행이다. status 의 'NA' 를 그대로 찍으면
+      // 「돌았는데 판정이 없다」로 읽혀 못 돈 항목이 문서에서 사라진다 (SPEC §8.4)
+      const 못돌았다 = row.finished_at === null;
+
+      return {
+        tcId: row.tc_id,
+        tcName: row.tc_name,
+        platform: row.platform,
+        attempt: row.attempt,
+        status: 못돌았다 ? ('NOT_RUN' as const) : row.status,
+        durationMs: 못돌았다 ? null : row.duration_ms,
+        notRunReason: 못돌았다 ? 미실행사유[run.status] : null,
+        precondition: row.precondition,
+        params: toFields(row.params, row.param_schema),
+        expected: toFields(row.expected, row.expected_schema),
+        steps: steps.rows.filter((s) => s.history_id === row.history_id).map(toStep),
+      };
+    }),
   };
 }

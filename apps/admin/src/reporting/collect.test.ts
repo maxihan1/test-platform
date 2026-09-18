@@ -22,6 +22,9 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
   let 실행: number;
   let 라벨실행: number;
   let 옛실행: number;
+  let 중단실행: number;
+  let 진행실행: number;
+  let 미기록실행: number;
   let 데스크톱: number;
   let 모바일: number;
 
@@ -138,6 +141,50 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
                '{}', '{}', '{}', '{}', 'PASS', 100, now())`,
       [옛실행],
     );
+
+    // 미실행 사유는 실행의 status 로 갈린다. 셋을 다 보려면 실행도 셋이어야 한다
+    async function 실행만든다(title: string, status: string, env: string): Promise<number> {
+      const row = await pool.query<{ run_id: string }>(
+        `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, base_url,
+                               service_id, service_name, tests_repo, started_at)
+         VALUES ($1, 'tester', '홍길동', $2, $3, 'https://qa.example.com',
+                 (SELECT id FROM service WHERE prefix = 'XDC'), 'XDC 결제 서비스',
+                 'https://github.com/example/xdc-tests', '2026-09-19T04:00:00Z')
+         RETURNING run_id`,
+        [title, status, env],
+      );
+      return Number(row.rows[0]!.run_id);
+    }
+
+    // finished_at 이 빈 행이 돌지 못한 항목이다. status 의 'NA' 만으로는 못 돈 것과 판정 없음이 안 갈린다
+    async function 미실행항목(runId: number, tcId: string): Promise<void> {
+      await pool.query(
+        `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms,
+                               precondition, params, expected, param_schema, expected_schema,
+                               status, duration_ms, finished_at)
+         VALUES ($1, $2, 'desktop', 1, '못 돈 케이스', 'demo/not-run.spec.ts', 300000, '[]',
+                 '{}', '{}', '{}', '{}', 'NA', NULL, NULL)`,
+        [runId, tcId],
+      );
+    }
+
+    중단실행 = await 실행만든다('XDC 중단된 실행', 'ABORTED', 'qa');
+    await pool.query(
+      `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms,
+                             precondition, params, expected, param_schema, expected_schema,
+                             status, duration_ms, finished_at)
+       VALUES ($1, 'XDC-201', 'desktop', 1, '멈추기 전에 돈 케이스', 'demo/XDC-201.spec.ts', 300000,
+               '[]', '{}', '{}', '{}', '{}', 'PASS', 700, now())`,
+      [중단실행],
+    );
+    await 미실행항목(중단실행, 'XDC-202');
+
+    진행실행 = await 실행만든다('XDC 도는 중', 'RUNNING', 'qa');
+    await 미실행항목(진행실행, 'XDC-301');
+
+    // env 를 비워 둔다. 박제 이전 행의 빈 칸을 여기서 같이 본다 (SPEC §6)
+    미기록실행 = await 실행만든다('XDC 결과 미기록', 'FINISHED', '');
+    await 미실행항목(미기록실행, 'XDC-401');
   });
 
   afterAll(async () => {
@@ -261,6 +308,41 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
     expect(문서!.header.testsRepo).toBe('기록 없음');
     expect(문서!.header.baseUrl).toBe('기록 없음');
     expect(문서!.header.triggeredByName).toBe('실행자 미상 (인증 도입 이전)');
+  });
+
+  it('중단된 실행은 못 돈 항목을 미실행과 사유로 남기고 끝난 항목은 그대로 둔다', async () => {
+    const 문서 = await collectRun(중단실행);
+    expect(문서!.items).toHaveLength(2);
+
+    const 돈것 = 문서!.items[0]!;
+    expect(돈것.tcId).toBe('XDC-201');
+    expect(돈것.status).toBe('PASS');
+    expect(돈것.durationMs).toBe(700);
+    expect(돈것.notRunReason).toBeNull();
+
+    const 못돈것 = 문서!.items[1]!;
+    expect(못돈것.tcId).toBe('XDC-202');
+    expect(못돈것.status).toBe('NOT_RUN');
+    expect(못돈것.notRunReason).toBe('사람이 실행을 멈춰 돌지 못했습니다');
+    expect(못돈것.durationMs).toBeNull();
+    expect(못돈것.steps).toEqual([]);
+  });
+
+  it('아직 도는 실행의 미실행 사유는 실행 중이라고 적는다', async () => {
+    const 문서 = await collectRun(진행실행);
+    expect(문서!.items[0]!.status).toBe('NOT_RUN');
+    expect(문서!.items[0]!.notRunReason).toBe('아직 실행 중입니다');
+  });
+
+  it('끝난 실행에 남은 미실행 항목은 결과가 안 적혔다고 적는다', async () => {
+    const 문서 = await collectRun(미기록실행);
+    expect(문서!.items[0]!.status).toBe('NOT_RUN');
+    expect(문서!.items[0]!.notRunReason).toBe('실행이 끝났지만 결과가 기록되지 않았습니다');
+  });
+
+  it('빈 환경 칸도 기록 없음으로 적는다', async () => {
+    const 문서 = await collectRun(미기록실행);
+    expect(문서!.header.env).toBe('기록 없음');
   });
 
   it('같은 실행을 두 번 뽑으면 글자 하나 다르지 않다', async () => {
