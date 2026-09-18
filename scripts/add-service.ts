@@ -3,10 +3,9 @@
 // 두 번째부터는 설정 화면이 같은 일을 하고 거기서는 색·저장소·대상 서버까지 한자리에서 넣는다
 
 import { pool } from '../apps/admin/src/db/index.js';
+// 접두사 모양은 설정 API 가 쓰는 것을 그대로 가져온다. 같은 모양을 두 번 적으면 한쪽만 고치는 날이 온다
+import { 접두사모양 } from '../apps/admin/src/settings/routes.js';
 import { 서비스만들기, 설정오류 } from '../apps/admin/src/settings/store.js';
-
-// SPEC §2 의 접두사 모양을 코드가 복사해 둔 자리다 (CLAUDE.md §2.7 ⑤)
-const 접두사모양 = /^[A-Z][A-Z0-9]{0,11}$/;
 
 const [prefix, name] = process.argv.slice(2);
 

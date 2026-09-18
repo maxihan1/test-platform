@@ -15,8 +15,9 @@ import {
   설정오류,
 } from './store.js';
 
-// SPEC §2 의 접두사 모양을 코드가 복사해 둔 자리다. §2 를 고치면 여기도 같이 움직인다 (CLAUDE.md §2.7 ⑤)
-const 접두사모양 = /^[A-Z][A-Z0-9]{0,11}$/;
+// SPEC §2 의 접두사 모양을 코드가 복사해 둔 자리다. §2 를 고치면 여기도 같이 움직인다 (CLAUDE.md §2.7 ⑤).
+// scripts/add-service.ts 가 이것을 가져다 쓴다 — 같은 모양을 두 번 적지 않는다
+export const 접두사모양 = /^[A-Z][A-Z0-9]{0,11}$/;
 
 const 대상서버 = z.object({ env: z.string().min(1), baseUrl: z.string().min(1) });
 

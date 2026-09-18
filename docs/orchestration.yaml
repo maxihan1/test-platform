@@ -114,8 +114,9 @@ units:
     # 2026-09-17 개정 §3.5 로 생긴 갈래. app_user 표와 쿠키·세션 부품이 먼저 서야 한다.
     # 로그인 **화면**(§8.6)과 설정 **화면**(§8.8)은 WS-E 소유다.
     # 여기서는 확인 함수·미들웨어·설정 API(/api/settings/**)·첫 계정/서비스 만들기 명령까지다.
-    # 미들웨어를 다는 apps/admin/src/app.ts 는 공용 골격이라 contracts 단위가 열어 둔다
-    status: pending
+    # 2026-09-18 완료. contracts·WS-A·WS-B 와 같은 세션에서 이어서 돌렸다 (docs/reviews/2026-09-18-WS-F.md).
+    # **치명 1건이 열려 있다** — 실행자가 아직 요청 본문에서 온다. 고칠 곳은 WS-B 이고 세 줄이다
+    status: done
     depends_on: [contracts]
     env: { WORKSTREAM: F }
     branch: ws-f-auth
