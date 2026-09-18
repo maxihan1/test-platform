@@ -83,8 +83,10 @@ interface RawItem {
   status: ItemStatus;
   duration_ms: number | null;
   precondition: string[];
-  params: Record<string, unknown>;
-  expected: Record<string, unknown>;
+  params: unknown;
+  expected: unknown;
+  param_schema: unknown;
+  expected_schema: unknown;
 }
 
 interface RawAssertion {
@@ -105,9 +107,32 @@ interface RawStep {
   screenshot_path: string | null;
 }
 
-// 할 일 1 은 라벨을 붙이지 않는다. 키 이름을 그대로 두고 값만 문자열로 편다 (할 일 2 가 스키마 라벨로 바꾼다)
-function toFields(json: Record<string, unknown>): EvidenceField[] {
-  return Object.entries(json).map(([label, value]) => ({ label, value: String(value) }));
+/** 박제 이전 행의 빈 칸. 지어내지 말고 모른다고 적는다 (SPEC §6) */
+const 기록없음 = '기록 없음';
+/** 비밀값은 화면과 문서에서만 가린다. DB 에는 평문 그대로다 (SPEC §4.1) */
+const 가림 = '********';
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// 라벨·마스킹을 여기서 끝낸다. 렌더러가 원본 JSON 에 닿으면 형식이 늘 때마다 마스킹이 새는 자리가 는다
+function toFields(json: unknown, schema: unknown): EvidenceField[] {
+  const values = isPlainObject(json) ? json : {};
+  const properties =
+    isPlainObject(schema) && isPlainObject(schema.properties) ? schema.properties : {};
+
+  return Object.entries(values).map(([key, value]) => {
+    const raw = properties[key];
+    const prop: Record<string, unknown> = isPlainObject(raw) ? raw : {};
+    const description = prop.description;
+
+    return {
+      // 화면(web/schema.ts)과 같은 규약이다. 갈라지면 폼은 '아이디'인데 증적은 'username' 으로 찍힌다
+      label: typeof description === 'string' && description !== '' ? description : key,
+      value: prop.secret === true ? 가림 : String(value),
+    };
+  });
 }
 
 function toAssertion(a: RawAssertion): EvidenceAssertion {
@@ -143,7 +168,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
 
   const items = await pool.query<RawItem>(
     `SELECT history_id, tc_id, tc_name, platform, attempt, status, duration_ms,
-            precondition, params, expected
+            precondition, params, expected, param_schema, expected_schema
        FROM run_item WHERE run_id = $1 ORDER BY history_id`,
     [runId],
   );
@@ -158,14 +183,17 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
   return {
     runId: Number(run.run_id),
     header: {
-      serviceName: run.service_name,
-      testsRepo: run.tests_repo,
+      serviceName: run.service_name === '' ? 기록없음 : run.service_name,
+      testsRepo: run.tests_repo === '' ? 기록없음 : run.tests_repo,
       title: run.title,
       startedAt: run.started_at.toISOString(),
-      // 실행자 이름은 스냅샷이라 옛 행에서만 빈다. 머리말은 빈 칸이 아니라 빈 문자열을 받는다
-      triggeredByName: run.triggered_by_name ?? '',
+      // 실행자만 문구가 다르다. 「기록이 없다」가 아니라 「그때는 로그인이 없었다」가 사실이다 (SPEC §8.4)
+      triggeredByName:
+        run.triggered_by_name === null || run.triggered_by_name === ''
+          ? '실행자 미상 (인증 도입 이전)'
+          : run.triggered_by_name,
       env: run.env,
-      baseUrl: run.base_url,
+      baseUrl: run.base_url === '' ? 기록없음 : run.base_url,
     },
     items: items.rows.map((row) => ({
       tcId: row.tc_id,
@@ -176,8 +204,8 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
       durationMs: row.duration_ms,
       notRunReason: null,
       precondition: row.precondition,
-      params: toFields(row.params),
-      expected: toFields(row.expected),
+      params: toFields(row.params, row.param_schema),
+      expected: toFields(row.expected, row.expected_schema),
       steps: steps.rows.filter((s) => s.history_id === row.history_id).map(toStep),
     })),
   };
