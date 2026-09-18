@@ -39,6 +39,11 @@ function 문서(items: EvidenceItem[]): EvidenceDocument {
   return { runId: 7, header: 머리말, items };
 }
 
+// generate.ts 가 스크린샷을 문서 안에 심어 넘기므로 렌더러가 실제로 받는 값은 data: URI 다.
+// 예전 픽스처의 '/shots/...' 같은 값은 어디에도 저장되지 않아 결함을 못 잡았다
+const 화면 =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
 const 깨진스텝: EvidenceStep = {
   seq: 2,
   title: '토큰을 검증한다',
@@ -153,7 +158,7 @@ describe('증적 문서 HTML', () => {
       title: '로그인 API를 호출한다',
       status: 'FAIL',
       durationMs: 312,
-      screenshotPath: '/shots/깨진화면.png',
+      screenshotPath: 화면,
       assertions: [
         {
           statement: '응답 코드가 정상이다',
@@ -179,7 +184,7 @@ describe('증적 문서 HTML', () => {
       ],
     };
     const 깨진html = renderHtml(문서([항목({ status: 'FAIL', steps: [여러검증] })]), 옵션);
-    const 사진 = 깨진html.indexOf('/shots/깨진화면.png');
+    const 사진 = 깨진html.indexOf(화면);
 
     // 어느 확인에서 깨졌는지와 그때 화면이 나란히 붙어야 의미가 있다 (SPEC §8.4)
     expect(깨진html.indexOf('토큰이 발급된다')).toBeLessThan(사진);
@@ -188,12 +193,12 @@ describe('증적 문서 HTML', () => {
     const 통과스텝: EvidenceStep = {
       ...여러검증,
       status: 'PASS',
-      screenshotPath: '/shots/통과화면.png',
+      screenshotPath: 화면,
       assertions: [여러검증.assertions[0] ?? 깨진스텝.assertions[0]!],
     };
     const 통과html = renderHtml(문서([항목({ steps: [통과스텝] })]), 옵션);
     expect(통과html.indexOf('응답 코드가 정상이다')).toBeLessThan(
-      통과html.indexOf('/shots/통과화면.png'),
+      통과html.indexOf(화면),
     );
   });
 
