@@ -279,8 +279,11 @@ CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-D(리포팅) 담당이
    디바이스가 2개인 케이스는 2번, 반복 실행한 케이스는 회차마다 한 블록씩 나온다
 2. HTML → PDF 변환 — admin 컨테이너 안에서 Playwright의 page.pdf()로 (SPEC §3.3).
    **내는 형식은 SPEC §8.4 표가 정본이다.** HTML도 내준다 — 이미 만들고 있고 주는 비용이 0이다
-3. POST /api/runs/:runId/evidence → { id, format, filePath, generatedAt }
-   GET /api/evidence/:id
+3. POST /api/runs/:runId/evidence → { id, format, status, filePath, error, generatedAt }
+   만드는 데 시간이 걸리므로 **status = PENDING 으로 먼저 돌려준다.** 끝나면 READY(filePath 참)
+   또는 FAILED(error 참)가 된다. 같은 실행·같은 형식이 이미 PENDING 이면 409 — DB 가 막는다 (SPEC §6).
+   상태를 안 내면 §8.4 의 버튼 네 문구를 화면이 못 그리고, 새로고침마다 문서 행이 쌓인다
+   GET /api/evidence/:id — **이 주소는 영구 주소다.** 메신저나 문서에 붙인 링크가 썩으면 안 된다
 4. Grafana 프로비저닝 — Postgres 데이터소스 + 대시보드 JSON
    패널: 성공률 추이 / 평균 소요시간 / 실패 TOP10 케이스 / 최근 실행 목록
    성공률 추이는 정기 실행(§9.2)이 있어야 선이 된다. 그 설정은 네 몫이 아니다
@@ -442,7 +445,14 @@ CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-F(인증) 담당이다
    등급으로 갈리는 자리 셋도 이 미들웨어가 본다 — 읽기 viewer / 실행·멈춤·증적 만들기 operator /
    /api/settings/** admin. 모자라면 403이고 404로 감추지 않는다 (SPEC §7).
    배정받지 않은 서비스의 자원도 403이다
-4. 계정 만들기 명령 (scripts/**) — 회원가입 화면은 없다. 운영자가 admin 컨테이너 안에서 만든다 (§9.2)
+4. 컨테이너 안에서 도는 명령 **셋** (scripts/** 는 네 소유다. SPEC §9.2 가 셋 다 요구한다)
+   - `add-user.js <아이디> <이름> <등급>` — 회원가입 화면은 없다. 첫 계정은 운영 등급이어야 한다
+   - `add-service.js <접두사> <이름>` — **이게 없으면 첫 서비스를 만들 방법이 없다.**
+     설정 화면(§8.8)은 로그인해야 열리고, 서비스가 없으면 아무것도 못 한다
+   - `run-scheduled.js <접두사>` — 정기 실행. cron 이 이것을 건다.
+     **HTTP 를 쓰지 않는 이유가 여기 있다** — 인증 없이 부를 수 있는 API 를 만들지 않으려고
+     안에서 만든다 (§7 · §9.2). 없으면 성공률 추이가 선이 안 되고 §11 Phase 2 두 줄이 빈다
+   비밀번호는 명령이 무작위로 만들어 화면에 한 번만 찍는다. 인자로 받으면 명령 이력에 평문으로 남는다
 
 비밀번호는 Node 내장 crypto.scrypt로 해시해 저장한다. 원문은 DB에도 로그에도 남기지 않는다.
 실행자는 로그인한 사람에게서 온다. 요청 본문에 실린 값은 쓰지 마라.

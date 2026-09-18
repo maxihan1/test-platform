@@ -177,6 +177,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
 | `docs/orchestration.yaml` | steps · 의존 · 사람 확인. 단위 구성이 바뀌었으면 `status`도 |
 | `spec-review` 체크리스트 · `npm run check:*` | 검사가 옛 기준이면 **초록불이 거짓말을 한다** |
 | `docs/SETUP.md` · `docs/HOOKS.md` · `docs/DESIGN.md` | 사람이 따라 하는 절차와 화면 기준 |
+| `docs/WORKFLOW.md` | 지금이 어느 단계이고 무엇이 남았는가. 단위 상태가 바뀌면 여기도 바뀐다 |
 | `docs/design-mockup.html` | 화면 규칙이 바뀌었으면 |
 | **코드에 박힌 상수** | SPEC의 형식·숫자·열거값을 코드가 복사해 둔 자리. 정규식·상한 같은 것 |
 
