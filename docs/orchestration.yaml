@@ -64,7 +64,8 @@ units:
   # contracts 뒤인 이유 — ?service= 필터와 서비스별 스캔 폴더가 service 표를 먼저 필요로 한다
   - id: WS-A
     name: 카탈로그
-    status: pending
+    # 2026-09-18 완료. contracts 와 한 세션에서 이어서 돌렸다 (docs/reviews/2026-09-18-WS-A.md)
+    status: done
     depends_on: [contracts]
     env: { WORKSTREAM: A }
     branch: ws-a-catalog-2
@@ -79,7 +80,8 @@ units:
     # 첫 step 은 계약이 아니라 **QA 게이트를 막고 있는 것**이다. DB 를 붙이면 npm test 가 8회 중 1회
     # 깨지는데, qa 가 3회 돌리므로 어느 단위든 3분의 1쯤 여기서 멈춘다. contracts 가 가장 먼저 도는
     # 담당 갈래 없는 단위라 여기에 둔다 — WS-A 킥오프에 두면 contracts 가 먼저 그 함정을 밟는다
-    status: pending
+    # 2026-09-18 완료. 여섯 step 전부 (docs/reviews/2026-09-18-WS-A.md)
+    status: done
     branch: contracts
     kickoff: "workstreams#계약 반영"
     steps:
