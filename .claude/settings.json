@@ -7,10 +7,6 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/scripts/guard.mjs\" protected"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/scripts/guard.mjs\" ownership"
           }
         ]
       },

@@ -88,19 +88,8 @@ git worktree add .claude/worktrees/<이름> -b <이름> origin/main
 써야 하므로 이름이 갈린다. **가정하지 말고 `git rev-parse --abbrev-ref HEAD` 로 읽는다** —
 `tpx-merge` Step 5 도 `git branch --merged` 로 후보를 뽑지 이름을 짐작하지 않는다.
 
-**갈래 작업이면 소유 경로 잠금을 켠다.**
-
-```bash
-# .claude/settings.local.json 의 env 에 넣는다
-{ "env": { "WORKSTREAM": "<A|B|C|D|E|F>" } }
-```
-
-> **⚠️ `export WORKSTREAM=C` 는 안 먹는다.** 훅은 별도 프로세스로 뜨므로 Bash 도구 안에서 한
-> `export` 가 닿지 않는다. `docs/HOOKS.md` 「워크스트림 지정」이 같은 말을 한다.
-> **2026-09-18 까지 이 자리가 `export` 라고 적혀 있었다** — 그동안 `ownership` 검사는
-> 켜진 적이 없다. 설정 파일은 추적되지 않으므로 사람이 한 번 넣어야 한다.
-
-갈래가 없는 작업(하네스·계약 반영)이면 **설정하지 않는다.** 설정하면 못 고칠 파일이 생긴다.
+**소유 경로 잠금은 없다.** 2026-09-18 에 걷어냈다 — `WORKSTREAM` 환경변수가 훅에 닿지 않아
+한 번도 켜진 적이 없었다. 범위를 지키는 일은 계획 단계와 게이트가 한다 (`CLAUDE.md §1.1`).
 
 ### 작업방 함정 둘
 
@@ -168,7 +157,6 @@ npm run check:deps
 🔄 [1/7] tpx-start
    ├─ 선언 등급: <N> · 표면: <목록> · 미분류: <경로 또는 없음>
    ├─ 작업방: .claude/worktrees/<이름> (브랜치 <이름>)
-   ├─ 소유 경로 잠금: WORKSTREAM=<갈래> 또는 없음(하네스)
    ├─ check:deps: 통과 또는 누락 N개
    └─ 📋 초안 PR #<번호> — 파일을 고치기 전에 열었다
 ```

@@ -27,7 +27,8 @@
 훅의 잠금은 2026-09-17에 풀렸다(승인이 끝난 변경까지 막고 있었다). **막는 장치가 없으니
 고치기 전에 SPEC에 그 변경이 적혀 있는지 먼저 본다.** 검사는 spec-review A1~A3이 사후에 한다 (CLAUDE.md §1.3)
 
-**Phase 0가 만들고 이후 잠그는 공용 골격** (훅의 `ownership` 검사가 막는다. 바꿔야 하면 CLAUDE.md §1.2 절차)
+**Phase 0가 만든 공용 골격** — 바꿔야 하면 CLAUDE.md §1.2 절차를 밟는다.
+**막는 장치는 없다** (2026-09-18 `ownership` 훅을 걷어냈다). 검사는 `spec-review` 가 사후에 한다.
 - `apps/admin/src/app.ts` — 서버 부트스트랩. 각 컨텍스트 폴더의 `routes.ts`를 **정해진 규약**으로 불러 등록한다.
   갈래는 자기 폴더의 `routes.ts`만 채우고 이 파일은 건드리지 않는다
 - `apps/admin/src/db/` — DB 연결 풀. 갈래는 import만 한다
@@ -77,7 +78,7 @@ docs/SPEC.md(색인)와 CLAUDE.md를 읽어줘. 너는 WS-0(골격) 담당이다
    러너 컨테이너 안에서 실제로 `npx playwright test <DEMO-001 파일> --project=desktop`을
    자식 프로세스로 돌리고, 리포터 없이 exit code만으로 PASS/FAIL을 만들어 돌려줘라.
    브라우저 기동·/tests 읽기 전용 마운트·모듈 해석이 여기서 검증된다
-8. 공용 골격 — WORKSTREAMS.md "Phase 0가 만들고 이후 잠그는 공용 골격" 목록 전부.
+8. 공용 골격 — WORKSTREAMS.md "Phase 0가 만든 공용 골격" 목록 전부.
    특히 apps/admin/src/app.ts의 라우트 등록 규약을 정하고 각 컨텍스트 폴더에 빈 routes.ts를 둬라
 9. 의존성을 한 번에 깔아라 (갈래 세션은 package.json의 의존성 칸을 못 고친다. scripts는 열려 있다).
    SPEC §9.1의 스택 기준: fastify, @fastify/static, pg, zod,
@@ -112,7 +113,7 @@ CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-A(카탈로그) 담당
   docs/spec/공통/1-제품과-구조.md · docs/spec/공통/2-명세선언.md
   docs/spec/도메인/카탈로그.md · docs/spec/공통/4-데이터모델.md
 다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
-소유 경로는 apps/admin/src/catalog/** 이다. 이 폴더 밖은 수정하지 마라.
+소유 경로는 apps/admin/src/catalog/** 이다. 그 밖을 고쳐야 하면 이유를 계획이나 게이트 2 요약에 적는다 (CLAUDE.md §1.1).
 
 만들 것:
 1. 스캐너 — tests/ 폴더를 훑어 defineCase 선언에서 CaseSpec을 추출
@@ -167,7 +168,7 @@ CLAUDE.md와 SPEC 중 아래 5장을 읽어줘. 너는 WS-B(실행) 담당이다
   docs/spec/공통/1-제품과-구조.md · docs/spec/공통/3-공유계약.md · docs/spec/공통/5-화면공통.md
   docs/spec/도메인/실행.md · docs/spec/공통/4-데이터모델.md
 다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
-소유 경로는 apps/admin/src/execution/** 이다. 이 폴더 밖은 수정하지 마라.
+소유 경로는 apps/admin/src/execution/** 이다. 그 밖을 고쳐야 하면 이유를 계획이나 게이트 2 요약에 적는다 (CLAUDE.md §1.1).
 
 만들 것:
 1. POST /api/runs — test_run 생성 후 run_item들을 만들고 디스패처에 넘김
@@ -183,7 +184,7 @@ CLAUDE.md와 SPEC 중 아래 5장을 읽어줘. 너는 WS-B(실행) 담당이다
 5. ParamSet CRUD — 저장 전 param_schema로 검증
 
 러너는 아직 스텁일 수 있다. ExecuteResponse 형태의 가짜 응답으로 먼저 만들어라.
-러너 내부 구현은 WS-C 담당이니 apps/runner/**는 절대 건드리지 마라.
+러너 내부 구현은 WS-C 담당이다. apps/runner/** 를 고쳐야 하면 계약이나 API 로 되는지 먼저 보고, 안 되면 이유를 적는다.
 
 2026-09-17~18 개정으로 더 할 것 (여기부터가 이번에 남은 일이다. 코드에 아직 한 줄도 없다):
 A. **실행 멈추기** — POST /api/runs/:runId/abort (SPEC §7 · §3.2).
@@ -325,7 +326,7 @@ CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
   화면 절(§8.x)은 도메인 장에 흩어져 있다 — 카탈로그 §8.1 · 실행 §8.2·8.3·8.7·8.9 ·
   리포팅 §8.4·8.5 · 인증 §8.6·8.8. 고칠 화면이 속한 도메인 장을 읽는다.
 다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
-소유 경로는 apps/admin/src/web/** 이다. 서버 코드는 건드리지 마라.
+소유 경로는 apps/admin/src/web/** 이다. 서버 코드를 고쳐야 하면 이유를 적는다 (CLAUDE.md §1.1).
 화면은 React + Vite다 (SPEC §9.1). Vite 설정은 네 폴더 안의 것을 쓴다.
 시작 전에 docs/DESIGN.md와 docs/design-mockup.html을 반드시 열어봐라.
 색·간격·구조는 목업을 기준으로 삼는다.
