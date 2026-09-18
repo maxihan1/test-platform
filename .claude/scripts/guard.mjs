@@ -181,4 +181,12 @@ ${changed.trim().split('\n').slice(0, 8).map((l) => '  ' + l).join('\n')}
 
 // **mode 가 있을 때만 끝낸다.** 판별식이 import 하면 mode 가 없는데, 맨 끝에서 무조건
 // ok()(= process.exit(0))를 부르면 테스트가 첫 건만 돌고 프로세스가 죽는다 (2026-09-18 실측)
-if (mode) ok();
+//
+// 여기까지 왔다는 건 위 어느 모드에도 안 걸렸다는 뜻이다. 조용히 0 으로 끝내면
+// 「배선은 됐는데 구현이 없는 훅」이 매번 돌면서 아무 일도 안 하고 아무 말도 안 한다.
+// ownership 이 한 번도 안 켜진 채 살아남은 것이 이 침묵 때문이다 (2026-09-18).
+if (mode) {
+  console.error(`[guard] 모르는 모드다: ${mode}\n` +
+    `settings.json 의 배선과 guard.mjs 의 구현이 어긋났다. guard-wiring.test.mjs 를 돌려 본다.`);
+  process.exit(1);   // 2 는 「막는다」라 도구 호출이 차단된다. 배선 사고는 알리기만 한다
+}
