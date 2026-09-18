@@ -48,20 +48,62 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
   });
 
   it('GET /api/catalog/cases — 활성 케이스를 tcId 순으로 돌려준다', async () => {
-    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases' })).json();
+    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO' })).json();
     expect(body.total).toBeGreaterThanOrEqual(10);
     expect(body.items.map((i: { tcId: string }) => i.tcId)).toContain('DEMO-001');
     expect(body.items[0].tcId <= body.items[1].tcId).toBe(true);
   });
 
+  it('GET /api/catalog/cases — 응답이 순서와 총건수의 성질을 같이 알려준다', async () => {
+    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO' })).json();
+    expect(body.sort).toBe('tcId');
+    expect(body.totalIsExact).toBe(true);
+    expect(body.page).toBe(1);
+    expect(typeof body.pageSize).toBe('number');
+  });
+
+  it('GET /api/catalog/cases — service를 안 주면 400이다', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/catalog/cases' });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe('SERVICE_REQUIRED');
+  });
+
+  it('GET /api/catalog/cases — 배정받지 않은 서비스는 403이다', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/catalog/cases?service=NOPE' });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error).toBe('SERVICE_FORBIDDEN');
+  });
+
+  it('GET /api/catalog/cases — 그 서비스의 케이스만 돌려준다', async () => {
+    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO' })).json();
+    for (const item of body.items) {
+      expect(item.tcId.startsWith('DEMO-')).toBe(true);
+    }
+  });
+
+  it('GET /api/catalog/cases?platform= — 그 디바이스를 지원하는 케이스만 남긴다', async () => {
+    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO&platform=mobile' })).json();
+    expect(body.items.length).toBeGreaterThan(0);
+    for (const item of body.items) {
+      expect(item.platforms).toContain('mobile');
+    }
+    expect(body.items.length).toBeLessThan(10);
+  });
+
+  it('GET /api/catalog/cases?active=false — 비활성까지 전부 본다', async () => {
+    const 활성만 = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO' })).json();
+    const 전체 = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO&active=false' })).json();
+    expect(전체.total).toBeGreaterThanOrEqual(활성만.total);
+  });
+
   it('GET /api/catalog/cases?q= — tcId 부분 일치로 찾는다', async () => {
-    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?q=DEMO-004' })).json();
+    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO&q=DEMO-004' })).json();
     expect(body.items).toHaveLength(1);
     expect(body.items[0].tcId).toBe('DEMO-004');
   });
 
   it('GET /api/catalog/cases?q= — 이름 부분 일치로도 찾는다', async () => {
-    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?q=자원' })).json();
+    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO&q=자원' })).json();
     expect(body.items.length).toBeGreaterThan(0);
     for (const item of body.items) {
       expect(`${item.tcId} ${item.name}`).toContain('자원');
@@ -69,7 +111,7 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
   });
 
   it('GET /api/catalog/cases?q= — 밑줄은 아무 글자나 맞는 기호가 아니라 글자 그대로다', async () => {
-    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?q=DEMO_004' })).json();
+    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO&q=DEMO_004' })).json();
     expect(body.items).toHaveLength(0);
   });
 

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 
 import { scan, testsRoot, type Duplicate } from './scanner.js';
 import { readExcerpt } from './source.js';
-import { activeServices, findCase, listCases, save } from './store.js';
+import { activeServices, findCase, findService, listCases, save } from './store.js';
 
 const PAGE_SIZE = 50;
 
@@ -89,6 +89,12 @@ async function runScan(log: FastifyBaseLogger): Promise<LastScan> {
   }
 }
 
+// 배정 판정은 「지금 부른 사람이 누구인가」를 알아야 한다. 인증이 붙기 전까지는 활성 서비스면 통과시킨다.
+// 갈아 끼울 자리를 이 함수 하나로 묶어 둔다 — WS-F가 안을 채운다 (SPEC §3.5 · §7)
+async function 볼수있나(prefix: string): Promise<boolean> {
+  return (await findService(prefix)) !== null;
+}
+
 export default async function catalogRoutes(app: FastifyInstance): Promise<void> {
   // 배포는 컨테이너 재기동이다. 뜨는 김에 한 번 훑어 두면 배포 직후 목록이 최신이 된다 (SPEC §3.1)
   startup = runScan(app.log);
@@ -97,10 +103,29 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
 
   app.get('/catalog/scan', async () => last ?? (startup === null ? null : await startup));
 
-  app.get<{ Querystring: { q?: string; page?: string } }>('/catalog/cases', async (req) => {
-    const page = Math.max(1, Number(req.query.page ?? 1) || 1);
-    return listCases(req.query.q ?? '', page, PAGE_SIZE);
-  });
+  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string } }>(
+    '/catalog/cases',
+    async (req, reply) => {
+      const service = req.query.service ?? '';
+      // 서비스는 검색 조건이 아니라 맨 위 띠의 선택이고 서버가 늘 적용한다 (SPEC §8 · §8.1)
+      if (service === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
+      if (!(await 볼수있나(service))) {
+        // 404로 감추지 않는다. 화면이 그 자리를 아예 안 보여주므로 여기까지 닿은 요청은
+        // 화면의 버그이거나 직접 찌른 것이고, 둘 다 감추는 편이 더 나쁘다 (SPEC §3.5)
+        return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
+      }
+
+      const platform = req.query.platform;
+      return listCases({
+        service,
+        q: req.query.q ?? '',
+        platform: platform === 'desktop' || platform === 'mobile' ? platform : undefined,
+        activeOnly: req.query.active !== 'false',
+        page: Math.max(1, Number(req.query.page ?? 1) || 1),
+        pageSize: PAGE_SIZE,
+      });
+    },
+  );
 
   app.get<{ Params: { tcId: string } }>('/catalog/cases/:tcId', async (req, reply) => {
     const found = await findCase(req.params.tcId);
