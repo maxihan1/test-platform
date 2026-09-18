@@ -10,8 +10,8 @@ import { writeFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const BEGIN = '<!-- tp:status -->';
-const END = '<!-- /tp:status -->';
+const BEGIN = '<!-- tpx:status -->';
+const END = '<!-- /tpx:status -->';
 
 const STEPS = [
   { n: 1, name: '시작 — 작업방 · 분류' },
@@ -37,7 +37,7 @@ const gh = (args) => execFileSync('gh', args, { encoding: 'utf8' });
 
 // 임시 파일로 넘긴다. 본문에 백틱·따옴표가 섞여도 셸이 삼키지 않는다
 function ghWithBody(args, body) {
-  const f = join(tmpdir(), `tp-${process.pid}-${Date.now()}.md`);
+  const f = join(tmpdir(), `tpx-${process.pid}-${Date.now()}.md`);
   writeFileSync(f, body);
   try { return execFileSync('gh', [...args, '--body-file', f], { encoding: 'utf8' }); }
   finally { unlinkSync(f); }
