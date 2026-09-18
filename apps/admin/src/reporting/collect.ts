@@ -131,6 +131,19 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+// SPEC §4.1 K9 가 이 이름들에 .meta({ secret: true }) 를 강제한다.
+// 정본은 catalog/rules.ts 의 SECRET_NAMES 다 — 컨텍스트가 달라 import 하지 않고 같은 목록을 둔다.
+// 새 케이스는 K9 이 표시를 강제하므로 이 목록은 박제 이전 행을 위한 2차 방어다 —
+// 20260917000001 이 param_schema 를 '{}' 로 메운 과거 행에는 표시가 아예 없다
+const SECRET_NAMES = ['password', 'passwd', 'pw', 'token', 'secret', 'apikey', 'credential'];
+
+// 표시가 없으면 이름으로 판단한다. 모를 때 보여주는 쪽으로 실패하면 비밀번호가 검수처로 나간다
+function 가려야하나(key: string, prop: Record<string, unknown>): boolean {
+  if (prop.secret === true) return true;
+  const lower = key.toLowerCase();
+  return SECRET_NAMES.some((word) => lower.includes(word));
+}
+
 // 라벨·마스킹을 여기서 끝낸다. 렌더러가 원본 JSON 에 닿으면 형식이 늘 때마다 마스킹이 새는 자리가 는다
 function toFields(json: unknown, schema: unknown): EvidenceField[] {
   const values = isPlainObject(json) ? json : {};
@@ -145,7 +158,7 @@ function toFields(json: unknown, schema: unknown): EvidenceField[] {
     return {
       // 화면(web/schema.ts)과 같은 규약이다. 갈라지면 폼은 '아이디'인데 증적은 'username' 으로 찍힌다
       label: typeof description === 'string' && description !== '' ? description : key,
-      value: prop.secret === true ? 가림 : String(value),
+      value: 가려야하나(key, prop) ? 가림 : String(value),
     };
   });
 }

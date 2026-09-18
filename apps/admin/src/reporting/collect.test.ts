@@ -22,6 +22,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
   let 실행: number;
   let 라벨실행: number;
   let 옛실행: number;
+  let 이름실행: number;
   let 중단실행: number;
   let 닫힌중단실행: number;
   let 진행실행: number;
@@ -141,6 +142,32 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
               ($1, 'XDC-102', 'desktop', 1, '입력 없는 옛 케이스', '', NULL, '[]',
                '{}', '{}', '{}', '{}', 'PASS', 100, now())`,
       [옛실행],
+    );
+
+    // 표시가 없는 비밀값. 스키마가 '{}' 로 메워진 박제 이전 행이 이 모습이다 (migration 20260917000001)
+    const 이름만 = await pool.query<{ run_id: string }>(
+      `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, base_url,
+                             service_id, service_name, tests_repo, started_at)
+       VALUES ('XDC 표시 없는 비밀값', 'tester', '홍길동', 'FINISHED', 'qa', 'https://qa.example.com',
+               (SELECT id FROM service WHERE prefix = 'XDC'), 'XDC 결제 서비스',
+               'https://github.com/example/xdc-tests', '2026-09-19T05:00:00Z')
+       RETURNING run_id`,
+    );
+    이름실행 = Number(이름만.rows[0]!.run_id);
+
+    await pool.query(
+      `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms,
+                             precondition, params, expected, param_schema, expected_schema,
+                             status, duration_ms, finished_at)
+       VALUES ($1, 'XDC-601', 'desktop', 1, '표시 없이 로그인한다', 'demo/XDC-601.spec.ts', 300000, '[]',
+               '{"loginId":"tester","password":"hunter2","apiKey":"ak-1","PW":"1234","Credential":"c-9","note":"메모"}',
+               '{"authToken":"t-77","ok":true}',
+               '{}', '{}', 'PASS', 300, now()),
+              ($1, 'XDC-602', 'desktop', 1, '이름으로는 모르는 칸', 'demo/XDC-602.spec.ts', 300000, '[]',
+               '{"answer":"1234","memo":"평문"}', '{}',
+               '{"type":"object","properties":{"answer":{"type":"string","description":"인증 답","secret":true}}}',
+               '{}', 'PASS', 300, now())`,
+      [이름실행],
     );
 
     // 미실행 사유는 실행의 status 로 갈린다. 셋을 다 보려면 실행도 셋이어야 한다
@@ -309,9 +336,47 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
     expect(항목.expected).toEqual([{ label: '토큰이 발급된다', value: '********' }]);
   });
 
+  it('표시가 없어도 칸 이름이 비밀값이면 값을 가린다', async () => {
+    const 문서 = await collectRun(이름실행);
+    const 값 = Object.fromEntries(문서!.items[0]!.params.map((f) => [f.label, f.value]));
+    expect(값.password).toBe('********');
+    expect(값.apiKey).toBe('********');
+    expect(값.PW).toBe('********');
+    expect(값.Credential).toBe('********');
+  });
+
+  it('비밀값 이름이 아닌 칸은 그대로 보인다 — 과하게 가리면 증적이 못 쓰게 된다', async () => {
+    const 문서 = await collectRun(이름실행);
+    const 값 = Object.fromEntries(문서!.items[0]!.params.map((f) => [f.label, f.value]));
+    expect(값.loginId).toBe('tester');
+    expect(값.note).toBe('메모');
+  });
+
+  it('이름으로 가려도 라벨은 건드리지 않는다 — 어떤 칸인지는 보여야 한다', async () => {
+    const 문서 = await collectRun(이름실행);
+    expect(문서!.items[0]!.params.map((f) => f.label).sort()).toEqual(
+      ['Credential', 'PW', 'apiKey', 'loginId', 'note', 'password'].sort(),
+    );
+  });
+
+  it('기대값 쪽에도 같은 이름 규칙이 걸린다', async () => {
+    const 문서 = await collectRun(이름실행);
+    const 값 = Object.fromEntries(문서!.items[0]!.expected.map((f) => [f.label, f.value]));
+    expect(값.authToken).toBe('********');
+    expect(값.ok).toBe('true');
+  });
+
+  it('표시가 있으면 이름과 상관없이 가린다', async () => {
+    const 문서 = await collectRun(이름실행);
+    const 값 = Object.fromEntries(문서!.items[1]!.params.map((f) => [f.label, f.value]));
+    // answer 는 SPEC §4.1 이 「이름만으로는 모른다」고 적은 칸이다. 꼬리표가 유일한 근거다
+    expect(값['인증 답']).toBe('********');
+    expect(값.memo).toBe('평문');
+  });
+
   it('박제 이전 행은 라벨을 지어내지 않고, 입력이 없으면 빈 칸 목록이다', async () => {
     const 문서 = await collectRun(옛실행);
-    // 스키마가 비면 라벨을 알 방법이 없다. 키 이름을 쓰되 값은 손대지 않는다
+    // 스키마가 비면 라벨을 알 방법이 없다. 키 이름을 쓴다. 비밀값 이름이 아니면 값도 그대로다
     expect(문서!.items[0]!.params).toEqual([{ label: 'loginId', value: 'tester' }]);
     // 빈 목록이 '입력 없음' 이다. 렌더러가 이 상태를 구분해 그린다 (SPEC §4.1)
     expect(문서!.items[1]!.params).toEqual([]);
