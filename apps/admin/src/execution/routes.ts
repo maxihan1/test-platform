@@ -11,7 +11,7 @@ import { dispatch, markAborted } from './dispatcher.js';
 import { abortRunner } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
-import { findItem, findRun, listRuns } from './queries.js';
+import { findItem, findRun, listRuns, serviceExists } from './queries.js';
 import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
 
@@ -114,7 +114,15 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     return result;
   });
 
-  app.get<{ Querystring: { page?: string } }>('/runs', async (req) => listRuns(page(req.query.page), PAGE_SIZE));
+  app.get<{ Querystring: { service?: string; page?: string } }>('/runs', async (req, reply) => {
+    // 한 번에 한 서비스만 본다. 섞이면 목록이 남의 실행으로 채워진다 (SPEC §8 · §8.7)
+    const service = req.query.service ?? '';
+    if (service === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
+    if (!(await serviceExists(service))) {
+      return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
+    }
+    return listRuns(service, page(req.query.page), PAGE_SIZE);
+  });
 
   // 목록 화면이 케이스마다 이력을 따로 부르지 않게 한 번에 준다 (SPEC §8.1, WS-A 검사 기록 '기타 2')
   app.get('/runs/last-by-case', async () => ({ items: await lastByCase() }));

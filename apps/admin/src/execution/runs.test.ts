@@ -238,13 +238,28 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   });
 
   it('GET /api/runs — 실행 목록이 최근 순으로 나온다', async () => {
-    const body = (await app.inject({ method: 'GET', url: '/api/runs' })).json();
+    const body = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
     expect(body.total).toBeGreaterThan(0);
     expect(body.items[0].runId).toBeGreaterThan(0);
   });
 
+  it('GET /api/runs — service를 안 주면 400, 없는 서비스면 403이다', async () => {
+    expect((await app.inject({ method: 'GET', url: '/api/runs' })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'GET', url: '/api/runs?service=NOPE' })).statusCode).toBe(403);
+  });
+
+  it('GET /api/runs — 그 서비스의 실행만 돌려준다', async () => {
+    const body = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
+    expect(body.items.length).toBeGreaterThan(0);
+    for (const run of body.items) {
+      expect(run.title.startsWith('XBX')).toBe(true);
+      // 실행 기록 목록은 대상 서버를 시각 옆에 적는다 (SPEC §8.7)
+      expect(run.env).toBe('qa');
+    }
+  });
+
   it('GET /api/runs/:runId/items/:historyId — 절차와 검증 문장이 온다', async () => {
-    const 실행 = (await app.inject({ method: 'GET', url: '/api/runs' })).json();
+    const 실행 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
     const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'XBX 두 환경 실행');
     const run = (await app.inject({ method: 'GET', url: `/api/runs/${우리것.runId}` })).json();
     const 실패한것 = run.items.find((i: { platform: string }) => i.platform === 'desktop');
@@ -258,7 +273,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   });
 
   it('모바일 항목은 러너가 준 NA와 사유를 그대로 갖고 있다', async () => {
-    const 실행 = (await app.inject({ method: 'GET', url: '/api/runs' })).json();
+    const 실행 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
     const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'XBX 두 환경 실행');
     const run = (await app.inject({ method: 'GET', url: `/api/runs/${우리것.runId}` })).json();
     const 모바일 = run.items.find((i: { platform: string }) => i.platform === 'mobile');

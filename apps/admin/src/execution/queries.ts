@@ -17,6 +17,8 @@ export interface RunSummary {
   runId: number;
   title: string;
   triggeredBy: string;
+  // 그때의 이름을 박제한 값. 계정 이름을 바꾸거나 지워도 과거 기록이 흔들리지 않는다 (SPEC §6 · §8.7)
+  triggeredByName: string | null;
   env: string;
   status: string;
   startedAt: string;
@@ -54,7 +56,7 @@ const iso = (v: Date | null): string | null => (v === null ? null : v.toISOStrin
 
 // 실행 묶음 한 줄에 판정 개수까지 붙인다. 없으면 목록 화면이 실행마다 항목을 또 불러야 한다
 const RUN_COLUMNS = `
-  r.run_id, r.title, r.triggered_by, r.env, r.status, r.started_at, r.finished_at,
+  r.run_id, r.title, r.triggered_by, r.triggered_by_name, r.env, r.status, r.started_at, r.finished_at,
   count(i.history_id)::int AS total,
   count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS')::int AS pass,
   count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL')::int AS fail,
@@ -65,6 +67,7 @@ interface RawRun {
   run_id: string;
   title: string;
   triggered_by: string;
+  triggered_by_name: string | null;
   env: string;
   status: string;
   started_at: Date;
@@ -82,6 +85,7 @@ function toRun(row: RawRun): RunSummary {
     runId: Number(row.run_id),
     title: row.title,
     triggeredBy: row.triggered_by,
+    triggeredByName: row.triggered_by_name,
     env: row.env,
     status: row.status,
     startedAt: row.started_at.toISOString(),
@@ -90,19 +94,29 @@ function toRun(row: RawRun): RunSummary {
   };
 }
 
+// 접두사가 등록된 활성 서비스인지 본다. 배정 판정은 로그인이 붙을 때 이 함수 안이 바뀐다 (SPEC §3.5)
+export async function serviceExists(prefix: string): Promise<boolean> {
+  const pool = await db();
+  const rows = await pool.query('SELECT 1 FROM service WHERE prefix = $1 AND is_active', [prefix]);
+  return (rows.rowCount ?? 0) > 0;
+}
+
 export async function listRuns(
+  service: string,
   page: number,
   pageSize: number,
 ): Promise<{ items: RunSummary[]; total: number; page: number; pageSize: number }> {
   const pool = await db();
+  // test_run.service_id 한 칸이 run_item 의 tc_id 접두사까지 따라가는 조인을 없앤다 (SPEC §6)
   const rows = await pool.query<RawRun>(
     `SELECT ${RUN_COLUMNS}, count(*) OVER ()::int AS grand_total
        FROM test_run r
        LEFT JOIN run_item i USING (run_id)
+      WHERE r.service_id = (SELECT id FROM service WHERE prefix = $3)
       GROUP BY r.run_id
       ORDER BY r.run_id DESC
       LIMIT $1 OFFSET $2`,
-    [pageSize, (page - 1) * pageSize],
+    [pageSize, (page - 1) * pageSize, service],
   );
 
   return { items: rows.rows.map(toRun), total: rows.rows[0]?.grand_total ?? 0, page, pageSize };
