@@ -14,7 +14,7 @@ const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모�
 // 요청이 잘못된 것과 서버가 고장난 것을 라우트가 문자열로 가려내지 않게 한다
 export class RunInputError extends Error {
   constructor(
-    readonly code: 'CASE_NOT_FOUND' | 'INVALID_REQUEST',
+    readonly code: 'CASE_NOT_FOUND' | 'INVALID_REQUEST' | 'MIXED_SERVICE' | 'ENV_NOT_FOUND' | 'SERVICE_FORBIDDEN',
     message: string,
   ) {
     super(message);
@@ -33,6 +33,8 @@ export interface RunItemInput {
 export interface CreateRunInput {
   title: string;
   triggeredBy: string;
+  // 대상 서버 키. 기본값을 두지 않는다 — 안 채우면 빈 칸이 아니라 틀린 값이 남는다 (SPEC §6)
+  env: string;
   items: RunItemInput[];
 }
 
@@ -42,9 +44,23 @@ export interface PendingItem {
   tcId: string;
   platform: Platform;
   filePath: string;
+  // 이번 실행이 두드릴 주소. 요청이 싣지 않고 서버가 service_env에서 찾는다 (SPEC §6 · §7)
+  baseUrl: string;
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
   timeoutMs: number;
+}
+
+// tcId 접두사가 곧 서비스다. 요청이 서비스를 따로 싣게 두면 번호와 서비스가 어긋날 수 있다 (SPEC §7)
+export function prefixOf(tcId: string): string {
+  return tcId.split('-')[0] ?? '';
+}
+
+interface ServiceRow {
+  id: string;
+  name: string;
+  tests_repo: string;
+  base_url: string | null;
 }
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (catalog/store.ts와 같은 방식)
@@ -58,11 +74,16 @@ interface CaseRow {
   name: string;
   precondition: string[];
   file_path: string;
+  param_schema: Record<string, unknown>;
+  expected_schema: Record<string, unknown>;
 }
 
+// 라벨·제한 시간·파일 경로도 실행 시점 값으로 박제한다. 카탈로그는 스캔 때마다 덮어쓰는 캐시라
+// 나중에 읽으면 그날 무엇으로 돌렸는지가 달라진다 (SPEC §3.3 · §6)
 const INSERT_ITEM = `
-  INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA')
+  INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status,
+                        file_path, param_schema, expected_schema, timeout_ms)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11)
   RETURNING history_id`;
 
 export async function createRun(input: CreateRunInput): Promise<{ runId: number; items: PendingItem[] }> {
@@ -82,28 +103,63 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     }
   }
 
+  // 한 실행은 한 서비스다. 그래야 증적 머리말의 서비스 이름이 실행 전체를 대표한다 (SPEC §7)
+  const prefixes = [...new Set(input.items.map((i) => prefixOf(i.tcId)))];
+  if (prefixes.length > 1) {
+    throw new RunInputError('MIXED_SERVICE', `한 실행에 서비스가 섞여 있다: ${prefixes.join(', ')}`);
+  }
+  const prefix = prefixes[0] ?? '';
+  if (input.env.trim() === '') throw new RunInputError('INVALID_REQUEST', '대상 서버를 고르지 않았다');
+
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');
 
+    // 서비스와 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (SPEC §6)
+    const service = await client.query<ServiceRow>(
+      `SELECT s.id, s.name, s.tests_repo, e.base_url
+         FROM service s
+         LEFT JOIN service_env e ON e.service_id = s.id AND e.env = $2
+        WHERE s.prefix = $1 AND s.is_active`,
+      [prefix, input.env],
+    );
+    const found서비스 = service.rows[0];
+    if (found서비스 === undefined) {
+      throw new RunInputError('SERVICE_FORBIDDEN', `${prefix} 서비스를 찾을 수 없다`);
+    }
+    if (found서비스.base_url === null) {
+      throw new RunInputError('ENV_NOT_FOUND', `${prefix} 서비스에 ${input.env} 대상 서버가 없다`);
+    }
+
     // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다
     const found = await client.query<CaseRow>(
-      'SELECT tc_id, name, precondition, file_path FROM test_case WHERE tc_id = ANY($1::text[])',
+      'SELECT tc_id, name, precondition, file_path, param_schema, expected_schema FROM test_case WHERE tc_id = ANY($1::text[])',
       [input.items.map((i) => i.tcId)],
     );
     const cases = new Map(found.rows.map((r) => [r.tc_id, r]));
     const missing = input.items.filter((i) => !cases.has(i.tcId)).map((i) => i.tcId);
     if (missing.length > 0) throw new RunInputError('CASE_NOT_FOUND', `카탈로그에 없는 케이스다: ${missing.join(', ')}`);
 
+    // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)
     const run = await client.query<{ run_id: string }>(
-      "INSERT INTO test_run (title, triggered_by, status) VALUES ($1, $2, 'RUNNING') RETURNING run_id",
-      [input.title, input.triggeredBy],
+      `INSERT INTO test_run (title, triggered_by, status, env, service_id, service_name, tests_repo, base_url)
+       VALUES ($1, $2, 'RUNNING', $3, $4, $5, $6, $7) RETURNING run_id`,
+      [
+        input.title,
+        input.triggeredBy,
+        input.env,
+        found서비스.id,
+        found서비스.name,
+        found서비스.tests_repo,
+        found서비스.base_url,
+      ],
     );
     const runId = Number(run.rows[0]!.run_id);
 
     const items: PendingItem[] = [];
     for (const item of input.items) {
       const spec = cases.get(item.tcId)!;
+      const timeoutMs = item.timeoutMs ?? DEFAULT_TIMEOUT_MS;
       for (const platform of item.platforms) {
         const row = await client.query<{ history_id: string }>(INSERT_ITEM, [
           runId,
@@ -113,15 +169,20 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
           JSON.stringify(spec.precondition),
           JSON.stringify(item.params),
           JSON.stringify(item.expected),
+          spec.file_path,
+          JSON.stringify(spec.param_schema),
+          JSON.stringify(spec.expected_schema),
+          timeoutMs,
         ]);
         items.push({
           historyId: Number(row.rows[0]!.history_id),
           tcId: item.tcId,
           platform,
           filePath: spec.file_path,
+          baseUrl: found서비스.base_url,
           params: item.params,
           expected: item.expected,
-          timeoutMs: item.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+          timeoutMs,
         });
       }
     }

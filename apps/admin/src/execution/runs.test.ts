@@ -16,6 +16,17 @@ import executionRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
 
+const 서비스 = `
+  WITH s AS (
+    INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+    VALUES ('XBX', 'XBX 서비스', '#334455', 'https://xbx.example.com', 'xbx')
+    ON CONFLICT (prefix) DO UPDATE SET is_active = true
+    RETURNING id
+  )
+  INSERT INTO service_env (service_id, env, base_url)
+  SELECT id, 'qa', 'https://qa.example.com' FROM s
+  ON CONFLICT (service_id, env) DO UPDATE SET base_url = EXCLUDED.base_url`;
+
 const 케이스 = `
   INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema)
   VALUES ($1, $2, $3, '["로그인 화면에 접근할 수 있다"]', $4, '{"type":"object","properties":{}}', '{"type":"object","properties":{}}')
@@ -45,6 +56,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
     await 치운다();
+    await pool.query(서비스);
     await pool.query(케이스, ['XBX-001', '두 환경 케이스', JSON.stringify(['desktop', 'mobile']), 'demo/XBX-001.spec.ts']);
 
     러너 = Fastify();
@@ -89,6 +101,8 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     await 러너.close();
     await 치운다();
     await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'XBX%'");
+    await pool.query("DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBX')");
+    await pool.query("DELETE FROM service WHERE prefix = 'XBX'");
     await pool.end();
     delete process.env.RUNNER_URL;
     delete process.env.PLATFORM_ARTIFACTS_DIR;
@@ -103,6 +117,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       url: '/api/runs',
       payload: {
         title: 'XBX 두 환경 실행',
+        env: 'qa',
         triggeredBy: '검수자',
         items: [{ tcId: 'XBX-001', platforms: ['desktop', 'mobile'], params: {}, expected: {} }],
       },
@@ -124,6 +139,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       url: '/api/runs',
       payload: {
         title: 'XBX 제한 시간 실행',
+        env: 'qa',
         items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: { 아이디: 'tester' }, expected: {}, timeoutMs: 5000 }],
       },
     });
@@ -142,7 +158,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
-      payload: { title: 'XBX 실행자 없음', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+      payload: { title: 'XBX 실행자 없음', env: 'qa', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
     });
     const body = await 끝날때까지(res.json().runId);
     expect(body.triggeredBy).toBe('admin');
@@ -152,7 +168,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
-      payload: { title: 'XBX 없는 케이스', items: [{ tcId: 'XBX-404', platforms: ['desktop'], params: {}, expected: {} }] },
+      payload: { title: 'XBX 없는 케이스', env: 'qa', items: [{ tcId: 'XBX-404', platforms: ['desktop'], params: {}, expected: {} }] },
     });
     expect(res.statusCode).toBe(404);
     expect(res.json().detail).toContain('XBX-404');
@@ -164,6 +180,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       url: '/api/runs',
       payload: {
         title: 'XBX 중복',
+        env: 'qa',
         items: [
           { tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} },
           { tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} },
@@ -177,7 +194,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
-      payload: { title: '', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
+      payload: { title: '', env: 'qa', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
     });
     expect(res.statusCode).toBe(400);
   });

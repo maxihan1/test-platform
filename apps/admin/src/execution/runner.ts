@@ -29,8 +29,7 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
     tcId: item.tcId,
     platform: item.platform,
     filePath: item.filePath,
-    // WS-B가 env 키로 service_env에서 주소를 찾아 채운다 (킥오프 E). 계약 반영은 칸만 낸다
-    baseUrl: '',
+    baseUrl: item.baseUrl,
     params: item.params,
     expected: item.expected,
     timeoutMs: item.timeoutMs,

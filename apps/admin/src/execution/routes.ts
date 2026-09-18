@@ -26,6 +26,9 @@ const runBody = z.object({
   title: z.string().min(1),
   // test_run.triggered_by는 NOT NULL이다. 화면이 안 적어 보내면 admin이 눌렀다고 남긴다
   triggeredBy: z.string().min(1).default('admin'),
+  // 대상 서버 키. 기본값을 두지 않는다 — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §6).
+  // 주소는 요청이 싣지 않는다. 서버가 그 서비스의 service_env에서 찾는다
+  env: z.string().min(1),
   items: z
     .array(
       z.object({
@@ -65,7 +68,9 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
       return { runId };
     } catch (err) {
       if (err instanceof RunInputError) {
-        return reply.code(err.code === 'CASE_NOT_FOUND' ? 404 : 400).send({ error: err.code, detail: err.message });
+        // 배정받지 않은 서비스는 403이다. 404로 감추지 않는다 (SPEC §3.5)
+        const code = err.code === 'CASE_NOT_FOUND' ? 404 : err.code === 'SERVICE_FORBIDDEN' ? 403 : 400;
+        return reply.code(code).send({ error: err.code, detail: err.message });
       }
       throw err;
     }

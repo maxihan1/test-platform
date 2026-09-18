@@ -17,7 +17,8 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
 
   async function 실행하나(title: string): Promise<number> {
     const run = await pool.query<{ run_id: string }>(
-      "INSERT INTO test_run (title, triggered_by, status) VALUES ($1, 'tester', 'RUNNING') RETURNING run_id",
+      `INSERT INTO test_run (title, triggered_by, status, env, service_name, tests_repo, base_url)
+       VALUES ($1, 'tester', 'RUNNING', 'qa', '', '', '') RETURNING run_id`,
       [title],
     );
     return Number(run.rows[0]!.run_id);
@@ -30,8 +31,10 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
     끝났나: boolean,
   ): Promise<number> {
     const row = await pool.query<{ history_id: string }>(
-      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, duration_ms, finished_at)
-       VALUES ($1, 'XBQ-001', $2, '조회용 케이스', '["사전조건 하나"]', '{"아이디":"tester"}', '{"결과":true}', $3, 100, $4)
+      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, duration_ms, finished_at,
+                             file_path, param_schema, expected_schema, timeout_ms)
+       VALUES ($1, 'XBQ-001', $2, '조회용 케이스', '["사전조건 하나"]', '{"아이디":"tester"}', '{"결과":true}', $3, 100, $4,
+               'demo/XBQ-001.spec.ts', '{"type":"object","properties":{}}', '{"type":"object","properties":{}}', 300000)
        RETURNING history_id`,
       [runId, platform, status, 끝났나 ? new Date() : null],
     );
