@@ -92,3 +92,6 @@ curl 'localhost:3000/api/catalog/cases?service=NOPE'          # 403 SERVICE_FORB
   닫혔다. `GET /api/runs/last-by-case` 와 `apps/admin/src/web/catalogView.ts` 로 갔다
 - **403 판정이 `routes.ts` 의 `볼수있나()` 한 함수 안** (2026-09-18 「다음 세션이 알아야 할 것」) —
   닫혔다. `apps/admin/src/auth/gate.ts` · `apps/admin/src/auth/scope.ts` 로 갔다 (PR #28)
+- **`execution` 테스트 18건이 빨간불이다** (2026-09-18 「막힌 것」) — 닫혔다.
+  지금 그 폴더는 전부 초록이다. 직접 세어 본다 —
+  `DATABASE_URL=... npx vitest run apps/admin/src/execution`
