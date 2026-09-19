@@ -65,7 +65,7 @@ function 셀(ws: Worksheet, 행: number, 칸: number): string {
 }
 
 function 행값(ws: Worksheet, 행: number): string[] {
-  return Array.from({ length: 24 }, (_, i) => 셀(ws, 행, i + 1));
+  return Array.from({ length: 25 }, (_, i) => 셀(ws, 행, i + 1));
 }
 
 describe('증적 문서 엑셀', () => {
@@ -85,6 +85,7 @@ describe('증적 문서 엑셀', () => {
       '회차',
       '판정',
       '소요(ms)',
+      '미실행·판정불가 사유',
       '사전조건',
       '입력값',
       '기대값',
@@ -117,21 +118,21 @@ describe('증적 문서 엑셀', () => {
     );
 
     expect(ws.rowCount).toBe(3);
-    expect(셀(ws, 2, 20)).toBe('응답 코드가 200 이다');
-    expect(셀(ws, 3, 20)).toBe('토큰이 발급된다');
-    expect(셀(ws, 3, 21)).toBe('true');
-    expect(셀(ws, 3, 22)).toBe('false');
-    expect(셀(ws, 3, 23)).toBe('실패');
+    expect(셀(ws, 2, 21)).toBe('응답 코드가 200 이다');
+    expect(셀(ws, 3, 21)).toBe('토큰이 발급된다');
+    expect(셀(ws, 3, 22)).toBe('true');
+    expect(셀(ws, 3, 23)).toBe('false');
+    expect(셀(ws, 3, 24)).toBe('실패');
   });
 
   it('검증 문장이 없는 절차도 한 행이 남는다', async () => {
     const ws = await 편다(문서([항목({ steps: [스텝({ seq: 3, title: '결제를 누른다', status: 'NA' })] })]));
 
     expect(ws.rowCount).toBe(2);
-    expect(셀(ws, 2, 16)).toBe('3');
-    expect(셀(ws, 2, 17)).toBe('결제를 누른다');
-    expect(셀(ws, 2, 18)).toBe('미실행');
-    expect(셀(ws, 2, 20)).toBe('');
+    expect(셀(ws, 2, 17)).toBe('3');
+    expect(셀(ws, 2, 18)).toBe('결제를 누른다');
+    expect(셀(ws, 2, 19)).toBe('미실행');
+    expect(셀(ws, 2, 21)).toBe('');
   });
 
   it('절차가 하나도 없는 미실행 항목도 한 행이 남는다', async () => {
@@ -143,7 +144,36 @@ describe('증적 문서 엑셀', () => {
     expect(셀(ws, 2, 7)).toBe('AUTH-002');
     expect(셀(ws, 2, 11)).toBe('미실행');
     expect(셀(ws, 2, 12)).toBe('');
-    expect(셀(ws, 2, 16)).toBe('');
+    expect(셀(ws, 2, 13)).toBe('실행이 멈춰 돌지 못했습니다');
+    expect(셀(ws, 2, 17)).toBe('');
+  });
+
+  it('판정을 못 낸 항목도 사유가 실리고 여러 행이면 행마다 반복된다', async () => {
+    const ws = await 편다(
+      문서([
+        항목({
+          status: 'NA',
+          notRunReason: '러너에 닿지 못했습니다',
+          steps: [
+            스텝({
+              assertions: [
+                { statement: '첫째', expected: 'a', actual: '', status: 'NA', blocker: false },
+                { statement: '둘째', expected: 'b', actual: '', status: 'NA', blocker: false },
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+
+    expect(셀(ws, 2, 13)).toBe('러너에 닿지 못했습니다');
+    expect(셀(ws, 3, 13)).toBe('러너에 닿지 못했습니다');
+  });
+
+  it('사유가 없는 항목의 사유 칸은 빈 칸이다', async () => {
+    const ws = await 편다(문서([항목({})]));
+
+    expect(셀(ws, 2, 13)).toBe('');
   });
 
   it('상위 정보가 모든 행의 앞 칸에 반복되고 병합 셀이 하나도 없다', async () => {
@@ -173,7 +203,7 @@ describe('증적 문서 엑셀', () => {
       expect(셀(ws, 행, 9)).toBe('모바일');
       expect(셀(ws, 행, 10)).toBe('1');
       expect(셀(ws, 행, 11)).toBe('통과');
-      expect(셀(ws, 행, 16)).toBe('1');
+      expect(셀(ws, 행, 17)).toBe('1');
     }
 
     expect(ws.model.merges).toEqual([]);
@@ -193,7 +223,7 @@ describe('증적 문서 엑셀', () => {
       ]),
     );
 
-    expect(셀(ws, 2, 24)).toBe('artifacts/shots/7/AUTH-002-1.png');
+    expect(셀(ws, 2, 25)).toBe('artifacts/shots/7/AUTH-002-1.png');
     expect(ws.getImages()).toEqual([]);
   });
 
@@ -211,10 +241,10 @@ describe('증적 문서 엑셀', () => {
       ]),
     );
 
-    expect(셀(ws, 2, 13)).toBe('가입 완료된 사용자 계정이 존재한다\n결제 수단이 등록돼 있다');
-    expect(셀(ws, 2, 14)).toBe('아이디: testuser\n비밀번호: ********');
-    expect(셀(ws, 2, 14)).not.toContain('testpass');
-    expect(셀(ws, 2, 15)).toBe('토큰 발급: true');
+    expect(셀(ws, 2, 14)).toBe('가입 완료된 사용자 계정이 존재한다\n결제 수단이 등록돼 있다');
+    expect(셀(ws, 2, 15)).toBe('아이디: testuser\n비밀번호: ********');
+    expect(셀(ws, 2, 15)).not.toContain('testpass');
+    expect(셀(ws, 2, 16)).toBe('토큰 발급: true');
   });
 
   it('머리행이 고정된다', async () => {
