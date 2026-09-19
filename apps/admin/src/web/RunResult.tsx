@@ -116,6 +116,20 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
           </div>
         </div>
         <div className="tally">
+          {/* 판정 숫자를 버튼보다 앞에 둔다. 좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀리는데,
+              휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다 (docs/DESIGN.md · design-mockup.html) */}
+          <div>
+            <b style={{ color: 'var(--pass)' }}>{pass}</b>
+            <span>통과</span>
+          </div>
+          <div>
+            <b style={{ color: 'var(--fail)' }}>{fail}</b>
+            <span>실패</span>
+          </div>
+          <div>
+            <b style={{ color: 'var(--na)' }}>{na}</b>
+            <span>미실행</span>
+          </div>
           {/* 되돌릴 수 없으므로 누르면 한 번 더 묻는다 (SPEC §8.3) */}
           {!멈출수있나(data.status, role) ? null : (
             <button className="btn ghost" onClick={() => set멈출까(true)} disabled={멈추는중}>
@@ -146,18 +160,6 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
               </button>
             );
           })}
-          <div>
-            <b style={{ color: 'var(--pass)' }}>{pass}</b>
-            <span>통과</span>
-          </div>
-          <div>
-            <b style={{ color: 'var(--fail)' }}>{fail}</b>
-            <span>실패</span>
-          </div>
-          <div>
-            <b style={{ color: 'var(--na)' }}>{na}</b>
-            <span>미실행</span>
-          </div>
         </div>
       </div>
 
@@ -172,7 +174,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
         <div className="scan">
           {사유줄들.map((줄) => (
             <span className="scan-error" key={줄.format}>
-              {줄.라벨} 를 만들지 못했습니다 — {줄.사유}
+              {줄.라벨} 증적을 만들지 못했습니다 — {줄.사유}
             </span>
           ))}
         </div>
