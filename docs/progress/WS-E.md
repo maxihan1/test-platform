@@ -277,3 +277,21 @@ npx vite --config apps/admin/src/web/vite.config.ts
 **남은 판단 하나** — SPEC §8.8(「색을 언제든 고친다」)과 §8(「서비스 색은 띠에서만 쓴다」)이
 부딪힌다. 색을 안 보여주고 색을 고르게 할 수 없다. 두 렌즈가 §8 에 예외 한 줄을 더하자고 제안했고
 그건 SPEC 변경이라 게이트 0 이 필요하다.
+
+---
+
+## 2026-09-19 — JSX 단위 테스트 그물 (PR #30)
+
+- 완료: `vitest.config.ts` 의 `include` 에 `apps/**/*.test.tsx` 를 더해 화면 파일이
+  자동 검사 범위에 들어오게 했고, `Modal` · `SettingsPassword` · `Form` 셋에 그물을 씌웠다.
+  `docs/spec/공통/6-인프라.md` §9.1 과 이 갈래의 킥오프·규칙 문서를 거기에 맞췄다
+- 미완: **위 61줄·116줄의 「단위 테스트는 `*.test.ts` 만이다」·「JSX 는 단위 테스트가 없다」는
+  이제 부분적으로만 참이다.** 셋은 덮였고 나머지 화면은 그대로 그물 밖이다 —
+  그 화면을 건드릴 때 같이 덮는다. 몇 대 몇인지는 세어서 본다 —
+  `ls apps/admin/src/web/*.tsx | grep -v '\.test\.tsx$' | wc -l` 와
+  `ls apps/admin/src/web/*.test.tsx | wc -l`
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 화면 검사 파일은 **첫 줄에 `// @vitest-environment jsdom`** 이 있어야 한다.
+  빠뜨리면 `document is not defined` 로 죽는다. 본을 뜰 자리는 `apps/admin/src/web/Modal.test.tsx` 다.
+  화면을 고치면서 그물을 빠뜨리는 것은 `spec-review` 의 `F9` 가 잡는다.
+  **jsdom 에는 레이아웃 엔진이 없다** — 「화면 밖에 그려졌다」·간격·색은 여전히 브라우저로 본다

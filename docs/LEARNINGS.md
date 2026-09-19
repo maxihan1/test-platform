@@ -560,6 +560,8 @@ SPEC과 잠긴 파일은 승인을 받는다. 승인이 필요한 것은 `제안
 ## [Phase0] 2026-09-16 · Vitest가 tests/** 의 Playwright 스펙까지 집어간다
 → **vitest.config.ts 로 승격 (2026-09-16).** include를 `apps/**/*.test.ts`·`packages/**/*.test.ts`로 좁혔다.
    단위 테스트는 `*.test.ts`, Playwright는 `*.spec.ts`로 확장자를 가른다
+   **2026-09-19 에 화면용 `apps/**/*.test.tsx` 를 더했다** (PR #30). 가르는 축은 그대로다 —
+   단위 테스트는 `*.test.*`, Playwright는 `*.spec.ts`
 
 ## [환경] 2026-09-16 · Bash로 파일을 고치면 protected/ownership 훅이 안 걸렸다
 → **guard.mjs bash 모드로 승격 (2026-09-16).** `python -c` 같은 우회는 여전히 못 잡는다 —

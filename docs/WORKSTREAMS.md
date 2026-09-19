@@ -335,7 +335,8 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 > (`CaseList` · `RunSetup` · `RunList` · `RunResult` · `ItemDetail` · `Settings`).
 > **판단은 순수 함수가 하고 화면은 그리기만 한다** — `layout` · `mask` · `role` · `route` ·
 > `runState` · `group` · `paging` · `runPlan` · `evidence` · `catalogView` · `settingsView` · `schema` · `validation`.
-> `.test.tsx` 는 vitest 가 안 잡으므로 JSX 자체는 브라우저로 확인한다.
+> `.test.tsx` 도 이제 vitest 가 잡는다 (2026-09-19). **다만 브라우저 확인이 없어지지는 않는다** —
+> jsdom 에는 레이아웃 엔진이 없어서 「화면 밖에 그려졌다」·간격·색은 여전히 사람이 브라우저로 본다.
 >
 > **함정 둘** — 순수 함수 파일 이름을 화면과 **대소문자만 다르게 짓지 않는다**
 > (macOS 가 같은 파일로 친다. `shell.ts`·`caseList.ts` 로 두 번 겪었다).
@@ -343,8 +344,14 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 >
 > **넘긴 것** — ~~`Dockerfile` 에 `COPY scripts` 가 없어 첫 계정 만들기 명령이 안 된다(배포 §9.2) ·
 > `gate.ts` 의 IDOR(WS-F) · SPEC §8 과 §8.8 의 색 규칙 충돌~~ **셋 다 닫혔다 (PR #28, 2026-09-19).**
-> 남은 것은 **JSX 단위 테스트 그물** 하나다 (별도 작업 — `vitest` 의 `include` 가 `apps/**/*.test.ts` 라
-> `.test.tsx` 를 안 잡아 모달·폼에 그물이 없다. React Testing Library + jsdom 은 새 npm 부품이라 승인 대상).
+>
+> **JSX 단위 테스트 그물은 반만 깔렸다 (PR #30, 2026-09-19).** `vitest` 의 `include` 에
+> `apps/**/*.test.tsx` 를 더했고 **`Modal` · `SettingsPassword` · `Form` 셋을 덮었다.**
+> **나머지 화면은 그대로 그물 밖이다 — 그 화면을 건드릴 때 같이 덮는다.**
+> 지금 몇 대 몇인지는 손으로 적지 말고 센다 —
+> 화면 파일은 `ls apps/admin/src/web/*.tsx | grep -v '\.test\.tsx$' | wc -l`,
+> 그중 그물이 있는 것은 `ls apps/admin/src/web/*.test.tsx | wc -l`.
+> **그 약속은 `spec-review` 의 `F9` 가 붙든다** — 「화면 파일을 고쳤는데 같은 이름의 `*.test.tsx` 가 없는가」.
 
 ```
 CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
