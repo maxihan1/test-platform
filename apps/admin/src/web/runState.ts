@@ -15,6 +15,10 @@ const 라벨: Record<string, string> = {
  *
  * 「FINISHED 가 아니면 도는 중」으로 적으면 ABORTED 에서 영원히 안 멈춘다.
  * 모르는 상태도 도는 중으로 보지 않는다 — 틀리는 방향을 「그만 묻는다」 쪽으로 둔다.
+ *
+ * **정본은 SPEC §7 이다.** 서버도 같은 값으로 증적 만들기를 막는데
+ * (`reporting/routes.ts`), 번들이 달라 이 함수를 가져다 쓸 수 없어 판정이 두 곳에 있다.
+ * 판정 값이 하나뿐이라 공유 자리를 만들지 않았다 — 상태값이 셋 이상으로 늘면 그때 다시 본다.
  */
 export function 도는중(status: string): boolean {
   return status === 'RUNNING';
