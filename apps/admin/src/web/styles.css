@@ -48,6 +48,11 @@ body {
      표준 속성을 쓴다 — font-feature-settings 는 글꼴이 그 기능을 들고 있을 때만 먹어서
      폴백으로 떨어지면 조용히 무효가 된다 */
   font-variant-numeric: tabular-nums;
+  /* 한국어는 낱말 사이에 띄어쓰기가 있는데 브라우저 기본값은 CJK 를 글자 단위로 자른다 —
+     좁은 화면에서 「실행자 관 / 리자테스트」, 「끝 / 남」처럼 갈렸다 (2026-09-19 실측).
+     keep-all 로 낱말을 지키되, 칸보다 긴 것(주소·긴 아이디)은 anywhere 가 받아 준다 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   background-image: linear-gradient(var(--rule-soft) 0.5px, transparent 0.5px),
     linear-gradient(90deg, var(--rule-soft) 0.5px, transparent 0.5px);
   background-size: 28px 28px;
