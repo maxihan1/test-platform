@@ -10,7 +10,7 @@ type LastMap = Record<string, LastResult>;
 
 const keyOf = (tcId: string, platform: Platform) => `${tcId}:${platform}`;
 
-// 환경이 둘인 케이스에서 한쪽만 깨졌을 때도 행이 실패로 보여야 한다
+// 디바이스가 둘인 케이스에서 한쪽만 깨졌을 때도 행이 실패로 보여야 한다
 function worst(row: CaseRow, last: LastMap): ItemStatus {
   const found = row.platforms.map((platform) => last[keyOf(row.tcId, platform)]?.status);
   if (found.includes('FAIL')) return 'FAIL';
@@ -18,14 +18,23 @@ function worst(row: CaseRow, last: LastMap): ItemStatus {
   return 'NA';
 }
 
-export function CaseList() {
+export function CaseList({ service }: { service: string }) {
   const [typed, setTyped] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  // 서비스를 바꾸면 첫 페이지로 돌아간다. 3페이지에서 케이스가 적은 서비스로 옮기면
+  // 빈 목록에 '3 / 1' 이 뜨고 사람은 목록이 비었다고 생각한다
+  const [본서비스, set본서비스] = useState(service);
+  if (본서비스 !== service) {
+    set본서비스(service);
+    setPage(1);
+    setQ('');
+    setTyped('');
+  }
   const [scanning, setScanning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const cases = useAsync<Paged<CaseRow>>(() => api.cases(q, page), [q, page]);
+  const cases = useAsync<Paged<CaseRow>>(() => api.cases({ service, q, page }), [service, q, page]);
   const scan = useAsync(() => api.lastScan(), []);
   const last = useAsync(() => api.lastByCase(), []);
 
@@ -114,17 +123,17 @@ export function CaseList() {
             <div className="tcid">{row.tcId}</div>
             <div className="title">
               {row.name}
-              <small>지원 환경 {row.platforms.map((p) => PLATFORM_LABEL[p]).join(', ')}</small>
+              <small>지원 디바이스 {row.platforms.map((p) => PLATFORM_LABEL[p]).join(', ')}</small>
             </div>
             <div className="right">
-              <div className="envs">
+              <div className="devices">
                 {row.platforms.map((platform) => {
                   const result = lastMap[keyOf(row.tcId, platform)];
                   return (
-                    <div className="env" key={platform}>
-                      <span className="env-name">{PLATFORM_LABEL[platform]}</span>
+                    <div className="device" key={platform}>
+                      <span className="device-name">{PLATFORM_LABEL[platform]}</span>
                       {result === undefined ? (
-                        <span className="env-none">기록 없음</span>
+                        <span className="device-none">기록 없음</span>
                       ) : (
                         <a href={`#/runs/${result.runId}/items/${result.historyId}`} title={`${when(result.finishedAt)} · ${seconds(result.durationMs)}`}>
                           <Verdict status={result.status} />

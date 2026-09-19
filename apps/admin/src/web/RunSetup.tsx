@@ -31,7 +31,7 @@ export function RunSetup({ tcId }: { tcId: string }) {
   const paramFields = useMemo(() => (row === null ? [] : schemaToFields(row.paramSchema)), [row]);
   const expectedFields = useMemo(() => (row === null ? [] : schemaToFields(row.expectedSchema)), [row]);
 
-  // 케이스가 도착하면 default 값으로 칸을 채우고, 선언된 환경을 전부 고른다 (SPEC §8.2)
+  // 케이스가 도착하면 default 값으로 칸을 채우고, 선언된 디바이스를 전부 고른다 (SPEC §8.2)
   useEffect(() => {
     if (row === null) return;
     setParamText(initialText(schemaToFields(row.paramSchema)));
@@ -77,7 +77,7 @@ export function RunSetup({ tcId }: { tcId: string }) {
     setShowErrors(true);
     if (broken > 0) return;
     if (platforms.length === 0) {
-      setNotice('실행할 환경을 하나 이상 고르세요.');
+      setNotice('실행할 디바이스를 하나 이상 고르세요.');
       return;
     }
 
@@ -186,7 +186,7 @@ export function RunSetup({ tcId }: { tcId: string }) {
       </div>
 
       <div className="sec">
-        <div className="sec-h">실행 환경</div>
+        <div className="sec-h">디바이스</div>
         <div className="checks">
           {row.platforms.map((platform) => (
             <label key={platform}>

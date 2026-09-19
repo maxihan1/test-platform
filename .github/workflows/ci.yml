@@ -51,3 +51,6 @@ jobs:
       - name: SPEC 문서 검사 (없는 절·깨진 링크·색인 분량)
         if: steps.skeleton.outputs.ready == '1'
         run: npm run check:spec --if-present
+      - name: 비밀값 이름 목록이 세 곳에서 갈라지지 않았나 (SPEC §4.1)
+        if: steps.skeleton.outputs.ready == '1'
+        run: npm run check:secret-names --if-present

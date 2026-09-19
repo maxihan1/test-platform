@@ -63,3 +63,64 @@ npx vite --config apps/admin/src/web/vite.config.ts
 - **좁은 창(620px 미만) 레이아웃은 눈으로 확인하지 못했다.** 목업의 미디어 쿼리를 그대로 옮기고
   `.err`·`.after-assert` 두 개를 더했다. 브라우저 창을 620px 아래로 줄이지 못했다
 - `docs/LEARNINGS.md`가 202줄이다. 자체 규칙(100줄)을 넘었으니 정리 대상이다 — 내 갈래 소유가 아니라 건드리지 않았다
+
+---
+
+## 2026-09-19 — ① 뼈대 (PR #25)
+
+킥오프 23개 중 **아홉**을 했다 — 1(용어) · 3(ABORTED 갱신) · 4(라벨 박제) · 7(비밀값) ·
+10(로그인) · 11(서비스 띠) · 12(자리 넷 + 알림 줄) · 13(등급 숨김) · 19(색 토큰).
+나머지 열넷은 사용자 승인으로 **②·③ PR 로 나눴다** (계획 맨 아래 표가 정본).
+
+### 왜 이것부터였나 — 화면이 아예 안 떴다
+
+2026-09-17 이후 `WS-F`(인증)와 `WS-A`(카탈로그)가 전제를 바꿨는데 화면이 몰랐다.
+
+| 무엇이 막나 | 어디 |
+|---|---|
+| 모든 `/api/**` 에 로그인 문 | `auth/gate.ts:62` — 401 을 받고 전부 빈 화면 |
+| `GET /api/catalog/cases` 가 `?service=` 필수 | `catalog/routes.ts:122` — 400 |
+| `GET /api/runs` 가 `?service=` 필수 | `execution/routes.ts:138` — 400 |
+
+### 버그 둘을 같이 닫았다
+
+- `RunResult.tsx` 의 정지 조건이 `status !== 'FINISHED'` 여서 **중단된 실행이 2초마다 영영 다시 물었다.**
+  확인: `ABORTED` 로 바꾸고 10초 동안 `/api/runs/:id` 요청이 **0건 늘었다**
+- `ItemDetail.tsx` 가 `Object.entries(item.params)` 를 그대로 그려 **박제 이전 행의 비밀번호가 평문이었다.**
+  `20260917000001` 이 과거 `run_item` 을 `param_schema = '{}'` 로 메워서 `secret` 표시가 아예 없다.
+  확인: 그 모양의 행을 넣었더니 `password`·`apiToken` 이 `********`, `아이디` 는 그대로
+
+### 소유 경로 밖을 다섯 건드렸다 (CLAUDE.md §1.1)
+
+`apps/admin/src/execution/queries.ts`(계획 `files`) · `.claude/scripts/check-secret-names.mjs` ·
+`package.json` · `.github/workflows/ci.yml` · `docs/LEARNINGS.md`.
+앞 둘은 계획에, 뒤 셋은 게이트 2 요약에 이유를 적었다.
+
+### SPEC 이 안 정해 판단한 것 둘
+
+| 무엇 | 정한 것 | 왜 |
+|---|---|---|
+| 고른 서비스를 어디에 두나 | `localStorage` 에 접두사 한 줄 | 주소 해시에 넣으면 모든 화면 주소가 서비스를 끌고 다녀야 하고, 서버에 두면 설정 API 가 는다 |
+| Grafana 주소 | 같은 호스트의 `3001` (`docs/SETUP.md` 의 `GRAFANA_PORT` 기본값) | SPEC §8 은 「바깥으로 나간다」까지만 적었다. **배포가 포트를 바꾸면 틀린다** — 설정으로 뺄지는 ③ 에서 정한다 |
+
+### 다음 세션이 알아야 할 것
+
+- **진입점이 바뀌었다.** `main.tsx` 가 로그인 여부를 먼저 가르고 `Shell.tsx` 안에 화면 하나를 그린다.
+  띠·자리·알림 줄의 판단은 `layout.ts`(순수 함수), 그림은 `Shell.tsx`
+- **`shell.ts` 가 아니라 `layout.ts` 다.** `Shell.tsx` 와 대소문자만 다르면 macOS 에서 충돌한다
+- **비밀값·라벨은 `mask.ts` 한 곳에서 끝낸다.** `fieldsOf(values, schema)` 가 라벨을 붙이고 가린다.
+  `SECRET_NAMES` 정본은 `catalog/rules.ts` 이고 세 곳이 갈라지는지는 **`npm run check:secret-names`** 가 본다
+- **실행 상태는 `runState.ts` 하나가 판단한다.** 갱신을 멈출지도 무슨 글자를 쓸지도 같은 값을 본다 (SPEC §8.7)
+- **등급은 `role.ts` 의 `할수있나(role, 무엇)`.** 서버 `auth/gate.ts` 가 같은 것을 다시 막는다 —
+  화면 쪽은 자리를 안 그리기 위한 것이지 방어가 아니다
+- **JSX 는 단위 테스트가 없다.** vitest `include` 가 `apps/**/*.test.ts` 다.
+  `Login.tsx`·`Shell.tsx`·`main.tsx` 는 브라우저로 눌러 확인했다.
+  테스트를 넣으려면 React Testing Library + jsdom 승인이 필요하다 (CLAUDE.md §3)
+- **좁은 화면은 375px `iframe` 으로 본다.** 창 리사이즈가 안 먹는다 (2026-09-16 에도 같은 벽).
+  페이지에 `<iframe style="width:375px">` 를 띄우면 미디어 쿼리가 그 폭에 반응한다.
+  **이 방법으로 제목이 한 글자씩 세로로 흐르는 재발 버그를 처음 실제로 봤다**
+- **컨테이너 admin 이 낡은 이미지를 물고 있으면** 인증 라우트가 404 다.
+  `PLATFORM_ADMIN_URL=http://localhost:3200 npx vite --config ...` 로 소스 admin 을 보게 할 수 있다.
+  **병합 뒤 `docker compose up -d --build admin` 을 한 번 돌려야 한다**
+- ② 가 이어받을 자리 — 알림 줄이 지금은 「도는 중」만 말한다. 「끝났습니다」로 바뀌는 것과
+  완료 모달(§8.9)은 ② 몫이다. `layout.ts` 의 `알림줄()` 에 얹으면 된다

@@ -5,13 +5,14 @@
   --sheet: #f8f9f5;
   --sheet-2: #eff1ea;
   --ink: #17201b;
-  --ink-muted: #626c64;
-  --ink-faint: #8b948b;
+  /* 세 단계 전부 본문 기준(4.5:1)을 넘는다. 옛 값은 8b948b 가 2.96 이라 미달이었다 (DESIGN.md) */
+  --ink-muted: #464d47;
+  --ink-faint: #626a62;
   --rule: #c8cec3;
   --rule-soft: #dce0d7;
   --pass: #0d6a46;
   --fail: #a62b21;
-  --na: #8a7742;
+  --na: #79693a;
   --pass-bg: #e2ede6;
   --fail-bg: #f6e4e1;
   --na-bg: #f1ebdc;
@@ -56,6 +57,7 @@ body {
 
 /* 상단 이동 */
 .nav {
+  border-radius: 0;
   display: flex;
   gap: 8px;
   align-items: center;
@@ -162,6 +164,7 @@ body {
 }
 
 input[type='text'],
+input[type='password'],
 input[type='number'],
 select {
   font: inherit;
@@ -288,32 +291,32 @@ select:focus {
   color: var(--na);
 }
 
-/* 환경별 판정 묶음. 케이스 1행에 PC·모바일을 나란히 둔다 (SPEC §8.3) */
-.envs {
+/* 디바이스별 판정 묶음. 케이스 1행에 PC·모바일을 나란히 둔다 (SPEC §8.3) */
+.devices {
   display: flex;
   gap: 12px;
 }
 
-.env {
+.device {
   text-align: center;
   min-width: 62px;
 }
 
-.env-name {
+.device-name {
   display: block;
   font-size: 11px;
   color: var(--ink-faint);
   margin-bottom: 3px;
 }
 
-.env-dur {
+.device-dur {
   display: block;
   font-size: 11.5px;
   color: var(--ink-faint);
   margin-top: 3px;
 }
 
-.env-none {
+.device-none {
   display: inline-block;
   min-width: 52px;
   text-align: center;
@@ -381,6 +384,7 @@ select:focus {
 }
 
 .field input[type='text'],
+.field input[type='password'],
 .field select {
   width: 100%;
 }
@@ -415,6 +419,13 @@ select:focus {
   padding: 28px 24px;
   color: var(--ink-faint);
   font-size: 13.5px;
+}
+
+/* 「왜 비었나」 아래에 「그래서 무엇을 하면 되나」. 붙여 쓰면 한 문장처럼 읽힌다 */
+.empty small {
+  display: block;
+  margin-top: 6px;
+  font-size: 12.5px;
 }
 
 /* 절차 */
@@ -582,7 +593,7 @@ select:focus {
   margin-right: auto;
 }
 
-/* 환경 선택 */
+/* 디바이스 선택 */
 .checks {
   display: flex;
   gap: 16px;
@@ -652,23 +663,45 @@ select:focus {
 }
 
 @media (max-width: 620px) {
+  /* 620px 아래에서는 두 칸이다 — 색 띠 하나와 내용 하나.
+     tcid·title·right 를 **전부** 2열로 보내 세로로 쌓지 않으면
+     셋이 한 줄을 나눠 쓰다가 제목 칸이 0 에 수렴해 글자가 한 자씩 세로로 흐른다.
+     2026-09-17 에 한 번 겪었고 right 만 옮겨 둬서 2026-09-19 에 재발했다 (LEARNINGS) */
   .row {
     grid-template-columns: 4px 1fr;
     gap: 0 12px;
   }
 
+  /* 색 띠는 쌓인 줄 전체에 걸쳐 세로로 편다 */
+  .gutter {
+    grid-row: 1 / -1;
+  }
+
   .tcid {
+    grid-column: 2;
     padding: 12px 0 0;
   }
 
   .title {
+    grid-column: 2;
     padding: 2px 0 12px;
+    /* 긴 케이스명이 칸을 밀어내지 않게 한다 */
+    min-width: 0;
   }
 
   .right {
+    grid-column: 2;
     padding: 0 16px 12px 0;
     justify-content: flex-start;
-    grid-column: 2;
+    flex-wrap: wrap;
+  }
+
+  /* 손가락으로 누르는 영역 44px 은 이 두 화면에만 건다 (SPEC §8 · DESIGN.md) */
+  .right .btn,
+  .right a.btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 
   .field {
@@ -694,4 +727,163 @@ select:focus {
   .after-assert {
     padding-left: 20px;
   }
+
+  /* 로그인은 관문이다. 여기가 깨지면 좁은 화면 대상 화면 둘에 닿을 수 없다 (SPEC §8) */
+  .login {
+    padding-top: 4vh;
+  }
+
+  .login-box {
+    max-width: none;
+    padding: 22px 18px 20px;
+  }
+
+  .login-box .field {
+    grid-template-columns: 1fr;
+  }
+
+  /* 띠도 관문이다. 이름이 잘리면 어느 서비스를 보는지 알 수 없다 (SPEC §8) */
+  .band {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .band-pick {
+    max-width: 100%;
+  }
+}
+
+/* ── 맨 위 띠 · 알림 줄 (SPEC §8) ──────────────────────────────────── */
+
+/* 띠의 바탕색은 그 서비스 색이다. 색이 쓰이는 유일한 예외이고 띠 밖에서는 판정만 색을 갖는다 (DESIGN.md) */
+.band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px;
+  background: var(--ink-muted);
+  color: #fff;
+  border-radius: 2px 2px 0 0;
+}
+
+.band-left,
+.band-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.band-pick {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 2px;
+  padding: 3px 8px;
+  font: inherit;
+  font-weight: 600;
+  max-width: 220px;
+}
+
+.band-pick option {
+  color: var(--ink);
+}
+
+.band-name {
+  font-weight: 600;
+}
+
+.band-repo,
+.band-who {
+  font-size: 12.5px;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.band-out {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 2px;
+  padding: 3px 9px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.band-out:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.band-pick:focus-visible,
+.band-out:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -1px;
+}
+
+/* 도는 실행이 있을 때만 뜬다. 없으면 줄 자체가 없다 — 빈 줄을 자리만 잡아 두지 않는다 (SPEC §8) */
+.notice {
+  display: block;
+  padding: 8px 14px;
+  background: var(--sheet-2);
+  border: 1px solid var(--rule);
+  border-top: none;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 13.5px;
+}
+
+.notice:hover {
+  background: var(--sheet);
+}
+
+.notice:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+/* ── 로그인 (SPEC §8.6) ───────────────────────────────────────────── */
+
+.login {
+  display: flex;
+  justify-content: center;
+  padding-top: 8vh;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 340px;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 28px 24px 24px;
+  display: grid;
+  gap: 14px;
+}
+
+.login-title {
+  font-size: 19px;
+  font-weight: 600;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.login-box .field {
+  margin: 0;
+}
+
+
+
+/* 어느 쪽이 틀렸는지는 말하지 않는다. 한 문장뿐이다 (SPEC §8.6) */
+.login-err {
+  grid-column: 1;
+  margin: 0;
+}
+
+.login-box .btn {
+  justify-content: center;
+  margin-top: 4px;
 }

@@ -3,8 +3,8 @@
 
 import { useState } from 'react';
 
-import { api, type CaseRow, type RunItemDetail, type StepResult } from './api.js';
-import { schemaToFields } from './schema.js';
+import { api, type RunItemDetail, type StepResult } from './api.js';
+import { fieldsOf } from './mask.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
 
 const MARK = { PASS: '✓', FAIL: '✗', NA: '–' } as const;
@@ -20,21 +20,12 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
   const detail = useAsync<RunItemDetail>(() => api.item(runId, historyId), [runId, historyId]);
   const item = detail.data;
 
-  // 입력값 라벨은 케이스 명세(describe)에서 온다. 값 자체는 실행 시점 스냅샷이다 (SPEC §3.2)
-  const found = useAsync<CaseRow | null>(
-    () => (item === null ? Promise.resolve(null) : api.caseOf(item.tcId).catch(() => null)),
-    [item?.tcId],
-  );
-
   if (detail.error !== null) return <Failed error={detail.error} />;
   if (item === null) return <Loading />;
 
-  const labels: Record<string, string> = {};
-  if (found.data !== null) {
-    for (const field of schemaToFields(found.data.paramSchema)) labels[field.key] = field.label;
-  }
-
-  const params = Object.entries(item.params);
+  // 라벨도 마스킹도 항목에 박제된 스키마로 한다. 카탈로그를 읽으면 케이스 코드를 고친 날
+  // 반년 전 증적의 라벨이 같이 바뀐다 (SPEC §3.3). 비밀값은 표시가 없어도 이름으로 가린다 (§4.1)
+  const params = fieldsOf(item.params, item.paramSchema);
 
   return (
     <div className="screen">
@@ -76,10 +67,10 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
         {params.length === 0 ? (
           <p className="hint">입력 없음</p>
         ) : (
-          params.map(([key, value]) => (
-            <div className="field" key={key}>
-              <label>{labels[key] ?? key}</label>
-              <div className="val">{show(value)}</div>
+          params.map((field) => (
+            <div className="field" key={field.key}>
+              <label>{field.label}</label>
+              <div className="val">{field.value}</div>
             </div>
           ))
         )}
