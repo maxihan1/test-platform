@@ -61,6 +61,8 @@ function 라벨찾기(뿌리: HTMLElement, 이름: string): HTMLLabelElement {
 
 function 칸찾기(뿌리: HTMLElement, 이름: string): HTMLElement {
   const id = 라벨찾기(뿌리, 이름).getAttribute('for') ?? '';
+  // for 가 비면 querySelector('#') 가 「Invalid selector」로 터져 진짜 원인이 로그에 안 남는다
+  if (id === '') throw new Error(`라벨이 칸에 안 묶여 있다 — for 가 없다: ${이름}`);
   const 것 = 뿌리.querySelector(`#${id}`);
   if (것 === null) throw new Error(`칸이 없다: ${이름}`);
   return 것 as HTMLElement;
