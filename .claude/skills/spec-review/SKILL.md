@@ -57,7 +57,7 @@ SPEC 본문은 `docs/spec/` 아래 공통 7장·도메인 5장으로 나뉘어 �
 |---|------|----------|
 | A1 | `packages/kit/src/types.ts` 변경이 **SPEC §5.1에 적힌 것과 일치**하는가 | 일치 (또는 변경 없음) |
 | A2 | `db/migrations/` 변경이 **SPEC §6에 적힌 것과 일치**하는가 | 일치 (또는 변경 없음) |
-| A3 | `docker-compose.yml` 변경이 **SPEC §9에 적힌 것과 일치**하는가 | 일치 (또는 변경 없음) |
+| A3 | `docker-compose.yml` **과 `apps/*/Dockerfile`** 변경이 **SPEC §9에 적힌 것과 일치**하는가 | 일치 (또는 변경 없음) |
 | A4 | 러너 HTTP 요청·응답이 `ExecuteRequest` / `ExecuteResponse`와 필드까지 일치하는가 | 일치 |
 | A5 | Admin API 경로와 응답 형태가 SPEC §7과 일치하는가 | 일치 |
 | A6 | DB 컬럼명이 SPEC §6과 일치하는가 | 일치 |
@@ -65,7 +65,7 @@ SPEC 본문은 `docs/spec/` 아래 공통 7장·도메인 5장으로 나뉘어 �
 **A1~A3은 2026-09-17부터 "변경 없음"이 아니라 "SPEC 대로인가"를 본다.** 개정 SPEC 이 세 파일의 변경을
 이미 승인했고 훅의 잠금 목록(`guard.mjs`의 `LOCKED`)도 그날 비웠다. 이제 변경되는 것이 정상이다.
 
-`git diff origin/main...HEAD -- packages/kit/src/types.ts db/migrations/ docker-compose.yml` 로 무엇이 바뀌었는지 뽑아
+`git diff origin/main...HEAD -- packages/kit/src/types.ts db/migrations/ docker-compose.yml apps/*/Dockerfile` 로 무엇이 바뀌었는지 뽑아
 SPEC 해당 절과 **한 줄씩 대조한다. SPEC 에 없는 변경이 하나라도 있으면 치명이다.**
 잠금이 사라졌으므로 이 검사가 유일한 방어선이다 — 변경이 없으면 "변경 없음"으로 적고 넘어간다.
 
@@ -157,6 +157,7 @@ CI가 통과해도 규칙이 지켜졌다는 뜻이 아니다. 스텁 상태면 
 | F5 | 증적 문서에 코드나 `httpTrace`가 포함되는가 (**§8.4 의 모든 형식에서**) | 미포함 |
 | F7 | 증적 엑셀이 **한 행 = 한 검증 문장**인가. 병합 셀을 쓰는가 (SPEC §8.4) | 한 행씩 · 병합 없음 |
 | F6 | 판정을 색만으로 전달하는 곳이 있는가 (글자 없이 색만) | 없음 |
+| F8 | 서비스 색이나 판정 색을 **정해진 자리 밖**에서 쓰는가. 서비스 색은 맨 위 띠와 **설정 화면(§8.8)의 색 고르개·띠 미리보기** 둘뿐이고, 판정 색은 판정에만 쓴다 (SPEC §8 이 정본 · DESIGN.md 원칙 1) | 그 밖에서 쓰지 않음 |
 
 ### G. TDD — 경미
 
@@ -252,7 +253,7 @@ SPEC 이 12장으로 갈려 있어 절 번호가 유일한 주소다. 주소가 
 ...
 
 ## 통과한 항목
-A1~A6, B2, B4~B8, C1~C3, D1~D5, E1~E4, F1~F7, G1~G6
+A1~A6, B2, B4~B8, C1~C3, D1~D5, E1~E4, F1~F8, G1~G6
 ```
 
 - 위반이 없으면 `**병합 가능**`으로 쓰고 통과 목록만 남긴다
