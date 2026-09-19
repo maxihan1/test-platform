@@ -176,7 +176,6 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-disposition']).toBe(`inline; filename="evidence-run-${String(runId)}.xlsx"`);
-    expect(res.headers['content-disposition']).not.toContain(제목);
   });
 
   // Number.isInteger(1e21)은 true다. 걸러지지 않으면 값이 그대로 Postgres로 가 범위 초과가 잡히지 않은 500으로 샌다

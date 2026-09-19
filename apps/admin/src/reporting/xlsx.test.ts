@@ -65,7 +65,9 @@ function 셀(ws: Worksheet, 행: number, 칸: number): string {
 }
 
 function 행값(ws: Worksheet, 행: number): string[] {
-  return Array.from({ length: 25 }, (_, i) => 셀(ws, 행, i + 1));
+  // 칸 수를 손으로 적으면 칸이 늘 때 마지막 칸이 조용히 빠진 채 초록이 난다 — 머리행이 센다
+  const 칸수 = (ws.getRow(1).values as unknown[]).length - 1;
+  return Array.from({ length: 칸수 }, (_, i) => 셀(ws, 행, i + 1));
 }
 
 describe('증적 문서 엑셀', () => {
