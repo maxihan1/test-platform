@@ -1,14 +1,19 @@
-// 화면 전체의 진입점. 해시를 읽어 화면 하나를 고르고 상단 이동 줄을 그린다
+// 화면 전체의 진입점. 로그인 여부를 먼저 가르고, 들어왔으면 띠 안에 화면 하나를 그린다
+// 로그인하지 않은 채로 다른 화면 주소를 열면 로그인으로 보낸다 (SPEC §8.6)
 
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { api, type ServiceRow, type User, 돌아갈자리를꺼낸다 } from './api.js';
 import { CaseList } from './CaseList.js';
 import { ItemDetail } from './ItemDetail.js';
-import { route } from './route.js';
+import { 고른서비스, 고른서비스를읽는다, 고른서비스를적는다 } from './layout.js';
+import { Login } from './Login.js';
+import { route, 돌아갈자리 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunSetup } from './RunSetup.js';
+import { Shell } from './Shell.js';
 import './styles.css';
 
 function useHash(): string {
@@ -21,16 +26,18 @@ function useHash(): string {
   return hash;
 }
 
-function Screen({ hash }: { hash: string }) {
+function Screen({ hash, service }: { hash: string; service: ServiceRow | null }) {
   const current = route(hash);
+  // 띠가 서비스를 고르기 전에는 목록을 부르지 않는다. 빈 값으로 부르면 서버가 400 을 낸다
+  const prefix = service?.prefix ?? '';
 
   switch (current.name) {
     case 'cases':
-      return <CaseList />;
+      return <CaseList service={prefix} />;
     case 'setup':
       return <RunSetup tcId={current.tcId} />;
     case 'runs':
-      return <RunList />;
+      return <RunList service={prefix} />;
     case 'run':
       return <RunResult runId={current.runId} />;
     case 'item':
@@ -46,23 +53,67 @@ function Screen({ hash }: { hash: string }) {
   }
 }
 
+type 상태 = { 어디: '묻는중' } | { 어디: '밖' } | { 어디: '안'; user: User };
+
 function App() {
   const hash = useHash();
-  const current = route(hash);
-  const here = (name: string) => (current.name === name ? { 'aria-current': 'page' as const } : {});
+  const [상태, set상태] = useState<상태>({ 어디: '묻는중' });
+  const [prefix, setPrefix] = useState<string | null>(() => 고른서비스를읽는다());
+
+  // 새로고침해도 로그인 상태가 이어진다. 세션은 브라우저가 들고 다닌다 (SPEC §3.5)
+  // 처음 열 때의 401 은 사고가 아니다. 서버가 안 뜬 것이든 로그인이 안 된 것이든
+  // 사람이 할 수 있는 일은 로그인뿐이라 갈래를 나누지 않는다
+  useEffect(() => {
+    api
+      .me()
+      .then(({ user }) => set상태({ 어디: '안', user }))
+      .catch(() => set상태({ 어디: '밖' }));
+  }, []);
+
+  if (상태.어디 === '묻는중') {
+    return (
+      <div className="screen">
+        <div className="empty">불러오는 중입니다.</div>
+      </div>
+    );
+  }
+
+  if (상태.어디 === '밖') {
+    return (
+      <Login
+        onLogin={(user) => {
+          set상태({ 어디: '안', user });
+          // 세션이 끊겨 여기로 온 사람은 원래 가려던 화면으로 돌려보낸다 (SPEC §8.6)
+          window.location.hash = 돌아갈자리를꺼낸다() ?? 돌아갈자리(window.location.hash);
+        }}
+      />
+    );
+  }
+
+  // 로그인은 했는데 주소가 로그인 화면이면 집으로 보낸다
+  if (route(hash).name === 'login') {
+    window.location.hash = '#/cases';
+  }
+
+  const service = 고른서비스(prefix, 상태.user.services);
+  // 저장된 것이 배정에서 빠졌으면 실제로 연 것을 다시 적어 둔다
+  if (service !== null && service.prefix !== prefix) 고른서비스를적는다(service.prefix);
 
   return (
-    <div className="wrap">
-      <nav className="nav">
-        <a href="#/cases" {...here('cases')}>
-          케이스 목록
-        </a>
-        <a href="#/runs" {...here('runs')}>
-          실행 기록
-        </a>
-      </nav>
-      <Screen hash={hash} />
-    </div>
+    <Shell
+      user={상태.user}
+      service={service}
+      onService={setPrefix}
+      onLogout={() => {
+        void api.logout().finally(() => {
+          set상태({ 어디: '밖' });
+          window.location.hash = '#/login';
+        });
+      }}
+      current={`#/${route(hash).name === 'runs' ? 'runs' : 'cases'}`}
+    >
+      <Screen hash={hash} service={service} />
+    </Shell>
   );
 }
 

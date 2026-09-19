@@ -6,9 +6,9 @@ import { api, type Paged, type RunSummary } from './api.js';
 import { 상태라벨 } from './runState.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
-export function RunList() {
+export function RunList({ service }: { service: string }) {
   const [page, setPage] = useState(1);
-  const runs = useAsync<Paged<RunSummary>>(() => api.runs(page), [page]);
+  const runs = useAsync<Paged<RunSummary>>(() => api.runs(service, page), [service, page]);
 
   if (runs.error !== null) return <Failed error={runs.error} />;
   if (runs.data === null) return <Loading />;

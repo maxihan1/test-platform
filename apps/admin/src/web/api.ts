@@ -3,11 +3,16 @@
 
 import type { ItemStatus, JsonSchema, Platform, StepResult } from '@platform/kit';
 
+import type { 등급 } from './role.js';
+
 export type { ItemStatus, JsonSchema, Platform, StepResult };
 
 export interface Paged<T> {
   items: T[];
+  /** 안내로만 쓴다. 다음 페이지가 있는지는 이 값으로 판단하지 않는다 (SPEC §8.1) */
   total: number;
+  /** 총건수가 정확한 값인가. 근사치가 되는 날 빈 페이지가 생기지 않게 한다 */
+  totalIsExact?: boolean;
   page: number;
   pageSize: number;
 }
@@ -99,6 +104,21 @@ export interface Violation {
   message: string;
 }
 
+// 맨 위 띠의 서비스 목록이 이것이다. 배정받은 것만 온다 (SPEC §7 · §8)
+export interface ServiceRow {
+  id: number;
+  prefix: string;
+  name: string;
+  color: string;
+}
+
+export interface User {
+  username: string;
+  displayName: string;
+  role: 등급;
+  services: ServiceRow[];
+}
+
 export interface SourceExcerpt {
   lines: { no: number; text: string }[];
   focus: number;
@@ -133,8 +153,48 @@ interface ErrorBody {
   violations?: Violation[];
 }
 
+/** 세션이 끊겼을 때 돌아올 자리. 로그인이 끝나면 여기로 돌려보낸다 (SPEC §8.6) */
+const 돌아갈자리키 = '돌아갈자리';
+
+// 로그인 자신과 「나는 누구인가」는 401 이 정상 답이다. 가로채면 로그인 화면에서
+// 또 로그인 화면으로 보내는 무한이 되고, 처음 열 때의 401 도 사고처럼 보인다
+const 끊김을가로채지않는곳 = ['/auth/login', '/auth/me'];
+
+export function 돌아갈자리를꺼낸다(): string | null {
+  try {
+    const 값 = sessionStorage.getItem(돌아갈자리키);
+    if (값 !== null) sessionStorage.removeItem(돌아갈자리키);
+    return 값;
+  } catch {
+    // 브라우저가 저장을 막아도 로그인 자체는 되어야 한다
+    return null;
+  }
+}
+
+/**
+ * 세션이 도중에 끊기면 로그인 화면으로 보낸다.
+ *
+ * `auth/identify.ts` 가 세션이 살아 있어도 계정이 비활성이면 그 자리에서 끊는다.
+ * 여기서 안 받으면 화면은 「요청이 실패했다 (401)」 빨간 글자만 띄우고 멈춘다 —
+ * 새로고침해도 같아서 사람이 도구가 고장난 줄 안다.
+ *
+ * 화면 다섯 곳에 각각 넣지 않는다. call() 이 모든 요청의 길목이다.
+ */
+function 로그인으로보낸다(): void {
+  try {
+    sessionStorage.setItem(돌아갈자리키, location.hash);
+  } catch {
+    // 저장이 막혀도 로그인 화면으로는 보낸다. 돌아갈 자리를 잃을 뿐이다
+  }
+  location.hash = '#/login';
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, init);
+
+  if (res.status === 401 && !끊김을가로채지않는곳.some((열린곳) => path.startsWith(열린곳))) {
+    로그인으로보낸다();
+  }
 
   if (!res.ok) {
     let body: ErrorBody = {};
@@ -161,9 +221,31 @@ const json = (body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
+export interface CaseQuery {
+  /** 맨 위 띠에서 고른 서비스의 접두사. 서버가 늘 적용한다 — 검색 조건이 아니다 (SPEC §8 · §8.1) */
+  service: string;
+  q?: string;
+  platform?: Platform;
+  /** 생략하면 활성만. 비활성 케이스는 기본으로 감춘다 (SPEC §8.1) */
+  active?: boolean;
+  page?: number;
+}
+
 export const api = {
-  cases: (q: string, page: number) =>
-    call<Paged<CaseRow>>(`/catalog/cases?q=${encodeURIComponent(q)}&page=${page}`),
+  login: (username: string, password: string) =>
+    call<{ user: User }>('/auth/login', json({ username, password })),
+
+  logout: () => call<void>('/auth/logout', { method: 'POST' }),
+
+  me: () => call<{ user: User }>('/auth/me'),
+
+  cases: (query: CaseQuery) => {
+    const params = new URLSearchParams({ service: query.service, page: String(query.page ?? 1) });
+    if (query.q !== undefined && query.q !== '') params.set('q', query.q);
+    if (query.platform !== undefined) params.set('platform', query.platform);
+    if (query.active === false) params.set('active', 'false');
+    return call<Paged<CaseRow>>(`/catalog/cases?${params.toString()}`);
+  },
 
   caseOf: (tcId: string) => call<CaseRow>(`/catalog/cases/${encodeURIComponent(tcId)}`),
 
@@ -176,7 +258,8 @@ export const api = {
 
   lastByCase: () => call<{ items: LastResult[] }>('/runs/last-by-case'),
 
-  runs: (page: number) => call<Paged<RunSummary>>(`/runs?page=${page}`),
+  runs: (service: string, page: number) =>
+    call<Paged<RunSummary>>(`/runs?service=${encodeURIComponent(service)}&page=${page}`),
 
   run: (runId: number) => call<RunSummary & { items: RunItemSummary[] }>(`/runs/${runId}`),
 

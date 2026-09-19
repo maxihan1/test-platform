@@ -18,14 +18,14 @@ function worst(row: CaseRow, last: LastMap): ItemStatus {
   return 'NA';
 }
 
-export function CaseList() {
+export function CaseList({ service }: { service: string }) {
   const [typed, setTyped] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [scanning, setScanning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const cases = useAsync<Paged<CaseRow>>(() => api.cases(q, page), [q, page]);
+  const cases = useAsync<Paged<CaseRow>>(() => api.cases({ service, q, page }), [service, q, page]);
   const scan = useAsync(() => api.lastScan(), []);
   const last = useAsync(() => api.lastByCase(), []);
 
