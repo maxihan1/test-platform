@@ -27,6 +27,13 @@ COPY scripts ./scripts
 # .dockerignore가 **/dist를 막아 호스트에서 빌드한 산출물은 이미지에 안 들어온다.
 # 이 단계가 없으면 컨테이너는 API만 내고 화면 주소는 빈 화면이다 (SPEC §9).
 # 글꼴도 번들에 담겨 여기서 같이 실린다 — 바깥 주소에서 받아오지 않는다 (DESIGN.md)
+#
+# 「그래프 ↗」 자리의 Grafana 포트도 여기서 번들에 구워진다 (SPEC §9.2).
+# compose 의 build args 가 이 ARG 를 채우고, ENV 로 올려야 vite 가 그 값을 본다 —
+# Vite 는 `VITE_` 로 시작하는 환경변수만 번들에 넣는다.
+# 실행 시점 환경변수로는 못 바꾼다. 포트를 바꾸면 이 이미지를 다시 빌드해야 한다
+ARG VITE_GRAFANA_PORT=3001
+ENV VITE_GRAFANA_PORT=$VITE_GRAFANA_PORT
 RUN npx vite build --config apps/admin/src/web/vite.config.ts
 
 EXPOSE 3000

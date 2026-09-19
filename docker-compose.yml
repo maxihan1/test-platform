@@ -39,6 +39,11 @@ services:
     build:
       context: .
       dockerfile: apps/admin/Dockerfile
+      args:
+        # 「그래프 ↗」 링크가 가리킬 Grafana 포트. 화면 번들에 구워지므로 빌드로 넘겨야 한다 —
+        # 아래 grafana 의 포트 매핑은 실행 시점 값이라 화면까지 오지 않는다 (SPEC §9.2).
+        # 이 값을 바꾸면 admin 이미지를 다시 빌드해야 한다
+        VITE_GRAFANA_PORT: "${GRAFANA_PORT:-3001}"
     restart: unless-stopped
     ports:
       - "${ADMIN_PORT:-3000}:3000"
