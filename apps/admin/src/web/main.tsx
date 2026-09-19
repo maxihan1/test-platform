@@ -39,7 +39,7 @@ function Screen({ hash, service, user }: { hash: string; service: ServiceRow | n
     case 'runs':
       return <RunList service={prefix} />;
     case 'run':
-      return <RunResult runId={current.runId} />;
+      return <RunResult runId={current.runId} role={user.role} />;
     case 'item':
       return <ItemDetail runId={current.runId} historyId={current.historyId} />;
     case 'login':

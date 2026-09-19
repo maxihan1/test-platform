@@ -6,8 +6,10 @@ import { useEffect, useState } from 'react';
 import { api, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
 import { filterGroups, groupByCase, 회차요약 } from './group.js';
 import { 한줄로 } from './mask.js';
-import { 도는중 } from './runState.js';
-import { Failed, Loading, PLATFORM_LABEL, PLATFORMS, seconds, STATUS_COLOR, STATUS_LABEL, useAsync, Verdict, when } from './ui.js';
+import { Modal } from './Modal.js';
+import type { 등급 } from './role.js';
+import { 도는중, 멈출수있나, 미실행사유, 상태라벨 } from './runState.js';
+import { Failed, Loading, message, PLATFORM_LABEL, PLATFORMS, seconds, STATUS_COLOR, STATUS_LABEL, useAsync, Verdict, when } from './ui.js';
 
 const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
@@ -22,10 +24,13 @@ function worst(칸들: RunItemSummary[][]): ItemStatus {
   return 'NA';
 }
 
-export function RunResult({ runId }: { runId: number }) {
+export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const [status, setStatus] = useState<ItemStatus | 'ALL'>('ALL');
   const [device, setDevice] = useState<Platform | 'ALL'>('ALL');
   const [page, setPage] = useState(1);
+  const [멈출까, set멈출까] = useState(false);
+  const [멈추는중, set멈추는중] = useState(false);
+  const [멈춤오류, set멈춤오류] = useState<string | null>(null);
 
   const run = useAsync(() => api.run(runId), [runId]);
   const data = run.data;
@@ -63,11 +68,20 @@ export function RunResult({ runId }: { runId: number }) {
         <div>
           <div className="runid">RUN {data.runId}</div>
           <div className="runmeta">
-            {when(data.startedAt)} · {data.title} · 실행자 {data.triggeredBy}
-            {running ? ` · 도는 중 ${data.counts.running}건` : ''}
+            {when(data.startedAt)} · {data.title} · 실행자 {data.triggeredByName ?? data.triggeredBy}
+            {' · 대상 서버 '}
+            {data.env}
+            {data.baseUrl === '' ? '' : ` (${data.baseUrl})`}
+            {running ? ` · 도는 중 ${data.counts.running}건` : ` · ${상태라벨(data.status)}`}
           </div>
         </div>
         <div className="tally">
+          {/* 되돌릴 수 없으므로 누르면 한 번 더 묻는다 (SPEC §8.3) */}
+          {!멈출수있나(data.status, role) ? null : (
+            <button className="btn ghost" onClick={() => set멈출까(true)} disabled={멈추는중}>
+              실행 멈추기
+            </button>
+          )}
           <div>
             <b style={{ color: 'var(--pass)' }}>{pass}</b>
             <span>통과</span>
@@ -120,6 +134,8 @@ export function RunResult({ runId }: { runId: number }) {
             .filter((칸): 칸 is RunItemSummary[] => 칸 !== undefined && 칸.length > 0);
           const 첫항목 = 칸들[0]?.[0];
           const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema);
+          // 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3)
+          const 사유 = 칸들.flat().map((i) => 미실행사유(i.error)).find((r) => r !== null) ?? null;
 
           return (
             <div className="row" key={group.tcId}>
@@ -130,6 +146,7 @@ export function RunResult({ runId }: { runId: number }) {
                 {/* 상세로 들어가야만 보이면 「어떤 값에서 깨졌는가」를 줄 사이에서 비교할 수 없다 (SPEC §8.3).
                     입력이 없는 케이스는 줄 자체를 안 만든다 */}
                 {입력줄 === '' ? null : <small>{입력줄}</small>}
+                {사유 === null ? null : <small className="why">{사유}</small>}
               </div>
               <div className="right">
                 <div className="devices">
@@ -157,6 +174,45 @@ export function RunResult({ runId }: { runId: number }) {
             </div>
           );
         })
+      )}
+
+      {!멈출까 ? null : (
+        <Modal
+          제목={`RUN ${String(data.runId)} 을 멈출까요?`}
+          onClose={() => set멈출까(false)}
+          버튼={
+            <>
+              <button className="btn ghost" onClick={() => set멈출까(false)}>
+                아니오
+              </button>
+              <button
+                className="btn"
+                disabled={멈추는중}
+                onClick={() => {
+                  set멈추는중(true);
+                  set멈춤오류(null);
+                  void api
+                    .abortRun(data.runId)
+                    .then(() => {
+                      set멈출까(false);
+                      reload();
+                    })
+                    .catch((err: unknown) => set멈춤오류(message(err)))
+                    .finally(() => set멈추는중(false));
+                }}
+              >
+                {멈추는중 ? '멈추는 중' : '멈춥니다'}
+              </button>
+            </>
+          }
+        >
+          <p>
+            아직 시작하지 않은 항목은 대기줄에서 빼고, 이미 돌고 있는 항목은 끊습니다.
+            <br />
+            되돌릴 수 없습니다.
+          </p>
+          {멈춤오류 === null ? null : <p className="err">{멈춤오류}</p>}
+        </Modal>
       )}
 
       {totalPages <= 1 ? null : (
