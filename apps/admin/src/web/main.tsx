@@ -26,7 +26,7 @@ function useHash(): string {
   return hash;
 }
 
-function Screen({ hash, service }: { hash: string; service: ServiceRow | null }) {
+function Screen({ hash, service, user }: { hash: string; service: ServiceRow | null; user: User }) {
   const current = route(hash);
   // 띠가 서비스를 고르기 전에는 목록을 부르지 않는다. 빈 값으로 부르면 서버가 400 을 낸다
   const prefix = service?.prefix ?? '';
@@ -35,11 +35,11 @@ function Screen({ hash, service }: { hash: string; service: ServiceRow | null })
     case 'cases':
       return <CaseList service={prefix} />;
     case 'setup':
-      return <RunSetup tcId={current.tcId} />;
+      return <RunSetup tcId={current.tcId} service={service} user={user} />;
     case 'runs':
       return <RunList service={prefix} />;
     case 'run':
-      return <RunResult runId={current.runId} />;
+      return <RunResult runId={current.runId} role={user.role} />;
     case 'item':
       return <ItemDetail runId={current.runId} historyId={current.historyId} />;
     case 'login':
@@ -152,7 +152,7 @@ function App() {
       }}
       current={지금자리(route(hash).name)}
     >
-      <Screen hash={hash} service={열린것} />
+      <Screen hash={hash} service={열린것} user={상태.user} />
     </Shell>
   );
 }

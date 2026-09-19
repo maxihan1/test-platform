@@ -101,7 +101,17 @@ export function 빈띠사유(user: User): 빈띠 | null {
 export interface 알림 {
   runId: number;
   글: string;
+  /** 끝난 소식이면 닫기(×)를 그린다. 도는 중이면 스스로 사라지므로 닫을 것이 없다 */
+  끝났나: boolean;
 }
+
+/**
+ * 끝난 지 이만큼 안 된 것만 「끝났습니다」로 알린다.
+ *
+ * 없으면 어제 끝난 실행이 오늘도 뜬다 — **그것은 소식이 아니라 기록이다.**
+ * 한 번 돌리면 최악 50분이라 자리를 떴다 돌아오는 시간을 넉넉히 덮는다.
+ */
+const 끝난소식유효 = 2 * 60 * 60 * 1000;
 
 /**
  * 자리 아래 한 줄 (SPEC §8).
@@ -110,12 +120,36 @@ export interface 알림 {
  * 이 줄 하나로 「무엇을 돌릴까」와 「아까 그거 끝났나」 두 상황을 다 받는다.
  * 도는 실행이 없으면 줄 자체가 없다 — 빈 줄을 자리만 잡아 두지 않는다.
  */
-export function 알림줄(runs: RunSummary[]): 알림 | null {
+export function 알림줄(runs: RunSummary[], 본것들: ReadonlySet<number> = new Set()): 알림 | null {
+  // 도는 것이 먼저다. 끝난 소식보다 지금 도는 것이 급하다
   const 도는것 = runs.filter((run) => 도는중(run.status));
-  if (도는것.length === 0) return null;
+  if (도는것.length > 0) {
+    // 여럿이면 가장 최근 것. 실행 번호는 커질수록 최근이다
+    const 것 = 도는것.reduce((a, b) => (b.runId > a.runId ? b : a));
+    const 끝난수 = 것.counts.total - 것.counts.running;
+    return {
+      runId: 것.runId,
+      글: `RUN ${것.runId} 이 도는 중입니다  ${끝난수}/${것.counts.total}`,
+      끝났나: false,
+    };
+  }
 
-  // 여럿이면 가장 최근 것. 실행 번호는 커질수록 최근이다
-  const 것 = 도는것.reduce((a, b) => (b.runId > a.runId ? b : a));
-  const 끝난수 = 것.counts.total - 것.counts.running;
-  return { runId: 것.runId, 글: `RUN ${것.runId} 이 도는 중입니다  ${끝난수}/${것.counts.total}` };
+  // 그 실행 화면에 있던 사람은 완료 모달로 이미 알았다 (§8.9).
+  // 같은 자리(본것들)를 봐서 두 번 알리지 않는다
+  const 지금 = Date.now();
+  const 갓끝난것 = runs.filter(
+    (run) =>
+      !본것들.has(run.runId) &&
+      run.finishedAt !== null &&
+      지금 - new Date(run.finishedAt).getTime() < 끝난소식유효,
+  );
+  if (갓끝난것.length === 0) return null;
+
+  const 것 = 갓끝난것.reduce((a, b) => (b.runId > a.runId ? b : a));
+  const 머리 = 것.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다';
+  const 집계 = [`${것.counts.pass} 통과`];
+  if (것.counts.fail > 0) 집계.push(`${것.counts.fail} 실패`);
+  if (것.counts.na > 0) 집계.push(`${것.counts.na} 미실행`);
+
+  return { runId: 것.runId, 글: `RUN ${것.runId} 이 ${머리} · ${집계.join(' · ')}`, 끝났나: true };
 }

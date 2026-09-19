@@ -3,15 +3,30 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { api, ApiError, type CaseRow, type ParamSetRow, type Platform } from './api.js';
+import { api, ApiError, type CaseRow, type ParamSetRow, type Platform, type ServiceRow, type User } from './api.js';
 import { Form } from './Form.js';
+import { 넘었나, 상한, 항목수 } from './runPlan.js';
 import { initialText, schemaToFields, toValues } from './schema.js';
 import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
 import { fieldErrors, messagesByKey } from './validation.js';
 
 const EMPTY: Record<string, string> = {};
 
-export function RunSetup({ tcId }: { tcId: string }) {
+interface Props {
+  tcId: string;
+  /**
+   * 맨 위 띠에서 고른 서비스. 대상 서버 목록이 여기 실려 온다 (SPEC §8.2 → §7).
+   *
+   * **이 케이스의 서비스와 다를 수 있다** — 이 화면을 열어 둔 채 띠에서 다른 서비스로
+   * 바꾸면 그렇다. 그때 남의 `env` 로 실행을 걸면 서버가 400 을 내므로 값이 새지는 않지만,
+   * 사유를 모르는 오류가 뜬다. 아래에서 `tcId` 접두사와 대조해 미리 막는다
+   */
+  service: ServiceRow | null;
+  /** 실행자는 로그인한 사람이다. 사람이 적게 두면 남의 이름을 적을 수 있다 (SPEC §8.2) */
+  user: User;
+}
+
+export function RunSetup({ tcId, service, user }: Props) {
   const found = useAsync<CaseRow>(() => api.caseOf(tcId), [tcId]);
   const saved = useAsync<{ items: ParamSetRow[] }>(() => api.paramSets(tcId), [tcId]);
 
@@ -19,6 +34,10 @@ export function RunSetup({ tcId }: { tcId: string }) {
   const [expectedText, setExpectedText] = useState<Record<string, string>>(EMPTY);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [title, setTitle] = useState('');
+  // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2)
+  const [env, setEnv] = useState('');
+  const [repeat, setRepeat] = useState('1');
+  const [notifySlack, setNotifySlack] = useState(false);
   const [setName, setSetName] = useState('');
   const [showErrors, setShowErrors] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -52,6 +71,11 @@ export function RunSetup({ tcId }: { tcId: string }) {
   const shown = showErrors
     ? localErrors
     : { params: serverErrors.params, expected: serverErrors.expected };
+  const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
+  // tcId 접두사가 서비스를 말한다 (SPEC §1). 띠에서 다른 서비스로 바꾸면 어긋난다
+  const 다른서비스 = service !== null && !row.tcId.startsWith(`${service.prefix}-`);
+  const 만들건수 = 항목수(1, platforms.length, Number(repeat) || 1);
+  const 너무많나 = 넘었나(만들건수);
   const broken = Object.keys(localErrors.params).length + Object.keys(localErrors.expected).length;
 
   function edit(which: 'params' | 'expected') {
@@ -80,11 +104,24 @@ export function RunSetup({ tcId }: { tcId: string }) {
       setNotice('실행할 디바이스를 하나 이상 고르세요.');
       return;
     }
+    if (다른서비스) {
+      setNotice('이 케이스는 지금 보고 있는 서비스의 것이 아닙니다. 맨 위에서 서비스를 바꾸세요.');
+      return;
+    }
+    if (env === '') {
+      // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
+      setNotice('대상 서버를 고르세요. 어느 서버에 쐈는지가 증적의 전제입니다.');
+      return;
+    }
 
     setBusy(true);
     try {
       const { runId } = await api.createRun({
         title: title.trim() === '' ? `${row.tcId} 실행` : title.trim(),
+        env,
+        // 화면이 세는 것과 같은 값을 보낸다. 소수를 그대로 보내면 서버의 z.number().int() 가 400 을 낸다
+        repeat: Math.max(1, Math.floor(Number(repeat) || 1)),
+        notifySlack,
         items: [{ tcId: row.tcId, platforms, params, expected }],
       });
       window.location.hash = `#/runs/${runId}`;
@@ -204,6 +241,74 @@ export function RunSetup({ tcId }: { tcId: string }) {
           ))}
         </div>
         <div className="field" style={{ marginTop: '10px' }}>
+          <label htmlFor="run-env">대상 서버</label>
+          <div>
+            <select id="run-env" value={env} onChange={(e) => setEnv(e.target.value)}>
+              {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
+              <option value="">고르세요</option>
+              {(service?.envs ?? []).map((it) => (
+                <option key={it.env} value={it.env}>
+                  {it.env}
+                </option>
+              ))}
+            </select>
+            {/* 고른 뒤 「어디로 쏘는지」를 확인할 자리가 있어야 한다 (SPEC §8.2) */}
+            {주소 === null ? null : <span className="env-url">{주소}</span>}
+            {다른서비스 ? (
+              <div className="err">
+                지금 보고 있는 서비스가 {service?.name}인데 이 케이스는 {row.tcId.split('-')[0]} 것입니다.
+                맨 위에서 서비스를 바꾸거나 그 서비스의 케이스 목록에서 다시 여세요
+              </div>
+            ) : service !== null && service.envs.length === 0 ? (
+              <div className="err">
+                이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="run-by">실행자</label>
+          {/* 고칠 수 없는 표시 칸이다. 사람이 적게 두면 남의 이름을 적을 수 있다 (SPEC §8.2) */}
+          <div className="val" id="run-by">
+            {user.displayName}
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="run-repeat">반복 횟수</label>
+          <div>
+            {/* 새로 쓴 테스트가 매번 같은 결과를 내는지 여러 번 돌려 본다.
+                실패를 가리려는 자동 재시도와 다르다 (SPEC §3.2 · §5.2) */}
+            <input
+              type="text"
+              id="run-repeat"
+              className="narrow"
+              value={repeat}
+              onChange={(e) => setRepeat(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* 웹훅이 없는 서비스에서는 칸 자체를 그리지 않는다. 흐리게 두지 않는다 (SPEC §8.2 · §8) */}
+        {service?.hasSlackWebhook !== true ? null : (
+          <div className="field">
+            <label htmlFor="run-slack">끝나면 Slack 알리기</label>
+            <div>
+              <label className="check-inline">
+                <input
+                  type="checkbox"
+                  id="run-slack"
+                  checked={notifySlack}
+                  onChange={(e) => setNotifySlack(e.target.checked)}
+                />
+                자리를 뜰 때만 켜세요. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 됩니다
+              </label>
+            </div>
+          </div>
+        )}
+
+        <div className="field">
           <label htmlFor="run-title">실행 제목</label>
           <div>
             <input type="text" id="run-title" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -225,7 +330,15 @@ export function RunSetup({ tcId }: { tcId: string }) {
         <button className="btn ghost" onClick={() => void saveSet()} disabled={busy}>
           입력값 세트로 저장
         </button>
-        <button className="btn" onClick={() => void run()} disabled={busy}>
+        {만들건수 <= 1 ? null : (
+          <span className={너무많나 ? 'err' : 'hint'}>
+            {너무많나
+              ? `한 번에 ${String(상한)}건까지 만들 수 있습니다 (지금 ${String(만들건수)}건)`
+              : `실행 항목이 ${String(만들건수)}건 생깁니다`}
+          </span>
+        )}
+        {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
+        <button className="btn" onClick={() => void run()} disabled={busy || 너무많나}>
           실행하기
         </button>
       </div>

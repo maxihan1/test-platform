@@ -753,6 +753,83 @@ select:focus {
   }
 }
 
+/* ── 모달 (DESIGN.md) ─────────────────────────────────────────────── */
+/* 되돌릴 수 없는 일을 하기 전 확인(SPEC §8.3)과 실행 완료 알림(§8.9) 두 자리에만 쓴다 */
+
+.modal-back {
+  position: fixed;
+  inset: 0;
+  /* 잉크색 40%. 흐리게(blur) 처리하지 않는다 */
+  background: rgba(23, 32, 27, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 100;
+  /* 애니메이션을 쓰지 않는다. 뜨고 사라질 뿐이다 */
+}
+
+.modal {
+  width: 100%;
+  max-width: 480px;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.modal-title {
+  font-size: 19px;
+  font-weight: 600;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.modal-body {
+  font-size: 13.5px;
+  line-height: 1.7;
+  display: grid;
+  gap: 10px;
+}
+
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+/* 돌지 못한 사유. 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3) */
+.title small.why {
+  color: var(--na);
+}
+
+/* 체크박스 옆에 왜 켜는지를 적는다. 기본이 꺼짐이라 켜는 이유가 보여야 한다 (SPEC §8.2) */
+.check-inline {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.check-inline input {
+  margin-top: 2px;
+  flex: none;
+}
+
+/* 고른 대상 서버의 주소. 「어디로 쏘는지」를 확인할 자리다 (SPEC §8.2) */
+.env-url {
+  margin-left: 10px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
 /* ── 맨 위 띠 · 알림 줄 (SPEC §8) ──────────────────────────────────── */
 
 /* 띠의 바탕색은 그 서비스 색이다. 색이 쓰이는 유일한 예외이고 띠 밖에서는 판정만 색을 갖는다 (DESIGN.md) */
@@ -824,7 +901,43 @@ select:focus {
   outline-offset: -1px;
 }
 
-/* 도는 실행이 있을 때만 뜬다. 없으면 줄 자체가 없다 — 빈 줄을 자리만 잡아 두지 않는다 (SPEC §8) */
+/* 도는 실행이 있거나 갓 끝난 소식이 있을 때만 뜬다. 없으면 줄 자체가 없다 (SPEC §8) */
+.notice-row {
+  display: flex;
+  align-items: stretch;
+  background: var(--sheet-2);
+  border: 1px solid var(--rule);
+  border-top: none;
+}
+
+.notice-row .notice {
+  flex: 1;
+  background: transparent;
+  border: none;
+}
+
+/* 끝난 소식은 한 번 누르거나 닫으면 사라진다 (SPEC §8) */
+.notice-x {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--rule-soft);
+  color: var(--ink-muted);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.notice-x:hover {
+  background: var(--sheet);
+  color: var(--ink);
+}
+
+.notice-x:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
 .notice {
   display: block;
   padding: 8px 14px;

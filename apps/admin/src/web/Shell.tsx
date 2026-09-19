@@ -1,10 +1,11 @@
 // 맨 위 띠 · 자리 넷 · 알림 줄 (SPEC §8). 모든 화면이 이 안에 들어간다
 // 지금 어느 서비스를 보고 있는지가 늘 보여야 한다 — 엉뚱한 서비스에서 실행을 누르는 사고를 막는 장치가 이 띠 하나다
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { api, type RunSummary, type ServiceRow, type User } from './api.js';
 import { 고른서비스를적는다, 빈띠사유, 알림줄, 자리목록, 탭제목 } from './layout.js';
+import { 본것으로적는다, 알림본적있나 } from './runState.js';
 import { useAsync } from './ui.js';
 
 interface Props {
@@ -99,20 +100,46 @@ export function Shell({ user, service, onService, onLogout, current, children }:
  */
 function Notice({ service }: { service: string }) {
   const runs = useAsync<{ items: RunSummary[] }>(() => api.runs(service, 1), [service]);
-  const 줄 = 알림줄(runs.data?.items ?? []);
+  // 닫은 것을 이 상태로도 들어야 같은 렌더에서 사라진다. 저장은 runState 가 한다
+  const [닫은것, set닫은것] = useState<ReadonlySet<number>>(() => new Set());
+  const 줄 = 알림줄(runs.data?.items ?? [], 닫은것);
   const reload = runs.reload;
+  const 도는중인가 = 줄 !== null && !줄.끝났나;
 
+  // 도는 것이 있을 때만 2초마다 다시 묻는다. 없으면 한 번 부르고 만다
   useEffect(() => {
-    if (줄 === null) return;
+    if (!도는중인가) return;
     const timer = setInterval(reload, 2000);
     return () => clearInterval(timer);
-  }, [줄 === null, reload]);
+  }, [도는중인가, reload]);
+
+  // 완료 모달이 이미 알린 실행은 줄로 또 알리지 않는다 (SPEC §8.9)
+  useEffect(() => {
+    if (줄 !== null && 줄.끝났나 && 알림본적있나(줄.runId)) {
+      set닫은것((전) => new Set(전).add(줄.runId));
+    }
+  }, [줄?.runId, 줄?.끝났나]);
 
   if (줄 === null) return null;
 
   return (
-    <a className="notice" href={`#/runs/${줄.runId}`}>
-      ▶ {줄.글}
-    </a>
+    <div className="notice-row">
+      <a className="notice" href={`#/runs/${줄.runId}`}>
+        ▶ {줄.글}
+      </a>
+      {/* 끝난 소식은 한 번 누르거나 닫으면 사라진다 (SPEC §8). 도는 중은 스스로 사라진다 */}
+      {!줄.끝났나 ? null : (
+        <button
+          className="notice-x"
+          aria-label="알림 닫기"
+          onClick={() => {
+            본것으로적는다(줄.runId);
+            set닫은것((전) => new Set(전).add(줄.runId));
+          }}
+        >
+          ×
+        </button>
+      )}
+    </div>
   );
 }

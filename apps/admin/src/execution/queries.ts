@@ -1,5 +1,10 @@
 // 실행 결과 조회 (SPEC §7 Execution 읽기 경로). 화면이 한 번 물으면 한 화면을 채울 수 있게 모아서 준다
-// 목록에는 입력값 원문을 싣지 않는다 — JSON 원문은 목록에 노출하지 않는다 (SPEC §8.1)
+//
+// **실행 결과 목록에는 입력값과 라벨을 싣는다** (SPEC §8.3, 2026-09-19).
+// §8.1 의 「JSON 원문을 목록에 노출하지 않는다」는 **케이스 목록 규칙**이고 여기에는 적용되지 않는다 —
+// §8.3 이 「라벨과 값을 붙여 쓴 한 줄은 JSON 원문이 아니다」라고 명시했다.
+// 화면은 `web/mask.ts` 가 라벨을 붙이고 비밀값을 가린 뒤 한 줄로 만든다.
+// 안 실으면 화면이 항목마다 상세를 부르게 되고 그것이 §8.1 이 이름 붙여 금지한 N+1 이다
 
 import type { ItemStatus, Platform, StepResult } from '@platform/kit';
 
@@ -35,6 +40,10 @@ export interface RunItemSummary {
   tcId: string;
   tcName: string;
   platform: Platform;
+  // 목록의 「어떤 값으로 돌린 결과인가」 한 줄이 쓴다 (SPEC §8.3).
+  // 라벨은 항목에 박제된 스키마에서 읽는다 — 카탈로그를 읽으면 과거 증적의 라벨이 바뀐다 (§3.3)
+  params: Record<string, unknown>;
+  paramSchema: Record<string, unknown>;
   // 같은 케이스×디바이스를 몇 번째로 돌렸는지. 목록의 회차 요약이 이 값으로 센다 (SPEC §8.3)
   attempt: number;
   status: ItemStatus;
@@ -48,10 +57,9 @@ export interface RunItemDetail extends RunItemSummary {
   runId: number;
   runTitle: string;
   precondition: string[];
-  params: Record<string, unknown>;
   expected: Record<string, unknown>;
-  // 입력·기대결과 칸의 라벨. 카탈로그는 스캔 때마다 덮어쓰는 캐시라 못 믿는다 (SPEC §3.3 · §6)
-  paramSchema: Record<string, unknown>;
+  // 기대결과 칸의 라벨. 카탈로그는 스캔 때마다 덮어쓰는 캐시라 못 믿는다 (SPEC §3.3 · §6).
+  // params·paramSchema 는 RunItemSummary 에 있다 — 목록도 같은 값을 쓴다 (§8.3)
   expectedSchema: Record<string, unknown>;
   steps: StepResult[];
 }
@@ -142,6 +150,8 @@ interface RawItem {
   tc_name: string;
   platform: Platform;
   attempt: number;
+  params: Record<string, unknown>;
+  param_schema: Record<string, unknown>;
   status: ItemStatus;
   duration_ms: number | null;
   error: { message: string; stack?: string } | null;
@@ -149,7 +159,8 @@ interface RawItem {
   finished_at: Date | null;
 }
 
-const ITEM_COLUMNS = 'history_id, tc_id, tc_name, platform, attempt, status, duration_ms, error, started_at, finished_at';
+const ITEM_COLUMNS =
+  'history_id, tc_id, tc_name, platform, attempt, params, param_schema, status, duration_ms, error, started_at, finished_at';
 
 function toItem(row: RawItem): RunItemSummary {
   return {
@@ -158,6 +169,8 @@ function toItem(row: RawItem): RunItemSummary {
     tcName: row.tc_name,
     platform: row.platform,
     attempt: row.attempt,
+    params: row.params,
+    paramSchema: row.param_schema,
     status: row.status,
     durationMs: row.duration_ms,
     error: row.error,
@@ -248,9 +261,9 @@ function toStep(row: RawStep): StepResult {
 
 export async function findItem(runId: number, historyId: number): Promise<RunItemDetail | null> {
   const pool = await db();
-  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[]; params: Record<string, unknown>; expected: Record<string, unknown>; param_schema: Record<string, unknown>; expected_schema: Record<string, unknown> }>(
-    `SELECT i.${ITEM_COLUMNS.split(', ').join(', i.')}, i.run_id, r.title AS run_title, i.precondition, i.params, i.expected,
-            i.param_schema, i.expected_schema
+  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[]; expected: Record<string, unknown>; expected_schema: Record<string, unknown> }>(
+    `SELECT i.${ITEM_COLUMNS.split(', ').join(', i.')}, i.run_id, r.title AS run_title, i.precondition, i.expected,
+            i.expected_schema
        FROM run_item i JOIN test_run r ON r.run_id = i.run_id
       WHERE i.run_id = $1 AND i.history_id = $2`,
     [runId, historyId],
@@ -269,9 +282,7 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
     runId: Number(row.run_id),
     runTitle: row.run_title,
     precondition: row.precondition,
-    params: row.params,
     expected: row.expected,
-    paramSchema: row.param_schema,
     expectedSchema: row.expected_schema,
     steps: steps.rows.map(toStep),
   };

@@ -71,6 +71,17 @@ export interface RunSummary {
   counts: { total: number; pass: number; fail: number; na: number; running: number };
 }
 
+// 그 실행으로 만든 증적 문서 (SPEC §7 · §8.4). status 는 PENDING | READY | FAILED
+export interface EvidenceRow {
+  id: number;
+  format: string;
+  status: string;
+  /** PENDING·FAILED 면 아직 파일이 없다 */
+  filePath: string | null;
+  error: string | null;
+  generatedAt: string;
+}
+
 export interface RunItemSummary {
   historyId: number;
   tcId: string;
@@ -78,6 +89,10 @@ export interface RunItemSummary {
   platform: Platform;
   // 같은 케이스×디바이스를 몇 번째로 돌렸는지. 회차 요약이 이 값으로 센다 (SPEC §8.3)
   attempt: number;
+  // 목록의 「어떤 값으로 돌린 결과인가」 한 줄이 쓴다 (SPEC §8.3).
+  // §8.1 의 「JSON 원문을 목록에 노출하지 않는다」는 케이스 목록 규칙이라 여기엔 적용되지 않는다
+  params: Record<string, unknown>;
+  paramSchema: JsonSchema;
   status: ItemStatus;
   durationMs: number | null;
   error: { message: string; stack?: string } | null;
@@ -89,10 +104,9 @@ export interface RunItemDetail extends RunItemSummary {
   runId: number;
   runTitle: string;
   precondition: string[];
-  params: Record<string, unknown>;
   expected: Record<string, unknown>;
-  // 입력·기대결과 칸의 라벨. 카탈로그가 아니라 이것을 읽는다 (SPEC §3.3)
-  paramSchema: JsonSchema;
+  // 기대결과 칸의 라벨. 카탈로그가 아니라 이것을 읽는다 (SPEC §3.3).
+  // params·paramSchema 는 RunItemSummary 에 있다 — 목록도 같은 값을 쓴다
   expectedSchema: JsonSchema;
   steps: StepResult[];
 }
@@ -111,12 +125,21 @@ export interface Violation {
   message: string;
 }
 
+export interface EnvRow {
+  env: string;
+  baseUrl: string;
+}
+
 // 맨 위 띠의 서비스 목록이 이것이다. 배정받은 것만 온다 (SPEC §7 · §8)
 export interface ServiceRow {
   id: number;
   prefix: string;
   name: string;
   color: string;
+  /** 실행 설정의 대상 서버 드롭다운이 읽는다. 화면이 이 값을 받을 통로가 여기뿐이다 (SPEC §8.2) */
+  envs: EnvRow[];
+  /** Slack 칸을 그릴지. 주소 자체는 오지 않는다 (SPEC §7) */
+  hasSlackWebhook: boolean;
 }
 
 export interface User {
@@ -286,12 +309,33 @@ export const api = {
   runs: (service: string, page: number) =>
     call<Paged<RunSummary>>(`/runs?service=${encodeURIComponent(service)}&page=${page}`),
 
-  run: (runId: number) => call<RunSummary & { items: RunItemSummary[] }>(`/runs/${runId}`),
+  run: (runId: number) =>
+    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[] }>(`/runs/${runId}`),
+
+  /** 증적을 만든다. 실행까지 등급부터다 (SPEC §3.5) */
+  makeEvidence: (runId: number, format: string) =>
+    call<EvidenceRow>(`/runs/${runId}/evidence`, json({ format })),
+
+  /** 만든 문서를 받는 주소. 받기는 보기만 등급도 할 수 있다 (SPEC §3.5) */
+  evidenceUrl: (id: number) => `/api/evidence/${id}`,
 
   item: (runId: number, historyId: number) => call<RunItemDetail>(`/runs/${runId}/items/${historyId}`),
 
-  createRun: (body: { title: string; triggeredBy?: string; items: RunRequestItem[] }) =>
-    call<{ runId: number }>('/runs', json(body)),
+  createRun: (body: {
+    title: string;
+    /** 대상 서버 키. **기본값을 두지 않는다** — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2) */
+    env: string;
+    /** 회차 수. 요청 최상위에 하나다 (SPEC §3.2) */
+    repeat?: number;
+    /** 끝났을 때 Slack 으로 알릴지. 기본 꺼짐 (SPEC §8.9) */
+    notifySlack?: boolean;
+    items: RunRequestItem[];
+    // 실행자는 싣지 않는다. 로그인한 세션에서 서버가 채운다 —
+    // 보내는 쪽이 정할 수 있으면 아무 이름이나 적을 수 있어 증적이 증적이 아니게 된다 (SPEC §3.5)
+  }) => call<{ runId: number }>('/runs', json(body)),
+
+  /** 대기 중인 것과 돌고 있는 것을 둘 다 끊는다 (SPEC §8.3) */
+  abortRun: (runId: number) => call<{ aborted: number }>(`/runs/${runId}/abort`, { method: 'POST' }),
 
   paramSets: (tcId: string) => call<{ items: ParamSetRow[] }>(`/cases/${encodeURIComponent(tcId)}/param-sets`),
 

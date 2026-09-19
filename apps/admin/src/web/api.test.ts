@@ -124,6 +124,50 @@ describe('세션이 끊기면 로그인 화면으로 보낸다', () => {
   });
 });
 
+describe('실행 요청 (SPEC §7 · §8.2)', () => {
+  const 케이스하나 = {
+    tcId: 'DEMO-003',
+    platforms: ['desktop' as const],
+    params: {},
+    expected: {},
+  };
+
+  it('대상 서버를 싣는다. 안 실으면 서버가 400 을 낸다', async () => {
+    답 = { status: 200, body: { runId: 7 } };
+    await api.createRun({ title: 'DEMO-003 실행', env: 'qa', items: [케이스하나] });
+
+    const 본문 = JSON.parse(String(부름[0]?.init?.body)) as Record<string, unknown>;
+    expect(본문.env).toBe('qa');
+    expect(본문.title).toBe('DEMO-003 실행');
+  });
+
+  it('반복 횟수와 Slack 알림도 싣는다', async () => {
+    답 = { status: 200, body: { runId: 8 } };
+    await api.createRun({ title: 'x', env: 'qa', repeat: 3, notifySlack: true, items: [케이스하나] });
+
+    const 본문 = JSON.parse(String(부름[0]?.init?.body)) as Record<string, unknown>;
+    expect(본문.repeat).toBe(3);
+    expect(본문.notifySlack).toBe(true);
+  });
+
+  it('실행자는 싣지 않는다. 로그인한 세션에서 서버가 채운다 (SPEC §3.5)', async () => {
+    답 = { status: 200, body: { runId: 9 } };
+    await api.createRun({ title: 'x', env: 'qa', items: [케이스하나] });
+
+    const 본문 = JSON.parse(String(부름[0]?.init?.body)) as Record<string, unknown>;
+    expect(본문).not.toHaveProperty('triggeredBy');
+  });
+});
+
+describe('실행 멈추기', () => {
+  it('중단은 POST 이고 본문이 없다', async () => {
+    답 = { status: 200, body: { aborted: 3 } };
+    await api.abortRun(123);
+    expect(부름[0]?.url).toBe('/api/runs/123/abort');
+    expect(부름[0]?.init?.method).toBe('POST');
+  });
+});
+
 describe('목록 두 곳은 보고 있는 서비스를 서버에 보낸다', () => {
   it('케이스 목록에 service 가 실린다', async () => {
     답 = { status: 200, body: { items: [], total: 0, totalIsExact: true, sort: 'tcId', page: 1, pageSize: 50 } };

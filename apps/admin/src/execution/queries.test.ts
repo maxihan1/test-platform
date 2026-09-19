@@ -115,9 +115,14 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
     expect(run?.items[0]?.tcName).toBe('조회용 케이스');
   });
 
-  it('findRun — 목록에는 입력값 원문을 싣지 않는다', async () => {
+  it('findRun — 목록이 「어떤 값으로 돌렸나」를 그릴 수 있게 값과 라벨을 싣는다 (SPEC §8.3)', async () => {
     const run = await findRun(나중);
-    expect(run?.items[0]).not.toHaveProperty('params');
+    // §8.1 의 「JSON 원문을 목록에 노출하지 않는다」는 케이스 목록 규칙이다.
+    // 라벨과 값을 붙여 쓴 한 줄은 JSON 원문이 아니라고 §8.3 이 명시했다
+    expect(run?.items[0]?.params).toEqual({ 아이디: 'tester' });
+    expect(run?.items[0]?.paramSchema).toMatchObject({
+      properties: { 아이디: { description: '박제된 라벨' } },
+    });
   });
 
   it('findRun — 없는 실행은 null이다', async () => {

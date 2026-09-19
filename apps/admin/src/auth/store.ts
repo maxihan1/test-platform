@@ -4,11 +4,29 @@ import type { Pool } from 'pg';
 
 export type 등급 = 'viewer' | 'operator' | 'admin';
 
+export interface 대상서버 {
+  env: string;
+  baseUrl: string;
+}
+
 export interface 배정서비스 {
   id: number;
   prefix: string;
   name: string;
   color: string;
+  /**
+   * 그 서비스의 대상 서버 목록 (SPEC §6 `service_env`).
+   *
+   * 실행 설정의 드롭다운이 읽는다 (§8.2). **화면이 이 값을 받을 통로가 여기뿐이다** —
+   * `/api/settings/**` 는 운영 등급만이라 실행까지 등급이 거기서 403 을 받는다.
+   */
+  envs: 대상서버[];
+  /**
+   * Slack 칸을 그릴지 말지 (SPEC §8.2 · §8.9).
+   *
+   * **주소 자체는 담지 않는다.** 설정됐는지만 준다 — 설정 API 와 같은 규칙이다 (§7).
+   */
+  hasSlackWebhook: boolean;
 }
 
 export interface 사용자 {
@@ -25,16 +43,29 @@ async function db(): Promise<Pool> {
 
 // 비활성 계정은 없는 것으로 친다. 로그인도 세션 확인도 같은 문에서 막혀야
 // 「계정이 있는지」가 밖에서 드러나지 않는다 (SPEC §7)
+// 대상 서버는 서비스마다 여러 줄이라 먼저 접어 두고 붙인다.
+// 바깥에서 LEFT JOIN 하면 서비스 × 대상 서버만큼 행이 불어나 json_agg 가 중복을 만든다
 const 한사람 = `
+  WITH 서버 AS (
+    SELECT service_id,
+           json_agg(json_build_object('env', env, 'baseUrl', base_url) ORDER BY env) AS envs
+      FROM service_env
+     GROUP BY service_id
+  )
   SELECT u.display_name, u.role, u.password_hash,
          COALESCE(
-           json_agg(json_build_object('id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color)
-                    ORDER BY s.prefix) FILTER (WHERE s.id IS NOT NULL),
+           json_agg(json_build_object(
+             'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
+             'envs', COALESCE(e.envs, '[]'::json),
+             -- 주소가 아니라 있는지만 낸다 (SPEC §7)
+             'hasSlackWebhook', s.slack_webhook IS NOT NULL AND s.slack_webhook <> ''
+           ) ORDER BY s.prefix) FILTER (WHERE s.id IS NOT NULL),
            '[]'
          ) AS services
     FROM app_user u
     LEFT JOIN user_service us ON us.username = u.username
     LEFT JOIN service s ON s.id = us.service_id AND s.is_active
+    LEFT JOIN 서버 e ON e.service_id = s.id
    WHERE u.username = $1 AND u.is_active
    GROUP BY u.username, u.display_name, u.role, u.password_hash`;
 
