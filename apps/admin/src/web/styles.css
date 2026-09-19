@@ -1,5 +1,21 @@
 /* 화면 전체의 디자인 토큰과 공용 조각. 값은 docs/DESIGN.md와 docs/design-mockup.html에서 그대로 가져왔다 */
 
+/* 글꼴을 제품 안에서 싣는다 (DESIGN.md, 2026-09-18 결정). 바깥 주소(CDN)에서 받아오지 않는다 —
+   사내망에서 그 주소가 막히면 시스템 기본 글꼴로 조용히 떨어지고, 화면이 달라 보이는 정도가 아니라
+   **숫자 폭이 제각각이 되어 「숫자는 세로로 맞춘다」 규칙이 같이 깨진다**.
+   가변(variable) 글꼴 하나로 굵기 셋(400·600·800)을 전부 낸다 — 정적 파일 셋보다 작다 */
+@font-face {
+  font-family: Pretendard;
+  font-weight: 45 920;
+  font-style: normal;
+  /* 받아오는 동안 폴백으로 먼저 그린다. 글자가 안 보이는 구간을 만들지 않는다 */
+  font-display: swap;
+  /* format 은 `woff2` 만 적는다. `woff2-variations` 는 옛 초안 값이라 못 알아보는 브라우저가
+     이 src 를 통째로 건너뛴다 — 글꼴이 아예 안 실려 이 @font-face 가 막으려던 상태가 된다.
+     가변 축은 format 힌트와 무관하게 파일 자체에서 나오므로 잃는 것이 없다 */
+  src: url('./fonts/PretendardVariable.woff2') format('woff2');
+}
+
 :root {
   --paper: #e6e9e2;
   --sheet: #f8f9f5;
@@ -27,11 +43,19 @@
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: Pretendard, system-ui, sans-serif;
+  /* 폴백도 숫자 폭이 고정인 것으로 적는다 — 글꼴이 못 실렸을 때 대신 그릴 것들이다 (DESIGN.md) */
+  font-family: Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  /* 숫자를 세로로 맞춰야 훑을 수 있다 (DESIGN.md 원칙 3) */
-  font-feature-settings: 'tnum';
+  /* 숫자를 세로로 맞춰야 훑을 수 있다 (DESIGN.md 원칙 3).
+     표준 속성을 쓴다 — font-feature-settings 는 글꼴이 그 기능을 들고 있을 때만 먹어서
+     폴백으로 떨어지면 조용히 무효가 된다 */
+  font-variant-numeric: tabular-nums;
+  /* 한국어는 낱말 사이에 띄어쓰기가 있는데 브라우저 기본값은 CJK 를 글자 단위로 자른다 —
+     좁은 화면에서 「실행자 관 / 리자테스트」, 「끝 / 남」처럼 갈렸다 (2026-09-19 실측).
+     keep-all 로 낱말을 지키되, 칸보다 긴 것(주소·긴 아이디)은 anywhere 가 받아 준다 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   background-image: linear-gradient(var(--rule-soft) 0.5px, transparent 0.5px),
     linear-gradient(90deg, var(--rule-soft) 0.5px, transparent 0.5px);
   background-size: 28px 28px;
@@ -163,6 +187,10 @@ body {
   align-items: center;
 }
 
+/* `input:not([type])` 가 꼭 있어야 한다 — React 는 기본 type 을 DOM 에 안 써 주고,
+   속성 선택자는 속성이 실제로 적혀 있어야 맞는다. 없으면 그 칸만 브라우저 기본 모양이 되어
+   글꼴·테두리·숫자 정렬이 통째로 빠진다 (2026-09-19 설정 화면에서 아홉 칸이 그랬다) */
+input:not([type]),
 input[type='text'],
 input[type='password'],
 input[type='number'],
@@ -999,4 +1027,188 @@ select:focus {
 .login-box .btn {
   justify-content: center;
   margin-top: 4px;
+}
+
+/* ── 설정 화면 (SPEC §8.8) ────────────────────────────────────────── */
+/* 책상에서만 쓰는 화면이다. 좁은 화면 대응을 하지 않는다 (§8) */
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.set-row:hover {
+  background: var(--sheet-2);
+}
+
+/* 띠에서 쓸 색을 그대로 보여준다. 글자만 보고는 어떤 색인지 모른다 */
+.set-swatch {
+  width: 4px;
+  align-self: stretch;
+  min-height: 22px;
+}
+
+.set-none {
+  background: var(--rule);
+}
+
+.set-name {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.set-sub {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+/* 오른쪽 끝 버튼을 밀어 둔다 */
+.set-row .btn {
+  margin-left: auto;
+}
+
+.set-form {
+  background: var(--sheet-2);
+  border: 1px solid var(--rule-soft);
+  padding: 14px 18px;
+  margin: 10px 0 16px;
+}
+
+.set-color {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.set-color input[type='color'] {
+  width: 44px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  background: none;
+  cursor: pointer;
+}
+
+.set-hex {
+  width: 110px;
+}
+
+/* 흰 글자가 실제로 읽히는지 눈으로 확인할 자리. 숫자만으로는 감이 안 온다 */
+.set-preview {
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+}
+
+.set-envs {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.set-env {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 8px;
+  width: 100%;
+  align-items: center;
+}
+
+.set-hook {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.set-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+/* 버튼은 살아 있고 왜 안 되는지를 아래에 적는다 (SPEC §8.2 · DESIGN.md) */
+.set-why {
+  text-align: right;
+  padding-top: 6px;
+}
+
+.set-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.set-pick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.set-picks .hint {
+  flex-basis: 100%;
+}
+
+/* 임시 비밀번호는 한 번만 보인다. 놓치면 다시 만들어야 하므로 눈에 띄어야 한다 (SPEC §8.8).
+   **판정 색(--na)을 쓰지 않는다** — 판정과 아무 상관 없는 상자가 미실행 배지와 같은 색을 입으면
+   목록 화면에서 옮겨 온 사람이 한 번 멈칫한다 (DESIGN.md 「판정 외의 색 사용」 금지) */
+.set-pw {
+  border: 2px solid var(--ink);
+  background: var(--sheet-2);
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.set-pw code {
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  padding: 2px 8px;
+  user-select: all;
+}
+
+/* 목록 줄의 「비활성」 표시. `.chip` 은 누를 수 있는 것이라 손가락 커서가 뜬다 — 배지는 따로 둔다 */
+.set-off {
+  font-size: 12px;
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  color: var(--ink-muted);
+}
+
+/* 되돌릴 수 없는 일을 주 버튼에서 떼어 놓는다. 나란히 두면 저장을 노리다 잘못 누른다 */
+.set-left {
+  margin-right: auto;
+}
+
+/* 한 번 더 누르면 실제로 벌어진다는 것을 글자와 테두리로 같이 말한다 */
+.set-warn {
+  border-color: var(--fail);
+  color: var(--fail);
+}
+
+/* 지금 해야 할 일 한 줄. 첫 운영자가 이 화면에 오는 가장 흔한 이유가 배정이다 */
+.set-todo {
+  border-left: 2px solid var(--ink);
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  background: var(--sheet-2);
+}
+
+/* 묶음의 이름. 가리킬 칸이 하나가 아니라 <label> 로 두면 눌러도 아무 데도 안 간다 */
+.field-label {
+  font-size: 13px;
+  color: var(--ink-muted);
 }

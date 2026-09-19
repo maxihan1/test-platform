@@ -22,8 +22,9 @@ export function Shell({ user, service, onService, onLogout, current, children }:
     document.title = 탭제목(service);
   }, [service]);
 
-  // 띠에는 짧게, 왜인지와 무엇을 하면 되는지는 본문이 말한다
-  const 사유 = 빈띠사유(user);
+  // 띠에는 짧게, 왜인지와 무엇을 하면 되는지는 본문이 말한다.
+  // 지금 자리를 같이 넘긴다 — 설정 화면은 배정이 없어도 열려야 한다 (그 배정을 만드는 자리다)
+  const 사유 = 빈띠사유(user, current);
 
   return (
     <div className="wrap">

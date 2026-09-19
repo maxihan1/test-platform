@@ -13,6 +13,7 @@ import { route, 돌아갈자리, type Route } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunSetup } from './RunSetup.js';
+import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import './styles.css';
 
@@ -26,7 +27,17 @@ function useHash(): string {
   return hash;
 }
 
-function Screen({ hash, service, user }: { hash: string; service: ServiceRow | null; user: User }) {
+function Screen({
+  hash,
+  service,
+  user,
+  onMeChanged,
+}: {
+  hash: string;
+  service: ServiceRow | null;
+  user: User;
+  onMeChanged: () => void;
+}) {
   const current = route(hash);
   // 띠가 서비스를 고르기 전에는 목록을 부르지 않는다. 빈 값으로 부르면 서버가 400 을 낸다
   const prefix = service?.prefix ?? '';
@@ -47,17 +58,7 @@ function Screen({ hash, service, user }: { hash: string; service: ServiceRow | n
       // '없는 주소입니다' 가 깜빡이지 않게 빈 화면을 낸다
       return <div className="screen" />;
     case 'settings':
-      // 자리는 SPEC §8 대로 넷이지만 이 화면(§8.8)은 아직 없다.
-      // 자리를 감추면 「못 하는 것은 안 보인다」와 섞여 등급 문제로 읽힌다 —
-      // 운영 등급인데 안 보이면 자기 등급을 의심하게 된다. 정직하게 알린다
-      return (
-        <div className="screen">
-          <div className="empty">
-            설정 화면은 아직 만들지 않았습니다
-            <small>서비스와 계정은 지금은 서버 명령으로 만듭니다 (docs/SETUP.md)</small>
-          </div>
-        </div>
-      );
+      return <Settings user={user} onMeChanged={onMeChanged} />;
     default:
       return (
         <div className="screen">
@@ -152,7 +153,25 @@ function App() {
       }}
       current={지금자리(route(hash).name)}
     >
-      <Screen hash={hash} service={열린것} user={상태.user} />
+      <Screen
+        hash={hash}
+        service={열린것}
+        user={상태.user}
+        onMeChanged={() => {
+          // 설정 화면이 /auth/me 의 재료를 고쳤다 — 계정의 배정·등급이든 서비스의 이름·색·
+          // 대상 서버·Slack 웹훅이든. 그 응답 하나가 띠·자리·실행 설정을 다 그린다.
+          // 여기서 안 읽으면 새로고침할 때까지 옛 값을 보고, 시킨 대로 한 사람은
+          // 자기가 한 일이 먹혔는지 알 수 없다
+          // 실패해도 화면을 끌어내리지 않는다 — 방금 저장은 이미 됐다.
+          // 다만 조용히 삼키지도 않는다. 콘솔에 남겨 둬야 왜 띠가 안 바뀌었는지 찾을 수 있다
+          void api
+            .me()
+            .then(({ user }) => set상태({ 어디: '안', user }))
+            .catch((err: unknown) => {
+              console.error('[설정] 고친 뒤 /auth/me 를 다시 읽지 못했다. 새로고침하면 맞다', err);
+            });
+        }}
+      />
     </Shell>
   );
 }
