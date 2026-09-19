@@ -20,6 +20,10 @@ export interface RunSummary {
   // 그때의 이름을 박제한 값. 계정 이름을 바꾸거나 지워도 과거 기록이 흔들리지 않는다 (SPEC §6 · §8.7)
   triggeredByName: string | null;
   env: string;
+  // 그날 실제로 친 주소. env→주소 대응표가 바뀌어도 남는다 (SPEC §6 · §8.3 RUN 머리)
+  baseUrl: string;
+  // 실행 시점 서비스 이름. 설정에서 이름을 고쳐도 과거 기록은 그대로다 (SPEC §6 · §8.4)
+  serviceName: string;
   status: string;
   startedAt: string;
   finishedAt: string | null;
@@ -31,6 +35,8 @@ export interface RunItemSummary {
   tcId: string;
   tcName: string;
   platform: Platform;
+  // 같은 케이스×디바이스를 몇 번째로 돌렸는지. 목록의 회차 요약이 이 값으로 센다 (SPEC §8.3)
+  attempt: number;
   status: ItemStatus;
   durationMs: number | null;
   error: { message: string; stack?: string } | null;
@@ -44,6 +50,9 @@ export interface RunItemDetail extends RunItemSummary {
   precondition: string[];
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
+  // 입력·기대결과 칸의 라벨. 카탈로그는 스캔 때마다 덮어쓰는 캐시라 못 믿는다 (SPEC §3.3 · §6)
+  paramSchema: Record<string, unknown>;
+  expectedSchema: Record<string, unknown>;
   steps: StepResult[];
 }
 
@@ -56,7 +65,8 @@ const iso = (v: Date | null): string | null => (v === null ? null : v.toISOStrin
 
 // 실행 묶음 한 줄에 판정 개수까지 붙인다. 없으면 목록 화면이 실행마다 항목을 또 불러야 한다
 const RUN_COLUMNS = `
-  r.run_id, r.title, r.triggered_by, r.triggered_by_name, r.env, r.status, r.started_at, r.finished_at,
+  r.run_id, r.title, r.triggered_by, r.triggered_by_name, r.env, r.base_url, r.service_name,
+  r.status, r.started_at, r.finished_at,
   count(i.history_id)::int AS total,
   count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS')::int AS pass,
   count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL')::int AS fail,
@@ -69,6 +79,8 @@ interface RawRun {
   triggered_by: string;
   triggered_by_name: string | null;
   env: string;
+  base_url: string;
+  service_name: string;
   status: string;
   started_at: Date;
   finished_at: Date | null;
@@ -87,6 +99,8 @@ function toRun(row: RawRun): RunSummary {
     triggeredBy: row.triggered_by,
     triggeredByName: row.triggered_by_name,
     env: row.env,
+    baseUrl: row.base_url,
+    serviceName: row.service_name,
     status: row.status,
     startedAt: row.started_at.toISOString(),
     finishedAt: iso(row.finished_at),
@@ -127,6 +141,7 @@ interface RawItem {
   tc_id: string;
   tc_name: string;
   platform: Platform;
+  attempt: number;
   status: ItemStatus;
   duration_ms: number | null;
   error: { message: string; stack?: string } | null;
@@ -134,7 +149,7 @@ interface RawItem {
   finished_at: Date | null;
 }
 
-const ITEM_COLUMNS = 'history_id, tc_id, tc_name, platform, status, duration_ms, error, started_at, finished_at';
+const ITEM_COLUMNS = 'history_id, tc_id, tc_name, platform, attempt, status, duration_ms, error, started_at, finished_at';
 
 function toItem(row: RawItem): RunItemSummary {
   return {
@@ -142,6 +157,7 @@ function toItem(row: RawItem): RunItemSummary {
     tcId: row.tc_id,
     tcName: row.tc_name,
     platform: row.platform,
+    attempt: row.attempt,
     status: row.status,
     durationMs: row.duration_ms,
     error: row.error,
@@ -232,8 +248,9 @@ function toStep(row: RawStep): StepResult {
 
 export async function findItem(runId: number, historyId: number): Promise<RunItemDetail | null> {
   const pool = await db();
-  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[]; params: Record<string, unknown>; expected: Record<string, unknown> }>(
-    `SELECT i.${ITEM_COLUMNS.split(', ').join(', i.')}, i.run_id, r.title AS run_title, i.precondition, i.params, i.expected
+  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[]; params: Record<string, unknown>; expected: Record<string, unknown>; param_schema: Record<string, unknown>; expected_schema: Record<string, unknown> }>(
+    `SELECT i.${ITEM_COLUMNS.split(', ').join(', i.')}, i.run_id, r.title AS run_title, i.precondition, i.params, i.expected,
+            i.param_schema, i.expected_schema
        FROM run_item i JOIN test_run r ON r.run_id = i.run_id
       WHERE i.run_id = $1 AND i.history_id = $2`,
     [runId, historyId],
@@ -254,6 +271,8 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
     precondition: row.precondition,
     params: row.params,
     expected: row.expected,
+    paramSchema: row.param_schema,
+    expectedSchema: row.expected_schema,
     steps: steps.rows.map(toStep),
   };
 }

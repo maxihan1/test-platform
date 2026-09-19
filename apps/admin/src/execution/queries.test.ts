@@ -36,7 +36,9 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
       `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, duration_ms, finished_at,
                              file_path, param_schema, expected_schema, timeout_ms)
        VALUES ($1, 'XBQ-001', $2, '조회용 케이스', '["사전조건 하나"]', '{"아이디":"tester"}', '{"결과":true}', $3, 100, $4,
-               'demo/XBQ-001.spec.ts', '{"type":"object","properties":{}}', '{"type":"object","properties":{}}', 300000)
+               'demo/XBQ-001.spec.ts',
+               '{"type":"object","properties":{"아이디":{"type":"string","description":"박제된 라벨"}}}',
+               '{"type":"object","properties":{"결과":{"type":"boolean","description":"박제된 기대 라벨"}}}', 300000)
        RETURNING history_id`,
       [runId, platform, status, 끝났나 ? new Date() : null],
     );
@@ -72,6 +74,7 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
     await pool.query("DELETE FROM evidence_document WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBQ%')");
     await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBQ%')");
     await pool.query("DELETE FROM test_run WHERE title LIKE 'XBQ%'");
+    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'XBQ-%'");
     await pool.query("DELETE FROM service WHERE prefix = 'XBQ'");
     await pool.end();
     const { pool: shared } = await import('../db/index.js');
@@ -119,6 +122,47 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
 
   it('findRun — 없는 실행은 null이다', async () => {
     expect(await findRun(999_999_999)).toBeNull();
+  });
+
+  it('findItem — 라벨을 카탈로그가 아니라 항목에 박제된 스키마에서 읽을 수 있게 싣는다', async () => {
+    // 케이스 코드의 .describe() 를 고친 날 반년 전 증적의 라벨까지 바뀌면 안 된다 (SPEC §3.3 · §6)
+    await pool.query(
+      `INSERT INTO test_case (tc_id, name, file_path, platforms, precondition, param_schema, expected_schema)
+       VALUES ('XBQ-001', '조회용 케이스', 'demo/XBQ-001.spec.ts', '["desktop"]', '[]',
+               '{"type":"object","properties":{"아이디":{"type":"string","description":"나중에 고친 라벨"}}}',
+               '{"type":"object","properties":{}}')
+       ON CONFLICT (tc_id) DO UPDATE SET param_schema = EXCLUDED.param_schema`,
+    );
+
+    const item = await findItem(나중, 실패항목);
+    expect(item?.paramSchema).toMatchObject({
+      properties: { 아이디: { description: '박제된 라벨' } },
+    });
+    expect(item?.expectedSchema).toMatchObject({
+      properties: { 결과: { description: '박제된 기대 라벨' } },
+    });
+  });
+
+  it('findItem — 회차를 싣는다. 목록이 3/5 통과를 세려면 필요하다 (SPEC §8.3)', async () => {
+    const item = await findItem(나중, 실패항목);
+    expect(item?.attempt).toBe(1);
+  });
+
+  it('findRun — 항목 목록에도 회차가 온다', async () => {
+    const run = await findRun(나중);
+    expect(run?.items[0]?.attempt).toBe(1);
+  });
+
+  it('findRun — 대상 서버 주소와 서비스 이름을 박제된 값으로 싣는다 (SPEC §8.3 RUN 머리)', async () => {
+    const run = await findRun(나중);
+    expect(run?.baseUrl).toBe('https://qa.example.com');
+    expect(run?.serviceName).toBe('XBQ 서비스');
+  });
+
+  it('listRuns — 목록에도 대상 서버 주소가 온다', async () => {
+    const 목록 = await listRuns('XBQ', 1, 50);
+    const 것 = 목록.items.find((r) => r.runId === 나중);
+    expect(것?.baseUrl).toBe('https://qa.example.com');
   });
 
   it('findItem — 사전조건·입력값·절차·검증 문장이 전부 온다', async () => {
