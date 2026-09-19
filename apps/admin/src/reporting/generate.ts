@@ -77,6 +77,9 @@ function 찍는다(html: string, 파일경로: string): Promise<void> {
       const page = await browser.newPage();
       // 바깥 자원을 받아 오지 않는 인라인 문서다. load 면 그릴 것이 다 그려졌다
       await page.setContent(html, { waitUntil: 'load' });
+      // load 는 글꼴 준비를 안 기다린다. 안 기다리면 대체 글꼴로 찍혀 §3.3 의
+      // 「오늘 뽑든 한 달 뒤에 뽑든 글자 하나까지 같다」가 가끔 깨진다 (SPEC §8.4)
+      await page.evaluate(() => document.fonts.ready);
       await writeFile(파일경로, await page.pdf({ format: 'A4', printBackground: true }));
     } finally {
       // 여기서 안 닫으면 실패할 때마다 Chromium 프로세스가 남는다
