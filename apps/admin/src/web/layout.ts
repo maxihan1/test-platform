@@ -25,7 +25,7 @@ export function 탭제목(service: ServiceRow | null): string {
 declare global {
   interface ImportMeta {
     /** Vite 는 `VITE_` 로 시작하는 값만 번들에 넣는다. 안 주면 그 자리가 undefined 가 된다 */
-    readonly env: { readonly VITE_GRAFANA_PORT?: string };
+    readonly env?: { readonly VITE_GRAFANA_PORT?: string };
   }
 }
 
@@ -41,7 +41,7 @@ declare global {
  * 안 하면 아무 오류 없이 이 링크만 틀린 포트를 가리킨다.
  */
 function 그래프주소(): string {
-  const 포트 = import.meta.env.VITE_GRAFANA_PORT ?? '3001';
+  const 포트 = import.meta.env?.VITE_GRAFANA_PORT ?? '3001';
   return `${location.protocol}//${location.hostname}:${포트}`;
 }
 
