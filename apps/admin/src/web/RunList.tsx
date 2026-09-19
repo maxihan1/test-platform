@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { api, type Paged, type RunSummary } from './api.js';
+import { 다음이있나 } from './paging.js';
 import { 상태라벨 } from './runState.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
@@ -19,7 +20,8 @@ export function RunList({ service }: { service: string }) {
   if (runs.error !== null) return <Failed error={runs.error} />;
   if (runs.data === null) return <Loading />;
 
-  const totalPages = Math.max(1, Math.ceil(runs.data.total / runs.data.pageSize));
+  // 총건수로 페이지 수를 계산하지 않는다 (SPEC §8.7 — §8.1 과 같은 함정이다)
+  const 더있나 = 다음이있나(runs.data);
 
   return (
     <div className="screen">
@@ -66,15 +68,13 @@ export function RunList({ service }: { service: string }) {
         ))
       )}
 
-      {totalPages <= 1 ? null : (
+      {page === 1 && !더있나 ? null : (
         <div className="pager">
           <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
             이전
           </button>
-          <span>
-            {page} / {totalPages}
-          </span>
-          <button onClick={() => setPage((n) => n + 1)} disabled={page >= totalPages}>
+          <span>{page}쪽</span>
+          <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
             다음
           </button>
         </div>

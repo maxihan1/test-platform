@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
-import { filterGroups, groupByCase } from './group.js';
+import { filterGroups, groupByCase, 회차요약 } from './group.js';
 import { 도는중 } from './runState.js';
 import { Failed, Loading, PLATFORM_LABEL, PLATFORMS, seconds, STATUS_COLOR, STATUS_LABEL, useAsync, Verdict, when } from './ui.js';
 
@@ -12,10 +12,12 @@ const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 const DEVICES: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
 
-// 행의 거터 색. 디바이스 하나라도 깨졌으면 실패로 보여야 한다
-function worst(items: RunItemSummary[]): ItemStatus {
-  if (items.some((item) => item.status === 'FAIL')) return 'FAIL';
-  if (items.every((item) => item.status === 'PASS')) return 'PASS';
+// 행의 거터 색. 디바이스 하나라도 깨졌으면 실패로 보여야 한다.
+// 회차가 여럿인 칸은 요약 판정을 쓴다 — 목록에 보이는 글자와 색이 같은 값을 봐야 한다
+function worst(칸들: RunItemSummary[][]): ItemStatus {
+  const 판정 = 칸들.map((칸) => 회차요약(칸).status);
+  if (판정.includes('FAIL')) return 'FAIL';
+  if (판정.length > 0 && 판정.every((s) => s === 'PASS')) return 'PASS';
   return 'NA';
 }
 
@@ -112,42 +114,35 @@ export function RunResult({ runId }: { runId: number }) {
         <div className="empty">조건에 맞는 결과가 없습니다.</div>
       ) : (
         shown.map((group) => {
-          const items = columns
+          const 칸들 = columns
             .map((platform) => group.byPlatform[platform])
-            .filter((item): item is RunItemSummary => item !== undefined);
+            .filter((칸): 칸 is RunItemSummary[] => 칸 !== undefined && 칸.length > 0);
+          const 첫항목 = 칸들[0]?.[0];
 
           return (
             <div className="row" key={group.tcId}>
-              <div className="gutter" style={{ background: STATUS_COLOR[worst(items)] }} />
+              <div className="gutter" style={{ background: STATUS_COLOR[worst(칸들)] }} />
               <div className="tcid">{group.tcId}</div>
               <div className="title">{group.tcName}</div>
               <div className="right">
                 <div className="devices">
                   {columns.map((platform) => {
-                    const item = group.byPlatform[platform];
+                    const 칸 = group.byPlatform[platform];
                     return (
                       <div className="device" key={platform}>
                         <span className="device-name">{PLATFORM_LABEL[platform]}</span>
                         {/* 그 디바이스를 지원하지 않는 케이스는 칸을 —로 비운다 (SPEC §8.3) */}
-                        {item === undefined ? (
+                        {칸 === undefined || 칸.length === 0 ? (
                           <span className="device-none">—</span>
-                        ) : item.finishedAt === null ? (
-                          // 실행이 끝나야 판정이 들어간다. 아직인 칸에 미실행 배지를 붙이면 끝난 것처럼 보인다 (SPEC §3.2)
-                          <span className="device-none">도는 중</span>
                         ) : (
-                          <>
-                            <a href={`#/runs/${data.runId}/items/${item.historyId}`}>
-                              <Verdict status={item.status} />
-                            </a>
-                            <span className="device-dur">{seconds(item.durationMs)}</span>
-                          </>
+                          <Verdicts 칸={칸} runId={data.runId} />
                         )}
                       </div>
                     );
                   })}
                 </div>
-                {items.length === 0 ? null : (
-                  <a className="btn small" href={`#/runs/${data.runId}/items/${items[0]!.historyId}`}>
+                {첫항목 === undefined ? null : (
+                  <a className="btn small" href={`#/runs/${data.runId}/items/${첫항목.historyId}`}>
                     상세
                   </a>
                 )}
@@ -171,5 +166,39 @@ export function RunResult({ runId }: { runId: number }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * 한 디바이스 칸의 판정.
+ *
+ * 1회면 판정 배지, 반복이면 `3/5 통과` 요약이다. **행 구조는 바뀌지 않는다** (SPEC §8.3).
+ * 어느 회차가 깨졌는지는 상세에서 본다 — 목록은 회차를 펼치지 않는다.
+ */
+function Verdicts({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
+  // 아직 안 끝난 것이 하나라도 있으면 도는 중이다. 실행이 끝나야 판정이 들어간다 (SPEC §3.2)
+  if (칸.some((item) => item.finishedAt === null)) {
+    return <span className="device-none">도는 중</span>;
+  }
+
+  const 요약 = 회차요약(칸);
+  const 처음 = 칸[0]!;
+
+  return (
+    <>
+      <a href={`#/runs/${runId}/items/${처음.historyId}`}>
+        {요약.글 === null ? (
+          <Verdict status={요약.status} />
+        ) : (
+          <span className={`verdict ${요약.status === 'PASS' ? 'v-pass' : 요약.status === 'FAIL' ? 'v-fail' : 'v-na'}`}>
+            {요약.글}
+          </span>
+        )}
+      </a>
+      <span className="device-dur">
+        {seconds(요약.평균소요ms)}
+        {요약.회차수 > 1 ? ' 평균' : ''}
+      </span>
+    </>
   );
 }

@@ -4,6 +4,7 @@
 import { useState } from 'react';
 
 import { api, type CaseRow, type ItemStatus, type LastResult, type Paged, type Platform } from './api.js';
+import { 다음이있나 } from './paging.js';
 import { Failed, Loading, message, PLATFORM_LABEL, seconds, STATUS_COLOR, useAsync, Verdict, when } from './ui.js';
 
 type LastMap = Record<string, LastResult>;
@@ -60,7 +61,8 @@ export function CaseList({ service }: { service: string }) {
     setPage(1);
   }
 
-  const totalPages = cases.data === null ? 1 : Math.max(1, Math.ceil(cases.data.total / cases.data.pageSize));
+  // 총건수로 페이지 수를 계산하지 않는다. 그 값은 안내로만 쓴다 (SPEC §8.1)
+  const 더있나 = cases.data !== null && 다음이있나(cases.data);
 
   return (
     <div className="screen">
@@ -151,15 +153,13 @@ export function CaseList({ service }: { service: string }) {
         ))
       )}
 
-      {totalPages <= 1 ? null : (
+      {page === 1 && !더있나 ? null : (
         <div className="pager">
           <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
             이전
           </button>
-          <span>
-            {page} / {totalPages}
-          </span>
-          <button onClick={() => setPage((n) => n + 1)} disabled={page >= totalPages}>
+          <span>{page}쪽</span>
+          <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
             다음
           </button>
         </div>
