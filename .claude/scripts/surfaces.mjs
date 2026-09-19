@@ -14,7 +14,7 @@ export const SURFACES = [
 
   { name: 'AUTH', tier: 2, globs: ['apps/admin/src/auth/**', 'apps/admin/src/settings/**'] },
   { name: 'RUNNER', tier: 2, globs: ['apps/runner/**'] },
-  { name: 'ADMIN', tier: 2, globs: ['apps/admin/src/catalog/**', 'apps/admin/src/execution/**', 'apps/admin/src/reporting/**', 'apps/admin/src/db/**', 'apps/admin/src/app.ts'] },
+  { name: 'ADMIN', tier: 2, globs: ['apps/admin/src/catalog/**', 'apps/admin/src/execution/**', 'apps/admin/src/reporting/**', 'apps/admin/src/db/**', 'apps/admin/src/*.ts'] },
   // 훅도 GUARD 다 — 안전 장치이고, 잘못 고치면 검사가 조용히 안 돈다
   { name: 'GUARD', tier: 2, globs: ['.claude/scripts/**', '.claude/hooks/**', 'scripts/**', 'package.json', 'tsconfig.json', 'vitest.config.ts'] },
 

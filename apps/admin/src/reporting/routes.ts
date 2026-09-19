@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { 정수 } from '../routeParams.js';
 import { generate, 형식표 } from './generate.js';
 import { EvidenceBusyError, claim, findDocument, recoverPending } from './store.js';
 
@@ -15,15 +16,11 @@ const 증적본문 = z.object({
 });
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (store.ts와 같은 방식)
-async function 실행이있는가(runId: number): Promise<boolean> {
+// 있는지와 어떤 상태인지를 한 번에 묻는다. 둘로 나누면 같은 행을 두 번 왕복한다
+async function 실행상태(runId: number): Promise<string | null> {
   const { pool } = await import('../db/index.js');
-  const rows = await pool.query('SELECT 1 FROM test_run WHERE run_id = $1', [runId]);
-  return rows.rowCount === 1;
-}
-
-function 정수(raw: string): number | null {
-  const n = Number(raw);
-  return Number.isInteger(n) && n > 0 ? n : null;
+  const rows = await pool.query<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [runId]);
+  return rows.rows[0]?.status ?? null;
 }
 
 export default async function reportingRoutes(app: FastifyInstance): Promise<void> {
@@ -46,8 +43,17 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     const runId = 정수(req.params.runId);
     if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
     // claim 앞에서 막는다. 없는 실행을 그냥 넘기면 외래키 위반이 500으로 새어 나간다
-    if (!(await 실행이있는가(runId))) {
+    const 상태 = await 실행상태(runId);
+    if (상태 === null) {
       return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
+    }
+    // 도는 중에 뽑으면 아직 안 끝난 항목이 빠진 문서가 나온다 — 증적 재현 불변식이 깨진다 (SPEC §3.3 · §7).
+    // 화면도 같은 값으로 버튼을 잠그지만(web/runState.ts) 번들이 달라 그 코드를 가져다 쓸 수 없다.
+    // 정본은 SPEC §7 이고 양쪽이 그것을 따로 따른다 — 판정 값이 'RUNNING' 하나뿐이라 공유 자리를 만들지 않았다.
+    // 상태값이 셋 이상으로 늘면 그때 다시 본다.
+    // 중단된 실행(ABORTED)은 막지 않는다. 막는 것은 아직 안 끝난 것뿐이다 (SPEC §8.4)
+    if (상태 === 'RUNNING') {
+      return reply.code(409).send({ error: 'RUN_NOT_FINISHED', detail: 상태 });
     }
 
     try {
@@ -95,6 +101,13 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       // 내보낼 것을 손에 쥔 뒤에 형식을 정한다. 먼저 type()을 박으면 404 본문을 그 형식으로 쓰려다 500이 난다
       return reply.code(404).send({ error: 'EVIDENCE_FILE_NOT_FOUND', detail: req.params.id });
     }
-    return reply.type(형식표[문서.format].mime).send(파일);
+    // 이름에는 실행 번호와 형식만 넣는다. 케이스명·실행 제목·실행자는 넣지 않는다 —
+    // 비밀값 칸을 ********로 가려 놓고(SPEC §4.1) 같은 값을 파일 이름으로 흘리면 그 가림이 무의미해진다.
+    // 그래서 남는 글자가 ASCII뿐이고 헤더가 깨질 일이 없다. 한글이나 공백을 넣고 싶어지면
+    // 그때는 이름을 바꾸기 전에 RFC 5987 인코딩부터 붙여야 한다.
+    // attachment가 아닌 이유는 PDF·HTML이 새 창에서 열려야 하기 때문이다 (SPEC §8.4).
+    // 엑셀은 브라우저가 못 여는 형식이라 inline이어도 이 이름 그대로 내려받아진다
+    const 이름 = `evidence-run-${String(문서.runId)}.${형식표[문서.format].ext}`;
+    return reply.type(형식표[문서.format].mime).header('content-disposition', `inline; filename="${이름}"`).send(파일);
   });
 }

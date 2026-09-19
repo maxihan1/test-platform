@@ -1,6 +1,8 @@
 // 표시용 모델을 §8.4 모양의 A4 문서로 그린다. 이 HTML 이 곧 PDF 의 원본이다
 // 가공하지 않는다 — 라벨·마스킹·빈 값은 collect.ts 가 이미 끝냈다. 여기서 또 하면 마스킹이 새는 자리가 둘이 된다
 
+import { readFileSync } from 'node:fs';
+
 import type { EvidenceAssertion, EvidenceDocument, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
 
 export interface RenderOptions {
@@ -114,9 +116,25 @@ function 블록(item: EvidenceItem): string[] {
   ];
 }
 
-// 글꼴을 바깥에서 받아 오지 않는다. 네트워크가 없는 컨테이너에서 PDF 를 찍으므로 웹폰트 링크는 조용히 깨진다
+// 글꼴을 바깥에서 받아 오지 않는다. 네트워크가 없는 컨테이너에서 PDF 를 찍으므로 웹폰트 링크는 조용히 깨진다.
+// 이름만 부르는 것으로는 모자란다 — admin 이미지(playwright:v1.63.0-jammy)에 한글 글꼴이 WenQuanYi(중국어) 뿐이라
+// 폴백 스택이 거기까지 떨어져 글자 모양과 줄바꿈이 통째로 달라진다. 파일을 문서 안에 담아야 한다 (SPEC §9.1 · DESIGN.md)
+//
+// 화면(WS-E)의 파일을 그대로 읽는다. 옮기면 styles.css 와 vite 빌드까지 건드려야 하고,
+// DESIGN.md 가 제품 전체에 글꼴 하나를 정해 둔 이상 화면과 문서는 같은 파일을 봐야 맞다.
+// 경로가 갈리거나 파일이 잘리면 html.test.ts 의 바이트 수 검사가 빨개진다
+//
+// 모듈 로드 때 한 번만 읽는다. renderHtml 은 동기이고, 비동기로 바꾸면 generate.ts 까지 번진다
+const 글꼴 = readFileSync(new URL('../web/fonts/PretendardVariable.woff2', import.meta.url)).toString('base64');
+
 const 스타일 = `
 @page { size: A4; margin: 14mm 12mm; }
+@font-face{
+  font-family:Pretendard;
+  font-weight:45 920;
+  font-style:normal;
+  src:url(data:font/woff2;base64,${글꼴}) format('woff2');
+}
 :root{
   --paper:#E6E9E2; --sheet:#F8F9F5; --ink:#17201B; --ink-muted:#464D47; --ink-faint:#626A62;
   --rule:#C8CEC3; --rule-soft:#DCE0D7;

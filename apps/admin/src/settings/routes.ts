@@ -4,6 +4,8 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { 정수 } from '../routeParams.js';
+
 import {
   계정고치기,
   계정만들기,
@@ -97,7 +99,9 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       if (!parsed.success) {
         return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
       }
-      await 서비스고치기(Number(req.params.id), parsed.data);
+      const id = 정수(req.params.id);
+      if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
+      await 서비스고치기(id, parsed.data);
       return { ok: true };
     },
   );
