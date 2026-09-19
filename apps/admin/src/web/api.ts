@@ -71,6 +71,17 @@ export interface RunSummary {
   counts: { total: number; pass: number; fail: number; na: number; running: number };
 }
 
+// 그 실행으로 만든 증적 문서 (SPEC §7 · §8.4). status 는 PENDING | READY | FAILED
+export interface EvidenceRow {
+  id: number;
+  format: string;
+  status: string;
+  /** PENDING·FAILED 면 아직 파일이 없다 */
+  filePath: string | null;
+  error: string | null;
+  generatedAt: string;
+}
+
 export interface RunItemSummary {
   historyId: number;
   tcId: string;
@@ -298,7 +309,15 @@ export const api = {
   runs: (service: string, page: number) =>
     call<Paged<RunSummary>>(`/runs?service=${encodeURIComponent(service)}&page=${page}`),
 
-  run: (runId: number) => call<RunSummary & { items: RunItemSummary[] }>(`/runs/${runId}`),
+  run: (runId: number) =>
+    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[] }>(`/runs/${runId}`),
+
+  /** 증적을 만든다. 실행까지 등급부터다 (SPEC §3.5) */
+  makeEvidence: (runId: number, format: string) =>
+    call<EvidenceRow>(`/runs/${runId}/evidence`, json({ format })),
+
+  /** 만든 문서를 받는 주소. 받기는 보기만 등급도 할 수 있다 (SPEC §3.5) */
+  evidenceUrl: (id: number) => `/api/evidence/${id}`,
 
   item: (runId: number, historyId: number) => call<RunItemDetail>(`/runs/${runId}/items/${historyId}`),
 
