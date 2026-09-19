@@ -151,6 +151,8 @@ body {
   display: flex;
   gap: 18px;
   align-items: center;
+  /* 증적 버튼이 형식마다 하나라 판정 숫자 셋과 같은 줄에 선다. 안 접으면 좁은 창에서 넘친다 */
+  flex-wrap: wrap;
 }
 
 .tally b {
@@ -730,6 +732,18 @@ select:focus {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
+  }
+
+  /* 18px 그대로 두면 접힌 줄 사이도 18px 이 돼 판정 숫자와 버튼이 따로 노는 두 덩어리로 보인다 */
+  .tally {
+    gap: 14px 12px;
+  }
+
+  /* RUN 머리의 증적 버튼도 같은 화면이다. 하나일 때는 오눌러도 결과가 같았지만
+     형식이 셋이 되면서 오눌림이 「엑셀 대신 PDF」라는 뜻을 갖는다 (docs/DESIGN.md 44px) */
+  .tally .btn {
+    min-height: 44px;
+    padding: 9px 20px;
   }
 
   .field {

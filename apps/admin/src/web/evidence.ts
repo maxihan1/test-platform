@@ -101,8 +101,14 @@ export function 증적버튼들(status: string, 문서들: EvidenceRow[], role: 
  * **「열린다」고 해 놓고 파일이 떨어지면 사람이 어디로 갔는지 찾는다.**
  * 그래서 버튼 글자가 형식에 따라 다르다. 표에 없는 형식은 받기로 둔다 —
  * 틀리는 방향을 「파일이 떨어진다」 쪽에 두면 적어도 어디 있는지는 안다.
+ *
+ * **`라벨` 도 여기서 준다.** 만든 문서 목록은 보기만 등급도 보는데 `증적버튼들` 은
+ * 그 등급에 `null` 을 줘서 거기서 이름을 못 꺼낸다. 목록이 `XLSX` 를 날것으로 적으면
+ * 버튼은 `엑셀`, 목록은 `XLSX` 로 **한 화면에 같은 물건이 두 이름**이 된다.
+ * 모르는 형식은 서버가 준 글자를 그대로 쓴다 — 이름이 비면 어느 줄이 무엇인지 못 읽는다.
  */
-export function 받는법(format: string): { 글: string; 새창: boolean } {
-  const 새창 = 형식들.find((it) => it.format === format.toUpperCase())?.새창 === true;
-  return { 글: 새창 ? '열기 ↗' : '받기', 새창 };
+export function 받는법(format: string): { 글: string; 새창: boolean; 라벨: string } {
+  const 꼴 = 형식들.find((it) => it.format === format.toUpperCase());
+  const 새창 = 꼴?.새창 === true;
+  return { 글: 새창 ? '열기 ↗' : '받기', 새창, 라벨: 꼴?.라벨 ?? format };
 }
