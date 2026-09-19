@@ -15,10 +15,11 @@ const 증적본문 = z.object({
 });
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (store.ts와 같은 방식)
-async function 실행이있는가(runId: number): Promise<boolean> {
+// 있는지와 어떤 상태인지를 한 번에 묻는다. 둘로 나누면 같은 행을 두 번 왕복한다
+async function 실행상태(runId: number): Promise<string | null> {
   const { pool } = await import('../db/index.js');
-  const rows = await pool.query('SELECT 1 FROM test_run WHERE run_id = $1', [runId]);
-  return rows.rowCount === 1;
+  const rows = await pool.query<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [runId]);
+  return rows.rows[0]?.status ?? null;
 }
 
 function 정수(raw: string): number | null {
@@ -46,8 +47,17 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     const runId = 정수(req.params.runId);
     if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
     // claim 앞에서 막는다. 없는 실행을 그냥 넘기면 외래키 위반이 500으로 새어 나간다
-    if (!(await 실행이있는가(runId))) {
+    const 상태 = await 실행상태(runId);
+    if (상태 === null) {
       return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
+    }
+    // 도는 중에 뽑으면 아직 안 끝난 항목이 빠진 문서가 나온다 — 증적 재현 불변식이 깨진다 (SPEC §3.3 · §7).
+    // 화면도 같은 값으로 버튼을 잠그지만(web/runState.ts) 번들이 달라 그 코드를 가져다 쓸 수 없다.
+    // 정본은 SPEC §7 이고 양쪽이 그것을 따로 따른다 — 판정 값이 'RUNNING' 하나뿐이라 공유 자리를 만들지 않았다.
+    // 상태값이 셋 이상으로 늘면 그때 다시 본다.
+    // 중단된 실행(ABORTED)은 막지 않는다. 막는 것은 아직 안 끝난 것뿐이다 (SPEC §8.4)
+    if (상태 === 'RUNNING') {
+      return reply.code(409).send({ error: 'RUN_NOT_FINISHED', detail: 상태 });
     }
 
     try {

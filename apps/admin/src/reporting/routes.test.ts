@@ -18,7 +18,7 @@ const 제목 = 'XDR 증적 라우트 실행';
 
 const 실행 = `
   INSERT INTO test_run (title, triggered_by, triggered_by_name, env, status, service_name, tests_repo, base_url)
-  VALUES ($1, 'tester', '검수자', 'demo', 'FINISHED', '', 'xdr-routes', 'https://xdr-routes.example.com')
+  VALUES ($1, 'tester', '검수자', 'demo', $2, '', 'xdr-routes', 'https://xdr-routes.example.com')
   RETURNING run_id`;
 
 describe.skipIf(연결 === undefined)('증적 API', () => {
@@ -38,6 +38,12 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     }
   }
 
+  // 제목 접두사를 공유해야 afterAll 의 정리가 이 행들까지 데려간다
+  async function 실행을만든다(status: string): Promise<number> {
+    const run = await pool.query<{ run_id: string }>(실행, [`${제목} ${status}`, status]);
+    return Number(run.rows[0].run_id);
+  }
+
   async function 치운다(): Promise<void> {
     await pool.query(
       'DELETE FROM evidence_document WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE $1)',
@@ -53,7 +59,7 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
     await 실행까지치운다();
-    const run = await pool.query<{ run_id: string }>(실행, [제목]);
+    const run = await pool.query<{ run_id: string }>(실행, [제목, 'FINISHED']);
     runId = Number(run.rows[0].run_id);
 
     증적폴더 = await mkdtemp(join(tmpdir(), 'xdr-evidence-'));
@@ -111,6 +117,34 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
 
     expect(res.statusCode).toBe(404);
     expect(res.json().error).toBe('RUN_NOT_FOUND');
+  });
+
+  // 화면은 버튼을 잠그지만 API 를 직접 치면 뚫린다. 막는 자리는 서버여야 한다
+  it('아직 도는 중인 실행이면 409다', async () => {
+    const 도는실행 = await 실행을만든다('RUNNING');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/runs/${String(도는실행)}/evidence`,
+      payload: { format: 'HTML' },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toBe('RUN_NOT_FINISHED');
+  });
+
+  // 막는 것은 아직 안 끝난 것뿐이다. 사람이 멈춘 실행도 증적을 낼 수 있어야 한다 (SPEC §8.4)
+  it('중단된 실행은 증적을 만들 수 있다', async () => {
+    const 중단된실행 = await 실행을만든다('ABORTED');
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/runs/${String(중단된실행)}/evidence`,
+      payload: { format: 'HTML' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(await 끝날때까지(res.json().id)).toMatchObject({ status: 'READY' });
   });
 
   it('GET /api/evidence/:id — READY 행의 파일을 형식에 맞는 Content-Type으로 내려준다', async () => {
