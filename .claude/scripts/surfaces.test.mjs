@@ -51,6 +51,12 @@ test('admin src 바로 밑의 파일도 2등급 — 폴더 밖이라고 새면 �
   assert.equal(surfaceOf('apps/admin/src/routeParams.test.ts')?.name, 'TESTS');
 });
 
+test('CI 워크플로도 2등급 — 검사가 조용히 안 돌게 만드는 자리다 (2026-09-20 미분류였다)', () => {
+  assert.equal(surfaceOf('.github/workflows/ci.yml')?.name, 'GUARD');
+  assert.equal(detectTier(['.github/workflows/ci.yml']).tier, 2);
+  assert.deepEqual(detectTier(['.github/workflows/ci.yml']).unmapped, []);
+});
+
 test('서버 본체와 러너는 2등급', () => {
   assert.equal(detectTier(['apps/admin/src/catalog/store.ts']).tier, 2);
   assert.equal(detectTier(['apps/runner/src/execute.ts']).tier, 2);
