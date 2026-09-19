@@ -12,6 +12,7 @@
     "test": "vitest run",
     "check:tests": "tsx apps/admin/src/catalog/check.ts",
     "check:spec": "node .claude/scripts/check-spec-refs.mjs",
+    "check:secret-names": "node .claude/scripts/check-secret-names.mjs",
     "check:workflow": "node --test .claude/scripts/*.test.mjs",
     "check:deps": "node .claude/scripts/check-deps.mjs",
     "smoke": "tsx apps/admin/src/smoke.ts"
