@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { route } from './route.js';
+import { route, 돌아갈자리 } from './route.js';
 
 describe('route', () => {
   it('빈 주소는 케이스 목록이다', () => {
@@ -31,5 +31,21 @@ describe('route', () => {
 
   it('모르는 주소는 그대로 알려 준다', () => {
     expect(route('#/nowhere')).toEqual({ name: 'unknown', hash: '#/nowhere' });
+  });
+
+  it('로그인 화면', () => {
+    expect(route('#/login')).toEqual({ name: 'login' });
+  });
+
+  it('돌아갈 자리는 지금 주소다. 로그인이 끝나면 원래 가려던 화면으로 보낸다', () => {
+    expect(돌아갈자리('#/runs/123')).toBe('#/runs/123');
+  });
+
+  it('로그인 화면 자체는 돌아갈 자리로 기억하지 않는다. 기억하면 로그인 뒤 또 로그인 화면이다', () => {
+    expect(돌아갈자리('#/login')).toBe('#/cases');
+  });
+
+  it('빈 주소는 케이스 목록으로 돌려보낸다', () => {
+    expect(돌아갈자리('')).toBe('#/cases');
   });
 });
