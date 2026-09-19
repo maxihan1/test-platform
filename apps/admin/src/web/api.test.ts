@@ -6,7 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { api, ApiError } from './api.js';
+import { api, ApiError, 세션끊김을받는다 } from './api.js';
 
 interface 부른것 {
   url: string;
@@ -104,6 +104,23 @@ describe('세션이 끊기면 로그인 화면으로 보낸다', () => {
     답 = { status: 401, body: { error: 'UNAUTHENTICATED' } };
     await expect(api.me()).rejects.toThrow(ApiError);
     expect(해시).toBe('#/runs/123');
+  });
+
+  it('나가기의 401 도 가로채지 않는다. 이미 끊긴 세션으로 나가면 돌아갈 자리가 남는다', async () => {
+    답 = { status: 401, body: { error: 'UNAUTHENTICATED' } };
+    await expect(api.logout()).rejects.toThrow(ApiError);
+    expect(보관['돌아갈자리']).toBeUndefined();
+  });
+
+  it('주소만 바꾸지 않고 화면에도 알린다. 알리지 않으면 로그인 화면이 끝내 안 뜬다', async () => {
+    let 알림받음 = 0;
+    세션끊김을받는다(() => {
+      알림받음 += 1;
+    });
+    답 = { status: 401, body: { error: 'UNAUTHENTICATED' } };
+
+    await expect(api.run(123)).rejects.toThrow(ApiError);
+    expect(알림받음).toBe(1);
   });
 });
 

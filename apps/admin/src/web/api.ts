@@ -9,9 +9,16 @@ export type { ItemStatus, JsonSchema, Platform, StepResult };
 
 export interface Paged<T> {
   items: T[];
-  /** 안내로만 쓴다. 다음 페이지가 있는지는 이 값으로 판단하지 않는다 (SPEC §8.1) */
+  /**
+   * 총건수.
+   *
+   * SPEC §8.1 은 이것을 **안내로만** 쓰고 다음 페이지가 있는지는 응답이 주는 값으로
+   * 판단하라고 한다. **아직 그렇게 안 되어 있다** — `CaseList` 와 `RunList` 가
+   * 이 값으로 페이지 수를 계산한다. 킥오프 2·14 로 ② 덩이에서 고친다.
+   * 그때 쓸 값이 아래 `totalIsExact` 다
+   */
   total: number;
-  /** 총건수가 정확한 값인가. 근사치가 되는 날 빈 페이지가 생기지 않게 한다 */
+  /** 총건수가 정확한 값인가. 근사치가 되는 날 빈 페이지가 생기지 않게 한다 (SPEC §7) */
   totalIsExact?: boolean;
   page: number;
   pageSize: number;
@@ -156,9 +163,21 @@ interface ErrorBody {
 /** 세션이 끊겼을 때 돌아올 자리. 로그인이 끝나면 여기로 돌려보낸다 (SPEC §8.6) */
 const 돌아갈자리키 = '돌아갈자리';
 
-// 로그인 자신과 「나는 누구인가」는 401 이 정상 답이다. 가로채면 로그인 화면에서
-// 또 로그인 화면으로 보내는 무한이 되고, 처음 열 때의 401 도 사고처럼 보인다
-const 끊김을가로채지않는곳 = ['/auth/login', '/auth/me'];
+// 인증 세 통로는 401 이 정상 답이라 가로채지 않는다.
+// 로그인 — 가로채면 로그인 화면에서 또 로그인 화면으로 보내는 무한이 된다
+// 나는 누구인가 — 처음 열 때의 401 이 사고처럼 보인다
+// 나가기 — 이미 끊긴 세션으로 나가면 돌아갈 자리가 남아 다음 로그인이 엉뚱한 화면으로 간다
+const 끊김을가로채지않는곳 = ['/auth/login', '/auth/me', '/auth/logout'];
+
+// 세션이 끊겼다고 화면에 알리는 자리.
+// **주소만 바꾸면 안 된다** — 화면은 「로그인했다」를 자기 상태로 들고 있어서
+// 해시가 #/login 이 되어도 그 상태가 그대로면 곧장 집으로 되돌려 버린다.
+// 그러면 로그인 화면이 끝내 안 뜨고 사람은 옛 화면에 갇힌다
+let 세션끊김: (() => void) | null = null;
+
+export function 세션끊김을받는다(fn: () => void): void {
+  세션끊김 = fn;
+}
 
 export function 돌아갈자리를꺼낸다(): string | null {
   try {
@@ -192,6 +211,7 @@ function 로그인으로보낸다(): void {
     // 저장이 막혀도 로그인 화면으로는 보낸다. 돌아갈 자리를 잃을 뿐이다
   }
   location.hash = '#/login';
+  세션끊김?.();
 }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {

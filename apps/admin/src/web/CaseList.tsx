@@ -22,6 +22,15 @@ export function CaseList({ service }: { service: string }) {
   const [typed, setTyped] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  // 서비스를 바꾸면 첫 페이지로 돌아간다. 3페이지에서 케이스가 적은 서비스로 옮기면
+  // 빈 목록에 '3 / 1' 이 뜨고 사람은 목록이 비었다고 생각한다
+  const [본서비스, set본서비스] = useState(service);
+  if (본서비스 !== service) {
+    set본서비스(service);
+    setPage(1);
+    setQ('');
+    setTyped('');
+  }
   const [scanning, setScanning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 

@@ -8,6 +8,12 @@ import { Failed, Loading, useAsync, when } from './ui.js';
 
 export function RunList({ service }: { service: string }) {
   const [page, setPage] = useState(1);
+  // 서비스를 바꾸면 첫 페이지로 (CaseList 와 같은 이유)
+  const [본서비스, set본서비스] = useState(service);
+  if (본서비스 !== service) {
+    set본서비스(service);
+    setPage(1);
+  }
   const runs = useAsync<Paged<RunSummary>>(() => api.runs(service, page), [service, page]);
 
   if (runs.error !== null) return <Failed error={runs.error} />;

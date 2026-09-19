@@ -12,6 +12,7 @@
 // 왜 파싱하지 않는가 — 한 줄짜리 배열 리터럴이고 세 곳 다 같은 모양이다.
 // TypeScript 파서를 끌어오면 이 검사기가 무거워질 뿐 잡는 것은 같다.
 import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 const ROOT = new URL('../../', import.meta.url);
 
@@ -63,4 +64,7 @@ function main() {
   process.exit(1);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main();
+// 문자열로 비교하면 경로에 공백이나 한글이 있을 때 import.meta.url 만 퍼센트 인코딩되어
+// 안 맞는다 — main() 이 안 돌고 조용히 0 으로 끝나 CI 가 아무것도 안 보고 초록불을 낸다.
+// 이 저장소에는 이미 `docs/plans/2026-09-19-ws-e-뼈대.md` 같은 이름이 있다
+if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) main();
