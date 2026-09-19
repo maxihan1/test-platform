@@ -2,7 +2,15 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 경로접두사, 번호로찾을것, 서비스없음, 자원의서비스 } from './scope.js';
+import {
+  경로접두사,
+  번호로찾을것,
+  분류됐나,
+  서비스에안매인다,
+  서비스없음,
+  자원의서비스,
+  틀을주소로,
+} from './scope.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -50,6 +58,52 @@ describe('번호로 부르는 자리', () => {
     expect(번호로찾을것('/api/runs')).toBeNull();
     expect(번호로찾을것('/api/runs/last-by-case')).toBeNull();
     expect(번호로찾을것('/api/auth/me')).toBeNull();
+  });
+});
+
+describe('라우트가 분류됐는가', () => {
+  it('등록된 틀을 실제 주소 모양으로 바꿔 같은 판정기를 태운다', () => {
+    expect(틀을주소로('/api/runs/:runId/items/:historyId')).toBe('/api/runs/1/items/1');
+    expect(틀을주소로('/api/screenshots/:runId/:historyId/:seq.png')).toBe('/api/screenshots/1/1/1.png');
+    expect(틀을주소로('/api/cases/:tcId/history')).toBe('/api/cases/ZZPROBE-001/history');
+  });
+
+  it('열두 경로와 매이지 않는 자리는 전부 분류돼 있다', () => {
+    for (const 틀 of [
+      '/api/runs/:runId',
+      '/api/runs/:runId/items/:historyId',
+      '/api/screenshots/:runId/:historyId/:seq.png',
+      '/api/runs/:runId/abort',
+      '/api/runs/:runId/evidence',
+      '/api/evidence/:id',
+      '/api/param-sets/:id',
+      '/api/cases/:tcId/history',
+      '/api/cases/:tcId/param-sets',
+      '/api/catalog/cases/:tcId',
+      '/api/catalog/cases/:tcId/source',
+      '/api/auth/me',
+      '/api/settings/services/:id',
+      '/api/catalog/scan',
+      '/api/runs/last-by-case',
+      '/api/runs',
+      '/api/catalog/cases',
+    ]) {
+      expect(분류됐나(틀), 틀).toBe(true);
+    }
+  });
+
+  // 「안 매인다」를 앞부분만 보고 판정하면 /api/runs 가 /api/runs/5867 까지 삼킨다.
+  // 그러면 번호로 부르는 자리가 조용히 검사 밖으로 나간다
+  it('안 매이는 주소는 정확히 그 주소일 때만이다', () => {
+    expect(서비스에안매인다('/api/runs')).toBe(true);
+    expect(서비스에안매인다('/api/runs/5867')).toBe(false);
+    expect(서비스에안매인다('/api/catalog/cases')).toBe(true);
+    expect(서비스에안매인다('/api/catalog/cases/DEMO-001')).toBe(false);
+  });
+
+  it('아무 데도 안 걸리는 새 라우트는 분류 안 된 것이다', () => {
+    expect(분류됐나('/api/새로운것')).toBe(false);
+    expect(분류됐나('/api/reports/:reportId')).toBe(false);
   });
 });
 

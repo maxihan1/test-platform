@@ -47,23 +47,37 @@ export function 번호로찾을것(path: string): 찾을것 | null {
  * 서비스에 매이지 않는 자리. 여기 없고 위 둘에도 안 걸리면 **분류되지 않은 것**이고
  * 검사가 그것을 잡는다 — 새 라우트의 기본값이 「검사 안 함」이 되면 안 된다.
  */
-export const 서비스에안매이는곳 = [
+const 아래가전부안매인다 = [
   '/api/auth/', // 로그인·로그아웃·나를 묻기. 사람에 매이지 서비스에 안 매인다
   '/api/settings/', // 시스템 전체다. admin 이면 열린다 (SPEC §3.5)
+];
+
+// **정확히 이 주소일 때만**이다. `startsWith` 로 두면 `/api/runs` 가
+// `/api/runs/5867` 까지 삼켜 「검사받는 것으로 쳤다」가 된다
+const 이주소만안매인다 = [
   '/api/catalog/scan', // 전 서비스를 한 번에 훑는다 (SPEC §3.1)
   '/api/runs/last-by-case', // 질의가 배정으로 거른다 — 문이 아니라 질의의 몫이다
   '/api/runs', // POST 는 본문 tcId, GET 은 ?service= 로 문이 이미 본다
   '/api/catalog/cases', // ?service= 를 필수로 요구한다 (400 SERVICE_REQUIRED)
 ];
 
-/** 그 경로가 서비스 경계를 어떤 식으로든 검사받는가. 검사가 이것으로 빠진 라우트를 잡는다. */
-export function 분류됐나(path: string): boolean {
-  if (서비스에안매이는곳.some((곳) => path === 곳 || path.startsWith(곳))) return true;
-  if (경로접두사(path).length > 0) return true;
-  if (번호로찾을것(path) !== null) return true;
-  // 값이 안 들어간 라우트 틀(`/api/cases/:tcId/history`)도 분류된 것으로 본다.
-  // 검사는 등록된 틀을 훑으므로 실제 값 대신 자리표시자가 온다
-  return /^\/api\/(cases|catalog\/cases)\/:[^/]+/.test(path);
+export function 서비스에안매인다(path: string): boolean {
+  return 아래가전부안매인다.some((곳) => path.startsWith(곳)) || 이주소만안매인다.includes(path);
+}
+
+/**
+ * 등록된 라우트 틀(`/api/runs/:runId`)을 실제 주소 모양으로 바꾼다.
+ * 검사가 **문과 같은 판정기**를 타게 하려는 것이다 — 틀을 따로 알아보는 규칙을 두면
+ * 그 규칙과 문이 갈리는 날 검사가 거짓으로 초록이 된다
+ */
+export function 틀을주소로(틀: string): string {
+  return 틀.replace(/:([A-Za-z0-9_]+)/g, (_, 이름: string) => (이름 === 'tcId' ? 'ZZPROBE-001' : '1'));
+}
+
+/** 그 라우트가 서비스 경계를 어떤 식으로든 검사받는가. 검사가 이것으로 빠진 라우트를 잡는다. */
+export function 분류됐나(틀: string): boolean {
+  const path = 틀을주소로(틀);
+  return 서비스에안매인다(path) || 경로접두사(path).length > 0 || 번호로찾을것(path) !== null;
 }
 
 /** 서비스가 없는 자원이라는 표시. 통합 이전 실행(service_id IS NULL)이 여기 든다. */

@@ -4,6 +4,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import { 확인 } from './identify.js';
+import { 경로접두사, 번호로찾을것, 서비스없음, 자원의서비스 } from './scope.js';
 import type { 등급, 사용자 } from './store.js';
 
 declare module 'fastify' {
@@ -32,13 +33,29 @@ function 필요등급(path: string, method: string): 등급 {
 
 // 이 요청이 어느 서비스를 건드리는가. 실행 요청은 서비스를 따로 싣지 않고
 // tcId 접두사에서 서버가 알아낸다 (SPEC §7)
-function 닿는서비스(req: FastifyRequest, path: string): string[] {
+//
+// 세 갈래로 알아낸다. **번호로 부르는 자리는 DB 를 읽어야 알 수 있어** async 다.
+//   ① ?service= 질의        ② 경로에 박힌 tcId 나 본문의 tcId   ③ 번호 → DB 조회
+async function 닿는서비스(req: FastifyRequest, path: string): Promise<string[] | typeof 막는다> {
   if (설정자리(path)) return []; // 설정은 시스템 전체라 서비스에 매이지 않는다 (§3.5)
 
   const query = req.query;
   if (typeof query === 'object' && query !== null) {
     const service = (query as { service?: unknown }).service;
     if (typeof service === 'string' && service !== '') return [service];
+  }
+
+  const 경로에서 = 경로접두사(path);
+  if (경로에서.length > 0) return 경로에서;
+
+  const 찾을것 = 번호로찾을것(path);
+  if (찾을것 !== null) {
+    const 서비스 = await 자원의서비스(찾을것);
+    // 없는 번호는 지나보낸다. 라우트가 404 를 내야 「없는 것」과 「남의 것」이 안 뭉개진다 (§7)
+    if (서비스 === null) return [];
+    // 있긴 한데 서비스에 안 매였다 (통합 이전 행). 어느 배정에도 안 드므로 막는다
+    if (서비스 === 서비스없음) return 막는다;
+    return [서비스];
   }
 
   if (path !== '/api/runs' || req.method !== 'POST') return [];
@@ -55,6 +72,9 @@ function 닿는서비스(req: FastifyRequest, path: string): string[] {
 
   return [...new Set(접두사들)].filter((prefix) => prefix !== '');
 }
+
+// 배정 목록과 맞춰 볼 이름이 없지만 열어 주면 안 되는 자원
+const 막는다 = Symbol('막는다');
 
 export function 인증등록(app: FastifyInstance): void {
   app.decorateRequest('user', null);
@@ -81,8 +101,13 @@ export function 인증등록(app: FastifyInstance): void {
       return reply.code(403).send({ error: 'FORBIDDEN', need: 필요 });
     }
 
+    const 닿는것 = await 닿는서비스(req, path);
+    if (닿는것 === 막는다) {
+      return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: 경로(req) });
+    }
+
     const 배정 = new Set(user.services.map((s) => s.prefix));
-    for (const prefix of 닿는서비스(req, path)) {
+    for (const prefix of 닿는것) {
       if (!배정.has(prefix)) {
         return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: prefix });
       }
