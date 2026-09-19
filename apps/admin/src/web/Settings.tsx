@@ -12,11 +12,14 @@ const 등급이름: Record<등급, string> = { viewer: '보기만', operator: '�
 const 등급들: 등급[] = ['viewer', 'operator', 'admin'];
 
 /**
- * @param onSelf 자기 자신을 고쳤을 때. **첫 운영자가 반드시 지나는 길이다** —
- *   배정이 없으면 「설정에서 자기 자신을 배정하세요」로 보내 놓고, 배정해도 띠가 그대로면
- *   사람이 「됐나?」 하고 멈춘다. 새로고침하면 되지만 그러라고 알려 주는 것이 없다
+ * @param onMeChanged `GET /auth/me` 가 주는 것이 바뀌었을 때. 화면 전체가 그 응답 하나를 보고
+ *   띠·자리·실행 설정을 그린다.
+ *
+ *   **이 화면은 그 응답의 재료를 고치는 자리다** — 계정의 배정·등급뿐 아니라
+ *   서비스의 이름·색·대상 서버·Slack 웹훅이 전부 거기에 실려 나간다.
+ *   다시 안 읽으면 새로고침할 때까지 옛 값을 본다. 첫 운영자는 그 상태로 멈춘다.
  */
-export function Settings({ user, onSelf }: { user: User; onSelf: () => void }) {
+export function Settings({ user, onMeChanged }: { user: User; onMeChanged: () => void }) {
   const services = useAsync<{ items: SettingsServiceRow[] }>(() => api.settingsServices(), []);
   const users = useAsync<{ items: UserRow[] }>(() => api.settingsUsers(), []);
 
@@ -37,13 +40,21 @@ export function Settings({ user, onSelf }: { user: User; onSelf: () => void }) {
 
   return (
     <div className="screen">
-      <ServiceSection rows={services.data.items} onDone={services.reload} />
+      {/* 서비스는 자기 것인지 가리지 않고 늘 다시 읽는다 — 이름·색·대상 서버·웹훅이
+          전부 /auth/me 에 실려 띠와 실행 설정으로 간다. 가리는 판단을 더하면 또 반쪽이 된다 */}
+      <ServiceSection
+        rows={services.data.items}
+        onDone={() => {
+          services.reload();
+          onMeChanged();
+        }}
+      />
       <UserSection
         rows={users.data.items}
         services={services.data.items}
         me={user.username}
         onDone={users.reload}
-        onSelf={onSelf}
+        onSelf={onMeChanged}
       />
     </div>
   );

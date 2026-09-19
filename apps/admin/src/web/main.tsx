@@ -31,12 +31,12 @@ function Screen({
   hash,
   service,
   user,
-  onSelf,
+  onMeChanged,
 }: {
   hash: string;
   service: ServiceRow | null;
   user: User;
-  onSelf: () => void;
+  onMeChanged: () => void;
 }) {
   const current = route(hash);
   // 띠가 서비스를 고르기 전에는 목록을 부르지 않는다. 빈 값으로 부르면 서버가 400 을 낸다
@@ -58,7 +58,7 @@ function Screen({
       // '없는 주소입니다' 가 깜빡이지 않게 빈 화면을 낸다
       return <div className="screen" />;
     case 'settings':
-      return <Settings user={user} onSelf={onSelf} />;
+      return <Settings user={user} onMeChanged={onMeChanged} />;
     default:
       return (
         <div className="screen">
@@ -157,9 +157,10 @@ function App() {
         hash={hash}
         service={열린것}
         user={상태.user}
-        onSelf={() => {
-          // 자기 자신을 고쳤다. 배정이 바뀌면 띠의 서비스 목록이 통째로 달라진다.
-          // 여기서 안 읽으면 새로고침할 때까지 옛 띠를 보게 되고, 배정 안내를 따라온 사람은
+        onMeChanged={() => {
+          // 설정 화면이 /auth/me 의 재료를 고쳤다 — 계정의 배정·등급이든 서비스의 이름·색·
+          // 대상 서버·Slack 웹훅이든. 그 응답 하나가 띠·자리·실행 설정을 다 그린다.
+          // 여기서 안 읽으면 새로고침할 때까지 옛 값을 보고, 시킨 대로 한 사람은
           // 자기가 한 일이 먹혔는지 알 수 없다
           void api.me().then(({ user }) => set상태({ 어디: '안', user }));
         }}
