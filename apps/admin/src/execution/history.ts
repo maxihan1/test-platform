@@ -79,7 +79,11 @@ export async function caseHistory(
 
 // 케이스 목록의 '마지막 결과' 칸을 한 번에 채운다 (SPEC §8.1).
 // 아직 안 끝난 항목은 판정이 아직 없으므로 마지막 결과가 아니다
-export async function lastByCase(): Promise<LastResult[]> {
+export async function lastByCase(배정받은서비스: string[]): Promise<LastResult[]> {
+  // 배정이 하나도 없으면 볼 것도 없다. 빈 목록으로 질의하면 ANY 가 전부 거짓이라
+  // 같은 결과지만, 왕복을 아끼고 「전부 준다」로 오해될 여지를 없앤다
+  if (배정받은서비스.length === 0) return [];
+
   const pool = await db();
   const rows = await pool.query<{
     tc_id: string;
@@ -90,10 +94,15 @@ export async function lastByCase(): Promise<LastResult[]> {
     duration_ms: number | null;
     finished_at: Date;
   }>(
+    // 이 질의는 케이스 전체를 훑으므로 문(auth/gate.ts)이 막을 번호가 없다.
+    // 서비스 경계를 여기서 직접 건다 — 안 걸면 남의 케이스 번호와 판정이 그대로 나간다 (§7)
+    // test_case 에 서비스 칸이 없어 tc_id 접두사가 유일한 길이다 (§2 · §6)
     `SELECT DISTINCT ON (tc_id, platform) tc_id, platform, status, history_id, run_id, duration_ms, finished_at
        FROM run_item
       WHERE finished_at IS NOT NULL
+        AND split_part(tc_id, '-', 1) = ANY($1)
       ORDER BY tc_id, platform, started_at DESC, history_id DESC`,
+    [배정받은서비스],
   );
 
   return rows.rows.map((row) => ({

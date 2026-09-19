@@ -1,6 +1,7 @@
 // 설정 화면이 하는 판단 (SPEC §8.8). 화면은 그리기만 하고 고를 것은 여기서 정한다
 
 import type { EnvRow, UserRow } from './api.js';
+import { 요청오류문장 } from './errorText.js';
 
 // SPEC §2 의 접두사 모양. 서버 settings/routes.ts 의 `접두사모양` 과 같은 것을 화면이 복사해 둔 자리다
 // (CLAUDE.md §2.7 ⑤ — §2 를 고치면 두 곳이 같이 움직인다).
@@ -141,18 +142,12 @@ export function 마지막운영계정인가(계정들: UserRow[], username: stri
   return 계정들.filter((it) => it.role === 'admin' && it.isActive).length <= 1;
 }
 
-const 오류말 : Record<string, string> = {
-  PREFIX_TAKEN: '그 접두사는 이미 다른 서비스가 쓰고 있습니다',
-  PREFIX_SHAPE: '접두사 모양이 다릅니다. 대문자로 시작하는 영문·숫자 12자 이내입니다',
-  PREFIX_IMMUTABLE: '접두사는 만든 뒤에 바꿀 수 없습니다. 케이스 번호 안에 이미 박혀 있습니다',
-  USERNAME_TAKEN: '그 아이디는 이미 있습니다',
-  LAST_ADMIN: '마지막 운영 계정입니다. 먼저 다른 사람을 운영으로 올립니다',
-  NOT_FOUND: '그 항목을 찾지 못했습니다. 다른 사람이 지웠을 수 있습니다',
-  INVALID_REQUEST: '넣은 값 중에 모양이 다른 것이 있습니다',
-};
-
 /**
  * 서버가 낸 코드를 사람이 읽을 문장으로 (CLAUDE.md §4).
+ *
+ * **표는 `errorText.ts` 하나다.** 2026-09-19 까지 여기에 따로 있었는데, 그러면 같은 화면에서
+ * 불러오기 실패(`useAsync` → `message()`)와 저장 실패(여기)가 **다른 표를 보고 다른 말투로** 뜬다.
+ * 코드를 하나 옮길 때마다 어느 표에 넣을지도 매번 갈린다.
  *
  * **모르는 코드는 삼키지 않는다.** 코드를 그대로 붙여 준다 —
  * 「알 수 없는 오류」만 띄우면 무엇이 틀렸는지 알 길이 사라진다 (CLAUDE.md §3 에러 규칙).
@@ -160,6 +155,5 @@ const 오류말 : Record<string, string> = {
  * `detail` 은 서버가 **어느 칸이 틀렸는지** 짚어 준 것이다. 버리면 사람이 폼 전체를 뒤진다.
  */
 export function 설정오류문장(code: string, detail?: string): string {
-  const 말 = 오류말[code] ?? `처리하지 못했습니다 (${code})`;
-  return detail === undefined || detail === '' ? 말 : `${말} — ${detail}`;
+  return 요청오류문장(code, detail);
 }

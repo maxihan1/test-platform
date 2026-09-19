@@ -17,6 +17,13 @@ COPY tsconfig.json playwright.config.ts ./
 COPY packages ./packages
 COPY apps/admin ./apps/admin
 
+# 첫 계정·첫 서비스·정기 실행은 컨테이너 안 명령으로 만든다 (SPEC §9.2).
+# 이게 없으면 SETUP.md 가 안내하는 첫걸음이 ERR_MODULE_NOT_FOUND 로 죽고,
+# 회원가입 화면이 없으므로(§8.6) 처음 띄우는 사람은 로그인 자체를 못 한다.
+# scripts 는 ../apps/admin/src/** 를 상대경로로 부르므로 **그 둘이 같은 이미지에 있어야 한다**
+# (순서는 상관없다 — 해석은 실행할 때 일어난다)
+COPY scripts ./scripts
+
 # .dockerignore가 **/dist를 막아 호스트에서 빌드한 산출물은 이미지에 안 들어온다.
 # 이 단계가 없으면 컨테이너는 API만 내고 화면 주소는 빈 화면이다 (SPEC §9).
 # 글꼴도 번들에 담겨 여기서 같이 실린다 — 바깥 주소에서 받아오지 않는다 (DESIGN.md)

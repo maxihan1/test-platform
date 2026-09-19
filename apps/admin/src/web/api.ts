@@ -202,6 +202,9 @@ export class ApiError extends Error {
 interface ErrorBody {
   error?: string;
   detail?: string;
+  // 문이 등급 부족을 알릴 때 필요한 등급을 여기 싣는다 (gate.ts 의 FORBIDDEN).
+  // 안 읽으면 화면이 아래 기본 문구를 등급 이름으로 착각해 헛문장을 낸다 (2026-09-19 실측)
+  need?: string;
   message?: string;
   violations?: Violation[];
 }
@@ -277,7 +280,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(
       res.status,
       body.error ?? String(res.status),
-      body.detail ?? body.message ?? `요청이 실패했다 (${res.status})`,
+      body.detail ?? body.need ?? body.message ?? `요청이 실패했다 (${res.status})`,
       body.violations ?? [],
     );
   }

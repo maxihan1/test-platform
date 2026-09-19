@@ -100,9 +100,14 @@ async function runScan(log: FastifyBaseLogger): Promise<LastScan> {
   }
 }
 
-// 배정 판정은 「지금 부른 사람이 누구인가」를 알아야 한다. 인증이 붙기 전까지는 활성 서비스면 통과시킨다.
-// 갈아 끼울 자리를 이 함수 하나로 묶어 둔다 — WS-F가 안을 채운다 (SPEC §3.5 · §7)
-async function 볼수있나(prefix: string): Promise<boolean> {
+// **배정은 여기서 안 본다. 문(auth/gate.ts)이 이미 막았다** — 이 요청이 여기 닿았다는 것은
+// `?service=` 가 부른 사람의 배정 목록에 들어 있다는 뜻이다 (SPEC §7 「서비스 경계도 여기서 막는다」).
+// 여기서 보는 것은 **그 접두사의 서비스가 실재하고 살아 있는가** 하나뿐이다.
+//
+// 2026-09-19 까지 이 주석이 「WS-F가 안을 채운다」였다. 안 채워졌고, 그래서 **활성 서비스면
+// 전부 통과**시키면서 이름만 배정 검사였다. 문이 먼저 막으므로 뚫리지는 않았지만
+// 다음 사람이 이 함수를 믿고 새 라우트에 붙이면 그 라우트는 검사받지 않는다 (spec-review C4)
+async function 실재하는서비스인가(prefix: string): Promise<boolean> {
   return (await findService(prefix)) !== null;
 }
 
@@ -120,7 +125,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
       const service = req.query.service ?? '';
       // 서비스는 검색 조건이 아니라 맨 위 띠의 선택이고 서버가 늘 적용한다 (SPEC §8 · §8.1)
       if (service === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
-      if (!(await 볼수있나(service))) {
+      if (!(await 실재하는서비스인가(service))) {
         // 404로 감추지 않는다. 화면이 그 자리를 아예 안 보여주므로 여기까지 닿은 요청은
         // 화면의 버그이거나 직접 찌른 것이고, 둘 다 감추는 편이 더 나쁘다 (SPEC §3.5)
         return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
