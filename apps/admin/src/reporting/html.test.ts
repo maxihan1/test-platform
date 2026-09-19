@@ -1,10 +1,15 @@
 // 표시용 모델이 §8.4 모양의 HTML 로 그려지는지 본다. 순수 함수라 DB 를 쓰지 않는다
 // 마스킹·빈 값 처리는 collect.ts 가 이미 끝냈다. 여기서는 렌더러가 그것을 되돌리지 않는지만 본다
 
+import { statSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import type { EvidenceDocument, EvidenceItem, EvidenceStep } from './collect.js';
 import { renderHtml } from './html.js';
+
+/** html.ts 가 담는 글꼴 원본. 경로가 여기서 갈리면 아래 바이트 수 검사가 먼저 빨개진다 */
+const 글꼴파일 = new URL('../web/fonts/PretendardVariable.woff2', import.meta.url);
 
 const 옵션 = { generatedAt: '2026-09-19 10:00' };
 
@@ -299,5 +304,19 @@ describe('증적 문서 HTML', () => {
     expect(html).toContain('<style>');
     expect(html).not.toContain('<link');
     expect(html).not.toContain('@import');
+  });
+
+  it('글꼴 파일을 문서 안에 담고 본문이 그 이름을 부른다', () => {
+    const html = renderHtml(문서([항목({})]), 옵션);
+
+    // 이름이 갈리면 글꼴을 심어 놓고 안 쓴다. 이름만 부르던 옛 코드와 결과가 같아진다
+    const 심은이름 = /@font-face\s*\{[^}]*?font-family:\s*([^;]+);/.exec(html)?.[1]?.trim();
+    const 부르는이름 = /\bbody\s*\{[^}]*?font-family:\s*([^,;]+)/.exec(html)?.[1]?.trim();
+    expect(심은이름).toBe('Pretendard');
+    expect(부르는이름).toBe(심은이름);
+
+    // 「@font-face 라는 글자가 있다」만 보면 base64 가 잘려도 초록이다. 원본 바이트 수와 맞춘다
+    const 담긴 = /src:\s*url\(data:font\/woff2;base64,([A-Za-z0-9+/=]+)\)/.exec(html)?.[1] ?? '';
+    expect(Buffer.from(담긴, 'base64').byteLength).toBe(statSync(글꼴파일).size);
   });
 });
