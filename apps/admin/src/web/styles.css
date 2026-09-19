@@ -290,32 +290,32 @@ select:focus {
   color: var(--na);
 }
 
-/* 환경별 판정 묶음. 케이스 1행에 PC·모바일을 나란히 둔다 (SPEC §8.3) */
-.envs {
+/* 디바이스별 판정 묶음. 케이스 1행에 PC·모바일을 나란히 둔다 (SPEC §8.3) */
+.devices {
   display: flex;
   gap: 12px;
 }
 
-.env {
+.device {
   text-align: center;
   min-width: 62px;
 }
 
-.env-name {
+.device-name {
   display: block;
   font-size: 11px;
   color: var(--ink-faint);
   margin-bottom: 3px;
 }
 
-.env-dur {
+.device-dur {
   display: block;
   font-size: 11.5px;
   color: var(--ink-faint);
   margin-top: 3px;
 }
 
-.env-none {
+.device-none {
   display: inline-block;
   min-width: 52px;
   text-align: center;
@@ -584,7 +584,7 @@ select:focus {
   margin-right: auto;
 }
 
-/* 환경 선택 */
+/* 디바이스 선택 */
 .checks {
   display: flex;
   gap: 16px;

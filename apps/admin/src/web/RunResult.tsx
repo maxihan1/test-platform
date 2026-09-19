@@ -1,4 +1,4 @@
-// 실행 결과 목록 (SPEC §8.3). 케이스 1건 = 1행이고 환경별 판정을 판정 칸에 나란히 묶는다
+// 실행 결과 목록 (SPEC §8.3). 케이스 1건 = 1행이고 디바이스별 판정을 판정 칸에 나란히 묶는다
 // POST /api/runs는 끝나기 전에 돌아온다. status가 FINISHED가 될 때까지 화면이 다시 묻는다 (SPEC §7.1)
 
 import { useEffect, useState } from 'react';
@@ -10,9 +10,9 @@ import { Failed, Loading, PLATFORM_LABEL, PLATFORMS, seconds, STATUS_COLOR, STAT
 
 const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
-const ENVS: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
+const DEVICES: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
 
-// 행의 거터 색. 환경 하나라도 깨졌으면 실패로 보여야 한다
+// 행의 거터 색. 디바이스 하나라도 깨졌으면 실패로 보여야 한다
 function worst(items: RunItemSummary[]): ItemStatus {
   if (items.some((item) => item.status === 'FAIL')) return 'FAIL';
   if (items.every((item) => item.status === 'PASS')) return 'PASS';
@@ -21,7 +21,7 @@ function worst(items: RunItemSummary[]): ItemStatus {
 
 export function RunResult({ runId }: { runId: number }) {
   const [status, setStatus] = useState<ItemStatus | 'ALL'>('ALL');
-  const [env, setEnv] = useState<Platform | 'ALL'>('ALL');
+  const [device, setDevice] = useState<Platform | 'ALL'>('ALL');
   const [page, setPage] = useState(1);
 
   const run = useAsync(() => api.run(runId), [runId]);
@@ -40,11 +40,11 @@ export function RunResult({ runId }: { runId: number }) {
   if (run.error !== null) return <Failed error={run.error} />;
   if (data === null) return <Loading />;
 
-  const groups = filterGroups(groupByCase(data.items), status, env);
+  const groups = filterGroups(groupByCase(data.items), status, device);
   const totalPages = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));
   const shownPage = Math.min(page, totalPages);
   const shown = groups.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE);
-  const columns = env === 'ALL' ? PLATFORMS : [env];
+  const columns = device === 'ALL' ? PLATFORMS : [device];
   const { pass, fail, na } = data.counts;
 
   function choose<T>(setter: (value: T) => void) {
@@ -100,9 +100,9 @@ export function RunResult({ runId }: { runId: number }) {
             {value === 'ALL' ? '전체' : STATUS_LABEL[value]}
           </button>
         ))}
-        <span className="filter-label">환경</span>
-        {ENVS.map((value) => (
-          <button className="chip" key={value} aria-pressed={env === value} onClick={() => choose(setEnv)(value)}>
+        <span className="filter-label">디바이스</span>
+        {DEVICES.map((value) => (
+          <button className="chip" key={value} aria-pressed={device === value} onClick={() => choose(setDevice)(value)}>
             {value === 'ALL' ? '전체' : PLATFORM_LABEL[value]}
           </button>
         ))}
@@ -122,24 +122,24 @@ export function RunResult({ runId }: { runId: number }) {
               <div className="tcid">{group.tcId}</div>
               <div className="title">{group.tcName}</div>
               <div className="right">
-                <div className="envs">
+                <div className="devices">
                   {columns.map((platform) => {
                     const item = group.byPlatform[platform];
                     return (
-                      <div className="env" key={platform}>
-                        <span className="env-name">{PLATFORM_LABEL[platform]}</span>
-                        {/* 그 환경을 지원하지 않는 케이스는 칸을 —로 비운다 (SPEC §8.3) */}
+                      <div className="device" key={platform}>
+                        <span className="device-name">{PLATFORM_LABEL[platform]}</span>
+                        {/* 그 디바이스를 지원하지 않는 케이스는 칸을 —로 비운다 (SPEC §8.3) */}
                         {item === undefined ? (
-                          <span className="env-none">—</span>
+                          <span className="device-none">—</span>
                         ) : item.finishedAt === null ? (
                           // 실행이 끝나야 판정이 들어간다. 아직인 칸에 미실행 배지를 붙이면 끝난 것처럼 보인다 (SPEC §3.2)
-                          <span className="env-none">도는 중</span>
+                          <span className="device-none">도는 중</span>
                         ) : (
                           <>
                             <a href={`#/runs/${data.runId}/items/${item.historyId}`}>
                               <Verdict status={item.status} />
                             </a>
-                            <span className="env-dur">{seconds(item.durationMs)}</span>
+                            <span className="device-dur">{seconds(item.durationMs)}</span>
                           </>
                         )}
                       </div>

@@ -1,4 +1,4 @@
-// 케이스 1행에 환경별 결과를 묶는 규칙과 필터 (SPEC §8.3)
+// 케이스 1행에 디바이스별 결과를 묶는 규칙과 필터 (SPEC §8.3)
 
 import { describe, expect, it } from 'vitest';
 
@@ -28,19 +28,19 @@ const ITEMS = [
 ];
 
 describe('groupByCase', () => {
-  it('환경이 둘인 케이스도 한 행이다', () => {
+  it('디바이스가 둘인 케이스도 한 행이다', () => {
     const groups = groupByCase(ITEMS);
     expect(groups).toHaveLength(3);
     expect(groups.map((g) => g.tcId)).toEqual(['DEMO-002', 'DEMO-008', 'DEMO-010']);
   });
 
-  it('환경별 결과를 각 칸에 담는다', () => {
+  it('디바이스별 결과를 각 칸에 담는다', () => {
     const eight = groupByCase(ITEMS).find((g) => g.tcId === 'DEMO-008');
     expect(eight?.byPlatform.desktop?.status).toBe('PASS');
     expect(eight?.byPlatform.mobile?.status).toBe('PASS');
   });
 
-  it('그 환경의 결과가 없으면 칸이 비어 있다 — 화면은 —로 그린다', () => {
+  it('그 디바이스의 결과가 없으면 칸이 비어 있다 — 화면은 —로 그린다', () => {
     const ten = groupByCase(ITEMS).find((g) => g.tcId === 'DEMO-010');
     expect(ten?.byPlatform.desktop).toBeUndefined();
     expect(ten?.byPlatform.mobile).toBeDefined();
@@ -58,7 +58,7 @@ describe('filterGroups', () => {
     expect(filterGroups(groups, 'FAIL', 'ALL').map((g) => g.tcId)).toEqual(['DEMO-002']);
   });
 
-  it('환경으로 거르면 그 환경 결과가 있는 케이스만 남는다', () => {
+  it('디바이스로 거르면 그 디바이스 결과가 있는 케이스만 남는다', () => {
     expect(filterGroups(groups, 'ALL', 'mobile').map((g) => g.tcId)).toEqual(['DEMO-008', 'DEMO-010']);
   });
 

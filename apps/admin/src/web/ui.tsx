@@ -1,4 +1,4 @@
-// 모든 화면이 함께 쓰는 조각. 판정 배지·환경 이름·시간 표기와 데이터 읽기 훅
+// 모든 화면이 함께 쓰는 조각. 판정 배지·디바이스 이름·시간 표기와 데이터 읽기 훅
 // 화면 표기는 PC / 모바일이다. desktop / mobile은 코드 안에서만 쓴다 (SPEC §2)
 
 import { useCallback, useEffect, useState } from 'react';
