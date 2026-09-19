@@ -10,7 +10,10 @@
   font-style: normal;
   /* 받아오는 동안 폴백으로 먼저 그린다. 글자가 안 보이는 구간을 만들지 않는다 */
   font-display: swap;
-  src: url('./fonts/PretendardVariable.woff2') format('woff2-variations');
+  /* format 은 `woff2` 만 적는다. `woff2-variations` 는 옛 초안 값이라 못 알아보는 브라우저가
+     이 src 를 통째로 건너뛴다 — 글꼴이 아예 안 실려 이 @font-face 가 막으려던 상태가 된다.
+     가변 축은 format 힌트와 무관하게 파일 자체에서 나오므로 잃는 것이 없다 */
+  src: url('./fonts/PretendardVariable.woff2') format('woff2');
 }
 
 :root {
@@ -184,6 +187,10 @@ body {
   align-items: center;
 }
 
+/* `input:not([type])` 가 꼭 있어야 한다 — React 는 기본 type 을 DOM 에 안 써 주고,
+   속성 선택자는 속성이 실제로 적혀 있어야 맞는다. 없으면 그 칸만 브라우저 기본 모양이 되어
+   글꼴·테두리·숫자 정렬이 통째로 빠진다 (2026-09-19 설정 화면에서 아홉 칸이 그랬다) */
+input:not([type]),
 input[type='text'],
 input[type='password'],
 input[type='number'],
@@ -1151,10 +1158,12 @@ select:focus {
   flex-basis: 100%;
 }
 
-/* 임시 비밀번호는 한 번만 보인다. 놓치면 다시 만들어야 하므로 눈에 띄어야 한다 (SPEC §8.8) */
+/* 임시 비밀번호는 한 번만 보인다. 놓치면 다시 만들어야 하므로 눈에 띄어야 한다 (SPEC §8.8).
+   **판정 색(--na)을 쓰지 않는다** — 판정과 아무 상관 없는 상자가 미실행 배지와 같은 색을 입으면
+   목록 화면에서 옮겨 온 사람이 한 번 멈칫한다 (DESIGN.md 「판정 외의 색 사용」 금지) */
 .set-pw {
-  border: 1px solid var(--na);
-  background: var(--na-bg);
+  border: 2px solid var(--ink);
+  background: var(--sheet-2);
   padding: 14px 18px;
   margin-bottom: 16px;
   display: grid;
@@ -1169,4 +1178,37 @@ select:focus {
   border: 1px solid var(--rule);
   padding: 2px 8px;
   user-select: all;
+}
+
+/* 목록 줄의 「비활성」 표시. `.chip` 은 누를 수 있는 것이라 손가락 커서가 뜬다 — 배지는 따로 둔다 */
+.set-off {
+  font-size: 12px;
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  color: var(--ink-muted);
+}
+
+/* 되돌릴 수 없는 일을 주 버튼에서 떼어 놓는다. 나란히 두면 저장을 노리다 잘못 누른다 */
+.set-left {
+  margin-right: auto;
+}
+
+/* 한 번 더 누르면 실제로 벌어진다는 것을 글자와 테두리로 같이 말한다 */
+.set-warn {
+  border-color: var(--fail);
+  color: var(--fail);
+}
+
+/* 지금 해야 할 일 한 줄. 첫 운영자가 이 화면에 오는 가장 흔한 이유가 배정이다 */
+.set-todo {
+  border-left: 2px solid var(--ink);
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  background: var(--sheet-2);
+}
+
+/* 묶음의 이름. 가리킬 칸이 하나가 아니라 <label> 로 두면 눌러도 아무 데도 안 간다 */
+.field-label {
+  font-size: 13px;
+  color: var(--ink-muted);
 }

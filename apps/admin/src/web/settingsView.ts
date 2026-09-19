@@ -1,6 +1,6 @@
 // 설정 화면이 하는 판단 (SPEC §8.8). 화면은 그리기만 하고 고를 것은 여기서 정한다
 
-import type { UserRow } from './api.js';
+import type { EnvRow, UserRow } from './api.js';
 
 // SPEC §2 의 접두사 모양. 서버 settings/routes.ts 의 `접두사모양` 과 같은 것을 화면이 복사해 둔 자리다
 // (CLAUDE.md §2.7 ⑤ — §2 를 고치면 두 곳이 같이 움직인다).
@@ -55,6 +55,15 @@ export function 명암비(hex: string): number {
 const 최소명암비 = 4.5;
 
 /**
+ * 새 서비스에 먼저 넣어 두는 색 (명암비 5.68).
+ *
+ * **여기 한 곳에만 적는다.** 설정 화면과 `scripts/add-service.ts` 가 둘 다 이것을 쓴다 —
+ * 두 곳에 적으면 한쪽만 고치는 날이 오고, 그때 한쪽이 기준 미달 색을 다시 만들기 시작한다.
+ * 실제로 옛 값 `#5B7FDE`(3.79)가 그렇게 들어가 있었다 (2026-09-19).
+ */
+export const 기본서비스색 = '#3A5FCD';
+
+/**
  * 색이 기준에 못 미치면 사유 (DESIGN.md).
  *
  * **막지 않고 알린다.** 색은 사람이 고르는 것이고, 기준을 아는 사람이 일부러 쓸 수도 있다.
@@ -65,6 +74,46 @@ export function 색사유(hex: string): string | null {
   const 비 = 명암비(hex);
   if (비 >= 최소명암비) return null;
   return `띠의 흰 글자가 잘 안 보입니다 (명암비 ${비.toFixed(1)} · 기준 ${String(최소명암비)}). 더 진한 색을 고릅니다`;
+}
+
+/**
+ * 아직 보낼 수 없는 이유 (SPEC §8.2 · DESIGN.md).
+ *
+ * **버튼을 죽이지 않는다.** 살려 두고 왜 안 되는지 말한다 — 회색 버튼은 이유를 말할 자리가 없어서
+ * 사람이 눌러 보고도 모른다.
+ *
+ * **서버가 거부할 것을 여기서 먼저 거른다.** 빈 대상 서버 줄을 그대로 보내면 서버 zod 가
+ * 400 `INVALID_REQUEST` 를 내는데, 그 답에는 어느 칸인지가 사람 말로 안 담긴다.
+ * 색도 마찬가지다 — 모양이 아닌 값이 저장되면 띠의 `background` 가 무효가 되어 색이 아예 없어진다.
+ */
+export function 서비스못보내는이유(입력: {
+  새것: boolean;
+  prefix: string;
+  name: string;
+  testsDir: string;
+  color: string;
+  envs: EnvRow[];
+}): string | null {
+  // 고칠 때 접두사 칸은 잠겨 있다. 그것을 두고 「채우세요」라고 하면 할 수 없는 일을 시키는 것이다
+  if (입력.새것) {
+    if (입력.prefix === '') return '접두사를 채웁니다';
+    const 모양 = 접두사사유(입력.prefix);
+    if (모양 !== null) return 모양;
+  }
+  if (입력.name === '') return '이름을 채웁니다';
+  if (입력.testsDir === '') return '테스트 폴더를 채웁니다';
+  if (색을푼다(입력.color) === null) return '색 모양이 다릅니다. #3A5FCD 처럼 적습니다';
+  // 없는 것은 괜찮다. 나중에 더하면 된다 — 적다 만 줄만 막는다
+  if (입력.envs.some((it) => it.env === '' || it.baseUrl === '')) {
+    return '대상 서버 줄에 빈 칸이 있습니다. 채우거나 그 줄을 뺍니다';
+  }
+  return null;
+}
+
+export function 계정못보내는이유(입력: { username: string; displayName: string }): string | null {
+  if (입력.username === '') return '아이디를 채웁니다';
+  if (입력.displayName === '') return '이름을 채웁니다';
+  return null;
 }
 
 /**
@@ -107,7 +156,10 @@ const 오류말 : Record<string, string> = {
  *
  * **모르는 코드는 삼키지 않는다.** 코드를 그대로 붙여 준다 —
  * 「알 수 없는 오류」만 띄우면 무엇이 틀렸는지 알 길이 사라진다 (CLAUDE.md §3 에러 규칙).
+ *
+ * `detail` 은 서버가 **어느 칸이 틀렸는지** 짚어 준 것이다. 버리면 사람이 폼 전체를 뒤진다.
  */
-export function 설정오류문장(code: string): string {
-  return 오류말[code] ?? `처리하지 못했습니다 (${code})`;
+export function 설정오류문장(code: string, detail?: string): string {
+  const 말 = 오류말[code] ?? `처리하지 못했습니다 (${code})`;
+  return detail === undefined || detail === '' ? 말 : `${말} — ${detail}`;
 }

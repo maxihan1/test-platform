@@ -6,6 +6,8 @@ import { pool } from '../apps/admin/src/db/index.js';
 // 접두사 모양은 설정 API 가 쓰는 것을 그대로 가져온다. 같은 모양을 두 번 적으면 한쪽만 고치는 날이 온다
 import { 접두사모양 } from '../apps/admin/src/settings/routes.js';
 import { 서비스만들기, 설정오류 } from '../apps/admin/src/settings/store.js';
+// 기본색은 설정 화면과 같은 값을 쓴다. 두 곳에 적으면 한쪽만 고치는 날이 온다 (CLAUDE.md §2.7 ⑤)
+import { 기본서비스색 } from '../apps/admin/src/web/settingsView.js';
 
 const 인자 = process.argv.slice(2);
 
@@ -53,9 +55,7 @@ try {
   const id = await 서비스만들기({
     prefix,
     name,
-    // 띠 바탕에 흰 글자가 올라간다. DESIGN.md 의 본문 기준(4.5:1)을 넘는 값이어야 한다.
-    // 옛 값 #5B7FDE 는 3.79 로 미달이었다 — 새로 만드는 서비스가 전부 그 색을 받고 있었다 (2026-09-19)
-    color: '#3A5FCD',
+    color: 기본서비스색,
     testsRepo: '',
     // 플랫폼이 실제로 훑을 폴더. PLATFORM_TESTS_DIR 아래 상대경로다 (SPEC §6)
     testsDir: prefix.toLowerCase(),

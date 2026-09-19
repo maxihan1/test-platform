@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { UserRow } from './api.js';
 import {
+  계정못보내는이유,
   마지막운영계정인가,
   명암비,
   색사유,
+  서비스못보내는이유,
   설정오류문장,
   접두사사유,
   웹훅칸,
@@ -113,6 +115,77 @@ describe('마지막 운영 계정 (SPEC §7 · §8.8)', () => {
 
   it('이미 비활성인 사람은 마지막이 아니다. 내릴 것이 없다', () => {
     expect(마지막운영계정인가([계정('kim', 'admin', false)], 'kim')).toBe(false);
+  });
+});
+
+describe('서비스를 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살려 두고 사유를 말한다)', () => {
+  const 채운것 = {
+    새것: true,
+    prefix: 'PAY',
+    name: '결제 서비스',
+    testsDir: 'pay',
+    color: '#3A5FCD',
+    envs: [{ env: 'qa', baseUrl: 'https://qa.pay.test' }],
+  };
+
+  it('다 채웠으면 이유가 없다', () => {
+    expect(서비스못보내는이유(채운것)).toBe(null);
+  });
+
+  it('대상 서버가 하나도 없어도 보낼 수 있다. 나중에 더하면 된다', () => {
+    expect(서비스못보내는이유({ ...채운것, envs: [] })).toBe(null);
+  });
+
+  it('접두사가 비었으면 그것을 말한다. 「이름과 폴더」라고 엉뚱한 칸을 가리키지 않는다', () => {
+    const 이유 = 서비스못보내는이유({ ...채운것, prefix: '' });
+    expect(이유).toContain('접두사');
+  });
+
+  it('고칠 때는 접두사를 안 본다. 그 칸은 잠겨 있다', () => {
+    expect(서비스못보내는이유({ ...채운것, 새것: false, prefix: '' })).toBe(null);
+  });
+
+  it('접두사 모양이 틀리면 모양을 말한다', () => {
+    expect(서비스못보내는이유({ ...채운것, prefix: 'pay' })).toContain('대문자');
+  });
+
+  it('이름이 비면 그것을 말한다', () => {
+    expect(서비스못보내는이유({ ...채운것, name: '' })).toContain('이름');
+  });
+
+  it('테스트 폴더가 비면 그것을 말한다', () => {
+    expect(서비스못보내는이유({ ...채운것, testsDir: '' })).toContain('폴더');
+  });
+
+  it('빈 대상 서버 줄이 있으면 막는다. 그대로 보내면 서버가 400 을 내고 어느 칸인지 모른다', () => {
+    const 이유 = 서비스못보내는이유({ ...채운것, envs: [{ env: '', baseUrl: '' }] });
+    expect(이유).toContain('대상 서버');
+  });
+
+  it('키만 있고 주소가 비어도 막는다', () => {
+    expect(서비스못보내는이유({ ...채운것, envs: [{ env: 'qa', baseUrl: '' }] })).toContain('대상 서버');
+  });
+
+  it('색 모양이 아니면 막는다. 그대로 저장하면 띠에 색이 아예 없어진다', () => {
+    expect(서비스못보내는이유({ ...채운것, color: 'zzz' })).toContain('색');
+  });
+
+  it('명암비가 낮은 것은 막지 않는다. 그건 경고이지 오류가 아니다', () => {
+    expect(서비스못보내는이유({ ...채운것, color: '#888888' })).toBe(null);
+  });
+});
+
+describe('계정을 아직 못 보내는 이유', () => {
+  it('다 채웠으면 이유가 없다', () => {
+    expect(계정못보내는이유({ username: 'kim', displayName: '김철수' })).toBe(null);
+  });
+
+  it('아이디가 비면 그것을 말한다', () => {
+    expect(계정못보내는이유({ username: '', displayName: '김철수' })).toContain('아이디');
+  });
+
+  it('이름이 비면 그것을 말한다', () => {
+    expect(계정못보내는이유({ username: 'kim', displayName: '' })).toContain('이름');
   });
 });
 
