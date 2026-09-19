@@ -55,7 +55,12 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
                 </select>
               ) : (
                 <input
-                  type="text"
+                  // 어깨너머로 보는 것을 막는다. 값은 가리지 않고 그대로 서버로 간다 (SPEC §8.2)
+                  type={field.secret ? 'password' : 'text'}
+                  // 브라우저 비밀번호 관리자가 이 관리 화면의 로그인 비밀번호(Login.tsx 의
+                  // current-password)를 후보로 내민다. 잘못 고르면 그 값이 테스트 입력값으로 서버에 가
+                  // run_item.params 에 평문으로 남는데, 화면과 증적에는 ******** 로 가려져 들어간 줄도 모른다
+                  autoComplete={field.secret ? 'new-password' : 'off'}
                   id={id}
                   className={field.kind === 'number' ? 'narrow' : undefined}
                   value={value}

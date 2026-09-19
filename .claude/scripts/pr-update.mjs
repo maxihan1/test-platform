@@ -35,6 +35,18 @@ function arg(name, fallback = null) {
   return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
 }
 
+// 모르는 깃발은 조용히 무시되면 안 된다. 2026-09-19 에 없는 --comment-file 을 두 번 줬고,
+// 두 번 다 코멘트가 안 달린 채 --step 도 같이 빠져 본문이 기본값(1/7 · 1등급)으로 덮였다.
+const FLAGS = ['pr', 'tier', 'step', 'gate', 'note', 'next', 'ws', 'spec', 'comment', 'done'];
+// 깃발 모양을 소문자·하이픈으로 좁힌다. `--` 로 시작하는 것을 전부 깃발로 보면
+// 코멘트 본문의 `---` 구분선이 깃발로 잡혀 정상 호출이 종료코드 2 로 죽는다
+const 깃발꼴 = /^--[a-z][a-z-]*$/;
+const unknown = process.argv.slice(2).filter((a) => 깃발꼴.test(a) && !FLAGS.includes(a.slice(2)));
+if (unknown.length > 0) {
+  console.error(`모르는 깃발: ${unknown.join(' ')}\n쓸 수 있는 것: ${FLAGS.map((f) => `--${f}`).join(' ')}`);
+  process.exit(2);
+}
+
 const pr = arg('pr');
 if (!pr) { console.error('--pr <번호> 가 필요하다'); process.exit(2); }
 

@@ -5,7 +5,7 @@
 // (테스트만 바뀌면 등급을 올리지 않는다). DOC 이 맨 뒤인 이유는
 // docs/spec/** 가 docs/** 보다 먼저 걸려야 하기 때문이다.
 export const SURFACES = [
-  { name: 'TESTS', tier: 1, globs: ['tests/**', '**/*.test.ts', '**/*.spec.ts'] },
+  { name: 'TESTS', tier: 1, globs: ['tests/**', '**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts'] },
 
   { name: 'MIGRATION', tier: 3, globs: ['db/migrations/**', 'db/init/**'] },
   { name: 'KIT', tier: 3, globs: ['packages/kit/**'] },

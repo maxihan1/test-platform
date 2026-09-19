@@ -65,10 +65,19 @@ for (const p of 장들) {
 const 틀린분량 = [];
 {
   const 줄수 = (rel) => readFileSync(path.join(ROOT, 'docs', rel), 'utf8').split('\n').length - 1;
+  // 「12장 전부」처럼 경로 대신 말로 적은 행이 있다. 경로가 있는 행만 세면 그 행은
+  // 구조적으로 검사를 빠져나가고, 실제로 39줄 틀린 채 통과하고 있었다 (2026-09-19)
+  const 전장합 = 장들
+    .filter((p) => p !== path.join(ROOT, 'docs/SPEC.md'))
+    .reduce((n, p) => n + readFileSync(p, 'utf8').split('\n').length - 1, 0);
   readFileSync(path.join(ROOT, 'docs/SPEC.md'), 'utf8').split('\n').forEach((l, i) => {
-    const 갈래 = l.startsWith('| **') && l.includes('`spec/') && l.match(/\| (\d+)줄 \|/);
+    // 경로가 없는 행을 전부 「12장 전부」로 보면, 뒤에 다른 분량 행이 생겼을 때
+    // 전장합과 대조해 터지면서 오류 문구가 원인을 안 가리킨다. 값이 아니라 키로 가른다
+    const 갈래 = l.startsWith('| **') && (l.includes('`spec/') || l.includes('12장 전부')) && l.match(/\| (\d+)줄 \|/);
     if (갈래) {
-      const 합 = [...l.matchAll(/`([^`]+)`/g)].reduce((n, m) => n + 줄수(`${m[1]}.md`), 0);
+      const 합 = l.includes('`spec/')
+        ? [...l.matchAll(/`([^`]+)`/g)].reduce((n, m) => n + 줄수(`${m[1]}.md`), 0)
+        : 전장합;
       if (합 !== Number(갈래[1])) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${갈래[1]}줄 · 실제 ${합}줄`);
     }
     const 장 = l.match(/^\| \[[^\]]+\]\((spec\/[^)]+\.md)\).*\| (\d+) \|/);

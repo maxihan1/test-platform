@@ -93,6 +93,16 @@ test('git 이 이스케이프한 한글 경로도 표면을 찾는다', () => {
   assert.doesNotMatch(나온것, /미분류/, '미분류로 샌다');
 });
 
+// 2026-09-19 실측 — TESTS 글로브에 `.test.tsx` 가 없어 JSX 단위 검사가 WEB 으로 잡혔다.
+// 지금은 둘 다 1등급이라 안 깨지지만 packages/**/*.test.tsx 는 KIT(3등급)으로 샌다 —
+// 규칙 ④(테스트만 바뀌면 올리지 않는다)가 TESTS 표면을 키로 삼기 때문이다
+test('규칙 ④ — JSX 단위 검사(.test.tsx)도 TESTS 다', () => {
+  assert.equal(surfaceOf('apps/admin/src/web/Modal.test.tsx').name, 'TESTS');
+  assert.equal(detectTier(['apps/admin/src/web/Modal.test.tsx']).tier, 1);
+  assert.equal(surfaceOf('packages/kit/src/types.test.tsx').name, 'TESTS');
+  assert.equal(detectTier(['packages/kit/src/types.test.tsx']).tier, 1);
+});
+
 test('안 깨진 경로도 그대로 돈다 (위 검사의 대조군)', () => {
   const 나온것 = execFileSync('node', [DETECT, 'docs/spec/공통/2-명세선언.md'], { encoding: 'utf8' });
   assert.match(나온것, /등급: 3/);

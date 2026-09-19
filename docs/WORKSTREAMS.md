@@ -335,7 +335,9 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 > (`CaseList` · `RunSetup` · `RunList` · `RunResult` · `ItemDetail` · `Settings`).
 > **판단은 순수 함수가 하고 화면은 그리기만 한다** — `layout` · `mask` · `role` · `route` ·
 > `runState` · `group` · `paging` · `runPlan` · `evidence` · `catalogView` · `settingsView` · `schema` · `validation`.
-> `.test.tsx` 는 vitest 가 안 잡으므로 JSX 자체는 브라우저로 확인한다.
+> `.test.tsx` 도 이제 vitest 가 잡는다 (2026-09-19). **다만 브라우저 확인이 없어지지는 않는다** —
+> jsdom 에는 레이아웃 엔진도 CSS 계산도 없어서 「화면 밖에 그려졌다」·간격·색·애니메이션은
+> 여전히 사람이 브라우저로 본다. 못 보는 축의 정본은 SPEC 공통/6-인프라 §9.1 이다.
 >
 > **함정 둘** — 순수 함수 파일 이름을 화면과 **대소문자만 다르게 짓지 않는다**
 > (macOS 가 같은 파일로 친다. `shell.ts`·`caseList.ts` 로 두 번 겪었다).
@@ -343,8 +345,27 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 >
 > **넘긴 것** — ~~`Dockerfile` 에 `COPY scripts` 가 없어 첫 계정 만들기 명령이 안 된다(배포 §9.2) ·
 > `gate.ts` 의 IDOR(WS-F) · SPEC §8 과 §8.8 의 색 규칙 충돌~~ **셋 다 닫혔다 (PR #28, 2026-09-19).**
-> 남은 것은 **JSX 단위 테스트 그물** 하나다 (별도 작업 — `vitest` 의 `include` 가 `apps/**/*.test.ts` 라
-> `.test.tsx` 를 안 잡아 모달·폼에 그물이 없다. React Testing Library + jsdom 은 새 npm 부품이라 승인 대상).
+>
+> **JSX 단위 테스트 그물은 반만 깔렸다 (PR #30, 2026-09-19).** `vitest` 의 `include` 에
+> `apps/**/*.test.tsx` 를 더했고 **`Modal` · `SettingsPassword` · `Form` 셋을 덮었다.**
+> **나머지 화면은 그대로 그물 밖이다 — 그 화면을 건드릴 때 같이 덮는다.**
+> 지금 몇 대 몇인지는 손으로 적지 말고 센다 —
+> 화면 파일은 `ls apps/admin/src/web/*.tsx | grep -v '\.test\.tsx$' | wc -l`,
+> 그중 그물이 있는 것은 `ls apps/admin/src/web/*.test.tsx | wc -l`.
+> **그 약속은 `spec-review` 의 `F9` 가 붙든다** — 「화면 파일을 고쳤는데 같은 이름의 `*.test.tsx` 가 없는가」.
+> 셋이 아니라 **넷**을 덮었다 — 사고가 난 배치 자리(`SettingsUser.tsx`)를 검사 단계에서 뒤늦게 더했다.
+>
+> **PR #30 이 넘긴 것 여섯** — 전말은 `docs/reviews/2026-09-20-jsx-그물.md` 의 「넘긴 것」 절이다.
+> ① **비밀값 꼬리표가 드롭다운 칸에 붙으면 안 가려진다** (게이트 2 에서 「다음으로 넘긴다」로 정했다.
+> 드롭다운은 선택지가 보여야 고를 수 있어 「가리기」와 원리적으로 안 맞는다 — 명세에 예외를 적을지가 판단거리다)
+> ② **SPEC §8.2 「검증 오류로 버튼을 비활성화하지 않는다」를 지금 어느 검사도 주장하지 않는다.**
+> 진짜 자리는 `RunSetup.tsx` 고 그물 밖이다 — 나머지를 덮을 때 1순위
+> ③ `Form.tsx` 의 오류 한 줄이 낭독기에 안 묶여 있다 (`aria-describedby` 없음)
+> ④ `DESIGN.md` 모달 규칙 일곱 중 다섯은 **아무 검사도 안 본다** (덮개·애니메이션·폭·색).
+> `.modal-back` 의 색은 `--ink` 토큰을 손으로 베낀 상수다
+> ⑤ **비밀값 꼬리표를 단 데모 케이스가 0건이다.** 그게 없으면 Phase 2 완료 기준 상자
+> (「입력칸도 타이핑할 때 글자가 보이지 않는다」)를 **영원히 못 채운다**
+> ⑥ `@fastify/static` 높음 취약점 1건 — 이 PR 이 들여온 것이 아니라 원래 있었다. 배포하는 날 문제가 된다
 
 ```
 CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
