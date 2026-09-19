@@ -158,9 +158,25 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('text/html');
+    expect(res.headers['content-disposition']).toBe(`inline; filename="evidence-run-${String(runId)}.html"`);
     expect(res.body).toContain(제목);
     // 문서에 찍히는 「만든 시각」은 DB가 기억하는 값이다. 생성 중에 새로 재면 둘이 갈린다
     expect(res.body).toContain(만들기.generatedAt);
+  });
+
+  // 엑셀은 브라우저가 못 열어 파일로 떨어진다. 이름이 없으면 확장자 없는 파일이 되어 더블클릭이 안 된다 (SPEC §7 · §8.4).
+  // 이름에 실행 제목이 섞이면 §4.1 이 가린 값이 파일 이름으로 새므로 실행 번호와 형식만 들어간다
+  it('GET /api/evidence/:id — 파일 이름은 실행 번호와 형식뿐이다', async () => {
+    const 만들기 = (
+      await app.inject({ method: 'POST', url: `/api/runs/${String(runId)}/evidence`, payload: { format: 'XLSX' } })
+    ).json();
+    expect(await 끝날때까지(만들기.id)).toMatchObject({ status: 'READY' });
+
+    const res = await app.inject({ method: 'GET', url: `/api/evidence/${String(만들기.id)}` });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-disposition']).toBe(`inline; filename="evidence-run-${String(runId)}.xlsx"`);
+    expect(res.headers['content-disposition']).not.toContain(제목);
   });
 
   // Number.isInteger(1e21)은 true다. 걸러지지 않으면 값이 그대로 Postgres로 가 범위 초과가 잡히지 않은 500으로 샌다

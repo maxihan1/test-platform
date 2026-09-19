@@ -101,6 +101,13 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       // 내보낼 것을 손에 쥔 뒤에 형식을 정한다. 먼저 type()을 박으면 404 본문을 그 형식으로 쓰려다 500이 난다
       return reply.code(404).send({ error: 'EVIDENCE_FILE_NOT_FOUND', detail: req.params.id });
     }
-    return reply.type(형식표[문서.format].mime).send(파일);
+    // 이름에는 실행 번호와 형식만 넣는다. 케이스명·실행 제목·실행자는 넣지 않는다 —
+    // 비밀값 칸을 ********로 가려 놓고(SPEC §4.1) 같은 값을 파일 이름으로 흘리면 그 가림이 무의미해진다.
+    // 그래서 남는 글자가 ASCII뿐이고 헤더가 깨질 일이 없다. 한글이나 공백을 넣고 싶어지면
+    // 그때는 이름을 바꾸기 전에 RFC 5987 인코딩부터 붙여야 한다.
+    // attachment가 아닌 이유는 PDF·HTML이 새 창에서 열려야 하기 때문이다 (SPEC §8.4).
+    // 엑셀은 브라우저가 못 여는 형식이라 inline이어도 이 이름 그대로 내려받아진다
+    const 이름 = `evidence-run-${String(문서.runId)}.${형식표[문서.format].ext}`;
+    return reply.type(형식표[문서.format].mime).header('content-disposition', `inline; filename="${이름}"`).send(파일);
   });
 }
