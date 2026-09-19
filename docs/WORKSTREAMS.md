@@ -336,7 +336,8 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 > **판단은 순수 함수가 하고 화면은 그리기만 한다** — `layout` · `mask` · `role` · `route` ·
 > `runState` · `group` · `paging` · `runPlan` · `evidence` · `catalogView` · `settingsView` · `schema` · `validation`.
 > `.test.tsx` 도 이제 vitest 가 잡는다 (2026-09-19). **다만 브라우저 확인이 없어지지는 않는다** —
-> jsdom 에는 레이아웃 엔진이 없어서 「화면 밖에 그려졌다」·간격·색은 여전히 사람이 브라우저로 본다.
+> jsdom 에는 레이아웃 엔진도 CSS 계산도 없어서 「화면 밖에 그려졌다」·간격·색·애니메이션은
+> 여전히 사람이 브라우저로 본다. 못 보는 축의 정본은 SPEC 공통/6-인프라 §9.1 이다.
 >
 > **함정 둘** — 순수 함수 파일 이름을 화면과 **대소문자만 다르게 짓지 않는다**
 > (macOS 가 같은 파일로 친다. `shell.ts`·`caseList.ts` 로 두 번 겪었다).
