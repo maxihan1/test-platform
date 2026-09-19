@@ -14,10 +14,9 @@ describe('admin 이미지', () => {
     expect(dockerfile).toMatch(/^COPY\s+scripts\s/m);
   });
 
-  it('scripts 가 의존하는 apps/admin 을 먼저 싣는다', () => {
-    const scripts = dockerfile.search(/^COPY\s+scripts\s/m);
-    const admin = dockerfile.search(/^COPY\s+apps\/admin\s/m);
-    expect(admin).toBeGreaterThanOrEqual(0);
-    expect(scripts).toBeGreaterThan(admin);
+  // scripts/*.ts 가 ../apps/admin/src/** 를 상대경로로 부른다. 둘 다 이미지에 있어야
+  // 돈다 — 순서는 상관없다. 해석은 빌드가 아니라 실행할 때 일어난다
+  it('scripts 가 의존하는 apps/admin 도 함께 싣는다', () => {
+    expect(dockerfile).toMatch(/^COPY\s+apps\/admin\s/m);
   });
 });

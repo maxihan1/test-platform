@@ -94,7 +94,7 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
       { method: 'GET', url: `/api/cases/${prefix}-001/param-sets` },
       { method: 'POST', url: `/api/cases/${prefix}-001/param-sets` },
       { method: 'GET', url: `/api/catalog/cases/${prefix}-001` },
-      { method: 'GET', url: `/api/catalog/cases/${prefix}-001/source` },
+      { method: 'GET', url: `/api/cases/${prefix}-001/source` },
     ];
   }
 
@@ -143,7 +143,7 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
         scope.get('/cases/:tcId/param-sets', async () => ({ 지나감: true }));
         scope.post('/cases/:tcId/param-sets', async () => ({ 지나감: true }));
         scope.get('/catalog/cases/:tcId', async () => ({ 지나감: true }));
-        scope.get('/catalog/cases/:tcId/source', async () => ({ 지나감: true }));
+        scope.get('/cases/:tcId/source', async () => ({ 지나감: true }));
         scope.get('/runs/last-by-case', async () => ({ 지나감: true }));
       },
       { prefix: '/api' },
@@ -285,6 +285,30 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     }
   });
 
+  // 판정 갈래가 여럿이면 **먼저 걸린 것으로 끝내면 안 된다.**
+  // `?service=` 는 부르는 쪽이 적는 값이고 라우트는 그것을 안 본다 —
+  // 자원을 고르는 것은 경로의 번호다. 먼저 걸린 것으로 끝내면 쿼리 한 개로 전부 열린다
+  it('내 접두사를 쿼리에 붙여도 남의 자원은 안 열린다', async () => {
+    const 쿠키 = { platform_session: await 출입증('xfu3-operator') };
+
+    for (const { method, url } of 경로들('XFS3B')) {
+      const 붙인것 = `${url}${url.includes('?') ? '&' : '?'}service=XFS3A`;
+      const res = await app.inject({ method, url: 붙인것, cookies: 쿠키, payload: {} });
+      expect(res.statusCode, `${method} ${붙인것}`).toBe(403);
+    }
+  });
+
+  it('실행 요청 본문에 남의 접두사가 섞여도 쿼리로 못 가린다', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs?service=XFS3A',
+      cookies: { platform_session: await 출입증('xfu3-operator') },
+      payload: { items: [{ tcId: 'XFS3A-001' }, { tcId: 'XFS3B-001' }] },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'SERVICE_FORBIDDEN', detail: 'XFS3B' });
+  });
+
   it('배정받은 서비스의 자원은 열두 경로 전부 지나간다', async () => {
     const 쿠키 = { platform_session: await 출입증('xfu3-operator') };
 
@@ -298,10 +322,72 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
   // SPEC §7 이 「404로 감추지 않는다」로 정했으므로 라우트가 제 답을 내게 지나보낸다
   it('없는 번호는 문을 지나 라우트로 간다', async () => {
     const 쿠키 = { platform_session: await 출입증('xfu3-operator') };
-    for (const url of ['/api/runs/999999999', '/api/evidence/999999999', '/api/param-sets/999999999']) {
-      const res = await app.inject({ method: 'GET', url, cookies: 쿠키 });
-      expect(res.statusCode, url).not.toBe(403);
+    for (const [method, url] of [
+      ['GET', '/api/runs/999999999'],
+      ['GET', '/api/evidence/999999999'],
+      ['DELETE', '/api/param-sets/999999999'],
+    ] as const) {
+      const res = await app.inject({ method, url, cookies: 쿠키 });
+      expect(res.statusCode, `${method} ${url}`).not.toBe(403);
     }
+  });
+
+  // 라우트가 자기 번호 칸을 `Number()` 로 느슨하게 읽는 탓에 문이 글자를 파싱하면
+  // 둘이 같은 주소에서 다른 값을 본다. 이제 문은 라우트가 받은 `req.params` 를 쓰고
+  // 십진 숫자가 아니면 막는다 — 라우트에 닿기 전에 끊는다 (2026-09-19 실측)
+  it('라우트와 다르게 읽힐 번호 모양은 막는다', async () => {
+    const 쿠키 = { platform_session: await 출입증('xfu3-operator') };
+    for (const 번호 of ['1e3', '0x10', '+1', '1.0', '99999999999999999999']) {
+      const res = await app.inject({ method: 'GET', url: `/api/runs/${번호}`, cookies: 쿠키 });
+      expect(res.statusCode, `/api/runs/${번호}`).toBe(403);
+    }
+  });
+
+  // ★ `app.inject` 는 주소를 정규화해 버려서 **퍼센트 인코딩 우회를 못 본다.**
+  // 그래서 여기만 진짜 소켓으로 건다. 문이 `req.url` 글자를 읽던 동안에는
+  // `/api/runs/%35%38%36%37` 이 문을 그냥 지나 라우트에서 5867 로 풀렸다 (2026-09-19 실측)
+  it('퍼센트로 감싼 번호도 막는다 — 진짜 소켓으로 건다', async () => {
+    await app.listen({ port: 0, host: '127.0.0.1' });
+    const 주소 = app.server.address();
+    const 포트 = typeof 주소 === 'object' && 주소 !== null ? 주소.port : 0;
+    // 로그인도 같은 소켓으로 한다. inject 로 받은 출입증을 손으로 옮기면
+    // 값에 든 글자를 다시 감싸야 해서 검사가 딴 데서 넘어진다
+    const 로그인 = await fetch(`http://127.0.0.1:${포트}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username: 'xfu3-operator', password: '열려라참깨' }),
+    });
+    const 쿠키 = (로그인.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+    const 남의번호 = 자원.실행.XFS3B!;
+    const 감싼것 = String(남의번호)
+      .split('')
+      .map((c) => `%3${c}`)
+      .join('');
+
+    try {
+      const 그냥 = await fetch(`http://127.0.0.1:${포트}/api/runs/${남의번호}`, {
+        headers: { cookie: 쿠키 },
+      });
+      expect(그냥.status, '감싸지 않은 것').toBe(403);
+
+      const 감싼 = await fetch(`http://127.0.0.1:${포트}/api/runs/${감싼것}`, {
+        headers: { cookie: 쿠키 },
+      });
+      expect(감싼.status, `/api/runs/${감싼것}`).toBe(403);
+    } finally {
+      await app.server.close();
+    }
+  });
+
+  // 표에 없는 라우트는 「서비스에 안 매인다」가 아니라 「아무도 분류하지 않았다」다.
+  // 기본값이 열림이면 새 라우트가 조용히 뚫린다 — 이번 구멍이 그렇게 생겼다
+  it('라우트표에 없는 /api 주소는 막는다', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/아무도모르는것',
+      cookies: { platform_session: await 출입증('xfu3-operator') },
+    });
+    expect(res.statusCode).toBe(403);
   });
 
   // 통합 이전 행은 어느 배정에도 안 든다. 열어 두면 §7 의 금지가 옛 행 앞에서만 비켜 준 꼴이 된다

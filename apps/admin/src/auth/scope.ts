@@ -1,83 +1,83 @@
 // 이 요청이 어느 서비스를 건드리는가. 문(gate.ts)이 배정과 맞춰 보는 값을 낸다 (SPEC §7)
 // 표 주인은 §6 이다 — 여기서는 「그 번호가 어느 서비스냐」만 읽고 아무것도 쓰지 않는다
+//
+// **판정은 주소 글자가 아니라 라우트가 실제로 받은 값으로 한다.**
+// Fastify 의 `req.url` 은 퍼센트 디코딩 **전** 원문이고 `req.params` 는 **후**다.
+// 글자로 판정하면 `/api/runs/%35%38%36%37` · `/api/runs/1e3` 처럼 **문과 라우트가
+// 같은 주소를 다르게 읽는** 자리가 생기고, 그 틈으로 전부 빠져나간다 (2026-09-19 실측).
+// 그래서 등록된 틀(`req.routeOptions.url`)로 종류를 고르고 값은 `req.params` 에서 읽는다.
 
-// SPEC §2 — 접두사는 자유 형식이고 플랫폼은 모양과 중복만 본다
+// 서비스를 알아내는 길. 라우트 틀마다 하나씩 정해 둔다
+export type 원천 =
+  | { 종류: '안매임' } // 시스템 전체이거나 서비스에 매이지 않는다
+  | { 종류: '질의' } // `?service=` 로 고른다
+  | { 종류: '본문tcId' } // POST /api/runs — 본문 items[].tcId 에서 알아낸다
+  | { 종류: '케이스'; 칸: string } // params[칸] 이 tcId 다. 접두사가 곧 서비스다 (§2)
+  | { 종류: '실행'; 칸: string } // params[칸] 이 실행 번호다
+  | { 종류: '증적'; 칸: string }
+  | { 종류: '입력값묶음'; 칸: string };
+
+/**
+ * **등록된 모든 `/api` 라우트가 여기 있어야 한다.**
+ * 표에 없으면 문이 막는다 — 새 라우트의 기본값이 「검사 안 함」이면 다음 사람이
+ * 라우트를 더하는 순간 조용히 열린다. 이번 구멍이 정확히 그렇게 생겼다.
+ * `scope.test.ts` 가 소스의 라우트를 훑어 여기 빠진 것이 있으면 실패시킨다.
+ */
+export const 라우트표: Record<string, 원천> = {
+  // 사람에 매이지 서비스에 안 매인다
+  '/api/auth/login': { 종류: '안매임' },
+  '/api/auth/logout': { 종류: '안매임' },
+  '/api/auth/me': { 종류: '안매임' },
+
+  // 설정은 시스템 전체다. admin 등급이면 열린다 (SPEC §3.5)
+  '/api/settings/services': { 종류: '안매임' },
+  '/api/settings/services/:id': { 종류: '안매임' },
+  '/api/settings/users': { 종류: '안매임' },
+  '/api/settings/users/:username': { 종류: '안매임' },
+  '/api/settings/users/:username/password': { 종류: '안매임' },
+
+  // 스캔은 전 서비스를 한 번에 훑는다 (SPEC §3.1)
+  '/api/catalog/scan': { 종류: '안매임' },
+  // 마지막 결과 일괄 조회는 질의가 배정으로 거른다 (execution/history.ts)
+  '/api/runs/last-by-case': { 종류: '안매임' },
+
+  '/api/catalog/cases': { 종류: '질의' }, // ?service= 를 필수로 요구한다
+  '/api/runs': { 종류: '질의' }, // GET 은 ?service=, POST 는 아래 본문 갈래가 같이 본다
+
+  '/api/catalog/cases/:tcId': { 종류: '케이스', 칸: 'tcId' },
+  '/api/cases/:tcId/source': { 종류: '케이스', 칸: 'tcId' },
+  '/api/cases/:tcId/history': { 종류: '케이스', 칸: 'tcId' },
+  '/api/cases/:tcId/param-sets': { 종류: '케이스', 칸: 'tcId' },
+
+  '/api/runs/:runId': { 종류: '실행', 칸: 'runId' },
+  '/api/runs/:runId/abort': { 종류: '실행', 칸: 'runId' },
+  '/api/runs/:runId/evidence': { 종류: '실행', 칸: 'runId' },
+  '/api/runs/:runId/items/:historyId': { 종류: '실행', 칸: 'runId' },
+  '/api/screenshots/:runId/:historyId/:seq.png': { 종류: '실행', 칸: 'runId' },
+
+  '/api/evidence/:id': { 종류: '증적', 칸: 'id' },
+  '/api/param-sets/:id': { 종류: '입력값묶음', 칸: 'id' },
+};
+
+// SPEC §2 — 접두사는 자유 형식이고 플랫폼은 모양과 중복만 본다.
+// 서버의 정본은 settings/routes.ts 의 접두사모양이다. 여기는 경계 판정용 사본이라
+// §2 가 바뀌면 같이 고친다 (CLAUDE.md §2.7 ④ 「코드에 박힌 상수」)
 const 접두사모양 = /^[A-Z][A-Z0-9]{0,11}$/;
 
-// tcId 가 경로에 박혀 있는 자리들. 앞 토막이 곧 서비스다 (SPEC §2)
-const TCID자리 = [
-  /^\/api\/cases\/([^/]+)\//,
-  /^\/api\/catalog\/cases\/([^/]+)(?:\/|$)/,
-];
-
-/** 경로에 tcId 가 박혀 있으면 그 접두사를 낸다. 없거나 모양이 아니면 빈 목록이다. */
-export function 경로접두사(path: string): string[] {
-  for (const 자리 of TCID자리) {
-    const 맞은것 = 자리.exec(path);
-    if (맞은것 === null) continue;
-    const 접두사 = (맞은것[1] ?? '').split('-')[0] ?? '';
-    return 접두사모양.test(접두사) ? [접두사] : [];
-  }
-  return [];
+/** `tcId` 앞 토막이 서비스다. 모양이 아니면 **모른다** — 경계 판정은 모르면 막는 쪽이다 */
+export function 케이스의서비스(tcId: unknown): string | null {
+  if (typeof tcId !== 'string') return null;
+  const 접두사 = tcId.split('-')[0] ?? '';
+  return 접두사모양.test(접두사) ? 접두사 : null;
 }
 
 export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음'; 번호: number };
 
-// 번호로 부르는 자리들. 그 번호가 어느 서비스인지는 DB 만 안다
-const 번호자리: { 규칙: RegExp; 종류: 찾을것['종류'] }[] = [
-  { 규칙: /^\/api\/runs\/(\d+)(?:\/|$)/, 종류: '실행' },
-  { 규칙: /^\/api\/screenshots\/(\d+)\//, 종류: '실행' },
-  { 규칙: /^\/api\/evidence\/(\d+)$/, 종류: '증적' },
-  { 규칙: /^\/api\/param-sets\/(\d+)$/, 종류: '입력값묶음' },
-];
-
-/** 경로가 번호로 자원을 가리키면 무엇을 찾아야 하는지 낸다. */
-export function 번호로찾을것(path: string): 찾을것 | null {
-  for (const { 규칙, 종류 } of 번호자리) {
-    const 맞은것 = 규칙.exec(path);
-    if (맞은것 === null) continue;
-    const 번호 = Number(맞은것[1]);
-    if (!Number.isSafeInteger(번호) || 번호 < 0) return null;
-    return { 종류, 번호 };
-  }
-  return null;
-}
-
-/**
- * 서비스에 매이지 않는 자리. 여기 없고 위 둘에도 안 걸리면 **분류되지 않은 것**이고
- * 검사가 그것을 잡는다 — 새 라우트의 기본값이 「검사 안 함」이 되면 안 된다.
- */
-const 아래가전부안매인다 = [
-  '/api/auth/', // 로그인·로그아웃·나를 묻기. 사람에 매이지 서비스에 안 매인다
-  '/api/settings/', // 시스템 전체다. admin 이면 열린다 (SPEC §3.5)
-];
-
-// **정확히 이 주소일 때만**이다. `startsWith` 로 두면 `/api/runs` 가
-// `/api/runs/5867` 까지 삼켜 「검사받는 것으로 쳤다」가 된다
-const 이주소만안매인다 = [
-  '/api/catalog/scan', // 전 서비스를 한 번에 훑는다 (SPEC §3.1)
-  '/api/runs/last-by-case', // 질의가 배정으로 거른다 — 문이 아니라 질의의 몫이다
-  '/api/runs', // POST 는 본문 tcId, GET 은 ?service= 로 문이 이미 본다
-  '/api/catalog/cases', // ?service= 를 필수로 요구한다 (400 SERVICE_REQUIRED)
-];
-
-export function 서비스에안매인다(path: string): boolean {
-  return 아래가전부안매인다.some((곳) => path.startsWith(곳)) || 이주소만안매인다.includes(path);
-}
-
-/**
- * 등록된 라우트 틀(`/api/runs/:runId`)을 실제 주소 모양으로 바꾼다.
- * 검사가 **문과 같은 판정기**를 타게 하려는 것이다 — 틀을 따로 알아보는 규칙을 두면
- * 그 규칙과 문이 갈리는 날 검사가 거짓으로 초록이 된다
- */
-export function 틀을주소로(틀: string): string {
-  return 틀.replace(/:([A-Za-z0-9_]+)/g, (_, 이름: string) => (이름 === 'tcId' ? 'ZZPROBE-001' : '1'));
-}
-
-/** 그 라우트가 서비스 경계를 어떤 식으로든 검사받는가. 검사가 이것으로 빠진 라우트를 잡는다. */
-export function 분류됐나(틀: string): boolean {
-  const path = 틀을주소로(틀);
-  return 서비스에안매인다(path) || 경로접두사(path).length > 0 || 번호로찾을것(path) !== null;
+/** 번호 칸은 **라우트와 같은 엄격함**으로 읽는다. 느슨하면 문과 라우트가 다른 값을 본다 */
+export function 번호로(값: unknown): number | null {
+  if (typeof 값 !== 'string' || !/^\d+$/.test(값)) return null;
+  const n = Number(값);
+  return Number.isSafeInteger(n) ? n : null;
 }
 
 /** 서비스가 없는 자원이라는 표시. 통합 이전 실행(service_id IS NULL)이 여기 든다. */
