@@ -83,21 +83,22 @@ describe('Grafana 대시보드 프로비저닝', () => {
       const 순위runId = Number(순위run.rows[0]!.run_id);
 
       // XDD-003 은 한 케이스를 3회 돌려 3회 다 실패했다 — 행을 세면 3건, 회차를 접으면 1건이다.
+      // 셋째 회차는 케이스명이 다르다. tc_name 은 실행 시점 박제라 이름을 고치면 과거 행은 옛 이름 그대로다 (§6).
       // XDD-004 는 러너에 닿지 못해 한 번도 못 돈 케이스다 — 실패가 아니므로 순위에 오르면 안 된다
       const 순위항목들 = [
-        ['XDD-003', 1, 'FAIL'],
-        ['XDD-003', 2, 'FAIL'],
-        ['XDD-003', 3, 'FAIL'],
-        ['XDD-004', 1, 'NA'],
-        ['XDD-004', 2, 'NA'],
+        ['XDD-003', 1, 'FAIL', 'XDD-003 케이스'],
+        ['XDD-003', 2, 'FAIL', 'XDD-003 케이스'],
+        ['XDD-003', 3, 'FAIL', 'XDD-003 케이스 (이름을 고쳤다)'],
+        ['XDD-004', 1, 'NA', 'XDD-004 케이스'],
+        ['XDD-004', 2, 'NA', 'XDD-004 케이스'],
       ] as const;
-      for (const [tcId, attempt, status] of 순위항목들) {
+      for (const [tcId, attempt, status, 케이스명] of 순위항목들) {
         await pool.query(
           `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, params, expected, param_schema, expected_schema,
                                  status, duration_ms, file_path, started_at, finished_at)
            VALUES ($1, $2, 'desktop', $3, $4, '{}', '{}', '{}', '{}', $5, 100, '',
                    now() - interval '26 days', now() - interval '26 days')`,
-          [순위runId, tcId, attempt, `${tcId} 케이스`, status],
+          [순위runId, tcId, attempt, 케이스명, status],
         );
       }
     });
@@ -140,6 +141,11 @@ describe('Grafana 대시보드 프로비저닝', () => {
       const 그케이스 = (await 실패순위()).find((r) => r['케이스 ID'] === 'XDD-003');
       expect(그케이스).toBeDefined();
       expect(Number(그케이스!['실패 건수'])).toBe(1);
+    });
+
+    it('실패 TOP 10 — 회차 사이에 케이스명이 바뀌어도 한 줄이다', async () => {
+      const 그케이스들 = (await 실패순위()).filter((r) => r['케이스 ID'] === 'XDD-003');
+      expect(그케이스들).toHaveLength(1);
     });
 
     it('실패 TOP 10 — 미실행만 있는 케이스는 순위에 오르지 않는다', async () => {
