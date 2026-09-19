@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
-// Modal 한 조각의 단위 검사 — 열면 제목이 화면에 붙는지 본다
+// Modal 한 조각의 단위 검사 — 뼈대가 dialog 이고 이름이 제목과 같은가, 닫는 길 셋(버튼·Escape·바깥)이
+// 다 여는가, 상자 안에서 시작한 누르기는 안 닫는가, Tab 이 상자 안을 도는가, 닫으면 포커스가 제자리로 오는가
+//
+// 한계. jsdom 에는 레이아웃도 CSS 계산도 없어 배치·간격·색·애니메이션은 여기서 못 본다.
+// 그건 사람이 브라우저로 본다 (SPEC §9.1). 「덮개가 뒤를 가린다」도 그래서 여기서는 못 본다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, createEvent, fireEvent, render, screen } from '@testing-library/react';

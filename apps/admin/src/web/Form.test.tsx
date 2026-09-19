@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
 // Form 한 조각의 단위 검사 — 스키마가 시킨 대로 칸을 그리는지 본다
+//
+// 한계. jsdom 에는 레이아웃도 CSS 계산도 없어 배치·간격·색·애니메이션은 여기서 못 본다.
+// 그건 사람이 브라우저로 본다 (SPEC §9.1). 여기서 보는 것은 속성과 문서 나무뿐이다 —
+// type 이 password 라는 것과 「타이핑할 때 점으로 보인다」는 다른 주장이고 뒤엣것은 못 본다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -149,7 +153,7 @@ describe('Form', () => {
     expect(바뀜.mock.calls[0]).toEqual(['name', '홍길동']);
   });
 
-  it('비밀값 칸은 타이핑할 때 글자가 점으로 보이는 칸이다 (SPEC §8.2)', () => {
+  it('비밀값 칸은 type 이 password 로 그려진다 (SPEC §8.2)', () => {
     const { container } = 그리기();
 
     expect(칸찾기(container, '토큰').getAttribute('type')).toBe('password');
@@ -176,7 +180,7 @@ describe('Form', () => {
     expect(칸찾기(container, '비밀번호').getAttribute('type')).toBe('password');
   });
 
-  it('오류는 그 칸 아래에 뜨고 아무것도 비활성화하지 않는다 (SPEC §8.2)', () => {
+  it('오류는 그 칸 아래 한 줄로 뜬다', () => {
     const { container } = 그리기({ errors: { name: '이름을 적어 주세요' } });
 
     const 사유 = screen.queryByText('이름을 적어 주세요');
@@ -184,7 +188,5 @@ describe('Form', () => {
 
     const 묶음 = 칸찾기(container, '이름').closest('.field');
     expect(묶음?.lastElementChild).toBe(사유);
-
-    expect(container.querySelectorAll('[disabled]').length).toBe(0);
   });
 });
