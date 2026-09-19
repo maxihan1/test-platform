@@ -53,7 +53,9 @@ try {
   const id = await 서비스만들기({
     prefix,
     name,
-    color: '#5B7FDE',
+    // 띠 바탕에 흰 글자가 올라간다. DESIGN.md 의 본문 기준(4.5:1)을 넘는 값이어야 한다.
+    // 옛 값 #5B7FDE 는 3.79 로 미달이었다 — 새로 만드는 서비스가 전부 그 색을 받고 있었다 (2026-09-19)
+    color: '#3A5FCD',
     testsRepo: '',
     // 플랫폼이 실제로 훑을 폴더. PLATFORM_TESTS_DIR 아래 상대경로다 (SPEC §6)
     testsDir: prefix.toLowerCase(),

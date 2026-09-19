@@ -149,6 +149,29 @@ export interface User {
   services: ServiceRow[];
 }
 
+/**
+ * 설정 화면이 보는 서비스 (SPEC §7 `/settings/services` · §8.8).
+ *
+ * 띠의 `ServiceRow` 와 다르다 — 그쪽은 **배정받은 것만** 오고 여기는 **전부** 온다.
+ * 비활성까지 포함한다. 설정 화면은 내려 둔 것도 봐야 다시 올릴 수 있다.
+ */
+export interface SettingsServiceRow extends ServiceRow {
+  testsRepo: string;
+  /** 플랫폼이 실제로 훑을 폴더. 서비스마다 저장소가 다르다 (SPEC §9.2) */
+  testsDir: string;
+  isActive: boolean;
+  caseCount: number;
+}
+
+/** 설정 화면이 보는 계정 (SPEC §7 `/settings/users` · §8.8). `services` 는 접두사 목록이다 */
+export interface UserRow {
+  username: string;
+  displayName: string;
+  role: 등급;
+  isActive: boolean;
+  services: string[];
+}
+
 export interface SourceExcerpt {
   lines: { no: number; text: string }[];
   focus: number;
@@ -345,4 +368,55 @@ export const api = {
   deleteParamSet: (id: number) => call<void>(`/param-sets/${id}`, { method: 'DELETE' }),
 
   screenshot: (runId: number, historyId: number, seq: number) => `/api/screenshots/${runId}/${historyId}/${seq}.png`,
+
+  // 설정 (SPEC §7 · §8.8). 전부 운영(admin) 등급만 닿는다 — 서버 auth/gate.ts 가 막는다
+  settingsServices: () => call<{ items: SettingsServiceRow[] }>('/settings/services'),
+
+  createService: (body: {
+    prefix: string;
+    name: string;
+    color: string;
+    testsRepo: string;
+    testsDir: string;
+    envs: EnvRow[];
+    slackWebhook?: string;
+  }) => call<{ id: number }>('/settings/services', json(body)),
+
+  /**
+   * 서비스를 고친다. **접두사는 안 보낸다** — 보내면 서버가 400 PREFIX_IMMUTABLE 을 낸다.
+   * `tcId` 안에 이미 박혀 있어 바꾸면 기존 케이스가 어느 서비스 것도 아니게 된다 (SPEC §8.8)
+   */
+  updateService: (
+    id: number,
+    body: {
+      name?: string;
+      color?: string;
+      testsRepo?: string;
+      testsDir?: string;
+      isActive?: boolean;
+      envs?: EnvRow[];
+      /** 빈 글자를 보내면 알림을 끈다. 안 보내면 지금 것을 그대로 둔다 */
+      slackWebhook?: string;
+    },
+  ) => call<{ ok: true }>(`/settings/services/${id}`, { ...json(body), method: 'PATCH' }),
+
+  settingsUsers: () => call<{ items: UserRow[] }>('/settings/users'),
+
+  /** 임시 비밀번호가 **이 응답에만** 있다. 다음부터는 다시 만들 수만 있다 (SPEC §8.8) */
+  createUser: (body: { username: string; displayName: string; role: 등급; services: string[] }) =>
+    call<{ username: string; tempPassword: string }>('/settings/users', json(body)),
+
+  updateUser: (
+    username: string,
+    body: { displayName?: string; role?: 등급; isActive?: boolean; services?: string[] },
+  ) =>
+    call<{ ok: true }>(`/settings/users/${encodeURIComponent(username)}`, {
+      ...json(body),
+      method: 'PATCH',
+    }),
+
+  resetPassword: (username: string) =>
+    call<{ tempPassword: string }>(`/settings/users/${encodeURIComponent(username)}/password`, {
+      method: 'POST',
+    }),
 };
