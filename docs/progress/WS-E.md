@@ -295,3 +295,20 @@ npx vite --config apps/admin/src/web/vite.config.ts
   빠뜨리면 `document is not defined` 로 죽는다. 본을 뜰 자리는 `apps/admin/src/web/Modal.test.tsx` 다.
   화면을 고치면서 그물을 빠뜨리는 것은 `spec-review` 의 `F9` 가 잡는다.
   **jsdom 에는 레이아웃 엔진이 없다** — 「화면 밖에 그려졌다」·간격·색은 여전히 브라우저로 본다
+
+---
+
+## 2026-09-20 — Grafana 포트를 「빌드 시 설정값」으로 정했다 (마무리 PR)
+
+- 완료: 위 2026-09-19 기록이 **「설정으로 뺄지는 ③ 덩이에서 정한다」고 미뤄 둔 판단을 닫았다.**
+  그 덩이가 끝났는데 아무도 안 정해서 `layout.ts` 가 `3001` 을 박은 채로 남아 있었다.
+  **빌드 시 설정값으로 정했고 세 토막을 이었다** — `docker-compose.yml` 의 admin `build.args`
+  → `apps/admin/Dockerfile` 의 `ARG`/`ENV` → `vite build` 가 `VITE_GRAFANA_PORT` 를 번들에 굽는다.
+  `layout.ts` 는 `import.meta.env.VITE_GRAFANA_PORT` 를 읽고 비면 `3001` 로 떨어진다
+- 미완: 없음
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: **한계가 있다 — 값이 번들에 구워진다.**
+  실행 시점 환경변수로는 못 바꾼다. `GRAFANA_PORT` 를 바꾸면 **admin 이미지를 다시 빌드해야 하고**
+  (`docker compose up -d --build admin`), 안 하면 **오류 한 줄 없이 「그래프 ↗」 링크만 틀린 포트를 가리킨다.**
+  같은 문장을 `docs/SETUP.md` 설정값 표와 SPEC §9.2 에도 적어 뒀다.
+  런타임에 바꾸고 싶어지면 admin 이 `index.html` 에 값을 심는 길이 따로 있다 — 그때 다시 본다
