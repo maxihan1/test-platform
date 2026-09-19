@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 끝났다고알릴까, 도는중, 멈출수있나, 미실행사유, 본것으로적는다, 상태라벨, 알림본적있나 } from './runState.js';
+import { 끝났다고알릴까, 도는중, 멈출수있나, 미실행사유, 본것으로적는다, 상태라벨, 실행자이름, 알림본적있나 } from './runState.js';
 
 // 본 알림은 브라우저에 남는다. jsdom 을 설치하지 않았으므로 가짜를 끼운다 (api.test.ts 와 같은 방식)
 const 보관 = new Map<string, string>();
@@ -109,5 +109,21 @@ describe('실행이 끝났을 때 알린다 (SPEC §8.9)', () => {
   it('다른 실행은 그대로 알린다', () => {
     본것으로적는다(6);
     expect(끝났다고알릴까({ 전: 'RUNNING', 후: 'FINISHED', runId: 7 })).toBe(true);
+  });
+});
+
+describe('실행자 이름 (SPEC §3.5 · §8.7)', () => {
+  it('박제된 이름이 있으면 그것을 쓴다. 아이디가 아니다', () => {
+    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: '김철수' })).toBe('김철수');
+  });
+
+  it('이름이 비면 모른다고 적는다. 값을 지어내 채우지 않는다', () => {
+    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: null })).toBe('실행자 미상 (인증 도입 이전)');
+    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: '' })).toBe('실행자 미상 (인증 도입 이전)');
+  });
+
+  it('정기 실행은 따로 가를 것이 없다. 스케줄러가 이름을 그렇게 박아 넣는다', () => {
+    // 실측: scripts/run-scheduled.ts 가 triggeredByName 을 '스케줄러' 로 넣는다
+    expect(실행자이름({ triggeredBy: '스케줄러', triggeredByName: '스케줄러' })).toBe('스케줄러');
   });
 });

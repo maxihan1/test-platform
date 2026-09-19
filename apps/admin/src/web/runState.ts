@@ -101,3 +101,19 @@ export function 끝났다고알릴까(그것: { 전: string; 후: string; runId:
   if (도는중(그것.후)) return false;
   return !알림본적있나(그것.runId);
 }
+
+/**
+ * 실행자로 적을 이름 (SPEC §3.5 · §8.7).
+ *
+ * **박제된 이름을 쓴다.** 로그인 아이디가 아니다 — 계정 이름이 바뀌거나 계정이 지워져도
+ * 과거 증적은 흔들리지 않아야 한다.
+ *
+ * 인증 이전 실행에는 확인된 실행자가 없다. 이름 칸이 비어 있는 것이 그 표시다.
+ * **값을 지어내 채우지 않는다** — 모르는 것은 모른다고 적는 것이 기록이다.
+ *
+ * 정기 실행은 따로 가르지 않는다. `scripts/run-scheduled.ts` 가 이름을 `스케줄러` 로 박아 넣는다.
+ */
+export function 실행자이름(run: { triggeredBy: string; triggeredByName: string | null }): string {
+  const 이름 = run.triggeredByName;
+  return 이름 === null || 이름 === '' ? '실행자 미상 (인증 도입 이전)' : 이름;
+}
