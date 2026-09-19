@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { api, type Paged, type RunSummary } from './api.js';
+import { 상태라벨 } from './runState.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
 export function RunList() {
@@ -33,7 +34,7 @@ export function RunList() {
             <div className="title">
               {run.title}
               <small>
-                {when(run.startedAt)} · 실행자 {run.triggeredBy} · {run.status === 'FINISHED' ? '끝남' : '도는 중'}
+                {when(run.startedAt)} · 실행자 {run.triggeredBy} · {상태라벨(run.status)}
               </small>
             </div>
             <div className="right">

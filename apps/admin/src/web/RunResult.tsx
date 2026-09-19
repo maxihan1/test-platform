@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { api, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
 import { filterGroups, groupByCase } from './group.js';
+import { 도는중 } from './runState.js';
 import { Failed, Loading, PLATFORM_LABEL, PLATFORMS, seconds, STATUS_COLOR, STATUS_LABEL, useAsync, Verdict, when } from './ui.js';
 
 const PAGE_SIZE = 20;
@@ -25,7 +26,8 @@ export function RunResult({ runId }: { runId: number }) {
 
   const run = useAsync(() => api.run(runId), [runId]);
   const data = run.data;
-  const running = data !== null && data.status !== 'FINISHED';
+  // ABORTED 를 빠뜨리면 사람이 멈춘 실행에서 2초마다 영원히 다시 묻는다 (SPEC §8.3)
+  const running = data !== null && 도는중(data.status);
   const reload = run.reload;
 
   // 실행은 뒤에서 이어진다. 끝날 때까지만 다시 묻고 끝나면 멈춘다
