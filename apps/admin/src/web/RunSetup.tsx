@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { api, ApiError, type CaseRow, type ParamSetRow, type Platform, type ServiceRow, type User } from './api.js';
 import { Form } from './Form.js';
+import { 넘었나, 상한, 항목수 } from './runPlan.js';
 import { initialText, schemaToFields, toValues } from './schema.js';
 import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
 import { fieldErrors, messagesByKey } from './validation.js';
@@ -29,6 +30,8 @@ export function RunSetup({ tcId, service, user }: Props) {
   const [title, setTitle] = useState('');
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2)
   const [env, setEnv] = useState('');
+  const [repeat, setRepeat] = useState('1');
+  const [notifySlack, setNotifySlack] = useState(false);
   const [setName, setSetName] = useState('');
   const [showErrors, setShowErrors] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -63,6 +66,8 @@ export function RunSetup({ tcId, service, user }: Props) {
     ? localErrors
     : { params: serverErrors.params, expected: serverErrors.expected };
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
+  const 만들건수 = 항목수(1, platforms.length, Number(repeat) || 1);
+  const 너무많나 = 넘었나(만들건수);
   const broken = Object.keys(localErrors.params).length + Object.keys(localErrors.expected).length;
 
   function edit(which: 'params' | 'expected') {
@@ -102,6 +107,8 @@ export function RunSetup({ tcId, service, user }: Props) {
       const { runId } = await api.createRun({
         title: title.trim() === '' ? `${row.tcId} 실행` : title.trim(),
         env,
+        repeat: Math.max(1, Number(repeat) || 1),
+        notifySlack,
         items: [{ tcId: row.tcId, platforms, params, expected }],
       });
       window.location.hash = `#/runs/${runId}`;
@@ -251,6 +258,39 @@ export function RunSetup({ tcId, service, user }: Props) {
         </div>
 
         <div className="field">
+          <label htmlFor="run-repeat">반복 횟수</label>
+          <div>
+            {/* 새로 쓴 테스트가 매번 같은 결과를 내는지 여러 번 돌려 본다.
+                실패를 가리려는 자동 재시도와 다르다 (SPEC §3.2 · §5.2) */}
+            <input
+              type="text"
+              id="run-repeat"
+              className="narrow"
+              value={repeat}
+              onChange={(e) => setRepeat(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* 웹훅이 없는 서비스에서는 칸 자체를 그리지 않는다. 흐리게 두지 않는다 (SPEC §8.2 · §8) */}
+        {service?.hasSlackWebhook !== true ? null : (
+          <div className="field">
+            <label htmlFor="run-slack">끝나면 Slack 알리기</label>
+            <div>
+              <label className="check-inline">
+                <input
+                  type="checkbox"
+                  id="run-slack"
+                  checked={notifySlack}
+                  onChange={(e) => setNotifySlack(e.target.checked)}
+                />
+                자리를 뜰 때만 켜세요. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 됩니다
+              </label>
+            </div>
+          </div>
+        )}
+
+        <div className="field">
           <label htmlFor="run-title">실행 제목</label>
           <div>
             <input type="text" id="run-title" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -272,7 +312,15 @@ export function RunSetup({ tcId, service, user }: Props) {
         <button className="btn ghost" onClick={() => void saveSet()} disabled={busy}>
           입력값 세트로 저장
         </button>
-        <button className="btn" onClick={() => void run()} disabled={busy}>
+        {만들건수 <= 1 ? null : (
+          <span className={너무많나 ? 'err' : 'hint'}>
+            {너무많나
+              ? `한 번에 ${String(상한)}건까지 만들 수 있습니다 (지금 ${String(만들건수)}건)`
+              : `실행 항목이 ${String(만들건수)}건 생깁니다`}
+          </span>
+        )}
+        {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
+        <button className="btn" onClick={() => void run()} disabled={busy || 너무많나}>
           실행하기
         </button>
       </div>
