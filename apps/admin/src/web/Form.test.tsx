@@ -157,6 +157,14 @@ describe('Form', () => {
     expect(칸찾기(container, '나이').getAttribute('type')).toBe('text');
   });
 
+  it('칸은 브라우저 자동완성 후보를 받지 않는다', () => {
+    const { container } = 그리기();
+
+    // 관리 화면 로그인 비밀번호가 후보로 뜨면 잘못 고른 값이 run_item.params 에 평문으로 남는다
+    expect(칸찾기(container, '토큰').getAttribute('autocomplete')).toBe('new-password');
+    expect(칸찾기(container, '이름').getAttribute('autocomplete')).toBe('off');
+  });
+
   it('꼬리표가 없어도 이름이 비밀값이면 가려서 받는다 (K9 2차 방어)', () => {
     const { container } = 그리기({
       fields: schemaToFields({
