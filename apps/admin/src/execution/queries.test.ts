@@ -204,13 +204,13 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
   });
 
   it('lastByCase — 케이스와 환경마다 마지막 1건만 준다', async () => {
-    const 마지막 = (await lastByCase()).filter((r) => r.tcId === 'XBQ-001');
+    const 마지막 = (await lastByCase(['XBQ'])).filter((r) => r.tcId === 'XBQ-001');
     expect(마지막).toHaveLength(1);
     expect(마지막[0]).toMatchObject({ platform: 'desktop', status: 'FAIL', historyId: 실패항목 });
   });
 
   it('lastByCase — 아직 안 끝난 항목은 마지막 결과가 아니다', async () => {
-    const 마지막 = (await lastByCase()).filter((r) => r.tcId === 'XBQ-001');
+    const 마지막 = (await lastByCase(['XBQ'])).filter((r) => r.tcId === 'XBQ-001');
     expect(마지막.some((r) => r.platform === 'mobile')).toBe(false);
   });
 });

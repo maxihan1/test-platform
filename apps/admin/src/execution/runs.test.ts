@@ -92,6 +92,17 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     process.env.PLATFORM_ARTIFACTS_DIR = 그림방;
 
     app = Fastify();
+    // 진짜로 돌 때는 문(auth/gate.ts)이 req.user 를 실어 준다. 여기는 문을 안 끼우므로
+    // 배정 목록만 흉내 낸다 — 마지막 결과 조회가 그 값으로 남의 서비스를 거른다 (§7)
+    app.decorateRequest('user', null);
+    app.addHook('preHandler', async (req) => {
+      req.user = {
+        username: 'xbx-사람',
+        displayName: '실행 검사용',
+        role: 'operator',
+        services: [{ id: 1, prefix: 'XBX', name: '실행 검사용', color: '#3A5FCD', envs: [], hasSlackWebhook: false }],
+      };
+    });
     await app.register(executionRoutes, { prefix: '/api' });
     await app.ready();
   });

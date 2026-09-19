@@ -326,6 +326,19 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     }
   });
 
+  // 이건 번호로 부르는 것이 아니라 「전부 주는」 질의라 문에서 못 막는다.
+  // 질의 자체가 배정으로 걸러야 한다 — 안 그러면 남의 케이스 번호와 판정이 그대로 나간다
+  it('마지막 결과 일괄 조회가 배정받은 서비스만 준다', async () => {
+    const { lastByCase } = await import('../execution/history.js');
+    const 낸것 = await lastByCase(['XFS3A']);
+    expect(낸것.every((줄) => 줄.tcId.startsWith('XFS3A-'))).toBe(true);
+  });
+
+  it('배정이 하나도 없으면 아무것도 안 준다', async () => {
+    const { lastByCase } = await import('../execution/history.js');
+    expect(await lastByCase([])).toEqual([]);
+  });
+
   // 구멍을 세어서 막으면 다음에 더해진 라우트는 또 안 막힌다 —
   // 이번 구멍이 그렇게 생겼다 (계획 검토 BLOCKER 3)
   it('/api 밑에 분류 안 된 라우트가 없다', () => {
