@@ -214,11 +214,24 @@ openssl rand -hex 32
 
   ```
   docker compose exec admin npx tsx scripts/add-user.ts <아이디> <이름> admin
-  docker compose exec admin npx tsx scripts/add-service.ts <접두사> <서비스 이름>
+  docker compose exec admin npx tsx scripts/add-service.ts <접두사> <서비스 이름> \
+    --env qa=https://qa.example.com
   ```
 
   비밀번호는 이 명령이 무작위로 만들어 **한 번만** 찍는다.
   **두 번째부터는 명령을 쓰지 않는다** — 로그인해서 `설정` 자리에서 만든다
+
+  **`--env` 를 하나 이상 넣는다** (2026-09-19 반영). 대상 서버가 없으면 실행 설정의
+  드롭다운이 비고, 안 고르면 실행 요청이 400 이다 — 서비스를 만들어도 아무것도 못 돌린다 (SPEC §8.2).
+  여러 번 적을 수 있다 — `--env dev=... --env qa=...`.
+  안 넣으면 명령이 경고를 찍는다.
+
+  **계정에 서비스를 배정해야 띠에 뜬다.** 그 자리도 설정 화면(§8.8)이라 그때까지는 SQL 이다.
+
+  ```
+  docker compose exec postgres psql -U platform -d platform -c \
+    "INSERT INTO user_service (username, service_id) SELECT '<아이디>', id FROM service WHERE prefix = '<접두사>';"
+  ```
 - **서비스를 여러 개 담는다.** 한 벌에 여러 서비스를 두고 맨 위 띠에서 오간다.
   컨테이너를 서비스마다 따로 띄우지 않는다 (2026-09-17 결정. 앞 판은 그 반대였다)
 - **정기 실행은 HTTP를 거치지 않는다.**
