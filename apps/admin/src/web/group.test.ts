@@ -11,6 +11,7 @@ function item(tcId: string, platform: 'desktop' | 'mobile', status: 'PASS' | 'FA
     tcId,
     tcName: `${tcId}의 케이스명`,
     platform,
+    attempt: 1,
     status,
     durationMs: 1000,
     error: null,

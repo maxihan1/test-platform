@@ -47,7 +47,12 @@ export interface RunSummary {
   runId: number;
   title: string;
   triggeredBy: string;
+  // 그때의 이름을 박제한 값. 비면 '실행자 미상 (인증 도입 이전)' 으로 쓴다 (SPEC §3.5 · §8.7)
+  triggeredByName: string | null;
   env: string;
+  // 그날 실제로 친 주소와 그때의 서비스 이름 (SPEC §6 · §8.3 RUN 머리)
+  baseUrl: string;
+  serviceName: string;
   status: string;
   startedAt: string;
   finishedAt: string | null;
@@ -59,6 +64,8 @@ export interface RunItemSummary {
   tcId: string;
   tcName: string;
   platform: Platform;
+  // 같은 케이스×디바이스를 몇 번째로 돌렸는지. 회차 요약이 이 값으로 센다 (SPEC §8.3)
+  attempt: number;
   status: ItemStatus;
   durationMs: number | null;
   error: { message: string; stack?: string } | null;
@@ -72,6 +79,9 @@ export interface RunItemDetail extends RunItemSummary {
   precondition: string[];
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
+  // 입력·기대결과 칸의 라벨. 카탈로그가 아니라 이것을 읽는다 (SPEC §3.3)
+  paramSchema: JsonSchema;
+  expectedSchema: JsonSchema;
   steps: StepResult[];
 }
 
