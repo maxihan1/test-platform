@@ -71,7 +71,9 @@ const 틀린분량 = [];
     .filter((p) => p !== path.join(ROOT, 'docs/SPEC.md'))
     .reduce((n, p) => n + readFileSync(p, 'utf8').split('\n').length - 1, 0);
   readFileSync(path.join(ROOT, 'docs/SPEC.md'), 'utf8').split('\n').forEach((l, i) => {
-    const 갈래 = l.startsWith('| **') && l.match(/\| (\d+)줄 \|/);
+    // 경로가 없는 행을 전부 「12장 전부」로 보면, 뒤에 다른 분량 행이 생겼을 때
+    // 전장합과 대조해 터지면서 오류 문구가 원인을 안 가리킨다. 값이 아니라 키로 가른다
+    const 갈래 = l.startsWith('| **') && (l.includes('`spec/') || l.includes('12장 전부')) && l.match(/\| (\d+)줄 \|/);
     if (갈래) {
       const 합 = l.includes('`spec/')
         ? [...l.matchAll(/`([^`]+)`/g)].reduce((n, m) => n + 줄수(`${m[1]}.md`), 0)
