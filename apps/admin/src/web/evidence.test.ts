@@ -51,6 +51,18 @@ describe('증적 문서 버튼 (SPEC §8.4)', () => {
     expect(증적버튼('ABORTED', [], 'operator')?.누를수있나).toBe(true);
   });
 
+  it('실패한 뒤 다시 만들어 성공하면 옛 사유가 안 남는다', () => {
+    // 서버가 id 오름차순으로 준다. find 로 첫 FAILED 를 잡으면 옛 사유가 영영 붙어 있다
+    const 것 = 증적버튼('FINISHED', [증적('PDF', 'FAILED'), 증적('PDF', 'READY')], 'operator');
+    expect(것?.사유).toBe(null);
+    expect(것?.글).toBe('다시 만들기');
+  });
+
+  it('성공한 뒤 다시 만들다 실패하면 그 사유를 보여준다', () => {
+    const 것 = 증적버튼('FINISHED', [증적('PDF', 'READY'), 증적('PDF', 'FAILED')], 'operator');
+    expect(것?.사유).toBe('스크린샷을 찾지 못했습니다');
+  });
+
   it('보기만 등급에게는 만들기 버튼이 아예 없다 (SPEC §3.5)', () => {
     expect(증적버튼('FINISHED', [], 'viewer')).toBe(null);
   });

@@ -14,7 +14,13 @@ const EMPTY: Record<string, string> = {};
 
 interface Props {
   tcId: string;
-  /** 맨 위 띠에서 고른 서비스. 대상 서버 목록이 여기 실려 온다 (SPEC §8.2 → §7) */
+  /**
+   * 맨 위 띠에서 고른 서비스. 대상 서버 목록이 여기 실려 온다 (SPEC §8.2 → §7).
+   *
+   * **이 케이스의 서비스와 다를 수 있다** — 이 화면을 열어 둔 채 띠에서 다른 서비스로
+   * 바꾸면 그렇다. 그때 남의 `env` 로 실행을 걸면 서버가 400 을 내므로 값이 새지는 않지만,
+   * 사유를 모르는 오류가 뜬다. 아래에서 `tcId` 접두사와 대조해 미리 막는다
+   */
   service: ServiceRow | null;
   /** 실행자는 로그인한 사람이다. 사람이 적게 두면 남의 이름을 적을 수 있다 (SPEC §8.2) */
   user: User;
@@ -66,6 +72,8 @@ export function RunSetup({ tcId, service, user }: Props) {
     ? localErrors
     : { params: serverErrors.params, expected: serverErrors.expected };
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
+  // tcId 접두사가 서비스를 말한다 (SPEC §1). 띠에서 다른 서비스로 바꾸면 어긋난다
+  const 다른서비스 = service !== null && !row.tcId.startsWith(`${service.prefix}-`);
   const 만들건수 = 항목수(1, platforms.length, Number(repeat) || 1);
   const 너무많나 = 넘었나(만들건수);
   const broken = Object.keys(localErrors.params).length + Object.keys(localErrors.expected).length;
@@ -96,6 +104,10 @@ export function RunSetup({ tcId, service, user }: Props) {
       setNotice('실행할 디바이스를 하나 이상 고르세요.');
       return;
     }
+    if (다른서비스) {
+      setNotice('이 케이스는 지금 보고 있는 서비스의 것이 아닙니다. 맨 위에서 서비스를 바꾸세요.');
+      return;
+    }
     if (env === '') {
       // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
       setNotice('대상 서버를 고르세요. 어느 서버에 쐈는지가 증적의 전제입니다.');
@@ -107,7 +119,8 @@ export function RunSetup({ tcId, service, user }: Props) {
       const { runId } = await api.createRun({
         title: title.trim() === '' ? `${row.tcId} 실행` : title.trim(),
         env,
-        repeat: Math.max(1, Number(repeat) || 1),
+        // 화면이 세는 것과 같은 값을 보낸다. 소수를 그대로 보내면 서버의 z.number().int() 가 400 을 낸다
+        repeat: Math.max(1, Math.floor(Number(repeat) || 1)),
         notifySlack,
         items: [{ tcId: row.tcId, platforms, params, expected }],
       });
@@ -241,7 +254,12 @@ export function RunSetup({ tcId, service, user }: Props) {
             </select>
             {/* 고른 뒤 「어디로 쏘는지」를 확인할 자리가 있어야 한다 (SPEC §8.2) */}
             {주소 === null ? null : <span className="env-url">{주소}</span>}
-            {service !== null && service.envs.length === 0 ? (
+            {다른서비스 ? (
+              <div className="err">
+                지금 보고 있는 서비스가 {service?.name}인데 이 케이스는 {row.tcId.split('-')[0]} 것입니다.
+                맨 위에서 서비스를 바꾸거나 그 서비스의 케이스 목록에서 다시 여세요
+              </div>
+            ) : service !== null && service.envs.length === 0 ? (
               <div className="err">
                 이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다
               </div>

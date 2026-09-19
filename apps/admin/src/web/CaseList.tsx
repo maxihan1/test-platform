@@ -171,7 +171,15 @@ export function CaseList({ service }: { service: string }) {
         </button>
         <span className="filter-label">마지막 결과</span>
         {결과칩.map((값) => (
-          <button className="chip" key={값} aria-pressed={결과 === 값} onClick={() => set결과(값)}>
+          <button
+            className="chip"
+            key={값}
+            aria-pressed={결과 === 값}
+            onClick={() => {
+              set결과(값);
+              setPage(1);
+            }}
+          >
             {결과라벨[값]}
           </button>
         ))}
@@ -181,6 +189,14 @@ export function CaseList({ service }: { service: string }) {
         <Failed error={cases.error} />
       ) : cases.data === null ? (
         <Loading />
+      ) : 보일것.length === 0 && 결과 !== 'ALL' && cases.data.items.length > 0 ? (
+        // 마지막 결과만 화면이 거른다. **서버가 나눠 준 이 쪽 안에서만** 걸러지므로
+        // 「없다」고 단정하면 다음 쪽에 있는 것을 없다고 말하게 된다 (SPEC §8.1 이
+        // 「케이스가 수백 건이 되면 서버 쪽으로 옮긴다」고 예고한 자리다)
+        <div className="empty">
+          이 쪽에는 {결과라벨[결과]}인 케이스가 없습니다
+          <small>다음 쪽에 있을 수 있습니다. 나머지 조건은 서버가 전체에서 거릅니다</small>
+        </div>
       ) : 보일것.length === 0 ? (
         <Empty
           형편={{

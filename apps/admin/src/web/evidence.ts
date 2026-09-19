@@ -33,8 +33,11 @@ export function 증적버튼(status: string, 문서들: EvidenceRow[], role: 등
     return { 누를수있나: false, 글: '만드는 중입니다', 사유: null };
   }
 
-  const 실패 = 문서들.find((it) => it.status === 'FAILED');
-  if (실패 !== undefined) {
+  // **마지막 행을 본다.** 서버가 id 오름차순으로 주므로 `find` 는 언제나 옛것을 잡는다 —
+  // 한 번 실패한 뒤 다시 만들어 성공해도 옛 실패 사유 띠가 영영 남는다
+  const 마지막 = 문서들.at(-1);
+  if (마지막?.status === 'FAILED') {
+    const 실패 = 마지막;
     return { 누를수있나: true, 글: '다시 만들기', 사유: 실패.error ?? '알 수 없는 사유로 만들지 못했습니다' };
   }
 

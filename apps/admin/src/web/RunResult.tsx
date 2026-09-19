@@ -9,7 +9,7 @@ import { 받는법, 증적버튼 } from './evidence.js';
 import { 한줄로 } from './mask.js';
 import { Modal } from './Modal.js';
 import type { 등급 } from './role.js';
-import { 끝났다고알릴까, 도는중, 멈출수있나, 미실행사유, 본것으로적는다, 상태라벨 } from './runState.js';
+import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름, 칸사유 } from './runState.js';
 import { Failed, Loading, message, PLATFORM_LABEL, PLATFORMS, seconds, STATUS_COLOR, STATUS_LABEL, useAsync, Verdict, when } from './ui.js';
 
 const PAGE_SIZE = 20;
@@ -43,6 +43,13 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   // ABORTED 를 빠뜨리면 사람이 멈춘 실행에서 2초마다 영원히 다시 묻는다 (SPEC §8.3)
   const running = data !== null && 도는중(data.status);
 
+  // 다른 실행으로 옮기면 앞선 상태를 잊는다. 안 그러면 도는 중이던 RUN 을 보다가
+  // 이미 끝난 RUN 으로 옮겼을 때 「도는 중 → 끝남」으로 읽혀 모달이 잘못 뜬다
+  useEffect(() => {
+    앞선상태.current = null;
+    set알릴까(false);
+  }, [runId]);
+
   // 그 실행 결과 화면을 보고 있는 사람에게만 모달이 뜬다 (SPEC §8.9).
   // 다른 화면에 있는 사람은 §8 알림 줄이 받는다
   useEffect(() => {
@@ -53,12 +60,16 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   }, [data?.status, data?.runId]);
   const reload = run.reload;
 
+  // 증적 문서도 뒤에서 만들어진다. PENDING 행이 남아 있으면 계속 물어야
+  // 「만드는 중입니다」가 완성으로 바뀐다 — 안 그러면 버튼이 그 자리에 굳는다
+  const 만드는문서있나 = data !== null && data.evidence.some((it) => it.status === 'PENDING');
+
   // 실행은 뒤에서 이어진다. 끝날 때까지만 다시 묻고 끝나면 멈춘다
   useEffect(() => {
-    if (!running) return;
+    if (!running && !만드는문서있나) return;
     const timer = setInterval(reload, 2000);
     return () => clearInterval(timer);
-  }, [running, reload]);
+  }, [running, 만드는문서있나, reload]);
 
   if (run.error !== null) return <Failed error={run.error} />;
   if (data === null) return <Loading />;
@@ -90,7 +101,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
         <div>
           <div className="runid">RUN {data.runId}</div>
           <div className="runmeta">
-            {when(data.startedAt)} · {data.title} · 실행자 {data.triggeredByName ?? data.triggeredBy}
+            {when(data.startedAt)} · {data.title} · 실행자 {실행자이름(data)}
             {' · 대상 서버 '}
             {data.env}
             {data.baseUrl === '' ? '' : ` (${data.baseUrl})`}
@@ -210,7 +221,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
           const 첫항목 = 칸들[0]?.[0];
           const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema);
           // 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3)
-          const 사유 = 칸들.flat().map((i) => 미실행사유(i.error)).find((r) => r !== null) ?? null;
+          const 사유 = 칸사유(칸들.flat());
 
           return (
             <div className="row" key={group.tcId}>

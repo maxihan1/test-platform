@@ -117,3 +117,15 @@ export function 실행자이름(run: { triggeredBy: string; triggeredByName: str
   const 이름 = run.triggeredByName;
   return 이름 === null || 이름 === '' ? '실행자 미상 (인증 도입 이전)' : 이름;
 }
+
+/**
+ * 한 칸(디바이스 하나의 회차들)에 적을 사유 (SPEC §8.3).
+ *
+ * **미실행 항목만 본다.** 러너는 `FAIL` 이 예외로 끝났을 때도 `error` 를 채우는데
+ * (`packages/kit` 의 리포터), 그것을 `미실행사유()` 에 넘기면 영문 예외 메시지가
+ * 「러너에 닿지 못했습니다」로 바뀐다 — **그냥 실패한 테스트가 러너 장애로 보인다.**
+ * §8.3 이 둘을 구분하라고 한 자리를 오히려 뒤섞는 셈이다.
+ */
+export function 칸사유(칸: { status: string; error: { message: string } | null }[]): string | null {
+  return 칸.filter((i) => i.status === 'NA').map((i) => 미실행사유(i.error)).find((r) => r !== null) ?? null;
+}

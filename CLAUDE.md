@@ -241,9 +241,12 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   `tests/**`에 두지 않는다 — 그 폴더는 데모·대상 테스트 전용이고 훅이 `expect`를 막는다
 - **DB 테스트 fixture**: 접두사는 **갈래마다 고유하게**, 정리 구문(`DELETE ... LIKE`)은 **자기 것에만** 맞게 쓴다.
   Vitest는 파일을 병렬로 돌려서 넓은 패턴이 남의 fixture를 쓰는 도중에 지운다.
-  WS-A `ZZA` · WS-B `XBS`·`XBR`·`XBQ`·`XBX` · WS-D `XDC`·`XDR`·`XDD`·`XDG`.
+  WS-A `ZZA` · WS-B `XBS`·`XBR`·`XBQ`·`XBX` · WS-D `XDC`·`XDR`·`XDD`·`XDG` ·
+  WS-F `xfu1`~`xfu4`·`XFS1`·`XFS1B`·`XFS2`~`XFS4`.
   **WS-D·WS-F는 `ZZ`로 시작하는 것을 쓰지 않는다.**
   **새 접두사를 쓰면 이 줄에 적는다.** 안 적으면 다음 갈래가 같은 것을 골라 남의 fixture를 실행 도중에 지운다 (2026-09-19)
+  **`LIKE`로 넓힐 때는 그 아래 것을 전부 적는다** — `identify.test.ts`가 `'XFS1%'`로 지우므로
+  `XFS1`로 시작하는 이름은 그 파일 것이다. 다른 갈래가 `XFS1x`를 고르면 실행 중에 지워진다 (2026-09-19)
   확인은 연속 3회다 — 1회 통과는 증거가 못 된다 (spec-review G3)
 
 ### ponytail 플러그인과의 우선순위

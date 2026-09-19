@@ -1,6 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 끝났다고알릴까, 도는중, 멈출수있나, 미실행사유, 본것으로적는다, 상태라벨, 실행자이름, 알림본적있나 } from './runState.js';
+import {
+  끝났다고알릴까,
+  도는중,
+  멈출수있나,
+  미실행사유,
+  본것으로적는다,
+  상태라벨,
+  실행자이름,
+  알림본적있나,
+  칸사유,
+} from './runState.js';
 
 // 본 알림은 브라우저에 남는다. jsdom 을 설치하지 않았으므로 가짜를 끼운다 (api.test.ts 와 같은 방식)
 const 보관 = new Map<string, string>();
@@ -75,6 +85,33 @@ describe('돌지 못한 항목의 사유 (SPEC §8.3)', () => {
   it('원문 오류는 목록에 쓰지 않는다. 상세의 접힌 자리에 둔다', () => {
     const 스택 = { message: 'connect ECONNREFUSED 127.0.0.1:4000', stack: 'Error: connect...' };
     expect(미실행사유(스택)).toBe('러너에 닿지 못했습니다');
+  });
+});
+
+describe('사유는 미실행 항목에만 붙는다 (SPEC §8.3)', () => {
+  const 항목 = (status: 'PASS' | 'FAIL' | 'NA', message: string | null) => ({
+    status,
+    error: message === null ? null : { message },
+  });
+
+  it('실패한 테스트에는 사유를 안 붙인다. 붙이면 러너 장애로 뒤바뀐다', () => {
+    // 러너는 FAIL 이 예외로 끝나도 error 를 채운다 (kit 의 reporter.ts).
+    // 그 영문 메시지를 「러너에 닿지 못했습니다」로 바꾸면 테스트 실패가 장애로 보인다
+    const 칸 = [항목('FAIL', 'Timeout 5000ms exceeded')];
+    expect(칸사유(칸)).toBe(null);
+  });
+
+  it('통과한 항목에도 안 붙인다', () => {
+    expect(칸사유([항목('PASS', null)])).toBe(null);
+  });
+
+  it('미실행 항목의 사유만 쓴다', () => {
+    const 칸 = [항목('PASS', null), 항목('NA', 'ABORTED')];
+    expect(칸사유(칸)).toBe('사용자가 멈춤');
+  });
+
+  it('미실행인데 사유가 없으면 줄을 안 그린다', () => {
+    expect(칸사유([항목('NA', null)])).toBe(null);
   });
 });
 
