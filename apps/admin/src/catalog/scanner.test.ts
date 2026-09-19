@@ -2,7 +2,7 @@
 
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -72,14 +72,14 @@ describe('duplicatesOf', () => {
 });
 
 describe('scan', () => {
-  it('데모 케이스 10건을 tcId 순으로 돌려준다', async () => {
+  // 건수를 손으로 적으면 케이스를 더할 때마다 여기가 따라오지 못하고 조용히 틀려진다.
+  // 폴더에 있는 파일 이름이 곧 tcId 목록이다
+  it('케이스 파일을 빠짐없이 tcId 순으로 돌려준다', async () => {
     const { specs, failures, duplicates } = await scan();
     expect(failures).toEqual([]);
     expect(duplicates).toEqual([]);
-    expect(specs.map((s) => s.tcId)).toEqual([
-      'DEMO-001', 'DEMO-002', 'DEMO-003', 'DEMO-004', 'DEMO-005',
-      'DEMO-006', 'DEMO-007', 'DEMO-008', 'DEMO-009', 'DEMO-010',
-    ]);
+    const 파일이름들 = (await caseFiles()).map((f) => basename(f, '.spec.ts')).sort();
+    expect(specs.map((s) => s.tcId)).toEqual(파일이름들);
   });
 
   it('filePath는 tests 폴더 기준 상대 경로다', async () => {

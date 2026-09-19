@@ -1,12 +1,13 @@
 // 카탈로그 API 5종이 SPEC §7의 경로와 응답 형태를 지키는지 검사한다.
 // CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다
 
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import catalogRoutes from './routes.js';
+import { caseFiles, testsRoot } from './scanner.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -37,12 +38,13 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
     await pool.end();
   });
 
-  it('POST /api/catalog/scan — 데모 10건을 훑고 결과를 돌려준다', async () => {
+  it('POST /api/catalog/scan — 데모 폴더의 케이스를 빠짐없이 훑고 결과를 돌려준다', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/catalog/scan' });
     expect(res.statusCode).toBe(200);
 
     const body = res.json();
-    expect(body.added + body.updated).toBe(10);
+    // 건수를 손으로 적으면 케이스를 더할 때마다 여기가 따라오지 못한다. 라우트가 훑는 그 폴더를 직접 센다
+    expect(body.added + body.updated).toBe((await caseFiles(join(testsRoot(), 'demo'))).length);
     expect(body.duplicates).toEqual([]);
     // 같은 DB를 다른 갈래 테스트도 쓴다. 그쪽이 남긴 서비스의 폴더 사정은 이 검사의 관심사가 아니다 —
     // 데모 스캔이 깨끗했는지만 본다
