@@ -87,6 +87,30 @@ const 틀린분량 = [];
   });
 }
 
+// 이미 반영이 끝난 제안이 「아직 안 했다」로 읽히면, CLAUDE.md §1.2 가 명세를 여는 세션마다
+// 강제 정지를 건다. 2026-09-20 에 그런 블록이 넷 쌓여 있었다. 블록마다 상태 줄을 강제한다.
+//
+// 마크다운으로 파싱하지 않고 줄 그대로 훑는다 — 블록 하나가 ```sql 펜스 안에 있어서,
+// 코드 블록을 건너뛰는 식으로 짜면 상태 줄도 블록도 같이 안 보여 **우연히 초록**이 난다
+const 상태값 = /^상태:\s+(대기|철회됨|반영 완료 \(\d{4}-\d{2}-\d{2}, .+\))$/;
+const 상태없음 = [];
+let 계약블록 = 0;
+for (const p of 장들) {
+  const rel = path.relative(ROOT, p);
+  const 줄 = readFileSync(p, 'utf8').split('\n');
+  줄.forEach((l, i) => {
+    if (l.trim() !== '[계약 변경 필요]') return;
+    계약블록 += 1;
+    // 블록은 빈 줄이나 펜스에서 끝난다. 끝을 넓게 잡으면 뒤에 오는 남의 상태 줄을 제 것으로 센다
+    let 끝 = i + 1;
+    while (끝 < 줄.length && 줄[끝].trim() !== '' && !줄[끝].trimStart().startsWith('```')) 끝 += 1;
+    const 상태 = 줄.slice(i + 1, 끝).filter((x) => x.trimStart().startsWith('상태:'));
+    if (상태.length !== 1 || !상태값.test(상태[0].trim())) {
+      상태없음.push(`${rel}:${i + 1}  상태: 대기 | 반영 완료 (YYYY-MM-DD, 어디에) | 철회됨 중 하나가 블록 안에 하나 있어야 한다`);
+    }
+  });
+}
+
 // 2026-09-18 — 킥오프 앵커 검사를 걷어냈다.
 // `docs/orchestration.yaml` 의 `kickoff:` 이름이 WORKSTREAMS 에 실재하는지 대조하던 것인데,
 // 그 파일이 사라져 **대조할 상대가 없다.**
@@ -97,10 +121,14 @@ const 틀린분량 = [];
 
 console.log(`실재하는 절 ${[...있는절].sort().join(' · ')}`);
 console.log(`절 번호로 이 문서를 가리키는 곳 — SPEC 밖에 ${밖참조}군데`);
-if (깨진참조.length || 깨진링크.length || 틀린분량.length) {
+console.log(`[계약 변경 필요] 블록 ${계약블록}건 · 상태 줄이 없거나 모양이 틀린 것 ${상태없음.length}건`);
+if (깨진참조.length || 깨진링크.length || 틀린분량.length || 상태없음.length || 계약블록 === 0) {
   if (깨진참조.length) console.error(`\n없는 절을 가리키는 곳 ${깨진참조.length}건\n${깨진참조.join('\n')}`);
   if (깨진링크.length) console.error(`\n깨진 링크 ${깨진링크.length}건\n${깨진링크.join('\n')}`);
   if (틀린분량.length) console.error(`\n색인 분량이 실제와 다른 곳 ${틀린분량.length}건\n${틀린분량.join('\n')}`);
+  if (상태없음.length) console.error(`\n[계약 변경 필요] 블록에 상태 줄이 없는 곳 ${상태없음.length}건\n${상태없음.join('\n')}`);
+  // 블록이 하나도 없으면 이 검사는 아무것도 안 지키면서 초록만 낸다. 조용히 무의미해지지 않게 터뜨린다
+  if (계약블록 === 0) console.error('\n[계약 변경 필요] 블록이 하나도 없다 — 검사를 지울 때가 됐는지 보라');
   process.exit(1);
 }
-console.log('통과 — 없는 절 0건 · 깨진 링크 0건 · 틀린 분량 0건');
+console.log('통과 — 없는 절 0건 · 깨진 링크 0건 · 틀린 분량 0건 · 상태 줄 없는 블록 0건');
