@@ -13,6 +13,7 @@ import { route, 돌아갈자리, type Route } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunSetup } from './RunSetup.js';
+import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import './styles.css';
 
@@ -47,17 +48,7 @@ function Screen({ hash, service, user }: { hash: string; service: ServiceRow | n
       // '없는 주소입니다' 가 깜빡이지 않게 빈 화면을 낸다
       return <div className="screen" />;
     case 'settings':
-      // 자리는 SPEC §8 대로 넷이지만 이 화면(§8.8)은 아직 없다.
-      // 자리를 감추면 「못 하는 것은 안 보인다」와 섞여 등급 문제로 읽힌다 —
-      // 운영 등급인데 안 보이면 자기 등급을 의심하게 된다. 정직하게 알린다
-      return (
-        <div className="screen">
-          <div className="empty">
-            설정 화면은 아직 만들지 않았습니다
-            <small>서비스와 계정은 지금은 서버 명령으로 만듭니다 (docs/SETUP.md)</small>
-          </div>
-        </div>
-      );
+      return <Settings role={user.role} />;
     default:
       return (
         <div className="screen">
