@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { api, ApiError, type CaseRow, type ParamSetRow, type Platform } from './api.js';
+import { api, ApiError, type CaseRow, type ParamSetRow, type Platform, type ServiceRow, type User } from './api.js';
 import { Form } from './Form.js';
 import { initialText, schemaToFields, toValues } from './schema.js';
 import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
@@ -11,7 +11,15 @@ import { fieldErrors, messagesByKey } from './validation.js';
 
 const EMPTY: Record<string, string> = {};
 
-export function RunSetup({ tcId }: { tcId: string }) {
+interface Props {
+  tcId: string;
+  /** 맨 위 띠에서 고른 서비스. 대상 서버 목록이 여기 실려 온다 (SPEC §8.2 → §7) */
+  service: ServiceRow | null;
+  /** 실행자는 로그인한 사람이다. 사람이 적게 두면 남의 이름을 적을 수 있다 (SPEC §8.2) */
+  user: User;
+}
+
+export function RunSetup({ tcId, service, user }: Props) {
   const found = useAsync<CaseRow>(() => api.caseOf(tcId), [tcId]);
   const saved = useAsync<{ items: ParamSetRow[] }>(() => api.paramSets(tcId), [tcId]);
 
@@ -19,6 +27,8 @@ export function RunSetup({ tcId }: { tcId: string }) {
   const [expectedText, setExpectedText] = useState<Record<string, string>>(EMPTY);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [title, setTitle] = useState('');
+  // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2)
+  const [env, setEnv] = useState('');
   const [setName, setSetName] = useState('');
   const [showErrors, setShowErrors] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -52,6 +62,7 @@ export function RunSetup({ tcId }: { tcId: string }) {
   const shown = showErrors
     ? localErrors
     : { params: serverErrors.params, expected: serverErrors.expected };
+  const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
   const broken = Object.keys(localErrors.params).length + Object.keys(localErrors.expected).length;
 
   function edit(which: 'params' | 'expected') {
@@ -80,11 +91,17 @@ export function RunSetup({ tcId }: { tcId: string }) {
       setNotice('실행할 디바이스를 하나 이상 고르세요.');
       return;
     }
+    if (env === '') {
+      // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
+      setNotice('대상 서버를 고르세요. 어느 서버에 쐈는지가 증적의 전제입니다.');
+      return;
+    }
 
     setBusy(true);
     try {
       const { runId } = await api.createRun({
         title: title.trim() === '' ? `${row.tcId} 실행` : title.trim(),
+        env,
         items: [{ tcId: row.tcId, platforms, params, expected }],
       });
       window.location.hash = `#/runs/${runId}`;
@@ -204,6 +221,36 @@ export function RunSetup({ tcId }: { tcId: string }) {
           ))}
         </div>
         <div className="field" style={{ marginTop: '10px' }}>
+          <label htmlFor="run-env">대상 서버</label>
+          <div>
+            <select id="run-env" value={env} onChange={(e) => setEnv(e.target.value)}>
+              {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
+              <option value="">고르세요</option>
+              {(service?.envs ?? []).map((it) => (
+                <option key={it.env} value={it.env}>
+                  {it.env}
+                </option>
+              ))}
+            </select>
+            {/* 고른 뒤 「어디로 쏘는지」를 확인할 자리가 있어야 한다 (SPEC §8.2) */}
+            {주소 === null ? null : <span className="env-url">{주소}</span>}
+            {service !== null && service.envs.length === 0 ? (
+              <div className="err">
+                이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="run-by">실행자</label>
+          {/* 고칠 수 없는 표시 칸이다. 사람이 적게 두면 남의 이름을 적을 수 있다 (SPEC §8.2) */}
+          <div className="val" id="run-by">
+            {user.displayName}
+          </div>
+        </div>
+
+        <div className="field">
           <label htmlFor="run-title">실행 제목</label>
           <div>
             <input type="text" id="run-title" value={title} onChange={(e) => setTitle(e.target.value)} />

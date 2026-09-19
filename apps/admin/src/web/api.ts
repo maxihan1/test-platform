@@ -299,8 +299,21 @@ export const api = {
 
   item: (runId: number, historyId: number) => call<RunItemDetail>(`/runs/${runId}/items/${historyId}`),
 
-  createRun: (body: { title: string; triggeredBy?: string; items: RunRequestItem[] }) =>
-    call<{ runId: number }>('/runs', json(body)),
+  createRun: (body: {
+    title: string;
+    /** 대상 서버 키. **기본값을 두지 않는다** — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2) */
+    env: string;
+    /** 회차 수. 요청 최상위에 하나다 (SPEC §3.2) */
+    repeat?: number;
+    /** 끝났을 때 Slack 으로 알릴지. 기본 꺼짐 (SPEC §8.9) */
+    notifySlack?: boolean;
+    items: RunRequestItem[];
+    // 실행자는 싣지 않는다. 로그인한 세션에서 서버가 채운다 —
+    // 보내는 쪽이 정할 수 있으면 아무 이름이나 적을 수 있어 증적이 증적이 아니게 된다 (SPEC §3.5)
+  }) => call<{ runId: number }>('/runs', json(body)),
+
+  /** 대기 중인 것과 돌고 있는 것을 둘 다 끊는다 (SPEC §8.3) */
+  abortRun: (runId: number) => call<{ aborted: number }>(`/runs/${runId}/abort`, { method: 'POST' }),
 
   paramSets: (tcId: string) => call<{ items: ParamSetRow[] }>(`/cases/${encodeURIComponent(tcId)}/param-sets`),
 
