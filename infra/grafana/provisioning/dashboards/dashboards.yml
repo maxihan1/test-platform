@@ -1,0 +1,13 @@
+# 이 폴더의 대시보드 JSON 을 Grafana 가 자동으로 싣게 한다 (SPEC §8.5)
+
+apiVersion: 1
+
+providers:
+  - name: test-platform
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false
