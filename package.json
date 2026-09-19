@@ -13,6 +13,7 @@
     "check:tests": "tsx apps/admin/src/catalog/check.ts",
     "check:spec": "node .claude/scripts/check-spec-refs.mjs",
     "check:secret-names": "node .claude/scripts/check-secret-names.mjs",
+    "check:evidence-formats": "node --test .claude/scripts/check-evidence-formats.test.mjs",
     "check:workflow": "node --test .claude/scripts/*.test.mjs",
     "check:deps": "node .claude/scripts/check-deps.mjs",
     "count:done": "awk '/^[[:space:]]*- \\[[xX]\\]/{x++} /^[[:space:]]*- \\[ \\]/{o++} END{printf \"완료 기준 %d개 · 확인 끝난 것 %d개 · 남은 것 %d개\\n\", x+o, x, o}' docs/spec/공통/7-데모와-완료.md",

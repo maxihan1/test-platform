@@ -54,3 +54,6 @@ jobs:
       - name: 비밀값 이름 목록이 세 곳에서 갈라지지 않았나 (SPEC §4.1)
         if: steps.skeleton.outputs.ready == '1'
         run: npm run check:secret-names --if-present
+      - name: 증적 형식 이름이 네 곳에서 갈라지지 않았나 (SPEC §8.4)
+        if: steps.skeleton.outputs.ready == '1'
+        run: npm run check:evidence-formats --if-present
