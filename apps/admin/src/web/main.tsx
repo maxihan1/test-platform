@@ -27,7 +27,17 @@ function useHash(): string {
   return hash;
 }
 
-function Screen({ hash, service, user }: { hash: string; service: ServiceRow | null; user: User }) {
+function Screen({
+  hash,
+  service,
+  user,
+  onSelf,
+}: {
+  hash: string;
+  service: ServiceRow | null;
+  user: User;
+  onSelf: () => void;
+}) {
   const current = route(hash);
   // 띠가 서비스를 고르기 전에는 목록을 부르지 않는다. 빈 값으로 부르면 서버가 400 을 낸다
   const prefix = service?.prefix ?? '';
@@ -48,7 +58,7 @@ function Screen({ hash, service, user }: { hash: string; service: ServiceRow | n
       // '없는 주소입니다' 가 깜빡이지 않게 빈 화면을 낸다
       return <div className="screen" />;
     case 'settings':
-      return <Settings role={user.role} />;
+      return <Settings user={user} onSelf={onSelf} />;
     default:
       return (
         <div className="screen">
@@ -143,7 +153,17 @@ function App() {
       }}
       current={지금자리(route(hash).name)}
     >
-      <Screen hash={hash} service={열린것} user={상태.user} />
+      <Screen
+        hash={hash}
+        service={열린것}
+        user={상태.user}
+        onSelf={() => {
+          // 자기 자신을 고쳤다. 배정이 바뀌면 띠의 서비스 목록이 통째로 달라진다.
+          // 여기서 안 읽으면 새로고침할 때까지 옛 띠를 보게 되고, 배정 안내를 따라온 사람은
+          // 자기가 한 일이 먹혔는지 알 수 없다
+          void api.me().then(({ user }) => set상태({ 어디: '안', user }));
+        }}
+      />
     </Shell>
   );
 }

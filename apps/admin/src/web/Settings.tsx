@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 
-import { api, type EnvRow, type SettingsServiceRow, type UserRow } from './api.js';
+import { api, type EnvRow, type SettingsServiceRow, type User, type UserRow } from './api.js';
 import { 등급, 할수있나 } from './role.js';
 import { 마지막운영계정인가, 색사유, 설정오류문장, 접두사사유, 웹훅칸 } from './settingsView.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
@@ -11,12 +11,17 @@ import { Failed, Loading, message, useAsync } from './ui.js';
 const 등급이름: Record<등급, string> = { viewer: '보기만', operator: '실행까지', admin: '운영' };
 const 등급들: 등급[] = ['viewer', 'operator', 'admin'];
 
-export function Settings({ role }: { role: 등급 | null }) {
+/**
+ * @param onSelf 자기 자신을 고쳤을 때. **첫 운영자가 반드시 지나는 길이다** —
+ *   배정이 없으면 「설정에서 자기 자신을 배정하세요」로 보내 놓고, 배정해도 띠가 그대로면
+ *   사람이 「됐나?」 하고 멈춘다. 새로고침하면 되지만 그러라고 알려 주는 것이 없다
+ */
+export function Settings({ user, onSelf }: { user: User; onSelf: () => void }) {
   const services = useAsync<{ items: SettingsServiceRow[] }>(() => api.settingsServices(), []);
   const users = useAsync<{ items: UserRow[] }>(() => api.settingsUsers(), []);
 
   // 서버 gate.ts 가 이미 막지만, 주소를 직접 친 사람에게 403 대신 이유를 보여준다
-  if (!할수있나(role, '설정')) {
+  if (!할수있나(user.role, '설정')) {
     return (
       <div className="screen">
         <div className="empty">
@@ -36,7 +41,9 @@ export function Settings({ role }: { role: 등급 | null }) {
       <UserSection
         rows={users.data.items}
         services={services.data.items}
+        me={user.username}
         onDone={users.reload}
+        onSelf={onSelf}
       />
     </div>
   );
@@ -332,11 +339,16 @@ function EnvEditor({ envs, onChange }: { envs: EnvRow[]; onChange: (next: EnvRow
 function UserSection({
   rows,
   services,
+  me,
   onDone,
+  onSelf,
 }: {
   rows: UserRow[];
   services: SettingsServiceRow[];
+  /** 지금 로그인한 사람의 아이디. 자기 자신을 고치면 띠까지 다시 그려야 한다 */
+  me: string;
   onDone: () => void;
+  onSelf: () => void;
 }) {
   const [여는것, set여는것] = useState<string | 'new' | null>(null);
   // 만든 직후 한 번만 보여준다. 닫으면 다시 못 본다 (SPEC §8.8)
@@ -404,6 +416,8 @@ function UserSection({
               onDone={() => {
                 set여는것(null);
                 onDone();
+                // 자기 자신을 고쳤으면 띠와 등급도 다시 읽는다. 배정이 바뀌면 띠가 통째로 달라진다
+                if (it.username === me) onSelf();
               }}
               onPassword={(password) => set임시비밀번호({ username: it.username, password })}
             />
