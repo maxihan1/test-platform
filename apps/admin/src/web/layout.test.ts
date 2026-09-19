@@ -9,8 +9,22 @@ beforeEach(() => {
   vi.stubGlobal('location', { protocol: 'https:', hostname: 'qa.example.com' });
 });
 
-const 결제: ServiceRow = { id: 1, prefix: 'PAY', name: '결제 서비스', color: '#667788' };
-const 회원: ServiceRow = { id: 2, prefix: 'MEM', name: '회원 서비스', color: '#556677' };
+const 결제: ServiceRow = {
+  id: 1,
+  prefix: 'PAY',
+  name: '결제 서비스',
+  color: '#667788',
+  envs: [{ env: 'qa', baseUrl: 'https://qa.pay.test' }],
+  hasSlackWebhook: true,
+};
+const 회원: ServiceRow = {
+  id: 2,
+  prefix: 'MEM',
+  name: '회원 서비스',
+  color: '#556677',
+  envs: [],
+  hasSlackWebhook: false,
+};
 
 function 사람(role: User['role'], services: ServiceRow[]): User {
   return { username: 'kim', displayName: '김철수', role, services };

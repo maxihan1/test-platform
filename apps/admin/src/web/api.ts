@@ -111,12 +111,21 @@ export interface Violation {
   message: string;
 }
 
+export interface EnvRow {
+  env: string;
+  baseUrl: string;
+}
+
 // 맨 위 띠의 서비스 목록이 이것이다. 배정받은 것만 온다 (SPEC §7 · §8)
 export interface ServiceRow {
   id: number;
   prefix: string;
   name: string;
   color: string;
+  /** 실행 설정의 대상 서버 드롭다운이 읽는다. 화면이 이 값을 받을 통로가 여기뿐이다 (SPEC §8.2) */
+  envs: EnvRow[];
+  /** Slack 칸을 그릴지. 주소 자체는 오지 않는다 (SPEC §7) */
+  hasSlackWebhook: boolean;
 }
 
 export interface User {
