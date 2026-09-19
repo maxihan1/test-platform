@@ -106,7 +106,14 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     // 그래서 남는 글자가 ASCII뿐이고 헤더가 깨질 일이 없다. 한글이나 공백을 넣고 싶어지면
     // 그때는 이름을 바꾸기 전에 RFC 5987 인코딩부터 붙여야 한다.
     // attachment가 아닌 이유는 PDF·HTML이 새 창에서 열려야 하기 때문이다 (SPEC §8.4).
-    // 엑셀은 브라우저가 못 여는 형식이라 inline이어도 이 이름 그대로 내려받아진다
+    // 엑셀은 브라우저가 못 여는 형식이라 inline이어도 이 이름 그대로 내려받아진다.
+    //
+    // **HTML 은 새 창에서 열리는 것이 곧 실행되는 것이다.** admin 과 같은 출처라 세션 쿠키가 붙고
+    // 이 앱에는 CSP 가 없다. 지금 안전한 근거는 오직 html.ts 의 안전() 이 문서에 실리는 사람 글
+    // (실행 제목·케이스명·검증 문장·미실행 사유)을 **하나도 빠짐없이** 가리기 때문이다.
+    // 그 한 곳이라도 빠지는 날 이 줄이 관리 화면 권한으로 가는 길이 된다.
+    // **2026-09-20 에 그 맞바꿈을 알고 inline 을 유지하기로 정했다** — 한 번 클릭으로 보는 편의를 택했다.
+    // 뒤집을 조건은 「안전() 을 안 거치는 값이 문서에 실리는 것」 하나다. 그때는 HTML 만 attachment 로 내린다
     const 이름 = `evidence-run-${String(문서.runId)}.${형식표[문서.format].ext}`;
     return reply.type(형식표[문서.format].mime).header('content-disposition', `inline; filename="${이름}"`).send(파일);
   });
