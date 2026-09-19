@@ -1,5 +1,8 @@
 // CI에는 postgres가 없다. DB를 쓰는 갈래만 DATABASE_URL이 있을 때 돈다
 
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -105,7 +108,43 @@ describe('라우트가 분류됐는가', () => {
     expect(분류됐나('/api/새로운것')).toBe(false);
     expect(분류됐나('/api/reports/:reportId')).toBe(false);
   });
+
+  // ★ 이 검사가 이번 사고의 재발을 막는 자리다.
+  // 문은 아는 경로만 막고 모르는 경로는 지나보낸다 — 즉 새 라우트의 기본값이 「검사 안 함」이다.
+  // 이번 구멍도 누가 뚫은 것이 아니라 목록에서 빠졌을 뿐이다.
+  // **소스에 실제로 등록된 라우트를 훑는다.** 검사용 가짜 라우트를 훑으면
+  // 진짜 라우트가 늘어도 아무 신호가 안 뜬다
+  it('소스에 등록된 /api 라우트가 전부 분류돼 있다', () => {
+    const 등록된것 = 소스의라우트들();
+    expect(등록된것.length, '라우트를 하나도 못 읽었다 — 읽는 방식이 깨졌다').toBeGreaterThan(15);
+
+    const 분류안된것 = 등록된것.filter((경로) => !분류됐나(경로));
+    expect(
+      분류안된것,
+      `분류되지 않은 라우트: ${분류안된것.join(' · ')}\n` +
+        `서비스에 매이면 scope.ts 의 경로/번호 규칙에, 안 매이면 서비스에안매인다 목록에 넣어라.`,
+    ).toEqual([]);
+  });
 });
+
+/** 라우트 파일에서 등록된 경로를 그대로 읽는다. app.ts 가 전부 `/api` 접두사로 등록한다 */
+function 소스의라우트들(): string[] {
+  const 뿌리 = resolve(process.cwd(), 'apps/admin/src');
+  const 파일들 = readdirSync(뿌리, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => join(뿌리, d.name, 'routes.ts'))
+    .filter((p) => existsSync(p));
+
+  const 등록 = /\bapp\.(get|post|patch|put|delete|head)\s*(?:<[\s\S]*?>)?\s*\(\s*'([^']+)'/g;
+  const 경로들 = new Set<string>();
+  for (const 파일 of 파일들) {
+    const 글 = readFileSync(파일, 'utf8');
+    for (const 맞은것 of 글.matchAll(등록)) {
+      경로들.add(`/api${맞은것[2] ?? ''}`);
+    }
+  }
+  return [...경로들];
+}
 
 describe.skipIf(연결 === undefined)('번호가 어느 서비스인가', () => {
   let 실행번호 = 0;

@@ -4,7 +4,6 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { 인증등록 } from './gate.js';
-import { 분류됐나 } from './scope.js';
 import { 해시 } from './password.js';
 import authRoutes from './routes.js';
 import { 세션등록 } from './session.js';
@@ -339,16 +338,4 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     expect(await lastByCase([])).toEqual([]);
   });
 
-  // 구멍을 세어서 막으면 다음에 더해진 라우트는 또 안 막힌다 —
-  // 이번 구멍이 그렇게 생겼다 (계획 검토 BLOCKER 3)
-  it('/api 밑에 분류 안 된 라우트가 없다', () => {
-    const 안분류된것 = app
-      .printRoutes({ commonPrefix: false })
-      .split('\n')
-      .map((줄) => 줄.replace(/^[^/]*/, '').replace(/\s.*$/, '').trim())
-      .filter((경로) => 경로.startsWith('/api/') || 경로 === '/api')
-      .filter((경로) => !분류됐나(경로));
-
-    expect(안분류된것, `분류되지 않은 라우트: ${안분류된것.join(' · ')}`).toEqual([]);
-  });
 });
