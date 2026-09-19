@@ -2,6 +2,7 @@
 // 스키마는 zod 4의 z.toJSONSchema(schema, { io: 'input' }) 결과다. io가 input이라 .default()가 붙은 칸은 required에 없다
 
 import type { JsonSchema } from './api.js';
+import { 가려야하나 } from './mask.js';
 
 export type FieldKind = 'text' | 'number' | 'boolean' | 'enum';
 
@@ -12,6 +13,8 @@ export interface Field {
   required: boolean;
   /** 라벨 옆에 '선택'을 붙일 칸. 비워 두면 보내지 않는다 */
   optional: boolean;
+  /** 가려서 입력받을 칸. 판단은 mask.ts 가 한다 — 화면·증적과 같은 기준이어야 한다 (SPEC §8.2) */
+  secret: boolean;
   options?: string[];
   default?: unknown;
 }
@@ -52,6 +55,7 @@ export function schemaToFields(schema: JsonSchema): Field[] {
       required: isRequired,
       // default가 있으면 값이 이미 정해져 있다. 사람이 비워 두기로 고른 칸이 아니다
       optional: !isRequired && prop.default === undefined,
+      secret: 가려야하나(key, isPlainObject(raw) ? raw : {}),
       ...(Array.isArray(prop.enum) ? { options: prop.enum.map(String) } : {}),
       ...(prop.default === undefined ? {} : { default: prop.default }),
     };

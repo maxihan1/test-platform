@@ -55,7 +55,8 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
                 </select>
               ) : (
                 <input
-                  type="text"
+                  // 어깨너머로 보는 것을 막는다. 값은 가리지 않고 그대로 서버로 간다 (SPEC §8.2)
+                  type={field.secret ? 'password' : 'text'}
                   id={id}
                   className={field.kind === 'number' ? 'narrow' : undefined}
                   value={value}

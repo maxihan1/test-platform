@@ -109,6 +109,29 @@ describe('schemaToFields', () => {
   });
 });
 
+describe('schemaToFields — 비밀값 (SPEC §8.2 · K9)', () => {
+  it('secret 표시가 붙은 칸은 가려서 받는다', () => {
+    const [field] = schemaToFields({
+      type: 'object',
+      properties: { seed: { type: 'string', description: '씨앗값', secret: true } },
+    });
+    expect(field?.secret).toBe(true);
+  });
+
+  it('표시가 없어도 이름이 비밀값이면 가린다 — 박제 이전 행을 위한 2차 방어', () => {
+    const [field] = schemaToFields({
+      type: 'object',
+      properties: { password: { type: 'string', description: '비밀번호' } },
+    });
+    expect(field?.secret).toBe(true);
+  });
+
+  it('평범한 칸은 가리지 않는다', () => {
+    const [field] = schemaToFields(OPTIONAL_SCHEMA);
+    expect(field?.secret).toBe(false);
+  });
+});
+
 describe('initialText', () => {
   it('default가 있으면 그 값으로 칸을 미리 채운다', () => {
     expect(initialText(schemaToFields(THREE_SCHEMA))).toEqual({

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import { Form } from './Form.js';
+import { schemaToFields } from './schema.js';
 import type { Field } from './schema.js';
 
 // globals 가 꺼져 있어 testing-library 가 스스로 cleanup 을 걸지 못한다. 직접 건다 —
@@ -12,18 +13,28 @@ import type { Field } from './schema.js';
 afterEach(cleanup);
 
 const 칸들: Field[] = [
-  { key: 'name', label: '이름', kind: 'text', required: true, optional: false },
-  { key: 'age', label: '나이', kind: 'number', required: false, optional: true },
+  { key: 'name', label: '이름', kind: 'text', required: true, optional: false, secret: false },
+  { key: 'age', label: '나이', kind: 'number', required: false, optional: true, secret: false },
   {
     key: 'mode',
     label: '모드',
     kind: 'enum',
     required: true,
     optional: false,
+    secret: false,
     options: ['빠름', '느림'],
   },
-  { key: 'tag', label: '태그', kind: 'enum', required: false, optional: true, options: ['갑', '을'] },
-  { key: 'agree', label: '동의', kind: 'boolean', required: true, optional: false },
+  {
+    key: 'tag',
+    label: '태그',
+    kind: 'enum',
+    required: false,
+    optional: true,
+    secret: false,
+    options: ['갑', '을'],
+  },
+  { key: 'agree', label: '동의', kind: 'boolean', required: true, optional: false, secret: false },
+  { key: 'apiToken', label: '토큰', kind: 'text', required: true, optional: false, secret: true },
 ];
 
 function 그리기(덮어쓸: Partial<Parameters<typeof Form>[0]> = {}) {
@@ -134,6 +145,25 @@ describe('Form', () => {
 
     expect(바뀜).toHaveBeenCalledTimes(1);
     expect(바뀜.mock.calls[0]).toEqual(['name', '홍길동']);
+  });
+
+  it('비밀값 칸은 타이핑할 때 글자가 점으로 보이는 칸이다 (SPEC §8.2)', () => {
+    const { container } = 그리기();
+
+    expect(칸찾기(container, '토큰').getAttribute('type')).toBe('password');
+    expect(칸찾기(container, '이름').getAttribute('type')).toBe('text');
+    expect(칸찾기(container, '나이').getAttribute('type')).toBe('text');
+  });
+
+  it('꼬리표가 없어도 이름이 비밀값이면 가려서 받는다 (K9 2차 방어)', () => {
+    const { container } = 그리기({
+      fields: schemaToFields({
+        type: 'object',
+        properties: { password: { type: 'string', description: '비밀번호' } },
+      }),
+    });
+
+    expect(칸찾기(container, '비밀번호').getAttribute('type')).toBe('password');
   });
 
   it('오류는 그 칸 아래에 뜨고 아무것도 비활성화하지 않는다 (SPEC §8.2)', () => {
