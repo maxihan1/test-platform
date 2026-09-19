@@ -1,5 +1,18 @@
 /* 화면 전체의 디자인 토큰과 공용 조각. 값은 docs/DESIGN.md와 docs/design-mockup.html에서 그대로 가져왔다 */
 
+/* 글꼴을 제품 안에서 싣는다 (DESIGN.md, 2026-09-18 결정). 바깥 주소(CDN)에서 받아오지 않는다 —
+   사내망에서 그 주소가 막히면 시스템 기본 글꼴로 조용히 떨어지고, 화면이 달라 보이는 정도가 아니라
+   **숫자 폭이 제각각이 되어 「숫자는 세로로 맞춘다」 규칙이 같이 깨진다**.
+   가변(variable) 글꼴 하나로 굵기 셋(400·600·800)을 전부 낸다 — 정적 파일 셋보다 작다 */
+@font-face {
+  font-family: Pretendard;
+  font-weight: 45 920;
+  font-style: normal;
+  /* 받아오는 동안 폴백으로 먼저 그린다. 글자가 안 보이는 구간을 만들지 않는다 */
+  font-display: swap;
+  src: url('./fonts/PretendardVariable.woff2') format('woff2-variations');
+}
+
 :root {
   --paper: #e6e9e2;
   --sheet: #f8f9f5;
@@ -27,11 +40,14 @@
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: Pretendard, system-ui, sans-serif;
+  /* 폴백도 숫자 폭이 고정인 것으로 적는다 — 글꼴이 못 실렸을 때 대신 그릴 것들이다 (DESIGN.md) */
+  font-family: Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.6;
-  /* 숫자를 세로로 맞춰야 훑을 수 있다 (DESIGN.md 원칙 3) */
-  font-feature-settings: 'tnum';
+  /* 숫자를 세로로 맞춰야 훑을 수 있다 (DESIGN.md 원칙 3).
+     표준 속성을 쓴다 — font-feature-settings 는 글꼴이 그 기능을 들고 있을 때만 먹어서
+     폴백으로 떨어지면 조용히 무효가 된다 */
+  font-variant-numeric: tabular-nums;
   background-image: linear-gradient(var(--rule-soft) 0.5px, transparent 0.5px),
     linear-gradient(90deg, var(--rule-soft) 0.5px, transparent 0.5px);
   background-size: 28px 28px;
