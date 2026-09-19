@@ -80,3 +80,18 @@ curl 'localhost:3000/api/catalog/cases?service=NOPE'          # 403 SERVICE_FORB
   `?q=&page=` 만 보낸다. 서비스 띠를 붙이는 WS-E 몫이다 (소유 밖이라 건드리지 않았다)
 - **`execution` 테스트 18건이 빨간불이다.** `test_run.env` 의 기본값을 뺀 결과이고
   §6 이 예고한 그대로다. 실행 요청에 `env` 를 받는 WS-B 킥오프 E 가 고친다
+
+## 2026-09-20 — 낡은 기록 정리 (닫힌 것 표시)
+
+위 항목 중 아래는 **이미 코드로 닫혔다.** 열린 것으로 읽고 다시 시작하지 마라.
+윗줄은 그때의 기록이라 그대로 둔다 — 무엇이 닫혔는지는 여기만 본다.
+
+- **`web/api.ts` 의 `cases()` 가 서비스를 안 보낸다** (2026-09-18 「다음 세션이 알아야 할 것」) —
+  닫혔다. `apps/admin/src/web/api.ts:317` 이 `service` 를 실어 보낸다
+- **케이스 목록에 '마지막 결과'가 없다. 결정이 필요하다** (2026-09-16 「다음 세션이 알아야 할 것」) —
+  닫혔다. `GET /api/runs/last-by-case` 와 `apps/admin/src/web/catalogView.ts` 로 갔다
+- **403 판정이 `routes.ts` 의 `볼수있나()` 한 함수 안** (2026-09-18 「다음 세션이 알아야 할 것」) —
+  닫혔다. `apps/admin/src/auth/gate.ts` · `apps/admin/src/auth/scope.ts` 로 갔다 (PR #28)
+- **`execution` 테스트 18건이 빨간불이다** (2026-09-18 「막힌 것」) — 닫혔다.
+  지금 그 폴더는 전부 초록이다. 직접 세어 본다 —
+  `DATABASE_URL=... npx vitest run apps/admin/src/execution`

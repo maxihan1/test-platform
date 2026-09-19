@@ -184,7 +184,12 @@ describe.skipIf(연결 === undefined)('증적 문서 생성', () => {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.readFile(join(증적폴더, 'evidence', String(runId), `${String(문서.id)}.xlsx`));
     const ws = wb.worksheets[0]!;
-    const 경로칸 = [2, 3, 4].map((행) => String(ws.getRow(행).getCell(24).value ?? ''));
+    // 칸 번호로 읽으면 머리행에 칸이 하나 늘 때마다 여기가 조용히 다른 칸을 읽는다.
+    // 실제로 2026-09-20 에 사유 칸이 들어오면서 판정 칸을 읽고 있었다 — 이름으로 찾는다
+    const 머리 = ws.getRow(1).values as (string | undefined)[];
+    const 경로열 = 머리.indexOf('스크린샷경로');
+    expect(경로열).toBeGreaterThan(0);
+    const 경로칸 = [2, 3, 4].map((행) => String(ws.getRow(행).getCell(경로열).value ?? ''));
 
     // 이미지를 박으면 파일이 무거워지고 열기 느려진다 (SPEC §8.4). 심는 변환을 XLSX 가 타면 안 된다
     expect(경로칸).toEqual([있는화면, 없는화면, 벗어난화면]);

@@ -197,7 +197,7 @@ openssl rand -hex 32
 | 이름 | 무엇 |
 |------|------|
 | `SESSION_SECRET` | 로그인 세션을 서명하는 키. **비어 있거나 32바이트보다 짧으면 admin이 기동을 거부한다** (`openssl rand -hex 32` 면 충분하다). 임시 키를 지어내면 재기동할 때마다 전원 로그아웃되고, 그 사실을 아무도 모른 채 「가끔 로그인이 풀린다」로 겪는다 |
-| `ADMIN_PORT` · `GRAFANA_PORT` · `POSTGRES_PORT` | 바깥 포트. 비우면 `3000`·`3001`·`5433`으로 뜬다. 한 서버에 다른 것과 같이 띄울 때만 바꾼다 |
+| `ADMIN_PORT` · `GRAFANA_PORT` · `POSTGRES_PORT` | 바깥 포트. 비우면 `3000`·`3001`·`5433`으로 뜬다. 한 서버에 다른 것과 같이 띄울 때만 바꾼다. **`GRAFANA_PORT` 는 바꾸면 admin 이미지를 다시 빌드해야 한다** — 화면의 「그래프 ↗」 링크가 이 값을 빌드할 때 번들에 구워 두기 때문이다 (SPEC §9.2). `docker compose up -d --build` 로 올리면 저절로 맞고, `--build` 없이 올리면 아무 오류 없이 링크만 틀린 포트를 가리킨다 |
 | `PLATFORM_PUBLIC_URL` | 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 「결과 보기」 링크가 이 값 위에 붙는다. **비워 두면 알림에 링크가 안 들어간다** — 틀린 주소를 보내는 것보다 없는 편이 낫다 |
 
 **2026-09-17에 넷이 이 표에서 빠졌다.** `PLATFORM_INSTANCE_NAME`·`_COLOR`·`PLATFORM_TESTS_REPO`·`PLATFORM_ENV_URLS`.

@@ -43,6 +43,14 @@ test('git 훅은 2등급 — 안전 장치다 (2026-09-18 미분류였다)', () 
   assert.deepEqual(detectTier(['.claude/hooks/pre-push']).unmapped, []);
 });
 
+test('admin src 바로 밑의 파일도 2등급 — 폴더 밖이라고 새면 안 된다 (2026-09-20 미분류였다)', () => {
+  assert.equal(surfaceOf('apps/admin/src/routeParams.ts')?.name, 'ADMIN');
+  assert.equal(detectTier(['apps/admin/src/routeParams.ts']).tier, 2);
+  assert.deepEqual(detectTier(['apps/admin/src/routeParams.ts']).unmapped, []);
+  // 같은 자리의 검사 파일은 규칙 ④ 대로 TESTS 가 먼저 가져간다
+  assert.equal(surfaceOf('apps/admin/src/routeParams.test.ts')?.name, 'TESTS');
+});
+
 test('서버 본체와 러너는 2등급', () => {
   assert.equal(detectTier(['apps/admin/src/catalog/store.ts']).tier, 2);
   assert.equal(detectTier(['apps/runner/src/execute.ts']).tier, 2);

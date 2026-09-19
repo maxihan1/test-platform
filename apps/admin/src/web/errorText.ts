@@ -22,6 +22,10 @@ export const 오류말: Record<string, string> = {
   SCREENSHOT_NOT_FOUND: '그 화면 사진을 찾지 못했습니다',
   SOURCE_NOT_FOUND: '그 테스트 코드 파일을 읽지 못했습니다. 캐시가 낡았을 수 있습니다',
 
+  // 화면이 버튼을 잠그는 것과 서버가 막는 것 사이의 틈에서 만난다 — 새로고침 직후나 두 탭.
+  // 이게 없으면 서버가 보낸 detail 인 'RUNNING' 이 영문 그대로 화면에 뜬다 (SPEC §7)
+  RUN_NOT_FINISHED: '아직 도는 중인 실행입니다. 끝난 뒤에 증적 문서를 만듭니다',
+
   MIXED_SERVICE: '한 실행에는 한 서비스의 케이스만 담습니다',
   ENV_NOT_FOUND: '그 대상 서버가 이 서비스에 없습니다. 설정에서 먼저 넣습니다',
   TOO_MANY_ITEMS: '한 번에 만들 수 있는 항목 수를 넘었습니다',

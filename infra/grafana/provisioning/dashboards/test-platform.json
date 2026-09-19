@@ -61,7 +61,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT i.tc_id AS \"케이스 ID\",\n       i.tc_name AS \"케이스명\",\n       count(*) AS \"실패 건수\"\nFROM run_item i\nJOIN test_run r ON r.run_id = i.run_id\nWHERE i.status = 'FAIL'\n  AND r.started_at >= now() - interval '30 days'\nGROUP BY i.tc_id, i.tc_name\nORDER BY count(*) DESC, i.tc_id\nLIMIT 10"
+          "rawSql": "WITH folded AS (\n  SELECT i.tc_id, max(i.tc_name) AS tc_name,\n         bool_or(i.status = 'FAIL') AS failed\n  FROM run_item i\n  JOIN test_run r ON r.run_id = i.run_id\n  WHERE r.started_at >= now() - interval '30 days'\n  GROUP BY i.run_id, i.tc_id, i.platform\n)\nSELECT tc_id AS \"케이스 ID\",\n       max(tc_name) AS \"케이스명\",\n       count(*) AS \"실패 건수\"\nFROM folded\nWHERE failed\nGROUP BY tc_id\nORDER BY count(*) DESC, tc_id\nLIMIT 10"
         }
       ]
     },
