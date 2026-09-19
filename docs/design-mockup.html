@@ -12,7 +12,7 @@
   --rule:#C8CEC3; --rule-soft:#DCE0D7;
   --pass:#0D6A46; --fail:#A62B21; --na:#79693A;
   --pass-bg:#E2EDE6; --fail-bg:#F6E4E1; --na-bg:#F1EBDC;
-  /* 서비스 색 — 맨 위 띠에서만 쓴다. 본문의 색은 언제나 판정이다 (DESIGN.md) */
+  /* 서비스 색 — 맨 위 띠와 설정 화면의 색 고르개에서만 쓴다. 정본은 SPEC §8 */
   --svc-pay:#2F5D50; --svc-mem:#3A4A63;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -285,7 +285,7 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
     <li>자리가 넷이다 — 케이스 · 실행 기록 · 그래프↗ · <b>설정</b>. 설정은 운영 등급에게만 뜬다 (§3.5)</li>
     <li>새 화면 셋 — <b>실행 기록 목록</b>(§8.7) · <b>설정</b>(§8.8) · <b>실행 완료 모달</b>(§8.9)</li>
     <li>증적 문서를 <b>형식을 골라</b> 만든다 — PDF · 엑셀 · HTML (§8.4 가 정본)</li>
-    <li>색은 판정만 갖는다. <b>서비스 색은 맨 위 띠 한 줄이 유일한 예외다</b></li>
+    <li>색은 판정만 갖는다. <b>예외는 맨 위 띠와 설정 화면의 색 고르개 둘뿐이다</b> (SPEC §8)</li>
   </ul>
 </div>
 
@@ -357,6 +357,7 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 </div>
 <p class="note" style="margin:-4px 0 40px 2px">
   본문은 그대로다. <b>본문에서 색을 보면 언제나 판정이다</b> — 서비스 색이 본문에 새면 그 약속이 깨진다.
+  설정 화면에서 그 색을 고르는 자리만 예외다 (SPEC §8).
 </p>
 
 <!-- ══ 화면 1 — 케이스 목록 ═══════════════════════════════════════ -->
