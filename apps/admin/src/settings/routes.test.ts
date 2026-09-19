@@ -103,6 +103,17 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
     expect(res.json()).toEqual({ error: 'PREFIX_IMMUTABLE' });
   });
 
+  it('서비스 번호가 정수 범위를 벗어나면 400이다', async () => {
+    for (const 틀린번호 of ['abc', '1e21', '0', '-1']) {
+      const res = await app.inject({
+        method: 'PATCH',
+        url: `/api/settings/services/${틀린번호}`,
+        payload: { name: '아무거나' },
+      });
+      expect(res.statusCode).toBe(400);
+    }
+  });
+
   it('이름·색·대상 서버는 언제든 고친다', async () => {
     const id = (await 목록()).find((s) => s.prefix === 'XFS4A')?.id;
     const res = await app.inject({
