@@ -15,8 +15,19 @@ declare module 'fastify' {
 
 const 높이: Record<등급, number> = { viewer: 0, operator: 1, admin: 2 };
 
-function 경로(req: FastifyRequest): string {
-  return req.url.split('?')[0] ?? '';
+/**
+ * 이 요청이 **어느 라우트로 갔는가.** 등록된 틀(`/api/settings/users`)이 그대로 온다.
+ *
+ * **`req.url` 을 쓰지 않는다.** 그것은 퍼센트 디코딩 **전** 원문인데, 라우터는 주소를
+ * 디코딩한 뒤에 라우트를 찾는다. 그래서 글자로 판정하면 정적 구간 한 글자만 감싸도
+ * 문과 라우트가 서로 다른 주소를 본다 — `/%61pi/settings/users` 가 문의 `/api/` 검사를
+ * 비켜서 **로그인 없이** 전 계정 목록을 냈고, `/api/%73ettings/users` 가 설정 자리 판정을
+ * 비켜서 실행까지 등급이 운영 API 를 열었다 (2026-09-19 실측).
+ *
+ * 틀은 디코딩과 무관한 값이라 그 틈이 애초에 생기지 않는다.
+ */
+function 라우트틀(req: FastifyRequest): string | undefined {
+  return req.routeOptions.url;
 }
 
 function 설정자리(path: string): boolean {
@@ -117,8 +128,9 @@ export function 인증등록(app: FastifyInstance): void {
   app.decorateRequest('user', null);
 
   app.addHook('preHandler', async (req, reply) => {
-    const path = 경로(req);
-    if (!path.startsWith('/api/')) return;
+    // 라우트가 안 잡힌 요청은 지킬 자원이 없다. 라우터가 404 를 내게 둔다
+    const path = 라우트틀(req);
+    if (path === undefined || !path.startsWith('/api/')) return;
 
     // 로그인 자체는 로그인을 요구할 수 없다. **이것 하나뿐이다** (SPEC §7).
     // 2026-09-17 에 POST /api/runs 예외가 삭제됐다 — 정기 실행은 HTTP 를 쓰지 않는다 (§9.2)

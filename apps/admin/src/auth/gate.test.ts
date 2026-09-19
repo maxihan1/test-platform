@@ -145,6 +145,8 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
         scope.get('/catalog/cases/:tcId', async () => ({ 지나감: true }));
         scope.get('/cases/:tcId/source', async () => ({ 지나감: true }));
         scope.get('/runs/last-by-case', async () => ({ 지나감: true }));
+        // 라우트표에 **일부러 안 넣은** 자리. 분류 안 된 라우트가 막히는지 보는 데 쓴다
+        scope.get('/분류안된것', async () => ({ 지나감: true }));
       },
       { prefix: '/api' },
     );
@@ -374,20 +376,46 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
         headers: { cookie: 쿠키 },
       });
       expect(감싼.status, `/api/runs/${감싼것}`).toBe(403);
+
+      // ★ **번호 칸만 보면 절반이다.** 라우터는 주소 전체를 디코딩한 뒤 라우트를 찾으므로
+      // `api` · `settings` 같은 **정적 구간**을 감싸도 문과 라우트가 갈린다.
+      // `/%61pi/**` 는 문의 「/api/ 로 시작하나」를 비켜서 **로그인조차 안 거쳤고**,
+      // `/api/%73ettings/**` 는 설정 자리 판정을 비켜 운영 API 를 열었다 (2026-09-19 실측)
+      for (const 주소 of ['/%61pi/settings/services', '/ap%69/settings/services', '/%61pi/runs/1']) {
+        const 쿠키없이 = await fetch(`http://127.0.0.1:${포트}${주소}`);
+        expect(쿠키없이.status, `로그인 없이 ${주소}`).toBe(401);
+      }
+
+      for (const 주소 of ['/api/%73ettings/services', '/api/settin%67s/services']) {
+        const res = await fetch(`http://127.0.0.1:${포트}${주소}`, { headers: { cookie: 쿠키 } });
+        expect(res.status, `실행까지 등급이 ${주소}`).toBe(403);
+      }
     } finally {
       await app.server.close();
     }
   });
 
   // 표에 없는 라우트는 「서비스에 안 매인다」가 아니라 「아무도 분류하지 않았다」다.
-  // 기본값이 열림이면 새 라우트가 조용히 뚫린다 — 이번 구멍이 그렇게 생겼다
-  it('라우트표에 없는 /api 주소는 막는다', async () => {
+  // 기본값이 열림이면 새 라우트가 조용히 뚫린다 — 이번 구멍이 그렇게 생겼다.
+  // `/api/분류안된것` 은 이 검사용 앱에만 있고 라우트표에 없다
+  it('등록은 됐는데 라우트표에 없는 주소는 막는다', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/분류안된것',
+      cookies: { platform_session: await 출입증('xfu3-operator') },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  // 라우트가 아예 없으면 지킬 자원도 없다. 404 를 403 으로 덮으면
+  // 「없는 것」과 「막힌 것」이 뭉개져 사람이 주소를 고칠 단서를 잃는다
+  it('라우트가 없는 주소는 라우터가 404 를 낸다', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/아무도모르는것',
       cookies: { platform_session: await 출입증('xfu3-operator') },
     });
-    expect(res.statusCode).toBe(403);
+    expect(res.statusCode).toBe(404);
   });
 
   // 통합 이전 행은 어느 배정에도 안 든다. 열어 두면 §7 의 금지가 옛 행 앞에서만 비켜 준 꼴이 된다
