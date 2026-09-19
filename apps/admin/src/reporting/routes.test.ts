@@ -163,6 +163,23 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     expect(res.body).toContain(만들기.generatedAt);
   });
 
+  // Number.isInteger(1e21)은 true다. 걸러지지 않으면 값이 그대로 Postgres로 가 범위 초과가 잡히지 않은 500으로 샌다
+  it('경로의 번호가 정수 범위를 벗어나면 400이다', async () => {
+    for (const 값 of ['1e21', '0', '-1', 'abc']) {
+      const 만들기 = await app.inject({
+        method: 'POST',
+        url: `/api/runs/${값}/evidence`,
+        payload: { format: 'HTML' },
+      });
+      expect(만들기.statusCode, `POST /api/runs/${값}/evidence`).toBe(400);
+      expect(만들기.json().error, `POST /api/runs/${값}/evidence`).toBe('INVALID_REQUEST');
+
+      const 받기 = await app.inject({ method: 'GET', url: `/api/evidence/${값}` });
+      expect(받기.statusCode, `GET /api/evidence/${값}`).toBe(400);
+      expect(받기.json().error, `GET /api/evidence/${값}`).toBe('INVALID_REQUEST');
+    }
+  });
+
   it('아직 파일이 없는 행을 받으려 하면 409, 없는 id면 404다', async () => {
     const 만드는중 = await claim(runId, 'PDF');
     expect((await app.inject({ method: 'GET', url: `/api/evidence/${String(만드는중.id)}` })).statusCode).toBe(409);

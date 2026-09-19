@@ -7,6 +7,7 @@ import { join, resolve } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { 정수 } from '../routeParams.js';
 import { dispatch, markAborted } from './dispatcher.js';
 import { notifyRun } from './notify.js';
 import { abortRunner } from './runner.js';
@@ -105,7 +106,8 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   });
 
   app.post<{ Params: { runId: string } }>('/runs/:runId/abort', async (req, reply) => {
-    const runId = Number(req.params.runId);
+    const runId = 정수(req.params.runId);
+    if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
 
     // 끊을 대상을 먼저 손에 쥔다. 닫고 나면 finished_at 이 차서 못 찾는다.
     // 그 사이에 끝난 것이 섞여도 러너가 모르는 historyId 는 false 를 돌려줄 뿐이다 (SPEC §5.2)
@@ -149,13 +151,23 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   }));
 
   app.get<{ Params: { runId: string } }>('/runs/:runId', async (req, reply) => {
-    const found = await findRun(Number(req.params.runId));
+    const runId = 정수(req.params.runId);
+    if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
+
+    const found = await findRun(runId);
     if (found === null) return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
     return found;
   });
 
   app.get<{ Params: { runId: string; historyId: string } }>('/runs/:runId/items/:historyId', async (req, reply) => {
-    const found = await findItem(Number(req.params.runId), Number(req.params.historyId));
+    const runId = 정수(req.params.runId);
+    const historyId = 정수(req.params.historyId);
+    if (runId === null || historyId === null) {
+      const 어긋난값 = runId === null ? req.params.runId : req.params.historyId;
+      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 어긋난값 });
+    }
+
+    const found = await findItem(runId, historyId);
     if (found === null) return reply.code(404).send({ error: 'RUN_ITEM_NOT_FOUND', detail: req.params.historyId });
     return found;
   });
@@ -217,8 +229,8 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   });
 
   app.delete<{ Params: { id: string } }>('/param-sets/:id', async (req, reply) => {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id)) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
+    const id = 정수(req.params.id);
+    if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
     if (!(await deleteParamSet(id))) return reply.code(404).send({ error: 'PARAM_SET_NOT_FOUND', detail: req.params.id });
     return reply.code(204).send();
   });

@@ -152,4 +152,23 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
     const res = await app.inject({ method: 'DELETE', url: '/api/param-sets/999999999' });
     expect(res.statusCode).toBe(404);
   });
+
+  // 검사 없이 지나가던 자리들이다. Number('abc')는 NaN 이고 Number.isInteger(1e21)은 true다 —
+  // 둘 다 그대로 Postgres 로 가면 잡히지 않은 500 이 된다
+  it('경로의 번호가 정수 범위를 벗어나면 500이 아니라 400이다', async () => {
+    for (const 값 of ['abc', '1e21', '0', '-1']) {
+      const 자리들 = [
+        { method: 'POST' as const, url: `/api/runs/${값}/abort` },
+        { method: 'GET' as const, url: `/api/runs/${값}` },
+        { method: 'GET' as const, url: `/api/runs/${값}/items/1` },
+        { method: 'GET' as const, url: `/api/runs/1/items/${값}` },
+        { method: 'DELETE' as const, url: `/api/param-sets/${값}` },
+      ];
+      for (const 자리 of 자리들) {
+        const res = await app.inject(자리);
+        expect(res.statusCode, `${자리.method} ${자리.url}`).toBe(400);
+        expect(res.json().error, `${자리.method} ${자리.url}`).toBe('INVALID_REQUEST');
+      }
+    }
+  });
 });

@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { 정수 } from '../routeParams.js';
 import { generate, 형식표 } from './generate.js';
 import { EvidenceBusyError, claim, findDocument, recoverPending } from './store.js';
 
@@ -20,11 +21,6 @@ async function 실행상태(runId: number): Promise<string | null> {
   const { pool } = await import('../db/index.js');
   const rows = await pool.query<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [runId]);
   return rows.rows[0]?.status ?? null;
-}
-
-function 정수(raw: string): number | null {
-  const n = Number(raw);
-  return Number.isInteger(n) && n > 0 ? n : null;
 }
 
 export default async function reportingRoutes(app: FastifyInstance): Promise<void> {
