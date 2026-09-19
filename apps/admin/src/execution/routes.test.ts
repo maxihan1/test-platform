@@ -163,6 +163,9 @@ describe.skipIf(연결 === undefined)('ParamSet API', () => {
         { method: 'GET' as const, url: `/api/runs/${값}/items/1` },
         { method: 'GET' as const, url: `/api/runs/1/items/${값}` },
         { method: 'DELETE' as const, url: `/api/param-sets/${값}` },
+        { method: 'GET' as const, url: `/api/screenshots/${값}/1/1.png` },
+        { method: 'GET' as const, url: `/api/screenshots/1/${값}/1.png` },
+        { method: 'GET' as const, url: `/api/screenshots/1/1/${값}.png` },
       ];
       for (const 자리 of 자리들) {
         const res = await app.inject(자리);

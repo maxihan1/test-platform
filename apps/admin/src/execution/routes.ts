@@ -180,9 +180,10 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   app.get<{ Params: { runId: string; historyId: string; seq: string } }>(
     '/screenshots/:runId/:historyId/:seq.png',
     async (req, reply) => {
-      const parts = [req.params.runId, req.params.historyId, req.params.seq].map(Number);
-      // 경로를 정수로만 조립한다. 볼륨 밖으로 올라가는 경로가 애초에 만들어지지 않는다
-      if (parts.some((n) => !Number.isInteger(n) || n < 0)) {
+      // 경로를 정수로만 조립한다. 볼륨 밖으로 올라가는 경로가 애초에 만들어지지 않는다.
+      // 여기만 규칙을 따로 적었다가 0 과 지수 표기를 통과시키고 있었다 — 같은 자리를 쓴다
+      const parts = [req.params.runId, req.params.historyId, req.params.seq].map(정수);
+      if (parts.some((n) => n === null)) {
         return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.url });
       }
 
