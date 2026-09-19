@@ -16,7 +16,12 @@ function 훑기(dir: string): string[] {
   });
 }
 
-const 검사파일 = 훑기(resolve(루트, 'apps')).map((p) => relative(루트, p)).sort();
+// vitest include 가 apps·packages 두 뿌리를 집으므로 훑는 뿌리도 둘이어야 한다.
+// 한쪽만 보면 반대쪽 .test.tsx 가 지시자 없이 들어와도 초록이다
+const 검사파일 = ['apps', 'packages']
+  .flatMap((뿌리) => 훑기(resolve(루트, 뿌리)))
+  .map((p) => relative(루트, p))
+  .sort();
 
 describe('JSX 단위 검사의 실행 터', () => {
   // 한 건도 못 찾았는데 초록이면 이 검사 자체가 사각지대가 된다.
