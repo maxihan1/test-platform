@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { api, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
 import { filterGroups, groupByCase, 회차요약 } from './group.js';
+import { 한줄로 } from './mask.js';
 import { 도는중 } from './runState.js';
 import { Failed, Loading, PLATFORM_LABEL, PLATFORMS, seconds, STATUS_COLOR, STATUS_LABEL, useAsync, Verdict, when } from './ui.js';
 
@@ -118,12 +119,18 @@ export function RunResult({ runId }: { runId: number }) {
             .map((platform) => group.byPlatform[platform])
             .filter((칸): 칸 is RunItemSummary[] => 칸 !== undefined && 칸.length > 0);
           const 첫항목 = 칸들[0]?.[0];
+          const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema);
 
           return (
             <div className="row" key={group.tcId}>
               <div className="gutter" style={{ background: STATUS_COLOR[worst(칸들)] }} />
               <div className="tcid">{group.tcId}</div>
-              <div className="title">{group.tcName}</div>
+              <div className="title">
+                {group.tcName}
+                {/* 상세로 들어가야만 보이면 「어떤 값에서 깨졌는가」를 줄 사이에서 비교할 수 없다 (SPEC §8.3).
+                    입력이 없는 케이스는 줄 자체를 안 만든다 */}
+                {입력줄 === '' ? null : <small>{입력줄}</small>}
+              </div>
               <div className="right">
                 <div className="devices">
                   {columns.map((platform) => {

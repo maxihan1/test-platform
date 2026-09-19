@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { fieldsOf, 가려야하나 } from './mask.js';
+import { fieldsOf, 가려야하나, 한줄로 } from './mask.js';
 
 describe('비밀값 가리기', () => {
   it('secret 표시가 붙은 칸은 가린다', () => {
@@ -61,5 +61,37 @@ describe('비밀값 가리기', () => {
 
   it('입력값이 없으면 칸도 없다', () => {
     expect(fieldsOf({}, {})).toEqual([]);
+  });
+});
+
+describe('어떤 값으로 돌렸는지 한 줄 (SPEC §8.3)', () => {
+  it('라벨과 값을 붙여 가운뎃점으로 잇는다', () => {
+    const 줄 = 한줄로(
+      { 아이디: 'tester', 코드: 200 },
+      { properties: { 아이디: { description: '아이디' }, 코드: { description: '응답 코드' } } },
+    );
+    expect(줄).toBe('아이디 tester · 응답 코드 200');
+  });
+
+  it('비밀값은 가린 채로 나간다', () => {
+    expect(한줄로({ password: 'hunter2' }, {})).toBe('password ********');
+  });
+
+  it('입력이 없으면 빈 글자다. 「입력 없음」을 모든 행에 적으면 목록이 시끄럽다', () => {
+    expect(한줄로({}, {})).toBe('');
+    expect(한줄로(null, {})).toBe('');
+  });
+
+  it('길면 뒤를 …로 자른다. 전부는 상세에서 본다', () => {
+    const 값: Record<string, string> = {};
+    for (let i = 0; i < 20; i += 1) 값[`칸${String(i)}`] = '아주아주아주긴값';
+    const 줄 = 한줄로(값, {});
+    expect(줄.length).toBeLessThanOrEqual(80);
+    expect(줄.endsWith('…')).toBe(true);
+  });
+
+  it('딱 맞는 길이는 자르지 않는다', () => {
+    const 줄 = 한줄로({ 아이디: 'tester' }, {});
+    expect(줄.endsWith('…')).toBe(false);
   });
 });

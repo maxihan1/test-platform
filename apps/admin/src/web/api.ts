@@ -78,6 +78,10 @@ export interface RunItemSummary {
   platform: Platform;
   // 같은 케이스×디바이스를 몇 번째로 돌렸는지. 회차 요약이 이 값으로 센다 (SPEC §8.3)
   attempt: number;
+  // 목록의 「어떤 값으로 돌린 결과인가」 한 줄이 쓴다 (SPEC §8.3).
+  // §8.1 의 「JSON 원문을 목록에 노출하지 않는다」는 케이스 목록 규칙이라 여기엔 적용되지 않는다
+  params: Record<string, unknown>;
+  paramSchema: JsonSchema;
   status: ItemStatus;
   durationMs: number | null;
   error: { message: string; stack?: string } | null;
@@ -89,10 +93,9 @@ export interface RunItemDetail extends RunItemSummary {
   runId: number;
   runTitle: string;
   precondition: string[];
-  params: Record<string, unknown>;
   expected: Record<string, unknown>;
-  // 입력·기대결과 칸의 라벨. 카탈로그가 아니라 이것을 읽는다 (SPEC §3.3)
-  paramSchema: JsonSchema;
+  // 기대결과 칸의 라벨. 카탈로그가 아니라 이것을 읽는다 (SPEC §3.3).
+  // params·paramSchema 는 RunItemSummary 에 있다 — 목록도 같은 값을 쓴다
   expectedSchema: JsonSchema;
   steps: StepResult[];
 }

@@ -18,6 +18,8 @@ function item(
     tcName: `${tcId}의 케이스명`,
     platform,
     attempt,
+    params: {},
+    paramSchema: {},
     status,
     durationMs,
     error: null,
