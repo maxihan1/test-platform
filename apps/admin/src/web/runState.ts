@@ -55,3 +55,49 @@ export function 미실행사유(error: { message: string } | null): string | nul
   // 한국어 문장이면 서버가 사람이 읽으라고 넣은 것이다. 영문·기호로 시작하면 원문 오류다
   return /^[가-힣]/.test(error.message) ? error.message : '러너에 닿지 못했습니다';
 }
+
+/**
+ * 실행이 끝났다고 이미 알린 것들.
+ *
+ * **한 번 닫은 알림은 그 실행에 대해 다시 뜨지 않는다. 새로고침해도 마찬가지다** (SPEC §8.9).
+ * 완료 모달과 §8 알림 줄이 **같은 자리를 본다** — 그 실행 화면에 있던 사람은
+ * 모달로 이미 알았으므로 다른 화면으로 옮겼을 때 줄이 또 뜨면 두 번 알리는 것이다.
+ */
+const 본것키 = '끝난실행';
+
+function 본것들(): Set<number> {
+  try {
+    const 값 = sessionStorage.getItem(본것키);
+    return new Set<number>(값 === null ? [] : (JSON.parse(값) as number[]));
+  } catch {
+    // 브라우저가 저장을 막아도 알림 자체는 떠야 한다. 새로고침에 다시 뜰 뿐이다
+    return new Set();
+  }
+}
+
+export function 알림본적있나(runId: number): boolean {
+  return 본것들().has(runId);
+}
+
+export function 본것으로적는다(runId: number): void {
+  try {
+    const 것들 = 본것들();
+    것들.add(runId);
+    sessionStorage.setItem(본것키, JSON.stringify([...것들]));
+  } catch {
+    // 위와 같다
+  }
+}
+
+/**
+ * 「끝났습니다」를 알릴 때인가 (SPEC §8.9).
+ *
+ * **도는 중이던 것이 끝났을 때만이다.** 처음부터 끝나 있던 실행을 열었다면
+ * 그것은 새 소식이 아니라 기록이다 — 알리면 매번 뜬다.
+ * 사람이 멈춘 것(`ABORTED`)도 끝난 것으로 친다.
+ */
+export function 끝났다고알릴까(그것: { 전: string; 후: string; runId: number }): boolean {
+  if (!도는중(그것.전)) return false;
+  if (도는중(그것.후)) return false;
+  return !알림본적있나(그것.runId);
+}

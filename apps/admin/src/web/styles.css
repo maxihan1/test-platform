@@ -886,7 +886,43 @@ select:focus {
   outline-offset: -1px;
 }
 
-/* 도는 실행이 있을 때만 뜬다. 없으면 줄 자체가 없다 — 빈 줄을 자리만 잡아 두지 않는다 (SPEC §8) */
+/* 도는 실행이 있거나 갓 끝난 소식이 있을 때만 뜬다. 없으면 줄 자체가 없다 (SPEC §8) */
+.notice-row {
+  display: flex;
+  align-items: stretch;
+  background: var(--sheet-2);
+  border: 1px solid var(--rule);
+  border-top: none;
+}
+
+.notice-row .notice {
+  flex: 1;
+  background: transparent;
+  border: none;
+}
+
+/* 끝난 소식은 한 번 누르거나 닫으면 사라진다 (SPEC §8) */
+.notice-x {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--rule-soft);
+  color: var(--ink-muted);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.notice-x:hover {
+  background: var(--sheet);
+  color: var(--ink);
+}
+
+.notice-x:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
 .notice {
   display: block;
   padding: 8px 14px;

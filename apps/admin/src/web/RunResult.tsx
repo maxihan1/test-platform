@@ -1,14 +1,14 @@
 // 실행 결과 목록 (SPEC §8.3). 케이스 1건 = 1행이고 디바이스별 판정을 판정 칸에 나란히 묶는다
 // POST /api/runs는 끝나기 전에 돌아온다. status가 FINISHED가 될 때까지 화면이 다시 묻는다 (SPEC §7.1)
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { api, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
 import { filterGroups, groupByCase, 회차요약 } from './group.js';
 import { 한줄로 } from './mask.js';
 import { Modal } from './Modal.js';
 import type { 등급 } from './role.js';
-import { 도는중, 멈출수있나, 미실행사유, 상태라벨 } from './runState.js';
+import { 끝났다고알릴까, 도는중, 멈출수있나, 미실행사유, 본것으로적는다, 상태라벨 } from './runState.js';
 import { Failed, Loading, message, PLATFORM_LABEL, PLATFORMS, seconds, STATUS_COLOR, STATUS_LABEL, useAsync, Verdict, when } from './ui.js';
 
 const PAGE_SIZE = 20;
@@ -31,11 +31,23 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const [멈출까, set멈출까] = useState(false);
   const [멈추는중, set멈추는중] = useState(false);
   const [멈춤오류, set멈춤오류] = useState<string | null>(null);
+  const [끝났다고알릴까말까, set알릴까] = useState(false);
+  // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다
+  const 앞선상태 = useRef<string | null>(null);
 
   const run = useAsync(() => api.run(runId), [runId]);
   const data = run.data;
   // ABORTED 를 빠뜨리면 사람이 멈춘 실행에서 2초마다 영원히 다시 묻는다 (SPEC §8.3)
   const running = data !== null && 도는중(data.status);
+
+  // 그 실행 결과 화면을 보고 있는 사람에게만 모달이 뜬다 (SPEC §8.9).
+  // 다른 화면에 있는 사람은 §8 알림 줄이 받는다
+  useEffect(() => {
+    if (data === null) return;
+    const 전 = 앞선상태.current;
+    앞선상태.current = data.status;
+    if (전 !== null && 끝났다고알릴까({ 전, 후: data.status, runId: data.runId })) set알릴까(true);
+  }, [data?.status, data?.runId]);
   const reload = run.reload;
 
   // 실행은 뒤에서 이어진다. 끝날 때까지만 다시 묻고 끝나면 멈춘다
@@ -54,6 +66,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const shown = groups.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE);
   const columns = device === 'ALL' ? PLATFORMS : [device];
   const { pass, fail, na } = data.counts;
+  const 실패목록 = data.items.filter((item) => item.status === 'FAIL');
 
   function choose<T>(setter: (value: T) => void) {
     return (value: T) => {
@@ -174,6 +187,61 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
             </div>
           );
         })
+      )}
+
+      {!끝났다고알릴까말까 ? null : (
+        <Modal
+          제목={`RUN ${String(data.runId)} 이 ${data.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다'}`}
+          onClose={() => {
+            // 한 번 닫으면 그 실행에 대해 다시 뜨지 않는다. 새로고침해도 마찬가지다 (SPEC §8.9)
+            본것으로적는다(data.runId);
+            set알릴까(false);
+          }}
+          버튼={
+            <>
+              {/* 증적 문서 만들기는 실행까지 등급부터다 (SPEC §3.5). 보기만에게는 결과 보기 하나다 */}
+              <button
+                className="btn"
+                onClick={() => {
+                  본것으로적는다(data.runId);
+                  set알릴까(false);
+                }}
+              >
+                결과 보기
+              </button>
+            </>
+          }
+        >
+          <p>
+            {data.title} · 대상 서버 {data.env}
+          </p>
+          <div className="tally">
+            <div>
+              <b style={{ color: 'var(--pass)' }}>{pass}</b>
+              <span>통과</span>
+            </div>
+            <div>
+              <b style={{ color: 'var(--fail)' }}>{fail}</b>
+              <span>실패</span>
+            </div>
+            <div>
+              <b style={{ color: 'var(--na)' }}>{na}</b>
+              <span>미실행</span>
+            </div>
+          </div>
+          {실패목록.length === 0 ? null : (
+            <div>
+              {/* 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다 (SPEC §8.9) */}
+              <div className="sec-h">실패한 케이스</div>
+              {실패목록.slice(0, 5).map((item) => (
+                <div className="pre" key={item.historyId}>
+                  {item.tcId} {item.tcName}
+                </div>
+              ))}
+              {실패목록.length > 5 ? <p className="hint">외 {실패목록.length - 5}건</p> : null}
+            </div>
+          )}
+        </Modal>
       )}
 
       {!멈출까 ? null : (

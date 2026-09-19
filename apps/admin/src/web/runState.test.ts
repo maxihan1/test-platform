@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 도는중, 멈출수있나, 미실행사유, 상태라벨 } from './runState.js';
+import { 끝났다고알릴까, 도는중, 멈출수있나, 미실행사유, 본것으로적는다, 상태라벨, 알림본적있나 } from './runState.js';
+
+// 본 알림은 브라우저에 남는다. jsdom 을 설치하지 않았으므로 가짜를 끼운다 (api.test.ts 와 같은 방식)
+const 보관 = new Map<string, string>();
+vi.stubGlobal('sessionStorage', {
+  getItem: (key: string) => 보관.get(key) ?? null,
+  setItem: (key: string, value: string) => 보관.set(key, value),
+  removeItem: (key: string) => 보관.delete(key),
+});
 
 describe('실행 상태', () => {
   it('RUNNING 일 때만 아직 도는 중이다', () => {
@@ -67,5 +75,39 @@ describe('돌지 못한 항목의 사유 (SPEC §8.3)', () => {
   it('원문 오류는 목록에 쓰지 않는다. 상세의 접힌 자리에 둔다', () => {
     const 스택 = { message: 'connect ECONNREFUSED 127.0.0.1:4000', stack: 'Error: connect...' };
     expect(미실행사유(스택)).toBe('러너에 닿지 못했습니다');
+  });
+});
+
+describe('실행이 끝났을 때 알린다 (SPEC §8.9)', () => {
+  beforeEach(() => {
+    // 본 것은 브라우저에 남는다. 검사마다 비운다
+    보관.clear();
+  });
+
+  it('도는 중에서 끝나면 알린다', () => {
+    expect(끝났다고알릴까({ 전: 'RUNNING', 후: 'FINISHED', runId: 1 })).toBe(true);
+  });
+
+  it('사람이 멈춘 것도 끝난 것이다', () => {
+    expect(끝났다고알릴까({ 전: 'RUNNING', 후: 'ABORTED', runId: 2 })).toBe(true);
+  });
+
+  it('처음부터 끝나 있던 실행에는 안 알린다. 그것은 새 소식이 아니다', () => {
+    expect(끝났다고알릴까({ 전: 'FINISHED', 후: 'FINISHED', runId: 3 })).toBe(false);
+  });
+
+  it('아직 도는 중이면 안 알린다', () => {
+    expect(끝났다고알릴까({ 전: 'RUNNING', 후: 'RUNNING', runId: 4 })).toBe(false);
+  });
+
+  it('한 번 본 실행은 다시 안 알린다. 새로고침해도 마찬가지다', () => {
+    본것으로적는다(5);
+    expect(끝났다고알릴까({ 전: 'RUNNING', 후: 'FINISHED', runId: 5 })).toBe(false);
+    expect(알림본적있나(5)).toBe(true);
+  });
+
+  it('다른 실행은 그대로 알린다', () => {
+    본것으로적는다(6);
+    expect(끝났다고알릴까({ 전: 'RUNNING', 후: 'FINISHED', runId: 7 })).toBe(true);
   });
 });
