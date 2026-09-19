@@ -182,7 +182,12 @@ export function 돌아갈자리를꺼낸다(): string | null {
  */
 function 로그인으로보낸다(): void {
   try {
-    sessionStorage.setItem(돌아갈자리키, location.hash);
+    // 화면 하나가 요청 셋을 동시에 보낸다 (케이스 목록이 cases·scan·last-by-case).
+    // 먼저 온 401 이 이미 자리를 적었으면 덮어쓰지 않는다 —
+    // 덮어쓰면 뒤에 온 것이 '#/login' 을 적어 원래 가려던 화면을 잃는다
+    if (location.hash !== '#/login' && sessionStorage.getItem(돌아갈자리키) === null) {
+      sessionStorage.setItem(돌아갈자리키, location.hash);
+    }
   } catch {
     // 저장이 막혀도 로그인 화면으로는 보낸다. 돌아갈 자리를 잃을 뿐이다
   }

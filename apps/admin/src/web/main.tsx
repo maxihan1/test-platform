@@ -9,7 +9,7 @@ import { CaseList } from './CaseList.js';
 import { ItemDetail } from './ItemDetail.js';
 import { 고른서비스, 고른서비스를읽는다, 고른서비스를적는다 } from './layout.js';
 import { Login } from './Login.js';
-import { route, 돌아갈자리 } from './route.js';
+import { route, 돌아갈자리, type Route } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunSetup } from './RunSetup.js';
@@ -42,6 +42,18 @@ function Screen({ hash, service }: { hash: string; service: ServiceRow | null })
       return <RunResult runId={current.runId} />;
     case 'item':
       return <ItemDetail runId={current.runId} historyId={current.historyId} />;
+    case 'settings':
+      // 자리는 SPEC §8 대로 넷이지만 이 화면(§8.8)은 아직 없다.
+      // 자리를 감추면 「못 하는 것은 안 보인다」와 섞여 등급 문제로 읽힌다 —
+      // 운영 등급인데 안 보이면 자기 등급을 의심하게 된다. 정직하게 알린다
+      return (
+        <div className="screen">
+          <div className="empty">
+            설정 화면은 아직 만들지 않았습니다
+            <small>서비스와 계정은 지금은 서버 명령으로 만듭니다 (docs/SETUP.md)</small>
+          </div>
+        </div>
+      );
     default:
       return (
         <div className="screen">
@@ -54,6 +66,13 @@ function Screen({ hash, service }: { hash: string; service: ServiceRow | null })
 }
 
 type 상태 = { 어디: '묻는중' } | { 어디: '밖' } | { 어디: '안'; user: User };
+
+/** 실행 결과와 항목 상세는 실행 기록에서 들어온 자리다. 밑줄이 케이스에 가면 안 된다 */
+function 지금자리(name: Route['name']): string {
+  if (name === 'runs' || name === 'run' || name === 'item') return '#/runs';
+  if (name === 'settings') return '#/settings';
+  return '#/cases';
+}
 
 function App() {
   const hash = useHash();
@@ -110,7 +129,7 @@ function App() {
           window.location.hash = '#/login';
         });
       }}
-      current={`#/${route(hash).name === 'runs' ? 'runs' : 'cases'}`}
+      current={지금자리(route(hash).name)}
     >
       <Screen hash={hash} service={service} />
     </Shell>

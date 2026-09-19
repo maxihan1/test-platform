@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { RunSummary, ServiceRow, User } from './api.js';
 import { 고른서비스, 빈띠사유, 알림줄, 자리목록, 탭제목 } from './layout.js';
+
+// 그래프 자리가 Grafana 주소를 만들 때 location 을 읽는다. jsdom 을 설치하지 않았으므로
+// api.test.ts 와 같은 방식으로 가짜를 끼운다
+beforeEach(() => {
+  vi.stubGlobal('location', { protocol: 'https:', hostname: 'qa.example.com' });
+});
 
 const 결제: ServiceRow = { id: 1, prefix: 'PAY', name: '결제 서비스', color: '#667788' };
 const 회원: ServiceRow = { id: 2, prefix: 'MEM', name: '회원 서비스', color: '#556677' };
@@ -52,6 +58,11 @@ describe('자리 넷', () => {
   it('그래프는 Grafana 라 바깥으로 나간다', () => {
     const 그래프 = 자리목록('viewer').find((자리) => 자리.이름 === '그래프');
     expect(그래프?.바깥).toBe(true);
+  });
+
+  it('Grafana 는 admin 과 다른 포트다. 같은 호스트의 3001 로 보낸다', () => {
+    const 그래프 = 자리목록('viewer').find((자리) => 자리.이름 === '그래프');
+    expect(그래프?.해시).toBe('https://qa.example.com:3001');
   });
 
   it('케이스가 집이다. 이 도구의 일은 무엇을 돌릴까에서 시작한다', () => {

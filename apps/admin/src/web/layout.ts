@@ -23,6 +23,18 @@ export function 탭제목(service: ServiceRow | null): string {
 }
 
 /**
+ * Grafana 주소.
+ *
+ * Grafana 는 admin 과 **다른 포트**로 뜬다 — `GRAFANA_PORT`, 비우면 3001 (docs/SETUP.md).
+ * SPEC 은 「그래프는 Grafana 라 바깥으로 나간다」(§8)까지만 적고 화면이 그 주소를
+ * 어떻게 아는지는 정하지 않았다. 배포 설정이 기본 포트를 바꾸면 이 링크가 틀린다 —
+ * 설정으로 뺄지는 ③ 덩이(설정 화면)에서 정한다.
+ */
+function 그래프주소(): string {
+  return `${location.protocol}//${location.hostname}:3001`;
+}
+
+/**
  * 자리 넷 (SPEC §8).
  *
  * 설정은 운영 등급에게만 뜬다. **흐리게 두지 않고 아예 없다** —
@@ -32,7 +44,7 @@ export function 자리목록(role: 등급 | null): 자리[] {
   const 기본: 자리[] = [
     { 이름: '케이스', 해시: '#/cases' },
     { 이름: '실행 기록', 해시: '#/runs' },
-    { 이름: '그래프', 해시: '/grafana', 바깥: true },
+    { 이름: '그래프', 해시: 그래프주소(), 바깥: true },
   ];
   return 할수있나(role, '설정') ? [...기본, { 이름: '설정', 해시: '#/settings' }] : 기본;
 }

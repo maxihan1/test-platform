@@ -3,6 +3,7 @@
 
 export type Route =
   | { name: 'login' }
+  | { name: 'settings' }
   | { name: 'cases' }
   | { name: 'setup'; tcId: string }
   | { name: 'runs' }
@@ -14,6 +15,7 @@ export function route(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter((part) => part !== '');
 
   if (parts.length === 1 && parts[0] === 'login') return { name: 'login' };
+  if (parts.length === 1 && parts[0] === 'settings') return { name: 'settings' };
 
   if (parts.length === 0 || (parts[0] === 'cases' && parts.length === 1)) return { name: 'cases' };
 
