@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { ApiError, type ItemStatus, type Platform } from './api.js';
+import { 요청오류문장 } from './errorText.js';
 
 export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일' };
 export const PLATFORMS: Platform[] = ['desktop', 'mobile'];
@@ -41,7 +42,9 @@ export function when(iso: string | null): string {
 }
 
 export function message(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
+  // 서버가 낸 코드를 사람 말로 옮긴다. 모르는 코드면 서버가 준 설명이 그대로 남는다.
+  // 안 옮기면 SERVICE_FORBIDDEN 이 화면에 접두사 글자 하나(`XFS3B`)로 뜬다
+  if (err instanceof ApiError) return 요청오류문장(err.code, err.message);
   return err instanceof Error ? err.message : String(err);
 }
 
