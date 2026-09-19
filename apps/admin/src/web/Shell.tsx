@@ -21,6 +21,7 @@ export function Shell({ user, service, onService, onLogout, current, children }:
     document.title = 탭제목(service);
   }, [service]);
 
+  // 띠에는 짧게, 왜인지와 무엇을 하면 되는지는 본문이 말한다
   const 사유 = 빈띠사유(user);
 
   return (
@@ -30,7 +31,7 @@ export function Shell({ user, service, onService, onLogout, current, children }:
       <div className="band" style={service === null ? undefined : { background: service.color }}>
         <div className="band-left">
           {service === null ? (
-            <span className="band-name">{사유?.무엇 ?? '서비스'}</span>
+            <span className="band-name">서비스 없음</span>
           ) : (
             <>
               <select

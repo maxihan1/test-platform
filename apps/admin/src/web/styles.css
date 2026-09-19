@@ -164,6 +164,7 @@ body {
 }
 
 input[type='text'],
+input[type='password'],
 input[type='number'],
 select {
   font: inherit;
@@ -383,6 +384,7 @@ select:focus {
 }
 
 .field input[type='text'],
+.field input[type='password'],
 .field select {
   width: 100%;
 }
@@ -417,6 +419,13 @@ select:focus {
   padding: 28px 24px;
   color: var(--ink-faint);
   font-size: 13.5px;
+}
+
+/* 「왜 비었나」 아래에 「그래서 무엇을 하면 되나」. 붙여 쓰면 한 문장처럼 읽힌다 */
+.empty small {
+  display: block;
+  margin-top: 6px;
+  font-size: 12.5px;
 }
 
 /* 절차 */
@@ -654,23 +663,45 @@ select:focus {
 }
 
 @media (max-width: 620px) {
+  /* 620px 아래에서는 두 칸이다 — 색 띠 하나와 내용 하나.
+     tcid·title·right 를 **전부** 2열로 보내 세로로 쌓지 않으면
+     셋이 한 줄을 나눠 쓰다가 제목 칸이 0 에 수렴해 글자가 한 자씩 세로로 흐른다.
+     2026-09-17 에 한 번 겪었고 right 만 옮겨 둬서 2026-09-19 에 재발했다 (LEARNINGS) */
   .row {
     grid-template-columns: 4px 1fr;
     gap: 0 12px;
   }
 
+  /* 색 띠는 쌓인 줄 전체에 걸쳐 세로로 편다 */
+  .gutter {
+    grid-row: 1 / -1;
+  }
+
   .tcid {
+    grid-column: 2;
     padding: 12px 0 0;
   }
 
   .title {
+    grid-column: 2;
     padding: 2px 0 12px;
+    /* 긴 케이스명이 칸을 밀어내지 않게 한다 */
+    min-width: 0;
   }
 
   .right {
+    grid-column: 2;
     padding: 0 16px 12px 0;
     justify-content: flex-start;
-    grid-column: 2;
+    flex-wrap: wrap;
+  }
+
+  /* 손가락으로 누르는 영역 44px 은 이 두 화면에만 건다 (SPEC §8 · DESIGN.md) */
+  .right .btn,
+  .right a.btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 
   .field {
@@ -844,10 +875,7 @@ select:focus {
   margin: 0;
 }
 
-.login-box input[type='text'],
-.login-box input[type='password'] {
-  width: 100%;
-}
+
 
 /* 어느 쪽이 틀렸는지는 말하지 않는다. 한 문장뿐이다 (SPEC §8.6) */
 .login-err {
