@@ -341,8 +341,10 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 > (macOS 가 같은 파일로 친다. `shell.ts`·`caseList.ts` 로 두 번 겪었다).
 > 좁은 화면은 375px `iframe` 으로 본다 — 창 리사이즈가 620px 아래로 안 내려간다.
 >
-> **넘긴 것** — `Dockerfile` 에 `COPY scripts` 가 없어 첫 계정 만들기 명령이 안 된다(배포 §9.2) ·
-> `gate.ts` 의 IDOR(WS-F) · JSX 단위 테스트 그물(별도 작업).
+> **넘긴 것** — ~~`Dockerfile` 에 `COPY scripts` 가 없어 첫 계정 만들기 명령이 안 된다(배포 §9.2) ·
+> `gate.ts` 의 IDOR(WS-F) · SPEC §8 과 §8.8 의 색 규칙 충돌~~ **셋 다 닫혔다 (PR #28, 2026-09-19).**
+> 남은 것은 **JSX 단위 테스트 그물** 하나다 (별도 작업 — `vitest` 의 `include` 가 `apps/**/*.test.ts` 라
+> `.test.tsx` 를 안 잡아 모달·폼에 그물이 없다. React Testing Library + jsdom 은 새 npm 부품이라 승인 대상).
 
 ```
 CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
