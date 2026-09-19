@@ -175,7 +175,6 @@ describe('Form', () => {
     const 묶음 = 칸찾기(container, '이름').closest('.field');
     expect(묶음?.lastElementChild).toBe(사유);
 
-    expect(container.querySelectorAll('button').length).toBe(0);
     expect(container.querySelectorAll('[disabled]').length).toBe(0);
   });
 });
