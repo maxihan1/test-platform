@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { api, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
 import { filterGroups, groupByCase, 회차요약 } from './group.js';
-import { 받는법, 증적버튼 } from './evidence.js';
+import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { 한줄로 } from './mask.js';
 import { Modal } from './Modal.js';
 import type { 등급 } from './role.js';
@@ -33,8 +33,6 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const [멈추는중, set멈추는중] = useState(false);
   const [멈춤오류, set멈춤오류] = useState<string | null>(null);
   const [끝났다고알릴까말까, set알릴까] = useState(false);
-  const [만드는중, set만드는중] = useState(false);
-  const [증적오류, set증적오류] = useState<string | null>(null);
   // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다
   const 앞선상태 = useRef<string | null>(null);
 
@@ -71,6 +69,8 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
     return () => clearInterval(timer);
   }, [running, 만드는문서있나, reload]);
 
+  const 증적칸 = use증적(data, role, reload);
+
   if (run.error !== null) return <Failed error={run.error} />;
   if (data === null) return <Loading />;
 
@@ -81,13 +81,6 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const columns = device === 'ALL' ? PLATFORMS : [device];
   const { pass, fail, na } = data.counts;
   const 실패목록 = data.items.filter((item) => item.status === 'FAIL');
-  const 증적 = 증적버튼(data.status, data.evidence, role);
-  // 만든 것은 최근 것이 위로. 파일 이름에 (1)·(2)가 붙으면 어느 것이 최신인지 알 수 없다 (SPEC §8.4)
-  const 만든것 = data.evidence
-    .filter((it) => it.status === 'READY')
-    .slice()
-    .reverse();
-
   function choose<T>(setter: (value: T) => void) {
     return (value: T) => {
       setter(value);
@@ -109,30 +102,8 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
           </div>
         </div>
         <div className="tally">
-          {/* 되돌릴 수 없으므로 누르면 한 번 더 묻는다 (SPEC §8.3) */}
-          {!멈출수있나(data.status, role) ? null : (
-            <button className="btn ghost" onClick={() => set멈출까(true)} disabled={멈추는중}>
-              실행 멈추기
-            </button>
-          )}
-          {증적 === null ? null : (
-            <button
-              className="btn ghost"
-              disabled={!증적.누를수있나 || 만드는중}
-              title={증적.사유 ?? undefined}
-              onClick={() => {
-                set만드는중(true);
-                set증적오류(null);
-                void api
-                  .makeEvidence(data.runId, 'PDF')
-                  .then(() => reload())
-                  .catch((err: unknown) => set증적오류(message(err)))
-                  .finally(() => set만드는중(false));
-              }}
-            >
-              {만드는중 ? '만드는 중입니다' : 증적.글}
-            </button>
-          )}
+          {/* 판정 숫자를 버튼보다 앞에 둔다. 좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀리는데,
+              휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다 (docs/DESIGN.md · design-mockup.html) */}
           <div>
             <b style={{ color: 'var(--pass)' }}>{pass}</b>
             <span>통과</span>
@@ -145,43 +116,17 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
             <b style={{ color: 'var(--na)' }}>{na}</b>
             <span>미실행</span>
           </div>
+          {/* 되돌릴 수 없으므로 누르면 한 번 더 묻는다 (SPEC §8.3) */}
+          {!멈출수있나(data.status, role) ? null : (
+            <button className="btn ghost" onClick={() => set멈출까(true)} disabled={멈추는중}>
+              실행 멈추기
+            </button>
+          )}
+          <증적만들기버튼들 칸={증적칸} />
         </div>
       </div>
 
-      {증적?.사유 === undefined || 증적?.사유 === null ? null : (
-        <div className="scan">
-          <span className="scan-error">만들지 못했습니다 — {증적.사유}</span>
-        </div>
-      )}
-      {증적오류 === null ? null : (
-        <div className="scan">
-          <span className="scan-error">{증적오류}</span>
-        </div>
-      )}
-
-      {만든것.length === 0 ? null : (
-        <div className="sec">
-          <div className="sec-h">증적 문서</div>
-          {/* 받기 전에 볼 수 있어야 한다. 화면의 항목 상세는 항목 한 건이고
-              증적은 실행 전체 한 부다 (SPEC §8.4) */}
-          {만든것.map((it) => {
-            const 법 = 받는법(it.format);
-            return (
-              <div className="pre" key={it.id}>
-                {when(it.generatedAt)} 만듦 · {it.format}
-                <a
-                  className="btn small"
-                  style={{ marginLeft: '10px' }}
-                  href={api.evidenceUrl(it.id)}
-                  {...(법.새창 ? { target: '_blank', rel: 'noreferrer' } : {})}
-                >
-                  {법.글}
-                </a>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <증적알림과목록 칸={증적칸} />
 
       {pass + fail + na === 0 ? null : (
         <div className="stripe">

@@ -47,7 +47,7 @@ body{
 }
 .runid{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
 .runmeta{font-size:12.5px;color:var(--ink-muted);margin-top:2px}
-.tally{display:flex;gap:18px;align-items:center}
+.tally{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
 .tally b{font-size:20px;font-weight:800;display:block;line-height:1.2}
 .tally span{font-size:11.5px;color:var(--ink-muted)}
 .stripe{display:flex;height:6px;margin:0 24px;overflow:hidden}
@@ -265,7 +265,8 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
   /* 좁은 화면에서 제대로 되는 두 화면은 손가락 영역 44px (DESIGN.md) */
   .right{padding:0 16px 12px 0;justify-content:flex-start;min-height:44px;flex-wrap:wrap;gap:12px 16px}
   .right .btn{min-height:44px;padding:9px 20px}
-  .tally{gap:14px}
+  .tally{gap:14px 12px}
+  .tally .btn{min-height:44px;padding:9px 20px}
   .field{grid-template-columns:1fr;gap:2px}
   .assert{grid-template-columns:18px 1fr;padding-left:20px}
   .exp,.act{text-align:left;grid-column:2}
@@ -583,6 +584,9 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
       <div><b style="color:var(--pass)">8</b><span>통과</span></div>
       <div><b style="color:var(--fail)">1</b><span>실패</span></div>
       <div><b style="color:var(--na)">1</b><span>미실행</span></div>
+      <button class="btn ghost">PDF 만들기</button>
+      <button class="btn ghost">엑셀 만들기</button>
+      <button class="btn ghost">HTML 만들기</button>
     </div>
   </div>
   <div class="stripe">
@@ -595,15 +599,12 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
     <div class="doc"><span class="fmt">PDF</span><span class="when">9월 15일 17:22 만듦</span><a href="#" class="open">열기 ↗</a></div>
     <div class="doc"><span class="fmt">엑셀</span><span class="when">9월 15일 17:25 만듦</span><a href="#" class="open">받기 ↓</a></div>
     <div class="doc"><span class="fmt">PDF</span><span class="when">9월 15일 17:20 만듦</span><a href="#" class="open">열기 ↗</a></div>
-    <div class="actions" style="padding:14px 0 0">
-      <span class="note">같은 실행의 증적은 언제 뽑아도 내용이 같습니다.</span>
-      <select style="min-width:132px">
-        <option>PDF — 검수처 제출용</option>
-        <option>엑셀 — 표로 가공</option>
-        <option>HTML — 브라우저에서 찾기</option>
-      </select>
-      <button class="btn ghost">만들기</button>
-    </div>
+    <p class="note" style="margin-top:14px">같은 실행의 증적은 언제 뽑아도 내용이 같습니다.</p>
+    <p class="hint" style="margin-top:12px">
+      <b>만드는 버튼은 위 RUN 머리에 있습니다.</b>
+      증적은 항목 한 건이 아니라 <b>실행 한 부</b>라서입니다 (§8.4).
+      <code>PDF</code> 는 검수처 제출용, <code>엑셀</code> 은 표로 가공, <code>HTML</code> 은 브라우저에서 찾기입니다.
+    </p>
     <p class="hint" style="margin-top:12px">
       <b>PDF·HTML 은 <code>열기 ↗</code>, 엑셀은 <code>받기 ↓</code> 입니다.</b>
       브라우저가 엑셀을 못 열기 때문입니다 — 「열린다」고 해 놓고 파일이 떨어지면 사람이 어디로 갔는지 찾습니다.
