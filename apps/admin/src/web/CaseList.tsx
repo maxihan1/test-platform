@@ -3,10 +3,13 @@
 
 import { useState } from 'react';
 
-import { api, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
-import { keyOf, type LastMap, 마지막결과로거른다, 마지막판정, 빈이유 } from './catalogView.js';
+import { api, type CaseQuery, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
+import { Empty, ScanInfo, 케이스줄 } from './CaseRow.js';
+import { keyOf, type LastMap, 마지막결과로거른다 } from './catalogView.js';
 import { 다음이있나 } from './paging.js';
-import { Failed, Loading, message, PLATFORM_LABEL, seconds, STATUS_COLOR, useAsync, Verdict, when } from './ui.js';
+import { 담을것 } from './pickRun.js';
+import { 상한 } from './runPlan.js';
+import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
 
 const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 const 디바이스칩: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
@@ -37,18 +40,20 @@ export function CaseList({ service }: { service: string }) {
   const [결과, set결과] = useState<ItemStatus | 'ALL'>('ALL');
   const [scanning, setScanning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // 고른 tcId (SPEC §8.1). 비어 있으면 「전체」다 — pickRun 의 담을것 이 그 규칙을 안다
+  const [고른, set고른] = useState<ReadonlySet<string>>(new Set());
+  const [모으는중, set모으는중] = useState(false);
+  // 모은 결과를 담아만 둔다. 여러 건 실행 모달에 잇는 것은 다음 작업이다
+  const [, set담은것] = useState<CaseRow[]>([]);
 
-  const cases = useAsync<Paged<CaseRow>>(
-    () =>
-      api.cases({
-        service,
-        q,
-        page,
-        ...(디바이스 === 'ALL' ? {} : { platform: 디바이스 }),
-        ...(활성만 ? {} : { active: false }),
-      }),
-    [service, q, page, 디바이스, 활성만],
-  );
+  const 조건: CaseQuery = {
+    service,
+    q,
+    page,
+    ...(디바이스 === 'ALL' ? {} : { platform: 디바이스 }),
+    ...(활성만 ? {} : { active: false }),
+  };
+  const cases = useAsync<Paged<CaseRow>>(() => api.cases(조건), [service, q, page, 디바이스, 활성만]);
   const scan = useAsync(() => api.lastScan(), []);
   const last = useAsync(() => api.lastByCase(), []);
 
@@ -70,6 +75,40 @@ export function CaseList({ service }: { service: string }) {
     } finally {
       setScanning(false);
     }
+  }
+
+  /**
+   * 「전체」는 보이는 쪽이 아니라 모든 쪽이다 (SPEC §8.1).
+   *
+   * 서버가 한 쪽씩만 주므로 손에 든 쪽만 담으면 뒤쪽 케이스가 조용히 빠진다.
+   * 몇 쪽인지는 총건수로 계산하지 않고 응답이 준 값으로 판단한다 (paging.ts).
+   * 마지막 결과 표는 쪽이 없으므로 **다 모은 뒤에** 걸러야 뒤쪽 것이 안 빠진다.
+   */
+  async function 모으기() {
+    set모으는중(true);
+    setNotice(null);
+    try {
+      const 모은: CaseRow[] = [];
+      for (let 쪽 = 1; ; 쪽 += 1) {
+        const 한쪽 = await api.cases({ ...조건, page: 쪽 });
+        모은.push(...한쪽.items);
+        // 응답이 거짓말을 해도 쪽이 무한히 늘지 않게 막는다. 상한을 넘으면 어차피 실행이 거절된다
+        if (!다음이있나(한쪽) || 모은.length >= 상한) break;
+      }
+      set담은것(담을것(모은, 고른, 결과, lastMap));
+    } catch (err) {
+      setNotice(message(err));
+    } finally {
+      set모으는중(false);
+    }
+  }
+
+  function 고르기뒤집기(tcId: string) {
+    set고른((전) => {
+      const 다음 = new Set(전);
+      if (!다음.delete(tcId)) 다음.add(tcId);
+      return 다음;
+    });
   }
 
   function search(term: string) {
@@ -98,12 +137,25 @@ export function CaseList({ service }: { service: string }) {
             {cases.data === null ? '불러오는 중입니다' : `모두 ${cases.data.total}건`}
           </div>
         </div>
-        <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
-          {scanning ? '스캔하는 중' : '다시 스캔하기'}
-        </button>
+        {/* 둘을 한 칸에 묶는다. 띠가 space-between 이라 풀어 두면 두 버튼이 양끝으로 갈라진다 */}
+        <div className="bar-acts">
+          <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
+            {scanning ? '스캔하는 중' : '다시 스캔하기'}
+          </button>
+          {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
+          <button className="btn" onClick={() => void 모으기()} disabled={모으는중}>
+            {고른.size === 0 ? '전체 실행하기' : `고른 ${고른.size}건 실행하기`}
+          </button>
+        </div>
       </div>
 
       <div className="scan">
+        {/* 비활성 이유는 말풍선이 아니라 화면 줄이다 — 휴대폰에는 올릴 마우스가 없다 (DESIGN.md) */}
+        {!모으는중 ? null : (
+          <span className="scan-text" role="status">
+            케이스 목록을 모으는 중입니다. 다 모을 때까지 버튼을 누를 수 없습니다
+          </span>
+        )}
         <ScanInfo scan={scan.data} error={notice ?? scan.error} />
       </div>
 
@@ -210,36 +262,13 @@ export function CaseList({ service }: { service: string }) {
         />
       ) : (
         보일것.map((row) => (
-          <div className="row" key={row.tcId}>
-            <div className="gutter" style={{ background: STATUS_COLOR[마지막판정(row, lastMap)] }} />
-            <div className="tcid">{row.tcId}</div>
-            <div className="title">
-              {row.name}
-              <small>지원 디바이스 {row.platforms.map((p) => PLATFORM_LABEL[p]).join(', ')}</small>
-            </div>
-            <div className="right">
-              <div className="devices">
-                {row.platforms.map((platform) => {
-                  const result = lastMap[keyOf(row.tcId, platform)];
-                  return (
-                    <div className="device" key={platform}>
-                      <span className="device-name">{PLATFORM_LABEL[platform]}</span>
-                      {result === undefined ? (
-                        <span className="device-none">기록 없음</span>
-                      ) : (
-                        <a href={`#/runs/${result.runId}/items/${result.historyId}`} title={`${when(result.finishedAt)} · ${seconds(result.durationMs)}`}>
-                          <Verdict status={result.status} />
-                        </a>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              <a className="btn small" href={`#/cases/${encodeURIComponent(row.tcId)}/run`}>
-                실행
-              </a>
-            </div>
-          </div>
+          <케이스줄
+            key={row.tcId}
+            row={row}
+            마지막={lastMap}
+            고름={고른.has(row.tcId)}
+            뒤집기={고르기뒤집기}
+          />
         ))
       )}
 
@@ -254,55 +283,6 @@ export function CaseList({ service }: { service: string }) {
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-function ScanInfo({ scan, error }: { scan: Awaited<ReturnType<typeof api.lastScan>> | null; error: string | null }) {
-  if (error !== null) return <span className="scan-error">{error}</span>;
-  if (scan === null) return <span className="scan-text">아직 스캔 기록이 없습니다.</span>;
-
-  return (
-    <>
-      <span className="scan-text">
-        마지막 스캔 {when(scan.scannedAt)} · 추가 {scan.added} · 갱신 {scan.updated} · 비활성 {scan.deactivated}
-      </span>
-      {scan.duplicates.length === 0 ? null : (
-        <span className="scan-error">
-          {scan.duplicates.map((dup) => `${dup.tcId}이 ${dup.files[0]}와 ${dup.files[1]}에 겹쳐 있습니다.`).join('\n')}
-        </span>
-      )}
-      {scan.error === undefined ? null : <span className="scan-error">{scan.error}</span>}
-    </>
-  );
-}
-
-/**
- * 목록이 비었을 때 (SPEC §8.1).
- *
- * 하나로 뭉뚱그리면 **검색한 적 없는 사람에게도 「찾는 케이스가 없습니다」라고 말한다.**
- * 이 화면은 이 도구를 처음 켠 사람이 만나는 자리다.
- */
-function Empty({
-  형편,
-  onScan,
-  onClear,
-}: {
-  형편: Parameters<typeof 빈이유>[0];
-  onScan: () => void;
-  onClear: () => void;
-}) {
-  const 것 = 빈이유(형편);
-  // 검색에 안 걸린 것만 「지우기」다. 나머지 둘은 다시 훑는 길을 준다
-  const 누르면 = 형편.건조건 ? onClear : onScan;
-
-  return (
-    <div className="empty">
-      {것.무엇}
-      <small>{것.왜}</small>
-      <button className="btn" style={{ marginTop: '14px' }} onClick={누르면}>
-        {것.버튼}
-      </button>
     </div>
   );
 }

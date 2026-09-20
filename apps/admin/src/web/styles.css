@@ -121,6 +121,15 @@ body {
   flex-wrap: wrap;
 }
 
+/* 띠 오른쪽 버튼 묶음. 띠가 space-between 이라 묶지 않으면 버튼끼리 양끝으로 갈라진다 */
+.bar-acts {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .runid {
   font-size: 30px;
   font-weight: 800;
@@ -260,6 +269,28 @@ select:focus {
 
 .gutter {
   align-self: stretch;
+}
+
+/* 여러 건 고르기 (SPEC §8.1) — 고르는 칸은 왼쪽 거터 안, 판정 색 다음에 둔다.
+   줄 내용 쪽 첫 칸에 두면 620px 미만에서 줄이 2단으로 접힐 때
+   케이스명 위에 체크박스만 홀로 한 줄이 된다 */
+.row.pickable {
+  grid-template-columns: 4px 20px 128px 1fr auto;
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+}
+
+.pick input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--ink);
+  cursor: pointer;
 }
 
 .tcid {
@@ -720,6 +751,21 @@ select:focus {
 
   /* 색 띠는 쌓인 줄 전체에 걸쳐 세로로 편다 */
   .gutter {
+    grid-row: 1 / -1;
+  }
+
+  /* 고르는 칸도 색 띠와 함께 거터 쪽에 남는다 — 내용 칸은 전부 3열로 보낸다 */
+  .row.pickable {
+    grid-template-columns: 4px 20px 1fr;
+  }
+
+  .row.pickable .tcid,
+  .row.pickable .title,
+  .row.pickable .right {
+    grid-column: 3;
+  }
+
+  .pick {
     grid-row: 1 / -1;
   }
 
