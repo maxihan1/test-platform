@@ -1,24 +1,37 @@
 // 케이스 목록 화면 (SPEC §8.1). JSON 원문은 목록에 절대 노출하지 않는다
 // '마지막 결과' 칸은 GET /api/runs/last-by-case 한 번으로 전부 채운다 — 케이스마다 이력을 따로 부르지 않는다 (SPEC §7.1)
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
-import { api, type CaseQuery, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
-import { Empty, ScanInfo, 케이스줄 } from './CaseListParts.js';
+import {
+  api,
+  type CaseQuery,
+  type CaseRow,
+  type ItemStatus,
+  type Paged,
+  type Platform,
+  type RunRequestItem,
+  type ServiceRow,
+} from './api.js';
+import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
 import { keyOf, type LastMap, 마지막결과로거른다 } from './catalogView.js';
 import { 다음이있나 } from './paging.js';
 import { 담을것 } from './pickRun.js';
+import { RunPickModal, type 실행요청 } from './RunPickModal.js';
 import { 상한 } from './runPlan.js';
-import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
+import { Failed, Loading, message, useAsync } from './ui.js';
 
-const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
-const 디바이스칩: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
-const 결과라벨: Record<ItemStatus | 'ALL', string> = {
-  ALL: '전체',
-  PASS: '통과',
-  FAIL: '실패',
-  NA: '미실행',
-};
+/**
+ * 실행 기록 목록이 이 제목으로 실행을 가리고(§8.7) 증적 문서 머리에도 박제된다(§8.3).
+ *
+ * 한 건이면 실행 설정 화면과 **같은 말**로 적는다 — 같은 일에 두 가지 제목이 생기지 않게.
+ * 여러 건이면 맨 앞 케이스와 나머지 수로 적는다. 「3건 실행」처럼 수만 적으면
+ * 목록에 같은 제목이 줄줄이 쌓여 무엇을 돌린 실행인지 가려낼 수 없다.
+ */
+function 실행제목(items: RunRequestItem[]): string {
+  const 맨앞 = items[0]?.tcId ?? '';
+  return items.length <= 1 ? `${맨앞} 실행` : `${맨앞} 외 ${String(items.length - 1)}건 실행`;
+}
 
 export function CaseList({ service }: { service: string }) {
   const [typed, setTyped] = useState('');
@@ -43,8 +56,12 @@ export function CaseList({ service }: { service: string }) {
   // 고른 tcId (SPEC §8.1). 비어 있으면 「전체」다 — pickRun 의 담을것 이 그 규칙을 안다
   const [고른, set고른] = useState<ReadonlySet<string>>(new Set());
   const [모으는중, set모으는중] = useState(false);
-  // 모은 결과를 담아만 둔다. 여러 건 실행 모달에 잇는 것은 다음 작업이다
-  const [, set담은것] = useState<CaseRow[]>([]);
+  // 모은 결과. null 이면 모달이 닫힌 것이다 — 닫으면 모은 것을 버린다 (SPEC §8.10)
+  const [담은것, set담은것] = useState<CaseRow[] | null>(null);
+  // 대상 서버 목록은 배정 응답에만 실려 온다. 이 화면은 접두사만 받으므로 걸기 직전에 한 번 읽는다
+  const [서비스, set서비스] = useState<ServiceRow | null>(null);
+  // 두 번 눌러도 실행이 둘 생기지 않게 막는다. 모달은 onRun 을 기다리지 않는다
+  const 거는중 = useRef(false);
 
   const 조건: CaseQuery = {
     service,
@@ -95,11 +112,41 @@ export function CaseList({ service }: { service: string }) {
         // 응답이 거짓말을 해도 쪽이 무한히 늘지 않게 막는다. 상한을 넘으면 어차피 실행이 거절된다
         if (!다음이있나(한쪽) || 모은.length >= 상한) break;
       }
-      set담은것(담을것(모은, 고른, 결과, lastMap));
+      const 담을 = 담을것(모은, 고른, 결과, lastMap);
+      if (담을.length === 0) {
+        // 빈 모달을 열지 않는다. 열어 봐야 실행이 서버에서 400 으로 되돌아온다
+        setNotice('실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다');
+        return;
+      }
+      const { user } = await api.me();
+      set서비스(user.services.find((it) => it.prefix === service) ?? null);
+      set담은것(담을);
     } catch (err) {
       setNotice(message(err));
     } finally {
       set모으는중(false);
+    }
+  }
+
+  /**
+   * 모달이 「실행하기」를 누른 뒤 (SPEC §8.10 → §8.2).
+   *
+   * **칸별 사유를 모달에 되돌리지 못한다.** `POST /api/runs` 는 입력값을 명세로 검증하지 않아
+   * `violations` 를 아예 내지 않는다 — 어느 케이스의 어느 칸인지를 서버가 말해 주지 않는다.
+   * 그래서 지어내지 않고 서버가 준 사유를 그대로 화면 줄에 적고 모달은 열어 둔다.
+   */
+  async function 실행걸기(요청: 실행요청) {
+    if (거는중.current) return;
+    거는중.current = true;
+    setNotice(null);
+    try {
+      const { runId } = await api.createRun({ ...요청, title: 실행제목(요청.items) });
+      set담은것(null);
+      window.location.hash = `#/runs/${runId}`;
+    } catch (err) {
+      setNotice(message(err));
+    } finally {
+      거는중.current = false;
     }
   }
 
@@ -159,83 +206,32 @@ export function CaseList({ service }: { service: string }) {
         <ScanInfo scan={scan.data} error={notice ?? scan.error} />
       </div>
 
-      <form
-        className="toolbar"
-        onSubmit={(e) => {
-          e.preventDefault();
-          search(typed);
-        }}
-      >
-        <input
-          type="text"
-          placeholder="케이스 이름이나 ID로 찾기"
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
-        />
-        <button className="chip" type="submit">
-          찾기
-        </button>
-        {!건조건 ? null : (
-          <button className="chip" type="button" onClick={조건지우기}>
-            검색 지우기
-          </button>
-        )}
-      </form>
+      <찾기폼
+        typed={typed}
+        건조건={건조건}
+        onTyped={setTyped}
+        onSearch={() => search(typed)}
+        onClear={조건지우기}
+      />
 
-      {/* 검색 조건 넷 (SPEC §8.1 표가 정본). 서비스는 조건이 아니라 맨 위 띠의 선택이다 */}
-      <div className="toolbar">
-        <span className="filter-label">디바이스</span>
-        {디바이스칩.map((값) => (
-          <button
-            className="chip"
-            key={값}
-            aria-pressed={디바이스 === 값}
-            onClick={() => {
-              set디바이스(값);
-              setPage(1);
-            }}
-          >
-            {값 === 'ALL' ? '전체' : PLATFORM_LABEL[값]}
-          </button>
-        ))}
-        <span className="filter-label">표시</span>
-        {/* 비활성 케이스는 기본으로 감춘다. 코드에서 사라진 케이스는 지우지 않고 남겨 두므로
-            시간이 지날수록 목록이 과거로 채워진다 (SPEC §8.1) */}
-        <button
-          className="chip"
-          aria-pressed={활성만}
-          onClick={() => {
-            set활성만(true);
-            setPage(1);
-          }}
-        >
-          활성만
-        </button>
-        <button
-          className="chip"
-          aria-pressed={!활성만}
-          onClick={() => {
-            set활성만(false);
-            setPage(1);
-          }}
-        >
-          전체
-        </button>
-        <span className="filter-label">마지막 결과</span>
-        {결과칩.map((값) => (
-          <button
-            className="chip"
-            key={값}
-            aria-pressed={결과 === 값}
-            onClick={() => {
-              set결과(값);
-              setPage(1);
-            }}
-          >
-            {결과라벨[값]}
-          </button>
-        ))}
-      </div>
+      {/* 조건을 바꾸면 늘 첫 페이지로 돌아간다. 3쪽에서 조건을 좁히면 빈 목록이 뜬다 */}
+      <조건칩들
+        디바이스={디바이스}
+        활성만={활성만}
+        결과={결과}
+        on디바이스={(값) => {
+          set디바이스(값);
+          setPage(1);
+        }}
+        on활성만={(값) => {
+          set활성만(값);
+          setPage(1);
+        }}
+        on결과={(값) => {
+          set결과(값);
+          setPage(1);
+        }}
+      />
 
       {cases.error !== null ? (
         <Failed error={cases.error} />
@@ -282,6 +278,15 @@ export function CaseList({ service }: { service: string }) {
             다음
           </button>
         </div>
+      )}
+
+      {담은것 === null ? null : (
+        <RunPickModal
+          케이스들={담은것}
+          service={서비스}
+          onClose={() => set담은것(null)}
+          onRun={(요청) => void 실행걸기(요청)}
+        />
       )}
     </div>
   );

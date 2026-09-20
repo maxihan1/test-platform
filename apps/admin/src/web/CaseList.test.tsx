@@ -5,10 +5,10 @@
 // 51건째부터 조용히 빠지는데 버튼은 「전체」라고 말한다. 그래서 여기서는
 // `api.cases` 가 **쪽마다 불렸는지**를 본다 — 한 쪽만 받고 끝나면 실패해야 한다.
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { api, type CaseRow, type Paged } from './api.js';
+import { api, ApiError, type CaseRow, type Paged, type Platform, type ServiceRow, type User } from './api.js';
 import { CaseList } from './CaseList.js';
 
 // globals 가 꺼져 있어 testing-library 가 스스로 cleanup 을 걸지 못한다. 직접 건다
@@ -17,11 +17,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function 케이스(tcId: string): CaseRow {
+// 앞 검사가 옮겨 놓은 주소가 다음 검사의 「안 옮겼다」 단언을 통과시켜 버린다
+beforeEach(() => {
+  window.location.hash = '#/cases';
+});
+
+function 케이스(tcId: string, platforms: Platform[] = ['desktop']): CaseRow {
   return {
     tcId,
     name: `${tcId} 케이스`,
-    platforms: ['desktop'],
+    platforms,
     precondition: [],
     filePath: `tests/${tcId}.spec.ts`,
     paramSchema: {},
@@ -33,12 +38,25 @@ function 케이스(tcId: string): CaseRow {
 
 // 한 쪽 크기를 2로 두면 2건짜리 쪽은 「더 있다」, 1건짜리 쪽은 「끝」이다 (paging.ts)
 const 쪽1: Paged<CaseRow> = { items: [케이스('ZPK-001'), 케이스('ZPK-002')], total: 3, page: 1, pageSize: 2 };
-const 쪽2: Paged<CaseRow> = { items: [케이스('ZPK-003')], total: 3, page: 2, pageSize: 2 };
+// 디바이스 수가 다른 케이스를 섞는다. items 를 곱으로 세면 여기서 어긋난다
+const 쪽2: Paged<CaseRow> = { items: [케이스('ZPK-003', ['desktop', 'mobile'])], total: 3, page: 2, pageSize: 2 };
 
-/** 마운트에서 부르는 셋을 전부 막는다. cases 만 시험 대상이고 나머지 둘은 조용히 비운다 */
+const 서비스: ServiceRow = {
+  id: 1,
+  prefix: 'ZPK',
+  name: '결제',
+  color: '#123456',
+  envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
+  hasSlackWebhook: false,
+};
+
+const 사람: User = { username: 'zpk', displayName: '검사', role: 'operator', services: [서비스] };
+
+/** 마운트에서 부르는 셋과 대상 서버를 읽는 통로를 막는다. cases 만 시험 대상이다 */
 function 모킹(cases: (page: number) => Promise<Paged<CaseRow>>) {
   vi.spyOn(api, 'lastScan').mockResolvedValue(null);
   vi.spyOn(api, 'lastByCase').mockResolvedValue({ items: [] });
+  vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
   return vi.spyOn(api, 'cases').mockImplementation((q) => cases(q.page ?? 1));
 }
 
@@ -53,6 +71,8 @@ async function 그리기(cases: (page: number) => Promise<Paged<CaseRow>> = 쪽�
 
 const 고르기칸 = () => screen.getAllByRole('checkbox');
 const 실행버튼 = () => screen.getByRole('button', { name: /실행하기$/ });
+// 모달의 버튼은 글자가 딱 '실행하기'다. 목록 쪽은 앞에 '전체'·'고른 N건'이 붙는다
+const 모달실행 = () => screen.getByRole('button', { name: '실행하기' });
 
 describe('CaseList 여러 건 고르기', () => {
   it('줄마다 고르는 칸이 있다', async () => {
@@ -108,7 +128,80 @@ describe('CaseList 여러 건 고르기', () => {
     await waitFor(() => expect(풀기).not.toBeNull());
     풀기!(쪽2);
 
+    // 다 모으면 확인 모달이 뜬다. 닫아야 목록의 화면 줄이 다시 혼자가 된다
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+
     await waitFor(() => expect(실행버튼().hasAttribute('disabled')).toBe(false));
     expect(screen.queryByRole('status')).toBeNull();
+  });
+});
+
+describe('CaseList 여러 건 실행 걸기', () => {
+  /** 모달을 열고 대상 서버까지 고른 자리. 안 고르면 모달이 자기 사유를 내고 멈춘다 */
+  async function 모달까지() {
+    const 것 = await 그리기();
+    fireEvent.click(실행버튼());
+    await screen.findByRole('dialog');
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    return 것;
+  }
+
+  it('모으기가 끝나면 모은 케이스로 모달이 뜬다', async () => {
+    await 그리기();
+
+    fireEvent.click(실행버튼());
+
+    const 모달 = await screen.findByRole('dialog');
+    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 3건');
+    expect(screen.getAllByText('ZPK-003')).not.toHaveLength(0);
+  });
+
+  it('모달을 닫으면 모은 것을 버린다', async () => {
+    await 모달까지();
+
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('실행하기를 누르면 담은 건수만큼의 items 로 createRun 이 불린다', async () => {
+    const 걸기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 7 });
+    await 모달까지();
+
+    fireEvent.click(모달실행());
+
+    await waitFor(() => expect(걸기).toHaveBeenCalledTimes(1));
+    const 본문 = 걸기.mock.calls[0]![0];
+    expect(본문.items).toHaveLength(3);
+    expect(본문.items.map((it) => it.tcId)).toEqual(['ZPK-001', 'ZPK-002', 'ZPK-003']);
+    // 디바이스는 케이스가 선언한 것을 그대로 쓴다. 한 자리에서 고르지 않는다 (SPEC §8.10)
+    expect(본문.items.map((it) => it.platforms)).toEqual([['desktop'], ['desktop'], ['desktop', 'mobile']]);
+    expect(본문.env).toBe('qa');
+    // 실행 기록 목록이 제목으로 실행을 가린다. 수만 적으면 무엇을 돌렸는지 못 읽는다 (SPEC §8.2)
+    expect(본문.title).toBe('ZPK-001 외 2건 실행');
+  });
+
+  it('성공하면 그 실행 결과 화면으로 간다', async () => {
+    vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 7 });
+    await 모달까지();
+
+    fireEvent.click(모달실행());
+
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/7'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('400 이 오면 결과 화면으로 안 가고 모달이 열린 채 사유가 뜬다', async () => {
+    vi.spyOn(api, 'createRun').mockRejectedValue(
+      new ApiError(400, 'CASE_NOT_FOUND', '카탈로그에 없는 케이스다: ZPK-003'),
+    );
+    await 모달까지();
+
+    fireEvent.click(모달실행());
+
+    await screen.findByText(/카탈로그에 없는 케이스다: ZPK-003/);
+    expect(window.location.hash).toBe('#/cases');
+    expect(screen.getByRole('dialog')).toBeTruthy();
   });
 });

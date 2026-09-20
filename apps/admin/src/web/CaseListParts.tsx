@@ -1,9 +1,102 @@
 // 케이스 목록 화면이 그리는 조각 셋 — 케이스 한 줄 · 빈 목록 안내 · 스캔 결과 줄 (SPEC §8.1)
 // 고르는 칸이 붙으면서 CaseList 가 300줄을 넘었다. 판단은 CaseList 에 두고 그리는 쪽만 여기로 옮겼다
 
-import type { CaseRow, LastScan } from './api.js';
+import type { CaseRow, ItemStatus, LastScan, Platform } from './api.js';
 import { keyOf, type LastMap, 마지막판정, 빈이유 } from './catalogView.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
+
+const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
+const 디바이스칩: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
+// 빈 목록 안내도 같은 말을 쓴다. 두 벌을 두면 칩과 안내가 서로 다른 이름으로 같은 것을 부른다
+export const 결과라벨: Record<ItemStatus | 'ALL', string> = {
+  ALL: '전체',
+  PASS: '통과',
+  FAIL: '실패',
+  NA: '미실행',
+};
+
+/** 이름·ID 로 찾는 칸. 「검색 지우기」는 거른 것이 있을 때만 나온다 (SPEC §8.1) */
+export function 찾기폼({
+  typed,
+  건조건,
+  onTyped,
+  onSearch,
+  onClear,
+}: {
+  typed: string;
+  건조건: boolean;
+  onTyped: (값: string) => void;
+  onSearch: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <form
+      className="toolbar"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSearch();
+      }}
+    >
+      <input
+        type="text"
+        placeholder="케이스 이름이나 ID로 찾기"
+        value={typed}
+        onChange={(e) => onTyped(e.target.value)}
+      />
+      <button className="chip" type="submit">
+        찾기
+      </button>
+      {!건조건 ? null : (
+        <button className="chip" type="button" onClick={onClear}>
+          검색 지우기
+        </button>
+      )}
+    </form>
+  );
+}
+
+/** 검색 조건 넷 (SPEC §8.1 표가 정본). 서비스는 조건이 아니라 맨 위 띠의 선택이다 */
+export function 조건칩들({
+  디바이스,
+  활성만,
+  결과,
+  on디바이스,
+  on활성만,
+  on결과,
+}: {
+  디바이스: Platform | 'ALL';
+  활성만: boolean;
+  결과: ItemStatus | 'ALL';
+  on디바이스: (값: Platform | 'ALL') => void;
+  on활성만: (값: boolean) => void;
+  on결과: (값: ItemStatus | 'ALL') => void;
+}) {
+  return (
+    <div className="toolbar">
+      <span className="filter-label">디바이스</span>
+      {디바이스칩.map((값) => (
+        <button className="chip" key={값} aria-pressed={디바이스 === 값} onClick={() => on디바이스(값)}>
+          {값 === 'ALL' ? '전체' : PLATFORM_LABEL[값]}
+        </button>
+      ))}
+      <span className="filter-label">표시</span>
+      {/* 비활성 케이스는 기본으로 감춘다. 코드에서 사라진 케이스는 지우지 않고 남겨 두므로
+          시간이 지날수록 목록이 과거로 채워진다 (SPEC §8.1) */}
+      <button className="chip" aria-pressed={활성만} onClick={() => on활성만(true)}>
+        활성만
+      </button>
+      <button className="chip" aria-pressed={!활성만} onClick={() => on활성만(false)}>
+        전체
+      </button>
+      <span className="filter-label">마지막 결과</span>
+      {결과칩.map((값) => (
+        <button className="chip" key={값} aria-pressed={결과 === 값} onClick={() => on결과(값)}>
+          {결과라벨[값]}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function 케이스줄({
   row,
