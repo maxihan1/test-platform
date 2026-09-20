@@ -10,10 +10,12 @@
  */
 export const 상한 = 1000;
 
-/** 케이스 수 × 디바이스 수 × 반복 횟수 */
-export function 항목수(케이스수: number, 디바이스수: number, 반복: number): number {
-  // 0 을 곱하면 아무것도 안 도는데 버튼은 살아 있다. 빈 칸은 1회로 읽는다
-  return 케이스수 * 디바이스수 * Math.max(1, Math.floor(반복));
+/** Σ(케이스마다의 디바이스 수) × 반복 횟수 */
+export function 항목수(디바이스수들: number[], 반복: number): number {
+  // 케이스마다 도는 디바이스 수가 달라 곱셈이 아니라 합이다 — 데모 11건을 돌렸더니
+  // 곱셈이 내놓는 11 도 22 도 아닌 13개가 나왔다 (PC 만 도는 케이스와 둘 다 도는 케이스가 섞여 있다)
+  // 0 을 곱하면 아무것도 안 도는데 버튼은 살아 있다. 반복 빈 칸은 1회로 읽는다
+  return 디바이스수들.reduce((합, 수) => 합 + 수, 0) * Math.max(1, Math.floor(반복));
 }
 
 export function 넘었나(건수: number): boolean {
