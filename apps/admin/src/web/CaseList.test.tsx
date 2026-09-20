@@ -6,7 +6,7 @@
 // `api.cases` 가 **쪽마다 불렸는지**를 본다 — 한 쪽만 받고 끝나면 실패해야 한다.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, ApiError, type CaseRow, type Paged, type Platform, type ServiceRow, type User } from './api.js';
 import { CaseList } from './CaseList.js';
@@ -192,7 +192,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('400 이 오면 결과 화면으로 안 가고 모달이 열린 채 사유가 뜬다', async () => {
+  it('400 이 오면 결과 화면으로 안 가고 모달 **안에** 사유가 뜬다', async () => {
     vi.spyOn(api, 'createRun').mockRejectedValue(
       new ApiError(400, 'CASE_NOT_FOUND', '카탈로그에 없는 케이스다: ZPK-003'),
     );
@@ -200,8 +200,50 @@ describe('CaseList 여러 건 실행 걸기', () => {
 
     fireEvent.click(모달실행());
 
-    await screen.findByText(/카탈로그에 없는 케이스다: ZPK-003/);
+    // 목록 어딘가에 있기만 하면 통과하는 단언은 이 사고를 못 막는다.
+    // 목록 줄은 잉크 40% 덮개 뒤에 깔려서 사람 눈에는 「아무 일도 안 일어난 것」이다
+    const 모달 = screen.getByRole('dialog');
+    await waitFor(() =>
+      expect(within(모달).getByRole('status').textContent).toContain('카탈로그에 없는 케이스다: ZPK-003'),
+    );
     expect(window.location.hash).toBe('#/cases');
-    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('한 번 거절당해도 실행하기를 다시 누를 수 있다', async () => {
+    const 걸기 = vi
+      .spyOn(api, 'createRun')
+      .mockRejectedValueOnce(new ApiError(400, 'ENV_NOT_FOUND', 'ZPK 서비스에 qa 대상 서버가 없다'))
+      .mockResolvedValue({ runId: 9 });
+    await 모달까지();
+
+    fireEvent.click(모달실행());
+    const 모달 = screen.getByRole('dialog');
+    await waitFor(() => expect(within(모달).getByRole('status').textContent).toContain('대상 서버가 없다'));
+
+    // 연타를 막는 빗장이 실패한 자리에서 안 풀리면 여기서 영영 못 누른다
+    expect(모달실행().hasAttribute('disabled')).toBe(false);
+    fireEvent.click(모달실행());
+
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/9'));
+    expect(걸기).toHaveBeenCalledTimes(2);
+  });
+
+  it('모달을 닫으면 지난번 사유가 다음에 열 때 남지 않는다', async () => {
+    vi.spyOn(api, 'createRun').mockRejectedValue(
+      new ApiError(400, 'CASE_NOT_FOUND', '카탈로그에 없는 케이스다: ZPK-003'),
+    );
+    await 모달까지();
+    fireEvent.click(모달실행());
+    await waitFor(() =>
+      expect(within(screen.getByRole('dialog')).getByRole('status').textContent).toContain('ZPK-003'),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    fireEvent.click(실행버튼());
+
+    const 다시 = await screen.findByRole('dialog');
+    await waitFor(() =>
+      expect(within(다시).getByRole('status').textContent).toBe('실행 항목이 4건 생깁니다'),
+    );
   });
 });

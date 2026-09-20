@@ -60,6 +60,8 @@ export function CaseList({ service }: { service: string }) {
   const [담은것, set담은것] = useState<CaseRow[] | null>(null);
   // 대상 서버 목록은 배정 응답에만 실려 온다. 이 화면은 접두사만 받으므로 걸기 직전에 한 번 읽는다
   const [서비스, set서비스] = useState<ServiceRow | null>(null);
+  // 걸었다 거절당한 사유. **목록 줄에 적으면 모달 뒤에 깔린다** — 모달 안에 적는다 (SPEC §8.10)
+  const [사유, set사유] = useState<string | undefined>(undefined);
   // 두 번 눌러도 실행이 둘 생기지 않게 막는다. 모달은 onRun 을 기다리지 않는다
   const 거는중 = useRef(false);
 
@@ -131,20 +133,22 @@ export function CaseList({ service }: { service: string }) {
   /**
    * 모달이 「실행하기」를 누른 뒤 (SPEC §8.10 → §8.2).
    *
-   * **칸별 사유를 모달에 되돌리지 못한다.** `POST /api/runs` 는 입력값을 명세로 검증하지 않아
+   * **칸별 사유를 되돌리지 못한다.** `POST /api/runs` 는 입력값을 명세로 검증하지 않아
    * `violations` 를 아예 내지 않는다 — 어느 케이스의 어느 칸인지를 서버가 말해 주지 않는다.
-   * 그래서 지어내지 않고 서버가 준 사유를 그대로 화면 줄에 적고 모달은 열어 둔다.
+   * 그래서 지어내지 않고 서버가 준 한 줄을 **모달 안으로** 돌려보내고 모달은 열어 둔다.
+   * 거절당해도 `거는중` 을 반드시 풀어 다시 누를 수 있게 한다.
    */
   async function 실행걸기(요청: 실행요청) {
     if (거는중.current) return;
     거는중.current = true;
     setNotice(null);
+    set사유(undefined);
     try {
       const { runId } = await api.createRun({ ...요청, title: 실행제목(요청.items) });
       set담은것(null);
       window.location.hash = `#/runs/${runId}`;
     } catch (err) {
-      setNotice(message(err));
+      set사유(message(err));
     } finally {
       거는중.current = false;
     }
@@ -161,6 +165,14 @@ export function CaseList({ service }: { service: string }) {
   function search(term: string) {
     setQ(term);
     setPage(1);
+  }
+
+  // 조건을 바꾸면 늘 첫 쪽으로 간다. 3쪽에서 조건을 좁히면 빈 목록에 '3쪽' 이 뜬다
+  function 바꾸면첫쪽<T>(set: (값: T) => void) {
+    return (값: T) => {
+      set(값);
+      setPage(1);
+    };
   }
 
   function 조건지우기() {
@@ -214,23 +226,13 @@ export function CaseList({ service }: { service: string }) {
         onClear={조건지우기}
       />
 
-      {/* 조건을 바꾸면 늘 첫 페이지로 돌아간다. 3쪽에서 조건을 좁히면 빈 목록이 뜬다 */}
       <조건칩들
         디바이스={디바이스}
         활성만={활성만}
         결과={결과}
-        on디바이스={(값) => {
-          set디바이스(값);
-          setPage(1);
-        }}
-        on활성만={(값) => {
-          set활성만(값);
-          setPage(1);
-        }}
-        on결과={(값) => {
-          set결과(값);
-          setPage(1);
-        }}
+        on디바이스={바꾸면첫쪽(set디바이스)}
+        on활성만={바꾸면첫쪽(set활성만)}
+        on결과={바꾸면첫쪽(set결과)}
       />
 
       {cases.error !== null ? (
@@ -284,7 +286,12 @@ export function CaseList({ service }: { service: string }) {
         <RunPickModal
           케이스들={담은것}
           service={서비스}
-          onClose={() => set담은것(null)}
+          사유={사유}
+          onClose={() => {
+            set담은것(null);
+            // 다음에 열었을 때 지난번 사유가 남아 있으면 안 된다
+            set사유(undefined);
+          }}
           onRun={(요청) => void 실행걸기(요청)}
         />
       )}

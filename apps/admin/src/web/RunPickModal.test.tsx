@@ -48,10 +48,10 @@ const 서비스: ServiceRow = {
   hasSlackWebhook: true,
 };
 
-function 그리기(케이스들: CaseRow[] = [값없는케이스, 값있는케이스]) {
+function 그리기(케이스들: CaseRow[] = [값없는케이스, 값있는케이스], 사유?: string) {
   const onRun = vi.fn();
   const onClose = vi.fn();
-  render(<RunPickModal 케이스들={케이스들} service={서비스} onRun={onRun} onClose={onClose} />);
+  render(<RunPickModal 케이스들={케이스들} service={서비스} 사유={사유} onRun={onRun} onClose={onClose} />);
   return { onRun, onClose };
 }
 
@@ -106,5 +106,22 @@ describe('RunPickModal', () => {
     expect(줄().textContent).toContain('1000건까지');
     // 말풍선이 아니라 화면 줄이어야 한다 (DESIGN.md 접근성 기준)
     expect(실행버튼().hasAttribute('title')).toBe(false);
+  });
+
+  it('거절당한 사유가 오면 건수 안내를 밀어내고 그 줄에 뜬다', () => {
+    그리기(undefined, '그 케이스를 찾지 못했습니다 — 카탈로그에 없는 케이스다: ZPM-002');
+
+    expect(줄().textContent).toBe('그 케이스를 찾지 못했습니다 — 카탈로그에 없는 케이스다: ZPM-002');
+    expect(줄().getAttribute('style')).toContain('--fail');
+  });
+
+  it('사유가 있어도 버튼을 죽인 이유가 먼저다', () => {
+    // 옛 사유가 덮으면 버튼이 왜 안 눌리는지 읽을 자리가 사라진다 (DESIGN.md 접근성 기준)
+    그리기(undefined, '그 케이스를 찾지 못했습니다');
+
+    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '400' } });
+
+    expect(실행버튼().hasAttribute('disabled')).toBe(true);
+    expect(줄().textContent).toContain('1000건까지');
   });
 });

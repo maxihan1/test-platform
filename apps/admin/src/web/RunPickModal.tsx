@@ -23,6 +23,14 @@ interface Props {
   케이스들: CaseRow[];
   /** 대상 서버 목록과 Slack 칸 여부가 여기 실려 온다 (SPEC §8.2 → §7) */
   service: ServiceRow | null;
+  /**
+   * 걸었다가 서버가 거절한 사유 한 줄.
+   *
+   * **칸별이 아니다.** `POST /api/runs` 는 입력값을 명세로 검증하지 않아 `violations` 를 내지 않는다 —
+   * 어느 칸인지 서버가 모르므로 지어내지 않고 준 말을 그대로 싣는다.
+   * 여기 없으면 사유가 모달 뒤에 깔려 사람은 「눌렀는데 아무 일도 안 일어난다」로 겪는다
+   */
+  사유?: string;
   onClose: () => void;
   onRun: (요청: 실행요청) => void;
 }
@@ -32,7 +40,7 @@ type 글자표 = Record<string, { params: Record<string, string>; expected: Reco
 
 const 오류없음: Record<string, string> = {};
 
-export function RunPickModal({ 케이스들, service, onClose, onRun }: Props) {
+export function RunPickModal({ 케이스들, service, 사유, onClose, onRun }: Props) {
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2)
   const [env, setEnv] = useState('');
   const [repeat, setRepeat] = useState('1');
@@ -68,11 +76,20 @@ export function RunPickModal({ 케이스들, service, onClose, onRun }: Props) {
   const 건수 = 몇건(케이스들, Number(repeat) || 1);
   const 너무많나 = 넘었나(건수);
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
+  /**
+   * 한 줄이 넷을 겸한다 — 방금 누른 것에 대한 답 · 버튼을 죽인 이유 · **걸었다 거절당한 사유** · 건수 안내.
+   *
+   * 사유는 안내를 이긴다. 실패한 직후에는 `notice` 가 비어 있고 상한도 안 넘은 상태라
+   * (안 그랬으면 애초에 안 걸렸다) **거절당한 그 순간 사유가 늘 보인다.**
+   * 대신 위 둘까지 덮지는 않는다 — 옛 사유가 버튼이 죽은 이유를 가리면
+   * 「왜 안 눌리는지」를 읽을 자리가 사라진다 (DESIGN.md 접근성 기준).
+   */
   const 줄 =
     notice ??
     (너무많나
       ? `한 번에 ${String(상한)}건까지 만들 수 있습니다 (지금 ${String(건수)}건)`
-      : `실행 항목이 ${String(건수)}건 생깁니다`);
+      : (사유 ?? `실행 항목이 ${String(건수)}건 생깁니다`));
+  const 빨갛나 = notice !== null || 너무많나 || 사유 !== undefined;
 
   function 펴기(tcId: string) {
     set펼친((전) => (전 === tcId ? null : tcId));
@@ -118,8 +135,8 @@ export function RunPickModal({ 케이스들, service, onClose, onRun }: Props) {
       onClose={onClose}
       버튼={
         <>
-          {/* 사유도 건수도 말풍선이 아니라 화면 줄이다 (DESIGN.md) */}
-          <span className="note" role="status" style={notice === null && !너무많나 ? undefined : { color: 'var(--fail)' }}>
+          {/* 사유도 건수도 말풍선이 아니라 화면 줄이다. 오류는 --fail 로 적는다 (DESIGN.md) */}
+          <span className="note" role="status" style={빨갛나 ? { color: 'var(--fail)' } : undefined}>
             {줄}
           </span>
           <button className="btn ghost" onClick={onClose}>
