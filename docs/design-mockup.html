@@ -85,6 +85,13 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 .v-fail{background:var(--fail);color:#fff}
 .v-na{background:var(--na-bg);color:var(--na)}
 
+/* 여러 건 고르기 (SPEC §8.1) — 고르는 칸은 왼쪽 거터 안, 판정 색 다음에 둔다.
+   줄 내용 쪽 첫 칸에 두면 620px 미만에서 줄이 2단으로 접힐 때
+   케이스명 위에 체크박스만 홀로 한 줄이 된다 */
+.row.pickable{grid-template-columns:4px 20px 128px 1fr auto}
+.pick{display:flex;align-items:center;justify-content:center;align-self:stretch}
+.pick input{width:15px;height:15px;margin:0;accent-color:var(--ink);cursor:pointer}
+
 .sec{padding:22px 24px;border-bottom:1px solid var(--rule-soft)}
 .sec:last-child{border-bottom:0}
 .sec-h{
@@ -197,8 +204,9 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
 
-/* ── 모달 (SPEC §8.9 · DESIGN.md) ──────────────────────────────
-   하던 일을 가로막는 장치라 두 자리에만 쓴다 — 되돌릴 수 없는 일 확인, 실행 완료 */
+/* ── 모달 (SPEC §8.9 · §8.10 · DESIGN.md) ──────────────────────
+   하던 일을 가로막는 장치라 세 자리에만 쓴다 —
+   되돌릴 수 없는 일 확인, 실행 완료, 여러 건 실행 전 확인 (2026-09-21) */
 .scrim{position:relative;background:var(--sheet-2);padding:28px 16px}
 .scrim::before{content:"";position:absolute;inset:0;background:rgba(23,32,27,.4)}
 .modal{
@@ -214,6 +222,28 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 .modal .flist .id{font-size:12.5px;font-weight:600;color:var(--ink-muted);margin-right:8px}
 .modal .actions{border-top:1px solid var(--rule-soft)}
 
+/* 여러 건 실행 확인 모달 — 머리와 바닥은 고정, 가운데 목록만 스크롤한다.
+   건수가 늘어도 대상 서버와 실행 버튼이 늘 보여야 한다 */
+.modal .mhead{display:flex;align-items:center;gap:10px;padding:0 22px 16px;flex-wrap:wrap}
+.modal .mhead label{font-size:13px;color:var(--ink-muted)}
+.modal .mhead .addr{font-size:12px;color:var(--ink-faint)}
+.modal .picked{border-top:1px solid var(--rule-soft);max-height:168px;overflow-y:auto}
+.prow{
+  display:grid;grid-template-columns:62px 1fr auto auto;gap:0 10px;
+  align-items:baseline;padding:9px 22px;border-bottom:1px solid var(--rule-soft);
+}
+.prow:last-child{border-bottom:0}
+.prow .id{font-size:12.5px;font-weight:600;color:var(--ink-muted)}
+.prow .nm{font-size:13.5px}
+.prow .dev{font-size:12px;color:var(--ink-faint);white-space:nowrap}
+.modal .mfoot{
+  display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap;
+  padding:14px 22px 0;border-top:1px solid var(--rule-soft);
+}
+.modal .mfoot label{font-size:13px;color:var(--ink-muted)}
+.modal .mfoot input[type=text]{flex:none;width:56px;min-width:0}
+.modal.confirm .actions{border-top:0;padding-top:12px}
+
 /* ── 설정 화면 (SPEC §8.8) ─────────────────────────────────────── */
 .srow{
   display:grid;grid-template-columns:12px 1fr 92px auto auto;gap:0 14px;align-items:center;
@@ -225,7 +255,7 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 .srow .nm small{display:block;font-size:12px;color:var(--ink-faint);margin-top:1px}
 .srow .pfx{font-size:12.5px;font-weight:700;color:var(--ink-muted);letter-spacing:.02em}
 .srow .cnt{font-size:12.5px;color:var(--ink-faint)}
-.srow .edit{font-size:12.5px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;background:0;border:0;cursor:pointer;font-family:inherit}
+.srow .edit,.prow .edit{white-space:nowrap;font-size:12.5px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;background:0;border:0;cursor:pointer;font-family:inherit}
 .urow{grid-template-columns:1fr 92px auto;gap:0 26px}
 .role{font-size:12.5px;color:var(--ink);font-weight:600;text-align:right}
 .off{opacity:.55}
@@ -270,6 +300,9 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
   .field{grid-template-columns:1fr;gap:2px}
   .assert{grid-template-columns:18px 1fr;padding-left:20px}
   .exp,.act{text-align:left;grid-column:2}
+  .row.pickable{grid-template-columns:4px 20px 1fr}
+  .row.pickable .tcid,.row.pickable .title,.row.pickable .right{grid-column:3}
+  .pick{grid-row:1/-1}
   .srow,.srow.urow{grid-template-columns:1fr auto;gap:4px 12px}
   .srow .swatch{display:none}
   .tabs{overflow-x:auto}
@@ -379,7 +412,11 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
       <div style="font-size:19px;font-weight:600;letter-spacing:-.01em">케이스 목록</div>
       <div class="runmeta">마지막 스캔 9월 15일 09:02 · 추가 2 · 갱신 5 · 비활성 1 · 중복 0</div>
     </div>
-    <button class="btn ghost">다시 스캔하기</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn ghost">다시 스캔하기</button>
+      <button class="btn">전체 실행하기</button>
+      <button class="btn">고른 3건 실행하기</button>
+    </div>
   </div>
   <div class="toolbar">
     <input type="text" placeholder="케이스 이름이나 ID로 찾기">
@@ -398,22 +435,25 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
     <button class="chip" aria-pressed="false">미실행</button>
   </div>
 
-  <div class="row">
+  <div class="row pickable">
     <div class="gutter" style="background:var(--pass)"></div>
+    <div class="pick"><input type="checkbox" checked aria-label="PAY-001 고르기"></div>
     <div class="tcid">PAY-001</div>
     <div class="title">카드로 결제하면 주문이 생성된다
       <small class="params">지원 디바이스 PC · 모바일</small></div>
     <div class="right"><span class="verdict v-pass">통과</span><button class="btn">실행</button></div>
   </div>
-  <div class="row">
+  <div class="row pickable">
     <div class="gutter" style="background:var(--fail)"></div>
+    <div class="pick"><input type="checkbox" checked aria-label="PAY-002 고르기"></div>
     <div class="tcid">PAY-002</div>
     <div class="title">한도를 넘는 카드로 결제하면 거절 사유가 안내된다
       <small class="params">지원 디바이스 PC · 모바일</small></div>
     <div class="right"><span class="verdict v-fail">실패</span><button class="btn">실행</button></div>
   </div>
-  <div class="row">
+  <div class="row pickable">
     <div class="gutter" style="background:var(--na)"></div>
+    <div class="pick"><input type="checkbox" checked aria-label="PAY-014 고르기"></div>
     <div class="tcid">PAY-014</div>
     <div class="title">결제를 취소하면 승인이 철회된다
       <small class="params">지원 디바이스 PC</small></div>
@@ -427,7 +467,11 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 </div>
 <p class="note" style="margin:-28px 0 40px 2px">
   <b class="gone">기능 영역</b> 드롭다운이 사라졌다. 목록이 한 서비스로 좁혀지면 그 안의 접두사는 전부 <b>PAY-</b>라 거를 것이 없다.
-  그 자리는 맨 위 띠가 대신한다. 검색 조건 다섯 → <b>넷</b>.
+  그 자리는 맨 위 띠가 대신한다. 검색 조건 다섯 → <b>넷</b><br>
+  <b>실행 버튼은 하나다.</b> 아무것도 안 고르면 <b>전체 실행하기</b>, 하나라도 고르면 <b>고른 N건 실행하기</b>로
+  글자만 바뀐다 — 한 화면에서 판단하라고 두 모양을 나란히 그렸다. 누르면 <b>화면 10</b> 이 뜬다.<br>
+  고르는 칸은 <b>왼쪽 거터 안, 판정 색 다음</b>에 있다. 줄 내용 쪽 첫 칸에 두면
+  620px 미만에서 줄이 2단으로 접힐 때 <b>케이스명 위에 체크박스만 홀로 한 줄</b>이 된다.
 </p>
 
 <!-- ══ 빈 목록 세 갈래 ═══════════════════════════════════════════ -->
@@ -1019,6 +1063,62 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
     <b>띠에 서비스 이름이 없습니다.</b> 아직 누구인지 모르니 어떤 서비스를 보여줄지도 모릅니다.
   </p>
 </div>
+
+
+<!-- ══ 화면 10 — 여러 건 실행 확인 모달 ══════════════════════════ -->
+<p class="screen-tag"><b>화면 10 — 여러 건 실행 확인 모달</b> (§8.10. §8.1 에서 골라 §8.2 로 건다)</p>
+<div class="screen" style="border:0;background:transparent;margin-bottom:12px">
+  <div class="scrim">
+    <div class="modal confirm">
+      <h3>실행할 케이스 3건</h3>
+      <div class="mhead">
+        <label for="m1">대상 서버</label>
+        <select id="m1"><option>qa</option><option>dev</option><option>staging</option></select>
+        <span class="addr">https://qa-pay.example.com</span>
+      </div>
+      <div class="picked">
+        <div class="prow">
+          <span class="id">PAY-001</span>
+          <span class="nm">카드로 결제하면 주문이 생성된다</span>
+          <span class="dev">PC · 모바일</span>
+          <span></span>
+        </div>
+        <div class="prow">
+          <span class="id">PAY-002</span>
+          <span class="nm">한도를 넘는 카드로 결제하면 거절 사유가 안내된다</span>
+          <span class="dev">PC · 모바일</span>
+          <button class="edit">값 고치기</button>
+        </div>
+        <div class="prow">
+          <span class="id">PAY-014</span>
+          <span class="nm">결제를 취소하면 승인이 철회된다</span>
+          <span class="dev">PC</span>
+          <span></span>
+        </div>
+      </div>
+      <div class="mfoot">
+        <label for="m2">반복</label>
+        <input type="text" id="m2" value="1">
+        <label for="m3" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="m3"> 끝나면 Slack 알리기
+        </label>
+      </div>
+      <div class="actions">
+        <span class="note">실행 항목이 <b>5건</b> 생깁니다</span>
+        <button class="btn ghost">취소</button>
+        <button class="btn">실행하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="note" style="margin:-4px 0 40px 2px">
+  고른 것을 <b>걸기 전에 한 번 보여주는 자리</b>다. 여러 건은 시간과 실행 기록을 쓰는 일이라
+  누르기 전에 무엇이 도는지 확인할 자리가 있어야 한다 (DESIGN.md 모달 셋째 자리).
+  <b>머리와 바닥은 고정이고 가운데 목록만 스크롤한다</b> — 건수가 늘어도 대상 서버와 실행 버튼이 늘 보인다.<br>
+  <b>값 고치기</b>는 입력칸이 있는 케이스에만 붙는다. PAY-001 · PAY-014 는 그 자리가 비어 있다.
+  닫는 길은 셋이다 — <b>취소</b> · <code>Esc</code> · 바깥 누르기.
+  이름이 길면 <b>줄이지 않고 두 줄로 흐른다</b> — 무엇이 걸리는지 확인하러 연 자리에서 확인할 것을 가릴 수는 없다.
+</p>
 
 </div>
 </body>
