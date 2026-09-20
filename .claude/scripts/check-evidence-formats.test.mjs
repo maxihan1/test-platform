@@ -35,8 +35,9 @@ function 뽑기(rel, 무늬, 쪼개기) {
 function 사본들() {
   return [
     뽑기('apps/admin/src/reporting/store.ts', /export type EvidenceFormat\s*=\s*([^;]+);/, (s) => s.split('|')),
-    // `증적본문` 에 앵커를 건다. 위에 다른 `z.enum` 이 생기면 엉뚱한 것을 읽고 조용히 통과한다
-    뽑기('apps/admin/src/reporting/routes.ts', /증적본문\s*=\s*z\.object\([\s\S]*?z\.enum\(\[([^\]]*)\]\)/, (s) =>
+    // `증적본문` 의 **`format` 칸**에 앵커를 건다. `[\s\S]*?` 에 끝 경계가 없으면
+    // 그 칸에서 `z.enum` 이 없어졌을 때 파일 뒤쪽의 다른 `z.enum` 을 읽고 조용히 통과한다
+    뽑기('apps/admin/src/reporting/routes.ts', /증적본문\s*=\s*z\.object\([\s\S]*?format:\s*z\.enum\(\[([^\]]*)\]\)/, (s) =>
       s.split(','),
     ),
     뽑기('apps/admin/src/reporting/generate.ts', /형식표[\s\S]*?=\s*\{([\s\S]*?)\n\};/, (s) =>
