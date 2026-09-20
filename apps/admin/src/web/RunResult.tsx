@@ -84,9 +84,14 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const { pass, fail, na } = data.counts;
   const 실패목록 = data.items.filter((item) => item.status === 'FAIL');
   const 증적 = 증적버튼들(data.status, data.evidence, role);
-  // 실패는 형식마다 따로 적는다. 방금 부르다 깨진 것(`증적오류`)이 더 새 소식이라 먼저다
+  // 실패는 형식마다 따로 적는다. 방금 부르다 깨진 것(`증적오류`)이 더 새 소식이라 먼저다.
+  // **다만 그 형식이 그 뒤에 READY 로 닫혔으면 접는다** — 안 접으면 문서가 멀쩡히 아래 목록에
+  // 쌓이는데 그 위에는 못 만들었다는 빨간 줄이 남는다. 한 번 더 눌러 409 를 받은 뒤가 그 자리다
   const 사유줄들 = (증적?.버튼들 ?? []).flatMap((버튼) => {
-    const 사유 = 증적오류[버튼.format] ?? 버튼.사유;
+    // **`some` 이 아니라 마지막 행이다.** 옛 성공 행 하나로 보면
+    // 「성공한 뒤 다시 만들다 실패」에서 그 사유가 사라진다 (evidence.ts 도 `at(-1)` 을 본다)
+    const 마지막 = data.evidence.filter((it) => it.format.toUpperCase() === 버튼.format).at(-1);
+    const 사유 = (마지막?.status === 'READY' ? null : 증적오류[버튼.format]) ?? 버튼.사유;
     return 사유 === undefined || 사유 === null ? [] : [{ format: 버튼.format, 라벨: 버튼.라벨, 사유 }];
   });
   // 만든 것은 최근 것이 위로. 파일 이름에 (1)·(2)가 붙으면 어느 것이 최신인지 알 수 없다 (SPEC §8.4)
@@ -136,8 +141,11 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
               실행 멈추기
             </button>
           )}
-          {/* `.btn` 의 꽉 찬 잉크색을 셋이나 늘어놓으면 머리 띠가 검은 덩어리가 되고
-              판정 숫자가 밀린다. 색은 판정만 갖는다 (docs/DESIGN.md) */}
+          {/* 셋을 한 덩어리로 묶어 좁은 화면에서 통째로 아랫줄에 내린다.
+              안 묶으면 `PDF 만들기` 만 판정 숫자에 달라붙고 나머지 둘이 아랫줄로 떨어진다 —
+              어떤 휴대폰에서도 셋이 한 줄에 못 서기 때문이다 (형식이 셋이라 폭이 모자란다).
+              `.btn` 의 꽉 찬 잉크색을 셋이나 늘어놓으면 머리 띠가 검은 덩어리가 된다 — 색은 판정만 갖는다 */}
+          <div className="makebtns">
           {(증적?.버튼들 ?? []).map((버튼) => {
             const 이것만드는중 = 만드는중.includes(버튼.format);
             return (
@@ -160,6 +168,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
               </button>
             );
           })}
+          </div>
         </div>
       </div>
 

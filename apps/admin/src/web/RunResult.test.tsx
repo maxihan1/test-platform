@@ -62,6 +62,29 @@ describe('실행 결과 화면의 증적 버튼 (SPEC §8.4)', () => {
     expect(글들).toEqual(['PDF 만들기', '엑셀 만들기', 'HTML 만들기']);
   });
 
+  it('판정 숫자가 만들기 버튼보다 앞에 온다', async () => {
+    그리기('FINISHED');
+
+    await screen.findAllByText(/만들기$/);
+
+    // 걸러내기 칩에도 `통과` 가 있다. 머리 띠 안에서만 본다
+    const 머리띠 = document.querySelector('.tally');
+    const 차례 = [...(머리띠?.children ?? [])].map((el) => (el.className === 'makebtns' ? '버튼들' : el.textContent));
+    // 좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀린다. 휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다
+    expect(차례.indexOf('버튼들')).toBeGreaterThan(차례.findIndex((it) => it?.includes('통과')));
+  });
+
+  it('만들기 버튼은 색을 쓰지 않고 이유를 말풍선에 숨기지 않는다', async () => {
+    그리기('FINISHED');
+
+    for (const 버튼 of await screen.findAllByText(/만들기$/)) {
+      // 꽉 찬 잉크색을 셋이나 늘어놓으면 판정 숫자가 밀린다. 색은 판정만 갖는다
+      expect(버튼.className).toContain('ghost');
+      // `title` 은 터치에 안 뜨고 disabled 버튼은 키보드 탭에서도 빠진다 (docs/DESIGN.md)
+      expect(버튼.getAttribute('title')).toBeNull();
+    }
+  });
+
   it('엑셀 만들기를 누르면 서버로 가는 형식도 엑셀이다', async () => {
     // 끝나지 않는 약속이라 눌린 뒤의 잠금 상태가 그대로 멈춰 선다.
     // 응답이 와서 다시 묻기까지 가면 그 사이 상태를 볼 수 없다
