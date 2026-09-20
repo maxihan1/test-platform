@@ -1,5 +1,5 @@
-// 케이스 목록 화면이 그리는 조각 셋 — 케이스 한 줄, 빈 목록 안내, 스캔 결과 줄 (SPEC §8.1)
-// 고르는 칸이 붙으면서 CaseList 가 300줄을 넘어, 판단은 CaseList 에 두고 그리는 쪽만 여기로 떼어 냈다
+// 케이스 목록 화면이 그리는 조각 셋 — 케이스 한 줄 · 빈 목록 안내 · 스캔 결과 줄 (SPEC §8.1)
+// 고르는 칸이 붙으면서 CaseList 가 300줄을 넘었다. 판단은 CaseList 에 두고 그리는 쪽만 여기로 옮겼다
 
 import type { CaseRow, LastScan } from './api.js';
 import { keyOf, type LastMap, 마지막판정, 빈이유 } from './catalogView.js';

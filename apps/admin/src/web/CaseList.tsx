@@ -4,7 +4,7 @@
 import { useState } from 'react';
 
 import { api, type CaseQuery, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
-import { Empty, ScanInfo, 케이스줄 } from './CaseRow.js';
+import { Empty, ScanInfo, 케이스줄 } from './CaseListParts.js';
 import { keyOf, type LastMap, 마지막결과로거른다 } from './catalogView.js';
 import { 다음이있나 } from './paging.js';
 import { 담을것 } from './pickRun.js';
