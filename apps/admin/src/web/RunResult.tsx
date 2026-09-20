@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { api, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
 import { filterGroups, groupByCase, 회차요약 } from './group.js';
-import { 받는법, 증적버튼들 } from './evidence.js';
+import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { 한줄로 } from './mask.js';
 import { Modal } from './Modal.js';
 import type { 등급 } from './role.js';
@@ -33,10 +33,6 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const [멈추는중, set멈추는중] = useState(false);
   const [멈춤오류, set멈춤오류] = useState<string | null>(null);
   const [끝났다고알릴까말까, set알릴까] = useState(false);
-  // **둘 다 형식별로 잡는다.** 값 하나로 두면 PDF 를 누르는 순간 엑셀·HTML 까지 잠기고,
-  // 엑셀만 실패해도 화면은 어느 형식이 깨졌는지 말하지 못한다
-  const [만드는중, set만드는중] = useState<string[]>([]);
-  const [증적오류, set증적오류] = useState<Record<string, string>>({});
   // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다
   const 앞선상태 = useRef<string | null>(null);
 
@@ -73,6 +69,8 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
     return () => clearInterval(timer);
   }, [running, 만드는문서있나, reload]);
 
+  const 증적칸 = use증적(data, role, reload);
+
   if (run.error !== null) return <Failed error={run.error} />;
   if (data === null) return <Loading />;
 
@@ -83,23 +81,6 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const columns = device === 'ALL' ? PLATFORMS : [device];
   const { pass, fail, na } = data.counts;
   const 실패목록 = data.items.filter((item) => item.status === 'FAIL');
-  const 증적 = 증적버튼들(data.status, data.evidence, role);
-  // 실패는 형식마다 따로 적는다. 방금 부르다 깨진 것(`증적오류`)이 더 새 소식이라 먼저다.
-  // **다만 그 형식이 그 뒤에 READY 로 닫혔으면 접는다** — 안 접으면 문서가 멀쩡히 아래 목록에
-  // 쌓이는데 그 위에는 못 만들었다는 빨간 줄이 남는다. 한 번 더 눌러 409 를 받은 뒤가 그 자리다
-  const 사유줄들 = (증적?.버튼들 ?? []).flatMap((버튼) => {
-    // **`some` 이 아니라 마지막 행이다.** 옛 성공 행 하나로 보면
-    // 「성공한 뒤 다시 만들다 실패」에서 그 사유가 사라진다 (evidence.ts 도 `at(-1)` 을 본다)
-    const 마지막 = data.evidence.filter((it) => it.format.toUpperCase() === 버튼.format).at(-1);
-    const 사유 = (마지막?.status === 'READY' ? null : 증적오류[버튼.format]) ?? 버튼.사유;
-    return 사유 === undefined || 사유 === null ? [] : [{ format: 버튼.format, 라벨: 버튼.라벨, 사유 }];
-  });
-  // 만든 것은 최근 것이 위로. 파일 이름에 (1)·(2)가 붙으면 어느 것이 최신인지 알 수 없다 (SPEC §8.4)
-  const 만든것 = data.evidence
-    .filter((it) => it.status === 'READY')
-    .slice()
-    .reverse();
-
   function choose<T>(setter: (value: T) => void) {
     return (value: T) => {
       setter(value);
@@ -141,79 +122,11 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
               실행 멈추기
             </button>
           )}
-          {/* 셋을 한 덩어리로 묶어 좁은 화면에서 통째로 아랫줄에 내린다.
-              안 묶으면 `PDF 만들기` 만 판정 숫자에 달라붙고 나머지 둘이 아랫줄로 떨어진다 —
-              어떤 휴대폰에서도 셋이 한 줄에 못 서기 때문이다 (형식이 셋이라 폭이 모자란다).
-              `.btn` 의 꽉 찬 잉크색을 셋이나 늘어놓으면 머리 띠가 검은 덩어리가 된다 — 색은 판정만 갖는다 */}
-          <div className="makebtns">
-          {(증적?.버튼들 ?? []).map((버튼) => {
-            const 이것만드는중 = 만드는중.includes(버튼.format);
-            return (
-              <button
-                className="btn ghost"
-                key={버튼.format}
-                disabled={!버튼.누를수있나 || 이것만드는중}
-                onClick={() => {
-                  set만드는중((전) => [...전, 버튼.format]);
-                  // 다시 누르면 그 형식의 앞선 실패 줄만 지운다. 안 지우면 성공해도 빨간 줄이 남는다
-                  set증적오류(({ [버튼.format]: _앞선것, ...나머지 }) => 나머지);
-                  void api
-                    .makeEvidence(data.runId, 버튼.format)
-                    .then(() => reload())
-                    .catch((err: unknown) => set증적오류((전) => ({ ...전, [버튼.format]: message(err) })))
-                    .finally(() => set만드는중((전) => 전.filter((it) => it !== 버튼.format)));
-                }}
-              >
-                {이것만드는중 ? `${버튼.라벨} 만드는 중` : 버튼.글}
-              </button>
-            );
-          })}
-          </div>
+          <증적만들기버튼들 칸={증적칸} />
         </div>
       </div>
 
-      {/* 못 누르는 이유는 말풍선이 아니라 화면 글자로 적는다. `title` 은 마우스를 올려야 뜨는데
-          휴대폰에는 올릴 마우스가 없고 `disabled` 버튼은 키보드 탭에서도 빠진다 (docs/DESIGN.md) */}
-      {증적?.안내 === undefined || 증적.안내 === null ? null : (
-        <div className="scan">
-          <span className="scan-text">{증적.안내}</span>
-        </div>
-      )}
-      {사유줄들.length === 0 ? null : (
-        <div className="scan">
-          {사유줄들.map((줄) => (
-            <span className="scan-error" key={줄.format}>
-              {줄.라벨} 증적을 만들지 못했습니다 — {줄.사유}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {만든것.length === 0 ? null : (
-        <div className="sec">
-          <div className="sec-h">증적 문서</div>
-          {/* 받기 전에 볼 수 있어야 한다. 화면의 항목 상세는 항목 한 건이고
-              증적은 실행 전체 한 부다 (SPEC §8.4) */}
-          {만든것.map((it) => {
-            const 법 = 받는법(it.format);
-            return (
-              <div className="pre" key={it.id}>
-                {/* 버튼이 `엑셀`인데 목록이 `XLSX`면 한 화면에 같은 물건이 두 이름이다.
-                    받는 길은 `format` 원문 그대로 쓰고 보여주는 글자만 라벨이다 */}
-                {when(it.generatedAt)} 만듦 · {법.라벨}
-                <a
-                  className="btn small"
-                  style={{ marginLeft: '10px' }}
-                  href={api.evidenceUrl(it.id)}
-                  {...(법.새창 ? { target: '_blank', rel: 'noreferrer' } : {})}
-                >
-                  {법.글}
-                </a>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <증적알림과목록 칸={증적칸} />
 
       {pass + fail + na === 0 ? null : (
         <div className="stripe">
