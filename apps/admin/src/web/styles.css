@@ -1288,3 +1288,95 @@ select:focus {
   font-size: 13px;
   color: var(--ink-muted);
 }
+
+/* ── 여러 건 실행 확인 모달 (SPEC §8.10) ───────────────────────────── */
+/* 머리(.mhead)와 바닥(.mfoot)은 고정이고 가운데 목록(.picked)만 스크롤한다 —
+   건수가 늘어도 대상 서버 칸과 실행 버튼이 늘 보여야 한다 */
+
+.mhead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mhead label {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.mhead .addr {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.picked {
+  border-top: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule-soft);
+  max-height: 168px;
+  overflow-y: auto;
+}
+
+.prow {
+  display: grid;
+  grid-template-columns: 72px 1fr auto auto;
+  gap: 0 10px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.picked > div:last-child .prow {
+  border-bottom: 0;
+}
+
+.prow .id {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* 이름이 길면 줄이지 않고 두 줄로 흐른다. 무엇이 걸리는지 보러 연 자리에서 가릴 수 없다 */
+.prow .nm {
+  font-size: 13.5px;
+}
+
+.prow .dev {
+  font-size: 12px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.prow .edit {
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: 0;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.prow-edit {
+  padding: 2px 0 10px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.mfoot {
+  display: flex;
+  align-items: center;
+  gap: 8px 18px;
+  flex-wrap: wrap;
+}
+
+.mfoot label {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.mfoot input[type='text'] {
+  flex: none;
+  width: 56px;
+}
