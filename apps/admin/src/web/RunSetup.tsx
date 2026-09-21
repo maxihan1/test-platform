@@ -74,7 +74,7 @@ export function RunSetup({ tcId, service, user }: Props) {
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
   // tcId 접두사가 서비스를 말한다 (SPEC §1). 띠에서 다른 서비스로 바꾸면 어긋난다
   const 다른서비스 = service !== null && !row.tcId.startsWith(`${service.prefix}-`);
-  const 만들건수 = 항목수(1, platforms.length, Number(repeat) || 1);
+  const 만들건수 = 항목수([platforms.length], Number(repeat) || 1);
   const 너무많나 = 넘었나(만들건수);
   const broken = Object.keys(localErrors.params).length + Object.keys(localErrors.expected).length;
 

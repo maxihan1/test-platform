@@ -121,6 +121,15 @@ body {
   flex-wrap: wrap;
 }
 
+/* 띠 오른쪽 버튼 묶음. 띠가 space-between 이라 묶지 않으면 버튼끼리 양끝으로 갈라진다 */
+.bar-acts {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .runid {
   font-size: 30px;
   font-weight: 800;
@@ -260,6 +269,28 @@ select:focus {
 
 .gutter {
   align-self: stretch;
+}
+
+/* 여러 건 고르기 (SPEC §8.1) — 고르는 칸은 왼쪽 거터 안, 판정 색 다음에 둔다.
+   줄 내용 쪽 첫 칸에 두면 620px 미만에서 줄이 2단으로 접힐 때
+   케이스명 위에 체크박스만 홀로 한 줄이 된다 */
+.row.pickable {
+  grid-template-columns: 4px 20px 128px 1fr auto;
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+}
+
+.pick input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--ink);
+  cursor: pointer;
 }
 
 .tcid {
@@ -723,6 +754,21 @@ select:focus {
     grid-row: 1 / -1;
   }
 
+  /* 고르는 칸도 색 띠와 함께 거터 쪽에 남는다 — 내용 칸은 전부 3열로 보낸다 */
+  .row.pickable {
+    grid-template-columns: 4px 20px 1fr;
+  }
+
+  .row.pickable .tcid,
+  .row.pickable .title,
+  .row.pickable .right {
+    grid-column: 3;
+  }
+
+  .pick {
+    grid-row: 1 / -1;
+  }
+
   .tcid {
     grid-column: 2;
     padding: 12px 0 0;
@@ -833,11 +879,13 @@ select:focus {
   background: var(--sheet);
   border: 1px solid var(--rule);
   border-radius: 2px;
-  display: grid;
+  /* 세로 상자로 둔다. grid 로 두면 안쪽 목록이 제 키대로 밀어내 제목·바닥이 상자 밖으로 나간다 */
+  display: flex;
+  flex-direction: column;
   gap: 14px;
   padding: 20px;
   max-height: 80vh;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .modal-title {
@@ -845,20 +893,34 @@ select:focus {
   font-weight: 600;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--rule-soft);
+  flex: none;
 }
 
+/* min-height:0 이 있어야 줄어든다. 글만 있는 모달은 글이 제 키를 지켜 여기가 스크롤한다 */
 .modal-body {
   font-size: 13.5px;
   line-height: 1.7;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .modal-foot {
   display: flex;
   justify-content: flex-end;
+  /* ① 사유 줄이 길어도 버튼이 늘어나거나 한 글자씩 끊기지 않는다 (.actions 와 같은 모양) */
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding-top: 4px;
+  flex: none;
+}
+
+.modal-foot .btn {
+  flex: none;
+  white-space: nowrap;
 }
 
 /* 돌지 못한 사유. 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3) */
@@ -1241,4 +1303,107 @@ select:focus {
 .field-label {
   font-size: 13px;
   color: var(--ink-muted);
+}
+
+/* ── 여러 건 실행 확인 모달 (SPEC §8.10) ───────────────────────────── */
+/* 머리(.mhead)와 바닥(.mfoot)은 고정이고 가운데 목록(.picked)만 스크롤한다 —
+   건수가 늘어도 대상 서버 칸과 실행 버튼이 늘 보여야 한다 */
+
+.mhead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: none;
+}
+
+.mhead label {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.mhead .addr {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* 고른 것 중 무엇이 왜 빠졌는지. 말풍선이 아니라 화면 줄이다 (DESIGN.md) */
+.mnote {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  flex: none;
+}
+
+.picked {
+  border-top: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule-soft);
+  /* 고정 키를 두지 않는다. 남는 자리를 다 쓰고 모자라면 여기만 줄어든다 */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.prow {
+  display: grid;
+  grid-template-columns: 72px 1fr auto auto;
+  gap: 0 10px;
+  align-items: baseline;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.picked > div:last-child .prow {
+  border-bottom: 0;
+}
+
+.prow .id {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* 이름이 길면 줄이지 않고 두 줄로 흐른다. 무엇이 걸리는지 보러 연 자리에서 가릴 수 없다 */
+.prow .nm {
+  font-size: 13.5px;
+}
+
+.prow .dev {
+  font-size: 12px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.prow .edit {
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: 0;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.prow-edit {
+  padding: 2px 0 10px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.mfoot {
+  display: flex;
+  align-items: center;
+  gap: 8px 18px;
+  flex-wrap: wrap;
+  flex: none;
+}
+
+.mfoot label {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.mfoot input[type='text'] {
+  flex: none;
+  width: 56px;
 }

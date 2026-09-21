@@ -1,35 +1,22 @@
 // 케이스 목록 화면 (SPEC §8.1). JSON 원문은 목록에 절대 노출하지 않는다
 // '마지막 결과' 칸은 GET /api/runs/last-by-case 한 번으로 전부 채운다 — 케이스마다 이력을 따로 부르지 않는다 (SPEC §7.1)
+// 여러 건을 골라 거는 흐름은 useRunPick 이 통째로 들고 있다 (SPEC §8.10)
 
 import { useState } from 'react';
 
-import { api, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
-import { keyOf, type LastMap, 마지막결과로거른다, 마지막판정, 빈이유 } from './catalogView.js';
+import { api, type CaseQuery, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
+import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
+import { keyOf, type LastMap, 마지막결과로거른다 } from './catalogView.js';
 import { 다음이있나 } from './paging.js';
-import { Failed, Loading, message, PLATFORM_LABEL, seconds, STATUS_COLOR, useAsync, Verdict, when } from './ui.js';
-
-const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
-const 디바이스칩: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
-const 결과라벨: Record<ItemStatus | 'ALL', string> = {
-  ALL: '전체',
-  PASS: '통과',
-  FAIL: '실패',
-  NA: '미실행',
-};
+import { RunPickModal } from './RunPickModal.js';
+import { Failed, Loading, message, useAsync } from './ui.js';
+import { useRunPick } from './useRunPick.js';
 
 export function CaseList({ service }: { service: string }) {
   const [typed, setTyped] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
-  // 서비스를 바꾸면 첫 페이지로 돌아간다. 3페이지에서 케이스가 적은 서비스로 옮기면
-  // 빈 목록에 '3 / 1' 이 뜨고 사람은 목록이 비었다고 생각한다
   const [본서비스, set본서비스] = useState(service);
-  if (본서비스 !== service) {
-    set본서비스(service);
-    setPage(1);
-    setQ('');
-    setTyped('');
-  }
   // 검색 조건 넷 중 셋은 서버가 거른다 (SPEC §8.1 표)
   const [디바이스, set디바이스] = useState<Platform | 'ALL'>('ALL');
   const [활성만, set활성만] = useState(true);
@@ -38,22 +25,32 @@ export function CaseList({ service }: { service: string }) {
   const [scanning, setScanning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const cases = useAsync<Paged<CaseRow>>(
-    () =>
-      api.cases({
-        service,
-        q,
-        page,
-        ...(디바이스 === 'ALL' ? {} : { platform: 디바이스 }),
-        ...(활성만 ? {} : { active: false }),
-      }),
-    [service, q, page, 디바이스, 활성만],
-  );
+  const 조건: CaseQuery = {
+    service,
+    q,
+    page,
+    ...(디바이스 === 'ALL' ? {} : { platform: 디바이스 }),
+    ...(활성만 ? {} : { active: false }),
+  };
+  const cases = useAsync<Paged<CaseRow>>(() => api.cases(조건), [service, q, page, 디바이스, 활성만]);
   const scan = useAsync(() => api.lastScan(), []);
   const last = useAsync(() => api.lastByCase(), []);
 
   const lastMap: LastMap = {};
   for (const item of last.data?.items ?? []) lastMap[keyOf(item.tcId, item.platform)] = item;
+
+  const 뽑기 = useRunPick({ service, 조건, 결과, 마지막: lastMap, 알림: setNotice });
+
+  // 서비스를 바꾸면 첫 페이지로 돌아간다. 3페이지에서 케이스가 적은 서비스로 옮기면
+  // 빈 목록에 '3 / 1' 이 뜨고 사람은 목록이 비었다고 생각한다
+  if (본서비스 !== service) {
+    set본서비스(service);
+    setPage(1);
+    setQ('');
+    setTyped('');
+    // 고른 것도 같이 버린다. 남기면 다른 서비스에서 「고른 2건」이라 말한다
+    뽑기.비우기();
+  }
 
   const 보일것 = 마지막결과로거른다(cases.data?.items ?? [], lastMap, 결과);
   const 건조건 = q !== '' || 디바이스 !== 'ALL' || !활성만 || 결과 !== 'ALL';
@@ -77,6 +74,14 @@ export function CaseList({ service }: { service: string }) {
     setPage(1);
   }
 
+  // 조건을 바꾸면 늘 첫 쪽으로 간다. 3쪽에서 조건을 좁히면 빈 목록에 '3쪽' 이 뜬다
+  function 바꾸면첫쪽<T>(set: (값: T) => void) {
+    return (값: T) => {
+      set(값);
+      setPage(1);
+    };
+  }
+
   function 조건지우기() {
     setTyped('');
     setQ('');
@@ -98,92 +103,44 @@ export function CaseList({ service }: { service: string }) {
             {cases.data === null ? '불러오는 중입니다' : `모두 ${cases.data.total}건`}
           </div>
         </div>
-        <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
-          {scanning ? '스캔하는 중' : '다시 스캔하기'}
-        </button>
+        {/* 둘을 한 칸에 묶는다. 띠가 space-between 이라 풀어 두면 두 버튼이 양끝으로 갈라진다 */}
+        <div className="bar-acts">
+          <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
+            {scanning ? '스캔하는 중' : '다시 스캔하기'}
+          </button>
+          {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
+          <button className="btn" onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
+            {뽑기.고른.size === 0 ? '전체 실행하기' : `고른 ${뽑기.고른.size}건 실행하기`}
+          </button>
+        </div>
       </div>
 
       <div className="scan">
+        {/* 비활성 이유는 말풍선이 아니라 화면 줄이다 — 휴대폰에는 올릴 마우스가 없다 (DESIGN.md) */}
+        {!뽑기.모으는중 ? null : (
+          <span className="scan-text" role="status">
+            케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다
+          </span>
+        )}
         <ScanInfo scan={scan.data} error={notice ?? scan.error} />
       </div>
 
-      <form
-        className="toolbar"
-        onSubmit={(e) => {
-          e.preventDefault();
-          search(typed);
-        }}
-      >
-        <input
-          type="text"
-          placeholder="케이스 이름이나 ID로 찾기"
-          value={typed}
-          onChange={(e) => setTyped(e.target.value)}
-        />
-        <button className="chip" type="submit">
-          찾기
-        </button>
-        {!건조건 ? null : (
-          <button className="chip" type="button" onClick={조건지우기}>
-            검색 지우기
-          </button>
-        )}
-      </form>
+      <찾기폼
+        typed={typed}
+        건조건={건조건}
+        onTyped={setTyped}
+        onSearch={() => search(typed)}
+        onClear={조건지우기}
+      />
 
-      {/* 검색 조건 넷 (SPEC §8.1 표가 정본). 서비스는 조건이 아니라 맨 위 띠의 선택이다 */}
-      <div className="toolbar">
-        <span className="filter-label">디바이스</span>
-        {디바이스칩.map((값) => (
-          <button
-            className="chip"
-            key={값}
-            aria-pressed={디바이스 === 값}
-            onClick={() => {
-              set디바이스(값);
-              setPage(1);
-            }}
-          >
-            {값 === 'ALL' ? '전체' : PLATFORM_LABEL[값]}
-          </button>
-        ))}
-        <span className="filter-label">표시</span>
-        {/* 비활성 케이스는 기본으로 감춘다. 코드에서 사라진 케이스는 지우지 않고 남겨 두므로
-            시간이 지날수록 목록이 과거로 채워진다 (SPEC §8.1) */}
-        <button
-          className="chip"
-          aria-pressed={활성만}
-          onClick={() => {
-            set활성만(true);
-            setPage(1);
-          }}
-        >
-          활성만
-        </button>
-        <button
-          className="chip"
-          aria-pressed={!활성만}
-          onClick={() => {
-            set활성만(false);
-            setPage(1);
-          }}
-        >
-          전체
-        </button>
-        <span className="filter-label">마지막 결과</span>
-        {결과칩.map((값) => (
-          <button
-            className="chip"
-            key={값}
-            aria-pressed={결과 === 값}
-            onClick={() => {
-              set결과(값);
-              setPage(1);
-            }}
-          >
-            {결과라벨[값]}
-          </button>
-        ))}
-      </div>
+      <조건칩들
+        디바이스={디바이스}
+        활성만={활성만}
+        결과={결과}
+        on디바이스={바꾸면첫쪽(set디바이스)}
+        on활성만={바꾸면첫쪽(set활성만)}
+        on결과={바꾸면첫쪽(set결과)}
+      />
 
       {cases.error !== null ? (
         <Failed error={cases.error} />
@@ -210,36 +167,13 @@ export function CaseList({ service }: { service: string }) {
         />
       ) : (
         보일것.map((row) => (
-          <div className="row" key={row.tcId}>
-            <div className="gutter" style={{ background: STATUS_COLOR[마지막판정(row, lastMap)] }} />
-            <div className="tcid">{row.tcId}</div>
-            <div className="title">
-              {row.name}
-              <small>지원 디바이스 {row.platforms.map((p) => PLATFORM_LABEL[p]).join(', ')}</small>
-            </div>
-            <div className="right">
-              <div className="devices">
-                {row.platforms.map((platform) => {
-                  const result = lastMap[keyOf(row.tcId, platform)];
-                  return (
-                    <div className="device" key={platform}>
-                      <span className="device-name">{PLATFORM_LABEL[platform]}</span>
-                      {result === undefined ? (
-                        <span className="device-none">기록 없음</span>
-                      ) : (
-                        <a href={`#/runs/${result.runId}/items/${result.historyId}`} title={`${when(result.finishedAt)} · ${seconds(result.durationMs)}`}>
-                          <Verdict status={result.status} />
-                        </a>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              <a className="btn small" href={`#/cases/${encodeURIComponent(row.tcId)}/run`}>
-                실행
-              </a>
-            </div>
-          </div>
+          <케이스줄
+            key={row.tcId}
+            row={row}
+            마지막={lastMap}
+            고름={뽑기.고른.has(row.tcId)}
+            뒤집기={뽑기.뒤집기}
+          />
         ))
       )}
 
@@ -254,55 +188,19 @@ export function CaseList({ service }: { service: string }) {
           </button>
         </div>
       )}
-    </div>
-  );
-}
 
-function ScanInfo({ scan, error }: { scan: Awaited<ReturnType<typeof api.lastScan>> | null; error: string | null }) {
-  if (error !== null) return <span className="scan-error">{error}</span>;
-  if (scan === null) return <span className="scan-text">아직 스캔 기록이 없습니다.</span>;
-
-  return (
-    <>
-      <span className="scan-text">
-        마지막 스캔 {when(scan.scannedAt)} · 추가 {scan.added} · 갱신 {scan.updated} · 비활성 {scan.deactivated}
-      </span>
-      {scan.duplicates.length === 0 ? null : (
-        <span className="scan-error">
-          {scan.duplicates.map((dup) => `${dup.tcId}이 ${dup.files[0]}와 ${dup.files[1]}에 겹쳐 있습니다.`).join('\n')}
-        </span>
+      {뽑기.담은것 === null ? null : (
+        <RunPickModal
+          케이스들={뽑기.담은것}
+          service={뽑기.서비스}
+          사유={뽑기.사유}
+          안내={뽑기.안내}
+          거는중={뽑기.거는중}
+          onClose={뽑기.닫기}
+          on값고침={뽑기.사유지우기}
+          onRun={(요청) => void 뽑기.실행걸기(요청)}
+        />
       )}
-      {scan.error === undefined ? null : <span className="scan-error">{scan.error}</span>}
-    </>
-  );
-}
-
-/**
- * 목록이 비었을 때 (SPEC §8.1).
- *
- * 하나로 뭉뚱그리면 **검색한 적 없는 사람에게도 「찾는 케이스가 없습니다」라고 말한다.**
- * 이 화면은 이 도구를 처음 켠 사람이 만나는 자리다.
- */
-function Empty({
-  형편,
-  onScan,
-  onClear,
-}: {
-  형편: Parameters<typeof 빈이유>[0];
-  onScan: () => void;
-  onClear: () => void;
-}) {
-  const 것 = 빈이유(형편);
-  // 검색에 안 걸린 것만 「지우기」다. 나머지 둘은 다시 훑는 길을 준다
-  const 누르면 = 형편.건조건 ? onClear : onScan;
-
-  return (
-    <div className="empty">
-      {것.무엇}
-      <small>{것.왜}</small>
-      <button className="btn" style={{ marginTop: '14px' }} onClick={누르면}>
-        {것.버튼}
-      </button>
     </div>
   );
 }
