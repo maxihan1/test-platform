@@ -167,6 +167,74 @@ body {
   padding-left: 20px;
 }
 
+/* ── 사이드바 접기 ──────────────────────────────────────────────
+   **글자만 숨기고 자리는 남긴다.** `display: none` 을 쓰면 키보드 탭 대상에서 빠져
+   키보드로만 쓰는 사람이 이동을 통째로 잃는다. 폭을 줄이고 글자를 0 으로 눌러
+   화면에서는 사라지되 탭 순서에는 남게 한다 */
+/* 접으면 **본문이 실제로 넓어져야 한다.** 사이드바만 줄이고 `max-width` 를 그대로 두면
+   1204px 상한이 남은 자리를 막아 200px 밖에 안 는다 — 접은 보람이 없다.
+   상한을 풀어 창을 채운다. 좌우 여백은 body 의 padding 이 준다 */
+.wrap.folded {
+  max-width: none;
+  grid-template-columns: 44px minmax(0, 1fr);
+}
+
+.side-fold {
+  align-self: flex-end;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 9px;
+  color: var(--rail-dim);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  /* 손가락으로 누르는 크기. 좁은 화면에서는 아래에서 44px 로 올린다 */
+  padding: 6px 9px;
+  margin-bottom: 8px;
+}
+
+.side-fold:hover {
+  background: var(--rail-2);
+  color: var(--rail-ink);
+}
+
+.side-fold:focus-visible {
+  outline: 2px solid var(--rail-ink);
+  outline-offset: -1px;
+}
+
+.folded .side {
+  padding: 12px 4px;
+  overflow: hidden;
+}
+
+.folded .side-fold {
+  align-self: center;
+}
+
+/* 접힌 폭에서 글자를 0 으로 눌러 둔다. 요소는 살아 있어 탭이 닿는다.
+   `.wrap.folded .side ...` 로 특정도를 올린다 — 아래쪽 `.side .band` 규칙이
+   같은 특정도라 나중에 오는 그것이 이겨서 숨김이 안 먹었다 (2026-09-21 제품 CSS 실측) */
+.wrap.folded .side .side-top,
+.wrap.folded .side .band-repo,
+.wrap.folded .side .band-right {
+  display: none;
+}
+
+.folded .side .nav a {
+  font-size: 0;
+  padding: 10px 0;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* 지금 있는 자리만 접힌 채로도 보인다 — 어디에 있는지를 잃으면 접기가 길을 잃게 만든다 */
+.folded .side .nav a[aria-current='page'] {
+  border-left: 3px solid var(--rail-acc);
+  background: var(--rail-2);
+}
+
 /* 사이드바 바닥으로 사람과 로그아웃을 미는 빈 칸 */
 .side-gap {
   flex: 1;
@@ -1012,6 +1080,27 @@ select:focus {
     min-height: 46px;
     display: inline-flex;
     align-items: center;
+  }
+
+  .side-fold {
+    min-height: 46px;
+    min-width: 46px;
+  }
+
+  /* 좁은 화면에서는 사이드바가 이미 가로 줄로 접혀 있다. 거기서 또 접으면
+     자리 넷이 통째로 사라지고 되돌릴 길이 화살표 하나뿐이 된다 */
+  .wrap.folded {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wrap.folded .side .side-top,
+  .wrap.folded .side .band-right {
+    display: flex;
+  }
+
+  .folded .side .nav a {
+    font-size: 13px;
+    padding: 0 14px;
   }
 
   /* 고르는 칸도 색 띠와 함께 거터 쪽에 남는다 — 내용 칸은 전부 3열로 보낸다 */

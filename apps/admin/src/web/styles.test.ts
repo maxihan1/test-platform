@@ -102,6 +102,23 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(css).toMatch(/\.btn:disabled\s*\{/);
   });
 
+  it('사이드바를 접으면 본문이 실제로 넓어진다', () => {
+    // 사이드바만 줄이고 `max-width` 를 그대로 두면 상한이 남은 자리를 막아
+    // 접은 보람이 없다. 상한을 풀어야 창을 채운다 (2026-09-21 실측 — 960 → 1160 밖에 안 늘었다)
+    const 접힘 = /\.wrap\.folded\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(접힘).toMatch(/max-width:\s*none/);
+    expect(접힘).toMatch(/grid-template-columns:\s*44px/);
+  });
+
+  it('접어도 자리 넷을 화면에서 지우지 않는다', () => {
+    // `display: none` 을 쓰면 키보드 탭 대상에서 빠져 키보드로만 쓰는 사람이 이동을 통째로 잃는다.
+    // 글자만 0 으로 눌러 화면에서는 사라지되 탭 순서에는 남긴다 (SPEC §8)
+    const 자리 = /\.folded \.side \.nav a\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(자리).toMatch(/font-size:\s*0/);
+    expect(자리).not.toMatch(/display:\s*none/);
+    expect(자리).not.toMatch(/visibility:\s*hidden/);
+  });
+
   it('좁은 화면에서 거터가 쌓인 줄 전체를 덮는다', () => {
     // `grid-row: 1 / -1` 만으로는 안 된다. -1 은 **명시적으로 선언한** 줄의 끝을 가리켜서
     // 내용이 암시적 행으로 쌓이면 거터가 첫 줄만 덮는다 (WORKSTREAMS ⑪, 2026-09-19 실측).

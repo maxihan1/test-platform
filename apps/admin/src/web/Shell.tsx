@@ -4,7 +4,15 @@
 import { useEffect, useState } from 'react';
 
 import { api, type RunSummary, type ServiceRow, type User } from './api.js';
-import { 고른서비스를적는다, 빈띠사유, 알림줄, 자리목록, 탭제목 } from './layout.js';
+import {
+  고른서비스를적는다,
+  빈띠사유,
+  사이드바접었나,
+  사이드바접음을적는다,
+  알림줄,
+  자리목록,
+  탭제목,
+} from './layout.js';
 import { 본것으로적는다, 알림본적있나 } from './runState.js';
 import { useAsync } from './ui.js';
 
@@ -28,11 +36,28 @@ export function Shell({ user, service, onService, onLogout, current, header, chi
   // 지금 자리를 같이 넘긴다 — 설정 화면은 배정이 없어도 열려야 한다 (그 배정을 만드는 자리다)
   const 사유 = 빈띠사유(user, current);
 
+  // 접은 것은 사람이 되돌릴 수 있는 상태라 저장해 둔다. 새로고침마다 다시 접게 하면 그 기능이 짐이 된다
+  const [접음, set접음] = useState(사이드바접었나);
+
   return (
-    <div className="wrap">
+    <div className={접음 ? 'wrap folded' : 'wrap'}>
       {/* 짙은 세로 막대 하나가 「어느 서비스를 · 어디를 · 누가」 셋을 다 들고 있다.
           옛 가로 띠(`.band`)가 이 안으로 들어왔다 — 클래스 이름은 그대로 두고 배치만 바꿨다 */}
       <aside className="side">
+        {/* 접어도 자리 넷을 **지우지 않는다.** display:none 을 쓰면 키보드 탭 대상에서 빠져
+            키보드로만 쓰는 사람이 이동을 통째로 잃는다. 폭만 줄이고 글자를 숨긴다 */}
+        <button
+          className="side-fold"
+          onClick={() => {
+            const 다음 = !접음;
+            set접음(다음);
+            사이드바접음을적는다(다음);
+          }}
+          aria-expanded={!접음}
+          aria-label={접음 ? '사이드바 펴기' : '사이드바 접기'}
+        >
+          {접음 ? '»' : '«'}
+        </button>
         {/* 서비스 색이 사는 유일한 자리. 8px 네모가 `--svc` 를 쓴다 —
             이름만으로는 부족하다. 글자는 읽어야 보이고 색은 안 읽어도 구분된다 (SPEC §8) */}
         <div
