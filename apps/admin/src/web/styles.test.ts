@@ -35,6 +35,14 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(굵기들.filter((w) => w > 600)).toEqual([]);
   });
 
+  it('모달 안의 진행 막대가 줄어들지 않는다', () => {
+    // .modal-body 가 세로 flex 라 6px 막대가 flex-shrink 로 0 까지 줄어든다.
+    // 2026-09-21 에 실제로 그랬다 — 색도 비율도 맞는데 높이만 0 이라 숫자만 뜨고 막대가 통째로 안 보였다.
+    // jsdom 에 레이아웃 엔진이 없어 화면 검사는 이 자리를 원리적으로 못 잡는다. 규칙이 있는지만 본다
+    const 블록 = /\.modal-body\s+\.stripe\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(블록).toMatch(/flex-shrink:\s*0/);
+  });
+
   it('판정 세 색과 그 바탕이 전부 있다', () => {
     const 표 = 토큰들();
     for (const 이름 of ['--pass', '--fail', '--na', '--pass-bg', '--fail-bg', '--na-bg']) {

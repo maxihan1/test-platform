@@ -70,4 +70,37 @@ describe('케이스 줄의 값 칩', () => {
     expect(screen.getByText('아이디')).toBeTruthy();
     expect(screen.getByText('—')).toBeTruthy();
   });
+
+  it('객체 기본값을 [object Object] 로 그리지 않고 JSON 원문으로도 펴지 않는다', () => {
+    그린다({
+      type: 'object',
+      properties: { options: { type: 'object', description: '옵션', default: { retry: 2 } } },
+    });
+
+    expect(screen.getByText('옵션')).toBeTruthy();
+    expect(screen.queryByText('[object Object]')).toBeNull();
+    expect(screen.queryByText(/retry/)).toBeNull();
+    expect(screen.getByText('—')).toBeTruthy();
+  });
+
+  it('배열 기본값도 목록에 펴지 않고 접는다', () => {
+    그린다({
+      type: 'object',
+      properties: { tags: { type: 'array', description: '꼬리표', default: ['smoke', 'pay'] } },
+    });
+
+    expect(screen.getByText('꼬리표')).toBeTruthy();
+    expect(screen.queryByText(/smoke/)).toBeNull();
+    expect(screen.getByText('—')).toBeTruthy();
+  });
+
+  it('null 기본값은 값이 아니라 비운 것으로 적는다', () => {
+    그린다({
+      type: 'object',
+      properties: { memo: { type: 'string', description: '메모', default: null } },
+    });
+
+    expect(screen.queryByText('null')).toBeNull();
+    expect(screen.getByText('—')).toBeTruthy();
+  });
 });

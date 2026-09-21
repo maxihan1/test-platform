@@ -10,7 +10,7 @@
 // **어떤 인자로 서버를 불렀는가** 둘이다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import { api, type EvidenceRow, type RunSummary } from './api.js';
 import { RunResult } from './RunResult.js';
@@ -20,6 +20,8 @@ import { RunResult } from './RunResult.js';
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
+  sessionStorage.clear();
 });
 
 const RUN_ID = 2111;
@@ -113,5 +115,73 @@ describe('실행 결과 화면의 증적 버튼 (SPEC §8.4)', () => {
     const 줄 = await screen.findByText(/만들지 못했습니다/);
     expect(줄.textContent).toContain('엑셀');
     expect(줄.textContent).toContain('시트가 너무 큽니다');
+  });
+});
+
+type Run상세 = Awaited<ReturnType<typeof api.run>>;
+
+const 도는중응답: Run상세 = {
+  ...실행,
+  status: 'RUNNING',
+  finishedAt: null,
+  counts: { total: 3, pass: 1, fail: 0, na: 0, running: 2 },
+  items: [],
+  evidence: [],
+};
+
+const 끝난응답: Run상세 = { ...실행, items: [], evidence: [] };
+
+function 상자라벨(): string | null {
+  return screen.getByRole('dialog').getAttribute('aria-label');
+}
+
+describe('실행 진행 상자 (SPEC §8.9)', () => {
+  it('도는 중인 실행을 열면 진행 상자가 떠 있다', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
+    render(<RunResult runId={RUN_ID} role="operator" />);
+
+    await screen.findByRole('dialog');
+    expect(상자라벨()).toContain('도는 중입니다');
+  });
+
+  it('이미 끝난 실행을 열면 상자가 뜨지 않는다', async () => {
+    그리기('FINISHED');
+
+    await screen.findAllByText(/만들기$/);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('진행 상자를 닫아도 폴링은 계속 돈다', async () => {
+    vi.useFakeTimers();
+    const 부름 = vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
+    render(<RunResult runId={RUN_ID} role="operator" />);
+    await act(async () => {});
+
+    fireEvent.click(screen.getByText('닫기'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(부름).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(부름).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('진행 상자를 닫은 뒤 실행이 끝나면 완료 상자가 뜬다', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(api, 'run').mockResolvedValueOnce(도는중응답).mockResolvedValue(끝난응답);
+    render(<RunResult runId={RUN_ID} role="operator" />);
+    await act(async () => {});
+
+    fireEvent.click(screen.getByText('닫기'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(상자라벨()).toContain('끝났습니다');
   });
 });

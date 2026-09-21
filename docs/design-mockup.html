@@ -7,18 +7,24 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root{
-  --paper:#E6E9E2; --sheet:#F8F9F5; --sheet-2:#EFF1EA;
-  --ink:#17201B; --ink-muted:#464D47; --ink-faint:#626A62;
-  --rule:#C8CEC3; --rule-soft:#DCE0D7;
-  --pass:#0D6A46; --fail:#A62B21; --na:#79693A;
-  --pass-bg:#E2EDE6; --fail-bg:#F6E4E1; --na-bg:#F1EBDC;
-  /* 서비스 색 — 맨 위 띠와 설정 화면의 색 고르개에서만 쓴다. 정본은 SPEC §8 */
+  /* 2026-09-21 에 「제도 청사진」으로 옮겼다. 회녹색 종이가 차가운 청회색이 됐다.
+     정본은 apps/admin/src/web/styles.css 이고 styles.test.ts 가 기계로 잰다 — 여기는 사본이다 */
+  --paper:#dfe4e7; --sheet:#f8fafb; --sheet-2:#eff3f5;
+  --ink:#16222a; --ink-muted:#3f4e58; --ink-faint:#59666f;
+  --rule:#bfc9cf; --rule-soft:#dce3e7;
+  /* 껍데기 전용 청색 잉크. 쓰는 자리 목록의 정본은 SPEC 공통/5-화면공통 §8 이다 — 개수를 세지 않는다 */
+  --chrome:#1c4e6b;
+  /* 값 칩의 바탕. 기록지도 종이도 아닌 세 번째 면이라 그 위의 글자를 따로 쟀다 */
+  --chip:#edf2f4;
+  --pass:#0c6349; --fail:#a32a22; --na:#74673b;
+  --pass-bg:#e0eee8; --fail-bg:#f6e4e1; --na-bg:#f0ebdc;
+  /* 서비스 색 — 자리 넷 줄의 네모와 경계선, 그리고 설정 화면의 색 고르개에서만 쓴다. 정본은 SPEC §8 */
   --svc-pay:#2F5D50; --svc-mem:#3A4A63;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   background:var(--paper); color:var(--ink);
-  font-family:Pretendard,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  font-family:'IBM Plex Sans KR',"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
   font-size:14px; line-height:1.6;
   font-variant-numeric:tabular-nums;
   background-image:linear-gradient(var(--rule-soft) .5px,transparent .5px),
@@ -37,7 +43,7 @@ body{
   max-width:960px;margin:0 auto 36px;font-size:13px;color:var(--ink-muted);
   background:var(--sheet);border:1px solid var(--rule);padding:16px 20px;
 }
-.lede h1{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:6px;letter-spacing:-.01em}
+.lede h1{font-size:17px;font-weight:600;color:var(--ink);margin-bottom:6px;letter-spacing:-.01em}
 .lede ul{margin:8px 0 0 18px}
 .lede li{margin:2px 0}
 
@@ -45,10 +51,10 @@ body{
   display:flex;align-items:flex-end;justify-content:space-between;
   gap:16px;padding:20px 24px 16px;border-bottom:1px solid var(--rule);flex-wrap:wrap;
 }
-.runid{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.runid{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
 .runmeta{font-size:12.5px;color:var(--ink-muted);margin-top:2px}
 .tally{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-.tally b{font-size:20px;font-weight:800;display:block;line-height:1.2}
+.tally b{font-size:20px;font-weight:600;display:block;line-height:1.2}
 .tally span{font-size:11.5px;color:var(--ink-muted)}
 .stripe{display:flex;height:6px;margin:0 24px;overflow:hidden}
 .stripe i{display:block;height:100%}
@@ -78,7 +84,7 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 .right{display:flex;align-items:center;gap:14px;padding:14px 24px 14px 0}
 .dur{font-size:12.5px;color:var(--ink-faint)}
 .verdict{
-  font-size:12px;font-weight:800;letter-spacing:.06em;
+  font-size:12px;font-weight:600;letter-spacing:.06em;
   padding:4px 10px;border-radius:2px;min-width:52px;text-align:center;
 }
 .v-pass{background:var(--pass-bg);color:var(--pass)}
@@ -110,14 +116,14 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 .step{padding:14px 0;border-bottom:1px solid var(--rule-soft)}
 .step:last-child{border-bottom:0}
 .step-h{display:flex;align-items:baseline;gap:10px}
-.step-n{font-size:12px;font-weight:800;color:var(--ink-faint);min-width:18px}
+.step-n{font-size:12px;font-weight:600;color:var(--ink-faint);min-width:18px}
 .step-t{font-size:14px;flex:1}
 .assert{
   display:grid;grid-template-columns:18px 1fr auto auto;gap:0 12px;
   align-items:baseline;font-size:13px;padding:5px 0 5px 28px;
 }
 .assert.bad{background:var(--fail-bg);margin:4px -24px 4px -24px;padding:8px 24px 8px 52px}
-.mark{font-weight:800}
+.mark{font-weight:600}
 .exp,.act{font-size:12.5px;color:var(--ink-muted);min-width:76px;text-align:right}
 .act b{color:var(--ink);font-weight:600}
 .assert.bad .act b{color:var(--fail)}
@@ -141,7 +147,7 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 }
 .band .who{font-weight:400;opacity:.85}
 .svc{
-  display:flex;align-items:center;gap:8px;font:inherit;font-weight:700;color:#fff;
+  display:flex;align-items:center;gap:8px;font:inherit;font-weight:600;color:#fff;
   background:transparent;border:0;padding:12px 0;cursor:pointer;letter-spacing:-.01em;
 }
 .svc .caret{font-size:10px;opacity:.8}
@@ -168,7 +174,7 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
   padding:12px 14px;border-bottom:2px solid transparent;min-height:44px;display:flex;align-items:center;
 }
 .tabs a:hover{color:var(--ink)}
-.tabs a[aria-current=page]{color:var(--ink);font-weight:700;border-bottom-color:var(--ink)}
+.tabs a[aria-current=page]{color:var(--ink);font-weight:600;border-bottom-color:var(--ink)}
 .tabs .ext{font-size:11px;opacity:.7;margin-left:3px}
 
 /* 도는 중 알림 줄 — 도는 실행이 있을 때만 있다. 없으면 줄 자체가 없다 */
@@ -184,7 +190,7 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 
 /* ── 빈 목록 세 갈래 (SPEC §8.1) ───────────────────────────────── */
 .empty{padding:44px 24px;text-align:center}
-.empty h3{font-size:15.5px;font-weight:700;margin-bottom:6px}
+.empty h3{font-size:15.5px;font-weight:600;margin-bottom:6px}
 .empty p{font-size:13px;color:var(--ink-muted);max-width:420px;margin:0 auto 18px}
 .empty .btn{font-size:14px;padding:11px 24px}
 .empty .why{font-size:12.5px;color:var(--ink-muted);text-decoration:underline;background:0;border:0;cursor:pointer;font-family:inherit}
@@ -197,7 +203,7 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 .doc{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule-soft);font-size:13.5px}
 .doc:last-of-type{border-bottom:0}
 .doc .when{color:var(--ink-muted);font-size:12.5px}
-.doc .fmt{font-size:12px;font-weight:700;color:var(--ink-muted);letter-spacing:.04em;min-width:34px}
+.doc .fmt{font-size:12px;font-weight:600;color:var(--ink-muted);letter-spacing:.04em;min-width:34px}
 .doc .open{margin-left:auto;font-size:13px;font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .pending{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-muted)}
 .spin{width:9px;height:9px;border-radius:50%;border:2px solid var(--rule);border-top-color:var(--ink-muted);animation:sp 1s linear infinite}
@@ -205,15 +211,16 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}
 
 /* ── 모달 (SPEC §8.9 · §8.10 · DESIGN.md) ──────────────────────
-   하던 일을 가로막는 장치라 세 자리에만 쓴다 —
-   되돌릴 수 없는 일 확인, 실행 완료, 여러 건 실행 전 확인 (2026-09-21) */
+   하던 일을 가로막는 장치라 쓰는 자리를 못 박았다 — 되돌릴 수 없는 일 확인,
+   실행 진행과 완료, 여러 건 실행 전 확인. **개수를 적지 않는다** (2026-09-21).
+   자리 목록의 정본은 DESIGN.md 이고 여기는 사본이다 */
 .scrim{position:relative;background:var(--sheet-2);padding:28px 16px}
 .scrim::before{content:"";position:absolute;inset:0;background:rgba(23,32,27,.4)}
 .modal{
   position:relative;max-width:480px;margin:0 auto;
   background:var(--sheet);border:1px solid var(--rule);border-radius:2px;
 }
-.modal h3{font-size:17px;font-weight:700;letter-spacing:-.01em;padding:20px 22px 2px}
+.modal h3{font-size:17px;font-weight:600;letter-spacing:-.01em;padding:20px 22px 2px}
 .modal .sub{font-size:12.5px;color:var(--ink-muted);padding:0 22px 16px}
 .modal .tally{padding:0 22px 16px;gap:26px}
 .modal .flist{border-top:1px solid var(--rule-soft);padding:14px 22px}
@@ -253,7 +260,7 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 .srow .swatch{width:12px;height:12px;border-radius:2px}
 .srow .nm{font-size:14px}
 .srow .nm small{display:block;font-size:12px;color:var(--ink-faint);margin-top:1px}
-.srow .pfx{font-size:12.5px;font-weight:700;color:var(--ink-muted);letter-spacing:.02em}
+.srow .pfx{font-size:12.5px;font-weight:600;color:var(--ink-muted);letter-spacing:.02em}
 .srow .cnt{font-size:12.5px;color:var(--ink-faint)}
 .srow .edit,.prow .edit{white-space:nowrap;font-size:12.5px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;background:0;border:0;cursor:pointer;font-family:inherit}
 .urow{grid-template-columns:1fr 92px auto;gap:0 26px}
@@ -264,11 +271,11 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
   border:1px solid var(--rule);border-radius:2px;padding:1px 6px;margin-left:8px;vertical-align:1px;
 }
 .sec-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px 12px;border-bottom:1px solid var(--rule)}
-.sec-head h3{font-size:15px;font-weight:700}
+.sec-head h3{font-size:15px;font-weight:600}
 .pwbox{
   margin:14px 24px 0;padding:14px 16px;border:1px dashed var(--rule);background:var(--sheet-2);
 }
-.pwbox code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;font-weight:700;letter-spacing:.06em}
+.pwbox code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;font-weight:600;letter-spacing:.06em}
 .pwbox p{font-size:12px;color:var(--ink-muted);margin-top:6px}
 
 .attempt{font-size:12px;color:var(--ink-muted);white-space:nowrap}
@@ -277,7 +284,7 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
   display:block;padding:11px 24px;font-size:13px;background:var(--na-bg);
   border-bottom:1px solid var(--rule-soft);color:var(--ink);
 }
-.warn b{font-weight:700}
+.warn b{font-weight:600}
 .login{max-width:380px;margin:0 auto}
 .login .sec{border-bottom:0}
 .gone{text-decoration:line-through;opacity:.45}

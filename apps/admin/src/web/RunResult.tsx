@@ -3,27 +3,21 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
-import { filterGroups, groupByCase, 회차요약 } from './group.js';
+import { api, type ItemStatus, type Platform } from './api.js';
+import { filterGroups, groupByCase } from './group.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
-import { 한줄로 } from './mask.js';
 import { Modal } from './Modal.js';
 import type { 등급 } from './role.js';
-import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름, 칸사유 } from './runState.js';
-import { Failed, Loading, message, PLATFORM_LABEL, PLATFORMS, seconds, STATUS_COLOR, STATUS_LABEL, useAsync, Verdict, when } from './ui.js';
+import { 진행상황 } from './runProgress.js';
+import { RunInsights } from './RunInsights.js';
+import { RunProgressModal } from './RunProgressModal.js';
+import { 결과줄 } from './RunResultRow.js';
+import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
+import { Failed, Loading, message, PLATFORM_LABEL, PLATFORMS, STATUS_LABEL, useAsync, when } from './ui.js';
 
 const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 const DEVICES: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
-
-// 행의 거터 색. 디바이스 하나라도 깨졌으면 실패로 보여야 한다.
-// 회차가 여럿인 칸은 요약 판정을 쓴다 — 목록에 보이는 글자와 색이 같은 값을 봐야 한다
-function worst(칸들: RunItemSummary[][]): ItemStatus {
-  const 판정 = 칸들.map((칸) => 회차요약(칸).status);
-  if (판정.includes('FAIL')) return 'FAIL';
-  if (판정.length > 0 && 판정.every((s) => s === 'PASS')) return 'PASS';
-  return 'NA';
-}
 
 export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const [status, setStatus] = useState<ItemStatus | 'ALL'>('ALL');
@@ -33,7 +27,11 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const [멈추는중, set멈추는중] = useState(false);
   const [멈춤오류, set멈춤오류] = useState<string | null>(null);
   const [끝났다고알릴까말까, set알릴까] = useState(false);
-  // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다
+  // 「진행 상자를 닫았다」와 「완료를 알았다」는 다른 말이다. 하나로 합치면 도는 중에 상자를 닫은 사람이
+  // 실행이 끝난 것을 영영 못 듣는다 — 맨 위 알림 줄도 `본것들` 을 보므로 그를 못 구한다 (SPEC §8.9)
+  const [진행열림, set진행열림] = useState(false);
+  // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다.
+  // 화면에 안 나오는 값이라 `useRef` 로 둔다 — 그리는 값이면 `useState` 여야 한다 (2026-09-21 사고)
   const 앞선상태 = useRef<string | null>(null);
 
   const run = useAsync(() => api.run(runId), [runId]);
@@ -46,6 +44,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   useEffect(() => {
     앞선상태.current = null;
     set알릴까(false);
+    set진행열림(false);
   }, [runId]);
 
   // 그 실행 결과 화면을 보고 있는 사람에게만 모달이 뜬다 (SPEC §8.9).
@@ -54,6 +53,9 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
     if (data === null) return;
     const 전 = 앞선상태.current;
     앞선상태.current = data.status;
+    // 처음 받은 `data` 가 도는 중일 때만 연다. `useState(true)` 로 시작하면 그 값이 `data` 보다 먼저
+    // 정해져 3일 전에 끝난 실행을 열어도 진행 상자가 선다. 한 번 연 실행에서는 다시 열지 않는다
+    if (전 === null && 도는중(data.status)) set진행열림(true);
     if (전 !== null && 끝났다고알릴까({ 전, 후: data.status, runId: data.runId })) set알릴까(true);
   }, [data?.status, data?.runId]);
   const reload = run.reload;
@@ -80,7 +82,9 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const shown = groups.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE);
   const columns = device === 'ALL' ? PLATFORMS : [device];
   const { pass, fail, na } = data.counts;
-  const 실패목록 = data.items.filter((item) => item.status === 'FAIL');
+  // 모달은 닫으라고 만든 물건이고 실제로 곧장 닫힌다 (`useRunPick.ts` 가 상자 둘을 잇달아 띄운다).
+  // 그때 「무엇이 도는가」가 통째로 사라지지 않게 머리에도 한 줄 둔다 — 모달은 이 줄의 확대판이다
+  const 도는것 = running ? 진행상황(data).지금도는것 : null;
   function choose<T>(setter: (value: T) => void) {
     return (value: T) => {
       setter(value);
@@ -99,6 +103,9 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
             {data.env}
             {data.baseUrl === '' ? '' : ` (${data.baseUrl})`}
             {running ? ` · 도는 중 ${data.counts.running}건` : ` · ${상태라벨(data.status)}`}
+            {/* 「실행 중: X」라고 쓰지 않는다. 항목 둘이 동시에 돌아(EXECUTION_CONCURRENCY 기본 2)
+                여기 뜨는 것은 도는 둘 중 하나다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
+            {도는것 === null ? '' : ` · 진행 중 ${도는것.tcId} ${도는것.tcName}`}
           </div>
         </div>
         <div className="tally">
@@ -136,6 +143,8 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
         </div>
       )}
 
+      <RunInsights runId={data.runId} status={data.status} items={data.items} />
+
       <div className="toolbar">
         <span className="filter-label">판정</span>
         {STATUSES.map((value) => (
@@ -159,107 +168,25 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
       {shown.length === 0 ? (
         <div className="empty">조건에 맞는 결과가 없습니다.</div>
       ) : (
-        shown.map((group) => {
-          const 칸들 = columns
-            .map((platform) => group.byPlatform[platform])
-            .filter((칸): 칸 is RunItemSummary[] => 칸 !== undefined && 칸.length > 0);
-          const 첫항목 = 칸들[0]?.[0];
-          const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema);
-          // 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3)
-          const 사유 = 칸사유(칸들.flat());
-
-          return (
-            <div className="row" key={group.tcId}>
-              <div className="gutter" style={{ background: STATUS_COLOR[worst(칸들)] }} />
-              <div className="tcid">{group.tcId}</div>
-              <div className="title">
-                {group.tcName}
-                {/* 상세로 들어가야만 보이면 「어떤 값에서 깨졌는가」를 줄 사이에서 비교할 수 없다 (SPEC §8.3).
-                    입력이 없는 케이스는 줄 자체를 안 만든다 */}
-                {입력줄 === '' ? null : <small>{입력줄}</small>}
-                {사유 === null ? null : <small className="why">{사유}</small>}
-              </div>
-              <div className="right">
-                <div className="devices">
-                  {columns.map((platform) => {
-                    const 칸 = group.byPlatform[platform];
-                    return (
-                      <div className="device" key={platform}>
-                        <span className="device-name">{PLATFORM_LABEL[platform]}</span>
-                        {/* 그 디바이스를 지원하지 않는 케이스는 칸을 —로 비운다 (SPEC §8.3) */}
-                        {칸 === undefined || 칸.length === 0 ? (
-                          <span className="device-none">—</span>
-                        ) : (
-                          <Verdicts 칸={칸} runId={data.runId} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                {첫항목 === undefined ? null : (
-                  <a className="btn small" href={`#/runs/${data.runId}/items/${첫항목.historyId}`}>
-                    상세
-                  </a>
-                )}
-              </div>
-            </div>
-          );
-        })
+        shown.map((group) => (
+          <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />
+        ))
       )}
 
-      {!끝났다고알릴까말까 ? null : (
-        <Modal
-          제목={`RUN ${String(data.runId)} 이 ${data.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다'}`}
+      {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다 */}
+      {!진행열림 && !끝났다고알릴까말까 ? null : (
+        <RunProgressModal
+          data={data}
           onClose={() => {
-            // 한 번 닫으면 그 실행에 대해 다시 뜨지 않는다. 새로고침해도 마찬가지다 (SPEC §8.9)
-            본것으로적는다(data.runId);
-            set알릴까(false);
+            set진행열림(false);
+            // 끝난 뒤에 닫은 것만 「알림 봤다」로 적는다 — 새로고침해도 다시 안 뜬다 (SPEC §8.9).
+            // 도는 중에 닫은 것은 아직 안 본 것이라 끝나면 완료 상자를 새로 받아야 한다
+            if (!도는중(data.status)) {
+              본것으로적는다(data.runId);
+              set알릴까(false);
+            }
           }}
-          버튼={
-            <>
-              {/* 증적 문서 만들기는 실행까지 등급부터다 (SPEC §3.5). 보기만에게는 결과 보기 하나다 */}
-              <button
-                className="btn"
-                onClick={() => {
-                  본것으로적는다(data.runId);
-                  set알릴까(false);
-                }}
-              >
-                결과 보기
-              </button>
-            </>
-          }
-        >
-          <p>
-            {data.title} · 대상 서버 {data.env}
-          </p>
-          <div className="tally">
-            <div>
-              <b style={{ color: 'var(--pass)' }}>{pass}</b>
-              <span>통과</span>
-            </div>
-            <div>
-              <b style={{ color: 'var(--fail)' }}>{fail}</b>
-              <span>실패</span>
-            </div>
-            <div>
-              <b style={{ color: 'var(--na)' }}>{na}</b>
-              <span>미실행</span>
-            </div>
-          </div>
-          {실패목록.length === 0 ? null : (
-            <div>
-              {/* 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다 (SPEC §8.9) */}
-              <div className="sec-h">실패한 케이스</div>
-              {실패목록.slice(0, 5).map((item) => (
-                <div className="pre" key={item.historyId}>
-                  {item.tcId} {item.tcName}
-                </div>
-              ))}
-              {실패목록.length > 5 ? <p className="hint">외 {실패목록.length - 5}건</p> : null}
-            </div>
-          )}
-        </Modal>
+        />
       )}
 
       {!멈출까 ? null : (
@@ -315,39 +242,5 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
         </div>
       )}
     </div>
-  );
-}
-
-/**
- * 한 디바이스 칸의 판정.
- *
- * 1회면 판정 배지, 반복이면 `3/5 통과` 요약이다. **행 구조는 바뀌지 않는다** (SPEC §8.3).
- * 어느 회차가 깨졌는지는 상세에서 본다 — 목록은 회차를 펼치지 않는다.
- */
-function Verdicts({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
-  // 아직 안 끝난 것이 하나라도 있으면 도는 중이다. 실행이 끝나야 판정이 들어간다 (SPEC §3.2)
-  if (칸.some((item) => item.finishedAt === null)) {
-    return <span className="device-none">도는 중</span>;
-  }
-
-  const 요약 = 회차요약(칸);
-  const 처음 = 칸[0]!;
-
-  return (
-    <>
-      <a href={`#/runs/${runId}/items/${처음.historyId}`}>
-        {요약.글 === null ? (
-          <Verdict status={요약.status} />
-        ) : (
-          <span className={`verdict ${요약.status === 'PASS' ? 'v-pass' : 요약.status === 'FAIL' ? 'v-fail' : 'v-na'}`}>
-            {요약.글}
-          </span>
-        )}
-      </a>
-      <span className="device-dur">
-        {seconds(요약.평균소요ms)}
-        {요약.회차수 > 1 ? ' 평균' : ''}
-      </span>
-    </>
   );
 }
