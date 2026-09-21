@@ -57,3 +57,23 @@ jobs:
       - name: 증적 형식 이름이 네 곳에서 갈라지지 않았나 (SPEC §8.4)
         if: steps.skeleton.outputs.ready == '1'
         run: npm run check:evidence-formats --if-present
+      # 판별식 검사. ci-covers-tests 가 아래 두 단계를 지켜보므로 그보다 먼저 돈다 —
+      # 실행 단계가 사라지거나 다른 잡으로 옮겨 가면 여기서 잡힌다
+      # ⚠️ 여기만 `--if-present` 를 안 붙인다. 붙이면 스크립트를 지우거나 이름만 바꿔도
+      #    이 단계가 아무것도 안 하고 초록이 되고, 아래 두 단계를 지키는 장치가 통째로 사라진다.
+      #    **강제력이 존재 이유인 줄이라 없으면 그 자리에서 죽어야 한다.**
+      - name: 판별식 검사 (.claude/scripts 의 규칙들)
+        if: steps.skeleton.outputs.ready == '1'
+        run: npm run check:workflow
+      # 여기부터가 **생성된 테스트를 실제로 돌리는** 자리다. 이 단계가 없으면 형식 검사만
+      # 통과한 깨진 케이스가 그대로 main 에 들어간다 (2026-09-21 실측).
+      #
+      # ⚠️ 이 두 단계를 **이 `check` 잡 밖으로 옮기지 마라.** 보호가 요구하는 체크 이름은
+      #    `check` 하나뿐이라, 밖에 있는 것은 빨개져도 병합을 못 막는다.
+      #    `.claude/scripts/ci-covers-tests.test.mjs` 가 그것까지 단언한다.
+      - name: 브라우저 내려받기 (desktop 프로젝트가 쓰는 chromium 만)
+        if: steps.skeleton.outputs.ready == '1'
+        run: npx playwright install --with-deps chromium
+      - name: 생성된 테스트 실행 (tests/demo 는 일부러 실패하는 전시물이라 뺀다)
+        if: steps.skeleton.outputs.ready == '1'
+        run: npx playwright test tests/todo --project=desktop
