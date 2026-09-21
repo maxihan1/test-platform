@@ -148,7 +148,7 @@ describe('화면 토큰 (DESIGN.md)', () => {
   it('접어도 자리 넷을 화면에서 지우지 않는다', () => {
     // `display: none` 을 쓰면 키보드 탭 대상에서 빠져 키보드로만 쓰는 사람이 이동을 통째로 잃는다.
     // 글자만 0 으로 눌러 화면에서는 사라지되 탭 순서에는 남긴다 (SPEC §8)
-    const 자리 = /\.folded \.side \.nav a\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const 자리 = /\.folded \.side \.side-nav a\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(자리).toMatch(/font-size:\s*0/);
     expect(자리).not.toMatch(/display:\s*none/);
     expect(자리).not.toMatch(/visibility:\s*hidden/);
@@ -167,7 +167,7 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // SPEC §8 — 휴대폰으로 하는 일은 「끝났나 보기」 하나라 그 길목이 44px 을 넘어야 한다.
     // 46 으로 둔다. 브라우저 반올림이 소수점만큼 깎아 목업 실측이 43.9986 이었다
     const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-    const 값 = /\.side \.nav a\s*\{[^}]*min-height:\s*(\d+)px/.exec(좁은화면)?.[1];
+    const 값 = /\.side \.side-nav a\s*\{[^}]*min-height:\s*(\d+)px/.exec(좁은화면)?.[1];
     expect(Number(값)).toBeGreaterThanOrEqual(44);
   });
 

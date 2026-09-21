@@ -42,7 +42,8 @@ export function Shell({ user, service, onService, onLogout, current, header, chi
   return (
     <div className={접음 ? 'wrap folded' : 'wrap'}>
       {/* 짙은 세로 막대 하나가 「어느 서비스를 · 어디를 · 누가」 셋을 다 들고 있다.
-          옛 가로 띠(`.band`)가 이 안으로 들어왔다 — 클래스 이름은 그대로 두고 배치만 바꿨다 */}
+          2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다.
+          PR① 이 남겨 둔 것은 그 이름으로 단언하는 검사가 있었기 때문이고, 그 검사를 같이 고쳤다 */}
       <aside className="side">
         {/* 접어도 자리 넷을 **지우지 않는다.** display:none 을 쓰면 키보드 탭 대상에서 빠져
             키보드로만 쓰는 사람이 이동을 통째로 잃는다. 폭만 줄이고 글자를 숨긴다 */}
@@ -61,18 +62,18 @@ export function Shell({ user, service, onService, onLogout, current, header, chi
         {/* 서비스 색이 사는 유일한 자리. 8px 네모가 `--svc` 를 쓴다 —
             이름만으로는 부족하다. 글자는 읽어야 보이고 색은 안 읽어도 구분된다 (SPEC §8) */}
         <div
-          className="side-top band"
+          className="side-top"
           {...(service === null ? {} : { 'data-service-color': service.prefix })}
           style={service === null ? undefined : ({ '--svc': service.color } as React.CSSProperties)}
         >
-          <div className="band-left">
+          <div className="side-svc">
             {service === null ? (
-              <span className="band-name">서비스 없음</span>
+              <span className="side-svc-name">서비스 없음</span>
             ) : (
               <>
-                <span className="svc-dot" aria-hidden="true" />
+                <span className="side-dot" aria-hidden="true" />
                 <select
-                  className="band-pick"
+                  className="side-pick"
                   value={service.prefix}
                   onChange={(e) => {
                     고른서비스를적는다(e.target.value);
@@ -90,11 +91,11 @@ export function Shell({ user, service, onService, onLogout, current, header, chi
             )}
           </div>
           {service === null || service.prefix === '' ? null : (
-            <span className="band-repo">{service.prefix}-</span>
+            <span className="side-svc-id">{service.prefix}-</span>
           )}
         </div>
 
-        <nav className="nav">
+        <nav className="side-nav">
           {자리목록(user.role).map((자리) =>
             자리.바깥 === true ? (
               <a key={자리.이름} href={자리.해시} target="_blank" rel="noreferrer">
@@ -111,9 +112,9 @@ export function Shell({ user, service, onService, onLogout, current, header, chi
         {/* 사람과 로그아웃을 바닥으로 민다. 자주 누르는 것이 아니라 늘 보여야 하는 것이다 */}
         <div className="side-gap" />
 
-        <div className="band-right">
-          <span className="band-who">{user.displayName}</span>
-          <button className="band-out" onClick={onLogout}>
+        <div className="side-who">
+          <span className="side-who-name">{user.displayName}</span>
+          <button className="side-out" onClick={onLogout}>
             로그아웃
           </button>
         </div>
@@ -175,14 +176,14 @@ function Notice({ service }: { service: string }) {
   if (줄 === null) return null;
 
   return (
-    <div className="notice-row">
-      <a className="notice" href={`#/runs/${줄.runId}`}>
+    <div className="toast-row">
+      <a className="toast" href={`#/runs/${줄.runId}`}>
         ▶ {줄.글}
       </a>
       {/* 끝난 소식은 한 번 누르거나 닫으면 사라진다 (SPEC §8). 도는 중은 스스로 사라진다 */}
       {!줄.끝났나 ? null : (
         <button
-          className="notice-x"
+          className="toast-x"
           aria-label="알림 닫기"
           onClick={() => {
             본것으로적는다(줄.runId);

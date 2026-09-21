@@ -52,7 +52,7 @@ function 색표시() {
 describe('맨 위 띠의 서비스 색 (SPEC §8)', () => {
   it('띠 바탕에는 서비스 색을 칠하지 않는다', () => {
     띄운다(결제);
-    const 띠 = document.querySelector('.band') as HTMLElement | null;
+    const 띠 = document.querySelector('.side-top') as HTMLElement | null;
     expect(띠).not.toBeNull();
     // 껍데기 색은 styles.css 의 --chrome 이 정한다. 화면이 바탕색을 지어내지 않는다
     expect(띠!.style.background).toBe('');
@@ -123,5 +123,28 @@ describe('사이드바 접기', () => {
     // 흐리게 두지 않는다는 규칙(SPEC §8)은 등급 이야기고, 접기는 사람이 되돌릴 수 있는 상태다
     expect(screen.getByRole('link', { name: '테스트케이스 목록' })).toBeTruthy();
     사이드바접음을적는다(false);
+  });
+});
+
+describe('껍데기 이름 정리 (2026-09-21 ②)', () => {
+  it('자리 넷이 nav 랜드마크 안에 있다', () => {
+    띄운다(결제);
+
+    // 이름을 기계로 바꾸다가 `<nav>` 가 `<side-nav>` 라는 없는 요소가 된 적이 있다.
+    // 링크는 그대로 보여서 검사가 전부 초록이었는데, 화면을 안 보는 사람은 자리 넷을 통째로 못 찾는다
+    const 자리 = screen.getByRole('navigation');
+    expect(자리.className).toBe('side-nav');
+    expect(자리.tagName).toBe('NAV');
+  });
+
+  it('옛 이름을 화면에 남기지 않는다', () => {
+    띄운다(결제);
+
+    for (const 옛이름 of ['band', 'svc-dot', 'notice']) {
+      expect(
+        document.querySelector(`[class*="${옛이름}"]`),
+        `옛 이름 ${옛이름} 이 화면에 남아 있다`,
+      ).toBeNull();
+    }
   });
 });
