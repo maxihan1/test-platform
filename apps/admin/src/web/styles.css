@@ -520,6 +520,12 @@ select:focus {
   background: var(--ink-faint);
 }
 
+/* 직전 실행과 견준 변화 낱말 (새로깨짐·고쳐짐…). 판정 배지와 같은 굵기로 읽혀야 줄에서 눈에 든다.
+   색은 인라인으로 **이번 판정**이 정한다 — 낱말과 색이 서로 다른 것을 말하는 자리다 (DESIGN.md 원칙 1) */
+.pre .change {
+  font-weight: 600;
+}
+
 /* 입력 칸 */
 .field {
   display: grid;

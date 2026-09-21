@@ -8,6 +8,8 @@ import { filterGroups, groupByCase } from './group.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { Modal } from './Modal.js';
 import type { 등급 } from './role.js';
+import { 진행상황 } from './runProgress.js';
+import { RunInsights } from './RunInsights.js';
 import { RunProgressModal } from './RunProgressModal.js';
 import { 결과줄 } from './RunResultRow.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
@@ -80,6 +82,9 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const shown = groups.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE);
   const columns = device === 'ALL' ? PLATFORMS : [device];
   const { pass, fail, na } = data.counts;
+  // 모달은 닫으라고 만든 물건이고 실제로 곧장 닫힌다 (`useRunPick.ts` 가 상자 둘을 잇달아 띄운다).
+  // 그때 「무엇이 도는가」가 통째로 사라지지 않게 머리에도 한 줄 둔다 — 모달은 이 줄의 확대판이다
+  const 도는것 = running ? 진행상황(data).지금도는것 : null;
   function choose<T>(setter: (value: T) => void) {
     return (value: T) => {
       setter(value);
@@ -98,6 +103,9 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
             {data.env}
             {data.baseUrl === '' ? '' : ` (${data.baseUrl})`}
             {running ? ` · 도는 중 ${data.counts.running}건` : ` · ${상태라벨(data.status)}`}
+            {/* 「실행 중: X」라고 쓰지 않는다. 항목 둘이 동시에 돌아(EXECUTION_CONCURRENCY 기본 2)
+                여기 뜨는 것은 도는 둘 중 하나다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
+            {도는것 === null ? '' : ` · 진행 중 ${도는것.tcId} ${도는것.tcName}`}
           </div>
         </div>
         <div className="tally">
@@ -134,6 +142,8 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
           <i style={{ background: 'var(--na)', flex: na }} />
         </div>
       )}
+
+      <RunInsights runId={data.runId} status={data.status} items={data.items} />
 
       <div className="toolbar">
         <span className="filter-label">판정</span>
