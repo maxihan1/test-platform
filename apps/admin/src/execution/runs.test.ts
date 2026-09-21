@@ -316,6 +316,19 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     expect(우리것.map((i: { platform: string }) => i.platform).sort()).toEqual(['desktop', 'mobile']);
   });
 
+  it('GET /api/runs/last-by-case — 같은 자리에 최근 판정 흐름도 실어 준다', async () => {
+    const body = (await app.inject({ method: 'GET', url: '/api/runs/last-by-case' })).json();
+    const 데스크톱 = body.items.find(
+      (i: { tcId: string; platform: string }) => i.tcId === 'XBX-001' && i.platform === 'desktop',
+    );
+
+    expect(Array.isArray(데스크톱.recent)).toBe(true);
+    expect(데스크톱.recent.length).toBeGreaterThanOrEqual(2);
+    expect(데스크톱.recent.length).toBeLessThanOrEqual(5);
+    // 맨 앞이 새 것이다. 배지(status)와 흐름의 첫 칸이 어긋나면 같은 실행을 두 값으로 말하게 된다
+    expect(데스크톱.recent[0]).toBe(데스크톱.status);
+  });
+
   it('GET /api/screenshots/... — 공유 볼륨의 원본을 그대로 내보낸다', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/screenshots/7/9/2.png' });
     expect(res.statusCode).toBe(200);
