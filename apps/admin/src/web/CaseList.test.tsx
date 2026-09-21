@@ -22,7 +22,7 @@ beforeEach(() => {
   window.location.hash = '#/cases';
 });
 
-function 케이스(tcId: string, platforms: Platform[] = ['desktop']): CaseRow {
+function 케이스(tcId: string, platforms: Platform[] = ['desktop'], isActive = true): CaseRow {
   return {
     tcId,
     name: `${tcId} 케이스`,
@@ -31,7 +31,7 @@ function 케이스(tcId: string, platforms: Platform[] = ['desktop']): CaseRow {
     filePath: `tests/${tcId}.spec.ts`,
     paramSchema: {},
     expectedSchema: {},
-    isActive: true,
+    isActive,
     scannedAt: '2026-09-21T00:00:00.000Z',
   };
 }
@@ -174,6 +174,65 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
 
     // 남겨 두면 다른 서비스에서 「고른 1건」이라 말하고 누르면 사실이 아닌 이유를 보여준다
     await waitFor(() => expect(실행버튼().textContent).toBe('전체 실행하기'));
+  });
+});
+
+describe('CaseList 담지 못한 것을 말한다', () => {
+  it('쪽이 끝없이 이어져도 멈추고 전부 담지 못했다고 말한다', async () => {
+    // 늘 꽉 찬 쪽을 준다. 쪽 상한이 없으면 영영 돈다 (다음이있나 는 items.length >= pageSize 다)
+    const 스파이 = 모킹((page) =>
+      Promise.resolve({
+        items: [케이스(`ZPK-${String(page)}A`), 케이스(`ZPK-${String(page)}B`)],
+        total: 9999,
+        page,
+        pageSize: 2,
+      }),
+    );
+    render(<CaseList service="ZPK" />);
+    await screen.findByText('ZPK-1A');
+    스파이.mockClear();
+
+    fireEvent.click(실행버튼());
+
+    const 모달 = await screen.findByRole('dialog');
+    expect(스파이).toHaveBeenCalledTimes(40);
+    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 80건');
+    // 버튼 글자가 「전체」인 채로 조용히 자르지 않는다
+    expect(within(모달).getByText(/앞 80건까지만 담았습니다/)).toBeTruthy();
+  });
+
+  it('같은 tcId 가 두 쪽에 실려도 한 번만 담는다', async () => {
+    // 도는 중에 스캔이 돌면 이렇게 된다. 겹친 채로 보내면 서버가 요청 전체를 거절한다
+    await 그리기((page) =>
+      Promise.resolve(
+        page === 1
+          ? 쪽1
+          : { items: [케이스('ZPK-002')], total: 3, page: 2, pageSize: 2 },
+      ),
+    );
+
+    fireEvent.click(실행버튼());
+
+    const 모달 = await screen.findByRole('dialog');
+    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 2건');
+  });
+
+  it('고른 것 중 비활성이 빠지면 몇 건이 대상인지 적는다', async () => {
+    await 그리기(() =>
+      Promise.resolve({
+        items: [케이스('ZPK-001'), 케이스('ZPK-009', ['desktop'], false)],
+        total: 2,
+        page: 1,
+        pageSize: 9,
+      }),
+    );
+    fireEvent.click(고르기칸()[0]!);
+    fireEvent.click(고르기칸()[1]!);
+
+    fireEvent.click(실행버튼());
+
+    const 모달 = await screen.findByRole('dialog');
+    expect(within(모달).getByText(/고른 2건 중 1건이 대상입니다/)).toBeTruthy();
   });
 });
 

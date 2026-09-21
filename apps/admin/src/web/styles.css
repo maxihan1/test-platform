@@ -1327,6 +1327,13 @@ select:focus {
   color: var(--ink-faint);
 }
 
+/* 고른 것 중 무엇이 왜 빠졌는지. 말풍선이 아니라 화면 줄이다 (DESIGN.md) */
+.mnote {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  flex: none;
+}
+
 .picked {
   border-top: 1px solid var(--rule-soft);
   border-bottom: 1px solid var(--rule-soft);

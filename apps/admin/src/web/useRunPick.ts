@@ -17,8 +17,17 @@ import type { LastMap } from './catalogView.js';
 import { 다음이있나 } from './paging.js';
 import { 담을것 } from './pickRun.js';
 import type { 실행요청 } from './RunPickModal.js';
-import { 상한 } from './runPlan.js';
 import { message } from './ui.js';
+
+/**
+ * 「전체」를 담을 때 되돌 쪽 수의 한계.
+ *
+ * `runPlan` 의 상한(1000)을 여기 쓰지 않는다 — 그것은 **실행 항목 수**이지 케이스 수가 아니다.
+ * 케이스 1000건이 전부 디바이스 하나면 항목 수도 1000 이라 `넘었나` 가 false 이고,
+ * 그래서 뒤에 더 있어도 조용히 1000건만 걸렸다. 세는 단위가 달랐다.
+ * 무한 반복도 여기서 막는다 — `다음이있나` 는 `items.length >= pageSize` 라 pageSize 가 0 이면 영영 돈다.
+ */
+const 쪽상한 = 40;
 
 /**
  * 실행 기록 목록이 이 제목으로 실행을 가리고(§8.7) 증적 문서 머리에도 박제된다(§8.3).
@@ -30,6 +39,19 @@ import { message } from './ui.js';
 function 실행제목(items: RunRequestItem[]): string {
   const 맨앞 = items[0]?.tcId ?? '';
   return items.length <= 1 ? `${맨앞} 실행` : `${맨앞} 외 ${String(items.length - 1)}건 실행`;
+}
+
+/** 조용히 줄어든 것을 모달에서 사람에게 말한다. 「전체」라 적힌 버튼이 앞부분만 거는 일이 없게 */
+function 빠진안내(것: {
+  고른수: number;
+  담을수: number;
+  잘렸나: boolean;
+  모은수: number;
+}): string | undefined {
+  if (것.잘렸나) return `목록이 너무 길어 앞 ${String(것.모은수)}건까지만 담았습니다. 검색으로 좁혀서 다시 거세요`;
+  if (것.고른수 > 것.담을수)
+    return `고른 ${String(것.고른수)}건 중 ${String(것.담을수)}건이 대상입니다. 나머지는 비활성이라 뺐습니다`;
+  return undefined;
 }
 
 export function useRunPick(옵션: {
@@ -49,6 +71,8 @@ export function useRunPick(옵션: {
   const [서비스, set서비스] = useState<ServiceRow | null>(null);
   // 걸었다 거절당한 사유. **목록 줄에 적으면 모달 뒤에 깔린다** — 모달 안에 적는다 (SPEC §8.10)
   const [사유, set사유] = useState<string | undefined>(undefined);
+  // 담는 사이에 빠진 것. 버튼이 「전체」라 말해 놓고 조용히 자르지 않는다
+  const [안내, set안내] = useState<string | undefined>(undefined);
   // 두 번 눌러도 실행이 둘 생기지 않게 막는다. 모달은 onRun 을 기다리지 않는다
   const 거는중 = useRef(false);
 
@@ -56,16 +80,21 @@ export function useRunPick(옵션: {
    * 「전체」는 보이는 쪽이 아니라 모든 쪽이다 (SPEC §8.1).
    *
    * 몇 쪽인지는 총건수로 계산하지 않고 응답이 준 값으로 판단한다 (paging.ts).
+   * 도는 중에 스캔이 돌면 같은 tcId 가 두 쪽에 실려 서버가 요청 전체를 거절한다 — 그래서 Map 으로 받는다.
    */
-  async function 쪽모으기(): Promise<CaseRow[]> {
-    const 모은: CaseRow[] = [];
+  async function 쪽모으기(): Promise<{ 모은: CaseRow[]; 잘렸나: boolean }> {
+    const 본것 = new Map<string, CaseRow>();
+    let 잘렸나 = false;
     for (let 쪽 = 1; ; 쪽 += 1) {
       const 한쪽 = await api.cases({ ...조건, page: 쪽 });
-      모은.push(...한쪽.items);
-      // 응답이 거짓말을 해도 쪽이 무한히 늘지 않게 막는다. 상한을 넘으면 어차피 실행이 거절된다
-      if (!다음이있나(한쪽) || 모은.length >= 상한) break;
+      for (const row of 한쪽.items) 본것.set(row.tcId, row);
+      if (!다음이있나(한쪽)) break;
+      if (쪽 >= 쪽상한) {
+        잘렸나 = true;
+        break;
+      }
     }
-    return 모은;
+    return { 모은: [...본것.values()], 잘렸나 };
   }
 
   async function 모으기() {
@@ -73,7 +102,7 @@ export function useRunPick(옵션: {
     알림(null);
     try {
       // 고른 것이 있으면 손에 이미 다 있다. 실체를 찾으러 쪽을 되돌 이유가 없다
-      const 모은 = 고른.size > 0 ? [] : await 쪽모으기();
+      const { 모은, 잘렸나 } = 고른.size > 0 ? { 모은: [], 잘렸나: false } : await 쪽모으기();
       const 담을 = 담을것(모은, 고른, 결과, 마지막);
       if (담을.length === 0) {
         // 빈 모달을 열지 않는다. 열어 봐야 실행이 서버에서 400 으로 되돌아온다
@@ -82,6 +111,7 @@ export function useRunPick(옵션: {
       }
       const { user } = await api.me();
       set서비스(user.services.find((it) => it.prefix === service) ?? null);
+      set안내(빠진안내({ 고른수: 고른.size, 담을수: 담을.length, 잘렸나, 모은수: 모은.length }));
       set담은것(담을);
     } catch (err) {
       알림(message(err));
@@ -129,9 +159,10 @@ export function useRunPick(옵션: {
 
   function 닫기() {
     set담은것(null);
-    // 다음에 열었을 때 지난번 사유가 남아 있으면 안 된다
+    // 다음에 열었을 때 지난번 사유와 안내가 남아 있으면 안 된다
     set사유(undefined);
+    set안내(undefined);
   }
 
-  return { 고른, 모으는중, 담은것, 서비스, 사유, 모으기, 실행걸기, 뒤집기, 비우기, 닫기 };
+  return { 고른, 모으는중, 담은것, 서비스, 사유, 안내, 모으기, 실행걸기, 뒤집기, 비우기, 닫기 };
 }

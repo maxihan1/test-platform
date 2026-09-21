@@ -31,6 +31,8 @@ interface Props {
    * 여기 없으면 사유가 모달 뒤에 깔려 사람은 「눌렀는데 아무 일도 안 일어난다」로 겪는다
    */
   사유?: string;
+  /** 고른 것 중 무엇이 왜 빠졌는지. 조용히 줄어든 채로 걸지 않는다 */
+  안내?: string;
   onClose: () => void;
   onRun: (요청: 실행요청) => void;
 }
@@ -40,7 +42,7 @@ type 글자표 = Record<string, { params: Record<string, string>; expected: Reco
 
 const 오류없음: Record<string, string> = {};
 
-export function RunPickModal({ 케이스들, service, 사유, onClose, onRun }: Props) {
+export function RunPickModal({ 케이스들, service, 사유, 안내, onClose, onRun }: Props) {
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2)
   const [env, setEnv] = useState('');
   const [repeat, setRepeat] = useState('1');
@@ -163,6 +165,9 @@ export function RunPickModal({ 케이스들, service, 사유, onClose, onRun }: 
         {/* 고른 뒤 「어디로 쏘는지」를 확인할 자리가 있어야 한다 (SPEC §8.2) */}
         {주소 === null ? null : <span className="addr">{주소}</span>}
       </div>
+
+      {/* 고른 것이 왜 줄었는지. 제목의 건수만 보면 어디서 사라졌는지 아무 데도 안 적힌다 */}
+      {안내 === undefined ? null : <div className="mnote">{안내}</div>}
 
       {/* 여기만 스크롤한다. 머리와 바닥은 고정이다 (SPEC §8.10) */}
       <div className="picked">

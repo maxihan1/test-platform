@@ -194,6 +194,7 @@ export function CaseList({ service }: { service: string }) {
           케이스들={뽑기.담은것}
           service={뽑기.서비스}
           사유={뽑기.사유}
+          안내={뽑기.안내}
           onClose={뽑기.닫기}
           onRun={(요청) => void 뽑기.실행걸기(요청)}
         />
