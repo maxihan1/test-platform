@@ -22,12 +22,36 @@ function 화면파일들(폴더: string): string[] {
 
 const 소스 = 화면파일들(여기).map((길) => ({ 길, 글: readFileSync(길, 'utf8') }));
 
-// `obj.t(`·`split(`·`format(` 에 걸리지 않게 앞 글자를 막는다
-const 모든부름 = /(?<![\w$.])t\s*\(/gu;
-const 리터럴부름 = /(?<![\w$.])t\s*\(\s*(['"])((?:[^'"\\]|\\.)*)\1/gu;
+// 주석에는 한국어를 쓰라고 CLAUDE.md 가 시킨다. 그러니 재기 전에 주석부터 걷어낸다
+function 주석없이(글: string): string {
+  return 글.replace(/\/\*[\s\S]*?\*\//gu, ' ').replace(/(^|[^:])\/\/[^\n]*/gu, '$1');
+}
 
-function 센다(글: string, 정규식: RegExp): number {
-  return [...글.matchAll(new RegExp(정규식.source, 정규식.flags))].length;
+// 이 저장소는 **변수 이름도 한국어**다. 그래서 「한국어가 있다」만으로는 글자인지 코드인지 못 가른다.
+// 코드로 보이는 것을 걸러 낸다 — 연산자가 들어 있으면 사람이 읽을 문장이 아니다
+const 코드냄새 = /===|!==|&&|\|\||=>|\)|\(|\[|\]|\bnull\b|\bundefined\b|\.\w|\s[?:]\s/u;
+
+const 한글리터럴 = /(['"])((?:[^'"\\\n]|\\.)*[가-힣](?:[^'"\\\n]|\\.)*)\1/gu;
+const JSX글자 = />\s*([^<>{}\n]*[가-힣][^<>{}]*?)\s*</gu;
+
+const 다듬 = (글: string): string => 글.replace(/\s+/gu, ' ').trim();
+
+function 화면글자들(글: string): string[] {
+  const 벗긴 = 주석없이(글);
+  const 모음: string[] = [];
+  for (const m of 벗긴.matchAll(한글리터럴)) if (m[2] !== undefined) 모음.push(다듬(m[2]));
+  for (const m of 벗긴.matchAll(JSX글자)) if (m[1] !== undefined) 모음.push(다듬(m[1]));
+  return 모음.filter((글) => 글 !== '' && !코드냄새.test(글));
+}
+
+/** 자리표(`${…}`)를 걷어낸 템플릿 문자열. 한국어 **식별자**는 여기서 사라진다 */
+function 템플릿속글자(글: string): string[] {
+  const 모음: string[] = [];
+  for (const m of 주석없이(글).matchAll(/`((?:[^`\\]|\\.)*)`/gu)) {
+    const 알맹이 = (m[1] ?? '').replace(/\$\{[^}]*\}/gu, '');
+    if (/[가-힣]/u.test(알맹이)) 모음.push(다듬(m[0]));
+  }
+  return 모음;
 }
 
 // 번역 규칙은 실제 표와 떼어 놓고 잰다. 표가 자라도 이 단언들이 흔들리지 않는다
@@ -70,35 +94,28 @@ describe('언어 표', () => {
   });
 });
 
-describe('표와 소스가 어긋나지 않는다', () => {
-  it('화면이 부르는 키가 전부 영어 표에 있다', () => {
+// 「다 옮겼나」에 기계가 답하는 유일한 길이다.
+// `t('…')` 호출만 세면 아직 안 감싼 글자는 세지도 못한다 — 남은 것을 세야 남은 것을 안다
+describe('화면에 한국어가 남아 있으면 표에 있어야 한다', () => {
+  it('소스의 모든 한국어 글자가 영어 표의 키다', () => {
     const 빠진것: string[] = [];
     for (const { 길, 글 } of 소스) {
-      for (const 맞음 of 글.matchAll(리터럴부름)) {
-        const 키 = 맞음[2];
-        if (키 !== undefined && 키 !== '' && !(키 in 말)) 빠진것.push(`${길}: ${키}`);
-      }
+      for (const 자 of 화면글자들(글)) if (!(자 in 말)) 빠진것.push(`${길.split('/web/')[1]}: ${자}`);
     }
     expect(빠진것).toEqual([]);
   });
 
-  it('영어 표의 키가 전부 화면에 쓰인다. 워딩을 고친 뒤 옛 키가 남지 않게', () => {
-    const 쓰인키 = new Set<string>();
-    for (const { 글 } of 소스) {
-      for (const 맞음 of 글.matchAll(리터럴부름)) {
-        if (맞음[2] !== undefined) 쓰인키.add(맞음[2]);
-      }
-    }
-    expect(Object.keys(말).filter((키) => !쓰인키.has(키))).toEqual([]);
+  it('영어 표의 키가 전부 화면에 있다. 워딩을 고친 뒤 옛 키가 남지 않게', () => {
+    const 있는것 = new Set(소스.flatMap(({ 글 }) => 화면글자들(글)));
+    expect(Object.keys(말).filter((키) => !있는것.has(키.replace(/ \([^)]*\)$/u, '')))).toEqual([]);
   });
 
-  // 정규식은 템플릿 문자열을 못 잡는다. 그래서 잡으려 하지 않고 금지한다 —
-  // 못 잡는 모양이 나타나면 그 자체로 빨개진다 (계획 게이트 1 BLOCKER 2)
-  it('키가 아닌 것을 t() 에 넣은 자리가 하나도 없다', () => {
+  // 값이 박힌 글자를 템플릿 문자열로 쓰면 키를 만들 수 없다. 자리표를 쓰게 만든다 —
+  // 못 잡는 모양을 잡으려 애쓰는 대신 금지한다 (계획 게이트 1 BLOCKER 2)
+  it('한국어가 든 템플릿 문자열이 하나도 없다', () => {
     const 어긴것: string[] = [];
     for (const { 길, 글 } of 소스) {
-      const 차이 = 센다(글, 모든부름) - 센다(글, 리터럴부름);
-      if (차이 > 0) 어긴것.push(`${길}: ${차이}곳`);
+      for (const 자 of 템플릿속글자(글)) 어긴것.push(`${길.split('/web/')[1]}: ${자}`);
     }
     expect(어긴것).toEqual([]);
   });
