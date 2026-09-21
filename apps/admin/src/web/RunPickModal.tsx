@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import type { CaseRow, RunRequestItem, ServiceRow } from './api.js';
 import { Form } from './Form.js';
 import { Modal } from './Modal.js';
-import { type 고친값표, 몇건, 실행항목 } from './pickRun.js';
+import { type 고친값표, type 글자표, 몇건, 실행항목 } from './pickRun.js';
 import { 넘었나, 상한 } from './runPlan.js';
 import { type Field, initialText, schemaToFields, toValues } from './schema.js';
 import { PLATFORM_LABEL } from './ui.js';
@@ -21,6 +21,13 @@ export interface 실행요청 {
 interface Props {
   /** 목록에서 고른 것. 비활성·결과칩 거르기는 pickRun 의 담을것이 이미 했다 */
   케이스들: CaseRow[];
+  /**
+   * 목록 줄에서 이미 고쳐 둔 값 (2026-09-21 ②).
+   *
+   * **두 자리가 같은 표를 쓴다.** 안 실어 오면 목록에서 고친 값이 모달을 여는 순간 사라지고,
+   * 사람은 고친 줄 알고 기본값으로 돌린 결과를 증적으로 제출한다.
+   */
+  초기글자?: 글자표;
   /** 대상 서버 목록과 Slack 칸 여부가 여기 실려 온다 (SPEC §8.2 → §7) */
   service: ServiceRow | null;
   /**
@@ -41,17 +48,14 @@ interface Props {
   onRun: (요청: 실행요청) => void;
 }
 
-/** 케이스마다 고쳐 넣은 글자. **편 적 없는 케이스는 여기 아예 없다** — 코드의 기본값으로 돈다 (SPEC §8.10) */
-type 글자표 = Record<string, { params: Record<string, string>; expected: Record<string, string> } | undefined>;
-
 const 오류없음: Record<string, string> = {};
 
-export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중, onClose, on값고침, onRun }: Props) {
+export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안내, 거는중, onClose, on값고침, onRun }: Props) {
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2)
   const [env, setEnv] = useState('');
   const [repeat, setRepeat] = useState('1');
   const [notifySlack, setNotifySlack] = useState(false);
-  const [글자, set글자] = useState<글자표>({});
+  const [글자, set글자] = useState<글자표>(초기글자 ?? {});
   const [notice, setNotice] = useState<string | null>(null);
 
   const 칸들 = useMemo(
