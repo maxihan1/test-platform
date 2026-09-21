@@ -125,15 +125,42 @@ function 블록(item: EvidenceItem): string[] {
 // 경로가 갈리거나 파일이 잘리면 html.test.ts 의 바이트 수 검사가 빨개진다
 //
 // 모듈 로드 때 한 번만 읽는다. renderHtml 은 동기이고, 비동기로 바꾸면 generate.ts 까지 번진다
-const 글꼴 = readFileSync(new URL('../web/fonts/PretendardVariable.woff2', import.meta.url)).toString('base64');
+function 담는다(이름: string): string {
+  return readFileSync(new URL(`../web/fonts/${이름}`, import.meta.url)).toString('base64');
+}
+
+// 본문 둘(400·600)과 등폭 둘(400·500). 가변 글꼴이 아니라 굵기마다 파일이 따로다 —
+// 그래서 굵기를 넷으로 늘리지 않는다. 벌이 늘면 증적 문서가 그대로 무거워진다 (html.test.ts 의 4MB 상한)
+const 본문400 = 담는다('IBMPlexSansKR-Regular.woff2');
+const 본문600 = 담는다('IBMPlexSansKR-SemiBold.woff2');
+const 등폭400 = 담는다('IBMPlexMono-Regular.woff2');
+const 등폭500 = 담는다('IBMPlexMono-Medium.woff2');
 
 const 스타일 = `
 @page { size: A4; margin: 14mm 12mm; }
 @font-face{
-  font-family:Pretendard;
-  font-weight:45 920;
+  font-family:"IBM Plex Sans KR";
+  font-weight:400;
   font-style:normal;
-  src:url(data:font/woff2;base64,${글꼴}) format('woff2');
+  src:url(data:font/woff2;base64,${본문400}) format('woff2');
+}
+@font-face{
+  font-family:"IBM Plex Sans KR";
+  font-weight:600;
+  font-style:normal;
+  src:url(data:font/woff2;base64,${본문600}) format('woff2');
+}
+@font-face{
+  font-family:"IBM Plex Mono";
+  font-weight:400;
+  font-style:normal;
+  src:url(data:font/woff2;base64,${등폭400}) format('woff2');
+}
+@font-face{
+  font-family:"IBM Plex Mono";
+  font-weight:500;
+  font-style:normal;
+  src:url(data:font/woff2;base64,${등폭500}) format('woff2');
 }
 :root{
   --paper:#E6E9E2; --sheet:#F8F9F5; --ink:#17201B; --ink-muted:#464D47; --ink-faint:#626A62;
@@ -143,7 +170,7 @@ const 스타일 = `
 *{ box-sizing:border-box; margin:0; padding:0; }
 body{
   background:var(--paper); color:var(--ink);
-  font-family:Pretendard,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
   font-variant-numeric:tabular-nums; font-size:13.5px; line-height:1.6;
 }
 .doc{ width:186mm; margin:0 auto; background:var(--sheet); padding:14mm 12mm; }

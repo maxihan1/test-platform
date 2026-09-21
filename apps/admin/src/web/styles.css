@@ -3,17 +3,47 @@
 /* 글꼴을 제품 안에서 싣는다 (DESIGN.md, 2026-09-18 결정). 바깥 주소(CDN)에서 받아오지 않는다 —
    사내망에서 그 주소가 막히면 시스템 기본 글꼴로 조용히 떨어지고, 화면이 달라 보이는 정도가 아니라
    **숫자 폭이 제각각이 되어 「숫자는 세로로 맞춘다」 규칙이 같이 깨진다**.
-   가변(variable) 글꼴 하나로 굵기 셋(400·600·800)을 전부 낸다 — 정적 파일 셋보다 작다 */
+
+   2026-09-21 에 Pretendard 가변 글꼴 한 벌에서 두 벌로 바꿨다 (계획 2026-09-21-청사진스킨).
+   IBM Plex Sans KR 은 가변이 아니라 굵기마다 파일이 따로다. **그래서 굵기를 400·600 둘만 싣는다** —
+   증적 문서가 이 파일을 base64 로 통째로 담으므로(reporting/html.ts) 벌이 늘면 문서가 그대로 무거워진다.
+   실측 — 새 넷을 합쳐 972KB 로 Pretendard 한 벌(2.0MB)보다 작다.
+   본문은 한글 음절 11172 자를 통째로 들고 있다 (2026-09-21 fontTools 로 확인). 두부가 뜨지 않는다 */
 @font-face {
-  font-family: Pretendard;
-  font-weight: 45 920;
+  font-family: 'IBM Plex Sans KR';
+  font-weight: 400;
   font-style: normal;
   /* 받아오는 동안 폴백으로 먼저 그린다. 글자가 안 보이는 구간을 만들지 않는다 */
   font-display: swap;
-  /* format 은 `woff2` 만 적는다. `woff2-variations` 는 옛 초안 값이라 못 알아보는 브라우저가
-     이 src 를 통째로 건너뛴다 — 글꼴이 아예 안 실려 이 @font-face 가 막으려던 상태가 된다.
-     가변 축은 format 힌트와 무관하게 파일 자체에서 나오므로 잃는 것이 없다 */
-  src: url('./fonts/PretendardVariable.woff2') format('woff2');
+  /* format 은 `woff2` 만 적는다. 못 알아보는 값을 적으면 브라우저가 이 src 를 통째로 건너뛴다 —
+     글꼴이 아예 안 실려 이 @font-face 가 막으려던 상태가 된다 */
+  src: url('./fonts/IBMPlexSansKR-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans KR';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/IBMPlexSansKR-SemiBold.woff2') format('woff2');
+}
+
+/* TC ID · 소요시간 · 응답 코드 · RUN 번호만 쓴다 (DESIGN.md).
+   라틴 글자만 필요해서 둘을 합쳐 100KB 안쪽이다 */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/IBMPlexMono-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/IBMPlexMono-Medium.woff2') format('woff2');
 }
 
 :root {
@@ -44,7 +74,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   /* 폴백도 숫자 폭이 고정인 것으로 적는다 — 글꼴이 못 실렸을 때 대신 그릴 것들이다 (DESIGN.md) */
-  font-family: Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  font-family: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.6;
   /* 숫자를 세로로 맞춰야 훑을 수 있다 (DESIGN.md 원칙 3).
