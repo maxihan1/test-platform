@@ -82,6 +82,28 @@ export interface EvidenceRow {
   generatedAt: string;
 }
 
+/** 직전 실행과 견줘 케이스마다 무엇이 달라졌는가 (SPEC §7 `/runs/:runId/insights`) */
+export type 변화 = '새로깨짐' | '계속깨짐' | '고쳐짐' | '그대로';
+
+/** 이번 실행의 실패를 같은 사유끼리 묶은 것. 견줄 앞 실행이 없어도 온다 */
+export interface 실패덩어리 {
+  대표문장: string;
+  건수: number;
+  항목들: { historyId: number; tcId: string; tcName: string; platform: Platform }[];
+}
+
+// 서버의 reporting/insights.ts 가 내는 `비교` 와 같은 모양이다. **그쪽에서 import 하지 않는다** —
+// web 이 reporting 컨텍스트를 직접 가져오면 경계가 무너진다 (spec-review C2). 다른 응답도 같은 방식이다
+export interface RunInsights {
+  previous: { runId: number; startedAt: string } | null;
+  /** 같은 env 뒤의 주소를 설정 화면에서 바꿨으면 사실은 다른 서버다. 막지 않고 사실만 알린다 */
+  주소바뀜: boolean;
+  /** 앞 실행에는 있었고 이번에 없는 (케이스, 디바이스)의 수 */
+  빠진건수: number;
+  케이스들: { tcId: string; tcName: string; platform: Platform; 판정: 변화 }[];
+  실패덩어리들: 실패덩어리[];
+}
+
 export interface RunItemSummary {
   historyId: number;
   tcId: string;
@@ -337,6 +359,9 @@ export const api = {
 
   run: (runId: number) =>
     call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[] }>(`/runs/${runId}`),
+
+  /** 직전 실행과 견준 결과. 실행 상세 응답과 별개의 조회다 (SPEC §7) */
+  insights: (runId: number) => call<RunInsights>(`/runs/${runId}/insights`),
 
   /** 증적을 만든다. 실행까지 등급부터다 (SPEC §3.5) */
   makeEvidence: (runId: number, format: string) =>
