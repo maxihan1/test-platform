@@ -39,7 +39,11 @@ export function 진행상황(data: RunDetail): 진행 {
 
   return {
     막대: { 통과: counts.pass, 실패: counts.fail, 미실행: counts.na, 남은것: counts.running },
-    끝난수: 끝난것.length,
+    // `끝난것.length` 가 아니라 `counts` 에서 낸다. 집계와 항목 목록은 **별개 질의**라
+    // (`execution/queries.ts` 가 트랜잭션 없이 잇달아 친다) 도는 도중 한쪽만 새것일 수 있다 —
+    // 그러면 「6 / 8 완료」인데 막대에 칠해진 것은 5칸인 순간이 2초 폴링 창 안에 생긴다.
+    // 막대가 이미 이 수를 그리고 있으므로 출처를 거기로 합친다
+    끝난수: counts.total - counts.running,
     전체수: counts.total,
     // 안 끝난 것의 첫째를 고른다. **맞다는 보장은 없고, 있는 신호 중 가장 가까운 것이다.**
     // 대기줄이 FIFO 라(`dispatcher.ts` 의 `대기줄.shift()`) 앞엣것일수록 먼저 나가지만,

@@ -62,7 +62,38 @@ const 끝난실행 = 실행(
   { total: 34, pass: 33, fail: 1, na: 0, running: 0 },
 );
 
+// 한 케이스를 5회 돌려 3회 깨진 실행. 항목으로 세면 그 하나가 목록을 먹는다
+const 반복실행 = 실행(
+  'FINISHED',
+  [
+    ...[1, 2, 3, 4, 5].map((n) => ({
+      ...항목(100, 분(n), n <= 3 ? ('FAIL' as ItemStatus) : ('PASS' as ItemStatus)),
+      historyId: 100 + n,
+      attempt: n,
+    })),
+    항목(200, 분(6), 'FAIL'),
+    항목(201, 분(7), 'FAIL'),
+  ],
+  { total: 7, pass: 2, fail: 5, na: 0, running: 0 },
+);
+
 describe('RunProgressModal (SPEC §8.9)', () => {
+  it('실패한 케이스 목록이 회차를 접는다 — 한 케이스가 목록을 먹지 않는다', () => {
+    render(<RunProgressModal data={반복실행} onClose={() => {}} />);
+
+    expect(screen.queryAllByText(/케이스 100/)).toHaveLength(1);
+    expect(screen.queryByText(/케이스 200/)).not.toBeNull();
+    expect(screen.queryByText(/케이스 201/)).not.toBeNull();
+    expect(screen.queryByText(/외 .*건/)).toBeNull();
+  });
+
+  it('항목이 하나도 없으면 진행 막대를 그리지 않는다', () => {
+    const 빈실행 = 실행('RUNNING', [], { total: 0, pass: 0, fail: 0, na: 0, running: 0 });
+    const { container } = render(<RunProgressModal data={빈실행} onClose={() => {}} />);
+
+    expect(container.querySelector('.stripe')).toBeNull();
+  });
+
   it('도는 중이면 지금 진행 중인 항목의 이름이 보인다', () => {
     render(<RunProgressModal data={도는중실행} onClose={() => {}} />);
 

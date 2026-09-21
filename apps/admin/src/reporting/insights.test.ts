@@ -12,8 +12,10 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
   let 앞실행: number;
   let 이번실행: number;
   let 스테이지실행: number;
+  let 도는중실행: number;
   let 주소바뀐실행: number;
   let 덩어리실행: number;
+  let 원문실행: number;
   const 항목번호: Record<string, number> = {};
 
   async function 지운다(): Promise<void> {
@@ -25,15 +27,21 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
     await pool.query("DELETE FROM service WHERE prefix = 'XDG'");
   }
 
-  async function 실행만든다(title: string, env: string, baseUrl: string, startedAt: string): Promise<number> {
+  async function 실행만든다(
+    title: string,
+    env: string,
+    baseUrl: string,
+    startedAt: string,
+    status = 'FINISHED',
+  ): Promise<number> {
     const row = await pool.query<{ run_id: string }>(
       `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, base_url,
                              service_id, service_name, tests_repo, started_at)
-       VALUES ($1, 'tester', '홍길동', 'FINISHED', $2, $3,
+       VALUES ($1, 'tester', '홍길동', $5, $2, $3,
                (SELECT id FROM service WHERE prefix = 'XDG'), 'XDG 주문 서비스',
                'https://github.com/example/xdg-tests', $4)
        RETURNING run_id`,
-      [title, env, baseUrl, startedAt],
+      [title, env, baseUrl, startedAt, status],
     );
     return Number(row.rows[0]!.run_id);
   }
@@ -105,6 +113,13 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
       'stage',
       'https://stage.example.com',
       '2026-09-10T01:30:00Z',
+    );
+    도는중실행 = await 실행만든다(
+      `${앞머리} 도는 중 실행`,
+      'qa',
+      'https://qa.example.com',
+      '2026-09-10T01:45:00Z',
+      'RUNNING',
     );
     이번실행 = await 실행만든다(`${앞머리} 이번 실행`, 'qa', 'https://qa.example.com', '2026-09-10T02:00:00Z');
     주소바뀐실행 = await 실행만든다(
@@ -179,6 +194,25 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
       assertions: [{ statement: '로그인이 성공한다', status: 'FAIL', actual: 'hunter2', expected: 'ok' }],
     });
     await 실패항목넣는다(덩어리실행, 'XDG-106', {});
+
+    원문실행 = await 실행만든다(
+      `${앞머리} 원문 실행`,
+      'raw',
+      'https://raw.example.com',
+      '2026-09-10T05:00:00Z',
+    );
+    const stderr1 =
+      'Error: page.goto: net::ERR_CONNECTION_REFUSED\n' +
+      '  at demo/a.spec.ts:12:7\n' +
+      'Expected: "ok"\n  Received: "hunter3"\n' +
+      'x'.repeat(2000);
+    const stderr2 =
+      'Error: page.goto: net::ERR_CONNECTION_REFUSED\n' +
+      '  at demo/b.spec.ts:88:3\n' +
+      'Expected: "ok"\n  Received: "hunter3"\n' +
+      'y'.repeat(2000);
+    await 실패항목넣는다(원문실행, 'XDG-107', { error: { message: stderr1 } });
+    await 실패항목넣는다(원문실행, 'XDG-108', { error: { message: stderr2 } });
   });
 
   afterAll(async () => {
@@ -198,6 +232,14 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
     const 결과 = await compareWithPrevious(이번실행);
 
     expect(결과.previous).toEqual({ runId: 앞실행, startedAt: '2026-09-10T01:00:00.000Z' });
+  });
+
+  it('아직 도는 중인 실행은 직전으로 삼지 않는다 — 항목이 전부 미실행이라 견주면 거짓이 된다', async () => {
+    const 결과 = await compareWithPrevious(이번실행);
+
+    expect(결과.previous).not.toBeNull();
+    expect(결과.previous?.runId).not.toBe(도는중실행);
+    expect(결과.previous?.runId).toBe(앞실행);
   });
 
   it('다른 대상 서버의 실행은 자기보다 앞선 qa 실행을 직전으로 삼지 않는다', async () => {
@@ -296,6 +338,24 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
     expect(
       결과.실패덩어리들.flatMap((덩어리) => 덩어리.항목들.map((항목) => 항목.tcId)),
     ).not.toContain('XDG-106');
+  });
+
+  it('러너 오류 원문은 첫 줄만 대표가 되어 같은 고장이 한 덩어리로 묶인다', async () => {
+    const 결과 = await compareWithPrevious(원문실행);
+    const 덩어리 = 결과.실패덩어리들.find((d) => d.대표문장.startsWith('Error: page.goto'));
+
+    expect(덩어리?.건수).toBe(2);
+    expect(덩어리?.대표문장).toBe('Error: page.goto: net::ERR_CONNECTION_REFUSED');
+  });
+
+  it('러너 오류 원문의 뒷줄이 요약 자리로 새지 않는다', async () => {
+    const 결과 = await compareWithPrevious(원문실행);
+    const 전부 = JSON.stringify(결과.실패덩어리들);
+
+    expect(전부).not.toContain('hunter3');
+    expect(전부).not.toContain('demo/a.spec.ts');
+    expect(전부).not.toContain('Received');
+    for (const 덩어리 of 결과.실패덩어리들) expect(덩어리.대표문장.length).toBeLessThanOrEqual(121);
   });
 
   it('params 에 담긴 비밀값이 덩어리 어디에도 새지 않는다', async () => {

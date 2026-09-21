@@ -2,6 +2,7 @@
 // 모달을 둘로 나누면 같은 화면이 두 번 가로막는다. 그래서 상자는 하나이고 상태가 내용을 고른다
 
 import type { RunItemSummary } from './api.js';
+import { groupByCase, 회차요약 } from './group.js';
 import { Modal } from './Modal.js';
 import { type RunDetail, type 진행, 진행상황 } from './runProgress.js';
 import { 도는중, 미실행사유 } from './runState.js';
@@ -53,12 +54,16 @@ function 진행내용({ data }: { data: RunDetail }) {
     <>
       {/* 넷의 합이 전체수와 같아 폭 비율을 flex 가 그대로 낸다.
           여백과 「줄어들지 않는다」는 styles.css 의 `.modal-body .stripe` 가 갖는다 —
-          인라인으로 두면 그 규칙이 있는지 다음 사람이 알 수 없다 */}
-      <div className="stripe">
-        {칸들.map((칸) => (
-          <i key={칸.이름} style={{ background: 칸.색, flex: 칸.수 }} />
-        ))}
-      </div>
+          인라인으로 두면 그 규칙이 있는지 다음 사람이 알 수 없다.
+          **전체수가 0 이면 띠를 안 그린다** — 네 칸이 다 폭 0 이라 회색 빈 띠만 남는다.
+          결과 목록도 같은 자리에서 같은 판단을 한다 (RunResult.tsx) */}
+      {전체수 === 0 ? null : (
+        <div className="stripe">
+          {칸들.map((칸) => (
+            <i key={칸.이름} style={{ background: 칸.색, flex: 칸.수 }} />
+          ))}
+        </div>
+      )}
       {/* 색만으로는 판정을 전달하지 않는다 — 칸마다 숫자와 글자를 같이 적는다 (SPEC §8.9) */}
       <판정칸들 칸들={칸들} />
       <p>
@@ -94,11 +99,29 @@ function 진행내용({ data }: { data: RunDetail }) {
   );
 }
 
+/**
+ * 실패한 **케이스**. 항목이 아니다.
+ *
+ * **회차를 접는다.** 5회 반복에서 케이스 하나가 3회 깨지면 항목으로 세었을 때
+ * **그 하나가 목록 다섯 칸 중 셋을 먹고** 다른 케이스가 「외 N건」 뒤로 밀린다.
+ * 제목이 「실패한 케이스」라 사람은 서로 다른 케이스를 봤다고 읽는다.
+ *
+ * 접는 규칙은 목록과 같은 `회차요약()` 이다 — SPEC §8.3 이 「케이스 1건 = 1행」으로 정했고
+ * 바로 아래 결과 목록이 이미 그 규칙으로 그린다. **한 화면이 같은 것을 두 단위로 말하면 안 된다.**
+ */
+function 실패한케이스들(items: RunItemSummary[]): { tcId: string; tcName: string }[] {
+  return groupByCase(items)
+    .filter((묶음) =>
+      Object.values(묶음.byPlatform).some((칸) => 칸 !== undefined && 칸.length > 0 && 회차요약(칸).status === 'FAIL'),
+    )
+    .map((묶음) => ({ tcId: 묶음.tcId, tcName: 묶음.tcName }));
+}
+
 function 완료내용({ data }: { data: RunDetail }) {
   const 칸들 = 막대칸들({ 통과: data.counts.pass, 실패: data.counts.fail, 미실행: data.counts.na, 남은것: 0 }).filter(
     (칸) => 칸.판정,
   );
-  const 실패목록 = data.items.filter((item) => item.status === 'FAIL');
+  const 실패목록 = 실패한케이스들(data.items);
 
   return (
     <>
@@ -110,9 +133,9 @@ function 완료내용({ data }: { data: RunDetail }) {
         <div>
           {/* 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다 (SPEC §8.9) */}
           <div className="sec-h">실패한 케이스</div>
-          {실패목록.slice(0, 실패목록최대).map((item) => (
-            <div className="pre" key={item.historyId}>
-              {item.tcId} {item.tcName}
+          {실패목록.slice(0, 실패목록최대).map((것) => (
+            <div className="pre" key={것.tcId}>
+              {것.tcId} {것.tcName}
             </div>
           ))}
           {실패목록.length > 실패목록최대 ? <p className="hint">외 {실패목록.length - 실패목록최대}건</p> : null}

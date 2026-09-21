@@ -63,6 +63,12 @@ const 판정표: Record<접힌판정, Record<접힌판정, 변화>> = {
 
 const 키 = (row: 접힌행): string => `${row.tc_id}\u0000${row.platform}`;
 
+/**
+ * 대표 문장 한 줄의 상한. 검증 문장은 사람이 쓴 짧은 한국어라 여기 안 걸리고,
+ * 여기 걸리는 것은 러너가 뱉은 오류 원문뿐이다.
+ */
+const 대표문장길이 = 120;
+
 // 대표 문장은 실패한 첫 검증 문장이고, 없으면 error.message 다. 둘 다 없으면 NULL 로 나와 덩어리에서 빠진다 —
 // 사유를 모르는 것을 지어내지 않는다.
 // actual·expected 는 붙이지 않는다. 그 값이 비밀값일 수 있고, 붙이면 같은 고장이 값마다 갈라진다
@@ -89,6 +95,26 @@ interface 사유행 {
   대표문장: string | null;
 }
 
+/**
+ * 대표 문장을 **첫 줄 + 상한**으로 자른다.
+ *
+ * **셋을 한꺼번에 막는다.**
+ * ① 검증 문장이 없는 실패는 `error.message` 가 대표인데, 그 값은 러너가 stderr 뒤 2000자를
+ *    그대로 실어 보낸 것이다 (`apps/runner/src/execute.ts` 의 `tail()`). 경로·줄번호·시간이 섞여 있어
+ *    **같은 고장이 실행마다 다른 글자가 되고 묶기가 한 덩어리도 못 만든다** — 건수 1짜리가 줄줄이 선다.
+ *    묶어서 볼 값어치가 가장 큰 것이 바로 그런 실패(문법 오류·import 실패·러너 장애)다
+ * ② 「**원문 오류(스택·주소·포트)는 목록에 쓰지 않는다**」가 이 저장소 규칙이다
+ *    (`web/runState.ts`). 이 도구의 전제는 「코드를 몰라도 쓴다」다
+ * ③ actual·expected 를 안 붙여 막은 비밀값이 **stderr 의 `Expected:`/`Received:` 블록으로 되돌아온다.**
+ *    Playwright 가 그것을 통째로 뱉는다
+ *
+ * 원문은 항목 상세가 그대로 갖고 있다. 여기서 자르는 것은 **요약 자리에 원문을 두지 않는 것**이다.
+ */
+function 한줄로자른다(문장: string): string {
+  const 첫줄 = (문장.split('\n')[0] ?? '').trim();
+  return 첫줄.length > 대표문장길이 ? `${첫줄.slice(0, 대표문장길이)}…` : 첫줄;
+}
+
 /** 이번 실행의 실패 항목을 대표 문장이 같은 것끼리 묶는다 */
 async function 사유로묶는다(pool: Pool, runId: number): Promise<실패덩어리[]> {
   const { rows } = await pool.query<사유행>(대표문장뽑기, [runId]);
@@ -98,7 +124,9 @@ async function 사유로묶는다(pool: Pool, runId: number): Promise<실패덩�
   const 덩어리들 = new Map<string, 실패덩어리>();
   for (const row of rows) {
     if (row.대표문장 === null) continue;
-    const 덩어리 = 덩어리들.get(row.대표문장) ?? { 대표문장: row.대표문장, 건수: 0, 항목들: [] };
+    const 문장 = 한줄로자른다(row.대표문장);
+    if (문장 === '') continue;
+    const 덩어리 = 덩어리들.get(문장) ?? { 대표문장: 문장, 건수: 0, 항목들: [] };
     덩어리.건수 += 1;
     덩어리.항목들.push({
       historyId: Number(row.history_id),
@@ -106,7 +134,7 @@ async function 사유로묶는다(pool: Pool, runId: number): Promise<실패덩�
       tcName: row.tc_name,
       platform: row.platform,
     });
-    덩어리들.set(row.대표문장, 덩어리);
+    덩어리들.set(문장, 덩어리);
   }
 
   // 같은 건수에서 사전순으로 못 박아야 검사가 흔들리지 않는다
@@ -129,9 +157,15 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
   const 실패덩어리들 = await 사유로묶는다(pool, runId);
 
   // service_id 가 없는 옛 행은 견줄 짝을 특정할 수 없다. = 가 아무것도 안 물어 previous 는 null 로 떨어진다
+  //
+  // **아직 도는 중인 실행은 견줌 대상이 아니다.** 그 실행의 run_item 은 전부 status = 'NA' 로
+  // 박혀 있어(store.ts 의 INSERT_ITEM) 접으면 통째로 NA 가 되고, 판정표[NA][FAIL] 이 새로깨짐이라
+  // **어제도 그제도 깨져 있던 케이스가 전부 「이번에 새로 깨졌습니다」로 뜬다.**
+  // 같은 서비스·같은 대상 서버에 도는 실행이 둘일 수 있다 — 막는 장치가 없다 (execution/dispatcher.ts).
+  // RunInsights 가 **이번** 실행이 도는 중이면 안 부르는 것과 같은 이유이고, 그 거울상이다
   const 앞 = await pool.query<{ run_id: string; started_at: Date; base_url: string }>(
     `SELECT run_id, started_at, base_url FROM test_run
-     WHERE service_id = $1 AND env = $2 AND started_at < $3
+     WHERE service_id = $1 AND env = $2 AND started_at < $3 AND status <> 'RUNNING'
      ORDER BY started_at DESC
      LIMIT 1`,
     [현재.service_id, 현재.env, 현재.started_at],
