@@ -1,12 +1,5 @@
-// 판정 개수와 최근 흐름을 그리는 조각 (SPEC §8)
+// 판정 개수를 큰 숫자로 그리는 조각 (SPEC §8)
 // 색은 거들기만 한다 — 판정은 늘 글자로도 적는다 (DESIGN.md 접근성)
-
-import { Fragment } from 'react';
-
-type 판정 = 'PASS' | 'FAIL' | 'NA';
-
-const 이름: Record<판정, string> = { PASS: '통과', FAIL: '실패', NA: '미실행' };
-const 표식: Record<판정, string> = { PASS: 'p', FAIL: 'f', NA: 'n' };
 
 type 칸이름 = '전체' | '통과' | '실패' | '미실행';
 
@@ -49,33 +42,5 @@ export function 집계띠({ 전체, 통과, 실패, 미실행, 부제 }: 집계P
         </div>
       ) : null}
     </div>
-  );
-}
-
-export function 판정흐름({ 최근 }: { 최근: ReadonlyArray<판정> }) {
-  if (최근.length === 0) return <span className="sparktext">돌린 적 없음</span>;
-
-  const 셈 = (['PASS', 'FAIL', 'NA'] as const)
-    .map((판) => ({ 판, 개수: 최근.filter((하나) => 하나 === 판).length }))
-    .filter((칸) => 칸.개수 > 0);
-
-  return (
-    <>
-      <div className="spark" aria-hidden="true">
-        {최근.map((판, 자리) => (
-          <i key={자리} className={표식[판]} />
-        ))}
-      </div>
-      <span className="sparktext">
-        {셈.map((칸, 자리) => (
-          <Fragment key={칸.판}>
-            {자리 > 0 ? ' · ' : null}
-            <b className={표식[칸.판]}>
-              {이름[칸.판]} {칸.개수}
-            </b>
-          </Fragment>
-        ))}
-      </span>
-    </>
   );
 }

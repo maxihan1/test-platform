@@ -1967,12 +1967,6 @@ select:focus {
 .ratio i{display:block;height:100%}
 .ratio .p{background:var(--pass)} .ratio .f{background:var(--fail)} .ratio .n{background:var(--na)}
 
-/* 색을 못 보는 사람이 키만으로 셀 수 있게 판정마다 높이를 다르게 둔다 (DESIGN.md 접근성) */
-.spark{display:flex;justify-content:flex-end;gap:3px;align-items:flex-end;margin-top:8px;height:16px}
-.spark i{width:9px;border-radius:2px;display:block}
-.spark i.p{background:var(--pass);height:8px}
-.spark i.f{background:var(--fail);height:16px}
-.spark i.n{background:var(--na);height:12px}
-.sparktext{display:block;margin-top:5px;font-size:11.5px;color:var(--ink-faint);white-space:nowrap}
-.sparktext b{font-weight:600}
-.sparktext b.p{color:var(--pass)} .sparktext b.f{color:var(--fail)} .sparktext b.n{color:var(--na)}
+/* 최근 판정 흐름(`.spark`)은 이 PR 에서 뺐다 — 최근 N회 데이터가 다음 PR 의
+   이력 API 에서 온다. 조각과 규칙만 먼저 있으면 검사는 초록인데 화면에는 안 뜬다.
+   되살릴 때의 규칙은 docs/design-mockup.html 에 그대로 남아 있다 (2026-09-21) */
