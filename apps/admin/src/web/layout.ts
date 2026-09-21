@@ -88,6 +88,26 @@ export function 고른서비스를적는다(prefix: string): void {
   }
 }
 
+/** 사이드바를 접어 뒀는지. 새로고침해도 접힌 채로 열린다 */
+const 접은사이드바키 = '사이드바접음';
+
+export function 사이드바접었나(): boolean {
+  try {
+    return localStorage.getItem(접은사이드바키) === '1';
+  } catch {
+    // 브라우저가 저장을 막아도 화면은 떠야 한다. 펴진 채로 열릴 뿐이다
+    return false;
+  }
+}
+
+export function 사이드바접음을적는다(접음: boolean): void {
+  try {
+    localStorage.setItem(접은사이드바키, 접음 ? '1' : '0');
+  } catch {
+    // 위와 같다
+  }
+}
+
 export interface 빈띠 {
   무엇: string;
   다음: string;

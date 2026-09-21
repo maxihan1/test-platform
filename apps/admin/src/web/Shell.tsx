@@ -1,10 +1,18 @@
-// 맨 위 띠 · 자리 넷 · 알림 줄 (SPEC §8). 모든 화면이 이 안에 들어간다
-// 지금 어느 서비스를 보고 있는지가 늘 보여야 한다 — 엉뚱한 서비스에서 실행을 누르는 사고를 막는 장치가 이 띠 하나다
+// 사이드바 · 헤더 · 본문 · 푸터 (SPEC §8). 모든 화면이 이 안에 들어간다
+// 지금 어느 서비스를 보고 있는지가 늘 보여야 한다 — 엉뚱한 서비스에서 실행을 누르는 사고를 막는 장치가 이것 하나다
 
 import { useEffect, useState } from 'react';
 
 import { api, type RunSummary, type ServiceRow, type User } from './api.js';
-import { 고른서비스를적는다, 빈띠사유, 알림줄, 자리목록, 탭제목 } from './layout.js';
+import {
+  고른서비스를적는다,
+  빈띠사유,
+  사이드바접었나,
+  사이드바접음을적는다,
+  알림줄,
+  자리목록,
+  탭제목,
+} from './layout.js';
 import { 본것으로적는다, 알림본적있나 } from './runState.js';
 import { useAsync } from './ui.js';
 
@@ -14,10 +22,12 @@ interface Props {
   onService: (prefix: string) => void;
   onLogout: () => void;
   current: string;
+  /** 화면 제목과 주 행동. 제목은 화면마다 다르므로 껍데기가 지어내지 않는다 (SPEC §8) */
+  header?: React.ReactNode;
   children: React.ReactNode;
 }
 
-export function Shell({ user, service, onService, onLogout, current, children }: Props) {
+export function Shell({ user, service, onService, onLogout, current, header, children }: Props) {
   useEffect(() => {
     document.title = 탭제목(service);
   }, [service]);
@@ -26,77 +36,110 @@ export function Shell({ user, service, onService, onLogout, current, children }:
   // 지금 자리를 같이 넘긴다 — 설정 화면은 배정이 없어도 열려야 한다 (그 배정을 만드는 자리다)
   const 사유 = 빈띠사유(user, current);
 
+  // 접은 것은 사람이 되돌릴 수 있는 상태라 저장해 둔다. 새로고침마다 다시 접게 하면 그 기능이 짐이 된다
+  const [접음, set접음] = useState(사이드바접었나);
+
   return (
-    <div className="wrap">
-      {/* 2026-09-21 — 띠의 바탕은 고정색(`--chrome`)이다. 서비스 색은 아래 자리 넷 줄로 내렸다.
-          이름만으로는 부족하다는 것은 그대로다 — 글자는 읽어야 보이고 색은 안 읽어도 구분된다.
-          옮긴 이유는 스킨의 껍데기 색과 서비스 색이 같은 자리를 놓고 다퉈서다 (SPEC §8) */}
-      <div className="band">
-        <div className="band-left">
-          {service === null ? (
-            <span className="band-name">서비스 없음</span>
-          ) : (
-            <>
-              <select
-                className="band-pick"
-                value={service.prefix}
-                onChange={(e) => {
-                  고른서비스를적는다(e.target.value);
-                  onService(e.target.value);
-                }}
-                aria-label="서비스 고르기"
-              >
-                {user.services.map((it) => (
-                  <option key={it.prefix} value={it.prefix}>
-                    {it.name}
-                  </option>
-                ))}
-              </select>
-              {service.prefix === '' ? null : <span className="band-repo">{service.prefix}-</span>}
-            </>
+    <div className={접음 ? 'wrap folded' : 'wrap'}>
+      {/* 짙은 세로 막대 하나가 「어느 서비스를 · 어디를 · 누가」 셋을 다 들고 있다.
+          옛 가로 띠(`.band`)가 이 안으로 들어왔다 — 클래스 이름은 그대로 두고 배치만 바꿨다 */}
+      <aside className="side">
+        {/* 접어도 자리 넷을 **지우지 않는다.** display:none 을 쓰면 키보드 탭 대상에서 빠져
+            키보드로만 쓰는 사람이 이동을 통째로 잃는다. 폭만 줄이고 글자를 숨긴다 */}
+        <button
+          className="side-fold"
+          onClick={() => {
+            const 다음 = !접음;
+            set접음(다음);
+            사이드바접음을적는다(다음);
+          }}
+          aria-expanded={!접음}
+          aria-label={접음 ? '사이드바 펴기' : '사이드바 접기'}
+        >
+          {접음 ? '»' : '«'}
+        </button>
+        {/* 서비스 색이 사는 유일한 자리. 8px 네모가 `--svc` 를 쓴다 —
+            이름만으로는 부족하다. 글자는 읽어야 보이고 색은 안 읽어도 구분된다 (SPEC §8) */}
+        <div
+          className="side-top band"
+          {...(service === null ? {} : { 'data-service-color': service.prefix })}
+          style={service === null ? undefined : ({ '--svc': service.color } as React.CSSProperties)}
+        >
+          <div className="band-left">
+            {service === null ? (
+              <span className="band-name">서비스 없음</span>
+            ) : (
+              <>
+                <span className="svc-dot" aria-hidden="true" />
+                <select
+                  className="band-pick"
+                  value={service.prefix}
+                  onChange={(e) => {
+                    고른서비스를적는다(e.target.value);
+                    onService(e.target.value);
+                  }}
+                  aria-label="서비스 고르기"
+                >
+                  {user.services.map((it) => (
+                    <option key={it.prefix} value={it.prefix}>
+                      {it.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+          </div>
+          {service === null || service.prefix === '' ? null : (
+            <span className="band-repo">{service.prefix}-</span>
           )}
         </div>
+
+        <nav className="nav">
+          {자리목록(user.role).map((자리) =>
+            자리.바깥 === true ? (
+              <a key={자리.이름} href={자리.해시} target="_blank" rel="noreferrer">
+                {자리.이름} ↗
+              </a>
+            ) : (
+              <a key={자리.이름} href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
+                {자리.이름}
+              </a>
+            ),
+          )}
+        </nav>
+
+        {/* 사람과 로그아웃을 바닥으로 민다. 자주 누르는 것이 아니라 늘 보여야 하는 것이다 */}
+        <div className="side-gap" />
+
         <div className="band-right">
           <span className="band-who">{user.displayName}</span>
           <button className="band-out" onClick={onLogout}>
             로그아웃
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* 서비스 색이 사는 자리. 8px 네모와 이 줄 아래 3px 경계선 둘이 같은 `--svc` 를 쓴다 —
-          두 값을 따로 주면 한쪽만 바뀌는 날이 온다. 흰 면 위라 어두운 색일수록 잘 보인다 (§8) */}
-      <nav
-        className="nav"
-        {...(service === null ? {} : { 'data-service-color': service.prefix })}
-        style={service === null ? undefined : ({ '--svc': service.color } as React.CSSProperties)}
-      >
-        {service === null ? null : <span className="svc-dot" aria-hidden="true" />}
-        {자리목록(user.role).map((자리) =>
-          자리.바깥 === true ? (
-            <a key={자리.이름} href={자리.해시} target="_blank" rel="noreferrer">
-              {자리.이름} ↗
-            </a>
-          ) : (
-            <a key={자리.이름} href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
-              {자리.이름}
-            </a>
-          ),
-        )}
-      </nav>
+      <div className="main">
+        {/* 제목과 주 행동은 화면마다 다르다. 안 넘기면 줄 자체를 그리지 않는다 — 빈 칸을 잡아 두지 않는다 */}
+        {header === undefined ? null : <div className="head">{header}</div>}
 
-      {service === null ? null : <Notice service={service.prefix} />}
+        {service === null ? null : <Notice service={service.prefix} />}
 
-      {사유 === null ? (
-        children
-      ) : (
-        <div className="screen">
-          <div className="empty">
-            {사유.무엇}
-            <small>{사유.다음}</small>
+        {사유 === null ? (
+          children
+        ) : (
+          <div className="screen">
+            <div className="empty">
+              {사유.무엇}
+              <small>{사유.다음}</small>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* 제품 버전을 넣을 통로가 아직 없다 (빌드 시 주입되는 값이 없다).
+            지어내는 대신 확실히 아는 것만 적는다 — 제품 이름과 지금 보고 있는 서비스 */}
+        <footer className="foot">{탭제목(service)}</footer>
+      </div>
     </div>
   );
 }

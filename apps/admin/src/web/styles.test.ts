@@ -22,6 +22,17 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(body).not.toMatch(/background-size/);
   });
 
+  it('쓰는 토큰이 전부 :root 에 정의돼 있다', () => {
+    // 없는 토큰을 var() 로 부르면 그 속성이 통째로 무효가 된다 — 오류도 안 나고 조용히 사라진다.
+    // 2026-09-21 에 --lift 가 실제로 그랬다. 면이 바탕에서 떠 보이지 않는데 아무도 안 죽는다
+    const 있는것 = new Set(Object.keys(토큰들()));
+    const 부르는것 = new Set([...css.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!));
+    // --svc 는 서비스마다 화면이 인라인으로 꽂는다. :root 에 둘 수 없다
+    부르는것.delete('--svc');
+    const 없는것 = [...부르는것].filter((이름) => !있는것.has(이름));
+    expect(없는것, `:root 에 없는 토큰을 부른다 — ${없는것.join(', ')}`).toEqual([]);
+  });
+
   it('껍데기 색을 토큰 하나로 둔다', () => {
     // 껍데기(띠·탭 밑줄·표머리)에만 쓰는 색이다. 자리마다 적으면 한쪽만 바뀐다
     expect(토큰들()['--chrome']).toMatch(/^#[0-9a-f]{6}$/i);
@@ -33,6 +44,32 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // 제목 여덟 곳이 800 인 채로 남아 있었다 — 브라우저로 열어서야 보였다
     const 굵기들 = [...css.matchAll(/font-weight:\s*(\d{3})/g)].map((m) => Number(m[1]));
     expect(굵기들.filter((w) => w > 600)).toEqual([]);
+  });
+
+  it('모달은 머리와 바닥이 고정이고 본문만 구른다', () => {
+    // 고른 건수가 늘어도 대상 서버 칸과 실행 버튼이 늘 보여야 한다 (SPEC §8.10).
+    // 끝까지 내려가야 버튼이 나오면 대상 서버를 안 고른 채로 내려간다.
+    // jsdom 에 레이아웃 엔진이 없어 규칙이 있는지만 본다
+    expect(/\.modal-title\s*\{[^}]*flex:\s*none/.exec(css)).not.toBeNull();
+    expect(/\.modal-foot\s*\{[^}]*flex:\s*none/.exec(css)).not.toBeNull();
+    const 본문 = /\.modal-body\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(본문).toMatch(/overflow:\s*auto/);
+    // min-height:0 이 없으면 flex 자식이 제 키를 지켜서 본문이 안 줄고 바닥이 밖으로 밀린다
+    expect(본문).toMatch(/min-height:\s*0/);
+  });
+
+  it('면은 떠 있고 행에는 그림자가 없다', () => {
+    // 원칙 2 (2026-09-21 뒤집었다). 면은 radius 14px 에 옅은 그림자,
+    // 행마다 카드를 두르지 않는다 — 나열이 객체로 읽힌다
+    for (const 면 of ['.screen', '.modal', '.login-box']) {
+      // 줄 맨 앞에 선 것이 첫 정의다. 좁은 화면 재정의는 들여쓴 채로 뒤에 또 나온다 —
+      // 그것을 잡으면 「없다」고 거짓 실패한다 (2026-09-21 실제로 그랬다)
+      const 블록 = new RegExp(`^\\${면}\\s*\\{([^}]*)\\}`, 'm').exec(css)?.[1] ?? '';
+      expect(블록, `${면} 에 radius 14px 이 없다`).toMatch(/border-radius:\s*14px/);
+      expect(블록, `${면} 에 그림자가 없다`).toMatch(/box-shadow:/);
+    }
+    const 행 = /\n\.row\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(행, '행에 그림자를 주면 나열이 객체로 읽힌다').not.toMatch(/box-shadow:/);
   });
 
   it('모달 안의 진행 막대가 줄어들지 않는다', () => {
@@ -57,6 +94,46 @@ describe('화면 토큰 (DESIGN.md)', () => {
     ]) {
       expect(블록, `.one-line 에 ${규칙.source} 가 없다`).toMatch(규칙);
     }
+  });
+
+  it('비활성 버튼에 규칙이 있다', () => {
+    // 못 누르는 버튼이 눌리는 버튼과 픽셀 단위로 같으면 사람이 눌러 보고서야 안다.
+    // 2026-09-20 에 실제로 그랬다 — 규칙은 그때 들어갔고 여기서 되돌아오는 것을 막는다
+    expect(css).toMatch(/\.btn:disabled\s*\{/);
+  });
+
+  it('사이드바를 접으면 본문이 실제로 넓어진다', () => {
+    // 사이드바만 줄이고 `max-width` 를 그대로 두면 상한이 남은 자리를 막아
+    // 접은 보람이 없다. 상한을 풀어야 창을 채운다 (2026-09-21 실측 — 960 → 1160 밖에 안 늘었다)
+    const 접힘 = /\.wrap\.folded\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(접힘).toMatch(/max-width:\s*none/);
+    expect(접힘).toMatch(/grid-template-columns:\s*44px/);
+  });
+
+  it('접어도 자리 넷을 화면에서 지우지 않는다', () => {
+    // `display: none` 을 쓰면 키보드 탭 대상에서 빠져 키보드로만 쓰는 사람이 이동을 통째로 잃는다.
+    // 글자만 0 으로 눌러 화면에서는 사라지되 탭 순서에는 남긴다 (SPEC §8)
+    const 자리 = /\.folded \.side \.nav a\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(자리).toMatch(/font-size:\s*0/);
+    expect(자리).not.toMatch(/display:\s*none/);
+    expect(자리).not.toMatch(/visibility:\s*hidden/);
+  });
+
+  it('좁은 화면에서 거터가 쌓인 줄 전체를 덮는다', () => {
+    // `grid-row: 1 / -1` 만으로는 안 된다. -1 은 **명시적으로 선언한** 줄의 끝을 가리켜서
+    // 내용이 암시적 행으로 쌓이면 거터가 첫 줄만 덮는다 (WORKSTREAMS ⑪, 2026-09-19 실측).
+    // 행을 명시해야 -1 이 진짜 끝이 된다. jsdom 은 레이아웃이 없어 규칙이 있는지만 본다
+    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(좁은화면).toMatch(/\.row\s*\{[^}]*grid-template-rows:/);
+    expect(좁은화면).toMatch(/\.gutter\s*\{[^}]*grid-row:\s*1\s*\/\s*-1/);
+  });
+
+  it('좁은 화면 자리 넷의 손가락 영역이 44px 이상이다', () => {
+    // SPEC §8 — 휴대폰으로 하는 일은 「끝났나 보기」 하나라 그 길목이 44px 을 넘어야 한다.
+    // 46 으로 둔다. 브라우저 반올림이 소수점만큼 깎아 목업 실측이 43.9986 이었다
+    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    const 값 = /\.side \.nav a\s*\{[^}]*min-height:\s*(\d+)px/.exec(좁은화면)?.[1];
+    expect(Number(값)).toBeGreaterThanOrEqual(44);
   });
 
   it('판정 세 색과 그 바탕이 전부 있다', () => {
@@ -108,6 +185,12 @@ describe('토큰 명암비 (DESIGN.md)', () => {
     ['--na', '--na-bg', 본문],
     ['--pass', '--sheet', 본문],
     ['--fail', '--sheet', 본문],
+    ['--rail-ink', '--rail', 본문],
+    ['--rail-ink', '--rail-2', 본문],
+    ['--rail-dim', '--rail', 본문],
+    ['--rail-dim', '--rail-2', 본문],
+    ['--rail-acc', '--rail', 본문],
+    ['--rail-acc', '--rail-2', 본문],
   ])('%s 가 %s 위에서 기준 %s 를 넘는다', (앞, 뒤, 기준) => {
     const 표 = 토큰들();
     expect(짝명암비(표[앞]!, 표[뒤]!)).toBeGreaterThanOrEqual(기준);

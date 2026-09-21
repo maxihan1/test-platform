@@ -6,7 +6,8 @@ import { useState } from 'react';
 
 import { api, type CaseQuery, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
 import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
-import { keyOf, type LastMap, 마지막결과로거른다 } from './catalogView.js';
+import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
+import { 집계띠 } from './Summary.js';
 import { 다음이있나 } from './paging.js';
 import { RunPickModal } from './RunPickModal.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
@@ -53,6 +54,8 @@ export function CaseList({ service }: { service: string }) {
   }
 
   const 보일것 = 마지막결과로거른다(cases.data?.items ?? [], lastMap, 결과);
+  // 지금 보이는 것을 센다 — 칩을 걸면 숫자도 같이 좁혀져야 「보이는 것과 세는 것」이 갈리지 않는다
+  const 셈 = 판정개수(보일것, lastMap);
   const 건조건 = q !== '' || 디바이스 !== 'ALL' || !활성만 || 결과 !== 'ALL';
 
   async function rescan() {
@@ -114,6 +117,18 @@ export function CaseList({ service }: { service: string }) {
           </button>
         </div>
       </div>
+
+      {/* 목록을 열자마자 「지금 이 서비스가 어떤 상태인가」가 먼저 온다.
+          배지 하나만 있을 때는 실패가 몇 건인지 세로로 훑어야 알았다 */}
+      {셈.전체 === 0 ? null : (
+        <집계띠
+          전체={셈.전체}
+          통과={셈.통과}
+          실패={셈.실패}
+          미실행={셈.미실행}
+          부제={{ 통과: '마지막 실행 기준', 미실행: '한 번도 안 돌렸다' }}
+        />
+      )}
 
       <div className="scan">
         {/* 비활성 이유는 말풍선이 아니라 화면 줄이다 — 휴대폰에는 올릴 마우스가 없다 (DESIGN.md) */}
