@@ -5,6 +5,7 @@ import type { CaseRow, ItemStatus, LastScan, Platform } from './api.js';
 import { CaseDetail } from './CaseDetail.js';
 import { CaseRowParams, type 줄글자 } from './CaseRowParams.js';
 import { keyOf, type LastMap, 마지막판정, 빈이유 } from './catalogView.js';
+import { 판정흐름 } from './Summary.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
 const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
@@ -161,12 +162,16 @@ export function 케이스줄({
                 {result === undefined ? (
                   <span className="device-none">기록 없음</span>
                 ) : (
-                  <a
-                    href={`#/runs/${result.runId}/items/${result.historyId}`}
-                    title={`${when(result.finishedAt)} · ${seconds(result.durationMs)}`}
-                  >
-                    <Verdict status={result.status} />
-                  </a>
+                  <>
+                    <a
+                      href={`#/runs/${result.runId}/items/${result.historyId}`}
+                      title={`${when(result.finishedAt)} · ${seconds(result.durationMs)}`}
+                    >
+                      <Verdict status={result.status} />
+                    </a>
+                    {/* 흐름은 디바이스마다다. 줄에 하나만 두면 PC 와 모바일이 한 줄로 뭉개진다 */}
+                    <판정흐름 recent={result.recent} />
+                  </>
                 )}
               </div>
             );

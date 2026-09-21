@@ -127,3 +127,36 @@ describe('케이스 줄의 값 칸', () => {
     expect(on더보기).toHaveBeenCalledWith('ZZC-001');
   });
 });
+
+describe('케이스 줄의 판정 흐름', () => {
+  it('디바이스마다 따로 그린다 — 한 줄로 뭉개지 않는다', () => {
+    const 두디바이스: CaseRow = { ...케이스({} as unknown as JsonSchema), platforms: ['desktop', 'mobile'] };
+    const 마지막 = {
+      'ZZC-001:desktop': {
+        tcId: 'ZZC-001', platform: 'desktop' as const, status: 'PASS' as const,
+        historyId: 1, runId: 1, durationMs: 1, finishedAt: '2026-09-21T00:00:00.000Z',
+        recent: ['PASS', 'PASS'] as const,
+      },
+      'ZZC-001:mobile': {
+        tcId: 'ZZC-001', platform: 'mobile' as const, status: 'FAIL' as const,
+        historyId: 2, runId: 1, durationMs: 1, finishedAt: '2026-09-21T00:00:00.000Z',
+        recent: ['FAIL'] as const,
+      },
+    };
+
+    const { container } = render(
+      <케이스줄
+        row={두디바이스}
+        마지막={마지막 as unknown as Parameters<typeof 케이스줄>[0]['마지막']}
+        고름={false}
+        뒤집기={() => {}}
+        on값={vi.fn()}
+        on더보기={vi.fn()}
+      />,
+    );
+
+    const 흐름들 = container.querySelectorAll('.device .spark');
+    expect(흐름들).toHaveLength(2);
+    expect([...흐름들[1]!.querySelectorAll('i')].map((el) => el.className)).toEqual(['f', 'e', 'e', 'e', 'e']);
+  });
+});
