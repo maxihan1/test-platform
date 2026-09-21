@@ -97,6 +97,8 @@ node .claude/scripts/detect-tier.mjs docs/spec/<고칠 파일> <그 밖에 건�
 | 게이트 | 2만 | 2만 | 1+2 | **0+1+2** |
 
 - **0·1등급의 「5 인라인」** — `tpx-impl` 을 부르지 않고 이 컨트롤러가 직접 고친다. 규율은 같다
+- **[5] 가 기획서에서 케이스를 만드는 일이면 인라인 대신 `tpx-cases` 를 부른다** —
+  입력이 기획서 파일이고 산출물이 `tests/**` 인 경우다. 초안 PR·게이트 2 규율은 그대로다
 - **`tpx-review` 는 전 등급 호출**한다. 자기 구현을 자기가 검사하면 독립이 아니다
 - **`tpx-start` 와 `tpx-merge` 도 전 등급 호출**한다. 두 스킬에 사고 방어 절차가 걸려 있다
 
@@ -182,3 +184,5 @@ node .claude/scripts/pr-update.mjs --pr <번호> --comment "### [N/7] <무엇> �
 ## 관련 스킬
 
 [tpx-start](../tpx-start/SKILL.md) · [tpx-spec](../tpx-spec/SKILL.md) · [tpx-plan](../tpx-plan/SKILL.md) · [tpx-plan-review](../tpx-plan-review/SKILL.md) · [tpx-impl](../tpx-impl/SKILL.md) · [tpx-review](../tpx-review/SKILL.md) · [tpx-merge](../tpx-merge/SKILL.md)
+
+[5] 의 한 갈래 — [tpx-cases](../tpx-cases/SKILL.md) (기획서 → 케이스 → `.spec.ts`)
