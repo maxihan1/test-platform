@@ -12,6 +12,14 @@ export interface 비교 {
   /** 앞 실행에는 있었고 이번에 없는 (케이스, 디바이스)의 수 */
   빠진건수: number;
   케이스들: { tcId: string; tcName: string; platform: string; 판정: 변화 }[];
+  /** 이번 실행의 실패를 같은 사유끼리 묶은 것. 견줄 앞 실행이 없어도 낸다 */
+  실패덩어리들: 실패덩어리[];
+}
+
+export interface 실패덩어리 {
+  대표문장: string;
+  건수: number;
+  항목들: { historyId: number; tcId: string; tcName: string; platform: string }[];
 }
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (store.ts와 같은 방식)
@@ -55,7 +63,57 @@ const 판정표: Record<접힌판정, Record<접힌판정, 변화>> = {
 
 const 키 = (row: 접힌행): string => `${row.tc_id}\u0000${row.platform}`;
 
-const 앞없음: 비교 = { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [] };
+// 대표 문장은 실패한 첫 검증 문장이고, 없으면 error.message 다. 둘 다 없으면 NULL 로 나와 덩어리에서 빠진다 —
+// 사유를 모르는 것을 지어내지 않는다.
+// actual·expected 는 붙이지 않는다. 그 값이 비밀값일 수 있고, 붙이면 같은 고장이 값마다 갈라진다
+const 대표문장뽑기 = `
+  SELECT i.history_id, i.tc_id, i.tc_name, i.platform,
+         COALESCE(
+           (SELECT a.value->>'statement'
+            FROM run_item_step s
+            CROSS JOIN LATERAL jsonb_array_elements(s.assertions) WITH ORDINALITY AS a(value, ord)
+            WHERE s.history_id = i.history_id AND a.value->>'status' = 'FAIL'
+            ORDER BY s.seq, a.ord
+            LIMIT 1),
+           i.error->>'message'
+         ) AS 대표문장
+  FROM run_item i
+  WHERE i.run_id = $1 AND i.status = 'FAIL'
+  ORDER BY i.history_id`;
+
+interface 사유행 {
+  history_id: string;
+  tc_id: string;
+  tc_name: string;
+  platform: string;
+  대표문장: string | null;
+}
+
+/** 이번 실행의 실패 항목을 대표 문장이 같은 것끼리 묶는다 */
+async function 사유로묶는다(pool: Pool, runId: number): Promise<실패덩어리[]> {
+  const { rows } = await pool.query<사유행>(대표문장뽑기, [runId]);
+
+  // 묶는 키는 대표 문장 글자 그대로다. 숫자·타임스탬프를 지우는 정규화를 넣으면 다른 사유가 한 덩어리로 합쳐지는데,
+  // 안 묶인 것은 눈에 보여도 잘못 묶인 것은 안 보인다
+  const 덩어리들 = new Map<string, 실패덩어리>();
+  for (const row of rows) {
+    if (row.대표문장 === null) continue;
+    const 덩어리 = 덩어리들.get(row.대표문장) ?? { 대표문장: row.대표문장, 건수: 0, 항목들: [] };
+    덩어리.건수 += 1;
+    덩어리.항목들.push({
+      historyId: Number(row.history_id),
+      tcId: row.tc_id,
+      tcName: row.tc_name,
+      platform: row.platform,
+    });
+    덩어리들.set(row.대표문장, 덩어리);
+  }
+
+  // 같은 건수에서 사전순으로 못 박아야 검사가 흔들리지 않는다
+  return [...덩어리들.values()].sort(
+    (a, b) => b.건수 - a.건수 || (a.대표문장 < b.대표문장 ? -1 : a.대표문장 > b.대표문장 ? 1 : 0),
+  );
+}
 
 /** 같은 서비스·같은 대상 서버의 바로 앞 실행을 찾아 케이스마다 무엇이 달라졌는지 낸다 */
 export async function compareWithPrevious(runId: number): Promise<비교> {
@@ -68,6 +126,8 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
   const 현재 = 이번.rows[0];
   if (현재 === undefined) throw new Error(`실행 ${runId}을 찾을 수 없다`);
 
+  const 실패덩어리들 = await 사유로묶는다(pool, runId);
+
   // service_id 가 없는 옛 행은 견줄 짝을 특정할 수 없다. = 가 아무것도 안 물어 previous 는 null 로 떨어진다
   const 앞 = await pool.query<{ run_id: string; started_at: Date; base_url: string }>(
     `SELECT run_id, started_at, base_url FROM test_run
@@ -77,7 +137,7 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
     [현재.service_id, 현재.env, 현재.started_at],
   );
   const 직전 = 앞.rows[0];
-  if (직전 === undefined) return 앞없음;
+  if (직전 === undefined) return { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들 };
 
   const [이번접힘, 앞접힘] = await Promise.all([
     pool.query<접힌행>(접기, [runId]),
@@ -108,5 +168,6 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
     주소바뀜: 직전.base_url !== 현재.base_url,
     빠진건수,
     케이스들,
+    실패덩어리들,
   };
 }

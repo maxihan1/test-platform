@@ -13,6 +13,8 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
   let 이번실행: number;
   let 스테이지실행: number;
   let 주소바뀐실행: number;
+  let 덩어리실행: number;
+  const 항목번호: Record<string, number> = {};
 
   async function 지운다(): Promise<void> {
     await pool.query(
@@ -50,6 +52,42 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
        VALUES ($1, $2, $3, $4, $5, $6, 300000, '[]', '{}', '{}', '{}', '{}', $7, 100, now())`,
       [runId, tcId, platform, attempt, `${tcId} 케이스`, `demo/${tcId}.spec.ts`, status],
     );
+  }
+
+  async function 실패항목넣는다(
+    runId: number,
+    tcId: string,
+    옵션: {
+      params?: Record<string, unknown>;
+      error?: { message: string };
+      assertions?: Record<string, unknown>[];
+    },
+  ): Promise<number> {
+    const row = await pool.query<{ history_id: string }>(
+      `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms,
+                             precondition, params, expected, param_schema, expected_schema,
+                             status, duration_ms, error, finished_at)
+       VALUES ($1, $2, 'desktop', 1, $3, $4, 300000, '[]', $5, '{}', '{}', '{}', 'FAIL', 100, $6, now())
+       RETURNING history_id`,
+      [
+        runId,
+        tcId,
+        `${tcId} 케이스`,
+        `demo/${tcId}.spec.ts`,
+        JSON.stringify(옵션.params ?? {}),
+        옵션.error === undefined ? null : JSON.stringify(옵션.error),
+      ],
+    );
+    const historyId = Number(row.rows[0]!.history_id);
+    if (옵션.assertions !== undefined) {
+      await pool.query(
+        `INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions)
+         VALUES ($1, 1, '요청을 보낸다', 'FAIL', 10, $2)`,
+        [historyId, JSON.stringify(옵션.assertions)],
+      );
+    }
+    항목번호[tcId] = historyId;
+    return historyId;
   }
 
   beforeAll(async () => {
@@ -115,6 +153,32 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
 
     await 항목넣는다(스테이지실행, 'XDG-001', 'desktop', 1, 'PASS');
     await 항목넣는다(주소바뀐실행, 'XDG-004', 'desktop', 1, 'PASS');
+
+    덩어리실행 = await 실행만든다(
+      `${앞머리} 덩어리 실행`,
+      'group',
+      'https://group.example.com',
+      '2026-09-10T04:00:00Z',
+    );
+    await 실패항목넣는다(덩어리실행, 'XDG-101', {
+      assertions: [{ statement: '응답 코드가 정상이다', status: 'FAIL', actual: 500, expected: 200 }],
+      error: { message: '검증 문장이 있으면 이 줄은 대표가 아니다' },
+    });
+    await 실패항목넣는다(덩어리실행, 'XDG-102', {
+      assertions: [
+        { statement: '페이지가 열린다', status: 'PASS', actual: true, expected: true },
+        { statement: '응답 코드가 정상이다', status: 'FAIL', actual: 503, expected: 200 },
+      ],
+    });
+    await 실패항목넣는다(덩어리실행, 'XDG-103', {
+      assertions: [{ statement: '응답 코드가 정상이다', status: 'FAIL', actual: 404, expected: 200 }],
+    });
+    await 실패항목넣는다(덩어리실행, 'XDG-104', { error: { message: '러너가 응답하지 않는다' } });
+    await 실패항목넣는다(덩어리실행, 'XDG-105', {
+      params: { 비밀번호: 'hunter2' },
+      assertions: [{ statement: '로그인이 성공한다', status: 'FAIL', actual: 'hunter2', expected: 'ok' }],
+    });
+    await 실패항목넣는다(덩어리실행, 'XDG-106', {});
   });
 
   afterAll(async () => {
@@ -127,7 +191,7 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
   it('앞 실행이 없으면 previous 가 null 이고 견줄 칸도 비어 있다', async () => {
     const 결과 = await compareWithPrevious(앞실행);
 
-    expect(결과).toEqual({ previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [] });
+    expect(결과).toEqual({ previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들: [] });
   });
 
   it('같은 서비스라도 대상 서버가 다르면 직전 실행이 아니다', async () => {
@@ -204,5 +268,39 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
 
     expect(결과.previous).toEqual({ runId: 이번실행, startedAt: '2026-09-10T02:00:00.000Z' });
     expect(결과.주소바뀜).toBe(true);
+  });
+
+  it('같은 검증 문장으로 실패한 셋이 건수 3인 덩어리 하나가 되고, 앞 실행이 없어도 낸다', async () => {
+    const 결과 = await compareWithPrevious(덩어리실행);
+
+    expect(결과.previous).toBeNull();
+    expect(결과.실패덩어리들[0]).toEqual({
+      대표문장: '응답 코드가 정상이다',
+      건수: 3,
+      항목들: [
+        { historyId: 항목번호['XDG-101'], tcId: 'XDG-101', tcName: 'XDG-101 케이스', platform: 'desktop' },
+        { historyId: 항목번호['XDG-102'], tcId: 'XDG-102', tcName: 'XDG-102 케이스', platform: 'desktop' },
+        { historyId: 항목번호['XDG-103'], tcId: 'XDG-103', tcName: 'XDG-103 케이스', platform: 'desktop' },
+      ],
+    });
+  });
+
+  it('검증 문장이 대표이고 없으면 error.message 가 대표이며 둘 다 없으면 묶지 않는다', async () => {
+    const 결과 = await compareWithPrevious(덩어리실행);
+
+    expect(결과.실패덩어리들.map((덩어리) => 덩어리.대표문장)).toEqual([
+      '응답 코드가 정상이다',
+      '러너가 응답하지 않는다',
+      '로그인이 성공한다',
+    ]);
+    expect(
+      결과.실패덩어리들.flatMap((덩어리) => 덩어리.항목들.map((항목) => 항목.tcId)),
+    ).not.toContain('XDG-106');
+  });
+
+  it('params 에 담긴 비밀값이 덩어리 어디에도 새지 않는다', async () => {
+    const 결과 = await compareWithPrevious(덩어리실행);
+
+    expect(JSON.stringify(결과.실패덩어리들)).not.toContain('hunter2');
   });
 });
