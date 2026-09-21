@@ -7,7 +7,7 @@ export const spec = defineCase({
   precondition: ['할 일 목록이 비어 있다'],
   params: null,
   expected: z.object({
-    countElements: z.number().describe('빈 목록에서 남은 개수 영역이 화면에 있는 개수').default(0),
+    countVisible: z.boolean().describe('빈 목록에서 남은 개수 영역이 화면에 보이는지').default(false),
   }),
 });
 
@@ -18,6 +18,6 @@ test(spec, async ({ page, expected }) => {
   });
 
   await test.step('아무것도 하지 않는다', async () => {
-    await verify('남은 개수 영역이 보이지 않는다', await page.getByTestId('todo-count').count(), expected.countElements);
+    await verify('남은 개수 영역이 보이지 않는다', await page.getByTestId('todo-count').isVisible(), expected.countVisible);
   });
 });

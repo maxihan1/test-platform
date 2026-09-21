@@ -24,6 +24,7 @@ test(spec, async ({ page, params, expected }) => {
 
   await test.step('그 할 일의 완료 표시를 누른다', async () => {
     await page.getByRole('checkbox', { name: 'Toggle Todo' }).check();
+    await page.getByRole('button', { name: 'Clear completed' }).waitFor();
     await verify('남은 개수가 0 으로 보인다', await page.getByTestId('todo-count').innerText(), expected.remaining);
   });
 });
