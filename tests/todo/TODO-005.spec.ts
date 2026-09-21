@@ -27,7 +27,7 @@ test(spec, async ({ page, params, expected }) => {
     await page.getByRole('button', { name: 'Clear completed' }).waitFor();
     await page.getByRole('link', { name: 'Active' }).click();
     await page.getByTestId('todo-item').nth(1).waitFor({ state: 'detached' });
-    await verify('좁혀 둔 목록에 할 일이 한 건만 보인다', await page.getByTestId('todo-item').count(), 1);
+    await verify('좁혀 둔 목록에 안 끝낸 할 일만 남는다', (await page.getByTestId('todo-title').allInnerTexts()).join(', '), params.active, { blocker: true });
   });
 
   await test.step('보기에서 「All」을 고른다', async () => {
