@@ -1029,6 +1029,30 @@ select:focus {
 }
 
 @media (max-width: 620px) {
+  /* DESIGN.md 「반응형」 — 입력 폼은 라벨이 값 위로 올라간다.
+     62px 라벨 열을 그대로 두면 375px 에서 값 칸이 40px 도 안 남는다 */
+  .pcell .field {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .pcell .field label {
+    text-align: left;
+  }
+
+  .pcell .field input,
+  .pcell .field select {
+    max-width: none;
+    min-height: 44px;
+  }
+
+  /* 손가락으로 누르는 자리다. 완료 기준이 결과 화면을 휴대폰에서 보게 요구한다 */
+  .row .btn.small {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
   /* 244px 사이드바를 그대로 두면 내용 칸이 한 줄에 스무 글자도 못 받는다. 위아래로 쌓는다 */
   .wrap {
     grid-template-columns: minmax(0, 1fr);
@@ -1877,6 +1901,276 @@ select:focus {
 .mfoot input[type='text'] {
   flex: none;
   width: 56px;
+}
+
+/* ── 줄의 입력 칸 · 판정 흐름 · 펼침 패널 (2026-09-21 ②) ─────────────────────
+   값은 docs/design-mockup.html 이 정본이고 **자리는 제품 구조가 정본**이다.
+   목업의 그 칸은 <table><td> 이고 여기는 CSS 격자 줄이라 셀렉터가 다르다.
+   칸 자체는 Form 이 그린다 — .field 를 줄에서만 좁게 다시 잡는다 */
+
+.pcell {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 6px;
+}
+
+/* 줄에서는 라벨 열을 62px 로 줄인다. 폼 화면의 132px 를 그대로 쓰면 케이스명이 밀린다 */
+.pcell .field {
+  grid-template-columns: 62px 1fr;
+  gap: 4px 9px;
+  padding: 0;
+}
+
+.pcell .field label {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  text-align: right;
+}
+
+.pcell .field input,
+.pcell .field select {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 6px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--sheet-2);
+  color: var(--ink);
+  max-width: 136px;
+}
+
+.pcell .field input:hover,
+.pcell .field select:hover {
+  border-color: #d8d3c6;
+}
+
+.pcell .field input:focus,
+.pcell .field select:focus {
+  outline: 2px solid var(--chrome);
+  outline-offset: -1px;
+  background: var(--sheet);
+}
+
+/* 줄에서는 기본값 줄을 감춘다. 칸마다 한 줄씩 더 붙으면 줄 높이가 두 배가 된다 —
+   「무엇에서 바꿨나」는 상세와 실행 모달이 그대로 보여준다 */
+.pcell .deflt {
+  display: none;
+}
+
+/* 넘친 칸은 상세로 간다. 줄에 넷까지만 두는 규칙은 CaseRowParams.tsx 가 정본이다 */
+.pmore {
+  align-self: flex-start;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--chrome);
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* 최근 판정 흐름 — 네모 하나가 실행 한 번. 왼쪽이 오래된 것이 아니라 **맨 앞이 새 것**이다.
+   높이가 판정마다 다르다. 색을 못 봐도 모양으로 읽히게 (DESIGN.md 접근성) */
+.spark {
+  display: flex;
+  justify-content: flex-end;
+  gap: 3px;
+  align-items: flex-end;
+  margin-top: 8px;
+  height: 16px;
+}
+
+.spark i {
+  width: 9px;
+  border-radius: 2px;
+  display: block;
+}
+
+.spark i.p {
+  background: var(--pass);
+  height: 8px;
+}
+
+.spark i.f {
+  background: var(--fail);
+  height: 16px;
+}
+
+.spark i.n {
+  background: var(--na);
+  height: 12px;
+}
+
+/* 아직 안 채워진 자리. 두 번 돌린 케이스와 다섯 번 돌린 케이스의 막대 길이를 맞춘다 */
+.spark i.e {
+  background: transparent;
+  border: 1px solid var(--rule);
+  height: 8px;
+}
+
+.sparktext {
+  display: block;
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.sparktext b {
+  font-weight: 600;
+}
+
+.sparktext b.p {
+  color: var(--pass);
+}
+
+.sparktext b.f {
+  color: var(--fail);
+}
+
+.sparktext b.n {
+  color: var(--na);
+}
+
+/* 펼침 패널. 줄과 다른 바탕을 써야 어디까지가 그 줄의 상세인지 눈으로 갈린다 */
+.detail {
+  padding: 18px 22px 20px;
+  background: var(--sheet-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.dsec {
+  margin-bottom: 18px;
+}
+
+.dsec:last-child {
+  margin-bottom: 0;
+}
+
+.dlabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--chrome);
+  margin-bottom: 8px;
+}
+
+.dfrom {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-left: 9px;
+}
+
+.dlist {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  line-height: 1.8;
+}
+
+.dcols {
+  display: flex;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+
+.dtab {
+  border-collapse: collapse;
+}
+
+.dtab td {
+  padding: 4px 16px 4px 0;
+  border: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+  vertical-align: top;
+}
+
+.dtab td.k {
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.dtab td.t {
+  font-size: 12px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.dsteps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+.dsteps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 13.5px;
+}
+
+.dsteps li:last-child {
+  border-bottom: 0;
+}
+
+.dsteps .n {
+  flex: 0 0 18px;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.dsteps .t {
+  flex: 1;
+  min-width: 0;
+  color: var(--ink-muted);
+}
+
+.dsteps .d {
+  flex: 0 0 52px;
+  text-align: right;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.dhist {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dhist td {
+  padding: 9px 14px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.dhist tr:last-child td {
+  border-bottom: 0;
+}
+
+.dhist a {
+  color: var(--chrome);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.dhist a:hover {
+  text-decoration: underline;
 }
 
 /* 케이스 줄의 값 칩 (2026-09-21). 값을 보려고 상세로 한 번 더 들어가던 것을 없앤다.

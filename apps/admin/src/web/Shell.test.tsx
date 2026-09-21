@@ -121,7 +121,7 @@ describe('사이드바 접기', () => {
     띄운다(결제);
     // 안 보이게 하려고 display:none 을 쓰면 탭 대상에서 빠진다.
     // 흐리게 두지 않는다는 규칙(SPEC §8)은 등급 이야기고, 접기는 사람이 되돌릴 수 있는 상태다
-    expect(screen.getByRole('link', { name: '케이스' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '테스트케이스 목록' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
 });
