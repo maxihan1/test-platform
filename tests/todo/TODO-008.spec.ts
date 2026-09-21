@@ -20,7 +20,7 @@ test(spec, async ({ page, params, expected }) => {
     await input.fill(params.todo);
     await input.press('Enter');
     await page.getByTestId('todo-item').first().waitFor();
-    await verify('남은 개수가 「1 item left」로 보인다', await page.getByTestId('todo-count').innerText(), '1 item left');
+    await verify('남은 개수가 「1 item left」로 보인다', await page.getByTestId('todo-count').innerText(), '1 item left', { blocker: true });
   });
 
   await test.step('그 할 일의 완료 표시를 누른다', async () => {
