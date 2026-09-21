@@ -1,1204 +1,1180 @@
-<!DOCTYPE html>
+<!doctype html>
+<!-- 2026-09-21 확정. 규칙의 정본은 docs/spec/공통/5-화면공통 §8 과 docs/DESIGN.md 다.
+     이 파일은 눈으로 보는 기준이고, 여기 적힌 값이 정본과 갈리면 정본이 이긴다.
+     ★ 여기 CSS 는 제품 CSS 의 사본이라 갈라진다 — 44px·접힘·실제 색을 재려면
+     apps/admin/src/web/styles.css 를 직접 불러 재라 (LEARNINGS 2026-09-20). -->
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>테스트 자동화 플랫폼 — 화면 목업 (2026-09-17 개정)</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>어드민 화면 리뉴얼 — 짙은 안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;600&display=swap" rel="stylesheet" />
 <style>
 :root{
-  /* 2026-09-21 에 「제도 청사진」으로 옮겼다. 회녹색 종이가 차가운 청회색이 됐다.
-     정본은 apps/admin/src/web/styles.css 이고 styles.test.ts 가 기계로 잰다 — 여기는 사본이다 */
-  --paper:#dfe4e7; --sheet:#f8fafb; --sheet-2:#eff3f5;
-  --ink:#16222a; --ink-muted:#3f4e58; --ink-faint:#59666f;
-  --rule:#bfc9cf; --rule-soft:#dce3e7;
-  /* 껍데기 전용 청색 잉크. 쓰는 자리 목록의 정본은 SPEC 공통/5-화면공통 §8 이다 — 개수를 세지 않는다 */
-  --chrome:#1c4e6b;
-  /* 값 칩의 바탕. 기록지도 종이도 아닌 세 번째 면이라 그 위의 글자를 따로 쟀다 */
-  --chip:#edf2f4;
-  --pass:#0c6349; --fail:#a32a22; --na:#74673b;
-  --pass-bg:#e0eee8; --fail-bg:#f6e4e1; --na-bg:#f0ebdc;
-  /* 서비스 색 — 자리 넷 줄의 네모와 경계선, 그리고 설정 화면의 색 고르개에서만 쓴다. 정본은 SPEC §8 */
-  --svc-pay:#2F5D50; --svc-mem:#3A4A63;
+  /* 껍데기 — 사이드바를 짙게 눌러 내용과 갈라 놓는다 */
+  --rail:#26231F; --rail-2:#332F29; --rail-ink:#EFEBE1; --rail-dim:#ABA598; --rail-acc:#F0A77F;
+
+  /* 면 */
+  --paper:#F2EFE7; --sheet:#FFFDF9; --sheet-2:#F7F4EC; --chip:#F1EEE5;
+
+  /* 잉크 */
+  --ink:#191713; --ink-muted:#524F47; --ink-faint:#6A675E;
+
+  /* 괘선 */
+  --rule:#E5E1D6; --rule-soft:#F0EDE5;
+
+  /* 밝은 면 위의 악센트 */
+  --chrome:#9E4A27;
+
+  /* 판정 */
+  --pass:#2E6B4F; --pass-bg:#E3EDE6;
+  --fail:#9B2418; --fail-bg:#F6E4DF;
+  --na:#7A6535;   --na-bg:#F0EAD8;
+
+  --svc:#2F6F8F;
+
+  --lift:0 1px 2px rgba(25,23,19,.04), 0 10px 28px -16px rgba(25,23,19,.22);
 }
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box}
+html,body{margin:0}
 body{
   background:var(--paper); color:var(--ink);
-  font-family:'IBM Plex Sans KR',"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
-  font-size:14px; line-height:1.6;
-  font-variant-numeric:tabular-nums;
-  background-image:linear-gradient(var(--rule-soft) .5px,transparent .5px),
-                   linear-gradient(90deg,var(--rule-soft) .5px,transparent .5px);
-  background-size:28px 28px;
-  padding:32px 16px 80px;
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  font-size:14px; line-height:1.55; font-variant-numeric:tabular-nums; word-break:keep-all;
 }
-.wrap{max-width:960px;margin:0 auto}
-.screen{background:var(--sheet);border:1px solid var(--rule);margin-bottom:40px}
-.screen-tag{
-  font-size:12px;color:var(--ink-faint);letter-spacing:.02em;
-  padding:0 0 8px 2px;
-}
-.screen-tag b{color:var(--ink-muted);font-weight:600}
-.lede{
-  max-width:960px;margin:0 auto 36px;font-size:13px;color:var(--ink-muted);
-  background:var(--sheet);border:1px solid var(--rule);padding:16px 20px;
-}
-.lede h1{font-size:17px;font-weight:600;color:var(--ink);margin-bottom:6px;letter-spacing:-.01em}
-.lede ul{margin:8px 0 0 18px}
-.lede li{margin:2px 0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
 
-.bar{
-  display:flex;align-items:flex-end;justify-content:space-between;
-  gap:16px;padding:20px 24px 16px;border-bottom:1px solid var(--rule);flex-wrap:wrap;
-}
-.runid{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
-.runmeta{font-size:12.5px;color:var(--ink-muted);margin-top:2px}
-.tally{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-.tally b{font-size:20px;font-weight:600;display:block;line-height:1.2}
-.tally span{font-size:11.5px;color:var(--ink-muted)}
-.stripe{display:flex;height:6px;margin:0 24px;overflow:hidden}
-.stripe i{display:block;height:100%}
+.doc{max-width:1240px;margin:0 auto;padding:36px 24px 90px}
+.doc h1{font-size:28px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+.doc .lede{color:var(--ink-muted);margin:0 0 14px;max-width:72ch}
+.doc h2{font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--chrome);margin:40px 0 10px}
+.doc .note{color:var(--ink-faint);font-size:13px;margin:12px 0 0;max-width:82ch}
+.frame{border-radius:16px;overflow:hidden;box-shadow:var(--lift);background:var(--sheet)}
 
-.toolbar{display:flex;gap:8px;padding:14px 24px;border-bottom:1px solid var(--rule-soft);flex-wrap:wrap}
-input[type=text],input[type=password],select{
-  font:inherit;font-size:13px;background:var(--sheet);color:var(--ink);
-  border:1px solid var(--rule);border-radius:2px;padding:7px 10px;
-}
-input[type=text]{flex:1;min-width:180px}
-input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
-.chip{
-  font-size:12.5px;padding:6px 12px;border:1px solid var(--rule);border-radius:2px;
-  background:transparent;color:var(--ink-muted);cursor:pointer;font-family:inherit;
-}
-.chip[aria-pressed=true]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+/* ===== 앱 ===== */
+.app{display:grid;grid-template-columns:244px 1fr;min-height:660px}
 
-.row{
-  display:grid;grid-template-columns:4px 128px 1fr auto;gap:0 16px;
-  align-items:center;border-bottom:1px solid var(--rule-soft);
-}
-.row:hover{background:var(--sheet-2)}
-.gutter{align-self:stretch}
-.tcid{font-size:12.5px;font-weight:600;color:var(--ink-muted);letter-spacing:.01em;padding:14px 0}
-.title{font-size:14.5px;padding:14px 0}
-.title small{display:block;font-size:12px;color:var(--ink-faint);font-weight:400;margin-top:2px}
-.right{display:flex;align-items:center;gap:14px;padding:14px 24px 14px 0}
-.dur{font-size:12.5px;color:var(--ink-faint)}
-.verdict{
-  font-size:12px;font-weight:600;letter-spacing:.06em;
-  padding:4px 10px;border-radius:2px;min-width:52px;text-align:center;
-}
-.v-pass{background:var(--pass-bg);color:var(--pass)}
-.v-fail{background:var(--fail);color:#fff}
-.v-na{background:var(--na-bg);color:var(--na)}
+/* --- 사이드바 (짙다) --- */
+.side{background:var(--rail);color:var(--rail-ink);display:flex;flex-direction:column;padding:16px 12px 0}
+.svc{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;
+  background:var(--rail-2);cursor:pointer;border:1px solid rgba(255,255,255,.06)}
+.svc:hover{background:#3B362F}
+.svc-dot{width:10px;height:10px;border-radius:3px;background:var(--svc);flex:0 0 auto;
+  box-shadow:0 0 0 3px rgba(47,111,143,.25)}
+.svc-name{font-weight:600;font-size:14.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.svc-caret{color:var(--rail-dim);font-size:11px}
+.svc-repo{display:block;margin:8px 4px 0;font-size:11.5px;color:var(--rail-dim)}
 
-/* 여러 건 고르기 (SPEC §8.1) — 고르는 칸은 왼쪽 거터 안, 판정 색 다음에 둔다.
-   줄 내용 쪽 첫 칸에 두면 620px 미만에서 줄이 2단으로 접힐 때
-   케이스명 위에 체크박스만 홀로 한 줄이 된다 */
-.row.pickable{grid-template-columns:4px 20px 128px 1fr auto}
-.pick{display:flex;align-items:center;justify-content:center;align-self:stretch}
-.pick input{width:15px;height:15px;margin:0;accent-color:var(--ink);cursor:pointer}
+.side nav{margin-top:22px;display:flex;flex-direction:column;gap:2px}
+.side nav a{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;
+  color:var(--rail-dim);text-decoration:none;font-size:14px;position:relative}
+.side nav a:hover{background:var(--rail-2);color:var(--rail-ink)}
+.side nav a[aria-current]{background:var(--rail-2);color:var(--rail-acc);font-weight:600}
+.side nav a[aria-current]::before{content:"";position:absolute;left:0;top:9px;bottom:9px;
+  width:3px;border-radius:2px;background:var(--rail-acc)}
+.side nav .out{font-size:11px;opacity:.75}
+.side .spacer{flex:1}
 
-.sec{padding:22px 24px;border-bottom:1px solid var(--rule-soft)}
-.sec:last-child{border-bottom:0}
-.sec-h{
-  font-size:12px;font-weight:600;color:var(--ink-muted);
-  padding-bottom:10px;margin-bottom:14px;border-bottom:1px solid var(--rule);
-}
-.pre{font-size:13.5px;color:var(--ink);padding:3px 0 3px 16px;position:relative}
-.pre::before{content:"";position:absolute;left:2px;top:12px;width:6px;height:1px;background:var(--ink-faint)}
+.running{display:block;margin:0 0 14px;padding:12px 13px;border-radius:10px;
+  background:var(--rail-2);border:1px solid rgba(240,167,127,.22);text-decoration:none;color:inherit}
+.running:hover{background:#3B362F}
+.running .lbl{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:600;
+  letter-spacing:.05em;color:var(--rail-acc)}
+.running .lbl i{width:6px;height:6px;border-radius:50%;background:var(--rail-acc)}
+.running .who{display:block;margin-top:4px;font-size:12.5px;color:var(--rail-ink)}
+.bar{display:block;margin-top:9px;height:4px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--rail-acc);width:30%}
 
-.field{display:grid;grid-template-columns:132px 1fr;gap:10px 16px;align-items:center;padding:7px 0}
-.field label{font-size:13px;color:var(--ink-muted)}
-.field .val{font-size:13.5px}
-.hint{font-size:12px;color:var(--ink-faint);margin-top:4px}
-.opt{font-size:11.5px;color:var(--ink-faint);font-weight:400}
+.me{display:flex;align-items:center;gap:8px;margin:0 -12px;padding:14px 24px;
+  border-top:1px solid rgba(255,255,255,.08)}
+.me .who{flex:1;min-width:0;font-size:13px;color:var(--rail-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me button{border:0;background:none;color:var(--rail-dim);font:inherit;font-size:12.5px;cursor:pointer;padding:2px 0}
+.me button:hover{color:var(--rail-acc)}
 
-.step{padding:14px 0;border-bottom:1px solid var(--rule-soft)}
-.step:last-child{border-bottom:0}
-.step-h{display:flex;align-items:baseline;gap:10px}
-.step-n{font-size:12px;font-weight:600;color:var(--ink-faint);min-width:18px}
-.step-t{font-size:14px;flex:1}
-.assert{
-  display:grid;grid-template-columns:18px 1fr auto auto;gap:0 12px;
-  align-items:baseline;font-size:13px;padding:5px 0 5px 28px;
-}
-.assert.bad{background:var(--fail-bg);margin:4px -24px 4px -24px;padding:8px 24px 8px 52px}
-.mark{font-weight:600}
-.exp,.act{font-size:12.5px;color:var(--ink-muted);min-width:76px;text-align:right}
-.act b{color:var(--ink);font-weight:600}
-.assert.bad .act b{color:var(--fail)}
+/* --- 본문 --- */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--paper)}
+.head{display:flex;align-items:flex-end;gap:18px;padding:24px 30px 20px;
+  background:var(--sheet);border-bottom:1px solid var(--rule)}
+.head .titlewrap{flex:1;min-width:0}
+.head h1{margin:0;font-size:30px;font-weight:600;letter-spacing:-.015em;line-height:1.2}
+.head .meta{margin-top:6px;font-size:12.5px;color:var(--ink-faint)}
+.head .acts{display:flex;gap:8px;flex:0 0 auto}
 
-.actions{display:flex;gap:10px;padding:18px 24px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
-.btn{
-  font:inherit;font-size:13.5px;font-weight:600;padding:9px 18px;border-radius:2px;cursor:pointer;
-  border:1px solid var(--ink);background:var(--ink);color:var(--sheet);
-}
-.btn.ghost{background:transparent;color:var(--ink)}
-.btn:focus-visible{outline:2px solid var(--fail);outline-offset:2px}
-.btn:disabled{opacity:.4;cursor:default}
-.note{font-size:12px;color:var(--ink-faint);margin-right:auto}
+.btn{font:inherit;font-size:13px;padding:8px 15px;border-radius:9px;cursor:pointer;
+  border:1px solid var(--rule);background:var(--sheet);color:var(--ink)}
+.btn:hover{background:var(--sheet-2);border-color:#D8D3C6}
+.btn-primary{background:var(--ink);border-color:var(--ink);color:#FFFDF9;font-weight:600}
+.btn-primary:hover{background:#332F29;border-color:#332F29}
+.btn-sm{font-size:12.5px;padding:6px 12px;border-radius:8px}
 
-/* ── 맨 위 띠 — 서비스를 고르는 자리 (SPEC §8) ────────────────────────
-   2026-09-17 전에는 "인스턴스 띠"였다. 서비스를 합치면서 알리는 자리에서
-   고르는 자리가 됐다. 막으려는 사고(엉뚱한 서비스에서 실행)는 그대로다. */
-.band{
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:0 24px;font-size:12.5px;font-weight:600;color:#fff;background:var(--svc-pay);
-}
-.band .who{font-weight:400;opacity:.85}
-.svc{
-  display:flex;align-items:center;gap:8px;font:inherit;font-weight:600;color:#fff;
-  background:transparent;border:0;padding:12px 0;cursor:pointer;letter-spacing:-.01em;
-}
-.svc .caret{font-size:10px;opacity:.8}
-.svc .repo{font-weight:400;opacity:.7;font-size:11.5px}
-.svc:focus-visible{outline:2px solid #fff;outline-offset:-2px}
+.body{flex:1;padding:24px 30px;min-width:0}
 
-/* 서비스 고르기 — 펼친 모습. 배정받은 것만 뜬다 */
-.svc-menu{border-bottom:1px solid var(--rule);background:var(--sheet-2)}
-.svc-menu button{
-  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  font:inherit;font-size:13.5px;background:transparent;border:0;cursor:pointer;
-  padding:11px 24px;border-bottom:1px solid var(--rule-soft);color:var(--ink);
-}
-.svc-menu button:last-child{border-bottom:0}
-.svc-menu button:hover{background:var(--sheet)}
-.svc-menu .swatch{width:10px;height:10px;border-radius:2px;flex:none}
-.svc-menu .pfx{font-size:12px;color:var(--ink-muted);font-weight:600;margin-left:auto}
-.svc-menu .here{font-size:11.5px;color:var(--ink-faint);font-weight:400}
+/* 집계 띠 — 목록을 열자마자 「지금 이 서비스가 어떤 상태인가」가 먼저 온다 */
+.stats{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;
+  box-shadow:var(--lift);margin-bottom:18px;overflow:hidden}
+.stats-row{display:flex}
+.stat{flex:1;padding:17px 22px;border-right:1px solid var(--rule-soft)}
+.stat:last-child{border-right:0}
+.stat .k{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  letter-spacing:.05em;color:var(--ink-faint)}
+.stat .k i{width:7px;height:7px;border-radius:2px}
+.stat .v{font-size:34px;font-weight:600;line-height:1.1;letter-spacing:-.02em;margin-top:3px}
+.stat .sub{font-size:12px;color:var(--ink-faint);margin-top:1px}
+.stat.p .v{color:var(--pass)} .stat.p .k i{background:var(--pass)}
+.stat.f .v{color:var(--fail)} .stat.f .k i{background:var(--fail)}
+.stat.n .v{color:var(--na)}   .stat.n .k i{background:var(--na)}
+.ratio{display:flex;height:6px;background:var(--rule-soft)}
+.ratio i{display:block;height:100%}
+.ratio .p{background:var(--pass)} .ratio .f{background:var(--fail)} .ratio .n{background:var(--na)}
 
-/* ── 자리 넷 (SPEC §8) ─────────────────────────────────────────── */
-.tabs{display:flex;gap:2px;padding:0 24px;border-bottom:1px solid var(--rule);background:var(--sheet)}
-.tabs a{
-  font-size:13.5px;color:var(--ink-muted);text-decoration:none;
-  padding:12px 14px;border-bottom:2px solid transparent;min-height:44px;display:flex;align-items:center;
-}
-.tabs a:hover{color:var(--ink)}
-.tabs a[aria-current=page]{color:var(--ink);font-weight:600;border-bottom-color:var(--ink)}
-.tabs .ext{font-size:11px;opacity:.7;margin-left:3px}
+/* 최근 판정 흐름 — 네모 하나가 실행 한 번. 왼쪽이 오래된 것.
+   높이로도 갈라 놓는다 — 색만으로 판정을 말하면 색각 이상인 사람에게 회색 다섯이 된다 (DESIGN.md 접근성) */
+.spark{display:flex;justify-content:flex-end;gap:3px;align-items:flex-end;margin-top:8px;height:16px}
+.spark i{width:9px;border-radius:2px;display:block}
+.spark i.p{background:var(--pass);height:8px}
+.spark i.f{background:var(--fail);height:16px}
+.spark i.n{background:var(--na);height:12px}
+.spark i.e{background:transparent;border:1px solid var(--rule);height:8px}
+/* 그림 옆에 늘 글자를 같이 둔다. 이 줄이 없으면 위 네모는 색만으로 판정을 말한다 */
+.sparktext{display:block;margin-top:5px;font-size:11.5px;color:var(--ink-faint);white-space:nowrap}
+.sparktext b{font-weight:600}
+.sparktext b.f{color:var(--fail)} .sparktext b.p{color:var(--pass)} .sparktext b.n{color:var(--na)}
 
-/* 도는 중 알림 줄 — 도는 실행이 있을 때만 있다. 없으면 줄 자체가 없다 */
-.running{
-  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  font:inherit;font-size:13px;cursor:pointer;
-  background:var(--na-bg);border:0;border-bottom:1px solid var(--rule-soft);
-  padding:10px 24px;color:var(--ink);
-}
-.running .play{font-size:10px;color:var(--na)}
-.running .cnt{margin-left:auto;font-size:12.5px;color:var(--ink-muted);font-variant-numeric:tabular-nums}
-.running:hover{background:#EBE3D2}
+/* 고르는 칸 — 거터 바로 옆, 케이스 번호 앞 (SPEC §8.1) */
+td.pick,th.pick{width:34px;padding-left:12px;padding-right:0}
+td.pick input{width:17px;height:17px;accent-color:var(--ink);cursor:pointer;margin:0}
 
-/* ── 빈 목록 세 갈래 (SPEC §8.1) ───────────────────────────────── */
-.empty{padding:44px 24px;text-align:center}
-.empty h3{font-size:15.5px;font-weight:600;margin-bottom:6px}
-.empty p{font-size:13px;color:var(--ink-muted);max-width:420px;margin:0 auto 18px}
-.empty .btn{font-size:14px;padding:11px 24px}
-.empty .why{font-size:12.5px;color:var(--ink-muted);text-decoration:underline;background:0;border:0;cursor:pointer;font-family:inherit}
-.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px}
-.trio .screen{margin:0}
-.trio .empty{padding:28px 16px}
-.trio .empty p{font-size:12.5px}
+/* 켜진 토글. 주 버튼(먹색 반전)은 「이 화면의 주 행동」 자리라 여기 쓰지 않는다 */
+.btn-on{background:var(--chip);border-color:#D8D3C6;color:var(--chrome);font-weight:600}
+.btn-on:hover{background:var(--chip)}
 
-/* ── 증적 문서 목록 (SPEC §8.4) ─────────────────────────────────── */
-.doc{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule-soft);font-size:13.5px}
-.doc:last-of-type{border-bottom:0}
-.doc .when{color:var(--ink-muted);font-size:12.5px}
-.doc .fmt{font-size:12px;font-weight:600;color:var(--ink-muted);letter-spacing:.04em;min-width:34px}
-.doc .open{margin-left:auto;font-size:13px;font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
-.pending{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-muted)}
-.spin{width:9px;height:9px;border-radius:50%;border:2px solid var(--rule);border-top-color:var(--ink-muted);animation:sp 1s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.spin{animation:none}}
+.tcchip{display:inline-block;font-size:11.5px;font-weight:500;color:var(--ink-muted);
+  background:var(--chip);border:1px solid var(--rule);border-radius:6px;padding:3px 8px;
+  white-space:nowrap;letter-spacing:.02em}
+.panel{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;
+  overflow:hidden;box-shadow:var(--lift)}
 
-/* ── 모달 (SPEC §8.9 · §8.10 · DESIGN.md) ──────────────────────
-   하던 일을 가로막는 장치라 쓰는 자리를 못 박았다 — 되돌릴 수 없는 일 확인,
-   실행 진행과 완료, 여러 건 실행 전 확인. **개수를 적지 않는다** (2026-09-21).
-   자리 목록의 정본은 DESIGN.md 이고 여기는 사본이다 */
-.scrim{position:relative;background:var(--sheet-2);padding:28px 16px}
-.scrim::before{content:"";position:absolute;inset:0;background:rgba(23,32,27,.4)}
-.modal{
-  position:relative;max-width:480px;margin:0 auto;
-  background:var(--sheet);border:1px solid var(--rule);border-radius:2px;
-}
-.modal h3{font-size:17px;font-weight:600;letter-spacing:-.01em;padding:20px 22px 2px}
-.modal .sub{font-size:12.5px;color:var(--ink-muted);padding:0 22px 16px}
-.modal .tally{padding:0 22px 16px;gap:26px}
-.modal .flist{border-top:1px solid var(--rule-soft);padding:14px 22px}
-.modal .flist b{display:block;font-size:12px;color:var(--ink-muted);font-weight:600;margin-bottom:6px}
-.modal .flist div{font-size:13.5px;padding:2px 0}
-.modal .flist .id{font-size:12.5px;font-weight:600;color:var(--ink-muted);margin-right:8px}
-.modal .actions{border-top:1px solid var(--rule-soft)}
+.tools{display:flex;gap:9px;padding:14px 18px;border-bottom:1px solid var(--rule-soft);
+  flex-wrap:wrap;align-items:center}
+.search{flex:1;min-width:200px;font:inherit;font-size:13px;padding:8px 13px;border-radius:9px;
+  border:1px solid var(--rule);background:var(--sheet-2);color:var(--ink)}
+.search::placeholder{color:var(--ink-faint)}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:9px;overflow:hidden;background:var(--sheet)}
+.seg button{font:inherit;font-size:12.5px;padding:7px 12px;border:0;background:transparent;
+  color:var(--ink-faint);cursor:pointer;border-right:1px solid var(--rule)}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--sheet-2);color:var(--ink-muted)}
+.seg button[aria-pressed=true]{background:var(--ink);color:#FFFDF9;font-weight:600}
 
-/* 진행 상자 — 완료 모달과 **같은 상자**이고 내용만 갈라 그린다 (§8.9).
-   정본은 apps/admin/src/web/styles.css 의 .one-line 과 .now-step 이고 여기는 사본이다 */
-.modal .stripe{margin:0 22px 14px}
-.modal .flist .pre{padding:4px 0 4px 16px}
-.one-line{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;word-break:keep-all}
-.modal .flist .now-step{display:flex;align-items:baseline;gap:6px;font-size:12.5px;color:var(--ink-muted);padding:0}
-/* 경과를 순번보다 크게 둔다. 분모 없는 순번은 진행이 아니라 그냥 번호로 읽힌다 */
-.modal .flist .now-step b{display:inline;flex:none;font-size:14px;font-weight:600;color:var(--ink);margin:0}
-.modal .flist .now-step .lim{flex:none;color:var(--ink-faint);font-size:12.5px}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--chrome);
+  padding:11px 18px;border-bottom:1px solid var(--rule);background:var(--sheet-2)}
+thead th:first-child{padding-left:0;padding-right:0}
+thead th.r{text-align:right}
+tbody td{padding:14px 18px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+tbody tr:last-child > td{border-bottom:0}
+tbody tr:hover{background:var(--sheet-2)}
+td.g{width:5px;padding:0;border-bottom:0}
+td.g i{display:block;width:5px;height:1px}
+.g-pass{background:var(--pass)} .g-fail{background:var(--fail)} .g-na{background:var(--na)}
+.tcid{font-size:12px;font-weight:500;color:var(--ink-faint);white-space:nowrap;letter-spacing:.02em}
+.cname{font-size:15px;font-weight:600;letter-spacing:-.005em}
+.csub{font-size:12.5px;color:var(--ink-faint);margin-top:3px}
+.csub.failwhy{color:var(--fail)}
+td.r{text-align:right;white-space:nowrap}
 
-/* 여러 건 실행 확인 모달 — 머리와 바닥은 고정, 가운데 목록만 스크롤한다.
-   건수가 늘어도 대상 서버와 실행 버튼이 늘 보여야 한다 */
-.modal .mhead{display:flex;align-items:center;gap:10px;padding:0 22px 16px;flex-wrap:wrap}
-.modal .mhead label{font-size:13px;color:var(--ink-muted)}
-.modal .mhead .addr{font-size:12px;color:var(--ink-faint)}
-.modal .picked{border-top:1px solid var(--rule-soft);max-height:168px;overflow-y:auto}
-.prow{
-  display:grid;grid-template-columns:62px 1fr auto auto;gap:0 10px;
-  align-items:baseline;padding:9px 22px;border-bottom:1px solid var(--rule-soft);
-}
-.prow:last-child{border-bottom:0}
-.prow .id{font-size:12.5px;font-weight:600;color:var(--ink-muted)}
-.prow .nm{font-size:13.5px}
-.prow .dev{font-size:12px;color:var(--ink-faint);white-space:nowrap}
-.modal .mfoot{
-  display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap;
-  padding:14px 22px 0;border-top:1px solid var(--rule-soft);
-}
-.modal .mfoot label{font-size:13px;color:var(--ink-muted)}
-.modal .mfoot input[type=text]{flex:none;width:56px;min-width:0}
-.modal.confirm .actions{border-top:0;padding-top:12px}
+.badge{display:inline-block;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:7px;letter-spacing:.01em}
+.b-pass{background:var(--pass-bg);color:var(--pass)}
+.b-fail{background:var(--fail);color:#fff}
+.b-na{background:var(--na-bg);color:var(--na)}
 
-/* ── 설정 화면 (SPEC §8.8) ─────────────────────────────────────── */
-.srow{
-  display:grid;grid-template-columns:12px 1fr 92px auto auto;gap:0 14px;align-items:center;
-  border-bottom:1px solid var(--rule-soft);padding:12px 24px;
-}
-.srow:hover{background:var(--sheet-2)}
-.srow .swatch{width:12px;height:12px;border-radius:2px}
-.srow .nm{font-size:14px}
-.srow .nm small{display:block;font-size:12px;color:var(--ink-faint);margin-top:1px}
-.srow .pfx{font-size:12.5px;font-weight:600;color:var(--ink-muted);letter-spacing:.02em}
-.srow .cnt{font-size:12.5px;color:var(--ink-faint)}
-.srow .edit,.prow .edit{white-space:nowrap;font-size:12.5px;color:var(--ink);text-decoration:underline;text-underline-offset:3px;background:0;border:0;cursor:pointer;font-family:inherit}
-.urow{grid-template-columns:1fr 92px auto;gap:0 26px}
-.role{font-size:12.5px;color:var(--ink);font-weight:600;text-align:right}
-.off{opacity:.55}
-.tag-off{
-  font-size:11px;font-weight:600;color:var(--ink-faint);letter-spacing:.04em;
-  border:1px solid var(--rule);border-radius:2px;padding:1px 6px;margin-left:8px;vertical-align:1px;
-}
-.sec-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px 12px;border-bottom:1px solid var(--rule)}
-.sec-head h3{font-size:15px;font-weight:600}
-.pwbox{
-  margin:14px 24px 0;padding:14px 16px;border:1px dashed var(--rule);background:var(--sheet-2);
-}
-.pwbox code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;font-weight:600;letter-spacing:.06em}
-.pwbox p{font-size:12px;color:var(--ink-muted);margin-top:6px}
+.pcell{display:flex;flex-direction:column;gap:7px}
+.prow{display:flex;align-items:center;gap:9px}
+.plabel{font-size:11.5px;color:var(--ink-faint);flex:0 0 62px;text-align:right}
+.pinput{font:inherit;font-size:12.5px;padding:6px 10px;border:1px solid var(--rule);
+  border-radius:8px;background:var(--sheet-2);color:var(--ink);width:136px}
+.pinput:hover{border-color:#D8D3C6}
+.pinput:focus{outline:2px solid var(--chrome);outline-offset:-1px;background:var(--sheet)}
+.pnone{font-size:12.5px;color:var(--ink-faint)}
 
-.attempt{font-size:12px;color:var(--ink-muted);white-space:nowrap}
-.params{display:block;font-size:12px;color:var(--ink-faint);font-weight:400;margin-top:2px}
-.warn{
-  display:block;padding:11px 24px;font-size:13px;background:var(--na-bg);
-  border-bottom:1px solid var(--rule-soft);color:var(--ink);
-}
-.warn b{font-weight:600}
-.login{max-width:380px;margin:0 auto}
-.login .sec{border-bottom:0}
-.gone{text-decoration:line-through;opacity:.45}
+/* 상세 */
+tr.drow > td{padding:0;background:var(--sheet-2);border-bottom:1px solid var(--rule)}
+.detail{padding:18px 22px 20px}
+.dsec{margin-bottom:18px}
+.dsec:last-child{margin-bottom:0}
+.dlabel{font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--chrome);margin-bottom:8px}
+.dfrom{font-size:11.5px;color:var(--ink-faint);font-weight:400;letter-spacing:0;margin-left:9px}
+.dlist{margin:0;padding-left:20px;font-size:13.5px;color:var(--ink-muted);line-height:1.8}
+.dcols{display:flex;gap:48px;flex-wrap:wrap}
+.dtab{border-collapse:collapse}
+.dtab td{padding:4px 16px 4px 0;border:0;font-size:13px;color:var(--ink-muted);vertical-align:top}
+.dtab td.k{color:var(--ink);white-space:nowrap}
+.dtab td.t{font-size:12px;color:var(--ink-faint);white-space:nowrap}
+.dsteps{list-style:none;margin:0;padding:0;background:var(--sheet);border:1px solid var(--rule);border-radius:10px}
+.dsteps li{display:flex;align-items:center;gap:12px;padding:9px 14px;
+  border-bottom:1px solid var(--rule-soft);font-size:13.5px}
+.dsteps li:last-child{border-bottom:0}
+.dsteps .n{flex:0 0 18px;font-size:11.5px;color:var(--ink-faint)}
+.dsteps .t{flex:1;min-width:0;color:var(--ink-muted)}
+.dsteps .d{flex:0 0 52px;text-align:right;font-size:12px;color:var(--ink-faint)}
+.dhist{width:100%;border-collapse:collapse;background:var(--sheet);
+  border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.dhist td{padding:9px 14px;font-size:12.5px;color:var(--ink-muted);border-bottom:1px solid var(--rule-soft)}
+.dhist tr:last-child td{border-bottom:0}
+.dhist tr:hover{background:var(--sheet-2)}
+.dhist td.last{text-align:right}
+.dhist a{color:var(--chrome);text-decoration:none;font-weight:600}
+.dhist a:hover{text-decoration:underline}
+.dmeta{font-size:12.5px;color:var(--ink-faint)}
+.dmeta b{color:var(--ink-muted);font-weight:400}
 
-@media(max-width:760px){
-  .trio{grid-template-columns:1fr}
-}
-@media(max-width:620px){
-  /* 한 줄에 세 칸을 밀어 넣으면 제목이 한 글자씩 흐른다. 세로로 쌓는다 */
-  .row{grid-template-columns:4px 1fr;gap:0 12px}
-  .gutter{grid-row:1/-1}
-  .tcid,.title,.right{grid-column:2}
-  .tcid{padding:12px 0 0}
-  .title{padding:2px 0 8px}
-  /* 좁은 화면에서 제대로 되는 두 화면은 손가락 영역 44px (DESIGN.md) */
-  .right{padding:0 16px 12px 0;justify-content:flex-start;min-height:44px;flex-wrap:wrap;gap:12px 16px}
-  .right .btn{min-height:44px;padding:9px 20px}
-  .tally{gap:14px 12px}
-  .tally .btn{min-height:44px;padding:9px 20px}
-  .field{grid-template-columns:1fr;gap:2px}
-  .assert{grid-template-columns:18px 1fr;padding-left:20px}
-  .exp,.act{text-align:left;grid-column:2}
-  .row.pickable{grid-template-columns:4px 20px 1fr}
-  .row.pickable .tcid,.row.pickable .title,.row.pickable .right{grid-column:3}
-  .pick{grid-row:1/-1}
-  .srow,.srow.urow{grid-template-columns:1fr auto;gap:4px 12px}
-  .srow .swatch{display:none}
-  .tabs{overflow-x:auto}
-}
+.foot{display:flex;gap:20px;align-items:center;padding:14px 30px;
+  border-top:1px solid var(--rule);background:var(--sheet);color:var(--ink-faint);font-size:12px;flex-wrap:wrap}
+.foot .sp{flex:1}
+.foot a{color:var(--ink-faint);text-decoration:none;border-bottom:1px solid var(--rule)}
+.foot a:hover{color:var(--chrome);border-bottom-color:var(--chrome)}
+.dot-ok{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--pass);
+  margin-right:7px;vertical-align:middle;box-shadow:0 0 0 3px rgba(46,107,79,.16)}
+
+/* --- 실행 기록 목록 --- */
+.runbar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--rule-soft);width:132px}
+.runbar i{display:block;height:100%}
+.runbar .p{background:var(--pass)} .runbar .f{background:var(--fail)} .runbar .n{background:var(--na)}
+.runcount{display:flex;gap:9px;font-size:12px;margin-top:6px}
+.runcount b{font-weight:600}
+.runcount .p{color:var(--pass)} .runcount .f{color:var(--fail)} .runcount .n{color:var(--na)}
+.livedot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--chrome);
+  margin-right:7px;vertical-align:middle;box-shadow:0 0 0 3px rgba(158,74,39,.18)}
+
+/* --- 실행 결과 --- */
+.devcell{display:flex;gap:7px;justify-content:flex-end;align-items:center}
+.devtag{font-size:11px;color:var(--ink-faint);margin-right:2px}
+.stepbox{border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--sheet);margin-top:10px}
+.stepbox .sh{padding:9px 14px;background:var(--sheet-2);border-bottom:1px solid var(--rule);
+  font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--chrome)}
+.vfy{font-size:13px;padding:7px 11px;border-radius:8px;background:var(--chip);
+  color:var(--ink-muted);margin-top:7px}
+.vfy.bad{background:var(--fail-bg);color:var(--fail)}
+.kv{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.kv span{font-size:12.5px;background:var(--chip);color:var(--ink-muted);padding:4px 10px;border-radius:7px}
+
+/* --- 설정 --- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;
+  box-shadow:var(--lift);overflow:hidden}
+.card > h3{margin:0;padding:15px 18px;border-bottom:1px solid var(--rule);
+  font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--chrome);background:var(--sheet-2)}
+.card .in{padding:16px 18px}
+.frow{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+.frow:last-child{margin-bottom:0}
+.frow > label{flex:0 0 92px;font-size:13px;color:var(--ink-muted);text-align:right}
+.fctl{font:inherit;font-size:13px;padding:7px 11px;border:1px solid var(--rule);border-radius:8px;
+  background:var(--sheet-2);color:var(--ink)}
+.fctl:focus{outline:2px solid var(--chrome);outline-offset:-1px;background:var(--sheet)}
+.fhint{font-size:12px;color:var(--ink-faint)}
+/* 누르는 영역을 24px 로 띄운다 — 13px 기본 체크박스는 WCAG 2.5.8 최소에도 못 미친다 */
+.frow > label.fchk{flex:1 1 auto;display:flex;align-items:center;gap:9px;text-align:left;
+  white-space:nowrap;min-height:24px;cursor:pointer}
+.frow > label.fchk input{width:18px;height:18px;accent-color:var(--ink);margin:0;cursor:pointer}
+.colorpick{display:flex;align-items:center;gap:9px}
+.colorpick i{width:26px;height:26px;border-radius:7px;border:1px solid var(--rule)}
+.ok{font-size:12px;color:var(--pass);font-weight:600}
+.envrow{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--rule-soft)}
+.envrow:last-child{border-bottom:0}
+.envrow .nm{font-weight:600;font-size:13.5px;flex:0 0 76px}
+.envrow .ad{flex:1;min-width:0;font-size:12.5px;color:var(--ink-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.role{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:7px;
+  background:var(--chip);color:var(--ink-muted);border:1px solid var(--rule)}
+
+/* --- 모달 --- */
+.backdrop{background:rgba(25,23,19,.42);padding:30px 24px;display:flex;justify-content:center}
+.modal{width:880px;max-width:100%;background:var(--sheet);border-radius:16px;overflow:hidden;
+  display:flex;flex-direction:column;max-height:520px;box-shadow:0 24px 60px -20px rgba(25,23,19,.55)}
+.modal-head{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--rule)}
+.modal-head h3{margin:0;font-size:21px;font-weight:600;flex:1;min-width:0;letter-spacing:-.01em}
+.modal-head .x{border:0;background:none;font:inherit;font-size:18px;color:var(--ink-faint);
+  cursor:pointer;line-height:1;padding:5px 7px;border-radius:7px}
+.modal-head .x:hover{background:var(--sheet-2);color:var(--ink)}
+.modal-body{flex:1;overflow:auto;padding:18px 22px;background:var(--paper);
+  display:flex;flex-direction:column;gap:16px}
+.modal-foot{display:flex;align-items:center;gap:12px;padding:14px 22px;border-top:1px solid var(--rule)}
+.modal-foot .count{font-size:13px;color:var(--ink-muted)}
+.modal-foot .sp{flex:1}
+.picked{background:var(--sheet);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.picked > .glabel{font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--chrome);
+  padding:12px 18px 10px;border-bottom:1px solid var(--rule);background:var(--sheet-2)}
+details.case{border-bottom:1px solid var(--rule-soft)}
+details.case:last-child{border-bottom:0}
+details.case > summary{list-style:none;cursor:pointer;padding:12px 18px;display:flex;align-items:center;gap:11px}
+details.case > summary::-webkit-details-marker{display:none}
+details.case > summary:hover{background:var(--sheet-2)}
+summary .nm{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+summary .edit{font-size:12.5px;color:var(--chrome);flex:0 0 auto;font-weight:600}
+summary .edit::before{content:"▸ ";font-size:9px}
+details.case[open] > summary .edit::before{content:"▾ "}
+summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
+.casebody{padding:2px 18px 16px;background:var(--sheet-2)}
+.pline{display:flex;gap:9px 20px;flex-wrap:wrap;align-items:center;padding-top:10px}
+.pitem{display:inline-flex;align-items:center;gap:9px}
+.pline .plabel{flex:0 0 auto;text-align:left}
+
+/* --- 로그인 --- */
+.login{min-height:520px;background:var(--rail);display:flex;align-items:center;justify-content:center;padding:40px}
+.loginbox{width:380px;background:var(--sheet);border-radius:16px;padding:32px 30px;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.5)}
+.loginbox .brand{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.loginbox .brand i{width:26px;height:26px;border-radius:8px;background:var(--chrome)}
+.loginbox .brand b{font-size:17px;font-weight:600}
+.loginbox h2{margin:0 0 4px;font-size:24px;font-weight:600;letter-spacing:-.015em;color:var(--ink)}
+.loginbox p.sub{margin:0 0 22px;font-size:13px;color:var(--ink-faint)}
+.loginbox label{display:block;font-size:12px;font-weight:600;color:var(--ink-muted);margin:0 0 6px}
+.loginbox input{width:100%;font:inherit;font-size:14px;padding:11px 13px;border-radius:10px;
+  border:1px solid var(--rule);background:var(--sheet-2);color:var(--ink);margin-bottom:14px}
+.loginbox input:focus{outline:2px solid var(--chrome);outline-offset:-1px;background:var(--sheet)}
+.loginbox .go{width:100%;font:inherit;font-size:14px;font-weight:600;padding:12px;border-radius:10px;
+  border:0;background:var(--ink);color:#FFFDF9;cursor:pointer;margin-top:4px}
+.loginbox .go:hover{background:#332F29}
+.loginbox .err{font-size:12.5px;color:var(--fail);background:var(--fail-bg);
+  padding:9px 12px;border-radius:8px;margin-bottom:14px}
+
+/* --- 좁은 화면 --- */
+.phone{width:375px;border-radius:16px;overflow:hidden;box-shadow:var(--lift);background:var(--sheet)}
+.phone .app{grid-template-columns:1fr;min-height:0}
+.phone .side{flex-direction:row;align-items:center;gap:10px;padding:10px 12px}
+.phone .side nav{margin:0;flex-direction:row;gap:3px;overflow:auto}
+/* 손가락으로 누르는 영역 최소 44px — 실행 기록·실행 결과 두 화면에만 건다 (SPEC §8) */
+/* 46px 로 둔다 — 기준은 44px 이고 브라우저 반올림이 소수점만큼 깎는다 */
+.phone .side nav a{padding:0 14px;font-size:13px;min-height:46px;align-items:center}
+.phone .side{padding:6px 12px}
+.phone .btn{min-height:44px;padding-top:0;padding-bottom:0}
+.phone .side nav a[aria-current]::before{display:none}
+.phone .side .spacer,.phone .running,.phone .me,.phone .svc-repo,.phone .svc-name,.phone .svc-caret{display:none}
+.phone .svc{background:none;border:0;padding:0}
+.phone .head{padding:16px 16px 14px}
+.phone .head h1{font-size:22px}
+.phone .body{padding:14px}
+.phone .foot{padding:12px 16px}
+.phone tbody td{padding:12px 14px}
+/* 표머리를 감추면 4px 칸을 잡아 주던 것이 사라진다. 거터의 여백을 다시 0 으로 못 박는다 */
+.phone tbody td.g{padding:0}
+.phone thead{display:none}
+
+/* 팔레트 */
+.pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:11px}
+.sw{border:1px solid var(--rule);border-radius:11px;overflow:hidden;background:var(--sheet);box-shadow:var(--lift)}
+.sw i{display:block;height:50px}
+.sw b{display:block;font-size:12px;font-weight:600;padding:8px 11px 1px}
+.sw code{display:block;font-size:11.5px;color:var(--ink-faint);padding:0 11px 9px;
+  font-family:"IBM Plex Mono",monospace}
 </style>
 </head>
 <body>
+<div class="doc">
 
-<div class="lede">
-  <h1>화면 목업 — 2026-09-17 개정판</h1>
-  이 문서는 <b>SPEC §8</b>이 글로 적은 것을 눈으로 본 것이다. 색·간격·구조의 기준은 <b>DESIGN.md</b>다.
-  <ul>
-    <li>맨 위 띠가 <b>서비스를 고르는 자리</b>가 됐다. 전에는 인스턴스를 알리기만 했다 (§1 · §8)</li>
-    <li>자리가 넷이다 — 케이스 · 실행 기록 · 그래프↗ · <b>설정</b>. 설정은 운영 등급에게만 뜬다 (§3.5)</li>
-    <li>새 화면 셋 — <b>실행 기록 목록</b>(§8.7) · <b>설정</b>(§8.8) · <b>실행 완료 모달</b>(§8.9)</li>
-    <li>증적 문서를 <b>형식을 골라</b> 만든다 — PDF · 엑셀 · HTML (§8.4 가 정본)</li>
-    <li>색은 판정만 갖는다. <b>서비스 색이 허용되는 자리는 SPEC §8 이 정한다</b></li>
-  </ul>
-</div>
-
-<div class="wrap">
-
-<!-- ══ 공통 뼈대 ═════════════════════════════════════════════════ -->
-<p class="screen-tag"><b>공통 뼈대</b> — 모든 화면 맨 위에 붙는다 (로그인 화면 제외)</p>
-<div class="screen">
-  <div class="band">
-    <button class="svc">결제 서비스 <span class="caret">▼</span> <span class="repo">github.com/acme/pay-e2e</span></button>
-    <span class="who">김철수 · 로그아웃</span>
-  </div>
-  <nav class="tabs">
-    <a href="#" aria-current="page">케이스</a>
-    <a href="#">실행 기록</a>
-    <a href="#">그래프<span class="ext">↗</span></a>
-    <a href="#">설정</a>
-  </nav>
-  <button class="running">
-    <span class="play">▶</span> RUN 2113 이 도는 중입니다
-    <span class="cnt">12 / 40</span>
-  </button>
-  <div class="sec">
-    <p class="note" style="margin:0">
-      띠 바탕색은 <b>그 서비스의 색</b>이다. 글자를 읽지 않아도 어느 서비스인지 구분된다.
-      브라우저 탭 제목도 <b>결제 서비스 · 테스트 플랫폼</b>이 된다.<br>
-      알림 줄은 <b>도는 실행이 있을 때만</b> 있다. 없으면 줄 자체가 없다 — 빈 줄을 자리만 잡아 두지 않는다.
-      한 번 돌리면 최악 50분이라 자리를 떴다 돌아오는 진입이 흔하다.
-    </p>
-  </div>
-</div>
-
-<p class="screen-tag"><b>서비스 고르기</b> — 띠를 누르면 펼쳐진다. 배정받은 서비스만 뜬다</p>
-<div class="screen">
-  <div class="band">
-    <button class="svc">결제 서비스 <span class="caret">▲</span></button>
-    <span class="who">김철수 · 로그아웃</span>
-  </div>
-  <div class="svc-menu">
-    <button><span class="swatch" style="background:var(--svc-pay)"></span> 결제 서비스 <span class="here">지금 여기</span><span class="pfx">PAY-</span></button>
-    <button><span class="swatch" style="background:var(--svc-mem)"></span> 회원 서비스 <span class="pfx">MEM-</span></button>
-  </div>
-  <div class="sec">
-    <p class="note" style="margin:0">
-      <b>한 번에 한 서비스만 본다.</b> 여러 서비스가 한 목록에 섞이지 않는다 — 섞이면 엉뚱한 서비스에서 실행을 누른다.
-      세 서비스를 맡은 사람이 "오늘 다 괜찮나"를 보려면 세 번 전환해야 한다. 그 갈증은 <b>그래프(Grafana)</b>가 받는다.
-    </p>
-  </div>
-</div>
-
-<p class="screen-tag"><b>같은 화면, 다른 서비스</b> — 바뀌는 것은 띠 색과 이름뿐이다</p>
-<div class="screen" style="margin-bottom:12px">
-  <div class="band" style="background:var(--svc-mem)">
-    <button class="svc">회원 서비스 <span class="caret">▼</span> <span class="repo">github.com/acme/member-tests</span></button>
-    <span class="who">김철수 · 로그아웃</span>
-  </div>
-  <nav class="tabs">
-    <a href="#" aria-current="page">케이스</a>
-    <a href="#">실행 기록</a>
-    <a href="#">그래프<span class="ext">↗</span></a>
-    <a href="#">설정</a>
-  </nav>
-  <div class="row">
-    <div class="gutter" style="background:var(--pass)"></div>
-    <div class="tcid">MEM-001</div>
-    <div class="title">신규 이메일로 가입하면 계정이 생성된다</div>
-    <div class="right"><span class="verdict v-pass">통과</span><button class="btn">실행</button></div>
-  </div>
-</div>
-<p class="note" style="margin:-4px 0 40px 2px">
-  본문은 그대로다. <b>본문에서 색을 보면 언제나 판정이다</b> — 서비스 색이 본문에 새면 그 약속이 깨진다.
-  설정 화면에서 그 색을 고르는 자리만 예외다 (SPEC §8).
-</p>
-
-<!-- ══ 화면 1 — 케이스 목록 ═══════════════════════════════════════ -->
-<p class="screen-tag"><b>화면 1 — 케이스 목록</b> (집. §8.1 · 검색 조건 넷)</p>
-<div class="screen">
-  <div class="band">
-    <button class="svc">결제 서비스 <span class="caret">▼</span></button>
-    <span class="who">김철수 · 로그아웃</span>
-  </div>
-  <nav class="tabs">
-    <a href="#" aria-current="page">케이스</a>
-    <a href="#">실행 기록</a>
-    <a href="#">그래프<span class="ext">↗</span></a>
-    <a href="#">설정</a>
-  </nav>
-  <div class="bar">
-    <div>
-      <div style="font-size:19px;font-weight:600;letter-spacing:-.01em">케이스 목록</div>
-      <div class="runmeta">마지막 스캔 9월 15일 09:02 · 추가 2 · 갱신 5 · 비활성 1 · 중복 0</div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
-      <button class="btn ghost">다시 스캔하기</button>
-      <button class="btn">전체 실행하기</button>
-      <button class="btn">고른 3건 실행하기</button>
-    </div>
-  </div>
-  <div class="toolbar">
-    <input type="text" placeholder="케이스 이름이나 ID로 찾기">
-  </div>
-  <div class="toolbar" style="padding-top:0">
-    <button class="chip" aria-pressed="true">모든 디바이스</button>
-    <button class="chip" aria-pressed="false">PC</button>
-    <button class="chip" aria-pressed="false">모바일</button>
-    <span style="width:1px;background:var(--rule);margin:0 4px"></span>
-    <button class="chip" aria-pressed="true">활성만</button>
-    <button class="chip" aria-pressed="false">전체</button>
-    <span style="width:1px;background:var(--rule);margin:0 4px"></span>
-    <button class="chip" aria-pressed="true">마지막 결과 전체</button>
-    <button class="chip" aria-pressed="false">통과</button>
-    <button class="chip" aria-pressed="false">실패</button>
-    <button class="chip" aria-pressed="false">미실행</button>
-  </div>
-
-  <div class="row pickable">
-    <div class="gutter" style="background:var(--pass)"></div>
-    <div class="pick"><input type="checkbox" checked aria-label="PAY-001 고르기"></div>
-    <div class="tcid">PAY-001</div>
-    <div class="title">카드로 결제하면 주문이 생성된다
-      <small class="params">지원 디바이스 PC · 모바일</small></div>
-    <div class="right"><span class="verdict v-pass">통과</span><button class="btn">실행</button></div>
-  </div>
-  <div class="row pickable">
-    <div class="gutter" style="background:var(--fail)"></div>
-    <div class="pick"><input type="checkbox" checked aria-label="PAY-002 고르기"></div>
-    <div class="tcid">PAY-002</div>
-    <div class="title">한도를 넘는 카드로 결제하면 거절 사유가 안내된다
-      <small class="params">지원 디바이스 PC · 모바일</small></div>
-    <div class="right"><span class="verdict v-fail">실패</span><button class="btn">실행</button></div>
-  </div>
-  <div class="row pickable">
-    <div class="gutter" style="background:var(--na)"></div>
-    <div class="pick"><input type="checkbox" checked aria-label="PAY-014 고르기"></div>
-    <div class="tcid">PAY-014</div>
-    <div class="title">결제를 취소하면 승인이 철회된다
-      <small class="params">지원 디바이스 PC</small></div>
-    <div class="right"><span class="verdict v-na">미실행</span><button class="btn">실행</button></div>
-  </div>
-  <div class="actions">
-    <span class="note">모두 34건 — 안내용 숫자입니다. 다음 페이지가 있는지는 서버가 알려줍니다.</span>
-    <button class="btn ghost" disabled>이전</button>
-    <button class="btn ghost">다음</button>
-  </div>
-</div>
-<p class="note" style="margin:-28px 0 40px 2px">
-  <b class="gone">기능 영역</b> 드롭다운이 사라졌다. 목록이 한 서비스로 좁혀지면 그 안의 접두사는 전부 <b>PAY-</b>라 거를 것이 없다.
-  그 자리는 맨 위 띠가 대신한다. 검색 조건 다섯 → <b>넷</b><br>
-  <b>실행 버튼은 하나다.</b> 아무것도 안 고르면 <b>전체 실행하기</b>, 하나라도 고르면 <b>고른 N건 실행하기</b>로
-  글자만 바뀐다 — 한 화면에서 판단하라고 두 모양을 나란히 그렸다. 누르면 <b>화면 10</b> 이 뜬다.<br>
-  고르는 칸은 <b>왼쪽 거터 안, 판정 색 다음</b>에 있다. 줄 내용 쪽 첫 칸에 두면
-  620px 미만에서 줄이 2단으로 접힐 때 <b>케이스명 위에 체크박스만 홀로 한 줄</b>이 된다.
-</p>
-
-<!-- ══ 빈 목록 세 갈래 ═══════════════════════════════════════════ -->
-<p class="screen-tag"><b>화면 1의 빈 목록</b> — 왜 비었는지에 따라 다른 문장을 보여준다 (§8.1)</p>
-<div class="trio">
-  <div class="screen">
-    <div class="toolbar" style="border-bottom:1px solid var(--rule)"><span class="note">① 아직 안 불러옴</span></div>
-    <div class="empty">
-      <h3>아직 케이스를 불러오지 않았습니다</h3>
-      <p>테스트 코드를 훑어 케이스 목록을 만듭니다. 코드는 바뀌지 않습니다.</p>
-      <button class="btn">케이스 불러오기</button>
-    </div>
-  </div>
-  <div class="screen">
-    <div class="toolbar" style="border-bottom:1px solid var(--rule)"><span class="note">② 불러왔는데 0건</span></div>
-    <div class="empty">
-      <h3>불러왔지만 케이스가 하나도 없습니다</h3>
-      <p>9월 15일 09:02에 훑었습니다. 규칙에 걸려 제외된 파일이 있습니다.</p>
-      <button class="why">규칙에 걸린 파일 3건 · 사유 보기</button>
-    </div>
-  </div>
-  <div class="screen">
-    <div class="toolbar" style="border-bottom:1px solid var(--rule)"><span class="note">③ 검색에 안 걸림</span></div>
-    <div class="empty">
-      <h3>'장바구니'에 맞는 케이스가 없습니다</h3>
-      <p>조건을 지우면 34건이 다시 보입니다.</p>
-      <button class="btn ghost">검색 지우기</button>
-    </div>
-  </div>
-</div>
-<p class="note" style="margin:-28px 0 40px 2px">
-  전에는 셋 다 <b>"찾는 케이스가 없습니다."</b> 하나였다. <b>검색한 적 없는 사람에게도 "찾는"이라고 말했다.</b>
-  이 화면은 도구를 처음 켠 사람이 만나는 자리다 — 여기서 막히면 도구가 고장난 것처럼 보인다.
-  가르는 값(마지막 스캔 시각 · 전체 건수 · 걸린 조건)은 응답에 이미 있다.
-  ③은 <b>친 글자를 문장 안에 그대로 넣는다</b> — 무엇을 찾다 못 찾았는지 사람이 다시 안 떠올려도 되게.
-</p>
-
-<!-- ══ 화면 2 — 실행 설정 ════════════════════════════════════════ -->
-<p class="screen-tag"><b>화면 2 — 실행 설정</b> (입력 폼 자동 생성. §8.2)</p>
-<div class="screen">
-  <div class="bar">
-    <div>
-      <div style="font-size:12.5px;font-weight:600;color:var(--ink-muted)">PAY-002</div>
-      <div style="font-size:19px;font-weight:600;margin-top:4px;letter-spacing:-.01em">한도를 넘는 카드로 결제하면 거절 사유가 안내된다</div>
-    </div>
-  </div>
-  <div class="sec">
-    <div class="sec-h">사전조건</div>
-    <div class="pre">가입 완료된 사용자 계정이 존재한다</div>
-    <div class="pre">장바구니에 상품이 한 건 이상 담겨 있다</div>
-  </div>
-  <div class="sec">
-    <div class="sec-h">입력값</div>
-    <div class="field">
-      <label for="f1">아이디</label>
-      <div><input type="text" id="f1" value="testuser" style="width:100%"></div>
-    </div>
-    <div class="field">
-      <label for="f2">비밀번호</label>
-      <div><input type="password" id="f2" value="Password123" style="width:100%"></div>
-    </div>
-    <div class="field">
-      <label for="f3">결제 수단 <span class="opt">선택</span></label>
-      <div><select id="f3" style="width:100%"><option>신용카드</option><option>계좌이체</option><option>간편결제</option></select></div>
-    </div>
-    <p class="hint">저장된 입력값 묶음을 불러오면 이 칸이 한 번에 채워집니다.</p>
-    <p class="hint">비밀번호처럼 가려야 하는 칸은 타이핑할 때도 글자가 보이지 않고, 결과 화면과 증적 문서에는 <b>********</b>로 나옵니다.</p>
-  </div>
-  <div class="sec">
-    <div class="sec-h">실행 조건</div>
-    <div class="field">
-      <label for="g1">대상 서버</label>
-      <div><select id="g1" style="width:100%">
-        <option value="" selected>고르세요</option>
-        <option>dev — https://dev-pay.example.com</option>
-        <option>qa — https://qa-pay.example.com</option>
-        <option>staging — https://stg-pay.example.com</option>
-      </select></div>
-    </div>
-    <div class="field">
-      <label for="g2">디바이스</label>
-      <div>
-        <button class="chip" aria-pressed="true">PC</button>
-        <button class="chip" aria-pressed="true">모바일</button>
-      </div>
-    </div>
-    <div class="field">
-      <label for="g3">반복 횟수</label>
-      <div><input type="text" id="g3" value="5" style="width:80px"></div>
-    </div>
-    <p class="hint">대상 서버 선택지는 <b>이 서비스에 등록된 것</b>만 뜹니다 (설정 화면에서 정합니다). 기본값은 없습니다.</p>
-    <div class="field">
-      <label for="g4">끝나면 알리기</label>
-      <div>
-        <label style="font-size:13.5px;display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="g4"> Slack 으로 결과 보내기
-        </label>
-      </div>
-    </div>
-    <p class="hint">반복은 같은 케이스를 여러 번 돌려 <b>테스트 코드가 흔들리는지</b> 보는 도구입니다. 실패해도 자동으로 다시 돌지 않습니다.</p>
-    <p class="hint"><b>Slack 은 기본이 꺼짐입니다.</b> 자리를 뜰 실행만 켭니다 — 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 됩니다.
-      화면 앞에 있으면 끝났을 때 <b>완료 모달</b>이 알려 줍니다. 웹훅을 설정하지 않은 서비스에서는 이 칸이 아예 보이지 않습니다.</p>
-  </div>
-  <div class="sec">
-    <div class="sec-h">기대결과</div>
-    <div class="field">
-      <label for="e1">응답 코드</label>
-      <div><input type="text" id="e1" value="402" style="width:120px"></div>
-    </div>
-    <div class="field">
-      <label for="e2">안내 문구 노출</label>
-      <div><select id="e2" style="width:120px"><option>노출됨</option><option>노출 안 됨</option></select></div>
-    </div>
-  </div>
-  <div class="actions">
-    <span class="note">실행 항목이 <b>10건</b> 생깁니다 · 실행자 <b>김철수</b></span>
-    <button class="btn ghost">입력값 묶음으로 저장</button>
-    <button class="btn">실행하기</button>
-  </div>
-</div>
-
-<p class="screen-tag"><b>화면 2 — 상한에 걸렸을 때</b> (§8.2 · 한 번에 1000건까지)</p>
-<div class="screen" style="margin-bottom:12px">
-  <div class="sec" style="border-bottom:1px solid var(--rule)">
-    <div class="field">
-      <label for="g9">반복 횟수</label>
-      <div><input type="text" id="g9" value="800" style="width:80px"></div>
-    </div>
-  </div>
-  <div class="actions">
-    <span class="note" style="color:var(--fail)">실행 항목이 <b>1600건</b> 생깁니다 — 한 번에 1000건까지 만들 수 있습니다.</span>
-    <button class="btn" disabled>실행하기</button>
-  </div>
-</div>
-<p class="note" style="margin:-4px 0 40px 2px">
-  막는 것은 반복 횟수가 아니라 <b>만들어질 항목 수</b>다. 그래야 케이스를 여러 건 고를 때도 같이 보호된다.
-  전에는 "동시 실행 2 제한이 있어 서버가 안 죽는다"가 근거였는데, 그건 <b>돌아가는 프로세스 수</b>를 막지 <b>DB에 쌓이는 행</b>을 막지 않는다.
-</p>
-
-<!-- ══ 화면 3 — 실행 결과 목록 ═══════════════════════════════════ -->
-<p class="screen-tag"><b>화면 3 — 실행 결과 목록</b> (§8.3 · 증적 문서는 §8.4)</p>
-<div class="screen">
-  <div class="band">
-    <button class="svc">결제 서비스 <span class="caret">▼</span></button>
-    <span class="who">김철수 · 로그아웃</span>
-  </div>
-  <div class="bar">
-    <div>
-      <div class="runid">RUN 2111</div>
-      <div class="runmeta">2026년 9월 15일 17:13 · 결제 회귀 · 실행자 김철수<br>
-        대상 서버 <b>qa</b> · https://qa-pay.example.com</div>
-    </div>
-    <div class="tally">
-      <div><b style="color:var(--pass)">8</b><span>통과</span></div>
-      <div><b style="color:var(--fail)">1</b><span>실패</span></div>
-      <div><b style="color:var(--na)">1</b><span>미실행</span></div>
-      <button class="btn ghost">PDF 만들기</button>
-      <button class="btn ghost">엑셀 만들기</button>
-      <button class="btn ghost">HTML 만들기</button>
-    </div>
-  </div>
-  <div class="stripe">
-    <i style="background:var(--pass);flex:8"></i>
-    <i style="background:var(--fail);flex:1"></i>
-    <i style="background:var(--na);flex:1"></i>
-  </div>
-  <div class="sec" style="border-bottom:1px solid var(--rule)">
-    <div class="sec-h">증적 문서</div>
-    <div class="doc"><span class="fmt">PDF</span><span class="when">9월 15일 17:22 만듦</span><a href="#" class="open">열기 ↗</a></div>
-    <div class="doc"><span class="fmt">엑셀</span><span class="when">9월 15일 17:25 만듦</span><a href="#" class="open">받기 ↓</a></div>
-    <div class="doc"><span class="fmt">PDF</span><span class="when">9월 15일 17:20 만듦</span><a href="#" class="open">열기 ↗</a></div>
-    <p class="note" style="margin-top:14px">같은 실행의 증적은 언제 뽑아도 내용이 같습니다.</p>
-    <p class="hint" style="margin-top:12px">
-      <b>만드는 버튼은 위 RUN 머리에 있습니다.</b>
-      증적은 항목 한 건이 아니라 <b>실행 한 부</b>라서입니다 (§8.4).
-      <code>PDF</code> 는 검수처 제출용, <code>엑셀</code> 은 표로 가공, <code>HTML</code> 은 브라우저에서 찾기입니다.
-    </p>
-    <p class="hint" style="margin-top:12px">
-      <b>PDF·HTML 은 <code>열기 ↗</code>, 엑셀은 <code>받기 ↓</code> 입니다.</b>
-      브라우저가 엑셀을 못 열기 때문입니다 — 「열린다」고 해 놓고 파일이 떨어지면 사람이 어디로 갔는지 찾습니다.
-    </p>
-    <p class="hint">
-      엑셀은 <b>한 행이 검증 문장 하나</b>입니다. 병합 셀을 쓰지 않고 상위 정보를 앞 칸에 반복합니다 —
-      그래야 걸러 내기와 피벗이 됩니다. 잘게 편 것은 접을 수 있지만 굵게 편 것은 못 쪼갭니다.
-      스크린샷은 경로만 넣습니다. 이미지가 필요한 제출물은 PDF 입니다.
-    </p>
-  </div>
-  <div class="actions" style="justify-content:flex-start;border-bottom:1px solid var(--rule-soft)">
-    <span class="note">실행이 끝났습니다 · 17:19 완료</span>
-    <button class="btn ghost" disabled>실행 멈추기</button>
-  </div>
-  <div class="toolbar">
-    <input type="text" placeholder="케이스 이름이나 ID로 찾기">
-    <button class="chip" aria-pressed="true">전체</button>
-    <button class="chip" aria-pressed="false">실패만</button>
-    <span style="width:1px;background:var(--rule);margin:0 4px"></span>
-    <button class="chip" aria-pressed="true">모든 디바이스</button>
-    <button class="chip" aria-pressed="false">PC</button>
-    <button class="chip" aria-pressed="false">모바일</button>
-  </div>
-
-  <div class="row">
-    <div class="gutter" style="background:var(--pass)"></div>
-    <div class="tcid">PAY-001</div>
-    <div class="title">카드로 결제하면 주문이 생성된다
-      <small class="params">아이디 testuser · 결제 수단 신용카드</small></div>
-    <div class="right"><span class="dur">1.24초</span><span class="verdict v-pass">통과</span></div>
-  </div>
-  <div class="row">
-    <div class="gutter" style="background:var(--fail)"></div>
-    <div class="tcid">PAY-002</div>
-    <div class="title">한도를 넘는 카드로 결제하면 거절 사유가 안내된다
-      <small>2번 절차에서 실패 — 안내 문구가 노출된다</small>
-      <small class="params">아이디 testuser · 비밀번호 ******** · 결제 수단 신용카드</small></div>
-    <div class="right"><span class="attempt">3/5 통과</span><span class="dur">0.40초 평균</span><span class="verdict v-fail">실패</span></div>
-  </div>
-  <div class="row">
-    <div class="gutter" style="background:var(--na)"></div>
-    <div class="tcid">PAY-014</div>
-    <div class="title">결제를 취소하면 승인이 철회된다
-      <small>앞 케이스 실패로 실행되지 않음</small></div>
-    <div class="right"><span class="dur">—</span><span class="verdict v-na">미실행</span></div>
-  </div>
-</div>
-
-<p class="screen-tag"><b>화면 3의 두 가지 사고</b> — 사람이 멈춘 것과 러너가 고장난 것은 다른 일이다 (§8.3)</p>
-<div class="screen" style="margin-bottom:12px">
-  <div class="bar" style="padding-bottom:12px">
-    <div>
-      <div class="runid" style="font-size:22px">RUN 2112 <span class="verdict v-na" style="vertical-align:middle">중단됨</span></div>
-      <div class="runmeta">사용자가 멈춤 · 17:41</div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="gutter" style="background:var(--na)"></div>
-    <div class="tcid">PAY-021</div>
-    <div class="title">쿠폰을 적용하면 결제 금액이 줄어든다
-      <small>사용자가 멈춤</small></div>
-    <div class="right"><span class="verdict v-na">미실행</span></div>
-  </div>
-
-  <div class="bar" style="padding:18px 24px 12px;border-top:1px solid var(--rule)">
-    <div>
-      <div class="runid" style="font-size:22px">RUN 2113</div>
-      <div class="runmeta">끝남 · 18:02</div>
-    </div>
-  </div>
-  <div class="warn">러너에 닿지 못해 <b>4건</b>이 돌지 못했습니다. 원인은 항목 상세에 있습니다.</div>
-  <div class="row">
-    <div class="gutter" style="background:var(--na)"></div>
-    <div class="tcid">PAY-030</div>
-    <div class="title">환불하면 승인 내역이 남는다
-      <small>러너에 닿지 못했습니다</small></div>
-    <div class="right"><span class="verdict v-na">미실행</span></div>
-  </div>
-</div>
-<p class="note" style="margin:-4px 0 40px 2px">
-  같은 <b>미실행</b> 배지라도 사유 문장이 다르다. 사유 없이 미실행으로 두면 <b>러너 고장과 사람이 멈춘 것이 구분되지 않는다.</b>
-  스택이나 포트 같은 원문 오류는 목록에 쓰지 않는다 — 이 도구의 전제는 "코드를 몰라도 쓴다"다.
-</p>
-
-<!-- ══ 화면 4 — 결과 상세 ════════════════════════════════════════ -->
-<p class="screen-tag"><b>화면 4 — 결과 상세</b> (명세 기반 · 증적 문서와 같은 포맷. §8.4)</p>
-<div class="screen">
-  <div class="bar">
-    <div>
-      <div style="font-size:12.5px;font-weight:600;color:var(--ink-muted)">PAY-002 · 이력 537767 · 3회차</div>
-      <div style="font-size:19px;font-weight:600;margin-top:4px;letter-spacing:-.01em">한도를 넘는 카드로 결제하면 거절 사유가 안내된다</div>
-    </div>
-    <span class="verdict v-fail" style="font-size:13px;padding:7px 16px">실패</span>
-  </div>
-  <div class="sec">
-    <div class="sec-h">사전조건</div>
-    <div class="pre">가입 완료된 사용자 계정이 존재한다</div>
-    <div class="pre">장바구니에 상품이 한 건 이상 담겨 있다</div>
-  </div>
-  <div class="sec">
-    <div class="sec-h">입력값</div>
-    <div class="field"><label>아이디</label><div class="val">testuser</div></div>
-    <div class="field"><label>비밀번호</label><div class="val">●●●●●●●●●●●</div></div>
-    <div class="field"><label>결제 수단</label><div class="val">신용카드</div></div>
-    <p class="hint">이 라벨은 <b>실행 시점에 박제된 것</b>입니다. 케이스 코드의 설명 문구를 고쳐도 이 문서는 바뀌지 않습니다.</p>
-  </div>
-  <div class="sec">
-    <div class="sec-h">시험 절차</div>
-    <div class="step">
-      <div class="step-h">
-        <span class="step-n">1</span>
-        <span class="step-t">결제 API를 호출한다</span>
-        <span class="dur">312ms</span>
-        <span class="verdict v-pass">통과</span>
-      </div>
-      <div class="assert">
-        <span class="mark" style="color:var(--pass)">✓</span>
-        <span>응답 코드가 한도 초과다</span>
-        <span class="exp">기대 402</span>
-        <span class="act">실제 <b>402</b></span>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-h">
-        <span class="step-n">2</span>
-        <span class="step-t">거절 사유 안내를 확인한다</span>
-        <span class="dur">88ms</span>
-        <span class="verdict v-fail">실패</span>
-      </div>
-      <div class="assert bad">
-        <span class="mark" style="color:var(--fail)">✗</span>
-        <span>안내 문구가 노출된다</span>
-        <span class="exp">기대 노출됨</span>
-        <span class="act">실제 <b>노출 안 됨</b></span>
-      </div>
-      <div class="assert">
-        <span class="mark" style="color:var(--na)">–</span>
-        <span style="color:var(--ink-faint)">안내 문구에 한도 금액이 들어간다</span>
-        <span class="exp">앞 검증 실패로 건너뜀</span>
-        <span class="act"></span>
-      </div>
-    </div>
-  </div>
-  <div class="actions">
-    <span class="note">이 화면의 구성이 증적 문서에 그대로 출력됩니다.</span>
-    <button class="btn ghost">이 케이스 이력 보기</button>
-    <button class="btn">같은 값으로 다시 실행</button>
-  </div>
-</div>
-
-<!-- ══ 화면 5 — 실행 기록 목록 (신설) ════════════════════════════ -->
-<p class="screen-tag"><b>화면 5 — 실행 기록 목록</b> (§8.7 신설. 코드에는 있었고 명세에 없던 화면)</p>
-<div class="screen">
-  <div class="band">
-    <button class="svc">결제 서비스 <span class="caret">▼</span></button>
-    <span class="who">김철수 · 로그아웃</span>
-  </div>
-  <nav class="tabs">
-    <a href="#">케이스</a>
-    <a href="#" aria-current="page">실행 기록</a>
-    <a href="#">그래프<span class="ext">↗</span></a>
-    <a href="#">설정</a>
-  </nav>
-  <button class="running">
-    <span class="play">▶</span> RUN 2113 이 도는 중입니다
-    <span class="cnt">12 / 40</span>
-  </button>
-  <div class="bar">
-    <div>
-      <div style="font-size:19px;font-weight:600;letter-spacing:-.01em">실행 기록</div>
-      <div class="runmeta">결제 서비스의 실행만 보입니다</div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="gutter" style="background:var(--na)"></div>
-    <div class="tcid">RUN 2113</div>
-    <div class="title">야간 결제 회귀
-      <small>9월 15일 18:02 · 대상 서버 qa · 실행자 스케줄러 · 도는 중</small></div>
-    <div class="right">
-      <div class="tally"><div><b style="color:var(--pass)">12</b><span>통과</span></div><div><b style="color:var(--fail)">0</b><span>실패</span></div><div><b style="color:var(--na)">28</b><span>미실행</span></div></div>
-      <button class="btn ghost">결과 보기</button>
-    </div>
-  </div>
-  <div class="row">
-    <div class="gutter" style="background:var(--na)"></div>
-    <div class="tcid">RUN 2112</div>
-    <div class="title">쿠폰 점검
-      <small>9월 15일 17:38 · 대상 서버 dev · 실행자 박영희 · <b>중단됨</b></small></div>
-    <div class="right">
-      <div class="tally"><div><b style="color:var(--pass)">3</b><span>통과</span></div><div><b style="color:var(--fail)">0</b><span>실패</span></div><div><b style="color:var(--na)">7</b><span>미실행</span></div></div>
-      <button class="btn ghost">결과 보기</button>
-    </div>
-  </div>
-  <div class="row">
-    <div class="gutter" style="background:var(--fail)"></div>
-    <div class="tcid">RUN 2111</div>
-    <div class="title">결제 회귀
-      <small>9월 15일 17:13 · 대상 서버 qa · 실행자 김철수 · 끝남</small></div>
-    <div class="right">
-      <div class="tally"><div><b style="color:var(--pass)">8</b><span>통과</span></div><div><b style="color:var(--fail)">1</b><span>실패</span></div><div><b style="color:var(--na)">1</b><span>미실행</span></div></div>
-      <button class="btn ghost">결과 보기</button>
-    </div>
-  </div>
-  <div class="row">
-    <div class="gutter" style="background:var(--pass)"></div>
-    <div class="tcid">RUN 2108</div>
-    <div class="title">배포 전 확인
-      <small>9월 14일 22:00 · 대상 서버 staging · <b>실행자 미상 (인증 도입 이전)</b> · 끝남</small></div>
-    <div class="right">
-      <div class="tally"><div><b style="color:var(--pass)">10</b><span>통과</span></div><div><b style="color:var(--fail)">0</b><span>실패</span></div><div><b style="color:var(--na)">0</b><span>미실행</span></div></div>
-      <button class="btn ghost">결과 보기</button>
-    </div>
-  </div>
-  <div class="actions">
-    <span class="note">모두 61건 — 안내용 숫자입니다.</span>
-    <button class="btn ghost" disabled>이전</button>
-    <button class="btn ghost">다음</button>
-  </div>
-</div>
-<p class="note" style="margin:-28px 0 40px 2px">
-  <b>고친 것 셋</b> — 실행자를 로그인 아이디가 아니라 <b>박제된 이름</b>으로,
-  <b>대상 서버</b>를 시각 옆에(제목이 같은 두 실행이 구분되지 않았다),
-  상태에 <b>중단됨</b>을 더했다(전에는 끝남·도는 중 둘뿐이라 사람이 멈춘 실행이 "끝남"으로 보였다).<br>
-  <b>휴대폰으로 제대로 되는 두 화면 중 하나다</b> — 손가락 영역 44px을 여기에 건다.
-</p>
-
-<!-- ══ 화면 6 — 설정 (신설) ══════════════════════════════════════ -->
-<p class="screen-tag"><b>화면 6 — 설정</b> (§8.8 신설. 운영 등급에게만 보인다)</p>
-<div class="screen">
-  <div class="band">
-    <button class="svc">결제 서비스 <span class="caret">▼</span></button>
-    <span class="who">김철수 · 로그아웃</span>
-  </div>
-  <nav class="tabs">
-    <a href="#">케이스</a>
-    <a href="#">실행 기록</a>
-    <a href="#">그래프<span class="ext">↗</span></a>
-    <a href="#" aria-current="page">설정</a>
-  </nav>
-
-  <div class="sec-head">
-    <h3>서비스</h3>
-    <button class="btn ghost">서비스 더하기</button>
-  </div>
-  <div class="srow">
-    <span class="swatch" style="background:var(--svc-pay)"></span>
-    <div class="nm">결제 서비스<small>github.com/acme/pay-e2e · 폴더 pay-e2e · 대상 서버 3곳 · Slack 설정됨</small></div>
-    <span class="pfx">PAY-</span>
-    <span class="cnt">케이스 200건</span>
-    <button class="edit">고치기</button>
-  </div>
-  <div class="srow">
-    <span class="swatch" style="background:var(--svc-mem)"></span>
-    <div class="nm">회원 서비스<small>github.com/acme/member-tests · 폴더 member-tests · 대상 서버 2곳 · Slack 없음</small></div>
-    <span class="pfx">MEM-</span>
-    <span class="cnt">케이스 150건</span>
-    <button class="edit">고치기</button>
-  </div>
-  <div class="srow off">
-    <span class="swatch" style="background:#7A7F76"></span>
-    <div class="nm">구 정산 서비스<span class="tag-off">비활성</span><small>2026년 6월 접음 · 과거 실행 기록은 그대로 남아 있다</small></div>
-    <span class="pfx">STL-</span>
-    <span class="cnt">케이스 0건</span>
-    <button class="edit">되살리기</button>
-  </div>
-  <p class="hint" style="padding:12px 24px 0">
-    <b>접두사는 만들 때만 정합니다.</b> 케이스 번호 안에 이미 들어 있어 나중에 바꾸면 기존 케이스가 어느 서비스 것도 아니게 됩니다.
-  </p>
-  <p class="hint" style="padding:2px 24px 0">
-    <b>지우지 않고 비활성으로 내립니다.</b> 지우면 그 서비스로 돌린 과거 실행의 증적이 흔들립니다.
-  </p>
-  <p class="hint" style="padding:2px 24px 18px">
-    <b>Slack 웹훅은 되돌려 보여주지 않습니다.</b> 비밀값이라 <code>설정됨 · 다시 넣기</code>로만 표시합니다.
-    비우면 그 서비스는 알림을 보내지 않고, 실행 설정의 Slack 칸도 사라집니다 (SPEC §8.9).
+  <h1>짙은 안</h1>
+  <p class="lede">
+    앞서 본 안은 밝은 베이지 한 톤이라 껍데기와 내용이 같은 밝기였다 — 그래서 밋밋했다.
+    <b>사이드바를 짙게 눌러</b> 대비를 만들고, 제목을 키우고, 면에 아주 옅은 그림자를 줬다.
+    판정 색 규칙은 그대로다.
   </p>
 
-  <div class="sec-head" style="border-top:1px solid var(--rule)">
-    <h3>계정</h3>
-    <button class="btn ghost">계정 더하기</button>
-  </div>
-  <div class="srow urow">
-    <div class="nm">김철수<small>chulsoo · 결제 · 회원</small></div>
-    <span class="role">운영</span>
-    <button class="edit">고치기</button>
-  </div>
-  <div class="srow urow">
-    <div class="nm">박영희<small>younghee · 회원</small></div>
-    <span class="role">실행까지</span>
-    <button class="edit">고치기</button>
-  </div>
-  <div class="srow urow">
-    <div class="nm">이기획<small>gihoek · 결제 · 회원</small></div>
-    <span class="role">보기만</span>
-    <button class="edit">고치기</button>
-  </div>
-  <div class="srow urow off">
-    <div class="nm">최퇴사<span class="tag-off">비활성</span><small>toesa · 결제</small></div>
-    <span class="role">실행까지</span>
-    <button class="edit">되살리기</button>
-  </div>
-  <div class="pwbox">
-    계정을 만들었습니다 — <code>Wq7-fnx2-Rb4T</code>
-    <p><b>이 화면을 닫으면 다시 볼 수 없습니다.</b> 비밀번호는 시스템이 만들고 사람이 타이핑해 넘기지 않습니다.
-      잊으면 <b>비밀번호 다시 만들기</b>를 누릅니다.</p>
-  </div>
-  <p class="hint" style="padding:14px 24px 18px">
-    <b>마지막 운영 계정은 등급을 낮추거나 비활성으로 만들 수 없습니다.</b>
-    막지 않으면 이 화면에 아무도 못 들어가고 서버 안에서 명령을 쳐야만 풀립니다.
-  </p>
-</div>
-<p class="note" style="margin:-28px 0 40px 2px">
-  전에는 서비스를 하나 더 만드는 일이 <b>설정 파일 여섯 줄을 고치고 컨테이너를 새로 띄우는 서버 작업</b>이었다.
-  서비스가 데이터가 되면서 화면에서 항목 하나를 더하는 일이 됐다.
-  <b>책상에서만 쓰는 화면이다</b> — 좁은 화면 대응을 하지 않는다.
-</p>
+  <h2>케이스 목록</h2>
+  <div class="frame">
+    <div class="app">
 
-<!-- ══ 화면 7 — 등급 차이 ════════════════════════════════════════ -->
-<p class="screen-tag"><b>화면 7 — 「보기만」 등급이 보는 같은 화면</b> (§3.5 · §8)</p>
-<div class="screen">
-  <div class="band">
-    <button class="svc">결제 서비스 <span class="caret">▼</span></button>
-    <span class="who">이기획 · 로그아웃</span>
-  </div>
-  <nav class="tabs">
-    <a href="#" aria-current="page">케이스</a>
-    <a href="#">실행 기록</a>
-    <a href="#">그래프<span class="ext">↗</span></a>
-  </nav>
-  <div class="row">
-    <div class="gutter" style="background:var(--pass)"></div>
-    <div class="tcid">PAY-001</div>
-    <div class="title">카드로 결제하면 주문이 생성된다
-      <small class="params">지원 디바이스 PC · 모바일</small></div>
-    <div class="right"><span class="verdict v-pass">통과</span></div>
-  </div>
-  <div class="row">
-    <div class="gutter" style="background:var(--fail)"></div>
-    <div class="tcid">PAY-002</div>
-    <div class="title">한도를 넘는 카드로 결제하면 거절 사유가 안내된다
-      <small class="params">지원 디바이스 PC · 모바일</small></div>
-    <div class="right"><span class="verdict v-fail">실패</span></div>
-  </div>
-  <div class="sec">
-    <div class="sec-h">무엇이 사라졌나</div>
-    <div class="field"><label>자리</label><div class="val"><b class="gone">설정</b> — 탭에 아예 없다</div></div>
-    <div class="field"><label>케이스 목록</label><div class="val"><b class="gone">실행</b> 버튼</div></div>
-    <div class="field"><label>실행 결과</label><div class="val"><b class="gone">실행 멈추기</b> · <b class="gone">증적 문서 만들기</b></div></div>
-    <div class="field"><label>그대로 있는 것</label><div class="val">증적 문서 <b>받기</b> — 받는 것은 읽기다</div></div>
-    <p class="hint">
-      <b>흐리게 두지 않고 없앤다.</b> 누를 수 없는 메뉴가 있으면 사람이 그것이 올 때까지 기다린다.
-      주소를 직접 쳐도 열리지 않는다 — 화면만 막으면 막은 것이 아니다.
-    </p>
-  </div>
-</div>
+      <aside class="side">
+        <div class="svc">
+          <span class="svc-dot"></span>
+          <span class="svc-name">결제 서비스</span>
+          <span class="svc-caret">▾</span>
+        </div>
+        <span class="svc-repo mono">github.com/acme/pay-e2e</span>
 
-<!-- ══ 화면 8 의 도는 동안 — 진행 상자 ═══════════════════════════ -->
-<p class="screen-tag"><b>화면 8 의 도는 동안 — 진행 상자</b> (§8.9. <b>완료 모달과 같은 상자</b>이고 도는 동안은 내용만 다르다)</p>
-<div class="screen" style="border:0;background:transparent;margin-bottom:12px">
-  <div class="scrim">
-    <div class="modal">
-      <h3>RUN 2114 가 도는 중입니다</h3>
-      <div class="sub">결제 회귀 · 대상 서버 qa</div>
-      <div class="stripe">
-        <i style="background:var(--pass);flex:5"></i>
-        <i style="background:var(--fail);flex:1"></i>
-        <i style="background:var(--rule);flex:4"></i>
-      </div>
-      <div class="tally">
-        <div><b style="color:var(--pass)">5</b><span>통과</span></div>
-        <div><b style="color:var(--fail)">1</b><span>실패</span></div>
-        <div><b style="color:var(--na)">0</b><span>미실행</span></div>
-        <div><b>4</b><span>남음</span></div>
-      </div>
-      <div class="sub">6 / 10 완료</div>
-      <div class="flist">
-        <b>진행 중</b>
-        <div class="pre">
-          <div class="one-line">PAY-004 저장한 카드로 다시 결제하면 승인된다</div>
-          <div class="now-step">
-            <span class="one-line">절차 4 · 결제 수단 목록에서 카드를 고른다</span>
-            <b>12초째</b>
-            <span class="lim">/ 제한 5분</span>
+        <nav>
+          <a href="#" aria-current="page">케이스</a>
+          <a href="#">실행 기록</a>
+          <a href="#">그래프 <span class="out">↗</span></a>
+          <a href="#">설정</a>
+        </nav>
+
+        <div class="spacer"></div>
+
+        <a class="running" href="#">
+          <span class="lbl"><i></i>도는 중</span>
+          <span class="who mono">RUN 2113 · 12 / 40</span>
+          <span class="bar"><i></i></span>
+        </a>
+
+        <div class="me">
+          <span class="who">김철수</span>
+          <button>로그아웃</button>
+        </div>
+      </aside>
+
+      <div class="main">
+        <header class="head">
+          <div class="titlewrap">
+            <h1>케이스 목록</h1>
+            <div class="meta">마지막 스캔 9월 15일 09:02 · 추가 2 · 갱신 5 · 비활성 1 · 중복 0</div>
+          </div>
+          <!-- 버튼은 하나이고 글자가 바뀐다. 아무것도 안 고르면 「전체 실행」 (SPEC §8.1) -->
+          <div class="acts">
+            <button class="btn">다시 스캔</button>
+            <button class="btn btn-primary">고른 2건 실행</button>
+          </div>
+        </header>
+
+        <div class="body">
+          <div class="stats">
+            <div class="stats-row">
+              <div class="stat">
+                <div class="k">전체 케이스</div>
+                <div class="v mono">34</div>
+                <div class="sub">활성 33 · 비활성 1</div>
+              </div>
+              <div class="stat p">
+                <div class="k"><i></i>통과</div>
+                <div class="v mono">28</div>
+                <div class="sub">마지막 실행 기준</div>
+              </div>
+              <div class="stat f">
+                <div class="k"><i></i>실패</div>
+                <div class="v mono">4</div>
+                <div class="sub">어제보다 2건 늘었다</div>
+              </div>
+              <div class="stat n">
+                <div class="k"><i></i>미실행</div>
+                <div class="v mono">2</div>
+                <div class="sub">한 번도 안 돌렸다</div>
+              </div>
+            </div>
+            <div class="ratio">
+              <i class="p" style="width:82.4%"></i>
+              <i class="f" style="width:11.8%"></i>
+              <i class="n" style="width:5.8%"></i>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="tools">
+              <input class="search" placeholder="케이스 이름이나 ID로 찾기" />
+              <span class="seg"><button aria-pressed="true">모든 디바이스</button><button>PC</button><button>모바일</button></span>
+              <span class="seg"><button aria-pressed="true">활성만</button><button>전체</button></span>
+              <span class="seg"><button aria-pressed="true">전체</button><button>통과</button><button>실패</button><button>미실행</button></span>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:5px"></th>
+                  <th class="pick"><input type="checkbox" aria-label="모두 고르기" /></th>
+                  <th style="width:92px">TC ID</th>
+                  <th>케이스</th>
+                  <th style="width:200px">입력값과 기대결과</th>
+                  <th class="r" style="width:118px;white-space:nowrap">판정과 최근 5회</th>
+                  <th class="r" style="width:120px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="g g-pass"><i></i></td>
+                  <td class="pick"><input type="checkbox" aria-label="PAY-001 고르기" checked /></td>
+                  <td><span class="tcchip mono">PAY-001</span></td>
+                  <td>
+                    <div class="cname">카드로 결제하면 주문이 생성된다</div>
+                    <div class="csub">지원 디바이스 PC · 모바일</div>
+                  </td>
+                  <td>
+                    <div class="pcell">
+                      <div class="prow"><span class="plabel">카드번호</span><input class="pinput mono" value="4000-0000-0000-0002" /></div>
+                      <div class="prow"><span class="plabel">결제 금액</span><input class="pinput mono" value="50000" /></div>
+                      <div class="prow"><span class="plabel">주문 상태</span><input class="pinput" value="결제 완료" /></div>
+                    </div>
+                  </td>
+                  <td class="r"><span class="badge b-pass">통과</span>
+                    <span class="spark" aria-hidden="true"><i class="p"></i><i class="p"></i><i class="f"></i><i class="p"></i><i class="p"></i></span>
+                    <span class="sparktext"><b class="p">통과 4</b> · <b class="f">실패 1</b></span></td>
+                  <td class="r">
+                    <button class="btn btn-sm btn-on" aria-pressed="true">상세</button>
+                    <button class="btn btn-sm">실행</button>
+                  </td>
+                </tr>
+
+                <tr class="drow">
+                  <td class="g g-pass"><i></i></td>
+                  <td colspan="6">
+                    <div class="detail">
+                      <div class="dsec">
+                        <div class="dlabel">사전조건</div>
+                        <ol class="dlist">
+                          <li>로그인한 상태다</li>
+                          <li>장바구니에 상품이 하나 담겨 있다</li>
+                          <li>한도가 넉넉한 카드가 등록되어 있다</li>
+                        </ol>
+                      </div>
+
+                      <div class="dsec dcols">
+                        <div>
+                          <div class="dlabel">입력값</div>
+                          <table class="dtab">
+                            <tr><td class="k">카드번호</td><td class="t">글자</td><td class="mono">4000-0000-0000-0002</td></tr>
+                            <tr><td class="k">결제 금액</td><td class="t">숫자</td><td class="mono">50000</td></tr>
+                          </table>
+                        </div>
+                        <div>
+                          <div class="dlabel">기대결과</div>
+                          <table class="dtab">
+                            <tr><td class="k">주문 상태</td><td class="t">글자</td><td class="mono">결제 완료</td></tr>
+                          </table>
+                        </div>
+                      </div>
+
+                      <div class="dsec">
+                        <div class="dlabel">시험 절차<span class="dfrom">마지막 실행 RUN 2113 에서 가져왔다</span></div>
+                        <ol class="dsteps">
+                          <li><span class="n mono">1</span><span class="t">결제 화면을 연다</span><span class="badge b-pass">통과</span><span class="d mono">0.4초</span></li>
+                          <li><span class="n mono">2</span><span class="t">카드번호를 넣고 결제를 누른다</span><span class="badge b-pass">통과</span><span class="d mono">0.9초</span></li>
+                          <li><span class="n mono">3</span><span class="t">주문 상태를 확인한다</span><span class="badge b-pass">통과</span><span class="d mono">0.5초</span></li>
+                        </ol>
+                      </div>
+
+                      <div class="dsec">
+                        <div class="dlabel">실행 이력<span class="dfrom">최근 5건</span></div>
+                        <table class="dhist">
+                          <tr><td class="mono">RUN 2113</td><td>9월 15일 09:14</td><td>staging</td><td>PC</td>
+                              <td><span class="badge b-pass">통과</span></td><td class="mono">1.8초</td><td class="last"><a href="#">결과 보기</a></td></tr>
+                          <tr><td class="mono">RUN 2098</td><td>9월 14일 18:02</td><td>staging</td><td>모바일</td>
+                              <td><span class="badge b-fail">실패</span></td><td class="mono">4.2초</td><td class="last"><a href="#">결과 보기</a></td></tr>
+                          <tr><td class="mono">RUN 2081</td><td>9월 13일 10:30</td><td>qa</td><td>PC</td>
+                              <td><span class="badge b-pass">통과</span></td><td class="mono">1.7초</td><td class="last"><a href="#">결과 보기</a></td></tr>
+                        </table>
+                      </div>
+
+                      <div class="dsec">
+                        <div class="dlabel">이 케이스에 대해</div>
+                        <table class="dtab">
+                          <tr><td class="k">지원 디바이스</td><td>PC · 모바일</td></tr>
+                          <tr><td class="k">소스</td><td class="mono">tests/pay/PAY-001.spec.ts</td></tr>
+                          <tr><td class="k">마지막 스캔</td><td>9월 15일 09:02</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td class="g g-fail"><i></i></td>
+                  <td class="pick"><input type="checkbox" aria-label="PAY-002 고르기" checked /></td>
+                  <td><span class="tcchip mono">PAY-002</span></td>
+                  <td>
+                    <div class="cname">한도를 넘는 카드로 결제하면 거절 사유가 안내된다</div>
+                    <div class="csub failwhy">2번 절차에서 실패 — 거절 사유가 화면에 보인다</div>
+                  </td>
+                  <td>
+                    <div class="pcell">
+                      <div class="prow"><span class="plabel">결제 금액</span><input class="pinput mono" value="120000" /></div>
+                      <div class="prow"><span class="plabel">거절 사유</span><input class="pinput" value="한도 초과" /></div>
+                    </div>
+                  </td>
+                  <td class="r"><span class="badge b-fail">실패</span>
+                    <span class="spark" aria-hidden="true"><i class="p"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></span>
+                    <span class="sparktext"><b class="f">실패 4</b> · <b class="p">통과 1</b></span></td>
+                  <td class="r"><button class="btn btn-sm">상세</button> <button class="btn btn-sm">실행</button></td>
+                </tr>
+
+                <tr>
+                  <td class="g g-na"><i></i></td>
+                  <td class="pick"><input type="checkbox" aria-label="PAY-014 고르기" /></td>
+                  <td><span class="tcchip mono">PAY-014</span></td>
+                  <td>
+                    <div class="cname">결제를 취소하면 승인이 철회된다</div>
+                    <div class="csub">지원 디바이스 PC</div>
+                  </td>
+                  <td><span class="pnone">고칠 값이 없다</span></td>
+                  <td class="r"><span class="badge b-na">미실행</span>
+                    <span class="spark" aria-hidden="true"><i class="e"></i><i class="e"></i><i class="e"></i><i class="e"></i><i class="n"></i></span>
+                    <span class="sparktext"><b class="n">미실행 1</b> · 돌린 적 없음 4</span></td>
+                  <td class="r"><button class="btn btn-sm">상세</button> <button class="btn btn-sm">실행</button></td>
+                </tr>
+
+                <tr>
+                  <td class="g g-pass"><i></i></td>
+                  <td class="pick"><input type="checkbox" aria-label="PAY-021 고르기" /></td>
+                  <td><span class="tcchip mono">PAY-021</span></td>
+                  <td>
+                    <div class="cname">쿠폰을 적용하면 결제 금액이 줄어든다</div>
+                    <div class="csub">지원 디바이스 PC · 모바일</div>
+                  </td>
+                  <td>
+                    <div class="pcell">
+                      <div class="prow"><span class="plabel">쿠폰 코드</span><input class="pinput mono" value="WELCOME10" /></div>
+                    </div>
+                  </td>
+                  <td class="r"><span class="badge b-pass">통과</span>
+                    <span class="spark" aria-hidden="true"><i class="p"></i><i class="p"></i><i class="p"></i><i class="p"></i><i class="p"></i></span>
+                    <span class="sparktext"><b class="p">통과 5</b></span></td>
+                  <td class="r"><button class="btn btn-sm">상세</button> <button class="btn btn-sm">실행</button></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-        <div class="pre">
-          <div class="one-line">PAY-007 쿠폰을 적용하면 할인 금액이 표시된다</div>
-          <div class="now-step">
-            <span class="one-line">절차 2 · 장바구니에 상품을 담는다</span>
-            <b>3초째</b>
-            <span class="lim">/ 제한 3분</span>
+
+        <footer class="foot">
+          <span><span class="dot-ok"></span>러너 정상</span>
+          <span class="mono">모두 34건</span>
+          <span class="sp"></span>
+          <a href="#" class="mono">github.com/acme/pay-e2e</a>
+          <span class="mono">테스트 플랫폼 v0.4.0</span>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    <b>무엇을 바꿔서 밋밋함이 빠졌나.</b>
+    ① <b>사이드바를 짙게</b> — 껍데기와 내용이 다른 밝기가 되어 경계가 눈에 먼저 들어온다. 가장 큰 차이다.
+    ② <b>악센트가 어두운 면 위에서 산다</b> — 지금 자리와 도는 실행 표시가 또렷하게 뜬다. 밝은 면에서는 같은 색이 묻혔다.
+    ③ <b>제목 25px → 30px</b>, 자간을 좁혔다. 목록 케이스명도 한 급 키웠다.
+    ④ <b>면에 아주 옅은 그림자</b> — 목록이 바탕에서 떠 보인다. 1px 선만으로는 평평했다.
+    ⑤ <b>고른 칩을 먹색 반전</b>으로 바꿨다. 옅은 회색 칩은 눌린 건지 아닌지 안 보였다.
+  </p>
+
+  <h2>실행 기록 (SPEC §8.7)</h2>
+  <div class="frame">
+    <div class="app">
+      <aside class="side">
+        <div class="svc"><span class="svc-dot"></span><span class="svc-name">결제 서비스</span><span class="svc-caret">▾</span></div>
+        <span class="svc-repo mono">github.com/acme/pay-e2e</span>
+        <nav>
+          <a href="#">케이스</a>
+          <a href="#" aria-current="page">실행 기록</a>
+          <a href="#">그래프 <span class="out">↗</span></a>
+          <a href="#">설정</a>
+        </nav>
+        <div class="spacer"></div>
+        <a class="running" href="#">
+          <span class="lbl"><i></i>도는 중</span>
+          <span class="who mono">RUN 2113 · 12 / 40</span>
+          <span class="bar"><i></i></span>
+        </a>
+        <div class="me"><span class="who">김철수</span><button>로그아웃</button></div>
+      </aside>
+
+      <div class="main">
+        <header class="head">
+          <div class="titlewrap">
+            <h1>실행 기록</h1>
+            <div class="meta">최근 30일 · 실행 42회 · 실행 항목 1,180건</div>
+          </div>
+          <div class="acts"><button class="btn">증적 문서 받기</button></div>
+        </header>
+
+        <div class="body">
+          <div class="stats">
+            <div class="stats-row">
+              <div class="stat"><div class="k">실행 횟수</div><div class="v mono">42</div><div class="sub">최근 30일</div></div>
+              <div class="stat p"><div class="k"><i></i>모두 통과</div><div class="v mono">31</div><div class="sub">전체의 74%</div></div>
+              <div class="stat f"><div class="k"><i></i>실패 섞임</div><div class="v mono">9</div><div class="sub">전체의 21%</div></div>
+              <div class="stat"><div class="k">평균 소요</div><div class="v mono">11:24</div><div class="sub">가장 길었던 것 48분</div></div>
+            </div>
+            <div class="ratio"><i class="p" style="width:74%"></i><i class="f" style="width:21%"></i><i class="n" style="width:5%"></i></div>
+          </div>
+
+          <div class="panel">
+            <div class="tools">
+              <input class="search" placeholder="실행 제목으로 찾기" />
+              <span class="seg"><button aria-pressed="true">전체</button><button>도는 중</button><button>실패 섞임</button></span>
+              <span class="seg"><button aria-pressed="true">모든 서버</button><button>staging</button><button>qa</button></span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:5px"></th>
+                  <th style="width:100px">RUN</th>
+                  <th>제목</th>
+                  <th style="width:150px">판정 분포</th>
+                  <th class="r" style="width:96px">소요</th>
+                  <th class="r" style="width:88px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="g" style="background:var(--chrome)"><i></i></td>
+                  <td><span class="tcchip mono">2113</span></td>
+                  <td>
+                    <div class="cname"><span class="livedot"></span>결제 회귀 — 9월 3주차</div>
+                    <div class="csub">김철수 · staging · 9월 15일 09:14 시작 · <b style="color:var(--chrome)">12 / 40 도는 중</b></div>
+                  </td>
+                  <td>
+                    <span class="runbar"><i class="p" style="width:30%"></i><i class="f" style="width:0%"></i><i class="n" style="width:70%"></i></span>
+                    <span class="runcount"><span class="p">통과 <b>12</b></span><span class="f">실패 <b>0</b></span><span class="n">남음 <b>28</b></span></span>
+                  </td>
+                  <td class="r mono">진행 중</td>
+                  <td class="r"><button class="btn btn-sm">중단</button></td>
+                </tr>
+                <tr>
+                  <td class="g g-fail"><i></i></td>
+                  <td><span class="tcchip mono">2098</span></td>
+                  <td>
+                    <div class="cname">야간 전체 회귀</div>
+                    <div class="csub">정기 실행 · staging · 9월 14일 18:02 시작</div>
+                  </td>
+                  <td>
+                    <span class="runbar"><i class="p" style="width:82%"></i><i class="f" style="width:13%"></i><i class="n" style="width:5%"></i></span>
+                    <span class="runcount"><span class="p">통과 <b>33</b></span><span class="f">실패 <b>5</b></span><span class="n">미실행 <b>2</b></span></span>
+                  </td>
+                  <td class="r mono">14:08</td>
+                  <td class="r"><button class="btn btn-sm">보기</button></td>
+                </tr>
+                <tr>
+                  <td class="g g-pass"><i></i></td>
+                  <td><span class="tcchip mono">2081</span></td>
+                  <td>
+                    <div class="cname">쿠폰 기능 확인</div>
+                    <div class="csub">박영희 · qa · 9월 13일 10:30 시작</div>
+                  </td>
+                  <td>
+                    <span class="runbar"><i class="p" style="width:100%"></i></span>
+                    <span class="runcount"><span class="p">통과 <b>6</b></span></span>
+                  </td>
+                  <td class="r mono">02:11</td>
+                  <td class="r"><button class="btn btn-sm">보기</button></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
-      <div class="flist">
-        <b>방금 끝난 것</b>
-        <div class="pre">PAY-002 한도를 넘는 카드로 결제하면 거절 사유가 안내된다 · 실패
-          <div class="hint">거절 사유 문구가 보이지 않는다</div>
-        </div>
-      </div>
-      <div class="actions">
-        <span class="note">Esc · 바깥 누르기로도 닫힙니다</span>
-        <button class="btn">닫기</button>
-      </div>
-    </div>
-  </div>
-</div>
-<p class="note" style="margin:-4px 0 40px 2px">
-  <b>도는 것을 전부 그린다.</b> 동시에 둘이 돌면 둘 다 뜬다 — 정확히 아는데 하나만 그리면 알면서 감추는 것이다.<br>
-  <b>분모(전체 절차 수)는 없다.</b> 케이스가 끝나기 전에는 Playwright 도 전체 절차 수를 모른다.
-  없는 수를 지어내면 「거의 다 됐다」는 거짓 신호가 되고, 그것은 모르는 것보다 나쁘다.
-  분모를 대신하는 것이 <b>머문 시간</b>과 <b>제한 시간</b>이고, 그 둘이 「느린 것」과 「멈춘 것」을 가른다.
-  그래서 <code>12초째</code> 를 순번보다 크게 둔다 — 분모 없는 순번은 진행이 아니라 그냥 번호로 읽힌다.<br>
-  <b>절차를 아직 모르면 절차 줄을 아예 두지 않는다.</b> 빈 자리를 잡아 두면 2초마다 다시 묻는 이 상자에서
-  절차가 왔다 갔다 할 때 높이가 튄다. 항목 이름 줄은 그대로 남는다.<br>
-  막대는 집계가 나눈 그대로 <b>통과 · 실패 · 미실행 · 남음</b> 넷이다.
-  <b>「실행 중」과 「대기」로 가르지 않는다</b> — 그 둘을 가를 신호가 저장된 값에 없다 (§8.9).
-</p>
 
-<!-- ══ 화면 8 — 실행 완료 모달 ═══════════════════════════════════ -->
-<p class="screen-tag"><b>화면 8 — 실행 완료 모달</b> (§8.9. <b>그 실행 결과 화면을 보고 있을 때만</b> 뜬다)</p>
-<div class="screen" style="border:0;background:transparent;margin-bottom:12px">
-  <div class="scrim">
-    <div class="modal">
-      <h3>RUN 2111 이 끝났습니다</h3>
-      <div class="sub">결제 회귀 · 대상 서버 qa · 12분 04초</div>
-      <div class="tally">
-        <div><b style="color:var(--pass)">8</b><span>통과</span></div>
-        <div><b style="color:var(--fail)">1</b><span>실패</span></div>
-        <div><b style="color:var(--na)">1</b><span>미실행</span></div>
-      </div>
-      <div class="flist">
-        <b>실패한 케이스</b>
-        <div><span class="id">PAY-002</span>한도를 넘는 카드로 결제하면 거절 사유가 안내된다</div>
-      </div>
-      <div class="actions">
-        <span class="note">Esc · 바깥 누르기로도 닫힙니다</span>
-        <button class="btn ghost">증적 문서 만들기</button>
-        <button class="btn">결과 보기</button>
+        <footer class="foot">
+          <span><span class="dot-ok"></span>러너 정상</span>
+          <span class="mono">모두 42회</span>
+          <span class="sp"></span>
+          <a href="#" class="mono">github.com/acme/pay-e2e</a>
+          <span class="mono">테스트 플랫폼 v0.4.0</span>
+        </footer>
       </div>
     </div>
   </div>
-</div>
-<p class="note" style="margin:-4px 0 40px 2px">
-  <b>다른 화면에 있으면 모달이 뜨지 않는다.</b> 맨 위 알림 줄이
-  <code>RUN 2111 이 끝났습니다 · 8 통과 · 1 실패</code> 로 바뀐다 (§8).
-  모달은 하던 일을 가로막는 장치라 <b>그 실행을 보고 있을 때만 막을 자격이 있다.</b><br>
-  실패한 케이스 이름을 모달 안에 적는다 — 숫자만 보여주면 결국 목록을 뒤져야 한다.
-  「보기만」 등급에게는 <b>증적 문서 만들기</b>가 없다 (§3.5).
-</p>
-
-<!-- ══ 화면 9 — 로그인 ═══════════════════════════════════════════ -->
-<p class="screen-tag"><b>화면 9 — 로그인</b> (§8.6. 서비스를 고르기 전이라 띠에 이름이 없다)</p>
-<div class="screen login">
-  <div class="band" style="background:var(--ink)">
-    <span style="padding:12px 0">테스트 자동화 플랫폼</span>
-  </div>
-  <div class="sec">
-    <div class="field" style="grid-template-columns:1fr;gap:4px">
-      <label for="l1">아이디</label>
-      <div><input type="text" id="l1" style="width:100%"></div>
-    </div>
-    <div class="field" style="grid-template-columns:1fr;gap:4px">
-      <label for="l2">비밀번호</label>
-      <div><input type="password" id="l2" style="width:100%"></div>
-    </div>
-    <p class="hint" style="color:var(--fail)">아이디 또는 비밀번호가 맞지 않습니다.</p>
-  </div>
-  <div class="actions">
-    <button class="btn" style="width:100%">로그인</button>
-  </div>
-  <p class="note" style="padding:0 24px 18px">
-    회원가입은 없습니다. 계정은 운영자가 설정 화면에서 만들어 줍니다.<br>
-    어느 쪽이 틀렸는지는 알려주지 않습니다 — 아이디가 있는지를 알려주는 셈이기 때문입니다.<br>
-    <b>띠에 서비스 이름이 없습니다.</b> 아직 누구인지 모르니 어떤 서비스를 보여줄지도 모릅니다.
+  <p class="note">
+    <b>판정 분포 막대가 「한 줄에 몇 건씩」을 대신한다.</b> 숫자 셋을 읽지 않아도 막대의 빨간 폭으로
+    어느 실행이 문제였는지 훑어진다. <b>도는 실행은 거터를 악센트 색으로</b> 칠하고 제목 앞에 점을 둔다 —
+    판정이 아직 없는 상태라 판정 세 색을 쓸 수 없다.
   </p>
-</div>
 
+  <h2>실행 결과 (SPEC §8.3)</h2>
+  <div class="frame">
+    <div class="app">
+      <aside class="side">
+        <div class="svc"><span class="svc-dot"></span><span class="svc-name">결제 서비스</span><span class="svc-caret">▾</span></div>
+        <span class="svc-repo mono">github.com/acme/pay-e2e</span>
+        <nav>
+          <a href="#">케이스</a>
+          <a href="#" aria-current="page">실행 기록</a>
+          <a href="#">그래프 <span class="out">↗</span></a>
+          <a href="#">설정</a>
+        </nav>
+        <div class="spacer"></div>
+        <div class="me"><span class="who">김철수</span><button>로그아웃</button></div>
+      </aside>
 
-<!-- ══ 화면 10 — 여러 건 실행 확인 모달 ══════════════════════════ -->
-<p class="screen-tag"><b>화면 10 — 여러 건 실행 확인 모달</b> (§8.10. §8.1 에서 골라 §8.2 로 건다)</p>
-<div class="screen" style="border:0;background:transparent;margin-bottom:12px">
-  <div class="scrim">
-    <div class="modal confirm">
-      <h3>실행할 케이스 3건</h3>
-      <div class="mhead">
-        <label for="m1">대상 서버</label>
-        <select id="m1"><option>qa</option><option>dev</option><option>staging</option></select>
-        <span class="addr">https://qa-pay.example.com</span>
-      </div>
-      <div class="picked">
-        <div class="prow">
-          <span class="id">PAY-001</span>
-          <span class="nm">카드로 결제하면 주문이 생성된다</span>
-          <span class="dev">PC · 모바일</span>
-          <span></span>
+      <div class="main">
+        <header class="head">
+          <div class="titlewrap">
+            <h1 class="mono">RUN 2098</h1>
+            <div class="meta">야간 전체 회귀 · 정기 실행 · staging · 9월 14일 18:02 시작 · 14분 08초</div>
+          </div>
+          <div class="acts">
+            <button class="btn">증적 문서 받기</button>
+            <button class="btn btn-primary">증적 문서 만들기</button>
+          </div>
+        </header>
+
+        <div class="body">
+          <div class="stats">
+            <div class="stats-row">
+              <div class="stat"><div class="k">실행 항목</div><div class="v mono">40</div><div class="sub">케이스 34건 · 디바이스 포함</div></div>
+              <div class="stat p"><div class="k"><i></i>통과</div><div class="v mono">33</div><div class="sub">평균 1.9초</div></div>
+              <div class="stat f"><div class="k"><i></i>실패</div><div class="v mono">5</div><div class="sub">새로 깨진 것 2건</div></div>
+              <div class="stat n"><div class="k"><i></i>미실행</div><div class="v mono">2</div><div class="sub">앞 절차가 막았다</div></div>
+            </div>
+            <div class="ratio"><i class="p" style="width:82.5%"></i><i class="f" style="width:12.5%"></i><i class="n" style="width:5%"></i></div>
+          </div>
+
+          <div class="panel">
+            <div class="tools">
+              <span class="seg"><button aria-pressed="true">전체</button><button>실패만</button><button>새로 깨진 것</button></span>
+              <span class="seg"><button aria-pressed="true">모든 디바이스</button><button>PC</button><button>모바일</button></span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:5px"></th>
+                  <th style="width:96px">TC ID</th>
+                  <th>케이스</th>
+                  <th class="r" style="width:196px">PC · 모바일</th>
+                  <th class="r" style="width:88px">소요</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="g g-fail"><i></i></td>
+                  <td><span class="tcchip mono">PAY-002</span></td>
+                  <td>
+                    <div class="cname">한도를 넘는 카드로 결제하면 거절 사유가 안내된다</div>
+                    <div class="csub failwhy">2번 절차에서 실패 — 거절 사유가 화면에 보인다</div>
+                  </td>
+                  <td class="r"><span class="devcell"><span class="devtag">PC</span><span class="badge b-fail">실패</span>
+                      <span class="devtag">모바일</span><span class="badge b-fail">실패</span></span></td>
+                  <td class="r mono">4.2초</td>
+                </tr>
+                <tr class="drow">
+                  <td class="g g-fail"><i></i></td>
+                  <td colspan="4">
+                    <div class="detail">
+                      <div class="dsec">
+                        <div class="dlabel">사전조건</div>
+                        <div class="kv"><span class="mono">카드번호 4000-****-****-0002</span><span class="mono">한도 100000</span></div>
+                      </div>
+                      <div class="dsec">
+                        <div class="dlabel">시험 절차<span class="dfrom">PC</span></div>
+                        <div class="stepbox">
+                          <div class="sh">1번 절차 · 결제 화면에서 12만 원을 결제한다 · 통과 · 1.1초</div>
+                          <div style="padding:11px 14px"><div class="vfy">검증 통과 — 결제 요청이 전송된다</div></div>
+                        </div>
+                        <div class="stepbox">
+                          <div class="sh" style="color:var(--fail);background:var(--fail-bg);border-color:var(--fail-bg)">
+                            2번 절차 · 거절 안내를 확인한다 · 실패 · 3.1초</div>
+                          <div style="padding:11px 14px">
+                            <div class="vfy bad">검증 실패 — 거절 사유가 화면에 보인다</div>
+                            <div class="kv"><span>기대값 <b class="mono">한도 초과</b></span><span>실제값 <b class="mono">(빈 값)</b></span>
+                              <span class="mono">PAY-002.spec.ts:31</span></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="dsec">
+                        <div class="dlabel">이 항목에 대해</div>
+                        <table class="dtab">
+                          <tr><td class="k">실행자</td><td>정기 실행</td></tr>
+                          <tr><td class="k">대상 서버</td><td>staging</td></tr>
+                          <tr><td class="k">스크린샷</td><td class="mono">artifacts/runs/2098/8812/</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="g g-pass"><i></i></td>
+                  <td><span class="tcchip mono">PAY-001</span></td>
+                  <td>
+                    <div class="cname">카드로 결제하면 주문이 생성된다</div>
+                    <div class="csub">절차 3개 전부 통과</div>
+                  </td>
+                  <td class="r"><span class="devcell"><span class="devtag">PC</span><span class="badge b-pass">통과</span>
+                      <span class="devtag">모바일</span><span class="badge b-pass">통과</span></span></td>
+                  <td class="r mono">1.8초</td>
+                </tr>
+                <tr>
+                  <td class="g g-na"><i></i></td>
+                  <td><span class="tcchip mono">PAY-014</span></td>
+                  <td>
+                    <div class="cname">결제를 취소하면 승인이 철회된다</div>
+                    <div class="csub">앞 절차가 막아 돌지 않았다</div>
+                  </td>
+                  <td class="r"><span class="devcell"><span class="devtag">PC</span><span class="badge b-na">미실행</span>
+                      <span class="devtag">모바일</span><span class="devtag">—</span></span></td>
+                  <td class="r mono">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div class="prow">
-          <span class="id">PAY-002</span>
-          <span class="nm">한도를 넘는 카드로 결제하면 거절 사유가 안내된다</span>
-          <span class="dev">PC · 모바일</span>
-          <button class="edit">값 고치기</button>
-        </div>
-        <div class="prow">
-          <span class="id">PAY-014</span>
-          <span class="nm">결제를 취소하면 승인이 철회된다</span>
-          <span class="dev">PC</span>
-          <span></span>
-        </div>
-      </div>
-      <div class="mfoot">
-        <label for="m2">반복</label>
-        <input type="text" id="m2" value="1">
-        <label for="m3" style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="m3"> 끝나면 Slack 알리기
-        </label>
-      </div>
-      <div class="actions">
-        <span class="note">실행 항목이 <b>5건</b> 생깁니다</span>
-        <button class="btn ghost">취소</button>
-        <button class="btn">실행하기</button>
+
+        <footer class="foot">
+          <span><span class="dot-ok"></span>러너 정상</span>
+          <span class="sp"></span>
+          <a href="#" class="mono">github.com/acme/pay-e2e</a>
+          <span class="mono">테스트 플랫폼 v0.4.0</span>
+        </footer>
       </div>
     </div>
   </div>
-</div>
-<p class="note" style="margin:-4px 0 40px 2px">
-  고른 것을 <b>걸기 전에 한 번 보여주는 자리</b>다. 여러 건은 시간과 실행 기록을 쓰는 일이라
-  누르기 전에 무엇이 도는지 확인할 자리가 있어야 한다 (DESIGN.md 모달 셋째 자리).
-  <b>머리와 바닥은 고정이고 가운데 목록만 스크롤한다</b> — 건수가 늘어도 대상 서버와 실행 버튼이 늘 보인다.<br>
-  <b>값 고치기</b>는 입력칸이 있는 케이스에만 붙는다. PAY-001 · PAY-014 는 그 자리가 비어 있다.
-  닫는 길은 셋이다 — <b>취소</b> · <code>Esc</code> · 바깥 누르기.
-  이름이 길면 <b>줄이지 않고 두 줄로 흐른다</b> — 무엇이 걸리는지 확인하러 연 자리에서 확인할 것을 가릴 수는 없다.
-</p>
+  <p class="note">
+    <b>실패 행만 펼쳐 절차를 보여준다.</b> 실패한 절차의 머리띠만 붉게 반전하고 나머지는 조용하다 —
+    과감함은 실패 한 곳에만 쓴다. 기대값·실제값·소스 줄번호가 한 줄에 같이 있어
+    <b>코드를 열기 전에 무엇이 어긋났는지</b>를 안다. 이 화면과 증적 문서는 같은 레이아웃을 쓴다.
+  </p>
+
+  <h2>여러 건 실행 모달 (SPEC §8.10)</h2>
+  <div class="frame" style="border-radius:16px">
+    <div class="backdrop">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>고른 4건 실행</h3>
+          <button class="x" aria-label="닫기">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="card" style="box-shadow:none">
+            <h3>이 실행에 대해</h3>
+            <div class="in">
+              <div class="frow"><label for="m1">실행 제목</label><input id="m1" class="fctl" style="flex:1" value="결제 회귀 — 9월 3주차" /></div>
+              <div class="frow"><label for="m2">대상 서버</label>
+                <select id="m2" class="fctl" style="width:180px"><option>staging</option><option>qa</option></select>
+                <span class="fhint mono">https://staging.pay.acme.io</span></div>
+              <div class="frow"><label for="m3">반복 횟수</label><input id="m3" class="fctl mono" style="width:76px" value="1" />
+                <span class="fhint">새로 쓴 테스트가 안정적인지 여러 번 돌려 본다</span></div>
+              <div class="frow"><label aria-hidden="true"></label>
+                <label class="fchk"><input type="checkbox" /> 끝나면 Slack 으로 알린다</label></div>
+            </div>
+          </div>
+
+          <div class="picked">
+            <div class="glabel">고른 케이스 4건 — 값은 목록에서 채운 그대로다</div>
+            <details class="case">
+              <summary><span class="tcchip mono">PAY-001</span><span class="nm">카드로 결제하면 주문이 생성된다</span>
+                <span class="edit">값 고치기 3개</span></summary>
+              <div class="casebody"><div class="pline">
+                <span class="pitem"><span class="plabel">카드번호</span><input class="pinput mono" style="width:172px" value="4000-0000-0000-0002" /></span>
+                <span class="pitem"><span class="plabel">결제 금액</span><input class="pinput mono" style="width:96px" value="50000" /></span>
+                <span class="pitem"><span class="plabel">주문 상태</span><input class="pinput" style="width:110px" value="결제 완료" /></span>
+              </div></div>
+            </details>
+            <details class="case" open>
+              <summary><span class="tcchip mono">PAY-033</span><span class="nm">정기 결제를 등록하면 다음 달에 자동으로 청구된다</span>
+                <span class="edit">값 고치기 9개</span></summary>
+              <div class="casebody"><div class="pline">
+                <span class="pitem"><span class="plabel">카드번호</span><input class="pinput mono" style="width:172px" value="4000-0000-0000-0002" /></span>
+                <span class="pitem"><span class="plabel">청구 주기</span><select class="pinput" style="width:88px"><option>매월</option></select></span>
+                <span class="pitem"><span class="plabel">청구일</span><input class="pinput mono" style="width:56px" value="15" /></span>
+                <span class="pitem"><span class="plabel">첫 청구액</span><input class="pinput mono" style="width:88px" value="9900" /></span>
+                <span class="pitem"><span class="plabel">할인 코드</span><input class="pinput mono" style="width:104px" value="FIRST50" /></span>
+                <span class="pitem"><span class="plabel">결제 수단</span><select class="pinput" style="width:92px"><option>신용카드</option></select></span>
+              </div></div>
+            </details>
+            <details class="case">
+              <summary><span class="tcchip mono">PAY-021</span><span class="nm">쿠폰을 적용하면 결제 금액이 줄어든다</span>
+                <span class="edit">값 고치기 1개</span></summary>
+              <div class="casebody"><div class="pline">
+                <span class="pitem"><span class="plabel">쿠폰 코드</span><input class="pinput mono" style="width:130px" value="WELCOME10" /></span>
+              </div></div>
+            </details>
+            <details class="case">
+              <summary><span class="tcchip mono">PAY-014</span><span class="nm">결제를 취소하면 승인이 철회된다</span>
+                <span class="noedit">고칠 값이 없다</span></summary>
+            </details>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <span class="count">실행 항목이 <b class="mono">7건</b> 생깁니다</span>
+          <span class="sp"></span>
+          <button class="btn">취소</button>
+          <button class="btn btn-primary">실행</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">
+    머리와 바닥이 고정이고 본문만 구른다. 값이 없는 케이스는 <b>접개 자체를 안 단다</b> —
+    눌러도 빈 자리가 나오는 버튼은 고장으로 보인다. 접개 글자에 <b>값이 몇 개인지</b>를 적어 펴기 전에 크기를 안다.
+  </p>
+
+  <h2>설정 (SPEC §8.8)</h2>
+  <div class="frame">
+    <div class="app">
+      <aside class="side">
+        <div class="svc"><span class="svc-dot"></span><span class="svc-name">결제 서비스</span><span class="svc-caret">▾</span></div>
+        <span class="svc-repo mono">github.com/acme/pay-e2e</span>
+        <nav>
+          <a href="#">케이스</a>
+          <a href="#">실행 기록</a>
+          <a href="#">그래프 <span class="out">↗</span></a>
+          <a href="#" aria-current="page">설정</a>
+        </nav>
+        <div class="spacer"></div>
+        <div class="me"><span class="who">김철수</span><button>로그아웃</button></div>
+      </aside>
+
+      <div class="main">
+        <header class="head">
+          <div class="titlewrap">
+            <h1>설정</h1>
+            <div class="meta">운영 등급만 볼 수 있는 자리다</div>
+          </div>
+          <div class="acts"><button class="btn">서비스 더 만들기</button><button class="btn btn-primary">저장</button></div>
+        </header>
+
+        <div class="body">
+          <div class="grid2">
+            <div class="card">
+              <h3>서비스</h3>
+              <div class="in">
+                <div class="frow"><label for="s1">이름</label><input id="s1" class="fctl" style="flex:1" value="결제 서비스" /></div>
+                <div class="frow"><label for="s2">접두사</label><input id="s2" class="fctl mono" style="width:110px" value="PAY" />
+                  <span class="fhint">케이스 ID 가 <b class="mono">PAY-001</b> 처럼 시작한다</span></div>
+                <div class="frow"><label>색</label>
+                  <span class="colorpick">
+                    <i style="background:var(--svc)"></i>
+                    <input class="fctl mono" style="width:104px" value="#2F6F8F" />
+                    <span class="ok">흰 면 위 4.2 : 1 — 쓸 수 있다</span>
+                  </span>
+                </div>
+                <div class="frow"><label for="s3">저장소</label><input id="s3" class="fctl mono" style="flex:1" value="github.com/acme/pay-e2e" /></div>
+                <div class="frow"><label for="s4">Slack</label><input id="s4" class="fctl mono" style="flex:1" value="https://hooks.slack.com/services/····" /></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>대상 서버</h3>
+              <div class="in">
+                <div class="envrow"><span class="nm mono">staging</span><span class="ad mono">https://staging.pay.acme.io</span>
+                  <button class="btn btn-sm">편집</button></div>
+                <div class="envrow"><span class="nm mono">qa</span><span class="ad mono">https://qa.pay.acme.io</span>
+                  <button class="btn btn-sm">편집</button></div>
+                <div class="envrow"><span class="nm mono">local</span><span class="ad mono">http://localhost:4000</span>
+                  <button class="btn btn-sm">편집</button></div>
+                <div style="margin-top:12px"><button class="btn btn-sm">서버 추가</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:18px">
+            <h3>사람</h3>
+            <table>
+              <thead>
+                <tr><th style="width:5px"></th><th>이름</th><th style="width:220px">아이디</th>
+                    <th style="width:130px">등급</th><th style="width:200px">맡은 서비스</th><th class="r" style="width:88px"></th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="g"><i></i></td><td><div class="cname">김철수</div></td><td class="mono">chulsoo</td>
+                    <td><span class="role">운영</span></td><td>결제 · 회원</td>
+                    <td class="r"><button class="btn btn-sm">편집</button></td></tr>
+                <tr><td class="g"><i></i></td><td><div class="cname">박영희</div></td><td class="mono">younghee</td>
+                    <td><span class="role">실행까지</span></td><td>결제</td>
+                    <td class="r"><button class="btn btn-sm">편집</button></td></tr>
+                <tr><td class="g"><i></i></td><td><div class="cname">이민수</div></td><td class="mono">minsu</td>
+                    <td><span class="role">보기만</span></td><td>회원</td>
+                    <td class="r"><button class="btn btn-sm">편집</button></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <footer class="foot">
+          <span><span class="dot-ok"></span>러너 정상</span>
+          <span class="sp"></span>
+          <span class="mono">테스트 플랫폼 v0.4.0</span>
+        </footer>
+      </div>
+    </div>
+  </div>
+  <p class="note">
+    <b>색 고르개 옆이 명암비를 그 자리에서 잰다</b> — 흰 면 위 3 : 1 을 못 넘는 색은 쓸 수 없고
+    미달이면 사유가 뜬다. 이 자리가 「판정 외의 색 금지」의 유일한 예외다 (SPEC §8) —
+    <b>색을 만드는 자리라서</b> 색을 안 보여주고 색을 고르게 할 수는 없다.
+  </p>
+
+  <h2>로그인 (SPEC §8.6)</h2>
+  <div class="frame">
+    <div class="login">
+      <div class="loginbox">
+        <div class="brand"><i></i><b>테스트 플랫폼</b></div>
+        <h2>다시 오셨군요</h2>
+        <p class="sub">아이디와 비밀번호를 넣으면 맡은 서비스가 열립니다.</p>
+        <div class="err">아이디나 비밀번호가 맞지 않습니다.</div>
+        <label for="id">아이디</label>
+        <input id="id" class="mono" value="chulsoo" />
+        <label for="pw">비밀번호</label>
+        <input id="pw" type="password" value="········" />
+        <button class="go">로그인</button>
+      </div>
+    </div>
+  </div>
+  <p class="note">
+    <b>어느 쪽이 틀렸는지 말하지 않는다</b> — 「아이디가 없습니다」라고 적으면 아이디가 있는지를
+    바깥에서 하나씩 캐낼 수 있다. 짙은 바탕 위에 밝은 상자 하나만 두어 들어가는 자리임을 분명히 한다.
+  </p>
+
+  <h2>좁은 화면 (375px)</h2>
+  <div style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start">
+    <div class="phone">
+      <div class="app">
+        <aside class="side">
+          <div class="svc"><span class="svc-dot"></span></div>
+          <nav>
+            <a href="#">케이스</a>
+            <a href="#" aria-current="page">실행 기록</a>
+            <a href="#">설정</a>
+          </nav>
+        </aside>
+        <div class="main">
+          <header class="head">
+            <div class="titlewrap"><h1>실행 기록</h1><div class="meta">최근 20건</div></div>
+          </header>
+          <div class="body">
+            <div class="panel">
+              <table>
+                <tbody>
+                  <tr>
+                    <td class="g" style="background:var(--chrome)"><i></i></td>
+                    <td>
+                      <div class="cname"><span class="livedot"></span><span class="mono">RUN 2113</span></div>
+                      <div class="csub">staging · 12 / 40 도는 중</div>
+                      <span class="runbar" style="width:100%;margin-top:8px"><i class="p" style="width:30%"></i><i class="n" style="width:70%"></i></span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="g g-fail"><i></i></td>
+                    <td>
+                      <div class="cname mono">RUN 2098</div>
+                      <div class="csub">staging · 9월 14일 18:02 · 14분 08초</div>
+                      <span class="runbar" style="width:100%;margin-top:8px"><i class="p" style="width:82%"></i><i class="f" style="width:13%"></i><i class="n" style="width:5%"></i></span>
+                      <span class="runcount"><span class="p">통과 <b>33</b></span><span class="f">실패 <b>5</b></span><span class="n">미실행 <b>2</b></span></span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="g g-pass"><i></i></td>
+                    <td>
+                      <div class="cname mono">RUN 2081</div>
+                      <div class="csub">qa · 9월 13일 10:30 · 2분 11초</div>
+                      <span class="runbar" style="width:100%;margin-top:8px"><i class="p" style="width:100%"></i></span>
+                      <span class="runcount"><span class="p">통과 <b>6</b></span></span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <footer class="foot"><span><span class="dot-ok"></span>러너 정상</span><span class="sp"></span><span class="mono">v0.4.0</span></footer>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="max-width:36ch;margin-top:0">
+      좁은 화면에서 제대로 되는 것은 <b>실행 기록과 실행 결과 둘뿐</b>이다 (SPEC §8).
+      휴대폰으로 하는 일을 「끝났나 보기」 하나로 좁혔기 때문이다.
+      사이드바는 가로 줄로 접히고, 도는 실행 카드와 사용자 칸은 여기서 빠진다.
+      판정 분포 막대는 <b>좁은 화면에서 더 쓸모 있다</b> — 숫자를 읽지 않아도 상태가 온다.
+    </p>
+  </div>
+
+  <h2>토큰</h2>
+  <div class="pal">
+    <div class="sw"><i style="background:var(--rail)"></i><b>사이드바</b><code>--rail #26231F</code></div>
+    <div class="sw"><i style="background:var(--rail-2)"></i><b>사이드바 hover</b><code>--rail-2 #332F29</code></div>
+    <div class="sw"><i style="background:var(--rail-acc)"></i><b>사이드바 악센트</b><code>--rail-acc #F0A77F</code></div>
+    <div class="sw"><i style="background:var(--paper)"></i><b>바탕</b><code>--paper #F2EFE7</code></div>
+    <div class="sw"><i style="background:var(--sheet)"></i><b>기록지 면</b><code>--sheet #FFFDF9</code></div>
+    <div class="sw"><i style="background:var(--chrome)"></i><b>밝은 면 악센트</b><code>--chrome #9E4A27</code></div>
+    <div class="sw"><i style="background:var(--ink)"></i><b>본문 잉크</b><code>--ink #191713</code></div>
+    <div class="sw"><i style="background:var(--pass)"></i><b>통과</b><code>--pass #2E6B4F</code></div>
+    <div class="sw"><i style="background:var(--fail)"></i><b>실패</b><code>--fail #9B2418</code></div>
+    <div class="sw"><i style="background:var(--na)"></i><b>미실행</b><code>--na #7A6535</code></div>
+  </div>
+  <p class="note">
+    명암비 24짝을 다시 쟀고 미달이 없다. 어두운 면 위 글자 셋(<code class="mono">--rail-ink</code> 13.14 ·
+    <code class="mono">--rail-dim</code> 6.38 · <code class="mono">--rail-acc</code> 7.85)도 전부 본문 기준을 넘는다.
+  </p>
 
 </div>
 </body>
