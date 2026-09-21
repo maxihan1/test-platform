@@ -165,9 +165,9 @@ const 스타일 = `
 /* 화면(web/styles.css)과 같은 값이어야 한다. 화면을 보던 사람이 문서를 받았을 때
    다시 배울 것이 없어야 한다는 것이 DESIGN.md 의 전제다. 2026-09-21 「제도 청사진」 */
 :root{
-  --paper:#DFE4E7; --sheet:#F8FAFB; --ink:#16222A; --ink-muted:#3F4E58; --ink-faint:#59666F;
-  --rule:#BFC9CF; --rule-soft:#DCE3E7; --chrome:#1C4E6B; --chip:#EDF2F4;
-  --pass:#0C6349; --pass-bg:#E0EEE8; --fail:#A32A22; --fail-bg:#F6E4E1; --na:#74673B; --na-bg:#F0EBDC;
+  --paper:#F2EFE7; --sheet:#FFFDF9; --ink:#191713; --ink-muted:#524F47; --ink-faint:#6A675E;
+  --rule:#E5E1D6; --rule-soft:#F0EDE5; --chrome:#9E4A27; --chip:#F1EEE5;
+  --pass:#2E6B4F; --pass-bg:#E3EDE6; --fail:#9B2418; --fail-bg:#F6E4DF; --na:#7A6535; --na-bg:#F0EAD8;
 }
 *{ box-sizing:border-box; margin:0; padding:0; }
 body{

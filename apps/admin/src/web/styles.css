@@ -46,29 +46,58 @@
   src: url('./fonts/IBMPlexMono-Medium.woff2') format('woff2');
 }
 
-/* 2026-09-21 「제도 청사진」으로 갈아끼웠다 (계획 2026-09-21-청사진스킨).
-   컨셉(검사 기록지)과 「색은 판정만」은 그대로다. 회녹색 종이를 차가운 청회색으로 옮겼을 뿐이다 */
+/* 2026-09-21 차가운 청회색을 따뜻한 아이보리로 옮기고 껍데기를 짙게 눌렀다 (계획 2026-09-21-화면리뉴얼).
+   컨셉(검사 기록지)과 「색은 판정만」은 그대로다. 면이 전부 밝기만 다른 회청색이라
+   기록지와 종이가 갈리지 않던 것을 고친 것이다 — 껍데기를 짙게 두면 내용이 종이로 읽힌다.
+
+   실측 명암비 (WCAG 2.1). **손으로 지키지 않는다** — styles.test.ts 가 토큰을 읽어 다시 잰다.
+   --ink/--sheet 17.62 · --ink/--paper 15.58
+   --ink-muted/--sheet 8.05 · --ink-muted/--sheet-2 7.44
+   --ink-faint/--sheet 5.56 · --ink-faint/--sheet-2 5.14 · --ink-faint/--paper 4.92 · --ink-faint/--chip 4.87
+   --chrome/--sheet 5.97 · --chrome/--paper 5.28 · 흰 글자/--chrome 6.06
+   --rail-ink/--rail 13.14 · --rail-dim/--rail 6.38 · --rail-acc/--rail 7.85
+   --pass/--pass-bg 5.26 · --fail/--fail-bg 6.42 · --na/--na-bg 4.67
+   --pass/--sheet 6.20 · --fail/--sheet 7.77 · 흰 글자/--fail 7.90
+   --rule/--sheet 1.29 (장식이라 기준 밖) */
 :root {
-  --paper: #dfe4e7;
-  --sheet: #f8fafb;
-  --sheet-2: #eff3f5;
-  --ink: #16222a;
-  /* 세 단계 전부 본문 기준(4.5:1)을 넘는다. 시안의 64727c 는 종이 위 3.87 로 미달이라 내렸다 (DESIGN.md) */
-  --ink-muted: #3f4e58;
-  --ink-faint: #59666f;
-  --rule: #bfc9cf;
-  --rule-soft: #dce3e7;
-  /* 껍데기 전용 청색 잉크. 쓰는 자리 목록의 정본은 SPEC 공통/5-화면공통 §8 이다 —
-     개수를 여기 적지 않는다. 줄 안에서 보이는 색은 여전히 판정이다 (DESIGN.md 원칙 1) */
-  --chrome: #1c4e6b;
+  /* 껍데기 — 사이드바를 짙게 눌러 내용과 갈라 놓는다 */
+  --rail: #26231f;
+  --rail-2: #332f29;
+  --rail-ink: #efebe1;
+  --rail-dim: #aba598;
+  --rail-acc: #f0a77f;
+
+  /* 바탕과 면 */
+  --paper: #f2efe7;
+  --sheet: #fffdf9;
+  --sheet-2: #f7f4ec;
   /* 값 칩의 바탕. 기록지도 종이도 아닌 세 번째 면이라 그 위의 글자를 따로 쟀다 (DESIGN.md) */
-  --chip: #edf2f4;
-  --pass: #0c6349;
-  --fail: #a32a22;
-  --na: #74673b;
-  --pass-bg: #e0eee8;
-  --fail-bg: #f6e4e1;
-  --na-bg: #f0ebdc;
+  --chip: #f1eee5;
+
+  /* 잉크 — 세 단계 전부 본문 기준(4.5:1)을 넘는다 */
+  --ink: #191713;
+  --ink-muted: #524f47;
+  --ink-faint: #6a675e;
+
+  /* 괘선 */
+  --rule: #e5e1d6;
+  --rule-soft: #f0ede5;
+
+  /* 밝은 면 위의 악센트. 쓰는 자리 목록의 정본은 SPEC 공통/5-화면공통 §8 이다 —
+     개수를 여기 적지 않는다. 줄 안에서 보이는 색은 여전히 판정이다 (DESIGN.md 원칙 1) */
+  --chrome: #9e4a27;
+
+  /* 판정 */
+  --pass: #2e6b4f;
+  --pass-bg: #e3ede6;
+  --fail: #9b2418;
+  --fail-bg: #f6e4df;
+  --na: #7a6535;
+  --na-bg: #f0ead8;
+
+  /* 면이 바탕에서 떠 보이게 하는 그림자 하나 (DESIGN.md 원칙 2, 2026-09-21).
+     행에는 안 준다 — 행마다 카드를 두르면 나열이 객체로 읽힌다 */
+  --lift: 0 1px 2px rgba(25, 23, 19, 0.04), 0 10px 28px -16px rgba(25, 23, 19, 0.22);
 }
 
 * {
@@ -113,14 +142,132 @@ body {
   font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* 사이드바 + 본문 두 칸. 본문 칸은 960px 그대로 두고 사이드바 폭만 더했다 —
+   한 줄에 들어가는 글자 수가 바뀌면 이미 맞춰 둔 표 폭이 전부 흔들린다 (SPEC §8) */
 .wrap {
-  max-width: 960px;
+  max-width: 1204px;
   margin: 0 auto;
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  align-items: start;
 }
 
+/* 짙은 막대. 껍데기를 눌러야 오른쪽 면이 종이로 읽힌다 (DESIGN.md, 2026-09-21) */
+.side {
+  display: flex;
+  flex-direction: column;
+  background: var(--rail);
+  color: var(--rail-ink);
+  padding: 12px 10px;
+  min-height: 100%;
+}
+
+.main {
+  min-width: 0;
+  padding-left: 20px;
+}
+
+/* ── 사이드바 접기 ──────────────────────────────────────────────
+   **글자만 숨기고 자리는 남긴다.** `display: none` 을 쓰면 키보드 탭 대상에서 빠져
+   키보드로만 쓰는 사람이 이동을 통째로 잃는다. 폭을 줄이고 글자를 0 으로 눌러
+   화면에서는 사라지되 탭 순서에는 남게 한다 */
+/* 접으면 **본문이 실제로 넓어져야 한다.** 사이드바만 줄이고 `max-width` 를 그대로 두면
+   1204px 상한이 남은 자리를 막아 200px 밖에 안 는다 — 접은 보람이 없다.
+   상한을 풀어 창을 채운다. 좌우 여백은 body 의 padding 이 준다 */
+.wrap.folded {
+  max-width: none;
+  grid-template-columns: 44px minmax(0, 1fr);
+}
+
+.side-fold {
+  align-self: flex-end;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 9px;
+  color: var(--rail-dim);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  /* 손가락으로 누르는 크기. 좁은 화면에서는 아래에서 44px 로 올린다 */
+  padding: 6px 9px;
+  margin-bottom: 8px;
+}
+
+.side-fold:hover {
+  background: var(--rail-2);
+  color: var(--rail-ink);
+}
+
+.side-fold:focus-visible {
+  outline: 2px solid var(--rail-ink);
+  outline-offset: -1px;
+}
+
+.folded .side {
+  padding: 12px 4px;
+  overflow: hidden;
+}
+
+.folded .side-fold {
+  align-self: center;
+}
+
+/* 접힌 폭에서 글자를 0 으로 눌러 둔다. 요소는 살아 있어 탭이 닿는다.
+   `.wrap.folded .side ...` 로 특정도를 올린다 — 아래쪽 `.side .band` 규칙이
+   같은 특정도라 나중에 오는 그것이 이겨서 숨김이 안 먹었다 (2026-09-21 제품 CSS 실측) */
+.wrap.folded .side .side-top,
+.wrap.folded .side .band-repo,
+.wrap.folded .side .band-right {
+  display: none;
+}
+
+.folded .side .nav a {
+  font-size: 0;
+  padding: 10px 0;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* 지금 있는 자리만 접힌 채로도 보인다 — 어디에 있는지를 잃으면 접기가 길을 잃게 만든다 */
+.folded .side .nav a[aria-current='page'] {
+  border-left: 3px solid var(--rail-acc);
+  background: var(--rail-2);
+}
+
+/* 사이드바 바닥으로 사람과 로그아웃을 미는 빈 칸 */
+.side-gap {
+  flex: 1;
+  min-height: 24px;
+}
+
+/* 화면 제목과 주 행동이 앉는 자리. 채우는 것은 각 화면이고 껍데기는 자리만 준다 (SPEC §8) */
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.foot {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* 면은 바탕에서 떠 보인다 (DESIGN.md 원칙 2, 2026-09-21).
+   행에는 안 준다 — 행마다 카드를 두르면 나열이 객체로 읽힌다 */
 .screen {
   background: var(--sheet);
   border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--lift);
+  overflow: hidden;
   margin-bottom: 28px;
 }
 
@@ -145,7 +292,11 @@ body {
   margin-bottom: 14px;
 }
 
-/* 서비스 색 네모. 흰 면 위라 어두운 색일수록 잘 보인다 — settingsView.ts 가 3:1 로 잰다 */
+/* 서비스 색 네모. `settingsView.ts` 가 밝은 면 위 3:1 로 잰다.
+   사이드바가 짙어지면서 이 네모가 어두운 바탕에 직접 닿게 됐다. 그러면 어두운 색이 묻힌다 —
+   기본값 #3A5FCD 가 흰 면 위 5.68 인데 사이드바 위에서는 2.75 로 기준(3) 미달이다.
+   밝은 테두리를 둘러 색이 늘 밝은 면에 앉게 한다. 그래서 「밝은 면 위 3:1」 기준이 그대로 서고
+   쓰던 서비스 색이 하나도 안 깨진다 (DESIGN.md 명암비) */
 .svc-dot {
   align-self: center;
   width: 8px;
@@ -153,6 +304,7 @@ body {
   display: block;
   margin: 0 8px 0 4px;
   background: var(--svc, transparent);
+  box-shadow: 0 0 0 2px var(--rail-ink);
 }
 
 .nav a {
@@ -281,7 +433,7 @@ select {
   background: var(--sheet);
   color: var(--ink);
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  border-radius: 9px;
   padding: 7px 10px;
 }
 
@@ -423,7 +575,7 @@ select:focus {
   font-weight: 600;
   letter-spacing: 0.06em;
   padding: 4px 10px;
-  border-radius: 2px;
+  border-radius: 9px;
   min-width: 52px;
   text-align: center;
   display: inline-block;
@@ -761,7 +913,7 @@ select:focus {
   font-size: 13.5px;
   font-weight: 600;
   padding: 9px 18px;
-  border-radius: 2px;
+  border-radius: 9px;
   cursor: pointer;
   border: 1px solid var(--ink);
   background: var(--ink);
@@ -837,7 +989,7 @@ select:focus {
   font: inherit;
   font-size: 12.5px;
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  border-radius: 9px;
   background: transparent;
   color: var(--ink);
   padding: 5px 12px;
@@ -877,6 +1029,20 @@ select:focus {
 }
 
 @media (max-width: 620px) {
+  /* 244px 사이드바를 그대로 두면 내용 칸이 한 줄에 스무 글자도 못 받는다. 위아래로 쌓는다 */
+  .wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .main {
+    padding: 16px 0 0;
+  }
+
+  .side .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
   /* 620px 아래에서는 두 칸이다 — 색 띠 하나와 내용 하나.
      tcid·title·right 를 **전부** 2열로 보내 세로로 쌓지 않으면
      셋이 한 줄을 나눠 쓰다가 제목 칸이 0 에 수렴해 글자가 한 자씩 세로로 흐른다.
@@ -884,11 +1050,57 @@ select:focus {
   .row {
     grid-template-columns: 4px 1fr;
     gap: 0 12px;
+    /* **행을 명시해야 아래 `1 / -1` 이 먹는다.** `-1` 은 명시적으로 선언한 줄의 끝을 가리켜서,
+       내용이 암시적 행으로 쌓이면 거터가 첫 줄만 덮는다 (WORKSTREAMS ⑪, 2026-09-19 실측).
+       셋보다 적은 줄에서는 남는 행이 높이 0 이라 보이지 않는다 */
+    grid-template-rows: auto auto auto;
   }
 
   /* 색 띠는 쌓인 줄 전체에 걸쳐 세로로 편다 */
   .gutter {
     grid-row: 1 / -1;
+  }
+
+  /* 쌓이는 순서를 못 박는다. 암시적 배치에 맡기면 위 `grid-template-rows` 와 어긋난다 */
+  .tcid {
+    grid-row: 1;
+  }
+
+  .title {
+    grid-row: 2;
+  }
+
+  .right {
+    grid-row: 3;
+  }
+
+  /* 손가락으로 누르는 영역 최소 44px (SPEC §8). 46 으로 두는 이유는
+     브라우저 반올림이 소수점만큼 깎기 때문이다 — 목업 실측이 43.9986 이었다 */
+  .side .nav a {
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .side-fold {
+    min-height: 46px;
+    min-width: 46px;
+  }
+
+  /* 좁은 화면에서는 사이드바가 이미 가로 줄로 접혀 있다. 거기서 또 접으면
+     자리 넷이 통째로 사라지고 되돌릴 길이 화살표 하나뿐이 된다 */
+  .wrap.folded {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wrap.folded .side .side-top,
+  .wrap.folded .side .band-right {
+    display: flex;
+  }
+
+  .folded .side .nav a {
+    font-size: 13px;
+    padding: 0 14px;
   }
 
   /* 고르는 칸도 색 띠와 함께 거터 쪽에 남는다 — 내용 칸은 전부 3열로 보낸다 */
@@ -1000,8 +1212,8 @@ select:focus {
 .modal-back {
   position: fixed;
   inset: 0;
-  /* 잉크색 40%. 흐리게(blur) 처리하지 않는다 */
-  background: rgba(23, 32, 27, 0.4);
+  /* 잉크색(--ink) 42%. 흐리게(blur) 처리하지 않는다 */
+  background: rgba(25, 23, 19, 0.42);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1015,7 +1227,9 @@ select:focus {
   max-width: 480px;
   background: var(--sheet);
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  /* 면이라 14px 이다 (DESIGN.md 원칙 2). 모달은 가장 앞에 서므로 그림자를 더 깊게 준다 */
+  border-radius: 14px;
+  box-shadow: 0 24px 60px -20px rgba(25, 23, 19, 0.55);
   /* 세로 상자로 둔다. grid 로 두면 안쪽 목록이 제 키대로 밀어내 제목·바닥이 상자 밖으로 나간다 */
   display: flex;
   flex-direction: column;
@@ -1100,8 +1314,11 @@ select:focus {
 
 /* ── 맨 위 띠 · 알림 줄 (SPEC §8) ──────────────────────────────────── */
 
-/* 띠의 바탕색은 그 서비스 색이다. 색이 쓰이는 유일한 예외이고 띠 밖에서는 판정만 색을 갖는다 (DESIGN.md) */
-/* 띠의 바탕은 고정 청색이다. 서비스 색은 아래 .nav 로 내렸다 (SPEC §8, 2026-09-21) */
+/* 2026-09-21 — 이 규칙은 띠가 가로로 누워 있던 때의 것이다. 지금 `.band` 는 사이드바 머리로
+   들어갔고 배치는 아래 `.side .band` 가 덮는다. 규칙을 지우지 않는 이유는 이 이름으로
+   단언하는 검사들이 있어서다 — 정리는 다음 PR 이다.
+   바탕은 서비스 색이 아니라 고정 껍데기 색(`--chrome`, 따뜻한 적갈색)이다.
+   서비스 색은 사이드바 서비스 고르개의 네모 하나로 내려갔다 */
 .band {
   display: flex;
   align-items: center;
@@ -1110,7 +1327,7 @@ select:focus {
   padding: 9px 14px;
   background: var(--chrome);
   color: #fff;
-  border-radius: 2px 2px 0 0;
+  border-radius: 9px 9px 0 0;
 }
 
 .band-left,
@@ -1121,15 +1338,23 @@ select:focus {
   min-width: 0;
 }
 
+/* `appearance: none` 이 없으면 OS 가 select 를 제 모양대로 그린다 —
+   background 를 transparent 로 줘도 짙은 사이드바 위에 흰 상자가 뜬다 (2026-09-21 제품 CSS 실측).
+   화살표는 배경 그림으로 직접 그린다. 지우면 눌러서 펴는 것인지 안 보인다 */
 .band-pick {
-  background: transparent;
-  color: #fff;
+  appearance: none;
+  background: transparent
+    url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23efebe1' stroke-width='1.5'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  background-size: 9px;
+  color: var(--rail-ink);
   border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 2px;
-  padding: 3px 8px;
+  border-radius: 9px;
+  padding: 4px 24px 4px 9px;
   font: inherit;
   font-weight: 600;
   max-width: 220px;
+  cursor: pointer;
 }
 
 .band-pick option {
@@ -1153,7 +1378,7 @@ select:focus {
   background: transparent;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 2px;
+  border-radius: 9px;
   padding: 3px 9px;
   font: inherit;
   font-size: 12.5px;
@@ -1168,6 +1393,101 @@ select:focus {
 .band-out:focus-visible {
   outline: 2px solid #fff;
   outline-offset: -1px;
+}
+
+/* ── 사이드바 안으로 들어온 띠와 자리 넷 (SPEC §8) ─────────────────── */
+/* 옛 이름을 그대로 쓰고 배치만 덮는다. 짙은 바탕이라 색 토큰도 `--rail*` 로 갈아 끼운다 */
+
+.side .band {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  background: transparent;
+  color: inherit;
+  border-radius: 0;
+  padding: 4px 4px 12px;
+}
+
+.side .band-left {
+  gap: 8px;
+}
+
+.side .band-pick {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  color: var(--rail-ink);
+  background: var(--rail-2);
+  border-color: rgba(239, 235, 225, 0.3);
+}
+
+.side .svc-dot {
+  width: 10px;
+  height: 10px;
+  margin: 0;
+  flex: none;
+}
+
+.side .band-repo,
+.side .band-who {
+  color: var(--rail-dim);
+  opacity: 1;
+  padding-left: 2px;
+}
+
+.side .band-right {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 4px 4px;
+  border-top: 1px solid var(--rail-2);
+}
+
+.side .band-out {
+  color: var(--rail-dim);
+  border-color: rgba(239, 235, 225, 0.3);
+}
+
+.side .band-out:hover {
+  background: var(--rail-2);
+  color: var(--rail-ink);
+}
+
+/* 자리 넷이 가로 탭에서 세로 목록이 됐다. 지금 자리는 밑줄 대신 왼쪽 3px 막대로 말한다 */
+.side .nav {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 1px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border-bottom: none;
+}
+
+.side .nav a {
+  margin: 0;
+  border: 0;
+  border-left: 3px solid transparent;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--rail-dim);
+}
+
+.side .nav a:hover {
+  background: var(--rail-2);
+  color: var(--rail-ink);
+}
+
+.side .nav a[aria-current='page'] {
+  background: var(--rail-2);
+  color: var(--rail-acc);
+  border-left-color: var(--rail-acc);
+}
+
+.side .nav a:focus-visible {
+  outline: 2px solid var(--rail-ink);
+  outline-offset: -2px;
 }
 
 /* 도는 실행이 있거나 갓 끝난 소식이 있을 때만 뜬다. 없으면 줄 자체가 없다 (SPEC §8) */
@@ -1240,7 +1560,9 @@ select:focus {
   max-width: 340px;
   background: var(--sheet);
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  /* 면이라 14px 이다 (DESIGN.md 원칙 2). 들어가는 자리는 상자 하나뿐이라 그림자로 띄운다 */
+  border-radius: 14px;
+  box-shadow: var(--lift);
   padding: 28px 24px 24px;
   display: grid;
   gap: 14px;
@@ -1626,3 +1948,25 @@ select:focus {
   color: var(--ink-faint);
   padding: 0 0 10px 2px;
 }
+
+/* 집계 띠 — 판정 개수를 큰 숫자로. 라벨은 늘 글자다 (DESIGN.md 접근성) */
+.stats{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;
+  box-shadow:var(--lift);margin-bottom:18px;overflow:hidden}
+.stats-row{display:flex}
+.stat{flex:1;padding:17px 22px;border-right:1px solid var(--rule-soft)}
+.stat:last-child{border-right:0}
+.stat .k{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  letter-spacing:.05em;color:var(--ink-faint)}
+.stat .k i{width:7px;height:7px;border-radius:2px}
+.stat .v{font-size:34px;font-weight:600;line-height:1.1;letter-spacing:-.02em;margin-top:3px}
+.stat .sub{font-size:12px;color:var(--ink-faint);margin-top:1px}
+.stat.p .v{color:var(--pass)} .stat.p .k i{background:var(--pass)}
+.stat.f .v{color:var(--fail)} .stat.f .k i{background:var(--fail)}
+.stat.n .v{color:var(--na)}   .stat.n .k i{background:var(--na)}
+.ratio{display:flex;height:6px;background:var(--rule-soft)}
+.ratio i{display:block;height:100%}
+.ratio .p{background:var(--pass)} .ratio .f{background:var(--fail)} .ratio .n{background:var(--na)}
+
+/* 최근 판정 흐름(`.spark`)은 이 PR 에서 뺐다 — 최근 N회 데이터가 다음 PR 의
+   이력 API 에서 온다. 조각과 규칙만 먼저 있으면 검사는 초록인데 화면에는 안 뜬다.
+   되살릴 때의 규칙은 docs/design-mockup.html 에 그대로 남아 있다 (2026-09-21) */

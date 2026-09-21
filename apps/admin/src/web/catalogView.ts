@@ -31,6 +31,32 @@ export function 마지막판정(row: CaseRow, last: LastMap): ItemStatus {
   return 'NA';
 }
 
+/** 집계 띠가 받는 네 숫자 */
+export interface 판정셈 {
+  전체: number;
+  통과: number;
+  실패: number;
+  미실행: number;
+}
+
+/**
+ * 목록을 열자마자 「지금 이 서비스가 어떤 상태인가」를 말하는 네 숫자.
+ *
+ * **마지막 결과 배지 하나만 있을 때는 실패가 어제부터인지 2주 전부터인지 알 수 없었다.**
+ * 세는 규칙은 `마지막판정` 그대로다 — 디바이스 한쪽만 깨져도 실패다.
+ * 세는 일을 기계에 맡긴다. 화면이 손으로 세면 조건이 바뀔 때 조용히 틀려진다.
+ */
+export function 판정개수(rows: CaseRow[], last: LastMap): 판정셈 {
+  const 셈: 판정셈 = { 전체: rows.length, 통과: 0, 실패: 0, 미실행: 0 };
+  for (const row of rows) {
+    const 판정 = 마지막판정(row, last);
+    if (판정 === 'PASS') 셈.통과 += 1;
+    else if (판정 === 'FAIL') 셈.실패 += 1;
+    else 셈.미실행 += 1;
+  }
+  return 셈;
+}
+
 /**
  * 마지막 결과 칩 (SPEC §8.1 조건 5).
  *

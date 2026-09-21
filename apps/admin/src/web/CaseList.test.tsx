@@ -74,6 +74,22 @@ const 실행버튼 = () => screen.getByRole('button', { name: /(전체|건) 실�
 // 모달의 버튼은 글자가 딱 '실행'이다. 목록 쪽은 앞에 '전체'·'선택한 N건'이 붙는다
 const 모달실행 = () => screen.getByRole('button', { name: '실행' });
 
+describe('CaseList 집계 띠', () => {
+  it('목록 위에 판정 넷이 숫자와 글자 라벨로 같이 뜬다', async () => {
+    await 그리기();
+    const 띠 = document.querySelector('.stats');
+    expect(띠).not.toBeNull();
+    const 글 = 띠?.textContent ?? '';
+    for (const 라벨 of ['전체', '통과', '실패', '미실행']) expect(글).toContain(라벨);
+  });
+
+  it('숫자는 지금 보이는 것을 센다', async () => {
+    await 그리기();
+    const 칸들 = [...document.querySelectorAll('.stats .stat .v')].map((el) => el.textContent);
+    expect(칸들[0]).toBe('2');
+  });
+});
+
 describe('CaseList 여러 건 고르기', () => {
   it('줄마다 고르는 칸이 있고 무엇을 고르는지 이름으로 읽힌다', async () => {
     await 그리기();

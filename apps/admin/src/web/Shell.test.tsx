@@ -7,9 +7,10 @@
 // 한쪽만 보면 색을 아무 데도 안 칠한 상태가 통과한다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { api, type ServiceRow, type User } from './api.js';
+import { 사이드바접음을적는다, 자리목록, 탭제목 } from './layout.js';
 import { Shell } from './Shell.js';
 
 afterEach(() => {
@@ -72,5 +73,55 @@ describe('맨 위 띠의 서비스 색 (SPEC §8)', () => {
     띄운다(결제);
     expect(screen.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
     expect(screen.getByText('결제 서비스')).toBeTruthy();
+  });
+});
+
+describe('세로 껍데기 (SPEC §8)', () => {
+  it('사이드바 하나가 서비스 고르개 · 자리 전부 · 로그인한 사람을 다 들고 있다', () => {
+    띄운다(결제);
+    const 사이드 = document.querySelector('.side') as HTMLElement | null;
+    expect(사이드).not.toBeNull();
+    const 안 = within(사이드!);
+    expect(안.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
+    expect(안.getAllByRole('link')).toHaveLength(자리목록(사람.role).length);
+    expect(안.getByText(사람.displayName)).toBeTruthy();
+  });
+
+  it('푸터가 제품과 지금 서비스를 적는다', () => {
+    띄운다(결제);
+    const 푸터 = document.querySelector('.foot');
+    expect(푸터).not.toBeNull();
+    expect(푸터!.textContent).toContain(탭제목(결제));
+  });
+});
+
+describe('사이드바 접기', () => {
+  it('접는 버튼이 있고 지금 접혔는지를 말한다', () => {
+    띄운다(결제);
+    const 버튼 = screen.getByRole('button', { name: /사이드바/ });
+    expect(버튼.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('누르면 접히고 껍데기가 그 사실을 들고 있다', () => {
+    띄운다(결제);
+    fireEvent.click(screen.getByRole('button', { name: /사이드바/ }));
+    expect(document.querySelector('.wrap.folded')).not.toBeNull();
+    expect(screen.getByRole('button', { name: /사이드바/ }).getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('접어 두면 다음에 열 때도 접힌 채로 뜬다', () => {
+    사이드바접음을적는다(true);
+    띄운다(결제);
+    expect(document.querySelector('.wrap.folded')).not.toBeNull();
+    사이드바접음을적는다(false);
+  });
+
+  it('접혀도 자리 넷에 키보드로 닿는다', () => {
+    사이드바접음을적는다(true);
+    띄운다(결제);
+    // 안 보이게 하려고 display:none 을 쓰면 탭 대상에서 빠진다.
+    // 흐리게 두지 않는다는 규칙(SPEC §8)은 등급 이야기고, 접기는 사람이 되돌릴 수 있는 상태다
+    expect(screen.getByRole('link', { name: '케이스' })).toBeTruthy();
+    사이드바접음을적는다(false);
   });
 });
