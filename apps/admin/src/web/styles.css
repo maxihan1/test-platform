@@ -1813,3 +1813,31 @@ select:focus {
   color: var(--ink-faint);
   padding: 0 0 10px 2px;
 }
+
+/* 집계 띠 — 판정 개수를 큰 숫자로. 라벨은 늘 글자다 (DESIGN.md 접근성) */
+.stats{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;
+  box-shadow:var(--lift);margin-bottom:18px;overflow:hidden}
+.stats-row{display:flex}
+.stat{flex:1;padding:17px 22px;border-right:1px solid var(--rule-soft)}
+.stat:last-child{border-right:0}
+.stat .k{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  letter-spacing:.05em;color:var(--ink-faint)}
+.stat .k i{width:7px;height:7px;border-radius:2px}
+.stat .v{font-size:34px;font-weight:600;line-height:1.1;letter-spacing:-.02em;margin-top:3px}
+.stat .sub{font-size:12px;color:var(--ink-faint);margin-top:1px}
+.stat.p .v{color:var(--pass)} .stat.p .k i{background:var(--pass)}
+.stat.f .v{color:var(--fail)} .stat.f .k i{background:var(--fail)}
+.stat.n .v{color:var(--na)}   .stat.n .k i{background:var(--na)}
+.ratio{display:flex;height:6px;background:var(--rule-soft)}
+.ratio i{display:block;height:100%}
+.ratio .p{background:var(--pass)} .ratio .f{background:var(--fail)} .ratio .n{background:var(--na)}
+
+/* 색을 못 보는 사람이 키만으로 셀 수 있게 판정마다 높이를 다르게 둔다 (DESIGN.md 접근성) */
+.spark{display:flex;justify-content:flex-end;gap:3px;align-items:flex-end;margin-top:8px;height:16px}
+.spark i{width:9px;border-radius:2px;display:block}
+.spark i.p{background:var(--pass);height:8px}
+.spark i.f{background:var(--fail);height:16px}
+.spark i.n{background:var(--na);height:12px}
+.sparktext{display:block;margin-top:5px;font-size:11.5px;color:var(--ink-faint);white-space:nowrap}
+.sparktext b{font-weight:600}
+.sparktext b.p{color:var(--pass)} .sparktext b.f{color:var(--fail)} .sparktext b.n{color:var(--na)}
