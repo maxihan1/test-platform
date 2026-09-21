@@ -162,10 +162,12 @@ const 스타일 = `
   font-style:normal;
   src:url(data:font/woff2;base64,${등폭500}) format('woff2');
 }
+/* 화면(web/styles.css)과 같은 값이어야 한다. 화면을 보던 사람이 문서를 받았을 때
+   다시 배울 것이 없어야 한다는 것이 DESIGN.md 의 전제다. 2026-09-21 「제도 청사진」 */
 :root{
-  --paper:#E6E9E2; --sheet:#F8F9F5; --ink:#17201B; --ink-muted:#464D47; --ink-faint:#626A62;
-  --rule:#C8CEC3; --rule-soft:#DCE0D7;
-  --pass:#0D6A46; --pass-bg:#E2EDE6; --fail:#A62B21; --fail-bg:#F6E4E1; --na:#79693A; --na-bg:#F1EBDC;
+  --paper:#DFE4E7; --sheet:#F8FAFB; --ink:#16222A; --ink-muted:#3F4E58; --ink-faint:#59666F;
+  --rule:#BFC9CF; --rule-soft:#DCE3E7; --chrome:#1C4E6B; --chip:#EDF2F4;
+  --pass:#0C6349; --pass-bg:#E0EEE8; --fail:#A32A22; --fail-bg:#F6E4E1; --na:#74673B; --na-bg:#F0EBDC;
 }
 *{ box-sizing:border-box; margin:0; padding:0; }
 body{
@@ -182,7 +184,9 @@ body{
 .meta dd{ color:var(--ink); }
 .item{ border-top:1px solid var(--rule); padding:14px 0; break-inside:avoid; }
 .item-head{ font-size:14.5px; font-weight:600; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.tc-id{ font-size:12.5px; font-weight:600; color:var(--ink-muted); }
+/* TC ID·소요시간·회차는 등폭으로 그린다. 화면과 같은 규칙이다 (DESIGN.md 원칙 3) */
+.tc-id,.ms,.seq{ font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace; }
+.tc-id{ font-size:12.5px; font-weight:500; color:var(--ink-muted); }
 .tc-name{ flex:1; }
 .badge{ font-size:12px; font-weight:600; color:var(--ink-muted); border:1px solid var(--rule); border-radius:2px; padding:1px 6px; }
 .verdict{ font-size:12px; font-weight:800; border-radius:2px; padding:1px 7px; }

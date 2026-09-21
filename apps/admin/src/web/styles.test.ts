@@ -95,3 +95,34 @@ describe('토큰 명암비 (DESIGN.md)', () => {
     expect(짝명암비(표['--rule']!, 표['--sheet']!)).toBeLessThan(요소);
   });
 });
+
+/**
+ * 화면과 증적 문서가 같은 토큰을 쓰는지 (DESIGN.md 「같은 레이아웃」).
+ *
+ * **두 벌이 갈리면 화면을 보던 사람이 문서를 받았을 때 다시 배워야 한다.**
+ * `reporting/html.ts` 는 화면 CSS 를 읽지 않고 값을 복사해 두므로 사람이 한쪽만 고치기 쉽다.
+ * 2026-09-21 스킨 교체가 정확히 그 위험을 두 배로 키웠다 — 그래서 여기서 대조한다.
+ */
+describe('증적 문서가 화면과 같은 토큰을 쓴다', () => {
+  const 문서 = readFileSync(new URL('../reporting/html.ts', import.meta.url), 'utf8');
+
+  it.each([
+    '--paper',
+    '--sheet',
+    '--ink',
+    '--ink-muted',
+    '--ink-faint',
+    '--rule',
+    '--rule-soft',
+    '--pass',
+    '--pass-bg',
+    '--fail',
+    '--fail-bg',
+    '--na',
+    '--na-bg',
+  ])('%s 가 화면과 같은 값이다', (이름) => {
+    const 화면값 = 토큰들()[이름]!.toLowerCase();
+    const 문서값 = new RegExp(`${이름}\\s*:\\s*(#[0-9a-fA-F]{6})`).exec(문서)?.[1]?.toLowerCase();
+    expect(문서값, `${이름} 이 증적 문서에 없거나 값이 다르다`).toBe(화면값);
+  });
+});
