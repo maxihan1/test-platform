@@ -29,7 +29,7 @@ test(spec, async ({ page, params, expected }) => {
     const edit = page.getByRole('textbox', { name: 'Edit' });
     await edit.fill('');
     await edit.press('Enter');
-    await page.getByTestId('todo-count').waitFor({ state: 'detached' });
+    await edit.waitFor({ state: 'detached' });
     await verify('목록에 할 일이 한 건도 보이지 않는다', await page.getByTestId('todo-item').count(), expected.left);
   });
 });
