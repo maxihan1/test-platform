@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const spec = defineCase({
   tcId: 'TODO-002',
-  name: '남은 개수가 1 로 보인다',
+  name: '남은 개수가 「1 item left」로 보인다',
   precondition: ['할 일 목록이 비어 있다'],
   params: z.object({
     todo: z.string().min(1).describe('추가할 할 일').default('우유 사기'),
@@ -24,6 +24,6 @@ test(spec, async ({ page, params, expected }) => {
     await input.fill(params.todo);
     await input.press('Enter');
     await page.getByTestId('todo-count').waitFor();
-    await verify('남은 개수가 1 로 보인다', await page.getByTestId('todo-count').innerText(), expected.remaining);
+    await verify('남은 개수가 「1 item left」로 보인다', await page.getByTestId('todo-count').innerText(), expected.remaining);
   });
 });
