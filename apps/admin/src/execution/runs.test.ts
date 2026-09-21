@@ -347,6 +347,28 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     expect(실패만.total).toBe(실패만.items.length);
   });
 
+  it('GET /api/runs — 그 서비스 전체의 집계를 같이 준다', async () => {
+    const body = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
+
+    expect(body.summary.runs).toBe(body.total);
+    expect(body.summary.allPass).toBeGreaterThan(0);
+    expect(body.summary.hasFail).toBeGreaterThan(0);
+    expect(body.summary.allPass + body.summary.hasFail).toBeLessThanOrEqual(body.summary.runs);
+    // 도는 실행은 소요가 없어 평균에서 뺀다. 몇 회를 셌는지도 같이 준다
+    expect(body.summary.durationOf).toBeGreaterThan(0);
+    expect(body.summary.avgDurationMs).toBeGreaterThan(0);
+  });
+
+  it('GET /api/runs — 거르개를 걸면 집계도 같이 좁아진다', async () => {
+    // 보이는 것과 세는 것이 갈리면 사람은 3줄을 보면서 「42회」를 읽는다
+    const 전체 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
+    const 실패만 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX&state=failed' })).json();
+
+    expect(실패만.summary.runs).toBe(실패만.total);
+    expect(실패만.summary.runs).toBeLessThan(전체.summary.runs);
+    expect(실패만.summary.allPass).toBe(0);
+  });
+
   it('GET /api/runs/:runId/items/:historyId — 절차와 검증 문장이 온다', async () => {
     const 실행 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
     const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'XBX 두 환경 실행');

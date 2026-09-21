@@ -142,6 +142,24 @@ export interface RunItemDetail extends RunItemSummary {
 }
 
 /** 케이스 한 건의 실행 이력 한 줄 (SPEC §7 `GET /api/cases/:tcId/history`) */
+/** 실행 기록 화면 머리의 집계 (SPEC §8.7). **거르개를 건 뒤의 집합**을 센다 */
+export interface RunTally {
+  runs: number;
+  allPass: number;
+  hasFail: number;
+  /** 평균을 낸 실행 수. 도는 실행은 소요가 없어 빠진다 */
+  durationOf: number;
+  avgDurationMs: number;
+  maxDurationMs: number;
+}
+
+/** 실행 목록을 좁히는 조건 (SPEC §8.7). **화면이 거르지 않는다** — 쪽으로 나뉘어 오기 때문이다 */
+export interface RunQuery {
+  q?: string;
+  state?: 'running' | 'failed';
+  env?: string;
+}
+
 export interface HistoryRow {
   historyId: number;
   runId: number;
@@ -382,8 +400,13 @@ export const api = {
    */
   caseHistory: (tcId: string) => call<Paged<HistoryRow>>(`/cases/${encodeURIComponent(tcId)}/history`),
 
-  runs: (service: string, page: number) =>
-    call<Paged<RunSummary>>(`/runs?service=${encodeURIComponent(service)}&page=${page}`),
+  runs: (service: string, page: number, 조건: RunQuery = {}) => {
+    const params = new URLSearchParams({ service, page: String(page) });
+    if (조건.q !== undefined && 조건.q !== '') params.set('q', 조건.q);
+    if (조건.state !== undefined) params.set('state', 조건.state);
+    if (조건.env !== undefined && 조건.env !== '') params.set('env', 조건.env);
+    return call<Paged<RunSummary> & { summary: RunTally }>(`/runs?${params.toString()}`);
+  },
 
   run: (runId: number) =>
     call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[] }>(`/runs/${runId}`),

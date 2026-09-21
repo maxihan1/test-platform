@@ -37,7 +37,7 @@ const 사람: User = {
 };
 
 function 띄운다(service: ServiceRow) {
-  vi.spyOn(api, 'runs').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
+  vi.spyOn(api, 'runs').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 , summary: { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 } });
   return render(
     <Shell user={사람} service={service} onService={() => {}} onLogout={() => {}} current="#/cases">
       <div>본문</div>
