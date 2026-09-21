@@ -70,84 +70,134 @@ npm run authoring-agent -- docs/cases/TODO-기획서.md
 
 ## Plan
 
-### 할 일 1. `npm test` 가 `scripts/` 의 검사를 보게 한다
+> **게이트 1 에서 고쳤다** (2026-09-21). 검토의 BLOCKER 3 · 주의 3 · 참고 1 을 반영한 판이다.
+> 무엇을 왜 바꿨는지는 아래 「검토 반영」에 있다.
 
-- **RED** — `scripts/authoring-agent.test.ts` 에 `it('검사 자리가 잡혔다', () => expect(1).toBe(1))`
-  하나를 두고 `npm test` 를 돌리면 **그 파일이 아예 안 잡힌다.** 통과도 실패도 아닌 「0건」이 RED 다
-- **GREEN** — `vitest.config.ts` 의 `include` 에 `scripts/**/*.test.ts` 를 더한다
-- **REFACTOR** — CLAUDE.md §3 「단위 테스트 위치」에 이 자리를 한 줄 더한다.
-  CLAUDE.md §2.5 표가 「규칙 추가는 직접」으로 지정한 자리다
+### 할 일 1. 과금 위험을 보면 **시작 전에** 거부한다
 
-**files**: `vitest.config.ts` · `scripts/authoring-agent.test.ts` · `CLAUDE.md`
+- **RED** — `scripts/authoring-agent.test.ts` 를 쓰고 `npm test -- scripts` 를 돌린다.
+  **빨강이 두 단계로 난다** — 먼저 「파일을 못 찾는다」(vitest 가 `scripts/**` 를 안 본다),
+  `include` 를 고치면 그다음 「`과금위험` 이 없다」. 자리지킴이 검사를 안 남긴다
+- **GREEN** — `vitest.config.ts` 의 `include` 에 `scripts/**/*.test.ts` 를 더하고
+  `export function 과금위험(env, 설정): string[]` 을 만든다. **보는 것이 셋이다**
+  ① `ANTHROPIC_API_KEY` · `ANTHROPIC_AUTH_TOKEN` (**빈 문자열은 위험이 아니다** — 지운 환경을 막으면 못 쓴다)
+  ② `CLAUDE_CODE_USE_BEDROCK` · `_VERTEX` · `_FOUNDRY` — **3P 제공자는 AWS·GCP 계정에 청구된다**
+  ③ 사용자 설정(`~/.claude/settings.json`)의 `apiKeyHelper` 와 `env.ANTHROPIC_*` —
+  **환경변수에는 안 보이는데 CLI 는 읽는다**
+- **REFACTOR** — 없음
+
+**files**: `vitest.config.ts` · `scripts/authoring-agent.ts` · `scripts/authoring-agent.test.ts`
 **depends-on**: []
-**검증**: `npm test -- scripts` 가 그 파일을 잡고 통과한다
+**검증**: `npm test -- scripts` — 셋 각각에 대해 빨강→초록을 본다
 
-### 할 일 2. 과금 위험 환경변수를 보면 거부한다
+### 할 일 2. 인자를 읽고 **push 가 막힐 조건을 먼저 본다**
 
-- **RED** — `과금위험({ ANTHROPIC_API_KEY: 'sk-x' })` 이 `['ANTHROPIC_API_KEY']` 를 돌려주길
-  단언한다. `ANTHROPIC_AUTH_TOKEN` 도, 둘 다 있으면 둘 다. **빈 환경이면 빈 배열.**
-  **빈 문자열은 위험이 아니다** — `ANTHROPIC_API_KEY=''` 로 지운 환경을 막으면 못 쓴다
-- **GREEN** — `export function 과금위험(env: NodeJS.ProcessEnv): string[]`
+- **RED** — `인자읽기([])` 가 쓰는 법을 담은 오류를, `인자읽기(['없는파일.md'])` 가 「없다」를 내고,
+  있는 파일이면 `{ 기획서, 서비스 }` 를 돌려주길 단언한다. 그리고 **`푸시막힘(오늘, 목록)`** 이
+  오늘 날짜 검사 기록이 없으면 사유 문자열을, 있으면 `null` 을 돌려주길 단언한다
+- **GREEN** — 두 함수. `푸시막힘` 은 `docs/reviews/<오늘>-*.md` 의 존재만 본다
 - **REFACTOR** — 없음
+
+**왜 이게 필요한가** — `.claude/hooks/pre-push` 가 오늘 날짜의 검사 기록을 요구한다.
+없으면 **관문 넷까지 초록을 내고 push 에서 죽어** 결과가 작업방에 갇히고 PR 이 안 열린다.
+**늦은 실패를 이른 실패로 바꾼다.** 훅이 에러에 적어 둔 `--no-verify` 는 **쓰지 않는다** —
+그건 저장소가 사고 뒤에 세운 검사를 무인으로 건너뛰는 일이다.
+(훅의 다른 절반인 `npm test` 는 **DB 없이도 통과한다** — 실측 59 passed · 14 skipped. 그건 위험이 아니다.)
 
 **files**: `scripts/authoring-agent.ts` · `scripts/authoring-agent.test.ts`
 **depends-on**: [1]
 **검증**: `npm test -- scripts`
 
-### 할 일 3. 인자를 읽고 기획서가 실제로 있는지 본다
+### 할 일 3. 자식 세션이 **파일을 실제로 쓸 수 있는 권한 깃발**을 실측으로 정한다
 
-- **RED** — `인자읽기([])` 가 쓰는 법을 담은 오류를 내고, `인자읽기(['없는파일.md'])` 가
-  「그 파일이 없다」를 내고, `인자읽기(['docs/cases/TODO-기획서.md'])` 가
-  `{ 기획서: '...', 서비스: undefined }` 를 돌려주길 단언한다.
-  `--service TODO` 를 붙이면 `서비스: 'TODO'` 다
-- **GREEN** — `export function 인자읽기(argv: string[]): { 기획서: string; 서비스?: string }`.
-  없는 파일은 던진다
+- **RED** — 없다. **이건 사이클이 아니라 실측이다.** 모르는 값을 단언할 수 없다
+- **GREEN** — 임시 폴더에서 「이 폴더에 `probe.txt` 를 만들고 끝내라」 한 줄짜리 프롬프트로
+  `claude -p` 를 후보 깃발마다 돌려 **파일이 실제로 생기는 최소 권한**을 찾는다.
+  후보는 `--permission-mode` 의 값들과 `--allowedTools` 조합이다.
+  결과(고른 깃발과 왜 그것인지)를 이 계획에 적는다
 - **REFACTOR** — 없음
 
-**files**: `scripts/authoring-agent.ts` · `scripts/authoring-agent.test.ts`
-**depends-on**: [1]
-**검증**: `npm test -- scripts`
+**왜 이게 먼저인가** — 터미널에서 띄운 `claude` 는 **물어볼 상대가 없어 쓰기가 자동 거부**되고,
+그런데도 **종료 코드 0** 으로 끝난다. 이걸 모르고 지으면 첫 실전 실행이
+**산출물 0 인데 성공으로 보고**된다.
 
-### 할 일 4. `claude` 에 거는 인자를 만든다 — 여기가 과금 안전핀의 둘째 문이다
+**files**: `docs/plans/2026-09-21-authoring-agent.md`
+**depends-on**: []
+**검증**: 임시 폴더에 `probe.txt` 가 **실제로 생긴다**. 안 생기면 그 깃발은 탈락이다
 
-- **RED** — `클로드인자({ 기획서: 'x.md' })` 가 돌려주는 배열에 대해 넷을 단언한다.
-  ① **`--bare` 가 들어 있지 않다** (그 깃발 하나가 구독을 실비로 바꾼다)
-  ② `-p` 가 있다 (비대화형)
-  ③ `--disallowedTools` 로 `AskUserQuestion` 을 막는다
-  ④ 마지막 원소인 프롬프트에 기획서 경로와 **「초안 PR 까지만」** 지시가 들어 있다
-- **GREEN** — `export function 클로드인자(입력): string[]`. 프롬프트 본문은 같은 파일의 상수
+### 할 일 4. `claude` 에 거는 인자를 만든다 — 배열을 **통째로** 비교한다
+
+- **RED** — `클로드인자({ 기획서: 'x.md' })` 가 **기대 배열과 완전히 같은지** 단언한다.
+  「`--bare` 가 없다」 같은 부정 단언을 쓰지 않는다 — **인자가 늘어도 초록이라 다음 편집을 못 막는다.**
+  통째로 비교하면 하나만 늘어도 깨져서 **고치는 사람이 과금 규칙을 반드시 다시 읽는다.**
+  프롬프트 문자열은 따로 단언한다 (기획서 경로 · 「초안 PR 까지만」 · 「`--no-verify` 금지」)
+- **GREEN** — `export function 클로드인자(입력): string[]`. 할 일 3 이 정한 권한 깃발을 포함하고,
+  `-p` · `--disallowedTools AskUserQuestion` 을 넣고, **`--bare` 를 절대 안 넣는다**
 - **REFACTOR** — 프롬프트가 길어 파일이 300줄에 가까워지면 `scripts/authoring-prompt.ts` 로 가른다
 
 **files**: `scripts/authoring-agent.ts` · `scripts/authoring-agent.test.ts`
-**depends-on**: [1]
+**depends-on**: [1, 3]
 **검증**: `npm test -- scripts`
 
-### 할 일 5. 껍데기를 잇고 `npm run authoring-agent` 로 부를 수 있게 한다
+### 할 일 5. 껍데기를 잇는다 — 연기 확인은 **거부 사유 문구**를 본다
 
-- **RED** — 없다. **여기는 I/O 껍데기라 단위 검사를 쓰지 않는다** — `scripts/run-scheduled.ts`
-  선례와 같다(알맹이는 검사된 함수에 있고 껍데기에는 검사가 없다).
-  대신 **연기 확인**으로 판정한다. `ANTHROPIC_API_KEY=sk-가짜` 를 준 채 돌리면
-  **claude 를 부르기 전에 0 이 아닌 코드로 죽어야 한다**
-- **GREEN** — argv 읽기 → 과금위험 검사 → 클로드인자 → `spawn('claude', 인자, { stdio: 'inherit' })`
-  → 그 종료 코드로 끝낸다. 파일 머리에 한국어 한 줄 주석 (무엇을·왜 이 모양인지)
+- **RED** — 없다. I/O 껍데기라 단위 검사를 쓰지 않는다 (`scripts/run-scheduled.ts` 선례).
+  **연기 확인이 그 몫을 한다**
+- **GREEN** — argv 읽기 → **과금위험** → **푸시막힘** → 클로드인자 →
+  `spawn('claude', 인자, { stdio: 'inherit' })` → 그 종료 코드로 끝낸다.
+  파일 머리에 한국어 한 줄 주석 (무엇을·왜 이 모양인지)
 - **REFACTOR** — 없음
 
 **files**: `scripts/authoring-agent.ts` · `package.json`
-**depends-on**: [2, 3, 4]
-**검증**: `ANTHROPIC_API_KEY=sk-가짜 npm run authoring-agent -- docs/cases/TODO-기획서.md` 가
-**0 이 아닌 코드**로 끝나고 거부 사유를 찍는다. 그다음 키 없이 `--help` 격으로 인자 없이 돌리면
-쓰는 법을 찍는다
+**depends-on**: [1, 2, 4]
+**검증**: `ANTHROPIC_API_KEY=sk-가짜 npm run authoring-agent -- docs/cases/TODO-기획서.md 2>&1`
+의 출력에 **거부 사유 문구가 찍히는지 `grep`** 한다. **종료 코드만 보지 않는다** —
+검사와 spawn 의 순서가 뒤집혀도 가짜 키로 불린 `claude` 가 0 아닌 코드를 내서 **같은 초록이 된다.**
+그러면 진짜 키가 있는 환경에서 **그 요청이 실제로 나간다**
 
-### 할 일 6. 사람이 쓰는 법을 적는다
+### 할 일 6. ★ 끝에서 끝까지 **한 번 실제로 돌린다**
+
+- **RED** — 없다. 통합 확인이다
+- **GREEN** — 없다. 돌려 보고 어긋난 것을 앞의 할 일로 되돌려 고친다
+- **REFACTOR** — 없음
+
+**왜 이게 계획에 있어야 하나** — 할 일 1~5 를 다 끝내도 **이 도구가 제 일을 한 적이 한 번도 없다.**
+없으면 **사용자가 처음 돌리는 순간이 첫 통합 검사**가 된다 (CLAUDE.md §8).
+
+**files**: (없음 — 확인만. 고칠 것이 나오면 해당 할 일로 되돌린다)
+**depends-on**: [5]
+**검증**: `npm run authoring-agent -- docs/cases/TODO-기획서-2.md` 를 실제로 돌려 **넷을 본다.**
+① 케이스 파일이 **실제로 생긴다** ② `npm run check:tests` EXIT=0
+③ **초안 PR 이 열린다** ④ `gh pr view --json isDraft` 가 **`true`** — 초안이 안 풀렸다.
+돌린 결과로 생긴 PR 과 브랜치는 확인 뒤 정리한다
+
+### 할 일 7. 사람이 쓰는 법을 적는다
 
 - **RED** — 없음 (문서)
-- **GREEN** — `docs/SETUP.md` 에 절 하나 — 무엇을 하는 명령인지 · 무엇이 자동이고
-  **어디부터 사람인지** · 과금 안전핀이 무엇을 막는지. `docs/progress/WS-C.md` 에 진행 기록
+- **GREEN** — `docs/SETUP.md` 에 절 하나 — 무엇을 하는 명령인지 · **어디까지 자동이고 어디부터 사람인지** ·
+  과금 안전핀이 무엇을 막는지 · **오늘 검사 기록이 없으면 왜 거부되는지**.
+  `docs/progress/WS-C.md` 에 진행 기록. **검사 자리가 `scripts/` 로 늘어난 것도 여기 적는다**
 - **REFACTOR** — 없음
 
 **files**: `docs/SETUP.md` · `docs/progress/WS-C.md`
-**depends-on**: [5]
-**검증**: `npm run check:spec` EXIT=0 · 문서를 읽고 그대로 따라 할 수 있는지 눈으로
+**depends-on**: [6]
+**검증**: `npm run check:spec` EXIT=0 · 문서대로 따라 할 수 있는지 눈으로
+
+## 검토 반영 — 무엇을 왜 바꿨나
+
+| 지적 | 어떻게 |
+|---|---|
+| **BLOCKER 1** 권한을 안 정했다 | **할 일 3 신설** — 실측으로 정한다. 모르는 값을 단언할 수 없다 |
+| **BLOCKER 2** 한 번도 안 돌려 본다 | **할 일 6 신설** — 끝에서 끝까지 실제 실행. 초안이 안 풀렸는지까지 본다 |
+| **BLOCKER 3** push 가 막힌다 | **할 일 2 에 `푸시막힘` 추가** — 늦은 실패를 이른 실패로. `--no-verify` 는 안 쓴다. **훅의 `npm test` 절반은 재현 안 됐다** (DB 없이 통과) |
+| **주의 1** 설정 파일·3P 사각지대 | 할 일 1 이 **셋을 본다** — 환경변수 · 3P 제공자 · 사용자 설정 파일 |
+| **주의 2** 부정 단언은 약하다 | 할 일 4 가 **배열을 통째로 비교**한다. 더 짧고 더 세다 |
+| **주의 3** 연기 확인이 순서를 못 본다 | 할 일 5 가 **거부 사유 문구를 `grep`** 한다 |
+| **참고** 병렬 주장이 틀렸다 · 할 일 1 의 RED | 옛 할 일 1 을 **없애고** 할 일 1 의 2단계 빨강으로 합쳤다. 묶음을 다시 셌다 |
+
+**`CLAUDE.md` §3 은 안 고친다.** 검사 자리를 `scripts/` 로 넓히는 것이 「규칙 추가」인지
+「기존 규칙(각 앱 안에) 수정」인지 갈린다 — §2.5 표상 수정은 승인이 필요하다.
+**게이트 2 에서 물어본다.** 그때까지는 진행 기록에만 적는다.
 
 ## SPEC 동반 수정 (§2.7)
 
@@ -161,8 +211,23 @@ npm run authoring-agent -- docs/cases/TODO-기획서.md
 
 ## Plan 메타
 
-할 일 6개 · 예상 묶음 3개 (1 → 2·3·4 병렬 → 5 → 6) · 구현 규율: TDD ·
+할 일 7개 · 예상 묶음 5개 · 구현 규율: TDD ·
 추가 검증: `npm run typecheck` · `npm run check:deps` · `npm test` 3회 연속
+
+**묶음을 다시 셌다.** 앞 판의 「2·3·4 병렬」은 **틀렸다** — 셋이 같은 두 파일을 고친다.
+`files` 가 겹치면 `depends-on` 이 없어도 직렬화된다.
+
+```
+[1·3 병렬]  1 과금 안전핀        3 권한 깃발 실측 (files 안 겹침)
+     ↓
+[2]         인자 읽기 + 푸시막힘
+     ↓
+[4]         claude 인자 (1·3 이 있어야 쓴다)
+     ↓
+[5]         껍데기 + npm script
+     ↓
+[6·7]       끝에서 끝까지 실행 → 문서
+```
 
 ## 리뷰 결과
 
