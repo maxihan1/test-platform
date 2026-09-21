@@ -55,9 +55,14 @@ export function registerRoutes(app: FastifyInstance): void {
 
   // 경과를 여기서 그때그때 재서 낸다. 시작 시각을 보내면 화면 기계의 시계와 어긋난 만큼이
   // 그대로 오차가 된다 — 러너는 컨테이너 안이다 (SPEC §5.2)
+  // **historyId 는 지도의 열쇠를 쓴다.** progress.step 안의 값은 자식이 stdout 에 스스로 적은 것이라
+  // 케이스 코드가 남의 번호를 찍으면 그 절차 제목이 남의 실행 화면에 뜬다 — admin 의 거르기는
+  // 「이 실행의 항목인가」만 보므로 그대로 통과한다. 러너는 진짜 값을 이미 알고 있다 (execute() 가 건 열쇠다)
   app.get('/progress', async () => ({
-    items: [...running.values()].flatMap(({ progress }) =>
-      progress === undefined ? [] : [{ ...progress.step, elapsedMs: Date.now() - progress.시작한때 }],
+    items: [...running.entries()].flatMap(([historyId, { progress }]) =>
+      progress === undefined
+        ? []
+        : [{ ...progress.step, historyId, elapsedMs: Date.now() - progress.시작한때 }],
     ),
   }));
 

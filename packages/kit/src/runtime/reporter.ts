@@ -11,8 +11,9 @@ import type { ExecuteResponse, ItemStatus, StepResult } from '../types.js';
 // 풀어주지 않아 리포터가 통째로 로드되지 않는다. 타입 import는 지워지므로 괜찮다.
 // protocol.ts와 같은 값이어야 하며 reporter.test.ts가 그것을 지킨다
 export const RESULT_MARKER = '@@RESULT@@';
-export const PROGRESS_MARKER = '@@PROGRESS@@';
 export const STEP_ATTACHMENT = 'platform-step';
+// 진행 표시자(PROGRESS_MARKER)는 **여기 두지 않는다.** onStdOut 이 거르지 않아 쓸 일이 없고,
+// 상수가 서 있으면 「골라 쓰는 자리가 있나 보다」로 읽혀 아래 주석이 막으려는 실수를 유도한다
 
 function collectSteps(result: TestResult): StepResult[] {
   const steps: StepResult[] = [];

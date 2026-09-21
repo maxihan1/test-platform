@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PROGRESS_MARKER, RESULT_MARKER, STEP_ATTACHMENT } from './protocol.js';
 import PlatformReporter, {
-  PROGRESS_MARKER as REPORTER_PROGRESS_MARKER,
   RESULT_MARKER as REPORTER_MARKER,
   STEP_ATTACHMENT as REPORTER_ATTACHMENT,
 } from './reporter.js';
@@ -13,7 +12,6 @@ describe('리포터가 들고 있는 표시자', () => {
   it('protocol.ts의 값과 같다', () => {
     expect(REPORTER_MARKER).toBe(RESULT_MARKER);
     expect(REPORTER_ATTACHMENT).toBe(STEP_ATTACHMENT);
-    expect(REPORTER_PROGRESS_MARKER).toBe(PROGRESS_MARKER);
   });
 });
 

@@ -104,6 +104,17 @@ describe('GET /progress', () => {
     expect(항목.elapsedMs).toBeGreaterThanOrEqual(0);
   });
 
+  it('자식이 남의 historyId를 적어 보내도 러너가 아는 번호로 낸다', async () => {
+    const child = 진행을_흘리는_자식(7);
+    child.stdin.write(진행줄({ historyId: 9999, seq: 1, title: '남의 실행인 척한다' }));
+    await once(child.stdout, 'data');
+
+    const res = await 서버().inject({ method: 'GET', url: '/progress' });
+
+    expect(res.json().items).toHaveLength(1);
+    expect(res.json().items[0].historyId).toBe(7);
+  });
+
   it('도는 것이 없으면 빈 목록이다', async () => {
     const 아무것도없음 = await 서버().inject({ method: 'GET', url: '/progress' });
 

@@ -141,15 +141,22 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     // 러너의 목록은 **모든 서비스의 자식**을 담고 runId 칸이 없다. 그대로 흘리면 남의 실행의
     // 절차 제목이 이 화면에 뜬다 — 문(auth/scope.ts)은 「이 runId 를 볼 자격」만 보고 내용물은 안 본다.
     // 자기 DB 의 historyId 와 교집합만 낸다. 제한 시간도 같은 줄에 있어 한 질의로 끝난다 (SPEC §7)
+    const 돌고있는것들 = await 진행();
+    if (돌고있는것들.length === 0) return { items: [] };
+
+    // **러너가 답한 것만 물어본다.** run_id 로만 좁히면 5000건짜리 실행에서 보는 사람마다
+    // 2초에 한 번 5000행을 읽는다 — 정작 쓰는 것은 동시 실행 수만큼(기본 2)뿐이다
     const { pool } = await import('../db/index.js');
     const 제한 = await pool.query<{ history_id: string; timeout_ms: number }>(
-      'SELECT history_id, timeout_ms FROM run_item WHERE run_id = $1',
-      [runId],
+      'SELECT history_id, timeout_ms FROM run_item WHERE run_id = $1 AND history_id = ANY($2)',
+      [runId, 돌고있는것들.map((it) => it.historyId)],
     );
     const 내것 = new Map(제한.rows.map((r) => [Number(r.history_id), r.timeout_ms]));
 
+    // 없는 runId 에도 200 빈 목록이다. 형제 라우트(findRun·findItem)는 404 를 내지만
+    // 여기서 404 를 내려면 실행을 한 번 더 조회해야 하고, 화면은 도는 중일 때만 부른다 (SPEC §8.9)
     return {
-      items: (await 진행()).flatMap((돌고있는것) => {
+      items: 돌고있는것들.flatMap((돌고있는것) => {
         const timeoutMs = 내것.get(돌고있는것.historyId);
         return timeoutMs === undefined ? [] : [{ ...돌고있는것, timeoutMs }];
       }),
