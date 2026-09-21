@@ -108,6 +108,8 @@ export function 프롬프트(기획서: string, 서비스: string | undefined): 
     '   사람이 게이트 2 에서 판단한다.',
     '3. **git push --no-verify 를 쓰지 마라.** pre-push 검사가 막으면 그 자리에서 멈추고',
     '   무엇이 막았는지 보고해라. 건너뛰지 마라.',
+    '4. **A-0 에서 다른 작업방이나 초안 PR 을 보면 「새 작업 추가」로 보고 진행해라.**',
+    '   남의 작업방과 브랜치는 절대 건드리지 마라. 네 것을 새로 만들어라.',
     '',
     '관문 넷(형식·표 대조·3회 연속·일부러 부수기)은 전부 돌려라.',
   ].join('\n');
@@ -121,16 +123,13 @@ export function 프롬프트(기획서: string, 서비스: string | undefined): 
  *
  * `--permission-mode acceptEdits` 가 없으면 **쓰기가 자동 거부되는데 종료 코드는 0** 이다
  * (2026-09-21 실측). 산출물 0 인데 성공으로 보고된다.
+ *
+ * **프롬프트는 여기 안 싣는다.** `--disallowedTools` 가 가변 인자라 **뒤따르는 것을 전부 삼킨다** —
+ * 프롬프트가 도구 이름 목록으로 먹혀 `Input must be provided...` 로 죽었다 (2026-09-21 실측).
+ * 프롬프트는 stdin 으로 넘긴다. 셸 따옴표 문제도 같이 사라진다.
  */
-export function 클로드인자(입력: { 기획서: string; 서비스: string | undefined }): string[] {
-  return [
-    '-p',
-    '--permission-mode',
-    'acceptEdits',
-    '--disallowedTools',
-    'AskUserQuestion',
-    프롬프트(입력.기획서, 입력.서비스),
-  ];
+export function 클로드인자(): string[] {
+  return ['-p', '--permission-mode', 'acceptEdits', '--disallowedTools', 'AskUserQuestion'];
 }
 
 // ── 껍데기 ────────────────────────────────────────────────────────────
@@ -174,7 +173,11 @@ function 실행(): number {
   }
 
   console.log(`[작성] ${입력.기획서} 로 케이스를 만든다. 초안 PR 까지 간다 — 병합은 사람이 한다.`);
-  const 결과 = spawnSync('claude', 클로드인자(입력), { stdio: 'inherit' });
+  const 결과 = spawnSync('claude', 클로드인자(), {
+    // 프롬프트는 stdin 으로 넘긴다 (클로드인자 주석 참고). 나머지는 그대로 흘려보낸다
+    input: 프롬프트(입력.기획서, 입력.서비스),
+    stdio: ['pipe', 'inherit', 'inherit'],
+  });
   return 결과.status ?? 1;
 }
 

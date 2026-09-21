@@ -88,18 +88,20 @@ describe('클로드인자', () => {
   // 다음 편집을 못 막는다. 통째로 비교하면 하나만 늘어도 깨져서
   // 고치는 사람이 이 파일 맨 위의 과금 규칙을 반드시 다시 읽는다
   it('인자 배열이 기대한 것과 글자 하나까지 같다', () => {
-    expect(클로드인자({ 기획서: 'x.md', 서비스: undefined })).toEqual([
-      '-p',
-      '--permission-mode',
-      'acceptEdits',
-      '--disallowedTools',
-      'AskUserQuestion',
-      프롬프트('x.md', undefined),
-    ]);
+    expect(클로드인자()).toEqual(['-p', '--permission-mode', 'acceptEdits', '--disallowedTools', 'AskUserQuestion']);
   });
 
   it('--bare 는 절대 안 들어간다 — 그 깃발 하나가 OAuth 를 안 읽고 API 키만 쓴다', () => {
-    expect(클로드인자({ 기획서: 'x.md', 서비스: 'TODO' })).not.toContain('--bare');
+    expect(클로드인자()).not.toContain('--bare');
+  });
+
+  // 2026-09-21 실측 — 프롬프트를 배열 끝에 실었더니 --disallowedTools 가 가변 인자라
+  // 그것을 도구 이름 목록으로 삼켰고 `Input must be provided...` 로 죽었다.
+  // **--disallowedTools 가 마지막이어야 한다**는 것이 이 단언의 알맹이다
+  it('마지막 원소 뒤에 아무것도 없다 — 가변 인자가 프롬프트를 삼켰던 자리다', () => {
+    const 인자 = 클로드인자();
+    expect(인자[인자.length - 2]).toBe('--disallowedTools');
+    expect(인자[인자.length - 1]).toBe('AskUserQuestion');
   });
 });
 
@@ -124,5 +126,10 @@ describe('프롬프트', () => {
 
   it('내부 게이트 대신 표를 PR 에 실으라고 한다 — 물어볼 사람이 없다', () => {
     expect(프롬프트('x.md', undefined)).toMatch(/AskUserQuestion/);
+  });
+
+  it('A-0 에서 남의 작업방을 건드리지 말라고 못박는다 — 거기서도 물어볼 사람이 없다', () => {
+    expect(프롬프트('x.md', undefined)).toMatch(/A-0/);
+    expect(프롬프트('x.md', undefined)).toMatch(/남의 작업방/);
   });
 });
