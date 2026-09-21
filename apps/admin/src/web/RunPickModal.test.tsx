@@ -91,6 +91,26 @@ describe('RunPickModal', () => {
     expect(줄().textContent).toContain('대상 서버를 고르세요');
   });
 
+  it('값을 고치고 실행하면 그 값이 onRun 의 items 에 실린다', () => {
+    // 고친 값을 통째로 버려도 「안 불렸다」만 보는 단언은 초록이다. 무엇을 받았는지까지 본다
+    const { onRun } = 그리기();
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ZPM-002 값 고치기' }));
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'zpm-tester' } });
+    fireEvent.click(실행버튼());
+
+    expect(onRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        env: 'qa',
+        items: [
+          { tcId: 'ZPM-001', platforms: ['desktop', 'mobile'], params: {}, expected: {} },
+          { tcId: 'ZPM-002', platforms: ['desktop'], params: { userId: 'zpm-tester' }, expected: {} },
+        ],
+      }),
+    );
+  });
+
   it('실행 항목 수는 디바이스 수가 다른 케이스들에서도 합이다', () => {
     // 둘짜리 하나 + 하나짜리 하나 = 3건. 곱셈이면 2나 4가 나온다
     그리기();
