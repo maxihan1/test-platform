@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CaseRow, LastResult } from './api.js';
-import { 마지막결과로거른다, 빈이유 } from './catalogView.js';
+import { keyOf, 마지막결과로거른다, 빈이유, 판정개수 } from './catalogView.js';
 
 function 케이스(tcId: string, platforms: ('desktop' | 'mobile')[] = ['desktop']): CaseRow {
   return {
@@ -98,5 +98,29 @@ describe('목록이 비었을 때 세 갈래 (SPEC §8.1)', () => {
     });
     expect(것.무엇).toBe('조건에 맞는 케이스가 없습니다');
     expect(것.버튼).toBe('조건 초기화');
+  });
+});
+
+describe('판정개수', () => {
+  it('마지막 결과를 통과·실패·미실행으로 센다', () => {
+    const rows = [케이스('A-001'), 케이스('A-002'), 케이스('A-003')];
+    const last = {
+      [keyOf('A-001', 'desktop')]: 마지막('A-001', 'PASS'),
+      [keyOf('A-002', 'desktop')]: 마지막('A-002', 'FAIL'),
+    };
+    expect(판정개수(rows, last)).toEqual({ 전체: 3, 통과: 1, 실패: 1, 미실행: 1 });
+  });
+
+  it('디바이스 한쪽만 깨져도 실패로 센다', () => {
+    const rows = [케이스('A-001', ['desktop', 'mobile'])];
+    const last = {
+      [keyOf('A-001', 'desktop')]: 마지막('A-001', 'PASS'),
+      [keyOf('A-001', 'mobile')]: { ...마지막('A-001', 'FAIL'), platform: 'mobile' as const },
+    };
+    expect(판정개수(rows, last)).toEqual({ 전체: 1, 통과: 0, 실패: 1, 미실행: 0 });
+  });
+
+  it('빈 목록이면 넷 다 0 이다', () => {
+    expect(판정개수([], {})).toEqual({ 전체: 0, 통과: 0, 실패: 0, 미실행: 0 });
   });
 });
