@@ -123,22 +123,73 @@ export async function serviceExists(prefix: string): Promise<boolean> {
   return (rows.rowCount ?? 0) > 0;
 }
 
+/**
+ * 실행 목록의 거르개 (SPEC §8.7).
+ *
+ * **`state` 는 `test_run.status` 가 아니다.** `failed` 는 「실패 항목이 하나라도 있는 실행」이라
+ * 집계에서 나오고, 그래서 `HAVING` 으로 걸린다. 칸 하나를 보는 것이 아니다.
+ */
+export interface 실행거르개 {
+  q?: string;
+  state?: 'running' | 'failed';
+  env?: string;
+}
+
+/**
+ * `WHERE` 와 `HAVING` 을 같이 만든다.
+ *
+ * **목록 질의와 집계 질의가 같은 함수를 쓴다.** 두 벌이면 거르개를 걸었을 때
+ * 「보이는 것」과 「세는 것」이 갈려, 3줄만 보이는 화면이 「42회」라고 말하게 된다.
+ */
+function 거르는조건(거르개: 실행거르개, 시작번호: number): { where: string; having: string; 값: unknown[] } {
+  const where: string[] = [];
+  const 값: unknown[] = [];
+  let n = 시작번호;
+
+  if (거르개.q !== undefined && 거르개.q !== '') {
+    where.push(`r.title ILIKE $${String(n)}`);
+    // ILIKE 특수문자를 값으로 다룬다. 사람이 친 % 가 전체 일치로 바뀌지 않게 한다
+    값.push(`%${거르개.q.replace(/[%_\\]/g, (c) => `\\${c}`)}%`);
+    n += 1;
+  }
+  if (거르개.env !== undefined && 거르개.env !== '') {
+    where.push(`r.env = $${String(n)}`);
+    값.push(거르개.env);
+    n += 1;
+  }
+  // 도는 것은 칸으로 갈리지만 실패 섞임은 집계로 갈린다. 그래서 둘이 다른 절에 붙는다
+  if (거르개.state === 'running') where.push(`r.finished_at IS NULL`);
+  const having =
+    거르개.state === 'failed'
+      ? `HAVING count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL') > 0`
+      : '';
+
+  return { where: where.length === 0 ? '' : `AND ${where.join(' AND ')}`, having, 값 };
+}
+
 export async function listRuns(
   service: string,
   page: number,
   pageSize: number,
+  거르개: 실행거르개 = {},
 ): Promise<{ items: RunSummary[]; total: number; page: number; pageSize: number }> {
   const pool = await db();
+  const 조건 = 거르는조건(거르개, 4);
   // test_run.service_id 한 칸이 run_item 의 tc_id 접두사까지 따라가는 조인을 없앤다 (SPEC §6)
+  //
+  // count(*) OVER () 가 HAVING 뒤·LIMIT 앞에서 돈다. 그래서 거르개를 걸어도 총건수가
+  // **걸린 뒤의 수**다 (2026-09-22 실측 — 감싸는 서브질의로 바꿔도 결과가 같았다).
+  // 계획 검토가 「HAVING 이전을 센다」고 의심했는데 재 보니 그렇지 않았다
   const rows = await pool.query<RawRun>(
     `SELECT ${RUN_COLUMNS}, count(*) OVER ()::int AS grand_total
        FROM test_run r
        LEFT JOIN run_item i USING (run_id)
-      WHERE r.service_id = (SELECT id FROM service WHERE prefix = $3)
+      WHERE r.service_id = (SELECT id FROM service WHERE prefix = $3) ${조건.where}
       GROUP BY r.run_id
+      ${조건.having}
       ORDER BY r.run_id DESC
       LIMIT $1 OFFSET $2`,
-    [pageSize, (page - 1) * pageSize, service],
+    [pageSize, (page - 1) * pageSize, service, ...조건.값],
   );
 
   return { items: rows.rows.map(toRun), total: rows.rows[0]?.grand_total ?? 0, page, pageSize };

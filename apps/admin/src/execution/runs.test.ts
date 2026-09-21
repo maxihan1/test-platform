@@ -59,6 +59,23 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     await pool.query(서비스);
     await pool.query(케이스, ['XBX-001', '두 환경 케이스', JSON.stringify(['desktop', 'mobile']), 'demo/XBX-001.spec.ts']);
 
+    // 실패가 하나도 없는 실행. state=failed 가 이것을 빼야 검사가 무는 것이 된다 —
+    // 러너 흉내가 늘 FAIL 을 내므로 이 한 건은 직접 넣는다
+    await pool.query(
+      `WITH r AS (
+         INSERT INTO test_run (title, triggered_by, triggered_by_name, env, base_url,
+                               service_name, service_id, tests_repo, status, finished_at)
+         SELECT 'XBX 모두 통과', 'xbx-사람', '실행 검사용', 'qa', 'https://qa.example.com',
+                'XBX 서비스', id, 'https://xbx.example.com', 'FINISHED', now()
+           FROM service WHERE prefix = 'XBX'
+         RETURNING run_id
+       )
+       INSERT INTO run_item (run_id, tc_id, tc_name, platform, file_path, params, expected,
+                             param_schema, expected_schema, timeout_ms, status, duration_ms, finished_at)
+       SELECT run_id, 'XBX-001', '두 환경 케이스', 'desktop', 'demo/XBX-001.spec.ts', '{}', '{}',
+              '{}', '{}', 300000, 'PASS', 100, now() FROM r`,
+    );
+
     러너 = Fastify();
     러너.post('/execute', async (req) => {
       const body = req.body as ExecuteRequest;
@@ -271,6 +288,63 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       // 실행 기록 목록은 대상 서버를 시각 옆에 적는다 (SPEC §8.7)
       expect(run.env).toBe('qa');
     }
+  });
+
+  it('GET /api/runs — 제목 일부로 거른다', async () => {
+    const 전체 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
+    const 걸림 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX&q=없을리없는제목' })).json();
+
+    expect(걸림.items).toHaveLength(0);
+    expect(전체.items.length).toBeGreaterThan(0);
+
+    const 한조각 = 전체.items[0].title.slice(0, 6);
+    const 맞음 = (await app.inject({
+      method: 'GET',
+      url: `/api/runs?service=XBX&q=${encodeURIComponent(한조각)}`,
+    })).json();
+    expect(맞음.items.length).toBeGreaterThan(0);
+    for (const run of 맞음.items) expect(run.title).toContain(한조각);
+  });
+
+  it('GET /api/runs — 도는 것만 거르면 끝난 실행이 빠진다', async () => {
+    // 이 fixture 의 실행은 전부 끝나 있다. 안 거르면 여러 건이 오므로 거짓으로 통과할 수 없다
+    const 전체 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
+    expect(전체.items.length).toBeGreaterThan(0);
+
+    const 도는것 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX&state=running' })).json();
+    expect(도는것.items).toHaveLength(0);
+  });
+
+  it('GET /api/runs — 실패가 섞인 실행만 거른다. status 칸이 아니라 집계에서 나온다', async () => {
+    const body = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX&state=failed' })).json();
+
+    expect(body.items.length).toBeGreaterThan(0);
+    for (const run of body.items) expect(run.counts.fail).toBeGreaterThan(0);
+    // 「모두 통과」 실행이 빠져 있어야 거른 것이다
+    expect(body.items.some((r: { title: string }) => r.title === 'XBX 모두 통과')).toBe(false);
+  });
+
+  it('GET /api/runs — 대상 서버로 거른다', async () => {
+    const 맞음 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX&env=qa' })).json();
+    const 없음 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX&env=staging' })).json();
+
+    expect(맞음.items.length).toBeGreaterThan(0);
+    expect(없음.items).toHaveLength(0);
+  });
+
+  it('GET /api/runs — 거른 뒤의 총건수가 실제로 걸린 수와 같다', async () => {
+    // state=failed 는 집계 조건이라 HAVING 이 붙는다. 총건수가 그것을 안 따라가면
+    // 페이지 수가 거짓이 되고 빈 쪽이 생긴다 — §8.7 「고칠 것 5」가 이름 붙인 함정이다
+    const 없는것 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX&q=없을리없는제목' })).json();
+    expect(없는것.total).toBe(0);
+
+    // 「모두 통과」 한 건이 fixture 에 있으므로 HAVING 이 실제로 한 줄을 뺀다.
+    // 총건수를 HAVING 이전에 세면 여기서 어긋난다
+    const 전체 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
+    const 실패만 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX&state=failed' })).json();
+
+    expect(실패만.items.length).toBeLessThan(전체.items.length);
+    expect(실패만.total).toBe(실패만.items.length);
   });
 
   it('GET /api/runs/:runId/items/:historyId — 절차와 검증 문장이 온다', async () => {
