@@ -155,7 +155,6 @@ function 거르는조건(거르개: 실행거르개, 시작번호: number): { wh
   if (거르개.env !== undefined && 거르개.env !== '') {
     where.push(`r.env = $${String(n)}`);
     값.push(거르개.env);
-    n += 1;
   }
   // 도는 것은 칸으로 갈리지만 실패 섞임은 집계로 갈린다. 그래서 둘이 다른 절에 붙는다
   if (거르개.state === 'running') where.push(`r.finished_at IS NULL`);
