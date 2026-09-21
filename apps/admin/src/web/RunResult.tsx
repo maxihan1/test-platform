@@ -9,6 +9,7 @@ import { use증적, 증적만들기버튼들, 증적알림과목록 } from './Ev
 import { 한줄로 } from './mask.js';
 import { Modal } from './Modal.js';
 import type { 등급 } from './role.js';
+import { RunProgressModal } from './RunProgressModal.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름, 칸사유 } from './runState.js';
 import { Failed, Loading, message, PLATFORM_LABEL, PLATFORMS, seconds, STATUS_COLOR, STATUS_LABEL, useAsync, Verdict, when } from './ui.js';
 
@@ -33,7 +34,11 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const [멈추는중, set멈추는중] = useState(false);
   const [멈춤오류, set멈춤오류] = useState<string | null>(null);
   const [끝났다고알릴까말까, set알릴까] = useState(false);
-  // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다
+  // 「진행 상자를 닫았다」와 「완료를 알았다」는 다른 말이다. 하나로 합치면 도는 중에 상자를 닫은 사람이
+  // 실행이 끝난 것을 영영 못 듣는다 — 맨 위 알림 줄도 `본것들` 을 보므로 그를 못 구한다 (SPEC §8.9)
+  const [진행열림, set진행열림] = useState(false);
+  // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다.
+  // 화면에 안 나오는 값이라 `useRef` 로 둔다 — 그리는 값이면 `useState` 여야 한다 (2026-09-21 사고)
   const 앞선상태 = useRef<string | null>(null);
 
   const run = useAsync(() => api.run(runId), [runId]);
@@ -46,6 +51,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   useEffect(() => {
     앞선상태.current = null;
     set알릴까(false);
+    set진행열림(false);
   }, [runId]);
 
   // 그 실행 결과 화면을 보고 있는 사람에게만 모달이 뜬다 (SPEC §8.9).
@@ -54,6 +60,9 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
     if (data === null) return;
     const 전 = 앞선상태.current;
     앞선상태.current = data.status;
+    // 처음 받은 `data` 가 도는 중일 때만 연다. `useState(true)` 로 시작하면 그 값이 `data` 보다 먼저
+    // 정해져 3일 전에 끝난 실행을 열어도 진행 상자가 선다. 한 번 연 실행에서는 다시 열지 않는다
+    if (전 === null && 도는중(data.status)) set진행열림(true);
     if (전 !== null && 끝났다고알릴까({ 전, 후: data.status, runId: data.runId })) set알릴까(true);
   }, [data?.status, data?.runId]);
   const reload = run.reload;
@@ -80,7 +89,6 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const shown = groups.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE);
   const columns = device === 'ALL' ? PLATFORMS : [device];
   const { pass, fail, na } = data.counts;
-  const 실패목록 = data.items.filter((item) => item.status === 'FAIL');
   function choose<T>(setter: (value: T) => void) {
     return (value: T) => {
       setter(value);
@@ -207,59 +215,20 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
         })
       )}
 
-      {!끝났다고알릴까말까 ? null : (
-        <Modal
-          제목={`RUN ${String(data.runId)} 이 ${data.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다'}`}
+      {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다 */}
+      {!진행열림 && !끝났다고알릴까말까 ? null : (
+        <RunProgressModal
+          data={data}
           onClose={() => {
-            // 한 번 닫으면 그 실행에 대해 다시 뜨지 않는다. 새로고침해도 마찬가지다 (SPEC §8.9)
-            본것으로적는다(data.runId);
-            set알릴까(false);
+            set진행열림(false);
+            // 끝난 뒤에 닫은 것만 「알림 봤다」로 적는다 — 새로고침해도 다시 안 뜬다 (SPEC §8.9).
+            // 도는 중에 닫은 것은 아직 안 본 것이라 끝나면 완료 상자를 새로 받아야 한다
+            if (!도는중(data.status)) {
+              본것으로적는다(data.runId);
+              set알릴까(false);
+            }
           }}
-          버튼={
-            <>
-              {/* 증적 문서 만들기는 실행까지 등급부터다 (SPEC §3.5). 보기만에게는 결과 보기 하나다 */}
-              <button
-                className="btn"
-                onClick={() => {
-                  본것으로적는다(data.runId);
-                  set알릴까(false);
-                }}
-              >
-                결과 보기
-              </button>
-            </>
-          }
-        >
-          <p>
-            {data.title} · 대상 서버 {data.env}
-          </p>
-          <div className="tally">
-            <div>
-              <b style={{ color: 'var(--pass)' }}>{pass}</b>
-              <span>통과</span>
-            </div>
-            <div>
-              <b style={{ color: 'var(--fail)' }}>{fail}</b>
-              <span>실패</span>
-            </div>
-            <div>
-              <b style={{ color: 'var(--na)' }}>{na}</b>
-              <span>미실행</span>
-            </div>
-          </div>
-          {실패목록.length === 0 ? null : (
-            <div>
-              {/* 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다 (SPEC §8.9) */}
-              <div className="sec-h">실패한 케이스</div>
-              {실패목록.slice(0, 5).map((item) => (
-                <div className="pre" key={item.historyId}>
-                  {item.tcId} {item.tcName}
-                </div>
-              ))}
-              {실패목록.length > 5 ? <p className="hint">외 {실패목록.length - 5}건</p> : null}
-            </div>
-          )}
-        </Modal>
+        />
       )}
 
       {!멈출까 ? null : (
