@@ -1,7 +1,7 @@
 // 러너 POST /execute 호출 (SPEC §5.2). 판정은 러너가 만든다 — 여기서 다시 계산하지 않는다
 // 러너가 죽거나 붙지 못해도 던지지 않는다. 한 항목의 고장이 나머지 항목까지 끌고 내려가면 안 된다
 
-import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
+import type { ExecuteRequest, ExecuteResponse, RunningStep } from '@platform/kit';
 
 import type { PendingItem } from './store.js';
 
@@ -37,6 +37,20 @@ export async function abortRunner(historyId: number): Promise<boolean> {
   } catch {
     // 러너에 닿지 못해도 멈춤 자체는 성립한다. 항목은 이미 DB에서 닫혔다
     return false;
+  }
+}
+
+// 지금 러너에서 돌고 있는 절차들. 닿지 못하거나 200 이 아니면 빈 목록이다 —
+// 한 번 실패가 곧 「러너가 죽었다」는 아니고, 러너 고장을 사람에게 알리는 자리는 따로 있다 (SPEC §8.3).
+// **여기서 거르지 않는다.** 러너의 목록은 모든 서비스의 자식을 담고 runId 칸이 없다 (SPEC §5.2)
+export async function 진행(): Promise<RunningStep[]> {
+  try {
+    // 화면이 짧은 주기로 다시 묻는다. 오래 매달려 있어 봐야 다음 물음이 덮는다
+    const res = await fetch(`${runnerUrl()}/progress`, { signal: AbortSignal.timeout(3_000) });
+    if (!res.ok) return [];
+    return ((await res.json()) as { items?: RunningStep[] }).items ?? [];
+  } catch {
+    return [];
   }
 }
 

@@ -91,12 +91,30 @@ git worktree add .claude/worktrees/<이름> -b <이름> origin/main
 **소유 경로 잠금은 없다.** 2026-09-18 에 걷어냈다 — `WORKSTREAM` 환경변수가 훅에 닿지 않아
 한 번도 켜진 적이 없었다. 범위를 지키는 일은 계획 단계와 게이트가 한다 (`CLAUDE.md §1.1`).
 
-### 작업방 함정 둘
+### 작업방 함정
 
-- **`node_modules` 는 상위로 올라가 저장소 루트 것을 쓴다.** 워크트리에 따로 만들지 않는다.
+- **서드파티 `node_modules` 는 상위로 올라가 저장소 루트 것을 쓴다.** 워크트리에 따로 만들지 않는다.
   루트에 없는 부품은 `npm run check:deps` 가 잡는다 — **Step 4 에서 먼저 돌린다**
 - **`git stash` 를 맨몸으로 쓰지 않는다.** 스택이 모든 워크트리와 공유된다.
   치워 둘 것이 있으면 임시 커밋을 쓴다
+
+#### ★ 그런데 `@platform/*` 자기 패키지는 다르다 — 작업방을 만든 직후 반드시 건다
+
+위 첫 줄은 **서드파티 부품에만 맞다.** 이 저장소 자기 패키지(`@platform/kit` · `@platform/admin` ·
+`@platform/runner`)까지 상위로 올라가게 두면 **저장소 루트의 심링크를 타고 `main` 체크아웃을 본다.**
+그러면 **이번 브랜치에서 새로 만든 공유 심볼이 조용히 `undefined` 가 된다** —
+기존 심볼은 `main` 에도 있어서 **멀쩡해 보이고** 실패가 그 자리에서 안 난다 (2026-09-21 실제 사고).
+
+```bash
+mkdir -p <작업방>/node_modules/@platform
+ln -sfn ../../packages/kit   <작업방>/node_modules/@platform/kit
+ln -sfn ../../apps/admin     <작업방>/node_modules/@platform/admin
+ln -sfn ../../apps/runner    <작업방>/node_modules/@platform/runner
+```
+
+**이 네 줄을 지우지 마라.** 「워크트리에 `node_modules` 를 만들지 않는다」와 어긋나 보이지만
+여기 거는 것은 **작업방 자신의 폴더로 가는 심링크 셋뿐**이고 부품을 새로 받는 것이 아니다.
+증상이 「없는 것」이 아니라 **「옛 것」**이라 안 걸어 두면 다음 사람이 코드부터 의심하며 시간을 쓴다.
 
 ## Step 3. ★ 초안 PR 을 연다 — 파일을 고치기 전에
 

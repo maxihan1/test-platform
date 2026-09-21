@@ -229,6 +229,16 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
 .modal .flist .id{font-size:12.5px;font-weight:600;color:var(--ink-muted);margin-right:8px}
 .modal .actions{border-top:1px solid var(--rule-soft)}
 
+/* 진행 상자 — 완료 모달과 **같은 상자**이고 내용만 갈라 그린다 (§8.9).
+   정본은 apps/admin/src/web/styles.css 의 .one-line 과 .now-step 이고 여기는 사본이다 */
+.modal .stripe{margin:0 22px 14px}
+.modal .flist .pre{padding:4px 0 4px 16px}
+.one-line{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;word-break:keep-all}
+.modal .flist .now-step{display:flex;align-items:baseline;gap:6px;font-size:12.5px;color:var(--ink-muted);padding:0}
+/* 경과를 순번보다 크게 둔다. 분모 없는 순번은 진행이 아니라 그냥 번호로 읽힌다 */
+.modal .flist .now-step b{display:inline;flex:none;font-size:14px;font-weight:600;color:var(--ink);margin:0}
+.modal .flist .now-step .lim{flex:none;color:var(--ink-faint);font-size:12.5px}
+
 /* 여러 건 실행 확인 모달 — 머리와 바닥은 고정, 가운데 목록만 스크롤한다.
    건수가 늘어도 대상 서버와 실행 버튼이 늘 보여야 한다 */
 .modal .mhead{display:flex;align-items:center;gap:10px;padding:0 22px 16px;flex-wrap:wrap}
@@ -1011,6 +1021,69 @@ input:focus,select:focus{outline:2px solid var(--ink);outline-offset:-1px}
     </p>
   </div>
 </div>
+
+<!-- ══ 화면 8 의 도는 동안 — 진행 상자 ═══════════════════════════ -->
+<p class="screen-tag"><b>화면 8 의 도는 동안 — 진행 상자</b> (§8.9. <b>완료 모달과 같은 상자</b>이고 도는 동안은 내용만 다르다)</p>
+<div class="screen" style="border:0;background:transparent;margin-bottom:12px">
+  <div class="scrim">
+    <div class="modal">
+      <h3>RUN 2114 가 도는 중입니다</h3>
+      <div class="sub">결제 회귀 · 대상 서버 qa</div>
+      <div class="stripe">
+        <i style="background:var(--pass);flex:5"></i>
+        <i style="background:var(--fail);flex:1"></i>
+        <i style="background:var(--rule);flex:4"></i>
+      </div>
+      <div class="tally">
+        <div><b style="color:var(--pass)">5</b><span>통과</span></div>
+        <div><b style="color:var(--fail)">1</b><span>실패</span></div>
+        <div><b style="color:var(--na)">0</b><span>미실행</span></div>
+        <div><b>4</b><span>남음</span></div>
+      </div>
+      <div class="sub">6 / 10 완료</div>
+      <div class="flist">
+        <b>진행 중</b>
+        <div class="pre">
+          <div class="one-line">PAY-004 저장한 카드로 다시 결제하면 승인된다</div>
+          <div class="now-step">
+            <span class="one-line">절차 4 · 결제 수단 목록에서 카드를 고른다</span>
+            <b>12초째</b>
+            <span class="lim">/ 제한 5분</span>
+          </div>
+        </div>
+        <div class="pre">
+          <div class="one-line">PAY-007 쿠폰을 적용하면 할인 금액이 표시된다</div>
+          <div class="now-step">
+            <span class="one-line">절차 2 · 장바구니에 상품을 담는다</span>
+            <b>3초째</b>
+            <span class="lim">/ 제한 3분</span>
+          </div>
+        </div>
+      </div>
+      <div class="flist">
+        <b>방금 끝난 것</b>
+        <div class="pre">PAY-002 한도를 넘는 카드로 결제하면 거절 사유가 안내된다 · 실패
+          <div class="hint">거절 사유 문구가 보이지 않는다</div>
+        </div>
+      </div>
+      <div class="actions">
+        <span class="note">Esc · 바깥 누르기로도 닫힙니다</span>
+        <button class="btn">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="note" style="margin:-4px 0 40px 2px">
+  <b>도는 것을 전부 그린다.</b> 동시에 둘이 돌면 둘 다 뜬다 — 정확히 아는데 하나만 그리면 알면서 감추는 것이다.<br>
+  <b>분모(전체 절차 수)는 없다.</b> 케이스가 끝나기 전에는 Playwright 도 전체 절차 수를 모른다.
+  없는 수를 지어내면 「거의 다 됐다」는 거짓 신호가 되고, 그것은 모르는 것보다 나쁘다.
+  분모를 대신하는 것이 <b>머문 시간</b>과 <b>제한 시간</b>이고, 그 둘이 「느린 것」과 「멈춘 것」을 가른다.
+  그래서 <code>12초째</code> 를 순번보다 크게 둔다 — 분모 없는 순번은 진행이 아니라 그냥 번호로 읽힌다.<br>
+  <b>절차를 아직 모르면 절차 줄을 아예 두지 않는다.</b> 빈 자리를 잡아 두면 2초마다 다시 묻는 이 상자에서
+  절차가 왔다 갔다 할 때 높이가 튄다. 항목 이름 줄은 그대로 남는다.<br>
+  막대는 집계가 나눈 그대로 <b>통과 · 실패 · 미실행 · 남음</b> 넷이다.
+  <b>「실행 중」과 「대기」로 가르지 않는다</b> — 그 둘을 가를 신호가 저장된 값에 없다 (§8.9).
+</p>
 
 <!-- ══ 화면 8 — 실행 완료 모달 ═══════════════════════════════════ -->
 <p class="screen-tag"><b>화면 8 — 실행 완료 모달</b> (§8.9. <b>그 실행 결과 화면을 보고 있을 때만</b> 뜬다)</p>

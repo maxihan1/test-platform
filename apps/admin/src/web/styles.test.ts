@@ -43,6 +43,22 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(블록).toMatch(/flex-shrink:\s*0/);
   });
 
+  it('한 줄로 자르는 규칙이 다 있다 — 하나만 빠져도 한 글자씩 세로로 흐른다', () => {
+    // 지난 PR 에서 「제목이 한 글자씩 세로로 흘렀다」가 2회 났다 (LEARNINGS 2026-09-17 · 09-19).
+    // flex 자식은 기본 min-width 가 auto 라 셋 중 그것만 빠져도 ellipsis 가 아예 안 걸린다.
+    // jsdom 에 레이아웃 엔진이 없어 `getBoundingClientRect()` 는 늘 0 이다 — 규칙이 있는지만 본다
+    const 블록 = /\.one-line\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    for (const 규칙 of [
+      /text-overflow:\s*ellipsis/,
+      /white-space:\s*nowrap/,
+      /overflow:\s*hidden/,
+      /min-width:\s*0/,
+      /word-break:\s*keep-all/,
+    ]) {
+      expect(블록, `.one-line 에 ${규칙.source} 가 없다`).toMatch(규칙);
+    }
+  });
+
   it('판정 세 색과 그 바탕이 전부 있다', () => {
     const 표 = 토큰들();
     for (const 이름 of ['--pass', '--fail', '--na', '--pass-bg', '--fail-bg', '--na-bg']) {
