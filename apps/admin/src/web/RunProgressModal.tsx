@@ -51,8 +51,10 @@ function 진행내용({ data }: { data: RunDetail }) {
 
   return (
     <>
-      {/* 넷의 합이 전체수와 같아 폭 비율을 flex 가 그대로 낸다. 바깥 여백은 모달이 이미 갖고 있다 */}
-      <div className="stripe" style={{ margin: 0 }}>
+      {/* 넷의 합이 전체수와 같아 폭 비율을 flex 가 그대로 낸다.
+          여백과 「줄어들지 않는다」는 styles.css 의 `.modal-body .stripe` 가 갖는다 —
+          인라인으로 두면 그 규칙이 있는지 다음 사람이 알 수 없다 */}
+      <div className="stripe">
         {칸들.map((칸) => (
           <i key={칸.이름} style={{ background: 칸.색, flex: 칸.수 }} />
         ))}

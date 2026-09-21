@@ -1007,6 +1007,17 @@ select:focus {
   overflow: auto;
 }
 
+/* 모달 안의 진행 막대. 본문이 세로 flex 라 6px 막대가 **flex-shrink 로 0 까지 줄어든다** —
+   실제로 그렇게 됐다 (2026-09-21 브라우저 확인). 색도 비율도 맞는데 높이만 0 이라
+   숫자만 뜨고 막대가 통째로 안 보였다.
+   **검사는 이 자리를 원리적으로 못 잡는다** — jsdom 에 레이아웃 엔진이 없어
+   비율(flex 값)은 단언해도 실제 높이는 재지 못한다. 그래서 규칙으로 못 박는다.
+   바깥 여백은 모달이 이미 갖고 있어 0 으로 되돌린다 */
+.modal-body .stripe {
+  margin: 0;
+  flex-shrink: 0;
+}
+
 .modal-foot {
   display: flex;
   justify-content: flex-end;
