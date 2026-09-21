@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const spec = defineCase({
   tcId: 'TODO-014',
-  name: '남은 개수가 「0 items left」로 보인다',
+  name: '두 건이 한꺼번에 끝나 남은 개수가 「0 items left」로 보인다',
   precondition: ['아직 끝내지 않은 할 일이 두 건 있다'],
   params: z.object({
     first: z.string().min(1).describe('미리 넣어 둘 첫째 할 일').default('우유 사기'),
@@ -29,6 +29,6 @@ test(spec, async ({ page, params, expected }) => {
   await test.step('목록 위쪽의 화살표 표시를 누른다', async () => {
     await page.getByRole('checkbox', { name: 'Mark all as complete' }).check();
     await page.getByRole('button', { name: 'Clear completed' }).waitFor();
-    await verify('남은 개수가 「0 items left」로 보인다', await page.getByTestId('todo-count').innerText(), expected.remaining);
+    await verify('두 건이 한꺼번에 끝나 남은 개수가 「0 items left」로 보인다', await page.getByTestId('todo-count').innerText(), expected.remaining);
   });
 });
