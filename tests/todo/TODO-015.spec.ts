@@ -20,7 +20,7 @@ test(spec, async ({ page, params, expected }) => {
     await input.fill(params.todo);
     await input.press('Enter');
     await page.getByTestId('todo-item').nth(0).waitFor();
-    await verify('만들어 둔 할 일이 목록에 보인다', await page.getByTestId('todo-title').innerText(), params.todo);
+    await verify('만들어 둔 할 일이 목록에 보인다', await page.getByTestId('todo-title').innerText(), params.todo, { blocker: true });
   });
 
   await test.step('화면을 다시 불러온다', async () => {

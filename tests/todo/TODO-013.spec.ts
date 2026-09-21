@@ -23,7 +23,7 @@ test(spec, async ({ page, params, expected }) => {
     await input.fill(params.second);
     await input.press('Enter');
     await page.getByTestId('todo-item').nth(1).waitFor();
-    await verify('아직 안 끝낸 것이 두 건이라 「2 items left」로 보인다', await page.getByTestId('todo-count').innerText(), '2 items left');
+    await verify('아직 안 끝낸 것이 두 건이라 「2 items left」로 보인다', await page.getByTestId('todo-count').innerText(), '2 items left', { blocker: true });
   });
 
   await test.step('목록 위쪽의 화살표 표시를 누른다', async () => {

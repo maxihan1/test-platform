@@ -19,7 +19,7 @@ test(spec, async ({ page, params, expected }) => {
     const input = page.getByPlaceholder('What needs to be done?');
     await input.fill(params.todo);
     await input.press('Enter');
-    await verify('만들어 둔 할 일이 목록에 보인다', await page.getByTestId('todo-title').innerText(), params.todo);
+    await verify('만들어 둔 할 일이 목록에 보인다', await page.getByTestId('todo-title').innerText(), params.todo, { blocker: true });
   });
 
   await test.step('그 할 일의 완료 표시를 누른다', async () => {

@@ -23,7 +23,7 @@ test(spec, async ({ page, params, expected }) => {
     await page.getByTestId('todo-item').first().waitFor();
     await page.getByTestId('todo-title').dblclick();
     await page.getByTestId('todo-title').waitFor({ state: 'hidden' });
-    await verify('이름을 고치는 입력칸이 보인다', await page.getByRole('textbox', { name: 'Edit' }).isVisible(), true);
+    await verify('이름을 고치는 입력칸이 보인다', await page.getByRole('textbox', { name: 'Edit' }).isVisible(), true, { blocker: true });
   });
 
   await test.step('이름을 「두유 사기」로 고치고 Enter 를 친다', async () => {

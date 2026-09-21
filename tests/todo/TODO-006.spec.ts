@@ -25,7 +25,7 @@ test(spec, async ({ page, params, expected }) => {
     await page.getByTestId('todo-item').nth(1).waitFor();
     await page.getByRole('checkbox', { name: 'Toggle Todo' }).nth(1).check();
     await page.getByRole('button', { name: 'Clear completed' }).waitFor();
-    await verify('남은 개수가 「1 item left」로 보인다', await page.getByTestId('todo-count').innerText(), '1 item left');
+    await verify('남은 개수가 「1 item left」로 보인다', await page.getByTestId('todo-count').innerText(), '1 item left', { blocker: true });
   });
 
   await test.step('보기에서 「Active」를 고른다', async () => {
