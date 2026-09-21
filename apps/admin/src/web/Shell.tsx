@@ -28,9 +28,10 @@ export function Shell({ user, service, onService, onLogout, current, children }:
 
   return (
     <div className="wrap">
-      {/* 띠의 바탕색은 그 서비스의 색이다. 이름만으로는 부족하다 —
-          글자는 읽어야 보이고 색은 안 읽어도 구분된다. 띠 밖에서는 이 색을 쓰지 않는다 (DESIGN.md) */}
-      <div className="band" style={service === null ? undefined : { background: service.color }}>
+      {/* 2026-09-21 — 띠의 바탕은 고정색(`--chrome`)이다. 서비스 색은 아래 자리 넷 줄로 내렸다.
+          이름만으로는 부족하다는 것은 그대로다 — 글자는 읽어야 보이고 색은 안 읽어도 구분된다.
+          옮긴 이유는 스킨의 껍데기 색과 서비스 색이 같은 자리를 놓고 다퉈서다 (SPEC §8) */}
+      <div className="band">
         <div className="band-left">
           {service === null ? (
             <span className="band-name">서비스 없음</span>
@@ -63,7 +64,14 @@ export function Shell({ user, service, onService, onLogout, current, children }:
         </div>
       </div>
 
-      <nav className="nav">
+      {/* 서비스 색이 사는 자리. 8px 네모와 이 줄 아래 3px 경계선 둘이 같은 `--svc` 를 쓴다 —
+          두 값을 따로 주면 한쪽만 바뀌는 날이 온다. 흰 면 위라 어두운 색일수록 잘 보인다 (§8) */}
+      <nav
+        className="nav"
+        {...(service === null ? {} : { 'data-service-color': service.prefix })}
+        style={service === null ? undefined : ({ '--svc': service.color } as React.CSSProperties)}
+      >
+        {service === null ? null : <span className="svc-dot" aria-hidden="true" />}
         {자리목록(user.role).map((자리) =>
           자리.바깥 === true ? (
             <a key={자리.이름} href={자리.해시} target="_blank" rel="noreferrer">

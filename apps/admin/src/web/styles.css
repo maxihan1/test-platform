@@ -130,30 +130,49 @@ body {
   padding: 0 0 8px 2px;
 }
 
-/* 상단 이동 */
+/* 상단 이동. 2026-09-21 에 테두리 알약을 밑줄 탭으로 바꿨다 —
+   같은 모양 버튼이 줄줄이 서 있으면 도구 모음이 아니라 실험실 스위치판으로 보인다.
+   이 줄 아래 3px 경계선이 서비스 색이다 (SPEC §8) */
 .nav {
   border-radius: 0;
   display: flex;
-  gap: 8px;
-  align-items: center;
-  padding-bottom: 14px;
+  gap: 2px;
+  align-items: stretch;
+  padding: 0 2px;
   flex-wrap: wrap;
+  background: var(--sheet);
+  border-bottom: 3px solid var(--svc, var(--rule));
+  margin-bottom: 14px;
+}
+
+/* 서비스 색 네모. 흰 면 위라 어두운 색일수록 잘 보인다 — settingsView.ts 가 3:1 로 잰다 */
+.svc-dot {
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  display: block;
+  margin: 0 8px 0 4px;
+  background: var(--svc, transparent);
 }
 
 .nav a {
   font-size: 12.5px;
-  padding: 6px 12px;
-  border: 1px solid var(--rule);
-  border-radius: 2px;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -3px;
+  border-radius: 0;
   color: var(--ink-muted);
   text-decoration: none;
   background: transparent;
 }
 
+/* 지금 있는 자리는 밑줄로 말한다. 반전은 실패 배지 하나에만 쓴다 (DESIGN.md 「판정 표기」) */
 .nav a[aria-current='page'] {
-  background: var(--ink);
-  color: var(--sheet);
-  border-color: var(--ink);
+  background: transparent;
+  color: var(--chrome);
+  font-weight: 600;
+  border-bottom-color: var(--chrome);
 }
 
 .nav a:focus-visible {
@@ -299,9 +318,12 @@ select:focus {
   outline-offset: -1px;
 }
 
+/* 껍데기 넷 중 하나. 조건 줄의 라벨이다 (DESIGN.md 원칙 1 의 예외) */
 .filter-label {
-  font-size: 12px;
-  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--chrome);
   margin-left: 4px;
 }
 
@@ -447,13 +469,15 @@ select:focus {
   border-bottom: 0;
 }
 
+/* 껍데기 넷 중 하나. 구획 제목 라벨과 그 아래 괘선이다 (DESIGN.md 원칙 1 의 예외) */
 .sec-h {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  color: var(--chrome);
   padding-bottom: 10px;
   margin-bottom: 14px;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--chrome);
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -1004,13 +1028,14 @@ select:focus {
 /* ── 맨 위 띠 · 알림 줄 (SPEC §8) ──────────────────────────────────── */
 
 /* 띠의 바탕색은 그 서비스 색이다. 색이 쓰이는 유일한 예외이고 띠 밖에서는 판정만 색을 갖는다 (DESIGN.md) */
+/* 띠의 바탕은 고정 청색이다. 서비스 색은 아래 .nav 로 내렸다 (SPEC §8, 2026-09-21) */
 .band {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 9px 14px;
-  background: var(--ink-muted);
+  background: var(--chrome);
   color: #fff;
   border-radius: 2px 2px 0 0;
 }
