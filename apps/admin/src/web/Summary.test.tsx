@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 
-import { 집계띠, 판정흐름 } from './Summary.js';
+import { 집계띠, 판정흐름, 칸띠 } from './Summary.js';
 
 afterEach(cleanup);
 
@@ -54,5 +54,37 @@ describe('판정흐름', () => {
     const { container } = render(<판정흐름 recent={[]} />);
 
     expect(container.querySelector('.spark')).toBeNull();
+  });
+});
+
+describe('칸띠 — 판정이 아닌 집계도 같은 띠로 그린다', () => {
+  it('판정을 안 준 칸에는 판정 색이 붙지 않는다', () => {
+    const { container } = render(
+      <칸띠
+        칸들={[
+          { 라벨: '실행 횟수', 값: '42' },
+          { 라벨: '모두 통과', 값: '31', 판정: 'PASS' },
+        ]}
+      />,
+    );
+
+    const 칸 = [...container.querySelectorAll('.stat')];
+    // 판정 색 클래스(p·f·n)는 판정을 준 칸에만 붙는다 (DESIGN.md 원칙 1)
+    expect(칸[0]?.className).toBe('stat');
+    expect(칸[1]?.className).toBe('stat p');
+  });
+
+  it('숫자와 글자 라벨을 같이 낸다', () => {
+    render(<칸띠 칸들={[{ 라벨: '평균 소요', 값: '11분 24초', 부제: '끝난 41회 기준' }]} />);
+
+    expect(screen.getByText('평균 소요')).toBeTruthy();
+    expect(screen.getByText('11분 24초')).toBeTruthy();
+    expect(screen.getByText('끝난 41회 기준')).toBeTruthy();
+  });
+
+  it('비율 막대는 판정 칸이 있을 때만 그린다', () => {
+    const { container } = render(<칸띠 칸들={[{ 라벨: '실행 횟수', 값: '42' }]} />);
+
+    expect(container.querySelector('.ratio')).toBeNull();
   });
 });

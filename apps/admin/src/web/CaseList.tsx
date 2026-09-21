@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 import { api, type CaseQuery, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
 import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
+import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
 import type { 글자표 } from './pickRun.js';
 import { 집계띠 } from './Summary.js';
@@ -123,25 +124,25 @@ export function CaseList({ service }: { service: string }) {
   const 더있나 = cases.data !== null && 다음이있나(cases.data);
 
   return (
-    <div className="screen">
-      <div className="bar">
-        <div>
-          <div className="runid">테스트 케이스</div>
-          <div className="runmeta">
-            {cases.data === null ? '불러오는 중입니다' : `모두 ${cases.data.total}건`}
-          </div>
-        </div>
-        {/* 둘을 한 칸에 묶는다. 띠가 space-between 이라 풀어 두면 두 버튼이 양끝으로 갈라진다 */}
-        <div className="bar-acts">
-          <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
-            {scanning ? '스캔하는 중' : '다시 스캔'}
-          </button>
-          {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
-          <button className="btn" onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
-            {뽑기.고른.size === 0 ? '전체 실행' : `선택한 ${뽑기.고른.size}건 실행`}
-          </button>
-        </div>
-      </div>
+    <>
+      {/* 제목과 주 행동은 본문 면 **바깥**에 선다. 안에 넣으면 머리와 본문이 다시 붙는다 (SPEC §8) */}
+      <Head
+        제목="테스트 케이스"
+        부제={cases.data === null ? '불러오는 중입니다' : `모두 ${cases.data.total}건`}
+        행동={
+          <>
+            <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
+              {scanning ? '스캔하는 중' : '다시 스캔'}
+            </button>
+            {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
+            <button className="btn" onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
+              {뽑기.고른.size === 0 ? '전체 실행' : `선택한 ${뽑기.고른.size}건 실행`}
+            </button>
+          </>
+        }
+      />
+
+      <div className="screen">
 
       {/* 목록을 열자마자 「지금 이 서비스가 어떤 상태인가」가 먼저 온다.
           배지 하나만 있을 때는 실패가 몇 건인지 세로로 훑어야 알았다 */}
@@ -246,6 +247,7 @@ export function CaseList({ service }: { service: string }) {
           onRun={(요청) => void 뽑기.실행걸기(요청)}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

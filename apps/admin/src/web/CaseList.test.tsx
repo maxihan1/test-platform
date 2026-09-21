@@ -461,3 +461,23 @@ describe('CaseList 목록에서 고친 값', () => {
     });
   });
 });
+
+describe('CaseList 화면 머리 (2026-09-22)', () => {
+  it('제목이 h1 이고 주 행동이 그 줄에 선다 — 본문 안이 아니다', async () => {
+    const { container } = await 그리기();
+
+    const 머리 = container.querySelector('.head');
+    expect(머리).not.toBeNull();
+    expect(머리?.querySelector('h1')?.textContent).toBe('테스트 케이스');
+    // 「다시 스캔」과 실행 버튼은 이 화면에서 가장 흔한 다음 행동이라 머리에 선다
+    expect(머리?.textContent).toContain('다시 스캔');
+    expect(머리?.textContent).toContain('실행');
+  });
+
+  it('머리가 본문 면 바깥에 선다', async () => {
+    const { container } = await 그리기();
+
+    // .screen 안에 넣으면 제목이 카드 안으로 들어가 머리와 본문이 다시 붙는다
+    expect(container.querySelector('.screen .head')).toBeNull();
+  });
+});
