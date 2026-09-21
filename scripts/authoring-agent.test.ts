@@ -1,7 +1,7 @@
 // 작성 에이전트의 순수 함수 검사. 과금 안전핀과 선행 조건이 여기서 고정된다
 import { describe, expect, it } from 'vitest';
 
-import { 과금위험, 인자읽기, 푸시막힘 } from './authoring-agent.js';
+import { 과금위험, 인자읽기, 클로드인자, 푸시막힘, 프롬프트 } from './authoring-agent.js';
 
 describe('과금위험', () => {
   it('깨끗한 환경이면 아무것도 안 걸린다', () => {
@@ -80,5 +80,49 @@ describe('푸시막힘', () => {
 
   it('사유에 --no-verify 를 권하지 않는다 — 그건 저장소 검사를 무인으로 건너뛰는 일이다', () => {
     expect(푸시막힘('2026-09-22', [])).not.toMatch(/no-verify/);
+  });
+});
+
+describe('클로드인자', () => {
+  // 배열을 통째로 비교한다. 「--bare 가 없다」 같은 부정 단언은 **인자가 늘어도 초록**이라
+  // 다음 편집을 못 막는다. 통째로 비교하면 하나만 늘어도 깨져서
+  // 고치는 사람이 이 파일 맨 위의 과금 규칙을 반드시 다시 읽는다
+  it('인자 배열이 기대한 것과 글자 하나까지 같다', () => {
+    expect(클로드인자({ 기획서: 'x.md', 서비스: undefined })).toEqual([
+      '-p',
+      '--permission-mode',
+      'acceptEdits',
+      '--disallowedTools',
+      'AskUserQuestion',
+      프롬프트('x.md', undefined),
+    ]);
+  });
+
+  it('--bare 는 절대 안 들어간다 — 그 깃발 하나가 OAuth 를 안 읽고 API 키만 쓴다', () => {
+    expect(클로드인자({ 기획서: 'x.md', 서비스: 'TODO' })).not.toContain('--bare');
+  });
+});
+
+describe('프롬프트', () => {
+  it('기획서 경로가 그대로 실린다', () => {
+    expect(프롬프트('docs/cases/TODO-기획서.md', undefined)).toContain('docs/cases/TODO-기획서.md');
+  });
+
+  it('접두사를 주면 싣고, 안 주면 기획서에서 판단하라고 한다', () => {
+    expect(프롬프트('x.md', 'TODO')).toContain('TODO');
+    expect(프롬프트('x.md', undefined)).toMatch(/기획서에서 판단/);
+  });
+
+  it('초안 PR 까지만 하라고 못박는다 — 병합은 사람 몫이다', () => {
+    expect(프롬프트('x.md', undefined)).toMatch(/초안 PR/);
+    expect(프롬프트('x.md', undefined)).toMatch(/gh pr ready/);
+  });
+
+  it('--no-verify 를 쓰지 말라고 못박는다', () => {
+    expect(프롬프트('x.md', undefined)).toMatch(/no-verify/);
+  });
+
+  it('내부 게이트 대신 표를 PR 에 실으라고 한다 — 물어볼 사람이 없다', () => {
+    expect(프롬프트('x.md', undefined)).toMatch(/AskUserQuestion/);
   });
 });
