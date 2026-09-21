@@ -11,6 +11,7 @@ import type { ExecuteResponse, ItemStatus, StepResult } from '../types.js';
 // 풀어주지 않아 리포터가 통째로 로드되지 않는다. 타입 import는 지워지므로 괜찮다.
 // protocol.ts와 같은 값이어야 하며 reporter.test.ts가 그것을 지킨다
 export const RESULT_MARKER = '@@RESULT@@';
+export const PROGRESS_MARKER = '@@PROGRESS@@';
 export const STEP_ATTACHMENT = 'platform-step';
 
 function collectSteps(result: TestResult): StepResult[] {
@@ -73,6 +74,14 @@ class PlatformReporter implements Reporter {
     };
 
     process.stdout.write(`${RESULT_MARKER}${JSON.stringify(payload)}\n`);
+  }
+
+  // 워커의 process.stdout.write는 Playwright가 IPC 전송으로 갈아치워 파이프에 한 글자도 안 닿는다.
+  // 조각이 여기로 오므로 되돌려 써야 진행 줄이 러너에 닿는다.
+  // 진행 줄만 골라 쓰면 안 된다 — 이 메서드가 생기는 순간 워커 stdio가 inherit에서 pipe로 바뀌어
+  // 그냥 흘러가던 출력까지 전부 여기를 거친다. 버리면 러너가 오류 문장으로 쓰는 stdout 꼬리가 빈다
+  onStdOut(chunk: string | Buffer): void {
+    process.stdout.write(chunk);
   }
 
   printsToStdio(): boolean {

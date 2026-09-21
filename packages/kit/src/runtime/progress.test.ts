@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { StepProgress } from '../types.js';
-import { 진행줄 } from './progress.js';
+import { 알린다, 진행줄 } from './progress.js';
 import { PROGRESS_MARKER } from './protocol.js';
 
 describe('진행줄', () => {
@@ -26,5 +26,43 @@ describe('진행줄', () => {
 
   it('흐른 시간 칸을 만들지 않는다', () => {
     expect(진행줄(시작)).not.toContain('elapsedMs');
+  });
+});
+
+describe('알린다', () => {
+  const 원래환경 = process.env.PLATFORM_HISTORY_ID;
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (원래환경 === undefined) delete process.env.PLATFORM_HISTORY_ID;
+    else process.env.PLATFORM_HISTORY_ID = 원래환경;
+  });
+
+  it('PLATFORM_HISTORY_ID가 있으면 출력 함수를 한 번 부른다', () => {
+    process.env.PLATFORM_HISTORY_ID = '12';
+    const 쓰기 = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+
+    알린다(3, '로그인 API를 호출한다');
+
+    expect(쓰기).toHaveBeenCalledTimes(1);
+    expect(쓰기).toHaveBeenCalledWith(진행줄({ historyId: 12, seq: 3, title: '로그인 API를 호출한다' }));
+  });
+
+  it('PLATFORM_HISTORY_ID가 없으면 출력 함수를 한 번도 부르지 않는다', () => {
+    delete process.env.PLATFORM_HISTORY_ID;
+    const 쓰기 = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+
+    알린다(3, '로그인 API를 호출한다');
+
+    expect(쓰기).not.toHaveBeenCalled();
+  });
+
+  it('출력 함수가 던져도 알린다는 던지지 않는다', () => {
+    process.env.PLATFORM_HISTORY_ID = '12';
+    vi.spyOn(process.stdout, 'write').mockImplementation(() => {
+      throw new Error('파이프가 닫혔다');
+    });
+
+    expect(() => 알린다(3, '로그인 API를 호출한다')).not.toThrow();
   });
 });
