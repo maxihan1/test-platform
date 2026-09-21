@@ -973,11 +973,36 @@ select:focus {
   .row {
     grid-template-columns: 4px 1fr;
     gap: 0 12px;
+    /* **행을 명시해야 아래 `1 / -1` 이 먹는다.** `-1` 은 명시적으로 선언한 줄의 끝을 가리켜서,
+       내용이 암시적 행으로 쌓이면 거터가 첫 줄만 덮는다 (WORKSTREAMS ⑪, 2026-09-19 실측).
+       셋보다 적은 줄에서는 남는 행이 높이 0 이라 보이지 않는다 */
+    grid-template-rows: auto auto auto;
   }
 
   /* 색 띠는 쌓인 줄 전체에 걸쳐 세로로 편다 */
   .gutter {
     grid-row: 1 / -1;
+  }
+
+  /* 쌓이는 순서를 못 박는다. 암시적 배치에 맡기면 위 `grid-template-rows` 와 어긋난다 */
+  .tcid {
+    grid-row: 1;
+  }
+
+  .title {
+    grid-row: 2;
+  }
+
+  .right {
+    grid-row: 3;
+  }
+
+  /* 손가락으로 누르는 영역 최소 44px (SPEC §8). 46 으로 두는 이유는
+     브라우저 반올림이 소수점만큼 깎기 때문이다 — 목업 실측이 43.9986 이었다 */
+  .side .nav a {
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
   }
 
   /* 고르는 칸도 색 띠와 함께 거터 쪽에 남는다 — 내용 칸은 전부 3열로 보낸다 */

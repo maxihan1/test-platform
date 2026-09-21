@@ -65,6 +65,23 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(css).toMatch(/\.btn:disabled\s*\{/);
   });
 
+  it('좁은 화면에서 거터가 쌓인 줄 전체를 덮는다', () => {
+    // `grid-row: 1 / -1` 만으로는 안 된다. -1 은 **명시적으로 선언한** 줄의 끝을 가리켜서
+    // 내용이 암시적 행으로 쌓이면 거터가 첫 줄만 덮는다 (WORKSTREAMS ⑪, 2026-09-19 실측).
+    // 행을 명시해야 -1 이 진짜 끝이 된다. jsdom 은 레이아웃이 없어 규칙이 있는지만 본다
+    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(좁은화면).toMatch(/\.row\s*\{[^}]*grid-template-rows:/);
+    expect(좁은화면).toMatch(/\.gutter\s*\{[^}]*grid-row:\s*1\s*\/\s*-1/);
+  });
+
+  it('좁은 화면 자리 넷의 손가락 영역이 44px 이상이다', () => {
+    // SPEC §8 — 휴대폰으로 하는 일은 「끝났나 보기」 하나라 그 길목이 44px 을 넘어야 한다.
+    // 46 으로 둔다. 브라우저 반올림이 소수점만큼 깎아 목업 실측이 43.9986 이었다
+    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    const 값 = /\.side \.nav a\s*\{[^}]*min-height:\s*(\d+)px/.exec(좁은화면)?.[1];
+    expect(Number(값)).toBeGreaterThanOrEqual(44);
+  });
+
   it('판정 세 색과 그 바탕이 전부 있다', () => {
     const 표 = 토큰들();
     for (const 이름 of ['--pass', '--fail', '--na', '--pass-bg', '--fail-bg', '--na-bg']) {
