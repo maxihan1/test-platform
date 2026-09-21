@@ -25,7 +25,7 @@ test(spec, async ({ page, params, expected }) => {
 
   await test.step('화면을 다시 불러온다', async () => {
     await page.reload();
-    await page.getByTestId('todo-count').waitFor();
+    await page.getByPlaceholder('What needs to be done?').waitFor();
     await verify('목록에 「우유 사기」만 보인다', (await page.getByTestId('todo-title').allInnerTexts()).join(', '), expected.left);
   });
 });
