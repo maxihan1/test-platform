@@ -119,7 +119,7 @@ export function CaseList({ service }: { service: string }) {
         {/* 비활성 이유는 말풍선이 아니라 화면 줄이다 — 휴대폰에는 올릴 마우스가 없다 (DESIGN.md) */}
         {!뽑기.모으는중 ? null : (
           <span className="scan-text" role="status">
-            케이스 목록을 모으는 중입니다. 다 모을 때까지 버튼을 누를 수 없습니다
+            케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다
           </span>
         )}
         <ScanInfo scan={scan.data} error={notice ?? scan.error} />
@@ -197,6 +197,7 @@ export function CaseList({ service }: { service: string }) {
           안내={뽑기.안내}
           거는중={뽑기.거는중}
           onClose={뽑기.닫기}
+          on값고침={뽑기.사유지우기}
           onRun={(요청) => void 뽑기.실행걸기(요청)}
         />
       )}

@@ -113,15 +113,17 @@ export function 케이스줄({
     <div className="row pickable">
       <div className="gutter" style={{ background: STATUS_COLOR[마지막판정(row, 마지막)] }} />
       {/* 고르는 칸은 왼쪽 거터 칸 안이다. 줄 내용 쪽 첫 요소로 두면 620px 미만에서
-          줄이 2단으로 접힐 때 케이스명 위에 체크박스만 홀로 한 줄이 된다 (SPEC §8.1) */}
-      <div className="pick">
+          줄이 2단으로 접힐 때 케이스명 위에 체크박스만 홀로 한 줄이 된다 (SPEC §8.1).
+          label 로 감싸 칸 전체가 누르는 자리가 된다 — 15px 네모만 노리게 두지 않는다 */}
+      <label className="pick">
         <input
           type="checkbox"
           checked={고름}
-          aria-label={`${row.tcId} 고르기`}
+          // ID 만 읽으면 화면을 안 보는 사람에게는 무엇을 고르는지가 암호다
+          aria-label={`${row.tcId} ${row.name} 고르기`}
           onChange={() => 뒤집기(row)}
         />
-      </div>
+      </label>
       <div className="tcid">{row.tcId}</div>
       <div className="title">
         {row.name}

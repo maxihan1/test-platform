@@ -36,6 +36,8 @@ interface Props {
   /** 실행을 걸어 놓고 응답을 기다리는 중. 최대 1000건을 만드는 동안 화면이 침묵하면 안 된다 */
   거는중?: boolean;
   onClose: () => void;
+  /** 값을 고쳤다. 아까 거절당한 사유는 더 이상 지금 화면의 사실이 아니다 */
+  on값고침?: () => void;
   onRun: (요청: 실행요청) => void;
 }
 
@@ -44,7 +46,7 @@ type 글자표 = Record<string, { params: Record<string, string>; expected: Reco
 
 const 오류없음: Record<string, string> = {};
 
-export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중, onClose, onRun }: Props) {
+export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중, onClose, on값고침, onRun }: Props) {
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2)
   const [env, setEnv] = useState('');
   const [repeat, setRepeat] = useState('1');
@@ -76,6 +78,12 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
     }
     return 표;
   }, [글자, 칸들]);
+
+  /** 사람이 뭔가 손댔다. 방금 누른 것에 대한 답과 옛 사유를 함께 치운다 */
+  function 손댐() {
+    setNotice(null);
+    on값고침?.();
+  }
 
   const 건수 = 몇건(케이스들, Number(repeat) || 1);
   const 너무많나 = 넘었나(건수);
@@ -110,7 +118,7 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
 
   function 고치기(tcId: string, which: 'params' | 'expected') {
     return (key: string, value: string) => {
-      setNotice(null);
+      손댐();
       set글자((전) => {
         const 지금 = 전[tcId] ?? { params: {}, expected: {} };
         return { ...전, [tcId]: { ...지금, [which]: { ...지금[which], [key]: value } } };
@@ -156,7 +164,7 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
     >
       <div className="mhead">
         <label htmlFor="pick-env">대상 서버</label>
-        <select id="pick-env" value={env} onChange={(e) => { setNotice(null); setEnv(e.target.value); }}>
+        <select id="pick-env" value={env} onChange={(e) => { 손댐(); setEnv(e.target.value); }}>
           {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
           <option value="">고르세요</option>
           {(service?.envs ?? []).map((it) => (
@@ -189,7 +197,13 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
                 <span className="dev">{c.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ')}</span>
                 {펼것 ? (
                   // 같은 글자의 버튼이 줄마다 있어 어느 케이스 것인지를 이름에 싣는다
-                  <button className="edit" aria-label={`${c.tcId} 값 고치기`} onClick={() => { 펴기(c.tcId); }}>
+                  <button
+                    className="edit"
+                    aria-label={`${c.tcId} 값 고치기`}
+                    // 한 번에 하나만 열린다. 그 사실이 화면 밖에서도 읽혀야 한다
+                    aria-expanded={열림}
+                    onClick={() => { 펴기(c.tcId); }}
+                  >
                     값 고치기
                   </button>
                 ) : (
@@ -231,7 +245,7 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
           type="text"
           id="pick-repeat"
           value={repeat}
-          onChange={(e) => { setNotice(null); setRepeat(e.target.value); }}
+          onChange={(e) => { 손댐(); setRepeat(e.target.value); }}
         />
         {/* 웹훅이 없는 서비스에서는 칸 자체를 그리지 않는다. 흐리게 두지 않는다 (SPEC §8.2) */}
         {service?.hasSlackWebhook !== true ? null : (

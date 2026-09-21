@@ -75,9 +75,11 @@ const 실행버튼 = () => screen.getByRole('button', { name: /실행하기$/ })
 const 모달실행 = () => screen.getByRole('button', { name: '실행하기' });
 
 describe('CaseList 여러 건 고르기', () => {
-  it('줄마다 고르는 칸이 있다', async () => {
+  it('줄마다 고르는 칸이 있고 무엇을 고르는지 이름으로 읽힌다', async () => {
     await 그리기();
     expect(고르기칸()).toHaveLength(2);
+    // ID 만 읽으면 화면을 안 보는 사람에게는 암호다
+    expect(screen.getByRole('checkbox', { name: 'ZPK-001 ZPK-001 케이스 고르기' })).toBeTruthy();
   });
 
   it('아무것도 안 고르면 버튼 글자가 전체 실행하기다', async () => {
@@ -349,6 +351,21 @@ describe('CaseList 여러 건 실행 걸기', () => {
 
     await waitFor(() => expect(window.location.hash).toBe('#/runs/9'));
     expect(걸기).toHaveBeenCalledTimes(2);
+  });
+
+  it('값을 고치면 아까 거절당한 사유가 사라진다', async () => {
+    vi.spyOn(api, 'createRun').mockRejectedValue(
+      new ApiError(400, 'CASE_NOT_FOUND', '카탈로그에 없는 케이스다: ZPK-003'),
+    );
+    await 모달까지();
+    fireEvent.click(모달실행());
+    const 모달 = screen.getByRole('dialog');
+    await waitFor(() => expect(within(모달).getByRole('status').textContent).toContain('ZPK-003'));
+
+    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '2' } });
+
+    // 값을 고친 뒤에도 옛 사유가 남아 있으면 방금 고친 것이 또 거절당한 것처럼 읽힌다
+    await waitFor(() => expect(within(모달).getByRole('status').textContent).toBe('실행 항목이 8건 생깁니다'));
   });
 
   it('모달을 닫으면 지난번 사유가 다음에 열 때 남지 않는다', async () => {

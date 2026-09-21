@@ -158,6 +158,11 @@ export function useRunPick(옵션: {
     set고른(new Map());
   }
 
+  /** 값을 고치면 아까 거절당한 사유는 더 이상 지금 화면의 사실이 아니다 */
+  function 사유지우기() {
+    set사유(undefined);
+  }
+
   function 닫기() {
     set담은것(null);
     // 다음에 열었을 때 지난번 사유와 안내가 남아 있으면 안 된다
@@ -165,5 +170,19 @@ export function useRunPick(옵션: {
     set안내(undefined);
   }
 
-  return { 고른, 모으는중, 담은것, 서비스, 사유, 안내, 거는중, 모으기, 실행걸기, 뒤집기, 비우기, 닫기 };
+  return {
+    고른,
+    모으는중,
+    담은것,
+    서비스,
+    사유,
+    안내,
+    거는중,
+    모으기,
+    실행걸기,
+    뒤집기,
+    비우기,
+    닫기,
+    사유지우기,
+  };
 }

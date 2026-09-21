@@ -82,6 +82,19 @@ describe('RunPickModal', () => {
     expect(screen.getByLabelText('아이디')).toBeTruthy();
   });
 
+  it('접개가 열렸는지를 화면 밖에서도 읽을 수 있다', () => {
+    그리기();
+    expect(screen.getByRole('button', { name: 'ZPM-002 값 고치기' }).getAttribute('aria-expanded')).toBe(
+      'false',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'ZPM-002 값 고치기' }));
+
+    expect(screen.getByRole('button', { name: 'ZPM-002 값 고치기' }).getAttribute('aria-expanded')).toBe(
+      'true',
+    );
+  });
+
   it('대상 서버를 안 고르면 실행이 안 걸리고 사유가 화면 줄로 뜬다', () => {
     const { onRun } = 그리기();
 
