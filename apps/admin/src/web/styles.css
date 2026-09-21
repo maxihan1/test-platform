@@ -1249,15 +1249,23 @@ select:focus {
   min-width: 0;
 }
 
+/* `appearance: none` 이 없으면 OS 가 select 를 제 모양대로 그린다 —
+   background 를 transparent 로 줘도 짙은 사이드바 위에 흰 상자가 뜬다 (2026-09-21 제품 CSS 실측).
+   화살표는 배경 그림으로 직접 그린다. 지우면 눌러서 펴는 것인지 안 보인다 */
 .band-pick {
-  background: transparent;
-  color: #fff;
+  appearance: none;
+  background: transparent
+    url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23efebe1' stroke-width='1.5'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  background-size: 9px;
+  color: var(--rail-ink);
   border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 9px;
-  padding: 3px 8px;
+  padding: 4px 24px 4px 9px;
   font: inherit;
   font-weight: 600;
   max-width: 220px;
+  cursor: pointer;
 }
 
 .band-pick option {
