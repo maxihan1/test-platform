@@ -1502,3 +1502,73 @@ select:focus {
   flex: none;
   width: 56px;
 }
+
+/* 케이스 줄의 값 칩 (2026-09-21). 값을 보려고 상세로 한 번 더 들어가던 것을 없앤다.
+   JSON 원문이 아니라 스키마 라벨과 기본값 한 쌍이다 (SPEC §8.1 의 금지는 그대로) */
+.chips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.chip-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  background: var(--chip);
+  border: 1px solid var(--rule-soft);
+  padding: 2px 7px;
+  /* 375px 에서 긴 값 하나가 칸을 밀어 케이스명을 한 글자씩 세로로 흘리지 않게 한다.
+     2026-09-17 에 같은 일이 있었고 2026-09-19 에 재발했다 (LEARNINGS).
+     flex 아이템은 기본 min-width 가 auto 라 내용보다 못 줄어든다 — 0 으로 풀어 준다 */
+  max-width: 100%;
+  min-width: 0;
+}
+
+.chip-val i {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 라벨은 --ink-faint 다. 시안의 밝은 회색은 칩 바탕 위에서 3.91 로 미달이었다 (검토 주의 3) */
+.chip-val b {
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.chip-val i {
+  font-style: normal;
+  color: var(--ink);
+}
+
+/* 폼 칸 아래의 기본값 줄. 바뀐 값에는 앞에 네모가 붙어 한눈에 갈린다 */
+.deflt {
+  grid-column: 2;
+  font-size: 11px;
+  color: var(--ink-faint);
+  padding-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.deflt.changed {
+  color: var(--ink-muted);
+}
+
+.deflt .mark {
+  width: 5px;
+  height: 5px;
+  background: var(--ink);
+  display: block;
+}
+
+/* 값이 없는 케이스는 빈 자리 대신 그 사실을 적는다 */
+.prow-none {
+  font-size: 12px;
+  color: var(--ink-faint);
+  padding: 0 0 10px 2px;
+}
