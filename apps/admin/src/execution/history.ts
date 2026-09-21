@@ -103,7 +103,6 @@ export async function lastByCase(배정받은서비스: string[]): Promise<LastR
     run_id: string;
     duration_ms: number | null;
     finished_at: Date;
-    몇번째: string;
   }>(
     // 이 질의는 케이스 전체를 훑으므로 문(auth/gate.ts)이 막을 번호가 없다.
     // 서비스 경계를 여기서 직접 건다 — 안 걸면 남의 케이스 번호와 판정이 그대로 나간다 (§7)
@@ -111,7 +110,7 @@ export async function lastByCase(배정받은서비스: string[]): Promise<LastR
     //
     // DISTINCT ON 을 창 함수로 바꿨다 (2026-09-21). 배지는 여전히 1번 줄 하나이고,
     // 흐름 막대가 쓰는 나머지 넷이 같은 왕복에 실려 온다 — 케이스마다 이력을 따로 부르지 않는다 (§8.1)
-    `SELECT tc_id, platform, status, history_id, run_id, duration_ms, finished_at, 몇번째
+    `SELECT tc_id, platform, status, history_id, run_id, duration_ms, finished_at
        FROM (
          SELECT tc_id, platform, status, history_id, run_id, duration_ms, finished_at,
                 ROW_NUMBER() OVER (PARTITION BY tc_id, platform

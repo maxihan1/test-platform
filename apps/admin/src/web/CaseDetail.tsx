@@ -13,10 +13,10 @@ import { PLATFORM_LABEL, seconds, Verdict, when } from './ui.js';
 interface 받은것 {
   이력: HistoryRow[] | null;
   절차: RunItemDetail | null;
-  절차실패: boolean;
 }
 
-const 아직 = (): 받은것 => ({ 이력: null, 절차: null, 절차실패: false });
+// 이력이 null 이면 아직 안 받은 것이다. 둘을 한 번에 set 하므로 이 하나로 「받는 중」이 갈린다
+const 아직 = (): 받은것 => ({ 이력: null, 절차: null });
 
 /** 스키마가 준 라벨·타입·기본값 셋. **JSON 원문이 아니다** (DESIGN.md 「금지」) */
 function 칸표({ 제목, schema }: { 제목: string; schema: CaseRow['paramSchema'] }) {
@@ -66,7 +66,7 @@ export function CaseDetail({
       const 절차 =
         마지막 === undefined ? null : await api.item(마지막.runId, 마지막.historyId).catch(() => null);
       if (!살아있나) return;
-      set받은({ 이력: 이력.items, 절차, 절차실패: 마지막 !== undefined && 절차 === null });
+      set받은({ 이력: 이력.items, 절차 });
     })();
 
     return () => {
@@ -101,7 +101,7 @@ export function CaseDetail({
         </div>
         {마지막 === undefined ? (
           <p className="hint">아직 돌린 적이 없습니다. 한 번 돌리면 절차가 여기에 남습니다</p>
-        ) : 받은.절차실패 ? (
+        ) : 받은.이력 !== null && 받은.절차 === null ? (
           <p className="hint">절차를 불러오지 못했습니다</p>
         ) : 받은.절차 === null ? (
           <p className="hint">절차를 불러오는 중입니다</p>

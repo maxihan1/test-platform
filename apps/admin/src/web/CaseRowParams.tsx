@@ -39,10 +39,11 @@ function 줄에낼수있나(field: Field): boolean {
   return field.default === null || typeof field.default !== 'object';
 }
 
-/** 고친 값이 있으면 그것을, 없으면 코드의 기본값을 보여준다 */
-function 채운글자(fields: Field[], 고친: Record<string, string> | undefined): Record<string, string> {
-  return 고친 === undefined ? initialText(fields) : { ...initialText(fields), ...고친 };
-}
+/** 고친 값이 있으면 그것을, 없으면 코드의 기본값을 보여준다. undefined 를 펴면 아무 일도 안 난다 */
+const 채운글자 = (fields: Field[], 고친: Record<string, string> | undefined): Record<string, string> => ({
+  ...initialText(fields),
+  ...고친,
+});
 
 export function CaseRowParams({
   tcId,
