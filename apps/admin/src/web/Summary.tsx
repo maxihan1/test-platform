@@ -14,37 +14,78 @@ interface 집계Props {
   부제?: Partial<Record<칸이름, string>>;
 }
 
-export function 집계띠({ 전체, 통과, 실패, 미실행, 부제 }: 집계Props) {
-  const 칸들: ReadonlyArray<{ 라벨: 칸이름; 값: number; 색: string }> = [
-    { 라벨: '전체', 값: 전체, 색: '' },
-    { 라벨: '통과', 값: 통과, 색: 'p' },
-    { 라벨: '실패', 값: 실패, 색: 'f' },
-    { 라벨: '미실행', 값: 미실행, 색: 'n' },
-  ];
+/**
+ * 띠의 칸 하나.
+ *
+ * **색은 `판정` 에서만 나온다.** 라벨에 색을 매어 두면 `실행 횟수`·`평균 소요` 같은
+ * 판정이 아닌 칸에도 판정 색을 칠할 수 있게 된다 (DESIGN.md 원칙 1 — 색은 판정만 갖는다).
+ */
+export interface 띠칸 {
+  라벨: string;
+  값: string;
+  판정?: ItemStatus;
+  부제?: string;
+}
 
+const 판정색: Record<ItemStatus, string> = { PASS: 'p', FAIL: 'f', NA: 'n' };
+
+/**
+ * 숫자 몇 개를 큰 글자로 늘어놓는 띠 (SPEC §8).
+ *
+ * 판정 집계도 이것으로 그리고(`집계띠`), 판정이 아닌 집계도 이것으로 그린다.
+ * 두 벌을 만들면 한쪽이 색 규칙을 잃는다.
+ */
+export function 칸띠({ 칸들, 비율 }: { 칸들: readonly 띠칸[]; 비율?: readonly { 판정: ItemStatus; 몫: number }[] }) {
   return (
     <div className="stats">
       <div className="stats-row">
-        {칸들.map((칸) => (
-          <div key={칸.라벨} className={칸.색 ? `stat ${칸.색}` : 'stat'}>
-            <span className="k">
-              {칸.색 ? <i /> : null}
-              {칸.라벨}
-            </span>
-            <div className="v">{칸.값}</div>
-            {부제?.[칸.라벨] ? <div className="sub">{부제[칸.라벨]}</div> : null}
-          </div>
-        ))}
+        {칸들.map((칸) => {
+          const 색 = 칸.판정 === undefined ? '' : 판정색[칸.판정];
+          return (
+            <div key={칸.라벨} className={색 === '' ? 'stat' : `stat ${색}`}>
+              <span className="k">
+                {색 === '' ? null : <i />}
+                {칸.라벨}
+              </span>
+              <div className="v">{칸.값}</div>
+              {칸.부제 === undefined ? null : <div className="sub">{칸.부제}</div>}
+            </div>
+          );
+        })}
       </div>
       {/* 아무것도 없는데 막대만 그리면 0 을 비율로 읽게 된다 */}
-      {전체 > 0 ? (
+      {비율 === undefined || 비율.every((것) => 것.몫 === 0) ? null : (
         <div className="ratio">
-          <i className="p" style={{ flexGrow: 통과 }} />
-          <i className="f" style={{ flexGrow: 실패 }} />
-          <i className="n" style={{ flexGrow: 미실행 }} />
+          {비율.map((것) => (
+            <i key={것.판정} className={판정색[것.판정]} style={{ flexGrow: 것.몫 }} />
+          ))}
         </div>
-      ) : null}
+      )}
     </div>
+  );
+}
+
+export function 집계띠({ 전체, 통과, 실패, 미실행, 부제 }: 집계Props) {
+  const 칸들: 띠칸[] = [
+    { 라벨: '전체', 값: String(전체), ...(부제?.전체 === undefined ? {} : { 부제: 부제.전체 }) },
+    { 라벨: '통과', 값: String(통과), 판정: 'PASS', ...(부제?.통과 === undefined ? {} : { 부제: 부제.통과 }) },
+    { 라벨: '실패', 값: String(실패), 판정: 'FAIL', ...(부제?.실패 === undefined ? {} : { 부제: 부제.실패 }) },
+    { 라벨: '미실행', 값: String(미실행), 판정: 'NA', ...(부제?.미실행 === undefined ? {} : { 부제: 부제.미실행 }) },
+  ];
+
+  return (
+    <칸띠
+      칸들={칸들}
+      비율={
+        전체 === 0
+          ? undefined
+          : [
+              { 판정: 'PASS', 몫: 통과 },
+              { 판정: 'FAIL', 몫: 실패 },
+              { 판정: 'NA', 몫: 미실행 },
+            ]
+      }
+    />
   );
 }
 

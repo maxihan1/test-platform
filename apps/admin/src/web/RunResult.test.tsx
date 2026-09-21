@@ -185,3 +185,22 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
     expect(상자라벨()).toContain('끝났습니다');
   });
 });
+
+describe('RunResult 화면 머리 (2026-09-22)', () => {
+  it('RUN 번호가 h1 이고 본문 면 바깥에 선다', async () => {
+    const { container } = 그리기('FINISHED');
+    await screen.findByText(/RUN/);
+
+    const 머리 = container.querySelector('.head');
+    expect(머리?.querySelector('h1')?.textContent).toContain('RUN');
+    expect(container.querySelector('.screen .head')).toBeNull();
+  });
+
+  it('머리 부제에 대상 서버가 그대로 있다', async () => {
+    const { container } = 그리기('FINISHED');
+    await screen.findByText(/RUN/);
+
+    // 그날 실제로 친 주소가 증적의 전제다 (SPEC §8.3)
+    expect(container.querySelector('.head')?.textContent).toContain('대상 서버');
+  });
+});

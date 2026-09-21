@@ -22,12 +22,12 @@ interface Props {
   onService: (prefix: string) => void;
   onLogout: () => void;
   current: string;
-  /** 화면 제목과 주 행동. 제목은 화면마다 다르므로 껍데기가 지어내지 않는다 (SPEC §8) */
-  header?: React.ReactNode;
   children: React.ReactNode;
 }
 
-export function Shell({ user, service, onService, onLogout, current, header, children }: Props) {
+// 제목과 주 행동은 **화면이 그린다** (Head.tsx). 2026-09-22 까지 여기 `header` 통로가 있었는데
+// 부르는 곳이 하나도 없었다 — 부제와 행동이 동적이라 올려 보내려면 배선이 늘기 때문이다
+export function Shell({ user, service, onService, onLogout, current, children }: Props) {
   useEffect(() => {
     document.title = 탭제목(service);
   }, [service]);
@@ -121,9 +121,6 @@ export function Shell({ user, service, onService, onLogout, current, header, chi
       </aside>
 
       <div className="main">
-        {/* 제목과 주 행동은 화면마다 다르다. 안 넘기면 줄 자체를 그리지 않는다 — 빈 칸을 잡아 두지 않는다 */}
-        {header === undefined ? null : <div className="head">{header}</div>}
-
         {service === null ? null : <Notice service={service.prefix} />}
 
         {사유 === null ? (

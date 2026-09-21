@@ -107,6 +107,39 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(Number(값 ?? 0)).toBeGreaterThanOrEqual(44);
   });
 
+  it('화면 머리가 본문과 다른 면이고 아래가 괘선으로 닫힌다', () => {
+    // 머리와 본문이 같은 바탕이면 「헤드와 메인이 분리 안 돼 있다」로 다시 돌아간다 (2026-09-22)
+    const 블록 = /^\.head\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
+    expect(블록, '.head 에 바탕이 없다').toMatch(/background:\s*var\(--sheet\)/);
+    expect(블록, '.head 아래가 안 닫혔다').toMatch(/border-bottom:/);
+  });
+
+  it('화면 제목이 큰 글자 기준을 넘는다', () => {
+    // DESIGN.md 명암비 — 24px 이상이면 「큰 글자」라 3:1 이 기준이 된다.
+    // 제목이 그보다 작으면 4.5 기준으로 다시 재야 한다
+    const 값 = /^\.head h1\s*\{[^}]*font-size:\s*(\d+)px/m.exec(css)?.[1];
+    expect(Number(값 ?? 0)).toBeGreaterThanOrEqual(24);
+  });
+
+  it('좁은 화면에서 머리가 세로로 쌓이고 행동 버튼이 44px 이다', () => {
+    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(좁은화면).toMatch(/\.head\s*\{[^}]*flex-direction:\s*column/);
+    const 값 = /\.head-acts \.btn\s*\{[^}]*min-height:\s*(\d+)px/.exec(좁은화면)?.[1];
+    expect(Number(값 ?? 0)).toBeGreaterThanOrEqual(44);
+  });
+
+  it('로그인 상자가 짙은 바탕 위에 선다', () => {
+    // 들어가는 자리임을 분명히 한다. 밝은 바탕에 밝은 상자를 두면 상자가 안 보인다
+    const 바깥 = /^\.login\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
+    expect(바깥, '.login 바탕이 짙지 않다').toMatch(/background:\s*var\(--rail\)/);
+    const 상자 = /^\.login-box\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
+    expect(상자, '.login-box 가 밝은 면이 아니다').toMatch(/background:\s*var\(--sheet\)/);
+
+    // 상자가 바탕에서 갈려 보여야 한다. UI 요소 기준 3:1 (DESIGN.md 명암비, 2026-09-22 실측 15.40)
+    const 표 = 토큰들();
+    expect(짝명암비(표['--sheet']!, 표['--rail']!)).toBeGreaterThanOrEqual(3);
+  });
+
   it('모달 안의 진행 막대가 줄어들지 않는다', () => {
     // .modal-body 가 세로 flex 라 6px 막대가 flex-shrink 로 0 까지 줄어든다.
     // 2026-09-21 에 실제로 그랬다 — 색도 비율도 맞는데 높이만 0 이라 숫자만 뜨고 막대가 통째로 안 보였다.

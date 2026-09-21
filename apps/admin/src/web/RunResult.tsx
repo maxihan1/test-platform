@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { api, type ItemStatus, type Platform, type 항목진행 } from './api.js';
 import { filterGroups, groupByCase } from './group.js';
+import { Head } from './Head.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { Modal } from './Modal.js';
 import type { 등급 } from './role.js';
@@ -113,22 +114,24 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   }
 
   return (
-    <div className="screen">
-      <div className="bar">
-        <div>
-          <div className="runid">RUN {data.runId}</div>
-          <div className="runmeta">
+    <>
+      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8) */}
+      <Head
+        제목={`RUN ${String(data.runId)}`}
+        부제={
+          <>
             {when(data.startedAt)} · {data.title} · 실행자 {실행자이름(data)}
             {' · 대상 서버 '}
             {data.env}
             {data.baseUrl === '' ? '' : ` (${data.baseUrl})`}
-            {running ? ` · 도는 중 ${data.counts.running}건` : ` · ${상태라벨(data.status)}`}
+            {running ? ` · 도는 중 ${String(data.counts.running)}건` : ` · ${상태라벨(data.status)}`}
             {/* 「실행 중: X」라고 쓰지 않는다. 항목 둘이 동시에 돌아(EXECUTION_CONCURRENCY 기본 2)
                 여기 뜨는 것은 도는 둘 중 하나다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
             {도는것 === null ? '' : ` · 진행 중 ${도는것.tcId} ${도는것.tcName}`}
-          </div>
-        </div>
-        <div className="tally">
+          </>
+        }
+        행동={
+          <div className="tally">
           {/* 판정 숫자를 버튼보다 앞에 둔다. 좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀리는데,
               휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다 (docs/DESIGN.md · design-mockup.html) */}
           <div>
@@ -149,10 +152,12 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
               실행 중단
             </button>
           )}
-          <증적만들기버튼들 칸={증적칸} />
-        </div>
-      </div>
+            <증적만들기버튼들 칸={증적칸} />
+          </div>
+        }
+      />
 
+      <div className="screen">
       <증적알림과목록 칸={증적칸} />
 
       {pass + fail + na === 0 ? null : (
@@ -192,6 +197,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
           <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />
         ))
       )}
+      </div>
 
       {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다 */}
       {!진행열림 && !끝났다고알릴까말까 ? null : (
@@ -262,6 +268,6 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 }

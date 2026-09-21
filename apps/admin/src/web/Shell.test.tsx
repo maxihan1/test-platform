@@ -37,7 +37,7 @@ const 사람: User = {
 };
 
 function 띄운다(service: ServiceRow) {
-  vi.spyOn(api, 'runs').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
+  vi.spyOn(api, 'runs').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 , summary: { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 } });
   return render(
     <Shell user={사람} service={service} onService={() => {}} onLogout={() => {}} current="#/cases">
       <div>본문</div>
@@ -146,5 +146,16 @@ describe('껍데기 이름 정리 (2026-09-21 ②)', () => {
         `옛 이름 ${옛이름} 이 화면에 남아 있다`,
       ).toBeNull();
     }
+  });
+});
+
+describe('껍데기는 제목을 지어내지 않는다 (2026-09-22)', () => {
+  it('껍데기 안에 화면 머리가 없다 — 그리는 것은 화면이다', () => {
+    const { container } = 띄운다(결제);
+
+    // PR① 이 여기 `header` 통로를 뚫었는데 부르는 곳이 하나도 없었다.
+    // 그래서 화면들이 제목을 본문 안에서 그렸고 「헤드와 메인 분리」가 절반만 살았다
+    expect(container.querySelector('.main > .head')).toBeNull();
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
   });
 });

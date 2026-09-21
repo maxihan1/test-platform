@@ -163,15 +163,24 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     };
   });
 
-  app.get<{ Querystring: { service?: string; page?: string } }>('/runs', async (req, reply) => {
-    // 한 번에 한 서비스만 본다. 섞이면 목록이 남의 실행으로 채워진다 (SPEC §8 · §8.7)
-    const service = req.query.service ?? '';
-    if (service === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
-    if (!(await serviceExists(service))) {
-      return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
-    }
-    return listRuns(service, page(req.query.page), PAGE_SIZE);
-  });
+  app.get<{ Querystring: { service?: string; page?: string; q?: string; state?: string; env?: string } }>(
+    '/runs',
+    async (req, reply) => {
+      // 한 번에 한 서비스만 본다. 섞이면 목록이 남의 실행으로 채워진다 (SPEC §8 · §8.7)
+      const service = req.query.service ?? '';
+      if (service === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
+      if (!(await serviceExists(service))) {
+        return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
+      }
+      // 모르는 state 는 조용히 버린다. 거르개는 「무엇을 볼까」이지 권한이 아니다 (SPEC §8.7)
+      const state = req.query.state === 'running' || req.query.state === 'failed' ? req.query.state : undefined;
+      return listRuns(service, page(req.query.page), PAGE_SIZE, {
+        ...(req.query.q === undefined ? {} : { q: req.query.q }),
+        ...(state === undefined ? {} : { state }),
+        ...(req.query.env === undefined ? {} : { env: req.query.env }),
+      });
+    },
+  );
 
   // 목록 화면이 케이스마다 이력을 따로 부르지 않게 한 번에 준다 (SPEC §8.1, WS-A 검사 기록 '기타 2')
   // 2026-09-21 ② 부터 줄의 판정 흐름(recent)도 같은 응답에 실린다 — 부르는 횟수는 그대로 1회다
