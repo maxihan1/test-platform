@@ -15,7 +15,7 @@ export const 결과라벨: Record<ItemStatus | 'ALL', string> = {
   NA: '미실행',
 };
 
-/** 이름·ID 로 찾는 칸. 「검색 지우기」는 거른 것이 있을 때만 나온다 (SPEC §8.1) */
+/** 이름·ID 로 찾는 칸. 「조건 초기화」는 거른 것이 있을 때만 나온다 (SPEC §8.1) */
 export function 찾기폼({
   typed,
   건조건,
@@ -48,7 +48,7 @@ export function 찾기폼({
       </button>
       {!건조건 ? null : (
         <button className="chip" type="button" onClick={onClear}>
-          검색 지우기
+          조건 초기화
         </button>
       )}
     </form>

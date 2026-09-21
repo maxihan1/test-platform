@@ -70,9 +70,9 @@ async function 그리기(cases: (page: number) => Promise<Paged<CaseRow>> = 쪽�
 }
 
 const 고르기칸 = () => screen.getAllByRole('checkbox');
-const 실행버튼 = () => screen.getByRole('button', { name: /실행하기$/ });
-// 모달의 버튼은 글자가 딱 '실행하기'다. 목록 쪽은 앞에 '전체'·'고른 N건'이 붙는다
-const 모달실행 = () => screen.getByRole('button', { name: '실행하기' });
+const 실행버튼 = () => screen.getByRole('button', { name: /(전체|건) 실행$/ });
+// 모달의 버튼은 글자가 딱 '실행'이다. 목록 쪽은 앞에 '전체'·'선택한 N건'이 붙는다
+const 모달실행 = () => screen.getByRole('button', { name: '실행' });
 
 describe('CaseList 여러 건 고르기', () => {
   it('줄마다 고르는 칸이 있고 무엇을 고르는지 이름으로 읽힌다', async () => {
@@ -82,20 +82,20 @@ describe('CaseList 여러 건 고르기', () => {
     expect(screen.getByRole('checkbox', { name: 'ZPK-001 ZPK-001 케이스 고르기' })).toBeTruthy();
   });
 
-  it('아무것도 안 고르면 버튼 글자가 전체 실행하기다', async () => {
+  it('아무것도 안 고르면 버튼 글자가 전체 실행이다', async () => {
     await 그리기();
-    expect(실행버튼().textContent).toBe('전체 실행하기');
+    expect(실행버튼().textContent).toBe('전체 실행');
   });
 
   it('고른 수만큼 버튼 글자가 바뀐다', async () => {
     await 그리기();
     fireEvent.click(고르기칸()[0]!);
-    expect(실행버튼().textContent).toBe('고른 1건 실행하기');
+    expect(실행버튼().textContent).toBe('선택한 1건 실행');
     fireEvent.click(고르기칸()[1]!);
-    expect(실행버튼().textContent).toBe('고른 2건 실행하기');
+    expect(실행버튼().textContent).toBe('선택한 2건 실행');
   });
 
-  it('전체 실행하기를 누르면 마지막 쪽까지 쪽마다 받아 모은다', async () => {
+  it('전체 실행을 누르면 마지막 쪽까지 쪽마다 받아 모은다', async () => {
     const { 스파이 } = await 그리기();
     스파이.mockClear();
 
@@ -160,7 +160,7 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
 
     // 칩은 「무엇을 볼까」이지 「무엇을 돌릴까」가 아니다. 마지막 결과가 없어 전부 미실행이다
     fireEvent.click(screen.getByRole('button', { name: '실패' }));
-    expect(실행버튼().textContent).toBe('고른 2건 실행하기');
+    expect(실행버튼().textContent).toBe('선택한 2건 실행');
     fireEvent.click(실행버튼());
 
     const 모달 = await screen.findByRole('dialog');
@@ -170,12 +170,12 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
   it('서비스를 바꾸면 고른 것도 버린다', async () => {
     const { rerender } = await 그리기();
     fireEvent.click(고르기칸()[0]!);
-    expect(실행버튼().textContent).toBe('고른 1건 실행하기');
+    expect(실행버튼().textContent).toBe('선택한 1건 실행');
 
     rerender(<CaseList service="ZPY" />);
 
     // 남겨 두면 다른 서비스에서 「고른 1건」이라 말하고 누르면 사실이 아닌 이유를 보여준다
-    await waitFor(() => expect(실행버튼().textContent).toBe('전체 실행하기'));
+    await waitFor(() => expect(실행버튼().textContent).toBe('전체 실행'));
   });
 });
 
@@ -266,7 +266,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('실행하기를 누르면 담은 건수만큼의 items 로 createRun 이 불린다', async () => {
+  it('실행을 누르면 담은 건수만큼의 items 로 createRun 이 불린다', async () => {
     const 걸기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 7 });
     await 모달까지();
 
@@ -283,7 +283,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     expect(본문.title).toBe('ZPK-001 외 2건 실행');
   });
 
-  it('거는 동안 실행하기가 막히고 그 사실이 버튼 글자로 뜬다', async () => {
+  it('거는 동안 실행이 막히고 그 사실이 버튼 글자로 뜬다', async () => {
     let 풀기: ((것: { runId: number }) => void) | null = null;
     // 응답을 손에 쥐고 있어야 「거는 중」 이 화면에 떠 있는 순간을 붙잡을 수 있다
     vi.spyOn(api, 'createRun').mockImplementation(
@@ -334,7 +334,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     expect(window.location.hash).toBe('#/cases');
   });
 
-  it('한 번 거절당해도 실행하기를 다시 누를 수 있다', async () => {
+  it('한 번 거절당해도 실행을 다시 누를 수 있다', async () => {
     const 걸기 = vi
       .spyOn(api, 'createRun')
       .mockRejectedValueOnce(new ApiError(400, 'ENV_NOT_FOUND', 'ZPK 서비스에 qa 대상 서버가 없다'))

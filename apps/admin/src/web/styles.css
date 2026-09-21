@@ -296,21 +296,40 @@ select:focus {
   outline-offset: -1px;
 }
 
+/* 2026-09-21 — 같은 모양 칩 여덟 개가 한 줄에 늘어서 있던 것을 세그먼트로 묶었다.
+   테두리를 한 겹만 두르고 안쪽은 접어서, 낱개 버튼이 아니라 하나의 고르개로 읽히게 한다.
+
+   **묶는 일을 CSS 가 한다.** 화면 코드는 지금처럼 `.chip` 을 나란히 그리면 되고
+   이웃끼리 테두리를 접는 것은 `+` 가 맡는다 — TSX 를 안 건드린다 */
 .chip {
   font-size: 12.5px;
-  padding: 6px 12px;
+  /* 누르는 자리는 최소 36px. 44px 은 DESIGN.md 대로 실행 기록 목록과 실행 결과 두 화면에만 건다 */
+  min-height: 36px;
+  padding: 8px 13px;
   border: 1px solid var(--rule);
-  border-radius: 2px;
-  background: transparent;
+  border-radius: 0;
+  background: var(--sheet);
   color: var(--ink-muted);
   cursor: pointer;
   font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 이웃한 칩끼리 테두리를 한 겹으로 접는다 */
+.chip + .chip {
+  border-left-width: 0;
 }
 
 .chip[aria-pressed='true'] {
   background: var(--ink);
   color: var(--sheet);
   border-color: var(--ink);
+  font-weight: 600;
+}
+
+/* 반전된 칸의 오른쪽 이웃이 잉크 테두리를 잃지 않게 한다 */
+.chip[aria-pressed='true'] + .chip {
+  border-left: 1px solid var(--ink);
 }
 
 .chip:focus-visible {

@@ -55,7 +55,7 @@ function 그리기(케이스들: CaseRow[] = [값없는케이스, 값있는케�
   return { onRun, onClose };
 }
 
-const 실행버튼 = () => screen.getByRole('button', { name: '실행하기' });
+const 실행버튼 = () => screen.getByRole('button', { name: '실행' });
 const 줄 = () => screen.getByRole('status');
 
 describe('RunPickModal', () => {
@@ -130,7 +130,7 @@ describe('RunPickModal', () => {
     expect(줄().textContent).toContain('실행 항목이 3건 생깁니다');
   });
 
-  it('상한을 넘으면 실행하기가 막히고 이유가 화면 줄로 뜬다', () => {
+  it('상한을 넘으면 실행이 막히고 이유가 화면 줄로 뜬다', () => {
     그리기();
 
     fireEvent.change(screen.getByLabelText('반복'), { target: { value: '400' } });

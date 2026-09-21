@@ -106,11 +106,11 @@ export function CaseList({ service }: { service: string }) {
         {/* 둘을 한 칸에 묶는다. 띠가 space-between 이라 풀어 두면 두 버튼이 양끝으로 갈라진다 */}
         <div className="bar-acts">
           <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
-            {scanning ? '스캔하는 중' : '다시 스캔하기'}
+            {scanning ? '스캔하는 중' : '다시 스캔'}
           </button>
           {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
           <button className="btn" onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
-            {뽑기.고른.size === 0 ? '전체 실행하기' : `고른 ${뽑기.고른.size}건 실행하기`}
+            {뽑기.고른.size === 0 ? '전체 실행' : `선택한 ${뽑기.고른.size}건 실행`}
           </button>
         </div>
       </div>

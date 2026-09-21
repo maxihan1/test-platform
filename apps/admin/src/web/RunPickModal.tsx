@@ -157,7 +157,7 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
           {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
           {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
           <button className="btn" onClick={실행} disabled={너무많나 || 거는중 === true}>
-            {거는중 === true ? '실행을 거는 중' : '실행하기'}
+            {거는중 === true ? '실행을 거는 중' : '실행'}
           </button>
         </>
       }
