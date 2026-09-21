@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ItemStatus, RunItemSummary, RunSummary } from './api.js';
-import { type RunDetail, 진행상황 } from './runProgress.js';
+import { type RunDetail, type 진행, 진행상황 } from './runProgress.js';
 
 const 분 = (n: number) => `2026-09-21T00:0${n}:00.000Z`;
 
@@ -16,7 +16,7 @@ function 항목(historyId: number, finishedAt: string | null, status: ItemStatus
     paramSchema: {},
     status,
     durationMs: finishedAt === null ? null : 100,
-    error: null,
+    error: status === 'NA' ? { message: 'ABORTED' } : null,
     startedAt: 분(0),
     finishedAt,
   };
@@ -51,10 +51,24 @@ const 안끝난넷 = [항목(7, null), 항목(8, null), 항목(9, null), 항목(
 
 const 도는중 = 실행([...끝난여섯, ...안끝난넷], { total: 10, pass: 5, fail: 1, na: 0, running: 4 });
 
+const 중단됨 = 실행(
+  [...끝난여섯, ...안끝난넷.map((i) => ({ ...i, status: 'NA' as ItemStatus, finishedAt: 분(7) }))],
+  { total: 10, pass: 5, fail: 1, na: 4, running: 0 },
+);
+
+const 네칸합 = (막대: 진행['막대']) => 막대.통과 + 막대.실패 + 막대.미실행 + 막대.남은것;
+
 describe('진행상황', () => {
   it('항목 10건 중 6건이 끝났을 때 막대 네 칸의 합이 counts.total 과 같다', () => {
-    const { 막대 } = 진행상황(도는중);
-    expect(막대.통과 + 막대.실패 + 막대.실행중 + 막대.대기).toBe(도는중.counts.total);
+    expect(네칸합(진행상황(도는중).막대)).toBe(도는중.counts.total);
+  });
+
+  it('중단돼 미실행이 생긴 실행에서도 막대 네 칸의 합이 counts.total 과 같다', () => {
+    expect(네칸합(진행상황(중단됨).막대)).toBe(중단됨.counts.total);
+  });
+
+  it('막대 네 칸은 counts 를 그대로 옮긴다', () => {
+    expect(진행상황(중단됨).막대).toEqual({ 통과: 5, 실패: 1, 미실행: 4, 남은것: 0 });
   });
 
   it('finishedAt 이 null 인 첫 항목이 지금 도는 것이다', () => {
@@ -70,15 +84,8 @@ describe('진행상황', () => {
   });
 
   it('전부 끝났으면 지금 도는 것이 null 이다', () => {
-    const 끝남 = 실행([...끝난여섯, ...안끝난넷.map((i) => ({ ...i, finishedAt: 분(7) }))], {
-      total: 10,
-      pass: 9,
-      fail: 1,
-      na: 0,
-      running: 0,
-    });
-    const 진행 = 진행상황(끝남);
-    expect(진행.지금도는것).toBeNull();
-    expect(진행.끝난수).toBe(진행.전체수);
+    const 결과 = 진행상황(중단됨);
+    expect(결과.지금도는것).toBeNull();
+    expect(결과.끝난수).toBe(결과.전체수);
   });
 });
