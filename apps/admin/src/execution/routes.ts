@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { 정수 } from '../routeParams.js';
 import { dispatch, markAborted } from './dispatcher.js';
 import { notifyRun } from './notify.js';
-import { abortRunner } from './runner.js';
+import { abortRunner, 진행 } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
 import { findItem, findRun, listRuns, serviceExists } from './queries.js';
@@ -132,6 +132,28 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     }
 
     return result;
+  });
+
+  app.get<{ Params: { runId: string } }>('/runs/:runId/progress', async (req, reply) => {
+    const runId = 정수(req.params.runId);
+    if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
+
+    // 러너의 목록은 **모든 서비스의 자식**을 담고 runId 칸이 없다. 그대로 흘리면 남의 실행의
+    // 절차 제목이 이 화면에 뜬다 — 문(auth/scope.ts)은 「이 runId 를 볼 자격」만 보고 내용물은 안 본다.
+    // 자기 DB 의 historyId 와 교집합만 낸다. 제한 시간도 같은 줄에 있어 한 질의로 끝난다 (SPEC §7)
+    const { pool } = await import('../db/index.js');
+    const 제한 = await pool.query<{ history_id: string; timeout_ms: number }>(
+      'SELECT history_id, timeout_ms FROM run_item WHERE run_id = $1',
+      [runId],
+    );
+    const 내것 = new Map(제한.rows.map((r) => [Number(r.history_id), r.timeout_ms]));
+
+    return {
+      items: (await 진행()).flatMap((돌고있는것) => {
+        const timeoutMs = 내것.get(돌고있는것.historyId);
+        return timeoutMs === undefined ? [] : [{ ...돌고있는것, timeoutMs }];
+      }),
+    };
   });
 
   app.get<{ Querystring: { service?: string; page?: string } }>('/runs', async (req, reply) => {

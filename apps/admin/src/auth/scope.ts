@@ -54,6 +54,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/runs/:runId/evidence': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/insights': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/items/:historyId': { 종류: '실행', 칸: 'runId' },
+  '/api/runs/:runId/progress': { 종류: '실행', 칸: 'runId' },
   '/api/screenshots/:runId/:historyId/:seq.png': { 종류: '실행', 칸: 'runId' },
 
   '/api/evidence/:id': { 종류: '증적', 칸: 'id' },
