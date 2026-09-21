@@ -5,3 +5,6 @@ export const STEP_ATTACHMENT = 'platform-step';
 
 // 러너가 stdout에서 결과 줄을 찾을 때 쓰는 표시자
 export const RESULT_MARKER = '@@RESULT@@';
+
+// 러너가 stdout에서 절차 시작 줄을 찾을 때 쓰는 표시자
+export const PROGRESS_MARKER = '@@PROGRESS@@';
