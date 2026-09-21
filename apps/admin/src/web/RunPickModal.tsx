@@ -33,6 +33,8 @@ interface Props {
   사유?: string;
   /** 고른 것 중 무엇이 왜 빠졌는지. 조용히 줄어든 채로 걸지 않는다 */
   안내?: string;
+  /** 실행을 걸어 놓고 응답을 기다리는 중. 최대 1000건을 만드는 동안 화면이 침묵하면 안 된다 */
+  거는중?: boolean;
   onClose: () => void;
   onRun: (요청: 실행요청) => void;
 }
@@ -42,7 +44,7 @@ type 글자표 = Record<string, { params: Record<string, string>; expected: Reco
 
 const 오류없음: Record<string, string> = {};
 
-export function RunPickModal({ 케이스들, service, 사유, 안내, onClose, onRun }: Props) {
+export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중, onClose, onRun }: Props) {
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2)
   const [env, setEnv] = useState('');
   const [repeat, setRepeat] = useState('1');
@@ -145,8 +147,9 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, onClose, o
             취소
           </button>
           {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
-          <button className="btn" onClick={실행} disabled={너무많나}>
-            실행하기
+          {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
+          <button className="btn" onClick={실행} disabled={너무많나 || 거는중 === true}>
+            {거는중 === true ? '실행을 거는 중' : '실행하기'}
           </button>
         </>
       }

@@ -3,7 +3,7 @@
 // 고른 것을 tcId 가 아니라 **줄 통째로** 든다. tcId 만 들면 실체를 찾으러 쪽을 처음부터 되돌아야 하고,
 // 그 길에서 결과 칩과 검색 조건이 고른 것을 다시 걸러 말없이 버렸다
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import {
   api,
@@ -73,8 +73,9 @@ export function useRunPick(옵션: {
   const [사유, set사유] = useState<string | undefined>(undefined);
   // 담는 사이에 빠진 것. 버튼이 「전체」라 말해 놓고 조용히 자르지 않는다
   const [안내, set안내] = useState<string | undefined>(undefined);
-  // 두 번 눌러도 실행이 둘 생기지 않게 막는다. 모달은 onRun 을 기다리지 않는다
-  const 거는중 = useRef(false);
+  // 두 번 눌러도 실행이 둘 생기지 않게 막는다. 모달은 onRun 을 기다리지 않는다.
+  // useRef 로 두면 바뀌어도 다시 그리지 않아 최대 1000건을 만드는 동안 화면이 침묵한다
+  const [거는중, set거는중] = useState(false);
 
   /**
    * 「전체」는 보이는 쪽이 아니라 모든 쪽이다 (SPEC §8.1).
@@ -129,8 +130,8 @@ export function useRunPick(옵션: {
    * 거절당해도 `거는중` 을 반드시 풀어 다시 누를 수 있게 한다.
    */
   async function 실행걸기(요청: 실행요청) {
-    if (거는중.current) return;
-    거는중.current = true;
+    if (거는중) return;
+    set거는중(true);
     알림(null);
     set사유(undefined);
     try {
@@ -140,7 +141,7 @@ export function useRunPick(옵션: {
     } catch (err) {
       set사유(message(err));
     } finally {
-      거는중.current = false;
+      set거는중(false);
     }
   }
 
@@ -164,5 +165,5 @@ export function useRunPick(옵션: {
     set안내(undefined);
   }
 
-  return { 고른, 모으는중, 담은것, 서비스, 사유, 안내, 모으기, 실행걸기, 뒤집기, 비우기, 닫기 };
+  return { 고른, 모으는중, 담은것, 서비스, 사유, 안내, 거는중, 모으기, 실행걸기, 뒤집기, 비우기, 닫기 };
 }

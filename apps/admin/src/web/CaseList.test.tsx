@@ -281,6 +281,30 @@ describe('CaseList 여러 건 실행 걸기', () => {
     expect(본문.title).toBe('ZPK-001 외 2건 실행');
   });
 
+  it('거는 동안 실행하기가 막히고 그 사실이 버튼 글자로 뜬다', async () => {
+    let 풀기: ((것: { runId: number }) => void) | null = null;
+    // 응답을 손에 쥐고 있어야 「거는 중」 이 화면에 떠 있는 순간을 붙잡을 수 있다
+    vi.spyOn(api, 'createRun').mockImplementation(
+      () =>
+        new Promise<{ runId: number }>((resolve) => {
+          풀기 = resolve;
+        }),
+    );
+    await 모달까지();
+
+    fireEvent.click(모달실행());
+
+    const 거는중 = await screen.findByRole('button', { name: '실행을 거는 중' });
+    expect(거는중.hasAttribute('disabled')).toBe(true);
+    // 말풍선이 아니라 버튼 글자다 (DESIGN.md 접근성 기준)
+    expect(거는중.hasAttribute('title')).toBe(false);
+
+    await waitFor(() => expect(풀기).not.toBeNull());
+    풀기!({ runId: 11 });
+
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/11'));
+  });
+
   it('성공하면 그 실행 결과 화면으로 간다', async () => {
     vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 7 });
     await 모달까지();
