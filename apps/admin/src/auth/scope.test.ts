@@ -73,6 +73,10 @@ describe('라우트표', () => {
     expect(유령, `소스에 없는 라우트가 표에 남아 있다: ${유령.join(' · ')}`).toEqual([]);
   });
 
+  it('직전 실행 비교 조회는 실행 번호로 서비스를 찾는다', () => {
+    expect(라우트표['/api/runs/:runId/insights']).toEqual({ 종류: '실행', 칸: 'runId' });
+  });
+
   it('번호로 부르는 자리는 읽을 칸을 지정한다', () => {
     for (const [틀, 원천] of Object.entries(라우트표)) {
       if (원천.종류 === '안매임' || 원천.종류 === '질의' || 원천.종류 === '본문tcId') continue;

@@ -115,7 +115,7 @@ function 값칩들({ row }: { row: CaseRow }) {
       {칸들.map((칸) => (
         <span className="chip-val" key={칸.key}>
           <b>{칸.label}</b>
-          <i>{칸.secret ? '********' : (칸.default === undefined ? '—' : String(칸.default))}</i>
+          <i>{칸.secret ? '********' : (칸.default === undefined || typeof 칸.default === 'object' ? '—' : String(칸.default))}</i>
         </span>
       ))}
     </div>

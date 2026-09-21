@@ -8,6 +8,7 @@ import { z } from 'zod';
 
 import { 정수 } from '../routeParams.js';
 import { generate, 형식표 } from './generate.js';
+import { compareWithPrevious } from './insights.js';
 import { EvidenceBusyError, claim, findDocument, recoverPending } from './store.js';
 
 const 증적본문 = z.object({
@@ -80,6 +81,18 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       }
       throw err;
     }
+  });
+
+  // 직전 실행과 견줘 무엇이 달라졌는지 (SPEC §7). **GET /api/runs/:runId 와 별개의 조회다** —
+  // 상세 응답에 칸을 더하면 그 응답을 읽는 화면·증적이 전부 같이 흔들린다
+  app.get<{ Params: { runId: string } }>('/runs/:runId/insights', async (req, reply) => {
+    const runId = 정수(req.params.runId);
+    if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
+    // compareWithPrevious 는 없는 실행에 던진다. 여기서 막아야 500 이 아니라 404 가 나간다
+    if ((await 실행상태(runId)) === null) {
+      return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
+    }
+    return compareWithPrevious(runId);
   });
 
   // 영구 주소다. 메신저나 컴플라이언스 도구에 붙여 둔 링크가 썩지 않아야 한다 (SPEC §7)

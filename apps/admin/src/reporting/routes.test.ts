@@ -195,6 +195,32 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     }
   });
 
+  it('GET /api/runs/:runId/insights — 직전 실행과 견준 결과를 낸다', async () => {
+    const res = await app.inject({ method: 'GET', url: `/api/runs/${String(runId)}/insights` });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(Object.keys(body).sort()).toEqual(['previous', '빠진건수', '실패덩어리들', '주소바뀜', '케이스들'].sort());
+    expect(body.previous).toBeNull();
+    expect(body.케이스들).toEqual([]);
+    expect(body.실패덩어리들).toEqual([]);
+  });
+
+  it('GET /api/runs/:runId/insights — 없는 실행이면 404다', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/runs/999999999/insights' });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error).toBe('RUN_NOT_FOUND');
+  });
+
+  it('GET /api/runs/:runId/insights — 경로 번호가 느슨한 모양이면 400이다', async () => {
+    for (const 값 of ['1e3', '0x10', '0', '-1', 'abc']) {
+      const res = await app.inject({ method: 'GET', url: `/api/runs/${값}/insights` });
+      expect(res.statusCode, `GET /api/runs/${값}/insights`).toBe(400);
+      expect(res.json().error, `GET /api/runs/${값}/insights`).toBe('INVALID_REQUEST');
+    }
+  });
+
   it('아직 파일이 없는 행을 받으려 하면 409, 없는 id면 404다', async () => {
     const 만드는중 = await claim(runId, 'PDF');
     expect((await app.inject({ method: 'GET', url: `/api/evidence/${String(만드는중.id)}` })).statusCode).toBe(409);
