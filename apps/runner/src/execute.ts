@@ -3,11 +3,13 @@
 
 import { spawn, type ChildProcess } from 'node:child_process';
 import { dirname, resolve, sep } from 'node:path';
+import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 
-import type { ExecuteRequest, ExecuteResponse, ItemStatus } from '@platform/kit';
+import type { ExecuteRequest, ExecuteResponse, ItemStatus, StepProgress } from '@platform/kit';
 
 import { killTree } from './kill.js';
+import { createProgressCollector } from './progress.js';
 import { parseResult, type RunnerResult } from './result.js';
 
 // playwright.config.ts가 있는 곳. 여기서 자식 프로세스를 띄워야 projects 정의가 잡힌다
@@ -24,6 +26,21 @@ export interface Running {
   child: ChildProcess;
   // execute()의 지역 변수로 두면 abort()가 닿을 수 없다. 바깥에서 불리는 함수이기 때문이다
   killedBy: KilledBy | null;
+  // 아직 절차를 알리지 않은 자식이 있으므로 선택 칸이다. 필수로 만들면 abort()가 읽는 같은 지도의
+  // 기존 항목들이 전부 이 칸을 채워야 한다
+  progress?: { step: StepProgress; 시작한때: number };
+}
+
+// 진행 줄이 올 때마다 마지막 것 하나로 갈아 끼운다. 쌓지 않는 이유는 화면이 묻는 것이
+// '지금 무엇을 하는 중인가' 하나이기 때문이다. 시각이 아니라 시작한 때를 들고 있다가
+// 물어보는 그 순간에 경과를 재야 받는 쪽 시계와의 차가 오차로 남지 않는다 (SPEC §5.2)
+export function 진행을_모은다(entry: Running, stdout: Readable): void {
+  const collector = createProgressCollector();
+  stdout.on('data', (chunk: Buffer) => {
+    for (const step of collector.push(chunk.toString())) {
+      entry.progress = { step, 시작한때: Date.now() };
+    }
+  });
 }
 
 // historyId → 돌고 있는 자식. 메모리에만 산다. 러너가 죽으면 지도도 자식도 같이 사라지고,
@@ -123,6 +140,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   // 바깥에서 abort()가 찾을 수 있게 지도에 올린다. 사유를 지역 변수로 두면 그 함수가 닿지 못한다
   const entry: Running = { child, killedBy: null };
   running.set(req.historyId, entry);
+
+  진행을_모은다(entry, child.stdout);
 
   let stdout = '';
   let stderr = '';

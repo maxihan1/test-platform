@@ -1,6 +1,6 @@
 // 실행이 어디까지 갔는지를 RunDetail 하나에서 계산한다 (SPEC §8.3 · §8.9). 화면 조각은 없다
 
-import type { RunItemSummary, RunSummary } from './api.js';
+import type { RunItemSummary, RunSummary, 항목진행 } from './api.js';
 
 /** `api.run()` 이 주는 모양. 증적 목록은 진행과 무관해 뺐다 — 없는 값을 요구하면 호출부가 채워야 한다 */
 export type RunDetail = RunSummary & { items: RunItemSummary[] };
@@ -9,9 +9,15 @@ export interface 진행 {
   막대: { 통과: number; 실패: number; 미실행: number; 남은것: number };
   끝난수: number;
   전체수: number;
-  /** **근사치다.** 무엇을 근거로 고르고 언제 정확해지는지는 `진행상황()` 주석에 적었다 */
-  지금도는것: RunItemSummary | null;
+  /** 러너가 답한 것만 절차로 그린다. `절차` 가 `null` 이면 이름까지만 아는 것이다 */
+  지금도는것들: { 항목: RunItemSummary; 절차: 항목진행 | null }[];
   방금끝난것: RunItemSummary[];
+  /**
+   * **지금 어느 화면도 이것을 안 그린다.** SPEC §8.9 의 「도는 동안 그리는 것」 목록에도 없다 —
+   * 계산만 되고 쓰는 곳이 없는 채로 `main` 에 이미 들어와 있었다 (2026-09-21 검사가 둘 다 짚었다).
+   * 그리기로 하면 §8.9 를 먼저 고친다. 안 쓸 거면 이 칸과 검사를 같이 걷어낸다 —
+   * **안 뜨는 값에 붙은 검사는 영원히 초록이면서 아무것도 안 지킨다.**
+   */
   대기줄: RunItemSummary[];
 }
 
@@ -32,10 +38,27 @@ const 대기줄최대 = 3;
  * (`finished_at IS NULL`), 행은 `createRun` 때 한꺼번에 박히며 `started_at` 을 나중에 고치는 코드가
  * 없다. 둘을 가를 신호가 DB 에 아예 없어서 가른 이름으로 부르면 없는 구분을 있는 척하게 된다.
  */
-export function 진행상황(data: RunDetail): 진행 {
+export function 진행상황(data: RunDetail, 진행목록: 항목진행[]): 진행 {
   const { counts } = data;
   const 끝난것 = data.items.filter((i): i is RunItemSummary & { finishedAt: string } => i.finishedAt !== null);
   const 안끝난것 = data.items.filter((i) => i.finishedAt === null);
+
+  // 러너는 자기가 마지막으로 본 것을 들고 있어 **이 실행의 것이 아닌 진행도 온다** —
+  // 앞 실행에서 남은 것, 이미 끝나 DB 에 결과가 박힌 것. 안 끝난 항목에서 찾히는 것만 남긴다
+  const 안끝난것찾기 = new Map(안끝난것.map((i) => [i.historyId, i]));
+  const 러너가답한것 = 진행목록.flatMap((절차) => {
+    const 항목 = 안끝난것찾기.get(절차.historyId);
+    return 항목 === undefined ? [] : [{ 항목, 절차 }];
+  });
+
+  // **러너가 답한 것만 절차로 그린다.** 동시에 둘씩 돌아(`EXECUTION_CONCURRENCY` 기본 2)
+  // 여럿이 나올 수 있고, 몇이 도는지는 여기서 세지 않고 러너가 답한 수를 그대로 쓴다.
+  // 답이 비는 때가 있다 — 러너가 아직 첫 절차를 안 흘렸거나 진행 조회가 실패한 순간이다.
+  // 그때 빈칸을 두지 않고 안 끝난 첫째를 이름만 내보낸다. 사람이 러너 로그를 여는 이유가
+  // 「무엇이 도는지」를 모르기 때문이라, 절차를 모르는 것과 아무것도 모르는 것은 다르다
+  const 지금도는것들: 진행['지금도는것들'] =
+    러너가답한것.length > 0 ? 러너가답한것 : 안끝난것.slice(0, 1).map((항목) => ({ 항목, 절차: null }));
+  const 도는중인historyId = new Set(지금도는것들.map((것) => 것.항목.historyId));
 
   return {
     막대: { 통과: counts.pass, 실패: counts.fail, 미실행: counts.na, 남은것: counts.running },
@@ -45,13 +68,11 @@ export function 진행상황(data: RunDetail): 진행 {
     // 막대가 이미 이 수를 그리고 있으므로 출처를 거기로 합친다
     끝난수: counts.total - counts.running,
     전체수: counts.total,
-    // 안 끝난 것의 첫째를 고른다. **맞다는 보장은 없고, 있는 신호 중 가장 가까운 것이다.**
-    // 대기줄이 FIFO 라(`dispatcher.ts` 의 `대기줄.shift()`) 앞엣것일수록 먼저 나가지만,
-    // ① 동시에 둘씩 돌고(`EXECUTION_CONCURRENCY` 기본 2) ② 상세 조회는 `tc_id, platform` 순이라
-    // 요청 순서와 늘 같지 않다. 정확해지는 것은 러너가 절차마다 알려 주는 계약(`progressUrl`)이 오는 날이다.
-    // 그래도 빼지 않는다 — 사람이 러너 로그를 여는 이유가 「무엇이 도는지」를 모르기 때문이다
-    지금도는것: 안끝난것[0] ?? null,
+    지금도는것들,
     방금끝난것: [...끝난것].sort((a, b) => b.finishedAt.localeCompare(a.finishedAt)).slice(0, 방금끝난것최대),
-    대기줄: 안끝난것.slice(1, 1 + 대기줄최대),
+    // **앞자리 하나만 건너뛰지 않는다.** `slice(1, …)` 은 도는 것이 언제나 하나라는 가정인데
+    // 러너는 둘 이상을 답한다 — 그러면 두 번째로 도는 항목이 「지금 도는 것」과 「대기줄」
+    // 양쪽에 동시에 선다. 도는 것을 먼저 빼고 남은 것에서 앞 셋을 고른다
+    대기줄: 안끝난것.filter((i) => !도는중인historyId.has(i.historyId)).slice(0, 대기줄최대),
   };
 }

@@ -151,6 +151,7 @@ SPEC 검사: 통과 / 치명 N건
 | 어디 | 직접 고쳐도 되는가 |
 |------|------------------|
 | `spec-review` 체크리스트 · `npm run check:*` 검사기 · `.claude/scripts/` 훅 | **직접 고친다** |
+| `.claude/skills/**` 체인 스킬 (`tpx-*` 등) | **절차 보강은 직접.** 단계·게이트를 빼거나 순서를 바꾸는 것은 승인 (2026-09-21 추가 — 위 줄이 이름으로 부르는 `spec-review` 체크리스트가 물리적으로 이미 스킬 파일이라 경계가 모호했다) |
 | `docs/SETUP.md` · `docs/HOOKS.md` 같은 안내 문서 | **직접 고친다** |
 | 이 문서(CLAUDE.md) | **규칙 추가는 직접.** 기존 규칙 수정·삭제는 승인 |
 | `docs/SPEC.md`와 `docs/spec/**` · §1.3 잠긴 파일 | 승인 (§1.2 절차) |
@@ -247,6 +248,9 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   **화면(JSX)은 `*.test.tsx`도 된다** — `vitest.config.ts`의 `include`가 둘 다 잡는다 (2026-09-19).
   화면 검사 파일은 **첫 줄에 `// @vitest-environment jsdom`을 적는다.**
   빠뜨리면 `document is not defined`로 죽는다.
+  **`scripts/`의 스크립트도 같은 자리에 `*.test.ts`로 둔다** — `include`에 `scripts/**`가 들어 있다 (2026-09-21).
+  다만 스크립트는 **얇은 껍데기**이므로 검사는 **그 안의 순수 함수**에 붙인다.
+  I/O 껍데기 자체에는 안 붙인다 (`scripts/run-scheduled.ts`가 본보기다).
   `tests/**`에 두지 않는다 — 그 폴더는 데모·대상 테스트 전용이고 훅이 `expect`를 막는다
 - **DB 테스트 fixture**: 접두사는 **갈래마다 고유하게**, 정리 구문(`DELETE ... LIKE`)은 **자기 것에만** 맞게 쓴다.
   Vitest는 파일을 병렬로 돌려서 넓은 패턴이 남의 fixture를 쓰는 도중에 지운다.
@@ -261,6 +265,9 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   `insights.test.ts`가 `XDG 견주기`다. **둘 다 `'XDG%'`로 넓히면 안 된다** (2026-09-21).
   나중에 온 쪽이 `'XDG%'`를 쓸 뻔했고, 그랬으면 앞엣것의 fixture를 실행 도중에 지웠다 —
   `XFS1`에서 이미 겪은 그 일이다. **접두사가 이미 표에 있어도 그 아래를 누가 쓰는지 다시 본다**
+  **`XBR`도 표가 갈린다** — `routes.test.ts`가 `test_case`·`param_set`은 `tc_id LIKE 'XBR%'`로,
+  진행 조회 검사는 `test_run.title LIKE 'XBR 진행%'`로 지운다. **`test_run`에 `'XBR%'`를 쓰면 안 된다**
+  (2026-09-21). 같은 접두사라도 **어느 표를 지우는지가 다르면 다른 것**이다
   **이유는 병렬이 아니다.** `vitest.config.ts`가 `fileParallelism: false`로 병렬을 껐다 —
   넓은 `DELETE ... LIKE`가 **다른 파일의 fixture까지 범위에 넣는 것**이 문제다 (2026-09-19)
   확인은 연속 3회다 — 1회 통과는 증거가 못 된다 (spec-review G3)

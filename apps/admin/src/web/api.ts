@@ -1,11 +1,11 @@
 // Admin API 호출 한 곳 (SPEC §7). 응답 모양은 WS-A·WS-B가 실제로 내보내는 것을 그대로 옮겼다
 // 목 데이터는 두지 않는다 — 개발 서버도 /api를 진짜 admin으로 프록시한다 (vite.config.ts)
 
-import type { ItemStatus, JsonSchema, Platform, StepResult } from '@platform/kit';
+import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
 
 import type { 등급 } from './role.js';
 
-export type { ItemStatus, JsonSchema, Platform, StepResult };
+export type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult };
 
 export interface Paged<T> {
   items: T[];
@@ -121,6 +121,12 @@ export interface RunItemSummary {
   startedAt: string;
   finishedAt: string | null;
 }
+
+/**
+ * 러너가 지금 어느 절차에 서 있는지. `timeoutMs` 는 러너가 아니라 admin 이 붙인다 —
+ * 절차 경과만으로는 「느린 것」과 「멈춘 것」을 가를 수 없어 화면이 견줄 상한이 같이 와야 한다
+ */
+export type 항목진행 = RunningStep & { timeoutMs: number };
 
 export interface RunItemDetail extends RunItemSummary {
   runId: number;
@@ -362,6 +368,9 @@ export const api = {
 
   /** 직전 실행과 견준 결과. 실행 상세 응답과 별개의 조회다 (SPEC §7) */
   insights: (runId: number) => call<RunInsights>(`/runs/${runId}/insights`),
+
+  /** 지금 도는 절차들. 상세 조회와 별개다 — 상세는 DB 를, 이쪽은 러너의 지금을 본다 (SPEC §7) */
+  progress: (runId: number) => call<{ items: 항목진행[] }>(`/runs/${runId}/progress`),
 
   /** 증적을 만든다. 실행까지 등급부터다 (SPEC §3.5) */
   makeEvidence: (runId: number, format: string) =>

@@ -54,3 +54,15 @@ export interface ExecuteResponse {
   steps: StepResult[];
   error?: { message: string; stack?: string };
 }
+
+// kit이 절차를 시작할 때 stdout으로 흘리는 것. 아직 흐른 시간이 없어 칸을 만들지 않는다
+export interface StepProgress {
+  historyId: number;
+  seq: number;
+  title: string;
+}
+
+// 러너가 GET /progress로 답하는 것. 경과는 킷이 아니라 러너가 자기 시계로 잰다
+export interface RunningStep extends StepProgress {
+  elapsedMs: number;
+}

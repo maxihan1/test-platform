@@ -17,7 +17,8 @@
     "check:workflow": "node --test .claude/scripts/*.test.mjs",
     "check:deps": "node .claude/scripts/check-deps.mjs",
     "count:done": "awk '/^[[:space:]]*- \\[[xX]\\]/{x++} /^[[:space:]]*- \\[ \\]/{o++} END{printf \"완료 기준 %d개 · 확인 끝난 것 %d개 · 남은 것 %d개\\n\", x+o, x, o}' docs/spec/공통/7-데모와-완료.md",
-    "smoke": "tsx apps/admin/src/smoke.ts"
+    "smoke": "tsx apps/admin/src/smoke.ts",
+    "authoring-agent": "tsx scripts/authoring-agent.ts"
   },
   "dependencies": {
     "@fastify/secure-session": "^8.3.0",
