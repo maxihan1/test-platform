@@ -15,6 +15,12 @@ export interface 설정 {
   env?: Record<string, string>;
 }
 
+/** 설정 하나와 그것이 어디서 왔는지. 어디서 걸렸는지를 사람에게 알려야 고칠 수 있다 */
+export interface 설정자리 {
+  어디: string;
+  값: 설정;
+}
+
 /** 환경에 있으면 구독이 아니라 실비로 청구되는 것들 */
 const 실비청구_환경변수 = [
   // OAuth 를 건너뛴다. 이틀에 $1,800 청구 사례가 있다 (anthropics/claude-code#37686)
@@ -30,9 +36,13 @@ const 실비청구_환경변수 = [
  * 돈이 새는 경로를 전부 모아 돌려준다. 빈 배열이면 구독 한도로 돈다.
  *
  * **환경변수만 보면 부족하다** — 설정 파일의 `apiKeyHelper` 와 `env` 블록은
- * `process.env` 에 안 보이는데 CLI 는 읽는다. 그 둘이 이 안전핀의 사각지대였다.
+ * `process.env` 에 안 보이는데 CLI 는 읽는다.
+ *
+ * **설정 파일도 한 곳이 아니다.** CLI 는 user·project·local 을 다 읽고,
+ * 이 저장소 문서(`docs/SETUP.md`)가 직접 `.claude/settings.local.json` 의 `env` 를 쓰라고 가르친다.
+ * 한 곳만 보면 **막힌 줄 알고 열려 있다** (2026-09-21 검토 지적).
  */
-export function 과금위험(env: Record<string, string | undefined>, 설정값: 설정): string[] {
+export function 과금위험(env: Record<string, string | undefined>, 설정들: 설정자리[]): string[] {
   const 걸린것: string[] = [];
 
   for (const 이름 of 실비청구_환경변수) {
@@ -40,13 +50,29 @@ export function 과금위험(env: Record<string, string | undefined>, 설정값:
     if (env[이름]) 걸린것.push(이름);
   }
 
-  if (설정값.apiKeyHelper) 걸린것.push('설정의 apiKeyHelper');
+  for (const { 어디, 값 } of 설정들) {
+    if (값.apiKeyHelper) 걸린것.push(`${어디} 설정의 apiKeyHelper`);
 
-  for (const [이름, 값] of Object.entries(설정값.env ?? {})) {
-    if (값 && 이름.startsWith('ANTHROPIC_')) 걸린것.push(`설정의 env.${이름}`);
+    for (const [이름, 값2] of Object.entries(값.env ?? {})) {
+      // 환경변수 경로와 **같은 목록**을 본다. 접두사로만 거르면 3P 제공자 셋이 그대로 샌다
+      if (값2 && (실비청구_환경변수 as readonly string[]).includes(이름)) {
+        걸린것.push(`${어디} 설정의 env.${이름}`);
+      }
+    }
   }
 
   return 걸린것;
+}
+
+/**
+ * `pre-push` 훅이 쓰는 것과 **같은 날짜**를 만든다.
+ *
+ * 훅은 `date +%F` 로 **로컬** 날짜를 쓰는데 `toISOString()` 은 **UTC** 다.
+ * 한국(+9시간)에서는 **새벽 00:00~09:00 동안 둘이 하루 갈린다** — 그리고 그 구간이
+ * 바로 이 안전핀이 지키려던 「아침 무인 실행」이다 (2026-09-21 검토 지적).
+ */
+export function 오늘날짜(지금: Date, 시차분: number): string {
+  return new Date(지금.getTime() + 시차분 * 60000).toISOString().slice(0, 10);
 }
 
 const 쓰는법 = '쓰는 법: npm run authoring-agent -- <기획서 경로> [--service <접두사>]';
@@ -80,7 +106,15 @@ export function 인자읽기(argv: string[]): { 기획서: string; 서비스: st
  * 훅이 에러 문구에 적어 둔 `--no-verify` 는 **권하지 않는다** —
  * 그건 저장소가 사고 뒤에 세운 검사를 무인으로 건너뛰는 일이다.
  */
-export function 푸시막힘(오늘: string, 검사기록: string[]): string | null {
+export function 푸시막힘(
+  오늘: string,
+  검사기록: string[],
+  env: Record<string, string | undefined>,
+): string | null {
+  // 훅이 ALLOW_PROTECTED=1 이면 검사 기록 확인을 통째로 건너뛴다.
+  // 그걸 안 보면 **막히지 않을 push 를 막았다고 거부**한다 (2026-09-21 검토 지적)
+  if (env.ALLOW_PROTECTED === '1') return null;
+
   if (검사기록.some((이름) => 이름.startsWith(`${오늘}-`))) return null;
 
   return [
@@ -110,6 +144,8 @@ export function 프롬프트(기획서: string, 서비스: string | undefined): 
     '   무엇이 막았는지 보고해라. 건너뛰지 마라.',
     '4. **A-0 에서 다른 작업방이나 초안 PR 을 보면 「새 작업 추가」로 보고 진행해라.**',
     '   남의 작업방과 브랜치는 절대 건드리지 마라. 네 것을 새로 만들어라.',
+    '5. **미커밋 변경이 있어도 버리지 마라.** 그 안에 방금 받은 기획서가 들어 있을 수 있다.',
+    '   임시 커밋을 쓰거나 별도 작업방으로 가라. 지우는 쪽은 고르지 마라.',
     '',
     '관문 넷(형식·표 대조·3회 연속·일부러 부수기)은 전부 돌려라.',
   ].join('\n');
@@ -132,53 +168,103 @@ export function 클로드인자(): string[] {
   return ['-p', '--permission-mode', 'acceptEdits', '--disallowedTools', 'AskUserQuestion'];
 }
 
+/**
+ * `claude` 를 부르기 전에 봐야 할 것 전부. **순서가 계약이다** — 돈이 가장 앞이다.
+ *
+ * 순수 함수로 뽑아 둔 이유는 **순서를 검사가 붙잡게** 하기 위해서다.
+ * 껍데기 안에 있으면 누가 `spawnSync` 를 과금 검사 위로 올려도 검사가 전부 초록이고,
+ * **진짜 키가 있는 환경에서 그 요청이 실제로 나간다** (2026-09-21 검토 지적).
+ */
+export function 선행검사(입력: {
+  env: Record<string, string | undefined>;
+  설정들: 설정자리[];
+  argv: string[];
+  오늘: string;
+  기록: string[];
+}): { 막힘: string | null; 입력: { 기획서: string; 서비스: string | undefined } | null } {
+  const 위험 = 과금위험(입력.env, 입력.설정들);
+  if (위험.length > 0) {
+    return {
+      막힘: [
+        '실비 청구로 도는 설정이 있다. 구독 한도로만 돈다는 전제가 깨진다.',
+        `걸린 것: ${위험.join(' · ')}`,
+        '그 값을 지우고 다시 실행해라.',
+      ].join('\n'),
+      입력: null,
+    };
+  }
+
+  let 읽은것: { 기획서: string; 서비스: string | undefined };
+  try {
+    읽은것 = 인자읽기(입력.argv);
+  } catch (err) {
+    return { 막힘: err instanceof Error ? err.message : String(err), 입력: null };
+  }
+
+  const 막힘 = 푸시막힘(입력.오늘, 입력.기록, 입력.env);
+  if (막힘 !== null) return { 막힘, 입력: null };
+
+  return { 막힘: null, 입력: 읽은것 };
+}
+
 // ── 껍데기 ────────────────────────────────────────────────────────────
 // 여기부터는 I/O 다. 판단은 전부 위의 순수 함수에 있고 검사도 거기 붙어 있다.
 // `scripts/run-scheduled.ts` 와 같은 모양이다.
 
-/** 사용자 설정을 읽는다. 없거나 깨졌으면 빈 것으로 본다 — 안전핀은 여기서 관대해도 된다(환경변수가 따로 막는다) */
-function 설정읽기(): 설정 {
-  const 자리 = join(homedir(), '.claude', 'settings.json');
-  if (!existsSync(자리)) return {};
-  try {
-    return JSON.parse(readFileSync(자리, 'utf8')) as 설정;
-  } catch {
-    return {};
+/**
+ * CLI 가 읽는 설정 파일을 **전부** 읽는다. 없거나 깨졌으면 건너뛴다 —
+ * 못 읽는 파일 때문에 멈추면 쓸 수가 없고, 환경변수 쪽이 따로 막는다.
+ */
+function 설정들읽기(): 설정자리[] {
+  const 자리들: [string, string][] = [
+    ['사용자', join(homedir(), '.claude', 'settings.json')],
+    ['사용자 local', join(homedir(), '.claude', 'settings.local.json')],
+    ['프로젝트', join('.claude', 'settings.json')],
+    ['프로젝트 local', join('.claude', 'settings.local.json')],
+  ];
+
+  const 모은것: 설정자리[] = [];
+  for (const [어디, 경로] of 자리들) {
+    if (!existsSync(경로)) continue;
+    try {
+      모은것.push({ 어디, 값: JSON.parse(readFileSync(경로, 'utf8')) as 설정 });
+    } catch {
+      // 깨진 설정은 건너뛴다
+    }
   }
+  return 모은것;
 }
 
 function 실행(): number {
-  const 위험 = 과금위험(process.env, 설정읽기());
-  if (위험.length > 0) {
-    console.error('[거부] 실비 청구로 도는 설정이 있다. 구독 한도로만 돈다는 전제가 깨진다.');
-    console.error(`[거부] 걸린 것: ${위험.join(' · ')}`);
-    console.error('[거부] 그 값을 지우고 다시 실행해라.');
+  const 지금 = new Date();
+  const 결과 = 선행검사({
+    env: process.env,
+    설정들: 설정들읽기(),
+    argv: process.argv.slice(2),
+    오늘: 오늘날짜(지금, -지금.getTimezoneOffset()),
+    기록: existsSync('docs/reviews') ? readdirSync('docs/reviews') : [],
+  });
+
+  if (결과.입력 === null) {
+    console.error(`[거부] ${결과.막힘 ?? '알 수 없는 이유'}`);
     return 1;
   }
 
-  let 입력: { 기획서: string; 서비스: string | undefined };
-  try {
-    입력 = 인자읽기(process.argv.slice(2));
-  } catch (err) {
-    console.error(err instanceof Error ? err.message : err);
-    return 1;
-  }
-
-  const 오늘 = new Date().toISOString().slice(0, 10);
-  const 기록 = existsSync('docs/reviews') ? readdirSync('docs/reviews') : [];
-  const 막힘 = 푸시막힘(오늘, 기록);
-  if (막힘 !== null) {
-    console.error(`[거부] ${막힘}`);
-    return 1;
-  }
-
-  console.log(`[작성] ${입력.기획서} 로 케이스를 만든다. 초안 PR 까지 간다 — 병합은 사람이 한다.`);
-  const 결과 = spawnSync('claude', 클로드인자(), {
+  console.log(`[작성] ${결과.입력.기획서} 로 케이스를 만든다. 초안 PR 까지 간다 — 병합은 사람이 한다.`);
+  const 돌린것 = spawnSync('claude', 클로드인자(), {
     // 프롬프트는 stdin 으로 넘긴다 (클로드인자 주석 참고). 나머지는 그대로 흘려보낸다
-    input: 프롬프트(입력.기획서, 입력.서비스),
+    input: 프롬프트(결과.입력.기획서, 결과.입력.서비스),
     stdio: ['pipe', 'inherit', 'inherit'],
   });
-  return 결과.status ?? 1;
+
+  // spawn 자체가 실패하면 status 가 null 이라 그냥 1 이 된다 — 왜인지를 남긴다
+  if (돌린것.error) {
+    console.error(`[실패] claude 를 못 띄웠다: ${돌린것.error.message}`);
+    console.error('[실패] claude 가 설치돼 있고 PATH 에 있는지 봐라.');
+    return 1;
+  }
+
+  return 돌린것.status ?? 1;
 }
 
 // 검사가 이 파일을 import 할 때는 껍데기가 돌면 안 된다.
