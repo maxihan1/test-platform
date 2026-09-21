@@ -1,5 +1,6 @@
 // 케이스 목록 화면 (SPEC §8.1). JSON 원문은 목록에 절대 노출하지 않는다
-// '마지막 결과' 칸은 GET /api/runs/last-by-case 한 번으로 전부 채운다 — 케이스마다 이력을 따로 부르지 않는다 (SPEC §7.1)
+// '마지막 결과' 칸과 줄의 판정 흐름 막대를 GET /api/runs/last-by-case 한 번으로 전부 채운다 (SPEC §7.1)
+// 목록은 케이스마다 이력을 따로 부르지 않는다. 상세 펼침만 예외이고 그것은 사람이 한 줄을 폈을 때다
 // 여러 건을 골라 거는 흐름은 useRunPick 이 통째로 들고 있다 (SPEC §8.10)
 
 import { useState } from 'react';

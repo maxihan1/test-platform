@@ -174,6 +174,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   });
 
   // 목록 화면이 케이스마다 이력을 따로 부르지 않게 한 번에 준다 (SPEC §8.1, WS-A 검사 기록 '기타 2')
+  // 2026-09-21 ② 부터 줄의 판정 흐름(recent)도 같은 응답에 실린다 — 부르는 횟수는 그대로 1회다
   // 번호로 부르는 것이 아니라 전부 주는 질의라 문이 막을 것이 없다. 배정을 질의에 넘겨 거른다 (§7)
   app.get('/runs/last-by-case', async (req) => ({
     items: await lastByCase((req.user?.services ?? []).map((s) => s.prefix)),
