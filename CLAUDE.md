@@ -248,6 +248,9 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   **화면(JSX)은 `*.test.tsx`도 된다** — `vitest.config.ts`의 `include`가 둘 다 잡는다 (2026-09-19).
   화면 검사 파일은 **첫 줄에 `// @vitest-environment jsdom`을 적는다.**
   빠뜨리면 `document is not defined`로 죽는다.
+  **`scripts/`의 스크립트도 같은 자리에 `*.test.ts`로 둔다** — `include`에 `scripts/**`가 들어 있다 (2026-09-21).
+  다만 스크립트는 **얇은 껍데기**이므로 검사는 **그 안의 순수 함수**에 붙인다.
+  I/O 껍데기 자체에는 안 붙인다 (`scripts/run-scheduled.ts`가 본보기다).
   `tests/**`에 두지 않는다 — 그 폴더는 데모·대상 테스트 전용이고 훅이 `expect`를 막는다
 - **DB 테스트 fixture**: 접두사는 **갈래마다 고유하게**, 정리 구문(`DELETE ... LIKE`)은 **자기 것에만** 맞게 쓴다.
   Vitest는 파일을 병렬로 돌려서 넓은 패턴이 남의 fixture를 쓰는 도중에 지운다.
