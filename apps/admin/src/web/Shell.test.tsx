@@ -148,3 +148,14 @@ describe('껍데기 이름 정리 (2026-09-21 ②)', () => {
     }
   });
 });
+
+describe('껍데기는 제목을 지어내지 않는다 (2026-09-22)', () => {
+  it('껍데기 안에 화면 머리가 없다 — 그리는 것은 화면이다', () => {
+    const { container } = 띄운다(결제);
+
+    // PR① 이 여기 `header` 통로를 뚫었는데 부르는 곳이 하나도 없었다.
+    // 그래서 화면들이 제목을 본문 안에서 그렸고 「헤드와 메인 분리」가 절반만 살았다
+    expect(container.querySelector('.main > .head')).toBeNull();
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+  });
+});
