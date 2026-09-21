@@ -98,7 +98,7 @@ describe('RunList 집계 띠', () => {
     await screen.findByText(/ZRL 실행 2113/);
 
     const 글 = container.querySelector('.stats')?.textContent ?? '';
-    for (const 라벨 of ['실행 횟수', '모두 통과', '실패 섞임', '평균 소요']) expect(글).toContain(라벨);
+    for (const 라벨 of ['실행 횟수', '성공', '실패', '평균 소요']) expect(글).toContain(라벨);
     expect(글).toContain('42');
     expect(글).toContain('31');
   });
@@ -139,7 +139,7 @@ describe('RunList 거르개', () => {
     const { 스파이 } = await 그리기();
     await screen.findByText(/ZRL 실행 2113/);
 
-    fireEvent.click(screen.getByRole('button', { name: '실패 섞임' }));
+    fireEvent.click(screen.getByRole('button', { name: '실패' }));
 
     await waitFor(() => {
       expect(스파이).toHaveBeenCalledWith('ZRL', 1, expect.objectContaining({ state: 'failed' }));

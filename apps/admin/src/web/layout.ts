@@ -169,7 +169,7 @@ export function 알림줄(runs: RunSummary[], 본것들: ReadonlySet<number> = n
     const 끝난수 = 것.counts.total - 것.counts.running;
     return {
       runId: 것.runId,
-      글: `RUN ${것.runId} 이 도는 중입니다  ${끝난수}/${것.counts.total}`,
+      글: `RUN ${것.runId} 이 진행 중입니다  ${끝난수}/${것.counts.total}`,
       끝났나: false,
     };
   }

@@ -141,7 +141,7 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
     render(<RunResult runId={RUN_ID} role="operator" />);
 
     await screen.findByRole('dialog');
-    expect(상자라벨()).toContain('도는 중입니다');
+    expect(상자라벨()).toContain('진행 중입니다');
   });
 
   it('이미 끝난 실행을 열면 상자가 뜨지 않는다', async () => {

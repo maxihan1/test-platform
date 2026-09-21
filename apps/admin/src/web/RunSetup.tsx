@@ -245,7 +245,7 @@ export function RunSetup({ tcId, service, user }: Props) {
           <div>
             <select id="run-env" value={env} onChange={(e) => setEnv(e.target.value)}>
               {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
-              <option value="">고르세요</option>
+              <option value="">선택하세요</option>
               {(service?.envs ?? []).map((it) => (
                 <option key={it.env} value={it.env}>
                   {it.env}
@@ -293,7 +293,7 @@ export function RunSetup({ tcId, service, user }: Props) {
         {/* 웹훅이 없는 서비스에서는 칸 자체를 그리지 않는다. 흐리게 두지 않는다 (SPEC §8.2 · §8) */}
         {service?.hasSlackWebhook !== true ? null : (
           <div className="field">
-            <label htmlFor="run-slack">끝나면 Slack 알리기</label>
+            <label htmlFor="run-slack">끝나면 Slack 으로 알리기</label>
             <div>
               <label className="check-inline">
                 <input
@@ -328,7 +328,7 @@ export function RunSetup({ tcId, service, user }: Props) {
           style={{ width: '140px' }}
         />
         <button className="btn ghost" onClick={() => void saveSet()} disabled={busy}>
-          입력값 세트로 저장
+          이 값을 묶음으로 저장
         </button>
         {만들건수 <= 1 ? null : (
           <span className={너무많나 ? 'err' : 'hint'}>

@@ -246,7 +246,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
               checked={notifySlack}
               onChange={(e) => { setNotifySlack(e.target.checked); }}
             />
-            끝나면 Slack 알리기
+            끝나면 Slack 으로 알리기
           </label>
         )}
       </div>

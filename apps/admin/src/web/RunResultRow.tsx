@@ -80,7 +80,7 @@ export function 결과줄({
 function Verdicts({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
   // 아직 안 끝난 것이 하나라도 있으면 도는 중이다. 실행이 끝나야 판정이 들어간다 (SPEC §3.2)
   if (칸.some((item) => item.finishedAt === null)) {
-    return <span className="device-none">도는 중</span>;
+    return <span className="device-none">진행 중</span>;
   }
 
   const 요약 = 회차요약(칸);

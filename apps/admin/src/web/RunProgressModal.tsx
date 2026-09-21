@@ -184,7 +184,7 @@ function 완료내용({ data }: { data: RunDetail }) {
 }
 
 function 제목(data: RunDetail): string {
-  if (도는중(data.status)) return `RUN ${String(data.runId)} 이 도는 중입니다`;
+  if (도는중(data.status)) return `RUN ${String(data.runId)} 이 진행 중입니다`;
   // 사람이 끊어서 끝난 것과 끝까지 돌아서 끝난 것은 같은 말로 알리지 않는다 (SPEC §3.2)
   return `RUN ${String(data.runId)} 이 ${data.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다'}`;
 }

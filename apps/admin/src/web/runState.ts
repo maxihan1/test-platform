@@ -4,10 +4,10 @@
 import { 할수있나, type 등급 } from './role.js';
 
 const 라벨: Record<string, string> = {
-  RUNNING: '도는 중',
-  FINISHED: '끝남',
+  RUNNING: '진행 중',
+  FINISHED: '완료',
   // 사람이 끊어서 끝난 것과 끝까지 돌아서 끝난 것은 증적에서 구분돼야 한다 (SPEC §3.2)
-  ABORTED: '중단됨',
+  ABORTED: '중단',
 };
 
 /**

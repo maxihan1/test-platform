@@ -24,7 +24,7 @@ export const 오류말: Record<string, string> = {
 
   // 화면이 버튼을 잠그는 것과 서버가 막는 것 사이의 틈에서 만난다 — 새로고침 직후나 두 탭.
   // 이게 없으면 서버가 보낸 detail 인 'RUNNING' 이 영문 그대로 화면에 뜬다 (SPEC §7)
-  RUN_NOT_FINISHED: '아직 도는 중인 실행입니다. 끝난 뒤에 증적 문서를 만듭니다',
+  RUN_NOT_FINISHED: '아직 진행 중인 실행입니다. 끝난 뒤에 증적 문서를 만듭니다',
 
   MIXED_SERVICE: '한 실행에는 한 서비스의 케이스만 담습니다',
   ENV_NOT_FOUND: '그 대상 서버가 이 서비스에 없습니다. 설정에서 먼저 넣습니다',

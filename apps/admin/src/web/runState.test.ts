@@ -38,9 +38,9 @@ describe('실행 상태', () => {
   });
 
   it('상태를 사람이 읽는 말로 바꾼다', () => {
-    expect(상태라벨('RUNNING')).toBe('도는 중');
-    expect(상태라벨('FINISHED')).toBe('끝남');
-    expect(상태라벨('ABORTED')).toBe('중단됨');
+    expect(상태라벨('RUNNING')).toBe('진행 중');
+    expect(상태라벨('FINISHED')).toBe('완료');
+    expect(상태라벨('ABORTED')).toBe('중단');
   });
 
   it('모르는 상태는 그 글자를 그대로 보여준다. 지어내면 무엇이 일어났는지 숨긴다', () => {

@@ -15,8 +15,8 @@ import { Failed, Loading, seconds, useAsync, when } from './ui.js';
 
 const 상태칩: { 라벨: string; 값: RunQuery['state'] }[] = [
   { 라벨: '전체', 값: undefined },
-  { 라벨: '도는 중', 값: 'running' },
-  { 라벨: '실패 섞임', 값: 'failed' },
+  { 라벨: '진행 중', 값: 'running' },
+  { 라벨: '실패', 값: 'failed' },
 ];
 
 export function RunList({ service }: { service: string }) {
@@ -151,8 +151,8 @@ function 집계({ 것 }: { 것: RunTally }) {
     <칸띠
       칸들={[
         { 라벨: '실행 횟수', 값: String(것.runs) },
-        { 라벨: '모두 통과', 값: String(것.allPass), 판정: 'PASS', 부제: 몫(것.allPass) },
-        { 라벨: '실패 섞임', 값: String(것.hasFail), 판정: 'FAIL', 부제: 몫(것.hasFail) },
+        { 라벨: '성공', 값: String(것.allPass), 판정: 'PASS', 부제: 몫(것.allPass) },
+        { 라벨: '실패', 값: String(것.hasFail), 판정: 'FAIL', 부제: 몫(것.hasFail) },
         {
           라벨: '평균 소요',
           값: seconds(것.avgDurationMs),

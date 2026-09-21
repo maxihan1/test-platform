@@ -160,3 +160,12 @@ describe('케이스 줄의 판정 흐름', () => {
     expect([...흐름들[1]!.querySelectorAll('i')].map((el) => el.className)).toEqual(['f', 'e', 'e', 'e', 'e']);
   });
 });
+
+// 증적 문서의 `기록 없음`(reporting/collect.ts)과 **뜻이 다른 같은 글자**였다.
+// 저쪽은 「빈 칸을 지어내지 말라」는 규칙이고 여기는 「아직 안 돌렸다」다. 여기만 바꾼다
+describe('아직 안 돌린 케이스 (SPEC §8.1)', () => {
+  it('마지막 결과가 없으면 무엇이 없는지 말한다', () => {
+    const { container } = 그린다({});
+    expect(container.querySelector('.device-none')?.textContent).toBe('실행 이력 없음');
+  });
+});

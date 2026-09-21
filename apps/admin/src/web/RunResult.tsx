@@ -124,7 +124,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
             {' · 대상 서버 '}
             {data.env}
             {data.baseUrl === '' ? '' : ` (${data.baseUrl})`}
-            {running ? ` · 도는 중 ${String(data.counts.running)}건` : ` · ${상태라벨(data.status)}`}
+            {running ? ` · 진행 중 ${String(data.counts.running)}건` : ` · ${상태라벨(data.status)}`}
             {/* 「실행 중: X」라고 쓰지 않는다. 항목 둘이 동시에 돌아(EXECUTION_CONCURRENCY 기본 2)
                 여기 뜨는 것은 도는 둘 중 하나다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
             {도는것 === null ? '' : ` · 진행 중 ${도는것.tcId} ${도는것.tcName}`}

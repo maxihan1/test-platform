@@ -160,7 +160,7 @@ export function 케이스줄({
               <div className="device" key={platform}>
                 <span className="device-name">{PLATFORM_LABEL[platform]}</span>
                 {result === undefined ? (
-                  <span className="device-none">기록 없음</span>
+                  <span className="device-none">실행 이력 없음</span>
                 ) : (
                   <>
                     <a
