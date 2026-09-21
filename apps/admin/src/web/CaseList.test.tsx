@@ -137,6 +137,46 @@ describe('CaseList 여러 건 고르기', () => {
   });
 });
 
+describe('CaseList 고른 것을 줄 통째로 든다', () => {
+  it('고른 것이 있으면 쪽을 되돌지 않는다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.click(고르기칸()[0]!);
+    스파이.mockClear();
+
+    fireEvent.click(실행버튼());
+
+    const 모달 = await screen.findByRole('dialog');
+    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 1건');
+    // 1건을 고르고 21쪽까지 되도는 일이 없어야 한다. 손에 이미 다 있다
+    expect(스파이).not.toHaveBeenCalled();
+  });
+
+  it('결과 칩을 바꿔도 고른 것이 말없이 빠지지 않는다', async () => {
+    await 그리기();
+    fireEvent.click(고르기칸()[0]!);
+    fireEvent.click(고르기칸()[1]!);
+
+    // 칩은 「무엇을 볼까」이지 「무엇을 돌릴까」가 아니다. 마지막 결과가 없어 전부 미실행이다
+    fireEvent.click(screen.getByRole('button', { name: '실패' }));
+    expect(실행버튼().textContent).toBe('고른 2건 실행하기');
+    fireEvent.click(실행버튼());
+
+    const 모달 = await screen.findByRole('dialog');
+    expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 2건');
+  });
+
+  it('서비스를 바꾸면 고른 것도 버린다', async () => {
+    const { rerender } = await 그리기();
+    fireEvent.click(고르기칸()[0]!);
+    expect(실행버튼().textContent).toBe('고른 1건 실행하기');
+
+    rerender(<CaseList service="ZPY" />);
+
+    // 남겨 두면 다른 서비스에서 「고른 1건」이라 말하고 누르면 사실이 아닌 이유를 보여준다
+    await waitFor(() => expect(실행버튼().textContent).toBe('전체 실행하기'));
+  });
+});
+
 describe('CaseList 여러 건 실행 걸기', () => {
   /** 모달을 열고 대상 서버까지 고른 자리. 안 고르면 모달이 자기 사유를 내고 멈춘다 */
   async function 모달까지() {

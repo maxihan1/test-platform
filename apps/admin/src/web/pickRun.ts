@@ -16,17 +16,21 @@ export type 고친값표 = Record<
  * 아무것도 안 고르면 「전체 실행」이라 넘겨받은 목록이 그대로 대상이다 —
  * 목록은 화면이 이미 서버 조건으로 좁혀 놓은 것이라 여기서 다시 좁히지 않는다.
  * 비활성은 고른 것에 섞여 있어도 뺀다 — 스캔이 코드에서 지웠다고 판정한 케이스다 (SPEC §3.1).
- * 마지막 결과만 화면이 거르므로 여기서 한 번 더 건다 (catalogView 표 조건 5).
+ *
+ * **결과 칩과 검색 조건은 「전체」일 때만 건다.** 체크박스를 누른 것은 사람이 이름을 대고
+ * 지목한 것이고, 칩은 「무엇을 볼까」이지 「무엇을 돌릴까」가 아니다 —
+ * 2건을 골라 두고 칩을 「실패」로 바꾸면 버튼은 「고른 2건」인데 1건만 걸리던 자리다.
  */
 export function 담을것(
   목록: CaseRow[],
-  고른tcId: ReadonlySet<string>,
+  고른: ReadonlyMap<string, CaseRow>,
   결과칩: ItemStatus | 'ALL',
   마지막: LastMap,
 ): CaseRow[] {
-  const 고른것 = 고른tcId.size === 0 ? 목록 : 목록.filter((c) => 고른tcId.has(c.tcId));
+  // 고른 줄을 통째로 들고 왔다. 목록에서 다시 찾지 않으므로 검색 조건 밖의 것도 안 빠진다
+  if (고른.size > 0) return [...고른.values()].filter((c) => c.isActive);
   return 마지막결과로거른다(
-    고른것.filter((c) => c.isActive),
+    목록.filter((c) => c.isActive),
     마지막,
     결과칩,
   );

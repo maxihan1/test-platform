@@ -107,7 +107,7 @@ export function 케이스줄({
   row: CaseRow;
   마지막: LastMap;
   고름: boolean;
-  뒤집기: (tcId: string) => void;
+  뒤집기: (row: CaseRow) => void;
 }) {
   return (
     <div className="row pickable">
@@ -119,7 +119,7 @@ export function 케이스줄({
           type="checkbox"
           checked={고름}
           aria-label={`${row.tcId} 고르기`}
-          onChange={() => 뒤집기(row.tcId)}
+          onChange={() => 뒤집기(row)}
         />
       </div>
       <div className="tcid">{row.tcId}</div>
