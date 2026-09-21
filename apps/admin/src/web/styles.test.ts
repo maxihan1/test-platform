@@ -59,6 +59,12 @@ describe('화면 토큰 (DESIGN.md)', () => {
     }
   });
 
+  it('비활성 버튼에 규칙이 있다', () => {
+    // 못 누르는 버튼이 눌리는 버튼과 픽셀 단위로 같으면 사람이 눌러 보고서야 안다.
+    // 2026-09-20 에 실제로 그랬다 — 규칙은 그때 들어갔고 여기서 되돌아오는 것을 막는다
+    expect(css).toMatch(/\.btn:disabled\s*\{/);
+  });
+
   it('판정 세 색과 그 바탕이 전부 있다', () => {
     const 표 = 토큰들();
     for (const 이름 of ['--pass', '--fail', '--na', '--pass-bg', '--fail-bg', '--na-bg']) {
@@ -108,6 +114,12 @@ describe('토큰 명암비 (DESIGN.md)', () => {
     ['--na', '--na-bg', 본문],
     ['--pass', '--sheet', 본문],
     ['--fail', '--sheet', 본문],
+    ['--rail-ink', '--rail', 본문],
+    ['--rail-ink', '--rail-2', 본문],
+    ['--rail-dim', '--rail', 본문],
+    ['--rail-dim', '--rail-2', 본문],
+    ['--rail-acc', '--rail', 본문],
+    ['--rail-acc', '--rail-2', 본문],
   ])('%s 가 %s 위에서 기준 %s 를 넘는다', (앞, 뒤, 기준) => {
     const 표 = 토큰들();
     expect(짝명암비(표[앞]!, 표[뒤]!)).toBeGreaterThanOrEqual(기준);
