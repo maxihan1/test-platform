@@ -119,7 +119,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
           {/* 되돌릴 수 없으므로 누르면 한 번 더 묻는다 (SPEC §8.3) */}
           {!멈출수있나(data.status, role) ? null : (
             <button className="btn ghost" onClick={() => set멈출까(true)} disabled={멈추는중}>
-              실행 멈추기
+              실행 중단
             </button>
           )}
           <증적만들기버튼들 칸={증적칸} />
@@ -287,7 +287,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
                     .finally(() => set멈추는중(false));
                 }}
               >
-                {멈추는중 ? '멈추는 중' : '멈춥니다'}
+                {멈추는중 ? '중단하는 중' : '중단'}
               </button>
             </>
           }

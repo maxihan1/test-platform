@@ -51,7 +51,6 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
   const [env, setEnv] = useState('');
   const [repeat, setRepeat] = useState('1');
   const [notifySlack, setNotifySlack] = useState(false);
-  const [펼친, set펼친] = useState<string | null>(null);
   const [글자, set글자] = useState<글자표>({});
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -103,17 +102,17 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
       : (사유 ?? `실행 항목이 ${String(건수)}건 생깁니다`));
   const 빨갛나 = notice !== null || 너무많나 || 사유 !== undefined;
 
-  function 펴기(tcId: string) {
-    set펼친((전) => (전 === tcId ? null : tcId));
-    // 처음 펼 때만 코드의 기본값으로 칸을 채운다. 다시 펴면 아까 고친 글자가 그대로 있어야 한다
-    set글자((전) => {
-      if (전[tcId] !== undefined) return 전;
-      const 칸 = 칸들.get(tcId);
-      return {
-        ...전,
-        [tcId]: { params: initialText(칸?.params ?? []), expected: initialText(칸?.expected ?? []) },
-      };
-    });
+  /**
+   * 칸이 들고 있어야 할 글자. 아직 손대지 않았으면 코드가 선언한 기본값이다.
+   *
+   * **2026-09-21 에 접개를 없애면서 「처음 펼 때 채운다」가 「처음부터 채워 둔다」가 됐다** —
+   * 값이 한 뎁스 안에 있으면 무엇을 돌리는지 보려고 케이스마다 한 번씩 눌러야 한다 (SPEC §8.10).
+   */
+  function 글자of(tcId: string, which: 'params' | 'expected'): Record<string, string> {
+    const 손댄것 = 글자[tcId]?.[which];
+    if (손댄것 !== undefined) return 손댄것;
+    const 칸 = 칸들.get(tcId);
+    return initialText((which === 'params' ? 칸?.params : 칸?.expected) ?? []);
   }
 
   function 고치기(tcId: string, which: 'params' | 'expected') {
@@ -157,7 +156,7 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
           {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
           {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
           <button className="btn" onClick={실행} disabled={너무많나 || 거는중 === true}>
-            {거는중 === true ? '실행을 거는 중' : '실행하기'}
+            {거는중 === true ? '실행을 거는 중' : '실행'}
           </button>
         </>
       }
@@ -184,9 +183,8 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
       <div className="picked">
         {케이스들.map((c) => {
           const 칸 = 칸들.get(c.tcId);
-          // 펼 것이 없으면 접개를 두지 않는다. 눌러도 빈 자리가 나오는 버튼은 고장으로 보인다 (SPEC §8.10)
-          const 펼것 = (칸?.params.length ?? 0) + (칸?.expected.length ?? 0) > 0;
-          const 열림 = 펼친 === c.tcId;
+          // 값이 없는 케이스는 그 사실을 글로 적는다. 빈 자리를 남기면 「안 불러왔나」로 읽힌다
+          const 값있나 = (칸?.params.length ?? 0) + (칸?.expected.length ?? 0) > 0;
 
           return (
             <div key={c.tcId}>
@@ -195,28 +193,16 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
                 <span className="nm">{c.name}</span>
                 {/* 디바이스는 케이스가 선언한 것을 전부 쓴다. 여기서 고르지 않는다 (SPEC §8.10) */}
                 <span className="dev">{c.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ')}</span>
-                {펼것 ? (
-                  // 같은 글자의 버튼이 줄마다 있어 어느 케이스 것인지를 이름에 싣는다
-                  <button
-                    className="edit"
-                    aria-label={`${c.tcId} 값 고치기`}
-                    // 한 번에 하나만 열린다. 그 사실이 화면 밖에서도 읽혀야 한다
-                    aria-expanded={열림}
-                    onClick={() => { 펴기(c.tcId); }}
-                  >
-                    값 고치기
-                  </button>
-                ) : (
-                  <span />
-                )}
               </div>
-              {열림 && 칸 !== undefined ? (
+              {!값있나 || 칸 === undefined ? (
+                <p className="prow-none">선언된 입력값이 없습니다. 그대로 실행됩니다</p>
+              ) : (
                 <div className="prow-edit">
                   {칸.params.length === 0 ? null : (
                     <Form
                       idPrefix={`p-${c.tcId}`}
                       fields={칸.params}
-                      text={글자[c.tcId]?.params ?? {}}
+                      text={글자of(c.tcId, 'params')}
                       // 칸별 사유는 서버가 400 으로 돌려준다. 그것을 받는 자리는 실행을 거는 쪽이다
                       errors={오류없음}
                       onChange={고치기(c.tcId, 'params')}
@@ -226,13 +212,13 @@ export function RunPickModal({ 케이스들, service, 사유, 안내, 거는중,
                     <Form
                       idPrefix={`e-${c.tcId}`}
                       fields={칸.expected}
-                      text={글자[c.tcId]?.expected ?? {}}
+                      text={글자of(c.tcId, 'expected')}
                       errors={오류없음}
                       onChange={고치기(c.tcId, 'expected')}
                     />
                   )}
                 </div>
-              ) : null}
+              )}
             </div>
           );
         })}

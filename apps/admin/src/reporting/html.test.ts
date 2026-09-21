@@ -8,8 +8,17 @@ import { describe, expect, it } from 'vitest';
 import type { EvidenceDocument, EvidenceItem, EvidenceStep } from './collect.js';
 import { renderHtml } from './html.js';
 
-/** html.ts 가 담는 글꼴 원본. 경로가 여기서 갈리면 아래 바이트 수 검사가 먼저 빨개진다 */
-const 글꼴파일 = new URL('../web/fonts/PretendardVariable.woff2', import.meta.url);
+/**
+ * html.ts 가 담는 글꼴 원본 넷. 경로가 여기서 갈리면 아래 바이트 수 검사가 먼저 빨개진다.
+ *
+ * 본문 둘(400·600)과 등폭 둘(400·500)이다. 등폭은 TC ID·소요시간·응답 코드가 쓴다 (DESIGN.md)
+ */
+const 글꼴파일들 = [
+  'IBMPlexSansKR-Regular.woff2',
+  'IBMPlexSansKR-SemiBold.woff2',
+  'IBMPlexMono-Regular.woff2',
+  'IBMPlexMono-Medium.woff2',
+].map((이름) => new URL(`../web/fonts/${이름}`, import.meta.url));
 
 const 옵션 = { generatedAt: '2026-09-19 10:00' };
 
@@ -306,17 +315,37 @@ describe('증적 문서 HTML', () => {
     expect(html).not.toContain('@import');
   });
 
-  it('글꼴 파일을 문서 안에 담고 본문이 그 이름을 부른다', () => {
+  it('글꼴 파일 넷을 문서 안에 담고 본문이 그 이름을 부른다', () => {
     const html = renderHtml(문서([항목({})]), 옵션);
 
     // 이름이 갈리면 글꼴을 심어 놓고 안 쓴다. 이름만 부르던 옛 코드와 결과가 같아진다
-    const 심은이름 = /@font-face\s*\{[^}]*?font-family:\s*([^;]+);/.exec(html)?.[1]?.trim();
+    const 심은이름들 = [...html.matchAll(/@font-face\s*\{[^}]*?font-family:\s*([^;]+);/g)].map((m) =>
+      m[1]!.trim(),
+    );
     const 부르는이름 = /\bbody\s*\{[^}]*?font-family:\s*([^,;]+)/.exec(html)?.[1]?.trim();
-    expect(심은이름).toBe('Pretendard');
-    expect(부르는이름).toBe(심은이름);
+    expect(new Set(심은이름들)).toEqual(new Set(['"IBM Plex Sans KR"', '"IBM Plex Mono"']));
+    expect(부르는이름).toBe('"IBM Plex Sans KR"');
 
     // 「@font-face 라는 글자가 있다」만 보면 base64 가 잘려도 초록이다. 원본 바이트 수와 맞춘다
-    const 담긴 = /src:\s*url\(data:font\/woff2;base64,([A-Za-z0-9+/=]+)\)/.exec(html)?.[1] ?? '';
-    expect(Buffer.from(담긴, 'base64').byteLength).toBe(statSync(글꼴파일).size);
+    const 담긴들 = [...html.matchAll(/src:\s*url\(data:font\/woff2;base64,([A-Za-z0-9+/=]+)\)/g)].map(
+      (m) => Buffer.from(m[1]!, 'base64').byteLength,
+    );
+    expect(담긴들.sort()).toEqual(글꼴파일들.map((f) => statSync(f).size).sort());
   });
+
+  /**
+   * 증적 문서 한 부의 글꼴 무게 상한 (계획 2026-09-21 · 1단계).
+   *
+   * 글꼴을 base64 로 문서마다 심으므로 벌을 늘리면 문서가 그대로 무거워진다.
+   * 옛 Pretendard 한 벌이 2.0MB(base64 약 2.68MB)였고, 상한은 4MB 로 뒀다.
+   */
+  it('심은 글꼴의 base64 합이 4MB 를 넘지 않는다', () => {
+    const html = renderHtml(문서([항목({})]), 옵션);
+    const 합 = [...html.matchAll(/src:\s*url\(data:font\/woff2;base64,([A-Za-z0-9+/=]+)\)/g)].reduce(
+      (n, m) => n + m[1]!.length,
+      0,
+    );
+    expect(합).toBeLessThan(4 * 1024 * 1024);
+  });
+
 });

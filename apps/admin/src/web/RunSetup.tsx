@@ -339,7 +339,7 @@ export function RunSetup({ tcId, service, user }: Props) {
         )}
         {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
         <button className="btn" onClick={() => void run()} disabled={busy || 너무많나}>
-          실행하기
+          실행
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@
 
 import type { CaseRow, ItemStatus, LastScan, Platform } from './api.js';
 import { keyOf, type LastMap, 마지막판정, 빈이유 } from './catalogView.js';
+import { schemaToFields } from './schema.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
 const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
@@ -15,7 +16,7 @@ export const 결과라벨: Record<ItemStatus | 'ALL', string> = {
   NA: '미실행',
 };
 
-/** 이름·ID 로 찾는 칸. 「검색 지우기」는 거른 것이 있을 때만 나온다 (SPEC §8.1) */
+/** 이름·ID 로 찾는 칸. 「조건 초기화」는 거른 것이 있을 때만 나온다 (SPEC §8.1) */
 export function 찾기폼({
   typed,
   건조건,
@@ -48,7 +49,7 @@ export function 찾기폼({
       </button>
       {!건조건 ? null : (
         <button className="chip" type="button" onClick={onClear}>
-          검색 지우기
+          조건 초기화
         </button>
       )}
     </form>
@@ -98,6 +99,29 @@ export function 조건칩들({
   );
 }
 
+/**
+ * 케이스가 선언한 입력값을 줄에서 바로 보여준다 (2026-09-21).
+ *
+ * **JSON 원문이 아니다** — SPEC §8.1 의 금지는 그대로다.
+ * 여기 나가는 것은 스키마가 준 **라벨과 기본값 한 쌍**이고, 비밀값은 `mask.ts` 와 같은 기준으로 가린다.
+ * 값을 보려고 상세로 한 번 더 들어가야 하던 것을 없앤다.
+ */
+function 값칩들({ row }: { row: CaseRow }) {
+  const 칸들 = schemaToFields(row.paramSchema);
+  if (칸들.length === 0) return null;
+
+  return (
+    <div className="chips">
+      {칸들.map((칸) => (
+        <span className="chip-val" key={칸.key}>
+          <b>{칸.label}</b>
+          <i>{칸.secret ? '********' : (칸.default === undefined ? '—' : String(칸.default))}</i>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function 케이스줄({
   row,
   마지막,
@@ -127,6 +151,7 @@ export function 케이스줄({
       <div className="tcid">{row.tcId}</div>
       <div className="title">
         {row.name}
+        <값칩들 row={row} />
         <small>지원 디바이스 {row.platforms.map((p) => PLATFORM_LABEL[p]).join(', ')}</small>
       </div>
       <div className="right">

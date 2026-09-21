@@ -125,25 +125,54 @@ function 블록(item: EvidenceItem): string[] {
 // 경로가 갈리거나 파일이 잘리면 html.test.ts 의 바이트 수 검사가 빨개진다
 //
 // 모듈 로드 때 한 번만 읽는다. renderHtml 은 동기이고, 비동기로 바꾸면 generate.ts 까지 번진다
-const 글꼴 = readFileSync(new URL('../web/fonts/PretendardVariable.woff2', import.meta.url)).toString('base64');
+function 담는다(이름: string): string {
+  return readFileSync(new URL(`../web/fonts/${이름}`, import.meta.url)).toString('base64');
+}
+
+// 본문 둘(400·600)과 등폭 둘(400·500). 가변 글꼴이 아니라 굵기마다 파일이 따로다 —
+// 그래서 굵기를 넷으로 늘리지 않는다. 벌이 늘면 증적 문서가 그대로 무거워진다 (html.test.ts 의 4MB 상한)
+const 본문400 = 담는다('IBMPlexSansKR-Regular.woff2');
+const 본문600 = 담는다('IBMPlexSansKR-SemiBold.woff2');
+const 등폭400 = 담는다('IBMPlexMono-Regular.woff2');
+const 등폭500 = 담는다('IBMPlexMono-Medium.woff2');
 
 const 스타일 = `
 @page { size: A4; margin: 14mm 12mm; }
 @font-face{
-  font-family:Pretendard;
-  font-weight:45 920;
+  font-family:"IBM Plex Sans KR";
+  font-weight:400;
   font-style:normal;
-  src:url(data:font/woff2;base64,${글꼴}) format('woff2');
+  src:url(data:font/woff2;base64,${본문400}) format('woff2');
 }
+@font-face{
+  font-family:"IBM Plex Sans KR";
+  font-weight:600;
+  font-style:normal;
+  src:url(data:font/woff2;base64,${본문600}) format('woff2');
+}
+@font-face{
+  font-family:"IBM Plex Mono";
+  font-weight:400;
+  font-style:normal;
+  src:url(data:font/woff2;base64,${등폭400}) format('woff2');
+}
+@font-face{
+  font-family:"IBM Plex Mono";
+  font-weight:500;
+  font-style:normal;
+  src:url(data:font/woff2;base64,${등폭500}) format('woff2');
+}
+/* 화면(web/styles.css)과 같은 값이어야 한다. 화면을 보던 사람이 문서를 받았을 때
+   다시 배울 것이 없어야 한다는 것이 DESIGN.md 의 전제다. 2026-09-21 「제도 청사진」 */
 :root{
-  --paper:#E6E9E2; --sheet:#F8F9F5; --ink:#17201B; --ink-muted:#464D47; --ink-faint:#626A62;
-  --rule:#C8CEC3; --rule-soft:#DCE0D7;
-  --pass:#0D6A46; --pass-bg:#E2EDE6; --fail:#A62B21; --fail-bg:#F6E4E1; --na:#79693A; --na-bg:#F1EBDC;
+  --paper:#DFE4E7; --sheet:#F8FAFB; --ink:#16222A; --ink-muted:#3F4E58; --ink-faint:#59666F;
+  --rule:#BFC9CF; --rule-soft:#DCE3E7; --chrome:#1C4E6B; --chip:#EDF2F4;
+  --pass:#0C6349; --pass-bg:#E0EEE8; --fail:#A32A22; --fail-bg:#F6E4E1; --na:#74673B; --na-bg:#F0EBDC;
 }
 *{ box-sizing:border-box; margin:0; padding:0; }
 body{
   background:var(--paper); color:var(--ink);
-  font-family:Pretendard,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
   font-variant-numeric:tabular-nums; font-size:13.5px; line-height:1.6;
 }
 .doc{ width:186mm; margin:0 auto; background:var(--sheet); padding:14mm 12mm; }
@@ -155,10 +184,12 @@ body{
 .meta dd{ color:var(--ink); }
 .item{ border-top:1px solid var(--rule); padding:14px 0; break-inside:avoid; }
 .item-head{ font-size:14.5px; font-weight:600; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.tc-id{ font-size:12.5px; font-weight:600; color:var(--ink-muted); }
+/* TC ID·소요시간·회차는 등폭으로 그린다. 화면과 같은 규칙이다 (DESIGN.md 원칙 3) */
+.tc-id,.ms,.seq{ font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace; }
+.tc-id{ font-size:12.5px; font-weight:500; color:var(--ink-muted); }
 .tc-name{ flex:1; }
 .badge{ font-size:12px; font-weight:600; color:var(--ink-muted); border:1px solid var(--rule); border-radius:2px; padding:1px 6px; }
-.verdict{ font-size:12px; font-weight:800; border-radius:2px; padding:1px 7px; }
+.verdict{ font-size:12px; font-weight:600; border-radius:2px; padding:1px 7px; }
 .v-pass{ background:var(--pass-bg); color:var(--pass); }
 .v-fail{ background:var(--fail); color:#fff; }
 .v-na{ background:var(--na-bg); color:var(--na); }
@@ -177,12 +208,12 @@ body{
 .step-title{ flex:1; }
 .assert{ display:flex; align-items:baseline; gap:8px; padding:2px 6px 2px 26px; background:none; }
 .assert.v-fail{ background:var(--fail-bg); color:var(--ink); }
-.mark{ width:10px; flex:none; font-weight:800; }
+.mark{ width:10px; flex:none; font-weight:600; }
 .assert.v-pass .mark{ color:var(--pass); }
 .assert.v-fail .mark{ color:var(--fail); }
 .stmt{ flex:1; }
 .exp,.act{ width:132px; flex:none; color:var(--ink-muted); font-size:12.5px; }
-.blocker{ font-size:12px; font-weight:800; color:var(--fail); }
+.blocker{ font-size:12px; font-weight:600; color:var(--fail); }
 .shot{ display:block; max-width:120mm; margin:6px 0 8px 26px; border:1px solid var(--rule); }
 @media print{
   body{ background:#fff; }

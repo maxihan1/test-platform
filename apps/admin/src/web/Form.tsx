@@ -16,6 +16,21 @@ interface Props {
 const YES = '예';
 const NO = '아니오';
 
+/**
+ * 칸 아래에 적을 기본값 글자. 없으면 `null` 이라 줄 자체를 안 그린다.
+ *
+ * **왜 늘 적나** — 값을 고칠 수는 있는데 「원래 값이 무엇이었나」를 볼 자리가 없었다.
+ * 코드를 열어야 알 수 있으면 화면에서 값을 고치라고 해 놓고 판단할 근거를 안 준 것이다 (2026-09-21).
+ */
+function 기본값글자(field: Field): string | null {
+  if (field.default === undefined || field.default === null) return null;
+  // 비밀값은 기본값도 가린다. 화면·증적과 같은 기준이다 (SPEC §4.1)
+  if (field.secret) return '********';
+  if (typeof field.default === 'boolean') return field.default ? YES : NO;
+  if (typeof field.default === 'object') return JSON.stringify(field.default);
+  return String(field.default);
+}
+
 export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
   if (fields.length === 0) {
     return <p className="hint">이 케이스는 입력값을 선언하지 않았습니다.</p>;
@@ -27,6 +42,9 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
         const id = `${idPrefix}-${field.key}`;
         const value = text[field.key] ?? '';
         const error = errors[field.key];
+        const 기본값 = 기본값글자(field);
+        // 빈 칸은 「지웠다」이지 「기본값 그대로」가 아니다. 그것도 바뀐 것으로 센다
+        const 바뀜 = 기본값 !== null && value !== 기본값;
 
         return (
           <div className="field" key={field.key}>
@@ -68,6 +86,14 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
                 />
               )}
             </div>
+            {/* 기본값은 늘 보인다. 바뀌었으면 그 사실까지 적는다 — 「이 값이 원래 값인가」가 한눈에 읽혀야 한다 */}
+            {기본값 === null ? null : (
+              <div className={바뀜 ? 'deflt changed' : 'deflt'}>
+                {바뀜 ? <span className="mark" aria-hidden="true" /> : null}
+                기본값 {바뀜 ? <s>{기본값}</s> : 기본값}
+                {바뀜 ? ' 에서 바꿈' : ''}
+              </div>
+            )}
             {/* 사유는 칸 아래 한 줄. 버튼은 비활성화하지 않는다 (SPEC §8.2) */}
             {error === undefined ? null : <div className="err">{error}</div>}
           </div>

@@ -48,9 +48,9 @@ describe('UserSection', () => {
     const { container } = 그리기();
     expect(screen.queryByRole('alert')).toBeNull();
 
-    fireEvent.click(screen.getAllByText('고치기')[1]!);
+    fireEvent.click(screen.getAllByText('편집')[1]!);
     // 되돌릴 수 없는 일이라 두 걸음으로 받는다. 같은 버튼이 글자만 바뀐다
-    const 다시만들기 = screen.getByText('비밀번호 다시 만들기');
+    const 다시만들기 = screen.getByText('비밀번호 재발급');
     fireEvent.click(다시만들기);
     fireEvent.click(다시만들기);
 

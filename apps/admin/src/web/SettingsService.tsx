@@ -60,7 +60,7 @@ export function ServiceSection({ rows, onDone }: { rows: SettingsServiceRow[]; o
                 className="btn ghost"
                 onClick={() => set여는것(여는것 === it.id ? null : it.id)}
               >
-                {여는것 === it.id ? '닫기' : '고치기'}
+                {여는것 === it.id ? '닫기' : '편집'}
               </button>
             </div>
             {여는것 === it.id ? (
@@ -280,7 +280,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
         )}
         {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
         <button className="btn" disabled={보내는중} onClick={() => void 보낸다()}>
-          {새것 ? '서비스 만들기' : '저장'}
+          {새것 ? '서비스 추가' : '저장'}
         </button>
       </div>
       {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}

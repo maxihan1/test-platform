@@ -88,10 +88,10 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
       <div className="actions">
         <span className="note">이 화면의 구성이 증적 문서에 그대로 출력됩니다.</span>
         <a className="btn ghost" href={`#/runs/${item.runId}`}>
-          실행 결과로 돌아가기
+          실행 결과
         </a>
         <a className="btn" href={`#/cases/${encodeURIComponent(item.tcId)}/run`}>
-          값을 바꿔 다시 실행
+          값 바꿔 재실행
         </a>
       </div>
     </div>

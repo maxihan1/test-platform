@@ -18,7 +18,7 @@ afterEach(() => {
 const 빈스키마: JsonSchema = {};
 const 아이디스키마: JsonSchema = {
   type: 'object',
-  properties: { userId: { type: 'string', description: '아이디' } },
+  properties: { userId: { type: 'string', description: '아이디', default: 'zpm-기본' } },
   required: ['userId'],
 };
 
@@ -55,7 +55,7 @@ function 그리기(케이스들: CaseRow[] = [값없는케이스, 값있는케�
   return { onRun, onClose };
 }
 
-const 실행버튼 = () => screen.getByRole('button', { name: '실행하기' });
+const 실행버튼 = () => screen.getByRole('button', { name: '실행' });
 const 줄 = () => screen.getByRole('status');
 
 describe('RunPickModal', () => {
@@ -67,32 +67,23 @@ describe('RunPickModal', () => {
     expect(screen.getByText('ZPM-002 케이스')).toBeTruthy();
   });
 
-  it('입력칸이 있는 케이스에만 값 고치기가 붙는다', () => {
+  it('입력칸이 처음부터 보인다. 눌러서 펴지 않는다', () => {
+    // 2026-09-21 — 「값 고치기」 접개를 없앴다. 값이 한 뎁스 안에 있으면
+    // 무엇을 돌리는지 보려고 케이스마다 한 번씩 눌러야 한다
     그리기();
-    expect(screen.getByRole('button', { name: 'ZPM-002 값 고치기' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'ZPM-001 값 고치기' })).toBeNull();
-  });
-
-  it('값 고치기를 누르면 그 케이스의 입력칸이 보인다', () => {
-    그리기();
-    expect(screen.queryByLabelText('아이디')).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: 'ZPM-002 값 고치기' }));
-
     expect(screen.getByLabelText('아이디')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /값 고치기/ })).toBeNull();
   });
 
-  it('접개가 열렸는지를 화면 밖에서도 읽을 수 있다', () => {
+  it('입력칸이 없는 케이스는 그 사실을 글로 적는다', () => {
     그리기();
-    expect(screen.getByRole('button', { name: 'ZPM-002 값 고치기' }).getAttribute('aria-expanded')).toBe(
-      'false',
-    );
+    expect(screen.getByText(/ZPM-001.*선언된 입력값이 없습니다|선언된 입력값이 없습니다/)).toBeTruthy();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: 'ZPM-002 값 고치기' }));
-
-    expect(screen.getByRole('button', { name: 'ZPM-002 값 고치기' }).getAttribute('aria-expanded')).toBe(
-      'true',
-    );
+  it('기본값이 무엇인지 칸마다 보인다', () => {
+    // 기본값을 안 보여주면 「이 값이 원래 값인가」를 코드를 열어야 안다
+    그리기();
+    expect(screen.getByText(/기본값/)).toBeTruthy();
   });
 
   it('대상 서버를 안 고르면 실행이 안 걸리고 사유가 화면 줄로 뜬다', () => {
@@ -109,7 +100,6 @@ describe('RunPickModal', () => {
     const { onRun } = 그리기();
 
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-    fireEvent.click(screen.getByRole('button', { name: 'ZPM-002 값 고치기' }));
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'zpm-tester' } });
     fireEvent.click(실행버튼());
 
@@ -130,7 +120,7 @@ describe('RunPickModal', () => {
     expect(줄().textContent).toContain('실행 항목이 3건 생깁니다');
   });
 
-  it('상한을 넘으면 실행하기가 막히고 이유가 화면 줄로 뜬다', () => {
+  it('상한을 넘으면 실행이 막히고 이유가 화면 줄로 뜬다', () => {
     그리기();
 
     fireEvent.change(screen.getByLabelText('반복'), { target: { value: '400' } });

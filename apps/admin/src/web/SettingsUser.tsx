@@ -44,7 +44,7 @@ export function UserSection({
 
       {내배정없음 && services.length > 0 ? (
         <div className="hint set-todo">
-          아직 자기 자신에게 배정한 서비스가 없습니다. 아래 자기 줄의 「고치기」에서 배정합니다
+          아직 자기 자신에게 배정한 서비스가 없습니다. 아래 자기 줄의 「편집」에서 배정합니다
         </div>
       ) : null}
 
@@ -80,7 +80,7 @@ export function UserSection({
               className="btn ghost"
               onClick={() => set여는것(여는것 === it.username ? null : it.username)}
             >
-              {여는것 === it.username ? '닫기' : '고치기'}
+              {여는것 === it.username ? '닫기' : '편집'}
             </button>
           </div>
           {여는것 === it.username ? (
@@ -243,7 +243,7 @@ function UserForm({
                 });
               }}
             >
-              {비번확인 ? '한 번 더 누르면 지금 비밀번호가 무효가 됩니다' : '비밀번호 다시 만들기'}
+              {비번확인 ? '한 번 더 누르면 지금 비밀번호가 무효가 됩니다' : '비밀번호 재발급'}
             </button>
             {마지막운영 ? null : (
               <button
@@ -278,7 +278,7 @@ function UserForm({
             });
           }}
         >
-          {새것 ? '계정 만들기' : '저장'}
+          {새것 ? '계정 추가' : '저장'}
         </button>
       </div>
       {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}

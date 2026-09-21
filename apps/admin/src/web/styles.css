@@ -3,35 +3,72 @@
 /* 글꼴을 제품 안에서 싣는다 (DESIGN.md, 2026-09-18 결정). 바깥 주소(CDN)에서 받아오지 않는다 —
    사내망에서 그 주소가 막히면 시스템 기본 글꼴로 조용히 떨어지고, 화면이 달라 보이는 정도가 아니라
    **숫자 폭이 제각각이 되어 「숫자는 세로로 맞춘다」 규칙이 같이 깨진다**.
-   가변(variable) 글꼴 하나로 굵기 셋(400·600·800)을 전부 낸다 — 정적 파일 셋보다 작다 */
+
+   2026-09-21 에 Pretendard 가변 글꼴 한 벌에서 두 벌로 바꿨다 (계획 2026-09-21-청사진스킨).
+   IBM Plex Sans KR 은 가변이 아니라 굵기마다 파일이 따로다. **그래서 굵기를 400·600 둘만 싣는다** —
+   증적 문서가 이 파일을 base64 로 통째로 담으므로(reporting/html.ts) 벌이 늘면 문서가 그대로 무거워진다.
+   실측 — 새 넷을 합쳐 972KB 로 Pretendard 한 벌(2.0MB)보다 작다.
+   본문은 한글 음절 11172 자를 통째로 들고 있다 (2026-09-21 fontTools 로 확인). 두부가 뜨지 않는다 */
 @font-face {
-  font-family: Pretendard;
-  font-weight: 45 920;
+  font-family: 'IBM Plex Sans KR';
+  font-weight: 400;
   font-style: normal;
   /* 받아오는 동안 폴백으로 먼저 그린다. 글자가 안 보이는 구간을 만들지 않는다 */
   font-display: swap;
-  /* format 은 `woff2` 만 적는다. `woff2-variations` 는 옛 초안 값이라 못 알아보는 브라우저가
-     이 src 를 통째로 건너뛴다 — 글꼴이 아예 안 실려 이 @font-face 가 막으려던 상태가 된다.
-     가변 축은 format 힌트와 무관하게 파일 자체에서 나오므로 잃는 것이 없다 */
-  src: url('./fonts/PretendardVariable.woff2') format('woff2');
+  /* format 은 `woff2` 만 적는다. 못 알아보는 값을 적으면 브라우저가 이 src 를 통째로 건너뛴다 —
+     글꼴이 아예 안 실려 이 @font-face 가 막으려던 상태가 된다 */
+  src: url('./fonts/IBMPlexSansKR-Regular.woff2') format('woff2');
 }
 
+@font-face {
+  font-family: 'IBM Plex Sans KR';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/IBMPlexSansKR-SemiBold.woff2') format('woff2');
+}
+
+/* TC ID · 소요시간 · 응답 코드 · RUN 번호만 쓴다 (DESIGN.md).
+   라틴 글자만 필요해서 둘을 합쳐 100KB 안쪽이다 */
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/IBMPlexMono-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/IBMPlexMono-Medium.woff2') format('woff2');
+}
+
+/* 2026-09-21 「제도 청사진」으로 갈아끼웠다 (계획 2026-09-21-청사진스킨).
+   컨셉(검사 기록지)과 「색은 판정만」은 그대로다. 회녹색 종이를 차가운 청회색으로 옮겼을 뿐이다 */
 :root {
-  --paper: #e6e9e2;
-  --sheet: #f8f9f5;
-  --sheet-2: #eff1ea;
-  --ink: #17201b;
-  /* 세 단계 전부 본문 기준(4.5:1)을 넘는다. 옛 값은 8b948b 가 2.96 이라 미달이었다 (DESIGN.md) */
-  --ink-muted: #464d47;
-  --ink-faint: #626a62;
-  --rule: #c8cec3;
-  --rule-soft: #dce0d7;
-  --pass: #0d6a46;
-  --fail: #a62b21;
-  --na: #79693a;
-  --pass-bg: #e2ede6;
+  --paper: #dfe4e7;
+  --sheet: #f8fafb;
+  --sheet-2: #eff3f5;
+  --ink: #16222a;
+  /* 세 단계 전부 본문 기준(4.5:1)을 넘는다. 시안의 64727c 는 종이 위 3.87 로 미달이라 내렸다 (DESIGN.md) */
+  --ink-muted: #3f4e58;
+  --ink-faint: #59666f;
+  --rule: #bfc9cf;
+  --rule-soft: #dce3e7;
+  /* 껍데기 전용 청색 잉크. 맨 위 띠 · 자리 넷 밑줄 · 표머리 라벨과 그 아래 괘선 ·
+     구획 제목 라벨, 이 넷에만 쓴다. 줄 안에서 보이는 색은 여전히 판정이다 (DESIGN.md 원칙 1) */
+  --chrome: #1c4e6b;
+  /* 값 칩의 바탕. 기록지도 종이도 아닌 세 번째 면이라 그 위의 글자를 따로 쟀다 (DESIGN.md) */
+  --chip: #edf2f4;
+  --pass: #0c6349;
+  --fail: #a32a22;
+  --na: #74673b;
+  --pass-bg: #e0eee8;
   --fail-bg: #f6e4e1;
-  --na-bg: #f1ebdc;
+  --na-bg: #f0ebdc;
 }
 
 * {
@@ -44,7 +81,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   /* 폴백도 숫자 폭이 고정인 것으로 적는다 — 글꼴이 못 실렸을 때 대신 그릴 것들이다 (DESIGN.md) */
-  font-family: Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  font-family: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.6;
   /* 숫자를 세로로 맞춰야 훑을 수 있다 (DESIGN.md 원칙 3).
@@ -56,10 +93,24 @@ body {
      keep-all 로 낱말을 지키되, 칸보다 긴 것(주소·긴 아이디)은 anywhere 가 받아 준다 */
   word-break: keep-all;
   overflow-wrap: anywhere;
-  background-image: linear-gradient(var(--rule-soft) 0.5px, transparent 0.5px),
-    linear-gradient(90deg, var(--rule-soft) 0.5px, transparent 0.5px);
-  background-size: 28px 28px;
+  /* 2026-09-21 에 28px 방안지 격자를 걷어냈다. 완성된 제품이 아니라 아직 안 그린 와이어프레임으로
+     읽히던 가장 큰 원인이었다. 되돌아오면 styles.test.ts 가 막는다 */
   padding: 24px 16px 80px;
+}
+
+/* 숫자를 세로로 맞추는 일을 글꼴이 보장한다 (DESIGN.md 원칙 3).
+   tabular-nums 는 폴백으로 남기고, 실제로는 등폭 글꼴이 TC ID·소요시간·응답 코드·주소를 그린다.
+
+   **화면 코드(TSX)를 안 건드리고 여기서 건다.** 클래스를 새로 붙이면 파일 여덟 개가 같이 바뀌고,
+   그 다음 사람이 새 자리를 만들 때 붙이는 것을 잊는다. 자리 이름으로 걸어 두면 안 잊는다 */
+.runid,
+.case-tc,
+.tally b,
+.tcid,
+.device-dur,
+.env-url,
+.prow .id {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 .wrap {
@@ -79,30 +130,49 @@ body {
   padding: 0 0 8px 2px;
 }
 
-/* 상단 이동 */
+/* 상단 이동. 2026-09-21 에 테두리 알약을 밑줄 탭으로 바꿨다 —
+   같은 모양 버튼이 줄줄이 서 있으면 도구 모음이 아니라 실험실 스위치판으로 보인다.
+   이 줄 아래 3px 경계선이 서비스 색이다 (SPEC §8) */
 .nav {
   border-radius: 0;
   display: flex;
-  gap: 8px;
-  align-items: center;
-  padding-bottom: 14px;
+  gap: 2px;
+  align-items: stretch;
+  padding: 0 2px;
   flex-wrap: wrap;
+  background: var(--sheet);
+  border-bottom: 3px solid var(--svc, var(--rule));
+  margin-bottom: 14px;
+}
+
+/* 서비스 색 네모. 흰 면 위라 어두운 색일수록 잘 보인다 — settingsView.ts 가 3:1 로 잰다 */
+.svc-dot {
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  display: block;
+  margin: 0 8px 0 4px;
+  background: var(--svc, transparent);
 }
 
 .nav a {
   font-size: 12.5px;
-  padding: 6px 12px;
-  border: 1px solid var(--rule);
-  border-radius: 2px;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -3px;
+  border-radius: 0;
   color: var(--ink-muted);
   text-decoration: none;
   background: transparent;
 }
 
+/* 지금 있는 자리는 밑줄로 말한다. 반전은 실패 배지 하나에만 쓴다 (DESIGN.md 「판정 표기」) */
 .nav a[aria-current='page'] {
-  background: var(--ink);
-  color: var(--sheet);
-  border-color: var(--ink);
+  background: transparent;
+  color: var(--chrome);
+  font-weight: 600;
+  border-bottom-color: var(--chrome);
 }
 
 .nav a:focus-visible {
@@ -132,7 +202,7 @@ body {
 
 .runid {
   font-size: 30px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
@@ -166,7 +236,7 @@ body {
 
 .tally b {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 600;
   display: block;
   line-height: 1.2;
 }
@@ -226,21 +296,40 @@ select:focus {
   outline-offset: -1px;
 }
 
+/* 2026-09-21 — 같은 모양 칩 여덟 개가 한 줄에 늘어서 있던 것을 세그먼트로 묶었다.
+   테두리를 한 겹만 두르고 안쪽은 접어서, 낱개 버튼이 아니라 하나의 고르개로 읽히게 한다.
+
+   **묶는 일을 CSS 가 한다.** 화면 코드는 지금처럼 `.chip` 을 나란히 그리면 되고
+   이웃끼리 테두리를 접는 것은 `+` 가 맡는다 — TSX 를 안 건드린다 */
 .chip {
   font-size: 12.5px;
-  padding: 6px 12px;
+  /* 누르는 자리는 최소 36px. 44px 은 DESIGN.md 대로 실행 기록 목록과 실행 결과 두 화면에만 건다 */
+  min-height: 36px;
+  padding: 8px 13px;
   border: 1px solid var(--rule);
-  border-radius: 2px;
-  background: transparent;
+  border-radius: 0;
+  background: var(--sheet);
   color: var(--ink-muted);
   cursor: pointer;
   font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 이웃한 칩끼리 테두리를 한 겹으로 접는다 */
+.chip + .chip {
+  border-left-width: 0;
 }
 
 .chip[aria-pressed='true'] {
   background: var(--ink);
   color: var(--sheet);
   border-color: var(--ink);
+  font-weight: 600;
+}
+
+/* 반전된 칸의 오른쪽 이웃이 잉크 테두리를 잃지 않게 한다 */
+.chip[aria-pressed='true'] + .chip {
+  border-left: 1px solid var(--ink);
 }
 
 .chip:focus-visible {
@@ -248,9 +337,12 @@ select:focus {
   outline-offset: -1px;
 }
 
+/* 껍데기 넷 중 하나. 조건 줄의 라벨이다 (DESIGN.md 원칙 1 의 예외) */
 .filter-label {
-  font-size: 12px;
-  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--chrome);
   margin-left: 4px;
 }
 
@@ -328,7 +420,7 @@ select:focus {
 
 .verdict {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.06em;
   padding: 4px 10px;
   border-radius: 2px;
@@ -396,13 +488,15 @@ select:focus {
   border-bottom: 0;
 }
 
+/* 껍데기 넷 중 하나. 구획 제목 라벨과 그 아래 괘선이다 (DESIGN.md 원칙 1 의 예외) */
 .sec-h {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  color: var(--chrome);
   padding-bottom: 10px;
   margin-bottom: 14px;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--chrome);
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -507,7 +601,7 @@ select:focus {
 
 .step-n {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--ink-faint);
   min-width: 18px;
 }
@@ -533,7 +627,7 @@ select:focus {
 }
 
 .mark {
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .exp,
@@ -953,13 +1047,14 @@ select:focus {
 /* ── 맨 위 띠 · 알림 줄 (SPEC §8) ──────────────────────────────────── */
 
 /* 띠의 바탕색은 그 서비스 색이다. 색이 쓰이는 유일한 예외이고 띠 밖에서는 판정만 색을 갖는다 (DESIGN.md) */
+/* 띠의 바탕은 고정 청색이다. 서비스 색은 아래 .nav 로 내렸다 (SPEC §8, 2026-09-21) */
 .band {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 9px 14px;
-  background: var(--ink-muted);
+  background: var(--chrome);
   color: #fff;
   border-radius: 2px 2px 0 0;
 }
@@ -1406,4 +1501,74 @@ select:focus {
 .mfoot input[type='text'] {
   flex: none;
   width: 56px;
+}
+
+/* 케이스 줄의 값 칩 (2026-09-21). 값을 보려고 상세로 한 번 더 들어가던 것을 없앤다.
+   JSON 원문이 아니라 스키마 라벨과 기본값 한 쌍이다 (SPEC §8.1 의 금지는 그대로) */
+.chips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.chip-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  background: var(--chip);
+  border: 1px solid var(--rule-soft);
+  padding: 2px 7px;
+  /* 375px 에서 긴 값 하나가 칸을 밀어 케이스명을 한 글자씩 세로로 흘리지 않게 한다.
+     2026-09-17 에 같은 일이 있었고 2026-09-19 에 재발했다 (LEARNINGS).
+     flex 아이템은 기본 min-width 가 auto 라 내용보다 못 줄어든다 — 0 으로 풀어 준다 */
+  max-width: 100%;
+  min-width: 0;
+}
+
+.chip-val i {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* 라벨은 --ink-faint 다. 시안의 밝은 회색은 칩 바탕 위에서 3.91 로 미달이었다 (검토 주의 3) */
+.chip-val b {
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.chip-val i {
+  font-style: normal;
+  color: var(--ink);
+}
+
+/* 폼 칸 아래의 기본값 줄. 바뀐 값에는 앞에 네모가 붙어 한눈에 갈린다 */
+.deflt {
+  grid-column: 2;
+  font-size: 11px;
+  color: var(--ink-faint);
+  padding-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.deflt.changed {
+  color: var(--ink-muted);
+}
+
+.deflt .mark {
+  width: 5px;
+  height: 5px;
+  background: var(--ink);
+  display: block;
+}
+
+/* 값이 없는 케이스는 빈 자리 대신 그 사실을 적는다 */
+.prow-none {
+  font-size: 12px;
+  color: var(--ink-faint);
+  padding: 0 0 10px 2px;
 }
