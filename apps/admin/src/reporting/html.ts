@@ -189,7 +189,7 @@ body{
 .tc-id{ font-size:12.5px; font-weight:500; color:var(--ink-muted); }
 .tc-name{ flex:1; }
 .badge{ font-size:12px; font-weight:600; color:var(--ink-muted); border:1px solid var(--rule); border-radius:2px; padding:1px 6px; }
-.verdict{ font-size:12px; font-weight:800; border-radius:2px; padding:1px 7px; }
+.verdict{ font-size:12px; font-weight:600; border-radius:2px; padding:1px 7px; }
 .v-pass{ background:var(--pass-bg); color:var(--pass); }
 .v-fail{ background:var(--fail); color:#fff; }
 .v-na{ background:var(--na-bg); color:var(--na); }
@@ -208,12 +208,12 @@ body{
 .step-title{ flex:1; }
 .assert{ display:flex; align-items:baseline; gap:8px; padding:2px 6px 2px 26px; background:none; }
 .assert.v-fail{ background:var(--fail-bg); color:var(--ink); }
-.mark{ width:10px; flex:none; font-weight:800; }
+.mark{ width:10px; flex:none; font-weight:600; }
 .assert.v-pass .mark{ color:var(--pass); }
 .assert.v-fail .mark{ color:var(--fail); }
 .stmt{ flex:1; }
 .exp,.act{ width:132px; flex:none; color:var(--ink-muted); font-size:12.5px; }
-.blocker{ font-size:12px; font-weight:800; color:var(--fail); }
+.blocker{ font-size:12px; font-weight:600; color:var(--fail); }
 .shot{ display:block; max-width:120mm; margin:6px 0 8px 26px; border:1px solid var(--rule); }
 @media print{
   body{ background:#fff; }

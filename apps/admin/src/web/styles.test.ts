@@ -27,6 +27,14 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(토큰들()['--chrome']).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
+  it('싣지 않은 굵기를 부르지 않는다', () => {
+    // 본문 글꼴은 400·600 두 벌뿐이다. 700·800 을 부르면 브라우저가 가짜 굵기를 합성해
+    // 한글 획이 뭉개진다. 2026-09-21 에 크기표를 600 으로 고치면서 CSS 를 안 맞춰
+    // 제목 여덟 곳이 800 인 채로 남아 있었다 — 브라우저로 열어서야 보였다
+    const 굵기들 = [...css.matchAll(/font-weight:\s*(\d{3})/g)].map((m) => Number(m[1]));
+    expect(굵기들.filter((w) => w > 600)).toEqual([]);
+  });
+
   it('판정 세 색과 그 바탕이 전부 있다', () => {
     const 표 = 토큰들();
     for (const 이름 of ['--pass', '--fail', '--na', '--pass-bg', '--fail-bg', '--na-bg']) {

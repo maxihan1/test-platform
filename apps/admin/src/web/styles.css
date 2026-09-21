@@ -202,7 +202,7 @@ body {
 
 .runid {
   font-size: 30px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
@@ -236,7 +236,7 @@ body {
 
 .tally b {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 600;
   display: block;
   line-height: 1.2;
 }
@@ -420,7 +420,7 @@ select:focus {
 
 .verdict {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.06em;
   padding: 4px 10px;
   border-radius: 2px;
@@ -601,7 +601,7 @@ select:focus {
 
 .step-n {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--ink-faint);
   min-width: 18px;
 }
@@ -627,7 +627,7 @@ select:focus {
 }
 
 .mark {
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .exp,
