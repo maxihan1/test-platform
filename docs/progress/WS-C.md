@@ -74,6 +74,33 @@
     `npx playwright test tests/todo --project=desktop` 으로 바로 돌려볼 수 있다.
     인자 없이 전체를 돌리면 `DEMO-002`(일부러 실패)·`DEMO-009`(모바일 실패)가 섞여 빨강이 정상값이다
 
+## 2026-09-21 — 절차 단위 진행
+- 완료: **실행이 도는 동안 「지금 몇 번째 절차를 몇 초째」가 화면에 흐른다.**
+  kit 이 절차를 시작할 때 stdout 에 `@@PROGRESS@@{StepProgress}` 한 줄을 흘리고(`runtime/progress.ts`),
+  **리포터의 `onStdOut` 이 워커 출력을 진짜 stdout 으로 되돌려 쓰고**(`runtime/reporter.ts`),
+  러너가 줄을 모아(`apps/runner/src/progress.ts`) 자기 지도를 고쳐 쓰고 `GET /progress` 로 답한다.
+  admin 이 자기 실행 것만 걸러 `GET /api/runs/:runId/progress` 로 내고 모달이 그린다.
+  계약 셋(`StepProgress` · `RunningStep` · `PROGRESS_MARKER`)은 SPEC 공통/3-공유계약 §5.1 ·
+  도메인/러너 §5.2 · 도메인/실행 §7 에 박혀 있다. **DB 도 마이그레이션도 없다**
+- 미완: 없음
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것:
+  - **진입점은 `packages/kit/src/runtime/progress.ts` 의 `알린다()` 다.** `step.ts` 가 절차마다 부른다
+  - **★ `reporter.ts` 의 `onStdOut` 을 지우지 마라.** 지워도 **단위 검사는 전부 초록이고
+    케이스도 통과한다** — 진행만 조용히 0 이 된다. Playwright 워커가 `process.stdout.write` 를
+    갈아치워 IPC 로만 보내기 때문이고, vitest 에는 그 갈아치우기가 없다 (LEARNINGS 2026-09-21).
+    그리고 **받은 것을 전부 되돌려 써야 한다** — 골라 쓰면 워커 stdio 가 `pipe` 로 바뀐 뒤
+    `execute.ts` 가 오류 문장으로 쓰는 stdout 꼬리가 빈 문자열이 된다
+  - **방향은 당김이다** (admin 이 러너에게 묻는다). 밀기(`ExecuteRequest.progressUrl`)는
+    게이트 0 에서 접었다 — 러너에 로그인 세션이 없어 admin 문에 구멍을 내야 했다.
+    그 계약 블록은 `docs/plans/2026-09-21-청사진스킨.md` 에 `철회됨` 으로 닫혀 있다
+  - **러너는 거르지 않는다.** `GET /progress` 응답에 `runId` 도 `serviceId` 도 없다 —
+    러너가 그것을 알면 §3.4 무상태가 깨진다. **경과는 러너가 자기 시계로 잰다**
+  - **분모(전체 절차 수)는 만들 수 없다.** 케이스가 끝나기 전에는 Playwright 도 모른다.
+    분모를 대신하는 것이 경과 시간과 제한 시간이다 (SPEC 공통/3-공유계약 §5.1)
+  - **확인은 실물로 한다** — `docker compose up -d --build admin runner` 를 **둘 다** 돌린 뒤
+    절차가 여럿인 케이스(`DEMO-006`)로 실행을 건다. 러너를 안 다시 빌드하면 절차 줄이 안 나온다.
+    자세한 길은 `docs/WORKFLOW.md` 의 「눌러볼 길 — 「절차단위진행」 을 병합한 뒤」
 ## 2026-09-21 (2차)
 - 완료: `tpx-cases` 를 **같은 화면에 두 번째로 돌렸다.** 1차가 「스킬이 한 번 도는가」를 봤다면
   2차는 **두 번째 실행에만 나타나는 것 셋**을 쟀다 — 스냅샷 해시 캐시 · 규칙 R9(기존 표 합치기) · 재현성

@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-import { abort, execute, resolveSpecPath, testsDir } from './execute.js';
+import { abort, execute, resolveSpecPath, running, testsDir } from './execute.js';
 
 const require = createRequire(import.meta.url);
 // 이미지 태그와 라이브러리 버전이 어긋나면 브라우저를 못 찾는다. /health가 그 확인 창구다 (SPEC §9)
@@ -52,6 +52,19 @@ export function registerRoutes(app: FastifyInstance): void {
       return reply.code(500).send({ error: 'RUNNER_ERROR', detail });
     }
   });
+
+  // 경과를 여기서 그때그때 재서 낸다. 시작 시각을 보내면 화면 기계의 시계와 어긋난 만큼이
+  // 그대로 오차가 된다 — 러너는 컨테이너 안이다 (SPEC §5.2)
+  // **historyId 는 지도의 열쇠를 쓴다.** progress.step 안의 값은 자식이 stdout 에 스스로 적은 것이라
+  // 케이스 코드가 남의 번호를 찍으면 그 절차 제목이 남의 실행 화면에 뜬다 — admin 의 거르기는
+  // 「이 실행의 항목인가」만 보므로 그대로 통과한다. 러너는 진짜 값을 이미 알고 있다 (execute() 가 건 열쇠다)
+  app.get('/progress', async () => ({
+    items: [...running.entries()].flatMap(([historyId, { progress }]) =>
+      progress === undefined
+        ? []
+        : [{ ...progress.step, historyId, elapsedMs: Date.now() - progress.시작한때 }],
+    ),
+  }));
 
   app.post('/abort', async (request, reply) => {
     const parsed = abortRequest.safeParse(request.body);

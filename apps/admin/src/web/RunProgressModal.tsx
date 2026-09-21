@@ -1,7 +1,7 @@
 // 실행 하나를 「도는 중」과 「끝났다」 두 모습으로 그리는 모달 (SPEC §8.9 · DESIGN.md 모달)
 // 모달을 둘로 나누면 같은 화면이 두 번 가로막는다. 그래서 상자는 하나이고 상태가 내용을 고른다
 
-import type { RunItemSummary } from './api.js';
+import type { RunItemSummary, 항목진행 } from './api.js';
 import { groupByCase, 회차요약 } from './group.js';
 import { Modal } from './Modal.js';
 import { type RunDetail, type 진행, 진행상황 } from './runProgress.js';
@@ -9,6 +9,19 @@ import { 도는중, 미실행사유 } from './runState.js';
 import { STATUS_LABEL } from './ui.js';
 
 const 실패목록최대 = 5;
+
+/**
+ * 밀리초를 사람이 읽는 글자로.
+ *
+ * `ui.tsx` 의 `seconds()` 를 쓰지 않는다 — 소수 둘째 자리까지 적고 분으로 올리지 않아
+ * 제한 5분이 「300.00초」로 나온다. 2초마다 바뀌는 자리라 소수점도 읽기를 방해한다.
+ */
+function 시간글자(ms: number): string {
+  const 초 = Math.round(ms / 1000);
+  if (초 < 60) return `${초}초`;
+  const 남은초 = 초 % 60;
+  return 남은초 === 0 ? `${초 / 60}분` : `${Math.floor(초 / 60)}분 ${남은초}초`;
+}
 
 function 막대칸들(막대: 진행['막대']) {
   return [
@@ -46,8 +59,33 @@ function 판정칸들({ 칸들 }: { 칸들: ReturnType<typeof 막대칸들> }) {
   );
 }
 
-function 진행내용({ data }: { data: RunDetail }) {
-  const { 막대, 끝난수, 전체수, 지금도는것, 방금끝난것 } = 진행상황(data);
+/** 지금 도는 항목 하나. 이름 줄과 절차 줄이 한 덩어리다 */
+function 도는줄({ 항목, 절차 }: { 항목: RunItemSummary; 절차: 항목진행 | null }) {
+  return (
+    <div className="pre">
+      <div className="one-line">
+        {항목.tcId} {항목.tcName}
+      </div>
+      {/* 절차를 모를 때는 줄을 **아예 두지 않는다.** 빈 자리를 잡아 두면 2초마다 다시 묻는 이 화면에서
+          절차가 왔다 갔다 할 때 상자 높이가 같이 튄다. 이름 줄과 붙여 둬서 덩어리만 짧아진다 */}
+      {절차 === null ? null : (
+        <div className="now-step">
+          <span className="one-line">
+            절차 {절차.seq} · {절차.title}
+          </span>
+          {/* 분모 없는 순번은 진행이 아니라 그냥 번호로 읽힌다. 진행을 실제로 말하는 것은
+              2초마다 바뀌는 경과라 순번보다 크게 두고, 제한과 나란히 둬야
+              「느린 것」과 「멈춘 것」이 갈린다 (게이트 1 화면 규칙) */}
+          <b>{시간글자(절차.elapsedMs)}째</b>
+          <span className="lim">/ 제한 {시간글자(절차.timeoutMs)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function 진행내용({ data, 진행목록 }: { data: RunDetail; 진행목록: 항목진행[] }) {
+  const { 막대, 끝난수, 전체수, 지금도는것들, 방금끝난것 } = 진행상황(data, 진행목록);
   const 칸들 = 막대칸들(막대);
 
   return (
@@ -70,14 +108,14 @@ function 진행내용({ data }: { data: RunDetail }) {
         {끝난수} / {전체수} 완료
       </p>
 
-      {지금도는것 === null ? null : (
+      {지금도는것들.length === 0 ? null : (
         <div>
           {/* 「실행 중: X」라고 쓰지 않는다. 항목 둘이 동시에 돌아(EXECUTION_CONCURRENCY 기본 2)
-              여기 뜨는 것은 도는 둘 중 하나다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
+              여기 뜨는 것이 전부라는 보장이 없다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
           <div className="sec-h">진행 중</div>
-          <div className="pre">
-            {지금도는것.tcId} {지금도는것.tcName}
-          </div>
+          {지금도는것들.map(({ 항목, 절차 }) => (
+            <도는줄 key={항목.historyId} 항목={항목} 절차={절차} />
+          ))}
         </div>
       )}
 
@@ -151,7 +189,17 @@ function 제목(data: RunDetail): string {
   return `RUN ${String(data.runId)} 이 ${data.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다'}`;
 }
 
-export function RunProgressModal({ data, onClose }: { data: RunDetail; onClose: () => void }) {
+export function RunProgressModal({
+  data,
+  진행목록,
+  onClose,
+}: {
+  data: RunDetail;
+  /** 러너에게 따로 물어 온 지금 절차들. 기본값을 두지 않는다 — 두면 호출부가 조회를 빠뜨려도
+   *  조용히 「절차 없는」 화면이 나온다. 컴파일 단계에서 배선하게 만든다 */
+  진행목록: 항목진행[];
+  onClose: () => void;
+}) {
   const 도는가 = 도는중(data.status);
 
   return (
@@ -165,7 +213,7 @@ export function RunProgressModal({ data, onClose }: { data: RunDetail; onClose: 
         </button>
       }
     >
-      {도는가 ? <진행내용 data={data} /> : <완료내용 data={data} />}
+      {도는가 ? <진행내용 data={data} 진행목록={진행목록} /> : <완료내용 data={data} />}
     </Modal>
   );
 }

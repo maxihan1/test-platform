@@ -28,6 +28,97 @@ const 기대스키마 = {
   properties: { statusCode: { type: 'number', default: 201, description: '응답 코드' } },
 };
 
+describe.skipIf(연결 === undefined)('진행 조회', () => {
+  let app: FastifyInstance;
+  let pool: Pool;
+  let 가짜러너: FastifyInstance;
+  let 내실행 = 0;
+  let 남의실행 = 0;
+  let 내항목 = 0;
+  let 남의항목 = 0;
+
+  async function 실행만든다(title: string): Promise<number> {
+    const row = await pool.query<{ run_id: string }>(
+      `INSERT INTO test_run (title, service_name, tests_repo, triggered_by, env, base_url, status)
+            VALUES ($1, '', '', 'XBR-사람', 'qa', 'https://qa.example.com', 'RUNNING')
+         RETURNING run_id`,
+      [title],
+    );
+    return Number(row.rows[0]!.run_id);
+  }
+
+  async function 항목넣는다(runId: number, tcId: string, timeoutMs: number): Promise<number> {
+    const row = await pool.query<{ history_id: string }>(
+      `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms,
+                             precondition, params, expected, param_schema, expected_schema, status)
+            VALUES ($1, $2, 'desktop', 1, $3, $4, $5, '[]', '{}', '{}', '{}', '{}', 'NA')
+         RETURNING history_id`,
+      [runId, tcId, `${tcId} 케이스`, `demo/${tcId}.spec.ts`, timeoutMs],
+    );
+    return Number(row.rows[0]!.history_id);
+  }
+
+  async function 지운다(): Promise<void> {
+    await pool.query(
+      "DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBR 진행%')",
+    );
+    await pool.query("DELETE FROM test_run WHERE title LIKE 'XBR 진행%'");
+  }
+
+  beforeAll(async () => {
+    pool = new Pool({ connectionString: 연결 });
+    await 지운다();
+
+    내실행 = await 실행만든다('XBR 진행 내 실행');
+    남의실행 = await 실행만든다('XBR 진행 남의 실행');
+    내항목 = await 항목넣는다(내실행, 'XBR-010', 7000);
+    남의항목 = await 항목넣는다(남의실행, 'XBR-011', 5000);
+
+    가짜러너 = Fastify();
+    가짜러너.get('/progress', async () => ({
+      items: [
+        { historyId: 내항목, seq: 2, title: '로그인한다', elapsedMs: 1200 },
+        { historyId: 남의항목, seq: 1, title: '결제한다', elapsedMs: 800 },
+      ],
+    }));
+    await 가짜러너.listen({ port: 0, host: '127.0.0.1' });
+    const addr = 가짜러너.server.address();
+    process.env.RUNNER_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
+
+    app = Fastify();
+    await app.register(executionRoutes, { prefix: '/api' });
+    await app.ready();
+  });
+
+  afterAll(async () => {
+    await app.close();
+    await 가짜러너.close();
+    delete process.env.RUNNER_URL;
+    await 지운다();
+    await pool.end();
+  });
+
+  it('러너가 다른 실행의 항목을 함께 돌려줘도 그것은 응답에 안 나온다', async () => {
+    const res = await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` });
+    expect(res.statusCode).toBe(200);
+
+    const body = res.json();
+    expect(body.items.map((i: { historyId: number }) => i.historyId)).toEqual([내항목]);
+    expect(JSON.stringify(body)).not.toContain('결제한다');
+  });
+
+  it('응답에 그 항목의 timeoutMs 가 실린다', async () => {
+    const body = (await app.inject({ method: 'GET', url: `/api/runs/${내실행}/progress` })).json();
+    expect(body.items[0]).toEqual({
+      historyId: 내항목,
+      seq: 2,
+      title: '로그인한다',
+      elapsedMs: 1200,
+      timeoutMs: 7000,
+    });
+  });
+});
+
 describe.skipIf(연결 === undefined)('ParamSet API', () => {
   let app: FastifyInstance;
   let pool: Pool;

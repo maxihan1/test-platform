@@ -3,6 +3,7 @@
 import type { ItemStatus, StepResult } from '../types.js';
 import { callerLine } from './callsite.js';
 import { runScope, stepScope, type RunScope, type StepScope } from './context.js';
+import { 알린다 } from './progress.js';
 import { BlockerStop } from './verify.js';
 
 // 멈춘 절차 뒤로는 돌지 않는다는 내부 신호. 케이스 본문을 빠져나가는 용도로만 쓴다 (SPEC §4)
@@ -31,6 +32,7 @@ export async function runStep(
   options?: StepOptions,
 ): Promise<StepOutcome> {
   const seq = ++run.seq;
+  알린다(seq, title);
   const scope: StepScope = { assertions: [] };
   const startedAt = Date.now();
 

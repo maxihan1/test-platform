@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, type ItemStatus, type Platform } from './api.js';
+import { api, type ItemStatus, type Platform, type 항목진행 } from './api.js';
 import { filterGroups, groupByCase } from './group.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { Modal } from './Modal.js';
@@ -30,6 +30,9 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   // 「진행 상자를 닫았다」와 「완료를 알았다」는 다른 말이다. 하나로 합치면 도는 중에 상자를 닫은 사람이
   // 실행이 끝난 것을 영영 못 듣는다 — 맨 위 알림 줄도 `본것들` 을 보므로 그를 못 구한다 (SPEC §8.9)
   const [진행열림, set진행열림] = useState(false);
+  // 그리는 값이라 `useState` 다. `useRef` 로 들면 값은 맞는데 화면이 다시 안 그려진다
+  // — 2026-09-21 에 이 화면 바로 옆에서 난 사고다 (아래 `앞선상태` 는 안 그리는 값이라 ref 가 맞다)
+  const [진행목록, set진행목록] = useState<항목진행[]>([]);
   // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다.
   // 화면에 안 나오는 값이라 `useRef` 로 둔다 — 그리는 값이면 `useState` 여야 한다 (2026-09-21 사고)
   const 앞선상태 = useRef<string | null>(null);
@@ -71,6 +74,23 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
     return () => clearInterval(timer);
   }, [running, 만드는문서있나, reload]);
 
+  // 러너의 「지금」은 DB 에 없다. 상세 조회와 별개의 통로라 같은 2초 주기로 따로 묻는다 (SPEC §7).
+  // **도는 중일 때만 부른다** — 끝난 실행을 열 때마다 러너를 깨울 이유가 없다
+  useEffect(() => {
+    if (!running) return;
+    const 묻는다 = () => {
+      void api
+        .progress(runId)
+        .then((답) => set진행목록(답.items))
+        // 진행은 곁들이다. 러너에 못 닿아도 결과 화면은 그대로 서 있어야 해서 절차를 지우고
+        // 이름까지만 아는 상태로 물러선다 — `진행상황()` 이 빈 목록을 그 뜻으로 받는다
+        .catch(() => set진행목록([]));
+    };
+    묻는다();
+    const timer = setInterval(묻는다, 2000);
+    return () => clearInterval(timer);
+  }, [running, runId]);
+
   const 증적칸 = use증적(data, role, reload);
 
   if (run.error !== null) return <Failed error={run.error} />;
@@ -84,7 +104,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
   const { pass, fail, na } = data.counts;
   // 모달은 닫으라고 만든 물건이고 실제로 곧장 닫힌다 (`useRunPick.ts` 가 상자 둘을 잇달아 띄운다).
   // 그때 「무엇이 도는가」가 통째로 사라지지 않게 머리에도 한 줄 둔다 — 모달은 이 줄의 확대판이다
-  const 도는것 = running ? 진행상황(data).지금도는것 : null;
+  const 도는것 = running ? (진행상황(data, 진행목록).지금도는것들[0]?.항목 ?? null) : null;
   function choose<T>(setter: (value: T) => void) {
     return (value: T) => {
       setter(value);
@@ -177,6 +197,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
       {!진행열림 && !끝났다고알릴까말까 ? null : (
         <RunProgressModal
           data={data}
+          진행목록={진행목록}
           onClose={() => {
             set진행열림(false);
             // 끝난 뒤에 닫은 것만 「알림 봤다」로 적는다 — 새로고침해도 다시 안 뜬다 (SPEC §8.9).

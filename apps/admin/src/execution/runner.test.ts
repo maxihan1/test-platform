@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { ExecuteRequest } from '@platform/kit';
 
-import { callRunner, httpTimeoutMs } from './runner.js';
+import { callRunner, httpTimeoutMs, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
 
 const 항목: PendingItem = {
@@ -22,6 +22,13 @@ const 항목: PendingItem = {
 
 let 가짜러너: FastifyInstance | null = null;
 
+async function 붙인다(app: FastifyInstance): Promise<void> {
+  await app.listen({ port: 0, host: '127.0.0.1' });
+  const addr = app.server.address();
+  process.env.RUNNER_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
+  가짜러너 = app;
+}
+
 async function 띄운다(handler: (body: ExecuteRequest) => Promise<unknown> | unknown): Promise<void> {
   const app = Fastify();
   app.post('/execute', async (req, reply) => {
@@ -32,10 +39,13 @@ async function 띄운다(handler: (body: ExecuteRequest) => Promise<unknown> | u
     }
     return out;
   });
-  await app.listen({ port: 0, host: '127.0.0.1' });
-  const addr = app.server.address();
-  process.env.RUNNER_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
-  가짜러너 = app;
+  await 붙인다(app);
+}
+
+async function 진행띄운다(code: number, body: unknown): Promise<void> {
+  const app = Fastify();
+  app.get('/progress', async (_req, reply) => reply.code(code).send(body));
+  await 붙인다(app);
 }
 
 afterEach(async () => {
@@ -121,5 +131,25 @@ describe('callRunner', () => {
     // 목록에 그대로 쓰이는 문장이다. 원문 오류는 상세의 접힌 자리로 간다 (SPEC §8.3)
     expect(res.error?.message).toBe('러너에 닿지 못했습니다');
     expect(res.error?.stack).toBeTruthy();
+  });
+});
+
+describe('진행', () => {
+  it('러너가 돌고 있다고 답한 절차를 그대로 돌려준다', async () => {
+    await 진행띄운다(200, { items: [{ historyId: 42, seq: 2, title: '로그인한다', elapsedMs: 1200 }] });
+
+    expect(await 진행()).toEqual([{ historyId: 42, seq: 2, title: '로그인한다', elapsedMs: 1200 }]);
+  });
+
+  it('러너가 200 이 아니면 빈 목록이다. 던지지 않는다', async () => {
+    await 진행띄운다(503, { error: 'BUSY' });
+
+    expect(await 진행()).toEqual([]);
+  });
+
+  it('러너에 아예 못 붙어도 빈 목록이다. 한 번 실패가 러너가 죽었다는 뜻은 아니다', async () => {
+    process.env.RUNNER_URL = 'http://127.0.0.1:9';
+
+    expect(await 진행()).toEqual([]);
   });
 });

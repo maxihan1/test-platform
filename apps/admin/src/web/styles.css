@@ -526,6 +526,43 @@ select:focus {
   font-weight: 600;
 }
 
+/* 한 줄로 자르는 규칙 셋. **하나만 빠져도 못 막는다** —
+   flex 자식은 기본 min-width 가 auto 라 내용보다 못 줄어들어 ellipsis 가 아예 안 걸리고,
+   브라우저 기본은 CJK 를 글자 단위로 끊어서 제목이 한 글자씩 세로로 흐른다.
+   2026-09-17 과 2026-09-19 에 각각 한 번씩 그렇게 났다 (LEARNINGS).
+   jsdom 에 레이아웃 엔진이 없어 화면 검사는 이 자리를 원리적으로 못 잡는다 —
+   styles.test.ts 가 다섯 선언이 다 있는지만 본다 */
+.one-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+/* 지금 도는 항목의 절차 줄. 이름 줄 바로 아래 붙어 한 덩어리로 움직인다 —
+   따로 세우면 절차가 왔다 갔다 할 때 2초 주기로 상자 높이가 튄다 */
+.now-step {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+/* 경과를 순번보다 크게 둔다. 분모 없는 순번은 진행이 아니라 그냥 번호로 읽힌다 */
+.now-step b {
+  flex: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.now-step .lim {
+  flex: none;
+  color: var(--ink-faint);
+}
+
 /* 입력 칸 */
 .field {
   display: grid;
