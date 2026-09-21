@@ -182,8 +182,10 @@ describe('도는 중인 실행 (SPEC §8.3 · §8.9)', () => {
     vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
     render(<RunResult runId={RUN_ID} role="operator" />);
 
+    // 2026-09-22 에 머리가 본문 밖으로 나가면서 클래스 이름이 head-meta 가 됐다.
+    // 단언하는 것은 그대로다 — 「진행 중」이 화면 머리에 있고 「실행 중」이라 단정하지 않는다
     const 머리 = await screen.findByText(/진행 중 ZZI-0009/);
-    expect(머리.className).toBe('runmeta');
+    expect(머리.className).toBe('head-meta');
     expect(screen.queryByText(/실행 중 ZZI-0009/)).toBeNull();
   });
 });

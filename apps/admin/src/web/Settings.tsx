@@ -2,6 +2,7 @@
 // 책상에서만 쓰는 화면이라 좁은 화면 대응을 하지 않는다 (§8)
 
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
+import { Head } from './Head.js';
 import { 할수있나 } from './role.js';
 import { ServiceSection } from './SettingsService.js';
 import { UserSection } from './SettingsUser.js';
@@ -40,7 +41,10 @@ export function Settings({ user, onMeChanged }: { user: User; onMeChanged: () =>
   if (services.data === null || users.data === null) return <Loading />;
 
   return (
-    <div className="screen">
+    <>
+      <Head 제목="설정" 부제="운영 등급만 볼 수 있는 자리다" />
+
+      <div className="screen">
       {/* 서비스는 자기 것인지 가리지 않고 늘 다시 읽는다 — 이름·색·대상 서버·웹훅이
           전부 /auth/me 에 실려 띠와 실행 설정으로 간다. 가리는 판단을 더하면 또 반쪽이 된다 */}
       <ServiceSection
@@ -57,6 +61,7 @@ export function Settings({ user, onMeChanged }: { user: User; onMeChanged: () =>
         onDone={users.reload}
         onSelf={onMeChanged}
       />
-    </div>
+      </div>
+    </>
   );
 }
