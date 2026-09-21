@@ -52,3 +52,24 @@
   - **WS-B 주의**: 러너는 판정을 exit code가 아니라 `@@RESULT@@` 줄에서 만든다.
     타임아웃은 200 + `NA` + `error.message = 'TIMEOUT'`이고, 선언하지 않은 환경으로 부르면 200 + `NA` + 사유 문장이다
   - JSON Schema 변환은 zod 4 내장 `z.toJSONSchema(schema, { io: 'input' })`를 쓴다. `zod-to-json-schema`는 zod 4에서 못 쓴다 (LEARNINGS)
+
+## 2026-09-21
+- 완료: **`tests/todo/` 에 서비스 케이스 4건이 들어왔다 — 데모가 아닌 케이스가 저장소에 처음 생긴 것이다.**
+  `tpx-cases` 스킬(신설)이 기획서 한 장에서 만들었고 검증 관문 넷을 통과했다 (PR #37)
+- 미완: 없음
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것:
+  - **`check:tests` 건수가 11 → 15 가 됐다.** 그래서 `spec-review` **E2** 를
+    「`DEMO-` 로 시작하는 것만 세어 SPEC §10 표와 대조」로 고쳤다. 안 고쳤으면
+    **서비스 케이스가 한 건만 들어와도 멀쩡한 저장소에 중대 위반이 떴다**
+  - **케이스를 기계가 만드는 길이 생겼다** — `.claude/skills/tpx-cases/SKILL.md`.
+    기획서 → 요구사항 표(`docs/cases/<접두사>.md`) → `.spec.ts`. 만드는 동안은 **표가 정본**이고
+    **게이트 2 승인 뒤부터 코드가 정본**이다 (SPEC §3.1)
+  - `docs/cases/TODO-기획서.md` 는 **영구 fixture** 다. 스킬을 고칠 때마다 이걸로 다시 돌려
+    함정 다섯이 그대로 걸리는지 본다. 지우지 않는다
+  - **selector 는 추측하지 않는다.** `ariaSnapshot` 탐침으로 실제 화면을 읽고,
+    `docs/cases/<접두사>.md` 의 용어 사전에 **화면 스냅샷 해시**를 적어 둔다 —
+    다음 실행은 해시가 같으면 화면 해석을 건너뛴다
+  - **`tests/todo/` 는 todomvc 대상이라 데모와 같은 공개 사이트를 쓴다.**
+    `npx playwright test tests/todo --project=desktop` 으로 바로 돌려볼 수 있다.
+    인자 없이 전체를 돌리면 `DEMO-002`(일부러 실패)·`DEMO-009`(모바일 실패)가 섞여 빨강이 정상값이다
