@@ -94,6 +94,15 @@ describe('scan', () => {
     expect(properties.resource.description).toBe('조회할 자원');
   });
 
+  // 기대값 칸의 라벨도 케이스가 준다. 이 라벨이 실행 설정 화면의 칸 이름이 되므로
+  // 길고 서술적이면 폼이 읽히지 않는다. 다국어 표로도 못 옮긴다 — 케이스 저자의 말이다
+  it('기대값 칸의 describe 도 라벨로 남는다', async () => {
+    const { specs } = await scan();
+    const two = specs.find((s) => s.tcId === 'DEMO-002');
+    const properties = two?.expectedSchema.properties as Record<string, { description?: string }>;
+    expect(properties.todoCount.description).toBe('기대 할 일 개수');
+  });
+
   it('없다고 적은 케이스는 빈 객체 스키마가 된다', async () => {
     const { specs } = await scan();
     const one = specs.find((s) => s.tcId === 'DEMO-001');
