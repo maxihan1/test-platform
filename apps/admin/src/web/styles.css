@@ -138,9 +138,54 @@ body {
   font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* 사이드바 + 본문 두 칸. 본문 칸은 960px 그대로 두고 사이드바 폭만 더했다 —
+   한 줄에 들어가는 글자 수가 바뀌면 이미 맞춰 둔 표 폭이 전부 흔들린다 (SPEC §8) */
 .wrap {
-  max-width: 960px;
+  max-width: 1204px;
   margin: 0 auto;
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  align-items: start;
+}
+
+/* 짙은 막대. 껍데기를 눌러야 오른쪽 면이 종이로 읽힌다 (DESIGN.md, 2026-09-21) */
+.side {
+  display: flex;
+  flex-direction: column;
+  background: var(--rail);
+  color: var(--rail-ink);
+  padding: 12px 10px;
+  min-height: 100%;
+}
+
+.main {
+  min-width: 0;
+  padding-left: 20px;
+}
+
+/* 사이드바 바닥으로 사람과 로그아웃을 미는 빈 칸 */
+.side-gap {
+  flex: 1;
+  min-height: 24px;
+}
+
+/* 화면 제목과 주 행동이 앉는 자리. 채우는 것은 각 화면이고 껍데기는 자리만 준다 (SPEC §8) */
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.foot {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+  font-size: 12px;
+  color: var(--ink-faint);
 }
 
 .screen {
@@ -902,6 +947,20 @@ select:focus {
 }
 
 @media (max-width: 620px) {
+  /* 244px 사이드바를 그대로 두면 내용 칸이 한 줄에 스무 글자도 못 받는다. 위아래로 쌓는다 */
+  .wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .main {
+    padding: 16px 0 0;
+  }
+
+  .side .nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
   /* 620px 아래에서는 두 칸이다 — 색 띠 하나와 내용 하나.
      tcid·title·right 를 **전부** 2열로 보내 세로로 쌓지 않으면
      셋이 한 줄을 나눠 쓰다가 제목 칸이 0 에 수렴해 글자가 한 자씩 세로로 흐른다.
@@ -1025,8 +1084,8 @@ select:focus {
 .modal-back {
   position: fixed;
   inset: 0;
-  /* 잉크색 40%. 흐리게(blur) 처리하지 않는다 */
-  background: rgba(23, 32, 27, 0.4);
+  /* 잉크색(--ink) 42%. 흐리게(blur) 처리하지 않는다 */
+  background: rgba(25, 23, 19, 0.42);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1125,8 +1184,11 @@ select:focus {
 
 /* ── 맨 위 띠 · 알림 줄 (SPEC §8) ──────────────────────────────────── */
 
-/* 띠의 바탕색은 그 서비스 색이다. 색이 쓰이는 유일한 예외이고 띠 밖에서는 판정만 색을 갖는다 (DESIGN.md) */
-/* 띠의 바탕은 고정 청색이다. 서비스 색은 아래 .nav 로 내렸다 (SPEC §8, 2026-09-21) */
+/* 2026-09-21 — 이 규칙은 띠가 가로로 누워 있던 때의 것이다. 지금 `.band` 는 사이드바 머리로
+   들어갔고 배치는 아래 `.side .band` 가 덮는다. 규칙을 지우지 않는 이유는 이 이름으로
+   단언하는 검사들이 있어서다 — 정리는 다음 PR 이다.
+   바탕은 서비스 색이 아니라 고정 껍데기 색(`--chrome`, 따뜻한 적갈색)이다.
+   서비스 색은 사이드바 서비스 고르개의 네모 하나로 내려갔다 */
 .band {
   display: flex;
   align-items: center;
@@ -1193,6 +1255,101 @@ select:focus {
 .band-out:focus-visible {
   outline: 2px solid #fff;
   outline-offset: -1px;
+}
+
+/* ── 사이드바 안으로 들어온 띠와 자리 넷 (SPEC §8) ─────────────────── */
+/* 옛 이름을 그대로 쓰고 배치만 덮는다. 짙은 바탕이라 색 토큰도 `--rail*` 로 갈아 끼운다 */
+
+.side .band {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  background: transparent;
+  color: inherit;
+  border-radius: 0;
+  padding: 4px 4px 12px;
+}
+
+.side .band-left {
+  gap: 8px;
+}
+
+.side .band-pick {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  color: var(--rail-ink);
+  background: var(--rail-2);
+  border-color: rgba(239, 235, 225, 0.3);
+}
+
+.side .svc-dot {
+  width: 10px;
+  height: 10px;
+  margin: 0;
+  flex: none;
+}
+
+.side .band-repo,
+.side .band-who {
+  color: var(--rail-dim);
+  opacity: 1;
+  padding-left: 2px;
+}
+
+.side .band-right {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 4px 4px;
+  border-top: 1px solid var(--rail-2);
+}
+
+.side .band-out {
+  color: var(--rail-dim);
+  border-color: rgba(239, 235, 225, 0.3);
+}
+
+.side .band-out:hover {
+  background: var(--rail-2);
+  color: var(--rail-ink);
+}
+
+/* 자리 넷이 가로 탭에서 세로 목록이 됐다. 지금 자리는 밑줄 대신 왼쪽 3px 막대로 말한다 */
+.side .nav {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 1px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border-bottom: none;
+}
+
+.side .nav a {
+  margin: 0;
+  border: 0;
+  border-left: 3px solid transparent;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--rail-dim);
+}
+
+.side .nav a:hover {
+  background: var(--rail-2);
+  color: var(--rail-ink);
+}
+
+.side .nav a[aria-current='page'] {
+  background: var(--rail-2);
+  color: var(--rail-acc);
+  border-left-color: var(--rail-acc);
+}
+
+.side .nav a:focus-visible {
+  outline: 2px solid var(--rail-ink);
+  outline-offset: -2px;
 }
 
 /* 도는 실행이 있거나 갓 끝난 소식이 있을 때만 뜬다. 없으면 줄 자체가 없다 (SPEC §8) */

@@ -7,9 +7,10 @@
 // 한쪽만 보면 색을 아무 데도 안 칠한 상태가 통과한다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 
 import { api, type ServiceRow, type User } from './api.js';
+import { 자리목록, 탭제목 } from './layout.js';
 import { Shell } from './Shell.js';
 
 afterEach(() => {
@@ -72,5 +73,24 @@ describe('맨 위 띠의 서비스 색 (SPEC §8)', () => {
     띄운다(결제);
     expect(screen.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
     expect(screen.getByText('결제 서비스')).toBeTruthy();
+  });
+});
+
+describe('세로 껍데기 (SPEC §8)', () => {
+  it('사이드바 하나가 서비스 고르개 · 자리 전부 · 로그인한 사람을 다 들고 있다', () => {
+    띄운다(결제);
+    const 사이드 = document.querySelector('.side') as HTMLElement | null;
+    expect(사이드).not.toBeNull();
+    const 안 = within(사이드!);
+    expect(안.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
+    expect(안.getAllByRole('link')).toHaveLength(자리목록(사람.role).length);
+    expect(안.getByText(사람.displayName)).toBeTruthy();
+  });
+
+  it('푸터가 제품과 지금 서비스를 적는다', () => {
+    띄운다(결제);
+    const 푸터 = document.querySelector('.foot');
+    expect(푸터).not.toBeNull();
+    expect(푸터!.textContent).toContain(탭제목(결제));
   });
 });
