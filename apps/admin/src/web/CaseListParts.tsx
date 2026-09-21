@@ -2,8 +2,9 @@
 // 고르는 칸이 붙으면서 CaseList 가 300줄을 넘었다. 판단은 CaseList 에 두고 그리는 쪽만 여기로 옮겼다
 
 import type { CaseRow, ItemStatus, LastScan, Platform } from './api.js';
+import { CaseDetail } from './CaseDetail.js';
+import { CaseRowParams, type 줄글자 } from './CaseRowParams.js';
 import { keyOf, type LastMap, 마지막판정, 빈이유 } from './catalogView.js';
-import { schemaToFields } from './schema.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
 const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
@@ -99,41 +100,30 @@ export function 조건칩들({
   );
 }
 
-/**
- * 케이스가 선언한 입력값을 줄에서 바로 보여준다 (2026-09-21).
- *
- * **JSON 원문이 아니다** — SPEC §8.1 의 금지는 그대로다.
- * 여기 나가는 것은 스키마가 준 **라벨과 기본값 한 쌍**이고, 비밀값은 `mask.ts` 와 같은 기준으로 가린다.
- * 값을 보려고 상세로 한 번 더 들어가야 하던 것을 없앤다.
- */
-function 값칩들({ row }: { row: CaseRow }) {
-  const 칸들 = schemaToFields(row.paramSchema);
-  if (칸들.length === 0) return null;
-
-  return (
-    <div className="chips">
-      {칸들.map((칸) => (
-        <span className="chip-val" key={칸.key}>
-          <b>{칸.label}</b>
-          <i>{칸.secret ? '********' : (칸.default === undefined || typeof 칸.default === 'object' ? '—' : String(칸.default))}</i>
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export function 케이스줄({
   row,
   마지막,
   고름,
   뒤집기,
+  글자,
+  폈나 = false,
+  on값,
+  on더보기,
 }: {
   row: CaseRow;
   마지막: LastMap;
   고름: boolean;
   뒤집기: (row: CaseRow) => void;
+  /** 이 줄에서 고쳐 넣은 값. 없으면 코드의 기본값으로 돈다 */
+  글자?: 줄글자;
+  폈나?: boolean;
+  on값: (tcId: string, 어디: 'params' | 'expected', key: string, value: string) => void;
+  on더보기: (tcId: string) => void;
 }) {
+  const 상세칸 = `detail-${row.tcId}`;
+
   return (
+    <>
     <div className="row pickable">
       <div className="gutter" style={{ background: STATUS_COLOR[마지막판정(row, 마지막)] }} />
       {/* 고르는 칸은 왼쪽 거터 칸 안이다. 줄 내용 쪽 첫 요소로 두면 620px 미만에서
@@ -151,7 +141,14 @@ export function 케이스줄({
       <div className="tcid">{row.tcId}</div>
       <div className="title">
         {row.name}
-        <값칩들 row={row} />
+        <CaseRowParams
+          tcId={row.tcId}
+          paramSchema={row.paramSchema}
+          expectedSchema={row.expectedSchema}
+          글자={글자}
+          on값={(어디, key, value) => on값(row.tcId, 어디, key, value)}
+          on더보기={() => on더보기(row.tcId)}
+        />
         <small>지원 디바이스 {row.platforms.map((p) => PLATFORM_LABEL[p]).join(', ')}</small>
       </div>
       <div className="right">
@@ -175,11 +172,26 @@ export function 케이스줄({
             );
           })}
         </div>
+        {/* 눌러야 상세가 보인다. aria-controls 가 없으면 화면을 안 보는 사람은
+            「폈다」는 말만 듣고 무엇이 펴졌는지 못 찾는다 (DESIGN.md 접근성 기준) */}
+        <button
+          type="button"
+          className="btn small ghost"
+          aria-expanded={폈나}
+          aria-controls={상세칸}
+          onClick={() => on더보기(row.tcId)}
+        >
+          상세
+        </button>
         <a className="btn small" href={`#/cases/${encodeURIComponent(row.tcId)}/run`}>
           실행
         </a>
       </div>
     </div>
+    <div id={상세칸}>
+      <CaseDetail row={row} 폈나={폈나} 마지막={마지막[keyOf(row.tcId, row.platforms[0] ?? 'desktop')]} />
+    </div>
+    </>
   );
 }
 

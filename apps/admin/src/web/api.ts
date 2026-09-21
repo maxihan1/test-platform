@@ -53,6 +53,8 @@ export interface LastResult {
   runId: number;
   durationMs: number | null;
   finishedAt: string;
+  /** 최근 판정, 새 것부터. 맨 앞은 늘 위 `status` 와 같다 — 줄의 흐름 막대가 읽는다 (SPEC §8.1) */
+  recent: ItemStatus[];
 }
 
 export interface RunSummary {
@@ -137,6 +139,18 @@ export interface RunItemDetail extends RunItemSummary {
   // params·paramSchema 는 RunItemSummary 에 있다 — 목록도 같은 값을 쓴다
   expectedSchema: JsonSchema;
   steps: StepResult[];
+}
+
+/** 케이스 한 건의 실행 이력 한 줄 (SPEC §7 `GET /api/cases/:tcId/history`) */
+export interface HistoryRow {
+  historyId: number;
+  runId: number;
+  runTitle: string;
+  platform: Platform;
+  status: ItemStatus;
+  durationMs: number | null;
+  startedAt: string;
+  finishedAt: string | null;
 }
 
 export interface ParamSetRow {
@@ -359,6 +373,14 @@ export const api = {
     call<SourceExcerpt>(`/cases/${encodeURIComponent(tcId)}/source?line=${line}`),
 
   lastByCase: () => call<{ items: LastResult[] }>('/runs/last-by-case'),
+
+  /**
+   * 케이스 한 건의 이력 (SPEC §7).
+   *
+   * **목록이 부르지 않는다.** 사람이 상세를 폈을 때만 부른다 —
+   * 목록에서 케이스마다 부르면 §8.1 의 「이력을 따로 부르지 않는다」를 어긴다
+   */
+  caseHistory: (tcId: string) => call<Paged<HistoryRow>>(`/cases/${encodeURIComponent(tcId)}/history`),
 
   runs: (service: string, page: number) =>
     call<Paged<RunSummary>>(`/runs?service=${encodeURIComponent(service)}&page=${page}`),
