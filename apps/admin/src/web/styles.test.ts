@@ -22,6 +22,17 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(body).not.toMatch(/background-size/);
   });
 
+  it('쓰는 토큰이 전부 :root 에 정의돼 있다', () => {
+    // 없는 토큰을 var() 로 부르면 그 속성이 통째로 무효가 된다 — 오류도 안 나고 조용히 사라진다.
+    // 2026-09-21 에 --lift 가 실제로 그랬다. 면이 바탕에서 떠 보이지 않는데 아무도 안 죽는다
+    const 있는것 = new Set(Object.keys(토큰들()));
+    const 부르는것 = new Set([...css.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!));
+    // --svc 는 서비스마다 화면이 인라인으로 꽂는다. :root 에 둘 수 없다
+    부르는것.delete('--svc');
+    const 없는것 = [...부르는것].filter((이름) => !있는것.has(이름));
+    expect(없는것, `:root 에 없는 토큰을 부른다 — ${없는것.join(', ')}`).toEqual([]);
+  });
+
   it('껍데기 색을 토큰 하나로 둔다', () => {
     // 껍데기(띠·탭 밑줄·표머리)에만 쓰는 색이다. 자리마다 적으면 한쪽만 바뀐다
     expect(토큰들()['--chrome']).toMatch(/^#[0-9a-f]{6}$/i);
@@ -33,6 +44,32 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // 제목 여덟 곳이 800 인 채로 남아 있었다 — 브라우저로 열어서야 보였다
     const 굵기들 = [...css.matchAll(/font-weight:\s*(\d{3})/g)].map((m) => Number(m[1]));
     expect(굵기들.filter((w) => w > 600)).toEqual([]);
+  });
+
+  it('모달은 머리와 바닥이 고정이고 본문만 구른다', () => {
+    // 고른 건수가 늘어도 대상 서버 칸과 실행 버튼이 늘 보여야 한다 (SPEC §8.10).
+    // 끝까지 내려가야 버튼이 나오면 대상 서버를 안 고른 채로 내려간다.
+    // jsdom 에 레이아웃 엔진이 없어 규칙이 있는지만 본다
+    expect(/\.modal-title\s*\{[^}]*flex:\s*none/.exec(css)).not.toBeNull();
+    expect(/\.modal-foot\s*\{[^}]*flex:\s*none/.exec(css)).not.toBeNull();
+    const 본문 = /\.modal-body\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(본문).toMatch(/overflow:\s*auto/);
+    // min-height:0 이 없으면 flex 자식이 제 키를 지켜서 본문이 안 줄고 바닥이 밖으로 밀린다
+    expect(본문).toMatch(/min-height:\s*0/);
+  });
+
+  it('면은 떠 있고 행에는 그림자가 없다', () => {
+    // 원칙 2 (2026-09-21 뒤집었다). 면은 radius 14px 에 옅은 그림자,
+    // 행마다 카드를 두르지 않는다 — 나열이 객체로 읽힌다
+    for (const 면 of ['.screen', '.modal', '.login-box']) {
+      // 줄 맨 앞에 선 것이 첫 정의다. 좁은 화면 재정의는 들여쓴 채로 뒤에 또 나온다 —
+      // 그것을 잡으면 「없다」고 거짓 실패한다 (2026-09-21 실제로 그랬다)
+      const 블록 = new RegExp(`^\\${면}\\s*\\{([^}]*)\\}`, 'm').exec(css)?.[1] ?? '';
+      expect(블록, `${면} 에 radius 14px 이 없다`).toMatch(/border-radius:\s*14px/);
+      expect(블록, `${면} 에 그림자가 없다`).toMatch(/box-shadow:/);
+    }
+    const 행 = /\n\.row\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(행, '행에 그림자를 주면 나열이 객체로 읽힌다').not.toMatch(/box-shadow:/);
   });
 
   it('모달 안의 진행 막대가 줄어들지 않는다', () => {

@@ -94,6 +94,10 @@
   --fail-bg: #f6e4df;
   --na: #7a6535;
   --na-bg: #f0ead8;
+
+  /* 면이 바탕에서 떠 보이게 하는 그림자 하나 (DESIGN.md 원칙 2, 2026-09-21).
+     행에는 안 준다 — 행마다 카드를 두르면 나열이 객체로 읽힌다 */
+  --lift: 0 1px 2px rgba(25, 23, 19, 0.04), 0 10px 28px -16px rgba(25, 23, 19, 0.22);
 }
 
 * {
@@ -188,9 +192,14 @@ body {
   color: var(--ink-faint);
 }
 
+/* 면은 바탕에서 떠 보인다 (DESIGN.md 원칙 2, 2026-09-21).
+   행에는 안 준다 — 행마다 카드를 두르면 나열이 객체로 읽힌다 */
 .screen {
   background: var(--sheet);
   border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--lift);
+  overflow: hidden;
   margin-bottom: 28px;
 }
 
@@ -356,7 +365,7 @@ select {
   background: var(--sheet);
   color: var(--ink);
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  border-radius: 9px;
   padding: 7px 10px;
 }
 
@@ -498,7 +507,7 @@ select:focus {
   font-weight: 600;
   letter-spacing: 0.06em;
   padding: 4px 10px;
-  border-radius: 2px;
+  border-radius: 9px;
   min-width: 52px;
   text-align: center;
   display: inline-block;
@@ -836,7 +845,7 @@ select:focus {
   font-size: 13.5px;
   font-weight: 600;
   padding: 9px 18px;
-  border-radius: 2px;
+  border-radius: 9px;
   cursor: pointer;
   border: 1px solid var(--ink);
   background: var(--ink);
@@ -912,7 +921,7 @@ select:focus {
   font: inherit;
   font-size: 12.5px;
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  border-radius: 9px;
   background: transparent;
   color: var(--ink);
   padding: 5px 12px;
@@ -1129,7 +1138,9 @@ select:focus {
   max-width: 480px;
   background: var(--sheet);
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  /* 면이라 14px 이다 (DESIGN.md 원칙 2). 모달은 가장 앞에 서므로 그림자를 더 깊게 준다 */
+  border-radius: 14px;
+  box-shadow: 0 24px 60px -20px rgba(25, 23, 19, 0.55);
   /* 세로 상자로 둔다. grid 로 두면 안쪽 목록이 제 키대로 밀어내 제목·바닥이 상자 밖으로 나간다 */
   display: flex;
   flex-direction: column;
@@ -1227,7 +1238,7 @@ select:focus {
   padding: 9px 14px;
   background: var(--chrome);
   color: #fff;
-  border-radius: 2px 2px 0 0;
+  border-radius: 9px 9px 0 0;
 }
 
 .band-left,
@@ -1242,7 +1253,7 @@ select:focus {
   background: transparent;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 2px;
+  border-radius: 9px;
   padding: 3px 8px;
   font: inherit;
   font-weight: 600;
@@ -1270,7 +1281,7 @@ select:focus {
   background: transparent;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 2px;
+  border-radius: 9px;
   padding: 3px 9px;
   font: inherit;
   font-size: 12.5px;
@@ -1452,7 +1463,9 @@ select:focus {
   max-width: 340px;
   background: var(--sheet);
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  /* 면이라 14px 이다 (DESIGN.md 원칙 2). 들어가는 자리는 상자 하나뿐이라 그림자로 띄운다 */
+  border-radius: 14px;
+  box-shadow: var(--lift);
   padding: 28px 24px 24px;
   display: grid;
   gap: 14px;
