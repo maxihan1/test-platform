@@ -7,12 +7,18 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
 :root{
-  --paper:#E6E9E2; --sheet:#F8F9F5; --sheet-2:#EFF1EA;
-  --ink:#17201B; --ink-muted:#464D47; --ink-faint:#626A62;
-  --rule:#C8CEC3; --rule-soft:#DCE0D7;
-  --pass:#0D6A46; --fail:#A62B21; --na:#79693A;
-  --pass-bg:#E2EDE6; --fail-bg:#F6E4E1; --na-bg:#F1EBDC;
-  /* 서비스 색 — 맨 위 띠와 설정 화면의 색 고르개에서만 쓴다. 정본은 SPEC §8 */
+  /* 2026-09-21 에 「제도 청사진」으로 옮겼다. 회녹색 종이가 차가운 청회색이 됐다.
+     정본은 apps/admin/src/web/styles.css 이고 styles.test.ts 가 기계로 잰다 — 여기는 사본이다 */
+  --paper:#dfe4e7; --sheet:#f8fafb; --sheet-2:#eff3f5;
+  --ink:#16222a; --ink-muted:#3f4e58; --ink-faint:#59666f;
+  --rule:#bfc9cf; --rule-soft:#dce3e7;
+  /* 껍데기 전용 청색 잉크. 쓰는 자리 목록의 정본은 SPEC 공통/5-화면공통 §8 이다 — 개수를 세지 않는다 */
+  --chrome:#1c4e6b;
+  /* 값 칩의 바탕. 기록지도 종이도 아닌 세 번째 면이라 그 위의 글자를 따로 쟀다 */
+  --chip:#edf2f4;
+  --pass:#0c6349; --fail:#a32a22; --na:#74673b;
+  --pass-bg:#e0eee8; --fail-bg:#f6e4e1; --na-bg:#f0ebdc;
+  /* 서비스 색 — 자리 넷 줄의 네모와 경계선, 그리고 설정 화면의 색 고르개에서만 쓴다. 정본은 SPEC §8 */
   --svc-pay:#2F5D50; --svc-mem:#3A4A63;
 }
 *{box-sizing:border-box;margin:0;padding:0}

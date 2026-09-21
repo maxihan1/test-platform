@@ -133,7 +133,7 @@ export function RunProgressModal({ data, onClose }: { data: RunDetail; onClose: 
     <Modal
       제목={제목(data)}
       onClose={onClose}
-      // 못 누르는 버튼을 놓지 않는다 — `.btn:disabled` 규칙이 없어 살아 있는 버튼과 픽셀까지 같다
+      // 도는 중에도 못 누르는 버튼을 놓지 않는다. 이 상자에서 사람이 할 수 있는 일은 닫는 것 하나뿐이다
       버튼={
         <button className="btn" onClick={onClose}>
           {도는가 ? '닫기' : '결과 보기'}
