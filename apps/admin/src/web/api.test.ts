@@ -166,6 +166,14 @@ describe('실행 멈추기', () => {
     expect(부름[0]?.url).toBe('/api/runs/123/abort');
     expect(부름[0]?.init?.method).toBe('POST');
   });
+
+  it('케이스 이력은 목록이 아니라 상세가 부른다 — 주소가 카탈로그 쪽이 아니다', async () => {
+    답 = { status: 200, body: { items: [], total: 0, page: 1, pageSize: 20 } };
+    await api.caseHistory('ZZD-001');
+
+    // 상세 검사는 이 통로를 가짜로 갈아 끼우므로 주소가 틀려도 초록이다. 주소는 여기서만 본다
+    expect(부름[0]?.url).toBe('/api/cases/ZZD-001/history');
+  });
 });
 
 describe('목록 두 곳은 보고 있는 서비스를 서버에 보낸다', () => {

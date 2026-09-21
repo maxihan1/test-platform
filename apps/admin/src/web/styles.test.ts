@@ -72,6 +72,41 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(행, '행에 그림자를 주면 나열이 객체로 읽힌다').not.toMatch(/box-shadow:/);
   });
 
+  it('흐름 막대는 판정마다 높이가 다르다 — 색만으로 말하지 않는다', () => {
+    // 색을 못 보는 사람에게 다섯 칸이 전부 같은 높이면 회색 네모 다섯이다 (DESIGN.md 접근성)
+    const 높이 = (판정: string) =>
+      new RegExp(`\\.spark i\\.${판정}\\s*\\{[^}]*height:\\s*(\\d+)px`).exec(css)?.[1];
+    const 값들 = ['p', 'f', 'n'].map(높이);
+    expect(값들.every((v) => v !== undefined), '판정마다 높이 규칙이 있어야 한다').toBe(true);
+    expect(new Set(값들).size, '판정 셋의 높이가 서로 달라야 한다').toBe(3);
+  });
+
+  it('줄의 입력칸이 바탕 위에서 읽힌다', () => {
+    // 줄 맨 앞에 선 것이 첫 정의다. 좁은 화면 재정의는 들여쓴 채로 **앞에** 나온다 —
+    // 그것을 잡으면 「규칙이 없다」고 거짓 실패한다 (2026-09-21, PR① 과 같은 함정)
+    const 블록 = /^\.pcell \.field input,[^{]*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
+    expect(블록, '줄의 입력칸 규칙이 없다').toMatch(/border-radius:\s*8px/);
+  });
+
+  it('펼침 패널이 줄과 다른 바탕을 쓴다', () => {
+    // 같은 바탕이면 어디까지가 그 줄의 상세인지 눈으로 못 가른다
+    const 블록 = /^\.detail\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
+    expect(블록, '.detail 에 바탕이 없다').toMatch(/background:\s*var\(--sheet-2\)/);
+  });
+
+  it('좁은 화면에서 줄의 입력칸은 라벨이 값 위로 올라간다', () => {
+    // DESIGN.md 「반응형」 — 입력 폼은 라벨이 값 위로. 132px 라벨 열을 그대로 두면 375px 에서 넘친다
+    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(좁은화면).toMatch(/\.pcell \.field\s*\{[^}]*grid-template-columns:\s*1fr/);
+  });
+
+  it('좁은 화면에서 줄의 버튼과 입력칸이 44px 이다', () => {
+    // 손가락으로 누르는 자리다. 완료 기준이 실행 결과 화면을 휴대폰에서 보게 요구한다
+    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    const 값 = /\.row \.btn\.small\s*\{[^}]*min-height:\s*(\d+)px/.exec(좁은화면)?.[1];
+    expect(Number(값 ?? 0)).toBeGreaterThanOrEqual(44);
+  });
+
   it('모달 안의 진행 막대가 줄어들지 않는다', () => {
     // .modal-body 가 세로 flex 라 6px 막대가 flex-shrink 로 0 까지 줄어든다.
     // 2026-09-21 에 실제로 그랬다 — 색도 비율도 맞는데 높이만 0 이라 숫자만 뜨고 막대가 통째로 안 보였다.
@@ -113,7 +148,7 @@ describe('화면 토큰 (DESIGN.md)', () => {
   it('접어도 자리 넷을 화면에서 지우지 않는다', () => {
     // `display: none` 을 쓰면 키보드 탭 대상에서 빠져 키보드로만 쓰는 사람이 이동을 통째로 잃는다.
     // 글자만 0 으로 눌러 화면에서는 사라지되 탭 순서에는 남긴다 (SPEC §8)
-    const 자리 = /\.folded \.side \.nav a\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    const 자리 = /\.folded \.side \.side-nav a\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(자리).toMatch(/font-size:\s*0/);
     expect(자리).not.toMatch(/display:\s*none/);
     expect(자리).not.toMatch(/visibility:\s*hidden/);
@@ -132,7 +167,7 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // SPEC §8 — 휴대폰으로 하는 일은 「끝났나 보기」 하나라 그 길목이 44px 을 넘어야 한다.
     // 46 으로 둔다. 브라우저 반올림이 소수점만큼 깎아 목업 실측이 43.9986 이었다
     const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-    const 값 = /\.side \.nav a\s*\{[^}]*min-height:\s*(\d+)px/.exec(좁은화면)?.[1];
+    const 값 = /\.side \.side-nav a\s*\{[^}]*min-height:\s*(\d+)px/.exec(좁은화면)?.[1];
     expect(Number(값)).toBeGreaterThanOrEqual(44);
   });
 

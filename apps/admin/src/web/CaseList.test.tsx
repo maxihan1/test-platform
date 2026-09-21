@@ -403,3 +403,61 @@ describe('CaseList 여러 건 실행 걸기', () => {
     );
   });
 });
+
+describe('CaseList 목록에서 고친 값', () => {
+  const 값있는케이스: CaseRow = {
+    ...케이스('ZPK-001'),
+    paramSchema: {
+      type: 'object',
+      properties: { currency: { type: 'string', description: '통화', default: 'KRW' } },
+    } as unknown as CaseRow['paramSchema'],
+  };
+  const 한쪽: Paged<CaseRow> = { items: [값있는케이스], total: 1, page: 1, pageSize: 2 };
+
+  async function 값을고치고() {
+    모킹(() => Promise.resolve(한쪽));
+    const 것 = render(<CaseList service="ZPK" />);
+    await screen.findByText('ZPK-001 케이스');
+    fireEvent.change(screen.getByLabelText(/통화/), { target: { value: 'USD' } });
+    return 것;
+  }
+
+  it('고친 값이 줄에 남는다', async () => {
+    await 값을고치고();
+    expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('USD');
+  });
+
+  it('고친 값이 모달에 그대로 떠 있다', async () => {
+    await 값을고치고();
+
+    fireEvent.click(실행버튼());
+    const 모달 = await screen.findByRole('dialog');
+
+    const 칸 = within(모달).getByLabelText(/통화/) as HTMLInputElement;
+    expect(칸.value).toBe('USD');
+  });
+
+  it('고친 값이 실행 요청의 params 로 나간다', async () => {
+    const 걸기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 9 });
+    await 값을고치고();
+
+    fireEvent.click(실행버튼());
+    await screen.findByRole('dialog');
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(모달실행());
+
+    await waitFor(() => expect(걸기).toHaveBeenCalledTimes(1));
+    // 모달에 떠 있는 것까지가 아니라 **요청에 실렸는지**를 본다.
+    // 이 한 홉이 끊기면 사람은 고친 값으로 돈 줄 알고 기본값 결과를 증적으로 제출한다
+    expect(걸기.mock.calls[0]![0].items[0]!.params).toEqual({ currency: 'USD' });
+  });
+
+  it('서비스를 바꾸면 고친 값을 버린다', async () => {
+    const { rerender } = await 값을고치고();
+
+    rerender(<CaseList service="ZQQ" />);
+    await waitFor(() => {
+      expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('KRW');
+    });
+  });
+});

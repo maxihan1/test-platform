@@ -1,5 +1,6 @@
 // 케이스 목록 화면 (SPEC §8.1). JSON 원문은 목록에 절대 노출하지 않는다
-// '마지막 결과' 칸은 GET /api/runs/last-by-case 한 번으로 전부 채운다 — 케이스마다 이력을 따로 부르지 않는다 (SPEC §7.1)
+// '마지막 결과' 칸과 줄의 판정 흐름 막대를 GET /api/runs/last-by-case 한 번으로 전부 채운다 (SPEC §7.1)
+// 목록은 케이스마다 이력을 따로 부르지 않는다. 상세 펼침만 예외이고 그것은 사람이 한 줄을 폈을 때다
 // 여러 건을 골라 거는 흐름은 useRunPick 이 통째로 들고 있다 (SPEC §8.10)
 
 import { useState } from 'react';
@@ -7,6 +8,7 @@ import { useState } from 'react';
 import { api, type CaseQuery, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
 import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
+import type { 글자표 } from './pickRun.js';
 import { 집계띠 } from './Summary.js';
 import { 다음이있나 } from './paging.js';
 import { RunPickModal } from './RunPickModal.js';
@@ -25,6 +27,10 @@ export function CaseList({ service }: { service: string }) {
   const [결과, set결과] = useState<ItemStatus | 'ALL'>('ALL');
   const [scanning, setScanning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // 줄에서 고친 값. 모달도 같은 표를 쓴다 — 두 벌이면 두 자리가 다른 값을 보여준다 (SPEC §8.1)
+  const [글자, set글자] = useState<글자표>({});
+  // 상세를 편 줄. 한 번에 여럿 펼 수 있고, 부른 것은 그 조각이 들고 있는다
+  const [편줄, set편줄] = useState<ReadonlySet<string>>(new Set());
 
   const 조건: CaseQuery = {
     service,
@@ -51,6 +57,9 @@ export function CaseList({ service }: { service: string }) {
     setTyped('');
     // 고른 것도 같이 버린다. 남기면 다른 서비스에서 「고른 2건」이라 말한다
     뽑기.비우기();
+    // 고친 값도 버린다. 칸 이름이 같으면(env·userId) 남의 서비스 케이스에 그대로 붙는다
+    set글자({});
+    set편줄(new Set());
   }
 
   const 보일것 = 마지막결과로거른다(cases.data?.items ?? [], lastMap, 결과);
@@ -83,6 +92,22 @@ export function CaseList({ service }: { service: string }) {
       set(값);
       setPage(1);
     };
+  }
+
+  /** 한 칸을 고쳤다. 그 케이스 칸만 새로 만들고 나머지는 그대로 둔다 */
+  function 값고침(tcId: string, 어디: 'params' | 'expected', key: string, value: string) {
+    set글자((전) => {
+      const 이것 = 전[tcId] ?? { params: {}, expected: {} };
+      return { ...전, [tcId]: { ...이것, [어디]: { ...이것[어디], [key]: value } } };
+    });
+  }
+
+  function 더보기(tcId: string) {
+    set편줄((전) => {
+      const 다음 = new Set(전);
+      if (!다음.delete(tcId)) 다음.add(tcId);
+      return 다음;
+    });
   }
 
   function 조건지우기() {
@@ -188,6 +213,10 @@ export function CaseList({ service }: { service: string }) {
             마지막={lastMap}
             고름={뽑기.고른.has(row.tcId)}
             뒤집기={뽑기.뒤집기}
+            글자={글자[row.tcId]}
+            폈나={편줄.has(row.tcId)}
+            on값={값고침}
+            on더보기={더보기}
           />
         ))
       )}
@@ -207,6 +236,7 @@ export function CaseList({ service }: { service: string }) {
       {뽑기.담은것 === null ? null : (
         <RunPickModal
           케이스들={뽑기.담은것}
+          초기글자={글자}
           service={뽑기.서비스}
           사유={뽑기.사유}
           안내={뽑기.안내}

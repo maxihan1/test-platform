@@ -26,6 +26,7 @@ function 마지막(tcId: string, platform: Platform, status: 'PASS' | 'FAIL'): L
     status,
     historyId: 1,
     runId: 1,
+    recent: [status],
     durationMs: 100,
     finishedAt: '2026-09-21T00:00:00.000Z',
   };

@@ -11,6 +11,17 @@ export type 고친값표 = Record<
 >;
 
 /**
+ * 케이스마다 고쳐 넣은 **글자**. 목록 줄과 모달이 같은 표를 쓴다 (2026-09-21 ②).
+ *
+ * 두 벌로 두면 같은 케이스를 두 자리가 서로 다른 값으로 보여준다.
+ * **편 적 없는 케이스는 여기 아예 없고** 코드의 기본값으로 돈다 (SPEC §8.10).
+ */
+export type 글자표 = Record<
+  string,
+  { params: Record<string, string>; expected: Record<string, string> } | undefined
+>;
+
+/**
  * 실제로 돌릴 케이스.
  *
  * 아무것도 안 고르면 「전체 실행」이라 넘겨받은 목록이 그대로 대상이다 —
