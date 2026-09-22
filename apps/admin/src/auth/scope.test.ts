@@ -56,7 +56,14 @@ describe('라우트표', () => {
 
     // 읽는 방식이 깨지면 「빠진 것 없음」이 거짓으로 초록이 된다.
     // 건수 하한 대신 **어느 파일을 읽었는지**를 단언한다
-    expect(읽은파일.sort()).toEqual(['auth', 'catalog', 'execution', 'reporting', 'settings']);
+    expect(읽은파일.sort()).toEqual([
+      'auth',
+      'authoring',
+      'catalog',
+      'execution',
+      'reporting',
+      'settings',
+    ]);
     expect(라우트들.length).toBeGreaterThan(20);
 
     const 빠진것 = 라우트들.filter((틀) => !(틀 in 라우트표));
