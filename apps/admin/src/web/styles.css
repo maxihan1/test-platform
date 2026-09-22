@@ -532,9 +532,21 @@ select {
   padding: 7px 10px;
 }
 
-.toolbar input[type='text'] {
+/* 찾기 칸은 바깥 도구 줄 **안의 한 덩어리**다 (2026-09-22). 찾기와 조건 칩이 각자 줄을
+   만들던 것을 한 줄로 합쳤다 — 둘이면 132px 을 먹는다.
+   `display: contents` 를 쓰지 않는다 — 그러면 `form` 의 접근성 역할이 사라진다 */
+.toolbar .find {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.toolbar input[type='text'],
+.toolbar .find input[type='text'] {
   flex: 1;
-  min-width: 180px;
+  min-width: 140px;
 }
 
 input:focus,

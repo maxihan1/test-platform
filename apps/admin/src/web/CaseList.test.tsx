@@ -90,6 +90,53 @@ describe('CaseList 집계 띠', () => {
   });
 });
 
+// 창 794px 중 564px 을 위아래 UI 가 먼저 가져가 표에 206px(1.5줄)만 남았다 (2026-09-22 실측).
+// 스캔 줄 49px 과 필터 둘째 줄 66px 이 그 안에 있다
+describe('스캔 결과가 화면 머리에 있다 (SPEC §8.1, 2026-09-22)', () => {
+  const 스캔 = {
+    scannedAt: '2026-09-22T05:51:00.000Z',
+    added: 0,
+    updated: 11,
+    deactivated: 0,
+    duplicates: [],
+  };
+
+  async function 스캔그리기(값: unknown, 오류: unknown = null) {
+    vi.spyOn(api, 'lastByCase').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
+    vi.spyOn(api, 'cases').mockImplementation((q) => 쪽주기(q.page ?? 1));
+    if (오류 === null) {
+      vi.spyOn(api, 'lastScan').mockResolvedValue(값 as never);
+    } else {
+      vi.spyOn(api, 'lastScan').mockRejectedValue(오류);
+    }
+    render(<CaseList service="ZPK" />);
+    await screen.findByText('ZPK-001');
+  }
+
+  it('스캔 결과가 화면 머리 안에 있고 따로 줄을 만들지 않는다', async () => {
+    await 스캔그리기(스캔);
+    await waitFor(() => {
+      expect(document.querySelector('.head')?.textContent ?? '').toMatch(/갱신 11/);
+    });
+    expect(document.querySelector('.scan'), '스캔 줄이 따로 서 있다').toBeNull();
+  });
+
+  // 카탈로그 §8.1 — 「스캔이 실패했으면 그 사유를 같은 자리에 보여준다」.
+  // 자리가 머리로 옮겨 가도 그 규칙은 따라간다
+  it('스캔이 실패하면 사유도 같은 자리에 뜬다', async () => {
+    await 스캔그리기(null, new ApiError(500, 'SCAN_FAILED', 'ZPK-001이 두 파일에 겹쳐 있습니다'));
+    await waitFor(() => {
+      expect(document.querySelector('.head')?.textContent ?? '').toContain('겹쳐 있습니다');
+    });
+  });
+
+  it('찾기와 조건 칩이 한 줄에 선다', async () => {
+    await 스캔그리기(스캔);
+    expect(document.querySelectorAll('.toolbar')).toHaveLength(1);
+  });
+});
+
 describe('CaseList 여러 건 고르기', () => {
   it('줄마다 고르는 칸이 있고 무엇을 고르는지 이름으로 읽힌다', async () => {
     await 그리기();
