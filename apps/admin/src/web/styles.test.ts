@@ -484,11 +484,13 @@ describe('넓은 상자가 표를 담을 만큼 크다 (DESIGN.md, 2026-09-22)',
     expect(Number(값)).toBe(1400);
   });
 
-  // 94vh 가 사실상 상한이다 — `.modal-back` 여백이 위아래 16px 이라 그 위로는 화면에 닿는다
-  it('상자 높이 상한이 94vh 다', () => {
-    const 값 = /max-height:\s*(\d+)vh/.exec(규칙('.modal'))?.[1];
-    expect(값, '.modal 에 max-height 가 없다').toBeDefined();
-    expect(Number(값)).toBe(94);
+  // `94vh` 로 적으면 창이 533px 보다 낮을 때 덮개 여백 32px 과 합쳐 화면을 넘어
+  // 제목과 닫기가 밖으로 나간다 — 덮개에 스크롤이 없어 닿을 길도 없다 (2026-09-22).
+  // 빼는 값을 적어야 어느 창 높이에서도 안 넘친다
+  it('상자 높이가 덮개 여백을 뺀 만큼이다 — vh 만 적지 않는다', () => {
+    const 블록 = 규칙('.modal');
+    expect(블록, '.modal 에 max-height 가 없다').toMatch(/max-height:/);
+    expect(블록, '창 높이에서 덮개 여백을 안 뺐다').toMatch(/max-height:\s*calc\(100vh\s*-\s*\d+px\)/);
   });
 
   // 좁은 화면 규칙은 안 건드린다 — 폭은 상한일 뿐이고 상자는 창을 따라간다
