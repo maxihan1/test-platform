@@ -180,6 +180,7 @@ export function 대기줄전제(env: Record<string, string | undefined>): string
 export interface 집은것 {
   id: number;
   kind: 'AUTHOR' | 'RERUN' | 'MERGE';
+  sourceId?: number | null;
   specText?: string;
   prUrl?: string | null;
 }
@@ -208,12 +209,34 @@ export function 줄프롬프트(것: 집은것, 서비스: string): string {
     '   남의 작업방과 브랜치는 절대 건드리지 마라. 네 것을 새로 만들어라.',
     '5. **미커밋 변경이 있어도 버리지 마라.** 다른 사람이 작업 중일 수 있다.',
     '   임시 커밋을 쓰거나 별도 작업방으로 가라. 지우는 쪽은 고르지 마라.',
+    `6. **다 끝나면 마지막 줄에 \`${PR표시} <초안 PR 주소>\` 를 그대로 찍어라.**`,
+    '   그 줄이 없으면 화면이 PR 을 못 찾아 **머지 버튼이 영영 안 뜬다.**',
     '',
     '관문 넷(형식·표 대조·3회 연속·일부러 부수기)은 전부 돌려라.',
     '',
     '--- 기획서 ---',
     것.specText ?? '',
   ].join('\n');
+}
+
+/**
+ * 자식 세션이 만든 초안 PR 주소를 찍는 표시.
+ *
+ * **이 줄이 없으면 머지까지 가는 길이 끊긴다** (2026-09-23 검토가 잡았다).
+ * 서버는 `finish` 에 `pr_url` 이 실려야 머지를 열어 주고(`도메인/작성` §7),
+ * 화면도 그 값이 있어야 버튼을 그린다. **아무도 안 적으면 「끝남」 줄만 남고
+ * 거기서 할 수 있는 일이 하나도 없다.**
+ */
+export const PR표시 = '@@PR@@';
+
+/** 자식이 흘린 출력에서 초안 PR 주소를 찾는다. 없으면 `null` — 지어내지 않는다 */
+export function PR주소찾기(출력: string): string | null {
+  const 줄들 = 출력.split('\n').filter((줄) => 줄.includes(PR표시));
+  // 여러 줄이면 **마지막** 것이다. 자식이 프롬프트를 되읽어 찍는 경우가 있다
+  const 마지막 = 줄들[줄들.length - 1];
+  if (마지막 === undefined) return null;
+  const 찾은것 = /https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/.exec(마지막);
+  return 찾은것?.[0] ?? null;
 }
 
 /** 머지 요청을 실제로 칠 수 있나. 올릴 PR 주소가 없으면 할 일이 없다 */
@@ -238,6 +261,27 @@ export function admin주소(env: Record<string, string | undefined>): string {
 }
 
 /**
+ * 그 주소로 비밀번호를 보내도 되나. 막으면 사유를, 괜찮으면 `null`.
+ *
+ * **평문(`http://`)으로 남의 기계에 비밀번호를 보내면 사내망에 그대로 흐른다**
+ * (2026-09-23 검토가 잡았다). 같은 기계(`localhost`·`127.0.0.1`)는 망을 안 타므로 예외다.
+ */
+export function 주소안전한가(주소: string): string | null {
+  let 판: URL;
+  try {
+    판 = new URL(주소);
+  } catch {
+    return `PLATFORM_ADMIN_URL 이 주소 모양이 아니다: ${주소}`;
+  }
+  if (판.protocol === 'https:') return null;
+  if (판.hostname === 'localhost' ||판.hostname === '127.0.0.1' || 판.hostname === '::1') return null;
+  return [
+    `${주소} 는 평문(http)이다. 비밀번호가 망에 그대로 흐른다.`,
+    'https 주소를 쓰거나, 같은 기계에서 띄웠으면 localhost 를 써라.',
+  ].join('\n');
+}
+
+/**
  * 다시 물어도 소용없는 답인가.
  *
  * **거절은 기다린다고 안 풀린다.** 세션이 끊겼거나 등급이 모자란 것이고, 둘 다 사람이 손대야 한다.
@@ -247,6 +291,37 @@ export function admin주소(env: Record<string, string | undefined>): string {
  */
 export function 거절인가(status: number): boolean {
   return status === 401 || status === 403;
+}
+
+/**
+ * 집기 응답이 **진짜 집은 한 건**인가.
+ *
+ * **「204 가 아니면 집은 것」으로 가르면 안 된다** (2026-09-23 검토가 잡았다).
+ * 서버가 500 을 내면 Fastify 가 오류 본문을 JSON 으로 실어 보내는데, 그것이
+ * 「집은 한 건」으로 통과해 **번호가 `undefined` 인 채로 빈 기획서를 `claude` 에 먹인다.**
+ * DB 가 죽어 있는 동안 그 짓을 **쉬지도 않고 반복**한다 — 이 저장소가 과금 안전핀에
+ * 들인 공이 그 문 뒤에서 통째로 샌다.
+ *
+ * 그래서 **200 이고 번호가 숫자일 때만** 받는다.
+ */
+export function 집은것인가(status: number, 몸: unknown): 몸 is 집은것 {
+  if (status !== 200 || 몸 === null || typeof 몸 !== 'object') return false;
+  const id = (몸 as { id?: unknown }).id;
+  return typeof id === 'number' && Number.isInteger(id);
+}
+
+/**
+ * 다시 물어볼 만한 실패인가.
+ *
+ * **서버가 잠깐 죽었다고 맥까지 죽으면 안 된다** (2026-09-23 검토가 잡았다).
+ * `docker compose restart` 한 번이나 네트워크가 잠깐 흔들린 것만으로 맥이 끝나는데,
+ * **비밀번호를 저장하지 않기로 했으므로 사람이 와서 다시 칠 때까지 아무도 못 되살린다.**
+ * 밤새 켜 두는 프로그램이라는 전제와 정면으로 어긋난다.
+ *
+ * 던져서 끝내는 것은 **거절(401·403)뿐**이다 — 그것만이 기다린다고 안 풀린다.
+ */
+export function 기다렸다다시인가(status: number): boolean {
+  return status >= 500;
 }
 
 // ── 껍데기 ────────────────────────────────────────────────────────────
@@ -287,6 +362,16 @@ function 설정들읽기(): 설정자리[] {
  * 글자가 화면에 안 찍히게 출력을 가로챈다. 안 가리면 어깨너머로 보이고 터미널 기록에 남는다.
  */
 async function 비밀번호묻기(아이디: string): Promise<string> {
+  // **파일로 먹일 수 없게 막는다** (2026-09-23 검토가 잡았다).
+  // 안 막으면 `npm run authoring-agent < 비밀.txt` 가 그대로 통해서,
+  // 이 파일 머리가 「파일에 두면 그 파일이 열쇠가 된다」고 못박은 그 길이 열린 채로 남는다
+  if (process.stdin.isTTY !== true) {
+    throw new Error(
+      '비밀번호는 사람이 직접 쳐야 한다. 파일이나 파이프로 먹이지 마라 —\n' +
+        '그러면 그 파일이 열쇠가 되고, 이 프로그램이 비밀값을 안 남기려는 이유가 사라진다.',
+    );
+  }
+
   const 물음 = `${아이디} 의 비밀번호: `;
   process.stdout.write(물음);
 
@@ -314,7 +399,9 @@ async function 로그인(주소: string, 아이디: string, 비번: string): Pro
   });
   if (!답.ok) throw new Error(`로그인이 거절됐다 (${답.status}). 아이디와 비밀번호를 확인해라.`);
 
-  const 쿠키 = 답.headers.get('set-cookie') ?? '';
+  // 헤더를 통째로 되돌려 보내지 않는다 — 속성(Path·HttpOnly·SameSite)까지 같이 가면
+  // 서버가 쿠키를 하나 더 굽는 날 로그인이 조용히 깨진다. auth/gate.test.ts 가 같은 모양을 쓴다
+  const 쿠키 = (답.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
   const 몸 = (await 답.json()) as { user: { role: string; services: { prefix: string }[] } };
   if (몸.user.role === 'viewer') {
     throw new Error('이 계정은 보기만 등급이라 줄을 집을 수 없다. operator 로 바꿔라.');
@@ -349,49 +436,78 @@ async function 부른다(
 }
 
 /** 한 건을 끝까지 처리한다. 단계는 사람이 화면에서 보는 그 줄이다 */
-async function 한건처리(주소: string, 쿠키: string, 서비스: string, 것: 집은것): Promise<void> {
+async function 한건처리(주소기지: string, 쿠키: string, 서비스: string, 것: 집은것): Promise<void> {
   const 단계 = (글: string) =>
-    부른다(주소, 쿠키, `/authoring/requests/${것.id}/stage?service=${encodeURIComponent(서비스)}`, {
+    부른다(주소기지, 쿠키, `/authoring/requests/${것.id}/stage?service=${encodeURIComponent(서비스)}`, {
       method: 'PATCH',
       body: { stage: 글 },
     });
   const 끝내기 = (몸: Record<string, unknown>) =>
-    부른다(주소, 쿠키, `/authoring/requests/${것.id}/finish?service=${encodeURIComponent(서비스)}`, {
+    부른다(주소기지, 쿠키, `/authoring/requests/${것.id}/finish?service=${encodeURIComponent(서비스)}`, {
       method: 'POST',
       body: 몸,
     });
 
   if (것.kind === 'MERGE') {
+    // **머지 행에는 PR 주소가 안 실려 온다** — 서버가 줄을 세울 때 그 칸을 안 채운다
+    // (`authoring/store.ts` 의 `줄세우기`). 그래서 **원본 행을 읽어** 가져온다
+    // (2026-09-23 검토가 잡았다 — 안 읽으면 머지가 100% 실패한다).
+    let 주소 = 것.prUrl ?? null;
+    if (주소 === null && typeof 것.sourceId === 'number') {
+      const 원본 = await 부른다(
+        주소기지,
+        쿠키,
+        `/authoring/requests/${것.sourceId}?service=${encodeURIComponent(서비스)}`,
+      );
+      주소 = (원본.몸 as { prUrl?: string | null } | null)?.prUrl ?? null;
+    }
+
     // **맥은 판단하지 않는다.** 사람이 화면에서 이미 정했고 여기는 손일 뿐이다
-    if (!머지할수있나(것)) {
+    if (주소 === null) {
       await 끝내기({ status: 'FAILED', error: '머지할 초안 PR 주소가 없다' });
       return;
     }
     await 단계('머지하는 중');
-    const 친것 = spawnSync('gh', 머지인자(것.prUrl!), { stdio: ['ignore', 'inherit', 'inherit'] });
+    const 친것 = spawnSync('gh', 머지인자(주소), { stdio: ['ignore', 'inherit', 'inherit'] });
     await 끝내기(
       친것.status === 0
-        ? { status: 'DONE', prUrl: 것.prUrl }
+        ? { status: 'DONE', prUrl: 주소 }
         : { status: 'FAILED', error: '병합이 실패했다. 검사가 빨갛거나 충돌이 있다.' },
     );
     return;
   }
 
   await 단계('케이스를 만드는 중');
+  // **출력을 잡는다.** 자식이 찍는 PR 주소를 못 읽으면 화면에 머지 버튼이 영영 안 뜬다.
+  // 그래도 사람 눈에는 보여야 하므로(숨은 데몬이 아니다) 받는 족족 그대로 흘려보낸다
   const 돌린것 = spawnSync('claude', 클로드인자(), {
     input: 줄프롬프트(것, 서비스),
-    stdio: ['pipe', 'inherit', 'inherit'],
+    stdio: ['pipe', 'pipe', 'inherit'],
+    encoding: 'utf8',
   });
+  const 낸것 = 돌린것.stdout ?? '';
+  process.stdout.write(낸것);
 
   if (돌린것.error) {
     await 끝내기({ status: 'FAILED', error: `claude 를 못 띄웠다: ${돌린것.error.message}` });
     return;
   }
-  await 끝내기(
-    돌린것.status === 0
-      ? { status: 'DONE' }
-      : { status: 'FAILED', error: '케이스를 만들다 멈췄다. 터미널 기록을 봐라.' },
-  );
+  if (돌린것.status !== 0) {
+    await 끝내기({ status: 'FAILED', error: '케이스를 만들다 멈췄다. 터미널 기록을 봐라.' });
+    return;
+  }
+
+  const 주소 = PR주소찾기(낸것);
+  if (주소 === null) {
+    // **초록으로 닫지 않는다.** 주소가 없으면 사람이 머지를 못 누르고, 그때
+    // 「끝남」이라고 적힌 줄만 남아 무엇이 잘못됐는지 아무도 모른다
+    await 끝내기({
+      status: 'FAILED',
+      error: '케이스는 만들었는데 초안 PR 주소를 못 찾았다. 터미널 기록에서 PR 을 확인해라.',
+    });
+    return;
+  }
+  await 끝내기({ status: 'DONE', prUrl: 주소 });
 }
 
 const 쉬는시간 = 5000;
@@ -414,6 +530,12 @@ async function 돈다(): Promise<number> {
   }
 
   const 주소 = admin주소(process.env);
+  const 안전하지않음 = 주소안전한가(주소);
+  if (안전하지않음 !== null) {
+    console.error(`[거부] ${안전하지않음}`);
+    return 1;
+  }
+
   const 아이디 = process.env.AUTHORING_AGENT_USER!;
   console.log(`[작성] ${주소} 에 ${아이디} 로 로그인한다. 비밀번호는 어디에도 안 적는다.`);
 
@@ -435,23 +557,36 @@ async function 돈다(): Promise<number> {
   console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} — 멈추려면 Ctrl+C.`);
   for (;;) {
     let 집었나 = false;
-    try {
-      for (const 서비스 of 서비스들) {
+    for (const 서비스 of 서비스들) {
+      try {
         const 답 = await 부른다(주소, 쿠키, `/authoring/requests/claim?service=${encodeURIComponent(서비스)}`, {
           method: 'POST',
         });
-        if (답.status === 204 || 답.몸 === null) continue;
+        // **「204 가 아니면 집은 것」으로 가르지 않는다.** 500 의 오류 본문이
+        // 집은 한 건으로 통과하면 빈 기획서로 claude 를 끝없이 돌린다
+        if (!집은것인가(답.status, 답.몸)) {
+          if (기다렸다다시인가(답.status)) {
+            console.error(`[기다림] ${서비스} 집기가 ${답.status} 를 냈다. 잠시 뒤 다시 묻는다.`);
+          }
+          continue;
+        }
 
-        const 것 = 답.몸 as 집은것;
+        const 것 = 답.몸;
         console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}).`);
         집었나 = true;
         await 한건처리(주소, 쿠키, 서비스, 것);
         console.log(`[작성] ${것.id}번을 끝냈다.`);
+      } catch (err) {
+        const 글 = err instanceof Error ? err.message : String(err);
+        // **거절만 끝낸다.** 기다린다고 안 풀리고 사람이 손대야 한다
+        if (글.includes('서버가 거절했다')) {
+          console.error(`[멈춤] ${글}`);
+          return 1;
+        }
+        // 연결이 끊긴 것은 서버가 다시 뜨는 중일 수 있다. **여기서 죽으면
+        // 비밀번호를 저장 안 하므로 사람이 와서 다시 칠 때까지 아무도 못 되살린다**
+        console.error(`[기다림] ${서비스}: ${글}`);
       }
-    } catch (err) {
-      // 거절은 기다린다고 안 풀린다. 조용히 계속 돌면 요청마다 실패가 쌓인다
-      console.error(`[멈춤] ${err instanceof Error ? err.message : String(err)}`);
-      return 1;
     }
 
     if (!집었나) await new Promise((resolve) => setTimeout(resolve, 쉬는시간));

@@ -36,6 +36,8 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
   if (것.error !== null) return <Failed error={것.error} />;
   if (data === null) return <Loading />;
 
+  const 보 = 줄보임(data, Date.now());
+
   // **화면이 버튼을 안 그리는 것은 편의이지 방어가 아니다** — 서버 gate.ts 가 다시 막는다.
   // PR 주소가 없으면 머지할 대상 자체가 없다
   const 머지할수있나 = 할수있나(role, '작성머지') && data.status === 'DONE' && data.prUrl !== null;
@@ -46,8 +48,11 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
     set머지오류(null);
     try {
       // 사람이 여기서 정하고 맥이 집어 실행한다. 맥은 판단하지 않는다 (도메인/작성 §3.6)
-      await api.createAuthoringMerge(service, id);
-      reload();
+      const 선것 = await api.createAuthoringMerge(service, id);
+      // **방금 만든 줄로 보낸다** (2026-09-23 검토가 잡았다). 이 화면에 머물면
+      // 보고 있던 행은 그대로 `끝남` 이라 **아무 일도 안 일어난 것처럼 보이고**,
+      // 사람이 또 누른다 — 누를 때마다 머지 요청이 하나씩 더 선다
+      window.location.hash = `#/authoring/${선것.id}`;
     } catch (err) {
       set머지오류(message(err, 언어));
     } finally {
@@ -64,7 +69,12 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
       <div className="screen">
         <dl className="detail">
           <dt>{t('상태')}</dt>
-          <dd>{보임라벨(줄보임(data, Date.now()), 언어)}</dd>
+          <dd>
+            {보임라벨(보, 언어)}
+            {/* **알려 주기만 하고 길을 안 주면 안 된다.** 멈춘 행은 지금 되살릴 방법이 없다 —
+                집기는 대기 중인 것만 집고, 끝내기는 집은 쪽만 부를 수 있다 (2026-09-23 검토) */}
+            {보 === 'stalled' ? <small>{t('맥이 멈춘 것 같습니다. 새 요청으로 다시 넣으세요')}</small> : null}
+          </dd>
 
           <dt>{t('작업 단계')}</dt>
           <dd>{data.stage ?? t('기록 없음')}</dd>

@@ -7,8 +7,13 @@ import {
   admin주소,
   거절인가,
   과금위험,
+  기다렸다다시인가,
   대기줄전제,
   머지인자,
+  주소안전한가,
+  집은것인가,
+  PR주소찾기,
+  PR표시,
   머지할수있나,
   선행검사,
   오늘날짜,
@@ -74,6 +79,77 @@ describe('줄에서 집어 일한다', () => {
     const 인자 = 머지인자('https://github.com/x/y/pull/3');
     expect(인자.join(' ')).not.toMatch(/--force|-D\b|--admin/);
     expect(인자).toContain('--merge');
+  });
+});
+
+// 2026-09-23 검토가 잡은 자리들. **기능이 통째로 죽은 채로 검사가 전부 초록이었다**
+describe('집기 응답을 믿지 않는다 — 500 의 오류 본문이 「집은 한 건」이 되면 안 된다', () => {
+  it('200 이고 번호가 숫자여야 집은 것이다', () => {
+    expect(집은것인가(200, { id: 3, kind: 'AUTHOR' })).toBe(true);
+  });
+
+  it('줄이 비었다는 204 는 집은 것이 아니다', () => {
+    expect(집은것인가(204, null)).toBe(false);
+  });
+
+  // 이것을 안 막으면 번호가 undefined 인 채로 빈 기획서를 claude 에 먹이고 **쉬지도 않고 반복**한다
+  it('서버가 500 과 오류 본문을 내도 집은 것이 아니다', () => {
+    expect(집은것인가(500, { error: 'Internal Server Error', message: '어쩌고' })).toBe(false);
+  });
+
+  it('번호가 없거나 숫자가 아니면 집은 것이 아니다', () => {
+    expect(집은것인가(200, { kind: 'AUTHOR' })).toBe(false);
+    expect(집은것인가(200, { id: '3' })).toBe(false);
+  });
+
+  it('5xx 는 기다렸다 다시 묻는다. 서버가 잠깐 죽었다고 맥까지 죽으면 안 된다', () => {
+    expect(기다렸다다시인가(500)).toBe(true);
+    expect(기다렸다다시인가(503)).toBe(true);
+    expect(기다렸다다시인가(403)).toBe(false);
+  });
+});
+
+describe('초안 PR 주소를 잡아 온다 — 없으면 머지 버튼이 영영 안 뜬다', () => {
+  it('자식이 찍은 줄에서 주소를 찾는다', () => {
+    expect(PR주소찾기(`뭐라뭐라\n${PR표시} https://github.com/acme/pay/pull/12\n`)).toBe(
+      'https://github.com/acme/pay/pull/12',
+    );
+  });
+
+  it('여러 번 찍혔으면 마지막 것이다. 자식이 프롬프트를 되읽어 찍는 경우가 있다', () => {
+    const 출력 = `${PR표시} <초안 PR 주소>\n일하는 중\n${PR표시} https://github.com/a/b/pull/9`;
+    expect(PR주소찾기(출력)).toBe('https://github.com/a/b/pull/9');
+  });
+
+  it('표시가 없으면 null 이다. 지어내지 않는다', () => {
+    expect(PR주소찾기('케이스를 다 만들었다')).toBe(null);
+  });
+
+  it('표시는 있는데 주소 모양이 아니면 null 이다', () => {
+    expect(PR주소찾기(`${PR표시} 만들었어요`)).toBe(null);
+  });
+
+  it('자식에게 그 줄을 찍으라고 프롬프트가 시킨다', () => {
+    expect(줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'TODO')).toContain(PR표시);
+  });
+});
+
+describe('평문 주소로 비밀번호를 보내지 않는다', () => {
+  it('같은 기계는 괜찮다. 망을 안 탄다', () => {
+    expect(주소안전한가('http://localhost:3000')).toBe(null);
+    expect(주소안전한가('http://127.0.0.1:3000')).toBe(null);
+  });
+
+  it('https 는 괜찮다', () => {
+    expect(주소안전한가('https://qa.example.com')).toBe(null);
+  });
+
+  it('남의 기계에 평문으로 보내면 막는다. 비밀번호가 사내망에 그대로 흐른다', () => {
+    expect(주소안전한가('http://qa.example.com')).toMatch(/평문/);
+  });
+
+  it('주소 모양이 아니면 막는다', () => {
+    expect(주소안전한가('그냥글자')).toMatch(/주소 모양/);
   });
 });
 

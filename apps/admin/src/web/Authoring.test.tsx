@@ -56,7 +56,7 @@ describe('작성 줄 목록', () => {
     줄들.push(줄({ status: 'RUNNING', stage: '케이스 2건째', stageAt: new Date().toISOString() }));
     render(<Authoring service="PAY" />);
     expect(await screen.findByText('케이스 2건째')).toBeTruthy();
-    expect(screen.getByText('테스터')).toBeTruthy();
+    expect(screen.getByText(/테스터/)).toBeTruthy();
   });
 
   it('단계가 오래 안 바뀐 줄은 도는 중이 아니라 멈춘 듯으로 보인다', async () => {

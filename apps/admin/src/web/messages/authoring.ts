@@ -30,4 +30,6 @@ export const 작성말: Record<string, string> = {
   '집어 간 계정': 'Claimed by',
   '요청한 시각': 'Requested at',
   '초안 PR 열기': 'Open draft PR',
+  번호: 'No.',
+  '맥이 멈춘 것 같습니다. 새 요청으로 다시 넣으세요': 'The Mac looks stalled. Submit a new request',
 };

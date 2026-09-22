@@ -2669,3 +2669,23 @@ select:focus {
 /* 최근 판정 흐름(`.spark`)은 이 PR 에서 뺐다 — 최근 N회 데이터가 다음 PR 의
    이력 API 에서 온다. 조각과 규칙만 먼저 있으면 검사는 초록인데 화면에는 안 뜬다.
    되살릴 때의 규칙은 docs/design-mockup.html 에 그대로 남아 있다 (2026-09-21) */
+
+/* ── 테스트 작성 (도메인/작성 §3.6) ─────────────────────────────────
+   줄 격자는 실행 기록과 같은 `--run-cols` 를 그대로 쓴다. 칸 이름(`gutter`·`tcid`·
+   `title`·`right`)도 같아서 여기서 새로 정의할 것이 없다 — 새 목록을 만들 때마다
+   격자를 새로 짜면 줄 높이와 여백이 화면마다 달라진다 */
+
+/* 기획서를 붙여 넣는 자리. `.toolbar` 는 가로 한 줄이라 여러 줄 입력이 그 위에 그냥 얹힌다 */
+.authoring-new { align-items: flex-start; gap: 8px; }
+.authoring-new textarea {
+  flex: 1;
+  min-height: 84px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font: inherit;
+  resize: vertical;
+}
+
+/* 실패는 눈에 띄어야 한다. 본문 글씨 그대로면 사람이 그냥 지나친다 */
+.error-text { color: var(--fail); font-weight: 600; }
