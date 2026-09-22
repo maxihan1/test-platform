@@ -1,5 +1,9 @@
 // 작성 통로 검사 — 방어 다섯이 실제로 무는지 본다 (SPEC 도메인/작성 §7)
 
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -41,6 +45,10 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
     await pool.query('DELETE FROM authoring_request WHERE service_id = ANY($1)', [
       [서비스, 남의서비스],
     ]);
+
+    // 사진 뿌리를 검사가 스스로 정한다. 기본값 `/screenshots` 는 컨테이너 안 자리라
+    // CI 와 맥에서 못 쓴다 — 부르는 쪽에 맡기면 그 자리에서 권한 오류로 죽는다
+    process.env.SCREENSHOT_ROOT = await mkdtemp(join(tmpdir(), 'xwar-shots-'));
 
     부르는이 = `${접두사.toLowerCase()}-사람`;
     app = Fastify();

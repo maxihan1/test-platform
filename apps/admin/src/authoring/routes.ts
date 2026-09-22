@@ -20,8 +20,11 @@ import {
   type 상태,
 } from './store.js';
 
-// 사진이 내려앉는 뿌리. 러너 스크린샷과 같은 볼륨을 쓰되 폴더를 갈라 섞이지 않게 한다
-const 사진뿌리 = process.env.SCREENSHOT_ROOT ?? '/screenshots';
+// 사진이 내려앉는 뿌리. 러너 스크린샷과 같은 볼륨을 쓰되 폴더를 갈라 섞이지 않게 한다.
+// **쓸 때 읽는다** — 맨 위에서 잡으면 검사가 값을 바꿔도 이미 굳은 뒤라 컨테이너 안 자리에 쓰려 든다
+function 사진뿌리(): string {
+  return process.env.SCREENSHOT_ROOT ?? '/screenshots';
+}
 
 // 한 장 상한. 스크린샷 한 장이 이보다 크면 화면 캡처가 아니라 뭔가 잘못 온 것이다
 const 사진상한 = 20 * 1024 * 1024;
@@ -291,7 +294,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       }
 
       const 자리 = 사진자리(행.id);
-      const 폴더 = join(사진뿌리, 자리);
+      const 폴더 = join(사진뿌리(), 자리);
       await mkdir(폴더, { recursive: true });
       await writeFile(join(폴더, 이름), 몸);
       await 사진자리적기(행.id, 자리);
