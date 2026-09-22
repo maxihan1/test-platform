@@ -64,7 +64,7 @@ description: /tpx 체인 3단계 — 명세를 테스트 한 사이클 단위의
 
 | 할 일 | 무엇 | 검증 |
 |---|---|---|
-| 같은 규칙 찾기 | 고친 문장의 **핵심 낱말로 12장 전부 grep.** 절 번호로 찾지 않는다 | `grep -rn "<낱말>" docs/spec/` 결과를 계획에 붙인다 |
+| 같은 규칙 찾기 | 고친 문장의 **핵심 낱말로 `docs/spec/` 아래를 전부 grep.** 절 번호로 찾지 않는다 | `grep -rn "<낱말>" docs/spec/` 결과를 계획에 붙인다 |
 | 색인 네 곳 | 장 목록 · 절 번호 표 · 표 주인 · **라우터 표** | `npm run check:spec` |
 | SPEC 밖 여섯 곳 | WORKSTREAMS 킥오프 · spec-review·check:* · SETUP·HOOKS·DESIGN · WORKFLOW · design-mockup.html · **코드에 박힌 상수** | 곳마다 눈으로 |
 | 숫자 빼기 | 손으로 적은 개수를 **정본 표 가리키기로** 바꾼다 | `check:spec` 이 분량을 센다 |

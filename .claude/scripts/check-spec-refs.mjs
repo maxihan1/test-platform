@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// SPEC 이 12장으로 갈려 있어 절 번호가 유일한 주소다. 가리키는 번호가 실제로 있는지 본다 (spec-review H1)
+// SPEC 이 여러 장으로 갈려 있어 절 번호가 유일한 주소다. 가리키는 번호가 실제로 있는지 본다 (spec-review H1)
+// 장 수를 여기 적지 않는다 — 장이 늘면 이 주석만 뒤처진다. 세는 일은 아래 `전장` 이 한다
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 
@@ -63,24 +64,40 @@ for (const p of 장들) {
 
 // 색인이 적어 둔 분량이 실제와 맞는지 본다. 어긋나면 세션이 "4장 537줄"을 믿고 계획을 세운다
 const 틀린분량 = [];
+// 분류한 행을 센다. 판정이 여전히 「모양」 키라서 표 서식이 조금만 달라져도(굵게를 떼거나
+// 「N장 전부」에 괄호를 붙이거나) 그 행이 조용히 빠져나간다 — 그게 2026-09-19·2026-09-22 에
+// 두 번 난 사고다. 0 이면 이 검사는 아무것도 안 지키면서 초록만 내므로 터뜨린다 (2026-09-22)
+let 분량행 = 0;
+let 전량행 = 0;
 {
   const 줄수 = (rel) => readFileSync(path.join(ROOT, 'docs', rel), 'utf8').split('\n').length - 1;
-  // 「12장 전부」처럼 경로 대신 말로 적은 행이 있다. 경로가 있는 행만 세면 그 행은
+  // 「N장 전부」처럼 경로 대신 말로 적은 행이 있다. 경로가 있는 행만 세면 그 행은
   // 구조적으로 검사를 빠져나가고, 실제로 39줄 틀린 채 통과하고 있었다 (2026-09-19)
-  const 전장합 = 장들
-    .filter((p) => p !== path.join(ROOT, 'docs/SPEC.md'))
-    .reduce((n, p) => n + readFileSync(p, 'utf8').split('\n').length - 1, 0);
+  const 전장 = 장들.filter((p) => p !== path.join(ROOT, 'docs/SPEC.md'));
+  const 전장합 = 전장.reduce((n, p) => n + readFileSync(p, 'utf8').split('\n').length - 1, 0);
   readFileSync(path.join(ROOT, 'docs/SPEC.md'), 'utf8').split('\n').forEach((l, i) => {
-    // 경로가 없는 행을 전부 「12장 전부」로 보면, 뒤에 다른 분량 행이 생겼을 때
-    // 전장합과 대조해 터지면서 오류 문구가 원인을 안 가리킨다. 값이 아니라 키로 가른다
-    const 갈래 = l.startsWith('| **') && (l.includes('`spec/') || l.includes('12장 전부')) && l.match(/\| (\d+)줄 \|/);
-    if (갈래) {
-      const 합 = l.includes('`spec/')
-        ? [...l.matchAll(/`([^`]+)`/g)].reduce((n, m) => n + 줄수(`${m[1]}.md`), 0)
-        : 전장합;
-      if (합 !== Number(갈래[1])) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${갈래[1]}줄 · 실제 ${합}줄`);
+    // 같은 병이 두 번째다. 이번엔 그 행을 「12장 전부」라는 **글자**로 찾고 있었다 —
+    // 장이 하나 늘어 「13장 전부」로 적는 순간 행이 통째로 검사를 빠져나간다.
+    // 2026-09-22 에 글자만 바꿔 9999줄을 넣었더니 그대로 통과했다(EXIT=0).
+    // 그래서 값이 아니라 키로 가른다 — 「읽을 장」 칸이 경로면 그 경로들을, 「N장 전부」면 전 장을 센다.
+    // N 도 사람이 적는 숫자라 같이 대조한다 (CLAUDE.md §2.7 ⑤ — 세는 일은 기계가 한다).
+    // 칸이 둘 중 어느 것도 아니면 건드리지 않는다. 넓게 잡으면 남의 행을 전장합과 대조해
+    // 터지면서 오류 문구가 원인을 안 가리킨다
+    const 갈래 = l.startsWith('| **') && l.match(/^\|[^|]+\|([^|]+)\|\s*(\d+)줄\s*\|/);
+    const 읽을장 = 갈래 ? 갈래[1].trim() : '';
+    const 전부 = 갈래 && 읽을장.match(/^(\d+)장 전부$/);
+    if (갈래 && 읽을장.includes('`spec/')) {
+      분량행 += 1;
+      const 합 = [...읽을장.matchAll(/`([^`]+)`/g)].reduce((n, m) => n + 줄수(`${m[1]}.md`), 0);
+      if (합 !== Number(갈래[2])) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${갈래[2]}줄 · 실제 ${합}줄`);
+    } else if (전부) {
+      분량행 += 1;
+      전량행 += 1;
+      if (Number(전부[1]) !== 전장.length) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${전부[1]}장 · 실제 ${전장.length}장`);
+      if (전장합 !== Number(갈래[2])) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${갈래[2]}줄 · 실제 ${전장합}줄`);
     }
     const 장 = l.match(/^\| \[[^\]]+\]\((spec\/[^)]+\.md)\).*\| (\d+) \|/);
+    if (장) 분량행 += 1;
     if (장 && 줄수(장[1]) !== Number(장[2])) {
       틀린분량.push(`docs/SPEC.md:${i + 1}  ${장[1]} 적힌 ${장[2]}줄 · 실제 ${줄수(장[1])}줄`);
     }
@@ -122,13 +139,18 @@ for (const p of 장들) {
 console.log(`실재하는 절 ${[...있는절].sort().join(' · ')}`);
 console.log(`절 번호로 이 문서를 가리키는 곳 — SPEC 밖에 ${밖참조}군데`);
 console.log(`[계약 변경 필요] 블록 ${계약블록}건 · 상태 줄이 없거나 모양이 틀린 것 ${상태없음.length}건`);
-if (깨진참조.length || 깨진링크.length || 틀린분량.length || 상태없음.length || 계약블록 === 0) {
+console.log(`색인의 분량 행 ${분량행}건 (그중 「N장 전부」 ${전량행}건)`);
+if (깨진참조.length || 깨진링크.length || 틀린분량.length || 상태없음.length || 계약블록 === 0 || 분량행 === 0 || 전량행 !== 1) {
   if (깨진참조.length) console.error(`\n없는 절을 가리키는 곳 ${깨진참조.length}건\n${깨진참조.join('\n')}`);
   if (깨진링크.length) console.error(`\n깨진 링크 ${깨진링크.length}건\n${깨진링크.join('\n')}`);
   if (틀린분량.length) console.error(`\n색인 분량이 실제와 다른 곳 ${틀린분량.length}건\n${틀린분량.join('\n')}`);
   if (상태없음.length) console.error(`\n[계약 변경 필요] 블록에 상태 줄이 없는 곳 ${상태없음.length}건\n${상태없음.join('\n')}`);
   // 블록이 하나도 없으면 이 검사는 아무것도 안 지키면서 초록만 낸다. 조용히 무의미해지지 않게 터뜨린다
   if (계약블록 === 0) console.error('\n[계약 변경 필요] 블록이 하나도 없다 — 검사를 지울 때가 됐는지 보라');
+  // 판정이 「모양」 키라서 표 서식이 조금 달라지면 행이 통째로 빠져나간다. 0 이면 아무것도 안 지키면서
+  // 초록만 내고, 「N장 전부」가 하나가 아니면 갈래 표가 바뀐 것이다 — 둘 다 터뜨린다 (2026-09-22)
+  if (분량행 === 0) console.error('\n색인에서 분량 행을 하나도 못 알아봤다 — 표 서식이 바뀌었는지 보라');
+  if (전량행 !== 1) console.error(`\n「N장 전부」 행이 ${전량행}건이다 — 정확히 하나여야 한다. 표 서식이 바뀌었는지 보라`);
   process.exit(1);
 }
 console.log('통과 — 없는 절 0건 · 깨진 링크 0건 · 틀린 분량 0건 · 상태 줄 없는 블록 0건');
