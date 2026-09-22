@@ -1,5 +1,35 @@
 # WS-E 진행 기록 — 화면
 
+## 2026-09-22 — 화면 후속 다듬기 10건 (PR #54)
+
+- 완료: 1등급 체인(1 · 5 인라인 · 6 · 7). 계획 파일 없음
+  1. 케이스 상세를 넓은 모달로 — `Modal.tsx` 에 `넓게` 프롭 추가, `.modal.wide` 880px 신설.
+     DESIGN.md 가 880px 을 적어 두고 있었는데 **구현이 없었다**
+  2. 실행 결과 모달에서 「화면으로 열기」 제거. 그 정보를 모달 안으로 합쳤다
+  3. 설정의 「더하기」를 `+` 아이콘 버튼으로 (`.btn.icon`). 서비스·계정 둘 다
+  4·5. 사이드바 언어·로그아웃을 창 높이에 고정 — `.wrap` 에
+     `height: calc(100vh - var(--body-pad-top) - var(--body-pad-bottom))` + `align-items: stretch`
+  6. 사이드바 접었을 때 입력값 칸 공백 — `.row.pickable` 의 입력 칸을 `1fr` → `minmax(0, 300px)`
+  7. 「1개 더」 를 누르면 케이스 상세 모달에서 입력값을 **고칠 수 있게** 했다 (`Form` 재사용)
+  8·9. 결과 표시 축소 · 정렬
+  10. 목록 표만 스크롤 — `.screen.list-screen` + `.rows-scroll` + `position: sticky` 표머리.
+      CaseList · RunList · 모달 안 RunResult 가 같은 장치를 쓴다
+- 미완: 없음
+- 막힌 것: 없음
+- **다음 세션이 알아야 할 것**
+  - **`.device` 는 `width` 가 아니라 `min-width` 다.** 고정 폭으로 바꿨더니
+    `.device-none` 의 「실행 이력 없음」 이 한두 글자씩 네 줄로 흘렀다. 브라우저로 잡았다.
+    `white-space: nowrap` 이 같이 지킨다
+  - **`schema.ts` 의 `initialText()` 가 객체·배열 기본값을 `String()` 으로 찍어
+    `"[object Object]"` 를 만들고 있었다.** 원래 있던 버그인데 이번에 케이스 상세가
+    편집 가능해지며 **실제로 저장될 수 있는 값**이 됐다. `JSON.stringify` 로 고쳤다 —
+    `RunPickModal` 의 같은 버그도 같이 나았다. 자기검사(`/code-review`)가 잡았다
+  - **`--body-pad-top` · `--body-pad-bottom` 이 생겼다.** `body` 여백과 `.wrap` 높이가
+    같은 숫자를 봐야 해서다. 한쪽만 고치면 사이드바가 창보다 길거나 짧아진다
+  - 좁은 화면(620px 미만)은 `@media` 안에서 **전부 되돌렸다**. 거기는 페이지 전체가 스크롤한다
+  - 「화면으로 열기」 를 없앤 것은 되돌린 결정이라 `docs/LEARNINGS.md` 맨 위에 적어 뒀다.
+    `#/runs/:runId` 경로 자체는 살아 있다 — Slack 알림과 사이드바가 쓴다
+
 ## 2026-09-21 — 제도 청사진 스킨 (PR #35)
 
 - 완료: 일곱 단계 전부. 계획은 `docs/plans/2026-09-21-청사진스킨.md`
