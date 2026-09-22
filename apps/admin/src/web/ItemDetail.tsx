@@ -4,19 +4,22 @@
 import { useState } from 'react';
 
 import { api, type RunItemDetail, type StepResult } from './api.js';
+import { t, use말, use언어, type 언어 } from './i18n.js';
 import { fieldsOf } from './mask.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
 
 const MARK = { PASS: '✓', FAIL: '✗', NA: '–' } as const;
 
-function show(value: unknown): string {
+function show(value: unknown, 언어: 언어): string {
   if (value === null || value === undefined) return '—';
-  if (typeof value === 'boolean') return value ? '예' : '아니오';
+  if (typeof value === 'boolean') return value ? t('예', 언어) : t('아니오', 언어);
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }
 
 export function ItemDetail({ runId, historyId }: { runId: number; historyId: number }) {
+  const t말 = use말();
+  const 언어 = use언어();
   const detail = useAsync<RunItemDetail>(() => api.item(runId, historyId), [runId, historyId]);
   const item = detail.data;
 
@@ -25,18 +28,18 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
 
   // 라벨도 마스킹도 항목에 박제된 스키마로 한다. 카탈로그를 읽으면 케이스 코드를 고친 날
   // 반년 전 증적의 라벨이 같이 바뀐다 (SPEC §3.3). 비밀값은 표시가 없어도 이름으로 가린다 (§4.1)
-  const params = fieldsOf(item.params, item.paramSchema);
+  const params = fieldsOf(item.params, item.paramSchema, 언어);
 
   return (
     <div className="screen">
       <div className="bar">
         <div>
           <div className="case-tc">
-            {item.tcId} · 이력 {item.historyId} · {PLATFORM_LABEL[item.platform]}
+            {item.tcId} · {t말('이력 {번호}', { 번호: item.historyId })} · {PLATFORM_LABEL[item.platform]}
           </div>
           <div className="case-name">{item.tcName}</div>
           <div className="runmeta">
-            RUN {item.runId} {item.runTitle} · {when(item.finishedAt ?? item.startedAt)}
+            RUN {item.runId} {item.runTitle} · {when(item.finishedAt ?? item.startedAt, 언어)}
           </div>
         </div>
         <Verdict status={item.status} big />
@@ -44,15 +47,15 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
 
       {item.error === null ? null : (
         <div className="sec">
-          <div className="sec-h">실행이 멈춘 사유</div>
+          <div className="sec-h">{t말('실행이 멈춘 사유')}</div>
           <div className="scan-error">{item.error.message}</div>
         </div>
       )}
 
       <div className="sec">
-        <div className="sec-h">사전조건</div>
+        <div className="sec-h">{t말('사전조건')}</div>
         {item.precondition.length === 0 ? (
-          <p className="hint">선언된 사전조건이 없습니다.</p>
+          <p className="hint">{t말('선언된 사전조건이 없습니다.')}</p>
         ) : (
           item.precondition.map((line) => (
             <div className="pre" key={line}>
@@ -63,9 +66,9 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
       </div>
 
       <div className="sec">
-        <div className="sec-h">입력값</div>
+        <div className="sec-h">{t말('입력값')}</div>
         {params.length === 0 ? (
-          <p className="hint">입력 없음</p>
+          <p className="hint">{t말('입력 없음')}</p>
         ) : (
           params.map((field) => (
             <div className="field" key={field.key}>
@@ -77,21 +80,21 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
       </div>
 
       <div className="sec">
-        <div className="sec-h">시험 절차</div>
+        <div className="sec-h">{t말('시험 절차')}</div>
         {item.steps.length === 0 ? (
-          <p className="hint">실행된 절차가 없습니다.</p>
+          <p className="hint">{t말('실행된 절차가 없습니다.')}</p>
         ) : (
           item.steps.map((step) => <Step key={step.seq} step={step} item={item} />)
         )}
       </div>
 
       <div className="actions">
-        <span className="note">이 화면의 구성이 증적 문서에 그대로 출력됩니다.</span>
+        <span className="note">{t말('이 화면의 구성이 증적 문서에 그대로 출력됩니다.')}</span>
         <a className="btn ghost" href={`#/runs/${item.runId}`}>
-          실행 결과
+          {t말('실행 결과')}
         </a>
         <a className="btn" href={`#/cases/${encodeURIComponent(item.tcId)}/run`}>
-          값 바꿔 재실행
+          {t말('값 바꿔 재실행')}
         </a>
       </div>
     </div>
@@ -99,6 +102,8 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
 }
 
 function Step({ step, item }: { step: StepResult; item: RunItemDetail }) {
+  const t말 = use말();
+  const 언어 = use언어();
   const firstFail = step.assertions.findIndex((assertion) => assertion.status === 'FAIL');
   // capture:true로 찍은 스크린샷은 실패가 없다. 그때는 절차 끝에 붙인다
   const evidenceAtEnd = firstFail === -1;
@@ -132,12 +137,12 @@ function Step({ step, item }: { step: StepResult; item: RunItemDetail }) {
               {assertion.statement}
               {/* 이 문장이 뒤 절차를 멈추게 했다. 뒤가 왜 없는지 설명이 필요하다 (SPEC §8.4) */}
               {assertion.blocker === true && assertion.status === 'FAIL' ? (
-                <span className="blocker">실행 중단</span>
+                <span className="blocker">{t말('실행 중단§막음')}</span>
               ) : null}
             </span>
-            <span className="exp">기대 {show(assertion.expected)}</span>
+            <span className="exp">{t말('기대 {값}', { 값: show(assertion.expected, 언어) })}</span>
             <span className="act">
-              실제 <b>{show(assertion.actual)}</b>
+              {t말('실제')} <b>{show(assertion.actual, 언어)}</b>
             </span>
           </div>
           {index === firstFail ? attachments : null}
@@ -158,6 +163,7 @@ interface AttachmentProps {
 }
 
 function Attachments({ step, tcId, runId, historyId, className }: AttachmentProps) {
+  const t말 = use말();
   const hasTrace = step.httpTrace !== undefined;
   if (step.screenshotPath === undefined && step.line === undefined && !hasTrace) return null;
 
@@ -166,7 +172,10 @@ function Attachments({ step, tcId, runId, historyId, className }: AttachmentProp
       {step.screenshotPath === undefined ? null : (
         <div className="shot">
           <a href={api.screenshot(runId, historyId, step.seq)} target="_blank" rel="noreferrer">
-            <img src={api.screenshot(runId, historyId, step.seq)} alt={`${step.title} 실패 시점 화면`} />
+            <img
+              src={api.screenshot(runId, historyId, step.seq)}
+              alt={t말('{절차} 실패 시점 화면', { 절차: step.title })}
+            />
           </a>
         </div>
       )}
@@ -174,7 +183,7 @@ function Attachments({ step, tcId, runId, historyId, className }: AttachmentProp
       {/* API 케이스는 화면이 없다. 같은 자리에 요청·응답 원문을 남긴다 (SPEC §4) */}
       {!hasTrace ? null : (
         <details className="code">
-          <summary>요청·응답 원문</summary>
+          <summary>{t말('요청·응답 원문')}</summary>
           <pre>{JSON.stringify(step.httpTrace, null, 2)}</pre>
         </details>
       )}
@@ -186,18 +195,19 @@ function Attachments({ step, tcId, runId, historyId, className }: AttachmentProp
 
 // 코드 뷰는 기본 접힘이다. 이 플랫폼의 전제가 "코드를 몰라도 쓴다"이므로 펼쳐야 보인다 (SPEC §8.4)
 function CodeView({ tcId, line }: { tcId: string; line: number }) {
+  const t말 = use말();
   const [opened, setOpened] = useState(false);
   const source = useAsync(() => (opened ? api.source(tcId, line) : Promise.resolve(null)), [opened, tcId, line]);
 
   return (
     <details className="code" onToggle={(e) => setOpened(e.currentTarget.open)}>
-      <summary>실패 지점 코드</summary>
+      <summary>{t말('실패 지점 코드')}</summary>
       {source.error !== null ? (
         <p className="hint" style={{ color: 'var(--fail)' }}>
           {source.error}
         </p>
       ) : source.data === null ? (
-        <p className="hint">불러오는 중입니다.</p>
+        <p className="hint">{t말('불러오는 중입니다.')}</p>
       ) : (
         <pre>
           {source.data.lines.map((row) => (

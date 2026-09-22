@@ -5,6 +5,7 @@ import type { CaseRow, ItemStatus, LastScan, Platform } from './api.js';
 import { CaseDetail } from './CaseDetail.js';
 import { CaseRowParams, type 줄글자 } from './CaseRowParams.js';
 import { keyOf, type LastMap, 마지막판정, 빈이유 } from './catalogView.js';
+import { use말, use언어 } from './i18n.js';
 import { 판정흐름 } from './Summary.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
@@ -32,6 +33,8 @@ export function 찾기폼({
   onSearch: () => void;
   onClear: () => void;
 }) {
+  const t = use말();
+
   return (
     <form
       className="toolbar"
@@ -42,16 +45,16 @@ export function 찾기폼({
     >
       <input
         type="text"
-        placeholder="케이스 이름이나 ID로 찾기"
+        placeholder={t('케이스 이름이나 ID로 찾기')}
         value={typed}
         onChange={(e) => onTyped(e.target.value)}
       />
       <button className="chip" type="submit">
-        찾기
+        {t('찾기')}
       </button>
       {!건조건 ? null : (
         <button className="chip" type="button" onClick={onClear}>
-          조건 초기화
+          {t('조건 초기화')}
         </button>
       )}
     </form>
@@ -74,29 +77,55 @@ export function 조건칩들({
   on활성만: (값: boolean) => void;
   on결과: (값: ItemStatus | 'ALL') => void;
 }) {
+  const t = use말();
+
   return (
     <div className="toolbar">
-      <span className="filter-label">디바이스</span>
+      <span className="filter-label">{t('디바이스')}</span>
       {디바이스칩.map((값) => (
         <button className="chip" key={값} aria-pressed={디바이스 === 값} onClick={() => on디바이스(값)}>
-          {값 === 'ALL' ? '전체' : PLATFORM_LABEL[값]}
+          {값 === 'ALL' ? t('전체') : t(PLATFORM_LABEL[값])}
         </button>
       ))}
-      <span className="filter-label">표시</span>
+      <span className="filter-label">{t('표시')}</span>
       {/* 비활성 케이스는 기본으로 감춘다. 코드에서 사라진 케이스는 지우지 않고 남겨 두므로
           시간이 지날수록 목록이 과거로 채워진다 (SPEC §8.1) */}
       <button className="chip" aria-pressed={활성만} onClick={() => on활성만(true)}>
-        활성만
+        {t('활성만')}
       </button>
       <button className="chip" aria-pressed={!활성만} onClick={() => on활성만(false)}>
-        전체
+        {t('전체')}
       </button>
-      <span className="filter-label">마지막 결과</span>
+      <span className="filter-label">{t('마지막 결과')}</span>
       {결과칩.map((값) => (
         <button className="chip" key={값} aria-pressed={결과 === 값} onClick={() => on결과(값)}>
-          {결과라벨[값]}
+          {t(결과라벨[값])}
         </button>
       ))}
+    </div>
+  );
+}
+
+/**
+ * 목록 맨 위 표머리 (SPEC §8.1, 2026-09-22).
+ *
+ * **좁은 화면에서는 감춘다.** 줄이 2단으로 접혀 칸이 세로로 눕기 때문이다 —
+ * 케이스 목록은 §8 의 「좁은 화면에서 제대로 되는 둘」에 없다.
+ * 실행 기록은 다르다 (실행 §8.7 은 감추지 않고 줄마다 라벨을 붙인다).
+ *
+ * `<table>` 이 아니라 격자라서 `role` 로 칸 이름을 읽히게 한다.
+ */
+export function 표머리() {
+  const t = use말();
+  return (
+    <div className="rowhead" role="row">
+      <span aria-hidden="true" />
+      <span aria-hidden="true" />
+      {/* 두 언어가 같은 글자라 표를 안 탄다 */}
+      <span role="columnheader">TC ID</span>
+      <span role="columnheader">{t('케이스명')}</span>
+      <span role="columnheader">{t('입력값')}</span>
+      <span role="columnheader">{t('마지막 결과')}</span>
     </div>
   );
 }
@@ -121,7 +150,8 @@ export function 케이스줄({
   on값: (tcId: string, 어디: 'params' | 'expected', key: string, value: string) => void;
   on더보기: (tcId: string) => void;
 }) {
-  const 상세칸 = `detail-${row.tcId}`;
+  const t = use말();
+  const 언어 = use언어();
 
   return (
     <>
@@ -135,13 +165,18 @@ export function 케이스줄({
           type="checkbox"
           checked={고름}
           // ID 만 읽으면 화면을 안 보는 사람에게는 무엇을 고르는지가 암호다
-          aria-label={`${row.tcId} ${row.name} 고르기`}
+          aria-label={t('{아이디} {이름} 고르기', { 아이디: row.tcId, 이름: row.name })}
           onChange={() => 뒤집기(row)}
         />
       </label>
       <div className="tcid">{row.tcId}</div>
+      {/* 입력 칸은 **케이스명 칸 밖**이다 (SPEC §8.1, 2026-09-22).
+          안에 넣으면 이름 아래에 칸이 붙어 한 줄이 두 덩어리로 보이고 표머리를 달 수 없다 */}
       <div className="title">
         {row.name}
+        <small>{t('지원 디바이스 {목록}', { 목록: row.platforms.map((p) => t(PLATFORM_LABEL[p])).join(', ') })}</small>
+      </div>
+      <div className="params">
         <CaseRowParams
           tcId={row.tcId}
           paramSchema={row.paramSchema}
@@ -150,7 +185,6 @@ export function 케이스줄({
           on값={(어디, key, value) => on값(row.tcId, 어디, key, value)}
           on더보기={() => on더보기(row.tcId)}
         />
-        <small>지원 디바이스 {row.platforms.map((p) => PLATFORM_LABEL[p]).join(', ')}</small>
       </div>
       <div className="right">
         <div className="devices">
@@ -158,14 +192,14 @@ export function 케이스줄({
             const result = 마지막[keyOf(row.tcId, platform)];
             return (
               <div className="device" key={platform}>
-                <span className="device-name">{PLATFORM_LABEL[platform]}</span>
+                <span className="device-name">{t(PLATFORM_LABEL[platform])}</span>
                 {result === undefined ? (
-                  <span className="device-none">기록 없음</span>
+                  <span className="device-none">{t('실행 이력 없음')}</span>
                 ) : (
                   <>
                     <a
                       href={`#/runs/${result.runId}/items/${result.historyId}`}
-                      title={`${when(result.finishedAt)} · ${seconds(result.durationMs)}`}
+                      title={`${when(result.finishedAt, 언어)} · ${seconds(result.durationMs, 언어)}`}
                     >
                       <Verdict status={result.status} />
                     </a>
@@ -177,25 +211,27 @@ export function 케이스줄({
             );
           })}
         </div>
-        {/* 눌러야 상세가 보인다. aria-controls 가 없으면 화면을 안 보는 사람은
-            「폈다」는 말만 듣고 무엇이 펴졌는지 못 찾는다 (DESIGN.md 접근성 기준) */}
+        {/* 눌러서 여는 상자다. 화면을 안 보는 사람에게 「상자가 열린다」를 미리 알린다
+            (DESIGN.md 접근성 기준 · 2026-09-22 에 펼침에서 상자로) */}
         <button
           type="button"
           className="btn small ghost"
-          aria-expanded={폈나}
-          aria-controls={상세칸}
+          aria-haspopup="dialog"
           onClick={() => on더보기(row.tcId)}
         >
-          상세
+          {t('상세')}
         </button>
         <a className="btn small" href={`#/cases/${encodeURIComponent(row.tcId)}/run`}>
-          실행
+          {t('실행')}
         </a>
       </div>
     </div>
-    <div id={상세칸}>
-      <CaseDetail row={row} 폈나={폈나} 마지막={마지막[keyOf(row.tcId, row.platforms[0] ?? 'desktop')]} />
-    </div>
+    <CaseDetail
+      row={row}
+      폈나={폈나}
+      마지막={마지막[keyOf(row.tcId, row.platforms[0] ?? 'desktop')]}
+      onClose={() => on더보기(row.tcId)}
+    />
     </>
   );
 }
@@ -215,7 +251,7 @@ export function Empty({
   onScan: () => void;
   onClear: () => void;
 }) {
-  const 것 = 빈이유(형편);
+  const 것 = 빈이유(형편, use언어());
   // 검색에 안 걸린 것만 「지우기」다. 나머지 둘은 다시 훑는 길을 준다
   const 누르면 = 형편.건조건 ? onClear : onScan;
 
@@ -231,17 +267,34 @@ export function Empty({
 }
 
 export function ScanInfo({ scan, error }: { scan: LastScan | null; error: string | null }) {
+  const t = use말();
+  const 언어 = use언어();
+
+  // 서버가 준 사유 원문은 번역하지 않는다 — 어느 케이스가 왜 걸렸는지가 원문에 들어 있다
   if (error !== null) return <span className="scan-error">{error}</span>;
-  if (scan === null) return <span className="scan-text">아직 스캔 기록이 없습니다.</span>;
+  if (scan === null) return <span className="scan-text">{t('아직 스캔 기록이 없습니다.')}</span>;
 
   return (
     <>
       <span className="scan-text">
-        마지막 스캔 {when(scan.scannedAt)} · 추가 {scan.added} · 갱신 {scan.updated} · 비활성 {scan.deactivated}
+        {t('마지막 스캔 {때} · 추가 {추가} · 갱신 {갱신} · 비활성 {비활성}', {
+          때: when(scan.scannedAt, 언어),
+          추가: scan.added,
+          갱신: scan.updated,
+          비활성: scan.deactivated,
+        })}
       </span>
       {scan.duplicates.length === 0 ? null : (
         <span className="scan-error">
-          {scan.duplicates.map((dup) => `${dup.tcId}이 ${dup.files[0]}와 ${dup.files[1]}에 겹쳐 있습니다.`).join('\n')}
+          {scan.duplicates
+            .map((dup) =>
+              t('{아이디}이 {파일1}와 {파일2}에 겹쳐 있습니다.', {
+                아이디: dup.tcId,
+                파일1: dup.files[0],
+                파일2: dup.files[1],
+              }),
+            )
+            .join('\n')}
         </span>
       )}
       {scan.error === undefined ? null : <span className="scan-error">{scan.error}</span>}

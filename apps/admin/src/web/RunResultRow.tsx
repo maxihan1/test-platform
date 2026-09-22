@@ -3,6 +3,7 @@
 
 import type { ItemStatus, Platform, RunItemSummary } from './api.js';
 import { type CaseGroup, 회차요약 } from './group.js';
+import { use말, use언어 } from './i18n.js';
 import { 한줄로 } from './mask.js';
 import { 칸사유 } from './runState.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict } from './ui.js';
@@ -25,13 +26,15 @@ export function 결과줄({
   columns: Platform[];
   runId: number;
 }) {
+  const t = use말();
+  const 언어 = use언어();
   const 칸들 = columns
     .map((platform) => group.byPlatform[platform])
     .filter((칸): 칸 is RunItemSummary[] => 칸 !== undefined && 칸.length > 0);
   const 첫항목 = 칸들[0]?.[0];
-  const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema);
+  const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema, 언어);
   // 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3)
-  const 사유 = 칸사유(칸들.flat());
+  const 사유 = 칸사유(칸들.flat(), 언어);
 
   return (
     <div className="row">
@@ -63,7 +66,7 @@ export function 결과줄({
         </div>
         {첫항목 === undefined ? null : (
           <a className="btn small" href={`#/runs/${runId}/items/${첫항목.historyId}`}>
-            상세
+            {t('상세')}
           </a>
         )}
       </div>
@@ -78,9 +81,12 @@ export function 결과줄({
  * 어느 회차가 깨졌는지는 상세에서 본다 — 목록은 회차를 펼치지 않는다.
  */
 function Verdicts({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
+  const t = use말();
+  const 언어 = use언어();
+
   // 아직 안 끝난 것이 하나라도 있으면 도는 중이다. 실행이 끝나야 판정이 들어간다 (SPEC §3.2)
   if (칸.some((item) => item.finishedAt === null)) {
-    return <span className="device-none">도는 중</span>;
+    return <span className="device-none">{t('진행 중')}</span>;
   }
 
   const 요약 = 회차요약(칸);
@@ -98,8 +104,7 @@ function Verdicts({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
         )}
       </a>
       <span className="device-dur">
-        {seconds(요약.평균소요ms)}
-        {요약.회차수 > 1 ? ' 평균' : ''}
+        {요약.회차수 > 1 ? t('{시간} 평균', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}
       </span>
     </>
   );

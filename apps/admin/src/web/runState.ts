@@ -1,14 +1,8 @@
 // 실행 묶음의 상태 하나를 화면 두 곳이 같은 규칙으로 읽는다 (SPEC §8.3 · §8.7)
 // 자동 갱신을 멈출지도, 멈춤 버튼을 보일지도 전부 이 값으로 정한다 — 화면이 따로 상태를 들지 않는다
 
+import { t, type 언어 } from './i18n.js';
 import { 할수있나, type 등급 } from './role.js';
-
-const 라벨: Record<string, string> = {
-  RUNNING: '도는 중',
-  FINISHED: '끝남',
-  // 사람이 끊어서 끝난 것과 끝까지 돌아서 끝난 것은 증적에서 구분돼야 한다 (SPEC §3.2)
-  ABORTED: '중단됨',
-};
 
 /**
  * 아직 도는 중인가. 2초 자동 갱신을 이 값으로 멈춘다.
@@ -25,8 +19,12 @@ export function 도는중(status: string): boolean {
 }
 
 /** 모르는 상태는 그 글자를 그대로 보여준다. 지어내면 무엇이 일어났는지 숨긴다 */
-export function 상태라벨(status: string): string {
-  return 라벨[status] ?? status;
+export function 상태라벨(status: string, 언어: 언어): string {
+  if (status === 'RUNNING') return t('진행 중', 언어);
+  if (status === 'FINISHED') return t('완료', 언어);
+  // 사람이 끊어서 끝난 것과 끝까지 돌아서 끝난 것은 증적에서 구분돼야 한다 (SPEC §3.2)
+  if (status === 'ABORTED') return t('중단', 언어);
+  return status;
 }
 
 /**
@@ -53,11 +51,12 @@ const 사람이멈춤 = 'ABORTED';
  * **원문 오류(스택·주소·포트)는 목록에 쓰지 않는다.** 이 도구의 전제는 「코드를 몰라도 쓴다」다.
  * 못 알아볼 값이 오면 러너에 닿지 못한 것으로 적고 원문은 상세의 접힌 자리에 남긴다.
  */
-export function 미실행사유(error: { message: string } | null): string | null {
+export function 미실행사유(error: { message: string } | null, 언어: 언어): string | null {
   if (error === null) return null;
-  if (error.message === 사람이멈춤) return '사용자가 멈춤';
-  // 한국어 문장이면 서버가 사람이 읽으라고 넣은 것이다. 영문·기호로 시작하면 원문 오류다
-  return /^[가-힣]/.test(error.message) ? error.message : '러너에 닿지 못했습니다';
+  if (error.message === 사람이멈춤) return t('사용자가 멈춤', 언어);
+  // 한국어 문장이면 서버가 사람이 읽으라고 넣은 것이다. 영문·기호로 시작하면 원문 오류다.
+  // 서버가 준 문장은 그대로 낸다 — 화면이 지어낸 글자가 아니라 옮길 표에 없다
+  return /^[가-힣]/.test(error.message) ? error.message : t('러너에 닿지 못했습니다', 언어);
 }
 
 /**
@@ -67,7 +66,8 @@ export function 미실행사유(error: { message: string } | null): string | nul
  * 완료 모달과 §8 알림 줄이 **같은 자리를 본다** — 그 실행 화면에 있던 사람은
  * 모달로 이미 알았으므로 다른 화면으로 옮겼을 때 줄이 또 뜨면 두 번 알리는 것이다.
  */
-const 본것키 = '끝난실행';
+// 한국어 키를 쓰지 않는다. 화면 글자를 세는 그물(`messages.test.ts`)이 저장소 키까지 같이 센다
+const 본것키 = 'finished-runs';
 
 function 본것들(): Set<number> {
   try {
@@ -117,9 +117,9 @@ export function 끝났다고알릴까(그것: { 전: string; 후: string; runId:
  *
  * 정기 실행은 따로 가르지 않는다. `scripts/run-scheduled.ts` 가 이름을 `스케줄러` 로 박아 넣는다.
  */
-export function 실행자이름(run: { triggeredBy: string; triggeredByName: string | null }): string {
+export function 실행자이름(run: { triggeredBy: string; triggeredByName: string | null }, 언어: 언어): string {
   const 이름 = run.triggeredByName;
-  return 이름 === null || 이름 === '' ? '실행자 미상 (인증 도입 이전)' : 이름;
+  return 이름 === null || 이름 === '' ? t('실행자 미상 (인증 도입 이전)', 언어) : 이름;
 }
 
 /**
@@ -130,6 +130,6 @@ export function 실행자이름(run: { triggeredBy: string; triggeredByName: str
  * 「러너에 닿지 못했습니다」로 바뀐다 — **그냥 실패한 테스트가 러너 장애로 보인다.**
  * §8.3 이 둘을 구분하라고 한 자리를 오히려 뒤섞는 셈이다.
  */
-export function 칸사유(칸: { status: string; error: { message: string } | null }[]): string | null {
-  return 칸.filter((i) => i.status === 'NA').map((i) => 미실행사유(i.error)).find((r) => r !== null) ?? null;
+export function 칸사유(칸: { status: string; error: { message: string } | null }[], 언어: 언어): string | null {
+  return 칸.filter((i) => i.status === 'NA').map((i) => 미실행사유(i.error, 언어)).find((r) => r !== null) ?? null;
 }

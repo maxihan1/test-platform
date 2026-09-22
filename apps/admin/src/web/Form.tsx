@@ -1,6 +1,7 @@
 // 스키마에서 뽑은 칸을 화면 컨트롤로 그린다 (DESIGN.md 폼 자동 생성 규칙)
 // 값은 전부 글자로 들고 있다가 보낼 때 schema.ts의 toValues가 명세 타입으로 되돌린다
 
+import { use말 } from './i18n.js';
 import type { Field } from './schema.js';
 
 interface Props {
@@ -22,18 +23,20 @@ const NO = '아니오';
  * **왜 늘 적나** — 값을 고칠 수는 있는데 「원래 값이 무엇이었나」를 볼 자리가 없었다.
  * 코드를 열어야 알 수 있으면 화면에서 값을 고치라고 해 놓고 판단할 근거를 안 준 것이다 (2026-09-21).
  */
-function 기본값글자(field: Field): string | null {
+function 기본값글자(field: Field, t: (키: string) => string): string | null {
   if (field.default === undefined || field.default === null) return null;
   // 비밀값은 기본값도 가린다. 화면·증적과 같은 기준이다 (SPEC §4.1)
   if (field.secret) return '********';
-  if (typeof field.default === 'boolean') return field.default ? YES : NO;
+  if (typeof field.default === 'boolean') return t(field.default ? YES : NO);
   if (typeof field.default === 'object') return JSON.stringify(field.default);
   return String(field.default);
 }
 
 export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
+  const t = use말();
+
   if (fields.length === 0) {
-    return <p className="hint">이 케이스는 입력값을 선언하지 않았습니다.</p>;
+    return <p className="hint">{t('이 케이스는 입력값을 선언하지 않았습니다.')}</p>;
   }
 
   return (
@@ -42,19 +45,19 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
         const id = `${idPrefix}-${field.key}`;
         const value = text[field.key] ?? '';
         const error = errors[field.key];
-        const 기본값 = 기본값글자(field);
+        const 기본값 = 기본값글자(field, t);
         // 빈 칸은 「지웠다」이지 「기본값 그대로」가 아니다. 그것도 바뀐 것으로 센다
         const 바뀜 = 기본값 !== null && value !== 기본값;
 
         return (
           <div className="field" key={field.key}>
             <label htmlFor={id}>
-              {field.label} {field.optional ? <span className="opt">선택</span> : null}
+              {field.label} {field.optional ? <span className="opt">{t('선택')}</span> : null}
             </label>
             <div>
               {field.kind === 'enum' ? (
                 <select id={id} value={value} onChange={(e) => onChange(field.key, e.target.value)}>
-                  {field.optional ? <option value="">고르지 않음</option> : null}
+                  {field.optional ? <option value="">{t('고르지 않음')}</option> : null}
                   {(field.options ?? []).map((option) => (
                     <option key={option} value={option}>
                       {option}
@@ -68,8 +71,8 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
                   value={value}
                   onChange={(e) => onChange(field.key, e.target.value)}
                 >
-                  <option value="true">{YES}</option>
-                  <option value="false">{NO}</option>
+                  <option value="true">{t(YES)}</option>
+                  <option value="false">{t(NO)}</option>
                 </select>
               ) : (
                 <input
@@ -90,8 +93,8 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
             {기본값 === null ? null : (
               <div className={바뀜 ? 'deflt changed' : 'deflt'}>
                 {바뀜 ? <span className="mark" aria-hidden="true" /> : null}
-                기본값 {바뀜 ? <s>{기본값}</s> : 기본값}
-                {바뀜 ? ' 에서 바꿈' : ''}
+                {t('기본값')} {바뀜 ? <s>{기본값}</s> : 기본값}
+                {바뀜 ? ' ' + t('에서 바꿈') : ''}
               </div>
             )}
             {/* 사유는 칸 아래 한 줄. 버튼은 비활성화하지 않는다 (SPEC §8.2) */}

@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 
 import type { CaseRow, RunRequestItem, ServiceRow } from './api.js';
 import { Form } from './Form.js';
+import { use말 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type 고친값표, type 글자표, 몇건, 실행항목 } from './pickRun.js';
 import { 넘었나, 상한 } from './runPlan.js';
@@ -51,6 +52,7 @@ interface Props {
 const 오류없음: Record<string, string> = {};
 
 export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안내, 거는중, onClose, on값고침, onRun }: Props) {
+  const t = use말();
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2)
   const [env, setEnv] = useState('');
   const [repeat, setRepeat] = useState('1');
@@ -102,8 +104,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
   const 줄 =
     notice ??
     (너무많나
-      ? `한 번에 ${String(상한)}건까지 만들 수 있습니다 (지금 ${String(건수)}건)`
-      : (사유 ?? `실행 항목이 ${String(건수)}건 생깁니다`));
+      ? t('한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)', { 상한, 지금: 건수 })
+      : (사유 ?? t('실행 항목이 {건수}건 생깁니다', { 건수 })));
   const 빨갛나 = notice !== null || 너무많나 || 사유 !== undefined;
 
   /**
@@ -132,7 +134,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
   function 실행() {
     if (env === '') {
       // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
-      setNotice('대상 서버를 고르세요. 어느 서버에 쐈는지가 증적의 전제입니다.');
+      setNotice(t('대상 서버를 고르세요. 어느 서버에 쐈는지가 증적의 전제입니다.'));
       return;
     }
     onRun({
@@ -146,7 +148,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
 
   return (
     <Modal
-      제목={`실행할 케이스 ${String(케이스들.length)}건`}
+      제목={t('실행할 케이스 {건수}건', { 건수: 케이스들.length })}
       onClose={onClose}
       버튼={
         <>
@@ -155,21 +157,21 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
             {줄}
           </span>
           <button className="btn ghost" onClick={onClose}>
-            취소
+            {t('취소')}
           </button>
           {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
           {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
           <button className="btn" onClick={실행} disabled={너무많나 || 거는중 === true}>
-            {거는중 === true ? '실행을 거는 중' : '실행'}
+            {거는중 === true ? t('실행을 거는 중') : t('실행')}
           </button>
         </>
       }
     >
       <div className="mhead">
-        <label htmlFor="pick-env">대상 서버</label>
+        <label htmlFor="pick-env">{t('대상 서버')}</label>
         <select id="pick-env" value={env} onChange={(e) => { 손댐(); setEnv(e.target.value); }}>
           {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
-          <option value="">고르세요</option>
+          <option value="">{t('고르세요')}</option>
           {(service?.envs ?? []).map((it) => (
             <option key={it.env} value={it.env}>
               {it.env}
@@ -199,7 +201,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
                 <span className="dev">{c.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ')}</span>
               </div>
               {!값있나 || 칸 === undefined ? (
-                <p className="prow-none">선언된 입력값이 없습니다. 그대로 실행됩니다</p>
+                <p className="prow-none">{t('선언된 입력값이 없습니다. 그대로 실행됩니다')}</p>
               ) : (
                 <div className="prow-edit">
                   {칸.params.length === 0 ? null : (
@@ -229,7 +231,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
       </div>
 
       <div className="mfoot">
-        <label htmlFor="pick-repeat">반복</label>
+        <label htmlFor="pick-repeat">{t('반복')}</label>
         {/* 새로 쓴 테스트가 매번 같은 결과를 내는지 여러 번 돌려 본다 (SPEC §3.2 · §5.2) */}
         <input
           type="text"
@@ -246,7 +248,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
               checked={notifySlack}
               onChange={(e) => { setNotifySlack(e.target.checked); }}
             />
-            끝나면 Slack 알리기
+            {t('끝나면 Slack 으로 알리기')}
           </label>
         )}
       </div>

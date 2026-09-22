@@ -468,7 +468,9 @@ describe('CaseList 화면 머리 (2026-09-22)', () => {
 
     const 머리 = container.querySelector('.head');
     expect(머리).not.toBeNull();
-    expect(머리?.querySelector('h1')?.textContent).toBe('테스트 케이스');
+    // 자리 이름(`테스트 케이스`)과 화면 제목(`테스트케이스 목록`)은 다른 말을 한다 (SPEC §8, 2026-09-22).
+    // 같으면 한 화면이 같은 말을 두 번 한다
+    expect(머리?.querySelector('h1')?.textContent).toBe('테스트케이스 목록');
     // 「다시 스캔」과 실행 버튼은 이 화면에서 가장 흔한 다음 행동이라 머리에 선다
     expect(머리?.textContent).toContain('다시 스캔');
     expect(머리?.textContent).toContain('실행');

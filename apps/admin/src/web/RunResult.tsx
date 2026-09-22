@@ -7,6 +7,7 @@ import { api, type ItemStatus, type Platform, type 항목진행 } from './api.js
 import { filterGroups, groupByCase } from './group.js';
 import { Head } from './Head.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
+import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import type { 등급 } from './role.js';
 import { 진행상황 } from './runProgress.js';
@@ -20,7 +21,24 @@ const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 const DEVICES: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
 
-export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
+export function RunResult({
+  runId,
+  role,
+  상자안 = false,
+}: {
+  runId: number;
+  role: 등급;
+  /**
+   * 이 화면이 **상자 안에서** 그려지는가 (SPEC §8.7 「결과 보기는 상자로 연다」).
+   *
+   * 참이면 **진행·완료 상자를 열지 않는다.** 포커스를 가두는 장치가 둘 겹치면
+   * 키보드만 쓰는 사람이 빠져나올 길을 잃는다 (DESIGN.md 「모달」).
+   * 끝났다는 사실은 상자 안의 줄로 적는다.
+   */
+  상자안?: boolean;
+}) {
+  const t = use말();
+  const 언어 = use언어();
   const [status, setStatus] = useState<ItemStatus | 'ALL'>('ALL');
   const [device, setDevice] = useState<Platform | 'ALL'>('ALL');
   const [page, setPage] = useState(1);
@@ -113,49 +131,65 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
     };
   }
 
-  return (
-    <>
-      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8) */}
-      <Head
-        제목={`RUN ${String(data.runId)}`}
-        부제={
+  const 부제 = (
           <>
-            {when(data.startedAt)} · {data.title} · 실행자 {실행자이름(data)}
-            {' · 대상 서버 '}
-            {data.env}
+            {when(data.startedAt, 언어)} · {data.title} · {t('실행자 {이름}', { 이름: 실행자이름(data, 언어) })}
+            {' · '}
+            {t('대상 서버 {서버}', { 서버: data.env })}
             {data.baseUrl === '' ? '' : ` (${data.baseUrl})`}
-            {running ? ` · 도는 중 ${String(data.counts.running)}건` : ` · ${상태라벨(data.status)}`}
+            {' · '}
+            {running ? t('진행 중 {건수}건', { 건수: data.counts.running }) : 상태라벨(data.status, 언어)}
             {/* 「실행 중: X」라고 쓰지 않는다. 항목 둘이 동시에 돌아(EXECUTION_CONCURRENCY 기본 2)
                 여기 뜨는 것은 도는 둘 중 하나다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
-            {도는것 === null ? '' : ` · 진행 중 ${도는것.tcId} ${도는것.tcName}`}
+            {도는것 === null ? null : (
+              <>
+                {' · '}
+                {t('진행 중 {케이스}', { 케이스: `${도는것.tcId} ${도는것.tcName}` })}
+              </>
+            )}
           </>
-        }
-        행동={
+  );
+
+  const 행동 = (
+
           <div className="tally">
           {/* 판정 숫자를 버튼보다 앞에 둔다. 좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀리는데,
               휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다 (docs/DESIGN.md · design-mockup.html) */}
           <div>
             <b style={{ color: 'var(--pass)' }}>{pass}</b>
-            <span>통과</span>
+            <span>{t('통과')}</span>
           </div>
           <div>
             <b style={{ color: 'var(--fail)' }}>{fail}</b>
-            <span>실패</span>
+            <span>{t('실패')}</span>
           </div>
           <div>
             <b style={{ color: 'var(--na)' }}>{na}</b>
-            <span>미실행</span>
+            <span>{t('미실행')}</span>
           </div>
           {/* 되돌릴 수 없으므로 누르면 한 번 더 묻는다 (SPEC §8.3) */}
           {!멈출수있나(data.status, role) ? null : (
             <button className="btn ghost" onClick={() => set멈출까(true)} disabled={멈추는중}>
-              실행 중단
+              {t('실행 중단')}
             </button>
           )}
             <증적만들기버튼들 칸={증적칸} />
           </div>
-        }
-      />
+  );
+
+  return (
+    <>
+      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8).
+          **상자 안에서는 머리를 만들지 않는다** — 상자 제목이 이미 RUN 번호를 적고 있어
+          같은 말이 두 번 나온다. 부제와 행동은 그대로 살린다 */}
+      {상자안 ? (
+        <div className="box-head">
+          <div className="head-meta">{부제}</div>
+          {행동}
+        </div>
+      ) : (
+        <Head 제목={`RUN ${String(data.runId)}`} 부제={부제} 행동={행동} />
+      )}
 
       <div className="screen">
       <증적알림과목록 칸={증적칸} />
@@ -171,7 +205,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
       <RunInsights runId={data.runId} status={data.status} items={data.items} />
 
       <div className="toolbar">
-        <span className="filter-label">판정</span>
+        <span className="filter-label">{t('판정')}</span>
         {STATUSES.map((value) => (
           <button
             className="chip"
@@ -179,19 +213,19 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
             aria-pressed={status === value}
             onClick={() => choose(setStatus)(value)}
           >
-            {value === 'ALL' ? '전체' : STATUS_LABEL[value]}
+            {value === 'ALL' ? t('전체') : STATUS_LABEL[value]}
           </button>
         ))}
-        <span className="filter-label">디바이스</span>
+        <span className="filter-label">{t('디바이스')}</span>
         {DEVICES.map((value) => (
           <button className="chip" key={value} aria-pressed={device === value} onClick={() => choose(setDevice)(value)}>
-            {value === 'ALL' ? '전체' : PLATFORM_LABEL[value]}
+            {value === 'ALL' ? t('전체') : PLATFORM_LABEL[value]}
           </button>
         ))}
       </div>
 
       {shown.length === 0 ? (
-        <div className="empty">조건에 맞는 결과가 없습니다.</div>
+        <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
       ) : (
         shown.map((group) => (
           <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />
@@ -199,8 +233,9 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
       )}
       </div>
 
-      {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다 */}
-      {!진행열림 && !끝났다고알릴까말까 ? null : (
+      {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다.
+          **상자 안에서는 열지 않는다** — 가두개가 겹치면 빠져나올 길이 없다 (SPEC §8.7) */}
+      {상자안 || (!진행열림 && !끝났다고알릴까말까) ? null : (
         <RunProgressModal
           data={data}
           진행목록={진행목록}
@@ -218,12 +253,12 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
 
       {!멈출까 ? null : (
         <Modal
-          제목={`RUN ${String(data.runId)} 을 멈출까요?`}
+          제목={t('RUN {번호} 을 멈출까요?', { 번호: data.runId })}
           onClose={() => set멈출까(false)}
           버튼={
             <>
               <button className="btn ghost" onClick={() => set멈출까(false)}>
-                아니오
+                {t('아니오')}
               </button>
               <button
                 className="btn"
@@ -237,19 +272,19 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
                       set멈출까(false);
                       reload();
                     })
-                    .catch((err: unknown) => set멈춤오류(message(err)))
+                    .catch((err: unknown) => set멈춤오류(message(err, 언어)))
                     .finally(() => set멈추는중(false));
                 }}
               >
-                {멈추는중 ? '중단하는 중' : '중단'}
+                {멈추는중 ? t('중단하는 중') : t('중단§버튼')}
               </button>
             </>
           }
         >
           <p>
-            아직 시작하지 않은 항목은 대기줄에서 빼고, 이미 돌고 있는 항목은 끊습니다.
+            {t('아직 시작하지 않은 항목은 대기줄에서 빼고, 이미 돌고 있는 항목은 끊습니다.')}
             <br />
-            되돌릴 수 없습니다.
+            {t('되돌릴 수 없습니다.')}
           </p>
           {멈춤오류 === null ? null : <p className="err">{멈춤오류}</p>}
         </Modal>
@@ -258,13 +293,13 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
       {totalPages <= 1 ? null : (
         <div className="pager">
           <button onClick={() => setPage(shownPage - 1)} disabled={shownPage <= 1}>
-            이전
+            {t('이전')}
           </button>
           <span>
             {shownPage} / {totalPages}
           </span>
           <button onClick={() => setPage(shownPage + 1)} disabled={shownPage >= totalPages}>
-            다음
+            {t('다음')}
           </button>
         </div>
       )}

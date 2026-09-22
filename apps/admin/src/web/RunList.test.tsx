@@ -61,13 +61,28 @@ const 빈쪽 = (summary: RunTally): Paged<RunSummary> & { summary: RunTally } =>
 
 const 빈집계: RunTally = { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 };
 
+/**
+ * 상자 안에서 그려지는 `RunResult` 가 받는 답. **진행 중인 실행이어야 한다.**
+ *
+ * 끝난 실행으로 두면 `RunResult` 가 진행 상자를 애초에 안 열어서
+ * **가드를 지워도 검사가 초록이 된다** — 실제로 그랬다 (2026-09-22 자기검사 G8).
+ */
+const 진행중상세 = {
+  ...실행(2113, 1),
+  status: 'RUNNING' as const,
+  finishedAt: null,
+  counts: { total: 3, pass: 1, fail: 0, na: 0, running: 2 },
+  items: [],
+  evidence: [],
+};
+
 function 모킹(답: Paged<RunSummary> & { summary: RunTally } = 한쪽) {
   return vi.spyOn(api, 'runs').mockResolvedValue(답);
 }
 
 async function 그리기(답?: Paged<RunSummary> & { summary: RunTally }) {
   const 스파이 = 모킹(답);
-  const 것 = render(<RunList service="ZRL" />);
+  const 것 = render(<RunList service="ZRL" role="admin" />);
   await waitFor(() => expect(스파이).toHaveBeenCalled());
   return { ...것, 스파이 };
 }
@@ -98,7 +113,7 @@ describe('RunList 집계 띠', () => {
     await screen.findByText(/ZRL 실행 2113/);
 
     const 글 = container.querySelector('.stats')?.textContent ?? '';
-    for (const 라벨 of ['실행 횟수', '모두 통과', '실패 섞임', '평균 소요']) expect(글).toContain(라벨);
+    for (const 라벨 of ['실행 횟수', '성공', '실패', '평균 소요']) expect(글).toContain(라벨);
     expect(글).toContain('42');
     expect(글).toContain('31');
   });
@@ -139,7 +154,7 @@ describe('RunList 거르개', () => {
     const { 스파이 } = await 그리기();
     await screen.findByText(/ZRL 실행 2113/);
 
-    fireEvent.click(screen.getByRole('button', { name: '실패 섞임' }));
+    fireEvent.click(screen.getByRole('button', { name: '실패' }));
 
     await waitFor(() => {
       expect(스파이).toHaveBeenCalledWith('ZRL', 1, expect.objectContaining({ state: 'failed' }));
@@ -184,5 +199,55 @@ describe('RunList 지킬 것', () => {
     // 줄마다 통과·실패·미실행이 글자로 적힌다. 왼쪽 색 띠는 훑기 위한 것이다 (SPEC §8.7)
     expect(screen.getAllByText('통과').length).toBeGreaterThan(0);
     expect(screen.getAllByText('실패').length).toBeGreaterThan(0);
+  });
+});
+
+// 화면을 갈아타면 돌아올 때 검색 조건이 풀리고 보던 자리를 잃는다 (SPEC §8.7, 2026-09-22).
+// 「상자가 뜬다」만 보면 **상자 안에서 또 상자가 뜨는 상태**도 통과한다 — 가두개가 겹치면
+// 키보드만 쓰는 사람이 빠져나올 길을 잃는다 (DESIGN.md 「모달」)
+describe('결과 보기는 상자로 연다 (SPEC §8.7)', () => {
+  it('칸마다 이름이 있다. 좁은 화면에서도 감추지 않는 자리다', async () => {
+    await 그리기();
+    const 이름들 = screen.getAllByRole('columnheader').map((el) => el.textContent);
+    expect(이름들).toEqual(['RUN', '실행 제목', '판정']);
+  });
+
+  it('누르면 상자가 뜨고 화면이 안 갈아탄다', async () => {
+    const 전주소 = window.location.hash;
+    await 그리기();
+    vi.spyOn(api, 'run').mockResolvedValue(진행중상세);
+
+    fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
+
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+    expect(window.location.hash).toBe(전주소);
+  });
+
+  // **진행 중인 실행으로 연다.** 끝난 실행이면 `RunResult` 가 진행 상자를 애초에 안 열어
+  // 가드를 지워도 초록이 된다 — 구현이 어떻게 망가져도 참인 단언이 된다 (spec-review G8)
+  it('진행 중인 실행을 열어도 상자가 하나뿐이다', async () => {
+    await 그리기();
+    vi.spyOn(api, 'run').mockResolvedValue(진행중상세);
+
+    fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
+    await screen.findByRole('dialog');
+    // 상자 안의 `RunResult` 가 답을 받고 나서도 상자가 하나여야 한다
+    await waitFor(() => expect(screen.getByRole('dialog').textContent).toContain('진행 중'));
+
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+  });
+
+  it('닫으면 검색 조건이 그대로 남는다', async () => {
+    await 그리기();
+
+    fireEvent.change(screen.getByPlaceholderText(/실행 제목/), { target: { value: '결제' } });
+    fireEvent.submit(screen.getByRole('search'));
+    vi.spyOn(api, 'run').mockResolvedValue(진행중상세);
+    fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect((screen.getByPlaceholderText(/실행 제목/) as HTMLInputElement).value).toBe('결제');
   });
 });

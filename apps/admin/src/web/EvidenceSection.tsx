@@ -5,6 +5,7 @@
 // 그래서 상태와 판단은 `use증적()` 하나에 모으고 그리는 조각만 둘로 나눈다.
 
 import { api, type EvidenceRow, type RunSummary } from './api.js';
+import { use말, use언어 } from './i18n.js';
 import { 받는법, 증적버튼들, type 증적버튼모양 } from './evidence.js';
 import type { 등급 } from './role.js';
 import { message, when } from './ui.js';
@@ -35,13 +36,14 @@ export interface 증적칸 {
  * 엑셀·HTML 까지 잠기고, 엑셀만 실패해도 화면이 어느 형식이 깨졌는지 말하지 못한다.
  */
 export function use증적(data: 실행상세 | null, role: 등급, reload: () => void): 증적칸 {
+  const 언어 = use언어();
   const [만드는중, set만드는중] = useState<string[]>([]);
   const [증적오류, set증적오류] = useState<Record<string, string>>({});
 
   // **이른 반환 위에서 불린다.** 화면이 아직 데이터를 못 받았을 때도 훅 차례가 같아야 한다 —
   // `Loading` 뒤에서 부르면 React 가 훅 규칙 위반으로 던지고 화면이 통째로 빈다
   const 문서들 = data?.evidence ?? [];
-  const 증적 = data === null ? null : 증적버튼들(data.status, 문서들, role);
+  const 증적 = data === null ? null : 증적버튼들(data.status, 문서들, role, 언어);
 
   // 실패는 형식마다 따로 적는다. 방금 부르다 깨진 것(`증적오류`)이 더 새 소식이라 먼저다.
   // **다만 그 형식이 그 뒤에 READY 로 닫혔으면 접는다** — 안 접으면 문서가 멀쩡히 아래 목록에
@@ -68,7 +70,7 @@ export function use증적(data: 실행상세 | null, role: 등급, reload: () =>
     void api
       .makeEvidence(data.runId, 버튼.format)
       .then(() => reload())
-      .catch((err: unknown) => set증적오류((전) => ({ ...전, [버튼.format]: message(err) })))
+      .catch((err: unknown) => set증적오류((전) => ({ ...전, [버튼.format]: message(err, 언어) })))
       .finally(() => set만드는중((전) => 전.filter((it) => it !== 버튼.format)));
   }
 
@@ -83,6 +85,7 @@ export function use증적(data: 실행상세 | null, role: 등급, reload: () =>
  * `.btn` 의 꽉 찬 잉크색을 셋이나 늘어놓으면 머리 띠가 검은 덩어리가 된다 — 색은 판정만 갖는다.
  */
 export function 증적만들기버튼들({ 칸 }: { 칸: 증적칸 }) {
+  const t = use말();
   return (
     <div className="makebtns">
       {칸.버튼들.map((버튼) => {
@@ -96,7 +99,7 @@ export function 증적만들기버튼들({ 칸 }: { 칸: 증적칸 }) {
               칸.누르기(버튼);
             }}
           >
-            {이것만드는중 ? `${버튼.라벨} 만드는 중` : 버튼.글}
+            {이것만드는중 ? t('{라벨} 만드는 중', { 라벨: 버튼.라벨 }) : 버튼.글}
           </button>
         );
       })}
@@ -106,6 +109,8 @@ export function 증적만들기버튼들({ 칸 }: { 칸: 증적칸 }) {
 
 /** 머리 띠 아래의 안내·실패 사유·만든 문서 목록 */
 export function 증적알림과목록({ 칸 }: { 칸: 증적칸 }) {
+  const t = use말();
+  const 언어 = use언어();
   return (
     <>
       {/* 못 누르는 이유는 말풍선이 아니라 화면 글자로 적는다. `title` 은 마우스를 올려야 뜨는데
@@ -126,16 +131,16 @@ export function 증적알림과목록({ 칸 }: { 칸: 증적칸 }) {
       )}
       {칸.만든것.length === 0 ? null : (
         <div className="sec">
-          <div className="sec-h">증적 문서</div>
+          <div className="sec-h">{t('증적 문서')}</div>
           {/* 받기 전에 볼 수 있어야 한다. 화면의 항목 상세는 항목 한 건이고
               증적은 실행 전체 한 부다 (SPEC §8.4) */}
           {칸.만든것.map((it) => {
-            const 법 = 받는법(it.format);
+            const 법 = 받는법(it.format, 언어);
             return (
               <div className="pre" key={it.id}>
                 {/* 버튼이 `엑셀`인데 목록이 `XLSX`면 한 화면에 같은 물건이 두 이름이다.
                     받는 길은 `format` 원문 그대로 쓰고 보여주는 글자만 라벨이다 */}
-                {when(it.generatedAt)} 만듦 · {법.라벨}
+                {when(it.generatedAt, 언어)} 만듦 · {법.라벨}
                 <a
                   className="btn small"
                   style={{ marginLeft: '10px' }}
