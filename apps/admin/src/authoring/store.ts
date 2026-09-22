@@ -13,7 +13,7 @@ export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE';
 export type 상태 = 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
 
 /**
- * 상태 전이는 이 둘뿐이다. 그 밖은 라우트가 409 로 거부한다.
+ * 상태 전이는 둘뿐이다.
  *
  * ```
  *   PENDING ──집기──▶ RUNNING ──끝내기──▶ DONE
@@ -21,16 +21,14 @@ export type 상태 = 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
  *      └── 그 밖의 전이는 전부 409 ─────────┘
  * ```
  *
- * **이 표 하나가 셋을 닫는다** — 끝난 행에 「끝났다」가 또 와서 판정이 덮어써지는 것 ·
+ * **이 둘이 셋을 닫는다** — 끝난 행에 「끝났다」가 또 와서 판정이 덮어써지는 것 ·
  * 집기가 `PENDING` 만 집으므로 `claimed_by` 가 덮어써질 일이 구조적으로 없는 것 ·
  * 머지가 아직 안 끝난 요청을 가리키는 것.
+ *
+ * **표로 따로 두지 않는다** (2026-09-22 검토가 잡았다). 실제 판정은 아래 UPDATE 넷의
+ * `WHERE ... AND status = ...` 가 한다. 표를 또 만들면 **그것만 고치고 「닫았다」고 여기는**
+ * 자리가 생기는데, 실제 동작은 하나도 안 바뀐다.
  */
-export const 허용전이: Record<상태, 상태[]> = {
-  PENDING: ['RUNNING'],
-  RUNNING: ['DONE', 'FAILED'],
-  DONE: [],
-  FAILED: [],
-};
 
 export interface 요청 {
   id: number;
@@ -146,6 +144,38 @@ export async function 줄세우기(입력: {
   return Number(r.rows[0]!.id);
 }
 
+/**
+ * 그 서비스의 테스트 저장소 주소. **병합될 PR 주소가 정말 그 저장소 것인지** 보는 데 쓴다.
+ *
+ * `catalog/store.ts` 의 `ServiceRow` 에는 이 칸이 없어 여기서 따로 읽는다 —
+ * 그 타입을 넓히면 남의 컨텍스트 파일이 바뀐다.
+ */
+export async function 서비스저장소(서비스: number): Promise<string> {
+  const pool = await db();
+  const r = await pool.query<{ tests_repo: string }>(
+    'SELECT tests_repo FROM service WHERE id = $1',
+    [서비스],
+  );
+  return r.rows[0]?.tests_repo ?? '';
+}
+
+/**
+ * 병합될 PR 주소로 받아들일 모양인가.
+ *
+ * **맥이 보낸 값을 그대로 믿으면 안 된다** (2026-09-22 보안 검토가 잡았다). 안 보면 둘이 난다 —
+ * ⒜ **다른 저장소의 PR** 을 병합 대상으로 앉힐 수 있다 ⒝ 맥이 이 값을 명령줄에 끼워 넣으면
+ * 따옴표·세미콜론 같은 글자가 **맥에서 임의 명령 실행**이 된다. 맥에는 사람의 GitHub 로그인이 살아 있다.
+ *
+ * **저장소 주소가 안 적힌 서비스는 통과시키지 않는다** — 대조할 기준이 없으면 「아무 주소나 좋다」가
+ * 되어 ⒜ 가 그대로 살아난다. 설정 화면에서 저장소를 적으면 풀린다 (§8.8).
+ */
+export function 병합주소인가(주소: unknown, 저장소: string): boolean {
+  if (typeof 주소 !== 'string' || 저장소 === '') return false;
+  const 뿌리 = 저장소.replace(/\.git$/, '').replace(/\/$/, '');
+  if (!뿌리.startsWith('https://')) return false;
+  return new RegExp(`^${뿌리.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/pull/\\d{1,10}$`).test(주소);
+}
+
 export async function 한건(id: number): Promise<요청 | null> {
   const pool = await db();
   const r = await pool.query<행>(`SELECT ${칸들} FROM authoring_request WHERE id = $1`, [id]);
@@ -161,7 +191,8 @@ export async function 한쪽(입력: {
 }): Promise<{ items: 요청[]; total: number; page: number; pageSize: number }> {
   const pool = await db();
   const 크기 = 입력.크기 ?? 50;
-  const 쪽 = Math.max(1, 입력.쪽);
+  // 쪽 번호가 무한대면 건너뛸 개수도 무한대가 되어 DB 가 해석 못 하는 값이 간다
+  const 쪽 = Math.min(Math.max(1, Math.floor(입력.쪽) || 1), 1_000_000);
   const 조건 = 입력.상태 === undefined ? '' : ' AND status = $2';
   const 값들: unknown[] = 입력.상태 === undefined ? [입력.서비스] : [입력.서비스, 입력.상태];
 
@@ -169,12 +200,14 @@ export async function 한쪽(입력: {
     `SELECT count(*) AS n FROM authoring_request WHERE service_id = $1${조건}`,
     값들,
   );
+  // **건너뛸 개수를 질의문 글자에 끼워 넣지 않는다.** 지금은 숫자로 걸러지므로 주입은 아니지만,
+  // 다음 사람이 여기에 문자열을 하나 더 얹으면 그때는 진짜 주입이 된다 (2026-09-22 보안 검토)
   const r = await pool.query<행>(
     `SELECT ${칸들} FROM authoring_request
       WHERE service_id = $1${조건}
       ORDER BY id DESC
-      LIMIT ${크기} OFFSET ${(쪽 - 1) * 크기}`,
-    값들,
+      LIMIT $${값들.length + 1} OFFSET $${값들.length + 2}`,
+    [...값들, 크기, (쪽 - 1) * 크기],
   );
   return {
     items: r.rows.map(빚기),

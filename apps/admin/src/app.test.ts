@@ -14,7 +14,23 @@ function 소스() {
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
     .filter((이름) => existsSync(join(뿌리, 이름, 'routes.ts')));
-  return { 폴더들, 글: readFileSync(join(뿌리, 'app.ts'), 'utf8') };
+  return { 폴더들, 글: 주석없이(readFileSync(join(뿌리, 'app.ts'), 'utf8')) };
+}
+
+/**
+ * 주석을 걷어낸다.
+ *
+ * **글자만 찾으면 주석이 진짜 코드로 센다.** 등록 두 줄 앞에 `//` 를 붙여 주석으로 만들어도
+ * 검사가 초록이면, 이 검사가 막겠다고 만들어진 사고가 그대로 난다 (2026-09-22 검토가 잡았다).
+ * **같은 병이 두 번째다** — `.claude/scripts/ci-covers-tests.test.mjs` 가 2026-09-21 에
+ * 같은 이유로 주석을 먼저 걷어내게 고쳐졌다. 그 수법을 여기서도 쓴다.
+ */
+function 주석없이(글: string): string {
+  return 글
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .map((줄) => 줄.replace(/\/\/.*$/, ''))
+    .join('\n');
 }
 
 describe('등록 규약', () => {

@@ -224,3 +224,34 @@ test('도는폴더는 실제로 치는 명령에서만 tests/ 이름을 뽑는�
   assert.deepEqual([...도는폴더('      - name: npx playwright test tests/todo 를 예전에 돌렸다')], []);
   assert.deepEqual([...도는폴더('      - run: npx playwright test 어딘가/다른곳')], []);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CI 가 DB 를 갖고 있는가 (2026-09-22 추가)
+//
+// **DB 검사는 DATABASE_URL 이 없으면 조용히 건너뛴다.** 그래서 CI 설정에서 그 한 줄만 빠져도
+// DB 를 타는 검사 파일 전부가 안 돌고 **CI 는 초록**이다 — 「검사가 통과했다」가
+// 「검사를 안 했다」의 다른 이름이 된다. 위의 playwright 그물과 같은 성질의 구멍이다.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('CI 의 check 잡이 DB 를 띄우고 DATABASE_URL 을 넘긴다', () => {
+  const 블록 = 잡블록(readFileSync(CI, 'utf8'), 'check');
+  assert.ok(블록, 'check 잡을 못 찾았다');
+  const 주석없이 = 블록.split('\n').map((줄) => 줄.replace(/#.*$/, '')).join('\n');
+  assert.match(
+    주석없이,
+    /services:[\s\S]*image:\s*postgres/,
+    'CI 에 postgres 가 없다 — DB 검사가 통째로 건너뛰는데 초록불이 뜬다',
+  );
+  assert.match(
+    주석없이,
+    /DATABASE_URL:/,
+    'DATABASE_URL 을 안 넘긴다 — DB 검사가 조용히 건너뛴다',
+  );
+});
+
+test('CI 가 마이그레이션을 먹인다 — 표가 없으면 DB 검사가 죽는다', () => {
+  const 블록 = 잡블록(readFileSync(CI, 'utf8'), 'check');
+  assert.ok(블록);
+  const 명령들 = 블록.split('\n').map((줄) => 줄.replace(/#.*$/, '')).join('\n');
+  assert.match(명령들, /migrations/, '마이그레이션을 먹이는 단계가 없다');
+});

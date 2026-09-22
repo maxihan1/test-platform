@@ -39,6 +39,10 @@ describe.skipIf(연결 === undefined)('작성 대기줄', () => {
     await pool.query('DELETE FROM authoring_request WHERE service_id = ANY($1)', [
       [서비스, 남의서비스],
     ]);
+    // ★ 만든 서비스도 치운다. 안 치우면 다음 실행에서 **세상이 달라진다** —
+    // 다른 검사들이 「지금 살아 있는 서비스」를 훑기 때문에 1회차는 통과하고 2회차부터 깨진다
+    // (2026-09-22 실측. 연속 3회 규칙이 잡으라는 바로 그 경우다)
+    await pool.query('DELETE FROM service WHERE id = ANY($1)', [[서비스, 남의서비스]]);
   });
 
   describe('표가 잘못된 행을 막는다', () => {

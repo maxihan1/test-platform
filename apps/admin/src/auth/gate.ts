@@ -209,8 +209,18 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
 export function 인증등록(app: FastifyInstance): void {
   app.decorateRequest('user', null);
 
-  app.addHook('preHandler', async (req, reply) => {
-    // 라우트가 안 잡힌 요청은 지킬 자원이 없다. 라우터가 404 를 내게 둔다
+  /**
+   * **로그인 검사는 본문을 읽기 전에 한다.**
+   *
+   * `preHandler` 는 본문 파서가 **다 읽은 뒤**에 돈다. 그래서 거기에만 두면
+   * **로그인하지 않은 사람이 보낸 큰 본문이 메모리에 통째로 올라간 다음에야** 401 이 나간다 —
+   * 사진 올리는 통로처럼 상한이 넓은 자리에서는 그것만으로 서버를 넘길 수 있다
+   * (2026-09-22 보안 검토가 실측으로 잡았다).
+   *
+   * **등급과 서비스 판정은 여기서 안 한다** — 그 판정이 `POST /api/runs` 의 **본문**을 읽어야 해서
+   * 이 단계에서는 값이 아직 없다. 그래서 둘로 나눈다. 이 단계는 **누구인가**만 본다.
+   */
+  app.addHook('onRequest', async (req, reply) => {
     const path = 라우트틀(req);
     if (path === undefined || !path.startsWith('/api/')) return;
 
@@ -221,8 +231,22 @@ export function 인증등록(app: FastifyInstance): void {
     const user = await 확인(req);
     if (user === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
     req.user = user;
+  });
 
-    // 나가기와 나를 묻는 것은 등급을 따지지 않는다. 보기만 등급이 로그아웃도 못 하면 안 된다
+  app.addHook('preHandler', async (req, reply) => {
+    // 라우트가 안 잡힌 요청은 지킬 자원이 없다. 라우터가 404 를 내게 둔다
+    const path = 라우트틀(req);
+    if (path === undefined || !path.startsWith('/api/')) return;
+    if (path === '/api/auth/login') return;
+
+    // 위 onRequest 가 이미 401 을 냈다. 여기 닿았으면 사람이 실려 있다
+    const user = req.user;
+    if (user === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
+
+    // 나가기와 나를 묻는 것은 등급을 따지지 않는다. 보기만 등급이 로그아웃도 못 하면 안 된다.
+    // ★ **이 아래(`/api/auth/**`)에는 등급이 안 걸린다.** 여기에 통로를 더하면
+    // 등급 표에 「안 따짐」으로 적히고 **로그인만 했으면 보기만 등급도 통과**한다 —
+    // 표를 보면 안전해 보이는데 실제 판정은 이 한 줄이 한다 (2026-09-22 보안 검토가 잡았다)
     if (path.startsWith('/api/auth/')) return;
 
     const 필요 = 필요등급(path, req.method);
