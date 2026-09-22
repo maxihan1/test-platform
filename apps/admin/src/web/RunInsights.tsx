@@ -63,7 +63,8 @@ export function RunInsights({
 
   // 견주기가 실패해도 결과 목록은 그대로 서야 한다. 대신 조용히 사라지지는 않는다
   if (견줌.error !== null)
-    return <div className="sec hint">{t말('직전 실행과 견주지 못했습니다.')} {견줌.error}</div>;
+    // 접지 않는다 — 오류는 펴야 보이면 안 된다. 대신 구획 여백을 줄여 자리를 덜 먹는다
+    return <div className="sec tight hint">{t말('직전 실행과 견주지 못했습니다.')} {견줌.error}</div>;
 
   const 값 = 견줌.data;
   if (값 === null) return null;
@@ -77,16 +78,26 @@ export function RunInsights({
 
   return (
     <>
+      {/* **접기는 `앞 === null` 검사 **뒤**에 있어야 한다.** 바깥에서 감싸면 첫 실행에
+          내용 없는 `<summary>` 한 줄이 남는데, SPEC 공통/7-데모와-완료 §7 이
+          「첫 실행에서는 그 칸이 **아예 없다**」를 규정한다.
+          펴고 접는 상태를 React 로 들지 않는다 — `<details>` 가 이미 한다 */}
       {앞 === null ? null : (
-        <div className="sec">
-          <div className="sec-h">
+        <details className="sec fold">
+          <summary className="sec-h">
             {t말('직전 실행과 견줌')}
             <span>
               RUN {앞.runId} · {when(앞.startedAt, 언어)}
             </span>
-          </div>
-          {/* 주소를 바꿨다는 사실 자체가 봐야 할 정보다. 비교를 막지는 않는다 (SPEC §6) */}
-          {!값.주소바뀜 ? null : <p className="hint">{t말('직전 실행은 다른 주소에서 돌았습니다')}</p>}
+            {/* 주소를 바꿨다는 사실은 **접어서 숨기면 안 된다** — 「봐야 할 정보」다 (SPEC §6).
+                접힌 줄에서 안 보이면 다른 서버에서 돈 결과를 같은 조건으로 읽는다.
+                그래서 펴야 보이는 안이 아니라 `summary` 안에 둔다 (2026-09-22 자기검토) */}
+            {!값.주소바뀜 ? null : (
+              <span className="change" style={{ color: 'var(--na)' }}>
+                {t말('직전 실행은 다른 주소에서 돌았습니다')}
+              </span>
+            )}
+          </summary>
           {볼것.map((c) => (
             <div className="pre" key={키(c.tcId, c.platform)}>
               {c.tcId} {c.tcName} · {PLATFORM_LABEL[c.platform]} ·{' '}
@@ -108,12 +119,12 @@ export function RunInsights({
               {t말('직전 실행에 있었으나 이번에 돌지 않은 케이스 {건수}건', { 건수: 값.빠진건수 })}
             </p>
           )}
-        </div>
+        </details>
       )}
 
       {값.실패덩어리들.length === 0 ? null : (
-        <div className="sec">
-          <div className="sec-h">{t말('같은 사유로 묶은 실패')}</div>
+        <details className="sec fold">
+          <summary className="sec-h">{t말('같은 사유로 묶은 실패')}</summary>
           {값.실패덩어리들.map((덩어리) => (
             <div className="pre" key={덩어리.대표문장}>
               {/* 「케이스 N건」이 아니다. 세는 단위는 실행 항목이라 5회 중 3회 실패가 3 으로 온다 */}
@@ -127,7 +138,7 @@ export function RunInsights({
               </div>
             </div>
           ))}
-        </div>
+        </details>
       )}
     </>
   );

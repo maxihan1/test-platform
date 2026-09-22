@@ -37,7 +37,7 @@ export function 찾기폼({
 
   return (
     <form
-      className="toolbar"
+      className="find"
       onSubmit={(e) => {
         e.preventDefault();
         onSearch();
@@ -80,7 +80,7 @@ export function 조건칩들({
   const t = use말();
 
   return (
-    <div className="toolbar">
+    <>
       <span className="filter-label">{t('디바이스')}</span>
       {디바이스칩.map((값) => (
         <button className="chip" key={값} aria-pressed={디바이스 === 값} onClick={() => on디바이스(값)}>
@@ -102,7 +102,7 @@ export function 조건칩들({
           {t(결과라벨[값])}
         </button>
       ))}
-    </div>
+    </>
   );
 }
 

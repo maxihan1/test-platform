@@ -107,10 +107,50 @@ export function 증적만들기버튼들({ 칸 }: { 칸: 증적칸 }) {
   );
 }
 
-/** 머리 띠 아래의 안내·실패 사유·만든 문서 목록 */
-export function 증적알림과목록({ 칸 }: { 칸: 증적칸 }) {
+/**
+ * 머리 띠 아래의 안내·실패 사유·만든 문서 목록.
+ *
+ * **`한줄로` 면 머리 줄 안에서 한 줄로 그린다** (2026-09-22). 상자 안에서는 이 칸이 블록으로
+ * 130px 을 먹어 케이스 목록에 32px 밖에 안 남았다 — 줄 하나(101px)도 안 들어갔다.
+ * 머리에 이미 만들기 버튼이 있어 같은 말을 두 번 하던 자리이기도 하다.
+ *
+ * **넷을 다 옮긴다.** 문서 목록만 옮기면 `안내`(「만드는 중입니다」)와 실패 사유가 집을 잃는데,
+ * 그 글자가 영영 굳는 사고가 2026-09-19 에 한 번 났다 (docs/LEARNINGS.md).
+ */
+export function 증적알림과목록({ 칸, 한줄로 = false }: { 칸: 증적칸; 한줄로?: boolean }) {
   const t = use말();
   const 언어 = use언어();
+
+  if (한줄로) {
+    const 있나 = 칸.안내 !== null || 칸.사유줄들.length > 0 || 칸.만든것.length > 0;
+    if (!있나) return null;
+    return (
+      <div className="evi-line">
+        {칸.안내 === null ? null : <span className="scan-text">{칸.안내}</span>}
+        {칸.사유줄들.map((줄) => (
+          <span className="scan-error" key={줄.format}>
+            {줄.라벨} 증적을 만들지 못했습니다 — {줄.사유}
+          </span>
+        ))}
+        {칸.만든것.map((it) => {
+          const 법 = 받는법(it.format, 언어);
+          return (
+            <span className="scan-text" key={it.id}>
+              {when(it.generatedAt, 언어)} 만듦 · {법.라벨}
+              <a
+                className="evi-open"
+                href={api.evidenceUrl(it.id)}
+                {...(법.새창 ? { target: '_blank', rel: 'noreferrer' } : {})}
+              >
+                {법.글}
+              </a>
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <>
       {/* 못 누르는 이유는 말풍선이 아니라 화면 글자로 적는다. `title` 은 마우스를 올려야 뜨는데
