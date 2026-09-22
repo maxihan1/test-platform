@@ -1,9 +1,12 @@
 // CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다
 
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 인증등록 } from './gate.js';
+import { 등급표, 옛자동규칙, 인증등록 } from './gate.js';
 import { 해시 } from './password.js';
 import authRoutes from './routes.js';
 import { 세션등록 } from './session.js';
@@ -452,4 +455,75 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     expect(await lastByCase([])).toEqual([]);
   });
 
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 등급 표 — 2026-09-22 에 자동 규칙에서 갈아탔다 (SPEC 도메인/인증 §7)
+//
+// **이 절이 없으면 서른여덟 줄을 손으로 옮겨 적다 한 줄 틀려도 아무도 모른다.**
+// 틀린 방향 둘이 값이 다르다 — 보기만을 실행으로 적으면 목록을 못 읽어 시끄럽고,
+// 실행을 보기만으로 적으면 **보기만 등급이 실행을 거는데 403 이 안 나 아무도 안 빨개진다.**
+// ─────────────────────────────────────────────────────────────────────────────
+describe('등급 표', () => {
+  // 소스에 실제로 등록된 (틀, 메서드) 를 훑는다. scope.test.ts 와 같은 수법이다 —
+  // 검사용 가짜 라우트를 훑으면 진짜 라우트가 늘어도 아무 신호가 안 뜬다
+  function 소스의쌍들(): string[] {
+    const 뿌리 = resolve(dirname(new URL(import.meta.url).pathname), '..');
+    const 폴더들 = readdirSync(뿌리, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+      .filter((이름) => existsSync(join(뿌리, 이름, 'routes.ts')));
+    const 등록 =
+      /\bapp\.(get|post|patch|put|delete|head|all|options|route)\s*(?:<[\s\S]*?>)?\s*\(\s*[{]?\s*(?:url\s*:\s*)?['"`]([^'"`]+)['"`]/g;
+    const 쌍 = new Set<string>();
+    for (const 폴더 of 폴더들) {
+      const 글 = readFileSync(join(뿌리, 폴더, 'routes.ts'), 'utf8');
+      for (const 맞은것 of 글.matchAll(등록)) {
+        쌍.add(`${(맞은것[1] ?? '').toUpperCase()} /api${맞은것[2] ?? ''}`);
+      }
+    }
+    return [...쌍].sort();
+  }
+
+  it('소스에 등록된 (틀, 메서드) 가 전부 표에 있다', () => {
+    const 빠진것 = 소스의쌍들().filter((쌍) => !(쌍 in 등급표));
+    expect(
+      빠진것,
+      `등급 표에 없는 자리: ${빠진것.join(' · ')}\n` +
+        '표에 없으면 admin 으로 떨어진다 — 안 적으면 운영 중에야 403 으로 드러난다',
+    ).toEqual([]);
+  });
+
+  it('표에 있는데 소스에 없는 자리가 없다', () => {
+    const 소스 = new Set(소스의쌍들());
+    const 유령 = Object.keys(등급표).filter((쌍) => !소스.has(쌍));
+    expect(유령, `소스에 없는 자리가 표에 남아 있다: ${유령.join(' · ')}`).toEqual([]);
+  });
+
+  // ★ 이 검사가 BLOCKER 의 본체다. 표로 갈아타면서 **기존 통로의 등급이 조용히 달라지는 것**을 막는다
+  it('옛 자동 규칙과 다른 자리는 일부러 바꾼 하나뿐이다', () => {
+    // 일부러 바꾼 자리. 저장소를 영구히 바꾸는 일이라 admin 으로 올렸다 (SPEC 도메인/인증 §7)
+    const 일부러 = new Set(['POST /api/authoring/merges']);
+    // 문이 등급 판정 앞에서 돌려보내는 자리. 옛 규칙의 값이 쓰인 적이 없다
+    const 등급을안따지는자리 = (쌍: string): boolean => 쌍.split(' ')[1]?.startsWith('/api/auth/') === true;
+
+    const 달라진것: string[] = [];
+    for (const 쌍 of 소스의쌍들()) {
+      if (일부러.has(쌍) || 등급을안따지는자리(쌍)) continue;
+      const [메서드, 틀] = 쌍.split(' ');
+      const 옛것 = 옛자동규칙(틀 ?? '', 메서드 ?? '');
+      const 새것 = 등급표[쌍];
+      if (새것 !== 옛것) 달라진것.push(`${쌍} — 옛 ${옛것} · 새 ${String(새것)}`);
+    }
+    expect(
+      달라진것,
+      `옮겨 적다 틀린 자리:\n${달라진것.join('\n')}\n` +
+        '일부러 바꾼 것이면 이 검사의 「일부러」 목록에 이름을 적어 남겨라',
+    ).toEqual([]);
+  });
+
+  it('머지는 admin 이고 작성·재실행은 operator 다 — 둘이 같으면 실행 등급이 저장소를 바꾼다', () => {
+    expect(등급표['POST /api/authoring/merges']).toBe('admin');
+    expect(등급표['POST /api/authoring/requests']).toBe('operator');
+  });
 });

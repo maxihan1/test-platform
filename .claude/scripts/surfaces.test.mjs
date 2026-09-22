@@ -128,3 +128,9 @@ test('안 깨진 경로도 그대로 돈다 (위 검사의 대조군)', () => {
   assert.match(나온것, /등급: 3/);
   assert.doesNotMatch(나온것, /미분류/);
 });
+
+test('배포 설정값 목록도 3등급 — 미분류로 새면 안 된다 (2026-09-22 미분류였다)', () => {
+  assert.equal(surfaceOf('.env.example')?.name, 'COMPOSE');
+  assert.equal(detectTier(['.env.example']).tier, 3);
+  assert.deepEqual(detectTier(['.env.example']).unmapped, []);
+});

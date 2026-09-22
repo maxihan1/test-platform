@@ -44,7 +44,7 @@
 | **WS-D** | 리포팅 | `apps/admin/src/reporting/**`, `infra/grafana/**` | DB 스키마 |
 | **WS-E** | 화면 | `apps/admin/src/web/**` | Admin API 계약 |
 | **WS-F** | 인증 | `apps/admin/src/auth/**`, `apps/admin/src/settings/**`, `scripts/**` | DB 스키마 (`app_user`·`service`·`service_env`·`user_service`) |
-| **WS-작성** | 작성 | `apps/admin/src/authoring/**` (아직 없다) · `scripts/authoring-agent.ts` (이미 있다) · `docs/spec/도메인/작성.md` | DB 스키마 (`authoring_request`), 인증(§3.5) |
+| **WS-작성** | 작성 | `apps/admin/src/authoring/**` (2026-09-22 에 섰다) · `scripts/authoring-agent.ts` · `docs/spec/도메인/작성.md` | DB 스키마 (`authoring_request`), 인증(§3.5) |
 
 **`docs/cases/**` 는 어느 갈래도 아니다** (2026-09-21). `tpx-cases` 스킬이 만드는
 서비스별 요구사항 표와 용어 사전이 사는 자리다. 표면은 `DOC`(0등급)이고, 그 표가 가리키는
@@ -52,10 +52,14 @@
 
 **WS-작성은 2026-09-22 신설 SPEC §3.6으로 생긴 갈래다** (`docs/spec/도메인/작성.md`).
 기획서를 넣으면 테스트 코드가 초안 PR 로 만들어지고 화면에서 머지까지 가는 일이다.
-**이번에 들어간 것은 명세까지다.** 아래 둘을 섞지 않는다.
+**2026-09-22 에 두 번 들어갔다** — 먼저 명세(PR #52), 그다음 **대기줄 표·통로 여덟·경로→등급 표**.
+**남은 것은 화면과 「에이전트를 대기줄에 붙이는 일」이고 그 둘이 한 PR 이다.** 아래 둘을 섞지 않는다.
 - `scripts/authoring-agent.ts` 는 **이미 있다** — 맥(개발자 노트북)에서 도는 작성 에이전트이고 `scripts/authoring-agent.test.ts` 가 붙어 있다.
   **`scripts/**` 폴더 자체는 WS-F 소유 그대로다.** 이 한 파일만 떼어 온 것이고 폴더째 가져오지 않는다
-- `apps/admin/src/authoring/**` 는 **아직 없다** — 다음 PR 이 만든다. 표면은 `ADMIN`(2등급)으로 `.claude/scripts/surfaces.mjs` 에 이미 올라 있다
+- `apps/admin/src/authoring/**` 는 **2026-09-22 에 섰다** (`store.ts` · `routes.ts` 와 그 검사들). 표면은 `ADMIN`(2등급)이다
+- **★ `apps/admin/src/app.ts` 한 줄은 공용 골격이라 갈래 소유가 아니다.** 새 컨텍스트를 등록하는
+  규약 줄(`app.register(authoringRoutes, ...)`)이라 안 넣으면 통로가 404 다. **그 한 줄만 손댄다** —
+  `apps/admin/src/app.test.ts` 가 등록 누락을 잡는다 (2026-09-22 신설)
 - `docs/spec/도메인/작성.md` 는 **읽고 고칠 자리를 아는 것**이지 마음대로 고쳐도 된다는 뜻이 아니다 — SPEC 은 CLAUDE.md §1.2 승인 절차를 그대로 밟는다
 - 화면(`apps/admin/src/web/**`)은 표에서 **WS-E 소유 그대로다.** 이 줄이 화면을 가져가지 않는다
 

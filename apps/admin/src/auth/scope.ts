@@ -15,7 +15,8 @@ export type 원천 =
   | { 종류: '케이스'; 칸: string } // params[칸] 이 tcId 다. 접두사가 곧 서비스다 (§2)
   | { 종류: '실행'; 칸: string } // params[칸] 이 실행 번호다
   | { 종류: '증적'; 칸: string }
-  | { 종류: '입력값묶음'; 칸: string };
+  | { 종류: '입력값묶음'; 칸: string }
+  | { 종류: '작성요청'; 칸: string }; // params[칸] 이 대기줄 행 번호다. 그 행의 service_id 가 서비스다 (§6)
 
 /**
  * **등록된 모든 `/api` 라우트가 여기 있어야 한다.**
@@ -59,6 +60,15 @@ export const 라우트표: Record<string, 원천> = {
 
   '/api/evidence/:id': { 종류: '증적', 칸: 'id' },
   '/api/param-sets/:id': { 종류: '입력값묶음', 칸: 'id' },
+
+  // 작성 대기줄 (SPEC 도메인/작성 §7). ?service= 로 고르는 것과 번호로 찾는 것이 갈린다
+  '/api/authoring/requests': { 종류: '질의' },
+  '/api/authoring/merges': { 종류: '질의' }, // sourceId 의 서비스는 라우트가 본다 — 본문이라 문이 못 읽는다
+  '/api/authoring/requests/claim': { 종류: '질의' },
+  '/api/authoring/requests/:id': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/stage': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/screenshots': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/finish': { 종류: '작성요청', 칸: 'id' },
 };
 
 // SPEC §2 — 접두사는 자유 형식이고 플랫폼은 모양과 중복만 본다.
@@ -73,7 +83,7 @@ export function 케이스의서비스(tcId: unknown): string | null {
   return 접두사모양.test(접두사) ? 접두사 : null;
 }
 
-export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음'; 번호: number };
+export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청'; 번호: number };
 
 /** 번호 칸은 **라우트와 같은 엄격함**으로 읽는다. 느슨하면 문과 라우트가 다른 값을 본다 */
 export function 번호로(값: unknown): number | null {
@@ -94,6 +104,9 @@ const 질의: Record<찾을것['종류'], string> = {
           WHERE d.id = $1`,
   // 입력값 묶음은 서비스 칸이 없다. tc_id 접두사가 곧 서비스다 (SPEC §2)
   입력값묶음: 'SELECT split_part(tc_id, $2, 1) AS prefix FROM param_set WHERE id = $1',
+  // 작성 요청은 service_id 가 NOT NULL 이다. 새 표라 「통합 이전 행」이 없다 (§6)
+  작성요청:
+    'SELECT s.prefix FROM authoring_request a JOIN service s ON s.id = a.service_id WHERE a.id = $1',
 };
 
 /**

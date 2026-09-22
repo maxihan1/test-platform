@@ -56,7 +56,14 @@ describe('라우트표', () => {
 
     // 읽는 방식이 깨지면 「빠진 것 없음」이 거짓으로 초록이 된다.
     // 건수 하한 대신 **어느 파일을 읽었는지**를 단언한다
-    expect(읽은파일.sort()).toEqual(['auth', 'catalog', 'execution', 'reporting', 'settings']);
+    expect(읽은파일.sort()).toEqual([
+      'auth',
+      'authoring',
+      'catalog',
+      'execution',
+      'reporting',
+      'settings',
+    ]);
     expect(라우트들.length).toBeGreaterThan(20);
 
     const 빠진것 = 라우트들.filter((틀) => !(틀 in 라우트표));
@@ -65,6 +72,23 @@ describe('라우트표', () => {
       `라우트표에 없는 라우트: ${빠진것.join(' · ')}\n` +
         `서비스에 매이면 종류를 정해 넣고, 안 매이면 { 종류: '안매임' } 으로 넣어라.`,
     ).toEqual([]);
+  });
+
+  // ★ 작성 요청은 **라우트가 서비스 경계를 안 본다.** 문이 유일한 방어이고, 문이 보려면
+  // 이 세 줄이 「번호로 서비스를 찾는」 갈래여야 한다. 「안매임」으로 바뀌면 문이 아무것도 안 보고
+  // **남의 서비스 기획서 본문이 번호만으로 읽힌다** (2026-09-22)
+  it('작성 요청의 번호 자리는 그 행에서 서비스를 찾는다', () => {
+    for (const 틀 of [
+      '/api/authoring/requests/:id',
+      '/api/authoring/requests/:id/stage',
+      '/api/authoring/requests/:id/screenshots',
+      '/api/authoring/requests/:id/finish',
+    ]) {
+      expect(라우트표[틀], `${틀} 이 번호로 서비스를 찾지 않는다`).toEqual({
+        종류: '작성요청',
+        칸: 'id',
+      });
+    }
   });
 
   it('표에 있는데 소스에 없는 라우트가 없다', () => {
@@ -184,6 +208,23 @@ describe.skipIf(연결 === undefined)('번호가 어느 서비스인가', () => 
 
   it('입력값 묶음은 케이스 번호 접두사가 곧 서비스다', async () => {
     expect(await 자원의서비스({ 종류: '입력값묶음', 번호: 입력값묶음번호 })).toBe('XFS5');
+  });
+
+  // 작성 요청은 라우트가 서비스 경계를 안 본다. **문이 유일한 방어라 여기서 증명한다** —
+  // 이 갈래가 빠지면 남의 서비스 기획서 본문이 번호만으로 읽힌다 (2026-09-22)
+  it('작성 요청 번호로 그 서비스를 찾는다', async () => {
+    const { pool } = await import('../db/index.js');
+    const r = await pool.query<{ id: string }>(
+      `INSERT INTO authoring_request
+         (service_id, kind, spec_text, requested_by, requested_by_name, status)
+       SELECT id, 'AUTHOR', '경계 검사용 기획서', 'xfs5', '검사', 'PENDING'
+         FROM service WHERE prefix = 'XFS5'
+       RETURNING id`,
+    );
+    const 번호 = Number(r.rows[0]!.id);
+    expect(await 자원의서비스({ 종류: '작성요청', 번호 })).toBe('XFS5');
+    expect(await 자원의서비스({ 종류: '작성요청', 번호: 999999999 })).toBeNull();
+    await pool.query('DELETE FROM authoring_request WHERE id = $1', [번호]);
   });
 
   it('없는 번호는 null 이다 — 문이 지나보내고 라우트가 404 를 낸다', async () => {
