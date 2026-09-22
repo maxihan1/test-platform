@@ -255,7 +255,10 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
 - **DB 테스트 fixture**: 접두사는 **갈래마다 고유하게**, 정리 구문(`DELETE ... LIKE`)은 **자기 것에만** 맞게 쓴다.
   Vitest는 파일을 병렬로 돌려서 넓은 패턴이 남의 fixture를 쓰는 도중에 지운다.
   WS-A `ZZA` · WS-B `XBS`·`XBR`·`XBQ`·`XBX` · WS-D `XDC`·`XDR`·`XDD`·`XDG` ·
-  WS-F `xfu1`~`xfu4`·`XFS1`·`XFS1B`·`XFS2`~`XFS4`·`XFS5`(`auth/scope.test.ts`).
+  WS-F `xfu1`~`xfu4`·`XFS1`·`XFS1B`·`XFS2`~`XFS4`·`XFS5`(`auth/scope.test.ts`) ·
+  WS-작성 `XWA`(`authoring/store.test.ts`)·`XWAR`(`authoring/routes.test.ts`).
+  **이 둘은 `authoring_request` 를 `LIKE` 가 아니라 자기 `service_id` 로만 지운다** —
+  `XWAR` 이 `XWA` 로 시작하므로 `LIKE 'XWA%'` 로 넓히면 남의 fixture 를 실행 도중에 지운다 (2026-09-22).
   **WS-D·WS-F는 `ZZ`로 시작하는 것을 쓰지 않는다.**
   **새 접두사를 쓰면 이 줄에 적는다.** 안 적으면 다음 갈래가 같은 것을 골라 남의 fixture를 실행 도중에 지운다 (2026-09-19)
   **`LIKE`로 넓힐 때는 그 아래 것을 전부 적는다** — `identify.test.ts`가 `'XFS1%'`로 지우므로
@@ -268,6 +271,10 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   **`XBR`도 표가 갈린다** — `routes.test.ts`가 `test_case`·`param_set`은 `tc_id LIKE 'XBR%'`로,
   진행 조회 검사는 `test_run.title LIKE 'XBR 진행%'`로 지운다. **`test_run`에 `'XBR%'`를 쓰면 안 된다**
   (2026-09-21). 같은 접두사라도 **어느 표를 지우는지가 다르면 다른 것**이다
+  **★ 자기가 만든 것도 치운다** — 행만 지우고 **서비스·계정 같은 부모 행을 살려 두면**
+  다른 검사가 「지금 살아 있는 것」을 훑을 때 **2회차부터 다른 세상에서 시작한다.**
+  2026-09-22 에 그래서 전체 검사가 **1회차만 통과**했고, 깨진 것은 **내가 안 건드린 파일들**이었다.
+  **증상이 남의 파일에서 나도 원인은 내 검사가 남긴 것일 수 있다**
   **이유는 병렬이 아니다.** `vitest.config.ts`가 `fileParallelism: false`로 병렬을 껐다 —
   넓은 `DELETE ... LIKE`가 **다른 파일의 fixture까지 범위에 넣는 것**이 문제다 (2026-09-19)
   확인은 연속 3회다 — 1회 통과는 증거가 못 된다 (spec-review G3)

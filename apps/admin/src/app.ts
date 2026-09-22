@@ -9,6 +9,7 @@ import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 
 import authRoutes from './auth/routes.js';
+import authoringRoutes from './authoring/routes.js';
 import { 인증등록 } from './auth/gate.js';
 import { 세션등록, 열쇠최소길이 } from './auth/session.js';
 import catalogRoutes from './catalog/routes.js';
@@ -30,6 +31,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   // 등록 규약: 각 컨텍스트의 routes.ts가 default export 한 플러그인을 /api 접두사로 붙인다.
   // 새 컨텍스트가 생기면 여기 한 줄만 늘어난다
   app.register(authRoutes, { prefix: '/api' });
+  app.register(authoringRoutes, { prefix: '/api' });
   app.register(catalogRoutes, { prefix: '/api' });
   app.register(executionRoutes, { prefix: '/api' });
   app.register(reportingRoutes, { prefix: '/api' });

@@ -224,3 +224,73 @@ test('도는폴더는 실제로 치는 명령에서만 tests/ 이름을 뽑는�
   assert.deepEqual([...도는폴더('      - name: npx playwright test tests/todo 를 예전에 돌렸다')], []);
   assert.deepEqual([...도는폴더('      - run: npx playwright test 어딘가/다른곳')], []);
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CI 가 DB 를 갖고 있는가 (2026-09-22 추가)
+//
+// **DB 검사는 DATABASE_URL 이 없으면 조용히 건너뛴다.** 그래서 CI 설정에서 그 한 줄만 빠져도
+// DB 를 타는 검사 파일 전부가 안 돌고 **CI 는 초록**이다 — 「검사가 통과했다」가
+// 「검사를 안 했다」의 다른 이름이 된다. 위의 playwright 그물과 같은 성질의 구멍이다.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('CI 의 check 잡이 DB 를 띄우고 DATABASE_URL 을 넘긴다', () => {
+  const 블록 = 잡블록(readFileSync(CI, 'utf8'), 'check');
+  assert.ok(블록, 'check 잡을 못 찾았다');
+  const 주석없이 = 블록.split('\n').map((줄) => 줄.replace(/#.*$/, '')).join('\n');
+  assert.match(
+    주석없이,
+    /services:[\s\S]*image:\s*postgres/,
+    'CI 에 postgres 가 없다 — DB 검사가 통째로 건너뛰는데 초록불이 뜬다',
+  );
+  assert.match(
+    주석없이,
+    /DATABASE_URL:/,
+    'DATABASE_URL 을 안 넘긴다 — DB 검사가 조용히 건너뛴다',
+  );
+});
+
+test('CI 가 마이그레이션을 먹인다 — 표가 없으면 DB 검사가 죽는다', () => {
+  const 블록 = 잡블록(readFileSync(CI, 'utf8'), 'check');
+  assert.ok(블록);
+  const 명령들 = 블록.split('\n').map((줄) => 줄.replace(/#.*$/, '')).join('\n');
+  assert.match(명령들, /migrations/, '마이그레이션을 먹이는 단계가 없다');
+});
+
+// **docker-compose 가 해 주는 일을 CI 도 한다고 믿으면 안 된다.** compose 는 db/init 을
+// postgres 의 초기 스크립트 자리에 마운트해 자동으로 먹이는데, CI 의 services: 컨테이너는
+// 체크아웃보다 먼저 떠서 그 마운트를 못 한다. 그래서 로컬만 초록이고 CI 는
+// `role "grafana_ro" does not exist` 로 죽었다 (2026-09-22 실측).
+test('CI 가 db/init 을 마이그레이션보다 먼저 먹인다 — compose 가 자동으로 하던 일이다', () => {
+  const 블록 = 잡블록(readFileSync(CI, 'utf8'), 'check');
+  assert.ok(블록);
+  const 명령들 = 블록.split('\n').map((줄) => 줄.replace(/#.*$/, '')).join('\n');
+  assert.match(
+    명령들,
+    /db\/init/,
+    'db/init 을 안 먹인다 — 마이그레이션이 role "grafana_ro" does not exist 로 죽는다',
+  );
+  assert.ok(
+    명령들.indexOf('db/init') < 명령들.indexOf('migrations-dir'),
+    'db/init 이 마이그레이션보다 뒤에 있다 — 역할이 없는 채로 GRANT 가 돌아 죽는다',
+  );
+});
+
+// **이 저장소는 이름을 한국어로 짓는다. 셸 변수만은 안 된다.**
+// 러너의 bash 는 `for 파일 in ...` 을 `not a valid identifier` 로 거절한다 (2026-09-22 실측).
+// macOS 에서 손으로 확인할 때 영문 이름으로 바꿔 돌리면 **확인한 명령과 넣은 명령이 달라져**
+// 이 함정을 못 본다 — 실제로 그렇게 한 번 놓쳤다. 그래서 기계가 본다.
+test('ci.yml 의 셸 변수 이름이 전부 ASCII 다 — 러너의 bash 가 한글 이름을 거절한다', () => {
+  const 주석없이 = readFileSync(CI, 'utf8')
+    .split('\n')
+    .map((줄) => 줄.replace(/#.*$/, ''))
+    .join('\n');
+  const 걸린것 = [
+    [/\$\{?([^\x00-\x7F])/, '$ 뒤에 ASCII 가 아닌 글자'],
+    [/\bfor\s+([^\x00-\x7F])/, 'for 뒤의 변수 이름에 ASCII 가 아닌 글자'],
+  ].filter(([정규식]) => 정규식.test(주석없이));
+  assert.deepEqual(
+    걸린것.map(([, 설명]) => 설명),
+    [],
+    '셸 변수 이름에 한글이 섞였다 — 러너에서 not a valid identifier 로 그 단계가 죽는다',
+  );
+});

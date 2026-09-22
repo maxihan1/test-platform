@@ -30,16 +30,93 @@ function 라우트틀(req: FastifyRequest): string | undefined {
   return req.routeOptions.url;
 }
 
-function 설정자리(path: string): boolean {
-  return path === '/api/settings' || path.startsWith('/api/settings/');
+/**
+ * 옛 자동 규칙. **표로 갈아탄 뒤에도 남긴다** — `gate.test.ts` 가 서른여덟 쌍 전부를
+ * 표와 대조해 **의도하지 않은 등급 변경**을 잡는 데 쓴다 (2026-09-22 검토가 잡았다).
+ *
+ * 손으로 서른여덟 줄을 옮겨 적는 일이라 한 줄만 틀려도 된다. 틀린 방향 둘이 값이 다르다 —
+ * 보기만을 실행으로 적으면 **목록을 못 읽어 시끄럽고**, 실행을 보기만으로 적으면
+ * **보기만 등급이 실행을 거는데 403 이 안 나 아무도 안 빨개진다.**
+ *
+ * **지우지 마라.** 이것이 없으면 대조할 기준이 사라진다.
+ */
+export function 옛자동규칙(path: string, method: string): 등급 {
+  if (path === '/api/settings' || path.startsWith('/api/settings/')) return 'admin';
+  return method === 'GET' || method === 'HEAD' ? 'viewer' : 'operator';
 }
 
-// 무엇을 할 수 있는지는 §3.5 가 정본이고, 갈리는 자리는 셋이다 (§7).
-// 읽기는 viewer · 바꾸는 일은 operator · 설정은 admin.
-// 스캔(POST /api/catalog/scan)이 표에 이름으로 없어 방식으로 갈린다 — operator 다
+/** 등급을 안 따지는 자리. 문이 그 앞에서 이미 돌려보낸다 */
+const 안따짐 = '안따짐';
+type 표값 = 등급 | typeof 안따짐;
+
+/**
+ * **경로→등급 표** (SPEC 도메인/인증 §7 「등급으로 갈리는 자리」가 정본이다).
+ *
+ * ★ **키는 「틀 + 메서드」다.** 한 틀이 메서드마다 다른 등급을 갖는 자리가 실제로 있다 —
+ * `/api/catalog/scan` · `/api/runs` · `/api/cases/:tcId/param-sets` 셋이 `GET` 과 쓰기로 갈린다.
+ * 틀 하나로 잡으면 셋이 한 값으로 뭉개진다.
+ *
+ * ★ **표에 없으면 `admin` 이다** — `scope.ts` 의 「모르면 막는다」와 같은 방향이다.
+ * 새 통로를 낼 때마다 그 자리에서 403 으로 빨개진다. 시끄럽지만 안전하다.
+ */
+export const 등급표: Record<string, 표값> = {
+  // 로그인·로그아웃·나를 묻기는 문이 등급 판정 앞에서 돌려보낸다.
+  // 보기만 등급이 로그아웃도 못 하면 안 된다 (아래 인증등록 참조)
+  'POST /api/auth/login': 안따짐,
+  'POST /api/auth/logout': 안따짐,
+  'GET /api/auth/me': 안따짐,
+
+  // 읽기 — viewer
+  'GET /api/catalog/cases': 'viewer',
+  'GET /api/catalog/cases/:tcId': 'viewer',
+  'GET /api/catalog/scan': 'viewer',
+  'GET /api/cases/:tcId/history': 'viewer',
+  'GET /api/cases/:tcId/param-sets': 'viewer',
+  'GET /api/cases/:tcId/source': 'viewer',
+  'GET /api/evidence/:id': 'viewer',
+  'GET /api/runs': 'viewer',
+  'GET /api/runs/last-by-case': 'viewer',
+  'GET /api/runs/:runId': 'viewer',
+  'GET /api/runs/:runId/insights': 'viewer',
+  'GET /api/runs/:runId/items/:historyId': 'viewer',
+  'GET /api/runs/:runId/progress': 'viewer',
+  'GET /api/screenshots/:runId/:historyId/:seq.png': 'viewer',
+  'GET /api/authoring/requests': 'viewer',
+  'GET /api/authoring/requests/:id': 'viewer',
+
+  // 바꾸는 일 — operator
+  'POST /api/catalog/scan': 'operator',
+  'POST /api/runs': 'operator',
+  'POST /api/runs/:runId/abort': 'operator',
+  'POST /api/runs/:runId/evidence': 'operator',
+  'POST /api/cases/:tcId/param-sets': 'operator',
+  'DELETE /api/param-sets/:id': 'operator',
+  'POST /api/authoring/requests': 'operator',
+  'POST /api/authoring/requests/claim': 'operator',
+  'PATCH /api/authoring/requests/:id/stage': 'operator',
+  'POST /api/authoring/requests/:id/screenshots': 'operator',
+  'POST /api/authoring/requests/:id/finish': 'operator',
+
+  // ★ 저장소를 영구히 바꾸는 일 — admin. **이 PR 이 일부러 바꾸는 유일한 줄이다**
+  'POST /api/authoring/merges': 'admin',
+
+  // 설정 — admin
+  'GET /api/settings/services': 'admin',
+  'POST /api/settings/services': 'admin',
+  'PATCH /api/settings/services/:id': 'admin',
+  'GET /api/settings/users': 'admin',
+  'POST /api/settings/users': 'admin',
+  'PATCH /api/settings/users/:username': 'admin',
+  'POST /api/settings/users/:username/password': 'admin',
+};
+
 function 필요등급(path: string, method: string): 등급 {
-  if (설정자리(path)) return 'admin';
-  return method === 'GET' || method === 'HEAD' ? 'viewer' : 'operator';
+  // Fastify 는 GET 라우트에 HEAD 를 자동으로 붙인다. 소스에는 그 줄이 없어 표에도 없고,
+  // 그대로 두면 HEAD 가 admin 으로 떨어져 **오늘 viewer 가 하던 일이 조용히 막힌다**
+  const 키 = `${method === 'HEAD' ? 'GET' : method} ${path}`;
+  const 값 = 등급표[키];
+  // 표에 없거나 「안 따짐」인데 여기까지 왔으면 아무도 분류하지 않은 것이다. 막는 쪽으로 간다
+  return 값 === undefined || 값 === 안따짐 ? 'admin' : 값;
 }
 
 // 배정 목록과 맞춰 볼 이름이 없지만 열어 주면 안 되는 요청
@@ -103,7 +180,12 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
     모인것.push(서비스);
   }
 
-  if (원천.종류 === '실행' || 원천.종류 === '증적' || 원천.종류 === '입력값묶음') {
+  if (
+    원천.종류 === '실행' ||
+    원천.종류 === '증적' ||
+    원천.종류 === '입력값묶음' ||
+    원천.종류 === '작성요청'
+  ) {
     const 번호 = 번호로(params[원천.칸]);
     // 라우트는 이 값을 숫자로 읽는다. 문이 못 읽는 모양이면 둘이 다른 것을 보고 있다
     if (번호 === null) return 막는다;
@@ -127,8 +209,18 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
 export function 인증등록(app: FastifyInstance): void {
   app.decorateRequest('user', null);
 
-  app.addHook('preHandler', async (req, reply) => {
-    // 라우트가 안 잡힌 요청은 지킬 자원이 없다. 라우터가 404 를 내게 둔다
+  /**
+   * **로그인 검사는 본문을 읽기 전에 한다.**
+   *
+   * `preHandler` 는 본문 파서가 **다 읽은 뒤**에 돈다. 그래서 거기에만 두면
+   * **로그인하지 않은 사람이 보낸 큰 본문이 메모리에 통째로 올라간 다음에야** 401 이 나간다 —
+   * 사진 올리는 통로처럼 상한이 넓은 자리에서는 그것만으로 서버를 넘길 수 있다
+   * (2026-09-22 보안 검토가 실측으로 잡았다).
+   *
+   * **등급과 서비스 판정은 여기서 안 한다** — 그 판정이 `POST /api/runs` 의 **본문**을 읽어야 해서
+   * 이 단계에서는 값이 아직 없다. 그래서 둘로 나눈다. 이 단계는 **누구인가**만 본다.
+   */
+  app.addHook('onRequest', async (req, reply) => {
     const path = 라우트틀(req);
     if (path === undefined || !path.startsWith('/api/')) return;
 
@@ -139,8 +231,22 @@ export function 인증등록(app: FastifyInstance): void {
     const user = await 확인(req);
     if (user === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
     req.user = user;
+  });
 
-    // 나가기와 나를 묻는 것은 등급을 따지지 않는다. 보기만 등급이 로그아웃도 못 하면 안 된다
+  app.addHook('preHandler', async (req, reply) => {
+    // 라우트가 안 잡힌 요청은 지킬 자원이 없다. 라우터가 404 를 내게 둔다
+    const path = 라우트틀(req);
+    if (path === undefined || !path.startsWith('/api/')) return;
+    if (path === '/api/auth/login') return;
+
+    // 위 onRequest 가 이미 401 을 냈다. 여기 닿았으면 사람이 실려 있다
+    const user = req.user;
+    if (user === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
+
+    // 나가기와 나를 묻는 것은 등급을 따지지 않는다. 보기만 등급이 로그아웃도 못 하면 안 된다.
+    // ★ **이 아래(`/api/auth/**`)에는 등급이 안 걸린다.** 여기에 통로를 더하면
+    // 등급 표에 「안 따짐」으로 적히고 **로그인만 했으면 보기만 등급도 통과**한다 —
+    // 표를 보면 안전해 보이는데 실제 판정은 이 한 줄이 한다 (2026-09-22 보안 검토가 잡았다)
     if (path.startsWith('/api/auth/')) return;
 
     const 필요 = 필요등급(path, req.method);
