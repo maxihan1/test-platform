@@ -2,8 +2,9 @@
 // 여기에 넣은 키는 화면 어딘가가 실제로 써야 한다 — messages.test.ts 가 양방향으로 센다
 
 export const 껍데기말: Record<string, string> = {
-  // 제품과 자리 넷
+  // 제품과 자리 목록
   '테스트 플랫폼': 'Test Platform',
+  '테스트 작성': 'Authoring',
   '실행 기록': 'Run history',
   그래프: 'Charts',
   설정: 'Settings',
