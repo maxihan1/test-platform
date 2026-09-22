@@ -61,7 +61,9 @@ jobs:
         run: |
           curl -fsSL -o /tmp/dbmate https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64
           chmod +x /tmp/dbmate
-          /tmp/dbmate --migrations-dir db/migrations --no-dump-schema up
+          # dbmate 는 sslmode 를 안 적으면 SSL 을 요구하고 postgres 는 그것을 안 켜 둔다.
+          # docker-compose 의 migrate 도 같은 이유로 ?sslmode=disable 을 붙여 쓴다 (2026-09-22 실측)
+          DATABASE_URL="$DATABASE_URL?sslmode=disable" /tmp/dbmate --migrations-dir db/migrations --no-dump-schema up
       - name: 타입 검사
         if: steps.skeleton.outputs.ready == '1'
         run: npm run typecheck --if-present
