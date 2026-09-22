@@ -33,4 +33,20 @@ describe('등급', () => {
     expect(할수있나(null, '실행')).toBe(false);
     expect(할수있나(null, '증적받기')).toBe(false);
   });
+
+  it('실행 등급은 작성을 요청할 수 있다. 결과가 초안 PR 이라 마음에 안 들면 버리면 된다', () => {
+    expect(할수있나('operator', '작성요청')).toBe(true);
+  });
+
+  it('실행 등급은 머지를 못 한다. 머지는 저장소를 영구히 바꾼다', () => {
+    expect(할수있나('operator', '작성머지')).toBe(false);
+  });
+
+  it('운영 등급은 머지까지 할 수 있다', () => {
+    expect(할수있나('admin', '작성머지')).toBe(true);
+  });
+
+  it('보기만 등급은 작성을 요청하지 못한다', () => {
+    expect(할수있나('viewer', '작성요청')).toBe(false);
+  });
 });

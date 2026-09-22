@@ -1,4 +1,4 @@
-// 맨 위 띠 · 자리 넷 · 알림 줄이 쓰는 규칙 (SPEC §8). 화면 조각은 Shell.tsx, 판단은 여기
+// 맨 위 띠 · 자리 목록 · 알림 줄이 쓰는 규칙 (SPEC §8). 화면 조각은 Shell.tsx, 판단은 여기
 // 한 번에 한 서비스만 본다 — 여러 서비스가 한 목록에 섞이면 엉뚱한 쪽에서 실행을 누르는 사고가 난다
 
 import type { RunSummary, ServiceRow, User } from './api.js';
@@ -48,7 +48,7 @@ function 그래프주소(): string {
 }
 
 /**
- * 자리 넷 (SPEC §8).
+ * 자리 목록 (SPEC §8).
  *
  * 설정은 운영 등급에게만 뜬다. **흐리게 두지 않고 아예 없다** —
  * 누를 수 없는 메뉴가 있으면 사람이 그것이 올 때까지 기다린다 (§8.6).
@@ -56,10 +56,28 @@ function 그래프주소(): string {
 export function 자리목록(role: 등급 | null, 언어: 언어): 자리[] {
   const 기본: 자리[] = [
     { 이름: t('테스트 케이스', 언어), 해시: '#/cases' },
+    { 이름: t('테스트 작성', 언어), 해시: '#/authoring' },
     { 이름: t('실행 기록', 언어), 해시: '#/runs' },
     { 이름: t('그래프', 언어), 해시: 그래프주소(), 바깥: true },
   ];
   return 할수있나(role, '설정') ? [...기본, { 이름: t('설정', 언어), 해시: '#/settings' }] : 기본;
+}
+
+/**
+ * 사이드바에서 어느 자리에 밑줄이 갈까.
+ *
+ * **상세 화면은 목록에서 들어온 자리다.** 실행 결과·항목 상세가 `#/runs` 를 가리키는 것과
+ * 같은 이유로 작성 상세도 `#/authoring` 을 가리킨다 — 안 그러면 상세를 여는 순간
+ * 밑줄이 케이스로 튄다.
+ *
+ * `main.tsx` 안에 두면 그 파일이 `createRoot` 를 모듈 자리에서 불러 **검사할 수가 없다.**
+ * 판단은 여기, 그림은 거기 (이 파일 머리 주석과 같은 규칙).
+ */
+export function 지금자리(name: string): string {
+  if (name === 'runs' || name === 'run' || name === 'item') return '#/runs';
+  if (name === 'authoring' || name === 'authoringItem') return '#/authoring';
+  if (name === 'settings') return '#/settings';
+  return '#/cases';
 }
 
 /**

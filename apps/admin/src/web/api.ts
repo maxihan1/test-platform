@@ -224,6 +224,30 @@ export interface SettingsServiceRow extends ServiceRow {
 }
 
 /** 설정 화면이 보는 계정 (SPEC §7 `/settings/users` · §8.8). `services` 는 접두사 목록이다 */
+/**
+ * 작성 대기줄의 한 줄 (SPEC §7 · 공통/4-데이터모델 §6).
+ *
+ * 서버 `authoring/store.ts` 의 `요청` 과 같은 모양이다 — 거기가 정본이고 여기는 화면이 읽는 쪽이다.
+ * 화면이 안 쓰는 칸(기획서 본문·소스 스냅샷·사진 폴더)은 싣지 않는다.
+ */
+export interface AuthoringRow {
+  id: number;
+  kind: 'AUTHOR' | 'RERUN' | 'MERGE';
+  sourceId: number | null;
+  status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
+  stage: string | null;
+  /** 그 한 줄이 마지막으로 바뀐 시각. **「도는 중」과 「거기서 맥이 죽었다」를 가른다** */
+  stageAt: string | null;
+  requestedByName: string;
+  claimedBy: string | null;
+  prUrl: string | null;
+  error: string | null;
+  createdAt: string;
+  /** 맥이 집어 간 시각. 단계를 한 번도 안 올렸을 때 「멈췄나」를 재는 기준이 된다 */
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
 export interface UserRow {
   username: string;
   displayName: string;
@@ -452,6 +476,29 @@ export const api = {
   deleteParamSet: (id: number) => call<void>(`/param-sets/${id}`, { method: 'DELETE' }),
 
   screenshot: (runId: number, historyId: number, seq: number) => `/api/screenshots/${runId}/${historyId}/${seq}.png`,
+
+  // 작성 대기줄 (SPEC §7 · 도메인/작성 §7). 넣기·읽기는 화면이 부르고
+  // 집기·단계·끝내기는 맥이 부른다 — 화면은 그 넷을 안 부른다
+  authoringRequests: (service: string, page: number) =>
+    call<{ items: AuthoringRow[]; total: number; page: number; pageSize: number }>(
+      `/authoring/requests?service=${encodeURIComponent(service)}&page=${page}`,
+    ),
+
+  authoringRequest: (service: string, id: number) =>
+    call<AuthoringRow>(`/authoring/requests/${id}?service=${encodeURIComponent(service)}`),
+
+  /** 요청자는 싣지 않는다. 로그인한 세션에서 서버가 채운다 (도메인/작성 §7) */
+  createAuthoringRequest: (service: string, body: { kind: 'AUTHOR' | 'RERUN'; specText: string; sourceId?: number }) =>
+    call<{ id: number }>(`/authoring/requests?service=${encodeURIComponent(service)}`, json(body)),
+
+  /**
+   * 머지를 줄에 세운다 — **운영 등급만**.
+   *
+   * 경로가 갈린 이유는 등급 때문이다. 같은 경로에 `kind: 'MERGE'` 로 얹으면 등급이
+   * **본문 값**에 따라 갈려야 하고, 그러려면 문이 본문을 읽어야 한다 (도메인/작성 §7).
+   */
+  createAuthoringMerge: (service: string, sourceId: number) =>
+    call<{ id: number }>(`/authoring/merges?service=${encodeURIComponent(service)}`, json({ sourceId })),
 
   // 설정 (SPEC §7 · §8.8). 전부 운영(admin) 등급만 닿는다 — 서버 auth/gate.ts 가 막는다
   settingsServices: () => call<{ items: SettingsServiceRow[] }>('/settings/services'),

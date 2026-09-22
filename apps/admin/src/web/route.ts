@@ -7,6 +7,8 @@ export type Route =
   | { name: 'cases' }
   | { name: 'setup'; tcId: string }
   | { name: 'runs' }
+  | { name: 'authoring' }
+  | { name: 'authoringItem'; id: number }
   | { name: 'run'; runId: number }
   | { name: 'item'; runId: number; historyId: number }
   | { name: 'unknown'; hash: string };
@@ -21,6 +23,15 @@ export function route(hash: string): Route {
 
   if (parts[0] === 'cases' && parts.length === 3 && parts[2] === 'run') {
     return { name: 'setup', tcId: decodeURIComponent(parts[1]!) };
+  }
+
+  // 번호는 숫자 글자만 받는다. 서버도 같은 모양으로 거른다 (도메인/작성 §7) —
+  // 문과 라우트가 다른 값을 읽으면 그 틈으로 남의 행을 부르는 주소가 만들어진다
+  if (parts[0] === 'authoring') {
+    if (parts.length === 1) return { name: 'authoring' };
+    if (parts.length === 2 && /^\d{1,10}$/.test(parts[1]!)) {
+      return { name: 'authoringItem', id: Number(parts[1]) };
+    }
   }
 
   if (parts[0] === 'runs') {

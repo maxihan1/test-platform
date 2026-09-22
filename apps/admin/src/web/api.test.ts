@@ -193,3 +193,30 @@ describe('목록 두 곳은 보고 있는 서비스를 서버에 보낸다', () 
     expect(String(부름[0]?.url)).toContain('service=PAY');
   });
 });
+
+describe('작성 대기줄 (SPEC §7 · 도메인/작성 §7)', () => {
+  it('줄 목록에 service 가 실린다', async () => {
+    답 = { status: 200, body: { items: [], total: 0, page: 1, pageSize: 50 } };
+    await api.authoringRequests('PAY', 1);
+    expect(String(부름[0]?.url)).toContain('service=PAY');
+  });
+
+  it('작성 요청을 넣을 때도 service 가 실린다. 어느 서비스의 줄인지는 주소가 말한다', async () => {
+    답 = { status: 201, body: { id: 7 } };
+    await api.createAuthoringRequest('PAY', { kind: 'AUTHOR', specText: '기획서 본문' });
+    expect(String(부름[0]?.url)).toContain('service=PAY');
+    expect(부름[0]?.init?.method).toBe('POST');
+  });
+
+  it('머지는 경로가 갈린다. 같은 경로에 얹으면 등급이 본문 값에 따라 갈려야 한다', async () => {
+    답 = { status: 201, body: { id: 8 } };
+    await api.createAuthoringMerge('PAY', 7);
+    expect(String(부름[0]?.url)).toContain('/authoring/merges');
+  });
+
+  it('한 건 상세는 번호로 부른다', async () => {
+    답 = { status: 200, body: { id: 7 } };
+    await api.authoringRequest('PAY', 7);
+    expect(String(부름[0]?.url)).toContain('/authoring/requests/7');
+  });
+});

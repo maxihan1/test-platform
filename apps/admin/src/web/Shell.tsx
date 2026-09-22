@@ -51,7 +51,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
           2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다.
           PR① 이 남겨 둔 것은 그 이름으로 단언하는 검사가 있었기 때문이고, 그 검사를 같이 고쳤다 */}
       <aside className="side">
-        {/* 접어도 자리 넷을 **지우지 않는다.** display:none 을 쓰면 키보드 탭 대상에서 빠져
+        {/* 접어도 자리 목록을 **지우지 않는다.** display:none 을 쓰면 키보드 탭 대상에서 빠져
             키보드로만 쓰는 사람이 이동을 통째로 잃는다. 폭만 줄이고 글자를 숨긴다 */}
         <button
           className="side-fold"
@@ -113,7 +113,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         {/* 사람과 로그아웃을 바닥으로 민다. 자주 누르는 것이 아니라 늘 보여야 하는 것이다 */}
         <div className="side-gap" />
 
-        {/* 접어도 지우지 않는다 — 폭만 줄고 글자가 숨는다. 위 자리 넷과 같은 이유다 (SPEC §8) */}
+        {/* 접어도 지우지 않는다 — 폭만 줄고 글자가 숨는다. 위 자리 목록과 같은 이유다 (SPEC §8) */}
         <div className="side-lang">
           <label className="side-lang-label" htmlFor="side-lang">
             {t('언어')}
