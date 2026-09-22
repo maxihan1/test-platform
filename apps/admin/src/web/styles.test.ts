@@ -424,6 +424,22 @@ describe('표머리와 줄이 같은 격자를 쓴다 (SPEC §8.1 · §8.7, 2026
     expect(규칙('.right')).toMatch(/flex-wrap:\s*wrap/);
   });
 
+  // 고정 폭 트랙을 쓰면 **그 합이 안 들어가는 창**이 생긴다. 2026-09-22 에 1680px 만 재고
+  // 「쟀다」고 적었다가 1024px 창에서 표가 139px 넘치는 것을 자기검토가 잡았다.
+  // 넓은 창 하나로는 이 자리를 영영 못 본다 — 좁은 구간 대비가 있는지를 기계가 본다
+  it('고정 폭이 안 들어가는 창을 위한 대비가 있다', () => {
+    const 고정합 = (이름: string): number =>
+      [...(토큰들()[이름] ?? '').matchAll(/(?:^|\s)(\d+)px/g)].reduce((합, m) => 합 + Number(m[1]), 0);
+    // 넓은 창용 값은 고정 폭을 쓴다 — 그래야 표머리와 줄이 같은 자리에 선다
+    expect(고정합('--list-cols'), '--list-cols 에 고정 폭이 없다').toBeGreaterThan(0);
+    // 그 값이 안 들어가는 창을 위한 좁은 구간 재정의가 있어야 한다
+    const 좁은구간 = /@media \(max-width: (\d+)px\) \{\s*:root \{([\s\S]*?)\}/.exec(css);
+    expect(좁은구간, '고정 폭이 안 들어가는 창을 위한 :root 재정의가 없다').not.toBeNull();
+    expect(좁은구간![2], '좁은 구간 값이 여전히 고정 폭이다 — 비율(fr)이어야 넘치지 않는다').toMatch(
+      /--list-cols:[^;]*fr/,
+    );
+  });
+
   it('좁은 화면에서는 표머리를 감춘다 — 줄이 2단으로 접혀 칸이 세로로 눕는다', () => {
     const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     expect(좁은화면).toMatch(/\.rowhead\s*\{[^}]*display:\s*none/);
