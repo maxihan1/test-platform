@@ -287,8 +287,10 @@ tr.drow > td{padding:0;background:var(--sheet-2);border-bottom:1px solid var(--r
 
 /* --- 모달 --- */
 .backdrop{background:rgba(25,23,19,.42);padding:30px 24px;display:flex;justify-content:center}
-.modal{width:880px;max-width:100%;background:var(--sheet);border-radius:16px;overflow:hidden;
-  display:flex;flex-direction:column;max-height:520px;box-shadow:0 24px 60px -20px rgba(25,23,19,.55)}
+/* 넓은 상자 폭의 정본은 docs/DESIGN.md 다. 2026-09-22 에 880 → 1400px 으로 올렸다 —
+   880 으로는 실행 결과 상자의 케이스 목록에 32px 밖에 안 남아 한 줄도 안 들어갔다 */
+.modal{width:1400px;max-width:100%;background:var(--sheet);border-radius:16px;overflow:hidden;
+  display:flex;flex-direction:column;max-height:94vh;box-shadow:0 24px 60px -20px rgba(25,23,19,.55)}
 .modal-head{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--rule)}
 .modal-head h3{margin:0;font-size:21px;font-weight:600;flex:1;min-width:0;letter-spacing:-.01em}
 .modal-head .x{border:0;background:none;font:inherit;font-size:18px;color:var(--ink-faint);
