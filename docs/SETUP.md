@@ -312,3 +312,28 @@ npm run authoring-agent -- docs/cases/TODO-기획서-3.md --service TODO
 `scripts/authoring-agent.test.ts` 가 고정한다. **`npm test` 가 `scripts/**` 도 본다** —
 `vitest.config.ts` 의 `include` 에 그 무늬가 들어 있다. CI 가 `npm test` 를 3회 돌리므로
 CI 에 따로 이을 줄은 없다.
+
+---
+
+## 9. 화면 탐침 도구 — 기계마다 한 번 깐다
+
+케이스를 만들려면 **화면의 요소 주소**를 알아야 하는데 기획서에는 그것이 안 적혀 있다.
+그래서 작성 에이전트가 **대상 화면을 실제로 열어 읽는다.** 그 일을 하는 도구다.
+
+```bash
+npm install -g @playwright/cli@latest
+playwright-cli install --skills
+```
+
+- **저장소 의존성이 아니다.** `package.json` 은 안 바뀐다 — 기계에 까는 명령줄 도구다
+- 둘째 줄이 `.claude/skills/playwright-cli/` 를 깐다. **그 폴더는 저장소에 들어 있으므로
+  새 기계에서만 돌리면 된다** — 이미 있으면 같은 내용으로 덮어쓴다
+- `playwright-cli show` 로 **에이전트가 지금 무슨 화면을 보고 있는지** 실시간으로 볼 수 있다
+
+**안 깔면 무엇이 안 되나** — 케이스 생성이 `보류` 만 쏟아 낸다. 요소 주소를 못 읽으니
+locator 를 확정할 수 없고, **지어내는 것은 규칙이 금지한다** (`tpx-cases` 스킬 §4).
+
+**절차의 정본은 `.claude/skills/tpx-cases/SKILL.md` §4 다.** 여기에 옮겨 적지 않는다 —
+특히 **그 절이 「벤더 스킬의 생성 절차는 따르지 않는다」를 못박고 있다.** 같이 깔리는
+`references/test-generation.md` 가 **기대값을 화면에서 읽어 담으라**고 적는데, 이 저장소는
+그것을 금지한다 (화면의 버그가 회귀 세트에 영원히 박힌다).
