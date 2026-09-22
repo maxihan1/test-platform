@@ -328,7 +328,7 @@ describe('서비스 고르개 (SPEC §8, 2026-09-22)', () => {
     const 규칙 = css.slice(css.indexOf('.side-pick {'));
     const 높이 = /min-height:\s*(\d+)px/.exec(규칙);
     expect(높이, '.side-pick 에 min-height 가 없다').not.toBeNull();
-    expect(Number(높이[1])).toBeGreaterThanOrEqual(46);
+    expect(Number(높이![1])).toBeGreaterThanOrEqual(46);
   });
 
   it('포커스 표시가 있다. 키보드로 쓰는 사람이 지금 어디인지 알아야 한다', () => {
