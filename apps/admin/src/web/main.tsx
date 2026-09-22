@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client';
 
 import { api, type ServiceRow, type User, 돌아갈자리를꺼낸다, 세션끊김을받는다 } from './api.js';
 import { CaseList } from './CaseList.js';
-import { 언어함, type 언어 } from './i18n.js';
+import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
 import { 고른서비스, 고른서비스를읽는다, 고른서비스를적는다, 고른언어를읽는다, 고른언어를적는다 } from './layout.js';
 import { Login } from './Login.js';
@@ -16,6 +16,7 @@ import { RunResult } from './RunResult.js';
 import { RunSetup } from './RunSetup.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
+import { Loading } from './ui.js';
 import './styles.css';
 
 function useHash(): string {
@@ -39,6 +40,7 @@ function Screen({
   user: User;
   onMeChanged: () => void;
 }) {
+  const t = use말();
   const current = route(hash);
   // 띠가 서비스를 고르기 전에는 목록을 부르지 않는다. 빈 값으로 부르면 서버가 400 을 낸다
   const prefix = service?.prefix ?? '';
@@ -64,7 +66,7 @@ function Screen({
       return (
         <div className="screen">
           <div className="empty">
-            없는 주소입니다. <a href="#/cases">케이스 목록으로</a>
+            {t('없는 주소입니다.')} <a href="#/cases">{t('케이스 목록으로')}</a>
           </div>
         </div>
       );
@@ -124,7 +126,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   if (상태.어디 === '묻는중') {
     return (
       <div className="screen">
-        <div className="empty">불러오는 중입니다.</div>
+        <Loading />
       </div>
     );
   }

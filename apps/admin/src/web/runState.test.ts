@@ -38,13 +38,13 @@ describe('실행 상태', () => {
   });
 
   it('상태를 사람이 읽는 말로 바꾼다', () => {
-    expect(상태라벨('RUNNING')).toBe('진행 중');
-    expect(상태라벨('FINISHED')).toBe('완료');
-    expect(상태라벨('ABORTED')).toBe('중단');
+    expect(상태라벨('RUNNING', 'ko')).toBe('진행 중');
+    expect(상태라벨('FINISHED', 'ko')).toBe('완료');
+    expect(상태라벨('ABORTED', 'ko')).toBe('중단');
   });
 
   it('모르는 상태는 그 글자를 그대로 보여준다. 지어내면 무엇이 일어났는지 숨긴다', () => {
-    expect(상태라벨('무엇인가')).toBe('무엇인가');
+    expect(상태라벨('무엇인가', 'ko')).toBe('무엇인가');
   });
 });
 
@@ -70,21 +70,21 @@ describe('실행 멈추기 (SPEC §8.3 · §3.5)', () => {
 
 describe('돌지 못한 항목의 사유 (SPEC §8.3)', () => {
   it('사람이 멈춘 것은 그렇게 적는다. 서버는 ABORTED 로 저장한다', () => {
-    expect(미실행사유({ message: 'ABORTED' })).toBe('사용자가 멈춤');
+    expect(미실행사유({ message: 'ABORTED' }, 'ko')).toBe('사용자가 멈춤');
   });
 
   it('그 밖의 사유는 서버가 넣은 한국어를 그대로 쓴다', () => {
     // 실측: CLOSE_UNFINISHED 가 '러너에 닿지 못했습니다' 를 한국어로 넣는다
-    expect(미실행사유({ message: '러너에 닿지 못했습니다' })).toBe('러너에 닿지 못했습니다');
+    expect(미실행사유({ message: '러너에 닿지 못했습니다' }, 'ko')).toBe('러너에 닿지 못했습니다');
   });
 
   it('사유가 없으면 줄을 안 그린다', () => {
-    expect(미실행사유(null)).toBe(null);
+    expect(미실행사유(null, 'ko')).toBe(null);
   });
 
   it('원문 오류는 목록에 쓰지 않는다. 상세의 접힌 자리에 둔다', () => {
     const 스택 = { message: 'connect ECONNREFUSED 127.0.0.1:4000', stack: 'Error: connect...' };
-    expect(미실행사유(스택)).toBe('러너에 닿지 못했습니다');
+    expect(미실행사유(스택, 'ko')).toBe('러너에 닿지 못했습니다');
   });
 });
 
@@ -98,20 +98,20 @@ describe('사유는 미실행 항목에만 붙는다 (SPEC §8.3)', () => {
     // 러너는 FAIL 이 예외로 끝나도 error 를 채운다 (kit 의 reporter.ts).
     // 그 영문 메시지를 「러너에 닿지 못했습니다」로 바꾸면 테스트 실패가 장애로 보인다
     const 칸 = [항목('FAIL', 'Timeout 5000ms exceeded')];
-    expect(칸사유(칸)).toBe(null);
+    expect(칸사유(칸, 'ko')).toBe(null);
   });
 
   it('통과한 항목에도 안 붙인다', () => {
-    expect(칸사유([항목('PASS', null)])).toBe(null);
+    expect(칸사유([항목('PASS', null)], 'ko')).toBe(null);
   });
 
   it('미실행 항목의 사유만 쓴다', () => {
     const 칸 = [항목('PASS', null), 항목('NA', 'ABORTED')];
-    expect(칸사유(칸)).toBe('사용자가 멈춤');
+    expect(칸사유(칸, 'ko')).toBe('사용자가 멈춤');
   });
 
   it('미실행인데 사유가 없으면 줄을 안 그린다', () => {
-    expect(칸사유([항목('NA', null)])).toBe(null);
+    expect(칸사유([항목('NA', null)], 'ko')).toBe(null);
   });
 });
 
@@ -151,16 +151,16 @@ describe('실행이 끝났을 때 알린다 (SPEC §8.9)', () => {
 
 describe('실행자 이름 (SPEC §3.5 · §8.7)', () => {
   it('박제된 이름이 있으면 그것을 쓴다. 아이디가 아니다', () => {
-    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: '김철수' })).toBe('김철수');
+    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: '김철수' }, 'ko')).toBe('김철수');
   });
 
   it('이름이 비면 모른다고 적는다. 값을 지어내 채우지 않는다', () => {
-    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: null })).toBe('실행자 미상 (인증 도입 이전)');
-    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: '' })).toBe('실행자 미상 (인증 도입 이전)');
+    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: null }, 'ko')).toBe('실행자 미상 (인증 도입 이전)');
+    expect(실행자이름({ triggeredBy: 'kim', triggeredByName: '' }, 'ko')).toBe('실행자 미상 (인증 도입 이전)');
   });
 
   it('정기 실행은 따로 가를 것이 없다. 스케줄러가 이름을 그렇게 박아 넣는다', () => {
     // 실측: scripts/run-scheduled.ts 가 triggeredByName 을 '스케줄러' 로 넣는다
-    expect(실행자이름({ triggeredBy: '스케줄러', triggeredByName: '스케줄러' })).toBe('스케줄러');
+    expect(실행자이름({ triggeredBy: '스케줄러', triggeredByName: '스케줄러' }, 'ko')).toBe('스케줄러');
   });
 });

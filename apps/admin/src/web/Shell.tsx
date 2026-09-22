@@ -65,19 +65,14 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         >
           {접음 ? '»' : '«'}
         </button>
-        {/* 서비스 색이 사는 유일한 자리. 8px 네모가 `--svc` 를 쓴다 —
-            이름만으로는 부족하다. 글자는 읽어야 보이고 색은 안 읽어도 구분된다 (SPEC §8) */}
-        <div
-          className="side-top"
-          {...(service === null ? {} : { 'data-service-color': service.prefix })}
-          style={service === null ? undefined : ({ '--svc': service.color } as React.CSSProperties)}
-        >
+        {/* 서비스 색은 2026-09-22 에 걷었다 (SPEC §8). 이름과 저장소 주소로 구분한다 —
+            「이 파란 네모가 뭘 뜻하는지 모르겠다」가 걷은 이유다 */}
+        <div className="side-top">
           <div className="side-svc">
             {service === null ? (
               <span className="side-svc-name">{t('서비스 없음')}</span>
             ) : (
               <>
-                <span className="side-dot" aria-hidden="true" />
                 <select
                   className="side-pick"
                   value={service.prefix}
@@ -96,9 +91,6 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
               </>
             )}
           </div>
-          {service === null || service.prefix === '' ? null : (
-            <span className="side-svc-id">{service.prefix}-</span>
-          )}
         </div>
 
         <nav className="side-nav">

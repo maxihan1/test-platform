@@ -6,6 +6,10 @@
 //
 // **말투는 마침표 없는 `~합니다` 로 맞춘다.** 설정 화면이 이미 그렇게 쓰고 있어서,
 // 여기만 다르면 같은 화면에서 불러오기 실패와 저장 실패가 다른 말투로 뜬다
+// 값은 **한국어 원문이자 영어 표의 키**다. 옮기는 것은 쓰는 자리(`요청오류문장`)가 한다 —
+// 표에서 꺼낸 값으로 한 번 더 `t()` 를 태운다
+import { t, type 언어 } from './i18n.js';
+
 export const 오류말: Record<string, string> = {
   // 실행 결과·증적 주소는 사람이 메신저에 붙여 나누는 링크다 (§8.4).
   // 배정 안 받은 사람이 눌렀을 때 무슨 일인지와 빠져나갈 길을 같이 준다
@@ -51,9 +55,10 @@ const 등급표: Record<string, string> = {
  * **아는 등급일 때만 이름을 적는다** — 모르는 값을 그대로 끼워 넣으면
  * 「이 일에는 '요청이 실패했다 (403)' 등급이 필요합니다」 같은 문장이 나온다 (2026-09-19 실측)
  */
-function 등급문장(need: string): string {
+function 등급문장(need: string, 언어: 언어): string {
   const 이름 = 등급표[need];
-  return 이름 === undefined ? '이 일을 할 수 있는 등급이 아닙니다' : `이 일에는 '${이름}' 등급이 필요합니다`;
+  if (이름 === undefined) return t('이 일을 할 수 있는 등급이 아닙니다', 언어);
+  return t('이 일에는 「{등급}」 등급이 필요합니다', 언어, { 등급: t(이름, 언어) });
 }
 
 /**
@@ -64,12 +69,13 @@ function 등급문장(need: string): string {
  * **아는 코드여도 `detail` 을 버리지 않는다.** 「그 케이스를 찾지 못했습니다」만 뜨면
  * 여러 건을 걸었을 때 **어느 케이스인지** 알 길이 없다.
  */
-export function 요청오류문장(code: string, detail?: string): string {
-  if (code === 'FORBIDDEN') return 등급문장(detail ?? '');
+export function 요청오류문장(code: string, 언어: 언어, detail?: string): string {
+  if (code === 'FORBIDDEN') return 등급문장(detail ?? '', 언어);
 
-  const 말 = 오류말[code];
-  if (말 === undefined) {
-    return detail !== undefined && detail !== '' ? detail : `요청이 실패했습니다 (${code})`;
+  const 있는말 = 오류말[code];
+  if (있는말 === undefined) {
+    return detail !== undefined && detail !== '' ? detail : t('요청이 실패했습니다 ({코드})', 언어, { 코드: code });
   }
-  return detail === undefined || detail === '' ? 말 : `${말} — ${detail}`;
+  const 옮긴말 = t(있는말, 언어);
+  return detail === undefined || detail === '' ? 옮긴말 : `${옮긴말} — ${detail}`;
 }

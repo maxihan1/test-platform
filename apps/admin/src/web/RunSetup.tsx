@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { api, ApiError, type CaseRow, type ParamSetRow, type Platform, type ServiceRow, type User } from './api.js';
 import { Form } from './Form.js';
+import { use말, use언어 } from './i18n.js';
 import { 넘었나, 상한, 항목수 } from './runPlan.js';
 import { initialText, schemaToFields, toValues } from './schema.js';
 import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
@@ -27,6 +28,8 @@ interface Props {
 }
 
 export function RunSetup({ tcId, service, user }: Props) {
+  const t = use말();
+  const 언어 = use언어();
   const found = useAsync<CaseRow>(() => api.caseOf(tcId), [tcId]);
   const saved = useAsync<{ items: ParamSetRow[] }>(() => api.paramSets(tcId), [tcId]);
 
@@ -56,7 +59,7 @@ export function RunSetup({ tcId, service, user }: Props) {
     setParamText(initialText(schemaToFields(row.paramSchema)));
     setExpectedText(initialText(schemaToFields(row.expectedSchema)));
     setPlatforms(row.platforms);
-    setTitle(`${row.tcId} 실행`);
+    setTitle(t('{케이스} 실행', { 케이스: row.tcId }));
   }, [row]);
 
   if (found.error !== null) return <Failed error={found.error} />;
@@ -101,23 +104,23 @@ export function RunSetup({ tcId, service, user }: Props) {
     setShowErrors(true);
     if (broken > 0) return;
     if (platforms.length === 0) {
-      setNotice('실행할 디바이스를 하나 이상 고르세요.');
+      setNotice(t('실행할 디바이스를 하나 이상 고르세요.'));
       return;
     }
     if (다른서비스) {
-      setNotice('이 케이스는 지금 보고 있는 서비스의 것이 아닙니다. 맨 위에서 서비스를 바꾸세요.');
+      setNotice(t('이 케이스는 지금 보고 있는 서비스의 것이 아닙니다. 맨 위에서 서비스를 바꾸세요.'));
       return;
     }
     if (env === '') {
       // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
-      setNotice('대상 서버를 고르세요. 어느 서버에 쐈는지가 증적의 전제입니다.');
+      setNotice(t('대상 서버를 고르세요. 어느 서버에 쐈는지가 증적의 전제입니다.'));
       return;
     }
 
     setBusy(true);
     try {
       const { runId } = await api.createRun({
-        title: title.trim() === '' ? `${row.tcId} 실행` : title.trim(),
+        title: title.trim() === '' ? t('{케이스} 실행', { 케이스: row.tcId }) : title.trim(),
         env,
         // 화면이 세는 것과 같은 값을 보낸다. 소수를 그대로 보내면 서버의 z.number().int() 가 400 을 낸다
         repeat: Math.max(1, Math.floor(Number(repeat) || 1)),
@@ -126,7 +129,7 @@ export function RunSetup({ tcId, service, user }: Props) {
       });
       window.location.hash = `#/runs/${runId}`;
     } catch (err) {
-      setNotice(message(err));
+      setNotice(message(err, 언어));
     } finally {
       setBusy(false);
     }
@@ -135,7 +138,7 @@ export function RunSetup({ tcId, service, user }: Props) {
   const saveSet = async () => {
     setShowErrors(true);
     if (setName.trim() === '') {
-      setNotice('저장할 이름을 적으세요.');
+      setNotice(t('저장할 이름을 적으세요.'));
       return;
     }
 
@@ -143,7 +146,7 @@ export function RunSetup({ tcId, service, user }: Props) {
     try {
       await api.saveParamSet(row.tcId, { name: setName.trim(), params, expected });
       setSetName('');
-      setNotice(`'${setName.trim()}'으로 저장했습니다.`);
+      setNotice(t('{이름}으로 저장했습니다.', { 이름: `'${setName.trim()}'` }));
       saved.reload();
     } catch (err) {
       // 서버가 칸별 사유를 돌려주면 그 칸 아래에 붙인다 (SPEC §8.2)
@@ -154,9 +157,9 @@ export function RunSetup({ tcId, service, user }: Props) {
           expected: pick(byKey, expectedFields.map((f) => f.key)),
         });
         setShowErrors(false);
-        setNotice('입력값이 명세와 맞지 않습니다.');
+        setNotice(t('입력값이 명세와 맞지 않습니다.'));
       } else {
-        setNotice(message(err));
+        setNotice(message(err, 언어));
       }
     } finally {
       setBusy(false);
@@ -173,9 +176,9 @@ export function RunSetup({ tcId, service, user }: Props) {
       </div>
 
       <div className="sec">
-        <div className="sec-h">사전조건</div>
+        <div className="sec-h">{t('사전조건')}</div>
         {row.precondition.length === 0 ? (
-          <p className="hint">선언된 사전조건이 없습니다.</p>
+          <p className="hint">{t('선언된 사전조건이 없습니다.')}</p>
         ) : (
           row.precondition.map((line) => (
             <div className="pre" key={line}>
@@ -187,10 +190,10 @@ export function RunSetup({ tcId, service, user }: Props) {
 
       <div className="sec">
         <div className="sec-h">
-          <span>입력값</span>
+          <span>{t('입력값')}</span>
           {saved.data === null || saved.data.items.length === 0 ? null : (
             <select defaultValue="" onChange={(e) => loadSet(e.target.value)}>
-              <option value="">저장된 입력값 세트 불러오기</option>
+              <option value="">{t('저장된 입력값 세트 불러오기')}</option>
               {saved.data.items.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
@@ -207,12 +210,12 @@ export function RunSetup({ tcId, service, user }: Props) {
           onChange={edit('params')}
         />
         {paramFields.length === 0 ? null : (
-          <p className="hint">입력값은 이번 실행 기록에 그대로 저장됩니다.</p>
+          <p className="hint">{t('입력값은 이번 실행 기록에 그대로 저장됩니다.')}</p>
         )}
       </div>
 
       <div className="sec">
-        <div className="sec-h">기대결과</div>
+        <div className="sec-h">{t('기대결과')}</div>
         <Form
           idPrefix="e"
           fields={expectedFields}
@@ -223,7 +226,7 @@ export function RunSetup({ tcId, service, user }: Props) {
       </div>
 
       <div className="sec">
-        <div className="sec-h">디바이스</div>
+        <div className="sec-h">{t('디바이스')}</div>
         <div className="checks">
           {row.platforms.map((platform) => (
             <label key={platform}>
@@ -241,11 +244,11 @@ export function RunSetup({ tcId, service, user }: Props) {
           ))}
         </div>
         <div className="field" style={{ marginTop: '10px' }}>
-          <label htmlFor="run-env">대상 서버</label>
+          <label htmlFor="run-env">{t('대상 서버')}</label>
           <div>
             <select id="run-env" value={env} onChange={(e) => setEnv(e.target.value)}>
               {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
-              <option value="">선택하세요</option>
+              <option value="">{t('선택하세요')}</option>
               {(service?.envs ?? []).map((it) => (
                 <option key={it.env} value={it.env}>
                   {it.env}
@@ -256,19 +259,19 @@ export function RunSetup({ tcId, service, user }: Props) {
             {주소 === null ? null : <span className="env-url">{주소}</span>}
             {다른서비스 ? (
               <div className="err">
-                지금 보고 있는 서비스가 {service?.name}인데 이 케이스는 {row.tcId.split('-')[0]} 것입니다.
-                맨 위에서 서비스를 바꾸거나 그 서비스의 케이스 목록에서 다시 여세요
+                {t('지금 보고 있는 서비스가 {서비스}인데 이 케이스는 {접두사} 것입니다. 맨 위에서 서비스를 바꾸거나 그 서비스의 케이스 목록에서 다시 여세요', {
+                  서비스: service?.name ?? '',
+                  접두사: row.tcId.split('-')[0] ?? '',
+                })}
               </div>
             ) : service !== null && service.envs.length === 0 ? (
-              <div className="err">
-                이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다
-              </div>
+              <div className="err">{t('이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</div>
             ) : null}
           </div>
         </div>
 
         <div className="field">
-          <label htmlFor="run-by">실행자</label>
+          <label htmlFor="run-by">{t('실행자')}</label>
           {/* 고칠 수 없는 표시 칸이다. 사람이 적게 두면 남의 이름을 적을 수 있다 (SPEC §8.2) */}
           <div className="val" id="run-by">
             {user.displayName}
@@ -276,7 +279,7 @@ export function RunSetup({ tcId, service, user }: Props) {
         </div>
 
         <div className="field">
-          <label htmlFor="run-repeat">반복 횟수</label>
+          <label htmlFor="run-repeat">{t('반복 횟수')}</label>
           <div>
             {/* 새로 쓴 테스트가 매번 같은 결과를 내는지 여러 번 돌려 본다.
                 실패를 가리려는 자동 재시도와 다르다 (SPEC §3.2 · §5.2) */}
@@ -293,7 +296,7 @@ export function RunSetup({ tcId, service, user }: Props) {
         {/* 웹훅이 없는 서비스에서는 칸 자체를 그리지 않는다. 흐리게 두지 않는다 (SPEC §8.2 · §8) */}
         {service?.hasSlackWebhook !== true ? null : (
           <div className="field">
-            <label htmlFor="run-slack">끝나면 Slack 으로 알리기</label>
+            <label htmlFor="run-slack">{t('끝나면 Slack 으로 알리기')}</label>
             <div>
               <label className="check-inline">
                 <input
@@ -302,14 +305,14 @@ export function RunSetup({ tcId, service, user }: Props) {
                   checked={notifySlack}
                   onChange={(e) => setNotifySlack(e.target.checked)}
                 />
-                자리를 뜰 때만 켜세요. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 됩니다
+                {t('자리를 뜰 때만 켜세요. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 됩니다')}
               </label>
             </div>
           </div>
         )}
 
         <div className="field">
-          <label htmlFor="run-title">실행 제목</label>
+          <label htmlFor="run-title">{t('실행 제목')}</label>
           <div>
             <input type="text" id="run-title" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
@@ -318,28 +321,28 @@ export function RunSetup({ tcId, service, user }: Props) {
 
       <div className="actions">
         <span className="note" style={notice === null ? undefined : { color: 'var(--fail)' }}>
-          {notice ?? '입력값을 바꿔 다시 실행해도 코드는 고치지 않습니다.'}
+          {notice ?? t('입력값을 바꿔 다시 실행해도 코드는 고치지 않습니다.')}
         </span>
         <input
           type="text"
-          placeholder="세트 이름"
+          placeholder={t('세트 이름')}
           value={setName}
           onChange={(e) => setSetName(e.target.value)}
           style={{ width: '140px' }}
         />
         <button className="btn ghost" onClick={() => void saveSet()} disabled={busy}>
-          이 값을 묶음으로 저장
+          {t('이 값을 묶음으로 저장')}
         </button>
         {만들건수 <= 1 ? null : (
           <span className={너무많나 ? 'err' : 'hint'}>
             {너무많나
-              ? `한 번에 ${String(상한)}건까지 만들 수 있습니다 (지금 ${String(만들건수)}건)`
-              : `실행 항목이 ${String(만들건수)}건 생깁니다`}
+              ? t('한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)', { 상한, 지금: 만들건수 })
+              : t('실행 항목이 {건수}건 생깁니다', { 건수: 만들건수 })}
           </span>
         )}
         {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
         <button className="btn" onClick={() => void run()} disabled={busy || 너무많나}>
-          실행
+          {t('실행')}
         </button>
       </div>
     </div>

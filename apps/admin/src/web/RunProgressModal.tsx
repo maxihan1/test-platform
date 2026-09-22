@@ -3,8 +3,9 @@
 
 import type { RunItemSummary, 항목진행 } from './api.js';
 import { groupByCase, 회차요약 } from './group.js';
+import { t, use말, use언어, type 언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { type RunDetail, type 진행, 진행상황 } from './runProgress.js';
+import { type RunDetail, type 진행막대, 진행상황 } from './runProgress.js';
 import { 도는중, 미실행사유 } from './runState.js';
 import { STATUS_LABEL } from './ui.js';
 
@@ -16,20 +17,22 @@ const 실패목록최대 = 5;
  * `ui.tsx` 의 `seconds()` 를 쓰지 않는다 — 소수 둘째 자리까지 적고 분으로 올리지 않아
  * 제한 5분이 「300.00초」로 나온다. 2초마다 바뀌는 자리라 소수점도 읽기를 방해한다.
  */
-function 시간글자(ms: number): string {
+function 시간글자(ms: number, 언어: 언어): string {
   const 초 = Math.round(ms / 1000);
-  if (초 < 60) return `${초}초`;
+  if (초 < 60) return t('{초}초', 언어, { 초 });
   const 남은초 = 초 % 60;
-  return 남은초 === 0 ? `${초 / 60}분` : `${Math.floor(초 / 60)}분 ${남은초}초`;
+  return 남은초 === 0
+    ? t('{분}분', 언어, { 분: 초 / 60 })
+    : t('{분}분 {초}초', 언어, { 분: Math.floor(초 / 60), 초: 남은초 });
 }
 
-function 막대칸들(막대: 진행['막대']) {
+function 막대칸들(막대: 진행막대, 언어: 언어) {
   return [
-    { 이름: '통과', 수: 막대.통과, 색: 'var(--pass)', 판정: true },
-    { 이름: '실패', 수: 막대.실패, 색: 'var(--fail)', 판정: true },
-    { 이름: '미실행', 수: 막대.미실행, 색: 'var(--na)', 판정: true },
+    { 이름: t('통과', 언어), 수: 막대.통과, 색: 'var(--pass)', 판정: true },
+    { 이름: t('실패', 언어), 수: 막대.실패, 색: 'var(--fail)', 판정: true },
+    { 이름: t('미실행', 언어), 수: 막대.미실행, 색: 'var(--na)', 판정: true },
     // 남은 것은 판정이 아니다. 판정 색 셋 중 하나를 쓰면 아직 안 난 결과가 결과처럼 읽힌다 (DESIGN.md)
-    { 이름: '남음', 수: 막대.남은것, 색: 'var(--rule)', 판정: false },
+    { 이름: t('남음', 언어), 수: 막대.남은것, 색: 'var(--rule)', 판정: false },
   ];
 }
 
@@ -40,8 +43,8 @@ function 막대칸들(막대: 진행['막대']) {
  * 그것을 `미실행사유()` 에 넘기면 영문 예외가 「러너에 닿지 못했습니다」로 바뀐다 —
  * 그냥 깨진 테스트가 러너 장애로 보인다 (`runState.ts` 의 `칸사유` 주석과 같은 자리).
  */
-function 사유한줄(item: RunItemSummary): string | null {
-  if (item.status === 'NA') return 미실행사유(item.error);
+function 사유한줄(item: RunItemSummary, 언어: 언어): string | null {
+  if (item.status === 'NA') return 미실행사유(item.error, 언어);
   // 스택은 상세 화면이 갖는다. 모달은 480px 이라 첫 줄만 들어간다
   return item.error === null ? null : (item.error.message.split('\n')[0] ?? null);
 }
@@ -61,6 +64,9 @@ function 판정칸들({ 칸들 }: { 칸들: ReturnType<typeof 막대칸들> }) {
 
 /** 지금 도는 항목 하나. 이름 줄과 절차 줄이 한 덩어리다 */
 function 도는줄({ 항목, 절차 }: { 항목: RunItemSummary; 절차: 항목진행 | null }) {
+  const t말 = use말();
+  const 언어 = use언어();
+
   return (
     <div className="pre">
       <div className="one-line">
@@ -71,13 +77,13 @@ function 도는줄({ 항목, 절차 }: { 항목: RunItemSummary; 절차: 항목�
       {절차 === null ? null : (
         <div className="now-step">
           <span className="one-line">
-            절차 {절차.seq} · {절차.title}
+            {t말('절차 {번호}', { 번호: 절차.seq })} · {절차.title}
           </span>
           {/* 분모 없는 순번은 진행이 아니라 그냥 번호로 읽힌다. 진행을 실제로 말하는 것은
               2초마다 바뀌는 경과라 순번보다 크게 두고, 제한과 나란히 둬야
               「느린 것」과 「멈춘 것」이 갈린다 (게이트 1 화면 규칙) */}
-          <b>{시간글자(절차.elapsedMs)}째</b>
-          <span className="lim">/ 제한 {시간글자(절차.timeoutMs)}</span>
+          <b>{t말('{시간}째', { 시간: 시간글자(절차.elapsedMs, 언어) })}</b>
+          <span className="lim">/ {t말('제한 {시간}', { 시간: 시간글자(절차.timeoutMs, 언어) })}</span>
         </div>
       )}
     </div>
@@ -85,8 +91,10 @@ function 도는줄({ 항목, 절차 }: { 항목: RunItemSummary; 절차: 항목�
 }
 
 function 진행내용({ data, 진행목록 }: { data: RunDetail; 진행목록: 항목진행[] }) {
+  const t말 = use말();
+  const 언어 = use언어();
   const { 막대, 끝난수, 전체수, 지금도는것들, 방금끝난것 } = 진행상황(data, 진행목록);
-  const 칸들 = 막대칸들(막대);
+  const 칸들 = 막대칸들(막대, 언어);
 
   return (
     <>
@@ -104,15 +112,13 @@ function 진행내용({ data, 진행목록 }: { data: RunDetail; 진행목록: �
       )}
       {/* 색만으로는 판정을 전달하지 않는다 — 칸마다 숫자와 글자를 같이 적는다 (SPEC §8.9) */}
       <판정칸들 칸들={칸들} />
-      <p>
-        {끝난수} / {전체수} 완료
-      </p>
+      <p>{t말('{끝난} / {전체} 완료', { 끝난: 끝난수, 전체: 전체수 })}</p>
 
       {지금도는것들.length === 0 ? null : (
         <div>
           {/* 「실행 중: X」라고 쓰지 않는다. 항목 둘이 동시에 돌아(EXECUTION_CONCURRENCY 기본 2)
               여기 뜨는 것이 전부라는 보장이 없다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
-          <div className="sec-h">진행 중</div>
+          <div className="sec-h">{t말('진행 중')}</div>
           {지금도는것들.map(({ 항목, 절차 }) => (
             <도는줄 key={항목.historyId} 항목={항목} 절차={절차} />
           ))}
@@ -121,9 +127,9 @@ function 진행내용({ data, 진행목록 }: { data: RunDetail; 진행목록: �
 
       {방금끝난것.length === 0 ? null : (
         <div>
-          <div className="sec-h">방금 끝난 것</div>
+          <div className="sec-h">{t말('방금 끝난 것')}</div>
           {방금끝난것.map((item) => {
-            const 사유 = 사유한줄(item);
+            const 사유 = 사유한줄(item, 언어);
             return (
               <div className="pre" key={item.historyId}>
                 {item.tcId} {item.tcName} · {STATUS_LABEL[item.status]}
@@ -156,37 +162,44 @@ function 실패한케이스들(items: RunItemSummary[]): { tcId: string; tcName:
 }
 
 function 완료내용({ data }: { data: RunDetail }) {
-  const 칸들 = 막대칸들({ 통과: data.counts.pass, 실패: data.counts.fail, 미실행: data.counts.na, 남은것: 0 }).filter(
-    (칸) => 칸.판정,
-  );
+  const t말 = use말();
+  const 언어 = use언어();
+  const 칸들 = 막대칸들(
+    { 통과: data.counts.pass, 실패: data.counts.fail, 미실행: data.counts.na, 남은것: 0 },
+    언어,
+  ).filter((칸) => 칸.판정);
   const 실패목록 = 실패한케이스들(data.items);
 
   return (
     <>
       <p>
-        {data.title} · 대상 서버 {data.env}
+        {data.title} · {t말('대상 서버 {서버}', { 서버: data.env })}
       </p>
       <판정칸들 칸들={칸들} />
       {실패목록.length === 0 ? null : (
         <div>
           {/* 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다 (SPEC §8.9) */}
-          <div className="sec-h">실패한 케이스</div>
+          <div className="sec-h">{t말('실패한 케이스')}</div>
           {실패목록.slice(0, 실패목록최대).map((것) => (
             <div className="pre" key={것.tcId}>
               {것.tcId} {것.tcName}
             </div>
           ))}
-          {실패목록.length > 실패목록최대 ? <p className="hint">외 {실패목록.length - 실패목록최대}건</p> : null}
+          {실패목록.length <= 실패목록최대 ? null : (
+            <p className="hint">{t말('외 {건수}건', { 건수: 실패목록.length - 실패목록최대 })}</p>
+          )}
         </div>
       )}
     </>
   );
 }
 
-function 제목(data: RunDetail): string {
-  if (도는중(data.status)) return `RUN ${String(data.runId)} 이 진행 중입니다`;
+function 제목(data: RunDetail, 언어: 언어): string {
+  if (도는중(data.status)) return t('RUN {번호} 이 진행 중입니다', 언어, { 번호: data.runId });
   // 사람이 끊어서 끝난 것과 끝까지 돌아서 끝난 것은 같은 말로 알리지 않는다 (SPEC §3.2)
-  return `RUN ${String(data.runId)} 이 ${data.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다'}`;
+  return data.status === 'ABORTED'
+    ? t('RUN {번호} 이 멈췄습니다', 언어, { 번호: data.runId })
+    : t('RUN {번호} 이 끝났습니다', 언어, { 번호: data.runId });
 }
 
 export function RunProgressModal({
@@ -200,16 +213,18 @@ export function RunProgressModal({
   진행목록: 항목진행[];
   onClose: () => void;
 }) {
+  const t말 = use말();
+  const 언어 = use언어();
   const 도는가 = 도는중(data.status);
 
   return (
     <Modal
-      제목={제목(data)}
+      제목={제목(data, 언어)}
       onClose={onClose}
       // 도는 중에도 못 누르는 버튼을 놓지 않는다. 이 상자에서 사람이 할 수 있는 일은 닫는 것 하나뿐이다
       버튼={
         <button className="btn" onClick={onClose}>
-          {도는가 ? '닫기' : '결과 보기'}
+          {도는가 ? t말('닫기') : t말('결과 보기')}
         </button>
       }
     >

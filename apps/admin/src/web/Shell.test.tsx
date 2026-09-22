@@ -60,27 +60,32 @@ function 색표시() {
   return document.querySelector('[data-service-color]');
 }
 
-describe('맨 위 띠의 서비스 색 (SPEC §8)', () => {
-  it('띠 바탕에는 서비스 색을 칠하지 않는다', () => {
+describe('서비스 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
+  // 세 번 옮겨도 「이 네모가 뭘 뜻하는지」가 안 풀려서 걷었다.
+  // 「네모가 없다」만 보면 서비스 구분이 통째로 사라진 상태도 통과한다 — 이름이 남았는지 같이 본다
+  it('사이드바 어디에도 서비스 색이 없다', () => {
     띄운다(결제);
+    expect(색표시()).toBeNull();
+    expect(document.querySelector('.side-dot')).toBeNull();
     const 띠 = document.querySelector('.side-top') as HTMLElement | null;
     expect(띠).not.toBeNull();
-    // 껍데기 색은 styles.css 의 --chrome 이 정한다. 화면이 바탕색을 지어내지 않는다
     expect(띠!.style.background).toBe('');
+    expect(띠!.style.getPropertyValue('--svc')).toBe('');
   });
 
-  it('서비스 색은 색 표시가 들고 있다', () => {
-    띄운다(결제);
-    expect(색표시()).not.toBeNull();
-    expect((색표시() as HTMLElement).style.getPropertyValue('--svc')).toBe('#3A5FCD');
-  });
-
-  it('서비스를 바꾸면 표시 색이 따라 바뀐다', () => {
+  it('서비스를 바꿔도 색이 생기지 않는다', () => {
     띄운다(정산);
-    expect((색표시() as HTMLElement).style.getPropertyValue('--svc')).toBe('#7A2E5E');
+    expect(색표시()).toBeNull();
+    expect(document.querySelector('[style*="--svc"]')).toBeNull();
   });
 
-  it('서비스 이름은 그대로 읽힌다. 색은 이름을 대신하지 않는다', () => {
+  it('접두사 표시(`DEMO-`)도 없다. 무엇을 뜻하는지 화면만 봐서는 몰랐다', () => {
+    띄운다(결제);
+    expect(document.querySelector('.side-svc-id')).toBeNull();
+    expect(document.body.textContent).not.toContain('ZSH-');
+  });
+
+  it('구분은 이름이 한다. 색을 걷어도 어느 서비스인지 읽힌다', () => {
     띄운다(결제);
     expect(screen.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
     expect(screen.getByText('결제 서비스')).toBeTruthy();

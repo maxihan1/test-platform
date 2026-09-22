@@ -32,4 +32,13 @@ export const 껍데기말: Record<string, string> = {
   '{수} 실패': '{수} failed',
   '{수} 미실행': '{수} not run',
   '알림 닫기': 'Dismiss',
+
+  // 화면 어디서나 쓰는 것 — 판정 배지 · 디바이스 이름 · 빈 화면
+  통과: 'Pass',
+  실패: 'Fail',
+  미실행: 'Not run',
+  모바일: 'Mobile',
+  '불러오는 중입니다.': 'Loading…',
+  '없는 주소입니다.': 'Page not found.',
+  '케이스 목록으로': 'Go to case list',
 };

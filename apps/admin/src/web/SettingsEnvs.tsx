@@ -2,6 +2,7 @@
 // 여러 줄이다 — 환경변수 한 줄로는 서비스가 셋만 되어도 안 들어간다
 
 import type { EnvRow } from './api.js';
+import { use말 } from './i18n.js';
 
 /**
  * 편집 중인 대상 서버 한 줄.
@@ -17,7 +18,8 @@ export interface 줄 extends EnvRow {
 let 줄번호 = 0;
 function 새줄키(): string {
   줄번호 += 1;
-  return `줄-${String(줄번호)}`;
+  // 사람에게 안 보이는 DOM 열쇠라 번역 대상이 아니다. 한국어를 빼 둔다 (messages.test.ts 가 템플릿 속 한국어를 막는다)
+  return `env-${String(줄번호)}`;
 }
 
 export const 줄로 = (envs: EnvRow[]): 줄[] => envs.map((it) => ({ ...it, key: 새줄키() }));
@@ -25,10 +27,11 @@ export const 보낼모양 = (줄들: 줄[]): EnvRow[] => 줄들.map(({ env, base
 
 /** 대상 서버는 여러 줄이다. 환경변수 한 줄로는 서비스가 셋만 되어도 안 들어간다 (SPEC §8.8) */
 export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: 줄[]) => void }) {
+  const t = use말();
   return (
     <div className="field">
-      <span className="field-label">대상 서버</span>
-      <div className="set-envs" role="group" aria-label="대상 서버 목록">
+      <span className="field-label">{t('대상 서버')}</span>
+      <div className="set-envs" role="group" aria-label={t('대상 서버 목록')}>
         {envs.map((it, i) => (
           // 줄을 빼면 뒤 줄이 DOM 을 물려받는다. 값은 state 가 쥐고 있어 안 틀리지만
           // 한글을 조합하는 중에 빼면 조합하던 글자가 엉뚱한 줄에 남는다
@@ -37,30 +40,30 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
               type="text"
               value={it.env}
               placeholder="qa"
-              aria-label={`대상 서버 ${String(i + 1)} 키`}
+              aria-label={t('대상 서버 {번호} 키', { 번호: i + 1 })}
               onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, env: e.target.value } : v)))}
             />
             <input
               type="text"
               value={it.baseUrl}
               placeholder="https://qa.example.com"
-              aria-label={`대상 서버 ${String(i + 1)} 주소`}
+              aria-label={t('대상 서버 {번호} 주소', { 번호: i + 1 })}
               onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, baseUrl: e.target.value } : v)))}
             />
             <button
               className="btn ghost"
-              aria-label={`대상 서버 ${String(i + 1)} 빼기`}
+              aria-label={t('대상 서버 {번호} 빼기', { 번호: i + 1 })}
               onClick={() => onChange(envs.filter((_, k) => k !== i))}
             >
-              빼기
+              {t('빼기')}
             </button>
           </div>
         ))}
         <button className="btn ghost" onClick={() => onChange([...envs, { env: '', baseUrl: '', key: 새줄키() }])}>
-          줄 더하기
+          {t('줄 더하기')}
         </button>
         {envs.length === 0 ? (
-          <div className="hint">하나도 없으면 실행 설정에서 고를 것이 없어 실행을 못 합니다</div>
+          <div className="hint">{t('하나도 없으면 실행 설정에서 고를 것이 없어 실행을 못 합니다')}</div>
         ) : null}
       </div>
     </div>

@@ -4,9 +4,9 @@
 import { useState } from 'react';
 
 import { api, ApiError, type SettingsServiceRow } from './api.js';
+import { use말, use언어, type 언어 } from './i18n.js';
 import {
-  기본서비스색,
-  색사유,
+  안쓰는서비스색,
   서비스못보내는이유,
   설정오류문장,
   접두사사유,
@@ -16,14 +16,15 @@ import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
 import { message } from './ui.js';
 
 export function ServiceSection({ rows, onDone }: { rows: SettingsServiceRow[]; onDone: () => void }) {
+  const t = use말();
   const [여는것, set여는것] = useState<number | 'new' | null>(null);
 
   return (
     <section className="sec">
       <div className="sec-h">
-        <span>서비스</span>
+        <span>{t('서비스')}</span>
         <button className="btn ghost" onClick={() => set여는것(여는것 === 'new' ? null : 'new')}>
-          {여는것 === 'new' ? '닫기' : '더하기'}
+          {여는것 === 'new' ? t('닫기') : t('더하기')}
         </button>
       </div>
 
@@ -38,29 +39,30 @@ export function ServiceSection({ rows, onDone }: { rows: SettingsServiceRow[]; o
 
       {rows.length === 0 ? (
         <div className="empty">
-          아직 서비스가 없습니다
-          <small>위 「더하기」로 첫 서비스를 만듭니다</small>
+          {t('아직 서비스가 없습니다')}
+          <small>{t('위 「더하기」로 첫 서비스를 만듭니다')}</small>
         </div>
       ) : (
         rows.map((it) => (
           <div key={it.id}>
             <div className="set-row">
               {/* 띠에서 쓸 색을 그대로 보여준다. 글자만 보고는 어떤 색인지 모른다 */}
-              <span className="set-swatch" style={{ background: it.color }} aria-hidden="true" />
               <span className="set-name">
                 {it.name}
-                {it.isActive ? null : <span className="set-off">비활성</span>}
+                {it.isActive ? null : <span className="set-off">{t('비활성')}</span>}
               </span>
               <span className="set-sub">{it.prefix}-</span>
-              <span className="set-sub">케이스 {it.caseCount}건</span>
+              <span className="set-sub">{t('케이스 {건수}건', { 건수: it.caseCount })}</span>
               <span className="set-sub">
-                {it.envs.length === 0 ? '대상 서버 없음' : `대상 서버 ${String(it.envs.length)}개`}
+                {it.envs.length === 0
+                  ? t('대상 서버 없음')
+                  : t('대상 서버 {개수}개', { 개수: it.envs.length })}
               </span>
               <button
                 className="btn ghost"
                 onClick={() => set여는것(여는것 === it.id ? null : it.id)}
               >
-                {여는것 === it.id ? '닫기' : '편집'}
+                {여는것 === it.id ? t('닫기') : t('편집')}
               </button>
             </div>
             {여는것 === it.id ? (
@@ -80,10 +82,12 @@ export function ServiceSection({ rows, onDone }: { rows: SettingsServiceRow[]; o
 }
 
 function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => void }) {
+  const t = use말();
+  // 아래 판단 넷은 순수 모듈에 있어 훅을 못 쓴다. 언어를 여기서 꺼내 넘긴다
+  const 언어 = use언어();
   const 새것 = row === undefined;
   const [prefix, setPrefix] = useState(row?.prefix ?? '');
   const [name, setName] = useState(row?.name ?? '');
-  const [color, setColor] = useState(row?.color ?? 기본서비스색);
   const [testsRepo, setTestsRepo] = useState(row?.testsRepo ?? '');
   const [testsDir, setTestsDir] = useState(row?.testsDir ?? '');
   const [envs, setEnvs] = useState<줄[]>(() => 줄로(row?.envs ?? []));
@@ -92,10 +96,9 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const 접두사틀림 = 접두사사유(prefix);
-  const 색경고 = 색사유(color);
-  const 웹훅 = 웹훅칸(row?.hasSlackWebhook ?? false);
-  const 못보내는이유 = 서비스못보내는이유({ 새것, prefix, name, testsDir, color, envs });
+  const 접두사틀림 = 접두사사유(prefix, 언어);
+  const 웹훅 = 웹훅칸(row?.hasSlackWebhook ?? false, 언어);
+  const 못보내는이유 = 서비스못보내는이유({ 새것, prefix, name, testsDir, envs }, 언어);
 
 
   async function 보낸다() {
@@ -107,7 +110,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
         await api.createService({
           prefix,
           name,
-          color,
+          color: 안쓰는서비스색,
           testsRepo,
           testsDir,
           envs: 보낼모양(envs),
@@ -117,7 +120,6 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
         // 접두사는 안 보낸다. 보내면 서버가 400 PREFIX_IMMUTABLE 을 낸다 (SPEC §8.8)
         await api.updateService(row.id, {
           name,
-          color,
           testsRepo,
           testsDir,
           envs: 보낼모양(envs),
@@ -126,7 +128,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
       }
       onDone();
     } catch (e) {
-      setErr(오류문장(e));
+      setErr(오류문장(e, 언어));
     } finally {
       set보내는중(false);
     }
@@ -141,7 +143,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
       await api.updateService(row.id, { isActive: !row.isActive });
       onDone();
     } catch (e) {
-      setErr(오류문장(e));
+      setErr(오류문장(e, 언어));
     } finally {
       set보내는중(false);
     }
@@ -150,7 +152,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
   return (
     <div className="set-form">
       <div className="field">
-        <label htmlFor="sf-prefix">접두사</label>
+        <label htmlFor="sf-prefix">{t('접두사')}</label>
         <div>
           <input
             id="sf-prefix"
@@ -162,51 +164,26 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
           />
           <div className="hint">
             {새것
-              ? '만들 때만 정합니다. 케이스 번호(PAY-001) 안에 박히므로 나중에 바꿀 수 없습니다'
-              : '만든 뒤에는 바꿀 수 없습니다. 케이스 번호 안에 이미 박혀 있습니다'}
+              ? t('만들 때만 정합니다. 케이스 번호(PAY-001) 안에 박히므로 나중에 바꿀 수 없습니다')
+              : t('만든 뒤에는 바꿀 수 없습니다. 케이스 번호 안에 이미 박혀 있습니다')}
           </div>
           {접두사틀림 === null ? null : <div className="err">{접두사틀림}</div>}
         </div>
       </div>
 
       <div className="field">
-        <label htmlFor="sf-name">이름</label>
+        <label htmlFor="sf-name">{t('이름')}</label>
         <input
           id="sf-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="결제 서비스"
+          placeholder={t('결제 서비스')}
         />
       </div>
 
       <div className="field">
-        <label htmlFor="sf-color">색</label>
-        <div className="set-color">
-          <input id="sf-color" type="color" value={색을고른다(color)} onChange={(e) => setColor(e.target.value)} />
-          <input
-            className="set-hex"
-            type="text"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            aria-label="색 코드"
-          />
-          {/* 명암비 숫자만으로는 감이 안 온다. 흰 글자가 실제로 읽히는지 눈으로 보는 자리다 */}
-          <span className="set-preview" style={{ background: color }}>
-            {name === '' ? '띠 미리보기' : name}
-          </span>
-        </div>
-      </div>
-      {/* 명암비는 막지 않고 알린다. 기준을 아는 사람이 일부러 쓸 수도 있다 (DESIGN.md) */}
-      {색경고 === null ? null : (
-        <div className="field">
-          <span />
-          <div className="err">{색경고}</div>
-        </div>
-      )}
-
-      <div className="field">
-        <label htmlFor="sf-dir">테스트 폴더</label>
+        <label htmlFor="sf-dir">{t('테스트 폴더')}</label>
         <div>
           <input
             id="sf-dir"
@@ -215,12 +192,12 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
             onChange={(e) => setTestsDir(e.target.value)}
             placeholder="pay"
           />
-          <div className="hint">플랫폼이 실제로 훑을 폴더입니다</div>
+          <div className="hint">{t('플랫폼이 실제로 훑을 폴더입니다')}</div>
         </div>
       </div>
 
       <div className="field">
-        <label htmlFor="sf-repo">테스트 저장소</label>
+        <label htmlFor="sf-repo">{t('테스트 저장소')}</label>
         <div>
           <input
             id="sf-repo"
@@ -229,14 +206,14 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
             onChange={(e) => setTestsRepo(e.target.value)}
             placeholder="https://github.com/..."
           />
-          <div className="hint">적어 두기만 합니다. 플랫폼이 받아오지는 않습니다</div>
+          <div className="hint">{t('적어 두기만 합니다. 플랫폼이 받아오지는 않습니다')}</div>
         </div>
       </div>
 
       <EnvEditor envs={envs} onChange={setEnvs} />
 
       <div className="field">
-        <label htmlFor="sf-hook">Slack 웹훅</label>
+        <label htmlFor="sf-hook">{t('Slack 웹훅')}</label>
         <div>
           {webhook === null ? (
             <div className="set-hook">
@@ -257,15 +234,15 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
               {/* 되돌아갈 길이 없으면, 마음을 바꿔 그냥 저장했을 때 빈 글자가 가서 웹훅이 지워진다 */}
               {새것 ? null : (
                 <button className="btn ghost" onClick={() => setWebhook(null)}>
-                  그대로 두기
+                  {t('그대로 두기')}
                 </button>
               )}
             </div>
           )}
           <div className="hint">
             {webhook === '' && !새것
-              ? '이대로 저장하면 알림을 끕니다. 그대로 두려면 「그대로 두기」를 누릅니다'
-              : '비밀값이라 한 번 넣으면 되돌려 보여주지 않습니다'}
+              ? t('이대로 저장하면 알림을 끕니다. 그대로 두려면 「그대로 두기」를 누릅니다')
+              : t('비밀값이라 한 번 넣으면 되돌려 보여주지 않습니다')}
           </div>
         </div>
       </div>
@@ -275,12 +252,12 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
       <div className="set-foot">
         {새것 ? null : (
           <button className="btn ghost set-left" disabled={보내는중} onClick={() => void 활성을뒤집는다()}>
-            {row.isActive ? '비활성으로 내리기' : '다시 활성으로'}
+            {row.isActive ? t('비활성으로 내리기') : t('다시 활성으로')}
           </button>
         )}
         {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
         <button className="btn" disabled={보내는중} onClick={() => void 보낸다()}>
-          {새것 ? '서비스 추가' : '저장'}
+          {새것 ? t('서비스 추가') : t('저장')}
         </button>
       </div>
       {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}
@@ -289,14 +266,10 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
 }
 
 /** `type="color"` 는 여섯 자리 16진수만 받는다. 타이핑 중인 값을 그대로 주면 검정으로 튄다 */
-function 색을고른다(color: string): string {
-  return /^#[0-9a-fA-F]{6}$/.test(color) ? color : 기본서비스색;
-}
-
 /** 서버가 코드를 주면 사람 말로, 아니면 원문 그대로. 한 화면 안에서 말투가 갈리지 않게 한자리에 둔다 */
-export function 오류문장(e: unknown): string {
-  if (!(e instanceof ApiError)) return message(e);
+export function 오류문장(e: unknown, 언어: 언어): string {
+  if (!(e instanceof ApiError)) return message(e, 언어);
   // `INVALID_REQUEST` 일 때 서버가 어느 칸인지 짚어 준다. 그 값은 message 에 들어 있다
   const 짚어준것 = e.code === 'INVALID_REQUEST' ? e.message : undefined;
-  return 설정오류문장(e.code, 짚어준것);
+  return 설정오류문장(e.code, 언어, 짚어준것);
 }

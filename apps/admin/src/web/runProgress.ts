@@ -5,12 +5,24 @@ import type { RunItemSummary, RunSummary, 항목진행 } from './api.js';
 /** `api.run()` 이 주는 모양. 증적 목록은 진행과 무관해 뺐다 — 없는 값을 요구하면 호출부가 채워야 한다 */
 export type RunDetail = RunSummary & { items: RunItemSummary[] };
 
+export interface 진행막대 {
+  통과: number;
+  실패: number;
+  미실행: number;
+  남은것: number;
+}
+
+/** 러너가 답한 것만 절차로 그린다. `절차` 가 `null` 이면 이름까지만 아는 것이다 */
+export interface 도는것 {
+  항목: RunItemSummary;
+  절차: 항목진행 | null;
+}
+
 export interface 진행 {
-  막대: { 통과: number; 실패: number; 미실행: number; 남은것: number };
+  막대: 진행막대;
   끝난수: number;
   전체수: number;
-  /** 러너가 답한 것만 절차로 그린다. `절차` 가 `null` 이면 이름까지만 아는 것이다 */
-  지금도는것들: { 항목: RunItemSummary; 절차: 항목진행 | null }[];
+  지금도는것들: 도는것[];
   방금끝난것: RunItemSummary[];
   /**
    * **지금 어느 화면도 이것을 안 그린다.** SPEC §8.9 의 「도는 동안 그리는 것」 목록에도 없다 —
@@ -56,7 +68,7 @@ export function 진행상황(data: RunDetail, 진행목록: 항목진행[]): 진
   // 답이 비는 때가 있다 — 러너가 아직 첫 절차를 안 흘렸거나 진행 조회가 실패한 순간이다.
   // 그때 빈칸을 두지 않고 안 끝난 첫째를 이름만 내보낸다. 사람이 러너 로그를 여는 이유가
   // 「무엇이 도는지」를 모르기 때문이라, 절차를 모르는 것과 아무것도 모르는 것은 다르다
-  const 지금도는것들: 진행['지금도는것들'] =
+  const 지금도는것들: 도는것[] =
     러너가답한것.length > 0 ? 러너가답한것 : 안끝난것.slice(0, 1).map((항목) => ({ 항목, 절차: null }));
   const 도는중인historyId = new Set(지금도는것들.map((것) => 것.항목.historyId));
 

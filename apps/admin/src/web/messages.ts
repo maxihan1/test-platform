@@ -3,8 +3,9 @@
 // 옮기는 작업 넷이 같은 파일을 건드려 나란히 돌지 못한다
 
 import { 케이스말 } from './messages/cases.js';
+import { 오류영어 } from './messages/errors.js';
 import { 실행말 } from './messages/runs.js';
 import { 설정말 } from './messages/settings.js';
 import { 껍데기말 } from './messages/shell.js';
 
-export const 말: Record<string, string> = { ...껍데기말, ...케이스말, ...실행말, ...설정말 };
+export const 말: Record<string, string> = { ...껍데기말, ...케이스말, ...실행말, ...설정말, ...오류영어 };
