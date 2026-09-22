@@ -255,3 +255,22 @@ test('CI 가 마이그레이션을 먹인다 — 표가 없으면 DB 검사가 �
   const 명령들 = 블록.split('\n').map((줄) => 줄.replace(/#.*$/, '')).join('\n');
   assert.match(명령들, /migrations/, '마이그레이션을 먹이는 단계가 없다');
 });
+
+// **docker-compose 가 해 주는 일을 CI 도 한다고 믿으면 안 된다.** compose 는 db/init 을
+// postgres 의 초기 스크립트 자리에 마운트해 자동으로 먹이는데, CI 의 services: 컨테이너는
+// 체크아웃보다 먼저 떠서 그 마운트를 못 한다. 그래서 로컬만 초록이고 CI 는
+// `role "grafana_ro" does not exist` 로 죽었다 (2026-09-22 실측).
+test('CI 가 db/init 을 마이그레이션보다 먼저 먹인다 — compose 가 자동으로 하던 일이다', () => {
+  const 블록 = 잡블록(readFileSync(CI, 'utf8'), 'check');
+  assert.ok(블록);
+  const 명령들 = 블록.split('\n').map((줄) => 줄.replace(/#.*$/, '')).join('\n');
+  assert.match(
+    명령들,
+    /db\/init/,
+    'db/init 을 안 먹인다 — 마이그레이션이 role "grafana_ro" does not exist 로 죽는다',
+  );
+  assert.ok(
+    명령들.indexOf('db/init') < 명령들.indexOf('migrations-dir'),
+    'db/init 이 마이그레이션보다 뒤에 있다 — 역할이 없는 채로 GRANT 가 돌아 죽는다',
+  );
+});
