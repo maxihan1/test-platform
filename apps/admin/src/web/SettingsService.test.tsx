@@ -29,6 +29,24 @@ function 그린다() {
   fireEvent.click(screen.getByText('편집'));
 }
 
+describe('서비스 더하기는 + 아이콘 버튼이다 (2026-09-22)', () => {
+  it('글자 「더하기」 대신 + 기호가 뜨고, 화면을 안 보는 사람에게는 라벨로 뜻이 전해진다', () => {
+    render(<ServiceSection rows={[서비스]} onDone={() => {}} />);
+
+    const 버튼 = screen.getByLabelText('더하기');
+    expect(버튼.textContent).toBe('+');
+  });
+
+  it('누르면 열리고, 열린 채로 다시 누르면 라벨과 기호가 닫기로 바뀐다', () => {
+    render(<ServiceSection rows={[서비스]} onDone={() => {}} />);
+
+    fireEvent.click(screen.getByLabelText('더하기'));
+
+    const 버튼 = screen.getByLabelText('닫기');
+    expect(버튼.textContent).toBe('×');
+  });
+});
+
 describe('설정에서 색 고르개를 걷었다 (SPEC §8.8, 2026-09-22)', () => {
   // 화면 어디에도 안 쓰이는 색을 고르게 두면 「고르면 뭐가 달라지나」에 답할 수 없다
   it('색을 고르는 칸이 없다', () => {

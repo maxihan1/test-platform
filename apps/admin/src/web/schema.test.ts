@@ -58,6 +58,13 @@ const REQUIRED_SCHEMA = {
   required: ['username'],
 };
 
+// 객체 기본값. 줄에는 안 나오고(CaseRowParams.tsx 줄에낼수있나) 상세 상자에서만 편집한다 — 데모에는 없지만
+// K4가 허용하는 모양이고, Form.tsx 의 안내 줄(기본값글자)과 입력 칸이 같은 값을 보여줘야 한다
+const OBJECT_DEFAULT_SCHEMA = {
+  type: 'object',
+  properties: { options: { type: 'object', default: { retry: 2 }, description: '재시도 설정' } },
+};
+
 describe('schemaToFields', () => {
   it('enum은 셀렉트가 되고 선택지를 그대로 갖는다', () => {
     const [field] = schemaToFields(ENUM_SCHEMA);
@@ -147,6 +154,14 @@ describe('initialText', () => {
 
   it('boolean의 default도 글자로 담는다', () => {
     expect(initialText(schemaToFields(BOOLEAN_SCHEMA))).toEqual({ statusCode: '201', echoesInput: 'true' });
+  });
+
+  // Form.tsx 의 기본값글자() 는 객체 기본값을 JSON.stringify 로 편다. 여기가 String() 을 쓰면
+  // 입력 칸은 "[object Object]"를 담고 안내 줄은 "{...}"를 보여줘 서로 어긋난다 (2026-09-22 자기검사)
+  it('객체 default는 JSON.stringify로 편다 — Form.tsx의 안내 줄과 같은 값이어야 한다', () => {
+    expect(initialText(schemaToFields(OBJECT_DEFAULT_SCHEMA))).toEqual({
+      options: JSON.stringify({ retry: 2 }),
+    });
   });
 });
 

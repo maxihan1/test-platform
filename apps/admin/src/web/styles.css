@@ -98,6 +98,11 @@
   /* 면이 바탕에서 떠 보이게 하는 그림자 하나 (DESIGN.md 원칙 2, 2026-09-21).
      행에는 안 준다 — 행마다 카드를 두르면 나열이 객체로 읽힌다 */
   --lift: 0 1px 2px rgba(25, 23, 19, 0.04), 0 10px 28px -16px rgba(25, 23, 19, 0.22);
+
+  /* body 위아래 여백. `.wrap` 이 창 높이에서 그대로 뺀다(2026-09-22) — 숫자를 두 곳에 따로
+     적으면 한쪽만 바뀌었을 때 사이드바가 창보다 짧거나 길어져 스크롤이 도로 새어 나간다 */
+  --body-pad-top: 24px;
+  --body-pad-bottom: 80px;
 }
 
 * {
@@ -124,7 +129,7 @@ body {
   overflow-wrap: anywhere;
   /* 2026-09-21 에 28px 방안지 격자를 걷어냈다. 완성된 제품이 아니라 아직 안 그린 와이어프레임으로
      읽히던 가장 큰 원인이었다. 되돌아오면 styles.test.ts 가 막는다 */
-  padding: 24px 16px 80px;
+  padding: var(--body-pad-top) 16px var(--body-pad-bottom);
 }
 
 /* 숫자를 세로로 맞추는 일을 글꼴이 보장한다 (DESIGN.md 원칙 3).
@@ -144,12 +149,19 @@ body {
 
 /* 사이드바 + 본문 두 칸. 본문 칸은 960px 그대로 두고 사이드바 폭만 더했다 —
    한 줄에 들어가는 글자 수가 바뀌면 이미 맞춰 둔 표 폭이 전부 흔들린다 (SPEC §8) */
+/* PC 에서는 창 높이에 상자를 맞춘다 — 사이드바가 화면 안에 늘 보여야 언어·로그아웃 위치가
+   목록 길이에 따라 흔들리지 않는다. body 위아래 여백(`--body-pad-top`·`--body-pad-bottom`)을
+   그대로 뺀 높이다 — 숫자를 여기 따로 적지 않는다. 그러면 body 여백이 바뀔 때 한쪽만 바뀌어
+   사이드바가 창보다 짧거나 길어지는 일이 없다.
+   좁은 화면은 원래대로 페이지 전체가 스크롤한다 — 사이드바가 가로 줄로 접히기 때문이다
+   (아래 620px 미만 규칙이 되돌린다, 2026-09-22) */
 .wrap {
   max-width: 1204px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 244px minmax(0, 1fr);
-  align-items: start;
+  align-items: stretch;
+  height: calc(100vh - var(--body-pad-top) - var(--body-pad-bottom));
 }
 
 /* 짙은 막대. 껍데기를 눌러야 오른쪽 면이 종이로 읽힌다 (DESIGN.md, 2026-09-21) */
@@ -159,12 +171,22 @@ body {
   background: var(--rail);
   color: var(--rail-ink);
   padding: 12px 10px;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  /* 창이 아주 낮아 자리 넷이 다 안 들어가는 극단적인 경우의 안전판 */
+  overflow-y: auto;
 }
 
 .main {
   min-width: 0;
   padding-left: 20px;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* 목록 화면(.list-screen)이 아니면 이 칸 전체가 창 높이 안에서 스크롤한다 —
+     지금까지 페이지 전체가 스크롤하던 것과 같은 느낌이다. 목록 화면은 안의 표만 스크롤한다 */
+  overflow-y: auto;
 }
 
 /* ── 사이드바 접기 ──────────────────────────────────────────────
@@ -302,6 +324,30 @@ body {
   box-shadow: var(--lift);
   overflow: hidden;
   margin-bottom: 28px;
+}
+
+/* 테스트케이스 목록 · 실행 기록 — 표(줄 목록)만 스크롤한다. 검색·필터·표머리는 늘 보인다
+   (SPEC §8, 2026-09-22). `.main` 이 남는 칸을 이 면에 다 주고, 이 면은 다시 `.rows-scroll` 에 준다 */
+.screen.list-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.rows-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 표머리는 줄이 스크롤해도 그 자리에 붙어 있는다 */
+.rows-scroll .rowhead {
+  position: sticky;
+  top: 0;
+  background: var(--sheet);
+  z-index: 1;
 }
 
 .screen-tag {
@@ -537,9 +583,13 @@ select:focus {
    케이스명 위에 체크박스만 홀로 한 줄이 된다 */
 /* 케이스 줄은 입력 칸이 **케이스명과 다른 칸**이다 (SPEC §8.1, 2026-09-22).
    케이스명에 최소 너비를 준다 — 칸이 하나 늘어 이름이 밀리는데,
-   두세 글자만 남으면 목록이 못 쓰게 된다 */
+   두세 글자만 남으면 목록이 못 쓰게 된다.
+   입력 칸은 `minmax(0, 300px)` 로 위를 막는다 — 입력 칸 자체(`.pcell .field input`)는
+   136px 에서 안 늘어나는데 칸(트랙)은 `1fr` 이라 사이드바를 접어 폭이 늘면 그만큼 빈 칸이
+   된다. 남는 자리는 `1.1fr` 인 케이스명 칸이 대신 받는다 (2026-09-22, 사이드바 접었을 때
+   공백이 많다는 지적) */
 .row.pickable {
-  grid-template-columns: 4px 20px 128px minmax(200px, 1.1fr) minmax(0, 1fr) auto;
+  grid-template-columns: 4px 20px 128px minmax(200px, 1.1fr) minmax(0, 300px) auto;
 }
 
 .params {
@@ -608,8 +658,8 @@ select:focus {
 .right {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 24px 14px 0;
+  gap: 10px;
+  padding: 10px 20px 10px 0;
 }
 
 .dur {
@@ -617,13 +667,16 @@ select:focus {
   color: var(--ink-faint);
 }
 
+/* 2026-09-22 — 결과 표시가 줄을 너무 많이 차지한다는 지적으로 크기를 줄였다.
+   PC·모바일 두 칸이 나란히 서므로 `.device` 를 고정 폭으로 둔다 — 이름 길이가 달라도
+   두 칸의 배지가 세로로 어긋나지 않는다 (「입력값 정렬이 삐뚤어진다」 지적의 원인이었다) */
 .verdict {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  padding: 4px 10px;
-  border-radius: 9px;
-  min-width: 52px;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 7px;
+  min-width: 42px;
   text-align: center;
   display: inline-block;
 }
@@ -646,35 +699,39 @@ select:focus {
 /* 디바이스별 판정 묶음. 케이스 1행에 PC·모바일을 나란히 둔다 (SPEC §8.3) */
 .devices {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
 .device {
   text-align: center;
-  min-width: 62px;
+  /* 고정폭이 아니라 최소폭이다 — 「실행 이력 없음」처럼 긴 안내는 폭이 더 필요하다.
+   고정폭으로 뒀다가 그 글자가 한 글자씩 줄바꿈됐다 (2026-09-22 브라우저 확인) */
+  min-width: 54px;
 }
 
 .device-name {
   display: block;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--ink-faint);
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .device-dur {
   display: block;
-  font-size: 11.5px;
+  font-size: 10.5px;
   color: var(--ink-faint);
-  margin-top: 3px;
+  margin-top: 2px;
 }
 
 .device-none {
   display: inline-block;
-  min-width: 52px;
+  min-width: 42px;
   text-align: center;
   color: var(--ink-faint);
-  font-size: 12.5px;
-  padding: 4px 10px;
+  font-size: 11.5px;
+  padding: 3px 8px;
+  /* 「실행 이력 없음」이 한 글자씩 줄바꿈되지 않게 한다 */
+  white-space: nowrap;
 }
 
 /* 구획 */
@@ -995,6 +1052,18 @@ select:focus {
   padding: 6px 12px;
 }
 
+/* 글자 없이 기호 하나만 보이는 정사각 버튼 (설정의 「+」, 2026-09-22) */
+.btn.icon {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 17px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .btn:focus-visible {
   outline: 2px solid var(--fail);
   outline-offset: 2px;
@@ -1121,13 +1190,33 @@ select:focus {
     align-items: center;
   }
 
-  /* 244px 사이드바를 그대로 두면 내용 칸이 한 줄에 스무 글자도 못 받는다. 위아래로 쌓는다 */
+  /* 244px 사이드바를 그대로 두면 내용 칸이 한 줄에 스무 글자도 못 받는다. 위아래로 쌓는다.
+     사이드바가 가로 줄로 올라가므로 창 높이에 맞추는 것도 여기서 되돌린다 —
+     페이지 전체가 스크롤하던 원래 좁은 화면 동작 그대로다 */
   .wrap {
     grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .side {
+    height: auto;
+    overflow-y: visible;
   }
 
   .main {
     padding: 16px 0 0;
+    height: auto;
+    display: block;
+    overflow-y: visible;
+  }
+
+  .screen.list-screen {
+    flex: none;
+    display: block;
+  }
+
+  .rows-scroll {
+    overflow-y: visible;
   }
 
   .side .side-nav {
@@ -1331,6 +1420,12 @@ select:focus {
   overflow: hidden;
 }
 
+/* 표가 들어가 480px 에 안 들어가는 상자 셋 — 케이스 상세 · 실행 결과 · 여러 건 실행 확인
+   (DESIGN.md 「②의 상자 둘」·「① 여러 건 실행 모달」, 2026-09-22). 좁은 화면 규칙은 `.modal` 과 같다 */
+.modal.wide {
+  max-width: 880px;
+}
+
 .modal-title {
   font-size: 19px;
   font-weight: 600;
@@ -1348,6 +1443,16 @@ select:focus {
   gap: 10px;
   min-height: 0;
   overflow: auto;
+}
+
+/* 실행 결과 상자 안에서는 머리·필터·증적 버튼을 고정하고 케이스 줄만 스크롤한다
+   (SPEC §8.7, 2026-09-22) — 여러 건 실행 모달의 `.picked` 와 같은 규칙이다.
+   안의 `.rows-scroll` 은 위 전역 규칙을 그대로 쓴다 — 여기서 되풀이하지 않는다 */
+.modal-body .modal-results {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 모달 안의 진행 막대. 본문이 세로 flex 라 6px 막대가 **flex-shrink 로 0 까지 줄어든다** —
@@ -2119,31 +2224,15 @@ select:focus {
 
 .dcols {
   display: flex;
-  gap: 48px;
+  gap: 32px;
   flex-wrap: wrap;
 }
 
-.dtab {
-  border-collapse: collapse;
-}
-
-.dtab td {
-  padding: 4px 16px 4px 0;
-  border: 0;
-  font-size: 13px;
-  color: var(--ink-muted);
-  vertical-align: top;
-}
-
-.dtab td.k {
-  color: var(--ink);
-  white-space: nowrap;
-}
-
-.dtab td.t {
-  font-size: 12px;
-  color: var(--ink-faint);
-  white-space: nowrap;
+/* 입력값·기대결과 칸 (Form 이 그린다, 2026-09-22 ②). 상자가 넓어져도 두 칸이
+   나란히 서게 기준 너비를 준다 — 없으면 칸마다 제 내용만큼만 차지해 들쑥날쑥해진다 */
+.dcols > div {
+  flex: 1 1 300px;
+  min-width: 260px;
 }
 
 .dsteps {

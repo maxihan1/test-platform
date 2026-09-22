@@ -28,7 +28,7 @@ export const 설정말: Record<string, string> = {
   '비활성으로 내리기': 'Deactivate',
   '다시 활성으로': 'Reactivate',
   '아직 서비스가 없습니다': 'No services yet',
-  '위 「더하기」로 첫 서비스를 만듭니다': 'Use Add above to create the first one',
+  '위 「+」로 첫 서비스를 만듭니다': 'Use + above to create the first one',
   '케이스 {건수}건': '{건수} cases',
   '대상 서버 없음': 'No target servers',
   '대상 서버 {개수}개': '{개수} target servers',

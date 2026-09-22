@@ -72,7 +72,7 @@ export function RunList({ service, role }: { service: string; role: 등급 }) {
       {/* 아무것도 안 돌린 서비스에 0 넷을 늘어놓지 않는다 */}
       {runs.data.summary.runs === 0 ? null : <집계 것={runs.data.summary} />}
 
-      <div className="screen">
+      <div className="screen list-screen">
         <form
           className="toolbar"
           role="search"
@@ -104,6 +104,7 @@ export function RunList({ service, role }: { service: string; role: 등급 }) {
           ))}
         </form>
 
+        <div className="rows-scroll">
         {runs.data.items.length === 0 ? (
           <div className="empty">
             {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다.
@@ -138,6 +139,7 @@ export function RunList({ service, role }: { service: string; role: 등급 }) {
             ))}
           </>
         )}
+        </div>
       </div>
 
       {page === 1 && !더있나 ? null : (

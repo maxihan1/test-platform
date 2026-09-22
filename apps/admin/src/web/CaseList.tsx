@@ -147,7 +147,7 @@ export function CaseList({ service }: { service: string }) {
         }
       />
 
-      <div className="screen">
+      <div className="screen list-screen">
 
       {/* 목록을 열자마자 「지금 이 서비스가 어떤 상태인가」가 먼저 온다.
           배지 하나만 있을 때는 실패가 몇 건인지 세로로 훑어야 알았다 */}
@@ -188,6 +188,7 @@ export function CaseList({ service }: { service: string }) {
         on결과={바꾸면첫쪽(set결과)}
       />
 
+      <div className="rows-scroll">
       {cases.error !== null ? (
         <Failed error={cases.error} />
       ) : cases.data === null ? (
@@ -229,6 +230,7 @@ export function CaseList({ service }: { service: string }) {
         ))}
         </>
       )}
+      </div>
 
       {page === 1 && !더있나 ? null : (
         <div className="pager">
