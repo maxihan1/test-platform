@@ -385,6 +385,46 @@ describe('표머리와 줄이 같은 격자를 쓴다 (SPEC §8.1 · §8.7, 2026
   });
 });
 
+// 창 1680 × 794 에서 좌우로 222px 씩 버려지고 표가 940px 에 갇혀 있었다.
+// 세로는 564px 을 위아래 UI 가 먼저 가져가 표에 206px(1.5줄)만 남았다 (2026-09-22 실측)
+describe('표가 창을 쓴다 (2026-09-22)', () => {
+  it('본문 상한이 1600px 이다', () => {
+    const 값 = /max-width:\s*(\d+)px/.exec(규칙('.wrap'))?.[1];
+    expect(값, '.wrap 에 max-width 가 없다').toBeDefined();
+    expect(Number(값)).toBe(1600);
+  });
+
+  // 「본문 칸은 960px」 은 `styles.css` 주석에만 있었고 그 주석이 `(SPEC §8)` 을 인용하는데
+  // **§8 에 그런 문장이 없다.** 인용이 헛돌면 다음 사람이 없는 계약을 지키려고 막힌다
+  it('명세에 없는 폭 상수를 근거로 적지 않는다', () => {
+    expect(css, 'styles.css 에 960 이 남아 있다 — 명세에 없는 숫자다').not.toContain('960');
+  });
+
+  it('body 아래 여백이 24px 이다', () => {
+    expect(토큰들()['--body-pad-bottom']).toBe('24px');
+  });
+
+  // 제목 글자는 안 줄인다 — 24px 이 명암비 기준이 갈리는 경계다 (위 「화면 제목」 검사).
+  // 되찾는 세로는 여백에서 뺀다
+  it('화면 머리 여백을 줄였다', () => {
+    const 값 = /padding:\s*(\d+)px/.exec(규칙('.head'))?.[1];
+    expect(값, '.head 에 padding 이 없다').toBeDefined();
+    expect(Number(값)).toBeLessThanOrEqual(12);
+  });
+
+  // 숫자 아래에 라벨을 쌓으면 띠가 120px 이 된다. 눕히면 한 줄이고 **글자는 하나도 안 잃는다**
+  it('집계띠가 한 줄로 눕는다 — 적힌 글자는 그대로다', () => {
+    const 블록 = 규칙('.stat');
+    expect(블록).toMatch(/display:\s*flex/);
+    expect(블록).toMatch(/align-items:\s*baseline/);
+  });
+
+  // 목록 화면은 표가 창을 꽉 채운다. 바닥 줄이 있으면 그만큼 표가 잘린다
+  it('목록 화면에서 바닥 줄을 숨긴다', () => {
+    expect(css).toMatch(/\.main:has\(\.list-screen\)\s*\.foot\s*\{[^}]*display:\s*none/);
+  });
+});
+
 // 상자가 880 × 80vh 이던 때 실행 결과 상자의 케이스 목록에 32px 만 남았다 — 줄이 101px 이라
 // **한 줄도 안 들어갔다.** 정보 UI 가 상자의 95% 를 먹고 있었다 (2026-09-22 실측)
 describe('넓은 상자가 표를 담을 만큼 크다 (DESIGN.md, 2026-09-22)', () => {
