@@ -207,32 +207,51 @@ R9 가 근거로 삼는 「3개월째 초록이었는데 이번에 빨강」은 
 
 **기획서에 없는 단 하나의 정보다.** 추측해 쓰면 문법은 통과하고 실행은 전부 실패한다.
 
+**도구는 `playwright-cli` 다** (Microsoft). 스킬이 `.claude/skills/playwright-cli/` 에 같이 있고,
+명령줄 도구는 기계마다 한 번 깐다 — 설치는 `docs/SETUP.md` §9 가 정본이다.
+
 ```bash
-node -e "
-const {chromium}=require('@playwright/test');
-const {createHash}=require('node:crypto');
-(async()=>{
-  const b=await chromium.launch();const p=await b.newPage();
-  await p.goto('<대상 주소>');
-  const s=await p.locator('body').ariaSnapshot();
-  console.log(s);
-  console.log('해시(sha256 앞 12자):', createHash('sha256').update(s).digest('hex').slice(0,12));
-  console.log('testid:', await p.locator('[data-testid]').evaluateAll(e=>[...new Set(e.map(x=>x.dataset.testid))]));
-  await b.close();
-})()"
+playwright-cli -s=probe open '<대상 주소>'      # 열고 **켜 둔 채로 둔다**
+playwright-cli -s=probe snapshot                # 스냅샷을 **파일로** 떨군다. 경로만 돌아온다
+playwright-cli -s=probe find '<찾는 글자>'       # 그 스냅샷에서 찾는다
+playwright-cli -s=probe fill e8 '<값>' --submit  # 상호작용. 세션이 그대로 이어진다
+playwright-cli -s=probe close
 ```
 
-새 파일 0개 · 새 의존성 0개. 상호작용 뒤에 생기는 요소는 가운데에 `fill`/`press`/`click` 을
-이어 붙여 **그 상태에서 다시 찍는다.**
+**왜 바꿨나** (2026-09-22 실측). 옛 탐침은 `node -e` 한 줄로 브라우저를 띄워 첫 화면을 찍고 **바로 닫았다.**
 
-**★ 저장소 밖에 파일로 저장해 `node <파일>` 로 돌리지 않는다.** `@playwright/test` 를 못 찾는다 —
-`node -e` 의 `require` 는 **현재 폴더 기준**으로 찾고, 파일의 `import` 는 **그 파일 자리 기준**으로 찾는다.
-저장소 안에서 `node -e` 로 돌린다 (2026-09-21 실측).
+- 클릭한 뒤 상태를 보려면 **명령을 새로 써서 처음부터 다시 밟아야** 했다
+- **로그인을 못 했다.** 이 절이 「로그인 뒤는 크롬으로 보고 **탐침으로 재확인**」이라 적어 뒀는데
+  탐침에 로그인할 방법이 없었다 — **그 재확인은 성립한 적이 없다**
+- `ariaSnapshot` 전문이 **컨텍스트에 통째로** 들어왔다
+
+`-s=<이름>` 세션이 유지되므로 **한 번 로그인하고 여러 번 찍는다.**
+
+### ★ CLI 가 뱉는 코드를 그대로 베끼지 않는다
+
+명령마다 「Ran Playwright code」로 **방금 실행한 Playwright 코드**를 같이 뱉는다.
+대개 `getByRole` 이라 아래 우선순위와 맞는다 — 이 도구를 쓰는 가장 큰 값이다.
+
+**그런데 같은 것이 둘이면 `.nth(1)` 을 뱉는다** (2026-09-22 실측 — 같은 이름의 할 일 둘에서
+`getByRole('checkbox', { name: 'Toggle Todo' }).nth(1)`).
+**`nth()` 가 나온 것은 쓸 locator 가 아니라 「이 화면에 같은 것이 둘」이라는 신호다.**
+다른 앵커를 찾고, 못 찾으면 표에 `보류` 로 남긴다.
+
+### ★ 벤더 스킬의 **생성 절차**를 따르지 않는다
+
+`.claude/skills/playwright-cli/references/test-generation.md` 가 plan → generate → heal 한 벌을 들고 있다.
+**탐침만 가져온다. 생성 절차는 이 저장소의 규칙과 정면으로 부딪힌다.**
+
+| 그 문서 | 여기 |
+|---|---|
+| 기대값을 **화면에서 읽어** 담는다 (`eval "el => el.textContent"`) | **R10 이 금지한다.** 화면이 버그를 갖고 있으면 그 버그가 회귀 세트에 영원히 박힌다 |
+| `expect` 로 단언 | `tests/**` 는 `verify` 만 쓴다. **훅이 `expect` 를 막는다** |
+| `// N. <단계>` 주석을 단다 | `tests/**` 는 **주석 금지** (CLAUDE.md §3) |
 
 | 상황 | 무엇을 쓰나 |
 |---|---|
-| 주소가 열려 있고 로그인 불필요 | **탐침** (기본) |
-| 로그인·사내망 뒤 | 크롬 MCP(`navigate`+`read_page`)로 본 뒤 **탐침으로 재확인** |
+| 주소가 열려 있다 | **탐침** (기본) |
+| **로그인 뒤 화면** | **탐침으로 직접 로그인해서 본다** (2026-09-22 부터. 그전에는 길이 없었다) |
 | 그 요소가 화면에 없다 | **케이스를 만들지 않는다.** 표에 `보류(<사유>)` 로 남긴다 |
 
 **locator 우선순위** `getByRole` > `getByPlaceholder` > `getByTestId` > `getByText`.
@@ -255,20 +274,32 @@ CSS 선택자·`nth()`·XPath 금지.
 ```markdown
 ## 용어 사전
 
-- 화면 스냅샷 해시: `<12자>` (**sha256 앞 12자** · 2026-09-21)
+- 화면 스냅샷 해시: `<12자>` (**요소 번호를 뺀 뒤 sha256 앞 12자** · 2026-09-22)
 
 | 도메인 용어 | 화면에서 무엇 | locator |
 |---|---|---|
 | 할 일 입력칸 | 맨 위 텍스트 상자 | `getByPlaceholder('What needs to be done?')` |
 ```
 
+**★ 해시는 이 명령으로만 낸다.** 눈대중으로 옮겨 적지 않는다.
+
+```bash
+playwright-cli -s=probe --raw snapshot | sed 's/\[ref=[^]]*\]//g' | shasum -a 256 | cut -c1-12
+```
+
+**`sed` 로 요소 번호를 빼는 것이 핵심이다** (2026-09-22 실측). 같은 화면인데
+**한 번 이동하고 나면 번호에 `f1` 접두사가 붙는다** — `[ref=e1]` 이 `[ref=f1e1]` 이 된다.
+번호를 넣은 채로 해시하면 같은 화면이 `2fa423bc2749` 와 `3d3636c4ccdf` 로 갈리고,
+번호를 빼면 **둘 다 `4735b99cebbb`** 다.
+
 **★ 알고리즘을 반드시 적는다.** 「해시 앞 12자」라고만 적으면 다음 세션이 md5 를 고를 수 있고,
 그러면 **캐시가 영영 안 맞는데 그 사실이 「화면이 바뀌었나 보다」로 읽힌다** (2026-09-21 실측 —
 같은 화면이 sha256 `73d937f42658` · md5 `cf65d97043d9` · sha1 `e54141fa349e` 였다).
+**번호를 안 뺀 것도 같은 병이다** — 캐시가 매번 안 맞고 그것이 「화면이 자주 바뀐다」로 읽힌다.
 
 **두 번째 실행부터의 절차**
 
-1. 탐침을 돌려 `ariaSnapshot` 해시를 낸다
+1. 위 명령으로 해시를 낸다
 2. **해시가 같으면 사전에 이미 있는 줄을 그대로 쓴다** — 그 요소들을 다시 해석하지 않는다
 3. 다르면 **바뀐 부분만** 보고 사전을 갱신한다
 
