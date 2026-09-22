@@ -186,6 +186,73 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
   });
 });
 
+// 상자 635px 중 603px(95%)을 정보 UI 가 먹고 케이스 목록에 32px 만 남았다 — 줄이 101px 이라
+// **한 줄도 안 들어갔다.** 증적 정보는 머리로 올리고 견줌은 접는다 (2026-09-22 실측)
+describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC §8.3, 2026-09-22)', () => {
+  const 견줌있음 = {
+    previous: { runId: 2110, startedAt: '2026-09-14T10:00:00.000Z' },
+    주소바뀜: false,
+    빠진건수: 0,
+    케이스들: [
+      { tcId: 'DEMO-003', tcName: '할 일 추가', platform: 'desktop' as const, 판정: '새로깨짐' as const },
+    ],
+    실패덩어리들: [],
+  };
+
+  const 첫실행 = { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들: [] };
+
+  it('상자 안에서는 증적 문서 정보가 RUN 머리 줄에 있다', async () => {
+    vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
+    vi.spyOn(api, 'run').mockResolvedValue({
+      ...실행,
+      status: 'FINISHED',
+      items: [],
+      evidence: [증적('PDF', 'READY')],
+    });
+    render(<RunResult runId={RUN_ID} role="operator" 상자안 />);
+    await screen.findAllByText(/만들기$/);
+
+    const 머리 = document.querySelector('.box-head');
+    expect(머리?.textContent, '머리에 증적 문서 줄이 없다').toMatch(/만듦/);
+    // 같은 말을 두 번 하지 않는다 — 머리에 올렸으면 본문에 블록으로 또 서지 않는다.
+    // **접기(`.sec.fold`)는 빼고 본다** — 그것은 견줌 칸이고 증적과 상관이 없다.
+    // 안 빼면 견줌이 있는 실행에서 엉뚱한 이유로 빨개진다 (2026-09-22 자기검토)
+    expect(document.querySelector('.screen .sec:not(.fold)')).toBeNull();
+  });
+
+  it('화면 전체에서는 증적 문서가 지금처럼 블록으로 선다', async () => {
+    vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
+    그리기('FINISHED', [증적('PDF', 'READY')]);
+    await screen.findAllByText(/만들기$/);
+
+    expect(document.querySelector('.box-head')).toBeNull();
+    expect(document.querySelector('.screen .sec')?.textContent).toMatch(/만듦/);
+  });
+
+  it('견줌은 접힌 채로 뜬다 — 펴야 보인다', async () => {
+    vi.spyOn(api, 'insights').mockResolvedValue(견줌있음);
+    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
+    render(<RunResult runId={RUN_ID} role="operator" 상자안 />);
+
+    const 접기 = await screen.findByText(/직전 실행과 견줌/);
+    const 상자 = 접기.closest('details');
+    expect(상자, '견줌이 접기가 아니다').not.toBeNull();
+    expect(상자?.hasAttribute('open'), '견줌이 펴진 채로 뜬다').toBe(false);
+  });
+
+  // SPEC 공통/7-데모와-완료 §7 — 「첫 실행에서는 그 칸이 **아예 없다**」.
+  // 접기를 null 체크 바깥에 두면 내용 없는 `<summary>` 한 줄이 남아 이 규칙이 깨진다
+  it('첫 실행에서는 견줌이 아예 없다 — 빈 접기 줄도 없다', async () => {
+    vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
+    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
+    render(<RunResult runId={RUN_ID} role="operator" 상자안 />);
+    await screen.findAllByText(/만들기$/);
+
+    expect(screen.queryByText(/직전 실행과 견줌/)).toBeNull();
+    expect(document.querySelector('details')).toBeNull();
+  });
+});
+
 describe('상자 안에서는 케이스 줄만 스크롤한다 (SPEC §8.7, 2026-09-22 ②)', () => {
   it('상자안 이면 머리·필터는 밖에, 케이스 줄은 .rows-scroll 안에 있다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });

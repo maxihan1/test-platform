@@ -339,3 +339,212 @@ describe('서비스 고르개 (SPEC §8, 2026-09-22)', () => {
     expect(css).toContain('.side-cap');
   });
 });
+
+/** 선택자 하나의 규칙 블록을 통째로 준다. 주석은 지운다 — 주석 처리한 선언이 통과하면 안 된다 */
+function 규칙(선택자: string): string {
+  const 자리 = css.indexOf(`\n${선택자} {`);
+  if (자리 < 0) return '';
+  return css.slice(자리, css.indexOf('}', 자리)).replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+/**
+ * 선택자 **조각**이 든 규칙의 **선언 부분만** 준다.
+ *
+ * `규칙()` 은 줄 처음부터 딱 맞는 선택자를 찾는다. 선택자가 여럿 묶인 규칙
+ * (`.right .btn,\n.right a.btn { … }`)은 그것으로 못 찾는데,
+ * 못 찾았을 때 파일 나머지를 통째로 돌려주면 **어디에 있든 통과하는 항진명제**가 된다 —
+ * 2026-09-22 에 실제로 그렇게 썼고 돌연변이가 안 잡혀서 드러났다 (spec-review G8).
+ */
+function 선언들(선택자조각: string): string {
+  const 자리 = css.indexOf(선택자조각);
+  if (자리 < 0) return '';
+  const 여는 = css.indexOf('{', 자리);
+  if (여는 < 0) return '';
+  return css.slice(여는, css.indexOf('}', 여는)).replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+/** 규칙 블록에서 grid-template-columns 값을 뽑는다 */
+function 격자(선택자: string): string {
+  return /grid-template-columns:\s*([^;]+);/.exec(규칙(선택자))?.[1]?.trim() ?? '';
+}
+
+// 표머리와 줄이 각자 격자를 들면 칸이 통째로 어긋난다. 2026-09-22 실측으로
+// 「입력값」 머리가 실제 입력칸보다 121px 오른쪽에 있었다 (「마지막 결과」 116 · 「판정」 166)
+describe('표머리와 줄이 같은 격자를 쓴다 (SPEC §8.1 · §8.7, 2026-09-22)', () => {
+  it('케이스 목록의 표머리와 줄이 같은 격자 한 벌을 쓴다', () => {
+    expect(격자('.rowhead'), '표머리에 격자가 없다').not.toBe('');
+    expect(격자('.rowhead')).toBe('var(--list-cols)');
+    expect(격자('.row.pickable')).toBe('var(--list-cols)');
+  });
+
+  it('실행 기록의 표머리와 줄이 같은 격자 한 벌을 쓴다', () => {
+    expect(격자('.rowhead.runhead')).toBe('var(--run-cols)');
+    expect(격자('.row')).toBe('var(--run-cols)');
+  });
+
+  // 값이 같은 글자여도 마지막 칸이 auto 면 안 맞는다 — 머리는 글자 몇 자이고
+  // 줄은 판정 배지와 버튼이라 내용 폭이 달라 남는 자리가 다르게 나뉜다.
+  // 이 검사가 없으면 두 규칙이 똑같이 `4px 128px 1fr auto` 여도 통과한다
+  it('격자의 마지막 칸이 내용을 따라가지 않는다', () => {
+    const 표 = 토큰들();
+    for (const 이름 of ['--list-cols', '--run-cols']) {
+      const 값 = 표[이름];
+      expect(값, `${이름} 이 :root 에 없다`).toBeDefined();
+      expect(값!.trim().endsWith('auto'), `${이름} 의 마지막 칸이 auto 다`).toBe(false);
+      expect(값!.trim()).toMatch(/\d+px$/);
+    }
+  });
+
+  // 격자를 합치고도 24px 이 어긋나 있었다 — 표머리에만 오른쪽 여백 24px 이 있었다.
+  // 격자가 같아도 **내용 상자 폭**이 다르면 남는 자리가 다르게 나뉜다 (2026-09-22 브라우저 실측)
+  it('표머리와 줄의 좌우 여백이 같다', () => {
+    // `0` 과 `0px` 은 같은 값이다. 글자로 견주므로 맞춰 준다
+    const 폭 = (값: string): string => (Number.parseFloat(값) === 0 ? '0px' : 값);
+    const 좌우 = (선택자: string): string => {
+      const 값 = /(?:^|\n)\s*padding:\s*([^;]+);/.exec(규칙(선택자))?.[1]?.trim().split(/\s+/) ?? [];
+      // top right bottom left → 넷이면 [1]·[3], 둘이면 [1]·[1]
+      if (값.length === 4) return `${폭(값[1]!)} ${폭(값[3]!)}`;
+      if (값.length === 2) return `${폭(값[1]!)} ${폭(값[1]!)}`;
+      return '0px 0px';
+    };
+    expect(좌우('.rowhead')).toBe(좌우('.row'));
+  });
+
+  // 마지막 칸이 고정 폭이 되면서 그 안이 넘칠 수 있게 됐다. 넘치면 flex 가 버튼을 줄이는데
+  // `body` 의 `overflow-wrap: anywhere` 때문에 낱말 안에서도 끊긴다 — 브라우저 실측에서
+  // `Details` 가 35 × 134px 로 한 글자씩 세로로 흘렀다 (2026-09-22).
+  // jsdom 은 이 자리를 원리적으로 못 잰다 — 선언이 다 있는지만 본다 (`.one-line` 과 같은 방식)
+  it('마지막 칸 안의 버튼과 판정 묶음이 줄어들지 않는다', () => {
+    const 버튼 = 선언들('.right .btn');
+    expect(버튼, '.right .btn 규칙을 못 찾았다').not.toBe('');
+    expect(버튼, '.right 의 버튼에 flex: none 이 없다').toMatch(/flex:\s*none/);
+    expect(버튼, '.right 의 버튼에 white-space: nowrap 이 없다').toMatch(/white-space:\s*nowrap/);
+    expect(규칙('.right .devices'), '판정 묶음에 flex: none 이 없다').toMatch(/flex:\s*none/);
+    // 안 들어가면 글자를 뭉개는 대신 줄을 바꾼다
+    expect(규칙('.right')).toMatch(/flex-wrap:\s*wrap/);
+  });
+
+  // 고정 폭 트랙을 쓰면 **그 합이 안 들어가는 창**이 생긴다. 2026-09-22 에 1680px 만 재고
+  // 「쟀다」고 적었다가 1024px 창에서 표가 139px 넘치는 것을 자기검토가 잡았다.
+  // 넓은 창 하나로는 이 자리를 영영 못 본다 — 좁은 구간 대비가 있는지를 기계가 본다
+  it('고정 폭이 안 들어가는 창을 위한 대비가 있다', () => {
+    const 고정합 = (이름: string): number =>
+      [...(토큰들()[이름] ?? '').matchAll(/(?:^|\s)(\d+)px/g)].reduce((합, m) => 합 + Number(m[1]), 0);
+    // 넓은 창용 값은 고정 폭을 쓴다 — 그래야 표머리와 줄이 같은 자리에 선다
+    expect(고정합('--list-cols'), '--list-cols 에 고정 폭이 없다').toBeGreaterThan(0);
+    // 그 값이 안 들어가는 창을 위한 좁은 구간 재정의가 있어야 한다
+    const 좁은구간 = /@media \(max-width: (\d+)px\) \{\s*:root \{([\s\S]*?)\}/.exec(css);
+    expect(좁은구간, '고정 폭이 안 들어가는 창을 위한 :root 재정의가 없다').not.toBeNull();
+    expect(좁은구간![2], '좁은 구간 값이 여전히 고정 폭이다 — 비율(fr)이어야 넘치지 않는다').toMatch(
+      /--list-cols:[^;]*fr/,
+    );
+  });
+
+  it('좁은 화면에서는 표머리를 감춘다 — 줄이 2단으로 접혀 칸이 세로로 눕는다', () => {
+    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(좁은화면).toMatch(/\.rowhead\s*\{[^}]*display:\s*none/);
+  });
+});
+
+// 창 1680 × 794 에서 좌우로 222px 씩 버려지고 표가 940px 에 갇혀 있었다.
+// 세로는 564px 을 위아래 UI 가 먼저 가져가 표에 206px(1.5줄)만 남았다 (2026-09-22 실측)
+describe('표가 창을 쓴다 (2026-09-22)', () => {
+  it('본문 상한이 1600px 이다', () => {
+    const 값 = /max-width:\s*(\d+)px/.exec(규칙('.wrap'))?.[1];
+    expect(값, '.wrap 에 max-width 가 없다').toBeDefined();
+    expect(Number(값)).toBe(1600);
+  });
+
+  // 「본문 칸은 960px」 은 `styles.css` 주석에만 있었고 그 주석이 `(SPEC §8)` 을 인용하는데
+  // **§8 에 그런 문장이 없다.** 인용이 헛돌면 다음 사람이 없는 계약을 지키려고 막힌다
+  // 파일 전수로 `960` 을 찾으면 색값(#a96023)이나 다른 폭(1960px)에도 걸려 엉뚱한 곳을 가리킨다.
+  // 막으려는 것은 **본문 폭 상한이 960px 로 돌아오는 것** 하나다 (2026-09-22 자기검토)
+  it('명세에 없는 폭 상수를 근거로 적지 않는다', () => {
+    expect(css, '본문 폭 상한이 960px 으로 돌아왔다 — 명세에 없는 숫자다').not.toMatch(
+      /max-width:\s*960px/,
+    );
+    expect(규칙('.wrap'), '.wrap 주석·선언에 960 이 남아 있다').not.toContain('960');
+  });
+
+  it('body 아래 여백이 24px 이다', () => {
+    expect(토큰들()['--body-pad-bottom']).toBe('24px');
+  });
+
+  // 제목 글자는 안 줄인다 — 24px 이 명암비 기준이 갈리는 경계다 (위 「화면 제목」 검사).
+  // 되찾는 세로는 여백에서 뺀다
+  it('화면 머리 여백을 줄였다', () => {
+    const 값 = /padding:\s*(\d+)px/.exec(규칙('.head'))?.[1];
+    expect(값, '.head 에 padding 이 없다').toBeDefined();
+    expect(Number(값)).toBeLessThanOrEqual(12);
+  });
+
+  // 숫자 아래에 라벨을 쌓으면 띠가 120px 이 된다. 눕히면 한 줄이고 **글자는 하나도 안 잃는다**
+  it('집계띠가 한 줄로 눕는다 — 적힌 글자는 그대로다', () => {
+    const 블록 = 규칙('.stat');
+    expect(블록).toMatch(/display:\s*flex/);
+    expect(블록).toMatch(/align-items:\s*baseline/);
+  });
+
+  // 목록 화면은 표가 창을 꽉 채운다. 바닥 줄이 있으면 그만큼 표가 잘린다
+  it('목록 화면에서 바닥 줄을 숨긴다', () => {
+    expect(css).toMatch(/\.main:has\(\.list-screen\)\s*\.foot\s*\{[^}]*display:\s*none/);
+  });
+});
+
+// 상자가 880 × 80vh 이던 때 실행 결과 상자의 케이스 목록에 32px 만 남았다 — 줄이 101px 이라
+// **한 줄도 안 들어갔다.** 정보 UI 가 상자의 95% 를 먹고 있었다 (2026-09-22 실측)
+describe('넓은 상자가 표를 담을 만큼 크다 (DESIGN.md, 2026-09-22)', () => {
+  it('넓은 상자는 1400px 이다', () => {
+    const 값 = /max-width:\s*(\d+)px/.exec(규칙('.modal.wide'))?.[1];
+    expect(값, '.modal.wide 에 max-width 가 없다').toBeDefined();
+    expect(Number(값)).toBe(1400);
+  });
+
+  // `94vh` 로 적으면 창이 533px 보다 낮을 때 덮개 여백 32px 과 합쳐 화면을 넘어
+  // 제목과 닫기가 밖으로 나간다 — 덮개에 스크롤이 없어 닿을 길도 없다 (2026-09-22).
+  // 빼는 값을 적어야 어느 창 높이에서도 안 넘친다
+  it('상자 높이가 덮개 여백을 뺀 만큼이다 — vh 만 적지 않는다', () => {
+    const 블록 = 규칙('.modal');
+    expect(블록, '.modal 에 max-height 가 없다').toMatch(/max-height:/);
+    expect(블록, '창 높이에서 덮개 여백을 안 뺐다').toMatch(/max-height:\s*calc\(100vh\s*-\s*\d+px\)/);
+  });
+
+  // 좁은 화면 규칙은 안 건드린다 — 폭은 상한일 뿐이고 상자는 창을 따라간다
+  it('상자가 좁은 화면에서는 창을 채운다', () => {
+    expect(규칙('.modal')).toMatch(/width:\s*100%/);
+  });
+});
+
+// 2026-09-21 에 배운 것이 2026-09-22 에 그대로 재발했다 — 언어 고르개에 규칙이 없어
+// OS 가 짙은 사이드바 위에 흰 상자를 그렸다. 두 번째라 기계로 옮긴다 (CLAUDE.md §2.5).
+// 밝은 면 위의 select 는 OS 모양이어도 읽히므로 사이드바만 본다
+describe('사이드바의 select 를 OS 가 그리지 않는다 (LEARNINGS 2026-09-21 재발)', () => {
+  const 껍데기 = readFileSync(new URL('./Shell.tsx', import.meta.url), 'utf8');
+
+  /** 사이드바가 그리는 select 하나하나의 자리 이름(class 나 id)을 모은다 */
+  function 고르개이름들(): string[] {
+    const 이름들: string[] = [];
+    for (const m of 껍데기.matchAll(/<select\b([\s\S]*?)>/g)) {
+      const 이름 = /(?:className|id)="([\w-]+)"/.exec(m[1] ?? '')?.[1];
+      if (이름 !== undefined) 이름들.push(이름);
+    }
+    return 이름들;
+  }
+
+  it('사이드바가 그리는 고르개를 세었다', () => {
+    expect(고르개이름들().length).toBeGreaterThanOrEqual(2);
+  });
+
+  // 「appearance 라는 글자가 css 어딘가에 있다」로는 안 된다 — 다른 선택자에 걸린 것도 통과한다.
+  // 그 고르개를 **겨냥한 규칙 안에서** 껐는지 본다 (spec-review G9)
+  it('고르개마다 그것을 겨냥한 규칙이 appearance 를 끈다', () => {
+    for (const 이름 of 고르개이름들()) {
+      const 겨냥 = css
+        .split('\n')
+        .filter((줄) => 줄.includes(이름) && 줄.trimEnd().endsWith('{'))
+        .map((줄) => 규칙(줄.trim().replace(/\s*\{$/, '')));
+      const 끈것 = 겨냥.filter((블록) => /appearance:\s*none/.test(블록));
+      expect(끈것.length, `${이름} 를 겨냥한 규칙 중 appearance 를 끈 것이 없다`).toBeGreaterThan(0);
+    }
+  });
+});

@@ -131,9 +131,25 @@ export function CaseList({ service }: { service: string }) {
       {/* 제목과 주 행동은 본문 면 **바깥**에 선다. 안에 넣으면 머리와 본문이 다시 붙는다 (SPEC §8) */}
       {/* 자리 이름은 **무엇을 다루는 곳인가**(`테스트 케이스`), 화면 제목은
           **지금 보는 것이 무엇인가**(`테스트케이스 목록`)를 말한다 (SPEC §8) */}
+      {/* 스캔 결과가 머리 부제로 올라왔다 (2026-09-22). 목록 위에 따로 줄로 서면 49px 을 먹는데,
+          그 화면은 표가 창을 채우는 것이 일이라 그만큼 표가 잘린다.
+          **자리만 옮겼고 적히는 것은 그대로다** — 실패 사유도 여기 같이 뜬다 (SPEC §8.1) */}
       <Head
         제목={t('테스트케이스 목록')}
-        부제={cases.data === null ? t('불러오는 중입니다') : t('모두 {건수}건', { 건수: cases.data.total })}
+        부제={
+          <>
+            {cases.data === null ? t('불러오는 중입니다') : t('모두 {건수}건', { 건수: cases.data.total })}
+            {' · '}
+            <ScanInfo scan={scan.data} error={notice ?? scan.error} />
+            {/* 비활성 이유는 말풍선이 아니라 화면 줄이다 — 휴대폰에는 올릴 마우스가 없다 (DESIGN.md) */}
+            {!뽑기.모으는중 ? null : (
+              <span className="scan-text" role="status">
+                {' · '}
+                {t('케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다')}
+              </span>
+            )}
+          </>
+        }
         행동={
           <>
             <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
@@ -161,32 +177,26 @@ export function CaseList({ service }: { service: string }) {
         />
       )}
 
-      <div className="scan">
-        {/* 비활성 이유는 말풍선이 아니라 화면 줄이다 — 휴대폰에는 올릴 마우스가 없다 (DESIGN.md) */}
-        {!뽑기.모으는중 ? null : (
-          <span className="scan-text" role="status">
-            {t('케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다')}
-          </span>
-        )}
-        <ScanInfo scan={scan.data} error={notice ?? scan.error} />
+      {/* 찾기와 조건 칩이 한 줄에 선다 (2026-09-22). 두 줄이면 132px 을 먹었다.
+          실행 기록 화면은 원래부터 한 줄이라 둘의 모양이 이제 같다 */}
+      <div className="toolbar">
+        <찾기폼
+          typed={typed}
+          건조건={건조건}
+          onTyped={setTyped}
+          onSearch={() => search(typed)}
+          onClear={조건지우기}
+        />
+
+        <조건칩들
+          디바이스={디바이스}
+          활성만={활성만}
+          결과={결과}
+          on디바이스={바꾸면첫쪽(set디바이스)}
+          on활성만={바꾸면첫쪽(set활성만)}
+          on결과={바꾸면첫쪽(set결과)}
+        />
       </div>
-
-      <찾기폼
-        typed={typed}
-        건조건={건조건}
-        onTyped={setTyped}
-        onSearch={() => search(typed)}
-        onClear={조건지우기}
-      />
-
-      <조건칩들
-        디바이스={디바이스}
-        활성만={활성만}
-        결과={결과}
-        on디바이스={바꾸면첫쪽(set디바이스)}
-        on활성만={바꾸면첫쪽(set활성만)}
-        on결과={바꾸면첫쪽(set결과)}
-      />
 
       <div className="rows-scroll">
       {cases.error !== null ? (
