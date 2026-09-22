@@ -57,6 +57,12 @@ test('CI 워크플로도 2등급 — 검사가 조용히 안 돌게 만드는 �
   assert.deepEqual(detectTier(['.github/workflows/ci.yml']).unmapped, []);
 });
 
+test('작성 도구 서버 코드도 2등급 — 폴더가 아직 없다고 새면 안 된다 (2026-09-22 미분류였다)', () => {
+  assert.equal(surfaceOf('apps/admin/src/authoring/routes.ts')?.name, 'ADMIN');
+  assert.equal(detectTier(['apps/admin/src/authoring/routes.ts']).tier, 2);
+  assert.deepEqual(detectTier(['apps/admin/src/authoring/routes.ts']).unmapped, []);
+});
+
 test('서버 본체와 러너는 2등급', () => {
   assert.equal(detectTier(['apps/admin/src/catalog/store.ts']).tier, 2);
   assert.equal(detectTier(['apps/runner/src/execute.ts']).tier, 2);
