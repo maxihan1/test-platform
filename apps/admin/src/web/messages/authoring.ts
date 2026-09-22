@@ -23,4 +23,11 @@ export const 작성말: Record<string, string> = {
   '기획서 본문을 붙여 넣으세요': 'Paste the spec text here',
   보내기: 'Send',
   '보내는 중': 'Sending',
+
+  // 상세
+  '작업 단계': 'Stage',
+  '요청한 사람': 'Requested by',
+  '집어 간 계정': 'Claimed by',
+  '요청한 시각': 'Requested at',
+  '초안 PR 열기': 'Open draft PR',
 };
