@@ -28,7 +28,7 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
 
   // 라벨도 마스킹도 항목에 박제된 스키마로 한다. 카탈로그를 읽으면 케이스 코드를 고친 날
   // 반년 전 증적의 라벨이 같이 바뀐다 (SPEC §3.3). 비밀값은 표시가 없어도 이름으로 가린다 (§4.1)
-  const params = fieldsOf(item.params, item.paramSchema);
+  const params = fieldsOf(item.params, item.paramSchema, 언어);
 
   return (
     <div className="screen">

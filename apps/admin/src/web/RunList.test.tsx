@@ -61,6 +61,21 @@ const 빈쪽 = (summary: RunTally): Paged<RunSummary> & { summary: RunTally } =>
 
 const 빈집계: RunTally = { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 };
 
+/**
+ * 상자 안에서 그려지는 `RunResult` 가 받는 답. **진행 중인 실행이어야 한다.**
+ *
+ * 끝난 실행으로 두면 `RunResult` 가 진행 상자를 애초에 안 열어서
+ * **가드를 지워도 검사가 초록이 된다** — 실제로 그랬다 (2026-09-22 자기검사 G8).
+ */
+const 진행중상세 = {
+  ...실행(2113, 1),
+  status: 'RUNNING' as const,
+  finishedAt: null,
+  counts: { total: 3, pass: 1, fail: 0, na: 0, running: 2 },
+  items: [],
+  evidence: [],
+};
+
 function 모킹(답: Paged<RunSummary> & { summary: RunTally } = 한쪽) {
   return vi.spyOn(api, 'runs').mockResolvedValue(답);
 }
@@ -200,6 +215,7 @@ describe('결과 보기는 상자로 연다 (SPEC §8.7)', () => {
   it('누르면 상자가 뜨고 화면이 안 갈아탄다', async () => {
     const 전주소 = window.location.hash;
     await 그리기();
+    vi.spyOn(api, 'run').mockResolvedValue(진행중상세);
 
     fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
 
@@ -207,10 +223,17 @@ describe('결과 보기는 상자로 연다 (SPEC §8.7)', () => {
     expect(window.location.hash).toBe(전주소);
   });
 
-  it('상자가 하나뿐이다. 안에서 또 열리면 빠져나올 길이 없다', async () => {
+  // **진행 중인 실행으로 연다.** 끝난 실행이면 `RunResult` 가 진행 상자를 애초에 안 열어
+  // 가드를 지워도 초록이 된다 — 구현이 어떻게 망가져도 참인 단언이 된다 (spec-review G8)
+  it('진행 중인 실행을 열어도 상자가 하나뿐이다', async () => {
     await 그리기();
+    vi.spyOn(api, 'run').mockResolvedValue(진행중상세);
+
     fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
     await screen.findByRole('dialog');
+    // 상자 안의 `RunResult` 가 답을 받고 나서도 상자가 하나여야 한다
+    await waitFor(() => expect(screen.getByRole('dialog').textContent).toContain('진행 중'));
+
     expect(screen.getAllByRole('dialog')).toHaveLength(1);
   });
 
@@ -219,6 +242,7 @@ describe('결과 보기는 상자로 연다 (SPEC §8.7)', () => {
 
     fireEvent.change(screen.getByPlaceholderText(/실행 제목/), { target: { value: '결제' } });
     fireEvent.submit(screen.getByRole('search'));
+    vi.spyOn(api, 'run').mockResolvedValue(진행중상세);
     fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
     await screen.findByRole('dialog');
     fireEvent.click(screen.getByRole('button', { name: '닫기' }));

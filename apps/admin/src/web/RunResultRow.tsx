@@ -32,7 +32,7 @@ export function 결과줄({
     .map((platform) => group.byPlatform[platform])
     .filter((칸): 칸 is RunItemSummary[] => 칸 !== undefined && 칸.length > 0);
   const 첫항목 = 칸들[0]?.[0];
-  const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema);
+  const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema, 언어);
   // 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3)
   const 사유 = 칸사유(칸들.flat(), 언어);
 
