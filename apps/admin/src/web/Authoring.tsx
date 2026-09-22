@@ -6,6 +6,7 @@
 import { useState } from 'react';
 
 import { api, type AuthoringRow, type Paged } from './api.js';
+import { AuthoringNew } from './AuthoringNew.js';
 import { 보임라벨, 종류라벨, 줄보임 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
@@ -50,6 +51,8 @@ export function Authoring({ service }: { service: string }) {
       <Head 제목={t('테스트 작성')} 부제={t('모두 {건수}건', { 건수: 줄들.data.total })} />
 
       <div className="screen list-screen">
+        <AuthoringNew service={service} on넣었다={() => 줄들.reload()} />
+
         <div className="rows-scroll">
           {줄들.data.items.length === 0 ? (
             <div className="empty">

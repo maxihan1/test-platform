@@ -18,4 +18,9 @@ export const 작성말: Record<string, string> = {
   // 빈 목록
   '아직 작성을 요청한 기록이 없습니다': 'No authoring requests yet',
   '기획서를 넣으면 여기에 줄이 생깁니다': 'Paste a spec and a row appears here',
+
+  // 새 요청 폼
+  '기획서 본문을 붙여 넣으세요': 'Paste the spec text here',
+  보내기: 'Send',
+  '보내는 중': 'Sending',
 };
