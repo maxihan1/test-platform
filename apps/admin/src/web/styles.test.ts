@@ -347,6 +347,22 @@ function 규칙(선택자: string): string {
   return css.slice(자리, css.indexOf('}', 자리)).replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
+/**
+ * 선택자 **조각**이 든 규칙의 **선언 부분만** 준다.
+ *
+ * `규칙()` 은 줄 처음부터 딱 맞는 선택자를 찾는다. 선택자가 여럿 묶인 규칙
+ * (`.right .btn,\n.right a.btn { … }`)은 그것으로 못 찾는데,
+ * 못 찾았을 때 파일 나머지를 통째로 돌려주면 **어디에 있든 통과하는 항진명제**가 된다 —
+ * 2026-09-22 에 실제로 그렇게 썼고 돌연변이가 안 잡혀서 드러났다 (spec-review G8).
+ */
+function 선언들(선택자조각: string): string {
+  const 자리 = css.indexOf(선택자조각);
+  if (자리 < 0) return '';
+  const 여는 = css.indexOf('{', 자리);
+  if (여는 < 0) return '';
+  return css.slice(여는, css.indexOf('}', 여는)).replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
 /** 규칙 블록에서 grid-template-columns 값을 뽑는다 */
 function 격자(선택자: string): string {
   return /grid-template-columns:\s*([^;]+);/.exec(규칙(선택자))?.[1]?.trim() ?? '';
@@ -377,6 +393,35 @@ describe('표머리와 줄이 같은 격자를 쓴다 (SPEC §8.1 · §8.7, 2026
       expect(값!.trim().endsWith('auto'), `${이름} 의 마지막 칸이 auto 다`).toBe(false);
       expect(값!.trim()).toMatch(/\d+px$/);
     }
+  });
+
+  // 격자를 합치고도 24px 이 어긋나 있었다 — 표머리에만 오른쪽 여백 24px 이 있었다.
+  // 격자가 같아도 **내용 상자 폭**이 다르면 남는 자리가 다르게 나뉜다 (2026-09-22 브라우저 실측)
+  it('표머리와 줄의 좌우 여백이 같다', () => {
+    // `0` 과 `0px` 은 같은 값이다. 글자로 견주므로 맞춰 준다
+    const 폭 = (값: string): string => (Number.parseFloat(값) === 0 ? '0px' : 값);
+    const 좌우 = (선택자: string): string => {
+      const 값 = /(?:^|\n)\s*padding:\s*([^;]+);/.exec(규칙(선택자))?.[1]?.trim().split(/\s+/) ?? [];
+      // top right bottom left → 넷이면 [1]·[3], 둘이면 [1]·[1]
+      if (값.length === 4) return `${폭(값[1]!)} ${폭(값[3]!)}`;
+      if (값.length === 2) return `${폭(값[1]!)} ${폭(값[1]!)}`;
+      return '0px 0px';
+    };
+    expect(좌우('.rowhead')).toBe(좌우('.row'));
+  });
+
+  // 마지막 칸이 고정 폭이 되면서 그 안이 넘칠 수 있게 됐다. 넘치면 flex 가 버튼을 줄이는데
+  // `body` 의 `overflow-wrap: anywhere` 때문에 낱말 안에서도 끊긴다 — 브라우저 실측에서
+  // `Details` 가 35 × 134px 로 한 글자씩 세로로 흘렀다 (2026-09-22).
+  // jsdom 은 이 자리를 원리적으로 못 잰다 — 선언이 다 있는지만 본다 (`.one-line` 과 같은 방식)
+  it('마지막 칸 안의 버튼과 판정 묶음이 줄어들지 않는다', () => {
+    const 버튼 = 선언들('.right .btn');
+    expect(버튼, '.right .btn 규칙을 못 찾았다').not.toBe('');
+    expect(버튼, '.right 의 버튼에 flex: none 이 없다').toMatch(/flex:\s*none/);
+    expect(버튼, '.right 의 버튼에 white-space: nowrap 이 없다').toMatch(/white-space:\s*nowrap/);
+    expect(규칙('.right .devices'), '판정 묶음에 flex: none 이 없다').toMatch(/flex:\s*none/);
+    // 안 들어가면 글자를 뭉개는 대신 줄을 바꾼다
+    expect(규칙('.right')).toMatch(/flex-wrap:\s*wrap/);
   });
 
   it('좁은 화면에서는 표머리를 감춘다 — 줄이 2단으로 접혀 칸이 세로로 눕는다', () => {

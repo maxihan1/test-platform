@@ -111,11 +111,12 @@
      `4px 128px 1fr auto` 여도 `auto` 는 내용을 따라가는데, 머리는 글자 몇 자이고
      줄은 판정 배지와 버튼이라 폭이 달라 남는 자리가 서로 다르게 나뉜다.
 
-     240px 은 실측 `.right` 폭(케이스 목록 194 · 실행 기록 211)에 영어 여유를 준 값이다
-     — `상세`→`Details` · `결과 보기`→`View results` 로 늘어난다. 둘을 가르지 않는다.
+     264px 은 **브라우저로 재서 정한 값**이다. 한국어는 240 에 딱 맞았는데 영어가 247 로 넘쳤다
+     (`상세`→`Details` · `실행`→`Run`). jsdom 은 폭을 0 으로 보고하므로 이 자리를 원리적으로 못 잰다
+     (`docs/spec/공통/6-인프라.md`) — 검사가 초록인 채로 버튼이 칸을 넘는다. 둘을 가르지 않는다.
      남는 폭은 `1fr` 인 케이스명·실행 제목 칸이 받는다 */
-  --list-cols: 4px 20px 128px minmax(180px, 1fr) 190px 240px;
-  --run-cols: 4px 128px minmax(0, 1fr) 240px;
+  --list-cols: 4px 20px 128px minmax(180px, 1fr) 190px 264px;
+  --run-cols: 4px 128px minmax(0, 1fr) 264px;
 }
 
 * {
@@ -653,7 +654,9 @@ select:focus {
   grid-template-columns: var(--list-cols);
   gap: 0 16px;
   align-items: center;
-  padding: 10px 24px 10px 0;
+  /* **오른쪽 여백을 주지 않는다.** 줄에는 없어서 24px 이 그대로 어긋난다 —
+     격자를 합친 뒤에도 남아 있던 마지막 어긋남이 이것이었다 (2026-09-22 브라우저 실측) */
+  padding: 10px 0;
   border-bottom: 1px solid var(--rule);
   font-size: 11px;
   font-weight: 600;
@@ -699,11 +702,31 @@ select:focus {
   margin-top: 2px;
 }
 
+/* 마지막 칸이 고정 폭이 되면서(`--list-cols`) **이 안이 넘칠 수 있게 됐다** (2026-09-22).
+   넘치면 flex 가 버튼을 줄이는데, `body` 의 `overflow-wrap: anywhere` 때문에
+   **낱말 안에서도 끊긴다** — 브라우저 실측에서 `Details` 가 35 × 134px 로, 한 글자씩
+   세로로 흘렀다. `.device-none` 에서 이미 한 번 겪은 그 사고다 (2026-09-21 LEARNINGS).
+
+   버튼은 안 줄인다(`flex: none`)고 한 줄로 못 박고(`white-space: nowrap`),
+   그래도 안 들어가면 **줄을 바꾼다** — 글자를 뭉개는 것보다 한 줄 내려가는 편이 읽힌다 */
 .right {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 10px 20px 10px 0;
+}
+
+.right .btn,
+.right a.btn {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* 판정 묶음도 줄이지 않는다. 줄이면 「실행 이력 없음」·`No runs yet` 이 다시 흘러내린다 */
+.right .devices {
+  flex: none;
 }
 
 .dur {
