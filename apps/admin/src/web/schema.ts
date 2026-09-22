@@ -62,11 +62,22 @@ export function schemaToFields(schema: JsonSchema): Field[] {
   });
 }
 
-/** 폼이 들고 있는 상태는 전부 글자다. 칸마다 시작값을 만든다 */
+/**
+ * 폼이 들고 있는 상태는 전부 글자다. 칸마다 시작값을 만든다.
+ *
+ * 객체·배열 기본값은 `String()` 이 아니라 `JSON.stringify` 로 편다 — `Form.tsx` 의 `기본값글자()` 가
+ * 안내 줄에 보여주는 값과 같은 규칙이어야 한다. 안 맞추면 안내는 `{...}` 를 보여주는데 입력 칸은
+ * `[object Object]` 를 담아, 손대지 않았는데도 「기본값에서 바뀜」으로 잘못 보인다 (2026-09-22 자기검사).
+ */
 export function initialText(fields: Field[]): Record<string, string> {
   const text: Record<string, string> = {};
   for (const field of fields) {
-    text[field.key] = field.default === undefined ? '' : String(field.default);
+    text[field.key] =
+      field.default === undefined
+        ? ''
+        : typeof field.default === 'object' && field.default !== null
+          ? JSON.stringify(field.default)
+          : String(field.default);
   }
   return text;
 }

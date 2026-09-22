@@ -27,7 +27,8 @@ export interface 줄글자 {
 
 type 자리 = 'params' | 'expected';
 
-const 오류없음: Record<string, string> = {};
+/** 줄에서 서버 사유를 안 붙인다 — 그 값은 실행을 거는 쪽이 받는다. CaseDetail 도 같은 빈 표를 쓴다 */
+export const 오류없음: Record<string, string> = {};
 
 /**
  * 줄에 낼 수 있는 칸인가.

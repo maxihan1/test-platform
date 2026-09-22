@@ -17,7 +17,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, type CaseRow, type HistoryRow, type LastResult, type RunItemDetail } from './api.js';
-import { 채운글자, type 줄글자 } from './CaseRowParams.js';
+import { 오류없음, 채운글자, type 줄글자 } from './CaseRowParams.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -76,7 +76,6 @@ export function CaseDetail({
 
   const 입력값 = schemaToFields(row.paramSchema);
   const 기대결과 = schemaToFields(row.expectedSchema);
-  const 오류없음: Record<string, string> = {};
 
   return (
     <Modal

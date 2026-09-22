@@ -121,6 +121,12 @@ export function RunResult({
   const shown = groups.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE);
   const columns = device === 'ALL' ? PLATFORMS : [device];
   const { pass, fail, na } = data.counts;
+  const 결과목록 =
+    shown.length === 0 ? (
+      <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
+    ) : (
+      shown.map((group) => <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />)
+    );
   // 모달은 닫으라고 만든 물건이고 실제로 곧장 닫힌다 (`useRunPick.ts` 가 상자 둘을 잇달아 띄운다).
   // 그때 「무엇이 도는가」가 통째로 사라지지 않게 머리에도 한 줄 둔다 — 모달은 이 줄의 확대판이다
   const 도는것 = running ? (진행상황(data, 진행목록).지금도는것들[0]?.항목 ?? null) : null;
@@ -225,23 +231,7 @@ export function RunResult({
       </div>
 
       {/* 상자 안에서는 이 자리만 스크롤한다 — 위 필터·증적 버튼은 고정이다 (2026-09-22 ②) */}
-      {상자안 ? (
-        <div className="rows-scroll">
-          {shown.length === 0 ? (
-            <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
-          ) : (
-            shown.map((group) => (
-              <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />
-            ))
-          )}
-        </div>
-      ) : shown.length === 0 ? (
-        <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
-      ) : (
-        shown.map((group) => (
-          <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />
-        ))
-      )}
+      {상자안 ? <div className="rows-scroll">{결과목록}</div> : 결과목록}
       </div>
 
       {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다.
