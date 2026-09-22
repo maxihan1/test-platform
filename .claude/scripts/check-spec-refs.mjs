@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// SPEC 이 12장으로 갈려 있어 절 번호가 유일한 주소다. 가리키는 번호가 실제로 있는지 본다 (spec-review H1)
+// SPEC 이 여러 장으로 갈려 있어 절 번호가 유일한 주소다. 가리키는 번호가 실제로 있는지 본다 (spec-review H1)
+// 장 수를 여기 적지 않는다 — 장이 늘면 이 주석만 뒤처진다. 세는 일은 아래 `전장` 이 한다
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 
@@ -65,20 +66,27 @@ for (const p of 장들) {
 const 틀린분량 = [];
 {
   const 줄수 = (rel) => readFileSync(path.join(ROOT, 'docs', rel), 'utf8').split('\n').length - 1;
-  // 「12장 전부」처럼 경로 대신 말로 적은 행이 있다. 경로가 있는 행만 세면 그 행은
+  // 「N장 전부」처럼 경로 대신 말로 적은 행이 있다. 경로가 있는 행만 세면 그 행은
   // 구조적으로 검사를 빠져나가고, 실제로 39줄 틀린 채 통과하고 있었다 (2026-09-19)
-  const 전장합 = 장들
-    .filter((p) => p !== path.join(ROOT, 'docs/SPEC.md'))
-    .reduce((n, p) => n + readFileSync(p, 'utf8').split('\n').length - 1, 0);
+  const 전장 = 장들.filter((p) => p !== path.join(ROOT, 'docs/SPEC.md'));
+  const 전장합 = 전장.reduce((n, p) => n + readFileSync(p, 'utf8').split('\n').length - 1, 0);
   readFileSync(path.join(ROOT, 'docs/SPEC.md'), 'utf8').split('\n').forEach((l, i) => {
-    // 경로가 없는 행을 전부 「12장 전부」로 보면, 뒤에 다른 분량 행이 생겼을 때
-    // 전장합과 대조해 터지면서 오류 문구가 원인을 안 가리킨다. 값이 아니라 키로 가른다
-    const 갈래 = l.startsWith('| **') && (l.includes('`spec/') || l.includes('12장 전부')) && l.match(/\| (\d+)줄 \|/);
-    if (갈래) {
-      const 합 = l.includes('`spec/')
-        ? [...l.matchAll(/`([^`]+)`/g)].reduce((n, m) => n + 줄수(`${m[1]}.md`), 0)
-        : 전장합;
-      if (합 !== Number(갈래[1])) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${갈래[1]}줄 · 실제 ${합}줄`);
+    // 같은 병이 두 번째다. 이번엔 그 행을 「12장 전부」라는 **글자**로 찾고 있었다 —
+    // 장이 하나 늘어 「13장 전부」로 적는 순간 행이 통째로 검사를 빠져나간다.
+    // 2026-09-22 에 글자만 바꿔 9999줄을 넣었더니 그대로 통과했다(EXIT=0).
+    // 그래서 값이 아니라 키로 가른다 — 「읽을 장」 칸이 경로면 그 경로들을, 「N장 전부」면 전 장을 센다.
+    // N 도 사람이 적는 숫자라 같이 대조한다 (CLAUDE.md §2.7 ⑤ — 세는 일은 기계가 한다).
+    // 칸이 둘 중 어느 것도 아니면 건드리지 않는다. 넓게 잡으면 남의 행을 전장합과 대조해
+    // 터지면서 오류 문구가 원인을 안 가리킨다
+    const 갈래 = l.startsWith('| **') && l.match(/^\|[^|]+\|([^|]+)\|\s*(\d+)줄\s*\|/);
+    const 읽을장 = 갈래 ? 갈래[1].trim() : '';
+    const 전부 = 갈래 && 읽을장.match(/^(\d+)장 전부$/);
+    if (갈래 && 읽을장.includes('`spec/')) {
+      const 합 = [...읽을장.matchAll(/`([^`]+)`/g)].reduce((n, m) => n + 줄수(`${m[1]}.md`), 0);
+      if (합 !== Number(갈래[2])) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${갈래[2]}줄 · 실제 ${합}줄`);
+    } else if (전부) {
+      if (Number(전부[1]) !== 전장.length) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${전부[1]}장 · 실제 ${전장.length}장`);
+      if (전장합 !== Number(갈래[2])) 틀린분량.push(`docs/SPEC.md:${i + 1}  적힌 ${갈래[2]}줄 · 실제 ${전장합}줄`);
     }
     const 장 = l.match(/^\| \[[^\]]+\]\((spec\/[^)]+\.md)\).*\| (\d+) \|/);
     if (장 && 줄수(장[1]) !== Number(장[2])) {
