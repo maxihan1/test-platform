@@ -1,7 +1,7 @@
 # WORKFLOW.md — 작업 흐름
 
 > 지금 어디까지 왔는지, 다음으로 넘어가도 되는지를 여기서 판단한다.
-> 무엇을 만드는가는 `SPEC.md`(색인 — 본문은 `docs/spec/` 12장), 어떻게 일하는가는 `CLAUDE.md`,
+> 무엇을 만드는가는 `SPEC.md`(색인 — 본문은 `docs/spec/` 아래 여러 장), 어떻게 일하는가는 `CLAUDE.md`,
 > 누가 어느 폴더를 맡는가는 `WORKSTREAMS.md`.
 
 ---
