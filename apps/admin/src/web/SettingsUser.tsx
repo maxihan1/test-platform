@@ -40,8 +40,13 @@ export function UserSection({
     <section className="sec">
       <div className="sec-h">
         <span>{t('계정')}</span>
-        <button className="btn ghost" onClick={() => set여는것(여는것 === 'new' ? null : 'new')}>
-          {여는것 === 'new' ? t('닫기') : t('더하기')}
+        <button
+          type="button"
+          className="btn ghost icon"
+          aria-label={여는것 === 'new' ? t('닫기') : t('더하기')}
+          onClick={() => set여는것(여는것 === 'new' ? null : 'new')}
+        >
+          {여는것 === 'new' ? '×' : '+'}
         </button>
       </div>
 

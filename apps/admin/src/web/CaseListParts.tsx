@@ -230,7 +230,9 @@ export function 케이스줄({
       row={row}
       폈나={폈나}
       마지막={마지막[keyOf(row.tcId, row.platforms[0] ?? 'desktop')]}
+      글자={글자}
       onClose={() => on더보기(row.tcId)}
+      on값={(어디, key, value) => on값(row.tcId, 어디, key, value)}
     />
     </>
   );

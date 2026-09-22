@@ -186,6 +186,32 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
   });
 });
 
+describe('상자 안에서는 케이스 줄만 스크롤한다 (SPEC §8.7, 2026-09-22 ②)', () => {
+  it('상자안 이면 머리·필터는 밖에, 케이스 줄은 .rows-scroll 안에 있다', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
+    render(<RunResult runId={RUN_ID} role="operator" 상자안 />);
+
+    await screen.findAllByText(/만들기$/);
+
+    const 면 = document.querySelector('.screen');
+    expect(면?.classList.contains('modal-results')).toBe(true);
+    const 스크롤칸 = 면?.querySelector('.rows-scroll');
+    expect(스크롤칸).not.toBeNull();
+    // 필터 줄은 스크롤칸 밖에 있다 — 스크롤해도 그대로 보여야 한다
+    expect(면?.querySelector(':scope > .toolbar')).not.toBeNull();
+    expect(스크롤칸?.querySelector('.toolbar')).toBeNull();
+  });
+
+  it('상자안 이 아니면(화면 전체) 스크롤칸을 따로 두지 않는다 — 페이지가 그대로 스크롤한다', async () => {
+    그리기('FINISHED');
+    await screen.findAllByText(/만들기$/);
+
+    const 면 = document.querySelector('.screen');
+    expect(면?.classList.contains('modal-results')).toBe(false);
+    expect(면?.querySelector('.rows-scroll')).toBeNull();
+  });
+});
+
 describe('RunResult 화면 머리 (2026-09-22)', () => {
   it('RUN 번호가 h1 이고 본문 면 바깥에 선다', async () => {
     const { container } = 그리기('FINISHED');

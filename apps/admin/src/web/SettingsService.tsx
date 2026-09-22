@@ -23,8 +23,13 @@ export function ServiceSection({ rows, onDone }: { rows: SettingsServiceRow[]; o
     <section className="sec">
       <div className="sec-h">
         <span>{t('서비스')}</span>
-        <button className="btn ghost" onClick={() => set여는것(여는것 === 'new' ? null : 'new')}>
-          {여는것 === 'new' ? t('닫기') : t('더하기')}
+        <button
+          type="button"
+          className="btn ghost icon"
+          aria-label={여는것 === 'new' ? t('닫기') : t('더하기')}
+          onClick={() => set여는것(여는것 === 'new' ? null : 'new')}
+        >
+          {여는것 === 'new' ? '×' : '+'}
         </button>
       </div>
 
@@ -40,7 +45,7 @@ export function ServiceSection({ rows, onDone }: { rows: SettingsServiceRow[]; o
       {rows.length === 0 ? (
         <div className="empty">
           {t('아직 서비스가 없습니다')}
-          <small>{t('위 「더하기」로 첫 서비스를 만듭니다')}</small>
+          <small>{t('위 「+」로 첫 서비스를 만듭니다')}</small>
         </div>
       ) : (
         rows.map((it) => (

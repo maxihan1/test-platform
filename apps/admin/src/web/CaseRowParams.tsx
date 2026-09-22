@@ -40,8 +40,13 @@ function 줄에낼수있나(field: Field): boolean {
   return field.default === null || typeof field.default !== 'object';
 }
 
-/** 고친 값이 있으면 그것을, 없으면 코드의 기본값을 보여준다. undefined 를 펴면 아무 일도 안 난다 */
-const 채운글자 = (fields: Field[], 고친: Record<string, string> | undefined): Record<string, string> => ({
+/**
+ * 고친 값이 있으면 그것을, 없으면 코드의 기본값을 보여준다. undefined 를 펴면 아무 일도 안 난다.
+ *
+ * CaseDetail 도 같은 규칙을 쓴다 — 줄과 상세가 같은 표(`글자`)를 보므로 채우는 규칙도 하나여야
+ * 두 자리가 같은 값을 보여준다 (2026-09-22, 「1개 더」가 상세를 열면서).
+ */
+export const 채운글자 = (fields: Field[], 고친: Record<string, string> | undefined): Record<string, string> => ({
   ...initialText(fields),
   ...고친,
 });

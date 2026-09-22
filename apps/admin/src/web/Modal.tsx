@@ -9,12 +9,14 @@ interface Props {
   children: React.ReactNode;
   /** 아래쪽 버튼들. 오른쪽 끝이 주 동작이다 */
   버튼: React.ReactNode;
+  /** 표가 들어가 480px 에 안 들어가는 상자 (DESIGN.md 「②의 상자 둘」). 880px 로 연다 */
+  넓게?: boolean;
 }
 
 /** 포커스를 가둘 때 훑을 것들 */
 const 포커스가능 = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ 제목, onClose, children, 버튼 }: Props) {
+export function Modal({ 제목, onClose, children, 버튼, 넓게 = false }: Props) {
   const 상자 = useRef<HTMLDivElement>(null);
   // 닫으면 열기 전 있던 자리로 돌려준다 (DESIGN.md)
   const 열기전 = useRef<Element | null>(null);
@@ -65,7 +67,13 @@ export function Modal({ 제목, onClose, children, 버튼 }: Props) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal" role="dialog" aria-modal="true" aria-label={제목} ref={상자}>
+      <div
+        className={넓게 ? 'modal wide' : 'modal'}
+        role="dialog"
+        aria-modal="true"
+        aria-label={제목}
+        ref={상자}
+      >
         <div className="modal-title">{제목}</div>
         <div className="modal-body">{children}</div>
         <div className="modal-foot">{버튼}</div>

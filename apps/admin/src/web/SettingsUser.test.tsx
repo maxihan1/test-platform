@@ -62,4 +62,11 @@ describe('UserSection', () => {
     expect(첫줄).not.toBeNull();
     expect(차례.indexOf(상자)).toBeLessThan(차례.indexOf(첫줄!));
   });
+
+  it('계정 더하기도 + 아이콘 버튼이다 (2026-09-22, 서비스 더하기와 같은 규칙)', () => {
+    그리기();
+
+    const 버튼 = screen.getByLabelText('더하기');
+    expect(버튼.textContent).toBe('+');
+  });
 });

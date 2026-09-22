@@ -1,4 +1,4 @@
-// 케이스 상세 상자 (SPEC §8.1, 2026-09-21 ② · 2026-09-22 에 펼침에서 상자로)
+// 케이스 상세 상자 (SPEC §8.1, 2026-09-21 ② · 2026-09-22 에 펼침에서 상자로 · 2026-09-22 ② 입력값 직접 입력)
 //
 // **펼침을 그만둔 이유** — 줄 아래로 늘어나면 시선이 그대로라 눌러도 열렸다는 느낌이 없고,
 // 긴 목록에서는 펴진 자리가 화면 밖으로 밀린다. 사람이 눌러서 여는 상자라
@@ -8,10 +8,17 @@
 // 여기는 사람이 한 줄을 열었을 때 한 번 부르므로 그 규칙의 예외다 — 목록이 부르는 것이 아니다.
 // **한 번 받은 것은 닫았다 열어도 다시 안 받는다.** 받아 둔 것은 목록(`CaseList`)이 들고 있어서
 // 상자를 닫아도 남는다 — 상자가 들면 닫는 순간 같이 사라진다.
+//
+// **입력값은 읽기만 하던 표에서 줄과 같은 편집 칸(`Form`)으로 바꿨다 (2026-09-22 ②).**
+// 줄에 넷까지만 보이고 「N개 더」를 누르면 여기가 열리는데, 읽기 전용 표만 있으면
+// 넘친 값은 보이기만 하고 고칠 곳이 없었다. 줄이 쓰는 것과 같은 `채운글자`·`글자`·`on값` 을
+// 그대로 받아써서 두 자리가 늘 같은 값을 보여준다.
 
 import { useEffect, useState } from 'react';
 
 import { api, type CaseRow, type HistoryRow, type LastResult, type RunItemDetail } from './api.js';
+import { 채운글자, type 줄글자 } from './CaseRowParams.js';
+import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { schemaToFields } from './schema.js';
@@ -25,45 +32,22 @@ interface 받은것 {
 // 이력이 null 이면 아직 안 받은 것이다. 둘을 한 번에 set 하므로 이 하나로 「받는 중」이 갈린다
 const 아직 = (): 받은것 => ({ 이력: null, 절차: null });
 
-/** 스키마가 준 라벨·타입·기본값 셋. **JSON 원문이 아니다** (DESIGN.md 「금지」) */
-function 칸표({ 제목, schema }: { 제목: string; schema: CaseRow['paramSchema'] }) {
-  const t = use말();
-  const 칸들 = schemaToFields(schema);
-  if (칸들.length === 0) return null;
-
-  return (
-    <div>
-      <div className="dlabel">{제목}</div>
-      <table className="dtab">
-        <tbody>
-          {칸들.map((칸) => (
-            <tr key={칸.key}>
-              <td className="k">{칸.label}</td>
-              <td className="t">
-                {칸.kind === 'number' ? t('숫자') : 칸.kind === 'boolean' ? t('예/아니오') : t('글자')}
-              </td>
-              <td className="mono">
-                {칸.secret ? '********' : 칸.default === undefined ? '—' : String(칸.default)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 export function CaseDetail({
   row,
   폈나,
   마지막,
+  글자,
   onClose,
+  on값,
 }: {
   row: CaseRow;
   폈나: boolean;
   /** 마지막 결과. 있으면 그 실행의 절차를 가져온다. 없으면 절차를 아예 안 부른다 */
   마지막: LastResult | undefined;
+  /** 줄에서 고쳐 넣은 값. 줄과 같은 표를 본다 (SPEC §8.1) */
+  글자?: 줄글자;
   onClose: () => void;
+  on값: (어디: 'params' | 'expected', key: string, value: string) => void;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -90,8 +74,17 @@ export function CaseDetail({
 
   if (!폈나) return null;
 
+  const 입력값 = schemaToFields(row.paramSchema);
+  const 기대결과 = schemaToFields(row.expectedSchema);
+  const 오류없음: Record<string, string> = {};
+
   return (
-    <Modal 제목={`${row.tcId} ${row.name}`} onClose={onClose} 버튼={<button className="btn" onClick={onClose}>{t('닫기')}</button>}>
+    <Modal
+      제목={`${row.tcId} ${row.name}`}
+      onClose={onClose}
+      넓게
+      버튼={<button className="btn" onClick={onClose}>{t('닫기')}</button>}
+    >
     <div className="detail">
       {row.precondition.length === 0 ? null : (
         <div className="dsec">
@@ -104,10 +97,34 @@ export function CaseDetail({
         </div>
       )}
 
-      <div className="dsec dcols">
-        <칸표 제목={t('입력값')} schema={row.paramSchema} />
-        <칸표 제목={t('기대결과')} schema={row.expectedSchema} />
-      </div>
+      {입력값.length === 0 && 기대결과.length === 0 ? null : (
+        <div className="dsec dcols">
+          {입력값.length === 0 ? null : (
+            <div>
+              <div className="dlabel">{t('입력값')}</div>
+              <Form
+                idPrefix={`detail-${row.tcId}-p`}
+                fields={입력값}
+                text={채운글자(입력값, 글자?.params)}
+                errors={오류없음}
+                onChange={(key, value) => { on값('params', key, value); }}
+              />
+            </div>
+          )}
+          {기대결과.length === 0 ? null : (
+            <div>
+              <div className="dlabel">{t('기대결과')}</div>
+              <Form
+                idPrefix={`detail-${row.tcId}-e`}
+                fields={기대결과}
+                text={채운글자(기대결과, 글자?.expected)}
+                errors={오류없음}
+                onChange={(key, value) => { on값('expected', key, value); }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="dsec">
         <div className="dlabel">

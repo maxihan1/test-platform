@@ -4,8 +4,6 @@
 // 꼬리는 화면에 안 나오고, 꼬리를 뗀 한국어가 다른 자리에 그대로 있어야 한다 (i18n.ts)
 
 export const 실행말: Record<string, string> = {
-  // 결과 보기 상자 (2026-09-22)
-  '화면으로 열기': 'Open full screen',
   // 판정과 상태
   '진행 중': 'Running',
   '완료': 'Finished',

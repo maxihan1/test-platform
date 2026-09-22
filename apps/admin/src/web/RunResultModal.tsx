@@ -4,12 +4,14 @@
 // 실행이 쌓이면 조건을 걸어 찾게 되므로 그 손실이 매번 난다.
 //
 // **주소(`#/runs/:runId`)는 그대로 살아 있다.** Slack 알림이 그 주소를 쓰고(§8.9)
-// 사이드바의 진행 중 카드도 그리로 간다 — 상자는 들어오는 길을 하나 더한 것이다.
+// 사이드바의 진행 중 카드도 그리로 간다 — 화면으로 옮겨가는 버튼은 없앴지만 그 주소로
+// 직접 오는 길은 남아 있다 (2026-09-22 ② — 상자가 그 화면과 같은 내용을 전부 담게 되면서
+// 「화면으로 열기」가 상자 안에 상자 밖 정보가 또 있다는 착각을 줬다)
 
-import { use말 } from './i18n.js';
 import { Modal } from './Modal.js';
 import type { 등급 } from './role.js';
 import { RunResult } from './RunResult.js';
+import { use말 } from './i18n.js';
 
 export function RunResultModal({
   runId,
@@ -26,19 +28,15 @@ export function RunResultModal({
     <Modal
       제목={`RUN ${String(runId)}`}
       onClose={onClose}
+      넓게
       버튼={
-        <>
-          {/* 상자를 닫지 않고 그 화면으로 아주 가는 길도 남긴다 — 주소를 나눠야 할 때가 있다 */}
-          <a className="btn ghost" href={`#/runs/${String(runId)}`}>
-            {t('화면으로 열기')}
-          </a>
-          <button className="btn" onClick={onClose}>
-            {t('닫기')}
-          </button>
-        </>
+        <button className="btn" onClick={onClose}>
+          {t('닫기')}
+        </button>
       }
     >
-      {/* `상자안` 이 진행·완료 상자를 막는다. 가두개가 겹치면 빠져나올 길이 없다 */}
+      {/* `상자안` 이 진행·완료 상자를 막고, 머리·필터는 고정한 채 케이스 줄만 스크롤하게 한다.
+          가두개가 겹치면 빠져나올 길이 없다 */}
       <RunResult runId={runId} role={role} 상자안 />
     </Modal>
   );

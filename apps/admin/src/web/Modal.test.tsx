@@ -113,6 +113,21 @@ describe('Modal', () => {
     expect(document.activeElement).toBe(끝);
   });
 
+  it('기본은 480px 상자다 — `wide` 클래스가 없다', () => {
+    const { container } = 그리기(() => {});
+    expect(container.querySelector('.modal.wide')).toBeNull();
+    expect(container.querySelector('.modal')).not.toBeNull();
+  });
+
+  it('넓게 를 주면 wide 클래스가 붙는다 (DESIGN.md 「②의 상자 둘」, 880px)', () => {
+    const { container } = render(
+      <Modal 제목="넓은 상자" onClose={() => {}} 넓게 버튼={<button type="button">닫기</button>}>
+        <p>내용</p>
+      </Modal>,
+    );
+    expect(container.querySelector('.modal.wide')).not.toBeNull();
+  });
+
   it('닫으면 열기 전 있던 자리로 포커스가 돌아온다', () => {
     const 열기전 = document.createElement('button');
     document.body.appendChild(열기전);

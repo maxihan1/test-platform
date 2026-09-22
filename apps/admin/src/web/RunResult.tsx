@@ -191,7 +191,7 @@ export function RunResult({
         <Head 제목={`RUN ${String(data.runId)}`} 부제={부제} 행동={행동} />
       )}
 
-      <div className="screen">
+      <div className={상자안 ? 'screen modal-results' : 'screen'}>
       <증적알림과목록 칸={증적칸} />
 
       {pass + fail + na === 0 ? null : (
@@ -224,7 +224,18 @@ export function RunResult({
         ))}
       </div>
 
-      {shown.length === 0 ? (
+      {/* 상자 안에서는 이 자리만 스크롤한다 — 위 필터·증적 버튼은 고정이다 (2026-09-22 ②) */}
+      {상자안 ? (
+        <div className="rows-scroll">
+          {shown.length === 0 ? (
+            <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
+          ) : (
+            shown.map((group) => (
+              <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />
+            ))
+          )}
+        </div>
+      ) : shown.length === 0 ? (
         <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
       ) : (
         shown.map((group) => (

@@ -69,9 +69,6 @@ export const 케이스말: Record<string, string> = {
   '사전조건': 'Preconditions',
   '입력값': 'Inputs',
   '기대결과': 'Expected',
-  '숫자': 'Number',
-  '예/아니오': 'Yes/No',
-  '글자': 'Text',
   '시험 절차': 'Test steps',
   '{실행이름} 에서 가져왔다': 'from {실행이름}',
   '아직 돌린 적이 없습니다. 한 번 돌리면 절차가 여기에 남습니다':
