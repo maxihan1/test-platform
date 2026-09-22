@@ -18,8 +18,17 @@ const 대시보드: 대시보드 = JSON.parse(
 ) as 대시보드;
 
 // 패널 SQL 은 대시보드 계정 권한으로 돌아야 의미가 있다. JOIN 안에 숨은 표는 여기서만 드러난다 (SPEC §8.5 · §6)
-const 읽기전용연결 = 'postgres://grafana_ro:grafana_ro@localhost:5433/platform';
 const 연결 = process.env.DATABASE_URL;
+
+// 주소를 글자로 박지 않고 DATABASE_URL 에서 가져와 계정만 갈아 끼운다.
+// 개발 PC 는 5433, CI 는 5432 라 박아 두면 CI 에서만 ECONNREFUSED 로 죽는다 (2026-09-22 실측).
+// CI 에 DB 가 붙기 전에는 이 검사가 통째로 건너뛰어져 드러나지 않았다
+function 읽기전용주소(원본: string): string {
+  const 주소 = new URL(원본);
+  주소.username = 'grafana_ro';
+  주소.password = 'grafana_ro';
+  return 주소.toString();
+}
 
 describe('Grafana 대시보드 프로비저닝', () => {
   it('패널이 넷이고 제목이 SPEC §8.5 목록 그대로다', () => {
@@ -37,7 +46,7 @@ describe('Grafana 대시보드 프로비저닝', () => {
 
     beforeAll(async () => {
       pool = new Pool({ connectionString: 연결 });
-      읽기전용 = new Client({ connectionString: 읽기전용연결 });
+      읽기전용 = new Client({ connectionString: 읽기전용주소(연결 as string) });
       await 읽기전용.connect();
 
       await pool.query(
