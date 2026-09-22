@@ -33,8 +33,6 @@
   --fail:#9B2418; --fail-bg:#F6E4DF;
   --na:#7A6535;   --na-bg:#F0EAD8;
 
-  --svc:#2F6F8F;
-
   --lift:0 1px 2px rgba(25,23,19,.04), 0 10px 28px -16px rgba(25,23,19,.22);
 }
 *{box-sizing:border-box}
@@ -61,8 +59,7 @@ body{
 .svc{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;
   background:var(--rail-2);cursor:pointer;border:1px solid rgba(255,255,255,.06)}
 .svc:hover{background:#3B362F}
-.svc-dot{width:10px;height:10px;border-radius:3px;background:var(--svc);flex:0 0 auto;
-  box-shadow:0 0 0 3px rgba(47,111,143,.25)}
+.svc-cap{font-size:10.5px;font-weight:600;letter-spacing:.04em;opacity:.75;margin-right:6px}
 .svc-name{font-weight:600;font-size:14.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .svc-caret{color:var(--rail-dim);font-size:11px}
 .svc-repo{display:block;margin:8px 4px 0;font-size:11.5px;color:var(--rail-dim)}
@@ -386,7 +383,6 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
 
       <aside class="side">
         <div class="svc">
-          <span class="svc-dot"></span>
           <span class="svc-name">결제 서비스</span>
           <span class="svc-caret">▾</span>
         </div>
@@ -646,7 +642,7 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
   <div class="frame">
     <div class="app">
       <aside class="side">
-        <div class="svc"><span class="svc-dot"></span><span class="svc-name">결제 서비스</span><span class="svc-caret">▾</span></div>
+        <div class="svc"><span class="svc-cap">서비스</span><span class="svc-name">결제 서비스</span><span class="svc-caret">▾</span></div>
         <span class="svc-repo mono">github.com/acme/pay-e2e</span>
         <nav>
           <a href="#">케이스</a>
@@ -768,7 +764,7 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
   <div class="frame">
     <div class="app">
       <aside class="side">
-        <div class="svc"><span class="svc-dot"></span><span class="svc-name">결제 서비스</span><span class="svc-caret">▾</span></div>
+        <div class="svc"><span class="svc-cap">서비스</span><span class="svc-name">결제 서비스</span><span class="svc-caret">▾</span></div>
         <span class="svc-repo mono">github.com/acme/pay-e2e</span>
         <nav>
           <a href="#">케이스</a>
@@ -984,7 +980,7 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
   <div class="frame">
     <div class="app">
       <aside class="side">
-        <div class="svc"><span class="svc-dot"></span><span class="svc-name">결제 서비스</span><span class="svc-caret">▾</span></div>
+        <div class="svc"><span class="svc-cap">서비스</span><span class="svc-name">결제 서비스</span><span class="svc-caret">▾</span></div>
         <span class="svc-repo mono">github.com/acme/pay-e2e</span>
         <nav>
           <a href="#">케이스</a>
@@ -1015,7 +1011,7 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
                   <span class="fhint">케이스 ID 가 <b class="mono">PAY-001</b> 처럼 시작한다</span></div>
                 <div class="frow"><label>색</label>
                   <span class="colorpick">
-                    <i style="background:var(--svc)"></i>
+                    <i style="background:var(--na)"></i>
                     <input class="fctl mono" style="width:104px" value="#2F6F8F" />
                     <span class="ok">흰 면 위 4.2 : 1 — 쓸 수 있다</span>
                   </span>
@@ -1101,7 +1097,7 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
     <div class="phone">
       <div class="app">
         <aside class="side">
-          <div class="svc"><span class="svc-dot"></span></div>
+          <div class="svc"></div>
           <nav>
             <a href="#">케이스</a>
             <a href="#" aria-current="page">실행 기록</a>

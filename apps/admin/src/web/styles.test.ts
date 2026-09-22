@@ -27,8 +27,6 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // 2026-09-21 에 --lift 가 실제로 그랬다. 면이 바탕에서 떠 보이지 않는데 아무도 안 죽는다
     const 있는것 = new Set(Object.keys(토큰들()));
     const 부르는것 = new Set([...css.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!));
-    // --svc 는 서비스마다 화면이 인라인으로 꽂는다. :root 에 둘 수 없다
-    부르는것.delete('--svc');
     const 없는것 = [...부르는것].filter((이름) => !있는것.has(이름));
     expect(없는것, `:root 에 없는 토큰을 부른다 — ${없는것.join(', ')}`).toEqual([]);
   });
@@ -307,5 +305,37 @@ describe('증적 문서가 화면과 같은 토큰을 쓴다', () => {
     const 화면값 = 토큰들()[이름]!.toLowerCase();
     const 문서값 = new RegExp(`${이름}\\s*:\\s*(#[0-9a-fA-F]{6})`).exec(문서)?.[1]?.toLowerCase();
     expect(문서값, `${이름} 이 증적 문서에 없거나 값이 다르다`).toBe(화면값);
+  });
+});
+
+// 서비스 색을 2026-09-22 에 화면에서 걷었다 (SPEC §8).
+// 「지금 없다」만 보면 다음 사람이 무심코 되살려도 아무도 모른다 — CSS 에서 되살아나는 것을 막는다
+describe('서비스 색이 되살아나지 않는다 (SPEC §8, 2026-09-22)', () => {
+  it('`--svc` 를 부르는 규칙이 하나도 없다', () => {
+    expect(css).not.toContain('--svc');
+  });
+
+  it('색 네모와 미리보기 규칙이 없다', () => {
+    for (const 이름 of ['.side-dot', '.set-swatch', '.set-preview', '.set-hex', '.set-color']) {
+      expect(css, 이름 + ' 규칙이 남아 있다').not.toContain(이름);
+    }
+  });
+});
+
+// 「예쁘게」는 잴 수 없다. 숫자로 적어야 검사가 붙는다 (계획 게이트 1 주의 7)
+describe('서비스 고르개 (SPEC §8, 2026-09-22)', () => {
+  it('누르는 영역이 44px 기준을 넘는다. 브라우저 반올림 때문에 46 으로 건다', () => {
+    const 규칙 = css.slice(css.indexOf('.side-pick {'));
+    const 높이 = /min-height:\s*(\d+)px/.exec(규칙);
+    expect(높이, '.side-pick 에 min-height 가 없다').not.toBeNull();
+    expect(Number(높이[1])).toBeGreaterThanOrEqual(46);
+  });
+
+  it('포커스 표시가 있다. 키보드로 쓰는 사람이 지금 어디인지 알아야 한다', () => {
+    expect(css).toContain('.side-pick:focus-visible');
+  });
+
+  it('무엇을 고르는 자리인지 적는 라벨 규칙이 있다', () => {
+    expect(css).toContain('.side-cap');
   });
 });
