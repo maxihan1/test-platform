@@ -214,8 +214,10 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
 
     const 머리 = document.querySelector('.box-head');
     expect(머리?.textContent, '머리에 증적 문서 줄이 없다').toMatch(/만듦/);
-    // 같은 말을 두 번 하지 않는다 — 머리에 올렸으면 본문에 블록으로 또 서지 않는다
-    expect(document.querySelector('.screen .sec')).toBeNull();
+    // 같은 말을 두 번 하지 않는다 — 머리에 올렸으면 본문에 블록으로 또 서지 않는다.
+    // **접기(`.sec.fold`)는 빼고 본다** — 그것은 견줌 칸이고 증적과 상관이 없다.
+    // 안 빼면 견줌이 있는 실행에서 엉뚱한 이유로 빨개진다 (2026-09-22 자기검토)
+    expect(document.querySelector('.screen .sec:not(.fold)')).toBeNull();
   });
 
   it('화면 전체에서는 증적 문서가 지금처럼 블록으로 선다', async () => {

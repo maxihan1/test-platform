@@ -119,6 +119,20 @@
   --run-cols: 4px 128px minmax(0, 1fr) 264px;
 }
 
+/* 고정 폭 둘(190 + 264)과 최소 폭들을 더하면 표가 866px 을 밑돌 수 없다. 창이 1164px 보다
+   좁으면 그만큼 **가로로 넘쳐** 판정과 버튼이 화면 밖으로 나간다 — 1024px 창에서 139px 이
+   넘쳤다 (2026-09-22 자기검토가 잡았고 브라우저로 쟀다. 1680px 만 재서 놓쳤던 자리다).
+
+   그 구간만 비율로 바꾼다. **`fr` 은 내용이 아니라 칸 폭으로 정해지므로** 표머리와 줄이
+   여전히 같은 자리에 선다 — 원래 버그의 원인이던 `auto`(내용을 따라간다)와 다르다.
+   좁은 화면(620px 미만)은 아래에서 줄이 통째로 세로로 접히므로 여기 안 걸린다 */
+@media (max-width: 1164px) {
+  :root {
+    --list-cols: 4px 20px 110px minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr);
+    --run-cols: 4px 110px minmax(0, 1fr) minmax(0, 0.9fr);
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -320,10 +334,24 @@ body {
   line-height: 1.2;
 }
 
+/* **flex 여야 한다.** 스캔 실패 줄(`.scan-error`)이 `flex-basis: 100%` 로 제 줄을 갖는 규칙인데,
+   부제가 그냥 블록이면 그 선언이 죽어 실패 넷이 한 줄에 이어 붙고 머리가 60px 늘어난다
+   — 되찾은 49px 보다 크다 (2026-09-22 자기검토가 잡았고 브라우저로 쟀다) */
 .head-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
   margin-top: 6px;
   font-size: 12.5px;
   color: var(--ink-faint);
+}
+
+/* 부제 안에 들어온 스캔 글자는 **부제 색을 물려받는다.** `.scan-text` 는 `--ink-muted` 라
+   그대로 두면 한 줄에 회색 둘이 서고, 명세가 적은 「--ink-faint」가 거짓이 된다
+   (2026-09-22 자기검토). 실패(`.scan-error`)는 그대로 `--fail` 이다 */
+.head-meta .scan-text {
+  color: inherit;
 }
 
 .head-acts {
@@ -544,10 +572,11 @@ select {
   min-width: 0;
 }
 
-.toolbar input[type='text'],
-.toolbar .find input[type='text'] {
+.toolbar input[type='text'] {
   flex: 1;
-  min-width: 140px;
+  /* `.find` 안의 칸도 이 규칙이 잡는다 — 자손 선택자라 따로 적을 필요가 없다.
+     180px 을 유지한다. 이 규칙은 실행 기록 화면의 찾기 칸도 같이 잡는데 그 화면은 이번 범위가 아니다 */
+  min-width: 180px;
 }
 
 input:focus,
@@ -629,10 +658,10 @@ select:focus {
 /* 케이스 줄은 입력 칸이 **케이스명과 다른 칸**이다 (SPEC §8.1, 2026-09-22).
    케이스명에 최소 너비를 준다 — 칸이 하나 늘어 이름이 밀리는데,
    두세 글자만 남으면 목록이 못 쓰게 된다.
-   입력 칸은 `minmax(0, 300px)` 로 위를 막는다 — 입력 칸 자체(`.pcell .field input`)는
-   136px 에서 안 늘어나는데 칸(트랙)은 `1fr` 이라 사이드바를 접어 폭이 늘면 그만큼 빈 칸이
-   된다. 남는 자리는 `1.1fr` 인 케이스명 칸이 대신 받는다 (2026-09-22, 사이드바 접었을 때
-   공백이 많다는 지적) */
+   **숫자는 `:root` 의 `--list-cols` 가 정본이다** — 여기 다시 적지 않는다 (CLAUDE.md §2.7 ⑤).
+   입력 칸에 위를 막아 두는 이유만 남긴다: 입력 칸 자체(`.pcell .field input`)는 136px 에서
+   안 늘어나는데 칸을 `1fr` 로 두면 사이드바를 접어 폭이 늘 때 그만큼 빈 칸이 된다.
+   남는 자리는 `1fr` 인 케이스명 칸이 대신 받는다 (2026-09-22, 사이드바 접었을 때 공백 지적) */
 .row.pickable {
   grid-template-columns: var(--list-cols);
 }
@@ -712,7 +741,6 @@ select:focus {
 .right {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 10px;
   padding: 10px 20px 10px 0;
@@ -826,6 +854,11 @@ select:focus {
   align-items: baseline;
 }
 
+/* 여백만 줄인 구획. 오류처럼 **접으면 안 되는 것**이 자리를 덜 먹게 한다 */
+.sec.tight {
+  padding: 10px 24px;
+}
+
 /* 접는 구획 (2026-09-22). 상자 안에서 견줌과 사유 묶음이 각각 130px 쯤을 먹어
    케이스 목록에 32px 밖에 안 남았다 — 줄 하나(101px)도 안 들어갔다.
    눌러서 펴는 것으로 바꿔 접힌 값을 한 줄로 줄인다.
@@ -868,9 +901,16 @@ select:focus {
   margin-top: 6px;
 }
 
+/* 증적을 받는 유일한 길이다. 인라인 글자로만 두면 누를 자리가 안 보이고 손가락도 못 맞춘다 —
+   좁은 화면에서 이 상자는 살아 있어야 한다 (SPEC §8 「좁은 화면에서 제대로 되는 둘」) */
 .evi-open {
   margin-left: 8px;
   color: var(--chrome);
+  text-decoration: underline;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 2px;
 }
 
 .pre {
@@ -1276,9 +1316,11 @@ select:focus {
     margin-bottom: 18px;
   }
 
-  /* body 아래 여백도 되돌린다 — 페이지 끝에서 손가락이 걸릴 자리가 필요하다 */
-  body {
-    padding-bottom: 80px;
+  /* body 아래 여백도 되돌린다 — 페이지 끝에서 손가락이 걸릴 자리가 필요하다.
+     **값을 따로 적지 않고 토큰을 다시 정의한다** — `.wrap` 이 이 토큰으로 창 높이를 빼므로
+     숫자를 두 곳에 두면 한쪽만 바뀌는 날 사이드바가 창보다 길어진다 (`:root` 주석) */
+  :root {
+    --body-pad-bottom: 80px;
   }
 
   /* 집계띠도 되돌린다. 눕힌 것은 PC 에서 세로를 아끼려던 것이고,
@@ -1296,6 +1338,12 @@ select:focus {
   /* 바닥 줄도 되돌린다 — 좁은 화면은 표가 창을 채우는 구조가 아니다 */
   .main:has(.list-screen) .foot {
     display: block;
+  }
+
+  /* 실행 결과 상자는 좁은 화면에서 살아 있어야 한다 (SPEC §8). 증적을 받는 길이 여기 하나뿐이라
+     손가락 영역 44px 을 건다 — 46 으로 두는 이유는 위 자리들과 같다 */
+  .evi-open {
+    min-height: 46px;
   }
 
   /* 손가락으로 누르는 자리다 */

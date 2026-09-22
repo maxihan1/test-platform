@@ -63,7 +63,8 @@ export function RunInsights({
 
   // 견주기가 실패해도 결과 목록은 그대로 서야 한다. 대신 조용히 사라지지는 않는다
   if (견줌.error !== null)
-    return <div className="sec hint">{t말('직전 실행과 견주지 못했습니다.')} {견줌.error}</div>;
+    // 접지 않는다 — 오류는 펴야 보이면 안 된다. 대신 구획 여백을 줄여 자리를 덜 먹는다
+    return <div className="sec tight hint">{t말('직전 실행과 견주지 못했습니다.')} {견줌.error}</div>;
 
   const 값 = 견줌.data;
   if (값 === null) return null;
@@ -88,9 +89,15 @@ export function RunInsights({
             <span>
               RUN {앞.runId} · {when(앞.startedAt, 언어)}
             </span>
+            {/* 주소를 바꿨다는 사실은 **접어서 숨기면 안 된다** — 「봐야 할 정보」다 (SPEC §6).
+                접힌 줄에서 안 보이면 다른 서버에서 돈 결과를 같은 조건으로 읽는다.
+                그래서 펴야 보이는 안이 아니라 `summary` 안에 둔다 (2026-09-22 자기검토) */}
+            {!값.주소바뀜 ? null : (
+              <span className="change" style={{ color: 'var(--na)' }}>
+                {t말('직전 실행은 다른 주소에서 돌았습니다')}
+              </span>
+            )}
           </summary>
-          {/* 주소를 바꿨다는 사실 자체가 봐야 할 정보다. 비교를 막지는 않는다 (SPEC §6) */}
-          {!값.주소바뀜 ? null : <p className="hint">{t말('직전 실행은 다른 주소에서 돌았습니다')}</p>}
           {볼것.map((c) => (
             <div className="pre" key={키(c.tcId, c.platform)}>
               {c.tcId} {c.tcName} · {PLATFORM_LABEL[c.platform]} ·{' '}
