@@ -33,6 +33,18 @@ describe('route', () => {
     expect(route('#/nowhere')).toEqual({ name: 'unknown', hash: '#/nowhere' });
   });
 
+  it('작성 줄 목록', () => {
+    expect(route('#/authoring')).toEqual({ name: 'authoring' });
+  });
+
+  it('작성 한 건 상세', () => {
+    expect(route('#/authoring/12')).toEqual({ name: 'authoringItem', id: 12 });
+  });
+
+  it('작성 번호가 숫자가 아니면 모르는 주소다. 서버도 숫자 글자만 받는다', () => {
+    expect(route('#/authoring/12a')).toEqual({ name: 'unknown', hash: '#/authoring/12a' });
+  });
+
   it('로그인 화면', () => {
     expect(route('#/login')).toEqual({ name: 'login' });
   });
