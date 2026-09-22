@@ -207,16 +207,22 @@ R9 가 근거로 삼는 「3개월째 초록이었는데 이번에 빨강」은 
 
 **기획서에 없는 단 하나의 정보다.** 추측해 쓰면 문법은 통과하고 실행은 전부 실패한다.
 
-**도구는 `playwright-cli` 다** (Microsoft). 스킬이 `.claude/skills/playwright-cli/` 에 같이 있고,
-명령줄 도구는 기계마다 한 번 깐다 — 설치는 `docs/SETUP.md` §9 가 정본이다.
+**도구는 Playwright 의 `cli` 다** (Microsoft). 설명은 `.claude/skills/playwright-cli/` 에 같이 있다.
 
 ```bash
-playwright-cli -s=probe open '<대상 주소>'      # 열고 **켜 둔 채로 둔다**
-playwright-cli -s=probe snapshot                # 스냅샷을 **파일로** 떨군다. 경로만 돌아온다
-playwright-cli -s=probe find '<찾는 글자>'       # 그 스냅샷에서 찾는다
-playwright-cli -s=probe fill e8 '<값>' --submit  # 상호작용. 세션이 그대로 이어진다
-playwright-cli -s=probe close
+npx playwright cli -s=probe open '<대상 주소>'      # 열고 **켜 둔 채로 둔다**
+npx playwright cli -s=probe snapshot                # 스냅샷을 **파일로** 떨군다. 경로만 돌아온다
+npx playwright cli -s=probe find '<찾는 글자>'       # 그 스냅샷에서 찾는다
+npx playwright cli -s=probe fill e8 '<값>' --submit  # 상호작용. 세션이 그대로 이어진다
+npx playwright cli -s=probe close
 ```
+
+**★ 전역으로 깔지 않는다.** 벤더 안내는 「로컬 버전이 없을 때만 전역 설치」인데
+**이 저장소에는 로컬이 있다** — `package.json` 이 `@playwright/test` 를 **한 버전으로 못박아** 두고
+러너가 그 버전으로 케이스를 돌린다. 전역에 `@latest` 를 깔면
+**탐침이 읽은 화면과 러너가 실행하는 화면이 다른 Playwright 를 타게 된다** —
+「탐침으로 확정한 locator 가 러너에서 그대로 돈다」는 이 저장소의 전제가 거기서 깨진다.
+`npx playwright cli` 는 `npm ci` 만 돌린 기계에서 바로 돈다 (2026-09-22 실측).
 
 **왜 바꿨나** (2026-09-22 실측). 옛 탐침은 `node -e` 한 줄로 브라우저를 띄워 첫 화면을 찍고 **바로 닫았다.**
 
@@ -284,7 +290,7 @@ CSS 선택자·`nth()`·XPath 금지.
 **★ 해시는 이 명령으로만 낸다.** 눈대중으로 옮겨 적지 않는다.
 
 ```bash
-playwright-cli -s=probe --raw snapshot | sed 's/\[ref=[^]]*\]//g' | shasum -a 256 | cut -c1-12
+npx playwright cli -s=probe --raw snapshot | sed 's/\[ref=[^]]*\]//g' | shasum -a 256 | cut -c1-12
 ```
 
 **`sed` 로 요소 번호를 빼는 것이 핵심이다** (2026-09-22 실측). 같은 화면인데
