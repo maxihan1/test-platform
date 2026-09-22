@@ -8,18 +8,25 @@ import { useState } from 'react';
 
 import { api, type Paged, type RunQuery, type RunSummary, type RunTally } from './api.js';
 import { Head } from './Head.js';
+import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
+import type { 등급 } from './role.js';
+import { RunResultModal } from './RunResultModal.js';
 import { 상태라벨, 실행자이름 } from './runState.js';
 import { 칸띠 } from './Summary.js';
 import { Failed, Loading, seconds, useAsync, when } from './ui.js';
 
-const 상태칩: { 라벨: string; 값: RunQuery['state'] }[] = [
-  { 라벨: '전체', 값: undefined },
-  { 라벨: '도는 중', 값: 'running' },
-  { 라벨: '실패 섞임', 값: 'failed' },
-];
-
-export function RunList({ service }: { service: string }) {
+export function RunList({ service, role }: { service: string; role: 등급 }) {
+  const t = use말();
+  // 상자로 연 실행. 닫으면 **보던 자리와 검색 조건이 그대로 남는다** — 화면을 갈아타면 잃는 것들이다
+  const [열린실행, set열린실행] = useState<number | null>(null);
+  // 키는 늘 정적 문자열이어야 해서 표를 모듈 밖에 둘 수 없다 — 여기서 만든다
+  const 상태칩: { 라벨: string; 값: RunQuery['state'] }[] = [
+    { 라벨: t('전체'), 값: undefined },
+    { 라벨: t('진행 중'), 값: 'running' },
+    // 실행 단위의 「실패」는 항목 단위의 실패와 다른 말이다 (Has failures ↔ Failed)
+    { 라벨: t('실패§실행'), 값: 'failed' },
+  ];
   const [page, setPage] = useState(1);
   const [typed, setTyped] = useState('');
   const [q, setQ] = useState('');
@@ -60,7 +67,7 @@ export function RunList({ service }: { service: string }) {
 
   return (
     <>
-      <Head 제목="실행 기록" 부제={`모두 ${runs.data.total}건`} />
+      <Head 제목={t('실행 기록')} 부제={t('모두 {건수}건', { 건수: runs.data.total })} />
 
       {/* 아무것도 안 돌린 서비스에 0 넷을 늘어놓지 않는다 */}
       {runs.data.summary.runs === 0 ? null : <집계 것={runs.data.summary} />}
@@ -76,14 +83,14 @@ export function RunList({ service }: { service: string }) {
         >
           <input
             type="text"
-            placeholder="실행 제목으로 찾기"
+            placeholder={t('실행 제목으로 찾기')}
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
           />
           <button className="chip" type="submit">
-            찾기
+            {t('찾기')}
           </button>
-          <span className="filter-label">상태</span>
+          <span className="filter-label">{t('상태')}</span>
           {상태칩.map((칩) => (
             <button
               className="chip"
@@ -101,9 +108,9 @@ export function RunList({ service }: { service: string }) {
           <div className="empty">
             {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다.
                 §8.1 이 케이스 목록에서 이미 세 갈래로 가른 그 문제다 (SPEC §8.7) */}
-            {건조건 ? '조건에 맞는 실행이 없습니다' : '이 서비스에서 아직 실행한 기록이 없습니다'}
+            {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 서비스에서 아직 실행한 기록이 없습니다')}
             <small>
-              {건조건 ? '검색어나 상태를 바꿔 보세요' : '케이스를 골라 실행하면 여기에 쌓입니다'}
+              {건조건 ? t('검색어나 상태를 바꿔 보세요') : t('케이스를 골라 실행하면 여기에 쌓입니다')}
             </small>
             {건조건 ? (
               <button
@@ -115,49 +122,80 @@ export function RunList({ service }: { service: string }) {
                   상태고르기(undefined);
                 }}
               >
-                조건 지우기
+                {t('조건 지우기')}
               </button>
             ) : (
               <a className="btn" style={{ marginTop: '14px' }} href="#/cases">
-                케이스 목록으로
+                {t('케이스 목록으로')}
               </a>
             )}
           </div>
         ) : (
-          runs.data.items.map((run) => <실행줄 key={run.runId} run={run} />)
+          <>
+            <실행표머리 />
+            {runs.data.items.map((run) => (
+              <실행줄 key={run.runId} run={run} on열기={set열린실행} />
+            ))}
+          </>
         )}
       </div>
 
       {page === 1 && !더있나 ? null : (
         <div className="pager">
           <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
-            이전
+            {t('이전')}
           </button>
-          <span>{page}쪽</span>
+          <span>{t('{쪽}쪽', { 쪽: page })}</span>
           <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
-            다음
+            {t('다음')}
           </button>
         </div>
+      )}
+
+      {열린실행 === null ? null : (
+        <RunResultModal runId={열린실행} role={role} onClose={() => set열린실행(null)} />
       )}
     </>
   );
 }
 
+/**
+ * 표머리 (SPEC §8.7, 2026-09-22).
+ *
+ * **좁은 화면에서도 감추지 않는다.** 이 화면은 §8 이 「좁은 화면에서 제대로 되는 둘」로
+ * 지정한 하나다 — 감추면 거기서 칸 이름이 통째로 사라진다.
+ * 케이스 목록(§8.1)은 그 둘에 없어서 감춰도 된다. **둘을 같게 만들지 않는다.**
+ */
+function 실행표머리() {
+  const t = use말();
+  return (
+    <div className="rowhead runhead" role="row">
+      <span aria-hidden="true" />
+      <span role="columnheader">RUN</span>
+      <span role="columnheader">{t('실행 제목')}</span>
+      <span role="columnheader">{t('판정')}</span>
+      <span aria-hidden="true" />
+    </div>
+  );
+}
+
 /** 머리의 집계 넷. **판정인 칸에만 판정 색이 붙는다** (DESIGN.md 원칙 1) */
 function 집계({ 것 }: { 것: RunTally }) {
-  const 몫 = (수: number) => (것.runs === 0 ? '' : `전체의 ${String(Math.round((수 / 것.runs) * 100))}%`);
+  const t = use말();
+  const 언어 = use언어();
+  const 몫 = (수: number) => (것.runs === 0 ? '' : t('전체의 {몫}%', { 몫: Math.round((수 / 것.runs) * 100) }));
 
   return (
     <칸띠
       칸들={[
-        { 라벨: '실행 횟수', 값: String(것.runs) },
-        { 라벨: '모두 통과', 값: String(것.allPass), 판정: 'PASS', 부제: 몫(것.allPass) },
-        { 라벨: '실패 섞임', 값: String(것.hasFail), 판정: 'FAIL', 부제: 몫(것.hasFail) },
+        { 라벨: t('실행 횟수'), 값: String(것.runs) },
+        { 라벨: t('성공'), 값: String(것.allPass), 판정: 'PASS', 부제: 몫(것.allPass) },
+        { 라벨: t('실패§실행'), 값: String(것.hasFail), 판정: 'FAIL', 부제: 몫(것.hasFail) },
         {
-          라벨: '평균 소요',
-          값: seconds(것.avgDurationMs),
+          라벨: t('평균 소요'),
+          값: seconds(것.avgDurationMs, 언어),
           // 도는 실행은 끝난 시각이 없어 평균에서 빠진다. 안 적으면 전체의 평균으로 읽힌다
-          부제: `끝난 ${String(것.durationOf)}회 기준`,
+          부제: t('끝난 {회수}회 기준', { 회수: 것.durationOf }),
         },
       ]}
       비율={[
@@ -169,7 +207,10 @@ function 집계({ 것 }: { 것: RunTally }) {
   );
 }
 
-function 실행줄({ run }: { run: RunSummary }) {
+function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: number) => void }) {
+  const t = use말();
+  const 언어 = use언어();
+
   return (
     <div className="row">
       {/* 왼쪽 색 띠는 한눈에 훑기 위한 것이고 판정은 아래 숫자와 글자가 말한다 (SPEC §8.7) */}
@@ -178,27 +219,29 @@ function 실행줄({ run }: { run: RunSummary }) {
       <div className="title">
         {run.title}
         <small>
-          {when(run.startedAt)} · 대상 서버 {run.env} · 실행자 {실행자이름(run)} · {상태라벨(run.status)}
+          {when(run.startedAt, 언어)} · {t('대상 서버 {서버}', { 서버: run.env })} ·{' '}
+          {t('실행자 {이름}', { 이름: 실행자이름(run, 언어) })} · {상태라벨(run.status, 언어)}
         </small>
       </div>
       <div className="right">
         <div className="tally">
           <div>
             <b style={{ color: 'var(--pass)' }}>{run.counts.pass}</b>
-            <span>통과</span>
+            <span>{t('통과')}</span>
           </div>
           <div>
             <b style={{ color: 'var(--fail)' }}>{run.counts.fail}</b>
-            <span>실패</span>
+            <span>{t('실패')}</span>
           </div>
           <div>
             <b style={{ color: 'var(--na)' }}>{run.counts.na}</b>
-            <span>미실행</span>
+            <span>{t('미실행')}</span>
           </div>
         </div>
-        <a className="btn small" href={`#/runs/${run.runId}`}>
-          결과 보기
-        </a>
+        {/* 눌러서 여는 상자다 (SPEC §8.7). 주소는 살아 있고 상자는 길을 하나 더한 것이다 */}
+        <button type="button" className="btn small" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>
+          {t('결과 보기')}
+        </button>
       </div>
     </div>
   );

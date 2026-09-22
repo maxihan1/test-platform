@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
+import { t, use말, use언어, type 언어 } from './i18n.js';
 import { ApiError, type ItemStatus, type Platform } from './api.js';
 import { 요청오류문장 } from './errorText.js';
 
@@ -18,38 +19,48 @@ export const STATUS_COLOR: Record<ItemStatus, string> = {
 };
 
 export function Verdict({ status, big }: { status: ItemStatus; big?: boolean }) {
+  const t = use말();
   return (
     <span
       className={`verdict ${STATUS_CLASS[status]}`}
       style={big === true ? { fontSize: '13px', padding: '7px 16px' } : undefined}
     >
-      {STATUS_LABEL[status]}
+      {t(STATUS_LABEL[status])}
     </span>
   );
 }
 
 /** 목록의 소요시간. 초 단위로 훑을 수 있게 맞춘다 */
-export function seconds(ms: number | null): string {
+export function seconds(ms: number | null, 언어: 언어): string {
   if (ms === null) return '—';
-  return `${(ms / 1000).toFixed(2)}초`;
+  return t('{초}초', 언어, { 초: (ms / 1000).toFixed(2) });
 }
 
-export function when(iso: string | null): string {
+/**
+ * 시각을 그 언어의 관례대로 적는다.
+ *
+ * **형식을 손으로 짜지 않는다.** `2026년 9월 22일 14:05` 를 문자열로 조립하면
+ * 영어에서도 그 순서가 그대로 나온다. 표준이 이미 언어마다 다르게 적어 준다 (SPEC §8 「다국어」).
+ */
+export function when(iso: string | null, 언어: 언어): string {
   if (iso === null) return '—';
-  const at = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${at.getFullYear()}년 ${at.getMonth() + 1}월 ${at.getDate()}일 ${pad(at.getHours())}:${pad(at.getMinutes())}`;
+  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    hour12: false,
+  }).format(new Date(iso));
 }
 
-export function message(err: unknown): string {
+export function message(err: unknown, 언어: 언어): string {
   // 서버가 낸 코드를 사람 말로 옮긴다. 모르는 코드면 서버가 준 설명이 그대로 남는다.
   // 안 옮기면 SERVICE_FORBIDDEN 이 화면에 접두사 글자 하나(`XFS3B`)로 뜬다
-  if (err instanceof ApiError) return 요청오류문장(err.code, err.message);
+  if (err instanceof ApiError) return 요청오류문장(err.code, 언어, err.message);
   return err instanceof Error ? err.message : String(err);
 }
 
 export function Loading() {
-  return <div className="empty">불러오는 중입니다.</div>;
+  const t = use말();
+  return <div className="empty">{t('불러오는 중입니다.')}</div>;
 }
 
 export function Failed({ error }: { error: string }) {
@@ -64,6 +75,7 @@ interface Async<T> {
 
 /** 화면마다 같은 모양의 useEffect를 다섯 번 쓰지 않으려고 한 곳에 모았다 */
 export function useAsync<T>(load: () => Promise<T>, deps: unknown[]): Async<T> {
+  const 언어 = use언어();
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -79,7 +91,7 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[]): Async<T> {
         }
       })
       .catch((err: unknown) => {
-        if (live) setError(message(err));
+        if (live) setError(message(err, 언어));
       });
     return () => {
       live = false;

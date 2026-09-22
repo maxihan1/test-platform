@@ -13,6 +13,7 @@ import {
   자리목록,
   탭제목,
 } from './layout.js';
+import { use말, type 언어 } from './i18n.js';
 import { 본것으로적는다, 알림본적있나 } from './runState.js';
 import { useAsync } from './ui.js';
 
@@ -20,6 +21,9 @@ interface Props {
   user: User;
   service: ServiceRow | null;
   onService: (prefix: string) => void;
+  /** 화면 언어. 들고 있는 것은 `main.tsx` 다 — 로그인 화면도 덮어야 해서 껍데기보다 위에 있다 */
+  언어: 언어;
+  on언어: (고른: 언어) => void;
   onLogout: () => void;
   current: string;
   children: React.ReactNode;
@@ -27,14 +31,16 @@ interface Props {
 
 // 제목과 주 행동은 **화면이 그린다** (Head.tsx). 2026-09-22 까지 여기 `header` 통로가 있었는데
 // 부르는 곳이 하나도 없었다 — 부제와 행동이 동적이라 올려 보내려면 배선이 늘기 때문이다
-export function Shell({ user, service, onService, onLogout, current, children }: Props) {
+export function Shell({ user, service, onService, 언어, on언어, onLogout, current, children }: Props) {
+  const t = use말();
+
   useEffect(() => {
-    document.title = 탭제목(service);
-  }, [service]);
+    document.title = 탭제목(service, 언어);
+  }, [service, 언어]);
 
   // 띠에는 짧게, 왜인지와 무엇을 하면 되는지는 본문이 말한다.
   // 지금 자리를 같이 넘긴다 — 설정 화면은 배정이 없어도 열려야 한다 (그 배정을 만드는 자리다)
-  const 사유 = 빈띠사유(user, current);
+  const 사유 = 빈띠사유(user, 언어, current);
 
   // 접은 것은 사람이 되돌릴 수 있는 상태라 저장해 둔다. 새로고침마다 다시 접게 하면 그 기능이 짐이 된다
   const [접음, set접음] = useState(사이드바접었나);
@@ -55,23 +61,21 @@ export function Shell({ user, service, onService, onLogout, current, children }:
             사이드바접음을적는다(다음);
           }}
           aria-expanded={!접음}
-          aria-label={접음 ? '사이드바 펴기' : '사이드바 접기'}
+          aria-label={접음 ? t('사이드바 펴기') : t('사이드바 접기')}
         >
           {접음 ? '»' : '«'}
         </button>
-        {/* 서비스 색이 사는 유일한 자리. 8px 네모가 `--svc` 를 쓴다 —
-            이름만으로는 부족하다. 글자는 읽어야 보이고 색은 안 읽어도 구분된다 (SPEC §8) */}
-        <div
-          className="side-top"
-          {...(service === null ? {} : { 'data-service-color': service.prefix })}
-          style={service === null ? undefined : ({ '--svc': service.color } as React.CSSProperties)}
-        >
+        {/* 서비스 색은 2026-09-22 에 걷었다 (SPEC §8). 이름과 저장소 주소로 구분한다 —
+            「이 파란 네모가 뭘 뜻하는지 모르겠다」가 걷은 이유다 */}
+        <div className="side-top">
+          {/* 무엇을 고르는 자리인지 **글자로 적는다.** 파란 네모를 걷은 이유가 바로
+              「이게 뭘 뜻하는지 모르겠다」였다 — 같은 실수를 고르개에서 되풀이하지 않는다 */}
+          <span className="side-cap">{t('서비스§고르개')}</span>
           <div className="side-svc">
             {service === null ? (
-              <span className="side-svc-name">서비스 없음</span>
+              <span className="side-svc-name">{t('서비스 없음')}</span>
             ) : (
               <>
-                <span className="side-dot" aria-hidden="true" />
                 <select
                   className="side-pick"
                   value={service.prefix}
@@ -79,7 +83,7 @@ export function Shell({ user, service, onService, onLogout, current, children }:
                     고른서비스를적는다(e.target.value);
                     onService(e.target.value);
                   }}
-                  aria-label="서비스 고르기"
+                  aria-label={t('서비스 고르기')}
                 >
                   {user.services.map((it) => (
                     <option key={it.prefix} value={it.prefix}>
@@ -90,13 +94,10 @@ export function Shell({ user, service, onService, onLogout, current, children }:
               </>
             )}
           </div>
-          {service === null || service.prefix === '' ? null : (
-            <span className="side-svc-id">{service.prefix}-</span>
-          )}
         </div>
 
         <nav className="side-nav">
-          {자리목록(user.role).map((자리) =>
+          {자리목록(user.role, 언어).map((자리) =>
             자리.바깥 === true ? (
               <a key={자리.이름} href={자리.해시} target="_blank" rel="noreferrer">
                 {자리.이름} ↗
@@ -112,16 +113,27 @@ export function Shell({ user, service, onService, onLogout, current, children }:
         {/* 사람과 로그아웃을 바닥으로 민다. 자주 누르는 것이 아니라 늘 보여야 하는 것이다 */}
         <div className="side-gap" />
 
+        {/* 접어도 지우지 않는다 — 폭만 줄고 글자가 숨는다. 위 자리 넷과 같은 이유다 (SPEC §8) */}
+        <div className="side-lang">
+          <label className="side-lang-label" htmlFor="side-lang">
+            {t('언어')}
+          </label>
+          <select id="side-lang" value={언어} onChange={(e) => on언어(e.target.value === 'en' ? 'en' : 'ko')}>
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+
         <div className="side-who">
           <span className="side-who-name">{user.displayName}</span>
           <button className="side-out" onClick={onLogout}>
-            로그아웃
+            {t('로그아웃')}
           </button>
         </div>
       </aside>
 
       <div className="main">
-        {service === null ? null : <Notice service={service.prefix} />}
+        {service === null ? null : <Notice service={service.prefix} 언어={언어} />}
 
         {사유 === null ? (
           children
@@ -136,7 +148,7 @@ export function Shell({ user, service, onService, onLogout, current, children }:
 
         {/* 제품 버전을 넣을 통로가 아직 없다 (빌드 시 주입되는 값이 없다).
             지어내는 대신 확실히 아는 것만 적는다 — 제품 이름과 지금 보고 있는 서비스 */}
-        <footer className="foot">{탭제목(service)}</footer>
+        <footer className="foot">{탭제목(service, 언어)}</footer>
       </div>
     </div>
   );
@@ -148,11 +160,13 @@ export function Shell({ user, service, onService, onLogout, current, children }:
  * 한 번 돌리면 최악 50분이라 자리를 떴다 돌아오는 진입이 흔하다.
  * 도는 것이 있을 때만 2초마다 다시 묻는다 — 없으면 목록을 한 번 부르고 만다.
  */
-function Notice({ service }: { service: string }) {
+function Notice({ service, 언어 }: { service: string; 언어: 언어 }) {
+  const t = use말();
+  const 닫기라벨 = t('알림 닫기');
   const runs = useAsync<{ items: RunSummary[] }>(() => api.runs(service, 1), [service]);
   // 닫은 것을 이 상태로도 들어야 같은 렌더에서 사라진다. 저장은 runState 가 한다
   const [닫은것, set닫은것] = useState<ReadonlySet<number>>(() => new Set());
-  const 줄 = 알림줄(runs.data?.items ?? [], 닫은것);
+  const 줄 = 알림줄(runs.data?.items ?? [], 언어, 닫은것);
   const reload = runs.reload;
   const 도는중인가 = 줄 !== null && !줄.끝났나;
 
@@ -181,7 +195,7 @@ function Notice({ service }: { service: string }) {
       {!줄.끝났나 ? null : (
         <button
           className="toast-x"
-          aria-label="알림 닫기"
+          aria-label={닫기라벨}
           onClick={() => {
             본것으로적는다(줄.runId);
             set닫은것((전) => new Set(전).add(줄.runId));

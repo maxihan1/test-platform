@@ -9,7 +9,7 @@ export const spec = defineCase({
     todo: z.string().min(1).describe('추가할 할 일').default('첫 번째 할 일'),
   }),
   expected: z.object({
-    todoCount: z.number().describe('추가한 뒤 목록에 보일 할 일 개수').default(2),
+    todoCount: z.number().describe('기대 할 일 개수').default(2),
   }),
 });
 

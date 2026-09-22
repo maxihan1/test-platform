@@ -340,7 +340,9 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(
       res.status,
       body.error ?? String(res.status),
-      body.detail ?? body.need ?? body.message ?? `요청이 실패했다 (${res.status})`,
+      // 여기서 한국어를 지어내지 않는다. 비워 두면 `errorText.ts` 가 번역된 폴백 문장을 낸다 —
+      // 통신 계층이 화면 글자를 만들면 그 문장만 영어로 안 바뀐다
+      body.detail ?? body.need ?? body.message ?? '',
       body.violations ?? [],
     );
   }

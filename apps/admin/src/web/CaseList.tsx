@@ -6,9 +6,10 @@
 import { useState } from 'react';
 
 import { api, type CaseQuery, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
-import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
+import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄, 표머리 } from './CaseListParts.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
+import { use말, use언어 } from './i18n.js';
 import type { 글자표 } from './pickRun.js';
 import { 집계띠 } from './Summary.js';
 import { 다음이있나 } from './paging.js';
@@ -17,6 +18,8 @@ import { Failed, Loading, message, useAsync } from './ui.js';
 import { useRunPick } from './useRunPick.js';
 
 export function CaseList({ service }: { service: string }) {
+  const t = use말();
+  const 언어 = use언어();
   const [typed, setTyped] = useState('');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
@@ -76,7 +79,7 @@ export function CaseList({ service }: { service: string }) {
       scan.reload();
       cases.reload();
     } catch (err) {
-      setNotice(message(err));
+      setNotice(message(err, 언어));
     } finally {
       setScanning(false);
     }
@@ -126,17 +129,19 @@ export function CaseList({ service }: { service: string }) {
   return (
     <>
       {/* 제목과 주 행동은 본문 면 **바깥**에 선다. 안에 넣으면 머리와 본문이 다시 붙는다 (SPEC §8) */}
+      {/* 자리 이름은 **무엇을 다루는 곳인가**(`테스트 케이스`), 화면 제목은
+          **지금 보는 것이 무엇인가**(`테스트케이스 목록`)를 말한다 (SPEC §8) */}
       <Head
-        제목="테스트 케이스"
-        부제={cases.data === null ? '불러오는 중입니다' : `모두 ${cases.data.total}건`}
+        제목={t('테스트케이스 목록')}
+        부제={cases.data === null ? t('불러오는 중입니다') : t('모두 {건수}건', { 건수: cases.data.total })}
         행동={
           <>
             <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
-              {scanning ? '스캔하는 중' : '다시 스캔'}
+              {scanning ? t('스캔하는 중') : t('다시 스캔')}
             </button>
             {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
             <button className="btn" onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
-              {뽑기.고른.size === 0 ? '전체 실행' : `선택한 ${뽑기.고른.size}건 실행`}
+              {뽑기.고른.size === 0 ? t('전체 실행') : t('선택한 {건수}건 실행', { 건수: 뽑기.고른.size })}
             </button>
           </>
         }
@@ -152,7 +157,7 @@ export function CaseList({ service }: { service: string }) {
           통과={셈.통과}
           실패={셈.실패}
           미실행={셈.미실행}
-          부제={{ 통과: '마지막 실행 기준', 미실행: '한 번도 안 돌렸다' }}
+          부제={{ 통과: t('마지막 실행 기준'), 미실행: t('한 번도 안 돌렸다') }}
         />
       )}
 
@@ -160,7 +165,7 @@ export function CaseList({ service }: { service: string }) {
         {/* 비활성 이유는 말풍선이 아니라 화면 줄이다 — 휴대폰에는 올릴 마우스가 없다 (DESIGN.md) */}
         {!뽑기.모으는중 ? null : (
           <span className="scan-text" role="status">
-            케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다
+            {t('케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다')}
           </span>
         )}
         <ScanInfo scan={scan.data} error={notice ?? scan.error} />
@@ -192,8 +197,8 @@ export function CaseList({ service }: { service: string }) {
         // 「없다」고 단정하면 다음 쪽에 있는 것을 없다고 말하게 된다 (SPEC §8.1 이
         // 「케이스가 수백 건이 되면 서버 쪽으로 옮긴다」고 예고한 자리다)
         <div className="empty">
-          이 쪽에는 {결과라벨[결과]}인 케이스가 없습니다
-          <small>다음 쪽에 있을 수 있습니다. 나머지 조건은 서버가 전체에서 거릅니다</small>
+          {t('이 쪽에는 {결과}인 케이스가 없습니다', { 결과: t(결과라벨[결과]) })}
+          <small>{t('다음 쪽에 있을 수 있습니다. 나머지 조건은 서버가 전체에서 거릅니다')}</small>
         </div>
       ) : 보일것.length === 0 ? (
         <Empty
@@ -207,7 +212,9 @@ export function CaseList({ service }: { service: string }) {
           onClear={조건지우기}
         />
       ) : (
-        보일것.map((row) => (
+        <>
+        <표머리 />
+        {보일것.map((row) => (
           <케이스줄
             key={row.tcId}
             row={row}
@@ -219,17 +226,18 @@ export function CaseList({ service }: { service: string }) {
             on값={값고침}
             on더보기={더보기}
           />
-        ))
+        ))}
+        </>
       )}
 
       {page === 1 && !더있나 ? null : (
         <div className="pager">
           <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
-            이전
+            {t('이전')}
           </button>
-          <span>{page}쪽</span>
+          <span>{t('{번호}쪽', { 번호: page })}</span>
           <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
-            다음
+            {t('다음')}
           </button>
         </div>
       )}

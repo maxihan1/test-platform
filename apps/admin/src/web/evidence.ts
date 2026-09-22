@@ -2,6 +2,7 @@
 // 증적은 실행 단위 1부이므로 버튼은 항목 상세가 아니라 실행 결과의 RUN 머리에 둔다
 
 import type { EvidenceRow } from './api.js';
+import { t, type 언어 } from './i18n.js';
 import { 할수있나, type 등급 } from './role.js';
 import { 도는중 } from './runState.js';
 
@@ -44,14 +45,14 @@ const 형식들 = [
  * **형식마다 따로 본다.** 하나가 실패했다고 다른 형식까지 막으면
  * 엑셀이 안 나왔을 때 낼 수 있는 PDF 까지 못 만든다.
  */
-function 한형식(꼴: (typeof 형식들)[number], 문서들: EvidenceRow[]): 증적버튼모양 {
+function 한형식(꼴: (typeof 형식들)[number], 문서들: EvidenceRow[], 언어: 언어): 증적버튼모양 {
   const 그것들 = 문서들.filter((it) => it.format.toUpperCase() === 꼴.format);
-  const 바탕 = { format: 꼴.format, 라벨: 꼴.라벨 };
+  const 바탕 = { format: 꼴.format, 라벨: t(꼴.라벨, 언어) };
 
   // **「만드는 중」은 화면이 아니라 DB 가 기억한다** — `PENDING` 행이 그 표시다.
   // 화면 상태로만 막으면 새로고침할 때마다 또 눌리고 문서 행이 쌓인다
   if (그것들.some((it) => it.status === 'PENDING')) {
-    return { ...바탕, 누를수있나: false, 글: `${꼴.라벨} 만드는 중`, 사유: null };
+    return { ...바탕, 누를수있나: false, 글: t('{라벨} 만드는 중', 언어, { 라벨: t(꼴.라벨, 언어) }), 사유: null };
   }
 
   // **마지막 행을 본다.** 서버가 id 오름차순으로 주므로 `find` 는 언제나 옛것을 잡는다 —
@@ -61,8 +62,8 @@ function 한형식(꼴: (typeof 형식들)[number], 문서들: EvidenceRow[]): �
     return {
       ...바탕,
       누를수있나: true,
-      글: `${꼴.라벨} 다시 만들기`,
-      사유: 마지막.error ?? '알 수 없는 사유로 만들지 못했습니다',
+      글: t('{라벨} 다시 만들기', 언어, { 라벨: t(꼴.라벨, 언어) }),
+      사유: 마지막.error ?? t('알 수 없는 사유로 만들지 못했습니다', 언어),
     };
   }
 
@@ -71,7 +72,10 @@ function 한형식(꼴: (typeof 형식들)[number], 문서들: EvidenceRow[]): �
   return {
     ...바탕,
     누를수있나: true,
-    글: `${꼴.라벨} ${그것들.length === 0 ? '만들기' : '다시 만들기'}`,
+    글:
+      그것들.length === 0
+        ? t('{라벨} 만들기', 언어, { 라벨: t(꼴.라벨, 언어) })
+        : t('{라벨} 다시 만들기', 언어, { 라벨: t(꼴.라벨, 언어) }),
     사유: null,
   };
 }
@@ -85,14 +89,19 @@ function 한형식(꼴: (typeof 형식들)[number], 문서들: EvidenceRow[]): �
  * 도는 중에는 버튼을 하나도 주지 않고 안내 문장만 준다.
  * 못 누르는 버튼을 셋이나 늘어놓으면 무엇을 기다리는지가 오히려 안 보인다.
  */
-export function 증적버튼들(status: string, 문서들: EvidenceRow[], role: 등급 | null): 증적버튼줄 | null {
+export function 증적버튼들(
+  status: string,
+  문서들: EvidenceRow[],
+  role: 등급 | null,
+  언어: 언어,
+): 증적버튼줄 | null {
   if (!할수있나(role, '증적만들기')) return null;
 
   if (도는중(status)) {
-    return { 버튼들: [], 안내: '실행이 끝나면 증적 문서를 만들 수 있습니다' };
+    return { 버튼들: [], 안내: t('실행이 끝나면 증적 문서를 만들 수 있습니다', 언어) };
   }
 
-  return { 버튼들: 형식들.map((꼴) => 한형식(꼴, 문서들)), 안내: null };
+  return { 버튼들: 형식들.map((꼴) => 한형식(꼴, 문서들, 언어)), 안내: null };
 }
 
 /**
@@ -107,8 +116,8 @@ export function 증적버튼들(status: string, 문서들: EvidenceRow[], role: 
  * 버튼은 `엑셀`, 목록은 `XLSX` 로 **한 화면에 같은 물건이 두 이름**이 된다.
  * 모르는 형식은 서버가 준 글자를 그대로 쓴다 — 이름이 비면 어느 줄이 무엇인지 못 읽는다.
  */
-export function 받는법(format: string): { 글: string; 새창: boolean; 라벨: string } {
+export function 받는법(format: string, 언어: 언어): { 글: string; 새창: boolean; 라벨: string } {
   const 꼴 = 형식들.find((it) => it.format === format.toUpperCase());
   const 새창 = 꼴?.새창 === true;
-  return { 글: 새창 ? '열기 ↗' : '받기', 새창, 라벨: 꼴?.라벨 ?? format };
+  return { 글: 새창 ? t('열기 ↗', 언어) : t('받기', 언어), 새창, 라벨: t(꼴?.라벨 ?? format, 언어) };
 }

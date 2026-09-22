@@ -14,6 +14,7 @@ import {
   type ServiceRow,
 } from './api.js';
 import type { LastMap } from './catalogView.js';
+import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
 import { 담을것 } from './pickRun.js';
 import type { 실행요청 } from './RunPickModal.js';
@@ -29,6 +30,9 @@ import { message } from './ui.js';
  */
 const 쪽상한 = 40;
 
+/** 훅이 꺼낸 번역기를 모듈 안의 순수 함수들에 넘긴다 */
+type 말하기 = ReturnType<typeof use말>;
+
 /**
  * 실행 기록 목록이 이 제목으로 실행을 가리고(§8.7) 증적 문서 머리에도 박제된다(§8.3).
  *
@@ -36,21 +40,29 @@ const 쪽상한 = 40;
  * 여러 건이면 맨 앞 케이스와 나머지 수로 적는다. 「3건 실행」처럼 수만 적으면
  * 목록에 같은 제목이 줄줄이 쌓여 무엇을 돌린 실행인지 가려낼 수 없다.
  */
-function 실행제목(items: RunRequestItem[]): string {
+function 실행제목(items: RunRequestItem[], t: 말하기): string {
   const 맨앞 = items[0]?.tcId ?? '';
-  return items.length <= 1 ? `${맨앞} 실행` : `${맨앞} 외 ${String(items.length - 1)}건 실행`;
+  return items.length <= 1
+    ? t('{케이스} 실행', { 케이스: 맨앞 })
+    : t('{케이스} 외 {나머지}건 실행', { 케이스: 맨앞, 나머지: items.length - 1 });
 }
 
 /** 조용히 줄어든 것을 모달에서 사람에게 말한다. 「전체」라 적힌 버튼이 앞부분만 거는 일이 없게 */
-function 빠진안내(것: {
-  고른수: number;
-  담을수: number;
-  잘렸나: boolean;
-  모은수: number;
-}): string | undefined {
-  if (것.잘렸나) return `목록이 너무 길어 앞 ${String(것.모은수)}건까지만 담았습니다. 검색으로 좁혀서 다시 거세요`;
+function 빠진안내(
+  것: {
+    고른수: number;
+    담을수: number;
+    잘렸나: boolean;
+    모은수: number;
+  },
+  t: 말하기,
+): string | undefined {
+  if (것.잘렸나) return t('목록이 너무 길어 앞 {모은수}건까지만 담았습니다. 검색으로 좁혀서 다시 거세요', { 모은수: 것.모은수 });
   if (것.고른수 > 것.담을수)
-    return `고른 ${String(것.고른수)}건 중 ${String(것.담을수)}건이 대상입니다. 나머지는 비활성이라 뺐습니다`;
+    return t('고른 {고른수}건 중 {담을수}건이 대상입니다. 나머지는 비활성이라 뺐습니다', {
+      고른수: 것.고른수,
+      담을수: 것.담을수,
+    });
   return undefined;
 }
 
@@ -63,6 +75,8 @@ export function useRunPick(옵션: {
   알림: (글: string | null) => void;
 }) {
   const { service, 조건, 결과, 마지막, 알림 } = 옵션;
+  const t = use말();
+  const 언어 = use언어();
   const [고른, set고른] = useState<ReadonlyMap<string, CaseRow>>(new Map());
   const [모으는중, set모으는중] = useState(false);
   // 모은 결과. null 이면 모달이 닫힌 것이다 — 닫으면 모은 것을 버린다 (SPEC §8.10)
@@ -107,15 +121,15 @@ export function useRunPick(옵션: {
       const 담을 = 담을것(모은, 고른, 결과, 마지막);
       if (담을.length === 0) {
         // 빈 모달을 열지 않는다. 열어 봐야 실행이 서버에서 400 으로 되돌아온다
-        알림('실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다');
+        알림(t('실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다'));
         return;
       }
       const { user } = await api.me();
       set서비스(user.services.find((it) => it.prefix === service) ?? null);
-      set안내(빠진안내({ 고른수: 고른.size, 담을수: 담을.length, 잘렸나, 모은수: 모은.length }));
+      set안내(빠진안내({ 고른수: 고른.size, 담을수: 담을.length, 잘렸나, 모은수: 모은.length }, t));
       set담은것(담을);
     } catch (err) {
-      알림(message(err));
+      알림(message(err, 언어));
     } finally {
       set모으는중(false);
     }
@@ -135,11 +149,11 @@ export function useRunPick(옵션: {
     알림(null);
     set사유(undefined);
     try {
-      const { runId } = await api.createRun({ ...요청, title: 실행제목(요청.items) });
+      const { runId } = await api.createRun({ ...요청, title: 실행제목(요청.items, t) });
       set담은것(null);
       window.location.hash = `#/runs/${runId}`;
     } catch (err) {
-      set사유(message(err));
+      set사유(message(err, 언어));
     } finally {
       set거는중(false);
     }

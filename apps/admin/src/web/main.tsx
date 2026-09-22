@@ -6,8 +6,9 @@ import { createRoot } from 'react-dom/client';
 
 import { api, type ServiceRow, type User, 돌아갈자리를꺼낸다, 세션끊김을받는다 } from './api.js';
 import { CaseList } from './CaseList.js';
+import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
-import { 고른서비스, 고른서비스를읽는다, 고른서비스를적는다 } from './layout.js';
+import { 고른서비스, 고른서비스를읽는다, 고른서비스를적는다, 고른언어를읽는다, 고른언어를적는다 } from './layout.js';
 import { Login } from './Login.js';
 import { route, 돌아갈자리, type Route } from './route.js';
 import { RunList } from './RunList.js';
@@ -15,6 +16,7 @@ import { RunResult } from './RunResult.js';
 import { RunSetup } from './RunSetup.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
+import { Loading } from './ui.js';
 import './styles.css';
 
 function useHash(): string {
@@ -38,6 +40,7 @@ function Screen({
   user: User;
   onMeChanged: () => void;
 }) {
+  const t = use말();
   const current = route(hash);
   // 띠가 서비스를 고르기 전에는 목록을 부르지 않는다. 빈 값으로 부르면 서버가 400 을 낸다
   const prefix = service?.prefix ?? '';
@@ -48,7 +51,7 @@ function Screen({
     case 'setup':
       return <RunSetup tcId={current.tcId} service={service} user={user} />;
     case 'runs':
-      return <RunList service={prefix} />;
+      return <RunList service={prefix} role={user.role} />;
     case 'run':
       return <RunResult runId={current.runId} role={user.role} />;
     case 'item':
@@ -63,7 +66,7 @@ function Screen({
       return (
         <div className="screen">
           <div className="empty">
-            없는 주소입니다. <a href="#/cases">케이스 목록으로</a>
+            {t('없는 주소입니다.')} <a href="#/cases">{t('케이스 목록으로')}</a>
           </div>
         </div>
       );
@@ -79,7 +82,7 @@ function 지금자리(name: Route['name']): string {
   return '#/cases';
 }
 
-function App() {
+function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) => void }) {
   const hash = useHash();
   const [상태, set상태] = useState<상태>({ 어디: '묻는중' });
   const [prefix, setPrefix] = useState<string | null>(() => 고른서비스를읽는다());
@@ -123,7 +126,7 @@ function App() {
   if (상태.어디 === '묻는중') {
     return (
       <div className="screen">
-        <div className="empty">불러오는 중입니다.</div>
+        <Loading />
       </div>
     );
   }
@@ -145,6 +148,8 @@ function App() {
       user={상태.user}
       service={열린것}
       onService={setPrefix}
+      언어={언어}
+      on언어={on언어}
       onLogout={() => {
         void api.logout().finally(() => {
           set상태({ 어디: '밖' });
@@ -176,8 +181,35 @@ function App() {
   );
 }
 
+/**
+ * 화면 언어를 들고 아래 전부에 내려 준다 (SPEC §8 「다국어」).
+ *
+ * **껍데기 바깥(로그인 화면)도 덮어야 해서 `App` 보다 위에 있다.**
+ * `App` 안에 두면 로그인 화면이 provider 밖으로 나가 거기서만 한국어가 된다.
+ */
+function 뿌리() {
+  const [언어, set언어] = useState<언어>(고른언어를읽는다);
+
+  // 화면 낭독기가 목소리를 이 값으로 고른다. 틀리면 한국어 목소리로 영어를 읽는다
+  useEffect(() => {
+    document.documentElement.lang = 언어;
+  }, [언어]);
+
+  return (
+    <언어함 value={언어}>
+      <App
+        언어={언어}
+        on언어={(고른) => {
+          set언어(고른);
+          고른언어를적는다(고른);
+        }}
+      />
+    </언어함>
+  );
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <뿌리 />
   </StrictMode>,
 );

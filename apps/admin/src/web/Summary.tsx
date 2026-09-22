@@ -2,6 +2,7 @@
 // 색은 거들기만 한다 — 판정은 늘 글자로도 적고, 막대는 판정마다 높이가 다르다 (DESIGN.md 접근성)
 
 import type { ItemStatus } from './api.js';
+import { use말 } from './i18n.js';
 import { STATUS_LABEL } from './ui.js';
 
 type 칸이름 = '전체' | '통과' | '실패' | '미실행';
@@ -66,11 +67,13 @@ export function 칸띠({ 칸들, 비율 }: { 칸들: readonly 띠칸[]; 비율?:
 }
 
 export function 집계띠({ 전체, 통과, 실패, 미실행, 부제 }: 집계Props) {
+  const t = use말();
+  // 「전체」는 거르개 칩에도 있다. 거기는 All 이고 여기는 Total 이라 꼬리로 가른다
   const 칸들: 띠칸[] = [
-    { 라벨: '전체', 값: String(전체), ...(부제?.전체 === undefined ? {} : { 부제: 부제.전체 }) },
-    { 라벨: '통과', 값: String(통과), 판정: 'PASS', ...(부제?.통과 === undefined ? {} : { 부제: 부제.통과 }) },
-    { 라벨: '실패', 값: String(실패), 판정: 'FAIL', ...(부제?.실패 === undefined ? {} : { 부제: 부제.실패 }) },
-    { 라벨: '미실행', 값: String(미실행), 판정: 'NA', ...(부제?.미실행 === undefined ? {} : { 부제: 부제.미실행 }) },
+    { 라벨: t('전체§집계'), 값: String(전체), ...(부제?.전체 === undefined ? {} : { 부제: 부제.전체 }) },
+    { 라벨: t('통과'), 값: String(통과), 판정: 'PASS', ...(부제?.통과 === undefined ? {} : { 부제: 부제.통과 }) },
+    { 라벨: t('실패'), 값: String(실패), 판정: 'FAIL', ...(부제?.실패 === undefined ? {} : { 부제: 부제.실패 }) },
+    { 라벨: t('미실행'), 값: String(미실행), 판정: 'NA', ...(부제?.미실행 === undefined ? {} : { 부제: 부제.미실행 }) },
   ];
 
   return (

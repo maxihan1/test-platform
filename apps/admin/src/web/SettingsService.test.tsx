@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-import { api, type SettingsServiceRow } from './api.js';
+import { type SettingsServiceRow } from './api.js';
 import { ServiceSection } from './SettingsService.js';
 
 afterEach(() => {
@@ -24,46 +24,23 @@ const 서비스: SettingsServiceRow = {
   caseCount: 3,
 };
 
-const 경고문 = /서비스 표시가 잘 안 보입니다/;
-
-function 편집을연다() {
+function 그린다() {
   render(<ServiceSection rows={[서비스]} onDone={() => {}} />);
   fireEvent.click(screen.getByText('편집'));
-  return screen.getByLabelText('색 코드') as HTMLInputElement;
 }
 
-describe('설정 화면의 서비스 색 (SPEC §8.8 · DESIGN.md)', () => {
-  it('흰 면과 명암비 3 에 못 미치는 색을 넣으면 경고 문구가 뜬다', () => {
-    const 색칸 = 편집을연다();
-    expect(screen.queryByText(경고문)).toBeNull();
-
-    fireEvent.change(색칸, { target: { value: '#DDDDDD' } });
-
-    expect(screen.getByText(경고문).textContent).toContain('기준 3');
+describe('설정에서 색 고르개를 걷었다 (SPEC §8.8, 2026-09-22)', () => {
+  // 화면 어디에도 안 쓰이는 색을 고르게 두면 「고르면 뭐가 달라지나」에 답할 수 없다
+  it('색을 고르는 칸이 없다', () => {
+    그린다();
+    expect(screen.queryByLabelText('색 코드')).toBeNull();
+    expect(document.querySelector('input[type="color"]')).toBeNull();
+    expect(document.querySelector('.set-preview')).toBeNull();
   });
 
-  it('기준을 넘는 색에는 경고를 띄우지 않는다', () => {
-    const 색칸 = 편집을연다();
-
-    fireEvent.change(색칸, { target: { value: '#888888' } });
-
-    expect(screen.queryByText(경고문)).toBeNull();
-  });
-
-  it('명암비 경고는 알리기만 한다. 저장을 막지 않는다', async () => {
-    const 고치기 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
-    const 색칸 = 편집을연다();
-
-    fireEvent.change(색칸, { target: { value: '#DDDDDD' } });
-    expect(screen.getByText(경고문)).toBeTruthy();
-
-    const 저장 = screen.getByText('저장') as HTMLButtonElement;
-    expect(저장.disabled).toBe(false);
-    fireEvent.click(저장);
-
-    await waitFor(() => {
-      expect(고치기).toHaveBeenCalledTimes(1);
-    });
-    expect(고치기.mock.calls[0]?.[1].color).toBe('#DDDDDD');
+  it('명암비 경고 자리도 없다. 잴 면이 사라졌다', () => {
+    그린다();
+    expect(document.body.textContent).not.toContain('명암비');
   });
 });
+

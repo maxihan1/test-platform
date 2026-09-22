@@ -3,6 +3,7 @@
 // 반복 실행한 회차도 행을 늘리지 않는다 — 판정 칸이 요약이 된다
 
 import type { ItemStatus, Platform, RunItemSummary } from './api.js';
+import { t, 기본언어, type 언어 } from './i18n.js';
 
 export interface CaseGroup {
   tcId: string;
@@ -47,11 +48,19 @@ export interface 회차 {
  *
  * **다섯 번 중 세 번만 통과한 테스트는 믿을 수 없는 테스트다.** 통과 색으로 칠하지 않는다 —
  * 하나라도 통과가 아니면 그 칸은 실패(또는 미실행)로 보인다.
+ *
+ * 언어를 안 주면 한국어다 — 이 함수를 부르는 실행 결과 화면 셋은 아직 다국어로 안 옮겼다.
  */
-export function 회차요약(칸: RunItemSummary[]): 회차 {
+export function 회차요약(칸: RunItemSummary[], 언어: 언어 = 기본언어): 회차 {
   const 통과 = 칸.filter((i) => i.status === 'PASS').length;
   const 실패있나 = 칸.some((i) => i.status === 'FAIL');
-  const status: ItemStatus = 통과 === 칸.length ? 'PASS' : 실패있나 ? 'FAIL' : 'NA';
+  // 한 줄로 쓰면 두 판정 글자 사이에 낀 한국어 변수명이 화면 글자로 읽힌다 (messages.test.ts)
+  const status: ItemStatus =
+    통과 === 칸.length
+      ? 'PASS'
+      : 실패있나
+        ? 'FAIL'
+        : 'NA';
 
   const 끝난것 = 칸.map((i) => i.durationMs).filter((ms): ms is number => ms !== null);
   const 평균소요ms =
@@ -60,7 +69,7 @@ export function 회차요약(칸: RunItemSummary[]): 회차 {
   return {
     회차수: 칸.length,
     status,
-    글: 칸.length <= 1 ? null : `${통과}/${칸.length} 통과`,
+    글: 칸.length <= 1 ? null : t('{통과}/{전체} 통과', 언어, { 통과, 전체: 칸.length }),
     평균소요ms,
   };
 }

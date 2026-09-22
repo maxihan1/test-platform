@@ -7,7 +7,7 @@ import { pool } from '../apps/admin/src/db/index.js';
 import { 접두사모양 } from '../apps/admin/src/settings/routes.js';
 import { 서비스만들기, 설정오류 } from '../apps/admin/src/settings/store.js';
 // 기본색은 설정 화면과 같은 값을 쓴다. 두 곳에 적으면 한쪽만 고치는 날이 온다 (CLAUDE.md §2.7 ⑤)
-import { 기본서비스색 } from '../apps/admin/src/web/settingsView.js';
+import { 안쓰는서비스색 } from '../apps/admin/src/web/settingsView.js';
 
 const 인자 = process.argv.slice(2);
 
@@ -55,7 +55,7 @@ try {
   const id = await 서비스만들기({
     prefix,
     name,
-    color: 기본서비스색,
+    color: 안쓰는서비스색,
     testsRepo: '',
     // 플랫폼이 실제로 훑을 폴더. PLATFORM_TESTS_DIR 아래 상대경로다 (SPEC §6)
     testsDir: prefix.toLowerCase(),

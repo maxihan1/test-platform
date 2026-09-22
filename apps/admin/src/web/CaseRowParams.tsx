@@ -7,6 +7,7 @@
 
 import type { JsonSchema } from './api.js';
 import { Form } from './Form.js';
+import { use말 } from './i18n.js';
 import { type Field, initialText, schemaToFields } from './schema.js';
 
 /**
@@ -61,6 +62,7 @@ export function CaseRowParams({
   /** 넘친 칸을 보러 간다. 상세 펼침이 같은 자리를 연다 */
   on더보기: () => void;
 }) {
+  const t = use말();
   const 입력값 = schemaToFields(paramSchema);
   const 기대결과 = schemaToFields(expectedSchema);
   const 전체 = 입력값.length + 기대결과.length;
@@ -96,7 +98,7 @@ export function CaseRowParams({
       )}
       {남은 === 0 ? null : (
         <button type="button" className="pmore" onClick={on더보기}>
-          {남은}개 더
+          {t('{개수}개 더', { 개수: 남은 })}
         </button>
       )}
     </div>

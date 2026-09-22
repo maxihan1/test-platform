@@ -4,9 +4,12 @@
 import { useState } from 'react';
 
 import { api, ApiError, type User } from './api.js';
+import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
 
 export function Login({ onLogin }: { onLogin: (user: User) => void }) {
+  const t = use말();
+  const 언어 = use언어();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [failed, setFailed] = useState<string | null>(null);
@@ -24,8 +27,8 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
       // 서버도 같은 이유로 401 하나만 준다 — 화면이 그 문장을 지어낸다
       setFailed(
         err instanceof ApiError && err.status === 401
-          ? '아이디 또는 비밀번호가 맞지 않습니다'
-          : message(err),
+          ? t('아이디 또는 비밀번호가 맞지 않습니다')
+          : message(err, 언어),
       );
     } finally {
       setBusy(false);
@@ -35,14 +38,14 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
   return (
     <div className="login">
       <form className="login-box" onSubmit={(e) => void submit(e)}>
-        <div className="login-title">테스트 플랫폼</div>
-        <h1 className="login-greet">다시 오셨군요</h1>
+        <div className="login-title">{t('테스트 플랫폼')}</div>
+        <h1 className="login-greet">{t('다시 오셨군요')}</h1>
         {/* 빈 상자 하나만 두면 무엇을 하는 화면인지 안 읽힌다. 짙은 바탕 위 밝은 상자로
             들어가는 자리임을 분명히 한다 (docs/design-mockup.html) */}
-        <p className="login-sub">아이디와 비밀번호를 넣으면 맡은 서비스가 열립니다.</p>
+        <p className="login-sub">{t('아이디와 비밀번호를 넣으면 맡은 서비스가 열립니다.')}</p>
 
         <div className="field">
-          <label htmlFor="login-id">아이디</label>
+          <label htmlFor="login-id">{t('아이디')}</label>
           <div>
             <input
               type="text"
@@ -56,7 +59,7 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
         </div>
 
         <div className="field">
-          <label htmlFor="login-pw">비밀번호</label>
+          <label htmlFor="login-pw">{t('비밀번호')}</label>
           <div>
             {/* 가려서 입력받는다. §8.2 의 비밀값 칸과 같은 모양이다 */}
             <input
@@ -73,7 +76,7 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
 
         {/* 누르는 동안 잠근다. 두 번 누르면 두 번 간다 */}
         <button className="btn" type="submit" disabled={busy}>
-          {busy ? '확인하는 중' : '로그인'}
+          {busy ? t('확인하는 중') : t('로그인')}
         </button>
       </form>
     </div>

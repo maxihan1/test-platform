@@ -389,7 +389,16 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 > **고칠 일이 생기면 먼저 읽을 것** — `docs/progress/WS-E.md` 의 2026-09-19 세 항목,
 > 특히 각 「다음 세션이 알아야 할 것」.
 >
-> 구조 — `main.tsx`(로그인 갈래) → `Shell.tsx`(사이드바·헤더·푸터) → 화면 여섯
+> **화면 글자는 전부 다국어다 (2026-09-22).** 새 글자를 화면에 쓸 때 한국어를 그냥 박지 않는다 —
+> 컴포넌트는 `use말()`, 순수 모듈은 `t(키, 언어)` 를 쓴다. **키가 곧 한국어 원문**이라
+> 표는 영어 한 벌(`messages/`)뿐이다. 값이 박힌 글자는 **자리표**를 쓴다
+> (`t('모두 {건수}건', { 건수 })`) — 템플릿 문자열로 쓰면 `messages.test.ts` 가 빨간불을 낸다.
+> 그 검사가 **소스에 남은 한국어를 전부 세므로** 「다 옮겼나」에 기계가 답한다.
+> 규칙의 정본은 SPEC 공통/5-화면공통 §8 「다국어」다.
+>
+> **서비스 색은 2026-09-22 에 화면에서 걷었다.** 어느 자리에도 안 쓴다 — 되살리려면 SPEC §8 부터 본다.
+>
+> 구조 — `main.tsx`(언어와 로그인 갈래) → `Shell.tsx`(사이드바·헤더·푸터) → 화면 여섯
 > (`CaseList` · `RunSetup` · `RunList` · `RunResult` · `ItemDetail` · `Settings`).
 > **판단은 순수 함수가 하고 화면은 그리기만 한다** — `layout` · `mask` · `role` · `route` ·
 > `runState` · `group` · `paging` · `runPlan` · `evidence` · `catalogView` · `settingsView` · `schema` · `validation`.
