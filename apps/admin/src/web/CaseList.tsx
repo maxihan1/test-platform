@@ -6,7 +6,7 @@
 import { useState } from 'react';
 
 import { api, type CaseQuery, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
-import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
+import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄, 표머리 } from './CaseListParts.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
@@ -129,8 +129,10 @@ export function CaseList({ service }: { service: string }) {
   return (
     <>
       {/* 제목과 주 행동은 본문 면 **바깥**에 선다. 안에 넣으면 머리와 본문이 다시 붙는다 (SPEC §8) */}
+      {/* 자리 이름은 **무엇을 다루는 곳인가**(`테스트 케이스`), 화면 제목은
+          **지금 보는 것이 무엇인가**(`테스트케이스 목록`)를 말한다 (SPEC §8) */}
       <Head
-        제목={t('테스트 케이스')}
+        제목={t('테스트케이스 목록')}
         부제={cases.data === null ? t('불러오는 중입니다') : t('모두 {건수}건', { 건수: cases.data.total })}
         행동={
           <>
@@ -210,7 +212,9 @@ export function CaseList({ service }: { service: string }) {
           onClear={조건지우기}
         />
       ) : (
-        보일것.map((row) => (
+        <>
+        <표머리 />
+        {보일것.map((row) => (
           <케이스줄
             key={row.tcId}
             row={row}
@@ -222,7 +226,8 @@ export function CaseList({ service }: { service: string }) {
             on값={값고침}
             on더보기={더보기}
           />
-        ))
+        ))}
+        </>
       )}
 
       {page === 1 && !더있나 ? null : (

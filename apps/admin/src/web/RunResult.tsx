@@ -21,7 +21,22 @@ const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 const DEVICES: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
 
-export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
+export function RunResult({
+  runId,
+  role,
+  상자안 = false,
+}: {
+  runId: number;
+  role: 등급;
+  /**
+   * 이 화면이 **상자 안에서** 그려지는가 (SPEC §8.7 「결과 보기는 상자로 연다」).
+   *
+   * 참이면 **진행·완료 상자를 열지 않는다.** 포커스를 가두는 장치가 둘 겹치면
+   * 키보드만 쓰는 사람이 빠져나올 길을 잃는다 (DESIGN.md 「모달」).
+   * 끝났다는 사실은 상자 안의 줄로 적는다.
+   */
+  상자안?: boolean;
+}) {
   const t = use말();
   const 언어 = use언어();
   const [status, setStatus] = useState<ItemStatus | 'ALL'>('ALL');
@@ -116,12 +131,7 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
     };
   }
 
-  return (
-    <>
-      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8) */}
-      <Head
-        제목={`RUN ${String(data.runId)}`}
-        부제={
+  const 부제 = (
           <>
             {when(data.startedAt, 언어)} · {data.title} · {t('실행자 {이름}', { 이름: 실행자이름(data, 언어) })}
             {' · '}
@@ -138,8 +148,10 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
               </>
             )}
           </>
-        }
-        행동={
+  );
+
+  const 행동 = (
+
           <div className="tally">
           {/* 판정 숫자를 버튼보다 앞에 둔다. 좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀리는데,
               휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다 (docs/DESIGN.md · design-mockup.html) */}
@@ -163,8 +175,21 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
           )}
             <증적만들기버튼들 칸={증적칸} />
           </div>
-        }
-      />
+  );
+
+  return (
+    <>
+      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8).
+          **상자 안에서는 머리를 만들지 않는다** — 상자 제목이 이미 RUN 번호를 적고 있어
+          같은 말이 두 번 나온다. 부제와 행동은 그대로 살린다 */}
+      {상자안 ? (
+        <div className="box-head">
+          <div className="head-meta">{부제}</div>
+          {행동}
+        </div>
+      ) : (
+        <Head 제목={`RUN ${String(data.runId)}`} 부제={부제} 행동={행동} />
+      )}
 
       <div className="screen">
       <증적알림과목록 칸={증적칸} />
@@ -208,8 +233,9 @@ export function RunResult({ runId, role }: { runId: number; role: 등급 }) {
       )}
       </div>
 
-      {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다 */}
-      {!진행열림 && !끝났다고알릴까말까 ? null : (
+      {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다.
+          **상자 안에서는 열지 않는다** — 가두개가 겹치면 빠져나올 길이 없다 (SPEC §8.7) */}
+      {상자안 || (!진행열림 && !끝났다고알릴까말까) ? null : (
         <RunProgressModal
           data={data}
           진행목록={진행목록}

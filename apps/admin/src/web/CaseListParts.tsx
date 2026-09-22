@@ -106,6 +106,30 @@ export function 조건칩들({
   );
 }
 
+/**
+ * 목록 맨 위 표머리 (SPEC §8.1, 2026-09-22).
+ *
+ * **좁은 화면에서는 감춘다.** 줄이 2단으로 접혀 칸이 세로로 눕기 때문이다 —
+ * 케이스 목록은 §8 의 「좁은 화면에서 제대로 되는 둘」에 없다.
+ * 실행 기록은 다르다 (실행 §8.7 은 감추지 않고 줄마다 라벨을 붙인다).
+ *
+ * `<table>` 이 아니라 격자라서 `role` 로 칸 이름을 읽히게 한다.
+ */
+export function 표머리() {
+  const t = use말();
+  return (
+    <div className="rowhead" role="row">
+      <span aria-hidden="true" />
+      <span aria-hidden="true" />
+      {/* 두 언어가 같은 글자라 표를 안 탄다 */}
+      <span role="columnheader">TC ID</span>
+      <span role="columnheader">{t('케이스명')}</span>
+      <span role="columnheader">{t('입력값')}</span>
+      <span role="columnheader">{t('마지막 결과')}</span>
+    </div>
+  );
+}
+
 export function 케이스줄({
   row,
   마지막,
@@ -128,7 +152,6 @@ export function 케이스줄({
 }) {
   const t = use말();
   const 언어 = use언어();
-  const 상세칸 = `detail-${row.tcId}`;
 
   return (
     <>
@@ -147,8 +170,13 @@ export function 케이스줄({
         />
       </label>
       <div className="tcid">{row.tcId}</div>
+      {/* 입력 칸은 **케이스명 칸 밖**이다 (SPEC §8.1, 2026-09-22).
+          안에 넣으면 이름 아래에 칸이 붙어 한 줄이 두 덩어리로 보이고 표머리를 달 수 없다 */}
       <div className="title">
         {row.name}
+        <small>{t('지원 디바이스 {목록}', { 목록: row.platforms.map((p) => t(PLATFORM_LABEL[p])).join(', ') })}</small>
+      </div>
+      <div className="params">
         <CaseRowParams
           tcId={row.tcId}
           paramSchema={row.paramSchema}
@@ -157,7 +185,6 @@ export function 케이스줄({
           on값={(어디, key, value) => on값(row.tcId, 어디, key, value)}
           on더보기={() => on더보기(row.tcId)}
         />
-        <small>{t('지원 디바이스 {목록}', { 목록: row.platforms.map((p) => t(PLATFORM_LABEL[p])).join(', ') })}</small>
       </div>
       <div className="right">
         <div className="devices">
@@ -184,13 +211,12 @@ export function 케이스줄({
             );
           })}
         </div>
-        {/* 눌러야 상세가 보인다. aria-controls 가 없으면 화면을 안 보는 사람은
-            「폈다」는 말만 듣고 무엇이 펴졌는지 못 찾는다 (DESIGN.md 접근성 기준) */}
+        {/* 눌러서 여는 상자다. 화면을 안 보는 사람에게 「상자가 열린다」를 미리 알린다
+            (DESIGN.md 접근성 기준 · 2026-09-22 에 펼침에서 상자로) */}
         <button
           type="button"
           className="btn small ghost"
-          aria-expanded={폈나}
-          aria-controls={상세칸}
+          aria-haspopup="dialog"
           onClick={() => on더보기(row.tcId)}
         >
           {t('상세')}
@@ -200,9 +226,12 @@ export function 케이스줄({
         </a>
       </div>
     </div>
-    <div id={상세칸}>
-      <CaseDetail row={row} 폈나={폈나} 마지막={마지막[keyOf(row.tcId, row.platforms[0] ?? 'desktop')]} />
-    </div>
+    <CaseDetail
+      row={row}
+      폈나={폈나}
+      마지막={마지막[keyOf(row.tcId, row.platforms[0] ?? 'desktop')]}
+      onClose={() => on더보기(row.tcId)}
+    />
     </>
   );
 }

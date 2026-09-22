@@ -68,6 +68,9 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         {/* 서비스 색은 2026-09-22 에 걷었다 (SPEC §8). 이름과 저장소 주소로 구분한다 —
             「이 파란 네모가 뭘 뜻하는지 모르겠다」가 걷은 이유다 */}
         <div className="side-top">
+          {/* 무엇을 고르는 자리인지 **글자로 적는다.** 파란 네모를 걷은 이유가 바로
+              「이게 뭘 뜻하는지 모르겠다」였다 — 같은 실수를 고르개에서 되풀이하지 않는다 */}
+          <span className="side-cap">{t('서비스§고르개')}</span>
           <div className="side-svc">
             {service === null ? (
               <span className="side-svc-name">{t('서비스 없음')}</span>

@@ -51,7 +51,7 @@ function Screen({
     case 'setup':
       return <RunSetup tcId={current.tcId} service={service} user={user} />;
     case 'runs':
-      return <RunList service={prefix} />;
+      return <RunList service={prefix} role={user.role} />;
     case 'run':
       return <RunResult runId={current.runId} role={user.role} />;
     case 'item':

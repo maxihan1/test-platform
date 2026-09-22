@@ -2,7 +2,9 @@
 
 export const 케이스말: Record<string, string> = {
   // 화면 머리와 집계 띠
-  '테스트 케이스': 'Test cases',
+  // 자리 이름과 화면 제목을 가른다 (SPEC §8, 2026-09-22) — 같은 말을 두 번 하고 있었다
+  '테스트 케이스': 'Testcase',
+  '테스트케이스 목록': 'Testcase list',
   '불러오는 중입니다': 'Loading…',
   '모두 {건수}건': '{건수} in total',
   '스캔하는 중': 'Scanning…',
@@ -28,6 +30,8 @@ export const 케이스말: Record<string, string> = {
   '표시': 'Show',
   '활성만': 'Active only',
   '마지막 결과': 'Last result',
+  // 표머리 (2026-09-22)
+  케이스명: 'Case',
   '전체': 'All',
   '통과': 'Passed',
   '실패': 'Failed',

@@ -1,13 +1,19 @@
-// 케이스 줄 아래로 펼쳐지는 상세 (SPEC §8.1, 2026-09-21 ②)
+// 케이스 상세 상자 (SPEC §8.1, 2026-09-21 ② · 2026-09-22 에 펼침에서 상자로)
+//
+// **펼침을 그만둔 이유** — 줄 아래로 늘어나면 시선이 그대로라 눌러도 열렸다는 느낌이 없고,
+// 긴 목록에서는 펴진 자리가 화면 밖으로 밀린다. 사람이 눌러서 여는 상자라
+// 「가로막는 상자」가 아니다 (DESIGN.md 「모달」).
 //
 // §8.1 의 「케이스마다 이력을 따로 부르지 않는다」는 **목록**을 두고 한 말이다.
-// 여기는 사람이 한 줄을 폈을 때 한 번 부르므로 그 규칙의 예외다 — 목록이 부르는 것이 아니다.
-// **한 번 받은 것은 접었다 펴도 다시 안 받는다.** 접을 때마다 버리면 예외가 위반으로 바뀐다.
+// 여기는 사람이 한 줄을 열었을 때 한 번 부르므로 그 규칙의 예외다 — 목록이 부르는 것이 아니다.
+// **한 번 받은 것은 닫았다 열어도 다시 안 받는다.** 받아 둔 것은 목록(`CaseList`)이 들고 있어서
+// 상자를 닫아도 남는다 — 상자가 들면 닫는 순간 같이 사라진다.
 
 import { useEffect, useState } from 'react';
 
 import { api, type CaseRow, type HistoryRow, type LastResult, type RunItemDetail } from './api.js';
 import { use말, use언어 } from './i18n.js';
+import { Modal } from './Modal.js';
 import { schemaToFields } from './schema.js';
 import { PLATFORM_LABEL, seconds, Verdict, when } from './ui.js';
 
@@ -51,11 +57,13 @@ export function CaseDetail({
   row,
   폈나,
   마지막,
+  onClose,
 }: {
   row: CaseRow;
   폈나: boolean;
   /** 마지막 결과. 있으면 그 실행의 절차를 가져온다. 없으면 절차를 아예 안 부른다 */
   마지막: LastResult | undefined;
+  onClose: () => void;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -83,6 +91,7 @@ export function CaseDetail({
   if (!폈나) return null;
 
   return (
+    <Modal 제목={`${row.tcId} ${row.name}`} onClose={onClose} 버튼={<button className="btn" onClick={onClose}>{t('닫기')}</button>}>
     <div className="detail">
       {row.precondition.length === 0 ? null : (
         <div className="dsec">
@@ -157,5 +166,6 @@ export function CaseDetail({
         )}
       </div>
     </div>
+    </Modal>
   );
 }

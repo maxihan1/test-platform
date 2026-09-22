@@ -12,6 +12,8 @@ export const 껍데기말: Record<string, string> = {
   '사이드바 펴기': 'Expand sidebar',
   '사이드바 접기': 'Collapse sidebar',
   '서비스 고르기': 'Choose service',
+  // 설정의 구획 제목은 `Services`(복수)다. 사이드바는 지금 보는 하나를 가리키므로 단수다
+  '서비스§고르개': 'Service',
   '서비스 없음': 'No service',
   언어: 'Language',
   로그아웃: 'Sign out',

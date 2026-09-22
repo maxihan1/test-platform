@@ -10,12 +10,16 @@ import { api, type Paged, type RunQuery, type RunSummary, type RunTally } from '
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
+import type { 등급 } from './role.js';
+import { RunResultModal } from './RunResultModal.js';
 import { 상태라벨, 실행자이름 } from './runState.js';
 import { 칸띠 } from './Summary.js';
 import { Failed, Loading, seconds, useAsync, when } from './ui.js';
 
-export function RunList({ service }: { service: string }) {
+export function RunList({ service, role }: { service: string; role: 등급 }) {
   const t = use말();
+  // 상자로 연 실행. 닫으면 **보던 자리와 검색 조건이 그대로 남는다** — 화면을 갈아타면 잃는 것들이다
+  const [열린실행, set열린실행] = useState<number | null>(null);
   // 키는 늘 정적 문자열이어야 해서 표를 모듈 밖에 둘 수 없다 — 여기서 만든다
   const 상태칩: { 라벨: string; 값: RunQuery['state'] }[] = [
     { 라벨: t('전체'), 값: undefined },
@@ -127,7 +131,12 @@ export function RunList({ service }: { service: string }) {
             )}
           </div>
         ) : (
-          runs.data.items.map((run) => <실행줄 key={run.runId} run={run} />)
+          <>
+            <실행표머리 />
+            {runs.data.items.map((run) => (
+              <실행줄 key={run.runId} run={run} on열기={set열린실행} />
+            ))}
+          </>
         )}
       </div>
 
@@ -142,7 +151,31 @@ export function RunList({ service }: { service: string }) {
           </button>
         </div>
       )}
+
+      {열린실행 === null ? null : (
+        <RunResultModal runId={열린실행} role={role} onClose={() => set열린실행(null)} />
+      )}
     </>
+  );
+}
+
+/**
+ * 표머리 (SPEC §8.7, 2026-09-22).
+ *
+ * **좁은 화면에서도 감추지 않는다.** 이 화면은 §8 이 「좁은 화면에서 제대로 되는 둘」로
+ * 지정한 하나다 — 감추면 거기서 칸 이름이 통째로 사라진다.
+ * 케이스 목록(§8.1)은 그 둘에 없어서 감춰도 된다. **둘을 같게 만들지 않는다.**
+ */
+function 실행표머리() {
+  const t = use말();
+  return (
+    <div className="rowhead runhead" role="row">
+      <span aria-hidden="true" />
+      <span role="columnheader">RUN</span>
+      <span role="columnheader">{t('실행 제목')}</span>
+      <span role="columnheader">{t('판정')}</span>
+      <span aria-hidden="true" />
+    </div>
   );
 }
 
@@ -174,7 +207,7 @@ function 집계({ 것 }: { 것: RunTally }) {
   );
 }
 
-function 실행줄({ run }: { run: RunSummary }) {
+function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: number) => void }) {
   const t = use말();
   const 언어 = use언어();
 
@@ -205,9 +238,10 @@ function 실행줄({ run }: { run: RunSummary }) {
             <span>{t('미실행')}</span>
           </div>
         </div>
-        <a className="btn small" href={`#/runs/${run.runId}`}>
+        {/* 눌러서 여는 상자다 (SPEC §8.7). 주소는 살아 있고 상자는 길을 하나 더한 것이다 */}
+        <button type="button" className="btn small" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>
           {t('결과 보기')}
-        </a>
+        </button>
       </div>
     </div>
   );

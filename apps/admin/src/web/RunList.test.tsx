@@ -67,7 +67,7 @@ function 모킹(답: Paged<RunSummary> & { summary: RunTally } = 한쪽) {
 
 async function 그리기(답?: Paged<RunSummary> & { summary: RunTally }) {
   const 스파이 = 모킹(답);
-  const 것 = render(<RunList service="ZRL" />);
+  const 것 = render(<RunList service="ZRL" role="admin" />);
   await waitFor(() => expect(스파이).toHaveBeenCalled());
   return { ...것, 스파이 };
 }
@@ -184,5 +184,46 @@ describe('RunList 지킬 것', () => {
     // 줄마다 통과·실패·미실행이 글자로 적힌다. 왼쪽 색 띠는 훑기 위한 것이다 (SPEC §8.7)
     expect(screen.getAllByText('통과').length).toBeGreaterThan(0);
     expect(screen.getAllByText('실패').length).toBeGreaterThan(0);
+  });
+});
+
+// 화면을 갈아타면 돌아올 때 검색 조건이 풀리고 보던 자리를 잃는다 (SPEC §8.7, 2026-09-22).
+// 「상자가 뜬다」만 보면 **상자 안에서 또 상자가 뜨는 상태**도 통과한다 — 가두개가 겹치면
+// 키보드만 쓰는 사람이 빠져나올 길을 잃는다 (DESIGN.md 「모달」)
+describe('결과 보기는 상자로 연다 (SPEC §8.7)', () => {
+  it('칸마다 이름이 있다. 좁은 화면에서도 감추지 않는 자리다', async () => {
+    await 그리기();
+    const 이름들 = screen.getAllByRole('columnheader').map((el) => el.textContent);
+    expect(이름들).toEqual(['RUN', '실행 제목', '판정']);
+  });
+
+  it('누르면 상자가 뜨고 화면이 안 갈아탄다', async () => {
+    const 전주소 = window.location.hash;
+    await 그리기();
+
+    fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
+
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+    expect(window.location.hash).toBe(전주소);
+  });
+
+  it('상자가 하나뿐이다. 안에서 또 열리면 빠져나올 길이 없다', async () => {
+    await 그리기();
+    fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
+    await screen.findByRole('dialog');
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+  });
+
+  it('닫으면 검색 조건이 그대로 남는다', async () => {
+    await 그리기();
+
+    fireEvent.change(screen.getByPlaceholderText(/실행 제목/), { target: { value: '결제' } });
+    fireEvent.submit(screen.getByRole('search'));
+    fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
+    await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect((screen.getByPlaceholderText(/실행 제목/) as HTMLInputElement).value).toBe('결제');
   });
 });

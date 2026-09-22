@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import type { CaseRow, JsonSchema } from './api.js';
-import { 케이스줄 } from './CaseListParts.js';
+import { 케이스줄, 표머리 } from './CaseListParts.js';
 
 afterEach(cleanup);
 
@@ -167,5 +167,29 @@ describe('아직 안 돌린 케이스 (SPEC §8.1)', () => {
   it('마지막 결과가 없으면 무엇이 없는지 말한다', () => {
     const { container } = 그린다({});
     expect(container.querySelector('.device-none')?.textContent).toBe('실행 이력 없음');
+  });
+});
+
+// 칸 이름이 없으면 각 칸이 무엇인지 화면만 봐서는 모른다 (SPEC §8.1, 2026-09-22).
+// 「표머리가 있다」만 보면 입력 칸이 여전히 케이스명 안에 있는 상태도 통과한다 — 둘을 같이 본다
+describe('표머리와 입력 칸 (SPEC §8.1)', () => {
+  it('칸 이름을 화면 낭독기가 읽는다', () => {
+    render(<표머리 />);
+    const 이름들 = screen.getAllByRole('columnheader').map((el) => el.textContent);
+    expect(이름들).toEqual(['TC ID', '케이스명', '입력값', '마지막 결과']);
+  });
+
+  it('입력 칸이 케이스명 칸 안에 있지 않다', () => {
+    const { container } = 그린다({
+      type: 'object',
+      properties: { userId: { type: 'string', description: '아이디', default: 'zz' } },
+    });
+
+    const 이름칸 = container.querySelector('.title');
+    const 입력칸 = container.querySelector('.params');
+    expect(이름칸).not.toBeNull();
+    expect(입력칸).not.toBeNull();
+    expect(이름칸!.contains(입력칸!)).toBe(false);
+    expect(입력칸!.querySelector('input')).not.toBeNull();
   });
 });
