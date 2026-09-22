@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { api, type ServiceRow, type User } from './api.js';
+import { 언어함, type 언어 } from './i18n.js';
 import { 사이드바접음을적는다, 자리목록, 탭제목 } from './layout.js';
 import { Shell } from './Shell.js';
 
@@ -36,12 +37,22 @@ const 사람: User = {
   services: [결제, 정산],
 };
 
-function 띄운다(service: ServiceRow) {
+function 띄운다(service: ServiceRow, 언어: 언어 = 'ko', on언어: (고른: 언어) => void = () => {}) {
   vi.spyOn(api, 'runs').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 , summary: { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 } });
   return render(
-    <Shell user={사람} service={service} onService={() => {}} onLogout={() => {}} current="#/cases">
-      <div>본문</div>
-    </Shell>,
+    <언어함 value={언어}>
+      <Shell
+        user={사람}
+        service={service}
+        onService={() => {}}
+        언어={언어}
+        on언어={on언어}
+        onLogout={() => {}}
+        current="#/cases"
+      >
+        <div>본문</div>
+      </Shell>
+    </언어함>,
   );
 }
 
@@ -83,7 +94,7 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(사이드).not.toBeNull();
     const 안 = within(사이드!);
     expect(안.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
-    expect(안.getAllByRole('link')).toHaveLength(자리목록(사람.role).length);
+    expect(안.getAllByRole('link')).toHaveLength(자리목록(사람.role, 'ko').length);
     expect(안.getByText(사람.displayName)).toBeTruthy();
   });
 
@@ -91,7 +102,7 @@ describe('세로 껍데기 (SPEC §8)', () => {
     띄운다(결제);
     const 푸터 = document.querySelector('.foot');
     expect(푸터).not.toBeNull();
-    expect(푸터!.textContent).toContain(탭제목(결제));
+    expect(푸터!.textContent).toContain(탭제목(결제, 'ko'));
   });
 });
 
@@ -121,7 +132,7 @@ describe('사이드바 접기', () => {
     띄운다(결제);
     // 안 보이게 하려고 display:none 을 쓰면 탭 대상에서 빠진다.
     // 흐리게 두지 않는다는 규칙(SPEC §8)은 등급 이야기고, 접기는 사람이 되돌릴 수 있는 상태다
-    expect(screen.getByRole('link', { name: '테스트케이스 목록' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '테스트 케이스' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
 });
@@ -157,5 +168,34 @@ describe('껍데기는 제목을 지어내지 않는다 (2026-09-22)', () => {
     // 그래서 화면들이 제목을 본문 안에서 그렸고 「헤드와 메인 분리」가 절반만 살았다
     expect(container.querySelector('.main > .head')).toBeNull();
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+  });
+});
+
+// 고르개 하나가 화면 글자 전부를 바꾼다 (SPEC §8 「다국어」).
+// 「고르개가 있다」만 보면 눌러도 아무 일이 없는 상태가 통과한다 — 바뀌는 것까지 본다
+describe('언어 고르개 (SPEC §8 다국어)', () => {
+  it('사이드바에 언어 고르개가 있다', () => {
+    띄운다(결제);
+    expect(screen.getByLabelText('언어')).toBeTruthy();
+  });
+
+  it('English 를 고르면 그 사실이 위로 올라간다', () => {
+    const 고른것: 언어[] = [];
+    띄운다(결제, 'ko', (고른) => 고른것.push(고른));
+
+    fireEvent.change(screen.getByLabelText('언어'), { target: { value: 'en' } });
+    expect(고른것).toEqual(['en']);
+  });
+
+  it('영어면 자리 넷이 영어로 뜬다', () => {
+    띄운다(결제, 'en');
+    expect(screen.getByRole('navigation').textContent).not.toContain('실행 기록');
+  });
+
+  it('접어도 고르개가 화면에서 사라지지 않는다. 지우면 키보드 이동에서 빠진다', () => {
+    사이드바접음을적는다(true);
+    띄운다(결제);
+    expect(screen.getByLabelText('언어')).toBeTruthy();
+    사이드바접음을적는다(false);
   });
 });

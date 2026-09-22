@@ -49,3 +49,13 @@ export function use말(): (키: string, 값?: 값들) => string {
   const 지금 = useContext(언어칸);
   return (키, 값) => 글자(키, 지금, 말, 값);
 }
+
+/**
+ * 지금 언어만 필요할 때. **훅을 못 쓰는 순수 모듈에 넘기려고 쓴다.**
+ *
+ * `runState.ts` 처럼 컴포넌트가 아닌 자리는 훅을 못 부르므로 언어를 인자로 받는다.
+ * 그 값을 화면이 여기서 꺼내 넘긴다.
+ */
+export function use언어(): 언어 {
+  return useContext(언어칸);
+}

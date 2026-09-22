@@ -2,6 +2,7 @@
 // 한 번에 한 서비스만 본다 — 여러 서비스가 한 목록에 섞이면 엉뚱한 쪽에서 실행을 누르는 사고가 난다
 
 import type { RunSummary, ServiceRow, User } from './api.js';
+import { 기본언어, t, type 언어 } from './i18n.js';
 import { 할수있나, type 등급 } from './role.js';
 import { 도는중 } from './runState.js';
 
@@ -18,8 +19,9 @@ export interface 자리 {
 }
 
 /** 탭이 여럿일 때는 탭 글자만 보인다. 어느 서비스를 보고 있는지가 거기 있어야 한다 (SPEC §8) */
-export function 탭제목(service: ServiceRow | null): string {
-  return service === null ? 제품이름 : `${service.name} · ${제품이름}`;
+export function 탭제목(service: ServiceRow | null, 언어: 언어): string {
+  const 이름 = t(제품이름, 언어);
+  return service === null ? 이름 : `${service.name} · ${이름}`;
 }
 
 declare global {
@@ -51,13 +53,13 @@ function 그래프주소(): string {
  * 설정은 운영 등급에게만 뜬다. **흐리게 두지 않고 아예 없다** —
  * 누를 수 없는 메뉴가 있으면 사람이 그것이 올 때까지 기다린다 (§8.6).
  */
-export function 자리목록(role: 등급 | null): 자리[] {
+export function 자리목록(role: 등급 | null, 언어: 언어): 자리[] {
   const 기본: 자리[] = [
-    { 이름: '테스트케이스 목록', 해시: '#/cases' },
-    { 이름: '실행 기록', 해시: '#/runs' },
-    { 이름: '그래프', 해시: 그래프주소(), 바깥: true },
+    { 이름: t('테스트 케이스', 언어), 해시: '#/cases' },
+    { 이름: t('실행 기록', 언어), 해시: '#/runs' },
+    { 이름: t('그래프', 언어), 해시: 그래프주소(), 바깥: true },
   ];
-  return 할수있나(role, '설정') ? [...기본, { 이름: '설정', 해시: '#/settings' }] : 기본;
+  return 할수있나(role, '설정') ? [...기본, { 이름: t('설정', 언어), 해시: '#/settings' }] : 기본;
 }
 
 /**
@@ -108,6 +110,26 @@ export function 사이드바접음을적는다(접음: boolean): void {
   }
 }
 
+/** 고른 화면 언어. 새로고침해도 그 언어로 열린다 (SPEC §8 「다국어」) */
+const 언어키 = '화면언어';
+
+export function 고른언어를읽는다(): 언어 {
+  try {
+    return localStorage.getItem(언어키) === 'en' ? 'en' : 기본언어;
+  } catch {
+    // 브라우저가 저장을 막아도 화면은 떠야 한다. 기본 언어로 열릴 뿐이다
+    return 기본언어;
+  }
+}
+
+export function 고른언어를적는다(고른: 언어): void {
+  try {
+    localStorage.setItem(언어키, 고른);
+  } catch {
+    // 위와 같다
+  }
+}
+
 export interface 빈띠 {
   무엇: string;
   다음: string;
@@ -123,7 +145,7 @@ export interface 빈띠 {
  * 설정을 눌러도 같은 안내가 떴다 — 서비스가 0개인 첫 운영자는 **영영 빠져나올 수 없었다.**
  * 설정은 서비스에 배정돼야 쓰는 화면이 아니라 **그 배정을 만드는 화면**이라 성질이 다르다.
  */
-export function 빈띠사유(user: User, 지금자리?: string): 빈띠 | null {
+export function 빈띠사유(user: User, 언어: 언어, 지금자리?: string): 빈띠 | null {
   if (user.services.length > 0) return null;
 
   const 설정을열수있나 = 할수있나(user.role, '설정');
@@ -131,10 +153,10 @@ export function 빈띠사유(user: User, 지금자리?: string): 빈띠 | null {
   if (지금자리 === '#/settings' && 설정을열수있나) return null;
 
   return {
-    무엇: '아직 배정받은 서비스가 없습니다',
+    무엇: t('아직 배정받은 서비스가 없습니다', 언어),
     다음: 설정을열수있나
-      ? '설정에서 자기 자신을 서비스에 배정하세요'
-      : '운영 등급에게 서비스 배정을 요청하세요',
+      ? t('설정에서 자기 자신을 서비스에 배정하세요', 언어)
+      : t('운영 등급에게 서비스 배정을 요청하세요', 언어),
   };
 }
 
@@ -160,7 +182,7 @@ const 끝난소식유효 = 2 * 60 * 60 * 1000;
  * 이 줄 하나로 「무엇을 돌릴까」와 「아까 그거 끝났나」 두 상황을 다 받는다.
  * 도는 실행이 없으면 줄 자체가 없다 — 빈 줄을 자리만 잡아 두지 않는다.
  */
-export function 알림줄(runs: RunSummary[], 본것들: ReadonlySet<number> = new Set()): 알림 | null {
+export function 알림줄(runs: RunSummary[], 언어: 언어, 본것들: ReadonlySet<number> = new Set()): 알림 | null {
   // 도는 것이 먼저다. 끝난 소식보다 지금 도는 것이 급하다
   const 도는것 = runs.filter((run) => 도는중(run.status));
   if (도는것.length > 0) {
@@ -169,7 +191,11 @@ export function 알림줄(runs: RunSummary[], 본것들: ReadonlySet<number> = n
     const 끝난수 = 것.counts.total - 것.counts.running;
     return {
       runId: 것.runId,
-      글: `RUN ${것.runId} 이 진행 중입니다  ${끝난수}/${것.counts.total}`,
+      글: t('RUN {번호} 이 진행 중입니다  {끝난}/{전체}', 언어, {
+        번호: 것.runId,
+        끝난: 끝난수,
+        전체: 것.counts.total,
+      }),
       끝났나: false,
     };
   }
@@ -186,10 +212,11 @@ export function 알림줄(runs: RunSummary[], 본것들: ReadonlySet<number> = n
   if (갓끝난것.length === 0) return null;
 
   const 것 = 갓끝난것.reduce((a, b) => (b.runId > a.runId ? b : a));
-  const 머리 = 것.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다';
-  const 집계 = [`${것.counts.pass} 통과`];
-  if (것.counts.fail > 0) 집계.push(`${것.counts.fail} 실패`);
-  if (것.counts.na > 0) 집계.push(`${것.counts.na} 미실행`);
+  const 머리 = t(것.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다', 언어);
+  const 집계 = [t('{수} 통과', 언어, { 수: 것.counts.pass })];
+  if (것.counts.fail > 0) 집계.push(t('{수} 실패', 언어, { 수: 것.counts.fail }));
+  if (것.counts.na > 0) 집계.push(t('{수} 미실행', 언어, { 수: 것.counts.na }));
 
-  return { runId: 것.runId, 글: `RUN ${것.runId} 이 ${머리} · ${집계.join(' · ')}`, 끝났나: true };
+  const 글 = t('RUN {번호} 이 {머리} · {집계}', 언어, { 번호: 것.runId, 머리, 집계: 집계.join(' · ') });
+  return { runId: 것.runId, 글, 끝났나: true };
 }
