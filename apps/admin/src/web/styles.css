@@ -772,6 +772,53 @@ select:focus {
   align-items: baseline;
 }
 
+/* 접는 구획 (2026-09-22). 상자 안에서 견줌과 사유 묶음이 각각 130px 쯤을 먹어
+   케이스 목록에 32px 밖에 안 남았다 — 줄 하나(101px)도 안 들어갔다.
+   눌러서 펴는 것으로 바꿔 접힌 값을 한 줄로 줄인다.
+   **펴고 접는 상태를 React 로 들지 않는다** — `<details>` 가 이미 한다 (ponytail 4단) */
+.sec.fold {
+  padding: 10px 24px;
+}
+
+/* `.sec-h` 가 `display: flex` 인데 `summary` 에 그대로 먹이면 **여는 삼각형이 사라진다.**
+   눌러서 펴는 것인지 안 보이게 되므로 `list-item` 으로 되돌린다 */
+.sec.fold > summary {
+  display: list-item;
+  list-style-position: inside;
+  cursor: pointer;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+/* 펴면 제목 아래 괘선이 돌아온다. 안 그러면 내용이 제목에 붙는다 */
+.sec.fold[open] > summary {
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--chrome);
+}
+
+/* 접힌 줄에서도 어느 실행과 견줬는지는 보여야 한다 — 그게 펼지 말지의 판단 재료다 */
+.sec.fold > summary > span {
+  margin-left: 12px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+/* 상자 안 RUN 머리 줄. 증적 안내·사유·문서 목록이 여기 한 줄로 들어온다 (2026-09-22) */
+.evi-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin-top: 6px;
+}
+
+.evi-open {
+  margin-left: 8px;
+  color: var(--chrome);
+}
+
 .pre {
   font-size: 13.5px;
   color: var(--ink);
@@ -1429,14 +1476,21 @@ select:focus {
   flex-direction: column;
   gap: 14px;
   padding: 20px;
-  max-height: 80vh;
+  /* 94vh 가 사실상 상한이다 — `.modal-back` 여백이 위아래 16px 이라 그 위로는 화면에 닿는다.
+     80vh 이던 때 실행 결과 상자의 케이스 목록에 32px 만 남아 한 줄도 안 들어갔다 (2026-09-22 실측) */
+  max-height: 94vh;
   overflow: hidden;
 }
 
 /* 표가 들어가 480px 에 안 들어가는 상자 셋 — 케이스 상세 · 실행 결과 · 여러 건 실행 확인
-   (DESIGN.md 「②의 상자 둘」·「① 여러 건 실행 모달」, 2026-09-22). 좁은 화면 규칙은 `.modal` 과 같다 */
+   (DESIGN.md 「②의 상자 둘」·「① 여러 건 실행 모달」, 2026-09-22). 좁은 화면 규칙은 `.modal` 과 같다.
+
+   **880px 로 잡았다가 같은 주에 1400px 로 올렸다.** 「표가 들어가 480px 에 안 들어간다」는
+   그대로 맞는데, 880 으로도 **모자랐다** — 실행 결과 상자에서 정보 UI 가 95% 를 먹고
+   케이스 목록에 32px 만 남아 줄 하나(101px)도 안 들어갔다 (2026-09-22 실측).
+   셋이 값 하나를 쓴다. 가르면 DESIGN.md 도 갈라야 하고 다음 사람이 한쪽만 고친다 */
 .modal.wide {
-  max-width: 880px;
+  max-width: 1400px;
 }
 
 .modal-title {

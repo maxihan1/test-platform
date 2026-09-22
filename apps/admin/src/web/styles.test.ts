@@ -385,6 +385,28 @@ describe('표머리와 줄이 같은 격자를 쓴다 (SPEC §8.1 · §8.7, 2026
   });
 });
 
+// 상자가 880 × 80vh 이던 때 실행 결과 상자의 케이스 목록에 32px 만 남았다 — 줄이 101px 이라
+// **한 줄도 안 들어갔다.** 정보 UI 가 상자의 95% 를 먹고 있었다 (2026-09-22 실측)
+describe('넓은 상자가 표를 담을 만큼 크다 (DESIGN.md, 2026-09-22)', () => {
+  it('넓은 상자는 1400px 이다', () => {
+    const 값 = /max-width:\s*(\d+)px/.exec(규칙('.modal.wide'))?.[1];
+    expect(값, '.modal.wide 에 max-width 가 없다').toBeDefined();
+    expect(Number(값)).toBe(1400);
+  });
+
+  // 94vh 가 사실상 상한이다 — `.modal-back` 여백이 위아래 16px 이라 그 위로는 화면에 닿는다
+  it('상자 높이 상한이 94vh 다', () => {
+    const 값 = /max-height:\s*(\d+)vh/.exec(규칙('.modal'))?.[1];
+    expect(값, '.modal 에 max-height 가 없다').toBeDefined();
+    expect(Number(값)).toBe(94);
+  });
+
+  // 좁은 화면 규칙은 안 건드린다 — 폭은 상한일 뿐이고 상자는 창을 따라간다
+  it('상자가 좁은 화면에서는 창을 채운다', () => {
+    expect(규칙('.modal')).toMatch(/width:\s*100%/);
+  });
+});
+
 // 2026-09-21 에 배운 것이 2026-09-22 에 그대로 재발했다 — 언어 고르개에 규칙이 없어
 // OS 가 짙은 사이드바 위에 흰 상자를 그렸다. 두 번째라 기계로 옮긴다 (CLAUDE.md §2.5).
 // 밝은 면 위의 select 는 OS 모양이어도 읽히므로 사이드바만 본다

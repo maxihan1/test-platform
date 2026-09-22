@@ -192,13 +192,16 @@ export function RunResult({
         <div className="box-head">
           <div className="head-meta">{부제}</div>
           {행동}
+          {/* 증적 안내·사유·문서 목록을 **머리 줄 안에서** 한 줄로 그린다 (2026-09-22).
+              블록으로 두면 130px 을 먹어 케이스 목록에 32px 밖에 안 남았다 */}
+          <증적알림과목록 칸={증적칸} 한줄로 />
         </div>
       ) : (
         <Head 제목={`RUN ${String(data.runId)}`} 부제={부제} 행동={행동} />
       )}
 
       <div className={상자안 ? 'screen modal-results' : 'screen'}>
-      <증적알림과목록 칸={증적칸} />
+      {상자안 ? null : <증적알림과목록 칸={증적칸} />}
 
       {pass + fail + na === 0 ? null : (
         <div className="stripe">
