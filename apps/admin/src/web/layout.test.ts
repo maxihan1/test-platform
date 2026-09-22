@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { RunSummary, ServiceRow, User } from './api.js';
-import { 고른서비스, 빈띠사유, 알림줄, 자리목록, 탭제목 } from './layout.js';
+import { 고른서비스, 빈띠사유, 알림줄, 자리목록, 지금자리, 탭제목 } from './layout.js';
 
 // 그래프 자리가 Grafana 주소를 만들 때 location 을 읽는다. jsdom 을 설치하지 않았으므로
 // api.test.ts 와 같은 방식으로 가짜를 끼운다
@@ -71,6 +71,20 @@ describe('자리 목록', () => {
 
   it('보기만 등급에게도 설정 자리는 없다', () => {
     expect(자리목록('viewer', 'ko').map((자리) => 자리.이름)).toEqual(['테스트 케이스', '테스트 작성', '실행 기록', '그래프']);
+  });
+
+  it('작성 상세를 열어도 밑줄은 작성 자리에 있다. 상세는 그 목록에서 들어온 자리다', () => {
+    expect(지금자리('authoring')).toBe('#/authoring');
+    expect(지금자리('authoringItem')).toBe('#/authoring');
+  });
+
+  it('실행 결과와 항목 상세도 같은 규칙이다', () => {
+    expect(지금자리('run')).toBe('#/runs');
+    expect(지금자리('item')).toBe('#/runs');
+  });
+
+  it('모르는 자리는 집으로 보낸다', () => {
+    expect(지금자리('unknown')).toBe('#/cases');
   });
 
   it('그래프는 Grafana 라 바깥으로 나간다', () => {

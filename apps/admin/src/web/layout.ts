@@ -64,6 +64,23 @@ export function 자리목록(role: 등급 | null, 언어: 언어): 자리[] {
 }
 
 /**
+ * 사이드바에서 어느 자리에 밑줄이 갈까.
+ *
+ * **상세 화면은 목록에서 들어온 자리다.** 실행 결과·항목 상세가 `#/runs` 를 가리키는 것과
+ * 같은 이유로 작성 상세도 `#/authoring` 을 가리킨다 — 안 그러면 상세를 여는 순간
+ * 밑줄이 케이스로 튄다.
+ *
+ * `main.tsx` 안에 두면 그 파일이 `createRoot` 를 모듈 자리에서 불러 **검사할 수가 없다.**
+ * 판단은 여기, 그림은 거기 (이 파일 머리 주석과 같은 규칙).
+ */
+export function 지금자리(name: string): string {
+  if (name === 'runs' || name === 'run' || name === 'item') return '#/runs';
+  if (name === 'authoring' || name === 'authoringItem') return '#/authoring';
+  if (name === 'settings') return '#/settings';
+  return '#/cases';
+}
+
+/**
  * 어느 서비스를 열까.
  *
  * 저장된 것이 배정 목록에 없으면 첫 번째로 돌아간다 — 배정이 빠진 뒤에도 그것을 열면

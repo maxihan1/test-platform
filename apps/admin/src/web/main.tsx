@@ -5,12 +5,21 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { api, type ServiceRow, type User, 돌아갈자리를꺼낸다, 세션끊김을받는다 } from './api.js';
+import { Authoring } from './Authoring.js';
+import { AuthoringDetail } from './AuthoringDetail.js';
 import { CaseList } from './CaseList.js';
 import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
-import { 고른서비스, 고른서비스를읽는다, 고른서비스를적는다, 고른언어를읽는다, 고른언어를적는다 } from './layout.js';
+import {
+  고른서비스,
+  고른서비스를읽는다,
+  고른서비스를적는다,
+  고른언어를읽는다,
+  고른언어를적는다,
+  지금자리,
+} from './layout.js';
 import { Login } from './Login.js';
-import { route, 돌아갈자리, type Route } from './route.js';
+import { route, 돌아갈자리 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunSetup } from './RunSetup.js';
@@ -50,6 +59,10 @@ function Screen({
       return <CaseList service={prefix} />;
     case 'setup':
       return <RunSetup tcId={current.tcId} service={service} user={user} />;
+    case 'authoring':
+      return <Authoring service={prefix} />;
+    case 'authoringItem':
+      return <AuthoringDetail service={prefix} id={current.id} role={user.role} />;
     case 'runs':
       return <RunList service={prefix} role={user.role} />;
     case 'run':
@@ -74,13 +87,6 @@ function Screen({
 }
 
 type 상태 = { 어디: '묻는중' } | { 어디: '밖' } | { 어디: '안'; user: User };
-
-/** 실행 결과와 항목 상세는 실행 기록에서 들어온 자리다. 밑줄이 케이스에 가면 안 된다 */
-function 지금자리(name: Route['name']): string {
-  if (name === 'runs' || name === 'run' || name === 'item') return '#/runs';
-  if (name === 'settings') return '#/settings';
-  return '#/cases';
-}
 
 function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) => void }) {
   const hash = useHash();
