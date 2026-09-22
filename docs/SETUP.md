@@ -312,3 +312,29 @@ npm run authoring-agent -- docs/cases/TODO-기획서-3.md --service TODO
 `scripts/authoring-agent.test.ts` 가 고정한다. **`npm test` 가 `scripts/**` 도 본다** —
 `vitest.config.ts` 의 `include` 에 그 무늬가 들어 있다. CI 가 `npm test` 를 3회 돌리므로
 CI 에 따로 이을 줄은 없다.
+
+---
+
+## 9. 화면 탐침 도구 — **깔 것이 없다**
+
+케이스를 만들려면 **화면의 요소 주소**를 알아야 하는데 기획서에는 그것이 안 적혀 있다.
+그래서 작성 에이전트가 **대상 화면을 실제로 열어 읽는다.** 그 도구는 이미 있다.
+
+```bash
+npx playwright cli --version    # npm ci 만 돌렸으면 바로 나온다
+```
+
+- **따로 설치할 것이 없다.** `package.json` 의 `@playwright/test` 가 `cli` 를 같이 들고 있다
+- **★ 전역으로 깔지 마라** (`npm install -g @playwright/cli`). 벤더 안내는 **로컬이 없을 때만**
+  전역 설치인데 이 저장소에는 로컬이 있다. 전역에 최신판을 깔면 **탐침이 읽는 화면과
+  러너가 실행하는 화면이 다른 Playwright 를 탄다** — 「탐침으로 확정한 locator 가 러너에서
+  그대로 돈다」는 이 저장소의 전제가 거기서 깨진다
+- `npx playwright cli show` 로 **에이전트가 지금 무슨 화면을 보고 있는지** 실시간으로 볼 수 있다
+
+**설명 문서는 저장소에 들어 있다** — `.claude/skills/playwright-cli/`. 벤더가 낸 것을 그대로 담았다.
+**그 폴더를 손으로 고치지 마라** — 다음 번 벤더 설치가 지운다. 우리 쪽 규칙은 아래 자리에 적는다.
+
+**절차의 정본은 `.claude/skills/tpx-cases/SKILL.md` §4 다.** 여기에 옮겨 적지 않는다 —
+특히 **그 절이 「벤더 스킬의 생성 절차는 따르지 않는다」를 못박고 있다.** 같이 담긴
+`references/test-generation.md` 가 **기대값을 화면에서 읽어 담으라**고 적는데, 이 저장소는
+그것을 금지한다 (화면의 버그가 회귀 세트에 영원히 박힌다).

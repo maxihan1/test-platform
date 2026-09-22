@@ -8,3 +8,5 @@ test-results/
 .claude/worktrees/
 .claude/settings.local.json
 .orchestrator/
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
