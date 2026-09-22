@@ -57,7 +57,9 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
 
   return (
     <>
-      <Head 제목={t('테스트 작성')} 부제={종류라벨(data.kind, 언어)} />
+      {/* 상세의 제목은 **그 대상 자체**다 — 실행 결과가 `RUN 2113` 을 쓰는 것과 같은 모양.
+          자리 이름(`테스트 작성`)을 또 쓰면 어느 요청을 보고 있는지가 안 보인다 */}
+      <Head 제목={`#${String(data.id)}`} 부제={종류라벨(data.kind, 언어)} />
 
       <div className="screen">
         <dl className="detail">
