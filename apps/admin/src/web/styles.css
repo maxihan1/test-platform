@@ -103,6 +103,19 @@
      적으면 한쪽만 바뀌었을 때 사이드바가 창보다 짧거나 길어져 스크롤이 도로 새어 나간다 */
   --body-pad-top: 24px;
   --body-pad-bottom: 80px;
+
+  /* 표머리와 줄이 **같은 격자 한 벌**을 쓴다 (2026-09-22). 각자 들고 있으면 칸이 통째로 어긋난다 —
+     실측으로 「입력값」 머리가 실제 입력칸보다 121px 오른쪽에 있었다.
+
+     **마지막 칸을 `auto` 로 두지 않는다.** 그게 진짜 원인이었다. 두 규칙이 똑같이
+     `4px 128px 1fr auto` 여도 `auto` 는 내용을 따라가는데, 머리는 글자 몇 자이고
+     줄은 판정 배지와 버튼이라 폭이 달라 남는 자리가 서로 다르게 나뉜다.
+
+     240px 은 실측 `.right` 폭(케이스 목록 194 · 실행 기록 211)에 영어 여유를 준 값이다
+     — `상세`→`Details` · `결과 보기`→`View results` 로 늘어난다. 둘을 가르지 않는다.
+     남는 폭은 `1fr` 인 케이스명·실행 제목 칸이 받는다 */
+  --list-cols: 4px 20px 128px minmax(180px, 1fr) 190px 240px;
+  --run-cols: 4px 128px minmax(0, 1fr) 240px;
 }
 
 * {
@@ -564,7 +577,7 @@ select:focus {
 /* 행 */
 .row {
   display: grid;
-  grid-template-columns: 4px 128px 1fr auto;
+  grid-template-columns: var(--run-cols);
   gap: 0 16px;
   align-items: center;
   border-bottom: 1px solid var(--rule-soft);
@@ -589,7 +602,7 @@ select:focus {
    된다. 남는 자리는 `1.1fr` 인 케이스명 칸이 대신 받는다 (2026-09-22, 사이드바 접었을 때
    공백이 많다는 지적) */
 .row.pickable {
-  grid-template-columns: 4px 20px 128px minmax(200px, 1.1fr) minmax(0, 300px) auto;
+  grid-template-columns: var(--list-cols);
 }
 
 .params {
@@ -601,12 +614,12 @@ select:focus {
    색은 껍데기 색이다 (자리 목록의 정본은 SPEC 공통/5-화면공통 §8) */
 /* 실행 기록 줄은 고르는 칸도 입력 칸도 없다. `.row` 와 같은 격자를 쓴다 */
 .rowhead.runhead {
-  grid-template-columns: 4px 128px 1fr auto;
+  grid-template-columns: var(--run-cols);
 }
 
 .rowhead {
   display: grid;
-  grid-template-columns: 4px 20px 128px minmax(200px, 1.1fr) minmax(0, 1fr) auto;
+  grid-template-columns: var(--list-cols);
   gap: 0 16px;
   align-items: center;
   padding: 10px 24px 10px 0;
@@ -1633,12 +1646,72 @@ select:focus {
   border-color: rgba(239, 235, 225, 0.3);
 }
 
+/* 언어 고르개 (2026-09-22). 여기까지는 자리 이름만 있고 **규칙이 한 줄도 없었다** —
+   그래서 OS 가 `select` 를 제 모양대로, 짙은 사이드바 위에 흰 상자로 그렸다.
+   바로 위 `.side-pick` 주석이 그 함정을 이미 경고하고 있었는데 이 자리만 빠져 있었다.
+   같은 사고가 2026-09-21 에 한 번 났고 이번이 두 번째라 `styles.test.ts` 가 막게 옮겼다
+   (CLAUDE.md §2.5) */
+/* 언어·계정·로그아웃을 **한 덩어리**로 읽히게 한다. 구분선이 계정 위에 있으면
+   언어만 목록 쪽에 붙어 떠 보인다 — 셋 다 「내 설정」이라 같이 선다 */
+.side-lang {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 4px 0;
+  margin-top: 4px;
+  border-top: 1px solid var(--rail-2);
+}
+
+/* 구획 라벨. `.side-cap` 과 같은 급이다 — 고르개 옆에 서므로 줄바꿈하지 않는다 */
+.side-lang-label {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--rail-dim);
+  white-space: nowrap;
+}
+
+/* `appearance: none` 이 없으면 OS 가 제 모양대로 그린다 — `.side-pick` 과 같은 처리다.
+   화살표는 배경 그림으로 직접 그린다. 지우면 눌러서 펴는 것인지 안 보인다 */
+.side-lang select {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  background: transparent
+    url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23aba598' stroke-width='1.5'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  background-size: 9px;
+  color: var(--rail-ink);
+  border: 1px solid rgba(239, 235, 225, 0.3);
+  border-radius: 8px;
+  padding: 2px 24px 2px 9px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+/* 펼친 목록은 OS 가 그린다. 짙은 바탕을 물려주지 않으면 흰 바탕에 흰 글자가 된다 */
+.side-lang select option {
+  background: var(--rail);
+  color: var(--rail-ink);
+}
+
+.side-lang select:focus-visible {
+  outline: 2px solid var(--rail-ink);
+  outline-offset: 2px;
+}
+
+.side-lang select:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
 .side .side-who {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  padding: 12px 4px 4px;
-  border-top: 1px solid var(--rail-2);
+  padding: 10px 4px 4px;
 }
 
 .side .side-out {

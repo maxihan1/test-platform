@@ -339,3 +339,82 @@ describe('서비스 고르개 (SPEC §8, 2026-09-22)', () => {
     expect(css).toContain('.side-cap');
   });
 });
+
+/** 선택자 하나의 규칙 블록을 통째로 준다. 주석은 지운다 — 주석 처리한 선언이 통과하면 안 된다 */
+function 규칙(선택자: string): string {
+  const 자리 = css.indexOf(`\n${선택자} {`);
+  if (자리 < 0) return '';
+  return css.slice(자리, css.indexOf('}', 자리)).replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
+/** 규칙 블록에서 grid-template-columns 값을 뽑는다 */
+function 격자(선택자: string): string {
+  return /grid-template-columns:\s*([^;]+);/.exec(규칙(선택자))?.[1]?.trim() ?? '';
+}
+
+// 표머리와 줄이 각자 격자를 들면 칸이 통째로 어긋난다. 2026-09-22 실측으로
+// 「입력값」 머리가 실제 입력칸보다 121px 오른쪽에 있었다 (「마지막 결과」 116 · 「판정」 166)
+describe('표머리와 줄이 같은 격자를 쓴다 (SPEC §8.1 · §8.7, 2026-09-22)', () => {
+  it('케이스 목록의 표머리와 줄이 같은 격자 한 벌을 쓴다', () => {
+    expect(격자('.rowhead'), '표머리에 격자가 없다').not.toBe('');
+    expect(격자('.rowhead')).toBe('var(--list-cols)');
+    expect(격자('.row.pickable')).toBe('var(--list-cols)');
+  });
+
+  it('실행 기록의 표머리와 줄이 같은 격자 한 벌을 쓴다', () => {
+    expect(격자('.rowhead.runhead')).toBe('var(--run-cols)');
+    expect(격자('.row')).toBe('var(--run-cols)');
+  });
+
+  // 값이 같은 글자여도 마지막 칸이 auto 면 안 맞는다 — 머리는 글자 몇 자이고
+  // 줄은 판정 배지와 버튼이라 내용 폭이 달라 남는 자리가 다르게 나뉜다.
+  // 이 검사가 없으면 두 규칙이 똑같이 `4px 128px 1fr auto` 여도 통과한다
+  it('격자의 마지막 칸이 내용을 따라가지 않는다', () => {
+    const 표 = 토큰들();
+    for (const 이름 of ['--list-cols', '--run-cols']) {
+      const 값 = 표[이름];
+      expect(값, `${이름} 이 :root 에 없다`).toBeDefined();
+      expect(값!.trim().endsWith('auto'), `${이름} 의 마지막 칸이 auto 다`).toBe(false);
+      expect(값!.trim()).toMatch(/\d+px$/);
+    }
+  });
+
+  it('좁은 화면에서는 표머리를 감춘다 — 줄이 2단으로 접혀 칸이 세로로 눕는다', () => {
+    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(좁은화면).toMatch(/\.rowhead\s*\{[^}]*display:\s*none/);
+  });
+});
+
+// 2026-09-21 에 배운 것이 2026-09-22 에 그대로 재발했다 — 언어 고르개에 규칙이 없어
+// OS 가 짙은 사이드바 위에 흰 상자를 그렸다. 두 번째라 기계로 옮긴다 (CLAUDE.md §2.5).
+// 밝은 면 위의 select 는 OS 모양이어도 읽히므로 사이드바만 본다
+describe('사이드바의 select 를 OS 가 그리지 않는다 (LEARNINGS 2026-09-21 재발)', () => {
+  const 껍데기 = readFileSync(new URL('./Shell.tsx', import.meta.url), 'utf8');
+
+  /** 사이드바가 그리는 select 하나하나의 자리 이름(class 나 id)을 모은다 */
+  function 고르개이름들(): string[] {
+    const 이름들: string[] = [];
+    for (const m of 껍데기.matchAll(/<select\b([\s\S]*?)>/g)) {
+      const 이름 = /(?:className|id)="([\w-]+)"/.exec(m[1] ?? '')?.[1];
+      if (이름 !== undefined) 이름들.push(이름);
+    }
+    return 이름들;
+  }
+
+  it('사이드바가 그리는 고르개를 세었다', () => {
+    expect(고르개이름들().length).toBeGreaterThanOrEqual(2);
+  });
+
+  // 「appearance 라는 글자가 css 어딘가에 있다」로는 안 된다 — 다른 선택자에 걸린 것도 통과한다.
+  // 그 고르개를 **겨냥한 규칙 안에서** 껐는지 본다 (spec-review G9)
+  it('고르개마다 그것을 겨냥한 규칙이 appearance 를 끈다', () => {
+    for (const 이름 of 고르개이름들()) {
+      const 겨냥 = css
+        .split('\n')
+        .filter((줄) => 줄.includes(이름) && 줄.trimEnd().endsWith('{'))
+        .map((줄) => 규칙(줄.trim().replace(/\s*\{$/, '')));
+      const 끈것 = 겨냥.filter((블록) => /appearance:\s*none/.test(블록));
+      expect(끈것.length, `${이름} 를 겨냥한 규칙 중 appearance 를 끈 것이 없다`).toBeGreaterThan(0);
+    }
+  });
+});
