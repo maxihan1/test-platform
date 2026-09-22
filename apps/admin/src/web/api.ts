@@ -243,6 +243,8 @@ export interface AuthoringRow {
   prUrl: string | null;
   error: string | null;
   createdAt: string;
+  /** 맥이 집어 간 시각. 단계를 한 번도 안 올렸을 때 「멈췄나」를 재는 기준이 된다 */
+  startedAt: string | null;
   finishedAt: string | null;
 }
 
