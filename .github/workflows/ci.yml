@@ -63,8 +63,8 @@ jobs:
       - name: DB 초기 스크립트 (docker-compose 가 자동으로 하는 일을 CI 에서는 손으로)
         if: steps.skeleton.outputs.ready == '1'
         run: |
-          for 파일 in db/init/*.sql; do
-            PGPASSWORD=platform psql -h localhost -p 5432 -U platform -d platform -v ON_ERROR_STOP=1 -f "$파일"
+          for f in db/init/*.sql; do
+            PGPASSWORD=platform psql -h localhost -p 5432 -U platform -d platform -v ON_ERROR_STOP=1 -f "$f"
           done
       - name: 마이그레이션 (표가 없으면 DB 검사가 relation does not exist 로 죽는다)
         if: steps.skeleton.outputs.ready == '1'

@@ -274,3 +274,23 @@ test('CI 가 db/init 을 마이그레이션보다 먼저 먹인다 — compose �
     'db/init 이 마이그레이션보다 뒤에 있다 — 역할이 없는 채로 GRANT 가 돌아 죽는다',
   );
 });
+
+// **이 저장소는 이름을 한국어로 짓는다. 셸 변수만은 안 된다.**
+// 러너의 bash 는 `for 파일 in ...` 을 `not a valid identifier` 로 거절한다 (2026-09-22 실측).
+// macOS 에서 손으로 확인할 때 영문 이름으로 바꿔 돌리면 **확인한 명령과 넣은 명령이 달라져**
+// 이 함정을 못 본다 — 실제로 그렇게 한 번 놓쳤다. 그래서 기계가 본다.
+test('ci.yml 의 셸 변수 이름이 전부 ASCII 다 — 러너의 bash 가 한글 이름을 거절한다', () => {
+  const 주석없이 = readFileSync(CI, 'utf8')
+    .split('\n')
+    .map((줄) => 줄.replace(/#.*$/, ''))
+    .join('\n');
+  const 걸린것 = [
+    [/\$\{?([^\x00-\x7F])/, '$ 뒤에 ASCII 가 아닌 글자'],
+    [/\bfor\s+([^\x00-\x7F])/, 'for 뒤의 변수 이름에 ASCII 가 아닌 글자'],
+  ].filter(([정규식]) => 정규식.test(주석없이));
+  assert.deepEqual(
+    걸린것.map(([, 설명]) => 설명),
+    [],
+    '셸 변수 이름에 한글이 섞였다 — 러너에서 not a valid identifier 로 그 단계가 죽는다',
+  );
+});
