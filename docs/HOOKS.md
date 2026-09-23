@@ -50,6 +50,7 @@ echo '{"tool_input":{"file_path":"packages/kit/src/types.ts"}}' \
 **2026-09-18 에 `.git/hooks/` 에서 옮겼다.** 거기는 추적이 안 돼 PR 에 안 실리고
 판별식이 못 보고 새 기계에서 사라진다. 배선은 `git config core.hooksPath .claude/hooks`
 한 번이고 `docs/SETUP.md` 에 적혀 있다 — **그 설정 자체는 여전히 추적되지 않는다.**
+상대경로로 걸면 작업방마다 그 작업방의 훅이, 절대경로로 걸면 늘 main 체크아웃의 훅이 돈다 (아래 「가벼운 길」 절).
 
 **브랜치 삭제 push 는 검사를 건너뛴다.** git 이 stdin 으로 주는 로컬 sha 가 전부 0 이면
 올릴 코드가 없다는 뜻이다. 2026-09-18 에 원격 브랜치 여섯을 지우며 전체 테스트가
@@ -190,8 +191,12 @@ Phase 0가 끝나고 게이트 G1을 통과한 뒤부터 예외 없이 띄운다
 **훅 가벼운 길** — pre-push 는 타입 검사와 `check:tests` 만 돈다. **검사 기록(`docs/reviews/<오늘>-*.md`)을 요구하지 않는다** —
 CLAUDE.md §2.3 의 예외로 승인됐다 (2026-09-23 게이트 1). 한 번에 여러 브랜치를 push 하면 전부 테스트만이어야 가벼운 길이다.
 
-**★ 새 훅은 main 을 pull 해야 돈다.** `core.hooksPath` 가 main 체크아웃의 절대경로를 가리켜서,
-작업방에서 push 해도 **main 체크아웃에 있는 훅**이 돈다. 병합 뒤 main 체크아웃에서 `git pull` 을 안 하면 옛 훅이 계속 돈다.
+**★ 어느 훅이 도는지는 `core.hooksPath` 를 어떻게 걸었는지에 달렸다.** `git config --show-origin core.hooksPath` 로 확인한다.
+
+- **절대경로**(`/Users/.../test_platform/.claude/hooks`) — 작업방에서 push 해도 **main 체크아웃에 있는 훅**이 돈다.
+  병합 뒤 main 체크아웃에서 `git pull` 을 안 하면 **옛 훅이 계속 돈다.** 지금 맥이 이렇게 걸려 있다 (2026-09-23 실측)
+- **상대경로**(`.claude/hooks` — `docs/SETUP.md` 가 안내하는 한 줄) — git 이 **각 작업방의 루트** 기준으로 풀어서
+  **그 작업방이 딴 판의 훅**이 돈다. 작업방을 옛 main 에서 땄으면 옛 훅이다
 
 **★ 빨간 PR 의 병합을 막는 것은 GitHub 이 아니다.** 보호가 관리자에게 강제되지 않고(`enforce_admins: false`)
 맥은 저장소 주인 계정으로 돈다. **막는 것은 맥의 판정(`check` 가 `success` 일 때만 병합)과 「관리자 우회를 쓰지 않는다」 둘뿐이다.**
