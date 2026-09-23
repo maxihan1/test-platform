@@ -14,13 +14,22 @@
 // 설계상 사람이 켜서 터미널에 띄워 두는 것이라(숨은 데몬이 아니다) 그 한 번이 공짜다.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { createInterface } from 'node:readline';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글 } from './authoring-assets.js';
+import {
+  type 권한설정,
+  type 읽을자료,
+  type 자료,
+  돌릴수있나,
+  셸허용됐나,
+  자료계획,
+  자료목록글,
+  자료출처,
+} from './authoring-assets.js';
 
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
 export interface 설정 extends 권한설정 {
@@ -495,37 +504,93 @@ async function 한건처리(주소기지: string, 쿠키: string, 서비스: str
     return;
   }
 
-  await 단계('케이스를 만드는 중');
-  // **출력을 잡는다.** 자식이 찍는 PR 주소를 못 읽으면 화면에 머지 버튼이 영영 안 뜬다.
-  // 그래도 사람 눈에는 보여야 하므로(숨은 데몬이 아니다) 받는 족족 그대로 흘려보낸다
-  const 돌린것 = spawnSync('claude', 클로드인자(process.cwd()), {
-    input: 줄프롬프트(것, 서비스, []),
-    stdio: ['pipe', 'pipe', 'inherit'],
-    encoding: 'utf8',
-  });
-  const 낸것 = 돌린것.stdout ?? '';
-  process.stdout.write(낸것);
-
-  if (돌린것.error) {
-    await 끝내기({ status: 'FAILED', error: `claude 를 못 띄웠다: ${돌린것.error.message}` });
-    return;
-  }
-  if (돌린것.status !== 0) {
-    await 끝내기({ status: 'FAILED', error: '케이스를 만들다 멈췄다. 터미널 기록을 봐라.' });
-    return;
+  // 재실행 행은 자기 자료가 없다. 원본 행을 읽어 자료와(옛 행이면) 본문을 가져온다
+  const 출처 = 자료출처(것);
+  let 자료들 = 것.assets ?? [];
+  let 본문 = 것.specText ?? null;
+  if (출처 !== 것.id) {
+    const 원본 = await 부른다(주소기지, 쿠키, `/authoring/requests/${출처}?service=${encodeURIComponent(서비스)}`);
+    if (원본.status !== 200) {
+      await 끝내기({ status: 'FAILED', error: `원본 요청(${출처}번)을 못 읽었다 (${원본.status})` });
+      return;
+    }
+    const 몸 = 원본.몸 as { assets?: 자료[]; specText?: string | null };
+    자료들 = 몸.assets ?? [];
+    본문 = 본문 || (몸.specText ?? null);
   }
 
-  const 주소 = PR주소찾기(낸것);
-  if (주소 === null) {
-    // **초록으로 닫지 않는다.** 주소가 없으면 사람이 머지를 못 누르고, 그때
-    // 「끝남」이라고 적힌 줄만 남아 무엇이 잘못됐는지 아무도 모른다
-    await 끝내기({
-      status: 'FAILED',
-      error: '케이스는 만들었는데 초안 PR 주소를 못 찾았다. 터미널 기록에서 PR 을 확인해라.',
+  const 막힘 = 돌릴수있나({ specText: 본문, figmaToken: 것.figmaToken }, 자료들);
+  if (막힘 !== null) {
+    await 끝내기({ status: 'FAILED', error: 막힘 });
+    return;
+  }
+
+  // 이름을 예측할 수 없게 만든다. 고정 이름이면 남이 미리 만들어 둔 폴더·링크에 받아 쓴다
+  const 폴더 = mkdtempSync(join(tmpdir(), `authoring-${것.id}-`));
+  try {
+    const 계획 = 자료계획(자료들, 폴더);
+    if (계획.some((c) => c.kind === 'FILE')) await 단계('자료를 받는 중');
+    for (const c of 계획) {
+      if (c.kind !== 'FILE') continue;
+      const 답 = await fetch(
+        `${주소기지}/api/authoring/requests/${출처}/assets/${c.id}?service=${encodeURIComponent(서비스)}`,
+        { headers: { cookie: 쿠키 } },
+      );
+      if (거절인가(답.status)) {
+        throw new Error(`서버가 거절했다 (${답.status}). 세션이 끊겼거나 등급이 모자란다 — 다시 물어도 같다.`);
+      }
+      if (!답.ok) {
+        await 끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 못 받았다 (${답.status})` });
+        return;
+      }
+      // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다
+      writeFileSync(c.받을자리, Buffer.from(await 답.arrayBuffer()));
+      if (c.변환 === null) continue;
+      const 바꾼것 = spawnSync('textutil', c.변환, { stdio: ['ignore', 'ignore', 'pipe'], encoding: 'utf8' });
+      if (바꾼것.error || 바꾼것.status !== 0) {
+        const 까닭 = 바꾼것.error?.message ?? (바꾼것.stderr ?? '').split('\n')[0] ?? '';
+        await 끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 글자로 못 바꿨다: ${까닭}` });
+        return;
+      }
+    }
+
+    await 단계('케이스를 만드는 중');
+    // **출력을 잡는다.** 자식이 찍는 PR 주소를 못 읽으면 화면에 머지 버튼이 영영 안 뜬다.
+    // 그래도 사람 눈에는 보여야 하므로(숨은 데몬이 아니다) 받는 족족 그대로 흘려보낸다
+    // 피그마 토큰은 **자식 환경에만** 넣는다. 부모 환경에 넣으면 이 뒤에 띄우는 모든 것(gh 등)에 샌다
+    const 돌린것 = spawnSync('claude', 클로드인자(폴더), {
+      input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획),
+      stdio: ['pipe', 'pipe', 'inherit'],
+      encoding: 'utf8',
+      env: 것.figmaToken === undefined ? process.env : { ...process.env, FIGMA_TOKEN: 것.figmaToken },
     });
-    return;
+    const 낸것 = 돌린것.stdout ?? '';
+    process.stdout.write(낸것);
+
+    if (돌린것.error) {
+      await 끝내기({ status: 'FAILED', error: `claude 를 못 띄웠다: ${돌린것.error.message}` });
+      return;
+    }
+    if (돌린것.status !== 0) {
+      await 끝내기({ status: 'FAILED', error: '케이스를 만들다 멈췄다. 터미널 기록을 봐라.' });
+      return;
+    }
+
+    const 주소 = PR주소찾기(낸것);
+    if (주소 === null) {
+      // **초록으로 닫지 않는다.** 주소가 없으면 사람이 머지를 못 누르고, 그때
+      // 「끝남」이라고 적힌 줄만 남아 무엇이 잘못됐는지 아무도 모른다
+      await 끝내기({
+        status: 'FAILED',
+        error: '케이스는 만들었는데 초안 PR 주소를 못 찾았다. 터미널 기록에서 PR 을 확인해라.',
+      });
+      return;
+    }
+    await 끝내기({ status: 'DONE', prUrl: 주소 });
+  } finally {
+    // 받은 기획서를 맥에 남기지 않는다. 성공이든 실패든 지운다
+    rmSync(폴더, { recursive: true, force: true });
   }
-  await 끝내기({ status: 'DONE', prUrl: 주소 });
 }
 
 const 쉬는시간 = 5000;
