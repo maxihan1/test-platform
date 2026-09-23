@@ -263,7 +263,8 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   WS-A `ZZA` · WS-B `XBS`·`XBR`·`XBQ`·`XBX` · WS-D `XDC`·`XDR`·`XDD`·`XDG` ·
   WS-F `xfu1`~`xfu4`·`XFS1`·`XFS1B`·`XFS2`~`XFS4`·`XFS5`(`auth/scope.test.ts`) ·
   WS-작성 `XWA`(`authoring/store.test.ts`)·`XWAR`(`authoring/routes.test.ts`)·
-  `XWS`(`authoring/assetStore.test.ts`)·`XWU`(`authoring/assets.test.ts`).
+  `XWS`(`authoring/assetStore.test.ts`)·`XWU`(`authoring/assets.test.ts`) ·
+  에이전트 토큰 `xfu5`(계정)·`XFS6`(서비스)(`auth/agentToken.test.ts`, 2026-09-23 — `xfu4` 와 겹치지 않게 `'xfu5%'` 로만 지운다).
   **이 넷은 `authoring_request` 를 `LIKE` 가 아니라 자기 `service_id` 로만 지운다** —
   `XWAR` 이 `XWA` 로 시작하므로 `LIKE 'XWA%'` 로 넓히면 남의 fixture 를 실행 도중에 지운다 (2026-09-22).
   **WS-D·WS-F는 `ZZ`로 시작하는 것을 쓰지 않는다.**

@@ -3,6 +3,7 @@
 
 import type { Pool, PoolClient } from 'pg';
 
+import { 작성계정인가 } from '../auth/agentToken.js';
 import { 무작위비밀번호, 해시 } from '../auth/password.js';
 import type { 등급 } from '../auth/store.js';
 
@@ -39,6 +40,10 @@ export interface 계정행 {
   role: 등급;
   isActive: boolean;
   services: string[];
+  /** 토큰 자체가 아니라 있는지만 (SPEC 도메인/인증 §7) */
+  hasAgentToken: boolean;
+  /** 화면이 토큰 칸을 그릴 계정인가 — 서버가 정한 작성 에이전트 계정 하나뿐이다 */
+  isAuthoringAgent: boolean;
 }
 
 async function db(): Promise<Pool> {
@@ -206,12 +211,12 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
 }
 
 const 계정들 = `
-  SELECT u.username, u.display_name, u.role, u.is_active,
+  SELECT u.username, u.display_name, u.role, u.is_active, u.agent_token_hash IS NOT NULL AS has_agent_token,
          COALESCE(json_agg(s.prefix ORDER BY s.prefix) FILTER (WHERE s.prefix IS NOT NULL), '[]') AS services
     FROM app_user u
     LEFT JOIN user_service us ON us.username = u.username
     LEFT JOIN service s ON s.id = us.service_id
-   GROUP BY u.username, u.display_name, u.role, u.is_active
+   GROUP BY u.username, u.display_name, u.role, u.is_active, u.agent_token_hash
    ORDER BY u.username`;
 
 export async function 계정목록(): Promise<계정행[]> {
@@ -221,6 +226,7 @@ export async function 계정목록(): Promise<계정행[]> {
     display_name: string;
     role: 등급;
     is_active: boolean;
+    has_agent_token: boolean;
     services: string[];
   }>(계정들);
   return rows.rows.map((r) => ({
@@ -229,6 +235,8 @@ export async function 계정목록(): Promise<계정행[]> {
     role: r.role,
     isActive: r.is_active,
     services: r.services,
+    hasAgentToken: r.has_agent_token,
+    isAuthoringAgent: 작성계정인가(r.username),
   }));
 }
 
