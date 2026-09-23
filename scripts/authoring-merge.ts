@@ -138,7 +138,8 @@ export async function 머지처리(손: 보고손, prUrl: string, 판정: 판정
 /**
  * 빨리감기만 한다. 사람 체크아웃에 병합 커밋을 몰래 만들지 않는다.
  * **훅과 fsmonitor 를 끈다** — 자식은 맥의 `.git` 을 쓸 수 있어서, 켜 두면 자식이 써 둔
- * post-merge 훅이 GitHub 자격증명을 가진 맥 권한으로 돈다 (2026-09-23 보안 검사가 잡았다)
+ * post-merge 훅이 GitHub 자격증명을 가진 맥 권한으로 돈다 (2026-09-23 보안 검사가 잡았다).
+ * ponytail: 훅만 막는다. `.git/config` 의 filter·sshCommand 는 못 막는다 — 자식의 쓰기 범위에서 뿌리 `.git` 을 빼는 것이 후속이다
  */
 export const 당김인자 = [
   '-c',
