@@ -1,3 +1,4 @@
+// 작성 에이전트의 자료 다루기 순수 함수 검사. 자료 순서·파일 변환·돌릴 조건·셸 허용 판정이 여기서 고정된다
 import { describe, expect, it } from 'vitest';
 
 import { 돌릴수있나, 셸허용됐나, 자료계획, 자료출처, type 자료 } from './authoring-assets.js';
