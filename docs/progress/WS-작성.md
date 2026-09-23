@@ -343,3 +343,10 @@
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 맥이 새 통로를 부르게 되면 `토큰통로` 에 한 줄을 더해야 한다 — 안 더하면 403 `AGENT_TOKEN_SCOPE`. 맥의 `AUTHORING_AGENT_USER` 는 이제 안 쓴다(서버 `.env` 만). 계획 `docs/plans/2026-09-23-작성-에이전트토큰.md`
 - 후속 (게이트 2 검사가 넘김): ① 자식 세션이 같은 OS 계정이라 토큰 파일을 읽을 수 있다 — 남의 요청 집기·그 서비스의 피그마 토큰 받기·같은 저장소 아무 PR 주소로 끝내기가 된다. `finish` 의 prUrl 을 그 요청이 올린 브랜치(`올릴브랜치(id)`)의 PR 로 좁힌다 ② 자식의 쓰기 범위에서 뿌리 `.git` 을 뺀다(기존 과제 — 이번에는 당길 때 훅·fsmonitor 만 껐다)
+
+## 2026-09-23 (9회차) — 작성 에이전트를 서버 컨테이너로 (PR #68)
+
+- 완료: compose 새 서비스 `author`(profile `authoring`, `apps/authoring/Dockerfile`·`start.sh`) — Playwright 이미지 + claude 2.1.280 고정 + gh + pandoc. 저장소 뿌리 `/repo` 바인드 · `.env` 가림 · admin 하고만 같은 망 · 호스트 uid · lock 해시로 `npm ci`. 토큰은 `.env` 의 `AUTHORING_AGENT_TOKEN`(자식에서 뺌)·`CLAUDE_CODE_OAUTH_TOKEN`(구독 모양 검사)·`GH_TOKEN`. 워드는 리눅스에서 pandoc, 옛 `.doc` 은 실패로 알림. 주소 검사가 `http://admin` 만 더 받는다. SPEC 작성 §3.6 「★ 서버 컨테이너가 기본이다」·결정표 · 공통/6 §9 · SETUP §8 설치 순서
+- 미완: **서버에서 한 바퀴 실측** — 사용자가 `.env` 에 토큰 셋을 넣어야 한다(`claude setup-token`·GitHub fine-grained·에이전트 토큰). 작업방은 컨테이너에서 git 이 안 돼 **병합 뒤 main 체크아웃에서** 한다. 리눅스 서버 uid 실측도 아직
+- 막힌 것: 없음. 이미지 빌드·도구 판·[거부] 셋·볼륨 위 `npm ci`·에이전트 켜기까지는 가짜 토큰으로 확인
+- 다음 세션이 알아야 할 것: 맥 경로(`npm run authoring-agent`)는 개발용 대체로 남았다 — 서버 author 와 **동시에 돌리지 않는다**. 이미지의 Playwright 태그는 러너와 같이 올린다. 계획 `docs/plans/2026-09-23-작성-서버로.md`
