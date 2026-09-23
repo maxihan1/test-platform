@@ -28,7 +28,13 @@ const 테스트폴더 = new URL('tests/', 루트);
 const 막는잡 = 'check';
 
 // 골격이 없는 저장소에서만 건너뛰라는 조건. 다른 조건이 붙으면 단계가 안 도는 길이 생긴다.
-const 허용조건 = "steps.skeleton.outputs.ready == '1'";
+const 골격조건 = "steps.skeleton.outputs.ready == '1'";
+// 테스트만 바뀐 PR 의 가벼운 길에서 빠지는 무거운 단계의 조건 (docs/HOOKS.md 「CI 와 병합 차단」).
+// 허용하는 조건은 이 둘뿐이다 — 셋째가 생기면 단계가 조용히 안 도는 길이 또 생긴다.
+const 무거운조건 = `${골격조건} && steps.light.outputs.light != '1'`;
+const 허용조건들 = [골격조건, 무거운조건];
+// 가벼운 길에서도 도는 검사. 이것들이 무거운 쪽으로 옮겨 가면 가벼운 길이 아무것도 안 본다.
+const 가벼운검사 = ['npm run typecheck', 'npm run check:tests', 'npm run check:secret-names'];
 
 // 면제는 여기 한 곳에만 둔다. 사유 없이 이름만 더하지 않는다.
 const 면제 = new Map([
@@ -110,7 +116,8 @@ export function 도는폴더(블록) {
 
 const 원문 = 주석뺀다(readFileSync(CI, 'utf8'));
 const 블록 = 잡블록(원문, 막는잡);
-const 실행단계 = 블록 === null ? [] : 단계들(블록).filter((s) => /playwright\s+test\s+tests\//.test(치는명령(s)));
+// `tests/` 경로가 아니라 `playwright test` 자체로 잡는다 — `playwright test $FILES` 같은 변수 인자 단계가 비껴가지 않게
+const 실행단계 = 블록 === null ? [] : 단계들(블록).filter((s) => /playwright\s+test\b/.test(치는명령(s)));
 
 test(`ci.yml 에 병합을 막는 잡 '${막는잡}' 이 있다`, () => {
   assert.ok(
@@ -149,12 +156,49 @@ test('그 단계가 실패를 삼키지 않는다 — continue-on-error · || tr
     );
     const 조건 = /^\s*if:\s*(.+)$/m.exec(단계);
     if (조건) {
-      assert.equal(
-        조건[1].trim(),
-        허용조건,
-        `이 단계의 if 조건이 다른 단계들과 다르다. 조건이 거짓이면 그 단계는 조용히 안 돈다 — 기대한 것은 "${허용조건}" 이다`,
+      assert.ok(
+        허용조건들.includes(조건[1].trim()),
+        `이 단계의 if 조건이 허용한 둘과 다르다. 조건이 거짓이면 그 단계는 조용히 안 돈다 — 기대한 것은 ${허용조건들.map((c) => `"${c}"`).join(' 또는 ')} 이다`,
       );
     }
+  }
+});
+
+// 가벼운 길 (2026-09-23 게이트 1 결정) — 테스트만 바뀐 PR 은 케이스를 **실행하지 않는다.**
+// 병합 근거는 맥의 관문 3(3회 실행) 기록이다. 그래서 실행 단계는 가벼운 길에서 빠져야 하고,
+// 빠지는 조건은 정확히 무거운조건 하나여야 한다.
+test('가벼운 길에서 실행 단계가 빠진다 — 조건이 정확히 「골격 그리고 가벼운 길 아님」', () => {
+  assert.ok(실행단계.length > 0);
+  for (const 단계 of 실행단계) {
+    const 조건 = /^\s*if:\s*(.+)$/m.exec(단계);
+    assert.equal(조건?.[1].trim(), 무거운조건, `실행 단계가 가벼운 길에서도 돈다 — 기대한 조건은 "${무거운조건}" 이다`);
+  }
+});
+
+test('가벼운 길 판정 단계가 cases-only.mjs 를 부르고, 실패를 빨간불로 만들지 않는다', () => {
+  const 판정 = (블록 === null ? [] : 단계들(블록)).find((s) => /^\s*id:\s*light\s*$/m.test(s));
+  assert.ok(판정, 'id: light 인 판정 단계가 없다 — 무거운 단계의 조건이 늘 참이라 가벼운 길이 없다');
+  const 명령 = 치는명령(판정);
+  assert.match(명령, /\.claude\/scripts\/cases-only\.mjs/, '판정을 cases-only.mjs 에 맡기지 않는다 — 규칙이 두 곳에 생긴다');
+  assert.match(판정, /github\.event\.pull_request\.base\.sha/, 'base 를 PR 의 base sha 로 잡지 않는다');
+  // bash -e 에서 판정이 1(무거운 길)을 내면 그 단계가 빨개진다 — if 로 감싸야 한다
+  assert.match(명령, /if\s[\s\S]*cases-only[\s\S]*then[\s\S]*light=1[\s\S]*else[\s\S]*light=0/, 'if … then light=1 else light=0 모양이 아니다');
+  assert.match(명령, /GITHUB_OUTPUT/, '판정을 GITHUB_OUTPUT 에 안 쓴다');
+});
+
+test('checkout 이 base 와 비교할 만큼 이력을 받는다 (fetch-depth: 0)', () => {
+  const 체크아웃 = (블록 === null ? [] : 단계들(블록)).find((s) => /actions\/checkout/.test(s));
+  assert.ok(체크아웃);
+  assert.match(체크아웃, /fetch-depth:\s*0/, 'fetch-depth 가 0 이 아니다 — base sha 가 없어 판정이 늘 무거운 길이 된다');
+});
+
+test('가벼운 길에서도 타입 · K1~K10 · 비밀값 이름은 돈다', () => {
+  const 전부 = 블록 === null ? [] : 단계들(블록);
+  for (const 검사 of 가벼운검사) {
+    const 단계 = 전부.find((s) => 치는명령(s).includes(검사));
+    assert.ok(단계, `${검사} 단계가 없다`);
+    const 조건 = /^\s*if:\s*(.+)$/m.exec(단계);
+    assert.equal(조건?.[1].trim(), 골격조건, `${검사} 가 가벼운 길에서 빠진다 — 그러면 가벼운 길이 아무것도 안 본다`);
   }
 });
 
