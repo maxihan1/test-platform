@@ -24,6 +24,9 @@ git config --global user.name "${AUTHORING_GIT_NAME:-test-platform authoring}"
 git config --global user.email "${AUTHORING_GIT_EMAIL:-authoring@test-platform.invalid}"
 # push 는 GH_TOKEN 으로 한다. 자식에게는 자식환경이 빈 credential.helper 와 가짜 토큰을 준다
 gh auth setup-git
+# 서버 저장소 원격이 ssh(git@github.com:…)여도 https 로 돌린다 — 컨테이너에는 ssh 키가 없다
+git config --global url."https://github.com/".insteadOf "git@github.com:"
+git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
 
 # 자식 세션이 관문을 돌리려면 셸이 열려 있어야 한다 — 선행검사가 사용자 설정 자리에서 이것을 본다
 printf '{"permissions":{"allow":["Bash(*)"]}}\n' > "$HOME/.claude/settings.json"

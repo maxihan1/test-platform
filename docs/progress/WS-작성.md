@@ -350,3 +350,4 @@
 - 미완: **서버에서 한 바퀴 실측** — 사용자가 `.env` 에 토큰 셋을 넣어야 한다(`claude setup-token`·GitHub fine-grained·에이전트 토큰). 작업방은 컨테이너에서 git 이 안 돼 **병합 뒤 main 체크아웃에서** 한다. 리눅스 서버 uid 실측도 아직
 - 막힌 것: 없음. 이미지 빌드·도구 판·[거부] 셋·볼륨 위 `npm ci`·에이전트 켜기까지는 가짜 토큰으로 확인
 - 다음 세션이 알아야 할 것: 맥 경로(`npm run authoring-agent`)는 개발용 대체로 남았다 — 서버 author 와 **동시에 돌리지 않는다**. 이미지의 Playwright 태그는 러너와 같이 올린다. 계획 `docs/plans/2026-09-23-작성-서버로.md`
+- **후속 — 고객사 설치 전 필수 (게이트 2 결정)**: 자식 격리. 지금은 자식이 서버 저장소(`/repo`) 전체에 쓸 수 있고(작업방 밖 `tests/`·`scripts/`·훅·compose), 같은 uid 라 `/proc/<부모>/environ` 으로 토큰 셋을 읽고, HOME 을 부모와 같이 쓴다. 해법 후보 — author 전용 사본(볼륨) + 서버 `tests/` 는 병합된 main 만 당김 + 자식을 다른 uid(작업방에만 쓰기) + 건마다 새 HOME. 이번 PR 은 postgres 를 127.0.0.1 로 좁히고 한계를 SPEC·SETUP 에 적는 데까지

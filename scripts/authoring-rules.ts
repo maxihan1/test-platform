@@ -169,7 +169,7 @@ export function 머지할수있나(것: { kind: 집은것['kind']; prUrl?: strin
   return 것.kind === 'MERGE' && typeof 것.prUrl === 'string' && 것.prUrl !== '';
 }
 
-/** 맥은 컨테이너 밖이라 admin 을 주소로 부른다. 안 주면 compose 의 기본 포트를 본다 */
+/** 에이전트가 admin 을 부를 주소. 서버 author 컨테이너는 compose 가 http://admin:3000 을 준다. 안 주면(맥) compose 의 기본 포트를 본다 */
 export function admin주소(env: Record<string, string | undefined>): string {
   return env.PLATFORM_ADMIN_URL ?? 'http://localhost:3000';
 }
