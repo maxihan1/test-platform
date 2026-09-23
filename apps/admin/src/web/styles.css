@@ -2689,3 +2689,8 @@ select:focus {
 
 /* 실패는 눈에 띄어야 한다. 본문 글씨 그대로면 사람이 그냥 지나친다 */
 .error-text { color: var(--fail); font-weight: 600; }
+
+/* 작성 요청 폼의 칸 둘 — 이름표를 위에 얹는다. 파일 칸과 주소 칸이 한 줄에 나란히 선다 */
+.authoring-new .authoring-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 260px; min-width: 0; }
+.authoring-new .authoring-field > span { color: var(--ink-muted); font-size: 12px; }
+.authoring-new .authoring-field textarea { min-height: 64px; }
