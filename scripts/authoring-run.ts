@@ -13,7 +13,6 @@ import {
   PR본문,
   PR찾기인자,
   닫을RUNNING,
-  머지인자,
   바뀐파일들,
   작업방준비,
   작업방폴더,
@@ -21,6 +20,7 @@ import {
   푸시거부사유,
   푸시인자,
 } from './authoring-chain.js';
+import { 머지처리 } from './authoring-merge.js';
 
 /** 서버에 거는 한 번. 거절이면 그 자리에서 던져 루프를 끊는다 */
 export async function 부른다(
@@ -131,17 +131,12 @@ export async function 한건처리(주소기지: string, 쿠키: string, 서비�
       const 원본 = await 부른다(주소기지, 쿠키, `/authoring/requests/${것.sourceId}?service=${encodeURIComponent(서비스)}`);
       주소 = (원본.몸 as { prUrl?: string | null } | null)?.prUrl ?? null;
     }
-    if (주소 === null) {
+    // 브랜치 이름이 원본 요청 번호(`author-<번호>`)라 CI 실행을 그 번호로 찾는다
+    if (주소 === null || typeof 것.sourceId !== 'number') {
       await 손.끝내기({ status: 'FAILED', error: '머지할 초안 PR 주소가 없다' });
       return;
     }
-    await 손.단계('머지하는 중');
-    const 친것 = spawnSync('gh', 머지인자(주소), { stdio: ['ignore', 'inherit', 'inherit'] });
-    await 손.끝내기(
-      친것.status === 0
-        ? { status: 'DONE', prUrl: 주소 }
-        : { status: 'FAILED', error: '병합이 실패했다. 검사가 빨갛거나 충돌이 있다.' },
-    );
+    await 머지처리(손, 것.sourceId, 주소);
     return;
   }
 
