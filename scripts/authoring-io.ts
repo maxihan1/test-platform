@@ -1,7 +1,7 @@
 // 작성 에이전트 껍데기들이 같이 쓰는 손 — 서버 부르기 · 보고 · 셸 없이 치기 · 간격 두고 다시 하기
 // 한 건 처리(authoring-run)와 머지(authoring-merge)가 둘 다 쓴다. 판단은 여기 없다.
 
-import { spawnSync } from 'node:child_process';
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -95,15 +95,99 @@ export function 보고손만들기(주소기지: string, 토큰: string, 서비�
   };
 }
 
-/** 셸 없이 한 번 친다. 멈춘 git·gh 가 줄 전체를 붙잡지 않게 시간 제한을 건다 */
-export function 친다(명령: string, 인자: string[], cwd: string, input?: string, 제한 = 120_000) {
-  const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한 });
+export interface 칠때 {
+  /** 부모 환경 위에 얹는다 (`친다`) · 통째로 준다 (`돌린다`) */
+  env?: Record<string, string | undefined>;
+  uid?: number;
+  gid?: number;
+}
+
+/**
+ * 셸 없이 한 번 친다. 멈춘 git·gh 가 줄 전체를 붙잡지 않게 시간 제한을 건다.
+ * **동기라 도는 동안 다른 서비스 루프도 선다** — 몇 초짜리만 여기로, 긴 것(clone·push·claude)은 `돌린다`
+ */
+export function 친다(명령: string, 인자: string[], cwd: string, input?: string, 제한 = 120_000, 선택: 칠때 = {}) {
+  const env = 선택.env === undefined ? undefined : { ...process.env, ...선택.env };
+  const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한, env, uid: 선택.uid, gid: 선택.gid });
   // 시간 초과는 오류 글이 `spawnSync git ETIMEDOUT` 뿐이라 사람이 못 알아본다
   const 시간초과 = (r.error as NodeJS.ErrnoException | undefined)?.code === 'ETIMEDOUT';
   const 까닭 = 시간초과
     ? `시간 초과 — ${명령} 이 ${제한 / 1000}초 안에 안 끝났다`
     : (r.error?.message ?? (r.stderr ?? '').trim().split('\n')[0] ?? '');
   return { ok: r.status === 0 && r.error === undefined, 낸것: r.stdout ?? '', 까닭, 오류: r.stderr ?? '', 시간초과 };
+}
+
+/** 지금 도는 자식들. 거절로 에이전트가 나갈 때 남기지 않는다 — 남으면 구독 한도를 계속 쓴다 */
+export const 도는자식 = new Set<ChildProcess>();
+
+export interface 돌린결과 {
+  /** 못 띄웠으면 null */
+  코드: number | null;
+  낸것: string;
+  오류: string;
+  시간초과: boolean;
+}
+
+/**
+ * 비동기로 돌린다. 서비스 루프들이 동시에 돌려면 긴 일이 이벤트 루프를 붙잡으면 안 된다.
+ * `env` 는 **통째로** 준다(부모 것을 안 얹는다) — 자식 claude 에 에이전트 토큰이 새지 않게.
+ * `흘림` 이면 표준출력·오류를 모으면서 터미널에도 흘린다 — 사람이 도는 것을 봐야 한다
+ */
+export function 돌린다(
+  명령: string,
+  인자: string[],
+  선택: 칠때 & { cwd: string; input?: string; 제한?: number; 흘림?: boolean },
+): Promise<돌린결과> {
+  return new Promise((resolve) => {
+    let 낸것 = '';
+    let 오류 = '';
+    let 시간초과 = false;
+    const 자식 = spawn(명령, 인자, { cwd: 선택.cwd, env: 선택.env, uid: 선택.uid, gid: 선택.gid });
+    도는자식.add(자식);
+    const 시계 = setTimeout(() => {
+      시간초과 = true;
+      자식.kill('SIGKILL');
+    }, 선택.제한 ?? 120_000);
+    자식.stdout.on('data', (조각: Buffer) => {
+      낸것 += 조각.toString('utf8');
+      if (선택.흘림) process.stdout.write(조각);
+    });
+    자식.stderr.on('data', (조각: Buffer) => {
+      오류 += 조각.toString('utf8');
+      if (선택.흘림) process.stderr.write(조각);
+    });
+    const 끝 = (코드: number | null) => {
+      clearTimeout(시계);
+      도는자식.delete(자식);
+      resolve({ 코드, 낸것, 오류, 시간초과 });
+    };
+    자식.on('error', (err) => {
+      오류 += err.message;
+      끝(null);
+    });
+    자식.on('close', (코드) => 끝(코드));
+    // 입력을 다 읽기 전에 죽는 자식이면 EPIPE 가 난다 — 그 자식의 종료 코드가 이미 말해 준다
+    자식.stdin.on('error', () => undefined);
+    자식.stdin.end(선택.input ?? '');
+  });
+}
+
+/** 동시에 도는 작업 자리. 번호(0..상한-1)가 곧 자식 uid 의 자리다 (`authoring-copy` 의 `계정들`) */
+export function 자리들(상한: number) {
+  const 빈자리 = Array.from({ length: 상한 }, (_, k) => k);
+  const 기다리는이: ((k: number) => void)[] = [];
+  return {
+    잡기(): Promise<number> {
+      const k = 빈자리.shift();
+      return k !== undefined ? Promise.resolve(k) : new Promise((resolve) => 기다리는이.push(resolve));
+    },
+    놓기(k: number): void {
+      const 다음 = 기다리는이.shift();
+      if (다음 !== undefined) 다음(k);
+      else 빈자리.push(k);
+    },
+    도는수: () => 상한 - 빈자리.length,
+  };
 }
 
 /** GitHub 이 말하는 main SHA. 로컬에 없으면 그 SHA 를 받아 둔다 — 판정·커밋수·작업방의 기준이 이것이다 */

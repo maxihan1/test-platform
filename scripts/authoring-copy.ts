@@ -77,6 +77,46 @@ export function 저장소이름(원격주소: string): string | null {
   return /github\.com[:/]([\w.-]+\/[\w.-]+?)(?:\.git)?$/.exec(원격주소)?.[1] ?? null;
 }
 
+/** 동시에 도는 작업 수. 한 건이 claude + Chromium 3회라 메모리(compose mem_limit)와 구독 한도가 이 수에 곱해진다 */
+export function 동시상한(env: Record<string, string | undefined>): number | { 까닭: string } {
+  const 값 = env.AUTHORING_MAX_PARALLEL || '2';
+  const 수 = /^\d+$/.test(값) ? Number(값) : NaN;
+  return 수 >= 1 && 수 <= 8 ? 수 : { 까닭: `AUTHORING_MAX_PARALLEL(${값}) 은 1~8 이다` };
+}
+
+export interface 계정 {
+  uid: number;
+  gid: number;
+}
+
+const 숫자 = (값: string | undefined): number | null => (값 !== undefined && /^\d+$/.test(값) ? Number(값) : null);
+
+/**
+ * root 로 켠 컨테이너에서 자식과 서버 저장소 일을 누구로 돌리나. **root 가 아니면(맥) `null`** — uid 를 바꿀 권한이 없다.
+ *
+ * 자리 k 의 자식은 `AUTHORING_CHILD_UID + k` 다 — 같은 uid 면 동시에 도는 다른 서비스 자식의
+ * `/proc/<pid>/environ`(피그마 토큰)·자료·트리를 읽고 쓴다 (2026-09-24 계획 검토 BLOCKER).
+ * 칸이 비었는데 그냥 돌면 자식이 root 가 되어 **지금보다 나빠진다** — 그래서 거부한다.
+ */
+export function 계정들(
+  env: Record<string, string | undefined>,
+  상한: number,
+  지금uid: number,
+): { 자식: 계정[]; 호스트: 계정 } | null | { 까닭: string } {
+  if (지금uid !== 0) return null;
+  const 기본 = 숫자(env.AUTHORING_CHILD_UID);
+  if (기본 === null) return { 까닭: 'root 로 켰는데 AUTHORING_CHILD_UID 가 없다 — 자식이 root 로 돈다' };
+  const 호스트uid = 숫자(env.HOST_UID);
+  if (호스트uid === null) return { 까닭: 'root 로 켰는데 HOST_UID 가 없다 — 서버 저장소에 root 소유 파일이 남는다' };
+  const 호스트 = { uid: 호스트uid, gid: 숫자(env.HOST_GID) ?? 호스트uid };
+  const 자식 = Array.from({ length: 상한 }, (_, k) => ({ uid: 기본 + k, gid: 기본 + k }));
+  const 겹침 = 자식.find((c) => c.uid === 0 || c.uid === 호스트.uid);
+  if (겹침 !== undefined) {
+    return { 까닭: `자식 uid(${겹침.uid})가 root(0) 나 HOST_UID(${호스트.uid}) 와 겹친다 — AUTHORING_CHILD_UID 를 바꿔라` };
+  }
+  return { 자식, 호스트 };
+}
+
 export interface 파일모양 {
   경로: string;
   종류: '파일' | '링크' | '그밖' | '없음';

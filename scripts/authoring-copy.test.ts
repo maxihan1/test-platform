@@ -6,7 +6,66 @@ import { join } from 'node:path';
 
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { 남은사본, 사본자리, 사본제외, 사본준비, 사본환경, 저장소이름, 파일거부사유 } from './authoring-copy.js';
+import {
+  계정들,
+  남은사본,
+  동시상한,
+  사본자리,
+  사본제외,
+  사본준비,
+  사본환경,
+  저장소이름,
+  파일거부사유,
+} from './authoring-copy.js';
+
+describe('동시상한 — 동시에 도는 작업 수', () => {
+  it('비면 2 다 (2026-09-24 게이트 1) · 1~8 만 받는다', () => {
+    expect(동시상한({})).toBe(2);
+    expect(동시상한({ AUTHORING_MAX_PARALLEL: '3' })).toBe(3);
+    expect(동시상한({ AUTHORING_MAX_PARALLEL: '0' })).toEqual({ 까닭: expect.stringContaining('AUTHORING_MAX_PARALLEL') });
+    expect(동시상한({ AUTHORING_MAX_PARALLEL: 'lots' })).toEqual({
+      까닭: expect.stringContaining('AUTHORING_MAX_PARALLEL'),
+    });
+  });
+});
+
+describe('계정들 — 자리마다 자식 uid 를 따로, 서버 저장소 일은 호스트 uid 로', () => {
+  const env = { AUTHORING_CHILD_UID: '20000', HOST_UID: '501', HOST_GID: '20' };
+
+  it('root 가 아니면(맥) 가르지 않는다 — uid 를 바꿀 권한이 없다', () => {
+    expect(계정들(env, 2, 501)).toBeNull();
+  });
+
+  it('root 면 자리 k 의 자식은 기본값 + k 다. 자식끼리도 서로의 environ·트리를 못 본다', () => {
+    expect(계정들(env, 2, 0)).toEqual({
+      자식: [
+        { uid: 20000, gid: 20000 },
+        { uid: 20001, gid: 20001 },
+      ],
+      호스트: { uid: 501, gid: 20 },
+    });
+  });
+
+  it('root 인데 자식 uid 칸이 비면 거부한다 — 자식이 root 로 돌면 격리가 조용히 꺼진다', () => {
+    expect(계정들({ HOST_UID: '501' }, 2, 0)).toEqual({ 까닭: expect.stringContaining('AUTHORING_CHILD_UID') });
+  });
+
+  it('root 인데 호스트 uid 가 비면 거부한다 — 병합 뒤 당기기가 root 소유 파일을 남긴다', () => {
+    expect(계정들({ AUTHORING_CHILD_UID: '20000' }, 2, 0)).toEqual({ 까닭: expect.stringContaining('HOST_UID') });
+  });
+
+  it('자식 uid 가 0 이나 호스트 uid 와 겹치면 거부한다', () => {
+    expect(계정들({ ...env, AUTHORING_CHILD_UID: '0' }, 1, 0)).toEqual({ 까닭: expect.any(String) });
+    expect(계정들({ ...env, AUTHORING_CHILD_UID: '500' }, 2, 0)).toEqual({ 까닭: expect.stringContaining('501') });
+  });
+
+  it('HOST_GID 가 비면 HOST_UID 와 같게 둔다', () => {
+    expect(계정들({ AUTHORING_CHILD_UID: '20000', HOST_UID: '1000' }, 1, 0)).toEqual({
+      자식: [{ uid: 20000, gid: 20000 }],
+      호스트: { uid: 1000, gid: 1000 },
+    });
+  });
+});
 
 describe('사본자리', () => {
   it('바탕 아래 author-<번호> 에 git·트리·집·자료·gh 를 둔다', () => {
