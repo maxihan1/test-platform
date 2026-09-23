@@ -72,8 +72,12 @@ export function 보고손만들기(주소기지: string, 쿠키: string, 서비�
 /** 셸 없이 한 번 친다. 멈춘 git·gh 가 줄 전체를 붙잡지 않게 시간 제한을 건다 */
 export function 친다(명령: string, 인자: string[], cwd: string, input?: string, 제한 = 120_000) {
   const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한 });
-  const 까닭 = r.error?.message ?? (r.stderr ?? '').trim().split('\n')[0] ?? '';
-  return { ok: r.status === 0 && r.error === undefined, 낸것: r.stdout ?? '', 까닭, 오류: r.stderr ?? '' };
+  // 시간 초과는 오류 글이 `spawnSync git ETIMEDOUT` 뿐이라 사람이 못 알아본다
+  const 시간초과 = (r.error as NodeJS.ErrnoException | undefined)?.code === 'ETIMEDOUT';
+  const 까닭 = 시간초과
+    ? `시간 초과 — ${명령} 이 ${제한 / 1000}초 안에 안 끝났다`
+    : (r.error?.message ?? (r.stderr ?? '').trim().split('\n')[0] ?? '');
+  return { ok: r.status === 0 && r.error === undefined, 낸것: r.stdout ?? '', 까닭, 오류: r.stderr ?? '', 시간초과 };
 }
 
 /** GitHub 이 말하는 main SHA. 로컬에 없으면 그 SHA 를 받아 둔다 — 판정·커밋수·작업방의 기준이 이것이다 */
@@ -109,11 +113,13 @@ export function 판정기만들기(스크립트자리: string): 판정기 {
   };
 }
 
-/** 보고와 같은 간격으로 다시 해 본다. 끝내 안 되면 마지막 까닭을 낸다 */
-export async function 다시하며<T>(설명: string, 한번: () => { 값: T } | { 까닭: string }): Promise<{ 값: T } | { 까닭: string }> {
+type 실패 = { 까닭: string; 그만?: boolean };
+
+/** 보고와 같은 간격으로 다시 해 본다. 끝내 안 되거나 `그만` 이 붙은 실패면 그 까닭을 낸다 */
+export async function 다시하며<T>(설명: string, 한번: () => { 값: T } | 실패): Promise<{ 값: T } | 실패> {
   for (let 시도 = 0; ; 시도 += 1) {
     const 결과 = 한번();
-    if ('값' in 결과) return 결과;
+    if ('값' in 결과 || 결과.그만 === true) return 결과;
     const 간격 = 보고간격(시도);
     if (간격 === null) return 결과;
     console.error(`[기다림] ${설명}이 실패했다 (${결과.까닭}). ${간격 / 1000}초 뒤 다시 한다.`);
@@ -123,16 +129,28 @@ export async function 다시하며<T>(설명: string, 한번: () => { 값: T } |
 
 /**
  * 한 건을 통째로 감싼다. 예외(`JSON.parse` 포함)가 튀면 실패로 닫는다 — 안 닫으면 그 요청이 영원히 RUNNING 이다.
+ * **이미 끝내기를 보냈으면 덮어쓰지 않는다** — DONE 보고·병합 뒤의 예외로 FAILED 를 보내면 된 일이 실패로 보인다.
  * 거절(401·403)은 닫은 뒤에도 다시 던진다 — 줄 돌기가 그걸 보고 멈춘다.
  */
-export async function 닫으며(손: 보고손, 일: () => Promise<void>): Promise<void> {
+export async function 닫으며(손: 보고손, 일: (손: 보고손) => Promise<void>): Promise<void> {
+  let 끝냄 = false;
+  const 감싼손: 보고손 = {
+    단계: (글) => 손.단계(글),
+    끝내기: (몸) => {
+      끝냄 = true;
+      return 손.끝내기(몸);
+    },
+  };
   try {
-    await 일();
+    await 일(감싼손);
   } catch (err) {
-    try {
-      await 손.끝내기({ status: 'FAILED', error: 한줄(err) });
-    } catch (닫기실패) {
-      console.error(`[남김] 실패 보고도 못 했다: ${한줄(닫기실패)}`);
+    console.error('[오류] 한 건 처리 중 예외:', err instanceof Error ? err.stack : String(err));
+    if (!끝냄) {
+      try {
+        await 손.끝내기({ status: 'FAILED', error: 한줄(err) });
+      } catch (닫기실패) {
+        console.error(`[남김] 실패 보고도 못 했다: ${한줄(닫기실패)}`);
+      }
     }
     if (err instanceof Error && err.message.includes('서버가 거절했다')) throw err;
   }

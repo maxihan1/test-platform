@@ -16,6 +16,7 @@ import {
   바뀐파일들,
   실패까닭,
   비밀섞였나,
+  차단됐나,
   자식환경,
   작업방준비,
   작업방폴더,
@@ -59,7 +60,7 @@ export async function 한건처리(
   서버들: { env: string; baseUrl: string }[] = [],
 ): Promise<void> {
   const 손 = 보고손만들기(주소기지, 쿠키, 서비스, 것.id);
-  await 닫으며(손, () => 한건(주소기지, 쿠키, 서비스, 것, 판정, 서버들, 손));
+  await 닫으며(손, (감싼손) => 한건(주소기지, 쿠키, 서비스, 것, 판정, 서버들, 감싼손));
 }
 
 async function 한건(
@@ -243,7 +244,9 @@ async function 한건(
     const 올림 = await 다시하며('push', () => {
       // pre-push 훅(타입·케이스 형식)이 돌므로 넉넉히 준다
       const r = 친다('git', 푸시인자(것.id), 작업방, undefined, 600_000);
-      return r.ok ? { 값: true } : { 까닭: 실패까닭(r.오류) || r.까닭 };
+      if (r.ok) return { 값: true };
+      const 까닭 = r.시간초과 ? r.까닭 : 실패까닭(r.오류) || r.까닭;
+      return { 까닭, 그만: 차단됐나(까닭) };
     });
     if ('까닭' in 올림) {
       await 손.끝내기({ status: 'FAILED', error: `push 가 실패했다: ${올림.까닭}` });

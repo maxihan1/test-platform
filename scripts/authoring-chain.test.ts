@@ -33,6 +33,7 @@ import {
   자식환경,
   진짜main인자,
   진짜main풀기,
+  차단됐나,
   type CI실행,
 } from './authoring-chain.js';
 
@@ -332,6 +333,16 @@ describe('push 실패 까닭 — 훅의 차단 줄을 먼저 싣는다', () => {
 
   it('비었으면 빈 글이다', () => {
     expect(실패까닭('')).toBe('');
+  });
+});
+
+describe('차단됐나 — 훅이 막은 push 는 다시 해도 같다', () => {
+  it('[차단] 이 든 까닭이면 막힌 것이다', () => {
+    expect(차단됐나('[차단] 새 폴더는 가벼운 길이 아니다')).toBe(true);
+  });
+
+  it('네트워크 같은 까닭은 다시 해 볼 만하다', () => {
+    expect(차단됐나('fatal: unable to access')).toBe(false);
   });
 });
 

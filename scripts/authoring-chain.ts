@@ -230,6 +230,11 @@ export function 한줄(err: unknown): string {
   return `예상 못 한 오류: ${글.split('\n')[0]}`;
 }
 
+/** 훅이 막은 push 인가. 막힌 까닭은 다시 해도 같다 — 간격 두고 다시 하면 사람만 기다린다 */
+export function 차단됐나(까닭: string): boolean {
+  return 까닭.includes('[차단]');
+}
+
 /** push 가 왜 실패했나. 첫 줄은 훅의 머리말이라 쓸모없다 — 훅의 `[차단]` 줄이 먼저, 없으면 git 의 마지막 두 줄 */
 export function 실패까닭(stderr: string): string {
   const 줄들 = stderr.split('\n').filter((줄) => 줄.trim() !== '');
