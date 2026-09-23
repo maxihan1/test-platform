@@ -168,13 +168,15 @@ describe('줄프롬프트 — 자료 목록을 싣는다', () => {
   });
 });
 
+const 기본모델 = { model: 'opus', effort: 'high', fallback: 'sonnet' };
+
 describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
   it('--add-dir 로 자료 폴더를 연다', () => {
-    const 인자 = 클로드인자('/t');
+    const 인자 = 클로드인자('/t', 기본모델);
     expect(인자[인자.indexOf('--add-dir') + 1]).toBe('/t');
   });
 
   it('--bare 는 없다', () => {
-    expect(클로드인자('/t')).not.toContain('--bare');
+    expect(클로드인자('/t', 기본모델)).not.toContain('--bare');
   });
 });

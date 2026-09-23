@@ -20,6 +20,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { type 설정, type 설정자리, admin주소, 기다렸다다시인가, 선행검사, 주소안전한가, 집은것인가 } from './authoring-rules.js';
 import { 부른다, 판정기만들기 } from './authoring-io.js';
+import { 모델설정 } from './authoring-model.js';
 import { 멈춘것닫기, 한건처리 } from './authoring-run.js';
 import { 나풀기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
@@ -70,6 +71,14 @@ async function 돈다(): Promise<number> {
     console.error(`[거부] ${안전하지않음}`);
     return 1;
   }
+
+  // 켤 때 한 번 읽는다 — 틀린 값으로 매 건 claude 를 띄워 실패시키느니 여기서 멈춘다
+  const 모델 = 모델설정(process.env);
+  if ('까닭' in 모델) {
+    console.error(`[거부] ${모델.까닭}`);
+    return 1;
+  }
+  console.log(`[작성] 모델 ${모델.model} · effort ${모델.effort} · 예비 ${모델.fallback ?? '없음'}`);
 
   // 서버 컨테이너는 .env 의 토큰, 맥은 처음 한 번 묻고 홈 아래 파일에 둔다 (SPEC 도메인/인증 §7). 계정 이름은 서버가 알려 준다
   const 자리 = 토큰자리(homedir());
@@ -131,7 +140,7 @@ async function 돈다(): Promise<number> {
         const 것 = 답.몸;
         console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}).`);
         집었나 = true;
-        await 한건처리(주소, 토큰, 서비스, 것, 판정, 서버표[서비스] ?? []);
+        await 한건처리(주소, 토큰, 서비스, 것, 판정, 모델, 서버표[서비스] ?? []);
         console.log(`[작성] ${것.id}번을 끝냈다.`);
       } catch (err) {
         const 글 = err instanceof Error ? err.message : String(err);

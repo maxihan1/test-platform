@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
+import type { 모델 } from './authoring-model.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 자료계획, 자료출처 } from './authoring-assets.js';
 import {
   PR만들기인자,
@@ -68,10 +69,11 @@ export async function 한건처리(
   서비스: string,
   것: 집은것,
   판정: 판정기,
+  모델: 모델,
   서버들: { env: string; baseUrl: string }[] = [],
 ): Promise<void> {
   const 손 = 보고손만들기(주소기지, 토큰, 서비스, 것.id);
-  await 닫으며(손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판정, 서버들, 감싼손));
+  await 닫으며(손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판정, 모델, 서버들, 감싼손));
 }
 
 async function 한건(
@@ -80,6 +82,7 @@ async function 한건(
   서비스: string,
   것: 집은것,
   판정: 판정기,
+  모델: 모델,
   서버들: { env: string; baseUrl: string }[],
   손: 보고손,
 ): Promise<void> {
@@ -191,7 +194,7 @@ async function 한건(
     // 출력을 잡아 PR 본문에 싣는다. 사람 눈에도 보여야 하므로(숨은 데몬이 아니다) 그대로 흘려보낸다.
     // 피그마 토큰은 **자식 환경에만** 넣는다. 부모 환경에 넣으면 이 뒤에 띄우는 모든 것(gh 등)에 샌다.
     // GitHub 자격증명은 뺀다 — 자식이 push·병합을 못 하게 막는 것은 이 환경이다
-    const 돌린것 = spawnSync('claude', 클로드인자(폴더), {
+    const 돌린것 = spawnSync('claude', 클로드인자(폴더, 모델), {
       cwd: 작업방,
       input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }),
       stdio: ['pipe', 'pipe', 'inherit'],

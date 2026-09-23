@@ -194,13 +194,21 @@ describe('선행검사 — 순서가 뒤집히면 돈이 샌다', () => {
   });
 });
 
+const 기본모델 = { model: 'opus', effort: 'high', fallback: 'sonnet' };
+
 describe('클로드인자', () => {
   // 배열을 통째로 비교한다. 「--bare 가 없다」 같은 부정 단언은 **인자가 늘어도 초록**이라
   // 다음 편집을 못 막는다. 통째로 비교하면 하나만 늘어도 깨져서
   // 고치는 사람이 이 파일 맨 위의 과금 규칙을 반드시 다시 읽는다
   it('인자 배열이 기대한 것과 글자 하나까지 같다', () => {
-    expect(클로드인자('/t')).toEqual([
+    expect(클로드인자('/t', 기본모델)).toEqual([
       '-p',
+      '--model',
+      'opus',
+      '--effort',
+      'high',
+      '--fallback-model',
+      'sonnet',
       '--permission-mode',
       'acceptEdits',
       '--add-dir',
@@ -213,19 +221,19 @@ describe('클로드인자', () => {
   });
 
   it('--bare 는 절대 안 들어간다 — 그 깃발 하나가 OAuth 를 안 읽고 API 키만 쓴다', () => {
-    expect(클로드인자('/t')).not.toContain('--bare');
+    expect(클로드인자('/t', 기본모델)).not.toContain('--bare');
   });
 
   // 2026-09-21 실측 — 프롬프트를 배열 끝에 실었더니 --disallowedTools 가 가변 인자라
   // 그것을 도구 이름 목록으로 삼켰고 `Input must be provided...` 로 죽었다.
   // **--disallowedTools 가 마지막이어야 한다**는 것이 이 단언의 알맹이다
   it('--disallowedTools 뒤에는 도구 이름만 있다 — 가변 인자가 프롬프트를 삼켰던 자리다', () => {
-    const 인자 = 클로드인자('/t');
+    const 인자 = 클로드인자('/t', 기본모델);
     expect(인자.slice(인자.indexOf('--disallowedTools') + 1)).toEqual(['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)']);
   });
 
   it('git·gh 를 이름으로 막는다 — 실수 방지일 뿐, 막는 것은 자격증명을 뺀 환경이다', () => {
-    expect(클로드인자('/t')).toEqual(expect.arrayContaining(['Bash(git:*)', 'Bash(gh:*)']));
+    expect(클로드인자('/t', 기본모델)).toEqual(expect.arrayContaining(['Bash(git:*)', 'Bash(gh:*)']));
   });
 });
 
