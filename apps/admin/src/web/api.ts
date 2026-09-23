@@ -216,6 +216,11 @@ export interface User {
  * 비활성까지 포함한다. 설정 화면은 내려 둔 것도 봐야 다시 올릴 수 있다.
  */
 export interface SettingsServiceRow extends ServiceRow {
+  /**
+   * 토큰 칸을 「설정됨」으로 그릴지. 토큰 자체는 오지 않는다 (도메인/인증 §8.8).
+   * 서버는 늘 싣는다. 선택으로 둔 것은 이 칸을 모르는 기존 화면 검사의 가짜 행을 안 고치려고다 — 없으면 「안 넣음」으로 읽는다
+   */
+  hasFigmaToken?: boolean;
   testsRepo: string;
   /** 플랫폼이 실제로 훑을 폴더. 서비스마다 저장소가 다르다 (SPEC §9.2) */
   testsDir: string;
@@ -234,7 +239,8 @@ export interface AuthoringRow {
   id: number;
   kind: 'AUTHOR' | 'RERUN' | 'MERGE';
   sourceId: number | null;
-  status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
+  /** DRAFT 는 자료를 올리는 중 — 아직 줄에 안 섰다 (도메인/작성 §7 「자료」) */
+  status: 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
   stage: string | null;
   /** 그 한 줄이 마지막으로 바뀐 시각. **「도는 중」과 「거기서 맥이 죽었다」를 가른다** */
   stageAt: string | null;
@@ -246,6 +252,18 @@ export interface AuthoringRow {
   /** 맥이 집어 간 시각. 단계를 한 번도 안 올렸을 때 「멈췄나」를 재는 기준이 된다 */
   startedAt: string | null;
   finishedAt: string | null;
+  /** 상세 응답에만 온다. 목록에는 없다 */
+  assets?: AuthoringAsset[];
+}
+
+/** 작성 요청의 자료 한 건. 피그마 자료의 `name` 은 정규화한 주소다 (도메인/작성 §7 「자료」) */
+export interface AuthoringAsset {
+  id: number;
+  position: number;
+  kind: 'FILE' | 'FIGMA';
+  name: string;
+  figmaUrl: string | null;
+  size: number | null;
 }
 
 export interface UserRow {
@@ -487,9 +505,29 @@ export const api = {
   authoringRequest: (service: string, id: number) =>
     call<AuthoringRow>(`/authoring/requests/${id}?service=${encodeURIComponent(service)}`),
 
-  /** 요청자는 싣지 않는다. 로그인한 세션에서 서버가 채운다 (도메인/작성 §7) */
-  createAuthoringRequest: (service: string, body: { kind: 'AUTHOR' | 'RERUN'; specText: string; sourceId?: number }) =>
-    call<{ id: number }>(`/authoring/requests?service=${encodeURIComponent(service)}`, json(body)),
+  /**
+   * 요청자는 싣지 않는다. 로그인한 세션에서 서버가 채운다 (도메인/작성 §7).
+   * AUTHOR 는 DRAFT 로 선다 — 파일을 다 올린 뒤 `submitAuthoringRequest` 로 줄에 세운다
+   */
+  createAuthoringRequest: (
+    service: string,
+    body: { kind: 'AUTHOR'; figma: string[] } | { kind: 'RERUN'; sourceId: number },
+  ) => call<{ id: number }>(`/authoring/requests?service=${encodeURIComponent(service)}`, json(body)),
+
+  /** 파일 바이트를 그대로 보낸다. 이름은 본문에 자리가 없어 주소에 싣는다 */
+  uploadAuthoringAsset: (service: string, id: number, file: File) =>
+    call<{ id: number }>(
+      `/authoring/requests/${id}/assets?service=${encodeURIComponent(service)}&name=${encodeURIComponent(file.name)}`,
+      { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: file },
+    ),
+
+  /** 본문이 없다. JSON 머리글을 달면 서버가 빈 JSON 이라며 400 을 낸다 — 그래서 json() 을 안 쓴다 */
+  submitAuthoringRequest: (service: string, id: number) =>
+    call<{ ok: true }>(`/authoring/requests/${id}/submit?service=${encodeURIComponent(service)}`, {
+      method: 'POST',
+    }),
+
+  authoringAssetUrl: (id: number, assetId: number) => `/api/authoring/requests/${id}/assets/${assetId}`,
 
   /**
    * 머지를 줄에 세운다 — **운영 등급만**.
@@ -511,6 +549,7 @@ export const api = {
     testsDir: string;
     envs: EnvRow[];
     slackWebhook?: string;
+    figmaToken?: string;
   }) => call<{ id: number }>('/settings/services', json(body)),
 
   /**
@@ -528,6 +567,8 @@ export const api = {
       envs?: EnvRow[];
       /** 빈 글자를 보내면 알림을 끈다. 안 보내면 지금 것을 그대로 둔다 */
       slackWebhook?: string;
+      /** 웹훅과 같다 — 빈 글자는 지우고, 안 보내면 그대로 둔다 */
+      figmaToken?: string;
     },
   ) => call<{ ok: true }>(`/settings/services/${id}`, { ...json(body), method: 'PATCH' }),
 
