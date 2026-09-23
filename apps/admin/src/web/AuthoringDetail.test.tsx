@@ -42,6 +42,17 @@ function 줄(덮을것: Partial<AuthoringRow>): AuthoringRow {
   };
 }
 
+/**
+ * 첫 읽기가 **화면에 반영될 때까지** 기다린다. 그래야 주기 타이머가 걸린다.
+ * 0 을 한 번만 흘리면 결과가 아직 안 붙어 타이머가 안 걸리고, 그러면 「다시 안 읽는다」 검사가
+ * 아무것도 안 보고 통과한다 — 앞 검사가 데워 둔 순서에서만 맞던 모양이었다 (2026-09-23 실측)
+ */
+async function 첫읽기끝(): Promise<void> {
+  await vi.waitFor(() => {
+    if (screen.queryByText('불러오는 중입니다.') !== null) throw new Error('아직 첫 읽기 전');
+  });
+}
+
 beforeEach(() => {
   부른횟수 = 0;
   답 = 줄({});
@@ -74,8 +85,16 @@ describe('작성 한 건 상세', () => {
   it('끝난 요청은 다시 읽지 않는다. 안 멈추면 탭 하나가 서버를 계속 두드린다', async () => {
     vi.useFakeTimers();
     render(<AuthoringDetail service="PAY" id={7} role="admin" />);
-    // 첫 읽기가 끝나야 주기 타이머가 걸린다. 0 을 한 번 흘려 그 자리를 만든다
-    await vi.advanceTimersByTimeAsync(0);
+    await 첫읽기끝();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(부른횟수).toBe(1);
+  });
+
+  it('준비 중(DRAFT) 요청도 다시 읽지 않는다. 스스로 바뀌지 않고 버려진 채 남는다', async () => {
+    답 = 줄({ status: 'DRAFT', prUrl: null, finishedAt: null, startedAt: null, assets: [] });
+    vi.useFakeTimers();
+    render(<AuthoringDetail service="PAY" id={7} role="admin" />);
+    await 첫읽기끝();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(부른횟수).toBe(1);
   });
@@ -84,8 +103,7 @@ describe('작성 한 건 상세', () => {
     답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null });
     vi.useFakeTimers();
     render(<AuthoringDetail service="PAY" id={7} role="admin" />);
-    // 첫 읽기가 끝나야 주기 타이머가 걸린다. 0 을 한 번 흘려 그 자리를 만든다
-    await vi.advanceTimersByTimeAsync(0);
+    await 첫읽기끝();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(부른횟수).toBeGreaterThan(1);
   });

@@ -10,9 +10,13 @@ import { use말, use언어 } from './i18n.js';
 import { 할수있나, type 등급 } from './role.js';
 import { Failed, Loading, message, useAsync, when } from './ui.js';
 
-/** 끝난 것은 더 안 바뀐다. 계속 물으면 탭 하나가 2초마다 서버를 두드린다 */
+/**
+ * 끝난 것은 더 안 바뀐다. 계속 물으면 탭 하나가 2초마다 서버를 두드린다.
+ * 준비 중(DRAFT)도 스스로 안 바뀐다 — 줄에 세우는 것은 이 화면이 아니라 새 요청 폼이고,
+ * 중간에 실패한 것은 버려진 채 남는다 (도메인/작성 §7 「자료」)
+ */
 function 끝났나(status: AuthoringRow['status']): boolean {
-  return status === 'DONE' || status === 'FAILED';
+  return status === 'DONE' || status === 'FAILED' || status === 'DRAFT';
 }
 
 export function AuthoringDetail({ service, id, role }: { service: string; id: number; role: 등급 }) {
