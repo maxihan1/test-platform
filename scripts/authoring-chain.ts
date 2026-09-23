@@ -1,0 +1,142 @@
+// 맥이 git·gh 를 어떻게 부를지 정하는 순수 함수. 껍데기(authoring-agent)는 여기서 받은 인자를 셸 없이 그대로 친다
+//
+// **셸 문자열이 아니라 인자 배열이다.** 요약·제목에 따옴표나 `$` 가 섞여도 해석될 자리가 없다.
+
+import { join } from 'node:path';
+
+/**
+ * 작업방에 거는 `@platform/*` 심링크. `.claude/skills/tpx-start/SKILL.md` 의 목록과 **같은 값**이다 —
+ * 검사가 그 파일을 읽어 대조한다. 안 걸면 모듈 찾기가 상위로 올라가 **사용자 체크아웃의 kit** 을 본다.
+ */
+export const 플랫폼링크 = [
+  ['kit', '../../packages/kit'],
+  ['admin', '../../apps/admin'],
+  ['runner', '../../apps/runner'],
+] as const;
+
+export interface 명령 {
+  명령: string;
+  인자: string[];
+}
+
+export function 올릴브랜치(번호: number): string {
+  return `author-${번호}`;
+}
+
+/**
+ * 작업방 준비. fetch 가 먼저다 — 안 하면 맥이 받아 둔 **옛 origin/main**(tpx-author 없는 판)을 딴다.
+ * `--detach` 라 로컬 브랜치가 안 쌓이고 사용자 체크아웃의 HEAD·index 를 안 건드린다.
+ */
+export function 작업방준비(번호: number, 뿌리: string): 명령[] {
+  const 폴더 = join(뿌리, '.claude', 'worktrees', 올릴브랜치(번호));
+  const 링크자리 = join(폴더, 'node_modules', '@platform');
+  return [
+    { 명령: 'git', 인자: ['fetch', 'origin', 'main'] },
+    { 명령: 'git', 인자: ['worktree', 'add', '--detach', 폴더, 'origin/main'] },
+    { 명령: 'mkdir', 인자: ['-p', 링크자리] },
+    ...플랫폼링크.map(([이름, 대상]) => ({ 명령: 'ln', 인자: ['-sfn', 대상, join(링크자리, 이름)] })),
+  ];
+}
+
+export function 푸시인자(번호: number): string[] {
+  return ['push', 'origin', `HEAD:refs/heads/${올릴브랜치(번호)}`];
+}
+
+export function 커밋메시지(번호: number, 서비스: string): string {
+  return `[WS-작성] ${서비스} 작성 요청 ${번호}번 케이스`;
+}
+
+/**
+ * 초안 PR 본문. 가벼운 길의 CI 는 새 케이스를 **실행하지 않는다** — 병합 근거는 맥의 관문 3 기록이라
+ * 그 사실을 본문에 못박는다 (게이트 1 결정). 비밀값은 인자에 없으니 실릴 수가 없다.
+ */
+export function PR본문(입력: { 표: string; 요약: string }): string {
+  const 절들: string[] = [];
+  if (입력.표.trim() !== '') 절들.push(`## 요구사항 표\n\n${입력.표.trim()}`);
+  if (입력.요약.trim() !== '') 절들.push(`## 작성 요약\n\n${입력.요약.trim()}`);
+  절들.push('관문 3 의 3회 실행 결과가 병합 근거다 — 가벼운 길의 CI 는 새 케이스를 돌리지 않는다.');
+  return 절들.join('\n\n');
+}
+
+export function PR만들기인자(번호: number, 제목: string, 본문: string): string[] {
+  return ['pr', 'create', '--draft', '--base', 'main', '--head', 올릴브랜치(번호), '--title', 제목, '--body', 본문];
+}
+
+export function PR준비인자(prUrl: string): string[] {
+  return ['pr', 'ready', prUrl];
+}
+
+/**
+ * `gh pr merge` 에 거는 인자.
+ *
+ * **강제 깃발을 절대 안 붙인다** (CLAUDE.md §5 · `guard.mjs` 의 `isBanned()`).
+ * 관리자 우회(`--admin`)도 안 쓴다 — main 보호가 `enforce_admins: false` 라 빨간 PR 병합을
+ * 막는 것은 **맥의 CI 판정과 이 인자뿐**이다. GitHub 이 대신 막아 주지 않는다.
+ */
+export function 머지인자(prUrl: string): string[] {
+  return ['pr', 'merge', prUrl, '--merge', '--delete-branch'];
+}
+
+/** `CI판정` 이 읽는 칸과 **같은 목록**을 받는다. 한쪽만 바뀌면 판정이 늘 「아직」이 된다 */
+export function 실행목록인자(번호: number): string[] {
+  return [
+    'run',
+    'list',
+    '--branch',
+    올릴브랜치(번호),
+    '--workflow',
+    'ci',
+    '--json',
+    'headSha,status,conclusion,databaseId,workflowName',
+  ];
+}
+
+export interface CI실행 {
+  headSha: string;
+  status: string;
+  conclusion: string | null;
+  databaseId: number;
+  workflowName: string;
+}
+
+export type CI결과 =
+  | { 판정: '아직' }
+  | { 판정: '도는중'; 번호: number }
+  | { 판정: '초록'; 번호: number }
+  | { 판정: '빨강'; 번호: number; 이유: string };
+
+/**
+ * PR head SHA 의 **최신 `ci` 실행**으로 판정한다. 「실행 번호가 바뀌었나」로 보면 이미 Ready 인 PR 은
+ * 새 실행이 안 떠서 영원히 실패한다 (리뷰 BLOCKER 2). `success` 만 초록 — `cancelled`·`skipped`·
+ * `timed_out`·null 을 초록으로 치면 안 돈 검사로 병합한다.
+ */
+export function CI판정(headSha: string, 실행들: CI실행[]): CI결과 {
+  const 최신 = 실행들
+    .filter((r) => r.headSha === headSha && r.workflowName === 'ci')
+    .reduce<CI실행 | null>((가장, r) => (가장 === null || r.databaseId > 가장.databaseId ? r : 가장), null);
+  if (최신 === null) return { 판정: '아직' };
+  if (최신.status !== 'completed') return { 판정: '도는중', 번호: 최신.databaseId };
+  if (최신.conclusion === 'success') return { 판정: '초록', 번호: 최신.databaseId };
+  return { 판정: '빨강', 번호: 최신.databaseId, 이유: String(최신.conclusion) };
+}
+
+/** 이미 Ready 인 PR 에 머지를 또 누르면 `pr ready` 가 새 실행을 안 만든다 — 빨간 그 실행을 다시 돌린다 */
+export function 다시돌릴인자(이미준비됨: boolean, 결과: CI결과): string[] | null {
+  if (!이미준비됨 || 결과.판정 !== '빨강') return null;
+  return ['run', 'rerun', String(결과.번호)];
+}
+
+/**
+ * 맥은 **테스트만 바뀐** 것만 올린다. 판정 규칙은 `.claude/scripts/cases-only.mjs` 가 정본이고
+ * 껍데기가 그걸 명령줄로 불러 결과만 넘긴다 — 규칙을 여기 복사하면 둘이 어긋난다.
+ */
+export function 푸시거부사유(테스트만인가: boolean, 바뀐파일: string[]): string | null {
+  if (바뀐파일.length === 0) return '바뀐 파일이 없다. 올릴 것이 없다.';
+  if (테스트만인가) return null;
+  return `테스트만 바뀐 것이 아니다 — 맥은 tests/**/*.spec.ts 와 docs/cases/*.md 만 올린다: ${바뀐파일.join(' · ')}`;
+}
+
+/** 켤 때 닫을 것. 남이 잡은 것은 그쪽이 아직 돌고 있을 수 있다 */
+export function 닫을RUNNING(목록: { id: number; status: string; claimedBy?: string | null }[], 나: string): number[] {
+  return 목록.filter((r) => r.status === 'RUNNING' && r.claimedBy === 나).map((r) => r.id);
+}
