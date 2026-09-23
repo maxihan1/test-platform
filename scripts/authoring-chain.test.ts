@@ -20,6 +20,7 @@ import {
   작업방준비,
   커밋메시지,
   푸시거부사유,
+  실패까닭,
   한줄,
   비밀섞였나,
   PR파일인자,
@@ -313,6 +314,22 @@ describe('한 줄 사유 — 예외를 실패 보고 한 줄로', () => {
 
   it('Error 가 아니어도 글로 싣는다', () => {
     expect(한줄('끊김')).toBe('예상 못 한 오류: 끊김');
+  });
+});
+
+describe('push 실패 까닭 — 훅의 차단 줄을 먼저 싣는다', () => {
+  it('[차단] 이 든 줄이 있으면 그 줄들이다', () => {
+    const 글 = ['> 검사 시작', '[차단] 새 폴더는 가벼운 길이 아니다', '', 'error: failed to push some refs'].join('\n');
+    expect(실패까닭(글)).toBe('[차단] 새 폴더는 가벼운 길이 아니다');
+  });
+
+  it('없으면 빈 줄을 빼고 마지막 두 줄이다', () => {
+    const 글 = ['To github.com:x/y.git', ' ! [rejected] HEAD -> author-7 (fetch first)', 'error: failed to push some refs', ''].join('\n');
+    expect(실패까닭(글)).toBe(' ! [rejected] HEAD -> author-7 (fetch first) / error: failed to push some refs');
+  });
+
+  it('비었으면 빈 글이다', () => {
+    expect(실패까닭('')).toBe('');
   });
 });
 

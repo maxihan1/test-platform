@@ -14,6 +14,7 @@ import {
   PR찾기인자,
   닫을RUNNING,
   바뀐파일들,
+  실패까닭,
   비밀섞였나,
   작업방준비,
   작업방폴더,
@@ -233,7 +234,7 @@ async function 한건(
     const 올림 = await 다시하며('push', () => {
       // pre-push 훅(타입·케이스 형식)이 돌므로 넉넉히 준다
       const r = 친다('git', 푸시인자(것.id), 작업방, undefined, 600_000);
-      return r.ok ? { 값: true } : { 까닭: r.까닭 };
+      return r.ok ? { 값: true } : { 까닭: 실패까닭(r.오류) || r.까닭 };
     });
     if ('까닭' in 올림) {
       await 손.끝내기({ status: 'FAILED', error: `push 가 실패했다: ${올림.까닭}` });

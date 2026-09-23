@@ -184,6 +184,13 @@ export function 한줄(err: unknown): string {
   return `예상 못 한 오류: ${글.split('\n')[0]}`;
 }
 
+/** push 가 왜 실패했나. 첫 줄은 훅의 머리말이라 쓸모없다 — 훅의 `[차단]` 줄이 먼저, 없으면 git 의 마지막 두 줄 */
+export function 실패까닭(stderr: string): string {
+  const 줄들 = stderr.split('\n').filter((줄) => 줄.trim() !== '');
+  const 차단 = 줄들.filter((줄) => 줄.includes('[차단]'));
+  return (차단.length > 0 ? 차단 : 줄들.slice(-2)).join(' / ');
+}
+
 /** 켤 때 닫을 것. 남이 잡은 것은 그쪽이 아직 돌고 있을 수 있다 */
 export function 닫을RUNNING(목록: { id: number; status: string; claimedBy?: string | null }[], 나: string): number[] {
   return 목록.filter((r) => r.status === 'RUNNING' && r.claimedBy === 나).map((r) => r.id);

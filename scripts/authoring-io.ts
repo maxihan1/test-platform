@@ -69,7 +69,7 @@ export function 보고손만들기(주소기지: string, 쿠키: string, 서비�
 export function 친다(명령: string, 인자: string[], cwd: string, input?: string, 제한 = 120_000) {
   const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한 });
   const 까닭 = r.error?.message ?? (r.stderr ?? '').trim().split('\n')[0] ?? '';
-  return { ok: r.status === 0 && r.error === undefined, 낸것: r.stdout ?? '', 까닭 };
+  return { ok: r.status === 0 && r.error === undefined, 낸것: r.stdout ?? '', 까닭, 오류: r.stderr ?? '' };
 }
 
 /** 보고와 같은 간격으로 다시 해 본다. 끝내 안 되면 마지막 까닭을 낸다 */
