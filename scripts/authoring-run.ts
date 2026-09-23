@@ -6,7 +6,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-agent.js';
+import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 import { type 자료, 돌릴수있나, 자료계획, 자료출처 } from './authoring-assets.js';
 import {
   PR만들기인자,

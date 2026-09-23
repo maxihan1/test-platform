@@ -16,7 +16,7 @@ import {
   선행검사,
   클로드인자,
   줄프롬프트,
-} from './authoring-agent.js';
+} from './authoring-rules.js';
 
 describe('대기줄 전제 — 켜자마자 보는 것', () => {
   it('맥 계정 이름이 없으면 멈춘다. 서버가 그 이름에만 집기를 열어 아무도 못 집는다', () => {

@@ -7,7 +7,7 @@ import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from '
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { 거절인가, 기다렸다다시인가, 보고간격 } from './authoring-agent.js';
+import { 거절인가, 기다렸다다시인가, 보고간격 } from './authoring-rules.js';
 import { 진짜main인자, 진짜main풀기, 한줄 } from './authoring-chain.js';
 
 /**
