@@ -80,8 +80,9 @@ export function 피그마주소정규화(주소: unknown): string | null {
   if (url.hostname !== 'figma.com' && url.hostname !== 'www.figma.com') return null;
   const [, 종류, 본키, 갈래, 갈래키] = url.pathname.split('/');
   if (종류 !== 'design' && 종류 !== 'file' && 종류 !== 'proto') return null;
-  // 브랜치 링크는 본 파일 키로 줄이면 main 을 읽는다. 브랜치 키가 그 자체로 파일처럼 열린다
-  const 키 = 갈래 === 'branch' ? 갈래키 : 본키;
+  // 브랜치 링크는 본 파일 키로 줄이면 main 을 읽는다. 브랜치 키가 그 자체로 파일처럼 열린다.
+  // 뒤에 키가 없으면 `branch` 는 브랜치가 아니라 파일 제목 조각이다
+  const 키 = 갈래 === 'branch' && 갈래키 !== undefined ? 갈래키 : 본키;
   if (키 === undefined || !/^[A-Za-z0-9]{1,64}$/.test(키)) return null;
   const 노드 = url.searchParams.get('node-id');
   if (노드 === null) return `https://www.figma.com/design/${키}/`;
@@ -335,7 +336,13 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         const 토큰 = 읽을자료.some((a) => a.kind === 'FIGMA') ? await 피그마토큰(서비스) : null;
         return { ...집은것, assets, ...(토큰 === null ? {} : { figmaToken: 토큰 }) };
       } catch (e) {
-        await 집기되돌리기(집은것.id, req.user?.username ?? '');
+        // 되돌리기마저 던지면(DB 가 끊긴 같은 원인일 공산이 크다) 그 오류가 원래 원인을 덮는다.
+        // 되돌리기 실패는 로그로 남기고 원래 오류를 낸다 — 오래된 RUNNING 을 치우는 장치는 아직 없다
+        try {
+          await 집기되돌리기(집은것.id, req.user?.username ?? '');
+        } catch (되돌리기오류) {
+          req.log.error({ err: 되돌리기오류, id: 집은것.id }, '집기 되돌리기 실패 — 행이 RUNNING 으로 남았다');
+        }
         throw e;
       }
     },

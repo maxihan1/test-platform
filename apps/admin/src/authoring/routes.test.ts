@@ -9,12 +9,12 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 자료목록, 제출, 준비세우기 } from './assetStore.js';
 import authoringRoutes, { 피그마주소정규화 } from './routes.js';
-import { 줄세우기, 피그마토큰, 한건 } from './store.js';
+import { 줄세우기, 집기되돌리기, 피그마토큰, 한건 } from './store.js';
 
 // 집기 뒤 조회가 한 번 실패하는 경우를 만들려고 토큰 조회만 갈아 끼운다. 나머지는 진짜다
 vi.mock('./store.js', async (원본) => {
   const 진짜 = await 원본<typeof import('./store.js')>();
-  return { ...진짜, 피그마토큰: vi.fn(진짜.피그마토큰) };
+  return { ...진짜, 피그마토큰: vi.fn(진짜.피그마토큰), 집기되돌리기: vi.fn(진짜.집기되돌리기) };
 });
 
 const 연결 = process.env.DATABASE_URL;
@@ -380,6 +380,32 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
       expect(행?.status).toBe('PENDING');
       expect(행?.claimedBy).toBe(null);
     });
+
+    it('되돌리기마저 실패해도 원래 오류가 나간다 — 되돌리기 오류가 원인을 덮으면 안 된다', async () => {
+      let 비었나 = false;
+      while (!비었나) {
+        const r = await app.inject({
+          method: 'POST',
+          url: `/api/authoring/requests/claim?service=${접두사}`,
+        });
+        비었나 = r.statusCode === 204;
+      }
+      const id = await 준비세우기({
+        서비스,
+        누가: 'x',
+        이름: 'x',
+        피그마: ['https://www.figma.com/design/R2/'],
+      });
+      await 제출(id);
+      vi.mocked(피그마토큰).mockRejectedValueOnce(new Error('DB 끊김 원래'));
+      vi.mocked(집기되돌리기).mockRejectedValueOnce(new Error('되돌리기도 실패'));
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests/claim?service=${접두사}`,
+      });
+      expect(res.statusCode).toBe(500);
+      expect(res.json().message).toBe('DB 끊김 원래');
+    });
   });
 
   describe('방어 ⑤ 집은 쪽만 그 행을 움직인다', () => {
@@ -645,6 +671,7 @@ describe('피그마 주소 정규화 — 통과·거절이 아니라 다시 조�
     ['https://www.figma.com/design/AbC123', 'https://www.figma.com/design/AbC123/'],
     ['https://www.figma.com/design/MAIN1/branch/BrAnCh9/이름?node-id=1-2', 'https://www.figma.com/design/BrAnCh9/?node-id=1-2'],
     ['https://www.figma.com/design/MAIN1/branch/BrAnCh9/이름', 'https://www.figma.com/design/BrAnCh9/'],
+    ['https://www.figma.com/design/AbC123/branch?node-id=1-2', 'https://www.figma.com/design/AbC123/?node-id=1-2'],
   ])('%s → %s', (주소, 기대) => {
     expect(피그마주소정규화(주소)).toBe(기대);
   });

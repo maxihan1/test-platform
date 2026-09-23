@@ -26,7 +26,8 @@ const 자료상한 = 20;
  */
 function 거절사유(파일: File): string | null {
   const 점 = 파일.name.lastIndexOf('.');
-  if (점 < 0 || !받는종류.split(',').includes(파일.name.slice(점).toLowerCase())) {
+  // 점이 맨 앞뿐인 이름(`.md`)은 서버의 extname 이 확장자 없음으로 읽는다. 여기서도 같게 본다
+  if (점 <= 0 || !받는종류.split(',').includes(파일.name.slice(점).toLowerCase())) {
     return '받지 않는 파일입니다. PDF · 워드 · md · txt 만 받습니다';
   }
   // 서버 assets.ts 의 이름인가와 같은 규칙. `"` 를 \u0022 로 적은 것은 messages.test 의 글자 훑기가
