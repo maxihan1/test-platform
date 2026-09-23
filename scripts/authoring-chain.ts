@@ -77,9 +77,11 @@ export function PR준비인자(prUrl: string): string[] {
  * **강제 깃발을 절대 안 붙인다** (CLAUDE.md §5 · `guard.mjs` 의 `isBanned()`).
  * 관리자 우회(`--admin`)도 안 쓴다 — main 보호가 `enforce_admins: false` 라 빨간 PR 병합을
  * 막는 것은 **맥의 CI 판정과 이 인자뿐**이다. GitHub 이 대신 막아 주지 않는다.
+ *
+ * `--match-head-commit` 으로 CI 를 판정한 그 커밋에 고정한다. 판정 뒤 누가 브랜치에 얹으면 GitHub 이 거부한다.
  */
-export function 머지인자(prUrl: string): string[] {
-  return ['pr', 'merge', prUrl, '--merge', '--delete-branch'];
+export function 머지인자(prUrl: string, headSha: string): string[] {
+  return ['pr', 'merge', prUrl, '--merge', '--delete-branch', '--match-head-commit', headSha];
 }
 
 /** `CI판정` 이 읽는 칸과 **같은 목록**을 받는다. 한쪽만 바뀌면 판정이 늘 「아직」이 된다 */

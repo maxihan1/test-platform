@@ -132,8 +132,21 @@ describe('gh 인자', () => {
   });
 
   it('병합 인자가 글자 하나까지 같다 — 강제·관리자 우회가 끼면 깨진다', () => {
-    expect(머지인자(주소)).toEqual(['pr', 'merge', 주소, '--merge', '--delete-branch']);
-    expect(머지인자(주소).join(' ')).not.toMatch(/--force|-D\b|--admin|--auto/);
+    expect(머지인자(주소, 'abc123')).toEqual([
+      'pr',
+      'merge',
+      주소,
+      '--merge',
+      '--delete-branch',
+      '--match-head-commit',
+      'abc123',
+    ]);
+    expect(머지인자(주소, 'abc123').join(' ')).not.toMatch(/--force|-D\b|--admin|--auto/);
+  });
+
+  it('병합은 판정에 쓴 head 커밋에 고정한다 — 그 뒤 얹힌 커밋은 병합하지 않는다', () => {
+    const 인자 = 머지인자(주소, 'def456');
+    expect(인자[인자.indexOf('--match-head-commit') + 1]).toBe('def456');
   });
 
   it('실행 목록은 판정에 쓰는 칸을 전부 받는다', () => {

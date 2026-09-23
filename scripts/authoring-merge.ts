@@ -127,7 +127,7 @@ export async function 머지처리(손: 보고손, 번호: number, prUrl: string
   }
 
   await 손.단계('머지하는 중');
-  const 친것 = 친다('gh', 머지인자(prUrl), 뿌리);
+  const 친것 = 친다('gh', 머지인자(prUrl, pr.headRefOid), 뿌리);
   const 뒤 = 친다('gh', ['pr', 'view', prUrl, '--json', 'state'], 뿌리);
   const 상태 = 뒤.ok ? (JSON.parse(뒤.낸것) as { state: string }).state : '못 읽음';
   await 손.끝내기(
