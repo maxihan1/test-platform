@@ -160,7 +160,7 @@ describe('gh 인자', () => {
       '--workflow',
       'ci',
       '--json',
-      'headSha,status,conclusion,databaseId,workflowName',
+      'headSha,status,conclusion,databaseId',
     ]);
   });
 });
@@ -171,7 +171,6 @@ describe('CI 판정 — PR head SHA 의 최신 ci 실행을 본다', () => {
     status: 'completed',
     conclusion: 'success',
     databaseId: 1,
-    workflowName: 'ci',
     ...덮기,
   });
 
@@ -180,8 +179,10 @@ describe('CI 판정 — PR head SHA 의 최신 ci 실행을 본다', () => {
     expect(CI판정('aaa', [])).toEqual({ 판정: '아직' });
   });
 
-  it('다른 워크플로는 안 본다', () => {
-    expect(CI판정('aaa', [실행({ workflowName: 'deploy' })])).toEqual({ 판정: '아직' });
+  it('워크플로 거르기는 명령(--workflow ci)이 한다 — 판정은 이름 칸을 안 읽는다', () => {
+    const 이름없는것 = { headSha: 'aaa', status: 'completed', conclusion: 'success', databaseId: 5 };
+    expect(CI판정('aaa', [이름없는것])).toEqual({ 판정: '초록', 번호: 5 });
+    expect(실행목록인자('author-7').join(' ')).toMatch(/--workflow ci/);
   });
 
   it('끝나지 않았으면 도는 중', () => {

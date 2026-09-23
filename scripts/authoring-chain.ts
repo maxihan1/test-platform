@@ -23,15 +23,15 @@ export function 올릴브랜치(번호: number): string {
   return `author-${번호}`;
 }
 
-/**
- * 작업방 준비. fetch 가 먼저다 — 안 하면 맥이 받아 둔 **옛 origin/main**(tpx-author 없는 판)을 딴다.
- * `--detach` 라 로컬 브랜치가 안 쌓이고 사용자 체크아웃의 HEAD·index 를 안 건드린다.
- */
 /** 껍데기가 자식의 cwd·정리에 쓰는 자리. `작업방준비` 와 한 곳에서 나와야 치울 때 엉뚱한 곳을 안 본다 */
 export function 작업방폴더(번호: number, 뿌리: string): string {
   return join(뿌리, '.claude', 'worktrees', 올릴브랜치(번호));
 }
 
+/**
+ * 작업방 준비. fetch 가 먼저다 — 안 하면 맥이 받아 둔 **옛 origin/main**(tpx-author 없는 판)을 딴다.
+ * `--detach` 라 로컬 브랜치가 안 쌓이고 사용자 체크아웃의 HEAD·index 를 안 건드린다.
+ */
 export function 작업방준비(번호: number, 뿌리: string): 명령[] {
   const 폴더 = 작업방폴더(번호, 뿌리);
   const 링크자리 = join(폴더, 'node_modules', '@platform');
@@ -97,7 +97,7 @@ export function 실행목록인자(브랜치: string): string[] {
     '--workflow',
     'ci',
     '--json',
-    'headSha,status,conclusion,databaseId,workflowName',
+    'headSha,status,conclusion,databaseId',
   ];
 }
 
@@ -106,7 +106,6 @@ export interface CI실행 {
   status: string;
   conclusion: string | null;
   databaseId: number;
-  workflowName: string;
 }
 
 export type CI결과 =
@@ -116,8 +115,8 @@ export type CI결과 =
   | { 판정: '빨강'; 번호: number; 이유: string };
 
 /**
- * PR head SHA 의 **최신 `ci` 실행**으로 판정한다. 「실행 번호가 바뀌었나」로 보면 이미 Ready 인 PR 은
- * 새 실행이 안 떠서 영원히 실패한다 (리뷰 BLOCKER 2). `success` 만 초록 — `cancelled`·`skipped`·
+ * PR head SHA 의 **최신 `ci` 실행**으로 판정한다. `ci` 만 고르는 것은 `실행목록인자` 의 `--workflow ci` 한 곳이다.
+ * 「실행 번호가 바뀌었나」로 보면 이미 Ready 인 PR 은 새 실행이 안 떠서 영원히 실패한다 (리뷰 BLOCKER 2). `success` 만 초록 — `cancelled`·`skipped`·
  * `timed_out`·null 을 초록으로 치면 안 돈 검사로 병합한다.
  *
  * `이후번호` 이하는 안 본다. 초안일 때 뜬 실행은 잡이 건너뛰어진 채 끝나 있어서, ready 직후 새 실행이
@@ -125,7 +124,7 @@ export type CI결과 =
  */
 export function CI판정(headSha: string, 실행들: CI실행[], 이후번호 = 0): CI결과 {
   const 최신 = 실행들
-    .filter((r) => r.headSha === headSha && r.workflowName === 'ci' && r.databaseId > 이후번호)
+    .filter((r) => r.headSha === headSha && r.databaseId > 이후번호)
     .reduce<CI실행 | null>((가장, r) => (가장 === null || r.databaseId > 가장.databaseId ? r : 가장), null);
   if (최신 === null) return { 판정: '아직' };
   if (최신.status !== 'completed') return { 판정: '도는중', 번호: 최신.databaseId };
