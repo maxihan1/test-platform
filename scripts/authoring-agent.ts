@@ -9,19 +9,19 @@
 //
 // ★ 2026-09-22 — **기획서 경로를 인자로 받던 진입 방식을 없앴다** (docs/SETUP.md §8).
 // 그 길은 admin 을 아예 안 불러 **로그인을 지나지 않았다** — §3.5 가 러너 포트를 닫으며
-// 막은 뒷길과 같은 성질이다. 이제 들어오는 길은 화면뿐이고, 맥은 계정으로 로그인해 집어 간다.
+// 막은 뒷길과 같은 성질이다. 이제 들어오는 길은 화면뿐이고, 맥은 계정의 토큰으로 집어 간다.
 //
-// **비밀번호는 어디에도 안 적는다.** 켤 때 한 번 묻고 메모리에만 든다 — 이 프로그램은
-// 설계상 사람이 켜서 터미널에 띄워 두는 것이라(숨은 데몬이 아니다) 그 한 번이 공짜다.
+// **비밀번호 대신 에이전트 토큰을 든다** (2026-09-23) — 켤 때마다 치던 비밀번호가 허들이었다.
+// 토큰은 계정에 묶인 두 번째 열쇠이고 맥이 부르는 통로만 연다 (authoring-token.ts · SPEC 도메인/인증 §7).
 
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { createInterface } from 'node:readline';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { type 설정, type 설정자리, admin주소, 기다렸다다시인가, 선행검사, 주소안전한가, 집은것인가 } from './authoring-rules.js';
 import { 부른다, 판정기만들기 } from './authoring-io.js';
 import { 멈춘것닫기, 한건처리 } from './authoring-run.js';
+import { 나풀기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 // ── 껍데기 ────────────────────────────────────────────────────────────
 // 여기부터는 I/O 다. 판단은 전부 위의 순수 함수에 있고 검사도 거기 붙어 있다.
@@ -51,71 +51,6 @@ function 설정들읽기(): 설정자리[] {
   return 모은것;
 }
 
-/**
- * 켤 때 비밀번호를 한 번 묻는다. **어디에도 안 적는다.**
- *
- * 파일에 두면 그 파일이 열쇠가 되고, 환경변수에 두면 셸 기록과 프로세스 목록에 샌다.
- * 이 프로그램은 설계상 **사람이 켜서 터미널에 띄워 두는 것**이라(숨은 데몬이 아니다)
- * 켤 때 한 번 치는 값이 공짜다 — 그 대가로 **맥에 남는 비밀값이 0** 이 된다.
- *
- * 글자가 화면에 안 찍히게 출력을 가로챈다. 안 가리면 어깨너머로 보이고 터미널 기록에 남는다.
- */
-async function 비밀번호묻기(아이디: string): Promise<string> {
-  // **파일로 먹일 수 없게 막는다** (2026-09-23 검토가 잡았다).
-  // 안 막으면 `npm run authoring-agent < 비밀.txt` 가 그대로 통해서,
-  // 이 파일 머리가 「파일에 두면 그 파일이 열쇠가 된다」고 못박은 그 길이 열린 채로 남는다
-  if (process.stdin.isTTY !== true) {
-    throw new Error(
-      '비밀번호는 사람이 직접 쳐야 한다. 파일이나 파이프로 먹이지 마라 —\n' +
-        '그러면 그 파일이 열쇠가 되고, 이 프로그램이 비밀값을 안 남기려는 이유가 사라진다.',
-    );
-  }
-
-  const 물음 = `${아이디} 의 비밀번호: `;
-  process.stdout.write(물음);
-
-  const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-  const 원래 = (rl as unknown as { _writeToOutput?: (글: string) => void })._writeToOutput;
-  (rl as unknown as { _writeToOutput: (글: string) => void })._writeToOutput = (글: string) => {
-    // 물음 자체는 그대로 두고 입력 글자만 지운다
-    if (글.includes(물음)) 원래?.call(rl, 물음);
-  };
-
-  try {
-    return await new Promise<string>((resolve) => rl.question('', resolve));
-  } finally {
-    rl.close();
-    process.stdout.write('\n');
-  }
-}
-
-/** 로그인해서 세션 쿠키와 배정 서비스를 받는다 */
-type 서버 = { env: string; baseUrl: string };
-
-async function 로그인(
-  주소: string,
-  아이디: string,
-  비번: string,
-): Promise<{ 쿠키: string; 서비스들: string[]; 서버표: Record<string, 서버[]> }> {
-  const 답 = await fetch(`${주소}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ username: 아이디, password: 비번 }),
-  });
-  if (!답.ok) throw new Error(`로그인이 거절됐다 (${답.status}). 아이디와 비밀번호를 확인해라.`);
-
-  // 헤더를 통째로 되돌려 보내지 않는다 — 속성(Path·HttpOnly·SameSite)까지 같이 가면
-  // 서버가 쿠키를 하나 더 굽는 날 로그인이 조용히 깨진다. auth/gate.test.ts 가 같은 모양을 쓴다
-  const 쿠키 = (답.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
-  const 몸 = (await 답.json()) as { user: { role: string; services: { prefix: string; envs?: 서버[] }[] } };
-  if (몸.user.role === 'viewer') {
-    throw new Error('이 계정은 보기만 등급이라 줄을 집을 수 없다. operator 로 바꿔라.');
-  }
-  // 대상 서버는 자식(tpx-author)이 입력으로 기대한다. 이미 로그인 응답에 실려 온다 — 새 통로가 필요 없다
-  const 서버표 = Object.fromEntries(몸.user.services.map((s) => [s.prefix, s.envs ?? []]));
-  return { 쿠키, 서비스들: 몸.user.services.map((s) => s.prefix), 서버표 };
-}
-
 const 쉬는시간 = 5000;
 
 /**
@@ -136,19 +71,28 @@ async function 돈다(): Promise<number> {
     return 1;
   }
 
-  const 아이디 = process.env.AUTHORING_AGENT_USER!;
-  console.log(`[작성] ${주소} 에 ${아이디} 로 로그인한다. 비밀번호는 어디에도 안 적는다.`);
-
-  let 쿠키: string;
+  // 토큰은 처음 한 번만 묻고 홈 아래 파일에 둔다 (SPEC 도메인/인증 §7). 계정 이름은 서버가 알려 준다
+  const 자리 = 토큰자리(homedir());
+  let 토큰: string;
+  let 나: string;
   let 서비스들: string[];
-  let 서버표: Record<string, 서버[]>;
+  let 서버표: Record<string, { env: string; baseUrl: string }[]>;
   try {
-    const 비번 = await 비밀번호묻기(아이디);
-    ({ 쿠키, 서비스들, 서버표 } = await 로그인(주소, 아이디, 비번));
+    const 있던것 = 토큰읽기(자리);
+    토큰 = 있던것 ?? (await 토큰묻기());
+    if (!토큰모양인가(토큰)) throw new Error('에이전트 토큰 모양이 아니다 (tpa_ 로 시작한다). 설정 화면에서 복사한 값을 넣어라.');
+    const 답 = await 부른다(주소, 토큰, '/auth/me');
+    const 풀린것 = 나풀기(답.몸);
+    if (typeof 풀린것 === 'string') throw new Error(풀린것);
+    ({ username: 나, 서비스들, 서버표 } = 풀린것);
+    // 서버가 받아 준 뒤에만 저장한다 — 틀린 값을 파일에 남기면 다음에 켤 때도 같은 자리에서 막힌다
+    if (있던것 === null) 토큰저장(자리, 토큰);
   } catch (err) {
+    // 거절돼도 파일을 지우지 않는다 — 주소를 잘못 준 것만으로 멀쩡한 토큰이 사라지면 안 된다
     console.error(`[거부] ${err instanceof Error ? err.message : String(err)}`);
     return 1;
   }
+  console.log(`[작성] ${주소} 에 ${나} 로 붙었다. 토큰은 ${자리} 에 있다.`);
 
   if (서비스들.length === 0) {
     console.error('[거부] 이 계정에 배정된 서비스가 없다. 설정 화면에서 배정해라.');
@@ -157,7 +101,7 @@ async function 돈다(): Promise<number> {
 
   // 맥이 꺼져 끊긴 요청은 아무도 안 끝낸다. 집기 전에 내 것만 닫는다 (게이트 1 결정)
   try {
-    await 멈춘것닫기(주소, 쿠키, 서비스들, 아이디);
+    await 멈춘것닫기(주소, 토큰, 서비스들, 나);
   } catch (err) {
     console.error(`[멈춤] ${err instanceof Error ? err.message : String(err)}`);
     return 1;
@@ -170,7 +114,7 @@ async function 돈다(): Promise<number> {
     let 집었나 = false;
     for (const 서비스 of 서비스들) {
       try {
-        const 답 = await 부른다(주소, 쿠키, `/authoring/requests/claim?service=${encodeURIComponent(서비스)}`, {
+        const 답 = await 부른다(주소, 토큰, `/authoring/requests/claim?service=${encodeURIComponent(서비스)}`, {
           method: 'POST',
         });
         // **「204 가 아니면 집은 것」으로 가르지 않는다.** 500 의 오류 본문이
@@ -185,7 +129,7 @@ async function 돈다(): Promise<number> {
         const 것 = 답.몸;
         console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}).`);
         집었나 = true;
-        await 한건처리(주소, 쿠키, 서비스, 것, 판정, 서버표[서비스] ?? []);
+        await 한건처리(주소, 토큰, 서비스, 것, 판정, 서버표[서비스] ?? []);
         console.log(`[작성] ${것.id}번을 끝냈다.`);
       } catch (err) {
         const 글 = err instanceof Error ? err.message : String(err);
@@ -195,7 +139,7 @@ async function 돈다(): Promise<number> {
           return 1;
         }
         // 연결이 끊긴 것은 서버가 다시 뜨는 중일 수 있다. **여기서 죽으면
-        // 비밀번호를 저장 안 하므로 사람이 와서 다시 칠 때까지 아무도 못 되살린다**
+        // 사람이 와서 다시 켤 때까지 아무도 못 되살린다**
         console.error(`[기다림] ${서비스}: ${글}`);
       }
     }

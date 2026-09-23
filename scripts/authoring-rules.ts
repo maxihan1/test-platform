@@ -1,5 +1,5 @@
 // 작성 에이전트의 순수 판정 — 과금 안전핀·자식 인자·줄 프롬프트·서버 응답 판정. 껍데기(authoring-agent.ts)가 부른다
-// authoring-agent.ts 가 478줄이 되어 나눴다 (2026-09-23). 옮기기만 했고 동작은 그대로다
+// authoring-agent.ts 가 478줄이 되어 나눴다 (2026-09-23)
 
 import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글 } from './authoring-assets.js';
 
@@ -101,10 +101,7 @@ export function 선행검사(입력: {
     ].join('\n');
   }
 
-  // 비밀번호를 묻기 **전에** 본다. 물어 놓고 「사실 못 돈다」고 하면 그 입력이 헛것이 된다
-  const 전제 = 대기줄전제(입력.env);
-  if (전제 !== null) return 전제;
-
+  // 토큰을 묻기 **전에** 본다. 물어 놓고 「사실 못 돈다」고 하면 그 입력이 헛것이 된다
   if (!셸허용됐나(입력.설정들)) {
     return [
       '자식 세션이 셸 명령을 못 돈다. 피그마를 못 읽고 관문도 못 돌아 한도만 쓰고 멈춘다.',
@@ -112,22 +109,6 @@ export function 선행검사(입력: {
     ].join('\n');
   }
   return null;
-}
-
-/**
- * 대기줄을 돌기 전에 봐야 할 것. 막히면 사유를, 아니면 `null`.
- *
- * **`AUTHORING_AGENT_USER` 가 비면 아무도 못 집는다** — 서버가 집기·단계·사진·끝내기 넷을
- * **정해진 계정 이름에만** 연다 (도메인/작성 §3.6). 이름이 없으면 줄이 영원히 쌓이기만 한다.
- * 비어 있는 것이 안전한 기본값이라 **고장이 아니라 설정 미완**이고, 그 사실을 여기서 말한다.
- */
-export function 대기줄전제(env: Record<string, string | undefined>): string | null {
-  if (env.AUTHORING_AGENT_USER) return null;
-  return [
-    'AUTHORING_AGENT_USER 가 비어 있다. 맥 계정 아이디를 적어야 줄을 집을 수 있다.',
-    '서버는 그 이름에만 집기를 열어 둔다 — 비어 있으면 아무도 못 집는다.',
-    '그 계정은 operator 여야 한다. admin 을 주면 맥에 든 열쇠 하나가 설정 전부를 연다.',
-  ].join('\n');
 }
 
 /** 줄에서 집어 온 한 건. 화면이 넣고 서버가 돌려주는 것 중 맥이 쓰는 칸만 */
@@ -159,7 +140,7 @@ export function 줄프롬프트(
 ): string {
   return [
     `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
-    // tpx-author 가 입력으로 기대한다. 폴더는 맥이 작업방의 기존 케이스로 찾았고, 서버는 로그인 응답의 것이다
+    // tpx-author 가 입력으로 기대한다. 폴더는 맥이 작업방의 기존 케이스로 찾았고, 서버는 /api/auth/me 응답의 것이다
     ...(대상 === undefined
       ? []
       : [
@@ -194,9 +175,9 @@ export function admin주소(env: Record<string, string | undefined>): string {
 }
 
 /**
- * 그 주소로 비밀번호를 보내도 되나. 막으면 사유를, 괜찮으면 `null`.
+ * 그 주소로 에이전트 토큰을 보내도 되나. 막으면 사유를, 괜찮으면 `null`.
  *
- * **평문(`http://`)으로 남의 기계에 비밀번호를 보내면 사내망에 그대로 흐른다**
+ * **평문(`http://`)으로 남의 기계에 토큰을 보내면 사내망에 그대로 흐른다**
  * (2026-09-23 검토가 잡았다). 같은 기계(`localhost`·`127.0.0.1`)는 망을 안 타므로 예외다.
  */
 export function 주소안전한가(주소: string): string | null {
@@ -209,7 +190,7 @@ export function 주소안전한가(주소: string): string | null {
   if (판.protocol === 'https:') return null;
   if (판.hostname === 'localhost' ||판.hostname === '127.0.0.1' || 판.hostname === '::1') return null;
   return [
-    `${주소} 는 평문(http)이다. 비밀번호가 망에 그대로 흐른다.`,
+    `${주소} 는 평문(http)이다. 토큰이 망에 그대로 흐른다.`,
     'https 주소를 쓰거나, 같은 기계에서 띄웠으면 localhost 를 써라.',
   ].join('\n');
 }
@@ -248,7 +229,7 @@ export function 집은것인가(status: number, 몸: unknown): 몸 is 집은것 
  *
  * **서버가 잠깐 죽었다고 맥까지 죽으면 안 된다** (2026-09-23 검토가 잡았다).
  * `docker compose restart` 한 번이나 네트워크가 잠깐 흔들린 것만으로 맥이 끝나는데,
- * **비밀번호를 저장하지 않기로 했으므로 사람이 와서 다시 칠 때까지 아무도 못 되살린다.**
+ * **사람이 와서 다시 켤 때까지 아무도 못 되살린다.**
  * 밤새 켜 두는 프로그램이라는 전제와 정면으로 어긋난다.
  *
  * 던져서 끝내는 것은 **거절(401·403)뿐**이다 — 그것만이 기다린다고 안 풀린다.

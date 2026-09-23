@@ -27,10 +27,20 @@ export async function 한번더건다(한번: () => Promise<Response>): Promise<
   }
 }
 
+/** 서버에 내미는 열쇠. 맥은 비밀번호 로그인을 안 하고 에이전트 토큰만 든다 (SPEC 도메인/인증 §7) */
+export function 인증헤더(토큰: string): { authorization: string } {
+  return { authorization: `Bearer ${토큰}` };
+}
+
+/** 거절(401·403) 글. 토큰이 취소됐거나 계정이 바뀐 것이라 기다려도 안 풀린다 */
+export const 거절글 =
+  '서버가 거절했다. 에이전트 토큰이 취소·재발급됐거나, 계정이 비활성·등급 부족·서비스 미배정이다 — 다시 물어도 같다.\n' +
+  '설정 > 계정에서 확인하고, 토큰을 다시 발급했으면 ~/.test-platform/agent-token 을 지운 뒤 다시 켜라.';
+
 /** 서버에 거는 한 번. 거절이면 그 자리에서 던져 루프를 끊는다 */
 export async function 부른다(
   주소: string,
-  쿠키: string,
+  토큰: string,
   길: string,
   옵션: { method?: string; body?: unknown } = {},
 ): Promise<{ status: number; 몸: unknown }> {
@@ -38,7 +48,7 @@ export async function 부른다(
     fetch(`${주소}/api${길}`, {
       method: 옵션.method ?? 'GET',
       headers: {
-        cookie: 쿠키,
+        ...인증헤더(토큰),
         ...(옵션.body === undefined ? {} : { 'content-type': 'application/json' }),
       },
       ...(옵션.body === undefined ? {} : { body: JSON.stringify(옵션.body) }),
@@ -48,12 +58,7 @@ export async function 부른다(
 
   const 답 = await 한번더건다(한번);
 
-  if (거절인가(답.status)) {
-    throw new Error(
-      `서버가 거절했다 (${답.status}). 세션이 끊겼거나 등급이 모자란다 — 다시 물어도 같다.\n` +
-        '켤 때 쓴 계정이 operator 이고 그 서비스에 배정돼 있는지 확인하고 다시 켜라.',
-    );
-  }
+  if (거절인가(답.status)) throw new Error(`(${답.status}) ${거절글}`);
   const 몸 = 답.status === 204 ? null : await 답.json().catch(() => null);
   return { status: 답.status, 몸 };
 }
@@ -63,18 +68,18 @@ export type 보고손 = { 단계(글: string): Promise<unknown>; 끝내기(몸: 
 
 export const 쉬기 = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function 보고손만들기(주소기지: string, 쿠키: string, 서비스: string, id: number): 보고손 {
+export function 보고손만들기(주소기지: string, 토큰: string, 서비스: string, id: number): 보고손 {
   const 뒤 = `?service=${encodeURIComponent(서비스)}`;
   return {
     단계: (글) =>
-      부른다(주소기지, 쿠키, `/authoring/requests/${id}/stage${뒤}`, { method: 'PATCH', body: { stage: 글 } }),
+      부른다(주소기지, 토큰, `/authoring/requests/${id}/stage${뒤}`, { method: 'PATCH', body: { stage: 글 } }),
     // 보고 한 번을 잃으면 요청이 영원히 RUNNING 이다. 거절(401·403)만 빼고 몇 번 다시 보낸다.
     // `부른다` 가 끊긴 연결에 한 번씩 더 걸므로 최악이면 fetch 12번·약 8분이다 — 그동안 다음 건을 못 집는다
     끝내기: async (몸) => {
       for (let 시도 = 0; ; 시도 += 1) {
         let 실패: unknown;
         try {
-          const 답 = await 부른다(주소기지, 쿠키, `/authoring/requests/${id}/finish${뒤}`, { method: 'POST', body: 몸 });
+          const 답 = await 부른다(주소기지, 토큰, `/authoring/requests/${id}/finish${뒤}`, { method: 'POST', body: 몸 });
           if (!기다렸다다시인가(답.status)) return 답;
           실패 = new Error(`끝났다는 보고에 서버가 ${답.status} 를 냈다`);
         } catch (err) {

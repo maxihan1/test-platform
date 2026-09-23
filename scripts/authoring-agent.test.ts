@@ -8,7 +8,6 @@ import {
   거절인가,
   과금위험,
   기다렸다다시인가,
-  대기줄전제,
   보고간격,
   주소안전한가,
   집은것인가,
@@ -19,14 +18,6 @@ import {
 } from './authoring-rules.js';
 
 describe('대기줄 전제 — 켜자마자 보는 것', () => {
-  it('맥 계정 이름이 없으면 멈춘다. 서버가 그 이름에만 집기를 열어 아무도 못 집는다', () => {
-    expect(대기줄전제({})).toMatch(/AUTHORING_AGENT_USER/);
-  });
-
-  it('이름이 있으면 통과한다', () => {
-    expect(대기줄전제({ AUTHORING_AGENT_USER: 'mac' })).toBe(null);
-  });
-
   it('주소를 안 주면 로컬 admin 을 본다. compose 의 기본 포트와 같은 숫자다', () => {
     expect(admin주소({})).toBe('http://localhost:3000');
   });
@@ -138,14 +129,14 @@ describe('평문 주소로 비밀번호를 보내지 않는다', () => {
   });
 });
 
-describe('비밀번호를 어디에도 안 적는다', () => {
-  it('이 스크립트는 비밀번호를 환경이나 파일에서 읽지 않는다. 켤 때 묻고 메모리에만 든다', () => {
-    const 소스 = readFileSync(new URL('./authoring-agent.ts', import.meta.url), 'utf8');
-    const 읽는곳 = 소스
-      .split('\n')
-      .filter((줄) => /PASSWORD/i.test(줄))
-      .filter((줄) => /env\[|env\.|readFileSync|JSON\.parse/.test(줄));
-    expect(읽는곳).toEqual([]);
+describe('에이전트 토큰은 한 곳에만 둔다', () => {
+  // 2026-09-23 — 비밀번호 대신 토큰. 환경변수로도 받게 하면 셸 기록·프로세스 목록에 새고 열쇠가 두 곳이 된다
+  it('토큰을 환경변수에서 읽지 않는다 — 홈 아래 파일 하나와 처음 한 번의 입력뿐이다', () => {
+    for (const 파일 of ['./authoring-agent.ts', './authoring-token.ts']) {
+      const 소스 = readFileSync(new URL(파일, import.meta.url), 'utf8');
+      const 읽는곳 = 소스.split('\n').filter((줄) => /TOKEN|PASSWORD/i.test(줄) && /env\[|env\./.test(줄));
+      expect(읽는곳, 파일).toEqual([]);
+    }
   });
 });
 
@@ -226,17 +217,13 @@ describe('선행검사 — 순서가 뒤집히면 돈이 샌다', () => {
     expect(선행검사({ env: 더러운환경, 설정들: 셸허용 })).toMatch(/실비 청구/);
   });
 
-  it('환경이 깨끗해도 맥 계정 이름이 없으면 안 돌린다', () => {
-    expect(선행검사({ env: {}, 설정들: 셸허용 })).toMatch(/AUTHORING_AGENT_USER/);
-  });
-
   it('자식이 셸을 못 돌면 안 돌린다 — 피그마도 관문도 못 돈다', () => {
-    expect(선행검사({ env: { AUTHORING_AGENT_USER: 'mac' }, 설정들: [] })).toMatch(/Bash\(\*\)/);
+    expect(선행검사({ env: {}, 설정들: [] })).toMatch(/Bash\(\*\)/);
   });
 
-  // 2026-09-23 — 테스트만 바뀐 push 는 검사 기록 없이 가벼운 길로 간다. 오늘 기록을 요구하면 맥이 매일 아침 멈춘다
-  it('오늘 검사 기록이 없어도 셋 다 통과하면 막지 않는다', () => {
-    expect(선행검사({ env: { AUTHORING_AGENT_USER: 'mac' }, 설정들: 셸허용 })).toBeNull();
+  // 2026-09-23 — 맥은 계정 이름을 안 든다. 토큰이 작성 에이전트 계정에만 발급되고 이름은 /me 가 알려 준다
+  it('맥 계정 이름 없이도 과금·셸이 괜찮으면 막지 않는다', () => {
+    expect(선행검사({ env: {}, 설정들: 셸허용 })).toBeNull();
   });
 });
 
