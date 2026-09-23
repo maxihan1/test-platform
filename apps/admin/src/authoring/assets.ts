@@ -81,14 +81,15 @@ export default async function authoringAssetRoutes(app: FastifyInstance): Promis
     },
   );
 
-  app.post<{ Querystring: { name?: string }; Params: { id: string } }>(
+  app.post<{ Querystring: { name?: unknown }; Params: { id: string } }>(
     '/authoring/requests/:id/assets',
     async (req, reply) => {
       const 행 = await 내준비행(req, reply);
       if (행 === null) return reply;
 
+      // ?name= 이 두 번 오면 배열로 온다
       const 이름 = req.query.name ?? '';
-      if (!이름인가(이름)) return reply.code(400).send({ error: 'BAD_NAME' });
+      if (typeof 이름 !== 'string' || !이름인가(이름)) return reply.code(400).send({ error: 'BAD_NAME' });
       const 확장자 = extname(이름).toLowerCase();
       if (!받는확장자.has(확장자)) {
         return reply.code(400).send({ error: 'BAD_FILE_TYPE', detail: 확장자 });

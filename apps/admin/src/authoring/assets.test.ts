@@ -105,6 +105,18 @@ describe.skipIf(연결 === undefined)('작성 자료 통로', () => {
       },
     );
 
+    it('name 이 두 번 오면 배열이다 — 500 이 아니라 400 BAD_NAME', async () => {
+      const id = await 준비();
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests/${String(id)}/assets?name=a.pdf&name=b.pdf`,
+        headers: { 'content-type': 'application/octet-stream' },
+        payload: Buffer.from('%PDF-1.4'),
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error).toBe('BAD_NAME');
+    });
+
     it.each(['기획서.hwp', '발표.pptx', '이름없음'])('%s 는 400 BAD_FILE_TYPE', async (이름) => {
       const id = await 준비();
       const res = await 올리기(id, 이름);
