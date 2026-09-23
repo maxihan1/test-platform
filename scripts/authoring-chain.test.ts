@@ -151,12 +151,12 @@ describe('gh 인자', () => {
     expect(인자[인자.indexOf('--match-head-commit') + 1]).toBe('def456');
   });
 
-  it('실행 목록은 판정에 쓰는 칸을 전부 받는다', () => {
-    expect(실행목록인자(7)).toEqual([
+  it('실행 목록은 PR 의 실제 브랜치로 찾고 판정에 쓰는 칸을 전부 받는다', () => {
+    expect(실행목록인자('author-7-다시')).toEqual([
       'run',
       'list',
       '--branch',
-      'author-7',
+      'author-7-다시',
       '--workflow',
       'ci',
       '--json',

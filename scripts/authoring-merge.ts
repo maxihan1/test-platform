@@ -23,19 +23,19 @@ const 폴링간격 = 15_000;
 // ponytail: 루프 시간으로 잰다 — 맥에는 GNU timeout 이 없다. CI 가 늘 17분을 넘기면 이 숫자를 올린다
 const 전체제한 = 17 * 60_000;
 
-/** 원본 PR 주소와 그 PR 의 브랜치 번호(원본 요청 번호)로 병합까지 간다 */
-export async function 머지처리(손: 보고손, 번호: number, prUrl: string): Promise<void> {
-  await 닫으며(손, () => 머지(손, 번호, prUrl));
+/** 원본 PR 주소로 병합까지 간다 */
+export async function 머지처리(손: 보고손, prUrl: string): Promise<void> {
+  await 닫으며(손, () => 머지(손, prUrl));
 }
 
-async function 머지(손: 보고손, 번호: number, prUrl: string): Promise<void> {
+async function 머지(손: 보고손, prUrl: string): Promise<void> {
   const 뿌리 = process.cwd();
-  const 뷰 = 친다('gh', ['pr', 'view', prUrl, '--json', 'headRefOid,isDraft,state'], 뿌리);
+  const 뷰 = 친다('gh', ['pr', 'view', prUrl, '--json', 'headRefName,headRefOid,isDraft,state'], 뿌리);
   if (!뷰.ok) {
     await 손.끝내기({ status: 'FAILED', error: `PR 을 못 읽었다: ${뷰.까닭}` });
     return;
   }
-  const pr = JSON.parse(뷰.낸것) as { headRefOid: string; isDraft: boolean; state: string };
+  const pr = JSON.parse(뷰.낸것) as { headRefName: string; headRefOid: string; isDraft: boolean; state: string };
   // 병합은 됐는데 보고만 잃은 경우다. 다시 누른 것을 실패로 닫으면 사람이 헷갈린다
   if (pr.state === 'MERGED') {
     await 손.끝내기({ status: 'DONE', prUrl });
@@ -47,7 +47,7 @@ async function 머지(손: 보고손, 번호: number, prUrl: string): Promise<vo
   }
 
   const 목록읽기 = (): CI실행[] | null => {
-    const r = 친다('gh', 실행목록인자(번호), 뿌리);
+    const r = 친다('gh', 실행목록인자(pr.headRefName), 뿌리);
     if (!r.ok) {
       console.error(`[기다림] CI 실행 목록을 못 읽었다: ${r.까닭}`);
       return null;

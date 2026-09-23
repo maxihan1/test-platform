@@ -76,12 +76,11 @@ async function 한건(
       const 원본 = await 부른다(주소기지, 쿠키, `/authoring/requests/${것.sourceId}?service=${encodeURIComponent(서비스)}`);
       주소 = (원본.몸 as { prUrl?: string | null } | null)?.prUrl ?? null;
     }
-    // 브랜치 이름이 원본 요청 번호(`author-<번호>`)라 CI 실행을 그 번호로 찾는다
-    if (주소 === null || typeof 것.sourceId !== 'number') {
+    if (주소 === null) {
       await 손.끝내기({ status: 'FAILED', error: '머지할 초안 PR 주소가 없다' });
       return;
     }
-    await 머지처리(손, 것.sourceId, 주소);
+    await 머지처리(손, 주소);
     return;
   }
 

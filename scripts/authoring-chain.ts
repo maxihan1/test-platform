@@ -84,13 +84,16 @@ export function 머지인자(prUrl: string, headSha: string): string[] {
   return ['pr', 'merge', prUrl, '--merge', '--delete-branch', '--match-head-commit', headSha];
 }
 
-/** `CI판정` 이 읽는 칸과 **같은 목록**을 받는다. 한쪽만 바뀌면 판정이 늘 「아직」이 된다 */
-export function 실행목록인자(번호: number): string[] {
+/**
+ * `CI판정` 이 읽는 칸과 **같은 목록**을 받는다. 한쪽만 바뀌면 판정이 늘 「아직」이 된다.
+ * 브랜치는 PR 이 실제로 쓰는 이름(`headRefName`)이다 — 요청 번호로 지어 내면 PR 과 어긋날 때 남의 실행을 본다.
+ */
+export function 실행목록인자(브랜치: string): string[] {
   return [
     'run',
     'list',
     '--branch',
-    올릴브랜치(번호),
+    브랜치,
     '--workflow',
     'ci',
     '--json',
