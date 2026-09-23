@@ -34,7 +34,7 @@ import {
  *
  * **쓸 때 읽는다** — 맨 위에서 잡으면 검사가 값을 바꿔도 이미 굳은 뒤다.
  */
-function 사진뿌리(): string {
+export function 사진뿌리(): string {
   return process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts');
 }
 
@@ -52,7 +52,7 @@ const 요청당장수 = 200;
  * **문과 라우트가 같은 값을 읽어야 한다.** `1e3` 이나 퍼센트 인코딩을 느슨하게 읽으면
  * 문이 본 번호와 라우트가 쓰는 번호가 갈리고 그 틈으로 빠져나간다 (auth/scope.ts 의 `번호로` 와 같은 규칙).
  */
-function 번호(값: unknown): number | null {
+export function 번호(값: unknown): number | null {
   if (typeof 값 !== 'string' || !/^\d{1,10}$/.test(값)) return null;
   const n = Number(값);
   return Number.isSafeInteger(n) && n > 0 ? n : null;

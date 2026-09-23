@@ -1,0 +1,143 @@
+// 작성 자료 통로 검사 — 올리기 · 줄에 세우기 · 내려받기 (SPEC 도메인/작성 §7 「자료」)
+
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import Fastify, { type FastifyInstance } from 'fastify';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import assetRoutes from './assets.js';
+import { 자료목록, 준비세우기 } from './assetStore.js';
+import { 줄세우기 } from './store.js';
+
+const 연결 = process.env.DATABASE_URL;
+
+// fixture 접두사 XWU — authoring_request 를 자기 service_id 로만 지운다 (CLAUDE.md §3)
+const 접두사 = 'XWU';
+
+// 이 검사는 문(gate.ts)을 안 지난다. 등급과 서비스 경계는 gate.test.ts · scope.test.ts 가 본다
+function 사람(이름: string) {
+  return { username: 이름, displayName: `${이름} 씨`, role: 'operator' as const, services: [] };
+}
+
+describe.skipIf(연결 === undefined)('작성 자료 통로', () => {
+  let app: FastifyInstance;
+  let 서비스 = 0;
+  let 부르는이 = 'xwu-나';
+  let 뿌리 = '';
+
+  beforeAll(async () => {
+    const { pool } = await import('../db/index.js');
+    const r = await pool.query<{ id: string }>(
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+            VALUES ($1, $2, '#3A5FCD', '', $3)
+       ON CONFLICT (prefix) DO UPDATE SET is_active = true
+         RETURNING id`,
+      [접두사, `${접두사} 자료 통로 검사용`, 접두사.toLowerCase()],
+    );
+    서비스 = Number(r.rows[0]!.id);
+    await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+
+    뿌리 = await mkdtemp(join(tmpdir(), 'xwu-assets-'));
+    process.env.PLATFORM_ARTIFACTS_DIR = 뿌리;
+
+    app = Fastify();
+    app.decorateRequest('user', null);
+    app.addHook('preHandler', async (req) => {
+      req.user = 사람(부르는이);
+    });
+    await app.register(assetRoutes, { prefix: '/api' });
+    await app.ready();
+  });
+
+  afterAll(async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
+    await rm(뿌리, { recursive: true, force: true });
+    await app.close();
+  });
+
+  const 준비 = (피그마: string[] = []) => 준비세우기({ 서비스, 누가: 'xwu-나', 이름: '나', 피그마 });
+
+  const 올리기 = (id: number, 이름: string, 몸: Buffer = Buffer.from('%PDF-1.4')) =>
+    app.inject({
+      method: 'POST',
+      url: `/api/authoring/requests/${String(id)}/assets?name=${encodeURIComponent(이름)}`,
+      headers: { 'content-type': 'application/octet-stream' },
+      payload: 몸,
+    });
+
+  describe('올리기', () => {
+    it('요청한 사람이 DRAFT 행에 한글 이름 파일을 올리면 200 · 디스크 이름은 자료 번호다', async () => {
+      const id = await 준비();
+      const res = await 올리기(id, '기획서.pdf');
+      expect(res.statusCode).toBe(200);
+      const 자료id = res.json().id as number;
+      const 자료 = await 자료목록(id);
+      expect(자료.map((a) => [a.kind, a.name, a.size])).toEqual([['FILE', '기획서.pdf', 8]]);
+      const 디스크 = await readFile(join(뿌리, 'authoring-assets', String(id), `${String(자료id)}.pdf`));
+      expect(디스크.toString()).toBe('%PDF-1.4');
+    });
+
+    it('남이 올리면 403 NOT_REQUESTER', async () => {
+      const id = await 준비();
+      부르는이 = 'xwu-남';
+      const res = await 올리기(id, '기획서.pdf');
+      부르는이 = 'xwu-나';
+      expect(res.statusCode).toBe(403);
+      expect(res.json().error).toBe('NOT_REQUESTER');
+    });
+
+    it('줄에 선 행에는 409', async () => {
+      const id = await 줄세우기({ 서비스, kind: 'AUTHOR', 기획서: '옛 행', 누가: 'xwu-나', 이름: '나' });
+      expect((await 올리기(id, '기획서.pdf')).statusCode).toBe(409);
+    });
+
+    it.each(['a/b.pdf', 'a\\b.pdf', '..pdf', '../x.pdf', 'a".pdf', 'a\u0000.pdf', 'a\n.pdf', ''])(
+      '이름 %j 는 400 BAD_NAME',
+      async (이름) => {
+        const id = await 준비();
+        const res = await 올리기(id, 이름);
+        expect(res.statusCode).toBe(400);
+        expect(res.json().error).toBe('BAD_NAME');
+      },
+    );
+
+    it.each(['기획서.hwp', '발표.pptx', '이름없음'])('%s 는 400 BAD_FILE_TYPE', async (이름) => {
+      const id = await 준비();
+      const res = await 올리기(id, 이름);
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error).toBe('BAD_FILE_TYPE');
+    });
+
+    it('JSON 통로 상한(1MB)보다 큰 파일도 20MB 안이면 받는다', async () => {
+      const id = await 준비();
+      expect((await 올리기(id, '큰것.pdf', Buffer.alloc(5 * 1024 * 1024))).statusCode).toBe(200);
+    });
+
+    it('20MB 를 넘으면 413', async () => {
+      const id = await 준비();
+      const res = await 올리기(id, '큰것.pdf', Buffer.alloc(20 * 1024 * 1024 + 1));
+      expect(res.statusCode).toBe(413);
+    });
+
+    it('자료 개수 상한이면 409 TOO_MANY_ASSETS', async () => {
+      const id = await 준비(Array.from({ length: 20 }, (_, i) => `https://www.figma.com/design/K${String(i)}/`));
+      const res = await 올리기(id, '기획서.pdf');
+      expect(res.statusCode).toBe(409);
+      expect(res.json().error).toBe('TOO_MANY_ASSETS');
+    });
+
+    it('번호가 1e3 이면 400', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/authoring/requests/1e3/assets?name=a.pdf',
+        headers: { 'content-type': 'application/octet-stream' },
+        payload: Buffer.from('x'),
+      });
+      expect(res.statusCode).toBe(400);
+    });
+  });
+});
