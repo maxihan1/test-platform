@@ -34,6 +34,7 @@ import {
   진짜main인자,
   진짜main풀기,
   차단됐나,
+  push실패,
   type CI실행,
 } from './authoring-chain.js';
 
@@ -343,6 +344,20 @@ describe('차단됐나 — 훅이 막은 push 는 다시 해도 같다', () => {
 
   it('네트워크 같은 까닭은 다시 해 볼 만하다', () => {
     expect(차단됐나('fatal: unable to access')).toBe(false);
+  });
+});
+
+describe('push실패 — 다시 할지와 사유', () => {
+  it('시간 초과는 다시 하지 않는다 — 원격에 닿았을 수 있다', () => {
+    const 판단 = push실패({ 시간초과: true, 까닭: '시간 초과 — git 이 600초 안에 안 끝났다', 오류: '' });
+    expect(판단.그만).toBe(true);
+    expect(판단.까닭).toContain('시간 초과');
+    expect(판단.까닭).toContain('원격에 닿았을 수 있다 — PR 목록을 확인하라');
+  });
+
+  it('훅 차단은 그만, 네트워크는 다시 한다', () => {
+    expect(push실패({ 시간초과: false, 까닭: 'x', 오류: '머리말\n[차단] 새 폴더' })).toEqual({ 까닭: '[차단] 새 폴더', 그만: true });
+    expect(push실패({ 시간초과: false, 까닭: 'git 실패', 오류: '' })).toEqual({ 까닭: 'git 실패', 그만: false });
   });
 });
 

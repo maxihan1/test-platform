@@ -235,6 +235,13 @@ export function 차단됐나(까닭: string): boolean {
   return 까닭.includes('[차단]');
 }
 
+/** push 실패를 `다시하며` 의 한 번 결과로. 시간 초과는 원격에 이미 닿았을 수 있어 다시 하면 겹친다 */
+export function push실패(r: { 시간초과: boolean; 까닭: string; 오류: string }): { 까닭: string; 그만: boolean } {
+  if (r.시간초과) return { 까닭: `${r.까닭} — 원격에 닿았을 수 있다 — PR 목록을 확인하라`, 그만: true };
+  const 까닭 = 실패까닭(r.오류) || r.까닭;
+  return { 까닭, 그만: 차단됐나(까닭) };
+}
+
 /** push 가 왜 실패했나. 첫 줄은 훅의 머리말이라 쓸모없다 — 훅의 `[차단]` 줄이 먼저, 없으면 git 의 마지막 두 줄 */
 export function 실패까닭(stderr: string): string {
   const 줄들 = stderr.split('\n').filter((줄) => 줄.trim() !== '');
