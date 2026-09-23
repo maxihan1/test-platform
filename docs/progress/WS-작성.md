@@ -294,3 +294,37 @@
 렌즈: code-review 재검사 BLOCKER 0 · spec-review 치명 0 · security-review 0건. 화면은 사용자가 직접 봤다
 (설정 화면 아래가 잘리던 전부터 있던 CSS 버그를 잡아 고쳤다).
 검사 기록은 [`docs/reviews/2026-09-23-작성-자료목록.md`](../reviews/2026-09-23-작성-자료목록.md).
+
+## 2026-09-23 (6회차) — 맥 작성 경로를 전용 체인으로 (PR #63)
+
+- 완료:
+  - **전용 체인 `tpx-author`** — 맥 스크립트가 준비(진짜 main SHA · 작업방 · 기존 케이스로 폴더 찾기)와 마무리(판정 · commit · push · 초안 PR · 보고)를 하고, 자식 Claude 는 자료 → 요구사항 표 → 케이스 → 관문 넷만
+  - **머지** — 맥이 초안을 풀고 PR head 커밋의 CI 가 초록일 때 `--match-head-commit` 으로 병합. 빨강이면 사유에 CI 주소, 다시 누르면 다시 돈다
+  - **테스트만 바뀐 PR·push 는 가벼운 길** (`.claude/scripts/cases-only.mjs`) — CI 는 새 케이스를 실행하지 않고 병합 근거는 PR 본문의 관문 3 기록
+  - **자식에게서 GitHub 자격증명을 뺐다** · 판정 스크립트는 켤 때 메모리에 고정 · 켤 때 멈춘 RUNNING 을 닫는다
+  - 맥 에이전트를 넷으로 갈랐다 — `authoring-agent`(켜기·폴링) · `-run`(작성) · `-merge`(머지) · `-io`(공용 손) · `-chain`·`-assets`(순수 함수)
+- 미완: **병합 뒤 한 바퀴**(할 일 11) — 올리기부터 Merged 까지 시간을 잰다. 목표 약 13분
+- 막힌 것: 없음
+
+### ★ 다음 세션이 알아야 할 것
+
+**1. 병합 뒤 할 일** — main 을 pull 하고 맥 에이전트를 다시 켠다(새 훅·새 스킬). 그다음 화면에서 DEMO 로 파일 하나를 넣어 한 바퀴를 돌린다.
+`core.hooksPath` 가 이 기계처럼 절대경로면 main 체크아웃의 훅이 돈다 — pull 전에는 옛 훅이 돈다.
+
+**2. 남은 신뢰 경계** — 자식은 GitHub 자격증명이 없지만 **맥의 키체인 · 공유 훅 폴더 · `.git/config`** 에는 손댈 수 있다.
+전용 macOS 계정에서 에이전트를 돌려야 풀린다(후속). 그전까지는 믿을 수 있는 기획서만.
+
+**3. 판정 스크립트 fail-open 을 두 번 잡았다** — 경로가 `/var`→`/private/var` 로 어긋나면 본체가 안 돌고 「통과」였다.
+가짜 스크립트 검사로는 안 보였다. 진짜 스크립트를 심링크·대소문자 경로로 부르는 검사가 지킨다.
+
+**4. 진입점** — 맥 `scripts/authoring-*.ts` · 스킬 `.claude/skills/tpx-author/SKILL.md` · 판정 `.claude/scripts/cases-only.mjs` ·
+정본 `docs/spec/도메인/작성.md` §3.6 「맥 경로는 전용 체인이다」 · 가벼운 길 정본 `docs/HOOKS.md`.
+
+**5. 넘길 것** — `authoring-agent.ts` 478줄(300줄 초과) · rerun 직후 옛 failure 를 읽는 경쟁 · 한 폴더의 spec 을 전부 지우는 PR 의 한계 ·
+`판정기만들기` 를 ESM import 한 번으로 줄이는 단순화.
+
+### 검사
+
+`check:deps` · `typecheck` · `check:workflow` · `check:spec` · `check:tests` 전부 **EXIT 0** ·
+**`npm test` DB 붙여 연속 3회 `0·0·0`** — 검사 **1393**. 렌즈: 보안·코드 재검사 BLOCKER 0 · spec-review 치명 0.
+검사 기록은 [`docs/reviews/2026-09-23-작성-전용체인.md`](../reviews/2026-09-23-작성-전용체인.md).
