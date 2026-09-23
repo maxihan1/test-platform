@@ -63,7 +63,8 @@ if [ "$light" = "1" ]; then
     echo "[차단] 타입 검사가 실패했다. 고치고 다시 푸시해라." >&2
     exit 1
   fi
-  if ! npm run check:tests --if-present --silent; then
+  # --if-present 를 안 붙인다 — 가벼운 길의 유일한 규칙 검사라 스크립트가 사라지면 조용히 통과하지 말고 죽어야 한다
+  if ! npm run check:tests --silent; then
     echo "" >&2
     echo "[차단] 테스트 코드 규칙 위반 (SPEC §4 K1~K10). 위 메시지대로 고치고 다시 푸시해라." >&2
     exit 1

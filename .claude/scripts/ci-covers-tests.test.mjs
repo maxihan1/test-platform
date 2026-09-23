@@ -204,6 +204,12 @@ test('가벼운 길에서도 타입 · K1~K10 · 비밀값 이름은 돈다', ()
   }
 });
 
+test('가벼운 길의 check:tests 에 --if-present 가 없다 — 가벼운 길의 유일한 규칙 검사라 없으면 죽어야 한다', () => {
+  const 단계 = (블록 === null ? [] : 단계들(블록)).find((s) => 치는명령(s).includes('npm run check:tests'));
+  assert.ok(단계, 'check:tests 단계가 없다');
+  assert.doesNotMatch(치는명령(단계), /--if-present/, 'check:tests 에 --if-present 가 붙어 있다 — 스크립트가 사라져도 가벼운 길이 초록이 된다');
+});
+
 test('이 검사 자신을 돌리는 단계가 있다 — 없으면 이 검사가 아무 데서도 안 돈다', () => {
   const 자기검사 = (블록 === null ? [] : 단계들(블록)).filter((s) => /npm run check:workflow/.test(치는명령(s)));
   assert.ok(

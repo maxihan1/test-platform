@@ -134,6 +134,8 @@ test('테스트만 바뀐 커밋은 가벼운 길 — 타입·check:tests 만 �
     const 호출 = 불린것(저장소.기록);
     assert.match(호출, /typecheck/, '가벼운 길에서 타입 검사를 안 돌렸다');
     assert.match(호출, /check:tests/, '가벼운 길에서 check:tests 를 안 돌렸다');
+    // 가벼운 길의 유일한 규칙 검사다 — 스크립트가 사라지면 조용히 초록이 아니라 그 자리에서 죽어야 한다
+    assert.doesNotMatch(호출, /check:tests.*--if-present/, '가벼운 길의 check:tests 에 --if-present 가 붙어 있다');
     assert.doesNotMatch(호출, /^test\b/m, '가벼운 길인데 전체 단위 테스트를 돌렸다');
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });
