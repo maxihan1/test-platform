@@ -272,6 +272,10 @@ export interface UserRow {
   role: 등급;
   isActive: boolean;
   services: string[];
+  // 옛 검사 fixture 가 이 둘 없이 UserRow 를 만든다. 서버는 늘 보낸다 — 없으면 false 로 읽는다
+  hasAgentToken?: boolean;
+  /** 서버 환경변수 AUTHORING_AGENT_USER 가 가리키는 계정만 true. 토큰은 이 계정만 가진다 */
+  isAuthoringAgent?: boolean;
 }
 
 export interface SourceExcerpt {
@@ -591,4 +595,13 @@ export const api = {
     call<{ tempPassword: string }>(`/settings/users/${encodeURIComponent(username)}/password`, {
       method: 'POST',
     }),
+
+  /** 토큰이 **이 응답에만** 있다. 다시 발급하면 옛 토큰은 그 자리에서 죽는다 */
+  issueAgentToken: (username: string) =>
+    call<{ agentToken: string }>(`/settings/users/${encodeURIComponent(username)}/agent-token`, {
+      method: 'POST',
+    }),
+
+  revokeAgentToken: (username: string) =>
+    call<void>(`/settings/users/${encodeURIComponent(username)}/agent-token`, { method: 'DELETE' }),
 };

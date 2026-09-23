@@ -2180,6 +2180,8 @@ select:focus {
   border: 1px solid var(--rule);
   padding: 2px 8px;
   user-select: all;
+  /* 에이전트 토큰은 길어서 상자 밖으로 삐져나간다 */
+  word-break: break-all;
 }
 
 /* 목록 줄의 「비활성」 표시. `.chip` 은 누를 수 있는 것이라 손가락 커서가 뜬다 — 배지는 따로 둔다 */
