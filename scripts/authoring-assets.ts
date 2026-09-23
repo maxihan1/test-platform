@@ -19,8 +19,8 @@ export type 읽을자료 =
       /** 사람이 준 이름. 프롬프트에만 싣는다 — 디스크에는 안 쓴다 */
       name: string;
       받을자리: string;
-      /** `textutil` 인자. 바꿀 필요가 없으면 `null` */
-      변환: string[] | null;
+      /** 글자로 바꾸는 명령. 바꿀 필요가 없으면 `null` */
+      변환: { 명령: string; 인자: string[] } | null;
       읽을자리: string;
     }
   | { kind: 'FIGMA'; 주소: string };
@@ -31,9 +31,10 @@ export type 읽을자료 =
  * **디스크 이름은 자료 번호다.** 사람이 준 이름으로 쓰면 `../` 같은 이름이 폴더 밖에 쓴다 —
  * 서버가 이미 막지만 맥은 서버를 믿지 않는다. 확장자만 이름에서 가져온다.
  *
- * doc·docx 는 claude 의 Read 가 못 연다. 맥 기본 도구 `textutil` 로 글자만 뽑는다 — 새 부품이 필요 없다.
+ * doc·docx 는 claude 의 Read 가 못 연다. 맥은 기본 도구 `textutil`, 서버(리눅스)는 이미지에 넣은 `pandoc` 으로
+ * 글자만 뽑는다 (2026-09-23 게이트 1). pandoc 은 옛 `.doc` 을 못 읽는다 — `못읽는자료` 가 미리 말한다.
  */
-export function 자료계획(자료들: 자료[], 폴더: string): 읽을자료[] {
+export function 자료계획(자료들: 자료[], 폴더: string, 플랫폼: string = process.platform): 읽을자료[] {
   return [...자료들]
     .sort((a, b) => a.position - b.position)
     .map((자): 읽을자료 => {
@@ -47,12 +48,24 @@ export function 자료계획(자료들: 자료[], 폴더: string): 읽을자료[
           id: 자.id,
           name: 자.name,
           받을자리,
-          변환: ['-convert', 'txt', '-output', 읽을자리, 받을자리],
+          변환:
+            플랫폼 === 'darwin'
+              ? { 명령: 'textutil', 인자: ['-convert', 'txt', '-output', 읽을자리, 받을자리] }
+              : { 명령: 'pandoc', 인자: ['-t', 'plain', '-o', 읽을자리, 받을자리] },
           읽을자리,
         };
       }
       return { kind: 'FILE', id: 자.id, name: 자.name, 받을자리, 변환: null, 읽을자리: 받을자리 };
     });
+}
+
+/** 이 기계가 글자로 못 바꾸는 자료가 있으면 사유. 서버의 pandoc 은 옛 `.doc` 을 못 읽는다 */
+export function 못읽는자료(계획: 읽을자료[], 플랫폼: string = process.platform): string | null {
+  if (플랫폼 === 'darwin') return null;
+  const 옛것 = 계획.filter((c) => c.kind === 'FILE' && extname(c.받을자리) === '.doc');
+  if (옛것.length === 0) return null;
+  const 이름들 = 옛것.map((c) => (c.kind === 'FILE' ? `「${c.name}」` : '')).join(' · ');
+  return `${이름들} 은 옛 워드(.doc)라 서버가 못 읽는다. .docx 나 PDF 로 저장해 다시 올려라.`;
 }
 
 /** 자료를 읽을 행 번호. 재실행 행은 자기 자료가 없고 원본의 자료를 다시 읽는다 (도메인/작성 §7) */

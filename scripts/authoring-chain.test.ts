@@ -412,6 +412,18 @@ describe('자식 환경 — 자식에게서 GitHub 열쇠를 뺀다', () => {
   const 부모 = { PATH: '/usr/bin', HOME: '/Users/m', SSH_AUTH_SOCK: '/tmp/agent', GH_TOKEN: 'ghp_real', GIT_ASKPASS: '/x' };
   const 환경 = 자식환경(부모, '/빈');
 
+  // 2026-09-23 서버로 옮기며 — 부모 환경에 에이전트 토큰과 Claude 구독 토큰이 같이 산다
+  it('에이전트 토큰은 자식에게 안 넘긴다 — 자식이 줄을 집고 끝낼 수 있게 된다', () => {
+    const 서버 = 자식환경({ AUTHORING_AGENT_TOKEN: 'tpa_x', CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-x' }, '/빈');
+    expect(서버.AUTHORING_AGENT_TOKEN).toBeUndefined();
+    expect('AUTHORING_AGENT_TOKEN' in 서버).toBe(false);
+  });
+
+  it('Claude 구독 토큰은 넘긴다 — 없으면 자식 claude 가 로그인이 안 된 채로 죽는다', () => {
+    const 서버 = 자식환경({ CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat01-x' }, '/빈');
+    expect(서버.CLAUDE_CODE_OAUTH_TOKEN).toBe('sk-ant-oat01-x');
+  });
+
   it('gh 는 keychain 대신 무효 토큰을 써서 실패한다', () => {
     expect(환경.GH_TOKEN).toBe('authoring-child-has-no-github');
     expect(환경.GITHUB_TOKEN).toBe('authoring-child-has-no-github');

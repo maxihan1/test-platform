@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
-import { type 자료, 돌릴수있나, 자료계획, 자료출처 } from './authoring-assets.js';
+import { type 자료, 돌릴수있나, 못읽는자료, 자료계획, 자료출처 } from './authoring-assets.js';
 import {
   PR만들기인자,
   PR본문,
@@ -154,6 +154,11 @@ async function 한건(
     }
 
     const 계획 = 자료계획(자료들, 폴더);
+    const 못읽음 = 못읽는자료(계획);
+    if (못읽음 !== null) {
+      await 손.끝내기({ status: 'FAILED', error: 못읽음 });
+      return;
+    }
     if (계획.some((c) => c.kind === 'FILE')) await 손.단계('자료를 받는 중');
     for (const c of 계획) {
       if (c.kind !== 'FILE') continue;
@@ -175,7 +180,7 @@ async function 한건(
       // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다
       writeFileSync(c.받을자리, Buffer.from(await 답.arrayBuffer()));
       if (c.변환 === null) continue;
-      const 바꾼것 = 친다('textutil', c.변환, 뿌리);
+      const 바꾼것 = 친다(c.변환.명령, c.변환.인자, 뿌리);
       if (!바꾼것.ok) {
         await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 글자로 못 바꿨다: ${바꾼것.까닭}` });
         return;

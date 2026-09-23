@@ -1,7 +1,7 @@
 // 작성 에이전트. **화면이 세운 대기줄을 집어** 작업방에서 `claude -p` 로 tpx-author 를 돌리고, 맥이 직접 초안 PR 을 낸다.
 // 껍데기(한 건 처리·머지·공용 손)는 authoring-run.ts · authoring-merge.ts · authoring-io.ts 에 있다. 이 파일은 순수 함수와 켜기·줄 돌기다.
-// **서버가 아니라 맥에서 도는 이유** — `claude` 가 사용자의 구독 로그인을 그대로 쓰기 위해서다.
-// 서버에 Claude 토큰도 GitHub 토큰도 심을 필요가 없어진다.
+// **기본은 서버의 `author` 컨테이너가 돌린다** (2026-09-23, apps/authoring/ · SPEC 도메인/작성 §3.6).
+// 맥에서 같은 스크립트를 돌리는 길은 개발용 대체다 — 처음엔 서버에 Claude·GitHub 토큰을 안 심으려고 맥에서 돌렸다.
 //
 // **스스로 병합을 판단하지 않는다.** 사람이 화면에서 머지를 누르면 그것이 줄에 서고,
 // 맥은 그 요청을 집어 초안을 풀고 CI 가 초록일 때 병합할 뿐이다 (docs/spec/도메인/작성.md §3.6).
@@ -21,7 +21,7 @@ import { pathToFileURL } from 'node:url';
 import { type 설정, type 설정자리, admin주소, 기다렸다다시인가, 선행검사, 주소안전한가, 집은것인가 } from './authoring-rules.js';
 import { 부른다, 판정기만들기 } from './authoring-io.js';
 import { 멈춘것닫기, 한건처리 } from './authoring-run.js';
-import { 나풀기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
+import { 나풀기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 // ── 껍데기 ────────────────────────────────────────────────────────────
 // 여기부터는 I/O 다. 판단은 전부 위의 순수 함수에 있고 검사도 거기 붙어 있다.
@@ -71,28 +71,30 @@ async function 돈다(): Promise<number> {
     return 1;
   }
 
-  // 토큰은 처음 한 번만 묻고 홈 아래 파일에 둔다 (SPEC 도메인/인증 §7). 계정 이름은 서버가 알려 준다
+  // 서버 컨테이너는 .env 의 토큰, 맥은 처음 한 번 묻고 홈 아래 파일에 둔다 (SPEC 도메인/인증 §7). 계정 이름은 서버가 알려 준다
   const 자리 = 토큰자리(homedir());
   let 토큰: string;
+  let 어디: '환경' | '파일' | '입력';
   let 나: string;
   let 서비스들: string[];
   let 서버표: Record<string, { env: string; baseUrl: string }[]>;
   try {
-    const 있던것 = 토큰읽기(자리);
-    토큰 = 있던것 ?? (await 토큰묻기());
+    const 고른것 = 토큰고르기(process.env, 토큰읽기(자리));
+    토큰 = 고른것?.토큰 ?? (await 토큰묻기());
+    어디 = 고른것?.어디 ?? '입력';
     if (!토큰모양인가(토큰)) throw new Error('에이전트 토큰 모양이 아니다 (tpa_ 로 시작한다). 설정 화면에서 복사한 값을 넣어라.');
     const 답 = await 부른다(주소, 토큰, '/auth/me');
     const 풀린것 = 나풀기(답.몸);
     if (typeof 풀린것 === 'string') throw new Error(풀린것);
     ({ username: 나, 서비스들, 서버표 } = 풀린것);
     // 서버가 받아 준 뒤에만 저장한다 — 틀린 값을 파일에 남기면 다음에 켤 때도 같은 자리에서 막힌다
-    if (있던것 === null) 토큰저장(자리, 토큰);
+    if (어디 === '입력') 토큰저장(자리, 토큰);
   } catch (err) {
     // 거절돼도 파일을 지우지 않는다 — 주소를 잘못 준 것만으로 멀쩡한 토큰이 사라지면 안 된다
     console.error(`[거부] ${err instanceof Error ? err.message : String(err)}`);
     return 1;
   }
-  console.log(`[작성] ${주소} 에 ${나} 로 붙었다. 토큰은 ${자리} 에 있다.`);
+  console.log(`[작성] ${주소} 에 ${나} 로 붙었다. 토큰은 ${어디 === '환경' ? 'AUTHORING_AGENT_TOKEN' : 자리} 에서 왔다.`);
 
   if (서비스들.length === 0) {
     console.error('[거부] 이 계정에 배정된 서비스가 없다. 설정 화면에서 배정해라.');

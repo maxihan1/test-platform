@@ -169,7 +169,7 @@ export function 머지할수있나(것: { kind: 집은것['kind']; prUrl?: strin
   return 것.kind === 'MERGE' && typeof 것.prUrl === 'string' && 것.prUrl !== '';
 }
 
-/** 맥은 컨테이너 밖이라 admin 을 주소로 부른다. 안 주면 compose 의 기본 포트를 본다 */
+/** 에이전트가 admin 을 부를 주소. 서버 author 컨테이너는 compose 가 http://admin:3000 을 준다. 안 주면(맥) compose 의 기본 포트를 본다 */
 export function admin주소(env: Record<string, string | undefined>): string {
   return env.PLATFORM_ADMIN_URL ?? 'http://localhost:3000';
 }
@@ -188,7 +188,10 @@ export function 주소안전한가(주소: string): string | null {
     return `PLATFORM_ADMIN_URL 이 주소 모양이 아니다: ${주소}`;
   }
   if (판.protocol === 'https:') return null;
-  if (판.hostname === 'localhost' ||판.hostname === '127.0.0.1' || 판.hostname === '::1') return null;
+  if (판.hostname === 'localhost' || 판.hostname === '127.0.0.1' || 판.hostname === '::1') return null;
+  // 서버 컨테이너의 에이전트는 compose 망 안의 admin 을 부른다 — 망 밖으로 안 나간다.
+  // 점 없는 이름 전부가 아니라 이 이름 하나만이다. `http://qaserver` 같은 사내 평문 주소는 막아야 한다
+  if (판.hostname === 'admin') return null;
   return [
     `${주소} 는 평문(http)이다. 토큰이 망에 그대로 흐른다.`,
     'https 주소를 쓰거나, 같은 기계에서 띄웠으면 localhost 를 써라.',

@@ -71,7 +71,7 @@ LLM 출력은 비결정적이다. 같은 기획서를 두 번 넣으면 두 번 
 | 자료 | 어떻게 읽나 |
 |---|---|
 | `.pdf` · `.md` · `.txt` | 받은 경로를 **Read 로 그대로** 연다 |
-| `.doc` · `.docx` | 맥이 `textutil` 로 바꿔 둔 `.txt` 경로가 온다. 그것을 Read 로 연다 |
+| `.doc` · `.docx` | 에이전트가 글자로 바꿔 둔 `.txt` 경로가 온다(맥은 `textutil`, 서버는 `pandoc` — 서버는 옛 `.doc` 을 미리 실패시킨다). 그것을 Read 로 연다 |
 | 피그마 주소 | `npx --yes figma-reader@0.4.0 inspect --refresh '<주소>'` |
 
 **피그마 도구** — 저장소 이름은 `figma-reader-cli` 지만 **npm 패키지와 명령 이름은 `figma-reader`** 다

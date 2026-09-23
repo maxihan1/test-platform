@@ -26,6 +26,24 @@ export function 토큰읽기(자리: string): string | null {
 }
 
 /**
+ * 어느 토큰을 쓸까. **서버 컨테이너는 `.env` 의 `AUTHORING_AGENT_TOKEN`**, 맥은 홈 폴더 파일이다 (SPEC 도메인/인증 §7).
+ * 둘 다 없으면 `null` — 맥이면 그때 한 번 묻는다. 환경값은 파일에 옮겨 적지 않는다 — 열쇠가 두 곳이 된다
+ */
+export function 토큰고르기(
+  env: Record<string, string | undefined>,
+  파일값: string | null,
+): { 토큰: string; 어디: '환경' | '파일' } | null {
+  const 환경값 = env.AUTHORING_AGENT_TOKEN ?? '';
+  if (환경값 !== '') {
+    if (!토큰모양인가(환경값)) {
+      throw new Error('AUTHORING_AGENT_TOKEN 이 에이전트 토큰 모양이 아니다 (tpa_ 로 시작한다). 설정 화면에서 발급한 값을 넣어라.');
+    }
+    return { 토큰: 환경값, 어디: '환경' };
+  }
+  return 파일값 === null ? null : { 토큰: 파일값, 어디: '파일' };
+}
+
+/**
  * 본인만 읽게 저장한다. `mode` 는 **새로 만들 때만** 걸리므로 이미 있던 파일은 따로 좁힌다.
  * 윈도우는 이 권한 비트를 무시한다 — 사용자 프로필 폴더의 기본 접근 권한에 기댄다 (docs/SETUP.md §8)
  */
