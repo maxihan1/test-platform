@@ -144,6 +144,20 @@ export function 푸시거부사유(테스트만인가: boolean, 바뀐파일: st
   return `테스트만 바뀐 것이 아니다 — 맥은 tests/**/*.spec.ts 와 docs/cases/*.md 만 올린다: ${바뀐파일.join(' · ')}`;
 }
 
+/**
+ * 맥이 커밋한 **뒤에** 다시 본다. push 는 `HEAD` 라 `status` 로 본 것 말고 **자식이 몰래 만든 커밋**까지 올라간다.
+ * 그래서 origin/main 과의 차이 전체를 판정하고, 커밋이 맥의 것 하나가 아니면 거부한다.
+ */
+export const 올린파일인자 = ['-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', 'origin/main...HEAD'];
+export const 커밋수인자 = ['rev-list', '--count', 'origin/main..HEAD'];
+
+export function 커밋뒤거부사유(테스트만인가: boolean, 파일들: string[], 커밋수: number): string | null {
+  if (커밋수 !== 1) {
+    return `작업방의 커밋이 맥의 것 하나가 아니다 (${커밋수}개) — 자식이 커밋했다. 맥은 올리지 않는다.`;
+  }
+  return 푸시거부사유(테스트만인가, 파일들);
+}
+
 /** 켤 때 닫을 것. 남이 잡은 것은 그쪽이 아직 돌고 있을 수 있다 */
 export function 닫을RUNNING(목록: { id: number; status: string; claimedBy?: string | null }[], 나: string): number[] {
   return 목록.filter((r) => r.status === 'RUNNING' && r.claimedBy === 나).map((r) => r.id);

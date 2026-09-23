@@ -20,6 +20,9 @@ import {
   작업방준비,
   커밋메시지,
   푸시거부사유,
+  커밋뒤거부사유,
+  올린파일인자,
+  커밋수인자,
   푸시인자,
   플랫폼링크,
   type CI실행,
@@ -226,6 +229,27 @@ describe('push 거부 — 테스트만 바뀐 것만 맥이 올린다', () => {
 
   it('바뀐 것이 없으면 올릴 것이 없다', () => {
     expect(푸시거부사유(true, [])).toMatch(/바뀐 파일이 없다/);
+  });
+});
+
+describe('커밋 뒤 판정 — 자식이 몰래 커밋한 것까지 본다', () => {
+  it('맥의 커밋 하나에 테스트만이면 올린다', () => {
+    expect(커밋뒤거부사유(true, ['tests/todo/a.spec.ts'], 1)).toBeNull();
+  });
+
+  it('커밋이 하나가 아니면 자식이 커밋한 것이라 거부한다 — 테스트만이어도', () => {
+    expect(커밋뒤거부사유(true, ['tests/todo/a.spec.ts'], 2)).toMatch(/자식이 커밋/);
+    expect(커밋뒤거부사유(true, ['tests/todo/a.spec.ts'], 0)).not.toBeNull();
+    expect(커밋뒤거부사유(true, ['tests/todo/a.spec.ts'], Number.NaN)).not.toBeNull();
+  });
+
+  it('origin/main 과의 차이 전체가 테스트만이 아니면 거부한다', () => {
+    expect(커밋뒤거부사유(false, ['tests/todo/a.spec.ts', 'apps/admin/x.ts'], 1)).toMatch(/테스트만/);
+  });
+
+  it('차이는 이름 바꾸기를 풀어 origin/main 부터 HEAD 까지 전부 본다', () => {
+    expect(올린파일인자).toEqual(['-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', 'origin/main...HEAD']);
+    expect(커밋수인자).toEqual(['rev-list', '--count', 'origin/main..HEAD']);
   });
 });
 

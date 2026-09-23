@@ -18,6 +18,9 @@ import {
   작업방폴더,
   케이스폴더,
   커밋메시지,
+  커밋뒤거부사유,
+  커밋수인자,
+  올린파일인자,
   푸시거부사유,
   푸시인자,
 } from './authoring-chain.js';
@@ -171,8 +174,9 @@ export async function 한건처리(
     }
     const 파일들 = 바뀐파일들(상태.낸것);
     // 판정 규칙은 cases-only.mjs 가 정본이다. 맥 자신의 판(뿌리)을 쓴다 — 작업방의 origin/main 판에는 아직 없을 수 있다
-    const 판정 = 친다('node', [join(뿌리, '.claude', 'scripts', 'cases-only.mjs'), 'origin/main'], 작업방, `${파일들.join('\n')}\n`);
-    const 거부 = 푸시거부사유(판정.ok, 파일들);
+    const 테스트만 = (목록: string[]) =>
+      친다('node', [join(뿌리, '.claude', 'scripts', 'cases-only.mjs'), 'origin/main'], 작업방, `${목록.join('\n')}\n`).ok;
+    const 거부 = 푸시거부사유(테스트만(파일들), 파일들);
     if (거부 !== null) {
       await 손.끝내기({ status: 'FAILED', error: 거부 });
       return;
@@ -187,6 +191,19 @@ export async function 한건처리(
         await 손.끝내기({ status: 'FAILED', error: `${설명}가 실패했다: ${r.까닭}` });
         return;
       }
+    }
+
+    // push 는 HEAD 라 자식이 몰래 만든 커밋까지 올라간다. 커밋한 뒤 origin/main 과의 차이 전체를 다시 본다
+    const 올린것 = 친다('git', 올린파일인자, 작업방);
+    const 커밋수 = 친다('git', 커밋수인자, 작업방);
+    const 전체 = 올린것.낸것.split('\n').filter((f) => f !== '');
+    const 뒤거부 =
+      올린것.ok && 커밋수.ok
+        ? 커밋뒤거부사유(테스트만(전체), 전체, Number(커밋수.낸것.trim()))
+        : '커밋한 뒤 차이를 못 읽었다';
+    if (뒤거부 !== null) {
+      await 손.끝내기({ status: 'FAILED', error: 뒤거부 });
+      return;
     }
 
     const 올림 = await 다시하며('push', () => {
