@@ -275,6 +275,23 @@ export async function 집기(서비스: number, 집는이: string): Promise<요�
   return row === undefined ? null : 빚기(row);
 }
 
+/**
+ * 집은 것을 줄로 되돌린다. 집은 사람 것만.
+ *
+ * 집기가 행을 RUNNING 으로 커밋한 뒤 응답을 채우다 던지면 맥은 500 만 받고 번호를 모른다.
+ * 되돌리지 않으면 그 행은 아무도 안 끝내는 RUNNING 으로 영원히 남는다.
+ */
+export async function 집기되돌리기(id: number, 집는이: string): Promise<boolean> {
+  const pool = await db();
+  const r = await pool.query(
+    `UPDATE authoring_request
+        SET status = 'PENDING', claimed_by = NULL, started_at = NULL
+      WHERE id = $1 AND status = 'RUNNING' AND claimed_by = $2`,
+    [id, 집는이],
+  );
+  return r.rowCount === 1;
+}
+
 /** 작업 단계를 올린다. 도는 중인 행에만 붙는다 — 아니면 false 를 주고 라우트가 409 를 낸다 */
 export async function 단계올리기(id: number, 단계: string): Promise<boolean> {
   const pool = await db();

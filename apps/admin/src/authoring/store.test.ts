@@ -2,7 +2,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 끝내기, 단계올리기, 사진자리, 줄세우기, 집기, 한건, 한쪽 } from './store.js';
+import { 끝내기, 단계올리기, 사진자리, 줄세우기, 집기, 집기되돌리기, 한건, 한쪽 } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -174,6 +174,26 @@ describe.skipIf(연결 === undefined)('작성 대기줄', () => {
       expect(행?.status).toBe('RUNNING');
       expect(행?.claimedBy).toBe('xwa-mac');
       expect(행?.startedAt).not.toBe(null);
+    });
+
+    it('집기를 되돌리면 대기 중으로 돌아가고 집은 흔적이 지워진다', async () => {
+      while ((await 집기(서비스, 'xwa-비우기')) !== null) {
+        /* 줄을 비운다 */
+      }
+      const id = await 줄세우기({
+        서비스: 서비스,
+        kind: 'AUTHOR',
+        기획서: '되돌리기 검사',
+        누가: 'xwa',
+        이름: '검사',
+      });
+      await 집기(서비스, 'xwa-mac');
+      expect(await 집기되돌리기(id, 'xwa-다른이')).toBe(false);
+      expect(await 집기되돌리기(id, 'xwa-mac')).toBe(true);
+      const 행 = await 한건(id);
+      expect(행?.status).toBe('PENDING');
+      expect(행?.claimedBy).toBe(null);
+      expect(행?.startedAt).toBe(null);
     });
 
     it('줄이 비면 집기가 아무것도 안 준다', async () => {

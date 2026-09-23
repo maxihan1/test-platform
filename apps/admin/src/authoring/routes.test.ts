@@ -5,11 +5,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 자료목록, 제출, 준비세우기 } from './assetStore.js';
 import authoringRoutes, { 피그마주소정규화 } from './routes.js';
-import { 줄세우기, 한건 } from './store.js';
+import { 줄세우기, 피그마토큰, 한건 } from './store.js';
+
+// 집기 뒤 조회가 한 번 실패하는 경우를 만들려고 토큰 조회만 갈아 끼운다. 나머지는 진짜다
+vi.mock('./store.js', async (원본) => {
+  const 진짜 = await 원본<typeof import('./store.js')>();
+  return { ...진짜, 피그마토큰: vi.fn(진짜.피그마토큰) };
+});
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -344,6 +350,35 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
       const res = await 비우고집기([]);
       expect(res.statusCode).toBe(200);
       expect('figmaToken' in res.json()).toBe(false);
+    });
+  });
+
+  describe('집은 뒤 조회가 실패하면 그 행을 줄로 되돌린다', () => {
+    it('500 이 나고 행은 PENDING 으로 돌아온다 — 안 그러면 번호 모르는 RUNNING 이 남는다', async () => {
+      let 비었나 = false;
+      while (!비었나) {
+        const r = await app.inject({
+          method: 'POST',
+          url: `/api/authoring/requests/claim?service=${접두사}`,
+        });
+        비었나 = r.statusCode === 204;
+      }
+      const id = await 준비세우기({
+        서비스,
+        누가: 'x',
+        이름: 'x',
+        피그마: ['https://www.figma.com/design/R1/'],
+      });
+      await 제출(id);
+      vi.mocked(피그마토큰).mockRejectedValueOnce(new Error('DB 끊김'));
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests/claim?service=${접두사}`,
+      });
+      expect(res.statusCode).toBe(500);
+      const 행 = await 한건(id);
+      expect(행?.status).toBe('PENDING');
+      expect(행?.claimedBy).toBe(null);
     });
   });
 
