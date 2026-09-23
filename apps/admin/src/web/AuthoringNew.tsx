@@ -15,10 +15,28 @@ import { message } from './ui.js';
 
 // 서버의 받는 종류와 같다. 값의 정본은 도메인/작성 §7 「자료」 표다
 const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
+// 정본: 도메인/작성 §7 「자료」 — 서버 assets.ts 의 파일상한과 같은 값
+const 파일상한 = 20 * 1024 * 1024;
+// 정본: 도메인/작성 §7 「자료」 — 파일과 피그마를 합친 수. 서버 assetStore.ts 의 자료상한과 같은 값
+const 자료상한 = 20;
 
-function 받는파일인가(이름: string): boolean {
-  const 점 = 이름.lastIndexOf('.');
-  return 점 >= 0 && 받는종류.split(',').includes(이름.slice(점).toLowerCase());
+/**
+ * 서버가 거절할 파일을 보내기 전에 거른다. 거절 이유(말 키)를 돌려준다.
+ * 보낸 뒤에 걸리면 이미 만든 요청이 「준비 중」으로 남고 되살릴 길이 없다 (§7 「자료」)
+ */
+function 거절사유(파일: File): string | null {
+  const 점 = 파일.name.lastIndexOf('.');
+  if (점 < 0 || !받는종류.split(',').includes(파일.name.slice(점).toLowerCase())) {
+    return '받지 않는 파일입니다. PDF · 워드 · md · txt 만 받습니다';
+  }
+  // 서버 assets.ts 의 이름인가와 같은 규칙. `"` 를 \u0022 로 적은 것은 messages.test 의 글자 훑기가
+  // 정규식 안의 따옴표를 문자열 시작으로 읽기 때문이다
+  if (파일.name.includes('..') || /[\u0022/\\\u0000-\u001f\u007f]/.test(파일.name)) {
+    return '파일 이름에 쓸 수 없는 글자(따옴표 · 빗금 · ..)가 있습니다';
+  }
+  if (파일.size === 0) return '빈 파일은 올릴 수 없습니다';
+  if (파일.size > 파일상한) return '파일이 한 파일 상한보다 큽니다';
+  return null;
 }
 
 // 이 폼에서만 만나는 서버 코드. 모르면 공통 번역(message)으로 넘긴다
@@ -43,8 +61,14 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
     .split('\n')
     .map((줄) => 줄.trim())
     .filter((줄) => 줄 !== '');
-  const 거절 = 파일들.filter((f) => !받는파일인가(f.name));
+  const 거절 = new Map<string, string[]>();
+  for (const f of 파일들) {
+    const 이유 = 거절사유(f);
+    if (이유 !== null) 거절.set(이유, [...(거절.get(이유) ?? []), f.name]);
+  }
+  const 너무많다 = 파일들.length + 주소들.length > 자료상한;
   const 빈것 = 파일들.length === 0 && 주소들.length === 0;
+  const 못보낸다 = 빈것 || 거절.size > 0 || 너무많다;
 
   function 사유(err: unknown): string {
     if (err instanceof ApiError && err.status === 413) return t('파일이 한 파일 상한보다 큽니다');
@@ -53,7 +77,7 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
   }
 
   async function 보낸다() {
-    if (빈것 || 거절.length > 0 || 보내는중) return;
+    if (못보낸다 || 보내는중) return;
     set보내는중(true);
     set오류(null);
     let id: number;
@@ -112,14 +136,15 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
           onChange={(e) => set피그마(e.target.value)}
         />
       </label>
-      <button className="btn" type="submit" disabled={빈것 || 거절.length > 0 || 보내는중}>
+      <button className="btn" type="submit" disabled={못보낸다 || 보내는중}>
         {보내는중 ? t('보내는 중') : t('보내기')}
       </button>
-      {거절.length === 0 ? null : (
-        <span className="error-text">
-          {t('받지 않는 파일입니다. PDF · 워드 · md · txt 만 받습니다')} — {거절.map((f) => f.name).join(' · ')}
+      {[...거절].map(([이유, 이름들]) => (
+        <span key={이유} className="error-text">
+          {t(이유)} — {이름들.join(' · ')}
         </span>
-      )}
+      ))}
+      {너무많다 ? <span className="error-text">{t('자료가 한 요청에 넣을 수 있는 개수를 넘었습니다')}</span> : null}
       {오류 === null ? null : <span className="error-text">{오류}</span>}
     </form>
   );

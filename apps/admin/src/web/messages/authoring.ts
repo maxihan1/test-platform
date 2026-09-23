@@ -29,6 +29,7 @@ export const 작성말: Record<string, string> = {
   '받지 않는 파일입니다. PDF · 워드 · md · txt 만 받습니다': 'File type not accepted. Only PDF · Word · md · txt',
   '이 요청은 줄에 서지 않았습니다. 새 요청으로 다시 넣으세요': 'This request was not queued. Submit a new request',
   '파일이 한 파일 상한보다 큽니다': 'The file is larger than the per-file limit',
+  '빈 파일은 올릴 수 없습니다': 'Empty files cannot be uploaded',
   '피그마 주소 모양이 다릅니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam 은 받지 않습니다)':
     'Not a Figma link we accept. Paste a Figma design file link (FigJam is not accepted)',
   '파일 이름에 쓸 수 없는 글자(따옴표 · 빗금 · ..)가 있습니다': 'The file name has characters that are not allowed (quotes · slashes · ..)',

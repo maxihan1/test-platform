@@ -45,6 +45,16 @@ function 파일을고른다(...이름들: string[]) {
   fireEvent.change(칸, { target: { files: 이름들.map((이름) => new File(['x'], 이름)) } });
 }
 
+function 이파일들을고른다(...파일들: File[]) {
+  fireEvent.change(screen.getByLabelText('기획서 파일'), { target: { files: 파일들 } });
+}
+
+function 크기를단파일(이름: string, 크기: number): File {
+  const 파일 = new File(['x'], 이름);
+  Object.defineProperty(파일, 'size', { value: 크기 });
+  return 파일;
+}
+
 function 피그마를적는다(글: string) {
   fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 글 } });
 }
@@ -139,5 +149,34 @@ describe('새 작성 요청 — 자료 목록', () => {
 
     await screen.findByText(/피그마 주소 모양이 다릅니다/);
     expect(부름.map((b) => b.무엇)).toEqual(['만들기']);
+  });
+
+  it.each([
+    ['20MB 를 넘는 파일', () => 이파일들을고른다(크기를단파일('큰.pdf', 20 * 1024 * 1024 + 1)), /한 파일 상한/],
+    ['0바이트 파일', () => 이파일들을고른다(크기를단파일('빈.pdf', 0)), /빈 파일/],
+    ['이름에 따옴표가 든 파일', () => 파일을고른다('a"b.pdf'), /쓸 수 없는 글자/],
+    ['이름에 ..가 든 파일', () => 파일을고른다('a..b.pdf'), /쓸 수 없는 글자/],
+    [
+      '파일과 피그마 줄을 합쳐 20을 넘는 것',
+      () => {
+        파일을고른다(...Array.from({ length: 18 }, (_, i) => `${i}.pdf`));
+        피그마를적는다('https://www.figma.com/design/A/\nhttps://www.figma.com/design/B/\nhttps://www.figma.com/design/C/');
+      },
+      /개수를 넘었습니다/,
+    ],
+  ])('%s 는 보내기 전에 이유를 보이고 버튼을 끈다', (_이름, 고른다, 문구) => {
+    render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
+    고른다();
+    expect(screen.getByText(문구)).toBeTruthy();
+    expect(보내기()).toHaveProperty('disabled', true);
+    fireEvent.click(보내기());
+    expect(부름).toHaveLength(0);
+  });
+
+  it('20MB 딱 맞는 파일과 합쳐 20개는 보낼 수 있다', () => {
+    render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
+    이파일들을고른다(크기를단파일('딱.pdf', 20 * 1024 * 1024), ...Array.from({ length: 18 }, (_, i) => new File(['x'], `${i}.pdf`)));
+    피그마를적는다('https://www.figma.com/design/A/');
+    expect(보내기()).toHaveProperty('disabled', false);
   });
 });
