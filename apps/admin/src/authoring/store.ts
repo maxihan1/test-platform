@@ -10,7 +10,8 @@ async function db(): Promise<Pool> {
 }
 
 export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE';
-export type 상태 = 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
+// DRAFT 는 자료를 올리는 중이라 아직 줄에 안 섰다. 줄에 세우기는 assetStore.ts 의 `제출` 이 한다
+export type 상태 = 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
 
 /**
  * 상태 전이는 둘뿐이다.
@@ -121,7 +122,8 @@ export async function 줄세우기(입력: {
   서비스: number;
   kind: 종류;
   원본?: number | null;
-  기획서: string;
+  // 옛 행 모양을 만드는 검사와 머지 행 자리표시만 채운다. 새 작성 요청은 자료로 온다
+  기획서: string | null;
   값?: Record<string, unknown>;
   누가: string;
   이름: string;
