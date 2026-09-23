@@ -341,7 +341,7 @@ npm run authoring-agent
 - **`claude` 가 구독 계정으로 로그인돼 있어야 한다.** 이 스크립트는 토큰을 따로 안 갖는다
 - **셸 명령이 허용돼 있어야 한다.** 스크립트가 `--permission-mode acceptEdits` 를 걸어
   **파일 쓰기**는 풀지만, **셸은 안 푼다** — `~/.claude/settings.json` 의
-  `permissions.allow` 에 `Bash(*)` 같은 항목이 있어야 스킬이 검사 명령을 돌릴 수 있다.
+  `permissions.allow` 에 **`Bash` 또는 `Bash(*)` 를 정확히** 넣어야 스킬이 검사 명령을 돌릴 수 있다 — 자식은 git·gh·npm·npx 를 다 써서 `Bash(npx:*)` 같은 부분 허용으로는 켤 때 거부된다.
   없으면 케이스는 만들어도 **관문을 못 돈다**
 
 > **`--permission-mode` 를 빼면 조용히 망가진다.** 그 깃발이 없으면 파일 쓰기가 자동 거부되는데
