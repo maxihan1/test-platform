@@ -168,9 +168,22 @@ export interface 집은것 {
  * 맥의 임시 폴더다 — 맥은 다른 기계라 서버의 경로를 못 읽는다.
  * 자료가 없는 옛 행만 본문(`specText`)을 그대로 싣는다.
  */
-export function 줄프롬프트(것: 집은것, 서비스: string, 계획: 읽을자료[]): string {
+export function 줄프롬프트(
+  것: 집은것,
+  서비스: string,
+  계획: 읽을자료[],
+  대상?: { 폴더: string; 서버들: { env: string; baseUrl: string }[] },
+): string {
   return [
     `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
+    // tpx-author 가 입력으로 기대한다. 폴더는 맥이 작업방의 기존 케이스로 찾았고, 서버는 로그인 응답의 것이다
+    ...(대상 === undefined
+      ? []
+      : [
+          `- 테스트 폴더는 \`tests/${대상.폴더}\` 다.`,
+          '- 대상 서버:',
+          ...대상.서버들.map((s) => `  - ${s.env} — ${s.baseUrl}`),
+        ]),
     '- tpx-author 스킬을 따라라. 다른 체인 스킬은 부르지 마라.',
     '',
     '이 실행에는 답할 사람이 없다. 그래서 이것을 지켜라.',
@@ -340,7 +353,13 @@ async function 비밀번호묻기(아이디: string): Promise<string> {
 }
 
 /** 로그인해서 세션 쿠키와 배정 서비스를 받는다 */
-async function 로그인(주소: string, 아이디: string, 비번: string): Promise<{ 쿠키: string; 서비스들: string[] }> {
+type 서버 = { env: string; baseUrl: string };
+
+async function 로그인(
+  주소: string,
+  아이디: string,
+  비번: string,
+): Promise<{ 쿠키: string; 서비스들: string[]; 서버표: Record<string, 서버[]> }> {
   const 답 = await fetch(`${주소}/api/auth/login`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -351,11 +370,13 @@ async function 로그인(주소: string, 아이디: string, 비번: string): Pro
   // 헤더를 통째로 되돌려 보내지 않는다 — 속성(Path·HttpOnly·SameSite)까지 같이 가면
   // 서버가 쿠키를 하나 더 굽는 날 로그인이 조용히 깨진다. auth/gate.test.ts 가 같은 모양을 쓴다
   const 쿠키 = (답.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
-  const 몸 = (await 답.json()) as { user: { role: string; services: { prefix: string }[] } };
+  const 몸 = (await 답.json()) as { user: { role: string; services: { prefix: string; envs?: 서버[] }[] } };
   if (몸.user.role === 'viewer') {
     throw new Error('이 계정은 보기만 등급이라 줄을 집을 수 없다. operator 로 바꿔라.');
   }
-  return { 쿠키, 서비스들: 몸.user.services.map((s) => s.prefix) };
+  // 대상 서버는 자식(tpx-author)이 입력으로 기대한다. 이미 로그인 응답에 실려 온다 — 새 통로가 필요 없다
+  const 서버표 = Object.fromEntries(몸.user.services.map((s) => [s.prefix, s.envs ?? []]));
+  return { 쿠키, 서비스들: 몸.user.services.map((s) => s.prefix), 서버표 };
 }
 
 const 쉬는시간 = 5000;
@@ -383,9 +404,10 @@ async function 돈다(): Promise<number> {
 
   let 쿠키: string;
   let 서비스들: string[];
+  let 서버표: Record<string, 서버[]>;
   try {
     const 비번 = await 비밀번호묻기(아이디);
-    ({ 쿠키, 서비스들 } = await 로그인(주소, 아이디, 비번));
+    ({ 쿠키, 서비스들, 서버표 } = await 로그인(주소, 아이디, 비번));
   } catch (err) {
     console.error(`[거부] ${err instanceof Error ? err.message : String(err)}`);
     return 1;
@@ -424,7 +446,7 @@ async function 돈다(): Promise<number> {
         const 것 = 답.몸;
         console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}).`);
         집었나 = true;
-        await 한건처리(주소, 쿠키, 서비스, 것);
+        await 한건처리(주소, 쿠키, 서비스, 것, 서버표[서비스] ?? []);
         console.log(`[작성] ${것.id}번을 끝냈다.`);
       } catch (err) {
         const 글 = err instanceof Error ? err.message : String(err);

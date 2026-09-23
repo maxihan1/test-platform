@@ -279,6 +279,15 @@ describe('줄프롬프트 — 자식에게 못박는 경계', () => {
     expect(글()).toContain('TODO');
   });
 
+  it('테스트 폴더와 대상 서버를 넘긴다 — tpx-author 가 입력으로 기대한다', () => {
+    const 넘긴것 = 줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'DEMO', [], {
+      폴더: 'demo',
+      서버들: [{ env: 'qa', baseUrl: 'https://demo.playwright.dev/todomvc' }],
+    });
+    expect(넘긴것).toMatch(/테스트 폴더는 `tests\/demo` 다/);
+    expect(넘긴것).toContain('qa — https://demo.playwright.dev/todomvc');
+  });
+
   // 검토 지적 — 낱말만 찾으면 지시가 **반대로 뒤집혀도 초록**이다. 지시문 모양까지 단언한다
   it('AskUserQuestion 을 부르지 말라고 한다 — 물어볼 사람이 없다', () => {
     expect(글()).toMatch(/AskUserQuestion 을 부르지 마라/);

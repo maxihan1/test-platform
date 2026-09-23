@@ -16,6 +16,7 @@ import {
   바뀐파일들,
   작업방준비,
   작업방폴더,
+  케이스폴더,
   커밋메시지,
   푸시거부사유,
   푸시인자,
@@ -120,7 +121,13 @@ export async function 멈춘것닫기(주소기지: string, 쿠키: string, 서�
 }
 
 /** 한 건을 끝까지 처리한다. 단계는 사람이 화면에서 보는 그 줄이다 */
-export async function 한건처리(주소기지: string, 쿠키: string, 서비스: string, 것: 집은것): Promise<void> {
+export async function 한건처리(
+  주소기지: string,
+  쿠키: string,
+  서비스: string,
+  것: 집은것,
+  서버들: { env: string; baseUrl: string }[] = [],
+): Promise<void> {
   const 손 = 보고손만들기(주소기지, 쿠키, 서비스, 것.id);
 
   if (것.kind === 'MERGE') {
@@ -176,6 +183,17 @@ export async function 한건처리(주소기지: string, 쿠키: string, 서비�
       }
     }
 
+    // 테스트 폴더는 작업방의 기존 케이스로 찾는다 (2026-09-23 사용자 결정). 없으면 첫 케이스는 사람의 일이다
+    const 목록 = 친다('git', ['-c', 'core.quotePath=false', 'ls-files', 'tests'], 작업방);
+    const 케이스자리 = 목록.ok ? 케이스폴더(목록.낸것.split('\n'), 서비스) : null;
+    if (케이스자리 === null) {
+      await 손.끝내기({
+        status: 'FAILED',
+        error: `${서비스} 의 케이스 폴더를 못 찾았다 — 첫 케이스는 사람이 /tpx 로 만든다`,
+      });
+      return;
+    }
+
     const 계획 = 자료계획(자료들, 폴더);
     if (계획.some((c) => c.kind === 'FILE')) await 손.단계('자료를 받는 중');
     for (const c of 계획) {
@@ -206,7 +224,7 @@ export async function 한건처리(주소기지: string, 쿠키: string, 서비�
     // 피그마 토큰은 **자식 환경에만** 넣는다. 부모 환경에 넣으면 이 뒤에 띄우는 모든 것(gh 등)에 샌다
     const 돌린것 = spawnSync('claude', 클로드인자(폴더), {
       cwd: 작업방,
-      input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획),
+      input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }),
       stdio: ['pipe', 'pipe', 'inherit'],
       encoding: 'utf8',
       env: 것.figmaToken === undefined ? process.env : { ...process.env, FIGMA_TOKEN: 것.figmaToken },
