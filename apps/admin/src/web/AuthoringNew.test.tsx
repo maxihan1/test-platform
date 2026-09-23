@@ -80,6 +80,17 @@ describe('새 작성 요청 — 자료 목록', () => {
     expect(부름[3]?.값).toEqual({ id: 7 });
   });
 
+  it('보내고 나면 파일 칸을 새로 그린다. 같은 파일을 다시 골라도 바뀜이 난다', async () => {
+    let 넣었다 = 0;
+    render(<AuthoringNew service="PAY" on넣었다={() => (넣었다 += 1)} />);
+    const 전 = screen.getByLabelText('기획서 파일');
+    파일을고른다('기획서.pdf');
+    fireEvent.click(보내기());
+
+    await waitFor(() => expect(넣었다).toBe(1));
+    expect(screen.getByLabelText('기획서 파일')).not.toBe(전);
+  });
+
   it('파일도 피그마 주소도 없으면 버튼이 꺼져 있다', () => {
     render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
     피그마를적는다('   \n ');

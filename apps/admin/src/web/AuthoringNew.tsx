@@ -56,6 +56,8 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
   const [피그마, set피그마] = useState('');
   const [보내는중, set보내는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  // 파일 칸은 비제어라 state 를 비워도 옛 파일을 보인다. 같은 파일을 다시 고르면 change 도 안 난다 — 새로 그린다
+  const [칸번호, set칸번호] = useState(0);
 
   const 주소들 = 피그마
     .split('\n')
@@ -104,6 +106,7 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
       return;
     }
     set파일들([]);
+    set칸번호((n) => n + 1);
     set피그마('');
     set보내는중(false);
     on넣었다();
@@ -120,6 +123,7 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
       <label className="authoring-field">
         <span>{t('기획서 파일')}</span>
         <input
+          key={칸번호}
           type="file"
           multiple
           accept={받는종류}
