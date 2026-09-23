@@ -17,16 +17,29 @@ export async function 부른다(
   길: string,
   옵션: { method?: string; body?: unknown } = {},
 ): Promise<{ status: number; 몸: unknown }> {
-  const 답 = await fetch(`${주소}/api${길}`, {
-    method: 옵션.method ?? 'GET',
-    headers: {
-      cookie: 쿠키,
-      ...(옵션.body === undefined ? {} : { 'content-type': 'application/json' }),
-    },
-    ...(옵션.body === undefined ? {} : { body: JSON.stringify(옵션.body) }),
-    // 응답이 끝내 안 오면 영원히 기다린다. 끊긴 연결에 걸려도 여기서 끊고 부르는 쪽이 다시 보낸다
-    signal: AbortSignal.timeout(30_000),
-  });
+  const 한번 = () =>
+    fetch(`${주소}/api${길}`, {
+      method: 옵션.method ?? 'GET',
+      headers: {
+        cookie: 쿠키,
+        ...(옵션.body === undefined ? {} : { 'content-type': 'application/json' }),
+      },
+      ...(옵션.body === undefined ? {} : { body: JSON.stringify(옵션.body) }),
+      // 응답이 끝내 안 오면 영원히 기다린다. 시도마다 새로 건다 — 나눠 쓰면 두 번째가 남은 시간만 받는다
+      signal: AbortSignal.timeout(30_000),
+    });
+
+  let 답: Response;
+  try {
+    답 = await 한번();
+  } catch (err) {
+    // 응답을 하나도 못 받은 연결 오류만 TypeError 다. #3336 은 단계 보고 하나가 이것으로 서버에 못 닿아
+    // 다 만든 케이스를 버렸다. 시간 초과(TimeoutError)는 서버가 멈춘 것이라 다시 걸어도 30초만 더 쓴다
+    if (!(err instanceof TypeError)) throw err;
+    // ponytail: 나간 뒤 답만 끊긴 것과 구분이 안 된다 — 집기면 두 건을 집을 수 있다.
+    // 첫 건은 다음 켤 때 멈춘 RUNNING 정리가 닫는다. 잦아지면 집기에 요청 키를 싣는다
+    답 = await 한번();
+  }
 
   if (거절인가(답.status)) {
     throw new Error(
