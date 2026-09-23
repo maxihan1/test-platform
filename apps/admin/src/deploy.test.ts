@@ -7,6 +7,35 @@ import { describe, expect, it } from 'vitest';
 
 const dockerfile = readFileSync(resolve(process.cwd(), 'apps/admin/Dockerfile'), 'utf8');
 
+// 작성 에이전트 컨테이너가 지켜야 할 것 (SPEC 공통/6 §9 · 2026-09-23 게이트 1).
+// 글자로 본다 — 서비스 블록을 들여쓰기로 잘라 그 안만 본다
+const compose = readFileSync(resolve(process.cwd(), 'docker-compose.yml'), 'utf8');
+const author = /^ {2}author:\n((?: {4}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '';
+
+describe('작성 에이전트 컨테이너(author)', () => {
+  it('있다 — 서버가 보내기를 바로 집는다', () => {
+    expect(author).not.toBe('');
+  });
+
+  it('선택 사항이다 — 토큰을 넣기 전에 up -d 로 같이 떠 재시작만 반복하지 않게', () => {
+    expect(author).toMatch(/profiles:\s*\[\s*authoring\s*\]/);
+  });
+
+  it('저장소를 붙이되 .env 는 가린다 — 자식 세션이 모든 비밀값을 읽게 된다', () => {
+    expect(author).toMatch(/- \.\/:\/repo\b/);
+    expect(author).toMatch(/- \/dev\/null:\/repo\/\.env:ro/);
+  });
+
+  it('DB 가 있는 기본 망에 붙지 않는다 — admin 하고만 같은 망이다', () => {
+    expect(author).toMatch(/networks:\s*\[\s*authoring\s*\]/);
+    expect(author).not.toMatch(/default/);
+  });
+
+  it('root 로 돌지 않는다 — 서버 저장소에 root 소유 파일이 남는다', () => {
+    expect(author).toMatch(/user:\s*"\$\{HOST_UID/);
+  });
+});
+
 describe('admin 이미지', () => {
   // SPEC §9.2 가 첫 계정·첫 서비스·정기 실행을 「컨테이너 안 명령」으로 정했고
   // 그 명령들이 저장소 루트의 scripts/ 에 있다. 이미지에 안 들어가면 셋 다 죽는다
