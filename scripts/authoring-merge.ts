@@ -40,15 +40,30 @@ export async function 머지처리(손: 보고손, 번호: number, prUrl: string
 
   const 목록읽기 = (): CI실행[] | null => {
     const r = 친다('gh', 실행목록인자(번호), 뿌리);
-    if (!r.ok) console.error(`[기다림] CI 실행 목록을 못 읽었다: ${r.까닭}`);
-    return r.ok ? (JSON.parse(r.낸것) as CI실행[]) : null;
+    if (!r.ok) {
+      console.error(`[기다림] CI 실행 목록을 못 읽었다: ${r.까닭}`);
+      return null;
+    }
+    try {
+      return JSON.parse(r.낸것) as CI실행[];
+    } catch (e) {
+      console.error(`[기다림] CI 실행 목록을 못 풀었다: ${e instanceof Error ? e.message : String(e)}`);
+      return null;
+    }
   };
 
   const 이미준비됨 = !pr.isDraft;
   let 이후번호 = 0;
   if (pr.isDraft) {
-    // 초안일 때 뜬 실행(잡을 건너뛴 채 끝난 것)을 기준으로 잡아 두고 그 뒤 실행만 본다
-    const 전 = CI판정(pr.headRefOid, 목록읽기() ?? []);
+    // 초안일 때 뜬 실행(잡을 건너뛴 채 끝난 것)을 기준으로 잡아 두고 그 뒤 실행만 본다.
+    // ★ 못 읽었으면 여기서 멈춘다 — 기준이 0 이 되면 건너뛴 채 success 로 끝난 초안 실행을
+    // 새 실행으로 읽어 **검사 없이 병합한다** (2026-09-23 검증이 잡았다)
+    const 전목록 = 목록읽기();
+    if (전목록 === null) {
+      await 손.끝내기({ status: 'FAILED', error: 'CI 실행 목록을 못 읽어 초안을 안 풀었다 — 다시 눌러라' });
+      return;
+    }
+    const 전 = CI판정(pr.headRefOid, 전목록);
     이후번호 = '번호' in 전 ? 전.번호 : 0;
     const 풀기 = 친다('gh', PR준비인자(prUrl), 뿌리);
     if (!풀기.ok) {
