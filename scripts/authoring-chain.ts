@@ -158,6 +158,15 @@ export function 커밋뒤거부사유(테스트만인가: boolean, 파일들: st
   return 푸시거부사유(테스트만인가, 파일들);
 }
 
+/**
+ * 올릴 파일·PR 본문에 피그마 토큰이 들어갔나. 자식 환경에 토큰이 있어 케이스에 그대로 박을 수 있다.
+ * 8자 미만은 안 본다 — 짧은 값은 아무 글에나 우연히 걸려 멀쩡한 것을 막는다.
+ */
+export function 비밀섞였나(글들: string[], 비밀: string | undefined): boolean {
+  if (비밀 === undefined || 비밀.length < 8) return false;
+  return 글들.some((글) => 글.includes(비밀));
+}
+
 /** 병합 직전에 PR 이 실제로 바꾼 파일. 올릴 때 판정했어도 그 뒤 누가 브랜치에 더 얹었을 수 있다 */
 export function PR파일인자(prUrl: string): string[] {
   return ['pr', 'diff', prUrl, '--name-only'];

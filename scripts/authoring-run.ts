@@ -14,6 +14,7 @@ import {
   PR찾기인자,
   닫을RUNNING,
   바뀐파일들,
+  비밀섞였나,
   작업방준비,
   작업방폴더,
   케이스폴더,
@@ -206,6 +207,19 @@ export async function 한건처리(
       return;
     }
 
+    const 표자리 = join(작업방, 'docs', 'cases', `${서비스}.md`);
+    const 본문글 = PR본문({
+      표: existsSync(표자리) ? readFileSync(표자리, 'utf8') : '',
+      // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 앞쪽 수다까지 실을 필요는 없다
+      요약: 낸것.trim().split('\n').slice(-40).join('\n'),
+    });
+    // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
+    const 내용들 = 전체.map((f) => (existsSync(join(작업방, f)) ? readFileSync(join(작업방, f), 'utf8') : ''));
+    if (비밀섞였나([본문글, ...내용들], 것.figmaToken)) {
+      await 손.끝내기({ status: 'FAILED', error: '올릴 파일이나 PR 본문에 피그마 토큰이 들어 있다 — 맥은 올리지 않는다' });
+      return;
+    }
+
     const 올림 = await 다시하며('push', () => {
       // pre-push 훅(타입·케이스 형식)이 돌므로 넉넉히 준다
       const r = 친다('git', 푸시인자(것.id), 작업방, undefined, 600_000);
@@ -216,12 +230,6 @@ export async function 한건처리(
       return;
     }
 
-    const 표자리 = join(작업방, 'docs', 'cases', `${서비스}.md`);
-    const 본문글 = PR본문({
-      표: existsSync(표자리) ? readFileSync(표자리, 'utf8') : '',
-      // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 앞쪽 수다까지 실을 필요는 없다
-      요약: 낸것.trim().split('\n').slice(-40).join('\n'),
-    });
     // 재시도 전에 먼저 찾는다 — 만들기가 GitHub 에선 됐는데 답만 잃었으면 또 만들면 PR 이 둘이 된다
     const PR = await 다시하며('PR 만들기', () => {
       const 있나 = 친다('gh', PR찾기인자(것.id), 작업방);
