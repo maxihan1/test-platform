@@ -1,5 +1,5 @@
 // 작성 에이전트. **화면이 세운 대기줄을 집어** 작업방에서 `claude -p` 로 tpx-author 를 돌리고, 맥이 직접 초안 PR 을 낸다.
-// 껍데기(한 건 처리·머지)는 authoring-run.ts · authoring-merge.ts 에 있다. 이 파일은 순수 함수와 켜기·줄 돌기다.
+// 껍데기(한 건 처리·머지·공용 손)는 authoring-run.ts · authoring-merge.ts · authoring-io.ts 에 있다. 이 파일은 순수 함수와 켜기·줄 돌기다.
 // **서버가 아니라 맥에서 도는 이유** — `claude` 가 사용자의 구독 로그인을 그대로 쓰기 위해서다.
 // 서버에 Claude 토큰도 GitHub 토큰도 심을 필요가 없어진다.
 //
@@ -21,7 +21,8 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글 } from './authoring-assets.js';
-import { 멈춘것닫기, 부른다, 한건처리 } from './authoring-run.js';
+import { 부른다 } from './authoring-io.js';
+import { 멈춘것닫기, 한건처리 } from './authoring-run.js';
 
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
 export interface 설정 extends 권한설정 {

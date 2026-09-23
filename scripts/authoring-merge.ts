@@ -13,7 +13,7 @@ import {
   머지인자,
   실행목록인자,
 } from './authoring-chain.js';
-import { type 보고손, 쉬기, 친다 } from './authoring-run.js';
+import { type 보고손, 쉬기, 친다 } from './authoring-io.js';
 
 const 폴링간격 = 15_000;
 // ponytail: 루프 시간으로 잰다 — 맥에는 GNU timeout 이 없다. CI 가 늘 17분을 넘기면 이 숫자를 올린다
