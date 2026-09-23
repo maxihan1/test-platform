@@ -186,6 +186,36 @@ test('가벼운 길 판정 단계가 cases-only.mjs 를 부르고, 실패를 빨
   assert.match(명령, /GITHUB_OUTPUT/, '판정을 GITHUB_OUTPUT 에 안 쓴다');
   // rename 감지가 켜져 있으면 apps/x.ts → tests/todo/x.spec.ts 가 새 경로 하나로만 나와 가벼운 길이 된다
   assert.match(명령, /git\b[^\n|]*diff[^\n|]*--no-renames/, '판정의 git diff 에 --no-renames 가 없다 — 코드를 spec 으로 옮기면 가벼운 길로 샌다');
+  assert.ok(판정모양인가(명령), `판정 명령이 「if <git diff> | cases-only; then light=1 else light=0 fi」 그대로가 아니다 — 판정과 상관없이 light=1 을 쓰는 길이 생긴다:\n${명령}`);
+});
+
+/**
+ * 판정 명령이 정확히 이 모양인가 — light=1 은 cases-only 가 0 을 낸 then 가지에서만 나온다.
+ * 부분 일치로 보면 앞뒤에 `echo light=1 >> $GITHUB_OUTPUT` 을 끼우거나 `|| true` 를 붙여도 통과한다.
+ */
+export function 판정모양인가(명령) {
+  return /^\s*if git [^\n|;&]*\| node \.claude\/scripts\/cases-only\.mjs "\$BASE"; then\n\s*echo "light=1"\n\s*else\n\s*echo "light=0"\n\s*fi >> "\$GITHUB_OUTPUT"\s*$/.test(
+    명령,
+  );
+}
+
+test('판정모양인가 — cases-only 밖에서 light=1 을 쓰는 모양은 거절한다', () => {
+  const 좋은것 = [
+    '  if git diff --no-renames --name-only "$BASE"...HEAD | node .claude/scripts/cases-only.mjs "$BASE"; then',
+    '    echo "light=1"',
+    '  else',
+    '    echo "light=0"',
+    '  fi >> "$GITHUB_OUTPUT"',
+  ];
+  assert.equal(판정모양인가(좋은것.join('\n')), true);
+  const 나쁜것 = {
+    '뒤에 무조건': [...좋은것, '  echo "light=1" >> "$GITHUB_OUTPUT"'],
+    '앞에 무조건': ['  echo "light=1" >> "$GITHUB_OUTPUT"', ...좋은것],
+    'else 도 light=1': 좋은것.map((l) => l.replace('light=0', 'light=1')),
+    '|| true 로 판정 무력화': 좋은것.map((l, i) => (i === 0 ? l.replace('"$BASE"; then', '"$BASE" || true; then') : l)),
+    '판정 앞에 다른 명령': 좋은것.map((l, i) => (i === 0 ? l.replace('if git', 'if true || git') : l)),
+  };
+  for (const [이름, 줄] of Object.entries(나쁜것)) assert.equal(판정모양인가(줄.join('\n')), false, 이름);
 });
 
 test('checkout 이 base 와 비교할 만큼 이력을 받는다 (fetch-depth: 0)', () => {
