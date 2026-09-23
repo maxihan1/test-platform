@@ -126,11 +126,25 @@ export async function 머지처리(손: 보고손, prUrl: string, 판정: 판정
 
   await 손.단계('머지하는 중');
   const 친것 = 친다('gh', 머지인자(prUrl, pr.headRefOid), 뿌리);
-  const 뒤 = 친다('gh', ['pr', 'view', prUrl, '--json', 'state'], 뿌리);
-  const 상태 = 뒤.ok ? (JSON.parse(뒤.낸것) as { state: string }).state : '못 읽음';
+  const 상태 = 병합뒤상태(친것.ok, 친다('gh', ['pr', 'view', prUrl, '--json', 'state'], 뿌리));
   await 손.끝내기(
     상태 === 'MERGED'
       ? { status: 'DONE', prUrl }
       : { status: 'FAILED', error: `병합이 안 됐다 (${상태}): ${친것.까닭 || '충돌이나 보호 규칙을 봐라'}` },
   );
+}
+
+/**
+ * 병합 뒤 PR 상태. 병합 명령이 성공(EXIT 0)했으면 상태를 못 읽거나 못 풀어도 병합된 것으로 본다 —
+ * 된 병합을 FAILED 로 덮으면 사람이 또 누르고, 그 요청은 끝내 실패로 남는다
+ */
+export function 병합뒤상태(병합됨: boolean, 뷰: { ok: boolean; 낸것: string }): string {
+  const 모름 = 병합됨 ? 'MERGED' : '못 읽음';
+  if (!뷰.ok) return 모름;
+  try {
+    return (JSON.parse(뷰.낸것) as { state: string }).state;
+  } catch (e) {
+    console.error(`[머지] 병합 뒤 PR 상태를 못 풀었다: ${e instanceof Error ? e.message : String(e)}`);
+    return 모름;
+  }
 }
