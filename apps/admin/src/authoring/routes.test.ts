@@ -93,11 +93,11 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('작성 요청은 201 로 줄에 선다', async () => {
+    it('작성 요청은 201 로 만들어진다 — 본문(specText)은 더 받지 않는다', async () => {
       const res = await app.inject({
         method: 'POST',
         url: `/api/authoring/requests?service=${접두사}`,
-        payload: { kind: 'AUTHOR', specText: '할 일을 한 건 만든다' },
+        payload: { kind: 'AUTHOR' },
       });
       expect(res.statusCode).toBe(201);
       expect(typeof res.json().id).toBe('number');
