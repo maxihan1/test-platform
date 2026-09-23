@@ -3,6 +3,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { 테스트만인가 } from './cases-only.mjs';
 
 const 기존폴더 = ['demo', 'todo'];
@@ -51,4 +54,25 @@ test('명령줄 — 표준입력 목록과 base 로 판정해 종료 코드를 �
   assert.equal(돌린다('tests/todo/TODO-001.spec.ts\ndocs/cases/TODO.md\n', 'origin/main'), 0);
   assert.equal(돌린다('tests/todo/TODO-001.spec.ts\napps/x.ts\n', 'origin/main'), 1);
   assert.equal(돌린다('tests/todo/TODO-001.spec.ts\n', '없는-ref-xyz'), 1, 'base 를 못 읽으면 무거운 길이어야 한다');
+});
+
+test('명령줄 — 심링크·대소문자만 다른 경로로 불려도 판정한다 (본체를 건너뛰고 0 을 내면 코드가 검사 없이 들어간다)', () => {
+  const 스크립트 = fileURLToPath(new URL('./cases-only.mjs', import.meta.url));
+  const 자리 = mkdtempSync(join(tmpdir(), 'cases-only-link-'));
+  try {
+    const 링크 = join(자리, 'scripts');
+    symlinkSync(dirname(스크립트), 링크);
+    const 돌린다 = (경로) => {
+      try {
+        execFileSync('node', [경로, 'origin/main'], { input: 'apps/x.ts\n', stdio: ['pipe', 'pipe', 'pipe'] });
+        return 0;
+      } catch (e) {
+        return e.status;
+      }
+    };
+    assert.equal(돌린다(join(링크, 'cases-only.mjs')), 1, '심링크 경로');
+    assert.equal(돌린다(join(dirname(스크립트), 'CASES-ONLY.mjs')), 1, '대소문자만 다른 경로');
+  } finally {
+    rmSync(자리, { recursive: true, force: true });
+  }
 });

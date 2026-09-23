@@ -5,8 +5,9 @@
 //   종료 0 = 테스트만(가벼운 길) · 1 = 그 밖(무거운 길). 판정을 못 해도 1 이다 — 틀리면 코드가 검사 없이 들어간다.
 //   core.quotePath=false 를 빼면 한글 파일명이 따옴표로 싸여 와서 늘 무거운 길이 된다(안전하지만 느리다).
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { readFileSync, realpathSync } from 'node:fs';
+import { basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /**
  * 파일 목록이 전부 `tests/<기존폴더>/*.spec.ts` 또는 `docs/cases/*.md` 인가.
@@ -22,7 +23,24 @@ export function 테스트만인가(파일들, 기존폴더) {
   });
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+// 경로 글자로 비교하면 심링크(/var → /private/var)·대소문자만 다른 경로에서 본체를 건너뛰고 종료 0 이 된다.
+// native 라야 맥의 대소문자 무시 파일시스템에서 실제 이름으로 풀린다
+function 직접불렸나() {
+  try {
+    return realpathSync.native(fileURLToPath(import.meta.url)) === realpathSync.native(process.argv[1] ?? '');
+  } catch {
+    return false;
+  }
+}
+
+const 직접 = 직접불렸나();
+if (!직접 && basename(process.argv[1] ?? '').toLowerCase() === 'cases-only.mjs') {
+  // 명령줄로 불린 모양인데 본체가 안 돈다 — 판단 불가는 무거운 길이다
+  console.error('[cases-only] 직접 불렸는지 못 가렸다 — 무거운 길로 간다');
+  process.exit(1);
+}
+
+if (직접) {
   const base = process.argv[2];
   if (!base) {
     console.error('[cases-only] base ref 를 인자로 줘라');

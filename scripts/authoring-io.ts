@@ -101,7 +101,7 @@ export function 판정기만들기(스크립트자리: string): 판정기 {
   const 내용 = readFileSync(스크립트자리, 'utf8');
   console.log(`[작성] 판정 스크립트를 고정했다: ${스크립트자리} sha256=${createHash('sha256').update(내용).digest('hex')}`);
   return (파일들, 기준, cwd) => {
-    // realpath 가 없으면 /var → /private/var 심링크 때문에 스크립트의 「직접 불렸나」 비교가 어긋나 무엇이든 통과한다
+    // 스크립트가 스스로 realpath 로 비교하게 된 뒤로는 없어도 된다 — 해가 없어 둔다 (/var → /private/var)
     const 자리 = realpathSync(mkdtempSync(join(tmpdir(), 'authoring-judge-')));
     try {
       const 파일 = join(자리, 'cases-only.mjs');
