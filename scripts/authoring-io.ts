@@ -2,6 +2,10 @@
 // 한 건 처리(authoring-run)와 머지(authoring-merge)가 둘 다 쓴다. 판단은 여기 없다.
 
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { 거절인가, 기다렸다다시인가, 보고간격 } from './authoring-agent.js';
 import { 한줄 } from './authoring-chain.js';
@@ -70,6 +74,29 @@ export function 친다(명령: string, 인자: string[], cwd: string, input?: st
   const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한 });
   const 까닭 = r.error?.message ?? (r.stderr ?? '').trim().split('\n')[0] ?? '';
   return { ok: r.status === 0 && r.error === undefined, 낸것: r.stdout ?? '', 까닭, 오류: r.stderr ?? '' };
+}
+
+export type 판정기 = (파일들: string[], 기준: string, cwd: string) => boolean;
+
+/**
+ * 「테스트만」 판정 스크립트를 **켤 때** 읽어 메모리에 고정한다. 자식은 맥의 파일을 쓸 수 있어서
+ * 판정 때마다 파일을 읽으면 자식이 그것을 「늘 통과」로 바꿔 놓을 수 있다.
+ * 판정할 때마다 새 임시 폴더에 써서 돌린다 — 고정 자리면 자식이 미리 바꿔 둘 수 있다.
+ */
+export function 판정기만들기(스크립트자리: string): 판정기 {
+  const 내용 = readFileSync(스크립트자리, 'utf8');
+  console.log(`[작성] 판정 스크립트를 고정했다: ${스크립트자리} sha256=${createHash('sha256').update(내용).digest('hex')}`);
+  return (파일들, 기준, cwd) => {
+    // realpath 가 없으면 /var → /private/var 심링크 때문에 스크립트의 「직접 불렸나」 비교가 어긋나 무엇이든 통과한다
+    const 자리 = realpathSync(mkdtempSync(join(tmpdir(), 'authoring-judge-')));
+    try {
+      const 파일 = join(자리, 'cases-only.mjs');
+      writeFileSync(파일, 내용);
+      return 친다('node', [파일, 기준], cwd, `${파일들.join('\n')}\n`).ok;
+    } finally {
+      rmSync(자리, { recursive: true, force: true });
+    }
+  };
 }
 
 /** 보고와 같은 간격으로 다시 해 본다. 끝내 안 되면 마지막 까닭을 낸다 */

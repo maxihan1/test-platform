@@ -27,7 +27,7 @@ import {
   푸시거부사유,
   푸시인자,
 } from './authoring-chain.js';
-import { type 보고손, 다시하며, 닫으며, 보고손만들기, 부른다, 친다 } from './authoring-io.js';
+import { type 보고손, type 판정기, 다시하며, 닫으며, 보고손만들기, 부른다, 친다 } from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
 
 /** 켤 때 내 이름으로 잡힌 채 멈춘 RUNNING 을 닫는다. 맥이 꺼져 끊긴 것이라 아무도 안 끝낸다 */
@@ -55,10 +55,11 @@ export async function 한건처리(
   쿠키: string,
   서비스: string,
   것: 집은것,
+  판정: 판정기,
   서버들: { env: string; baseUrl: string }[] = [],
 ): Promise<void> {
   const 손 = 보고손만들기(주소기지, 쿠키, 서비스, 것.id);
-  await 닫으며(손, () => 한건(주소기지, 쿠키, 서비스, 것, 서버들, 손));
+  await 닫으며(손, () => 한건(주소기지, 쿠키, 서비스, 것, 판정, 서버들, 손));
 }
 
 async function 한건(
@@ -66,6 +67,7 @@ async function 한건(
   쿠키: string,
   서비스: string,
   것: 집은것,
+  판정: 판정기,
   서버들: { env: string; baseUrl: string }[],
   손: 보고손,
 ): Promise<void> {
@@ -81,7 +83,7 @@ async function 한건(
       await 손.끝내기({ status: 'FAILED', error: '머지할 초안 PR 주소가 없다' });
       return;
     }
-    await 머지처리(손, 주소);
+    await 머지처리(손, 주소, 판정);
     return;
   }
 
@@ -187,9 +189,8 @@ async function 한건(
       return;
     }
     const 파일들 = 바뀐파일들(상태.낸것);
-    // 판정 규칙은 cases-only.mjs 가 정본이다. 맥 자신의 판(뿌리)을 쓴다 — 작업방의 origin/main 판에는 아직 없을 수 있다
-    const 테스트만 = (목록: string[]) =>
-      친다('node', [join(뿌리, '.claude', 'scripts', 'cases-only.mjs'), 'origin/main'], 작업방, `${목록.join('\n')}\n`).ok;
+    // 판정 규칙은 cases-only.mjs 가 정본이다. 켤 때 메모리에 고정한 맥 자신의 판을 쓴다 — 자식이 파일을 바꿔도 그대로다
+    const 테스트만 = (목록: string[]) => 판정(목록, 'origin/main', 작업방);
     const 거부 = 푸시거부사유(테스트만(파일들), 파일들);
     if (거부 !== null) {
       await 손.끝내기({ status: 'FAILED', error: 거부 });

@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글 } from './authoring-assets.js';
-import { 부른다 } from './authoring-io.js';
+import { 부른다, 판정기만들기 } from './authoring-io.js';
 import { 멈춘것닫기, 한건처리 } from './authoring-run.js';
 
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
@@ -429,6 +429,8 @@ async function 돈다(): Promise<number> {
     return 1;
   }
 
+  // 자식이 돌기 전에 읽어 둔다 — 자식은 맥의 파일을 쓸 수 있다
+  const 판정 = 판정기만들기(join(process.cwd(), '.claude', 'scripts', 'cases-only.mjs'));
   console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} — 멈추려면 Ctrl+C.`);
   for (;;) {
     let 집었나 = false;
@@ -449,7 +451,7 @@ async function 돈다(): Promise<number> {
         const 것 = 답.몸;
         console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}).`);
         집었나 = true;
-        await 한건처리(주소, 쿠키, 서비스, 것, 서버표[서비스] ?? []);
+        await 한건처리(주소, 쿠키, 서비스, 것, 판정, 서버표[서비스] ?? []);
         console.log(`[작성] ${것.id}번을 끝냈다.`);
       } catch (err) {
         const 글 = err instanceof Error ? err.message : String(err);
