@@ -60,13 +60,13 @@ describe('거절당하면 멈춘다', () => {
 
 describe('줄에서 집어 일한다', () => {
   it('작성 요청의 기획서는 경로가 아니라 본문이다. 맥은 다른 기계라 경로를 못 읽는다', () => {
-    const 글 = 줄프롬프트({ id: 3, kind: 'AUTHOR', specText: '할 일을 추가할 수 있다' }, 'TODO');
+    const 글 = 줄프롬프트({ id: 3, kind: 'AUTHOR', specText: '할 일을 추가할 수 있다' }, 'TODO', []);
     expect(글).toContain('할 일을 추가할 수 있다');
     expect(글).not.toMatch(/기획서 경로/);
   });
 
   it('작성 프롬프트도 초안 PR 까지만 하라고 못박는다', () => {
-    const 글 = 줄프롬프트({ id: 3, kind: 'AUTHOR', specText: '본문' }, 'TODO');
+    const 글 = 줄프롬프트({ id: 3, kind: 'AUTHOR', specText: '본문' }, 'TODO', []);
     expect(글).toMatch(/gh pr ready 와 병합은 절대 하지 마라/);
   });
 
@@ -130,7 +130,7 @@ describe('초안 PR 주소를 잡아 온다 — 없으면 머지 버튼이 영�
   });
 
   it('자식에게 그 줄을 찍으라고 프롬프트가 시킨다', () => {
-    expect(줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'TODO')).toContain(PR표시);
+    expect(줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'TODO', [])).toContain(PR표시);
   });
 });
 
@@ -295,10 +295,20 @@ describe('선행검사 — 순서가 뒤집히면 돈이 샌다', () => {
     expect(막힘).toMatch(/push 가 막힌다/);
   });
 
-  it('셋 다 통과하면 막지 않는다', () => {
+  it('자식이 셸을 못 돌면 안 돌린다 — 피그마도 관문도 못 돈다', () => {
     const 막힘 = 선행검사({
       env: { AUTHORING_AGENT_USER: 'mac' },
       설정들: [],
+      오늘: '2026-09-21',
+      기록: ['2026-09-21-무엇.md'],
+    });
+    expect(막힘).toMatch(/Bash\(\*\)/);
+  });
+
+  it('넷 다 통과하면 막지 않는다', () => {
+    const 막힘 = 선행검사({
+      env: { AUTHORING_AGENT_USER: 'mac' },
+      설정들: [{ 어디: '사용자', 값: { permissions: { allow: ['Bash(*)'] } } }],
       오늘: '2026-09-21',
       기록: ['2026-09-21-무엇.md'],
     });
@@ -311,18 +321,26 @@ describe('클로드인자', () => {
   // 다음 편집을 못 막는다. 통째로 비교하면 하나만 늘어도 깨져서
   // 고치는 사람이 이 파일 맨 위의 과금 규칙을 반드시 다시 읽는다
   it('인자 배열이 기대한 것과 글자 하나까지 같다', () => {
-    expect(클로드인자()).toEqual(['-p', '--permission-mode', 'acceptEdits', '--disallowedTools', 'AskUserQuestion']);
+    expect(클로드인자('/t')).toEqual([
+      '-p',
+      '--permission-mode',
+      'acceptEdits',
+      '--add-dir',
+      '/t',
+      '--disallowedTools',
+      'AskUserQuestion',
+    ]);
   });
 
   it('--bare 는 절대 안 들어간다 — 그 깃발 하나가 OAuth 를 안 읽고 API 키만 쓴다', () => {
-    expect(클로드인자()).not.toContain('--bare');
+    expect(클로드인자('/t')).not.toContain('--bare');
   });
 
   // 2026-09-21 실측 — 프롬프트를 배열 끝에 실었더니 --disallowedTools 가 가변 인자라
   // 그것을 도구 이름 목록으로 삼켰고 `Input must be provided...` 로 죽었다.
   // **--disallowedTools 가 마지막이어야 한다**는 것이 이 단언의 알맹이다
   it('마지막 원소 뒤에 아무것도 없다 — 가변 인자가 프롬프트를 삼켰던 자리다', () => {
-    const 인자 = 클로드인자();
+    const 인자 = 클로드인자('/t');
     expect(인자[인자.length - 2]).toBe('--disallowedTools');
     expect(인자[인자.length - 1]).toBe('AskUserQuestion');
   });
@@ -331,7 +349,7 @@ describe('클로드인자', () => {
 // 옛 셸 진입점(`프롬프트`)의 단언을 그대로 옮겨 왔다. 그 진입점은 2026-09-22 에 없어졌지만
 // **경계는 그대로다** — 물어볼 사람이 없는 자리에서 자식이 무엇을 하면 안 되는가
 describe('줄프롬프트 — 자식에게 못박는 경계', () => {
-  const 글 = () => 줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'TODO');
+  const 글 = () => 줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'TODO', []);
 
   it('접두사가 실린다', () => {
     expect(글()).toContain('TODO');

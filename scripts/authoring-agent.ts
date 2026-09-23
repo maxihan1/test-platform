@@ -20,8 +20,10 @@ import { createInterface } from 'node:readline';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글 } from './authoring-assets.js';
+
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
-export interface 설정 {
+export interface 설정 extends 권한설정 {
   apiKeyHelper?: string;
   env?: Record<string, string>;
 }
@@ -126,9 +128,12 @@ export function 푸시막힘(
  * **프롬프트는 여기 안 싣는다.** `--disallowedTools` 가 가변 인자라 **뒤따르는 것을 전부 삼킨다** —
  * 프롬프트가 도구 이름 목록으로 먹혀 `Input must be provided...` 로 죽었다 (2026-09-21 실측).
  * 프롬프트는 stdin 으로 넘긴다. 셸 따옴표 문제도 같이 사라진다.
+ *
+ * `--add-dir` 로 자료를 받아 둔 임시 폴더를 연다. 작업 폴더 밖이라 안 열면 자식이 자료를 못 읽는다.
+ * **`--add-dir` 도 가변 인자다** — 그래서 `--disallowedTools` 앞에 두고, 마지막은 여전히 `--disallowedTools` 다.
  */
-export function 클로드인자(): string[] {
-  return ['-p', '--permission-mode', 'acceptEdits', '--disallowedTools', 'AskUserQuestion'];
+export function 클로드인자(폴더: string): string[] {
+  return ['-p', '--permission-mode', 'acceptEdits', '--add-dir', 폴더, '--disallowedTools', 'AskUserQuestion'];
 }
 
 /**
@@ -157,7 +162,16 @@ export function 선행검사(입력: {
   const 전제 = 대기줄전제(입력.env);
   if (전제 !== null) return 전제;
 
-  return 푸시막힘(입력.오늘, 입력.기록, 입력.env);
+  const 푸시 = 푸시막힘(입력.오늘, 입력.기록, 입력.env);
+  if (푸시 !== null) return 푸시;
+
+  if (!셸허용됐나(입력.설정들.map((s) => s.값))) {
+    return [
+      '자식 세션이 셸 명령을 못 돈다. 피그마를 못 읽고 관문도 못 돌아 한도만 쓰고 멈춘다.',
+      '~/.claude/settings.json 의 permissions.allow 에 Bash(*) 를 넣고 다시 실행해라 (docs/SETUP.md §8).',
+    ].join('\n');
+  }
+  return null;
 }
 
 /**
@@ -181,18 +195,23 @@ export interface 집은것 {
   id: number;
   kind: 'AUTHOR' | 'RERUN' | 'MERGE';
   sourceId?: number | null;
-  specText?: string;
+  /** 옛 행만 있다. 새 작성 요청은 자료로 온다 */
+  specText?: string | null;
   prUrl?: string | null;
+  /** 이 행 자기 자료. 재실행 행은 비어 있고 원본의 자료를 따로 읽는다 */
+  assets?: 자료[];
+  /** 피그마 자료가 있을 때만 온다. **자식 환경에만** 넘기고 어디에도 안 찍는다 */
+  figmaToken?: string;
 }
 
 /**
  * 줄에서 집은 작성 요청으로 자식 세션에게 시킬 일.
  *
- * **기획서를 본문으로 넘긴다.** 셸 진입점은 경로를 받았지만 대기줄은 본문을 싣는다 —
- * 맥은 다른 기계라 서버의 경로를 못 읽고, 그 파일이 나중에 고쳐지면
- * 무엇을 시킨 요청이었는지도 같이 바뀐다 (공통/4-데이터모델 §6).
+ * **기획서는 맥이 받아 둔 자료 목록으로 넘긴다** (도메인/작성 §7 「자료」). 경로는 서버의 것이 아니라
+ * 맥의 임시 폴더다 — 맥은 다른 기계라 서버의 경로를 못 읽는다.
+ * 자료가 없는 옛 행만 본문(`specText`)을 그대로 싣는다.
  */
-export function 줄프롬프트(것: 집은것, 서비스: string): string {
+export function 줄프롬프트(것: 집은것, 서비스: string, 계획: 읽을자료[]): string {
   return [
     `/tpx 아래 기획서로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
     '- [5] 자리에서 tpx-cases 스킬을 써라.',
@@ -214,8 +233,7 @@ export function 줄프롬프트(것: 집은것, 서비스: string): string {
     '',
     '관문 넷(형식·표 대조·3회 연속·일부러 부수기)은 전부 돌려라.',
     '',
-    '--- 기획서 ---',
-    것.specText ?? '',
+    ...(계획.length > 0 ? 자료목록글(계획) : ['--- 기획서 ---', 것.specText ?? '']),
   ].join('\n');
 }
 
@@ -480,8 +498,8 @@ async function 한건처리(주소기지: string, 쿠키: string, 서비스: str
   await 단계('케이스를 만드는 중');
   // **출력을 잡는다.** 자식이 찍는 PR 주소를 못 읽으면 화면에 머지 버튼이 영영 안 뜬다.
   // 그래도 사람 눈에는 보여야 하므로(숨은 데몬이 아니다) 받는 족족 그대로 흘려보낸다
-  const 돌린것 = spawnSync('claude', 클로드인자(), {
-    input: 줄프롬프트(것, 서비스),
+  const 돌린것 = spawnSync('claude', 클로드인자(process.cwd()), {
+    input: 줄프롬프트(것, 서비스, []),
     stdio: ['pipe', 'pipe', 'inherit'],
     encoding: 'utf8',
   });
