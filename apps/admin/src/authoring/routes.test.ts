@@ -8,6 +8,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import authoringRoutes from './routes.js';
+import { 제출, 준비세우기 } from './assetStore.js';
 import { 줄세우기 } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -189,6 +190,34 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
     });
   });
 
+  describe('집기 응답은 자료를 든다', () => {
+    it('집은 한 건에 자료 목록이 따라온다 — 맥이 그것을 받아 읽는다', async () => {
+      let 비었나 = false;
+      while (!비었나) {
+        const r = await app.inject({
+          method: 'POST',
+          url: `/api/authoring/requests/claim?service=${접두사}`,
+        });
+        비었나 = r.statusCode === 204;
+      }
+      const id = await 준비세우기({
+        서비스,
+        누가: 'x',
+        이름: 'x',
+        피그마: ['https://www.figma.com/design/B2/'],
+      });
+      await 제출(id);
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests/claim?service=${접두사}`,
+      });
+      expect(res.json().id).toBe(id);
+      expect(res.json().assets).toEqual([
+        expect.objectContaining({ kind: 'FIGMA', figmaUrl: 'https://www.figma.com/design/B2/' }),
+      ]);
+    });
+  });
+
   describe('방어 ⑤ 집은 쪽만 그 행을 움직인다', () => {
     it('집지 않은 사람이 끝났다고 하면 403', async () => {
       await 줄세우기({
@@ -286,6 +315,20 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
       expect(res.statusCode).toBe(200);
       const 몸 = res.json();
       expect(몸.items.every((r: { serviceId: number }) => r.serviceId === 서비스)).toBe(true);
+    });
+
+    it('상세는 자료 목록을 든다', async () => {
+      const id = await 준비세우기({
+        서비스,
+        누가: 'x',
+        이름: 'x',
+        피그마: ['https://www.figma.com/design/A1/'],
+      });
+      const res = await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}` });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().assets).toEqual([
+        expect.objectContaining({ position: 1, kind: 'FIGMA', figmaUrl: 'https://www.figma.com/design/A1/' }),
+      ]);
     });
 
     it('없는 번호는 404 — 「없는 것」과 「남의 것」이 안 뭉개진다', async () => {

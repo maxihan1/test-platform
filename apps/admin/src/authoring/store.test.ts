@@ -245,6 +245,12 @@ describe.skipIf(연결 === undefined)('작성 대기줄', () => {
       expect(쪽.total).toBeGreaterThan(0);
     });
 
+    it('목록 항목에 기획서 본문을 싣지 않는다 — 목록은 본문을 안 그린다', async () => {
+      const 쪽 = await 한쪽({ 서비스: 서비스, 쪽: 1 });
+      expect(쪽.items.length).toBeGreaterThan(0);
+      expect(쪽.items.every((r) => !('specText' in r))).toBe(true);
+    });
+
     it('상태로 거르면 그것만 나온다', async () => {
       const 쪽 = await 한쪽({ 서비스: 서비스, 상태: 'PENDING', 쪽: 1 });
       expect(쪽.items.every((r) => r.status === 'PENDING')).toBe(true);

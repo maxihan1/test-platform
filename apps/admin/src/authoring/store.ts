@@ -35,7 +35,8 @@ export interface 요청 {
   serviceId: number;
   kind: 종류;
   sourceId: number | null;
-  specText: string;
+  // 옛 행만 찬다. 2026-09-23 부터 기획서는 자료(authoring_asset)로 온다
+  specText: string | null;
   params: Record<string, unknown>;
   requestedBy: string;
   requestedByName: string;
@@ -58,7 +59,7 @@ interface 행 {
   service_id: string;
   kind: 종류;
   source_id: string | null;
-  spec_text: string;
+  spec_text: string | null;
   params: Record<string, unknown>;
   requested_by: string;
   requested_by_name: string;
@@ -183,12 +184,22 @@ export async function 한건(id: number): Promise<요청 | null> {
   return row === undefined ? null : 빚기(row);
 }
 
+/** 목록 한 줄. 기획서 본문은 싣지 않는다 — 목록은 본문을 안 그리고, 한 쪽에 50 건이면 본문 50 개가 실린다 */
+export type 요약 = Omit<요청, 'specText'>;
+
+const 요약칸들 = 칸들.replace('spec_text, ', '');
+
+function 요약빚기(r: Omit<행, 'spec_text'>): 요약 {
+  const { specText: _본문, ...나머지 } = 빚기({ ...r, spec_text: null });
+  return 나머지;
+}
+
 export async function 한쪽(입력: {
   서비스: number;
   상태?: 상태;
   쪽: number;
   크기?: number;
-}): Promise<{ items: 요청[]; total: number; page: number; pageSize: number }> {
+}): Promise<{ items: 요약[]; total: number; page: number; pageSize: number }> {
   const pool = await db();
   const 크기 = 입력.크기 ?? 50;
   // 쪽 번호가 무한대면 건너뛸 개수도 무한대가 되어 DB 가 해석 못 하는 값이 간다
@@ -202,15 +213,15 @@ export async function 한쪽(입력: {
   );
   // **건너뛸 개수를 질의문 글자에 끼워 넣지 않는다.** 지금은 숫자로 걸러지므로 주입은 아니지만,
   // 다음 사람이 여기에 문자열을 하나 더 얹으면 그때는 진짜 주입이 된다 (2026-09-22 보안 검토)
-  const r = await pool.query<행>(
-    `SELECT ${칸들} FROM authoring_request
+  const r = await pool.query<Omit<행, 'spec_text'>>(
+    `SELECT ${요약칸들} FROM authoring_request
       WHERE service_id = $1${조건}
       ORDER BY id DESC
       LIMIT $${값들.length + 1} OFFSET $${값들.length + 2}`,
     [...값들, 크기, (쪽 - 1) * 크기],
   );
   return {
-    items: r.rows.map(빚기),
+    items: r.rows.map(요약빚기),
     total: Number(셈.rows[0]!.n),
     page: 쪽,
     pageSize: 크기,

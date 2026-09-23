@@ -7,6 +7,7 @@ import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
+import { 자료목록 } from './assetStore.js';
 import {
   끝내기,
   단계올리기,
@@ -238,7 +239,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 없는 번호는 404 다. 「없는 것」과 「남의 것」이 뭉개지면 안 된다 (SPEC §7).
       // 서비스 경계는 문이 이미 봤다 — 이 틀은 라우트표에서 「번호로 서비스를 찾는」 갈래다
       if (행 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
-      return 행;
+      return { ...행, assets: await 자료목록(행.id) };
     },
   );
 
@@ -286,7 +287,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       const 집은것 = await 집기(서비스, req.user?.username ?? '');
       // 줄이 비었으면 204 다. 맥이 폴링하므로 「없음」이 오류가 아니다
       if (집은것 === null) return reply.code(204).send();
-      return 집은것;
+      // RERUN 은 자기 자료가 없다. 원본 행의 자료는 맥이 원본 번호로 따로 읽는다
+      return { ...집은것, assets: await 자료목록(집은것.id) };
     },
   );
 
