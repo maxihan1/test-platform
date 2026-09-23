@@ -1,12 +1,12 @@
-// 작성 자료 통로 — 기획서 파일 올리기 · 줄에 세우기 (SPEC 도메인/작성 §7 「자료」)
+// 작성 자료 통로 — 기획서 파일 올리기 · 줄에 세우기 · 내려받기 (SPEC 도메인/작성 §7 「자료」)
 // routes.ts 가 300줄을 넘어 뗐다. app.ts 가 routes.ts 와 같은 /api 접두사로 등록한다
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
-import { 자료더하기, 자료목록, 자료지우기, 제출 } from './assetStore.js';
+import { 자료더하기, 자료목록, 자료지우기, 자료한건, 제출 } from './assetStore.js';
 import { 번호, 사진뿌리 } from './routes.js';
 import { 한건, type 요청 } from './store.js';
 
@@ -31,6 +31,19 @@ export function 자료폴더(요청: number): string {
 function 이름인가(이름: string): boolean {
   if (이름 === '' || 이름.includes('..')) return false;
   return !/["/\\\u0000-\u001f\u007f]/.test(이름);
+}
+
+/** 디스크 이름. 사람이 준 이름이 아니라 자료 번호로 짓는다 — 이름으로 지으면 `../` 로 폴더 밖에 쓸 수 있다 */
+function 디스크이름(자료번호: number, 이름: string): string {
+  return `${String(자료번호)}${extname(이름).toLowerCase()}`;
+}
+
+/** RFC 5987 의 퍼센트 인코딩. encodeURIComponent 가 남기는 ' ( ) * 까지 싼다 */
+function 머리글이름(이름: string): string {
+  return encodeURIComponent(이름).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
 }
 
 /** 요청한 사람의 DRAFT 행인가. 아니면 응답을 보내고 null */
@@ -93,7 +106,7 @@ export default async function authoringAssetRoutes(app: FastifyInstance): Promis
       const 폴더 = 자료폴더(행.id);
       try {
         await mkdir(폴더, { recursive: true });
-        await writeFile(join(폴더, `${String(붙은것.id)}${확장자}`), 몸);
+        await writeFile(join(폴더, 디스크이름(붙은것.id, 이름)), 몸);
       } catch (err) {
         await 자료지우기(붙은것.id);
         throw err;
@@ -113,4 +126,26 @@ export default async function authoringAssetRoutes(app: FastifyInstance): Promis
     }
     return { ok: true };
   });
+
+  // 화면도 맥도 부른다. 맥은 다른 기계라 파일 자체를 받아 가야 한다 (SPEC §7)
+  app.get<{ Params: { id: string; assetId: string } }>(
+    '/authoring/requests/:id/assets/:assetId',
+    async (req, reply) => {
+      const id = 번호(req.params.id);
+      const 자료번호 = 번호(req.params.assetId);
+      if (id === null || 자료번호 === null) return reply.code(400).send({ error: 'BAD_ID' });
+      const 자료 = await 자료한건(id, 자료번호);
+      // 피그마 자료는 파일이 없다. 주소는 상세 응답에 이미 있다
+      if (자료 === null || 자료.kind !== 'FILE') return reply.code(404).send({ error: 'NOT_FOUND' });
+
+      const 몸 = await readFile(join(자료폴더(id), 디스크이름(자료.id, 자료.name)));
+      // ★ 브라우저가 열지 못하게 준다. 확장자로 text/html 을 짐작하게 두면
+      // 올린 파일이 admin 과 같은 출처에서 열려 로그인 세션으로 스크립트가 돈다
+      return reply
+        .header('content-type', 'application/octet-stream')
+        .header('content-disposition', `attachment; filename*=UTF-8''${머리글이름(자료.name)}`)
+        .header('x-content-type-options', 'nosniff')
+        .send(몸);
+    },
+  );
 }

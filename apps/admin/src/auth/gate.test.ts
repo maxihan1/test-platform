@@ -537,4 +537,8 @@ describe('등급 표', () => {
     expect(등급표['POST /api/authoring/requests/:id/assets']).toBe('operator');
     expect(등급표['POST /api/authoring/requests/:id/submit']).toBe('operator');
   });
+
+  it('자료 내려받기는 viewer 다 — 상세를 보는 사람이 그 기획서도 본다', () => {
+    expect(등급표['GET /api/authoring/requests/:id/assets/:assetId']).toBe('viewer');
+  });
 });

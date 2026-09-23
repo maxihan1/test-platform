@@ -175,4 +175,42 @@ describe.skipIf(연결 === undefined)('작성 자료 통로', () => {
       expect((await 한건(id))?.status).toBe('DRAFT');
     });
   });
+
+  describe('내려받기', () => {
+    const 받기 = (id: number | string, 자료: number | string) =>
+      app.inject({ method: 'GET', url: `/api/authoring/requests/${String(id)}/assets/${String(자료)}` });
+
+    it('올린 바이트 그대로 · 브라우저가 열지 못하게 준다', async () => {
+      const id = await 준비();
+      const 자료id = (await 올리기(id, '기획서 (최종).pdf', Buffer.from('본문 바이트'))).json().id as number;
+      부르는이 = 'xwu-맥';
+      const res = await 받기(id, 자료id);
+      부르는이 = 'xwu-나';
+      expect(res.statusCode).toBe(200);
+      expect(res.rawPayload.toString()).toBe('본문 바이트');
+      expect(res.headers['content-type']).toBe('application/octet-stream');
+      expect(res.headers['content-disposition']).toBe(
+        "attachment; filename*=UTF-8''%EA%B8%B0%ED%9A%8D%EC%84%9C%20%28%EC%B5%9C%EC%A2%85%29.pdf",
+      );
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
+    });
+
+    it('다른 요청의 자료 번호면 404', async () => {
+      const 가 = await 준비();
+      const 자료id = (await 올리기(가, '기획서.pdf')).json().id as number;
+      const 나 = await 준비();
+      expect((await 받기(나, 자료id)).statusCode).toBe(404);
+    });
+
+    it('피그마 자료면 404', async () => {
+      const id = await 준비(['https://www.figma.com/design/A1/']);
+      const [피그마] = await 자료목록(id);
+      expect((await 받기(id, 피그마!.id)).statusCode).toBe(404);
+    });
+
+    it('자료 번호가 1e3 이면 400', async () => {
+      const id = await 준비();
+      expect((await 받기(id, '1e3')).statusCode).toBe(400);
+    });
+  });
 });

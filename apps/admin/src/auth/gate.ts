@@ -83,6 +83,7 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/screenshots/:runId/:historyId/:seq.png': 'viewer',
   'GET /api/authoring/requests': 'viewer',
   'GET /api/authoring/requests/:id': 'viewer',
+  'GET /api/authoring/requests/:id/assets/:assetId': 'viewer',
 
   // 바꾸는 일 — operator
   'POST /api/catalog/scan': 'operator',

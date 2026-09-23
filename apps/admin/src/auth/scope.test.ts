@@ -85,6 +85,7 @@ describe('라우트표', () => {
       '/api/authoring/requests/:id/finish',
       '/api/authoring/requests/:id/assets',
       '/api/authoring/requests/:id/submit',
+      '/api/authoring/requests/:id/assets/:assetId',
     ]) {
       expect(라우트표[틀], `${틀} 이 번호로 서비스를 찾지 않는다`).toEqual({
         종류: '작성요청',

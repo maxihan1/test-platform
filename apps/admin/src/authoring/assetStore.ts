@@ -135,6 +135,17 @@ export async function 자료목록(요청: number): Promise<자료[]> {
   return r.rows.map(빚기);
 }
 
+/** 그 요청에 딸린 자료 한 건. **요청 번호까지 맞아야 준다** — 자료 번호만 보면 남의 요청 파일이 번호 하나로 읽힌다 */
+export async function 자료한건(요청: number, 자료번호: number): Promise<자료 | null> {
+  const r = await (await db()).query<자료행>(
+    `SELECT id, position, kind, name, figma_url, size
+       FROM authoring_asset WHERE request_id = $1 AND id = $2`,
+    [요청, 자료번호],
+  );
+  const 행 = r.rows[0];
+  return 행 === undefined ? null : 빚기(행);
+}
+
 /**
  * 줄에 세운다. `DRAFT → PENDING`.
  *
