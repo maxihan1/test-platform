@@ -351,6 +351,18 @@ export function 기다렸다다시인가(status: number): boolean {
   return status >= 500;
 }
 
+/**
+ * 「끝났다」 보고를 다시 보내기 전에 기다릴 시간(ms). 더 안 보내면 `null`.
+ *
+ * **보고 한 번을 잃으면 그 요청은 아무도 끝내지 않는 RUNNING 으로 영원히 남는다** (2026-09-23 한 바퀴 실측).
+ * 40분 쉬던 서버 연결이 끊겨 있어 `fetch failed` 한 번에 보고가 사라졌다.
+ * 끝없이 붙잡지도 않는다 — 밤새 도는 줄이 한 건에 묶이면 뒤의 요청이 전부 선다.
+ */
+export function 보고간격(시도: number): number | null {
+  const 간격들 = [2_000, 5_000, 15_000, 30_000, 60_000];
+  return 간격들[시도] ?? null;
+}
+
 // ── 껍데기 ────────────────────────────────────────────────────────────
 // 여기부터는 I/O 다. 판단은 전부 위의 순수 함수에 있고 검사도 거기 붙어 있다.
 // `scripts/run-scheduled.ts` 와 같은 모양이다.
@@ -450,6 +462,8 @@ async function 부른다(
       ...(옵션.body === undefined ? {} : { 'content-type': 'application/json' }),
     },
     ...(옵션.body === undefined ? {} : { body: JSON.stringify(옵션.body) }),
+    // 응답이 끝내 안 오면 영원히 기다린다. 끊긴 연결에 걸려도 여기서 끊고 부르는 쪽이 다시 보낸다
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (거절인가(답.status)) {
@@ -469,11 +483,29 @@ async function 한건처리(주소기지: string, 쿠키: string, 서비스: str
       method: 'PATCH',
       body: { stage: 글 },
     });
-  const 끝내기 = (몸: Record<string, unknown>) =>
-    부른다(주소기지, 쿠키, `/authoring/requests/${것.id}/finish?service=${encodeURIComponent(서비스)}`, {
-      method: 'POST',
-      body: 몸,
-    });
+  // 보고 한 번을 잃으면 요청이 영원히 RUNNING 이다. 거절(401·403)만 빼고 몇 번 다시 보낸다
+  const 끝내기 = async (몸: Record<string, unknown>) => {
+    for (let 시도 = 0; ; 시도 += 1) {
+      let 실패: unknown;
+      try {
+        const 답 = await 부른다(
+          주소기지,
+          쿠키,
+          `/authoring/requests/${것.id}/finish?service=${encodeURIComponent(서비스)}`,
+          { method: 'POST', body: 몸 },
+        );
+        if (!기다렸다다시인가(답.status)) return 답;
+        실패 = new Error(`끝났다는 보고에 서버가 ${답.status} 를 냈다`);
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('서버가 거절했다')) throw err;
+        실패 = err;
+      }
+      const 간격 = 보고간격(시도);
+      if (간격 === null) throw 실패;
+      console.error(`[기다림] ${것.id}번 보고가 실패했다. ${간격 / 1000}초 뒤 다시 보낸다.`);
+      await new Promise((resolve) => setTimeout(resolve, 간격));
+    }
+  };
 
   if (것.kind === 'MERGE') {
     // **머지 행에는 PR 주소가 안 실려 온다** — 서버가 줄을 세울 때 그 칸을 안 채운다

@@ -9,6 +9,7 @@ import {
   과금위험,
   기다렸다다시인가,
   대기줄전제,
+  보고간격,
   머지인자,
   주소안전한가,
   집은것인가,
@@ -106,6 +107,24 @@ describe('집기 응답을 믿지 않는다 — 500 의 오류 본문이 「집�
     expect(기다렸다다시인가(500)).toBe(true);
     expect(기다렸다다시인가(503)).toBe(true);
     expect(기다렸다다시인가(403)).toBe(false);
+  });
+});
+
+// 2026-09-23 한 바퀴 실측 — 「끝났다」를 한 번 보내다 fetch failed 로 잃고 요청이 영원히 RUNNING 으로 남았다
+describe('끝났다는 보고는 한 번 실패로 버리지 않는다', () => {
+  it('처음 몇 번은 점점 길게 기다렸다 다시 보낸다', () => {
+    const 간격들 = [0, 1, 2, 3, 4].map(보고간격);
+    expect(간격들.every((g) => typeof g === 'number' && g > 0)).toBe(true);
+    for (let i = 1; i < 간격들.length; i += 1) expect(간격들[i]!).toBeGreaterThanOrEqual(간격들[i - 1]!);
+  });
+
+  it('끝없이 붙잡지 않는다 — 몇 번 뒤에는 포기해 다음 요청으로 간다', () => {
+    expect(보고간격(5)).toBe(null);
+  });
+
+  it('다 기다려도 몇 분 안이다. 밤새 켜 둔 줄이 한 건에 묶이면 안 된다', () => {
+    const 합 = [0, 1, 2, 3, 4].reduce((s, i) => s + (보고간격(i) ?? 0), 0);
+    expect(합).toBeLessThanOrEqual(5 * 60_000);
   });
 });
 
