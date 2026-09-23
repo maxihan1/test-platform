@@ -4,11 +4,14 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
+  CI실행주소,
   CI판정,
+  PR찾기인자,
   PR만들기인자,
   PR본문,
   PR준비인자,
   닫을RUNNING,
+  바뀐파일들,
   다시돌릴인자,
   머지인자,
   실행목록인자,
@@ -163,6 +166,16 @@ describe('CI 판정 — PR head SHA 의 최신 ci 실행을 본다', () => {
     expect(CI판정('aaa', 목록)).toEqual({ 판정: '초록', 번호: 9 });
     expect(CI판정('aaa', [...목록].reverse())).toEqual({ 판정: '초록', 번호: 9 });
   });
+
+  // 초안일 때의 실행은 잡이 건너뛰어져 끝난 것이다. ready 직후 새 실행이 뜨기 전에 그걸 읽으면
+  // 검사가 안 돈 채로 병합하거나(success) 바로 실패로 닫는다(skipped)
+  it('ready 전에 있던 실행은 안 본다 — 그보다 뒤 번호만 본다', () => {
+    expect(CI판정('aaa', [실행({ databaseId: 5 })], 5)).toEqual({ 판정: '아직' });
+    expect(CI판정('aaa', [실행({ databaseId: 5 }), 실행({ databaseId: 6, status: 'queued', conclusion: null })], 5)).toEqual({
+      판정: '도는중',
+      번호: 6,
+    });
+  });
 });
 
 describe('다시 돌리기 — 이미 Ready 인 PR 에 머지를 또 누른 경우', () => {
@@ -205,5 +218,39 @@ describe('켤 때 닫을 RUNNING', () => {
       { id: 5, status: 'RUNNING', claimedBy: 'mac' },
     ];
     expect(닫을RUNNING(목록, 'mac')).toEqual([1, 5]);
+  });
+});
+
+describe('바뀐 파일 — 자식이 남긴 것을 작업방 상태에서 읽는다', () => {
+  it('새 파일·고친 파일·지운 파일을 다 잡는다', () => {
+    const 글 = '?? tests/todo/TODO-009.spec.ts\n M docs/cases/TODO.md\n D tests/todo/TODO-001.spec.ts\n';
+    expect(바뀐파일들(글)).toEqual(['tests/todo/TODO-009.spec.ts', 'docs/cases/TODO.md', 'tests/todo/TODO-001.spec.ts']);
+  });
+
+  it('이름을 바꾼 것은 옛 이름과 새 이름을 둘 다 낸다 — 옛 자리가 지워진 것도 올려야 한다', () => {
+    expect(바뀐파일들('R  tests/todo/a.spec.ts -> tests/todo/b.spec.ts\n')).toEqual([
+      'tests/todo/a.spec.ts',
+      'tests/todo/b.spec.ts',
+    ]);
+  });
+
+  it('빈 출력이면 빈 목록이다', () => {
+    expect(바뀐파일들('')).toEqual([]);
+  });
+});
+
+describe('PR 이 이미 있나 — push 뒤 만들기가 실패했다 다시 돌 때', () => {
+  it('그 브랜치의 PR 을 주소로 찾는다', () => {
+    expect(PR찾기인자(12)).toEqual(['pr', 'list', '--head', 'author-12', '--json', 'url']);
+  });
+});
+
+describe('CI 실행 주소 — 실패 사유에 싣는다', () => {
+  it('PR 주소의 저장소로 실행 주소를 만든다', () => {
+    expect(CI실행주소('https://github.com/acme/pay/pull/12', 987)).toBe('https://github.com/acme/pay/actions/runs/987');
+  });
+
+  it('PR 주소 모양이 아니면 번호만 낸다 — 지어내지 않는다', () => {
+    expect(CI실행주소('엉뚱한 값', 987)).toBe('CI 실행 987번');
   });
 });

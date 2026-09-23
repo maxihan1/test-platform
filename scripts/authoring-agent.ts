@@ -13,24 +13,14 @@
 // **비밀번호는 어디에도 안 적는다.** 켤 때 한 번 묻고 메모리에만 든다 — 이 프로그램은
 // 설계상 사람이 켜서 터미널에 띄워 두는 것이라(숨은 데몬이 아니다) 그 한 번이 공짜다.
 
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import {
-  type 권한설정,
-  type 읽을자료,
-  type 자료,
-  돌릴수있나,
-  셸허용됐나,
-  자료계획,
-  자료목록글,
-  자료출처,
-} from './authoring-assets.js';
-import { 머지인자 } from './authoring-chain.js';
+import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글 } from './authoring-assets.js';
+import { 멈춘것닫기, 부른다, 한건처리 } from './authoring-run.js';
 
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
 export interface 설정 extends 권한설정 {
@@ -179,48 +169,21 @@ export interface 집은것 {
  */
 export function 줄프롬프트(것: 집은것, 서비스: string, 계획: 읽을자료[]): string {
   return [
-    `/tpx 아래 기획서로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
-    '- [5] 자리에서 tpx-cases 스킬을 써라.',
+    `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
+    '- tpx-author 스킬을 따라라. 다른 체인 스킬은 부르지 마라.',
     '',
-    '이 실행에는 답할 사람이 없다. 그래서 셋을 지켜라.',
+    '이 실행에는 답할 사람이 없다. 그래서 이것을 지켜라.',
     '',
-    '1. **AskUserQuestion 을 부르지 마라.** tpx-cases §3 의 내부 게이트 대신',
-    '   요구사항 표를 완성해 PR 본문에 싣고 그대로 진행해라.',
-    '2. **초안 PR 까지만 한다.** gh pr ready 와 병합은 절대 하지 마라 —',
-    '   사람이 화면에서 머지를 누른다.',
-    '3. **git push --no-verify 를 쓰지 마라.** pre-push 검사가 막으면 그 자리에서 멈추고',
-    '   무엇이 막았는지 보고해라. 건너뛰지 마라.',
-    '4. **A-0 에서 다른 작업방이나 초안 PR 을 보면 「새 작업 추가」로 보고 진행해라.**',
-    '   남의 작업방과 브랜치는 절대 건드리지 마라. 네 것을 새로 만들어라.',
-    '5. **미커밋 변경이 있어도 버리지 마라.** 다른 사람이 작업 중일 수 있다.',
-    '   임시 커밋을 쓰거나 별도 작업방으로 가라. 지우는 쪽은 고르지 마라.',
-    `6. **다 끝나면 마지막 줄에 \`${PR표시} <초안 PR 주소>\` 를 그대로 찍어라.**`,
-    '   그 줄이 없으면 화면이 PR 을 못 찾아 **머지 버튼이 영영 안 뜬다.**',
+    '1. **AskUserQuestion 을 부르지 마라.** 요구사항 표를 파일로 쓰고 그대로 진행해라.',
+    '2. **git·gh 를 부르지 마라.** commit·push·PR 은 맥이 한다.',
+    '3. **Bash 의 run_in_background 를 쓰지 마라.** 모든 명령을 끝까지 기다려라.',
+    '4. **끝내기 전에 띄운 명령이 전부 끝났는지 확인해라.** 먼저 끝내면 맥이 멈춘다.',
+    '5. **마지막에 tpx-author 의 결과 요약을 찍어라.** 맥이 그것을 PR 본문에 싣는다.',
     '',
     '관문 넷(형식·표 대조·3회 연속·일부러 부수기)은 전부 돌려라.',
     '',
     ...(계획.length > 0 ? 자료목록글(계획) : ['--- 기획서 ---', 것.specText ?? '']),
   ].join('\n');
-}
-
-/**
- * 자식 세션이 만든 초안 PR 주소를 찍는 표시.
- *
- * **이 줄이 없으면 머지까지 가는 길이 끊긴다** (2026-09-23 검토가 잡았다).
- * 서버는 `finish` 에 `pr_url` 이 실려야 머지를 열어 주고(`도메인/작성` §7),
- * 화면도 그 값이 있어야 버튼을 그린다. **아무도 안 적으면 「끝남」 줄만 남고
- * 거기서 할 수 있는 일이 하나도 없다.**
- */
-export const PR표시 = '@@PR@@';
-
-/** 자식이 흘린 출력에서 초안 PR 주소를 찾는다. 없으면 `null` — 지어내지 않는다 */
-export function PR주소찾기(출력: string): string | null {
-  const 줄들 = 출력.split('\n').filter((줄) => 줄.includes(PR표시));
-  // 여러 줄이면 **마지막** 것이다. 자식이 프롬프트를 되읽어 찍는 경우가 있다
-  const 마지막 = 줄들[줄들.length - 1];
-  if (마지막 === undefined) return null;
-  const 찾은것 = /https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/pull\/\d+/.exec(마지막);
-  return 찾은것?.[0] ?? null;
 }
 
 /** 머지 요청을 실제로 칠 수 있나. 올릴 PR 주소가 없으면 할 일이 없다 */
@@ -394,183 +357,6 @@ async function 로그인(주소: string, 아이디: string, 비번: string): Pro
   return { 쿠키, 서비스들: 몸.user.services.map((s) => s.prefix) };
 }
 
-/** 서버에 거는 한 번. 거절이면 그 자리에서 던져 루프를 끊는다 */
-async function 부른다(
-  주소: string,
-  쿠키: string,
-  길: string,
-  옵션: { method?: string; body?: unknown } = {},
-): Promise<{ status: number; 몸: unknown }> {
-  const 답 = await fetch(`${주소}/api${길}`, {
-    method: 옵션.method ?? 'GET',
-    headers: {
-      cookie: 쿠키,
-      ...(옵션.body === undefined ? {} : { 'content-type': 'application/json' }),
-    },
-    ...(옵션.body === undefined ? {} : { body: JSON.stringify(옵션.body) }),
-    // 응답이 끝내 안 오면 영원히 기다린다. 끊긴 연결에 걸려도 여기서 끊고 부르는 쪽이 다시 보낸다
-    signal: AbortSignal.timeout(30_000),
-  });
-
-  if (거절인가(답.status)) {
-    throw new Error(
-      `서버가 거절했다 (${답.status}). 세션이 끊겼거나 등급이 모자란다 — 다시 물어도 같다.\n` +
-        '켤 때 쓴 계정이 operator 이고 그 서비스에 배정돼 있는지 확인하고 다시 켜라.',
-    );
-  }
-  const 몸 = 답.status === 204 ? null : await 답.json().catch(() => null);
-  return { status: 답.status, 몸 };
-}
-
-/** 한 건을 끝까지 처리한다. 단계는 사람이 화면에서 보는 그 줄이다 */
-async function 한건처리(주소기지: string, 쿠키: string, 서비스: string, 것: 집은것): Promise<void> {
-  const 단계 = (글: string) =>
-    부른다(주소기지, 쿠키, `/authoring/requests/${것.id}/stage?service=${encodeURIComponent(서비스)}`, {
-      method: 'PATCH',
-      body: { stage: 글 },
-    });
-  // 보고 한 번을 잃으면 요청이 영원히 RUNNING 이다. 거절(401·403)만 빼고 몇 번 다시 보낸다
-  const 끝내기 = async (몸: Record<string, unknown>) => {
-    for (let 시도 = 0; ; 시도 += 1) {
-      let 실패: unknown;
-      try {
-        const 답 = await 부른다(
-          주소기지,
-          쿠키,
-          `/authoring/requests/${것.id}/finish?service=${encodeURIComponent(서비스)}`,
-          { method: 'POST', body: 몸 },
-        );
-        if (!기다렸다다시인가(답.status)) return 답;
-        실패 = new Error(`끝났다는 보고에 서버가 ${답.status} 를 냈다`);
-      } catch (err) {
-        if (err instanceof Error && err.message.includes('서버가 거절했다')) throw err;
-        실패 = err;
-      }
-      const 간격 = 보고간격(시도);
-      if (간격 === null) throw 실패;
-      console.error(`[기다림] ${것.id}번 보고가 실패했다. ${간격 / 1000}초 뒤 다시 보낸다.`);
-      await new Promise((resolve) => setTimeout(resolve, 간격));
-    }
-  };
-
-  if (것.kind === 'MERGE') {
-    // **머지 행에는 PR 주소가 안 실려 온다** — 서버가 줄을 세울 때 그 칸을 안 채운다
-    // (`authoring/store.ts` 의 `줄세우기`). 그래서 **원본 행을 읽어** 가져온다
-    // (2026-09-23 검토가 잡았다 — 안 읽으면 머지가 100% 실패한다).
-    let 주소 = 것.prUrl ?? null;
-    if (주소 === null && typeof 것.sourceId === 'number') {
-      const 원본 = await 부른다(
-        주소기지,
-        쿠키,
-        `/authoring/requests/${것.sourceId}?service=${encodeURIComponent(서비스)}`,
-      );
-      주소 = (원본.몸 as { prUrl?: string | null } | null)?.prUrl ?? null;
-    }
-
-    // **맥은 판단하지 않는다.** 사람이 화면에서 이미 정했고 여기는 손일 뿐이다
-    if (주소 === null) {
-      await 끝내기({ status: 'FAILED', error: '머지할 초안 PR 주소가 없다' });
-      return;
-    }
-    await 단계('머지하는 중');
-    const 친것 = spawnSync('gh', 머지인자(주소), { stdio: ['ignore', 'inherit', 'inherit'] });
-    await 끝내기(
-      친것.status === 0
-        ? { status: 'DONE', prUrl: 주소 }
-        : { status: 'FAILED', error: '병합이 실패했다. 검사가 빨갛거나 충돌이 있다.' },
-    );
-    return;
-  }
-
-  // 재실행 행은 자기 자료가 없다. 원본 행을 읽어 자료와(옛 행이면) 본문을 가져온다
-  const 출처 = 자료출처(것);
-  let 자료들 = 것.assets ?? [];
-  let 본문 = 것.specText ?? null;
-  if (출처 !== 것.id) {
-    const 원본 = await 부른다(주소기지, 쿠키, `/authoring/requests/${출처}?service=${encodeURIComponent(서비스)}`);
-    if (원본.status !== 200) {
-      await 끝내기({ status: 'FAILED', error: `원본 요청(${출처}번)을 못 읽었다 (${원본.status})` });
-      return;
-    }
-    const 몸 = 원본.몸 as { assets?: 자료[]; specText?: string | null };
-    자료들 = 몸.assets ?? [];
-    본문 = 본문 || (몸.specText ?? null);
-  }
-
-  const 막힘 = 돌릴수있나({ specText: 본문, figmaToken: 것.figmaToken }, 자료들);
-  if (막힘 !== null) {
-    await 끝내기({ status: 'FAILED', error: 막힘 });
-    return;
-  }
-
-  // 이름을 예측할 수 없게 만든다. 고정 이름이면 남이 미리 만들어 둔 폴더·링크에 받아 쓴다
-  const 폴더 = mkdtempSync(join(tmpdir(), `authoring-${것.id}-`));
-  try {
-    const 계획 = 자료계획(자료들, 폴더);
-    if (계획.some((c) => c.kind === 'FILE')) await 단계('자료를 받는 중');
-    for (const c of 계획) {
-      if (c.kind !== 'FILE') continue;
-      const 답 = await fetch(
-        `${주소기지}/api/authoring/requests/${출처}/assets/${c.id}?service=${encodeURIComponent(서비스)}`,
-        { headers: { cookie: 쿠키 } },
-      );
-      if (거절인가(답.status)) {
-        throw new Error(`서버가 거절했다 (${답.status}). 세션이 끊겼거나 등급이 모자란다 — 다시 물어도 같다.`);
-      }
-      if (!답.ok) {
-        await 끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 못 받았다 (${답.status})` });
-        return;
-      }
-      // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다
-      writeFileSync(c.받을자리, Buffer.from(await 답.arrayBuffer()));
-      if (c.변환 === null) continue;
-      const 바꾼것 = spawnSync('textutil', c.변환, { stdio: ['ignore', 'ignore', 'pipe'], encoding: 'utf8' });
-      if (바꾼것.error || 바꾼것.status !== 0) {
-        const 까닭 = 바꾼것.error?.message ?? (바꾼것.stderr ?? '').split('\n')[0] ?? '';
-        await 끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 글자로 못 바꿨다: ${까닭}` });
-        return;
-      }
-    }
-
-    await 단계('케이스를 만드는 중');
-    // **출력을 잡는다.** 자식이 찍는 PR 주소를 못 읽으면 화면에 머지 버튼이 영영 안 뜬다.
-    // 그래도 사람 눈에는 보여야 하므로(숨은 데몬이 아니다) 받는 족족 그대로 흘려보낸다
-    // 피그마 토큰은 **자식 환경에만** 넣는다. 부모 환경에 넣으면 이 뒤에 띄우는 모든 것(gh 등)에 샌다
-    const 돌린것 = spawnSync('claude', 클로드인자(폴더), {
-      input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획),
-      stdio: ['pipe', 'pipe', 'inherit'],
-      encoding: 'utf8',
-      env: 것.figmaToken === undefined ? process.env : { ...process.env, FIGMA_TOKEN: 것.figmaToken },
-    });
-    const 낸것 = 돌린것.stdout ?? '';
-    process.stdout.write(낸것);
-
-    if (돌린것.error) {
-      await 끝내기({ status: 'FAILED', error: `claude 를 못 띄웠다: ${돌린것.error.message}` });
-      return;
-    }
-    if (돌린것.status !== 0) {
-      await 끝내기({ status: 'FAILED', error: '케이스를 만들다 멈췄다. 터미널 기록을 봐라.' });
-      return;
-    }
-
-    const 주소 = PR주소찾기(낸것);
-    if (주소 === null) {
-      // **초록으로 닫지 않는다.** 주소가 없으면 사람이 머지를 못 누르고, 그때
-      // 「끝남」이라고 적힌 줄만 남아 무엇이 잘못됐는지 아무도 모른다
-      await 끝내기({
-        status: 'FAILED',
-        error: '케이스는 만들었는데 초안 PR 주소를 못 찾았다. 터미널 기록에서 PR 을 확인해라.',
-      });
-      return;
-    }
-    await 끝내기({ status: 'DONE', prUrl: 주소 });
-  } finally {
-    // 받은 기획서를 맥에 남기지 않는다. 성공이든 실패든 지운다
-    rmSync(폴더, { recursive: true, force: true });
-  }
-}
-
 const 쉬는시간 = 5000;
 
 /**
@@ -606,6 +392,14 @@ async function 돈다(): Promise<number> {
 
   if (서비스들.length === 0) {
     console.error('[거부] 이 계정에 배정된 서비스가 없다. 설정 화면에서 배정해라.');
+    return 1;
+  }
+
+  // 맥이 꺼져 끊긴 요청은 아무도 안 끝낸다. 집기 전에 내 것만 닫는다 (게이트 1 결정)
+  try {
+    await 멈춘것닫기(주소, 쿠키, 서비스들, 아이디);
+  } catch (err) {
+    console.error(`[멈춤] ${err instanceof Error ? err.message : String(err)}`);
     return 1;
   }
 

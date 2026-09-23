@@ -12,8 +12,6 @@ import {
   보고간격,
   주소안전한가,
   집은것인가,
-  PR주소찾기,
-  PR표시,
   머지할수있나,
   선행검사,
   클로드인자,
@@ -63,9 +61,11 @@ describe('줄에서 집어 일한다', () => {
     expect(글).not.toMatch(/기획서 경로/);
   });
 
-  it('작성 프롬프트도 초안 PR 까지만 하라고 못박는다', () => {
+  it('작성 프롬프트는 tpx-author 를 태운다 — /tpx 일곱 단계를 타면 [6] 에서 30분 넘게 멈췄다', () => {
     const 글 = 줄프롬프트({ id: 3, kind: 'AUTHOR', specText: '본문' }, 'TODO', []);
-    expect(글).toMatch(/gh pr ready 와 병합은 절대 하지 마라/);
+    expect(글).toMatch(/^\/tpx-author /);
+    expect(글).toMatch(/tpx-author 스킬을 따라라/);
+    expect(글).not.toMatch(/\/tpx\s/);
   });
 
   it('머지 요청은 집으면 PR 주소가 있어야 한다. 없으면 실패로 끝낸다', () => {
@@ -116,31 +116,6 @@ describe('끝났다는 보고는 한 번 실패로 버리지 않는다', () => {
   it('다 기다려도 몇 분 안이다. 밤새 켜 둔 줄이 한 건에 묶이면 안 된다', () => {
     const 합 = [0, 1, 2, 3, 4].reduce((s, i) => s + (보고간격(i) ?? 0), 0);
     expect(합).toBeLessThanOrEqual(5 * 60_000);
-  });
-});
-
-describe('초안 PR 주소를 잡아 온다 — 없으면 머지 버튼이 영영 안 뜬다', () => {
-  it('자식이 찍은 줄에서 주소를 찾는다', () => {
-    expect(PR주소찾기(`뭐라뭐라\n${PR표시} https://github.com/acme/pay/pull/12\n`)).toBe(
-      'https://github.com/acme/pay/pull/12',
-    );
-  });
-
-  it('여러 번 찍혔으면 마지막 것이다. 자식이 프롬프트를 되읽어 찍는 경우가 있다', () => {
-    const 출력 = `${PR표시} <초안 PR 주소>\n일하는 중\n${PR표시} https://github.com/a/b/pull/9`;
-    expect(PR주소찾기(출력)).toBe('https://github.com/a/b/pull/9');
-  });
-
-  it('표시가 없으면 null 이다. 지어내지 않는다', () => {
-    expect(PR주소찾기('케이스를 다 만들었다')).toBe(null);
-  });
-
-  it('표시는 있는데 주소 모양이 아니면 null 이다', () => {
-    expect(PR주소찾기(`${PR표시} 만들었어요`)).toBe(null);
-  });
-
-  it('자식에게 그 줄을 찍으라고 프롬프트가 시킨다', () => {
-    expect(줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'TODO', [])).toContain(PR표시);
   });
 });
 
@@ -304,24 +279,25 @@ describe('줄프롬프트 — 자식에게 못박는 경계', () => {
     expect(글()).toContain('TODO');
   });
 
-  // 검토 지적 — 낱말만 찾으면 지시가 **반대로 뒤집혀도 초록**이다.
-  // 「--bare 가 없다」 부정 단언과 같은 약함이라 지시문 모양까지 단언한다
-  it('내부 게이트 대신 표를 PR 에 실으라고 한다 — 물어볼 사람이 없다', () => {
+  // 검토 지적 — 낱말만 찾으면 지시가 **반대로 뒤집혀도 초록**이다. 지시문 모양까지 단언한다
+  it('AskUserQuestion 을 부르지 말라고 한다 — 물어볼 사람이 없다', () => {
     expect(글()).toMatch(/AskUserQuestion 을 부르지 마라/);
   });
 
-  it('A-0 에서 남의 작업방을 건드리지 말라고 못박는다 — 거기서도 물어볼 사람이 없다', () => {
-    expect(글()).toMatch(/남의 작업방과 브랜치는 절대 건드리지 마라/);
+  it('git·gh 를 부르지 말라고 한다 — commit·push·PR 은 맥이 한다', () => {
+    expect(글()).toMatch(/git·gh 를 부르지 마라/);
   });
 
-  // 검토 지적 — tpx-start 의 「미커밋 변경」 게이트에는 **「버리기」 선택지**가 있다.
-  // 물을 도구가 막혀 있으니 자식이 알아서 「버리기」를 고르면 **남의 작업이 지워진다**
-  it('미커밋 변경을 버리지 말라고 못박는다', () => {
-    expect(글()).toMatch(/버리지 마라/);
+  it('background 를 쓰지 말라고 한다 — 자식이 먼저 끝나 맥이 멈췄다 (2026-09-23)', () => {
+    expect(글()).toMatch(/run_in_background 를 쓰지 마라/);
   });
 
-  it('--no-verify 를 쓰지 말라고 못박는다 — 지시문으로', () => {
-    expect(글()).toMatch(/--no-verify 를 쓰지 마라/);
+  it('끝내기 전에 띄운 명령이 전부 끝났는지 확인하라고 한다', () => {
+    expect(글()).toMatch(/띄운 명령이 전부 끝났는지 확인/);
+  });
+
+  it('초안 PR·push 지시는 없다 — 그 일은 맥이 한다', () => {
+    expect(글()).not.toMatch(/초안 PR 까지|--no-verify|@@PR@@/);
   });
 
   it('관문 넷을 전부 돌리라고 한다', () => {

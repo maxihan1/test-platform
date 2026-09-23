@@ -27,8 +27,13 @@ export function 올릴브랜치(번호: number): string {
  * 작업방 준비. fetch 가 먼저다 — 안 하면 맥이 받아 둔 **옛 origin/main**(tpx-author 없는 판)을 딴다.
  * `--detach` 라 로컬 브랜치가 안 쌓이고 사용자 체크아웃의 HEAD·index 를 안 건드린다.
  */
+/** 껍데기가 자식의 cwd·정리에 쓰는 자리. `작업방준비` 와 한 곳에서 나와야 치울 때 엉뚱한 곳을 안 본다 */
+export function 작업방폴더(번호: number, 뿌리: string): string {
+  return join(뿌리, '.claude', 'worktrees', 올릴브랜치(번호));
+}
+
 export function 작업방준비(번호: number, 뿌리: string): 명령[] {
-  const 폴더 = join(뿌리, '.claude', 'worktrees', 올릴브랜치(번호));
+  const 폴더 = 작업방폴더(번호, 뿌리);
   const 링크자리 = join(폴더, 'node_modules', '@platform');
   return [
     { 명령: 'git', 인자: ['fetch', 'origin', 'main'] },
@@ -109,10 +114,13 @@ export type CI결과 =
  * PR head SHA 의 **최신 `ci` 실행**으로 판정한다. 「실행 번호가 바뀌었나」로 보면 이미 Ready 인 PR 은
  * 새 실행이 안 떠서 영원히 실패한다 (리뷰 BLOCKER 2). `success` 만 초록 — `cancelled`·`skipped`·
  * `timed_out`·null 을 초록으로 치면 안 돈 검사로 병합한다.
+ *
+ * `이후번호` 이하는 안 본다. 초안일 때 뜬 실행은 잡이 건너뛰어진 채 끝나 있어서, ready 직후 새 실행이
+ * 뜨기 전에 읽으면 검사 없이 병합하거나 바로 실패로 닫는다.
  */
-export function CI판정(headSha: string, 실행들: CI실행[]): CI결과 {
+export function CI판정(headSha: string, 실행들: CI실행[], 이후번호 = 0): CI결과 {
   const 최신 = 실행들
-    .filter((r) => r.headSha === headSha && r.workflowName === 'ci')
+    .filter((r) => r.headSha === headSha && r.workflowName === 'ci' && r.databaseId > 이후번호)
     .reduce<CI실행 | null>((가장, r) => (가장 === null || r.databaseId > 가장.databaseId ? r : 가장), null);
   if (최신 === null) return { 판정: '아직' };
   if (최신.status !== 'completed') return { 판정: '도는중', 번호: 최신.databaseId };
@@ -139,4 +147,27 @@ export function 푸시거부사유(테스트만인가: boolean, 바뀐파일: st
 /** 켤 때 닫을 것. 남이 잡은 것은 그쪽이 아직 돌고 있을 수 있다 */
 export function 닫을RUNNING(목록: { id: number; status: string; claimedBy?: string | null }[], 나: string): number[] {
   return 목록.filter((r) => r.status === 'RUNNING' && r.claimedBy === 나).map((r) => r.id);
+}
+
+/**
+ * 작업방 상태(`status --porcelain -uall`)에서 바뀐 파일을 뽑는다. 자식은 커밋을 안 하므로
+ * 새 파일은 추적되지 않은 채 남는다 — `diff` 만 보면 새 케이스를 통째로 놓친다.
+ * 이름 바꾸기는 옛 자리도 낸다. 옛 자리가 지워진 것도 올려야 하고, 판정도 둘 다 봐야 한다.
+ */
+export function 바뀐파일들(상태글: string): string[] {
+  return 상태글
+    .split('\n')
+    .filter((줄) => 줄.length > 3)
+    .flatMap((줄) => 줄.slice(3).split(' -> '));
+}
+
+/** push 는 됐는데 PR 만들기가 실패했다 다시 도는 경우. 또 만들면 같은 브랜치에 PR 이 둘이 된다 */
+export function PR찾기인자(번호: number): string[] {
+  return ['pr', 'list', '--head', 올릴브랜치(번호), '--json', 'url'];
+}
+
+/** 빨간 CI 를 사람이 바로 열어 보게 실패 사유에 싣는 주소 */
+export function CI실행주소(prUrl: string, 실행번호: number): string {
+  const 저장소 = /^https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/pull\/\d+/.exec(prUrl)?.[1];
+  return 저장소 === undefined ? `CI 실행 ${실행번호}번` : `https://github.com/${저장소}/actions/runs/${실행번호}`;
 }
