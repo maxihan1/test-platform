@@ -6,6 +6,9 @@ deny() { echo "[거부] $1" >&2; exit 1; }
 
 # 호스트 uid 로 돌면 /etc/passwd 에 없는 사용자라 HOME 이 없다. 쓸 수 있는 자리를 만든다
 export HOME=/tmp/author-home
+# 켤 때마다 비우고 시작한다 — 재시작하면 남은 .gitconfig 에 insteadOf 가 겹쳐 git config 가 죽고(set -e),
+# 자식이 남겨 둔 전역 설정도 다음으로 이어지지 않는다
+rm -rf "$HOME"
 mkdir -p "$HOME/.claude"
 # 설정은 저장소 밖에서 한다 — git 은 --global 이어도 지금 폴더의 저장소를 먼저 찾고, 거기가 깨져 있으면 죽는다
 cd /
