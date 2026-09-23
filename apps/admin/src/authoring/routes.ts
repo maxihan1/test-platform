@@ -78,8 +78,10 @@ export function 피그마주소정규화(주소: unknown): string | null {
   }
   if (url.protocol !== 'https:') return null;
   if (url.hostname !== 'figma.com' && url.hostname !== 'www.figma.com') return null;
-  const [, 종류, 키] = url.pathname.split('/');
+  const [, 종류, 본키, 갈래, 갈래키] = url.pathname.split('/');
   if (종류 !== 'design' && 종류 !== 'file' && 종류 !== 'proto') return null;
+  // 브랜치 링크는 본 파일 키로 줄이면 main 을 읽는다. 브랜치 키가 그 자체로 파일처럼 열린다
+  const 키 = 갈래 === 'branch' ? 갈래키 : 본키;
   if (키 === undefined || !/^[A-Za-z0-9]{1,64}$/.test(키)) return null;
   const 노드 = url.searchParams.get('node-id');
   if (노드 === null) return `https://www.figma.com/design/${키}/`;

@@ -643,6 +643,8 @@ describe('피그마 주소 정규화 — 통과·거절이 아니라 다시 조�
     ['https://figma.com/file/AbC123/이름?node-id=12%3A34', 'https://www.figma.com/design/AbC123/?node-id=12-34'],
     ['https://www.figma.com/proto/AbC123/이름?node-id=1-2&scaling=min-zoom', 'https://www.figma.com/design/AbC123/?node-id=1-2'],
     ['https://www.figma.com/design/AbC123', 'https://www.figma.com/design/AbC123/'],
+    ['https://www.figma.com/design/MAIN1/branch/BrAnCh9/이름?node-id=1-2', 'https://www.figma.com/design/BrAnCh9/?node-id=1-2'],
+    ['https://www.figma.com/design/MAIN1/branch/BrAnCh9/이름', 'https://www.figma.com/design/BrAnCh9/'],
   ])('%s → %s', (주소, 기대) => {
     expect(피그마주소정규화(주소)).toBe(기대);
   });
@@ -654,6 +656,8 @@ describe('피그마 주소 정규화 — 통과·거절이 아니라 다시 조�
     'https://www.figma.com/board/AbC123/',
     'https://www.figma.com/design/Ab;C123/',
     'https://www.figma.com/design/AbC123/?node-id=1-2;rm',
+    'https://www.figma.com/design/MAIN1/branch/Br;anch/?node-id=1-2',
+    'https://www.figma.com/design/MAIN1/branch/',
     '아무 글자',
     '',
   ])('%s 는 거절', (주소) => {
