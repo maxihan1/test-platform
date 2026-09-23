@@ -178,6 +178,12 @@ export function 머지거부사유(테스트만인가: boolean, 파일들: strin
   return 테스트만인가 && 파일들.length > 0 ? null : '이 PR 은 케이스만 바꾼 것이 아니다 — 맥은 병합하지 않는다';
 }
 
+/** 한 건 처리 중 튄 예외를 실패 보고 한 줄로. 안 닫으면 그 요청이 영원히 RUNNING 이다 */
+export function 한줄(err: unknown): string {
+  const 글 = err instanceof Error ? err.message : String(err);
+  return `예상 못 한 오류: ${글.split('\n')[0]}`;
+}
+
 /** 켤 때 닫을 것. 남이 잡은 것은 그쪽이 아직 돌고 있을 수 있다 */
 export function 닫을RUNNING(목록: { id: number; status: string; claimedBy?: string | null }[], 나: string): number[] {
   return 목록.filter((r) => r.status === 'RUNNING' && r.claimedBy === 나).map((r) => r.id);

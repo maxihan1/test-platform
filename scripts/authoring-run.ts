@@ -25,7 +25,7 @@ import {
   푸시거부사유,
   푸시인자,
 } from './authoring-chain.js';
-import { 다시하며, 보고손만들기, 부른다, 친다 } from './authoring-io.js';
+import { type 보고손, 다시하며, 닫으며, 보고손만들기, 부른다, 친다 } from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
 
 /** 켤 때 내 이름으로 잡힌 채 멈춘 RUNNING 을 닫는다. 맥이 꺼져 끊긴 것이라 아무도 안 끝낸다 */
@@ -56,7 +56,17 @@ export async function 한건처리(
   서버들: { env: string; baseUrl: string }[] = [],
 ): Promise<void> {
   const 손 = 보고손만들기(주소기지, 쿠키, 서비스, 것.id);
+  await 닫으며(손, () => 한건(주소기지, 쿠키, 서비스, 것, 서버들, 손));
+}
 
+async function 한건(
+  주소기지: string,
+  쿠키: string,
+  서비스: string,
+  것: 집은것,
+  서버들: { env: string; baseUrl: string }[],
+  손: 보고손,
+): Promise<void> {
   if (것.kind === 'MERGE') {
     // **머지 행에는 PR 주소가 안 실려 온다** — 서버가 줄을 세울 때 그 칸을 안 채운다
     // (`authoring/store.ts` 의 `줄세우기`). 그래서 **원본 행을 읽어** 가져온다

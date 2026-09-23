@@ -17,7 +17,7 @@ import {
   PR파일인자,
   실행목록인자,
 } from './authoring-chain.js';
-import { type 보고손, 쉬기, 친다 } from './authoring-io.js';
+import { type 보고손, 닫으며, 쉬기, 친다 } from './authoring-io.js';
 
 const 폴링간격 = 15_000;
 // ponytail: 루프 시간으로 잰다 — 맥에는 GNU timeout 이 없다. CI 가 늘 17분을 넘기면 이 숫자를 올린다
@@ -25,6 +25,10 @@ const 전체제한 = 17 * 60_000;
 
 /** 원본 PR 주소와 그 PR 의 브랜치 번호(원본 요청 번호)로 병합까지 간다 */
 export async function 머지처리(손: 보고손, 번호: number, prUrl: string): Promise<void> {
+  await 닫으며(손, () => 머지(손, 번호, prUrl));
+}
+
+async function 머지(손: 보고손, 번호: number, prUrl: string): Promise<void> {
   const 뿌리 = process.cwd();
   const 뷰 = 친다('gh', ['pr', 'view', prUrl, '--json', 'headRefOid,isDraft,state'], 뿌리);
   if (!뷰.ok) {

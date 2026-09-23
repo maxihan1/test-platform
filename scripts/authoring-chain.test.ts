@@ -20,6 +20,7 @@ import {
   작업방준비,
   커밋메시지,
   푸시거부사유,
+  한줄,
   비밀섞였나,
   PR파일인자,
   머지거부사유,
@@ -302,6 +303,16 @@ describe('비밀 섞임 — 올릴 것에 피그마 토큰이 들어갔나', () 
     expect(비밀섞였나(['아무거나'], undefined)).toBe(false);
     expect(비밀섞였나(['아무거나'], '')).toBe(false);
     expect(비밀섞였나(['abcdefg 들어 있음'], 'abcdefg')).toBe(false);
+  });
+});
+
+describe('한 줄 사유 — 예외를 실패 보고 한 줄로', () => {
+  it('Error 면 메시지의 첫 줄만', () => {
+    expect(한줄(new SyntaxError('Unexpected token < in JSON\n  at parse'))).toBe('예상 못 한 오류: Unexpected token < in JSON');
+  });
+
+  it('Error 가 아니어도 글로 싣는다', () => {
+    expect(한줄('끊김')).toBe('예상 못 한 오류: 끊김');
   });
 });
 

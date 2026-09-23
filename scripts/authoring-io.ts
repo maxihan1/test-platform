@@ -4,6 +4,7 @@
 import { spawnSync } from 'node:child_process';
 
 import { 거절인가, 기다렸다다시인가, 보고간격 } from './authoring-agent.js';
+import { 한줄 } from './authoring-chain.js';
 
 /** 서버에 거는 한 번. 거절이면 그 자리에서 던져 루프를 끊는다 */
 export async function 부른다(
@@ -80,5 +81,22 @@ export async function 다시하며<T>(설명: string, 한번: () => { 값: T } |
     if (간격 === null) return 결과;
     console.error(`[기다림] ${설명}이 실패했다 (${결과.까닭}). ${간격 / 1000}초 뒤 다시 한다.`);
     await 쉬기(간격);
+  }
+}
+
+/**
+ * 한 건을 통째로 감싼다. 예외(`JSON.parse` 포함)가 튀면 실패로 닫는다 — 안 닫으면 그 요청이 영원히 RUNNING 이다.
+ * 거절(401·403)은 닫은 뒤에도 다시 던진다 — 줄 돌기가 그걸 보고 멈춘다.
+ */
+export async function 닫으며(손: 보고손, 일: () => Promise<void>): Promise<void> {
+  try {
+    await 일();
+  } catch (err) {
+    try {
+      await 손.끝내기({ status: 'FAILED', error: 한줄(err) });
+    } catch (닫기실패) {
+      console.error(`[남김] 실패 보고도 못 했다: ${한줄(닫기실패)}`);
+    }
+    if (err instanceof Error && err.message.includes('서버가 거절했다')) throw err;
   }
 }
