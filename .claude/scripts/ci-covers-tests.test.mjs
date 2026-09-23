@@ -184,6 +184,8 @@ test('가벼운 길 판정 단계가 cases-only.mjs 를 부르고, 실패를 빨
   // bash -e 에서 판정이 1(무거운 길)을 내면 그 단계가 빨개진다 — if 로 감싸야 한다
   assert.match(명령, /if\s[\s\S]*cases-only[\s\S]*then[\s\S]*light=1[\s\S]*else[\s\S]*light=0/, 'if … then light=1 else light=0 모양이 아니다');
   assert.match(명령, /GITHUB_OUTPUT/, '판정을 GITHUB_OUTPUT 에 안 쓴다');
+  // rename 감지가 켜져 있으면 apps/x.ts → tests/todo/x.spec.ts 가 새 경로 하나로만 나와 가벼운 길이 된다
+  assert.match(명령, /git\b[^\n|]*diff[^\n|]*--no-renames/, '판정의 git diff 에 --no-renames 가 없다 — 코드를 spec 으로 옮기면 가벼운 길로 샌다');
 });
 
 test('checkout 이 base 와 비교할 만큼 이력을 받는다 (fetch-depth: 0)', () => {

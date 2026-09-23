@@ -76,7 +76,7 @@ test('기존 검사가 그대로 있다', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** base(origin/main) 하나와 그 위에 파일을 더한 커밋 하나가 있는 임시 저장소. 올릴 sha 를 돌려준다 */
-function 임시저장소(더할파일들) {
+function 임시저장소(더할파일들, 옮길것들 = []) {
   const 뿌리 = mkdtempSync(join(tmpdir(), 'pre-push-'));
   const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { encoding: 'utf8' }).trim();
   const 쓴다 = (경로, 내용) => {
@@ -88,10 +88,12 @@ function 임시저장소(더할파일들) {
   git('config', 'user.name', 't');
   쓴다('package.json', '{}');
   쓴다('tests/todo/TODO-001.spec.ts', 'x');
+  for (const [원래] of 옮길것들) 쓴다(원래, `옮겨질 코드 ${원래}\n`.repeat(20));
   git('add', '.');
   git('commit', '-qm', 'base');
   git('update-ref', 'refs/remotes/origin/main', 'HEAD');
   for (const f of 더할파일들) 쓴다(f, 'y');
+  for (const [원래, 새] of 옮길것들) git('mv', 원래, 새);
   git('add', '.');
   git('commit', '-qm', 'change');
   const 가짜 = join(뿌리, '.fakebin');
@@ -144,6 +146,18 @@ test('코드가 섞인 커밋은 무거운 길 — 전체 테스트를 돌리고
     const r = 저장소에서돌린다(저장소);
     assert.equal(r.code, 1, `검사 기록 없이 통과했다: ${r.out}`);
     assert.match(r.out, /docs\/reviews/, '검사 기록을 요구하지 않았다');
+    assert.match(불린것(저장소.기록), /^test\b/m, '무거운 길인데 전체 단위 테스트를 안 돌렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('코드 파일을 spec 으로 옮긴 커밋은 무거운 길 — 이름 바꾸기로 지운 쪽 경로가 숨지 않는다', () => {
+  // git diff 는 기본으로 rename 을 감지해 새 경로만 낸다. 그러면 apps/x.ts 가 사라진 것이 판정에 안 보인다
+  const 저장소 = 임시저장소([], [['apps/x.ts', 'tests/todo/x.spec.ts']]);
+  try {
+    const r = 저장소에서돌린다(저장소);
+    assert.doesNotMatch(r.out, /가벼운 길/, `코드를 spec 으로 옮겼는데 가벼운 길로 갔다: ${r.out}`);
     assert.match(불린것(저장소.기록), /^test\b/m, '무거운 길인데 전체 단위 테스트를 안 돌렸다');
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });

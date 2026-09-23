@@ -37,6 +37,7 @@ echo "[pre-push] 검사 시작"
 # CLAUDE.md §2.3(검사 기록)의 예외로 승인됐다 (2026-09-23 게이트 1). 정본 docs/HOOKS.md.
 # 판정 규칙은 cases-only.mjs 한 곳에 있다 — 훅에 복사하지 않는다.
 # 원격 sha 는 새 브랜치면 0 이라 쓰지 않고, 늘 origin/main 과 견준다. 삭제 줄은 건너뛴다.
+# --no-renames — 켜 두면 apps/x.ts 를 tests/todo/x.spec.ts 로 옮긴 것이 새 경로 하나로만 나와 가벼운 길로 샌다.
 # 어느 ref 든 git diff 나 판정이 실패하면 무거운 길이다 (보수적). 입력이 비어도 무거운 길이다.
 CASES_ONLY="$(dirname "$0")/../scripts/cases-only.mjs"
 light=0
@@ -48,7 +49,7 @@ if [ -n "$REFS" ]; then
       *[!0]*) ;;
       *) continue ;;
     esac
-    changed=$(git -c core.quotePath=false diff --name-only "origin/main...$local_sha" 2>/dev/null) || { light=0; break; }
+    changed=$(git -c core.quotePath=false diff --no-renames --name-only "origin/main...$local_sha" 2>/dev/null) || { light=0; break; }
     printf '%s\n' "$changed" | node "$CASES_ONLY" origin/main || { light=0; break; }
   done <<EOF
 $REFS
