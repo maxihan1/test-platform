@@ -10,6 +10,23 @@ import { join } from 'node:path';
 import { 거절인가, 기다렸다다시인가, 보고간격 } from './authoring-agent.js';
 import { 진짜main인자, 진짜main풀기, 한줄 } from './authoring-chain.js';
 
+/**
+ * 응답을 하나도 못 받은 연결 오류면 한 번 더 부른다. 서버에 거는 fetch 는 전부 이것을 지난다.
+ * #3336 은 단계 보고 하나가 이것으로 서버에 못 닿아 다 만든 케이스를 버렸다
+ */
+export async function 한번더건다(한번: () => Promise<Response>): Promise<Response> {
+  try {
+    return await 한번();
+  } catch (err) {
+    // undici 는 연결 오류를 이 문구의 TypeError 로 던진다. 같은 TypeError 라도 잘못된 주소·헤더는
+    // 다시 걸어도 같으므로 가른다. 시간 초과(TimeoutError)는 서버가 멈춘 것이라 다시 걸어도 시간만 더 쓴다
+    if (!(err instanceof TypeError && err.message === 'fetch failed')) throw err;
+    // ponytail: 나간 뒤 답만 끊긴 것과 구분이 안 된다 — 집기면 두 건을 집을 수 있다.
+    // 첫 건은 다음 켤 때 멈춘 RUNNING 정리가 닫는다. 잦아지면 집기에 요청 키를 싣는다
+    return await 한번();
+  }
+}
+
 /** 서버에 거는 한 번. 거절이면 그 자리에서 던져 루프를 끊는다 */
 export async function 부른다(
   주소: string,
@@ -29,17 +46,7 @@ export async function 부른다(
       signal: AbortSignal.timeout(30_000),
     });
 
-  let 답: Response;
-  try {
-    답 = await 한번();
-  } catch (err) {
-    // 응답을 하나도 못 받은 연결 오류만 TypeError 다. #3336 은 단계 보고 하나가 이것으로 서버에 못 닿아
-    // 다 만든 케이스를 버렸다. 시간 초과(TimeoutError)는 서버가 멈춘 것이라 다시 걸어도 30초만 더 쓴다
-    if (!(err instanceof TypeError)) throw err;
-    // ponytail: 나간 뒤 답만 끊긴 것과 구분이 안 된다 — 집기면 두 건을 집을 수 있다.
-    // 첫 건은 다음 켤 때 멈춘 RUNNING 정리가 닫는다. 잦아지면 집기에 요청 키를 싣는다
-    답 = await 한번();
-  }
+  const 답 = await 한번더건다(한번);
 
   if (거절인가(답.status)) {
     throw new Error(
@@ -61,7 +68,8 @@ export function 보고손만들기(주소기지: string, 쿠키: string, 서비�
   return {
     단계: (글) =>
       부른다(주소기지, 쿠키, `/authoring/requests/${id}/stage${뒤}`, { method: 'PATCH', body: { stage: 글 } }),
-    // 보고 한 번을 잃으면 요청이 영원히 RUNNING 이다. 거절(401·403)만 빼고 몇 번 다시 보낸다
+    // 보고 한 번을 잃으면 요청이 영원히 RUNNING 이다. 거절(401·403)만 빼고 몇 번 다시 보낸다.
+    // `부른다` 가 끊긴 연결에 한 번씩 더 걸므로 최악이면 fetch 12번·약 8분이다 — 그동안 다음 건을 못 집는다
     끝내기: async (몸) => {
       for (let 시도 = 0; ; 시도 += 1) {
         let 실패: unknown;

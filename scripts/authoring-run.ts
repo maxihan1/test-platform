@@ -27,7 +27,17 @@ import {
   푸시거부사유,
   푸시인자,
 } from './authoring-chain.js';
-import { type 보고손, type 판정기, 다시하며, 닫으며, 보고손만들기, 부른다, 진짜main받기, 친다 } from './authoring-io.js';
+import {
+  type 보고손,
+  type 판정기,
+  다시하며,
+  닫으며,
+  보고손만들기,
+  부른다,
+  진짜main받기,
+  친다,
+  한번더건다,
+} from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
 
 /** 켤 때 내 이름으로 잡힌 채 멈춘 RUNNING 을 닫는다. 맥이 꺼져 끊긴 것이라 아무도 안 끝낸다 */
@@ -145,9 +155,13 @@ async function 한건(
     if (계획.some((c) => c.kind === 'FILE')) await 손.단계('자료를 받는 중');
     for (const c of 계획) {
       if (c.kind !== 'FILE') continue;
-      const 답 = await fetch(
-        `${주소기지}/api/authoring/requests/${출처}/assets/${c.id}?service=${encodeURIComponent(서비스)}`,
-        { headers: { cookie: 쿠키 } },
+      // 바이트로 받아야 해서 `부른다`(json) 를 못 쓴다. 다시 걸기와 시간 제한은 같게 건다 —
+      // 상한 크기 파일도 로컬 망에서 이 안에 온다. 안 오면 서버가 멈춘 것이다
+      const 답 = await 한번더건다(() =>
+        fetch(`${주소기지}/api/authoring/requests/${출처}/assets/${c.id}?service=${encodeURIComponent(서비스)}`, {
+          headers: { cookie: 쿠키 },
+          signal: AbortSignal.timeout(120_000),
+        }),
       );
       if (거절인가(답.status)) {
         throw new Error(`서버가 거절했다 (${답.status}). 세션이 끊겼거나 등급이 모자란다 — 다시 물어도 같다.`);

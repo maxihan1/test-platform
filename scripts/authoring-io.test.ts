@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type 보고손, 다시하며, 닫으며, 부른다, 친다, 판정기만들기 } from './authoring-io.js';
+import { type 보고손, 다시하며, 닫으며, 부른다, 친다, 판정기만들기, 한번더건다 } from './authoring-io.js';
 
 const 치울것: string[] = [];
 afterEach(() => {
@@ -190,5 +190,35 @@ describe('부른다 — 서버에 못 닿은 요청은 한 번 더 건다 (#3336
     const 받은것 = 가짜(() => new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
     await expect(부른다('http://x', 'c', '/stage')).rejects.toThrow('timeout');
     expect(받은것).toHaveLength(1);
+  });
+
+  it('연결 오류가 아닌 TypeError(잘못된 주소 등)는 다시 걸지 않는다', async () => {
+    const 받은것 = 가짜(() => new TypeError('Failed to parse URL from x/api/stage'));
+    await expect(부른다('x', 'c', '/stage')).rejects.toThrow('Failed to parse URL');
+    expect(받은것).toHaveLength(1);
+  });
+});
+
+describe('한번더건다 — 자료 받기도 같은 손을 쓴다', () => {
+  it('첫 번이 연결 오류면 한 번 더 불러 그 답을 돌려준다', async () => {
+    let 불린수 = 0;
+    const r = await 한번더건다(async () => {
+      불린수 += 1;
+      if (불린수 === 1) throw 끊김();
+      return 답(200);
+    });
+    expect(r.status).toBe(200);
+    expect(불린수).toBe(2);
+  });
+
+  it('연결 오류가 아니면 한 번만 부르고 그대로 던진다', async () => {
+    let 불린수 = 0;
+    await expect(
+      한번더건다(async () => {
+        불린수 += 1;
+        throw new Error('다른 것');
+      }),
+    ).rejects.toThrow('다른 것');
+    expect(불린수).toBe(1);
   });
 });
