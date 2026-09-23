@@ -39,7 +39,16 @@ describe('당길까 — 병합 뒤 맥의 main 체크아웃을 당길지 (서버
     expect(당길까(됨('main\n'), { ok: false, 낸것: '' })).toMatch(/못 읽/);
   });
 
-  it('당길 때는 빨리감기만 한다 — 병합 커밋을 몰래 만들지 않는다', () => {
-    expect(당김인자).toEqual(['pull', '--ff-only', 'origin', 'main']);
+  it('당길 때는 빨리감기만 하고 저장소 훅·fsmonitor 를 끈다 — 자식이 써 둔 훅이 맥 권한으로 돌지 않게', () => {
+    expect(당김인자).toEqual([
+      '-c',
+      'core.hooksPath=/dev/null',
+      '-c',
+      'core.fsmonitor=false',
+      'pull',
+      '--ff-only',
+      'origin',
+      'main',
+    ]);
   });
 });

@@ -359,7 +359,7 @@ npm run authoring-agent
 
 ### 머지 뒤 main 을 알아서 당긴다 (2026-09-23)
 
-맥이 병합을 끝내면 **에이전트를 켠 체크아웃에서 `git pull --ff-only origin main` 을 한다.**
+맥이 병합을 끝내면 **에이전트를 켠 체크아웃에서 `git pull --ff-only origin main` 을 한다** — 저장소 훅과 fsmonitor 는 끄고 당긴다(자식이 써 둔 훅이 맥 권한으로 돌지 않게).
 서버가 그 체크아웃의 `tests/` 를 보므로(`docker-compose.yml` 의 `./tests:/tests:ro`) 사람이 `git pull` 하지 않아도 **새 테스트가 목록에 뜬다** (「다시 스캔」은 누른다).
 
 - 체크아웃이 `main` 이 아니거나 **고치던 파일이 있으면 건너뛴다** — 터미널에 `[머지] main 을 안 당겼다: …` 가 찍힌다. 그때는 손으로 당긴다

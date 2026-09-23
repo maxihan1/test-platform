@@ -135,8 +135,21 @@ export async function 머지처리(손: 보고손, prUrl: string, 판정: 판정
   if (상태 === 'MERGED') main당기기(뿌리);
 }
 
-/** 빨리감기만 한다. 사람 체크아웃에 병합 커밋을 몰래 만들지 않는다 */
-export const 당김인자 = ['pull', '--ff-only', 'origin', 'main'];
+/**
+ * 빨리감기만 한다. 사람 체크아웃에 병합 커밋을 몰래 만들지 않는다.
+ * **훅과 fsmonitor 를 끈다** — 자식은 맥의 `.git` 을 쓸 수 있어서, 켜 두면 자식이 써 둔
+ * post-merge 훅이 GitHub 자격증명을 가진 맥 권한으로 돈다 (2026-09-23 보안 검사가 잡았다)
+ */
+export const 당김인자 = [
+  '-c',
+  'core.hooksPath=/dev/null',
+  '-c',
+  'core.fsmonitor=false',
+  'pull',
+  '--ff-only',
+  'origin',
+  'main',
+];
 
 /**
  * 병합 뒤 맥의 main 체크아웃을 당길지. 당기면 `null`, 건너뛰면 사유.
