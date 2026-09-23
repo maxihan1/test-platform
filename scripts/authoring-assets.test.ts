@@ -92,22 +92,30 @@ describe('돌릴수있나 — 빈 입력에 구독 한도를 쓰지 않는다', 
 });
 
 describe('셸허용됐나 — 자식이 git·gh·npm·npx 를 다 돌릴 수 있나', () => {
+  const 사용자 = (allow: string[]) => ({ 어디: '사용자', 값: { permissions: { allow } } });
+
   it('Bash 를 통째로 풀었으면 된다', () => {
-    expect(셸허용됐나([{ permissions: { allow: ['Bash(*)'] } }])).toBe(true);
-    expect(셸허용됐나([{ permissions: { allow: ['Read', 'Bash'] } }])).toBe(true);
+    expect(셸허용됐나([사용자(['Bash(*)'])])).toBe(true);
+    expect(셸허용됐나([사용자(['Read', 'Bash'])])).toBe(true);
+    expect(셸허용됐나([{ 어디: '사용자 local', 값: { permissions: { allow: ['Bash(*)'] } } }])).toBe(true);
   });
 
   it('npx 만 푼 부분 허용은 안 된다 — 자식은 git·gh·npm 도 쓴다', () => {
-    expect(셸허용됐나([{ permissions: { allow: ['Bash(npx:*)'] } }])).toBe(false);
-    expect(셸허용됐나([{ permissions: { allow: ['Bash(npx *)', 'Bash(git:*)'] } }])).toBe(false);
+    expect(셸허용됐나([사용자(['Bash(npx:*)'])])).toBe(false);
+    expect(셸허용됐나([사용자(['Bash(npx *)', 'Bash(git:*)'])])).toBe(false);
   });
 
   it('defaultMode 만으로는 안 된다 — 자식을 --permission-mode acceptEdits 로 띄워 덮인다', () => {
-    expect(셸허용됐나([{ permissions: { defaultMode: 'bypassPermissions' } }])).toBe(false);
+    expect(셸허용됐나([{ 어디: '사용자', 값: { permissions: { defaultMode: 'bypassPermissions' } } }])).toBe(false);
   });
 
   it('아무 설정에도 없으면 안 된다', () => {
-    expect(셸허용됐나([{}, { permissions: { allow: ['Bash(git:*)'] } }])).toBe(false);
+    expect(셸허용됐나([{ 어디: '사용자', 값: {} }, 사용자(['Bash(git:*)'])])).toBe(false);
+  });
+
+  it('프로젝트 설정에서 푼 것은 인정하지 않는다 — 자식은 새 작업방에서 돌아 그 설정을 못 본다', () => {
+    expect(셸허용됐나([{ 어디: '프로젝트', 값: { permissions: { allow: ['Bash(*)'] } } }])).toBe(false);
+    expect(셸허용됐나([{ 어디: '프로젝트 local', 값: { permissions: { allow: ['Bash(*)'] } } }])).toBe(false);
   });
 });
 

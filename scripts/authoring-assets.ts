@@ -92,9 +92,13 @@ export interface 권한설정 {
  * 셸이 막혀 있으면 피그마도 못 읽고 관문도 못 돈다 — **한도를 다 쓰고 나서야** 드러난다.
  * `defaultMode` 는 안 본다 — 자식을 `--permission-mode` 로 띄우므로 덮인다.
  * `Bash(npx:*)` 같은 부분 허용도 안 받는다 — 자식은 git·gh·npm·npx 를 다 쓴다.
+ * **사용자 설정만 센다** — 자식은 맥이 새로 연 작업방에서 돌아 이 체크아웃의 프로젝트 설정을 못 본다.
  */
-export function 셸허용됐나(설정들: 권한설정[]): boolean {
-  return 설정들.some((s) => (s.permissions?.allow ?? []).some((규칙) => 규칙 === 'Bash' || 규칙 === 'Bash(*)'));
+export function 셸허용됐나(설정들: { 어디: string; 값: 권한설정 }[]): boolean {
+  return 설정들.some(
+    ({ 어디, 값 }) =>
+      어디.startsWith('사용자') && (값.permissions?.allow ?? []).some((규칙) => 규칙 === 'Bash' || 규칙 === 'Bash(*)'),
+  );
 }
 
 /** 프롬프트에 싣는 자료 목록. 토큰은 절대 안 싣는다 — 자식 환경에만 있다 */

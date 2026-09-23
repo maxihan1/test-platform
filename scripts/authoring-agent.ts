@@ -14,7 +14,7 @@
 // 설계상 사람이 켜서 터미널에 띄워 두는 것이라(숨은 데몬이 아니다) 그 한 번이 공짜다.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { createInterface } from 'node:readline';
 import { join } from 'node:path';
@@ -30,6 +30,7 @@ import {
   자료목록글,
   자료출처,
 } from './authoring-assets.js';
+import { 머지인자 } from './authoring-chain.js';
 
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
 export interface 설정 extends 권한설정 {
@@ -87,45 +88,6 @@ export function 과금위험(env: Record<string, string | undefined>, 설정들:
 }
 
 /**
- * `pre-push` 훅이 쓰는 것과 **같은 날짜**를 만든다.
- *
- * 훅은 `date +%F` 로 **로컬** 날짜를 쓰는데 `toISOString()` 은 **UTC** 다.
- * 한국(+9시간)에서는 **새벽 00:00~09:00 동안 둘이 하루 갈린다** — 그리고 그 구간이
- * 바로 이 안전핀이 지키려던 「아침 무인 실행」이다 (2026-09-21 검토 지적).
- */
-export function 오늘날짜(지금: Date, 시차분: number): string {
-  return new Date(지금.getTime() + 시차분 * 60000).toISOString().slice(0, 10);
-}
-
-/**
- * push 가 막힐 조건을 **시작 전에** 본다. 막히면 사유를, 아니면 `null`.
- *
- * `.claude/hooks/pre-push` 가 오늘 날짜의 `docs/reviews/<오늘>-*.md` 를 요구한다.
- * 없으면 관문 넷까지 초록을 내고 **push 에서 죽어** 결과가 작업방에 갇히고 PR 이 안 열린다.
- * **늦은 실패를 이른 실패로 바꾼다.**
- *
- * 훅이 에러 문구에 적어 둔 `--no-verify` 는 **권하지 않는다** —
- * 그건 저장소가 사고 뒤에 세운 검사를 무인으로 건너뛰는 일이다.
- */
-export function 푸시막힘(
-  오늘: string,
-  검사기록: string[],
-  env: Record<string, string | undefined>,
-): string | null {
-  // 훅이 ALLOW_PROTECTED=1 이면 검사 기록 확인을 통째로 건너뛴다.
-  // 그걸 안 보면 **막히지 않을 push 를 막았다고 거부**한다 (2026-09-21 검토 지적)
-  if (env.ALLOW_PROTECTED === '1') return null;
-
-  if (검사기록.some((이름) => 이름.startsWith(`${오늘}-`))) return null;
-
-  return [
-    `오늘(${오늘}) 날짜의 검사 기록이 없어 push 가 막힌다: docs/reviews/${오늘}-*.md`,
-    '초안 PR 을 못 여니 결과가 작업방에 갇힌다. 지금 멈추는 편이 한도를 아낀다.',
-    'Claude Code 에서 spec-review 를 돌려 기록을 남긴 뒤 다시 실행해라.',
-  ].join('\n');
-}
-
-/**
  * `claude` 에 거는 인자. **과금 안전핀의 둘째 문이다.**
  *
  * `--bare` 를 절대 넣지 않는다 — 그 깃발은 OAuth 와 keychain 을 아예 안 읽고
@@ -155,8 +117,6 @@ export function 클로드인자(폴더: string): string[] {
 export function 선행검사(입력: {
   env: Record<string, string | undefined>;
   설정들: 설정자리[];
-  오늘: string;
-  기록: string[];
 }): string | null {
   const 위험 = 과금위험(입력.env, 입력.설정들);
   if (위험.length > 0) {
@@ -171,10 +131,7 @@ export function 선행검사(입력: {
   const 전제 = 대기줄전제(입력.env);
   if (전제 !== null) return 전제;
 
-  const 푸시 = 푸시막힘(입력.오늘, 입력.기록, 입력.env);
-  if (푸시 !== null) return 푸시;
-
-  if (!셸허용됐나(입력.설정들.map((s) => s.값))) {
+  if (!셸허용됐나(입력.설정들)) {
     return [
       '자식 세션이 셸 명령을 못 돈다. 피그마를 못 읽고 관문도 못 돌아 한도만 쓰고 멈춘다.',
       '~/.claude/settings.json 의 permissions.allow 에 Bash(*) 를 넣고 다시 실행해라 (docs/SETUP.md §8).',
@@ -269,17 +226,6 @@ export function PR주소찾기(출력: string): string | null {
 /** 머지 요청을 실제로 칠 수 있나. 올릴 PR 주소가 없으면 할 일이 없다 */
 export function 머지할수있나(것: { kind: 집은것['kind']; prUrl?: string | null }): boolean {
   return 것.kind === 'MERGE' && typeof 것.prUrl === 'string' && 것.prUrl !== '';
-}
-
-/**
- * `gh pr merge` 에 거는 인자.
- *
- * **강제 깃발을 절대 안 붙인다** (CLAUDE.md §5 · `guard.mjs` 의 `isBanned()`).
- * 관리자 우회(`--admin`)도 안 쓴다 — 검사가 빨간 PR 을 사람 없이 병합하는 일이
- * 이 제품에서 가장 하면 안 되는 일이다. **맥은 판단하지 않는다.**
- */
-export function 머지인자(prUrl: string): string[] {
-  return ['pr', 'merge', prUrl, '--merge', '--delete-branch'];
 }
 
 /** 맥은 컨테이너 밖이라 admin 을 주소로 부른다. 안 주면 compose 의 기본 포트를 본다 */
@@ -632,13 +578,7 @@ const 쉬는시간 = 5000;
  * 한도를 얼마나 쓰는지와 지금 무엇을 하는지가 눈에 보여야 한다.
  */
 async function 돈다(): Promise<number> {
-  const 지금 = new Date();
-  const 막힘 = 선행검사({
-    env: process.env,
-    설정들: 설정들읽기(),
-    오늘: 오늘날짜(지금, -지금.getTimezoneOffset()),
-    기록: existsSync('docs/reviews') ? readdirSync('docs/reviews') : [],
-  });
+  const 막힘 = 선행검사({ env: process.env, 설정들: 설정들읽기() });
   if (막힘 !== null) {
     console.error(`[거부] ${막힘}`);
     return 1;
