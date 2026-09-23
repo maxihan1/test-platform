@@ -18,6 +18,7 @@ vi.mock('./api.js', async () => {
         return Promise.resolve(답);
       },
       createAuthoringMerge: () => Promise.resolve({ id: 2 }),
+      authoringAssetUrl: 진짜.api.authoringAssetUrl,
     },
   };
 });
@@ -87,5 +88,44 @@ describe('작성 한 건 상세', () => {
     await vi.advanceTimersByTimeAsync(0);
     await vi.advanceTimersByTimeAsync(10_000);
     expect(부른횟수).toBeGreaterThan(1);
+  });
+
+  it('자료를 순서대로 보인다. 파일은 내려받기 링크, 피그마는 저장된 주소로 새 창에 연다', async () => {
+    답 = 줄({
+      assets: [
+        { id: 11, position: 1, kind: 'FILE', name: '결제 기획서.pdf', figmaUrl: null, size: 10 },
+        { id: 12, position: 2, kind: 'FILE', name: '화면정의서.docx', figmaUrl: null, size: 20 },
+        {
+          id: 13,
+          position: 3,
+          kind: 'FIGMA',
+          name: 'https://www.figma.com/design/AbC/?node-id=12-34',
+          figmaUrl: 'https://www.figma.com/design/AbC/?node-id=12-34',
+          size: null,
+        },
+      ],
+    });
+    render(<AuthoringDetail service="PAY" id={7} role="viewer" />);
+
+    const 첫 = await screen.findByRole('link', { name: '결제 기획서.pdf' });
+    const 링크들 = screen.getAllByRole('link').filter((a) => a.closest('.authoring-assets') !== null);
+    expect(링크들.map((a) => a.textContent)).toEqual([
+      '결제 기획서.pdf',
+      '화면정의서.docx',
+      'https://www.figma.com/design/AbC/?node-id=12-34',
+    ]);
+    expect(첫.getAttribute('href')).toBe('/api/authoring/requests/7/assets/11');
+    expect(첫.hasAttribute('download')).toBe(true);
+    const 피그마 = 링크들[2];
+    expect(피그마?.getAttribute('href')).toBe('https://www.figma.com/design/AbC/?node-id=12-34');
+    expect(피그마?.getAttribute('target')).toBe('_blank');
+    expect(피그마?.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
+  it('준비 중(DRAFT) 요청에는 줄에 서지 않았으니 새 요청으로 다시 넣으라고 알린다', async () => {
+    답 = 줄({ status: 'DRAFT', prUrl: null, finishedAt: null, startedAt: null, assets: [] });
+    render(<AuthoringDetail service="PAY" id={7} role="admin" />);
+    expect(await screen.findByText('이 요청은 줄에 서지 않았습니다. 새 요청으로 다시 넣으세요')).toBeTruthy();
+    expect(screen.getByText('준비 중')).toBeTruthy();
   });
 });

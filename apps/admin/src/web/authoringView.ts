@@ -10,7 +10,7 @@ import { t, type 언어 } from './i18n.js';
  * 어느 쪽인지 못 가린다 (`messages.test.ts`). `runState.ts` 의 `상태라벨` 이 같은 모양이다 —
  * **판정은 식별자로 하고 사람 말은 이 파일이 `t()` 로 낸다.**
  */
-export type 보임 = 'queued' | 'running' | 'stalled' | 'done' | 'failed';
+export type 보임 = 'draft' | 'queued' | 'running' | 'stalled' | 'done' | 'failed';
 
 /**
  * 이만큼 단계가 안 바뀌면 **멈춘 듯**으로 본다.
@@ -40,6 +40,7 @@ export function 줄보임(행: AuthoringRow, 지금: number): 보임 {
   if (행.status === 'DONE') return 'done';
   if (행.status === 'FAILED') return 'failed';
   if (행.status === 'PENDING') return 'queued';
+  if (행.status === 'DRAFT') return 'draft';
 
   const 마지막 = 행.stageAt ?? 행.startedAt;
   if (마지막 === null) return 'running';
@@ -55,6 +56,8 @@ export function 종류라벨(kind: AuthoringRow['kind'], 언어: 언어): string
 
 /** 보임을 사람 말로 (`runState.ts` 의 `상태라벨` 과 같은 모양) */
 export function 보임라벨(보: 보임, 언어: 언어): string {
+  // 「대기」와 가른다. 대기는 기다리면 맥이 집지만, 준비 중은 자료를 다 못 올린 채 멈췄으면 영영 안 집힌다
+  if (보 === 'draft') return t('준비 중', 언어);
   if (보 === 'queued') return t('대기', 언어);
   if (보 === 'running') return t('도는 중', 언어);
   // **서버가 주는 상태가 아니다.** 단계가 오래 안 바뀐 것을 화면이 판정한 것이라

@@ -6,6 +6,7 @@ export const 작성말: Record<string, string> = {
   작성: 'Author',
   재실행: 'Rerun',
   머지: 'Merge',
+  '준비 중': 'Preparing',
   대기: 'Queued',
   '도는 중': 'Running',
   // 「멈춘 듯」은 서버가 주는 상태가 아니다. 단계가 오래 안 바뀐 것을 화면이 판정한 것이라
