@@ -1,4 +1,4 @@
-// 작성 자료 통로 — 기획서 파일 올리기 (SPEC 도메인/작성 §7 「자료」)
+// 작성 자료 통로 — 기획서 파일 올리기 · 줄에 세우기 (SPEC 도메인/작성 §7 「자료」)
 // routes.ts 가 300줄을 넘어 뗐다. app.ts 가 routes.ts 와 같은 /api 접두사로 등록한다
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -6,7 +6,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
-import { 자료더하기, 자료지우기 } from './assetStore.js';
+import { 자료더하기, 자료목록, 자료지우기, 제출 } from './assetStore.js';
 import { 번호, 사진뿌리 } from './routes.js';
 import { 한건, type 요청 } from './store.js';
 
@@ -101,4 +101,16 @@ export default async function authoringAssetRoutes(app: FastifyInstance): Promis
       return { id: 붙은것.id };
     },
   );
+
+  // 다 올린 뒤 한 번 부른다. 그 전까지 DRAFT 라 맥이 안 집는다 — 올리는 도중에 집히면 빈 것을 보고 실패한다
+  app.post<{ Params: { id: string } }>('/authoring/requests/:id/submit', async (req, reply) => {
+    const 행 = await 내준비행(req, reply);
+    if (행 === null) return reply;
+    if (!(await 제출(행.id))) {
+      // 제출은 한 문장이라 둘 중 무엇에 걸렸는지 말해 주지 않는다. 사람에게 줄 이유만 다시 읽어 가른다
+      const 없음 = (await 자료목록(행.id)).length === 0;
+      return reply.code(409).send({ error: 없음 ? 'NO_ASSETS' : 'NOT_DRAFT' });
+    }
+    return { ok: true };
+  });
 }

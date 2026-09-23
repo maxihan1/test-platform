@@ -533,7 +533,8 @@ describe('등급 표', () => {
     expect(등급표['POST /api/authoring/requests']).toBe('operator');
   });
 
-  it('자료 올리기는 operator 다 — 요청을 넣는 것과 같은 일이다', () => {
+  it('자료 올리기와 줄에 세우기는 operator 다 — 요청을 넣는 것과 같은 일이다', () => {
     expect(등급표['POST /api/authoring/requests/:id/assets']).toBe('operator');
+    expect(등급표['POST /api/authoring/requests/:id/submit']).toBe('operator');
   });
 });

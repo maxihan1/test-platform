@@ -9,7 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import assetRoutes from './assets.js';
 import { 자료목록, 준비세우기 } from './assetStore.js';
-import { 줄세우기 } from './store.js';
+import { 줄세우기, 한건 } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -138,6 +138,41 @@ describe.skipIf(연결 === undefined)('작성 자료 통로', () => {
         payload: Buffer.from('x'),
       });
       expect(res.statusCode).toBe(400);
+    });
+  });
+
+  describe('줄에 세우기', () => {
+    const 세우기 = (id: number) =>
+      app.inject({ method: 'POST', url: `/api/authoring/requests/${String(id)}/submit` });
+
+    it('자료가 있는 DRAFT 는 200 · PENDING', async () => {
+      const id = await 준비(['https://www.figma.com/design/A1/']);
+      const res = await 세우기(id);
+      expect(res.statusCode).toBe(200);
+      expect((await 한건(id))?.status).toBe('PENDING');
+    });
+
+    it('자료가 0 이면 409 NO_ASSETS', async () => {
+      const id = await 준비();
+      const res = await 세우기(id);
+      expect(res.statusCode).toBe(409);
+      expect(res.json().error).toBe('NO_ASSETS');
+      expect((await 한건(id))?.status).toBe('DRAFT');
+    });
+
+    it('두 번 세우면 두 번째는 409', async () => {
+      const id = await 준비(['https://www.figma.com/design/A1/']);
+      expect((await 세우기(id)).statusCode).toBe(200);
+      expect((await 세우기(id)).statusCode).toBe(409);
+    });
+
+    it('남이 세우면 403', async () => {
+      const id = await 준비(['https://www.figma.com/design/A1/']);
+      부르는이 = 'xwu-남';
+      const res = await 세우기(id);
+      부르는이 = 'xwu-나';
+      expect(res.statusCode).toBe(403);
+      expect((await 한건(id))?.status).toBe('DRAFT');
     });
   });
 });
