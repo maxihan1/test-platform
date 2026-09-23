@@ -51,6 +51,14 @@ describe('에이전트 토큰', () => {
     expect(screen.queryByText('발급')).toBeNull();
   });
 
+  it('작성 계정이 바뀌어 토큰만 남은 계정에는 취소만 보인다 — 안 보이면 남은 토큰을 아무도 못 지운다', () => {
+    그리기([계정('old', { hasAgentToken: true })]);
+
+    expect(screen.queryByText('토큰 취소')).not.toBeNull();
+    expect(screen.queryByText('다시 발급')).toBeNull();
+    expect(screen.queryByText('발급')).toBeNull();
+  });
+
   it('비활성인 작성 에이전트 계정에도 그리지 않는다', () => {
     그리기([계정('agent', { isAuthoringAgent: true, isActive: false })]);
 

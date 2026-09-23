@@ -6,6 +6,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
+import { 작성계정인가 } from '../auth/agentToken.js';
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
 import {
@@ -153,9 +154,8 @@ async function 원본확인(
  * 열어 두면 위 공격이 그대로 살고, 닫아 두면 맥이 안 돌아 **그 자리에서 시끄럽게 드러난다.**
  */
 function 맥계정인가(req: FastifyRequest): boolean {
-  const 정해진이름 = process.env.AUTHORING_AGENT_USER ?? '';
-  if (정해진이름 === '') return false;
-  return req.user?.username === 정해진이름;
+  // 토큰 발급과 같은 판정을 쓴다 — 둘이 갈리면 발급할 수 있는 계정과 집을 수 있는 계정이 달라진다
+  return 작성계정인가(req.user?.username ?? '');
 }
 
 /**

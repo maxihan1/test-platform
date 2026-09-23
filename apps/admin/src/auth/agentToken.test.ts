@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import authoringRoutes from '../authoring/routes.js';
 import settingsRoutes from '../settings/routes.js';
 import { 헤더토큰 } from './agentToken.js';
-import { 인증등록 } from './gate.js';
+import { 등급표, 인증등록, 토큰통로 } from './gate.js';
 import { 해시 } from './password.js';
 import authRoutes from './routes.js';
 import { 세션등록 } from './session.js';
@@ -28,6 +28,11 @@ describe('헤더토큰 — DB 에 가기 전에 모양을 본다', () => {
   it('Bearer tpa_ 모양이면 토큰을 꺼낸다', () => {
     const t = `tpa_${'a'.repeat(43)}`;
     expect(헤더토큰(`Bearer ${t}`)).toBe(t);
+  });
+
+  it('토큰통로의 모든 줄이 등급표에 있다 — 글자가 틀리면 맥이 돌 때에야 403 으로 드러난다', () => {
+    const 없는것 = [...토큰통로].filter((쌍) => !(쌍 in 등급표));
+    expect(없는것).toEqual([]);
   });
 
   it('모양이 아니면 틀림 — 세션으로 넘어가지 않게', () => {
@@ -214,6 +219,23 @@ describe.skipIf(연결 === undefined)('작성 에이전트 토큰', () => {
     } finally {
       await pool.query('UPDATE app_user SET is_active = true WHERE username = $1', [맥]);
     }
+  });
+
+  it('서버가 작성 계정을 다른 이름으로 바꾸면 옛 계정의 토큰은 401 — 목록에는 남아 화면에서 지울 수 있다', async () => {
+    const { agentToken } = (await 발급(맥)).json<{ agentToken: string }>();
+    process.env.AUTHORING_AGENT_USER = 사람;
+    try {
+      expect((await 토큰으로('GET', '/api/auth/me', agentToken)).statusCode).toBe(401);
+      expect(await 계정줄(맥)).toMatchObject({ hasAgentToken: true, isAuthoringAgent: false });
+    } finally {
+      process.env.AUTHORING_AGENT_USER = 맥;
+    }
+  });
+
+  it('토큰으로 HEAD 도 GET 처럼 지나간다 — Fastify 가 GET 에 HEAD 를 붙인다', async () => {
+    const { agentToken } = (await 발급(맥)).json<{ agentToken: string }>();
+    const res = await app.inject({ method: 'HEAD', url: '/api/auth/me', headers: { authorization: `Bearer ${agentToken}` } });
+    expect(res.statusCode).toBe(200);
   });
 
   it('비밀번호를 다시 만들어도 토큰은 그대로다 — 두 열쇠는 따로 논다', async () => {

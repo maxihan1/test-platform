@@ -57,7 +57,9 @@ export function AgentToken({
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  if (row.isAuthoringAgent !== true || !row.isActive) return null;
+  // 작성 계정이 바뀌어 토큰만 남은 계정에도 그린다 — 안 그리면 남은 토큰을 아무도 못 지운다 (취소만 보인다)
+  const 작성계정 = row.isAuthoringAgent === true && row.isActive;
+  if (!작성계정 && row.hasAgentToken !== true) return null;
 
   async function 한다(일: () => Promise<void>) {
     set보내는중(true);
@@ -90,9 +92,13 @@ export function AgentToken({
               <span className="hint">{row.hasAgentToken === true ? t('토큰 있음') : t('토큰 없음')}</span>{' '}
               {row.hasAgentToken === true ? (
                 <>
-                  <button className="btn ghost" disabled={보내는중} onClick={() => set확인('reissue')}>
-                    {t('다시 발급')}
-                  </button>{' '}
+                  {작성계정 ? (
+                    <>
+                      <button className="btn ghost" disabled={보내는중} onClick={() => set확인('reissue')}>
+                        {t('다시 발급')}
+                      </button>{' '}
+                    </>
+                  ) : null}
                   <button className="btn ghost" disabled={보내는중} onClick={() => set확인('revoke')}>
                     {t('토큰 취소')}
                   </button>

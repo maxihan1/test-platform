@@ -39,14 +39,19 @@ export function 작성계정인가(username: string): boolean {
   return 정해진이름 !== '' && username === 정해진이름;
 }
 
-/** 토큰의 주인. 비활성 계정은 없는 것으로 친다 — 세션 확인과 같은 문이다 */
+/**
+ * 토큰의 주인. 비활성 계정은 없는 것으로 친다 — 세션 확인과 같은 문이다.
+ * **지금의 작성 계정이 아니면 없는 것으로 친다** — 서버가 작성 계정을 바꾸면 옛 계정의 토큰이
+ * 화면에서 안 보이는 채로 살아 있게 된다 (2026-09-23 검사가 잡았다)
+ */
 export async function 토큰주인(토큰: string): Promise<string | null> {
   const pool = await db();
   const rows = await pool.query<{ username: string }>(
     'SELECT username FROM app_user WHERE agent_token_hash = $1 AND is_active',
     [토큰해시(토큰)],
   );
-  return rows.rows[0]?.username ?? null;
+  const username = rows.rows[0]?.username;
+  return username !== undefined && 작성계정인가(username) ? username : null;
 }
 
 /**
