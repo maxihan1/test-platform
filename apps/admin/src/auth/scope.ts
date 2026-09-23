@@ -69,6 +69,9 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests/:id/stage': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/screenshots': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/finish': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/assets': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/submit': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/assets/:assetId': { 종류: '작성요청', 칸: 'id' },
 };
 
 // SPEC §2 — 접두사는 자유 형식이고 플랫폼은 모양과 중복만 본다.

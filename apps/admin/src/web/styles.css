@@ -385,6 +385,10 @@ body {
   box-shadow: var(--lift);
   overflow: hidden;
   margin-bottom: 28px;
+  /* .main 이 세로 flex 라 안 막으면 창 높이에 맞춰 줄어들고, 위 overflow 가 넘친 아래를 숨긴다.
+     그러면 .main 에 넘친 것이 없어 스크롤도 안 생긴다 (2026-09-23 설정 화면에서 실측).
+     목록 화면은 아래 .list-screen 의 flex: 1 이 이것을 덮어 표만 스크롤한다 */
+  flex-shrink: 0;
 }
 
 /* 테스트케이스 목록 · 실행 기록 — 표(줄 목록)만 스크롤한다. 검색·필터·표머리는 늘 보인다
@@ -2689,3 +2693,8 @@ select:focus {
 
 /* 실패는 눈에 띄어야 한다. 본문 글씨 그대로면 사람이 그냥 지나친다 */
 .error-text { color: var(--fail); font-weight: 600; }
+
+/* 작성 요청 폼의 칸 둘 — 이름표를 위에 얹는다. 파일 칸과 주소 칸이 한 줄에 나란히 선다 */
+.authoring-new .authoring-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 260px; min-width: 0; }
+.authoring-new .authoring-field > span { color: var(--ink-muted); font-size: 12px; }
+.authoring-new .authoring-field textarea { min-height: 64px; }

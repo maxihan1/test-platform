@@ -50,6 +50,12 @@ export const 설정말: Record<string, string> = {
   '테스트 저장소': 'Tests repository',
   '적어 두기만 합니다. 플랫폼이 받아오지는 않습니다': 'Recorded for reference only. The platform does not fetch it',
   'Slack 웹훅': 'Slack webhook',
+  '피그마 토큰': 'Figma token',
+  '이대로 저장하면 토큰을 지웁니다. 피그마 자료를 못 읽게 됩니다':
+    'Saving now removes the token. Figma attachments can no longer be read',
+  'Figma → Settings → Security → Personal access tokens 에서 만듭니다. 권한은 File content 읽기만, 만료일을 정합니다':
+    'Create one in Figma → Settings → Security → Personal access tokens. Scope: File content read-only, with an expiry date',
+  'Figma 설정 열기': 'Open Figma settings',
   '설정됨': 'Configured',
   '다시 넣기': 'Replace',
   '없음': 'None',

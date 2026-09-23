@@ -88,6 +88,9 @@ export function 웹훅칸(hasSlackWebhook: boolean, 언어: 언어): { 글: stri
     : { 글: t('없음', 언어), 버튼: t('넣기', 언어) };
 }
 
+/** 피그마 토큰 발급 안내의 링크. 토큰은 Figma 계정 설정의 Security 탭에서 만든다 (도메인/인증 §8.8) */
+export const 피그마설정주소 = 'https://www.figma.com/settings';
+
 /**
  * 이 사람이 마지막 운영 계정인가 (SPEC §7 · §8.8).
  *

@@ -10,9 +10,13 @@ import { use말, use언어 } from './i18n.js';
 import { 할수있나, type 등급 } from './role.js';
 import { Failed, Loading, message, useAsync, when } from './ui.js';
 
-/** 끝난 것은 더 안 바뀐다. 계속 물으면 탭 하나가 2초마다 서버를 두드린다 */
+/**
+ * 끝난 것은 더 안 바뀐다. 계속 물으면 탭 하나가 2초마다 서버를 두드린다.
+ * 준비 중(DRAFT)도 스스로 안 바뀐다 — 줄에 세우는 것은 이 화면이 아니라 새 요청 폼이고,
+ * 중간에 실패한 것은 버려진 채 남는다 (도메인/작성 §7 「자료」)
+ */
 function 끝났나(status: AuthoringRow['status']): boolean {
-  return status === 'DONE' || status === 'FAILED';
+  return status === 'DONE' || status === 'FAILED' || status === 'DRAFT';
 }
 
 export function AuthoringDetail({ service, id, role }: { service: string; id: number; role: 등급 }) {
@@ -74,6 +78,8 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
             {/* **알려 주기만 하고 길을 안 주면 안 된다.** 멈춘 행은 지금 되살릴 방법이 없다 —
                 집기는 대기 중인 것만 집고, 끝내기는 집은 쪽만 부를 수 있다 (2026-09-23 검토) */}
             {보 === 'stalled' ? <small>{t('맥이 멈춘 것 같습니다. 새 요청으로 다시 넣으세요')}</small> : null}
+            {/* 이어 올리기·지우기는 안 만들었다 — 새로 넣으라고만 한다 (도메인/작성 §7 「자료」) */}
+            {보 === 'draft' ? <small>{t('이 요청은 줄에 서지 않았습니다. 새 요청으로 다시 넣으세요')}</small> : null}
           </dd>
 
           <dt>{t('작업 단계')}</dt>
@@ -88,6 +94,25 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
           <dt>{t('요청한 시각')}</dt>
           <dd>{when(data.createdAt, 언어)}</dd>
         </dl>
+
+        {data.assets === undefined || data.assets.length === 0 ? null : (
+          <ol className="authoring-assets">
+            {data.assets.map((a) => (
+              <li key={a.id}>
+                {a.kind === 'FIGMA' ? (
+                  <a href={a.figmaUrl ?? a.name} target="_blank" rel="noopener noreferrer">
+                    {a.name}
+                  </a>
+                ) : (
+                  // 서버가 attachment 로 준다. download 는 같은 뜻을 브라우저에 한 번 더 말한다
+                  <a href={api.authoringAssetUrl(data.id, a.id)} download>
+                    {a.name}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
 
         {/* 실패는 왜인지 말해야 한다. 「실패」만 뜨면 사람이 할 수 있는 일이 없다 */}
         {data.error === null ? null : <p className="error-text">{data.error}</p>}

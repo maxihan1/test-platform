@@ -84,6 +84,7 @@ SPEC §3에 적힌 불변식. 깨지면 데이터가 조용히 거짓이 된다.
 | B6 | 동시 실행 수가 설정값(기본 2)으로 제한되는가 | 제한됨 |
 | B7 | Reporting 컨텍스트가 `evidence_document` 외 테이블에 write 하는가 | write 없음 |
 | B8 | `platforms` 배열 길이만큼 `run_item`이 생성되는가 | 생성됨 |
+| B9 | **작성 자료** (도메인/작성 §7 「자료」 · 공통/4-데이터모델 §6 「작성 자료」) — `authoring_asset` 표의 `CHECK` 가 SPEC SQL 과 같은가 · `DRAFT→PENDING` 은 줄에 세우기 한 문장(`WHERE status='DRAFT'`)만 하고 집기는 `PENDING` 만 집는가 · 자료 통로 셋이 `auth/scope.ts` 라우트표와 `auth/gate.ts` 등급표 **둘 다에** 있는가 · 피그마 주소를 받은 그대로가 아니라 **정규화해 다시 조립한 값**으로 저장하는가 | 넷 다 그렇다 |
 
 B1이 가장 자주 깨지고 가장 늦게 발견된다. **매번 최우선으로 검사한다.**
 

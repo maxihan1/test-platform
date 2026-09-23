@@ -476,10 +476,16 @@ describe('등급 표', () => {
     const 등록 =
       /\bapp\.(get|post|patch|put|delete|head|all|options|route)\s*(?:<[\s\S]*?>)?\s*\(\s*[{]?\s*(?:url\s*:\s*)?['"`]([^'"`]+)['"`]/g;
     const 쌍 = new Set<string>();
+    // routes.ts 하나만 보면 300줄 때문에 옆 파일로 뗀 플러그인(authoring/assets.ts)이 그물 밖이다 (2026-09-23)
     for (const 폴더 of 폴더들) {
-      const 글 = readFileSync(join(뿌리, 폴더, 'routes.ts'), 'utf8');
-      for (const 맞은것 of 글.matchAll(등록)) {
-        쌍.add(`${(맞은것[1] ?? '').toUpperCase()} /api${맞은것[2] ?? ''}`);
+      const 파일들 = readdirSync(join(뿌리, 폴더)).filter(
+        (이름) => 이름.endsWith('.ts') && !이름.endsWith('.test.ts'),
+      );
+      for (const 파일 of 파일들) {
+        const 글 = readFileSync(join(뿌리, 폴더, 파일), 'utf8');
+        for (const 맞은것 of 글.matchAll(등록)) {
+          쌍.add(`${(맞은것[1] ?? '').toUpperCase()} /api${맞은것[2] ?? ''}`);
+        }
       }
     }
     return [...쌍].sort();
@@ -525,5 +531,14 @@ describe('등급 표', () => {
   it('머지는 admin 이고 작성·재실행은 operator 다 — 둘이 같으면 실행 등급이 저장소를 바꾼다', () => {
     expect(등급표['POST /api/authoring/merges']).toBe('admin');
     expect(등급표['POST /api/authoring/requests']).toBe('operator');
+  });
+
+  it('자료 올리기와 줄에 세우기는 operator 다 — 요청을 넣는 것과 같은 일이다', () => {
+    expect(등급표['POST /api/authoring/requests/:id/assets']).toBe('operator');
+    expect(등급표['POST /api/authoring/requests/:id/submit']).toBe('operator');
+  });
+
+  it('자료 내려받기는 viewer 다 — 상세를 보는 사람이 그 기획서도 본다', () => {
+    expect(등급표['GET /api/authoring/requests/:id/assets/:assetId']).toBe('viewer');
   });
 });

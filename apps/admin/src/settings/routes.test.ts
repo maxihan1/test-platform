@@ -92,6 +92,30 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
     expect((await 목록()).find((s) => s.prefix === 'XFS4A')?.hasSlackWebhook).toBe(false);
   });
 
+  it('피그마 토큰은 응답에 담기지 않고 설정됐는지만 준다 — 웹훅과 같은 규칙', async () => {
+    await 서비스만들기('XFS4F', { figmaToken: 'figd_비밀토큰' });
+    const 목록문자열 = JSON.stringify(await 목록());
+
+    expect(목록문자열).not.toContain('비밀토큰');
+    expect((await 목록()).find((s) => s.prefix === 'XFS4F')?.hasFigmaToken).toBe(true);
+    expect((await 목록()).find((s) => s.prefix === 'XFS4A')?.hasFigmaToken).toBe(false);
+  });
+
+  it('피그마 토큰을 고쳐 넣고, 빈 글자로 고치면 지워진다', async () => {
+    const id = (await 목록()).find((s) => s.prefix === 'XFS4A')?.id;
+    const 고치기 = (figmaToken: string) =>
+      app.inject({
+        method: 'PATCH',
+        url: `/api/settings/services/${String(id)}`,
+        payload: { figmaToken },
+      });
+
+    expect((await 고치기('figd_새토큰')).statusCode).toBe(200);
+    expect((await 목록()).find((s) => s.prefix === 'XFS4A')?.hasFigmaToken).toBe(true);
+    expect((await 고치기('')).statusCode).toBe(200);
+    expect((await 목록()).find((s) => s.prefix === 'XFS4A')?.hasFigmaToken).toBe(false);
+  });
+
   it('접두사를 고치려 들면 400이다', async () => {
     const id = (await 목록()).find((s) => s.prefix === 'XFS4A')?.id;
     const res = await app.inject({

@@ -7,6 +7,7 @@ import { mkdir, readdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
+import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
 import {
   끝내기,
   단계올리기,
@@ -16,6 +17,8 @@ import {
   서비스저장소,
   줄세우기,
   집기,
+  집기되돌리기,
+  피그마토큰,
   한건,
   한쪽,
   type 요청,
@@ -33,7 +36,7 @@ import {
  *
  * **쓸 때 읽는다** — 맨 위에서 잡으면 검사가 값을 바꿔도 이미 굳은 뒤다.
  */
-function 사진뿌리(): string {
+export function 사진뿌리(): string {
   return process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts');
 }
 
@@ -51,10 +54,41 @@ const 요청당장수 = 200;
  * **문과 라우트가 같은 값을 읽어야 한다.** `1e3` 이나 퍼센트 인코딩을 느슨하게 읽으면
  * 문이 본 번호와 라우트가 쓰는 번호가 갈리고 그 틈으로 빠져나간다 (auth/scope.ts 의 `번호로` 와 같은 규칙).
  */
-function 번호(값: unknown): number | null {
+export function 번호(값: unknown): number | null {
   if (typeof 값 !== 'string' || !/^\d{1,10}$/.test(값)) return null;
   const n = Number(값);
   return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
+
+/**
+ * 피그마 주소를 **다시 조립해** 돌려준다. 모양이 아니면 null.
+ *
+ * **통과·거절로 보지 않는다** (2026-09-23 검토가 잡았다). 「Copy link」 주소에는 거의 항상 `&t=…` 가
+ * 붙는데, 그 글자를 받으면 맥이 이 주소를 명령줄에 끼울 때 `&` 가 명령 구분자로 산다. 막으면 평범한 링크가 튕긴다.
+ * 파일 키와 `node-id` 만 뽑아 새로 지으면 저장값에 셸 특수 글자가 원천적으로 없다.
+ * FigJam(`/board`)은 화면 디자인이 아니라 안 받는다 (도메인/작성 §7 「자료」).
+ */
+export function 피그마주소정규화(주소: unknown): string | null {
+  if (typeof 주소 !== 'string') return null;
+  let url: URL;
+  try {
+    url = new URL(주소);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'https:') return null;
+  if (url.hostname !== 'figma.com' && url.hostname !== 'www.figma.com') return null;
+  const [, 종류, 본키, 갈래, 갈래키] = url.pathname.split('/');
+  if (종류 !== 'design' && 종류 !== 'file' && 종류 !== 'proto') return null;
+  // 브랜치 링크는 본 파일 키로 줄이면 main 을 읽는다. 브랜치 키가 그 자체로 파일처럼 열린다.
+  // 뒤에 키가 없으면 `branch` 는 브랜치가 아니라 파일 제목 조각이다
+  const 키 = 갈래 === 'branch' && 갈래키 !== undefined ? 갈래키 : 본키;
+  if (키 === undefined || !/^[A-Za-z0-9]{1,64}$/.test(키)) return null;
+  const 노드 = url.searchParams.get('node-id');
+  if (노드 === null) return `https://www.figma.com/design/${키}/`;
+  const 맞음 = /^(\d{1,10})[-:](\d{1,10})$/.exec(노드);
+  if (맞음 === null) return null;
+  return `https://www.figma.com/design/${키}/?node-id=${맞음[1]}-${맞음[2]}`;
 }
 
 // **배정은 여기서 안 본다. 문(auth/gate.ts)이 이미 막았다.**
@@ -77,8 +111,8 @@ async function 서비스번호(req: FastifyRequest, reply: FastifyReply): Promis
  * 본문에 실린 번호가 가리키는 행을 이 서비스 것으로 확인한다.
  *
  * **경로 검사가 안 닿는 자리다.** 문은 주소와 `?service=` 만 보고 본문은 안 읽는다.
- * 안 막으면 남의 서비스 요청을 가리키는 재실행·머지가 줄에 서고, 그 행에는
- * `spec_text` 가 기획서 본문 통째로 실려 있다 (SPEC §7).
+ * 안 막으면 남의 서비스 요청을 가리키는 재실행·머지가 줄에 서고, 맥이 그 행의
+ * 자료(기획서 파일·피그마)와 그 서비스의 피그마 토큰을 받아 간다 (SPEC §7).
  */
 async function 원본확인(
   원본: unknown,
@@ -184,29 +218,34 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         return reply.code(400).send({ error: 'KIND_NOT_ALLOWED', detail: String(kind) });
       }
 
-      const 기획서 = req.body?.specText;
-      if (typeof 기획서 !== 'string' || 기획서 === '') {
-        return reply.code(400).send({ error: 'SPEC_TEXT_REQUIRED' });
-      }
-
-      let 원본: number | null = null;
-      if (kind === 'RERUN') {
-        const 행 = await 원본확인(req.body?.sourceId, 서비스, reply);
-        if (행 === null) return reply;
-        원본 = 행.id;
-      }
-
       const params = req.body?.params;
-      const id = await 줄세우기({
-        서비스,
-        kind,
-        원본,
-        기획서,
-        값: typeof params === 'object' && params !== null ? (params as Record<string, unknown>) : {},
-        // 부른 사람은 요청에 안 싣는다. 로그인한 세션에서 채운다 — 실행이 triggeredBy 를 그렇게 한다
-        누가: req.user?.username ?? '',
-        이름: req.user?.displayName ?? '',
-      });
+      const 값 = typeof params === 'object' && params !== null ? (params as Record<string, unknown>) : {};
+      // 부른 사람은 요청에 안 싣는다. 로그인한 세션에서 채운다 — 실행이 triggeredBy 를 그렇게 한다
+      const 누가 = req.user?.username ?? '';
+      const 이름 = req.user?.displayName ?? '';
+
+      // 기획서는 본문이 아니라 자료로 온다. 행은 DRAFT 로 서고 파일은 뒤따라 올린다 (SPEC §7 「자료」)
+      if (kind === 'AUTHOR') {
+        const 받은것 = req.body?.figma ?? [];
+        if (!Array.isArray(받은것)) return reply.code(400).send({ error: 'BAD_FIGMA_URL' });
+        if (받은것.length > 자료상한) return reply.code(400).send({ error: 'TOO_MANY_ASSETS' });
+        const 피그마: string[] = [];
+        for (const 주소 of 받은것) {
+          const 정규 = 피그마주소정규화(주소);
+          if (정규 === null) return reply.code(400).send({ error: 'BAD_FIGMA_URL', detail: String(주소) });
+          피그마.push(정규);
+        }
+        const id = await 준비세우기({ 서비스, 누가, 이름, 피그마, 값 });
+        return reply.code(201).send({ id });
+      }
+
+      const 행 = await 원본확인(req.body?.sourceId, 서비스, reply);
+      if (행 === null) return reply;
+      // 재실행은 원본의 자료를 다시 읽는다. 원본이 재실행·머지면 자료가 없고, DRAFT 면 아직 다 안 올라왔다
+      if (행.kind !== 'AUTHOR' || 행.status === 'DRAFT') {
+        return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행.kind} ${행.status}` });
+      }
+      const id = await 줄세우기({ 서비스, kind, 원본: 행.id, 기획서: null, 값, 누가, 이름 });
       return reply.code(201).send({ id });
     },
   );
@@ -218,7 +257,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       if (서비스 === null) return reply;
 
       const 값 = req.query.status;
-      const 상태들: 상태[] = ['PENDING', 'RUNNING', 'DONE', 'FAILED'];
+      const 상태들: 상태[] = ['DRAFT', 'PENDING', 'RUNNING', 'DONE', 'FAILED'];
       const 상태 = 상태들.find((s) => s === 값);
       if (값 !== undefined && 상태 === undefined) {
         return reply.code(400).send({ error: 'BAD_STATUS', detail: 값 });
@@ -238,7 +277,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 없는 번호는 404 다. 「없는 것」과 「남의 것」이 뭉개지면 안 된다 (SPEC §7).
       // 서비스 경계는 문이 이미 봤다 — 이 틀은 라우트표에서 「번호로 서비스를 찾는」 갈래다
       if (행 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
-      return 행;
+      return { ...행, assets: await 자료목록(행.id) };
     },
   );
 
@@ -286,7 +325,26 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       const 집은것 = await 집기(서비스, req.user?.username ?? '');
       // 줄이 비었으면 204 다. 맥이 폴링하므로 「없음」이 오류가 아니다
       if (집은것 === null) return reply.code(204).send();
-      return 집은것;
+      // 집기는 이미 커밋됐다. 아래가 던지면 맥은 번호를 모르므로 줄로 되돌려 다음 폴링이 다시 집게 한다
+      try {
+        // RERUN 은 자기 자료가 없다. 원본 행의 자료는 맥이 원본 번호로 따로 읽는다
+        const assets = await 자료목록(집은것.id);
+        // 토큰은 피그마 자료가 있을 때만 싣는다. 필요 없는 응답에까지 비밀값을 흘리지 않는다.
+        // RERUN 은 원본의 자료를 읽으므로 원본에 피그마가 있는지를 본다
+        const 읽을자료 =
+          집은것.kind === 'RERUN' && 집은것.sourceId !== null ? await 자료목록(집은것.sourceId) : assets;
+        const 토큰 = 읽을자료.some((a) => a.kind === 'FIGMA') ? await 피그마토큰(서비스) : null;
+        return { ...집은것, assets, ...(토큰 === null ? {} : { figmaToken: 토큰 }) };
+      } catch (e) {
+        // 되돌리기마저 던지면(DB 가 끊긴 같은 원인일 공산이 크다) 그 오류가 원래 원인을 덮는다.
+        // 되돌리기 실패는 로그로 남기고 원래 오류를 낸다 — 오래된 RUNNING 을 치우는 장치는 아직 없다
+        try {
+          await 집기되돌리기(집은것.id, req.user?.username ?? '');
+        } catch (되돌리기오류) {
+          req.log.error({ err: 되돌리기오류, id: 집은것.id }, '집기 되돌리기 실패 — 행이 RUNNING 으로 남았다');
+        }
+        throw e;
+      }
     },
   );
 

@@ -10,18 +10,20 @@ async function db(): Promise<Pool> {
 }
 
 export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE';
-export type 상태 = 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
+// DRAFT 는 자료를 올리는 중이라 아직 줄에 안 섰다. 줄에 세우기는 assetStore.ts 의 `제출` 이 한다
+export type 상태 = 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
 
 /**
- * 상태 전이는 둘뿐이다.
+ * 상태 전이는 셋뿐이다 (2026-09-23 에 `DRAFT→PENDING` 이 늘었다 — 자료를 다 올리기 전에는 줄에 안 선다).
  *
  * ```
- *   PENDING ──집기──▶ RUNNING ──끝내기──▶ DONE
- *      │                  │                FAILED
- *      └── 그 밖의 전이는 전부 409 ─────────┘
+ *   DRAFT ──줄에 세우기──▶ PENDING ──집기──▶ RUNNING ──끝내기──▶ DONE
+ *                            │                  │                FAILED
+ *                            └── 그 밖의 전이는 전부 409 ─────────┘
  * ```
  *
- * **이 둘이 셋을 닫는다** — 끝난 행에 「끝났다」가 또 와서 판정이 덮어써지는 것 ·
+ * 줄에 세우기는 `assetStore.ts` 의 `제출` 이다.
+ * **뒤의 둘이 셋을 닫는다** — 끝난 행에 「끝났다」가 또 와서 판정이 덮어써지는 것 ·
  * 집기가 `PENDING` 만 집으므로 `claimed_by` 가 덮어써질 일이 구조적으로 없는 것 ·
  * 머지가 아직 안 끝난 요청을 가리키는 것.
  *
@@ -35,7 +37,8 @@ export interface 요청 {
   serviceId: number;
   kind: 종류;
   sourceId: number | null;
-  specText: string;
+  // 옛 행만 찬다. 2026-09-23 부터 기획서는 자료(authoring_asset)로 온다
+  specText: string | null;
   params: Record<string, unknown>;
   requestedBy: string;
   requestedByName: string;
@@ -58,7 +61,7 @@ interface 행 {
   service_id: string;
   kind: 종류;
   source_id: string | null;
-  spec_text: string;
+  spec_text: string | null;
   params: Record<string, unknown>;
   requested_by: string;
   requested_by_name: string;
@@ -120,7 +123,8 @@ export async function 줄세우기(입력: {
   서비스: number;
   kind: 종류;
   원본?: number | null;
-  기획서: string;
+  // 옛 행 모양을 만드는 검사와 머지 행 자리표시만 채운다. 새 작성 요청은 자료로 온다
+  기획서: string | null;
   값?: Record<string, unknown>;
   누가: string;
   이름: string;
@@ -176,6 +180,22 @@ export function 병합주소인가(주소: unknown, 저장소: string): boolean 
   return new RegExp(`^${뿌리.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/pull/\\d{1,10}$`).test(주소);
 }
 
+/**
+ * 그 서비스의 피그마 토큰. 없으면 null.
+ *
+ * **집기 라우트만 부른다.** 비밀값이라 설정 API 는 있는지만 알려 주고 값은 안 준다 (도메인/인증 §8.8).
+ * 이 값이 서버 밖으로 나가는 길은 맥의 집기 응답 하나뿐이다.
+ */
+export async function 피그마토큰(서비스: number): Promise<string | null> {
+  const pool = await db();
+  const r = await pool.query<{ figma_token: string | null }>(
+    'SELECT figma_token FROM service WHERE id = $1',
+    [서비스],
+  );
+  const 값 = r.rows[0]?.figma_token ?? null;
+  return 값 === '' ? null : 값;
+}
+
 export async function 한건(id: number): Promise<요청 | null> {
   const pool = await db();
   const r = await pool.query<행>(`SELECT ${칸들} FROM authoring_request WHERE id = $1`, [id]);
@@ -183,12 +203,22 @@ export async function 한건(id: number): Promise<요청 | null> {
   return row === undefined ? null : 빚기(row);
 }
 
+/** 목록 한 줄. 기획서 본문은 싣지 않는다 — 목록은 본문을 안 그리고, 한 쪽에 50 건이면 본문 50 개가 실린다 */
+export type 요약 = Omit<요청, 'specText'>;
+
+const 요약칸들 = 칸들.replace('spec_text, ', '');
+
+function 요약빚기(r: Omit<행, 'spec_text'>): 요약 {
+  const { specText: _본문, ...나머지 } = 빚기({ ...r, spec_text: null });
+  return 나머지;
+}
+
 export async function 한쪽(입력: {
   서비스: number;
   상태?: 상태;
   쪽: number;
   크기?: number;
-}): Promise<{ items: 요청[]; total: number; page: number; pageSize: number }> {
+}): Promise<{ items: 요약[]; total: number; page: number; pageSize: number }> {
   const pool = await db();
   const 크기 = 입력.크기 ?? 50;
   // 쪽 번호가 무한대면 건너뛸 개수도 무한대가 되어 DB 가 해석 못 하는 값이 간다
@@ -202,15 +232,15 @@ export async function 한쪽(입력: {
   );
   // **건너뛸 개수를 질의문 글자에 끼워 넣지 않는다.** 지금은 숫자로 걸러지므로 주입은 아니지만,
   // 다음 사람이 여기에 문자열을 하나 더 얹으면 그때는 진짜 주입이 된다 (2026-09-22 보안 검토)
-  const r = await pool.query<행>(
-    `SELECT ${칸들} FROM authoring_request
+  const r = await pool.query<Omit<행, 'spec_text'>>(
+    `SELECT ${요약칸들} FROM authoring_request
       WHERE service_id = $1${조건}
       ORDER BY id DESC
       LIMIT $${값들.length + 1} OFFSET $${값들.length + 2}`,
     [...값들, 크기, (쪽 - 1) * 크기],
   );
   return {
-    items: r.rows.map(빚기),
+    items: r.rows.map(요약빚기),
     total: Number(셈.rows[0]!.n),
     page: 쪽,
     pageSize: 크기,
@@ -243,6 +273,23 @@ export async function 집기(서비스: number, 집는이: string): Promise<요�
   );
   const row = r.rows[0];
   return row === undefined ? null : 빚기(row);
+}
+
+/**
+ * 집은 것을 줄로 되돌린다. 집은 사람 것만.
+ *
+ * 집기가 행을 RUNNING 으로 커밋한 뒤 응답을 채우다 던지면 맥은 500 만 받고 번호를 모른다.
+ * 되돌리지 않으면 그 행은 아무도 안 끝내는 RUNNING 으로 영원히 남는다.
+ */
+export async function 집기되돌리기(id: number, 집는이: string): Promise<boolean> {
+  const pool = await db();
+  const r = await pool.query(
+    `UPDATE authoring_request
+        SET status = 'PENDING', claimed_by = NULL, started_at = NULL
+      WHERE id = $1 AND status = 'RUNNING' AND claimed_by = $2`,
+    [id, 집는이],
+  );
+  return r.rowCount === 1;
 }
 
 /** 작업 단계를 올린다. 도는 중인 행에만 붙는다 — 아니면 false 를 주고 라우트가 409 를 낸다 */

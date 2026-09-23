@@ -254,3 +254,43 @@
 격자를 실측했다 (`4 · 128 · 754 · 264` · 가로넘침 0). 고치기 전에는 첫 칸이 4px 로 뭉개졌다.
 
 검사 기록은 [`docs/reviews/2026-09-23-작성화면.md`](../reviews/2026-09-23-작성화면.md) 에 있다.
+
+## 2026-09-23 (5회차) — 입력을 자료 목록으로: 파일 첨부와 피그마 (PR #61)
+
+- 완료:
+  - **입력이 자료 목록이다** — 기획서 파일 여럿(pdf·docx·doc·md·txt) + 피그마 주소 여럿을 한 요청에.
+    새 표 `authoring_asset` · 상태 `DRAFT`(다 올리기 전엔 줄에 안 선다) · 통로 셋(올리기·줄에 세우기·내려받기)
+  - **피그마 토큰은 서비스 설정 칸** — Slack 웹훅과 같은 방식. 맥은 집기 응답으로 받는다(피그마 자료가 있을 때만)
+  - **맥** — 자료를 받아 워드는 `textutil` 로 글자만, 토큰은 자식 환경에만. 보고가 실패하면 다섯 번까지 다시 보낸다
+  - **tpx-cases** — 자료 여럿을 요구사항 표 하나로(출처 칸), 피그마 못 읽으면 멈춘다
+  - 게이트 2 에서 고친 것 — 폼이 보내기 전에 서버 규칙을 본다 · 집은 뒤 조회가 실패하면 줄로 되돌린다
+- 미완: **올리기 → 머지 버튼까지 한 바퀴를 끝까지 돈 적이 없다** (아래)
+- 막힌 것: 없음
+
+### ★ 다음 세션이 알아야 할 것
+
+**1. 한 바퀴 실측(#1623 → PR #62, 닫음)** — 올리기부터 **검증까지 끝난 테스트 코드 3건까지 약 10분.**
+그 뒤 자식 `claude -p` 가 [6] 에서 background 검사를 띄우고 「기다린다」며 **먼저 끝났다.**
+보고는 네트워크 오류로 끊겼다(이건 고쳤다). **머지 버튼까지는 못 갔다.**
+
+**2. 다음 PR 이 정해져 있다** — 작성 전용 체인 · 테스트만 바뀐 PR 은 CI 가벼운 길 · 머지 클릭 →
+초안 해제 → CI 초록이면 자동 병합. **셋을 한 PR 로** (사용자 결정). 넘길 목록은 PR #61 의
+「한 바퀴 결과와 다음 PR 로 넘길 것」 코멘트. 그 PR 이 붙으면 한 바퀴를 다시 돌린다.
+
+**3. 지금 흐름의 구멍 둘** — 초안 PR 이라 머지 클릭이 실패할 공산이 크다 · CI 가 `tests/demo` 를 실행에서 뺀다.
+
+**4. 진입점** — 서버 `apps/admin/src/authoring/{routes,assets,assetStore,store}.ts` ·
+화면 `AuthoringNew.tsx`·`AuthoringDetail.tsx`·`SettingsService.tsx` · 맥 `scripts/authoring-{agent,assets}.ts`.
+피그마 도구의 npm 이름은 **`figma-reader`** 다(`figma-reader-cli` 는 저장소 이름).
+
+**5. 시험 흔적** — 개발 DB 에 operator 계정 `mac`(DEMO 배정)을 만들었고 DEMO 의 테스트 저장소를
+`https://github.com/maxihan1/test-platform` 으로 바꿨다. docker admin 은 이 브랜치로 빌드돼 있다(`AUTHORING_AGENT_USER=mac`).
+로컬에 자식이 만든 작업방 `.claude/worktrees/cases-clear-done` 이 남아 있다.
+
+### 검사
+
+`check:deps` · `typecheck` · `check:workflow` · `check:spec` · `check:tests` 전부 **EXIT 0** ·
+**`npm test` DB 붙여 연속 3회 `0·0·0`** — 검사 **1319**.
+렌즈: code-review 재검사 BLOCKER 0 · spec-review 치명 0 · security-review 0건. 화면은 사용자가 직접 봤다
+(설정 화면 아래가 잘리던 전부터 있던 CSS 버그를 잡아 고쳤다).
+검사 기록은 [`docs/reviews/2026-09-23-작성-자료목록.md`](../reviews/2026-09-23-작성-자료목록.md).

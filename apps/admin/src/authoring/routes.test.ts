@@ -5,10 +5,17 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import authoringRoutes from './routes.js';
-import { 줄세우기 } from './store.js';
+import { 자료목록, 제출, 준비세우기 } from './assetStore.js';
+import authoringRoutes, { 피그마주소정규화 } from './routes.js';
+import { 줄세우기, 집기되돌리기, 피그마토큰, 한건 } from './store.js';
+
+// 집기 뒤 조회가 한 번 실패하는 경우를 만들려고 토큰 조회만 갈아 끼운다. 나머지는 진짜다
+vi.mock('./store.js', async (원본) => {
+  const 진짜 = await 원본<typeof import('./store.js')>();
+  return { ...진짜, 피그마토큰: vi.fn(진짜.피그마토큰), 집기되돌리기: vi.fn(진짜.집기되돌리기) };
+});
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -92,14 +99,105 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('작성 요청은 201 로 줄에 선다', async () => {
+    it('작성 요청은 201 로 만들어진다 — 본문(specText)은 더 받지 않는다', async () => {
       const res = await app.inject({
         method: 'POST',
         url: `/api/authoring/requests?service=${접두사}`,
-        payload: { kind: 'AUTHOR', specText: '할 일을 한 건 만든다' },
+        payload: { kind: 'AUTHOR' },
       });
       expect(res.statusCode).toBe(201);
       expect(typeof res.json().id).toBe('number');
+    });
+  });
+
+  describe('작성 요청은 DRAFT 로 서고 피그마 주소를 정규화한다 (2026-09-23)', () => {
+    it('「Copy link」 주소 그대로 넣으면 201 · DRAFT · 꼬리를 버린 주소가 저장된다', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests?service=${접두사}`,
+        payload: {
+          kind: 'AUTHOR',
+          figma: ['https://www.figma.com/design/AbC123/이름?node-id=12-34&t=XyZ-0'],
+        },
+      });
+      expect(res.statusCode).toBe(201);
+      const id = res.json().id as number;
+      expect((await 한건(id))?.status).toBe('DRAFT');
+      expect((await 자료목록(id)).map((a) => a.figmaUrl)).toEqual([
+        'https://www.figma.com/design/AbC123/?node-id=12-34',
+      ]);
+    });
+
+    it('피그마 주소 없이도 DRAFT 로 선다 — 파일은 뒤따라 올린다', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests?service=${접두사}`,
+        payload: { kind: 'AUTHOR' },
+      });
+      expect(res.statusCode).toBe(201);
+      expect((await 한건(res.json().id as number))?.status).toBe('DRAFT');
+    });
+
+    it('피그마 주소 모양이 아니면 400 BAD_FIGMA_URL', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests?service=${접두사}`,
+        payload: { kind: 'AUTHOR', figma: ['https://www.figma.com/board/AbC123/x'] },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().error).toBe('BAD_FIGMA_URL');
+    });
+
+    it('자료가 상한을 넘으면 400', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests?service=${접두사}`,
+        payload: {
+          kind: 'AUTHOR',
+          figma: Array.from({ length: 21 }, (_, i) => `https://www.figma.com/design/K${String(i)}/`),
+        },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('목록을 DRAFT 로 거를 수 있다', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/authoring/requests?service=${접두사}&status=DRAFT`,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().items.every((r: { status: string }) => r.status === 'DRAFT')).toBe(true);
+    });
+  });
+
+  describe('재실행은 자료를 새로 안 받고 곧장 줄에 선다', () => {
+    it('기획서 없이 201 · PENDING', async () => {
+      const 원본 = await 줄세우기({ 서비스, kind: 'AUTHOR', 기획서: '옛 행', 누가: 'x', 이름: 'x' });
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests?service=${접두사}`,
+        payload: { kind: 'RERUN', sourceId: 원본 },
+      });
+      expect(res.statusCode).toBe(201);
+      const 행 = await 한건(res.json().id as number);
+      expect(행?.status).toBe('PENDING');
+      expect(행?.specText).toBe(null);
+    });
+
+    it('원본이 재실행·머지·DRAFT 면 409 BAD_SOURCE', async () => {
+      const 작성 = await 줄세우기({ 서비스, kind: 'AUTHOR', 기획서: '옛 행', 누가: 'x', 이름: 'x' });
+      const 재실행 = await 줄세우기({ 서비스, kind: 'RERUN', 원본: 작성, 기획서: null, 누가: 'x', 이름: 'x' });
+      const 머지 = await 줄세우기({ 서비스, kind: 'MERGE', 원본: 작성, 기획서: null, 누가: 'x', 이름: 'x' });
+      const 준비 = await 준비세우기({ 서비스, 누가: 'x', 이름: 'x', 피그마: [] });
+      for (const 원본 of [재실행, 머지, 준비]) {
+        const res = await app.inject({
+          method: 'POST',
+          url: `/api/authoring/requests?service=${접두사}`,
+          payload: { kind: 'RERUN', sourceId: 원본 },
+        });
+        expect(res.statusCode, String(원본)).toBe(409);
+        expect(res.json().error).toBe('BAD_SOURCE');
+      }
     });
   });
 
@@ -186,6 +284,127 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
         url: `/api/authoring/requests/claim?service=${접두사}`,
       });
       expect(res.statusCode).toBe(204);
+    });
+  });
+
+  describe('집기 응답은 자료를 든다', () => {
+    it('집은 한 건에 자료 목록이 따라온다 — 맥이 그것을 받아 읽는다', async () => {
+      let 비었나 = false;
+      while (!비었나) {
+        const r = await app.inject({
+          method: 'POST',
+          url: `/api/authoring/requests/claim?service=${접두사}`,
+        });
+        비었나 = r.statusCode === 204;
+      }
+      const id = await 준비세우기({
+        서비스,
+        누가: 'x',
+        이름: 'x',
+        피그마: ['https://www.figma.com/design/B2/'],
+      });
+      await 제출(id);
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests/claim?service=${접두사}`,
+      });
+      expect(res.json().id).toBe(id);
+      expect(res.json().assets).toEqual([
+        expect.objectContaining({ kind: 'FIGMA', figmaUrl: 'https://www.figma.com/design/B2/' }),
+      ]);
+    });
+  });
+
+  describe('피그마 토큰은 피그마 자료가 있을 때만 집기 응답에 실린다', () => {
+    async function 비우고집기(피그마: string[]) {
+      let 비었나 = false;
+      while (!비었나) {
+        const r = await app.inject({
+          method: 'POST',
+          url: `/api/authoring/requests/claim?service=${접두사}`,
+        });
+        비었나 = r.statusCode === 204;
+      }
+      const id = await 준비세우기({ 서비스, 누가: 'x', 이름: 'x', 피그마 });
+      if (피그마.length === 0) {
+        const { pool } = await import('../db/index.js');
+        await pool.query(
+          `INSERT INTO authoring_asset (request_id, position, kind, name, size) VALUES ($1, 1, 'FILE', 'a.pdf', 1)`,
+          [id],
+        );
+      }
+      await 제출(id);
+      return app.inject({ method: 'POST', url: `/api/authoring/requests/claim?service=${접두사}` });
+    }
+
+    it('피그마 자료가 있으면 그 서비스의 토큰을 싣는다', async () => {
+      const { pool } = await import('../db/index.js');
+      await pool.query(`UPDATE service SET figma_token = 'figd_xwar' WHERE id = $1`, [서비스]);
+      const res = await 비우고집기(['https://www.figma.com/design/T1/']);
+      expect(res.json().figmaToken).toBe('figd_xwar');
+    });
+
+    it('피그마 자료가 없으면 키 자체가 없다 — 토큰이 필요 없는 곳에 비밀값을 안 흘린다', async () => {
+      const { pool } = await import('../db/index.js');
+      await pool.query(`UPDATE service SET figma_token = 'figd_xwar' WHERE id = $1`, [서비스]);
+      const res = await 비우고집기([]);
+      expect(res.statusCode).toBe(200);
+      expect('figmaToken' in res.json()).toBe(false);
+    });
+  });
+
+  describe('집은 뒤 조회가 실패하면 그 행을 줄로 되돌린다', () => {
+    it('500 이 나고 행은 PENDING 으로 돌아온다 — 안 그러면 번호 모르는 RUNNING 이 남는다', async () => {
+      let 비었나 = false;
+      while (!비었나) {
+        const r = await app.inject({
+          method: 'POST',
+          url: `/api/authoring/requests/claim?service=${접두사}`,
+        });
+        비었나 = r.statusCode === 204;
+      }
+      const id = await 준비세우기({
+        서비스,
+        누가: 'x',
+        이름: 'x',
+        피그마: ['https://www.figma.com/design/R1/'],
+      });
+      await 제출(id);
+      vi.mocked(피그마토큰).mockRejectedValueOnce(new Error('DB 끊김'));
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests/claim?service=${접두사}`,
+      });
+      expect(res.statusCode).toBe(500);
+      const 행 = await 한건(id);
+      expect(행?.status).toBe('PENDING');
+      expect(행?.claimedBy).toBe(null);
+    });
+
+    it('되돌리기마저 실패해도 원래 오류가 나간다 — 되돌리기 오류가 원인을 덮으면 안 된다', async () => {
+      let 비었나 = false;
+      while (!비었나) {
+        const r = await app.inject({
+          method: 'POST',
+          url: `/api/authoring/requests/claim?service=${접두사}`,
+        });
+        비었나 = r.statusCode === 204;
+      }
+      const id = await 준비세우기({
+        서비스,
+        누가: 'x',
+        이름: 'x',
+        피그마: ['https://www.figma.com/design/R2/'],
+      });
+      await 제출(id);
+      vi.mocked(피그마토큰).mockRejectedValueOnce(new Error('DB 끊김 원래'));
+      vi.mocked(집기되돌리기).mockRejectedValueOnce(new Error('되돌리기도 실패'));
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests/claim?service=${접두사}`,
+      });
+      expect(res.statusCode).toBe(500);
+      expect(res.json().message).toBe('DB 끊김 원래');
     });
   });
 
@@ -286,6 +505,20 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
       expect(res.statusCode).toBe(200);
       const 몸 = res.json();
       expect(몸.items.every((r: { serviceId: number }) => r.serviceId === 서비스)).toBe(true);
+    });
+
+    it('상세는 자료 목록을 든다', async () => {
+      const id = await 준비세우기({
+        서비스,
+        누가: 'x',
+        이름: 'x',
+        피그마: ['https://www.figma.com/design/A1/'],
+      });
+      const res = await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}` });
+      expect(res.statusCode).toBe(200);
+      expect(res.json().assets).toEqual([
+        expect.objectContaining({ position: 1, kind: 'FIGMA', figmaUrl: 'https://www.figma.com/design/A1/' }),
+      ]);
     });
 
     it('없는 번호는 404 — 「없는 것」과 「남의 것」이 안 뭉개진다', async () => {
@@ -427,5 +660,38 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
       expect(행.json().specText).not.toContain('워크플로');
       expect(행.json().sourceId).toBe(원본);
     });
+  });
+});
+
+describe('피그마 주소 정규화 — 통과·거절이 아니라 다시 조립한다', () => {
+  it.each([
+    ['https://www.figma.com/design/AbC123/이름?node-id=12-34&t=XyZ-0', 'https://www.figma.com/design/AbC123/?node-id=12-34'],
+    ['https://figma.com/file/AbC123/이름?node-id=12%3A34', 'https://www.figma.com/design/AbC123/?node-id=12-34'],
+    ['https://www.figma.com/proto/AbC123/이름?node-id=1-2&scaling=min-zoom', 'https://www.figma.com/design/AbC123/?node-id=1-2'],
+    ['https://www.figma.com/design/AbC123', 'https://www.figma.com/design/AbC123/'],
+    ['https://www.figma.com/design/MAIN1/branch/BrAnCh9/이름?node-id=1-2', 'https://www.figma.com/design/BrAnCh9/?node-id=1-2'],
+    ['https://www.figma.com/design/MAIN1/branch/BrAnCh9/이름', 'https://www.figma.com/design/BrAnCh9/'],
+    ['https://www.figma.com/design/AbC123/branch?node-id=1-2', 'https://www.figma.com/design/AbC123/?node-id=1-2'],
+  ])('%s → %s', (주소, 기대) => {
+    expect(피그마주소정규화(주소)).toBe(기대);
+  });
+
+  it.each([
+    'http://www.figma.com/design/AbC123/',
+    'https://evil.com/design/AbC123/',
+    'https://figma.com.evil.com/design/AbC123/',
+    'https://www.figma.com/board/AbC123/',
+    'https://www.figma.com/design/Ab;C123/',
+    'https://www.figma.com/design/AbC123/?node-id=1-2;rm',
+    'https://www.figma.com/design/MAIN1/branch/Br;anch/?node-id=1-2',
+    'https://www.figma.com/design/MAIN1/branch/',
+    '아무 글자',
+    '',
+  ])('%s 는 거절', (주소) => {
+    expect(피그마주소정규화(주소)).toBe(null);
+  });
+
+  it('글자가 아니면 거절', () => {
+    expect(피그마주소정규화(42)).toBe(null);
   });
 });

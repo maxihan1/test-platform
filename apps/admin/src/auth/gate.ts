@@ -83,6 +83,7 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/screenshots/:runId/:historyId/:seq.png': 'viewer',
   'GET /api/authoring/requests': 'viewer',
   'GET /api/authoring/requests/:id': 'viewer',
+  'GET /api/authoring/requests/:id/assets/:assetId': 'viewer',
 
   // 바꾸는 일 — operator
   'POST /api/catalog/scan': 'operator',
@@ -96,6 +97,8 @@ export const 등급표: Record<string, 표값> = {
   'PATCH /api/authoring/requests/:id/stage': 'operator',
   'POST /api/authoring/requests/:id/screenshots': 'operator',
   'POST /api/authoring/requests/:id/finish': 'operator',
+  'POST /api/authoring/requests/:id/assets': 'operator',
+  'POST /api/authoring/requests/:id/submit': 'operator',
 
   // ★ 저장소를 영구히 바꾸는 일 — admin. **이 PR 이 일부러 바꾸는 유일한 줄이다**
   'POST /api/authoring/merges': 'admin',

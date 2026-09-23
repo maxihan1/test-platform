@@ -70,6 +70,17 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(행, '행에 그림자를 주면 나열이 객체로 읽힌다').not.toMatch(/box-shadow:/);
   });
 
+  it('면이 창보다 길어도 줄어들어 잘리지 않는다 — 넘치면 .main 이 스크롤한다', () => {
+    // .main 은 창 높이의 세로 flex 이고 .screen 은 overflow: hidden 이다. flex 항목은
+    // overflow 가 hidden 이면 내용보다 작게 줄어들 수 있어서, 긴 설정 화면의 아래가
+    // 잘린 채 숨고 .main 에는 넘친 것이 없어 스크롤도 안 생겼다 (2026-09-23 실측)
+    const 면 = /^\.screen\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
+    expect(면).toMatch(/flex-shrink:\s*0/);
+    // 목록 화면만은 남는 칸을 받아 안의 표를 스크롤한다 — 위 규칙을 덮어써야 한다
+    const 목록 = /^\.screen\.list-screen\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
+    expect(목록).toMatch(/flex:\s*1/);
+  });
+
   it('흐름 막대는 판정마다 높이가 다르다 — 색만으로 말하지 않는다', () => {
     // 색을 못 보는 사람에게 다섯 칸이 전부 같은 높이면 회색 네모 다섯이다 (DESIGN.md 접근성)
     const 높이 = (판정: string) =>

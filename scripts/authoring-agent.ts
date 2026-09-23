@@ -14,14 +14,25 @@
 // 설계상 사람이 켜서 터미널에 띄워 두는 것이라(숨은 데몬이 아니다) 그 한 번이 공짜다.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { createInterface } from 'node:readline';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import {
+  type 권한설정,
+  type 읽을자료,
+  type 자료,
+  돌릴수있나,
+  셸허용됐나,
+  자료계획,
+  자료목록글,
+  자료출처,
+} from './authoring-assets.js';
+
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
-export interface 설정 {
+export interface 설정 extends 권한설정 {
   apiKeyHelper?: string;
   env?: Record<string, string>;
 }
@@ -126,9 +137,12 @@ export function 푸시막힘(
  * **프롬프트는 여기 안 싣는다.** `--disallowedTools` 가 가변 인자라 **뒤따르는 것을 전부 삼킨다** —
  * 프롬프트가 도구 이름 목록으로 먹혀 `Input must be provided...` 로 죽었다 (2026-09-21 실측).
  * 프롬프트는 stdin 으로 넘긴다. 셸 따옴표 문제도 같이 사라진다.
+ *
+ * `--add-dir` 로 자료를 받아 둔 임시 폴더를 연다. 작업 폴더 밖이라 안 열면 자식이 자료를 못 읽는다.
+ * **`--add-dir` 도 가변 인자다** — 그래서 `--disallowedTools` 앞에 두고, 마지막은 여전히 `--disallowedTools` 다.
  */
-export function 클로드인자(): string[] {
-  return ['-p', '--permission-mode', 'acceptEdits', '--disallowedTools', 'AskUserQuestion'];
+export function 클로드인자(폴더: string): string[] {
+  return ['-p', '--permission-mode', 'acceptEdits', '--add-dir', 폴더, '--disallowedTools', 'AskUserQuestion'];
 }
 
 /**
@@ -157,7 +171,16 @@ export function 선행검사(입력: {
   const 전제 = 대기줄전제(입력.env);
   if (전제 !== null) return 전제;
 
-  return 푸시막힘(입력.오늘, 입력.기록, 입력.env);
+  const 푸시 = 푸시막힘(입력.오늘, 입력.기록, 입력.env);
+  if (푸시 !== null) return 푸시;
+
+  if (!셸허용됐나(입력.설정들.map((s) => s.값))) {
+    return [
+      '자식 세션이 셸 명령을 못 돈다. 피그마를 못 읽고 관문도 못 돌아 한도만 쓰고 멈춘다.',
+      '~/.claude/settings.json 의 permissions.allow 에 Bash(*) 를 넣고 다시 실행해라 (docs/SETUP.md §8).',
+    ].join('\n');
+  }
+  return null;
 }
 
 /**
@@ -181,18 +204,23 @@ export interface 집은것 {
   id: number;
   kind: 'AUTHOR' | 'RERUN' | 'MERGE';
   sourceId?: number | null;
-  specText?: string;
+  /** 옛 행만 있다. 새 작성 요청은 자료로 온다 */
+  specText?: string | null;
   prUrl?: string | null;
+  /** 이 행 자기 자료. 재실행 행은 비어 있고 원본의 자료를 따로 읽는다 */
+  assets?: 자료[];
+  /** 피그마 자료가 있을 때만 온다. **자식 환경에만** 넘기고 어디에도 안 찍는다 */
+  figmaToken?: string;
 }
 
 /**
  * 줄에서 집은 작성 요청으로 자식 세션에게 시킬 일.
  *
- * **기획서를 본문으로 넘긴다.** 셸 진입점은 경로를 받았지만 대기줄은 본문을 싣는다 —
- * 맥은 다른 기계라 서버의 경로를 못 읽고, 그 파일이 나중에 고쳐지면
- * 무엇을 시킨 요청이었는지도 같이 바뀐다 (공통/4-데이터모델 §6).
+ * **기획서는 맥이 받아 둔 자료 목록으로 넘긴다** (도메인/작성 §7 「자료」). 경로는 서버의 것이 아니라
+ * 맥의 임시 폴더다 — 맥은 다른 기계라 서버의 경로를 못 읽는다.
+ * 자료가 없는 옛 행만 본문(`specText`)을 그대로 싣는다.
  */
-export function 줄프롬프트(것: 집은것, 서비스: string): string {
+export function 줄프롬프트(것: 집은것, 서비스: string, 계획: 읽을자료[]): string {
   return [
     `/tpx 아래 기획서로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
     '- [5] 자리에서 tpx-cases 스킬을 써라.',
@@ -214,8 +242,7 @@ export function 줄프롬프트(것: 집은것, 서비스: string): string {
     '',
     '관문 넷(형식·표 대조·3회 연속·일부러 부수기)은 전부 돌려라.',
     '',
-    '--- 기획서 ---',
-    것.specText ?? '',
+    ...(계획.length > 0 ? 자료목록글(계획) : ['--- 기획서 ---', 것.specText ?? '']),
   ].join('\n');
 }
 
@@ -324,6 +351,18 @@ export function 기다렸다다시인가(status: number): boolean {
   return status >= 500;
 }
 
+/**
+ * 「끝났다」 보고를 다시 보내기 전에 기다릴 시간(ms). 더 안 보내면 `null`.
+ *
+ * **보고 한 번을 잃으면 그 요청은 아무도 끝내지 않는 RUNNING 으로 영원히 남는다** (2026-09-23 한 바퀴 실측).
+ * 40분 쉬던 서버 연결이 끊겨 있어 `fetch failed` 한 번에 보고가 사라졌다.
+ * 끝없이 붙잡지도 않는다 — 밤새 도는 줄이 한 건에 묶이면 뒤의 요청이 전부 선다.
+ */
+export function 보고간격(시도: number): number | null {
+  const 간격들 = [2_000, 5_000, 15_000, 30_000, 60_000];
+  return 간격들[시도] ?? null;
+}
+
 // ── 껍데기 ────────────────────────────────────────────────────────────
 // 여기부터는 I/O 다. 판단은 전부 위의 순수 함수에 있고 검사도 거기 붙어 있다.
 // `scripts/run-scheduled.ts` 와 같은 모양이다.
@@ -423,6 +462,8 @@ async function 부른다(
       ...(옵션.body === undefined ? {} : { 'content-type': 'application/json' }),
     },
     ...(옵션.body === undefined ? {} : { body: JSON.stringify(옵션.body) }),
+    // 응답이 끝내 안 오면 영원히 기다린다. 끊긴 연결에 걸려도 여기서 끊고 부르는 쪽이 다시 보낸다
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (거절인가(답.status)) {
@@ -442,11 +483,29 @@ async function 한건처리(주소기지: string, 쿠키: string, 서비스: str
       method: 'PATCH',
       body: { stage: 글 },
     });
-  const 끝내기 = (몸: Record<string, unknown>) =>
-    부른다(주소기지, 쿠키, `/authoring/requests/${것.id}/finish?service=${encodeURIComponent(서비스)}`, {
-      method: 'POST',
-      body: 몸,
-    });
+  // 보고 한 번을 잃으면 요청이 영원히 RUNNING 이다. 거절(401·403)만 빼고 몇 번 다시 보낸다
+  const 끝내기 = async (몸: Record<string, unknown>) => {
+    for (let 시도 = 0; ; 시도 += 1) {
+      let 실패: unknown;
+      try {
+        const 답 = await 부른다(
+          주소기지,
+          쿠키,
+          `/authoring/requests/${것.id}/finish?service=${encodeURIComponent(서비스)}`,
+          { method: 'POST', body: 몸 },
+        );
+        if (!기다렸다다시인가(답.status)) return 답;
+        실패 = new Error(`끝났다는 보고에 서버가 ${답.status} 를 냈다`);
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('서버가 거절했다')) throw err;
+        실패 = err;
+      }
+      const 간격 = 보고간격(시도);
+      if (간격 === null) throw 실패;
+      console.error(`[기다림] ${것.id}번 보고가 실패했다. ${간격 / 1000}초 뒤 다시 보낸다.`);
+      await new Promise((resolve) => setTimeout(resolve, 간격));
+    }
+  };
 
   if (것.kind === 'MERGE') {
     // **머지 행에는 PR 주소가 안 실려 온다** — 서버가 줄을 세울 때 그 칸을 안 채운다
@@ -477,37 +536,93 @@ async function 한건처리(주소기지: string, 쿠키: string, 서비스: str
     return;
   }
 
-  await 단계('케이스를 만드는 중');
-  // **출력을 잡는다.** 자식이 찍는 PR 주소를 못 읽으면 화면에 머지 버튼이 영영 안 뜬다.
-  // 그래도 사람 눈에는 보여야 하므로(숨은 데몬이 아니다) 받는 족족 그대로 흘려보낸다
-  const 돌린것 = spawnSync('claude', 클로드인자(), {
-    input: 줄프롬프트(것, 서비스),
-    stdio: ['pipe', 'pipe', 'inherit'],
-    encoding: 'utf8',
-  });
-  const 낸것 = 돌린것.stdout ?? '';
-  process.stdout.write(낸것);
-
-  if (돌린것.error) {
-    await 끝내기({ status: 'FAILED', error: `claude 를 못 띄웠다: ${돌린것.error.message}` });
-    return;
-  }
-  if (돌린것.status !== 0) {
-    await 끝내기({ status: 'FAILED', error: '케이스를 만들다 멈췄다. 터미널 기록을 봐라.' });
-    return;
+  // 재실행 행은 자기 자료가 없다. 원본 행을 읽어 자료와(옛 행이면) 본문을 가져온다
+  const 출처 = 자료출처(것);
+  let 자료들 = 것.assets ?? [];
+  let 본문 = 것.specText ?? null;
+  if (출처 !== 것.id) {
+    const 원본 = await 부른다(주소기지, 쿠키, `/authoring/requests/${출처}?service=${encodeURIComponent(서비스)}`);
+    if (원본.status !== 200) {
+      await 끝내기({ status: 'FAILED', error: `원본 요청(${출처}번)을 못 읽었다 (${원본.status})` });
+      return;
+    }
+    const 몸 = 원본.몸 as { assets?: 자료[]; specText?: string | null };
+    자료들 = 몸.assets ?? [];
+    본문 = 본문 || (몸.specText ?? null);
   }
 
-  const 주소 = PR주소찾기(낸것);
-  if (주소 === null) {
-    // **초록으로 닫지 않는다.** 주소가 없으면 사람이 머지를 못 누르고, 그때
-    // 「끝남」이라고 적힌 줄만 남아 무엇이 잘못됐는지 아무도 모른다
-    await 끝내기({
-      status: 'FAILED',
-      error: '케이스는 만들었는데 초안 PR 주소를 못 찾았다. 터미널 기록에서 PR 을 확인해라.',
+  const 막힘 = 돌릴수있나({ specText: 본문, figmaToken: 것.figmaToken }, 자료들);
+  if (막힘 !== null) {
+    await 끝내기({ status: 'FAILED', error: 막힘 });
+    return;
+  }
+
+  // 이름을 예측할 수 없게 만든다. 고정 이름이면 남이 미리 만들어 둔 폴더·링크에 받아 쓴다
+  const 폴더 = mkdtempSync(join(tmpdir(), `authoring-${것.id}-`));
+  try {
+    const 계획 = 자료계획(자료들, 폴더);
+    if (계획.some((c) => c.kind === 'FILE')) await 단계('자료를 받는 중');
+    for (const c of 계획) {
+      if (c.kind !== 'FILE') continue;
+      const 답 = await fetch(
+        `${주소기지}/api/authoring/requests/${출처}/assets/${c.id}?service=${encodeURIComponent(서비스)}`,
+        { headers: { cookie: 쿠키 } },
+      );
+      if (거절인가(답.status)) {
+        throw new Error(`서버가 거절했다 (${답.status}). 세션이 끊겼거나 등급이 모자란다 — 다시 물어도 같다.`);
+      }
+      if (!답.ok) {
+        await 끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 못 받았다 (${답.status})` });
+        return;
+      }
+      // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다
+      writeFileSync(c.받을자리, Buffer.from(await 답.arrayBuffer()));
+      if (c.변환 === null) continue;
+      const 바꾼것 = spawnSync('textutil', c.변환, { stdio: ['ignore', 'ignore', 'pipe'], encoding: 'utf8' });
+      if (바꾼것.error || 바꾼것.status !== 0) {
+        const 까닭 = 바꾼것.error?.message ?? (바꾼것.stderr ?? '').split('\n')[0] ?? '';
+        await 끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 글자로 못 바꿨다: ${까닭}` });
+        return;
+      }
+    }
+
+    await 단계('케이스를 만드는 중');
+    // **출력을 잡는다.** 자식이 찍는 PR 주소를 못 읽으면 화면에 머지 버튼이 영영 안 뜬다.
+    // 그래도 사람 눈에는 보여야 하므로(숨은 데몬이 아니다) 받는 족족 그대로 흘려보낸다
+    // 피그마 토큰은 **자식 환경에만** 넣는다. 부모 환경에 넣으면 이 뒤에 띄우는 모든 것(gh 등)에 샌다
+    const 돌린것 = spawnSync('claude', 클로드인자(폴더), {
+      input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획),
+      stdio: ['pipe', 'pipe', 'inherit'],
+      encoding: 'utf8',
+      env: 것.figmaToken === undefined ? process.env : { ...process.env, FIGMA_TOKEN: 것.figmaToken },
     });
-    return;
+    const 낸것 = 돌린것.stdout ?? '';
+    process.stdout.write(낸것);
+
+    if (돌린것.error) {
+      await 끝내기({ status: 'FAILED', error: `claude 를 못 띄웠다: ${돌린것.error.message}` });
+      return;
+    }
+    if (돌린것.status !== 0) {
+      await 끝내기({ status: 'FAILED', error: '케이스를 만들다 멈췄다. 터미널 기록을 봐라.' });
+      return;
+    }
+
+    const 주소 = PR주소찾기(낸것);
+    if (주소 === null) {
+      // **초록으로 닫지 않는다.** 주소가 없으면 사람이 머지를 못 누르고, 그때
+      // 「끝남」이라고 적힌 줄만 남아 무엇이 잘못됐는지 아무도 모른다
+      await 끝내기({
+        status: 'FAILED',
+        error: '케이스는 만들었는데 초안 PR 주소를 못 찾았다. 터미널 기록에서 PR 을 확인해라.',
+      });
+      return;
+    }
+    await 끝내기({ status: 'DONE', prUrl: 주소 });
+  } finally {
+    // 받은 기획서를 맥에 남기지 않는다. 성공이든 실패든 지운다
+    rmSync(폴더, { recursive: true, force: true });
   }
-  await 끝내기({ status: 'DONE', prUrl: 주소 });
 }
 
 const 쉬는시간 = 5000;

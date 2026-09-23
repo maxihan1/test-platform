@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
-import { type SettingsServiceRow } from './api.js';
+import { api, type SettingsServiceRow } from './api.js';
 import { ServiceSection } from './SettingsService.js';
 
 afterEach(() => {
@@ -62,3 +62,54 @@ describe('설정에서 색 고르개를 걷었다 (SPEC §8.8, 2026-09-22)', () 
   });
 });
 
+function 피그마칸(): HTMLElement {
+  const 칸 = screen.getByText('피그마 토큰', { selector: 'label' }).closest('.field');
+  if (!(칸 instanceof HTMLElement)) throw new Error('피그마 토큰 칸이 없다');
+  return 칸;
+}
+
+describe('피그마 토큰 칸 (도메인/인증 §8.8)', () => {
+  it('토큰을 넣고 저장하면 figmaToken 이 간다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServiceSection rows={[서비스]} onDone={() => {}} />);
+    fireEvent.click(screen.getByText('편집'));
+
+    fireEvent.click(within(피그마칸()).getByRole('button', { name: '넣기' }));
+    fireEvent.change(screen.getByLabelText('피그마 토큰'), { target: { value: 'figd_abc' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
+    expect(고침.mock.calls[0]?.[1]).toMatchObject({ figmaToken: 'figd_abc' });
+    expect(고침.mock.calls[0]?.[1]).not.toHaveProperty('slackWebhook');
+  });
+
+  it('안 건드리면 figmaToken 을 안 보낸다. 빈 글자가 가면 있던 토큰이 지워진다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServiceSection rows={[{ ...서비스, hasFigmaToken: true }]} onDone={() => {}} />);
+    fireEvent.click(screen.getByText('편집'));
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
+    expect(고침.mock.calls[0]?.[1]).not.toHaveProperty('figmaToken');
+  });
+
+  it('저장된 서비스는 값 대신 「설정됨 · 다시 넣기」를 보인다', () => {
+    render(<ServiceSection rows={[{ ...서비스, hasFigmaToken: true }]} onDone={() => {}} />);
+    fireEvent.click(screen.getByText('편집'));
+
+    const 칸 = 피그마칸();
+    expect(칸.textContent).toContain('설정됨');
+    expect(칸.textContent).toContain('다시 넣기');
+    expect(screen.queryByLabelText('피그마 토큰')).toBeNull();
+  });
+
+  it('칸 옆에 발급 안내와 Figma 설정 링크가 있다', () => {
+    그린다();
+    expect(screen.getByText(/Figma → Settings → Security → Personal access tokens/)).toBeTruthy();
+    expect(screen.getByText(/File content 읽기만/)).toBeTruthy();
+    expect(screen.getByText(/만료일/)).toBeTruthy();
+    const 링크 = screen.getByRole('link', { name: /Figma 설정 열기/ });
+    expect(링크.getAttribute('href')).toBe('https://www.figma.com/settings');
+    expect(링크.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+});

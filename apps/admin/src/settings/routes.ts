@@ -31,6 +31,7 @@ const 새서비스 = z.object({
   testsDir: z.string().min(1),
   envs: z.array(대상서버).default([]),
   slackWebhook: z.string().optional(),
+  figmaToken: z.string().optional(),
 });
 
 const 서비스수정 = z.object({
@@ -41,6 +42,7 @@ const 서비스수정 = z.object({
   isActive: z.boolean().optional(),
   envs: z.array(대상서버).optional(),
   slackWebhook: z.string().optional(),
+  figmaToken: z.string().optional(),
 });
 
 const 등급 = z.enum(['viewer', 'operator', 'admin']);

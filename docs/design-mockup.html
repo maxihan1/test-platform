@@ -984,6 +984,78 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
     눌러도 빈 자리가 나오는 버튼은 고장으로 보인다. 접개 글자에 <b>값이 몇 개인지</b>를 적어 펴기 전에 크기를 안다.
   </p>
 
+  <h2>테스트 작성 — 새 요청과 자료 (도메인/작성 §7 「자료」)</h2>
+  <div class="frame">
+    <div class="app">
+      <aside class="side">
+        <div class="svc"><span class="svc-cap">서비스</span><span class="svc-name">결제 서비스</span><span class="svc-caret">▾</span></div>
+        <span class="svc-repo mono">github.com/acme/pay-e2e</span>
+        <nav>
+          <a href="#">테스트 케이스</a>
+          <a href="#" aria-current="page">테스트 작성</a>
+          <a href="#">실행 기록</a>
+          <a href="#">그래프 <span class="out">↗</span></a>
+          <a href="#">설정</a>
+        </nav>
+        <div class="spacer"></div>
+        <div class="me"><span class="who">김철수</span><button>로그아웃</button></div>
+      </aside>
+
+      <div class="main">
+        <header class="head">
+          <div class="titlewrap">
+            <h1>테스트 작성</h1>
+            <div class="meta">기획서 파일과 피그마 주소를 한 세트로 넣는다</div>
+          </div>
+        </header>
+
+        <div class="body">
+          <div class="grid2">
+            <!-- 새 요청. 받는 종류와 상한은 도메인/작성 §7 「자료」가 정본이다 — 숫자를 여기 옮겨 적지 않는다 -->
+            <div class="card">
+              <h3>새 요청</h3>
+              <div class="in">
+                <div class="frow"><label for="a1">기획서 파일</label>
+                  <input id="a1" type="file" multiple accept=".pdf,.docx,.doc,.md,.txt" class="fctl" style="flex:1" /></div>
+                <div class="frow"><label></label><span class="fhint mono">결제-기획서.pdf · 화면정의서.docx</span></div>
+                <div class="frow"><label for="a2">피그마 주소</label>
+                  <textarea id="a2" class="fctl mono" rows="3" style="flex:1">https://www.figma.com/design/AbC123/결제?node-id=12-34&amp;t=xY</textarea></div>
+                <div class="frow"><label></label><span class="fhint">한 줄에 하나. 받는 파일은 PDF · 워드 · md · txt 다 —
+                  그 밖(.hwp · .pptx 등)은 고르는 즉시 이유를 보인다</span></div>
+                <div class="frow"><label></label><button class="btn btn-primary">보내기</button></div>
+                <div class="frow"><label></label><span class="fhint">올리다 실패하면 「이 요청은 줄에 서지 않았다. 새 요청으로 다시 넣어라」가 여기 뜬다</span></div>
+              </div>
+            </div>
+
+            <!-- 상세의 자료 목록. 파일은 내려받기, 피그마는 저장된(정규화한) 주소로 연다 -->
+            <div class="card">
+              <h3>요청 번호 0000000042 — 자료</h3>
+              <table>
+                <thead><tr><th style="width:44px">순서</th><th>이름</th><th style="width:80px">종류</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">1</td><td><a href="#">결제-기획서.pdf</a></td><td>파일</td></tr>
+                  <tr><td class="mono">2</td><td><a href="#">화면정의서.docx</a></td><td>파일</td></tr>
+                  <tr><td class="mono">3</td><td><a href="#" class="mono">figma.com/design/AbC123/?node-id=12-34 ↗</a></td><td>피그마</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <footer class="foot">
+          <span><span class="dot-ok"></span>러너 정상</span>
+          <span class="sp"></span>
+          <span class="mono">테스트 플랫폼 v0.4.0</span>
+        </footer>
+      </div>
+    </div>
+  </div>
+  <p class="note">
+    <b>보내기는 세 걸음이다</b> — 요청을 만들고(<b>준비 중</b>), 파일을 하나씩 올리고, 다 올린 뒤 줄에 세운다.
+    올리는 동안은 맥이 집어 가지 않는다. 피그마 주소는 복사한 그대로 받되 꼬리(<span class="mono">&amp;t=…</span>)는 버리고 저장한다.
+    피그마 자료를 읽으려면 그 서비스의 설정에 피그마 토큰이 있어야 한다 (아래 설정).
+  </p>
+
   <h2>설정 (SPEC §8.8)</h2>
   <div class="frame">
     <div class="app">
@@ -1026,6 +1098,10 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
                 </div>
                 <div class="frow"><label for="s3">저장소</label><input id="s3" class="fctl mono" style="flex:1" value="github.com/acme/pay-e2e" /></div>
                 <div class="frow"><label for="s4">Slack</label><input id="s4" class="fctl mono" style="flex:1" value="https://hooks.slack.com/services/····" /></div>
+                <!-- 피그마 토큰 (2026-09-23). 규칙은 Slack 웹훅과 같다 — 넣은 값은 되돌려 보여주지 않는다 (도메인/인증 §8.8) -->
+                <div class="frow"><label>피그마 토큰</label><span class="fhint">설정됨</span><button class="btn btn-sm">다시 넣기</button></div>
+                <div class="frow"><label></label><span class="fhint">Figma → Settings → Security → Personal access tokens 에서 만든다.
+                  권한은 File content 읽기만, 만료일을 정한다. <a href="#">Figma 설정 열기 ↗</a></span></div>
               </div>
             </div>
 

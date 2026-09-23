@@ -203,9 +203,43 @@ describe('작성 대기줄 (SPEC §7 · 도메인/작성 §7)', () => {
 
   it('작성 요청을 넣을 때도 service 가 실린다. 어느 서비스의 줄인지는 주소가 말한다', async () => {
     답 = { status: 201, body: { id: 7 } };
-    await api.createAuthoringRequest('PAY', { kind: 'AUTHOR', specText: '기획서 본문' });
+    await api.createAuthoringRequest('PAY', { kind: 'AUTHOR', figma: [] });
     expect(String(부름[0]?.url)).toContain('service=PAY');
     expect(부름[0]?.init?.method).toBe('POST');
+  });
+
+  it('작성 요청 본문은 피그마 주소 목록이다. 기획서 본문은 안 싣는다 — 파일로 따로 올린다', async () => {
+    답 = { status: 201, body: { id: 7 } };
+    await api.createAuthoringRequest('PAY', { kind: 'AUTHOR', figma: ['https://www.figma.com/design/AbC/?node-id=1-2'] });
+    const 본문 = JSON.parse(String(부름[0]?.init?.body)) as Record<string, unknown>;
+    expect(본문).toEqual({ kind: 'AUTHOR', figma: ['https://www.figma.com/design/AbC/?node-id=1-2'] });
+    expect(본문).not.toHaveProperty('specText');
+  });
+
+  it('자료 올리기는 파일 바이트를 그대로 보내고 이름은 주소에 인코딩해 싣는다', async () => {
+    답 = { status: 200, body: { id: 3 } };
+    const 파일 = new File(['%PDF'], '결제 기획서.pdf');
+    await api.uploadAuthoringAsset('PAY', 7, 파일);
+
+    const url = String(부름[0]?.url);
+    expect(url).toContain('/api/authoring/requests/7/assets?');
+    expect(url).toContain('service=PAY');
+    expect(url).toContain(`name=${encodeURIComponent('결제 기획서.pdf')}`);
+    expect(부름[0]?.init?.method).toBe('POST');
+    expect(new Headers(부름[0]?.init?.headers).get('content-type')).toBe('application/octet-stream');
+    expect(부름[0]?.init?.body).toBe(파일);
+  });
+
+  it('줄에 세우기는 POST 이고 JSON 머리글을 안 단다. 빈 본문에 JSON 머리글이면 서버가 400 을 낸다', async () => {
+    답 = { status: 200, body: { ok: true } };
+    await api.submitAuthoringRequest('PAY', 7);
+    expect(String(부름[0]?.url)).toContain('/api/authoring/requests/7/submit');
+    expect(부름[0]?.init?.method).toBe('POST');
+    expect(new Headers(부름[0]?.init?.headers).get('content-type')).toBeNull();
+  });
+
+  it('자료 내려받기 주소는 요청 번호와 자료 번호로 짓는다', () => {
+    expect(api.authoringAssetUrl(7, 3)).toBe('/api/authoring/requests/7/assets/3');
   });
 
   it('머지는 경로가 갈린다. 같은 경로에 얹으면 등급이 본문 값에 따라 갈려야 한다', async () => {
@@ -218,5 +252,29 @@ describe('작성 대기줄 (SPEC §7 · 도메인/작성 §7)', () => {
     답 = { status: 200, body: { id: 7 } };
     await api.authoringRequest('PAY', 7);
     expect(String(부름[0]?.url)).toContain('/authoring/requests/7');
+  });
+});
+
+describe('서비스 설정의 피그마 토큰 (도메인/인증 §8.8)', () => {
+  it('서비스를 만들 때 피그마 토큰을 싣는다', async () => {
+    답 = { status: 201, body: { id: 1 } };
+    await api.createService({
+      prefix: 'PAY',
+      name: '결제',
+      color: '#2F6F8F',
+      testsRepo: 'r',
+      testsDir: 'd',
+      envs: [],
+      figmaToken: 'figd_abc',
+    });
+    const 본문 = JSON.parse(String(부름[0]?.init?.body)) as Record<string, unknown>;
+    expect(본문.figmaToken).toBe('figd_abc');
+  });
+
+  it('서비스를 고칠 때도 피그마 토큰을 싣는다', async () => {
+    답 = { status: 200, body: { ok: true } };
+    await api.updateService(1, { figmaToken: 'figd_new' });
+    const 본문 = JSON.parse(String(부름[0]?.init?.body)) as Record<string, unknown>;
+    expect(본문.figmaToken).toBe('figd_new');
   });
 });

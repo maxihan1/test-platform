@@ -83,6 +83,9 @@ describe('라우트표', () => {
       '/api/authoring/requests/:id/stage',
       '/api/authoring/requests/:id/screenshots',
       '/api/authoring/requests/:id/finish',
+      '/api/authoring/requests/:id/assets',
+      '/api/authoring/requests/:id/submit',
+      '/api/authoring/requests/:id/assets/:assetId',
     ]) {
       expect(라우트표[틀], `${틀} 이 번호로 서비스를 찾지 않는다`).toEqual({
         종류: '작성요청',
@@ -113,6 +116,11 @@ describe('라우트표', () => {
   });
 });
 
+/** 한 폴더에서 라우트를 등록할 수 있는 파일들. 검사 파일은 가짜 라우트를 세우므로 뺀다 */
+function 라우트파일들(폴더: string): string[] {
+  return readdirSync(폴더).filter((이름) => 이름.endsWith('.ts') && !이름.endsWith('.test.ts'));
+}
+
 /** 라우트 파일에서 등록된 경로를 그대로 읽는다. app.ts 가 전부 `/api` 접두사로 등록한다 */
 function 소스의라우트들(): { 라우트들: string[]; 읽은파일: string[] } {
   // process.cwd() 를 쓰면 apps/admin 안에서 부를 때 수집 단계에서 죽는다
@@ -126,9 +134,12 @@ function 소스의라우트들(): { 라우트들: string[]; 읽은파일: string
   // 쓰는 순간 그 라우트가 그물 밖으로 나간다
   const 등록 = /\bapp\.(get|post|patch|put|delete|head|all|options|route)\s*(?:<[\s\S]*?>)?\s*\(\s*[{]?\s*(?:url\s*:\s*)?['"`]([^'"`]+)['"`]/g;
   const 경로들 = new Set<string>();
+  // routes.ts 하나만 보면 300줄 때문에 옆 파일로 뗀 플러그인(authoring/assets.ts)이 그물 밖이다 (2026-09-23)
   for (const 폴더 of 폴더들) {
-    const 글 = readFileSync(join(뿌리, 폴더, 'routes.ts'), 'utf8');
-    for (const 맞은것 of 글.matchAll(등록)) 경로들.add(`/api${맞은것[2] ?? ''}`);
+    for (const 파일 of 라우트파일들(join(뿌리, 폴더))) {
+      const 글 = readFileSync(join(뿌리, 폴더, 파일), 'utf8');
+      for (const 맞은것 of 글.matchAll(등록)) 경로들.add(`/api${맞은것[2] ?? ''}`);
+    }
   }
   return { 라우트들: [...경로들], 읽은파일: 폴더들 };
 }

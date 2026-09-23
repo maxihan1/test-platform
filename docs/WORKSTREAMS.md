@@ -44,7 +44,7 @@
 | **WS-D** | 리포팅 | `apps/admin/src/reporting/**`, `infra/grafana/**` | DB 스키마 |
 | **WS-E** | 화면 | `apps/admin/src/web/**` | Admin API 계약 |
 | **WS-F** | 인증 | `apps/admin/src/auth/**`, `apps/admin/src/settings/**`, `scripts/**` | DB 스키마 (`app_user`·`service`·`service_env`·`user_service`) |
-| **WS-작성** | 작성 | `apps/admin/src/authoring/**` (2026-09-22 에 섰다) · `scripts/authoring-agent.ts` · `docs/spec/도메인/작성.md` | DB 스키마 (`authoring_request`), 인증(§3.5) |
+| **WS-작성** | 작성 | `apps/admin/src/authoring/**` (2026-09-22 에 섰다) · `scripts/authoring-agent.ts` · `docs/spec/도메인/작성.md` | DB 스키마 (`authoring_request` · `authoring_asset`), 인증(§3.5) |
 
 **`docs/cases/**` 는 어느 갈래도 아니다** (2026-09-21). `tpx-cases` 스킬이 만드는
 서비스별 요구사항 표와 용어 사전이 사는 자리다. 표면은 `DOC`(0등급)이고, 그 표가 가리키는
@@ -62,6 +62,11 @@
   `apps/admin/src/app.test.ts` 가 등록 누락을 잡는다 (2026-09-22 신설)
 - `docs/spec/도메인/작성.md` 는 **읽고 고칠 자리를 아는 것**이지 마음대로 고쳐도 된다는 뜻이 아니다 — SPEC 은 CLAUDE.md §1.2 승인 절차를 그대로 밟는다
 - 화면(`apps/admin/src/web/**`)은 표에서 **WS-E 소유 그대로다.** 이 줄이 화면을 가져가지 않는다
+- **★ 입력은 자료 목록이다** (2026-09-23, PR #61). 기획서 **파일 여럿 + 피그마 주소 여럿**이 한 세트로 온다.
+  본문을 붙여 넣던 `specText` 는 접었다. 요청은 **`DRAFT` 로 서고**, 자료를 다 올린 뒤 「줄에 세우기」가 `PENDING` 으로 바꾼다 —
+  그 전에 맥이 집으면 빈 입력으로 돈다. 받는 종류·상한·피그마 주소 정규화는 `docs/spec/도메인/작성.md` §7 「자료」가 정본이다
+- **피그마 토큰은 서버의 서비스 설정에 있다** (`service.figma_token`, 도메인/인증 §8.8). 맥에 두지 않는다.
+  그 칸 하나 때문에 **WS-F 폴더(`apps/admin/src/settings/**`)와 설정 화면을 건드린다** — Slack 웹훅 칸 옆에 칸 하나만 더하고 그 밖은 안 건드린다 (CLAUDE.md §1.1)
 
 **WS-F는 2026-09-17 개정 SPEC §3.5로 생긴 갈래다.** 인증을 실행·카탈로그·리포팅에서 떼어 놓는 것이
 §3.5의 요구다 — 나중에 회사 계정(SSO)으로 갈아 끼울 때 바뀌는 곳이 **함수 하나**여야 하기 때문이다.

@@ -1,7 +1,7 @@
-// 설정 화면의 서비스 구획 (SPEC §8.8). 접두사·이름·색·테스트 폴더·대상 서버·Slack 웹훅
+// 설정 화면의 서비스 구획 (SPEC §8.8). 접두사·이름·색·테스트 폴더·대상 서버·Slack 웹훅·피그마 토큰
 // 지우지 않는다 — 비활성으로 내릴 뿐이다. 지우면 그 서비스로 돌린 과거 증적이 흔들린다
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { api, ApiError, type SettingsServiceRow } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
@@ -11,6 +11,7 @@ import {
   설정오류문장,
   접두사사유,
   웹훅칸,
+  피그마설정주소,
 } from './settingsView.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
 import { message } from './ui.js';
@@ -98,11 +99,11 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
   const [envs, setEnvs] = useState<줄[]>(() => 줄로(row?.envs ?? []));
   // 빈 글자와 「안 건드림」은 다르다. null 이면 서버에 아예 안 보낸다 (지금 것을 그대로 둔다)
   const [webhook, setWebhook] = useState<string | null>(새것 ? '' : null);
+  const [figma, setFigma] = useState<string | null>(새것 ? '' : null);
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const 접두사틀림 = 접두사사유(prefix, 언어);
-  const 웹훅 = 웹훅칸(row?.hasSlackWebhook ?? false, 언어);
   const 못보내는이유 = 서비스못보내는이유({ 새것, prefix, name, testsDir, envs }, 언어);
 
 
@@ -120,6 +121,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
           testsDir,
           envs: 보낼모양(envs),
           ...(webhook === null || webhook === '' ? {} : { slackWebhook: webhook }),
+          ...(figma === null || figma === '' ? {} : { figmaToken: figma }),
         });
       } else {
         // 접두사는 안 보낸다. 보내면 서버가 400 PREFIX_IMMUTABLE 을 낸다 (SPEC §8.8)
@@ -129,6 +131,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
           testsDir,
           envs: 보낼모양(envs),
           ...(webhook === null ? {} : { slackWebhook: webhook }),
+          ...(figma === null ? {} : { figmaToken: figma }),
         });
       }
       onDone();
@@ -217,40 +220,21 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
 
       <EnvEditor envs={envs} onChange={setEnvs} />
 
-      <div className="field">
-        <label htmlFor="sf-hook">{t('Slack 웹훅')}</label>
-        <div>
-          {webhook === null ? (
-            <div className="set-hook">
-              <span>{웹훅.글}</span>
-              <button className="btn ghost" onClick={() => setWebhook('')}>
-                {웹훅.버튼}
-              </button>
-            </div>
-          ) : (
-            <div className="set-hook">
-              <input
-                id="sf-hook"
-                type="password"
-                value={webhook}
-                onChange={(e) => setWebhook(e.target.value)}
-                placeholder="https://hooks.slack.com/..."
-              />
-              {/* 되돌아갈 길이 없으면, 마음을 바꿔 그냥 저장했을 때 빈 글자가 가서 웹훅이 지워진다 */}
-              {새것 ? null : (
-                <button className="btn ghost" onClick={() => setWebhook(null)}>
-                  {t('그대로 두기')}
-                </button>
-              )}
-            </div>
-          )}
-          <div className="hint">
-            {webhook === '' && !새것
-              ? t('이대로 저장하면 알림을 끕니다. 그대로 두려면 「그대로 두기」를 누릅니다')
-              : t('비밀값이라 한 번 넣으면 되돌려 보여주지 않습니다')}
-          </div>
+      <비밀칸 id="sf-hook" 이름={t('Slack 웹훅')} 설정됨={row?.hasSlackWebhook ?? false} 새것={새것}
+        값={webhook} 바꾼다={setWebhook} placeholder="https://hooks.slack.com/..."
+        비울때={t('이대로 저장하면 알림을 끕니다. 그대로 두려면 「그대로 두기」를 누릅니다')} />
+
+      {/* 규칙은 웹훅과 같다. 발급 안내를 옆에 둔다 — 어디서 만드는지 모르면 칸이 비어 남는다 (도메인/인증 §8.8) */}
+      <비밀칸 id="sf-figma" 이름={t('피그마 토큰')} 설정됨={row?.hasFigmaToken ?? false} 새것={새것}
+        값={figma} 바꾼다={setFigma} placeholder="figd_..."
+        비울때={t('이대로 저장하면 토큰을 지웁니다. 피그마 자료를 못 읽게 됩니다')}>
+        <div className="hint">
+          {t('Figma → Settings → Security → Personal access tokens 에서 만듭니다. 권한은 File content 읽기만, 만료일을 정합니다')}{' '}
+          <a href={피그마설정주소} target="_blank" rel="noopener noreferrer">
+            {t('Figma 설정 열기')} ↗
+          </a>
         </div>
-      </div>
+      </비밀칸>
 
       {err === null ? null : <div className="err">{err}</div>}
 
@@ -266,6 +250,41 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
         </button>
       </div>
       {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}
+    </div>
+  );
+}
+
+/** 비밀값 칸 — 웹훅과 피그마 토큰이 같이 쓴다. 값을 되돌려 안 보여서 고치는 길이 「다시 넣기」다 (§8.8) */
+function 비밀칸(p: {
+  id: string; 이름: string; 설정됨: boolean; 새것: boolean; placeholder: string; 비울때: string;
+  값: string | null; 바꾼다: (값: string | null) => void; children?: ReactNode;
+}) {
+  const t = use말();
+  const 칸 = 웹훅칸(p.설정됨, use언어());
+  return (
+    <div className="field">
+      <label htmlFor={p.id}>{p.이름}</label>
+      <div>
+        {p.값 === null ? (
+          <div className="set-hook">
+            <span>{칸.글}</span>
+            <button className="btn ghost" onClick={() => p.바꾼다('')}>{칸.버튼}</button>
+          </div>
+        ) : (
+          <div className="set-hook">
+            <input id={p.id} type="password" value={p.값} placeholder={p.placeholder}
+              onChange={(e) => p.바꾼다(e.target.value)} />
+            {/* 되돌아갈 길이 없으면, 마음을 바꿔 그냥 저장했을 때 빈 글자가 가서 값이 지워진다 */}
+            {p.새것 ? null : (
+              <button className="btn ghost" onClick={() => p.바꾼다(null)}>{t('그대로 두기')}</button>
+            )}
+          </div>
+        )}
+        <div className="hint">
+          {p.값 === '' && !p.새것 ? p.비울때 : t('비밀값이라 한 번 넣으면 되돌려 보여주지 않습니다')}
+        </div>
+        {p.children}
+      </div>
     </div>
   );
 }
