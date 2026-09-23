@@ -86,17 +86,15 @@ export interface 권한설정 {
 }
 
 /**
- * 자식이 셸로 `npx` 를 돌릴 수 있나.
+ * 자식이 셸을 통째로 쓸 수 있나.
  *
  * `--permission-mode acceptEdits` 는 쓰기만 풀고 셸은 안 푼다 (docs/SETUP.md §8 「전제 둘」).
  * 셸이 막혀 있으면 피그마도 못 읽고 관문도 못 돈다 — **한도를 다 쓰고 나서야** 드러난다.
+ * `defaultMode` 는 안 본다 — 자식을 `--permission-mode` 로 띄우므로 덮인다.
+ * `Bash(npx:*)` 같은 부분 허용도 안 받는다 — 자식은 git·gh·npm·npx 를 다 쓴다.
  */
 export function 셸허용됐나(설정들: 권한설정[]): boolean {
-  return 설정들.some(
-    (s) =>
-      s.permissions?.defaultMode === 'bypassPermissions' ||
-      (s.permissions?.allow ?? []).some((규칙) => 규칙 === 'Bash' || 규칙 === 'Bash(*)' || 규칙.startsWith('Bash(npx')),
-  );
+  return 설정들.some((s) => (s.permissions?.allow ?? []).some((규칙) => 규칙 === 'Bash' || 규칙 === 'Bash(*)'));
 }
 
 /** 프롬프트에 싣는 자료 목록. 토큰은 절대 안 싣는다 — 자식 환경에만 있다 */

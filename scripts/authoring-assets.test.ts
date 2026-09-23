@@ -91,19 +91,19 @@ describe('돌릴수있나 — 빈 입력에 구독 한도를 쓰지 않는다', 
   });
 });
 
-describe('셸허용됐나 — 자식이 npx 로 피그마를 읽고 관문을 돌 수 있나', () => {
+describe('셸허용됐나 — 자식이 git·gh·npm·npx 를 다 돌릴 수 있나', () => {
   it('Bash 를 통째로 풀었으면 된다', () => {
     expect(셸허용됐나([{ permissions: { allow: ['Bash(*)'] } }])).toBe(true);
     expect(셸허용됐나([{ permissions: { allow: ['Read', 'Bash'] } }])).toBe(true);
   });
 
-  it('npx 만 풀었어도 된다', () => {
-    expect(셸허용됐나([{ permissions: { allow: ['Bash(npx:*)'] } }])).toBe(true);
-    expect(셸허용됐나([{ permissions: { allow: ['Bash(npx *)'] } }])).toBe(true);
+  it('npx 만 푼 부분 허용은 안 된다 — 자식은 git·gh·npm 도 쓴다', () => {
+    expect(셸허용됐나([{ permissions: { allow: ['Bash(npx:*)'] } }])).toBe(false);
+    expect(셸허용됐나([{ permissions: { allow: ['Bash(npx *)', 'Bash(git:*)'] } }])).toBe(false);
   });
 
-  it('권한 확인을 끈 모드도 된다', () => {
-    expect(셸허용됐나([{ permissions: { defaultMode: 'bypassPermissions' } }])).toBe(true);
+  it('defaultMode 만으로는 안 된다 — 자식을 --permission-mode acceptEdits 로 띄워 덮인다', () => {
+    expect(셸허용됐나([{ permissions: { defaultMode: 'bypassPermissions' } }])).toBe(false);
   });
 
   it('아무 설정에도 없으면 안 된다', () => {
