@@ -91,13 +91,16 @@ export interface 권한설정 {
  * `--permission-mode acceptEdits` 는 쓰기만 풀고 셸은 안 푼다 (docs/SETUP.md §8 「전제 둘」).
  * 셸이 막혀 있으면 피그마도 못 읽고 관문도 못 돈다 — **한도를 다 쓰고 나서야** 드러난다.
  * `defaultMode` 는 안 본다 — 자식을 `--permission-mode` 로 띄우므로 덮인다.
- * `Bash(npx:*)` 같은 부분 허용도 안 받는다 — 자식은 git·gh·npm·npx 를 다 쓴다.
- * **사용자 설정만 센다** — 자식은 맥이 새로 연 작업방에서 돌아 이 체크아웃의 프로젝트 설정을 못 본다.
+ * `Bash(npx:*)` 같은 부분 허용도 안 받는다 — 자식은 npm·npx·playwright 를 쓴다(git·gh 는 맥이 한다).
+ * **CLI 가 자식 자리에서 실제로 읽는 것만 센다** — `~/.claude/settings.json`(사용자)과 작업방에 checkout 되는
+ * 추적 파일 `.claude/settings.json`(프로젝트). local 둘은 안 센다 — 사용자 local 은 CLI 가 안 읽고,
+ * 프로젝트 local 은 추적되지 않아 맥이 새로 연 작업방에 없다.
  */
 export function 셸허용됐나(설정들: { 어디: string; 값: 권한설정 }[]): boolean {
   return 설정들.some(
     ({ 어디, 값 }) =>
-      어디.startsWith('사용자') && (값.permissions?.allow ?? []).some((규칙) => 규칙 === 'Bash' || 규칙 === 'Bash(*)'),
+      (어디 === '사용자' || 어디 === '프로젝트') &&
+      (값.permissions?.allow ?? []).some((규칙) => 규칙 === 'Bash' || 규칙 === 'Bash(*)'),
   );
 }
 
