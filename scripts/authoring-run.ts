@@ -99,7 +99,8 @@ async function 한건(
       await 손.끝내기({ status: 'FAILED', error: '머지할 초안 PR 주소가 없다' });
       return;
     }
-    await 머지처리(손, 주소, 판.판정);
+    // 확인하는 브랜치는 **prUrl 을 읽어 온 그 행**의 것이다 — 재실행이 올린 PR 이면 author-<재실행 번호>
+    await 머지처리(손, 주소, 판.판정, 것.prUrl ? 것.id : 것.sourceId ?? undefined, 판.원천, 판.호스트로);
     return;
   }
 
