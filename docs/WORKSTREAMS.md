@@ -44,7 +44,7 @@
 | **WS-D** | 리포팅 | `apps/admin/src/reporting/**`, `infra/grafana/**` | DB 스키마 |
 | **WS-E** | 화면 | `apps/admin/src/web/**` | Admin API 계약 |
 | **WS-F** | 인증 | `apps/admin/src/auth/**`, `apps/admin/src/settings/**`, `scripts/**` | DB 스키마 (`app_user`·`service`·`service_env`·`user_service`) |
-| **WS-작성** | 작성 | `apps/admin/src/authoring/**` (2026-09-22 에 섰다) · `scripts/authoring-agent.ts` · `docs/spec/도메인/작성.md` | DB 스키마 (`authoring_request` · `authoring_asset`), 인증(§3.5) |
+| **WS-작성** | 작성 | `apps/admin/src/authoring/**` (2026-09-22 에 섰다) · `scripts/authoring-*.ts` · `docs/spec/도메인/작성.md` | DB 스키마 (`authoring_request` · `authoring_asset`), 인증(§3.5) |
 
 **`docs/cases/**` 는 어느 갈래도 아니다** (2026-09-21). `tpx-cases` 스킬이 만드는
 서비스별 요구사항 표와 용어 사전이 사는 자리다. 표면은 `DOC`(0등급)이고, 그 표가 가리키는
@@ -55,7 +55,9 @@
 **2026-09-22 에 두 번 들어갔다** — 먼저 명세(PR #52), 그다음 **대기줄 표·통로 여덟·경로→등급 표**.
 **남은 것은 화면과 「에이전트를 대기줄에 붙이는 일」이고 그 둘이 한 PR 이다.** 아래 둘을 섞지 않는다.
 - `scripts/authoring-agent.ts` 는 **이미 있다** — 맥(개발자 노트북)에서 도는 작성 에이전트이고 `scripts/authoring-agent.test.ts` 가 붙어 있다.
-  **`scripts/**` 폴더 자체는 WS-F 소유 그대로다.** 이 한 파일만 떼어 온 것이고 폴더째 가져오지 않는다
+  **`scripts/**` 폴더 자체는 WS-F 소유 그대로다.** 떼어 온 것은 `scripts/authoring-*.ts` 뿐이고 폴더째 가져오지 않는다.
+  2026-09-23 에 한 파일이 넷으로 갈라졌다 — `authoring-agent.ts`(켜기·폴링) · `authoring-run.ts`(작성) ·
+  `authoring-merge.ts`(머지) · `authoring-chain.ts`·`authoring-assets.ts`(판단만 든 순수 함수, PR #63)
 - `apps/admin/src/authoring/**` 는 **2026-09-22 에 섰다** (`store.ts` · `routes.ts` 와 그 검사들). 표면은 `ADMIN`(2등급)이다
 - **★ `apps/admin/src/app.ts` 한 줄은 공용 골격이라 갈래 소유가 아니다.** 새 컨텍스트를 등록하는
   규약 줄(`app.register(authoringRoutes, ...)`)이라 안 넣으면 통로가 404 다. **그 한 줄만 손댄다** —
@@ -67,6 +69,9 @@
   그 전에 맥이 집으면 빈 입력으로 돈다. 받는 종류·상한·피그마 주소 정규화는 `docs/spec/도메인/작성.md` §7 「자료」가 정본이다
 - **피그마 토큰은 서버의 서비스 설정에 있다** (`service.figma_token`, 도메인/인증 §8.8). 맥에 두지 않는다.
   그 칸 하나 때문에 **WS-F 폴더(`apps/admin/src/settings/**`)와 설정 화면을 건드린다** — Slack 웹훅 칸 옆에 칸 하나만 더하고 그 밖은 안 건드린다 (CLAUDE.md §1.1)
+- **★ 맥 경로는 전용 체인이다** (2026-09-23, PR #63). 자식 Claude 는 `/tpx` 가 아니라 `.claude/skills/tpx-author/SKILL.md` 를 타고 케이스만 만들고,
+  git·PR·머지(CI 기다리기)는 맥 스크립트(`scripts/authoring-chain.ts` 와 그 껍데기)가 한다. 정본은 `docs/spec/도메인/작성.md` §3.6 「맥 경로는 전용 체인이다」,
+  케이스만 바뀐 PR 의 CI 가벼운 길은 `docs/HOOKS.md` 「테스트만 바뀐 PR·push 는 가벼운 길」
 
 **WS-F는 2026-09-17 개정 SPEC §3.5로 생긴 갈래다.** 인증을 실행·카탈로그·리포팅에서 떼어 놓는 것이
 §3.5의 요구다 — 나중에 회사 계정(SSO)으로 갈아 끼울 때 바뀌는 곳이 **함수 하나**여야 하기 때문이다.

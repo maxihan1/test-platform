@@ -1,9 +1,11 @@
 // pre-push 훅의 계약. 훅은 **실패가 아니라 침묵으로** 건너뛰므로 기계가 봐야 한다.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync, statSync, mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const HOOK = fileURLToPath(new URL('../hooks/pre-push', import.meta.url));
 const ZERO = '0000000000000000000000000000000000000000';
@@ -63,4 +65,107 @@ test('기존 검사가 그대로 있다', () => {
   for (const 검사 of ['npm test', 'check:tests', 'docs/reviews']) {
     assert.ok(src.includes(검사), `기존 검사가 사라졌다: ${검사}`);
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 가벼운 길 (2026-09-23 게이트 1 — CLAUDE.md §2.3 의 예외로 승인됨)
+//
+// 바뀐 파일이 테스트만(cases-only.mjs 판정)이면 전체 단위 테스트와 검사 기록 요구를 건너뛴다.
+// **글자가 아니라 실제 동작을 본다** — 임시 git 저장소에 커밋을 만들고 훅을 그 안에서 돌린다.
+// npm 은 PATH 앞에 끼운 가짜로 바꿔 불린 인자만 적는다. 진짜 npm test 를 돌리면 이 검사가 수 분 걸린다.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** base(origin/main) 하나와 그 위에 파일을 더한 커밋 하나가 있는 임시 저장소. 올릴 sha 를 돌려준다 */
+function 임시저장소(더할파일들, 옮길것들 = []) {
+  const 뿌리 = mkdtempSync(join(tmpdir(), 'pre-push-'));
+  const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { encoding: 'utf8' }).trim();
+  const 쓴다 = (경로, 내용) => {
+    mkdirSync(join(뿌리, 경로, '..'), { recursive: true });
+    writeFileSync(join(뿌리, 경로), 내용);
+  };
+  git('init', '-q');
+  git('config', 'user.email', 't@example.com');
+  git('config', 'user.name', 't');
+  쓴다('package.json', '{}');
+  쓴다('tests/todo/TODO-001.spec.ts', 'x');
+  for (const [원래] of 옮길것들) 쓴다(원래, `옮겨질 코드 ${원래}\n`.repeat(20));
+  git('add', '.');
+  git('commit', '-qm', 'base');
+  git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  for (const f of 더할파일들) 쓴다(f, 'y');
+  for (const [원래, 새] of 옮길것들) git('mv', 원래, 새);
+  git('add', '.');
+  git('commit', '-qm', 'change');
+  const 가짜 = join(뿌리, '.fakebin');
+  mkdirSync(가짜);
+  const 기록 = join(뿌리, '.npm-calls');
+  writeFileSync(join(가짜, 'npm'), `#!/bin/sh\necho "$*" >> "${기록}"\n`);
+  chmodSync(join(가짜, 'npm'), 0o755);
+  return { 뿌리, sha: git('rev-parse', 'HEAD'), 가짜, 기록 };
+}
+
+function 저장소에서돌린다({ 뿌리, sha, 가짜 }) {
+  const env = { ...process.env, PATH: `${가짜}:${process.env.PATH}` };
+  delete env.ALLOW_PROTECTED;
+  try {
+    const out = execFileSync(HOOK, ['origin', 'https://example.com/r.git'], {
+      cwd: 뿌리, env, input: `refs/heads/b ${sha} refs/heads/b ${ZERO}\n`, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    return { code: 0, out };
+  } catch (e) {
+    return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` };
+  }
+}
+
+const 불린것 = (기록) => {
+  try {
+    return readFileSync(기록, 'utf8');
+  } catch {
+    return '';
+  }
+};
+
+test('테스트만 바뀐 커밋은 가벼운 길 — 타입·check:tests 만 돌고 검사 기록 없이 통과한다', () => {
+  const 저장소 = 임시저장소(['tests/todo/TODO-002.spec.ts', 'docs/cases/TODO.md']);
+  try {
+    const r = 저장소에서돌린다(저장소);
+    assert.equal(r.code, 0, `가벼운 길인데 막혔다: ${r.out}`);
+    assert.match(r.out, /가벼운 길/, '가벼운 길로 판정했다는 표시가 없다');
+    const 호출 = 불린것(저장소.기록);
+    assert.match(호출, /typecheck/, '가벼운 길에서 타입 검사를 안 돌렸다');
+    assert.match(호출, /check:tests/, '가벼운 길에서 check:tests 를 안 돌렸다');
+    // 가벼운 길의 유일한 규칙 검사다 — 스크립트가 사라지면 조용히 초록이 아니라 그 자리에서 죽어야 한다
+    assert.doesNotMatch(호출, /check:tests.*--if-present/, '가벼운 길의 check:tests 에 --if-present 가 붙어 있다');
+    assert.doesNotMatch(호출, /^test\b/m, '가벼운 길인데 전체 단위 테스트를 돌렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('코드가 섞인 커밋은 무거운 길 — 전체 테스트를 돌리고 검사 기록을 요구한다', () => {
+  const 저장소 = 임시저장소(['tests/todo/TODO-002.spec.ts', 'apps/x.ts']);
+  try {
+    const r = 저장소에서돌린다(저장소);
+    assert.equal(r.code, 1, `검사 기록 없이 통과했다: ${r.out}`);
+    assert.match(r.out, /docs\/reviews/, '검사 기록을 요구하지 않았다');
+    assert.match(불린것(저장소.기록), /^test\b/m, '무거운 길인데 전체 단위 테스트를 안 돌렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('코드 파일을 spec 으로 옮긴 커밋은 무거운 길 — 이름 바꾸기로 지운 쪽 경로가 숨지 않는다', () => {
+  // git diff 는 기본으로 rename 을 감지해 새 경로만 낸다. 그러면 apps/x.ts 가 사라진 것이 판정에 안 보인다
+  const 저장소 = 임시저장소([], [['apps/x.ts', 'tests/todo/x.spec.ts']]);
+  try {
+    const r = 저장소에서돌린다(저장소);
+    assert.doesNotMatch(r.out, /가벼운 길/, `코드를 spec 으로 옮겼는데 가벼운 길로 갔다: ${r.out}`);
+    assert.match(불린것(저장소.기록), /^test\b/m, '무거운 길인데 전체 단위 테스트를 안 돌렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('판정 규칙을 훅에 복사하지 않고 cases-only.mjs 에 맡긴다', () => {
+  assert.match(readFileSync(HOOK, 'utf8'), /cases-only\.mjs/);
 });

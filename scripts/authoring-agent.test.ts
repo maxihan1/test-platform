@@ -10,16 +10,11 @@ import {
   기다렸다다시인가,
   대기줄전제,
   보고간격,
-  머지인자,
   주소안전한가,
   집은것인가,
-  PR주소찾기,
-  PR표시,
   머지할수있나,
   선행검사,
-  오늘날짜,
   클로드인자,
-  푸시막힘,
   줄프롬프트,
 } from './authoring-agent.js';
 
@@ -66,20 +61,16 @@ describe('줄에서 집어 일한다', () => {
     expect(글).not.toMatch(/기획서 경로/);
   });
 
-  it('작성 프롬프트도 초안 PR 까지만 하라고 못박는다', () => {
+  it('작성 프롬프트는 tpx-author 를 태운다 — /tpx 일곱 단계를 타면 [6] 에서 30분 넘게 멈췄다', () => {
     const 글 = 줄프롬프트({ id: 3, kind: 'AUTHOR', specText: '본문' }, 'TODO', []);
-    expect(글).toMatch(/gh pr ready 와 병합은 절대 하지 마라/);
+    expect(글).toMatch(/^\/tpx-author /);
+    expect(글).toMatch(/tpx-author 스킬을 따라라/);
+    expect(글).not.toMatch(/\/tpx\s/);
   });
 
   it('머지 요청은 집으면 PR 주소가 있어야 한다. 없으면 실패로 끝낸다', () => {
     expect(머지할수있나({ kind: 'MERGE', prUrl: null })).toBe(false);
     expect(머지할수있나({ kind: 'MERGE', prUrl: 'https://github.com/x/y/pull/3' })).toBe(true);
-  });
-
-  it('머지 명령에 강제 깃발을 절대 안 붙인다', () => {
-    const 인자 = 머지인자('https://github.com/x/y/pull/3');
-    expect(인자.join(' ')).not.toMatch(/--force|-D\b|--admin/);
-    expect(인자).toContain('--merge');
   });
 });
 
@@ -125,31 +116,6 @@ describe('끝났다는 보고는 한 번 실패로 버리지 않는다', () => {
   it('다 기다려도 몇 분 안이다. 밤새 켜 둔 줄이 한 건에 묶이면 안 된다', () => {
     const 합 = [0, 1, 2, 3, 4].reduce((s, i) => s + (보고간격(i) ?? 0), 0);
     expect(합).toBeLessThanOrEqual(5 * 60_000);
-  });
-});
-
-describe('초안 PR 주소를 잡아 온다 — 없으면 머지 버튼이 영영 안 뜬다', () => {
-  it('자식이 찍은 줄에서 주소를 찾는다', () => {
-    expect(PR주소찾기(`뭐라뭐라\n${PR표시} https://github.com/acme/pay/pull/12\n`)).toBe(
-      'https://github.com/acme/pay/pull/12',
-    );
-  });
-
-  it('여러 번 찍혔으면 마지막 것이다. 자식이 프롬프트를 되읽어 찍는 경우가 있다', () => {
-    const 출력 = `${PR표시} <초안 PR 주소>\n일하는 중\n${PR표시} https://github.com/a/b/pull/9`;
-    expect(PR주소찾기(출력)).toBe('https://github.com/a/b/pull/9');
-  });
-
-  it('표시가 없으면 null 이다. 지어내지 않는다', () => {
-    expect(PR주소찾기('케이스를 다 만들었다')).toBe(null);
-  });
-
-  it('표시는 있는데 주소 모양이 아니면 null 이다', () => {
-    expect(PR주소찾기(`${PR표시} 만들었어요`)).toBe(null);
-  });
-
-  it('자식에게 그 줄을 찍으라고 프롬프트가 시킨다', () => {
-    expect(줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'TODO', [])).toContain(PR표시);
   });
 });
 
@@ -246,92 +212,31 @@ describe('과금위험', () => {
   });
 });
 
-describe('오늘날짜', () => {
-  // 검토 지적 — toISOString() 은 UTC 다. pre-push 훅은 `date +%F`(로컬)를 쓴다.
-  // KST 새벽 9시간 동안 둘이 갈려서 안전핀이 초록을 내고 push 에서 죽는다
-  it('훅이 쓰는 로컬 날짜와 같다', () => {
-    expect(오늘날짜(new Date('2026-09-22T01:00:00+09:00'), 540)).toBe('2026-09-22');
-  });
-
-  it('UTC 로 세면 하루 밀리는 그 자리다', () => {
-    expect(new Date('2026-09-22T01:00:00+09:00').toISOString().slice(0, 10)).toBe('2026-09-21');
-  });
-
-  it('시차가 0 이면 UTC 와 같다', () => {
-    expect(오늘날짜(new Date('2026-09-22T01:00:00Z'), 0)).toBe('2026-09-22');
-  });
-});
-
 // 「기획서 경로를 인자로 받는」 진입 방식은 2026-09-22 에 없어졌다 (docs/SETUP.md §8).
 // 그 길은 admin 을 안 불러 **로그인을 지나지 않았다** — 대기줄이 그 자리를 대신한다
 
-describe('푸시막힘', () => {
-  it('오늘 날짜 검사 기록이 있으면 막히지 않는다', () => {
-    expect(푸시막힘('2026-09-21', ['2026-09-21-실행상태.md'], {})).toBeNull();
-  });
-
-  it('오늘 것이 없으면 사유를 돌려준다 — pre-push 훅이 초안 PR 을 열기 전에 막는다', () => {
-    expect(푸시막힘('2026-09-22', ['2026-09-21-실행상태.md'], {})).toMatch(/2026-09-22/);
-  });
-
-  it('기록이 하나도 없어도 같다', () => {
-    expect(푸시막힘('2026-09-22', [], {})).not.toBeNull();
-  });
-
-  it('사유에 --no-verify 를 권하지 않는다 — 그건 저장소 검사를 무인으로 건너뛰는 일이다', () => {
-    expect(푸시막힘('2026-09-22', [], {})).not.toMatch(/no-verify/);
-  });
-
-  // 검토 지적 — 훅이 ALLOW_PROTECTED=1 이면 검사 기록 확인을 통째로 건너뛴다.
-  // 그걸 안 보면 **막히지 않을 push 를 막았다고 거부**한다
-  it('ALLOW_PROTECTED=1 이면 훅이 검사 기록을 안 보므로 우리도 안 막는다', () => {
-    expect(푸시막힘('2026-09-22', [], { ALLOW_PROTECTED: '1' })).toBeNull();
-  });
-});
-
 describe('선행검사 — 순서가 뒤집히면 돈이 샌다', () => {
   const 더러운환경 = { ANTHROPIC_API_KEY: 'sk-x' };
+  const 셸허용 = [{ 어디: '사용자', 값: { permissions: { allow: ['Bash(*)'] } } }];
 
   // 검토 지적 — 코드의 순서는 옳은데 그 순서를 붙잡는 자동 검사가 없었다.
   // 반년 뒤 누가 spawn 을 과금 검사 위로 올리면 26개 검사가 전부 초록인 채로
   // **진짜 키가 있는 환경에서 요청이 실제로 나간다**
   it('과금 위험이 계정 설정보다 먼저 걸린다 — 돈이 가장 앞이다', () => {
-    expect(선행검사({ env: 더러운환경, 설정들: [], 오늘: '2026-09-21', 기록: [] })).toMatch(/실비 청구/);
+    expect(선행검사({ env: 더러운환경, 설정들: 셸허용 })).toMatch(/실비 청구/);
   });
 
   it('환경이 깨끗해도 맥 계정 이름이 없으면 안 돌린다', () => {
-    expect(선행검사({ env: {}, 설정들: [], 오늘: '2026-09-21', 기록: [] })).toMatch(/AUTHORING_AGENT_USER/);
-  });
-
-  // 비밀번호를 묻기 **전에** 걸러야 한다. 물어 놓고 「사실 못 돈다」고 하면 그 입력이 헛것이다
-  it('계정이 있어도 오늘 검사 기록이 없으면 안 돌린다', () => {
-    const 막힘 = 선행검사({
-      env: { AUTHORING_AGENT_USER: 'mac' },
-      설정들: [],
-      오늘: '2026-09-22',
-      기록: [],
-    });
-    expect(막힘).toMatch(/push 가 막힌다/);
+    expect(선행검사({ env: {}, 설정들: 셸허용 })).toMatch(/AUTHORING_AGENT_USER/);
   });
 
   it('자식이 셸을 못 돌면 안 돌린다 — 피그마도 관문도 못 돈다', () => {
-    const 막힘 = 선행검사({
-      env: { AUTHORING_AGENT_USER: 'mac' },
-      설정들: [],
-      오늘: '2026-09-21',
-      기록: ['2026-09-21-무엇.md'],
-    });
-    expect(막힘).toMatch(/Bash\(\*\)/);
+    expect(선행검사({ env: { AUTHORING_AGENT_USER: 'mac' }, 설정들: [] })).toMatch(/Bash\(\*\)/);
   });
 
-  it('넷 다 통과하면 막지 않는다', () => {
-    const 막힘 = 선행검사({
-      env: { AUTHORING_AGENT_USER: 'mac' },
-      설정들: [{ 어디: '사용자', 값: { permissions: { allow: ['Bash(*)'] } } }],
-      오늘: '2026-09-21',
-      기록: ['2026-09-21-무엇.md'],
-    });
-    expect(막힘).toBeNull();
+  // 2026-09-23 — 테스트만 바뀐 push 는 검사 기록 없이 가벼운 길로 간다. 오늘 기록을 요구하면 맥이 매일 아침 멈춘다
+  it('오늘 검사 기록이 없어도 셋 다 통과하면 막지 않는다', () => {
+    expect(선행검사({ env: { AUTHORING_AGENT_USER: 'mac' }, 설정들: 셸허용 })).toBeNull();
   });
 });
 
@@ -348,6 +253,8 @@ describe('클로드인자', () => {
       '/t',
       '--disallowedTools',
       'AskUserQuestion',
+      'Bash(git:*)',
+      'Bash(gh:*)',
     ]);
   });
 
@@ -358,10 +265,13 @@ describe('클로드인자', () => {
   // 2026-09-21 실측 — 프롬프트를 배열 끝에 실었더니 --disallowedTools 가 가변 인자라
   // 그것을 도구 이름 목록으로 삼켰고 `Input must be provided...` 로 죽었다.
   // **--disallowedTools 가 마지막이어야 한다**는 것이 이 단언의 알맹이다
-  it('마지막 원소 뒤에 아무것도 없다 — 가변 인자가 프롬프트를 삼켰던 자리다', () => {
+  it('--disallowedTools 뒤에는 도구 이름만 있다 — 가변 인자가 프롬프트를 삼켰던 자리다', () => {
     const 인자 = 클로드인자('/t');
-    expect(인자[인자.length - 2]).toBe('--disallowedTools');
-    expect(인자[인자.length - 1]).toBe('AskUserQuestion');
+    expect(인자.slice(인자.indexOf('--disallowedTools') + 1)).toEqual(['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)']);
+  });
+
+  it('git·gh 를 이름으로 막는다 — 실수 방지일 뿐, 막는 것은 자격증명을 뺀 환경이다', () => {
+    expect(클로드인자('/t')).toEqual(expect.arrayContaining(['Bash(git:*)', 'Bash(gh:*)']));
   });
 });
 
@@ -374,24 +284,34 @@ describe('줄프롬프트 — 자식에게 못박는 경계', () => {
     expect(글()).toContain('TODO');
   });
 
-  // 검토 지적 — 낱말만 찾으면 지시가 **반대로 뒤집혀도 초록**이다.
-  // 「--bare 가 없다」 부정 단언과 같은 약함이라 지시문 모양까지 단언한다
-  it('내부 게이트 대신 표를 PR 에 실으라고 한다 — 물어볼 사람이 없다', () => {
+  it('테스트 폴더와 대상 서버를 넘긴다 — tpx-author 가 입력으로 기대한다', () => {
+    const 넘긴것 = 줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'DEMO', [], {
+      폴더: 'demo',
+      서버들: [{ env: 'qa', baseUrl: 'https://demo.playwright.dev/todomvc' }],
+    });
+    expect(넘긴것).toMatch(/테스트 폴더는 `tests\/demo` 다/);
+    expect(넘긴것).toContain('qa — https://demo.playwright.dev/todomvc');
+  });
+
+  // 검토 지적 — 낱말만 찾으면 지시가 **반대로 뒤집혀도 초록**이다. 지시문 모양까지 단언한다
+  it('AskUserQuestion 을 부르지 말라고 한다 — 물어볼 사람이 없다', () => {
     expect(글()).toMatch(/AskUserQuestion 을 부르지 마라/);
   });
 
-  it('A-0 에서 남의 작업방을 건드리지 말라고 못박는다 — 거기서도 물어볼 사람이 없다', () => {
-    expect(글()).toMatch(/남의 작업방과 브랜치는 절대 건드리지 마라/);
+  it('git·gh 를 부르지 말라고 한다 — commit·push·PR 은 맥이 한다', () => {
+    expect(글()).toMatch(/git·gh 를 부르지 마라/);
   });
 
-  // 검토 지적 — tpx-start 의 「미커밋 변경」 게이트에는 **「버리기」 선택지**가 있다.
-  // 물을 도구가 막혀 있으니 자식이 알아서 「버리기」를 고르면 **남의 작업이 지워진다**
-  it('미커밋 변경을 버리지 말라고 못박는다', () => {
-    expect(글()).toMatch(/버리지 마라/);
+  it('background 를 쓰지 말라고 한다 — 자식이 먼저 끝나 맥이 멈췄다 (2026-09-23)', () => {
+    expect(글()).toMatch(/run_in_background 를 쓰지 마라/);
   });
 
-  it('--no-verify 를 쓰지 말라고 못박는다 — 지시문으로', () => {
-    expect(글()).toMatch(/--no-verify 를 쓰지 마라/);
+  it('끝내기 전에 띄운 명령이 전부 끝났는지 확인하라고 한다', () => {
+    expect(글()).toMatch(/띄운 명령이 전부 끝났는지 확인/);
+  });
+
+  it('초안 PR·push 지시는 없다 — 그 일은 맥이 한다', () => {
+    expect(글()).not.toMatch(/초안 PR 까지|--no-verify|@@PR@@/);
   });
 
   it('관문 넷을 전부 돌리라고 한다', () => {
