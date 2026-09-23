@@ -1,7 +1,7 @@
 // 작성 에이전트의 자료 다루기 순수 함수 검사. 자료 순서·파일 변환·돌릴 조건·셸 허용 판정이 여기서 고정된다
 import { describe, expect, it } from 'vitest';
 
-import { 돌릴수있나, 셸허용됐나, 자료계획, 자료출처, type 자료 } from './authoring-assets.js';
+import { 돌릴수있나, 못읽는자료, 셸허용됐나, 자료계획, 자료출처, type 자료 } from './authoring-assets.js';
 import { 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 
 const 파일 = (id: number, position: number, name: string): 자료 => ({
@@ -21,17 +21,35 @@ const 피그마 = (id: number, position: number, 주소: string): 자료 => ({
 const 주소A = 'https://www.figma.com/design/AAA/?node-id=1-2';
 
 describe('자료계획 — 받은 파일을 어떻게 읽힐까', () => {
-  it('doc·docx 는 textutil 로 글자만 뽑고 그 txt 를 읽힌다', () => {
-    const [가, 나] = 자료계획([파일(7, 1, '기획서.docx'), 파일(8, 2, '옛기획.DOC')], '/tmp/authoring-3');
+  it('맥은 doc·docx 를 textutil 로 글자만 뽑고 그 txt 를 읽힌다', () => {
+    const [가, 나] = 자료계획([파일(7, 1, '기획서.docx'), 파일(8, 2, '옛기획.DOC')], '/tmp/authoring-3', 'darwin');
     expect(가).toEqual({
       kind: 'FILE',
       id: 7,
       name: '기획서.docx',
       받을자리: '/tmp/authoring-3/7.docx',
-      변환: ['-convert', 'txt', '-output', '/tmp/authoring-3/7.txt', '/tmp/authoring-3/7.docx'],
+      변환: {
+        명령: 'textutil',
+        인자: ['-convert', 'txt', '-output', '/tmp/authoring-3/7.txt', '/tmp/authoring-3/7.docx'],
+      },
       읽을자리: '/tmp/authoring-3/7.txt',
     });
     expect(나).toMatchObject({ 받을자리: '/tmp/authoring-3/8.doc', 읽을자리: '/tmp/authoring-3/8.txt' });
+  });
+
+  it('서버(리눅스)는 docx 를 pandoc 으로 바꾼다 — textutil 은 맥에만 있다', () => {
+    const [가] = 자료계획([파일(7, 1, '기획서.docx')], '/t', 'linux');
+    expect(가).toMatchObject({
+      변환: { 명령: 'pandoc', 인자: ['-t', 'plain', '-o', '/t/7.txt', '/t/7.docx'] },
+      읽을자리: '/t/7.txt',
+    });
+  });
+
+  it('서버에서 옛 .doc 은 못 읽는다고 미리 말한다 — pandoc 은 docx 만 읽는다', () => {
+    const 계획 = 자료계획([파일(8, 1, '옛기획.DOC'), 파일(9, 2, 'a.pdf')], '/t', 'linux');
+    expect(못읽는자료(계획, 'linux')).toMatch(/옛기획\.DOC.*docx/);
+    expect(못읽는자료(계획, 'darwin')).toBeNull();
+    expect(못읽는자료(자료계획([파일(9, 1, 'a.pdf')], '/t', 'linux'), 'linux')).toBeNull();
   });
 
   it('pdf·md·txt 는 그대로 읽힌다', () => {

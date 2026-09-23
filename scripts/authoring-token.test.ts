@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { 나풀기, 토큰모양인가, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
+import { 나풀기, 토큰고르기, 토큰모양인가, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 const 좋은토큰 = `tpa_${'A1b2_-'.repeat(7)}z`;
 const 치울것: string[] = [];
@@ -56,6 +56,24 @@ describe('토큰 파일', () => {
     writeFileSync(자리, 'x', { mode: 0o644 });
     토큰저장(자리, 좋은토큰);
     expect(statSync(자리).mode & 0o777).toBe(0o600);
+  });
+});
+
+describe('토큰고르기 — 서버는 환경값, 맥은 파일', () => {
+  it('환경값이 있으면 그것을 쓰고 파일에 저장하지 않는다', () => {
+    expect(토큰고르기({ AUTHORING_AGENT_TOKEN: 좋은토큰 }, null)).toEqual({ 토큰: 좋은토큰, 어디: '환경' });
+  });
+
+  it('환경값이 없으면 파일 값을 쓴다', () => {
+    expect(토큰고르기({}, 좋은토큰)).toEqual({ 토큰: 좋은토큰, 어디: '파일' });
+  });
+
+  it('둘 다 없으면 null — 맥이면 그때 묻는다', () => {
+    expect(토큰고르기({ AUTHORING_AGENT_TOKEN: '' }, null)).toBeNull();
+  });
+
+  it('환경값 모양이 틀리면 던진다 — .env 에 엉뚱한 값을 넣은 것이다', () => {
+    expect(() => 토큰고르기({ AUTHORING_AGENT_TOKEN: 'sk-ant-oat01-x' }, null)).toThrow(/AUTHORING_AGENT_TOKEN/);
   });
 });
 
