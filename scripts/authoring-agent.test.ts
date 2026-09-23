@@ -270,7 +270,7 @@ describe('클로드인자', () => {
     expect(인자.slice(인자.indexOf('--disallowedTools') + 1)).toEqual(['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)']);
   });
 
-  it('자식은 git·gh 를 못 쓴다 — 커밋·push·PR 은 맥이 한다', () => {
+  it('git·gh 를 이름으로 막는다 — 실수 방지일 뿐, 막는 것은 자격증명을 뺀 환경이다', () => {
     expect(클로드인자('/t')).toEqual(expect.arrayContaining(['Bash(git:*)', 'Bash(gh:*)']));
   });
 });

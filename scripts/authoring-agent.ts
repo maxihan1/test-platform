@@ -94,7 +94,8 @@ export function 과금위험(env: Record<string, string | undefined>, 설정들:
  *
  * `--add-dir` 로 자료를 받아 둔 임시 폴더를 연다. 작업 폴더 밖이라 안 열면 자식이 자료를 못 읽는다.
  * **`--add-dir` 도 가변 인자다** — 그래서 `--disallowedTools` 앞에 두고, 마지막은 여전히 `--disallowedTools` 다.
- * git·gh 는 막는다 — 자식이 몰래 커밋하거나 push·PR 을 하면 맥의 「테스트만」 판정을 비켜 간다.
+ * `Bash(git:*)`·`Bash(gh:*)` 처럼 **이름으로 막는 것은 실수 방지일 뿐**이다 — `/usr/bin/git`·`sh -c` 로 비껴간다.
+ * 막는 것은 자격증명을 뺀 환경이다 (`authoring-chain` 의 `자식환경`).
  */
 export function 클로드인자(폴더: string): string[] {
   const 막을것 = ['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)'];
