@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { 거절인가, 기다렸다다시인가, 보고간격 } from './authoring-agent.js';
-import { 한줄 } from './authoring-chain.js';
+import { 진짜main인자, 진짜main풀기, 한줄 } from './authoring-chain.js';
 
 /** 서버에 거는 한 번. 거절이면 그 자리에서 던져 루프를 끊는다 */
 export async function 부른다(
@@ -74,6 +74,16 @@ export function 친다(명령: string, 인자: string[], cwd: string, input?: st
   const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한 });
   const 까닭 = r.error?.message ?? (r.stderr ?? '').trim().split('\n')[0] ?? '';
   return { ok: r.status === 0 && r.error === undefined, 낸것: r.stdout ?? '', 까닭, 오류: r.stderr ?? '' };
+}
+
+/** GitHub 이 말하는 main SHA. 로컬에 없으면 그 SHA 를 받아 둔다 — 판정·커밋수·작업방의 기준이 이것이다 */
+export function 진짜main받기(cwd: string): { sha: string } | { 까닭: string } {
+  const 물음 = 친다('git', 진짜main인자, cwd);
+  const sha = 물음.ok ? 진짜main풀기(물음.낸것) : null;
+  if (sha === null) return { 까닭: `GitHub 의 main 을 못 읽었다: ${물음.까닭 || 물음.낸것.trim()}` };
+  if (친다('git', ['cat-file', '-e', `${sha}^{commit}`], cwd).ok) return { sha };
+  const 받기 = 친다('git', ['fetch', 'origin', sha], cwd);
+  return 받기.ok ? { sha } : { 까닭: `main(${sha}) 을 못 받았다: ${받기.까닭}` };
 }
 
 export type 판정기 = (파일들: string[], 기준: string, cwd: string) => boolean;

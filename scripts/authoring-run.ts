@@ -27,7 +27,7 @@ import {
   푸시거부사유,
   푸시인자,
 } from './authoring-chain.js';
-import { type 보고손, type 판정기, 다시하며, 닫으며, 보고손만들기, 부른다, 친다 } from './authoring-io.js';
+import { type 보고손, type 판정기, 다시하며, 닫으며, 보고손만들기, 부른다, 진짜main받기, 친다 } from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
 
 /** 켤 때 내 이름으로 잡힌 채 멈춘 RUNNING 을 닫는다. 맥이 꺼져 끊긴 것이라 아무도 안 끝낸다 */
@@ -116,7 +116,13 @@ async function 한건(
   const 빈gh = mkdtempSync(join(tmpdir(), 'authoring-gh-'));
   try {
     await 손.단계('작업방을 만드는 중');
-    for (const c of 작업방준비(것.id, 뿌리)) {
+    // 기준은 GitHub 이 말하는 main 이다. 로컬 origin/main 은 앞선 자식이 옮겨 놓았을 수 있다
+    const 메인 = 진짜main받기(뿌리);
+    if ('까닭' in 메인) {
+      await 손.끝내기({ status: 'FAILED', error: 메인.까닭 });
+      return;
+    }
+    for (const c of 작업방준비(것.id, 뿌리, 메인.sha)) {
       const r = 친다(c.명령, c.인자, 뿌리);
       if (!r.ok) {
         await 손.끝내기({ status: 'FAILED', error: `작업방을 못 만들었다: ${c.명령} ${c.인자.join(' ')} — ${r.까닭}` });
@@ -190,7 +196,7 @@ async function 한건(
     }
     const 파일들 = 바뀐파일들(상태.낸것);
     // 판정 규칙은 cases-only.mjs 가 정본이다. 켤 때 메모리에 고정한 맥 자신의 판을 쓴다 — 자식이 파일을 바꿔도 그대로다
-    const 테스트만 = (목록: string[]) => 판정(목록, 'origin/main', 작업방);
+    const 테스트만 = (목록: string[]) => 판정(목록, 메인.sha, 작업방);
     const 거부 = 푸시거부사유(테스트만(파일들), 파일들);
     if (거부 !== null) {
       await 손.끝내기({ status: 'FAILED', error: 거부 });
@@ -208,9 +214,9 @@ async function 한건(
       }
     }
 
-    // push 는 HEAD 라 자식이 몰래 만든 커밋까지 올라간다. 커밋한 뒤 origin/main 과의 차이 전체를 다시 본다
-    const 올린것 = 친다('git', 올린파일인자, 작업방);
-    const 커밋수 = 친다('git', 커밋수인자, 작업방);
+    // push 는 HEAD 라 자식이 몰래 만든 커밋까지 올라간다. 커밋한 뒤 진짜 main 과의 차이 전체를 다시 본다
+    const 올린것 = 친다('git', 올린파일인자(메인.sha), 작업방);
+    const 커밋수 = 친다('git', 커밋수인자(메인.sha), 작업방);
     const 전체 = 올린것.낸것.split('\n').filter((f) => f !== '');
     const 뒤거부 =
       올린것.ok && 커밋수.ok

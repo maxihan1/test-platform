@@ -15,7 +15,7 @@ import {
   PR파일인자,
   실행목록인자,
 } from './authoring-chain.js';
-import { type 보고손, type 판정기, 닫으며, 쉬기, 친다 } from './authoring-io.js';
+import { type 보고손, type 판정기, 닫으며, 쉬기, 진짜main받기, 친다 } from './authoring-io.js';
 
 const 폴링간격 = 15_000;
 // ponytail: 루프 시간으로 잰다 — 맥에는 GNU timeout 이 없다. CI 가 늘 17분을 넘기면 이 숫자를 올린다
@@ -113,16 +113,16 @@ async function 머지(손: 보고손, prUrl: string, 판정: 판정기): Promise
     return;
   }
 
-  // 케이스만 바꾼 PR 인지 병합 직전에 다시 본다. 판정 규칙은 cases-only.mjs 가 정본이고 기준은 최신 origin/main 이다
-  const 받기 = 친다('git', ['fetch', 'origin', 'main'], 뿌리);
+  // 케이스만 바꾼 PR 인지 병합 직전에 다시 본다. 판정 규칙은 켤 때 고정한 cases-only.mjs 이고
+  // 기준은 GitHub 이 지금 말하는 main 이다 — 로컬 origin/main 은 자식이 옮겨 놓았을 수 있다
+  const 메인 = 진짜main받기(뿌리);
   const 목록 = 친다('gh', PR파일인자(prUrl), 뿌리);
   const 파일들 = 목록.낸것.split('\n').filter((f) => f !== '');
-  const 테스트만 = 판정(파일들, 'origin/main', 뿌리);
-  const 막힘 = !받기.ok
-    ? `최신 main 을 못 받아 판정을 못 했다: ${받기.까닭}`
+  const 막힘 = '까닭' in 메인
+    ? `최신 main 을 못 받아 판정을 못 했다: ${메인.까닭}`
     : !목록.ok
       ? `PR 의 바뀐 파일을 못 읽었다: ${목록.까닭}`
-      : 머지거부사유(테스트만, 파일들);
+      : 머지거부사유(판정(파일들, 메인.sha, 뿌리), 파일들);
   if (막힘 !== null) {
     await 손.끝내기({ status: 'FAILED', error: 막힘 });
     return;

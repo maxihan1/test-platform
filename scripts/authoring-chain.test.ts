@@ -31,6 +31,8 @@ import {
   푸시인자,
   플랫폼링크,
   자식환경,
+  진짜main인자,
+  진짜main풀기,
   type CI실행,
 } from './authoring-chain.js';
 
@@ -54,23 +56,20 @@ describe('케이스 폴더 — 그 접두사의 기존 케이스가 사는 폴�
   });
 });
 
-describe('작업방 준비 — fetch · 떼어 낸 작업방 · @platform 심링크', () => {
-  const 명령들 = 작업방준비(12, '/r');
+describe('작업방 준비 — 진짜 main SHA 에서 떼어 낸 작업방 · @platform 심링크', () => {
+  const 기준 = 'a'.repeat(40);
+  const 명령들 = 작업방준비(12, '/r', 기준);
 
-  it('옛 origin/main 을 따지 않게 먼저 fetch 한다', () => {
-    expect(명령들[0]).toEqual({ 명령: 'git', 인자: ['fetch', 'origin', 'main'] });
-  });
-
-  it('브랜치 없이 origin/main 에서 떼어 낸 작업방을 연다', () => {
-    expect(명령들[1]).toEqual({
+  it('브랜치 없이 GitHub 이 준 main SHA 에서 떼어 낸 작업방을 연다 — origin/main 참조는 자식이 옮길 수 있다', () => {
+    expect(명령들[0]).toEqual({
       명령: 'git',
-      인자: ['worktree', 'add', '--detach', '/r/.claude/worktrees/author-12', 'origin/main'],
+      인자: ['worktree', 'add', '--detach', '/r/.claude/worktrees/author-12', 기준],
     });
   });
 
   it('자기 패키지 셋을 작업방 안으로 건다 — 안 걸면 사용자 체크아웃의 kit 을 본다', () => {
     const 폴더 = '/r/.claude/worktrees/author-12/node_modules/@platform';
-    expect(명령들.slice(2)).toEqual([
+    expect(명령들.slice(1)).toEqual([
       { 명령: 'mkdir', 인자: ['-p', 폴더] },
       { 명령: 'ln', 인자: ['-sfn', '../../packages/kit', `${폴더}/kit`] },
       { 명령: 'ln', 인자: ['-sfn', '../../apps/admin', `${폴더}/admin`] },
@@ -267,9 +266,10 @@ describe('커밋 뒤 판정 — 자식이 몰래 커밋한 것까지 본다', ()
     expect(커밋뒤거부사유(false, ['tests/todo/a.spec.ts', 'apps/admin/x.ts'], 1)).toMatch(/테스트만/);
   });
 
-  it('차이는 이름 바꾸기를 풀어 origin/main 부터 HEAD 까지 전부 본다', () => {
-    expect(올린파일인자).toEqual(['-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', 'origin/main...HEAD']);
-    expect(커밋수인자).toEqual(['rev-list', '--count', 'origin/main..HEAD']);
+  it('차이는 이름 바꾸기를 풀어 진짜 main SHA 부터 HEAD 까지 전부 본다', () => {
+    const 기준 = 'b'.repeat(40);
+    expect(올린파일인자(기준)).toEqual(['-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', `${기준}...HEAD`]);
+    expect(커밋수인자(기준)).toEqual(['rev-list', '--count', `${기준}..HEAD`]);
   });
 });
 
@@ -418,5 +418,24 @@ describe('자식 환경 — 자식에게서 GitHub 열쇠를 뺀다', () => {
   it('피그마 토큰은 받았을 때만 자식에게 싣는다', () => {
     expect('FIGMA_TOKEN' in 환경).toBe(false);
     expect(자식환경(부모, '/빈', 'figd_x').FIGMA_TOKEN).toBe('figd_x');
+  });
+});
+
+describe('진짜 main — 로컬 참조가 아니라 GitHub 에 묻는다', () => {
+  const sha = '883d7625a6f49b2767b2e3c5ba08d75e2a3ff370';
+
+  it('ls-remote 로 main 하나만 묻는다', () => {
+    expect(진짜main인자).toEqual(['ls-remote', 'origin', 'refs/heads/main']);
+  });
+
+  it('SHA 한 줄이면 그 SHA 다', () => {
+    expect(진짜main풀기(`${sha}\trefs/heads/main\n`)).toBe(sha);
+  });
+
+  it('비었거나 모양이 다르거나 여러 줄이면 null — 지어내지 않는다', () => {
+    expect(진짜main풀기('')).toBeNull();
+    expect(진짜main풀기('abc\trefs/heads/main\n')).toBeNull();
+    expect(진짜main풀기(`${sha}\trefs/heads/mainx\n`)).toBeNull();
+    expect(진짜main풀기(`${sha}\trefs/heads/main\n${sha}\trefs/heads/main\n`)).toBeNull();
   });
 });

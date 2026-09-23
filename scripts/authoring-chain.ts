@@ -57,15 +57,27 @@ export function 작업방폴더(번호: number, 뿌리: string): string {
 }
 
 /**
- * 작업방 준비. fetch 가 먼저다 — 안 하면 맥이 받아 둔 **옛 origin/main**(tpx-author 없는 판)을 딴다.
+ * 진짜 main 을 GitHub 에 묻는다. `refs/remotes/origin/main` 은 맥의 로컬 참조라 자식이 옮겨 놓으면
+ * 판정·커밋수의 기준이 속는다. 껍데기는 이 SHA 를 `git fetch origin <sha>` 로 받아 두고 쓴다.
+ */
+export const 진짜main인자 = ['ls-remote', 'origin', 'refs/heads/main'];
+
+/** ls-remote 출력에서 main SHA 를 뽑는다. 정확히 한 줄이 아니면 `null` — 지어내지 않는다 */
+export function 진짜main풀기(낸것: string): string | null {
+  const 줄들 = 낸것.split('\n').filter((줄) => 줄 !== '');
+  if (줄들.length !== 1) return null;
+  return /^([0-9a-f]{40})\trefs\/heads\/main$/.exec(줄들[0]!)?.[1] ?? null;
+}
+
+/**
+ * 작업방 준비. 기준은 `진짜main인자` 로 받아 fetch 해 둔 SHA 다 — 로컬 `origin/main` 은 옛 판이거나 옮겨졌을 수 있다.
  * `--detach` 라 로컬 브랜치가 안 쌓이고 사용자 체크아웃의 HEAD·index 를 안 건드린다.
  */
-export function 작업방준비(번호: number, 뿌리: string): 명령[] {
+export function 작업방준비(번호: number, 뿌리: string, 기준: string): 명령[] {
   const 폴더 = 작업방폴더(번호, 뿌리);
   const 링크자리 = join(폴더, 'node_modules', '@platform');
   return [
-    { 명령: 'git', 인자: ['fetch', 'origin', 'main'] },
-    { 명령: 'git', 인자: ['worktree', 'add', '--detach', 폴더, 'origin/main'] },
+    { 명령: 'git', 인자: ['worktree', 'add', '--detach', 폴더, 기준] },
     { 명령: 'mkdir', 인자: ['-p', 링크자리] },
     ...플랫폼링크.map(([이름, 대상]) => ({ 명령: 'ln', 인자: ['-sfn', 대상, join(링크자리, 이름)] })),
   ];
@@ -178,10 +190,14 @@ export function 푸시거부사유(테스트만인가: boolean, 바뀐파일: st
 
 /**
  * 맥이 커밋한 **뒤에** 다시 본다. push 는 `HEAD` 라 `status` 로 본 것 말고 **자식이 몰래 만든 커밋**까지 올라간다.
- * 그래서 origin/main 과의 차이 전체를 판정하고, 커밋이 맥의 것 하나가 아니면 거부한다.
+ * 그래서 진짜 main SHA 와의 차이 전체를 판정하고, 커밋이 맥의 것 하나가 아니면 거부한다.
  */
-export const 올린파일인자 = ['-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', 'origin/main...HEAD'];
-export const 커밋수인자 = ['rev-list', '--count', 'origin/main..HEAD'];
+export function 올린파일인자(기준: string): string[] {
+  return ['-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', `${기준}...HEAD`];
+}
+export function 커밋수인자(기준: string): string[] {
+  return ['rev-list', '--count', `${기준}..HEAD`];
+}
 
 export function 커밋뒤거부사유(테스트만인가: boolean, 파일들: string[], 커밋수: number): string | null {
   if (커밋수 !== 1) {
