@@ -3,6 +3,8 @@
 // **맥은 병합 여부를 스스로 정하지 않는다.** 사람이 화면에서 머지를 눌렀고, 맥은 CI 가 초록인지만 본다.
 // main 보호가 `enforce_admins: false` 라 빨간 PR 병합을 막는 것은 이 기다림과 `머지인자` 뿐이다.
 
+import { join } from 'node:path';
+
 import {
   type CI결과,
   type CI실행,
@@ -10,7 +12,9 @@ import {
   CI판정,
   PR준비인자,
   다시돌릴인자,
+  머지거부사유,
   머지인자,
+  PR파일인자,
   실행목록인자,
 } from './authoring-chain.js';
 import { type 보고손, 쉬기, 친다 } from './authoring-io.js';
@@ -104,6 +108,21 @@ export async function 머지처리(손: 보고손, 번호: number, prUrl: string
   if (결과.판정 !== '초록') {
     const 어디 = '번호' in 결과 ? ` ${CI실행주소(prUrl, 결과.번호)}` : '';
     await 손.끝내기({ status: 'FAILED', error: `CI 가 17분 안에 초록이 안 됐다 (${결과.판정}).${어디}` });
+    return;
+  }
+
+  // 케이스만 바꾼 PR 인지 병합 직전에 다시 본다. 판정 규칙은 cases-only.mjs 가 정본이고 기준은 최신 origin/main 이다
+  const 받기 = 친다('git', ['fetch', 'origin', 'main'], 뿌리);
+  const 목록 = 친다('gh', PR파일인자(prUrl), 뿌리);
+  const 파일들 = 목록.낸것.split('\n').filter((f) => f !== '');
+  const 판정 = 친다('node', [join(뿌리, '.claude', 'scripts', 'cases-only.mjs'), 'origin/main'], 뿌리, `${파일들.join('\n')}\n`);
+  const 막힘 = !받기.ok
+    ? `최신 main 을 못 받아 판정을 못 했다: ${받기.까닭}`
+    : !목록.ok
+      ? `PR 의 바뀐 파일을 못 읽었다: ${목록.까닭}`
+      : 머지거부사유(판정.ok, 파일들);
+  if (막힘 !== null) {
+    await 손.끝내기({ status: 'FAILED', error: 막힘 });
     return;
   }
 
