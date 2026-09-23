@@ -16,6 +16,7 @@ import {
   바뀐파일들,
   실패까닭,
   비밀섞였나,
+  자식환경,
   작업방준비,
   작업방폴더,
   케이스폴더,
@@ -110,6 +111,7 @@ async function 한건(
   // 이름을 예측할 수 없게 만든다. 고정 이름이면 남이 미리 만들어 둔 폴더·링크에 받아 쓴다.
   // 작업방 밖에 둔다 — 안에 두면 받은 자료가 바뀐 파일로 잡혀 push 가 거부된다
   const 폴더 = mkdtempSync(join(tmpdir(), `authoring-${것.id}-`));
+  const 빈gh = mkdtempSync(join(tmpdir(), 'authoring-gh-'));
   try {
     await 손.단계('작업방을 만드는 중');
     for (const c of 작업방준비(것.id, 뿌리)) {
@@ -158,13 +160,14 @@ async function 한건(
 
     await 손.단계('케이스를 만드는 중');
     // 출력을 잡아 PR 본문에 싣는다. 사람 눈에도 보여야 하므로(숨은 데몬이 아니다) 그대로 흘려보낸다.
-    // 피그마 토큰은 **자식 환경에만** 넣는다. 부모 환경에 넣으면 이 뒤에 띄우는 모든 것(gh 등)에 샌다
+    // 피그마 토큰은 **자식 환경에만** 넣는다. 부모 환경에 넣으면 이 뒤에 띄우는 모든 것(gh 등)에 샌다.
+    // GitHub 자격증명은 뺀다 — 자식이 push·병합을 못 하게 막는 것은 이 환경이다
     const 돌린것 = spawnSync('claude', 클로드인자(폴더), {
       cwd: 작업방,
       input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }),
       stdio: ['pipe', 'pipe', 'inherit'],
       encoding: 'utf8',
-      env: 것.figmaToken === undefined ? process.env : { ...process.env, FIGMA_TOKEN: 것.figmaToken },
+      env: 자식환경(process.env, 빈gh, 것.figmaToken),
     });
     const 낸것 = 돌린것.stdout ?? '';
     process.stdout.write(낸것);
@@ -257,6 +260,7 @@ async function 한건(
   } finally {
     // 받은 기획서를 맥에 남기지 않는다. 성공이든 실패든 지운다
     rmSync(폴더, { recursive: true, force: true });
+    rmSync(빈gh, { recursive: true, force: true });
     if (existsSync(작업방)) {
       // 강제로 안 지운다 — 남은 변경이 있으면 사람이 봐야 할 것이다
       const 치움 = 친다('git', ['worktree', 'remove', 작업방], 뿌리);

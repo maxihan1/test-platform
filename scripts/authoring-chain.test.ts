@@ -30,6 +30,7 @@ import {
   커밋수인자,
   푸시인자,
   플랫폼링크,
+  자식환경,
   type CI실행,
 } from './authoring-chain.js';
 
@@ -378,5 +379,44 @@ describe('CI 실행 주소 — 실패 사유에 싣는다', () => {
 
   it('PR 주소 모양이 아니면 번호만 낸다 — 지어내지 않는다', () => {
     expect(CI실행주소('엉뚱한 값', 987)).toBe('CI 실행 987번');
+  });
+});
+
+describe('자식 환경 — 자식에게서 GitHub 열쇠를 뺀다', () => {
+  const 부모 = { PATH: '/usr/bin', HOME: '/Users/m', SSH_AUTH_SOCK: '/tmp/agent', GH_TOKEN: 'ghp_real', GIT_ASKPASS: '/x' };
+  const 환경 = 자식환경(부모, '/빈');
+
+  it('gh 는 keychain 대신 무효 토큰을 써서 실패한다', () => {
+    expect(환경.GH_TOKEN).toBe('authoring-child-has-no-github');
+    expect(환경.GITHUB_TOKEN).toBe('authoring-child-has-no-github');
+    expect(환경.GH_CONFIG_DIR).toBe('/빈');
+  });
+
+  it('자격 도우미를 끄고 묻지도 않는다', () => {
+    expect(환경.GIT_CONFIG_COUNT).toBe('1');
+    expect(환경.GIT_CONFIG_KEY_0).toBe('credential.helper');
+    expect(환경.GIT_CONFIG_VALUE_0).toBe('');
+    expect(환경.GIT_TERMINAL_PROMPT).toBe('0');
+    expect(환경.GIT_ASKPASS).toBe('/usr/bin/false');
+    expect(환경.SSH_ASKPASS).toBe('/usr/bin/false');
+  });
+
+  it('ssh 에이전트 소켓을 빼고 나머지는 그대로 넘긴다', () => {
+    expect('SSH_AUTH_SOCK' in 환경).toBe(false);
+    expect(환경.PATH).toBe('/usr/bin');
+    expect(환경.HOME).toBe('/Users/m');
+  });
+
+  it('부모에 이미 GIT_CONFIG_COUNT 가 있으면 뒤에 이어 붙인다', () => {
+    const 이어 = 자식환경({ GIT_CONFIG_COUNT: '2', GIT_CONFIG_KEY_0: 'a.b', GIT_CONFIG_VALUE_0: '1' }, '/빈');
+    expect(이어.GIT_CONFIG_COUNT).toBe('3');
+    expect(이어.GIT_CONFIG_KEY_2).toBe('credential.helper');
+    expect(이어.GIT_CONFIG_VALUE_2).toBe('');
+    expect(이어.GIT_CONFIG_KEY_0).toBe('a.b');
+  });
+
+  it('피그마 토큰은 받았을 때만 자식에게 싣는다', () => {
+    expect('FIGMA_TOKEN' in 환경).toBe(false);
+    expect(자식환경(부모, '/빈', 'figd_x').FIGMA_TOKEN).toBe('figd_x');
   });
 });

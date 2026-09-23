@@ -19,6 +19,34 @@ export interface 명령 {
   인자: string[];
 }
 
+/**
+ * 자식 `claude -p` 의 환경. 자식은 셸 전체를 가지므로 `Bash(git:*)` 같은 이름 막기는 `/usr/bin/git`·`sh -c` 로
+ * 비껴간다. **막는 것은 이 환경이다** — GitHub 자격증명이 없으면 push·PR·병합을 못 한다.
+ * gh 는 `GH_TOKEN` 이 있으면 keychain 을 안 보므로 무효값으로 덮는다. `credential.helper` 를 빈 값으로 두면
+ * 시스템 설정의 osxkeychain 까지 목록에서 지워진다.
+ */
+export function 자식환경(
+  부모: Record<string, string | undefined>,
+  빈gh설정폴더: string,
+  피그마토큰?: string,
+): Record<string, string | undefined> {
+  const { SSH_AUTH_SOCK: _소켓, ...나머지 } = 부모;
+  const 번째 = Number(부모.GIT_CONFIG_COUNT ?? '0') || 0;
+  return {
+    ...나머지,
+    GH_TOKEN: 'authoring-child-has-no-github',
+    GITHUB_TOKEN: 'authoring-child-has-no-github',
+    GH_CONFIG_DIR: 빈gh설정폴더,
+    GIT_CONFIG_COUNT: String(번째 + 1),
+    [`GIT_CONFIG_KEY_${번째}`]: 'credential.helper',
+    [`GIT_CONFIG_VALUE_${번째}`]: '',
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_ASKPASS: '/usr/bin/false',
+    SSH_ASKPASS: '/usr/bin/false',
+    ...(피그마토큰 === undefined ? {} : { FIGMA_TOKEN: 피그마토큰 }),
+  };
+}
+
 export function 올릴브랜치(번호: number): string {
   return `author-${번호}`;
 }
