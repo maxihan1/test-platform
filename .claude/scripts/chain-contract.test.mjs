@@ -211,6 +211,20 @@ test('일곱 단계 전부 pr-update.mjs 를 부른다', () => {
   assert.deepEqual(missing, [], `PR 갱신을 빼먹은 단계: ${missing}`);
 });
 
+// --- 맥 작성 경로의 자식 (2026-09-23) ---
+// 자식이 git 을 치면 맥의 commit·push 와 부딪히고, background 를 남기면 턴이 먼저 끝나 멈춘다.
+// 금지 문장은 산문에 있어도 되므로 울타리 안만 본다
+test('tpx-author 는 git·gh·background 를 실행하지 않는다', () => {
+  assert.match(read('tpx-author'), /^name: tpx-author$/m, 'tpx-author/SKILL.md 의 name: 이 폴더와 다르다');
+  const 코드 = codeOf('tpx-author');
+  for (const 금지 of ['git ', 'gh ', 'run_in_background']) {
+    assert.ok(!코드.includes(금지), `tpx-author 의 코드 울타리에 "${금지}" 가 있다`);
+  }
+  // 비-공허 대조군 — 울타리가 비면 위 단언은 늘 통과한다
+  assert.ok(코드.includes('npm run check:tests'), 'tpx-author 에 관문 명령 울타리가 없다');
+  assert.match(read('tpx-cases'), /tpx-author/, 'tpx-cases 가 tpx-author 에서도 불린다는 것을 안 적었다');
+});
+
 // --- 스킬이 안내하는 명령이 실재한다 ---
 test('스킬이 부르는 npm 스크립트가 package.json 에 있다', () => {
   const pkg = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
