@@ -309,6 +309,44 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
     });
   });
 
+  describe('피그마 토큰은 피그마 자료가 있을 때만 집기 응답에 실린다', () => {
+    async function 비우고집기(피그마: string[]) {
+      let 비었나 = false;
+      while (!비었나) {
+        const r = await app.inject({
+          method: 'POST',
+          url: `/api/authoring/requests/claim?service=${접두사}`,
+        });
+        비었나 = r.statusCode === 204;
+      }
+      const id = await 준비세우기({ 서비스, 누가: 'x', 이름: 'x', 피그마 });
+      if (피그마.length === 0) {
+        const { pool } = await import('../db/index.js');
+        await pool.query(
+          `INSERT INTO authoring_asset (request_id, position, kind, name, size) VALUES ($1, 1, 'FILE', 'a.pdf', 1)`,
+          [id],
+        );
+      }
+      await 제출(id);
+      return app.inject({ method: 'POST', url: `/api/authoring/requests/claim?service=${접두사}` });
+    }
+
+    it('피그마 자료가 있으면 그 서비스의 토큰을 싣는다', async () => {
+      const { pool } = await import('../db/index.js');
+      await pool.query(`UPDATE service SET figma_token = 'figd_xwar' WHERE id = $1`, [서비스]);
+      const res = await 비우고집기(['https://www.figma.com/design/T1/']);
+      expect(res.json().figmaToken).toBe('figd_xwar');
+    });
+
+    it('피그마 자료가 없으면 키 자체가 없다 — 토큰이 필요 없는 곳에 비밀값을 안 흘린다', async () => {
+      const { pool } = await import('../db/index.js');
+      await pool.query(`UPDATE service SET figma_token = 'figd_xwar' WHERE id = $1`, [서비스]);
+      const res = await 비우고집기([]);
+      expect(res.statusCode).toBe(200);
+      expect('figmaToken' in res.json()).toBe(false);
+    });
+  });
+
   describe('방어 ⑤ 집은 쪽만 그 행을 움직인다', () => {
     it('집지 않은 사람이 끝났다고 하면 403', async () => {
       await 줄세우기({

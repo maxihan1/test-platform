@@ -17,6 +17,7 @@ import {
   서비스저장소,
   줄세우기,
   집기,
+  피그마토큰,
   한건,
   한쪽,
   type 요청,
@@ -321,7 +322,13 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 줄이 비었으면 204 다. 맥이 폴링하므로 「없음」이 오류가 아니다
       if (집은것 === null) return reply.code(204).send();
       // RERUN 은 자기 자료가 없다. 원본 행의 자료는 맥이 원본 번호로 따로 읽는다
-      return { ...집은것, assets: await 자료목록(집은것.id) };
+      const assets = await 자료목록(집은것.id);
+      // 토큰은 피그마 자료가 있을 때만 싣는다. 필요 없는 응답에까지 비밀값을 흘리지 않는다.
+      // RERUN 은 원본의 자료를 읽으므로 원본에 피그마가 있는지를 본다
+      const 읽을자료 =
+        집은것.kind === 'RERUN' && 집은것.sourceId !== null ? await 자료목록(집은것.sourceId) : assets;
+      const 토큰 = 읽을자료.some((a) => a.kind === 'FIGMA') ? await 피그마토큰(서비스) : null;
+      return { ...집은것, assets, ...(토큰 === null ? {} : { figmaToken: 토큰 }) };
     },
   );
 
