@@ -9,6 +9,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import {
   계정들,
   남은사본,
+  부품링크,
   동시상한,
   사본자리,
   사본제외,
@@ -16,6 +17,7 @@ import {
   사본환경,
   저장소이름,
   파일거부사유,
+  호스트환경,
 } from './authoring-copy.js';
 
 describe('동시상한 — 동시에 도는 작업 수', () => {
@@ -54,6 +56,12 @@ describe('계정들 — 자리마다 자식 uid 를 따로, 서버 저장소 일
     expect(계정들({ AUTHORING_CHILD_UID: '20000' }, 2, 0)).toEqual({ 까닭: expect.stringContaining('HOST_UID') });
   });
 
+  it('자식 gid 가 호스트 gid 와 겹치면 거부한다 — 서버 저장소의 그룹 쓰기 파일에 쓴다', () => {
+    expect(계정들({ AUTHORING_CHILD_UID: '20000', HOST_UID: '1000', HOST_GID: '20001' }, 2, 0)).toEqual({
+      까닭: expect.stringContaining('HOST_GID'),
+    });
+  });
+
   it('자식 uid 가 0 이나 호스트 uid 와 겹치면 거부한다', () => {
     expect(계정들({ ...env, AUTHORING_CHILD_UID: '0' }, 1, 0)).toEqual({ 까닭: expect.any(String) });
     expect(계정들({ ...env, AUTHORING_CHILD_UID: '500' }, 2, 0)).toEqual({ 까닭: expect.stringContaining('501') });
@@ -68,7 +76,7 @@ describe('계정들 — 자리마다 자식 uid 를 따로, 서버 저장소 일
 });
 
 describe('사본자리', () => {
-  it('바탕 아래 author-<번호> 에 git·트리·집·자료·gh 를 둔다', () => {
+  it('바탕 아래 author-<번호> 에 git·트리·집·자료·gh·임시를 둔다', () => {
     expect(사본자리(12, '/w')).toEqual({
       뿌리: '/w/author-12',
       git: '/w/author-12/git',
@@ -76,7 +84,38 @@ describe('사본자리', () => {
       집: '/w/author-12/home',
       자료: '/w/author-12/assets',
       gh: '/w/author-12/gh',
+      임시: '/w/author-12/tmp',
     });
+  });
+});
+
+describe('호스트환경 — 서버 저장소에 쓰는 git(호스트 uid)의 환경', () => {
+  it('PATH · 호스트 집 · GitHub 자격증명만 — 에이전트·Claude 토큰은 안 넘긴다', () => {
+    const 부모 = {
+      PATH: '/bin',
+      HOST_HOME: '/tmp/h',
+      GH_TOKEN: 'ghp_x',
+      AUTHORING_AGENT_TOKEN: 'tpa_x',
+      CLAUDE_CODE_OAUTH_TOKEN: 'sk-ant-oat-x',
+    };
+    expect(호스트환경(부모)).toEqual({ PATH: '/bin', HOME: '/tmp/h', GH_TOKEN: 'ghp_x' });
+  });
+
+  it('호스트 집이 비면 시작 스크립트가 만드는 자리다', () => {
+    expect(호스트환경({ PATH: '/bin' }).HOME).toBe('/tmp/author-host-home');
+  });
+});
+
+describe('부품링크 — 사본의 node_modules', () => {
+  it('바깥 부품은 원천 것을 가리키고, @platform 셋은 사본 안의 packages·apps 를 가리킨다', () => {
+    expect(부품링크(['.bin', '@types', '@platform', 'vitest'], '/repo/node_modules', '/w/author-1/tree')).toEqual([
+      ['/repo/node_modules/.bin', '/w/author-1/tree/node_modules/.bin'],
+      ['/repo/node_modules/@types', '/w/author-1/tree/node_modules/@types'],
+      ['/repo/node_modules/vitest', '/w/author-1/tree/node_modules/vitest'],
+      ['../../packages/kit', '/w/author-1/tree/node_modules/@platform/kit'],
+      ['../../apps/admin', '/w/author-1/tree/node_modules/@platform/admin'],
+      ['../../apps/runner', '/w/author-1/tree/node_modules/@platform/runner'],
+    ]);
   });
 });
 
@@ -193,7 +232,9 @@ describe('진짜 git — 준비 직후 사본이 깨끗하다', () => {
       expect(r.status, `${c.인자.join(' ')}: ${r.stderr}`).toBe(0);
     }
     writeFileSync(join(자리.git, 'info', 'exclude'), 사본제외);
-    symlinkSync(join(원천, 'node_modules'), join(자리.트리, 'node_modules'));
+    mkdirSync(join(자리.트리, 'node_modules', '@platform'), { recursive: true });
+    symlinkSync(join(원천, 'node_modules'), join(자리.트리, 'node_modules', 'x'));
+    symlinkSync('../../a.txt', join(자리.트리, 'node_modules', '@platform', 'kit'));
 
     const env = 사본환경(자리);
     expect(친다(['status', '--porcelain', '-uall'], 자리.트리, env).stdout).toBe('');

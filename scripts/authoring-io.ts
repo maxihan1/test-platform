@@ -103,11 +103,23 @@ export interface 칠때 {
 }
 
 /**
+ * `친다` 의 환경. **다른 uid 로 띄우면 준 것만 넘긴다** — 그 uid 의 남은 자식이 `/proc/<pid>/environ` 으로
+ * 에이전트의 토큰 셋을 읽는다 (2026-09-24 보안 검토). 에이전트 자신이 치는 것은 부모 위에 얹는다
+ */
+export function 칠환경(
+  부모: Record<string, string | undefined>,
+  선택: 칠때,
+): Record<string, string | undefined> | undefined {
+  if (선택.uid !== undefined) return { ...선택.env };
+  return 선택.env === undefined ? undefined : { ...부모, ...선택.env };
+}
+
+/**
  * 셸 없이 한 번 친다. 멈춘 git·gh 가 줄 전체를 붙잡지 않게 시간 제한을 건다.
  * **동기라 도는 동안 다른 서비스 루프도 선다** — 몇 초짜리만 여기로, 긴 것(clone·push·claude)은 `돌린다`
  */
 export function 친다(명령: string, 인자: string[], cwd: string, input?: string, 제한 = 120_000, 선택: 칠때 = {}) {
-  const env = 선택.env === undefined ? undefined : { ...process.env, ...선택.env };
+  const env = 칠환경(process.env, 선택);
   const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한, env, uid: 선택.uid, gid: 선택.gid });
   // 시간 초과는 오류 글이 `spawnSync git ETIMEDOUT` 뿐이라 사람이 못 알아본다
   const 시간초과 = (r.error as NodeJS.ErrnoException | undefined)?.code === 'ETIMEDOUT';
@@ -119,6 +131,12 @@ export function 친다(명령: string, 인자: string[], cwd: string, input?: st
 
 /** 지금 도는 자식들. 거절로 에이전트가 나갈 때 남기지 않는다 — 남으면 구독 한도를 계속 쓴다 */
 export const 도는자식 = new Set<ChildProcess>();
+
+/**
+ * 서버가 거절해 에이전트가 멈추는 중인가. 줄 하나가 거절을 받으면 채운다 —
+ * 다른 줄의 머지는 CI 를 기다리는 중에, 작성은 자리를 받은 뒤에 이것을 보고 손을 뗀다 (2026-09-24 코드 검토)
+ */
+export const 멈춤: { 까닭: string | null } = { 까닭: null };
 
 export interface 돌린결과 {
   /** 못 띄웠으면 null */

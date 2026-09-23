@@ -20,8 +20,8 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { type 설정, type 설정자리, admin주소, 기다렸다다시인가, 선행검사, 주소안전한가, 집은것인가 } from './authoring-rules.js';
 import { 남은사본치우기 } from './authoring-child.js';
-import { 계정들, 동시상한 } from './authoring-copy.js';
-import { 도는자식, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
+import { 계정들, 동시상한, 호스트환경 } from './authoring-copy.js';
+import { 도는자식, 멈춤, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
 import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
 import { type 판, 멈춘것닫기, 한건처리 } from './authoring-run.js';
 import { 나풀기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
@@ -158,13 +158,16 @@ async function 돈다(): Promise<number> {
     호스트로:
       켜기.계정 === null
         ? {}
-        : { ...켜기.계정.호스트, env: { HOME: process.env.HOST_HOME || '/tmp/author-host-home' } },
+        : {
+            ...켜기.계정.호스트,
+            env: 호스트환경(process.env),
+          },
   };
 
   const 자동최신화 = process.env.AUTHORING_CLAUDE_AUTOUPDATE === '1';
-  let 마지막최신화: number | null = null;
+  // 켤 때 이미 올렸으면 그 시각부터 센다 — 아니면 첫 줄이 곧바로 한 번 더 올려 10분까지 모든 줄이 선다
+  let 마지막최신화: number | null = 자동최신화 ? Date.now() : null;
   const 표 = 자리들(켜기.상한);
-  let 거절: string | null = null;
   const 쉬기 = () => new Promise((resolve) => setTimeout(resolve, 쉬는시간));
 
   /**
@@ -172,7 +175,7 @@ async function 돈다(): Promise<number> {
    * 자리(메모리·구독 한도)를 안 쓴다. 한 서비스 안은 여전히 한 건씩이다
    */
   const 줄돌기 = async (서비스: string): Promise<void> => {
-    while (거절 === null) {
+    while (멈춤.까닭 === null) {
       // 도는 claude 가 없을 때만 판을 바꾼다. 동기라 도는 동안 다른 줄도 안 집는다 — 그것이 잠금이다
       if (자동최신화 && 업데이트할까(Date.now(), 마지막최신화, 표.도는수())) {
         클로드최신화(process.env.AUTHORING_CLAUDE_VERSION);
@@ -189,6 +192,11 @@ async function 돈다(): Promise<number> {
           const 것 = 답.몸;
           집었나 = true;
           const 자리번호 = 것.kind === 'MERGE' ? -1 : await 표.잡기();
+          // 자리를 기다리는 동안 다른 줄이 거절을 받았으면 손을 뗀다. 그 행은 다음에 켤 때 멈춘 것으로 닫힌다
+          if (멈춤.까닭 !== null) {
+            if (자리번호 >= 0) 표.놓기(자리번호);
+            return;
+          }
           console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}${자리번호 < 0 ? '' : ` · 자리 ${자리번호}`}).`);
           try {
             await 한건처리(주소, 토큰, 서비스, 것, 판, 자리번호, 서버표[서비스] ?? []);
@@ -203,7 +211,7 @@ async function 돈다(): Promise<number> {
         const 글 = err instanceof Error ? err.message : String(err);
         // **거절만 끝낸다.** 기다린다고 안 풀리고 사람이 손대야 한다. 다른 줄의 자식도 거둔다 — 남으면 한도를 계속 쓴다
         if (글.includes('서버가 거절했다')) {
-          거절 = 글;
+          멈춤.까닭 = 글;
           for (const 자식 of 도는자식) 자식.kill('SIGKILL');
           return;
         }
@@ -217,7 +225,7 @@ async function 돈다(): Promise<number> {
 
   console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} · 동시에 ${켜기.상한}건 — 멈추려면 Ctrl+C.`);
   await Promise.all(서비스들.map(줄돌기));
-  console.error(`[멈춤] ${거절}`);
+  console.error(`[멈춤] ${멈춤.까닭}`);
   return 1;
 }
 

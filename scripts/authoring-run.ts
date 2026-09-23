@@ -11,7 +11,7 @@ import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 자료계획, 자료출처 } from './authoring-assets.js';
 import { 닫을RUNNING, 자식환경, 케이스폴더 } from './authoring-chain.js';
 import { type 계정, type 사본, 사본환경 } from './authoring-copy.js';
-import { 사본만들기, 사본치우기, 자식거두기 } from './authoring-child.js';
+import { 사본만들기, 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
 import {
   type 보고손,
   type 칠때,
@@ -19,6 +19,7 @@ import {
   거절글,
   닫으며,
   돌린다,
+  멈춤,
   보고손만들기,
   인증헤더,
   부른다,
@@ -99,8 +100,9 @@ async function 한건(
       await 손.끝내기({ status: 'FAILED', error: '머지할 초안 PR 주소가 없다' });
       return;
     }
-    // 확인하는 브랜치는 **prUrl 을 읽어 온 그 행**의 것이다 — 재실행이 올린 PR 이면 author-<재실행 번호>
-    await 머지처리(손, 주소, 판.판정, 것.prUrl ? 것.id : 것.sourceId ?? undefined, 판.원천, 판.호스트로);
+    // 확인하는 브랜치는 **prUrl 을 가진 원본 행**(sourceId)의 것이다 — 재실행이 올린 PR 이면 author-<재실행 번호>.
+    // 머지 행 자기 번호로 PR 을 올린 적은 없다
+    await 머지처리(손, 주소, 판.판정, 것.sourceId ?? undefined, 판.원천, 판.호스트로);
     return;
   }
 
@@ -142,9 +144,9 @@ async function 한건(
   try {
     await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 자리, 메인.sha, 출처, 자료들, 본문, 서버들, 손);
   } finally {
-    // 받은 기획서와 자식이 만든 것을 남기지 않는다. 성공이든 실패든 지운다
-    자식거두기(자식);
-    사본치우기(자리);
+    // 받은 기획서와 자식이 만든 것을 남기지 않는다. 성공이든 실패든 지운다 —
+    // 단 자식을 못 거뒀으면 남긴다. 살아 있는 자식이 지우는 도중에 폴더를 링크로 바꿔 트리 밖을 지우게 할 수 있다
+    if (await 자식거두기(자식)) 사본치우기(자리);
   }
 }
 
@@ -202,7 +204,15 @@ async function 사본에서(
     // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다. 자식이 읽도록 0644 — 폴더가 자식 것이라 남은 못 본다
     writeFileSync(c.받을자리, Buffer.from(await 답.arrayBuffer()), { mode: 0o644 });
     if (c.변환 === null) continue;
-    const 바꾼것 = 친다(c.변환.명령, c.변환.인자, 자리.자료);
+    // 믿을 수 없는 파일을 여는 것이라 root 가 아니라 자리 uid 로, 토큰 없는 환경으로 연다
+    const 바꾼것 = 친다(
+      c.변환.명령,
+      c.변환.인자,
+      자리.자료,
+      undefined,
+      120_000,
+      자식 === null ? {} : { ...자식, env: 자식빈환경({ HOME: 자리.집, TMPDIR: 자리.임시 }) },
+    );
     if (!바꾼것.ok) {
       await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 글자로 못 바꿨다: ${바꾼것.까닭}` });
       return;
@@ -210,18 +220,31 @@ async function 사본에서(
   }
 
   await 손.단계('케이스를 만드는 중');
-  // 환경은 **통째로** 준다. 피그마 토큰은 자식에게만, GitHub 자격증명과 에이전트 토큰은 빼고, 집은 작업마다 새것
-  const 돌린것 = await 돌린다('claude', 클로드인자(자리.자료, 판.모델), {
+  // 환경은 **통째로** 준다. 피그마 토큰은 자식에게만, GitHub 자격증명과 에이전트 토큰은 뺀다.
+  // 임시 자리는 작업마다 따로 — 공용 /tmp 면 같은 자리 uid 를 받은 다음 건이 앞 건이 심은 캐시를 돌린다.
+  // 집을 바꾸는 것은 자리 uid 로 돌 때만 — 맥에서 바꾸면 Playwright 가 ~/Library/Caches 의 브라우저를 못 찾는다 (2026-09-24 코드 검토)
+  const 환경 = {
+    ...자식환경(process.env, 자리.gh, 것.figmaToken),
+    TMPDIR: 자리.임시,
+    ...(자식 === null ? {} : { HOME: 자리.집 }),
+  };
+  const 인자 = 클로드인자(자리.자료, 판.모델);
+  const 돌린것 = await 돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
     cwd: 자리.트리,
     input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }),
-    env: { ...자식환경(process.env, 자리.gh, 것.figmaToken), HOME: 자리.집 },
+    env: 환경,
     uid: 자식?.uid,
     gid: 자식?.gid,
     제한: 60 * 60_000,
     흘림: true,
   });
+  // 에이전트가 거절로 멈추는 중이면 자식을 죽인 것이다 — 서버도 받아 주지 않으니 보고하지 않는다
+  if (멈춤.까닭 !== null) return;
   // 검사 전에 자식이 남긴 것을 전부 죽인다 — 살아 있으면 검사한 뒤에 파일을 바꿔치기한다
-  자식거두기(자식);
+  if (!(await 자식거두기(자식))) {
+    await 손.끝내기({ status: 'FAILED', error: '자식이 남긴 프로세스를 거두지 못했다 — 올리지 않는다' });
+    return;
+  }
   if (돌린것.코드 === null && !돌린것.시간초과) {
     await 손.끝내기({ status: 'FAILED', error: `claude 를 못 띄웠다: ${돌린것.오류.trim().split('\n').pop() ?? ''}` });
     return;

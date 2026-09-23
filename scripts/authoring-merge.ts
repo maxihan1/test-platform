@@ -16,7 +16,7 @@ import {
   실행목록인자,
   올릴브랜치,
 } from './authoring-chain.js';
-import { type 보고손, type 칠때, type 판정기, 쉬기, 진짜main받기, 친다 } from './authoring-io.js';
+import { type 보고손, type 칠때, type 판정기, 멈춤, 쉬기, 진짜main받기, 친다 } from './authoring-io.js';
 
 const 폴링간격 = 15_000;
 // ponytail: 루프 시간으로 잰다 — 맥에는 GNU timeout 이 없다. CI 가 늘 17분을 넘기면 이 숫자를 올린다
@@ -122,6 +122,8 @@ export async function 머지처리(
   let 다시돌림 = false;
   let 결과: CI결과 = { 판정: '아직' };
   while (Date.now() < 끝시각) {
+    // 에이전트가 거절로 멈추는 중이면 병합까지 가지 않는다 — 서버가 끝내기도 안 받는다
+    if (멈춤.까닭 !== null) return;
     const 실행들 = 목록읽기();
     if (실행들 !== null) {
       결과 = CI판정(pr.headRefOid, 실행들, 이후번호);

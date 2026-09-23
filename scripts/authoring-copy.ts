@@ -9,7 +9,7 @@ import type { 명령 } from './authoring-chain.js';
 
 export interface 사본 {
   뿌리: string;
-  /** bare. 에이전트만 쓴다 — 자식이 설정·훅을 못 심는다 */
+  /** bare. 컨테이너(root)에서는 에이전트만 쓴다 — 자식이 설정·훅을 못 심는다. 맥은 같은 uid 라 자식도 쓸 수 있다(훅은 끈다) */
   git: string;
   /** 자식이 쓰는 자리. `.git` 이 없다 */
   트리: string;
@@ -17,6 +17,11 @@ export interface 사본 {
   집: string;
   자료: string;
   gh: string;
+  /**
+   * 자식의 TMPDIR. 공용 /tmp 에 두면 같은 자리 uid 를 물려받은 **다음 건(다른 서비스)** 이
+   * 앞 건이 심어 둔 캐시(playwright·tsx 변환 캐시)를 돌린다 (2026-09-24 보안 검토)
+   */
+  임시: string;
 }
 
 export function 사본자리(번호: number, 바탕: string): 사본 {
@@ -28,7 +33,27 @@ export function 사본자리(번호: number, 바탕: string): 사본 {
     집: join(뿌리, 'home'),
     자료: join(뿌리, 'assets'),
     gh: join(뿌리, 'gh'),
+    임시: join(뿌리, 'tmp'),
   };
+}
+
+/** 워크스페이스 자기 패키지. 원천 것을 가리키면 사본이 아니라 서버 저장소(또는 맥 체크아웃)의 kit 으로 관문을 돈다 */
+const 자기패키지 = [
+  ['kit', '../../packages/kit'],
+  ['admin', '../../apps/admin'],
+  ['runner', '../../apps/runner'],
+] as const;
+
+/**
+ * 사본의 `node_modules` 에 걸 링크 `[대상, 자리]`. 바깥 부품은 원천의 것을 하나씩 가리키고
+ * `@platform` 셋만 사본 안을 가리킨다 — 폴더째 링크하면 `@platform/kit` 이 원천의 packages 로 풀린다 (2026-09-24 코드 검토)
+ */
+export function 부품링크(이름들: string[], 원천부품: string, 트리: string): [string, string][] {
+  const 자리 = join(트리, 'node_modules');
+  return [
+    ...이름들.filter((이름) => 이름 !== '@platform').map((이름): [string, string] => [join(원천부품, 이름), join(자리, 이름)]),
+    ...자기패키지.map(([이름, 대상]): [string, string] => [대상, join(자리, '@platform', 이름)]),
+  ];
 }
 
 /** 죽은 채 남은 사본. 켤 때 지운다 — 도중에 꺼지면 `finally` 가 안 돈다 */
@@ -114,7 +139,19 @@ export function 계정들(
   if (겹침 !== undefined) {
     return { 까닭: `자식 uid(${겹침.uid})가 root(0) 나 HOST_UID(${호스트.uid}) 와 겹친다 — AUTHORING_CHILD_UID 를 바꿔라` };
   }
+  const 그룹겹침 = 자식.find((c) => c.gid === 0 || c.gid === 호스트.gid);
+  if (그룹겹침 !== undefined) {
+    return { 까닭: `자식 gid(${그룹겹침.gid})가 root(0) 나 HOST_GID(${호스트.gid}) 와 겹친다 — 서버 저장소의 그룹 쓰기 파일에 쓴다` };
+  }
   return { 자식, 호스트 };
+}
+
+/**
+ * 호스트 uid 로 치는 git(기준 받기·병합 뒤 당기기)의 환경. fetch·pull 에 필요한 GitHub 자격증명만 넘기고
+ * 에이전트·Claude 토큰은 뺀다 — 도커 호스트의 같은 uid 프로세스가 environ 을 읽을 수 있다 (2026-09-24 보안 검토)
+ */
+export function 호스트환경(env: Record<string, string | undefined>): Record<string, string | undefined> {
+  return { PATH: env.PATH, HOME: env.HOST_HOME || '/tmp/author-host-home', GH_TOKEN: env.GH_TOKEN };
 }
 
 export interface 파일모양 {
