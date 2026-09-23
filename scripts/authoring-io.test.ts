@@ -1,11 +1,11 @@
-// 작성 에이전트 공용 손 검사 — 판정 스크립트 고정 · 닫기 · 시간 초과
+// 작성 에이전트 공용 손 검사 — 판정 스크립트 고정 · 닫기 · 시간 초과 · 끊긴 연결
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type 보고손, 다시하며, 닫으며, 친다, 판정기만들기 } from './authoring-io.js';
+import { type 보고손, 다시하며, 닫으며, 부른다, 친다, 판정기만들기, 한번더건다 } from './authoring-io.js';
 
 const 치울것: string[] = [];
 afterEach(() => {
@@ -128,5 +128,97 @@ describe('친다 — 시간 초과는 그 사실을 까닭에 싣는다', () => 
     expect(r.ok).toBe(false);
     expect(r.시간초과).toBe(true);
     expect(r.까닭).toMatch(/시간 초과/);
+  });
+});
+
+
+// fetch 는 응답을 하나도 못 받은 연결 오류를 이 모양으로 던진다 (#3336 의 `fetch failed`)
+const 끊김 = () => new TypeError('fetch failed');
+const 답 = (status: number) => new Response(status === 204 ? null : '{}', { status });
+
+describe('부른다 — 서버에 못 닿은 요청은 한 번 더 건다 (#3336)', () => {
+  // 실제 끊김을 재현하려 했으나 막힌 루프 80초·220초로도 안 났다 — 흉내로 검사한다 (2026-09-23 사용자 결정)
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function 가짜(...차례: (() => Response | Error)[]) {
+    const 받은것: RequestInit[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_주소: string, 옵션: RequestInit) => {
+        받은것.push(옵션);
+        const 다음 = 차례.shift();
+        if (다음 === undefined) throw new Error('가짜 fetch 가 예상보다 많이 불렸다');
+        const 값 = 다음();
+        if (값 instanceof Error) throw 값;
+        return 값;
+      }),
+    );
+    return 받은것;
+  }
+
+  it('첫 번이 연결 오류면 새 시간 제한으로 한 번 더 걸어 성공한다', async () => {
+    const 받은것 = 가짜(끊김, () => 답(200));
+    const r = await 부른다('http://x', 'c', '/stage', { method: 'PATCH', body: { stage: '올리는 중' } });
+    expect(r.status).toBe(200);
+    expect(받은것).toHaveLength(2);
+    expect(받은것[1]?.body).toBe(JSON.stringify({ stage: '올리는 중' }));
+    // 시도마다 30초를 새로 받는다 — 나눠 쓰면 두 번째가 남은 시간만 받는다
+    expect(받은것[1]?.signal).not.toBe(받은것[0]?.signal);
+  });
+
+  it('연결 오류가 두 번 이어지면 더 걸지 않고 던진다', async () => {
+    const 받은것 = 가짜(끊김, 끊김);
+    await expect(부른다('http://x', 'c', '/stage')).rejects.toThrow('fetch failed');
+    expect(받은것).toHaveLength(2);
+  });
+
+  it('거절(403)은 다시 걸지 않는다', async () => {
+    const 받은것 = 가짜(() => 답(403));
+    await expect(부른다('http://x', 'c', '/stage')).rejects.toThrow('서버가 거절했다');
+    expect(받은것).toHaveLength(1);
+  });
+
+  it('응답을 받은 오류(500)는 다시 걸지 않고 그대로 돌려준다', async () => {
+    const 받은것 = 가짜(() => 답(500));
+    expect((await 부른다('http://x', 'c', '/stage')).status).toBe(500);
+    expect(받은것).toHaveLength(1);
+  });
+
+  it('시간 초과는 다시 걸지 않는다 — 서버가 멈춘 것이라 30초를 한 번 더 쓸 뿐이다', async () => {
+    const 받은것 = 가짜(() => new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+    await expect(부른다('http://x', 'c', '/stage')).rejects.toThrow('timeout');
+    expect(받은것).toHaveLength(1);
+  });
+
+  it('연결 오류가 아닌 TypeError(잘못된 주소 등)는 다시 걸지 않는다', async () => {
+    const 받은것 = 가짜(() => new TypeError('Failed to parse URL from x/api/stage'));
+    await expect(부른다('x', 'c', '/stage')).rejects.toThrow('Failed to parse URL');
+    expect(받은것).toHaveLength(1);
+  });
+});
+
+describe('한번더건다 — 자료 받기도 같은 손을 쓴다', () => {
+  it('첫 번이 연결 오류면 한 번 더 불러 그 답을 돌려준다', async () => {
+    let 불린수 = 0;
+    const r = await 한번더건다(async () => {
+      불린수 += 1;
+      if (불린수 === 1) throw 끊김();
+      return 답(200);
+    });
+    expect(r.status).toBe(200);
+    expect(불린수).toBe(2);
+  });
+
+  it('연결 오류가 아니면 한 번만 부르고 그대로 던진다', async () => {
+    let 불린수 = 0;
+    await expect(
+      한번더건다(async () => {
+        불린수 += 1;
+        throw new Error('다른 것');
+      }),
+    ).rejects.toThrow('다른 것');
+    expect(불린수).toBe(1);
   });
 });
