@@ -253,6 +253,8 @@ describe('클로드인자', () => {
       '/t',
       '--disallowedTools',
       'AskUserQuestion',
+      'Bash(git:*)',
+      'Bash(gh:*)',
     ]);
   });
 
@@ -263,10 +265,13 @@ describe('클로드인자', () => {
   // 2026-09-21 실측 — 프롬프트를 배열 끝에 실었더니 --disallowedTools 가 가변 인자라
   // 그것을 도구 이름 목록으로 삼켰고 `Input must be provided...` 로 죽었다.
   // **--disallowedTools 가 마지막이어야 한다**는 것이 이 단언의 알맹이다
-  it('마지막 원소 뒤에 아무것도 없다 — 가변 인자가 프롬프트를 삼켰던 자리다', () => {
+  it('--disallowedTools 뒤에는 도구 이름만 있다 — 가변 인자가 프롬프트를 삼켰던 자리다', () => {
     const 인자 = 클로드인자('/t');
-    expect(인자[인자.length - 2]).toBe('--disallowedTools');
-    expect(인자[인자.length - 1]).toBe('AskUserQuestion');
+    expect(인자.slice(인자.indexOf('--disallowedTools') + 1)).toEqual(['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)']);
+  });
+
+  it('자식은 git·gh 를 못 쓴다 — 커밋·push·PR 은 맥이 한다', () => {
+    expect(클로드인자('/t')).toEqual(expect.arrayContaining(['Bash(git:*)', 'Bash(gh:*)']));
   });
 });
 
