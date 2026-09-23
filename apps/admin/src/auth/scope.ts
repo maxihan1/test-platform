@@ -36,6 +36,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/settings/users': { 종류: '안매임' },
   '/api/settings/users/:username': { 종류: '안매임' },
   '/api/settings/users/:username/password': { 종류: '안매임' },
+  '/api/settings/users/:username/agent-token': { 종류: '안매임' },
 
   // 스캔은 전 서비스를 한 번에 훑는다 (SPEC §3.1)
   '/api/catalog/scan': { 종류: '안매임' },

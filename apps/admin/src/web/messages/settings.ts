@@ -111,4 +111,21 @@ export const 설정말: Record<string, string> = {
   '닫으면 다시 볼 수 없습니다': 'Once closed it cannot be seen again',
   '— 잊으면 다시 만듭니다': '— if it is lost, issue a new one',
   '적었습니다': 'Got it',
+
+  // 에이전트 토큰 — 작성 에이전트 계정에만 보인다
+  '에이전트 토큰': 'Agent token',
+  '토큰 있음': 'Token set',
+  '토큰 없음': 'No token',
+  '발급': 'Issue',
+  '다시 발급': 'Reissue',
+  '토큰 취소': 'Revoke token',
+  '맥 에이전트가 지금 멈춥니다.': 'The Mac agent stops now.',
+  '새 토큰을 맥에 다시 넣어야 합니다': 'The new token must be pasted into the Mac again',
+  '다시 발급할 때까지 작성이 멈춥니다': 'Authoring stays stopped until a token is issued again',
+  '다시 발급한다': 'Reissue now',
+  '취소한다': 'Revoke now',
+  '그만두기': 'Never mind',
+  '의 에이전트 토큰입니다. 선택해 복사하세요': "'s agent token. Select it to copy",
+  '맥 에이전트 첫 실행에서 한 번 붙여넣습니다. 방법은 docs/SETUP.md 8절':
+    'Paste it once on the Mac agent first run. See docs/SETUP.md section 8',
 };

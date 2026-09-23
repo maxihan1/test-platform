@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { 돌릴수있나, 셸허용됐나, 자료계획, 자료출처, type 자료 } from './authoring-assets.js';
-import { 줄프롬프트, 클로드인자 } from './authoring-agent.js';
+import { 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 
 const 파일 = (id: number, position: number, name: string): 자료 => ({
   id,

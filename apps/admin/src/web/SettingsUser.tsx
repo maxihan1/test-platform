@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 
+import { AgentToken, AgentTokenBox, type 발급토큰 } from './AgentToken.js';
 import { api, type SettingsServiceRow, type UserRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import type { 등급 } from './role.js';
@@ -32,6 +33,7 @@ export function UserSection({
   const [여는것, set여는것] = useState<string | 'new' | null>(null);
   // 만든 직후 한 번만 보여준다. 닫으면 다시 못 본다 (SPEC §8.8)
   const [임시비밀번호, set임시비밀번호] = useState<임시 | null>(null);
+  const [토큰, set토큰] = useState<발급토큰 | null>(null);
 
   // 내가 배정받은 서비스가 없으면 그것부터 알린다. 첫 운영자가 이 화면에 오는 가장 흔한 이유다
   const 내배정없음 = rows.find((it) => it.username === me)?.services.length === 0;
@@ -56,9 +58,8 @@ export function UserSection({
         </div>
       ) : null}
 
-      {임시비밀번호 === null ? null : (
-        <TempPassword 것={임시비밀번호} onClose={() => set임시비밀번호(null)} />
-      )}
+      {임시비밀번호 === null ? null : <TempPassword 것={임시비밀번호} onClose={() => set임시비밀번호(null)} />}
+      {토큰 === null ? null : <AgentTokenBox 것={토큰} onClose={() => set토큰(null)} />}
 
       {여는것 === 'new' ? (
         <UserForm
@@ -104,6 +105,7 @@ export function UserSection({
               onPassword={(password) => set임시비밀번호({ username: it.username, password })}
             />
           ) : null}
+          {여는것 === it.username ? <AgentToken row={it} onIssued={set토큰} onChanged={onDone} /> : null}
         </div>
       ))}
     </section>

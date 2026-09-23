@@ -132,6 +132,53 @@ export async function 머지처리(손: 보고손, prUrl: string, 판정: 판정
       ? { status: 'DONE', prUrl }
       : { status: 'FAILED', error: `병합이 안 됐다 (${상태}): ${친것.까닭 || '충돌이나 보호 규칙을 봐라'}` },
   );
+  if (상태 === 'MERGED') main당기기(뿌리);
+}
+
+/**
+ * 빨리감기만 한다. 사람 체크아웃에 병합 커밋을 몰래 만들지 않는다.
+ * **훅과 fsmonitor 를 끈다** — 자식은 맥의 `.git` 을 쓸 수 있어서, 켜 두면 자식이 써 둔
+ * post-merge 훅이 GitHub 자격증명을 가진 맥 권한으로 돈다 (2026-09-23 보안 검사가 잡았다).
+ * ponytail: 훅만 막는다. `.git/config` 의 filter·sshCommand 는 못 막는다 — 자식의 쓰기 범위에서 뿌리 `.git` 을 빼는 것이 후속이다
+ */
+export const 당김인자 = [
+  '-c',
+  'core.hooksPath=/dev/null',
+  '-c',
+  'core.fsmonitor=false',
+  'pull',
+  '--ff-only',
+  'origin',
+  'main',
+];
+
+/**
+ * 병합 뒤 맥의 main 체크아웃을 당길지. 당기면 `null`, 건너뛰면 사유.
+ *
+ * **서버는 맥의 체크아웃을 `/tests` 로 본다** (docker-compose `./tests:/tests:ro`) — 안 당기면
+ * 병합된 새 테스트가 목록에 안 뜬다 (#3811 뒤 실측, 2026-09-23). 사람이 그 체크아웃에서
+ * 다른 가지를 보고 있거나 고치던 것이 있으면 손대지 않는다.
+ * 서버와 맥이 다른 기계면 이것으로 안 풀린다 — 서버 쪽 동기화는 후속이다 (docs/SETUP.md §8).
+ */
+export function 당길까(가지: { ok: boolean; 낸것: string }, 상태: { ok: boolean; 낸것: string }): string | null {
+  if (!가지.ok || !상태.ok) return '체크아웃의 가지나 상태를 못 읽었다';
+  if (가지.낸것.trim() !== 'main') return `체크아웃이 main 이 아니다 (${가지.낸것.trim()})`;
+  if (상태.낸것.trim() !== '') return '체크아웃에 고친 파일이 있다';
+  return null;
+}
+
+function main당기기(뿌리: string): void {
+  const 사유 = 당길까(
+    친다('git', ['symbolic-ref', '--short', 'HEAD'], 뿌리),
+    친다('git', ['status', '--porcelain'], 뿌리),
+  );
+  // 요청은 이미 DONE 이다. 실패해도 되돌리지 않고 사람이 볼 수 있게 찍는다 — 안 찍으면 「목록에 안 뜬다」가 조용히 돌아온다
+  if (사유 !== null) {
+    console.error(`[머지] main 을 안 당겼다: ${사유}. 새 테스트를 보려면 직접 git pull 하라.`);
+    return;
+  }
+  const r = 친다('git', 당김인자, 뿌리);
+  console.log(r.ok ? '[머지] main 을 당겼다 — 새 테스트가 목록에 뜬다.' : `[머지] main 당기기 실패: ${r.까닭}`);
 }
 
 /**

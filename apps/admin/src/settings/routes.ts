@@ -4,6 +4,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { 에이전트토큰만들기, 에이전트토큰지우기 } from '../auth/agentToken.js';
 import { 정수 } from '../routeParams.js';
 
 import {
@@ -132,4 +133,17 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
   app.post<{ Params: { username: string } }>('/settings/users/:username/password', async (req) => ({
     tempPassword: await 비밀번호다시만들기(req.params.username),
   }));
+
+  // 비밀번호처럼 이 응답이 토큰을 볼 수 있는 유일한 자리다 (SPEC 도메인/인증 §7)
+  app.post<{ Params: { username: string } }>('/settings/users/:username/agent-token', async (req, reply) => {
+    const 결과 = await 에이전트토큰만들기(req.params.username);
+    if (결과 === 'NOT_AUTHORING_AGENT') return reply.code(400).send({ error: 결과 });
+    if (결과 === 'NOT_FOUND') return reply.code(404).send({ error: 결과 });
+    return { agentToken: 결과.토큰 };
+  });
+
+  app.delete<{ Params: { username: string } }>('/settings/users/:username/agent-token', async (req, reply) => {
+    await 에이전트토큰지우기(req.params.username);
+    return reply.code(204).send();
+  });
 }

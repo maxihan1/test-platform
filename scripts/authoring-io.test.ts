@@ -186,6 +186,12 @@ describe('부른다 — 서버에 못 닿은 요청은 한 번 더 건다 (#3336
     expect(받은것).toHaveLength(1);
   });
 
+  it('토큰을 Bearer 로 싣고 쿠키는 안 싣는다 — 맥은 비밀번호 로그인을 안 한다', async () => {
+    const 받은것 = 가짜(() => 답(200));
+    await 부른다('http://x', 'tpa_열쇠', '/stage');
+    expect(받은것[0]?.headers).toEqual({ authorization: 'Bearer tpa_열쇠' });
+  });
+
   it('시간 초과는 다시 걸지 않는다 — 서버가 멈춘 것이라 30초를 한 번 더 쓸 뿐이다', async () => {
     const 받은것 = 가짜(() => new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
     await expect(부른다('http://x', 'c', '/stage')).rejects.toThrow('timeout');

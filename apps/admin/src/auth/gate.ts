@@ -3,7 +3,7 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
-import { 확인 } from './identify.js';
+import { 토큰으로왔나, 확인 } from './identify.js';
 import { 케이스의서비스, 라우트표, 번호로, 서비스없음, 자원의서비스 } from './scope.js';
 import type { 등급, 사용자 } from './store.js';
 
@@ -111,7 +111,26 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/settings/users': 'admin',
   'PATCH /api/settings/users/:username': 'admin',
   'POST /api/settings/users/:username/password': 'admin',
+  'POST /api/settings/users/:username/agent-token': 'admin',
+  'DELETE /api/settings/users/:username/agent-token': 'admin',
 };
+
+/**
+ * **에이전트 토큰이 지나갈 수 있는 통로** (SPEC 도메인/인증 §7 「인증 적용 범위」가 정본이다).
+ *
+ * 맥이 실제로 부르는 것만 넣는다 — 접두사(`/api/authoring/`)로 열면 **새 요청 만들기(한도를 쓴다)와
+ * 머지까지 열린다** (2026-09-23 계획 검토가 잡았다). 사진 올리기는 맥이 안 불러서 뺐다.
+ * 맥이 새 통로를 부르게 되면 여기 한 줄을 더한다. 안 더하면 그 자리에서 403 으로 드러난다
+ */
+export const 토큰통로 = new Set([
+  'GET /api/auth/me',
+  'POST /api/authoring/requests/claim',
+  'PATCH /api/authoring/requests/:id/stage',
+  'POST /api/authoring/requests/:id/finish',
+  'GET /api/authoring/requests',
+  'GET /api/authoring/requests/:id',
+  'GET /api/authoring/requests/:id/assets/:assetId',
+]);
 
 function 필요등급(path: string, method: string): 등급 {
   // Fastify 는 GET 라우트에 HEAD 를 자동으로 붙인다. 소스에는 그 줄이 없어 표에도 없고,
@@ -233,6 +252,10 @@ export function 인증등록(app: FastifyInstance): void {
 
     const user = await 확인(req);
     if (user === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
+    // 토큰은 맥의 파일에 남는다. 새면 그 파일로 할 수 있는 일을 맥이 부르는 통로로 좁힌다 (SPEC 도메인/인증 §7)
+    if (토큰으로왔나(req) && !토큰통로.has(`${req.method === 'HEAD' ? 'GET' : req.method} ${path}`)) {
+      return reply.code(403).send({ error: 'AGENT_TOKEN_SCOPE' });
+    }
     req.user = user;
   });
 

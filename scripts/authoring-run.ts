@@ -6,7 +6,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-agent.js';
+import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 import { type 자료, 돌릴수있나, 자료계획, 자료출처 } from './authoring-assets.js';
 import {
   PR만들기인자,
@@ -30,9 +30,11 @@ import {
 import {
   type 보고손,
   type 판정기,
+  거절글,
   다시하며,
   닫으며,
   보고손만들기,
+  인증헤더,
   부른다,
   진짜main받기,
   친다,
@@ -41,16 +43,16 @@ import {
 import { 머지처리 } from './authoring-merge.js';
 
 /** 켤 때 내 이름으로 잡힌 채 멈춘 RUNNING 을 닫는다. 맥이 꺼져 끊긴 것이라 아무도 안 끝낸다 */
-export async function 멈춘것닫기(주소기지: string, 쿠키: string, 서비스들: string[], 나: string): Promise<void> {
+export async function 멈춘것닫기(주소기지: string, 토큰: string, 서비스들: string[], 나: string): Promise<void> {
   for (const 서비스 of 서비스들) {
-    const 답 = await 부른다(주소기지, 쿠키, `/authoring/requests?service=${encodeURIComponent(서비스)}&status=RUNNING`);
+    const 답 = await 부른다(주소기지, 토큰, `/authoring/requests?service=${encodeURIComponent(서비스)}&status=RUNNING`);
     if (답.status !== 200) {
       console.error(`[기다림] ${서비스} 의 RUNNING 목록을 못 읽었다 (${답.status}). 이번엔 건너뛴다.`);
       continue;
     }
     const 목록 = (답.몸 as { items?: { id: number; status: string; claimedBy?: string | null }[] }).items ?? [];
     for (const id of 닫을RUNNING(목록, 나)) {
-      await 보고손만들기(주소기지, 쿠키, 서비스, id).끝내기({
+      await 보고손만들기(주소기지, 토큰, 서비스, id).끝내기({
         status: 'FAILED',
         error: '맥이 꺼져 중단됐다 — 다시 넣어라',
       });
@@ -62,19 +64,19 @@ export async function 멈춘것닫기(주소기지: string, 쿠키: string, 서�
 /** 한 건을 끝까지 처리한다. 단계는 사람이 화면에서 보는 그 줄이다 */
 export async function 한건처리(
   주소기지: string,
-  쿠키: string,
+  토큰: string,
   서비스: string,
   것: 집은것,
   판정: 판정기,
   서버들: { env: string; baseUrl: string }[] = [],
 ): Promise<void> {
-  const 손 = 보고손만들기(주소기지, 쿠키, 서비스, 것.id);
-  await 닫으며(손, (감싼손) => 한건(주소기지, 쿠키, 서비스, 것, 판정, 서버들, 감싼손));
+  const 손 = 보고손만들기(주소기지, 토큰, 서비스, 것.id);
+  await 닫으며(손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판정, 서버들, 감싼손));
 }
 
 async function 한건(
   주소기지: string,
-  쿠키: string,
+  토큰: string,
   서비스: string,
   것: 집은것,
   판정: 판정기,
@@ -86,7 +88,7 @@ async function 한건(
     // (`authoring/store.ts` 의 `줄세우기`). 그래서 **원본 행을 읽어** 가져온다
     let 주소 = 것.prUrl ?? null;
     if (주소 === null && typeof 것.sourceId === 'number') {
-      const 원본 = await 부른다(주소기지, 쿠키, `/authoring/requests/${것.sourceId}?service=${encodeURIComponent(서비스)}`);
+      const 원본 = await 부른다(주소기지, 토큰, `/authoring/requests/${것.sourceId}?service=${encodeURIComponent(서비스)}`);
       주소 = (원본.몸 as { prUrl?: string | null } | null)?.prUrl ?? null;
     }
     if (주소 === null) {
@@ -102,7 +104,7 @@ async function 한건(
   let 자료들 = 것.assets ?? [];
   let 본문 = 것.specText ?? null;
   if (출처 !== 것.id) {
-    const 원본 = await 부른다(주소기지, 쿠키, `/authoring/requests/${출처}?service=${encodeURIComponent(서비스)}`);
+    const 원본 = await 부른다(주소기지, 토큰, `/authoring/requests/${출처}?service=${encodeURIComponent(서비스)}`);
     if (원본.status !== 200) {
       await 손.끝내기({ status: 'FAILED', error: `원본 요청(${출처}번)을 못 읽었다 (${원본.status})` });
       return;
@@ -159,12 +161,12 @@ async function 한건(
       // 상한 크기 파일도 로컬 망에서 이 안에 온다. 안 오면 서버가 멈춘 것이다
       const 답 = await 한번더건다(() =>
         fetch(`${주소기지}/api/authoring/requests/${출처}/assets/${c.id}?service=${encodeURIComponent(서비스)}`, {
-          headers: { cookie: 쿠키 },
+          headers: 인증헤더(토큰),
           signal: AbortSignal.timeout(120_000),
         }),
       );
       if (거절인가(답.status)) {
-        throw new Error(`서버가 거절했다 (${답.status}). 세션이 끊겼거나 등급이 모자란다 — 다시 물어도 같다.`);
+        throw new Error(`(${답.status}) ${거절글}`);
       }
       if (!답.ok) {
         await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 못 받았다 (${답.status})` });
