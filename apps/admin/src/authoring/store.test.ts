@@ -90,6 +90,58 @@ describe.skipIf(연결 === undefined)('작성 대기줄', () => {
     });
   });
 
+  describe('자료 표가 서고 DRAFT 가 된다 (2026-09-23)', () => {
+    it('DRAFT 행을 넣을 수 있다 — 자료를 올리는 동안 줄에 안 선다', async () => {
+      const { pool } = await import('../db/index.js');
+      await expect(
+        pool.query(
+          `INSERT INTO authoring_request
+             (service_id, kind, spec_text, requested_by, requested_by_name, status)
+           VALUES ($1, 'AUTHOR', '기획서', 'xwa', '검사', 'DRAFT')`,
+          [서비스],
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    it('기획서 본문 없이 행을 넣을 수 있다 — 기획서는 자료로 온다', async () => {
+      const { pool } = await import('../db/index.js');
+      await expect(
+        pool.query(
+          `INSERT INTO authoring_request
+             (service_id, kind, requested_by, requested_by_name, status)
+           VALUES ($1, 'AUTHOR', 'xwa', '검사', 'DRAFT')`,
+          [서비스],
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    it('모르는 자료 종류는 INSERT 가 거부한다', async () => {
+      const { pool } = await import('../db/index.js');
+      const r = await pool.query<{ id: string }>(
+        `INSERT INTO authoring_request
+           (service_id, kind, requested_by, requested_by_name, status)
+         VALUES ($1, 'AUTHOR', 'xwa', '검사', 'DRAFT') RETURNING id`,
+        [서비스],
+      );
+      await expect(
+        pool.query(
+          `INSERT INTO authoring_asset (request_id, position, kind, name)
+           VALUES ($1, 1, 'X', '이상한 것')`,
+          [r.rows[0]!.id],
+        ),
+      ).rejects.toThrow();
+    });
+
+    it('서비스에 피그마 토큰 칸이 있다', async () => {
+      const { pool } = await import('../db/index.js');
+      const r = await pool.query(
+        `SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'service' AND column_name = 'figma_token'`,
+      );
+      expect(r.rowCount).toBe(1);
+    });
+  });
+
   describe('줄을 세우고 집는다', () => {
     it('세운 요청은 대기 중으로 줄에 선다', async () => {
       const id = await 줄세우기({
