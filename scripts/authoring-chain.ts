@@ -2,18 +2,6 @@
 //
 // **셸 문자열이 아니라 인자 배열이다.** 요약·제목에 따옴표나 `$` 가 섞여도 해석될 자리가 없다.
 
-import { join } from 'node:path';
-
-/**
- * 작업방에 거는 `@platform/*` 심링크. `.claude/skills/tpx-start/SKILL.md` 의 목록과 **같은 값**이다 —
- * 검사가 그 파일을 읽어 대조한다. 안 걸면 모듈 찾기가 상위로 올라가 **사용자 체크아웃의 kit** 을 본다.
- */
-export const 플랫폼링크 = [
-  ['kit', '../../packages/kit'],
-  ['admin', '../../apps/admin'],
-  ['runner', '../../apps/runner'],
-] as const;
-
 export interface 명령 {
   명령: string;
   인자: string[];
@@ -56,11 +44,6 @@ export function 올릴브랜치(번호: number): string {
   return `author-${번호}`;
 }
 
-/** 껍데기가 자식의 cwd·정리에 쓰는 자리. `작업방준비` 와 한 곳에서 나와야 치울 때 엉뚱한 곳을 안 본다 */
-export function 작업방폴더(번호: number, 뿌리: string): string {
-  return join(뿌리, '.claude', 'worktrees', 올릴브랜치(번호));
-}
-
 /**
  * 진짜 main 을 GitHub 에 묻는다. `refs/remotes/origin/main` 은 맥의 로컬 참조라 자식이 옮겨 놓으면
  * 판정·커밋수의 기준이 속는다. 껍데기는 이 SHA 를 `git fetch origin <sha>` 로 받아 두고 쓴다.
@@ -72,20 +55,6 @@ export function 진짜main풀기(낸것: string): string | null {
   const 줄들 = 낸것.split('\n').filter((줄) => 줄 !== '');
   if (줄들.length !== 1) return null;
   return /^([0-9a-f]{40})\trefs\/heads\/main$/.exec(줄들[0]!)?.[1] ?? null;
-}
-
-/**
- * 작업방 준비. 기준은 `진짜main인자` 로 받아 fetch 해 둔 SHA 다 — 로컬 `origin/main` 은 옛 판이거나 옮겨졌을 수 있다.
- * `--detach` 라 로컬 브랜치가 안 쌓이고 사용자 체크아웃의 HEAD·index 를 안 건드린다.
- */
-export function 작업방준비(번호: number, 뿌리: string, 기준: string): 명령[] {
-  const 폴더 = 작업방폴더(번호, 뿌리);
-  const 링크자리 = join(폴더, 'node_modules', '@platform');
-  return [
-    { 명령: 'git', 인자: ['worktree', 'add', '--detach', 폴더, 기준] },
-    { 명령: 'mkdir', 인자: ['-p', 링크자리] },
-    ...플랫폼링크.map(([이름, 대상]) => ({ 명령: 'ln', 인자: ['-sfn', 대상, join(링크자리, 이름)] })),
-  ];
 }
 
 export function 푸시인자(번호: number): string[] {

@@ -1,6 +1,4 @@
 // 맥이 git·gh 를 어떻게 부를지 정하는 순수 함수 검사. 껍데기는 이 인자를 그대로 친다
-import { readFileSync } from 'node:fs';
-
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -17,7 +15,6 @@ import {
   머지인자,
   실행목록인자,
   올릴브랜치,
-  작업방준비,
   커밋메시지,
   푸시거부사유,
   실패까닭,
@@ -29,7 +26,6 @@ import {
   올린파일인자,
   커밋수인자,
   푸시인자,
-  플랫폼링크,
   자식환경,
   진짜main인자,
   진짜main풀기,
@@ -55,35 +51,6 @@ describe('케이스 폴더 — 그 접두사의 기존 케이스가 사는 폴�
 
   it('접두사가 앞부분만 같은 것은 남의 케이스다', () => {
     expect(케이스폴더(['tests/demox/DEMOX-001.spec.ts'], 'DEMO')).toBe(null);
-  });
-});
-
-describe('작업방 준비 — 진짜 main SHA 에서 떼어 낸 작업방 · @platform 심링크', () => {
-  const 기준 = 'a'.repeat(40);
-  const 명령들 = 작업방준비(12, '/r', 기준);
-
-  it('브랜치 없이 GitHub 이 준 main SHA 에서 떼어 낸 작업방을 연다 — origin/main 참조는 자식이 옮길 수 있다', () => {
-    expect(명령들[0]).toEqual({
-      명령: 'git',
-      인자: ['worktree', 'add', '--detach', '/r/.claude/worktrees/author-12', 기준],
-    });
-  });
-
-  it('자기 패키지 셋을 작업방 안으로 건다 — 안 걸면 사용자 체크아웃의 kit 을 본다', () => {
-    const 폴더 = '/r/.claude/worktrees/author-12/node_modules/@platform';
-    expect(명령들.slice(1)).toEqual([
-      { 명령: 'mkdir', 인자: ['-p', 폴더] },
-      { 명령: 'ln', 인자: ['-sfn', '../../packages/kit', `${폴더}/kit`] },
-      { 명령: 'ln', 인자: ['-sfn', '../../apps/admin', `${폴더}/admin`] },
-      { 명령: 'ln', 인자: ['-sfn', '../../apps/runner', `${폴더}/runner`] },
-    ]);
-  });
-
-  it('링크 목록이 tpx-start 스킬의 것과 같다', () => {
-    const 스킬 = readFileSync('.claude/skills/tpx-start/SKILL.md', 'utf8');
-    for (const [이름, 대상] of 플랫폼링크) {
-      expect(스킬).toMatch(new RegExp(`ln -sfn\\s+${대상.replaceAll('.', '\\.')}\\s+<작업방>/node_modules/@platform/${이름}\\b`));
-    }
   });
 });
 

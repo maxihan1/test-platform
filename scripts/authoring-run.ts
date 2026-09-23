@@ -1,49 +1,50 @@
-// 작성 에이전트의 껍데기 — 한 건 처리(작업방 → 자식 → 올리기) · 켤 때 멈춘 줄 닫기.
-// 여기는 I/O 뿐이다. 판단은 authoring-chain · authoring-assets · authoring-agent 의 순수 함수에 있고 검사도 거기 붙어 있다.
+// 작성 에이전트의 껍데기 — 한 건 처리(사본 → 자식 → 올리기) · 켤 때 멈춘 줄 닫기.
+// 여기는 I/O 뿐이다. 판단은 authoring-chain · authoring-copy · authoring-assets · authoring-model 의 순수 함수에 있고 검사도 거기 붙어 있다.
+//
+// **자식은 자기 사본 트리에만 쓴다** (2026-09-24 게이트 0). 서버 저장소(`원천`)에는 아무것도 안 쓴다 —
+// main SHA 는 묻기만 하고, 받는 일은 사본이 한다. 컨테이너(root)에서는 자식이 자리 uid 로 돌아 에이전트의 토큰을 못 읽는다.
 
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { writeFileSync } from 'node:fs';
 
 import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
-import type { 모델 } from './authoring-model.js';
+import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 자료계획, 자료출처 } from './authoring-assets.js';
-import {
-  PR만들기인자,
-  PR본문,
-  PR찾기인자,
-  닫을RUNNING,
-  바뀐파일들,
-  비밀섞였나,
-  push실패,
-  자식환경,
-  작업방준비,
-  작업방폴더,
-  케이스폴더,
-  커밋메시지,
-  커밋뒤거부사유,
-  커밋수인자,
-  올린파일인자,
-  푸시거부사유,
-  푸시인자,
-} from './authoring-chain.js';
+import { 닫을RUNNING, 자식환경, 케이스폴더 } from './authoring-chain.js';
+import { type 계정, type 사본, 사본환경 } from './authoring-copy.js';
+import { 사본만들기, 사본치우기, 자식거두기 } from './authoring-child.js';
 import {
   type 보고손,
+  type 칠때,
   type 판정기,
   거절글,
-  다시하며,
   닫으며,
+  돌린다,
   보고손만들기,
   인증헤더,
   부른다,
-  진짜main받기,
+  진짜main묻기,
   친다,
   한번더건다,
 } from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
+import { 올리기 } from './authoring-upload.js';
 
-/** 켤 때 내 이름으로 잡힌 채 멈춘 RUNNING 을 닫는다. 맥이 꺼져 끊긴 것이라 아무도 안 끝낸다 */
+/** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
+export interface 판 {
+  판정: 판정기;
+  모델: 모델;
+  /** 사본을 만드는 자리 (`AUTHORING_WORK_DIR`, 비면 OS 임시 폴더) */
+  바탕: string;
+  /** 서버 저장소. 사본의 원천이고 병합 뒤 당기는 자리다 */
+  원천: string;
+  원격주소: string;
+  /** root 가 아니면(맥) null — 한 계정으로 돈다 */
+  계정: { 자식: 계정[]; 호스트: 계정 } | null;
+  /** 원천에 쓰는 git 을 누구로 치나. root 면 호스트 uid 와 그 집 */
+  호스트로: 칠때;
+}
+
+/** 켤 때 내 이름으로 잡힌 채 멈춘 RUNNING 을 닫는다. 에이전트가 꺼져 끊긴 것이라 아무도 안 끝낸다 */
 export async function 멈춘것닫기(주소기지: string, 토큰: string, 서비스들: string[], 나: string): Promise<void> {
   for (const 서비스 of 서비스들) {
     const 답 = await 부른다(주소기지, 토큰, `/authoring/requests?service=${encodeURIComponent(서비스)}&status=RUNNING`);
@@ -55,25 +56,25 @@ export async function 멈춘것닫기(주소기지: string, 토큰: string, 서�
     for (const id of 닫을RUNNING(목록, 나)) {
       await 보고손만들기(주소기지, 토큰, 서비스, id).끝내기({
         status: 'FAILED',
-        error: '맥이 꺼져 중단됐다 — 다시 넣어라',
+        error: '작성 에이전트가 꺼져 중단됐다 — 다시 넣어라',
       });
-      console.log(`[정리] ${서비스} 의 ${id}번은 맥이 꺼져 멈춘 채였다. 실패로 닫았다.`);
+      console.log(`[정리] ${서비스} 의 ${id}번은 에이전트가 꺼져 멈춘 채였다. 실패로 닫았다.`);
     }
   }
 }
 
-/** 한 건을 끝까지 처리한다. 단계는 사람이 화면에서 보는 그 줄이다 */
+/** 한 건을 끝까지 처리한다. 단계는 사람이 화면에서 보는 그 줄이다. `자리번호` 가 자식 uid 를 고른다 */
 export async function 한건처리(
   주소기지: string,
   토큰: string,
   서비스: string,
   것: 집은것,
-  판정: 판정기,
-  모델: 모델,
+  판: 판,
+  자리번호: number,
   서버들: { env: string; baseUrl: string }[] = [],
 ): Promise<void> {
   const 손 = 보고손만들기(주소기지, 토큰, 서비스, 것.id);
-  await 닫으며(손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판정, 모델, 서버들, 감싼손));
+  await 닫으며(손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판, 자리번호, 서버들, 감싼손));
 }
 
 async function 한건(
@@ -81,8 +82,8 @@ async function 한건(
   토큰: string,
   서비스: string,
   것: 집은것,
-  판정: 판정기,
-  모델: 모델,
+  판: 판,
+  자리번호: number,
   서버들: { env: string; baseUrl: string }[],
   손: 보고손,
 ): Promise<void> {
@@ -98,7 +99,7 @@ async function 한건(
       await 손.끝내기({ status: 'FAILED', error: '머지할 초안 PR 주소가 없다' });
       return;
     }
-    await 머지처리(손, 주소, 판정);
+    await 머지처리(손, 주소, 판.판정);
     return;
   }
 
@@ -123,179 +124,119 @@ async function 한건(
     return;
   }
 
-  const 뿌리 = process.cwd();
-  const 작업방 = 작업방폴더(것.id, 뿌리);
-  // 이름을 예측할 수 없게 만든다. 고정 이름이면 남이 미리 만들어 둔 폴더·링크에 받아 쓴다.
-  // 작업방 밖에 둔다 — 안에 두면 받은 자료가 바뀐 파일로 잡혀 push 가 거부된다
-  const 폴더 = mkdtempSync(join(tmpdir(), `authoring-${것.id}-`));
-  const 빈gh = mkdtempSync(join(tmpdir(), 'authoring-gh-'));
+  await 손.단계('작업방을 만드는 중');
+  // 기준은 GitHub 이 말하는 main 이다. 서버 저장소의 origin/main 은 옛 판일 수 있다
+  const 메인 = 진짜main묻기(판.원천);
+  if ('까닭' in 메인) {
+    await 손.끝내기({ status: 'FAILED', error: 메인.까닭 });
+    return;
+  }
+  const 자식 = 판.계정?.자식[자리번호] ?? null;
+  const 만든것 = await 사본만들기(것.id, 판.바탕, 판.원천, 판.원격주소, 메인.sha, 자식);
+  if ('까닭' in 만든것) {
+    await 손.끝내기({ status: 'FAILED', error: 만든것.까닭 });
+    return;
+  }
+  const 자리 = 만든것.자리;
   try {
-    await 손.단계('작업방을 만드는 중');
-    // 기준은 GitHub 이 말하는 main 이다. 로컬 origin/main 은 앞선 자식이 옮겨 놓았을 수 있다
-    const 메인 = 진짜main받기(뿌리);
-    if ('까닭' in 메인) {
-      await 손.끝내기({ status: 'FAILED', error: 메인.까닭 });
-      return;
-    }
-    for (const c of 작업방준비(것.id, 뿌리, 메인.sha)) {
-      const r = 친다(c.명령, c.인자, 뿌리);
-      if (!r.ok) {
-        await 손.끝내기({ status: 'FAILED', error: `작업방을 못 만들었다: ${c.명령} ${c.인자.join(' ')} — ${r.까닭}` });
-        return;
-      }
-    }
-
-    // 테스트 폴더는 작업방의 기존 케이스로 찾는다 (2026-09-23 사용자 결정). 없으면 첫 케이스는 사람의 일이다
-    const 목록 = 친다('git', ['-c', 'core.quotePath=false', 'ls-files', 'tests'], 작업방);
-    const 케이스자리 = 목록.ok ? 케이스폴더(목록.낸것.split('\n'), 서비스) : null;
-    if (케이스자리 === null) {
-      await 손.끝내기({
-        status: 'FAILED',
-        error: `${서비스} 의 케이스 폴더를 못 찾았다 — 첫 케이스는 사람이 /tpx 로 만든다`,
-      });
-      return;
-    }
-
-    const 계획 = 자료계획(자료들, 폴더);
-    const 못읽음 = 못읽는자료(계획);
-    if (못읽음 !== null) {
-      await 손.끝내기({ status: 'FAILED', error: 못읽음 });
-      return;
-    }
-    if (계획.some((c) => c.kind === 'FILE')) await 손.단계('자료를 받는 중');
-    for (const c of 계획) {
-      if (c.kind !== 'FILE') continue;
-      // 바이트로 받아야 해서 `부른다`(json) 를 못 쓴다. 다시 걸기와 시간 제한은 같게 건다 —
-      // 상한 크기 파일도 로컬 망에서 이 안에 온다. 안 오면 서버가 멈춘 것이다
-      const 답 = await 한번더건다(() =>
-        fetch(`${주소기지}/api/authoring/requests/${출처}/assets/${c.id}?service=${encodeURIComponent(서비스)}`, {
-          headers: 인증헤더(토큰),
-          signal: AbortSignal.timeout(120_000),
-        }),
-      );
-      if (거절인가(답.status)) {
-        throw new Error(`(${답.status}) ${거절글}`);
-      }
-      if (!답.ok) {
-        await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 못 받았다 (${답.status})` });
-        return;
-      }
-      // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다
-      writeFileSync(c.받을자리, Buffer.from(await 답.arrayBuffer()));
-      if (c.변환 === null) continue;
-      const 바꾼것 = 친다(c.변환.명령, c.변환.인자, 뿌리);
-      if (!바꾼것.ok) {
-        await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 글자로 못 바꿨다: ${바꾼것.까닭}` });
-        return;
-      }
-    }
-
-    await 손.단계('케이스를 만드는 중');
-    // 출력을 잡아 PR 본문에 싣는다. 사람 눈에도 보여야 하므로(숨은 데몬이 아니다) 그대로 흘려보낸다.
-    // 피그마 토큰은 **자식 환경에만** 넣는다. 부모 환경에 넣으면 이 뒤에 띄우는 모든 것(gh 등)에 샌다.
-    // GitHub 자격증명은 뺀다 — 자식이 push·병합을 못 하게 막는 것은 이 환경이다
-    const 돌린것 = spawnSync('claude', 클로드인자(폴더, 모델), {
-      cwd: 작업방,
-      input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }),
-      stdio: ['pipe', 'pipe', 'inherit'],
-      encoding: 'utf8',
-      env: 자식환경(process.env, 빈gh, 것.figmaToken),
-    });
-    const 낸것 = 돌린것.stdout ?? '';
-    process.stdout.write(낸것);
-    if (돌린것.error) {
-      await 손.끝내기({ status: 'FAILED', error: `claude 를 못 띄웠다: ${돌린것.error.message}` });
-      return;
-    }
-    if (돌린것.status !== 0) {
-      await 손.끝내기({ status: 'FAILED', error: '케이스를 만들다 멈췄다. 터미널 기록을 봐라.' });
-      return;
-    }
-
-    await 손.단계('올리는 중');
-    const 상태 = 친다('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall'], 작업방);
-    if (!상태.ok) {
-      await 손.끝내기({ status: 'FAILED', error: `바뀐 파일을 못 읽었다: ${상태.까닭}` });
-      return;
-    }
-    const 파일들 = 바뀐파일들(상태.낸것);
-    // 판정 규칙은 cases-only.mjs 가 정본이다. 켤 때 메모리에 고정한 맥 자신의 판을 쓴다 — 자식이 파일을 바꿔도 그대로다
-    const 테스트만 = (목록: string[]) => 판정(목록, 메인.sha, 작업방);
-    const 거부 = 푸시거부사유(테스트만(파일들), 파일들);
-    if (거부 !== null) {
-      await 손.끝내기({ status: 'FAILED', error: 거부 });
-      return;
-    }
-
-    for (const [인자, 설명] of [
-      [['add', '--', ...파일들], '담기'],
-      [['commit', '-m', 커밋메시지(것.id, 서비스)], '커밋'],
-    ] as const) {
-      const r = 친다('git', [...인자], 작업방);
-      if (!r.ok) {
-        await 손.끝내기({ status: 'FAILED', error: `${설명}가 실패했다: ${r.까닭}` });
-        return;
-      }
-    }
-
-    // push 는 HEAD 라 자식이 몰래 만든 커밋까지 올라간다. 커밋한 뒤 진짜 main 과의 차이 전체를 다시 본다
-    const 올린것 = 친다('git', 올린파일인자(메인.sha), 작업방);
-    const 커밋수 = 친다('git', 커밋수인자(메인.sha), 작업방);
-    const 전체 = 올린것.낸것.split('\n').filter((f) => f !== '');
-    const 뒤거부 =
-      올린것.ok && 커밋수.ok
-        ? 커밋뒤거부사유(테스트만(전체), 전체, Number(커밋수.낸것.trim()))
-        : '커밋한 뒤 차이를 못 읽었다';
-    if (뒤거부 !== null) {
-      await 손.끝내기({ status: 'FAILED', error: 뒤거부 });
-      return;
-    }
-
-    const 표자리 = join(작업방, 'docs', 'cases', `${서비스}.md`);
-    const 본문글 = PR본문({
-      표: existsSync(표자리) ? readFileSync(표자리, 'utf8') : '',
-      // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 앞쪽 수다까지 실을 필요는 없다
-      요약: 낸것.trim().split('\n').slice(-40).join('\n'),
-    });
-    // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
-    const 내용들 = 전체.map((f) => (existsSync(join(작업방, f)) ? readFileSync(join(작업방, f), 'utf8') : ''));
-    if (비밀섞였나([본문글, ...내용들], 것.figmaToken)) {
-      await 손.끝내기({ status: 'FAILED', error: '올릴 파일이나 PR 본문에 피그마 토큰이 들어 있다 — 맥은 올리지 않는다' });
-      return;
-    }
-
-    const 올림 = await 다시하며('push', () => {
-      // pre-push 훅(타입·케이스 형식)이 돌므로 넉넉히 준다
-      const r = 친다('git', 푸시인자(것.id), 작업방, undefined, 600_000);
-      return r.ok ? { 값: true } : push실패(r);
-    });
-    if ('까닭' in 올림) {
-      await 손.끝내기({ status: 'FAILED', error: `push 가 실패했다: ${올림.까닭}` });
-      return;
-    }
-
-    // 재시도 전에 먼저 찾는다 — 만들기가 GitHub 에선 됐는데 답만 잃었으면 또 만들면 PR 이 둘이 된다
-    const PR = await 다시하며('PR 만들기', () => {
-      const 있나 = 친다('gh', PR찾기인자(것.id), 작업방);
-      const 있는것 = 있나.ok ? (JSON.parse(있나.낸것 || '[]') as { url: string }[])[0]?.url : undefined;
-      if (있는것 !== undefined) return { 값: 있는것 };
-      const r = 친다('gh', PR만들기인자(것.id, 커밋메시지(것.id, 서비스), 본문글), 작업방);
-      const 주소 = r.낸것.trim().split('\n').pop() ?? '';
-      return r.ok && 주소.startsWith('https://') ? { 값: 주소 } : { 까닭: r.까닭 || 'PR 주소가 안 찍혔다' };
-    });
-    if ('까닭' in PR) {
-      await 손.끝내기({ status: 'FAILED', error: `PR 을 못 만들었다: ${PR.까닭}` });
-      return;
-    }
-    await 손.끝내기({ status: 'DONE', prUrl: PR.값 });
+    await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 자리, 메인.sha, 출처, 자료들, 본문, 서버들, 손);
   } finally {
-    // 받은 기획서를 맥에 남기지 않는다. 성공이든 실패든 지운다
-    rmSync(폴더, { recursive: true, force: true });
-    rmSync(빈gh, { recursive: true, force: true });
-    if (existsSync(작업방)) {
-      // 강제로 안 지운다 — 남은 변경이 있으면 사람이 봐야 할 것이다
-      const 치움 = 친다('git', ['worktree', 'remove', 작업방], 뿌리);
-      if (!치움.ok) console.error(`[남김] 작업방을 못 치웠다: ${작업방} — ${치움.까닭}`);
+    // 받은 기획서와 자식이 만든 것을 남기지 않는다. 성공이든 실패든 지운다
+    자식거두기(자식);
+    사본치우기(자리);
+  }
+}
+
+async function 사본에서(
+  주소기지: string,
+  토큰: string,
+  서비스: string,
+  것: 집은것,
+  판: 판,
+  자식: 계정 | null,
+  자리: 사본,
+  기준: string,
+  출처: number,
+  자료들: 자료[],
+  본문: string | null,
+  서버들: { env: string; baseUrl: string }[],
+  손: 보고손,
+): Promise<void> {
+  const 깃 = 사본환경(자리);
+  const 트리에서 = (명령: string, 인자: string[], 제한 = 120_000) =>
+    친다(명령, 인자, 자리.트리, undefined, 제한, { env: 깃 });
+
+  // 테스트 폴더는 사본의 기존 케이스로 찾는다 (2026-09-23 사용자 결정). 없으면 첫 케이스는 사람의 일이다
+  const 목록 = 트리에서('git', ['-c', 'core.quotePath=false', 'ls-files', 'tests']);
+  const 케이스자리 = 목록.ok ? 케이스폴더(목록.낸것.split('\n'), 서비스) : null;
+  if (케이스자리 === null) {
+    await 손.끝내기({ status: 'FAILED', error: `${서비스} 의 케이스 폴더를 못 찾았다 — 첫 케이스는 사람이 /tpx 로 만든다` });
+    return;
+  }
+
+  const 계획 = 자료계획(자료들, 자리.자료);
+  const 못읽음 = 못읽는자료(계획);
+  if (못읽음 !== null) {
+    await 손.끝내기({ status: 'FAILED', error: 못읽음 });
+    return;
+  }
+  if (계획.some((c) => c.kind === 'FILE')) await 손.단계('자료를 받는 중');
+  for (const c of 계획) {
+    if (c.kind !== 'FILE') continue;
+    // 바이트로 받아야 해서 `부른다`(json) 를 못 쓴다. 다시 걸기와 시간 제한은 같게 건다 —
+    // 상한 크기 파일도 로컬 망에서 이 안에 온다. 안 오면 서버가 멈춘 것이다
+    const 답 = await 한번더건다(() =>
+      fetch(`${주소기지}/api/authoring/requests/${출처}/assets/${c.id}?service=${encodeURIComponent(서비스)}`, {
+        headers: 인증헤더(토큰),
+        signal: AbortSignal.timeout(120_000),
+      }),
+    );
+    if (거절인가(답.status)) {
+      throw new Error(`(${답.status}) ${거절글}`);
+    }
+    if (!답.ok) {
+      await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 못 받았다 (${답.status})` });
+      return;
+    }
+    // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다. 자식이 읽도록 0644 — 폴더가 자식 것이라 남은 못 본다
+    writeFileSync(c.받을자리, Buffer.from(await 답.arrayBuffer()), { mode: 0o644 });
+    if (c.변환 === null) continue;
+    const 바꾼것 = 친다(c.변환.명령, c.변환.인자, 자리.자료);
+    if (!바꾼것.ok) {
+      await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 글자로 못 바꿨다: ${바꾼것.까닭}` });
+      return;
     }
   }
+
+  await 손.단계('케이스를 만드는 중');
+  // 환경은 **통째로** 준다. 피그마 토큰은 자식에게만, GitHub 자격증명과 에이전트 토큰은 빼고, 집은 작업마다 새것
+  const 돌린것 = await 돌린다('claude', 클로드인자(자리.자료, 판.모델), {
+    cwd: 자리.트리,
+    input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }),
+    env: { ...자식환경(process.env, 자리.gh, 것.figmaToken), HOME: 자리.집 },
+    uid: 자식?.uid,
+    gid: 자식?.gid,
+    제한: 60 * 60_000,
+    흘림: true,
+  });
+  // 검사 전에 자식이 남긴 것을 전부 죽인다 — 살아 있으면 검사한 뒤에 파일을 바꿔치기한다
+  자식거두기(자식);
+  if (돌린것.코드 === null && !돌린것.시간초과) {
+    await 손.끝내기({ status: 'FAILED', error: `claude 를 못 띄웠다: ${돌린것.오류.trim().split('\n').pop() ?? ''}` });
+    return;
+  }
+  if (돌린것.코드 !== 0) {
+    const 한도 = 한도걸렸나(`${돌린것.낸것}\n${돌린것.오류}`);
+    await 손.끝내기({
+      status: 'FAILED',
+      error: 한도
+        ? 'Claude 구독 한도에 걸렸다 — 한도가 풀린 뒤 다시 넣어라'
+        : 돌린것.시간초과
+          ? '케이스를 만들다 60분을 넘겨 멈췄다'
+          : '케이스를 만들다 멈췄다. 에이전트 기록을 봐라.',
+    });
+    return;
+  }
+
+  await 올리기(자리, 것, 서비스, 판.판정, 기준, 돌린것.낸것, 손);
 }

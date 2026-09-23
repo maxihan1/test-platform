@@ -190,17 +190,25 @@ export function 자리들(상한: number) {
   };
 }
 
-/** GitHub 이 말하는 main SHA. 로컬에 없으면 그 SHA 를 받아 둔다 — 판정·커밋수·작업방의 기준이 이것이다 */
-export function 진짜main받기(cwd: string): { sha: string } | { 까닭: string } {
+/** GitHub 이 말하는 main SHA 를 묻기만 한다. 서버 저장소에 아무것도 안 쓴다 — 작성은 사본에서 받는다 */
+export function 진짜main묻기(cwd: string): { sha: string } | { 까닭: string } {
   const 물음 = 친다('git', 진짜main인자, cwd);
   const sha = 물음.ok ? 진짜main풀기(물음.낸것) : null;
-  if (sha === null) return { 까닭: `GitHub 의 main 을 못 읽었다: ${물음.까닭 || 물음.낸것.trim()}` };
+  return sha === null ? { 까닭: `GitHub 의 main 을 못 읽었다: ${물음.까닭 || 물음.낸것.trim()}` } : { sha };
+}
+
+/** GitHub 이 말하는 main SHA. 로컬에 없으면 그 SHA 를 받아 둔다 — 판정·커밋수·작업방의 기준이 이것이다 */
+export function 진짜main받기(cwd: string, 선택: 칠때 = {}): { sha: string } | { 까닭: string } {
+  const 물음 = 진짜main묻기(cwd);
+  if ('까닭' in 물음) return 물음;
+  const { sha } = 물음;
   if (친다('git', ['cat-file', '-e', `${sha}^{commit}`], cwd).ok) return { sha };
-  const 받기 = 친다('git', ['fetch', 'origin', sha], cwd);
+  // 서버 저장소에 쓰므로 호스트 계정으로 받는다 — root 로 받으면 사람이 git pull 을 못 한다
+  const 받기 = 친다('git', ['fetch', 'origin', sha], cwd, undefined, 120_000, 선택);
   return 받기.ok ? { sha } : { 까닭: `main(${sha}) 을 못 받았다: ${받기.까닭}` };
 }
 
-export type 판정기 = (파일들: string[], 기준: string, cwd: string) => boolean;
+export type 판정기 = (파일들: string[], 기준: string, cwd: string, env?: Record<string, string>) => boolean;
 
 /**
  * 「테스트만」 판정 스크립트를 **켤 때** 읽어 메모리에 고정한다. 자식은 맥의 파일을 쓸 수 있어서
@@ -210,13 +218,14 @@ export type 판정기 = (파일들: string[], 기준: string, cwd: string) => bo
 export function 판정기만들기(스크립트자리: string): 판정기 {
   const 내용 = readFileSync(스크립트자리, 'utf8');
   console.log(`[작성] 판정 스크립트를 고정했다: ${스크립트자리} sha256=${createHash('sha256').update(내용).digest('hex')}`);
-  return (파일들, 기준, cwd) => {
+  // env 는 사본의 GIT_DIR 이다 — 판정 스크립트가 치는 git 이 자식이 트리에 만든 .git 을 보면 안 된다
+  return (파일들, 기준, cwd, env) => {
     // 스크립트가 스스로 realpath 로 비교하게 된 뒤로는 없어도 된다 — 해가 없어 둔다 (/var → /private/var)
     const 자리 = realpathSync(mkdtempSync(join(tmpdir(), 'authoring-judge-')));
     try {
       const 파일 = join(자리, 'cases-only.mjs');
       writeFileSync(파일, 내용);
-      return 친다('node', [파일, 기준], cwd, `${파일들.join('\n')}\n`).ok;
+      return 친다('node', [파일, 기준], cwd, `${파일들.join('\n')}\n`, 120_000, { env }).ok;
     } finally {
       rmSync(자리, { recursive: true, force: true });
     }
