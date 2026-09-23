@@ -441,6 +441,23 @@ describe('자식 환경 — 자식에게서 GitHub 열쇠를 뺀다', () => {
     expect(이어.GIT_CONFIG_KEY_0).toBe('a.b');
   });
 
+  it('GIT_CONFIG_PARAMETERS 는 뺀다 — COUNT 보다 우선해 빈 credential.helper 를 무력화할 수 있다', () => {
+    const 뺌 = 자식환경({ GIT_CONFIG_PARAMETERS: "'credential.helper'='osxkeychain'" }, '/빈');
+    expect('GIT_CONFIG_PARAMETERS' in 뺌).toBe(false);
+  });
+
+  it('GIT_CONFIG_COUNT 가 숫자가 아니면 부모의 KEY·VALUE 를 모두 지우고 0 부터', () => {
+    const 새로 = 자식환경(
+      { GIT_CONFIG_COUNT: 'abc', GIT_CONFIG_KEY_0: 'a.b', GIT_CONFIG_VALUE_0: '1', GIT_CONFIG_KEY_5: 'credential.helper', GIT_CONFIG_VALUE_5: 'osxkeychain' },
+      '/빈',
+    );
+    expect(새로.GIT_CONFIG_COUNT).toBe('1');
+    expect(새로.GIT_CONFIG_KEY_0).toBe('credential.helper');
+    expect(새로.GIT_CONFIG_VALUE_0).toBe('');
+    expect('GIT_CONFIG_KEY_5' in 새로).toBe(false);
+    expect('GIT_CONFIG_VALUE_5' in 새로).toBe(false);
+  });
+
   it('피그마 토큰은 받았을 때만 자식에게 싣는다', () => {
     expect('FIGMA_TOKEN' in 환경).toBe(false);
     expect(자식환경(부모, '/빈', 'figd_x').FIGMA_TOKEN).toBe('figd_x');

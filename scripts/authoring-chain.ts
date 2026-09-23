@@ -30,8 +30,12 @@ export function 자식환경(
   빈gh설정폴더: string,
   피그마토큰?: string,
 ): Record<string, string | undefined> {
-  const { SSH_AUTH_SOCK: _소켓, ...나머지 } = 부모;
-  const 번째 = Number(부모.GIT_CONFIG_COUNT ?? '0') || 0;
+  // PARAMETERS 는 COUNT 보다 우선해 빈 credential.helper 를 덮을 수 있다
+  const { SSH_AUTH_SOCK: _소켓, GIT_CONFIG_PARAMETERS: _설정, ...나머지 } = 부모;
+  const 숫자 = /^\d+$/.test(부모.GIT_CONFIG_COUNT ?? '');
+  // 셀 수 없으면 부모 것을 다 지우고 0 부터 — 남겨 두면 어느 번호가 살아 있는지 알 수 없다
+  if (!숫자) for (const 키 of Object.keys(나머지)) if (/^GIT_CONFIG_(KEY|VALUE)_/.test(키)) delete 나머지[키];
+  const 번째 = 숫자 ? Number(부모.GIT_CONFIG_COUNT) : 0;
   return {
     ...나머지,
     GH_TOKEN: 'authoring-child-has-no-github',
