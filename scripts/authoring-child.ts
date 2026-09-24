@@ -80,9 +80,10 @@ export async function 자식거두기(자식: 계정 | null): Promise<boolean> {
   if (자식 === null) return true;
   const 그uid로 = { uid: 자식.uid, gid: 자식.gid, env: 빈환경 };
   for (let 시도 = 0; 시도 < 10; 시도 += 1) {
-    // 그 uid 로 `kill -1` 을 치면 자기를 뺀 그 uid 의 것 전부에 간다(리눅스). 남은 게 없으면 `kill -0 -1` 이 실패한다
+    // 그 uid 로 `kill -1` 을 치면 자기를 뺀 그 uid 의 것 전부에 간다(리눅스).
+    // 남았는지는 `pgrep` 으로 본다 — `kill -0 -1` 은 권한 없는 남의 프로세스가 하나라도 있으면 성공이라 못 쓴다 (2026-09-24 실측)
     친다('kill', ['-9', '-1'], '/', undefined, 10_000, 그uid로);
-    if (!친다('kill', ['-0', '-1'], '/', undefined, 10_000, 그uid로).ok) {
+    if (!친다('pgrep', ['-u', String(자식.uid)], '/', undefined, 10_000).ok) {
       친다('find', ['/tmp', '/var/tmp', '/dev/shm', '-xdev', '-user', String(자식.uid), '-delete'], '/', undefined, 60_000);
       return true;
     }
