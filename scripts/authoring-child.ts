@@ -1,11 +1,11 @@
 // 사본을 만들고 치우고, 자식 claude 를 자리의 uid 로 띄우는 껍데기. 판단은 authoring-copy.ts 의 순수 함수에 있다
 // 자리 uid 로 넘기는 일(chown·kill)은 root 일 때만 한다 — 맥에서는 사람 계정 하나로 돈다
 
-import { chmodSync, lstatSync, mkdirSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { type 계정, type 사본, type 파일모양, 남은사본, 부품링크, 사본제외, 사본준비, 사본자리 } from './authoring-copy.js';
-import { type 돌린결과, 돌린다, 쉬기, 친다 } from './authoring-io.js';
+import { type 돌린결과, 도는자식, 돌린다, 멈춤, 쉬기, 친다 } from './authoring-io.js';
 
 /** 자리 uid 로 띄우는 것의 환경. 토큰을 하나도 안 싣는다 — 같은 uid 의 남은 것이 /proc 로 읽는다 */
 const 빈환경 = { PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' };
@@ -83,13 +83,26 @@ export async function 자식거두기(자식: 계정 | null): Promise<boolean> {
     // 그 uid 로 `kill -1` 을 치면 자기를 뺀 그 uid 의 것 전부에 간다(리눅스).
     // 남았는지는 `pgrep` 으로 본다 — `kill -0 -1` 은 권한 없는 남의 프로세스가 하나라도 있으면 성공이라 못 쓴다 (2026-09-24 실측)
     친다('kill', ['-9', '-1'], '/', undefined, 10_000, 그uid로);
-    if (!친다('pgrep', ['-u', String(자식.uid)], '/', undefined, 10_000).ok) {
-      친다('find', ['/tmp', '/var/tmp', '/dev/shm', '-xdev', '-user', String(자식.uid), '-delete'], '/', undefined, 60_000);
-      return true;
+    // 「없음」은 pgrep 이 1 을 낼 때만이다 — 못 띄웠거나 시간이 넘은 것을 「없음」으로 읽으면 살아 있는 채 넘어간다
+    if (친다('pgrep', ['-u', String(자식.uid)], '/', undefined, 10_000).코드 === 1) {
+      const 자리들 = ['/tmp', '/var/tmp', '/dev/shm', '/run/lock'].filter((자리) => existsSync(자리));
+      const 지움 = 친다('find', [...자리들, '-xdev', '-user', String(자식.uid), '-delete'], '/', undefined, 60_000);
+      if (지움.ok) return true;
+      return 못거둠(`자리 uid ${자식.uid} 가 공용 임시에 남긴 것을 못 지웠다: ${지움.까닭}`);
     }
     await 쉬기(200);
   }
-  console.error(`[남김] 자리 uid ${자식.uid} 의 프로세스를 못 거뒀다 — 그 건을 실패로 닫고 사본을 남긴다`);
+  return 못거둠(`자리 uid ${자식.uid} 의 프로세스를 못 거뒀다`);
+}
+
+/**
+ * 못 거뒀으면 **그 자리를 다시 쓰지 않는다** — 살아남은 것이 그 자리를 받은 다음 건의 environ(피그마 토큰)을 읽는다.
+ * 에이전트를 멈춘다. 컨테이너가 다시 켜지며 프로세스가 다 죽고 남은 사본도 지워진다 (2026-09-24 재검사)
+ */
+function 못거둠(까닭: string): false {
+  console.error(`[멈춤] ${까닭} — 에이전트를 멈춘다`);
+  멈춤.까닭 = 까닭;
+  for (const 자식 of 도는자식) 자식.kill('SIGKILL');
   return false;
 }
 

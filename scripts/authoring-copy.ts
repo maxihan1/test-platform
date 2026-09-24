@@ -56,6 +56,16 @@ export function 부품링크(이름들: string[], 원천부품: string, 트리: 
   ];
 }
 
+/**
+ * root 로 켰는데 사본 바탕이 공용 임시 아래면 거부한다. 거두기가 그 uid 의 공용 임시 파일을 지우는데
+ * 사본 트리도 그 uid 것이라 **검사 전에 만든 케이스까지 지운다** (2026-09-24 재검사)
+ */
+export function 바탕거부사유(바탕: string, root인가: boolean): string | null {
+  if (!root인가) return null;
+  const 공용 = ['/tmp', '/var/tmp', '/dev/shm'].find((자리) => 바탕 === 자리 || 바탕.startsWith(`${자리}/`));
+  return 공용 === undefined ? null : `사본 바탕(${바탕})이 ${공용} 아래다 — AUTHORING_WORK_DIR 를 /work 처럼 공용 임시 밖으로 둬라`;
+}
+
 /** 죽은 채 남은 사본. 켤 때 지운다 — 도중에 꺼지면 `finally` 가 안 돈다 */
 export function 남은사본(이름들: string[]): string[] {
   return 이름들.filter((이름) => /^author-\d+$/.test(이름));

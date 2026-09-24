@@ -16,6 +16,10 @@ RUN apt-get update \
 # 점검(깃발)을 못 넘으면 이 판으로 되돌린다 (2026-09-24 게이트 1). claude 의 자체 업데이터는 compose 가 끈다
 RUN npm install -g @anthropic-ai/claude-code@2.1.280
 
+# 바탕 이미지의 브라우저 폴더는 0777 이다 — 자식(자리 uid)이 브라우저를 바꿔치기하면 다음 건(다른 서비스)의 관문이
+# 그 코드를 돌린다. 읽기·실행만 남긴다 (2026-09-24 재검사)
+RUN chmod -R go-w /ms-playwright
+
 # 저장소는 실행할 때 /repo 로 붙는다. node_modules 는 그 위에 리눅스용 볼륨으로 덮는다 —
 # 호스트(맥)의 것은 네이티브 부품이 달라 못 쓴다. 소유는 시작 스크립트가 HOST_UID 로 넘긴다(자식 uid 는 못 쓴다)
 RUN mkdir -p /repo/node_modules

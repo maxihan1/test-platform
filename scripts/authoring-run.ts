@@ -225,8 +225,8 @@ async function 사본에서(
   // 집을 바꾸는 것은 자리 uid 로 돌 때만 — 맥에서 바꾸면 Playwright 가 ~/Library/Caches 의 브라우저를 못 찾는다 (2026-09-24 코드 검토)
   const 환경 = {
     ...자식환경(process.env, 자리.gh, 것.figmaToken),
-    TMPDIR: 자리.임시,
-    ...(자식 === null ? {} : { HOME: 자리.집 }),
+    // 맥은 둘 다 그대로 — 긴 임시 경로는 유닉스 소켓 104자 한도에 닿을 수 있다
+    ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }),
   };
   const 인자 = 클로드인자(자리.자료, 판.모델);
   const 돌린것 = await 돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {

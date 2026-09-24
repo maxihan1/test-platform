@@ -9,6 +9,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import {
   계정들,
   남은사본,
+  바탕거부사유,
   부품링크,
   동시상한,
   사본자리,
@@ -116,6 +117,19 @@ describe('부품링크 — 사본의 node_modules', () => {
       ['../../apps/admin', '/w/author-1/tree/node_modules/@platform/admin'],
       ['../../apps/runner', '/w/author-1/tree/node_modules/@platform/runner'],
     ]);
+  });
+});
+
+describe('바탕거부사유 — 사본 바탕이 공용 임시 아래면 켜지 않는다', () => {
+  it('root 면 /tmp · /var/tmp · /dev/shm 아래를 거부한다 — 거두기의 흔적 지우기가 사본(만든 케이스)까지 지운다', () => {
+    expect(바탕거부사유('/tmp/x/authoring-work', true)).toContain('AUTHORING_WORK_DIR');
+    expect(바탕거부사유('/var/tmp/w', true)).not.toBeNull();
+    expect(바탕거부사유('/dev/shm/w', true)).not.toBeNull();
+    expect(바탕거부사유('/work', true)).toBeNull();
+  });
+
+  it('맥(root 아님)은 지우기를 안 하니 OS 임시 폴더여도 된다', () => {
+    expect(바탕거부사유('/tmp/authoring-work', false)).toBeNull();
   });
 });
 

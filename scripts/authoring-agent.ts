@@ -20,7 +20,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { type 설정, type 설정자리, admin주소, 기다렸다다시인가, 선행검사, 주소안전한가, 집은것인가 } from './authoring-rules.js';
 import { 남은사본치우기 } from './authoring-child.js';
-import { 계정들, 동시상한, 호스트환경 } from './authoring-copy.js';
+import { 계정들, 동시상한, 바탕거부사유, 호스트환경 } from './authoring-copy.js';
 import { 도는자식, 멈춤, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
 import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
 import { type 판, 멈춘것닫기, 한건처리 } from './authoring-run.js';
@@ -147,6 +147,11 @@ async function 돈다(): Promise<number> {
     return 1;
   }
   const 바탕 = process.env.AUTHORING_WORK_DIR || join(tmpdir(), 'authoring-work');
+  const 바탕거부 = 바탕거부사유(바탕, 켜기.계정 !== null);
+  if (바탕거부 !== null) {
+    console.error(`[거부] ${바탕거부}`);
+    return 1;
+  }
   남은사본치우기(바탕);
   const 판: 판 = {
     판정,

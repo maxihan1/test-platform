@@ -126,7 +126,14 @@ export function 친다(명령: string, 인자: string[], cwd: string, input?: st
   const 까닭 = 시간초과
     ? `시간 초과 — ${명령} 이 ${제한 / 1000}초 안에 안 끝났다`
     : (r.error?.message ?? (r.stderr ?? '').trim().split('\n')[0] ?? '');
-  return { ok: r.status === 0 && r.error === undefined, 낸것: r.stdout ?? '', 까닭, 오류: r.stderr ?? '', 시간초과 };
+  return {
+    ok: r.status === 0 && r.error === undefined,
+    코드: r.error === undefined ? r.status : null,
+    낸것: r.stdout ?? '',
+    까닭,
+    오류: r.stderr ?? '',
+    시간초과,
+  };
 }
 
 /** 지금 도는 자식들. 거절로 에이전트가 나갈 때 남기지 않는다 — 남으면 구독 한도를 계속 쓴다 */
