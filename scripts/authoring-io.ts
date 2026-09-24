@@ -181,7 +181,10 @@ export function 돌린다(
       오류 += 조각.toString('utf8');
       if (선택.흘림) process.stderr.write(조각);
     });
+    let 끝남 = false;
     const 끝 = (코드: number | null) => {
+      if (끝남) return;
+      끝남 = true;
       clearTimeout(시계);
       도는자식.delete(자식);
       resolve({ 코드, 낸것, 오류, 시간초과 });
@@ -191,6 +194,15 @@ export function 돌린다(
       끝(null);
     });
     자식.on('close', (코드) => 끝(코드));
+    // 자손(Chromium·백그라운드 셸)이 출력 통로를 쥐고 남으면 close 가 안 온다 — 끝난 뒤 조금 기다렸다 통로를 닫고 끝낸다.
+    // 리눅스 sh(dash)는 `sh -c 'x'` 에서 x 를 따로 띄워 CI 에서 드러났다 (2026-09-24). 남은 자손은 거두기가 죽인다
+    자식.on('exit', (코드) => {
+      setTimeout(() => {
+        자식.stdout.destroy();
+        자식.stderr.destroy();
+        끝(코드);
+      }, 500).unref();
+    });
     // 입력을 다 읽기 전에 죽는 자식이면 EPIPE 가 난다 — 그 자식의 종료 코드가 이미 말해 준다
     자식.stdin.on('error', () => undefined);
     자식.stdin.end(선택.input ?? '');
