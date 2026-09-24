@@ -58,6 +58,12 @@ describe('작성 에이전트 컨테이너(author)', () => {
     }
   });
 
+  // 자식을 kill -9 -1 로 거두면 Chromium 이 PID 1 아래 고아로 남는다. node 는 자기 자식만 거둬 좀비가 쌓이고,
+  // 좀비가 남으면 「다 거뒀나」 확인도 끝나지 않는다 (2026-09-24 코드 검토)
+  it('init 이 PID 1 이 되어 고아 프로세스를 거둔다', () => {
+    expect(author).toMatch(/init:\s*true/);
+  });
+
   it('메모리는 동시 2건 몫이다 — 한 건이 claude + Chromium 3회다', () => {
     expect(author).toMatch(/mem_limit:\s*8g/);
   });

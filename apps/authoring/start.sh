@@ -28,16 +28,24 @@ fi
 [ "$(id -u)" = 0 ] || deny "root 로 켜야 한다 — docker-compose.yml 의 author 에 user: 가 있으면 지워라 (docs/SETUP.md §8)"
 case "${HOST_UID:-}" in ''|*[!0-9]*) deny "HOST_UID 가 숫자가 아니다 — 서버 저장소 주인의 id -u 를 .env 에 적어라" ;; esac
 HOST_GID="${HOST_GID:-$HOST_UID}"
+case "$HOST_GID" in *[!0-9]*) deny "HOST_GID 가 숫자가 아니다 — 서버 저장소 주인의 id -g 를 .env 에 적어라" ;; esac
 case "${AUTHORING_CHILD_UID:-}" in ''|*[!0-9]*) deny "AUTHORING_CHILD_UID 가 숫자가 아니다 — 비우면 자식이 root 로 돈다" ;; esac
-as_host() { setpriv --reuid="$HOST_UID" --regid="$HOST_GID" --clear-groups env HOME="$HOST_HOME" "$@"; }
+# 호스트 uid 로 도는 것에는 에이전트·Claude 토큰을 안 넘긴다 — 도커 호스트의 같은 uid 가 environ 을 읽는다.
+# GitHub 토큰은 git 설정(gh auth setup-git)에 필요해 남기고, 부품 맞추기에서는 따로 뺀다
+as_host() {
+  setpriv --reuid="$HOST_UID" --regid="$HOST_GID" --clear-groups \
+    env -u AUTHORING_AGENT_TOKEN -u CLAUDE_CODE_OAUTH_TOKEN HOME="$HOST_HOME" TMPDIR=/tmp "$@"
+}
 
 # 켤 때마다 비우고 시작한다 — 재시작하면 남은 .gitconfig 에 insteadOf 가 겹쳐 git config 가 죽고(set -e),
 # 앞에서 남긴 설정이 다음으로 이어지지 않는다
 export HOME=/tmp/author-home
 export HOST_HOME=/tmp/author-host-home
 rm -rf "$HOME" "$HOST_HOME"
-mkdir -p "$HOME/.claude" "$HOST_HOME"
+mkdir -p "$HOME/.claude" "$HOME/tmp" "$HOST_HOME"
 chmod 700 "$HOME"
+# root 의 임시 자리를 공용 /tmp 밖에 둔다 — 자식이 /tmp 에 심은 것(node_modules·캐시)을 root 가 줍지 않게
+export TMPDIR="$HOME/tmp"
 chown "$HOST_UID:$HOST_GID" "$HOST_HOME"
 chmod 700 "$HOST_HOME"
 # 설정은 저장소 밖에서 한다 — git 은 --global 이어도 지금 폴더의 저장소를 먼저 찾고, 거기가 깨져 있으면 죽는다
@@ -57,12 +65,6 @@ as_host /usr/local/bin/authoring-start git-setup
 # 선행검사가 사용자 설정 자리에서 셸이 열려 있는지 본다. 자식은 작업마다 새 집에 따로 받는다
 printf '{"permissions":{"allow":["Bash(*)"]}}\n' > "$HOME/.claude/settings.json"
 
-# 맥에서 절대경로로 건 훅은 여기 없다 — 조용히 꺼지므로 알린다. 작성은 계속된다
-hooks=$(git -C /repo config --get core.hooksPath || true)
-case "$hooks" in
-  /*) [ -d "$hooks" ] || echo "[알림] core.hooksPath($hooks) 가 컨테이너에 없어 pre-push 훅이 안 돈다. 상대경로 .claude/hooks 로 걸면 돈다" ;;
-esac
-
 # 부품은 호스트 uid 소유 0755 — 자식 uid 가 부품에 못 쓴다(쓰면 다음에 켤 때 root 가 그 코드를 돌린다)
 chown "$HOST_UID:$HOST_GID" /repo/node_modules
 chmod 755 /repo/node_modules
@@ -71,7 +73,8 @@ new_sha=$(sha256sum /repo/package-lock.json | cut -d' ' -f1)
 old_sha=$(cat /repo/node_modules/.lock-sha256 2>/dev/null || true)
 if [ "$new_sha" != "$old_sha" ]; then
   echo "[작성] 부품을 맞춘다 (package-lock 이 바뀌었다) — 처음엔 1~2분 걸린다"
-  as_host sh -c 'cd /repo && npm ci --no-audit --no-fund'
+  # 부품의 설치 스크립트가 돈다 — GitHub 토큰도 빼고 돌린다
+  as_host env -u GH_TOKEN sh -c 'cd /repo && npm ci --no-audit --no-fund'
   as_host sh -c "echo $new_sha > /repo/node_modules/.lock-sha256"
 fi
 

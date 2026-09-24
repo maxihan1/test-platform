@@ -103,6 +103,8 @@ services:
       dockerfile: apps/authoring/Dockerfile
     # 토큰이 틀리면 [거부] 로 끝난다. 끝없이 다시 켜지 않는다
     restart: on-failure:5
+    # 거둔 자식의 Chromium 이 고아로 남으면 init 이 거둔다 — node 는 자기 자식만 거둬 좀비가 쌓인다
+    init: true
     # **root 로 켠다** (2026-09-24) — 자식 claude 를 다른 uid 로 띄워야 에이전트의 토큰을 못 읽는다.
     # 서버 저장소에 쓰는 일(부품 맞추기·병합 뒤 당기기)은 HOST_UID 로 한다 — root 소유 파일을 안 남긴다
     depends_on:
@@ -130,7 +132,7 @@ services:
       GH_TOKEN: "${GH_TOKEN:-}"
       DISABLE_AUTOUPDATER: "1"   # claude 가 스스로 올리지 않는다 — 올리는 것은 에이전트다(점검·되돌리기)
     volumes:
-      - ./:/repo                              # 작업방·PR·병합 뒤 당기기가 서버 저장소에서 일어난다 — admin 의 /tests 가 바로 본다
+      - ./:/repo                              # 사본의 원천 · 병합 뒤 당기기(admin 의 /tests 가 바로 본다). 자식은 여기 못 쓴다(다른 uid)
       - /dev/null:/repo/.env:ro               # 비밀값 파일을 가린다. 자식 세션은 셸로 /repo 를 읽는다
       - author_node_modules:/repo/node_modules   # 리눅스용 부품. 호스트(맥) 것은 네이티브 부품이 달라 못 쓴다
     networks: [authoring]
