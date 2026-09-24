@@ -103,12 +103,26 @@ services:
       dockerfile: apps/authoring/Dockerfile
     # 토큰이 틀리면 [거부] 로 끝난다. 끝없이 다시 켜지 않는다
     restart: on-failure:5
-    # root 로 돌면 서버 저장소에 root 소유 파일이 남아 사람이 git pull 을 못 한다
-    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    # 거둔 자식의 Chromium 이 고아로 남으면 init 이 거둔다 — node 는 자기 자식만 거둬 좀비가 쌓인다
+    init: true
+    # **root 로 켠다** (2026-09-24) — 자식 claude 를 다른 uid 로 띄워야 에이전트의 토큰을 못 읽는다.
+    # 서버 저장소에 쓰는 일(부품 맞추기·병합 뒤 당기기)은 HOST_UID 로 한다 — root 소유 파일을 안 남긴다
     depends_on:
       - admin
     environment:
       PLATFORM_ADMIN_URL: http://admin:3000
+      HOST_UID: "${HOST_UID:-1000}"          # 서버 저장소 주인. 리눅스는 `id -u`
+      HOST_GID: "${HOST_GID:-1000}"
+      # 자식 claude 의 uid. 자리 k 는 이 값 + k 다. 0 이나 HOST_UID 와 겹치면 켜지지 않는다
+      AUTHORING_CHILD_UID: "${AUTHORING_CHILD_UID:-20000}"
+      AUTHORING_MAX_PARALLEL: "${AUTHORING_MAX_PARALLEL:-2}"   # 늘리면 mem_limit 도 한 건 4g 씩 늘린다
+      AUTHORING_MODEL: "${AUTHORING_MODEL:-opus}"
+      AUTHORING_EFFORT: "${AUTHORING_EFFORT:-high}"             # low · medium · high · xhigh · max
+      AUTHORING_FALLBACK_MODEL: "${AUTHORING_FALLBACK_MODEL:-sonnet}"   # 과부하·미제공일 때만 넘어간다. none 이면 끈다
+      # 켤 때와 하루 한 번 받는다. 점검(깃발)을 못 넘으면 직전 판으로 되돌린다. 0 이면 이미지 판 그대로
+      AUTHORING_CLAUDE_AUTOUPDATE: "${AUTHORING_CLAUDE_AUTOUPDATE:-1}"
+      AUTHORING_CLAUDE_VERSION: "${AUTHORING_CLAUDE_VERSION:-stable}"   # stable · latest · x.y.z
+      AUTHORING_WORK_DIR: /work
       # 설정 > 계정 > 작성 계정 > 에이전트 토큰. 에이전트만 쓰고 자식 세션에는 안 넘긴다
       AUTHORING_AGENT_TOKEN: "${AUTHORING_AGENT_TOKEN:-}"
       # `claude setup-token` 으로 만든 구독 토큰(sk-ant-oat…). API 키를 넣으면 실비 청구다 — 시작 스크립트가 막는다.
@@ -116,14 +130,14 @@ services:
       CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN:-}"
       # PR 열기·병합 권한. 자식 세션에는 가짜 값으로 덮어 넘긴다
       GH_TOKEN: "${GH_TOKEN:-}"
-      DISABLE_AUTOUPDATER: "1"
+      DISABLE_AUTOUPDATER: "1"   # claude 가 스스로 올리지 않는다 — 올리는 것은 에이전트다(점검·되돌리기)
     volumes:
-      - ./:/repo                              # 작업방·PR·병합 뒤 당기기가 서버 저장소에서 일어난다 — admin 의 /tests 가 바로 본다
+      - ./:/repo                              # 사본의 원천 · 병합 뒤 당기기(admin 의 /tests 가 바로 본다). 자식은 여기 못 쓴다(다른 uid)
       - /dev/null:/repo/.env:ro               # 비밀값 파일을 가린다. 자식 세션은 셸로 /repo 를 읽는다
       - author_node_modules:/repo/node_modules   # 리눅스용 부품. 호스트(맥) 것은 네이티브 부품이 달라 못 쓴다
     networks: [authoring]
-    mem_limit: 4g             # claude + 관문 3회 Chromium
-    shm_size: 1g              # Chromium 이 /dev/shm 을 넉넉히 쓴다
+    mem_limit: 8g             # 한 건(claude + 관문 3회 Chromium) 4g × 동시 2건
+    shm_size: 2g              # Chromium 이 /dev/shm 을 넉넉히 쓴다
 
   grafana:
     image: grafana/grafana

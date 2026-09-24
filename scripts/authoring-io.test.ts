@@ -5,7 +5,15 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { type 보고손, 다시하며, 닫으며, 부른다, 친다, 판정기만들기, 한번더건다 } from './authoring-io.js';
+import {
+  type 보고손,
+  다시하며,
+  닫으며,
+  부른다,
+  친다,
+  판정기만들기,
+  한번더건다,
+} from './authoring-io.js';
 
 const 치울것: string[] = [];
 afterEach(() => {

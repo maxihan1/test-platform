@@ -1,7 +1,7 @@
 // 작성 에이전트 껍데기들이 같이 쓰는 손 — 서버 부르기 · 보고 · 셸 없이 치기 · 간격 두고 다시 하기
 // 한 건 처리(authoring-run)와 머지(authoring-merge)가 둘 다 쓴다. 판단은 여기 없다.
 
-import { spawnSync } from 'node:child_process';
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -95,28 +95,157 @@ export function 보고손만들기(주소기지: string, 토큰: string, 서비�
   };
 }
 
-/** 셸 없이 한 번 친다. 멈춘 git·gh 가 줄 전체를 붙잡지 않게 시간 제한을 건다 */
-export function 친다(명령: string, 인자: string[], cwd: string, input?: string, 제한 = 120_000) {
-  const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한 });
+export interface 칠때 {
+  /** 부모 환경 위에 얹는다 (`친다`) · 통째로 준다 (`돌린다`) */
+  env?: Record<string, string | undefined>;
+  uid?: number;
+  gid?: number;
+}
+
+/**
+ * `친다` 의 환경. **다른 uid 로 띄우면 준 것만 넘긴다** — 그 uid 의 남은 자식이 `/proc/<pid>/environ` 으로
+ * 에이전트의 토큰 셋을 읽는다 (2026-09-24 보안 검토). 에이전트 자신이 치는 것은 부모 위에 얹는다
+ */
+export function 칠환경(
+  부모: Record<string, string | undefined>,
+  선택: 칠때,
+): Record<string, string | undefined> | undefined {
+  if (선택.uid !== undefined) return { ...선택.env };
+  return 선택.env === undefined ? undefined : { ...부모, ...선택.env };
+}
+
+/**
+ * 셸 없이 한 번 친다. 멈춘 git·gh 가 줄 전체를 붙잡지 않게 시간 제한을 건다.
+ * **동기라 도는 동안 다른 서비스 루프도 선다** — 몇 초짜리만 여기로, 긴 것(clone·push·claude)은 `돌린다`
+ */
+export function 친다(명령: string, 인자: string[], cwd: string, input?: string, 제한 = 120_000, 선택: 칠때 = {}) {
+  const env = 칠환경(process.env, 선택);
+  const r = spawnSync(명령, 인자, { cwd, input, encoding: 'utf8', timeout: 제한, env, uid: 선택.uid, gid: 선택.gid });
   // 시간 초과는 오류 글이 `spawnSync git ETIMEDOUT` 뿐이라 사람이 못 알아본다
   const 시간초과 = (r.error as NodeJS.ErrnoException | undefined)?.code === 'ETIMEDOUT';
   const 까닭 = 시간초과
     ? `시간 초과 — ${명령} 이 ${제한 / 1000}초 안에 안 끝났다`
     : (r.error?.message ?? (r.stderr ?? '').trim().split('\n')[0] ?? '');
-  return { ok: r.status === 0 && r.error === undefined, 낸것: r.stdout ?? '', 까닭, 오류: r.stderr ?? '', 시간초과 };
+  return {
+    ok: r.status === 0 && r.error === undefined,
+    코드: r.error === undefined ? r.status : null,
+    낸것: r.stdout ?? '',
+    까닭,
+    오류: r.stderr ?? '',
+    시간초과,
+  };
+}
+
+/** 지금 도는 자식들. 거절로 에이전트가 나갈 때 남기지 않는다 — 남으면 구독 한도를 계속 쓴다 */
+export const 도는자식 = new Set<ChildProcess>();
+
+/**
+ * 서버가 거절해 에이전트가 멈추는 중인가. 줄 하나가 거절을 받으면 채운다 —
+ * 다른 줄의 머지는 CI 를 기다리는 중에, 작성은 자리를 받은 뒤에 이것을 보고 손을 뗀다 (2026-09-24 코드 검토)
+ */
+export const 멈춤: { 까닭: string | null } = { 까닭: null };
+
+export interface 돌린결과 {
+  /** 못 띄웠으면 null */
+  코드: number | null;
+  낸것: string;
+  오류: string;
+  시간초과: boolean;
+}
+
+/**
+ * 비동기로 돌린다. 서비스 루프들이 동시에 돌려면 긴 일이 이벤트 루프를 붙잡으면 안 된다.
+ * `env` 는 **통째로** 준다(부모 것을 안 얹는다) — 자식 claude 에 에이전트 토큰이 새지 않게.
+ * `흘림` 이면 표준출력·오류를 모으면서 터미널에도 흘린다 — 사람이 도는 것을 봐야 한다
+ */
+export function 돌린다(
+  명령: string,
+  인자: string[],
+  선택: 칠때 & { cwd: string; input?: string; 제한?: number; 흘림?: boolean },
+): Promise<돌린결과> {
+  return new Promise((resolve) => {
+    let 낸것 = '';
+    let 오류 = '';
+    let 시간초과 = false;
+    const 자식 = spawn(명령, 인자, { cwd: 선택.cwd, env: 선택.env, uid: 선택.uid, gid: 선택.gid });
+    도는자식.add(자식);
+    const 시계 = setTimeout(() => {
+      시간초과 = true;
+      자식.kill('SIGKILL');
+    }, 선택.제한 ?? 120_000);
+    자식.stdout.on('data', (조각: Buffer) => {
+      낸것 += 조각.toString('utf8');
+      if (선택.흘림) process.stdout.write(조각);
+    });
+    자식.stderr.on('data', (조각: Buffer) => {
+      오류 += 조각.toString('utf8');
+      if (선택.흘림) process.stderr.write(조각);
+    });
+    let 끝남 = false;
+    const 끝 = (코드: number | null) => {
+      if (끝남) return;
+      끝남 = true;
+      clearTimeout(시계);
+      도는자식.delete(자식);
+      resolve({ 코드, 낸것, 오류, 시간초과 });
+    };
+    자식.on('error', (err) => {
+      오류 += err.message;
+      끝(null);
+    });
+    자식.on('close', (코드) => 끝(코드));
+    // 자손(Chromium·백그라운드 셸)이 출력 통로를 쥐고 남으면 close 가 안 온다 — 끝난 뒤 조금 기다렸다 통로를 닫고 끝낸다.
+    // 리눅스 sh(dash)는 `sh -c 'x'` 에서 x 를 따로 띄워 CI 에서 드러났다 (2026-09-24). 남은 자손은 거두기가 죽인다
+    자식.on('exit', (코드) => {
+      setTimeout(() => {
+        자식.stdout.destroy();
+        자식.stderr.destroy();
+        끝(코드);
+      }, 500).unref();
+    });
+    // 입력을 다 읽기 전에 죽는 자식이면 EPIPE 가 난다 — 그 자식의 종료 코드가 이미 말해 준다
+    자식.stdin.on('error', () => undefined);
+    자식.stdin.end(선택.input ?? '');
+  });
+}
+
+/** 동시에 도는 작업 자리. 번호(0..상한-1)가 곧 자식 uid 의 자리다 (`authoring-copy` 의 `계정들`) */
+export function 자리들(상한: number) {
+  const 빈자리 = Array.from({ length: 상한 }, (_, k) => k);
+  const 기다리는이: ((k: number) => void)[] = [];
+  return {
+    잡기(): Promise<number> {
+      const k = 빈자리.shift();
+      return k !== undefined ? Promise.resolve(k) : new Promise((resolve) => 기다리는이.push(resolve));
+    },
+    놓기(k: number): void {
+      const 다음 = 기다리는이.shift();
+      if (다음 !== undefined) 다음(k);
+      else 빈자리.push(k);
+    },
+    도는수: () => 상한 - 빈자리.length,
+  };
+}
+
+/** GitHub 이 말하는 main SHA 를 묻기만 한다. 서버 저장소에 아무것도 안 쓴다 — 작성은 사본에서 받는다 */
+export function 진짜main묻기(cwd: string): { sha: string } | { 까닭: string } {
+  const 물음 = 친다('git', 진짜main인자, cwd);
+  const sha = 물음.ok ? 진짜main풀기(물음.낸것) : null;
+  return sha === null ? { 까닭: `GitHub 의 main 을 못 읽었다: ${물음.까닭 || 물음.낸것.trim()}` } : { sha };
 }
 
 /** GitHub 이 말하는 main SHA. 로컬에 없으면 그 SHA 를 받아 둔다 — 판정·커밋수·작업방의 기준이 이것이다 */
-export function 진짜main받기(cwd: string): { sha: string } | { 까닭: string } {
-  const 물음 = 친다('git', 진짜main인자, cwd);
-  const sha = 물음.ok ? 진짜main풀기(물음.낸것) : null;
-  if (sha === null) return { 까닭: `GitHub 의 main 을 못 읽었다: ${물음.까닭 || 물음.낸것.trim()}` };
+export function 진짜main받기(cwd: string, 선택: 칠때 = {}): { sha: string } | { 까닭: string } {
+  const 물음 = 진짜main묻기(cwd);
+  if ('까닭' in 물음) return 물음;
+  const { sha } = 물음;
   if (친다('git', ['cat-file', '-e', `${sha}^{commit}`], cwd).ok) return { sha };
-  const 받기 = 친다('git', ['fetch', 'origin', sha], cwd);
+  // 서버 저장소에 쓰므로 호스트 계정으로 받는다 — root 로 받으면 사람이 git pull 을 못 한다
+  const 받기 = 친다('git', ['fetch', 'origin', sha], cwd, undefined, 120_000, 선택);
   return 받기.ok ? { sha } : { 까닭: `main(${sha}) 을 못 받았다: ${받기.까닭}` };
 }
 
-export type 판정기 = (파일들: string[], 기준: string, cwd: string) => boolean;
+export type 판정기 = (파일들: string[], 기준: string, cwd: string, env?: Record<string, string>) => boolean;
 
 /**
  * 「테스트만」 판정 스크립트를 **켤 때** 읽어 메모리에 고정한다. 자식은 맥의 파일을 쓸 수 있어서
@@ -126,13 +255,14 @@ export type 판정기 = (파일들: string[], 기준: string, cwd: string) => bo
 export function 판정기만들기(스크립트자리: string): 판정기 {
   const 내용 = readFileSync(스크립트자리, 'utf8');
   console.log(`[작성] 판정 스크립트를 고정했다: ${스크립트자리} sha256=${createHash('sha256').update(내용).digest('hex')}`);
-  return (파일들, 기준, cwd) => {
+  // env 는 사본의 GIT_DIR 이다 — 판정 스크립트가 치는 git 이 자식이 트리에 만든 .git 을 보면 안 된다
+  return (파일들, 기준, cwd, env) => {
     // 스크립트가 스스로 realpath 로 비교하게 된 뒤로는 없어도 된다 — 해가 없어 둔다 (/var → /private/var)
     const 자리 = realpathSync(mkdtempSync(join(tmpdir(), 'authoring-judge-')));
     try {
       const 파일 = join(자리, 'cases-only.mjs');
       writeFileSync(파일, 내용);
-      return 친다('node', [파일, 기준], cwd, `${파일들.join('\n')}\n`).ok;
+      return 친다('node', [파일, 기준], cwd, `${파일들.join('\n')}\n`, 120_000, { env }).ok;
     } finally {
       rmSync(자리, { recursive: true, force: true });
     }

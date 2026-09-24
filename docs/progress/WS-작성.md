@@ -351,3 +351,11 @@
 - 막힌 것: 없음. 이미지 빌드·도구 판·[거부] 셋·볼륨 위 `npm ci`·에이전트 켜기까지는 가짜 토큰으로 확인
 - 다음 세션이 알아야 할 것: 맥 경로(`npm run authoring-agent`)는 개발용 대체로 남았다 — 서버 author 와 **동시에 돌리지 않는다**. 이미지의 Playwright 태그는 러너와 같이 올린다. 계획 `docs/plans/2026-09-23-작성-서버로.md`
 - **후속 — 고객사 설치 전 필수 (게이트 2 결정)**: 자식 격리. 지금은 자식이 서버 저장소(`/repo`) 전체에 쓸 수 있고(작업방 밖 `tests/`·`scripts/`·훅·compose), 같은 uid 라 `/proc/<부모>/environ` 으로 토큰 셋을 읽고, HOME 을 부모와 같이 쓴다. 해법 후보 — author 전용 사본(볼륨) + 서버 `tests/` 는 병합된 main 만 당김 + 자식을 다른 uid(작업방에만 쓰기) + 건마다 새 HOME. 이번 PR 은 postgres 를 127.0.0.1 로 좁히고 한계를 SPEC·SETUP 에 적는 데까지
+
+## 2026-09-24 (10회차) — 서비스별 병렬 · Opus/effort · Sonnet 예비 · CLI 최신화 · 자식 격리 (PR #69)
+
+- 완료: 서비스마다 줄을 따로 돌고 동시 상한(`AUTHORING_MAX_PARALLEL`, 기본 2 — 머지는 안 센다). 자식 claude 에 `--model opus --effort high --fallback-model sonnet`(`.env` 로 바꾼다). 켤 때와 하루 한 번 CLI 를 `stable` 로 올리고 깃발 점검, 실패면 직전 판으로. **자식 격리** — 컨테이너를 root 로 켜고 자식은 자리마다 다른 uid(`AUTHORING_CHILD_UID + k`), 작업마다 `/work/author-<번호>` 사본(bare git 은 root 0700, `GIT_DIR` 로만 git), 작업 임시·새 HOME·umask 077, 끝나면 그 uid 를 `pgrep` 이 0 일 때까지 거두고 공용 임시의 흔적을 지운다. 링크·비일반·트리 밖 파일은 읽기 전에 거부. 서버 저장소 쓰기(부품·기준 받기·병합 뒤 당기기)는 `HOST_UID` 로, 토큰은 GH 만. 머지는 head 브랜치가 원본의 `author-<번호>`·같은 저장소일 때만. 파일 넷이 새로 생겼다(`authoring-model`·`-copy`·`-child`·`-upload`, 300줄 규칙)
+- 실측(가짜 토큰, 이미지 빌드): 두 번 켜도 에이전트까지 · 최신화 2.1.280→2.1.273(stable 이 이미지 판보다 낮다) 점검 통과 · 자식 uid 칸 비우면 거부 · 자식이 부모·다른 자리 environ·트리·에이전트 집·부품에 못 닿음 · **리눅스 fs** 에서 서버 저장소 쓰기 막힘(맥 Docker Desktop 은 폴더 공유가 uid 를 안 지켜 뚫림 → SPEC 한계) · 실제 코드로 만든 사본: 소유 자리 uid · `@platform/kit`→사본 packages · status 깨끗 · 자식 uid 로 Chromium 관문 통과 · 거둔 뒤 남은 0 · `/tmp` 흔적 지움 · 자리 uid 프로세스의 TOKEN 환경 0
+- 미완: **서버에서 진짜 토큰으로 한 바퀴**(사용자가 `.env` 채움) · 서비스 둘 동시 실측 · 리눅스 서버 uid 실측 · 맥에서 한 바퀴(HOME 고친 것 확인) · 빈 시작 커밋 push 가 오늘 첫 push 에서 검사 기록에 막힌다(계획 할 일 10 — 다음 PR)
+- 막힌 것: `kill -0 -1` 이 「남은 게 없다」를 알려 주지 않았다(권한 없는 남의 프로세스가 있으면 성공) → `pgrep -u` 로 바꿨다
+- 다음 세션이 알아야 할 것: 자식은 여전히 서버 저장소를 **읽을** 수 있다(부품 링크가 `/repo/node_modules` 를 가리켜서) — 부품을 저장소 밖으로 옮기면 닫힌다. 맥 경로는 격리가 없다(같은 uid). 계획 `docs/plans/2026-09-24-작성-병렬-격리.md`

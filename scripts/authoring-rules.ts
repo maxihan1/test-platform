@@ -2,6 +2,7 @@
 // authoring-agent.ts 가 478줄이 되어 나눴다 (2026-09-23)
 
 import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글 } from './authoring-assets.js';
+import { type 모델, 모델인자 } from './authoring-model.js';
 
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
 export interface 설정 extends 권한설정 {
@@ -76,9 +77,9 @@ export function 과금위험(env: Record<string, string | undefined>, 설정들:
  * `Bash(git:*)`·`Bash(gh:*)` 처럼 **이름으로 막는 것은 실수 방지일 뿐**이다 — `/usr/bin/git`·`sh -c` 로 비껴간다.
  * 막는 것은 자격증명을 뺀 환경이다 (`authoring-chain` 의 `자식환경`).
  */
-export function 클로드인자(폴더: string): string[] {
+export function 클로드인자(폴더: string, 모델: 모델): string[] {
   const 막을것 = ['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)'];
-  return ['-p', '--permission-mode', 'acceptEdits', '--add-dir', 폴더, '--disallowedTools', ...막을것];
+  return ['-p', ...모델인자(모델), '--permission-mode', 'acceptEdits', '--add-dir', 폴더, '--disallowedTools', ...막을것];
 }
 
 /**

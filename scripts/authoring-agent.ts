@@ -15,12 +15,15 @@
 // 토큰은 계정에 묶인 두 번째 열쇠이고 맥이 부르는 통로만 연다 (authoring-token.ts · SPEC 도메인/인증 §7).
 
 import { existsSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { type 설정, type 설정자리, admin주소, 기다렸다다시인가, 선행검사, 주소안전한가, 집은것인가 } from './authoring-rules.js';
-import { 부른다, 판정기만들기 } from './authoring-io.js';
-import { 멈춘것닫기, 한건처리 } from './authoring-run.js';
+import { 남은사본치우기 } from './authoring-child.js';
+import { 계정들, 동시상한, 바탕거부사유, 호스트환경 } from './authoring-copy.js';
+import { 도는자식, 멈춤, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
+import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
+import { type 판, 멈춘것닫기, 한건처리 } from './authoring-run.js';
 import { 나풀기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 // ── 껍데기 ────────────────────────────────────────────────────────────
@@ -53,6 +56,18 @@ function 설정들읽기(): 설정자리[] {
 
 const 쉬는시간 = 5000;
 
+/** 동시 상한 · 자리 계정 · 최신화 판을 켤 때 한 번 본다. root 인데 자식 uid 가 비면 여기서 멈춘다 */
+function 켤때검사(env: NodeJS.ProcessEnv) {
+  const 상한 = 동시상한(env);
+  if (typeof 상한 !== 'number') return 상한;
+  const 계정 = 계정들(env, 상한, process.getuid?.() ?? -1);
+  if (계정 !== null && '까닭' in 계정) return 계정;
+  if (env.AUTHORING_CLAUDE_AUTOUPDATE === '1' && 업데이트인자(env.AUTHORING_CLAUDE_VERSION) === null) {
+    return { 까닭: `AUTHORING_CLAUDE_VERSION(${env.AUTHORING_CLAUDE_VERSION}) 은 stable · latest · x.y.z 중 하나다` };
+  }
+  return { 상한, 계정 };
+}
+
 /**
  * 대기줄을 돌린다. **사람이 켜서 터미널에 띄워 두는 프로그램**이다 (숨은 데몬이 아니다) —
  * 한도를 얼마나 쓰는지와 지금 무엇을 하는지가 눈에 보여야 한다.
@@ -70,6 +85,20 @@ async function 돈다(): Promise<number> {
     console.error(`[거부] ${안전하지않음}`);
     return 1;
   }
+
+  // 켤 때 한 번 읽는다 — 틀린 값으로 매 건 claude 를 띄워 실패시키느니 여기서 멈춘다
+  const 모델 = 모델설정(process.env);
+  if ('까닭' in 모델) {
+    console.error(`[거부] ${모델.까닭}`);
+    return 1;
+  }
+  console.log(`[작성] 모델 ${모델.model} · effort ${모델.effort} · 예비 ${모델.fallback ?? '없음'}`);
+  const 켜기 = 켤때검사(process.env);
+  if ('까닭' in 켜기) {
+    console.error(`[거부] ${켜기.까닭}`);
+    return 1;
+  }
+  if (process.env.AUTHORING_CLAUDE_AUTOUPDATE === '1') 클로드최신화(process.env.AUTHORING_CLAUDE_VERSION);
 
   // 서버 컨테이너는 .env 의 토큰, 맥은 처음 한 번 묻고 홈 아래 파일에 둔다 (SPEC 도메인/인증 §7). 계정 이름은 서버가 알려 준다
   const 자리 = 토큰자리(homedir());
@@ -109,45 +138,123 @@ async function 돈다(): Promise<number> {
     return 1;
   }
 
-  // 자식이 돌기 전에 읽어 둔다 — 자식은 맥의 파일을 쓸 수 있다
+  // 자식이 돌기 전에 읽어 둔다 — 맥에서는 자식이 이 파일을 쓸 수 있다
   const 판정 = 판정기만들기(join(process.cwd(), '.claude', 'scripts', 'cases-only.mjs'));
-  console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} — 멈추려면 Ctrl+C.`);
-  for (;;) {
-    let 집었나 = false;
-    for (const 서비스 of 서비스들) {
+  const 원천 = process.cwd();
+  const 원격 = 친다('git', ['remote', 'get-url', 'origin'], 원천);
+  if (!원격.ok) {
+    console.error(`[거부] 서버 저장소의 origin 주소를 못 읽었다: ${원격.까닭}`);
+    return 1;
+  }
+  const 바탕 = process.env.AUTHORING_WORK_DIR || join(tmpdir(), 'authoring-work');
+  const 바탕거부 = 바탕거부사유(바탕, 켜기.계정 !== null);
+  if (바탕거부 !== null) {
+    console.error(`[거부] ${바탕거부}`);
+    return 1;
+  }
+  남은사본치우기(바탕);
+  const 판: 판 = {
+    판정,
+    모델,
+    바탕,
+    원천,
+    원격주소: 원격.낸것.trim(),
+    계정: 켜기.계정,
+    호스트로:
+      켜기.계정 === null
+        ? {}
+        : {
+            ...켜기.계정.호스트,
+            env: 호스트환경(process.env),
+          },
+  };
+
+  const 자동최신화 = process.env.AUTHORING_CLAUDE_AUTOUPDATE === '1';
+  // 켤 때 이미 올렸으면 그 시각부터 센다 — 아니면 첫 줄이 곧바로 한 번 더 올려 10분까지 모든 줄이 선다
+  let 마지막최신화: number | null = 자동최신화 ? Date.now() : null;
+  const 표 = 자리들(켜기.상한);
+  const 쉬기 = () => new Promise((resolve) => setTimeout(resolve, 쉬는시간));
+
+  /**
+   * 서비스 하나의 줄. **먼저 집고, 작성·재실행만 자리를 잡는다** — 머지는 CI 를 기다리기만 해서
+   * 자리(메모리·구독 한도)를 안 쓴다. 한 서비스 안은 여전히 한 건씩이다
+   */
+  const 줄돌기 = async (서비스: string): Promise<void> => {
+    while (멈춤.까닭 === null) {
+      // 도는 claude 가 없을 때만 판을 바꾼다. 동기라 도는 동안 다른 줄도 안 집는다 — 그것이 잠금이다
+      if (자동최신화 && 업데이트할까(Date.now(), 마지막최신화, 표.도는수())) {
+        클로드최신화(process.env.AUTHORING_CLAUDE_VERSION);
+        마지막최신화 = Date.now();
+      }
+      let 집었나 = false;
       try {
         const 답 = await 부른다(주소, 토큰, `/authoring/requests/claim?service=${encodeURIComponent(서비스)}`, {
           method: 'POST',
         });
         // **「204 가 아니면 집은 것」으로 가르지 않는다.** 500 의 오류 본문이
         // 집은 한 건으로 통과하면 빈 기획서로 claude 를 끝없이 돌린다
-        if (!집은것인가(답.status, 답.몸)) {
-          if (기다렸다다시인가(답.status)) {
-            console.error(`[기다림] ${서비스} 집기가 ${답.status} 를 냈다. 잠시 뒤 다시 묻는다.`);
+        if (집은것인가(답.status, 답.몸)) {
+          const 것 = 답.몸;
+          집었나 = true;
+          const 자리번호 = 것.kind === 'MERGE' ? -1 : await 표.잡기();
+          // 자리를 기다리는 동안 다른 줄이 거절을 받았으면 손을 뗀다. 그 행은 다음에 켤 때 멈춘 것으로 닫힌다
+          if (멈춤.까닭 !== null) {
+            if (자리번호 >= 0) 표.놓기(자리번호);
+            return;
           }
-          continue;
+          console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}${자리번호 < 0 ? '' : ` · 자리 ${자리번호}`}).`);
+          try {
+            await 한건처리(주소, 토큰, 서비스, 것, 판, 자리번호, 서버표[서비스] ?? []);
+          } finally {
+            if (자리번호 >= 0) 표.놓기(자리번호);
+          }
+          console.log(`[작성] ${것.id}번을 끝냈다.`);
+        } else if (기다렸다다시인가(답.status)) {
+          console.error(`[기다림] ${서비스} 집기가 ${답.status} 를 냈다. 잠시 뒤 다시 묻는다.`);
         }
-
-        const 것 = 답.몸;
-        console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}).`);
-        집었나 = true;
-        await 한건처리(주소, 토큰, 서비스, 것, 판정, 서버표[서비스] ?? []);
-        console.log(`[작성] ${것.id}번을 끝냈다.`);
       } catch (err) {
         const 글 = err instanceof Error ? err.message : String(err);
-        // **거절만 끝낸다.** 기다린다고 안 풀리고 사람이 손대야 한다
+        // **거절만 끝낸다.** 기다린다고 안 풀리고 사람이 손대야 한다. 다른 줄의 자식도 거둔다 — 남으면 한도를 계속 쓴다
         if (글.includes('서버가 거절했다')) {
-          console.error(`[멈춤] ${글}`);
-          return 1;
+          멈춤.까닭 = 글;
+          for (const 자식 of 도는자식) 자식.kill('SIGKILL');
+          return;
         }
         // 연결이 끊긴 것은 서버가 다시 뜨는 중일 수 있다. **여기서 죽으면
         // 사람이 와서 다시 켤 때까지 아무도 못 되살린다**
         console.error(`[기다림] ${서비스}: ${글}`);
       }
+      if (!집었나) await 쉬기();
     }
+  };
 
-    if (!집었나) await new Promise((resolve) => setTimeout(resolve, 쉬는시간));
+  console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} · 동시에 ${켜기.상한}건 — 멈추려면 Ctrl+C.`);
+  await Promise.all(서비스들.map(줄돌기));
+  console.error(`[멈춤] ${멈춤.까닭}`);
+  return 1;
+}
+
+/**
+ * Claude CLI 를 받아 올리고 점검한다. 설치는 됐는데 우리가 쓰는 깃발이 사라진 판이면 **직전 판으로 되돌린다** —
+ * 격리의 한 축인 `--disallowedTools` 가 조용히 풀리면 안 된다 (2026-09-24 계획 검토). 실패해도 에이전트는 돈다
+ */
+function 클로드최신화(판값: string | undefined): void {
+  const 인자 = 업데이트인자(판값);
+  if (인자 === null) return;
+  const 전 = 버전뽑기(친다('claude', ['--version'], '/').낸것);
+  const 받기 = 친다('npm', 인자, '/', undefined, 600_000);
+  if (!받기.ok) {
+    console.error(`[최신화] 못 받았다 — ${전 ?? '지금 판'} 그대로 돈다: ${받기.까닭}`);
+    return;
   }
+  const 후 = 버전뽑기(친다('claude', ['--version'], '/').낸것);
+  const 도움말 = 친다('claude', ['--help'], '/');
+  if (후 !== null && 도움말.ok && 점검통과(도움말.낸것)) {
+    console.log(`[최신화] Claude CLI ${전 ?? '?'} → ${후}`);
+    return;
+  }
+  console.error(`[최신화] ${후 ?? '새 판'} 이 점검을 못 넘었다 — ${전 ?? '?'} 로 되돌린다`);
+  if (전 !== null) 친다('npm', ['install', '-g', `@anthropic-ai/claude-code@${전}`], '/', undefined, 600_000);
 }
 
 // 검사가 이 파일을 import 할 때는 껍데기가 돌면 안 된다.

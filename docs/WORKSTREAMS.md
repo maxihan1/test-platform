@@ -58,7 +58,9 @@
   **2026-09-23 부터 기본은 서버의 `author` 컨테이너**(`apps/authoring/` · compose profile `authoring`)가 이것을 돌리고, 맥은 개발용 대체다 (도메인/작성 §3.6).
   **`scripts/**` 폴더 자체는 WS-F 소유 그대로다.** 떼어 온 것은 `scripts/authoring-*.ts` 뿐이고 폴더째 가져오지 않는다.
   2026-09-23 에 한 파일이 넷으로 갈라졌다 — `authoring-agent.ts`(켜기·폴링) · `authoring-run.ts`(작성) ·
-  `authoring-merge.ts`(머지) · `authoring-chain.ts`·`authoring-assets.ts`(판단만 든 순수 함수, PR #63)
+  `authoring-merge.ts`(머지) · `authoring-chain.ts`·`authoring-assets.ts`(판단만 든 순수 함수, PR #63).
+  2026-09-24 에 더 갈라졌다 — `authoring-model.ts`(모델·CLI 최신화 판단) · `authoring-copy.ts`(사본·자리 uid 판단) ·
+  `authoring-child.ts`(사본 만들기·자식 거두기 껍데기) · `authoring-upload.ts`(올리기 껍데기). 줄은 서비스마다 따로 돈다 (PR #69)
 - `apps/admin/src/authoring/**` 는 **2026-09-22 에 섰다** (`store.ts` · `routes.ts` 와 그 검사들). 표면은 `ADMIN`(2등급)이다
 - **★ `apps/admin/src/app.ts` 한 줄은 공용 골격이라 갈래 소유가 아니다.** 새 컨텍스트를 등록하는
   규약 줄(`app.register(authoringRoutes, ...)`)이라 안 넣으면 통로가 404 다. **그 한 줄만 손댄다** —

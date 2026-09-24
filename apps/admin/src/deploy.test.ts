@@ -36,8 +36,43 @@ describe('작성 에이전트 컨테이너(author)', () => {
     expect(compose).toMatch(/- "127\.0\.0\.1:\$\{POSTGRES_PORT:-5433\}:5432"/);
   });
 
-  it('root 로 돌지 않는다 — 서버 저장소에 root 소유 파일이 남는다', () => {
-    expect(author).toMatch(/user:\s*"\$\{HOST_UID/);
+  // 2026-09-24 게이트 0 — root 로 켜야 자식을 다른 uid 로 띄워 에이전트의 토큰(/proc/<pid>/environ)을 못 읽게 한다.
+  // 서버 저장소에 쓰는 일은 HOST_UID 로 한다 — 옛 단언(「root 로 돌지 않는다」)이 막으려던 것은 그대로 막힌다
+  it('root 로 켠다 — user: 가 없고 자식·호스트 uid 를 받는다', () => {
+    expect(author).not.toMatch(/^\s*user:/m);
+    expect(author).toMatch(/AUTHORING_CHILD_UID:/);
+    expect(author).toMatch(/HOST_UID:/);
+    expect(author).toMatch(/HOST_GID:/);
+  });
+
+  it('모델·effort·예비 모델·동시 상한·CLI 최신화를 .env 로 바꾼다', () => {
+    for (const 칸 of [
+      'AUTHORING_MODEL',
+      'AUTHORING_EFFORT',
+      'AUTHORING_FALLBACK_MODEL',
+      'AUTHORING_MAX_PARALLEL',
+      'AUTHORING_CLAUDE_VERSION',
+      'AUTHORING_CLAUDE_AUTOUPDATE',
+    ]) {
+      expect(author).toMatch(new RegExp(`${칸}:`));
+    }
+  });
+
+  // 자식을 kill -9 -1 로 거두면 Chromium 이 PID 1 아래 고아로 남는다. node 는 자기 자식만 거둬 좀비가 쌓이고,
+  // 좀비가 남으면 「다 거뒀나」 확인도 끝나지 않는다 (2026-09-24 코드 검토)
+  // 바탕 이미지의 /ms-playwright 는 0777 이다 — 앞 건의 자식(자리 uid)이 브라우저를 바꿔치기하면
+  // 다음 건(다른 서비스)의 관문이 그 코드를 돌린다 (2026-09-24 재검사)
+  it('브라우저 폴더는 자식이 못 쓴다', () => {
+    const 도커파일 = readFileSync(new URL('../../authoring/Dockerfile', import.meta.url), 'utf8');
+    expect(도커파일).toMatch(/chmod -R go-w \/ms-playwright/);
+  });
+
+  it('init 이 PID 1 이 되어 고아 프로세스를 거둔다', () => {
+    expect(author).toMatch(/init:\s*true/);
+  });
+
+  it('메모리는 동시 2건 몫이다 — 한 건이 claude + Chromium 3회다', () => {
+    expect(author).toMatch(/mem_limit:\s*8g/);
   });
 });
 
