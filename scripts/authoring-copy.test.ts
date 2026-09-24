@@ -226,8 +226,11 @@ describe('진짜 git — 준비 직후 사본이 깨끗하다', () => {
   const 바탕 = mkdtempSync(join(tmpdir(), 'authoring-copy-test-'));
   afterAll(() => rmSync(바탕, { recursive: true, force: true }));
 
+  // GIT_* 를 전부 뺀다 — pre-push 훅 안에서는 git 이 GIT_DIR 을 넣어 두어, 그대로 물려주면 아래 init·add·commit 이
+  // 임시 저장소가 아니라 **이 저장소**를 친다. 2026-09-24 에 실제로 브랜치에 커밋을 만들고 core.bare=true 를 박았다
+  const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([키]) => !키.startsWith('GIT_')));
   const 친다 = (인자: string[], cwd: string, env?: Record<string, string>) =>
-    spawnSync('git', 인자, { cwd, encoding: 'utf8', env: { ...process.env, ...env } });
+    spawnSync('git', 인자, { cwd, encoding: 'utf8', env: { ...깨끗한환경, ...env } });
 
   it('node_modules 링크가 있어도 바뀐 파일이 0 이고, 새 파일은 사본환경으로 보인다', () => {
     const 원천 = join(바탕, 'src');
@@ -242,7 +245,7 @@ describe('진짜 git — 준비 직후 사본이 깨끗하다', () => {
     const 자리 = 사본자리(1, 바탕);
     mkdirSync(자리.트리, { recursive: true });
     for (const c of 사본준비(자리, 원천, 원천, sha)) {
-      const r = spawnSync(c.명령, c.인자, { encoding: 'utf8' });
+      const r = spawnSync(c.명령, c.인자, { encoding: 'utf8', env: 깨끗한환경 });
       expect(r.status, `${c.인자.join(' ')}: ${r.stderr}`).toBe(0);
     }
     writeFileSync(join(자리.git, 'info', 'exclude'), 사본제외);
