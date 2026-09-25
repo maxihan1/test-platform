@@ -265,6 +265,27 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
     });
   });
 
+  describe('끝내기 diffs', () => {
+    it('차이 목록이 상세까지 그대로 온다 — 표시 실패는 marked:false 와 이유', async () => {
+      const { pool } = await import('../db/index.js');
+      const id = (await 만들기({ kind: 'AUTHOR', compare: true, env: 'qa', startUrl: 'https://qa.xwv.test/' })).json<{ id: number }>().id;
+      await pool.query(`UPDATE authoring_request SET status = 'RUNNING', claimed_by = $2 WHERE id = $1`, [id, 부르는이]);
+      const diffs = [
+        { no: 'D1', kind: 'DIFFERENT', where: '기획서.docx · 3쪽', doc: '저장', screen: '확인', tcId: 'XWV-001', marked: true },
+        { no: 'D2', kind: 'SCREEN_ONLY', where: '주문 화면', doc: null, screen: '쿠폰 칸', marked: false, markError: '피그마 토큰에 댓글 권한이 없다' },
+        { no: 'D3', kind: 'DOC_ONLY', where: '기획서.docx · 5쪽', doc: '엑셀 내려받기', screen: null, marked: true },
+      ];
+      const 끝 = await app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests/${id}/finish`,
+        payload: { status: 'DONE', result: { diffs } },
+      });
+      expect(끝.statusCode).toBe(200);
+      const 상세 = await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}` });
+      expect(상세.json<{ result: { diffs: unknown } }>().result.diffs).toEqual(diffs);
+    });
+  });
+
   describe('다시 돌리기', () => {
     async function 끝난원본(본문: Record<string, unknown>): Promise<number> {
       const { pool } = await import('../db/index.js');
