@@ -16,7 +16,7 @@ import {
   type Violation,
 } from './rules.js';
 import { caseFiles, scan, testsRoot } from './scanner.js';
-import { hasTag, newlyUnconfirmed, oldSourceByTcId } from './unconfirmed.js';
+import { gitEnv, hasTag, newlyUnconfirmed, oldSourceByTcId } from './unconfirmed.js';
 
 const run = promisify(execFile);
 
@@ -59,8 +59,8 @@ async function warnNewTags(tagged: { file: string; tcId: string; text: string }[
   if (tagged.length === 0) return;
   let repoRoot: string;
   try {
-    repoRoot = (await run('git', ['rev-parse', '--show-toplevel'])).stdout.trim();
-    await run('git', ['rev-parse', '--verify', '-q', 'origin/main'], { cwd: repoRoot });
+    repoRoot = (await run('git', ['rev-parse', '--show-toplevel'], { env: gitEnv() })).stdout.trim();
+    await run('git', ['rev-parse', '--verify', '-q', 'origin/main'], { cwd: repoRoot, env: gitEnv() });
   } catch (err) {
     console.error(`[check:tests] 새 꼬리표 경고 건너뜀 — origin/main 을 찾지 못했다 (${errText(err)})`);
     return;

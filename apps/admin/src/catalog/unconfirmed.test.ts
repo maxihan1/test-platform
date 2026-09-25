@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { checkSource } from './rules.js';
-import { newlyUnconfirmed, oldSourceByTcId } from './unconfirmed.js';
+import { gitEnv, newlyUnconfirmed, oldSourceByTcId } from './unconfirmed.js';
 
 function 케이스(extra: string, head = ''): string {
   return `import { defineCase, test, verify } from '@platform/kit';
@@ -94,7 +94,10 @@ describe('newlyUnconfirmed — 이미 있던 케이스에 새로 단 꼬리표',
 describe('oldSourceByTcId — origin/main 에서 tcId 로 옛 본문을 찾는다', () => {
   const repo = mkdtempSync(join(tmpdir(), 'unconfirmed-'));
   const git = (...args: string[]): string =>
-    execFileSync('git', ['-C', repo, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { encoding: 'utf8' });
+    execFileSync('git', ['-C', repo, '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
+      encoding: 'utf8',
+      env: gitEnv(),
+    });
   const 옛본문 = 케이스('');
   const 새본문 = 케이스(`unconfirmed: '기획서와 다름',`);
 
@@ -123,5 +126,19 @@ describe('oldSourceByTcId — origin/main 에서 tcId 로 옛 본문을 찾는�
 
   it('origin/main 에 없는 tcId 는 null', async () => {
     expect(await oldSourceByTcId(repo, 'NEW-001')).toBeNull();
+  });
+
+  it('훅이 물려준 GIT_DIR 이 다른 저장소를 가리켜도 주어진 폴더의 저장소를 읽는다', async () => {
+    const 미끼 = mkdtempSync(join(tmpdir(), 'unconfirmed-decoy-'));
+    execFileSync('git', ['-C', 미끼, 'init', '-q'], { env: gitEnv() });
+    const 전 = process.env.GIT_DIR;
+    process.env.GIT_DIR = join(미끼, '.git');
+    try {
+      expect(await oldSourceByTcId(repo, 'DEMO-001')).toBe(옛본문);
+    } finally {
+      if (전 === undefined) delete process.env.GIT_DIR;
+      else process.env.GIT_DIR = 전;
+      rmSync(미끼, { recursive: true, force: true });
+    }
   });
 });

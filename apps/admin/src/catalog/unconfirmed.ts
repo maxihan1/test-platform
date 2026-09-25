@@ -51,6 +51,12 @@ export function newlyUnconfirmed(before: string | null, after: string): boolean 
 
 const run = promisify(execFile);
 
+// pre-push 훅 안에서 돌면 git 이 GIT_DIR·GIT_INDEX_FILE 같은 것을 물려준다. 그대로 쓰면 cwd 가 아니라
+// 그 저장소를 건드린다 — 2026-09-25 에 임시 저장소 검사가 실제 브랜치에 커밋을 만들고 origin/main 을 옮겼다
+export function gitEnv(): NodeJS.ProcessEnv {
+  return Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+}
+
 // 경로가 아니라 tcId 로 찾는다. 파일을 옮기거나 이름을 바꾸며 꼬리표를 달아도 옛 본문을 놓치지 않는다
 export async function oldSourceByTcId(repoRoot: string, tcId: string): Promise<string | null> {
   let stdout: string;
@@ -58,7 +64,7 @@ export async function oldSourceByTcId(repoRoot: string, tcId: string): Promise<s
     ({ stdout } = await run(
       'git',
       ['grep', '-l', '-E', '-e', `tcId: *['"\`]${tcId}['"\`]`, 'origin/main', '--', '*.spec.ts'],
-      { cwd: repoRoot },
+      { cwd: repoRoot, env: gitEnv() },
     ));
   } catch (err) {
     // git grep 은 못 찾으면 종료 코드 1 이다. 그건 새 케이스라는 뜻이고 조회 실패가 아니다
@@ -67,6 +73,6 @@ export async function oldSourceByTcId(repoRoot: string, tcId: string): Promise<s
   }
   const hit = stdout.split('\n')[0];
   if (hit === undefined || hit === '') return null;
-  return (await run('git', ['show', hit], { cwd: repoRoot, maxBuffer: 8 * 1024 * 1024 })).stdout;
+  return (await run('git', ['show', hit], { cwd: repoRoot, env: gitEnv(), maxBuffer: 8 * 1024 * 1024 })).stdout;
 }
 
