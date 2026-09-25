@@ -29,11 +29,15 @@ const 막는잡 = 'check';
 
 // 골격이 없는 저장소에서만 건너뛰라는 조건. 다른 조건이 붙으면 단계가 안 도는 길이 생긴다.
 const 골격조건 = "steps.skeleton.outputs.ready == '1'";
-// 테스트만 바뀐 PR 의 가벼운 길에서 빠지는 무거운 단계의 조건 (docs/HOOKS.md 「CI 와 병합 차단」).
-// 허용하는 조건은 이 둘뿐이다 — 셋째가 생기면 단계가 조용히 안 도는 길이 또 생긴다.
-const 무거운조건 = `${골격조건} && steps.light.outputs.light != '1'`;
-const 허용조건들 = [골격조건, 무거운조건];
-// 가벼운 길에서도 도는 검사. 이것들이 무거운 쪽으로 옮겨 가면 가벼운 길이 아무것도 안 본다.
+// 차선 넷 (docs/HOOKS.md 「차선」). 허용하는 조건은 아래 셋뿐이다 — 넷째가 생기면 단계가 조용히 안 도는 길이 또 생긴다.
+// **full 은 「가벼운 셋이 아니다」로 적는다.** `== 'full'` 로 적으면 판정 단계가 아무것도 못 쓰고 죽었을 때
+// 빈 값이 되어 무거운 단계가 전부 조용히 빠진다. 모르면 full 이어야 한다
+const 차선 = 'steps.lane.outputs.lane';
+const 무거운조건 = `${골격조건} && ${차선} != 'docs' && ${차선} != 'spec' && ${차선} != 'cases'`;
+// 코드 차선(cases · full). 문서·명세만 바뀐 PR 은 설치도 타입 검사도 건너뛴다 (eng review D5)
+const 코드조건 = `${골격조건} && ${차선} != 'docs' && ${차선} != 'spec'`;
+const 허용조건들 = [골격조건, 무거운조건, 코드조건];
+// 테스트만 바뀐 PR(cases)에서도 도는 검사. 이것들이 무거운 쪽으로 옮겨 가면 cases 차선이 아무것도 안 본다.
 const 가벼운검사 = ['npm run typecheck', 'npm run check:tests', 'npm run check:secret-names'];
 
 // 면제는 여기 한 곳에만 둔다. 사유 없이 이름만 더하지 않는다.
@@ -167,7 +171,7 @@ test('그 단계가 실패를 삼키지 않는다 — continue-on-error · || tr
 // 가벼운 길 (2026-09-23 게이트 1 결정) — 테스트만 바뀐 PR 은 케이스를 **실행하지 않는다.**
 // 병합 근거는 맥의 관문 3(3회 실행) 기록이다. 그래서 실행 단계는 가벼운 길에서 빠져야 하고,
 // 빠지는 조건은 정확히 무거운조건 하나여야 한다.
-test('가벼운 길에서 실행 단계가 빠진다 — 조건이 정확히 「골격 그리고 가벼운 길 아님」', () => {
+test('가벼운 차선에서 실행 단계가 빠진다 — 조건이 정확히 「골격 그리고 docs·spec·cases 아님」', () => {
   assert.ok(실행단계.length > 0);
   for (const 단계 of 실행단계) {
     const 조건 = /^\s*if:\s*(.+)$/m.exec(단계);
@@ -175,47 +179,66 @@ test('가벼운 길에서 실행 단계가 빠진다 — 조건이 정확히 「
   }
 });
 
-test('가벼운 길 판정 단계가 cases-only.mjs 를 부르고, 실패를 빨간불로 만들지 않는다', () => {
-  const 판정 = (블록 === null ? [] : 단계들(블록)).find((s) => /^\s*id:\s*light\s*$/m.test(s));
-  assert.ok(판정, 'id: light 인 판정 단계가 없다 — 무거운 단계의 조건이 늘 참이라 가벼운 길이 없다');
+test('차선 판정 단계가 lane.mjs 를 부르고 그 출력만 GITHUB_OUTPUT 에 쓴다', () => {
+  const 판정 = (블록 === null ? [] : 단계들(블록)).find((s) => /^\s*id:\s*lane\s*$/m.test(s));
+  assert.ok(판정, 'id: lane 인 판정 단계가 없다');
   const 명령 = 치는명령(판정);
-  assert.match(명령, /\.claude\/scripts\/cases-only\.mjs/, '판정을 cases-only.mjs 에 맡기지 않는다 — 규칙이 두 곳에 생긴다');
-  assert.match(판정, /github\.event\.pull_request\.base\.sha/, 'base 를 PR 의 base sha 로 잡지 않는다');
-  // bash -e 에서 판정이 1(무거운 길)을 내면 그 단계가 빨개진다 — if 로 감싸야 한다
-  assert.match(명령, /if\s[\s\S]*cases-only[\s\S]*then[\s\S]*light=1[\s\S]*else[\s\S]*light=0/, 'if … then light=1 else light=0 모양이 아니다');
-  assert.match(명령, /GITHUB_OUTPUT/, '판정을 GITHUB_OUTPUT 에 안 쓴다');
+  // 판정 · 단위 테스트 · 케이스 실행이 같은 base 를 봐야 한다 (eng review D4) — 그래서 잡 env 에 한 번 둔다
+  assert.match(블록, /^ {4}env:[\s\S]*?^ {6}BASE: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/m, '잡 env 에 BASE 를 PR 의 base sha 로 두지 않는다');
   // rename 감지가 켜져 있으면 apps/x.ts → tests/todo/x.spec.ts 가 새 경로 하나로만 나와 가벼운 길이 된다
   assert.match(명령, /git\b[^\n|]*diff[^\n|]*--no-renames/, '판정의 git diff 에 --no-renames 가 없다 — 코드를 spec 으로 옮기면 가벼운 길로 샌다');
-  assert.ok(판정모양인가(명령), `판정 명령이 「if <git diff> | cases-only; then light=1 else light=0 fi」 그대로가 아니다 — 판정과 상관없이 light=1 을 쓰는 길이 생긴다:\n${명령}`);
+  assert.ok(판정모양인가(명령), `판정 명령이 「git diff | lane.mjs >> GITHUB_OUTPUT」 그대로가 아니다 — 판정과 상관없이 차선을 쓰는 길이 생긴다:\n${명령}`);
 });
 
 /**
- * 판정 명령이 정확히 이 모양인가 — light=1 은 cases-only 가 0 을 낸 then 가지에서만 나온다.
- * 부분 일치로 보면 앞뒤에 `echo light=1 >> $GITHUB_OUTPUT` 을 끼우거나 `|| true` 를 붙여도 통과한다.
+ * 판정 명령이 정확히 이 모양인가 — 차선은 lane.mjs 가 쓴 것 하나뿐이다.
+ * 부분 일치로 보면 앞뒤에 `echo lane=docs >> $GITHUB_OUTPUT` 을 끼워도 통과한다.
+ * (GITHUB_OUTPUT 은 같은 이름이 두 번 오면 **나중 것**이 이긴다)
  */
 export function 판정모양인가(명령) {
-  return /^\s*if git [^\n|;&]*\| node \.claude\/scripts\/cases-only\.mjs "\$BASE"; then\n\s*echo "light=1"\n\s*else\n\s*echo "light=0"\n\s*fi >> "\$GITHUB_OUTPUT"\s*$/.test(
+  return /^\s*git -c core\.quotePath=false diff --no-renames --name-only "\$BASE"\.\.\.HEAD \| node \.claude\/scripts\/lane\.mjs "\$BASE" >> "\$GITHUB_OUTPUT"\s*$/.test(
     명령,
   );
 }
 
-test('판정모양인가 — cases-only 밖에서 light=1 을 쓰는 모양은 거절한다', () => {
+test('판정모양인가 — lane.mjs 밖에서 차선을 쓰는 모양은 거절한다', () => {
   const 좋은것 = [
-    '  if git diff --no-renames --name-only "$BASE"...HEAD | node .claude/scripts/cases-only.mjs "$BASE"; then',
-    '    echo "light=1"',
-    '  else',
-    '    echo "light=0"',
-    '  fi >> "$GITHUB_OUTPUT"',
+    '  git -c core.quotePath=false diff --no-renames --name-only "$BASE"...HEAD | node .claude/scripts/lane.mjs "$BASE" >> "$GITHUB_OUTPUT"',
   ];
   assert.equal(판정모양인가(좋은것.join('\n')), true);
   const 나쁜것 = {
-    '뒤에 무조건': [...좋은것, '  echo "light=1" >> "$GITHUB_OUTPUT"'],
-    '앞에 무조건': ['  echo "light=1" >> "$GITHUB_OUTPUT"', ...좋은것],
-    'else 도 light=1': 좋은것.map((l) => l.replace('light=0', 'light=1')),
-    '|| true 로 판정 무력화': 좋은것.map((l, i) => (i === 0 ? l.replace('"$BASE"; then', '"$BASE" || true; then') : l)),
-    '판정 앞에 다른 명령': 좋은것.map((l, i) => (i === 0 ? l.replace('if git', 'if true || git') : l)),
+    '뒤에 무조건': [...좋은것, '  echo "lane=docs" >> "$GITHUB_OUTPUT"'],
+    '앞에 무조건': ['  echo "lane=docs" >> "$GITHUB_OUTPUT"', ...좋은것],
+    'rename 감지': 좋은것.map((l) => l.replace(' --no-renames', '')),
+    '판정 앞에 다른 명령': 좋은것.map((l) => l.replace('  git', '  true || git')),
   };
   for (const [이름, 줄] of Object.entries(나쁜것)) assert.equal(판정모양인가(줄.join('\n')), false, 이름);
+});
+
+test('설치는 코드 차선에서만 — 문서·명세 PR 은 npm ci 를 건너뛴다', () => {
+  const 단계 = (블록 === null ? [] : 단계들(블록)).find((s) => /^\s*run:\s*npm ci\s*$/m.test(s));
+  assert.ok(단계, 'npm ci 단계가 없다');
+  assert.equal(/^\s*if:\s*(.+)$/m.exec(단계)?.[1].trim(), 코드조건);
+});
+
+test('check:spec 은 모든 차선에서 돈다 — 문서·명세 PR 의 유일한 검사다', () => {
+  const 단계 = (블록 === null ? [] : 단계들(블록)).find((s) => 치는명령(s).includes('npm run check:spec'));
+  assert.ok(단계, 'check:spec 단계가 없다');
+  assert.equal(/^\s*if:\s*(.+)$/m.exec(단계)?.[1].trim(), 골격조건);
+  assert.doesNotMatch(치는명령(단계), /--if-present/, 'check:spec 에 --if-present 가 붙어 있다 — 문서 차선의 유일한 검사라 없으면 죽어야 한다');
+});
+
+test('단위 테스트는 바뀐 것과 이어진 것(base 기준)과 늘 도는 목록을 둘 다 돈다', () => {
+  const 단계 = (블록 === null ? [] : 단계들(블록)).find((s) => 치는명령(s).includes('test:changed'));
+  assert.ok(단계, 'test:changed 단계가 없다');
+  const 명령 = 치는명령(단계);
+  assert.match(명령, /npm run test:changed -- "\$BASE"/, '판정과 같은 base 로 고르지 않는다 (eng review D4)');
+  assert.match(명령, /npm run test:always/, 'import 로 안 이어지는 검사(test:always)를 안 돈다 — 인증 route 검사가 빠진다');
+  assert.equal(/^\s*if:\s*(.+)$/m.exec(단계)?.[1].trim(), 무거운조건);
+});
+
+test('케이스 실행은 base 이후 바뀐 것만 — --only-changed', () => {
+  for (const 단계 of 실행단계) assert.match(치는명령(단계), /--only-changed="\$BASE"/);
 });
 
 test('checkout 이 base 와 비교할 만큼 이력을 받는다 (fetch-depth: 0)', () => {
@@ -224,13 +247,13 @@ test('checkout 이 base 와 비교할 만큼 이력을 받는다 (fetch-depth: 0
   assert.match(체크아웃, /fetch-depth:\s*0/, 'fetch-depth 가 0 이 아니다 — base sha 가 없어 판정이 늘 무거운 길이 된다');
 });
 
-test('가벼운 길에서도 타입 · K1~K10 · 비밀값 이름은 돈다', () => {
+test('cases 차선에서도 타입 · K1~K10 · 비밀값 이름은 돈다', () => {
   const 전부 = 블록 === null ? [] : 단계들(블록);
   for (const 검사 of 가벼운검사) {
     const 단계 = 전부.find((s) => 치는명령(s).includes(검사));
     assert.ok(단계, `${검사} 단계가 없다`);
     const 조건 = /^\s*if:\s*(.+)$/m.exec(단계);
-    assert.equal(조건?.[1].trim(), 골격조건, `${검사} 가 가벼운 길에서 빠진다 — 그러면 가벼운 길이 아무것도 안 본다`);
+    assert.equal(조건?.[1].trim(), 코드조건, `${검사} 가 cases 차선에서 빠진다 — 그러면 테스트만 바뀐 PR 을 아무것도 안 본다`);
   }
 });
 
