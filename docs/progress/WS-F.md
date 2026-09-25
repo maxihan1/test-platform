@@ -95,3 +95,4 @@ fixture 접두사에 `XFS5`(`auth/scope.test.ts`)가 늘었다. `gate.test.ts` �
 - 입력 타입 `대상서버입력` 과 응답 타입 `대상서버` 가 갈렸다 — 응답에는 비밀번호 원문 칸이 없다
 - `/auth/me` 의 envs 는 칸을 이름으로 골라 만든다(`auth/store.ts`). `row_to_json` 같은 것으로 바꾸면 원문이 샌다 — `testAccount.test.ts` 가 잡는다
 - DB 검사 접두사는 `XFS7`(서비스) · `xfu7`(계정)
+- **남긴 과제** — `settings/store.ts` 가 354줄이다(main 에서 이미 327줄). 다음에 이 파일을 고치는 갈래가 `대상서버넣기`·`계정칸`·서비스 SQL 을 떼어 낸다 (2026-09-26 게이트 2)

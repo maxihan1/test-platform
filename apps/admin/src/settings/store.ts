@@ -23,7 +23,7 @@ export interface 대상서버 {
   hasLoginPassword: boolean;
 }
 
-// 입력 한 줄. 계정 칸은 키가 없으면 유지, null·빈 글자면 지운다 (SPEC 도메인/인증 §7 「envs[] 한 줄」)
+// 입력 한 줄. 계정 칸 규칙은 routes.ts 의 스키마 옆에 적었다
 export interface 대상서버입력 {
   env: string;
   baseUrl: string;
@@ -78,7 +78,6 @@ async function 한묶음<T>(일: (client: PoolClient) => Promise<T>): Promise<T>
   }
 }
 
-// 키가 없으면 옛 값, null·빈 글자면 NULL, 글자면 그 값
 function 계정칸(보낸것: string | null | undefined, 옛것: string | null): string | null {
   if (보낸것 === undefined) return 옛것;
   return 보낸것 === null || 보낸것.trim() === '' ? null : 보낸것;

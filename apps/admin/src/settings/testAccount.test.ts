@@ -86,6 +86,7 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 테스트 계정', (
   });
 
   it('비밀번호 원문은 설정 목록에도, 로그인 정보에도, 틀린 입력의 400 본문에도 없다', async () => {
+    expect(await 저장된것('qa')).toMatchObject({ login_password: 원문 });
     const 목록 = await app.inject({ method: 'GET', url: '/api/settings/services' });
     expect(목록.body).not.toContain(원문);
 
