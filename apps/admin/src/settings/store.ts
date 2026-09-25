@@ -15,9 +15,20 @@ export class 설정오류 extends Error {
   }
 }
 
+// 응답 한 줄. 비밀번호는 되돌려 보여주지 않는다 — 웹훅·피그마 토큰과 같은 규칙 (SPEC 도메인/인증 §7)
 export interface 대상서버 {
   env: string;
   baseUrl: string;
+  loginId: string | null;
+  hasLoginPassword: boolean;
+}
+
+// 입력 한 줄. 계정 칸 규칙은 routes.ts 의 스키마 옆에 적었다
+export interface 대상서버입력 {
+  env: string;
+  baseUrl: string;
+  loginId?: string | null;
+  loginPassword?: string | null;
 }
 
 export interface 서비스행 {
@@ -67,14 +78,27 @@ async function 한묶음<T>(일: (client: PoolClient) => Promise<T>): Promise<T>
   }
 }
 
-async function 대상서버넣기(client: PoolClient, serviceId: number, envs: 대상서버[]): Promise<void> {
+function 계정칸(보낸것: string | null | undefined, 옛것: string | null): string | null {
+  if (보낸것 === undefined) return 옛것;
+  return 보낸것 === null || 보낸것.trim() === '' ? null : 보낸것;
+}
+
+async function 대상서버넣기(client: PoolClient, serviceId: number, envs: 대상서버입력[]): Promise<void> {
+  // 지우고 다시 넣으므로 계정을 먼저 읽어 둔다. 화면은 비밀번호를 받은 적이 없어 되돌려 보낼 수 없다.
+  // 같은 client 로 읽는다 — 서비스고치기가 서비스 행을 먼저 잠가 같은 서비스의 저장이 겹치지 않는다
+  const 옛것 = await client.query<{ env: string; login_id: string | null; login_password: string | null }>(
+    'SELECT env, login_id, login_password FROM service_env WHERE service_id = $1',
+    [serviceId],
+  );
+  const 옛계정 = new Map(옛것.rows.map((r) => [r.env, r]));
   await client.query('DELETE FROM service_env WHERE service_id = $1', [serviceId]);
-  for (const { env, baseUrl } of envs) {
-    await client.query('INSERT INTO service_env (service_id, env, base_url) VALUES ($1, $2, $3)', [
-      serviceId,
-      env,
-      baseUrl,
-    ]);
+  for (const { env, baseUrl, loginId, loginPassword } of envs) {
+    // 이름이 같은 줄만 이어받는다. 이름을 바꾸면 새 줄이라 계정을 다시 넣는다 (SPEC 도메인/인증 §7)
+    const 전 = 옛계정.get(env);
+    await client.query(
+      'INSERT INTO service_env (service_id, env, base_url, login_id, login_password) VALUES ($1, $2, $3, $4, $5)',
+      [serviceId, env, baseUrl, 계정칸(loginId, 전?.login_id ?? null), 계정칸(loginPassword, 전?.login_password ?? null)],
+    );
   }
 }
 
@@ -86,7 +110,9 @@ const 서비스들 = `
          (SELECT count(*) FROM test_case tc
            WHERE tc.tc_id LIKE s.prefix || '-%' AND tc.is_active) AS case_count,
          COALESCE(
-           json_agg(json_build_object('env', e.env, 'baseUrl', e.base_url) ORDER BY e.env)
+           json_agg(json_build_object('env', e.env, 'baseUrl', e.base_url, 'loginId', e.login_id,
+                                      'hasLoginPassword', e.login_password IS NOT NULL AND e.login_password <> '')
+                    ORDER BY e.env)
              FILTER (WHERE e.env IS NOT NULL),
            '[]'
          ) AS envs
@@ -136,7 +162,7 @@ export interface 서비스입력 {
   color: string;
   testsRepo: string;
   testsDir: string;
-  envs: 대상서버[];
+  envs: 대상서버입력[];
   slackWebhook?: string;
   figmaToken?: string;
 }
@@ -173,7 +199,7 @@ export interface 서비스수정 {
   testsRepo?: string;
   testsDir?: string;
   isActive?: boolean;
-  envs?: 대상서버[];
+  envs?: 대상서버입력[];
   slackWebhook?: string;
   figmaToken?: string;
 }

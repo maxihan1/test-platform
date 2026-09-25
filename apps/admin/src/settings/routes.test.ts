@@ -63,7 +63,7 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
   it('목록에 대상 서버와 케이스 수가 함께 실린다', async () => {
     const 하나 = (await 목록()).find((s) => s.prefix === 'XFS4A');
     expect(하나?.testsDir).toBe('xfs4a');
-    expect(하나?.envs).toEqual([{ env: 'qa', baseUrl: 'https://qa.example.com' }]);
+    expect(하나?.envs).toEqual([{ env: 'qa', baseUrl: 'https://qa.example.com', loginId: null, hasLoginPassword: false }]);
     expect(하나?.caseCount).toBe(0);
     expect(하나?.isActive).toBe(true);
   });
@@ -156,8 +156,8 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
     const 하나 = (await 목록()).find((s) => s.prefix === 'XFS4A');
     expect(하나?.name).toBe('이름 바꿈');
     expect(하나?.envs).toEqual([
-      { env: 'dev', baseUrl: 'https://dev.example.com' },
-      { env: 'qa', baseUrl: 'https://qa2.example.com' },
+      { env: 'dev', baseUrl: 'https://dev.example.com', loginId: null, hasLoginPassword: false },
+      { env: 'qa', baseUrl: 'https://qa2.example.com', loginId: null, hasLoginPassword: false },
     ]);
   });
 
