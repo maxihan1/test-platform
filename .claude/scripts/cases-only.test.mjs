@@ -8,37 +8,36 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { 테스트만인가 } from './cases-only.mjs';
 
-const 기존폴더 = ['demo', 'todo'];
 
 test('기존 폴더의 spec 과 docs/cases 의 md 뿐이면 참', () => {
-  assert.equal(테스트만인가(['tests/demo/DEMO-012.spec.ts', 'docs/cases/DEMO.md'], 기존폴더), true);
+  assert.equal(테스트만인가(['tests/demo/DEMO-012.spec.ts', 'docs/cases/DEMO.md']), true);
 });
 
 test('코드가 하나라도 섞이면 거짓', () => {
   for (const 섞인것 of ['apps/admin/src/x.ts', 'scripts/a.ts', '.github/workflows/ci.yml', 'package.json']) {
-    assert.equal(테스트만인가(['tests/todo/TODO-001.spec.ts', 섞인것], 기존폴더), false, 섞인것);
+    assert.equal(테스트만인가(['tests/todo/TODO-001.spec.ts', 섞인것]), false, 섞인것);
   }
 });
 
 test('tests/ 안이라도 spec 이 아닌 파일은 거짓 — 그걸 쓰는 다른 spec 이 안 돈다', () => {
-  assert.equal(테스트만인가(['tests/todo/helpers.ts'], 기존폴더), false);
-  assert.equal(테스트만인가(['tests/todo/깊은/TODO-001.spec.ts'], 기존폴더), false);
-  assert.equal(테스트만인가(['docs/cases/깊은/TODO.md'], 기존폴더), false);
-  assert.equal(테스트만인가(['docs/cases/TODO.txt'], 기존폴더), false);
+  assert.equal(테스트만인가(['tests/todo/helpers.ts']), false);
+  assert.equal(테스트만인가(['tests/todo/깊은/TODO-001.spec.ts']), false);
+  assert.equal(테스트만인가(['docs/cases/깊은/TODO.md']), false);
+  assert.equal(테스트만인가(['docs/cases/TODO.txt']), false);
 });
 
 test('빈 목록은 거짓 (보수적)', () => {
-  assert.equal(테스트만인가([], 기존폴더), false);
+  assert.equal(테스트만인가([]), false);
 });
 
 test('.. 가 든 경로는 거짓', () => {
-  assert.equal(테스트만인가(['tests/../apps/x.spec.ts'], 기존폴더), false);
-  assert.equal(테스트만인가(['tests/todo/../../apps/x.spec.ts'], 기존폴더), false);
+  assert.equal(테스트만인가(['tests/../apps/x.spec.ts']), false);
+  assert.equal(테스트만인가(['tests/todo/../../apps/x.spec.ts']), false);
 });
 
-test('base 에 없던 새 폴더가 생기면 거짓 — CI 실행 단계에 그 폴더가 없어 다음 무거운 PR 이 빨개진다', () => {
-  assert.equal(테스트만인가(['tests/새서비스/NEW-001.spec.ts'], 기존폴더), false);
-  assert.equal(테스트만인가(['tests/todo/TODO-001.spec.ts'], []), false);
+test('base 에 없던 새 서비스 폴더도 참 — 작성 에이전트가 새 서비스의 첫 케이스를 올릴 수 있어야 한다', () => {
+  assert.equal(테스트만인가(['tests/새서비스/X-001.spec.ts']), true);
+  assert.equal(테스트만인가(['tests/새서비스/X-001.spec.ts', 'docs/cases/새서비스.md']), true);
 });
 
 test('명령줄 — 표준입력 목록과 base 로 판정해 종료 코드를 낸다', () => {

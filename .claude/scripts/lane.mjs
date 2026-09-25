@@ -19,10 +19,10 @@ import { surfaceOf } from './surfaces.mjs';
 const 문서자리 = (f) => /^docs\/.*(\.md|\.html|\/\.gitkeep)$/.test(f) || /^[^/]+\.md$/.test(f);
 
 /** 판정을 못 하면 full — 틀리면 코드가 검사 없이 들어간다 */
-export function lane(파일들, 기존폴더) {
+export function lane(파일들) {
   if (파일들.length === 0) return 'full';
   if (파일들.some((f) => f.split('/').includes('..'))) return 'full';
-  if (테스트만인가(파일들, 기존폴더)) return 'cases';
+  if (테스트만인가(파일들)) return 'cases';
   const 표면들 = 파일들.map((f) => surfaceOf(f)?.name ?? null);
   const 문서뿐 = 파일들.every((f, i) => (표면들[i] === 'DOC' && 문서자리(f)) || 표면들[i] === 'SPEC');
   if (!문서뿐) return 'full';
@@ -39,13 +39,10 @@ function 직접불렸나() {
 
 function 판정(base) {
   if (!base) return 'full';
-  const 폴더목록 = execFileSync('git', ['-c', 'core.quotePath=false', 'ls-tree', '-d', '--name-only', base, 'tests/'], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  const 기존폴더 = 폴더목록.split('\n').filter(Boolean).map((p) => p.replace(/^tests\//, ''));
+  // 못 읽는 base 로 받은 목록은 믿을 수 없다 — 던지면 full 이다
+  execFileSync('git', ['rev-parse', '--verify', '--quiet', `${base}^{commit}`], { stdio: ['ignore', 'pipe', 'pipe'] });
   const 파일들 = readFileSync(0, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
-  return lane(파일들, 기존폴더);
+  return lane(파일들);
 }
 
 if (직접불렸나()) {
