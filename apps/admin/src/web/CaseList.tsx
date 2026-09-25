@@ -69,9 +69,9 @@ export function CaseList({ service }: { service: string }) {
 
   const 미확정 = cases.data?.unconfirmed;
   const 미확정요약 =
-    미확정 === undefined || 미확정.count === 0 || 미확정.oldestSince === null
+    미확정 === undefined || 미확정.count === 0
       ? null
-      : { 건수: 미확정.count, 일: 미확정나이(미확정.oldestSince) };
+      : { 건수: 미확정.count, 일: 미확정.oldestSince === null ? null : 미확정나이(미확정.oldestSince) };
   const 보일것 = 마지막결과로거른다(cases.data?.items ?? [], lastMap, 결과);
   // 지금 보이는 것을 센다 — 칩을 걸면 숫자도 같이 좁혀져야 「보이는 것과 세는 것」이 갈리지 않는다
   const 셈 = 판정개수(보일것, lastMap);
@@ -149,7 +149,11 @@ export function CaseList({ service }: { service: string }) {
             {미확정요약 === null ? null : (
               <>
                 {' · '}
-                {t('미확정 {건수}건 · 가장 오래된 것 {일}일째', 미확정요약)}
+                {미확정요약.일 === null
+                  ? t('미확정 {건수}건', { 건수: 미확정요약.건수 })
+                  : 미확정요약.일 === 0
+                    ? t('미확정 {건수}건 · 가장 오래된 것 오늘', { 건수: 미확정요약.건수 })
+                    : t('미확정 {건수}건 · 가장 오래된 것 {일}일째', { 건수: 미확정요약.건수, 일: 미확정요약.일 })}
               </>
             )}
             {' · '}

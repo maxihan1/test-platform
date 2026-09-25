@@ -43,6 +43,11 @@ describe('결과줄 (SPEC §8.3)', () => {
     expect(screen.getByText('미확정 · 기획서에 없는 안내 문구')).toBeTruthy();
   });
 
+  it('미확정 줄은 미실행 판정 색(why)을 입지 않는다', () => {
+    그린다([{ ...항목(1, 'desktop', 'PASS'), unconfirmed: '기획서에 없는 안내 문구' }]);
+    expect(screen.getByText('미확정 · 기획서에 없는 안내 문구').classList.contains('why')).toBe(false);
+  });
+
   it('확정 항목의 행에는 미확정 글자가 없다', () => {
     그린다([항목(1, 'desktop', 'PASS')]);
     expect(screen.queryByText(/미확정/)).toBeNull();

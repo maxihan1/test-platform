@@ -137,8 +137,8 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
     fireEvent.click(screen.getByText('편집'));
 
     const 줄 = screen.getByLabelText('대상 서버 1 테스트 아이디').closest('.set-env-login') as HTMLElement;
-    expect(within(줄).getByText('설정됨')).toBeTruthy();
-    fireEvent.click(within(줄).getByRole('button', { name: '다시 넣기' }));
+    expect(within(줄).getByText('비밀번호 설정됨')).toBeTruthy();
+    fireEvent.click(within(줄).getByRole('button', { name: '대상 서버 1 비밀번호 넣기' }));
     fireEvent.change(screen.getByLabelText('대상 서버 1 테스트 비밀번호'), { target: { value: 'pw-새것' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
@@ -146,6 +146,44 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
     expect(고침.mock.calls[0]?.[1]?.envs?.[0]).toMatchObject({
       loginPassword: 'pw-새것',
     });
+  });
+
+  it('지우기를 누르고 저장하면 비밀번호를 null 로 보낸다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServiceSection rows={[계정있음]} onDone={() => {}} />);
+    fireEvent.click(screen.getByText('편집'));
+    fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 비밀번호 지우기' }));
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
+    expect(고침.mock.calls[0]?.[1]?.envs?.[0]).toMatchObject({ loginPassword: null });
+  });
+
+  it('새로 더한 줄은 빈 계정 칸을 null 로 보낸다 — 같은 이름의 옛 계정이 되살아나지 않게', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServiceSection rows={[계정있음]} onDone={() => {}} />);
+    fireEvent.click(screen.getByText('편집'));
+    fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 빼기' }));
+    fireEvent.click(screen.getByRole('button', { name: '줄 더하기' }));
+    fireEvent.change(screen.getByLabelText('대상 서버 1 키'), { target: { value: 'qa' } });
+    fireEvent.change(screen.getByLabelText('대상 서버 1 주소'), { target: { value: 'https://qa.example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
+    expect(고침.mock.calls[0]?.[1]?.envs?.[0]).toEqual({
+      env: 'qa',
+      baseUrl: 'https://qa.example.com',
+      loginId: null,
+      loginPassword: null,
+    });
+  });
+
+  it('계정 칸은 브라우저 자동완성을 받지 않는다 — 플랫폼 로그인 비밀번호가 채워지지 않게', () => {
+    render(<ServiceSection rows={[계정있음]} onDone={() => {}} />);
+    fireEvent.click(screen.getByText('편집'));
+    expect(screen.getByLabelText('대상 서버 1 테스트 아이디').getAttribute('autocomplete')).toBe('off');
+    fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 비밀번호 넣기' }));
+    expect(screen.getByLabelText('대상 서버 1 테스트 비밀번호').getAttribute('autocomplete')).toBe('new-password');
   });
 
   it('계정이 있던 줄의 키 이름을 바꾸면 비밀번호가 비워진다고 알린다', () => {

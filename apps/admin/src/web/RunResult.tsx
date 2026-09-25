@@ -218,7 +218,7 @@ export function RunResult({
           <i style={{ background: 'var(--fail)', flex: fail }} />
           <i style={{ background: 'var(--na)', flex: na }} />
           {/* 판정 색이 아니다 — 확정 판정에 안 드는 묶음이다 (도메인/실행 §3.2) */}
-          {끝난미확정수 === 0 ? null : <i style={{ background: 'var(--ink-faint)', flex: 끝난미확정수 }} />}
+          {끝난미확정수 === 0 ? null : <i className="u" style={{ background: 'var(--ink-faint)', flex: 끝난미확정수 }} />}
         </div>
       )}
 

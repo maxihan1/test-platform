@@ -49,7 +49,8 @@ export function 결과줄({
         {사유 === null ? null : <small className="why">{사유}</small>}
         {/* 사유는 실행 때 박제한 값이다 — 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (도메인/실행 §8.3) */}
         {미확정사유 === null ? null : (
-          <small className="why">
+          // `why` 를 쓰지 않는다 — 미실행 판정 색이다. 미확정은 판정이 아니다 (DESIGN.md 「판정 표기」 미확정)
+          <small>
             {t('미확정')} · {미확정사유}
           </small>
         )}

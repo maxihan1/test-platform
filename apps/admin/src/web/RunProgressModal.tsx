@@ -96,6 +96,7 @@ function 도는줄({ 항목, 절차 }: { 항목: RunItemSummary; 절차: 항목�
 function 진행내용({ data, 진행목록 }: { data: RunDetail; 진행목록: 항목진행[] }) {
   const t말 = use말();
   const 언어 = use언어();
+  const 미확정이름 = t('미확정', 언어);
   const { 막대, 끝난수, 전체수, 지금도는것들, 방금끝난것 } = 진행상황(data, 진행목록);
   const 칸들 = 막대칸들(막대, 언어);
 
@@ -109,12 +110,13 @@ function 진행내용({ data, 진행목록 }: { data: RunDetail; 진행목록: �
       {전체수 === 0 ? null : (
         <div className="stripe">
           {칸들.map((칸) => (
-            <i key={칸.이름} style={{ background: 칸.색, flex: 칸.수 }} />
+            <i key={칸.이름} className={칸.이름 === 미확정이름 ? 'u' : undefined} style={{ background: 칸.색, flex: 칸.수 }} />
           ))}
         </div>
       )}
-      {/* 색만으로는 판정을 전달하지 않는다 — 칸마다 숫자와 글자를 같이 적는다 (SPEC §8.9) */}
-      <판정칸들 칸들={칸들} />
+      {/* 색만으로는 판정을 전달하지 않는다 — 칸마다 숫자와 글자를 같이 적는다 (SPEC §8.9).
+          미확정은 칸이 아니라 아래 묶음 글자 하나로 적는다 — 같은 수가 두 번 나오지 않게 */}
+      <판정칸들 칸들={칸들.filter((칸) => 칸.이름 !== 미확정이름)} />
       {미확정글자(data.counts, 언어) === '' ? null : <p className="hint">{미확정글자(data.counts, 언어)}</p>}
       <p>{t말('{끝난} / {전체} 완료', { 끝난: 끝난수, 전체: 전체수 })}</p>
 
@@ -171,7 +173,7 @@ function 완료내용({ data }: { data: RunDetail }) {
   const 칸들 = 막대칸들(
     { 통과: data.counts.pass, 실패: data.counts.fail, 미실행: data.counts.na, 미확정: 끝난미확정(data.counts), 남은것: 0 },
     언어,
-  ).filter((칸) => 칸.판정);
+  ).filter((칸) => 칸.판정 && 칸.이름 !== t('미확정', 언어));
   const 실패목록 = 실패한케이스들(data.items);
 
   return (

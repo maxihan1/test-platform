@@ -114,6 +114,18 @@ describe('미확정 케이스 (도메인/카탈로그 §8.1)', () => {
     expect(배지[0]?.closest('.row')?.textContent).toContain('ZPK-001');
   });
 
+  it('오늘 생긴 것만 있으면 0일째가 아니라 오늘이라 적는다', async () => {
+    const 방금 = new Date().toISOString();
+    const { container } = await 그리기(() => Promise.resolve({ ...미확정쪽, unconfirmed: { count: 1, oldestSince: 방금 } }));
+    expect(container.querySelector('.head')?.textContent).toContain('미확정 1건 · 가장 오래된 것 오늘');
+  });
+
+  it('처음 시각을 모르면 나이를 빼고 건수만 적는다', async () => {
+    const { container } = await 그리기(() => Promise.resolve({ ...미확정쪽, unconfirmed: { count: 3, oldestSince: null } }));
+    expect(container.querySelector('.head')?.textContent).toContain('미확정 3건');
+    expect(container.querySelector('.head')?.textContent).not.toContain('가장 오래된');
+  });
+
   it('미확정이 없으면 머리에 적지 않는다', async () => {
     const { container } = await 그리기();
     expect(container.querySelector('.head')?.textContent).not.toContain('미확정');

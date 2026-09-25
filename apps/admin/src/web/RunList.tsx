@@ -213,6 +213,7 @@ function 집계({ 것 }: { 것: RunTally }) {
 function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: number) => void }) {
   const t = use말();
   const 언어 = use언어();
+  const 미확정 = 미확정글자(run.counts, 언어);
 
   return (
     <div className="row">
@@ -244,9 +245,9 @@ function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: numbe
             <b style={{ color: 'var(--na)' }}>{run.counts.na}</b>
             <span>{t('미실행')}</span>
           </div>
-          {미확정글자(run.counts, 언어) === '' ? null : (
+          {미확정 === '' ? null : (
             <div>
-              <span>{미확정글자(run.counts, 언어)}</span>
+              <span>{미확정}</span>
             </div>
           )}
         </div>
