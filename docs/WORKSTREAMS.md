@@ -51,6 +51,7 @@
 - **WS-A** — 스캐너가 `unconfirmed` · `unconfirmed_since` 를 관리한다(`apps/admin/src/catalog/**`, 나이는 스캔마다 덮지 않는다) · 목록 API 에 꼬리표와 나이.
   명세 [도메인/카탈로그.md](spec/도메인/카탈로그.md) §3.1 「미확정 꼬리표」 · [공통/4-데이터모델.md](spec/공통/4-데이터모델.md) 「역방향 칸」
   - **K11 검사기** — `apps/admin/src/catalog/rules.ts` 의 `RuleId` 와 설명 · `check.ts` 출력 「K1~K10 통과」 · `rules.test.ts`.
+    공백뿐인 사유도 빈 문자열처럼 위반으로 잡는다 — `defineCase` 가 공백뿐이면 확정으로 싣기 때문이다(PR #74 재검사).
     명세 2-명세선언 §4 K표
   - **K11 을 넣으면 「K1~K10」이라 적은 자리를 같이 고친다** (2026-09-25 기준) —
     `.claude/skills/spec-review/references/checklist-d-f.md:21,27` · `.claude/skills/tpx-cases/references/5-writing.md:136` ·

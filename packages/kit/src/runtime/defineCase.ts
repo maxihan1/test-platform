@@ -64,7 +64,7 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
     filePath: file === undefined ? '' : relative(testsRoot(), file),
   };
   // 빈 사유는 확정이다. 키를 아예 빼야 스캐너 JSON 에 빈 칸이 섞이지 않는다
-  if (input.unconfirmed) spec.unconfirmed = input.unconfirmed;
+  if (input.unconfirmed?.trim()) spec.unconfirmed = input.unconfirmed;
 
   schemas.set(spec, { params: input.params, expected: input.expected });
 

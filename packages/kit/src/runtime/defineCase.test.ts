@@ -156,4 +156,17 @@ describe('defineCase', () => {
 
     expect('unconfirmed' in spec).toBe(false);
   });
+
+  it('미확정 사유가 공백뿐이면 확정으로 보고 키를 싣지 않는다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-010',
+      name: '공백 사유 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+      unconfirmed: '   ',
+    });
+
+    expect('unconfirmed' in spec).toBe(false);
+  });
 });
