@@ -72,6 +72,10 @@ describe('K11 — unconfirmed 는 비지 않은 문자열 리터럴', () => {
   it('⑨ 따옴표 키에 변수를 달아도 위반이다', () => {
     expect(k11(케이스(`'unconfirmed': 사유,`, `const 사유 = '기획서와 다름';`))).toHaveLength(1);
   });
+
+  it('⑩ 계산된 키 [k] 는 위반이다 — 펼침처럼 글자로 못 읽는다', () => {
+    expect(k11(케이스(`[k]: '기획서와 다름',`, `const k = 'unconfirmed';`))).toHaveLength(1);
+  });
 });
 
 describe('newlyUnconfirmed — 이미 있던 케이스에 새로 단 꼬리표', () => {

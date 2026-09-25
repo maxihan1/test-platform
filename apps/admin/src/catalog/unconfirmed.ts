@@ -22,6 +22,9 @@ export function badTag(literal: ts.ObjectLiteralExpression): BadTag | undefined 
   for (const p of literal.properties) {
     // 펼친 객체 안에 꼬리표가 숨어 있을 수 있는데 검사기는 그 글자를 못 읽는다
     if (ts.isSpreadAssignment(p)) return { node: p, what: '펼침(...)이 있어 unconfirmed 사유를 글자로 읽을 수 없다' };
+    if (p.name !== undefined && ts.isComputedPropertyName(p.name) && !ts.isStringLiteralLike(p.name.expression)) {
+      return { node: p, what: '계산된 키가 있어 unconfirmed 사유를 글자로 읽을 수 없다' };
+    }
     if (!isTagKey(p.name)) continue;
     if (!ts.isPropertyAssignment(p) || !ts.isStringLiteralLike(p.initializer)) {
       return { node: p, what: 'unconfirmed가 문자열 리터럴이 아니다' };
