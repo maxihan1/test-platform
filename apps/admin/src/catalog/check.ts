@@ -68,7 +68,7 @@ async function warnNewTags(tagged: { file: string; tcId: string; text: string }[
   for (const { file, tcId, text } of tagged) {
     let before: string | null;
     try {
-      before = await oldSourceByTcId(repoRoot, tcId);
+      before = await oldSourceByTcId(repoRoot, tcId, relative(repoRoot, testsRoot()) || '.');
     } catch (err) {
       console.error(`[check:tests] 새 꼬리표 경고 건너뜀 — ${errText(err)}`);
       return;

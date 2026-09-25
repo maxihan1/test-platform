@@ -68,6 +68,10 @@ describe('K11 — unconfirmed 는 비지 않은 문자열 리터럴', () => {
   it('⑧ 펼침이 있으면 위반이다 — 사유를 글자로 못 읽는다', () => {
     expect(k11(케이스('...base,', `const base = { unconfirmed: '기획서와 다름' };`))).toHaveLength(1);
   });
+
+  it('⑨ 따옴표 키에 변수를 달아도 위반이다', () => {
+    expect(k11(케이스(`'unconfirmed': 사유,`, `const 사유 = '기획서와 다름';`))).toHaveLength(1);
+  });
 });
 
 describe('newlyUnconfirmed — 이미 있던 케이스에 새로 단 꼬리표', () => {
@@ -88,6 +92,10 @@ describe('newlyUnconfirmed — 이미 있던 케이스에 새로 단 꼬리표',
 
   it('지금 없으면 false', () => {
     expect(newlyUnconfirmed(있음, 없음)).toBe(false);
+  });
+
+  it('따옴표 키로 새로 달아도 true', () => {
+    expect(newlyUnconfirmed(없음, 케이스(`'unconfirmed': '기획서와 다름',`))).toBe(true);
   });
 });
 
@@ -126,6 +134,14 @@ describe('oldSourceByTcId — origin/main 에서 tcId 로 옛 본문을 찾는�
 
   it('origin/main 에 없는 tcId 는 null', async () => {
     expect(await oldSourceByTcId(repo, 'NEW-001')).toBeNull();
+  });
+
+  it('tcId 의 글자는 정규식이 아니라 글자 그대로 찾는다', async () => {
+    expect(await oldSourceByTcId(repo, 'DEMO.001')).toBeNull();
+  });
+
+  it('찾는 범위를 주면 그 폴더 밖의 같은 tcId 는 안 본다', async () => {
+    expect(await oldSourceByTcId(repo, 'DEMO-001', 'elsewhere')).toBeNull();
   });
 
   it('훅이 물려준 GIT_DIR 이 다른 저장소를 가리켜도 주어진 폴더의 저장소를 읽는다', async () => {

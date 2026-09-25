@@ -11,6 +11,10 @@ const HOOK = fileURLToPath(new URL('../hooks/pre-push', import.meta.url));
 const ZERO = '0000000000000000000000000000000000000000';
 const SHA = 'a'.repeat(40);
 
+// 훅 안에서 이 검사가 돌면 git 이 물려준 GIT_DIR 등이 임시 저장소 대신 진짜 저장소를 가리킨다.
+// 2026-09-25 에 같은 모양의 검사가 실제 브랜치에 커밋하고 origin/main 을 옮겼다 (LEARNINGS)
+const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+
 /** 훅을 stdin 입력과 함께 돌리고 종료 코드와 출력을 돌려준다 */
 function run(stdin) {
   try {
@@ -78,7 +82,7 @@ test('기존 검사가 그대로 있다', () => {
 /** base(origin/main) 하나와 그 위에 파일을 더한 커밋 하나가 있는 임시 저장소. 올릴 sha 를 돌려준다 */
 function 임시저장소(더할파일들, 옮길것들 = []) {
   const 뿌리 = mkdtempSync(join(tmpdir(), 'pre-push-'));
-  const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { encoding: 'utf8' }).trim();
+  const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { encoding: 'utf8', env: 깨끗한환경 }).trim();
   const 쓴다 = (경로, 내용) => {
     mkdirSync(join(뿌리, 경로, '..'), { recursive: true });
     writeFileSync(join(뿌리, 경로), 내용);
@@ -109,7 +113,7 @@ function 임시저장소(더할파일들, 옮길것들 = []) {
 }
 
 function 저장소에서돌린다({ 뿌리, sha, 가짜 }, 더할환경 = {}) {
-  const env = { ...process.env, PATH: `${가짜}:${process.env.PATH}`, ...더할환경 };
+  const env = { ...깨끗한환경, PATH: `${가짜}:${process.env.PATH}`, ...더할환경 };
   delete env.ALLOW_PROTECTED;
   try {
     const out = execFileSync(HOOK, ['origin', 'https://example.com/r.git'], {

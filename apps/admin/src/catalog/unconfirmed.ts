@@ -10,12 +10,19 @@ export interface BadTag {
   what: string;
 }
 
+// 따옴표 키('unconfirmed')·계산된 리터럴 키(['unconfirmed'])도 실행하면 같은 꼬리표다. 이름만 보면 변수 사유가 빠져나간다
+function isTagKey(name: ts.PropertyName | undefined): boolean {
+  if (name === undefined) return false;
+  const key = ts.isComputedPropertyName(name) ? name.expression : name;
+  return (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && key.text === 'unconfirmed';
+}
+
 // K6 의 TITLE_KINDS 와 같은 기준이다 — 문자열 리터럴이나 치환 없는 템플릿만 글자로 읽힌다
 export function badTag(literal: ts.ObjectLiteralExpression): BadTag | undefined {
   for (const p of literal.properties) {
     // 펼친 객체 안에 꼬리표가 숨어 있을 수 있는데 검사기는 그 글자를 못 읽는다
     if (ts.isSpreadAssignment(p)) return { node: p, what: '펼침(...)이 있어 unconfirmed 사유를 글자로 읽을 수 없다' };
-    if (p.name === undefined || !ts.isIdentifier(p.name) || p.name.text !== 'unconfirmed') continue;
+    if (!isTagKey(p.name)) continue;
     if (!ts.isPropertyAssignment(p) || !ts.isStringLiteralLike(p.initializer)) {
       return { node: p, what: 'unconfirmed가 문자열 리터럴이 아니다' };
     }
@@ -33,7 +40,7 @@ export function hasTag(text: string): boolean {
     if (ts.isObjectLiteralExpression(node) && ts.isCallExpression(node.parent)) {
       const callee = node.parent.expression;
       if (ts.isIdentifier(callee) && callee.text === 'defineCase') {
-        found = node.properties.some((p) => p.name !== undefined && ts.isIdentifier(p.name) && p.name.text === 'unconfirmed');
+        found = node.properties.some((p) => isTagKey(p.name));
         return;
       }
     }
@@ -58,12 +65,15 @@ export function gitEnv(): NodeJS.ProcessEnv {
 }
 
 // 경로가 아니라 tcId 로 찾는다. 파일을 옮기거나 이름을 바꾸며 꼬리표를 달아도 옛 본문을 놓치지 않는다
-export async function oldSourceByTcId(repoRoot: string, tcId: string): Promise<string | null> {
+// dir 는 저장소 루트 기준 케이스 폴더다. 저장소 전체를 훑으면 다른 폴더의 같은 tcId 를 먼저 집는다
+export async function oldSourceByTcId(repoRoot: string, tcId: string, dir = '.'): Promise<string | null> {
+  // K2 를 어긴 tcId 도 여기까지 온다. 정규식 글자로 읽히면 조회가 깨지거나 엉뚱한 파일과 맞는다
+  const id = tcId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   let stdout: string;
   try {
     ({ stdout } = await run(
       'git',
-      ['grep', '-l', '-E', '-e', `tcId: *['"\`]${tcId}['"\`]`, 'origin/main', '--', '*.spec.ts'],
+      ['grep', '-l', '-E', '-e', `tcId: *['"\`]${id}['"\`]`, 'origin/main', '--', `${dir}/*.spec.ts`],
       { cwd: repoRoot, env: gitEnv() },
     ));
   } catch (err) {
