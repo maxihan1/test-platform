@@ -27,6 +27,8 @@ export interface 배정서비스 {
    * **주소 자체는 담지 않는다.** 설정됐는지만 준다 — 설정 API 와 같은 규칙이다 (§7).
    */
   hasSlackWebhook: boolean;
+  /** 케이스 폴더 이름 (SPEC §6 `service.tests_dir`) */
+  testsDir: string;
 }
 
 export interface 사용자 {
@@ -57,6 +59,7 @@ const 한사람 = `
            json_agg(json_build_object(
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
              'envs', COALESCE(e.envs, '[]'::json),
+             'testsDir', s.tests_dir,
              -- 주소가 아니라 있는지만 낸다 (SPEC §7)
              'hasSlackWebhook', s.slack_webhook IS NOT NULL AND s.slack_webhook <> ''
            ) ORDER BY s.prefix) FILTER (WHERE s.id IS NOT NULL),
