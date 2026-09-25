@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
+import { 역방향칸판정 } from './reverse.js';
 import { 줄세우기, 한건, 한쪽, type 요청, type 상태 } from './store.js';
 
 /**
@@ -145,12 +146,28 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           if (정규 === null) return reply.code(400).send({ error: 'BAD_FIGMA_URL', detail: String(주소) });
           피그마.push(정규);
         }
-        const id = await 준비세우기({ 서비스, 누가, 이름, 피그마, 값 });
+        const 대조 = await 역방향칸판정(req.body, 서비스);
+        if ('error' in 대조) return reply.code(400).send({ error: 대조.error });
+        const id = await 준비세우기({
+          서비스,
+          누가,
+          이름,
+          피그마,
+          값,
+          ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
+        });
         return reply.code(201).send({ id });
       }
 
+      // 역방향 칸은 작성 요청에만 붙는다 (DB CHECK 도 AUTHOR 에만 허락한다)
+      if (['compare', 'env', 'startUrl'].some((칸) => req.body?.[칸] !== undefined)) {
+        return reply.code(400).send({ error: 'BAD_ENV' });
+      }
       const 행 = await 원본확인(req.body?.sourceId, 서비스, reply);
       if (행 === null) return reply;
+      // 역방향 원본은 다시 돌리지 않는다 — 재실행 행은 대조를 못 켜서 정방향으로 돌거나(대조)
+      // 읽을 입력이 없어 늘 실패한다(화면만). 역방향은 새 요청으로 넣는다 (2026-09-26 게이트 1)
+      if (행.compare) return reply.code(409).send({ error: 'BAD_SOURCE', detail: 'COMPARE' });
       // 재실행은 원본의 자료를 다시 읽는다. 원본이 재실행·머지면 자료가 없고, DRAFT 면 아직 다 안 올라왔다
       if (행.kind !== 'AUTHOR' || 행.status === 'DRAFT') {
         return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행.kind} ${행.status}` });

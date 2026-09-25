@@ -68,14 +68,24 @@ export async function 준비세우기(입력: {
   이름: string;
   피그마: string[];
   값?: Record<string, unknown>;
+  // 역방향 칸. 라우트가 판정한 값만 온다 — 대조가 아니면 셋 다 비운다 (DB CHECK 가 짝을 가둔다)
+  대조?: { env: string; startUrl: string | null };
 }): Promise<number> {
   return 한묶음(async (client) => {
     const r = await client.query<{ id: string }>(
       `INSERT INTO authoring_request
-         (service_id, kind, params, requested_by, requested_by_name, status)
-       VALUES ($1, 'AUTHOR', $2, $3, $4, 'DRAFT')
+         (service_id, kind, params, requested_by, requested_by_name, status, compare, env, start_url)
+       VALUES ($1, 'AUTHOR', $2, $3, $4, 'DRAFT', $5, $6, $7)
        RETURNING id`,
-      [입력.서비스, JSON.stringify(입력.값 ?? {}), 입력.누가, 입력.이름],
+      [
+        입력.서비스,
+        JSON.stringify(입력.값 ?? {}),
+        입력.누가,
+        입력.이름,
+        입력.대조 !== undefined,
+        입력.대조?.env ?? null,
+        입력.대조?.startUrl ?? null,
+      ],
     );
     const id = Number(r.rows[0]!.id);
     for (const [i, 주소] of 입력.피그마.entries()) {
