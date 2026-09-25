@@ -22,7 +22,13 @@ import {
 // scripts/add-service.ts 가 이것을 가져다 쓴다 — 같은 모양을 두 번 적지 않는다
 export const 접두사모양 = /^[A-Z][A-Z0-9]{0,11}$/;
 
-const 대상서버 = z.object({ env: z.string().min(1), baseUrl: z.string().min(1) });
+// 테스트 계정은 역방향에서만 쓴다. 키가 없으면 기존 값을 유지하고 null·빈 글자면 지운다 (SPEC 도메인/인증 §7 「envs[] 한 줄」)
+const 대상서버 = z.object({
+  env: z.string().min(1),
+  baseUrl: z.string().min(1),
+  loginId: z.string().nullable().optional(),
+  loginPassword: z.string().nullable().optional(),
+});
 
 const 새서비스 = z.object({
   prefix: z.string(),
