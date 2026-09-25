@@ -12,6 +12,6 @@ export default defineConfig({
     fileParallelism: false,
     // CI·훅은 `--changed` 로 바뀐 것과 이어진 검사만 돈다. migration 은 어떤 코드도 import 하지 않아
     // 표를 바꿔도 DB 검사가 안 골라진다 — 이 둘이 바뀌면 전체를 돈다
-    forceRerunTriggers: [...configDefaults.forceRerunTriggers, 'db/migrations/**', 'db/init/**'],
+    forceRerunTriggers: [...configDefaults.forceRerunTriggers, '**/db/migrations/**', '**/db/init/**'],
   },
 });

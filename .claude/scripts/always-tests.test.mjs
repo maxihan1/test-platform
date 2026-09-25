@@ -46,10 +46,13 @@ test('저장소 파일을 직접 읽는 vitest 검사는 전부 test:always 에 
   assert.deepEqual(빠진것, [], `test:always 에 넣거나 면제에 사유와 함께 적어라: ${빠진것.join(' · ')}`);
 });
 
+// vitest 는 바뀐 파일의 **절대 경로**를 이 패턴에 댄다. `db/migrations/**` 처럼 상대로 적으면
+// 어디서도 안 걸린다 — `**/` 로 시작해야 한다 (2026-09-25 picomatch 로 실측).
+// 그리고 경로에 점 폴더(.claude/worktrees)가 끼면 `**/` 도 안 걸린다 — 그래서 pre-push 는 이것에 기대지 않는다
 test('migration · DB 초기 스크립트가 바뀌면 vitest 가 전체를 다시 돈다 — import 되지 않는 파일이다', () => {
   const 설정 = readFileSync(join(루트, 'vitest.config.ts'), 'utf8');
-  assert.match(설정, /forceRerunTriggers:[^\]]*'db\/migrations\/\*\*'/s);
-  assert.match(설정, /forceRerunTriggers:[^\]]*'db\/init\/\*\*'/s);
+  assert.match(설정, /forceRerunTriggers:[^\]]*'\*\*\/db\/migrations\/\*\*'/s);
+  assert.match(설정, /forceRerunTriggers:[^\]]*'\*\*\/db\/init\/\*\*'/s);
   assert.match(설정, /\.\.\.configDefaults\.forceRerunTriggers/, '기본값(package.json · 설정 파일)을 덮어쓰지 않는다');
 });
 
