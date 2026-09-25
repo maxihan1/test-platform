@@ -46,6 +46,13 @@ test('저장소 파일을 직접 읽는 vitest 검사는 전부 test:always 에 
   assert.deepEqual(빠진것, [], `test:always 에 넣거나 면제에 사유와 함께 적어라: ${빠진것.join(' · ')}`);
 });
 
+test('migration · DB 초기 스크립트가 바뀌면 vitest 가 전체를 다시 돈다 — import 되지 않는 파일이다', () => {
+  const 설정 = readFileSync(join(루트, 'vitest.config.ts'), 'utf8');
+  assert.match(설정, /forceRerunTriggers:[^\]]*'db\/migrations\/\*\*'/s);
+  assert.match(설정, /forceRerunTriggers:[^\]]*'db\/init\/\*\*'/s);
+  assert.match(설정, /\.\.\.configDefaults\.forceRerunTriggers/, '기본값(package.json · 설정 파일)을 덮어쓰지 않는다');
+});
+
 test('test:always 에 적힌 파일은 실재한다', () => {
   const 없는것 = 목록().filter((f) => !existsSync(join(루트, f)));
   assert.deepEqual(없는것, []);
