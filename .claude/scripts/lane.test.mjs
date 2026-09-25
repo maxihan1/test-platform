@@ -51,6 +51,14 @@ test('lane CLI: 판정을 못 하면 full 이고 종료 코드는 0 이다', () 
   assert.equal(돌린다('', 'origin/main'), 'lane=full', '빈 입력');
 });
 
+test('detect-tier 가 등급 옆에 차선도 찍는다 — /tpx 가 명세만 바뀐 일을 가볍게 돌리는 근거', () => {
+  const 판정기 = fileURLToPath(new URL('./detect-tier.mjs', import.meta.url));
+  const 찍는다 = (...경로) => execFileSync('node', [판정기, ...경로], { encoding: 'utf8' });
+  assert.match(찍는다('docs/spec/도메인/작성.md'), /^차선: spec$/m);
+  assert.match(찍는다('docs/SETUP.md'), /^차선: docs$/m);
+  assert.match(찍는다('apps/admin/src/app.ts'), /^차선: full$/m);
+});
+
 test('cases-only.mjs 는 그대로다 — 문서만 바뀐 목록에 종료 1 (작성 에이전트의 병합 판정)', () => {
   const 판정기 = fileURLToPath(new URL('./cases-only.mjs', import.meta.url));
   const 종료 = (입력) => {
