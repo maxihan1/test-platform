@@ -15,6 +15,7 @@ import { RunResultModal } from './RunResultModal.js';
 import { 상태라벨, 실행자이름 } from './runState.js';
 import { 칸띠 } from './Summary.js';
 import { Failed, Loading, seconds, useAsync, when } from './ui.js';
+import { 미확정글자, 판정없음 } from './unconfirmed.js';
 
 export function RunList({ service, role }: { service: string; role: 등급 }) {
   const t = use말();
@@ -216,7 +217,11 @@ function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: numbe
   return (
     <div className="row">
       {/* 왼쪽 색 띠는 한눈에 훑기 위한 것이고 판정은 아래 숫자와 글자가 말한다 (SPEC §8.7) */}
-      <div className="gutter" style={{ background: run.counts.fail > 0 ? 'var(--fail)' : 'var(--pass)' }} />
+      {/* 미확정만 돌린 실행은 판정이 없다 — 성공 색도 실패 색도 칠하지 않는다 (도메인/실행 §3.2 · §8.7) */}
+      <div
+        className="gutter"
+        style={{ background: 판정없음(run.counts) ? 'var(--rule)' : run.counts.fail > 0 ? 'var(--fail)' : 'var(--pass)' }}
+      />
       <div className="tcid">RUN {run.runId}</div>
       <div className="title">
         {run.title}
@@ -239,6 +244,11 @@ function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: numbe
             <b style={{ color: 'var(--na)' }}>{run.counts.na}</b>
             <span>{t('미실행')}</span>
           </div>
+          {미확정글자(run.counts, 언어) === '' ? null : (
+            <div>
+              <span>{미확정글자(run.counts, 언어)}</span>
+            </div>
+          )}
         </div>
         {/* 눌러서 여는 상자다 (SPEC §8.7). 주소는 살아 있고 상자는 길을 하나 더한 것이다 */}
         <button type="button" className="btn small" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>

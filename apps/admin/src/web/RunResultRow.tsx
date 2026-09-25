@@ -35,6 +35,7 @@ export function 결과줄({
   const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema, 언어);
   // 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3)
   const 사유 = 칸사유(칸들.flat(), 언어);
+  const 미확정사유 = 칸들.flat().find((i) => typeof i.unconfirmed === 'string')?.unconfirmed ?? null;
 
   return (
     <div className="row">
@@ -46,6 +47,12 @@ export function 결과줄({
             입력이 없는 케이스는 줄 자체를 안 만든다 */}
         {입력줄 === '' ? null : <small>{입력줄}</small>}
         {사유 === null ? null : <small className="why">{사유}</small>}
+        {/* 사유는 실행 때 박제한 값이다 — 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (도메인/실행 §8.3) */}
+        {미확정사유 === null ? null : (
+          <small className="why">
+            {t('미확정')} · {미확정사유}
+          </small>
+        )}
       </div>
       <div className="right">
         <div className="devices">

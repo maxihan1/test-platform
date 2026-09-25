@@ -5,6 +5,7 @@ import type { RunSummary, ServiceRow, User } from './api.js';
 import { 기본언어, t, type 언어 } from './i18n.js';
 import { 할수있나, type 등급 } from './role.js';
 import { 도는중 } from './runState.js';
+import { 미확정글자 } from './unconfirmed.js';
 
 const 제품이름 = '테스트 플랫폼';
 
@@ -234,6 +235,9 @@ export function 알림줄(runs: RunSummary[], 언어: 언어, 본것들: Readonl
   const 집계 = [t('{수} 통과', 언어, { 수: 것.counts.pass })];
   if (것.counts.fail > 0) 집계.push(t('{수} 실패', 언어, { 수: 것.counts.fail }));
   if (것.counts.na > 0) 집계.push(t('{수} 미실행', 언어, { 수: 것.counts.na }));
+  // 미확정은 확정 판정 뒤에 같은 묶음 꼴로 붙인다 (도메인/실행 §3.2)
+  const 미확정 = 미확정글자(것.counts, 언어);
+  if (미확정 !== '') 집계.push(미확정);
 
   const 글 = t('RUN {번호} 이 {머리} · {집계}', 언어, { 번호: 것.runId, 머리, 집계: 집계.join(' · ') });
   return { runId: 것.runId, 글, 끝났나: true };
