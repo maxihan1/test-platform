@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { save } from './store.js';
+import { findCase, listCases, save } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -151,6 +151,54 @@ describe.skipIf(연결 === undefined)('save', () => {
       expect(got.unconfirmed).toBe('다시 미확정');
       expect(got.since).toBeInstanceOf(Date);
       expect(got.since?.getTime()).toBeGreaterThan(처음?.getTime() ?? Infinity);
+    });
+  });
+
+  describe('목록·단건의 미확정 칸', () => {
+    const 조건 = { service: 'ZZA', q: '', activeOnly: true, page: 1, pageSize: 50 };
+
+    beforeAll(async () => {
+      await save([
+        spec('ZZA-001'),
+        spec('ZZA-101', { unconfirmed: '먼저 단 사유' }),
+        spec('ZZA-102', { unconfirmed: '곧 비활성' }),
+      ], false, 'ZZA');
+      await save([spec('ZZA-103', { unconfirmed: '나중에 단 사유' })], false, 'ZZA');
+      await save([spec('ZZA-001'), spec('ZZA-101', { unconfirmed: '먼저 단 사유' }), spec('ZZA-103', {
+        unconfirmed: '나중에 단 사유',
+      })], true, 'ZZA');
+    });
+
+    it('items 에 사유와 단 시각이 실리고 없으면 null 이다', async () => {
+      const list = await listCases(조건);
+      const 확정 = list.items.find((i) => i.tcId === 'ZZA-001');
+      const 미확정 = list.items.find((i) => i.tcId === 'ZZA-103');
+      expect(확정).toMatchObject({ unconfirmed: null, unconfirmedSince: null });
+      expect(미확정?.unconfirmed).toBe('나중에 단 사유');
+      expect(new Date(미확정?.unconfirmedSince ?? '').toISOString()).toBe(미확정?.unconfirmedSince);
+    });
+
+    it('서비스 요약은 활성 미확정만 세고 가장 오래 단 시각을 준다', async () => {
+      const list = await listCases(조건);
+      const 먼저 = list.items.find((i) => i.tcId === 'ZZA-101');
+      expect(list.unconfirmed).toEqual({ count: 2, oldestSince: 먼저?.unconfirmedSince });
+    });
+
+    it('서비스 요약은 검색 조건을 따르지 않는다', async () => {
+      const list = await listCases({ ...조건, q: '아무것도 안 맞는 검색어', platform: 'mobile' });
+      expect(list.items).toHaveLength(0);
+      expect(list.unconfirmed.count).toBe(2);
+    });
+
+    it('미확정이 없으면 요약은 0 과 null 이다', async () => {
+      const list = await listCases({ ...조건, service: 'ZZA0' });
+      expect(list.unconfirmed).toEqual({ count: 0, oldestSince: null });
+    });
+
+    it('단건도 사유와 단 시각을 싣는다', async () => {
+      const found = await findCase('ZZA-101');
+      expect(found?.unconfirmed).toBe('먼저 단 사유');
+      expect(typeof found?.unconfirmedSince).toBe('string');
     });
   });
 });

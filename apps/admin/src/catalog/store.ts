@@ -38,10 +38,13 @@ const UPSERT = `
     scanned_at      = now()
   RETURNING (xmax = 0) AS inserted`;
 
-export interface CaseRow extends CaseSpec {
+// 명세의 unconfirmed 는 없으면 키가 없다. 응답은 화면이 칸을 늘 읽도록 null 로 채운다 (카탈로그 §7)
+export type CaseRow = Omit<CaseSpec, 'unconfirmed'> & {
   isActive: boolean;
   scannedAt: string;
-}
+  unconfirmed: string | null;
+  unconfirmedSince: string | null;
+};
 
 interface RawRow {
   tc_id: string;
@@ -53,6 +56,8 @@ interface RawRow {
   expected_schema: CaseSpec['expectedSchema'];
   is_active: boolean;
   scanned_at: Date;
+  unconfirmed: string | null;
+  unconfirmed_since: Date | null;
   total?: string;
 }
 
@@ -67,10 +72,13 @@ function toCase(row: RawRow): CaseRow {
     expectedSchema: row.expected_schema,
     isActive: row.is_active,
     scannedAt: row.scanned_at.toISOString(),
+    unconfirmed: row.unconfirmed,
+    unconfirmedSince: row.unconfirmed_since?.toISOString() ?? null,
   };
 }
 
-const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at';
+const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at, '
+  + 'unconfirmed, unconfirmed_since';
 
 // ILIKE에서 % 와 _ 는 아무 글자나 맞는 기호다. 사람이 친 검색어는 글자 그대로여야 한다
 function literal(term: string): string {
@@ -97,6 +105,8 @@ export interface CaseList {
   sort: string;
   page: number;
   pageSize: number;
+  // 검색 조건을 따르지 않는다. 걸러 낸 뒤에도 서비스에 미확정이 몇 건 남았는지 알려야 한다 (카탈로그 §7)
+  unconfirmed: { count: number; oldestSince: string | null };
 }
 
 export async function listCases(query: CaseQuery): Promise<CaseList> {
@@ -121,6 +131,13 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     ],
   );
 
+  const summary = await pool.query<{ count: string; oldest: Date | null }>(
+    `SELECT count(*) AS count, min(unconfirmed_since) AS oldest
+       FROM test_case
+      WHERE tc_id LIKE $1 AND is_active AND unconfirmed IS NOT NULL`,
+    [`${query.service}-%`],
+  );
+
   return {
     items: rows.rows.map(toCase),
     total: Number(rows.rows[0]?.total ?? 0),
@@ -128,6 +145,10 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     sort: 'tcId',
     page: query.page,
     pageSize: query.pageSize,
+    unconfirmed: {
+      count: Number(summary.rows[0]?.count ?? 0),
+      oldestSince: summary.rows[0]?.oldest?.toISOString() ?? null,
+    },
   };
 }
 
