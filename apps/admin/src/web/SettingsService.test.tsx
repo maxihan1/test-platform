@@ -127,7 +127,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
-    const 보낸줄 = (고침.mock.calls[0]?.[1] as { envs: Record<string, unknown>[] }).envs[0];
+    const 보낸줄 = 고침.mock.calls[0]?.[1]?.envs?.[0];
     expect(보낸줄).toEqual({ env: 'qa', baseUrl: 'https://qa.example.com', loginId: 'tester' });
   });
 
@@ -143,7 +143,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
-    expect((고침.mock.calls[0]?.[1] as { envs: Record<string, unknown>[] }).envs[0]).toMatchObject({
+    expect(고침.mock.calls[0]?.[1]?.envs?.[0]).toMatchObject({
       loginPassword: 'pw-새것',
     });
   });
