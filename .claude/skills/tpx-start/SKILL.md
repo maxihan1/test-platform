@@ -93,6 +93,9 @@ git worktree add .claude/worktrees/<이름> -b <이름> origin/main
 
 ### 작업방 함정
 
+- **배경 세션의 작업방에서는 git 을 복합 명령에 넣지 않는다** — `cd … && git add … && git commit …`, 본문에 「git」 글자가 든
+  스크립트까지 하네스가 「names git in a form too complex」로 거부한다. `git -C <작업방> <명령 하나>` 를 따로 부르고,
+  파일 고치기는 편집 도구로 한다 (LEARNINGS 2026-09-25, 두 번째 재발)
 - **서드파티 `node_modules` 는 상위로 올라가 저장소 루트 것을 쓴다.** 워크트리에 따로 만들지 않는다.
   루트에 없는 부품은 `npm run check:deps` 가 잡는다 — **Step 4 에서 먼저 돌린다**
 - **`git stash` 를 맨몸으로 쓰지 않는다.** 스택이 모든 워크트리와 공유된다.
