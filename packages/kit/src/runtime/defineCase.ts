@@ -24,6 +24,7 @@ export interface DefineCaseInput<P extends CaseSchema, E extends CaseSchema> {
   precondition: string[];
   params: P;
   expected: E;
+  unconfirmed?: string;
 }
 
 // 선언에 쓴 zod 스키마 원본. 실행 시점에 주입값을 검증하려면 JSON Schema가 아니라 원본이 필요하다.
@@ -62,6 +63,8 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
     expectedSchema: toJsonSchema(input.expected),
     filePath: file === undefined ? '' : relative(testsRoot(), file),
   };
+  // 빈 사유는 확정이다. 키를 아예 빼야 스캐너 JSON 에 빈 칸이 섞이지 않는다
+  if (input.unconfirmed?.trim()) spec.unconfirmed = input.unconfirmed;
 
   schemas.set(spec, { params: input.params, expected: input.expected });
 

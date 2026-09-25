@@ -118,4 +118,55 @@ describe('defineCase', () => {
       'tcId',
     ]);
   });
+
+  it('미확정 사유를 주면 명세에 그대로 싣는다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-007',
+      name: '미확정 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+      unconfirmed: '기획서와 다름',
+    });
+
+    expect(spec.unconfirmed).toBe('기획서와 다름');
+  });
+
+  it('미확정 사유를 안 주면 키 자체가 없다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-008',
+      name: '확정 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+    });
+
+    expect('unconfirmed' in spec).toBe(false);
+  });
+
+  it('미확정 사유가 비면 확정으로 보고 키를 싣지 않는다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-009',
+      name: '빈 사유 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+      unconfirmed: '',
+    });
+
+    expect('unconfirmed' in spec).toBe(false);
+  });
+
+  it('미확정 사유가 공백뿐이면 확정으로 보고 키를 싣지 않는다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-010',
+      name: '공백 사유 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+      unconfirmed: '   ',
+    });
+
+    expect('unconfirmed' in spec).toBe(false);
+  });
 });

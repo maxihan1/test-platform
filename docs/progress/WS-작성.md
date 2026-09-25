@@ -374,3 +374,10 @@
 - 미완: 역방향 **구현 전부** — 갈래별 항목은 `docs/WORKSTREAMS.md` 「📐 역방향(모드 B)」. 머지 뒤 서버 저장소 자동 pull 실측(다음 새 기획서 요청 때) · 서비스 둘 동시(두 번째 서비스 배정 필요) · 리눅스 uid 격리(리눅스 기계 필요) · DEMO 대상 서버 `qa.demo.test` 가 안 풀린다 — 기획서의 주소로 바꿀지 사용자 결정
 - 막힌 것: 첫 요청 #5868 이 push 403 으로 실패 — GitHub fine-grained 토큰의 Contents 가 읽기 전용이었다. `.env` 를 맥 텍스트 편집기로 고치자 `mac` 이 `Mac` 으로 자동 대문자가 돼 401. 둘 다 SETUP §8 에 이미 적힌 절차를 사람이 틀린 것이라 기록만 한다
 - 다음 세션이 알아야 할 것: 토큰 확인은 값 없이 `curl -u x-access-token:<토큰> https://github.com/<저장소>.git/info/refs?service=git-receive-pack` 의 200/403 으로 쓰기 권한을 가른다. 계획 `docs/plans/2026-09-25-역방향-명세.md`
+
+## 2026-09-25 (13회차) — 역방향 계약 반영: kit 꼬리표 · DB 칸 (PR #74)
+- 완료: `CaseSpec.unconfirmed?` · `defineCase` 입력(빈 글자면 키 없음) · `db/migrations/20260925000001_reverse_mode.sql`(칸 · 이름 붙인 CHECK 둘 · down 은 에이전트 산출물부터 지운다) · DB 검사 `apps/admin/src/db/reverse-columns.test.ts`(접두사 XRC) · 계약 블록 둘 `반영 완료`
+- 미완: 칸을 채우고 읽는 코드 — WS-A · WS-B · WS-F → WS-작성 → WS-D · WS-E (`docs/WORKSTREAMS.md` 📐)
+- 막힌 것: 없음. 로컬엔 dbmate 가 없어 docker 이미지(`ghcr.io/amacneil/dbmate:2`)로 검사용 DB `platform_xrc` 에 적용했다
+- 다음 세션이 알아야 할 것: WS-F 가 `settings/store.ts:71` 을 고치기 전에는 설정 저장마다 `login_id`·`login_password` 가 지워진다(지금은 쓰는 곳 없음)
+

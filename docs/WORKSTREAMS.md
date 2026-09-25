@@ -37,7 +37,7 @@
 기획서가 없으면 시작 주소만 받아 화면을 훑고 워드 역기획서를 낸다.
 **정본은 [`docs/spec/도메인/작성.md`](spec/도메인/작성.md) §3.6 「★ 역방향 — 화면과 대조한다」 한 곳이다.** 아래는 갈래별로 무엇이 남았는지만 적는다.
 
-**그 PR 은 명세만 세웠다.** 계약 블록은 전부 `상태: 대기` 이고 코드는 한 줄도 안 바뀌었다.
+**그 PR 은 명세만 세웠다.** 계약 블록은 전부 `상태: 대기` 였다 — 타입·DB 칸 둘은 PR #74 에서 `반영 완료` 가 됐고 나머지(통로·집계·설정)는 아직 `대기` 다.
 갈래가 반영하면 그 자리에서 블록을 `반영 완료 (날짜, 어디에)` 로 바꾼다 (CLAUDE.md §1.2).
 아래 줄 번호는 **2026-09-25 기준**이다 — 자리를 찾는 참고일 뿐이고 그사이 밀렸을 수 있다.
 
@@ -45,11 +45,13 @@
 꼬리표 타입이 먼저 서야 스캐너·집계가 읽을 수 있고, 칸과 설정이 서야 에이전트가 쓸 곳이 생기며,
 증적과 화면은 채워진 값을 보여 주기만 하므로 맨 뒤다.
 
-- **KIT** — `packages/kit/src/types.ts` 의 `CaseSpec.unconfirmed?: string` · `defineCase` 입력에 같은 키.
+- **KIT · DB 칸 — 반영 완료 (2026-09-25, PR #74).** `CaseSpec.unconfirmed?: string` · `defineCase` 입력(빈 글자면 키를 안 싣는다) ·
+  `db/migrations/20260925000001_reverse_mode.sql`(칸·CHECK 이름 `authoring_request_compare_check`·`authoring_asset_role_check`). 아래 갈래는 이 칸을 **채우고 읽는 일**만 남았다.
   명세 [공통/3-공유계약.md](spec/공통/3-공유계약.md) §5.1 · [공통/2-명세선언.md](spec/공통/2-명세선언.md) §4
 - **WS-A** — 스캐너가 `unconfirmed` · `unconfirmed_since` 를 관리한다(`apps/admin/src/catalog/**`, 나이는 스캔마다 덮지 않는다) · 목록 API 에 꼬리표와 나이.
   명세 [도메인/카탈로그.md](spec/도메인/카탈로그.md) §3.1 「미확정 꼬리표」 · [공통/4-데이터모델.md](spec/공통/4-데이터모델.md) 「역방향 칸」
   - **K11 검사기** — `apps/admin/src/catalog/rules.ts` 의 `RuleId` 와 설명 · `check.ts` 출력 「K1~K10 통과」 · `rules.test.ts`.
+    공백뿐인 사유도 빈 문자열처럼 위반으로 잡는다 — `defineCase` 가 공백뿐이면 확정으로 싣기 때문이다(PR #74 재검사).
     명세 2-명세선언 §4 K표
   - **K11 을 넣으면 「K1~K10」이라 적은 자리를 같이 고친다** (2026-09-25 기준) —
     `.claude/skills/spec-review/references/checklist-d-f.md:21,27` · `.claude/skills/tpx-cases/references/5-writing.md:136` ·
@@ -82,6 +84,7 @@
   에이전트 스크립트가 할 일 — 올리기 · 끝내기 · push 전에 그 요청의 `loginPassword` 원문을 찾아 있으면 FAILED(사유에 값을 싣지 않는다) ·
   `startUrl` 은 `new URL()` 로 다시 조립한 값으로 저장하고 집기 때 출처를 다시 대조 · `startUrl` 과 `target` 값은 셸 문자열이 아니라 환경 변수·인자 배열로만 넘긴다.
   자식 지시 — 훑기는 허용 목록(링크 이동·탭·펼치기·팝업)만 · 계정 입력 직전 출처 확인. 서버 — `outputs` 파일 규칙(확장자 · `source` 대조 · 자료 개수 상한에 안 센다).
+  `source_asset_id` 는 명세대로 `ON DELETE` 규칙이 없다 — 표시 사본이 있는 원본 자료를 한 건만 지우면 거절된다(요청째 지우면 괜찮다). 한 건 지우기(`assetStore.ts` `자료지우기`)는 지금 DRAFT 실패 정리에만 쓰여 해가 없다.
   **PDF 스티커 메모는 새 npm 패키지 승인 뒤다**(CLAUDE.md §3) — 그 전에는 차이 목록만 낸다.
   명세 도메인/작성.md §3.6 「★ 역방향」 · §7
 
