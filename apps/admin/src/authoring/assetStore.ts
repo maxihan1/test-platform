@@ -34,6 +34,9 @@ export interface 자료 {
   name: string;
   figmaUrl: string | null;
   size: number | null;
+  // 사람이 넣은 입력인지 에이전트 산출물인지 (§3.6 「★ 역방향」). MARKED 는 어느 입력의 사본인지 가리킨다
+  role: 'INPUT' | 'MARKED' | 'REVERSE_SPEC';
+  sourceAssetId: number | null;
 }
 
 interface 자료행 {
@@ -43,6 +46,8 @@ interface 자료행 {
   name: string;
   figma_url: string | null;
   size: string | null;
+  role: 'INPUT' | 'MARKED' | 'REVERSE_SPEC';
+  source_asset_id: string | null;
 }
 
 function 빚기(r: 자료행): 자료 {
@@ -53,6 +58,8 @@ function 빚기(r: 자료행): 자료 {
     name: r.name,
     figmaUrl: r.figma_url,
     size: r.size === null ? null : Number(r.size),
+    role: r.role,
+    sourceAssetId: r.source_asset_id === null ? null : Number(r.source_asset_id),
   };
 }
 
@@ -138,7 +145,7 @@ export async function 자료지우기(자료번호: number): Promise<void> {
 
 export async function 자료목록(요청: number): Promise<자료[]> {
   const r = await (await db()).query<자료행>(
-    `SELECT id, position, kind, name, figma_url, size
+    `SELECT id, position, kind, name, figma_url, size, role, source_asset_id
        FROM authoring_asset WHERE request_id = $1 ORDER BY position`,
     [요청],
   );
@@ -148,7 +155,7 @@ export async function 자료목록(요청: number): Promise<자료[]> {
 /** 그 요청에 딸린 자료 한 건. **요청 번호까지 맞아야 준다** — 자료 번호만 보면 남의 요청 파일이 번호 하나로 읽힌다 */
 export async function 자료한건(요청: number, 자료번호: number): Promise<자료 | null> {
   const r = await (await db()).query<자료행>(
-    `SELECT id, position, kind, name, figma_url, size
+    `SELECT id, position, kind, name, figma_url, size, role, source_asset_id
        FROM authoring_asset WHERE request_id = $1 AND id = $2`,
     [요청, 자료번호],
   );

@@ -189,6 +189,31 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
     });
   });
 
+  describe('목록·상세', () => {
+    it('목록 items 에 compare·env·startUrl 이 있고 계정은 어디에도 없다', async () => {
+      const id = (await 만들기({ kind: 'AUTHOR', compare: true, env: 'qa', startUrl: 'https://qa.xwv.test/list' })).json<{ id: number }>().id;
+      const res = await app.inject({ method: 'GET', url: `/api/authoring/requests?service=${접두사}` });
+      const 줄 = res.json<{ items: Record<string, unknown>[] }>().items.find((i) => i.id === id);
+      expect(줄).toMatchObject({ compare: true, env: 'qa', startUrl: 'https://qa.xwv.test/list' });
+      expect(res.body).not.toContain(비밀);
+      expect(res.body).not.toContain('loginId');
+      expect(res.body).not.toContain('loginPassword');
+    });
+
+    it('상세에 역방향 칸이 있고 자료마다 role·sourceAssetId 가 있다 — 계정은 없다', async () => {
+      const id = (await 만들기({ kind: 'AUTHOR', compare: true, env: 'qa', figma: ['https://www.figma.com/design/AbC123/'] })).json<{ id: number }>().id;
+      const res = await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}` });
+      expect(res.json()).toMatchObject({
+        compare: true,
+        env: 'qa',
+        startUrl: null,
+        assets: [{ kind: 'FIGMA', role: 'INPUT', sourceAssetId: null }],
+      });
+      expect(res.body).not.toContain(비밀);
+      expect(res.body).not.toContain('loginPassword');
+    });
+  });
+
   describe('다시 돌리기', () => {
     async function 끝난원본(본문: Record<string, unknown>): Promise<number> {
       const { pool } = await import('../db/index.js');
