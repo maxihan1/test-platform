@@ -55,21 +55,33 @@
     `.claude/skills/spec-review/references/checklist-d-f.md:21,27` · `.claude/skills/tpx-cases/references/5-writing.md:136` ·
     `6-gates.md:34,44` · `2-requirements.md:79` · `.claude/scripts/ci-covers-tests.test.mjs:290` ·
     `docs/HOOKS.md:178,214,223`(343 은 이미 「K1~K8」로 낡았다) · `docs/WORKFLOW.md:463` · 이 문서의 WS-A 킥오프 `check:tests` 줄 · `docs/spec/도메인/작성.md:168,191` ·
-    `docs/spec/공통/7-데모와-완료.md:63` · `.github/workflows/ci.yml:1,15,122` · `scripts/authoring-copy.ts:97` · `scripts/authoring-upload.ts:100`.
+    `docs/spec/공통/7-데모와-완료.md:63` · `.github/workflows/ci.yml:1,15,122` · `scripts/authoring-copy.ts:97` · `scripts/authoring-upload.ts:100` ·
+    `.claude/hooks/pre-push:105,132` · `apps/admin/src/catalog/rules.test.ts:1` · `apps/admin/src/catalog/check.ts:1`(머리 주석).
     빠진 자리가 없는지는 `grep -rn 'K1~K10'` 으로 다시 훑는다. 그리고 2-명세선언 §4 의 「K11 은 명세에만 섰고 검사기에는 아직 없다」 줄을 지운다
+  - **이미 있는 케이스에 `unconfirmed` 를 새로 다는 diff 는 `check:tests` 가 경고한다** — 막지 않고 게이트 2 요약에 싣게 한다.
+    K11 은 모양만 본다. 누가 달았는지와 꼬리표 없이 화면 값을 썼는지는 계속 사람이 본다(spec-review B10)
 - **WS-B** — `counts` 에 `unconfirmed` 묶음(확정 항목만 pass·fail·na 로 센다) · 실행을 만들 때 `run_item.unconfirmed` 박제.
   `apps/admin/src/execution/queries.ts:79–82,115,163,237–245` · `notify.ts:66`(Slack 요약)과 해당 테스트들.
+  Slack 머리는 미확정 실패가 있으면 `[통과 · 미확정 실패 N]` · 미확정만 돌린 실행의 목록 판정 색은 「판정 없음」(색 없음, 글자로 미확정 수).
+  「미확정 N」 은 끝난 미확정만 센다(진행 중인 것은 running).
   명세 [도메인/실행.md](spec/도메인/실행.md) §3.2 「미확정 항목은 따로 센다」(집계 정본) · 같은 장 §7 계약 블록
 - **WS-D** — 증적 머리 요약의 미확정 수 · 본문 「미확정 — 기획 답 대기」 묶음 · 엑셀 `미확정 사유` 칸 ·
-  Grafana 판정 패널에 `run_item.unconfirmed IS NULL`. 명세 [도메인/리포팅.md](spec/도메인/리포팅.md) 「미확정 항목은 따로 묶는다」
+  Grafana 판정 패널에 `run_item.unconfirmed IS NULL` ·
+  insights(새로깨짐·계속깨짐·고쳐짐·실패덩어리)는 미확정 항목을 판정·덩어리에서 뺀다(응답 모양은 그대로 — 미확정은 실행 결과의 미확정 묶음에서 본다). 명세 [도메인/리포팅.md](spec/도메인/리포팅.md) 「미확정 항목은 따로 묶는다」
 - **WS-E(화면)** — 작성 화면의 「실제 화면과 대조」 체크박스 · 대상 서버 · 시작 주소 · 목록의 미확정 배지와 나이 · 결과 막대의 미확정 칸.
   `apps/admin/src/web/api.ts:73` · `runProgress.ts:42–82` · `RunResult.tsx:123,147` · `RunList.tsx:219–239` · `layout.ts:209–235`.
+  **설정 화면의 대상 서버 줄 테스트 계정 칸**(아이디 · 비밀번호는 `설정됨 · 다시 넣기`) — 설정 화면은 이 갈래가 주인이다(명세 도메인/인증 §8.8).
+  **작성 상세의 산출물(`role`) · 차이 목록(`diffs`) · 표시 실패의 「표시 못 함 — 이유」(`markError`)** ·
+  대시보드에 서비스별 가장 오래된 미확정의 나이. 이 둘(나이 · `markError` 표시)은 명세가 아니라 이 갈래와 `docs/DESIGN.md` 로 넘겼다.
   화면 규칙은 `docs/DESIGN.md`, **목업 `docs/design-mockup.html` 도 이 갈래가 고친다**
 - **WS-F** — 설정 `envs[]` 줄에 테스트 계정(`loginId` · `loginPassword`) · 비밀번호 유지 규칙(`apps/admin/src/settings/store.ts:71` 이
-  줄을 전부 지우고 다시 넣으므로 키가 없으면 같은 env 의 기존 값을 유지, `null` 이면 지운다) · 토큰 통로에 `outputs`(`apps/admin/src/auth/gate.ts`) ·
-  라우트표(`apps/admin/src/auth/scope.ts`). 명세 [도메인/인증.md](spec/도메인/인증.md) §7 「envs[] 한 줄」 · §8.8
+  줄을 전부 지우고 다시 넣으므로 키가 없으면 같은 env 의 기존 값을 유지, `null` 이면 지운다) · `outputs` 를 `apps/admin/src/auth/gate.ts` 의 **등급표**(operator) · 토큰 통로와
+  라우트표(`apps/admin/src/auth/scope.ts`, `작성요청, 칸:'id'`) 셋에 다 넣는다. 명세 [도메인/인증.md](spec/도메인/인증.md) §7 「envs[] 한 줄」 · §8.8
 - **WS-작성** — 서버 통로(`compare` · `env` · `startUrl` · 화면만의 `submit` 예외 · 집기 응답 `target` · `outputs` · `finish` 의 `diffs`) ·
   에이전트(`scripts/authoring-*.ts`) · `tpx-author` 스킬의 역방향 흐름 · 워드 메모 사본 · 피그마 댓글 · 역기획서(pandoc).
+  에이전트 스크립트가 할 일 — 올리기 · 끝내기 · push 전에 그 요청의 `loginPassword` 원문을 찾아 있으면 FAILED(사유에 값을 싣지 않는다) ·
+  `startUrl` 은 `new URL()` 로 다시 조립한 값으로 저장하고 집기 때 출처를 다시 대조 · `startUrl` 과 `target` 값은 셸 문자열이 아니라 환경 변수·인자 배열로만 넘긴다.
+  자식 지시 — 훑기는 허용 목록(링크 이동·탭·펼치기·팝업)만 · 계정 입력 직전 출처 확인. 서버 — `outputs` 파일 규칙(확장자 · `source` 대조 · 자료 개수 상한에 안 센다).
   **PDF 스티커 메모는 새 npm 패키지 승인 뒤다**(CLAUDE.md §3) — 그 전에는 차이 목록만 낸다.
   명세 도메인/작성.md §3.6 「★ 역방향」 · §7
 
