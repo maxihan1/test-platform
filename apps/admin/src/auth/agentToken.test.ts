@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import authoringAgentRoutes from '../authoring/agentRoutes.js';
 import authoringRoutes from '../authoring/routes.js';
 import settingsRoutes from '../settings/routes.js';
 import { 헤더토큰 } from './agentToken.js';
@@ -108,6 +109,7 @@ describe.skipIf(연결 === undefined)('작성 에이전트 토큰', () => {
     인증등록(app);
     await app.register(authRoutes, { prefix: '/api' });
     await app.register(authoringRoutes, { prefix: '/api' });
+    await app.register(authoringAgentRoutes, { prefix: '/api' });
     await app.register(settingsRoutes, { prefix: '/api' });
     await app.ready();
     운영쿠키 = await 로그인(운영);

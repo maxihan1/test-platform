@@ -8,6 +8,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 자료목록, 제출, 준비세우기 } from './assetStore.js';
+import authoringAgentRoutes from './agentRoutes.js';
 import authoringRoutes, { 피그마주소정규화 } from './routes.js';
 import { 줄세우기, 집기되돌리기, 피그마토큰, 한건 } from './store.js';
 
@@ -65,6 +66,7 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
       req.user = 사람(부르는이);
     });
     await app.register(authoringRoutes, { prefix: '/api' });
+    await app.register(authoringAgentRoutes, { prefix: '/api' });
     await app.ready();
   });
 
