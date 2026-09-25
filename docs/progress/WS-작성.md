@@ -381,3 +381,9 @@
 - 막힌 것: 없음. 로컬엔 dbmate 가 없어 docker 이미지(`ghcr.io/amacneil/dbmate:2`)로 검사용 DB `platform_xrc` 에 적용했다
 - 다음 세션이 알아야 할 것: WS-F 가 `settings/store.ts:71` 을 고치기 전에는 설정 저장마다 `login_id`·`login_password` 가 지워진다(지금은 쓰는 곳 없음)
 
+
+## 2026-09-26 (14회차) — 역방향 ① 서버 통로 (PR #79)
+- 완료: 만들기 `compare·env·startUrl`(400 `BAD_ENV`·`BAD_START_URL`, 깨진 `base_url` 도 400) · 화면만 `submit` 자료 0 · 목록·상세 칸(계정·비밀번호 원문 없음 검사) · 상세 `assets[].role·sourceAssetId` · 집기 `target`(줄 지워지면 null 칸) · `outputs` 통로(에이전트·집은 쪽·RUNNING · 원본 확장자 규칙 · 잠금 · 개수 상한 제외) + 권한 세 줄 · `diffs` 상세까지 그대로 · 역방향 원본의 재실행 409 `BAD_SOURCE`(게이트 1). `routes.ts` 437→243줄(`agentRoutes.ts` 로 에이전트 통로 넷). 검사 `reverse.test.ts`(XWV) · `outputs.test.ts`(XWO)
+- 미완: 화면(WS-E ②) · 에이전트(WS-작성 ③) · `store.ts` 363줄 분리
+- 막힌 것: 없음. 검사용 DB `platform_wsw`(docker dbmate)
+- 다음 세션이 알아야 할 것: 명세가 오류 코드를 안 정한 두 자리를 정했다 — `role` 이 틀리면 `BAD_ROLE`, `compare` 가 참·거짓이 아니면 `BAD_ENV`(작성 §7 에 `BAD_ROLE` 을 적었다). 재실행이 원본 자료를 읽을 때 산출물(MARKED·REVERSE_SPEC)이 섞이므로 ③ 은 `role === 'INPUT'` 만 읽는다. 계획 `docs/plans/2026-09-26-역방향-작성서버.md`
