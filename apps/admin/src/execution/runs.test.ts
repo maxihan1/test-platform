@@ -117,7 +117,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
         username: 'xbx-사람',
         displayName: '실행 검사용',
         role: 'operator',
-        services: [{ id: 1, prefix: 'XBX', name: '실행 검사용', color: '#3A5FCD', envs: [], hasSlackWebhook: false }],
+        services: [{ id: 1, prefix: 'XBX', name: '실행 검사용', color: '#3A5FCD', envs: [], hasSlackWebhook: false, testsDir: 'xbx' }],
       };
     });
     await app.register(executionRoutes, { prefix: '/api' });

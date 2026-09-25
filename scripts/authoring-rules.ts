@@ -141,7 +141,7 @@ export function 줄프롬프트(
 ): string {
   return [
     `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
-    // tpx-author 가 입력으로 기대한다. 폴더는 맥이 작업방의 기존 케이스로 찾았고, 서버는 /api/auth/me 응답의 것이다
+    // tpx-author 가 입력으로 기대한다. 테스트 폴더(서비스 설정의 testsDir — 2026-09-25 계약 변경 승인)와 대상 서버 모두 /api/auth/me 응답의 것이다
     ...(대상 === undefined
       ? []
       : [

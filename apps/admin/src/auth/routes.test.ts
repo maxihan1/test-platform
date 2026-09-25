@@ -119,6 +119,20 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
     expect(res.json<{ user: { displayName: string } }>().user.displayName).toBe('김로그인');
   });
 
+  it('나를 물으면 배정 서비스마다 케이스 폴더(testsDir)가 온다', async () => {
+    const 들어옴 = await 로그인('xfu2-live', '열려라참깨');
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/auth/me',
+      cookies: { platform_session: 들어옴.cookies[0]!.value },
+    });
+
+    const 서비스 = res
+      .json<{ user: { services: { prefix: string; testsDir: string }[] } }>()
+      .user.services.find((s) => s.prefix === 'XFS2');
+    expect(서비스?.testsDir).toBe('xfs2');
+  });
+
   it('로그아웃하면 204 이고 그 출입증은 더 안 통한다', async () => {
     const 들어옴 = await 로그인('xfu2-live', '열려라참깨');
     const 나감 = await app.inject({

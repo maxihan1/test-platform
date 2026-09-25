@@ -255,7 +255,7 @@ openssl rand -hex 32
 
 기획서를 읽어 **요구사항 표 · 테스트케이스 · `.spec.ts`** 를 만들고 **초안 PR 까지** 낸다. 한 건에 10~20분 걸린다.
 일은 둘로 나뉜다 — **에이전트 스크립트**가 작업방을 열고 commit·push·초안 PR 을 하고, **자식 Claude**(`claude -p`)는
-`tpx-author` 스킬을 타고 케이스만 만든다. 순서의 정본은 `docs/spec/도메인/작성.md` §3.6 「맥 경로는 전용 체인이다」다.
+`tpx-author` 스킬을 타고 케이스만 만든다. 순서의 정본은 `docs/spec/도메인/작성.md` §3.6 「작성 에이전트는 전용 체인이다」다.
 
 ### 처음 한 번 — 서버에 작성 에이전트 켜기 (약 10분)
 
@@ -355,7 +355,7 @@ npm run authoring-agent
 4. 바꾸려면 `다시 넣기` 를 눌러 새 값을 넣는다. 비우면 그 서비스는 피그마 자료를 못 읽는다
 
 **피그마를 읽는 도구는 npm 패키지 `figma-reader` 다** (GitHub 저장소 이름은 `figma-reader-cli` — 헷갈리지 않는다).
-따로 깔 것은 없다. 부르는 명령과 판 번호의 정본은 `.claude/skills/tpx-cases/SKILL.md` 다 — 여기 옮겨 적지 않는다.
+따로 깔 것은 없다. 부르는 명령과 판 번호의 정본은 `.claude/skills/tpx-cases/references/1-input.md` 다 — 여기 옮겨 적지 않는다.
 
 ### 에이전트 토큰 — 처음 한 번만 넣는다 (2026-09-23)
 
@@ -488,7 +488,7 @@ npx playwright cli --version    # npm ci 만 돌렸으면 바로 나온다
 **설명 문서는 저장소에 들어 있다** — `.claude/skills/playwright-cli/`. 벤더가 낸 것을 그대로 담았다.
 **그 폴더를 손으로 고치지 마라** — 다음 번 벤더 설치가 지운다. 우리 쪽 규칙은 아래 자리에 적는다.
 
-**절차의 정본은 `.claude/skills/tpx-cases/SKILL.md` §4 다.** 여기에 옮겨 적지 않는다 —
+**절차의 정본은 `.claude/skills/tpx-cases/references/4-selector.md`(§4) 다.** 여기에 옮겨 적지 않는다 —
 특히 **그 절이 「벤더 스킬의 생성 절차는 따르지 않는다」를 못박고 있다.** 같이 담긴
 `references/test-generation.md` 가 **기대값을 화면에서 읽어 담으라**고 적는데, 이 저장소는
 그것을 금지한다 (화면의 버그가 회귀 세트에 영원히 박힌다).

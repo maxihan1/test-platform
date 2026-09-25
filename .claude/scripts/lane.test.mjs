@@ -5,7 +5,6 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { lane } from './lane.mjs';
 
-const 기존폴더 = ['todo', 'demo'];
 
 const 표 = [
   [['docs/SETUP.md'], 'docs', '문서만'],
@@ -16,7 +15,7 @@ const 표 = [
   [['tests/todo/TODO-001.spec.ts'], 'cases', '기존 폴더 케이스'],
   [['tests/todo/TODO-001.spec.ts', 'docs/cases/TODO.md'], 'cases', '케이스 + 케이스 문서'],
   [['docs/cases/TODO.md', 'docs/SETUP.md'], 'docs', '케이스 문서 + 일반 문서'],
-  [['tests/새폴더/X-001.spec.ts'], 'full', '새 케이스 폴더는 CI 실행 단계에 없다'],
+  [['tests/새폴더/X-001.spec.ts'], 'cases', '새 서비스 폴더 케이스 — 서비스 폴더는 CI 가 돌리지 않는다'],
   [['tests/todo/TODO-001.spec.ts', 'docs/SETUP.md'], 'full', '케이스 + 일반 문서는 cases 도 docs 도 아니다'],
   [['apps/admin/src/app.ts'], 'full', '코드'],
   [['docs/spec/x.md', 'apps/admin/src/app.ts'], 'full', '명세 + 코드'],
@@ -32,7 +31,7 @@ const 표 = [
 
 for (const [파일들, 기대, 이름] of 표) {
   test(`lane: ${이름} → ${기대}`, () => {
-    assert.equal(lane(파일들, 기존폴더), 기대);
+    assert.equal(lane(파일들), 기대);
   });
 }
 

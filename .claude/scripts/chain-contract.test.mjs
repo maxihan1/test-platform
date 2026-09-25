@@ -6,7 +6,16 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 
 const DIR = new URL('../skills/', import.meta.url);
 const STEP_SKILLS = ['tpx-start', 'tpx-spec', 'tpx-plan', 'tpx-plan-review', 'tpx-impl', 'tpx-review', 'tpx-merge'];
-const read = (name) => readFileSync(new URL(`${name}/SKILL.md`, DIR), 'utf8');
+// 큰 스킬은 SKILL.md + references/*.md 로 나뉜다. 단언이 절을 옮긴 뒤에도 물도록 둘을 이어 읽는다
+const refsOf = (name) => {
+  const 폴더 = new URL(`${name}/references/`, DIR);
+  return existsSync(폴더) ? readdirSync(폴더).filter((f) => f.endsWith('.md')).sort() : [];
+};
+const read = (name) =>
+  [
+    readFileSync(new URL(`${name}/SKILL.md`, DIR), 'utf8'),
+    ...refsOf(name).map((f) => readFileSync(new URL(`${name}/references/${f}`, DIR), 'utf8')),
+  ].join('\n');
 
 // 산문 속 언급과 실제로 돌릴 명령을 가른다. ``` 울타리 안만 실행문으로 본다 —
 // 「이 스킬에서 절대 부르지 않는다」 같은 금지 문장이 위반으로 잡히던 것을 막는다
@@ -258,4 +267,99 @@ test('구현·검사 단계가 전체 npm test 대신 바뀐 것만 돈다', () 
     assert.doesNotMatch(코드, /(^|\s)npm test\b/m, `${s} 가 아직 전체 npm test 를 부른다`);
     assert.doesNotMatch(read(s), /연속 3회/, `${s} 에 옛 「연속 3회」 규칙이 남았다`);
   }
+});
+
+// 분리 뒤 SKILL.md 가 안 가리키는 references 파일은 아무도 안 읽는다
+test('references/*.md 는 전부 제 스킬의 SKILL.md 가 이름으로 가리킨다', () => {
+  const 고아 = readdirSync(new URL('.', DIR))
+    .filter((s) => existsSync(new URL(`${s}/SKILL.md`, DIR)))
+    .flatMap((s) => {
+      const 본 = readFileSync(new URL(`${s}/SKILL.md`, DIR), 'utf8');
+      return refsOf(s).filter((f) => !본.includes(`references/${f}`)).map((f) => `${s}/references/${f}`);
+    });
+  assert.deepEqual(고아, [], `SKILL.md 가 안 가리키는 references 파일: ${고아}`);
+});
+
+// 2026-09-25 분리 직전의 머리글 목록. 분리가 절을 흘리면 여기서 잡힌다
+const 절목록 = {
+  tpx: [
+    '## 체인 일곱 단계',
+    '## A-0. 중단된 작업 감지 (모든 입력에 선행, 필수)',
+    '## A-1. 순서 강제 — 이 표를 어기지 않는다',
+    '## 등급 판정',
+    '## 등급별 절차 (이 표가 정본)',
+    '## 차선 — 바뀐 만큼만 검사한다 (2026-09-25)',
+    '## 게이트',
+    '## 선행 읽기 — 여기서 한 번만 읽는다',
+    '## PR 이 진행 상황판이다',
+    '## 진행 출력',
+    '## 막혔을 때',
+    '## 관련 스킬',
+  ],
+  'tpx-merge': [
+    '## 선행 조건',
+    '## 선행 읽기',
+    '## Step 1. ★ 기록을 **먼저** 쓴다 — 그다음 전수 확인',
+    '## Step 2. ★ 여기서 처음 초안 잠금을 푼다',
+    '## Step 3. 병합',
+    '## Step 4. ★ 작업방에서 나와 main 을 최신화한다',
+    '## Step 5. 브랜치를 치운다 — `-d` 만 쓴다',
+    '## Step 6. 기록 — 이게 다음 세션의 입력이다',
+    '## <날짜>',
+    '## Step 7. PR 을 닫는다 — 체크리스트를 전부 채운다',
+    '## 출력',
+    '## 실패 / 엣지',
+  ],
+  'spec-review': [
+    '## 이 스킬이 존재하는 이유',
+    '## 두 가지 철칙',
+    '## 절차',
+    '## 체크리스트',
+    '## 보고 형식',
+    '## 요약',
+    '## 치명',
+    '## 중대',
+    '## 통과한 항목',
+    '## 하지 말 것',
+  ],
+  'tpx-cases': [
+    '## 선행 읽기',
+    '## 척추 — 왜 이 순서인가',
+    '## §1. 입력 확인',
+    '## §2. 요구사항 표 — 분해 규칙',
+    '## 🛑 §3. 내부 게이트 — 표를 승인받는다',
+    '## §4. selector 확정 — 화면을 실제로 연다',
+    '## 용어 사전',
+    '## §5. 케이스 작성',
+    '## §6. 검증 관문 넷',
+    '## §7. 표 되채우기와 커밋',
+    '## §8. 반환',
+    '## 막혔을 때',
+  ],
+};
+
+test('분리 뒤에도 절과 규칙이 남는다', () => {
+  for (const [s, 머리들] of Object.entries(절목록)) {
+    const 본문 = read(s);
+    const 빠짐 = 머리들.filter((h) => !본문.includes(`\n${h}\n`));
+    assert.deepEqual(빠짐, [], `${s} 에서 절이 사라졌다`);
+  }
+  const 케이스 = read('tpx-cases');
+  const 규칙빠짐 = Array.from({ length: 16 }, (_, i) => `R${i + 1}`).filter(
+    (r) => !new RegExp(`\\b${r}\\b`).test(케이스),
+  );
+  assert.deepEqual(규칙빠짐, [], `tpx-cases 에서 규칙이 사라졌다: ${규칙빠짐}`);
+});
+
+// 자식 세션과 각 단계가 매번 통째로 읽는 문서라 길면 읽는 값이 쌓인다 (2026-09-25 사용자 지시 — 200줄 이하, 모듈로 분리).
+// playwright-cli 는 Microsoft 원본을 그대로 담아 둔 것이라 손대지 않는다 (CLAUDE.md 「저장소에 담아 둔 남의 스킬」)
+test('스킬 문서는 파일마다 200줄 이하다 — playwright-cli 제외', () => {
+  const 넘침 = [];
+  for (const s of readdirSync(DIR).filter((n) => n !== 'playwright-cli' && existsSync(new URL(`${n}/SKILL.md`, DIR)))) {
+    for (const 파일 of ['SKILL.md', ...refsOf(s).map((f) => `references/${f}`)]) {
+      const 줄 = readFileSync(new URL(`${s}/${파일}`, DIR), 'utf8').split('\n').length - 1;
+      if (줄 > 200) 넘침.push(`${s}/${파일} ${줄}줄`);
+    }
+  }
+  assert.deepEqual(넘침, [], `200줄을 넘는 스킬 문서: ${넘침.join(', ')}. 절을 references/ 로 옮긴다`);
 });

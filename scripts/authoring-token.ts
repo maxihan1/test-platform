@@ -81,15 +81,27 @@ export async function 토큰묻기(): Promise<string> {
 
 type 서버 = { env: string; baseUrl: string };
 
+/** 폴더를 받았거나, 못 받은 까닭 */
+export type 폴더자리 = { 폴더: string } | { 사유: string };
+
 /**
- * `/api/auth/me` 응답에서 맥이 쓸 것. 모양이 틀렸거나 보기만 등급이면 사유 글.
- * 대상 서버는 자식(tpx-author)이 입력으로 기대한다 — 이미 이 응답에 실려 온다. 새 통로가 필요 없다
+ * 서비스 설정의 테스트 폴더(`testsDir`). **한 칸 이름만 받는다** — 자식 프롬프트에 `tests/<폴더>` 로 박히므로
+ * `..`·`/` 가 섞이면 저장소 밖이나 남의 폴더를 가리킨다. 옛 서버라 칸이 없어도 여기서 사유가 된다
+ */
+function 폴더고르기(prefix: string, 값: unknown): 폴더자리 {
+  if (typeof 값 === 'string' && /^[A-Za-z0-9._-]+$/.test(값) && 값 !== '.' && 값 !== '..') return { 폴더: 값 };
+  return { 사유: `${prefix} 의 테스트 폴더 설정이 비었거나 한 칸 이름이 아니다 (설정 화면에서 고친다)` };
+}
+
+/**
+ * `/api/auth/me` 응답에서 작성 에이전트가 쓸 것. 모양이 틀렸거나 보기만 등급이면 사유 글.
+ * 대상 서버와 테스트 폴더는 자식(tpx-author)이 입력으로 기대한다 — 둘 다 이 응답에 실려 온다. 새 통로가 필요 없다
  */
 export function 나풀기(
   몸: unknown,
-): { username: string; 서비스들: string[]; 서버표: Record<string, 서버[]> } | string {
+): { username: string; 서비스들: string[]; 서버표: Record<string, 서버[]>; 폴더표: Record<string, 폴더자리> } | string {
   const user = (몸 as { user?: unknown } | null)?.user as
-    | { username?: unknown; role?: unknown; services?: { prefix: string; envs?: 서버[] }[] }
+    | { username?: unknown; role?: unknown; services?: { prefix: string; envs?: 서버[]; testsDir?: unknown }[] }
     | undefined;
   if (user === undefined || typeof user.username !== 'string' || !Array.isArray(user.services)) {
     return '/api/auth/me 응답이 예상한 모양이 아니다. 서버 판이 맞는지 봐라.';
@@ -99,5 +111,6 @@ export function 나풀기(
     username: user.username,
     서비스들: user.services.map((s) => s.prefix),
     서버표: Object.fromEntries(user.services.map((s) => [s.prefix, s.envs ?? []])),
+    폴더표: Object.fromEntries(user.services.map((s) => [s.prefix, 폴더고르기(s.prefix, s.testsDir)])),
   };
 }

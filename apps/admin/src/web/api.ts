@@ -200,6 +200,8 @@ export interface ServiceRow {
   envs: EnvRow[];
   /** Slack 칸을 그릴지. 주소 자체는 오지 않는다 (SPEC §7) */
   hasSlackWebhook: boolean;
+  /** 케이스 폴더 이름. 선택으로 둔 건 기존 화면 검사의 가짜 응답이 이 값을 안 담아서다 */
+  testsDir?: string;
 }
 
 export interface User {
