@@ -113,4 +113,44 @@ describe.skipIf(연결 === undefined)('save', () => {
     );
     expect(after.rows[0]?.n).toBe(before.rows[0]?.n);
   });
+
+  describe('미확정 꼬리표', () => {
+    async function 꼬리표(tcId: string): Promise<{ unconfirmed: string | null; since: Date | null }> {
+      const row = await pool.query<{ unconfirmed: string | null; unconfirmed_since: Date | null }>(
+        'SELECT unconfirmed, unconfirmed_since FROM test_case WHERE tc_id = $1',
+        [tcId],
+      );
+      return { unconfirmed: row.rows[0]?.unconfirmed ?? null, since: row.rows[0]?.unconfirmed_since ?? null };
+    }
+
+    let 처음: Date | null = null;
+
+    it('사유가 있는 명세를 저장하면 사유와 단 시각이 실린다', async () => {
+      await save([spec('ZZA-101', { unconfirmed: '기획서와 다름' })], false, 'ZZA');
+      const got = await 꼬리표('ZZA-101');
+      expect(got.unconfirmed).toBe('기획서와 다름');
+      expect(got.since).toBeInstanceOf(Date);
+      처음 = got.since;
+    });
+
+    it('사유 글자만 바뀌면 사유는 새 글이고 단 시각은 그대로다', async () => {
+      await save([spec('ZZA-101', { unconfirmed: '화면만 보고 만들었다' })], false, 'ZZA');
+      const got = await 꼬리표('ZZA-101');
+      expect(got.unconfirmed).toBe('화면만 보고 만들었다');
+      expect(got.since?.getTime()).toBe(처음?.getTime());
+    });
+
+    it('사유가 빠지면 사유와 단 시각이 둘 다 비워진다', async () => {
+      await save([spec('ZZA-101')], false, 'ZZA');
+      expect(await 꼬리표('ZZA-101')).toEqual({ unconfirmed: null, since: null });
+    });
+
+    it('풀렸다가 다시 달리면 단 시각이 새로 찍힌다', async () => {
+      await save([spec('ZZA-101', { unconfirmed: '다시 미확정' })], false, 'ZZA');
+      const got = await 꼬리표('ZZA-101');
+      expect(got.unconfirmed).toBe('다시 미확정');
+      expect(got.since).toBeInstanceOf(Date);
+      expect(got.since?.getTime()).toBeGreaterThan(처음?.getTime() ?? Infinity);
+    });
+  });
 });
