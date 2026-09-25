@@ -1,6 +1,8 @@
 // lane.mjs 가 바뀐 파일 목록을 차선 넷(docs · spec · cases · full)으로 가르는지 본다
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { lane } from './lane.mjs';
 
 const 기존폴더 = ['todo', 'demo'];
@@ -31,3 +33,34 @@ for (const [파일들, 기대, 이름] of 표) {
     assert.equal(lane(파일들, 기존폴더), 기대);
   });
 }
+
+const 스크립트 = fileURLToPath(new URL('./lane.mjs', import.meta.url));
+const 돌린다 = (입력, ...인자) =>
+  execFileSync('node', [스크립트, ...인자], { input: 입력, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+
+test('lane CLI: 차선을 lane=<이름> 으로 찍는다', () => {
+  assert.equal(돌린다('docs/SETUP.md\n', 'origin/main'), 'lane=docs');
+  assert.equal(돌린다('docs/spec/도메인/작성.md\n', 'origin/main'), 'lane=spec');
+  assert.equal(돌린다('tests/todo/TODO-001.spec.ts\n', 'origin/main'), 'lane=cases');
+  assert.equal(돌린다('apps/admin/src/app.ts\n', 'origin/main'), 'lane=full');
+});
+
+test('lane CLI: 판정을 못 하면 full 이고 종료 코드는 0 이다', () => {
+  assert.equal(돌린다('docs/SETUP.md\n'), 'lane=full', 'base 인자 없음');
+  assert.equal(돌린다('docs/SETUP.md\n', '없는-ref-xyz'), 'lane=full', '없는 ref');
+  assert.equal(돌린다('', 'origin/main'), 'lane=full', '빈 입력');
+});
+
+test('cases-only.mjs 는 그대로다 — 문서만 바뀐 목록에 종료 1 (작성 에이전트의 병합 판정)', () => {
+  const 판정기 = fileURLToPath(new URL('./cases-only.mjs', import.meta.url));
+  const 종료 = (입력) => {
+    try {
+      execFileSync('node', [판정기, 'origin/main'], { input: 입력, stdio: ['pipe', 'pipe', 'pipe'] });
+      return 0;
+    } catch (e) {
+      return e.status;
+    }
+  };
+  assert.equal(종료('docs/SETUP.md\n'), 1);
+  assert.equal(종료('docs/spec/도메인/작성.md\n'), 1);
+});

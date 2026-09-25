@@ -4,6 +4,13 @@
 // cases-only.mjs 에 붙이지 않고 따로 둔 이유 — 맥 작성 에이전트가 그 파일 하나만 임시 폴더에 복사해
 // 종료 코드로 병합을 허락한다(scripts/authoring-io.ts). 거기에 import 를 더하면 복사본이 깨지고,
 // 종료 0 의 뜻을 넓히면 에이전트가 문서 PR 까지 병합한다. 그래서 여기서 그 판정을 가져다 쓴다.
+//
+// 쓰는 법: git -c core.quotePath=false diff --no-renames --name-only <base>...HEAD | node lane.mjs <base>
+//   표준출력 `lane=<차선>` 한 줄. 종료 코드는 늘 0 이다 — CI 의 bash -e 를 죽이지 않는다.
+//   무엇이든 실패하면 `lane=full` 이다.
+import { execFileSync } from 'node:child_process';
+import { readFileSync, realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { 테스트만인가 } from './cases-only.mjs';
 import { surfaceOf } from './surfaces.mjs';
 
@@ -20,4 +27,33 @@ export function lane(파일들, 기존폴더) {
   const 문서뿐 = 파일들.every((f, i) => (표면들[i] === 'DOC' && 문서자리(f)) || 표면들[i] === 'SPEC');
   if (!문서뿐) return 'full';
   return 표면들.includes('SPEC') ? 'spec' : 'docs';
+}
+
+function 직접불렸나() {
+  try {
+    return realpathSync.native(fileURLToPath(import.meta.url)) === realpathSync.native(process.argv[1] ?? '');
+  } catch {
+    return false;
+  }
+}
+
+function 판정(base) {
+  if (!base) return 'full';
+  const 폴더목록 = execFileSync('git', ['-c', 'core.quotePath=false', 'ls-tree', '-d', '--name-only', base, 'tests/'], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const 기존폴더 = 폴더목록.split('\n').filter(Boolean).map((p) => p.replace(/^tests\//, ''));
+  const 파일들 = readFileSync(0, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
+  return lane(파일들, 기존폴더);
+}
+
+if (직접불렸나()) {
+  let 차선 = 'full';
+  try {
+    차선 = 판정(process.argv[2]);
+  } catch (e) {
+    console.error(`[lane] 판정을 못 했다 — full 로 간다: ${e.message}`);
+  }
+  console.log(`lane=${차선}`);
 }
