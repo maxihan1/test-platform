@@ -14,13 +14,18 @@ import { fileURLToPath } from 'node:url';
  * 전에는 새 폴더를 무거운 길로 보냈다(CI 실행 단계에 없어 다음 PR 이 빨개진다는 이유). 그런데 서비스 폴더는
  * CI 가 돌리지 않고, 케이스 병합의 근거는 작성 에이전트의 관문 3 기록이다. 새 서비스의 첫 케이스를
  * 막을 까닭이 없어 뺐다 (2026-09-25 사용자 승인).
+ *
+ * 대신 spec 이름은 케이스 번호 모양(`<접두사>-NNN.spec.ts`)만 받는다 (2026-09-25 게이트 2).
+ * `ci-covers-tests` 가 이 모양만 든 폴더를 서비스 폴더로 면제하므로, 더 넓게 받으면 cases 차선으로 들어온 폴더가
+ * 면제에서 빠져 다음 full PR 이 남의 폴더 때문에 빨개진다. 기획서에 숨긴 지시로 아무 이름을 심는 길도 좁아진다.
+ * 접두사 모양은 SPEC §2 tcId 접두사(`^[A-Z][A-Z0-9]{0,11}$`)와 같다.
  */
 export function 테스트만인가(파일들) {
   if (파일들.length === 0) return false;
   return 파일들.every((f) => {
     if (f.split('/').includes('..')) return false;
     if (/^docs\/cases\/[^/]+\.md$/.test(f)) return true;
-    return /^tests\/[^/]+\/[^/]+\.spec\.ts$/.test(f);
+    return /^tests\/[^/]+\/[A-Z][A-Z0-9]{0,11}-\d{3}\.spec\.ts$/.test(f);
   });
 }
 

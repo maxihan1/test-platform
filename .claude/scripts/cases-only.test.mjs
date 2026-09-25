@@ -40,6 +40,14 @@ test('base 에 없던 새 서비스 폴더도 참 — 작성 에이전트가 새
   assert.equal(테스트만인가(['tests/새서비스/X-001.spec.ts', 'docs/cases/새서비스.md']), true);
 });
 
+test('spec 이름은 케이스 번호 모양(<접두사>-NNN.spec.ts)만 참 — CI 면제 모양과 같아야 한다', () => {
+  // 넓으면 cases 차선으로 들어온 폴더가 ci-covers-tests 면제에서 빠져 다음 full PR 이 남의 폴더 때문에 빨개진다
+  for (const 이름 of ['login', 'pay-001', 'PAY-01', 'PAY-0001', 'PAY_001', 'PAYMENTSERVICE1-001']) {
+    assert.equal(테스트만인가([`tests/newsvc/${이름}.spec.ts`]), false, 이름);
+  }
+  assert.equal(테스트만인가(['tests/newsvc/PAY-001.spec.ts', 'tests/newsvc/PAY2-013.spec.ts']), true);
+});
+
 test('명령줄 — 표준입력 목록과 base 로 판정해 종료 코드를 낸다', () => {
   const 스크립트 = fileURLToPath(new URL('./cases-only.mjs', import.meta.url));
   const 돌린다 = (입력, base) => {
