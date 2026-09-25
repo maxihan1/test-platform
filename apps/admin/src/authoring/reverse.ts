@@ -49,6 +49,35 @@ export function 계정있는줄(줄: 대상줄 | null): 줄 is 대상줄 {
   return 줄 !== null && (줄.loginId ?? '') !== '' && (줄.loginPassword ?? '') !== '';
 }
 
+export interface 대상 {
+  env: string;
+  baseUrl: string | null;
+  startUrl: string | null;
+  loginId: string | null;
+  loginPassword: string | null;
+}
+
+/**
+ * 집기 응답의 `target`. 대조 행이 아니면 undefined — 키 자체를 안 싣는다(피그마 토큰과 같은 규칙).
+ *
+ * **줄이 지워졌어도 대조 행이면 싣는다**(서버·계정 칸이 null). 키가 없으면 에이전트가 정방향으로 오인한다.
+ * 만든 뒤 설정이 바뀌었는지(계정 빠짐 · 출처 어긋남) 가려 실패시키는 것은 **에이전트**다 (§7).
+ */
+export async function 집기대상(
+  서비스: number,
+  행: { compare: boolean; env: string | null; startUrl: string | null },
+): Promise<대상 | undefined> {
+  if (!행.compare || 행.env === null) return undefined;
+  const 줄 = await 대상줄읽기(서비스, 행.env);
+  return {
+    env: 행.env,
+    baseUrl: 줄?.baseUrl ?? null,
+    startUrl: 행.startUrl,
+    loginId: 줄?.loginId ?? null,
+    loginPassword: 줄?.loginPassword ?? null,
+  };
+}
+
 export type 역방향칸 =
   | { compare: false }
   | { compare: true; env: string; startUrl: string | null }

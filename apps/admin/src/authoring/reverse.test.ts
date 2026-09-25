@@ -214,6 +214,57 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
     });
   });
 
+  describe('집기 target', () => {
+    async function 하나만세운다(본문: Record<string, unknown>): Promise<Record<string, unknown>> {
+      const { pool } = await import('../db/index.js');
+      await pool.query(
+        `UPDATE authoring_request SET status = 'FAILED' WHERE service_id = $1 AND status IN ('PENDING', 'RUNNING')`,
+        [서비스],
+      );
+      const id = (await 만들기(본문)).json<{ id: number }>().id;
+      await pool.query(`UPDATE authoring_request SET status = 'PENDING' WHERE id = $1`, [id]);
+      return { id };
+    }
+    const 집기 = () => app.inject({ method: 'POST', url: `/api/authoring/requests/claim?service=${접두사}` });
+
+    it('대조 행이면 target 에 대상 서버와 테스트 계정이 실린다', async () => {
+      const { id } = await 하나만세운다({ kind: 'AUTHOR', compare: true, env: 'qa', startUrl: 'https://qa.xwv.test/start' });
+      const res = await 집기();
+      expect(res.json()).toMatchObject({
+        id,
+        target: {
+          env: 'qa',
+          baseUrl: 'https://qa.xwv.test',
+          startUrl: 'https://qa.xwv.test/start',
+          loginId: 'tester',
+          loginPassword: 비밀,
+        },
+      });
+    });
+
+    it('정방향 행이면 target 키가 없다', async () => {
+      await 하나만세운다({ kind: 'AUTHOR' });
+      expect(Object.keys((await 집기()).json())).not.toContain('target');
+    });
+
+    it('만든 뒤 대상 서버 줄이 지워지면 target 은 있고 서버·계정 칸이 null 이다', async () => {
+      const { pool } = await import('../db/index.js');
+      await pool.query(
+        `INSERT INTO service_env (service_id, env, base_url, login_id, login_password) VALUES ($1, 'gone', 'https://gone.xwv.test', 'tester', $2)`,
+        [서비스, 비밀],
+      );
+      await 하나만세운다({ kind: 'AUTHOR', compare: true, env: 'gone' });
+      await pool.query(`DELETE FROM service_env WHERE service_id = $1 AND env = 'gone'`, [서비스]);
+      expect((await 집기()).json<{ target: unknown }>().target).toEqual({
+        env: 'gone',
+        baseUrl: null,
+        startUrl: null,
+        loginId: null,
+        loginPassword: null,
+      });
+    });
+  });
+
   describe('다시 돌리기', () => {
     async function 끝난원본(본문: Record<string, unknown>): Promise<number> {
       const { pool } = await import('../db/index.js');

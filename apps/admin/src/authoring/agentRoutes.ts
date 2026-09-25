@@ -8,6 +8,7 @@ import { join } from 'node:path';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 자료목록 } from './assetStore.js';
+import { 집기대상 } from './reverse.js';
 import { 번호, 사진뿌리, 서비스번호 } from './routes.js';
 import {
   끝내기,
@@ -119,7 +120,14 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         const 읽을자료 =
           집은것.kind === 'RERUN' && 집은것.sourceId !== null ? await 자료목록(집은것.sourceId) : assets;
         const 토큰 = 읽을자료.some((a) => a.kind === 'FIGMA') ? await 피그마토큰(서비스) : null;
-        return { ...집은것, assets, ...(토큰 === null ? {} : { figmaToken: 토큰 }) };
+        // 테스트 계정도 같은 길이다 — 대조 행에만 싣고, 에이전트는 자식 환경에만 넘긴다 (§3.6 「로그인」)
+        const target = await 집기대상(서비스, 집은것);
+        return {
+          ...집은것,
+          assets,
+          ...(토큰 === null ? {} : { figmaToken: 토큰 }),
+          ...(target === undefined ? {} : { target }),
+        };
       } catch (e) {
         // 되돌리기마저 던지면(DB 가 끊긴 같은 원인일 공산이 크다) 그 오류가 원래 원인을 덮는다.
         // 되돌리기 실패는 로그로 남기고 원래 오류를 낸다 — 오래된 RUNNING 을 치우는 장치는 아직 없다
