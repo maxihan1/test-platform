@@ -24,7 +24,7 @@ import { 계정들, 동시상한, 바탕거부사유, 호스트환경 } from './
 import { 도는자식, 멈춤, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
 import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
 import { type 판, 멈춘것닫기, 한건처리 } from './authoring-run.js';
-import { 나풀기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
+import { type 폴더자리, 나풀기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 // ── 껍데기 ────────────────────────────────────────────────────────────
 // 여기부터는 I/O 다. 판단은 전부 위의 순수 함수에 있고 검사도 거기 붙어 있다.
@@ -107,6 +107,7 @@ async function 돈다(): Promise<number> {
   let 나: string;
   let 서비스들: string[];
   let 서버표: Record<string, { env: string; baseUrl: string }[]>;
+  let 폴더표: Record<string, 폴더자리>;
   try {
     const 고른것 = 토큰고르기(process.env, 토큰읽기(자리));
     토큰 = 고른것?.토큰 ?? (await 토큰묻기());
@@ -115,7 +116,7 @@ async function 돈다(): Promise<number> {
     const 답 = await 부른다(주소, 토큰, '/auth/me');
     const 풀린것 = 나풀기(답.몸);
     if (typeof 풀린것 === 'string') throw new Error(풀린것);
-    ({ username: 나, 서비스들, 서버표 } = 풀린것);
+    ({ username: 나, 서비스들, 서버표, 폴더표 } = 풀린것);
     // 서버가 받아 준 뒤에만 저장한다 — 틀린 값을 파일에 남기면 다음에 켤 때도 같은 자리에서 막힌다
     if (어디 === '입력') 토큰저장(자리, 토큰);
   } catch (err) {
@@ -204,7 +205,7 @@ async function 돈다(): Promise<number> {
           }
           console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}${자리번호 < 0 ? '' : ` · 자리 ${자리번호}`}).`);
           try {
-            await 한건처리(주소, 토큰, 서비스, 것, 판, 자리번호, 서버표[서비스] ?? []);
+            await 한건처리(주소, 토큰, 서비스, 것, 판, 자리번호, 서버표[서비스] ?? [], 폴더표[서비스]);
           } finally {
             if (자리번호 >= 0) 표.놓기(자리번호);
           }

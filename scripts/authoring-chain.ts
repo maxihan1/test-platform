@@ -250,16 +250,3 @@ export function CI실행주소(prUrl: string, 실행번호: number): string {
   const 저장소 = /^https:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/pull\/\d+/.exec(prUrl)?.[1];
   return 저장소 === undefined ? `CI 실행 ${실행번호}번` : `https://github.com/${저장소}/actions/runs/${실행번호}`;
 }
-
-/**
- * 그 접두사의 기존 케이스가 사는 테스트 폴더. 모르면 `null`.
- *
- * **서비스의 테스트 폴더 설정은 서버 응답에 없다** — 더하면 계약 변경이라, 작업방의 기존 케이스로 찾기로 했다
- * (2026-09-23 사용자 결정). 없으면 첫 케이스는 사람이 `/tpx` 로 만든다 — 새 폴더는 어차피 가벼운 길이 아니라
- * 맥의 push 가 훅에 막힌다. 두 폴더에 흩어져 있으면 **고르지 않는다** (지어내지 않는다).
- */
-export function 케이스폴더(파일목록: string[], 접두사: string): string | null {
-  const 모양 = new RegExp(`^tests/([^/]+)/${접두사}-\\d{3}\\.spec\\.ts$`);
-  const 폴더들 = new Set(파일목록.flatMap((f) => 모양.exec(f)?.[1] ?? []));
-  return 폴더들.size === 1 ? [...폴더들][0]! : null;
-}

@@ -9,8 +9,8 @@ import { writeFileSync } from 'node:fs';
 import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 자료계획, 자료출처 } from './authoring-assets.js';
-import { 닫을RUNNING, 자식환경, 케이스폴더 } from './authoring-chain.js';
-import { type 계정, type 사본, 사본환경 } from './authoring-copy.js';
+import { 닫을RUNNING, 자식환경 } from './authoring-chain.js';
+import { type 계정, type 사본 } from './authoring-copy.js';
 import { 사본만들기, 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
 import {
   type 보고손,
@@ -29,6 +29,7 @@ import {
 } from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
 import { 올리기 } from './authoring-upload.js';
+import { type 폴더자리 } from './authoring-token.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -72,10 +73,11 @@ export async function 한건처리(
   것: 집은것,
   판: 판,
   자리번호: number,
-  서버들: { env: string; baseUrl: string }[] = [],
+  서버들: { env: string; baseUrl: string }[],
+  폴더: 폴더자리 | undefined,
 ): Promise<void> {
   const 손 = 보고손만들기(주소기지, 토큰, 서비스, 것.id);
-  await 닫으며(손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판, 자리번호, 서버들, 감싼손));
+  await 닫으며(손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판, 자리번호, 서버들, 폴더, 감싼손));
 }
 
 async function 한건(
@@ -86,6 +88,7 @@ async function 한건(
   판: 판,
   자리번호: number,
   서버들: { env: string; baseUrl: string }[],
+  폴더: 폴더자리 | undefined,
   손: 보고손,
 ): Promise<void> {
   if (것.kind === 'MERGE') {
@@ -103,6 +106,13 @@ async function 한건(
     // 확인하는 브랜치는 **prUrl 을 가진 원본 행**(sourceId)의 것이다 — 재실행이 올린 PR 이면 author-<재실행 번호>.
     // 머지 행 자기 번호로 PR 을 올린 적은 없다
     await 머지처리(손, 주소, 판.판정, 것.sourceId ?? undefined, 판.원천, 판.호스트로);
+    return;
+  }
+
+  // 테스트 폴더는 서비스 설정의 testsDir 다 (2026-09-25 계약 변경 승인). 아직 없는 폴더여도 된다 — 자식이 만든다.
+  // 사본을 만들기 전에 거른다 — 설정이 틀린 건에 작업방을 만들 까닭이 없다
+  if (폴더 === undefined || '사유' in 폴더) {
+    await 손.끝내기({ status: 'FAILED', error: 폴더?.사유 ?? `${서비스} 의 테스트 폴더 설정을 못 받았다` });
     return;
   }
 
@@ -142,7 +152,7 @@ async function 한건(
   }
   const 자리 = 만든것.자리;
   try {
-    await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 자리, 메인.sha, 출처, 자료들, 본문, 서버들, 손);
+    await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 자리, 메인.sha, 출처, 자료들, 본문, 서버들, 폴더.폴더, 손);
   } finally {
     // 받은 기획서와 자식이 만든 것을 남기지 않는다. 성공이든 실패든 지운다 —
     // 단 자식을 못 거뒀으면 남긴다. 살아 있는 자식이 지우는 도중에 폴더를 링크로 바꿔 트리 밖을 지우게 할 수 있다
@@ -163,20 +173,9 @@ async function 사본에서(
   자료들: 자료[],
   본문: string | null,
   서버들: { env: string; baseUrl: string }[],
+  케이스자리: string,
   손: 보고손,
 ): Promise<void> {
-  const 깃 = 사본환경(자리);
-  const 트리에서 = (명령: string, 인자: string[], 제한 = 120_000) =>
-    친다(명령, 인자, 자리.트리, undefined, 제한, { env: 깃 });
-
-  // 테스트 폴더는 사본의 기존 케이스로 찾는다 (2026-09-23 사용자 결정). 없으면 첫 케이스는 사람의 일이다
-  const 목록 = 트리에서('git', ['-c', 'core.quotePath=false', 'ls-files', 'tests']);
-  const 케이스자리 = 목록.ok ? 케이스폴더(목록.낸것.split('\n'), 서비스) : null;
-  if (케이스자리 === null) {
-    await 손.끝내기({ status: 'FAILED', error: `${서비스} 의 케이스 폴더를 못 찾았다 — 첫 케이스는 사람이 /tpx 로 만든다` });
-    return;
-  }
-
   const 계획 = 자료계획(자료들, 자리.자료);
   const 못읽음 = 못읽는자료(계획);
   if (못읽음 !== null) {

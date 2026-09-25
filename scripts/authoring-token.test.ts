@@ -77,21 +77,40 @@ describe('토큰고르기 — 서버는 환경값, 맥은 파일', () => {
   });
 });
 
-describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버를 받는다', () => {
+describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테스트 폴더를 받는다', () => {
   const 몸 = {
     user: {
       username: 'mac',
       role: 'operator',
-      services: [{ prefix: 'DEMO', envs: [{ env: 'qa', baseUrl: 'https://qa.x' }] }, { prefix: 'TODO' }],
+      services: [
+        { prefix: 'DEMO', envs: [{ env: 'qa', baseUrl: 'https://qa.x' }], testsDir: 'demo' },
+        { prefix: 'TODO', testsDir: 'todo-app' },
+      ],
     },
   };
 
-  it('이름과 서비스, 서비스마다 대상 서버를 낸다', () => {
+  it('이름과 서비스, 서비스마다 대상 서버와 테스트 폴더를 낸다', () => {
     expect(나풀기(몸)).toEqual({
       username: 'mac',
       서비스들: ['DEMO', 'TODO'],
       서버표: { DEMO: [{ env: 'qa', baseUrl: 'https://qa.x' }], TODO: [] },
+      폴더표: { DEMO: { 폴더: 'demo' }, TODO: { 폴더: 'todo-app' } },
     });
+  });
+
+  it.each([
+    ['옛 서버라 칸이 없다', undefined],
+    ['비었다', ''],
+    ['두 칸이다', 'a/b'],
+    ['위로 올라간다', '..'],
+    ['제자리다', '.'],
+    ['허용 밖 글자가 있다', 'demo app'],
+    ['글자가 아니다', 3],
+  ])('테스트 폴더가 %s — 그 서비스만 폴더 대신 사유를 낸다', (_이름, 값) => {
+    const 풀린것 = 나풀기({ user: { ...몸.user, services: [{ prefix: 'PAY', testsDir: 값 }, { prefix: 'DEMO', testsDir: 'demo' }] } });
+    if (typeof 풀린것 === 'string') throw new Error(풀린것);
+    expect(풀린것.폴더표.PAY).toEqual({ 사유: 'PAY 의 테스트 폴더 설정이 비었거나 한 칸 이름이 아니다 (설정 화면에서 고친다)' });
+    expect(풀린것.폴더표.DEMO).toEqual({ 폴더: 'demo' });
   });
 
   it('보기만 등급이면 사유를 낸다 — 줄을 집을 수 없다', () => {

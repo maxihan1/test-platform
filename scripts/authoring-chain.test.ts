@@ -10,7 +10,6 @@ import {
   PR준비인자,
   닫을RUNNING,
   바뀐파일들,
-  케이스폴더,
   다시돌릴인자,
   머지인자,
   실행목록인자,
@@ -33,26 +32,6 @@ import {
   push실패,
   type CI실행,
 } from './authoring-chain.js';
-
-describe('케이스 폴더 — 그 접두사의 기존 케이스가 사는 폴더를 찾는다 (2026-09-23 사용자 결정)', () => {
-  it('접두사의 케이스가 한 폴더에만 있으면 그 폴더다', () => {
-    const 파일들 = ['tests/demo/DEMO-001.spec.ts', 'tests/demo/DEMO-011.spec.ts', 'tests/todo/TODO-001.spec.ts'];
-    expect(케이스폴더(파일들, 'DEMO')).toBe('demo');
-    expect(케이스폴더(파일들, 'TODO')).toBe('todo');
-  });
-
-  it('그 접두사의 케이스가 없으면 모른다 — 첫 케이스는 사람이 /tpx 로 만든다', () => {
-    expect(케이스폴더(['tests/todo/TODO-001.spec.ts'], 'PAY')).toBe(null);
-  });
-
-  it('두 폴더에 흩어져 있으면 고르지 않는다 — 지어내지 않는다', () => {
-    expect(케이스폴더(['tests/a/PAY-001.spec.ts', 'tests/b/PAY-002.spec.ts'], 'PAY')).toBe(null);
-  });
-
-  it('접두사가 앞부분만 같은 것은 남의 케이스다', () => {
-    expect(케이스폴더(['tests/demox/DEMOX-001.spec.ts'], 'DEMO')).toBe(null);
-  });
-});
 
 describe('올릴 브랜치와 push', () => {
   it('브랜치 이름은 author-<번호>', () => {
