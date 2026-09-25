@@ -54,10 +54,10 @@
   「K1~K10」이라 적은 자리는 범위 숫자를 빼고 「§4 K표」·「K 규칙」으로 가리키게 했다 — 규칙이 늘어도 다시 안 어긋나게.
   **남은 것 없음.** 누가 달았는지와 꼬리표 없이 화면 값을 썼는지는 계속 사람이 본다(spec-review B10).
   명세 [도메인/카탈로그.md](spec/도메인/카탈로그.md) §3.1 「미확정 꼬리표」 · [공통/2-명세선언.md](spec/공통/2-명세선언.md) §4
-- **WS-B** — `counts` 에 `unconfirmed` 묶음(확정 항목만 pass·fail·na 로 센다) · 실행을 만들 때 `run_item.unconfirmed` 박제.
-  `apps/admin/src/execution/queries.ts:79–82,115,163,237–245` · `notify.ts:66`(Slack 요약)과 해당 테스트들.
-  Slack 머리는 미확정 실패가 있으면 `[통과 · 미확정 실패 N]` · 미확정만 돌린 실행의 목록 판정 색은 「판정 없음」(색 없음, 글자로 미확정 수).
-  「미확정 N」 은 끝난 미확정만 센다(진행 중인 것은 running).
+- **WS-B — 반영 완료 (2026-09-26, PR #76).** 실행을 만들 때 `run_item.unconfirmed` 박제 · `counts` 의 pass·fail·na 는 확정만, `counts.unconfirmed = { total, pass, fail, na }` ·
+  목록 집계 `allPass`·`hasFail` 과 `state=failed` 거르개도 확정만(미확정만 돌린 실행은 어느 쪽에도 안 든다) · 항목 응답(`items[]`·항목 상세)에 박제된 `unconfirmed` ·
+  Slack 머리 `[통과 · 미확정 실패 N]`·`[미확정]`·`[미확정 · 실패 N]`(N 에 미확정 미실행 포함) · 숫자 줄 `미확정 5(통과 4 · 실패 1)` · 실패 목록의 `(미확정)` 꼬리.
+  `execution/queries.ts` 가 300줄을 넘어 `runSummary.ts`(거르개·머리 집계) · `runTypes.ts`(응답 타입)로 뗐다. **남은 것 없음** — 화면은 WS-E.
   명세 [도메인/실행.md](spec/도메인/실행.md) §3.2 「미확정 항목은 따로 센다」(집계 정본) · 같은 장 §7 계약 블록
 - **WS-D** — 증적 머리 요약의 미확정 수 · 본문 「미확정 — 기획 답 대기」 묶음 · 엑셀 `미확정 사유` 칸 ·
   Grafana 판정 패널에 `run_item.unconfirmed IS NULL` ·
@@ -68,6 +68,10 @@
   **작성 상세의 산출물(`role`) · 차이 목록(`diffs`) · 표시 실패의 「표시 못 함 — 이유」(`markError`)** ·
   대시보드에 서비스별 가장 오래된 미확정의 나이. 이 둘(나이 · `markError` 표시)은 명세가 아니라 이 갈래와 `docs/DESIGN.md` 로 넘겼다.
   화면 규칙은 `docs/DESIGN.md`, **목업 `docs/design-mockup.html` 도 이 갈래가 고친다**
+  **★ WS-B 가 먼저 들어가 화면이 지금 미확정을 가린다 (2026-09-26).** `counts.pass·fail·na` 가 확정만 세게 바뀌었는데 화면은 아직 미확정 묶음을 안 읽는다 —
+  ① 진행 막대·완료 모달(`runProgress.ts:76`·`RunProgressModal.tsx:168`)의 칸 합이 `counts.total` 보다 작다 ② 목록 줄(`RunList.tsx:219–239`)·머리 집계(`layout.ts:234–236`)에서
+  **미확정 실패가 어떤 숫자에도 안 나오고, 미확정만 돌린 실행이 초록으로 칠해진다.** 화면 사본 타입 `web/api.ts` 의 `RunCounts`·`RunItemSummary`(`unconfirmed`)도 이 갈래가 더한다.
+  **그래서 WS-작성을 병합하기 전에 이 갈래를 먼저 하거나 같이 한다** — 미확정 케이스가 실제로 생기는데 화면이 숨기는 기간을 만들지 않는다
 - **WS-F** — 설정 `envs[]` 줄에 테스트 계정(`loginId` · `loginPassword`) · 비밀번호 유지 규칙(`apps/admin/src/settings/store.ts:71` 이
   줄을 전부 지우고 다시 넣으므로 키가 없으면 같은 env 의 기존 값을 유지, `null` 이면 지운다) · `outputs` 를 `apps/admin/src/auth/gate.ts` 의 **등급표**(operator) · 토큰 통로와
   라우트표(`apps/admin/src/auth/scope.ts`, `작성요청, 칸:'id'`) 셋에 다 넣는다. 명세 [도메인/인증.md](spec/도메인/인증.md) §7 「envs[] 한 줄」 · §8.8
