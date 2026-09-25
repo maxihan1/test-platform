@@ -219,4 +219,27 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     ]);
     expect(칸들.map((i) => i.style.flexGrow)).toEqual(['11', '1', '0', '22']);
   });
+
+  it('미확정이 있으면 막대에 미확정 칸이 판정 색이 아닌 색으로 붙고 묶음 글자가 보인다', () => {
+    const 섞임 = { ...도는중실행, counts: { ...도는중실행.counts, pass: 9, unconfirmed: { total: 2, pass: 1, fail: 1, na: 0 } } };
+    render(<RunProgressModal data={섞임} 진행목록={[]} onClose={() => {}} />);
+
+    const 칸들 = [...document.querySelectorAll<HTMLElement>('.stripe i')];
+    expect(칸들.map((i) => i.style.background)).toEqual([
+      'var(--pass)',
+      'var(--fail)',
+      'var(--na)',
+      'var(--ink-faint)',
+      'var(--rule)',
+    ]);
+    expect(칸들.map((i) => i.style.flexGrow)).toEqual(['9', '1', '0', '2', '22']);
+    expect(본문()).toContain('미확정 2(통과 1 · 실패 1)');
+  });
+
+  it('끝난 실행의 완료 내용에도 미확정 묶음이 보인다', () => {
+    const 섞임 = { ...끝난실행, counts: { ...끝난실행.counts, pass: 31, unconfirmed: { total: 2, pass: 2, fail: 0, na: 0 } } };
+    render(<RunProgressModal data={섞임} 진행목록={[]} onClose={() => {}} />);
+
+    expect(본문()).toContain('미확정 2(통과 2)');
+  });
 });

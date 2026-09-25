@@ -8,6 +8,7 @@ import { Modal } from './Modal.js';
 import { type RunDetail, type 진행막대, 진행상황 } from './runProgress.js';
 import { 도는중, 미실행사유 } from './runState.js';
 import { STATUS_LABEL } from './ui.js';
+import { 끝난미확정, 미확정글자 } from './unconfirmed.js';
 
 const 실패목록최대 = 5;
 
@@ -31,6 +32,8 @@ function 막대칸들(막대: 진행막대, 언어: 언어) {
     { 이름: t('통과', 언어), 수: 막대.통과, 색: 'var(--pass)', 판정: true },
     { 이름: t('실패', 언어), 수: 막대.실패, 색: 'var(--fail)', 판정: true },
     { 이름: t('미실행', 언어), 수: 막대.미실행, 색: 'var(--na)', 판정: true },
+    // 미확정은 판정 색을 쓰지 않는다 — 확정 판정에 안 드는 묶음이다 (도메인/실행 §3.2). 없으면 칸도 없다
+    ...(막대.미확정 > 0 ? [{ 이름: t('미확정', 언어), 수: 막대.미확정, 색: 'var(--ink-faint)', 판정: true }] : []),
     // 남은 것은 판정이 아니다. 판정 색 셋 중 하나를 쓰면 아직 안 난 결과가 결과처럼 읽힌다 (DESIGN.md)
     { 이름: t('남음', 언어), 수: 막대.남은것, 색: 'var(--rule)', 판정: false },
   ];
@@ -112,6 +115,7 @@ function 진행내용({ data, 진행목록 }: { data: RunDetail; 진행목록: �
       )}
       {/* 색만으로는 판정을 전달하지 않는다 — 칸마다 숫자와 글자를 같이 적는다 (SPEC §8.9) */}
       <판정칸들 칸들={칸들} />
+      {미확정글자(data.counts, 언어) === '' ? null : <p className="hint">{미확정글자(data.counts, 언어)}</p>}
       <p>{t말('{끝난} / {전체} 완료', { 끝난: 끝난수, 전체: 전체수 })}</p>
 
       {지금도는것들.length === 0 ? null : (
@@ -165,7 +169,7 @@ function 완료내용({ data }: { data: RunDetail }) {
   const t말 = use말();
   const 언어 = use언어();
   const 칸들 = 막대칸들(
-    { 통과: data.counts.pass, 실패: data.counts.fail, 미실행: data.counts.na, 남은것: 0 },
+    { 통과: data.counts.pass, 실패: data.counts.fail, 미실행: data.counts.na, 미확정: 끝난미확정(data.counts), 남은것: 0 },
     언어,
   ).filter((칸) => 칸.판정);
   const 실패목록 = 실패한케이스들(data.items);
@@ -176,6 +180,7 @@ function 완료내용({ data }: { data: RunDetail }) {
         {data.title} · {t말('대상 서버 {서버}', { 서버: data.env })}
       </p>
       <판정칸들 칸들={칸들} />
+      {미확정글자(data.counts, 언어) === '' ? null : <p className="hint">{미확정글자(data.counts, 언어)}</p>}
       {실패목록.length === 0 ? null : (
         <div>
           {/* 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다 (SPEC §8.9) */}

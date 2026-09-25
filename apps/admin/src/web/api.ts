@@ -34,6 +34,14 @@ export interface CaseRow {
   expectedSchema: JsonSchema;
   isActive: boolean;
   scannedAt: string;
+  /** 미확정 사유와 처음 미확정이 된 시각 (도메인/카탈로그 §3.1). 없으면 확정 케이스다 */
+  unconfirmed?: string | null;
+  unconfirmedSince?: string | null;
+}
+
+/** 케이스 목록 응답. 머리의 미확정 요약은 검색 조건을 안 따른다 — 서비스 전체다 (도메인/카탈로그 §7) */
+export interface CasePage extends Paged<CaseRow> {
+  unconfirmed?: { count: number; oldestSince: string | null };
 }
 
 export interface LastScan {
@@ -70,7 +78,20 @@ export interface RunSummary {
   status: string;
   startedAt: string;
   finishedAt: string | null;
-  counts: { total: number; pass: number; fail: number; na: number; running: number };
+  counts: RunCounts;
+}
+
+/**
+ * 실행 집계 (도메인/실행 §7). pass·fail·na 는 **확정 항목만**이고 미확정은 `unconfirmed` 에서 따로 센다 (§3.2).
+ * `unconfirmed` 를 선택으로 둔 것은 이 칸을 모르는 기존 화면 검사의 가짜 응답을 안 고치려고다 — 없으면 미확정 0 으로 읽는다
+ */
+export interface RunCounts {
+  total: number;
+  pass: number;
+  fail: number;
+  na: number;
+  running: number;
+  unconfirmed?: { total: number; pass: number; fail: number; na: number };
 }
 
 // 그 실행으로 만든 증적 문서 (SPEC §7 · §8.4). status 는 PENDING | READY | FAILED
@@ -122,6 +143,8 @@ export interface RunItemSummary {
   error: { message: string; stack?: string } | null;
   startedAt: string;
   finishedAt: string | null;
+  /** 실행 때 박제한 미확정 사유. 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (도메인/실행 §8.3) */
+  unconfirmed?: string | null;
 }
 
 /**
@@ -188,6 +211,23 @@ export interface Violation {
 export interface EnvRow {
   env: string;
   baseUrl: string;
+  /**
+   * 대상 서버의 테스트 계정 (도메인/인증 §7 「envs[] 한 줄」). 설정 화면만 받는다 — `/auth/me` 에는 안 온다.
+   * 비밀번호 원문은 오지 않고 설정됐는지만 온다
+   */
+  loginId?: string | null;
+  hasLoginPassword?: boolean;
+}
+
+/**
+ * 설정 저장 때 보내는 한 줄. 계정 칸은 **키를 안 보내면 서버가 지금 것을 유지**하고 null·빈 글자면 지운다 (도메인/인증 §7).
+ * 비밀번호는 화면이 받은 적이 없으니 새로 넣을 때만 싣는다
+ */
+export interface EnvInput {
+  env: string;
+  baseUrl: string;
+  loginId?: string | null;
+  loginPassword?: string | null;
 }
 
 // 맨 위 띠의 서비스 목록이 이것이다. 배정받은 것만 온다 (SPEC §7 · §8)
@@ -428,7 +468,7 @@ export const api = {
     if (query.q !== undefined && query.q !== '') params.set('q', query.q);
     if (query.platform !== undefined) params.set('platform', query.platform);
     if (query.active === false) params.set('active', 'false');
-    return call<Paged<CaseRow>>(`/catalog/cases?${params.toString()}`);
+    return call<CasePage>(`/catalog/cases?${params.toString()}`);
   },
 
   caseOf: (tcId: string) => call<CaseRow>(`/catalog/cases/${encodeURIComponent(tcId)}`),
@@ -553,7 +593,7 @@ export const api = {
     color: string;
     testsRepo: string;
     testsDir: string;
-    envs: EnvRow[];
+    envs: EnvInput[];
     slackWebhook?: string;
     figmaToken?: string;
   }) => call<{ id: number }>('/settings/services', json(body)),
@@ -570,7 +610,7 @@ export const api = {
       testsRepo?: string;
       testsDir?: string;
       isActive?: boolean;
-      envs?: EnvRow[];
+      envs?: EnvInput[];
       /** 빈 글자를 보내면 알림을 끈다. 안 보내면 지금 것을 그대로 둔다 */
       slackWebhook?: string;
       /** 웹훅과 같다 — 빈 글자는 지우고, 안 보내면 그대로 둔다 */
