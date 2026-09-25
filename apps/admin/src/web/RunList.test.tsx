@@ -107,6 +107,22 @@ describe('RunList 화면 머리', () => {
   });
 });
 
+describe('RunList 미확정 (도메인/실행 §8.7)', () => {
+  it('미확정만 돌린 실행은 판정 색을 칠하지 않고 미확정 묶음을 글자로 보인다', async () => {
+    const 미확정만: RunSummary = {
+      ...실행(2130, 0),
+      title: 'ZRL 미확정만',
+      counts: { total: 2, pass: 0, fail: 0, na: 0, running: 0, unconfirmed: { total: 2, pass: 1, fail: 1, na: 0 } },
+    };
+    const { container } = await 그리기({ ...한쪽, items: [미확정만], total: 1 });
+    await screen.findByText(/ZRL 미확정만/);
+
+    const 띠 = container.querySelector<HTMLElement>('.row .gutter');
+    expect(띠?.style.background).toBe('var(--rule)');
+    expect(screen.getByText('미확정 2(통과 1 · 실패 1)')).toBeTruthy();
+  });
+});
+
 describe('RunList 집계 띠', () => {
   it('넷을 숫자와 글자 라벨로 같이 낸다', async () => {
     const { container } = await 그리기();

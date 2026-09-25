@@ -5,6 +5,7 @@ import type { RunSummary, ServiceRow, User } from './api.js';
 import { 기본언어, t, type 언어 } from './i18n.js';
 import { 할수있나, type 등급 } from './role.js';
 import { 도는중 } from './runState.js';
+import { 미확정글자, 판정없음 } from './unconfirmed.js';
 
 const 제품이름 = '테스트 플랫폼';
 
@@ -231,9 +232,13 @@ export function 알림줄(runs: RunSummary[], 언어: 언어, 본것들: Readonl
 
   const 것 = 갓끝난것.reduce((a, b) => (b.runId > a.runId ? b : a));
   const 머리 = t(것.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다', 언어);
-  const 집계 = [t('{수} 통과', 언어, { 수: 것.counts.pass })];
+  // 미확정만 돌린 실행은 판정이 없다 — 「0 통과」를 적으면 판정처럼 읽힌다 (도메인/실행 §3.2)
+  const 집계 = 판정없음(것.counts) ? [] : [t('{수} 통과', 언어, { 수: 것.counts.pass })];
   if (것.counts.fail > 0) 집계.push(t('{수} 실패', 언어, { 수: 것.counts.fail }));
   if (것.counts.na > 0) 집계.push(t('{수} 미실행', 언어, { 수: 것.counts.na }));
+  // 미확정은 확정 판정 뒤에 같은 묶음 꼴로 붙인다 (도메인/실행 §3.2)
+  const 미확정 = 미확정글자(것.counts, 언어);
+  if (미확정 !== '') 집계.push(미확정);
 
   const 글 = t('RUN {번호} 이 {머리} · {집계}', 언어, { 번호: 것.runId, 머리, 집계: 집계.join(' · ') });
   return { runId: 것.runId, 글, 끝났나: true };

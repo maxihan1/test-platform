@@ -1,6 +1,7 @@
 // 실행이 어디까지 갔는지를 RunDetail 하나에서 계산한다 (SPEC §8.3 · §8.9). 화면 조각은 없다
 
 import type { RunItemSummary, RunSummary, 항목진행 } from './api.js';
+import { 끝난미확정 } from './unconfirmed.js';
 
 /** `api.run()` 이 주는 모양. 증적 목록은 진행과 무관해 뺐다 — 없는 값을 요구하면 호출부가 채워야 한다 */
 export type RunDetail = RunSummary & { items: RunItemSummary[] };
@@ -9,6 +10,8 @@ export interface 진행막대 {
   통과: number;
   실패: number;
   미실행: number;
+  /** 끝난 미확정 항목. 통과·실패·미실행은 확정 항목만이라 이 칸이 있어야 합이 total 이다 (도메인/실행 §8.9) */
+  미확정: number;
   남은것: number;
 }
 
@@ -73,7 +76,7 @@ export function 진행상황(data: RunDetail, 진행목록: 항목진행[]): 진
   const 도는중인historyId = new Set(지금도는것들.map((것) => 것.항목.historyId));
 
   return {
-    막대: { 통과: counts.pass, 실패: counts.fail, 미실행: counts.na, 남은것: counts.running },
+    막대: { 통과: counts.pass, 실패: counts.fail, 미실행: counts.na, 미확정: 끝난미확정(counts), 남은것: counts.running },
     // `끝난것.length` 가 아니라 `counts` 에서 낸다. 집계와 항목 목록은 **별개 질의**라
     // (`execution/queries.ts` 가 트랜잭션 없이 잇달아 친다) 도는 도중 한쪽만 새것일 수 있다 —
     // 그러면 「6 / 8 완료」인데 막대에 칠해진 것은 5칸인 순간이 2초 폴링 창 안에 생긴다.

@@ -593,7 +593,7 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
                   <td class="pick"><input type="checkbox" aria-label="PAY-014 고르기" /></td>
                   <td><span class="tcchip mono">PAY-014</span></td>
                   <td>
-                    <div class="cname">결제를 취소하면 승인이 철회된다</div>
+                    <div class="cname">결제를 취소하면 승인이 철회된다 <span style="font-size:11.5px;padding:2px 8px;border:1px solid var(--rule);color:var(--ink-muted)">미확정</span></div>
                     <div class="csub">지원 디바이스 PC</div>
                   </td>
                   <td><span class="pnone">고칠 값이 없다</span></td>
@@ -727,8 +727,10 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
                     <div class="csub">정기 실행 · staging · 9월 14일 18:02 시작</div>
                   </td>
                   <td>
-                    <span class="runbar"><i class="p" style="width:82%"></i><i class="f" style="width:13%"></i><i class="n" style="width:5%"></i></span>
+                    <span class="runbar"><i class="p" style="width:78%"></i><i class="f" style="width:12%"></i><i class="n" style="width:5%"></i><i style="width:5%;background:var(--ink-faint);box-shadow:inset 2px 0 0 #fff"></i></span>
                     <span class="runcount"><span class="p">통과 <b>33</b></span><span class="f">실패 <b>5</b></span><span class="n">미실행 <b>2</b></span></span>
+                    <!-- 미확정은 판정이 아니라 판정 색을 안 쓴다. 확정 칸 뒤에 묶음 글자로 (DESIGN.md 「판정 표기」 미확정) -->
+                    <span class="runcount" style="color:var(--ink-faint)">미확정 2(통과 1 · 실패 1)</span>
                   </td>
                   <td class="r mono">14:08</td>
                   <td class="r"><button class="btn btn-sm">보기</button></td>
@@ -1112,6 +1114,9 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
                   <button class="btn btn-sm">편집</button></div>
                 <div class="envrow"><span class="nm mono">qa</span><span class="ad mono">https://qa.pay.acme.io</span>
                   <button class="btn btn-sm">편집</button></div>
+                <!-- 테스트 계정은 키·주소 아래 둘째 줄. 비밀번호는 되돌려 안 보인다 (도메인/인증 §8.8) -->
+                <div class="envrow"><span class="nm mono"></span><span class="ad mono">테스트 계정 qa-tester · 비밀번호 설정됨</span>
+                  <button class="btn btn-sm">다시 넣기</button></div>
                 <div class="envrow"><span class="nm mono">local</span><span class="ad mono">http://localhost:4000</span>
                   <button class="btn btn-sm">편집</button></div>
                 <div style="margin-top:12px"><button class="btn btn-sm">서버 추가</button></div>

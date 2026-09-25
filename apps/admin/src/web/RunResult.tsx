@@ -16,6 +16,7 @@ import { RunProgressModal } from './RunProgressModal.js';
 import { 결과줄 } from './RunResultRow.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
 import { Failed, Loading, message, PLATFORM_LABEL, PLATFORMS, STATUS_LABEL, useAsync, when } from './ui.js';
+import { 끝난미확정, 미확정글자 } from './unconfirmed.js';
 
 const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
@@ -121,6 +122,8 @@ export function RunResult({
   const shown = groups.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE);
   const columns = device === 'ALL' ? PLATFORMS : [device];
   const { pass, fail, na } = data.counts;
+  const 미확정 = 미확정글자(data.counts, 언어);
+  const 끝난미확정수 = 끝난미확정(data.counts);
   const 결과목록 =
     shown.length === 0 ? (
       <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
@@ -173,6 +176,12 @@ export function RunResult({
             <b style={{ color: 'var(--na)' }}>{na}</b>
             <span>{t('미실행')}</span>
           </div>
+          {/* 미확정은 확정 판정 칸 뒤에 묶음 글자로 붙는다. 없으면 안 쓴다 (도메인/실행 §8.3 · §3.2) */}
+          {미확정 === '' ? null : (
+            <div>
+              <span>{미확정}</span>
+            </div>
+          )}
           {/* 되돌릴 수 없으므로 누르면 한 번 더 묻는다 (SPEC §8.3) */}
           {!멈출수있나(data.status, role) ? null : (
             <button className="btn ghost" onClick={() => set멈출까(true)} disabled={멈추는중}>
@@ -203,11 +212,13 @@ export function RunResult({
       <div className={상자안 ? 'screen modal-results' : 'screen'}>
       {상자안 ? null : <증적알림과목록 칸={증적칸} />}
 
-      {pass + fail + na === 0 ? null : (
+      {pass + fail + na + 끝난미확정수 === 0 ? null : (
         <div className="stripe">
           <i style={{ background: 'var(--pass)', flex: pass }} />
           <i style={{ background: 'var(--fail)', flex: fail }} />
           <i style={{ background: 'var(--na)', flex: na }} />
+          {/* 판정 색이 아니다 — 확정 판정에 안 드는 묶음이다 (도메인/실행 §3.2) */}
+          {끝난미확정수 === 0 ? null : <i className="u" style={{ background: 'var(--ink-faint)', flex: 끝난미확정수 }} />}
         </div>
       )}
 

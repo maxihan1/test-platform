@@ -92,6 +92,46 @@ describe('CaseList 집계 띠', () => {
 
 // 창 794px 중 564px 을 위아래 UI 가 먼저 가져가 표에 206px(1.5줄)만 남았다 (2026-09-22 실측).
 // 스캔 줄 49px 과 필터 둘째 줄 66px 이 그 안에 있다
+describe('미확정 케이스 (도메인/카탈로그 §8.1)', () => {
+  const 스무사흘전 = new Date(Date.now() - 23 * 86_400_000 - 60_000).toISOString();
+  const 미확정쪽 = {
+    items: [{ ...케이스('ZPK-001'), unconfirmed: '기획서에 없는 안내 문구', unconfirmedSince: 스무사흘전 }, 케이스('ZPK-002')],
+    total: 2,
+    page: 1,
+    pageSize: 2,
+    unconfirmed: { count: 7, oldestSince: 스무사흘전 },
+  };
+
+  it('머리에 미확정 건수와 가장 오래된 것의 나이를 적는다', async () => {
+    const { container } = await 그리기(() => Promise.resolve(미확정쪽));
+    expect(container.querySelector('.head')?.textContent).toContain('미확정 7건 · 가장 오래된 것 23일째');
+  });
+
+  it('미확정 케이스 줄에만 배지가 붙는다', async () => {
+    const { container } = await 그리기(() => Promise.resolve(미확정쪽));
+    const 배지 = [...container.querySelectorAll('.case-tag')];
+    expect(배지).toHaveLength(1);
+    expect(배지[0]?.closest('.row')?.textContent).toContain('ZPK-001');
+  });
+
+  it('오늘 생긴 것만 있으면 0일째가 아니라 오늘이라 적는다', async () => {
+    const 방금 = new Date().toISOString();
+    const { container } = await 그리기(() => Promise.resolve({ ...미확정쪽, unconfirmed: { count: 1, oldestSince: 방금 } }));
+    expect(container.querySelector('.head')?.textContent).toContain('미확정 1건 · 가장 오래된 것 오늘');
+  });
+
+  it('처음 시각을 모르면 나이를 빼고 건수만 적는다', async () => {
+    const { container } = await 그리기(() => Promise.resolve({ ...미확정쪽, unconfirmed: { count: 3, oldestSince: null } }));
+    expect(container.querySelector('.head')?.textContent).toContain('미확정 3건');
+    expect(container.querySelector('.head')?.textContent).not.toContain('가장 오래된');
+  });
+
+  it('미확정이 없으면 머리에 적지 않는다', async () => {
+    const { container } = await 그리기();
+    expect(container.querySelector('.head')?.textContent).not.toContain('미확정');
+  });
+});
+
 describe('스캔 결과가 화면 머리에 있다 (SPEC §8.1, 2026-09-22)', () => {
   const 스캔 = {
     scannedAt: '2026-09-22T05:51:00.000Z',

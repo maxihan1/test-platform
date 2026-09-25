@@ -174,6 +174,8 @@ export function 케이스줄({
           안에 넣으면 이름 아래에 칸이 붙어 한 줄이 두 덩어리로 보이고 표머리를 달 수 없다 */}
       <div className="title">
         {row.name}
+        {/* 사유 한 문장은 상세에서 본다. 줄에는 배지만 — 판정 색은 쓰지 않는다 (도메인/카탈로그 §8.1) */}
+        {typeof row.unconfirmed === 'string' ? <span className="case-tag">{t('미확정')}</span> : null}
         <small>{t('지원 디바이스 {목록}', { 목록: row.platforms.map((p) => t(PLATFORM_LABEL[p])).join(', ') })}</small>
       </div>
       <div className="params">
