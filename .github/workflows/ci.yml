@@ -7,9 +7,14 @@
 #   초안         CI 안 돈다.  병합은 GitHub 이 막는다 (초안은 원래 병합 불가)
 #   Ready 전환   CI 돈다
 #   Ready 푸시   CI 돈다
-#   테스트만     가벼운 길 — 타입 · K1~K10 · 비밀값 이름만. 케이스는 실행하지 않는다
-#                (바뀐 파일이 기존 폴더의 tests/*/*.spec.ts · docs/cases/*.md 뿐일 때. 정본 docs/HOOKS.md)
 #   병합         CI 초록일 때만  ← main 브랜치 보호의 필수 상태 체크
+#
+# **바뀐 만큼만 검사한다 — 차선 넷** (2026-09-25, 정본 docs/HOOKS.md 「차선」. 판정은 .claude/scripts/lane.mjs)
+#   docs    문서만        check:spec 만. 설치도 안 한다
+#   spec    명세 포함     check:spec 만 (spec-review 는 pre-push 가 기록으로 요구한다)
+#   cases   테스트만      타입 · K1~K10 · 비밀값 이름 · check:spec. 케이스는 실행하지 않는다
+#   full    그 밖         위 전부 + DB · 바뀐 것과 이어진 단위 테스트 1회 · test:always · 판별식 · 바뀐 케이스 실행
+#   판정을 못 하면(빈 값 포함) full 이다 — 무거운 단계의 조건을 「가벼운 셋이 아니다」로 적은 이유다
 #
 # ⚠️ **job 이름 `check` 는 main 브랜치 보호의 필수 체크 이름과 묶여 있다.**
 #    이 이름을 바꾸면 그 체크가 영영 안 떠서 **모든 PR 이 잠긴다.**
@@ -27,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     # DB 검사가 여기서 안 돌면 표를 타는 코드 전부가 그물 밖이다 — 2026-09-22 까지 실제로 그랬고
     # 건너뛴 242건이 「통과」로 읽혔다. 로컬과 같은 이미지를 쓴다 (docker-compose.yml)
+    # services 에는 조건을 걸 수 없어 문서 차선에서도 뜬다 (약 20초). 잡을 쪼개면 필수 체크 check 가 흔들린다
     services:
       postgres:
         image: postgres:16
@@ -42,10 +48,11 @@ jobs:
           --health-retries 20
     env:
       DATABASE_URL: postgres://platform:platform@localhost:5432/platform
+      BASE: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          # base sha 와 비교해야 가벼운 길을 판정한다. 얕게 받으면 base 가 없어 늘 무거운 길이다
+          # base sha 와 비교해야 차선을 판정한다. 얕게 받으면 base 가 없어 늘 full 이다
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -58,35 +65,38 @@ jobs:
           else
             echo "Phase 0 전이라 검사할 코드가 없다. 통과."
           fi
-      # 테스트만 바뀐 PR 은 케이스를 실행하지 않는다 — 병합 근거는 맥의 관문 3(3회 실행) 기록이다 (게이트 1, 2026-09-23).
-      # --no-renames 를 빼면 코드를 spec 으로 옮긴 PR 이 새 경로 하나로만 보여 가벼운 길로 샌다.
-      # 판정 규칙은 cases-only.mjs 한 곳에 있다. bash -e 라 판정의 1(무거운 길)이 빨간불이 되지 않게 if 로 감싼다
-      - name: 테스트만 바뀌었나 (가벼운 길 판정)
-        id: light
+      # 판정 규칙은 lane.mjs 한 곳에 있다. 늘 종료 0 이고 무엇이든 실패하면 lane=full 을 쓴다.
+      # --no-renames 를 빼면 코드를 spec 으로 옮긴 PR 이 새 경로 하나로만 보여 가벼운 차선으로 샌다.
+      # cases 차선의 병합 근거는 맥의 관문 3(3회 실행) 기록이다 (게이트 1, 2026-09-23)
+      - name: 차선 판정 (docs · spec · cases · full)
+        id: lane
         if: steps.skeleton.outputs.ready == '1'
-        env:
-          BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          if git -c core.quotePath=false diff --no-renames --name-only "$BASE"...HEAD | node .claude/scripts/cases-only.mjs "$BASE"; then
-            echo "light=1"
-          else
-            echo "light=0"
-          fi >> "$GITHUB_OUTPUT"
-      - name: 의존성 설치
+          git -c core.quotePath=false diff --no-renames --name-only "$BASE"...HEAD | node .claude/scripts/lane.mjs "$BASE" >> "$GITHUB_OUTPUT"
+      # check:spec 은 node 표준 모듈만 쓴다 — 설치 전에 돌아 문서 차선이 설치를 건너뛸 수 있다 (eng review D5)
+      - name: SPEC 문서 검사 (없는 절·깨진 링크·색인 분량)
         if: steps.skeleton.outputs.ready == '1'
+        run: npm run check:spec
+      # 문서 **내용**을 읽는 판별식(SETUP.md 의 설치 명령 등). docs·spec 차선은 check:workflow 를 안 돌므로 여기서 돈다 —
+      # 안 돌면 SETUP.md 를 망가뜨린 문서 PR 이 초록으로 들어가고 다음 코드 PR 이 빨개진다. 목록은 always-tests.test.mjs 가 지킨다
+      - name: 문서 계약 검사
+        if: steps.skeleton.outputs.ready == '1'
+        run: npm run check:docs-contract
+      - name: 의존성 설치
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec'
         run: npm ci
       # docker-compose 는 db/init 을 postgres 의 초기 스크립트 자리에 마운트해 **자동으로** 먹인다.
       # CI 의 services: 컨테이너는 체크아웃보다 먼저 뜨므로 그 마운트를 할 수 없다 —
       # 그래서 여기서 직접 친다. 안 치면 마이그레이션 둘째가 `role "grafana_ro" does not exist`
       # 로 죽는다 (2026-09-22 실측). db/init 에 파일이 늘어도 따라오도록 전부 돈다
       - name: DB 초기 스크립트 (docker-compose 가 자동으로 하는 일을 CI 에서는 손으로)
-        if: steps.skeleton.outputs.ready == '1' && steps.light.outputs.light != '1'
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec' && steps.lane.outputs.lane != 'cases'
         run: |
           for f in db/init/*.sql; do
             PGPASSWORD=platform psql -h localhost -p 5432 -U platform -d platform -v ON_ERROR_STOP=1 -f "$f"
           done
       - name: 마이그레이션 (표가 없으면 DB 검사가 relation does not exist 로 죽는다)
-        if: steps.skeleton.outputs.ready == '1' && steps.light.outputs.light != '1'
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec' && steps.lane.outputs.lane != 'cases'
         run: |
           curl -fsSL -o /tmp/dbmate https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64
           chmod +x /tmp/dbmate
@@ -97,26 +107,26 @@ jobs:
       #    (`apps/admin/src/reporting/generate.ts`) 브라우저가 없으면 그 검사가 FAILED 로 닫힌다.
       #    CI 에 DB 가 붙기 전에는 그 검사가 통째로 건너뛰어져 이 순서가 드러나지 않았다 (2026-09-22)
       - name: 브라우저 내려받기 (desktop 프로젝트와 증적 PDF 가 쓰는 chromium 만)
-        if: steps.skeleton.outputs.ready == '1' && steps.light.outputs.light != '1'
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec' && steps.lane.outputs.lane != 'cases'
         run: npx playwright install --with-deps chromium
       - name: 타입 검사
-        if: steps.skeleton.outputs.ready == '1'
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec'
         run: npm run typecheck --if-present
-      - name: 단위 테스트 (연속 3회 — 1회 통과는 증거가 못 된다)
-        if: steps.skeleton.outputs.ready == '1' && steps.light.outputs.light != '1'
-        run: npm run test --if-present && npm run test --if-present && npm run test --if-present
-      # --if-present 를 안 붙인다 — 가벼운 길의 유일한 규칙 검사라 스크립트가 사라지면 그 자리에서 죽어야 한다
+      # 바뀐 것과 import 로 이어진 검사만 1회 (서비스 전이라 전체 3회를 걷었다 — 2026-09-25 사용자 결정).
+      # migration·설정이 바뀌면 vitest.config.ts 의 forceRerunTriggers 가 전체를 돈다.
+      # test:always 는 import 없이 파일을 훑는 검사(인증 route 등)다 — --changed 가 못 고른다
+      - name: 단위 테스트 (바뀐 것과 이어진 것 + 늘 도는 목록)
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec' && steps.lane.outputs.lane != 'cases'
+        run: npm run test:changed -- "$BASE" && npm run test:always
+      # --if-present 를 안 붙인다 — cases 차선의 유일한 규칙 검사라 스크립트가 사라지면 그 자리에서 죽어야 한다
       - name: 테스트 코드 규칙 검사 (SPEC §4 K1~K10)
-        if: steps.skeleton.outputs.ready == '1'
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec'
         run: npm run check:tests
-      - name: SPEC 문서 검사 (없는 절·깨진 링크·색인 분량)
-        if: steps.skeleton.outputs.ready == '1' && steps.light.outputs.light != '1'
-        run: npm run check:spec --if-present
       - name: 비밀값 이름 목록이 세 곳에서 갈라지지 않았나 (SPEC §4.1)
-        if: steps.skeleton.outputs.ready == '1'
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec'
         run: npm run check:secret-names --if-present
       - name: 증적 형식 이름이 네 곳에서 갈라지지 않았나 (SPEC §8.4)
-        if: steps.skeleton.outputs.ready == '1' && steps.light.outputs.light != '1'
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec' && steps.lane.outputs.lane != 'cases'
         run: npm run check:evidence-formats --if-present
       # 판별식 검사. ci-covers-tests 가 아래 두 단계를 지켜보므로 그보다 먼저 돈다 —
       # 실행 단계가 사라지거나 다른 잡으로 옮겨 가면 여기서 잡힌다
@@ -124,15 +134,23 @@ jobs:
       #    이 단계가 아무것도 안 하고 초록이 되고, 아래 두 단계를 지키는 장치가 통째로 사라진다.
       #    **강제력이 존재 이유인 줄이라 없으면 그 자리에서 죽어야 한다.**
       - name: 판별식 검사 (.claude/scripts 의 규칙들)
-        if: steps.skeleton.outputs.ready == '1' && steps.light.outputs.light != '1'
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec' && steps.lane.outputs.lane != 'cases'
         run: npm run check:workflow
       # 여기가 **생성된 테스트를 실제로 돌리는** 자리다. 이 단계가 없으면 형식 검사만
       # 통과한 깨진 케이스가 그대로 main 에 들어간다 (2026-09-21 실측).
+      # base 이후 바뀐 케이스(와 그것이 import 하는 것)만 돈다 — 대상 앱 코드는 이 저장소 밖이라 import 로 안 이어진다.
       # 브라우저는 위에서 이미 받아 뒀다 — 단위 테스트도 chromium 을 쓰기 때문이다.
       #
       # ⚠️ 이 단계를 **이 `check` 잡 밖으로 옮기지 마라.** 보호가 요구하는 체크 이름은
       #    `check` 하나뿐이라, 밖에 있는 것은 빨개져도 병합을 못 막는다.
       #    `.claude/scripts/ci-covers-tests.test.mjs` 가 그것까지 단언한다.
       - name: 생성된 테스트 실행 (tests/demo 는 일부러 실패하는 전시물이라 뺀다)
-        if: steps.skeleton.outputs.ready == '1' && steps.light.outputs.light != '1'
-        run: npx playwright test tests/todo --project=desktop
+        if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec' && steps.lane.outputs.lane != 'cases'
+        # --only-changed 는 케이스가 import 하는 것만 따라간다. 설정 파일은 거기 없어 baseURL 을 망가뜨려도 0 개 초록이다 —
+        # 설정이 바뀌면 전부 돈다
+        run: |
+          if git diff --name-only "$BASE"...HEAD | grep -qx 'playwright.config.ts'; then
+            npx playwright test tests/todo --project=desktop
+          else
+            npx playwright test tests/todo --project=desktop --only-changed="$BASE"
+          fi

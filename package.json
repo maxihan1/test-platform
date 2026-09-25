@@ -10,8 +10,11 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:changed": "vitest run --changed",
+    "test:always": "vitest run apps/admin/src/app.test.ts apps/admin/src/auth/gate.test.ts apps/admin/src/auth/scope.test.ts apps/admin/src/deploy.test.ts apps/admin/src/reporting/dashboard.test.ts apps/admin/src/web/jsxEnv.test.ts apps/admin/src/web/messages.test.ts apps/admin/src/web/styles.test.ts scripts/authoring-address.test.ts",
     "check:tests": "tsx apps/admin/src/catalog/check.ts",
     "check:spec": "node .claude/scripts/check-spec-refs.mjs",
+    "check:docs-contract": "node --test .claude/scripts/cases-probe-contract.test.mjs",
     "check:secret-names": "node .claude/scripts/check-secret-names.mjs",
     "check:evidence-formats": "node --test .claude/scripts/check-evidence-formats.test.mjs",
     "check:workflow": "node --test .claude/scripts/*.test.mjs",

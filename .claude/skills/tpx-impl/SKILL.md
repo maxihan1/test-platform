@@ -83,11 +83,16 @@ npm run check:spec      > /tmp/c.log 2>&1; echo "EXIT=$?"
 npm run check:tests     > /tmp/c.log 2>&1; echo "EXIT=$?"
 ```
 
-DB 를 건드렸으면 **연속 3회**. 1회 통과는 증거가 못 된다 (spec-review G3).
+단위 테스트는 **바뀐 것과 이어진 것 + 늘 도는 목록을 1회** 돈다 (2026-09-25 — 서비스 전이라 전체 3회를 걷었다).
+DB 를 건드렸으면 `DATABASE_URL` 을 붙인다. 없으면 DB 검사가 조용히 건너뛴다.
 
 ```bash
-DATABASE_URL='postgres://platform:platform@localhost:5433/platform' npm test
+npm run test:changed -- origin/main > /tmp/c.log 2>&1; echo "EXIT=$?"
+npm run test:always                 > /tmp/c.log 2>&1; echo "EXIT=$?"
 ```
+
+migration·`package.json`·설정을 바꿨으면 `vitest run` 전체다 — 작업방 경로의 `.claude/` 때문에
+vitest 의 전체 재실행 트리거가 여기서는 안 걸린다 (`vitest.config.ts` 주석).
 
 **파이프로 넘기지 않는다.** `cmd 2>&1 | tail` 은 셸이 보고하는 종료 코드를 `tail` 의 것으로 바꾼다.
 파일로 받고 `$?` 를 읽는다.

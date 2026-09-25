@@ -2,8 +2,9 @@
 // 바뀐 파일 경로를 받아 등급을 판정해 찍는다. 인자로 주거나 stdin 으로 파이프한다.
 //   node .claude/scripts/detect-tier.mjs docs/SETUP.md
 //   git diff --name-only origin/main...HEAD | node .claude/scripts/detect-tier.mjs
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { detectTier } from './surfaces.mjs';
+import { lane } from './lane.mjs';
 
 const args = process.argv.slice(2).filter((a) => a !== '--json');
 const json = process.argv.includes('--json');
@@ -44,12 +45,19 @@ if (!paths.length) {
 }
 
 const v = detectTier(paths);
+// 차선은 CI·훅이 무엇을 돌리는지다. /tpx 는 spec 차선이면 계획 없이 spec-review · 게이트 2 만 돈다 (tpx §차선)
+let 케이스폴더 = [];
+try {
+  케이스폴더 = readdirSync('tests', { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+} catch { /* tests/ 가 없으면 cases 차선이 없을 뿐이다 */ }
+v.lane = lane(paths, 케이스폴더);
 
 if (json) {
   console.log(JSON.stringify(v, null, 2));
 } else {
   console.log(`등급: ${v.tier}`);
   console.log(`표면: ${v.surfaces.join(', ') || '없음'}`);
+  console.log(`차선: ${v.lane}`);
   if (v.unmapped.length) {
     // 조용히 통과시키지 않는다. 게이트 2 요약에 이 줄이 그대로 실린다
     for (const p of v.unmapped) console.log(`미분류: ${p}`);

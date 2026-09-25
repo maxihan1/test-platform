@@ -464,8 +464,8 @@ macOS (약 15분, 관리자 비밀번호가 필요하다):
 
 이 스크립트의 판단(과금 안전핀·인자 읽기·push 선행 확인·`claude` 인자)은 전부 순수 함수이고
 `scripts/authoring-agent.test.ts` 가 고정한다. **`npm test` 가 `scripts/**` 도 본다** —
-`vitest.config.ts` 의 `include` 에 그 무늬가 들어 있다. CI 가 `npm test` 를 3회 돌리므로
-CI 에 따로 이을 줄은 없다.
+`vitest.config.ts` 의 `include` 에 그 무늬가 들어 있다. CI 의 단위 테스트 단계(`test:changed` · `test:always`)가
+이것을 돌리므로 CI 에 따로 이을 줄은 없다.
 
 ---
 
