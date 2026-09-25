@@ -1,5 +1,8 @@
 // 미확정 꼬리표(unconfirmed)의 모양 검사 K11 과 「이미 있던 케이스에 새로 단 꼬리표」 판별
 
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
 import ts from 'typescript';
 
 export interface BadTag {
@@ -20,5 +23,50 @@ export function badTag(literal: ts.ObjectLiteralExpression): BadTag | undefined 
     if (p.initializer.text.trim() === '') return { node: p, what: 'unconfirmed가 비어 있다' };
   }
   return undefined;
+}
+
+export function hasTag(text: string): boolean {
+  const sf = ts.createSourceFile('x.ts', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  let found = false;
+  const walk = (node: ts.Node): void => {
+    if (found) return;
+    if (ts.isObjectLiteralExpression(node) && ts.isCallExpression(node.parent)) {
+      const callee = node.parent.expression;
+      if (ts.isIdentifier(callee) && callee.text === 'defineCase') {
+        found = node.properties.some((p) => p.name !== undefined && ts.isIdentifier(p.name) && p.name.text === 'unconfirmed');
+        return;
+      }
+    }
+    node.forEachChild(walk);
+  };
+  walk(sf);
+  return found;
+}
+
+// 새 케이스는 역방향 작성이 원래 꼬리표를 달고 나온다. 경고할 것은 확정이던 케이스가 미확정으로 옮겨 가는 경우뿐이다
+export function newlyUnconfirmed(before: string | null, after: string): boolean {
+  if (before === null) return false;
+  return hasTag(after) && !hasTag(before);
+}
+
+const run = promisify(execFile);
+
+// 경로가 아니라 tcId 로 찾는다. 파일을 옮기거나 이름을 바꾸며 꼬리표를 달아도 옛 본문을 놓치지 않는다
+export async function oldSourceByTcId(repoRoot: string, tcId: string): Promise<string | null> {
+  let stdout: string;
+  try {
+    ({ stdout } = await run(
+      'git',
+      ['grep', '-l', '-E', '-e', `tcId: *['"\`]${tcId}['"\`]`, 'origin/main', '--', '*.spec.ts'],
+      { cwd: repoRoot },
+    ));
+  } catch (err) {
+    // git grep 은 못 찾으면 종료 코드 1 이다. 그건 새 케이스라는 뜻이고 조회 실패가 아니다
+    if ((err as { code?: unknown }).code === 1) return null;
+    throw new Error(`origin/main 에서 ${tcId} 를 찾지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  const hit = stdout.split('\n')[0];
+  if (hit === undefined || hit === '') return null;
+  return (await run('git', ['show', hit], { cwd: repoRoot, maxBuffer: 8 * 1024 * 1024 })).stdout;
 }
 
