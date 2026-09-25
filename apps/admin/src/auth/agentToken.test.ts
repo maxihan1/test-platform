@@ -36,6 +36,10 @@ describe('헤더토큰 — DB 에 가기 전에 모양을 본다', () => {
     expect(없는것).toEqual([]);
   });
 
+  it('에이전트가 산출물을 올리는 통로가 토큰으로 열린다 — 역방향 표시 사본·역기획서', () => {
+    expect(토큰통로.has('POST /api/authoring/requests/:id/outputs')).toBe(true);
+  });
+
   it('모양이 아니면 틀림 — 세션으로 넘어가지 않게', () => {
     expect(헤더토큰('Bearer 아무거나')).toBe('틀림');
     expect(헤더토큰(`Basic tpa_${'a'.repeat(43)}`)).toBe('틀림');

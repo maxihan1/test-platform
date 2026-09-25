@@ -138,6 +138,36 @@ export async function 자료더하기(
   });
 }
 
+/**
+ * 에이전트 산출물(표시 사본·역기획서) 한 행을 붙인다. 디스크는 라우트가 쓴다 (§7 outputs).
+ *
+ * **자료 개수 상한에 세지 않는다** — 산출물은 입력이 아니다.
+ * **요청 행을 먼저 잠근다** — `자료더하기` 와 같은 이유(동시 두 건이 같은 순서 번호를 읽어 500)에 더해,
+ * 라우트가 RUNNING 을 본 뒤 끝내기가 끼어들면 끝난 행에 산출물이 붙는다. 잠금 조건에 집은 사람까지 건다.
+ */
+export async function 산출물더하기(
+  요청: number,
+  집은이: string,
+  파일: { name: string; size: number; role: 'MARKED' | 'REVERSE_SPEC'; source: number | null },
+): Promise<{ id: number } | 'NOT_RUNNING'> {
+  return 한묶음(async (client) => {
+    const 잠금 = await client.query(
+      `SELECT 1 FROM authoring_request WHERE id = $1 AND status = 'RUNNING' AND claimed_by = $2 FOR UPDATE`,
+      [요청, 집은이],
+    );
+    if (잠금.rowCount !== 1) return 'NOT_RUNNING';
+    const r = await client.query<{ id: string }>(
+      `INSERT INTO authoring_asset (request_id, position, kind, name, size, role, source_asset_id)
+       SELECT $1, COALESCE(MAX(position), 0) + 1, 'FILE', $2, $3, $4, $5
+         FROM authoring_asset
+        WHERE request_id = $1
+       RETURNING id`,
+      [요청, 파일.name, 파일.size, 파일.role, 파일.source],
+    );
+    return { id: Number(r.rows[0]!.id) };
+  });
+}
+
 /** 파일 쓰기에 실패한 자료 행을 지운다. 행만 남으면 내려받기가 없는 파일을 찾는다 */
 export async function 자료지우기(자료번호: number): Promise<void> {
   await (await db()).query('DELETE FROM authoring_asset WHERE id = $1', [자료번호]);

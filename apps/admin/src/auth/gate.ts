@@ -99,6 +99,8 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/authoring/requests/:id/finish': 'operator',
   'POST /api/authoring/requests/:id/assets': 'operator',
   'POST /api/authoring/requests/:id/submit': 'operator',
+  // 역방향 산출물 — 작성 에이전트가 부른다. 에이전트가 하는 일이라 operator (인증 §7 「등급으로 갈리는 자리」)
+  'POST /api/authoring/requests/:id/outputs': 'operator',
 
   // ★ 저장소를 영구히 바꾸는 일 — admin. **이 PR 이 일부러 바꾸는 유일한 줄이다**
   'POST /api/authoring/merges': 'admin',
@@ -127,6 +129,7 @@ export const 토큰통로 = new Set([
   'POST /api/authoring/requests/claim',
   'PATCH /api/authoring/requests/:id/stage',
   'POST /api/authoring/requests/:id/finish',
+  'POST /api/authoring/requests/:id/outputs',
   'GET /api/authoring/requests',
   'GET /api/authoring/requests/:id',
   'GET /api/authoring/requests/:id/assets/:assetId',
