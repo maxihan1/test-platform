@@ -23,6 +23,8 @@ const 표 = [
   [['CLAUDE.md'], 'full', '규칙 파일은 HARNESS'],
   [['.claude/skills/tpx/SKILL.md'], 'full', '스킬 md 는 HARNESS'],
   [['apps/새앱/index.html'], 'full', 'docs 밖 html 은 DOC 표면이어도 docs 차선이 아니다'],
+  [['docs/x/build.ts'], 'full', 'docs 아래라도 문서 확장자가 아니면 코드다'],
+  [['docs/reviews/.gitkeep'], 'docs', 'docs 아래 .gitkeep'],
   [['foo/bar.txt'], 'full', '미분류'],
   [['docs/../apps/x.ts'], 'full', '.. 경로'],
   [[], 'full', '빈 목록'],

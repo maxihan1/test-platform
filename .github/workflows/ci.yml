@@ -77,6 +77,11 @@ jobs:
       - name: SPEC 문서 검사 (없는 절·깨진 링크·색인 분량)
         if: steps.skeleton.outputs.ready == '1'
         run: npm run check:spec
+      # 문서 **내용**을 읽는 판별식(SETUP.md 의 설치 명령 등). docs·spec 차선은 check:workflow 를 안 돌므로 여기서 돈다 —
+      # 안 돌면 SETUP.md 를 망가뜨린 문서 PR 이 초록으로 들어가고 다음 코드 PR 이 빨개진다. 목록은 always-tests.test.mjs 가 지킨다
+      - name: 문서 계약 검사
+        if: steps.skeleton.outputs.ready == '1'
+        run: npm run check:docs-contract
       - name: 의존성 설치
         if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec'
         run: npm ci
@@ -141,4 +146,11 @@ jobs:
       #    `.claude/scripts/ci-covers-tests.test.mjs` 가 그것까지 단언한다.
       - name: 생성된 테스트 실행 (tests/demo 는 일부러 실패하는 전시물이라 뺀다)
         if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec' && steps.lane.outputs.lane != 'cases'
-        run: npx playwright test tests/todo --project=desktop --only-changed="$BASE"
+        # --only-changed 는 케이스가 import 하는 것만 따라간다. 설정 파일은 거기 없어 baseURL 을 망가뜨려도 0 개 초록이다 —
+        # 설정이 바뀌면 전부 돈다
+        run: |
+          if git diff --name-only "$BASE"...HEAD | grep -qx 'playwright.config.ts'; then
+            npx playwright test tests/todo --project=desktop
+          else
+            npx playwright test tests/todo --project=desktop --only-changed="$BASE"
+          fi

@@ -241,6 +241,31 @@ test('케이스 실행은 base 이후 바뀐 것만 — --only-changed', () => {
   for (const 단계 of 실행단계) assert.match(치는명령(단계), /--only-changed="\$BASE"/);
 });
 
+// --only-changed 는 테스트가 import 하는 것만 따라간다. playwright.config.ts 는 거기 없어서
+// baseURL·프로젝트를 망가뜨려도 케이스 0 개 초록이 된다 (PR #70 검토) — 설정이 바뀌면 전부 돈다
+test('playwright.config.ts 가 바뀌면 케이스를 전부 돈다', () => {
+  for (const 단계 of 실행단계) {
+    const 명령 = 치는명령(단계);
+    assert.match(명령, /playwright\.config\.ts/, '설정 변경을 보는 분기가 없다');
+    assert.match(명령, /npx playwright test tests\/todo --project=desktop\s*$/m, '설정이 바뀌었을 때 전부 도는 명령이 없다');
+  }
+});
+
+// 문서 PR 이 check:workflow 를 안 도는 대신 도는 문서 계약 (always-tests.test.mjs 가 목록을 지킨다)
+test('문서 계약 검사가 모든 차선에서 돈다', () => {
+  const 단계 = (블록 === null ? [] : 단계들(블록)).find((s) => 치는명령(s).includes('npm run check:docs-contract'));
+  assert.ok(단계, 'check:docs-contract 단계가 없다');
+  assert.equal(/^\s*if:\s*(.+)$/m.exec(단계)?.[1].trim(), 골격조건);
+});
+
+// 실행 단계만 보던 것을 check 잡 전체로 넓혔다 — check:spec 에 `|| true` 를 붙여도 초록이던 구멍 (spec-review G9)
+test('check 잡의 어느 단계도 실패를 삼키지 않는다 — continue-on-error · || true', () => {
+  for (const 단계 of 블록 === null ? [] : 단계들(블록)) {
+    assert.doesNotMatch(단계, /continue-on-error:\s*true/, `continue-on-error 가 붙은 단계가 있다:\n${단계}`);
+    assert.doesNotMatch(치는명령(단계), /\|\|\s*(true|:)(\s|$)|;\s*true\s*$/m, `실패를 삼키는 단계가 있다:\n${치는명령(단계)}`);
+  }
+});
+
 test('checkout 이 base 와 비교할 만큼 이력을 받는다 (fetch-depth: 0)', () => {
   const 체크아웃 = (블록 === null ? [] : 단계들(블록)).find((s) => /actions\/checkout/.test(s));
   assert.ok(체크아웃);

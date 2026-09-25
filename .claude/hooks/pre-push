@@ -79,6 +79,12 @@ if [ "$lane" = "docs" ] || [ "$lane" = "spec" ]; then
     echo "[차단] SPEC 문서 검사 실패 (없는 절·깨진 링크·색인 분량). 위 메시지대로 고치고 다시 푸시해라." >&2
     exit 1
   fi
+  # 문서 내용을 읽는 판별식 — check:workflow 를 안 도는 차선이라 여기서 돈다
+  if ! npm run check:docs-contract --silent; then
+    echo "" >&2
+    echo "[차단] 문서 계약 검사 실패. 위 메시지대로 고치고 다시 푸시해라." >&2
+    exit 1
+  fi
   if [ "$lane" = "docs" ]; then
     echo "[pre-push] 문서만 바뀌었다 (docs 차선). 통과"
     exit 0

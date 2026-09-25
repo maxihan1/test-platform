@@ -53,7 +53,32 @@ test('migration · DB 초기 스크립트가 바뀌면 vitest 가 전체를 다�
   const 설정 = readFileSync(join(루트, 'vitest.config.ts'), 'utf8');
   assert.match(설정, /forceRerunTriggers:[^\]]*'\*\*\/db\/migrations\/\*\*'/s);
   assert.match(설정, /forceRerunTriggers:[^\]]*'\*\*\/db\/init\/\*\*'/s);
+  // lockfile · tsconfig 도 import 로 안 이어진다. vitest 기본 트리거는 package.json 과 자기 설정뿐이다 (PR #70 검토)
+  assert.match(설정, /forceRerunTriggers:[^\]]*'\*\*\/package-lock\.json'/s);
+  assert.match(설정, /forceRerunTriggers:[^\]]*'\*\*\/tsconfig\.json'/s);
   assert.match(설정, /\.\.\.configDefaults\.forceRerunTriggers/, '기본값(package.json · 설정 파일)을 덮어쓰지 않는다');
+});
+
+// docs·spec 차선은 check:workflow 를 안 돈다. 그래서 문서 **내용**을 읽는 판별식은 check:docs-contract 로 따로 돈다 —
+// 안 그러면 SETUP.md 를 망가뜨린 문서 PR 이 초록으로 들어가고 다음 코드 PR 이 빨개진다 (PR #70 검토)
+const 문서계약면제 = new Map([
+  ['ci-covers-tests.test.mjs', 'ci.yml 과 tests/ 만 읽는다 — docs/ 는 면제 사유 글 안에만 나온다'],
+  ['hook-contract.test.mjs', '훅 파일과 임시 저장소만 읽는다 — docs/ 는 임시 저장소에 만드는 경로다'],
+  ['always-tests.test.mjs', 'package.json · vitest.config.ts · 테스트 소스만 읽는다'],
+]);
+
+test('docs/ 의 내용을 읽는 판별식은 전부 check:docs-contract 에 있다', () => {
+  const 목록 = 패키지.scripts['check:docs-contract'] ?? '';
+  const 스크립트 = join(루트, '.claude/scripts');
+  const 빠진것 = readdirSync(스크립트)
+    .filter((f) => f.endsWith('.test.mjs'))
+    .filter((f) => {
+      const 글 = readFileSync(join(스크립트, f), 'utf8');
+      return /readFileSync\(/.test(글) && /['"`][^'"`\n]*docs\//.test(글);
+    })
+    .filter((f) => !문서계약면제.has(f) && !목록.includes(`.claude/scripts/${f}`));
+  assert.match(목록, /^node --test /, 'check:docs-contract 스크립트가 없다');
+  assert.deepEqual(빠진것, [], `check:docs-contract 에 넣거나 면제에 사유와 함께 적어라: ${빠진것.join(' · ')}`);
 });
 
 test('test:always 에 적힌 파일은 실재한다', () => {

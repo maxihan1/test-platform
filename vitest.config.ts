@@ -10,8 +10,16 @@ export default defineConfig({
     // 검사 파일들이 같은 DB 하나를 쓴다. 병렬로 돌리면 접두사를 갈라 놔도 안 막히는 간섭이 남는다 —
     // recoverRunning() 처럼 표 전체를 범위로 잡는 제품 코드는 남의 fixture 까지 닫는다 (spec-review G4)
     fileParallelism: false,
-    // CI·훅은 `--changed` 로 바뀐 것과 이어진 검사만 돈다. migration 은 어떤 코드도 import 하지 않아
-    // 표를 바꿔도 DB 검사가 안 골라진다 — 이 둘이 바뀌면 전체를 돈다
-    forceRerunTriggers: [...configDefaults.forceRerunTriggers, '**/db/migrations/**', '**/db/init/**'],
+    // CI·훅은 `--changed` 로 바뀐 것과 이어진 검사만 돈다. migration · lockfile · tsconfig 는 어떤 코드도 import 하지 않아
+    // 바꿔도 검사가 안 골라진다 — 이것들이 바뀌면 전체를 돈다.
+    // 패턴은 절대 경로에 대므로 `**/` 로 시작해야 걸린다. 경로에 점 폴더(.claude/worktrees)가 끼면 그래도 안 걸린다 —
+    // 그래서 작업방에서 도는 pre-push 는 이것에 기대지 않고 파일 이름을 직접 본다 (2026-09-25 실측)
+    forceRerunTriggers: [
+      ...configDefaults.forceRerunTriggers,
+      '**/db/migrations/**',
+      '**/db/init/**',
+      '**/package-lock.json',
+      '**/tsconfig.json',
+    ],
   },
 });

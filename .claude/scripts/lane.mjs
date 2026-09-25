@@ -14,9 +14,9 @@ import { fileURLToPath } from 'node:url';
 import { 테스트만인가 } from './cases-only.mjs';
 import { surfaceOf } from './surfaces.mjs';
 
-// docs 차선은 docs/** 와 루트 md 뿐이다. surfaces 의 DOC 은 `**/*.html` 도 잡아서
-// 새 앱 폴더의 html 이 문서로 샌다 — 차선은 등급보다 좁게 본다
-const 문서자리 = (f) => f.startsWith('docs/') || /^[^/]+\.md$/.test(f);
+// docs 차선은 docs/ 아래 문서 파일(md · html · .gitkeep)과 루트 md 뿐이다. surfaces 의 DOC 은 `**/*.html` 도,
+// docs/** 의 아무 파일도 잡아서 새 앱 폴더의 html 이나 docs/ 에 둔 코드가 문서로 샌다 — 차선은 등급보다 좁게 본다
+const 문서자리 = (f) => /^docs\/.*(\.md|\.html|\/\.gitkeep)$/.test(f) || /^[^/]+\.md$/.test(f);
 
 /** 판정을 못 하면 full — 틀리면 코드가 검사 없이 들어간다 */
 export function lane(파일들, 기존폴더) {

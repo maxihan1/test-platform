@@ -99,13 +99,17 @@ function 임시저장소(더할파일들, 옮길것들 = []) {
   const 가짜 = join(뿌리, '.fakebin');
   mkdirSync(가짜);
   const 기록 = join(뿌리, '.npm-calls');
-  writeFileSync(join(가짜, 'npm'), `#!/bin/sh\necho "$*" >> "${기록}"\n`);
+  // NPM_FAIL 에 준 낱말이 인자에 있으면 실패한다 — 「불렸다」가 아니라 「실패하면 막는다」를 보려고 (spec-review G9)
+  writeFileSync(
+    join(가짜, 'npm'),
+    `#!/bin/sh\necho "$*" >> "${기록}"\nif [ -n "$NPM_FAIL" ]; then case "$*" in *"$NPM_FAIL"*) exit 1 ;; esac; fi\n`,
+  );
   chmodSync(join(가짜, 'npm'), 0o755);
   return { 뿌리, sha: git('rev-parse', 'HEAD'), 가짜, 기록 };
 }
 
-function 저장소에서돌린다({ 뿌리, sha, 가짜 }) {
-  const env = { ...process.env, PATH: `${가짜}:${process.env.PATH}` };
+function 저장소에서돌린다({ 뿌리, sha, 가짜 }, 더할환경 = {}) {
+  const env = { ...process.env, PATH: `${가짜}:${process.env.PATH}`, ...더할환경 };
   delete env.ALLOW_PROTECTED;
   try {
     const out = execFileSync(HOOK, ['origin', 'https://example.com/r.git'], {
@@ -187,9 +191,22 @@ test('문서만 바뀐 커밋은 docs 차선 — check:spec 만 돌고 검사 �
     assert.equal(r.code, 0, `문서만 바꿨는데 막혔다: ${r.out}`);
     const 호출 = 불린것(저장소.기록);
     assert.match(호출, /check:spec/, 'docs 차선에서 check:spec 을 안 돌렸다');
+    assert.match(호출, /check:docs-contract/, 'docs 차선에서 문서 계약 검사를 안 돌렸다');
     assert.doesNotMatch(호출, /^(test|run test|run typecheck)/m, `docs 차선인데 테스트·타입 검사를 돌렸다: ${호출}`);
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('docs 차선에서 check:spec · 문서 계약이 실패하면 push 를 막는다', () => {
+  for (const 낱말 of ['check:spec', 'check:docs-contract']) {
+    const 저장소 = 임시저장소(['docs/SETUP.md']);
+    try {
+      const r = 저장소에서돌린다(저장소, { NPM_FAIL: 낱말 });
+      assert.equal(r.code, 1, `${낱말} 이 실패했는데 통과했다: ${r.out}`);
+    } finally {
+      rmSync(저장소.뿌리, { recursive: true, force: true });
+    }
   }
 });
 
