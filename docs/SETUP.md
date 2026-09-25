@@ -355,7 +355,7 @@ npm run authoring-agent
 4. 바꾸려면 `다시 넣기` 를 눌러 새 값을 넣는다. 비우면 그 서비스는 피그마 자료를 못 읽는다
 
 **피그마를 읽는 도구는 npm 패키지 `figma-reader` 다** (GitHub 저장소 이름은 `figma-reader-cli` — 헷갈리지 않는다).
-따로 깔 것은 없다. 부르는 명령과 판 번호의 정본은 `.claude/skills/tpx-cases/SKILL.md` 다 — 여기 옮겨 적지 않는다.
+따로 깔 것은 없다. 부르는 명령과 판 번호의 정본은 `.claude/skills/tpx-cases/references/1-input.md` 다 — 여기 옮겨 적지 않는다.
 
 ### 에이전트 토큰 — 처음 한 번만 넣는다 (2026-09-23)
 
