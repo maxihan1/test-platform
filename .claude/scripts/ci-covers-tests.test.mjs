@@ -287,7 +287,7 @@ test('checkout 이 base 와 비교할 만큼 이력을 받는다 (fetch-depth: 0
   assert.match(체크아웃, /fetch-depth:\s*0/, 'fetch-depth 가 0 이 아니다 — base sha 가 없어 판정이 늘 무거운 길이 된다');
 });
 
-test('cases 차선에서도 타입 · K1~K10 · 비밀값 이름은 돈다', () => {
+test('cases 차선에서도 타입 · K 규칙 · 비밀값 이름은 돈다', () => {
   const 전부 = 블록 === null ? [] : 단계들(블록);
   for (const 검사 of 가벼운검사) {
     const 단계 = 전부.find((s) => 치는명령(s).includes(검사));

@@ -94,7 +94,7 @@ export const 사본제외 = '/node_modules\n';
 /**
  * 자식이 끝난 뒤 에이전트가 트리에서 치는 git·gh·판정의 환경.
  * **트리의 `.git` 을 절대 안 본다** — 자식이 만들어 두면 그 설정(fsmonitor·훅)이 에이전트 권한으로 돈다.
- * 그래서 push 때 pre-push 훅도 안 돈다. 같은 검사(타입·K1~K10)는 CI 의 가벼운 길이 한다
+ * 그래서 push 때 pre-push 훅도 안 돈다. 같은 검사(타입·K 규칙)는 CI 의 가벼운 길이 한다
  */
 export function 사본환경(자리: 사본): Record<string, string> {
   return {

@@ -97,7 +97,7 @@ export async function 올리기(
     return;
   }
 
-  // 훅은 안 돈다(사본환경) — 트리의 훅은 자식이 쓴 것이다. 같은 검사(타입·K1~K10)는 CI 의 가벼운 길이 한다
+  // 훅은 안 돈다(사본환경) — 트리의 훅은 자식이 쓴 것이다. 같은 검사(타입·K 규칙)는 CI 의 가벼운 길이 한다
   const 올림 = await 다시하며('push', () => {
     const r = 트리에서('git', 푸시인자(것.id));
     return r.ok ? { 값: true } : push실패(r);

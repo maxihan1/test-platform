@@ -133,6 +133,6 @@
 > **R5 상한에 닿는지 본다.** 가르면 절차가 하나 늘어난다. 겹이 둘 이상이면 `test.step` 5개에
 > 금방 닿는다 — 닿으면 케이스를 쪼갠다.
 
-**K1~K10 은 `npm run check:tests` 가 기계로 본다.** 걸리면 고친다. 생성 케이스가 가장 자주
+**K 규칙은 `npm run check:tests` 가 기계로 본다.** 걸리면 고친다. 생성 케이스가 가장 자주
 걸리는 둘만 미리 챙긴다 — **K10** `params`·`expected` 모든 칸에 `.default()` 또는 `.optional()` ·
 **K9** 이름에 `password`·`token`·`secret` 등이 들어가면 `.meta({ secret: true })`.

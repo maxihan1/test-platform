@@ -48,20 +48,12 @@
 - **KIT · DB 칸 — 반영 완료 (2026-09-25, PR #74).** `CaseSpec.unconfirmed?: string` · `defineCase` 입력(빈 글자면 키를 안 싣는다) ·
   `db/migrations/20260925000001_reverse_mode.sql`(칸·CHECK 이름 `authoring_request_compare_check`·`authoring_asset_role_check`). 아래 갈래는 이 칸을 **채우고 읽는 일**만 남았다.
   명세 [공통/3-공유계약.md](spec/공통/3-공유계약.md) §5.1 · [공통/2-명세선언.md](spec/공통/2-명세선언.md) §4
-- **WS-A** — 스캐너가 `unconfirmed` · `unconfirmed_since` 를 관리한다(`apps/admin/src/catalog/**`, 나이는 스캔마다 덮지 않는다) · 목록 API 에 꼬리표와 나이.
-  명세 [도메인/카탈로그.md](spec/도메인/카탈로그.md) §3.1 「미확정 꼬리표」 · [공통/4-데이터모델.md](spec/공통/4-데이터모델.md) 「역방향 칸」
-  - **K11 검사기** — `apps/admin/src/catalog/rules.ts` 의 `RuleId` 와 설명 · `check.ts` 출력 「K1~K10 통과」 · `rules.test.ts`.
-    공백뿐인 사유도 빈 문자열처럼 위반으로 잡는다 — `defineCase` 가 공백뿐이면 확정으로 싣기 때문이다(PR #74 재검사).
-    명세 2-명세선언 §4 K표
-  - **K11 을 넣으면 「K1~K10」이라 적은 자리를 같이 고친다** (2026-09-25 기준) —
-    `.claude/skills/spec-review/references/checklist-d-f.md:21,27` · `.claude/skills/tpx-cases/references/5-writing.md:136` ·
-    `6-gates.md:34,44` · `2-requirements.md:79` · `.claude/scripts/ci-covers-tests.test.mjs:290` ·
-    `docs/HOOKS.md:178,214,223`(343 은 이미 「K1~K8」로 낡았다) · `docs/WORKFLOW.md:463` · 이 문서의 WS-A 킥오프 `check:tests` 줄 · `docs/spec/도메인/작성.md:169,192` ·
-    `docs/spec/공통/7-데모와-완료.md:63` · `.github/workflows/ci.yml:1,15,122` · `scripts/authoring-copy.ts:97` · `scripts/authoring-upload.ts:100` ·
-    `.claude/hooks/pre-push:105,132` · `apps/admin/src/catalog/rules.test.ts:1` · `apps/admin/src/catalog/check.ts:1`(머리 주석).
-    빠진 자리가 없는지는 `grep -rn 'K1~K10'` 으로 다시 훑는다. 그리고 2-명세선언 §4 의 「K11 은 명세에만 섰고 검사기에는 아직 없다」 줄을 지운다
-  - **이미 있는 케이스에 `unconfirmed` 를 새로 다는 diff 는 `check:tests` 가 경고한다** — 막지 않고 게이트 2 요약에 싣게 한다.
-    K11 은 모양만 본다. 누가 달았는지와 꼬리표 없이 화면 값을 썼는지는 계속 사람이 본다(spec-review B10)
+- **WS-A — 반영 완료 (2026-09-25, PR #75).** 스캐너가 `unconfirmed` · `unconfirmed_since` 를 관리한다(나이는 사유가 바뀌어도 유지) ·
+  목록·단건 응답에 꼬리표와 나이 · 목록 최상위 `unconfirmed: { count, oldestSince }` · K11 검사기(`apps/admin/src/catalog/unconfirmed.ts`) ·
+  이미 있던 케이스(같은 tcId)에 꼬리표를 새로 달면 `check:tests` 가 경고(종료 코드는 안 바꾼다 — 게이트 2 요약에 싣는다).
+  「K1~K10」이라 적은 자리는 범위 숫자를 빼고 「§4 K표」·「K 규칙」으로 가리키게 했다 — 규칙이 늘어도 다시 안 어긋나게.
+  **남은 것 없음.** 누가 달았는지와 꼬리표 없이 화면 값을 썼는지는 계속 사람이 본다(spec-review B10).
+  명세 [도메인/카탈로그.md](spec/도메인/카탈로그.md) §3.1 「미확정 꼬리표」 · [공통/2-명세선언.md](spec/공통/2-명세선언.md) §4
 - **WS-B** — `counts` 에 `unconfirmed` 묶음(확정 항목만 pass·fail·na 로 센다) · 실행을 만들 때 `run_item.unconfirmed` 박제.
   `apps/admin/src/execution/queries.ts:79–82,115,163,237–245` · `notify.ts:66`(Slack 요약)과 해당 테스트들.
   Slack 머리는 미확정 실패가 있으면 `[통과 · 미확정 실패 N]` · 미확정만 돌린 실행의 목록 판정 색은 「판정 없음」(색 없음, 글자로 미확정 수).
@@ -242,7 +234,7 @@ CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-A(카탈로그) 담당
 3. GET /api/catalog/cases?q= — 이름과 tcId 부분 일치 검색
 4. GET /api/catalog/cases/:tcId
 5. GET /api/cases/:tcId/source?line= — 해당 줄 ±5줄 발췌 반환
-6. npm run check:tests — 스캐너를 DB 없이 돌려 SPEC §4 케이스 파일 규칙 K1~K10을 검사한다.
+6. npm run check:tests — 스캐너를 DB 없이 돌려 SPEC §4 케이스 파일 규칙(K표)을 검사한다.
    K4: precondition·params·expected 키가 아예 없으면 실패, null / []은 통과, 스키마가 있으면 모든 필드 describe 필수
    위반은 `파일:줄 — 무엇이 — 왜 문제` 한 줄씩 출력하고 exit 1.
    Phase 0가 apps/admin/src/catalog/check.ts를 exit 0 스텁으로 둬 뒀다. 그 파일을 채워라.
