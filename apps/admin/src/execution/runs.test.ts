@@ -155,7 +155,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     expect(typeof runId).toBe('number');
 
     const 끝난것 = await 끝날때까지(runId);
-    expect(끝난것.counts).toEqual({ total: 2, pass: 0, fail: 1, na: 1, running: 0 });
+    expect(끝난것.counts).toEqual({ total: 2, pass: 0, fail: 1, na: 1, running: 0, unconfirmed: { total: 0, pass: 0, fail: 0, na: 0 } });
     expect(받은요청.map((r) => r.platform).sort()).toEqual(['desktop', 'mobile']);
   });
 

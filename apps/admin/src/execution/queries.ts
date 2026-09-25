@@ -18,6 +18,8 @@ export interface RunCounts {
   fail: number;
   na: number;
   running: number;
+  // 미확정 항목 묶음. total 은 진행 중까지, pass·fail·na 는 끝난 것만이다 (SPEC 실행 §3.2 · §7)
+  unconfirmed: { total: number; pass: number; fail: number; na: number };
 }
 
 export interface RunSummary {
@@ -53,6 +55,8 @@ export interface RunItemSummary {
   error: { message: string; stack?: string } | null;
   startedAt: string;
   finishedAt: string | null;
+  // 실행을 만들 때 박제한 미확정 사유. 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (SPEC 실행 §8.3)
+  unconfirmed: string | null;
 }
 
 export interface RunItemDetail extends RunItemSummary {
@@ -73,15 +77,20 @@ async function db(): Promise<Pool> {
 
 const iso = (v: Date | null): string | null => (v === null ? null : v.toISOString());
 
-// 실행 묶음 한 줄에 판정 개수까지 붙인다. 없으면 목록 화면이 실행마다 항목을 또 불러야 한다
+// 실행 묶음 한 줄에 판정 개수까지 붙인다. 없으면 목록 화면이 실행마다 항목을 또 불러야 한다.
+// 통과·실패·미실행은 확정 항목만 센다 — 섞으면 화면 값을 기대값으로 삼은 미확정 케이스가 초록에 들어간다 (SPEC 실행 §3.2)
 const RUN_COLUMNS = `
   r.run_id, r.title, r.triggered_by, r.triggered_by_name, r.env, r.base_url, r.service_name,
   r.status, r.started_at, r.finished_at,
   count(i.history_id)::int AS total,
-  count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS')::int AS pass,
-  count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL')::int AS fail,
-  count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA')::int AS na,
-  count(i.history_id) FILTER (WHERE i.finished_at IS NULL)::int AS running`;
+  count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS' AND i.unconfirmed IS NULL)::int AS pass,
+  count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.unconfirmed IS NULL)::int AS fail,
+  count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA' AND i.unconfirmed IS NULL)::int AS na,
+  count(i.history_id) FILTER (WHERE i.finished_at IS NULL)::int AS running,
+  count(i.history_id) FILTER (WHERE i.unconfirmed IS NOT NULL)::int AS u_total,
+  count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS' AND i.unconfirmed IS NOT NULL)::int AS u_pass,
+  count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.unconfirmed IS NOT NULL)::int AS u_fail,
+  count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA' AND i.unconfirmed IS NOT NULL)::int AS u_na`;
 
 interface RawRun {
   run_id: string;
@@ -99,6 +108,10 @@ interface RawRun {
   fail: number;
   na: number;
   running: number;
+  u_total: number;
+  u_pass: number;
+  u_fail: number;
+  u_na: number;
   grand_total?: number;
 }
 
@@ -114,7 +127,14 @@ function toRun(row: RawRun): RunSummary {
     status: row.status,
     startedAt: row.started_at.toISOString(),
     finishedAt: iso(row.finished_at),
-    counts: { total: row.total, pass: row.pass, fail: row.fail, na: row.na, running: row.running },
+    counts: {
+      total: row.total,
+      pass: row.pass,
+      fail: row.fail,
+      na: row.na,
+      running: row.running,
+      unconfirmed: { total: row.u_total, pass: row.u_pass, fail: row.u_fail, na: row.u_na },
+    },
   };
 }
 
@@ -174,10 +194,11 @@ interface RawItem {
   error: { message: string; stack?: string } | null;
   started_at: Date;
   finished_at: Date | null;
+  unconfirmed: string | null;
 }
 
 const ITEM_COLUMNS =
-  'history_id, tc_id, tc_name, platform, attempt, params, param_schema, status, duration_ms, error, started_at, finished_at';
+  'history_id, tc_id, tc_name, platform, attempt, params, param_schema, status, duration_ms, error, started_at, finished_at, unconfirmed';
 
 function toItem(row: RawItem): RunItemSummary {
   return {
@@ -193,6 +214,7 @@ function toItem(row: RawItem): RunItemSummary {
     error: row.error,
     startedAt: row.started_at.toISOString(),
     finishedAt: iso(row.finished_at),
+    unconfirmed: row.unconfirmed,
   };
 }
 

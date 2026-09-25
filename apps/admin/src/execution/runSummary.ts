@@ -40,11 +40,12 @@ export function 거르는조건(거르개: 실행거르개, 시작번호: number
     where.push(`r.env = $${String(n)}`);
     값.push(거르개.env);
   }
-  // 도는 것은 칸으로 갈리지만 실패 섞임은 집계로 갈린다. 그래서 둘이 다른 절에 붙는다
+  // 도는 것은 칸으로 갈리지만 실패 섞임은 집계로 갈린다. 그래서 둘이 다른 절에 붙는다.
+  // 실패는 확정 항목만 본다 — 미확정 실패는 「화면이 바뀌었다」는 신호지 실행의 실패가 아니다 (SPEC 실행 §3.2)
   if (거르개.state === 'running') where.push(`r.finished_at IS NULL`);
   const having =
     거르개.state === 'failed'
-      ? `HAVING count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL') > 0`
+      ? `HAVING count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.unconfirmed IS NULL) > 0`
       : '';
 
   return { where: where.length === 0 ? '' : `AND ${where.join(' AND ')}`, having, 값 };
@@ -71,6 +72,7 @@ export interface 실행집계 {
  * 집계는 쪽을 안 탄다. 목록과 **같은 거르개 함수**를 써서 둘이 갈라지지 않게 한다.
  *
  * 한 실행이 「모두 통과」인지는 항목 집계에서 나오므로 실행마다 한 번 접고 그것을 다시 센다.
+ * 확정 항목만 센다. 확정 통과가 하나도 없는 실행(미확정만 돌린 실행)은 성공에도 실패에도 안 든다 (SPEC 실행 §3.2)
  */
 export async function runSummary(service: string, 거르개: 실행거르개): Promise<실행집계> {
   const pool = await db();
@@ -84,16 +86,16 @@ export async function runSummary(service: string, 거르개: 실행거르개): P
     max_duration_ms: number | null;
   }>(
     `SELECT count(*)::int AS runs,
-            count(*) FILTER (WHERE fail = 0 AND na = 0 AND running = 0 AND total > 0)::int AS all_pass,
+            count(*) FILTER (WHERE fail = 0 AND na = 0 AND running = 0 AND pass > 0)::int AS all_pass,
             count(*) FILTER (WHERE fail > 0)::int AS has_fail,
             count(duration)::int AS duration_of,
             avg(duration)::int AS avg_duration_ms,
             max(duration)::int AS max_duration_ms
        FROM (
-         SELECT count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL')::int AS fail,
-                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA')::int AS na,
+         SELECT count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS' AND i.unconfirmed IS NULL)::int AS pass,
+                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.unconfirmed IS NULL)::int AS fail,
+                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA' AND i.unconfirmed IS NULL)::int AS na,
                 count(i.history_id) FILTER (WHERE i.finished_at IS NULL)::int AS running,
-                count(i.history_id)::int AS total,
                 -- 도는 실행은 끝난 시각이 없다. NULL 이면 avg·count 가 알아서 뺀다
                 extract(epoch FROM (r.finished_at - r.started_at)) * 1000 AS duration
            FROM test_run r
