@@ -6,11 +6,20 @@
 //    그 낱말들은 **바꾸기 전 파일에도 이미 있었다** — 즉 영원히 안 무는 단언이었다.
 //    그래서 지금은 그 경고가 사는 하위 절 안에서만 찾는다.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-const 스킬 = new URL('../skills/tpx-cases/SKILL.md', import.meta.url);
+const 스킬폴더 = new URL('../skills/tpx-cases/', import.meta.url);
+const 참고폴더 = new URL('references/', 스킬폴더);
+// §4 가 references/ 로 옮겨 가도 같은 단언이 물도록 SKILL.md 와 references/*.md 를 이어 읽는다
+const 스킬본문 = () =>
+  [
+    readFileSync(new URL('SKILL.md', 스킬폴더), 'utf8'),
+    ...(existsSync(참고폴더) ? readdirSync(참고폴더).filter((f) => f.endsWith('.md')).sort() : []).map((f) =>
+      readFileSync(new URL(f, 참고폴더), 'utf8'),
+    ),
+  ].join('\n');
 const 사전 = new URL('../../docs/cases/TODO.md', import.meta.url);
 const 설치 = new URL('../../docs/SETUP.md', import.meta.url);
 
@@ -33,7 +42,7 @@ function 하위절(본문, 머리) {
   return 머리 + (다음 < 0 ? 뒤 : 뒤.slice(0, 다음));
 }
 
-const 넷째절 = () => 절(readFileSync(스킬, 'utf8'), '## §4. selector 확정');
+const 넷째절 = () => 절(스킬본문(), '## §4. selector 확정');
 
 test('§4 슬라이스가 §5 직전에서 끊긴다 — 안 끊기면 아래 단언들이 통째로 공허해진다', () => {
   const 본문 = 넷째절();
