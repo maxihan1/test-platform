@@ -96,14 +96,15 @@ interface CaseRow {
   file_path: string;
   param_schema: Record<string, unknown>;
   expected_schema: Record<string, unknown>;
+  unconfirmed: string | null;
 }
 
 // 라벨·제한 시간·파일 경로도 실행 시점 값으로 박제한다. 카탈로그는 스캔 때마다 덮어쓰는 캐시라
 // 나중에 읽으면 그날 무엇으로 돌렸는지가 달라진다 (SPEC §3.3 · §6)
 const INSERT_ITEM = `
   INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status,
-                        file_path, param_schema, expected_schema, timeout_ms, attempt)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12)
+                        file_path, param_schema, expected_schema, timeout_ms, attempt, unconfirmed)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, 'NA', $8, $9, $10, $11, $12, $13)
   RETURNING history_id`;
 
 export async function createRun(input: CreateRunInput): Promise<{ runId: number; items: PendingItem[] }> {
@@ -167,9 +168,10 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
       throw new RunInputError('ENV_NOT_FOUND', `${prefix} 서비스에 ${input.env} 대상 서버가 없다`);
     }
 
-    // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다
+    // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다.
+    // 미확정 사유도 여기서 박제한다 — 케이스가 나중에 확정돼도 그날의 집계가 바뀌면 안 된다 (SPEC 실행 §3.2)
     const found = await client.query<CaseRow>(
-      'SELECT tc_id, name, precondition, file_path, param_schema, expected_schema FROM test_case WHERE tc_id = ANY($1::text[])',
+      'SELECT tc_id, name, precondition, file_path, param_schema, expected_schema, unconfirmed FROM test_case WHERE tc_id = ANY($1::text[])',
       [input.items.map((i) => i.tcId)],
     );
     const cases = new Map(found.rows.map((r) => [r.tc_id, r]));
@@ -215,6 +217,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             JSON.stringify(spec.expected_schema),
             timeoutMs,
             attempt,
+            spec.unconfirmed,
           ]);
           items.push({
             historyId: Number(row.rows[0]!.history_id),

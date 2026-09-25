@@ -91,7 +91,7 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
   it('listRuns — 판정 개수를 같이 싣는다. 목록 화면이 실행마다 또 묻지 않게', async () => {
     const 목록 = await listRuns('XBQ', 1, 50);
     const 것 = 목록.items.find((r) => r.runId === 나중);
-    expect(것?.counts).toEqual({ total: 2, pass: 0, fail: 1, na: 0, running: 1 });
+    expect(것?.counts).toEqual({ total: 2, pass: 0, fail: 1, na: 0, running: 1, unconfirmed: { total: 0, pass: 0, fail: 0, na: 0 } });
   });
 
   it('findRun — 증적 목록을 상태와 함께 싣는다', async () => {

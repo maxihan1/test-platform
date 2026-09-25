@@ -91,3 +91,17 @@ curl -X POST localhost:3000/api/runs/<끝난RUN>/abort   # 409 NOT_RUNNING
 - **Slack 은 `notify.ts` 하나다.** 본문 만들기(`본문`)와 보내기(`notifyRun`)가 갈려 있어
   본문은 DB·네트워크 없이 테스트한다
 - **`PLATFORM_PUBLIC_URL` 이 새로 생겼다** (§9, 2026-09-18 승인). 비면 알림에 링크를 안 넣는다
+
+## 2026-09-26 — 역방향: 미확정 항목을 따로 센다 (PR #76)
+
+- 완료: `createRun` 이 `test_case.unconfirmed` 를 `run_item.unconfirmed` 에 박제 · `counts.unconfirmed` 묶음(pass·fail·na 는 확정만) ·
+  `state=failed`·`allPass`·`hasFail` 확정만 · 항목 응답에 `unconfirmed` · Slack 머리·숫자 줄·실패 목록의 미확정 표기
+- 미완: 없음. 화면(막대·목록 색·배지)은 WS-E — WORKSTREAMS WS-E 줄에 중간 상태의 증상을 적었다
+- 막힌 것: 없음
+
+### 다음 세션이 알아야 할 것
+
+- **집계 규칙의 정본은 명세 도메인/실행 §3.2 「미확정 항목은 따로 센다」다.** 코드에서는 `i.unconfirmed IS NULL` 이 붙은 FILTER 가 확정이다
+- `queries.ts` 가 300줄을 넘어 셋으로 갈렸다 — 거르개·머리 집계는 `runSummary.ts`, 응답 타입은 `runTypes.ts`(`queries.ts` 가 다시 내보낸다)
+- 미확정 미실행은 Slack 머리에서 실패로 센다(2026-09-26 게이트 1) — 러너가 죽어 못 돈 것을 가리지 않으려고
+- DB 검사 접두사는 `XBU`(`execution/unconfirmed.test.ts`)
