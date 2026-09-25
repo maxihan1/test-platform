@@ -238,3 +238,24 @@ test('스킬이 부르는 npm 스크립트가 package.json 에 있다', () => {
   }
   assert.deepEqual([...없는것], [], `실재하지 않는 명령을 안내한다`);
 });
+
+// --- 차선 (2026-09-25) — 바뀐 만큼만 검사한다 ---
+// 명세만 바뀐 일은 3등급이어도 계획·게이트 0/1 없이 spec-review · 게이트 2 만 돈다 (사용자 결정)
+test('컨트롤러가 차선 규칙을 적었다 — 명세만 바뀌면 spec-review 와 게이트 2 만', () => {
+  const 절 = /## 차선[\s\S]*?(?=\n## )/.exec(read('tpx'))?.[0] ?? '';
+  assert.ok(절, 'tpx/SKILL.md 에 「## 차선」 절이 없다');
+  assert.match(절, /detect-tier/, '차선을 어디서 읽는지(detect-tier)를 안 적었다');
+  assert.match(절, /spec-review/);
+  assert.match(절, /게이트 2/);
+});
+
+// 전체 npm test 를 3회 돌리던 자리. 이제 바뀐 것과 이어진 검사 + 늘 도는 목록이다
+test('구현·검사 단계가 전체 npm test 대신 바뀐 것만 돈다', () => {
+  for (const s of ['tpx-impl', 'tpx-review']) {
+    const 코드 = codeOf(s);
+    assert.match(코드, /npm run test:changed -- origin\/main/, `${s} 가 test:changed 를 안 부른다`);
+    assert.match(코드, /npm run test:always/, `${s} 가 test:always 를 안 부른다 — 인증 route 검사가 빠진다`);
+    assert.doesNotMatch(코드, /(^|\s)npm test\b/m, `${s} 가 아직 전체 npm test 를 부른다`);
+    assert.doesNotMatch(read(s), /연속 3회/, `${s} 에 옛 「연속 3회」 규칙이 남았다`);
+  }
+});

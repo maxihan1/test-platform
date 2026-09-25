@@ -61,10 +61,13 @@ npm run typecheck       > /tmp/r.log 2>&1; echo "EXIT=$?"
 npm run check:workflow  > /tmp/r.log 2>&1; echo "EXIT=$?"
 npm run check:spec      > /tmp/r.log 2>&1; echo "EXIT=$?"
 npm run check:tests     > /tmp/r.log 2>&1; echo "EXIT=$?"
-npm test                > /tmp/r.log 2>&1; echo "EXIT=$?"
+npm run test:changed -- origin/main > /tmp/r.log 2>&1; echo "EXIT=$?"
+npm run test:always                 > /tmp/r.log 2>&1; echo "EXIT=$?"
 ```
 
-DB 를 건드렸으면 `DATABASE_URL` 을 붙여 **연속 3회.**
+**바뀐 것과 이어진 검사 + 늘 도는 목록을 1회** 돈다 (2026-09-25 — 서비스 전이라 전체 3회를 걷었다).
+DB 를 건드렸으면 `DATABASE_URL` 을 붙인다. migration·`package.json`·설정을 바꿨으면 `vitest run` 전체다.
+**`docs`·`spec` 차선이면 `check:spec` 하나만** 돈다 — 코드가 없다 (`/tpx` §차선).
 
 **건수가 아니라 종료 코드다.** 「Tests N passed」와 「EXIT=1」은 동시에 참일 수 있다.
 
