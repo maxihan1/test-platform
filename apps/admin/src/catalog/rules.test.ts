@@ -1,4 +1,4 @@
-// SPEC §4 케이스 파일 규칙 K1~K10 검사기가 위반을 정확히 집어내는지 검사한다
+// SPEC §4 K표의 케이스 파일 규칙 검사기가 위반을 정확히 집어내는지 검사한다
 
 import { describe, expect, it } from 'vitest';
 

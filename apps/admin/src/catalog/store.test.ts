@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { save } from './store.js';
+import { findCase, listCases, save } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 
@@ -112,5 +112,93 @@ describe.skipIf(연결 === undefined)('save', () => {
       "SELECT count(*) AS n FROM test_case WHERE is_active AND tc_id NOT LIKE 'ZZA-%'",
     );
     expect(after.rows[0]?.n).toBe(before.rows[0]?.n);
+  });
+
+  describe('미확정 꼬리표', () => {
+    async function 꼬리표(tcId: string): Promise<{ unconfirmed: string | null; since: Date | null }> {
+      const row = await pool.query<{ unconfirmed: string | null; unconfirmed_since: Date | null }>(
+        'SELECT unconfirmed, unconfirmed_since FROM test_case WHERE tc_id = $1',
+        [tcId],
+      );
+      return { unconfirmed: row.rows[0]?.unconfirmed ?? null, since: row.rows[0]?.unconfirmed_since ?? null };
+    }
+
+    let 처음: Date | null = null;
+
+    it('사유가 있는 명세를 저장하면 사유와 단 시각이 실린다', async () => {
+      await save([spec('ZZA-101', { unconfirmed: '기획서와 다름' })], false, 'ZZA');
+      const got = await 꼬리표('ZZA-101');
+      expect(got.unconfirmed).toBe('기획서와 다름');
+      expect(got.since).toBeInstanceOf(Date);
+      처음 = got.since;
+    });
+
+    it('사유 글자만 바뀌면 사유는 새 글이고 단 시각은 그대로다', async () => {
+      await save([spec('ZZA-101', { unconfirmed: '화면만 보고 만들었다' })], false, 'ZZA');
+      const got = await 꼬리표('ZZA-101');
+      expect(got.unconfirmed).toBe('화면만 보고 만들었다');
+      expect(got.since?.getTime()).toBe(처음?.getTime());
+    });
+
+    it('사유가 빠지면 사유와 단 시각이 둘 다 비워진다', async () => {
+      await save([spec('ZZA-101')], false, 'ZZA');
+      expect(await 꼬리표('ZZA-101')).toEqual({ unconfirmed: null, since: null });
+    });
+
+    it('풀렸다가 다시 달리면 단 시각이 새로 찍힌다', async () => {
+      await save([spec('ZZA-101', { unconfirmed: '다시 미확정' })], false, 'ZZA');
+      const got = await 꼬리표('ZZA-101');
+      expect(got.unconfirmed).toBe('다시 미확정');
+      expect(got.since).toBeInstanceOf(Date);
+      expect(got.since?.getTime()).toBeGreaterThan(처음?.getTime() ?? Infinity);
+    });
+  });
+
+  describe('목록·단건의 미확정 칸', () => {
+    const 조건 = { service: 'ZZA', q: '', activeOnly: true, page: 1, pageSize: 50 };
+
+    beforeAll(async () => {
+      await save([
+        spec('ZZA-001'),
+        spec('ZZA-101', { unconfirmed: '먼저 단 사유' }),
+        spec('ZZA-102', { unconfirmed: '곧 비활성' }),
+      ], false, 'ZZA');
+      await save([spec('ZZA-103', { unconfirmed: '나중에 단 사유' })], false, 'ZZA');
+      await save([spec('ZZA-001'), spec('ZZA-101', { unconfirmed: '먼저 단 사유' }), spec('ZZA-103', {
+        unconfirmed: '나중에 단 사유',
+      })], true, 'ZZA');
+    });
+
+    it('items 에 사유와 단 시각이 실리고 없으면 null 이다', async () => {
+      const list = await listCases(조건);
+      const 확정 = list.items.find((i) => i.tcId === 'ZZA-001');
+      const 미확정 = list.items.find((i) => i.tcId === 'ZZA-103');
+      expect(확정).toMatchObject({ unconfirmed: null, unconfirmedSince: null });
+      expect(미확정?.unconfirmed).toBe('나중에 단 사유');
+      expect(new Date(미확정?.unconfirmedSince ?? '').toISOString()).toBe(미확정?.unconfirmedSince);
+    });
+
+    it('서비스 요약은 활성 미확정만 세고 가장 오래 단 시각을 준다', async () => {
+      const list = await listCases(조건);
+      const 먼저 = list.items.find((i) => i.tcId === 'ZZA-101');
+      expect(list.unconfirmed).toEqual({ count: 2, oldestSince: 먼저?.unconfirmedSince });
+    });
+
+    it('서비스 요약은 검색 조건을 따르지 않는다', async () => {
+      const list = await listCases({ ...조건, q: '아무것도 안 맞는 검색어', platform: 'mobile' });
+      expect(list.items).toHaveLength(0);
+      expect(list.unconfirmed.count).toBe(2);
+    });
+
+    it('미확정이 없으면 요약은 0 과 null 이다', async () => {
+      const list = await listCases({ ...조건, service: 'ZZA0' });
+      expect(list.unconfirmed).toEqual({ count: 0, oldestSince: null });
+    });
+
+    it('단건도 사유와 단 시각을 싣는다', async () => {
+      const found = await findCase('ZZA-101');
+      expect(found?.unconfirmed).toBe('먼저 단 사유');
+      expect(typeof found?.unconfirmedSince).toBe('string');
+    });
   });
 });

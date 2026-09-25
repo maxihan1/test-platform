@@ -95,3 +95,9 @@ curl 'localhost:3000/api/catalog/cases?service=NOPE'          # 403 SERVICE_FORB
 - **`execution` 테스트 18건이 빨간불이다** (2026-09-18 「막힌 것」) — 닫혔다.
   지금 그 폴더는 전부 초록이다. 직접 세어 본다 —
   `DATABASE_URL=... npx vitest run apps/admin/src/execution`
+
+## 2026-09-25 — 역방향: 미확정 꼬리표 스캔·목록 · K11 · 새 꼬리표 경고 (PR #75)
+- 완료: 스캐너가 `unconfirmed`·`unconfirmed_since` 저장(사유만 바뀌면 나이 유지 · 풀리면 NULL) · 목록·단건 응답 두 칸 · 목록 최상위 `unconfirmed: { count, oldestSince }`(검색 조건 무시, 활성만) · K11(`catalog/unconfirmed.ts`, 축약·펼침도 위반) · 같은 tcId 옛 본문에 꼬리표가 없었으면 `check:tests` 경고(종료 코드 그대로)
+- 미완: 화면(배지·머리 알림·`web/api.ts` 타입)은 WS-E
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 「K1~K10」 범위 표기를 전부 「§4 K표」·「K 규칙」으로 바꿨다 — 규칙을 더해도 문서를 고칠 필요가 없다. 통과 줄 범위는 `rules.ts` 규칙 목록에서 만든다

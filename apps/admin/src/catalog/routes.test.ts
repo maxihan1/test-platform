@@ -72,6 +72,14 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
     expect(typeof body.pageSize).toBe('number');
   });
 
+  it('GET /api/catalog/cases — 서비스의 미확정 요약을 최상위에 싣는다', async () => {
+    const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO&q=DEMO-004' })).json();
+    expect(typeof body.unconfirmed.count).toBe('number');
+    expect(body.unconfirmed).toHaveProperty('oldestSince');
+    expect(body.items[0]).toHaveProperty('unconfirmed');
+    expect(body.items[0]).toHaveProperty('unconfirmedSince');
+  });
+
   it('GET /api/catalog/cases — service를 안 주면 400이다', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/catalog/cases' });
     expect(res.statusCode).toBe(400);

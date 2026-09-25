@@ -11,7 +11,7 @@ if [ -f package.json ]; then
 
   if ! npm run check:tests --if-present --silent; then
     echo "" >&2
-    echo "[차단] 테스트 코드 규칙 위반 (SPEC §4 K1~K8). 위 메시지대로 고치고 다시 푸시해라." >&2
+    echo "[차단] 테스트 코드 규칙 위반 (SPEC §4 K표). 위 메시지대로 고치고 다시 푸시해라." >&2
     exit 1
   fi
 else

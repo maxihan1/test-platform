@@ -11,6 +11,10 @@ const HOOK = fileURLToPath(new URL('../hooks/pre-push', import.meta.url));
 const ZERO = '0000000000000000000000000000000000000000';
 const SHA = 'a'.repeat(40);
 
+// 훅 안에서 이 검사가 돌면 git 이 물려준 GIT_DIR 등이 임시 저장소 대신 진짜 저장소를 가리킨다.
+// 2026-09-25 에 같은 모양의 검사가 실제 브랜치에 커밋하고 origin/main 을 옮겼다 (LEARNINGS)
+const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+
 /** 훅을 stdin 입력과 함께 돌리고 종료 코드와 출력을 돌려준다 */
 function run(stdin) {
   try {
@@ -78,7 +82,7 @@ test('기존 검사가 그대로 있다', () => {
 /** base(origin/main) 하나와 그 위에 파일을 더한 커밋 하나가 있는 임시 저장소. 올릴 sha 를 돌려준다 */
 function 임시저장소(더할파일들, 옮길것들 = []) {
   const 뿌리 = mkdtempSync(join(tmpdir(), 'pre-push-'));
-  const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { encoding: 'utf8' }).trim();
+  const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { encoding: 'utf8', env: 깨끗한환경 }).trim();
   const 쓴다 = (경로, 내용) => {
     mkdirSync(join(뿌리, 경로, '..'), { recursive: true });
     writeFileSync(join(뿌리, 경로), 내용);
@@ -102,14 +106,14 @@ function 임시저장소(더할파일들, 옮길것들 = []) {
   // NPM_FAIL 에 준 낱말이 인자에 있으면 실패한다 — 「불렸다」가 아니라 「실패하면 막는다」를 보려고 (spec-review G9)
   writeFileSync(
     join(가짜, 'npm'),
-    `#!/bin/sh\necho "$*" >> "${기록}"\nif [ -n "$NPM_FAIL" ]; then case "$*" in *"$NPM_FAIL"*) exit 1 ;; esac; fi\n`,
+    `#!/bin/sh\necho "$*" >> "${기록}"\nenv | grep '^GIT_' >> "${기록}.git-env" || true\nif [ -n "$NPM_FAIL" ]; then case "$*" in *"$NPM_FAIL"*) exit 1 ;; esac; fi\n`,
   );
   chmodSync(join(가짜, 'npm'), 0o755);
   return { 뿌리, sha: git('rev-parse', 'HEAD'), 가짜, 기록 };
 }
 
 function 저장소에서돌린다({ 뿌리, sha, 가짜 }, 더할환경 = {}) {
-  const env = { ...process.env, PATH: `${가짜}:${process.env.PATH}`, ...더할환경 };
+  const env = { ...깨끗한환경, PATH: `${가짜}:${process.env.PATH}`, ...더할환경 };
   delete env.ALLOW_PROTECTED;
   try {
     const out = execFileSync(HOOK, ['origin', 'https://example.com/r.git'], {
@@ -141,6 +145,20 @@ test('테스트만 바뀐 커밋은 가벼운 길 — 타입·check:tests 만 �
     // 가벼운 길의 유일한 규칙 검사다 — 스크립트가 사라지면 조용히 초록이 아니라 그 자리에서 죽어야 한다
     assert.doesNotMatch(호출, /check:tests.*--if-present/, '가벼운 길의 check:tests 에 --if-present 가 붙어 있다');
     assert.doesNotMatch(호출, /^test\b/m, '가벼운 길인데 전체 단위 테스트를 돌렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+// git 은 훅을 돌릴 때 GIT_DIR 등을 넣는다. 그대로 검사에 물려주면 임시 저장소를 만드는 검사가 이 저장소를 친다 —
+// 2026-09-24 · 09-25 두 번 브랜치에 커밋하고 core.bare=true 를 박았다. 훅이 검사 전에 걷는다
+test('훅은 검사를 부르기 전에 GIT_* 환경 변수를 걷는다', () => {
+  const 저장소 = 임시저장소(['tests/todo/TODO-002.spec.ts']);
+  try {
+    const r = 저장소에서돌린다(저장소, { GIT_DIR: join(저장소.뿌리, '.git'), GIT_INDEX_FILE: join(저장소.뿌리, '.git', 'index') });
+    assert.equal(r.code, 0, `막혔다: ${r.out}`);
+    assert.match(불린것(저장소.기록), /check:tests/, '검사가 불리지 않았다');
+    assert.equal(불린것(`${저장소.기록}.git-env`), '', 'npm 이 GIT_* 를 물려받았다');
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });
   }

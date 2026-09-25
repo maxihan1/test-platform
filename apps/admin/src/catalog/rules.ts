@@ -5,7 +5,9 @@ import ts from 'typescript';
 
 import type { CaseSpec, JsonSchema } from '@platform/kit';
 
-export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10';
+import { badTag } from './unconfirmed.js';
+
+export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K11';
 
 export interface Violation {
   file: string;
@@ -32,7 +34,11 @@ const WHY: Record<RuleId, string> = {
   K8: '문법 오류나 import 실패로 케이스가 등록되지 않는다',
   K9: '비밀번호가 화면과 증적 문서에 평문으로 박힌다',
   K10: '사람이 값을 채워야만 도는 케이스는 정기 실행이 돌리지 못한다',
+  K11: '스캐너가 사유를 못 읽어 미확정 케이스가 정식으로 섞인다',
 };
+
+// check.ts 통과 줄이 이 목록에서 범위를 만든다. 손으로 적은 숫자는 규칙이 늘 때 조용히 틀린다
+export const RULES = Object.keys(WHY) as RuleId[];
 
 function v(file: string, line: number, rule: RuleId, what: string, why = WHY[rule]): Violation {
   return { file, line, rule, what, why };
@@ -145,6 +151,8 @@ export function checkSource(file: string, text: string): SourceResult {
         v(file, lineOf(literal), 'K4', `${key} 키가 아예 없다. 없으면 없다고 적어야 한다`),
       );
     }
+    const bad = badTag(literal);
+    if (bad !== undefined) violations.push(v(file, lineOf(bad.node), 'K11', bad.what));
   }
 
   violations.sort((a, b) => a.line - b.line);

@@ -19,9 +19,15 @@ async function db(): Promise<Pool> {
 
 const UPSERT = `
   INSERT INTO test_case
-    (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now())
+    (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at,
+     unconfirmed, unconfirmed_since)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(),
+          $8::text, CASE WHEN $8::text IS NULL THEN NULL ELSE now() END)
   ON CONFLICT (tc_id) DO UPDATE SET
+    unconfirmed     = EXCLUDED.unconfirmed,
+    -- 나이는 처음 단 때부터 잰다. 사유 글자를 고쳐도 유지하고, 풀리면 비워서 다시 달 때 새로 잰다 (카탈로그 §3.1)
+    unconfirmed_since = CASE WHEN EXCLUDED.unconfirmed IS NULL THEN NULL
+                             ELSE COALESCE(test_case.unconfirmed_since, now()) END,
     name            = EXCLUDED.name,
     platforms       = EXCLUDED.platforms,
     precondition    = EXCLUDED.precondition,
@@ -32,10 +38,13 @@ const UPSERT = `
     scanned_at      = now()
   RETURNING (xmax = 0) AS inserted`;
 
-export interface CaseRow extends CaseSpec {
+// 명세의 unconfirmed 는 없으면 키가 없다. 응답은 화면이 칸을 늘 읽도록 null 로 채운다 (카탈로그 §7)
+export type CaseRow = Omit<CaseSpec, 'unconfirmed'> & {
   isActive: boolean;
   scannedAt: string;
-}
+  unconfirmed: string | null;
+  unconfirmedSince: string | null;
+};
 
 interface RawRow {
   tc_id: string;
@@ -47,6 +56,8 @@ interface RawRow {
   expected_schema: CaseSpec['expectedSchema'];
   is_active: boolean;
   scanned_at: Date;
+  unconfirmed: string | null;
+  unconfirmed_since: Date | null;
   total?: string;
 }
 
@@ -61,10 +72,13 @@ function toCase(row: RawRow): CaseRow {
     expectedSchema: row.expected_schema,
     isActive: row.is_active,
     scannedAt: row.scanned_at.toISOString(),
+    unconfirmed: row.unconfirmed,
+    unconfirmedSince: row.unconfirmed_since?.toISOString() ?? null,
   };
 }
 
-const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at';
+const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at, '
+  + 'unconfirmed, unconfirmed_since';
 
 // ILIKE에서 % 와 _ 는 아무 글자나 맞는 기호다. 사람이 친 검색어는 글자 그대로여야 한다
 function literal(term: string): string {
@@ -91,6 +105,8 @@ export interface CaseList {
   sort: string;
   page: number;
   pageSize: number;
+  // 검색 조건을 따르지 않는다. 걸러 낸 뒤에도 서비스에 미확정이 몇 건 남았는지 알려야 한다 (카탈로그 §7)
+  unconfirmed: { count: number; oldestSince: string | null };
 }
 
 export async function listCases(query: CaseQuery): Promise<CaseList> {
@@ -115,6 +131,13 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     ],
   );
 
+  const summary = await pool.query<{ count: string; oldest: Date | null }>(
+    `SELECT count(*) AS count, min(unconfirmed_since) AS oldest
+       FROM test_case
+      WHERE tc_id LIKE $1 AND is_active AND unconfirmed IS NOT NULL`,
+    [`${query.service}-%`],
+  );
+
   return {
     items: rows.rows.map(toCase),
     total: Number(rows.rows[0]?.total ?? 0),
@@ -122,6 +145,10 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     sort: 'tcId',
     page: query.page,
     pageSize: query.pageSize,
+    unconfirmed: {
+      count: Number(summary.rows[0]?.count ?? 0),
+      oldestSince: summary.rows[0]?.oldest?.toISOString() ?? null,
+    },
   };
 }
 
@@ -170,6 +197,7 @@ export async function save(specs: CaseSpec[], deactivateMissing: boolean, prefix
         spec.filePath,
         JSON.stringify(spec.paramSchema),
         JSON.stringify(spec.expectedSchema),
+        spec.unconfirmed ?? null,
       ]);
       if (upserted.rows[0]?.inserted === true) added += 1;
     }
