@@ -2707,3 +2707,12 @@ select:focus {
   margin-left: 6px;
   font-size: 11.5px;
 }
+
+/* 대상 서버 줄의 테스트 계정은 키·주소 아래 둘째 줄이다. 한 줄에 다섯 칸을 넣으면 좁은 창에서 주소가 잘린다 */
+.set-env-login {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
