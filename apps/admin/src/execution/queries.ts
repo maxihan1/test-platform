@@ -12,9 +12,7 @@ import type { Pool } from 'pg';
 
 import { runSummary, 거르는조건, type 실행거르개, type 실행집계 } from './runSummary.js';
 
-import type { RunCounts, RunItemDetail, RunItemSummary, RunSummary } from './runTypes.js';
-
-export type { RunCounts, RunItemDetail, RunItemSummary, RunSummary };
+import type { RunItemDetail, RunItemSummary, RunSummary } from './runTypes.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -91,7 +89,6 @@ export async function serviceExists(prefix: string): Promise<boolean> {
   return (rows.rowCount ?? 0) > 0;
 }
 
-
 export async function listRuns(
   service: string,
   page: number,
@@ -125,7 +122,6 @@ export async function listRuns(
     summary: await runSummary(service, 거르개),
   };
 }
-
 
 interface RawItem {
   history_id: string;

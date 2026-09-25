@@ -58,9 +58,9 @@ export function 거르는조건(거르개: 실행거르개, 시작번호: number
  */
 export interface 실행집계 {
   runs: number;
-  /** 실패도 미실행도 없는 실행 */
+  /** 확정 항목에 실패도 미실행도 없고 확정 통과가 1건 이상인 실행. 미확정만 돌린 실행은 안 든다 */
   allPass: number;
-  /** 실패 항목이 하나라도 있는 실행 */
+  /** 확정 실패 항목이 하나라도 있는 실행 */
   hasFail: number;
   /** 평균을 낸 실행 수. 도는 실행은 소요가 없어 빠진다 — 몇 회를 셌는지 화면이 적는다 */
   durationOf: number;

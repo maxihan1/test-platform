@@ -132,8 +132,8 @@ describe('본문 — 미확정 항목 (SPEC 실행 §3.2)', () => {
 
   it('실패 목록은 확정 실패를 먼저 적고 미확정 실패에는 꼬리를 붙인다', () => {
     const 섞임 = [
-      { tc_id: 'PAY-001', tc_name: '화면 기준 케이스', unconfirmed: true },
-      { tc_id: 'PAY-002', tc_name: '한도 초과 거절', unconfirmed: false },
+      { tc_id: 'PAY-001', tc_name: '화면 기준 케이스', is_unconfirmed: true },
+      { tc_id: 'PAY-002', tc_name: '한도 초과 거절', is_unconfirmed: false },
     ];
     const 줄 = 본문({ ...실행, u_fail: 1 }, 섞임, '', 2111).split('\n');
     const 시작 = 줄.indexOf('실패한 케이스');

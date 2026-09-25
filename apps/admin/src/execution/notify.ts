@@ -31,7 +31,8 @@ interface NotifyRow {
 interface FailedCase {
   tc_id: string;
   tc_name: string;
-  unconfirmed?: boolean;
+  // 사유 문자열이 아니라 여부다. run_item.unconfirmed(사유)와 헷갈리지 않게 이름을 갈랐다
+  is_unconfirmed?: boolean;
 }
 
 // 「보낼 생각이 없었던 것」과 「보내려다 실패한 것」을 가르려면 notify_slack 과 notified_at 이 둘 다 필요하다 (§6)
@@ -64,7 +65,7 @@ function 머리글(run: NotifyRow): string {
   return 미확정실패 > 0 ? `[통과 · 미확정 실패 ${미확정실패}]` : '[통과]';
 }
 
-// 미확정이 없으면 묶음을 아예 쓰지 않는다. 0 인 칸은 뺀다 (SPEC 실행 §8.9)
+// 미확정이 없으면 묶음을 아예 쓰지 않는다. 0 인 칸은 뺀다 (SPEC 실행 §3.2 「미확정 항목은 따로 센다」)
 function 미확정묶음(run: NotifyRow): string {
   const 합 = run.u_pass + run.u_fail + run.u_na;
   if (합 === 0) return '';
@@ -95,8 +96,8 @@ export function 본문(run: NotifyRow, 실패: FailedCase[], publicUrl: string, 
   // 확정 실패를 먼저 적고 미확정 실패는 꼬리를 붙여 뒤에 둔다 (2026-09-26 사용자 결정)
   if (실패.length > 0) {
     줄.push('', '실패한 케이스');
-    const 차례 = [...실패.filter((c) => c.unconfirmed !== true), ...실패.filter((c) => c.unconfirmed === true)];
-    for (const c of 차례.slice(0, 5)) 줄.push(`  ${c.tc_id}  ${c.tc_name}${c.unconfirmed === true ? '  (미확정)' : ''}`);
+    const 차례 = [...실패.filter((c) => c.is_unconfirmed !== true), ...실패.filter((c) => c.is_unconfirmed === true)];
+    for (const c of 차례.slice(0, 5)) 줄.push(`  ${c.tc_id}  ${c.tc_name}${c.is_unconfirmed === true ? '  (미확정)' : ''}`);
     if (실패.length > 5) 줄.push(`  외 ${실패.length - 5}건`);
   }
 
@@ -118,7 +119,7 @@ export async function notifyRun(runId: number): Promise<boolean> {
   if (run === undefined || run.slack_webhook === null || run.slack_webhook === '') return false;
 
   const 실패 = await pool.query<FailedCase>(
-    "SELECT DISTINCT tc_id, tc_name, unconfirmed IS NOT NULL AS unconfirmed FROM run_item WHERE run_id = $1 AND status = 'FAIL' ORDER BY tc_id",
+    "SELECT DISTINCT tc_id, tc_name, unconfirmed IS NOT NULL AS is_unconfirmed FROM run_item WHERE run_id = $1 AND status = 'FAIL' ORDER BY tc_id",
     [runId],
   );
 
