@@ -172,6 +172,23 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
     });
   });
 
+  describe('줄에 세우기', () => {
+    const 세우기 = (id: number) => app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/submit` });
+
+    it('화면만(대조 + 시작 주소)은 자료 0 이어도 선다', async () => {
+      const id = (await 만들기({ kind: 'AUTHOR', compare: true, env: 'qa', startUrl: 'https://qa.xwv.test/' })).json<{ id: number }>().id;
+      expect((await 세우기(id)).statusCode).toBe(200);
+      expect((await 한건(id))?.status).toBe('PENDING');
+    });
+
+    it('대조만 켜고 시작 주소가 없으면 자료 0 은 409 NO_ASSETS', async () => {
+      const id = (await 만들기({ kind: 'AUTHOR', compare: true, env: 'qa' })).json<{ id: number }>().id;
+      const res = await 세우기(id);
+      expect(res.statusCode).toBe(409);
+      expect(res.json()).toEqual({ error: 'NO_ASSETS' });
+    });
+  });
+
   describe('다시 돌리기', () => {
     async function 끝난원본(본문: Record<string, unknown>): Promise<number> {
       const { pool } = await import('../db/index.js');

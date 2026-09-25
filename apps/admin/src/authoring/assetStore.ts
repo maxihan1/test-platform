@@ -161,12 +161,14 @@ export async function 자료한건(요청: number, 자료번호: number): Promis
  *
  * **한 문장 UPDATE 가 판정이다** — 자료가 0 이거나 이미 선 행이면 아무것도 안 바뀌고 false 다.
  * 읽고 나서 고치면 그 사이에 맥이 집거나 자료가 빠질 수 있다.
+ * 화면만(대조 + 시작 주소)은 읽을 기획서 없이 그 화면을 훑으므로 자료 0 이어도 선다 (§3.6 「★ 역방향」).
  */
 export async function 제출(요청: number): Promise<boolean> {
   const r = await (await db()).query(
     `UPDATE authoring_request SET status = 'PENDING'
       WHERE id = $1 AND status = 'DRAFT'
-        AND EXISTS (SELECT 1 FROM authoring_asset WHERE request_id = $1)`,
+        AND (EXISTS (SELECT 1 FROM authoring_asset WHERE request_id = $1)
+             OR (compare AND start_url IS NOT NULL))`,
     [요청],
   );
   return r.rowCount === 1;
