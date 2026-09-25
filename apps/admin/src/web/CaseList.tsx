@@ -5,7 +5,8 @@
 
 import { useState } from 'react';
 
-import { api, type CaseQuery, type CaseRow, type ItemStatus, type Paged, type Platform } from './api.js';
+import { api, type CasePage, type CaseQuery, type ItemStatus, type Platform } from './api.js';
+import { 미확정나이 } from './unconfirmed.js';
 import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄, 표머리 } from './CaseListParts.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
@@ -43,7 +44,7 @@ export function CaseList({ service }: { service: string }) {
     ...(디바이스 === 'ALL' ? {} : { platform: 디바이스 }),
     ...(활성만 ? {} : { active: false }),
   };
-  const cases = useAsync<Paged<CaseRow>>(() => api.cases(조건), [service, q, page, 디바이스, 활성만]);
+  const cases = useAsync<CasePage>(() => api.cases(조건), [service, q, page, 디바이스, 활성만]);
   const scan = useAsync(() => api.lastScan(), []);
   const last = useAsync(() => api.lastByCase(), []);
 
@@ -66,6 +67,11 @@ export function CaseList({ service }: { service: string }) {
     set편줄(new Set());
   }
 
+  const 미확정 = cases.data?.unconfirmed;
+  const 미확정요약 =
+    미확정 === undefined || 미확정.count === 0 || 미확정.oldestSince === null
+      ? null
+      : { 건수: 미확정.count, 일: 미확정나이(미확정.oldestSince) };
   const 보일것 = 마지막결과로거른다(cases.data?.items ?? [], lastMap, 결과);
   // 지금 보이는 것을 센다 — 칩을 걸면 숫자도 같이 좁혀져야 「보이는 것과 세는 것」이 갈리지 않는다
   const 셈 = 판정개수(보일것, lastMap);
@@ -139,6 +145,13 @@ export function CaseList({ service }: { service: string }) {
         부제={
           <>
             {cases.data === null ? t('불러오는 중입니다') : t('모두 {건수}건', { 건수: cases.data.total })}
+            {/* 답을 못 받은 미확정은 잊힌다 — 건수와 가장 오래된 것의 나이를 머리에 둔다. 없으면 안 쓴다 (도메인/카탈로그 §8.1) */}
+            {미확정요약 === null ? null : (
+              <>
+                {' · '}
+                {t('미확정 {건수}건 · 가장 오래된 것 {일}일째', 미확정요약)}
+              </>
+            )}
             {' · '}
             <ScanInfo scan={scan.data} error={notice ?? scan.error} />
             {/* 비활성 이유는 말풍선이 아니라 화면 줄이다 — 휴대폰에는 올릴 마우스가 없다 (DESIGN.md) */}

@@ -2184,8 +2184,10 @@ select:focus {
   word-break: break-all;
 }
 
-/* 목록 줄의 「비활성」 표시. `.chip` 은 누를 수 있는 것이라 손가락 커서가 뜬다 — 배지는 따로 둔다 */
-.set-off {
+/* 목록 줄의 「비활성」 표시. `.chip` 은 누를 수 있는 것이라 손가락 커서가 뜬다 — 배지는 따로 둔다.
+   케이스 목록의 「미확정」 배지도 같은 꼴이다 — 판정 색을 입으면 판정처럼 읽힌다 (도메인/카탈로그 §8.1) */
+.set-off,
+.case-tag {
   font-size: 12px;
   padding: 2px 8px;
   border: 1px solid var(--rule);
@@ -2700,3 +2702,8 @@ select:focus {
 .authoring-new .authoring-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 260px; min-width: 0; }
 .authoring-new .authoring-field > span { color: var(--ink-muted); font-size: 12px; }
 .authoring-new .authoring-field textarea { min-height: 64px; }
+
+.case-tag {
+  margin-left: 6px;
+  font-size: 11.5px;
+}
