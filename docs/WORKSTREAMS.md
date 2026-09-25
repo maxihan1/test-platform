@@ -54,7 +54,7 @@
   - **K11 을 넣으면 「K1~K10」이라 적은 자리를 같이 고친다** (2026-09-25 기준) —
     `.claude/skills/spec-review/references/checklist-d-f.md:21,27` · `.claude/skills/tpx-cases/references/5-writing.md:136` ·
     `6-gates.md:34,44` · `2-requirements.md:79` · `.claude/scripts/ci-covers-tests.test.mjs:290` ·
-    `docs/HOOKS.md:178,214,223`(343 은 이미 「K1~K8」로 낡았다) · `docs/WORKFLOW.md:463` · 이 문서의 WS-A 킥오프 `check:tests` 줄 · `docs/spec/도메인/작성.md:168,191` ·
+    `docs/HOOKS.md:178,214,223`(343 은 이미 「K1~K8」로 낡았다) · `docs/WORKFLOW.md:463` · 이 문서의 WS-A 킥오프 `check:tests` 줄 · `docs/spec/도메인/작성.md:169,192` ·
     `docs/spec/공통/7-데모와-완료.md:63` · `.github/workflows/ci.yml:1,15,122` · `scripts/authoring-copy.ts:97` · `scripts/authoring-upload.ts:100` ·
     `.claude/hooks/pre-push:105,132` · `apps/admin/src/catalog/rules.test.ts:1` · `apps/admin/src/catalog/check.ts:1`(머리 주석).
     빠진 자리가 없는지는 `grep -rn 'K1~K10'` 으로 다시 훑는다. 그리고 2-명세선언 §4 의 「K11 은 명세에만 섰고 검사기에는 아직 없다」 줄을 지운다
