@@ -350,3 +350,16 @@ test('분리 뒤에도 절과 규칙이 남는다', () => {
   );
   assert.deepEqual(규칙빠짐, [], `tpx-cases 에서 규칙이 사라졌다: ${규칙빠짐}`);
 });
+
+// 자식 세션과 각 단계가 매번 통째로 읽는 문서라 길면 읽는 값이 쌓인다 (2026-09-25 사용자 지시 — 200줄 이하, 모듈로 분리).
+// playwright-cli 는 Microsoft 원본을 그대로 담아 둔 것이라 손대지 않는다 (CLAUDE.md 「저장소에 담아 둔 남의 스킬」)
+test('스킬 문서는 파일마다 200줄 이하다 — playwright-cli 제외', () => {
+  const 넘침 = [];
+  for (const s of readdirSync(DIR).filter((n) => n !== 'playwright-cli' && existsSync(new URL(`${n}/SKILL.md`, DIR)))) {
+    for (const 파일 of ['SKILL.md', ...refsOf(s).map((f) => `references/${f}`)]) {
+      const 줄 = readFileSync(new URL(`${s}/${파일}`, DIR), 'utf8').split('\n').length - 1;
+      if (줄 > 200) 넘침.push(`${s}/${파일} ${줄}줄`);
+    }
+  }
+  assert.deepEqual(넘침, [], `200줄을 넘는 스킬 문서: ${넘침.join(', ')}. 절을 references/ 로 옮긴다`);
+});
