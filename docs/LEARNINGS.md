@@ -62,11 +62,7 @@
 해법:  설정은 `**/db/migrations/**` (CI 경로에서 맞음 — picomatch 로 실측). 작업방에서 도는 pre-push 는 트리거에 기대지 않고 파일 이름을 직접 봐 `npm test` 전체 (PR #70)
 교훈:  「설정에 넣었다」와 「걸린다」는 다르다 — 트리거·글로브는 **실제 경로로** 한 번 부숴 본다
 
-## [환경] 2026-09-24 · **진짜 git 을 치는 단위 검사가 pre-push 훅 안에서 이 저장소에 커밋하고 core.bare=true 를 박았다**
-증상:  push 가 「테스트 실패」로 막혔고, 브랜치에 커밋 `x`(임시 파일 둘만 든 판)가 생겼고, 공유 `.git/config` 에 `core.bare = true` 가 들어갔다
-원인:  git 은 훅을 돌릴 때 `GIT_DIR` 을 넣는다. 검사가 `{ ...process.env }` 로 git 을 띄워 임시 폴더의 `init`·`add`·`commit` 이 **이 저장소**를 쳤다. GIT_DIR 만 있고 작업 폴더가 없는 `init` 은 bare 로 표시한다
-해법:  검사가 띄우는 git 에서 `GIT_*` 를 전부 뺀다(`scripts/authoring-copy.test.ts` 의 `깨끗한환경`). 커밋은 `reset --mixed` 로 걷었다. core.bare 는 사람이 되돌린다 (PR #69)
-교훈:  진짜 git 을 치는 검사는 **훅 안에서도 돈다** — 부모 환경을 그대로 물려주지 않는다. 확인은 `GIT_DIR=<없는 경로> npx vitest run <그 파일>`
+## [환경] 2026-09-24 · 진짜 git 을 치는 단위 검사가 pre-push 훅 안에서 이 저장소에 커밋하고 core.bare=true 를 박았다 → `.claude/hooks/pre-push` 가 검사 전에 `GIT_*` 를 걷고 `hook-contract.test.mjs` 가 지킨다로 승격 (2026-09-25, 두 번째 재발 — PR #75 의 새 검사가 같은 길로 브랜치에 `init` 커밋을 push 하고 origin/main 을 옮겼다. core.bare 도 다시 true 였다. 복구는 `reset --mixed` · fetch · 강제 푸시 대신 `-s ours` 병합 · `config core.bare false`)
 
 ## [환경] 2026-09-24 · **`kill -0 -1` 로 「그 uid 의 프로세스가 다 죽었나」를 볼 수 없다** — 거두기가 늘 「못 거뒀다」였다
 증상:  자리 uid 로 `kill -9 -1` 뒤 `kill -0 -1` 이 10번 다 성공해 거두기가 실패로 판정됐다. `pgrep -u` 는 0 이었다
