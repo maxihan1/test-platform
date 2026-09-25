@@ -13,6 +13,7 @@ export interface CaseSpec {
   paramSchema: JsonSchema;      // zod → z.toJSONSchema 변환 결과. 코드에서 null이면 빈 객체 스키마
   expectedSchema: JsonSchema;
   filePath: string;             // 소스 루트 기준 상대 경로
+  unconfirmed?: string;         // 있으면 미확정 케이스, 값은 사유 한 문장. 역방향 작성만 단다
 }
 
 export interface AssertionResult {
