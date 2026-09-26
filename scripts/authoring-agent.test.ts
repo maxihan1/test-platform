@@ -56,6 +56,34 @@ describe('줄에서 집어 일한다', () => {
     expect(글).not.toMatch(/\/tpx\s/);
   });
 
+  it('역방향 요청은 역방향 절을 싣되 계정 값은 싣지 않는다 — 자식 환경 변수 이름만', () => {
+    const 것 = {
+      id: 9,
+      kind: 'AUTHOR' as const,
+      target: { env: 'qa', baseUrl: 'https://qa.x.com', startUrl: null, loginId: 'tester', loginPassword: 'Qa-pw-7731' },
+    };
+    const 글 = 줄프롬프트(것, 'PAY', [], undefined, { 화면만: false, 산출물폴더: '/w/9/자료/out' });
+    expect(글).toContain('역방향');
+    expect(글).toContain('실제 화면과 대조');
+    expect(글).toContain('TARGET_LOGIN_PASSWORD');
+    expect(글).toContain('/w/9/자료/out');
+    expect(글).not.toContain('Qa-pw-7731');
+    expect(글).not.toContain('tester');
+  });
+
+  it('화면만이면 기획서가 없다고 적고 빈 기획서 절을 싣지 않는다', () => {
+    const 글 = 줄프롬프트({ id: 9, kind: 'AUTHOR' }, 'PAY', [], undefined, { 화면만: true, 산출물폴더: '/w/out' });
+    expect(글).toContain('화면만');
+    expect(글).toContain('reverse-spec.md');
+    expect(글).not.toContain('--- 기획서 ---');
+  });
+
+  it('역방향이 아니면 역방향 절이 없다', () => {
+    const 글 = 줄프롬프트({ id: 3, kind: 'AUTHOR', specText: '본문' }, 'TODO', []);
+    expect(글).not.toContain('역방향');
+    expect(글).not.toContain('TARGET_');
+  });
+
   it('머지 요청은 집으면 PR 주소가 있어야 한다. 없으면 실패로 끝낸다', () => {
     expect(머지할수있나({ kind: 'MERGE', prUrl: null })).toBe(false);
     expect(머지할수있나({ kind: 'MERGE', prUrl: 'https://github.com/x/y/pull/3' })).toBe(true);

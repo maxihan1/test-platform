@@ -57,6 +57,24 @@ export function 대상환경(t: 대상): Record<string, string> {
   };
 }
 
+/**
+ * 줄 프롬프트에 덧붙이는 역방향 절. **계정 값은 싣지 않는다** — 환경 변수 이름만 알려 준다.
+ * 절차의 정본은 `tpx-author` 스킬의 `references/reverse.md` 다. 여기는 그 파일을 열게 하고 이번 건의 자리만 준다
+ */
+export function 역방향절(입력: { 화면만: boolean; 산출물폴더: string }): string[] {
+  return [
+    '',
+    '--- 역방향 ---',
+    입력.화면만
+      ? '이 요청은 **화면만**이다 — 기획서가 없다. 시작 주소의 화면과 바로 이어지는 한 칸을 훑어 케이스(전부 미확정)와 역기획서를 만들어라.'
+      : '이 요청은 **실제 화면과 대조**다 — 기획서와 대상 서버의 실제 화면을 맞대 보고 차이마다 처리해라.',
+    '- 절차는 tpx-author 스킬의 references/reverse.md 를 Read 로 열어 그대로 따라라.',
+    '- 대상 서버·시작 주소·테스트 계정은 환경 변수 TARGET_ENV · TARGET_BASE_URL · TARGET_START_URL(없을 수 있다) · TARGET_LOGIN_ID · TARGET_LOGIN_PASSWORD 에 있다.',
+    '- 계정 값을 글·명령 인자·출력에 펼치지 마라. 스크립트 안에서 process.env 로 읽어라.',
+    `- 산출물 폴더는 \`${입력.산출물폴더}\` 다. 차이 목록은 diffs.json${입력.화면만 ? ', 역기획서 원고는 reverse-spec.md' : ''} 로 거기에 써라.`,
+  ];
+}
+
 /** 차이 한 줄 (§7 `finish` 의 `result.diffs[]`) */
 export interface 차이 {
   no: string;
