@@ -35,6 +35,8 @@ interface 접힌행 {
   tc_name: string;
   platform: string;
   status: 접힌판정;
+  /** 이 실행에서 미확정이었나. 박제값이라 같은 (케이스, 디바이스) 의 회차는 모두 같다 */
+  미확정: boolean;
 }
 
 // 반복 회차를 한 (케이스, 디바이스)로 먼저 접는다. 안 접고 맞추면 5회 × 5회 = 25쌍이 나온다.
@@ -47,7 +49,8 @@ const 접기 = `
          platform,
          CASE WHEN bool_or(status = 'FAIL')  THEN 'FAIL'
               WHEN bool_and(status = 'PASS') THEN 'PASS'
-              ELSE 'NA' END AS status
+              ELSE 'NA' END AS status,
+         bool_or(unconfirmed IS NOT NULL) AS 미확정
   FROM run_item
   WHERE run_id = $1
   GROUP BY tc_id, platform
@@ -84,7 +87,7 @@ const 대표문장뽑기 = `
            i.error->>'message'
          ) AS 대표문장
   FROM run_item i
-  WHERE i.run_id = $1 AND i.status = 'FAIL'
+  WHERE i.run_id = $1 AND i.status = 'FAIL' AND i.unconfirmed IS NULL
   ORDER BY i.history_id`;
 
 interface 사유행 {
@@ -187,6 +190,9 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
       빠진건수 += 1;
       continue;
     }
+    // 미확정은 판정에서 뺀다 — 이번에 미확정이면 안 견주고(빠진 것도 아니다),
+    // 앞만 미확정이면 이번 확정이 처음 판정이라 새 케이스처럼 둔다 (도메인/리포팅 §7 · 실행 §3.2)
+    if (이번행.미확정 || 앞행.미확정) continue;
     케이스들.push({
       tcId: 이번행.tc_id,
       tcName: 이번행.tc_name,

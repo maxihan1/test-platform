@@ -39,6 +39,8 @@ const 머리행 = [
   '소요(ms)',
   // 판정 옆에 둔다. 「미실행」과 「NA」 둘 다 여기에 이유를 적는다 (collect.ts 의 notRunReason)
   '미실행·판정불가 사유',
+  // 비면 확정 항목이다. 걸러 내기로 미확정 묶음을 만든다 (도메인/리포팅 「미확정 항목은 따로 묶는다」)
+  '미확정 사유',
   '사전조건',
   '입력값',
   '기대값',
@@ -75,6 +77,7 @@ function 케이스칸(item: EvidenceItem): 칸값[] {
     item.durationMs,
     // 항목 단위 값이라 그 항목이 만드는 모든 행에 같은 값이 반복된다 — 병합 셀을 안 쓰기로 했다 (SPEC §8.4)
     item.notRunReason,
+    item.unconfirmed,
     item.precondition.join('\n'),
     라벨값(item.params),
     라벨값(item.expected),

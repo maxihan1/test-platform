@@ -82,6 +82,15 @@ describe('Grafana 대시보드 프로비저닝', () => {
         );
       }
 
+      // 미확정 실패 — 판정을 세는 패널은 빼고 센다. 세면 성공률이 50% 에서 33.3% 로 떨어진다 (도메인/리포팅 §8.5)
+      await pool.query(
+        `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, params, expected, param_schema, expected_schema,
+                               status, duration_ms, file_path, started_at, finished_at, unconfirmed)
+         VALUES ($1, 'XDD-005', 'desktop', 1, 'XDD-005 케이스', '{}', '{}', '{}', '{}', 'FAIL', 100, '',
+                 now() - interval '25 days', now() - interval '25 days', '기획서와 다름 D1')`,
+        [runId],
+      );
+
       // 실패 순위용 표본은 26일 전에 따로 둔다. 같은 날 칸에 섞으면 위 성공률 기준이 흔들린다
       const 순위run = await pool.query<{ run_id: string }>(
         `INSERT INTO test_run (title, triggered_by, status, env, service_id, service_name, tests_repo, base_url, started_at)
@@ -110,6 +119,14 @@ describe('Grafana 대시보드 프로비저닝', () => {
           [순위runId, tcId, attempt, 케이스명, status],
         );
       }
+      // XDD-006 은 미확정으로만 실패했다 — 순위에 오르면 버그를 지키는 케이스가 「실패 많은 케이스」로 잡힌다
+      await pool.query(
+        `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, params, expected, param_schema, expected_schema,
+                               status, duration_ms, file_path, started_at, finished_at, unconfirmed)
+         VALUES ($1, 'XDD-006', 'desktop', 1, 'XDD-006 케이스', '{}', '{}', '{}', '{}', 'FAIL', 100, '',
+                 now() - interval '26 days', now() - interval '26 days', '화면에만 D2')`,
+        [순위runId],
+      );
     });
 
     afterAll(async () => {
@@ -159,6 +176,17 @@ describe('Grafana 대시보드 프로비저닝', () => {
 
     it('실패 TOP 10 — 미실행만 있는 케이스는 순위에 오르지 않는다', async () => {
       expect((await 실패순위()).map((r) => r['케이스 ID'])).not.toContain('XDD-004');
+    });
+
+    it('실패 TOP 10 — 미확정으로만 실패한 케이스는 순위에 오르지 않는다', async () => {
+      expect((await 실패순위()).map((r) => r['케이스 ID'])).not.toContain('XDD-006');
+    });
+
+    it('판정을 세는 패널만 미확정을 뺀다 — 평균 소요시간은 측정치라 그대로', () => {
+      const sql = (제목: string) => 대시보드.panels.find((p) => p.title === 제목)!.targets[0]!.rawSql;
+      expect(sql('성공률 추이')).toContain('unconfirmed IS NULL');
+      expect(sql('실패 TOP 10 케이스')).toContain('unconfirmed IS NULL');
+      expect(sql('평균 소요시간')).not.toContain('unconfirmed');
     });
   });
 });

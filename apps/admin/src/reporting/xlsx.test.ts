@@ -25,6 +25,7 @@ function 항목(덮을것: Partial<EvidenceItem>): EvidenceItem {
     tcName: '유효한 이메일과 비밀번호로 로그인하면 토큰이 발급된다',
     platform: 'mobile',
     attempt: 1,
+    unconfirmed: null,
     status: 'PASS',
     durationMs: 400,
     notRunReason: null,
@@ -88,6 +89,7 @@ describe('증적 문서 엑셀', () => {
       '판정',
       '소요(ms)',
       '미실행·판정불가 사유',
+      '미확정 사유',
       '사전조건',
       '입력값',
       '기대값',
@@ -120,21 +122,21 @@ describe('증적 문서 엑셀', () => {
     );
 
     expect(ws.rowCount).toBe(3);
-    expect(셀(ws, 2, 21)).toBe('응답 코드가 200 이다');
-    expect(셀(ws, 3, 21)).toBe('토큰이 발급된다');
-    expect(셀(ws, 3, 22)).toBe('true');
-    expect(셀(ws, 3, 23)).toBe('false');
-    expect(셀(ws, 3, 24)).toBe('실패');
+    expect(셀(ws, 2, 22)).toBe('응답 코드가 200 이다');
+    expect(셀(ws, 3, 22)).toBe('토큰이 발급된다');
+    expect(셀(ws, 3, 23)).toBe('true');
+    expect(셀(ws, 3, 24)).toBe('false');
+    expect(셀(ws, 3, 25)).toBe('실패');
   });
 
   it('검증 문장이 없는 절차도 한 행이 남는다', async () => {
     const ws = await 편다(문서([항목({ steps: [스텝({ seq: 3, title: '결제를 누른다', status: 'NA' })] })]));
 
     expect(ws.rowCount).toBe(2);
-    expect(셀(ws, 2, 17)).toBe('3');
-    expect(셀(ws, 2, 18)).toBe('결제를 누른다');
-    expect(셀(ws, 2, 19)).toBe('미실행');
-    expect(셀(ws, 2, 21)).toBe('');
+    expect(셀(ws, 2, 18)).toBe('3');
+    expect(셀(ws, 2, 19)).toBe('결제를 누른다');
+    expect(셀(ws, 2, 20)).toBe('미실행');
+    expect(셀(ws, 2, 22)).toBe('');
   });
 
   it('절차가 하나도 없는 미실행 항목도 한 행이 남는다', async () => {
@@ -147,7 +149,7 @@ describe('증적 문서 엑셀', () => {
     expect(셀(ws, 2, 11)).toBe('미실행');
     expect(셀(ws, 2, 12)).toBe('');
     expect(셀(ws, 2, 13)).toBe('실행이 멈춰 돌지 못했습니다');
-    expect(셀(ws, 2, 17)).toBe('');
+    expect(셀(ws, 2, 18)).toBe('');
   });
 
   it('판정을 못 낸 항목도 사유가 실리고 여러 행이면 행마다 반복된다', async () => {
@@ -205,7 +207,7 @@ describe('증적 문서 엑셀', () => {
       expect(셀(ws, 행, 9)).toBe('모바일');
       expect(셀(ws, 행, 10)).toBe('1');
       expect(셀(ws, 행, 11)).toBe('통과');
-      expect(셀(ws, 행, 17)).toBe('1');
+      expect(셀(ws, 행, 18)).toBe('1');
     }
 
     expect(ws.model.merges).toEqual([]);
@@ -225,7 +227,7 @@ describe('증적 문서 엑셀', () => {
       ]),
     );
 
-    expect(셀(ws, 2, 25)).toBe('artifacts/shots/7/AUTH-002-1.png');
+    expect(셀(ws, 2, 26)).toBe('artifacts/shots/7/AUTH-002-1.png');
     expect(ws.getImages()).toEqual([]);
   });
 
@@ -243,10 +245,22 @@ describe('증적 문서 엑셀', () => {
       ]),
     );
 
-    expect(셀(ws, 2, 14)).toBe('가입 완료된 사용자 계정이 존재한다\n결제 수단이 등록돼 있다');
-    expect(셀(ws, 2, 15)).toBe('아이디: testuser\n비밀번호: ********');
-    expect(셀(ws, 2, 15)).not.toContain('testpass');
-    expect(셀(ws, 2, 16)).toBe('토큰 발급: true');
+    expect(셀(ws, 2, 15)).toBe('가입 완료된 사용자 계정이 존재한다\n결제 수단이 등록돼 있다');
+    expect(셀(ws, 2, 16)).toBe('아이디: testuser\n비밀번호: ********');
+    expect(셀(ws, 2, 16)).not.toContain('testpass');
+    expect(셀(ws, 2, 17)).toBe('토큰 발급: true');
+  });
+
+  it('미확정 항목은 모든 행에 사유가 반복되고 확정 항목은 빈 칸이다', async () => {
+    const ws = await 편다(
+      문서([
+        항목({ unconfirmed: '기획서와 다름 — 차이 D1', steps: [스텝({ seq: 1 }), 스텝({ seq: 2, assertions: [{ statement: '보인다', expected: '예', actual: '예', status: 'PASS', blocker: false }] })] }),
+        항목({ tcId: 'AUTH-003' }),
+      ]),
+    );
+    expect(셀(ws, 1, 14)).toBe('미확정 사유');
+    expect([셀(ws, 2, 14), 셀(ws, 3, 14)]).toEqual(['기획서와 다름 — 차이 D1', '기획서와 다름 — 차이 D1']);
+    expect(셀(ws, 4, 14)).toBe('');
   });
 
   it('머리행이 고정된다', async () => {
