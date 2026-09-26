@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type 대상,
   계정섞였나,
+  글모두,
   대상점검,
   대상환경,
   되읽기인자,
@@ -15,6 +16,7 @@ import {
   원고거부사유,
   차이정리,
 } from './authoring-reverse.js';
+import { 줄프롬프트 } from './authoring-rules.js';
 
 const 비밀 = 'Qa-pw-7731';
 
@@ -203,13 +205,13 @@ describe('역기획서 원고와 변환', () => {
       '/w/out/reverse-spec.docx',
       '/w/out/reverse-spec.md',
     ]);
-    expect(되읽기인자('/w/out/reverse-spec.docx', '/w/out/reverse-spec.check.txt')).toEqual([
+    expect(되읽기인자('/w/out/reverse-spec.docx', '/w/out/reverse-spec.check.json')).toEqual([
       '-f',
       'docx',
       '-t',
-      'plain',
+      'json',
       '-o',
-      '/w/out/reverse-spec.check.txt',
+      '/w/out/reverse-spec.check.json',
       '/w/out/reverse-spec.docx',
     ]);
   });
@@ -224,5 +226,61 @@ describe('산출물주소 — outputs 통로 주소를 만든다', () => {
 
   it('표시 사본은 원본 번호를 싣는다', () => {
     expect(산출물주소(12, 'PAY', 'a.docx', 'MARKED', 5)).toBe('/api/authoring/requests/12/outputs?service=PAY&name=a.docx&role=MARKED&source=5');
+  });
+});
+
+describe('글모두 — 되읽은 문서 구조에서 글을 전부 모은다', () => {
+  it('링크 주소와 문서 정보까지 모은다 — 본문 글자만 보면 거기 숨긴 원문을 놓친다', () => {
+    const 구조 = {
+      meta: { title: { t: 'MetaInlines', c: [{ t: 'Str', c: 'Qa-pw-7731' }] } },
+      blocks: [{ t: 'Para', c: [{ t: 'Link', c: [['', [], []], [{ t: 'Str', c: '보기' }], ['https://x/?q=Qa-pw-7731', '']] }] }],
+    };
+    const 글 = 글모두(구조);
+    expect(글.filter((g) => g.includes('Qa-pw-7731'))).toHaveLength(2);
+  });
+
+  it('숫자·참거짓·null 은 건너뛴다', () => {
+    expect(글모두({ a: 1, b: [true, null, '글'] })).toEqual(['글']);
+  });
+});
+
+describe('차이정리 뒤 검사 — 따옴표·역슬래시가 든 비밀번호도 푼 값에서 찾는다', () => {
+  it('JSON 이스케이프로 날 글자에서는 안 보여도 푼 값에서는 보인다', () => {
+    const 비밀따옴 = 'ab"cd\\ef';
+    const 날글 = JSON.stringify([{ no: 'D1', kind: 'DIFFERENT', doc: `비밀 ${비밀따옴}` }]);
+    expect(계정섞였나([날글], 비밀따옴)).toBe(false);
+    const 정리 = 차이정리(날글);
+    expect('diffs' in 정리 && 계정섞였나(글모두(정리.diffs), 비밀따옴)).toBe(true);
+  });
+});
+
+describe('줄프롬프트 역방향 절 — 계정 값 없이 자리만 준다', () => {
+  it('역방향 요청은 역방향 절을 싣되 계정 값은 싣지 않는다 — 자식 환경 변수 이름만', () => {
+    const 것 = {
+      id: 9,
+      kind: 'AUTHOR' as const,
+      target: { env: 'qa', baseUrl: 'https://qa.x.com', startUrl: null, loginId: 'tester', loginPassword: 'Qa-pw-7731' },
+    };
+    const 글 = 줄프롬프트(것, 'PAY', [], undefined, { 화면만: false, 산출물폴더: '/w/9/자료/out' });
+    expect(글).toContain('역방향');
+    expect(글).toContain('실제 화면과 대조');
+    expect(글).toContain('TARGET_LOGIN_PASSWORD');
+    expect(글).toContain('/w/9/자료/out');
+    expect(글).toContain('작성 요청 9');
+    expect(글).not.toContain('Qa-pw-7731');
+    expect(글).not.toContain('tester');
+  });
+
+  it('화면만이면 기획서가 없다고 적고 빈 기획서 절을 싣지 않는다', () => {
+    const 글 = 줄프롬프트({ id: 9, kind: 'AUTHOR' }, 'PAY', [], undefined, { 화면만: true, 산출물폴더: '/w/out' });
+    expect(글).toContain('화면만');
+    expect(글).toContain('reverse-spec.md');
+    expect(글).not.toContain('--- 기획서 ---');
+  });
+
+  it('역방향이 아니면 역방향 절이 없다', () => {
+    const 글 = 줄프롬프트({ id: 3, kind: 'AUTHOR', specText: '본문' }, 'TODO', []);
+    expect(글).not.toContain('역방향');
+    expect(글).not.toContain('TARGET_');
   });
 });

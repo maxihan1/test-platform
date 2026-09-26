@@ -171,9 +171,23 @@ export function 변환인자(원고: string, 워드: string): string[] {
   return ['-f', 'markdown', '-t', 'docx', '-o', 워드, 원고];
 }
 
-/** 바꾼 워드를 다시 글자로 — **실제로 올릴 파일**에서 비밀번호를 한 번 더 찾으려고 */
-export function 되읽기인자(워드: string, 글자: string): string[] {
-  return ['-f', 'docx', '-t', 'plain', '-o', 글자, 워드];
+/**
+ * 바꾼 워드를 다시 **문서 구조(JSON)** 로 — 실제로 올릴 파일에서 비밀번호를 한 번 더 찾으려고.
+ * 글자(`plain`)로 되읽으면 링크 주소와 문서 정보(제목 등)를 버린다 — 엔티티로 쪼갠 원문이 거기 숨는다 (2026-09-26 보안 검토)
+ */
+export function 되읽기인자(워드: string, 구조: string): string[] {
+  return ['-f', 'docx', '-t', 'json', '-o', 구조, 워드];
+}
+
+/**
+ * 값 안의 글을 전부 모은다 — 되읽은 문서 구조 · 푼 차이 목록. **푼 값에서 찾아야 한다** —
+ * 날 글자는 JSON 이스케이프(`\"` · `\u…`)로 따옴표·역슬래시가 든 비밀번호를 가린다 (2026-09-26 검사)
+ */
+export function 글모두(값: unknown): string[] {
+  if (typeof 값 === 'string') return [값];
+  if (Array.isArray(값)) return 값.flatMap(글모두);
+  if (typeof 값 === 'object' && 값 !== null) return Object.values(값).flatMap(글모두);
+  return [];
 }
 
 /**
