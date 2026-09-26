@@ -1,0 +1,158 @@
+// 역방향 작성의 에이전트 쪽 순수 판정 — 집을 때 재대조 · 자식 환경 · 차이 파일 · 비밀번호 원문 · 역기획서 변환 (도메인/작성 §3.6 「★ 역방향」)
+// 껍데기(authoring-run · authoring-upload)가 부른다. 여기는 I/O 가 없다
+
+/** 집기 응답의 `target` (도메인/작성 §7). 대조 행이면 줄이 지워졌어도 오고 그때 서버·계정 칸이 null 이다 */
+export interface 대상 {
+  env: string;
+  baseUrl: string | null;
+  startUrl?: string | null;
+  loginId?: string | null;
+  loginPassword?: string | null;
+}
+
+/**
+ * 비밀번호가 이보다 짧으면 새는지 검사할 수 없다 — 짧은 글자는 아무 케이스 글에나 우연히 걸린다.
+ * 그렇다고 문턱 아래를 안 보면 짧은 비밀번호는 검사 없이 나간다. 그래서 **돌리지 않는다** (2026-09-26 게이트 1)
+ */
+const 비밀최소 = 4;
+
+function 주소(글: unknown): URL | null {
+  if (typeof 글 !== 'string') return null;
+  try {
+    const u = new URL(글);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? u : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 집을 때 다시 대조한다 — 만든 뒤 설정이 바뀔 수 있다 (§7 집기 ★). 막으면 사유, 아니면 null.
+ * **사유에 계정 값을 싣지 않는다** — 사유는 화면과 서버 기록에 남는다
+ */
+export function 대상점검(t: 대상 | undefined): string | null {
+  if (t === undefined) return null;
+  const 서버 = 주소(t.baseUrl);
+  if (서버 === null) return `대상 서버 「${t.env}」 줄이 없어졌거나 주소가 http·https 가 아니다 — 설정을 확인하고 새 요청으로 넣어라`;
+  if ((t.loginId ?? '') === '' || (t.loginPassword ?? '') === '') {
+    return `대상 서버 「${t.env}」 에 테스트 계정이 빠졌다 — 설정 > 서비스에서 넣고 새 요청으로 넣어라`;
+  }
+  if ((t.loginPassword ?? '').length < 비밀최소) {
+    return `테스트 계정 비밀번호가 ${비밀최소}자보다 짧아 올리는 글에 새는지 검사할 수 없다 — 더 긴 비밀번호로 바꿔라`;
+  }
+  if (t.startUrl !== null && t.startUrl !== undefined && 주소(t.startUrl)?.origin !== 서버.origin) {
+    return '시작 주소가 대상 서버와 어긋난다(도메인·포트) — 설정이 바뀌었으면 새 요청으로 넣어라';
+  }
+  return null;
+}
+
+/** 자식에게 넘길 환경 변수. **값을 프롬프트·인자에 싣지 않는다** — 셸 글자에 끼우면 해석되고 `ps` 에 보인다 (§7 ★) */
+export function 대상환경(t: 대상): Record<string, string> {
+  return {
+    TARGET_ENV: t.env,
+    TARGET_BASE_URL: t.baseUrl ?? '',
+    ...(t.startUrl ? { TARGET_START_URL: t.startUrl } : {}),
+    TARGET_LOGIN_ID: t.loginId ?? '',
+    TARGET_LOGIN_PASSWORD: t.loginPassword ?? '',
+  };
+}
+
+/** 차이 한 줄 (§7 `finish` 의 `result.diffs[]`) */
+export interface 차이 {
+  no: string;
+  kind: 'DIFFERENT' | 'SCREEN_ONLY' | 'DOC_ONLY';
+  where: string | null;
+  doc: string | null;
+  screen: string | null;
+  tcId: string | null;
+  marked: boolean;
+  markError: string;
+}
+
+const 종류들 = new Set(['DIFFERENT', 'SCREEN_ONLY', 'DOC_ONLY']);
+const 글상한 = 2000;
+const 줄상한 = 500;
+
+function 글칸(값: unknown): string | null {
+  return typeof 값 === 'string' ? 값.slice(0, 글상한) : null;
+}
+
+/**
+ * 자식이 쓴 차이 파일(`out/diffs.json`)을 좁혀 받는다. 파일이 없으면(`null`) 빈 목록.
+ *
+ * **서버가 모양을 안 본다**(2026-09-26 게이트 1) — 자식이 아무 키·거대한 글을 넣어도 막을 곳이 여기뿐이다.
+ * 허용한 칸만 남기고 종류는 셋만. **표시는 ③-2 전까지 안 하므로 `marked` 는 에이전트가 거짓으로 박는다** —
+ * 자식이 「표시했다」고 적어도 믿지 않는다
+ */
+export function 차이정리(글: string | null): { diffs: 차이[] } | { 사유: string } {
+  if (글 === null) return { diffs: [] };
+  let 값: unknown;
+  try {
+    값 = JSON.parse(글);
+  } catch {
+    return { 사유: '차이 목록 파일(diffs.json)이 JSON 이 아니다' };
+  }
+  if (!Array.isArray(값)) return { 사유: '차이 목록 파일(diffs.json)이 배열이 아니다' };
+  if (값.length > 줄상한) return { 사유: `차이 목록이 ${줄상한}줄을 넘는다` };
+  const diffs: 차이[] = [];
+  for (const 줄 of 값) {
+    if (typeof 줄 !== 'object' || 줄 === null || Array.isArray(줄)) return { 사유: '차이 목록에 객체가 아닌 줄이 있다' };
+    const d = 줄 as Record<string, unknown>;
+    const no = 글칸(d.no);
+    if (no === null || no === '' || typeof d.kind !== 'string' || !종류들.has(d.kind)) {
+      return { 사유: '차이 목록 줄에 번호(no)나 종류(kind)가 없거나 틀렸다' };
+    }
+    diffs.push({
+      no,
+      kind: d.kind as 차이['kind'],
+      where: 글칸(d.where),
+      doc: 글칸(d.doc),
+      screen: 글칸(d.screen),
+      tcId: 글칸(d.tcId),
+      marked: false,
+      markError: '표시는 아직 안 한다',
+    });
+  }
+  return { diffs };
+}
+
+/** 글 어디에든 비밀번호 원문이 있나. 짧은 비밀번호는 집을 때 이미 걸렀다(`대상점검`) */
+export function 계정섞였나(글들: string[], 비밀: string | null | undefined): boolean {
+  if (비밀 === null || 비밀 === undefined || 비밀 === '') return false;
+  return 글들.some((글) => 글.includes(비밀));
+}
+
+/**
+ * push 전에 올릴 글 전부를 본다 (§3.6 「남는 한계」 — 올릴 파일 · result(diffs) · 케이스 diff · PR 본문).
+ * 역기획서 `.docx` 는 바꾼 뒤 한 번 더 본다(`되읽기인자`) — 원고만 보면 변환이 끌어온 것을 못 본다
+ */
+export function 올리기전검사(
+  글들: { 케이스: string[]; PR본문: string; 차이: string | null; 원고: string | null },
+  비밀: string | null | undefined,
+): string | null {
+  const 모두 = [...글들.케이스, 글들.PR본문, 글들.차이 ?? '', 글들.원고 ?? ''];
+  return 계정섞였나(모두, 비밀) ? '올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' : null;
+}
+
+/** 실패 사유가 화면·서버 기록으로 나가기 전에 거른다. 자식 stderr 나 도구 오류에 원문이 섞일 수 있다 */
+export function 사유거르기(글: string, 비밀: string | null | undefined): string {
+  return 계정섞였나([글], 비밀) ? '실패 사유에 테스트 계정 비밀번호가 섞여 있어 가렸다 — 에이전트 기록을 봐라' : 글;
+}
+
+/**
+ * 역기획서 원고를 받을 수 있나. **그림 문법(`![`)은 거절한다** — pandoc 마크다운이 바깥 파일을 문서에 끌어오는 길이
+ * 그림이고, 원격 주소면 받아 오기까지 한다. 서버의 pandoc(2.9)에는 `--sandbox` 가 없다(2026-09-26 실측)
+ */
+export function 원고거부사유(원고: string): string | null {
+  return 원고.includes('![') ? '역기획서 원고에 그림이 있다 — 그림은 넣지 않는다(글·표·링크만)' : null;
+}
+
+/** 원고 → 워드. 셸을 거치지 않는 인자 배열이다 */
+export function 변환인자(원고: string, 워드: string): string[] {
+  return ['-f', 'markdown', '-t', 'docx', '-o', 워드, 원고];
+}
+
+/** 바꾼 워드를 다시 글자로 — **실제로 올릴 파일**에서 비밀번호를 한 번 더 찾으려고 */
+export function 되읽기인자(워드: string, 글자: string): string[] {
+  return ['-f', 'docx', '-t', 'plain', '-o', 글자, 워드];
+}
