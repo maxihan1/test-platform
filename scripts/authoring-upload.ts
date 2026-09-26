@@ -32,6 +32,7 @@ import {
   사유거르기,
   산출물주소,
   올리기전검사,
+  보낼차이,
   원고거부사유,
   type 차이,
   차이정리,
@@ -263,7 +264,7 @@ export async function 올리기(
   await 손.끝내기({
     status: 'DONE',
     prUrl: PR.값,
-    result: { diffs: 역결과.diffs },
+    result: { diffs: 보낼차이(역결과.diffs) },
     ...(남길말.length === 0 ? {} : { error: 사유거르기(남길말.join(' · '), 비밀) }),
   });
 }
