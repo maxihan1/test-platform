@@ -66,3 +66,51 @@ export function 보임라벨(보: 보임, 언어: 언어): string {
   if (보 === 'done') return t('끝남', 언어);
   return t('실패', 언어);
 }
+
+/** 차이 한 줄 (도메인/작성 §7 `finish` 의 `result.diffs[]`). 화면이 읽을 칸만 글자로 좁힌다 */
+export interface 차이 {
+  no: string;
+  kind: string;
+  where: string | null;
+  doc: string | null;
+  screen: string | null;
+  tcId: string | null;
+  marked: boolean;
+  markError: string | null;
+}
+
+function 글자(값: unknown): string | null {
+  if (typeof 값 === 'string') return 값;
+  if (typeof 값 === 'number') return String(값);
+  return null;
+}
+
+/**
+ * 결과에서 차이 목록을 꺼낸다. **서버가 모양을 검사하지 않는다**(2026-09-26 게이트 1) — 여기가 방어한다.
+ * 배열이 아니면 null(표를 안 그린다), 객체가 아닌 줄은 버리고 없는 칸은 null 로 둔다
+ */
+export function 차이목록(result: unknown): 차이[] | null {
+  if (typeof result !== 'object' || result === null) return null;
+  const diffs = (result as { diffs?: unknown }).diffs;
+  if (!Array.isArray(diffs)) return null;
+  return diffs
+    .filter((d): d is Record<string, unknown> => typeof d === 'object' && d !== null && !Array.isArray(d))
+    .map((d) => ({
+      no: 글자(d.no) ?? '',
+      kind: 글자(d.kind) ?? '',
+      where: 글자(d.where),
+      doc: 글자(d.doc),
+      screen: 글자(d.screen),
+      tcId: 글자(d.tcId),
+      marked: d.marked === true,
+      markError: 글자(d.markError),
+    }));
+}
+
+/** 차이 종류를 사람 말로. 모르는 값은 「알 수 없는 종류」 — 식별자를 화면에 흘리지 않는다 */
+export function 차이종류라벨(kind: string, 언어: 언어): string {
+  if (kind === 'DIFFERENT') return t('기획서와 다름', 언어);
+  if (kind === 'SCREEN_ONLY') return t('화면에만 있음', 언어);
+  if (kind === 'DOC_ONLY') return t('문서에만 있음', 언어);
+  return t('알 수 없는 종류', 언어);
+}

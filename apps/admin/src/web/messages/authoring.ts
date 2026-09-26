@@ -45,4 +45,36 @@ export const 작성말: Record<string, string> = {
   '초안 PR 열기': 'Open draft PR',
   번호: 'No.',
   '맥이 멈춘 것 같습니다. 새 요청으로 다시 넣으세요': 'The Mac looks stalled. Submit a new request',
+
+  // 역방향 — 기획서와 실제 화면을 대조한다 (도메인/작성 §3.6 「★ 역방향」)
+  '실제 화면과 대조': 'Compare with the live screen',
+  '화면과 대조': 'Screen compare',
+  '시작 주소': 'Start URL',
+  '비우면 기획서가 말하는 화면에서 시작합니다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 역기획서를 만듭니다':
+    'Leave empty to start from the screen the spec describes. With only a start URL and no spec, that screen is explored and a reverse spec is written',
+  '이 서비스에는 대상 서버가 없습니다. 설정 > 서비스에서 먼저 넣으세요':
+    'This service has no target servers. Add one in Settings > Services first',
+  '이 대상 서버에는 테스트 계정이 없습니다. 설정 > 서비스에서 테스트 계정을 넣으세요':
+    'This target server has no test account. Add one in Settings > Services',
+  '시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다':
+    'The start URL must be on the same address (domain · port) as the chosen target server',
+  '기획서가 말하는 화면에서 시작': 'Starts from the screen the spec describes',
+  '화면만 — 기획서 없이 이 화면을 훑습니다': 'Screen only — explores this screen without a spec',
+  '입력 자료': 'Inputs',
+  산출물: 'Outputs',
+  '표시 사본': 'Marked copy',
+  역기획서: 'Reverse spec',
+  '기획서와 화면의 차이': 'Differences between spec and screen',
+  종류: 'Kind',
+  자리: 'Where',
+  기획서: 'Spec',
+  화면: 'Screen',
+  케이스: 'Case',
+  표시함: 'Marked',
+  '표시 못 함': 'Not marked',
+  '이유 기록 없음': 'No reason recorded',
+  '기획서와 다름': 'Differs from spec',
+  '화면에만 있음': 'Only on screen',
+  '문서에만 있음': 'Only in spec',
+  '알 수 없는 종류': 'Unknown kind',
 };

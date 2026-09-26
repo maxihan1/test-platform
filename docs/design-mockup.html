@@ -1042,6 +1042,36 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
               </table>
             </div>
           </div>
+
+          <!-- 역방향 (도메인/작성 §3.6 「★ 역방향」 · DESIGN.md 「테스트 작성 — 역방향」). 대조를 켜야 두 칸이 나온다 -->
+          <div class="grid2">
+            <div class="card">
+              <h3>새 요청 — 실제 화면과 대조</h3>
+              <div class="in">
+                <div class="frow"><label></label><label><input type="checkbox" checked /> 실제 화면과 대조</label></div>
+                <div class="frow"><label for="a3">대상 서버</label>
+                  <select id="a3" class="fctl"><option>qa</option><option>prod</option></select></div>
+                <div class="frow"><label for="a4">시작 주소</label>
+                  <input id="a4" class="fctl mono" style="flex:1" value="https://qa.pay.example.com/orders" /></div>
+                <div class="frow"><label></label><span class="fhint">비우면 기획서가 말하는 화면에서 시작한다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 역기획서를 만든다(화면만).
+                  계정 없는 서버(prod)를 고르면 「이 대상 서버에는 테스트 계정이 없습니다」가 뜬다</span></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>요청 번호 0000000043 — 산출물 · 차이</h3>
+              <table>
+                <thead><tr><th style="width:44px">번호</th><th>종류</th><th>자리</th><th>기획서</th><th>화면</th><th>케이스</th><th>표시</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">D1</td><td>기획서와 다름</td><td>결제-기획서.docx · 3쪽</td><td>저장</td><td>확인</td><td class="mono">PAY-012</td><td>표시함</td></tr>
+                  <tr><td class="mono">D2</td><td>화면에만 있음</td><td>주문 화면</td><td>—</td><td>쿠폰 칸</td><td class="mono">PAY-013</td><td>표시 못 함 — 피그마 토큰에 댓글 권한이 없습니다</td></tr>
+                  <tr><td class="mono">D3</td><td>문서에만 있음</td><td>결제-기획서.docx · 5쪽</td><td>엑셀 내려받기</td><td>—</td><td class="mono">PAY-014</td><td>표시함</td></tr>
+                </tbody>
+              </table>
+              <p class="fhint">산출물 — <a href="#">결제-기획서-표시.docx</a> 표시 사본 — 결제-기획서.docx · <a href="#">역기획서.docx</a> 역기획서.
+                차이에는 판정 색을 쓰지 않는다</p>
+            </div>
+          </div>
         </div>
 
         <footer class="foot">

@@ -3,8 +3,8 @@
 
 import { useEffect, useState } from 'react';
 
-import { api, type AuthoringRow } from './api.js';
-import { 보임라벨, 종류라벨, 줄보임 } from './authoringView.js';
+import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
+import { 보임라벨, 종류라벨, 줄보임, 차이목록, 차이종류라벨 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 할수있나, type 등급 } from './role.js';
@@ -17,6 +17,30 @@ import { Failed, Loading, message, useAsync, when } from './ui.js';
  */
 function 끝났나(status: AuthoringRow['status']): boolean {
   return status === 'DONE' || status === 'FAILED' || status === 'DRAFT';
+}
+
+/** 파일은 내려받기, 피그마는 저장된(정규화한) 주소로 연다 */
+function 자료고리({ 요청, 자료, 글 }: { 요청: number; 자료: AuthoringAsset; 글: string }) {
+  if (자료.kind === 'FIGMA') {
+    return (
+      <a href={자료.figmaUrl ?? 자료.name} target="_blank" rel="noopener noreferrer">
+        {글}
+      </a>
+    );
+  }
+  // 서버가 attachment 로 준다. download 는 같은 뜻을 브라우저에 한 번 더 말한다
+  return (
+    <a href={api.authoringAssetUrl(요청, 자료.id)} download>
+      {글}
+    </a>
+  );
+}
+
+/** 산출물이 무엇인지. 표시 사본은 어느 입력의 사본인지까지 — 입력이 여럿이면 이름 없이는 못 가린다 */
+function 산출물설명(a: AuthoringAsset, 자료들: AuthoringAsset[], t: (키: string) => string): string {
+  if (a.role === 'REVERSE_SPEC') return t('역기획서');
+  const 원본 = 자료들.find((x) => x.id === a.sourceAssetId);
+  return `${t('표시 사본')} — ${원본?.name ?? t('기록 없음')}`;
 }
 
 export function AuthoringDetail({ service, id, role }: { service: string; id: number; role: 등급 }) {
@@ -41,6 +65,11 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
   if (data === null) return <Loading />;
 
   const 보 = 줄보임(data, Date.now());
+  // 입력과 산출물을 가른다. role 이 없으면 입력이다 — 이 칸을 모르는 옛 응답도 그대로 그린다
+  const 자료들 = data.assets ?? [];
+  const 입력 = 자료들.filter((a) => (a.role ?? 'INPUT') === 'INPUT');
+  const 산출물 = 자료들.filter((a) => (a.role ?? 'INPUT') !== 'INPUT');
+  const 차이들 = 차이목록(data.result);
 
   // **화면이 버튼을 안 그리는 것은 편의이지 방어가 아니다** — 서버 gate.ts 가 다시 막는다.
   // PR 주소가 없으면 머지할 대상 자체가 없다
@@ -93,25 +122,74 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
 
           <dt>{t('요청한 시각')}</dt>
           <dd>{when(data.createdAt, 언어)}</dd>
+
+          {/* 역방향 (도메인/작성 §3.6 「★ 역방향」). 계정은 이 응답에 없다 — 집기 응답에만 있다 */}
+          {data.compare === true ? (
+            <>
+              <dt>{t('실제 화면과 대조')}</dt>
+              <dd>
+                {data.env ?? t('기록 없음')} · {data.startUrl ?? t('기획서가 말하는 화면에서 시작')}
+                {입력.length === 0 ? <small>{t('화면만 — 기획서 없이 이 화면을 훑습니다')}</small> : null}
+              </dd>
+            </>
+          ) : null}
         </dl>
 
-        {data.assets === undefined || data.assets.length === 0 ? null : (
-          <ol className="authoring-assets">
-            {data.assets.map((a) => (
+        {입력.length === 0 ? null : (
+          <ol className="authoring-assets" aria-label={t('입력 자료')}>
+            {입력.map((a) => (
               <li key={a.id}>
-                {a.kind === 'FIGMA' ? (
-                  <a href={a.figmaUrl ?? a.name} target="_blank" rel="noopener noreferrer">
-                    {a.name}
-                  </a>
-                ) : (
-                  // 서버가 attachment 로 준다. download 는 같은 뜻을 브라우저에 한 번 더 말한다
-                  <a href={api.authoringAssetUrl(data.id, a.id)} download>
-                    {a.name}
-                  </a>
-                )}
+                <자료고리 요청={data.id} 자료={a} 글={a.name} />
               </li>
             ))}
           </ol>
+        )}
+
+        {산출물.length === 0 ? null : (
+          <>
+            <h3 className="authoring-sub-head">{t('산출물')}</h3>
+            <ol className="authoring-assets" aria-label={t('산출물')}>
+              {산출물.map((a) => (
+                <li key={a.id}>
+                  <자료고리 요청={data.id} 자료={a} 글={a.name} />
+                  <small>{산출물설명(a, 자료들, t)}</small>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+
+        {차이들 === null ? null : (
+          // 좁은 화면에서 일곱 칸이 쪼개지지 않게 표만 옆으로 구른다 (DESIGN.md 「반응형」)
+          <div className="authoring-diffs-wrap">
+            <table className="dhist authoring-diffs" aria-label={t('기획서와 화면의 차이')}>
+              <thead>
+                <tr>
+                  <th>{t('번호')}</th>
+                  <th>{t('종류')}</th>
+                  <th>{t('자리')}</th>
+                  <th>{t('기획서')}</th>
+                  <th>{t('화면')}</th>
+                  <th>{t('케이스')}</th>
+                  <th>{t('표시')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {차이들.map((d, i) => (
+                  <tr key={`${d.no}-${String(i)}`}>
+                    <td className="mono">{d.no}</td>
+                    <td>{차이종류라벨(d.kind, 언어)}</td>
+                    <td>{d.where ?? '—'}</td>
+                    <td>{d.doc ?? '—'}</td>
+                    <td>{d.screen ?? '—'}</td>
+                    <td className="mono">{d.tcId ?? '—'}</td>
+                    {/* 표시 실패는 판정이 아니다 — 판정 색 없이 이유만 적는다 (DESIGN.md 「판정 표기」 원칙 1) */}
+                    <td>{d.marked ? t('표시함') : `${t('표시 못 함')} — ${d.markError ?? t('이유 기록 없음')}`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* 실패는 왜인지 말해야 한다. 「실패」만 뜨면 사람이 할 수 있는 일이 없다 */}
