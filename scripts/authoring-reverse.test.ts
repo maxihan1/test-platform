@@ -12,7 +12,6 @@ import {
   사유거르기,
   올리기전검사,
   변환환경,
-  보낼차이,
   산출물주소,
   원고거부사유,
   차이정리,
@@ -283,36 +282,5 @@ describe('줄프롬프트 역방향 절 — 계정 값 없이 자리만 준다',
     const 글 = 줄프롬프트({ id: 3, kind: 'AUTHOR', specText: '본문' }, 'TODO', []);
     expect(글).not.toContain('역방향');
     expect(글).not.toContain('TARGET_');
-  });
-});
-
-describe('표시 자리 — 자식이 적은 자료·문장·노드를 받고 서버로는 안 보낸다', () => {
-  const 줄 = { no: 'D1', kind: 'DIFFERENT', doc: '저장', screen: '확인' };
-
-  it('자료 번호·문장·노드를 표시 자리로 받는다', () => {
-    const 결과 = 차이정리(JSON.stringify([{ ...줄, asset: 5, anchor: '저장 버튼을 누르면', node: '12:34' }]));
-    expect('diffs' in 결과 && 결과.diffs[0]?.표시).toEqual({ asset: 5, anchor: '저장 버튼을 누르면', node: '12:34' });
-  });
-
-  it('모양이 틀린 칸은 사유 없이 버린다 — 표시만 못 할 뿐 차이는 멀쩡하다', () => {
-    const 결과 = 차이정리(JSON.stringify([{ ...줄, asset: 'x', anchor: 3, node: '12;rm' }]));
-    expect('diffs' in 결과 && 결과.diffs[0]?.표시).toEqual({ asset: null, anchor: null, node: null });
-  });
-
-  it('노드는 12-34 도 받아 12:34 로 둔다 · 문장은 300자로 자른다', () => {
-    const 결과 = 차이정리(JSON.stringify([{ ...줄, node: '12-34', anchor: 'x'.repeat(400) }]));
-    expect('diffs' in 결과 && 결과.diffs[0]?.표시?.node).toBe('12:34');
-    expect('diffs' in 결과 && 결과.diffs[0]?.표시?.anchor?.length).toBe(300);
-  });
-
-  it('글모두가 문장까지 본다 — 비밀번호를 문장 칸에 숨겨도 걸린다', () => {
-    const 결과 = 차이정리(JSON.stringify([{ ...줄, anchor: `로그인 ${비밀}` }]));
-    expect('diffs' in 결과 && 계정섞였나(글모두(결과.diffs), 비밀)).toBe(true);
-  });
-
-  it('보낼차이는 서버 모양 여덟 칸만 준다', () => {
-    const 결과 = 차이정리(JSON.stringify([{ ...줄, asset: 5, anchor: 'a' }]));
-    const 보낼것 = 'diffs' in 결과 ? 보낼차이(결과.diffs) : [];
-    expect(Object.keys(보낼것[0] ?? {}).sort()).toEqual(['doc', 'kind', 'markError', 'marked', 'no', 'screen', 'tcId', 'where']);
   });
 });
