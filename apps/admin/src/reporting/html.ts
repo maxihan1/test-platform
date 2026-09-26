@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs';
 
 import type { EvidenceAssertion, EvidenceDocument, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
+import { 판정줄 } from './summary.js';
 
 export interface RenderOptions {
   /** 문서 머리말의 「만든 시각」. 렌더 입력으로 받는다 — 함수 안에서 new Date() 를 부르면 재현성이 깨진다 (SPEC §3.3) */
@@ -103,6 +104,8 @@ function 블록(item: EvidenceItem): string[] {
   return [
     `<section class="item">`,
     `    <h2 class="item-head"><span class="tc-id">${안전(item.tcId)}</span><span class="tc-name">${안전(item.tcName)}</span><span class="badge">${디바이스[item.platform]}</span><span class="badge">${item.attempt}회차</span>${판정(item.status)}${소요(item.durationMs)}${사유}</h2>`,
+    // 미확정 블록 머리에 사유 한 문장. 판정 색을 쓰지 않는다 — 미확정은 판정이 아니다 (DESIGN.md 「판정 표기」 미확정)
+    ...(item.unconfirmed === null ? [] : [`    <div class="u-reason">${안전(item.unconfirmed)}</div>`]),
     `    <div class="row">`,
     `      <div class="row-k">사전조건</div>`,
     `      <div class="row-v">`,
@@ -194,6 +197,8 @@ body{
 .v-fail{ background:var(--fail); color:#fff; }
 .v-na{ background:var(--na-bg); color:var(--na); }
 .ms{ font-size:12px; color:var(--ink-faint); }
+.u-reason{ margin-top:4px; font-size:12.5px; color:var(--ink-muted); }
+.group-head{ margin-top:24px; padding-top:12px; border-top:2px solid var(--rule); font-size:15px; font-weight:600; }
 .row{ display:flex; gap:12px; margin-top:10px; }
 .row-k{ width:72px; flex:none; font-size:12px; font-weight:600; color:var(--ink-faint); padding-top:2px; }
 .row-v{ flex:1; min-width:0; }
@@ -245,9 +250,17 @@ export function renderHtml(doc: EvidenceDocument, options: RenderOptions): strin
     `    <dt>대상 서버</dt><dd>${안전(h.env)}</dd>`,
     `    <dt>대상 주소</dt><dd>${안전(h.baseUrl)}</dd>`,
     `    <dt>만든 시각</dt><dd>${안전(options.generatedAt)}</dd>`,
+    `    <dt>판정</dt><dd>${안전(판정줄(doc.items))}</dd>`,
     `  </dl>`,
     `</header>`,
-    ...doc.items.flatMap(블록),
+    // 확정 블록 → 미확정 묶음. 미확정은 확정 사이에 섞지 않는다 (도메인/리포팅 「미확정 항목은 따로 묶는다」)
+    ...doc.items.filter((i) => i.unconfirmed === null).flatMap(블록),
+    ...(doc.items.some((i) => i.unconfirmed !== null)
+      ? [
+          `<h2 class="group-head">미확정 — 기획 답 대기</h2>`,
+          ...doc.items.filter((i) => i.unconfirmed !== null).flatMap(블록),
+        ]
+      : []),
     `</div>`,
     `</body>`,
     `</html>`,
