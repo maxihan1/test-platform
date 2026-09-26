@@ -87,3 +87,9 @@ SPEC §4.1 은 화면과 증적 문서 **둘 다**에 `********` 를 요구한�
 - 미완: Grafana 「작성 현황」(미확정 나이 · 작성에 걸린 시간) — 명세·권한 변경이 필요해 따로(사용자 2026-09-26)
 - 막힌 것: 없음. 검사용 DB `platform_wsd`
 - 다음 세션이 알아야 할 것: `collect.test.ts`(456)·`html.test.ts`(352)·`insights.test.ts`(366)가 이미 300줄을 넘어 새 검사는 새 파일에 뒀다 — **셋 다 분리 대상**(이번 범위 밖). 엑셀 칸이 하나 늘어 `xlsx.test.ts` 의 14번 이후 칸 번호를 하나씩 올렸다
+
+## 2026-09-26 — Grafana 작성 현황 (PR #84)
+- 완료: 패널 `가장 오래된 미확정` · `작성에 걸린 시간`(대기·작업 중간값, 실패 수, 보통/화면과 대조) · `grafana_ro` 칸 단위 권한 마이그레이션 `20260926000001_grafana_authoring.sql` · 명세 리포팅 §8.5 「작성 현황」·§8.4 판정 줄·§7 insights 직전만 미확정 · 데이터모델 「대시보드 칸 권한」. 새 검사 `dashboard-authoring.test.ts`(XDH·XDHOFF)
+- 미완: 없음
+- 막힌 것: 없음. 검사용 DB `platform_wsg` (grafana_ro 에 CONNECT·USAGE 를 따로 줘야 접속된다 — init 스크립트는 `platform` DB 에만 준다)
+- 다음 세션이 알아야 할 것: 칸 목록 정본은 데이터모델 「대시보드 칸 권한」 표 한 곳. 미확정은 `unconfirmed_since IS NOT NULL` 로 가린다 — 스캐너 upsert 가 `unconfirmed` 와 짝으로 움직이는 것에 기댄다. 제출 시각 칸이 없어 「대기」에는 자료 올리기 시간이 든다
