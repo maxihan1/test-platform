@@ -86,4 +86,4 @@ SPEC §4.1 은 화면과 증적 문서 **둘 다**에 `********` 를 요구한�
 - 완료: 증적 항목에 박제 사유(`collect.ts`) · 판정 한 줄(`summary.ts`, 화면 글자와 같음 검사) · HTML 미확정 묶음·사유 · 엑셀 `미확정 사유` 칸 · insights 판정·빠진 건수·덩어리에서 미확정 제외 · Grafana 판정 패널 둘 접기 전 제외. 새 검사 파일 `collect-unconfirmed`(XDU) · `insights-unconfirmed`(XDV) · `html-unconfirmed` · `summary`
 - 미완: Grafana 「작성 현황」(미확정 나이 · 작성에 걸린 시간) — 명세·권한 변경이 필요해 따로(사용자 2026-09-26)
 - 막힌 것: 없음. 검사용 DB `platform_wsd`
-- 다음 세션이 알아야 할 것: `collect.test.ts`(456)·`html.test.ts`(351)·`insights.test.ts`(366)가 이미 300줄을 넘어 새 검사는 새 파일에 뒀다. 엑셀 칸이 하나 늘어 `xlsx.test.ts` 의 14번 이후 칸 번호를 하나씩 올렸다
+- 다음 세션이 알아야 할 것: `collect.test.ts`(456)·`html.test.ts`(352)·`insights.test.ts`(366)가 이미 300줄을 넘어 새 검사는 새 파일에 뒀다 — **셋 다 분리 대상**(이번 범위 밖). 엑셀 칸이 하나 늘어 `xlsx.test.ts` 의 14번 이후 칸 번호를 하나씩 올렸다
