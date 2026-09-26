@@ -9,6 +9,17 @@ export interface 자료 {
   kind: 'FILE' | 'FIGMA';
   name: string;
   figmaUrl: string | null;
+  /** 사람 입력인지 에이전트 산출물인지 (§3.6 「★ 역방향」). 없으면 입력이다 — 옛 서버 응답 */
+  role?: 'INPUT' | 'MARKED' | 'REVERSE_SPEC';
+}
+
+/**
+ * 사람이 넣은 입력만 남긴다. 재실행은 원본 요청의 자료를 다시 읽는데, 원본이 역방향이었으면 거기에
+ * 표시 사본·역기획서가 같이 붙어 있다 — 섞으면 에이전트 산출물을 기획서로 읽는다.
+ * (서버가 역방향 원본의 재실행을 409 로 막지만 에이전트는 서버를 믿지 않는다)
+ */
+export function 입력만(자료들: 자료[]): 자료[] {
+  return 자료들.filter((자) => (자.role ?? 'INPUT') === 'INPUT');
 }
 
 /** 자료 하나를 자식에게 넘기기까지 할 일. 파일은 받아서(필요하면 바꿔서) 경로로, 피그마는 주소로 */
@@ -81,10 +92,11 @@ export function 자료출처(것: { id: number; kind: string; sourceId?: number 
  * 옛 행(자료 0, 본문 있음)은 본문으로 돈다.
  */
 export function 돌릴수있나(
-  입력: { specText?: string | null; figmaToken?: string },
+  입력: { specText?: string | null; figmaToken?: string; 화면만?: boolean },
   자료들: 자료[],
 ): string | null {
-  if (자료들.length === 0 && !입력.specText) {
+  // 화면만(대조 + 시작 주소)은 기획서 없이 그 화면을 훑는다 — 자료 0 이 정상이다 (§7 submit)
+  if (자료들.length === 0 && !입력.specText && 입력.화면만 !== true) {
     return '자료도 기획서 본문도 없다. 돌릴 것이 없어 claude 를 부르지 않았다.';
   }
   if (자료들.some((자) => 자.kind === 'FIGMA') && !입력.figmaToken) {
