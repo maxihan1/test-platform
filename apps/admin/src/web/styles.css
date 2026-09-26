@@ -171,7 +171,8 @@ body {
 .tcid,
 .device-dur,
 .env-url,
-.prow .id {
+.prow .id,
+.mono {
   font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -2720,6 +2721,8 @@ select:focus {
    차이는 판정이 아니라 판정 색을 쓰지 않는다 (DESIGN.md 원칙 1) */
 .authoring-sub-head { margin: 18px 0 6px; font-size: 13px; color: var(--ink-muted); }
 .authoring-assets small { margin-left: 8px; color: var(--ink-faint); font-size: 12px; }
+/* 작성 상세 dd 안의 안내 한 줄(멈춘 듯 · 준비 중 · 화면만). 따로 줄을 떼야 앞 값과 붙어 읽히지 않는다 */
+dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); font-size: 12px; }
 .authoring-diffs-wrap { margin-top: 18px; overflow-x: auto; }
 .authoring-diffs th {
   padding: 8px 14px;

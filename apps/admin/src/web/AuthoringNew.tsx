@@ -75,7 +75,9 @@ export function AuthoringNew({
   const [대조, set대조] = useState(false);
   const [고른서버, set고른서버] = useState<string | null>(null);
   const [시작주소, set시작주소] = useState('');
-  const 서버 = 고른서버 ?? envs[0]?.env ?? null;
+  // 고른 값이 지금 서비스의 목록에 있을 때만 쓴다 — 띠에서 서비스를 바꿔도 이 폼은 그대로 남아
+  // 옛 서비스에서 고른 서버를 들고 있다. 안 보면 화면에 보이는 서버와 다른 것을 보낸다 (2026-09-26 검사)
+  const 서버 = envs.some((it) => it.env === 고른서버) ? 고른서버 : (envs[0]?.env ?? null);
   const 주소 = 시작주소.trim();
 
   const 주소들 = 피그마

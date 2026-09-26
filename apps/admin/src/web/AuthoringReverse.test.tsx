@@ -108,6 +108,27 @@ describe('새 요청 — 실제 화면과 대조', () => {
     expect(부름[0]?.값).toMatchObject({ body: { env: 'prod' } });
   });
 
+  it('서비스를 바꾸면 전에 고른 대상 서버가 남지 않는다 — 보이는 서버로 보낸다', async () => {
+    const { rerender } = 폼();
+    대조를켠다();
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'prod' } });
+    rerender(<AuthoringNew service="SHOP" envs={[{ env: 'dev', baseUrl: 'https://dev.shop.example.com' }]} on넣었다={() => {}} />);
+    expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('dev');
+    시작주소를적는다('https://dev.shop.example.com/');
+    fireEvent.click(보내기());
+    await waitFor(() => expect(부름.length).toBeGreaterThan(0));
+    expect(부름[0]?.값).toMatchObject({ service: 'SHOP', body: { env: 'dev' } });
+  });
+
+  it('대상 서버가 없는 서비스로 바꾸면 보낼 수 없다', () => {
+    const { rerender } = 폼();
+    대조를켠다();
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'prod' } });
+    rerender(<AuthoringNew service="SHOP" envs={[]} on넣었다={() => {}} />);
+    fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 'https://www.figma.com/design/AbC/' } });
+    expect(보내기().disabled).toBe(true);
+  });
+
   it('대조를 끄면 대조 칸을 싣지 않는다 — 정방향 그대로', async () => {
     폼();
     대조를켠다();
