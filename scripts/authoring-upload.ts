@@ -22,7 +22,9 @@ import {
 } from './authoring-chain.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
-import { type 보고손, type 판정기, 다시하며, 인증헤더, 친다, 한번더건다 } from './authoring-io.js';
+import type { 자료 } from './authoring-assets.js';
+import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
+import { 산출물보내기, 표시하기 } from './authoring-marking.js';
 import {
   계정섞였나,
   글모두,
@@ -30,7 +32,6 @@ import {
   변환인자,
   변환환경,
   사유거르기,
-  산출물주소,
   올리기전검사,
   보낼차이,
   원고거부사유,
@@ -46,6 +47,8 @@ export interface 역방향올리기 {
   자식: 계정 | null;
   /** 기획서 없이 시작 주소만 — 역기획서가 없으면 이유를 남긴다 */
   화면만: boolean;
+  /** 사람이 넣은 입력 자료 — 표시할 원본이다 (§3.6 표시) */
+  입력자료: 자료[];
 }
 
 const 글상한 = 1024 * 1024;
@@ -101,19 +104,6 @@ function 역기획서준비(
   const 워드 = 산출물읽기(자리, 'reverse-spec.docx', 워드상한);
   if ('사유' in 워드 || 워드.몸 === null) return { 사유: '역기획서 워드 파일을 못 읽었다' };
   return { 워드: 워드.몸 };
-}
-
-/** 역기획서를 `outputs` 로 올린다. 서버 응답 코드를 준다 — 던지는 것(시간 초과·연결 끊김)은 부르는 쪽이 잡는다 */
-async function 역기획서보내기(역: 역방향올리기, id: number, 서비스: string, 몸: Buffer): Promise<number> {
-  const 답 = await 한번더건다(() =>
-    fetch(`${역.주소기지}${산출물주소(id, 서비스, '역기획서.docx', 'REVERSE_SPEC')}`, {
-      method: 'POST',
-      headers: { ...인증헤더(역.토큰), 'content-type': 'application/octet-stream' },
-      body: new Uint8Array(몸),
-      signal: AbortSignal.timeout(120_000),
-    }),
-  );
-  return 답.status;
 }
 
 /** 자식이 거둬진 뒤에 부른다 — 살아 있는 자식이 있으면 아래 검사 뒤에 파일을 바꿔치기한다 */
@@ -250,12 +240,16 @@ export async function 올리기(
   // 케이스 PR 은 섰다. 여기부터의 실패는 요청을 실패시키지 않고 이유만 남긴다 (2026-09-26 게이트 1).
   // **던지는 것도 잡는다** — 안 잡으면 `닫으며` 가 FAILED 로 닫아 PR 주소와 차이 목록을 잃는다 (2026-09-26 검사)
   const 남길말 = [...역결과.남길말];
+  let 표시된 = 역결과.diffs;
   try {
     await 손.단계('역방향 산출물을 올리는 중');
     if (역결과.워드 !== null) {
-      const 코드 = await 역기획서보내기(역, 것.id, 서비스, 역결과.워드);
+      const 코드 = await 산출물보내기(역, 것.id, 서비스, '역기획서.docx', 'REVERSE_SPEC', 역결과.워드);
       if (코드 !== 200) 남길말.push(`역기획서를 못 올렸다 (${코드})`);
     }
+    // 원본 기획서에 표시한다 — 워드 메모 사본 · 피그마 댓글. 표시 실패는 차이마다 markError 로 남는다 (§3.6)
+    await 손.단계('원본에 차이를 표시하는 중');
+    표시된 = await 표시하기(역, 것.id, 서비스, 역.입력자료, 것.figmaToken, 역결과.diffs, 비밀);
   } catch (err) {
     // 거절(401·403)은 다시 던진다 — 줄 돌기가 그걸 보고 멈춘다. 끝내기도 같은 거절을 받는다
     if (err instanceof Error && err.message.includes('서버가 거절했다')) throw err;
@@ -264,7 +258,7 @@ export async function 올리기(
   await 손.끝내기({
     status: 'DONE',
     prUrl: PR.값,
-    result: { diffs: 보낼차이(역결과.diffs) },
+    result: { diffs: 보낼차이(표시된) },
     ...(남길말.length === 0 ? {} : { error: 사유거르기(남길말.join(' · '), 비밀) }),
   });
 }

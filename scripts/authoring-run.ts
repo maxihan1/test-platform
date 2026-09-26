@@ -23,13 +23,12 @@ import {
   돌린다,
   멈춤,
   보고손만들기,
-  인증헤더,
   부른다,
   진짜main묻기,
   친다,
-  한번더건다,
 } from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
+import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
 import { type 폴더자리 } from './authoring-token.js';
 
@@ -195,23 +194,17 @@ async function 사본에서(
   if (계획.some((c) => c.kind === 'FILE')) await 손.단계('자료를 받는 중');
   for (const c of 계획) {
     if (c.kind !== 'FILE') continue;
-    // 바이트로 받아야 해서 `부른다`(json) 를 못 쓴다. 다시 걸기와 시간 제한은 같게 건다 —
-    // 상한 크기 파일도 로컬 망에서 이 안에 온다. 안 오면 서버가 멈춘 것이다
-    const 답 = await 한번더건다(() =>
-      fetch(`${주소기지}/api/authoring/requests/${출처}/assets/${c.id}?service=${encodeURIComponent(서비스)}`, {
-        headers: 인증헤더(토큰),
-        signal: AbortSignal.timeout(120_000),
-      }),
-    );
-    if (거절인가(답.status)) {
-      throw new Error(`(${답.status}) ${거절글}`);
+    // 바이트로 받아야 해서 `부른다`(json) 를 못 쓴다 — 표시가 원본을 다시 받을 때와 같은 손을 쓴다
+    const 답 = await 자료받기({ 주소기지, 토큰 }, 서비스, 출처, c.id);
+    if ('코드' in 답 && 거절인가(답.코드)) {
+      throw new Error(`(${답.코드}) ${거절글}`);
     }
-    if (!답.ok) {
-      await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 못 받았다 (${답.status})` });
+    if ('코드' in 답) {
+      await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 못 받았다 (${답.코드})` });
       return;
     }
     // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다. 자식이 읽도록 0644 — 폴더가 자식 것이라 남은 못 본다
-    writeFileSync(c.받을자리, Buffer.from(await 답.arrayBuffer()), { mode: 0o644 });
+    writeFileSync(c.받을자리, 답.몸, { mode: 0o644 });
     if (c.변환 === null) continue;
     // 믿을 수 없는 파일을 여는 것이라 root 가 아니라 자리 uid 로, 토큰 없는 환경으로 연다
     const 바꾼것 = 친다(
@@ -285,6 +278,6 @@ async function 사본에서(
     기준,
     돌린것.낸것,
     손,
-    역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 화면만 },
+    역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 화면만, 입력자료: 자료들 },
   );
 }
