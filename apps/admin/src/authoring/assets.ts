@@ -73,7 +73,7 @@ async function 내준비행(req: FastifyRequest, reply: FastifyReply): Promise<�
 }
 
 export default async function authoringAssetRoutes(app: FastifyInstance): Promise<void> {
-  // routes.ts 의 사진 파서(4MB)와 따로 건다. 플러그인마다 자기 파서를 가지므로 서로 상한을 안 넘본다
+  // agentRoutes.ts 의 사진 파서(4MB)와 따로 건다. 플러그인마다 자기 파서를 가지므로 서로 상한을 안 넘본다
   app.addContentTypeParser(
     'application/octet-stream',
     { parseAs: 'buffer', bodyLimit: 파일상한 },

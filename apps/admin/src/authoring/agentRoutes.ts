@@ -62,7 +62,7 @@ function 맥계정인가(req: FastifyRequest): boolean {
  * (2026-09-22 검토가 잡았다).
  */
 export async function 집은쪽인가(req: FastifyRequest, reply: FastifyReply): Promise<요청 | null> {
-  // 집은 쪽 대조 앞에 맥 계정을 먼저 본다. 넷(집기·단계·사진·끝내기)이 전부 맥의 일이다
+  // 집은 쪽 대조 앞에 맥 계정을 먼저 본다. 단계·사진·끝내기와 assets.ts 의 산출물 올리기가 전부 맥의 일이다
   if (!맥계정인가(req)) {
     await reply.code(403).send({ error: 'NOT_AUTHORING_AGENT' });
     return null;
