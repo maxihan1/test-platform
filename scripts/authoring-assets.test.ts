@@ -1,7 +1,7 @@
 // 작성 에이전트의 자료 다루기 순수 함수 검사. 자료 순서·파일 변환·돌릴 조건·셸 허용 판정이 여기서 고정된다
 import { describe, expect, it } from 'vitest';
 
-import { 돌릴수있나, 못읽는자료, 셸허용됐나, 자료계획, 자료출처, type 자료 } from './authoring-assets.js';
+import { 돌릴수있나, 못읽는자료, 셸허용됐나, 입력만, 자료계획, 자료출처, type 자료 } from './authoring-assets.js';
 import { 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 
 const 파일 = (id: number, position: number, name: string): 자료 => ({
@@ -106,6 +106,22 @@ describe('돌릴수있나 — 빈 입력에 구독 한도를 쓰지 않는다', 
 
   it('파일만 있으면 토큰 없이 통과한다', () => {
     expect(돌릴수있나({}, [파일(1, 1, 'a.pdf')])).toBeNull();
+  });
+
+  it('화면만(대조 + 시작 주소)은 자료가 없어도 돈다', () => {
+    expect(돌릴수있나({ 화면만: true }, [])).toBeNull();
+  });
+});
+
+describe('입력만 — 재실행이 원본을 읽을 때 에이전트 산출물을 섞지 않는다', () => {
+  it('표시 사본과 역기획서를 빼고 역할이 없으면 입력으로 본다', () => {
+    const 들 = [
+      { ...파일(1, 1, 'a.docx'), role: 'INPUT' as const },
+      { ...파일(2, 2, 'a-표시.docx'), role: 'MARKED' as const },
+      { ...파일(3, 3, '역기획서.docx'), role: 'REVERSE_SPEC' as const },
+      파일(4, 4, 'b.pdf'),
+    ];
+    expect(입력만(들).map((a) => a.id)).toEqual([1, 4]);
   });
 });
 

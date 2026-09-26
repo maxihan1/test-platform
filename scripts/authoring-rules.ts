@@ -3,6 +3,7 @@
 
 import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글 } from './authoring-assets.js';
 import { type 모델, 모델인자 } from './authoring-model.js';
+import { type 대상, 역방향절 } from './authoring-reverse.js';
 
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
 export interface 설정 extends 권한설정 {
@@ -124,6 +125,8 @@ export interface 집은것 {
   assets?: 자료[];
   /** 피그마 자료가 있을 때만 온다. **자식 환경에만** 넘기고 어디에도 안 찍는다 */
   figmaToken?: string;
+  /** 대조 행이면 온다 — 대상 서버와 테스트 계정 (도메인/작성 §7). 피그마 토큰과 같은 규칙: 자식 환경에만 */
+  target?: 대상;
 }
 
 /**
@@ -138,6 +141,7 @@ export function 줄프롬프트(
   서비스: string,
   계획: 읽을자료[],
   대상?: { 폴더: string; 서버들: { env: string; baseUrl: string }[] },
+  역방향?: { 화면만: boolean; 산출물폴더: string },
 ): string {
   return [
     `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
@@ -161,7 +165,9 @@ export function 줄프롬프트(
     '',
     '관문 넷(형식·표 대조·3회 연속·일부러 부수기)은 전부 돌려라.',
     '',
-    ...(계획.length > 0 ? 자료목록글(계획) : ['--- 기획서 ---', 것.specText ?? '']),
+    // 화면만은 기획서가 없다 — 빈 기획서 절을 싣으면 자식이 「기획서가 비었다」로 멈춘다
+    ...(계획.length > 0 ? 자료목록글(계획) : 역방향?.화면만 === true ? [] : ['--- 기획서 ---', 것.specText ?? '']),
+    ...(역방향 === undefined ? [] : 역방향절({ ...역방향, 요청번호: 것.id })),
   ].join('\n');
 }
 

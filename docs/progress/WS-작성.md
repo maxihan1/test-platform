@@ -387,3 +387,9 @@
 - 미완: 화면(WS-E ②) · 에이전트(WS-작성 ③) · `store.ts` 363줄 분리
 - 막힌 것: 없음. 검사용 DB `platform_wsw`(docker dbmate)
 - 다음 세션이 알아야 할 것: 명세가 오류 코드를 안 정한 두 자리를 정했다 — `role` 이 틀리면 `BAD_ROLE`, `compare` 가 참·거짓이 아니면 `BAD_ENV`(작성 §7 에 `BAD_ROLE` 을 적었다). 재실행이 원본 자료를 읽을 때 산출물(MARKED·REVERSE_SPEC)이 섞이므로 ③ 은 `role === 'INPUT'` 만 읽는다. 계획 `docs/plans/2026-09-26-역방향-작성서버.md`
+
+## 2026-09-26 (15회차) — 역방향 ③-1 에이전트 뼈대 (PR #81)
+- 완료: 집기 `target` 재대조 · `TARGET_*` 환경 · 화면만 · 원본 `INPUT` 만 · `out/` 산출물 안전 읽기 · push 전 비밀번호 원문 검사(케이스·PR 본문·차이·원고) · 역기획서 pandoc 변환·되읽기 검사·`outputs` · `finish` diffs(좁힘·`marked:false`) · 부분 실패 DONE+이유 · 실패 사유 거르기 · `tpx-author` `references/reverse.md`. 판정 `scripts/authoring-reverse.ts`(검사 29)
+- 미완: ③-2 표시(워드 메모·피그마 댓글) · **서버에서 실제 한 바퀴** · PDF 스티커(npm 승인 뒤)
+- 막힌 것: 서버 컨테이너 pandoc 이 2.9.2.1 이라 `--sandbox` 가 없다(실측) — 원고 그림 거절 + 변환 결과 되읽기로 대신했다
+- 다음 세션이 알아야 할 것: 자식은 로그인을 `node --input-type=module < "$TMPDIR/login.mjs"` 로 작업 트리에서 돈다(파일 자리에서 돌리면 `@playwright/test` 를 못 찾는다 — 실측). `authoring-run.ts` 는 290줄 · `authoring-io.ts` 는 이미 313줄이라 더 늘리지 않았다. 계획 `docs/plans/2026-09-26-역방향-에이전트-뼈대.md`

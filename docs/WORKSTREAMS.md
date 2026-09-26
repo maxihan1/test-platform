@@ -81,13 +81,17 @@
   만들기 `compare·env·startUrl`(400 `BAD_ENV`·`BAD_START_URL`, 판정은 `apps/admin/src/authoring/reverse.ts`) · 화면만 `submit` 자료 0 허용 · 목록·상세 칸(계정 없음) ·
   집기 `target` · `outputs`(+ 권한 세 줄, 역할 오류 `BAD_ROLE`) · `diffs` 는 그대로 저장 · **역방향 원본의 재실행은 409 `BAD_SOURCE`**(게이트 1).
   `routes.ts` 를 300줄 아래로 — 에이전트 통로 넷은 `agentRoutes.ts`. **`store.ts` 는 363줄로 여전히 넘는다**(원래 353) — 다음에 이 파일을 크게 고치는 PR 이 뗀다.
-- **WS-작성 ③ 에이전트** — 집기 `target` 을 받아 자식에 넘기기 · 원본 자료는 `role === 'INPUT'` 만 읽기(재실행이 원본을 읽을 때 산출물이 섞인다) ·
-  에이전트(`scripts/authoring-*.ts`) · `tpx-author` 스킬의 역방향 흐름 · 워드 메모 사본 · 피그마 댓글 · 역기획서(pandoc).
-  에이전트 스크립트가 할 일 — 올리기 · 끝내기 · push 전에 그 요청의 `loginPassword` 원문을 찾아 있으면 FAILED(사유에 값을 싣지 않는다) ·
-  `startUrl` 은 `new URL()` 로 다시 조립한 값으로 저장하고 집기 때 출처를 다시 대조 · `startUrl` 과 `target` 값은 셸 문자열이 아니라 환경 변수·인자 배열로만 넘긴다.
-  자식 지시 — 훑기는 허용 목록(링크 이동·탭·펼치기·팝업)만 · 계정 입력 직전 출처 확인. 서버 — `outputs` 파일 규칙(확장자 · `source` 대조 · 자료 개수 상한에 안 센다).
+- **WS-작성 ③-1 에이전트 뼈대 — 반영 완료 (2026-09-26, PR #81).** 사용자가 ③ 을 둘로 나눴다(뼈대 → 표시).
+  집을 때 `target` 재대조(줄 없음·계정 빠짐·서버 주소 http·https 아님·시작 주소 출처 어긋남·**비밀번호 4자 미만** → FAILED) ·
+  계정·주소는 자식 환경 변수 `TARGET_*` 로만(프롬프트엔 이름만) · 화면만(입력 0 + 시작 주소) 돌기 · 원본 자료는 `INPUT` 만 ·
+  자식이 `<자료>/out/` 에 `diffs.json`·`reverse-spec.md` 를 쓰고, 에이전트가 링크·하드링크·크기·실제 경로를 본 뒤 **push 전에 케이스·PR 본문·차이·원고 전부에서 비밀번호 원문**을 찾는다(있으면 FAILED, 값은 사유에 없음) ·
+  역기획서는 에이전트가 pandoc 으로 바꾸고 **다시 글자로 되읽어 한 번 더 찾은 뒤** `outputs`(REVERSE_SPEC) · 원고의 그림 문법은 거절(서버 pandoc 2.9 에 `--sandbox` 가 없다) ·
+  `finish` 에 `result.diffs`(허용 칸만 · 종류 셋 · `marked:false` 강제) · 케이스 PR 뒤의 실패는 **DONE + `error` 에 이유**(게이트 1). 판정은 `scripts/authoring-reverse.ts`.
+  자식 절차는 `.claude/skills/tpx-author/references/reverse.md` — 로그인은 스크립트 안 `process.env` · 입력 직전 출처 확인 · 훑기 허용 목록 · 차이 처리 표.
+- **WS-작성 ③-2 표시** — 워드 메모 사본(`MARKED`, **jszip 정식 의존성 승인됨** 2026-09-26 사용자) · 피그마 댓글 · 표시하면 `marked: true`, 못 하면 `markError`.
   `source_asset_id` 는 명세대로 `ON DELETE` 규칙이 없다 — 표시 사본이 있는 원본 자료를 한 건만 지우면 거절된다(요청째 지우면 괜찮다). 한 건 지우기(`assetStore.ts` `자료지우기`)는 지금 DRAFT 실패 정리에만 쓰여 해가 없다.
   **PDF 스티커 메모는 새 npm 패키지 승인 뒤다**(CLAUDE.md §3) — 그 전에는 차이 목록만 낸다.
+  **실제 한 바퀴는 아직이다** — 서버 `author` 컨테이너에서 테스트 계정을 넣은 대상 서버로 역방향 요청 하나를 돌려 본다
   명세 도메인/작성.md §3.6 「★ 역방향」 · §7
 
 ---
