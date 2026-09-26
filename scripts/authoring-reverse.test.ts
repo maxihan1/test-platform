@@ -98,14 +98,14 @@ describe('차이정리 — 자식이 쓴 차이 파일을 좁혀 받는다', () 
   it('허용한 칸만 남기고 표시는 아직 안 했다고 강제한다', () => {
     const 글 = JSON.stringify([{ ...한줄, marked: true, 딴칸: 'x', markError: '거짓' }]);
     expect(차이정리(글)).toEqual({
-      diffs: [{ ...한줄, marked: false, markError: '표시는 아직 안 한다' }],
+      diffs: [{ ...한줄, marked: false, markError: '표시는 아직 안 한다', 표시: { asset: null, anchor: null, node: null } }],
     });
   });
 
   it('없는 칸은 null 로 둔다', () => {
     const 결과 = 차이정리(JSON.stringify([{ no: 'D2', kind: 'SCREEN_ONLY' }]));
     expect(결과).toEqual({
-      diffs: [{ no: 'D2', kind: 'SCREEN_ONLY', where: null, doc: null, screen: null, tcId: null, marked: false, markError: '표시는 아직 안 한다' }],
+      diffs: [{ no: 'D2', kind: 'SCREEN_ONLY', where: null, doc: null, screen: null, tcId: null, marked: false, markError: '표시는 아직 안 한다', 표시: { asset: null, anchor: null, node: null } }],
     });
   });
 

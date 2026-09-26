@@ -40,7 +40,7 @@ describe('자료계획 — 받은 파일을 어떻게 읽힐까', () => {
   it('서버(리눅스)는 docx 를 pandoc 으로 바꾼다 — textutil 은 맥에만 있다', () => {
     const [가] = 자료계획([파일(7, 1, '기획서.docx')], '/t', 'linux');
     expect(가).toMatchObject({
-      변환: { 명령: 'pandoc', 인자: ['-t', 'plain', '-o', '/t/7.txt', '/t/7.docx'] },
+      변환: { 명령: 'pandoc', 인자: ['-t', 'plain', '--wrap=none', '-o', '/t/7.txt', '/t/7.docx'] },
       읽을자리: '/t/7.txt',
     });
   });
@@ -67,7 +67,7 @@ describe('자료계획 — 받은 파일을 어떻게 읽힐까', () => {
   });
 
   it('피그마는 주소만 넘긴다. 받을 것이 없다', () => {
-    expect(자료계획([피그마(4, 1, 주소A)], '/t')).toEqual([{ kind: 'FIGMA', 주소: 주소A }]);
+    expect(자료계획([피그마(4, 1, 주소A)], '/t')).toEqual([{ kind: 'FIGMA', id: 4, 주소: 주소A }]);
   });
 
   it('자리 순서대로 늘어선다', () => {
@@ -163,6 +163,12 @@ describe('줄프롬프트 — 자료 목록을 싣는다', () => {
   it('파일은 읽을 경로와 원래 이름을 같이 싣는다', () => {
     expect(글).toContain('/t/7.txt');
     expect(글).toContain('결제 기획.docx');
+  });
+
+  it('자료마다 자료 번호를 싣는다 — 역방향 차이 파일이 어느 자료의 차이인지 적는다', () => {
+    expect(글).toContain('(자료 번호 7)');
+    expect(글).toContain('(자료 번호 8)');
+    expect(글).toContain('(자료 번호 9)');
   });
 
   it('파일 목록과 피그마 목록이 각각 자리 순서대로다', () => {

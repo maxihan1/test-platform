@@ -34,7 +34,7 @@ export type 읽을자료 =
       변환: { 명령: string; 인자: string[] } | null;
       읽을자리: string;
     }
-  | { kind: 'FIGMA'; 주소: string };
+  | { kind: 'FIGMA'; id: number; 주소: string };
 
 /**
  * 자료마다 할 일을 자리 순서대로 정한다.
@@ -49,7 +49,7 @@ export function 자료계획(자료들: 자료[], 폴더: string, 플랫폼: str
   return [...자료들]
     .sort((a, b) => a.position - b.position)
     .map((자): 읽을자료 => {
-      if (자.kind === 'FIGMA') return { kind: 'FIGMA', 주소: 자.figmaUrl ?? 자.name };
+      if (자.kind === 'FIGMA') return { kind: 'FIGMA', id: 자.id, 주소: 자.figmaUrl ?? 자.name };
       const 확장자 = extname(자.name).toLowerCase();
       const 받을자리 = join(폴더, `${String(자.id)}${확장자}`);
       if (확장자 === '.doc' || 확장자 === '.docx') {
@@ -62,7 +62,8 @@ export function 자료계획(자료들: 자료[], 폴더: string, 플랫폼: str
           변환:
             플랫폼 === 'darwin'
               ? { 명령: 'textutil', 인자: ['-convert', 'txt', '-output', 읽을자리, 받을자리] }
-              : { 명령: 'pandoc', 인자: ['-t', 'plain', '-o', 읽을자리, 받을자리] },
+              // 줄을 안 꺾는다 — 역방향 표시가 자식이 베낀 문장을 원본에서 찾는다 (2026-09-26 계획 검토)
+              : { 명령: 'pandoc', 인자: ['-t', 'plain', '--wrap=none', '-o', 읽을자리, 받을자리] },
           읽을자리,
         };
       }
@@ -131,8 +132,11 @@ export function 셸허용됐나(설정들: { 어디: string; 값: 권한설정 }
 
 /** 프롬프트에 싣는 자료 목록. 토큰은 절대 안 싣는다 — 자식 환경에만 있다 */
 export function 자료목록글(계획: 읽을자료[]): string[] {
-  const 파일들 = 계획.flatMap((c) => (c.kind === 'FILE' ? [`- ${c.읽을자리}  (원래 이름: ${c.name})`] : []));
-  const 피그마들 = 계획.flatMap((c) => (c.kind === 'FIGMA' ? [`- ${c.주소}`] : []));
+  // 자료 번호 — 역방향 차이 파일이 「어느 자료의 차이인지」를 이 번호로 적는다(`asset`)
+  const 파일들 = 계획.flatMap((c) =>
+    c.kind === 'FILE' ? [`- ${c.읽을자리}  (원래 이름: ${c.name}) (자료 번호 ${String(c.id)})`] : [],
+  );
+  const 피그마들 = 계획.flatMap((c) => (c.kind === 'FIGMA' ? [`- ${c.주소}  (자료 번호 ${String(c.id)})`] : []));
   return [
     '--- 자료 목록 ---',
     '자료 여럿을 요구사항 표 하나로 합쳐라. 읽는 법은 tpx-cases 스킬의 「입력은 자료 목록이다」를 따라라.',

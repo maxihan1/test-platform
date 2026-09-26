@@ -86,6 +86,26 @@ export interface 차이 {
   tcId: string | null;
   marked: boolean;
   markError: string;
+  /**
+   * 표시 자리 — 자식이 적은 자료 번호 · 기획서 문장 · 피그마 노드. **서버로는 안 보낸다**(`보낼차이`).
+   * 모양이 틀리면 null — 표시만 못 할 뿐 차이는 멀쩡하다
+   */
+  표시?: { asset: number | null; anchor: string | null; node: string | null };
+}
+
+const 문장상한 = 300;
+
+function 표시자리(d: Record<string, unknown>): NonNullable<차이['표시']> {
+  const asset = typeof d.asset === 'number' && Number.isSafeInteger(d.asset) && d.asset > 0 ? d.asset : null;
+  const anchor = typeof d.anchor === 'string' && d.anchor.trim() !== '' ? d.anchor.slice(0, 문장상한) : null;
+  // 피그마 노드는 12:34 · 12-34 둘 다 온다. 숫자 둘만 받는다 — 요청 본문에 그대로 실린다
+  const 맞음 = typeof d.node === 'string' ? /^(\d{1,10})[:-](\d{1,10})$/.exec(d.node) : null;
+  return { asset, anchor, node: 맞음 === null ? null : `${맞음[1]}:${맞음[2]}` };
+}
+
+/** 서버로 보낼 모양 — 표시 자리를 뺀다 (§7 `finish` 의 `result.diffs[]`) */
+export function 보낼차이(diffs: 차이[]): Omit<차이, '표시'>[] {
+  return diffs.map(({ 표시: _자리, ...나머지 }) => 나머지);
 }
 
 const 종류들 = new Set(['DIFFERENT', 'SCREEN_ONLY', 'DOC_ONLY']);
@@ -130,6 +150,7 @@ export function 차이정리(글: string | null): { diffs: 차이[] } | { 사유
       tcId: 글칸(d.tcId),
       marked: false,
       markError: '표시는 아직 안 한다',
+      표시: 표시자리(d),
     });
   }
   return { diffs };
