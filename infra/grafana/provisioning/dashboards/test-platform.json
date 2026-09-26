@@ -81,6 +81,42 @@
           "rawSql": "SELECT r.run_id AS \"실행 번호\",\n       r.title AS \"제목\",\n       r.service_name AS \"서비스\",\n       r.env AS \"대상 서버\",\n       r.status AS \"상태\",\n       r.started_at AS \"시작 시각\"\nFROM test_run r\nORDER BY r.started_at DESC\nLIMIT 20"
         }
       ]
+    },
+    {
+      "id": 5,
+      "title": "가장 오래된 미확정",
+      "description": "기획 답을 기다리는 미확정 케이스. 나이는 카탈로그에 들어온 뒤부터다 — 초안 PR 이 열려 있던 기간은 들지 않는다. 활성 서비스·활성 케이스만 (도메인/리포팅 §8.5)",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "platform-postgres" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "platform-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT s.name AS \"서비스\",\n       count(*) AS \"미확정 건수\",\n       floor(extract(epoch FROM now() - min(tc.unconfirmed_since)) / 86400)::int AS \"가장 오래된 것 (일)\"\nFROM test_case tc\nJOIN service s ON tc.tc_id LIKE s.prefix || '-%'\nWHERE tc.is_active\n  AND s.is_active\n  AND tc.unconfirmed_since IS NOT NULL\nGROUP BY s.id, s.name\nORDER BY min(tc.unconfirmed_since)"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "작성에 걸린 시간",
+      "description": "최근 30일(끝난 시각)의 처음 작성 요청. 대기 = 요청을 만든 때부터 에이전트가 집을 때까지(자료 올리기·대기줄 포함), 작업 = 집은 때부터 끝날 때까지. 시간 칸은 성공한 것만, 실패는 따로 센다. 화면만 훑는 요청도 「화면과 대조」에 든다 (도메인/리포팅 §8.5)",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "platform-postgres" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "platform-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT s.name AS \"서비스\",\n       CASE WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       count(*) FILTER (WHERE a.status = 'DONE') AS \"끝난 요청\",\n       count(*) FILTER (WHERE a.status = 'FAILED') AS \"실패\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.started_at - a.created_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"대기 중간값 (분)\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.finished_at - a.started_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 중간값 (분)\",\n       round((max(extract(epoch FROM a.finished_at - a.started_at)) FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 최대 (분)\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind = 'AUTHOR'\n  AND a.status IN ('DONE', 'FAILED')\n  AND a.finished_at >= now() - interval '30 days'\nGROUP BY s.id, s.name, a.compare\nORDER BY s.name, a.compare"
+        }
+      ]
     }
   ]
 }
