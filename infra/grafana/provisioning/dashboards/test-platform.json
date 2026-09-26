@@ -24,7 +24,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH folded AS (\n  SELECT date_trunc('day', r.started_at) AS 날짜,\n         r.run_id, i.tc_id, i.platform,\n         bool_and(i.status = 'PASS') AS passed\n  FROM run_item i\n  JOIN test_run r ON r.run_id = i.run_id\n  WHERE r.started_at >= now() - interval '30 days'\n  GROUP BY 1, 2, 3, 4\n)\nSELECT 날짜 AS time,\n       round(100.0 * count(*) FILTER (WHERE passed) / count(*), 1) AS \"성공률\"\nFROM folded\nGROUP BY 날짜\nORDER BY 날짜"
+          "rawSql": "WITH folded AS (\n  SELECT date_trunc('day', r.started_at) AS 날짜,\n         r.run_id, i.tc_id, i.platform,\n         bool_and(i.status = 'PASS') AS passed\n  FROM run_item i\n  JOIN test_run r ON r.run_id = i.run_id\n  WHERE r.started_at >= now() - interval '30 days'\n    AND i.unconfirmed IS NULL\n  GROUP BY 1, 2, 3, 4\n)\nSELECT 날짜 AS time,\n       round(100.0 * count(*) FILTER (WHERE passed) / count(*), 1) AS \"성공률\"\nFROM folded\nGROUP BY 날짜\nORDER BY 날짜"
         }
       ]
     },
@@ -61,7 +61,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH folded AS (\n  SELECT i.tc_id, max(i.tc_name) AS tc_name,\n         bool_or(i.status = 'FAIL') AS failed\n  FROM run_item i\n  JOIN test_run r ON r.run_id = i.run_id\n  WHERE r.started_at >= now() - interval '30 days'\n  GROUP BY i.run_id, i.tc_id, i.platform\n)\nSELECT tc_id AS \"케이스 ID\",\n       max(tc_name) AS \"케이스명\",\n       count(*) AS \"실패 건수\"\nFROM folded\nWHERE failed\nGROUP BY tc_id\nORDER BY count(*) DESC, tc_id\nLIMIT 10"
+          "rawSql": "WITH folded AS (\n  SELECT i.tc_id, max(i.tc_name) AS tc_name,\n         bool_or(i.status = 'FAIL') AS failed\n  FROM run_item i\n  JOIN test_run r ON r.run_id = i.run_id\n  WHERE r.started_at >= now() - interval '30 days'\n    AND i.unconfirmed IS NULL\n  GROUP BY i.run_id, i.tc_id, i.platform\n)\nSELECT tc_id AS \"케이스 ID\",\n       max(tc_name) AS \"케이스명\",\n       count(*) AS \"실패 건수\"\nFROM folded\nWHERE failed\nGROUP BY tc_id\nORDER BY count(*) DESC, tc_id\nLIMIT 10"
         }
       ]
     },
