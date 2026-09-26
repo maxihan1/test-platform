@@ -54,6 +54,10 @@ export interface 요청 {
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
+  // 역방향 칸 (§3.6). 계정은 여기 없다 — 대상 서버 줄에 있고 집기 응답에만 나간다
+  compare: boolean;
+  env: string | null;
+  startUrl: string | null;
 }
 
 interface 행 {
@@ -77,6 +81,9 @@ interface 행 {
   created_at: Date;
   started_at: Date | null;
   finished_at: Date | null;
+  compare: boolean;
+  env: string | null;
+  start_url: string | null;
 }
 
 // BIGSERIAL 은 pg 가 문자열로 준다. 화면과 라우트는 숫자로 다루므로 여기서 한 번만 바꾼다
@@ -102,12 +109,15 @@ function 빚기(r: 행): 요청 {
     createdAt: r.created_at.toISOString(),
     startedAt: r.started_at === null ? null : r.started_at.toISOString(),
     finishedAt: r.finished_at === null ? null : r.finished_at.toISOString(),
+    compare: r.compare,
+    env: r.env,
+    startUrl: r.start_url,
   };
 }
 
 const 칸들 = `id, service_id, kind, source_id, spec_text, params, requested_by, requested_by_name,
               claimed_by, status, stage, stage_at, result, test_source, screenshot_dir, pr_url,
-              error, created_at, started_at, finished_at`;
+              error, created_at, started_at, finished_at, compare, env, start_url`;
 
 /**
  * 이 요청의 사진이 들어갈 폴더.

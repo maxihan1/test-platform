@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import authoringAgentRoutes from '../authoring/agentRoutes.js';
 import authoringRoutes from '../authoring/routes.js';
 import settingsRoutes from '../settings/routes.js';
 import { 헤더토큰 } from './agentToken.js';
@@ -33,6 +34,10 @@ describe('헤더토큰 — DB 에 가기 전에 모양을 본다', () => {
   it('토큰통로의 모든 줄이 등급표에 있다 — 글자가 틀리면 맥이 돌 때에야 403 으로 드러난다', () => {
     const 없는것 = [...토큰통로].filter((쌍) => !(쌍 in 등급표));
     expect(없는것).toEqual([]);
+  });
+
+  it('에이전트가 산출물을 올리는 통로가 토큰으로 열린다 — 역방향 표시 사본·역기획서', () => {
+    expect(토큰통로.has('POST /api/authoring/requests/:id/outputs')).toBe(true);
   });
 
   it('모양이 아니면 틀림 — 세션으로 넘어가지 않게', () => {
@@ -108,6 +113,7 @@ describe.skipIf(연결 === undefined)('작성 에이전트 토큰', () => {
     인증등록(app);
     await app.register(authRoutes, { prefix: '/api' });
     await app.register(authoringRoutes, { prefix: '/api' });
+    await app.register(authoringAgentRoutes, { prefix: '/api' });
     await app.register(settingsRoutes, { prefix: '/api' });
     await app.ready();
     운영쿠키 = await 로그인(운영);

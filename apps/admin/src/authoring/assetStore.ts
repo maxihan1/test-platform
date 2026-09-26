@@ -34,6 +34,9 @@ export interface 자료 {
   name: string;
   figmaUrl: string | null;
   size: number | null;
+  // 사람이 넣은 입력인지 에이전트 산출물인지 (§3.6 「★ 역방향」). MARKED 는 어느 입력의 사본인지 가리킨다
+  role: 'INPUT' | 'MARKED' | 'REVERSE_SPEC';
+  sourceAssetId: number | null;
 }
 
 interface 자료행 {
@@ -43,6 +46,8 @@ interface 자료행 {
   name: string;
   figma_url: string | null;
   size: string | null;
+  role: 'INPUT' | 'MARKED' | 'REVERSE_SPEC';
+  source_asset_id: string | null;
 }
 
 function 빚기(r: 자료행): 자료 {
@@ -53,6 +58,8 @@ function 빚기(r: 자료행): 자료 {
     name: r.name,
     figmaUrl: r.figma_url,
     size: r.size === null ? null : Number(r.size),
+    role: r.role,
+    sourceAssetId: r.source_asset_id === null ? null : Number(r.source_asset_id),
   };
 }
 
@@ -68,14 +75,24 @@ export async function 준비세우기(입력: {
   이름: string;
   피그마: string[];
   값?: Record<string, unknown>;
+  // 역방향 칸. 라우트가 판정한 값만 온다 — 대조가 아니면 셋 다 비운다 (DB CHECK 가 짝을 가둔다)
+  대조?: { env: string; startUrl: string | null };
 }): Promise<number> {
   return 한묶음(async (client) => {
     const r = await client.query<{ id: string }>(
       `INSERT INTO authoring_request
-         (service_id, kind, params, requested_by, requested_by_name, status)
-       VALUES ($1, 'AUTHOR', $2, $3, $4, 'DRAFT')
+         (service_id, kind, params, requested_by, requested_by_name, status, compare, env, start_url)
+       VALUES ($1, 'AUTHOR', $2, $3, $4, 'DRAFT', $5, $6, $7)
        RETURNING id`,
-      [입력.서비스, JSON.stringify(입력.값 ?? {}), 입력.누가, 입력.이름],
+      [
+        입력.서비스,
+        JSON.stringify(입력.값 ?? {}),
+        입력.누가,
+        입력.이름,
+        입력.대조 !== undefined,
+        입력.대조?.env ?? null,
+        입력.대조?.startUrl ?? null,
+      ],
     );
     const id = Number(r.rows[0]!.id);
     for (const [i, 주소] of 입력.피그마.entries()) {
@@ -121,6 +138,36 @@ export async function 자료더하기(
   });
 }
 
+/**
+ * 에이전트 산출물(표시 사본·역기획서) 한 행을 붙인다. 디스크는 라우트가 쓴다 (§7 outputs).
+ *
+ * **자료 개수 상한에 세지 않는다** — 산출물은 입력이 아니다.
+ * **요청 행을 먼저 잠근다** — `자료더하기` 와 같은 이유(동시 두 건이 같은 순서 번호를 읽어 500)에 더해,
+ * 라우트가 RUNNING 을 본 뒤 끝내기가 끼어들면 끝난 행에 산출물이 붙는다. 잠금 조건에 집은 사람까지 건다.
+ */
+export async function 산출물더하기(
+  요청: number,
+  집은이: string,
+  파일: { name: string; size: number; role: 'MARKED' | 'REVERSE_SPEC'; source: number | null },
+): Promise<{ id: number } | 'NOT_RUNNING'> {
+  return 한묶음(async (client) => {
+    const 잠금 = await client.query(
+      `SELECT 1 FROM authoring_request WHERE id = $1 AND status = 'RUNNING' AND claimed_by = $2 FOR UPDATE`,
+      [요청, 집은이],
+    );
+    if (잠금.rowCount !== 1) return 'NOT_RUNNING';
+    const r = await client.query<{ id: string }>(
+      `INSERT INTO authoring_asset (request_id, position, kind, name, size, role, source_asset_id)
+       SELECT $1, COALESCE(MAX(position), 0) + 1, 'FILE', $2, $3, $4, $5
+         FROM authoring_asset
+        WHERE request_id = $1
+       RETURNING id`,
+      [요청, 파일.name, 파일.size, 파일.role, 파일.source],
+    );
+    return { id: Number(r.rows[0]!.id) };
+  });
+}
+
 /** 파일 쓰기에 실패한 자료 행을 지운다. 행만 남으면 내려받기가 없는 파일을 찾는다 */
 export async function 자료지우기(자료번호: number): Promise<void> {
   await (await db()).query('DELETE FROM authoring_asset WHERE id = $1', [자료번호]);
@@ -128,7 +175,7 @@ export async function 자료지우기(자료번호: number): Promise<void> {
 
 export async function 자료목록(요청: number): Promise<자료[]> {
   const r = await (await db()).query<자료행>(
-    `SELECT id, position, kind, name, figma_url, size
+    `SELECT id, position, kind, name, figma_url, size, role, source_asset_id
        FROM authoring_asset WHERE request_id = $1 ORDER BY position`,
     [요청],
   );
@@ -138,7 +185,7 @@ export async function 자료목록(요청: number): Promise<자료[]> {
 /** 그 요청에 딸린 자료 한 건. **요청 번호까지 맞아야 준다** — 자료 번호만 보면 남의 요청 파일이 번호 하나로 읽힌다 */
 export async function 자료한건(요청: number, 자료번호: number): Promise<자료 | null> {
   const r = await (await db()).query<자료행>(
-    `SELECT id, position, kind, name, figma_url, size
+    `SELECT id, position, kind, name, figma_url, size, role, source_asset_id
        FROM authoring_asset WHERE request_id = $1 AND id = $2`,
     [요청, 자료번호],
   );
@@ -151,12 +198,14 @@ export async function 자료한건(요청: number, 자료번호: number): Promis
  *
  * **한 문장 UPDATE 가 판정이다** — 자료가 0 이거나 이미 선 행이면 아무것도 안 바뀌고 false 다.
  * 읽고 나서 고치면 그 사이에 맥이 집거나 자료가 빠질 수 있다.
+ * 화면만(대조 + 시작 주소)은 읽을 기획서 없이 그 화면을 훑으므로 자료 0 이어도 선다 (§3.6 「★ 역방향」).
  */
 export async function 제출(요청: number): Promise<boolean> {
   const r = await (await db()).query(
     `UPDATE authoring_request SET status = 'PENDING'
       WHERE id = $1 AND status = 'DRAFT'
-        AND EXISTS (SELECT 1 FROM authoring_asset WHERE request_id = $1)`,
+        AND (EXISTS (SELECT 1 FROM authoring_asset WHERE request_id = $1)
+             OR (compare AND start_url IS NOT NULL))`,
     [요청],
   );
   return r.rowCount === 1;
