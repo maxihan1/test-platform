@@ -132,6 +132,34 @@ describe('메모달기 — 워드 원본에 메모를 단 사본', () => {
     expect('글들' in 결과 && 결과.글들.some((g) => g.includes('쿠폰 & 할인'))).toBe(true);
   });
 
+  it('문단 여는 태그 뒤에 줄바꿈이 있어도 메모 시작은 문단 속성 뒤다 — 앞이면 워드가 문서를 못 연다', async () => {
+    const z = await JSZip.loadAsync(await 워드());
+    const 문서 = (await z.file('word/document.xml')!.async('string')).replace(
+      '<w:p><w:pPr><w:pStyle w:val="Compact" /><w:numPr>',
+      '<w:p>\n    <w:pPr><w:pStyle w:val="Compact" /><w:numPr>',
+    );
+    z.file('word/document.xml', 문서);
+    const 결과 = await 메모달기(await z.generateAsync({ type: 'uint8array' }), [{ anchor: '엑셀', 글: 'a' }], 날짜);
+    if ('사유' in 결과) throw new Error(결과.사유);
+    const 다시 = (await 풀기(결과.바이트)).문서;
+    expect(다시.indexOf('commentRangeStart')).toBeGreaterThan(다시.indexOf('<w:numId w:val="1001" />'));
+  });
+
+  it('메모 글에서 XML 이 못 쓰는 제어 문자를 뺀다 — 들어가면 워드가 사본을 못 연다', async () => {
+    const 결과 = await 메모달기(await 워드(), [{ anchor: '엑셀', 글: 'a\u000bb\u0000c' }], 날짜);
+    if ('사유' in 결과) throw new Error(결과.사유);
+    const 메모 = (await 풀기(결과.바이트)).메모;
+    expect(메모).toContain('>abc<');
+    expect(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(메모)).toBe(false);
+  });
+
+  it('머리글에서 글 조각으로 갈린 비밀번호도 이어 붙여 찾게 준다', async () => {
+    const z = await JSZip.loadAsync(await 워드());
+    z.file('word/header1.xml', `<w:hdr ${W}><w:p><w:r><w:t>Qa-pw</w:t></w:r><w:r><w:t>-7731</w:t></w:r></w:p></w:hdr>`);
+    const 결과 = await 메모달기(await z.generateAsync({ type: 'uint8array' }), [{ anchor: '엑셀', 글: 'a' }], 날짜);
+    expect('글들' in 결과 && 결과.글들.some((g) => g.includes('Qa-pw-7731'))).toBe(true);
+  });
+
   it('워드가 아니면 사유', async () => {
     expect(await 메모달기(new Uint8Array([1, 2, 3]), [], 날짜)).toHaveProperty('사유');
   });

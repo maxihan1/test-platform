@@ -27,8 +27,11 @@ function 풀글(s: string): string {
   });
 }
 
+/** 메모 글을 XML 에 넣을 모양으로. XML 1.0 이 못 쓰는 제어 문자는 뺀다 — 들어가면 워드가 사본을 못 연다 (2026-09-26 검사) */
 function 싼글(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return s
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /** 공백을 한 칸으로 — 자식이 읽는 글(pandoc)과 원본의 줄 꺾음·겹 공백이 달라도 맞게 */
@@ -104,10 +107,13 @@ function 문단들(문서: string): 문단[] {
 
 /** 메모 시작 표시는 문단 속성(`w:pPr`) 뒤에 둔다 — 앞에 두면 워드가 문서를 고친다고 묻는다 */
 function 시작자리(문서: string, 여는끝: number): number {
-  const 빈 = /^<w:pPr\s*\/>/.exec(문서.slice(여는끝, 여는끝 + 20));
-  if (빈 !== null) return 여는끝 + 빈[0].length;
-  if (!문서.startsWith('<w:pPr', 여는끝)) return 여는끝;
-  const 끝 = 문서.indexOf('</w:pPr>', 여는끝);
+  // 워드가 아닌 도구는 태그 사이에 줄바꿈·들여쓰기를 넣는다 — 공백을 건너뛰고 본다 (2026-09-26 검사)
+  const 앞 = /^\s*/.exec(문서.slice(여는끝, 여는끝 + 200))?.[0].length ?? 0;
+  const 자리 = 여는끝 + 앞;
+  const 빈 = /^<w:pPr\s*\/>/.exec(문서.slice(자리, 자리 + 20));
+  if (빈 !== null) return 자리 + 빈[0].length;
+  if (!/^<w:pPr[\s>]/.test(문서.slice(자리, 자리 + 8))) return 여는끝;
+  const 끝 = 문서.indexOf('</w:pPr>', 자리);
   return 끝 < 0 ? 여는끝 : 끝 + '</w:pPr>'.length;
 }
 
@@ -214,8 +220,12 @@ export async function 메모달기(
 
   // 올릴 파일 자체에서 비밀번호를 찾도록 글을 모아 준다 — XML 파트 전부(엔티티 풂) · 문단 글(조각을 이은 것)
   const 글들: string[] = 들.map((p) => p.글);
+  // 조각을 잇는 것은 본문만이 아니다 — 머리글·바닥글·각주에서 갈린 글도 파트마다 `<w:t>` 를 이어 본다 (2026-09-26 검사)
   for (const [자리, f] of Object.entries(zip.files)) {
-    if (!f.dir && /\.(xml|rels)$/i.test(자리)) 글들.push(풀글(await f.async('string')));
+    if (f.dir || !/\.(xml|rels)$/i.test(자리)) continue;
+    const xml = await f.async('string');
+    글들.push(풀글(xml));
+    글들.push([...xml.matchAll(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g)].map((t) => 풀글(t[1] ?? '')).join(''));
   }
   return { 바이트: 결과, 찾음, 글들 };
 }
