@@ -10,6 +10,8 @@ import {
   변환인자,
   사유거르기,
   올리기전검사,
+  변환환경,
+  산출물주소,
   원고거부사유,
   차이정리,
 } from './authoring-reverse.js';
@@ -164,6 +166,23 @@ describe('사유거르기 — 실패 사유에 원문이 섞이면 고정 글로
   });
 });
 
+describe('변환환경 — pandoc 에 부모의 비밀을 물려주지 않는다', () => {
+  it('부모 칸은 전부 지우고 PATH 와 준 자리만 남긴다', () => {
+    const 부모 = { PATH: '/opt/homebrew/bin:/usr/bin', AUTHORING_AGENT_TOKEN: 'tpa_x', GH_TOKEN: 'ghp_x', HOME: '/Users/me' };
+    expect(변환환경(부모, { HOME: '/w/집', TMPDIR: '/w/임시' })).toEqual({
+      PATH: '/opt/homebrew/bin:/usr/bin',
+      AUTHORING_AGENT_TOKEN: undefined,
+      GH_TOKEN: undefined,
+      HOME: '/w/집',
+      TMPDIR: '/w/임시',
+    });
+  });
+
+  it('부모에 PATH 가 없으면 기본 PATH', () => {
+    expect(변환환경({}, { HOME: '/h', TMPDIR: '/t' }).PATH).toBe('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin');
+  });
+});
+
 describe('역기획서 원고와 변환', () => {
   it('그림 문법이 있으면 거절한다 — pandoc 이 바깥 파일을 끌어온다', () => {
     expect(원고거부사유('# 주문\n![x](../../proc/1/environ)')).toContain('그림');
@@ -193,5 +212,17 @@ describe('역기획서 원고와 변환', () => {
       '/w/out/reverse-spec.check.txt',
       '/w/out/reverse-spec.docx',
     ]);
+  });
+});
+
+describe('산출물주소 — outputs 통로 주소를 만든다', () => {
+  it('이름·역할·서비스를 퍼센트 인코딩한다 — 이름에 & 가 있어도 다른 칸으로 새지 않는다', () => {
+    expect(산출물주소(12, 'PAY&x', '역기획서 & 확인.docx', 'REVERSE_SPEC')).toBe(
+      '/api/authoring/requests/12/outputs?service=PAY%26x&name=%EC%97%AD%EA%B8%B0%ED%9A%8D%EC%84%9C%20%26%20%ED%99%95%EC%9D%B8.docx&role=REVERSE_SPEC',
+    );
+  });
+
+  it('표시 사본은 원본 번호를 싣는다', () => {
+    expect(산출물주소(12, 'PAY', 'a.docx', 'MARKED', 5)).toBe('/api/authoring/requests/12/outputs?service=PAY&name=a.docx&role=MARKED&source=5');
   });
 });

@@ -174,3 +174,33 @@ export function 변환인자(원고: string, 워드: string): string[] {
 export function 되읽기인자(워드: string, 글자: string): string[] {
   return ['-f', 'docx', '-t', 'plain', '-o', 글자, 워드];
 }
+
+/**
+ * pandoc 을 돌릴 환경. **부모 칸을 전부 지운다**(값 `undefined` 는 spawn 이 안 넘긴다) — 맥(자식 uid 없음)에서
+ * `친다` 는 준 환경을 부모 위에 얹어서, 그냥 두면 에이전트 토큰·GitHub 자격증명이 믿을 수 없는 원고를 여는 도구에 간다.
+ * PATH 만 남긴다 — 맥의 pandoc 은 /opt/homebrew/bin 에 있다
+ */
+export function 변환환경(
+  부모: Record<string, string | undefined>,
+  자리: { HOME: string; TMPDIR: string },
+): Record<string, string | undefined> {
+  const 지움 = Object.fromEntries(Object.keys(부모).map((키) => [키, undefined]));
+  return { ...지움, PATH: 부모.PATH ?? '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin', ...자리 };
+}
+
+/** `outputs` 통로 주소 (§7). 이름은 사람이 안 준 것이지만 퍼센트 인코딩한다 — `&` 가 다른 질의 칸으로 새지 않게 */
+export function 산출물주소(
+  id: number,
+  서비스: string,
+  이름: string,
+  역할: 'MARKED' | 'REVERSE_SPEC',
+  원본?: number,
+): string {
+  const 질의 = [
+    `service=${encodeURIComponent(서비스)}`,
+    `name=${encodeURIComponent(이름)}`,
+    `role=${역할}`,
+    ...(원본 === undefined ? [] : [`source=${String(원본)}`]),
+  ];
+  return `/api/authoring/requests/${String(id)}/outputs?${질의.join('&')}`;
+}

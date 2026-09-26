@@ -5,10 +5,12 @@
 // main SHA 는 묻기만 하고, 받는 일은 사본이 한다. 컨테이너(root)에서는 자식이 자리 uid 로 돌아 에이전트의 토큰을 못 읽는다.
 
 import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 import { type 모델, 한도걸렸나 } from './authoring-model.js';
-import { type 자료, 돌릴수있나, 못읽는자료, 자료계획, 자료출처 } from './authoring-assets.js';
+import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처 } from './authoring-assets.js';
+import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
 import { 닫을RUNNING, 자식환경 } from './authoring-chain.js';
 import { type 계정, type 사본 } from './authoring-copy.js';
 import { 사본만들기, 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
@@ -115,10 +117,17 @@ async function 한건(
     await 손.끝내기({ status: 'FAILED', error: 폴더?.사유 ?? `${서비스} 의 테스트 폴더 설정을 못 받았다` });
     return;
   }
+  // 역방향 — 집을 때 다시 대조한다. 만든 뒤 설정이 바뀌었을 수 있다 (도메인/작성 §7 집기 ★)
+  const 대상사유 = 대상점검(것.target);
+  if (대상사유 !== null) {
+    await 손.끝내기({ status: 'FAILED', error: 대상사유 });
+    return;
+  }
 
   // 재실행 행은 자기 자료가 없다. 원본 행을 읽어 자료와(옛 행이면) 본문을 가져온다
   const 출처 = 자료출처(것);
-  let 자료들 = 것.assets ?? [];
+  // 사람이 넣은 입력만 읽는다 — 원본에 에이전트 산출물(표시 사본·역기획서)이 붙어 있을 수 있다
+  let 자료들 = 입력만(것.assets ?? []);
   let 본문 = 것.specText ?? null;
   if (출처 !== 것.id) {
     const 원본 = await 부른다(주소기지, 토큰, `/authoring/requests/${출처}?service=${encodeURIComponent(서비스)}`);
@@ -127,11 +136,12 @@ async function 한건(
       return;
     }
     const 몸 = 원본.몸 as { assets?: 자료[]; specText?: string | null };
-    자료들 = 몸.assets ?? [];
+    자료들 = 입력만(몸.assets ?? []);
     본문 = 본문 || (몸.specText ?? null);
   }
 
-  const 막힘 = 돌릴수있나({ specText: 본문, figmaToken: 것.figmaToken }, 자료들);
+  const 화면만 = 것.target !== undefined && Boolean(것.target.startUrl) && 자료들.length === 0;
+  const 막힘 = 돌릴수있나({ specText: 본문, figmaToken: 것.figmaToken, 화면만 }, 자료들);
   if (막힘 !== null) {
     await 손.끝내기({ status: 'FAILED', error: 막힘 });
     return;
@@ -226,11 +236,15 @@ async function 사본에서(
     ...자식환경(process.env, 자리.gh, 것.figmaToken),
     // 맥은 둘 다 그대로 — 긴 임시 경로는 유닉스 소켓 104자 한도에 닿을 수 있다
     ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }),
+    // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
+    ...(것.target === undefined ? {} : 대상환경(것.target)),
   };
+  const 화면만 = 것.target !== undefined && Boolean(것.target.startUrl) && 자료들.length === 0;
+  const 역방향 = 것.target === undefined ? undefined : { 화면만, 산출물폴더: join(자리.자료, 'out') };
   const 인자 = 클로드인자(자리.자료, 판.모델);
   const 돌린것 = await 돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
     cwd: 자리.트리,
-    input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }),
+    input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향),
     env: 환경,
     uid: 자식?.uid,
     gid: 자식?.gid,
@@ -245,7 +259,9 @@ async function 사본에서(
     return;
   }
   if (돌린것.코드 === null && !돌린것.시간초과) {
-    await 손.끝내기({ status: 'FAILED', error: `claude 를 못 띄웠다: ${돌린것.오류.trim().split('\n').pop() ?? ''}` });
+    // 자식 stderr 에 계정 원문이 섞일 수 있다 — 사유는 화면과 서버 기록에 남는다
+    const 끝줄 = 돌린것.오류.trim().split('\n').pop() ?? '';
+    await 손.끝내기({ status: 'FAILED', error: 사유거르기(`claude 를 못 띄웠다: ${끝줄}`, 것.target?.loginPassword) });
     return;
   }
   if (돌린것.코드 !== 0) {
@@ -261,5 +277,14 @@ async function 사본에서(
     return;
   }
 
-  await 올리기(자리, 것, 서비스, 판.판정, 기준, 돌린것.낸것, 손);
+  await 올리기(
+    자리,
+    것,
+    서비스,
+    판.판정,
+    기준,
+    돌린것.낸것,
+    손,
+    역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 화면만 },
+  );
 }
