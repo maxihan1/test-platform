@@ -393,3 +393,10 @@
 - 미완: ③-2 표시(워드 메모·피그마 댓글) · **서버에서 실제 한 바퀴** · PDF 스티커(npm 승인 뒤)
 - 막힌 것: 서버 컨테이너 pandoc 이 2.9.2.1 이라 `--sandbox` 가 없다(실측) — 원고 그림 거절 + 변환 결과 되읽기로 대신했다
 - 다음 세션이 알아야 할 것: 자식은 로그인을 `node --input-type=module < "$TMPDIR/login.mjs"` 로 작업 트리에서 돈다(파일 자리에서 돌리면 `@playwright/test` 를 못 찾는다 — 실측). `authoring-run.ts` 는 290줄 · `authoring-io.ts` 는 이미 313줄이라 더 늘리지 않았다. 계획 `docs/plans/2026-09-26-역방향-에이전트-뼈대.md`
+
+## 2026-09-26 (16회차) — 역방향 ③-2 표시 (PR #82)
+- 완료: 워드 메모 사본(jszip) · 피그마 댓글 · 차이마다 marked/markError · 원본 다시 받기 · 올릴 사본 비밀번호·피그마 토큰 검사 · 푼 크기 상한·DEFLATE · 자식 표시 자리(asset·anchor·node) · 자료 번호 · pandoc --wrap=none · jszip 정식 의존성. 검사 `authoring-docx.test.ts`(12) · `authoring-mark.test.ts`(11)
+- 손 확인: pandoc 이 만든 실제 docx 에 메모 둘(문장 · 마지막 문단)을 달고 `pandoc --track-changes=all` 로 되읽어 제자리·작성자 확인
+- 미완: **서버에서 실제 한 바퀴**(테스트 계정 넣은 대상 서버 + 워드·피그마 자료) · PDF 스티커(npm 승인 뒤)
+- 막힌 것: 없음. jszip 타입에 `internalStream` 이 없어 `nodeStream('nodebuffer')` 로 푼 바이트를 센다
+- 다음 세션이 알아야 할 것: pandoc 워드에는 빈 `word/comments.xml`(`<w:comments … />`)이 이미 있다 — 펴서 끼운다. 메모 번호는 문서의 `w:id` 최대값 뒤(책갈피 번호와 섞여도 겹치지만 않으면 된다). 계획 `docs/plans/2026-09-26-역방향-표시.md`

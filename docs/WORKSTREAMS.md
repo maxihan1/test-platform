@@ -88,7 +88,12 @@
   역기획서는 에이전트가 pandoc 으로 바꾸고 **다시 글자로 되읽어 한 번 더 찾은 뒤** `outputs`(REVERSE_SPEC) · 원고의 그림 문법은 거절(서버 pandoc 2.9 에 `--sandbox` 가 없다) ·
   `finish` 에 `result.diffs`(허용 칸만 · 종류 셋 · `marked:false` 강제) · 케이스 PR 뒤의 실패는 **DONE + `error` 에 이유**(게이트 1). 판정은 `scripts/authoring-reverse.ts`.
   자식 절차는 `.claude/skills/tpx-author/references/reverse.md` — 로그인은 스크립트 안 `process.env` · 입력 직전 출처 확인 · 훑기 허용 목록 · 차이 처리 표.
-- **WS-작성 ③-2 표시** — 워드 메모 사본(`MARKED`, **jszip 정식 의존성 승인됨** 2026-09-26 사용자) · 피그마 댓글 · 표시하면 `marked: true`, 못 하면 `markError`.
+- **WS-작성 ③-2 표시 — 반영 완료 (2026-09-26, PR #82).** 워드(.docx) 메모 단 사본을 `outputs` MARKED(`<이름>-표시.docx`, `source`)로 · 피그마는 그 노드에 댓글 ·
+  차이마다 `marked` / `markError`(옛 .doc · PDF · 글 파일 · 문장 못 찾음 · 토큰 권한 · 파일 접근). **원본은 서버에서 다시 받는다**(자료 폴더 사본은 자식이 바꿀 수 있다).
+  메모는 문장이 든 문단에(공백·엔티티 맞춤, 자식이 읽는 글은 `pandoc --wrap=none`) · 붙일 문장이 없으면 마지막 문단(게이트 1) · 작성자 「테스트 플랫폼」 고정(게이트 1) ·
+  **올릴 사본 자체에서 비밀번호·피그마 토큰을 찾는다** · 푼 바이트를 세어 합계 60MB·파트 10MB 상한(머리글 크기를 안 믿는다) · 다시 묶기는 DEFLATE · 피그마 401·403 한 번이면 남은 댓글 멈춤.
+  자식은 `diffs.json` 에 `asset`(자료 번호)·`anchor`(문장 그대로)·`node` 를 적고 에이전트는 서버로 보내기 전에 뺀다. jszip 정식 의존성(2026-09-26 사용자 승인).
+  코드 `scripts/authoring-mark.ts`(판정) · `authoring-docx.ts`(워드) · `authoring-marking.ts`(껍데기).
   `source_asset_id` 는 명세대로 `ON DELETE` 규칙이 없다 — 표시 사본이 있는 원본 자료를 한 건만 지우면 거절된다(요청째 지우면 괜찮다). 한 건 지우기(`assetStore.ts` `자료지우기`)는 지금 DRAFT 실패 정리에만 쓰여 해가 없다.
   **PDF 스티커 메모는 새 npm 패키지 승인 뒤다**(CLAUDE.md §3) — 그 전에는 차이 목록만 낸다.
   **실제 한 바퀴는 아직이다** — 서버 `author` 컨테이너에서 테스트 계정을 넣은 대상 서버로 역방향 요청 하나를 돌려 본다
