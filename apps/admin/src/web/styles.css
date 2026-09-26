@@ -2701,6 +2701,37 @@ select:focus {
 .authoring-new .authoring-field > span { color: var(--ink-muted); font-size: 12px; }
 .authoring-new .authoring-field textarea { min-height: 64px; }
 
+/* 「실제 화면과 대조」 묶음 (도메인/작성 §3.6 「★ 역방향」). 켜야 대상 서버·시작 주소가 나온다 —
+   정방향만 쓰는 사람에게는 체크박스 한 줄뿐이다 */
+.authoring-new .authoring-compare > label { display: flex; align-items: center; gap: 6px; color: var(--ink); font-size: 13px; }
+.authoring-new .authoring-sub { display: flex; flex-direction: column; gap: 4px; }
+.authoring-new .authoring-sub > span { color: var(--ink-muted); font-size: 12px; }
+.authoring-new .authoring-sub select,
+.authoring-new .authoring-sub input {
+  padding: 6px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font: inherit;
+  min-width: 0;
+}
+.authoring-new .authoring-compare small { color: var(--ink-faint); font-size: 12px; }
+
+/* 작성 상세의 산출물 머리 · 차이 표. 표 모양은 케이스 이력(.dhist)을 그대로 쓴다.
+   차이는 판정이 아니라 판정 색을 쓰지 않는다 (DESIGN.md 원칙 1) */
+.authoring-sub-head { margin: 18px 0 6px; font-size: 13px; color: var(--ink-muted); }
+.authoring-assets small { margin-left: 8px; color: var(--ink-faint); font-size: 12px; }
+.authoring-diffs-wrap { margin-top: 18px; overflow-x: auto; }
+.authoring-diffs th {
+  padding: 8px 14px;
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--chrome);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+.authoring-diffs td { vertical-align: top; }
+
 /* 케이스 목록의 「미확정」 배지. 비활성 배지와 같은 중립 테두리다 — 판정 색을 입으면 판정처럼 읽힌다 (도메인/카탈로그 §8.1).
    좁은 칸에서 글자가 쪼개지면 테두리 상자가 두 줄로 갈라진다 */
 .case-tag {

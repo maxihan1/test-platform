@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { api, type AuthoringRow, type Paged } from './api.js';
+import { api, type AuthoringRow, type EnvRow, type Paged } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
 import { 보임라벨, 종류라벨, 줄보임, type 보임 } from './authoringView.js';
 import { Head } from './Head.js';
@@ -45,7 +45,8 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
         {/* 단계가 아직 없으면 빈 칸이 아니라 「기록 없음」이다 — 모르는 것을 아는 척하지 않는다 */}
         <a href={`#/authoring/${것.id}`}>{것.stage ?? t('기록 없음')}</a>
         <small>
-          {종류라벨(것.kind, 언어)} · {t('요청한 사람')} {것.requestedByName} · {when(것.createdAt, 언어)}
+          {종류라벨(것.kind, 언어)}
+          {것.compare === true ? ` · ${t('화면과 대조')}` : ''} · {t('요청한 사람')} {것.requestedByName} · {when(것.createdAt, 언어)}
         </small>
       </div>
       <div className="right">{보임라벨(보, 언어)}</div>
@@ -53,7 +54,7 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
   );
 }
 
-export function Authoring({ service }: { service: string }) {
+export function Authoring({ service, envs = [] }: { service: string; envs?: EnvRow[] }) {
   const t = use말();
   const [page, setPage] = useState(1);
   // 서비스를 바꾸면 첫 쪽으로. 안 그러면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
@@ -86,7 +87,7 @@ export function Authoring({ service }: { service: string }) {
       <Head 제목={t('테스트 작성')} 부제={t('모두 {건수}건', { 건수: 줄들.data.total })} />
 
       <div className="screen list-screen">
-        <AuthoringNew service={service} on넣었다={() => 줄들.reload()} />
+        <AuthoringNew service={service} envs={envs} on넣었다={() => 줄들.reload()} />
 
         <div className="rows-scroll">
           {줄들.data.items.length === 0 ? (

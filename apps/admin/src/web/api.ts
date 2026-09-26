@@ -296,6 +296,15 @@ export interface AuthoringRow {
   finishedAt: string | null;
   /** 상세 응답에만 온다. 목록에는 없다 */
   assets?: AuthoringAsset[];
+  /**
+   * 역방향 칸 (도메인/작성 §3.6 「★ 역방향」). 계정은 오지 않는다 — 집기 응답에만 있다.
+   * 선택으로 둔 것은 이 칸을 모르는 기존 화면 검사의 가짜 행을 안 고치려고다. 서버는 늘 싣는다
+   */
+  compare?: boolean;
+  env?: string | null;
+  startUrl?: string | null;
+  /** 끝내기가 실은 결과. 모양을 서버가 검사하지 않는다 — 읽는 쪽이 방어한다 (`authoringView.ts` 의 `차이목록`) */
+  result?: unknown;
 }
 
 /** 작성 요청의 자료 한 건. 피그마 자료의 `name` 은 정규화한 주소다 (도메인/작성 §7 「자료」) */
@@ -306,6 +315,10 @@ export interface AuthoringAsset {
   name: string;
   figmaUrl: string | null;
   size: number | null;
+  /** 사람이 넣은 입력인지 에이전트 산출물인지. 없으면 입력이다(옛 가짜 행) */
+  role?: 'INPUT' | 'MARKED' | 'REVERSE_SPEC';
+  /** 표시 사본(MARKED)이 어느 입력의 사본인지 */
+  sourceAssetId?: number | null;
 }
 
 export interface UserRow {
@@ -557,7 +570,9 @@ export const api = {
    */
   createAuthoringRequest: (
     service: string,
-    body: { kind: 'AUTHOR'; figma: string[] } | { kind: 'RERUN'; sourceId: number },
+    body:
+      | { kind: 'AUTHOR'; figma: string[]; compare?: true; env?: string; startUrl?: string }
+      | { kind: 'RERUN'; sourceId: number },
   ) => call<{ id: number }>(`/authoring/requests?service=${encodeURIComponent(service)}`, json(body)),
 
   /** 파일 바이트를 그대로 보낸다. 이름은 본문에 자리가 없어 주소에 싣는다 */

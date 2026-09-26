@@ -60,7 +60,7 @@ function Screen({
     case 'setup':
       return <RunSetup tcId={current.tcId} service={service} user={user} />;
     case 'authoring':
-      return <Authoring service={prefix} />;
+      return <Authoring service={prefix} envs={service?.envs ?? []} />;
     case 'authoringItem':
       return <AuthoringDetail service={prefix} id={current.id} role={user.role} />;
     case 'runs':

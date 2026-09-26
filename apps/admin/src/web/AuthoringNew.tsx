@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 
-import { api, ApiError } from './api.js';
+import { api, ApiError, type EnvRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
 
@@ -48,9 +48,21 @@ const 작성오류: Record<string, string> = {
   TOO_MANY_ASSETS: '자료가 한 요청에 넣을 수 있는 개수를 넘었습니다',
   NO_ASSETS: '자료가 하나도 없습니다. 파일이나 피그마 주소를 넣으세요',
   NOT_REQUESTER: '요청한 사람만 자료를 올릴 수 있습니다',
+  // 역방향 (도메인/작성 §7 AUTHOR 역방향). 화면은 계정 없는 줄을 미리 거르지 않는다 — 서버 거절을 풀어 준다
+  BAD_ENV: '이 대상 서버에는 테스트 계정이 없습니다. 설정 > 서비스에서 테스트 계정을 넣으세요',
+  BAD_START_URL: '시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다',
 };
 
-export function AuthoringNew({ service, on넣었다 }: { service: string; on넣었다: () => void }) {
+export function AuthoringNew({
+  service,
+  envs = [],
+  on넣었다,
+}: {
+  service: string;
+  /** 띠의 서비스가 가진 대상 서버. 계정 여부는 모른다 — `/auth/me` 에는 안 온다 (도메인/인증 §7) */
+  envs?: EnvRow[];
+  on넣었다: () => void;
+}) {
   const t = use말();
   const 언어 = use언어();
   const [파일들, set파일들] = useState<File[]>([]);
@@ -59,6 +71,12 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
   const [오류, set오류] = useState<string | null>(null);
   // 파일 칸은 비제어라 state 를 비워도 옛 파일을 보인다. 같은 파일을 다시 고르면 change 도 안 난다 — 새로 그린다
   const [칸번호, set칸번호] = useState(0);
+  // 역방향 (도메인/작성 §3.6 「★ 역방향」). 대상 서버는 고르지 않으면 첫 줄이다
+  const [대조, set대조] = useState(false);
+  const [고른서버, set고른서버] = useState<string | null>(null);
+  const [시작주소, set시작주소] = useState('');
+  const 서버 = 고른서버 ?? envs[0]?.env ?? null;
+  const 주소 = 시작주소.trim();
 
   const 주소들 = 피그마
     .split('\n')
@@ -70,8 +88,10 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
     if (이유 !== null) 거절.set(이유, [...(거절.get(이유) ?? []), f.name]);
   }
   const 너무많다 = 파일들.length + 주소들.length > 자료상한;
-  const 빈것 = 파일들.length === 0 && 주소들.length === 0;
-  const 못보낸다 = 빈것 || 거절.size > 0 || 너무많다;
+  // 화면만(대조 + 시작 주소)은 기획서 없이 그 화면을 훑는다 — 자료 0 이어도 된다 (§7 submit)
+  const 빈것 = 파일들.length === 0 && 주소들.length === 0 && !(대조 && 주소 !== '');
+  const 서버없음 = 대조 && 서버 === null;
+  const 못보낸다 = 빈것 || 거절.size > 0 || 너무많다 || 서버없음;
 
   function 사유(err: unknown): string {
     if (err instanceof ApiError && err.status === 413) return t('파일이 한 파일 상한보다 큽니다');
@@ -85,7 +105,10 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
     set오류(null);
     let id: number;
     try {
-      ({ id } = await api.createAuthoringRequest(service, { kind: 'AUTHOR', figma: 주소들 }));
+      // 대조가 아니면 역방향 칸을 아예 싣지 않는다 — 서버는 대조 아닌 요청의 env·startUrl 을 거절한다
+      const 역방향 =
+        대조 && 서버 !== null ? { compare: true as const, env: 서버, ...(주소 === '' ? {} : { startUrl: 주소 }) } : {};
+      ({ id } = await api.createAuthoringRequest(service, { kind: 'AUTHOR', figma: 주소들, ...역방향 }));
     } catch (err) {
       set오류(사유(err));
       set보내는중(false);
@@ -109,6 +132,7 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
     set파일들([]);
     set칸번호((n) => n + 1);
     set피그마('');
+    set시작주소('');
     set보내는중(false);
     on넣었다();
   }
@@ -141,6 +165,43 @@ export function AuthoringNew({ service, on넣었다 }: { service: string; on넣�
           onChange={(e) => set피그마(e.target.value)}
         />
       </label>
+      <div className="authoring-field authoring-compare">
+        <label>
+          <input type="checkbox" checked={대조} onChange={(e) => set대조(e.target.checked)} />
+          {t('실제 화면과 대조')}
+        </label>
+        {대조 && envs.length === 0 ? (
+          <span className="error-text">{t('이 서비스에는 대상 서버가 없습니다. 설정 > 서비스에서 먼저 넣으세요')}</span>
+        ) : null}
+        {대조 && envs.length > 0 ? (
+          <>
+            <div className="authoring-sub">
+              <span aria-hidden="true">{t('대상 서버')}</span>
+              {/* 감싸는 label 로 이름을 주면 선택지 글자까지 이름에 섞인다 */}
+              <select aria-label={t('대상 서버')} value={서버 ?? ''} onChange={(e) => set고른서버(e.target.value)}>
+                {envs.map((it) => (
+                  <option key={it.env} value={it.env}>
+                    {it.env}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <label className="authoring-sub">
+              <span>{t('시작 주소')}</span>
+              <input
+                className="mono"
+                // url 로 두면 브라우저가 제 말풍선으로 막는다 — 거절은 서버가 하고 사유는 이 폼이 적는다
+                type="text"
+                inputMode="url"
+                value={시작주소}
+                placeholder={envs.find((it) => it.env === 서버)?.baseUrl ?? ''}
+                onChange={(e) => set시작주소(e.target.value)}
+              />
+            </label>
+            <small>{t('비우면 기획서가 말하는 화면에서 시작합니다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 역기획서를 만듭니다')}</small>
+          </>
+        ) : null}
+      </div>
       <button className="btn" type="submit" disabled={못보낸다 || 보내는중}>
         {보내는중 ? t('보내는 중') : t('보내기')}
       </button>
