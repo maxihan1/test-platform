@@ -1,4 +1,4 @@
-// Grafana 대시보드 패널 여섯이 SPEC §8.5 대로 프로비저닝됐는지 본다 — 제목 · SQL 실접속 · 회차 접기
+// Grafana 대시보드 패널이 SPEC §8.5 대로 프로비저닝됐는지 본다 — 제목 · SQL 실접속 · 회차 접기
 // CI에는 postgres가 없다. 실접속 검사는 DATABASE_URL이 있을 때만 돈다
 
 import { readFileSync } from 'node:fs';
@@ -31,7 +31,7 @@ function 읽기전용주소(원본: string): string {
 }
 
 describe('Grafana 대시보드 프로비저닝', () => {
-  it('패널이 여섯이고 제목이 SPEC §8.5 목록 그대로다', () => {
+  it('패널 제목이 SPEC §8.5 목록 그대로다', () => {
     expect(대시보드.panels.map((p) => p.title)).toEqual([
       '성공률 추이',
       '평균 소요시간',

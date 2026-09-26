@@ -140,7 +140,7 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
       const 줄 = (await 줄들()).find((r) => r['서비스'] === 'XDH 작성 현황');
       expect(줄).toBeDefined();
       expect(Number(줄!['미확정 건수'])).toBe(2);
-      expect(Number(줄!['가장 오래된 것 (일)'])).toBe(10);
+      expect(Number(줄!['카탈로그에 들어온 뒤 (일)'])).toBe(10);
     });
 
     it('내린 서비스는 나오지 않는다', async () => {
@@ -157,7 +157,7 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     it('보통 요청 — 끝난 시각 30일 안의 처음 작성만 세고 대기·작업을 갈라 분으로 낸다', async () => {
       const 보통 = await 줄('보통');
       expect(보통).toBeDefined();
-      expect(Number(보통!['끝난 요청'])).toBe(4);
+      expect(Number(보통!['성공'])).toBe(4);
       expect(Number(보통!['실패'])).toBe(1);
       expect(Number(보통!['대기 중간값 (분)'])).toBe(10);
       expect(Number(보통!['작업 중간값 (분)'])).toBe(60);
@@ -167,7 +167,7 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     it('화면과 대조한 요청은 따로 한 줄이다', async () => {
       const 대조 = await 줄('화면과 대조');
       expect(대조).toBeDefined();
-      expect(Number(대조!['끝난 요청'])).toBe(1);
+      expect(Number(대조!['성공'])).toBe(1);
       expect(Number(대조!['실패'])).toBe(0);
       expect(Number(대조!['대기 중간값 (분)'])).toBe(20);
       expect(Number(대조!['작업 중간값 (분)'])).toBe(240);
