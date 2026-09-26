@@ -36,6 +36,11 @@ export interface EvidenceItem {
   status: ItemStatus | 'NOT_RUN';
   durationMs: number | null;
   notRunReason: string | null;
+  /**
+   * 미확정 사유 — 실행을 만들 때 박제된 값(`run_item.unconfirmed`). 비면 확정 항목이다.
+   * 케이스가 나중에 확정돼도 그날의 증적은 그대로여야 한다 (도메인/리포팅 「미확정 항목은 따로 묶는다」)
+   */
+  unconfirmed: string | null;
   precondition: string[];
   params: EvidenceField[];
   expected: EvidenceField[];
@@ -87,6 +92,7 @@ interface RawItem {
   duration_ms: number | null;
   finished_at: Date | null;
   error: unknown;
+  unconfirmed: string | null;
   precondition: string[];
   params: unknown;
   expected: unknown;
@@ -220,7 +226,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
 
   const items = await pool.query<RawItem>(
     `SELECT history_id, tc_id, tc_name, platform, attempt, status, duration_ms, finished_at, error,
-            precondition, params, expected, param_schema, expected_schema
+            unconfirmed, precondition, params, expected, param_schema, expected_schema
        FROM run_item WHERE run_id = $1 ORDER BY history_id`,
     [runId],
   );
@@ -261,6 +267,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
         // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
         durationMs: 못돈사유 === null ? row.duration_ms : null,
         notRunReason: 못돈사유 ?? 판정못낸사유(row),
+        unconfirmed: row.unconfirmed,
         precondition: row.precondition,
         params: toFields(row.params, row.param_schema),
         expected: toFields(row.expected, row.expected_schema),

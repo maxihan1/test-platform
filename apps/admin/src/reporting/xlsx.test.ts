@@ -25,6 +25,7 @@ function 항목(덮을것: Partial<EvidenceItem>): EvidenceItem {
     tcName: '유효한 이메일과 비밀번호로 로그인하면 토큰이 발급된다',
     platform: 'mobile',
     attempt: 1,
+    unconfirmed: null,
     status: 'PASS',
     durationMs: 400,
     notRunReason: null,

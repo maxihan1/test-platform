@@ -268,6 +268,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   WS-작성 `XWA`(`authoring/store.test.ts`)·`XWAR`(`authoring/routes.test.ts`)·
   `XWS`(`authoring/assetStore.test.ts`)·`XWU`(`authoring/assets.test.ts`) ·
   역방향 작성 `XWV`(`authoring/reverse.test.ts`)·`XWO`(`authoring/outputs.test.ts`)(2026-09-26 — 자기 `service_id` 로만 지운다) ·
+  역방향 증적 `XDU`(`reporting/collect-unconfirmed.test.ts`, 2026-09-26 — `test_run.title LIKE 'XDU%'`·`tc_id LIKE 'XDU-%'`·`prefix = 'XDU'`) ·
   계약 반영 `XRC`(`db/reverse-columns.test.ts`, 2026-09-25 — 자기 `service_id` 로만 지운다) ·
   역방향 WS-B `XBU`(`execution/unconfirmed.test.ts`, 2026-09-26 — `test_run.title LIKE 'XBU%'`·`tc_id LIKE 'XBU-%'`·`prefix = 'XBU'`) ·
   에이전트 토큰 `xfu5`(계정)·`XFS6`(서비스)(`auth/agentToken.test.ts`, 2026-09-23 — `xfu4` 와 겹치지 않게 `'xfu5%'` 로만 지운다) ·
