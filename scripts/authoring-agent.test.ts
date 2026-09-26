@@ -67,6 +67,7 @@ describe('줄에서 집어 일한다', () => {
     expect(글).toContain('실제 화면과 대조');
     expect(글).toContain('TARGET_LOGIN_PASSWORD');
     expect(글).toContain('/w/9/자료/out');
+    expect(글).toContain('작성 요청 9');
     expect(글).not.toContain('Qa-pw-7731');
     expect(글).not.toContain('tester');
   });
