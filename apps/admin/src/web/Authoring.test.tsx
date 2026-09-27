@@ -59,12 +59,12 @@ describe('작성 줄 목록', () => {
     expect(screen.getByText(/테스터/)).toBeTruthy();
   });
 
-  it('단계가 오래 안 바뀐 줄은 도는 중이 아니라 멈춘 듯으로 보인다', async () => {
+  it('신호가 오래 끊긴 줄은 작성 중이 아니라 응답 없음으로 보인다', async () => {
     const 오래전 = new Date(Date.now() - 멈춘듯기준 - 1000).toISOString();
     줄들.push(줄({ status: 'RUNNING', stage: '관문 3', stageAt: 오래전 }));
     render(<Authoring service="PAY" />);
-    expect(await screen.findByText('멈춘 듯')).toBeTruthy();
-    expect(screen.queryByText('도는 중')).toBeNull();
+    expect(await screen.findByText('응답 없음')).toBeTruthy();
+    expect(screen.queryByText('작성 중')).toBeNull();
   });
 
   it('멈춘 줄은 중단으로 보인다', async () => {

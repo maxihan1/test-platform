@@ -48,6 +48,16 @@ export function 줄보임(행: AuthoringRow, 지금: number): 보임 {
   return 지금 - new Date(마지막).getTime() > 멈춘듯기준 ? 'stalled' : 'running';
 }
 
+/**
+ * 끝난 것은 더 안 바뀐다. 계속 물으면 탭 하나가 2초마다 서버를 두드린다.
+ * 준비 중(DRAFT)도 스스로 안 바뀐다 — 중간에 실패한 것은 버려진 채 남는다 (도메인/작성 §7 「자료」).
+ * 중단(STOPPED)도 끝이다. 멈춤을 요청만 한 것은 아직 RUNNING 이라 계속 묻는다 — 멈췄는지 알아야 한다.
+ * 상세 페이지와 시작 모달이 같이 쓴다
+ */
+export function 끝났나(status: AuthoringRow['status']): boolean {
+  return status === 'DONE' || status === 'FAILED' || status === 'DRAFT' || status === 'STOPPED';
+}
+
 /** 종류를 사람 말로. 화면은 `AUTHOR` 같은 글자를 보여 주지 않는다 */
 export function 종류라벨(kind: AuthoringRow['kind'], 언어: 언어): string {
   if (kind === 'MERGE') return t('머지', 언어);
@@ -58,13 +68,13 @@ export function 종류라벨(kind: AuthoringRow['kind'], 언어: 언어): string
 /** 보임을 사람 말로 (`runState.ts` 의 `상태라벨` 과 같은 모양) */
 export function 보임라벨(보: 보임, 언어: 언어): string {
   // 「대기」와 가른다. 대기는 기다리면 맥이 집지만, 준비 중은 자료를 다 못 올린 채 멈췄으면 영영 안 집힌다
-  if (보 === 'draft') return t('준비 중', 언어);
-  if (보 === 'queued') return t('대기', 언어);
-  if (보 === 'running') return t('도는 중', 언어);
-  // **서버가 주는 상태가 아니다.** 단계가 오래 안 바뀐 것을 화면이 판정한 것이라
-  // 단정하지 않는 말을 쓴다 — 맥이 그냥 느린 것일 수도 있다
-  if (보 === 'stalled') return t('멈춘 듯', 언어);
-  if (보 === 'done') return t('끝남', 언어);
+  if (보 === 'draft') return t('자료 올리는 중', 언어);
+  if (보 === 'queued') return t('대기 중', 언어);
+  if (보 === 'running') return t('작성 중', 언어);
+  // **서버가 주는 상태가 아니다.** 신호가 오래 끊긴 것을 화면이 판정했다 — 까닭은 모르니 끊긴 사실만 말한다
+  // (2026-09-28 「멈춘 듯」에서 바꿨다. 「듯」이 무엇을 하라는 건지 안 읽혔다)
+  if (보 === 'stalled') return t('응답 없음', 언어);
+  if (보 === 'done') return t('완료', 언어);
   // 실행 중단과 같은 말을 쓴다 — 같은 뜻을 두 낱말로 부르면 다른 것인 줄 안다
   if (보 === 'stopped') return t('중단', 언어);
   return t('실패', 언어);

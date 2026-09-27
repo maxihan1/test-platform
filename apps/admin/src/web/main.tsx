@@ -27,6 +27,7 @@ import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import { Loading } from './ui.js';
 import './styles.css';
+import './authoringStatus.css';
 
 function useHash(): string {
   const [hash, setHash] = useState(window.location.hash);
