@@ -193,6 +193,14 @@ describe('작성 진척 · 중단 · 폐기', () => {
     render(<AuthoringDetail service="PAY" id={7} role="operator" />);
     await screen.findByText('테스터');
     expect(screen.getByText('진척').nextElementSibling?.textContent).toBe('기록 없음');
+    expect(screen.queryByText('올리는 중 — 멈출 수 없습니다')).toBeNull();
+  });
+
+  it('칸이 덜 찬 진척(childRunning 뿐)이어도 죽지 않고 기록 없음이다', async () => {
+    답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: { childRunning: false } as AuthoringRow['progress'] });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    await screen.findByText('테스터');
+    expect(screen.getByText('진척').nextElementSibling?.textContent).toBe('기록 없음');
   });
 
   it('작성 중단은 한 번 더 묻고, 예를 누르면 멈춤을 보낸다', async () => {

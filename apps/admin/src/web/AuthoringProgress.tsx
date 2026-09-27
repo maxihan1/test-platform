@@ -12,7 +12,8 @@ import { message } from './ui.js';
 export function 진척줄들({ 요청 }: { 요청: AuthoringRow }) {
   const t = use말();
   const p = 요청.progress ?? null;
-  if (p === null) {
+  // 자식이 끝난 뒤에는 서버가 childRunning 만 내린 진척을 줄 수 있다 — 숫자 칸이 다 찬 것만 진척으로 그린다
+  if (p === null || ![p.elapsedSec, p.limitSec, p.caseFiles, p.tokens].every((v) => typeof v === 'number')) {
     return (
       <>
         <dt>{t('진척')}</dt>

@@ -49,7 +49,8 @@ export async function 집기되돌리기(id: number, 집는이: string): Promise
 
 /**
  * 작업 단계를 올린다. 도는 중인 행에만 붙는다 — 아니면 false 를 주고 라우트가 409 를 낸다.
- * 진척이 없으면 자식이 끝났다는 뜻이라 childRunning 을 내린다. stop 은 멈춤 요청이 있고 자식이 도는 중일 때만 참 (§7)
+ * 진척이 없으면 자식이 끝났다는 뜻이라 childRunning 만 내린다. 아직 NULL(자식 전)이면 그대로 둔다 —
+ * 반쪽 진척을 만들면 화면이 빈 칸을 그린다. stop 은 멈춤 요청이 있고 자식 전이거나 자식이 도는 중일 때 참 (§7)
  */
 export async function 단계올리기(
   id: number,
@@ -60,9 +61,10 @@ export async function 단계올리기(
   const r = await pool.query<{ stop: boolean }>(
     `UPDATE authoring_request
         SET stage = $2, stage_at = now(),
-            progress = COALESCE($3::jsonb, COALESCE(progress, '{}'::jsonb) || '{"childRunning": false}'::jsonb)
+            progress = COALESCE($3::jsonb, progress || '{"childRunning": false}'::jsonb)
       WHERE id = $1 AND status = 'RUNNING'
-      RETURNING (stop_requested_at IS NOT NULL AND progress->>'childRunning' = 'true') AS stop`,
+      RETURNING (stop_requested_at IS NOT NULL
+                 AND (progress IS NULL OR progress->>'childRunning' = 'true')) AS stop`,
     [id, 단계, 진척 === undefined ? null : JSON.stringify(진척)],
   );
   const 행 = r.rows[0];

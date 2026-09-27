@@ -8,7 +8,8 @@ import { resolve } from 'node:path';
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
 import { 역방향칸판정 } from './reverse.js';
-import { 중단칸, 중단통로 } from './stop.js';
+import { 번호 } from './params.js';
+import { 상세읽기, 중단통로 } from './stop.js';
 import { 줄세우기, 한건, 한쪽, type 요청, type 상태 } from './store.js';
 
 /**
@@ -26,17 +27,8 @@ export function 사진뿌리(): string {
   return process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts');
 }
 
-/**
- * 경로에 실린 번호는 **열 자리 숫자 글자만** 받는다.
- *
- * **문과 라우트가 같은 값을 읽어야 한다.** `1e3` 이나 퍼센트 인코딩을 느슨하게 읽으면
- * 문이 본 번호와 라우트가 쓰는 번호가 갈리고 그 틈으로 빠져나간다 (auth/scope.ts 의 `번호로` 와 같은 규칙).
- */
-export function 번호(값: unknown): number | null {
-  if (typeof 값 !== 'string' || !/^\d{1,10}$/.test(값)) return null;
-  const n = Number(값);
-  return Number.isSafeInteger(n) && n > 0 ? n : null;
-}
+// 번호 규칙의 정본은 params.ts 다. assets.ts 가 여기서 가져가므로 다시 내보낸다
+export { 번호 };
 
 /**
  * 피그마 주소를 **다시 조립해** 돌려준다. 모양이 아니면 null.
@@ -207,11 +199,11 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       const id = 번호(req.params.id);
       if (id === null) return reply.code(400).send({ error: 'BAD_ID' });
 
-      const 행 = await 한건(id);
+      const 행 = await 상세읽기(req, id);
       // 없는 번호는 404 다. 「없는 것」과 「남의 것」이 뭉개지면 안 된다 (SPEC §7).
       // 서비스 경계는 문이 이미 봤다 — 이 틀은 라우트표에서 「번호로 서비스를 찾는」 갈래다
       if (행 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
-      return { ...행, ...(await 중단칸(req, 행)), assets: await 자료목록(행.id) };
+      return { ...행, assets: await 자료목록(행.id) };
     },
   );
 

@@ -66,4 +66,10 @@ describe('작성 줄 목록', () => {
     expect(await screen.findByText('멈춘 듯')).toBeTruthy();
     expect(screen.queryByText('도는 중')).toBeNull();
   });
+
+  it('멈춘 줄은 중단으로 보인다', async () => {
+    줄들.push(줄({ status: 'STOPPED', stopReason: 'USER', finishedAt: new Date().toISOString() }));
+    render(<Authoring service="PAY" />);
+    expect(await screen.findByText('중단')).toBeTruthy();
+  });
 });

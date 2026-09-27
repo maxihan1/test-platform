@@ -11,7 +11,8 @@ import { 자료목록 } from './assetStore.js';
 import { 집기대상 } from './reverse.js';
 import { 진척검사 } from './stop.js';
 import { 사용량통로 } from './usage.js';
-import { 번호, 사진뿌리, 서비스번호 } from './routes.js';
+import { 번호 } from './params.js';
+import { 사진뿌리, 서비스번호 } from './routes.js';
 import {
   끝내기,
   단계올리기,
@@ -214,9 +215,11 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     // AGENT_LOST 는 서버만 쓴다. USER 는 사람이 실제로 멈춰 달라고 했을 때만 — 멈춘 사람을 거기서 가져온다 (§7)
     const stopReason = req.body?.stopReason;
     const 멈춤이유 = ['USER', 'TIMEOUT', 'LIMIT', 'AGENT_RESTART'].find((v) => v === stopReason);
+    // 머지는 멈추는 통로가 없다 — 멈춘 머지가 오면 에이전트가 규칙을 어긴 것이다
     const 이유맞나 =
       status === 'STOPPED'
-        ? 멈춤이유 !== undefined && (멈춤이유 !== 'USER' || 행.stopRequestedAt !== null)
+        ? 행.kind !== 'MERGE' &&
+          멈춤이유 !== undefined && (멈춤이유 !== 'USER' || 행.stopRequestedAt !== null)
         : stopReason === undefined;
     if (!이유맞나) return reply.code(400).send({ error: 'BAD_STOP' });
 

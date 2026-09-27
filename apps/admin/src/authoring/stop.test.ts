@@ -88,11 +88,8 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
     );
     서비스 = Number(r.rows[0]!.id);
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
-    await pool.query(
-      `INSERT INTO app_user (username, display_name, password_hash) VALUES ($1, '첫째 사람', 'x')
-       ON CONFLICT (username) DO NOTHING`,
-      [사람1],
-    );
+    const 사람넣기 = `INSERT INTO app_user (username, display_name, password_hash) VALUES ($1, '첫째 사람', 'x') ON CONFLICT DO NOTHING`;
+    await pool.query(사람넣기, [사람1]);
     process.env.AUTHORING_AGENT_USER = 맥;
     app = Fastify();
     app.decorateRequest('user', null);
@@ -113,10 +110,7 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
     await app.close();
   });
 
-  const 사람으로 = (이름: string, 등급: 'operator' | 'admin' = 'operator') => {
-    부르는이 = 이름;
-    역할 = 등급;
-  };
+  const 사람으로 = (이름: string, 등급: 'operator' | 'admin' = 'operator') => void ((부르는이 = 이름), (역할 = 등급));
 
   it('대기 중이면 곧장 STOPPED · USER · 누른 사람', async () => {
     사람으로(사람1);
@@ -136,6 +130,17 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
     expect((await 멈추기(id)).statusCode).toBe(200);
     const 행 = await 읽기(id);
     expect([행.status, 행.stop_requested_by, 행.stopped_by]).toEqual(['RUNNING', 사람1, null]);
+  });
+
+  it('자식 전(progress NULL)이면 요청을 받고 stage 가 stop 을 준다', async () => {
+    사람으로(사람1);
+    const id = await 넣기({ status: 'RUNNING', sql: 'stage_at = now()' });
+    const 상세 = async () => (await 부르기('GET', `/api/authoring/requests/${id}`)).json();
+    expect((await 상세()).canStop).toBe(true);
+    expect((await 멈추기(id)).json()).toEqual({ status: 'RUNNING' });
+    expect((await 상세()).canStop).toBe(false);
+    사람으로(맥);
+    expect((await 부르기('PATCH', `/api/authoring/requests/${id}/stage`, { stage: '준비' })).json()).toEqual({ ok: true, stop: true });
   });
 
   it('신호가 3분 넘게 없으면 곧장 AGENT_LOST', async () => {
@@ -252,6 +257,8 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
       사람으로(맥);
       return 부르기('PATCH', `/api/authoring/requests/${id}/stage`, { stage: '케이스를 만드는 중', ...(진척 === undefined ? {} : { progress: 진척 }) });
     };
+    expect((await 단계()).json()).toEqual({ ok: true, stop: false });
+    expect((await 읽기(id)).progress).toBeNull();
     expect((await 단계(좋은진척)).json()).toEqual({ ok: true, stop: false });
     expect((await 읽기(id)).progress).toEqual(좋은진척);
     사람으로(사람1);
@@ -287,5 +294,7 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
     ]) {
       expect((await 끝(틀림, 본문)).json()).toEqual({ error: 'BAD_STOP' });
     }
+    const 머지 = await 넣기({ status: 'RUNNING', kind: 'MERGE' });
+    expect((await 끝(머지, { status: 'STOPPED', stopReason: 'AGENT_RESTART' })).json()).toEqual({ error: 'BAD_STOP' });
   });
 });

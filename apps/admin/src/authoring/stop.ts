@@ -2,16 +2,9 @@
 // routes.ts 가 등록한다 — app.ts 는 routes.ts 하나만 안다
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { Pool } from 'pg';
 
-import { 번호 } from './routes.js';
-import { 한건, type 요청 } from './store.js';
-
-// DATABASE_URL 이 없으면 db/index.ts 가 import 시점에 던진다 (store.ts 와 같은 방식)
-async function db(): Promise<Pool> {
-  const { pool } = await import('../db/index.js');
-  return pool;
-}
+import { 번호 } from './params.js';
+import { db, 빚기, 칸들, 한건, type 요청, type 행 } from './store.js';
 
 // 신호가 이보다 오래 없으면 에이전트가 죽은 것으로 본다. 에이전트는 30초마다 신호를 보낸다
 const 묵음 = `COALESCE(stage_at, started_at) < now() - interval '3 minutes'`;
@@ -67,7 +60,8 @@ async function 내행(req: FastifyRequest, reply: FastifyReply): Promise<요청 
 
 /**
  * 멈춘다. **한 문장이 판정이다** — 읽고 나서 고치면 그 사이에 에이전트가 끝내거나 집는다.
- * 대기 중·신호 끊김은 곧장 STOPPED, 자식이 도는 중이면 요청만 적는다(처음 누른 사람을 지킨다)
+ * 대기 중·신호 끊김은 곧장 STOPPED, 자식 전(progress NULL)이거나 자식이 도는 중이면 요청만 적는다(처음 누른 사람을 지킨다).
+ * 자식 전 요청은 에이전트가 자식을 띄우기 직전에 보고 안 띄운다
  */
 async function 멈추기(id: number, 누가: string): Promise<'STOPPED' | 'RUNNING' | null> {
   const 곧장 = `(status = 'PENDING' OR ${묵음})`;
@@ -81,7 +75,7 @@ async function 멈추기(id: number, 누가: string): Promise<'STOPPED' | 'RUNNI
             stop_requested_by = COALESCE(stop_requested_by, $2)
       WHERE id = $1 AND kind <> 'MERGE' AND discarded_at IS NULL
         AND (status = 'PENDING'
-             OR (status = 'RUNNING' AND (${묵음} OR progress->>'childRunning' = 'true')))
+             OR (status = 'RUNNING' AND (${묵음} OR progress IS NULL OR progress->>'childRunning' = 'true')))
       RETURNING status`,
     [id, 누가],
   );
@@ -97,28 +91,34 @@ async function 버리기(id: number): Promise<boolean> {
   return r.rowCount === 1;
 }
 
-/** 상세에 더하는 칸. 버튼 두 개는 부른 사람 기준으로 서버가 정한다 — 화면은 이것만 보고 그린다 */
-export async function 중단칸(req: FastifyRequest, 행: 요청) {
-  const r = await (await db()).query<{
-    progress: Record<string, unknown> | null;
-    stopped_by: string | null;
-    display_name: string | null;
-    stale: boolean | null;
-  }>(
-    `SELECT a.progress, a.stopped_by, u.display_name, ${묵음} AS stale
-       FROM authoring_request a LEFT JOIN app_user u ON u.username = a.stopped_by
-      WHERE a.id = $1`,
-    [행.id],
+/**
+ * 상세 한 건을 한 번에 읽는다 — 행과 중단 칸을 따로 읽으면 그 사이에 상태가 바뀌어 버튼이 어긋난다.
+ * 버튼 두 개는 부른 사람 기준으로 서버가 정한다 — 화면은 이것만 보고 그린다
+ */
+export async function 상세읽기(req: FastifyRequest, id: number) {
+  const r = await (await db()).query<
+    행 & {
+      progress: Record<string, unknown> | null;
+      stopped_by: string | null;
+      stopped_by_name: string | null;
+      stale: boolean;
+    }
+  >(
+    `SELECT ${칸들}, progress, stopped_by,
+            (SELECT display_name FROM app_user WHERE username = stopped_by) AS stopped_by_name,
+            ${묵음} AS stale
+       FROM authoring_request WHERE id = $1`,
+    [id],
   );
-  const { progress, stopped_by, display_name, stale } = r.rows[0] ?? {
-    progress: null,
-    stopped_by: null,
-    display_name: null,
-    stale: false,
-  };
+  const row = r.rows[0];
+  if (row === undefined) return null;
+  const { progress, stopped_by, stopped_by_name: display_name, stale } = row;
+  const 행 = 빚기(row);
   const 됨 = 손댈수있나(req, 행) && 행.discardedAt === null;
-  const 도는중 = progress?.childRunning === true && 행.stopRequestedAt === null;
+  // 자식 전(NULL)도 멈출 수 있다 — 에이전트가 자식을 띄우기 직전에 요청을 본다 (§7 고침 3)
+  const 도는중 = (progress === null || progress.childRunning === true) && 행.stopRequestedAt === null;
   return {
+    ...행,
     progress,
     stoppedBy: stopped_by,
     stoppedByName: stopped_by === null || stopped_by === 'system' ? null : (display_name ?? stopped_by),
