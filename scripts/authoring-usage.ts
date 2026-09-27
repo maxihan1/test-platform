@@ -43,7 +43,7 @@ type 이벤트 = {
   usage?: 턴사용;
 };
 
-function 읽기(줄: string): 이벤트 | null {
+export function 읽기(줄: string): 이벤트 | null {
   try {
     const 값: unknown = JSON.parse(줄);
     return typeof 값 === 'object' && 값 !== null ? (값 as 이벤트) : null;

@@ -316,7 +316,20 @@ describe('켤 때 닫을 RUNNING', () => {
       { id: 4, status: 'RUNNING', claimedBy: null },
       { id: 5, status: 'RUNNING', claimedBy: 'mac' },
     ];
-    expect(닫을RUNNING(목록, 'mac')).toEqual([1, 5]);
+    expect(닫을RUNNING(목록, 'mac').map((c) => c.id)).toEqual([1, 5]);
+  });
+
+  it('작성·재실행은 STOPPED — 멈춤 요청이 있었으면 USER, 없으면 AGENT_RESTART · 머지는 FAILED 그대로', () => {
+    const 목록 = [
+      { id: 1, status: 'RUNNING', claimedBy: 'mac', kind: 'AUTHOR', stopRequestedAt: null },
+      { id: 2, status: 'RUNNING', claimedBy: 'mac', kind: 'RERUN', stopRequestedAt: '2026-09-27T00:00:00.000Z' },
+      { id: 3, status: 'RUNNING', claimedBy: 'mac', kind: 'MERGE', stopRequestedAt: null },
+    ];
+    expect(닫을RUNNING(목록, 'mac')).toEqual([
+      { id: 1, 몸: { status: 'STOPPED', stopReason: 'AGENT_RESTART' } },
+      { id: 2, 몸: { status: 'STOPPED', stopReason: 'USER' } },
+      { id: 3, 몸: { status: 'FAILED', error: '작성 에이전트가 꺼져 중단됐다 — 다시 넣어라' } },
+    ]);
   });
 });
 

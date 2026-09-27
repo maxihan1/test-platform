@@ -223,9 +223,23 @@ export function 실패까닭(stderr: string): string {
   return (차단.length > 0 ? 차단 : 줄들.slice(-2)).join(' / ');
 }
 
-/** 켤 때 닫을 것. 남이 잡은 것은 그쪽이 아직 돌고 있을 수 있다 */
-export function 닫을RUNNING(목록: { id: number; status: string; claimedBy?: string | null }[], 나: string): number[] {
-  return 목록.filter((r) => r.status === 'RUNNING' && r.claimedBy === 나).map((r) => r.id);
+/**
+ * 켤 때 닫을 것과 끝낼 몸. 남이 잡은 것은 그쪽이 아직 돌고 있을 수 있다.
+ * 작성·재실행은 다시 하면 이어질 수 있어 STOPPED, 머지는 멈추는 통로가 없어 FAILED 다 (작성 §7 「중단 · 폐기 · 진척」)
+ */
+export function 닫을RUNNING(
+  목록: { id: number; status: string; claimedBy?: string | null; kind?: string; stopRequestedAt?: string | null }[],
+  나: string,
+): { id: number; 몸: Record<string, unknown> }[] {
+  return 목록
+    .filter((r) => r.status === 'RUNNING' && r.claimedBy === 나)
+    .map((r) => ({
+      id: r.id,
+      몸:
+        r.kind === 'MERGE'
+          ? { status: 'FAILED', error: '작성 에이전트가 꺼져 중단됐다 — 다시 넣어라' }
+          : { status: 'STOPPED', stopReason: r.stopRequestedAt ? 'USER' : 'AGENT_RESTART' },
+    }));
 }
 
 /**
