@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { 돌릴수있나, 못읽는자료, 셸허용됐나, 입력만, 자료계획, 자료출처, type 자료 } from './authoring-assets.js';
+import { 역방향절 } from './authoring-reverse.js';
 import { 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 
 const 파일 = (id: number, position: number, name: string): 자료 => ({
@@ -200,6 +201,20 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
 
   it('--bare 는 없다', () => {
     expect(클로드인자('/t', 기본모델)).not.toContain('--bare');
+  });
+
+  it('역방향 절 — 훑기 30분 예산과 화면 기록 폴더(작업방 안)를 준다', () => {
+    const 글 = 역방향절({ 화면만: false, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
+    expect(글).toContain('30분');
+    expect(글).toContain('/w/author-7/assets/screens');
+  });
+
+  it('역방향 절 — 화면만은 메뉴 1단계까지, 대조는 한 칸 정의를 가리킨다', () => {
+    const 화면만 = 역방향절({ 화면만: true, 산출물폴더: '/o/out', 요청번호: 1 }).join('\n');
+    expect(화면만).toContain('메뉴 1단계');
+    expect(화면만).not.toContain('바로 이어지는 한 칸');
+    const 대조 = 역방향절({ 화면만: false, 산출물폴더: '/o/out', 요청번호: 1 }).join('\n');
+    expect(대조).toContain('「한 칸」');
   });
 
   it('stream-json 으로 돌린다 — 끊겨도 토큰을 센다 (작성 §7 「토큰 사용량」)', () => {
