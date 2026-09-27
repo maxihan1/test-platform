@@ -269,6 +269,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   `XWS`(`authoring/assetStore.test.ts`)·`XWU`(`authoring/assets.test.ts`) ·
   역방향 작성 `XWV`(`authoring/reverse.test.ts`)·`XWO`(`authoring/outputs.test.ts`)(2026-09-26 — 자기 `service_id` 로만 지운다) ·
   작성 토큰 `XWK`(`authoring/usage.test.ts`, 2026-09-27 — `authoring_request` 는 자기 `service_id` 로, 마지막에 그 `service` 행까지 지운다) ·
+  작성 중단 `XWT`(`authoring/stop.test.ts` — 계정 `xwt1` 도 지운다)·`XWTC`(`authoring/stop-columns.test.ts`)(2026-09-27 — 둘 다 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   역방향 증적 `XDU`(`reporting/collect-unconfirmed.test.ts`, 2026-09-26 — `test_run.title LIKE 'XDU%'`·`tc_id LIKE 'XDU-%'`·`prefix = 'XDU'`) ·
   역방향 견주기 `XDV`(`reporting/insights-unconfirmed.test.ts`, 2026-09-26 — `test_run.title LIKE 'XDV%'`·`prefix = 'XDV'`) ·
   대시보드 작성 현황 `XDH`·`XDHOFF`(`reporting/dashboard-authoring.test.ts`, 2026-09-26 — `authoring_request` 는 그 서비스의 `service_id` 로 ·
@@ -277,7 +278,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   역방향 WS-B `XBU`(`execution/unconfirmed.test.ts`, 2026-09-26 — `test_run.title LIKE 'XBU%'`·`tc_id LIKE 'XBU-%'`·`prefix = 'XBU'`) ·
   에이전트 토큰 `xfu5`(계정)·`XFS6`(서비스)(`auth/agentToken.test.ts`, 2026-09-23 — `xfu4` 와 겹치지 않게 `'xfu5%'` 로만 지운다) ·
   테스트 계정 `xfu7`(계정)·`XFS7`(서비스)(`settings/testAccount.test.ts`, 2026-09-26 — `'xfu7%'`·`'XFS7%'` 로 지운다).
-  **`XWA`·`XWAR`·`XWS`·`XWU`·`XRC`·`XWV`·`XWO`·`XWK` 는 `authoring_request` 를 `LIKE` 가 아니라 자기 `service_id` 로만 지운다** —
+  **`XWA`·`XWAR`·`XWS`·`XWU`·`XRC`·`XWV`·`XWO`·`XWK`·`XWT`·`XWTC` 는 `authoring_request` 를 `LIKE` 가 아니라 자기 `service_id` 로만 지운다** —
   `XWAR` 이 `XWA` 로 시작하므로 `LIKE 'XWA%'` 로 넓히면 남의 fixture 를 실행 도중에 지운다 (2026-09-22).
   **WS-D·WS-F는 `ZZ`로 시작하는 것을 쓰지 않는다.**
   **새 접두사를 쓰면 이 줄에 적는다.** 안 적으면 다음 갈래가 같은 것을 골라 남의 fixture를 실행 도중에 지운다 (2026-09-19)

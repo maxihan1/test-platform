@@ -408,3 +408,9 @@
 - 막힌 것: 없음. 시간초과를 `error` 로 가르려 했는데 `error` 는 대시보드에 안 여는 칸이라 `tokens_partial` 칸을 더했다
 - 다음 세션이 알아야 할 것: 다른 실행 도구(Codex CLI 등)를 붙이면 `authoring-usage.ts` 만 갈아 끼운다. 검사용 DB `platform_wsk`
 
+
+## 2026-09-27 — 작성 진척 · 중단 · 폐기 (PR #87)
+- 완료: 상태 STOPPED(이유 다섯·누가) · stop·discard 통로(요청한 사람+admin, 신호 3분 없으면 AGENT_LOST) · stage 진척·stop 응답 · finish STOPPED · 에이전트 30초 틱·멈출 신호·끝낼상태 · 재시작 닫기 STOPPED(머지 FAILED) · 화면 진척·Modal·누가·왜 · Grafana 중단 세기 · store.ts 를 agentStore.ts 로·돌린다를 authoring-spawn.ts 로 뗌
+- 미완: 이어하기(보관·재개) — 다음 PR. 지금의 STOPPED 는 작업방을 안 남긴다
+- 막힌 것: 없음. 네 갈래를 하위 작업자에게 동시에 맡겼다(서버·에이전트·화면·Grafana) — 계약을 파일 하나로 붙여 보내 모양이 어긋나지 않았다
+- 다음 세션이 알아야 할 것: 에이전트 쪽은 가짜 손으로만 검사했다 — 서버와의 실제 왕복(stage 의 stop · finish STOPPED)은 실제 서버에서 한 번 돌려 본다. 검사용 DB platform_wst
