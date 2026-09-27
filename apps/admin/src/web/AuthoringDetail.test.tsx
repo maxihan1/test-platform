@@ -189,7 +189,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
   it('도는 중이면 Status 카드가 진척 · 숫자 칸 · 방금 한 일을 보인다', async () => {
     답 = 줄({ status: 'RUNNING', stage: '케이스를 만드는 중', prUrl: null, finishedAt: null, progress: 도는진척, canStop: true });
     render(<AuthoringDetail service="PAY" id={7} role="operator" />);
-    expect(await screen.findByText('3 / 5 단계 · 60%')).toBeTruthy();
+    expect(await screen.findByText('3단계 진행 중 · 40%')).toBeTruthy();
     expect(screen.getByText('4장')).toBeTruthy();
     expect(screen.getByText('3개')).toBeTruthy();
     expect(screen.getByText('1.2M')).toBeTruthy();
@@ -272,6 +272,19 @@ describe('작성 진척 · 중단 · 폐기', () => {
     expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 });
   });
 
+  it('재실행한 요청이 실패하면 원본에서 다시 작성하라고 한다', async () => {
+    답 = 줄({ kind: 'RERUN', sourceId: 3, status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    expect(await screen.findByText('재실행한 요청은 다시 작성할 수 없습니다. 원본 요청 #3에서 다시 작성하세요.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
+  });
+
+  it('보기 등급에게는 다시 작성 버튼 대신 누가 하는지 알린다', async () => {
+    답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함' });
+    render(<AuthoringDetail service="PAY" id={7} role="viewer" />);
+    expect(await screen.findByText('다시 작성은 실행 권한이 있는 사람이 합니다.')).toBeTruthy();
+  });
+
   it('화면과 대조한 요청은 다시 작성 버튼 대신 새 요청으로 넣으라고 한다', async () => {
     답 = 줄({ status: 'STOPPED', prUrl: null, compare: true, stopReason: 'TIMEOUT', stoppedBy: 'system', canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} role="operator" />);
@@ -283,7 +296,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} role="operator" />);
     fireEvent.click(await screen.findByRole('button', { name: '폐기' }));
-    expect(screen.getByRole('dialog').textContent).toContain('목록에서 사라집니다. 통계와 토큰 기록은 남습니다');
+    expect(screen.getByRole('dialog').textContent).toContain('목록에서 사라집니다. 통계와 토큰 기록은 남습니다.');
     fireEvent.click(screen.getAllByRole('button', { name: '폐기' }).at(-1)!);
     await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring'));
     expect(폐기).toHaveBeenCalledWith('PAY', 7);

@@ -29,7 +29,7 @@ function 줄(덮을것: Partial<AuthoringRow>): AuthoringRow {
       caseFiles: 3,
       tokens: 1_234_567,
       screens: 9,
-      lastAction: '화면 캡처',
+      lastAction: '· 화면 캡처',
       lastActionAt: '2026-09-28T13:31:40Z',
     },
     ...덮을것,
@@ -44,7 +44,7 @@ describe('작성 Status 카드', () => {
     expect(screen.getByText('작성 중')).toBeTruthy();
     const 단계 = screen.getByRole('list', { name: '단계' });
     expect(within(단계).getByText('케이스 작성').closest('li')?.getAttribute('aria-current')).toBe('step');
-    expect(screen.getByText('3 / 5 단계 · 60%')).toBeTruthy();
+    expect(screen.getByText('3단계 진행 중 · 40%')).toBeTruthy();
     expect(screen.getByText(/12분 지남 \/ 한도 60분/)).toBeTruthy();
     expect(screen.getByText(/늦어도/)).toBeTruthy();
     expect(screen.getByText('3개')).toBeTruthy();
@@ -57,13 +57,13 @@ describe('작성 Status 카드', () => {
   it('진척 막대는 비율을 aria 값으로 가진다', () => {
     render(<AuthoringStatusCard 요청={줄({})} 지금={지금} />);
     const 막대 = screen.getByRole('progressbar', { name: '진척' });
-    expect(막대.getAttribute('aria-valuenow')).toBe('60');
+    expect(막대.getAttribute('aria-valuenow')).toBe('40');
   });
 
   it('대기 중이면 에이전트를 기다린다고 말하고 시간 줄이 없다', () => {
     render(<AuthoringStatusCard 요청={줄({ status: 'PENDING', stage: null, startedAt: null, progress: null })} 지금={지금} />);
     expect(screen.getByText('대기 중')).toBeTruthy();
-    expect(screen.getByText('에이전트가 집어 가기를 기다리는 중')).toBeTruthy();
+    expect(screen.getByText('에이전트 순서를 기다리는 중')).toBeTruthy();
     expect(screen.queryByRole('progressbar', { name: '시간' })).toBeNull();
   });
 

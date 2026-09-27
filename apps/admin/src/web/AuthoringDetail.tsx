@@ -123,7 +123,7 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
                 <dt>{t('요청한 시각')}</dt>
                 <dd>{when(data.createdAt, 언어)}</dd>
                 <dt>{t('작성 에이전트')}</dt>
-                <dd>{data.claimedBy ?? t('기록 없음')}</dd>
+                <dd>{data.claimedBy ?? t('아직 배정 전')}</dd>
                 {/* 역방향 (도메인/작성 §3.6 「★ 역방향」). 계정은 이 응답에 없다 — 집기 응답에만 있다 */}
                 {data.compare === true ? (
                   <>

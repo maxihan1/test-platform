@@ -42,7 +42,7 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
   const 언어 = use언어();
   const 보 = 줄보임(것, 지금);
   return (
-    <div className="row">
+    <div className="row authoring-row">
       <div className="gutter" style={{ background: 띠색(보) }} />
       <div className="tcid">#{것.id}</div>
       <div className="title">

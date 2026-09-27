@@ -45,6 +45,8 @@ export function 단계자리(행: AuthoringRow): 자리 | null {
   if (행.kind === 'MERGE') return null;
   if (행.status === 'DONE') return { 끝난: 단계이름들.length, 지금: null, 멈춤: null };
   if (행.status === 'DRAFT' || 행.status === 'PENDING') return { 끝난: 0, 지금: null, 멈춤: null };
+  // 집히기 전에 줄에서 뺀 것 — 준비 칸에서 멈춘 것처럼 그리면 시작한 적 있는 것으로 읽힌다
+  if (행.status === 'STOPPED' && 행.startedAt === null) return { 끝난: 0, 지금: null, 멈춤: 'stopped' };
   // 진척이 있으면 자식을 띄운 뒤다 — 모르는 글이어도 케이스 작성까지는 왔다
   const 칸 = (행.stage === null ? undefined : 단계글[행.stage]) ?? (행.progress ? 2 : 0);
   const 멈춤 = 행.status === 'FAILED' ? 'failed' : 행.status === 'STOPPED' ? 'stopped' : null;
@@ -52,14 +54,16 @@ export function 단계자리(행: AuthoringRow): 자리 | null {
 }
 
 /**
- * 「N / 5 단계」와 막대 비율. 도는 칸은 번호에 세고 막대에도 채운다 — 3단계 중이면 3/5 · 60%.
- * 멈춘 것은 번호는 멈춘 칸이지만 막대는 끝낸 칸까지만 — 못 끝낸 칸을 채우면 끝낸 것처럼 읽힌다
+ * 번호는 지금(또는 멈춘) 단계, 비율은 **끝낸 단계 수**다 — 3단계가 도는 중이면 「3단계 진행 중 · 40%」.
+ * 앞 판은 도는 칸까지 막대에 채워 60% 로 적었는데, 멈춘 것은 40% 라 같은 번호에 %가 둘이었다 (2026-09-28 화면 검사)
  */
 export function 진척(자리: 자리): { 번호: number; 비율: number } {
-  const 칸수 = 단계이름들.length;
-  if (자리.지금 === null) return { 번호: 자리.끝난, 비율: 자리.끝난 / 칸수 };
-  const 번호 = 자리.지금 + 1;
-  return { 번호, 비율: (자리.멈춤 === null ? 번호 : 자리.끝난) / 칸수 };
+  return { 번호: 자리.지금 === null ? 자리.끝난 : 자리.지금 + 1, 비율: 자리.끝난 / 단계이름들.length };
+}
+
+/** 마지막 활동 글. 에이전트가 흘릴줄 앞에 붙이는 표지(`· ` 도구 · `» ` 말)를 뗀다 */
+export function 활동글(글: string): string {
+  return 글.replace(/^[·»]\s*/u, '');
 }
 
 /** 숫자 칸 넷이 다 숫자인 진척만 쓴다 — 자식이 끝난 뒤 서버가 childRunning 만 내린 반쪽이 올 수 있다 */
@@ -109,11 +113,13 @@ export function 시간판(행: AuthoringRow, 지금: number): 시간 {
  * 도는 것은 지금 하는 일, 끝난 것은 결과 한 문장이다 (2026-09-28 사용자 「워딩이 이상하다」)
  */
 export function 목록글(행: AuthoringRow, 언어: 언어): string {
-  if (행.status === 'DRAFT') return t('자료를 올리는 중', 언어);
-  if (행.status === 'PENDING') return t('에이전트가 집어 가기를 기다리는 중', 언어);
+  // 올리는 도중에도, 올리다 멈춰 버려진 뒤에도 DRAFT 다 — 둘 다에 맞는 말을 쓴다
+  if (행.status === 'DRAFT') return t('자료 올리기가 끝나지 않았습니다', 언어);
+  if (행.status === 'PENDING') return t('에이전트 순서를 기다리는 중', 언어);
   if (행.status === 'RUNNING') return 행.stage === null ? t('준비', 언어) : 단계글라벨(행.stage, 언어);
   if (행.status === 'FAILED') return 행.error?.split('\n')[0] ?? t('실패', 언어);
   if (행.status === 'STOPPED') {
+    if (행.startedAt === null) return t('시작 전에 멈췄습니다', 언어);
     const 칸 = 단계자리(행)?.지금 ?? 0;
     return t('{단계} 단계에서 멈췄습니다', 언어, { 단계: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
   }

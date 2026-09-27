@@ -58,7 +58,7 @@ describe('테스트 작성 시작 모달', () => {
     expect(screen.getByText('#5872 요청이 접수됐습니다.')).toBeTruthy();
     expect(screen.getByText(/창을 닫아도 작성은 계속됩니다/)).toBeTruthy();
     expect(await screen.findByText('대기 중')).toBeTruthy();
-    expect(screen.getByText('에이전트가 집어 가기를 기다리는 중')).toBeTruthy();
+    expect(screen.getByText('에이전트 순서를 기다리는 중')).toBeTruthy();
   });
 
   it('닫기를 누르면 닫는다', () => {

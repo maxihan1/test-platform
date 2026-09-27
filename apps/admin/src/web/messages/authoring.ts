@@ -52,8 +52,8 @@ export const 작성말: Record<string, string> = {
   '테스트 작성을 시작했습니다': 'Test writing started',
   '상세 페이지로': 'Open details',
   '#{번호} 요청이 접수됐습니다.': 'Request #{번호} was accepted.',
-  '창을 닫아도 작성은 계속됩니다. 테스트 작성 목록에서 #{번호}를 누르면 언제든 다시 볼 수 있습니다.':
-    'Writing continues after you close this. Open #{번호} in the test writing list to see it again any time.',
+  '창을 닫아도 작성은 계속됩니다. 테스트 작성 목록의 #{번호} 줄을 누르면 언제든 다시 볼 수 있습니다.':
+    'Writing continues after you close this. Click the #{번호} row in the test writing list to see it again any time.',
 
   // Status 카드 (DESIGN.md 「작성 상태」)
   '반영 중': 'Merging',
@@ -64,8 +64,8 @@ export const 작성말: Record<string, string> = {
   '자료 받기': 'Fetch inputs',
   '케이스 작성': 'Write cases',
   '올리기·PR': 'Upload · PR',
-  '에이전트가 집어 가기를 기다리는 중': 'Waiting for an agent to pick it up',
-  '자료를 올리는 중': 'Uploading files',
+  '에이전트 순서를 기다리는 중': 'Waiting for an agent',
+  '자료 올리기가 끝나지 않았습니다': 'File upload did not finish',
   '{번호} / {전체} 단계 · {퍼센트}%': 'Step {번호} / {전체} · {퍼센트}%',
   시간: 'Time',
   '{시간} 걸림 (시작 {시작})': 'took {시간} (started {시작})',
@@ -76,7 +76,7 @@ export const 작성말: Record<string, string> = {
   '만든 케이스 파일': 'Case files made',
   '훑은 화면': 'Screens explored',
   '토큰(지금까지)': 'Tokens (so far)',
-  '방금 한 일': 'Just did',
+  '마지막 활동': 'Last activity',
   // 에이전트가 올리는 단계 글. 정본은 scripts/authoring-run.ts · authoring-upload.ts 의 손.단계('…')
   '작업방을 만드는 중': 'Preparing the workspace',
   '자료를 받는 중': 'Fetching inputs',
@@ -89,6 +89,7 @@ export const 작성말: Record<string, string> = {
   '진행 상황': 'Progress',
   '{단계} 단계에서 멈췄습니다': 'Stopped at {단계}',
   '테스트 반영 완료': 'Tests merged',
+  '시작 전에 멈췄습니다': 'Stopped before it started',
   '케이스 파일 {수}개를 만들었습니다': 'Made {수} case files',
   '테스트 코드를 PR 로 올렸습니다': 'Opened the test code as a PR',
 
@@ -98,7 +99,7 @@ export const 작성말: Record<string, string> = {
     'The agent stopped responding. Press Stop writing, then write again',
   '지금은 없습니다. 작성이 끝나면 여기에 검토할 것이 생깁니다. 이 페이지를 닫아도 됩니다.':
     'Nothing for now. Things to review appear here when writing ends. You can close this page.',
-  '아직 시작하지 않아 바로 줄에서 뺍니다.': 'It has not started, so it is taken off the queue right away.',
+  '아직 시작 전이라 누르면 바로 취소됩니다.': 'It has not started, so it is cancelled right away.',
   '중단하면 30초 안에 멈추고, 지금까지 만든 것은 버려집니다.': 'Stopping takes up to 30 seconds and throws away what was made so far.',
   '테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.': 'The tests were merged. The new cases are in the case list.',
   '올라간 PR 이 없습니다. 아래 만든 것을 확인하세요.': 'No PR was opened. Check the outputs below.',
@@ -115,9 +116,15 @@ export const 작성말: Record<string, string> = {
   '반영하는 중': 'Merging…',
   '반영은 운영 권한이 있는 사람이 합니다.': 'Someone with admin rights merges it.',
   '같은 자료로 다시 작성': 'Write again with the same inputs',
+  '아직 배정 전': 'Not assigned yet',
+  '{번호}단계 진행 중 · {퍼센트}%': 'Step {번호} in progress · {퍼센트}%',
+  '{번호}단계에서 멈춤 · {퍼센트}%': 'Stopped at step {번호} · {퍼센트}%',
+  '재실행한 요청은 다시 작성할 수 없습니다. 원본 요청 #{번호}에서 다시 작성하세요.':
+    'A rerun cannot be written again. Write again from the original request #{번호}.',
+  '다시 작성은 실행 권한이 있는 사람이 합니다.': 'Someone with run rights can write it again.',
   '화면과 대조한 요청은 다시 작성할 수 없습니다. 새 요청으로 다시 넣으세요.':
     'A screen-compare request cannot be written again. Submit a new request.',
-  '까닭을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만듭니다.':
+  '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만듭니다.':
     'Fix the cause first. This makes a new request with the same inputs.',
   '넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다.':
     'This makes a new request with the same inputs and runs it from the start. This request stays as a record.',
@@ -128,7 +135,7 @@ export const 작성말: Record<string, string> = {
   '{수}장': '{수}',
   '{수}개': '{수}',
   토큰: 'Tokens',
-  '{초}초 전': '{초}s ago',
+  '{시간} 전': '{시간} ago',
   시스템: 'System',
   '사용자가 멈춤': 'Stopped by user',
   '시간초과': 'Timed out',
@@ -142,9 +149,9 @@ export const 작성말: Record<string, string> = {
   '올리는 중 — 멈출 수 없습니다': 'Uploading — cannot be stopped',
   '작성을 멈출까요?': 'Stop writing?',
   '이 요청을 폐기할까요?': 'Discard this request?',
-  '{분}분 동안 만든 것이 버려집니다': 'What was made in {분} min will be thrown away',
-  '아직 시작하지 않았습니다. 줄에서 뺍니다': 'It has not started yet. It will be taken off the queue',
-  '목록에서 사라집니다. 통계와 토큰 기록은 남습니다': 'It disappears from the list. Stats and token records stay',
+  '{분}분 동안 만든 것이 버려집니다.': 'What was made in {분} min will be thrown away.',
+  '아직 시작 전이라 바로 취소됩니다.': 'It has not started yet, so it is cancelled right away.',
+  '목록에서 사라집니다. 통계와 토큰 기록은 남습니다.': 'It disappears from the list. Stats and token records stay.',
 
   // 역방향 — 기획서와 실제 화면을 대조한다 (도메인/작성 §3.6 「★ 역방향」)
   '실제 화면과 대조': 'Compare with the live screen',

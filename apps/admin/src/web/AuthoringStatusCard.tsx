@@ -1,7 +1,7 @@
 // 작성 요청 한 건의 Status 카드 — 단계 막대 · 진척 · 시간 막대 · 숫자 칸 · 방금 한 일. 상세 페이지와 시작 모달이 같이 쓴다 (DESIGN.md 「작성 상태」)
 
 import type { AuthoringRow } from './api.js';
-import { 단계글라벨, 단계라벨, 단계이름들, 단계자리, 시간판, 진척, 진척이찼나, 짧은수 } from './authoringStatus.js';
+import { 단계글라벨, 단계라벨, 단계이름들, 단계자리, 시간판, 진척, 진척이찼나, 짧은수, 활동글 } from './authoringStatus.js';
 import { 보임라벨, 줄보임, 중단이유라벨, type 보임 } from './authoringView.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 시간글자 } from './RunProgressModal.js';
@@ -86,17 +86,18 @@ export function AuthoringStatusCard({ 요청, 지금, service }: { 요청: Autho
           <span className="status-label">{t('진척')}</span>
           {요청.status === 'PENDING' || 요청.status === 'DRAFT' ? (
             <span className="status-sub">
-              {요청.status === 'PENDING' ? t('에이전트가 집어 가기를 기다리는 중') : t('자료를 올리는 중')}
+              {요청.status === 'PENDING' ? t('에이전트 순서를 기다리는 중') : t('자료 올리기가 끝나지 않았습니다')}
             </span>
           ) : (
             <div className="status-v">
               <막대 이름={t('진척')} 비율={진척(자리).비율} />
               <span className="status-sub">
-                {t('{번호} / {전체} 단계 · {퍼센트}%', {
-                  번호: 진척(자리).번호,
-                  전체: 단계이름들.length,
-                  퍼센트: Math.round(진척(자리).비율 * 100),
-                })}
+                {자리.지금 === null
+                  ? t('{번호} / {전체} 단계 · {퍼센트}%', { 번호: 진척(자리).번호, 전체: 단계이름들.length, 퍼센트: Math.round(진척(자리).비율 * 100) })
+                  : t(자리.멈춤 === null ? '{번호}단계 진행 중 · {퍼센트}%' : '{번호}단계에서 멈춤 · {퍼센트}%', {
+                      번호: 진척(자리).번호,
+                      퍼센트: Math.round(진척(자리).비율 * 100),
+                    })}
               </span>
             </div>
           )}
@@ -162,9 +163,9 @@ export function AuthoringStatusCard({ 요청, 지금, service }: { 요청: Autho
       {도는중 ? (
         초전 !== null && p !== null && p.childRunning ? (
           <div className="status-now">
-            <span className="status-label">{t('방금 한 일')}</span>
-            <span className="one-line">{p.lastAction}</span>
-            <span className="ago">{t('{초}초 전', { 초: 초전 })}</span>
+            <span className="status-label">{t('마지막 활동')}</span>
+            <span className="one-line">{활동글(p.lastAction ?? '')}</span>
+            <span className="ago">{t('{시간} 전', { 시간: 시간글자(초전 * 1000, 언어) })}</span>
           </div>
         ) : 요청.stage === null ? null : (
           <div className="status-now">

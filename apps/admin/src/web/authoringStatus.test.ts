@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AuthoringProgress, AuthoringRow } from './api.js';
-import { 다시작성되나, 단계자리, 목록글, 시간판, 진척, 짧은수 } from './authoringStatus.js';
+import { 다시작성되나, 단계자리, 목록글, 시간판, 진척, 짧은수, 활동글 } from './authoringStatus.js';
 
 const 기준 = Date.parse('2026-09-28T13:20:00Z');
 
@@ -53,14 +53,18 @@ describe('단계자리', () => {
     expect(단계자리(줄({ status: 'FAILED', stage: '자료를 받는 중' }))).toEqual({ 끝난: 1, 지금: 1, 멈춤: 'failed' });
   });
 
+  it('집히기 전에 멈춘 것은 어느 칸에서도 멈추지 않았다', () => {
+    expect(단계자리(줄({ status: 'STOPPED', startedAt: null, stage: null }))).toEqual({ 끝난: 0, 지금: null, 멈춤: 'stopped' });
+  });
+
   it('머지 요청은 단계 막대가 없다', () => {
     expect(단계자리(줄({ kind: 'MERGE', stage: 'CI 기다리는 중' }))).toBeNull();
   });
 });
 
 describe('진척', () => {
-  it('도는 중이면 지금 단계까지 센다', () => {
-    expect(진척({ 끝난: 2, 지금: 2, 멈춤: null })).toEqual({ 번호: 3, 비율: 0.6 });
+  it('도는 중이면 번호는 지금 단계, 비율은 끝낸 단계다', () => {
+    expect(진척({ 끝난: 2, 지금: 2, 멈춤: null })).toEqual({ 번호: 3, 비율: 0.4 });
   });
 
   it('완료는 5/5, 대기는 0/5', () => {
@@ -115,10 +119,18 @@ describe('짧은수', () => {
   });
 });
 
+describe('활동글', () => {
+  it('도구 · 말 표지를 뗀다', () => {
+    expect(활동글('· Bash')).toBe('Bash');
+    expect(활동글('» 둘 다 고쳤다')).toBe('둘 다 고쳤다');
+    expect(활동글('화면 캡처')).toBe('화면 캡처');
+  });
+});
+
 describe('목록글', () => {
   it('상태마다 사람이 읽는 한 문장을 낸다', () => {
-    expect(목록글(줄({ status: 'PENDING', startedAt: null }), 'ko')).toBe('에이전트가 집어 가기를 기다리는 중');
-    expect(목록글(줄({ status: 'DRAFT', startedAt: null }), 'ko')).toBe('자료를 올리는 중');
+    expect(목록글(줄({ status: 'PENDING', startedAt: null }), 'ko')).toBe('에이전트 순서를 기다리는 중');
+    expect(목록글(줄({ status: 'DRAFT', startedAt: null }), 'ko')).toBe('자료 올리기가 끝나지 않았습니다');
     expect(목록글(줄({ stage: '케이스를 만드는 중' }), 'ko')).toBe('케이스를 만드는 중');
     expect(목록글(줄({ stage: null }), 'ko')).toBe('준비');
   });
@@ -128,6 +140,7 @@ describe('목록글', () => {
     expect(목록글(줄({ status: 'DONE', stage: '끝' }), 'ko')).toBe('테스트 코드를 PR 로 올렸습니다');
     expect(목록글(줄({ status: 'DONE', kind: 'MERGE', stage: '끝' }), 'ko')).toBe('테스트 반영 완료');
     expect(목록글(줄({ status: 'STOPPED', stage: '케이스를 만드는 중' }), 'ko')).toBe('케이스 작성 단계에서 멈췄습니다');
+    expect(목록글(줄({ status: 'STOPPED', startedAt: null, stage: null }), 'ko')).toBe('시작 전에 멈췄습니다');
     expect(목록글(줄({ status: 'FAILED', error: '자료를 못 받았다\n자세히' }), 'ko')).toBe('자료를 못 받았다');
   });
 });

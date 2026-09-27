@@ -50,7 +50,7 @@ export function AuthoringStartModal({ service, id, onClose }: { service: string;
         </span>
         <div>
           <b>{t('#{번호} 요청이 접수됐습니다.', { 번호: id })}</b>
-          <small>{t('창을 닫아도 작성은 계속됩니다. 테스트 작성 목록에서 #{번호}를 누르면 언제든 다시 볼 수 있습니다.', { 번호: id })}</small>
+          <small>{t('창을 닫아도 작성은 계속됩니다. 테스트 작성 목록의 #{번호} 줄을 누르면 언제든 다시 볼 수 있습니다.', { 번호: id })}</small>
         </div>
       </div>
       {것.error !== null ? <Failed error={것.error} /> : 것.data === null ? <Loading /> : <AuthoringStatusCard 요청={것.data} 지금={Date.now()} service={service} />}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
-import { 다시작성되나 } from './authoringStatus.js';
+import { 다시작성되나, 시간판 } from './authoringStatus.js';
 import { 줄보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -127,7 +127,7 @@ export function AuthoringTodo({ service, 요청, role, 차이수, reload }: Prop
             <div className="btns">{중단버튼}</div>
             <span className="hint">
               {요청.status === 'PENDING'
-                ? t('아직 시작하지 않아 바로 줄에서 뺍니다.')
+                ? t('아직 시작 전이라 누르면 바로 취소됩니다.')
                 : t('중단하면 30초 안에 멈추고, 지금까지 만든 것은 버려집니다.')}
             </span>
           </>
@@ -177,20 +177,22 @@ export function AuthoringTodo({ service, 요청, role, 차이수, reload }: Prop
       );
   } else {
     // FAILED · STOPPED — 둘 중 하나를 고른다
-    const 다시 = 다시작성되나(요청) && 할수있나(role, '작성요청');
+    const 권한 = 할수있나(role, '작성요청');
+    const 다시 = 다시작성되나(요청) && 권한;
+    // 버튼이 없으면 왜 없는지 말한다 — 제목과 설명만 남고 버튼이 사라지면 누를 길을 찾아 헤맨다 (2026-09-28 검토)
+    const 설명 =
+      요청.compare === true
+        ? t('화면과 대조한 요청은 다시 작성할 수 없습니다. 새 요청으로 다시 넣으세요.')
+        : 요청.kind === 'RERUN'
+          ? t('재실행한 요청은 다시 작성할 수 없습니다. 원본 요청 #{번호}에서 다시 작성하세요.', { 번호: 요청.sourceId ?? '—' })
+          : !권한
+            ? t('다시 작성은 실행 권한이 있는 사람이 합니다.')
+            : 요청.status === 'FAILED'
+              ? t('원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만듭니다.')
+              : t('넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다.');
     본문 = (
       <ol>
-        <일
-          표="A"
-          제목={t('같은 자료로 다시 작성')}
-          설명={
-            요청.compare === true
-              ? t('화면과 대조한 요청은 다시 작성할 수 없습니다. 새 요청으로 다시 넣으세요.')
-              : 요청.status === 'FAILED'
-                ? t('까닭을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만듭니다.')
-                : t('넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다.')
-          }
-        >
+        <일 표="A" 제목={t('같은 자료로 다시 작성')} 설명={설명}>
           {다시 ? (
             <button
               className="btn"
@@ -203,7 +205,7 @@ export function AuthoringTodo({ service, 요청, role, 차이수, reload }: Prop
           ) : null}
         </일>
         {폐기버튼 === null ? null : (
-          <일 표="B" 제목={t('폐기')} 설명={t('목록에서 사라집니다. 통계와 토큰 기록은 남습니다')}>
+          <일 표="B" 제목={t('폐기')} 설명={t('목록에서 사라집니다. 통계와 토큰 기록은 남습니다.')}>
             <div className="btns">{폐기버튼}</div>
           </일>
         )}
@@ -211,7 +213,9 @@ export function AuthoringTodo({ service, 요청, role, 차이수, reload }: Prop
     );
   }
 
-  const 분 = Math.floor((요청.progress?.elapsedSec ?? 0) / 60);
+  // 카드와 같은 계산이어야 한다 — 마지막 신호의 elapsedSec 를 그대로 쓰면 카드는 19분, 이 창은 11분이라고 했다 (2026-09-28 화면 검사)
+  const 시간 = 시간판(요청, Date.now());
+  const 분 = Math.floor((시간.한도?.지난ms ?? 시간.걸린ms ?? 0) / 60_000);
 
   return (
     <section className="authoring-todo" aria-label={t('해야 할 일')}>
@@ -238,10 +242,10 @@ export function AuthoringTodo({ service, 요청, role, 차이수, reload }: Prop
         >
           <p>
             {열린 === 'discard'
-              ? t('목록에서 사라집니다. 통계와 토큰 기록은 남습니다')
+              ? t('목록에서 사라집니다. 통계와 토큰 기록은 남습니다.')
               : 요청.status === 'PENDING'
-                ? t('아직 시작하지 않았습니다. 줄에서 뺍니다')
-                : t('{분}분 동안 만든 것이 버려집니다', { 분 })}
+                ? t('아직 시작 전이라 바로 취소됩니다.')
+                : t('{분}분 동안 만든 것이 버려집니다.', { 분 })}
             <br />
             {t('되돌릴 수 없습니다.')}
           </p>

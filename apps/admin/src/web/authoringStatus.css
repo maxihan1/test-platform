@@ -105,8 +105,14 @@
 
 .status-stop { background: var(--sheet-2); border: 1px solid var(--rule); padding: 10px 12px; font-size: 13px; }
 .status-reason { background: var(--fail-bg); color: var(--fail); padding: 10px 12px; font-size: 13px; border-radius: 2px; white-space: pre-wrap; }
-/* 카드 밑 안내 한 줄(응답 없음 · 중단하는 중 · 올리는 중 · 폐기됨) */
-.status-notes { display: grid; gap: 2px; color: var(--ink-faint); font-size: 12px; }
+
+/* 목록 한 줄을 통째로 누른다 — 제목 링크를 줄 위로 늘린다. 버튼을 따로 두지 않아도 키보드는 링크 하나로 닿는다 */
+.row.authoring-row { position: relative; }
+.row.authoring-row:hover { background: var(--sheet-2); }
+.row.authoring-row .title a { color: var(--ink); text-decoration: none; font-weight: 600; }
+.row.authoring-row .title a::after { content: ''; position: absolute; inset: 0; }
+.row.authoring-row .title a:focus-visible { outline: none; }
+.row.authoring-row:focus-within { outline: 2px solid var(--chrome); outline-offset: -2px; }
 
 /* 상세 페이지는 카드들이 제각각 떠 있다. 공용 .screen 의 흰 판을 걷는다 — 판 위에 카드를 또 띄우면 테두리가 겹친다 */
 .screen.authoring-page { background: none; border: 0; box-shadow: none; overflow: visible; }
