@@ -76,20 +76,22 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
 
     const 요청 = async (
       종류: 'AUTHOR' | 'RERUN',
-      상태: 'DONE' | 'FAILED',
+      상태: 'DONE' | 'FAILED' | 'STOPPED',
       대조: boolean,
       만든때: string,
       집은때: string,
       끝난때: string,
       원본: number | null = null,
+      이유: 'USER' | 'TIMEOUT' | null = null,
     ) => {
       const r = await pool.query<{ id: string }>(
         `INSERT INTO authoring_request (service_id, kind, source_id, spec_text, requested_by, requested_by_name, status,
-                                        compare, env, created_at, started_at, finished_at)
+                                        compare, env, created_at, started_at, finished_at, stop_reason, stopped_by)
          VALUES ($1, $2, $3, '기획서 비밀 본문', 'tester', '시험자', $4, $5, CASE WHEN $5 THEN 'qa' END,
-                 now() - $6::interval, now() - $7::interval, now() - $8::interval)
+                 now() - $6::interval, now() - $7::interval, now() - $8::interval,
+                 $9::text, CASE WHEN $9::text = 'USER' THEN 'tester' WHEN $9::text IS NOT NULL THEN 'system' END)
          RETURNING id`,
-        [서비스id, 종류, 원본, 상태, 대조, 만든때, 집은때, 끝난때],
+        [서비스id, 종류, 원본, 상태, 대조, 만든때, 집은때, 끝난때, 이유],
       );
       return Number(r.rows[0]!.id);
     };
@@ -103,6 +105,8 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     const 재실행 = await 요청('RERUN', 'DONE', false, '1 day', '1 day - 5 minutes', '1 day - 600 minutes', 첫);
     const 옛것 = await 요청('AUTHOR', 'DONE', false, '41 days', '41 days - 5 minutes', '40 days');
     const 재실행실패 = await 요청('RERUN', 'FAILED', false, '1 day', '1 day - 5 minutes', '1 day - 30 minutes', 첫);
+    const 시간초과 = await 요청('AUTHOR', 'STOPPED', false, '1 day', '1 day - 5 minutes', '1 day - 65 minutes', null, 'TIMEOUT');
+    const 멈춤 = await 요청('AUTHOR', 'STOPPED', false, '1 day', '1 day - 5 minutes', '1 day - 15 minutes', null, 'USER');
 
     const 사용량 = [
       [첫, 100, 50, 1000, 200, false, 1.0],
@@ -112,6 +116,8 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
       [옛것, 9000, 9000, 9000, 9000, false, 99],
       [대조, 1000, 1000, 0, 0, false, 5],
       [재실행실패, 7, 3, 0, 0, false, 0.05],
+      [시간초과, 60, 20, 0, 0, true, null],
+      [멈춤, 4, 1, 0, 0, false, 0.01],
     ] as const;
     for (const [id, 입력, 출력, 캐시읽기, 캐시쓰기, 끊김, 비용] of 사용량) {
       await pool.query(
@@ -133,7 +139,7 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     it.each([
       'SELECT tc_id, is_active, unconfirmed_since FROM test_case LIMIT 1',
       'SELECT id, prefix, name, is_active FROM service LIMIT 1',
-      'SELECT id, service_id, kind, status, compare, created_at, started_at, finished_at FROM authoring_request LIMIT 1',
+      'SELECT id, service_id, kind, status, compare, created_at, started_at, finished_at, stop_reason FROM authoring_request LIMIT 1',
     ])('연 칸은 읽힌다 — %s', async (sql) => {
       await expect(읽기전용.query(sql)).resolves.toBeDefined();
     });
@@ -178,6 +184,7 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
       expect(보통).toBeDefined();
       expect(Number(보통!['성공'])).toBe(4);
       expect(Number(보통!['실패'])).toBe(1);
+      expect(Number(보통!['중단'])).toBe(2);
       expect(Number(보통!['대기 중간값 (분)'])).toBe(10);
       expect(Number(보통!['작업 중간값 (분)'])).toBe(60);
       expect(Number(보통!['작업 최대 (분)'])).toBe(90);
@@ -225,12 +232,18 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
       const 전부 = (await 읽기전용.query<Record<string, string>>(패널SQL('작성 토큰'))).rows.filter(
         (r) => r['서비스'] === 'XDH 작성 현황',
       );
-      expect(전부.reduce((합, r) => 합 + Number(r['토큰 합계']), 0)).toBe(4750 + 450 + 15 + 2000 + 10);
+      expect(전부.reduce((합, r) => 합 + Number(r['토큰 합계']), 0)).toBe(4750 + 450 + 15 + 2000 + 10 + 80 + 5);
     });
 
     it('대조는 방식이 따로고, 끊기지 않은 실패는 그 밖 실패다', async () => {
       expect(Number((await 줄('화면과 대조', '성공'))!['토큰 합계'])).toBe(2000);
       expect(Number((await 줄('재실행', '그 밖 실패'))!['토큰 합계'])).toBe(10);
+    });
+
+    it('중단은 끊김보다 먼저 이유별로 가른다 — 끊긴 시간초과도 끊김 줄에 들지 않는다', async () => {
+      expect(Number((await 줄('보통', '중단 · 시간초과'))!['토큰 합계'])).toBe(80);
+      expect(Number((await 줄('보통', '중단 · 사용자'))!['토큰 합계'])).toBe(5);
+      expect(Number((await 줄('보통', '끊김'))!['요청 수'])).toBe(1);
     });
   });
 });

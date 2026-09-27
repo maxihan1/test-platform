@@ -1,14 +1,18 @@
 // 작성 에이전트 껍데기들이 같이 쓰는 손 — 서버 부르기 · 보고 · 셸 없이 치기 · 간격 두고 다시 하기
 // 한 건 처리(authoring-run)와 머지(authoring-merge)가 둘 다 쓴다. 판단은 여기 없다.
 
-import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import type { 진척 } from './authoring-progress.js';
 import { 거절인가, 기다렸다다시인가, 보고간격 } from './authoring-rules.js';
 import { 진짜main인자, 진짜main풀기, 한줄 } from './authoring-chain.js';
+
+// 돌린다 는 authoring-spawn 으로 옮겼다 — 이 파일이 300줄을 넘었다. 부르는 쪽은 그대로 여기서 받는다
+export { type 돌린결과, 도는자식, 돌린다 } from './authoring-spawn.js';
 
 /**
  * 응답을 하나도 못 받은 연결 오류면 한 번 더 부른다. 서버에 거는 fetch 는 전부 이것을 지난다.
@@ -63,16 +67,25 @@ export async function 부른다(
   return { status: 답.status, 몸 };
 }
 
-/** 한 건에 대해 서버에 보고하는 손. 머지 처리도 같은 손을 쓴다 */
-export type 보고손 = { 단계(글: string): Promise<unknown>; 끝내기(몸: Record<string, unknown>): Promise<unknown> };
+/**
+ * 한 건에 대해 서버에 보고하는 손. 머지 처리도 같은 손을 쓴다.
+ * `단계` 는 `부른다` 의 답을 그대로 낸다 — 자식이 도는 동안 응답 몸의 `stop` 을 본다 (작성 §7 「중단 · 폐기 · 진척」)
+ */
+export type 보고손 = {
+  단계(글: string, 진척?: 진척): Promise<unknown>;
+  끝내기(몸: Record<string, unknown>): Promise<unknown>;
+};
 
 export const 쉬기 = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function 보고손만들기(주소기지: string, 토큰: string, 서비스: string, id: number): 보고손 {
   const 뒤 = `?service=${encodeURIComponent(서비스)}`;
   return {
-    단계: (글) =>
-      부른다(주소기지, 토큰, `/authoring/requests/${id}/stage${뒤}`, { method: 'PATCH', body: { stage: 글 } }),
+    단계: (글, 진척) =>
+      부른다(주소기지, 토큰, `/authoring/requests/${id}/stage${뒤}`, {
+        method: 'PATCH',
+        body: { stage: 글, ...(진척 === undefined ? {} : { progress: 진척 }) },
+      }),
     // 보고 한 번을 잃으면 요청이 영원히 RUNNING 이다. 거절(401·403)만 빼고 몇 번 다시 보낸다.
     // `부른다` 가 끊긴 연결에 한 번씩 더 걸므로 최악이면 fetch 12번·약 8분이다 — 그동안 다음 건을 못 집는다
     끝내기: async (몸) => {
@@ -136,93 +149,11 @@ export function 친다(명령: string, 인자: string[], cwd: string, input?: st
   };
 }
 
-/** 지금 도는 자식들. 거절로 에이전트가 나갈 때 남기지 않는다 — 남으면 구독 한도를 계속 쓴다 */
-export const 도는자식 = new Set<ChildProcess>();
-
 /**
  * 서버가 거절해 에이전트가 멈추는 중인가. 줄 하나가 거절을 받으면 채운다 —
  * 다른 줄의 머지는 CI 를 기다리는 중에, 작성은 자리를 받은 뒤에 이것을 보고 손을 뗀다 (2026-09-24 코드 검토)
  */
 export const 멈춤: { 까닭: string | null } = { 까닭: null };
-
-export interface 돌린결과 {
-  /** 못 띄웠으면 null */
-  코드: number | null;
-  낸것: string;
-  오류: string;
-  시간초과: boolean;
-}
-
-/**
- * 비동기로 돌린다. 서비스 루프들이 동시에 돌려면 긴 일이 이벤트 루프를 붙잡으면 안 된다.
- * `env` 는 **통째로** 준다(부모 것을 안 얹는다) — 자식 claude 에 에이전트 토큰이 새지 않게.
- * `흘림` 이면 표준출력·오류를 모으면서 터미널에도 흘린다 — 사람이 도는 것을 봐야 한다
- */
-export function 돌린다(
-  명령: string,
-  인자: string[],
-  선택: 칠때 & { cwd: string; input?: string; 제한?: number; 흘림?: boolean; 흘림줄?: (줄: string) => string | null },
-): Promise<돌린결과> {
-  return new Promise((resolve) => {
-    let 낸것 = '';
-    let 오류 = '';
-    let 시간초과 = false;
-    // 흘림줄이 있으면 표준출력을 줄로 잘라 고른 것만 흘린다. 조각이 줄 가운데서 끊기므로 남은 반쪽을 들고 있다
-    let 반쪽 = '';
-    const 자식 = spawn(명령, 인자, { cwd: 선택.cwd, env: 선택.env, uid: 선택.uid, gid: 선택.gid });
-    도는자식.add(자식);
-    const 시계 = setTimeout(() => {
-      시간초과 = true;
-      자식.kill('SIGKILL');
-    }, 선택.제한 ?? 120_000);
-    자식.stdout.on('data', (조각: Buffer) => {
-      const 글 = 조각.toString('utf8');
-      낸것 += 글;
-      if (선택.흘림줄 !== undefined) {
-        const 줄들 = (반쪽 + 글).split('\n');
-        반쪽 = 줄들.pop() ?? '';
-        for (const 줄 of 줄들) {
-          const 흘릴것 = 선택.흘림줄(줄);
-          if (흘릴것 !== null) process.stdout.write(`${흘릴것}\n`);
-        }
-      } else if (선택.흘림) process.stdout.write(조각);
-    });
-    자식.stderr.on('data', (조각: Buffer) => {
-      오류 += 조각.toString('utf8');
-      if (선택.흘림) process.stderr.write(조각);
-    });
-    let 끝남 = false;
-    const 끝 = (코드: number | null) => {
-      if (끝남) return;
-      끝남 = true;
-      clearTimeout(시계);
-      도는자식.delete(자식);
-      resolve({ 코드, 낸것, 오류, 시간초과 });
-    };
-    자식.on('error', (err) => {
-      오류 += err.message;
-      끝(null);
-    });
-    자식.on('close', (코드) => 끝(코드));
-    // 자손(Chromium·백그라운드 셸)이 출력 통로를 쥐고 남으면 close 가 안 온다 — 끝난 뒤 조금 기다렸다 통로를 닫고 끝낸다.
-    // 리눅스 sh(dash)는 `sh -c 'x'` 에서 x 를 따로 띄워 CI 에서 드러났다 (2026-09-24). 남은 자손은 거두기가 죽인다
-    자식.stdout.on('end', () => {
-      // 줄바꿈 없이 끝난 마지막 줄 — 사용량은 낸것에 이미 있고 로그만 빠진다
-      const 흘릴것 = 반쪽 === '' ? null : (선택.흘림줄?.(반쪽) ?? null);
-      if (흘릴것 !== null) process.stdout.write(`${흘릴것}\n`);
-    });
-    자식.on('exit', (코드) => {
-      setTimeout(() => {
-        자식.stdout.destroy();
-        자식.stderr.destroy();
-        끝(코드);
-      }, 500).unref();
-    });
-    // 입력을 다 읽기 전에 죽는 자식이면 EPIPE 가 난다 — 그 자식의 종료 코드가 이미 말해 준다
-    자식.stdin.on('error', () => undefined);
-    자식.stdin.end(선택.input ?? '');
-  });
-}
 
 /** 동시에 도는 작업 자리. 번호(0..상한-1)가 곧 자식 uid 의 자리다 (`authoring-copy` 의 `계정들`) */
 export function 자리들(상한: number) {
@@ -306,7 +237,7 @@ export async function 다시하며<T>(설명: string, 한번: () => { 값: T } |
 export async function 닫으며(손: 보고손, 일: (손: 보고손) => Promise<void>): Promise<void> {
   let 끝냄 = false;
   const 감싼손: 보고손 = {
-    단계: (글) => 손.단계(글),
+    단계: (글, 진척) => 손.단계(글, 진척),
     끝내기: (몸) => {
       끝냄 = true;
       return 손.끝내기(몸);

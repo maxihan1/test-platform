@@ -65,7 +65,8 @@ async function 내준비행(req: FastifyRequest, reply: FastifyReply): Promise<�
     await reply.code(403).send({ error: 'NOT_REQUESTER' });
     return null;
   }
-  if (행.status !== 'DRAFT') {
+  // 폐기한 초안은 더 못 채운다 — 치운 것이 제출로 줄에 되살아난다
+  if (행.status !== 'DRAFT' || 행.discardedAt !== null) {
     await reply.code(409).send({ error: 'NOT_DRAFT', detail: 행.status });
     return null;
   }

@@ -9,8 +9,10 @@ import { join } from 'node:path';
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 자료목록 } from './assetStore.js';
 import { 집기대상 } from './reverse.js';
+import { 진척검사 } from './stop.js';
 import { 사용량통로 } from './usage.js';
-import { 번호, 사진뿌리, 서비스번호 } from './routes.js';
+import { 번호 } from './params.js';
+import { 사진뿌리, 서비스번호 } from './routes.js';
 import {
   끝내기,
   단계올리기,
@@ -142,7 +144,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     },
   );
 
-  app.patch<{ Querystring: { service?: string }; Params: { id: string }; Body: { stage?: unknown } }>(
+  app.patch<{ Querystring: { service?: string }; Params: { id: string }; Body: { stage?: unknown; progress?: unknown } }>(
     '/authoring/requests/:id/stage',
     async (req, reply) => {
       const 행 = await 집은쪽인가(req, reply);
@@ -152,11 +154,15 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
       if (typeof 단계 !== 'string' || 단계 === '') {
         return reply.code(400).send({ error: 'STAGE_REQUIRED' });
       }
+      const 받은진척 = req.body?.progress;
+      const 진척 = 받은진척 === undefined ? undefined : 진척검사(받은진척);
+      if (진척 === null) return reply.code(400).send({ error: 'BAD_PROGRESS' });
       // 상태 전이 표 밖이면 409 다. 끝난 행의 단계를 올리면 화면이 끝난 것을 도는 중으로 그린다
-      if (!(await 단계올리기(행.id, 단계))) {
+      const 올림 = await 단계올리기(행.id, 단계, 진척);
+      if (올림 === false) {
         return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
       }
-      return { ok: true };
+      return { ok: true, stop: 올림.stop };
     },
   );
 
@@ -203,9 +209,19 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     if (행 === null) return reply;
 
     const status = req.body?.status;
-    if (status !== 'DONE' && status !== 'FAILED') {
+    if (status !== 'DONE' && status !== 'FAILED' && status !== 'STOPPED') {
       return reply.code(400).send({ error: 'BAD_STATUS', detail: String(status) });
     }
+    // AGENT_LOST 는 서버만 쓴다. USER 는 사람이 실제로 멈춰 달라고 했을 때만 — 멈춘 사람을 거기서 가져온다 (§7)
+    const stopReason = req.body?.stopReason;
+    const 멈춤이유 = ['USER', 'TIMEOUT', 'LIMIT', 'AGENT_RESTART'].find((v) => v === stopReason);
+    // 머지는 멈추는 통로가 없다 — 멈춘 머지가 오면 에이전트가 규칙을 어긴 것이다
+    const 이유맞나 =
+      status === 'STOPPED'
+        ? 행.kind !== 'MERGE' &&
+          멈춤이유 !== undefined && (멈춤이유 !== 'USER' || 행.stopRequestedAt !== null)
+        : stopReason === undefined;
+    if (!이유맞나) return reply.code(400).send({ error: 'BAD_STOP' });
 
     // ★ 맥이 보낸 주소를 그대로 믿지 않는다. 이 값이 나중에 admin 승인을 거쳐 실제로 병합된다 —
     // 다른 저장소의 PR 이거나 명령줄에 위험한 글자가 섞여 있으면 여기서 끊는다
@@ -220,6 +236,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     // 끝난 행에 또 오면 409 다. 안 막으면 판정과 PR 주소가 덮어써진다
     const 바뀌었나 = await 끝내기(행.id, {
       status,
+      stopReason: 멈춤이유,
       result: req.body?.result,
       testSource: req.body?.testSource,
       prUrl: typeof prUrl === 'string' ? prUrl : undefined,

@@ -1,0 +1,157 @@
+// 작성 진척 누적·파일 세기·끝낼 상태 판정 검사 (도메인/작성 §7 「중단 · 폐기 · 진척」)
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+import { afterEach, describe, expect, it } from 'vitest';
+
+import {
+  끝낼상태,
+  멈추라했나,
+  진척누적기,
+  케이스파일들,
+  새케이스수,
+  화면수,
+} from './authoring-progress.js';
+
+const 턴 = (id: string, input: number, output: number, content: unknown[] = [{ type: 'tool_use', name: 'Read' }]) =>
+  JSON.stringify({
+    type: 'assistant',
+    message: {
+      id,
+      content,
+      usage: {
+        input_tokens: input,
+        output_tokens: output,
+        cache_read_input_tokens: 999,
+      },
+    },
+  });
+
+describe('진척누적기 — 흐름 줄을 먹여 토큰·마지막 동작을 모은다', () => {
+  it('메시지 id 마다 마지막 사본의 입력+출력만 센다 — 캐시는 안 센다', () => {
+    const 누적 = 진척누적기(3600);
+    누적.먹기(턴('a', 10, 1));
+    누적.먹기(턴('a', 10, 50));
+    누적.먹기(턴('b', 3, 7));
+    누적.먹기('JSON 아님');
+    expect(누적.스냅샷({ elapsedSec: 5, caseFiles: 2 })).toMatchObject({
+      childRunning: true,
+      elapsedSec: 5,
+      limitSec: 3600,
+      caseFiles: 2,
+      tokens: 70,
+      lastAction: '· Read',
+    });
+  });
+
+  it('먹기는 흘릴 줄을 돌려준다 — 로그와 진척이 같은 줄을 본다', () => {
+    const 누적 = 진척누적기(60);
+    expect(누적.먹기(턴('a', 1, 1, [{ type: 'text', text: '케이스를 쓴다\n둘째 줄' }]))).toBe('» 케이스를 쓴다');
+    expect(누적.먹기('{"type":"result"}')).toBeNull();
+  });
+
+  it('동작이 없으면 lastAction·lastActionAt·screens 칸을 안 싣는다', () => {
+    const 몸 = 진척누적기(60).스냅샷({ elapsedSec: 0, caseFiles: 0 });
+    expect(Object.keys(몸).sort()).toEqual(['caseFiles', 'childRunning', 'elapsedSec', 'limitSec', 'tokens']);
+  });
+
+  it('lastAction 은 160자로 자르고 lastActionAt 은 ISO 다 · screens 는 주면 싣는다', () => {
+    const 누적 = 진척누적기(60);
+    누적.먹기(턴('a', 1, 1, [{ type: 'tool_use', name: 'x'.repeat(300) }]));
+    const 몸 = 누적.스냅샷({ elapsedSec: 1, caseFiles: 0, screens: 3 });
+    expect(몸.lastAction).toHaveLength(160);
+    expect(new Date(몸.lastActionAt ?? '').toISOString()).toBe(몸.lastActionAt);
+    expect(몸.screens).toBe(3);
+  });
+
+  it('lastAction 에 테스트 계정 비밀번호·피그마 토큰 원문을 싣지 않는다', () => {
+    const 누적 = 진척누적기(60, { loginPassword: 'pw-secret-9', figmaToken: 'figd_abcdefgh123' });
+    누적.먹기(턴('a', 1, 1, [{ type: 'text', text: '로그인 pw-secret-9 로 한다' }]));
+    expect(누적.스냅샷({ elapsedSec: 0, caseFiles: 0 }).lastAction).not.toContain('pw-secret-9');
+    누적.먹기(턴('b', 1, 1, [{ type: 'text', text: '토큰 figd_abcdefgh123 으로 읽는다' }]));
+    const 동작 = 누적.스냅샷({ elapsedSec: 0, caseFiles: 0 }).lastAction ?? '';
+    expect(동작).not.toContain('figd_abcdefgh123');
+    expect(동작).toContain('***');
+  });
+
+  it('이모지로 가득해도 서버 상한(160, UTF-16) 안이고 짝 없는 서로게이트가 없다', () => {
+    const 누적 = 진척누적기(60);
+    누적.먹기(턴('a', 1, 1, [{ type: 'tool_use', name: `x${'😀'.repeat(200)}` }]));
+    const 동작 = 누적.스냅샷({ elapsedSec: 0, caseFiles: 0 }).lastAction ?? '';
+    expect(동작.length).toBeLessThanOrEqual(160);
+    expect(동작.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '')).not.toMatch(/[\uD800-\uDFFF]/);
+  });
+});
+
+describe('파일 세기', () => {
+  let 자리 = '';
+  afterEach(() => rmSync(자리, { recursive: true, force: true }));
+
+  it('자식 시작 뒤 새로 생긴 .spec.ts 만 센다 — 하위 폴더도, 없는 폴더는 0', () => {
+    자리 = mkdtempSync(join(tmpdir(), 'progress-'));
+    const 폴더 = join(자리, 'tests', 'mkt');
+    expect(새케이스수(폴더, 케이스파일들(폴더))).toBe(0);
+    mkdirSync(join(폴더, 'a'), { recursive: true });
+    writeFileSync(join(폴더, 'OLD-1.spec.ts'), '');
+    const 전 = 케이스파일들(폴더);
+    writeFileSync(join(폴더, 'OLD-1.spec.ts'), '고침');
+    writeFileSync(join(폴더, 'a', 'NEW-1.spec.ts'), '');
+    writeFileSync(join(폴더, 'NEW-2.spec.ts'), '');
+    writeFileSync(join(폴더, 'helper.ts'), '');
+    expect(새케이스수(폴더, 전)).toBe(2);
+  });
+
+  it('화면수 — screens/*.md 만 센다 · 폴더가 없으면 0', () => {
+    자리 = mkdtempSync(join(tmpdir(), 'progress-'));
+    expect(화면수(join(자리, 'screens'))).toBe(0);
+    mkdirSync(join(자리, 'screens'));
+    writeFileSync(join(자리, 'screens', '1.md'), '');
+    writeFileSync(join(자리, 'screens', '2.md'), '');
+    writeFileSync(join(자리, 'screens', 'x.png'), '');
+    expect(화면수(join(자리, 'screens'))).toBe(2);
+  });
+});
+
+describe('끝낼상태 — 자식이 끝난 모양으로 끝낼 몸을 고른다 (null 이면 올린다)', () => {
+  const r = (코드: number | null, 시간초과 = false, 멈춤으로죽음 = false) => ({
+    코드,
+    시간초과,
+    멈춤으로죽음,
+  });
+
+  it('멈춤으로 죽었으면 STOPPED USER — 시간초과보다 앞선다', () => {
+    expect(끝낼상태(r(null, true, true), false)).toEqual({
+      status: 'STOPPED',
+      stopReason: 'USER',
+    });
+  });
+  it('시간초과면 STOPPED TIMEOUT', () => {
+    expect(끝낼상태(r(null, true), false)).toEqual({
+      status: 'STOPPED',
+      stopReason: 'TIMEOUT',
+    });
+  });
+  it('코드≠0 이고 한도면 STOPPED LIMIT · 그 밖은 FAILED', () => {
+    expect(끝낼상태(r(1), true)).toEqual({
+      status: 'STOPPED',
+      stopReason: 'LIMIT',
+    });
+    expect(끝낼상태(r(1), false)).toEqual({
+      status: 'FAILED',
+      error: '케이스를 만들다 멈췄다. 에이전트 기록을 봐라.',
+    });
+  });
+  it('코드 0 이면 null — 한도 글이 섞여도 올린다', () => {
+    expect(끝낼상태(r(0), true)).toBeNull();
+  });
+});
+
+describe('멈추라했나 — stage 응답 몸의 stop', () => {
+  it('stop: true 일 때만 참', () => {
+    expect(멈추라했나({ status: 200, 몸: { ok: true, stop: true } })).toBe(true);
+    expect(멈추라했나({ status: 200, 몸: { ok: true, stop: false } })).toBe(false);
+    expect(멈추라했나({ status: 200, 몸: null })).toBe(false);
+    expect(멈추라했나(undefined)).toBe(false);
+  });
+});

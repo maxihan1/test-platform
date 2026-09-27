@@ -43,7 +43,7 @@ type 이벤트 = {
   usage?: 턴사용;
 };
 
-function 읽기(줄: string): 이벤트 | null {
+export function 읽기(줄: string): 이벤트 | null {
   try {
     const 값: unknown = JSON.parse(줄);
     return typeof 값 === 'object' && 값 !== null ? (값 as 이벤트) : null;
@@ -137,13 +137,26 @@ export function 흐름풀기(낸것: string): 풀린흐름 {
   };
 }
 
+/**
+ * 글자 단위로 자른다 — `slice` 는 이모지(서로게이트 짝)를 반으로 갈라 깨진 글자를 남긴다.
+ * 상한은 UTF-16 길이다. 서버가 `length` 로 가두므로 글자 수로 세면 이모지 글이 넘친다
+ */
+export function 글자자르기(글: string, 상한: number): string {
+  let 남길 = '';
+  for (const 자 of 글) {
+    if (남길.length + 자.length > 상한) break;
+    남길 += 자;
+  }
+  return 남길;
+}
+
 /** 에이전트 로그에 흘릴 한 줄. 도구 결과·사고는 흘리지 않는다 — 훑은 화면 글과 계정 원문이 섞일 수 있다 */
 export function 흘릴줄(줄: string): string | null {
   const e = 읽기(줄);
   if (e === null || e.type !== 'assistant') return null;
   for (const c of e.message?.content ?? []) {
     if (c.type === 'tool_use' && c.name) return `· ${c.name}`;
-    if (c.type === 'text' && c.text) return `» ${c.text.split('\n')[0]!.slice(0, 120)}`;
+    if (c.type === 'text' && c.text) return `» ${글자자르기(c.text.split('\n')[0]!, 120)}`;
   }
   return null;
 }

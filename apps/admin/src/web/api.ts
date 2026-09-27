@@ -282,7 +282,7 @@ export interface AuthoringRow {
   kind: 'AUTHOR' | 'RERUN' | 'MERGE';
   sourceId: number | null;
   /** DRAFT 는 자료를 올리는 중 — 아직 줄에 안 섰다 (도메인/작성 §7 「자료」) */
-  status: 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
+  status: 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'STOPPED';
   stage: string | null;
   /** 그 한 줄이 마지막으로 바뀐 시각. **「도는 중」과 「거기서 맥이 죽었다」를 가른다** */
   stageAt: string | null;
@@ -305,6 +305,35 @@ export interface AuthoringRow {
   startUrl?: string | null;
   /** 끝내기가 실은 결과. 모양을 서버가 검사하지 않는다 — 읽는 쪽이 방어한다 (`authoringView.ts` 의 `차이목록`) */
   result?: unknown;
+  /**
+   * 중단 · 폐기 칸 (도메인/작성 §7 「중단 · 폐기 · 진척」). 목록에는 이유·요청 시각·폐기 시각만 온다.
+   * 선택으로 둔 이유는 역방향 칸과 같다 — 옛 가짜 행을 안 고치려고. 서버는 늘 싣는다
+   */
+  stopReason?: string | null;
+  stopRequestedAt?: string | null;
+  discardedAt?: string | null;
+  /** 이 아래는 상세에만 온다 */
+  progress?: AuthoringProgress | null;
+  /** 사람 아이디 또는 'system' */
+  stoppedBy?: string | null;
+  stoppedByName?: string | null;
+  /** 누를 수 있는지 서버가 잰다 — 화면은 요청한 사람을 모른다 */
+  canStop?: boolean;
+  canDiscard?: boolean;
+}
+
+/** 에이전트가 30초마다 올리는 진척. 모양은 서버가 가둔다 (도메인/작성 §7) */
+export interface AuthoringProgress {
+  childRunning: boolean;
+  elapsedSec: number;
+  limitSec: number;
+  caseFiles: number;
+  /** 입력+출력. 진행 중이라 하한값이다 */
+  tokens: number;
+  /** 역방향만 */
+  screens?: number;
+  lastAction?: string;
+  lastActionAt?: string;
 }
 
 /** 작성 요청의 자료 한 건. 피그마 자료의 `name` 은 정규화한 주소다 (도메인/작성 §7 「자료」) */
@@ -587,6 +616,15 @@ export const api = {
     call<{ ok: true }>(`/authoring/requests/${id}/submit?service=${encodeURIComponent(service)}`, {
       method: 'POST',
     }),
+
+  /** 본문이 없다 — submit 과 같은 까닭으로 json() 을 안 쓴다 */
+  stopAuthoring: (service: string, id: number) =>
+    call<{ status: 'STOPPED' | 'RUNNING' }>(`/authoring/requests/${id}/stop?service=${encodeURIComponent(service)}`, {
+      method: 'POST',
+    }),
+
+  discardAuthoring: (service: string, id: number) =>
+    call<{ ok: true }>(`/authoring/requests/${id}/discard?service=${encodeURIComponent(service)}`, { method: 'POST' }),
 
   authoringAssetUrl: (id: number, assetId: number) => `/api/authoring/requests/${id}/assets/${assetId}`,
 

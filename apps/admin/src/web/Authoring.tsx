@@ -30,6 +30,8 @@ function 표머리() {
 function 띠색(보: 보임): string {
   if (보 === 'done') return 'var(--pass)';
   if (보 === 'failed' || 보 === 'stalled') return 'var(--fail)';
+  // 중단은 판정이 아니다 — 사람이나 한도가 멈춘 것이라 판정 색을 쓰지 않는다 (DESIGN.md 「작성 상태」)
+  if (보 === 'stopped') return 'var(--rule)';
   return 'var(--na)';
 }
 

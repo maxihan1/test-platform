@@ -30,7 +30,9 @@ import {
 import { 머지처리 } from './authoring-merge.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
-import { 사용량보고, 흐름풀기, 흘릴줄 } from './authoring-usage.js';
+import { 사용량보고, 흐름풀기 } from './authoring-usage.js';
+import { 끝낼상태, 진척누적기, 진척재기 } from './authoring-progress.js';
+import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 폴더자리 } from './authoring-token.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
@@ -56,13 +58,10 @@ export async function 멈춘것닫기(주소기지: string, 토큰: string, 서�
       console.error(`[기다림] ${서비스} 의 RUNNING 목록을 못 읽었다 (${답.status}). 이번엔 건너뛴다.`);
       continue;
     }
-    const 목록 = (답.몸 as { items?: { id: number; status: string; claimedBy?: string | null }[] }).items ?? [];
-    for (const id of 닫을RUNNING(목록, 나)) {
-      await 보고손만들기(주소기지, 토큰, 서비스, id).끝내기({
-        status: 'FAILED',
-        error: '작성 에이전트가 꺼져 중단됐다 — 다시 넣어라',
-      });
-      console.log(`[정리] ${서비스} 의 ${id}번은 에이전트가 꺼져 멈춘 채였다. 실패로 닫았다.`);
+    const 목록 = (답.몸 as { items?: Parameters<typeof 닫을RUNNING>[0] }).items ?? [];
+    for (const { id, 몸 } of 닫을RUNNING(목록, 나)) {
+      await 보고손만들기(주소기지, 토큰, 서비스, id).끝내기(몸);
+      console.log(`[정리] ${서비스} 의 ${id}번은 에이전트가 꺼져 멈춘 채였다. ${String(몸.status)} 로 닫았다.`);
     }
   }
 }
@@ -78,8 +77,9 @@ export async function 한건처리(
   서버들: { env: string; baseUrl: string }[],
   폴더: 폴더자리 | undefined,
 ): Promise<void> {
-  const 손 = 보고손만들기(주소기지, 토큰, 서비스, 것.id);
-  await 닫으며(손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판, 자리번호, 서버들, 폴더, 감싼손));
+  const 박동 = 박동손(보고손만들기(주소기지, 토큰, 서비스, 것.id));
+  // 거절로 끝내기 없이 나가도 신호를 멈춘다 — 그 밖의 길은 끝내기가 멈춘다
+  await 닫으며(박동.손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판, 자리번호, 서버들, 폴더, 감싼손, 박동)).finally(박동.멈추기);
 }
 
 async function 한건(
@@ -92,6 +92,7 @@ async function 한건(
   서버들: { env: string; baseUrl: string }[],
   폴더: 폴더자리 | undefined,
   손: 보고손,
+  박동: 박동,
 ): Promise<void> {
   if (것.kind === 'MERGE') {
     // **머지 행에는 PR 주소가 안 실려 온다** — 서버가 줄을 세울 때 그 칸을 안 채운다
@@ -162,7 +163,7 @@ async function 한건(
   }
   const 자리 = 만든것.자리;
   try {
-    await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 자리, 메인.sha, 출처, 자료들, 본문, 서버들, 폴더.폴더, 손);
+    await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 자리, 메인.sha, 출처, 자료들, 본문, 서버들, 폴더.폴더, 손, 박동);
   } finally {
     // 받은 기획서와 자식이 만든 것을 남기지 않는다. 성공이든 실패든 지운다 —
     // 단 자식을 못 거뒀으면 남긴다. 살아 있는 자식이 지우는 도중에 폴더를 링크로 바꿔 트리 밖을 지우게 할 수 있다
@@ -185,6 +186,7 @@ async function 사본에서(
   서버들: { env: string; baseUrl: string }[],
   케이스자리: string,
   손: 보고손,
+  박동: 박동,
 ): Promise<void> {
   const 계획 = 자료계획(자료들, 자리.자료);
   const 못읽음 = 못읽는자료(계획);
@@ -223,6 +225,10 @@ async function 사본에서(
   }
 
   await 손.단계('케이스를 만드는 중');
+  if (박동.멈추라했다()) {
+    await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' });
+    return;
+  }
   // 환경은 **통째로** 준다. 피그마 토큰은 자식에게만, GitHub 자격증명과 에이전트 토큰은 뺀다.
   // 임시 자리는 작업마다 따로 — 공용 /tmp 면 같은 자리 uid 를 받은 다음 건이 앞 건이 심은 캐시를 돌린다.
   // 집을 바꾸는 것은 자리 uid 로 돌 때만 — 맥에서 바꾸면 Playwright 가 ~/Library/Caches 의 브라우저를 못 찾는다 (2026-09-24 코드 검토)
@@ -236,25 +242,32 @@ async function 사본에서(
   const 화면만 = 것.target !== undefined && Boolean(것.target.startUrl) && 자료들.length === 0;
   const 역방향 = 것.target === undefined ? undefined : { 화면만, 산출물폴더: join(자리.자료, 'out') };
   const 인자 = 클로드인자(자리.자료, 판.모델);
-  const 돌린것 = await 돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
-    cwd: 자리.트리,
-    input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향),
-    env: 환경,
-    uid: 자식?.uid,
-    gid: 자식?.gid,
-    제한: 60 * 60_000,
-    흘림: true,
-    // 이벤트 줄을 그대로 흘리면 훑은 화면 글·계정 원문이 로그에 남는다 — 도구 이름과 글 첫 줄만
-    흘림줄: (줄) => {
-      const 글 = 흘릴줄(줄);
-      return 글 === null ? null : `[작성] ${것.id}번 ${글}`;
-    },
-  });
+  const 제한 = 60 * 60_000;
+  // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다 (작성 §7 「중단 · 폐기 · 진척」)
+  const 누적 = 진척누적기(제한 / 1000, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });
+  const 재기 = 진척재기(누적, join(자리.트리, 케이스자리), 역방향 === undefined ? undefined : join(자리.자료, 'screens'));
+  const 돌린것 = await 박동.자식동안(재기, (신호) =>
+    돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
+      cwd: 자리.트리,
+      input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향),
+      env: 환경,
+      uid: 자식?.uid,
+      gid: 자식?.gid,
+      제한,
+      신호,
+      흘림: true,
+      // 이벤트 줄을 그대로 흘리면 훑은 화면 글·계정 원문이 로그에 남는다 — 도구 이름과 글 첫 줄만
+      흘림줄: (줄) => {
+        const 글 = 누적.먹기(줄);
+        return 글 === null ? null : `[작성] ${것.id}번 ${글}`;
+      },
+    }),
+  );
   // 에이전트가 거절로 멈추는 중이면 자식을 죽인 것이다 — 서버도 받아 주지 않으니 보고하지 않는다
   if (멈춤.까닭 !== null) return;
   // ★ 어떤 끝내기보다 먼저 — 끝난 행에는 서버가 409 라 시간초과 건의 토큰이 버려진다 (작성 §7 「토큰 사용량」).
   // claude 가 아예 안 떴으면 쓴 토큰이 없다 — 0 을 보내면 「돌렸는데 0」으로 읽혀 대시보드 중간값을 끌어내린다
-  const 안떴다 = 돌린것.코드 === null && !돌린것.시간초과;
+  const 안떴다 = 돌린것.코드 === null && !돌린것.시간초과 && !돌린것.멈춤으로죽음;
   const 풀린 = 안떴다 ? 흐름풀기(돌린것.낸것) : await 사용량보고({ 주소기지, 토큰 }, 서비스, 것.id, 돌린것.낸것);
   // 검사 전에 자식이 남긴 것을 전부 죽인다 — 살아 있으면 검사한 뒤에 파일을 바꿔치기한다
   if (!(await 자식거두기(자식))) {
@@ -267,17 +280,10 @@ async function 사본에서(
     await 손.끝내기({ status: 'FAILED', error: 사유거르기(`claude 를 못 띄웠다: ${끝줄}`, 것.target?.loginPassword) });
     return;
   }
-  if (돌린것.코드 !== 0) {
-    // stream 전체에는 훑은 화면 글이 들어 있다 — 결과 글과 표준 오류로만 본다
-    const 한도 = 한도걸렸나(`${풀린.글}\n${돌린것.오류}`);
-    await 손.끝내기({
-      status: 'FAILED',
-      error: 한도
-        ? 'Claude 구독 한도에 걸렸다 — 한도가 풀린 뒤 다시 넣어라'
-        : 돌린것.시간초과
-          ? '케이스를 만들다 60분을 넘겨 멈췄다'
-          : '케이스를 만들다 멈췄다. 에이전트 기록을 봐라.',
-    });
+  // 멈춤·시간초과·한도는 STOPPED — 다시 하면 이어질 수 있다. 한도는 stream 이 아니라 결과 글과 표준 오류로만 본다
+  const 끝낼것 = 끝낼상태(돌린것, 한도걸렸나(`${풀린.글}\n${돌린것.오류}`));
+  if (끝낼것 !== null) {
+    await 손.끝내기(끝낼것);
     return;
   }
 
