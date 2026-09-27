@@ -117,6 +117,24 @@
           "rawSql": "SELECT s.name AS \"서비스\",\n       CASE WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       count(*) FILTER (WHERE a.status = 'DONE') AS \"성공\",\n       count(*) FILTER (WHERE a.status = 'FAILED') AS \"실패\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.started_at - a.created_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"대기 중간값 (분)\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.finished_at - a.started_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 중간값 (분)\",\n       round((max(extract(epoch FROM a.finished_at - a.started_at)) FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 최대 (분)\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind = 'AUTHOR'\n  AND a.status IN ('DONE', 'FAILED')\n  AND a.finished_at >= now() - interval '30 days'\nGROUP BY s.id, s.name, a.compare\nORDER BY s.name, a.compare"
         }
       ]
+    },
+    {
+      "id": 7,
+      "title": "작성 토큰",
+      "description": "최근 30일(끝난 시각) 작성 요청이 쓴 토큰. claude 를 돌려 사용량을 알린 요청만 센다. 시간초과는 끊겨서 센 하한값이다(출력 토큰이 특히 적게 잡힌다). API 환산은 API 요금으로 친 참고값이고 구독이라 청구액이 아니다 — 끊긴 요청은 비용이 비어 합계가 적게 나온다 (도메인/리포팅 §8.5)",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "platform-postgres" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "platform-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT s.name AS \"서비스\",\n       CASE WHEN a.kind = 'RERUN' THEN '재실행' WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       CASE WHEN a.tokens_partial THEN '시간초과' WHEN a.status = 'DONE' THEN '성공' ELSE '그 밖 실패' END AS \"결과\",\n       count(*) AS \"요청 수\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY (a.tokens_input + a.tokens_output)::float8) AS \"입력+출력 중간값\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY (a.tokens_cache_read + a.tokens_cache_write)::float8) AS \"캐시 중간값\",\n       sum(a.tokens_input + a.tokens_output + a.tokens_cache_read + a.tokens_cache_write) AS \"토큰 합계\",\n       round(coalesce(sum(a.cost_usd), 0), 2) AS \"API 환산 (청구 아님) 합계\",\n       count(a.cost_usd) AS \"비용 있는 요청\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind IN ('AUTHOR', 'RERUN')\n  AND a.status IN ('DONE', 'FAILED')\n  AND a.tokens_input IS NOT NULL\n  AND a.finished_at >= now() - interval '30 days'\nGROUP BY s.id, s.name, 2, 3\nORDER BY s.name, 2, 3"
+        }
+      ]
     }
   ]
 }

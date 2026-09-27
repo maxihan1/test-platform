@@ -95,13 +95,29 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     };
 
     const 첫 = await 요청('AUTHOR', 'DONE', false, '2 days', '2 days - 10 minutes', '2 days - 40 minutes');
-    await 요청('AUTHOR', 'DONE', false, '2 days', '2 days - 10 minutes', '2 days - 70 minutes');
+    const 둘째 = await 요청('AUTHOR', 'DONE', false, '2 days', '2 days - 10 minutes', '2 days - 70 minutes');
     await 요청('AUTHOR', 'DONE', false, '2 days', '2 days - 10 minutes', '2 days - 100 minutes');
     await 요청('AUTHOR', 'DONE', false, '31 days', '29 days 60 minutes', '29 days');
     await 요청('AUTHOR', 'DONE', true, '1 day', '1 day - 20 minutes', '1 day - 260 minutes');
-    await 요청('AUTHOR', 'FAILED', false, '1 day', '1 day - 5 minutes', '1 day - 65 minutes');
-    await 요청('RERUN', 'DONE', false, '1 day', '1 day - 5 minutes', '1 day - 600 minutes', 첫);
-    await 요청('AUTHOR', 'DONE', false, '41 days', '41 days - 5 minutes', '40 days');
+    const 실패 = await 요청('AUTHOR', 'FAILED', false, '1 day', '1 day - 5 minutes', '1 day - 65 minutes');
+    const 재실행 = await 요청('RERUN', 'DONE', false, '1 day', '1 day - 5 minutes', '1 day - 600 minutes', 첫);
+    const 옛것 = await 요청('AUTHOR', 'DONE', false, '41 days', '41 days - 5 minutes', '40 days');
+
+    const 사용량 = [
+      [첫, 100, 50, 1000, 200, false, 1.0],
+      [둘째, 300, 100, 3000, 0, false, 2.0],
+      [실패, 40, 10, 400, 0, true, null],
+      [재실행, 10, 5, 0, 0, false, 0.1],
+      [옛것, 9000, 9000, 9000, 9000, false, 99],
+    ] as const;
+    for (const [id, 입력, 출력, 캐시읽기, 캐시쓰기, 끊김, 비용] of 사용량) {
+      await pool.query(
+        `UPDATE authoring_request SET tokens_input = $2, tokens_output = $3, tokens_cache_read = $4,
+                tokens_cache_write = $5, tokens_partial = $6, cost_usd = $7, tokens_model = 'claude-opus-5-5'
+          WHERE id = $1`,
+        [id, 입력, 출력, 캐시읽기, 캐시쓰기, 끊김, 비용],
+      );
+    }
   });
 
   afterAll(async () => {
@@ -171,6 +187,42 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
       expect(Number(대조!['실패'])).toBe(0);
       expect(Number(대조!['대기 중간값 (분)'])).toBe(20);
       expect(Number(대조!['작업 중간값 (분)'])).toBe(240);
+    });
+  });
+
+  describe('작성 토큰', () => {
+    const 줄 = async (방식: string, 결과: string) =>
+      (await 읽기전용.query<Record<string, string | number | null>>(패널SQL('작성 토큰'))).rows.find(
+        (r) => r['서비스'] === 'XDH 작성 현황' && r['방식'] === 방식 && r['결과'] === 결과,
+      );
+
+    it('보통·성공 — 사용량을 알린 요청만 세고 입력+출력과 캐시를 갈라 중간값을 낸다', async () => {
+      const 보통 = await 줄('보통', '성공');
+      expect(보통).toBeDefined();
+      expect(Number(보통!['요청 수'])).toBe(2);
+      expect(Number(보통!['입력+출력 중간값'])).toBe(275);
+      expect(Number(보통!['캐시 중간값'])).toBe(2100);
+      expect(Number(보통!['토큰 합계'])).toBe(4750);
+      expect(Number(보통!['API 환산 (청구 아님) 합계'])).toBe(3);
+      expect(Number(보통!['비용 있는 요청'])).toBe(2);
+    });
+
+    it('끊긴 요청은 시간초과 줄 — 비용이 없어 비용 있는 요청이 0 이다', async () => {
+      const 끊김 = await 줄('보통', '시간초과');
+      expect(끊김).toBeDefined();
+      expect(Number(끊김!['요청 수'])).toBe(1);
+      expect(Number(끊김!['토큰 합계'])).toBe(450);
+      expect(Number(끊김!['비용 있는 요청'])).toBe(0);
+    });
+
+    it('재실행은 따로 한 줄이고 30일 전에 끝난 요청은 세지 않는다', async () => {
+      const 다시 = await 줄('재실행', '성공');
+      expect(다시).toBeDefined();
+      expect(Number(다시!['토큰 합계'])).toBe(15);
+      const 전부 = (await 읽기전용.query<Record<string, string>>(패널SQL('작성 토큰'))).rows.filter(
+        (r) => r['서비스'] === 'XDH 작성 현황',
+      );
+      expect(전부.reduce((합, r) => 합 + Number(r['토큰 합계']), 0)).toBe(4750 + 450 + 15);
     });
   });
 });
