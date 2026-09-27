@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { 사용량보고, 흐름풀기, 흘릴줄 } from './authoring-usage.js';
+import { 글자자르기, 사용량보고, 흐름풀기, 흘릴줄 } from './authoring-usage.js';
 
 const 샘플 = readFileSync(new URL('./fixtures/stream-json-sample.jsonl', import.meta.url), 'utf8');
 const 결과빼고 = 샘플
@@ -144,6 +144,13 @@ describe('흘릴줄 — 에이전트 로그에 남길 한 줄', () => {
     expect(흘릴줄(줄)).toBe(`» ${'가'.repeat(120)}`);
   });
 
+  it('이모지가 120자 경계에 걸려도 반쪽을 남기지 않는다', () => {
+    const 줄 = JSON.stringify({ type: 'assistant', message: { id: 'm', content: [{ type: 'text', text: `${'가'.repeat(119)}😀끝` }] } });
+    const 글 = 흘릴줄(줄) ?? '';
+    expect(글).toBe(`» ${'가'.repeat(119)}`);
+    expect(글).not.toMatch(/[\uD800-\uDFFF]/);
+  });
+
   it('도구 결과·사고·그 밖 이벤트는 흘리지 않는다 — 계정 원문이 섞일 수 있다', () => {
     const 결과 = JSON.stringify({ type: 'user', message: { content: [{ type: 'tool_result', content: 'pw' }] } });
     const 사고 = JSON.stringify({ type: 'assistant', message: { id: 'm', content: [{ type: 'thinking' }] } });
@@ -151,6 +158,15 @@ describe('흘릴줄 — 에이전트 로그에 남길 한 줄', () => {
     expect(흘릴줄(사고)).toBeNull();
     expect(흘릴줄('{"type":"system","subtype":"init"}')).toBeNull();
     expect(흘릴줄('JSON 아님')).toBeNull();
+  });
+});
+
+describe('글자자르기 — UTF-16 길이 상한 안에서 글자 단위로', () => {
+  it('서로게이트 짝을 가르지 않고 길이 상한을 넘지 않는다', () => {
+    expect(글자자르기('ab😀', 3)).toBe('ab');
+    expect(글자자르기('ab😀', 4)).toBe('ab😀');
+    expect(글자자르기('😀'.repeat(100), 160)).toHaveLength(160);
+    expect(글자자르기('짧다', 160)).toBe('짧다');
   });
 });
 

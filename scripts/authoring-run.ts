@@ -31,7 +31,8 @@ import { 머지처리 } from './authoring-merge.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
 import { 사용량보고, 흐름풀기 } from './authoring-usage.js';
-import { 끝낼상태, 진척누적기, 진척보며돌린다, 진척재기 } from './authoring-progress.js';
+import { 끝낼상태, 진척누적기, 진척재기 } from './authoring-progress.js';
+import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 폴더자리 } from './authoring-token.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
@@ -76,8 +77,9 @@ export async function 한건처리(
   서버들: { env: string; baseUrl: string }[],
   폴더: 폴더자리 | undefined,
 ): Promise<void> {
-  const 손 = 보고손만들기(주소기지, 토큰, 서비스, 것.id);
-  await 닫으며(손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판, 자리번호, 서버들, 폴더, 감싼손));
+  const 박동 = 박동손(보고손만들기(주소기지, 토큰, 서비스, 것.id));
+  // 거절로 끝내기 없이 나가도 신호를 멈춘다 — 그 밖의 길은 끝내기가 멈춘다
+  await 닫으며(박동.손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판, 자리번호, 서버들, 폴더, 감싼손, 박동)).finally(박동.멈추기);
 }
 
 async function 한건(
@@ -90,6 +92,7 @@ async function 한건(
   서버들: { env: string; baseUrl: string }[],
   폴더: 폴더자리 | undefined,
   손: 보고손,
+  박동: 박동,
 ): Promise<void> {
   if (것.kind === 'MERGE') {
     // **머지 행에는 PR 주소가 안 실려 온다** — 서버가 줄을 세울 때 그 칸을 안 채운다
@@ -160,7 +163,7 @@ async function 한건(
   }
   const 자리 = 만든것.자리;
   try {
-    await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 자리, 메인.sha, 출처, 자료들, 본문, 서버들, 폴더.폴더, 손);
+    await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 자리, 메인.sha, 출처, 자료들, 본문, 서버들, 폴더.폴더, 손, 박동);
   } finally {
     // 받은 기획서와 자식이 만든 것을 남기지 않는다. 성공이든 실패든 지운다 —
     // 단 자식을 못 거뒀으면 남긴다. 살아 있는 자식이 지우는 도중에 폴더를 링크로 바꿔 트리 밖을 지우게 할 수 있다
@@ -183,6 +186,7 @@ async function 사본에서(
   서버들: { env: string; baseUrl: string }[],
   케이스자리: string,
   손: 보고손,
+  박동: 박동,
 ): Promise<void> {
   const 계획 = 자료계획(자료들, 자리.자료);
   const 못읽음 = 못읽는자료(계획);
@@ -221,6 +225,10 @@ async function 사본에서(
   }
 
   await 손.단계('케이스를 만드는 중');
+  if (박동.멈추라했다()) {
+    await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' });
+    return;
+  }
   // 환경은 **통째로** 준다. 피그마 토큰은 자식에게만, GitHub 자격증명과 에이전트 토큰은 뺀다.
   // 임시 자리는 작업마다 따로 — 공용 /tmp 면 같은 자리 uid 를 받은 다음 건이 앞 건이 심은 캐시를 돌린다.
   // 집을 바꾸는 것은 자리 uid 로 돌 때만 — 맥에서 바꾸면 Playwright 가 ~/Library/Caches 의 브라우저를 못 찾는다 (2026-09-24 코드 검토)
@@ -236,9 +244,9 @@ async function 사본에서(
   const 인자 = 클로드인자(자리.자료, 판.모델);
   const 제한 = 60 * 60_000;
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다 (작성 §7 「중단 · 폐기 · 진척」)
-  const 누적 = 진척누적기(제한 / 1000);
+  const 누적 = 진척누적기(제한 / 1000, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });
   const 재기 = 진척재기(누적, join(자리.트리, 케이스자리), 역방향 === undefined ? undefined : join(자리.자료, 'screens'));
-  const 돌린것 = await 진척보며돌린다(손, 재기, (신호) =>
+  const 돌린것 = await 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
       input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향),

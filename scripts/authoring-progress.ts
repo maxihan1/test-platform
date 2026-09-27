@@ -1,11 +1,11 @@
-// 자식이 도는 동안의 진척 — 흐름 줄 누적 · 파일 세기 · 30초 신호 · 끝낼 상태 판정 (도메인/작성 §7 「중단 · 폐기 · 진척」)
+// 자식이 도는 동안의 진척 — 흐름 줄 누적 · 파일 세기 · 끝낼 상태 판정 (30초 신호는 authoring-heartbeat) (도메인/작성 §7 「중단 · 폐기 · 진척」)
 // 5871 이 「케이스를 만드는 중」 한 줄로 45분을 보냈고 멈출 길이 없었다. 신호의 응답이 사람의 멈춤을 싣고 온다
 
 import { existsSync, readdirSync } from 'node:fs';
 
-import { type 보고손, 도는자식, 멈춤 } from './authoring-io.js';
 import type { 돌린결과 } from './authoring-spawn.js';
-import { 읽기, 흘릴줄 } from './authoring-usage.js';
+import { 사유거르기 } from './authoring-reverse.js';
+import { 글자자르기, 읽기, 흘릴줄 } from './authoring-usage.js';
 
 /** 서버가 가두는 progress 모양 그대로다 — 모르는 칸을 더하면 400 BAD_PROGRESS */
 export interface 진척 {
@@ -21,7 +21,20 @@ export interface 진척 {
 
 const 수 = (n: number | undefined) => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
 
-export function 진척누적기(limitSec: number) {
+/** 진척·로그로 나가기 전에 가릴 원문. 자식은 둘 다 환경에 들고 있어 글에 그대로 적을 수 있다 */
+export interface 가릴것 {
+  loginPassword?: string | null;
+  figmaToken?: string;
+}
+
+function 가리기(글: string, 비밀: 가릴것): string {
+  const 토큰 = 비밀.figmaToken;
+  // 짧은 값은 아무 글에나 걸린다 — 올릴 것 검사(비밀섞였나)와 같은 8자 하한
+  const 토큰뺀 = 토큰 !== undefined && 토큰.length >= 8 ? 글.split(토큰).join('***') : 글;
+  return 사유거르기(토큰뺀, 비밀.loginPassword);
+}
+
+export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}) {
   // 같은 메시지가 콘텐츠 블록마다 되풀이되고 앞 사본의 출력은 중간값이다 — 흐름풀기 와 같은 까닭으로 마지막 사본만
   const 턴 = new Map<string, number>();
   let 마지막: { 글: string; 때: string } | null = null;
@@ -32,8 +45,10 @@ export function 진척누적기(limitSec: number) {
       const m = e?.type === 'assistant' ? e.message : undefined;
       if (m?.id !== undefined && m.usage !== undefined)
         턴.set(m.id, 수(m.usage.input_tokens) + 수(m.usage.output_tokens));
-      const 글 = 흘릴줄(줄);
-      if (글 !== null) 마지막 = { 글: 글.slice(0, 160), 때: new Date().toISOString() };
+      const 날글 = 흘릴줄(줄);
+      if (날글 === null) return null;
+      const 글 = 가리기(날글, 비밀);
+      마지막 = { 글: 글자자르기(글, 160), 때: new Date().toISOString() };
       return 글;
     },
     스냅샷(잰것: { elapsedSec: number; caseFiles: number; screens?: number }): 진척 {
@@ -100,42 +115,4 @@ export function 멈추라했나(답: unknown): boolean {
   if (typeof 답 !== 'object' || 답 === null) return false;
   const 몸 = (답 as { 몸?: unknown }).몸;
   return typeof 몸 === 'object' && 몸 !== null && (몸 as { stop?: unknown }).stop === true;
-}
-
-/**
- * 자식을 돌리는 동안 `간격` 마다 진척을 올린다. 응답이 stop 이면 멈출 신호를 보낸다.
- * 신호 하나를 못 보낸 것으로 작업을 깨지 않는다 — 거절(401·403)만 줄 돌기처럼 에이전트를 멈춘다
- */
-export async function 진척보며돌린다(
-  손: 보고손,
-  재기: () => 진척,
-  돌리기: (신호: AbortSignal) => Promise<돌린결과>,
-  간격 = 30_000,
-): Promise<돌린결과> {
-  const 멈출 = new AbortController();
-  let 떠있음 = false;
-  const 틱 = setInterval(() => {
-    // 서버가 느리면 틱이 쌓여 같은 신호를 겹쳐 보낸다
-    if (떠있음) return;
-    떠있음 = true;
-    void (async () => {
-      try {
-        if (멈추라했나(await 손.단계('케이스를 만드는 중', 재기()))) 멈출.abort();
-      } catch (err) {
-        const 글 = err instanceof Error ? err.message : String(err);
-        if (글.includes('서버가 거절했다')) {
-          멈춤.까닭 = 글;
-          멈출.abort();
-          for (const 자식 of 도는자식) 자식.kill('SIGKILL');
-        } else console.error(`[남김] 진척을 못 올렸다: ${글}`);
-      } finally {
-        떠있음 = false;
-      }
-    })();
-  }, 간격);
-  try {
-    return await 돌리기(멈출.signal);
-  } finally {
-    clearInterval(틱);
-  }
 }
