@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AuthoringRow } from './api.js';
-import { 보임라벨, 멈춘듯기준, 줄보임 } from './authoringView.js';
+import { 보임라벨, 멈춘듯기준, 줄보임, 중단이유라벨 } from './authoringView.js';
 
 const 지금 = new Date('2026-09-22T12:00:00Z').getTime();
 
@@ -58,5 +58,28 @@ describe('작성 줄 한 줄을 어떻게 보이나', () => {
     const 오래전 = new Date(지금 - 멈춘듯기준 - 1000).toISOString();
     expect(줄보임(줄({ status: 'DONE', stageAt: 오래전 }), 지금)).toBe('done');
     expect(줄보임(줄({ status: 'FAILED', stageAt: 오래전 }), 지금)).toBe('failed');
+  });
+
+  it('중단(STOPPED)은 시각과 무관하게 중단이다. 실행 중단과 같은 말을 쓴다', () => {
+    const 오래전 = new Date(지금 - 멈춘듯기준 - 1000).toISOString();
+    const 보 = 줄보임(줄({ status: 'STOPPED', stageAt: 오래전 }), 지금);
+    expect(보).toBe('stopped');
+    expect(보임라벨(보, 'ko')).toBe('중단');
+    expect(보임라벨(보, 'en')).toBe('Aborted');
+  });
+});
+
+describe('중단 이유를 사람 말로', () => {
+  it('이유 다섯을 각각 사람 말로 낸다', () => {
+    expect(중단이유라벨('USER', 'ko')).toBe('사용자가 멈춤');
+    expect(중단이유라벨('TIMEOUT', 'ko')).toBe('시간초과');
+    expect(중단이유라벨('LIMIT', 'ko')).toBe('구독 한도');
+    expect(중단이유라벨('AGENT_RESTART', 'ko')).toBe('에이전트 재시작');
+    expect(중단이유라벨('AGENT_LOST', 'ko')).toBe('에이전트 응답 없음');
+  });
+
+  it('모르는 값이나 빈 값은 기록 없음이다. 식별자를 화면에 흘리지 않는다', () => {
+    expect(중단이유라벨('WHAT', 'ko')).toBe('기록 없음');
+    expect(중단이유라벨(null, 'ko')).toBe('기록 없음');
   });
 });

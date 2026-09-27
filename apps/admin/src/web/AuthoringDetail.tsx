@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
+import { 멈춤폐기, 중단줄들, 진척줄들 } from './AuthoringProgress.js';
 import { 보임라벨, 종류라벨, 줄보임, 차이목록, 차이종류라벨 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
@@ -16,7 +17,8 @@ import { Failed, Loading, message, useAsync, when } from './ui.js';
  * 중간에 실패한 것은 버려진 채 남는다 (도메인/작성 §7 「자료」)
  */
 function 끝났나(status: AuthoringRow['status']): boolean {
-  return status === 'DONE' || status === 'FAILED' || status === 'DRAFT';
+  // 중단(STOPPED)도 끝이다. 멈춤을 요청만 한 것은 아직 RUNNING 이라 계속 묻는다 — 멈췄는지 알아야 한다
+  return status === 'DONE' || status === 'FAILED' || status === 'DRAFT' || status === 'STOPPED';
 }
 
 /** 파일은 내려받기, 피그마는 저장된(정규화한) 주소로 연다 */
@@ -74,6 +76,10 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
   // **화면이 버튼을 안 그리는 것은 편의이지 방어가 아니다** — 서버 gate.ts 가 다시 막는다.
   // PR 주소가 없으면 머지할 대상 자체가 없다
   const 머지할수있나 = 할수있나(role, '작성머지') && data.status === 'DONE' && data.prUrl !== null;
+  // DONE·FAILED 로 끝난 뒤 남은 멈춤 요청은 무시한다 (도메인/작성 §7 — 서버가 지우지 않는다)
+  const 멈춤요청됨 = data.status === 'RUNNING' && data.stopRequestedAt != null;
+  // 자식이 끝나고 올리는 중이면 서버가 멈춤을 안 받는다. 버튼이 사라진 까닭을 말한다
+  const 올리는중 = data.status === 'RUNNING' && !멈춤요청됨 && data.canStop !== true && data.progress?.childRunning === false;
 
   async function 머지건다() {
     if (머지중) return;
@@ -106,13 +112,20 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
             {보임라벨(보, 언어)}
             {/* **알려 주기만 하고 길을 안 주면 안 된다.** 멈춘 행은 지금 되살릴 방법이 없다 —
                 집기는 대기 중인 것만 집고, 끝내기는 집은 쪽만 부를 수 있다 (2026-09-23 검토) */}
-            {보 === 'stalled' ? <small>{t('맥이 멈춘 것 같습니다. 새 요청으로 다시 넣으세요')}</small> : null}
-            {/* 이어 올리기·지우기는 안 만들었다 — 새로 넣으라고만 한다 (도메인/작성 §7 「자료」) */}
-            {보 === 'draft' ? <small>{t('이 요청은 줄에 서지 않았습니다. 새 요청으로 다시 넣으세요')}</small> : null}
+            {보 === 'stalled' ? <small>{t('에이전트가 멈춘 것 같습니다. 작성 중단을 누르고 새 요청으로 다시 넣으세요')}</small> : null}
+            {/* 이어 올리기는 안 만들었다 — 폐기하고 새로 넣으라고 한다 (도메인/작성 §7 「자료」) */}
+            {보 === 'draft' ? <small>{t('이 요청은 줄에 서지 않았습니다. 폐기하고 새 요청으로 다시 넣으세요')}</small> : null}
+            {멈춤요청됨 ? <small>{t('중단하는 중')} · {when(data.stopRequestedAt ?? '', 언어)}</small> : null}
+            {올리는중 ? <small>{t('올리는 중 — 멈출 수 없습니다')}</small> : null}
+            {data.discardedAt ? <small>{t('폐기됨')} · {when(data.discardedAt, 언어)}</small> : null}
           </dd>
 
           <dt>{t('작업 단계')}</dt>
           <dd>{data.stage ?? t('기록 없음')}</dd>
+
+          {/* 머지는 자식을 안 띄운다 — 진척이 없다. 줄에 서기 전에는 잴 것이 없다 */}
+          {data.kind !== 'MERGE' && data.status !== 'DRAFT' && data.status !== 'PENDING' ? <진척줄들 요청={data} /> : null}
+          {data.status === 'STOPPED' ? <중단줄들 요청={data} /> : null}
 
           <dt>{t('요청한 사람')}</dt>
           <dd>{data.requestedByName}</dd>
@@ -210,6 +223,8 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
         ) : null}
 
         {머지오류 === null ? null : <p className="error-text">{머지오류}</p>}
+
+        <멈춤폐기 service={service} 요청={data} reload={reload} />
       </div>
     </>
   );

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthoringRow } from './api.js';
@@ -7,6 +7,10 @@ import { AuthoringDetail } from './AuthoringDetail.js';
 
 let 답: AuthoringRow;
 let 부른횟수 = 0;
+const { 멈춤, 폐기 } = vi.hoisted(() => ({
+  멈춤: vi.fn((_s: string, _id: number) => Promise.resolve({ status: 'RUNNING' as const })),
+  폐기: vi.fn((_s: string, _id: number) => Promise.resolve({ ok: true as const })),
+}));
 
 vi.mock('./api.js', async () => {
   const 진짜 = await vi.importActual<typeof import('./api.js')>('./api.js');
@@ -18,6 +22,8 @@ vi.mock('./api.js', async () => {
         return Promise.resolve(답);
       },
       createAuthoringMerge: () => Promise.resolve({ id: 2 }),
+      stopAuthoring: 멈춤,
+      discardAuthoring: 폐기,
       authoringAssetUrl: 진짜.api.authoringAssetUrl,
     },
   };
@@ -55,6 +61,9 @@ async function 첫읽기끝(): Promise<void> {
 
 beforeEach(() => {
   부른횟수 = 0;
+  멈춤.mockClear();
+  폐기.mockClear();
+  window.location.hash = '';
   답 = 줄({});
 });
 
@@ -140,10 +149,122 @@ describe('작성 한 건 상세', () => {
     expect(피그마?.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
-  it('준비 중(DRAFT) 요청에는 줄에 서지 않았으니 새 요청으로 다시 넣으라고 알린다', async () => {
+  it('준비 중(DRAFT) 요청에는 줄에 서지 않았으니 폐기하고 새 요청으로 다시 넣으라고 알린다', async () => {
     답 = 줄({ status: 'DRAFT', prUrl: null, finishedAt: null, startedAt: null, assets: [] });
     render(<AuthoringDetail service="PAY" id={7} role="admin" />);
-    expect(await screen.findByText('이 요청은 줄에 서지 않았습니다. 새 요청으로 다시 넣으세요')).toBeTruthy();
+    expect(await screen.findByText('이 요청은 줄에 서지 않았습니다. 폐기하고 새 요청으로 다시 넣으세요')).toBeTruthy();
     expect(screen.getByText('준비 중')).toBeTruthy();
+  });
+});
+
+const 도는진척 = {
+  childRunning: true,
+  elapsedSec: 12 * 60 + 30,
+  limitSec: 3600,
+  caseFiles: 3,
+  tokens: 1234567,
+  screens: 4,
+  lastAction: '케이스 파일을 쓰는 중',
+  lastActionAt: new Date(Date.now() - 5000).toISOString(),
+};
+
+describe('작성 진척 · 중단 · 폐기', () => {
+  it('도는 중이면 진척을 글자로 보인다 — 경과/한도 · 화면 · 케이스 파일 · 토큰 하한 · 마지막 동작', async () => {
+    답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: 도는진척, canStop: true });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    expect(await screen.findByText('12분 / 60분')).toBeTruthy();
+    expect(screen.getByText('4장')).toBeTruthy();
+    expect(screen.getByText('3개')).toBeTruthy();
+    expect(screen.getByText('1,234,567 이상')).toBeTruthy();
+    expect(screen.getByText('케이스 파일을 쓰는 중')).toBeTruthy();
+    expect(screen.getByText(/초 전$/)).toBeTruthy();
+  });
+
+  it('자식이 끝났으면 경과에 한도를 안 붙이고, 화면 수가 없으면 그 줄을 안 그린다', async () => {
+    const { screens: _없음, ...정방향 } = 도는진척;
+    답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: { ...정방향, childRunning: false } });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    expect(await screen.findByText('12분')).toBeTruthy();
+    expect(screen.queryByText('화면')).toBeNull();
+  });
+
+  it('진척이 없으면 기록 없음이다', async () => {
+    답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: null });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    await screen.findByText('테스터');
+    expect(screen.getByText('진척').nextElementSibling?.textContent).toBe('기록 없음');
+  });
+
+  it('작성 중단은 한 번 더 묻고, 예를 누르면 멈춤을 보낸다', async () => {
+    답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: 도는진척, canStop: true });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    fireEvent.click(await screen.findByRole('button', { name: '작성 중단' }));
+    const 상자 = screen.getByRole('dialog');
+    expect(상자.textContent).toContain('12분 동안 만든 것이 버려집니다');
+    expect(멈춤).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole('button', { name: '작성 중단' }).at(-1)!);
+    await vi.waitFor(() => expect(멈춤).toHaveBeenCalledWith('PAY', 7));
+  });
+
+  it('canStop 이 아니면 중단 버튼이 없다 — 요청한 사람도 admin 도 아니면 서버가 false 를 준다', async () => {
+    답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: 도는진척, canStop: false, canDiscard: false });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    await screen.findByText('테스터');
+    expect(screen.queryByRole('button', { name: '작성 중단' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '폐기' })).toBeNull();
+  });
+
+  it('멈춤 요청 뒤에는 중단하는 중이라고 보이고 계속 다시 읽는다', async () => {
+    답 = 줄({
+      status: 'RUNNING', prUrl: null, finishedAt: null, progress: 도는진척, canStop: false,
+      stopRequestedAt: new Date().toISOString(),
+    });
+    vi.useFakeTimers();
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    await 첫읽기끝();
+    expect(screen.getByText(/^중단하는 중/)).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(부른횟수).toBeGreaterThan(1);
+  });
+
+  it('자식이 끝나 올리는 중이면 멈출 수 없다고 말한다', async () => {
+    답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: { ...도는진척, childRunning: false }, canStop: false });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    expect(await screen.findByText('올리는 중 — 멈출 수 없습니다')).toBeTruthy();
+  });
+
+  it('중단된 것은 누가 왜 멈췄는지 보이고 다시 읽지 않는다', async () => {
+    답 = 줄({ status: 'STOPPED', prUrl: null, stopReason: 'USER', stoppedBy: 'kim', stoppedByName: '김철수', canDiscard: true });
+    vi.useFakeTimers();
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    await 첫읽기끝();
+    expect(screen.getByText('김철수')).toBeTruthy();
+    expect(screen.getByText('사용자가 멈춤')).toBeTruthy();
+    expect(screen.getByText('중단')).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(부른횟수).toBe(1);
+  });
+
+  it('시스템이 멈춘 것은 시스템이라고 적는다', async () => {
+    답 = 줄({ status: 'STOPPED', prUrl: null, stopReason: 'TIMEOUT', stoppedBy: 'system', stoppedByName: null });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    expect(await screen.findByText('시스템')).toBeTruthy();
+    expect(screen.getByText('시간초과')).toBeTruthy();
+  });
+
+  it('폐기는 한 번 더 묻고, 성공하면 목록으로 간다', async () => {
+    답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    fireEvent.click(await screen.findByRole('button', { name: '폐기' }));
+    expect(screen.getByRole('dialog').textContent).toContain('목록에서 사라집니다. 통계와 토큰 기록은 남습니다');
+    fireEvent.click(screen.getAllByRole('button', { name: '폐기' }).at(-1)!);
+    await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring'));
+    expect(폐기).toHaveBeenCalledWith('PAY', 7);
+  });
+
+  it('폐기된 행을 직접 열면 폐기됨이라고 보인다', async () => {
+    답 = 줄({ status: 'STOPPED', prUrl: null, stopReason: 'USER', stoppedBy: 'kim', stoppedByName: '김철수', discardedAt: new Date().toISOString() });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    expect(await screen.findByText(/^폐기됨/)).toBeTruthy();
   });
 });
