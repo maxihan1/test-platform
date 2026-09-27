@@ -80,7 +80,20 @@ export function 과금위험(env: Record<string, string | undefined>, 설정들:
  */
 export function 클로드인자(폴더: string, 모델: 모델): string[] {
   const 막을것 = ['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)'];
-  return ['-p', ...모델인자(모델), '--permission-mode', 'acceptEdits', '--add-dir', 폴더, '--disallowedTools', ...막을것];
+  // stream-json 은 턴마다 사용량을 내서 시간초과로 끊겨도 센다 (작성 §7 「토큰 사용량」). -p 와 쓰려면 --verbose 가 필수다
+  return [
+    '-p',
+    ...모델인자(모델),
+    '--output-format',
+    'stream-json',
+    '--verbose',
+    '--permission-mode',
+    'acceptEdits',
+    '--add-dir',
+    폴더,
+    '--disallowedTools',
+    ...막을것,
+  ];
 }
 
 /**

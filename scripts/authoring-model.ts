@@ -56,7 +56,14 @@ export function 버전뽑기(글: string): string | null {
  * 설치는 됐는데 깃발이 사라진 판으로 돌면 막아 둔 도구가 조용히 풀린다 (2026-09-24 계획 검토)
  */
 export function 점검통과(도움말: string): boolean {
-  return ['--model', '--effort', '--fallback-model', '--disallowedTools', '--permission-mode'].every((깃발) =>
-    도움말.includes(깃발),
-  );
+  // 뒤의 둘은 토큰 사용량을 세는 출력 모양이다 — 사라지면 모든 작성 요청이 인자 오류로 멈춘다 (2026-09-27)
+  return [
+    '--model',
+    '--effort',
+    '--fallback-model',
+    '--disallowedTools',
+    '--permission-mode',
+    '--output-format',
+    '--verbose',
+  ].every((깃발) => 도움말.includes(깃발));
 }

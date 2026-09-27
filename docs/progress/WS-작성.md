@@ -400,3 +400,11 @@
 - 미완: **서버에서 실제 한 바퀴**(테스트 계정 넣은 대상 서버 + 워드·피그마 자료) · PDF 스티커(npm 승인 뒤)
 - 막힌 것: 없음. jszip 타입에 `internalStream` 이 없어 `nodeStream('nodebuffer')` 로 푼 바이트를 센다
 - 다음 세션이 알아야 할 것: pandoc 워드에는 빈 `word/comments.xml`(`<w:comments … />`)이 이미 있다 — 펴서 끼운다. 메모 번호는 문서의 `w:id` 최대값 뒤(책갈피 번호와 섞여도 겹치지만 않으면 된다). 계획 `docs/plans/2026-09-26-역방향-표시.md`
+
+## 2026-09-27 — 작성 토큰 사용량 · 역방향 「한 칸」 (PR #86)
+- 완료: stream-json 풀기(`scripts/authoring-usage.ts` — 정상 `modelUsage` · 끊김 메시지 id 마다 마지막 사본) · 끝내기보다 먼저 `usage` 보고(순서 검사) · 칸 일곱 · `usage` 통로(집은 쪽 · RUNNING · 한 번만) · 등급표·토큰 통로·라우트표 · 한도 판정·결과 요약은 `result` 글 · 로그 필터 · 점검 깃발 · 「한 칸」 정의·화면만 메뉴 1단계·30분 예산·`screens/` · Grafana 작성 토큰
+- 실측: CLI 2.1.274 stream-json — 턴 이벤트 출력 토큰은 스트리밍 중간값(3 → 최종 460), `modelUsage` 입력 952 vs 메인 usage 27. 샘플 `scripts/fixtures/stream-json-sample.jsonl`. 같은 흐름에 `rate_limit_event`(5시간 한도 사용률)도 있다 — 지금은 안 쓴다
+- 미완: 데모마켓 대조 재실행으로 60분 안·토큰 확인 · `authoring-io.ts` 323줄 분리
+- 막힌 것: 없음. 시간초과를 `error` 로 가르려 했는데 `error` 는 대시보드에 안 여는 칸이라 `tokens_partial` 칸을 더했다
+- 다음 세션이 알아야 할 것: 다른 실행 도구(Codex CLI 등)를 붙이면 `authoring-usage.ts` 만 갈아 끼운다. 검사용 DB `platform_wsk`
+

@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 자료목록 } from './assetStore.js';
 import { 집기대상 } from './reverse.js';
+import { 사용량통로 } from './usage.js';
 import { 번호, 사진뿌리, 서비스번호 } from './routes.js';
 import {
   끝내기,
@@ -227,4 +228,6 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     if (!바뀌었나) return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
     return { ok: true };
   });
+
+  await 사용량통로(app);
 }
