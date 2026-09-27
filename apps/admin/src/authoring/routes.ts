@@ -8,6 +8,7 @@ import { resolve } from 'node:path';
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
 import { 역방향칸판정 } from './reverse.js';
+import { 중단칸, 중단통로 } from './stop.js';
 import { 줄세우기, 한건, 한쪽, type 요청, type 상태 } from './store.js';
 
 /**
@@ -169,7 +170,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 읽을 입력이 없어 늘 실패한다(화면만). 역방향은 새 요청으로 넣는다 (2026-09-26 게이트 1)
       if (행.compare) return reply.code(409).send({ error: 'BAD_SOURCE', detail: 'COMPARE' });
       // 재실행은 원본의 자료를 다시 읽는다. 원본이 재실행·머지면 자료가 없고, DRAFT 면 아직 다 안 올라왔다
-      if (행.kind !== 'AUTHOR' || 행.status === 'DRAFT') {
+      // 폐기한 원본도 다시 안 돌린다 — 목록에서 치운 것이 재실행으로 되살아난다 (§7 「중단 · 폐기 · 진척」)
+      if (행.kind !== 'AUTHOR' || 행.status === 'DRAFT' || 행.discardedAt !== null) {
         return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행.kind} ${행.status}` });
       }
       const id = await 줄세우기({ 서비스, kind, 원본: 행.id, 기획서: null, 값, 누가, 이름 });
@@ -177,20 +179,25 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
     },
   );
 
-  app.get<{ Querystring: { service?: string; status?: string; page?: string } }>(
+  app.get<{ Querystring: { service?: string; status?: string; discarded?: string; page?: string } }>(
     '/authoring/requests',
     async (req, reply) => {
       const 서비스 = await 서비스번호(req, reply);
       if (서비스 === null) return reply;
 
       const 값 = req.query.status;
-      const 상태들: 상태[] = ['DRAFT', 'PENDING', 'RUNNING', 'DONE', 'FAILED'];
+      const 상태들: 상태[] = ['DRAFT', 'PENDING', 'RUNNING', 'DONE', 'FAILED', 'STOPPED'];
       const 상태 = 상태들.find((s) => s === 값);
       if (값 !== undefined && 상태 === undefined) {
         return reply.code(400).send({ error: 'BAD_STATUS', detail: 값 });
       }
 
-      return 한쪽({ 서비스, 상태, 쪽: Math.max(1, Number(req.query.page ?? 1) || 1) });
+      return 한쪽({
+        서비스,
+        상태,
+        폐기: req.query.discarded === '1',
+        쪽: Math.max(1, Number(req.query.page ?? 1) || 1),
+      });
     },
   );
 
@@ -204,7 +211,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 없는 번호는 404 다. 「없는 것」과 「남의 것」이 뭉개지면 안 된다 (SPEC §7).
       // 서비스 경계는 문이 이미 봤다 — 이 틀은 라우트표에서 「번호로 서비스를 찾는」 갈래다
       if (행 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
-      return { ...행, assets: await 자료목록(행.id) };
+      return { ...행, ...(await 중단칸(req, 행)), assets: await 자료목록(행.id) };
     },
   );
 
@@ -240,4 +247,5 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
     },
   );
 
+  await 중단통로(app);
 }

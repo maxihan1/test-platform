@@ -120,7 +120,7 @@ export async function 자료더하기(
 ): Promise<{ id: number; position: number } | 'NOT_DRAFT' | 'TOO_MANY'> {
   return 한묶음(async (client) => {
     const 잠금 = await client.query(
-      `SELECT 1 FROM authoring_request WHERE id = $1 AND status = 'DRAFT' FOR UPDATE`,
+      `SELECT 1 FROM authoring_request WHERE id = $1 AND status = 'DRAFT' AND discarded_at IS NULL FOR UPDATE`,
       [요청],
     );
     if (잠금.rowCount !== 1) return 'NOT_DRAFT';
@@ -203,7 +203,7 @@ export async function 자료한건(요청: number, 자료번호: number): Promis
 export async function 제출(요청: number): Promise<boolean> {
   const r = await (await db()).query(
     `UPDATE authoring_request SET status = 'PENDING'
-      WHERE id = $1 AND status = 'DRAFT'
+      WHERE id = $1 AND status = 'DRAFT' AND discarded_at IS NULL
         AND (EXISTS (SELECT 1 FROM authoring_asset WHERE request_id = $1)
              OR (compare AND start_url IS NOT NULL))`,
     [요청],

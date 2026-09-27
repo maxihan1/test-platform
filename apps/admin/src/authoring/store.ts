@@ -11,7 +11,7 @@ async function db(): Promise<Pool> {
 
 export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE';
 // DRAFT 는 자료를 올리는 중이라 아직 줄에 안 섰다. 줄에 세우기는 assetStore.ts 의 `제출` 이 한다
-export type 상태 = 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
+export type 상태 = 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'STOPPED';
 
 /**
  * 상태 전이는 셋뿐이다 (2026-09-23 에 `DRAFT→PENDING` 이 늘었다 — 자료를 다 올리기 전에는 줄에 안 선다).
@@ -58,6 +58,10 @@ export interface 요청 {
   compare: boolean;
   env: string | null;
   startUrl: string | null;
+  // 중단·폐기 (§7 「중단 · 폐기 · 진척」). 목록에도 실린다 — 에이전트의 재시작 닫기가 목록의 stopRequestedAt 을 본다
+  stopReason: string | null;
+  stopRequestedAt: string | null;
+  discardedAt: string | null;
 }
 
 interface 행 {
@@ -84,6 +88,9 @@ interface 행 {
   compare: boolean;
   env: string | null;
   start_url: string | null;
+  stop_reason: string | null;
+  stop_requested_at: Date | null;
+  discarded_at: Date | null;
 }
 
 // BIGSERIAL 은 pg 가 문자열로 준다. 화면과 라우트는 숫자로 다루므로 여기서 한 번만 바꾼다
@@ -112,12 +119,16 @@ function 빚기(r: 행): 요청 {
     compare: r.compare,
     env: r.env,
     startUrl: r.start_url,
+    stopReason: r.stop_reason,
+    stopRequestedAt: r.stop_requested_at?.toISOString() ?? null,
+    discardedAt: r.discarded_at?.toISOString() ?? null,
   };
 }
 
 const 칸들 = `id, service_id, kind, source_id, spec_text, params, requested_by, requested_by_name,
               claimed_by, status, stage, stage_at, result, test_source, screenshot_dir, pr_url,
-              error, created_at, started_at, finished_at, compare, env, start_url`;
+              error, created_at, started_at, finished_at, compare, env, start_url,
+              stop_reason, stop_requested_at, discarded_at`;
 
 /**
  * 이 요청의 사진이 들어갈 폴더.
@@ -226,6 +237,8 @@ function 요약빚기(r: Omit<행, 'spec_text'>): 요약 {
 export async function 한쪽(입력: {
   서비스: number;
   상태?: 상태;
+  // 참이면 폐기한 것만, 아니면 폐기한 것을 뺀다
+  폐기?: boolean;
   쪽: number;
   크기?: number;
 }): Promise<{ items: 요약[]; total: number; page: number; pageSize: number }> {
@@ -233,7 +246,9 @@ export async function 한쪽(입력: {
   const 크기 = 입력.크기 ?? 50;
   // 쪽 번호가 무한대면 건너뛸 개수도 무한대가 되어 DB 가 해석 못 하는 값이 간다
   const 쪽 = Math.min(Math.max(1, Math.floor(입력.쪽) || 1), 1_000_000);
-  const 조건 = 입력.상태 === undefined ? '' : ' AND status = $2';
+  const 조건 =
+    (입력.폐기 === true ? ' AND discarded_at IS NOT NULL' : ' AND discarded_at IS NULL') +
+    (입력.상태 === undefined ? '' : ' AND status = $2');
   const 값들: unknown[] = 입력.상태 === undefined ? [입력.서비스] : [입력.서비스, 입력.상태];
 
   const 셈 = await pool.query<{ n: string }>(
@@ -302,16 +317,26 @@ export async function 집기되돌리기(id: number, 집는이: string): Promise
   return r.rowCount === 1;
 }
 
-/** 작업 단계를 올린다. 도는 중인 행에만 붙는다 — 아니면 false 를 주고 라우트가 409 를 낸다 */
-export async function 단계올리기(id: number, 단계: string): Promise<boolean> {
+/**
+ * 작업 단계를 올린다. 도는 중인 행에만 붙는다 — 아니면 false 를 주고 라우트가 409 를 낸다.
+ * 진척이 없으면 자식이 끝났다는 뜻이라 childRunning 을 내린다. stop 은 멈춤 요청이 있고 자식이 도는 중일 때만 참 (§7)
+ */
+export async function 단계올리기(
+  id: number,
+  단계: string,
+  진척?: Record<string, unknown>,
+): Promise<false | { stop: boolean }> {
   const pool = await db();
-  const r = await pool.query(
+  const r = await pool.query<{ stop: boolean }>(
     `UPDATE authoring_request
-        SET stage = $2, stage_at = now()
-      WHERE id = $1 AND status = 'RUNNING'`,
-    [id, 단계],
+        SET stage = $2, stage_at = now(),
+            progress = COALESCE($3::jsonb, COALESCE(progress, '{}'::jsonb) || '{"childRunning": false}'::jsonb)
+      WHERE id = $1 AND status = 'RUNNING'
+      RETURNING (stop_requested_at IS NOT NULL AND progress->>'childRunning' = 'true') AS stop`,
+    [id, 단계, 진척 === undefined ? null : JSON.stringify(진척)],
   );
-  return r.rowCount === 1;
+  const 행 = r.rows[0];
+  return 행 === undefined ? false : { stop: 행.stop };
 }
 
 /** 사진 폴더를 적어 둔다. 도는 중인 행에만 붙는다 */
@@ -333,7 +358,9 @@ export async function 사진자리적기(id: number, 자리: string): Promise<bo
 export async function 끝내기(
   id: number,
   결과: {
-    status: 'DONE' | 'FAILED';
+    status: 'DONE' | 'FAILED' | 'STOPPED';
+    // STOPPED 일 때만. USER 면 멈춤을 요청한 사람이, 그 밖이면 system 이 멈춘 사람이다 (§7)
+    stopReason?: string;
     result?: unknown;
     testSource?: unknown;
     prUrl?: string;
@@ -348,6 +375,8 @@ export async function 끝내기(
             test_source = COALESCE($4::jsonb, test_source),
             pr_url = COALESCE($5, pr_url),
             error = COALESCE($6, error),
+            stop_reason = $7::text,
+            stopped_by = CASE WHEN $7::text IS NULL THEN NULL WHEN $7::text = 'USER' THEN stop_requested_by ELSE 'system' END,
             finished_at = now()
       WHERE id = $1 AND status = 'RUNNING'`,
     [
@@ -357,6 +386,7 @@ export async function 끝내기(
       결과.testSource === undefined ? null : JSON.stringify(결과.testSource),
       결과.prUrl ?? null,
       결과.error ?? null,
+      결과.stopReason ?? null,
     ],
   );
   return r.rowCount === 1;

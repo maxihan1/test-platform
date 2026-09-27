@@ -99,6 +99,8 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/authoring/requests/:id/finish': 'operator',
   'POST /api/authoring/requests/:id/assets': 'operator',
   'POST /api/authoring/requests/:id/submit': 'operator',
+  'POST /api/authoring/requests/:id/stop': 'operator',
+  'POST /api/authoring/requests/:id/discard': 'operator',
   // 역방향 산출물 — 작성 에이전트가 부른다. 에이전트가 하는 일이라 operator (인증 §7 「등급으로 갈리는 자리」)
   'POST /api/authoring/requests/:id/outputs': 'operator',
   // 토큰 사용량 — 작성 에이전트가 부른다 (작성 §7 「토큰 사용량」)
