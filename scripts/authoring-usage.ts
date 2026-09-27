@@ -40,6 +40,7 @@ type 이벤트 = {
   result?: string;
   total_cost_usd?: number;
   modelUsage?: Record<string, 모델사용>;
+  usage?: 턴사용;
 };
 
 function 읽기(줄: string): 이벤트 | null {
@@ -85,39 +86,55 @@ export function 흐름풀기(낸것: string): 풀린흐름 {
     for (const c of content ?? []) if (c.type === 'text' && c.text) 글들.push(c.text);
   }
 
-  if (결과 !== null && 결과.modelUsage !== undefined) {
+  // 턴 합 — 끊겼을 때의 하한값이자, result 에 사용량이 없을 때의 대신값이다
+  const 턴출력 = new Map<string, number>();
+  const 턴합 = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+  for (const { model, usage } of 턴들.values()) {
+    턴합.input += 수(usage.input_tokens);
+    턴합.output += 수(usage.output_tokens);
+    턴합.cacheRead += 수(usage.cache_read_input_tokens);
+    턴합.cacheWrite += 수(usage.cache_creation_input_tokens);
+    if (model !== '') 턴출력.set(model, (턴출력.get(model) ?? 0) + 수(usage.output_tokens));
+  }
+  const 턴모델 = 가장많이쓴(턴출력);
+
+  if (결과 === null) {
+    return { 글: 글들.join('\n'), 사용량: { ...턴합, partial: true, costUsd: null, model: 턴모델 } };
+  }
+
+  // result 가 왔으면 끝까지 돈 것이다 — 사용량 칸이 판마다 달라도 끊김으로 세지 않는다
+  let 합 = 턴합;
+  let 모델 = 턴모델;
+  if (결과.modelUsage !== undefined) {
     // 하위 에이전트·보조 호출까지 든 넓은 합이다 — 메인 루프의 usage 는 그보다 좁다 (2026-09-27 실측)
     const 출력 = new Map<string, number>();
-    const 합 = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
-    for (const [모델, m] of Object.entries(결과.modelUsage)) {
+    합 = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+    for (const [이름, m] of Object.entries(결과.modelUsage)) {
       합.input += 수(m.inputTokens);
       합.output += 수(m.outputTokens);
       합.cacheRead += 수(m.cacheReadInputTokens);
       합.cacheWrite += 수(m.cacheCreationInputTokens);
-      출력.set(모델, 수(m.outputTokens));
+      출력.set(이름, 수(m.outputTokens));
     }
-    const 비용 = 결과.total_cost_usd;
-    return {
-      글: typeof 결과.result === 'string' ? 결과.result : 글들.join('\n'),
-      사용량: {
-        ...합,
-        partial: false,
-        costUsd: typeof 비용 === 'number' && Number.isFinite(비용) && 비용 >= 0 ? 비용 : null,
-        model: 가장많이쓴(출력),
-      },
+    모델 = 가장많이쓴(출력) ?? 턴모델;
+  } else if (결과.usage !== undefined) {
+    합 = {
+      input: 수(결과.usage.input_tokens),
+      output: 수(결과.usage.output_tokens),
+      cacheRead: 수(결과.usage.cache_read_input_tokens),
+      cacheWrite: 수(결과.usage.cache_creation_input_tokens),
     };
   }
-
-  const 출력 = new Map<string, number>();
-  const 합 = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
-  for (const { model, usage } of 턴들.values()) {
-    합.input += 수(usage.input_tokens);
-    합.output += 수(usage.output_tokens);
-    합.cacheRead += 수(usage.cache_read_input_tokens);
-    합.cacheWrite += 수(usage.cache_creation_input_tokens);
-    if (model !== '') 출력.set(model, (출력.get(model) ?? 0) + 수(usage.output_tokens));
-  }
-  return { 글: 글들.join('\n'), 사용량: { ...합, partial: true, costUsd: null, model: 가장많이쓴(출력) } };
+  const 비용 = 결과.total_cost_usd;
+  return {
+    글: typeof 결과.result === 'string' ? 결과.result : 글들.join('\n'),
+    사용량: {
+      ...합,
+      partial: false,
+      costUsd: typeof 비용 === 'number' && Number.isFinite(비용) && 비용 >= 0 ? 비용 : null,
+      model: 모델,
+    },
+  };
 }
 
 /** 에이전트 로그에 흘릴 한 줄. 도구 결과·사고는 흘리지 않는다 — 훑은 화면 글과 계정 원문이 섞일 수 있다 */

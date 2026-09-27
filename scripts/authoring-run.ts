@@ -30,7 +30,7 @@ import {
 import { 머지처리 } from './authoring-merge.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
-import { 사용량보고, 흘릴줄 } from './authoring-usage.js';
+import { 사용량보고, 흐름풀기, 흘릴줄 } from './authoring-usage.js';
 import { type 폴더자리 } from './authoring-token.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
@@ -252,14 +252,16 @@ async function 사본에서(
   });
   // 에이전트가 거절로 멈추는 중이면 자식을 죽인 것이다 — 서버도 받아 주지 않으니 보고하지 않는다
   if (멈춤.까닭 !== null) return;
-  // ★ 어떤 끝내기보다 먼저 — 끝난 행에는 서버가 409 라 시간초과 건의 토큰이 버려진다 (작성 §7 「토큰 사용량」)
-  const 풀린 = await 사용량보고({ 주소기지, 토큰 }, 서비스, 것.id, 돌린것.낸것);
+  // ★ 어떤 끝내기보다 먼저 — 끝난 행에는 서버가 409 라 시간초과 건의 토큰이 버려진다 (작성 §7 「토큰 사용량」).
+  // claude 가 아예 안 떴으면 쓴 토큰이 없다 — 0 을 보내면 「돌렸는데 0」으로 읽혀 대시보드 중간값을 끌어내린다
+  const 안떴다 = 돌린것.코드 === null && !돌린것.시간초과;
+  const 풀린 = 안떴다 ? 흐름풀기(돌린것.낸것) : await 사용량보고({ 주소기지, 토큰 }, 서비스, 것.id, 돌린것.낸것);
   // 검사 전에 자식이 남긴 것을 전부 죽인다 — 살아 있으면 검사한 뒤에 파일을 바꿔치기한다
   if (!(await 자식거두기(자식))) {
     await 손.끝내기({ status: 'FAILED', error: '자식이 남긴 프로세스를 거두지 못했다 — 올리지 않는다' });
     return;
   }
-  if (돌린것.코드 === null && !돌린것.시간초과) {
+  if (안떴다) {
     // 자식 stderr 에 계정 원문이 섞일 수 있다 — 사유는 화면과 서버 기록에 남는다
     const 끝줄 = 돌린것.오류.trim().split('\n').pop() ?? '';
     await 손.끝내기({ status: 'FAILED', error: 사유거르기(`claude 를 못 띄웠다: ${끝줄}`, 것.target?.loginPassword) });

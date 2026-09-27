@@ -98,10 +98,11 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     const 둘째 = await 요청('AUTHOR', 'DONE', false, '2 days', '2 days - 10 minutes', '2 days - 70 minutes');
     await 요청('AUTHOR', 'DONE', false, '2 days', '2 days - 10 minutes', '2 days - 100 minutes');
     await 요청('AUTHOR', 'DONE', false, '31 days', '29 days 60 minutes', '29 days');
-    await 요청('AUTHOR', 'DONE', true, '1 day', '1 day - 20 minutes', '1 day - 260 minutes');
+    const 대조 = await 요청('AUTHOR', 'DONE', true, '1 day', '1 day - 20 minutes', '1 day - 260 minutes');
     const 실패 = await 요청('AUTHOR', 'FAILED', false, '1 day', '1 day - 5 minutes', '1 day - 65 minutes');
     const 재실행 = await 요청('RERUN', 'DONE', false, '1 day', '1 day - 5 minutes', '1 day - 600 minutes', 첫);
     const 옛것 = await 요청('AUTHOR', 'DONE', false, '41 days', '41 days - 5 minutes', '40 days');
+    const 재실행실패 = await 요청('RERUN', 'FAILED', false, '1 day', '1 day - 5 minutes', '1 day - 30 minutes', 첫);
 
     const 사용량 = [
       [첫, 100, 50, 1000, 200, false, 1.0],
@@ -109,6 +110,8 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
       [실패, 40, 10, 400, 0, true, null],
       [재실행, 10, 5, 0, 0, false, 0.1],
       [옛것, 9000, 9000, 9000, 9000, false, 99],
+      [대조, 1000, 1000, 0, 0, false, 5],
+      [재실행실패, 7, 3, 0, 0, false, 0.05],
     ] as const;
     for (const [id, 입력, 출력, 캐시읽기, 캐시쓰기, 끊김, 비용] of 사용량) {
       await pool.query(
@@ -207,8 +210,8 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
       expect(Number(보통!['비용 있는 요청'])).toBe(2);
     });
 
-    it('끊긴 요청은 시간초과 줄 — 비용이 없어 비용 있는 요청이 0 이다', async () => {
-      const 끊김 = await 줄('보통', '시간초과');
+    it('끊긴 요청은 끊김 줄 — 비용이 없어 비용 있는 요청이 0 이다', async () => {
+      const 끊김 = await 줄('보통', '끊김');
       expect(끊김).toBeDefined();
       expect(Number(끊김!['요청 수'])).toBe(1);
       expect(Number(끊김!['토큰 합계'])).toBe(450);
@@ -222,7 +225,12 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
       const 전부 = (await 읽기전용.query<Record<string, string>>(패널SQL('작성 토큰'))).rows.filter(
         (r) => r['서비스'] === 'XDH 작성 현황',
       );
-      expect(전부.reduce((합, r) => 합 + Number(r['토큰 합계']), 0)).toBe(4750 + 450 + 15);
+      expect(전부.reduce((합, r) => 합 + Number(r['토큰 합계']), 0)).toBe(4750 + 450 + 15 + 2000 + 10);
+    });
+
+    it('대조는 방식이 따로고, 끊기지 않은 실패는 그 밖 실패다', async () => {
+      expect(Number((await 줄('화면과 대조', '성공'))!['토큰 합계'])).toBe(2000);
+      expect(Number((await 줄('재실행', '그 밖 실패'))!['토큰 합계'])).toBe(10);
     });
   });
 });

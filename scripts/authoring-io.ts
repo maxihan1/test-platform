@@ -206,6 +206,11 @@ export function 돌린다(
     자식.on('close', (코드) => 끝(코드));
     // 자손(Chromium·백그라운드 셸)이 출력 통로를 쥐고 남으면 close 가 안 온다 — 끝난 뒤 조금 기다렸다 통로를 닫고 끝낸다.
     // 리눅스 sh(dash)는 `sh -c 'x'` 에서 x 를 따로 띄워 CI 에서 드러났다 (2026-09-24). 남은 자손은 거두기가 죽인다
+    자식.stdout.on('end', () => {
+      // 줄바꿈 없이 끝난 마지막 줄 — 사용량은 낸것에 이미 있고 로그만 빠진다
+      const 흘릴것 = 반쪽 === '' ? null : (선택.흘림줄?.(반쪽) ?? null);
+      if (흘릴것 !== null) process.stdout.write(`${흘릴것}\n`);
+    });
     자식.on('exit', (코드) => {
       setTimeout(() => {
         자식.stdout.destroy();

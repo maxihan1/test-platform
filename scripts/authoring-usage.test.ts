@@ -56,6 +56,34 @@ describe('흐름풀기 — 정상 종료', () => {
   });
 });
 
+describe('흐름풀기 — result 는 왔는데 modelUsage 가 없다 (CLI 판 차이)', () => {
+  it('끝까지 돈 것이다 — 결과 글·비용을 쓰고 result.usage 로 센다', () => {
+    const 결과 = JSON.stringify({
+      type: 'result',
+      result: '요약',
+      total_cost_usd: 0.5,
+      usage: { input_tokens: 4, output_tokens: 40, cache_read_input_tokens: 400, cache_creation_input_tokens: 4000 },
+    });
+    const 풀린 = 흐름풀기([턴('m1', 1), 결과].join('\n'));
+    expect(풀린.글).toBe('요약');
+    expect(풀린.사용량).toEqual({
+      input: 4,
+      output: 40,
+      cacheRead: 400,
+      cacheWrite: 4000,
+      partial: false,
+      costUsd: 0.5,
+      model: 'claude-opus-5-5',
+    });
+  });
+
+  it('usage 도 없으면 턴 합으로 세되 끊김은 아니다', () => {
+    const 풀린 = 흐름풀기([턴('m1', 7), JSON.stringify({ type: 'result', result: '끝' })].join('\n'));
+    expect(풀린.글).toBe('끝');
+    expect(풀린.사용량).toMatchObject({ output: 7, partial: false, costUsd: null });
+  });
+});
+
 describe('흐름풀기 — 끊김 (result 없음)', () => {
   it('턴 이벤트를 메시지 id 마다 한 번 더하고 하한값으로 표시한다', () => {
     const 풀린 = 흐름풀기(결과빼고);

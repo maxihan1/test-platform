@@ -18,9 +18,10 @@ export interface 사용량값 {
 const 토큰 = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0;
 
 /** 본문 모양을 본다. 틀리면 null — 한 칸이라도 이상하면 통째로 거절한다(부분 저장은 대시보드를 속인다) */
-export function 사용량읽기(몸: Record<string, unknown> | undefined): 사용량값 | null {
-  if (몸 === undefined) return null;
-  const { input, output, cacheRead, cacheWrite, partial, costUsd, model } = 몸;
+export function 사용량읽기(몸: unknown): 사용량값 | null {
+  // JSON null·배열이 오면 구조 분해가 TypeError 로 500 을 낸다 — 모양이 틀린 본문일 뿐이다
+  if (typeof 몸 !== 'object' || 몸 === null || Array.isArray(몸)) return null;
+  const { input, output, cacheRead, cacheWrite, partial, costUsd, model } = 몸 as Record<string, unknown>;
   if (!토큰(input) || !토큰(output) || !토큰(cacheRead) || !토큰(cacheWrite)) return null;
   if (typeof partial !== 'boolean') return null;
   if (costUsd !== undefined && !(typeof costUsd === 'number' && Number.isFinite(costUsd) && costUsd >= 0)) return null;
@@ -62,7 +63,9 @@ export async function 사용량통로(app: FastifyInstance): Promise<void> {
       const 값 = 사용량읽기(req.body);
       if (값 === null) return reply.code(400).send({ error: 'BAD_USAGE' });
       if (!(await 사용량남기기(행.id, req.user?.username ?? '', 값))) {
-        return reply.code(409).send({ error: 'USAGE_TAKEN' });
+        // 끝난 행과 두 번째 알림을 가른다 — 둘 다 「이미 받았다」면 순서가 어긋나 버려진 것이 로그에서 가려진다
+        const 이유 = 행.status === 'RUNNING' ? 'USAGE_TAKEN' : 'NOT_RUNNING';
+        return reply.code(409).send({ error: 이유 });
       }
       return { ok: true };
     },

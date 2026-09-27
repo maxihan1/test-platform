@@ -114,9 +114,22 @@ describe.skipIf(연결 === undefined)('작성 토큰 사용량', () => {
     expect((await 칸들(id)).tokens_input).toBe('952');
   });
 
-  it('끝난 행은 409 — 그래서 에이전트는 끝내기보다 먼저 보낸다', async () => {
+  it('끝난 행은 409 NOT_RUNNING — 그래서 에이전트는 끝내기보다 먼저 보낸다', async () => {
     const id = await 행('DONE');
-    expect((await 알리기(id, 좋은몸)).statusCode).toBe(409);
+    const r = await 알리기(id, 좋은몸);
+    expect(r.statusCode).toBe(409);
+    expect(r.json()).toEqual({ error: 'NOT_RUNNING' });
+  });
+
+  it('본문이 JSON null 이면 400 — 500 이 아니다', async () => {
+    const id = await 행('RUNNING');
+    const r = await app.inject({
+      method: 'POST',
+      url: `/api/authoring/requests/${id}/usage`,
+      headers: { 'content-type': 'application/json' },
+      payload: 'null',
+    });
+    expect(r.statusCode).toBe(400);
   });
 
   it('남이 집은 행은 403', async () => {
