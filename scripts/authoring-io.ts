@@ -161,12 +161,14 @@ export interface 돌린결과 {
 export function 돌린다(
   명령: string,
   인자: string[],
-  선택: 칠때 & { cwd: string; input?: string; 제한?: number; 흘림?: boolean },
+  선택: 칠때 & { cwd: string; input?: string; 제한?: number; 흘림?: boolean; 흘림줄?: (줄: string) => string | null },
 ): Promise<돌린결과> {
   return new Promise((resolve) => {
     let 낸것 = '';
     let 오류 = '';
     let 시간초과 = false;
+    // 흘림줄이 있으면 표준출력을 줄로 잘라 고른 것만 흘린다. 조각이 줄 가운데서 끊기므로 남은 반쪽을 들고 있다
+    let 반쪽 = '';
     const 자식 = spawn(명령, 인자, { cwd: 선택.cwd, env: 선택.env, uid: 선택.uid, gid: 선택.gid });
     도는자식.add(자식);
     const 시계 = setTimeout(() => {
@@ -174,8 +176,16 @@ export function 돌린다(
       자식.kill('SIGKILL');
     }, 선택.제한 ?? 120_000);
     자식.stdout.on('data', (조각: Buffer) => {
-      낸것 += 조각.toString('utf8');
-      if (선택.흘림) process.stdout.write(조각);
+      const 글 = 조각.toString('utf8');
+      낸것 += 글;
+      if (선택.흘림줄 !== undefined) {
+        const 줄들 = (반쪽 + 글).split('\n');
+        반쪽 = 줄들.pop() ?? '';
+        for (const 줄 of 줄들) {
+          const 흘릴것 = 선택.흘림줄(줄);
+          if (흘릴것 !== null) process.stdout.write(`${흘릴것}\n`);
+        }
+      } else if (선택.흘림) process.stdout.write(조각);
     });
     자식.stderr.on('data', (조각: Buffer) => {
       오류 += 조각.toString('utf8');

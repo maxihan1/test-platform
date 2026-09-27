@@ -30,6 +30,7 @@ import {
 import { 머지처리 } from './authoring-merge.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
+import { 사용량보고, 흘릴줄 } from './authoring-usage.js';
 import { type 폴더자리 } from './authoring-token.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
@@ -243,9 +244,16 @@ async function 사본에서(
     gid: 자식?.gid,
     제한: 60 * 60_000,
     흘림: true,
+    // 이벤트 줄을 그대로 흘리면 훑은 화면 글·계정 원문이 로그에 남는다 — 도구 이름과 글 첫 줄만
+    흘림줄: (줄) => {
+      const 글 = 흘릴줄(줄);
+      return 글 === null ? null : `[작성] ${것.id}번 ${글}`;
+    },
   });
   // 에이전트가 거절로 멈추는 중이면 자식을 죽인 것이다 — 서버도 받아 주지 않으니 보고하지 않는다
   if (멈춤.까닭 !== null) return;
+  // ★ 어떤 끝내기보다 먼저 — 끝난 행에는 서버가 409 라 시간초과 건의 토큰이 버려진다 (작성 §7 「토큰 사용량」)
+  const 풀린 = await 사용량보고({ 주소기지, 토큰 }, 서비스, 것.id, 돌린것.낸것);
   // 검사 전에 자식이 남긴 것을 전부 죽인다 — 살아 있으면 검사한 뒤에 파일을 바꿔치기한다
   if (!(await 자식거두기(자식))) {
     await 손.끝내기({ status: 'FAILED', error: '자식이 남긴 프로세스를 거두지 못했다 — 올리지 않는다' });
@@ -258,7 +266,8 @@ async function 사본에서(
     return;
   }
   if (돌린것.코드 !== 0) {
-    const 한도 = 한도걸렸나(`${돌린것.낸것}\n${돌린것.오류}`);
+    // stream 전체에는 훑은 화면 글이 들어 있다 — 결과 글과 표준 오류로만 본다
+    const 한도 = 한도걸렸나(`${풀린.글}\n${돌린것.오류}`);
     await 손.끝내기({
       status: 'FAILED',
       error: 한도
@@ -276,7 +285,7 @@ async function 사본에서(
     서비스,
     판.판정,
     기준,
-    돌린것.낸것,
+    풀린.글,
     손,
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 화면만, 입력자료: 자료들 },
   );

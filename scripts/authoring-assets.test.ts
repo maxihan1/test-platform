@@ -201,4 +201,10 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
   it('--bare 는 없다', () => {
     expect(클로드인자('/t', 기본모델)).not.toContain('--bare');
   });
+
+  it('stream-json 으로 돌린다 — 끊겨도 토큰을 센다 (작성 §7 「토큰 사용량」)', () => {
+    const 인자 = 클로드인자('/t', 기본모델);
+    expect(인자[인자.indexOf('--output-format') + 1]).toBe('stream-json');
+    expect(인자).toContain('--verbose');
+  });
 });
