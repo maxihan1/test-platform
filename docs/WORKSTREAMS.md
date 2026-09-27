@@ -98,6 +98,12 @@
   **올릴 사본 자체에서 비밀번호·피그마 토큰을 찾는다** · 푼 바이트를 세어 합계 60MB·파트 10MB 상한(머리글 크기를 안 믿는다) · 다시 묶기는 DEFLATE · 피그마 401·403 한 번이면 남은 댓글 멈춤.
   자식은 `diffs.json` 에 `asset`(자료 번호)·`anchor`(문장 그대로)·`node` 를 적고 에이전트는 서버로 보내기 전에 뺀다. jszip 정식 의존성(2026-09-26 사용자 승인).
   코드 `scripts/authoring-mark.ts`(판정) · `authoring-docx.ts`(워드) · `authoring-marking.ts`(껍데기).
+- **WS-작성 토큰 사용량 · 훑기 「한 칸」 — 반영 완료 (2026-09-27, PR #86).** 5871(데모마켓 대조)이 홈에서 메뉴 전체를 한 칸으로 읽어 38장을 45분 훑고 60분에 걸려 결과 0 · 토큰도 몰랐다.
+  자식을 `--output-format stream-json --verbose` 로 돌려 **어떤 끝내기보다 먼저** `POST …/:id/usage` 로 알린다(정상 = `modelUsage`, 끊김 = 메시지 id 마다 마지막 사본 · `tokens_partial` 하한값) ·
+  칸 `tokens_input·output·cache_read·cache_write·partial` · `cost_usd`(API 환산, 청구 아님) · `tokens_model` · 결과 요약·한도 판정은 `result` 글로 · 로그는 도구 이름·글 첫 줄만.
+  훑기 — 대조의 「한 칸」은 그 화면 안(팝업·탭·펼치기·다음 단계)만 · 화면만은 메뉴 1단계 · **30분 예산** · 본 화면은 작업방 안 `screens/` 파일에.
+  Grafana `작성 토큰` 패널(리포팅 §8.5). 코드 `scripts/authoring-usage.ts` · `apps/admin/src/authoring/usage.ts`. **남은 것** — 데모마켓 대조를 다시 넣어 60분 안에 끝나는지·토큰을 패널에서 본다.
+  **`scripts/authoring-io.ts` 가 323줄** — 300줄 넘은 파일, 분리 대상(원래 313)
   `source_asset_id` 는 명세대로 `ON DELETE` 규칙이 없다 — 표시 사본이 있는 원본 자료를 한 건만 지우면 거절된다(요청째 지우면 괜찮다). 한 건 지우기(`assetStore.ts` `자료지우기`)는 지금 DRAFT 실패 정리에만 쓰여 해가 없다.
   **PDF 스티커 메모는 새 npm 패키지 승인 뒤다**(CLAUDE.md §3) — 그 전에는 차이 목록만 낸다.
   **실제 한 바퀴는 아직이다** — 서버 `author` 컨테이너에서 테스트 계정을 넣은 대상 서버로 역방향 요청 하나를 돌려 본다
