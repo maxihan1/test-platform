@@ -4,7 +4,7 @@
 // 앞 판은 같은 이유로 본문을 붙여 넣게 했는데 **기획서가 PDF·워드로 오고 피그마가 같이 와서** 접었다 —
 // 글만 붙이면 표와 그림이 빠진다 (2026-09-23, CLAUDE.md §2.7 ②)
 //
-// 보내기는 세 걸음이다 — 만들기(DRAFT) → 파일마다 올리기 → 줄에 세우기.
+// 작성 시작은 세 걸음이다 — 만들기(DRAFT) → 파일마다 올리기 → 줄에 세우기.
 // 다 올리기 전에 줄에 서면 맥이 집어 가서 빈 것을 보고 실패한다
 
 import { useState } from 'react';
@@ -61,7 +61,8 @@ export function AuthoringNew({
   service: string;
   /** 띠의 서비스가 가진 대상 서버. 계정 여부는 모른다 — `/auth/me` 에는 안 온다 (도메인/인증 §7) */
   envs?: EnvRow[];
-  on넣었다: () => void;
+  /** 줄에 세운 요청 번호. 목록이 시작 모달을 연다 */
+  on넣었다: (id: number) => void;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -136,7 +137,7 @@ export function AuthoringNew({
     set피그마('');
     set시작주소('');
     set보내는중(false);
-    on넣었다();
+    on넣었다(id);
   }
 
   return (
@@ -205,7 +206,7 @@ export function AuthoringNew({
         ) : null}
       </div>
       <button className="btn" type="submit" disabled={못보낸다 || 보내는중}>
-        {보내는중 ? t('보내는 중') : t('보내기')}
+        {보내는중 ? t('시작하는 중…') : t('테스트 작성 시작')}
       </button>
       {[...거절].map(([이유, 이름들]) => (
         <span key={이유} className="error-text">

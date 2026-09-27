@@ -1,7 +1,7 @@
 // 작성 요청 한 건의 Status 카드 — 단계 막대 · 진척 · 시간 막대 · 숫자 칸 · 방금 한 일. 상세 페이지와 시작 모달이 같이 쓴다 (DESIGN.md 「작성 상태」)
 
 import type { AuthoringRow } from './api.js';
-import { 단계이름들, 단계자리, 시간판, 진척, 진척이찼나, 짧은수 } from './authoringStatus.js';
+import { 단계글라벨, 단계라벨, 단계이름들, 단계자리, 시간판, 진척, 진척이찼나, 짧은수 } from './authoringStatus.js';
 import { 보임라벨, 줄보임, 중단이유라벨, type 보임 } from './authoringView.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 시간글자 } from './RunProgressModal.js';
@@ -74,7 +74,7 @@ export function AuthoringStatusCard({ 요청, 지금, service }: { 요청: Autho
                 <span className="m" aria-hidden="true">
                   {끝낸 ? '✓' : 모양 === 'fail' ? '!' : 모양 === 'halt' ? '‖' : ''}
                 </span>
-                {t(이름)}
+                {단계라벨(이름, 언어)}
               </li>
             );
           })}
@@ -169,7 +169,7 @@ export function AuthoringStatusCard({ 요청, 지금, service }: { 요청: Autho
         ) : 요청.stage === null ? null : (
           <div className="status-now">
             <span className="status-label">{t('지금 하는 일')}</span>
-            <span className="one-line">{요청.stage}</span>
+            <span className="one-line">{단계글라벨(요청.stage, 언어)}</span>
           </div>
         )
       ) : null}

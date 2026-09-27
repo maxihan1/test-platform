@@ -59,17 +59,27 @@ function 피그마를적는다(글: string) {
   fireEvent.change(screen.getByLabelText('피그마 주소'), { target: { value: 글 } });
 }
 
-const 보내기 = () => screen.getByRole('button', { name: '보내기' });
+const 보내기 = () => screen.getByRole('button', { name: '테스트 작성 시작' });
 
 describe('새 작성 요청 — 자료 목록', () => {
   it('파일 둘과 피그마 한 줄이면 만들기 하나 → 올리기 둘 → 세우기 하나 순서로 부른다', async () => {
     let 넣었다 = 0;
-    render(<AuthoringNew service="PAY" on넣었다={() => (넣었다 += 1)} />);
+    let 받은번호 = 0;
+    render(
+      <AuthoringNew
+        service="PAY"
+        on넣었다={(n) => {
+          넣었다 += 1;
+          받은번호 = n;
+        }}
+      />,
+    );
     파일을고른다('결제 기획서.pdf', '화면정의서.docx');
     피그마를적는다('https://www.figma.com/design/AbC/결제?node-id=12-34&t=xY\n\n');
     fireEvent.click(보내기());
 
     await waitFor(() => expect(넣었다).toBe(1));
+    expect(받은번호).toBe(7);
     expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '올리기', '세우기']);
     expect(부름[0]?.값).toEqual({
       service: 'PAY',
@@ -116,7 +126,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     파일을고른다('기획서.pdf');
     fireEvent.click(보내기());
 
-    const 꺼진것 = await screen.findByRole('button', { name: '보내는 중' });
+    const 꺼진것 = await screen.findByRole('button', { name: '시작하는 중…' });
     expect(꺼진것).toHaveProperty('disabled', true);
     풀기({ id: 1 });
   });

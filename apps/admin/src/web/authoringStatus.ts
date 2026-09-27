@@ -1,9 +1,22 @@
 // 작성 요청 한 건을 Status 카드의 단계 막대 · 시간 막대로 바꾸는 판단. 그림은 AuthoringStatusCard.tsx (DESIGN.md 「작성 상태」)
 
 import type { AuthoringProgress, AuthoringRow } from './api.js';
+import { t, type 언어 } from './i18n.js';
 
-/** 단계 막대의 다섯 칸. 이름(말 키)은 카드가 붙인다 — 여기는 자리만 다룬다 */
+/** 단계 막대의 다섯 칸 (말 키) */
 export const 단계이름들 = ['준비', '자료 받기', '케이스 작성', '올리기·PR', '완료'] as const;
+
+export function 단계라벨(이름: (typeof 단계이름들)[number], 언어: 언어): string {
+  return t(이름, 언어);
+}
+
+/**
+ * 에이전트가 올린 단계 글을 화면 말로. 아는 글은 영어 표에 있어 번역되고, 모르는 글은 그대로 나간다 —
+ * `t()` 는 표에 없는 키를 그대로 돌려준다
+ */
+export function 단계글라벨(글: string, 언어: 언어): string {
+  return t(글, 언어);
+}
 
 /**
  * 에이전트가 올리는 단계 글 → 칸 자리.

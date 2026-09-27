@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 
 import { api, type AuthoringRow, type EnvRow, type Paged } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
+import { AuthoringStartModal } from './AuthoringStartModal.js';
 import { 보임라벨, 종류라벨, 줄보임, type 보임 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
@@ -19,7 +20,7 @@ function 표머리() {
     <div className="rowhead runhead" role="row">
       <span aria-hidden="true" />
       <span role="columnheader">{t('번호')}</span>
-      <span role="columnheader">{t('작업 단계')}</span>
+      <span role="columnheader">{t('지금 하는 일')}</span>
       <span role="columnheader">{t('상태')}</span>
       <span aria-hidden="true" />
     </div>
@@ -59,6 +60,8 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
 export function Authoring({ service, envs = [] }: { service: string; envs?: EnvRow[] }) {
   const t = use말();
   const [page, setPage] = useState(1);
+  // 방금 줄에 세운 요청. 시작 모달이 이것을 보인다 — 닫으면 null
+  const [방금, set방금] = useState<number | null>(null);
   // 서비스를 바꾸면 첫 쪽으로. 안 그러면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
   const [본서비스, set본서비스] = useState(service);
   if (본서비스 !== service) {
@@ -89,7 +92,10 @@ export function Authoring({ service, envs = [] }: { service: string; envs?: EnvR
       <Head 제목={t('테스트 작성')} 부제={t('모두 {건수}건', { 건수: 줄들.data.total })} />
 
       <div className="screen list-screen">
-        <AuthoringNew service={service} envs={envs} on넣었다={() => 줄들.reload()} />
+        <AuthoringNew service={service} envs={envs} on넣었다={(id) => {
+            줄들.reload();
+            set방금(id);
+          }} />
 
         <div className="rows-scroll">
           {줄들.data.items.length === 0 ? (
@@ -118,6 +124,8 @@ export function Authoring({ service, envs = [] }: { service: string; envs?: EnvR
           </div>
         )}
       </div>
+
+      {방금 === null ? null : <AuthoringStartModal service={service} id={방금} onClose={() => set방금(null)} />}
     </>
   );
 }

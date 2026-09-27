@@ -74,13 +74,13 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
             <AuthoringStatusCard 요청={data} 지금={Date.now()} service={service} />
 
             {차이들 === null ? null : (
-              <section className="authoring-panel" aria-label={t('기획서와 화면의 차이')}>
+              <section className="authoring-panel">
                 <h3>
                   {t('기획서와 화면의 차이')} · {t('{수}건', { 수: 차이들.length })}
                 </h3>
                 {/* 좁은 화면에서 일곱 칸이 쪼개지지 않게 표만 옆으로 구른다 (DESIGN.md 「반응형」) */}
                 <div className="authoring-diffs-wrap">
-                  <table className="dhist authoring-diffs">
+                  <table className="dhist authoring-diffs" aria-label={t('기획서와 화면의 차이')}>
                     <thead>
                       <tr>
                         <th>{t('번호')}</th>
