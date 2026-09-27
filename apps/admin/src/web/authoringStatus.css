@@ -108,6 +108,9 @@
 /* 카드 밑 안내 한 줄(응답 없음 · 중단하는 중 · 올리는 중 · 폐기됨) */
 .status-notes { display: grid; gap: 2px; color: var(--ink-faint); font-size: 12px; }
 
+/* 상세 페이지는 카드들이 제각각 떠 있다. 공용 .screen 의 흰 판을 걷는다 — 판 위에 카드를 또 띄우면 테두리가 겹친다 */
+.screen.authoring-page { background: none; border: 0; box-shadow: none; overflow: visible; }
+
 /* 상세 두 단 — 왼쪽 카드 · 차이, 오른쪽 해야 할 일 · 요청 정보 */
 .authoring-cols { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .authoring-col { display: grid; gap: 16px; min-width: 0; }
@@ -130,8 +133,21 @@
   padding-bottom: 6px;
   border-bottom: 1px solid var(--chrome);
 }
-.authoring-panel dl.detail { margin: 0; }
-.authoring-panel ol.authoring-assets { margin: 0; }
+/* 공용 .detail 은 회색 띠 상자다. 판 안에서는 이름 | 값 두 칸이면 된다 — 상자 안에 상자를 겹치지 않는다 */
+.authoring-panel dl.detail {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  font-size: 13.5px;
+}
+.authoring-panel dl.detail dt { color: var(--ink-faint); }
+.authoring-panel dl.detail dd { margin: 0; overflow-wrap: anywhere; }
+.authoring-panel ol.authoring-assets { margin: 0; padding-left: 20px; font-size: 13.5px; display: grid; gap: 4px; }
+.authoring-panel ol.authoring-assets a { color: var(--ink); }
 .authoring-panel .authoring-diffs-wrap { margin-top: 0; }
 
 /* 해야 할 일 — 사람이 움직여야 하는 것만. 판정 색이 아니라 잉크 테두리로 앞에 세운다 */
@@ -181,8 +197,14 @@
 @media (max-width: 860px) {
   .authoring-cols { grid-template-columns: minmax(0, 1fr); }
 }
+/* 차이 표는 좁은 판에서 칸이 글자 단위로 쪼개진다. 최소 폭을 줘 감싼 칸만 옆으로 구르게 한다 (DESIGN.md 「반응형」) */
+.authoring-panel .authoring-diffs { min-width: 640px; }
+
 @media (max-width: 480px) {
-  .status-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* 셋을 둘로 접으면 빈 칸이 하나 남는다 — 셋을 두고 글자만 줄인다 */
+  .status-facts > div { padding: 8px; }
+  .status-facts .status-label { font-size: 11px; }
+  .status-facts b { font-size: 15px; }
   .status-steps li { font-size: 11px; }
   .status-row { grid-template-columns: minmax(0, 1fr); }
 }

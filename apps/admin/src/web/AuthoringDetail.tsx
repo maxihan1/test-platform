@@ -68,7 +68,7 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
           자리 이름(`테스트 작성`)을 또 쓰면 어느 요청을 보고 있는지가 안 보인다 */}
       <Head 제목={`#${String(data.id)}`} 부제={부제} />
 
-      <div className="screen">
+      <div className="screen authoring-page">
         <div className="authoring-cols">
           <div className="authoring-col">
             <AuthoringStatusCard 요청={data} 지금={Date.now()} service={service} />

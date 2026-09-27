@@ -104,6 +104,25 @@ export function 시간판(행: AuthoringRow, 지금: number): 시간 {
   return { 시작, 끝, 걸린ms, 한도 };
 }
 
+/**
+ * 목록 한 줄의 글. 에이전트의 날것 단계 글(`끝` · 빈 칸)을 그대로 보이지 않는다 —
+ * 도는 것은 지금 하는 일, 끝난 것은 결과 한 문장이다 (2026-09-28 사용자 「워딩이 이상하다」)
+ */
+export function 목록글(행: AuthoringRow, 언어: 언어): string {
+  if (행.status === 'DRAFT') return t('자료를 올리는 중', 언어);
+  if (행.status === 'PENDING') return t('에이전트가 집어 가기를 기다리는 중', 언어);
+  if (행.status === 'RUNNING') return 행.stage === null ? t('준비', 언어) : 단계글라벨(행.stage, 언어);
+  if (행.status === 'FAILED') return 행.error?.split('\n')[0] ?? t('실패', 언어);
+  if (행.status === 'STOPPED') {
+    const 칸 = 단계자리(행)?.지금 ?? 0;
+    return t('{단계} 단계에서 멈췄습니다', 언어, { 단계: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
+  }
+  if (행.kind === 'MERGE') return t('테스트 반영 완료', 언어);
+  return 진척이찼나(행.progress)
+    ? t('케이스 파일 {수}개를 만들었습니다', 언어, { 수: 행.progress.caseFiles })
+    : t('테스트 코드를 PR 로 올렸습니다', 언어);
+}
+
 const 줄임 = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
 
 /** 1234567 → 1.2M. 칸이 좁고 하한값이라 자릿수까지 셀 까닭이 없다 */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AuthoringProgress, AuthoringRow } from './api.js';
-import { 다시작성되나, 단계자리, 시간판, 진척, 짧은수 } from './authoringStatus.js';
+import { 다시작성되나, 단계자리, 목록글, 시간판, 진척, 짧은수 } from './authoringStatus.js';
 
 const 기준 = Date.parse('2026-09-28T13:20:00Z');
 
@@ -112,6 +112,23 @@ describe('짧은수', () => {
   it('큰 수는 줄여 쓴다', () => {
     expect(짧은수(1_234_567)).toBe('1.2M');
     expect(짧은수(124)).toBe('124');
+  });
+});
+
+describe('목록글', () => {
+  it('상태마다 사람이 읽는 한 문장을 낸다', () => {
+    expect(목록글(줄({ status: 'PENDING', startedAt: null }), 'ko')).toBe('에이전트가 집어 가기를 기다리는 중');
+    expect(목록글(줄({ status: 'DRAFT', startedAt: null }), 'ko')).toBe('자료를 올리는 중');
+    expect(목록글(줄({ stage: '케이스를 만드는 중' }), 'ko')).toBe('케이스를 만드는 중');
+    expect(목록글(줄({ stage: null }), 'ko')).toBe('준비');
+  });
+
+  it('끝난 것은 결과를 말한다 — 날것 단계 글(끝)을 보이지 않는다', () => {
+    expect(목록글(줄({ status: 'DONE', stage: '끝', progress: 도는진척 }), 'ko')).toBe('케이스 파일 3개를 만들었습니다');
+    expect(목록글(줄({ status: 'DONE', stage: '끝' }), 'ko')).toBe('테스트 코드를 PR 로 올렸습니다');
+    expect(목록글(줄({ status: 'DONE', kind: 'MERGE', stage: '끝' }), 'ko')).toBe('테스트 반영 완료');
+    expect(목록글(줄({ status: 'STOPPED', stage: '케이스를 만드는 중' }), 'ko')).toBe('케이스 작성 단계에서 멈췄습니다');
+    expect(목록글(줄({ status: 'FAILED', error: '자료를 못 받았다\n자세히' }), 'ko')).toBe('자료를 못 받았다');
   });
 });
 

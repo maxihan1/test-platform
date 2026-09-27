@@ -85,6 +85,13 @@ export const 작성말: Record<string, string> = {
   '역방향 산출물을 올리는 중': 'Uploading reverse outputs',
   '원본에 차이를 표시하는 중': 'Marking differences on the original',
 
+  // 목록 한 줄 — 날것 단계 글 대신 (authoringStatus.ts 의 목록글)
+  '진행 상황': 'Progress',
+  '{단계} 단계에서 멈췄습니다': 'Stopped at {단계}',
+  '테스트 반영 완료': 'Tests merged',
+  '케이스 파일 {수}개를 만들었습니다': 'Made {수} case files',
+  '테스트 코드를 PR 로 올렸습니다': 'Opened the test code as a PR',
+
   // 해야 할 일
   '해야 할 일': 'To do',
   '에이전트 응답이 끊겼습니다. 작성 중단을 누른 뒤 다시 작성하세요':

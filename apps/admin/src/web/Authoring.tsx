@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { api, type AuthoringRow, type EnvRow, type Paged } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
 import { AuthoringStartModal } from './AuthoringStartModal.js';
+import { 목록글 } from './authoringStatus.js';
 import { 보임라벨, 종류라벨, 줄보임, type 보임 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
@@ -20,7 +21,7 @@ function 표머리() {
     <div className="rowhead runhead" role="row">
       <span aria-hidden="true" />
       <span role="columnheader">{t('번호')}</span>
-      <span role="columnheader">{t('지금 하는 일')}</span>
+      <span role="columnheader">{t('진행 상황')}</span>
       <span role="columnheader">{t('상태')}</span>
       <span aria-hidden="true" />
     </div>
@@ -45,8 +46,7 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
       <div className="gutter" style={{ background: 띠색(보) }} />
       <div className="tcid">#{것.id}</div>
       <div className="title">
-        {/* 단계가 아직 없으면 빈 칸이 아니라 「기록 없음」이다 — 모르는 것을 아는 척하지 않는다 */}
-        <a href={`#/authoring/${것.id}`}>{것.stage ?? t('기록 없음')}</a>
+        <a href={`#/authoring/${것.id}`}>{목록글(것, 언어)}</a>
         <small>
           {종류라벨(것.kind, 언어)}
           {것.compare === true ? ` · ${t('화면과 대조')}` : ''} · {t('요청한 사람')} {것.requestedByName} · {when(것.createdAt, 언어)}
