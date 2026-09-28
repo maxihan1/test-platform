@@ -89,12 +89,12 @@ describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테�
     },
   };
 
-  it('이름과 서비스, 서비스마다 대상 서버와 테스트 폴더를 낸다', () => {
+  it('이름과 서비스, 서비스마다 대상 서버와 테스트 폴더를 낸다 — 작성 읽기만인 서비스는 뺀다 (집으면 403 으로 에이전트가 선다)', () => {
     expect(나풀기(몸)).toEqual({
       username: 'mac',
-      서비스들: ['DEMO', 'TODO'],
-      서버표: { DEMO: [{ env: 'qa', baseUrl: 'https://qa.x' }], TODO: [] },
-      폴더표: { DEMO: { 폴더: 'demo' }, TODO: { 폴더: 'todo-app' } },
+      서비스들: ['DEMO'],
+      서버표: { DEMO: [{ env: 'qa', baseUrl: 'https://qa.x' }] },
+      폴더표: { DEMO: { 폴더: 'demo' } },
     });
   });
 
@@ -107,7 +107,7 @@ describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테�
     ['허용 밖 글자가 있다', 'demo app'],
     ['글자가 아니다', 3],
   ])('테스트 폴더가 %s — 그 서비스만 폴더 대신 사유를 낸다', (_이름, 값) => {
-    const 풀린것 = 나풀기({ user: { ...몸.user, services: [{ prefix: 'PAY', testsDir: 값 }, 몸.user.services[0]] } });
+    const 풀린것 = 나풀기({ user: { ...몸.user, services: [{ prefix: 'PAY', testsDir: 값, permissions: { authoring: 'write' } }, 몸.user.services[0]] } });
     if (typeof 풀린것 === 'string') throw new Error(풀린것);
     expect(풀린것.폴더표.PAY).toEqual({ 사유: 'PAY 의 테스트 폴더 설정이 비었거나 한 칸 이름이 아니다 (설정 화면에서 고친다)' });
     expect(풀린것.폴더표.DEMO).toEqual({ 폴더: 'demo' });
@@ -131,7 +131,8 @@ describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테�
 
   it('운영(admin)이면 권한 칸과 상관없이 줄을 집는다', () => {
     const 풀린것 = 나풀기({ user: { ...몸.user, role: 'admin', services: [{ prefix: 'DEMO', testsDir: 'demo', permissions: 읽기만 }] } });
-    expect(typeof 풀린것).toBe('object');
+    if (typeof 풀린것 === 'string') throw new Error(풀린것);
+    expect(풀린것.서비스들).toEqual(['DEMO']);
   });
 
   it('모양이 아니면 사유를 낸다', () => {

@@ -114,10 +114,12 @@ export function 나풀기(
   if (user.role !== 'admin' && !user.services.some((s) => s.permissions?.authoring === 'write')) {
     return '이 계정은 어느 서비스에도 작성 쓰기 권한이 없어 줄을 집을 수 없다. 설정 > 계정에서 맡을 서비스의 작성 쓰기 권한을 켜라.';
   }
+  // 작성 읽기만인 서비스까지 실으면 그 줄을 집을 때 403 → 거절글로 에이전트 전체가 선다
+  const 맡은것 = user.role === 'admin' ? user.services : user.services.filter((s) => s.permissions?.authoring === 'write');
   return {
     username: user.username,
-    서비스들: user.services.map((s) => s.prefix),
-    서버표: Object.fromEntries(user.services.map((s) => [s.prefix, s.envs ?? []])),
-    폴더표: Object.fromEntries(user.services.map((s) => [s.prefix, 폴더고르기(s.prefix, s.testsDir)])),
+    서비스들: 맡은것.map((s) => s.prefix),
+    서버표: Object.fromEntries(맡은것.map((s) => [s.prefix, s.envs ?? []])),
+    폴더표: Object.fromEntries(맡은것.map((s) => [s.prefix, 폴더고르기(s.prefix, s.testsDir)])),
   };
 }
