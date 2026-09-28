@@ -125,6 +125,7 @@ export const 설정말: Record<string, string> = {
   '한 번만': 'only once',
   '보여 줍니다': 'right after the account is created',
   '비밀번호 재발급': 'Reissue password',
+  '자기 비밀번호는 사이드바의 「비밀번호 변경」에서 바꿉니다': 'Change your own password with "Change password" in the sidebar',
   '한 번 더 누르면 지금 비밀번호가 무효가 됩니다': 'Press once more and the current password stops working',
 
   // 임시 비밀번호 상자 — `<b>` 와 `<code>` 가 사이에 끼어 조각으로 나뉜다

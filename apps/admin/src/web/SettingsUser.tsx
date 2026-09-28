@@ -91,6 +91,7 @@ export function UserSection({
             <UserForm
               row={it}
               rows={rows}
+              나다={it.username === me}
               services={services}
               onDone={() => {
                 set여는것(null);
@@ -111,6 +112,7 @@ export function UserSection({
 function UserForm({
   row,
   rows = [],
+  나다 = false,
   services,
   onDone,
   onCreated,
@@ -118,6 +120,8 @@ function UserForm({
 }: {
   row?: UserRow;
   rows?: UserRow[];
+  /** 로그인한 사람 자신의 줄인가 */
+  나다?: boolean;
   services: SettingsServiceRow[];
   onDone?: () => void;
   onCreated?: (username: string, password: string) => void;
@@ -204,24 +208,29 @@ function UserForm({
       <div className="set-foot">
         {새것 ? null : (
           <>
-            {/* 되돌릴 수 없다. 왼쪽 끝으로 떼어 놓고 두 걸음으로 받는다 */}
-            <button
-              className={`btn ghost set-left${비번확인 ? ' set-warn' : ''}`}
-              disabled={보내는중}
-              onClick={() => {
-                if (!비번확인) {
-                  set비번확인(true);
-                  return;
-                }
-                set비번확인(false);
-                void 한다(async () => {
-                  const { tempPassword } = await api.resetPassword(row.username);
-                  onPassword?.(tempPassword);
-                });
-              }}
-            >
-              {비번확인 ? t('한 번 더 누르면 지금 비밀번호가 무효가 됩니다') : t('비밀번호 재발급')}
-            </button>
+            {/* 자기 것을 재발급하면 세션 도장이 바뀌어 임시 비밀번호를 옮겨 적기 전에 로그아웃된다 */}
+            {나다 ? (
+              <span className="hint set-left">{t('자기 비밀번호는 사이드바의 「비밀번호 변경」에서 바꿉니다')}</span>
+            ) : (
+              // 되돌릴 수 없다. 왼쪽 끝으로 떼어 놓고 두 걸음으로 받는다
+              <button
+                className={`btn ghost set-left${비번확인 ? ' set-warn' : ''}`}
+                disabled={보내는중}
+                onClick={() => {
+                  if (!비번확인) {
+                    set비번확인(true);
+                    return;
+                  }
+                  set비번확인(false);
+                  void 한다(async () => {
+                    const { tempPassword } = await api.resetPassword(row.username);
+                    onPassword?.(tempPassword);
+                  });
+                }}
+              >
+                {비번확인 ? t('한 번 더 누르면 지금 비밀번호가 무효가 됩니다') : t('비밀번호 재발급')}
+              </button>
+            )}
             {마지막운영 ? null : (
               <button
                 className="btn ghost"
