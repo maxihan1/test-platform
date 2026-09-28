@@ -94,14 +94,15 @@ export const 작성말: Record<string, string> = {
   '케이스 파일 {수}개를 만들었습니다': 'Made {수} case files',
   '테스트 코드를 PR 로 올렸습니다': 'Opened the test code as a PR',
 
-  // 해야 할 일
-  '해야 할 일': 'To do',
-  '에이전트 응답이 끊겼습니다. 작성 중단을 누른 뒤 다시 작성하세요':
-    'The agent stopped responding. Press Stop writing, then write again',
+  // 다음 단계 (2026-09-28 「해야 할 일」에서 바꿨다 — 고르는 상황에 시키는 말투가 안 맞았다)
+  '다음 단계': 'Next steps',
+  '에이전트 응답이 끊겼습니다. 작성 중단을 누른 뒤 이어서 작성하세요':
+    'The agent stopped responding. Press Stop writing, then continue writing',
   '지금은 없습니다. 작성이 끝나면 여기에 검토할 것이 생깁니다. 이 페이지를 닫아도 됩니다.':
     'Nothing for now. Things to review appear here when writing ends. You can close this page.',
   '아직 시작 전이라 누르면 바로 취소됩니다.': 'It has not started, so it is cancelled right away.',
-  '중단하면 30초 안에 멈추고, 지금까지 만든 것은 버려집니다.': 'Stopping takes up to 30 seconds and throws away what was made so far.',
+  '중단하면 30초 안에 멈춥니다. 만든 것은 남겨 두어 이어서 작성할 수 있습니다.':
+    'Stopping takes up to 30 seconds. What was made is kept so you can continue writing.',
   '테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.': 'The tests were merged. The new cases are in the case list.',
   '올라간 PR 이 없습니다. 아래 만든 것을 확인하세요.': 'No PR was opened. Check the outputs below.',
   '만든 테스트 코드 검토': 'Review the test code',
@@ -120,14 +121,28 @@ export const 작성말: Record<string, string> = {
   '아직 배정 전': 'Not assigned yet',
   '{번호}단계 진행 중 · {퍼센트}%': 'Step {번호} in progress · {퍼센트}%',
   '{번호}단계에서 멈춤 · {퍼센트}%': 'Stopped at step {번호} · {퍼센트}%',
-  '재실행한 요청은 다시 작성할 수 없습니다. 원본 요청 #{번호}에서 다시 작성하세요.':
-    'A rerun cannot be written again. Write again from the original request #{번호}.',
   '다시 작성은 실행 권한이 있는 사람이 합니다.': 'Someone with run rights can write it again.',
   '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다.':
     'Fix the cause first. This makes a new request with the same inputs and runs it from the start.',
   '대상 서버와 시작 주소도 원본 그대로 씁니다.': 'It uses the same target server and start URL as the original.',
   '넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다.':
     'This makes a new request with the same inputs and runs it from the start. This request stays as a record.',
+
+  // 이어하기 (도메인/작성 §7 「이어하기」)
+  '이어서 작성': 'Continue writing',
+  '이 요청은 이어서 작성할 수 없습니다. 이미 이어받았거나 보관 기간이 지났습니다. 새로 고쳐 보세요':
+    'This request cannot be continued. It was already continued or its keep period is over. Refresh the page',
+  '중단된 자리의 테스트 {수}개를 이어받아 남은 작업을 이어서 합니다.':
+    'Takes over the {수} tests made before the stop and continues the rest.',
+  '중단된 자리부터 남은 작업을 이어서 합니다.': 'Continues the rest from where it stopped.',
+  '{날}까지 이어갈 수 있습니다.': 'You can continue until {날}.',
+  '작성 요청 #{번호}로 이어받았습니다': 'Continued as request #{번호}',
+  '보관 기간이 지나 만든 것을 지웠습니다. 처음부터 다시 작성하세요.':
+    'The keep period is over and what was made was deleted. Write again from the start.',
+  이어받음: 'Continued from',
+  '작성 요청 #{번호}의 중단 자리에서 이어받음': 'Continued from where request #{번호} stopped',
+  '목록에서 사라집니다. 보관한 작업물도 지웁니다. 통계와 토큰 기록은 남습니다.':
+    'It disappears from the list and the kept work is deleted. Stats and token records stay.',
 
   // 진척 · 중단 · 폐기 (도메인/작성 §7 「중단 · 폐기 · 진척」). 상태 라벨 「중단」은 실행과 같은 키(runs)를 쓴다
   진척: 'Progress',
@@ -141,6 +156,8 @@ export const 작성말: Record<string, string> = {
   '구독 한도': 'Subscription limit',
   '에이전트 재시작': 'Agent restarted',
   '에이전트 응답 없음': 'Agent not responding',
+  '작성 중 끊김': 'Cut off while writing',
+  '올리기 거절': 'Upload rejected',
   '작성 중단': 'Stop writing',
   폐기: 'Discard',
   '폐기하는 중': 'Discarding…',
@@ -148,7 +165,8 @@ export const 작성말: Record<string, string> = {
   '올리는 중 — 멈출 수 없습니다': 'Uploading — cannot be stopped',
   '작성을 멈출까요?': 'Stop writing?',
   '이 요청을 폐기할까요?': 'Discard this request?',
-  '{분}분 동안 만든 것이 버려집니다.': 'What was made in {분} min will be thrown away.',
+  '{분}분 동안 만든 것은 남겨 두어 나중에 이어서 작성할 수 있습니다.':
+    'What was made in {분} min is kept so you can continue writing later.',
   '아직 시작 전이라 바로 취소됩니다.': 'It has not started yet, so it is cancelled right away.',
   '목록에서 사라집니다. 통계와 토큰 기록은 남습니다.': 'It disappears from the list. Stats and token records stay.',
 

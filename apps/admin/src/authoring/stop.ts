@@ -4,7 +4,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 번호 } from './params.js';
-import { db, 빚기, 이어받기되나, 칸들, 폴더남기나, 한건, type 요청, type 행 } from './store.js';
+import { db, 보관일, 빚기, 이어받기되나, 칸들, 폴더남기나, 한건, type 요청, type 행 } from './store.js';
 
 // 신호가 이보다 오래 없으면 에이전트가 죽은 것으로 본다. 에이전트는 30초마다 신호를 보낸다
 const 묵음 = `COALESCE(stage_at, started_at) < now() - interval '3 minutes'`;
@@ -135,6 +135,11 @@ export async function 상세읽기(req: FastifyRequest, id: number) {
     canDiscard: 됨 && ['FAILED', 'STOPPED', 'DRAFT'].includes(행.status),
     // 이어서 작성은 재실행과 같은 규칙 — 요청한 사람만이 아니라 작성 권한이면 누구나 (§7 「이어하기」)
     canResume: resumable,
+    // 화면이 「10월 5일까지」를 그린다 — 보관일을 화면에 또 적지 않게 여기서 날짜로 준다
+    resumeUntil:
+      resumable && 행.finishedAt !== null
+        ? new Date(Date.parse(행.finishedAt) + 보관일 * 86_400_000).toISOString()
+        : null,
     resumedBy: resumed_by === null ? null : Number(resumed_by),
     // 에이전트가 남은 폴더를 훑을 때 묻는다 — 보관일은 서버 한 곳에만 둔다
     keepWorkspace: keep,

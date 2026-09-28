@@ -149,9 +149,14 @@ describe.skipIf(연결 === undefined)('작성 이어하기', () => {
 
   it('상세는 이어받을 수 있는지와 누가 이어받았는지를 준다', async () => {
     const 원본 = await 멈춘것();
-    expect(await 상세(원본)).toMatchObject({ canResume: true, resumedBy: null });
+    const 처음 = await 상세(원본);
+    expect(처음).toMatchObject({ canResume: true, resumedBy: null });
+    // 멈춘 지 1시간 — 이어갈 수 있는 마지막 시각은 끝난 때에서 7일 뒤다
+    const 남은ms = Date.parse(String(처음.resumeUntil)) - Date.now();
+    expect(남은ms).toBeGreaterThan(6 * 86_400_000);
+    expect(남은ms).toBeLessThan(7 * 86_400_000);
     const 새것 = (await 이어서(원본)).json<{ id: number }>().id;
-    expect(await 상세(원본)).toMatchObject({ canResume: false, resumedBy: 새것 });
+    expect(await 상세(원본)).toMatchObject({ canResume: false, resumedBy: 새것, resumeUntil: null });
     expect(await 상세(새것)).toMatchObject({ resumeFrom: 원본, canResume: false });
   });
 

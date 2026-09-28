@@ -134,6 +134,17 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
                 <dd>{when(data.createdAt, 언어)}</dd>
                 <dt>{t('작성 에이전트')}</dt>
                 <dd>{data.claimedBy ?? t('아직 배정 전')}</dd>
+                {/* 이어서 작성한 요청 — 무엇을 이어받았는지 (도메인/작성 §7 「이어하기」) */}
+                {typeof data.resumeFrom === 'number' ? (
+                  <>
+                    <dt>{t('이어받음')}</dt>
+                    <dd>
+                      <a href={`#/authoring/${String(data.resumeFrom)}`}>
+                        {t('작성 요청 #{번호}의 중단 자리에서 이어받음', { 번호: data.resumeFrom })}
+                      </a>
+                    </dd>
+                  </>
+                ) : null}
                 {/* 역방향 (도메인/작성 §3.6 「★ 역방향」). 계정은 이 응답에 없다 — 집기 응답에만 있다 */}
                 {data.compare === true ? (
                   <>

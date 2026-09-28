@@ -214,7 +214,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     render(<AuthoringDetail service="PAY" id={7} role="operator" />);
     fireEvent.click(await screen.findByRole('button', { name: '작성 중단' }));
     const 상자 = screen.getByRole('dialog');
-    expect(상자.textContent).toContain('12분 동안 만든 것이 버려집니다');
+    expect(상자.textContent).toContain('12분 동안 만든 것은 남겨 두어 나중에 이어서 작성할 수 있습니다.');
     expect(멈춤).not.toHaveBeenCalled();
     fireEvent.click(screen.getAllByRole('button', { name: '작성 중단' }).at(-1)!);
     await vi.waitFor(() => expect(멈춤).toHaveBeenCalledWith('PAY', 7));
@@ -272,11 +272,77 @@ describe('작성 진척 · 중단 · 폐기', () => {
     expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 });
   });
 
-  it('재실행한 요청이 실패하면 원본에서 다시 작성하라고 한다', async () => {
+  it('재실행한 요청이 실패하면 같은 자료로 다시 작성은 맨 처음 요청으로 보낸다 — 자료는 거기 있다', async () => {
     답 = 줄({ kind: 'RERUN', sourceId: 3, status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} role="operator" />);
-    expect(await screen.findByText('재실행한 요청은 다시 작성할 수 없습니다. 원본 요청 #3에서 다시 작성하세요.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
+    fireEvent.click(await screen.findByRole('button', { name: '같은 자료로 다시 작성' }));
+    await vi.waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 3 }));
+  });
+
+  describe('중단 — 다음 단계 카드', () => {
+    const 멈춤 = (덮을것: Partial<AuthoringRow>) =>
+      줄({
+        status: 'STOPPED',
+        prUrl: null,
+        stopReason: 'TIMEOUT',
+        stoppedBy: 'system',
+        canDiscard: true,
+        progress: { ...도는진척, childRunning: false, caseFiles: 12 },
+        ...덮을것,
+      });
+
+    it('제목은 다음 단계이고 이어서 작성 · 같은 자료로 다시 작성 · 폐기를 차례로 낸다', async () => {
+      답 = 멈춤({ canResume: true, resumeUntil: '2026-10-05T03:00:00.000Z' });
+      render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+      const 카드 = await screen.findByRole('region', { name: '다음 단계' });
+      expect(카드.querySelector('h3')?.textContent).toBe('다음 단계');
+      expect(카드.textContent).toContain(
+        '중단된 자리의 테스트 12개를 이어받아 남은 작업을 이어서 합니다. 10월 5일까지 이어갈 수 있습니다.',
+      );
+      const 버튼들 = Array.from(카드.querySelectorAll('button')).map((b) => b.textContent);
+      expect(버튼들).toEqual(['이어서 작성', '같은 자료로 다시 작성', '폐기']);
+      fireEvent.click(screen.getByRole('button', { name: '이어서 작성' }));
+      await vi.waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7, resume: true }));
+      await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring/9'));
+    });
+
+    it('만든 테스트를 모르면 수 없이 적는다', async () => {
+      답 = 멈춤({ canResume: true, resumeUntil: '2026-10-05T03:00:00.000Z', progress: null });
+      render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+      expect(
+        await screen.findByText('중단된 자리부터 남은 작업을 이어서 합니다. 10월 5일까지 이어갈 수 있습니다.'),
+      ).toBeTruthy();
+    });
+
+    it('이미 이어받았으면 버튼 대신 이어받은 요청으로 가는 길을 준다', async () => {
+      답 = 멈춤({ canResume: false, resumedBy: 12 });
+      render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+      const 고리 = await screen.findByRole('link', { name: '작성 요청 #12로 이어받았습니다' });
+      expect(고리.getAttribute('href')).toBe('#/authoring/12');
+      expect(screen.queryByRole('button', { name: '이어서 작성' })).toBeNull();
+    });
+
+    it('보관 기간이 지났으면 까닭을 적고 처음부터 다시만 남긴다', async () => {
+      답 = 멈춤({ canResume: false, resumedBy: null });
+      render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+      expect(await screen.findByText('보관 기간이 지나 만든 것을 지웠습니다. 처음부터 다시 작성하세요.')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: '이어서 작성' })).toBeNull();
+      expect(screen.getByRole('button', { name: '같은 자료로 다시 작성' })).toBeTruthy();
+    });
+
+    it('올리기 거절이면 거절 까닭을 상태 카드에 보인다', async () => {
+      답 = 멈춤({ stopReason: 'REJECTED', error: '올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다', canResume: true });
+      render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+      expect(await screen.findByText('시스템 · 올리기 거절')).toBeTruthy();
+      expect(screen.getByText('올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다')).toBeTruthy();
+    });
+
+    it('이어받은 요청은 어느 요청의 중단 자리에서 이어받았는지 적는다', async () => {
+      답 = 줄({ kind: 'RERUN', sourceId: 3, resumeFrom: 5, status: 'RUNNING', prUrl: null, finishedAt: null });
+      render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+      const 고리 = await screen.findByRole('link', { name: '작성 요청 #5의 중단 자리에서 이어받음' });
+      expect(고리.getAttribute('href')).toBe('#/authoring/5');
+    });
   });
 
   it('보기 등급에게는 다시 작성 버튼 대신 누가 하는지 알린다', async () => {

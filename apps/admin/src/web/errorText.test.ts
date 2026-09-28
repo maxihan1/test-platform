@@ -42,6 +42,13 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
     expect(요청오류문장('BAD_ENV', 'en')).not.toContain('BAD_ENV');
   });
 
+  it('이어서 작성이 막히면 코드 대신 까닭을 적는다 — 둘이 동시에 누르면 뒤엣사람이 본다', () => {
+    expect(요청오류문장('NOT_RESUMABLE', 'ko')).toBe(
+      '이 요청은 이어서 작성할 수 없습니다. 이미 이어받았거나 보관 기간이 지났습니다. 새로 고쳐 보세요',
+    );
+    expect(요청오류문장('NOT_RESUMABLE', 'en')).not.toContain('NOT_RESUMABLE');
+  });
+
   it('짚어 준 것이 없으면 문장만 쓴다', () => {
     expect(요청오류문장('RUN_NOT_FOUND', 'ko')).not.toContain('—');
   });
