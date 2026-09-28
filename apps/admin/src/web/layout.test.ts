@@ -20,6 +20,7 @@ const 결제: ServiceRow = {
   color: '#667788',
   envs: [{ env: 'qa', baseUrl: 'https://qa.pay.test' }],
   hasSlackWebhook: true,
+  permissions: { cases: 'write', runs: 'write', authoring: 'write' },
 };
 const 회원: ServiceRow = {
   id: 2,
@@ -28,11 +29,18 @@ const 회원: ServiceRow = {
   color: '#556677',
   envs: [],
   hasSlackWebhook: false,
+  permissions: { cases: 'read', runs: 'read', authoring: 'read' },
 };
 
-function 사람(role: User['role'], services: ServiceRow[]): User {
-  return { username: 'kim', displayName: '김철수', role, services };
+// 케이스는 못 보고 작성·실행만 본다
+const 정산: ServiceRow = { ...회원, id: 3, prefix: 'SET', name: '정산 서비스', permissions: { cases: 'none', runs: 'read', authoring: 'write' } };
+
+function 사람(role: User['role'], services: ServiceRow[], dashboard: User['dashboard'] = 'read'): User {
+  return { username: 'kim', displayName: '김철수', role, dashboard, mustChangePassword: false, services };
 }
+
+const 운영 = 사람('admin', [결제]);
+const 김 = 사람('member', [결제, 회원, 정산]);
 
 function 실행(runId: number, status: string, total: number, running: number): RunSummary {
   return {
@@ -61,50 +69,65 @@ describe('탭 제목', () => {
 });
 
 describe('자리 목록', () => {
-  it('설정은 운영 등급에게만 뜬다. 흐리게가 아니라 아예 없다', () => {
-    expect(자리목록('admin', 'ko').map((자리) => 자리.이름)).toEqual(['테스트 케이스', '테스트 작성', '실행 기록', '그래프', '설정']);
+  const 이름들 = (user: User, prefix: string | null) => 자리목록(user, prefix, 'ko').map((자리) => 자리.이름);
+
+  it('설정은 운영 계정에게만 뜬다. 흐리게가 아니라 아예 없다', () => {
+    expect(이름들(운영, 'PAY')).toEqual(['테스트 케이스', '테스트 작성', '실행 기록', '그래프', '설정']);
   });
 
-  it('실행까지 등급에게 설정 자리는 없다', () => {
-    expect(자리목록('operator', 'ko').map((자리) => 자리.이름)).toEqual(['테스트 케이스', '테스트 작성', '실행 기록', '그래프']);
+  it('운영이 아닌 사람에게 설정 자리는 없다', () => {
+    expect(이름들(김, 'PAY')).toEqual(['테스트 케이스', '테스트 작성', '실행 기록', '그래프']);
+    expect(이름들(김, 'MEM')).toEqual(['테스트 케이스', '테스트 작성', '실행 기록', '그래프']);
   });
 
-  it('보기만 등급에게도 설정 자리는 없다', () => {
-    expect(자리목록('viewer', 'ko').map((자리) => 자리.이름)).toEqual(['테스트 케이스', '테스트 작성', '실행 기록', '그래프']);
+  it('고른 서비스에서 none 인 기능은 자리가 없다. 서비스를 바꾸면 자리도 바뀐다', () => {
+    expect(이름들(김, 'SET')).toEqual(['테스트 작성', '실행 기록', '그래프']);
+    const 작성없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'read', authoring: 'none' } }]);
+    expect(이름들(작성없음, 'MEM')).toEqual(['테스트 케이스', '실행 기록', '그래프']);
+  });
+
+  it('그래프는 사람의 대시보드 칸을 본다. 서비스와 상관없다', () => {
+    const 대시보드없음 = 사람('member', [결제], 'none');
+    expect(이름들(대시보드없음, 'PAY')).toEqual(['테스트 케이스', '테스트 작성', '실행 기록']);
+  });
+
+  it('넷 다 none 이면 자리가 하나도 없다', () => {
+    expect(자리목록(사람('member', [], 'none'), null, 'ko')).toEqual([]);
   });
 
   it('작성 상세를 열어도 밑줄은 작성 자리에 있다. 상세는 그 목록에서 들어온 자리다', () => {
-    expect(지금자리('authoring')).toBe('#/authoring');
-    expect(지금자리('authoringItem')).toBe('#/authoring');
+    expect(지금자리('authoring', '#/cases')).toBe('#/authoring');
+    expect(지금자리('authoringItem', '#/cases')).toBe('#/authoring');
   });
 
   it('실행 결과와 항목 상세도 같은 규칙이다', () => {
-    expect(지금자리('run')).toBe('#/runs');
-    expect(지금자리('item')).toBe('#/runs');
+    expect(지금자리('run', '#/cases')).toBe('#/runs');
+    expect(지금자리('item', '#/cases')).toBe('#/runs');
   });
 
-  it('모르는 자리는 집으로 보낸다', () => {
-    expect(지금자리('unknown')).toBe('#/cases');
+  it('모르는 자리는 집으로 보낸다. 집은 권한으로 고른 자리다', () => {
+    expect(지금자리('unknown', '#/cases')).toBe('#/cases');
+    expect(지금자리('unknown', '#/authoring')).toBe('#/authoring');
   });
 
   it('그래프는 Grafana 라 바깥으로 나간다', () => {
-    const 그래프 = 자리목록('viewer', 'ko').find((자리) => 자리.이름 === '그래프');
+    const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프');
     expect(그래프?.바깥).toBe(true);
   });
 
   it('Grafana 포트는 빌드할 때 받은 설정값을 따른다', () => {
     vi.stubEnv('VITE_GRAFANA_PORT', '4100');
-    const 그래프 = 자리목록('viewer', 'ko').find((자리) => 자리.이름 === '그래프');
+    const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프');
     expect(그래프?.해시).toBe('https://qa.example.com:4100');
   });
 
   it('설정을 안 주면 3001 이다. compose 의 GRAFANA_PORT 기본값과 같은 숫자다', () => {
-    const 그래프 = 자리목록('viewer', 'ko').find((자리) => 자리.이름 === '그래프');
+    const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프');
     expect(그래프?.해시).toBe('https://qa.example.com:3001');
   });
 
   it('케이스가 집이다. 이 도구의 일은 무엇을 돌릴까에서 시작한다', () => {
-    expect(자리목록('viewer', 'ko')[0]?.해시).toBe('#/cases');
+    expect(자리목록(김, 'MEM', 'ko')[0]?.해시).toBe('#/cases');
   });
 });
 
@@ -127,34 +150,43 @@ describe('고른 서비스', () => {
 });
 
 describe('배정받은 서비스가 없을 때', () => {
-  it('운영 등급은 스스로 풀 수 있다고 알려준다', () => {
-    const 사유 = 빈띠사유(사람('admin', []), 'ko');
+  it('운영 계정은 스스로 풀 수 있다고 알려준다', () => {
+    const 사유 = 빈띠사유(사람('admin', []), null, 'ko');
     expect(사유?.무엇).toBe('아직 배정받은 서비스가 없습니다');
     expect(사유?.다음).toContain('설정');
   });
 
-  it('나머지 등급에게는 누구에게 요청할지 알려준다', () => {
-    const 사유 = 빈띠사유(사람('viewer', []), 'ko');
+  it('나머지 사람에게는 누구에게 요청할지 알려준다', () => {
+    const 사유 = 빈띠사유(사람('member', []), null, 'ko');
     expect(사유?.다음).toContain('요청');
   });
 
   it('배정이 있으면 사유가 없다', () => {
-    expect(빈띠사유(사람('viewer', [결제]), 'ko')).toBe(null);
+    expect(빈띠사유(사람('member', [결제]), 'PAY', 'ko')).toBe(null);
   });
 
   it('설정 화면은 덮지 않는다. 가라고 한 곳이 막히면 아무것도 못 한다', () => {
     // 2026-09-19 실측 — 안내가 「설정에서 자기 자신을 배정하세요」인데 설정을 눌러도
     // 같은 안내가 떴다. 서비스가 0개인 첫 운영자는 영영 빠져나올 수 없었다
-    expect(빈띠사유(사람('admin', []), 'ko', '#/settings')).toBe(null);
+    expect(빈띠사유(사람('admin', []), null, 'ko', '#/settings')).toBe(null);
   });
 
-  it('설정을 못 여는 등급에게는 설정 자리에서도 사유를 보여준다', () => {
+  it('설정을 못 여는 사람에게는 설정 자리에서도 사유를 보여준다', () => {
     // 그 사람에게는 설정이 길이 아니다. 비워 두면 왜 빈지 알 수 없다
-    expect(빈띠사유(사람('viewer', []), 'ko', '#/settings')?.다음).toContain('요청');
+    expect(빈띠사유(사람('member', []), null, 'ko', '#/settings')?.다음).toContain('요청');
+  });
+
+  it('넷 다 none 이면 권한이 없다고 먼저 알린다. 서비스 0건 안내보다 앞선다', () => {
+    const 사유 = 빈띠사유(사람('member', [], 'none'), null, 'ko');
+    expect(사유?.무엇).toBe('권한을 받지 않았습니다. 운영자에게 요청하세요');
+  });
+
+  it('대시보드만 있어도 권한 없음이 아니다. 서비스 0건 안내가 뜬다', () => {
+    expect(빈띠사유(사람('member', [], 'read'), null, 'ko')?.무엇).toBe('아직 배정받은 서비스가 없습니다');
   });
 
   it('자리를 안 주면 지금까지처럼 군다', () => {
-    expect(빈띠사유(사람('admin', []), 'ko')?.무엇).toBe('아직 배정받은 서비스가 없습니다');
+    expect(빈띠사유(사람('admin', []), null, 'ko')?.무엇).toBe('아직 배정받은 서비스가 없습니다');
   });
 });
 

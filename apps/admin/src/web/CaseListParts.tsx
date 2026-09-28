@@ -137,6 +137,7 @@ export function 케이스줄({
   뒤집기,
   글자,
   폈나 = false,
+  실행된다 = true,
   on값,
   on더보기,
 }: {
@@ -147,6 +148,8 @@ export function 케이스줄({
   /** 이 줄에서 고쳐 넣은 값. 없으면 코드의 기본값으로 돈다 */
   글자?: 줄글자;
   폈나?: boolean;
+  /** 고른 서비스에서 실행 쓰기인가. 아니면 줄의 실행 링크가 없다 (화면공통 §8) */
+  실행된다?: boolean;
   on값: (tcId: string, 어디: 'params' | 'expected', key: string, value: string) => void;
   on더보기: (tcId: string) => void;
 }) {
@@ -223,9 +226,11 @@ export function 케이스줄({
         >
           {t('상세')}
         </button>
-        <a className="btn small" href={`#/cases/${encodeURIComponent(row.tcId)}/run`}>
-          {t('실행')}
-        </a>
+        {!실행된다 ? null : (
+          <a className="btn small" href={`#/cases/${encodeURIComponent(row.tcId)}/run`}>
+            {t('실행')}
+          </a>
+        )}
       </div>
     </div>
     <CaseDetail
@@ -252,20 +257,20 @@ export function Empty({
   onClear,
 }: {
   형편: Parameters<typeof 빈이유>[0];
-  onScan: () => void;
+  onScan?: () => void;
   onClear: () => void;
 }) {
   const 것 = 빈이유(형편, use언어());
-  // 검색에 안 걸린 것만 「지우기」다. 나머지 둘은 다시 훑는 길을 준다
+  // 검색에 안 걸린 것만 「지우기」다. 나머지 둘은 다시 훑는 길을 준다 — 스캔 칸이 없으면 onScan 이 안 와 버튼도 없다 (화면공통 §8)
   const 누르면 = 형편.건조건 ? onClear : onScan;
 
   return (
     <div className="empty">
       {것.무엇}
       <small>{것.왜}</small>
-      <button className="btn" style={{ marginTop: '14px' }} onClick={누르면}>
-        {것.버튼}
-      </button>
+      {누르면 === undefined ? null : (
+        <button className="btn" style={{ marginTop: '14px' }} onClick={누르면}>{것.버튼}</button>
+      )}
     </div>
   );
 }

@@ -11,6 +11,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 import { api, type Paged, type RunSummary, type RunTally } from './api.js';
 import { RunList } from './RunList.js';
+import type { 판정 } from './role.js';
+
+// 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
+const 운영: 판정 = () => true;
 
 afterEach(() => {
   cleanup();
@@ -82,7 +86,7 @@ function 모킹(답: Paged<RunSummary> & { summary: RunTally } = 한쪽) {
 
 async function 그리기(답?: Paged<RunSummary> & { summary: RunTally }) {
   const 스파이 = 모킹(답);
-  const 것 = render(<RunList service="ZRL" role="admin" />);
+  const 것 = render(<RunList service="ZRL" 할수={운영} />);
   await waitFor(() => expect(스파이).toHaveBeenCalled());
   return { ...것, 스파이 };
 }

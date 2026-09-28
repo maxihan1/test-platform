@@ -10,14 +10,14 @@ import { api, type Paged, type RunQuery, type RunSummary, type RunTally } from '
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
-import type { 등급 } from './role.js';
+import type { 판정 } from './role.js';
 import { RunResultModal } from './RunResultModal.js';
 import { 상태라벨, 실행자이름 } from './runState.js';
 import { 칸띠 } from './Summary.js';
 import { Failed, Loading, seconds, useAsync, when } from './ui.js';
 import { 미확정글자, 판정없음 } from './unconfirmed.js';
 
-export function RunList({ service, role }: { service: string; role: 등급 }) {
+export function RunList({ service, 할수 }: { service: string; 할수: 판정 }) {
   const t = use말();
   // 상자로 연 실행. 닫으면 **보던 자리와 검색 조건이 그대로 남는다** — 화면을 갈아타면 잃는 것들이다
   const [열린실행, set열린실행] = useState<number | null>(null);
@@ -156,7 +156,7 @@ export function RunList({ service, role }: { service: string; role: 등급 }) {
       )}
 
       {열린실행 === null ? null : (
-        <RunResultModal runId={열린실행} role={role} onClose={() => set열린실행(null)} />
+        <RunResultModal runId={열린실행} 할수={할수} onClose={() => set열린실행(null)} />
       )}
     </>
   );

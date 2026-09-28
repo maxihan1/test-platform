@@ -28,6 +28,11 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
     );
 
     app = Fastify();
+    // 스캔 결과는 부른 사람이 볼 수 있는 서비스 것만 준다. 문 대신 전부 보는 admin 을 싣는다
+    app.decorateRequest('user', null);
+    app.addHook('preHandler', async (req) => {
+      req.user = { username: 'zza-관리', displayName: '관리', role: 'admin', dashboard: 'read', mustChangePassword: false, services: [] };
+    });
     await app.register(catalogRoutes, { prefix: '/api' });
     await app.ready();
   });

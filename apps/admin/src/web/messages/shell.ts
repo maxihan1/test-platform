@@ -21,10 +21,12 @@ export const 껍데기말: Record<string, string> = {
   // 언어 이름은 그 언어로 적는 것이 관례다. 영어로 봐도 「한국어」여야 고를 수 있다
   한국어: '한국어',
 
+  // 기능 칸이 넷 다 none 인 사람 (화면공통 §8)
+  '권한을 받지 않았습니다. 운영자에게 요청하세요': 'You have no permissions yet. Ask an admin.',
   // 배정이 없는 사람
   '아직 배정받은 서비스가 없습니다': 'No service assigned yet',
   '설정에서 자기 자신을 서비스에 배정하세요': 'Assign yourself to a service in Settings',
-  '운영 등급에게 서비스 배정을 요청하세요': 'Ask an admin to assign you a service',
+  '운영 계정에게 서비스 배정을 요청하세요': 'Ask an admin to assign you a service',
 
   // 자리 아래 알림 줄
   'RUN {번호} 이 진행 중입니다  {끝난}/{전체}': 'RUN {번호} is running  {끝난}/{전체}',

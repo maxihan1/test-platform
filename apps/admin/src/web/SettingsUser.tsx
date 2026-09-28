@@ -1,19 +1,16 @@
-// 설정 화면의 계정 구획 (SPEC §8.8). 아이디·이름·등급·배정 서비스
+// 설정 화면의 계정 구획 (SPEC §8.8). 아이디·이름·운영·서비스와 권한·대시보드
 // 비밀번호는 사람이 타이핑하지 않는다 — 시스템이 만들어 한 번만 보여준다
 
 import { useState } from 'react';
 
 import { AgentToken, AgentTokenBox, type 발급토큰 } from './AgentToken.js';
-import { api, type SettingsServiceRow, type UserRow } from './api.js';
+import { api, type SettingsServiceRow, type UserRow, type 배정 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import type { 등급 } from './role.js';
 import { TempPassword, type 임시 } from './SettingsPassword.js';
+import { PermissionPicker, PermissionSummary, 배정이틀렸나 } from './SettingsPermissions.js';
 import { 오류문장 } from './SettingsService.js';
 import { 계정못보내는이유, 마지막운영계정인가 } from './settingsView.js';
-
-// 값이 곧 번역 키다. 화면에 낼 때 `t()` 를 한 번 더 태운다
-const 등급이름: Record<등급, string> = { viewer: '보기만', operator: '실행까지', admin: '운영' };
-const 등급들: 등급[] = ['viewer', 'operator', 'admin'];
 
 export function UserSection({
   rows,
@@ -80,10 +77,7 @@ export function UserSection({
               {it.isActive ? null : <span className="set-off">{t('비활성')}</span>}
             </span>
             <span className="set-sub">{it.username}</span>
-            <span className="set-sub">
-              {it.services.length === 0 ? t('배정 없음') : it.services.join(' · ')}
-            </span>
-            <span className="set-sub">{t(등급이름[it.role])}</span>
+            <PermissionSummary row={it} services={services} />
             <button
               className="btn ghost"
               onClick={() => set여는것(여는것 === it.username ? null : it.username)}
@@ -133,8 +127,10 @@ function UserForm({
   const 새것 = row === undefined;
   const [username, setUsername] = useState(row?.username ?? '');
   const [displayName, setDisplayName] = useState(row?.displayName ?? '');
-  const [role, setRole] = useState<등급>(row?.role ?? 'viewer');
-  const [배정, set배정] = useState<string[]>(row?.services ?? []);
+  const [role, setRole] = useState<등급>(row?.role ?? 'member');
+  const [배정들, set배정들] = useState<배정[]>(row?.services ?? []);
+  // 새 계정의 대시보드는 읽기로 시작한다 (§8.8)
+  const [dashboard, setDashboard] = useState<'none' | 'read'>(row?.dashboard ?? 'read');
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   // 되돌릴 수 없는 일이라 두 걸음으로 받는다. 저장 버튼 바로 옆이라 잘못 누르기 쉽다
@@ -181,50 +177,16 @@ function UserForm({
         />
       </div>
 
-      <div className="field">
-        <label htmlFor="uf-role">{t('등급')}</label>
-        <div>
-          {마지막운영 ? (
-            <div className="hint">
-              <b>{t('운영')}</b>{' '}
-              {t('— 마지막 운영 계정이라 등급을 낮출 수 없습니다. 먼저 다른 사람을 운영으로 올립니다')}
-            </div>
-          ) : (
-            <select id="uf-role" value={role} onChange={(e) => setRole(e.target.value as 등급)}>
-              {등급들.map((it) => (
-                <option key={it} value={it}>
-                  {t(등급이름[it])}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-      </div>
-
-      <div className="field">
-        <span className="field-label">{t('서비스')}</span>
-        <div className="set-picks" role="group" aria-label={t('배정할 서비스')}>
-          {services.length === 0 ? (
-            <span className="hint">{t('먼저 서비스를 만듭니다')}</span>
-          ) : (
-            services.map((s) => (
-              <label key={s.prefix} className="set-pick">
-                <input
-                  type="checkbox"
-                  checked={배정.includes(s.prefix)}
-                  onChange={(e) =>
-                    set배정(
-                      e.target.checked ? [...배정, s.prefix] : 배정.filter((p) => p !== s.prefix),
-                    )
-                  }
-                />
-                {s.name}
-              </label>
-            ))
-          )}
-          <div className="hint">{t('배정받지 않은 서비스는 그 사람의 띠에 뜨지 않습니다')}</div>
-        </div>
-      </div>
+      <PermissionPicker
+        services={services}
+        role={role}
+        onRole={setRole}
+        마지막운영={마지막운영}
+        배정들={배정들}
+        on배정들={set배정들}
+        dashboard={dashboard}
+        onDashboard={setDashboard}
+      />
 
       {새것 ? (
         <div className="field">
@@ -275,17 +237,18 @@ function UserForm({
           </>
         )}
         {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
+        {/* 셋 다 안 씀인 묶음은 서버가 400 으로 돌려보낸다. 이유는 그 묶음 옆에 이미 적혀 있다 */}
         <button
           className="btn"
-          disabled={보내는중}
+          disabled={보내는중 || 배정이틀렸나(배정들)}
           onClick={() => {
             if (못보내는이유 !== null) return;
             void 한다(async () => {
               if (새것) {
-                const { tempPassword } = await api.createUser({ username, displayName, role, services: 배정 });
+                const { tempPassword } = await api.createUser({ username, displayName, role, dashboard, services: 배정들 });
                 onCreated?.(username, tempPassword);
               } else {
-                await api.updateUser(row.username, { displayName, role, services: 배정 });
+                await api.updateUser(row.username, { displayName, role, dashboard, services: 배정들 });
                 onDone?.();
               }
             });

@@ -48,10 +48,18 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     ]);
 
     await pool.query(
-      `INSERT INTO app_user (username, display_name, password_hash, role)
-            VALUES ($1, '김확인', $2, 'operator')
-       ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = EXCLUDED.password_hash`,
+      `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, must_change_password)
+            VALUES ($1, '김확인', $2, 'member', 'read', false)
+       ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = EXCLUDED.password_hash,
+         role = 'member', perm_dashboard = 'read', must_change_password = false`,
       ['xfu1-live', await 해시('열려라참깨')],
+    );
+    await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, must_change_password)
+            VALUES ($1, '이관리', $2, 'admin', 'none', true)
+       ON CONFLICT (username) DO UPDATE SET is_active = true,
+         role = 'admin', perm_dashboard = 'none', must_change_password = true`,
+      ['xfu1-admin', await 해시('관리자')],
     );
     await pool.query(
       `INSERT INTO app_user (username, display_name, password_hash, role, is_active)
@@ -60,9 +68,19 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
       ['xfu1-dead', await 해시('아무거나')],
     );
     await pool.query(
-      `INSERT INTO user_service (username, service_id) VALUES ($1, $2), ($1, $3)
-       ON CONFLICT DO NOTHING`,
+      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
+            VALUES ($1, $2, 'write', 'read', 'none'), ($1, $3, 'read', 'none', 'none')
+       ON CONFLICT (username, service_id) DO UPDATE
+         SET perm_cases = EXCLUDED.perm_cases, perm_runs = EXCLUDED.perm_runs, perm_authoring = EXCLUDED.perm_authoring`,
       ['xfu1-live', 서비스id, 웹훅없는서비스id],
+    );
+    // 관리자는 저장된 칸이 낮아도 전부 쓰기로 받아야 한다 — 일부러 읽기만 저장해 둔다
+    await pool.query(
+      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
+            VALUES ($1, $2, 'read', 'none', 'none')
+       ON CONFLICT (username, service_id) DO UPDATE
+         SET perm_cases = 'read', perm_runs = 'none', perm_authoring = 'none'`,
+      ['xfu1-admin', 서비스id],
     );
   });
 
@@ -78,7 +96,7 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     const user = await 확인(가짜요청('xfu1-live'));
     expect(user?.username).toBe('xfu1-live');
     expect(user?.displayName).toBe('김확인');
-    expect(user?.role).toBe('operator');
+    expect(user?.role).toBe('member');
     expect(user?.services.map((s) => s.prefix)).toEqual(['XFS1', 'XFS1B']);
   });
 
@@ -120,12 +138,50 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     const { pool } = await import('../db/index.js');
     await pool.query(
       `INSERT INTO app_user (username, display_name, password_hash, role)
-            VALUES ($1, '최없음', $2, 'viewer')
-       ON CONFLICT (username) DO UPDATE SET is_active = true`,
+            VALUES ($1, '최없음', $2, 'member')
+       ON CONFLICT (username) DO UPDATE SET is_active = true, role = 'member', perm_dashboard = 'none'`,
       ['xfu1-none', await 해시('없음')],
     );
     const user = await 확인(가짜요청('xfu1-none'));
     expect(user?.services).toEqual([]);
+  });
+
+  it('멤버는 서비스마다 저장된 권한 칸을 그대로 받는다', async () => {
+    const user = await 확인(가짜요청('xfu1-live'));
+    expect(user?.services.find((s) => s.prefix === 'XFS1')?.permissions).toEqual({
+      cases: 'write',
+      runs: 'read',
+      authoring: 'none',
+    });
+    expect(user?.services.find((s) => s.prefix === 'XFS1B')?.permissions).toEqual({
+      cases: 'read',
+      runs: 'none',
+      authoring: 'none',
+    });
+  });
+
+  it('관리자는 저장된 칸과 상관없이 배정 서비스 전부 쓰기 · 대시보드 읽기다', async () => {
+    const user = await 확인(가짜요청('xfu1-admin'));
+    expect(user?.role).toBe('admin');
+    expect(user?.dashboard).toBe('read');
+    expect(user?.services.map((s) => s.permissions)).toEqual([
+      { cases: 'write', runs: 'write', authoring: 'write' },
+    ]);
+  });
+
+  it('배정받지 않은 서비스는 목록에 없다', async () => {
+    const user = await 확인(가짜요청('xfu1-admin'));
+    expect(user?.services.map((s) => s.prefix)).toEqual(['XFS1']);
+  });
+
+  it('비밀번호 변경 강제 여부는 칸 그대로다', async () => {
+    expect((await 확인(가짜요청('xfu1-live')))?.mustChangePassword).toBe(false);
+    expect((await 확인(가짜요청('xfu1-admin')))?.mustChangePassword).toBe(true);
+  });
+
+  it('멤버의 대시보드 칸은 저장된 값 그대로다', async () => {
+    expect((await 확인(가짜요청('xfu1-live')))?.dashboard).toBe('read');
+    expect((await 확인(가짜요청('xfu1-none')))?.dashboard).toBe('none');
   });
 
   it('비밀번호 해시는 확인 함수 밖으로 나가지 않는다', async () => {

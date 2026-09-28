@@ -26,18 +26,19 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
 
     await pool.query(
       `INSERT INTO app_user (username, display_name, password_hash, role)
-            VALUES ($1, '김로그인', $2, 'operator')
+            VALUES ($1, '김로그인', $2, 'member')
        ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = EXCLUDED.password_hash`,
       ['xfu2-live', await 해시('열려라참깨')],
     );
     await pool.query(
       `INSERT INTO app_user (username, display_name, password_hash, role, is_active)
-            VALUES ($1, '박비활성', $2, 'operator', false)
+            VALUES ($1, '박비활성', $2, 'member', false)
        ON CONFLICT (username) DO UPDATE SET is_active = false, password_hash = EXCLUDED.password_hash`,
       ['xfu2-dead', await 해시('열려라참깨')],
     );
     await pool.query(
-      `INSERT INTO user_service (username, service_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
+            VALUES ($1, $2, 'write', 'write', 'write') ON CONFLICT DO NOTHING`,
       ['xfu2-live', 서비스id],
     );
 
@@ -69,7 +70,7 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
 
     const { user } = res.json<{ user: { username: string; role: string; services: { prefix: string }[] } }>();
     expect(user.username).toBe('xfu2-live');
-    expect(user.role).toBe('operator');
+    expect(user.role).toBe('member');
     expect(user.services.map((s) => s.prefix)).toEqual(['XFS2']);
     expect(res.cookies.some((c) => c.name === 'platform_session')).toBe(true);
   });

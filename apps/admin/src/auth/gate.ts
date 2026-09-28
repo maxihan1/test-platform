@@ -1,9 +1,11 @@
-// 모든 /api/** 앞에 서는 문. 로그인했는가 · 등급이 되는가 · 배정받은 서비스인가 셋을 본다 (SPEC §7)
+// 모든 /api/** 앞에 서는 문. 로그인했는가 · 배정받은 서비스인가 · 그 서비스에서 권한이 되는가 셋을 본다 (SPEC §7)
 // 실행·카탈로그·리포팅은 이 문이 실어 준 req.user 만 읽고 비밀번호도 세션도 모른다 (§3.5)
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import { 토큰으로왔나, 확인 } from './identify.js';
+import { 칸되는서비스, type 서비스권한 } from './permissions.js';
+import { 필요권한, 토큰통로, type 권한값 } from './routeTable.js';
 import { 케이스의서비스, 라우트표, 번호로, 서비스없음, 자원의서비스 } from './scope.js';
 import type { 등급, 사용자 } from './store.js';
 
@@ -12,8 +14,6 @@ declare module 'fastify' {
     user: 사용자 | null;
   }
 }
-
-const 높이: Record<등급, number> = { viewer: 0, operator: 1, admin: 2 };
 
 /**
  * 이 요청이 **어느 라우트로 갔는가.** 등록된 틀(`/api/settings/users`)이 그대로 온다.
@@ -40,113 +40,23 @@ function 라우트틀(req: FastifyRequest): string | undefined {
  *
  * **지우지 마라.** 이것이 없으면 대조할 기준이 사라진다.
  */
-export function 옛자동규칙(path: string, method: string): 등급 {
+export function 옛자동규칙(path: string, method: string): 'viewer' | 'operator' | 'admin' {
   if (path === '/api/settings' || path.startsWith('/api/settings/')) return 'admin';
   return method === 'GET' || method === 'HEAD' ? 'viewer' : 'operator';
 }
 
-/** 등급을 안 따지는 자리. 문이 그 앞에서 이미 돌려보낸다 */
-const 안따짐 = '안따짐';
-type 표값 = 등급 | typeof 안따짐;
-
-/**
- * **경로→등급 표** (SPEC 도메인/인증 §7 「등급으로 갈리는 자리」가 정본이다).
- *
- * ★ **키는 「틀 + 메서드」다.** 한 틀이 메서드마다 다른 등급을 갖는 자리가 실제로 있다 —
- * `/api/catalog/scan` · `/api/runs` · `/api/cases/:tcId/param-sets` 셋이 `GET` 과 쓰기로 갈린다.
- * 틀 하나로 잡으면 셋이 한 값으로 뭉개진다.
- *
- * ★ **표에 없으면 `admin` 이다** — `scope.ts` 의 「모르면 막는다」와 같은 방향이다.
- * 새 통로를 낼 때마다 그 자리에서 403 으로 빨개진다. 시끄럽지만 안전하다.
- */
-export const 등급표: Record<string, 표값> = {
-  // 로그인·로그아웃·나를 묻기는 문이 등급 판정 앞에서 돌려보낸다.
-  // 보기만 등급이 로그아웃도 못 하면 안 된다 (아래 인증등록 참조)
-  'POST /api/auth/login': 안따짐,
-  'POST /api/auth/logout': 안따짐,
-  'GET /api/auth/me': 안따짐,
-
-  // 읽기 — viewer
-  'GET /api/catalog/cases': 'viewer',
-  'GET /api/catalog/cases/:tcId': 'viewer',
-  'GET /api/catalog/scan': 'viewer',
-  'GET /api/cases/:tcId/history': 'viewer',
-  'GET /api/cases/:tcId/param-sets': 'viewer',
-  'GET /api/cases/:tcId/source': 'viewer',
-  'GET /api/evidence/:id': 'viewer',
-  'GET /api/runs': 'viewer',
-  'GET /api/runs/last-by-case': 'viewer',
-  'GET /api/runs/:runId': 'viewer',
-  'GET /api/runs/:runId/insights': 'viewer',
-  'GET /api/runs/:runId/items/:historyId': 'viewer',
-  'GET /api/runs/:runId/progress': 'viewer',
-  'GET /api/screenshots/:runId/:historyId/:seq.png': 'viewer',
-  'GET /api/authoring/requests': 'viewer',
-  'GET /api/authoring/requests/:id': 'viewer',
-  'GET /api/authoring/requests/:id/assets/:assetId': 'viewer',
-
-  // 바꾸는 일 — operator
-  'POST /api/catalog/scan': 'operator',
-  'POST /api/runs': 'operator',
-  'POST /api/runs/:runId/abort': 'operator',
-  'POST /api/runs/:runId/evidence': 'operator',
-  'POST /api/cases/:tcId/param-sets': 'operator',
-  'DELETE /api/param-sets/:id': 'operator',
-  'POST /api/authoring/requests': 'operator',
-  'POST /api/authoring/requests/claim': 'operator',
-  'PATCH /api/authoring/requests/:id/stage': 'operator',
-  'POST /api/authoring/requests/:id/screenshots': 'operator',
-  'POST /api/authoring/requests/:id/finish': 'operator',
-  'POST /api/authoring/requests/:id/assets': 'operator',
-  'POST /api/authoring/requests/:id/submit': 'operator',
-  'POST /api/authoring/requests/:id/stop': 'operator',
-  'POST /api/authoring/requests/:id/discard': 'operator',
-  // 역방향 산출물 — 작성 에이전트가 부른다. 에이전트가 하는 일이라 operator (인증 §7 「등급으로 갈리는 자리」)
-  'POST /api/authoring/requests/:id/outputs': 'operator',
-  // 토큰 사용량 — 작성 에이전트가 부른다 (작성 §7 「토큰 사용량」)
-  'POST /api/authoring/requests/:id/usage': 'operator',
-
-  // ★ 저장소를 영구히 바꾸는 일 — admin. **이 PR 이 일부러 바꾸는 유일한 줄이다**
-  'POST /api/authoring/merges': 'admin',
-
-  // 설정 — admin
-  'GET /api/settings/services': 'admin',
-  'POST /api/settings/services': 'admin',
-  'PATCH /api/settings/services/:id': 'admin',
-  'GET /api/settings/users': 'admin',
-  'POST /api/settings/users': 'admin',
-  'PATCH /api/settings/users/:username': 'admin',
-  'POST /api/settings/users/:username/password': 'admin',
-  'POST /api/settings/users/:username/agent-token': 'admin',
-  'DELETE /api/settings/users/:username/agent-token': 'admin',
-};
-
-/**
- * **에이전트 토큰이 지나갈 수 있는 통로** (SPEC 도메인/인증 §7 「인증 적용 범위」가 정본이다).
- *
- * 맥이 실제로 부르는 것만 넣는다 — 접두사(`/api/authoring/`)로 열면 **새 요청 만들기(한도를 쓴다)와
- * 머지까지 열린다** (2026-09-23 계획 검토가 잡았다). 사진 올리기는 맥이 안 불러서 뺐다.
- * 맥이 새 통로를 부르게 되면 여기 한 줄을 더한다. 안 더하면 그 자리에서 403 으로 드러난다
- */
-export const 토큰통로 = new Set([
-  'GET /api/auth/me',
-  'POST /api/authoring/requests/claim',
-  'PATCH /api/authoring/requests/:id/stage',
-  'POST /api/authoring/requests/:id/finish',
-  'POST /api/authoring/requests/:id/outputs',
-  'POST /api/authoring/requests/:id/usage',
-  'GET /api/authoring/requests',
-  'GET /api/authoring/requests/:id',
-  'GET /api/authoring/requests/:id/assets/:assetId',
-]);
-
-function 필요등급(path: string, method: string): 등급 {
-  // Fastify 는 GET 라우트에 HEAD 를 자동으로 붙인다. 소스에는 그 줄이 없어 표에도 없고,
-  // 그대로 두면 HEAD 가 admin 으로 떨어져 **오늘 viewer 가 하던 일이 조용히 막힌다**
-  const 키 = `${method === 'HEAD' ? 'GET' : method} ${path}`;
-  const 값 = 등급표[키];
-  // 표에 없거나 「안 따짐」인데 여기까지 왔으면 아무도 분류하지 않은 것이다. 막는 쪽으로 간다
-  return 값 === undefined || 값 === 안따짐 ? 'admin' : 값;
+/** 문이 쓰는 판정 그대로다. `gate.test.ts` 가 옛 등급 대조를 DB 없이 이것으로 돌린다 */
+export function 권한이되나(
+  user: { role: 등급; services: readonly { prefix: string; permissions: 서비스권한 }[] },
+  필요: 권한값,
+  닿는것: readonly string[],
+): boolean {
+  // admin 은 배정된 서비스에서 전부다. 배정 밖은 앞의 SERVICE_FORBIDDEN 이 이미 막았다 (SPEC §7)
+  if (user.role === 'admin') return true;
+  if (필요 === 'admin') return false;
+  const 되는곳 = new Set(칸되는서비스(user.services, 필요.기능, 필요.칸));
+  // 서비스를 하나도 못 뽑은 요청(안매임 · 빈 목록 · 없는 번호)은 「배정 중 하나라도」다
+  return 닿는것.length > 0 ? 닿는것.every((p) => 되는곳.has(p)) : 되는곳.size > 0;
 }
 
 // 배정 목록과 맞춰 볼 이름이 없지만 열어 주면 안 되는 요청
@@ -247,7 +157,7 @@ export function 인증등록(app: FastifyInstance): void {
    * 사진 올리는 통로처럼 상한이 넓은 자리에서는 그것만으로 서버를 넘길 수 있다
    * (2026-09-22 보안 검토가 실측으로 잡았다).
    *
-   * **등급과 서비스 판정은 여기서 안 한다** — 그 판정이 `POST /api/runs` 의 **본문**을 읽어야 해서
+   * **권한과 서비스 판정은 여기서 안 한다** — 그 판정이 `POST /api/runs` 의 **본문**을 읽어야 해서
    * 이 단계에서는 값이 아직 없다. 그래서 둘로 나눈다. 이 단계는 **누구인가**만 본다.
    */
   app.addHook('onRequest', async (req, reply) => {
@@ -277,19 +187,14 @@ export function 인증등록(app: FastifyInstance): void {
     const user = req.user;
     if (user === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
 
-    // 나가기와 나를 묻는 것은 등급을 따지지 않는다. 보기만 등급이 로그아웃도 못 하면 안 된다.
-    // ★ **이 아래(`/api/auth/**`)에는 등급이 안 걸린다.** 여기에 통로를 더하면
-    // 등급 표에 「안 따짐」으로 적히고 **로그인만 했으면 보기만 등급도 통과**한다 —
+    // 나가기와 나를 묻는 것은 권한을 따지지 않는다. 권한이 없는 사람도 로그아웃은 해야 한다.
+    // ★ **이 아래(`/api/auth/**`)에는 권한이 안 걸린다.** 여기에 통로를 더하면
+    // 표에 「안 따짐」으로 적히고 **로그인만 했으면 누구나 통과**한다 —
     // 표를 보면 안전해 보이는데 실제 판정은 이 한 줄이 한다 (2026-09-22 보안 검토가 잡았다)
     if (path.startsWith('/api/auth/')) return;
 
-    const 필요 = 필요등급(path, req.method);
-    if (높이[user.role] < 높이[필요]) {
-      // 404로 감추지 않는다. 화면이 그 자리를 아예 안 보여주므로 여기까지 닿은 요청은
-      // 화면의 버그이거나 직접 찌른 것이고, 둘 다 감추는 편이 더 나쁘다 (SPEC §7)
-      return reply.code(403).send({ error: 'FORBIDDEN', need: 필요 });
-    }
-
+    // 순서는 「배정받은 서비스인가」 다음 「칸이 되는가」다 (SPEC §7) — 칸은 서비스마다 달라서
+    // 어느 서비스를 건드리는지 알아야 판정할 수 있다
     const 닿는것 = await 닿는서비스(req);
     if (닿는것 === 막는다) {
       return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: path });
@@ -300,6 +205,13 @@ export function 인증등록(app: FastifyInstance): void {
       if (!배정.has(prefix)) {
         return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: prefix });
       }
+    }
+
+    const 필요 = 필요권한(path, req.method);
+    if (!권한이되나(user, 필요, 닿는것)) {
+      // 404로 감추지 않는다. 화면이 그 자리를 아예 안 보여주므로 여기까지 닿은 요청은
+      // 화면의 버그이거나 직접 찌른 것이고, 둘 다 감추는 편이 더 나쁘다 (SPEC §7)
+      return reply.code(403).send({ error: 'FORBIDDEN', need: 필요 === 'admin' ? 필요 : `${필요.기능}:${필요.칸}` });
     }
   });
 }

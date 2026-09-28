@@ -9,8 +9,9 @@ import authoringAgentRoutes from '../authoring/agentRoutes.js';
 import authoringRoutes from '../authoring/routes.js';
 import settingsRoutes from '../settings/routes.js';
 import { 헤더토큰 } from './agentToken.js';
-import { 등급표, 인증등록, 토큰통로 } from './gate.js';
+import { 인증등록 } from './gate.js';
 import { 해시 } from './password.js';
+import { 등급표, 토큰통로 } from './routeTable.js';
 import authRoutes from './routes.js';
 import { 세션등록 } from './session.js';
 
@@ -53,7 +54,7 @@ describe.skipIf(연결 === undefined)('작성 에이전트 토큰', () => {
   let 사람쿠키 = '';
   const 옛이름 = process.env.AUTHORING_AGENT_USER;
 
-  async function 계정넣기(username: string, role: string) {
+  async function 계정넣기(username: string, role: 'member' | 'admin', 칸: [string, string, string] = ['write', 'write', 'write']) {
     const { pool } = await import('../db/index.js');
     await pool.query(
       `INSERT INTO app_user (username, display_name, password_hash, role)
@@ -63,9 +64,11 @@ describe.skipIf(연결 === undefined)('작성 에이전트 토큰', () => {
       [username, await 해시('열려라참깨'), role],
     );
     await pool.query(
-      `INSERT INTO user_service (username, service_id) SELECT $1, id FROM service WHERE prefix = $2
-       ON CONFLICT DO NOTHING`,
-      [username, 서비스],
+      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
+       SELECT $1, id, $3, $4, $5 FROM service WHERE prefix = $2
+       ON CONFLICT (username, service_id) DO UPDATE
+         SET perm_cases = EXCLUDED.perm_cases, perm_runs = EXCLUDED.perm_runs, perm_authoring = EXCLUDED.perm_authoring`,
+      [username, 서비스, ...칸],
     );
   }
 
@@ -104,9 +107,9 @@ describe.skipIf(연결 === undefined)('작성 에이전트 토큰', () => {
        ON CONFLICT (prefix) DO UPDATE SET is_active = true`,
       [서비스],
     );
-    await 계정넣기(맥, 'operator');
+    await 계정넣기(맥, 'member', ['none', 'none', 'write']);
     await 계정넣기(운영, 'admin');
-    await 계정넣기(사람, 'operator');
+    await 계정넣기(사람, 'member');
 
     app = Fastify();
     세션등록(app, 열쇠);

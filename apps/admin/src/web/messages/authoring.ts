@@ -18,6 +18,7 @@ export const 작성말: Record<string, string> = {
   // 빈 목록
   '아직 작성을 요청한 기록이 없습니다': 'No authoring requests yet',
   '기획서를 넣으면 여기에 줄이 생깁니다': 'Add a spec and a row appears here',
+  '작성 요청이 들어오면 여기에 줄이 생깁니다': 'A row appears here when authoring is requested',
 
   // 새 요청 폼 — 파일과 피그마 주소를 한 세트로 (도메인/작성 §7 「자료」)
   '기획서 파일': 'Spec files',

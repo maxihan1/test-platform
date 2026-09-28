@@ -1,6 +1,9 @@
 // 주소창의 해시를 화면 한 개로 푼다. 서버 라우팅을 건드리지 않으려고 해시를 쓴다
 // app.ts의 정적 서빙은 Phase 0가 고정한 공용 골격이라 history API용 되돌림 규칙을 넣을 수 없다
 
+import type { User } from './api.js';
+import { 기능보나, type 기능 } from './role.js';
+
 export type Route =
   | { name: 'login' }
   | { name: 'settings' }
@@ -51,15 +54,42 @@ export function route(hash: string): Route {
   return { name: 'unknown', hash };
 }
 
-/** 집. 돌아갈 자리를 모를 때 여기로 보낸다 */
-const 집 = '#/cases';
+/**
+ * 목록 화면이 어느 기능에 매였나. 목록만 띠의 서비스를 따른다.
+ * 한 건 주소(실행·항목·실행 설정·작성 상세)는 그 건의 서비스가 따로 있어 화면이 판정한다 —
+ * 띠로 가르면 B 서비스 실행 알림을 A 를 고른 채 열 때 판정 전에 집으로 튕긴다. 서버가 다시 막는다
+ */
+const 기능자리: Partial<Record<Route['name'], 기능>> = {
+  cases: 'cases',
+  authoring: 'authoring',
+  runs: 'runs',
+};
+
+/**
+ * 집. 남은 자리 중 맨 위다 (화면공통 §8 「자리 목록」).
+ *
+ * 다 막혔으면 `#/cases` 로 둔다 — 그 사람에게는 껍데기가 「권한을 받지 않았습니다」를 덮어 그린다.
+ */
+export function 집(user: User, prefix: string | null): string {
+  const 순서: [기능, string][] = [['cases', '#/cases'], ['authoring', '#/authoring'], ['runs', '#/runs']];
+  return 순서.find(([어느]) => 기능보나(user, prefix, 어느))?.[1] ?? '#/cases';
+}
+
+/**
+ * 이 주소로 가도 되나. `none` 인 자리를 직접 치면 집으로 보낸다 (화면공통 §8).
+ * 이유를 띄우지 않는다 — 서비스를 바꾸면 열릴 수 있는 자리라 안내보다 옮기는 편이 덜 헷갈린다
+ */
+export function 갈자리(hash: string, user: User, prefix: string | null): string {
+  const 어느 = 기능자리[route(hash).name];
+  return 어느 === undefined || 기능보나(user, prefix, 어느) ? hash : 집(user, prefix);
+}
 
 /**
  * 로그인이 끝나면 어디로 돌려보낼까 (SPEC §8.6).
  *
  * 로그인 화면 자체를 기억하면 로그인 뒤 또 로그인 화면으로 간다.
  */
-export function 돌아갈자리(hash: string): string {
-  if (hash === '' || route(hash).name === 'login') return 집;
-  return hash;
+export function 돌아갈자리(hash: string, user: User, prefix: string | null): string {
+  if (hash === '' || route(hash).name === 'login') return 집(user, prefix);
+  return 갈자리(hash, user, prefix);
 }

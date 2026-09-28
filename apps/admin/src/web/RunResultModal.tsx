@@ -9,17 +9,17 @@
 // 「화면으로 열기」가 상자 안에 상자 밖 정보가 또 있다는 착각을 줬다)
 
 import { Modal } from './Modal.js';
-import type { 등급 } from './role.js';
+import type { 판정 } from './role.js';
 import { RunResult } from './RunResult.js';
 import { use말 } from './i18n.js';
 
 export function RunResultModal({
   runId,
-  role,
+  할수,
   onClose,
 }: {
   runId: number;
-  role: 등급;
+  할수: 판정;
   onClose: () => void;
 }) {
   const t = use말();
@@ -37,7 +37,8 @@ export function RunResultModal({
     >
       {/* `상자안` 이 진행·완료 상자를 막고, 머리·필터는 고정한 채 케이스 줄만 스크롤하게 한다.
           가두개가 겹치면 빠져나올 길이 없다 */}
-      <RunResult runId={runId} role={role} 상자안 />
+      {/* 목록은 띠에서 고른 서비스의 실행만 싣는다 — 그 실행의 서비스가 곧 띠의 서비스다 */}
+      <RunResult runId={runId} 판정하기={() => 할수} 상자안 />
     </Modal>
   );
 }

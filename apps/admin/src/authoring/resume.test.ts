@@ -87,7 +87,7 @@ describe.skipIf(연결 === undefined)('작성 이어하기', () => {
     app = Fastify();
     app.decorateRequest('user', null);
     app.addHook('preHandler', async (req) => {
-      req.user = { username: 에이전트, displayName: '이어하기 검사', role: 'operator' as const, services: [] };
+      req.user = { username: 에이전트, displayName: '이어하기 검사', role: 'member' as const, dashboard: 'read' as const, mustChangePassword: false, services: [] };
     });
     await app.register(authoringRoutes, { prefix: '/api' });
     await app.register(assetRoutes, { prefix: '/api' });

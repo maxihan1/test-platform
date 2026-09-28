@@ -3,7 +3,7 @@
 
 import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
 
-import type { 등급 } from './role.js';
+import type { 권한칸, 등급 } from './role.js';
 
 export type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult };
 
@@ -242,12 +242,17 @@ export interface ServiceRow {
   hasSlackWebhook: boolean;
   /** 케이스 폴더 이름. 선택으로 둔 건 기존 화면 검사의 가짜 응답이 이 값을 안 담아서다 */
   testsDir?: string;
+  /** 이 서비스에서의 기능별 칸. admin 은 서버가 전부 write 로 채운다 (도메인/인증 §3.5) */
+  permissions: 권한칸;
 }
 
 export interface User {
   username: string;
   displayName: string;
   role: 등급;
+  /** 대시보드는 서비스가 아니라 사람의 칸이다 (도메인/인증 §3.5) */
+  dashboard: 'none' | 'read';
+  mustChangePassword: boolean;
   services: ServiceRow[];
 }
 
@@ -257,7 +262,7 @@ export interface User {
  * 띠의 `ServiceRow` 와 다르다 — 그쪽은 **배정받은 것만** 오고 여기는 **전부** 온다.
  * 비활성까지 포함한다. 설정 화면은 내려 둔 것도 봐야 다시 올릴 수 있다.
  */
-export interface SettingsServiceRow extends ServiceRow {
+export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
   /**
    * 토큰 칸을 「설정됨」으로 그릴지. 토큰 자체는 오지 않는다 (도메인/인증 §8.8).
    * 서버는 늘 싣는다. 선택으로 둔 것은 이 칸을 모르는 기존 화면 검사의 가짜 행을 안 고치려고다 — 없으면 「안 넣음」으로 읽는다
@@ -356,12 +361,22 @@ export interface AuthoringAsset {
   sourceAssetId?: number | null;
 }
 
+/** 계정 한 사람이 한 서비스에서 가진 칸 (도메인/인증 §3.5). 셋 다 none 인 줄은 서버가 받지 않는다 */
+export interface 배정 {
+  prefix: string;
+  permissions: 권한칸;
+}
+
 export interface UserRow {
   username: string;
   displayName: string;
   role: 등급;
+  dashboard: 'none' | 'read';
   isActive: boolean;
-  services: string[];
+  // 옛 검사 fixture 가 없이 만든다. 서버는 늘 보낸다 — 없으면 승인된 것으로 읽는다
+  isApproved?: boolean;
+  /** 배정 전체. 고칠 때 이 목록이 통째로 바뀐다 (도메인/인증 §7) */
+  services: 배정[];
   // 옛 검사 fixture 가 이 둘 없이 UserRow 를 만든다. 서버는 늘 보낸다 — 없으면 false 로 읽는다
   hasAgentToken?: boolean;
   /** 서버 환경변수 AUTHORING_AGENT_USER 가 가리키는 계정만 true. 토큰은 이 계정만 가진다 */
@@ -635,7 +650,7 @@ export const api = {
   authoringAssetUrl: (id: number, assetId: number) => `/api/authoring/requests/${id}/assets/${assetId}`,
 
   /**
-   * 머지를 줄에 세운다 — **운영 등급만**.
+   * 머지를 줄에 세운다 — **운영 계정만**.
    *
    * 경로가 갈린 이유는 등급 때문이다. 같은 경로에 `kind: 'MERGE'` 로 얹으면 등급이
    * **본문 값**에 따라 갈려야 하고, 그러려면 문이 본문을 읽어야 한다 (도메인/작성 §7).
@@ -680,12 +695,24 @@ export const api = {
   settingsUsers: () => call<{ items: UserRow[] }>('/settings/users'),
 
   /** 임시 비밀번호가 **이 응답에만** 있다. 다음부터는 다시 만들 수만 있다 (SPEC §8.8) */
-  createUser: (body: { username: string; displayName: string; role: 등급; services: string[] }) =>
+  createUser: (body: {
+    username: string;
+    displayName: string;
+    role: 등급;
+    dashboard: 'none' | 'read';
+    services: 배정[];
+  }) =>
     call<{ username: string; tempPassword: string }>('/settings/users', json(body)),
 
   updateUser: (
     username: string,
-    body: { displayName?: string; role?: 등급; isActive?: boolean; services?: string[] },
+    body: {
+      displayName?: string;
+      role?: 등급;
+      dashboard?: 'none' | 'read';
+      isActive?: boolean;
+      services?: 배정[];
+    },
   ) =>
     call<{ ok: true }>(`/settings/users/${encodeURIComponent(username)}`, {
       ...json(body),

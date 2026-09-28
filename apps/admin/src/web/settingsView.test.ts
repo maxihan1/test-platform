@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import type { UserRow } from './api.js';
+import type { SettingsServiceRow, UserRow } from './api.js';
 import {
   계정못보내는이유,
+  계정요약,
+  권한경고,
   마지막운영계정인가,
   서비스못보내는이유,
   설정오류문장,
@@ -10,8 +12,8 @@ import {
   웹훅칸,
 } from './settingsView.js';
 
-function 계정(username: string, role: 'viewer' | 'operator' | 'admin', isActive = true): UserRow {
-  return { username, displayName: username, role, isActive, services: [] };
+function 계정(username: string, role: 'member' | 'admin', isActive = true): UserRow {
+  return { username, displayName: username, role, dashboard: 'read', isActive, services: [] };
 }
 
 describe('접두사 (SPEC §2 · §8.8)', () => {
@@ -86,7 +88,7 @@ describe('Slack 웹훅 칸 (SPEC §8.8)', () => {
 });
 
 describe('마지막 운영 계정 (SPEC §7 · §8.8)', () => {
-  const 사람들 = [계정('kim', 'admin'), 계정('lee', 'operator'), 계정('park', 'viewer')];
+  const 사람들 = [계정('kim', 'admin'), 계정('lee', 'member'), 계정('park', 'member')];
 
   it('활성 운영 계정이 하나뿐이면 그 사람이 마지막이다', () => {
     expect(마지막운영계정인가(사람들, 'kim')).toBe(true);
@@ -109,6 +111,11 @@ describe('마지막 운영 계정 (SPEC §7 · §8.8)', () => {
 
   it('이미 비활성인 사람은 마지막이 아니다. 내릴 것이 없다', () => {
     expect(마지막운영계정인가([계정('kim', 'admin', false)], 'kim')).toBe(false);
+  });
+
+  it('승인 안 된 운영 계정은 수에 안 넣는다. 서버 LAST_ADMIN 과 같은 기준이다', () => {
+    const 미승인 = [...사람들, { ...계정('choi', 'admin'), isApproved: false }];
+    expect(마지막운영계정인가(미승인, 'kim')).toBe(true);
   });
 });
 
@@ -198,5 +205,49 @@ describe('서버가 낸 오류를 사람 말로 (SPEC §8.8)', () => {
 
   it('모르는 코드는 코드를 그대로 붙여 준다. 삼키면 무엇이 틀렸는지 알 길이 없다', () => {
     expect(설정오류문장('WAT', 'ko')).toContain('WAT');
+  });
+});
+
+describe('계정 줄의 권한 요약 (도메인/인증 §8.8)', () => {
+  const 서비스들 = [
+    { prefix: 'PAY', name: '결제 서비스' },
+    { prefix: 'MEM', name: '회원 서비스' },
+  ] as SettingsServiceRow[];
+
+  it('운영은 칸을 늘어놓지 않고 운영 하나로 적는다', () => {
+    expect(계정요약({ ...계정('kim', 'admin'), services: [] }, 서비스들)).toEqual({ 운영: true });
+  });
+
+  it('멤버는 서비스마다 케이스 · 실행 · 작성 순서로 칸을 적고 대시보드를 따로 적는다', () => {
+    const 이영희: UserRow = {
+      ...계정('lee', 'member'),
+      dashboard: 'none',
+      services: [{ prefix: 'MEM', permissions: { authoring: 'none', runs: 'write', cases: 'read' } }],
+    };
+    expect(계정요약(이영희, 서비스들)).toEqual({
+      운영: false,
+      서비스: [{ 이름: '회원 서비스', 칸들: [['cases', 'read'], ['runs', 'write'], ['authoring', 'none']] }],
+      대시보드: 'none',
+    });
+  });
+
+  it('목록에 없는 서비스는 접두사로 적는다. 지우지 않는다', () => {
+    const 행 = { ...계정('lee', 'member'), services: [{ prefix: 'OLD', permissions: { cases: 'read', runs: 'read', authoring: 'read' } }] } as UserRow;
+    const 요약 = 계정요약(행, 서비스들);
+    expect(요약.운영 === false && 요약.서비스[0]?.이름).toBe('OLD');
+  });
+});
+
+describe('권한 묶음 경고 (도메인/인증 §3.5 · §8.8)', () => {
+  it('실행 쓰기에 케이스 안 씀이면 케이스가 안 보인다고 알린다. 막지는 않는다', () => {
+    expect(권한경고({ cases: 'none', runs: 'write', authoring: 'read' })).toBe('noCases');
+  });
+
+  it('셋 다 안 씀이면 저장할 수 없다', () => {
+    expect(권한경고({ cases: 'none', runs: 'none', authoring: 'none' })).toBe('allOff');
+  });
+
+  it('보통 조합은 아무 말도 없다', () => {
+    expect(권한경고({ cases: 'read', runs: 'write', authoring: 'none' })).toBe(null);
   });
 });

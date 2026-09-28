@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import type { CaseRow, JsonSchema } from './api.js';
-import { 케이스줄, 표머리 } from './CaseListParts.js';
+import { Empty, 케이스줄, 표머리 } from './CaseListParts.js';
 
 afterEach(cleanup);
 
@@ -191,5 +191,18 @@ describe('표머리와 입력 칸 (SPEC §8.1)', () => {
     expect(입력칸).not.toBeNull();
     expect(이름칸!.contains(입력칸!)).toBe(false);
     expect(입력칸!.querySelector('input')).not.toBeNull();
+  });
+});
+
+// 케이스 읽기면 스캔을 못 건다. 버튼을 두면 누르는 순간 403 이다 (화면공통 §8)
+describe('빈 목록의 스캔 버튼', () => {
+  it('스캔 길을 안 주면 버튼이 없다', () => {
+    render(<Empty 형편={{ scannedAt: null, 전체건수: 0, 건조건: false, 친글자: '' }} onClear={vi.fn()} />);
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('조건 초기화는 스캔 길과 상관없이 선다', () => {
+    render(<Empty 형편={{ scannedAt: '2026-09-21T00:00:00.000Z', 전체건수: 3, 건조건: true, 친글자: 'x' }} onClear={vi.fn()} />);
+    expect(screen.getByRole('button', { name: '조건 초기화' })).toBeTruthy();
   });
 });

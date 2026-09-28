@@ -18,7 +18,7 @@ const 접두사 = 'XWU';
 
 // 이 검사는 문(gate.ts)을 안 지난다. 등급과 서비스 경계는 gate.test.ts · scope.test.ts 가 본다
 function 사람(이름: string) {
-  return { username: 이름, displayName: `${이름} 씨`, role: 'operator' as const, services: [] };
+  return { username: 이름, displayName: `${이름} 씨`, role: 'member' as const, dashboard: 'read' as const, mustChangePassword: false, services: [] };
 }
 
 describe.skipIf(연결 === undefined)('작성 자료 통로', () => {

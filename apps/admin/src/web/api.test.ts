@@ -59,7 +59,7 @@ afterEach(() => {
 
 describe('로그인 세 함수', () => {
   it('로그인은 아이디와 비밀번호를 본문에 싣는다', async () => {
-    답 = { status: 200, body: { user: { username: 'kim', displayName: '김철수', role: 'operator', services: [] } } };
+    답 = { status: 200, body: { user: { username: 'kim', displayName: '김철수', role: 'member', dashboard: 'read', mustChangePassword: false, services: [] } } };
     await api.login('kim', 'hunter2');
 
     expect(부름[0]?.url).toBe('/api/auth/login');
@@ -68,7 +68,7 @@ describe('로그인 세 함수', () => {
   });
 
   it('나를 묻는 것은 GET 이다', async () => {
-    답 = { status: 200, body: { user: { username: 'kim', displayName: '김철수', role: 'viewer', services: [] } } };
+    답 = { status: 200, body: { user: { username: 'kim', displayName: '김철수', role: 'member', dashboard: 'read', mustChangePassword: false, services: [] } } };
     await api.me();
     expect(부름[0]?.url).toBe('/api/auth/me');
   });

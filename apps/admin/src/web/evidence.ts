@@ -3,7 +3,7 @@
 
 import type { EvidenceRow } from './api.js';
 import { t, type 언어 } from './i18n.js';
-import { 할수있나, type 등급 } from './role.js';
+import type { 판정 } from './role.js';
 import { 도는중 } from './runState.js';
 
 export interface 증적버튼모양 {
@@ -92,10 +92,10 @@ function 한형식(꼴: (typeof 형식들)[number], 문서들: EvidenceRow[], �
 export function 증적버튼들(
   status: string,
   문서들: EvidenceRow[],
-  role: 등급 | null,
+  할수: 판정,
   언어: 언어,
 ): 증적버튼줄 | null {
-  if (!할수있나(role, '증적만들기')) return null;
+  if (!할수('증적만들기')) return null;
 
   if (도는중(status)) {
     return { 버튼들: [], 안내: t('실행이 끝나면 증적 문서를 만들 수 있습니다', 언어) };

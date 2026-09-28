@@ -27,7 +27,7 @@ const 접두사 = 'XWAR';
 // 이 검사는 문(gate.ts)을 안 지난다. 등급 판정은 gate.test.ts 가 본다 —
 // 여기서는 라우트가 본문과 자원을 어떻게 거르는지만 본다
 function 사람(이름: string) {
-  return { username: 이름, displayName: `${이름} 씨`, role: 'operator' as const, services: [] };
+  return { username: 이름, displayName: `${이름} 씨`, role: 'member' as const, dashboard: 'read' as const, mustChangePassword: false, services: [] };
 }
 
 describe.skipIf(연결 === undefined)('작성 통로', () => {

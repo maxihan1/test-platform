@@ -9,7 +9,7 @@ import { AuthoringTodo } from './AuthoringTodo.js';
 import { 끝났나, 종류라벨, 차이목록, 차이종류라벨 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
-import { type 등급 } from './role.js';
+import type { 판정 } from './role.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
 /** 파일은 내려받기, 피그마는 저장된(정규화한) 주소로 연다 */
@@ -46,7 +46,7 @@ function 산출물설명(
   return `${t('표시 사본')} — ${이름}`;
 }
 
-export function AuthoringDetail({ service, id, role }: { service: string; id: number; role: 등급 }) {
+export function AuthoringDetail({ service, id, 할수 }: { service: string; id: number; 할수: 판정 }) {
   const t = use말();
   const 언어 = use언어();
 
@@ -123,7 +123,7 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
           </div>
 
           <div className="authoring-col">
-            <AuthoringTodo service={service} 요청={data} role={role} 차이수={차이들?.length ?? 0} reload={reload} />
+            <AuthoringTodo service={service} 요청={data} 할수={할수} 차이수={차이들?.length ?? 0} reload={reload} />
 
             <section className="authoring-panel" aria-label={t('요청 정보')}>
               <h3>{t('요청 정보')}</h3>

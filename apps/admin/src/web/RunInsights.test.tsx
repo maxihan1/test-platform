@@ -15,6 +15,10 @@ import {
 } from './api.js';
 import { RunInsights } from './RunInsights.js';
 import { RunResult } from './RunResult.js';
+import type { 판정 } from './role.js';
+
+// 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
+const 실행까지: 판정 = (무엇) => 무엇 !== '작성머지' && 무엇 !== '설정';
 
 afterEach(() => {
   cleanup();
@@ -171,7 +175,7 @@ describe('도는 중인 실행 (SPEC §8.3 · §8.9)', () => {
   it('아직 도는 중이면 견주기 조회를 아예 부르지 않는다', async () => {
     const 부름 = vi.spyOn(api, 'insights').mockResolvedValue(비교());
     vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
-    render(<RunResult runId={RUN_ID} role="operator" />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 
     await screen.findByRole('dialog');
     expect(부름).not.toHaveBeenCalled();
@@ -180,7 +184,7 @@ describe('도는 중인 실행 (SPEC §8.3 · §8.9)', () => {
   it('화면 머리에 지금 진행 중인 항목을 적되 단정하지 않는다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(비교());
     vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
-    render(<RunResult runId={RUN_ID} role="operator" />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 
     // 2026-09-22 에 머리가 본문 밖으로 나가면서 클래스 이름이 head-meta 가 됐다.
     // 단언하는 것은 그대로다 — 「진행 중」이 화면 머리에 있고 「실행 중」이라 단정하지 않는다
