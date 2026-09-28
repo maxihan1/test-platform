@@ -48,9 +48,10 @@ const 서비스: ServiceRow = {
   color: '#123456',
   envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
   hasSlackWebhook: false,
+  permissions: { cases: 'write', runs: 'write', authoring: 'write' },
 };
 
-const 사람: User = { username: 'zpk', displayName: '검사', role: 'operator', services: [서비스] };
+const 사람: User = { username: 'zpk', displayName: '검사', role: 'member', dashboard: 'read', mustChangePassword: false, services: [서비스] };
 
 /** 마운트에서 부르는 셋과 대상 서버를 읽는 통로를 막는다. cases 만 시험 대상이다 */
 function 모킹(cases: (page: number) => Promise<Paged<CaseRow>>) {

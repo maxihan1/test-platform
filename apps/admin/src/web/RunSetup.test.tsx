@@ -30,12 +30,15 @@ const 서비스: ServiceRow = {
   color: '#3A5FCD',
   envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
   hasSlackWebhook: false,
+  permissions: { cases: 'write', runs: 'write', authoring: 'write' },
 };
 
 const 사람: User = {
   username: 'zrs1',
   displayName: '김실행',
-  role: 'operator',
+  role: 'member',
+  dashboard: 'read',
+  mustChangePassword: false,
   services: [서비스],
 };
 

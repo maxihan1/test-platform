@@ -12,8 +12,8 @@ import { 오류문장 } from './SettingsService.js';
 import { 계정못보내는이유, 마지막운영계정인가 } from './settingsView.js';
 
 // 값이 곧 번역 키다. 화면에 낼 때 `t()` 를 한 번 더 태운다
-const 등급이름: Record<등급, string> = { viewer: '보기만', operator: '실행까지', admin: '운영' };
-const 등급들: 등급[] = ['viewer', 'operator', 'admin'];
+const 등급이름: Record<등급, string> = { member: '멤버', admin: '운영' };
+const 등급들: 등급[] = ['member', 'admin'];
 
 export function UserSection({
   rows,
@@ -133,7 +133,7 @@ function UserForm({
   const 새것 = row === undefined;
   const [username, setUsername] = useState(row?.username ?? '');
   const [displayName, setDisplayName] = useState(row?.displayName ?? '');
-  const [role, setRole] = useState<등급>(row?.role ?? 'viewer');
+  const [role, setRole] = useState<등급>(row?.role ?? 'member');
   const [배정, set배정] = useState<string[]>(row?.services ?? []);
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);

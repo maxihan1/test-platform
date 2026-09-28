@@ -11,6 +11,12 @@ import {
   알림본적있나,
   칸사유,
 } from './runState.js';
+import type { 판정 } from './role.js';
+
+// 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
+const 운영: 판정 = () => true;
+const 실행까지: 판정 = (무엇) => 무엇 !== '작성머지' && 무엇 !== '설정';
+const 보기만: 판정 = (무엇) => 무엇 === '증적받기';
 
 // 본 알림은 브라우저에 남는다. jsdom 을 설치하지 않았으므로 가짜를 끼운다 (api.test.ts 와 같은 방식)
 const 보관 = new Map<string, string>();
@@ -50,21 +56,21 @@ describe('실행 상태', () => {
 
 describe('실행 멈추기 (SPEC §8.3 · §3.5)', () => {
   it('도는 중이고 실행까지 등급이면 멈출 수 있다', () => {
-    expect(멈출수있나('RUNNING', 'operator')).toBe(true);
-    expect(멈출수있나('RUNNING', 'admin')).toBe(true);
+    expect(멈출수있나('RUNNING', 실행까지)).toBe(true);
+    expect(멈출수있나('RUNNING', 운영)).toBe(true);
   });
 
   it('보기만 등급에게는 멈춤 버튼이 없다. 흐리게가 아니라 아예 없다', () => {
-    expect(멈출수있나('RUNNING', 'viewer')).toBe(false);
+    expect(멈출수있나('RUNNING', 보기만)).toBe(false);
   });
 
   it('끝난 실행에는 보이지 않는다', () => {
-    expect(멈출수있나('FINISHED', 'admin')).toBe(false);
-    expect(멈출수있나('ABORTED', 'admin')).toBe(false);
+    expect(멈출수있나('FINISHED', 운영)).toBe(false);
+    expect(멈출수있나('ABORTED', 운영)).toBe(false);
   });
 
   it('로그인하지 않았으면 멈출 수 없다', () => {
-    expect(멈출수있나('RUNNING', null)).toBe(false);
+    expect(멈출수있나('RUNNING', () => false)).toBe(false);
   });
 });
 

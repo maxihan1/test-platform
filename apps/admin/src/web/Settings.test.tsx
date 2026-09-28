@@ -37,7 +37,7 @@ const 계정: UserRow = {
 };
 
 function 사람(role: User['role']): User {
-  return { username: 'zst1', displayName: '김설정', role, services: [] };
+  return { username: 'zst1', displayName: '김설정', role, dashboard: 'read', mustChangePassword: false, services: [] };
 }
 
 function 그리기(role: User['role'] = 'admin') {
@@ -63,7 +63,7 @@ describe('설정 화면의 틀', () => {
   });
 
   it('운영 등급이 아니면 이유를 말하고 머리를 그리지 않는다', () => {
-    const { container } = 그리기('viewer');
+    const { container } = 그리기('member');
 
     // 서버 gate.ts 가 이미 막지만 주소를 직접 친 사람에게 403 대신 이유를 보여준다 (SPEC §8.8)
     expect(screen.getByText(/운영 등급만 볼 수 있습니다/)).toBeTruthy();

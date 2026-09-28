@@ -26,6 +26,7 @@ const 결제: ServiceRow = {
   color: '#3A5FCD',
   envs: [],
   hasSlackWebhook: false,
+  permissions: { cases: 'write', runs: 'write', authoring: 'write' },
 };
 
 const 정산: ServiceRow = { ...결제, id: 2, prefix: 'ZSI', name: '정산 서비스', color: '#7A2E5E' };
@@ -34,6 +35,8 @@ const 사람: User = {
   username: 'zsh1',
   displayName: '김수민',
   role: 'admin',
+  dashboard: 'read',
+  mustChangePassword: false,
   services: [결제, 정산],
 };
 
@@ -99,7 +102,7 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(사이드).not.toBeNull();
     const 안 = within(사이드!);
     expect(안.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
-    expect(안.getAllByRole('link')).toHaveLength(자리목록(사람.role, 'ko').length);
+    expect(안.getAllByRole('link')).toHaveLength(자리목록(사람, 결제.prefix, 'ko').length);
     expect(안.getByText(사람.displayName)).toBeTruthy();
   });
 

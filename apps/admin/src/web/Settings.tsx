@@ -25,7 +25,7 @@ export function Settings({ user, onMeChanged }: { user: User; onMeChanged: () =>
   const users = useAsync<{ items: UserRow[] }>(() => api.settingsUsers(), []);
 
   // 서버 gate.ts 가 이미 막지만, 주소를 직접 친 사람에게 403 대신 이유를 보여준다
-  if (!할수있나(user.role, '설정')) {
+  if (!할수있나(user, null, '설정')) {
     return (
       <div className="screen">
         <div className="empty">

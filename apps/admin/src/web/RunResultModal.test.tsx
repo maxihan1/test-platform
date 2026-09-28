@@ -6,6 +6,10 @@ import { cleanup, render, screen } from '@testing-library/react';
 
 import { api, type RunSummary } from './api.js';
 import { RunResultModal } from './RunResultModal.js';
+import type { 판정 } from './role.js';
+
+// 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
+const 실행까지: 판정 = (무엇) => 무엇 !== '작성머지' && 무엇 !== '설정';
 
 afterEach(() => {
   cleanup();
@@ -30,7 +34,7 @@ const 실행: RunSummary = {
 
 function 그리기() {
   vi.spyOn(api, 'run').mockResolvedValue({ ...실행, items: [], evidence: [] });
-  return render(<RunResultModal runId={RUN_ID} role="operator" onClose={() => {}} />);
+  return render(<RunResultModal runId={RUN_ID} 할수={실행까지} onClose={() => {}} />);
 }
 
 describe('실행 결과 상자 (2026-09-22 ②)', () => {

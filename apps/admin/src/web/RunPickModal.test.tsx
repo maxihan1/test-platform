@@ -46,6 +46,7 @@ const 서비스: ServiceRow = {
   color: '#123456',
   envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
   hasSlackWebhook: true,
+  permissions: { cases: 'write', runs: 'write', authoring: 'write' },
 };
 
 function 그리기(케이스들: CaseRow[] = [값없는케이스, 값있는케이스], 사유?: string) {

@@ -19,7 +19,8 @@ import {
   지금자리,
 } from './layout.js';
 import { Login } from './Login.js';
-import { route, 돌아갈자리 } from './route.js';
+import { 판정을만든다 } from './role.js';
+import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
 import { RunSetup } from './RunSetup.js';
@@ -54,6 +55,8 @@ function Screen({
   const current = route(hash);
   // 띠가 서비스를 고르기 전에는 목록을 부르지 않는다. 빈 값으로 부르면 서버가 400 을 낸다
   const prefix = service?.prefix ?? '';
+  // 케이스·작성·실행 칸은 고른 서비스의 것을 본다 (화면공통 §8)
+  const 할수 = 판정을만든다(user, service?.prefix ?? null);
 
   switch (current.name) {
     case 'cases':
@@ -63,11 +66,11 @@ function Screen({
     case 'authoring':
       return <Authoring service={prefix} envs={service?.envs ?? []} />;
     case 'authoringItem':
-      return <AuthoringDetail service={prefix} id={current.id} role={user.role} />;
+      return <AuthoringDetail service={prefix} id={current.id} 할수={할수} />;
     case 'runs':
-      return <RunList service={prefix} role={user.role} />;
+      return <RunList service={prefix} 할수={할수} />;
     case 'run':
-      return <RunResult runId={current.runId} role={user.role} />;
+      return <RunResult runId={current.runId} 할수={할수} />;
     case 'item':
       return <ItemDetail runId={current.runId} historyId={current.historyId} />;
     case 'login':
@@ -124,11 +127,12 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
 
   // 로그인은 했는데 주소가 로그인 화면이면 집으로 보낸다.
   // 렌더 중에 주소를 바꾸면 React 가 그리는 도중에 부수효과가 난다
-  const 로그인화면인가 = route(hash).name === 'login';
-  const 들어왔나 = 상태.어디 === '안';
+  // `none` 인 자리 주소를 직접 쳐도 집으로 보낸다 — 집은 권한으로 고른 맨 위 자리다 (화면공통 §8)
+  const 보낼곳 =
+    상태.어디 !== '안' ? null : route(hash).name === 'login' ? 집(상태.user, 열린접두사) : 갈자리(hash, 상태.user, 열린접두사);
   useEffect(() => {
-    if (들어왔나 && 로그인화면인가) window.location.hash = '#/cases';
-  }, [들어왔나, 로그인화면인가]);
+    if (보낼곳 !== null && 보낼곳 !== hash) window.location.hash = 보낼곳;
+  }, [보낼곳, hash]);
 
   if (상태.어디 === '묻는중') {
     return (
@@ -143,8 +147,10 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       <Login
         onLogin={(user) => {
           set상태({ 어디: '안', user });
-          // 세션이 끊겨 여기로 온 사람은 원래 가려던 화면으로 돌려보낸다 (SPEC §8.6)
-          window.location.hash = 돌아갈자리를꺼낸다() ?? 돌아갈자리(window.location.hash);
+          // 세션이 끊겨 여기로 온 사람은 원래 가려던 화면으로 돌려보낸다 (SPEC §8.6).
+          // 기억해 둔 자리도 권한 판정을 탄다 — 그사이 칸이 none 이 됐을 수 있다
+          const 고른 = 고른서비스(prefix, user.services)?.prefix ?? null;
+          window.location.hash = 돌아갈자리(돌아갈자리를꺼낸다() ?? window.location.hash, user, 고른);
         }}
       />
     );
@@ -163,7 +169,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
           window.location.hash = '#/login';
         });
       }}
-      current={지금자리(route(hash).name)}
+      current={지금자리(route(hash).name, 집(상태.user, 열린접두사))}
     >
       <Screen
         hash={hash}

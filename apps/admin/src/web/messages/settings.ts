@@ -103,8 +103,7 @@ export const 설정말: Record<string, string> = {
     'You have no services assigned to yourself yet. Assign them from Edit on your own row below',
   '김철수': 'Jane Doe',
   '등급': 'Role',
-  '보기만': 'View only',
-  '실행까지': 'Can run',
+  '멤버': 'Member',
   '운영': 'Admin',
   '— 마지막 운영 계정이라 등급을 낮출 수 없습니다. 먼저 다른 사람을 운영으로 올립니다':
     '— the last admin cannot be demoted. Promote someone else to admin first',

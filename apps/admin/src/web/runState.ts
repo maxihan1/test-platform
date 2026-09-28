@@ -2,7 +2,7 @@
 // 자동 갱신을 멈출지도, 멈춤 버튼을 보일지도 전부 이 값으로 정한다 — 화면이 따로 상태를 들지 않는다
 
 import { t, type 언어 } from './i18n.js';
-import { 할수있나, type 등급 } from './role.js';
+import type { 판정 } from './role.js';
 
 /**
  * 아직 도는 중인가. 2초 자동 갱신을 이 값으로 멈춘다.
@@ -34,8 +34,8 @@ export function 상태라벨(status: string, 언어: 언어): string {
  * 화면이 따로 상태를 들지 않는다.
  * 보기만 등급에게는 흐리게가 아니라 **아예 없다** (§8).
  */
-export function 멈출수있나(status: string, role: 등급 | null): boolean {
-  return 도는중(status) && 할수있나(role, '멈춤');
+export function 멈출수있나(status: string, 할수: 판정): boolean {
+  return 도는중(status) && 할수('멈춤');
 }
 
 /** 서버가 사람의 중단을 이 값으로 저장한다 (`store.ts` 의 `CLOSE_UNFINISHED`) */

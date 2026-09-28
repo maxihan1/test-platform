@@ -32,7 +32,7 @@ afterEach(() => {
 
 const 계정들: UserRow[] = [
   { username: 'kim', displayName: '김철수', role: 'admin', isActive: true, services: [] },
-  { username: 'lee', displayName: '이영희', role: 'operator', isActive: true, services: [] },
+  { username: 'lee', displayName: '이영희', role: 'member', isActive: true, services: [] },
 ];
 
 function 그리기() {

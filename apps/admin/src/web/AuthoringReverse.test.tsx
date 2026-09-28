@@ -6,6 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, type AuthoringRow, type EnvRow } from './api.js';
 import { AuthoringDetail } from './AuthoringDetail.js';
 import { AuthoringNew } from './AuthoringNew.js';
+import type { 판정 } from './role.js';
+
+// 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
+const 실행까지: 판정 = (무엇) => 무엇 !== '작성머지' && 무엇 !== '설정';
 
 const 부름: { 무엇: string; 값: unknown }[] = [];
 let 만들기답: Promise<{ id: number }> = Promise.resolve({ id: 1 });
@@ -206,7 +210,7 @@ function 자료(id: number, 덮을것: Partial<NonNullable<AuthoringRow['assets'
 
 async function 상세를연다(행: AuthoringRow) {
   상세답 = 행;
-  render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+  render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
   await screen.findByText('요청 정보');
 }
 

@@ -7,7 +7,7 @@ import { 다시작성되나, 시간판 } from './authoringStatus.js';
 import { 줄보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { 할수있나, type 등급 } from './role.js';
+import type { 판정 } from './role.js';
 import { message, when } from './ui.js';
 
 type 확인 = 'stop' | 'discard' | null;
@@ -15,7 +15,8 @@ type 확인 = 'stop' | 'discard' | null;
 interface Props {
   service: string;
   요청: AuthoringRow;
-  role: 등급;
+  /** 고른 서비스에서 이 사람이 할 수 있나 (role.ts `판정을만든다`) */
+  할수: 판정;
   /** 기획서와 화면의 차이 수 (역방향). 0 이면 확인할 차이 항목을 안 낸다 */
   차이수: number;
   reload: () => void;
@@ -37,7 +38,7 @@ function 일({ 표, 제목, 설명, children }: { 표: string; 제목: string; �
   );
 }
 
-export function AuthoringTodo({ service, 요청, role, 차이수, reload }: Props) {
+export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [열린, set열린] = useState<확인>(null);
@@ -138,7 +139,7 @@ export function AuthoringTodo({ service, 요청, role, 차이수, reload }: Prop
     본문 = <p>{t('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')}</p>;
   } else if (요청.status === 'DONE') {
     // **화면이 버튼을 안 그리는 것은 편의이지 방어가 아니다** — 서버 gate.ts 가 다시 막는다
-    const 반영권한 = 할수있나(role, '작성머지');
+    const 반영권한 = 할수('작성머지');
     let 번호 = 0;
     const 다음 = () => String(++번호);
     본문 =
@@ -177,7 +178,7 @@ export function AuthoringTodo({ service, 요청, role, 차이수, reload }: Prop
       );
   } else {
     // FAILED · STOPPED — 둘 중 하나를 고른다
-    const 권한 = 할수있나(role, '작성요청');
+    const 권한 = 할수('작성요청');
     const 다시 = 다시작성되나(요청) && 권한;
     // 버튼이 없으면 왜 없는지 말한다 — 제목과 설명만 남고 버튼이 사라지면 누를 길을 찾아 헤맨다 (2026-09-28 검토)
     const 설명 =

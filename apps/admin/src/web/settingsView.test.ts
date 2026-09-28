@@ -10,7 +10,7 @@ import {
   웹훅칸,
 } from './settingsView.js';
 
-function 계정(username: string, role: 'viewer' | 'operator' | 'admin', isActive = true): UserRow {
+function 계정(username: string, role: 'member' | 'admin', isActive = true): UserRow {
   return { username, displayName: username, role, isActive, services: [] };
 }
 
@@ -86,7 +86,7 @@ describe('Slack 웹훅 칸 (SPEC §8.8)', () => {
 });
 
 describe('마지막 운영 계정 (SPEC §7 · §8.8)', () => {
-  const 사람들 = [계정('kim', 'admin'), 계정('lee', 'operator'), 계정('park', 'viewer')];
+  const 사람들 = [계정('kim', 'admin'), 계정('lee', 'member'), 계정('park', 'member')];
 
   it('활성 운영 계정이 하나뿐이면 그 사람이 마지막이다', () => {
     expect(마지막운영계정인가(사람들, 'kim')).toBe(true);
