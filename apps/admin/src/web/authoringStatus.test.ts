@@ -146,13 +146,14 @@ describe('목록글', () => {
 });
 
 describe('다시작성되나', () => {
-  it('정방향 작성이 실패·중단이면 된다', () => {
+  it('작성이 실패·중단이면 된다 — 화면과 대조한 요청도', () => {
     expect(다시작성되나(줄({ status: 'FAILED' }))).toBe(true);
     expect(다시작성되나(줄({ status: 'STOPPED' }))).toBe(true);
+    expect(다시작성되나(줄({ status: 'FAILED', compare: true }))).toBe(true);
+    expect(다시작성되나(줄({ status: 'STOPPED', compare: true }))).toBe(true);
   });
 
-  it('대조 요청 · 머지 · 재실행 · 폐기한 것 · 끝나지 않은 것은 안 된다', () => {
-    expect(다시작성되나(줄({ status: 'FAILED', compare: true }))).toBe(false);
+  it('머지 · 재실행 · 폐기한 것 · 끝나지 않은 것은 안 된다', () => {
     expect(다시작성되나(줄({ status: 'FAILED', kind: 'MERGE' }))).toBe(false);
     expect(다시작성되나(줄({ status: 'FAILED', kind: 'RERUN' }))).toBe(false);
     expect(다시작성되나(줄({ status: 'FAILED', discardedAt: '2026-09-28T13:00:00Z' }))).toBe(false);

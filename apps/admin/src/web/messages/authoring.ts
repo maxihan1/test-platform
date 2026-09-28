@@ -123,10 +123,9 @@ export const 작성말: Record<string, string> = {
   '재실행한 요청은 다시 작성할 수 없습니다. 원본 요청 #{번호}에서 다시 작성하세요.':
     'A rerun cannot be written again. Write again from the original request #{번호}.',
   '다시 작성은 실행 권한이 있는 사람이 합니다.': 'Someone with run rights can write it again.',
-  '화면과 대조한 요청은 다시 작성할 수 없습니다. 새 요청으로 다시 넣으세요.':
-    'A screen-compare request cannot be written again. Submit a new request.',
-  '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만듭니다.':
-    'Fix the cause first. This makes a new request with the same inputs.',
+  '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다.':
+    'Fix the cause first. This makes a new request with the same inputs and runs it from the start.',
+  '대상 서버와 시작 주소도 원본 그대로 씁니다.': 'It uses the same target server and start URL as the original.',
   '넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다.':
     'This makes a new request with the same inputs and runs it from the start. This request stays as a record.',
 
@@ -167,6 +166,8 @@ export const 작성말: Record<string, string> = {
     'The start URL must be on the same address (domain · port) as the chosen target server',
   '기획서가 말하는 화면에서 시작': 'Starts from the screen the spec describes',
   '화면만 — 기획서 없이 이 화면을 훑습니다': 'Screen only — explores this screen without a spec',
+  '원본 요청 #{번호}의 자료로 대조합니다': "Compares using the original request #{번호}'s inputs",
+  '원본 요청 #{번호}의 자료': 'Input of the original request #{번호}',
   '입력 자료': 'Inputs',
   산출물: 'Outputs',
   '표시 사본': 'Marked copy',

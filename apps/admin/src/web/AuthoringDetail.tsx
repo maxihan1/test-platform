@@ -29,11 +29,21 @@ function 자료고리({ 요청, 자료, 글 }: { 요청: number; 자료: Authori
   );
 }
 
-/** 산출물이 무엇인지. 표시 사본은 어느 입력의 사본인지까지 — 입력이 여럿이면 이름 없이는 못 가린다 */
-function 산출물설명(a: AuthoringAsset, 자료들: AuthoringAsset[], t: (키: string) => string): string {
+/**
+ * 산출물이 무엇인지. 표시 사본은 어느 입력의 사본인지까지 — 입력이 여럿이면 이름 없이는 못 가린다.
+ * 재실행의 입력은 원본 요청에 있어 이 목록에서 못 찾는다 — 그때는 원본 요청을 가리킨다
+ */
+function 산출물설명(
+  a: AuthoringAsset,
+  자료들: AuthoringAsset[],
+  원본요청: number | null,
+  t: (키: string, 값?: Record<string, string | number>) => string,
+): string {
   if (a.role === 'REVERSE_SPEC') return t('역기획서');
   const 원본 = 자료들.find((x) => x.id === a.sourceAssetId);
-  return `${t('표시 사본')} — ${원본?.name ?? t('기록 없음')}`;
+  const 이름 =
+    원본?.name ?? (원본요청 === null ? t('기록 없음') : t('원본 요청 #{번호}의 자료', { 번호: 원본요청 }));
+  return `${t('표시 사본')} — ${이름}`;
 }
 
 export function AuthoringDetail({ service, id, role }: { service: string; id: number; role: 등급 }) {
@@ -130,7 +140,12 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
                     <dt>{t('대조할 화면')}</dt>
                     <dd>
                       {data.env ?? t('기록 없음')} · {data.startUrl ?? t('기획서가 말하는 화면에서 시작')}
-                      {입력.length === 0 ? <small>{t('화면만 — 기획서 없이 이 화면을 훑습니다')}</small> : null}
+                      {/* 재실행은 입력이 원본 요청에 있다 — 자기 입력이 비어도 화면만이 아니다 */}
+                      {data.kind === 'RERUN' ? (
+                        <small>{t('원본 요청 #{번호}의 자료로 대조합니다', { 번호: data.sourceId ?? '—' })}</small>
+                      ) : 입력.length === 0 ? (
+                        <small>{t('화면만 — 기획서 없이 이 화면을 훑습니다')}</small>
+                      ) : null}
                     </dd>
                   </>
                 ) : null}
@@ -156,7 +171,7 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
                     {산출물.map((a) => (
                       <li key={a.id}>
                         <자료고리 요청={data.id} 자료={a} 글={a.name} />
-                        <small>{산출물설명(a, 자료들, t)}</small>
+                        <small>{산출물설명(a, 자료들, data.kind === 'RERUN' ? data.sourceId ?? null : null, t)}</small>
                       </li>
                     ))}
                   </ol>
