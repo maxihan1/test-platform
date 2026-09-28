@@ -39,7 +39,7 @@
 
 - **② 권한 (WS-F + 화면, PR #93)** — `app_user`·`user_service` 칸 마이그레이션(옛 등급 옮기기) · `auth/gate.ts` 표값 `(기능, 칸) | admin` 을 **건드리는 서비스의 칸으로** 판정 · 옛 등급표와의 대조 검사 ·
   `/api/auth/me` 의 `role`·`dashboard`·`services[].permissions` · 설정 API 서비스별 권한 · **명세를 서비스별 권한으로 고친 것도 이 PR 이다** (2026-09-28 게이트 0) · 화면 `role.ts` 와 설정 계정 고르개 · `scripts/add-user.ts` · `scripts/authoring-token.ts` 의 등급 안내
-- **③ 가입·첫 admin (WS-F + 화면)** — `signup` · `password` · `approve` · 거절 `DELETE` · 로그인 `PENDING_APPROVAL` · 문의 `PASSWORD_CHANGE_REQUIRED` ·
+- **③ 가입·첫 admin (WS-F + 화면)** — ★ **가입 통로를 열기 전에 문(`auth/gate.ts`)에 승인 대기(`PENDING_APPROVAL`)와 변경 강제(`PASSWORD_CHANGE_REQUIRED`)를 먼저 넣는다** — 순서가 거꾸로면 가입만으로 쓸 수 있는 계정이 생긴다 (PR #93 보안 검토) · `signup` · `password` · `approve` · 거절 `DELETE` · 로그인 `PENDING_APPROVAL` · 문의 `PASSWORD_CHANGE_REQUIRED` ·
   빈 서버 기본 계정 · 회원가입·비밀번호 변경·승인 대기 화면(**시안 먼저**) · `docs/SETUP.md` 첫 계정 절 · `docs/design-mockup.html`
 - **④ Grafana (COMPOSE + WS-F + WS-D)** — `@fastify/http-proxy` 설치 · `/grafana/**` 문 · compose 망·환경값·3001 닫기 ·
   `GRAFANA_PORT`·`VITE_GRAFANA_PORT` 걷기(`.env.example`·Dockerfile·`layout.ts`) · `docs/SETUP.md` 의 그래프 주소

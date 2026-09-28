@@ -129,3 +129,4 @@ fixture 접두사에 `XFS5`(`auth/scope.test.ts`)가 늘었다. `gate.test.ts` �
 - 화면은 `role.ts` 의 `판정을만든다(user, prefix)` 로 버튼을 가르고, 실행 결과는 그 실행의 서비스로 판정한다
 - DB 검사 접두사 `xfu8`·`XFS8`(마이그레이션) · `xfu9`·`XFS9`(설정 계정). 검사용 DB 는 `platform_wsf`
 - 인증 §7 의 `/api/auth/**` · `/api/settings/users/**` 블록은 **③ 이 approve·DELETE·signup·password 를 넣은 뒤** `반영 완료` 로 바꾼다 (권한 부분은 이 PR 에서 들어갔다)
+- 인증 §7 의 「등급표 값 · Grafana」 블록은 **표값 부분이 이 PR 에서 들어갔고, 블록은 ④ 가 닫는다** — Grafana 와 한 블록이라 `대기` 로 둔다
