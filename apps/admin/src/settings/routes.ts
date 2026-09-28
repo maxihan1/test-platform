@@ -55,13 +55,15 @@ const 서비스줄 = z.object({
     .object({ cases: 권한, runs: 권한, authoring: 권한 })
     .refine((p) => p.cases !== 'none' || p.runs !== 'none' || p.authoring !== 'none'),
 });
+// 같은 접두사가 두 번이면 저장이 ON CONFLICT DO NOTHING 으로 뒤엣것을 조용히 버린다. 어느 쪽을 뜻했는지 모르니 받지 않는다
+const 서비스줄들 = z.array(서비스줄).refine((줄들) => new Set(줄들.map((줄) => 줄.prefix)).size === 줄들.length);
 
 const 새계정 = z.object({
   username: z.string().min(1),
   displayName: z.string().min(1),
   role: 등급,
   dashboard: 대시보드,
-  services: z.array(서비스줄).default([]),
+  services: 서비스줄들.default([]),
 });
 
 const 계정수정 = z.object({
@@ -69,12 +71,13 @@ const 계정수정 = z.object({
   role: 등급.optional(),
   dashboard: 대시보드.optional(),
   isActive: z.boolean().optional(),
-  services: z.array(서비스줄).optional(),
+  services: 서비스줄들.optional(),
 });
 
-// 권한 칸(services · dashboard)이 틀린 것은 화면이 따로 알려야 해서 코드를 가른다 (SPEC 도메인/인증 §7)
+// 권한 칸(services · dashboard)이 틀린 것은 화면이 따로 알려야 해서 코드를 가른다 (SPEC 도메인/인증 §7).
+// 다른 칸도 같이 틀렸으면 권한만 고치라고 알리면 안 되니 전부 권한 칸일 때만이다
 function 계정본문오류(error: z.ZodError): { error: string; detail?: string } {
-  const 권한칸 = error.issues.some((i) => i.path[0] === 'services' || i.path[0] === 'dashboard');
+  const 권한칸 = error.issues.every((i) => i.path[0] === 'services' || i.path[0] === 'dashboard');
   return 권한칸 ? { error: 'PERMISSIONS_SHAPE' } : { error: 'INVALID_REQUEST', detail: error.message };
 }
 

@@ -140,6 +140,27 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
     expect(await 계정('xfu9-bad1')).toBeUndefined();
   });
 
+  it('같은 서비스 줄이 두 번이면 400 PERMISSIONS_SHAPE 다 — 뒤엣것이 조용히 버려지지 않게', async () => {
+    const 두번 = [읽기('XFS9A'), { prefix: 'XFS9A', permissions: { cases: 'write', runs: 'write', authoring: 'write' } }];
+    const 만듦 = await 계정만들기('xfu9-dup', 'member', 두번);
+    const 고침 = await app.inject({ method: 'PATCH', url: '/api/settings/users/xfu9-perm', payload: { services: 두번 } });
+    for (const res of [만듦, 고침]) {
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'PERMISSIONS_SHAPE' });
+    }
+    expect(await 계정('xfu9-dup')).toBeUndefined();
+  });
+
+  it('권한 칸 말고 다른 칸도 틀렸으면 INVALID_REQUEST 다 — 권한만 고치라고 잘못 알리지 않게', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/settings/users',
+      payload: { username: '', displayName: 'x', role: 'member', dashboard: 'read', services: [{ prefix: 'XFS9A' }] },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json<{ error: string }>().error).toBe('INVALID_REQUEST');
+  });
+
   it('services 를 보내면 배정을 통째로 바꾸고 대시보드도 고친다', async () => {
     const 새줄 = { prefix: 'XFS9F', permissions: { cases: 'read', runs: 'write', authoring: 'read' } } satisfies 줄;
     const res = await app.inject({
