@@ -54,15 +54,15 @@ export function route(hash: string): Route {
   return { name: 'unknown', hash };
 }
 
-/** 화면이 어느 기능에 매였나. 여기 없는 화면(설정·로그인·모르는 주소)은 기능 칸과 상관없다 */
+/**
+ * 목록 화면이 어느 기능에 매였나. 목록만 띠의 서비스를 따른다.
+ * 한 건 주소(실행·항목·실행 설정·작성 상세)는 그 건의 서비스가 따로 있어 화면이 판정한다 —
+ * 띠로 가르면 B 서비스 실행 알림을 A 를 고른 채 열 때 판정 전에 집으로 튕긴다. 서버가 다시 막는다
+ */
 const 기능자리: Partial<Record<Route['name'], 기능>> = {
   cases: 'cases',
-  setup: 'cases',
   authoring: 'authoring',
-  authoringItem: 'authoring',
   runs: 'runs',
-  run: 'runs',
-  item: 'runs',
 };
 
 /**

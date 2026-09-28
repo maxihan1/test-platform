@@ -85,9 +85,19 @@ describe('route', () => {
   it('none 인 자리 주소를 직접 치면 집으로 보낸다', () => {
     expect(갈자리('#/cases', 케이스없음, 'PAY')).toBe('#/authoring');
     expect(갈자리('', 케이스없음, 'PAY')).toBe('#/authoring');
-    expect(갈자리('#/cases/PAY-001/run', 케이스없음, 'PAY')).toBe('#/authoring');
-    expect(갈자리('#/authoring/12', 실행만, 'PAY')).toBe('#/runs');
-    expect(갈자리('#/runs/5', 케이스없음, 'PAY')).toBe('#/runs/5');
+    expect(갈자리('#/authoring', 실행만, 'PAY')).toBe('#/runs');
+    expect(갈자리('#/runs', 사람([서비스('PAY', { cases: 'read', runs: 'none', authoring: 'none' })]), 'PAY')).toBe('#/cases');
+  });
+
+  it('한 건 주소는 띠의 서비스로 가르지 않는다. 그 건의 서비스는 화면이 안다', () => {
+    const 둘 = 사람([
+      서비스('AAA', { cases: 'read', runs: 'none', authoring: 'none' }),
+      서비스('BBB', { cases: 'read', runs: 'read', authoring: 'read' }),
+    ]);
+    expect(갈자리('#/runs/5', 둘, 'AAA')).toBe('#/runs/5');
+    expect(갈자리('#/runs/5/items/9', 둘, 'AAA')).toBe('#/runs/5/items/9');
+    expect(갈자리('#/authoring/12', 둘, 'AAA')).toBe('#/authoring/12');
+    expect(갈자리('#/cases/BBB-001/run', 케이스없음, 'PAY')).toBe('#/cases/BBB-001/run');
   });
 
   it('권한이 있는 자리나 기능에 안 매인 주소는 그대로 둔다', () => {
