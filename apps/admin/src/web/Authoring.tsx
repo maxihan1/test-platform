@@ -73,7 +73,7 @@ export function Authoring({ service, envs = [] }: { service: string; envs?: EnvR
   const reload = 줄들.reload;
 
   // **맥이 뒤에서 이어 간다.** 안 읽으면 사람이 손으로 새로고침할 때까지 화면이
-  // 「대기」인 채로 멈춰 있고, 「멈춘 듯」 판정도 그때서야 뜬다 (2026-09-23 검토가 잡았다).
+  // 「대기」인 채로 멈춰 있고, 「응답 없음」 판정도 그때서야 뜬다 (2026-09-23 검토가 잡았다).
   // 상세와 달리 **끝난 것만 있어도 계속 읽는다** — 새 요청이 언제든 들어오는 목록이다
   useEffect(() => {
     const timer = setInterval(reload, 5000);
@@ -83,7 +83,7 @@ export function Authoring({ service, envs = [] }: { service: string; envs?: EnvR
   if (줄들.error !== null) return <Failed error={줄들.error} />;
   if (줄들.data === null) return <Loading />;
 
-  // 「멈춘 듯」 판정이 지금 시각을 쓴다. 그릴 때 한 번만 읽어 줄마다 다른 기준으로 재지 않는다
+  // 「응답 없음」 판정이 지금 시각을 쓴다. 그릴 때 한 번만 읽어 줄마다 다른 기준으로 재지 않는다
   const 지금 = Date.now();
   const 더있나 = 다음이있나(줄들.data);
 

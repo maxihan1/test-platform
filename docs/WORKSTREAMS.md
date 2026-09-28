@@ -115,7 +115,7 @@
   자식을 `--output-format stream-json --verbose` 로 돌려 **어떤 끝내기보다 먼저** `POST …/:id/usage` 로 알린다(정상 = `modelUsage`, 끊김 = 메시지 id 마다 마지막 사본 · `tokens_partial` 하한값) ·
   칸 `tokens_input·output·cache_read·cache_write·partial` · `cost_usd`(API 환산, 청구 아님) · `tokens_model` · 결과 요약·한도 판정은 `result` 글로 · 로그는 도구 이름·글 첫 줄만.
   훑기 — 대조의 「한 칸」은 그 화면 안(팝업·탭·펼치기·다음 단계)만 · 화면만은 메뉴 1단계 · **30분 예산** · 본 화면은 작업방 안 `screens/` 파일에.
-  Grafana `작성 토큰` 패널(리포팅 §8.5). 코드 `scripts/authoring-usage.ts` · `apps/admin/src/authoring/usage.ts`. **남은 것** — 데모마켓 대조를 다시 넣어 60분 안에 끝나는지·토큰을 패널에서 본다.
+  Grafana `작성 토큰` 패널(리포팅 §8.5). 코드 `scripts/authoring-usage.ts` · `apps/admin/src/authoring/usage.ts`. **남은 것** — 데모마켓 대조를 다시 넣어 제한(120분 — 2026-09-28 PR #89, 이어하기 전까지의 조치) 안에 끝나는지·토큰을 패널에서 본다.
   **`scripts/authoring-io.ts` 가 323줄** — 300줄 넘은 파일, 분리 대상(원래 313) → PR #87 에서 `돌린다` 를 `authoring-spawn.ts` 로 떼 259줄
 - **WS-작성 진척 · 중단 · 폐기 — 반영 완료 (2026-09-27, PR #87).** 이어하기를 둘로 나눈 앞쪽(사용자). 상태 `STOPPED`(중단) + 이유 다섯(USER·TIMEOUT·LIMIT·AGENT_RESTART·AGENT_LOST) + 누가(`stopped_by`, 사람 또는 system).
   화면에 진척(경과·화면·케이스 파일·토큰 하한·마지막 동작 N초 전) · 「작성 중단」·「폐기」(요청한 사람 + admin, Modal 확인). 자식이 도는 동안 에이전트가 30초마다 `stage` 로 진척을 올리고 응답 `stop` 을 받아 멈춘다.

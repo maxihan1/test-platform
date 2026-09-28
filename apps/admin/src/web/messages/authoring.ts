@@ -75,7 +75,8 @@ export const 작성말: Record<string, string> = {
   '늦어도 {시각} 완료': 'done by {시각} at the latest',
   '만든 케이스 파일': 'Case files made',
   '훑은 화면': 'Screens explored',
-  '토큰(지금까지)': 'Tokens (so far)',
+  '토큰 (캐시 읽기 포함 · 지금까지)': 'Tokens incl. cache reads (so far)',
+  '토큰 (캐시 읽기 포함)': 'Tokens incl. cache reads',
   '마지막 활동': 'Last activity',
   // 에이전트가 올리는 단계 글. 정본은 scripts/authoring-run.ts · authoring-upload.ts 의 손.단계('…')
   '작업방을 만드는 중': 'Preparing the workspace',
@@ -134,7 +135,6 @@ export const 작성말: Record<string, string> = {
   '{분}분': '{분} min',
   '{수}장': '{수}',
   '{수}개': '{수}',
-  토큰: 'Tokens',
   '{시간} 전': '{시간} ago',
   시스템: 'System',
   '사용자가 멈춤': 'Stopped by user',

@@ -2,6 +2,7 @@
 // 5871 이 「케이스를 만드는 중」 한 줄로 45분을 보냈고 멈출 길이 없었다. 신호의 응답이 사람의 멈춤을 싣고 온다
 
 import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 import type { 돌린결과 } from './authoring-spawn.js';
 import { 사유거르기 } from './authoring-reverse.js';
@@ -18,6 +19,9 @@ export interface 진척 {
   lastAction?: string;
   lastActionAt?: string;
 }
+
+/** 자식 한 번의 제한. 60분이던 때 5872 가 관문 2 에서 걸려 결과를 잃었다 — 이어하기가 생기기 전까지의 조치 (작성 §7 TIMEOUT) */
+export const 자식제한 = 120 * 60_000;
 
 const 수 = (n: number | undefined) => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
 
@@ -44,7 +48,7 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}) {
       const e = 읽기(줄);
       const m = e?.type === 'assistant' ? e.message : undefined;
       if (m?.id !== undefined && m.usage !== undefined)
-        턴.set(m.id, 수(m.usage.input_tokens) + 수(m.usage.output_tokens));
+        턴.set(m.id, 수(m.usage.input_tokens) + 수(m.usage.output_tokens) + 수(m.usage.cache_read_input_tokens));
       const 날글 = 흘릴줄(줄);
       if (날글 === null) return null;
       const 글 = 가리기(날글, 비밀);
@@ -83,8 +87,10 @@ export function 화면수(폴더: string): number {
   return existsSync(폴더) ? readdirSync(폴더).filter((p) => p.endsWith('.md')).length : 0;
 }
 
-/** 자식을 띄우기 직전에 부른다 — 이때 본 케이스는 옛것이고 이때부터 시간을 잰다. 화면 폴더는 역방향만 준다 */
-export function 진척재기(누적: ReturnType<typeof 진척누적기>, 케이스폴더: string, 화면폴더?: string): () => 진척 {
+/** 자식을 띄우기 직전에 부른다 — 이때 본 케이스는 옛것이고 이때부터 시간을 잰다. 화면 폴더는 역방향만 준다.
+ * 케이스는 자식이 쓰는 `tests/<폴더>` 에서 센다 — 트리 바로 아래를 세서 늘 0 이었다 */
+export function 진척재기(누적: ReturnType<typeof 진척누적기>, 트리: string, 폴더: string, 화면폴더?: string): () => 진척 {
+  const 케이스폴더 = join(트리, 'tests', 폴더);
   const 전 = 케이스파일들(케이스폴더);
   const 시작 = Date.now();
   return () =>
