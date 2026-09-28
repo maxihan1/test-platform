@@ -257,6 +257,7 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
             뒤집기={뽑기.뒤집기}
             글자={글자[row.tcId]}
             폈나={편줄.has(row.tcId)}
+            실행된다={할수('실행')}
             on값={값고침}
             on더보기={더보기}
           />

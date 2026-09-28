@@ -347,9 +347,11 @@ export function RunSetup({ tcId, service, user }: Props) {
           </span>
         )}
         {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
-        <button className="btn" onClick={() => void run()} disabled={busy || 너무많나}>
-          {t('실행')}
-        </button>
+        {!할수있나(user, row.tcId.split('-')[0] ?? null, '실행') ? null : (
+          <button className="btn" onClick={() => void run()} disabled={busy || 너무많나}>
+            {t('실행')}
+          </button>
+        )}
       </div>
     </div>
   );
