@@ -10,6 +10,9 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import { api, ApiError, type CaseRow, type Paged, type Platform, type ServiceRow, type User } from './api.js';
 import { CaseList } from './CaseList.js';
+import type { 판정 } from './role.js';
+
+const 전부된다: 판정 = () => true;
 
 // globals 가 꺼져 있어 testing-library 가 스스로 cleanup 을 걸지 못한다. 직접 건다
 afterEach(() => {
@@ -65,7 +68,7 @@ const 쪽주기 = (page: number) => Promise.resolve(page === 1 ? 쪽1 : 쪽2);
 
 async function 그리기(cases: (page: number) => Promise<Paged<CaseRow>> = 쪽주기) {
   const 스파이 = 모킹(cases);
-  const 것 = render(<CaseList service="ZPK" />);
+  const 것 = render(<CaseList service="ZPK" 할수={전부된다} 결과보나 />);
   await screen.findByText('ZPK-001');
   return { ...것, 스파이 };
 }
@@ -151,7 +154,7 @@ describe('스캔 결과가 화면 머리에 있다 (SPEC §8.1, 2026-09-22)', ()
     } else {
       vi.spyOn(api, 'lastScan').mockRejectedValue(오류);
     }
-    render(<CaseList service="ZPK" />);
+    render(<CaseList service="ZPK" 할수={전부된다} 결과보나 />);
     await screen.findByText('ZPK-001');
   }
 
@@ -276,7 +279,7 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
     fireEvent.click(고르기칸()[0]!);
     expect(실행버튼().textContent).toBe('선택한 1건 실행');
 
-    rerender(<CaseList service="ZPY" />);
+    rerender(<CaseList service="ZPY" 할수={전부된다} 결과보나 />);
 
     // 남겨 두면 다른 서비스에서 「고른 1건」이라 말하고 누르면 사실이 아닌 이유를 보여준다
     await waitFor(() => expect(실행버튼().textContent).toBe('전체 실행'));
@@ -294,7 +297,7 @@ describe('CaseList 담지 못한 것을 말한다', () => {
         pageSize: 2,
       }),
     );
-    render(<CaseList service="ZPK" />);
+    render(<CaseList service="ZPK" 할수={전부된다} 결과보나 />);
     await screen.findByText('ZPK-1A');
     스파이.mockClear();
 
@@ -504,7 +507,7 @@ describe('CaseList 목록에서 고친 값', () => {
 
   async function 값을고치고() {
     모킹(() => Promise.resolve(한쪽));
-    const 것 = render(<CaseList service="ZPK" />);
+    const 것 = render(<CaseList service="ZPK" 할수={전부된다} 결과보나 />);
     await screen.findByText('ZPK-001 케이스');
     fireEvent.change(screen.getByLabelText(/통화/), { target: { value: 'USD' } });
     return 것;
@@ -543,7 +546,7 @@ describe('CaseList 목록에서 고친 값', () => {
   it('서비스를 바꾸면 고친 값을 버린다', async () => {
     const { rerender } = await 값을고치고();
 
-    rerender(<CaseList service="ZQQ" />);
+    rerender(<CaseList service="ZQQ" 할수={전부된다} 결과보나 />);
     await waitFor(() => {
       expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('KRW');
     });
@@ -569,5 +572,42 @@ describe('CaseList 화면 머리 (2026-09-22)', () => {
 
     // .screen 안에 넣으면 제목이 카드 안으로 들어가 머리와 본문이 다시 붙는다
     expect(container.querySelector('.screen .head')).toBeNull();
+  });
+});
+
+// 등급이 낮아서 못 하는 것은 흐리게가 아니라 아예 안 보인다 (화면공통 §8)
+describe('CaseList 권한 칸', () => {
+  const 스캔빼고: 판정 = (무엇) => 무엇 !== '다시스캔';
+  const 실행빼고: 판정 = (무엇) => 무엇 !== '실행';
+
+  it('케이스 읽기면 머리에 다시 스캔이 없다', async () => {
+    모킹(쪽주기);
+    render(<CaseList service="ZPK" 할수={스캔빼고} 결과보나 />);
+    await screen.findByText('ZPK-001');
+    expect(screen.queryByRole('button', { name: '다시 스캔' })).toBeNull();
+  });
+
+  it('케이스 읽기면 빈 목록에도 스캔 버튼이 없다', async () => {
+    모킹(() => Promise.resolve({ items: [], total: 0, page: 1, pageSize: 2 }));
+    render(<CaseList service="ZPK" 할수={스캔빼고} 결과보나 />);
+    await screen.findByText('아직 케이스를 불러오지 않았습니다');
+    expect(screen.queryByRole('button', { name: '케이스 불러오기' })).toBeNull();
+  });
+
+  it('실행 읽기면 전체 실행도 선택 실행도 없다', async () => {
+    모킹(쪽주기);
+    render(<CaseList service="ZPK" 할수={실행빼고} 결과보나 />);
+    await screen.findByText('ZPK-001');
+    expect(screen.queryByRole('button', { name: /(전체|건) 실행$/ })).toBeNull();
+    fireEvent.click(고르기칸()[0]!);
+    expect(screen.queryByRole('button', { name: /(전체|건) 실행$/ })).toBeNull();
+  });
+
+  it('실행 칸이 none 이면 마지막 결과를 부르지 않는다 — 부르면 403 이다', async () => {
+    모킹(쪽주기);
+    const 결과 = vi.mocked(api.lastByCase);
+    render(<CaseList service="ZPK" 할수={실행빼고} 결과보나={false} />);
+    expect(await screen.findByText('ZPK-001')).toBeTruthy();
+    expect(결과).not.toHaveBeenCalled();
   });
 });

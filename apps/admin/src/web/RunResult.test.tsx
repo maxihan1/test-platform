@@ -14,7 +14,8 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 import { api, type EvidenceRow, type RunSummary } from './api.js';
 import { RunResult } from './RunResult.js';
-import type { 판정 } from './role.js';
+import { 판정을만든다, type 판정 } from './role.js';
+import type { User } from './api.js';
 
 // 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
 const 실행까지: 판정 = (무엇) => 무엇 !== '작성머지' && 무엇 !== '설정';
@@ -57,7 +58,7 @@ function 증적(format: string, status: string, error: string | null = null): Ev
 
 function 그리기(status: string, 문서들: EvidenceRow[] = []) {
   vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status, items: [], evidence: 문서들 });
-  return render(<RunResult runId={RUN_ID} 할수={실행까지} />);
+  return render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 }
 
 describe('실행 결과 화면의 증적 버튼 (SPEC §8.4)', () => {
@@ -142,7 +143,7 @@ function 상자라벨(): string | null {
 describe('실행 진행 상자 (SPEC §8.9)', () => {
   it('도는 중인 실행을 열면 진행 상자가 떠 있다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
-    render(<RunResult runId={RUN_ID} 할수={실행까지} />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 
     await screen.findByRole('dialog');
     expect(상자라벨()).toContain('진행 중입니다');
@@ -158,7 +159,7 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
   it('진행 상자를 닫아도 폴링은 계속 돈다', async () => {
     vi.useFakeTimers();
     const 부름 = vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
-    render(<RunResult runId={RUN_ID} 할수={실행까지} />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
     await act(async () => {});
 
     fireEvent.click(screen.getByText('닫기'));
@@ -176,7 +177,7 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
   it('진행 상자를 닫은 뒤 실행이 끝나면 완료 상자가 뜬다', async () => {
     vi.useFakeTimers();
     vi.spyOn(api, 'run').mockResolvedValueOnce(도는중응답).mockResolvedValue(끝난응답);
-    render(<RunResult runId={RUN_ID} 할수={실행까지} />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
     await act(async () => {});
 
     fireEvent.click(screen.getByText('닫기'));
@@ -213,7 +214,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
       items: [],
       evidence: [증적('PDF', 'READY')],
     });
-    render(<RunResult runId={RUN_ID} 할수={실행까지} 상자안 />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
     await screen.findAllByText(/만들기$/);
 
     const 머리 = document.querySelector('.box-head');
@@ -236,7 +237,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
   it('견줌은 접힌 채로 뜬다 — 펴야 보인다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(견줌있음);
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 할수={실행까지} 상자안 />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
 
     const 접기 = await screen.findByText(/직전 실행과 견줌/);
     const 상자 = 접기.closest('details');
@@ -249,7 +250,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
   it('첫 실행에서는 견줌이 아예 없다 — 빈 접기 줄도 없다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 할수={실행까지} 상자안 />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
     await screen.findAllByText(/만들기$/);
 
     expect(screen.queryByText(/직전 실행과 견줌/)).toBeNull();
@@ -260,7 +261,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
 describe('상자 안에서는 케이스 줄만 스크롤한다 (SPEC §8.7, 2026-09-22 ②)', () => {
   it('상자안 이면 머리·필터는 밖에, 케이스 줄은 .rows-scroll 안에 있다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 할수={실행까지} 상자안 />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
 
     await screen.findAllByText(/만들기$/);
 
@@ -299,5 +300,50 @@ describe('RunResult 화면 머리 (2026-09-22)', () => {
 
     // 그날 실제로 친 주소가 증적의 전제다 (SPEC §8.3)
     expect(container.querySelector('.head')?.textContent).toContain('대상 서버');
+  });
+});
+
+// 버튼은 띠에서 고른 서비스가 아니라 **그 실행의 서비스** 칸을 본다.
+// 띠가 회원(실행 읽기)인 채로 결제 실행 주소를 열면 결제 칸으로 가른다 (화면공통 §8)
+describe('실행 결과의 권한은 그 실행의 서비스로', () => {
+  const 김: User = {
+    username: 'kim', displayName: '김철수', role: 'member', dashboard: 'read', mustChangePassword: false,
+    services: [
+      { id: 1, prefix: 'PAY', name: '결제', color: '#000000', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'write', authoring: 'none' } },
+      { id: 2, prefix: 'MEM', name: '회원', color: '#000000', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'read', authoring: 'none' } },
+    ],
+  };
+
+  function 항목(tcId: string) {
+    return {
+      historyId: 1, tcId, tcName: tcId, platform: 'desktop' as const, attempt: 1, params: {}, paramSchema: {},
+      status: 'PASS' as const, durationMs: 1, error: null, startedAt: '2026-09-15T17:13:00.000Z', finishedAt: null,
+    };
+  }
+
+  function 연다(tcId: string, status: string) {
+    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status, items: [항목(tcId)], evidence: [] });
+    vi.spyOn(api, 'progress').mockResolvedValue({ items: [] });
+    render(<RunResult runId={RUN_ID} 판정하기={(접두사) => 판정을만든다(김, 접두사)} 상자안 />);
+  }
+
+  it('실행 쓰기인 서비스의 실행이면 중단 버튼이 선다', async () => {
+    연다('PAY-001', 'RUNNING');
+    expect(await screen.findByText('실행 중단')).toBeTruthy();
+  });
+
+  it('실행 읽기인 서비스의 실행이면 중단 버튼이 없다', async () => {
+    연다('MEM-001', 'RUNNING');
+    await screen.findAllByText(/RUN/);
+    expect(screen.queryByText('실행 중단')).toBeNull();
+  });
+
+  it('증적 만들기도 그 실행의 서비스로 가른다', async () => {
+    연다('PAY-001', 'FINISHED');
+    expect(await screen.findByText('PDF 만들기')).toBeTruthy();
+    cleanup();
+    연다('MEM-001', 'FINISHED');
+    await screen.findAllByText(/RUN/);
+    expect(screen.queryByText('PDF 만들기')).toBeNull();
   });
 });

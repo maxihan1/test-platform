@@ -39,6 +39,11 @@ describe('서비스별 권한', () => {
     expect(할수있나(김, 'MEM', '입력값저장')).toBe(true);
   });
 
+  it('다시 스캔은 케이스 쓰기가 필요하다', () => {
+    expect(할수있나(김, 'PAY', '다시스캔')).toBe(false);
+    expect(할수있나(김, 'MEM', '다시스캔')).toBe(true);
+  });
+
   it('작성 요청은 작성 쓰기가 필요하다', () => {
     expect(할수있나(김, 'PAY', '작성요청')).toBe(false);
     expect(할수있나(김, 'MEM', '작성요청')).toBe(true);

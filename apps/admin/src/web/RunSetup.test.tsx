@@ -42,11 +42,11 @@ const 사람: User = {
   services: [서비스],
 };
 
-async function 그린다(row: CaseRow = 케이스) {
+async function 그린다(row: CaseRow = 케이스, 누구: User = 사람) {
   vi.spyOn(api, 'caseOf').mockResolvedValue(row);
   vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
   const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 5 });
-  render(<RunSetup tcId={row.tcId} service={서비스} user={사람} />);
+  render(<RunSetup tcId={row.tcId} service={서비스} user={누구} />);
   await screen.findByDisplayValue(`${row.tcId} 실행`);
   return 만들기;
 }
@@ -116,5 +116,20 @@ describe('실행 설정 화면 (SPEC §8.2)', () => {
     fireEvent.change(칸, { target: { value: 'hunter2' } });
     expect((screen.getByLabelText('비밀번호') as HTMLInputElement).type).toBe('password');
     expect(screen.queryByText('hunter2')).toBeNull();
+  });
+});
+
+// 묶음 저장은 케이스 쓰기다. 읽기면 자리가 아예 없다 (화면공통 §8)
+describe('실행 설정의 권한 칸', () => {
+  it('케이스 쓰기면 묶음 저장이 보인다', async () => {
+    await 그린다();
+    expect(screen.getByText('이 값을 묶음으로 저장')).toBeTruthy();
+  });
+
+  it('케이스 읽기면 묶음 저장도 세트 이름 칸도 없다', async () => {
+    const 읽기만: User = { ...사람, services: [{ ...서비스, permissions: { cases: 'read', runs: 'write', authoring: 'write' } }] };
+    await 그린다(케이스, 읽기만);
+    expect(screen.queryByText('이 값을 묶음으로 저장')).toBeNull();
+    expect(screen.queryByPlaceholderText('세트 이름')).toBeNull();
   });
 });
