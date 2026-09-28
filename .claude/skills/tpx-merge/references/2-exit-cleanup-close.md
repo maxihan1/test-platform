@@ -20,9 +20,8 @@ fatal: refusing to fetch into branch 'refs/heads/main' checked out at '<루트>'
 3. git worktree prune
 ```
 
-**빠뜨리면 사용자 체크아웃이 뒤처진 채로 남는다.** 2026-09-18 에 세 번 병합하고 안 했더니
-**여덟 커밋이 밀렸고, 새 스킬이 `.claude/skills/` 에 없어 `/tpx` 자체가 안 먹었다.**
-작업은 `origin/main` 에서 따므로 멀쩡한데, **사람이 열어 보는 자리와 스킬을 읽는 자리가 낡는다.**
+**빠뜨리면 사용자 체크아웃이 뒤처진 채로 남는다.** 작업은 `origin/main` 에서 따므로 멀쩡한데,
+**사람이 열어 보는 자리와 스킬을 읽는 자리가 낡아** 다음 `/tpx` 가 옛 절차를 돈다.
 
 ### 작업방을 남길 때
 
