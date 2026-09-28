@@ -46,6 +46,36 @@ await 브라우저.close();
 
 **출처가 달라 멈췄으면** 그 화면은 훑지 않고 결과 요약에 `로그인 못 함 — 다른 출처(SSO)로 간다 · 이번 판 미지원` 을 적는다.
 
+### 끝내기 직전 — 비밀번호 점검 (2026-09-28)
+
+**결과 요약을 찍기 전에 한 번 돌린다.** 에이전트의 올리기 검사와 같은 것을 먼저 본다 —
+5873 은 케이스 26개를 다 만들고 올리기에서 걸려 멈췄다. 여기서 찾으면 그 자리에서 고치고 끝낸다.
+회원가입 예시 비밀번호가 우연히 계정 값과 같아도 걸린다 — 그때는 다른 예시 값으로 바꾼다.
+
+```js
+// $TMPDIR/secret-scan.mjs — 실행: node "$TMPDIR/secret-scan.mjs" tests/<폴더> docs/cases/<접두사>.md <산출물 폴더>
+// 값은 process.env 로만 읽고 자리(파일:줄)만 찍는다 — 값을 인자·출력에 두지 않는다(위 ★)
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+const 비밀 = process.env.TARGET_LOGIN_PASSWORD;
+if (!비밀) { console.log('비밀번호 점검: 계정 없음'); process.exit(0); }
+const 꼴 = [비밀, JSON.stringify(비밀).slice(1, -1)]; // diffs.json 은 따옴표·역슬래시가 이스케이프돼 있다
+const 찾은 = [];
+const 훑기 = (p) => {
+  const 것 = statSync(p, { throwIfNoEntry: false });
+  if (!것) return;
+  if (것.isDirectory()) return readdirSync(p).forEach((이름) => 훑기(join(p, 이름)));
+  readFileSync(p, 'utf8').split('\n').forEach((줄, i) => { if (꼴.some((v) => 줄.includes(v))) 찾은.push(`${p}:${i + 1}`); });
+};
+process.argv.slice(2).forEach(훑기);
+console.log(찾은.length === 0 ? '비밀번호 점검: 깨끗' : `비밀번호 점검: ${찾은.length}곳\n${찾은.join('\n')}`);
+process.exit(찾은.length === 0 ? 0 : 1);
+```
+
+- **찾으면 그 줄을 고친다** — 계정이면 `params` 비밀값 칸(K9), 로그인 스크립트면 `process.env`, 예시 값이면 다른 값으로. 고친 뒤 **깨끗이 나올 때까지** 다시 돌린다
+- 고친 케이스는 관문 1·3 을 다시 돈다
+- **결과 요약에도 계정 값을 쓰지 않는다** — 에이전트가 요약을 PR 본문에 싣고 거기까지 본다
+
 ## 3. 훑기 — 허용 목록만
 
 **하는 것** — 같은 출처 링크 이동 · 탭 · 펼치기 · 팝업 열고 닫기. 로그인 폼 제출(위 스크립트)만 예외다.
@@ -127,5 +157,5 @@ await 브라우저.close();
 `tpx-author` 결과 요약 끝에 한 줄.
 
 ```
-역방향: <대조 / 화면만> · 차이 N건(다름 a · 화면에만 b · 문서에만 c) · 미확정 케이스 M건 · 역기획서 <있음 / 없음 / 해당 없음> · 로그인 <됨 / 못 함(사유)> · 훑은 화면 K장[ · 예산으로 멈춤]
+역방향: <대조 / 화면만> · 차이 N건(다름 a · 화면에만 b · 문서에만 c) · 미확정 케이스 M건 · 역기획서 <있음 / 없음 / 해당 없음> · 로그인 <됨 / 못 함(사유)> · 훑은 화면 K장[ · 예산으로 멈춤] · 비밀번호 점검 <깨끗 / 고침 N곳>
 ```
