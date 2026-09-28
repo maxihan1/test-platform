@@ -39,9 +39,10 @@ export function Login({
     set기다림(false);
     try {
       const { user } = await api.login(username, password);
-      // Grafana 는 이 화면(해시 라우터) 밖이라 해시가 아니라 페이지를 옮긴다
+      // Grafana 는 이 화면(해시 라우터) 밖이라 해시가 아니라 페이지를 옮긴다.
+      // 문이 막을 사람(변경 강제 · 대시보드 none)을 보내면 403 JSON 만 보고 변경 화면에 못 닿는다
       const 그래프 = 그래프로돌아갈곳(window.location.search);
-      if (그래프 === null) onLogin(user);
+      if (그래프 === null || user.mustChangePassword || user.dashboard !== 'read') onLogin(user);
       else 떠난다(그래프);
     } catch (err) {
       // 비밀번호가 맞은 사람에게만 오는 답이다. 잘못한 것이 아니라 기다리는 중이라 오류 모양으로 안 그린다
