@@ -141,6 +141,51 @@ describe('승인 대기 묶음', () => {
   });
 });
 
+describe('두 번 누름과 빈 묶음', () => {
+  it('지운다를 두 번 눌러도 거절 요청은 한 번만 간다', () => {
+    const 거절 = vi.spyOn(api, 'rejectUser').mockReturnValue(new Promise(() => undefined));
+    묶음();
+    fireEvent.click(screen.getByRole('button', { name: '거절' }));
+    fireEvent.click(screen.getByRole('button', { name: '지운다' }));
+    fireEvent.click(screen.getByRole('button', { name: '지운다' }));
+
+    expect(거절).toHaveBeenCalledTimes(1);
+  });
+
+  it('수락한다를 두 번 눌러도 수락 요청은 한 번만 간다', () => {
+    const 수락 = vi.spyOn(api, 'approveUser').mockReturnValue(new Promise(() => undefined));
+    묶음();
+    fireEvent.click(screen.getByRole('button', { name: '수락' }));
+    fireEvent.click(screen.getByRole('button', { name: '수락한다' }));
+    fireEvent.click(screen.getByRole('button', { name: '수락한다' }));
+
+    expect(수락).toHaveBeenCalledTimes(1);
+  });
+
+  it('도는 동안에는 다른 줄의 수락 · 거절도 잠근다', () => {
+    vi.spyOn(api, 'rejectUser').mockReturnValue(new Promise(() => undefined));
+    묶음();
+    fireEvent.click(screen.getByRole('button', { name: '거절' }));
+    fireEvent.click(screen.getByRole('button', { name: '지운다' }));
+
+    expect((screen.getByRole('button', { name: '지운다' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: '수락' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('마지막 신청이 사라지면 알림이 있어도 묶음을 그리지 않는다', async () => {
+    vi.spyOn(api, 'rejectUser').mockRejectedValue(new ApiError(409, 'APPROVED_USER', ''));
+    const { container, rerender } = 묶음();
+    fireEvent.click(screen.getByRole('button', { name: '거절' }));
+    fireEvent.click(screen.getByRole('button', { name: '지운다' }));
+    await screen.findByText('다른 운영자가 먼저 처리했습니다');
+
+    rerender(<PendingSection rows={[운영자]} services={[서비스]} onDone={() => undefined} />);
+
+    expect(screen.queryByText('승인 대기 0')).toBeNull();
+    expect(container.textContent).toBe('');
+  });
+});
+
 describe('설정 화면에서의 자리', () => {
   function 사람(): User {
     return { username: 'zsp1', displayName: '김운영', role: 'admin', dashboard: 'read', mustChangePassword: false, services: [] };

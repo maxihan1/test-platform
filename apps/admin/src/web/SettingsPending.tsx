@@ -25,11 +25,15 @@ export function PendingSection({
   const 대기 = rows.filter((it) => it.isApproved === false);
   const [여는것, set여는것] = useState<{ username: string; 일: 'approve' | 'reject' } | null>(null);
   const [알림, set알림] = useState<string | null>(null);
+  // 요청이 도는 동안 수락·거절을 다 잠근다. 두 번 누르면 두 번째가 「먼저 처리됨」으로 돌아와 헷갈린다
+  const [보내는중, set보내는중] = useState(false);
 
-  // 목록을 다시 읽어 마지막 줄이 사라져도 알림은 남아야 한다 — 그래서 알림이 있으면 묶음을 그린다
-  if (대기.length === 0 && 알림 === null) return null;
+  // 마지막 줄이 사라지면 「승인 대기 0」 머리만 남는다. 알림이 있어도 묶음째 걷는다
+  if (대기.length === 0) return null;
 
   async function 한다(일: () => Promise<unknown>) {
+    if (보내는중) return;
+    set보내는중(true);
     set알림(null);
     try {
       await 일();
@@ -43,6 +47,8 @@ export function PendingSection({
       } else {
         set알림(오류문장(e, 언어));
       }
+    } finally {
+      set보내는중(false);
     }
   }
 
@@ -60,10 +66,10 @@ export function PendingSection({
             <div className="set-row">
               <span className="set-name">{it.displayName}</span>
               <span className="set-sub">{it.username}</span>
-              <button className="btn ghost" onClick={() => set여는것(열림 === 'approve' ? null : { username: it.username, 일: 'approve' })}>
+              <button className="btn ghost" disabled={보내는중} onClick={() => set여는것(열림 === 'approve' ? null : { username: it.username, 일: 'approve' })}>
                 {열림 === 'approve' ? t('닫기') : t('수락')}
               </button>
-              <button className="btn ghost" onClick={() => set여는것({ username: it.username, 일: 'reject' })}>
+              <button className="btn ghost" disabled={보내는중} onClick={() => set여는것({ username: it.username, 일: 'reject' })}>
                 {t('거절')}
               </button>
             </div>
@@ -71,7 +77,11 @@ export function PendingSection({
               // 결과를 먼저 말하고 확정은 글자가 다른 따로 된 버튼으로 둔다 — AgentToken.tsx 와 같은 모양
               <div className="set-warn">
                 {t('가입 신청을 지웁니다. 되돌릴 수 없습니다')}{' '}
-                <button className="btn ghost set-warn" onClick={() => void 한다(() => api.rejectUser(it.username))}>
+                <button
+                  className="btn ghost set-warn"
+                  disabled={보내는중}
+                  onClick={() => void 한다(() => api.rejectUser(it.username))}
+                >
                   {t('지운다')}
                 </button>{' '}
                 <button className="btn ghost" onClick={() => set여는것(null)}>
