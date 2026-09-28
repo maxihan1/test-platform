@@ -87,4 +87,10 @@ describe('작성 권한 칸', () => {
     expect(screen.queryByText('테스트 작성 시작')).toBeNull();
     expect(screen.queryByText('기획서 파일')).toBeNull();
   });
+
+  it('작성 읽기면 빈 목록 안내가 못 하는 일을 권하지 않는다', async () => {
+    render(<Authoring service="PAY" 할수={(무엇) => 무엇 !== '작성요청'} />);
+    expect(await screen.findByText('작성 요청이 들어오면 여기에 줄이 생깁니다')).toBeTruthy();
+    expect(screen.queryByText('기획서를 넣으면 여기에 줄이 생깁니다')).toBeNull();
+  });
 });

@@ -104,7 +104,7 @@ export function Authoring({ service, envs = [], 할수 }: { service: string; env
           {줄들.data.items.length === 0 ? (
             <div className="empty">
               {t('아직 작성을 요청한 기록이 없습니다')}
-              <small>{t('기획서를 넣으면 여기에 줄이 생깁니다')}</small>
+              <small>{t(할수('작성요청') ? '기획서를 넣으면 여기에 줄이 생깁니다' : '작성 요청이 들어오면 여기에 줄이 생깁니다')}</small>
             </div>
           ) : (
             <>
