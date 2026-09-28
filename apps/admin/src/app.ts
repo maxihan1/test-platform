@@ -18,6 +18,7 @@ import { 세션등록, 열쇠최소길이 } from './auth/session.js';
 import catalogRoutes from './catalog/routes.js';
 import { pool } from './db/index.js';
 import executionRoutes from './execution/routes.js';
+import grafanaProxy from './grafana/proxy.js';
 import reportingRoutes from './reporting/routes.js';
 import settingsRoutes from './settings/routes.js';
 
@@ -42,6 +43,9 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(executionRoutes, { prefix: '/api' });
   app.register(reportingRoutes, { prefix: '/api' });
   app.register(settingsRoutes, { prefix: '/api' });
+
+  // 대시보드는 /api 밖이다. 문(auth/grafanaGate.ts)을 지난 요청만 Grafana 로 넘어간다 (SPEC 도메인/인증 §7)
+  app.register(grafanaProxy);
 
   // 화면은 WS-E가 Vite로 빌드한다. 산출물이 아직 없는 동안에도 서버는 떠야 한다
   const webDist = join(here, 'web', 'dist');

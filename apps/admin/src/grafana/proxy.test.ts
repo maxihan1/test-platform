@@ -85,7 +85,7 @@ describe.skipIf(연결 === undefined)('Grafana 통로 — 넘겨주기', () => {
       headers: {
         'x-webauth-user': 'admin',
         authorization: 'Basic YWRtaW46YWRtaW4=',
-        cookie: `grafana_session=abc; platform_session=${await 출입증()}; theme=dark`,
+        cookie: `grafana_session=abc; platform_session=${encodeURIComponent(await 출입증())}; theme=dark`,
       },
     });
     expect(res.statusCode).toBe(200);
