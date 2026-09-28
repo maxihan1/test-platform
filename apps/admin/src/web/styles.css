@@ -631,6 +631,11 @@ select:focus {
   outline-offset: -1px;
 }
 
+/* 눌린 칩은 바탕이 잉크라 안쪽 테두리가 묻힌다. 밖으로 내 종이 위에 선다 */
+.chip[aria-pressed='true']:focus-visible {
+  outline-offset: 2px;
+}
+
 /* 껍데기 넷 중 하나. 조건 줄의 라벨이다 (DESIGN.md 원칙 1 의 예외) */
 .filter-label {
   font-size: 11px;

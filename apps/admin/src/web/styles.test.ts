@@ -346,6 +346,10 @@ describe('서비스 고르개 (SPEC §8, 2026-09-22)', () => {
     expect(css).toContain('.side-pick:focus-visible');
   });
 
+  it('눌린 칩의 포커스 테두리가 칩 밖에 선다. 안쪽이면 잉크 바탕에 잉크 선이라 안 보인다', () => {
+    expect(규칙(".chip[aria-pressed='true']:focus-visible")).toMatch(/outline-offset:\s*2px/);
+  });
+
   it('무엇을 고르는 자리인지 적는 라벨 규칙이 있다', () => {
     expect(css).toContain('.side-cap');
   });
