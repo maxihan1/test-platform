@@ -1,0 +1,164 @@
+// 케이스 소스에서 「만들기」 절차와 request 사용을 가려내는 판별이 안전한 쪽으로 무너지는지 검사한다
+
+import { describe, expect, it } from 'vitest';
+
+import { caseSteps } from './steps.js';
+
+function body(inner: string, fixtures = '{ page }'): string {
+  return `import { defineCase, test, verify } from '@platform/kit';
+
+export const spec = defineCase({ tcId: 'DEMO-001', name: 'x', precondition: [], params: null, expected: null });
+
+test(spec, async (${fixtures}) => {
+${inner}
+});
+`;
+}
+
+const R16 = body(`
+  await test.step('할 일을 만든다', async () => {
+    await page.getByRole('textbox').fill('우유');
+  });
+  await test.step('할 일이 한 건인지 확인한다', async () => {
+    await verify('한 건이다', 1, 1, { blocker: true });
+  });
+  await test.step('완료를 누른다', async () => {
+    await verify('완료된다', true, true);
+  });
+`);
+
+function skippable(source: string): boolean[] {
+  return caseSteps(source).steps.map((s) => s.skippable);
+}
+
+describe('caseSteps', () => {
+  it('판정 없는 절차 바로 뒤에 blocker 절차가 오면 앞 것이 「만들기」다', () => {
+    const found = caseSteps(R16);
+    expect(found.steps.map((s) => [s.title, s.skippable])).toEqual([
+      ['할 일을 만든다', true],
+      ['할 일이 한 건인지 확인한다', false],
+      ['완료를 누른다', false],
+    ]);
+    expect(found.r16).toBe(true);
+  });
+
+  it('절차마다 소스 줄을 싣는다', () => {
+    expect(caseSteps(R16).steps.map((s) => s.line)).toEqual([7, 10, 13]);
+  });
+
+  it('조작과 blocker 판정이 한 절차에 붙은 옛 케이스는 건너뛸 것이 없다', () => {
+    const old = body(`
+  await test.step('화면을 열고 한 건을 만든다', async () => {
+    await page.goto('https://x');
+    await verify('한 건이다', 1, 1, { blocker: true });
+  });
+  await test.step('완료를 누른다', async () => {
+    await verify('완료된다', true, true);
+  });
+`);
+    expect(skippable(old)).toEqual([false, false]);
+    expect(caseSteps(old).r16).toBe(false);
+  });
+
+  it('다음 절차의 판정이 blocker 가 아니면 「만들기」가 아니다', () => {
+    expect(skippable(R16.replace(', { blocker: true }', ''))[0]).toBe(false);
+  });
+
+  it('blocker 를 변수로 넘기면 blocker 로 치지 않는다', () => {
+    const viaVar = R16.replace('{ blocker: true }', 'opts');
+    expect(skippable(viaVar)[0]).toBe(false);
+  });
+
+  it('blocker: false 는 blocker 가 아니다', () => {
+    expect(skippable(R16.replace('blocker: true', 'blocker: false'))[0]).toBe(false);
+  });
+
+  it('마지막 절차는 판정이 없어도 「만들기」가 아니다', () => {
+    const last = body(`
+  await test.step('확인한다', async () => {
+    await verify('보인다', true, true, { blocker: true });
+  });
+  await test.step('정리한다', async () => {
+    await page.close();
+  });
+`);
+    expect(skippable(last)).toEqual([false, false]);
+  });
+
+  it('반복문 안의 절차는 「만들기」로 치지 않는다 — 하나를 풀면 전부 건너뛴다', () => {
+    const loop = R16.replace(
+      `  await test.step('할 일을 만든다', async () => {
+    await page.getByRole('textbox').fill('우유');
+  });`,
+      `  for (const t of ['우유', '빵']) {
+    await test.step('할 일을 만든다', async () => {
+      await page.getByRole('textbox').fill(t);
+    });
+  }`,
+    );
+    expect(skippable(loop)[0]).toBe(false);
+  });
+
+  it('도우미 함수 안의 절차는 「만들기」로 치지 않는다', () => {
+    const helper = R16.replace(
+      `  await test.step('할 일을 만든다', async () => {
+    await page.getByRole('textbox').fill('우유');
+  });`,
+      `  const make = async () => {
+    await test.step('할 일을 만든다', async () => {
+      await page.getByRole('textbox').fill('우유');
+    });
+  };
+  await make();`,
+    );
+    expect(skippable(helper)[0]).toBe(false);
+  });
+
+  it('본문이 맨 함수를 부르면 「만들기」로 치지 않는다 — 그 안의 판정이 안 보인다', () => {
+    const bare = R16.replace(`await page.getByRole('textbox').fill('우유');`, `await fillTodo(page);`);
+    expect(skippable(bare)[0]).toBe(false);
+  });
+
+  it('안에 절차를 품은 절차는 「만들기」로 치지 않는다 — 건너뛰면 안쪽 판정까지 사라진다', () => {
+    const nested = body(`
+  await test.step('준비한다', async () => {
+    await test.step('안쪽에서 확인한다', async () => {
+      await verify('보인다', true, true, { blocker: true });
+    });
+  });
+  await test.step('조작한다', async () => {
+    await verify('된다', true, true);
+  });
+`);
+    expect(caseSteps(nested).steps.map((s) => s.title)).toEqual(['준비한다', '안쪽에서 확인한다', '조작한다']);
+    expect(skippable(nested)).toEqual([false, false, false]);
+  });
+
+  it('안쪽 절차의 판정은 바깥 절차의 판정으로 세지 않는다', () => {
+    const nested = body(`
+  await test.step('바깥', async () => {
+    await test.step('만든다', async () => {
+      await page.getByRole('textbox').fill('우유');
+    });
+    await test.step('확인한다', async () => {
+      await verify('보인다', true, true, { blocker: true });
+    });
+  });
+`);
+    expect(skippable(nested)).toEqual([false, true, false]);
+  });
+
+  it('제목이 문자열 리터럴이 아닌 절차는 목록에 싣지 않는다 (K6 이 잡는다)', () => {
+    const dynamic = R16.replace(`test.step('할 일을 만든다'`, 'test.step(title');
+    expect(caseSteps(dynamic).steps.map((s) => s.title)).toEqual(['할 일이 한 건인지 확인한다', '완료를 누른다']);
+  });
+
+  it('request 를 꺼내 쓰면 usesRequest 다', () => {
+    expect(caseSteps(body('', '{ request, params }')).usesRequest).toBe(true);
+    expect(caseSteps(body('', '{ page }')).usesRequest).toBe(false);
+  });
+
+  it('구조 분해가 아니라 이름 하나로 받으면 request 를 쓴다고 본다 — 경고가 빠지는 쪽보다 낫다', () => {
+    expect(caseSteps(body('', 'fixtures')).usesRequest).toBe(true);
+  });
+});
