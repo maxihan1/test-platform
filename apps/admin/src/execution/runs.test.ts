@@ -12,6 +12,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ExecuteRequest } from '@platform/kit';
 
+import type { 칸 } from '../auth/permissions.js';
+
 import executionRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -37,6 +39,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   let 러너: FastifyInstance;
   let pool: Pool;
   let 받은요청: ExecuteRequest[] = [];
+  let 실행칸: 칸 = 'write';
 
   async function 치운다(): Promise<void> {
     await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBX%')");
@@ -116,8 +119,21 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       req.user = {
         username: 'xbx-사람',
         displayName: '실행 검사용',
-        role: 'operator',
-        services: [{ id: 1, prefix: 'XBX', name: '실행 검사용', color: '#3A5FCD', envs: [], hasSlackWebhook: false, testsDir: 'xbx' }],
+        role: 'member',
+        dashboard: 'read',
+        mustChangePassword: false,
+        services: [
+          {
+            id: 1,
+            prefix: 'XBX',
+            name: '실행 검사용',
+            color: '#3A5FCD',
+            envs: [],
+            hasSlackWebhook: false,
+            testsDir: 'xbx',
+            permissions: { cases: 'write', runs: 실행칸, authoring: 'write' },
+          },
+        ],
       };
     });
     await app.register(executionRoutes, { prefix: '/api' });
@@ -423,6 +439,16 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     expect(데스크톱.recent.length).toBeLessThanOrEqual(5);
     // 맨 앞이 새 것이다. 배지(status)와 흐름의 첫 칸이 어긋나면 같은 실행을 두 값으로 말하게 된다
     expect(데스크톱.recent[0]).toBe(데스크톱.status);
+  });
+
+  it('GET /api/runs/last-by-case — 실행 칸이 none 인 서비스 것은 안 준다', async () => {
+    실행칸 = 'none';
+    try {
+      const body = (await app.inject({ method: 'GET', url: '/api/runs/last-by-case' })).json();
+      expect(body.items.filter((i: { tcId: string }) => i.tcId.startsWith('XBX-'))).toEqual([]);
+    } finally {
+      실행칸 = 'write';
+    }
   });
 
   it('GET /api/screenshots/... — 공유 볼륨의 원본을 그대로 내보낸다', async () => {

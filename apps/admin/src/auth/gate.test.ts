@@ -6,9 +6,12 @@ import { dirname, join, resolve } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 등급표, 옛자동규칙, 인증등록 } from './gate.js';
+import { 권한이되나, 등급표, 옛자동규칙, 인증등록 } from './gate.js';
 import { 해시 } from './password.js';
+import { 관리자권한, type 기능, type 서비스권한 } from './permissions.js';
+import { 필요권한 } from './routeTable.js';
 import authRoutes from './routes.js';
+import { 라우트표 } from './scope.js';
 import { 세션등록 } from './session.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -30,19 +33,25 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     서비스id[prefix] = rows.rows[0]!.id;
   }
 
-  async function 계정넣기(username: string, role: string, 서비스들: string[]) {
+  const 읽기셋: 서비스권한 = { cases: 'read', runs: 'read', authoring: 'read' };
+  const 쓰기셋: 서비스권한 = { cases: 'write', runs: 'write', authoring: 'write' };
+
+  async function 계정넣기(username: string, role: 'member' | 'admin', 배정: Record<string, 서비스권한>) {
     const { pool } = await import('../db/index.js');
     await pool.query(
-      `INSERT INTO app_user (username, display_name, password_hash, role)
-            VALUES ($1, $1, $2, $3)
+      `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard)
+            VALUES ($1, $1, $2, $3, 'read')
        ON CONFLICT (username) DO UPDATE SET is_active = true, role = EXCLUDED.role,
                                             password_hash = EXCLUDED.password_hash`,
       [username, await 해시('열려라참깨'), role],
     );
-    for (const prefix of 서비스들) {
+    for (const [prefix, 칸] of Object.entries(배정)) {
       await pool.query(
-        `INSERT INTO user_service (username, service_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-        [username, 서비스id[prefix]],
+        `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
+              VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (username, service_id) DO UPDATE
+           SET perm_cases = EXCLUDED.perm_cases, perm_runs = EXCLUDED.perm_runs, perm_authoring = EXCLUDED.perm_authoring`,
+        [username, 서비스id[prefix], 칸.cases, 칸.runs, 칸.authoring],
       );
     }
   }
@@ -113,9 +122,14 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
   beforeAll(async () => {
     await 서비스넣기('XFS3A', '문 검사용 가');
     await 서비스넣기('XFS3B', '문 검사용 나');
-    await 계정넣기('xfu3-viewer', 'viewer', ['XFS3A']);
-    await 계정넣기('xfu3-operator', 'operator', ['XFS3A']);
-    await 계정넣기('xfu3-admin', 'admin', ['XFS3A']);
+    await 계정넣기('xfu3-viewer', 'member', { XFS3A: 읽기셋 });
+    await 계정넣기('xfu3-operator', 'member', { XFS3A: 쓰기셋 });
+    await 계정넣기('xfu3-admin', 'admin', { XFS3A: 쓰기셋 });
+    await 계정넣기('xfu3-mixed', 'member', {
+      XFS3A: { cases: 'read', runs: 'write', authoring: 'none' },
+      XFS3B: { cases: 'none', runs: 'read', authoring: 'none' },
+    });
+    await 계정넣기('xfu3-admin0', 'admin', {});
     await 자원넣기('XFS3A');
     await 자원넣기('XFS3B');
 
@@ -204,7 +218,7 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
 
     const 실행 = await app.inject({ method: 'POST', url: '/api/runs', cookies: 쿠키, payload: {} });
     expect(실행.statusCode).toBe(403);
-    expect(실행.json()).toEqual({ error: 'FORBIDDEN', need: 'operator' });
+    expect(실행.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:write' });
   });
 
   it('보기만 등급도 로그아웃은 된다', async () => {
@@ -444,6 +458,60 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
 
   // 이건 번호로 부르는 것이 아니라 「전부 주는」 질의라 문에서 못 막는다.
   // 질의 자체가 배정으로 걸러야 한다 — 안 그러면 남의 케이스 번호와 판정이 그대로 나간다
+  it('서비스마다 그 서비스의 칸으로 판정한다 — 실행 write 인 A 는 멈추고 read 인 B 는 막힌다', async () => {
+    const 쿠키 = { platform_session: await 출입증('xfu3-mixed') };
+    const 가 = await app.inject({ method: 'POST', url: `/api/runs/${자원.실행.XFS3A}/abort`, cookies: 쿠키 });
+    expect(가.statusCode).toBe(200);
+    const 나 = await app.inject({ method: 'POST', url: `/api/runs/${자원.실행.XFS3B}/abort`, cookies: 쿠키 });
+    expect(나.statusCode).toBe(403);
+    expect(나.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:write' });
+  });
+
+  it('케이스 read 인 서비스에서 입력값 묶음 저장은 need cases:write 다', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/cases/XFS3A-001/param-sets',
+      cookies: { platform_session: await 출입증('xfu3-mixed') },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'FORBIDDEN', need: 'cases:write' });
+  });
+
+  it('배정받지 않은 서비스는 칸보다 먼저 SERVICE_FORBIDDEN 이다', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/runs/${자원.실행.XFS3B}/abort`,
+      cookies: { platform_session: await 출입증('xfu3-viewer') },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'SERVICE_FORBIDDEN', detail: 'XFS3B' });
+  });
+
+  it('서비스에 안 매인 스캔은 배정 서비스 중 하나라도 케이스 write 여야 한다', async () => {
+    const 된다 = await app.inject({
+      method: 'POST',
+      url: '/api/catalog/scan',
+      cookies: { platform_session: await 출입증('xfu3-operator') },
+    });
+    expect(된다.statusCode).toBe(200);
+    const 안된다 = await app.inject({
+      method: 'POST',
+      url: '/api/catalog/scan',
+      cookies: { platform_session: await 출입증('xfu3-mixed') },
+    });
+    expect(안된다.statusCode).toBe(403);
+    expect(안된다.json()).toEqual({ error: 'FORBIDDEN', need: 'cases:write' });
+  });
+
+  it('admin 은 배정 없이 스캔하지만 서비스 자원은 배정된 곳에서만이다', async () => {
+    const 쿠키 = { platform_session: await 출입증('xfu3-admin0') };
+    expect((await app.inject({ method: 'POST', url: '/api/catalog/scan', cookies: 쿠키 })).statusCode).toBe(200);
+    const res = await app.inject({ method: 'GET', url: `/api/runs/${자원.실행.XFS3A}`, cookies: 쿠키 });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'SERVICE_FORBIDDEN', detail: 'XFS3A' });
+  });
+
   it('마지막 결과 일괄 조회가 배정받은 서비스만 준다', async () => {
     const { lastByCase } = await import('../execution/history.js');
     const 낸것 = await lastByCase(['XFS3A']);
@@ -506,40 +574,87 @@ describe('등급 표', () => {
     expect(유령, `소스에 없는 자리가 표에 남아 있다: ${유령.join(' · ')}`).toEqual([]);
   });
 
-  // ★ 이 검사가 BLOCKER 의 본체다. 표로 갈아타면서 **기존 통로의 등급이 조용히 달라지는 것**을 막는다
-  it('옛 자동 규칙과 다른 자리는 일부러 바꾼 하나뿐이다', () => {
-    // 일부러 바꾼 자리. 저장소를 영구히 바꾸는 일이라 admin 으로 올렸다 (SPEC 도메인/인증 §7)
-    const 일부러 = new Set(['POST /api/authoring/merges']);
-    // 문이 등급 판정 앞에서 돌려보내는 자리. 옛 규칙의 값이 쓰인 적이 없다
-    const 등급을안따지는자리 = (쌍: string): boolean => 쌍.split(' ')[1]?.startsWith('/api/auth/') === true;
+  // ★ 옛 등급 하나를 서비스별 칸으로 옮긴 뒤 **누구의 할 수 있는 일도 바뀌지 않았나** (SPEC 도메인/인증 §7 「옛 등급에서 옮긴 값」)
+  // 일부러 바꾼 자리. 저장소를 영구히 바꾸는 일이라 admin 으로 올렸다 (SPEC 도메인/인증 §7)
+  const 일부러 = new Set(['POST /api/authoring/merges']);
+  const 옛높이 = { viewer: 0, operator: 1, admin: 2 } as const;
+  type 옛등급 = keyof typeof 옛높이;
+  const 옛등급들: 옛등급[] = ['viewer', 'operator', 'admin'];
 
+  function 옮긴사람(r: 옛등급, 배정: string[]) {
+    if (r === 'admin') return { role: 'admin' as const, services: 배정.map((prefix) => ({ prefix, permissions: 관리자권한 })) };
+    const 칸 = r === 'viewer' ? 'read' : 'write';
+    return {
+      role: 'member' as const,
+      services: 배정.map((prefix) => ({ prefix, permissions: { cases: 칸, runs: 칸, authoring: 칸 } })),
+    };
+  }
+
+  // 문이 등급 판정 앞에서 돌려보내는 자리. 옛 규칙의 값이 쓰인 적이 없다
+  const 대조할쌍들 = (): { 쌍: string; 메서드: string; 틀: string }[] =>
+    소스의쌍들()
+      .filter((쌍) => !(쌍.split(' ')[1] ?? '').startsWith('/api/auth/'))
+      .map((쌍) => {
+        const [메서드 = '', 틀 = ''] = 쌍.split(' ');
+        return { 쌍, 메서드, 틀 };
+      });
+  const 옛것 = (쌍: string, 틀: string, 메서드: string): 옛등급 => (일부러.has(쌍) ? 'admin' : 옛자동규칙(틀, 메서드));
+
+  it('옛 등급을 옮긴 권한으로 판정해도 통과·거절이 옛 규칙과 같다 — 배정 서비스 하나', () => {
     const 달라진것: string[] = [];
-    for (const 쌍 of 소스의쌍들()) {
-      if (일부러.has(쌍) || 등급을안따지는자리(쌍)) continue;
-      const [메서드, 틀] = 쌍.split(' ');
-      const 옛것 = 옛자동규칙(틀 ?? '', 메서드 ?? '');
-      const 새것 = 등급표[쌍];
-      if (새것 !== 옛것) 달라진것.push(`${쌍} — 옛 ${옛것} · 새 ${String(새것)}`);
+    for (const { 쌍, 메서드, 틀 } of 대조할쌍들()) {
+      const 닿는것 = 라우트표[틀]?.종류 === '안매임' ? [] : ['XA'];
+      for (const r of 옛등급들) {
+        const 옛판정 = 옛높이[r] >= 옛높이[옛것(쌍, 틀, 메서드)];
+        const 새판정 = 권한이되나(옮긴사람(r, ['XA']), 필요권한(틀, 메서드), 닿는것);
+        if (옛판정 !== 새판정) 달라진것.push(`${쌍} · ${r} — 옛 ${옛판정} · 새 ${새판정}`);
+      }
     }
-    expect(
-      달라진것,
-      `옮겨 적다 틀린 자리:\n${달라진것.join('\n')}\n` +
-        '일부러 바꾼 것이면 이 검사의 「일부러」 목록에 이름을 적어 남겨라',
-    ).toEqual([]);
+    expect(달라진것, `옮기다 틀린 자리:\n${달라진것.join('\n')}`).toEqual([]);
   });
 
-  it('머지는 admin 이고 작성·재실행은 operator 다 — 둘이 같으면 실행 등급이 저장소를 바꾼다', () => {
+  // 배정 0건은 「하나라도」 규칙이다 (§7 「서비스를 하나도 뽑지 못한 요청」). admin 만 배정 없이 안매임 일을 한다
+  it('배정 0건 — admin 은 안매임 자리에서 옛 규칙과 같고 member 는 아무 칸도 없어 막힌다', () => {
+    const 달라진것: string[] = [];
+    for (const { 쌍, 메서드, 틀 } of 대조할쌍들().filter(({ 틀 }) => 라우트표[틀]?.종류 === '안매임')) {
+      for (const r of 옛등급들) {
+        const 기대 = r === 'admin' ? 옛높이.admin >= 옛높이[옛것(쌍, 틀, 메서드)] : false;
+        const 새판정 = 권한이되나(옮긴사람(r, []), 필요권한(틀, 메서드), []);
+        if (기대 !== 새판정) 달라진것.push(`${쌍} · ${r} — 기대 ${기대} · 새 ${새판정}`);
+      }
+    }
+    expect(달라진것, 달라진것.join('\n')).toEqual([]);
+  });
+
+  // 옛 viewer·operator 는 기능 셋을 한꺼번에 가져서 통로를 엉뚱한 기능에 묶어도 위 대조가 초록이다 (계획 BLOCKER 1)
+  it('표의 기능은 경로 접두사가 정한 기능과 같다', () => {
+    const 경로의기능 = (틀: string): 기능 | null => {
+      if (/^\/api\/(catalog|cases|param-sets)(\/|$)/.test(틀)) return 'cases';
+      if (/^\/api\/(runs|evidence|screenshots)(\/|$)/.test(틀)) return 'runs';
+      if (/^\/api\/authoring(\/|$)/.test(틀)) return 'authoring';
+      return null;
+    };
+    const 어긋난것: string[] = [];
+    for (const [쌍, 값] of Object.entries(등급표)) {
+      if (typeof 값 !== 'object') continue;
+      const 기대 = 경로의기능(쌍.split(' ')[1] ?? '');
+      if (값.기능 !== 기대) 어긋난것.push(`${쌍} — 표 ${값.기능} · 경로 ${String(기대)}`);
+    }
+    expect(어긋난것).toEqual([]);
+  });
+
+  it('머지는 admin 이고 작성·재실행은 (작성, write) 다 — 둘이 같으면 실행 권한이 저장소를 바꾼다', () => {
     expect(등급표['POST /api/authoring/merges']).toBe('admin');
-    expect(등급표['POST /api/authoring/requests']).toBe('operator');
+    expect(등급표['POST /api/authoring/requests']).toEqual({ 기능: 'authoring', 칸: 'write' });
   });
 
-  it('자료 올리기와 줄에 세우기는 operator 다 — 요청을 넣는 것과 같은 일이다', () => {
-    expect(등급표['POST /api/authoring/requests/:id/assets']).toBe('operator');
-    expect(등급표['POST /api/authoring/requests/:id/submit']).toBe('operator');
-    expect(등급표['POST /api/authoring/requests/:id/outputs']).toBe('operator');
+  it('자료 올리기와 줄에 세우기는 (작성, write) 다 — 요청을 넣는 것과 같은 일이다', () => {
+    expect(등급표['POST /api/authoring/requests/:id/assets']).toEqual({ 기능: 'authoring', 칸: 'write' });
+    expect(등급표['POST /api/authoring/requests/:id/submit']).toEqual({ 기능: 'authoring', 칸: 'write' });
+    expect(등급표['POST /api/authoring/requests/:id/outputs']).toEqual({ 기능: 'authoring', 칸: 'write' });
   });
 
-  it('자료 내려받기는 viewer 다 — 상세를 보는 사람이 그 기획서도 본다', () => {
-    expect(등급표['GET /api/authoring/requests/:id/assets/:assetId']).toBe('viewer');
+  it('자료 내려받기는 (작성, read) 다 — 상세를 보는 사람이 그 기획서도 본다', () => {
+    expect(등급표['GET /api/authoring/requests/:id/assets/:assetId']).toEqual({ 기능: 'authoring', 칸: 'read' });
   });
 });

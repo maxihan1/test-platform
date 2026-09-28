@@ -14,8 +14,8 @@ const 접두사 = 'XWK';
 const 좋은몸 = { input: 952, output: 475, cacheRead: 55784, cacheWrite: 8219, partial: false, costUsd: 0.0253, model: 'claude-opus-5-5' };
 
 describe('usage 통로가 권한 표 셋에 든다', () => {
-  it('등급표 operator · 에이전트 토큰 통로 · 라우트표 작성요청', () => {
-    expect(등급표['POST /api/authoring/requests/:id/usage']).toBe('operator');
+  it('등급표 (작성, write) · 에이전트 토큰 통로 · 라우트표 작성요청', () => {
+    expect(등급표['POST /api/authoring/requests/:id/usage']).toEqual({ 기능: 'authoring', 칸: 'write' });
     expect(토큰통로.has('POST /api/authoring/requests/:id/usage')).toBe(true);
     expect(라우트표['/api/authoring/requests/:id/usage']).toEqual({ 종류: '작성요청', 칸: 'id' });
   });
@@ -66,7 +66,7 @@ describe.skipIf(연결 === undefined)('작성 토큰 사용량', () => {
     app = Fastify();
     app.decorateRequest('user', null);
     app.addHook('preHandler', async (req) => {
-      req.user = { username: 부르는이, displayName: '토큰 검사', role: 'operator' as const, services: [] };
+      req.user = { username: 부르는이, displayName: '토큰 검사', role: 'member' as const, dashboard: 'read' as const, mustChangePassword: false, services: [] };
     });
     await app.register(authoringAgentRoutes, { prefix: '/api' });
     await app.ready();
