@@ -167,6 +167,10 @@ describe.skipIf(연결 === undefined)('작성 이어하기', () => {
     expect(await 상세(await 멈춘것({ 끝난지: '8 days' }))).toMatchObject({ keepWorkspace: false });
     expect(await 상세(await 멈춘것({ 폐기: true }))).toMatchObject({ keepWorkspace: false });
     expect(await 상세(await 멈춘것({ status: 'DONE' }))).toMatchObject({ keepWorkspace: false });
+    // 이어받을 줄이 아직 대기 중이면 7일이 지났어도 남긴다 — 넘겨받기 전에 지우면 조용히 처음부터 돈다
+    const 오래된 = await 멈춘것({ 끝난지: '8 days' });
+    await 멈춘것({ kind: 'RERUN', sourceId: 오래된, resumeFrom: 오래된, status: 'PENDING', 집은이: null });
+    expect(await 상세(오래된)).toMatchObject({ keepWorkspace: true, canResume: false });
   });
 
   describe('집기', () => {

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import type { 집은것 } from './authoring-rules.js';
 import { type 계정, type 사본, 남은사본, 사본자리 } from './authoring-copy.js';
 import { 사본만들기, 사본치우기, 새집 } from './authoring-child.js';
-import { type 보고손, 부른다, 진짜main묻기, 친다 } from './authoring-io.js';
+import { type 보고손, 멈춤, 부른다, 진짜main묻기, 친다 } from './authoring-io.js';
 import { 케이스파일들 } from './authoring-progress.js';
 import {
   type 보관,
@@ -67,6 +67,18 @@ export function 보관하기(자리: 사본, 자식: 계정 | null): void {
   console.log(`[보관] ${자리.뿌리} — 멈춘 자리부터 이어서 작성할 수 있게 남겼다`);
 }
 
+/** 폴더를 옮긴다. 그 사이 다른 훑기가 지웠으면 false — 부르는 쪽이 처음부터 만든다 */
+function 옮기기(옛: string, 새: string): boolean {
+  try {
+    rmSync(새, { recursive: true, force: true });
+    renameSync(옛, 새);
+    return true;
+  } catch (err) {
+    console.error(`[보관] ${옛} 를 넘겨받지 못해 처음부터 한다: ${String(err)}`);
+    return false;
+  }
+}
+
 /** 이어받은 사슬 — 가까운 중단 요청부터. 멈춘 까닭은 가장 가까운 것 */
 async function 사슬읽기(
   주소기지: string,
@@ -109,11 +121,9 @@ export async function 작업방준비(
       폴더들,
     );
     const 멈춘것 = 사슬[0];
-    if (고른 !== null && 멈춘것 !== undefined) {
+    const 자리 = 사본자리(것.id, 판.바탕);
+    if (고른 !== null && 멈춘것 !== undefined && 옮기기(사본자리(고른, 판.바탕).뿌리, 자리.뿌리)) {
       const 표시 = 폴더들.get(고른)!;
-      const 자리 = 사본자리(것.id, 판.바탕);
-      rmSync(자리.뿌리, { recursive: true, force: true });
-      renameSync(사본자리(고른, 판.바탕).뿌리, 자리.뿌리);
       // 넘겨받는 동안 훑기가 보면 도는 건이다 — 끝을 먼저 내린다
       보관쓰기(자리, { ...표시, 끝: false });
       새집(자리);
@@ -168,6 +178,9 @@ async function 남길지묻기(주소기지: string, 토큰: string, 서비스: 
  * 꺼지며 끊긴 건(보관 끝 없음)은 여기서 잠근다 — 그 자리 uid 의 프로세스는 이미 없다(켤 때) 또는 도는번호에 없다
  */
 export async function 보관훑기(바탕: string, 주소기지: string, 토큰: string, 잠글자식: 계정 | null): Promise<void> {
+  // 자식을 못 거둬 멈추는 중이면 손대지 않는다 — 살아남은 자식이 root 가 지우는 도중에 폴더를 링크로 바꿔
+  // 트리 밖을 지우게 할 수 있다. 에이전트가 다시 켜지면(프로세스가 다 죽은 뒤) 켤 때 훑기가 한다 (2026-09-28 보안 검사)
+  if (멈춤.까닭 !== null) return;
   mkdirSync(바탕, { recursive: true, mode: 0o755 });
   for (const 이름 of 남은사본(readdirSync(바탕))) {
     const 번호 = Number(이름.slice('author-'.length));

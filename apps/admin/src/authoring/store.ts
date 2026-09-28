@@ -137,13 +137,19 @@ export const 칸들 = `id, service_id, kind, source_id, spec_text, params, reque
 /** 멈춘 요청의 작업 폴더를 보관하는 날 수. 에이전트는 이 판정을 서버에 물어 따른다 — 사본을 두지 않는다 (§7 「이어하기」) */
 export const 보관일 = 7;
 
-/**
- * `별칭` 행의 작업 폴더를 남기나 — SQL 참거짓 식. 에이전트가 훑을 때 상세의 keepWorkspace 로 묻는다.
- * 이어받은 줄이 있어도 참이다 — 그 줄이 아직 안 돌았으면 폴더를 옮겨 가기 전이다
- */
-export function 폴더남기나(별칭: string): string {
+/** `별칭` 행이 보관 기간 안의 살아 있는 중단인가 — 아래 두 식의 바탕 */
+function 보관중(별칭: string): string {
   return `(${별칭}.status = 'STOPPED' AND ${별칭}.kind IN ('AUTHOR', 'RERUN') AND ${별칭}.discarded_at IS NULL
            AND ${별칭}.finished_at > now() - interval '${보관일} days')`;
+}
+
+/**
+ * `별칭` 행의 작업 폴더를 남기나 — SQL 참거짓 식. 에이전트가 훑을 때 상세의 keepWorkspace 로 묻는다.
+ * 이어받은 줄이 아직 대기 중이면 기간 · 폐기와 상관없이 참이다 — 넘겨받기 전에 지우면 조용히 처음부터 돈다 (2026-09-28 코드 검사)
+ */
+export function 폴더남기나(별칭: string): string {
+  return `(${보관중(별칭)}
+           OR EXISTS (SELECT 1 FROM authoring_request 이을것 WHERE 이을것.resume_from = ${별칭}.id AND 이을것.status = 'PENDING'))`;
 }
 
 /**
@@ -151,7 +157,7 @@ export function 폴더남기나(별칭: string): string {
  * 이미 이어받은 줄이 있으면 거짓이다(폴더는 하나). 유일 색인이 동시 누름을 한 번 더 막는다
  */
 export function 이어받기되나(별칭: string): string {
-  return `(${폴더남기나(별칭)}
+  return `(${보관중(별칭)}
            AND NOT EXISTS (SELECT 1 FROM authoring_request 이은것 WHERE 이은것.resume_from = ${별칭}.id))`;
 }
 

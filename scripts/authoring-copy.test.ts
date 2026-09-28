@@ -133,7 +133,7 @@ describe('바탕거부사유 — 사본 바탕이 공용 임시 아래면 켜지
   });
 });
 
-describe('남은사본 — 켤 때 지울 것', () => {
+describe('남은사본 — 켤 때와 한 시간마다 훑을 것', () => {
   it('author-<숫자> 만 고른다. 바탕에 딴 것이 있어도 안 건드린다', () => {
     expect(남은사본(['author-3', 'author-x', 'keep', 'author-12', 'author-3.bak'])).toEqual(['author-3', 'author-12']);
   });

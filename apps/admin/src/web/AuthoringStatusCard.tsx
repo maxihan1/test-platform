@@ -142,7 +142,7 @@ export function AuthoringStatusCard({ 요청, 지금, service }: { 요청: Autho
 
       {/* 중단도 까닭 글이 있으면 보인다 — 올리기 거절은 무엇을 고칠지가 거기 있다. 회색 중단이라도 까닭은 늘 보인다 (작성 §7) */}
       {(요청.status === 'FAILED' || 요청.status === 'STOPPED') && 요청.error !== null ? (
-        <div className="status-reason">{요청.error}</div>
+        <div className={요청.status === 'STOPPED' ? 'status-reason stopped' : 'status-reason'}>{요청.error}</div>
       ) : null}
 
       {p === null || 자리 === null ? null : (

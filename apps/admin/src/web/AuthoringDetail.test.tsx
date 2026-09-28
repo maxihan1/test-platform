@@ -102,7 +102,7 @@ describe('작성 한 건 상세', () => {
     expect(screen.getByText(/^지금은 없습니다/)).toBeTruthy();
   });
 
-  it('완료면 해야 할 일에 만든 테스트 코드(PR) 링크가 있다', async () => {
+  it('완료면 다음 단계에 만든 테스트 코드(PR) 링크가 있다', async () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     const 링크 = await screen.findByRole('link', { name: '만든 테스트 코드 보기 (PR)' });
     expect(링크.getAttribute('href')).toBe('https://github.com/x/y/pull/3');
