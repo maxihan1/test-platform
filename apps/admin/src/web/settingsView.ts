@@ -1,5 +1,7 @@
 // 설정 화면이 하는 판단 (SPEC §8.8). 화면은 그리기만 하고 고를 것은 여기서 정한다
 
+import { 아이디모양 } from '../auth/rules.js';
+
 import type { EnvRow, SettingsServiceRow, UserRow } from './api.js';
 import { 요청오류문장 } from './errorText.js';
 import { t, type 언어 } from './i18n.js';
@@ -69,10 +71,13 @@ export function 서비스못보내는이유(
 }
 
 export function 계정못보내는이유(
-  입력: { username: string; displayName: string },
+  입력: { username: string; displayName: string; 새것: boolean },
   언어: 언어,
 ): string | null {
   if (입력.username === '') return t('아이디를 채웁니다', 언어);
+  // 서버와 같은 규칙·같은 문장이다. 보낸 뒤 400 을 받고서야 알면 칸을 다시 찾아야 한다.
+  // 고칠 때는 아이디 칸이 잠겨 있다 — 규칙 전에 만든 아이디로 저장을 막으면 할 수 없는 일을 시킨다
+  if (입력.새것 && !아이디모양.test(입력.username)) return 요청오류문장('USERNAME_SHAPE', 언어);
   if (입력.displayName === '') return t('이름을 채웁니다', 언어);
   return null;
 }

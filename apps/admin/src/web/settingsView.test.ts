@@ -174,15 +174,27 @@ describe('서비스를 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살
 
 describe('계정을 아직 못 보내는 이유', () => {
   it('다 채웠으면 이유가 없다', () => {
-    expect(계정못보내는이유({ username: 'kim', displayName: '김철수' }, 'ko')).toBe(null);
+    expect(계정못보내는이유({ username: 'kim', displayName: '김철수', 새것: true }, 'ko')).toBe(null);
   });
 
   it('아이디가 비면 그것을 말한다', () => {
-    expect(계정못보내는이유({ username: '', displayName: '김철수' }, 'ko')).toContain('아이디');
+    expect(계정못보내는이유({ username: '', displayName: '김철수', 새것: true }, 'ko')).toContain('아이디');
   });
 
   it('이름이 비면 그것을 말한다', () => {
-    expect(계정못보내는이유({ username: 'kim', displayName: '' }, 'ko')).toContain('이름');
+    expect(계정못보내는이유({ username: 'kim', displayName: '', 새것: true }, 'ko')).toContain('이름');
+  });
+
+  it('아이디 모양이 서버 규칙과 다르면 보내기 전에 서버와 같은 말로 알린다', () => {
+    for (const 틀린것 of ['Admin', 'k', '-kim', 'kim lee', 'a'.repeat(33)]) {
+      expect(계정못보내는이유({ username: 틀린것, displayName: '김철수', 새것: true }, 'ko'), 틀린것).toBe(
+        '아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다',
+      );
+    }
+  });
+
+  it('이미 있는 계정을 고칠 때는 아이디 칸이 잠겨 있어 모양을 따지지 않는다', () => {
+    expect(계정못보내는이유({ username: 'Admin', displayName: '김철수', 새것: false }, 'ko')).toBe(null);
   });
 });
 

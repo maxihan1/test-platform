@@ -140,7 +140,7 @@ function UserForm({
 
   // 맞으면 등급을 낮추거나 내리는 길을 아예 안 그린다 (SPEC §3.5 · §7)
   const 마지막운영 = row !== undefined && 마지막운영계정인가(rows, row.username);
-  const 못보내는이유 = 계정못보내는이유({ username, displayName }, 언어);
+  const 못보내는이유 = 계정못보내는이유({ username, displayName, 새것 }, 언어);
 
   async function 한다(일: () => Promise<void>) {
     set보내는중(true);
