@@ -6,25 +6,24 @@ import type { PoolClient } from 'pg';
 import { 작성계정인가 } from '../auth/agentToken.js';
 import type { 등급 as 계정등급 } from '../auth/store.js';
 import { 무작위비밀번호, 해시 } from '../auth/password.js';
+import type { 대시보드칸, 서비스권한 } from '../auth/permissions.js';
 import { db, 설정오류, 한묶음 } from './store.js';
 
-export type 권한 = 'none' | 'read' | 'write';
-export type 대시보드권한 = 'none' | 'read';
 /** 서비스 한 줄 = 접두사와 그 서비스에서의 권한 셋 (SPEC 도메인/인증 §7 「services[] 한 줄」) */
-export interface 서비스권한 {
+export interface 배정줄 {
   prefix: string;
-  permissions: { cases: 권한; runs: 권한; authoring: 권한 };
+  permissions: 서비스권한;
 }
 
 export interface 계정행 {
   username: string;
   displayName: string;
   role: 계정등급;
-  dashboard: 대시보드권한;
+  dashboard: 대시보드칸;
   isActive: boolean;
   isApproved: boolean;
   mustChangePassword: boolean;
-  services: 서비스권한[];
+  services: 배정줄[];
   /** 토큰 자체가 아니라 있는지만 (SPEC 도메인/인증 §7) */
   hasAgentToken: boolean;
   /** 화면이 토큰 칸을 그릴 계정인가 — 서버가 정한 작성 에이전트 계정 하나뿐이다 */
@@ -52,12 +51,12 @@ export async function 계정목록(): Promise<계정행[]> {
     username: string;
     display_name: string;
     role: 계정등급;
-    perm_dashboard: 대시보드권한;
+    perm_dashboard: 대시보드칸;
     is_active: boolean;
     is_approved: boolean;
     must_change_password: boolean;
     has_agent_token: boolean;
-    services: 서비스권한[];
+    services: 배정줄[];
   }>(계정들);
   return rows.rows.map((r) => ({
     username: r.username,
@@ -73,7 +72,7 @@ export async function 계정목록(): Promise<계정행[]> {
   }));
 }
 
-async function 배정바꾸기(client: PoolClient, username: string, 줄들: 서비스권한[]): Promise<void> {
+async function 배정바꾸기(client: PoolClient, username: string, 줄들: 배정줄[]): Promise<void> {
   await client.query('DELETE FROM user_service WHERE username = $1', [username]);
   for (const { prefix, permissions: p } of 줄들) {
     await client.query(
@@ -89,8 +88,8 @@ export interface 계정입력 {
   username: string;
   displayName: string;
   role: 계정등급;
-  dashboard: 대시보드권한;
-  services: 서비스권한[];
+  dashboard: 대시보드칸;
+  services: 배정줄[];
 }
 
 // 비밀번호는 요청에 싣지 않는다. 시스템이 만들어 응답에 한 번만 담고 그 뒤로는 아무 데서도 못 본다 (SPEC §7)
@@ -116,9 +115,9 @@ export async function 계정만들기(입력: 계정입력): Promise<string> {
 export interface 계정수정 {
   displayName?: string;
   role?: 계정등급;
-  dashboard?: 대시보드권한;
+  dashboard?: 대시보드칸;
   isActive?: boolean;
-  services?: 서비스권한[];
+  services?: 배정줄[];
 }
 
 export async function 계정고치기(username: string, 수정: 계정수정): Promise<void> {
