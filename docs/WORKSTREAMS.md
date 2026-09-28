@@ -852,20 +852,21 @@ CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-F(인증) 담당이다
   docs/spec/공통/1-제품과-구조.md · docs/spec/공통/5-화면공통.md
   docs/spec/도메인/인증.md · docs/spec/공통/4-데이터모델.md
 소유 경로는 apps/admin/src/auth/** 와 apps/admin/src/settings/** 와 scripts/** 다.
-설정 API(/api/settings/**, SPEC §7)도 네 몫이다 — 서비스·계정·등급·대상 서버 주소·Slack 웹훅을 만든다.
+설정 API(/api/settings/**, SPEC §7)도 네 몫이다 — 서비스·계정·권한·승인·대상 서버 주소·Slack 웹훅을 만든다.
 웹훅 주소는 비밀값이라 **응답에 담지 않는다.** 설정됐는지(hasSlackWebhook)만 준다.
 설정 **화면**은 WS-E 가 만든다 (§8.8). 너는 API 까지다.
 
 만들 것:
-1. 확인 함수 하나 — 요청을 받아 { username, displayName, role, services }를 돌려준다 (SPEC §3.5).
-   role은 viewer | operator | admin, services는 배정받은 서비스 목록이다.
-   화면의 등급 처리와 사이드바 서비스 고르개가 이 값을 원천으로 쓴다.
+1. 확인 함수 하나 — 요청을 받아 { username, displayName, role, permissions, mustChangePassword, services }를 돌려준다 (SPEC §3.5).
+   role은 member | admin, permissions 는 기능 넷의 칸, services는 배정받은 서비스 목록이다 (2026-09-28 — 전에는 viewer | operator | admin).
+   화면의 권한 처리와 사이드바 서비스 고르개가 이 값을 원천으로 쓴다.
    **이 함수 하나만 갈아 끼우면 나중에 SSO로 바뀌어야 한다** (§3.5 불변식).
    실행·카탈로그·리포팅은 그 결과만 받아 쓰고 비밀번호도 세션도 모른다
-2. 로그인·로그아웃·me 세 엔드포인트 (§7 Auth).
+2. 로그인·로그아웃·me · **회원가입·비밀번호 변경** 엔드포인트 (§7 Auth, 2026-09-28 둘 추가).
    틀리면 401 INVALID_CREDENTIALS 하나로만 답한다.
    아이디가 틀렸는지 비밀번호가 틀렸는지 알리지 마라 — 밖에서 계정 존재를 확인할 수 있게 된다
-3. 인증 미들웨어 — POST /api/auth/login을 뺀 **모든 /api/**에 로그인을 요구한다. 예외는 없다 (SPEC §7).
+3. 인증 미들웨어 — POST /api/auth/login·signup을 뺀 **모든 /api/**에 로그인을 요구한다. 그 밖의 예외는 없다 (SPEC §7).
+   **비밀번호 변경 강제 중이면 셋 말고 전부 403** 이고 권한 판정보다 먼저 본다 — SPEC 도메인/인증 §7 「인증 적용 범위」가 정본이다 (2026-09-28).
    **2026-09-17에 POST /api/runs 예외가 삭제됐다.** 정기 실행은 이제 HTTP를 쓰지 않고
    컨테이너 안 명령으로 만든다 (SPEC §9.2). 예외를 남기면 로그인을 지나지 않는 실행 문이 열린다 —
    §3.5가 러너 포트를 닫는 이유로 든 뒷길과 같은 성질이다.
