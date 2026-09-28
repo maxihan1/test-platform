@@ -25,7 +25,8 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     const username = typeof req.body?.username === 'string' ? req.body.username : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';
 
-    const 찾은것 = username === '' ? null : await 로그인조회(username);
+    // 상한을 넘는 글자는 해시 계산 전에 돌려보낸다 — 로그인 없이 CPU 를 태우지 못하게. 답은 여느 401 과 같다
+    const 찾은것 = username === '' || password.length > 비밀번호최대 ? null : await 로그인조회(username);
     // 아이디가 틀렸는지 비밀번호가 틀렸는지 알리지 않는다. 비활성 계정도 같은 답이다 —
     // 갈라 주면 밖에서 계정이 있는지 하나씩 확인할 수 있다 (SPEC §7)
     if (찾은것 === null || !(await 검증(password, 찾은것.passwordHash))) {
@@ -62,7 +63,7 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     }
     if (newPassword.length < 비밀번호최소) return reply.code(400).send({ error: 'PASSWORD_SHORT' });
 
-    const 찾은것 = await 사용자와해시(user.username);
+    const 찾은것 = currentPassword.length > 비밀번호최대 ? null : await 사용자와해시(user.username);
     if (찾은것 === null || !(await 검증(currentPassword, 찾은것.passwordHash))) {
       return reply.code(400).send({ error: 'INVALID_CREDENTIALS' });
     }

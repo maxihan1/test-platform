@@ -46,6 +46,13 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
       ['xfu2-pending', await 해시('열려라참깨')],
     );
     await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password)
+            VALUES ($1, '최긴비번', $2, 'member', true, false)
+       ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = EXCLUDED.password_hash,
+         is_approved = true, must_change_password = false`,
+      ['xfu2-long', await 해시('a'.repeat(129))],
+    );
+    await pool.query(
       `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
             VALUES ($1, $2, 'write', 'write', 'write') ON CONFLICT DO NOTHING`,
       ['xfu2-live', 서비스id],
@@ -108,6 +115,12 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
 
   it('빈 요청에도 같은 401로 답한다', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: {} });
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toEqual({ error: 'INVALID_CREDENTIALS' });
+  });
+
+  it('비밀번호가 128자를 넘으면 해시를 맞춰 보지 않고 같은 401이다', async () => {
+    const res = await 로그인('xfu2-long', 'a'.repeat(129));
     expect(res.statusCode).toBe(401);
     expect(res.json()).toEqual({ error: 'INVALID_CREDENTIALS' });
   });

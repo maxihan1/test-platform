@@ -1,13 +1,18 @@
 // 본인 비밀번호 바꾸기 POST /api/auth/password 를 문과 함께 실제 DB 로 본다. DATABASE_URL이 있을 때만 돈다
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 토큰해시 } from './agentToken.js';
 import { 인증등록 } from './gate.js';
-import { 해시 } from './password.js';
+import { 검증, 해시 } from './password.js';
 import authRoutes from './routes.js';
 import { 세션등록 } from './session.js';
+
+vi.mock('./password.js', async (원본) => {
+  const 실제 = await 원본<typeof import('./password.js')>();
+  return { ...실제, 검증: vi.fn(실제.검증) };
+});
 
 const 연결 = process.env.DATABASE_URL;
 const 열쇠 = 'xpw-검사용-세션-열쇠-32글자를-넘긴다-넉넉히';
@@ -106,6 +111,15 @@ describe.skipIf(연결 === undefined)('본인 비밀번호 바꾸기', () => {
     const res = await 바꾸기(await 쿠키('xpw-err'), { currentPassword: '틀린-비밀번호-임', newPassword: 새비번 });
     expect(res.statusCode).toBe(400);
     expect(res.json()).toEqual({ error: 'INVALID_CREDENTIALS' });
+  });
+
+  it('현재 비밀번호가 128자를 넘으면 해시를 맞춰 보지 않고 400 INVALID_CREDENTIALS', async () => {
+    const 쿠키값 = await 쿠키('xpw-err');
+    vi.mocked(검증).mockClear();
+    const res = await 바꾸기(쿠키값, { currentPassword: 'a'.repeat(129), newPassword: 새비번 });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'INVALID_CREDENTIALS' });
+    expect(검증).not.toHaveBeenCalled();
   });
 
   it('새것이 8자 미만이면 400 PASSWORD_SHORT', async () => {
