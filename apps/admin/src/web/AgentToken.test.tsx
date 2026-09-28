@@ -27,6 +27,7 @@ function 계정(username: string, 덧: Partial<UserRow> = {}): UserRow {
     username,
     displayName: username,
     role: 'member',
+    dashboard: 'read',
     isActive: true,
     services: [],
     hasAgentToken: false,

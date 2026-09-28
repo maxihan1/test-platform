@@ -355,12 +355,20 @@ export interface AuthoringAsset {
   sourceAssetId?: number | null;
 }
 
+/** 계정 한 사람이 한 서비스에서 가진 칸 (도메인/인증 §3.5). 셋 다 none 인 줄은 서버가 받지 않는다 */
+export interface 배정 {
+  prefix: string;
+  permissions: 권한칸;
+}
+
 export interface UserRow {
   username: string;
   displayName: string;
   role: 등급;
+  dashboard: 'none' | 'read';
   isActive: boolean;
-  services: string[];
+  /** 배정 전체. 고칠 때 이 목록이 통째로 바뀐다 (도메인/인증 §7) */
+  services: 배정[];
   // 옛 검사 fixture 가 이 둘 없이 UserRow 를 만든다. 서버는 늘 보낸다 — 없으면 false 로 읽는다
   hasAgentToken?: boolean;
   /** 서버 환경변수 AUTHORING_AGENT_USER 가 가리키는 계정만 true. 토큰은 이 계정만 가진다 */
@@ -679,12 +687,24 @@ export const api = {
   settingsUsers: () => call<{ items: UserRow[] }>('/settings/users'),
 
   /** 임시 비밀번호가 **이 응답에만** 있다. 다음부터는 다시 만들 수만 있다 (SPEC §8.8) */
-  createUser: (body: { username: string; displayName: string; role: 등급; services: string[] }) =>
+  createUser: (body: {
+    username: string;
+    displayName: string;
+    role: 등급;
+    dashboard: 'none' | 'read';
+    services: 배정[];
+  }) =>
     call<{ username: string; tempPassword: string }>('/settings/users', json(body)),
 
   updateUser: (
     username: string,
-    body: { displayName?: string; role?: 등급; isActive?: boolean; services?: string[] },
+    body: {
+      displayName?: string;
+      role?: 등급;
+      dashboard?: 'none' | 'read';
+      isActive?: boolean;
+      services?: 배정[];
+    },
   ) =>
     call<{ ok: true }>(`/settings/users/${encodeURIComponent(username)}`, {
       ...json(body),

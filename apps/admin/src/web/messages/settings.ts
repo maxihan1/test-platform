@@ -102,12 +102,23 @@ export const 설정말: Record<string, string> = {
   '아직 자기 자신에게 배정한 서비스가 없습니다. 아래 자기 줄의 「편집」에서 배정합니다':
     'You have no services assigned to yourself yet. Assign them from Edit on your own row below',
   '김철수': 'Jane Doe',
-  '등급': 'Role',
-  '멤버': 'Member',
   '운영': 'Admin',
-  '— 마지막 운영 계정이라 등급을 낮출 수 없습니다. 먼저 다른 사람을 운영으로 올립니다':
-    '— the last admin cannot be demoted. Promote someone else to admin first',
-  '배정할 서비스': 'Services to assign',
+  '마지막 운영 계정이라 운영을 끌 수 없습니다. 먼저 다른 사람을 운영으로 올립니다':
+    'The last admin cannot be turned off. Make someone else an admin first',
+  '운영 (배정된 서비스 전부 + 설정 · 머지)': 'Admin (all assigned services + Settings · merge)',
+  '운영 계정은 배정된 서비스에서 모든 기능을 씁니다. 켜 둘 서비스만 고르세요.':
+    'Admins use every feature in their assigned services. Pick only the services to turn on.',
+  '서비스와 권한': 'Services and permissions',
+  '케이스': 'Cases',
+  '실행§권한': 'Runs',
+  '작성': 'Authoring',
+  '대시보드': 'Dashboard',
+  '안 씀': 'Off',
+  '읽기': 'Read',
+  '쓰기': 'Write',
+  '실행 설정에서 고를 케이스가 안 보입니다.': 'No cases will show up to pick in run setup.',
+  '세 칸이 다 안 씀이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.':
+    'All three set to Off cannot be saved. To unassign, turn the service off.',
   '먼저 서비스를 만듭니다': 'Create a service first',
   '배정받지 않은 서비스는 그 사람의 띠에 뜨지 않습니다': 'Services not assigned do not show up in their bar',
   '비밀번호는 시스템이 만듭니다. 만든 직후': 'The system generates the password. It is shown',

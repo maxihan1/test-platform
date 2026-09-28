@@ -1,8 +1,9 @@
 // 설정 화면이 하는 판단 (SPEC §8.8). 화면은 그리기만 하고 고를 것은 여기서 정한다
 
-import type { EnvRow, UserRow } from './api.js';
+import type { EnvRow, SettingsServiceRow, UserRow } from './api.js';
 import { 요청오류문장 } from './errorText.js';
 import { t, type 언어 } from './i18n.js';
+import type { 권한칸, 기능, 칸 } from './role.js';
 
 // SPEC §2 의 접두사 모양. 서버 settings/routes.ts 의 `접두사모양` 과 같은 것을 화면이 복사해 둔 자리다
 // (CLAUDE.md §2.7 ⑤ — §2 를 고치면 두 곳이 같이 움직인다).
@@ -104,6 +105,38 @@ export function 마지막운영계정인가(계정들: UserRow[], username: stri
   // 이미 내려가 있는 사람은 내릴 것이 없다
   if (나 === undefined || 나.role !== 'admin' || !나.isActive) return false;
   return 계정들.filter((it) => it.role === 'admin' && it.isActive).length <= 1;
+}
+
+/** 목록 줄과 고르개가 칸을 늘어놓는 순서. 사람마다 순서가 바뀌면 줄끼리 견줄 수 없다 */
+export const 기능순서: 기능[] = ['cases', 'runs', 'authoring'];
+
+export type 계정요약값 =
+  | { 운영: true }
+  | { 운영: false; 서비스: { 이름: string; 칸들: [기능, 칸][] }[]; 대시보드: 'none' | 'read' };
+
+/** 계정 목록 한 줄에 적을 권한 (도메인/인증 §8.8). admin 은 전부라 칸을 늘어놓지 않는다 */
+export function 계정요약(row: UserRow, services: SettingsServiceRow[]): 계정요약값 {
+  if (row.role === 'admin') return { 운영: true };
+  return {
+    운영: false,
+    서비스: row.services.map((it) => ({
+      // 내려 둔 서비스는 목록에 안 올 수 있다. 배정이 남아 있다는 것은 접두사로라도 보여준다
+      이름: services.find((s) => s.prefix === it.prefix)?.name ?? it.prefix,
+      칸들: 기능순서.map((f): [기능, 칸] => [f, it.permissions[f]]),
+    })),
+    대시보드: row.dashboard,
+  };
+}
+
+/**
+ * 한 서비스 묶음에 붙일 알림 (도메인/인증 §3.5 · §8.8).
+ * `allOff` 은 서버가 400 PERMISSIONS_SHAPE 로 거절하는 모양이라 저장을 막는다.
+ * `noCases` 은 막지 않는다 — 실행만 맡기는 사람도 있을 수 있어 알리기만 한다
+ */
+export function 권한경고(p: 권한칸): 'noCases' | 'allOff' | null {
+  if (p.cases === 'none' && p.runs === 'none' && p.authoring === 'none') return 'allOff';
+  if (p.runs === 'write' && p.cases === 'none') return 'noCases';
+  return null;
 }
 
 /**
