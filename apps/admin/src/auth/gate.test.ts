@@ -129,6 +129,7 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
       XFS3A: { cases: 'read', runs: 'write', authoring: 'none' },
       XFS3B: { cases: 'none', runs: 'read', authoring: 'none' },
     });
+    await 계정넣기('xfu3-caseonly', 'member', { XFS3A: { cases: 'read', runs: 'none', authoring: 'none' } });
     await 계정넣기('xfu3-admin0', 'admin', {});
     await 자원넣기('XFS3A');
     await 자원넣기('XFS3B');
@@ -478,6 +479,16 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     expect(res.json()).toEqual({ error: 'FORBIDDEN', need: 'cases:write' });
   });
 
+  it('케이스 이력은 실행 결과라 케이스 read 만으로는 안 열린다 — need runs:read', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/cases/XFS3A-001/history',
+      cookies: { platform_session: await 출입증('xfu3-caseonly') },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:read' });
+  });
+
   it('배정받지 않은 서비스는 칸보다 먼저 SERVICE_FORBIDDEN 이다', async () => {
     const res = await app.inject({
       method: 'POST',
@@ -627,7 +638,11 @@ describe('등급 표', () => {
   });
 
   // 옛 viewer·operator 는 기능 셋을 한꺼번에 가져서 통로를 엉뚱한 기능에 묶어도 위 대조가 초록이다 (계획 BLOCKER 1)
-  it('표의 기능은 경로 접두사가 정한 기능과 같다', () => {
+  // 접두사와 다른 기능에 일부러 묶은 자리. 까닭이 없으면 여기 넣지 않는다
+  const 접두사예외: Record<string, { 기능: 기능; 까닭: string }> = {
+    'GET /api/cases/:tcId/history': { 기능: 'runs', 까닭: '주소는 케이스 아래지만 내용은 실행 결과 이력이다 (execution/routes.ts)' },
+  };
+  it('표의 기능은 경로 접두사가 정한 기능과 같다 — 접두사예외만 빼고', () => {
     const 경로의기능 = (틀: string): 기능 | null => {
       if (/^\/api\/(catalog|cases|param-sets)(\/|$)/.test(틀)) return 'cases';
       if (/^\/api\/(runs|evidence|screenshots)(\/|$)/.test(틀)) return 'runs';
@@ -637,7 +652,7 @@ describe('등급 표', () => {
     const 어긋난것: string[] = [];
     for (const [쌍, 값] of Object.entries(등급표)) {
       if (typeof 값 !== 'object') continue;
-      const 기대 = 경로의기능(쌍.split(' ')[1] ?? '');
+      const 기대 = 접두사예외[쌍]?.기능 ?? 경로의기능(쌍.split(' ')[1] ?? '');
       if (값.기능 !== 기대) 어긋난것.push(`${쌍} — 표 ${값.기능} · 경로 ${String(기대)}`);
     }
     expect(어긋난것).toEqual([]);

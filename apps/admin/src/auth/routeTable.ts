@@ -24,7 +24,7 @@ const 작성쓰기 = { 기능: 'authoring', 칸: 'write' } as const;
  * ★ **표에 없으면 `admin` 이다** — `scope.ts` 의 「모르면 막는다」와 같은 방향이다.
  * 새 통로를 낼 때마다 그 자리에서 403 으로 빨개진다. 시끄럽지만 안전하다.
  *
- * 기능은 경로 접두사가 정한다 — `gate.test.ts` 가 표와 대조한다. 옛 viewer·operator 는
+ * 기능은 경로 접두사가 정한다(예외는 `gate.test.ts` 의 접두사예외) — 그 검사가 표와 대조한다. 옛 viewer·operator 는
  * 기능 셋을 한꺼번에 가져서 엉뚱한 기능에 묶어도 옛 등급 대조로는 안 드러난다.
  */
 export const 등급표: Record<string, 표값> = {
@@ -37,13 +37,14 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/catalog/cases': 케이스읽기,
   'GET /api/catalog/cases/:tcId': 케이스읽기,
   'GET /api/catalog/scan': 케이스읽기,
-  'GET /api/cases/:tcId/history': 케이스읽기,
   'GET /api/cases/:tcId/param-sets': 케이스읽기,
   'GET /api/cases/:tcId/source': 케이스읽기,
   'POST /api/catalog/scan': 케이스쓰기,
   'POST /api/cases/:tcId/param-sets': 케이스쓰기,
   'DELETE /api/param-sets/:id': 케이스쓰기,
 
+  // 주소는 케이스 아래지만 내용은 실행 결과 이력이다 (execution/routes.ts). 케이스 read 로 열면 실행을 못 보는 사람에게 결과가 샌다
+  'GET /api/cases/:tcId/history': 실행읽기,
   'GET /api/evidence/:id': 실행읽기,
   'GET /api/runs': 실행읽기,
   'GET /api/runs/last-by-case': 실행읽기,
