@@ -88,7 +88,7 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
     );
     서비스 = Number(r.rows[0]!.id);
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
-    const 사람넣기 = `INSERT INTO app_user (username, display_name, password_hash) VALUES ($1, '첫째 사람', 'x') ON CONFLICT DO NOTHING`;
+    const 사람넣기 = `INSERT INTO app_user (username, display_name, password_hash, is_approved, must_change_password) VALUES ($1, '첫째 사람', 'x', true, false) ON CONFLICT DO NOTHING`;
     await pool.query(사람넣기, [사람1]);
     process.env.AUTHORING_AGENT_USER = 맥;
     app = Fastify();

@@ -6,6 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { 에이전트토큰만들기 } from './agentToken.js';
 import { 권한이되나, 옛자동규칙, 인증등록 } from './gate.js';
 import { 해시 } from './password.js';
 import { 관리자권한, type 기능, type 서비스권한 } from './permissions.js';
@@ -36,14 +37,15 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
   const 읽기셋: 서비스권한 = { cases: 'read', runs: 'read', authoring: 'read' };
   const 쓰기셋: 서비스권한 = { cases: 'write', runs: 'write', authoring: 'write' };
 
-  async function 계정넣기(username: string, role: 'member' | 'admin', 배정: Record<string, 서비스권한>) {
+  async function 계정넣기(username: string, role: 'member' | 'admin', 배정: Record<string, 서비스권한>, 변경강제 = false) {
     const { pool } = await import('../db/index.js');
     await pool.query(
-      `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard)
-            VALUES ($1, $1, $2, $3, 'read')
+      `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password)
+            VALUES ($1, $1, $2, $3, 'read', true, $4)
        ON CONFLICT (username) DO UPDATE SET is_active = true, role = EXCLUDED.role,
-                                            password_hash = EXCLUDED.password_hash`,
-      [username, await 해시('열려라참깨'), role],
+                                            password_hash = EXCLUDED.password_hash,
+                                            is_approved = true, must_change_password = EXCLUDED.must_change_password`,
+      [username, await 해시('열려라참깨'), role, 변경강제],
     );
     for (const [prefix, 칸] of Object.entries(배정)) {
       await pool.query(
@@ -131,6 +133,7 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     });
     await 계정넣기('xfu3-caseonly', 'member', { XFS3A: { cases: 'read', runs: 'none', authoring: 'none' } });
     await 계정넣기('xfu3-admin0', 'admin', {});
+    await 계정넣기('xfu3-mustchange', 'admin', { XFS3A: 쓰기셋 }, true);
     await 자원넣기('XFS3A');
     await 자원넣기('XFS3B');
 
@@ -146,6 +149,10 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
         scope.post('/catalog/scan', async () => ({ 지나감: true }));
         scope.post('/runs', async () => ({ 지나감: true }));
         scope.get('/settings/services', async () => ({ 지나감: true }));
+        scope.get('/settings/users', async () => ({ 지나감: true }));
+        // 비밀번호 바꾸기 라우트는 다음 할 일에서 생긴다. 문이 지나보내는지만 본다
+        scope.post('/auth/password', async () => ({ 지나감: true }));
+        scope.get('/authoring/requests', async () => ({ 지나감: true }));
         scope.post('/settings/services', async () => ({ 지나감: true }));
 
         // 번호·케이스 번호로 부르는 자리 열둘. 진짜 라우트와 같은 모양으로 둔다 —
@@ -423,6 +430,45 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
       cookies: { platform_session: await 출입증('xfu3-operator') },
     });
     expect(res.statusCode).toBe(403);
+  });
+
+  it('변경 강제 중인 계정은 나 · 로그아웃 · 비밀번호 바꾸기만 지난다', async () => {
+    const 쿠키 = { platform_session: await 출입증('xfu3-mustchange') };
+    expect((await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키 })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'HEAD', url: '/api/auth/me', cookies: 쿠키 })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/api/auth/password', cookies: 쿠키, payload: {} })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/api/auth/logout', cookies: 쿠키 })).statusCode).toBe(204);
+  });
+
+  it('변경 강제 중이면 admin 이어도 나머지는 403 PASSWORD_CHANGE_REQUIRED 다 — 권한 판정보다 먼저', async () => {
+    const 쿠키 = { platform_session: await 출입증('xfu3-mustchange') };
+    for (const [method, url] of [
+      ['GET', '/api/catalog/cases?service=XFS3A'],
+      ['HEAD', '/api/catalog/cases?service=XFS3A'],
+      ['GET', '/api/settings/users'],
+      ['GET', '/api/catalog/cases?service=XFS3B'],
+    ] as const) {
+      const res = await app.inject({ method, url, cookies: 쿠키 });
+      expect(res.statusCode, `${method} ${url}`).toBe(403);
+      if (method !== 'HEAD') expect(res.json(), `${method} ${url}`).toEqual({ error: 'PASSWORD_CHANGE_REQUIRED' });
+    }
+  });
+
+  it('변경 강제 중인 계정도 에이전트 토큰으로 온 요청은 막지 않는다', async () => {
+    const 옛이름 = process.env.AUTHORING_AGENT_USER;
+    process.env.AUTHORING_AGENT_USER = 'xfu3-mustchange';
+    try {
+      const 발급 = await 에이전트토큰만들기('xfu3-mustchange');
+      if (typeof 발급 === 'string') throw new Error(`토큰 발급 실패: ${발급}`);
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/authoring/requests?service=XFS3A',
+        headers: { authorization: `Bearer ${발급.토큰}` },
+      });
+      expect(res.statusCode).toBe(200);
+    } finally {
+      process.env.AUTHORING_AGENT_USER = 옛이름;
+    }
   });
 
   // 라우트가 아예 없으면 지킬 자원도 없다. 404 를 403 으로 덮으면
