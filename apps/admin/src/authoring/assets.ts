@@ -149,8 +149,10 @@ export default async function authoringAssetRoutes(app: FastifyInstance): Promis
         if (source !== undefined) return reply.code(400).send({ error: 'BAD_SOURCE' });
       } else {
         원본 = 번호(source);
-        const 원본자료 = 원본 === null ? null : await 자료한건(행.id, 원본);
-        // 같은 요청의 사람 입력 파일만 원본이 된다. 피그마·다른 산출물을 가리키면 사본의 뿌리가 흐려진다
+        // 재실행은 자기 입력이 없고 원본 요청의 자료를 읽어 사본을 만든다 (에이전트 자료출처와 같은 규칙)
+        const 자료주인 = 행.kind === 'RERUN' && 행.sourceId !== null ? 행.sourceId : 행.id;
+        const 원본자료 = 원본 === null ? null : await 자료한건(자료주인, 원본);
+        // 그 요청의 사람 입력 파일만 원본이 된다. 피그마·다른 산출물을 가리키면 사본의 뿌리가 흐려진다
         if (원본자료 === null || 원본자료.kind !== 'FILE' || 원본자료.role !== 'INPUT') {
           return reply.code(400).send({ error: 'BAD_SOURCE' });
         }

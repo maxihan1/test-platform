@@ -10,7 +10,7 @@ const 계정 = 'xfu8';
 const 접두사 = 'XFS8';
 
 const 파일 = readFileSync(
-  new URL('../../../../db/migrations/20260928000001_permissions.sql', import.meta.url),
+  new URL('../../../../db/migrations/20260928000002_permissions.sql', import.meta.url),
   'utf8',
 );
 const 올리기 = 파일.split('-- migrate:down')[0] ?? '';

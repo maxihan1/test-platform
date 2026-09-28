@@ -152,21 +152,33 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         return reply.code(201).send({ id });
       }
 
-      // 역방향 칸은 작성 요청에만 붙는다 (DB CHECK 도 AUTHOR 에만 허락한다)
+      // 본문으로 받는 역방향 칸은 작성 요청에만 — 재실행은 원본 것을 물려받는다(아래)
       if (['compare', 'env', 'startUrl'].some((칸) => req.body?.[칸] !== undefined)) {
         return reply.code(400).send({ error: 'BAD_ENV' });
       }
       const 행 = await 원본확인(req.body?.sourceId, 서비스, reply);
       if (행 === null) return reply;
-      // 역방향 원본은 다시 돌리지 않는다 — 재실행 행은 대조를 못 켜서 정방향으로 돌거나(대조)
-      // 읽을 입력이 없어 늘 실패한다(화면만). 역방향은 새 요청으로 넣는다 (2026-09-26 게이트 1)
-      if (행.compare) return reply.code(409).send({ error: 'BAD_SOURCE', detail: 'COMPARE' });
       // 재실행은 원본의 자료를 다시 읽는다. 원본이 재실행·머지면 자료가 없고, DRAFT 면 아직 다 안 올라왔다
       // 폐기한 원본도 다시 안 돌린다 — 목록에서 치운 것이 재실행으로 되살아난다 (§7 「중단 · 폐기 · 진척」)
       if (행.kind !== 'AUTHOR' || 행.status === 'DRAFT' || 행.discardedAt !== null) {
         return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행.kind} ${행.status}` });
       }
-      const id = await 줄세우기({ 서비스, kind, 원본: 행.id, 기획서: null, 값, 누가, 이름 });
+      // 대조 원본이면 같은 대상 서버·시작 주소를 물려받는다 — 없으면 정방향으로 돌거나(대조) 읽을 입력이 없어 늘 실패한다(화면만).
+      // 만든 뒤 계정이 빠졌을 수 있어 작성 요청과 같은 판정을 다시 한다 — 줄에서 한참 기다린 뒤 실패하지 않게 (2026-09-28 게이트 1)
+      const 대조 = 행.compare
+        ? await 역방향칸판정({ compare: true, env: 행.env, startUrl: 행.startUrl }, 서비스)
+        : ({ compare: false } as const);
+      if ('error' in 대조) return reply.code(400).send({ error: 대조.error });
+      const id = await 줄세우기({
+        서비스,
+        kind,
+        원본: 행.id,
+        기획서: null,
+        값,
+        누가,
+        이름,
+        ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
+      });
       return reply.code(201).send({ id });
     },
   );

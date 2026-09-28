@@ -95,11 +95,11 @@ describe.skipIf(연결 === undefined)('역방향 칸', () => {
       await expect(요청넣기({ compare: true })).rejects.toThrow('authoring_request_compare_check');
     });
 
-    it('대조는 재실행 요청에 붙지 않는다', async () => {
-      const 원본 = await 요청넣기({ compare: false });
+    it('재실행 요청은 원본의 대조를 물려받아 들어간다', async () => {
+      const 원본 = await 요청넣기({ compare: true, env: 'demo', startUrl: 'https://a.example/' });
       await expect(
-        요청넣기({ kind: 'RERUN', sourceId: 원본, compare: true, env: 'demo' }),
-      ).rejects.toThrow('authoring_request_compare_check');
+        요청넣기({ kind: 'RERUN', sourceId: 원본, compare: true, env: 'demo', startUrl: 'https://a.example/' }),
+      ).resolves.toBeGreaterThan(0);
     });
 
     it('대조는 머지 요청에 붙지 않는다', async () => {

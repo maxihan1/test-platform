@@ -138,12 +138,12 @@ export function 짧은수(n: number): string {
 
 /**
  * 「같은 자료로 다시 작성」(RERUN)을 낼 수 있나. 서버 규칙의 사본이다 — 정본은 도메인/작성 §7 RERUN:
- * 원본이 AUTHOR 이고 대조가 아니어야 한다. 폐기한 원본도 서버가 거절한다. 버튼을 안 그리는 것은 편의이고 서버가 다시 막는다
+ * 원본이 AUTHOR 여야 한다 — 대조 요청도 된다(재실행이 대조 설정을 물려받는다, 2026-09-28).
+ * 폐기한 원본도 서버가 거절한다. 버튼을 안 그리는 것은 편의이고 서버가 다시 막는다
  */
 export function 다시작성되나(행: AuthoringRow): boolean {
   return (
     행.kind === 'AUTHOR' &&
-    행.compare !== true &&
     (행.discardedAt ?? null) === null &&
     (행.status === 'FAILED' || 행.status === 'STOPPED')
   );

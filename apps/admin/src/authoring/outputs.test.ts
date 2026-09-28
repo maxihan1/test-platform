@@ -11,6 +11,7 @@ import authoringAgentRoutes from './agentRoutes.js';
 import assetRoutes from './assets.js';
 import { 자료더하기, 자료목록, 준비세우기 } from './assetStore.js';
 import authoringRoutes from './routes.js';
+import { 줄세우기 } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XWO';
@@ -148,6 +149,19 @@ describe.skipIf(연결 === undefined)('산출물 올리기', () => {
       expect(res.json(), `source=${source}`).toEqual({ error: 'BAD_SOURCE' });
     }
     expect((await 올리기(요청, 'name=m.docx&role=MARKED')).json()).toEqual({ error: 'BAD_SOURCE' });
+  });
+
+  it('재실행 행의 표시 사본은 원본 요청의 입력을 원본으로 받는다 — 남의 요청 것은 여전히 400', async () => {
+    const { pool } = await import('../db/index.js');
+    const 재실행 = await 줄세우기({ 서비스, kind: 'RERUN', 원본: 요청, 기획서: null, 누가: 에이전트, 이름: '재실행' });
+    await pool.query(`UPDATE authoring_request SET status = 'RUNNING', claimed_by = $2 WHERE id = $1`, [재실행, 에이전트]);
+
+    const res = await 올리기(재실행, `name=re-marked.docx&role=MARKED&source=${입력['기획서.docx']}`);
+    expect(res.statusCode).toBe(200);
+    expect(await 자료목록(재실행)).toContainEqual(
+      expect.objectContaining({ name: 're-marked.docx', role: 'MARKED', sourceAssetId: 입력['기획서.docx'] }),
+    );
+    expect((await 올리기(재실행, `name=m.docx&role=MARKED&source=${남의자료}`)).json()).toEqual({ error: 'BAD_SOURCE' });
   });
 
   it('이름이 경로처럼 생겼으면 400 BAD_NAME', async () => {
