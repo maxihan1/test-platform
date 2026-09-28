@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { api, ApiError } from './api.js';
+import { api, ApiError, type User } from './api.js';
 import { Login } from './Login.js';
 
 afterEach(() => {
@@ -83,5 +83,54 @@ describe('로그인 화면', () => {
 
     const 버튼 = await screen.findByRole('button', { name: '확인하는 중' });
     expect(버튼.hasAttribute('disabled')).toBe(true);
+  });
+});
+
+describe('Grafana 에서 쫓겨 온 사람 (도메인/인증 §7 「Grafana 통로」)', () => {
+  const 나: User = {
+    username: 'kim',
+    displayName: '김',
+    role: 'member',
+    dashboard: 'read',
+    mustChangePassword: false,
+    services: [],
+  };
+
+  afterEach(() => {
+    window.history.replaceState(null, '', '/');
+  });
+
+  async function 주소로연다(검색: string) {
+    window.history.replaceState(null, '', `/${검색}#/login`);
+    vi.spyOn(api, 'login').mockResolvedValue({ user: 나 });
+    const onLogin = vi.fn();
+    const 떠난다 = vi.fn();
+    render(<Login onLogin={onLogin} 떠난다={떠난다} />);
+    fireEvent.submit(screen.getByRole('button', { name: '로그인' }));
+    await waitFor(() => expect(onLogin.mock.calls.length + 떠난다.mock.calls.length).toBe(1));
+    return { onLogin, 떠난다 };
+  }
+
+  it('로그인하면 보던 대시보드로 돌아간다', async () => {
+    const { onLogin, 떠난다 } = await 주소로연다('?next=%2Fgrafana%2Fd%2Fabc%3ForgId%3D1');
+
+    expect(떠난다).toHaveBeenCalledWith('/grafana/d/abc?orgId=1');
+    expect(onLogin).not.toHaveBeenCalled();
+  });
+
+  for (const 딴곳 of ['https://evil', '//evil', '/api/x', '/grafana', '/grafanax/']) {
+    it(`/grafana/ 로 시작하지 않는 next(${딴곳})는 무시하고 평소대로 들어간다 — 열린 리다이렉트를 막는다`, async () => {
+      const { onLogin, 떠난다 } = await 주소로연다(`?next=${encodeURIComponent(딴곳)}`);
+
+      expect(떠난다).not.toHaveBeenCalled();
+      expect(onLogin).toHaveBeenCalledWith(나);
+    });
+  }
+
+  it('next 가 없으면 평소대로 들어간다', async () => {
+    const { onLogin, 떠난다 } = await 주소로연다('');
+
+    expect(떠난다).not.toHaveBeenCalled();
+    expect(onLogin).toHaveBeenCalledWith(나);
   });
 });

@@ -120,15 +120,9 @@ describe('자리 목록', () => {
     expect(그래프?.바깥).toBe(true);
   });
 
-  it('Grafana 포트는 빌드할 때 받은 설정값을 따른다', () => {
-    vi.stubEnv('VITE_GRAFANA_PORT', '4100');
+  it('Grafana 는 같은 서버의 /grafana/ 다 — admin 이 로그인을 보고 대신 연다 (도메인/인증 §7)', () => {
     const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프');
-    expect(그래프?.해시).toBe('https://qa.example.com:4100');
-  });
-
-  it('설정을 안 주면 3001 이다. compose 의 GRAFANA_PORT 기본값과 같은 숫자다', () => {
-    const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프');
-    expect(그래프?.해시).toBe('https://qa.example.com:3001');
+    expect(그래프?.해시).toBe('/grafana/');
   });
 
   it('케이스가 집이다. 이 도구의 일은 무엇을 돌릴까에서 시작한다', () => {
