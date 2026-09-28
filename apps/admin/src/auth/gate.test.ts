@@ -581,11 +581,11 @@ describe('등급 표', () => {
   type 옛등급 = keyof typeof 옛높이;
   const 옛등급들: 옛등급[] = ['viewer', 'operator', 'admin'];
 
-  function 옮긴사람(r: 옛등급, 배정: string[]) {
-    if (r === 'admin') return { role: 'admin' as const, services: 배정.map((prefix) => ({ prefix, permissions: 관리자권한 })) };
+  function 옮긴사람(r: 옛등급, 배정: string[]): { role: 'member' | 'admin'; services: { prefix: string; permissions: 서비스권한 }[] } {
+    if (r === 'admin') return { role: 'admin', services: 배정.map((prefix) => ({ prefix, permissions: { ...관리자권한 } })) };
     const 칸 = r === 'viewer' ? 'read' : 'write';
     return {
-      role: 'member' as const,
+      role: 'member',
       services: 배정.map((prefix) => ({ prefix, permissions: { cases: 칸, runs: 칸, authoring: 칸 } })),
     };
   }
