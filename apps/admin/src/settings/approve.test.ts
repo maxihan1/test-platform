@@ -34,6 +34,7 @@ describe.skipIf(연결 === undefined)('설정 API — 가입 수락·거절', ()
     const { pool } = await import('../db/index.js');
     await pool.query(`DELETE FROM user_service WHERE username LIKE 'xpa%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xpa%'`);
+    await pool.query(`DELETE FROM app_user WHERE username IN ('Xpa-upper', '.xpa-dot')`);
     await pool.query(`DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix LIKE 'XPA%')`);
     await pool.query(`DELETE FROM service WHERE prefix LIKE 'XPA%'`);
     await app.close();
@@ -98,5 +99,18 @@ describe.skipIf(연결 === undefined)('설정 API — 가입 수락·거절', ()
     const 없음 = await 거절('xpa-없는사람');
     expect(없음.statusCode).toBe(404);
     expect(없음.json()).toEqual({ error: 'NOT_FOUND' });
+  });
+
+  it('계정 만들기도 가입과 같은 아이디 규칙이다 — 모양이 틀리면 400 USERNAME_SHAPE', async () => {
+    for (const username of ['Xpa-upper', '.xpa-dot']) {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/settings/users',
+        payload: { username, displayName: '모양', role: 'member', dashboard: 'read', services: [] },
+      });
+      expect(res.statusCode, username).toBe(400);
+      expect(res.json(), username).toEqual({ error: 'USERNAME_SHAPE' });
+    }
+    expect(await 계정('Xpa-upper')).toBeUndefined();
   });
 });
