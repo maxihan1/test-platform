@@ -147,3 +147,18 @@ fixture 접두사에 `XFS5`(`auth/scope.test.ts`)가 늘었다. `gate.test.ts` �
 - 아이디·이름·비밀번호 상한은 `auth/rules.ts` 한 곳. 설정 만들기·가입·`add-user.ts`·화면이 같이 쓴다
 - DB 검사 접두사 `xpa`(수락·거절) · `xsg`(가입) · `xpw`(비밀번호 변경)
 - ④ 는 `/grafana/**` 에도 변경 강제와 도장 대조를 걸어야 한다 (WORKSTREAMS 「🔐」 ④ 줄)
+
+## 2026-09-28 — 인증·권한 개편 ④ Grafana (PR #96)
+
+- 완료: `@fastify/http-proxy` 11 로 `/grafana/**` 를 Grafana 에 넘김 · 문(`auth/grafanaGate.ts`)이 로그인·변경 강제·세션 도장·대시보드 읽기를 먼저 본다 ·
+  화면 `GET` 만 로그인 화면으로(돌아올 주소는 `/grafana/` 로 시작할 때만), API·그 밖은 401 · `X-WEBAUTH-USER` 덮어쓰기 · `Authorization`·플랫폼 쿠키 지움 ·
+  compose — 3001 닫음 · `dashboard` 망(admin·postgres·grafana) · Grafana 처음 관리자 안 만듦 · Basic 끔 · websocket 끔 · `GRAFANA_PORT`·`VITE_GRAFANA_PORT` 걷음 · 사이드바 `/grafana/`
+- 미완: 없음 — 인증·권한 개편 넷이 끝났다
+- 막힌 것: 없음
+
+### 다음 세션이 알아야 할 것
+
+- **판정은 등록된 경로 틀로** — proxy 요청의 `routeOptions.url` 은 `/grafana` 또는 `/grafana/*` 이고 `*` 에 디코딩된 나머지가 온다. 요청 주소 글자(`req.url`)로 가르면 `/%67rafana/` 가 로그인 없이 닿는다(RED 에서 실측)
+- **Grafana 처음 관리자 계정을 만들지 않는 값(`GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION`)을 빼지 마라** — 플랫폼 기본 계정 `admin` 이 Grafana 최고 관리자로 들어간다
+- 서버에 이미 떠 있는 Grafana 컨테이너는 옛 내부 DB 에 `admin` 을 들고 있을 수 있다 — 볼륨이 없어 다시 만들면 사라진다(`docker compose up -d --force-recreate grafana`)
+- DB 검사 접두사 `xgfp`(proxy) · `xgfg`(문)

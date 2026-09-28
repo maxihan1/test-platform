@@ -95,3 +95,79 @@ describe('admin 이미지', () => {
     expect(dockerfile).toMatch(/^COPY\s+apps\/admin\s/m);
   });
 });
+
+// Grafana 는 헤더(X-WEBAUTH-USER)를 믿는다. admin 말고 아무도 닿지 못해야 한다 (SPEC 공통/6 §9 · 도메인/인증 §7 「Grafana 통로」)
+function 서비스블록(이름: string): string {
+  return new RegExp(`^ {2}${이름}:\\n((?: {4}.*\\n|\\s*\\n)+)`, 'm').exec(compose)?.[1] ?? '';
+}
+
+function 망(블록: string): string[] {
+  return /^ {4}networks:\s*\[([^\]]*)\]/m.exec(블록)?.[1]?.split(',').map((s) => s.trim()) ?? [];
+}
+
+describe('Grafana 는 로그인 뒤에 있다', () => {
+  const grafana = 서비스블록('grafana');
+
+  it('바깥 포트를 열지 않는다', () => {
+    expect(grafana).not.toBe('');
+    expect(grafana).not.toMatch(/^ {4}ports:/m);
+  });
+
+  it('이미지는 실측한 판으로 고정한다 — 같은 출처라 새 판의 기본값 변화가 플랫폼에 그대로 온다', () => {
+    expect(grafana).toMatch(/^ {4}image: grafana\/grafana:13\.2\.2(\s|$)/m);
+  });
+
+  it('dashboard 망에만 붙는다', () => {
+    expect(망(grafana)).toEqual(['dashboard']);
+  });
+
+  it('러너는 dashboard 망에 없다 — 테스트 코드가 헤더를 지어낼 수 있다', () => {
+    expect(서비스블록('runner')).not.toBe('');
+    expect(망(서비스블록('runner'))).not.toContain('dashboard');
+  });
+
+  it('postgres 와 admin 은 dashboard 망에 있다', () => {
+    expect(망(서비스블록('postgres'))).toContain('dashboard');
+    expect(망(서비스블록('admin'))).toContain('dashboard');
+    expect(compose).toMatch(/^ {2}dashboard:\s*\{\}/m);
+  });
+
+  it('dashboard 망에 붙은 서비스는 admin · grafana · postgres 셋뿐이다 — 새 서비스가 조용히 붙지 않게', () => {
+    const 서비스들 = [...(/^services:\n((?: {2}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '').matchAll(/^ {2}([a-z_-]+):\n/gm)].map(
+      (m) => m[1]!,
+    );
+    expect(서비스들.length).toBeGreaterThan(3);
+    expect(서비스들.filter((이름) => 망(서비스블록(이름)).includes('dashboard')).sort()).toEqual(['admin', 'grafana', 'postgres']);
+  });
+
+  it('admin 은 넘겨줄 곳(GRAFANA_URL)을 받는다', () => {
+    expect(서비스블록('admin')).toMatch(/GRAFANA_URL:\s*"\$\{GRAFANA_URL:-http:\/\/grafana:3000\}"/);
+  });
+
+  it('명세 표의 환경값을 전부 싣는다', () => {
+    const 값들: Record<string, string> = {
+      GF_AUTH_PROXY_ENABLED: 'true',
+      GF_AUTH_PROXY_HEADER_NAME: 'X-WEBAUTH-USER',
+      GF_AUTH_PROXY_AUTO_SIGN_UP: 'true',
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: 'Viewer',
+      GF_AUTH_DISABLE_LOGIN_FORM: 'true',
+      GF_AUTH_BASIC_ENABLED: 'false',
+      GF_AUTH_SIGNOUT_REDIRECT_URL: '/',
+      GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: 'true',
+      GF_LIVE_MAX_CONNECTIONS: '0',
+      GF_SERVER_ROOT_URL: '%(protocol)s://%(domain)s/grafana/',
+      GF_SERVER_SERVE_FROM_SUB_PATH: 'true',
+    };
+    for (const [이름, 값] of Object.entries(값들)) {
+      const 줄 = new RegExp(`^ {6}${이름}:\\s*"([^"]*)"`, 'm').exec(grafana);
+      expect(줄?.[1], 이름).toBe(값);
+    }
+  });
+
+  it('옛 포트 설정(GRAFANA_PORT · VITE_GRAFANA_PORT)이 어디에도 없다', () => {
+    const env예시 = readFileSync(resolve(process.cwd(), '.env.example'), 'utf8');
+    for (const 글 of [compose, dockerfile, env예시]) {
+      expect(글).not.toMatch(/GRAFANA_PORT/);
+    }
+  });
+});

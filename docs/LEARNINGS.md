@@ -30,6 +30,12 @@
 시간 역순으로 위에 쌓는다. 항목 하나는 5줄을 넘기지 않는다.
 
 ```
+## [WS-F] 2026-09-28 · **auth proxy 뒤 Grafana — 같은 이름의 처음 관리자와 인코딩 주소가 문을 비켜 갈 뻔했다** (PR #96)
+증상:  계획 검토가 「플랫폼 `admin` 이 Grafana 최고 관리자로 들어간다」를 잡았다. RED 에서 `/%67rafana/api/user` 가 로그인 없이 넘어갔다
+원인:  Grafana 는 처음 켤 때 `admin` 을 만들고 auth proxy 는 같은 이름 기존 계정으로 들인다(Viewer 자동 배정은 새 계정만). 문은 `req.url` 글자로 가르고 라우터는 디코딩한 경로로 proxy 에 넘겼다
+해법:  `GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION=true` · Basic 끔 · 문은 등록된 경로 틀(`routeOptions.url`)로 판정. 실제 Grafana 컨테이너에서 `admin` 역할이 Viewer 인지 본다
+교훈:  외부 앱을 헤더 신뢰로 붙일 때는 **그 앱이 스스로 만드는 계정 이름**과 우리 계정 이름이 겹치는지 먼저 본다. 경로로 막는 문은 요청 글자가 아니라 라우터가 고른 틀로 판정한다
+
 ## [하네스] 2026-09-28 · **병렬 PR 이 같은 날 같은 마이그레이션 번호를 골랐다** — #93 이 `rerun_compare` 와, #94 가 `permissions` 와 겹쳐 두 번 손으로 옮김 → `apps/admin/src/db/migration-versions.test.ts`(test:always)로 승격 (2026-09-28, PR #94)
 
 ## [WS-F] 2026-09-28 · **게이트 1 을 통과한 뒤 권한 모델이 바뀌었다 — 「사람마다」가 「사람 × 서비스마다」로** (PR #93)

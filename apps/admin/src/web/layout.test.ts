@@ -1,17 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import type { RunSummary, ServiceRow, User } from './api.js';
 import { 고른서비스, 빈띠사유, 알림줄, 자리목록, 지금자리, 탭제목 } from './layout.js';
-
-// 그래프 자리가 Grafana 주소를 만들 때 location 을 읽는다. jsdom 을 설치하지 않았으므로
-// api.test.ts 와 같은 방식으로 가짜를 끼운다
-beforeEach(() => {
-  vi.stubGlobal('location', { protocol: 'https:', hostname: 'qa.example.com' });
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
 
 const 결제: ServiceRow = {
   id: 1,
@@ -120,15 +110,9 @@ describe('자리 목록', () => {
     expect(그래프?.바깥).toBe(true);
   });
 
-  it('Grafana 포트는 빌드할 때 받은 설정값을 따른다', () => {
-    vi.stubEnv('VITE_GRAFANA_PORT', '4100');
+  it('Grafana 는 같은 서버의 /grafana/ 다 — admin 이 로그인을 보고 대신 연다 (도메인/인증 §7)', () => {
     const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프');
-    expect(그래프?.해시).toBe('https://qa.example.com:4100');
-  });
-
-  it('설정을 안 주면 3001 이다. compose 의 GRAFANA_PORT 기본값과 같은 숫자다', () => {
-    const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프');
-    expect(그래프?.해시).toBe('https://qa.example.com:3001');
+    expect(그래프?.해시).toBe('/grafana/');
   });
 
   it('케이스가 집이다. 이 도구의 일은 무엇을 돌릴까에서 시작한다', () => {
