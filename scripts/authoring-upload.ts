@@ -22,7 +22,7 @@ import {
 } from './authoring-chain.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
-import type { 자료 } from './authoring-assets.js';
+import { type 자료, 자료출처 } from './authoring-assets.js';
 import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
 import { type 표시준비물, 산출물보내기, 표시올리기, 표시준비 } from './authoring-marking.js';
 import {
@@ -197,8 +197,9 @@ export async function 올리기(
     const 정리 = 차이정리(차이글);
     const diffs = 'diffs' in 정리 ? 정리.diffs : [];
     const 준비 = 원고글 === null ? null : 역기획서준비(자리, 원고글, 비밀, 역?.자식 ?? null);
-    // 원본 표시도 여기서 만들어 검사한다 — 올릴 사본에서 새는 것을 PR 뒤에 알면 명세대로 FAILED 로 못 끝낸다
-    const 표시 = 역 === undefined ? null : await 표시준비(역, 것.id, 서비스, 역.입력자료, 것.figmaToken, diffs, 비밀);
+    // 원본 표시도 여기서 만들어 검사한다 — 올릴 사본에서 새는 것을 PR 뒤에 알면 명세대로 FAILED 로 못 끝낸다.
+    // 원본 파일은 자료를 가진 요청에서 받는다 — 재실행은 원본 요청이다(자기 번호로 받으면 404)
+    const 표시 = 역 === undefined ? null : await 표시준비(역, 자료출처(것), 서비스, 역.입력자료, 것.figmaToken, diffs, 비밀);
     const 샌것 = (준비 !== null && '누설' in 준비) || (표시 !== null && '누설' in 표시);
     if (샘 !== null || 계정섞였나(글모두(diffs), 비밀) || 샌것) {
       await 손.끝내기({ status: 'FAILED', error: '올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' });

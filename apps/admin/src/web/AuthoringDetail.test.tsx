@@ -285,11 +285,40 @@ describe('작성 진척 · 중단 · 폐기', () => {
     expect(await screen.findByText('다시 작성은 실행 권한이 있는 사람이 합니다.')).toBeTruthy();
   });
 
-  it('화면과 대조한 요청은 다시 작성 버튼 대신 새 요청으로 넣으라고 한다', async () => {
-    답 = 줄({ status: 'STOPPED', prUrl: null, compare: true, stopReason: 'TIMEOUT', stoppedBy: 'system', canDiscard: true });
+  it('화면과 대조한 요청도 같은 자료로 다시 작성하고, 대상 서버·시작 주소도 그대로라고 알린다', async () => {
+    답 = 줄({ status: 'STOPPED', prUrl: null, compare: true, env: 'qa', stopReason: 'TIMEOUT', stoppedBy: 'system', canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} role="operator" />);
-    expect(await screen.findByText('화면과 대조한 요청은 다시 작성할 수 없습니다. 새 요청으로 다시 넣으세요.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
+    expect(
+      await screen.findByText(
+        '넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다. 대상 서버와 시작 주소도 원본 그대로 씁니다.',
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '같은 자료로 다시 작성' }));
+    await vi.waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 }));
+  });
+
+  it('실패한 요청도 처음부터 다시 돌린다고 알린다 — 멈춘 자리부터 잇는 것이 아니다', async () => {
+    답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    expect(
+      await screen.findByText('원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다.'),
+    ).toBeTruthy();
+  });
+
+  it('대조한 재실행은 입력이 원본에 있어 화면만이 아니라 원본 요청의 자료로 대조한다고 적는다', async () => {
+    답 = 줄({
+      kind: 'RERUN',
+      sourceId: 3,
+      status: 'DONE',
+      compare: true,
+      env: 'qa',
+      startUrl: null,
+      assets: [{ id: 50, position: 1, kind: 'FILE', name: '기획서-표시.docx', figmaUrl: null, size: 10, role: 'MARKED', sourceAssetId: 11 }],
+    });
+    render(<AuthoringDetail service="PAY" id={7} role="operator" />);
+    expect(await screen.findByText('입력은 원본 요청 #3 것을 그대로 씁니다')).toBeTruthy();
+    expect(screen.queryByText('화면만 — 기획서 없이 이 화면을 훑습니다')).toBeNull();
+    expect(screen.getByText('표시 사본 — 원본 요청 #3의 자료')).toBeTruthy();
   });
 
   it('폐기는 한 번 더 묻고, 성공하면 목록으로 간다', async () => {

@@ -149,12 +149,15 @@ export async function 줄세우기(입력: {
   값?: Record<string, unknown>;
   누가: string;
   이름: string;
+  // 대조 원본의 재실행만 채운다 (DB CHECK 가 AUTHOR·RERUN 에만 허락한다)
+  대조?: { env: string; startUrl: string | null };
 }): Promise<number> {
   const pool = await db();
   const r = await pool.query<{ id: string }>(
     `INSERT INTO authoring_request
-       (service_id, kind, source_id, spec_text, params, requested_by, requested_by_name, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDING')
+       (service_id, kind, source_id, spec_text, params, requested_by, requested_by_name, status,
+        compare, env, start_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDING', $8, $9, $10)
      RETURNING id`,
     [
       입력.서비스,
@@ -164,6 +167,9 @@ export async function 줄세우기(입력: {
       JSON.stringify(입력.값 ?? {}),
       입력.누가,
       입력.이름,
+      입력.대조 !== undefined,
+      입력.대조?.env ?? null,
+      입력.대조?.startUrl ?? null,
     ],
   );
   return Number(r.rows[0]!.id);
