@@ -26,7 +26,7 @@ export const 껍데기말: Record<string, string> = {
   // 배정이 없는 사람
   '아직 배정받은 서비스가 없습니다': 'No service assigned yet',
   '설정에서 자기 자신을 서비스에 배정하세요': 'Assign yourself to a service in Settings',
-  '운영 등급에게 서비스 배정을 요청하세요': 'Ask an admin to assign you a service',
+  '운영 계정에게 서비스 배정을 요청하세요': 'Ask an admin to assign you a service',
 
   // 자리 아래 알림 줄
   'RUN {번호} 이 진행 중입니다  {끝난}/{전체}': 'RUN {번호} is running  {끝난}/{전체}',

@@ -642,7 +642,7 @@ export const api = {
   authoringAssetUrl: (id: number, assetId: number) => `/api/authoring/requests/${id}/assets/${assetId}`,
 
   /**
-   * 머지를 줄에 세운다 — **운영 등급만**.
+   * 머지를 줄에 세운다 — **운영 계정만**.
    *
    * 경로가 갈린 이유는 등급 때문이다. 같은 경로에 `kind: 'MERGE'` 로 얹으면 등급이
    * **본문 값**에 따라 갈려야 하고, 그러려면 문이 본문을 읽어야 한다 (도메인/작성 §7).

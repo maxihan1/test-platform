@@ -82,7 +82,7 @@ afterEach(() => {
 });
 
 describe('작성 한 건 상세', () => {
-  it('운영 등급에게만 반영 버튼이 보인다', async () => {
+  it('운영 계정에게만 반영 버튼이 보인다', async () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
     expect(await screen.findByRole('button', { name: '테스트 반영하기' })).toBeTruthy();
   });

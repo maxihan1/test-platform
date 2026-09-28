@@ -13,9 +13,9 @@ export const 설정말: Record<string, string> = {
 
   // 설정 화면의 틀 (§8.8)
   '설정': 'Settings',
-  '운영 등급만 볼 수 있는 자리다': 'Admins only',
-  '설정은 운영 등급만 볼 수 있습니다': 'Only admins can open Settings',
-  '필요하면 운영 등급인 사람에게 올려 달라고 합니다': 'Ask an admin to raise your role if you need it',
+  '운영 계정만 볼 수 있는 자리다': 'Admins only',
+  '설정은 운영 계정만 볼 수 있습니다': 'Only admins can open Settings',
+  '필요하면 운영 계정인 사람에게 올려 달라고 합니다': 'Ask an admin to raise your role if you need it',
 
   // 구획 머리와 목록 줄
   '서비스': 'Services',

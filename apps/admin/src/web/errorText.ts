@@ -13,7 +13,7 @@ import { t, type 언어 } from './i18n.js';
 export const 오류말: Record<string, string> = {
   // 실행 결과·증적 주소는 사람이 메신저에 붙여 나누는 링크다 (§8.4).
   // 배정 안 받은 사람이 눌렀을 때 무슨 일인지와 빠져나갈 길을 같이 준다
-  SERVICE_FORBIDDEN: '이 서비스에 배정받지 않았습니다. 운영 등급인 사람에게 배정을 요청합니다',
+  SERVICE_FORBIDDEN: '이 서비스에 배정받지 않았습니다. 운영 계정인 사람에게 배정을 요청합니다',
   UNAUTHENTICATED: '로그인이 풀렸습니다. 다시 로그인합니다',
   SERVICE_REQUIRED: '어느 서비스인지 고르지 않았습니다. 맨 위 띠에서 서비스를 고릅니다',
 

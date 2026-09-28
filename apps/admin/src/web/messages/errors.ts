@@ -3,7 +3,7 @@
 
 export const 오류영어: Record<string, string> = {
   // 배정과 세션
-  '이 서비스에 배정받지 않았습니다. 운영 등급인 사람에게 배정을 요청합니다':
+  '이 서비스에 배정받지 않았습니다. 운영 계정인 사람에게 배정을 요청합니다':
     'You are not assigned to this service. Ask an admin to assign you.',
   '로그인이 풀렸습니다. 다시 로그인합니다': 'Your session ended. Please sign in again.',
   '어느 서비스인지 고르지 않았습니다. 맨 위 띠에서 서비스를 고릅니다':

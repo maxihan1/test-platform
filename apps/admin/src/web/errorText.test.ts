@@ -8,7 +8,7 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
   it('배정 안 받은 서비스는 무슨 일인지와 빠져나갈 길을 적는다', () => {
     const 글 = 요청오류문장('SERVICE_FORBIDDEN', 'ko', 'XFS3B');
     expect(글).toContain('배정');
-    expect(글).toContain('운영 등급');
+    expect(글).toContain('운영 계정');
     expect(글).not.toBe('XFS3B');
   });
 

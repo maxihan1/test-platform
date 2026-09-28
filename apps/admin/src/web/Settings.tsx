@@ -1,4 +1,4 @@
-// 설정 화면의 틀 (SPEC §8.8). 서비스 구획과 계정 구획을 얹는다. 운영 등급에게만 보인다
+// 설정 화면의 틀 (SPEC §8.8). 서비스 구획과 계정 구획을 얹는다. 운영 계정에게만 보인다
 // 책상에서만 쓰는 화면이라 좁은 화면 대응을 하지 않는다 (§8)
 
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
@@ -29,8 +29,8 @@ export function Settings({ user, onMeChanged }: { user: User; onMeChanged: () =>
     return (
       <div className="screen">
         <div className="empty">
-          {t('설정은 운영 등급만 볼 수 있습니다')}
-          <small>{t('필요하면 운영 등급인 사람에게 올려 달라고 합니다')}</small>
+          {t('설정은 운영 계정만 볼 수 있습니다')}
+          <small>{t('필요하면 운영 계정인 사람에게 올려 달라고 합니다')}</small>
         </div>
       </div>
     );
@@ -44,7 +44,7 @@ export function Settings({ user, onMeChanged }: { user: User; onMeChanged: () =>
 
   return (
     <>
-      <Head 제목={t('설정')} 부제={t('운영 등급만 볼 수 있는 자리다')} />
+      <Head 제목={t('설정')} 부제={t('운영 계정만 볼 수 있는 자리다')} />
 
       <div className="screen">
       {/* 서비스는 자기 것인지 가리지 않고 늘 다시 읽는다 — 이름·색·대상 서버·웹훅이
