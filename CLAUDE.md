@@ -278,7 +278,8 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   설정 계정 `xfu9`(계정)·`XFS9`(서비스)(`settings/users.test.ts`, 2026-09-28 — `routes.test.ts` 에서 떼어 냈다. `'xfu9%'`·`'XFS9%'` 로 지운다) ·
   가입 수락·거절 `xpa`(계정)·`XPA`(서비스)(`settings/approve.test.ts`, 2026-09-28 — `'xpa%'`·`'XPA%'` 로 지운다) ·
   회원가입 `xsg`(계정)(`auth/signup.test.ts`, 2026-09-28 — `'xsg%'` 로 지운다) ·
-  비밀번호 변경 `xpw`(계정)(`auth/password-change.test.ts`, 2026-09-28 — `'xpw%'` 로 지운다).
+  비밀번호 변경 `xpw`(계정)(`auth/password-change.test.ts`, 2026-09-28 — `'xpw%'` 로 지운다) ·
+  Grafana 통로 `xgfp`(계정)(`grafana/proxy.test.ts`)·`xgfg`(계정)(`grafana/gate.test.ts`)(2026-09-28 — 각자 `'xgfp%'`·`'xgfg%'` 로만 지운다. `'xgf%'` 로 넓히지 않는다).
   **`XWA`·`XWAR`·`XWS`·`XWU`·`XRC`·`XWV`·`XWO`·`XWK`·`XWT`·`XWTC` 는 `authoring_request` 를 `LIKE` 가 아니라 자기 `service_id` 로만 지운다** —
   `XWAR` 이 `XWA` 로 시작하므로 `LIKE 'XWA%'` 로 넓히면 남의 fixture 를 실행 도중에 지운다 (2026-09-22).
   **WS-D·WS-F는 `ZZ`로 시작하는 것을 쓰지 않는다.**
