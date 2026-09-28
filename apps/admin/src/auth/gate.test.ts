@@ -150,8 +150,6 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
         scope.post('/runs', async () => ({ 지나감: true }));
         scope.get('/settings/services', async () => ({ 지나감: true }));
         scope.get('/settings/users', async () => ({ 지나감: true }));
-        // 비밀번호 바꾸기 라우트는 다음 할 일에서 생긴다. 문이 지나보내는지만 본다
-        scope.post('/auth/password', async () => ({ 지나감: true }));
         scope.get('/authoring/requests', async () => ({ 지나감: true }));
         scope.post('/settings/services', async () => ({ 지나감: true }));
 
@@ -436,7 +434,8 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     const 쿠키 = { platform_session: await 출입증('xfu3-mustchange') };
     expect((await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키 })).statusCode).toBe(200);
     expect((await app.inject({ method: 'HEAD', url: '/api/auth/me', cookies: 쿠키 })).statusCode).toBe(200);
-    expect((await app.inject({ method: 'POST', url: '/api/auth/password', cookies: 쿠키, payload: {} })).statusCode).toBe(200);
+    // 진짜 라우트가 빈 본문을 400 으로 돌려보낸다. 문이 403 으로 막지 않았다는 것만 본다
+    expect((await app.inject({ method: 'POST', url: '/api/auth/password', cookies: 쿠키, payload: {} })).statusCode).toBe(400);
     expect((await app.inject({ method: 'POST', url: '/api/auth/logout', cookies: 쿠키 })).statusCode).toBe(204);
   });
 

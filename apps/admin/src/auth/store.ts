@@ -121,6 +121,15 @@ export async function 로그인조회(
   return row === null ? null : { ...모양(username, row), isApproved: row.is_approved };
 }
 
+/** 본인이 비밀번호를 바꿨다. 자기가 정한 값이라 변경 강제도 같이 푼다 (SPEC 도메인/인증 §7) */
+export async function 비밀번호바꾸기(username: string, passwordHash: string): Promise<void> {
+  const pool = await db();
+  await pool.query('UPDATE app_user SET password_hash = $2, must_change_password = false WHERE username = $1', [
+    username,
+    passwordHash,
+  ]);
+}
+
 function 모양(username: string, row: 한사람행): { user: 사용자; passwordHash: string } {
   // admin 채우기는 SQL 이 아니라 여기서 한다 — 저장값을 덮는 규칙이 한 자리에 보여야 한다
   const 관리자 = row.role === 'admin';

@@ -33,6 +33,8 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/auth/login': 안따짐,
   'POST /api/auth/logout': 안따짐,
   'GET /api/auth/me': 안따짐,
+  // 본인 비밀번호 바꾸기 — 라우트가 로그인을 직접 확인한다 (auth/routes.ts)
+  'POST /api/auth/password': 안따짐,
 
   'GET /api/catalog/cases': 케이스읽기,
   'GET /api/catalog/cases/:tcId': 케이스읽기,
