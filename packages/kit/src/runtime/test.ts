@@ -15,6 +15,7 @@ import type { CaseHandle } from './defineCase.js';
 import { recordHttpTrace } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
 import { STEP_ATTACHMENT } from './protocol.js';
+import { registerScenarioCase, type ScenarioCaseRunner } from './scenario.js';
 import { step, StopTest } from './step.js';
 
 export interface CaseBodyArgs<P, E> {
@@ -95,9 +96,59 @@ async function emit(testInfo: TestInfo, result: StepResult): Promise<void> {
   });
 }
 
+function errorOf(thrown: unknown): { message: string; stack?: string } {
+  const err = thrown instanceof Error ? thrown : new Error(String(thrown));
+  return { message: err.message, ...(err.stack === undefined ? {} : { stack: err.stack }) };
+}
+
+// E2E 시나리오의 부품 하나. 이 kit 인스턴스의 문맥으로 본체를 감싸야 본체 안 step() 이 문맥을 찾는다.
+// 부를 때마다 실패 표시·건너뛸 제목·결과 모으기를 새로 세운다 — 앞 부품의 것이 새면 안 된다 (SPEC 공통/3-공유계약 §5.1)
+function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): ScenarioCaseRunner {
+  return async ({ page, request, platform, params, expected, skipSteps, seq }) => {
+    const steps: StepResult[] = [];
+    const run: RunScope = {
+      seq,
+      failed: false,
+      stopped: false,
+      skip: new Set(skipSteps),
+      capture: (s) => capture(page, s),
+      emit: async (result) => {
+        steps.push(result);
+      },
+    };
+
+    let error: { message: string; stack?: string } | undefined;
+    try {
+      // 조립할 때 서버가 막지만, 조립 뒤에 케이스가 디바이스를 뺄 수 있다. 틀린 조립은 언제나 빨강이다 (2026-09-28 사용자)
+      if (!spec.platforms.some((p) => p === platform)) {
+        throw new Error(`${spec.tcId}은 ${platformLabel(platform)} 환경을 선언하지 않았다`);
+      }
+      const inputs = resolveInputs(spec, { params, expected });
+      await runScope.run(run, async () => {
+        try {
+          await body({ page, request: traced(request), ...inputs });
+        } catch (thrown) {
+          if (!(thrown instanceof StopTest)) throw thrown;
+        }
+      });
+    } catch (thrown) {
+      // 던지면 이미 모은 절차가 사라진다. 여기서 잡아 부품의 실패와 사유로 돌려준다
+      error = errorOf(thrown);
+    }
+
+    return { seq: run.seq, steps, failed: run.failed || error !== undefined, ...(error === undefined ? {} : { error }) };
+  };
+}
+
 function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   // 스캐너는 명세만 읽으려고 이 파일을 import 한다. 그때는 Playwright에 등록하지 않는다 (SPEC §3.1)
   if (process.env.PLATFORM_SCAN === '1') return;
+
+  // 러너 고정 spec 이 조립 목록대로 불러 쓴다. 그때도 Playwright 에 등록하지 않는다 (SPEC 공통/3-공유계약 §5.1)
+  if (process.env.PLATFORM_SCENARIO_MODE === '1') {
+    registerScenarioCase(spec.tcId, scenarioRunner(spec, body));
+    return;
+  }
 
   base(spec.name, async ({ page, request }, testInfo) => {
     // 선언하지 않은 환경에서 돌면 케이스의 전제가 깨진다. 판정 대신 건너뛴다

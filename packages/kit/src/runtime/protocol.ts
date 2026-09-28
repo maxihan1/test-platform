@@ -8,3 +8,6 @@ export const RESULT_MARKER = '@@RESULT@@';
 
 // 러너가 stdout에서 절차 시작 줄을 찾을 때 쓰는 표시자
 export const PROGRESS_MARKER = '@@PROGRESS@@';
+
+// 러너가 stdout에서 E2E 시나리오 부품 결과 줄을 찾을 때 쓰는 표시자. 케이스의 결과 줄과 섞이지 않게 따로 둔다
+export const SCENARIO_PART_MARKER = '@@SCENARIO_PART@@';

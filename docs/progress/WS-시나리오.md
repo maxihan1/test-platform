@@ -15,3 +15,11 @@
 - 미완: 시나리오 모드 · 러너 · 서버 · 화면 · 증적
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 표 검사는 `apps/admin/src/db/scenario-columns.test.ts`(접두사 `XSC`) — 칸 모양과 제약 목록을 통째로 견준다. 다음은 WORKSTREAMS 2 KIT + WS-C 러너
+
+## 2026-09-28 (3)
+- 완료: 러너 PR #100 — kit 시나리오 모드(`packages/kit/src/runtime/scenario.ts` 등록부 · `test.ts` 실행 함수 · `step.ts` 제목으로 건너뛰기) · 러너 `POST /execute-scenario`(`apps/runner/src/scenario.ts` · `routes.ts`) · 고정 spec · 전용 설정 · 리포터(`apps/runner/scenario/`)
+- 완료: 사용자 결정 둘(게이트 1) — 디바이스 미선언 케이스는 부품 FAIL · API 부품은 `page.request`(브라우저 쿠키 공유)
+- 완료: 실측 — 인터넷 없는 fixture 로 진짜 chromium 4건(`apps/runner/scenario/e2e.test.ts`) · 러너 이미지에서 `/tests` 읽기 전용으로 한 바퀴
+- 미완: 서버(WS-B) · 화면(WS-E) · 증적(WS-D) · K12(WS-A)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 고정 spec 은 kit 을 값으로 부르지 않는다(`wire.ts`) — 섞이면 이미지에서만 죽고 CI 는 못 본다. 고정 spec·kit 불러오기를 고치면 러너 이미지에서 한 번 부른다(PR #100 코멘트에 명령). 다음은 WORKSTREAMS 3 WS-A(K12) 또는 4 WS-B

@@ -164,3 +164,45 @@ describe('GET /progress', () => {
     expect(res.json().items).toEqual([{ historyId: 7, seq: 2, title: '로그인', elapsedMs: 300 }]);
   });
 });
+
+describe('POST /execute-scenario — 입구 검사', () => {
+  const trialId = '5f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b';
+  const 케이스 = (filePath?: string) => ({
+    kind: 'case', tcId: 'TODO-001', params: {}, expected: {}, skipSteps: [], ...(filePath === undefined ? {} : { filePath }),
+  });
+  const 요청 = (칸: Record<string, unknown> = {}) => ({
+    runId: 7, platform: 'desktop', baseUrl: 'https://qa.example.com', parts: [{ kind: 'wait', ms: 1 }], timeoutMs: 1000, ...칸,
+  });
+  const 보냄 = (payload: object) => 서버().inject({ method: 'POST', url: '/execute-scenario', payload });
+
+  it.each([
+    ['형태가 계약과 다르다', { runId: '숫자가 아니다' }],
+    ['시험 실행인데 trialId 가 없다', { runId: null }],
+    ['trialId 가 UUID 가 아니다 — 사진 폴더 경로에 그대로 들어간다', { runId: null, trialId: '../../etc' }],
+    ['대기가 60초를 넘는다', { parts: [{ kind: 'wait', ms: 60_001 }] }],
+    ['부품이 비었다', { parts: [] }],
+    ['API 경로가 // 로 시작한다 — 대상 주소 밖으로 샌다', { parts: [{ kind: 'api', method: 'GET', path: '//evil.example/x', expectStatus: 200 }] }],
+    ['API 경로가 / 로 시작하지 않는다', { parts: [{ kind: 'api', method: 'GET', path: 'x', expectStatus: 200 }] }],
+    ['케이스 부품에 파일 경로가 없다', { parts: [케이스()] }],
+    ['케이스 파일이 테스트 뿌리 밖이다', { parts: [케이스('../package.json')] }],
+    ['조립 목록이 너무 크다 — 환경변수 하나로 넘긴다', {
+      parts: [{ kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body: 'x'.repeat(120_001) }],
+    }],
+    ['조립 목록이 바이트로 너무 크다 — 한글은 한 글자가 3바이트다', {
+      parts: [{ kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body: '가'.repeat(45_000) }],
+    }],
+    ['제한 시간이 60분을 넘는다', { timeoutMs: 3_600_001 }],
+  ])('%s 이면 400 INVALID_REQUEST 다', async (_이름, 칸) => {
+    const res = await 보냄(요청(칸));
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe('INVALID_REQUEST');
+  });
+
+  it('케이스 파일이 없으면 404 CASE_NOT_FOUND 다', async () => {
+    const res = await 보냄(요청({ runId: null, trialId, parts: [케이스('todo/없는-케이스.spec.ts')] }));
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toEqual({ error: 'CASE_NOT_FOUND', detail: 'todo/없는-케이스.spec.ts' });
+  });
+});
