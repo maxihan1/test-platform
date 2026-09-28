@@ -1,9 +1,11 @@
 // 워드(.docx) 원본에 메모를 단 사본을 만든다 — 바이트 → 바이트, 파일·네트워크 없음 (도메인/작성 §3.6 「★ 역방향」 표시)
-// jszip 정식 의존성 2026-09-26 사용자 승인. 원본 문단 글은 한 글자도 안 바꾸고 메모 표시만 끼운다
+// jszip 정식 의존성 2026-09-26 사용자 승인. 원본 문단 글은 테스트 계정 비밀번호를 가리는 것 말고는 안 바꾸고 메모 표시만 끼운다
 
 import { posix } from 'node:path';
 
 import JSZip from 'jszip';
+
+import { 가림표 } from './authoring-reverse.js';
 
 /** 메모 작성자 — 기계가 단 메모라는 것이 보이게 고정한다(요청자 이름이면 사람이 직접 단 것처럼 보인다 — 2026-09-26 게이트 1) */
 const 작성자 = '테스트 플랫폼';
@@ -32,6 +34,43 @@ function 싼글(s: string): string {
   return s
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
+ * 글 칸(`<w:t>`)에서만 비밀번호를 가린다 — 칸들을 이어 붙여 찾으니 편집 이력으로 여러 칸에 갈린 것도 잡는다.
+ * 첫 칸에 가림표를 두고 나머지 칸에서는 걸친 글자를 뺀다. 태그·속성은 안 건드린다 — `1234` 가 `w:w="1234"` 를 바꾸면 워드가 깨진다 (2026-09-29 계획 검토).
+ * 속성·문서 정보 칸에만 있는 것은 못 가린다 — 누설 검사가 그대로 잡는다
+ */
+export function 글칸가리기(xml: string, 비밀: string | null | undefined): string {
+  if (비밀 === null || 비밀 === undefined || 비밀 === '') return xml;
+  const 칸들 = [...xml.matchAll(/(<w:t(?:\s[^>]*)?>)([^<]*)(<\/w:t>)/g)];
+  const 글들 = 칸들.map((m) => 풀글(m[2] ?? ''));
+  const 이은 = 글들.join('');
+  const 첫자리 = new Set<number>();
+  const 가릴 = new Set<number>();
+  for (let i = 이은.indexOf(비밀); i !== -1; i = 이은.indexOf(비밀, i + 비밀.length)) {
+    첫자리.add(i);
+    for (let k = 0; k < 비밀.length; k += 1) 가릴.add(i + k);
+  }
+  if (첫자리.size === 0) return xml;
+  let 앞 = 0;
+  const 새글들 = 글들.map((글) => {
+    let 새 = '';
+    for (let j = 0; j < 글.length; j += 1) {
+      if (첫자리.has(앞 + j)) 새 += 가림표;
+      else if (!가릴.has(앞 + j)) 새 += 글[j];
+    }
+    앞 += 글.length;
+    return 새;
+  });
+  // 뒤에서부터 바꾼다 — 앞에서 바꾸면 뒤 칸의 자리가 밀린다
+  let 결과 = xml;
+  for (let n = 칸들.length - 1; n >= 0; n -= 1) {
+    const m = 칸들[n]!;
+    if (새글들[n] === 글들[n]) continue;
+    결과 = 결과.slice(0, m.index) + (m[1] ?? '') + 싼글(새글들[n] ?? '') + (m[3] ?? '') + 결과.slice(m.index + m[0].length);
+  }
+  return 결과;
 }
 
 /** 공백을 한 칸으로 — 자식이 읽는 글(pandoc)과 원본의 줄 꺾음·겹 공백이 달라도 맞게 */
@@ -140,6 +179,7 @@ export async function 메모달기(
   바이트: Uint8Array,
   메모들: { anchor: string | null; 글: string }[],
   날짜: string,
+  비밀?: string | null,
 ): Promise<{ 바이트: Uint8Array; 찾음: boolean[]; 글들: string[] } | { 사유: string }> {
   let zip: JSZip;
   try {
@@ -153,6 +193,15 @@ export async function 메모달기(
     const n = await 푼크기(f, 합계상한 - 합계);
     if (n === null) return { 사유: '워드 파일을 풀면 너무 크다' };
     합계 += n;
+  }
+  // 기획서에 적힌 테스트 계정 비밀번호는 문단을 찾기 전에 가린다 — 자식이 가린 글자본에서 베낀 문장과 맞아야 한다 (§3.6 「★ 역방향」)
+  if (비밀) {
+    for (const [자리, f] of Object.entries(zip.files)) {
+      if (f.dir || !/\.xml$/i.test(자리)) continue;
+      const 원 = await f.async('string');
+      const 가림 = 글칸가리기(원, 비밀);
+      if (가림 !== 원) zip.file(자리, 가림);
+    }
   }
   const 읽기 = async (p: string): Promise<string | null> => {
     const f = zip.file(p);
