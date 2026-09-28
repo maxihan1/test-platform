@@ -1,9 +1,10 @@
 // E2E 시나리오의 부품을 차례로 돌리고 부품마다 결과 줄 한 줄을 흘린다. 브라우저에 닿는 일은 받은 함수로만 한다 (SPEC 도메인/러너 §5.2)
 // 고정 spec 은 얇은 껍데기이고 판단은 전부 여기 있다 — 그래야 브라우저 없이 검사할 수 있다
 
+// kit 은 타입만 가져온다. 값을 여기서 부르면 kit 파일이 ESM 으로 먼저 올라가, 뒤에 /tests 의 케이스가 require 로
+// 같은 파일을 부를 때 러너 이미지에서 부딪힌다 (2026-09-28 이미지 실측). 줄 만들기는 고정 spec 이 한다
 import type { ScenarioCaseOutcome } from '@platform/kit/scenario';
-import { 부품줄 } from '@platform/kit/scenario';
-import type { ItemStatus, ScenarioExecuteRequest, StepResult } from '@platform/kit';
+import type { ItemStatus, ScenarioExecuteRequest, ScenarioPartResult, StepResult } from '@platform/kit';
 
 type Part = ScenarioExecuteRequest['parts'][number];
 type CasePart = Extract<Part, { kind: 'case' }>;
@@ -23,7 +24,7 @@ export interface PartDeps {
   // page.request — 브라우저 로그인(쿠키)을 같이 쓴다 (2026-09-28 사용자)
   fetch(url: string, options: { method: string; data?: unknown }): Promise<{ status(): number }>;
   runCase(part: CasePart, seq: number): Promise<ScenarioCaseOutcome>;
-  write(line: string): void;
+  write(result: ScenarioPartResult): void;
 }
 
 // new URL(path, base) 로 합치면 대상 주소의 경로(/shop)가 날아간다. `//` 로 시작하는 path 는 러너 입구가 막는다
@@ -98,14 +99,14 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
       error = errorOf(thrown);
     }
 
-    deps.write(부품줄({
+    deps.write({
       seq: i + 1,
       status,
       durationMs: Date.now() - startedAt,
       steps,
       mocks: [...걸린.keys()],
       ...(error === undefined ? {} : { error }),
-    }));
+    });
 
     // 실패한 부품에서 멈춘다. 뒤 부품을 NOT_RUN 으로 채우는 일은 러너가 한다 — 자식이 죽어도 채울 수 있어야 한다
     if (status === 'FAIL') return;

@@ -32,7 +32,9 @@ export type ScenarioCaseRunner = (input: ScenarioCaseInput) => Promise<ScenarioC
 // 등록부를 globalThis 에 한 벌만 둔다. 케이스 파일과 고정 spec 이 kit 을 다른 경로로 불러도 같은 것을 본다.
 // 등록하는 것은 본체가 아니라 **그 케이스의 kit 인스턴스로 감싼 실행 함수**다 — 본체 안 step() 은
 // 자기 kit 의 문맥(AsyncLocalStorage)을 읽으므로, 다른 인스턴스가 감싸면 문맥을 못 찾는다
-const 열쇠 = Symbol.for('platform.scenarioCases');
+// 러너 고정 spec 은 kit 을 값으로 못 불러 이 글자를 옮겨 적는다 (apps/runner/scenario/wire.ts)
+export const SCENARIO_REGISTRY_KEY = 'platform.scenarioCases';
+const 열쇠 = Symbol.for(SCENARIO_REGISTRY_KEY);
 
 function 등록부(): Map<string, ScenarioCaseRunner> {
   const g = globalThis as unknown as Record<symbol, Map<string, ScenarioCaseRunner> | undefined>;

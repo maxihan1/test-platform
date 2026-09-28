@@ -5,9 +5,9 @@ import { pathToFileURL } from 'node:url';
 
 import { test } from '@playwright/test';
 import type { ScenarioExecuteRequest } from '@platform/kit';
-import { scenarioCase } from '@platform/kit/scenario';
 
 import { runParts } from './parts.js';
+import { 꺼냄, 부품줄 } from './wire.js';
 
 const 목록 = JSON.parse(process.env.PLATFORM_SCENARIO ?? '[]') as ScenarioExecuteRequest['parts'];
 
@@ -26,7 +26,7 @@ test('E2E 시나리오', async ({ page, request }, testInfo) => {
     runCase: async (part, seq) => {
       // 같은 케이스를 두 번 쓰면 두 번째 import 는 캐시다. 등록부가 안 지우므로 그대로 꺼내진다
       await import(pathToFileURL(part.filePath ?? '').href);
-      const run = scenarioCase(part.tcId);
+      const run = 꺼냄(part.tcId);
       if (run === undefined) throw new Error(`${part.filePath ?? '(경로 없음)'} 가 ${part.tcId} 를 등록하지 않았다`);
       return run({
         page,
@@ -40,8 +40,8 @@ test('E2E 시나리오', async ({ page, request }, testInfo) => {
       });
     },
     // 워커의 stdout 은 Playwright 가 갈아치웠다. 전용 리포터가 onStdOut 으로 되돌려 써야 러너에 닿는다
-    write: (line) => {
-      process.stdout.write(line);
+    write: (result) => {
+      process.stdout.write(부품줄(result));
     },
   });
 });

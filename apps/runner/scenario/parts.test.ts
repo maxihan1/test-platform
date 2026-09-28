@@ -1,7 +1,6 @@
 // 부품 돌리기 검사 — 브라우저 없이 가짜 context·request·케이스 실행기로 순서·멈춤·모킹 구간을 본다 (SPEC 도메인/러너 §5.2)
 
 import type { ScenarioExecuteRequest, ScenarioPartResult } from '@platform/kit';
-import { SCENARIO_PART_MARKER } from '@platform/kit/scenario';
 import { describe, expect, it, vi } from 'vitest';
 
 import { runParts, 주소, type PartDeps } from './parts.js';
@@ -23,8 +22,8 @@ function 가짜(칸: Partial<PartDeps> = {}) {
       ],
       failed: false,
     })),
-    write: (line: string) => {
-      줄.push(JSON.parse(line.slice(SCENARIO_PART_MARKER.length)) as ScenarioPartResult);
+    write: (result) => {
+      줄.push(result);
     },
     ...칸,
   };
