@@ -13,7 +13,7 @@ import { createProgressCollector } from './progress.js';
 import { parseResult, type RunnerResult } from './result.js';
 
 // playwright.config.ts가 있는 곳. 여기서 자식 프로세스를 띄워야 projects 정의가 잡힌다
-const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+export const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
 const reporterPath = resolve(appRoot, 'packages/kit/src/runtime/reporter.ts');
 
