@@ -5,7 +5,7 @@ import ts from 'typescript';
 
 import type { CaseSpec, JsonSchema } from '@platform/kit';
 
-import { caseSteps } from './steps.js';
+import { caseSteps, isTestStep } from './steps.js';
 import { badTag } from './unconfirmed.js';
 
 export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K11' | 'K12';
@@ -112,11 +112,7 @@ export function checkSource(file: string, text: string): SourceResult {
 
     if (ts.isCallExpression(node)) {
       const callee = node.expression;
-      const isStep =
-        ts.isPropertyAccessExpression(callee) &&
-        callee.name.text === 'step' &&
-        ts.isIdentifier(callee.expression) &&
-        callee.expression.text === 'test';
+      const isStep = isTestStep(node);
       const isVerify = ts.isIdentifier(callee) && callee.text === 'verify';
 
       if (isStep || isVerify) {

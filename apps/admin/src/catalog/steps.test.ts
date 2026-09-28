@@ -148,6 +148,68 @@ describe('caseSteps', () => {
     expect(skippable(nested)).toEqual([false, true, false]);
   });
 
+  it('본문을 이름으로 넘긴 절차는 「만들기」로 치지 않는다 — 그 안의 판정이 안 보인다', () => {
+    const named = R16.replace(
+      `  await test.step('할 일을 만든다', async () => {
+    await page.getByRole('textbox').fill('우유');
+  });`,
+      `  const make = async () => {
+    await verify('만들어진다', 1, 1);
+  };
+  await test.step('할 일을 만든다', make);`,
+    );
+    expect(skippable(named)[0]).toBe(false);
+  });
+
+  it.each([
+    ['kit.verify', `await kit.verify('숨은 판정', 1, 2);`],
+    ['객체 도우미', `await checks.all(page);`],
+    ['대괄호 도우미', `await helpers['check'](page);`],
+  ])('fixture 가 아닌 것에서 점으로 부르면 「만들기」로 치지 않는다 — %s', (_, call) => {
+    const member = R16.replace(`await page.getByRole('textbox').fill('우유');`, call);
+    expect(skippable(member)[0]).toBe(false);
+  });
+
+  it('그 절차 안에서 fixture 로 만든 변수를 부르는 것은 괜찮다', () => {
+    const local = R16.replace(
+      `await page.getByRole('textbox').fill('우유');`,
+      `const input = page.getByRole('textbox');\n    await input.fill(params.todo);`,
+    );
+    expect(skippable(local)[0]).toBe(true);
+  });
+
+  it('그 절차 안의 변수라도 함수를 담으면 「만들기」로 치지 않는다', () => {
+    const fn = R16.replace(
+      `await page.getByRole('textbox').fill('우유');`,
+      `const box = { go: async () => verify('숨은 판정', 1, 2) };\n    await box.go();`,
+    );
+    expect(skippable(fn)[0]).toBe(false);
+  });
+
+  it('제목이 리터럴이 아닌 절차가 끼면 바로 다음 절차로 건너뛰어 고르지 않는다', () => {
+    const between = R16.replace(
+      `  await test.step('할 일이 한 건인지`,
+      `  await test.step(title, async () => {\n    await page.reload();\n  });\n  await test.step('할 일이 한 건인지`,
+    );
+    expect(caseSteps(between).steps.every((s) => !s.skippable)).toBe(true);
+  });
+
+  it.each([
+    ['나머지로 받음', '{ page, ...rest }'],
+    ['문자열 키', "{ 'request': r }"],
+  ])('request 를 쓰는지 모르면 쓴다고 본다 — %s', (_, fixtures) => {
+    expect(caseSteps(body('', fixtures)).usesRequest).toBe(true);
+  });
+
+  it('page.request 도 브라우저 밖 통로라 request 사용이다', () => {
+    expect(caseSteps(body(`  await test.step('부른다', async () => {\n    await page.request.get('/x');\n  });`)).usesRequest).toBe(true);
+  });
+
+  it('test 본문을 이름으로 넘기면 request 를 쓴다고 본다', () => {
+    const named = `import { defineCase, test } from '@platform/kit';\nexport const spec = defineCase({ tcId: 'DEMO-001', name: 'x', precondition: [], params: null, expected: null });\ntest(spec, run);\n`;
+    expect(caseSteps(named).usesRequest).toBe(true);
+  });
+
   it('제목이 문자열 리터럴이 아닌 절차는 목록에 싣지 않는다 (K6 이 잡는다)', () => {
     const dynamic = R16.replace(`test.step('할 일을 만든다'`, 'test.step(title');
     expect(caseSteps(dynamic).steps.map((s) => s.title)).toEqual(['할 일이 한 건인지 확인한다', '완료를 누른다']);
