@@ -3,7 +3,8 @@
 // 비밀번호는 인자로 받지 않는다 — 명령에 적으면 서버의 명령 이력에 평문으로 남는다
 
 import { pool } from '../apps/admin/src/db/index.js';
-import { 계정만들기, 설정오류 } from '../apps/admin/src/settings/store.js';
+import { 설정오류 } from '../apps/admin/src/settings/store.js';
+import { 계정만들기 } from '../apps/admin/src/settings/users.js';
 
 const [username, displayName, role] = process.argv.slice(2);
 

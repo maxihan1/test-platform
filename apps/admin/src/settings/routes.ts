@@ -7,16 +7,8 @@ import { z } from 'zod';
 import { 에이전트토큰만들기, 에이전트토큰지우기 } from '../auth/agentToken.js';
 import { 정수 } from '../routeParams.js';
 
-import {
-  계정고치기,
-  계정만들기,
-  계정목록,
-  비밀번호다시만들기,
-  서비스고치기,
-  서비스만들기,
-  서비스목록,
-  설정오류,
-} from './store.js';
+import { 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
+import { 계정고치기, 계정만들기, 계정목록, 비밀번호다시만들기 } from './users.js';
 
 // SPEC §2 의 접두사 모양을 코드가 복사해 둔 자리다. §2 를 고치면 여기도 같이 움직인다 (CLAUDE.md §2.7 ⑤).
 // scripts/add-service.ts 가 이것을 가져다 쓴다 — 같은 모양을 두 번 적지 않는다
