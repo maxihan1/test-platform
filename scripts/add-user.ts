@@ -10,12 +10,12 @@ const [username, displayName, role] = process.argv.slice(2);
 
 if (username === undefined || displayName === undefined || role === undefined) {
   console.error('쓰는 법: npx tsx scripts/add-user.ts <아이디> <이름> <등급>');
-  console.error('등급은 viewer(보기만) · operator(실행까지) · admin(운영) 중 하나다');
+  console.error('등급은 member · admin(운영) 중 하나다');
   process.exit(1);
 }
 
-if (role !== 'viewer' && role !== 'operator' && role !== 'admin') {
-  console.error(`등급 "${role}"은 없다. viewer · operator · admin 중 하나여야 한다 (SPEC §3.5)`);
+if (role !== 'member' && role !== 'admin') {
+  console.error(`등급 "${role}"은 없다. member · admin 중 하나여야 한다 (SPEC §3.5)`);
   process.exit(1);
 }
 
@@ -27,7 +27,7 @@ if (Number(있는계정.rows[0]?.count ?? 0) === 0 && role !== 'admin') {
 }
 
 try {
-  const 임시비밀번호 = await 계정만들기({ username, displayName, role, services: [] });
+  const 임시비밀번호 = await 계정만들기({ username, displayName, role, dashboard: 'read', services: [] });
   console.log(`계정을 만들었다. 아이디 ${username} · 이름 ${displayName} · 등급 ${role}`);
   console.log(`비밀번호: ${임시비밀번호}`);
   console.log('이 줄이 비밀번호를 볼 수 있는 유일한 자리다. 잊으면 설정 화면에서 다시 만든다');

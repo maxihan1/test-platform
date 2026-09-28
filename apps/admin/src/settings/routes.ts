@@ -44,21 +44,39 @@ const 서비스수정 = z.object({
   figmaToken: z.string().optional(),
 });
 
-const 등급 = z.enum(['viewer', 'operator', 'admin']);
+const 등급 = z.enum(['member', 'admin']);
+const 권한 = z.enum(['none', 'read', 'write']);
+const 대시보드 = z.enum(['none', 'read']);
+
+// 셋 다 none 인 줄은 받지 않는다 — 배정을 풀려면 줄을 뺀다 (SPEC 도메인/인증 §7 「services[] 한 줄」)
+const 서비스줄 = z.object({
+  prefix: z.string(),
+  permissions: z
+    .object({ cases: 권한, runs: 권한, authoring: 권한 })
+    .refine((p) => p.cases !== 'none' || p.runs !== 'none' || p.authoring !== 'none'),
+});
 
 const 새계정 = z.object({
   username: z.string().min(1),
   displayName: z.string().min(1),
   role: 등급,
-  services: z.array(z.string()).default([]),
+  dashboard: 대시보드,
+  services: z.array(서비스줄).default([]),
 });
 
 const 계정수정 = z.object({
   displayName: z.string().min(1).optional(),
   role: 등급.optional(),
+  dashboard: 대시보드.optional(),
   isActive: z.boolean().optional(),
-  services: z.array(z.string()).optional(),
+  services: z.array(서비스줄).optional(),
 });
+
+// 권한 칸(services · dashboard)이 틀린 것은 화면이 따로 알려야 해서 코드를 가른다 (SPEC 도메인/인증 §7)
+function 계정본문오류(error: z.ZodError): { error: string; detail?: string } {
+  const 권한칸 = error.issues.some((i) => i.path[0] === 'services' || i.path[0] === 'dashboard');
+  return 권한칸 ? { error: 'PERMISSIONS_SHAPE' } : { error: 'INVALID_REQUEST', detail: error.message };
+}
 
 const 코드별상태: Record<string, number> = {
   PREFIX_TAKEN: 409,
@@ -111,9 +129,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
 
   app.post('/settings/users', async (req, reply) => {
     const parsed = 새계정.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
-    }
+    if (!parsed.success) return reply.code(400).send(계정본문오류(parsed.error));
     // 이 응답이 비밀번호를 볼 수 있는 **유일한 자리**다. 다음부터는 다시 만들 수만 있다 (SPEC §8.8)
     const tempPassword = await 계정만들기(parsed.data);
     return reply.code(201).send({ username: parsed.data.username, tempPassword });
@@ -121,9 +137,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
 
   app.patch<{ Params: { username: string } }>('/settings/users/:username', async (req, reply) => {
     const parsed = 계정수정.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
-    }
+    if (!parsed.success) return reply.code(400).send(계정본문오류(parsed.error));
     await 계정고치기(req.params.username, parsed.data);
     return { ok: true };
   });

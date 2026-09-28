@@ -93,7 +93,13 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 테스트 계정', (
     const 만듦 = await app.inject({
       method: 'POST',
       url: '/api/settings/users',
-      payload: { username: 'xfu7-viewer', displayName: 'xfu7 님', role: 'viewer', services: ['XFS7A'] },
+      payload: {
+        username: 'xfu7-viewer',
+        displayName: 'xfu7 님',
+        role: 'member',
+        dashboard: 'read',
+        services: [{ prefix: 'XFS7A', permissions: { cases: 'read', runs: 'none', authoring: 'none' } }],
+      },
     });
     expect(만듦.statusCode).toBe(201);
     const 로그인정보 = JSON.stringify(await 사용자와해시('xfu7-viewer'));
