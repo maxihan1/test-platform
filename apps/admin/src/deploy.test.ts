@@ -128,6 +128,14 @@ describe('Grafana 는 로그인 뒤에 있다', () => {
     expect(compose).toMatch(/^ {2}dashboard:\s*\{\}/m);
   });
 
+  it('dashboard 망에 붙은 서비스는 admin · grafana · postgres 셋뿐이다 — 새 서비스가 조용히 붙지 않게', () => {
+    const 서비스들 = [...(/^services:\n((?: {2}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '').matchAll(/^ {2}([a-z_-]+):\n/gm)].map(
+      (m) => m[1]!,
+    );
+    expect(서비스들.length).toBeGreaterThan(3);
+    expect(서비스들.filter((이름) => 망(서비스블록(이름)).includes('dashboard')).sort()).toEqual(['admin', 'grafana', 'postgres']);
+  });
+
   it('admin 은 넘겨줄 곳(GRAFANA_URL)을 받는다', () => {
     expect(서비스블록('admin')).toMatch(/GRAFANA_URL:\s*"\$\{GRAFANA_URL:-http:\/\/grafana:3000\}"/);
   });

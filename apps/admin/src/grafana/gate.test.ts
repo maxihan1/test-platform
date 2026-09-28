@@ -86,9 +86,19 @@ describe.skipIf(연결 === undefined)('Grafana 통로 — 문', () => {
     expect(닿은수).toBe(0);
   });
 
-  it('HEAD 는 GET 과 같이 본다', async () => {
-    expect((await app.inject({ method: 'HEAD', url: '/grafana/d/abc' })).statusCode).toBe(302);
+  it('로그인 안 한 HEAD 는 로그인 화면으로 보내지 않고 401 이다 — 보내는 것은 GET 뿐이다', async () => {
+    expect((await app.inject({ method: 'HEAD', url: '/grafana/d/abc' })).statusCode).toBe(401);
     expect((await app.inject({ method: 'HEAD', url: '/grafana/api/search' })).statusCode).toBe(401);
+    expect(닿은수).toBe(0);
+  });
+
+  it('로그인 안 한 websocket 연결 요청은 401 이고 Grafana 에 닿지 않는다', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/grafana/api/live/ws',
+      headers: { connection: 'Upgrade', upgrade: 'websocket' },
+    });
+    expect(res.statusCode).toBe(401);
     expect(닿은수).toBe(0);
   });
 
@@ -107,10 +117,11 @@ describe.skipIf(연결 === undefined)('Grafana 통로 — 문', () => {
   });
 
   it('한 글자를 인코딩한 주소로 문을 비키지 못한다', async () => {
-    for (const url of ['/%67rafana/api/health', '/grafana/%61pi/health', '/%67rafana/d/abc']) {
+    for (const url of ['/%67rafana/api/health', '/%67rafana/d/abc']) {
       const res = await app.inject({ method: 'GET', url });
       expect([302, 401, 404], url).toContain(res.statusCode);
     }
+    expect((await app.inject({ method: 'GET', url: '/grafana/%61pi/health' })).statusCode).toBe(401);
     expect(닿은수).toBe(0);
   });
 
@@ -170,5 +181,14 @@ describe.skipIf(연결 === undefined)('Grafana 통로 — 문', () => {
       expect(res.body).toBe('grafana');
     }
     expect(닿은수).toBe(2);
+  });
+
+  it('대시보드 read 인 사람의 HEAD 는 문을 지난다', async () => {
+    const res = await app.inject({
+      method: 'HEAD',
+      url: '/grafana/d/abc',
+      cookies: { platform_session: await 출입증('xgfg-member') },
+    });
+    expect(res.statusCode).toBe(200);
   });
 });
