@@ -32,10 +32,13 @@
 1. **계약 반영** — `packages/kit/src/types.ts`(시나리오 타입 · `StepResult.skipped`) · 마이그레이션(새 표 넷 · `test_run.kind`). 명세 공통/3-공유계약 §5.1 · 공통/4-데이터모델 「E2E 시나리오 표」
 2. **KIT + WS-C 러너** — kit 시나리오 모드(본체 꺼내기 · `RunScope` 하나 · 제목으로 건너뛰기) · 러너 고정 spec + 전용 설정 · `POST /execute-scenario` · 모킹 `context.route` · 결과 표시자(`protocol.ts`).
    명세 도메인/러너 §5.2 「시나리오 실행」. **고정 spec 밖 파일 경로로 도는지 먼저 한 번 돌려 본다** — 「testDir 밖 파일은 안 잡힌다」는 실행으로 재지 않았다
-3. **WS-A** — K12(한 케이스 안 절차 제목 유일) 검사기 · 「만들기」 절차 소스 판별 함수(`catalog/rules.ts` 옆). **K12 가 먼저 서야 제목을 열쇠로 믿을 수 있다**
+3. **WS-A** — K12(한 케이스 안 절차 제목 유일) 검사기 · 「만들기」 절차 소스 판별 함수(`catalog/rules.ts` 옆). **K12 가 먼저 서야 제목을 열쇠로 믿을 수 있다** ·
+   `tpx-cases` R16(`.claude/skills/tpx-cases/references/5-writing.md`)에 「절차 제목은 케이스 안에서 유일하다(K12)」 한 줄과, R16 이 가리키는 정본을 도메인/시나리오 §3.7 로 바꾸는 일 (명세 PR 은 문서 차선이라 스킬을 안 고쳤다)
 4. **WS-B 서버 + WS-F** — `/api/scenarios/**` · 시험 실행(메모리 · 24시간 · 시작한 사람만) · 줄 세우기(동시성 상한 공유) · 재기동 복구 ·
    **`test_run` 을 읽는 조회 전부에 `kind` 거르기**(`grep -rln "FROM test_run\|JOIN test_run" apps/admin/src` 로 센다) · `GET /api/runs?kind=` · 시나리오 실행 중단 409 ·
-   권한 두 줄(도메인/인증 §7 표) · **`auth/gate.ts` 등급표와 `auth/scope.ts` 라우트표 둘에 새 통로를 같이 넣는다**
+   권한 두 줄(도메인/인증 §7 표) · **`auth/gate.ts` 등급표와 `auth/scope.ts` 라우트표 둘에 새 통로를 같이 넣는다** ·
+   **`spec-review` 체크리스트에 「`test_run` 조회에 `kind` 조건이 있는가」 항목을 더한다** — 규칙만 서고 검사가 없으면 새 조회가 조용히 섞는다.
+   서버 코드 자리는 WS-시나리오(`apps/admin/src/scenario/**`) 이고, 기존 조회에 `kind` 를 붙이는 것은 각 갈래 폴더를 건드린다 — 계획의 `files` 에 싣는다
 5. **WS-E 화면** — **시안 먼저**(목업 다섯 장이 모양의 정본 — 도메인/시나리오 §8.11) · 목록 · 조립 · 시험 실행 · 결과 · 실행 기록 탭 ·
    자리 `E2E 시나리오`(`layout.ts` 의 `자리목록()`, 영어 `E2E scenarios` 는 `messages/shell.ts`) · **코드 주석에 남은 「자리 넷」**(`layout.ts` · `messages/shell.ts`) ·
    `docs/design-mockup.html` 사이드바(코드에 들어간 뒤에 그린다 — 목업 머리 주석) · `E2E 시나리오` 폭을 화면에서 눈으로 확인
@@ -158,6 +161,7 @@
 | **WS-D** | 리포팅 | `apps/admin/src/reporting/**`, `infra/grafana/**` | DB 스키마 |
 | **WS-E** | 화면 | `apps/admin/src/web/**` | Admin API 계약 |
 | **WS-F** | 인증 | `apps/admin/src/auth/**`, `apps/admin/src/settings/**`, `scripts/**` | DB 스키마 (`app_user`·`service`·`service_env`·`user_service`) |
+| **WS-시나리오** | E2E 시나리오 | `apps/admin/src/scenario/**` · `docs/spec/도메인/시나리오.md` (2026-09-28 명세만 섰다. 러너 고정 파일은 `apps/runner/**` 라 WS-C 다) | kit 타입(시나리오) · 러너 계약 · DB 스키마 (`scenario*` · `test_run.kind`) |
 | **WS-작성** | 작성 | `apps/admin/src/authoring/**` (2026-09-22 에 섰다) · `scripts/authoring-*.ts` · `docs/spec/도메인/작성.md` | DB 스키마 (`authoring_request` · `authoring_asset`), 인증(§3.5) |
 
 **`docs/cases/**` 는 어느 갈래도 아니다** (2026-09-21). `tpx-cases` 스킬이 만드는
