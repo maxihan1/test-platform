@@ -152,7 +152,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         return reply.code(201).send({ id });
       }
 
-      // 역방향 칸은 작성 요청에만 붙는다 (DB CHECK 도 AUTHOR 에만 허락한다)
+      // 본문으로 받는 역방향 칸은 작성 요청에만 — 재실행은 원본 것을 물려받는다(아래)
       if (['compare', 'env', 'startUrl'].some((칸) => req.body?.[칸] !== undefined)) {
         return reply.code(400).send({ error: 'BAD_ENV' });
       }

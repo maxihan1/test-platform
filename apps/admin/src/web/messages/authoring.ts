@@ -166,7 +166,7 @@ export const 작성말: Record<string, string> = {
     'The start URL must be on the same address (domain · port) as the chosen target server',
   '기획서가 말하는 화면에서 시작': 'Starts from the screen the spec describes',
   '화면만 — 기획서 없이 이 화면을 훑습니다': 'Screen only — explores this screen without a spec',
-  '원본 요청 #{번호}의 자료로 대조합니다': "Compares using the original request #{번호}'s inputs",
+  '입력은 원본 요청 #{번호} 것을 그대로 씁니다': 'Uses the inputs of the original request #{번호} as they are',
   '원본 요청 #{번호}의 자료': 'Input of the original request #{번호}',
   '입력 자료': 'Inputs',
   산출물: 'Outputs',

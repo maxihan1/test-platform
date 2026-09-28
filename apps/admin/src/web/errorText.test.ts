@@ -36,6 +36,12 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
     expect(요청오류문장('RUN_NOT_FOUND', 'ko', '5867')).toContain('찾지 못했습니다');
   });
 
+  it('대조 요청을 다시 작성하다 대상 서버가 어긋나면 코드 대신 사람 말로 적는다', () => {
+    expect(요청오류문장('BAD_ENV', 'ko')).toBe('이 대상 서버에는 테스트 계정이 없습니다. 설정 > 서비스에서 테스트 계정을 넣으세요');
+    expect(요청오류문장('BAD_START_URL', 'ko')).toBe('시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다');
+    expect(요청오류문장('BAD_ENV', 'en')).not.toContain('BAD_ENV');
+  });
+
   it('짚어 준 것이 없으면 문장만 쓴다', () => {
     expect(요청오류문장('RUN_NOT_FOUND', 'ko')).not.toContain('—');
   });

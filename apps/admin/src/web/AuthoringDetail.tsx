@@ -142,7 +142,7 @@ export function AuthoringDetail({ service, id, role }: { service: string; id: nu
                       {data.env ?? t('기록 없음')} · {data.startUrl ?? t('기획서가 말하는 화면에서 시작')}
                       {/* 재실행은 입력이 원본 요청에 있다 — 자기 입력이 비어도 화면만이 아니다 */}
                       {data.kind === 'RERUN' ? (
-                        <small>{t('원본 요청 #{번호}의 자료로 대조합니다', { 번호: data.sourceId ?? '—' })}</small>
+                        <small>{t('입력은 원본 요청 #{번호} 것을 그대로 씁니다', { 번호: data.sourceId ?? '—' })}</small>
                       ) : 입력.length === 0 ? (
                         <small>{t('화면만 — 기획서 없이 이 화면을 훑습니다')}</small>
                       ) : null}

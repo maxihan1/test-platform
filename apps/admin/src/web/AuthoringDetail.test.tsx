@@ -316,7 +316,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
       assets: [{ id: 50, position: 1, kind: 'FILE', name: '기획서-표시.docx', figmaUrl: null, size: 10, role: 'MARKED', sourceAssetId: 11 }],
     });
     render(<AuthoringDetail service="PAY" id={7} role="operator" />);
-    expect(await screen.findByText('원본 요청 #3의 자료로 대조합니다')).toBeTruthy();
+    expect(await screen.findByText('입력은 원본 요청 #3 것을 그대로 씁니다')).toBeTruthy();
     expect(screen.queryByText('화면만 — 기획서 없이 이 화면을 훑습니다')).toBeNull();
     expect(screen.getByText('표시 사본 — 원본 요청 #3의 자료')).toBeTruthy();
   });
