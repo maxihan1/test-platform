@@ -8,7 +8,7 @@ import { 에이전트토큰만들기, 에이전트토큰지우기 } from '../aut
 import { 정수 } from '../routeParams.js';
 
 import { 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
-import { 계정고치기, 계정만들기, 계정목록, 비밀번호다시만들기 } from './users.js';
+import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수락, 비밀번호다시만들기 } from './users.js';
 
 // SPEC §2 의 접두사 모양을 코드가 복사해 둔 자리다. §2 를 고치면 여기도 같이 움직인다 (CLAUDE.md §2.7 ⑤).
 // scripts/add-service.ts 가 이것을 가져다 쓴다 — 같은 모양을 두 번 적지 않는다
@@ -74,6 +74,13 @@ const 계정수정 = z.object({
   services: 서비스줄들.optional(),
 });
 
+// 서비스 0개 수락도 받는다 — 들어와서 대시보드만 보는 사람이 있다 (계획 2026-09-28 게이트 1)
+const 수락 = z.object({
+  role: 등급.default('member'),
+  dashboard: 대시보드,
+  services: 서비스줄들,
+});
+
 // 권한 칸(services · dashboard)이 틀린 것은 화면이 따로 알려야 해서 코드를 가른다 (SPEC 도메인/인증 §7).
 // 다른 칸도 같이 틀렸으면 권한만 고치라고 알리면 안 되니 전부 권한 칸일 때만이다
 function 계정본문오류(error: z.ZodError): { error: string; detail?: string } {
@@ -85,6 +92,9 @@ const 코드별상태: Record<string, number> = {
   PREFIX_TAKEN: 409,
   USERNAME_TAKEN: 409,
   LAST_ADMIN: 409,
+  ALREADY_APPROVED: 409,
+  APPROVED_USER: 409,
+  NOT_APPROVED: 409,
   NOT_FOUND: 404,
 };
 
@@ -143,6 +153,18 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     if (!parsed.success) return reply.code(400).send(계정본문오류(parsed.error));
     await 계정고치기(req.params.username, parsed.data);
     return { ok: true };
+  });
+
+  app.post<{ Params: { username: string } }>('/settings/users/:username/approve', async (req, reply) => {
+    const parsed = 수락.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send(계정본문오류(parsed.error));
+    await 계정수락(req.params.username, parsed.data);
+    return { ok: true };
+  });
+
+  app.delete<{ Params: { username: string } }>('/settings/users/:username', async (req, reply) => {
+    await 계정거절(req.params.username);
+    return reply.code(204).send();
   });
 
   app.post<{ Params: { username: string } }>('/settings/users/:username/password', async (req) => ({

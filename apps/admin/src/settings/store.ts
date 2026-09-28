@@ -3,7 +3,14 @@
 
 import type { Pool, PoolClient } from 'pg';
 
-export type 오류코드 = 'PREFIX_TAKEN' | 'USERNAME_TAKEN' | 'LAST_ADMIN' | 'NOT_FOUND';
+export type 오류코드 =
+  | 'PREFIX_TAKEN'
+  | 'USERNAME_TAKEN'
+  | 'LAST_ADMIN'
+  | 'NOT_FOUND'
+  | 'ALREADY_APPROVED'
+  | 'APPROVED_USER'
+  | 'NOT_APPROVED';
 
 export class 설정오류 extends Error {
   constructor(readonly code: 오류코드) {

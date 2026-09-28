@@ -1,5 +1,5 @@
 // 계정을 만들고 고치는 곳 (SPEC §7 설정 API · §8.8). 서비스 쪽과 공용 도우미는 store.ts 에 있다
-// 계정도 **지우지 않는다** — is_active 를 내릴 뿐이다
+// 계정도 **지우지 않는다** — is_active 를 내릴 뿐이다. 예외는 승인 대기 계정의 거절 하나다
 
 import type { PoolClient } from 'pg';
 
@@ -128,6 +128,8 @@ export async function 계정고치기(username: string, 수정: 계정수정): P
     );
     const 현재 = 지금.rows[0];
     if (현재 === undefined) throw new 설정오류('NOT_FOUND');
+    // 승인 대기 계정은 수락·거절로만 움직인다. PATCH 로 권한을 주면 승인 없이 들어올 길이 된다 (SPEC 도메인/인증 §7)
+    if (!현재.is_approved) throw new 설정오류('NOT_APPROVED');
 
     const 내려간다 = (수정.role !== undefined && 수정.role !== 'admin') || 수정.isActive === false;
     if (현재.role === 'admin' && 현재.is_active && 현재.is_approved && 내려간다) {
@@ -150,6 +152,41 @@ export async function 계정고치기(username: string, 수정: 계정수정): P
     );
     if (수정.services !== undefined) await 배정바꾸기(client, username, 수정.services);
   });
+}
+
+export interface 수락입력 {
+  role: 계정등급;
+  dashboard: 대시보드칸;
+  services: 배정줄[];
+}
+
+// 운영자 둘이 동시에 눌러도 한쪽만 이기게 조건을 UPDATE·DELETE 안에 둔다. 못 바꿨으면 다시 읽어 409 와 404 를 가른다
+async function 대기아님(
+  client: Pick<PoolClient, 'query'>,
+  username: string,
+  승인됨코드: 'ALREADY_APPROVED' | 'APPROVED_USER',
+): Promise<never> {
+  const 있나 = await client.query('SELECT 1 FROM app_user WHERE username = $1', [username]);
+  throw new 설정오류(있나.rowCount === 0 ? 'NOT_FOUND' : 승인됨코드);
+}
+
+export async function 계정수락(username: string, 입력: 수락입력): Promise<void> {
+  await 한묶음(async (client) => {
+    const rows = await client.query(
+      `UPDATE app_user SET is_approved = true, role = $2, perm_dashboard = $3
+        WHERE username = $1 AND is_approved = false`,
+      [username, 입력.role, 입력.dashboard],
+    );
+    if (rows.rowCount === 0) await 대기아님(client, username, 'ALREADY_APPROVED');
+    await 배정바꾸기(client, username, 입력.services);
+  });
+}
+
+// 승인된 계정은 지우지 않는다 — 기록이 그 이름을 가리킨다. 거절은 승인 대기에만 (SPEC 도메인/인증 §7)
+export async function 계정거절(username: string): Promise<void> {
+  const pool = await db();
+  const rows = await pool.query('DELETE FROM app_user WHERE username = $1 AND is_approved = false', [username]);
+  if (rows.rowCount === 0) await 대기아님(pool, username, 'APPROVED_USER');
 }
 
 export async function 비밀번호다시만들기(username: string): Promise<string> {

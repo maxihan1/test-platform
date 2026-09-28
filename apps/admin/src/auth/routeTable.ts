@@ -83,6 +83,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/settings/users': 'admin',
   'POST /api/settings/users': 'admin',
   'PATCH /api/settings/users/:username': 'admin',
+  'DELETE /api/settings/users/:username': 'admin',
+  'POST /api/settings/users/:username/approve': 'admin',
   'POST /api/settings/users/:username/password': 'admin',
   'POST /api/settings/users/:username/agent-token': 'admin',
   'DELETE /api/settings/users/:username/agent-token': 'admin',
