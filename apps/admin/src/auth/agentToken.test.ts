@@ -9,8 +9,9 @@ import authoringAgentRoutes from '../authoring/agentRoutes.js';
 import authoringRoutes from '../authoring/routes.js';
 import settingsRoutes from '../settings/routes.js';
 import { 헤더토큰 } from './agentToken.js';
-import { 등급표, 인증등록, 토큰통로 } from './gate.js';
+import { 인증등록 } from './gate.js';
 import { 해시 } from './password.js';
+import { 등급표, 토큰통로 } from './routeTable.js';
 import authRoutes from './routes.js';
 import { 세션등록 } from './session.js';
 

@@ -9,9 +9,6 @@ import { 필요권한, 토큰통로, type 권한값 } from './routeTable.js';
 import { 케이스의서비스, 라우트표, 번호로, 서비스없음, 자원의서비스 } from './scope.js';
 import type { 등급, 사용자 } from './store.js';
 
-// 표는 routeTable.ts 로 뗐다(300줄). 옛 import 자리를 살려 둔다
-export { 등급표, 토큰통로 } from './routeTable.js';
-
 declare module 'fastify' {
   interface FastifyRequest {
     user: 사용자 | null;

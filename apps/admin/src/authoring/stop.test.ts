@@ -3,7 +3,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 등급표, 토큰통로 } from '../auth/gate.js';
+import { 등급표, 토큰통로 } from '../auth/routeTable.js';
 import { 라우트표 } from '../auth/scope.js';
 import authoringAgentRoutes from './agentRoutes.js';
 import authoringAssetRoutes from './assets.js';

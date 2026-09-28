@@ -6,10 +6,10 @@ import { dirname, join, resolve } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 권한이되나, 등급표, 옛자동규칙, 인증등록 } from './gate.js';
+import { 권한이되나, 옛자동규칙, 인증등록 } from './gate.js';
 import { 해시 } from './password.js';
 import { 관리자권한, type 기능, type 서비스권한 } from './permissions.js';
-import { 필요권한 } from './routeTable.js';
+import { 등급표, 필요권한 } from './routeTable.js';
 import authRoutes from './routes.js';
 import { 라우트표 } from './scope.js';
 import { 세션등록 } from './session.js';
