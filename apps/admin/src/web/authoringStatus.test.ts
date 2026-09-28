@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AuthoringProgress, AuthoringRow } from './api.js';
-import { 다시작성되나, 단계자리, 목록글, 시간판, 진척, 짧은수, 활동글 } from './authoringStatus.js';
+import { 다시작성원본, 단계자리, 목록글, 시간판, 진척, 짧은수, 활동글 } from './authoringStatus.js';
 
 const 기준 = Date.parse('2026-09-28T13:20:00Z');
 
@@ -128,6 +128,12 @@ describe('활동글', () => {
 });
 
 describe('목록글', () => {
+  it('올리기 거절로 멈췄으면 거절 까닭 첫 줄을 낸다 — 무엇을 고칠지 목록에서 보인다', () => {
+    expect(
+      목록글(줄({ status: 'STOPPED', stopReason: 'REJECTED', error: '테스트 밖 파일을 고쳤다\n자세히' }), 'ko'),
+    ).toBe('올리기 거절 — 테스트 밖 파일을 고쳤다');
+  });
+
   it('상태마다 사람이 읽는 한 문장을 낸다', () => {
     expect(목록글(줄({ status: 'PENDING', startedAt: null }), 'ko')).toBe('에이전트 순서를 기다리는 중');
     expect(목록글(줄({ status: 'DRAFT', startedAt: null }), 'ko')).toBe('자료 올리기가 끝나지 않았습니다');
@@ -145,19 +151,23 @@ describe('목록글', () => {
   });
 });
 
-describe('다시작성되나', () => {
-  it('작성이 실패·중단이면 된다 — 화면과 대조한 요청도', () => {
-    expect(다시작성되나(줄({ status: 'FAILED' }))).toBe(true);
-    expect(다시작성되나(줄({ status: 'STOPPED' }))).toBe(true);
-    expect(다시작성되나(줄({ status: 'FAILED', compare: true }))).toBe(true);
-    expect(다시작성되나(줄({ status: 'STOPPED', compare: true }))).toBe(true);
+describe('다시작성원본', () => {
+  it('작성이 실패·중단이면 그 요청으로 보낸다 — 화면과 대조한 요청도', () => {
+    expect(다시작성원본(줄({ status: 'FAILED' }))).toBe(1);
+    expect(다시작성원본(줄({ status: 'STOPPED' }))).toBe(1);
+    expect(다시작성원본(줄({ status: 'FAILED', compare: true }))).toBe(1);
+    expect(다시작성원본(줄({ status: 'STOPPED', compare: true }))).toBe(1);
   });
 
-  it('머지 · 재실행 · 폐기한 것 · 끝나지 않은 것은 안 된다', () => {
-    expect(다시작성되나(줄({ status: 'FAILED', kind: 'MERGE' }))).toBe(false);
-    expect(다시작성되나(줄({ status: 'FAILED', kind: 'RERUN' }))).toBe(false);
-    expect(다시작성되나(줄({ status: 'FAILED', discardedAt: '2026-09-28T13:00:00Z' }))).toBe(false);
-    expect(다시작성되나(줄({ status: 'RUNNING' }))).toBe(false);
-    expect(다시작성되나(줄({ status: 'DONE' }))).toBe(false);
+  it('재실행이면 자료를 가진 맨 처음 요청으로 보낸다', () => {
+    expect(다시작성원본(줄({ status: 'STOPPED', kind: 'RERUN', sourceId: 3 }))).toBe(3);
+    expect(다시작성원본(줄({ status: 'FAILED', kind: 'RERUN', sourceId: null }))).toBeNull();
+  });
+
+  it('머지 · 폐기한 것 · 끝나지 않은 것은 안 된다', () => {
+    expect(다시작성원본(줄({ status: 'FAILED', kind: 'MERGE', sourceId: 3 }))).toBeNull();
+    expect(다시작성원본(줄({ status: 'FAILED', discardedAt: '2026-09-28T13:00:00Z' }))).toBeNull();
+    expect(다시작성원본(줄({ status: 'RUNNING' }))).toBeNull();
+    expect(다시작성원본(줄({ status: 'DONE' }))).toBeNull();
   });
 });

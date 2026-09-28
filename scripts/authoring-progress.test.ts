@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  거절로,
   끝낼상태,
   멈추라했나,
   자식제한,
@@ -151,18 +152,29 @@ describe('끝낼상태 — 자식이 끝난 모양으로 끝낼 몸을 고른다
       stopReason: 'TIMEOUT',
     });
   });
-  it('코드≠0 이고 한도면 STOPPED LIMIT · 그 밖은 FAILED', () => {
+  it('코드≠0 이고 한도면 STOPPED LIMIT · 그 밖은 작성 중 끊김(CRASH) — 만든 것이 남아 이어갈 수 있다', () => {
     expect(끝낼상태(r(1), true)).toEqual({
       status: 'STOPPED',
       stopReason: 'LIMIT',
     });
     expect(끝낼상태(r(1), false)).toEqual({
-      status: 'FAILED',
-      error: '케이스를 만들다 멈췄다. 에이전트 기록을 봐라.',
+      status: 'STOPPED',
+      stopReason: 'CRASH',
+      error: '케이스를 만들다 끊겼다. 에이전트 기록을 봐라.',
     });
   });
   it('코드 0 이면 null — 한도 글이 섞여도 올린다', () => {
     expect(끝낼상태(r(0), true)).toBeNull();
+  });
+});
+
+describe('거절로 — 올리기에서 막힌 것은 중단(REJECTED)이다', () => {
+  it('거절 까닭을 error 에 싣는다', () => {
+    expect(거절로('테스트 밖 파일을 고쳤다: package.json')).toEqual({
+      status: 'STOPPED',
+      stopReason: 'REJECTED',
+      error: '테스트 밖 파일을 고쳤다: package.json',
+    });
   });
 });
 

@@ -1,4 +1,4 @@
-// 작성 요청 한 건 상세 페이지. 왼쪽은 Status 카드와 차이, 오른쪽은 해야 할 일과 요청 정보다
+// 작성 요청 한 건 상세 페이지. 왼쪽은 Status 카드와 차이, 오른쪽은 다음 단계와 요청 정보다
 // (도메인/작성 §3.6 · §7 · 도메인/인증 §7 「등급으로 갈리는 자리」 · DESIGN.md 「작성 상태」)
 
 import { useEffect } from 'react';
@@ -134,6 +134,17 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
                 <dd>{when(data.createdAt, 언어)}</dd>
                 <dt>{t('작성 에이전트')}</dt>
                 <dd>{data.claimedBy ?? t('아직 배정 전')}</dd>
+                {/* 이어서 작성한 요청 — 무엇을 이어받았는지 (도메인/작성 §7 「이어하기」) */}
+                {typeof data.resumeFrom === 'number' ? (
+                  <>
+                    <dt>{t('이어받음')}</dt>
+                    <dd>
+                      <a href={`#/authoring/${String(data.resumeFrom)}`}>
+                        {t('작성 요청 #{번호}의 중단 자리에서 이어받음', { 번호: data.resumeFrom })}
+                      </a>
+                    </dd>
+                  </>
+                ) : null}
                 {/* 역방향 (도메인/작성 §3.6 「★ 역방향」). 계정은 이 응답에 없다 — 집기 응답에만 있다 */}
                 {data.compare === true ? (
                   <>

@@ -62,6 +62,8 @@ export interface 요청 {
   stopReason: string | null;
   stopRequestedAt: string | null;
   discardedAt: string | null;
+  // 이어받은 중단 요청 (§7 「이어하기」). 에이전트는 이 번호로 보관 폴더를 찾는다
+  resumeFrom: number | null;
 }
 
 export interface 행 {
@@ -91,6 +93,7 @@ export interface 행 {
   stop_reason: string | null;
   stop_requested_at: Date | null;
   discarded_at: Date | null;
+  resume_from: string | null;
 }
 
 // BIGSERIAL 은 pg 가 문자열로 준다. 화면과 라우트는 숫자로 다루므로 여기서 한 번만 바꾼다
@@ -122,13 +125,41 @@ export function 빚기(r: 행): 요청 {
     stopReason: r.stop_reason,
     stopRequestedAt: r.stop_requested_at?.toISOString() ?? null,
     discardedAt: r.discarded_at?.toISOString() ?? null,
+    resumeFrom: r.resume_from === null ? null : Number(r.resume_from),
   };
 }
 
 export const 칸들 = `id, service_id, kind, source_id, spec_text, params, requested_by, requested_by_name,
               claimed_by, status, stage, stage_at, result, test_source, screenshot_dir, pr_url,
               error, created_at, started_at, finished_at, compare, env, start_url,
-              stop_reason, stop_requested_at, discarded_at`;
+              stop_reason, stop_requested_at, discarded_at, resume_from`;
+
+/** 멈춘 요청의 작업 폴더를 보관하는 날 수. 에이전트는 이 판정을 서버에 물어 따른다 — 사본을 두지 않는다 (§7 「이어하기」) */
+export const 보관일 = 7;
+
+/** `별칭` 행이 보관 기간 안의 살아 있는 중단인가 — 아래 두 식의 바탕 */
+function 보관중(별칭: string): string {
+  return `(${별칭}.status = 'STOPPED' AND ${별칭}.kind IN ('AUTHOR', 'RERUN') AND ${별칭}.discarded_at IS NULL
+           AND ${별칭}.finished_at > now() - interval '${보관일} days')`;
+}
+
+/**
+ * `별칭` 행의 작업 폴더를 남기나 — SQL 참거짓 식. 에이전트가 훑을 때 상세의 keepWorkspace 로 묻는다.
+ * 이어받은 줄이 아직 대기 중이면 기간 · 폐기와 상관없이 참이다 — 넘겨받기 전에 지우면 조용히 처음부터 돈다 (2026-09-28 코드 검사)
+ */
+export function 폴더남기나(별칭: string): string {
+  return `(${보관중(별칭)}
+           OR EXISTS (SELECT 1 FROM authoring_request 이을것 WHERE 이을것.resume_from = ${별칭}.id AND 이을것.status = 'PENDING'))`;
+}
+
+/**
+ * `별칭` 행을 지금 이어받을 수 있나 — SQL 참거짓 식. 상세의 canResume 과 이어서 작성 통로가 같이 쓴다.
+ * 이미 이어받은 줄이 있으면 거짓이다(폴더는 하나). 유일 색인이 동시 누름을 한 번 더 막는다
+ */
+export function 이어받기되나(별칭: string): string {
+  return `(${보관중(별칭)}
+           AND NOT EXISTS (SELECT 1 FROM authoring_request 이은것 WHERE 이은것.resume_from = ${별칭}.id))`;
+}
 
 /**
  * 이 요청의 사진이 들어갈 폴더.
@@ -151,13 +182,15 @@ export async function 줄세우기(입력: {
   이름: string;
   // 대조 원본의 재실행만 채운다 (DB CHECK 가 AUTHOR·RERUN 에만 허락한다)
   대조?: { env: string; startUrl: string | null };
+  // 이어서 작성만 채운다 — 넘겨받을 작업 폴더의 중단 요청 (DB CHECK 가 RERUN 에만 허락한다)
+  이어받기?: number;
 }): Promise<number> {
   const pool = await db();
   const r = await pool.query<{ id: string }>(
     `INSERT INTO authoring_request
        (service_id, kind, source_id, spec_text, params, requested_by, requested_by_name, status,
-        compare, env, start_url)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDING', $8, $9, $10)
+        compare, env, start_url, resume_from)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDING', $8, $9, $10, $11)
      RETURNING id`,
     [
       입력.서비스,
@@ -170,6 +203,7 @@ export async function 줄세우기(입력: {
       입력.대조 !== undefined,
       입력.대조?.env ?? null,
       입력.대조?.startUrl ?? null,
+      입력.이어받기 ?? null,
     ],
   );
   return Number(r.rows[0]!.id);
@@ -221,6 +255,15 @@ export async function 피그마토큰(서비스: number): Promise<string | null>
   );
   const 값 = r.rows[0]?.figma_token ?? null;
   return 값 === '' ? null : 값;
+}
+
+/** 지금 이어서 작성할 수 있나 (§7 「이어하기」). 판정 식은 `이어받기되나` 하나다 */
+export async function 이어받을수있나(id: number): Promise<boolean> {
+  const r = await (await db()).query<{ ok: boolean }>(
+    `SELECT ${이어받기되나('a')} AS ok FROM authoring_request a WHERE a.id = $1`,
+    [id],
+  );
+  return r.rows[0]?.ok === true;
 }
 
 export async function 한건(id: number): Promise<요청 | null> {
