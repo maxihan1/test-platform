@@ -24,6 +24,12 @@
 | security | 주의 | `GF_AUTH_PROXY_WHITELIST` 없음 | 유지 — 망 구성원 셋을 검사가 막는다(위 `d30e52f`) |
 | code | 주의 | `GF_SERVER_ROOT_URL` 의 `%(domain)s` 가 `localhost` — Grafana 가 만드는 절대 링크(공유·알림)가 서버 IP 로 들어온 사람에게 틀린다 | **게이트 2** — 계획 리뷰가 명세 값 그대로로 닫은 자리(`PLATFORM_PUBLIC_URL` 끝 `/` 위험). 화면 이동·`ds/query` 는 실측 200 |
 
+## 게이트 2 결정 (2026-09-28 사용자)
+
+- 승인하고 병합
+- 서비스 경계 — **받아들이고 명세에 적는다** → 도메인/인증 §3.5 대시보드 문단
+- Grafana 설정 — **판만 13.2.2 로 고정**, 링크 주소(`GF_SERVER_ROOT_URL`)는 그대로 → compose · 공통/6 §9.1 · `deploy.test.ts`
+
 ## 계획과 달라진 자리 (spec-review C1 · C5)
 
 - 문은 `auth/gate.ts` 안이 아니라 새 `auth/grafanaGate.ts` — `gate.ts` 300줄 규칙
