@@ -141,7 +141,7 @@ services:
     shm_size: 2g              # Chromium 이 /dev/shm 을 넉넉히 쓴다
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:13.2.2   # 실측한 판으로 고정 — 올릴 때는 auth proxy 확인을 다시 돈다 (SPEC 공통/6 §9.1)
     restart: unless-stopped
     # 바깥 포트를 열지 않는다 (2026-09-28). admin 이 /grafana/ 로 대신 열고 로그인한 사람 이름을 헤더로 넘긴다.
     # Grafana 는 그 헤더를 믿으므로 admin 말고는 닿으면 안 된다 — 러너와 같은 망에 두지 않는다 (도메인/인증 §7 「Grafana 통로」)
