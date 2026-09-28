@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 import type { ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
 import { SCENARIO_PART_MARKER } from '@platform/kit/scenario';
 
-import { appRoot } from './execute.js';
+import { appRoot, tail } from './execute.js';
 import { killTree } from './kill.js';
 
 const scenarioConfig = resolve(appRoot, 'apps/runner/scenario/playwright.config.ts');
@@ -24,18 +24,24 @@ export function scenarioEnv(req: ScenarioExecuteRequest): Record<string, string>
   };
 }
 
-// 표시자 줄만 읽는다. kit 이 흘리는 진행 줄(@@PROGRESS@@)은 historyId 가 숫자가 아니라 여기서 버린다.
-// 제한 시간에 죽이면 마지막 줄이 잘려 있을 수 있다 — 그 줄만 버리고 앞 부품은 살린다
+// 줄 맨 앞의 표시자만 읽는다. kit 이 흘리는 진행 줄(@@PROGRESS@@)은 historyId 가 숫자가 아니라 여기서 버린다.
+// 제한 시간에 죽이면 마지막 줄이 잘려 있을 수 있다 — 그 줄만 버리고 앞 부품은 살린다.
+// **순번이 제 차례인 줄만 받는다.** 케이스 코드도 같은 stdout 에 쓴다 — 뒷 순번 줄을 찍으면 돌지 않은 부품이 PASS 로 보인다.
+// 다음 순번은 새로 받고, 지금 순번은 갈아 끼운다(진짜 줄은 그 부품이 끝난 뒤에 온다). 실패 뒤는 버린다
 export function parseParts(stdout: string): ScenarioPartResult[] {
   const parts: ScenarioPartResult[] = [];
   for (const line of stdout.split('\n')) {
-    const at = line.indexOf(SCENARIO_PART_MARKER);
-    if (at === -1) continue;
+    if (!line.startsWith(SCENARIO_PART_MARKER)) continue;
+    let part: ScenarioPartResult;
     try {
-      parts.push(JSON.parse(line.slice(at + SCENARIO_PART_MARKER.length)) as ScenarioPartResult);
+      part = JSON.parse(line.slice(SCENARIO_PART_MARKER.length)) as ScenarioPartResult;
     } catch (err) {
       console.warn(`[runner] 시나리오 결과 줄을 버린다: ${err instanceof Error ? err.message : String(err)}`);
+      continue;
     }
+    const 마지막 = parts.at(-1);
+    if (part.seq === parts.length && 마지막 !== undefined) parts[parts.length - 1] = part;
+    else if (part.seq === parts.length + 1 && 마지막?.status !== 'FAIL') parts.push(part);
   }
   return parts;
 }
@@ -81,11 +87,6 @@ export function finishScenario(
   return { status, durationMs, parts, ...(사유 === undefined ? {} : { error: { message: 사유 } }) };
 }
 
-function tail(text: string): string {
-  const trimmed = text.trim();
-  return trimmed.length > 2000 ? trimmed.slice(-2000) : trimmed;
-}
-
 // parts 의 case 부품 filePath 는 라우트가 절대 경로로 풀어 넘긴다 — 자식의 작업 폴더가 다르다
 export async function executeScenario(req: ScenarioExecuteRequest): Promise<ScenarioExecuteResponse> {
   const startedAt = Date.now();
@@ -102,10 +103,13 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
     },
   );
 
+  // 조각마다 문자열로 바꾸면 3바이트 한글이 조각 경계에서 깨진다. 부품마다 긴 한글 줄을 흘려 잘 터진다
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
   let stdout = '';
   let stderr = '';
-  child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
-  child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+  child.stdout.on('data', (chunk: string) => { stdout += chunk; });
+  child.stderr.on('data', (chunk: string) => { stderr += chunk; });
 
   let killed = false;
   const timer = setTimeout(() => {
@@ -114,10 +118,13 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
   }, req.timeoutMs);
 
   // spawn 실패(프로세스를 못 띄움)는 러너 자체의 고장이므로 던져서 500으로 올린다
-  await new Promise<number | null>((done, fail) => {
+  const code = await new Promise<number | null>((done, fail) => {
     child.on('error', fail);
     child.on('close', done);
   }).finally(() => clearTimeout(timer));
+
+  // 부품 줄이 다 PASS 인데 자식이 0 아닌 코드로 끝났다 — 뒷정리에서 났다. 판정은 부품 줄이 정본이라 남기기만 한다
+  if (!killed && code !== 0) console.warn(`[runner] 시나리오 자식이 ${String(code)} 로 끝났다: ${tail(stderr)}`);
 
   return finishScenario(parseParts(stdout), req.parts.length, killed, Date.now() - startedAt, tail(stderr) || tail(stdout));
 }

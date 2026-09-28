@@ -186,8 +186,12 @@ describe('POST /execute-scenario — 입구 검사', () => {
     ['케이스 부품에 파일 경로가 없다', { parts: [케이스()] }],
     ['케이스 파일이 테스트 뿌리 밖이다', { parts: [케이스('../package.json')] }],
     ['조립 목록이 너무 크다 — 환경변수 하나로 넘긴다', {
-      parts: [{ kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body: 'x'.repeat(100_001) }],
+      parts: [{ kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body: 'x'.repeat(120_001) }],
     }],
+    ['조립 목록이 바이트로 너무 크다 — 한글은 한 글자가 3바이트다', {
+      parts: [{ kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body: '가'.repeat(45_000) }],
+    }],
+    ['제한 시간이 60분을 넘는다', { timeoutMs: 3_600_001 }],
   ])('%s 이면 400 INVALID_REQUEST 다', async (_이름, 칸) => {
     const res = await 보냄(요청(칸));
 

@@ -15,7 +15,7 @@ import type { CaseHandle } from './defineCase.js';
 import { recordHttpTrace } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
 import { STEP_ATTACHMENT } from './protocol.js';
-import { registerScenarioCase, scenarioModeOn, type ScenarioCaseRunner } from './scenario.js';
+import { registerScenarioCase, type ScenarioCaseRunner } from './scenario.js';
 import { step, StopTest } from './step.js';
 
 export interface CaseBodyArgs<P, E> {
@@ -145,7 +145,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   if (process.env.PLATFORM_SCAN === '1') return;
 
   // 러너 고정 spec 이 조립 목록대로 불러 쓴다. 그때도 Playwright 에 등록하지 않는다 (SPEC 공통/3-공유계약 §5.1)
-  if (scenarioModeOn()) {
+  if (process.env.PLATFORM_SCENARIO_MODE === '1') {
     registerScenarioCase(spec.tcId, scenarioRunner(spec, body));
     return;
   }

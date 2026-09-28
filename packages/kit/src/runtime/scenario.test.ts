@@ -5,8 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defineCase } from './defineCase.js';
-import { SCENARIO_PART_MARKER } from './protocol.js';
-import { scenarioCase, 부품줄, type ScenarioCaseInput } from './scenario.js';
+import { scenarioCase, type ScenarioCaseInput } from './scenario.js';
 import { test } from './test.js';
 import { verify } from './verify.js';
 
@@ -105,13 +104,5 @@ describe('시나리오 모드', () => {
     expect(결과.failed).toBe(true);
     expect(결과.error?.message).toBe('XKS-001은 모바일 환경을 선언하지 않았다');
     expect(결과.steps).toEqual([]);
-  });
-
-  it('부품 결과 줄은 표시자 + JSON 한 줄이다', () => {
-    const 줄 = 부품줄({ seq: 1, status: 'PASS', durationMs: 3, steps: [], mocks: ['**/pay'] });
-
-    expect(줄.startsWith(SCENARIO_PART_MARKER)).toBe(true);
-    expect(줄.endsWith('\n')).toBe(true);
-    expect(JSON.parse(줄.slice(SCENARIO_PART_MARKER.length))).toMatchObject({ seq: 1, mocks: ['**/pay'] });
   });
 });

@@ -1,5 +1,6 @@
 // 시나리오 실측 — 러너가 진짜 Playwright 자식을 띄워 가짜 케이스를 한 브라우저에서 잇는다. 인터넷 없이 돈다
 // 워커 stdout 되돌려 쓰기 · kit 인스턴스 · 전용 설정의 testMatch 는 단위 검사로 원리상 안 보여 여기서만 잡힌다 (LEARNINGS 2026-09-21 [WS-C])
+// desktop 만 돈다 — CI 는 chromium 만 받는다. 모바일(iPhone 은 webkit) 디바이스 판정은 kit scenario.test.ts 가 브라우저 없이 본다
 
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -73,11 +74,5 @@ describe('시나리오 실측 (브라우저)', () => {
 
     expect(결과.status).toBe('PASS');
     expect(결과.parts[1]!.mocks).toEqual(['https://xsf.invalid/**']);
-  }, 90_000);
-
-  it('시나리오 디바이스를 선언하지 않은 케이스는 그 부품 실패로 멈춘다', async () => {
-    const 결과 = await executeScenario({ ...요청([케이스('XSF-001')]), platform: 'mobile' });
-
-    expect(결과.parts[0]).toMatchObject({ status: 'FAIL', error: { message: 'XSF-001은 모바일 환경을 선언하지 않았다' } });
   }, 90_000);
 });

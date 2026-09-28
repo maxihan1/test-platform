@@ -80,7 +80,7 @@ export function resolveSpecPath(root: string, filePath: string): string | null {
   return full;
 }
 
-function tail(text: string): string {
+export function tail(text: string): string {
   const trimmed = text.trim();
   return trimmed.length > 2000 ? trimmed.slice(-2000) : trimmed;
 }

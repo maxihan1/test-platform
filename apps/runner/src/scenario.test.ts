@@ -17,6 +17,28 @@ describe('parseParts', () => {
     expect(parseParts(stdout)).toEqual([줄({ seq: 1 })]);
   });
 
+  it('순번이 제 차례인 줄만 받는다 — 케이스가 뒷 순번 줄을 찍어도 돌지 않은 부품이 PASS 로 안 된다', () => {
+    const stdout = [줄({ seq: 1 }), 줄({ seq: 3 }), 줄({ seq: 2 })].map(흘림).join('');
+
+    expect(parseParts(stdout).map((p) => p.seq)).toEqual([1, 2]);
+  });
+
+  it('지금 순번과 같은 줄은 갈아 끼운다 — 진짜 줄은 케이스가 끝난 뒤에 온다', () => {
+    const stdout = [줄({ seq: 1, status: 'PASS' }), 줄({ seq: 1, status: 'FAIL' })].map(흘림).join('');
+
+    expect(parseParts(stdout)).toEqual([줄({ seq: 1, status: 'FAIL' })]);
+  });
+
+  it('실패한 부품 뒤의 줄은 버린다', () => {
+    const stdout = [줄({ seq: 1, status: 'FAIL' }), 줄({ seq: 2 })].map(흘림).join('');
+
+    expect(parseParts(stdout).map((p) => p.seq)).toEqual([1]);
+  });
+
+  it('표시자는 줄 맨 앞에서만 읽는다 — 대상 화면 본문을 찍은 줄에 섞여도 안 받는다', () => {
+    expect(parseParts(`화면: ${흘림(줄({ seq: 1 }))}`)).toEqual([]);
+  });
+
   it('잘린 마지막 줄은 버리고 앞 부품은 살린다', () => {
     const stdout = `${흘림(줄({ seq: 1 }))}@@SCENARIO_PART@@{"seq":2,"sta`;
 

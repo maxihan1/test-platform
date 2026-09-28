@@ -55,8 +55,9 @@ const scenarioPart = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('wait'), ms: z.number().int().positive().max(60_000) }),
 ]);
 
-// 조립 목록은 환경변수 하나로 넘긴다. 리눅스는 값 하나를 128KiB 로 자른다 — 넘으면 자식을 못 띄워 500 이 된다
-const 목록상한 = 100_000;
+// 조립 목록은 환경변수 하나로 넘긴다. 리눅스는 값 하나를 128KiB **바이트**로 자른다 — 넘으면 자식을 못 띄워 500 이 된다.
+// 한글은 한 글자가 3바이트라 글자 수로 재면 빠져나간다. 절대 경로로 푼 뒤에 잰다
+const 목록상한 = 120_000;
 
 const scenarioRequest = z
   .object({
@@ -66,10 +67,10 @@ const scenarioRequest = z
     platform: z.enum(['desktop', 'mobile']),
     baseUrl: z.string(),
     parts: z.array(scenarioPart).min(1),
-    timeoutMs: z.number().int().positive(),
+    // 시나리오 제한 시간은 60분을 넘지 않는다 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
+    timeoutMs: z.number().int().positive().max(3_600_000),
   })
-  .refine((r) => r.runId !== null || r.trialId !== undefined, '시험 실행에는 trialId 가 있어야 한다')
-  .refine((r) => JSON.stringify(r.parts).length <= 목록상한, `조립 목록이 ${목록상한}자를 넘는다`);
+  .refine((r) => r.runId !== null || r.trialId !== undefined, '시험 실행에는 trialId 가 있어야 한다');
 
 // 실행 묶음 전체를 끊는 일은 admin이 자기가 아는 historyId를 하나씩 부르는 것으로 한다.
 // runId 단위 중단을 여기 두면 러너가 실행 묶음을 알아야 한다 (SPEC §5.2)
@@ -121,6 +122,9 @@ export function registerRoutes(app: FastifyInstance): void {
         return reply.code(404).send({ error: 'CASE_NOT_FOUND', detail: part.filePath });
       }
       parts.push({ ...part, filePath: specPath });
+    }
+    if (Buffer.byteLength(JSON.stringify(parts)) > 목록상한) {
+      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `조립 목록이 ${목록상한}바이트를 넘는다` });
     }
 
     try {

@@ -3,7 +3,7 @@
 
 import type { APIRequestContext, Page } from '@playwright/test';
 
-import type { ScenarioPartResult, StepResult } from '../types.js';
+import type { StepResult } from '../types.js';
 import { SCENARIO_PART_MARKER } from './protocol.js';
 
 // 러너가 결과 줄을 가를 때 같은 표시자를 봐야 한다
@@ -42,20 +42,12 @@ function 등록부(): Map<string, ScenarioCaseRunner> {
   return g[열쇠];
 }
 
-export function scenarioModeOn(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.PLATFORM_SCENARIO_MODE === '1';
-}
-
 export function registerScenarioCase(tcId: string, runner: ScenarioCaseRunner): void {
   등록부().set(tcId, runner);
 }
 
-// 꺼내도 지우지 않는다. 같은 케이스를 두 번 쓰면 두 번째 import 는 캐시라 다시 등록하지 않는다
+// 꺼내도 지우지 않는다. 같은 케이스를 두 번 쓰면 두 번째 import 는 캐시라 다시 등록하지 않는다.
+// 러너 고정 spec 은 이것을 안 부르고 같은 등록부를 wire.ts 로 직접 읽는다 — kit 검사와 wire.test 가 쓰는 통로다
 export function scenarioCase(tcId: string): ScenarioCaseRunner | undefined {
   return 등록부().get(tcId);
-}
-
-// 부품이 끝날 때마다 한 줄. 끝에 한 번만 내면 제한 시간에 죽였을 때 어디까지 갔는지가 사라진다 (SPEC 도메인/러너 §5.2)
-export function 부품줄(result: ScenarioPartResult): string {
-  return `${SCENARIO_PART_MARKER}${JSON.stringify(result)}\n`;
 }
