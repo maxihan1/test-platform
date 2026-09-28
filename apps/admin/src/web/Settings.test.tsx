@@ -32,8 +32,9 @@ const 계정: UserRow = {
   username: 'zst1',
   displayName: '김설정',
   role: 'admin',
+  dashboard: 'read',
   isActive: true,
-  services: ['ZST'],
+  services: [{ prefix: 'ZST', permissions: { cases: 'read', runs: 'read', authoring: 'read' } }],
 };
 
 function 사람(role: User['role']): User {
