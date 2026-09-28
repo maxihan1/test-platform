@@ -325,6 +325,12 @@ export interface AuthoringRow {
   /** 누를 수 있는지 서버가 잰다 — 화면은 요청한 사람을 모른다 */
   canStop?: boolean;
   canDiscard?: boolean;
+  /** 이어하기 (도메인/작성 §7 「이어하기」). 이어받은 중단 요청 — 목록에도 온다 */
+  resumeFrom?: number | null;
+  /** 상세에만 — 지금 이어서 작성할 수 있나 · 언제까지 · 누가 이어받았나 */
+  canResume?: boolean;
+  resumeUntil?: string | null;
+  resumedBy?: number | null;
 }
 
 /** 에이전트가 30초마다 올리는 진척. 모양은 서버가 가둔다 (도메인/작성 §7) */
@@ -616,7 +622,7 @@ export const api = {
     service: string,
     body:
       | { kind: 'AUTHOR'; figma: string[]; compare?: true; env?: string; startUrl?: string }
-      | { kind: 'RERUN'; sourceId: number },
+      | { kind: 'RERUN'; sourceId: number; resume?: true },
   ) => call<{ id: number }>(`/authoring/requests?service=${encodeURIComponent(service)}`, json(body)),
 
   /** 파일 바이트를 그대로 보낸다. 이름은 본문에 자리가 없어 주소에 싣는다 */

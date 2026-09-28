@@ -1,4 +1,4 @@
-// 작성 중단·폐기·진척 칸과 제약 검사 — STOPPED ↔ 이유·누가 짝 · 이유 다섯 (SPEC 공통/4-데이터모델 「작성 중단 · 폐기 · 진척 칸」)
+// 작성 중단·폐기·진척 칸과 제약 검사 — STOPPED ↔ 이유·누가 짝 · 이유 (SPEC 공통/4-데이터모델 「작성 중단 · 폐기 · 진척 칸」)
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 

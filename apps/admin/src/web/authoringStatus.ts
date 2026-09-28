@@ -119,6 +119,8 @@ export function 목록글(행: AuthoringRow, 언어: 언어): string {
   if (행.status === 'RUNNING') return 행.stage === null ? t('준비', 언어) : 단계글라벨(행.stage, 언어);
   if (행.status === 'FAILED') return 행.error?.split('\n')[0] ?? t('실패', 언어);
   if (행.status === 'STOPPED') {
+    // 거절은 고칠 것이 까닭에 있다 — 몇 단계에서 멈췄는지보다 그것이 먼저다 (작성 §7 「이어하기」)
+    if (행.stopReason === 'REJECTED' && 행.error) return `${t('올리기 거절', 언어)} — ${행.error.split('\n')[0]}`;
     if (행.startedAt === null) return t('시작 전에 멈췄습니다', 언어);
     const 칸 = 단계자리(행)?.지금 ?? 0;
     return t('{단계} 단계에서 멈췄습니다', 언어, { 단계: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
@@ -137,14 +139,12 @@ export function 짧은수(n: number): string {
 }
 
 /**
- * 「같은 자료로 다시 작성」(RERUN)을 낼 수 있나. 서버 규칙의 사본이다 — 정본은 도메인/작성 §7 RERUN:
- * 원본이 AUTHOR 여야 한다 — 대조 요청도 된다(재실행이 대조 설정을 물려받는다, 2026-09-28).
+ * 「같은 자료로 다시 작성」(RERUN)을 어느 요청으로 보내나 — 못 내면 null. 서버 규칙의 사본이다 — 정본은 도메인/작성 §7 RERUN:
+ * 원본은 AUTHOR 여야 한다 — 대조 요청도 된다(2026-09-28). 재실행이면 자료를 가진 맨 처음 요청으로 보낸다(이어하기, 2026-09-28).
  * 폐기한 원본도 서버가 거절한다. 버튼을 안 그리는 것은 편의이고 서버가 다시 막는다
  */
-export function 다시작성되나(행: AuthoringRow): boolean {
-  return (
-    행.kind === 'AUTHOR' &&
-    (행.discardedAt ?? null) === null &&
-    (행.status === 'FAILED' || 행.status === 'STOPPED')
-  );
+export function 다시작성원본(행: AuthoringRow): number | null {
+  if ((행.discardedAt ?? null) !== null || (행.status !== 'FAILED' && 행.status !== 'STOPPED')) return null;
+  if (행.kind === 'AUTHOR') return 행.id;
+  return 행.kind === 'RERUN' ? (행.sourceId ?? null) : null;
 }

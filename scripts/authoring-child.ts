@@ -4,20 +4,12 @@
 import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type 계정, type 사본, type 파일모양, 남은사본, 부품링크, 사본제외, 사본준비, 사본자리 } from './authoring-copy.js';
+import { type 계정, type 사본, type 파일모양, 부품링크, 사본제외, 사본준비, 사본자리 } from './authoring-copy.js';
 import { type 돌린결과, 도는자식, 돌린다, 멈춤, 쉬기, 친다 } from './authoring-io.js';
 
 /** 자리 uid 로 띄우는 것의 환경. 토큰을 하나도 안 싣는다 — 같은 uid 의 남은 것이 /proc 로 읽는다 */
 const 빈환경 = { PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' };
 
-/** 켤 때 바탕에 남은 사본을 지운다. 꺼지며 끊긴 건은 `멈춘것닫기` 가 실패로 닫았다 */
-export function 남은사본치우기(바탕: string): void {
-  mkdirSync(바탕, { recursive: true, mode: 0o755 });
-  for (const 이름 of 남은사본(readdirSync(바탕))) {
-    rmSync(join(바탕, 이름), { recursive: true, force: true });
-    console.log(`[정리] 남은 사본을 지웠다: ${join(바탕, 이름)}`);
-  }
-}
 
 /**
  * 사본을 만든다. 실패하면 까닭을 내고 만들던 것을 치운다. 뿌리는 root 0755, git 은 root 0700,
@@ -46,10 +38,8 @@ export async function 사본만들기(
 async function 만들기(자리: 사본, 원천: string, 원격주소: string, sha: string, 자식: 계정 | null): Promise<string | null> {
   rmSync(자리.뿌리, { recursive: true, force: true });
   mkdirSync(자리.뿌리, { recursive: true, mode: 0o755 });
-  for (const 폴더 of [자리.트리, 자리.집, 자리.자료, 자리.gh, 자리.임시]) mkdirSync(폴더, { mode: 0o700 });
-  mkdirSync(join(자리.집, '.claude'));
-  // 자식이 관문(테스트 3회)을 돌리려면 셸이 열려 있어야 한다. 집이 작업마다 새것이라 매번 쓴다
-  writeFileSync(join(자리.집, '.claude', 'settings.json'), '{"permissions":{"allow":["Bash(*)"]}}\n');
+  for (const 폴더 of [자리.트리, 자리.자료, 자리.gh]) mkdirSync(폴더, { mode: 0o700 });
+  새집(자리);
 
   for (const c of 사본준비(자리, 원천, 원격주소, sha)) {
     const r = await 돌린다(c.명령, c.인자, { cwd: 자리.뿌리, env: process.env, 제한: 300_000 });
@@ -69,6 +59,17 @@ async function 만들기(자리: 사본, 원천: string, 원격주소: string, s
     }
   }
   return null;
+}
+
+/** 자식의 집과 임시를 새로 만든다. 이어받을 때도 새로 — 앞 실행의 전역 설정·캐시를 물려주지 않는다 */
+export function 새집(자리: 사본): void {
+  for (const 폴더 of [자리.집, 자리.임시]) {
+    rmSync(폴더, { recursive: true, force: true });
+    mkdirSync(폴더, { mode: 0o700 });
+  }
+  mkdirSync(join(자리.집, '.claude'));
+  // 자식이 관문(테스트 3회)을 돌리려면 셸이 열려 있어야 한다. 집이 작업마다 새것이라 매번 쓴다
+  writeFileSync(join(자리.집, '.claude', 'settings.json'), '{"permissions":{"allow":["Bash(*)"]}}\n');
 }
 
 /**

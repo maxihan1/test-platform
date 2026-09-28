@@ -20,7 +20,7 @@ export interface 진척 {
   lastActionAt?: string;
 }
 
-/** 자식 한 번의 제한. 60분이던 때 5872 가 관문 2 에서 걸려 결과를 잃었다 — 이어하기가 생기기 전까지의 조치 (작성 §7 TIMEOUT) */
+/** 자식 한 번의 제한. 60분이던 때 5872 가 관문 2 에서 걸려 결과를 잃었다. 이어하기가 생긴 뒤에도 120분 — 한 번에 끝날 확률이 높고, 이어갈 때마다 파일을 다시 읽는다 (작성 §7 TIMEOUT) */
 export const 자식제한 = 120 * 60_000;
 
 const 수 = (n: number | undefined) => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
@@ -76,7 +76,7 @@ export function 케이스파일들(폴더: string): Set<string> {
 }
 
 /** 자식 시작 때 본 목록에 없던 것 — 고친 옛 케이스는 안 센다 */
-export function 새케이스수(폴더: string, 전: Set<string>): number {
+export function 새케이스수(폴더: string, 전: ReadonlySet<string>): number {
   let n = 0;
   for (const p of 케이스파일들(폴더)) if (!전.has(p)) n += 1;
   return n;
@@ -89,9 +89,16 @@ export function 화면수(폴더: string): number {
 
 /** 자식을 띄우기 직전에 부른다 — 이때 본 케이스는 옛것이고 이때부터 시간을 잰다. 화면 폴더는 역방향만 준다.
  * 케이스는 자식이 쓰는 `tests/<폴더>` 에서 센다 — 트리 바로 아래를 세서 늘 0 이었다 */
-export function 진척재기(누적: ReturnType<typeof 진척누적기>, 트리: string, 폴더: string, 화면폴더?: string): () => 진척 {
+export function 진척재기(
+  누적: ReturnType<typeof 진척누적기>,
+  트리: string,
+  폴더: string,
+  화면폴더?: string,
+  // 처음 사본에 있던 케이스. 이어받은 실행도 앞 실행이 만든 것까지 누적으로 센다 (작성 §7 「이어하기」)
+  옛것?: ReadonlySet<string>,
+): () => 진척 {
   const 케이스폴더 = join(트리, 'tests', 폴더);
-  const 전 = 케이스파일들(케이스폴더);
+  const 전 = 옛것 ?? 케이스파일들(케이스폴더);
   const 시작 = Date.now();
   return () =>
     누적.스냅샷({
@@ -110,10 +117,17 @@ export function 끝낼상태(
   if (r.시간초과) return { status: 'STOPPED', stopReason: 'TIMEOUT' };
   if (r.코드 === 0) return null;
   if (한도) return { status: 'STOPPED', stopReason: 'LIMIT' };
+  // 일하다 끊긴 것이라 만든 것이 남는다 — 다시 해도 같은 결과(FAILED)가 아니라 이어갈 수 있는 중단이다 (작성 §7)
   return {
-    status: 'FAILED',
-    error: '케이스를 만들다 멈췄다. 에이전트 기록을 봐라.',
+    status: 'STOPPED',
+    stopReason: 'CRASH',
+    error: '케이스를 만들다 끊겼다. 에이전트 기록을 봐라.',
   };
+}
+
+/** 올리기에서 막힌 것 — 다 만든 케이스가 남아 거절 까닭만 고치면 이어간다 (작성 §7 REJECTED) */
+export function 거절로(까닭: string): Record<string, unknown> {
+  return { status: 'STOPPED', stopReason: 'REJECTED', error: 까닭 };
 }
 
 /** stage 응답(`부른다` 의 답)에 멈추라는 말이 있나 */

@@ -25,6 +25,7 @@ import { 모양보기, 트리실제 } from './authoring-child.js';
 import { type 자료, 자료출처 } from './authoring-assets.js';
 import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
 import { type 표시준비물, 산출물보내기, 표시올리기, 표시준비 } from './authoring-marking.js';
+import { 거절로 } from './authoring-progress.js';
 import {
   계정섞였나,
   글모두,
@@ -118,12 +119,14 @@ export async function 올리기(
   역?: 역방향올리기,
 ): Promise<void> {
   const 깃 = 사본환경(자리);
+  // 거절 까닭은 화면과 이어받는 자식의 프롬프트로 간다 — 자식이 정한 파일 이름에 계정 원문이 섞일 수 있어 모두 거른다
+  const 거절 = (까닭: string) => 거절로(사유거르기(까닭, 것.target?.loginPassword));
   const 트리에서 = (명령: string, 인자: string[]) => 친다(명령, 인자, 자리.트리, undefined, 120_000, { env: 깃 });
 
   await 손.단계('올리는 중');
   const 상태 = 트리에서('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall']);
   if (!상태.ok) {
-    await 손.끝내기({ status: 'FAILED', error: `바뀐 파일을 못 읽었다: ${상태.까닭}` });
+    await 손.끝내기(거절(`바뀐 파일을 못 읽었다: ${상태.까닭}`));
     return;
   }
   const 파일들 = 바뀐파일들(상태.낸것);
@@ -131,7 +134,7 @@ export async function 올리기(
   const 테스트만 = (목록: string[]) => 판정(목록, 기준, 자리.트리, 깃);
   const 거부 = 푸시거부사유(테스트만(파일들), 파일들);
   if (거부 !== null) {
-    await 손.끝내기({ status: 'FAILED', error: 거부 });
+    await 손.끝내기(거절(거부));
     return;
   }
 
@@ -141,7 +144,7 @@ export async function 올리기(
   ] as const) {
     const r = 트리에서('git', [...인자]);
     if (!r.ok) {
-      await 손.끝내기({ status: 'FAILED', error: `${설명}가 실패했다: ${r.까닭}` });
+      await 손.끝내기(거절(`${설명}가 실패했다: ${r.까닭}`));
       return;
     }
   }
@@ -155,7 +158,7 @@ export async function 올리기(
       ? 커밋뒤거부사유(테스트만(전체), 전체, Number(커밋수.낸것.trim()))
       : '커밋한 뒤 차이를 못 읽었다';
   if (뒤거부 !== null) {
-    await 손.끝내기({ status: 'FAILED', error: 뒤거부 });
+    await 손.끝내기(거절(뒤거부));
     return;
   }
 
@@ -166,7 +169,7 @@ export async function 올리기(
     트리실제(자리),
   );
   if (모양거부 !== null) {
-    await 손.끝내기({ status: 'FAILED', error: 모양거부 });
+    await 손.끝내기(거절(모양거부));
     return;
   }
   const 읽기 = (f: string) => (모양보기(자리.트리, f).종류 === '파일' ? readFileSync(join(자리.트리, f), 'utf8') : '');
@@ -177,7 +180,7 @@ export async function 올리기(
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
   if (비밀섞였나([본문글, ...전체.map(읽기)], 것.figmaToken)) {
-    await 손.끝내기({ status: 'FAILED', error: '올릴 파일이나 PR 본문에 피그마 토큰이 들어 있다 — 올리지 않는다' });
+    await 손.끝내기(거절('올릴 파일이나 PR 본문에 피그마 토큰이 들어 있다 — 올리지 않는다'));
     return;
   }
   // 역방향 — push 전에 올릴 글 전부(케이스·PR 본문·차이·역기획서)에서 테스트 계정 비밀번호를 찾는다 (§3.6 「남는 한계」)
@@ -187,7 +190,7 @@ export async function 올리기(
     const 차이파일 = 산출물읽기(자리, 'diffs.json', 글상한);
     const 원고파일 = 산출물읽기(자리, 'reverse-spec.md', 글상한);
     if ('사유' in 차이파일 || '사유' in 원고파일) {
-      await 손.끝내기({ status: 'FAILED', error: '사유' in 차이파일 ? 차이파일.사유 : ('사유' in 원고파일 ? 원고파일.사유 : '') });
+      await 손.끝내기(거절('사유' in 차이파일 ? 차이파일.사유 : ('사유' in 원고파일 ? 원고파일.사유 : '')));
       return;
     }
     const 차이글 = 차이파일.몸?.toString('utf8') ?? null;
@@ -202,7 +205,7 @@ export async function 올리기(
     const 표시 = 역 === undefined ? null : await 표시준비(역, 자료출처(것), 서비스, 역.입력자료, 것.figmaToken, diffs, 비밀);
     const 샌것 = (준비 !== null && '누설' in 준비) || (표시 !== null && '누설' in 표시);
     if (샘 !== null || 계정섞였나(글모두(diffs), 비밀) || 샌것) {
-      await 손.끝내기({ status: 'FAILED', error: '올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' });
+      await 손.끝내기(거절('올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다'));
       return;
     }
     const 남길말 = [
@@ -224,7 +227,7 @@ export async function 올리기(
     return r.ok ? { 값: true } : push실패(r);
   });
   if ('까닭' in 올림) {
-    await 손.끝내기({ status: 'FAILED', error: 사유거르기(`push 가 실패했다: ${올림.까닭}`, 비밀) });
+    await 손.끝내기(거절(사유거르기(`push 가 실패했다: ${올림.까닭}`, 비밀)));
     return;
   }
 
@@ -238,7 +241,7 @@ export async function 올리기(
     return r.ok && 주소.startsWith('https://') ? { 값: 주소 } : { 까닭: r.까닭 || 'PR 주소가 안 찍혔다' };
   });
   if ('까닭' in PR) {
-    await 손.끝내기({ status: 'FAILED', error: 사유거르기(`PR 을 못 만들었다: ${PR.까닭}`, 비밀) });
+    await 손.끝내기(거절(사유거르기(`PR 을 못 만들었다: ${PR.까닭}`, 비밀)));
     return;
   }
   if (역결과 === null || 역 === undefined) {

@@ -10,7 +10,7 @@ import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
-import { 줄세우기, 한건, 한쪽, type 요청, type 상태 } from './store.js';
+import { 이어받을수있나, 줄세우기, 한건, 한쪽, type 요청, type 상태 } from './store.js';
 
 /**
  * 사진이 내려앉는 뿌리.
@@ -156,12 +156,20 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       if (['compare', 'env', 'startUrl'].some((칸) => req.body?.[칸] !== undefined)) {
         return reply.code(400).send({ error: 'BAD_ENV' });
       }
-      const 행 = await 원본확인(req.body?.sourceId, 서비스, reply);
-      if (행 === null) return reply;
+      const 받은것 = await 원본확인(req.body?.sourceId, 서비스, reply);
+      if (받은것 === null) return reply;
+      // 이어서 작성 — 받은 것은 멈춘 그 행이고, 그 행의 작업 폴더를 넘겨받는다 (§7 「이어하기」).
+      // 멈춘 것이 이어받은 재실행이어도 된다. 자료와 대조 설정은 맨 처음 작성 요청 것이다
+      const 이어서 = req.body?.resume === true;
+      if (이어서 && !(await 이어받을수있나(받은것.id))) {
+        return reply.code(409).send({ error: 'NOT_RESUMABLE' });
+      }
+      const 행 = 이어서 && 받은것.kind === 'RERUN' && 받은것.sourceId !== null ? await 한건(받은것.sourceId) : 받은것;
       // 재실행은 원본의 자료를 다시 읽는다. 원본이 재실행·머지면 자료가 없고, DRAFT 면 아직 다 안 올라왔다
-      // 폐기한 원본도 다시 안 돌린다 — 목록에서 치운 것이 재실행으로 되살아난다 (§7 「중단 · 폐기 · 진척」)
-      if (행.kind !== 'AUTHOR' || 행.status === 'DRAFT' || 행.discardedAt !== null) {
-        return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행.kind} ${행.status}` });
+      // 폐기한 원본도 다시 안 돌린다 — 목록에서 치운 것이 재실행으로 되살아난다 (§7 「중단 · 폐기 · 진척」).
+      // 이어서 작성은 멈춘 행의 폐기를 위에서 봤다 — 맨 처음 요청을 폐기해도 멈춘 행이 살아 있으면 이어간다
+      if (행 === null || 행.kind !== 'AUTHOR' || 행.status === 'DRAFT' || (!이어서 && 행.discardedAt !== null)) {
+        return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행?.kind} ${행?.status}` });
       }
       // 대조 원본이면 같은 대상 서버·시작 주소를 물려받는다 — 없으면 정방향으로 돌거나(대조) 읽을 입력이 없어 늘 실패한다(화면만).
       // 만든 뒤 계정이 빠졌을 수 있어 작성 요청과 같은 판정을 다시 한다 — 줄에서 한참 기다린 뒤 실패하지 않게 (2026-09-28 게이트 1)
@@ -169,17 +177,26 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         ? await 역방향칸판정({ compare: true, env: 행.env, startUrl: 행.startUrl }, 서비스)
         : ({ compare: false } as const);
       if ('error' in 대조) return reply.code(400).send({ error: 대조.error });
-      const id = await 줄세우기({
-        서비스,
-        kind,
-        원본: 행.id,
-        기획서: null,
-        값,
-        누가,
-        이름,
-        ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
-      });
-      return reply.code(201).send({ id });
+      try {
+        const id = await 줄세우기({
+          서비스,
+          kind,
+          원본: 행.id,
+          기획서: null,
+          값,
+          누가,
+          이름,
+          ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
+          ...(이어서 ? { 이어받기: 받은것.id } : {}),
+        });
+        return reply.code(201).send({ id });
+      } catch (e) {
+        // 둘이 동시에 눌렀다 — 위 판정은 둘 다 통과하고 유일 색인이 뒤엣것을 막는다
+        if (이어서 && (e as { constraint?: string }).constraint === 'authoring_request_resume_from_once') {
+          return reply.code(409).send({ error: 'NOT_RESUMABLE' });
+        }
+        throw e;
+      }
     },
   );
 

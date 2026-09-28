@@ -26,6 +26,12 @@ describe('작성 에이전트 컨테이너(author)', () => {
     expect(author).toMatch(/- \/dev\/null:\/repo\/\.env:ro/);
   });
 
+  it('작업 폴더(/work)는 이름 붙은 볼륨이다 — 중단된 작성의 보관 폴더가 컨테이너를 다시 만들어도 남는다', () => {
+    expect(author).toMatch(/AUTHORING_WORK_DIR:\s*\/work\b/);
+    expect(author).toMatch(/- author_work:\/work\b/);
+    expect(compose).toMatch(/^ {2}author_work:\s*\{\}/m);
+  });
+
   it('DB 가 있는 기본 망에 붙지 않는다 — admin 하고만 같은 망이다', () => {
     expect(author).toMatch(/networks:\s*\[\s*authoring\s*\]/);
     expect(author).not.toMatch(/networks:.*default/);

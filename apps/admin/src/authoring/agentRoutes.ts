@@ -214,12 +214,14 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     }
     // AGENT_LOST 는 서버만 쓴다. USER 는 사람이 실제로 멈춰 달라고 했을 때만 — 멈춘 사람을 거기서 가져온다 (§7)
     const stopReason = req.body?.stopReason;
-    const 멈춤이유 = ['USER', 'TIMEOUT', 'LIMIT', 'AGENT_RESTART'].find((v) => v === stopReason);
+    const 멈춤이유 = ['USER', 'TIMEOUT', 'LIMIT', 'AGENT_RESTART', 'CRASH', 'REJECTED'].find((v) => v === stopReason);
+    // 올리기 거절은 까닭이 이어갈 자식에게 가는 지시다 — 비면 무엇을 고칠지 모른다 (§7 REJECTED)
+    const 거절까닭있나 = 멈춤이유 !== 'REJECTED' || (typeof req.body?.error === 'string' && req.body.error !== '');
     // 머지는 멈추는 통로가 없다 — 멈춘 머지가 오면 에이전트가 규칙을 어긴 것이다
     const 이유맞나 =
       status === 'STOPPED'
         ? 행.kind !== 'MERGE' &&
-          멈춤이유 !== undefined && (멈춤이유 !== 'USER' || 행.stopRequestedAt !== null)
+          멈춤이유 !== undefined && (멈춤이유 !== 'USER' || 행.stopRequestedAt !== null) && 거절까닭있나
         : stopReason === undefined;
     if (!이유맞나) return reply.code(400).send({ error: 'BAD_STOP' });
 

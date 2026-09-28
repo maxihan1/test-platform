@@ -70,12 +70,14 @@ describe('작성 줄 한 줄을 어떻게 보이나', () => {
 });
 
 describe('중단 이유를 사람 말로', () => {
-  it('이유 다섯을 각각 사람 말로 낸다', () => {
+  it('이유마다 사람 말로 낸다', () => {
     expect(중단이유라벨('USER', 'ko')).toBe('사용자가 멈춤');
     expect(중단이유라벨('TIMEOUT', 'ko')).toBe('시간초과');
     expect(중단이유라벨('LIMIT', 'ko')).toBe('구독 한도');
     expect(중단이유라벨('AGENT_RESTART', 'ko')).toBe('에이전트 재시작');
     expect(중단이유라벨('AGENT_LOST', 'ko')).toBe('에이전트 응답 없음');
+    expect(중단이유라벨('CRASH', 'ko')).toBe('작성 중 끊김');
+    expect(중단이유라벨('REJECTED', 'ko')).toBe('올리기 거절');
   });
 
   it('모르는 값이나 빈 값은 기록 없음이다. 식별자를 화면에 흘리지 않는다', () => {
