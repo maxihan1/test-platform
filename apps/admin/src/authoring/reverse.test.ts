@@ -304,11 +304,37 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
       },
     );
 
-    it('원본이 역방향이면 409 BAD_SOURCE — 역방향은 새 요청으로 넣는다', async () => {
-      const 원본 = await 끝난원본({ kind: 'AUTHOR', compare: true, env: 'qa' });
+    it.each([{ startUrl: 'https://qa.xwv.test/orders' }, { startUrl: undefined }])(
+      '원본이 역방향이면 재실행이 대조 설정을 물려받는다 — 시작 주소 $startUrl',
+      async ({ startUrl }) => {
+        const 원본 = await 끝난원본({ kind: 'AUTHOR', compare: true, env: 'qa', ...(startUrl ? { startUrl } : {}) });
+        const res = await 만들기({ kind: 'RERUN', sourceId: 원본 });
+        expect(res.statusCode).toBe(201);
+        expect(await 한건(res.json<{ id: number }>().id)).toMatchObject({
+          kind: 'RERUN',
+          sourceId: 원본,
+          status: 'PENDING',
+          compare: true,
+          env: 'qa',
+          startUrl: startUrl ?? null,
+        });
+      },
+    );
+
+    it('입력 자료 없이 화면만 훑은 원본도 다시 돌린다', async () => {
+      const 원본 = await 끝난원본({ kind: 'AUTHOR', compare: true, env: 'qa', startUrl: 'https://qa.xwv.test/' });
       const res = await 만들기({ kind: 'RERUN', sourceId: 원본 });
-      expect(res.statusCode).toBe(409);
-      expect(res.json()).toMatchObject({ error: 'BAD_SOURCE' });
+      expect(res.statusCode).toBe(201);
+      expect(await 한건(res.json<{ id: number }>().id)).toMatchObject({ compare: true, startUrl: 'https://qa.xwv.test/' });
+    });
+
+    it('원본 뒤에 대상 서버의 테스트 계정이 빠졌으면 400 BAD_ENV — 줄에 서기 전에 알린다', async () => {
+      const { pool } = await import('../db/index.js');
+      const 원본 = await 끝난원본({ kind: 'AUTHOR', compare: true, env: 'qa' });
+      await pool.query(`UPDATE authoring_request SET env = 'prod' WHERE id = $1`, [원본]);
+      const res = await 만들기({ kind: 'RERUN', sourceId: 원본 });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'BAD_ENV' });
     });
 
     it('정방향 원본의 재실행은 그대로 된다', async () => {
