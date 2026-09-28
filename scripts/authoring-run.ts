@@ -31,7 +31,7 @@ import { 머지처리 } from './authoring-merge.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
 import { 사용량보고, 흐름풀기 } from './authoring-usage.js';
-import { 끝낼상태, 진척누적기, 진척재기 } from './authoring-progress.js';
+import { 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './authoring-progress.js';
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 폴더자리 } from './authoring-token.js';
 
@@ -242,10 +242,10 @@ async function 사본에서(
   const 화면만 = 것.target !== undefined && Boolean(것.target.startUrl) && 자료들.length === 0;
   const 역방향 = 것.target === undefined ? undefined : { 화면만, 산출물폴더: join(자리.자료, 'out') };
   const 인자 = 클로드인자(자리.자료, 판.모델);
-  const 제한 = 60 * 60_000;
+  const 제한 = 자식제한;
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다 (작성 §7 「중단 · 폐기 · 진척」)
   const 누적 = 진척누적기(제한 / 1000, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });
-  const 재기 = 진척재기(누적, join(자리.트리, 케이스자리), 역방향 === undefined ? undefined : join(자리.자료, 'screens'));
+  const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'));
   const 돌린것 = await 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,

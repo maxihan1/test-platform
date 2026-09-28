@@ -40,7 +40,7 @@ describe('작성 줄 한 줄을 어떻게 보이나', () => {
     expect(줄보임(줄({ status: 'RUNNING', stage: '케이스 2건째', stageAt: 방금 }), 지금)).toBe('running');
   });
 
-  it('단계가 오래 안 바뀌었으면 멈춘 듯이다. 맥이 죽어도 화면이 도는 중이라고 말하면 안 된다', () => {
+  it('단계가 오래 안 바뀌었으면 응답 없음이다. 맥이 죽어도 화면이 도는 중이라고 말하면 안 된다', () => {
     const 오래전 = new Date(지금 - 멈춘듯기준 - 1000).toISOString();
     expect(줄보임(줄({ status: 'RUNNING', stage: '관문 3', stageAt: 오래전 }), 지금)).toBe('stalled');
   });

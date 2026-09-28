@@ -8,7 +8,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   끝낼상태,
   멈추라했나,
+  자식제한,
   진척누적기,
+  진척재기,
   케이스파일들,
   새케이스수,
   화면수,
@@ -24,12 +26,13 @@ const 턴 = (id: string, input: number, output: number, content: unknown[] = [{ 
         input_tokens: input,
         output_tokens: output,
         cache_read_input_tokens: 999,
+        cache_creation_input_tokens: 5000,
       },
     },
   });
 
 describe('진척누적기 — 흐름 줄을 먹여 토큰·마지막 동작을 모은다', () => {
-  it('메시지 id 마다 마지막 사본의 입력+출력만 센다 — 캐시는 안 센다', () => {
+  it('메시지 id 마다 마지막 사본의 입력+출력+캐시 읽기를 센다 — 캐시 쓰기는 안 센다', () => {
     const 누적 = 진척누적기(3600);
     누적.먹기(턴('a', 10, 1));
     누적.먹기(턴('a', 10, 50));
@@ -40,7 +43,7 @@ describe('진척누적기 — 흐름 줄을 먹여 토큰·마지막 동작을 �
       elapsedSec: 5,
       limitSec: 3600,
       caseFiles: 2,
-      tokens: 70,
+      tokens: 70 + 999 * 2,
       lastAction: '· Read',
     });
   });
@@ -84,6 +87,12 @@ describe('진척누적기 — 흐름 줄을 먹여 토큰·마지막 동작을 �
   });
 });
 
+describe('자식제한', () => {
+  it('자식 한 번은 120분이다', () => {
+    expect(자식제한).toBe(120 * 60_000);
+  });
+});
+
 describe('파일 세기', () => {
   let 자리 = '';
   afterEach(() => rmSync(자리, { recursive: true, force: true }));
@@ -100,6 +109,16 @@ describe('파일 세기', () => {
     writeFileSync(join(폴더, 'NEW-2.spec.ts'), '');
     writeFileSync(join(폴더, 'helper.ts'), '');
     expect(새케이스수(폴더, 전)).toBe(2);
+  });
+
+  it('진척재기는 자식이 쓰는 tests/<폴더> 에서 센다', () => {
+    자리 = mkdtempSync(join(tmpdir(), 'progress-'));
+    const 재기 = 진척재기(진척누적기(60), 자리, 'mkt');
+    mkdirSync(join(자리, 'tests', 'mkt'), { recursive: true });
+    writeFileSync(join(자리, 'tests', 'mkt', 'MKT-1.spec.ts'), '');
+    mkdirSync(join(자리, 'mkt'));
+    writeFileSync(join(자리, 'mkt', 'ELSE-1.spec.ts'), '');
+    expect(재기().caseFiles).toBe(1);
   });
 
   it('화면수 — screens/*.md 만 센다 · 폴더가 없으면 0', () => {

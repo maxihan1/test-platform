@@ -153,8 +153,8 @@ export function AuthoringStatusCard({ 요청, 지금, service }: { 요청: Autho
             <b>{p.screens === undefined ? '—' : t('{수}장', { 수: p.screens })}</b>
           </div>
           <div>
-            {/* 도는 중에는 흐름 줄에서 센 하한값이다. 끝난 뒤 정산값은 Grafana 「작성 토큰」이 본다 */}
-            <span className="status-label">{도는중 ? t('토큰(지금까지)') : t('토큰')}</span>
+            {/* 캐시 읽기를 넣은 값이라 Grafana 「작성 토큰」(입력+출력)보다 수십 배 크다 — 라벨로 드러낸다 */}
+            <span className="status-label">{도는중 ? t('토큰 (캐시 읽기 포함 · 지금까지)') : t('토큰 (캐시 읽기 포함)')}</span>
             <b>{짧은수(p.tokens)}</b>
           </div>
         </div>

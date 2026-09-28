@@ -328,7 +328,7 @@ export interface AuthoringProgress {
   elapsedSec: number;
   limitSec: number;
   caseFiles: number;
-  /** 입력+출력. 진행 중이라 하한값이다 */
+  /** 입력+출력+캐시 읽기. 진행 중이라 하한값이다 */
   tokens: number;
   /** 역방향만 */
   screens?: number;
