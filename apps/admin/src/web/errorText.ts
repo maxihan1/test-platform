@@ -44,21 +44,25 @@ export const 오류말: Record<string, string> = {
   INVALID_REQUEST: '넣은 값 중에 모양이 다른 것이 있습니다',
 };
 
-const 등급표: Record<string, string> = {
-  viewer: '보기만',
-  operator: '실행까지',
-  admin: '운영',
+// 서버 gate.ts 의 FORBIDDEN 이 싣는 `need` — 'admin' 이거나 「기능:칸」이다 (도메인/인증 §7).
+// 문장을 통째로 적는다. 기능 이름을 끼워 맞추면 영어 어순이 안 맞는다
+const 권한문장: Record<string, string> = {
+  'cases:read': '이 서비스에서 케이스 읽기 권한이 없습니다',
+  'cases:write': '이 서비스에서 케이스 쓰기 권한이 없습니다',
+  'runs:read': '이 서비스에서 실행 읽기 권한이 없습니다',
+  'runs:write': '이 서비스에서 실행 쓰기 권한이 없습니다',
+  'authoring:read': '이 서비스에서 작성 읽기 권한이 없습니다',
+  'authoring:write': '이 서비스에서 작성 쓰기 권한이 없습니다',
 };
 
 /**
- * 등급이 모자란 자리는 서버가 `need` 로 필요한 등급을 알려 준다 (`gate.ts` 의 FORBIDDEN).
- * **아는 등급일 때만 이름을 적는다** — 모르는 값을 그대로 끼워 넣으면
+ * **아는 값일 때만 이름을 적는다** — 모르는 값을 그대로 끼워 넣으면
  * 「이 일에는 '요청이 실패했다 (403)' 등급이 필요합니다」 같은 문장이 나온다 (2026-09-19 실측)
  */
 function 등급문장(need: string, 언어: 언어): string {
-  const 이름 = 등급표[need];
-  if (이름 === undefined) return t('이 일을 할 수 있는 등급이 아닙니다', 언어);
-  return t('이 일에는 「{등급}」 등급이 필요합니다', 언어, { 등급: t(이름, 언어) });
+  if (need === 'admin') return t('이 일에는 「{등급}」 등급이 필요합니다', 언어, { 등급: t('운영', 언어) });
+  const 문장 = 권한문장[need];
+  return t(문장 ?? '이 일을 할 수 있는 등급이 아닙니다', 언어);
 }
 
 /**

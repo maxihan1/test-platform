@@ -47,6 +47,12 @@ export const 오류영어: Record<string, string> = {
   // 등급과 마지막 폴백
   '이 일을 할 수 있는 등급이 아닙니다': 'Your role cannot do this',
   '이 일에는 「{등급}」 등급이 필요합니다': 'This needs the {등급} role',
+  '이 서비스에서 케이스 읽기 권한이 없습니다': 'You do not have read access to cases in this service',
+  '이 서비스에서 케이스 쓰기 권한이 없습니다': 'You do not have write access to cases in this service',
+  '이 서비스에서 실행 읽기 권한이 없습니다': 'You do not have read access to runs in this service',
+  '이 서비스에서 실행 쓰기 권한이 없습니다': 'You do not have write access to runs in this service',
+  '이 서비스에서 작성 읽기 권한이 없습니다': 'You do not have read access to authoring in this service',
+  '이 서비스에서 작성 쓰기 권한이 없습니다': 'You do not have write access to authoring in this service',
   '요청이 실패했습니다 ({코드})': 'Request failed ({코드})',
 
   // 증적 문서 버튼 — 문서 **내용**은 한국어 고정이고 이건 버튼 글자다

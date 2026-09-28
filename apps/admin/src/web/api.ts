@@ -3,7 +3,7 @@
 
 import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
 
-import type { 등급 } from './role.js';
+import type { 권한칸, 등급 } from './role.js';
 
 export type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult };
 
@@ -242,12 +242,17 @@ export interface ServiceRow {
   hasSlackWebhook: boolean;
   /** 케이스 폴더 이름. 선택으로 둔 건 기존 화면 검사의 가짜 응답이 이 값을 안 담아서다 */
   testsDir?: string;
+  /** 이 서비스에서의 기능별 칸. admin 은 서버가 전부 write 로 채운다 (도메인/인증 §3.5) */
+  permissions: 권한칸;
 }
 
 export interface User {
   username: string;
   displayName: string;
   role: 등급;
+  /** 대시보드는 서비스가 아니라 사람의 칸이다 (도메인/인증 §3.5) */
+  dashboard: 'none' | 'read';
+  mustChangePassword: boolean;
   services: ServiceRow[];
 }
 
@@ -257,7 +262,7 @@ export interface User {
  * 띠의 `ServiceRow` 와 다르다 — 그쪽은 **배정받은 것만** 오고 여기는 **전부** 온다.
  * 비활성까지 포함한다. 설정 화면은 내려 둔 것도 봐야 다시 올릴 수 있다.
  */
-export interface SettingsServiceRow extends ServiceRow {
+export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
   /**
    * 토큰 칸을 「설정됨」으로 그릴지. 토큰 자체는 오지 않는다 (도메인/인증 §8.8).
    * 서버는 늘 싣는다. 선택으로 둔 것은 이 칸을 모르는 기존 화면 검사의 가짜 행을 안 고치려고다 — 없으면 「안 넣음」으로 읽는다
