@@ -80,6 +80,19 @@ export function 못읽는자료(계획: 읽을자료[], 플랫폼: string = proc
   return `${이름들} 은 옛 워드(.doc)라 서버가 못 읽는다. .docx 나 PDF 로 저장해 다시 올려라.`;
 }
 
+/**
+ * 글자로 바꾼 뒤 지울 원본 자리. 역방향은 가린 글자본만 남긴다 — 원본 워드가 옆에 있으면 자식이 풀어 비밀번호를 본다 (2026-09-29 계획 검토).
+ * 표시 사본은 서버에서 원본을 다시 받으므로 여기서 지워도 된다
+ */
+export function 지울원본(계획: 읽을자료[]): string[] {
+  return 계획.flatMap((c) => (c.kind === 'FILE' && c.변환 !== null ? [c.받을자리] : []));
+}
+
+/** 글자 파일인가 — NUL 이 없으면 글자로 보고 가려 다시 쓴다. 그림·PDF 는 건드리지 않는다 */
+export function 글자인가(바이트: Uint8Array): boolean {
+  return !바이트.subarray(0, 8000).includes(0);
+}
+
 /** 자료를 읽을 행 번호. 재실행 행은 자기 자료가 없고 원본의 자료를 다시 읽는다 (도메인/작성 §7) */
 export function 자료출처(것: { id: number; kind: string; sourceId?: number | null }): number {
   return 것.kind === 'RERUN' && typeof 것.sourceId === 'number' ? 것.sourceId : 것.id;
