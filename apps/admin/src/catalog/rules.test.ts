@@ -103,6 +103,24 @@ describe('checkSource', () => {
     expect(rules(정상.replace('await verify(', 'await expect('))).toContain('K7');
   });
 
+  it('K12 — 한 케이스 안에서 절차 제목이 겹치면 둘째 절차를 가리킨다', () => {
+    const 겹침 = 정상.replace(
+      '  });\n});',
+      "  });\n  await test.step('화면을 연다', async () => {\n    await verify('제목이 보인다', true, true);\n  });\n});",
+    );
+    const found = checkSource('x.spec.ts', 겹침).violations.filter((x) => x.rule === 'K12');
+    expect(found.map((x) => x.line)).toEqual([17]);
+    expect(found[0]?.what).toContain('화면을 연다');
+  });
+
+  it('K12 — 제목이 서로 다르면 위반이 없다', () => {
+    const 다름 = 정상.replace(
+      '  });\n});',
+      "  });\n  await test.step('다시 연다', async () => {\n    await verify('제목이 보인다', true, true);\n  });\n});",
+    );
+    expect(rules(다름)).toEqual([]);
+  });
+
   it('defineCase의 키마다 줄 번호를 남긴다', () => {
     const { propLines } = checkSource('x.spec.ts', 정상);
     expect(propLines.get('tcId')).toBe(5);
