@@ -110,10 +110,17 @@ export function 끝낼상태(
   if (r.시간초과) return { status: 'STOPPED', stopReason: 'TIMEOUT' };
   if (r.코드 === 0) return null;
   if (한도) return { status: 'STOPPED', stopReason: 'LIMIT' };
+  // 일하다 끊긴 것이라 만든 것이 남는다 — 다시 해도 같은 결과(FAILED)가 아니라 이어갈 수 있는 중단이다 (작성 §7)
   return {
-    status: 'FAILED',
-    error: '케이스를 만들다 멈췄다. 에이전트 기록을 봐라.',
+    status: 'STOPPED',
+    stopReason: 'CRASH',
+    error: '케이스를 만들다 끊겼다. 에이전트 기록을 봐라.',
   };
+}
+
+/** 올리기에서 막힌 것 — 다 만든 케이스가 남아 거절 까닭만 고치면 이어간다 (작성 §7 REJECTED) */
+export function 거절로(까닭: string): Record<string, unknown> {
+  return { status: 'STOPPED', stopReason: 'REJECTED', error: 까닭 };
 }
 
 /** stage 응답(`부른다` 의 답)에 멈추라는 말이 있나 */
