@@ -18,7 +18,7 @@ const 실패목록최대 = 5;
  * `ui.tsx` 의 `seconds()` 를 쓰지 않는다 — 소수 둘째 자리까지 적고 분으로 올리지 않아
  * 제한 5분이 「300.00초」로 나온다. 2초마다 바뀌는 자리라 소수점도 읽기를 방해한다.
  */
-function 시간글자(ms: number, 언어: 언어): string {
+export function 시간글자(ms: number, 언어: 언어): string {
   const 초 = Math.round(ms / 1000);
   if (초 < 60) return t('{초}초', 언어, { 초 });
   const 남은초 = 초 % 60;

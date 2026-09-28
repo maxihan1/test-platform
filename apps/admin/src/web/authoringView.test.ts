@@ -25,10 +25,10 @@ function 줄(덮을것: Partial<AuthoringRow>): AuthoringRow {
 }
 
 describe('작성 줄 한 줄을 어떻게 보이나', () => {
-  it('자료를 올리는 중(DRAFT)이면 준비 중이다. 대기라고 하면 기다리면 되는 줄로 읽는다', () => {
+  it('자료를 올리는 중(DRAFT)이면 자료 올리는 중이다. 대기라고 하면 기다리면 되는 줄로 읽는다', () => {
     const 보 = 줄보임(줄({ status: 'DRAFT' }), 지금);
     expect(보).toBe('draft');
-    expect(보임라벨(보, 'ko')).toBe('준비 중');
+    expect(보임라벨(보, 'ko')).toBe('자료 올리는 중');
   });
 
   it('아직 아무도 안 집었으면 대기다', () => {

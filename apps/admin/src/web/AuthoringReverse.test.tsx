@@ -61,7 +61,7 @@ function 시작주소를적는다(값: string) {
 }
 
 function 보내기(): HTMLButtonElement {
-  return screen.getByRole('button', { name: '보내기' }) as HTMLButtonElement;
+  return screen.getByRole('button', { name: '테스트 작성 시작' }) as HTMLButtonElement;
 }
 
 describe('새 요청 — 실제 화면과 대조', () => {
@@ -207,13 +207,13 @@ function 자료(id: number, 덮을것: Partial<NonNullable<AuthoringRow['assets'
 async function 상세를연다(행: AuthoringRow) {
   상세답 = 행;
   render(<AuthoringDetail service="PAY" id={7} role="operator" />);
-  await screen.findByText('상태');
+  await screen.findByText('요청 정보');
 }
 
 describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
   it('대조 요청은 대상 서버와 시작 주소를 보인다', async () => {
     await 상세를연다(줄({ compare: true, env: 'qa', startUrl: 'https://qa.example.com/orders', assets: [자료(1, { name: '기획서.docx' })] }));
-    expect(screen.getByText('실제 화면과 대조')).toBeTruthy();
+    expect(screen.getByText('대조할 화면')).toBeTruthy();
     expect(screen.getByText('qa · https://qa.example.com/orders')).toBeTruthy();
   });
 
@@ -229,7 +229,7 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
 
   it('정방향 요청에는 대조 줄이 없다', async () => {
     await 상세를연다(줄({ compare: false, env: null, startUrl: null }));
-    expect(screen.queryByText('실제 화면과 대조')).toBeNull();
+    expect(screen.queryByText('대조할 화면')).toBeNull();
   });
 
   it('산출물은 입력 자료와 따로 적고 무엇의 사본인지 보인다', async () => {
