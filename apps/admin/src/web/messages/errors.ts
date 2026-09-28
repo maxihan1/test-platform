@@ -3,7 +3,7 @@
 
 export const 오류영어: Record<string, string> = {
   // 배정과 세션
-  '이 서비스에 배정받지 않았습니다. 운영 등급인 사람에게 배정을 요청합니다':
+  '이 서비스에 배정받지 않았습니다. 운영 계정인 사람에게 배정을 요청합니다':
     'You are not assigned to this service. Ask an admin to assign you.',
   '로그인이 풀렸습니다. 다시 로그인합니다': 'Your session ended. Please sign in again.',
   '어느 서비스인지 고르지 않았습니다. 맨 위 띠에서 서비스를 고릅니다':
@@ -47,6 +47,12 @@ export const 오류영어: Record<string, string> = {
   // 등급과 마지막 폴백
   '이 일을 할 수 있는 등급이 아닙니다': 'Your role cannot do this',
   '이 일에는 「{등급}」 등급이 필요합니다': 'This needs the {등급} role',
+  '이 서비스에서 케이스 읽기 권한이 없습니다': 'You do not have read access to cases in this service',
+  '이 서비스에서 케이스 쓰기 권한이 없습니다': 'You do not have write access to cases in this service',
+  '이 서비스에서 실행 읽기 권한이 없습니다': 'You do not have read access to runs in this service',
+  '이 서비스에서 실행 쓰기 권한이 없습니다': 'You do not have write access to runs in this service',
+  '이 서비스에서 작성 읽기 권한이 없습니다': 'You do not have read access to authoring in this service',
+  '이 서비스에서 작성 쓰기 권한이 없습니다': 'You do not have write access to authoring in this service',
   '요청이 실패했습니다 ({코드})': 'Request failed ({코드})',
 
   // 증적 문서 버튼 — 문서 **내용**은 한국어 고정이고 이건 버튼 글자다

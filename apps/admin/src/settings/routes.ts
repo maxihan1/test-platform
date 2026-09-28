@@ -7,16 +7,8 @@ import { z } from 'zod';
 import { 에이전트토큰만들기, 에이전트토큰지우기 } from '../auth/agentToken.js';
 import { 정수 } from '../routeParams.js';
 
-import {
-  계정고치기,
-  계정만들기,
-  계정목록,
-  비밀번호다시만들기,
-  서비스고치기,
-  서비스만들기,
-  서비스목록,
-  설정오류,
-} from './store.js';
+import { 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
+import { 계정고치기, 계정만들기, 계정목록, 비밀번호다시만들기 } from './users.js';
 
 // SPEC §2 의 접두사 모양을 코드가 복사해 둔 자리다. §2 를 고치면 여기도 같이 움직인다 (CLAUDE.md §2.7 ⑤).
 // scripts/add-service.ts 가 이것을 가져다 쓴다 — 같은 모양을 두 번 적지 않는다
@@ -52,21 +44,42 @@ const 서비스수정 = z.object({
   figmaToken: z.string().optional(),
 });
 
-const 등급 = z.enum(['viewer', 'operator', 'admin']);
+const 등급 = z.enum(['member', 'admin']);
+const 권한 = z.enum(['none', 'read', 'write']);
+const 대시보드 = z.enum(['none', 'read']);
+
+// 셋 다 none 인 줄은 받지 않는다 — 배정을 풀려면 줄을 뺀다 (SPEC 도메인/인증 §7 「services[] 한 줄」)
+const 서비스줄 = z.object({
+  prefix: z.string(),
+  permissions: z
+    .object({ cases: 권한, runs: 권한, authoring: 권한 })
+    .refine((p) => p.cases !== 'none' || p.runs !== 'none' || p.authoring !== 'none'),
+});
+// 같은 접두사가 두 번이면 저장이 ON CONFLICT DO NOTHING 으로 뒤엣것을 조용히 버린다. 어느 쪽을 뜻했는지 모르니 받지 않는다
+const 서비스줄들 = z.array(서비스줄).refine((줄들) => new Set(줄들.map((줄) => 줄.prefix)).size === 줄들.length);
 
 const 새계정 = z.object({
   username: z.string().min(1),
   displayName: z.string().min(1),
   role: 등급,
-  services: z.array(z.string()).default([]),
+  dashboard: 대시보드,
+  services: 서비스줄들.default([]),
 });
 
 const 계정수정 = z.object({
   displayName: z.string().min(1).optional(),
   role: 등급.optional(),
+  dashboard: 대시보드.optional(),
   isActive: z.boolean().optional(),
-  services: z.array(z.string()).optional(),
+  services: 서비스줄들.optional(),
 });
+
+// 권한 칸(services · dashboard)이 틀린 것은 화면이 따로 알려야 해서 코드를 가른다 (SPEC 도메인/인증 §7).
+// 다른 칸도 같이 틀렸으면 권한만 고치라고 알리면 안 되니 전부 권한 칸일 때만이다
+function 계정본문오류(error: z.ZodError): { error: string; detail?: string } {
+  const 권한칸 = error.issues.every((i) => i.path[0] === 'services' || i.path[0] === 'dashboard');
+  return 권한칸 ? { error: 'PERMISSIONS_SHAPE' } : { error: 'INVALID_REQUEST', detail: error.message };
+}
 
 const 코드별상태: Record<string, number> = {
   PREFIX_TAKEN: 409,
@@ -119,9 +132,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
 
   app.post('/settings/users', async (req, reply) => {
     const parsed = 새계정.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
-    }
+    if (!parsed.success) return reply.code(400).send(계정본문오류(parsed.error));
     // 이 응답이 비밀번호를 볼 수 있는 **유일한 자리**다. 다음부터는 다시 만들 수만 있다 (SPEC §8.8)
     const tempPassword = await 계정만들기(parsed.data);
     return reply.code(201).send({ username: parsed.data.username, tempPassword });
@@ -129,9 +140,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
 
   app.patch<{ Params: { username: string } }>('/settings/users/:username', async (req, reply) => {
     const parsed = 계정수정.safeParse(req.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
-    }
+    if (!parsed.success) return reply.code(400).send(계정본문오류(parsed.error));
     await 계정고치기(req.params.username, parsed.data);
     return { ok: true };
   });

@@ -3,7 +3,7 @@
 
 import type { RunSummary, ServiceRow, User } from './api.js';
 import { 기본언어, t, type 언어 } from './i18n.js';
-import { 할수있나, type 등급 } from './role.js';
+import { 기능보나, 할수있나 } from './role.js';
 import { 도는중 } from './runState.js';
 import { 미확정글자, 판정없음 } from './unconfirmed.js';
 
@@ -49,19 +49,20 @@ function 그래프주소(): string {
 }
 
 /**
- * 자리 목록 (SPEC §8).
+ * 자리 목록 (화면공통 §8 「자리 목록」).
  *
- * 설정은 운영 등급에게만 뜬다. **흐리게 두지 않고 아예 없다** —
+ * 기능이 `none` 이면 그 자리가 없고, 설정은 운영 계정에게만 뜬다. **흐리게 두지 않고 아예 없다** —
  * 누를 수 없는 메뉴가 있으면 사람이 그것이 올 때까지 기다린다 (§8.6).
+ * 케이스·작성·실행은 **고른 서비스**의 칸을 보고, 그래프는 사람의 대시보드 칸을 본다.
  */
-export function 자리목록(role: 등급 | null, 언어: 언어): 자리[] {
-  const 기본: 자리[] = [
-    { 이름: t('테스트 케이스', 언어), 해시: '#/cases' },
-    { 이름: t('테스트 작성', 언어), 해시: '#/authoring' },
-    { 이름: t('실행 기록', 언어), 해시: '#/runs' },
-    { 이름: t('그래프', 언어), 해시: 그래프주소(), 바깥: true },
-  ];
-  return 할수있나(role, '설정') ? [...기본, { 이름: t('설정', 언어), 해시: '#/settings' }] : 기본;
+export function 자리목록(user: User, prefix: string | null, 언어: 언어): 자리[] {
+  const 목록: 자리[] = [];
+  if (기능보나(user, prefix, 'cases')) 목록.push({ 이름: t('테스트 케이스', 언어), 해시: '#/cases' });
+  if (기능보나(user, prefix, 'authoring')) 목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring' });
+  if (기능보나(user, prefix, 'runs')) 목록.push({ 이름: t('실행 기록', 언어), 해시: '#/runs' });
+  if (user.dashboard === 'read') 목록.push({ 이름: t('그래프', 언어), 해시: 그래프주소(), 바깥: true });
+  if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings' });
+  return 목록;
 }
 
 /**
@@ -74,11 +75,13 @@ export function 자리목록(role: 등급 | null, 언어: 언어): 자리[] {
  * `main.tsx` 안에 두면 그 파일이 `createRoot` 를 모듈 자리에서 불러 **검사할 수가 없다.**
  * 판단은 여기, 그림은 거기 (이 파일 머리 주석과 같은 규칙).
  */
-export function 지금자리(name: string): string {
+export function 지금자리(name: string, 집: string): string {
   if (name === 'runs' || name === 'run' || name === 'item') return '#/runs';
   if (name === 'authoring' || name === 'authoringItem') return '#/authoring';
   if (name === 'settings') return '#/settings';
-  return '#/cases';
+  // 케이스가 none 인 사람의 집은 케이스가 아니다 — 집은 route.ts 의 `집()` 이 권한으로 고른다
+  if (name === 'cases' || name === 'setup') return '#/cases';
+  return 집;
 }
 
 /**
@@ -158,16 +161,20 @@ export interface 빈띠 {
  * 배정받은 서비스가 하나도 없는 사람이 보는 것.
  *
  * 「하나도 없다」만 말하고 왜인지 안 말하면 사람이 할 수 있는 일이 없다 (§8.1 빈 목록과 같은 성질).
- * 운영 등급은 스스로 풀 수 있다 — 새 서비스를 만든 운영자는 자기 자신을 배정해야 한다 (§3.5).
+ * 운영 계정은 스스로 풀 수 있다 — 새 서비스를 만든 운영자는 자기 자신을 배정해야 한다 (§3.5).
  *
  * **설정 화면만은 덮지 않는다** (2026-09-19 실측). 안내가 「설정에서 배정하세요」라고 보내 놓고
  * 설정을 눌러도 같은 안내가 떴다 — 서비스가 0개인 첫 운영자는 **영영 빠져나올 수 없었다.**
  * 설정은 서비스에 배정돼야 쓰는 화면이 아니라 **그 배정을 만드는 화면**이라 성질이 다르다.
  */
-export function 빈띠사유(user: User, 언어: 언어, 지금자리?: string): 빈띠 | null {
+export function 빈띠사유(user: User, prefix: string | null, 언어: 언어, 지금자리?: string): 빈띠 | null {
+  // 넷 다 none 이면 서비스 0건보다 이것이 먼저다 — 배정을 받아도 칸이 없으면 볼 것이 없다 (화면공통 §8)
+  if (자리목록(user, prefix, 언어).length === 0) {
+    return { 무엇: t('권한을 받지 않았습니다. 운영자에게 요청하세요', 언어), 다음: '' };
+  }
   if (user.services.length > 0) return null;
 
-  const 설정을열수있나 = 할수있나(user.role, '설정');
+  const 설정을열수있나 = 할수있나(user, prefix, '설정');
   // 설정을 못 여는 등급에게는 설정 자리도 길이 아니다. 비워 두면 왜 빈지 알 수 없다
   if (지금자리 === '#/settings' && 설정을열수있나) return null;
 
@@ -175,7 +182,7 @@ export function 빈띠사유(user: User, 언어: 언어, 지금자리?: string):
     무엇: t('아직 배정받은 서비스가 없습니다', 언어),
     다음: 설정을열수있나
       ? t('설정에서 자기 자신을 서비스에 배정하세요', 언어)
-      : t('운영 등급에게 서비스 배정을 요청하세요', 언어),
+      : t('운영 계정에게 서비스 배정을 요청하세요', 언어),
   };
 }
 

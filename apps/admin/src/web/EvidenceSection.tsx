@@ -7,7 +7,7 @@
 import { api, type EvidenceRow, type RunSummary } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 받는법, 증적버튼들, type 증적버튼모양 } from './evidence.js';
-import type { 등급 } from './role.js';
+import type { 판정 } from './role.js';
 import { message, when } from './ui.js';
 import { useState } from 'react';
 
@@ -35,7 +35,7 @@ export interface 증적칸 {
  * **`만드는중` 과 `증적오류` 를 둘 다 형식별로 잡는다.** 값 하나로 두면 PDF 를 누르는 순간
  * 엑셀·HTML 까지 잠기고, 엑셀만 실패해도 화면이 어느 형식이 깨졌는지 말하지 못한다.
  */
-export function use증적(data: 실행상세 | null, role: 등급, reload: () => void): 증적칸 {
+export function use증적(data: 실행상세 | null, 할수: 판정, reload: () => void): 증적칸 {
   const 언어 = use언어();
   const [만드는중, set만드는중] = useState<string[]>([]);
   const [증적오류, set증적오류] = useState<Record<string, string>>({});
@@ -43,7 +43,7 @@ export function use증적(data: 실행상세 | null, role: 등급, reload: () =>
   // **이른 반환 위에서 불린다.** 화면이 아직 데이터를 못 받았을 때도 훅 차례가 같아야 한다 —
   // `Loading` 뒤에서 부르면 React 가 훅 규칙 위반으로 던지고 화면이 통째로 빈다
   const 문서들 = data?.evidence ?? [];
-  const 증적 = data === null ? null : 증적버튼들(data.status, 문서들, role, 언어);
+  const 증적 = data === null ? null : 증적버튼들(data.status, 문서들, 할수, 언어);
 
   // 실패는 형식마다 따로 적는다. 방금 부르다 깨진 것(`증적오류`)이 더 새 소식이라 먼저다.
   // **다만 그 형식이 그 뒤에 READY 로 닫혔으면 접는다** — 안 접으면 문서가 멀쩡히 아래 목록에

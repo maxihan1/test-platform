@@ -3,7 +3,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 등급표, 토큰통로 } from '../auth/gate.js';
+import { 등급표, 토큰통로 } from '../auth/routeTable.js';
 import { 라우트표 } from '../auth/scope.js';
 import authoringAgentRoutes from './agentRoutes.js';
 import authoringAssetRoutes from './assets.js';
@@ -41,9 +41,9 @@ describe('진척 모양', () => {
 });
 
 describe('등급과 경계', () => {
-  it('stop·discard 는 operator · 번호로 서비스를 찾는다 · 토큰 통로에 없다', () => {
+  it('stop·discard 는 (작성, write) · 번호로 서비스를 찾는다 · 토큰 통로에 없다', () => {
     for (const 끝 of ['stop', 'discard']) {
-      expect(등급표[`POST /api/authoring/requests/:id/${끝}`]).toBe('operator');
+      expect(등급표[`POST /api/authoring/requests/:id/${끝}`]).toEqual({ 기능: 'authoring', 칸: 'write' });
       expect(라우트표[`/api/authoring/requests/:id/${끝}`]).toEqual({ 종류: '작성요청', 칸: 'id' });
       expect(토큰통로.has(`POST /api/authoring/requests/:id/${끝}`)).toBe(false);
     }
@@ -54,7 +54,7 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
   let app: FastifyInstance;
   let 서비스 = 0;
   let 부르는이 = 사람1;
-  let 역할: 'operator' | 'admin' = 'operator';
+  let 역할: 'member' | 'admin' = 'member';
 
   const 넣기 = async (칸: { status: string; kind?: string; by?: string; sql?: string }): Promise<number> => {
     const { pool } = await import('../db/index.js');
@@ -94,7 +94,7 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
     app = Fastify();
     app.decorateRequest('user', null);
     app.addHook('preHandler', async (req) => {
-      req.user = { username: 부르는이, displayName: 부르는이, role: 역할, services: [] };
+      req.user = { username: 부르는이, displayName: 부르는이, role: 역할, dashboard: 'read', mustChangePassword: false, services: [] };
     });
     await app.register(authoringRoutes, { prefix: '/api' });
     await app.register(authoringAssetRoutes, { prefix: '/api' });
@@ -110,7 +110,7 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
     await app.close();
   });
 
-  const 사람으로 = (이름: string, 등급: 'operator' | 'admin' = 'operator') => void ((부르는이 = 이름), (역할 = 등급));
+  const 사람으로 = (이름: string, 등급: 'member' | 'admin' = 'member') => void ((부르는이 = 이름), (역할 = 등급));
 
   it('대기 중이면 곧장 STOPPED · USER · 누른 사람', async () => {
     사람으로(사람1);

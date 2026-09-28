@@ -5,6 +5,8 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 
 import { join } from 'node:path';
 
+import { 칸되는서비스 } from '../auth/permissions.js';
+import type { 사용자 } from '../auth/store.js';
 import { scan, testsRoot, type Duplicate } from './scanner.js';
 import { readExcerpt } from './source.js';
 import { activeServices, findCase, findService, listCases, save } from './store.js';
@@ -20,13 +22,29 @@ export interface LastScan {
   error?: string;
 }
 
-let last: LastScan | null = null;
-// 기동 시 스캔이 아직 안 끝났는데 화면이 결과를 물어볼 수 있다. 그때는 이 약속을 기다린다
-let startup: Promise<LastScan> | null = null;
+// 스캔은 서비스마다 돈다. 결과를 서비스별로 들고 있어야 응답을 부른 사람이 볼 수 있는 서비스 것만 합칠 수 있다 (SPEC §7)
+interface 서비스결과 {
+  added: number;
+  updated: number;
+  deactivated: number;
+  duplicates: Duplicate[];
+  problems: string[];
+}
 
-async function runScan(log: FastifyBaseLogger): Promise<LastScan> {
+interface 스캔기록 {
+  scannedAt: string;
+  서비스별: Map<string, 서비스결과>;
+  // 서비스를 훑기도 전에 깨진 사유. 어느 서비스 것도 아니라 누구에게나 보인다
+  깨짐?: string;
+}
+
+let last: 스캔기록 | null = null;
+// 기동 시 스캔이 아직 안 끝났는데 화면이 결과를 물어볼 수 있다. 그때는 이 약속을 기다린다
+let startup: Promise<스캔기록> | null = null;
+
+async function runScan(log: FastifyBaseLogger): Promise<스캔기록> {
   const scannedAt = new Date().toISOString();
-  const empty = { scannedAt, added: 0, updated: 0, deactivated: 0 };
+  const 서비스별 = new Map<string, 서비스결과>();
 
   try {
     // 서비스마다 자기 폴더만 훑는다. 다른 서비스의 폴더는 보지 않는다 (SPEC §9.2).
@@ -34,11 +52,9 @@ async function runScan(log: FastifyBaseLogger): Promise<LastScan> {
     const services = await activeServices();
     const root = testsRoot();
 
-    const total = { added: 0, updated: 0, deactivated: 0 };
-    const duplicates: Duplicate[] = [];
-    const problems: string[] = [];
-
     for (const service of services) {
+      const 결과: 서비스결과 = { added: 0, updated: 0, deactivated: 0, duplicates: [], problems: [] };
+      서비스별.set(service.prefix, 결과);
       const 어디 = (file: string): string => join(service.testsDir, file);
 
       // 폴더가 아직 안 채워졌거나 이름이 틀리면 여기서 던진다. 그 서비스만 접고 나머지는 계속 훑는다 —
@@ -47,14 +63,14 @@ async function runScan(log: FastifyBaseLogger): Promise<LastScan> {
       try {
         found = await scan(join(root, service.testsDir));
       } catch (err) {
-        problems.push(
+        결과.problems.push(
           `${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
         );
         continue;
       }
 
-      duplicates.push(...found.duplicates.map((d) => ({ tcId: d.tcId, files: d.files })));
-      problems.push(
+      결과.duplicates.push(...found.duplicates.map((d) => ({ tcId: d.tcId, files: d.files })));
+      결과.problems.push(
         ...found.duplicates.map((d) => `tcId ${d.tcId}이 ${d.files[0]}와 ${d.files[1]}에 겹쳐 있다`),
         ...found.failures.map((f) => `${어디(f.file)}을 읽지 못했다: ${f.message}`),
       );
@@ -63,7 +79,7 @@ async function runScan(log: FastifyBaseLogger): Promise<LastScan> {
       const 제것인가 = (tcId: string): boolean => tcId.startsWith(`${service.prefix}-`);
       const 내것 = found.specs.filter((s) => 제것인가(s.tcId));
       for (const 남 of found.specs.filter((s) => !제것인가(s.tcId))) {
-        problems.push(`${남.filePath}의 ${남.tcId}은 ${service.prefix} 서비스의 접두사가 아니라 걸러 냈다`);
+        결과.problems.push(`${남.filePath}의 ${남.tcId}은 ${service.prefix} 서비스의 접두사가 아니라 걸러 냈다`);
       }
 
       // 중복은 그 서비스의 스캔 실패다. 어느 쪽이 진짜인지 모르는 채로 캐시를 덮어쓰면
@@ -72,32 +88,43 @@ async function runScan(log: FastifyBaseLogger): Promise<LastScan> {
 
       // 읽지 못한 파일이 있으면 무엇이 정말 사라졌는지 가릴 수 없다. 비활성 처리는 건너뛰고 읽은 것만 갱신한다
       const saved = await save(내것, found.failures.length === 0, service.prefix);
-      total.added += saved.added;
-      total.updated += saved.updated;
-      total.deactivated += saved.deactivated;
+      결과.added = saved.added;
+      결과.updated = saved.updated;
+      결과.deactivated = saved.deactivated;
     }
 
-    if (duplicates.length > 0) {
-      last = { ...empty, duplicates, error: problems.join('\n') };
-      log.error(`[catalog] 스캔 실패 — ${problems.join(' / ')}`);
-      return last;
-    }
-
-    last = {
-      scannedAt,
-      ...total,
-      duplicates: [],
-      error: problems.length > 0 ? problems.join('\n') : undefined,
-    };
-    if (problems.length > 0) log.warn(`[catalog] 스캔 일부 실패 — ${problems.join(' / ')}`);
+    const problems = [...서비스별.values()].flatMap((r) => r.problems);
+    if ([...서비스별.values()].some((r) => r.duplicates.length > 0)) log.error(`[catalog] 스캔 실패 — ${problems.join(' / ')}`);
+    else if (problems.length > 0) log.warn(`[catalog] 스캔 일부 실패 — ${problems.join(' / ')}`);
+    last = { scannedAt, 서비스별 };
     return last;
   } catch (err) {
     // 기동 시 스캔이 깨져도 admin은 떠야 한다. 사유만 마지막 결과에 남긴다 (SPEC §3.1)
     const message = err instanceof Error ? err.message : String(err);
-    last = { ...empty, duplicates: [], error: message };
+    last = { scannedAt, 서비스별, 깨짐: message };
     log.error(`[catalog] 스캔이 깨졌다: ${message}`);
     return last;
   }
+}
+
+/**
+ * 부른 사람이 케이스 `read` 인 서비스 것만 합친다 (SPEC 도메인/인증 §7). admin 은 살아 있는 서비스 전부다 —
+ * 배정 없이 스캔하는 admin 이 결과를 못 보면 설치 직후 첫 스캔이 빈칸이 된다.
+ * 사람이 없으면(문 없이 띄운 자리) 아무 서비스도 안 보인다. 모르면 막는다
+ */
+function 보이는결과(기록: 스캔기록, user: 사용자 | null): LastScan {
+  const 보이는곳 =
+    user?.role === 'admin' ? null : new Set(칸되는서비스(user?.services ?? [], 'cases', 'read'));
+  const 고른것 = [...기록.서비스별].filter(([prefix]) => 보이는곳 === null || 보이는곳.has(prefix)).map(([, r]) => r);
+  const duplicates = 고른것.flatMap((r) => r.duplicates);
+  const problems = [...(기록.깨짐 === undefined ? [] : [기록.깨짐]), ...고른것.flatMap((r) => r.problems)];
+  const error = problems.length > 0 ? problems.join('\n') : undefined;
+  const scannedAt = 기록.scannedAt;
+
+  // 겹친 번호가 하나라도 보이면 옛 모양 그대로 건수 0 과 오류로 알린다 (SPEC §3.1)
+  if (duplicates.length > 0) return { scannedAt, added: 0, updated: 0, deactivated: 0, duplicates, error };
+  const 합 = (칸: 'added' | 'updated' | 'deactivated'): number => 고른것.reduce((n, r) => n + r[칸], 0);
+  return { scannedAt, added: 합('added'), updated: 합('updated'), deactivated: 합('deactivated'), duplicates: [], error };
 }
 
 // **배정은 여기서 안 본다. 문(auth/gate.ts)이 이미 막았다** — 이 요청이 여기 닿았다는 것은
@@ -115,9 +142,12 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
   // 배포는 컨테이너 재기동이다. 뜨는 김에 한 번 훑어 두면 배포 직후 목록이 최신이 된다 (SPEC §3.1)
   startup = runScan(app.log);
 
-  app.post('/catalog/scan', async () => runScan(app.log));
+  app.post('/catalog/scan', async (req) => 보이는결과(await runScan(app.log), req.user));
 
-  app.get('/catalog/scan', async () => last ?? (startup === null ? null : await startup));
+  app.get('/catalog/scan', async (req) => {
+    const 기록 = last ?? (startup === null ? null : await startup);
+    return 기록 === null ? null : 보이는결과(기록, req.user);
+  });
 
   app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string } }>(
     '/catalog/cases',

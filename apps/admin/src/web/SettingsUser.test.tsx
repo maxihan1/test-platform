@@ -10,9 +10,9 @@
 // 눈에 보이는 위치는 못 봐도 「목록보다 앞 형제인가」는 볼 수 있고, 그 순서가 뒤집혀야 그 사고가 난다.
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { api, type UserRow } from './api.js';
+import { api, type SettingsServiceRow, type UserRow } from './api.js';
 import { UserSection } from './SettingsUser.js';
 
 // jsdom 에 없는 함수라 끼워 넣지 않으면 TempPassword 가 TypeError 로 죽는다.
@@ -31,14 +31,59 @@ afterEach(() => {
 });
 
 const 계정들: UserRow[] = [
-  { username: 'kim', displayName: '김철수', role: 'admin', isActive: true, services: [] },
-  { username: 'lee', displayName: '이영희', role: 'operator', isActive: true, services: [] },
+  { username: 'kim', displayName: '김철수', role: 'admin', dashboard: 'read', isActive: true, services: [] },
+  {
+    username: 'lee',
+    displayName: '이영희',
+    role: 'member',
+    dashboard: 'read',
+    isActive: true,
+    services: [{ prefix: 'PAY', permissions: { cases: 'read', runs: 'write', authoring: 'none' } }],
+  },
+  {
+    username: 'park',
+    displayName: '박운영',
+    role: 'admin',
+    dashboard: 'read',
+    isActive: true,
+    services: [{ prefix: 'PAY', permissions: { cases: 'write', runs: 'write', authoring: 'none' } }],
+  },
 ];
 
-function 그리기() {
-  return render(
-    <UserSection rows={계정들} services={[]} me="kim" onDone={() => {}} onSelf={() => {}} />,
-  );
+function 서비스(prefix: string, name: string): SettingsServiceRow {
+  return {
+    id: prefix === 'PAY' ? 1 : 2,
+    prefix,
+    name,
+    color: '#6B7280',
+    testsRepo: '',
+    testsDir: prefix.toLowerCase(),
+    isActive: true,
+    envs: [],
+    hasSlackWebhook: false,
+    caseCount: 0,
+  };
+}
+
+const 서비스들 = [서비스('PAY', '결제 서비스'), 서비스('MEM', '회원 서비스')];
+
+function 그리기(rows: UserRow[] = 계정들, services: SettingsServiceRow[] = []) {
+  return render(<UserSection rows={rows} services={services} me="kim" onDone={() => {}} onSelf={() => {}} />);
+}
+
+function 새계정열기() {
+  그리기(계정들, 서비스들);
+  fireEvent.click(screen.getByLabelText('더하기'));
+}
+
+const 서비스칸 = (이름: RegExp) => screen.getByRole('checkbox', { name: 이름 });
+const 칸묶음 = (이름: string) => screen.queryByRole('group', { name: 이름 });
+function 눌림(묶음: string): string | undefined {
+  const 묶 = 칸묶음(묶음);
+  return 묶 === null ? undefined : within(묶).getAllByRole('button').find((b) => b.getAttribute('aria-pressed') === 'true')?.textContent ?? undefined;
+}
+function 고른다(묶음: string, 값: string) {
+  fireEvent.click(within(칸묶음(묶음)!).getByRole('button', { name: 값 }));
 }
 
 describe('UserSection', () => {
@@ -68,5 +113,118 @@ describe('UserSection', () => {
 
     const 버튼 = screen.getByLabelText('더하기');
     expect(버튼.textContent).toBe('+');
+  });
+});
+
+describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', () => {
+  it('새 계정은 배정 없이 시작하고 대시보드는 읽기다', () => {
+    새계정열기();
+    expect((서비스칸(/결제 서비스/) as HTMLInputElement).checked).toBe(false);
+    expect((서비스칸(/회원 서비스/) as HTMLInputElement).checked).toBe(false);
+    expect(칸묶음('결제 서비스 케이스')).toBeNull();
+    expect(눌림('대시보드')).toBe('읽기');
+  });
+
+  it('서비스를 켜면 세 칸이 읽기로 열리고 끄면 사라진다', () => {
+    새계정열기();
+    fireEvent.click(서비스칸(/결제 서비스/));
+    expect(눌림('결제 서비스 케이스')).toBe('읽기');
+    expect(눌림('결제 서비스 실행')).toBe('읽기');
+    expect(눌림('결제 서비스 작성')).toBe('읽기');
+
+    fireEvent.click(서비스칸(/결제 서비스/));
+    expect(칸묶음('결제 서비스 케이스')).toBeNull();
+  });
+
+  it('운영을 켜면 권한 칸과 대시보드를 숨기고 서비스 켜기만 남긴다', () => {
+    새계정열기();
+    fireEvent.click(서비스칸(/결제 서비스/));
+    fireEvent.click(screen.getByRole('checkbox', { name: /^운영/ }));
+
+    expect(칸묶음('결제 서비스 케이스')).toBeNull();
+    expect(칸묶음('대시보드')).toBeNull();
+    expect(서비스칸(/결제 서비스/)).toBeTruthy();
+    expect(screen.getByText('운영 계정은 배정된 서비스에서 모든 기능을 씁니다. 켜 둘 서비스만 고르세요.')).toBeTruthy();
+  });
+
+  it('실행 쓰기에 케이스 안 씀이면 알리되 저장은 막지 않는다', () => {
+    새계정열기();
+    fireEvent.click(서비스칸(/결제 서비스/));
+    고른다('결제 서비스 실행', '쓰기');
+    고른다('결제 서비스 케이스', '안 씀');
+
+    expect(screen.getByRole('status').textContent).toContain('실행 설정에서 고를 케이스가 안 보입니다.');
+    expect((screen.getByText('계정 추가') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('세 칸이 다 안 씀이면 알리고 저장을 막는다', () => {
+    새계정열기();
+    fireEvent.click(서비스칸(/결제 서비스/));
+    for (const 기능 of ['케이스', '실행', '작성']) 고른다(`결제 서비스 ${기능}`, '안 씀');
+
+    expect(screen.getByRole('status').textContent).toContain(
+      '세 칸이 다 안 씀이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.',
+    );
+    expect((screen.getByText('계정 추가') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('대시보드에는 쓰기가 없다', () => {
+    새계정열기();
+    const 버튼들 = within(칸묶음('대시보드')!).getAllByRole('button').map((b) => b.textContent);
+    expect(버튼들).toEqual(['안 씀', '읽기']);
+  });
+
+  it('저장하면 서비스마다 칸 묶음과 대시보드를 보낸다', () => {
+    const 만들기 = vi.spyOn(api, 'createUser').mockResolvedValue({ username: 'choi', tempPassword: 'x' });
+    새계정열기();
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'choi' } });
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '최민수' } });
+    fireEvent.click(서비스칸(/결제 서비스/));
+    고른다('결제 서비스 실행', '쓰기');
+    고른다('대시보드', '안 씀');
+    fireEvent.click(screen.getByText('계정 추가'));
+
+    expect(만들기).toHaveBeenCalledWith({
+      username: 'choi',
+      displayName: '최민수',
+      role: 'member',
+      dashboard: 'none',
+      services: [{ prefix: 'PAY', permissions: { cases: 'read', runs: 'write', authoring: 'read' } }],
+    });
+  });
+
+  it('고칠 때도 배정 전체와 대시보드를 보낸다', () => {
+    const 고치기 = vi.spyOn(api, 'updateUser').mockResolvedValue({ ok: true });
+    그리기(계정들, 서비스들);
+    fireEvent.click(screen.getAllByText('편집')[1]!);
+    고른다('결제 서비스 작성', '쓰기');
+    fireEvent.click(screen.getByText('저장'));
+
+    expect(고치기).toHaveBeenCalledWith('lee', {
+      displayName: '이영희',
+      role: 'member',
+      dashboard: 'read',
+      services: [{ prefix: 'PAY', permissions: { cases: 'read', runs: 'write', authoring: 'write' } }],
+    });
+  });
+
+  it('운영을 끄면 저장된 칸이 보이고, 운영일 때 켠 서비스는 읽기로 보인다', () => {
+    그리기(계정들, 서비스들);
+    fireEvent.click(screen.getAllByText('편집')[2]!);
+    expect(칸묶음('결제 서비스 케이스')).toBeNull();
+    fireEvent.click(서비스칸(/회원 서비스/));
+    fireEvent.click(screen.getByRole('checkbox', { name: /^운영/ }));
+
+    expect(눌림('결제 서비스 케이스')).toBe('쓰기');
+    expect(눌림('결제 서비스 작성')).toBe('안 씀');
+    expect(눌림('회원 서비스 실행')).toBe('읽기');
+  });
+
+  it('마지막 운영 계정에는 운영 끄기를 내밀지 않는다', () => {
+    그리기([계정들[0]!, 계정들[1]!], 서비스들);
+    fireEvent.click(screen.getAllByText('편집')[0]!);
+
+    expect(screen.queryByRole('checkbox', { name: /^운영/ })).toBeNull();
+    expect(screen.getByText(/마지막 운영 계정이라 운영을 끌 수 없습니다/)).toBeTruthy();
   });
 });

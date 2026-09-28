@@ -68,7 +68,7 @@ describe.skipIf(연결 === undefined)('산출물 올리기', () => {
     app = Fastify();
     app.decorateRequest('user', null);
     app.addHook('preHandler', async (req) => {
-      req.user = { username: 부르는이, displayName: '산출물 검사', role: 'operator' as const, services: [] };
+      req.user = { username: 부르는이, displayName: '산출물 검사', role: 'member' as const, dashboard: 'read' as const, mustChangePassword: false, services: [] };
     });
     await app.register(authoringRoutes, { prefix: '/api' });
     await app.register(assetRoutes, { prefix: '/api' });

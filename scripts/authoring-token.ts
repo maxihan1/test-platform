@@ -94,23 +94,32 @@ function 폴더고르기(prefix: string, 값: unknown): 폴더자리 {
 }
 
 /**
- * `/api/auth/me` 응답에서 작성 에이전트가 쓸 것. 모양이 틀렸거나 보기만 등급이면 사유 글.
+ * `/api/auth/me` 응답에서 작성 에이전트가 쓸 것. 모양이 틀렸거나 작성 쓰기 권한이 어디에도 없으면 사유 글.
  * 대상 서버와 테스트 폴더는 자식(tpx-author)이 입력으로 기대한다 — 둘 다 이 응답에 실려 온다. 새 통로가 필요 없다
  */
 export function 나풀기(
   몸: unknown,
 ): { username: string; 서비스들: string[]; 서버표: Record<string, 서버[]>; 폴더표: Record<string, 폴더자리> } | string {
   const user = (몸 as { user?: unknown } | null)?.user as
-    | { username?: unknown; role?: unknown; services?: { prefix: string; envs?: 서버[]; testsDir?: unknown }[] }
+    | {
+        username?: unknown;
+        role?: unknown;
+        services?: { prefix: string; envs?: 서버[]; testsDir?: unknown; permissions?: { authoring?: unknown } }[];
+      }
     | undefined;
   if (user === undefined || typeof user.username !== 'string' || !Array.isArray(user.services)) {
     return '/api/auth/me 응답이 예상한 모양이 아니다. 서버 판이 맞는지 봐라.';
   }
-  if (user.role === 'viewer') return '이 계정은 보기만 등급이라 줄을 집을 수 없다. operator 로 바꿔라.';
+  // 작성 에이전트 계정은 맡은 서비스에서 작성 쓰기 권한이 있는 member 다 (SPEC 도메인/작성 §3.6)
+  if (user.role !== 'admin' && !user.services.some((s) => s.permissions?.authoring === 'write')) {
+    return '이 계정은 어느 서비스에도 작성 쓰기 권한이 없어 줄을 집을 수 없다. 설정 > 계정에서 맡을 서비스의 작성 쓰기 권한을 켜라.';
+  }
+  // 작성 읽기만인 서비스까지 실으면 그 줄을 집을 때 403 → 거절글로 에이전트 전체가 선다
+  const 맡은것 = user.role === 'admin' ? user.services : user.services.filter((s) => s.permissions?.authoring === 'write');
   return {
     username: user.username,
-    서비스들: user.services.map((s) => s.prefix),
-    서버표: Object.fromEntries(user.services.map((s) => [s.prefix, s.envs ?? []])),
-    폴더표: Object.fromEntries(user.services.map((s) => [s.prefix, 폴더고르기(s.prefix, s.testsDir)])),
+    서비스들: 맡은것.map((s) => s.prefix),
+    서버표: Object.fromEntries(맡은것.map((s) => [s.prefix, s.envs ?? []])),
+    폴더표: Object.fromEntries(맡은것.map((s) => [s.prefix, 폴더고르기(s.prefix, s.testsDir)])),
   };
 }

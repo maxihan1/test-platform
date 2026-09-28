@@ -1,20 +1,21 @@
-// 첫 계정을 컨테이너 안에서 만드는 명령 (SPEC §9.2). 회원가입 화면은 없고 (§8.6)
-// 두 번째부터는 설정 화면이 같은 일을 한다 (§8.8).
+// 계정을 컨테이너 안에서 만드는 복구용 명령 (SPEC §9.2). 첫 계정은 빈 서버가 만드는 기본 계정 (SPEC §9.2) 이고
+// 회원가입 화면은 없으며 (§8.6) 평소에는 설정 화면이 같은 일을 한다 (§8.8). 운영 계정을 잃었을 때 쓴다.
 // 비밀번호는 인자로 받지 않는다 — 명령에 적으면 서버의 명령 이력에 평문으로 남는다
 
 import { pool } from '../apps/admin/src/db/index.js';
-import { 계정만들기, 설정오류 } from '../apps/admin/src/settings/store.js';
+import { 설정오류 } from '../apps/admin/src/settings/store.js';
+import { 계정만들기 } from '../apps/admin/src/settings/users.js';
 
 const [username, displayName, role] = process.argv.slice(2);
 
 if (username === undefined || displayName === undefined || role === undefined) {
-  console.error('쓰는 법: npx tsx scripts/add-user.ts <아이디> <이름> <등급>');
-  console.error('등급은 viewer(보기만) · operator(실행까지) · admin(운영) 중 하나다');
+  console.error('쓰는 법 (복구용): npx tsx scripts/add-user.ts <아이디> <이름> <member|admin>');
+  console.error('평소 계정은 설정 > 계정에서 만든다. 이 명령은 운영 계정을 잃었을 때 쓴다');
   process.exit(1);
 }
 
-if (role !== 'viewer' && role !== 'operator' && role !== 'admin') {
-  console.error(`등급 "${role}"은 없다. viewer · operator · admin 중 하나여야 한다 (SPEC §3.5)`);
+if (role !== 'member' && role !== 'admin') {
+  console.error(`등급 "${role}"은 없다. member · admin 중 하나여야 한다 (복구용 명령, SPEC §9.2)`);
   process.exit(1);
 }
 
@@ -26,7 +27,7 @@ if (Number(있는계정.rows[0]?.count ?? 0) === 0 && role !== 'admin') {
 }
 
 try {
-  const 임시비밀번호 = await 계정만들기({ username, displayName, role, services: [] });
+  const 임시비밀번호 = await 계정만들기({ username, displayName, role, dashboard: 'read', services: [] });
   console.log(`계정을 만들었다. 아이디 ${username} · 이름 ${displayName} · 등급 ${role}`);
   console.log(`비밀번호: ${임시비밀번호}`);
   console.log('이 줄이 비밀번호를 볼 수 있는 유일한 자리다. 잊으면 설정 화면에서 다시 만든다');

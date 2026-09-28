@@ -40,7 +40,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
   // 띠에는 짧게, 왜인지와 무엇을 하면 되는지는 본문이 말한다.
   // 지금 자리를 같이 넘긴다 — 설정 화면은 배정이 없어도 열려야 한다 (그 배정을 만드는 자리다)
-  const 사유 = 빈띠사유(user, 언어, current);
+  const 사유 = 빈띠사유(user, service?.prefix ?? null, 언어, current);
 
   // 접은 것은 사람이 되돌릴 수 있는 상태라 저장해 둔다. 새로고침마다 다시 접게 하면 그 기능이 짐이 된다
   const [접음, set접음] = useState(사이드바접었나);
@@ -97,7 +97,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         </div>
 
         <nav className="side-nav">
-          {자리목록(user.role, 언어).map((자리) =>
+          {자리목록(user, service?.prefix ?? null, 언어).map((자리) =>
             자리.바깥 === true ? (
               <a key={자리.이름} href={자리.해시} target="_blank" rel="noreferrer">
                 {자리.이름} ↗
@@ -141,7 +141,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
           <div className="screen">
             <div className="empty">
               {사유.무엇}
-              <small>{사유.다음}</small>
+              {사유.다음 === '' ? null : <small>{사유.다음}</small>}
             </div>
           </div>
         )}
