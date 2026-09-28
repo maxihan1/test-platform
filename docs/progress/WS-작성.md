@@ -441,7 +441,7 @@
 
 ## 2026-09-28 — 멈춘 자리부터 이어하기 (PR #94)
 
-- 완료: DB `stop_reason` + CRASH · REJECTED · `resume_from`(RERUN 에만 · 부분 유일 색인) — `20260928000002_authoring_resume.sql`(down 은 둘을 FAILED 로 되돌림 · 실제 행으로 검증)
+- 완료: DB `stop_reason` + CRASH · REJECTED · `resume_from`(RERUN 에만 · 부분 유일 색인) — `20260928000003_authoring_resume.sql`(down 은 둘을 FAILED 로 되돌림 · 실제 행으로 검증)
 - 완료: 서버 — `POST requests { kind: RERUN, sourceId, resume: true }`(409 NOT_RESUMABLE) · 상세 `canResume`·`resumeUntil`·`resumedBy`·`keepWorkspace` · 집기는 원본을 집었던 에이전트만 · finish CRASH·REJECTED(까닭 필수). 보관일 7 은 `store.ts` 한 곳
 - 완료: 에이전트 — 자식이 일하다 끊김은 CRASH, 올리기 거절(누설 포함)은 REJECTED · 중단이면 작업 폴더를 root 로 잠가 보관 · 이어받기면 사슬을 거슬러 넘겨받고 기준 SHA 로 되감기 · 켤 때와 한 시간마다 서버에 물어 훑기 · 케이스 누적 세기(`보관.json` 옛케이스)
 - 완료: 자식 이어하기 절 + `tpx-author/references/resume.md` · 화면 「다음 단계」 카드 시안 A · Grafana 중단 이유 둘 · author `/work` 볼륨
