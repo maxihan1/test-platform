@@ -33,8 +33,8 @@
 2. ✅ **KIT + WS-C 러너 (PR #100, 2026-09-28)** — kit 시나리오 모드(본체 꺼내기 · `RunScope` 하나 · 제목으로 건너뛰기) · 러너 고정 spec + 전용 설정 · `POST /execute-scenario` · 모킹 `context.route` · 결과 표시자(`protocol.ts`).
    명세 도메인/러너 §5.2 「시나리오 실행」. 「testDir 밖 파일은 안 잡힌다」는 실행으로 쟀다. 계약 블록 둘(러너 · 시나리오 모드) `반영 완료`.
    **이미지에서만 드러나는 것이 있었다** — 고정 spec 이 kit 을 값으로 부르면 `/tests`(require)와 섞여 죽는다. CI(Node 22)는 이것을 재현하지 못한다(러너 §5.2)
-3. **WS-A** — K12(한 케이스 안 절차 제목 유일) 검사기 · 「만들기」 절차 소스 판별 함수(`catalog/rules.ts` 옆). **K12 가 먼저 서야 제목을 열쇠로 믿을 수 있다** ·
-   `tpx-cases` R16(`.claude/skills/tpx-cases/references/5-writing.md`)에 「절차 제목은 케이스 안에서 유일하다(K12)」 한 줄과, R16 이 가리키는 정본을 도메인/시나리오 §3.7 로 바꾸는 일 (명세 PR 은 문서 차선이라 스킬을 안 고쳤다)
+3. ✅ **WS-A (PR #101, 2026-09-29)** — K12 검사기(`catalog/rules.ts`) · 「만들기」 판별 `caseSteps(소스)` → `{ steps: [{ title, line, skippable }], r16, usesRequest }`(`catalog/steps.ts`) ·
+   `tpx-cases` R16 에 K12. **애매하면 「만들기」로 안 친다**(게이트 1 — 시나리오 §3.7). 4번 서버의 `case-parts` 응답은 이 함수 결과에서 `line` 만 빼면 된다
 4. **WS-B 서버 + WS-F** — `/api/scenarios/**` · 시험 실행(메모리 · 24시간 · 시작한 사람만) · 줄 세우기(동시성 상한 공유) · 재기동 복구 ·
    **`test_run` 을 읽는 조회 전부에 `kind` 거르기**(`grep -rln "FROM test_run\|JOIN test_run" apps/admin/src` 로 센다) · `GET /api/runs?kind=` · 시나리오 실행 중단 409 ·
    권한 두 줄(도메인/인증 §7 표) · **`auth/gate.ts` 등급표와 `auth/scope.ts` 라우트표 둘에 새 통로를 같이 넣는다** ·
