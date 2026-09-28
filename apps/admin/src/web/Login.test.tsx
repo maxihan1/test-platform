@@ -20,8 +20,8 @@ function 그리기() {
   return render(<Login onLogin={() => undefined} />);
 }
 
-async function 틀리게친다(status: number) {
-  vi.spyOn(api, 'login').mockRejectedValue(new ApiError(status, 'UNAUTHORIZED', '아이디가 없습니다'));
+async function 틀리게친다(status: number, code = 'UNAUTHORIZED') {
+  vi.spyOn(api, 'login').mockRejectedValue(new ApiError(status, code, '아이디가 없습니다'));
   const 것 = 그리기();
   fireEvent.change(screen.getByLabelText('아이디'), { target: { value: '없는사람' } });
   fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: 'x' } });
@@ -59,6 +59,20 @@ describe('로그인 화면', () => {
     await waitFor(() => {
       expect(screen.queryByText(/아이디 또는 비밀번호/)).toBeNull();
     });
+  });
+
+  it('회원가입으로 가는 링크가 있다', () => {
+    그리기();
+
+    expect(screen.getByRole('link', { name: '회원가입' }).getAttribute('href')).toBe('#/signup');
+  });
+
+  it('승인 대기면 검토 중이라고 안내한다 — 오류 모양이 아니다', async () => {
+    await 틀리게친다(403, 'PENDING_APPROVAL');
+
+    const 안내 = await screen.findByText('가입 신청을 검토하고 있습니다. 운영자가 수락하면 로그인할 수 있습니다');
+    expect(안내.className).not.toContain('err');
+    expect(screen.queryByText(/아이디 또는 비밀번호/)).toBeNull();
   });
 
   it('누르는 동안 다시 못 누른다', async () => {

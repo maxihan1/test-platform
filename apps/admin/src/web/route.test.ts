@@ -64,6 +64,14 @@ describe('route', () => {
     expect(route('#/login')).toEqual({ name: 'login' });
   });
 
+  it('회원가입 화면', () => {
+    expect(route('#/signup')).toEqual({ name: 'signup' });
+  });
+
+  it('회원가입 화면도 돌아갈 자리로 기억하지 않는다. 로그인한 사람에게는 집이다', () => {
+    expect(돌아갈자리('#/signup', 다봄, 'PAY')).toBe('#/cases');
+  });
+
   it('돌아갈 자리는 지금 주소다. 로그인이 끝나면 원래 가려던 화면으로 보낸다', () => {
     expect(돌아갈자리('#/runs/123', 다봄, 'PAY')).toBe('#/runs/123');
   });
