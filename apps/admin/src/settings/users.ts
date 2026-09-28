@@ -4,10 +4,10 @@
 import type { PoolClient } from 'pg';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
+import type { 등급 as 계정등급 } from '../auth/store.js';
 import { 무작위비밀번호, 해시 } from '../auth/password.js';
 import { db, 설정오류, 한묶음 } from './store.js';
 
-export type 계정등급 = 'member' | 'admin';
 export type 권한 = 'none' | 'read' | 'write';
 export type 대시보드권한 = 'none' | 'read';
 /** 서비스 한 줄 = 접두사와 그 서비스에서의 권한 셋 (SPEC 도메인/인증 §7 「services[] 한 줄」) */
