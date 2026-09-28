@@ -4,7 +4,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 번호 } from './params.js';
-import { db, 빚기, 칸들, 한건, type 요청, type 행 } from './store.js';
+import { db, 빚기, 이어받기되나, 칸들, 한건, type 요청, type 행 } from './store.js';
 
 // 신호가 이보다 오래 없으면 에이전트가 죽은 것으로 본다. 에이전트는 30초마다 신호를 보낸다
 const 묵음 = `COALESCE(stage_at, started_at) < now() - interval '3 minutes'`;
@@ -102,17 +102,21 @@ export async function 상세읽기(req: FastifyRequest, id: number) {
       stopped_by: string | null;
       stopped_by_name: string | null;
       stale: boolean;
+      resumable: boolean;
+      resumed_by: string | null;
     }
   >(
     `SELECT ${칸들}, progress, stopped_by,
             (SELECT display_name FROM app_user WHERE username = stopped_by) AS stopped_by_name,
-            ${묵음} AS stale
+            ${묵음} AS stale,
+            ${이어받기되나('authoring_request')} AS resumable,
+            (SELECT 이은것.id FROM authoring_request 이은것 WHERE 이은것.resume_from = authoring_request.id) AS resumed_by
        FROM authoring_request WHERE id = $1`,
     [id],
   );
   const row = r.rows[0];
   if (row === undefined) return null;
-  const { progress, stopped_by, stopped_by_name: display_name, stale } = row;
+  const { progress, stopped_by, stopped_by_name: display_name, stale, resumable, resumed_by } = row;
   const 행 = 빚기(row);
   const 됨 = 손댈수있나(req, 행) && 행.discardedAt === null;
   // 자식 전(NULL)도 멈출 수 있다 — 에이전트가 자식을 띄우기 직전에 요청을 본다 (§7 고침 3)
@@ -127,6 +131,9 @@ export async function 상세읽기(req: FastifyRequest, id: number) {
       행.kind !== 'MERGE' &&
       (행.status === 'PENDING' || (행.status === 'RUNNING' && (도는중 || stale === true))),
     canDiscard: 됨 && ['FAILED', 'STOPPED', 'DRAFT'].includes(행.status),
+    // 이어서 작성은 재실행과 같은 규칙 — 요청한 사람만이 아니라 작성 권한이면 누구나 (§7 「이어하기」)
+    canResume: resumable,
+    resumedBy: resumed_by === null ? null : Number(resumed_by),
   };
 }
 

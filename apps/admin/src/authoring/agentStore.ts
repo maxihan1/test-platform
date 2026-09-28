@@ -17,8 +17,11 @@ export async function 집기(서비스: number, 집는이: string): Promise<요�
     `UPDATE authoring_request
         SET status = 'RUNNING', claimed_by = $2, started_at = now()
       WHERE id = (
-              SELECT id FROM authoring_request
+              SELECT id FROM authoring_request 줄
                WHERE service_id = $1 AND status = 'PENDING'
+                 -- 이어받는 줄은 보관 폴더가 있는 에이전트만 — 원본을 집었던 쪽이다. 아무도 안 집었으면 폴더가 없어 누구나 (§7 「이어하기」)
+                 AND (줄.resume_from IS NULL
+                      OR COALESCE((SELECT 멈춘것.claimed_by FROM authoring_request 멈춘것 WHERE 멈춘것.id = 줄.resume_from), $2) = $2)
                ORDER BY id
                LIMIT 1
             )
