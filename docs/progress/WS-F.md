@@ -112,3 +112,20 @@ fixture 접두사에 `XFS5`(`auth/scope.test.ts`)가 늘었다. `gate.test.ts` �
 - **옛 등급을 옮긴 뒤 누구의 할 일도 바뀌지 않아야 한다** — ② 는 옛 등급표를 검사에 남기고 (틀, 메서드)마다 옛 등급 셋 × 옮긴 값의 통과·거절을 대조한다 (인증 §7 「서버가 그것을 어떻게 표현하나」 끝 문단)
 - `docs/SETUP.md` 는 ③·④ 가 고친다 — 기본 계정·Grafana 주소가 실제로 생기기 전에 고치면 절차가 거짓이 된다
 - 기본값 넷(8자 · 거절=삭제 · 수락 기본 read · admin 직접 생성 유지)은 게이트 0 에서 사용자가 승인했다
+
+## 2026-09-28 — 인증·권한 개편 ② 권한 (PR #93)
+
+- 완료: 게이트 1 직후 사용자 요청으로 **권한을 서비스별로** 바꿨다(게이트 0 다시 · 명세 be84c37) — `user_service` 에 케이스·실행·작성 칸, `app_user` 에 대시보드·승인·변경 강제 칸 ·
+  마이그레이션(옛 등급 옮기기 · down 은 권한을 올리지 않음) · 확인 함수가 서비스마다 권한 · 문이 **건드리는 서비스에서** 판정(`auth/routeTable.ts` 로 표를 뗌) ·
+  옛 등급 대조 · 기능 묶임 고정 검사 · 스캔 결과와 `last-by-case` 는 칸이 있는 서비스 것만 · 설정 API 서비스별 권한 · `settings/users.ts` 분리 ·
+  화면 권한 판정·사이드바·집 · 버튼들 · 설정 권한 고르개(시안 B 서비스별) · 명령 둘
+- 미완: ③ 가입·첫 admin · ④ Grafana (`docs/WORKSTREAMS.md` 「🔐」)
+- 막힌 것: 없음
+
+### 다음 세션이 알아야 할 것
+
+- 판정 진입점은 `auth/gate.ts` 의 preHandler — `닿는서비스` → `SERVICE_FORBIDDEN` → 칸 판정 순서. 표는 `auth/routeTable.ts`, 칸 타입·높이는 `auth/permissions.ts`
+- **배정 0건 member 는 안매임 통로(스캔 보기 등)가 막힌다** — 명세 「하나라도」 규칙대로다. admin 은 배정 없이 통과
+- 화면은 `role.ts` 의 `판정을만든다(user, prefix)` 로 버튼을 가르고, 실행 결과는 그 실행의 서비스로 판정한다
+- DB 검사 접두사 `xfu8`·`XFS8`(마이그레이션) · `xfu9`·`XFS9`(설정 계정). 검사용 DB 는 `platform_wsf`
+- 인증 §7 의 `/api/auth/**` · `/api/settings/users/**` 블록은 **③ 이 approve·DELETE·signup·password 를 넣은 뒤** `반영 완료` 로 바꾼다 (권한 부분은 이 PR 에서 들어갔다)
