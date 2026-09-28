@@ -113,6 +113,10 @@ describe('Grafana 는 로그인 뒤에 있다', () => {
     expect(grafana).not.toMatch(/^ {4}ports:/m);
   });
 
+  it('이미지는 실측한 판으로 고정한다 — 같은 출처라 새 판의 기본값 변화가 플랫폼에 그대로 온다', () => {
+    expect(grafana).toMatch(/^ {4}image: grafana\/grafana:13\.2\.2(\s|$)/m);
+  });
+
   it('dashboard 망에만 붙는다', () => {
     expect(망(grafana)).toEqual(['dashboard']);
   });
