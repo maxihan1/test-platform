@@ -90,6 +90,12 @@ export async function step(
   }
   if (run.stopped) throw new StopTest();
 
+  // 건너뛴 절차도 순번을 차지한다. 빼 버리면 순번이 비고 「이 케이스가 준비를 세웠다」로 읽힌다 (SPEC 공통/3-공유계약 §5.1)
+  if (run.skip?.has(title) === true) {
+    await run.emit({ seq: ++run.seq, title, status: 'PASS', durationMs: 0, assertions: [], skipped: true });
+    return;
+  }
+
   const outcome = await runStep(run, title, body, options);
   // 예외는 원본 그대로 올린다. Playwright 출력에 원래 메시지와 위치가 남아야 한다
   if (outcome.fatal !== undefined) throw outcome.fatal;
