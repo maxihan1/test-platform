@@ -105,6 +105,11 @@ describe('자리 목록', () => {
     expect(지금자리('item', '#/cases')).toBe('#/runs');
   });
 
+  it('비밀번호 변경 화면에서는 어느 자리에도 밑줄이 없다', () => {
+    const 자리들 = 자리목록(사람('admin', [결제]), 'PAY', 'ko').map((자리) => 자리.해시);
+    expect(자리들).not.toContain(지금자리('password', '#/cases'));
+  });
+
   it('모르는 자리는 집으로 보낸다. 집은 권한으로 고른 자리다', () => {
     expect(지금자리('unknown', '#/cases')).toBe('#/cases');
     expect(지금자리('unknown', '#/authoring')).toBe('#/authoring');
@@ -169,6 +174,13 @@ describe('배정받은 서비스가 없을 때', () => {
     // 2026-09-19 실측 — 안내가 「설정에서 자기 자신을 배정하세요」인데 설정을 눌러도
     // 같은 안내가 떴다. 서비스가 0개인 첫 운영자는 영영 빠져나올 수 없었다
     expect(빈띠사유(사람('admin', []), null, 'ko', '#/settings')).toBe(null);
+  });
+
+  it('비밀번호 변경 화면은 누구에게도 덮지 않는다. 배정과 상관없이 자기 비밀번호는 바꾼다', () => {
+    const 자리 = 지금자리('password', '#/cases');
+    expect(빈띠사유(사람('admin', []), null, 'ko', 자리)).toBe(null);
+    expect(빈띠사유(사람('member', []), null, 'ko', 자리)).toBe(null);
+    expect(빈띠사유(사람('member', [], 'none'), null, 'ko', 자리)).toBe(null);
   });
 
   it('설정을 못 여는 사람에게는 설정 자리에서도 사유를 보여준다', () => {
