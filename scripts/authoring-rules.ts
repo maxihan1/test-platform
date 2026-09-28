@@ -157,6 +157,7 @@ export function 줄프롬프트(
   계획: 읽을자료[],
   대상?: { 폴더: string; 서버들: { env: string; baseUrl: string }[] },
   역방향?: { 화면만: boolean; 산출물폴더: string },
+  이어하기?: { 번호: number; 이유: string | null; 까닭: string | null },
 ): string {
   return [
     `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
@@ -183,7 +184,30 @@ export function 줄프롬프트(
     // 화면만은 기획서가 없다 — 빈 기획서 절을 싣으면 자식이 「기획서가 비었다」로 멈춘다
     ...(계획.length > 0 ? 자료목록글(계획) : 역방향?.화면만 === true ? [] : ['--- 기획서 ---', 것.specText ?? '']),
     ...(역방향 === undefined ? [] : 역방향절({ ...역방향, 요청번호: 것.id })),
+    ...(이어하기 === undefined ? [] : 이어하기절(이어하기)),
   ].join('\n');
+}
+
+/** 중단 이유를 자식에게 사람 말로. 화면 라벨과 같은 말이다 (web/authoringView 의 중단이유라벨) */
+const 이유말: Record<string, string> = {
+  USER: '사용자가 멈춤',
+  TIMEOUT: '시간초과',
+  LIMIT: '구독 한도',
+  AGENT_RESTART: '에이전트 재시작',
+  AGENT_LOST: '에이전트 응답 없음',
+  CRASH: '작성 중 끊김',
+  REJECTED: '올리기 거절',
+};
+
+/** 이어받은 실행에 붙는 절 (도메인/작성 §7 「이어하기」). 무엇을 어떻게 이어가는지는 스킬 참고 파일이 정본이다 */
+function 이어하기절(이어하기: { 번호: number; 이유: string | null; 까닭: string | null }): string[] {
+  const 이유 = 이어하기.이유 === null ? '기록 없음' : (이유말[이어하기.이유] ?? 이어하기.이유);
+  return [
+    '',
+    '--- 이어하기 ---',
+    `이 작업방은 작성 요청 ${이어하기.번호} 이 멈춘 자리다. 멈춘 까닭: ${이유}${이어하기.까닭 === null ? '' : ` — ${이어하기.까닭}`}`,
+    '`.claude/skills/tpx-author/references/resume.md` 를 먼저 읽고 따라라. 이미 있는 표·케이스·차이 파일을 버리고 처음부터 하지 마라.',
+  ];
 }
 
 /** 머지 요청을 실제로 칠 수 있나. 올릴 PR 주소가 없으면 할 일이 없다 */

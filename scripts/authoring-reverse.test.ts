@@ -284,3 +284,31 @@ describe('줄프롬프트 역방향 절 — 계정 값 없이 자리만 준다',
     expect(글).not.toContain('TARGET_');
   });
 });
+
+describe('줄프롬프트 이어하기 절 — 멈춘 자리부터 이어간다', () => {
+  it('이어받았으면 멈춘 요청 번호 · 까닭 · 따를 참고 파일을 싣는다', () => {
+    const 글 = 줄프롬프트({ id: 12, kind: 'RERUN', specText: '본문' }, 'PAY', [], undefined, undefined, {
+      번호: 9,
+      이유: 'REJECTED',
+      까닭: '올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다',
+    });
+    expect(글).toContain('--- 이어하기 ---');
+    expect(글).toContain('작성 요청 9');
+    expect(글).toContain('올리기 거절');
+    expect(글).toContain('올릴 것에 테스트 계정 비밀번호가 들어 있다');
+    expect(글).toContain('references/resume.md');
+  });
+
+  it('까닭이 없는 중단은 이유만 싣는다', () => {
+    const 글 = 줄프롬프트({ id: 12, kind: 'RERUN', specText: '본문' }, 'PAY', [], undefined, undefined, {
+      번호: 9,
+      이유: 'TIMEOUT',
+      까닭: null,
+    });
+    expect(글).toContain('시간초과');
+  });
+
+  it('이어받지 않았으면 이어하기 절이 없다', () => {
+    expect(줄프롬프트({ id: 3, kind: 'AUTHOR', specText: '본문' }, 'PAY', [])).not.toContain('이어하기');
+  });
+});
