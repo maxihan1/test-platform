@@ -167,6 +167,19 @@ export function 계정섞였나(글들: string[], 비밀: string | null | undefi
   return 글들.some((글) => 글.includes(비밀));
 }
 
+/** 가린 비밀번호 자리. 글자본과 워드 사본이 같은 표시를 써야 자식이 베낀 문장으로 원본 문단을 찾는다 */
+export const 가림표 = '••••••';
+
+/**
+ * 비밀번호 원문을 가림표로 바꾼다 — 자식이 읽기 전에 기획서·앞 실행이 남긴 파일에서 먼저 가린다 (§3.6 「★ 역방향」).
+ * JSON 에 이스케이프돼 적힌 꼴(따옴표·역슬래시)도 같이 — diffs.json 이 그렇게 적는다
+ */
+export function 비밀가리기(글: string, 비밀: string | null | undefined): string {
+  if (비밀 === null || 비밀 === undefined || 비밀 === '') return 글;
+  const 이스케이프 = JSON.stringify(비밀).slice(1, -1);
+  return 글.split(비밀).join(가림표).split(이스케이프).join(가림표);
+}
+
 /**
  * push 전에 올릴 글 전부를 본다 (§3.6 「남는 한계」 — 올릴 파일 · result(diffs) · 케이스 diff · PR 본문).
  * 역기획서 `.docx` 는 바꾼 뒤 한 번 더 본다(`되읽기인자`) — 원고만 보면 변환이 끌어온 것을 못 본다
