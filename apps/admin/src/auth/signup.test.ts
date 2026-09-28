@@ -100,6 +100,31 @@ describe.skipIf(연결 === undefined)('회원가입', () => {
     expect(await 행('xsg-name')).toBeUndefined();
   });
 
+  it('이름은 앞뒤 공백을 떼고 저장하며 공백뿐이면 400 INVALID_REQUEST', async () => {
+    const 빈것 = await 가입({ username: 'xsg-blank', displayName: '   ', password: 비번 });
+    expect(빈것.statusCode).toBe(400);
+    expect(빈것.json()).toEqual({ error: 'INVALID_REQUEST' });
+    expect(await 행('xsg-blank')).toBeUndefined();
+
+    const res = await 가입({ username: 'xsg-trim', displayName: '  공백이름  ', password: 비번 });
+    expect(res.statusCode).toBe(201);
+    expect((await 행('xsg-trim'))?.display_name).toBe('공백이름');
+  });
+
+  it('작성 에이전트 계정 이름으로는 409 USERNAME_TAKEN', async () => {
+    const 옛이름 = process.env.AUTHORING_AGENT_USER;
+    process.env.AUTHORING_AGENT_USER = 'xsg-agent';
+    try {
+      const res = await 가입({ username: 'xsg-agent', displayName: '흉내', password: 비번 });
+      expect(res.statusCode).toBe(409);
+      expect(res.json()).toEqual({ error: 'USERNAME_TAKEN' });
+      expect(await 행('xsg-agent')).toBeUndefined();
+    } finally {
+      if (옛이름 === undefined) delete process.env.AUTHORING_AGENT_USER;
+      else process.env.AUTHORING_AGENT_USER = 옛이름;
+    }
+  });
+
   it('본문에 등급·권한을 실어도 무시한다', async () => {
     const res = await 가입({
       username: 'xsg-sneak',
