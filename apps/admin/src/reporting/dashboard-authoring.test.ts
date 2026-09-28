@@ -30,6 +30,14 @@ function 패널SQL(제목: string): string {
   return 패널.targets[0]!.rawSql;
 }
 
+describe('작성 토큰 패널의 중단 이유 글', () => {
+  it('작성 중 끊김 · 올리기 거절도 사람 말로 가른다 — 모르는 이유는 빈 글이 되어 줄이 뭉개진다', () => {
+    const sql = 패널SQL('작성 토큰');
+    expect(sql).toContain("WHEN 'CRASH' THEN '작성 중 끊김'");
+    expect(sql).toContain("WHEN 'REJECTED' THEN '올리기 거절'");
+  });
+});
+
 describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
   let pool: Pool;
   let 읽기전용: Client;
