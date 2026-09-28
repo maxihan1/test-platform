@@ -524,6 +524,10 @@ export const api = {
   signup: (body: { username: string; displayName: string; password: string }) =>
     call<{ status: 'PENDING' }>('/auth/signup', json(body)),
 
+  /** 본인 비밀번호를 바꾼다. 세션은 그대로다 — 다시 로그인하게 하지 않는다 (도메인/인증 §8.6) */
+  changePassword: (body: { currentPassword: string; newPassword: string }) =>
+    call<void>('/auth/password', json(body)),
+
   cases: (query: CaseQuery) => {
     const params = new URLSearchParams({ service: query.service, page: String(query.page ?? 1) });
     if (query.q !== undefined && query.q !== '') params.set('q', query.q);

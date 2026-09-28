@@ -130,6 +130,11 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
             {t('로그아웃')}
           </button>
         </div>
+        {/* 이름 바로 아래에 두되 사람 칸 밖이다 — 접으면 사람 칸이 통째로 숨어 키보드가 못 닿는다.
+            자리 목록처럼 글자만 눌러 탭 순서에 남긴다 (도메인/인증 §8.6) */}
+        <a className="side-pw" href="#/password">
+          {t('비밀번호 변경')}
+        </a>
       </aside>
 
       <div className="main">

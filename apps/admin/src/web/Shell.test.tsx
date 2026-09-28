@@ -102,7 +102,10 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(사이드).not.toBeNull();
     const 안 = within(사이드!);
     expect(안.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
-    expect(안.getAllByRole('link')).toHaveLength(자리목록(사람, 결제.prefix, 'ko').length);
+    // 자리 목록만 센다 — 사이드바에는 `비밀번호 변경` 링크도 있다 (2026-09-28)
+    expect(within(안.getByRole('navigation')).getAllByRole('link')).toHaveLength(
+      자리목록(사람, 결제.prefix, 'ko').length,
+    );
     expect(안.getByText(사람.displayName)).toBeTruthy();
   });
 

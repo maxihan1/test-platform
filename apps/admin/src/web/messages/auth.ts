@@ -22,4 +22,16 @@ export const 계정말: Record<string, string> = {
   '두 비밀번호가 다릅니다': 'The two passwords do not match',
   '비밀번호는 8자 이상입니다': 'Passwords must be at least 8 characters',
   '비밀번호를 채웁니다': 'Fill in the password',
+
+  // 비밀번호 변경 화면 (강제 · 스스로)
+  '비밀번호 변경': 'Change password',
+  '처음 받은 비밀번호를 바꿔야 계속할 수 있습니다': 'Change the password you were given to continue',
+  '현재 비밀번호': 'Current password',
+  '새 비밀번호': 'New password',
+  '새 비밀번호 확인': 'Confirm new password',
+  '비밀번호 바꾸기': 'Update password',
+  '바꾸는 중': 'Changing',
+  '현재 비밀번호를 채웁니다': 'Fill in the current password',
+  '현재 비밀번호가 맞지 않습니다': 'The current password is incorrect',
+  '지금 비밀번호와 다른 값을 넣습니다': 'Enter a password different from the current one',
 };

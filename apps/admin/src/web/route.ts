@@ -7,6 +7,7 @@ import { 기능보나, type 기능 } from './role.js';
 export type Route =
   | { name: 'login' }
   | { name: 'signup' }
+  | { name: 'password' }
   | { name: 'settings' }
   | { name: 'cases' }
   | { name: 'setup'; tcId: string }
@@ -22,6 +23,7 @@ export function route(hash: string): Route {
 
   if (parts.length === 1 && parts[0] === 'login') return { name: 'login' };
   if (parts.length === 1 && parts[0] === 'signup') return { name: 'signup' };
+  if (parts.length === 1 && parts[0] === 'password') return { name: 'password' };
   if (parts.length === 1 && parts[0] === 'settings') return { name: 'settings' };
 
   if (parts.length === 0 || (parts[0] === 'cases' && parts.length === 1)) return { name: 'cases' };
