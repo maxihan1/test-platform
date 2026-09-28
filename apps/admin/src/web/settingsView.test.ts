@@ -112,6 +112,11 @@ describe('마지막 운영 계정 (SPEC §7 · §8.8)', () => {
   it('이미 비활성인 사람은 마지막이 아니다. 내릴 것이 없다', () => {
     expect(마지막운영계정인가([계정('kim', 'admin', false)], 'kim')).toBe(false);
   });
+
+  it('승인 안 된 운영 계정은 수에 안 넣는다. 서버 LAST_ADMIN 과 같은 기준이다', () => {
+    const 미승인 = [...사람들, { ...계정('choi', 'admin'), isApproved: false }];
+    expect(마지막운영계정인가(미승인, 'kim')).toBe(true);
+  });
 });
 
 describe('서비스를 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살려 두고 사유를 말한다)', () => {

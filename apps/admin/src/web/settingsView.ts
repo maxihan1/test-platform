@@ -104,7 +104,8 @@ export function 마지막운영계정인가(계정들: UserRow[], username: stri
   const 나 = 계정들.find((it) => it.username === username);
   // 이미 내려가 있는 사람은 내릴 것이 없다
   if (나 === undefined || 나.role !== 'admin' || !나.isActive) return false;
-  return 계정들.filter((it) => it.role === 'admin' && it.isActive).length <= 1;
+  // 서버 LAST_ADMIN 과 같은 기준 — 승인 전 계정은 못 들어오니 수에 안 넣는다
+  return 계정들.filter((it) => it.role === 'admin' && it.isActive && it.isApproved !== false).length <= 1;
 }
 
 /** 목록 줄과 고르개가 칸을 늘어놓는 순서. 사람마다 순서가 바뀌면 줄끼리 견줄 수 없다 */

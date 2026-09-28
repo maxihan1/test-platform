@@ -367,6 +367,8 @@ export interface UserRow {
   role: 등급;
   dashboard: 'none' | 'read';
   isActive: boolean;
+  // 옛 검사 fixture 가 없이 만든다. 서버는 늘 보낸다 — 없으면 승인된 것으로 읽는다
+  isApproved?: boolean;
   /** 배정 전체. 고칠 때 이 목록이 통째로 바뀐다 (도메인/인증 §7) */
   services: 배정[];
   // 옛 검사 fixture 가 이 둘 없이 UserRow 를 만든다. 서버는 늘 보낸다 — 없으면 false 로 읽는다
