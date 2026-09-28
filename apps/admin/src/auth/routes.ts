@@ -1,10 +1,11 @@
-// 로그인·로그아웃·나·비밀번호 바꾸기 (SPEC 도메인/인증 §7 Auth)
+// 로그인·로그아웃·나·비밀번호 바꾸기 (SPEC 도메인/인증 §7 Auth). 가입은 옆 파일(signup.ts)을 여기서 붙인다
 
 import type { FastifyInstance } from 'fastify';
 
 import { 확인 } from './identify.js';
 import { 검증, 해시 } from './password.js';
 import { 비밀번호최대, 비밀번호최소 } from './rules.js';
+import signupRoutes from './signup.js';
 import { 로그인조회, 비밀번호도장, 비밀번호바꾸기, 사용자와해시 } from './store.js';
 
 interface 로그인본문 {
@@ -18,6 +19,8 @@ interface 비밀번호본문 {
 }
 
 export default async function authRoutes(app: FastifyInstance): Promise<void> {
+  await app.register(signupRoutes);
+
   app.post<{ Body: 로그인본문 }>('/auth/login', async (req, reply) => {
     const username = typeof req.body?.username === 'string' ? req.body.username : '';
     const password = typeof req.body?.password === 'string' ? req.body.password : '';

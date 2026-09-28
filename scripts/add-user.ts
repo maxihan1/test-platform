@@ -1,7 +1,8 @@
 // 계정을 컨테이너 안에서 만드는 복구용 명령 (SPEC §9.2). 첫 계정은 빈 서버가 만드는 기본 계정 (SPEC §9.2) 이고
-// 회원가입 화면은 없으며 (§8.6) 평소에는 설정 화면이 같은 일을 한다 (§8.8). 운영 계정을 잃었을 때 쓴다.
+// 평소에는 회원가입(§8.6)과 설정 화면(§8.8)이 계정을 만든다. 운영 계정을 잃었을 때 쓴다.
 // 비밀번호는 인자로 받지 않는다 — 명령에 적으면 서버의 명령 이력에 평문으로 남는다
 
+import { 아이디모양 } from '../apps/admin/src/auth/rules.js';
 import { pool } from '../apps/admin/src/db/index.js';
 import { 설정오류 } from '../apps/admin/src/settings/store.js';
 import { 계정만들기 } from '../apps/admin/src/settings/users.js';
@@ -11,6 +12,11 @@ const [username, displayName, role] = process.argv.slice(2);
 if (username === undefined || displayName === undefined || role === undefined) {
   console.error('쓰는 법 (복구용): npx tsx scripts/add-user.ts <아이디> <이름> <member|admin>');
   console.error('평소 계정은 설정 > 계정에서 만든다. 이 명령은 운영 계정을 잃었을 때 쓴다');
+  process.exit(1);
+}
+
+if (!아이디모양.test(username)) {
+  console.error(`아이디 "${username}"은 쓸 수 없다. 영문 소문자·숫자·. _ -, 2~32자, 첫 글자는 소문자나 숫자 (SPEC 도메인/인증 §7)`);
   process.exit(1);
 }
 

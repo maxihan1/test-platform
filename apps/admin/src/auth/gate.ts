@@ -150,7 +150,7 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
  * 로그인 없이 지나가는 틀. **두 훅이 이 하나를 본다** — 따로 적으면 한쪽만 늘어
  * onRequest 는 통과시키고 preHandler 가 401 을 내는 식으로 어긋난다 (SPEC 도메인/인증 §7)
  */
-const 로그인없이통과 = new Set(['/api/auth/login']);
+const 로그인없이통과 = new Set(['/api/auth/login', '/api/auth/signup']);
 
 // 비밀번호 변경 강제 중인 계정이 부를 수 있는 셋 (SPEC 도메인/인증 §7). `METHOD 틀` 모양이고 HEAD 는 GET 으로 본다
 const 변경강제중허용 = new Set(['GET /api/auth/me', 'POST /api/auth/logout', 'POST /api/auth/password']);
@@ -173,7 +173,7 @@ export function 인증등록(app: FastifyInstance): void {
     const path = 라우트틀(req);
     if (path === undefined || !path.startsWith('/api/')) return;
 
-    // 로그인 자체는 로그인을 요구할 수 없다 (SPEC §7).
+    // 로그인·가입 자체는 로그인을 요구할 수 없다 (SPEC §7).
     // 2026-09-17 에 POST /api/runs 예외가 삭제됐다 — 정기 실행은 HTTP 를 쓰지 않는다 (§9.2)
     if (로그인없이통과.has(path)) return;
 

@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { 에이전트토큰만들기, 에이전트토큰지우기 } from '../auth/agentToken.js';
+import { 아이디모양 } from '../auth/rules.js';
 import { 정수 } from '../routeParams.js';
 
 import { 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
@@ -143,6 +144,8 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
   app.post('/settings/users', async (req, reply) => {
     const parsed = 새계정.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send(계정본문오류(parsed.error));
+    // 가입과 같은 아이디 규칙이다 (SPEC 도메인/인증 §7 signup)
+    if (!아이디모양.test(parsed.data.username)) return reply.code(400).send({ error: 'USERNAME_SHAPE' });
     // 이 응답이 비밀번호를 볼 수 있는 **유일한 자리**다. 다음부터는 다시 만들 수만 있다 (SPEC §8.8)
     const tempPassword = await 계정만들기(parsed.data);
     return reply.code(201).send({ username: parsed.data.username, tempPassword });
