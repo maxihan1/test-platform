@@ -7,7 +7,23 @@ import { api, ApiError, type User } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
 
-export function Login({ onLogin }: { onLogin: (user: User) => void }) {
+/**
+ * Grafana 문이 로그인 화면으로 보낼 때 실어 준 돌아올 자리 (도메인/인증 §7 「Grafana 통로」).
+ * `/grafana/` 로 시작할 때만 받는다 — 아무 주소나 받으면 이 로그인 화면이 남의 사이트로 보내는 발판이 된다
+ */
+function 그래프로돌아갈곳(search: string): string | null {
+  const next = new URLSearchParams(search).get('next');
+  return next?.startsWith('/grafana/') ? next : null;
+}
+
+export function Login({
+  onLogin,
+  // 검사가 진짜 페이지 이동 대신 끼운다. jsdom 의 location.assign 은 바꿔 끼울 수 없다
+  떠난다 = (주소: string) => window.location.assign(주소),
+}: {
+  onLogin: (user: User) => void;
+  떠난다?: (주소: string) => void;
+}) {
   const t = use말();
   const 언어 = use언어();
   const [username, setUsername] = useState('');
@@ -23,7 +39,10 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
     set기다림(false);
     try {
       const { user } = await api.login(username, password);
-      onLogin(user);
+      // Grafana 는 이 화면(해시 라우터) 밖이라 해시가 아니라 페이지를 옮긴다
+      const 그래프 = 그래프로돌아갈곳(window.location.search);
+      if (그래프 === null) onLogin(user);
+      else 떠난다(그래프);
     } catch (err) {
       // 비밀번호가 맞은 사람에게만 오는 답이다. 잘못한 것이 아니라 기다리는 중이라 오류 모양으로 안 그린다
       if (err instanceof ApiError && err.code === 'PENDING_APPROVAL') {

@@ -25,28 +25,11 @@ export function 탭제목(service: ServiceRow | null, 언어: 언어): string {
   return service === null ? 이름 : `${service.name} · ${이름}`;
 }
 
-declare global {
-  interface ImportMeta {
-    /** Vite 는 `VITE_` 로 시작하는 값만 번들에 넣는다. 안 주면 그 자리가 undefined 가 된다 */
-    readonly env?: { readonly VITE_GRAFANA_PORT?: string };
-  }
-}
-
 /**
- * Grafana 주소.
- *
- * Grafana 는 admin 과 **다른 포트**로 뜬다 — `GRAFANA_PORT`, 비우면 3001 (docs/SETUP.md).
- * SPEC 은 「그래프는 Grafana 라 바깥으로 나간다」(§8)까지만 적고 화면이 그 주소를
- * 어떻게 아는지는 정하지 않았다 — 2026-09-20 에 **빌드 시 설정값**으로 정했다 (SPEC §9.2).
- * compose 의 `GRAFANA_PORT` 가 admin 이미지의 build arg 로 들어와 이 자리에 구워진다.
- *
- * **값이 번들에 박히므로 `GRAFANA_PORT` 를 바꾸면 admin 이미지를 다시 빌드해야 한다.**
- * 안 하면 아무 오류 없이 이 링크만 틀린 포트를 가리킨다.
+ * Grafana 주소. admin 이 로그인·대시보드 권한을 보고 `/grafana/` 아래를 대신 연다 (도메인/인증 §7 「Grafana 통로」).
+ * 2026-09-27 까지는 다른 포트라 빌드 때 구웠다 — 같은 서버 경로가 되며 구울 값이 사라졌다 (공통/6 §9.2)
  */
-function 그래프주소(): string {
-  const 포트 = import.meta.env?.VITE_GRAFANA_PORT ?? '3001';
-  return `${location.protocol}//${location.hostname}:${포트}`;
-}
+const 그래프주소 = '/grafana/';
 
 /**
  * 자리 목록 (화면공통 §8 「자리 목록」).
@@ -60,7 +43,7 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
   if (기능보나(user, prefix, 'cases')) 목록.push({ 이름: t('테스트 케이스', 언어), 해시: '#/cases' });
   if (기능보나(user, prefix, 'authoring')) 목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring' });
   if (기능보나(user, prefix, 'runs')) 목록.push({ 이름: t('실행 기록', 언어), 해시: '#/runs' });
-  if (user.dashboard === 'read') 목록.push({ 이름: t('그래프', 언어), 해시: 그래프주소(), 바깥: true });
+  if (user.dashboard === 'read') 목록.push({ 이름: t('그래프', 언어), 해시: 그래프주소, 바깥: true });
   if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings' });
   return 목록;
 }

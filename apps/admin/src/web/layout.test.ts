@@ -1,17 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import type { RunSummary, ServiceRow, User } from './api.js';
 import { 고른서비스, 빈띠사유, 알림줄, 자리목록, 지금자리, 탭제목 } from './layout.js';
-
-// 그래프 자리가 Grafana 주소를 만들 때 location 을 읽는다. jsdom 을 설치하지 않았으므로
-// api.test.ts 와 같은 방식으로 가짜를 끼운다
-beforeEach(() => {
-  vi.stubGlobal('location', { protocol: 'https:', hostname: 'qa.example.com' });
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
 
 const 결제: ServiceRow = {
   id: 1,
