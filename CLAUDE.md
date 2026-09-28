@@ -270,6 +270,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   대시보드 작성 현황 `XDH`·`XDHOFF`(`reporting/dashboard-authoring.test.ts`, 2026-09-26 — `authoring_request` 는 그 서비스의 `service_id` 로 ·
   `test_case` 는 `tc_id LIKE 'XDH-%'`·`'XDHOFF-%'` · 마지막에 `service WHERE prefix IN ('XDH','XDHOFF')` 까지 지운다) ·
   계약 반영 `XRC`(`db/reverse-columns.test.ts`, 2026-09-25 — 자기 `service_id` 로만 지운다) ·
+  작성 이어하기 `XRM`(`db/resume-columns.test.ts`)·`XWM`(`authoring/resume.test.ts`)(2026-09-28 — 둘 다 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   역방향 WS-B `XBU`(`execution/unconfirmed.test.ts`, 2026-09-26 — `test_run.title LIKE 'XBU%'`·`tc_id LIKE 'XBU-%'`·`prefix = 'XBU'`) ·
   에이전트 토큰 `xfu5`(계정)·`XFS6`(서비스)(`auth/agentToken.test.ts`, 2026-09-23 — `xfu4` 와 겹치지 않게 `'xfu5%'` 로만 지운다) ·
   테스트 계정 `xfu7`(계정)·`XFS7`(서비스)(`settings/testAccount.test.ts`, 2026-09-26 — `'xfu7%'`·`'XFS7%'` 로 지운다).
