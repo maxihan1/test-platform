@@ -304,8 +304,12 @@ Claude 토큰은 1년이면 만료된다 — 그때 3번을 다시 한다. 대�
 
 ```bash
 docker compose -p test_platform stop author
-npm run authoring-agent
+AUTHORING_WORK_DIR=~/authoring-work npm run authoring-agent
 ```
+
+**`AUTHORING_WORK_DIR` 를 정한다** (2026-09-28). 멈춘 작성의 작업 폴더를 7일 남겨 「이어서 작성」에 쓰는데,
+안 정하면 OS 임시 폴더에 두고 macOS 가 오래된 것을 먼저 지운다. 서버 author 는 `/work` 볼륨이라 할 일이 없다.
+**서버에서 멈춘 요청은 맥 에이전트가 이어받지 않는다** — 폴더가 그 기계에 있다. 서버 author 가 다시 켜지면 그쪽이 집는다.
 
 **처음 켤 때만 에이전트 토큰을 묻는다** (아래 「에이전트 토큰」). 그 뒤로는 묻지 않는다. 멈추려면 `Ctrl+C`.
 **서버가 다른 기계에 있으면 `PLATFORM_ADMIN_URL` 을 적는다.** 남의 기계를 `http://` 로 가리키면 켜지 않는다 — 토큰이 망에 그대로 흐른다. `https` 를 쓴다.

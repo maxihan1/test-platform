@@ -115,19 +115,22 @@
   자식을 `--output-format stream-json --verbose` 로 돌려 **어떤 끝내기보다 먼저** `POST …/:id/usage` 로 알린다(정상 = `modelUsage`, 끊김 = 메시지 id 마다 마지막 사본 · `tokens_partial` 하한값) ·
   칸 `tokens_input·output·cache_read·cache_write·partial` · `cost_usd`(API 환산, 청구 아님) · `tokens_model` · 결과 요약·한도 판정은 `result` 글로 · 로그는 도구 이름·글 첫 줄만.
   훑기 — 대조의 「한 칸」은 그 화면 안(팝업·탭·펼치기·다음 단계)만 · 화면만은 메뉴 1단계 · **30분 예산** · 본 화면은 작업방 안 `screens/` 파일에.
-  Grafana `작성 토큰` 패널(리포팅 §8.5). 코드 `scripts/authoring-usage.ts` · `apps/admin/src/authoring/usage.ts`. **남은 것** — 데모마켓 대조를 다시 넣어 제한(120분 — 2026-09-28 PR #89, 이어하기 전까지의 조치) 안에 끝나는지·토큰을 패널에서 본다.
+  Grafana `작성 토큰` 패널(리포팅 §8.5). 코드 `scripts/authoring-usage.ts` · `apps/admin/src/authoring/usage.ts`. **남은 것** — 데모마켓 대조를 다시 넣어 제한(120분 — 2026-09-28 PR #89, 이어하기가 생긴 뒤에도 유지) 안에 끝나는지·토큰을 패널에서 본다.
   **`scripts/authoring-io.ts` 가 323줄** — 300줄 넘은 파일, 분리 대상(원래 313) → PR #87 에서 `돌린다` 를 `authoring-spawn.ts` 로 떼 259줄
 - **WS-작성 진척 · 중단 · 폐기 — 반영 완료 (2026-09-27, PR #87).** 이어하기를 둘로 나눈 앞쪽(사용자). 상태 `STOPPED`(중단) + 이유 다섯(USER·TIMEOUT·LIMIT·AGENT_RESTART·AGENT_LOST) + 누가(`stopped_by`, 사람 또는 system).
   화면에 진척(경과·화면·케이스 파일·토큰 하한·마지막 동작 N초 전) · 「작성 중단」·「폐기」(요청한 사람 + admin, Modal 확인). 자식이 도는 동안 에이전트가 30초마다 `stage` 로 진척을 올리고 응답 `stop` 을 받아 멈춘다.
   신호가 3분 넘게 없는 요청은 서버가 곧장 AGENT_LOST · 올리는 중 중단은 받지 않는다 · 시간초과·한도·재시작도 STOPPED(머지는 FAILED) · 폐기는 소프트(초안 포함, 폐기한 것은 제출·재실행 막음).
   Grafana 두 패널이 중단을 이유별로 센다. 규칙 정본 도메인/작성 §7 「중단 · 폐기 · 진척」. 코드 `apps/admin/src/authoring/stop.ts` · `agentStore.ts`(store.ts 에서 뗌) · `scripts/authoring-progress.ts` · `authoring-spawn.ts` · `web/AuthoringProgress.tsx`.
-  **남은 것 — 이어하기(보관·재개)가 다음 PR.** 지금의 STOPPED 는 작업방을 안 남겨 처음부터 다시 돈다. `apps/admin/src/web/api.ts`(702줄)·`auth/gate.ts`(305줄)·`scripts/authoring-chain.test.ts`(455줄)는 300줄 넘은 파일, 분리 대상
+  이어하기(보관·재개)는 아래 PR #94 에서 반영됐다. `apps/admin/src/web/api.ts`(702줄)·`auth/gate.ts`(305줄)·`scripts/authoring-chain.test.ts`(455줄)는 300줄 넘은 파일, 분리 대상
   `source_asset_id` 는 명세대로 `ON DELETE` 규칙이 없다 — 표시 사본이 있는 원본 자료를 한 건만 지우면 거절된다(요청째 지우면 괜찮다). 한 건 지우기(`assetStore.ts` `자료지우기`)는 지금 DRAFT 실패 정리에만 쓰여 해가 없다.
   **PDF 스티커 메모는 새 npm 패키지 승인 뒤다**(CLAUDE.md §3) — 그 전에는 차이 목록만 낸다.
 - **WS-작성 대조 요청 다시 작성 — 반영 완료 (2026-09-28, PR #92).** 위 PR #79 의 「역방향 원본 재실행 409」를 뒤집었다(게이트 0).
   재실행 행이 원본의 `compare`·`env`·`start_url` 을 물려받고(DB CHECK 를 AUTHOR·RERUN 으로), 물려받은 대상 서버를 다시 판정해 계정이 빠졌으면 400 `BAD_ENV`.
   `outputs` MARKED 의 `source` 는 재실행이면 원본 요청의 입력 · 에이전트는 표시 사본 원본을 `자료출처` 로 받는다 · 화면 설명은 「처음부터 다시」.
-  **이어하기(멈춘 자리부터)는 여전히 다음 PR** — 정방향 · 대조를 함께 설계한다(사용자 2026-09-28).
+- **WS-작성 이어하기 — 반영 완료 (2026-09-28, PR #94).** 멈춘 요청을 멈춘 자리부터 이어간다 — 정방향 · 대조 같다. 정본 도메인/작성 §7 「이어하기」.
+  사용자 결정 — 파일로 이어받기(대화 `--resume` 아님) · 에이전트 디스크(서버 `/work` 볼륨) · 중단만 7일 보관 · 자식이 일하다 끊김(CRASH) · 올리기 거절(REJECTED, 비밀번호 누설 포함)도 중단 · 120분 유지 · 화면 시안 A · 카드 제목 「다음 단계」.
+  코드 `apps/admin/src/authoring/{routes,store,stop,agentStore}.ts` · `scripts/authoring-keep.ts`(순수) · `authoring-keeping.ts`(I/O) · `.claude/skills/tpx-author/references/resume.md` · `web/authoringTodoParts.tsx`.
+  **실제 한 바퀴는 아직이다** — 서버에서 작성 하나를 중단시키고 이어서 작성해 앞 실행의 케이스를 버리지 않는지, 올리기 거절을 이어가 고치는지 본다.
   **실제 한 바퀴는 아직이다** — 서버 `author` 컨테이너에서 테스트 계정을 넣은 대상 서버로 역방향 요청 하나를 돌려 본다
   명세 도메인/작성.md §3.6 「★ 역방향」 · §7
 

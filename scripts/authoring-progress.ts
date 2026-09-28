@@ -20,7 +20,7 @@ export interface 진척 {
   lastActionAt?: string;
 }
 
-/** 자식 한 번의 제한. 60분이던 때 5872 가 관문 2 에서 걸려 결과를 잃었다 — 이어하기가 생기기 전까지의 조치 (작성 §7 TIMEOUT) */
+/** 자식 한 번의 제한. 60분이던 때 5872 가 관문 2 에서 걸려 결과를 잃었다. 이어하기가 생긴 뒤에도 120분 — 한 번에 끝날 확률이 높고, 이어갈 때마다 파일을 다시 읽는다 (작성 §7 TIMEOUT) */
 export const 자식제한 = 120 * 60_000;
 
 const 수 = (n: number | undefined) => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
