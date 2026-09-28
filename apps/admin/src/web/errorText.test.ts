@@ -79,4 +79,20 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
       expect(글.endsWith('다'), code).toBe(true);
     }
   });
+
+  it.each(['USERNAME_SHAPE', 'PASSWORD_CHANGE_REQUIRED', 'NOT_APPROVED', 'ALREADY_APPROVED', 'APPROVED_USER', 'PENDING_APPROVAL'])(
+    '계정 코드 %s 도 사람 말로 적고 영어로도 옮긴다',
+    (code) => {
+      const 한국어 = 요청오류문장(code, 'ko');
+      const 영어 = 요청오류문장(code, 'en');
+      expect(한국어).not.toContain(code);
+      expect(한국어).not.toContain('요청이 실패했습니다');
+      expect(영어).not.toBe(한국어);
+      expect(영어).not.toMatch(/[가-힣]/);
+    },
+  );
+
+  it('아이디 모양은 서버 규칙을 그대로 말한다', () => {
+    expect(요청오류문장('USERNAME_SHAPE', 'ko')).toBe('아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다');
+  });
 });
