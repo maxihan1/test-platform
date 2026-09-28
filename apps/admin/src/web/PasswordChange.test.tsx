@@ -111,4 +111,16 @@ describe('비밀번호 변경 화면', () => {
     await waitFor(() => expect(끝).toHaveBeenCalledWith(바꾼사람));
     expect(보냄).toHaveBeenCalledWith({ currentPassword: 'admin', newPassword: 'longpass1' });
   });
+
+  it('사유가 붙은 칸은 틀렸다고 표시하고 사유 글을 가리킨다', () => {
+    그리기();
+    채운다({ 새것: 'short1' });
+
+    const 칸 = screen.getByLabelText('새 비밀번호');
+    expect(칸.getAttribute('aria-invalid')).toBe('true');
+    const 사유 = document.getElementById(칸.getAttribute('aria-describedby') ?? '');
+    expect(사유?.textContent).toBe('비밀번호는 8자 이상입니다');
+    expect(screen.getByLabelText('현재 비밀번호').getAttribute('aria-invalid')).toBeNull();
+    expect(screen.getByLabelText('현재 비밀번호').getAttribute('aria-describedby')).toBeNull();
+  });
 });

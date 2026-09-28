@@ -96,4 +96,15 @@ describe('회원가입 화면', () => {
 
     expect(screen.getByRole('link', { name: '로그인 화면으로' }).getAttribute('href')).toBe('#/login');
   });
+
+  it('사유가 붙은 칸은 틀렸다고 표시하고 사유 글을 가리킨다', () => {
+    채운다({ 아이디: 'Admin' });
+
+    const 칸 = screen.getByLabelText('아이디');
+    expect(칸.getAttribute('aria-invalid')).toBe('true');
+    const 사유 = document.getElementById(칸.getAttribute('aria-describedby') ?? '');
+    expect(사유?.textContent).toBe('영문 소문자·숫자·. _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다');
+    expect(screen.getByLabelText('이름').getAttribute('aria-invalid')).toBeNull();
+    expect(screen.getByLabelText('이름').getAttribute('aria-describedby')).toBeNull();
+  });
 });

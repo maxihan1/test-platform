@@ -75,8 +75,15 @@ export function PasswordChange({ 강제, onDone, onLogout }: Props) {
             maxLength={비밀번호최대}
             value={값[이름]}
             onChange={(e) => set값({ ...값, [이름]: e.target.value })}
+            // 화면 낭독기는 빨간 글자를 못 본다. 칸에 들어설 때 틀렸다는 것과 사유를 같이 읽게 한다
+            aria-invalid={사유[이름] === undefined ? undefined : true}
+            aria-describedby={사유[이름] === undefined ? undefined : `${id}-err`}
           />
-          {사유[이름] === undefined ? null : <div className="err login-err">{사유[이름]}</div>}
+          {사유[이름] === undefined ? null : (
+            <div className="err login-err" id={`${id}-err`}>
+              {사유[이름]}
+            </div>
+          )}
         </div>
       </div>
     );
