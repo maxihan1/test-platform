@@ -64,6 +64,10 @@ describe('route', () => {
     expect(route('#/login')).toEqual({ name: 'login' });
   });
 
+  it('비밀번호 변경 화면', () => {
+    expect(route('#/password')).toEqual({ name: 'password' });
+  });
+
   it('회원가입 화면', () => {
     expect(route('#/signup')).toEqual({ name: 'signup' });
   });

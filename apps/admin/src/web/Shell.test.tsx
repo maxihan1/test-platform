@@ -200,6 +200,20 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
     expect(screen.getByRole('navigation').textContent).not.toContain('실행 기록');
   });
 
+  it('이름 곁에 비밀번호 변경이 있다 — 변경 강제가 아니어도 본인이 바꾼다', () => {
+    띄운다(결제);
+    expect(screen.getByRole('link', { name: '비밀번호 변경' }).getAttribute('href')).toBe('#/password');
+  });
+
+  it('접어도 비밀번호 변경에 키보드로 닿는다 — 접으면 숨는 사람 칸 밖에 둔다', () => {
+    사이드바접음을적는다(true);
+    const { container } = 띄운다(결제);
+    const 링크 = screen.getByRole('link', { name: '비밀번호 변경' });
+    expect(링크.closest('.side-who')).toBeNull();
+    expect(container.querySelector('.side')?.contains(링크)).toBe(true);
+    사이드바접음을적는다(false);
+  });
+
   it('접어도 고르개가 화면에서 사라지지 않는다. 지우면 키보드 이동에서 빠진다', () => {
     사이드바접음을적는다(true);
     띄운다(결제);
