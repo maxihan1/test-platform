@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api, ApiError, type CaseRow, type ParamSetRow, type Platform, type ServiceRow, type User } from './api.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
+import { 할수있나 } from './role.js';
 import { 넘었나, 상한, 항목수 } from './runPlan.js';
 import { initialText, schemaToFields, toValues } from './schema.js';
 import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
@@ -323,16 +324,21 @@ export function RunSetup({ tcId, service, user }: Props) {
         <span className="note" style={notice === null ? undefined : { color: 'var(--fail)' }}>
           {notice ?? t('입력값을 바꿔 다시 실행해도 코드는 고치지 않습니다.')}
         </span>
-        <input
-          type="text"
-          placeholder={t('세트 이름')}
-          value={setName}
-          onChange={(e) => setSetName(e.target.value)}
-          style={{ width: '140px' }}
-        />
-        <button className="btn ghost" onClick={() => void saveSet()} disabled={busy}>
-          {t('이 값을 묶음으로 저장')}
-        </button>
+        {/* 묶음은 그 케이스의 서비스에 남는다 — 띠가 아니라 tcId 접두사의 칸을 본다 (SPEC §1 · 화면공통 §8) */}
+        {!할수있나(user, row.tcId.split('-')[0] ?? null, '입력값저장') ? null : (
+          <>
+            <input
+              type="text"
+              placeholder={t('세트 이름')}
+              value={setName}
+              onChange={(e) => setSetName(e.target.value)}
+              style={{ width: '140px' }}
+            />
+            <button className="btn ghost" onClick={() => void saveSet()} disabled={busy}>
+              {t('이 값을 묶음으로 저장')}
+            </button>
+          </>
+        )}
         {만들건수 <= 1 ? null : (
           <span className={너무많나 ? 'err' : 'hint'}>
             {너무많나

@@ -12,13 +12,15 @@ import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import type { 글자표 } from './pickRun.js';
+import type { 판정 } from './role.js';
 import { 집계띠 } from './Summary.js';
 import { 다음이있나 } from './paging.js';
 import { RunPickModal } from './RunPickModal.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
 import { useRunPick } from './useRunPick.js';
 
-export function CaseList({ service }: { service: string }) {
+// 결과보나 — 실행 칸이 none 이면 마지막 결과를 부르지 않는다. 부르면 서버가 403 을 낸다
+export function CaseList({ service, 할수, 결과보나 }: { service: string; 할수: 판정; 결과보나: boolean }) {
   const t = use말();
   const 언어 = use언어();
   const [typed, setTyped] = useState('');
@@ -46,7 +48,7 @@ export function CaseList({ service }: { service: string }) {
   };
   const cases = useAsync<CasePage>(() => api.cases(조건), [service, q, page, 디바이스, 활성만]);
   const scan = useAsync(() => api.lastScan(), []);
-  const last = useAsync(() => api.lastByCase(), []);
+  const last = useAsync(() => (결과보나 ? api.lastByCase() : Promise.resolve({ items: [] })), [결과보나]);
 
   const lastMap: LastMap = {};
   for (const item of last.data?.items ?? []) lastMap[keyOf(item.tcId, item.platform)] = item;
@@ -169,13 +171,17 @@ export function CaseList({ service }: { service: string }) {
         }
         행동={
           <>
-            <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
-              {scanning ? t('스캔하는 중') : t('다시 스캔')}
-            </button>
+            {!할수('다시스캔') ? null : (
+              <button className="btn ghost" onClick={() => void rescan()} disabled={scanning}>
+                {scanning ? t('스캔하는 중') : t('다시 스캔')}
+              </button>
+            )}
             {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
-            <button className="btn" onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
-              {뽑기.고른.size === 0 ? t('전체 실행') : t('선택한 {건수}건 실행', { 건수: 뽑기.고른.size })}
-            </button>
+            {!할수('실행') ? null : (
+              <button className="btn" onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
+                {뽑기.고른.size === 0 ? t('전체 실행') : t('선택한 {건수}건 실행', { 건수: 뽑기.고른.size })}
+              </button>
+            )}
           </>
         }
       />
@@ -236,7 +242,7 @@ export function CaseList({ service }: { service: string }) {
             건조건,
             친글자: q,
           }}
-          onScan={() => void rescan()}
+          onScan={할수('다시스캔') ? () => void rescan() : undefined}
           onClear={조건지우기}
         />
       ) : (

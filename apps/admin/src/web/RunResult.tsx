@@ -9,7 +9,7 @@ import { Head } from './Head.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import type { 판정 } from './role.js';
+import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 진행상황 } from './runProgress.js';
 import { RunInsights } from './RunInsights.js';
 import { RunProgressModal } from './RunProgressModal.js';
@@ -24,11 +24,11 @@ const DEVICES: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
 
 export function RunResult({
   runId,
-  할수,
+  판정하기,
   상자안 = false,
 }: {
   runId: number;
-  할수: 판정;
+  판정하기: 판정하기;
   /**
    * 이 화면이 **상자 안에서** 그려지는가 (SPEC §8.7 「결과 보기는 상자로 연다」).
    *
@@ -111,7 +111,7 @@ export function RunResult({
     return () => clearInterval(timer);
   }, [running, runId]);
 
-  const 증적칸 = use증적(data, 할수, reload);
+  const 증적칸 = use증적(data, 실행판정(판정하기, data), reload);
 
   if (run.error !== null) return <Failed error={run.error} />;
   if (data === null) return <Loading />;
@@ -183,7 +183,7 @@ export function RunResult({
             </div>
           )}
           {/* 되돌릴 수 없으므로 누르면 한 번 더 묻는다 (SPEC §8.3) */}
-          {!멈출수있나(data.status, 할수) ? null : (
+          {!멈출수있나(data.status, 실행판정(판정하기, data)) ? null : (
             <button className="btn ghost" onClick={() => set멈출까(true)} disabled={멈추는중}>
               {t('실행 중단')}
             </button>

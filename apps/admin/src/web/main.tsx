@@ -19,7 +19,7 @@ import {
   지금자리,
 } from './layout.js';
 import { Login } from './Login.js';
-import { 판정을만든다 } from './role.js';
+import { 기능보나, 판정을만든다 } from './role.js';
 import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
@@ -60,17 +60,18 @@ function Screen({
 
   switch (current.name) {
     case 'cases':
-      return <CaseList service={prefix} />;
+      return <CaseList service={prefix} 할수={할수} 결과보나={기능보나(user, service?.prefix ?? null, 'runs')} />;
     case 'setup':
       return <RunSetup tcId={current.tcId} service={service} user={user} />;
     case 'authoring':
-      return <Authoring service={prefix} envs={service?.envs ?? []} />;
+      return <Authoring service={prefix} envs={service?.envs ?? []} 할수={할수} />;
     case 'authoringItem':
       return <AuthoringDetail service={prefix} id={current.id} 할수={할수} />;
     case 'runs':
       return <RunList service={prefix} 할수={할수} />;
     case 'run':
-      return <RunResult runId={current.runId} 할수={할수} />;
+      // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
+      return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
     case 'item':
       return <ItemDetail runId={current.runId} historyId={current.historyId} />;
     case 'login':

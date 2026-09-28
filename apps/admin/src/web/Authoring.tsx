@@ -13,6 +13,7 @@ import { 보임라벨, 종류라벨, 줄보임, type 보임 } from './authoringV
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
+import type { 판정 } from './role.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
 function 표머리() {
@@ -57,7 +58,7 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
   );
 }
 
-export function Authoring({ service, envs = [] }: { service: string; envs?: EnvRow[] }) {
+export function Authoring({ service, envs = [], 할수 }: { service: string; envs?: EnvRow[]; 할수: 판정 }) {
   const t = use말();
   const [page, setPage] = useState(1);
   // 방금 줄에 세운 요청. 시작 모달이 이것을 보인다 — 닫으면 null
@@ -92,10 +93,12 @@ export function Authoring({ service, envs = [] }: { service: string; envs?: EnvR
       <Head 제목={t('테스트 작성')} 부제={t('모두 {건수}건', { 건수: 줄들.data.total })} />
 
       <div className="screen list-screen">
-        <AuthoringNew service={service} envs={envs} on넣었다={(id) => {
-            줄들.reload();
-            set방금(id);
-          }} />
+        {!할수('작성요청') ? null : (
+          <AuthoringNew service={service} envs={envs} on넣었다={(id) => {
+              줄들.reload();
+              set방금(id);
+            }} />
+        )}
 
         <div className="rows-scroll">
           {줄들.data.items.length === 0 ? (

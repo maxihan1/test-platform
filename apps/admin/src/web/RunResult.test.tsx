@@ -334,7 +334,7 @@ describe('실행 결과의 권한은 그 실행의 서비스로', () => {
 
   it('실행 읽기인 서비스의 실행이면 중단 버튼이 없다', async () => {
     연다('MEM-001', 'RUNNING');
-    await screen.findAllByText(/RUN/);
+    await screen.findAllByText(/대상 서버/);
     expect(screen.queryByText('실행 중단')).toBeNull();
   });
 
@@ -343,7 +343,7 @@ describe('실행 결과의 권한은 그 실행의 서비스로', () => {
     expect(await screen.findByText('PDF 만들기')).toBeTruthy();
     cleanup();
     연다('MEM-001', 'FINISHED');
-    await screen.findAllByText(/RUN/);
+    await screen.findAllByText(/대상 서버/);
     expect(screen.queryByText('PDF 만들기')).toBeNull();
   });
 });
