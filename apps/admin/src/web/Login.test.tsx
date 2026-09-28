@@ -100,9 +100,9 @@ describe('Grafana 에서 쫓겨 온 사람 (도메인/인증 §7 「Grafana 통�
     window.history.replaceState(null, '', '/');
   });
 
-  async function 주소로연다(검색: string) {
+  async function 주소로연다(검색: string, 누구: User = 나) {
     window.history.replaceState(null, '', `/${검색}#/login`);
-    vi.spyOn(api, 'login').mockResolvedValue({ user: 나 });
+    vi.spyOn(api, 'login').mockResolvedValue({ user: 누구 });
     const onLogin = vi.fn();
     const 떠난다 = vi.fn();
     render(<Login onLogin={onLogin} 떠난다={떠난다} />);
@@ -126,6 +126,22 @@ describe('Grafana 에서 쫓겨 온 사람 (도메인/인증 §7 「Grafana 통�
       expect(onLogin).toHaveBeenCalledWith(나);
     });
   }
+
+  it('비밀번호 변경 강제 중이면 대시보드로 가지 않고 평소대로 들어간다 — 변경 화면을 거쳐야 한다', async () => {
+    const 변경강제: User = { ...나, mustChangePassword: true };
+    const { onLogin, 떠난다 } = await 주소로연다('?next=%2Fgrafana%2Fd%2Fabc', 변경강제);
+
+    expect(떠난다).not.toHaveBeenCalled();
+    expect(onLogin).toHaveBeenCalledWith(변경강제);
+  });
+
+  it('대시보드 칸이 none 이면 대시보드로 가지 않고 평소대로 들어간다 — 403 JSON 을 보게 하지 않는다', async () => {
+    const 못봄: User = { ...나, dashboard: 'none' };
+    const { onLogin, 떠난다 } = await 주소로연다('?next=%2Fgrafana%2Fd%2Fabc', 못봄);
+
+    expect(떠난다).not.toHaveBeenCalled();
+    expect(onLogin).toHaveBeenCalledWith(못봄);
+  });
 
   it('next 가 없으면 평소대로 들어간다', async () => {
     const { onLogin, 떠난다 } = await 주소로연다('');
