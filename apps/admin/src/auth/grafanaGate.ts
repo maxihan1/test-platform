@@ -16,8 +16,8 @@ function 그라파나api인가(req: FastifyRequest): boolean {
 }
 
 function 로그인안함(req: FastifyRequest, reply: FastifyReply) {
-  // 화면을 여는 GET 만 로그인 화면으로 보낸다. 뒤에서 부르는 API 에 HTML 을 주면 Grafana 화면이 조용히 깨진다
-  const 화면인가 = (req.method === 'GET' || req.method === 'HEAD') && !그라파나api인가(req);
+  // 화면을 여는 GET 만 로그인 화면으로 보낸다(HEAD 도 401). 뒤에서 부르는 API 에 HTML 을 주면 Grafana 화면이 조용히 깨진다
+  const 화면인가 = req.method === 'GET' && !그라파나api인가(req);
   if (!화면인가) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
   // 화면은 next 가 /grafana/ 로 시작할 때만 받는다. 그 모양이 아닌 원문은 첫 화면으로 돌린다
   const 돌아올곳 = req.url.startsWith('/grafana/') ? req.url : '/grafana/';
