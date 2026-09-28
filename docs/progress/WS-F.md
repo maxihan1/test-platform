@@ -130,3 +130,20 @@ fixture 접두사에 `XFS5`(`auth/scope.test.ts`)가 늘었다. `gate.test.ts` �
 - DB 검사 접두사 `xfu8`·`XFS8`(마이그레이션) · `xfu9`·`XFS9`(설정 계정). 검사용 DB 는 `platform_wsf`
 - 인증 §7 의 `/api/auth/**` · `/api/settings/users/**` 블록은 **③ 이 approve·DELETE·signup·password 를 넣은 뒤** `반영 완료` 로 바꾼다 (권한 부분은 이 PR 에서 들어갔다)
 - 인증 §7 의 「등급표 값 · Grafana」 블록은 **표값 부분이 이 PR 에서 들어갔고, 블록은 ④ 가 닫는다** — Grafana 와 한 블록이라 `대기` 로 둔다
+
+## 2026-09-28 — 인증·권한 개편 ③ 가입·첫 admin (PR #95)
+
+- 완료: 문(승인 대기 403 `PENDING_APPROVAL` · 변경 강제 403 `PASSWORD_CHANGE_REQUIRED` — 토큰 요청 예외 · 세션 도장으로 비밀번호 바뀌면 옛 출입증 끊김) ·
+  `POST /api/auth/password` · `POST /api/auth/signup`(아이디 소문자 규칙 `auth/rules.ts`) · 수락·거절 API · 빈 서버 기본 계정 `admin` ·
+  화면(로그인 링크·승인 대기 문구 · 회원가입 · 비밀번호 변경 · 설정 승인 대기 시안 A) · SETUP 첫 계정 절
+- 미완: ④ Grafana
+- 막힌 것: 없음
+
+### 다음 세션이 알아야 할 것
+
+- 로그인 없이 통과 목록은 `auth/gate.ts` 의 `로그인없이통과`(login·signup), 변경 강제 중 허용은 `변경강제중허용` — onRequest·preHandler 가 같은 표를 본다
+- 세션에는 `stamp`(비밀번호 해시 앞 16글자)가 있고 `identify.ts` 가 지금 해시와 대조한다. **도장이 없는 옛 쿠키는 한 번 다시 로그인한다**
+- 기본 계정은 `auth/defaultAdmin.ts` — `app.ts` 기동 경로에서 한 문장 `NOT EXISTS` 로
+- 아이디·이름·비밀번호 상한은 `auth/rules.ts` 한 곳. 설정 만들기·가입·`add-user.ts`·화면이 같이 쓴다
+- DB 검사 접두사 `xpa`(수락·거절) · `xsg`(가입) · `xpw`(비밀번호 변경)
+- ④ 는 `/grafana/**` 에도 변경 강제와 도장 대조를 걸어야 한다 (WORKSTREAMS 「🔐」 ④ 줄)
