@@ -6,6 +6,8 @@ import type { FastifyInstance } from 'fastify';
 declare module '@fastify/secure-session' {
   interface SessionData {
     username: string;
+    /** 비밀번호 도장 — 비밀번호가 바뀌면 옛 출입증을 끊는다 (store.ts 비밀번호도장) */
+    stamp: string;
   }
 }
 

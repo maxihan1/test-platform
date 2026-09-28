@@ -60,7 +60,7 @@ const 한사람 = `
       FROM service_env
      GROUP BY service_id
   )
-  SELECT u.display_name, u.role, u.password_hash, u.perm_dashboard, u.must_change_password,
+  SELECT u.display_name, u.role, u.password_hash, u.perm_dashboard, u.must_change_password, u.is_approved,
          COALESCE(
            json_agg(json_build_object(
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
@@ -78,8 +78,8 @@ const 한사람 = `
     LEFT JOIN user_service us ON us.username = u.username
     LEFT JOIN service s ON s.id = us.service_id AND s.is_active
     LEFT JOIN 서버 e ON e.service_id = s.id
-   WHERE u.username = $1 AND u.is_active
-   GROUP BY u.username, u.display_name, u.role, u.password_hash, u.perm_dashboard, u.must_change_password`;
+   WHERE u.username = $1 AND u.is_active AND (u.is_approved OR $2)
+   GROUP BY u.username, u.display_name, u.role, u.password_hash, u.perm_dashboard, u.must_change_password, u.is_approved`;
 
 interface 한사람행 {
   display_name: string;
@@ -87,16 +87,41 @@ interface 한사람행 {
   password_hash: string;
   perm_dashboard: 대시보드칸;
   must_change_password: boolean;
+  is_approved: boolean;
   services: 배정서비스[];
+}
+
+/**
+ * 출입증에 싣는 비밀번호 도장 — 저장된 해시의 앞 16글자.
+ * 비밀번호가 바뀌면 해시가 바뀌므로 옛 출입증이 저절로 끊긴다. DB 칸을 늘리지 않는다 (SPEC 도메인/인증 §7)
+ */
+export function 비밀번호도장(passwordHash: string): string {
+  return passwordHash.slice(0, 16);
+}
+
+// 승인 대기 계정은 세션·토큰 확인에서 없는 것으로 친다. 로그인만 비밀번호를 맞춘 뒤 403 으로 갈라 줘야 해서 읽는다
+async function 읽기(username: string, 대기도: boolean): Promise<한사람행 | null> {
+  const pool = await db();
+  const rows = await pool.query<한사람행>(한사람, [username, 대기도]);
+  return rows.rows[0] ?? null;
 }
 
 export async function 사용자와해시(
   username: string,
 ): Promise<{ user: 사용자; passwordHash: string } | null> {
-  const pool = await db();
-  const rows = await pool.query<한사람행>(한사람, [username]);
-  const row = rows.rows[0];
-  if (row === undefined) return null;
+  const row = await 읽기(username, false);
+  return row === null ? null : 모양(username, row);
+}
+
+/** 로그인 전용. 승인 대기 계정도 돌려주고 `isApproved` 로 가른다 — 비밀번호가 맞을 때만 403 을 내기 위해서다 */
+export async function 로그인조회(
+  username: string,
+): Promise<{ user: 사용자; passwordHash: string; isApproved: boolean } | null> {
+  const row = await 읽기(username, true);
+  return row === null ? null : { ...모양(username, row), isApproved: row.is_approved };
+}
+
+function 모양(username: string, row: 한사람행): { user: 사용자; passwordHash: string } {
   // admin 채우기는 SQL 이 아니라 여기서 한다 — 저장값을 덮는 규칙이 한 자리에 보여야 한다
   const 관리자 = row.role === 'admin';
 
