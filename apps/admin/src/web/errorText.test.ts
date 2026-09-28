@@ -13,16 +13,23 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
   });
 
   // ★ **서버가 실제로 보내는 값으로 단언한다.**
-  // 문은 { error:'FORBIDDEN', need:'operator' } 를 보내고 detail 은 안 싣는다.
-  // 앞선 판에서 검사가 'operator' 를 손으로 넣어 통과시키는 바람에,
+  // 문은 { error:'FORBIDDEN', need:'runs:write' } 처럼 「기능:칸」을 보내고 detail 은 안 싣는다.
+  // 앞선 판에서 검사가 값을 손으로 넣어 통과시키는 바람에,
   // 화면에 「이 일에는 '요청이 실패했다 (403)' 등급이 필요합니다」가 뜨는 것을 못 잡았다
-  it('등급이 모자라면 그 등급 이름을 적는다', () => {
-    expect(요청오류문장('FORBIDDEN', 'ko', 'operator')).toContain("「실행까지」");
+  it('기능 칸이 모자라면 어느 기능의 무슨 칸인지 사람 말로 적는다', () => {
+    expect(요청오류문장('FORBIDDEN', 'ko', 'runs:write')).toBe('이 서비스에서 실행 쓰기 권한이 없습니다');
+    expect(요청오류문장('FORBIDDEN', 'ko', 'cases:write')).toBe('이 서비스에서 케이스 쓰기 권한이 없습니다');
+    expect(요청오류문장('FORBIDDEN', 'ko', 'runs:read')).toBe('이 서비스에서 실행 읽기 권한이 없습니다');
+    expect(요청오류문장('FORBIDDEN', 'ko', 'authoring:write')).toBe('이 서비스에서 작성 쓰기 권한이 없습니다');
+    expect(요청오류문장('FORBIDDEN', 'en', 'runs:write')).not.toContain('서비스');
+  });
+
+  it('운영 계정이 필요한 자리는 그렇게 적는다', () => {
     expect(요청오류문장('FORBIDDEN', 'ko', 'admin')).toContain('「운영」');
   });
 
-  it('등급 이름이 아닌 값이 오면 지어내지 않는다', () => {
-    for (const 이상한값 of ['요청이 실패했다 (403)', '', undefined]) {
+  it('모르는 값이 오면 지어내지 않는다', () => {
+    for (const 이상한값 of ['요청이 실패했다 (403)', '', undefined, 'operator', 'runs:delete']) {
       const 글 = 요청오류문장('FORBIDDEN', 'ko', 이상한값);
       expect(글, String(이상한값)).toBe('이 일을 할 수 있는 등급이 아닙니다');
     }

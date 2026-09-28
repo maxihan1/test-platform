@@ -2,7 +2,22 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { route, 돌아갈자리 } from './route.js';
+import type { ServiceRow, User } from './api.js';
+import type { 권한칸 } from './role.js';
+import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
+
+function 서비스(prefix: string, permissions: 권한칸): ServiceRow {
+  return { id: 1, prefix, name: prefix, color: '#000000', envs: [], hasSlackWebhook: false, permissions };
+}
+
+function 사람(services: ServiceRow[]): User {
+  return { username: 'kim', displayName: '김철수', role: 'member', dashboard: 'read', mustChangePassword: false, services };
+}
+
+const 다봄 = 사람([서비스('PAY', { cases: 'read', runs: 'read', authoring: 'read' })]);
+// 케이스가 none 이라 집이 작성으로 내려간다
+const 케이스없음 = 사람([서비스('PAY', { cases: 'none', runs: 'read', authoring: 'write' })]);
+const 실행만 = 사람([서비스('PAY', { cases: 'none', runs: 'read', authoring: 'none' })]);
 
 describe('route', () => {
   it('빈 주소는 케이스 목록이다', () => {
@@ -50,14 +65,40 @@ describe('route', () => {
   });
 
   it('돌아갈 자리는 지금 주소다. 로그인이 끝나면 원래 가려던 화면으로 보낸다', () => {
-    expect(돌아갈자리('#/runs/123')).toBe('#/runs/123');
+    expect(돌아갈자리('#/runs/123', 다봄, 'PAY')).toBe('#/runs/123');
   });
 
   it('로그인 화면 자체는 돌아갈 자리로 기억하지 않는다. 기억하면 로그인 뒤 또 로그인 화면이다', () => {
-    expect(돌아갈자리('#/login')).toBe('#/cases');
+    expect(돌아갈자리('#/login', 다봄, 'PAY')).toBe('#/cases');
   });
 
   it('빈 주소는 케이스 목록으로 돌려보낸다', () => {
-    expect(돌아갈자리('')).toBe('#/cases');
+    expect(돌아갈자리('', 다봄, 'PAY')).toBe('#/cases');
+  });
+
+  it('집은 남은 자리 중 맨 위다. 케이스가 none 이면 케이스가 집이 아니다', () => {
+    expect(집(다봄, 'PAY')).toBe('#/cases');
+    expect(집(케이스없음, 'PAY')).toBe('#/authoring');
+    expect(집(실행만, 'PAY')).toBe('#/runs');
+  });
+
+  it('none 인 자리 주소를 직접 치면 집으로 보낸다', () => {
+    expect(갈자리('#/cases', 케이스없음, 'PAY')).toBe('#/authoring');
+    expect(갈자리('', 케이스없음, 'PAY')).toBe('#/authoring');
+    expect(갈자리('#/cases/PAY-001/run', 케이스없음, 'PAY')).toBe('#/authoring');
+    expect(갈자리('#/authoring/12', 실행만, 'PAY')).toBe('#/runs');
+    expect(갈자리('#/runs/5', 케이스없음, 'PAY')).toBe('#/runs/5');
+  });
+
+  it('권한이 있는 자리나 기능에 안 매인 주소는 그대로 둔다', () => {
+    expect(갈자리('#/cases', 다봄, 'PAY')).toBe('#/cases');
+    expect(갈자리('#/settings', 다봄, 'PAY')).toBe('#/settings');
+    expect(갈자리('#/nowhere', 다봄, 'PAY')).toBe('#/nowhere');
+  });
+
+  it('로그인 뒤 돌아갈 자리도 같은 규칙을 따른다', () => {
+    expect(돌아갈자리('#/cases', 케이스없음, 'PAY')).toBe('#/authoring');
+    expect(돌아갈자리('#/login', 케이스없음, 'PAY')).toBe('#/authoring');
+    expect(돌아갈자리('', 실행만, 'PAY')).toBe('#/runs');
   });
 });
