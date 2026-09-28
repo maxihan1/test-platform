@@ -526,6 +526,14 @@ export const api = {
 
   me: () => call<{ user: User }>('/auth/me'),
 
+  /** 승인 대기 계정을 만든다. 세션은 안 생긴다 — 운영자가 수락해야 로그인된다 (도메인/인증 §7) */
+  signup: (body: { username: string; displayName: string; password: string }) =>
+    call<{ status: 'PENDING' }>('/auth/signup', json(body)),
+
+  /** 본인 비밀번호를 바꾼다. 세션은 그대로다 — 다시 로그인하게 하지 않는다 (도메인/인증 §8.6) */
+  changePassword: (body: { currentPassword: string; newPassword: string }) =>
+    call<void>('/auth/password', json(body)),
+
   cases: (query: CaseQuery) => {
     const params = new URLSearchParams({ service: query.service, page: String(query.page ?? 1) });
     if (query.q !== undefined && query.q !== '') params.set('q', query.q);
@@ -718,6 +726,14 @@ export const api = {
       ...json(body),
       method: 'PATCH',
     }),
+
+  /** 승인 대기 계정을 쓸 수 있게 한다. 권한은 수락하는 운영자가 정한다 (도메인/인증 §3.5) */
+  approveUser: (username: string, body: { role?: 등급; dashboard: 'none' | 'read'; services: 배정[] }) =>
+    call<{ ok: true }>(`/settings/users/${encodeURIComponent(username)}/approve`, json(body)),
+
+  /** 승인 대기 계정만 지운다 — 거절이다. 승인된 계정이면 서버가 409 로 돌려보낸다 */
+  rejectUser: (username: string) =>
+    call<void>(`/settings/users/${encodeURIComponent(username)}`, { method: 'DELETE' }),
 
   resetPassword: (username: string) =>
     call<{ tempPassword: string }>(`/settings/users/${encodeURIComponent(username)}/password`, {

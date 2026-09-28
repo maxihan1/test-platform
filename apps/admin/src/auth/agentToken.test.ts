@@ -57,10 +57,11 @@ describe.skipIf(연결 === undefined)('작성 에이전트 토큰', () => {
   async function 계정넣기(username: string, role: 'member' | 'admin', 칸: [string, string, string] = ['write', 'write', 'write']) {
     const { pool } = await import('../db/index.js');
     await pool.query(
-      `INSERT INTO app_user (username, display_name, password_hash, role)
-            VALUES ($1, $1, $2, $3)
+      `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password)
+            VALUES ($1, $1, $2, $3, true, false)
        ON CONFLICT (username) DO UPDATE SET is_active = true, role = EXCLUDED.role,
-                                            password_hash = EXCLUDED.password_hash, agent_token_hash = NULL`,
+                                            password_hash = EXCLUDED.password_hash, agent_token_hash = NULL,
+                                            is_approved = true, must_change_password = false`,
       [username, await 해시('열려라참깨'), role],
     );
     await pool.query(

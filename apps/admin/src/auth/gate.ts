@@ -146,6 +146,15 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
   return [...new Set(모인것)];
 }
 
+/**
+ * 로그인 없이 지나가는 틀. **두 훅이 이 하나를 본다** — 따로 적으면 한쪽만 늘어
+ * onRequest 는 통과시키고 preHandler 가 401 을 내는 식으로 어긋난다 (SPEC 도메인/인증 §7)
+ */
+const 로그인없이통과 = new Set(['/api/auth/login', '/api/auth/signup']);
+
+// 비밀번호 변경 강제 중인 계정이 부를 수 있는 셋 (SPEC 도메인/인증 §7). `METHOD 틀` 모양이고 HEAD 는 GET 으로 본다
+const 변경강제중허용 = new Set(['GET /api/auth/me', 'POST /api/auth/logout', 'POST /api/auth/password']);
+
 export function 인증등록(app: FastifyInstance): void {
   app.decorateRequest('user', null);
 
@@ -164,15 +173,22 @@ export function 인증등록(app: FastifyInstance): void {
     const path = 라우트틀(req);
     if (path === undefined || !path.startsWith('/api/')) return;
 
-    // 로그인 자체는 로그인을 요구할 수 없다. **이것 하나뿐이다** (SPEC §7).
+    // 로그인·가입 자체는 로그인을 요구할 수 없다 (SPEC §7).
     // 2026-09-17 에 POST /api/runs 예외가 삭제됐다 — 정기 실행은 HTTP 를 쓰지 않는다 (§9.2)
-    if (path === '/api/auth/login') return;
+    if (로그인없이통과.has(path)) return;
 
     const user = await 확인(req);
     if (user === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
+    const 쌍 = `${req.method === 'HEAD' ? 'GET' : req.method} ${path}`;
+    const 토큰 = 토큰으로왔나(req);
     // 토큰은 맥의 파일에 남는다. 새면 그 파일로 할 수 있는 일을 맥이 부르는 통로로 좁힌다 (SPEC 도메인/인증 §7)
-    if (토큰으로왔나(req) && !토큰통로.has(`${req.method === 'HEAD' ? 'GET' : req.method} ${path}`)) {
+    if (토큰 && !토큰통로.has(쌍)) {
       return reply.code(403).send({ error: 'AGENT_TOKEN_SCOPE' });
+    }
+    // 권한 판정보다 먼저 본다 — 기본 계정은 admin 이라 권한 판정은 전부 통과한다.
+    // 토큰은 비밀번호와 따로 노는 두 번째 열쇠라 빼 준다. 안 빼면 새 서버의 작성 에이전트가 처음부터 멈춘다 (SPEC 도메인/인증 §7)
+    if (user.mustChangePassword && !토큰 && !변경강제중허용.has(쌍)) {
+      return reply.code(403).send({ error: 'PASSWORD_CHANGE_REQUIRED' });
     }
     req.user = user;
   });
@@ -181,7 +197,7 @@ export function 인증등록(app: FastifyInstance): void {
     // 라우트가 안 잡힌 요청은 지킬 자원이 없다. 라우터가 404 를 내게 둔다
     const path = 라우트틀(req);
     if (path === undefined || !path.startsWith('/api/')) return;
-    if (path === '/api/auth/login') return;
+    if (로그인없이통과.has(path)) return;
 
     // 위 onRequest 가 이미 401 을 냈다. 여기 닿았으면 사람이 실려 있다
     const user = req.user;

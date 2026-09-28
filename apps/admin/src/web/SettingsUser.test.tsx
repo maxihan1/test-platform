@@ -108,6 +108,32 @@ describe('UserSection', () => {
     expect(차례.indexOf(상자)).toBeLessThan(차례.indexOf(첫줄!));
   });
 
+  it('아이디 모양이 틀리면 보내기 전에 서버와 같은 말로 알리고 보내지 않는다', () => {
+    const 만들기 = vi.spyOn(api, 'createUser');
+    새계정열기();
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'Admin' } });
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '최민수' } });
+    fireEvent.click(screen.getByText('계정 추가'));
+
+    expect(screen.getByText('아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다')).toBeTruthy();
+    expect(만들기).not.toHaveBeenCalled();
+  });
+
+  it('자기 줄에는 비밀번호 재발급이 없고 비밀번호 변경으로 안내한다', () => {
+    그리기();
+    fireEvent.click(screen.getAllByText('편집')[0]!);
+
+    expect(screen.queryByText('비밀번호 재발급')).toBeNull();
+    expect(screen.getByText(/비밀번호 변경/)).toBeTruthy();
+  });
+
+  it('남의 줄에는 비밀번호 재발급이 있다', () => {
+    그리기();
+    fireEvent.click(screen.getAllByText('편집')[1]!);
+
+    expect(screen.getByText('비밀번호 재발급')).toBeTruthy();
+  });
+
   it('계정 더하기도 + 아이콘 버튼이다 (2026-09-22, 서비스 더하기와 같은 규칙)', () => {
     그리기();
 

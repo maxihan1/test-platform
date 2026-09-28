@@ -1,7 +1,7 @@
 // 화면 전체의 진입점. 로그인 여부를 먼저 가르고, 들어왔으면 띠 안에 화면 하나를 그린다
 // 로그인하지 않은 채로 다른 화면 주소를 열면 로그인으로 보낸다 (SPEC §8.6)
 
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { api, type ServiceRow, type User, 돌아갈자리를꺼낸다, 세션끊김을받는다 } from './api.js';
@@ -19,6 +19,7 @@ import {
   지금자리,
 } from './layout.js';
 import { Login } from './Login.js';
+import { PasswordChange } from './PasswordChange.js';
 import { 기능보나, 판정을만든다 } from './role.js';
 import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
 import { RunList } from './RunList.js';
@@ -26,6 +27,7 @@ import { RunResult } from './RunResult.js';
 import { RunSetup } from './RunSetup.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
+import { Signup } from './Signup.js';
 import { Loading } from './ui.js';
 import './styles.css';
 import './authoringStatus.css';
@@ -45,11 +47,13 @@ function Screen({
   service,
   user,
   onMeChanged,
+  on비밀번호바뀜,
 }: {
   hash: string;
   service: ServiceRow | null;
   user: User;
   onMeChanged: () => void;
+  on비밀번호바뀜: (user: User) => void;
 }) {
   const t = use말();
   const current = route(hash);
@@ -75,11 +79,14 @@ function Screen({
     case 'item':
       return <ItemDetail runId={current.runId} historyId={current.historyId} />;
     case 'login':
+    case 'signup':
       // 로그인했는데 주소가 로그인 화면이다. 위 useEffect 가 집으로 보내는 한 프레임 동안
       // '없는 주소입니다' 가 깜빡이지 않게 빈 화면을 낸다
       return <div className="screen" />;
     case 'settings':
       return <Settings user={user} onMeChanged={onMeChanged} />;
+    case 'password':
+      return <PasswordChange 강제={false} onDone={on비밀번호바뀜} />;
     default:
       return (
         <div className="screen">
@@ -97,6 +104,11 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   const hash = useHash();
   const [상태, set상태] = useState<상태>({ 어디: '묻는중' });
   const [prefix, setPrefix] = useState<string | null>(() => 고른서비스를읽는다());
+  // 스스로 비밀번호를 바꾼 뒤 돌아갈 자리. 들어가는 화면들은 기억하지 않는다 — 거기로 돌아가면 쓸 데가 없다
+  const 직전 = useRef('');
+  useEffect(() => {
+    if (!['password', 'login', 'signup'].includes(route(hash).name)) 직전.current = hash;
+  }, [hash]);
 
   // 새로고침해도 로그인 상태가 이어진다. 세션은 브라우저가 들고 다닌다 (SPEC §3.5)
   // 처음 열 때의 401 은 사고가 아니다. 서버가 안 뜬 것이든 로그인이 안 된 것이든
@@ -129,8 +141,10 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // 로그인은 했는데 주소가 로그인 화면이면 집으로 보낸다.
   // 렌더 중에 주소를 바꾸면 React 가 그리는 도중에 부수효과가 난다
   // `none` 인 자리 주소를 직접 쳐도 집으로 보낸다 — 집은 권한으로 고른 맨 위 자리다 (화면공통 §8)
+  // 가입 화면도 로그인한 사람에게는 쓸 데가 없어 집으로 보낸다
+  const 들어가는자리 = route(hash).name === 'login' || route(hash).name === 'signup';
   const 보낼곳 =
-    상태.어디 !== '안' ? null : route(hash).name === 'login' ? 집(상태.user, 열린접두사) : 갈자리(hash, 상태.user, 열린접두사);
+    상태.어디 !== '안' ? null : 들어가는자리 ? 집(상태.user, 열린접두사) : 갈자리(hash, 상태.user, 열린접두사);
   useEffect(() => {
     if (보낼곳 !== null && 보낼곳 !== hash) window.location.hash = 보낼곳;
   }, [보낼곳, hash]);
@@ -142,6 +156,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       </div>
     );
   }
+
+  // 가입은 로그인 없이 여는 유일한 다른 화면이다 (도메인/인증 §8.6)
+  if (상태.어디 === '밖' && route(hash).name === 'signup') return <Signup />;
 
   if (상태.어디 === '밖') {
     return (
@@ -157,6 +174,25 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     );
   }
 
+  const 나간다 = () => {
+    void api.logout().finally(() => {
+      set상태({ 어디: '밖' });
+      window.location.hash = '#/login';
+    });
+  };
+
+  // 바뀐 나를 받아 강제면 집으로, 스스로면 직전 자리로 (도메인/인증 §8.6). 세션은 그대로다
+  const 비밀번호바뀜 = (user: User, 강제: boolean) => {
+    set상태({ 어디: '안', user });
+    const 고른 = 고른서비스(prefix, user.services)?.prefix ?? null;
+    window.location.hash = 강제 ? 집(user, 고른) : 돌아갈자리(직전.current, user, 고른);
+  };
+
+  // 변경 강제 중이면 이 화면만 — 사이드바·서비스 고르개가 없다. 서버도 다른 API 를 403 으로 막는다
+  if (상태.user.mustChangePassword) {
+    return <PasswordChange 강제 onDone={(user) => 비밀번호바뀜(user, true)} onLogout={나간다} />;
+  }
+
   return (
     <Shell
       user={상태.user}
@@ -164,18 +200,14 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       onService={setPrefix}
       언어={언어}
       on언어={on언어}
-      onLogout={() => {
-        void api.logout().finally(() => {
-          set상태({ 어디: '밖' });
-          window.location.hash = '#/login';
-        });
-      }}
+      onLogout={나간다}
       current={지금자리(route(hash).name, 집(상태.user, 열린접두사))}
     >
       <Screen
         hash={hash}
         service={열린것}
         user={상태.user}
+        on비밀번호바뀜={(user) => 비밀번호바뀜(user, false)}
         onMeChanged={() => {
           // 설정 화면이 /auth/me 의 재료를 고쳤다 — 계정의 배정·등급이든 서비스의 이름·색·
           // 대상 서버·Slack 웹훅이든. 그 응답 하나가 띠·자리·실행 설정을 다 그린다.

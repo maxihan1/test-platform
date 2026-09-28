@@ -12,9 +12,11 @@ import authRoutes from './auth/routes.js';
 import authoringAgentRoutes from './authoring/agentRoutes.js';
 import authoringAssetRoutes from './authoring/assets.js';
 import authoringRoutes from './authoring/routes.js';
+import { 기본계정만들기 } from './auth/defaultAdmin.js';
 import { 인증등록 } from './auth/gate.js';
 import { 세션등록, 열쇠최소길이 } from './auth/session.js';
 import catalogRoutes from './catalog/routes.js';
+import { pool } from './db/index.js';
 import executionRoutes from './execution/routes.js';
 import reportingRoutes from './reporting/routes.js';
 import settingsRoutes from './settings/routes.js';
@@ -66,8 +68,12 @@ if (열쇠바이트 < 열쇠최소길이) {
   process.exit(1);
 }
 
-buildApp()
-  .listen({ port, host: '0.0.0.0' })
+기본계정만들기(pool)
+  .then((만들었나) => {
+    // 비밀번호는 찍지 않는다 — 값은 SETUP.md 에 있고, 로그는 여러 사람이 본다
+    if (만들었나) console.log('기본 계정 admin 을 만들었다. 첫 로그인에서 비밀번호를 바꿔야 한다 (SPEC §9.2)');
+    return buildApp().listen({ port, host: '0.0.0.0' });
+  })
   .catch((err: unknown) => {
     console.error(err);
     process.exit(1);

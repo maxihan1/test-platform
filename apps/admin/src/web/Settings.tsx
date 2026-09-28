@@ -5,6 +5,7 @@ import { api, type SettingsServiceRow, type User, type UserRow } from './api.js'
 import { Head } from './Head.js';
 import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
+import { PendingSection } from './SettingsPending.js';
 import { ServiceSection } from './SettingsService.js';
 import { UserSection } from './SettingsUser.js';
 import { Failed, Loading, useAsync } from './ui.js';
@@ -56,6 +57,7 @@ export function Settings({ user, onMeChanged }: { user: User; onMeChanged: () =>
           onMeChanged();
         }}
       />
+      <PendingSection rows={users.data.items} services={services.data.items} onDone={users.reload} />
       <UserSection
         rows={users.data.items}
         services={services.data.items}

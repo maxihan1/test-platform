@@ -3,12 +3,12 @@
 // 실행·카탈로그·리포팅은 돌려받은 값만 쓰고 비밀번호도 세션도 모른다
 
 import { 토큰주인, 헤더토큰 } from './agentToken.js';
-import { 사용자와해시, type 사용자 } from './store.js';
+import { 비밀번호도장, 사용자와해시, type 사용자 } from './store.js';
 
 // FastifyRequest 를 통째로 받지 않는다. 여기가 요청에서 읽는 것은 세션 한 칸과 헤더 한 칸뿐이고,
 // 그래야 SSO 로 갈아 끼울 때 무엇을 대신 채워야 하는지가 한눈에 보인다
 export interface 인증요청 {
-  session: { get(key: 'username'): string | undefined };
+  session: { get(key: 'username' | 'stamp'): string | undefined };
   headers?: { authorization?: string };
 }
 
@@ -23,7 +23,10 @@ export async function 확인(req: 인증요청): Promise<사용자 | null> {
   const username = 토큰 === null ? req.session.get('username') : 토큰 === '틀림' ? null : await 토큰주인(토큰);
   if (username === undefined || username === null || username === '') return null;
 
-  // 세션이 살아 있어도 계정이 비활성이 됐으면 그 자리에서 끊긴다
+  // 세션이 살아 있어도 계정이 비활성·승인 대기면 그 자리에서 끊긴다
   const 찾은것 = await 사용자와해시(username);
-  return 찾은것 === null ? null : 찾은것.user;
+  if (찾은것 === null) return null;
+  // 비밀번호가 바뀌었으면 그 전에 구운 출입증은 끊는다. 토큰은 비밀번호와 따로 노는 열쇠라 안 본다 (SPEC 도메인/인증 §7)
+  if (토큰 === null && req.session.get('stamp') !== 비밀번호도장(찾은것.passwordHash)) return null;
+  return 찾은것.user;
 }

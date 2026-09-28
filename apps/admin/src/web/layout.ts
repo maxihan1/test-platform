@@ -79,6 +79,8 @@ export function 지금자리(name: string, 집: string): string {
   if (name === 'runs' || name === 'run' || name === 'item') return '#/runs';
   if (name === 'authoring' || name === 'authoringItem') return '#/authoring';
   if (name === 'settings') return '#/settings';
+  // 비밀번호 변경은 자리 목록에 없다. 집을 돌려주면 케이스에 밑줄이 가서 딴 화면처럼 보인다
+  if (name === 'password') return '#/password';
   // 케이스가 none 인 사람의 집은 케이스가 아니다 — 집은 route.ts 의 `집()` 이 권한으로 고른다
   if (name === 'cases' || name === 'setup') return '#/cases';
   return 집;
@@ -168,6 +170,8 @@ export interface 빈띠 {
  * 설정은 서비스에 배정돼야 쓰는 화면이 아니라 **그 배정을 만드는 화면**이라 성질이 다르다.
  */
 export function 빈띠사유(user: User, prefix: string | null, 언어: 언어, 지금자리?: string): 빈띠 | null {
+  // 자기 비밀번호는 배정·권한과 상관없이 바꾼다. 덮으면 사이드바의 「비밀번호 변경」이 막다른 길이 된다
+  if (지금자리 === '#/password') return null;
   // 넷 다 none 이면 서비스 0건보다 이것이 먼저다 — 배정을 받아도 칸이 없으면 볼 것이 없다 (화면공통 §8)
   if (자리목록(user, prefix, 언어).length === 0) {
     return { 무엇: t('권한을 받지 않았습니다. 운영자에게 요청하세요', 언어), 다음: '' };

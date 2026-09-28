@@ -13,7 +13,7 @@ import { 오류문장 } from './SettingsService.js';
 import { 계정못보내는이유, 마지막운영계정인가 } from './settingsView.js';
 
 export function UserSection({
-  rows,
+  rows: 전체,
   services,
   me,
   onDone,
@@ -27,6 +27,8 @@ export function UserSection({
   onSelf: () => void;
 }) {
   const t = use말();
+  // 승인 대기는 위 묶음(SettingsPending)이 그린다. 여기 섞으면 편집으로 수락을 건너뛴다 — 서버도 PATCH 를 409 로 막는다
+  const rows = 전체.filter((it) => it.isApproved !== false);
   const [여는것, set여는것] = useState<string | 'new' | null>(null);
   // 만든 직후 한 번만 보여준다. 닫으면 다시 못 본다 (SPEC §8.8)
   const [임시비밀번호, set임시비밀번호] = useState<임시 | null>(null);
@@ -89,6 +91,7 @@ export function UserSection({
             <UserForm
               row={it}
               rows={rows}
+              나다={it.username === me}
               services={services}
               onDone={() => {
                 set여는것(null);
@@ -109,6 +112,7 @@ export function UserSection({
 function UserForm({
   row,
   rows = [],
+  나다 = false,
   services,
   onDone,
   onCreated,
@@ -116,6 +120,8 @@ function UserForm({
 }: {
   row?: UserRow;
   rows?: UserRow[];
+  /** 로그인한 사람 자신의 줄인가 */
+  나다?: boolean;
   services: SettingsServiceRow[];
   onDone?: () => void;
   onCreated?: (username: string, password: string) => void;
@@ -138,7 +144,7 @@ function UserForm({
 
   // 맞으면 등급을 낮추거나 내리는 길을 아예 안 그린다 (SPEC §3.5 · §7)
   const 마지막운영 = row !== undefined && 마지막운영계정인가(rows, row.username);
-  const 못보내는이유 = 계정못보내는이유({ username, displayName }, 언어);
+  const 못보내는이유 = 계정못보내는이유({ username, displayName, 새것 }, 언어);
 
   async function 한다(일: () => Promise<void>) {
     set보내는중(true);
@@ -202,24 +208,29 @@ function UserForm({
       <div className="set-foot">
         {새것 ? null : (
           <>
-            {/* 되돌릴 수 없다. 왼쪽 끝으로 떼어 놓고 두 걸음으로 받는다 */}
-            <button
-              className={`btn ghost set-left${비번확인 ? ' set-warn' : ''}`}
-              disabled={보내는중}
-              onClick={() => {
-                if (!비번확인) {
-                  set비번확인(true);
-                  return;
-                }
-                set비번확인(false);
-                void 한다(async () => {
-                  const { tempPassword } = await api.resetPassword(row.username);
-                  onPassword?.(tempPassword);
-                });
-              }}
-            >
-              {비번확인 ? t('한 번 더 누르면 지금 비밀번호가 무효가 됩니다') : t('비밀번호 재발급')}
-            </button>
+            {/* 자기 것을 재발급하면 세션 도장이 바뀌어 임시 비밀번호를 옮겨 적기 전에 로그아웃된다 */}
+            {나다 ? (
+              <span className="hint set-left">{t('자기 비밀번호는 사이드바의 「비밀번호 변경」에서 바꿉니다')}</span>
+            ) : (
+              // 되돌릴 수 없다. 왼쪽 끝으로 떼어 놓고 두 걸음으로 받는다
+              <button
+                className={`btn ghost set-left${비번확인 ? ' set-warn' : ''}`}
+                disabled={보내는중}
+                onClick={() => {
+                  if (!비번확인) {
+                    set비번확인(true);
+                    return;
+                  }
+                  set비번확인(false);
+                  void 한다(async () => {
+                    const { tempPassword } = await api.resetPassword(row.username);
+                    onPassword?.(tempPassword);
+                  });
+                }}
+              >
+                {비번확인 ? t('한 번 더 누르면 지금 비밀번호가 무효가 됩니다') : t('비밀번호 재발급')}
+              </button>
+            )}
             {마지막운영 ? null : (
               <button
                 className="btn ghost"

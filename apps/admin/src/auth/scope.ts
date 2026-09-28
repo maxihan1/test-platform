@@ -29,6 +29,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/auth/login': { 종류: '안매임' },
   '/api/auth/logout': { 종류: '안매임' },
   '/api/auth/me': { 종류: '안매임' },
+  '/api/auth/password': { 종류: '안매임' },
+  '/api/auth/signup': { 종류: '안매임' },
 
   // 설정은 시스템 전체다. admin 등급이면 열린다 (SPEC §3.5)
   '/api/settings/services': { 종류: '안매임' },
@@ -36,6 +38,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/settings/users': { 종류: '안매임' },
   '/api/settings/users/:username': { 종류: '안매임' },
   '/api/settings/users/:username/password': { 종류: '안매임' },
+  '/api/settings/users/:username/approve': { 종류: '안매임' },
   '/api/settings/users/:username/agent-token': { 종류: '안매임' },
 
   // 스캔은 전 서비스를 한 번에 훑는다 (SPEC §3.1)

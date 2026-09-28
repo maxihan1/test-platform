@@ -6,6 +6,8 @@ import { 기능보나, type 기능 } from './role.js';
 
 export type Route =
   | { name: 'login' }
+  | { name: 'signup' }
+  | { name: 'password' }
   | { name: 'settings' }
   | { name: 'cases' }
   | { name: 'setup'; tcId: string }
@@ -20,6 +22,8 @@ export function route(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter((part) => part !== '');
 
   if (parts.length === 1 && parts[0] === 'login') return { name: 'login' };
+  if (parts.length === 1 && parts[0] === 'signup') return { name: 'signup' };
+  if (parts.length === 1 && parts[0] === 'password') return { name: 'password' };
   if (parts.length === 1 && parts[0] === 'settings') return { name: 'settings' };
 
   if (parts.length === 0 || (parts[0] === 'cases' && parts.length === 1)) return { name: 'cases' };
@@ -87,9 +91,10 @@ export function 갈자리(hash: string, user: User, prefix: string | null): stri
 /**
  * 로그인이 끝나면 어디로 돌려보낼까 (SPEC §8.6).
  *
- * 로그인 화면 자체를 기억하면 로그인 뒤 또 로그인 화면으로 간다.
+ * 로그인 화면 자체를 기억하면 로그인 뒤 또 로그인 화면으로 간다. 가입 화면도 로그인한 사람에게는 쓸 데가 없다.
  */
 export function 돌아갈자리(hash: string, user: User, prefix: string | null): string {
-  if (hash === '' || route(hash).name === 'login') return 집(user, prefix);
+  const 이름 = route(hash).name;
+  if (hash === '' || 이름 === 'login' || 이름 === 'signup') return 집(user, prefix);
   return 갈자리(hash, user, prefix);
 }

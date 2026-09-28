@@ -43,6 +43,13 @@ export const 오류말: Record<string, string> = {
   PREFIX_SHAPE: '접두사 모양이 다릅니다. 대문자로 시작하는 영문·숫자 12자 이내입니다',
   PREFIX_IMMUTABLE: '접두사는 만든 뒤에 바꿀 수 없습니다. 케이스 번호 안에 이미 박혀 있습니다',
   USERNAME_TAKEN: '그 아이디는 이미 있습니다',
+  // 계정 코드 (도메인/인증 §7). 설정·가입·로그인 어디서 만나든 코드 글자가 그대로 뜨지 않게
+  USERNAME_SHAPE: '아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다',
+  PASSWORD_CHANGE_REQUIRED: '비밀번호를 먼저 바꿔야 합니다. 비밀번호 변경 화면에서 바꿉니다',
+  PENDING_APPROVAL: '아직 승인 대기 중인 계정입니다. 운영자가 수락하면 로그인할 수 있습니다',
+  NOT_APPROVED: '승인 대기 계정은 고칠 수 없습니다. 먼저 수락하거나 거절합니다',
+  ALREADY_APPROVED: '이미 수락된 계정입니다. 다른 운영자가 먼저 처리했습니다',
+  APPROVED_USER: '이미 승인된 계정이라 거절할 수 없습니다',
   LAST_ADMIN: '마지막 운영 계정입니다. 먼저 다른 사람을 운영으로 올립니다',
   NOT_FOUND: '그 항목을 찾지 못했습니다. 다른 사람이 지웠을 수 있습니다',
   INVALID_REQUEST: '넣은 값 중에 모양이 다른 것이 있습니다',

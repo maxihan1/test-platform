@@ -25,16 +25,32 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
     서비스id = 서비스.rows[0]!.id;
 
     await pool.query(
-      `INSERT INTO app_user (username, display_name, password_hash, role)
-            VALUES ($1, '김로그인', $2, 'member')
-       ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = EXCLUDED.password_hash`,
+      `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password)
+            VALUES ($1, '김로그인', $2, 'member', true, false)
+       ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = EXCLUDED.password_hash,
+         is_approved = true, must_change_password = false`,
       ['xfu2-live', await 해시('열려라참깨')],
     );
     await pool.query(
-      `INSERT INTO app_user (username, display_name, password_hash, role, is_active)
-            VALUES ($1, '박비활성', $2, 'member', false)
-       ON CONFLICT (username) DO UPDATE SET is_active = false, password_hash = EXCLUDED.password_hash`,
+      `INSERT INTO app_user (username, display_name, password_hash, role, is_active, is_approved, must_change_password)
+            VALUES ($1, '박비활성', $2, 'member', false, true, false)
+       ON CONFLICT (username) DO UPDATE SET is_active = false, password_hash = EXCLUDED.password_hash,
+         is_approved = true, must_change_password = false`,
       ['xfu2-dead', await 해시('열려라참깨')],
+    );
+    await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password)
+            VALUES ($1, '정대기', $2, 'member', false, false)
+       ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = EXCLUDED.password_hash,
+         is_approved = false, must_change_password = false`,
+      ['xfu2-pending', await 해시('열려라참깨')],
+    );
+    await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password)
+            VALUES ($1, '최긴비번', $2, 'member', true, false)
+       ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = EXCLUDED.password_hash,
+         is_approved = true, must_change_password = false`,
+      ['xfu2-long', await 해시('a'.repeat(129))],
     );
     await pool.query(
       `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
@@ -103,6 +119,12 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
     expect(res.json()).toEqual({ error: 'INVALID_CREDENTIALS' });
   });
 
+  it('비밀번호가 128자를 넘으면 해시를 맞춰 보지 않고 같은 401이다', async () => {
+    const res = await 로그인('xfu2-long', 'a'.repeat(129));
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toEqual({ error: 'INVALID_CREDENTIALS' });
+  });
+
   it('로그인 안 한 채로 나를 물으면 401이다', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/auth/me' });
     expect(res.statusCode).toBe(401);
@@ -150,5 +172,31 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
       cookies: { platform_session: 빈출입증?.value ?? '' },
     });
     expect(res.statusCode).toBe(401);
+  });
+
+  it('비밀번호가 맞는 승인 대기 계정은 403 PENDING_APPROVAL 이고 출입증을 굽지 않는다', async () => {
+    const res = await 로그인('xfu2-pending', '열려라참깨');
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'PENDING_APPROVAL' });
+    expect(res.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('승인 대기 계정도 비밀번호가 틀리면 여느 401 이다 — 계정이 있는지 안 샌다', async () => {
+    const res = await 로그인('xfu2-pending', '틀린비밀번호');
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toEqual({ error: 'INVALID_CREDENTIALS' });
+  });
+
+  it('비밀번호가 바뀌면 그 전에 받은 출입증은 더 안 통한다', async () => {
+    const { pool } = await import('../db/index.js');
+    const 들어옴 = await 로그인('xfu2-live', '열려라참깨');
+    const 쿠키 = { platform_session: 들어옴.cookies[0]!.value };
+    try {
+      await pool.query('UPDATE app_user SET password_hash = $2 WHERE username = $1', ['xfu2-live', await 해시('새비밀번호입니다')]);
+      const res = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키 });
+      expect(res.statusCode).toBe(401);
+    } finally {
+      await pool.query('UPDATE app_user SET password_hash = $2 WHERE username = $1', ['xfu2-live', await 해시('열려라참깨')]);
+    }
   });
 });

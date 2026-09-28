@@ -282,6 +282,12 @@ body {
   display: none;
 }
 
+/* 비밀번호 변경도 글자만 누른다. 요소는 살아 있어 탭이 닿는다 — 자리 목록과 같은 이유다.
+   좁은 화면 되돌림(아래 @media)보다 앞에 있어야 거기서 다시 글자가 보인다 */
+.wrap.folded .side .side-pw {
+  font-size: 0;
+}
+
 .folded .side .side-nav a {
   font-size: 0;
   padding: 10px 0;
@@ -1482,6 +1488,10 @@ select:focus {
     padding: 0 14px;
   }
 
+  .wrap.folded .side .side-pw {
+    font-size: 12.5px;
+  }
+
   /* 고르는 칸도 색 띠와 함께 거터 쪽에 남는다 — 내용 칸은 전부 3열로 보낸다 */
   .row.pickable {
     grid-template-columns: 4px 20px 1fr;
@@ -1923,6 +1933,21 @@ select:focus {
   color: var(--rail-ink);
 }
 
+.side-pw {
+  padding: 2px 4px 4px;
+  font-size: 12.5px;
+  color: var(--rail-dim);
+}
+
+.side-pw:hover {
+  color: var(--rail-ink);
+}
+
+.side-pw:focus-visible {
+  outline: 2px solid var(--rail-ink);
+  outline-offset: 2px;
+}
+
 /* 자리 목록이 가로 탭에서 세로 목록이 됐다. 지금 자리는 밑줄 대신 왼쪽 3px 막대로 말한다 */
 .side .side-nav {
   flex-direction: column;
@@ -2078,6 +2103,25 @@ select:focus {
 .login-box .btn {
   justify-content: center;
   margin-top: 4px;
+}
+
+/* 승인 대기·가입 완료는 잘못한 것이 아니라 기다리는 중이다. 빨강을 쓰면 다시 시도하게 된다 (도메인/인증 §8.6) */
+.login-info {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+/* 가입 ↔ 로그인 오가는 길. 주 행동(버튼) 아래 한 줄로 둔다 */
+.login-box > a {
+  justify-self: center;
+  font-size: 13px;
+}
+
+/* 브라우저 기본 파랑·보라는 껍데기 색과 따로 논다. 다녀온 뒤에도 같은 색이다 (--chrome/--sheet 5.97) */
+.login-box a,
+.login-box a:visited {
+  color: var(--chrome);
 }
 
 /* ── 설정 화면 (SPEC §8.8) ────────────────────────────────────────── */

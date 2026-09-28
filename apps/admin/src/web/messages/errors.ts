@@ -40,6 +40,17 @@ export const 오류영어: Record<string, string> = {
   '접두사는 만든 뒤에 바꿀 수 없습니다. 케이스 번호 안에 이미 박혀 있습니다':
     'A prefix cannot change once set. It is baked into case IDs.',
   '그 아이디는 이미 있습니다': 'That username is taken',
+  '아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다':
+    'Usernames are 2 to 32 lowercase letters, digits, dots, underscores or hyphens',
+  '비밀번호를 먼저 바꿔야 합니다. 비밀번호 변경 화면에서 바꿉니다':
+    'You must change your password first. Use the password change screen.',
+  '아직 승인 대기 중인 계정입니다. 운영자가 수락하면 로그인할 수 있습니다':
+    'This account is waiting for approval. You can sign in once an admin approves it.',
+  '승인 대기 계정은 고칠 수 없습니다. 먼저 수락하거나 거절합니다':
+    'A pending account cannot be edited. Approve or reject it first.',
+  '이미 수락된 계정입니다. 다른 운영자가 먼저 처리했습니다':
+    'This account is already approved. Another admin handled it first.',
+  '이미 승인된 계정이라 거절할 수 없습니다': 'This account is already approved and cannot be rejected',
   '마지막 운영 계정입니다. 먼저 다른 사람을 운영으로 올립니다':
     'This is the last admin. Promote someone else first.',
   '넣은 값 중에 모양이 다른 것이 있습니다': 'Some values are not in the right shape',
