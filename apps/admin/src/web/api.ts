@@ -520,6 +520,10 @@ export const api = {
 
   me: () => call<{ user: User }>('/auth/me'),
 
+  /** 승인 대기 계정을 만든다. 세션은 안 생긴다 — 운영자가 수락해야 로그인된다 (도메인/인증 §7) */
+  signup: (body: { username: string; displayName: string; password: string }) =>
+    call<{ status: 'PENDING' }>('/auth/signup', json(body)),
+
   cases: (query: CaseQuery) => {
     const params = new URLSearchParams({ service: query.service, page: String(query.page ?? 1) });
     if (query.q !== undefined && query.q !== '') params.set('q', query.q);

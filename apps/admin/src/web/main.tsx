@@ -26,6 +26,7 @@ import { RunResult } from './RunResult.js';
 import { RunSetup } from './RunSetup.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
+import { Signup } from './Signup.js';
 import { Loading } from './ui.js';
 import './styles.css';
 import './authoringStatus.css';
@@ -75,6 +76,7 @@ function Screen({
     case 'item':
       return <ItemDetail runId={current.runId} historyId={current.historyId} />;
     case 'login':
+    case 'signup':
       // 로그인했는데 주소가 로그인 화면이다. 위 useEffect 가 집으로 보내는 한 프레임 동안
       // '없는 주소입니다' 가 깜빡이지 않게 빈 화면을 낸다
       return <div className="screen" />;
@@ -129,8 +131,10 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // 로그인은 했는데 주소가 로그인 화면이면 집으로 보낸다.
   // 렌더 중에 주소를 바꾸면 React 가 그리는 도중에 부수효과가 난다
   // `none` 인 자리 주소를 직접 쳐도 집으로 보낸다 — 집은 권한으로 고른 맨 위 자리다 (화면공통 §8)
+  // 가입 화면도 로그인한 사람에게는 쓸 데가 없어 집으로 보낸다
+  const 들어가는자리 = route(hash).name === 'login' || route(hash).name === 'signup';
   const 보낼곳 =
-    상태.어디 !== '안' ? null : route(hash).name === 'login' ? 집(상태.user, 열린접두사) : 갈자리(hash, 상태.user, 열린접두사);
+    상태.어디 !== '안' ? null : 들어가는자리 ? 집(상태.user, 열린접두사) : 갈자리(hash, 상태.user, 열린접두사);
   useEffect(() => {
     if (보낼곳 !== null && 보낼곳 !== hash) window.location.hash = 보낼곳;
   }, [보낼곳, hash]);
@@ -142,6 +146,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       </div>
     );
   }
+
+  // 가입은 로그인 없이 여는 유일한 다른 화면이다 (도메인/인증 §8.6)
+  if (상태.어디 === '밖' && route(hash).name === 'signup') return <Signup />;
 
   if (상태.어디 === '밖') {
     return (

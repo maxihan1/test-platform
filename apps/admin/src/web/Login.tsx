@@ -1,5 +1,5 @@
-// 로그인 화면 (SPEC §8.6). 아이디 칸, 비밀번호 칸, 로그인 버튼. 그 밖에 아무것도 없다
-// 회원가입 화면은 없다 — 계정은 운영자가 설정 화면에서 만든다 (§8.8)
+// 로그인 화면 (SPEC §8.6). 아이디 칸, 비밀번호 칸, 로그인 버튼, 그 아래 회원가입 링크. 그 밖에 아무것도 없다
+// 가입은 승인 대기 계정만 만든다 — 문을 여는 판단은 여전히 운영자가 설정 화면에서 한다 (§8.8)
 
 import { useState } from 'react';
 
@@ -13,16 +13,23 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [failed, setFailed] = useState<string | null>(null);
+  const [기다림, set기다림] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setFailed(null);
+    set기다림(false);
     try {
       const { user } = await api.login(username, password);
       onLogin(user);
     } catch (err) {
+      // 비밀번호가 맞은 사람에게만 오는 답이다. 잘못한 것이 아니라 기다리는 중이라 오류 모양으로 안 그린다
+      if (err instanceof ApiError && err.code === 'PENDING_APPROVAL') {
+        set기다림(true);
+        return;
+      }
       // 어느 쪽이 틀렸는지 알려주면 밖에서 아이디가 있는지 하나씩 확인할 수 있다 (SPEC §8.6).
       // 서버도 같은 이유로 401 하나만 준다 — 화면이 그 문장을 지어낸다
       setFailed(
@@ -73,11 +80,15 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
         </div>
 
         {failed === null ? null : <div className="err login-err">{failed}</div>}
+        {기다림 ? (
+          <p className="login-info">{t('가입 신청을 검토하고 있습니다. 운영자가 수락하면 로그인할 수 있습니다')}</p>
+        ) : null}
 
         {/* 누르는 동안 잠근다. 두 번 누르면 두 번 간다 */}
         <button className="btn" type="submit" disabled={busy}>
           {busy ? t('확인하는 중') : t('로그인')}
         </button>
+        <a href="#/signup">{t('회원가입')}</a>
       </form>
     </div>
   );
