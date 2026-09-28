@@ -12,8 +12,9 @@ import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처 } from './authoring-assets.js';
 import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
 import { 닫을RUNNING, 자식환경 } from './authoring-chain.js';
-import { type 계정, type 사본 } from './authoring-copy.js';
-import { 사본만들기, 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
+import { type 계정 } from './authoring-copy.js';
+import { 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
+import { type 작업방, 도는번호, 보관하기, 작업방준비 } from './authoring-keeping.js';
 import {
   type 보고손,
   type 칠때,
@@ -24,7 +25,6 @@ import {
   멈춤,
   보고손만들기,
   부른다,
-  진짜main묻기,
   친다,
 } from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
@@ -149,25 +149,20 @@ async function 한건(
   }
 
   await 손.단계('작업방을 만드는 중');
-  // 기준은 GitHub 이 말하는 main 이다. 서버 저장소의 origin/main 은 옛 판일 수 있다
-  const 메인 = 진짜main묻기(판.원천);
-  if ('까닭' in 메인) {
-    await 손.끝내기({ status: 'FAILED', error: 메인.까닭 });
-    return;
-  }
   const 자식 = 판.계정?.자식[자리번호] ?? null;
-  const 만든것 = await 사본만들기(것.id, 판.바탕, 판.원천, 판.원격주소, 메인.sha, 자식);
-  if ('까닭' in 만든것) {
-    await 손.끝내기({ status: 'FAILED', error: 만든것.까닭 });
-    return;
-  }
-  const 자리 = 만든것.자리;
+  도는번호.add(것.id);
+  // 어떻게 끝냈는지 본다 — 중단이면 폴더를 남겨 이어서 작성하게 한다 (작성 §7 「이어하기」)
+  let 끝낸상태: unknown = null;
+  const 기록손: 보고손 = { ...손, 끝내기: (몸) => ((끝낸상태 = 몸.status), 손.끝내기(몸)) };
+  let 방: 작업방 | null = null;
   try {
-    await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 자리, 메인.sha, 출처, 자료들, 본문, 서버들, 폴더.폴더, 손, 박동);
+    방 = await 작업방준비(주소기지, 토큰, 서비스, 것, 판, 자식, 폴더.폴더, 기록손);
+    if (방 !== null) await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 방, 출처, 자료들, 본문, 서버들, 폴더.폴더, 기록손, 박동);
   } finally {
-    // 받은 기획서와 자식이 만든 것을 남기지 않는다. 성공이든 실패든 지운다 —
-    // 단 자식을 못 거뒀으면 남긴다. 살아 있는 자식이 지우는 도중에 폴더를 링크로 바꿔 트리 밖을 지우게 할 수 있다
-    if (await 자식거두기(자식)) 사본치우기(자리);
+    // 성공·실패는 받은 기획서와 자식이 만든 것을 남기지 않는다. 중단은 7일 남긴다 —
+    // 단 자식을 못 거뒀으면 손대지 않는다. 살아 있는 자식이 지우는 도중에 폴더를 링크로 바꿔 트리 밖을 지우게 할 수 있다
+    if (방 !== null && (await 자식거두기(자식))) (끝낸상태 === 'STOPPED' ? 보관하기 : 사본치우기)(방.자리, 자식);
+    도는번호.delete(것.id);
   }
 }
 
@@ -178,8 +173,7 @@ async function 사본에서(
   것: 집은것,
   판: 판,
   자식: 계정 | null,
-  자리: 사본,
-  기준: string,
+  방: 작업방,
   출처: number,
   자료들: 자료[],
   본문: string | null,
@@ -188,6 +182,7 @@ async function 사본에서(
   손: 보고손,
   박동: 박동,
 ): Promise<void> {
+  const { 자리, 기준 } = 방;
   const 계획 = 자료계획(자료들, 자리.자료);
   const 못읽음 = 못읽는자료(계획);
   if (못읽음 !== null) {
@@ -245,7 +240,7 @@ async function 사본에서(
   const 제한 = 자식제한;
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다 (작성 §7 「중단 · 폐기 · 진척」)
   const 누적 = 진척누적기(제한 / 1000, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });
-  const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'));
+  const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'), 방.옛케이스);
   const 돌린것 = await 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,

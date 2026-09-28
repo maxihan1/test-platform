@@ -76,7 +76,7 @@ export function 케이스파일들(폴더: string): Set<string> {
 }
 
 /** 자식 시작 때 본 목록에 없던 것 — 고친 옛 케이스는 안 센다 */
-export function 새케이스수(폴더: string, 전: Set<string>): number {
+export function 새케이스수(폴더: string, 전: ReadonlySet<string>): number {
   let n = 0;
   for (const p of 케이스파일들(폴더)) if (!전.has(p)) n += 1;
   return n;
@@ -89,9 +89,16 @@ export function 화면수(폴더: string): number {
 
 /** 자식을 띄우기 직전에 부른다 — 이때 본 케이스는 옛것이고 이때부터 시간을 잰다. 화면 폴더는 역방향만 준다.
  * 케이스는 자식이 쓰는 `tests/<폴더>` 에서 센다 — 트리 바로 아래를 세서 늘 0 이었다 */
-export function 진척재기(누적: ReturnType<typeof 진척누적기>, 트리: string, 폴더: string, 화면폴더?: string): () => 진척 {
+export function 진척재기(
+  누적: ReturnType<typeof 진척누적기>,
+  트리: string,
+  폴더: string,
+  화면폴더?: string,
+  // 처음 사본에 있던 케이스. 이어받은 실행도 앞 실행이 만든 것까지 누적으로 센다 (작성 §7 「이어하기」)
+  옛것?: ReadonlySet<string>,
+): () => 진척 {
   const 케이스폴더 = join(트리, 'tests', 폴더);
-  const 전 = 케이스파일들(케이스폴더);
+  const 전 = 옛것 ?? 케이스파일들(케이스폴더);
   const 시작 = Date.now();
   return () =>
     누적.스냅샷({
