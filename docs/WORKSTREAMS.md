@@ -37,8 +37,8 @@
 정본은 SPEC 도메인/인증 §3.5 · §7 「등급으로 갈리는 자리」 · §7 「Grafana 통로」 · §8.6 · §8.8 과 공통/4-데이터모델 §6 `app_user`.
 **차례를 바꾸지 않는다** — 각 PR 이 병합돼도 플랫폼이 돌게 나눴다. 비밀번호 변경 강제를 ② 에 넣으면 변경 화면 없이 잠기는 사람이 생긴다.
 
-- **② 권한 (WS-F + 화면)** — `app_user` 칸 마이그레이션(옛 등급 옮기기) · `auth/gate.ts` 표값 `(기능, 칸) | admin` · 옛 등급표와의 대조 검사 ·
-  `/api/auth/me` 의 `role`·`permissions` · 설정 API `permissions` · 화면 `role.ts` 와 설정 계정 고르개 · `scripts/add-user.ts` · `scripts/authoring-token.ts` 의 등급 안내
+- **② 권한 (WS-F + 화면, PR #93)** — `app_user`·`user_service` 칸 마이그레이션(옛 등급 옮기기) · `auth/gate.ts` 표값 `(기능, 칸) | admin` 을 **건드리는 서비스의 칸으로** 판정 · 옛 등급표와의 대조 검사 ·
+  `/api/auth/me` 의 `role`·`dashboard`·`services[].permissions` · 설정 API 서비스별 권한 · **명세를 서비스별 권한으로 고친 것도 이 PR 이다** (2026-09-28 게이트 0) · 화면 `role.ts` 와 설정 계정 고르개 · `scripts/add-user.ts` · `scripts/authoring-token.ts` 의 등급 안내
 - **③ 가입·첫 admin (WS-F + 화면)** — `signup` · `password` · `approve` · 거절 `DELETE` · 로그인 `PENDING_APPROVAL` · 문의 `PASSWORD_CHANGE_REQUIRED` ·
   빈 서버 기본 계정 · 회원가입·비밀번호 변경·승인 대기 화면(**시안 먼저**) · `docs/SETUP.md` 첫 계정 절 · `docs/design-mockup.html`
 - **④ Grafana (COMPOSE + WS-F + WS-D)** — `@fastify/http-proxy` 설치 · `/grafana/**` 문 · compose 망·환경값·3001 닫기 ·
@@ -857,8 +857,8 @@ CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-F(인증) 담당이다
 설정 **화면**은 WS-E 가 만든다 (§8.8). 너는 API 까지다.
 
 만들 것:
-1. 확인 함수 하나 — 요청을 받아 { username, displayName, role, permissions, mustChangePassword, services }를 돌려준다 (SPEC §3.5).
-   role은 member | admin, permissions 는 기능 넷의 칸, services는 배정받은 서비스 목록이다 (2026-09-28 — 전에는 viewer | operator | admin).
+1. 확인 함수 하나 — 요청을 받아 { username, displayName, role, dashboard, mustChangePassword, services }를 돌려준다 (SPEC §3.5).
+   role은 member | admin, dashboard 는 사람마다의 대시보드 칸, services는 배정받은 서비스 목록이고 서비스마다 permissions(케이스·실행·작성)가 붙는다 (2026-09-28 — 전에는 viewer | operator | admin).
    화면의 권한 처리와 사이드바 서비스 고르개가 이 값을 원천으로 쓴다.
    **이 함수 하나만 갈아 끼우면 나중에 SSO로 바뀌어야 한다** (§3.5 불변식).
    실행·카탈로그·리포팅은 그 결과만 받아 쓰고 비밀번호도 세션도 모른다
