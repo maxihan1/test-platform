@@ -275,4 +275,56 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
     expect(res.statusCode).toBe(마지막인가 ? 409 : 200);
     if (마지막인가) expect(res.json()).toEqual({ error: 'LAST_ADMIN' });
   });
+
+  const 대기넣기 = async (username: string) => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, is_approved) VALUES ($1, '대기', 'x', 'member', false)`,
+      [username],
+    );
+  };
+  const 수락 = (username: string, payload: Record<string, unknown>) =>
+    app.inject({ method: 'POST', url: `/api/settings/users/${username}/approve`, payload });
+  const 거절 = (username: string) => app.inject({ method: 'DELETE', url: `/api/settings/users/${username}` });
+
+  it('수락하면 서비스별 권한·대시보드·등급을 저장하고 승인되며, 두 번째 수락은 409 ALREADY_APPROVED 다', async () => {
+    await 대기넣기('xfu9-pend-ok');
+    expect((await 계정('xfu9-pend-ok'))?.isApproved).toBe(false);
+    const 줄들: 줄[] = [{ prefix: 'XFS9A', permissions: { cases: 'write', runs: 'read', authoring: 'none' } }];
+    expect((await 수락('xfu9-pend-ok', { dashboard: 'none', services: 줄들, role: 'admin' })).statusCode).toBe(200);
+    expect(await 계정('xfu9-pend-ok')).toMatchObject({ isApproved: true, role: 'admin', dashboard: 'none', services: 줄들 });
+
+    const 다시 = await 수락('xfu9-pend-ok', { dashboard: 'read', services: [] });
+    expect(다시.statusCode).toBe(409);
+    expect(다시.json()).toEqual({ error: 'ALREADY_APPROVED' });
+  });
+
+  it('수락에서 셋 다 none 인 줄은 400 PERMISSIONS_SHAPE 이고 승인되지 않는다', async () => {
+    await 대기넣기('xfu9-pend-bad');
+    const 다없음 = { prefix: 'XFS9A', permissions: { cases: 'none', runs: 'none', authoring: 'none' } };
+    const res = await 수락('xfu9-pend-bad', { dashboard: 'read', services: [다없음] });
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'PERMISSIONS_SHAPE' });
+    expect((await 계정('xfu9-pend-bad'))?.isApproved).toBe(false);
+  });
+
+  it('승인 대기 계정에 PATCH 는 409 NOT_APPROVED 다', async () => {
+    const res = await app.inject({ method: 'PATCH', url: '/api/settings/users/xfu9-pend-bad', payload: { dashboard: 'none' } });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toEqual({ error: 'NOT_APPROVED' });
+  });
+
+  it('거절은 승인 대기 계정만 지운다 — 승인된 계정 409 APPROVED_USER · 없는 계정 404', async () => {
+    expect((await 거절('xfu9-pend-bad')).statusCode).toBe(204);
+    expect(await 계정('xfu9-pend-bad')).toBeUndefined();
+
+    const 승인됨 = await 거절('xfu9-pend-ok');
+    expect(승인됨.statusCode).toBe(409);
+    expect(승인됨.json()).toEqual({ error: 'APPROVED_USER' });
+    expect(await 계정('xfu9-pend-ok')).toBeDefined();
+
+    const 없음 = await 거절('xfu9-없는사람');
+    expect(없음.statusCode).toBe(404);
+    expect(없음.json()).toEqual({ error: 'NOT_FOUND' });
+  });
 });
