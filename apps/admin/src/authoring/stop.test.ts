@@ -297,4 +297,24 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
     const 머지 = await 넣기({ status: 'RUNNING', kind: 'MERGE' });
     expect((await 끝(머지, { status: 'STOPPED', stopReason: 'AGENT_RESTART' })).json()).toEqual({ error: 'BAD_STOP' });
   });
+
+  it('finish STOPPED — 작성 중 끊김(CRASH)은 받고, 올리기 거절(REJECTED)은 까닭 글이 있어야 받는다', async () => {
+    const 끝 = (id: number, 본문: object) => {
+      사람으로(맥);
+      return 부르기('POST', `/api/authoring/requests/${id}/finish`, 본문);
+    };
+    const 끊김 = await 넣기({ status: 'RUNNING' });
+    expect((await 끝(끊김, { status: 'STOPPED', stopReason: 'CRASH', error: '끊겼다' })).statusCode).toBe(200);
+    expect(await 읽기(끊김)).toMatchObject({ stop_reason: 'CRASH', stopped_by: 'system' });
+
+    const 까닭없음 = await 넣기({ status: 'RUNNING' });
+    expect((await 끝(까닭없음, { status: 'STOPPED', stopReason: 'REJECTED' })).json()).toEqual({ error: 'BAD_STOP' });
+    expect((await 끝(까닭없음, { status: 'STOPPED', stopReason: 'REJECTED', error: '' })).json()).toEqual({ error: 'BAD_STOP' });
+
+    const 거절 = await 넣기({ status: 'RUNNING' });
+    expect(
+      (await 끝(거절, { status: 'STOPPED', stopReason: 'REJECTED', error: '테스트 밖 파일을 고쳤다' })).statusCode,
+    ).toBe(200);
+    expect(await 읽기(거절)).toMatchObject({ stop_reason: 'REJECTED', error: '테스트 밖 파일을 고쳤다' });
+  });
 });
