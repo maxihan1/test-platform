@@ -50,6 +50,7 @@ describe('작성 Status 카드', () => {
     expect(screen.getByText('3개')).toBeTruthy();
     expect(screen.getByText('9장')).toBeTruthy();
     expect(screen.getByText('1.2M')).toBeTruthy();
+    expect(screen.getByText('토큰 (캐시 읽기 포함 · 지금까지)')).toBeTruthy();
     expect(screen.getByText('화면 캡처')).toBeTruthy();
     expect(screen.getByText('20초 전')).toBeTruthy();
   });
@@ -85,6 +86,7 @@ describe('작성 Status 카드', () => {
     expect(screen.getByText('5 / 5 단계 · 100%')).toBeTruthy();
     expect(screen.getByText(/4분 33초 걸림/)).toBeTruthy();
     expect(screen.getByText('4개')).toBeTruthy();
+    expect(screen.getByText('토큰 (캐시 읽기 포함)')).toBeTruthy();
   });
 
   it('중단이면 누가 왜 멈췄는지 카드 안에 적는다', () => {
