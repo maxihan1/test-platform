@@ -202,7 +202,7 @@ describe.skipIf(연결 === undefined)('E2E 시나리오 표', () => {
       `SELECT conname FROM pg_constraint WHERE conrelid = 'test_run'::regclass`,
     );
     expect(t.rows.map((c) => c.conname)).toEqual(
-      expect.arrayContaining(['test_run_kind_check', 'test_run_scenario_id_fkey', 'test_run_scenario_check']),
+      expect.arrayContaining(['test_run_kind_check', 'test_run_scenario_version_fkey', 'test_run_scenario_check']),
     );
   });
 
@@ -229,6 +229,7 @@ describe.skipIf(연결 === undefined)('E2E 시나리오 표', () => {
     await expect(실행({ kind: 'SCENARIO', scenarioId: s })).rejects.toThrow('test_run_scenario_check');
     await expect(실행({ kind: 'CASE', scenarioId: s, version: 1 })).rejects.toThrow('test_run_scenario_check');
     await expect(실행({ kind: 'X' })).rejects.toThrow('test_run_kind_check');
+    await expect(실행({ kind: 'SCENARIO', scenarioId: s, version: 99 })).rejects.toThrow('test_run_scenario_version_fkey');
   });
 
   it('버전은 1부터 · 한 번씩 · 디바이스는 둘 중 하나다', async () => {

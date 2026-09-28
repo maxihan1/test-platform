@@ -40,6 +40,7 @@
    권한 두 줄(도메인/인증 §7 표) · **`auth/gate.ts` 등급표와 `auth/scope.ts` 라우트표 둘에 새 통로를 같이 넣는다** ·
    **`spec-review` 체크리스트에 「`test_run` 조회에 `kind` 조건이 있는가」 항목을 더한다** — 규칙만 서고 검사가 없으면 새 조회가 조용히 섞는다.
    **Grafana 질의의 `kind = 'CASE'` 가 먼저 들어가 있거나 이 PR 에 같이 둔다** — `grafana_ro` 는 `test_run` 을 표째로 읽어 시나리오 실행을 만드는 순간 패널에 섞인다(6번 WS-D 를 기다리면 그 사이가 빈다).
+   **디바이스는 버전 표에 있다**(PR #98) — 목록·상세의 `platform` 은 최신 버전 값이다. `GET /api/runs/:runId/scenario` 응답과 E2E 증적 머리(6번)에 그 실행의 디바이스를 실을지 착수할 때 정한다 — 지금 명세에는 안 나온다
    서버 코드 자리는 WS-시나리오(`apps/admin/src/scenario/**`) 이고, 기존 조회에 `kind` 를 붙이는 것은 각 갈래 폴더를 건드린다 — 계획의 `files` 에 싣는다
 5. **WS-E 화면** — **시안 먼저**(목업 다섯 장이 모양의 정본 — 도메인/시나리오 §8.11) · 목록 · 조립 · 시험 실행 · 결과 · 실행 기록 탭 ·
    자리 `E2E 시나리오`(`layout.ts` 의 `자리목록()`, 영어 `E2E scenarios` 는 `messages/shell.ts`) · **코드 주석에 남은 「자리 넷」**(`layout.ts` · `messages/shell.ts`) ·

@@ -29,8 +29,11 @@ CREATE TABLE scenario_version (
 -- 실행 묶음은 test_run 한 행이다. 케이스 실행과 가르는 칸
 ALTER TABLE test_run
   ADD COLUMN kind             TEXT    NOT NULL DEFAULT 'CASE' CHECK (kind IN ('CASE','SCENARIO')),
-  ADD COLUMN scenario_id      BIGINT  REFERENCES scenario(id),
+  ADD COLUMN scenario_id      BIGINT,
   ADD COLUMN scenario_version INTEGER,
+  -- 짝으로 버전 표를 가리킨다 — 없는 버전을 적으면 그 실행의 부품·디바이스를 못 찾는다 (2026-09-28 사용자)
+  ADD CONSTRAINT test_run_scenario_version_fkey
+    FOREIGN KEY (scenario_id, scenario_version) REFERENCES scenario_version(scenario_id, version),
   ADD CONSTRAINT test_run_scenario_check
     CHECK ((kind = 'SCENARIO') = (scenario_id IS NOT NULL AND scenario_version IS NOT NULL));
 
@@ -90,6 +93,7 @@ DROP TABLE IF EXISTS scenario_run_part;
 DELETE FROM test_run WHERE kind = 'SCENARIO';
 ALTER TABLE test_run
   DROP CONSTRAINT IF EXISTS test_run_scenario_check,
+  DROP CONSTRAINT IF EXISTS test_run_scenario_version_fkey,
   DROP COLUMN IF EXISTS scenario_version,
   DROP COLUMN IF EXISTS scenario_id,
   DROP COLUMN IF EXISTS kind;

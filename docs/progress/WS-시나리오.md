@@ -11,6 +11,7 @@
 - 완료: 계약 반영 PR #98 — `packages/kit/src/types.ts` 시나리오 타입 넷 · `StepResult.skipped` · `db/migrations/20260928000004_scenario.sql` 표 넷 · `test_run.kind`·`scenario_id`·`scenario_version`
 - 완료: 디바이스(`platform`)를 `scenario_version` 으로 옮김(게이트 1 사용자 결정 — 바꾼 뒤에도 옛 실행의 디바이스가 남는다)
 - 완료: kit 계약 블록을 타입(반영 완료)·시나리오 모드(대기) 둘로 나눔
+- 완료: `test_run` 의 (시나리오, 버전) 짝이 버전 표를 가리킨다 — `test_run_scenario_version_fkey`(게이트 2 사용자)
 - 미완: 시나리오 모드 · 러너 · 서버 · 화면 · 증적
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 표 검사는 `apps/admin/src/db/scenario-columns.test.ts`(접두사 `XSC`) — 칸 모양과 제약 목록을 통째로 견준다. 다음은 WORKSTREAMS 2 KIT + WS-C 러너
