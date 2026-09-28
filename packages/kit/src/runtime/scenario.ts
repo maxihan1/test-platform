@@ -6,6 +6,9 @@ import type { APIRequestContext, Page } from '@playwright/test';
 import type { ScenarioPartResult, StepResult } from '../types.js';
 import { SCENARIO_PART_MARKER } from './protocol.js';
 
+// 러너가 결과 줄을 가를 때 같은 표시자를 봐야 한다
+export { SCENARIO_PART_MARKER };
+
 export interface ScenarioCaseInput {
   page: Page;
   request: APIRequestContext;
