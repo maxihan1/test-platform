@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api, ApiError, type CaseRow, type ParamSetRow, type Platform, type ServiceRow, type User } from './api.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
-import { 할수있나 } from './role.js';
+import { 케이스서비스, 할수있나 } from './role.js';
 import { 넘었나, 상한, 항목수 } from './runPlan.js';
 import { initialText, schemaToFields, toValues } from './schema.js';
 import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
@@ -77,7 +77,7 @@ export function RunSetup({ tcId, service, user }: Props) {
     : { params: serverErrors.params, expected: serverErrors.expected };
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
   // tcId 접두사가 서비스를 말한다 (SPEC §1). 띠에서 다른 서비스로 바꾸면 어긋난다
-  const 다른서비스 = service !== null && !row.tcId.startsWith(`${service.prefix}-`);
+  const 다른서비스 = service !== null && 케이스서비스(row.tcId) !== service.prefix;
   const 만들건수 = 항목수([platforms.length], Number(repeat) || 1);
   const 너무많나 = 넘었나(만들건수);
   const broken = Object.keys(localErrors.params).length + Object.keys(localErrors.expected).length;
@@ -262,7 +262,7 @@ export function RunSetup({ tcId, service, user }: Props) {
               <div className="err">
                 {t('지금 보고 있는 서비스가 {서비스}인데 이 케이스는 {접두사} 것입니다. 맨 위에서 서비스를 바꾸거나 그 서비스의 케이스 목록에서 다시 여세요', {
                   서비스: service?.name ?? '',
-                  접두사: row.tcId.split('-')[0] ?? '',
+                  접두사: 케이스서비스(row.tcId) ?? '',
                 })}
               </div>
             ) : service !== null && service.envs.length === 0 ? (
@@ -325,7 +325,7 @@ export function RunSetup({ tcId, service, user }: Props) {
           {notice ?? t('입력값을 바꿔 다시 실행해도 코드는 고치지 않습니다.')}
         </span>
         {/* 묶음은 그 케이스의 서비스에 남는다 — 띠가 아니라 tcId 접두사의 칸을 본다 (SPEC §1 · 화면공통 §8) */}
-        {!할수있나(user, row.tcId.split('-')[0] ?? null, '입력값저장') ? null : (
+        {!할수있나(user, 케이스서비스(row.tcId), '입력값저장') ? null : (
           <>
             <input
               type="text"
@@ -347,7 +347,7 @@ export function RunSetup({ tcId, service, user }: Props) {
           </span>
         )}
         {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
-        {!할수있나(user, row.tcId.split('-')[0] ?? null, '실행') ? null : (
+        {!할수있나(user, 케이스서비스(row.tcId), '실행') ? null : (
           <button className="btn" onClick={() => void run()} disabled={busy || 너무많나}>
             {t('실행')}
           </button>

@@ -40,6 +40,12 @@ const 필요: Record<할일, { 기능: 기능; 칸: 'read' | 'write' } | 'admin'
   설정: 'admin',
 };
 
+/** tcId 접두사가 곧 서비스다 (SPEC §1). `-` 가 없으면 모른다 */
+export function 케이스서비스(tcId: string): string | null {
+  const 자리 = tcId.indexOf('-');
+  return 자리 > 0 ? tcId.slice(0, 자리) : null;
+}
+
 /** 고른 서비스의 칸. 배정 안 받은 서비스거나 서비스를 안 골랐으면 null */
 export function 서비스권한(user: User | null, prefix: string | null): 권한칸 | null {
   return user?.services.find((s) => s.prefix === prefix)?.permissions ?? null;

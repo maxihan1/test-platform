@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow, User } from './api.js';
-import { 기능보나, 서비스권한, 할수있나, type 권한칸 } from './role.js';
+import { 기능보나, 서비스권한, 케이스서비스, 할수있나, type 권한칸 } from './role.js';
 
 function 서비스(prefix: string, permissions: 권한칸): ServiceRow {
   return { id: 1, prefix, name: prefix, color: '#000000', envs: [], hasSlackWebhook: false, permissions };
@@ -79,5 +79,17 @@ describe('서비스별 권한', () => {
     expect(기능보나(김, 'MEM', 'authoring')).toBe(true);
     expect(기능보나(사람('member', [서비스('PAY', 전부읽기)]), 'PAY', 'runs')).toBe(true);
     expect(기능보나(김, null, 'cases')).toBe(false);
+  });
+});
+
+describe('케이스서비스', () => {
+  it('tcId 의 첫 - 앞이 서비스 접두사다', () => {
+    expect(케이스서비스('PAY-001')).toBe('PAY');
+    expect(케이스서비스('MEM2-010-B')).toBe('MEM2');
+  });
+
+  it('- 가 없으면 서비스를 모른다', () => {
+    expect(케이스서비스('PAY')).toBe(null);
+    expect(케이스서비스('-001')).toBe(null);
   });
 });
