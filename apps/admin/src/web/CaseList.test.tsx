@@ -603,6 +603,13 @@ describe('CaseList 권한 칸', () => {
     expect(screen.queryByRole('button', { name: /(전체|건) 실행$/ })).toBeNull();
   });
 
+  it('실행 읽기면 줄마다의 실행 링크도 없다', async () => {
+    모킹(쪽주기);
+    render(<CaseList service="ZPK" 할수={실행빼고} 결과보나 />);
+    await screen.findByText('ZPK-001');
+    expect(screen.queryByRole('link', { name: '실행' })).toBeNull();
+  });
+
   it('실행 칸이 none 이면 마지막 결과를 부르지 않는다 — 부르면 403 이다', async () => {
     모킹(쪽주기);
     const 결과 = vi.mocked(api.lastByCase);

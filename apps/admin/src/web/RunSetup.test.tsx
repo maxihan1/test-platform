@@ -132,4 +132,10 @@ describe('실행 설정의 권한 칸', () => {
     expect(screen.queryByText('이 값을 묶음으로 저장')).toBeNull();
     expect(screen.queryByPlaceholderText('세트 이름')).toBeNull();
   });
+
+  it('실행 읽기면 실행 버튼이 없다', async () => {
+    const 보기만: User = { ...사람, services: [{ ...서비스, permissions: { cases: 'read', runs: 'read', authoring: 'none' } }] };
+    await 그린다(케이스, 보기만);
+    expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
+  });
 });
