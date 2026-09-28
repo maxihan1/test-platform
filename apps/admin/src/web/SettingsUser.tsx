@@ -13,7 +13,7 @@ import { 오류문장 } from './SettingsService.js';
 import { 계정못보내는이유, 마지막운영계정인가 } from './settingsView.js';
 
 export function UserSection({
-  rows,
+  rows: 전체,
   services,
   me,
   onDone,
@@ -27,6 +27,8 @@ export function UserSection({
   onSelf: () => void;
 }) {
   const t = use말();
+  // 승인 대기는 위 묶음(SettingsPending)이 그린다. 여기 섞으면 편집으로 수락을 건너뛴다 — 서버도 PATCH 를 409 로 막는다
+  const rows = 전체.filter((it) => it.isApproved !== false);
   const [여는것, set여는것] = useState<string | 'new' | null>(null);
   // 만든 직후 한 번만 보여준다. 닫으면 다시 못 본다 (SPEC §8.8)
   const [임시비밀번호, set임시비밀번호] = useState<임시 | null>(null);

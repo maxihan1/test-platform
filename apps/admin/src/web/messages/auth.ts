@@ -34,4 +34,13 @@ export const 계정말: Record<string, string> = {
   '현재 비밀번호를 채웁니다': 'Fill in the current password',
   '현재 비밀번호가 맞지 않습니다': 'The current password is incorrect',
   '지금 비밀번호와 다른 값을 넣습니다': 'Enter a password different from the current one',
+
+  // 설정의 승인 대기 묶음 (§8.8)
+  '승인 대기 {건수}': 'Pending approval {건수}',
+  수락: 'Accept',
+  거절: 'Decline',
+  수락한다: 'Accept now',
+  '가입 신청을 지웁니다. 되돌릴 수 없습니다': 'This deletes the sign-up request. It cannot be undone',
+  지운다: 'Delete now',
+  '다른 운영자가 먼저 처리했습니다': 'Another admin already handled this',
 };

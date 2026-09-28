@@ -721,6 +721,14 @@ export const api = {
       method: 'PATCH',
     }),
 
+  /** 승인 대기 계정을 쓸 수 있게 한다. 권한은 수락하는 운영자가 정한다 (도메인/인증 §3.5) */
+  approveUser: (username: string, body: { role?: 등급; dashboard: 'none' | 'read'; services: 배정[] }) =>
+    call<{ ok: true }>(`/settings/users/${encodeURIComponent(username)}/approve`, json(body)),
+
+  /** 승인 대기 계정만 지운다 — 거절이다. 승인된 계정이면 서버가 409 로 돌려보낸다 */
+  rejectUser: (username: string) =>
+    call<void>(`/settings/users/${encodeURIComponent(username)}`, { method: 'DELETE' }),
+
   resetPassword: (username: string) =>
     call<{ tempPassword: string }>(`/settings/users/${encodeURIComponent(username)}/password`, {
       method: 'POST',
