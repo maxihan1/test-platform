@@ -155,6 +155,15 @@ describe.skipIf(연결 === undefined)('작성 이어하기', () => {
     expect(await 상세(새것)).toMatchObject({ resumeFrom: 원본, canResume: false });
   });
 
+  it('상세의 keepWorkspace 는 에이전트가 폴더를 남길지다 — 이어받은 줄이 아직 안 돌았어도 남긴다', async () => {
+    const 원본 = await 멈춘것();
+    await 이어서(원본);
+    expect(await 상세(원본)).toMatchObject({ keepWorkspace: true, canResume: false });
+    expect(await 상세(await 멈춘것({ 끝난지: '8 days' }))).toMatchObject({ keepWorkspace: false });
+    expect(await 상세(await 멈춘것({ 폐기: true }))).toMatchObject({ keepWorkspace: false });
+    expect(await 상세(await 멈춘것({ status: 'DONE' }))).toMatchObject({ keepWorkspace: false });
+  });
+
   describe('집기', () => {
     const 집기 = () => app.inject({ method: 'POST', url: `/api/authoring/requests/claim?service=${접두사}` });
 

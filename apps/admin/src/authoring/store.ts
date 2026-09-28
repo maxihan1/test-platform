@@ -138,12 +138,20 @@ export const 칸들 = `id, service_id, kind, source_id, spec_text, params, reque
 export const 보관일 = 7;
 
 /**
+ * `별칭` 행의 작업 폴더를 남기나 — SQL 참거짓 식. 에이전트가 훑을 때 상세의 keepWorkspace 로 묻는다.
+ * 이어받은 줄이 있어도 참이다 — 그 줄이 아직 안 돌았으면 폴더를 옮겨 가기 전이다
+ */
+export function 폴더남기나(별칭: string): string {
+  return `(${별칭}.status = 'STOPPED' AND ${별칭}.kind IN ('AUTHOR', 'RERUN') AND ${별칭}.discarded_at IS NULL
+           AND ${별칭}.finished_at > now() - interval '${보관일} days')`;
+}
+
+/**
  * `별칭` 행을 지금 이어받을 수 있나 — SQL 참거짓 식. 상세의 canResume 과 이어서 작성 통로가 같이 쓴다.
  * 이미 이어받은 줄이 있으면 거짓이다(폴더는 하나). 유일 색인이 동시 누름을 한 번 더 막는다
  */
 export function 이어받기되나(별칭: string): string {
-  return `(${별칭}.status = 'STOPPED' AND ${별칭}.kind IN ('AUTHOR', 'RERUN') AND ${별칭}.discarded_at IS NULL
-           AND ${별칭}.finished_at > now() - interval '${보관일} days'
+  return `(${폴더남기나(별칭)}
            AND NOT EXISTS (SELECT 1 FROM authoring_request 이은것 WHERE 이은것.resume_from = ${별칭}.id))`;
 }
 
