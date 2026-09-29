@@ -22,12 +22,12 @@ const 부품모양 = z.discriminatedUnion('kind', [
   }),
   z.object({
     kind: z.literal('mock'),
-    urlPattern: z.string(),
+    urlPattern: z.string().min(1), // 러너와 같게 — 빈 무늬는 러너가 400 이라 저장만 되고 영영 못 돈다
     status: z.number().int().min(100).max(599),
     contentType: z.string(),
     body: z.string(),
   }),
-  z.object({ kind: z.literal('unmock'), urlPattern: z.string() }),
+  z.object({ kind: z.literal('unmock'), urlPattern: z.string().min(1) }),
   z.object({ kind: z.literal('wait'), ms: z.number().int() }),
 ]);
 
@@ -68,9 +68,10 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
         if (!케이스.skippable.includes(제목)) 오류.push(`${자리}: 「${제목}」 은 건너뛸 수 있는 절차가 아니다`);
       }
     } else if (p.kind === 'api') {
-      // `//host` 는 다른 호스트로 풀린다 — 대상 주소 밖으로 못 나가게 한다
-      if (!p.path.startsWith('/') || p.path.startsWith('//')) {
-        오류.push(`${자리}: API 경로는 / 로 시작하고 // 로 시작하지 않아야 한다`);
+      // `//host` 는 다른 호스트로 풀린다 — 대상 주소 밖으로 못 나가게 한다.
+      // URL 해석기는 `\` 를 `/` 로 읽고 탭·줄바꿈을 지워 `/\host` 도 `//host` 가 된다. 러너는 글자로 이어 붙여 안 새지만 두 겹으로 막는다
+      if (!p.path.startsWith('/') || p.path.startsWith('//') || /[\\\x00-\x1f\x7f]/.test(p.path)) {
+        오류.push(`${자리}: API 경로는 / 로 시작하고 // 로 시작하지 않으며 \\ 와 제어문자가 없어야 한다`);
       }
     } else if (p.kind === 'mock') {
       켜진모킹.add(p.urlPattern);

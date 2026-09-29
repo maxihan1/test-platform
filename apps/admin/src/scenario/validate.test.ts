@@ -87,6 +87,9 @@ describe('조립 검사', () => {
     expect(검사([api('api/x')])).toHaveLength(1);
     expect(검사([api('https://evil.test/x')])).toHaveLength(1);
     expect(검사([api('//evil.test/x')])).toHaveLength(1);
+    expect(검사([api('/\\evil.test/x')])).toHaveLength(1);
+    expect(검사([api('/\t/evil.test/x')])).toHaveLength(1);
+    expect(검사([api('/api/x\n')])).toHaveLength(1);
     expect(검사([api('/api/x')])).toEqual([]);
   });
 
@@ -114,6 +117,8 @@ describe('부품 모양', () => {
       { kind: 'mock', urlPattern: '**', status: 99, contentType: 'text/plain', body: '' },
       { kind: 'mock', urlPattern: '**', status: 600, contentType: 'text/plain', body: '' },
       { kind: 'unmock' },
+      { kind: 'mock', urlPattern: '', status: 200, contentType: 'text/plain', body: '' },
+      { kind: 'unmock', urlPattern: '' },
       { kind: 'wait', ms: '10' },
     ]) {
       expect(부품들모양.safeParse([부품]).success, JSON.stringify(부품)).toBe(false);
