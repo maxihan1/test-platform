@@ -182,6 +182,9 @@
   한 PR 이 여러 갈래에 걸친다 — kit `CaseSpec.held`(건너뛰기) · 검사기 K10 예외 · K13 · `check:tests --no-held`(CI 가 초안 아닌 PR 에서) · 마이그레이션 `authoring_request.held_input` ·
   서버 `apps/admin/src/authoring/held.ts`(넣기 · 제거 · 되돌리기 · `HELD_OPEN` · `MERGE_ACTIVE` · merges `env`) · 에이전트 `scripts/authoring-held.ts`(칸 계산) · `authoring-held-apply.ts`(값 적기 · 3회 실행) ·
   화면 `web/AuthoringHeld.tsx`(WS-E 경로 안, 시안 A — DESIGN.md 「작성 상태」)
+- **케이스 엑셀 · 작성 모델 · AI 티 규칙 — 진행 중 (2026-09-29, PR #111).** 한 PR 이 여러 갈래에 걸친다(사용자 — 커밋은 셋).
+  WS-A 통로 `GET /api/catalog/export`(`catalog/export.ts` · `exportData.ts`, 정본 도메인/카탈로그 §7 · §8.1) · WS-F 권한 표 한 줄 · WS-E 케이스 목록 버튼(시안 B) ·
+  WS-작성 모델 기본값 `claude-sonnet-5-5` · `xhigh` · 예비 `opus`(정본 공통/6-인프라 §9) · 하네스 `tpx-cases/references/korean-ai-tells.md`(im-not-ai 발췌, MIT).
 
 ---
 
