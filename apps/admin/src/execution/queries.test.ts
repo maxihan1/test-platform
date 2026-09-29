@@ -213,4 +213,31 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
     const 마지막 = (await lastByCase(['XBQ'])).filter((r) => r.tcId === 'XBQ-001');
     expect(마지막.some((r) => r.platform === 'mobile')).toBe(false);
   });
+
+  it('findRun · findItem — 비밀값 칸은 응답에서 ******** 이고 DB 는 평문이다', async () => {
+    const runId = await 실행하나('XBQ 비밀값 실행');
+    const row = await pool.query<{ history_id: string }>(
+      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, duration_ms, finished_at,
+                             file_path, param_schema, expected_schema, timeout_ms)
+       VALUES ($1, 'XBQ-002', 'desktop', '비밀값 케이스', '[]', '{"아이디":"tester","pin":"1234","password":"pa55"}',
+               '{"apiKey":"k3y","결과":true}', 'PASS', 100, now(), 'demo/XBQ-002.spec.ts',
+               '{"type":"object","properties":{"아이디":{"type":"string"},"pin":{"type":"string","secret":true}}}',
+               '{"type":"object","properties":{"결과":{"type":"boolean"}}}', 300000)
+       RETURNING history_id`,
+      [runId],
+    );
+    const historyId = Number(row.rows[0]!.history_id);
+    try {
+      const 가린입력 = { 아이디: 'tester', pin: '********', password: '********' };
+      expect((await findRun(runId))?.items[0]?.params).toEqual(가린입력);
+      const item = await findItem(runId, historyId);
+      expect(item?.params).toEqual(가린입력);
+      expect(item?.expected).toEqual({ apiKey: '********', 결과: true });
+      const 원문 = await pool.query<{ params: Record<string, unknown> }>('SELECT params FROM run_item WHERE history_id = $1', [historyId]);
+      expect(원문.rows[0]?.params).toEqual({ 아이디: 'tester', pin: '1234', password: 'pa55' });
+    } finally {
+      await pool.query('DELETE FROM run_item WHERE run_id = $1', [runId]);
+      await pool.query('DELETE FROM test_run WHERE run_id = $1', [runId]);
+    }
+  });
 });

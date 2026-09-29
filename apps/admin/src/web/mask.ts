@@ -39,6 +39,20 @@ export function 가려야하나(key: string, prop: Record<string, unknown>): boo
 }
 
 /**
+ * 실행 조회 응답(execution/queries.ts)에 실을 값. 비밀값 칸만 가리고 DB 는 평문 그대로 둔다.
+ * 화면의 `fieldsOf` 가 한 번 더 가려도 같은 별이다. 응답에서 가리지 않으면 개발자 도구로 원문이 보인다
+ */
+export function 가린값들(values: unknown, schema: unknown): Record<string, unknown> {
+  const properties = isPlainObject(schema) && isPlainObject(schema.properties) ? schema.properties : {};
+  return Object.fromEntries(
+    Object.entries(isPlainObject(values) ? values : {}).map(([key, value]) => {
+      const raw = properties[key];
+      return [key, 가려야하나(key, isPlainObject(raw) ? raw : {}) ? 가림 : value];
+    }),
+  );
+}
+
+/**
  * 케이스 저장값을 응답에 실을 모양으로 나눈다 (공통/2-명세선언 §4.1 비밀값 표).
  *
  * 비밀값 칸은 이름만 알린다. 지금 명세에 없는 칸은 뺀다 — 선언이 사라진 칸은 이름으로만 비밀을 가려야 해서
