@@ -56,6 +56,13 @@ export function workstreamsDonePrs(text) {
   return prs;
 }
 
+/** 템플릿의 `/*__DATA__*\/null` 자리에 데이터를 넣는다. 제목에 </script> 가 들어와도 스크립트 블록이 안 끊기게 </ 를 막는다 */
+export function renderProgress(data, template) {
+  const 자리 = '/*__DATA__*/null';
+  if (!template.includes(자리)) throw new Error('템플릿에 데이터 자리(/*__DATA__*/null)가 없다');
+  return template.replace(자리, () => JSON.stringify(data).replace(/<\//g, '<\\/'));
+}
+
 /** 두 문서가 어긋난 곳을 한 줄씩. trackedKeys 는 WORKSTREAMS 가 묶음으로 관리하는 영역 */
 export function checkSync(wbsText, workstreamsText, trackedKeys) {
   const errs = [];

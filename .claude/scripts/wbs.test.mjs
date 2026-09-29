@@ -1,7 +1,16 @@
 // wbs.mjs 가 docs/wbs.md 를 읽어 영역·기능·태스크로 펴는지 본다
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseWbs, checkSync } from './wbs.mjs';
+import { parseWbs, checkSync, renderProgress } from './wbs.mjs';
+
+test('진행판 템플릿의 데이터 자리에 JSON 을 넣고 </ 를 막는다', () => {
+  const html = renderProgress({ t: '</script><b>' }, '<script>const DATA = /*__DATA__*/null;</script>');
+  assert.equal(html, '<script>const DATA = {"t":"<\\/script><b>"};</script>');
+});
+
+test('템플릿에 데이터 자리가 없으면 거부한다', () => {
+  assert.throws(() => renderProgress({}, '<html></html>'), /데이터 자리/);
+});
 
 const 표본 = `# WBS
 
