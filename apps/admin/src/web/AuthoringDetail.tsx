@@ -3,7 +3,8 @@
 
 import { useCallback, useEffect } from 'react';
 
-import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
+import { api, type AuthoringAsset, type AuthoringRow, type EnvRow } from './api.js';
+import { AuthoringHeld } from './AuthoringHeld.js';
 import { AuthoringRuns } from './AuthoringRuns.js';
 import { AuthoringStatusCard } from './AuthoringStatusCard.js';
 import { AuthoringTodo } from './AuthoringTodo.js';
@@ -47,7 +48,7 @@ function 산출물설명(
   return `${t('표시 사본')} — ${이름}`;
 }
 
-export function AuthoringDetail({ service, id, 할수 }: { service: string; id: number; 할수: 판정 }) {
+export function AuthoringDetail({ service, id, envs = [], 할수 }: { service: string; id: number; envs?: EnvRow[]; 할수: 판정 }) {
   const t = use말();
   const 언어 = use언어();
 
@@ -157,7 +158,7 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
           </div>
 
           <div className="authoring-col">
-            <AuthoringTodo service={service} 요청={data} 할수={할수} 차이수={차이들?.length ?? 0} reload={reload} />
+            <AuthoringTodo service={service} 요청={data} 할수={할수} 차이수={차이들?.length ?? 0} envs={envs} reload={reload} />
 
             <section className="authoring-panel" aria-label={t('요청 정보')}>
               <h3>{t('요청 정보')}</h3>
@@ -214,6 +215,8 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
             </section>
           </div>
         </div>
+        {/* 보류는 최신 끝난 실행에 붙는다 — 서버가 그 행에만 입력을 받는다 (도메인/작성 §7) */}
+        <AuthoringHeld service={service} 요청번호={data.id} held={data.held ?? []} 편집={할수('작성요청')} reload={reload} />
         <AuthoringRuns runs={뿌리.runs ?? []} />
       </div>
     </>

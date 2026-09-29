@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 
-import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
+import { api, type AuthoringAsset, type AuthoringRow, type EnvRow } from './api.js';
+import { 값을채웠나, 보류오류문장, 보류진척 } from './AuthoringHeld.js';
 import { 다시작성원본, 시간판 } from './authoringStatus.js';
 import { 이어서작성, 일 } from './authoringTodoParts.js';
 import { 줄보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import type { 판정 } from './role.js';
-import { message, when } from './ui.js';
+import { when } from './ui.js';
 
 type 확인 = 'stop' | 'discard' | null;
 
@@ -20,15 +21,18 @@ interface Props {
   할수: 판정;
   /** 기획서와 화면의 차이 수 (역방향). 0 이면 확인할 차이 항목을 안 낸다 */
   차이수: number;
+  /** 띠의 서비스가 가진 대상 서버 — 보류 값을 채운 정방향 요청의 반영 때 고른다. 계정 여부는 모른다(서버가 BAD_ENV 로 막는다) */
+  envs?: EnvRow[];
   reload: () => void;
 }
 
-export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Props) {
+export function AuthoringTodo({ service, 요청, 할수, 차이수, envs = [], reload }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [열린, set열린] = useState<확인>(null);
   const [보내는중, set보내는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [고른서버, set고른서버] = useState<string | null>(null);
 
   const 보 = 줄보임(요청, Date.now());
   // DONE·FAILED 로 끝난 뒤 남은 멈춤 요청은 무시한다 (도메인/작성 §7 — 서버가 지우지 않는다)
@@ -47,7 +51,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
     set오류(null);
     void 만든다()
       .then(() => reload())
-      .catch((err: unknown) => set오류(message(err, 언어)))
+      .catch((err: unknown) => set오류(보류오류문장(err, 언어)))
       .finally(() => set보내는중(false));
   }
 
@@ -69,7 +73,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
             // 폐기한 것은 목록에서 사라진다. 여기 남으면 사라진 행을 보고 있게 된다
             window.location.hash = '#/authoring';
           });
-    void 할일.catch((err: unknown) => set오류(message(err, 언어))).finally(() => set보내는중(false));
+    void 할일.catch((err: unknown) => set오류(보류오류문장(err, 언어))).finally(() => set보내는중(false));
   }
 
   const 중단버튼 =
@@ -126,6 +130,11 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
   } else if (요청.status === 'DONE') {
     // **화면이 버튼을 안 그리는 것은 편의이지 방어가 아니다** — 서버 gate.ts 가 다시 막는다
     const 반영권한 = 할수('작성머지');
+    const held = 요청.held ?? [];
+    const 남은 = 요청.heldOpen ?? 0;
+    // 대조 요청은 원본의 대상 서버를 물려받는다 — 고르면 서버가 BAD_ENV 로 거절한다
+    const 서버고름 = held.length > 0 && 요청.compare !== true && 값을채웠나(held);
+    const 서버 = envs.some((it) => it.env === 고른서버) ? 고른서버 : (envs[0]?.env ?? null);
     let 번호 = 0;
     const 다음 = () => String(++번호);
     본문 =
@@ -151,13 +160,36 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
               ))}
             </일>
           )}
+          {held.length === 0 ? null : <보류진척 표={다음()} held={held} />}
           <일 표={다음()} 제목={t('테스트 반영하기')} 설명={t('검토가 끝나면 PR 을 합쳐 케이스 목록에 올립니다.')}>
+            {반영권한 && 서버고름 ? (
+              <label className="held-env">
+                {t('대상 서버')}
+                <select value={서버 ?? ''} onChange={(e) => set고른서버(e.target.value)}>
+                  {envs.map((it) => (
+                    <option key={it.env} value={it.env}>
+                      {it.env}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             {반영권한 ? (
-              <button className="btn" type="button" disabled={보내는중} onClick={() => 새줄로(() => api.createAuthoringMerge(service, 요청.id))}>
+              <button
+                className="btn"
+                type="button"
+                // 막는 것은 서버다(HELD_OPEN) — 여기서 막는 것은 누르기 전에 까닭을 보이려는 편의다
+                disabled={보내는중 || 남은 > 0}
+                onClick={() => 새줄로(() => api.createAuthoringMerge(service, 요청.id, 서버고름 ? (서버 ?? undefined) : undefined))}
+              >
                 {보내는중 ? t('반영하는 중') : t('테스트 반영하기')}
               </button>
             ) : (
               <span className="hint">{t('반영은 운영 권한이 있는 사람이 합니다.')}</span>
+            )}
+            {남은 > 0 ? <p className="held-why">{t('보류 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.', { 수: 남은 })}</p> : null}
+            {held.length === 0 ? null : (
+              <span className="hint">{t('반영하면 넣은 값을 테스트 코드에 적고, 값을 채운 케이스를 3번 돌려 모두 통과해야 합칩니다.')}</span>
             )}
           </일>
         </ol>

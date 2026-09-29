@@ -70,7 +70,7 @@ function Screen({
     case 'authoring':
       return <Authoring service={prefix} envs={service?.envs ?? []} 할수={할수} />;
     case 'authoringItem':
-      return <AuthoringDetail service={prefix} id={current.id} 할수={할수} />;
+      return <AuthoringDetail service={prefix} id={current.id} 할수={할수} envs={service?.envs ?? []} />;
     case 'runs':
       return <RunList service={prefix} 할수={할수} />;
     case 'run':
