@@ -1,0 +1,168 @@
+# 보류 케이스도 코드로 — 작성 화면에서 사람이 값 입력·제거
+
+등급: 3 · 갈래: WS-작성 (+ KIT · WS-A · WS-E) · 2026-09-29 · PR #108
+
+## 도메인 정리
+
+- BC: 작성(§3.6) 중심. 공유 타입(kit §5.1) · 명세 선언 K표(공통/2 §4) · 데이터모델(공통/4 §6) · 작성 화면(WS-E)을 같이 흔든다
+- 게이트 0 승인 계약 (2026-09-29)
+  - kit `CaseSpec.held?: string` — 보류 사유 한 문장. 있으면 실행 때 건너뛴다
+  - K10 은 `held` 케이스의 기본값 없는 칸을 허용 · 새 K13 = `held` 는 비지 않은 글자 리터럴
+  - `authoring_request.held_input` JSONB — `{ <tcId>: { params?, expected?, removed?, by, at } }`
+  - finish `result.held[]` = `{ tcId, file, kind: UNDECIDABLE|ON_HOLD, reason, fields[{ side, key, description, type }] }` — fields 는 에이전트 스크립트가 코드에서 계산, 비밀값 칸 제외
+  - `PUT|DELETE /api/authoring/requests/:id/held/:tcId` (작성 write) · 상세 `held[]`·`heldOpen` · merges `409 HELD_OPEN` · claim(MERGE) 에 held 입력 + 원본 target
+  - 머지 에이전트 — 값 적기(`.default(값)`) · `held` 빼기 · 제거분 삭제 + `docs/cases` 표 「제거함」 → typecheck·check:tests → 채운 케이스 3회 → 자기 `author-<뿌리>` 브랜치 push → CI → 병합. `held` 가 남거나 3회 중 실패면 FAILED
+- 사용자 결정: 값은 코드의 params·expected **기본값**(실행 때 바꿀 수 있음, 하드코딩 아님) · 반영 전 3회 실행
+
+## 왜
+
+5877(데모마켓 대조)에서 요구 15건이 「판정 불가·보류」로 빠졌다. 그 목록은 PR 본문 글로만 남아 누구도 이어받지 못하고,
+병합되면 사라진다. 대부분은 기대값 기준이 기획서에 없거나(판정 불가) 전제 값(관리자 계정·대기 시간)이 없어서다 —
+사람이 값 하나만 주면 케이스가 된다. 사람이 판정한 값이므로 「기대값은 사람이 판정한 것에서만」 규칙 안이다.
+
+## Plan
+
+### 할 일 1. 명세 — 보류 케이스 절과 통로·칸·K표
+
+- **RED** — `npm run check:spec` 은 새 절·링크를 모른다 (명세 할 일이라 TDD 대신 검사기)
+- **GREEN** — 작성.md §3.6 에 「★ 보류 케이스 — 사람이 값을 채운다」 신설(정본) · §7 통로 넷(finish held · PUT/DELETE · 상세 · merges 409 · claim) · 공통/2 §4 K10 예외·K13 · 공통/3 §5.1 `held` · 공통/4 §6 `held_input`. 계약 블록 `상태: 반영 완료`
+- **REFACTOR** — 다른 장은 새 절을 가리키기만
+
+**files**: docs/spec/도메인/작성.md, docs/spec/공통/2-명세선언.md, docs/spec/공통/3-공유계약.md, docs/spec/공통/4-데이터모델.md
+**depends-on**: []
+**검증**: `npm run check:spec`
+
+### 할 일 2. kit — `held` 선언과 실행 건너뛰기
+
+- **RED** — `defineCase({ held: '보류 — 사유' })` 가 spec.held 를 싣고, 공백 사유는 키를 안 싣고, `test(spec)` 이 held 면 건너뛴다는 검사가 실패한다
+- **GREEN** — `types.ts` `held?: string` · `defineCase.ts` 가 unconfirmed 와 같은 규칙으로 싣기 · `test.ts` 가 held 면 `test.skip`(사유)
+- **REFACTOR** — 없음
+
+**files**: packages/kit/src/types.ts, packages/kit/src/runtime/defineCase.ts, packages/kit/src/runtime/test.ts, packages/kit/src/runtime/defineCase.test.ts
+**depends-on**: []
+**검증**: `npx vitest run packages/kit`
+
+### 할 일 3. 검사기 — K10 예외 · K13
+
+- **RED** — held 케이스의 기본값 없는 칸이 K10 위반으로 잡히는 검사 · `held: ''`/변수/축약이 K13 으로 안 잡히는 검사가 실패
+- **GREEN** — `catalog/rules.ts` K10 에서 held 면 건너뛰기 · K13 을 K11 과 같은 모양 검사로
+- **REFACTOR** — K11·K13 공통 모양 검사를 한 함수로
+
+**files**: apps/admin/src/catalog/rules.ts, apps/admin/src/catalog/rules.test.ts
+**depends-on**: [2]
+**검증**: `npx vitest run apps/admin/src/catalog/rules.test.ts`
+
+### 할 일 4. DB 칸과 저장 — `held_input`
+
+- **RED** — 값 넣기·제거·되돌리기가 `held_input` 에 남고 by·at 이 붙는다는 DB 검사가 실패 (fixture 접두사 `XWL`(XWH 와 겹치지 않게), 자기 service_id 로만 지움)
+- **GREEN** — 마이그레이션 `20260929000001_authoring_held.sql` · `authoring/held.ts` 저장 함수(넣기 · 지우기 · 남은 수)
+- **REFACTOR** — 없음
+
+**files**: db/migrations/20260929000001_authoring_held.sql, apps/admin/src/authoring/held.ts, apps/admin/src/authoring/held.test.ts, CLAUDE.md(접두사 줄)
+**depends-on**: [1]
+**검증**: `npx vitest run apps/admin/src/authoring/held.test.ts`
+
+### 할 일 5. 서버 통로 — finish 검사 · 값 넣기 · 상세 · 머지 막기 · 집기
+
+- **RED** — ① finish `result.held` 모양이 틀리면 400 ② PUT 이 모르는 칸·타입 틀림·비밀값 칸에 400 ③ 상세 `held[]`·`heldOpen` ④ 남은 보류가 있으면 merges 409 `HELD_OPEN` ⑤ MERGE 집기 응답에 held 입력과 원본 target ⑥ 권한 — 읽기 전용 계정은 PUT 403
+- **GREEN** — `held.ts` 에 라우트 · `routes.ts`·`agentRoutes.ts` 에 한 줄씩 · `auth/gate.ts` 등급표 · `auth/scope.ts` 라우트표
+- **REFACTOR** — 300줄 넘는 파일이 생기면 떼기
+
+**files**: apps/admin/src/authoring/held.ts, apps/admin/src/authoring/held-routes.test.ts, apps/admin/src/authoring/routes.ts, apps/admin/src/authoring/agentRoutes.ts, apps/admin/src/authoring/agentStore.ts, apps/admin/src/auth/gate.ts, apps/admin/src/auth/scope.ts
+**depends-on**: [4]
+**검증**: `npx vitest run apps/admin/src/authoring apps/admin/src/auth`
+
+### 할 일 6. 에이전트 — 끝낼 때 `result.held` 를 코드에서 계산
+
+- **RED** — 케이스 파일 둘(held 하나·정식 하나)을 주면 held 쪽만 `{ tcId, kind, reason, fields }` 로 나오고, 비밀값 칸·기본값 있는 칸은 fields 에서 빠진다는 검사가 실패
+- **GREEN** — `scripts/authoring-held.ts` 순수 함수(스키마 → fields, 사유 머리 「판정 불가 —」/「보류 —」 → kind) · `authoring-run.ts` 가 finish 에 싣기
+- **REFACTOR** — 없음
+
+**files**: scripts/authoring-held.ts, scripts/authoring-held.test.ts, scripts/authoring-run.ts
+**depends-on**: [2]
+**검증**: `npx vitest run scripts/authoring-held.test.ts`
+
+### 할 일 7. 에이전트 — 반영 때 값 적기 · 제거 · 3회 실행
+
+- **RED** — ① 소스 글에 `.default(값)` 을 적고 `held:` 줄을 빼면 K10·K13 이 통과 ② 이미 `.default` 가 있는 칸은 건드리지 않음 ③ 제거한 tcId 는 표 칸이 「제거함」 ④ held 가 남으면 병합 거부 사유 — 넷이 실패
+- **GREEN** — `scripts/authoring-held-apply.ts`(TypeScript AST 로 적기 — 새 패키지 없음, `typescript` 이미 있음) · `authoring-merge.ts` 가 held 입력이 있으면 작업방 → 적기 → 검사 → 3회(`--repeat-each=3`, 원본 target 환경) → push → 기존 CI·병합
+- **REFACTOR** — 없음
+
+**files**: scripts/authoring-held-apply.ts, scripts/authoring-held-apply.test.ts, scripts/authoring-merge.ts
+**depends-on**: [5, 6]
+**검증**: `npx vitest run scripts/authoring-held-apply.test.ts scripts/authoring-merge.test.ts`
+
+### 할 일 8. 자식 스킬 — 보류도 코드로 쓴다
+
+- **RED** — 스킬 파일 줄 수 검사(≤200) · `grep -n "케이스를 만들지 않는다\|케이스로 안 만든다" .claude/skills/tpx-cases` 가 보류 자리에서 아직 나온다
+- **GREEN** — tpx-cases 2-requirements·4-selector·6-gates·7-finish 와 tpx-author SKILL: 판정 불가·보류도 `held: '판정 불가 — …'|'보류 — …'` 를 단 케이스로 쓰고, 사람이 채울 칸은 `.default()` 없이 `.describe()` 만 · 관문 3 은 held 를 건너뛴 채 통과 · 결과 요약 모양
+- **REFACTOR** — 없음
+
+**files**: .claude/skills/tpx-cases/references/2-requirements.md, .claude/skills/tpx-cases/references/4-selector.md, .claude/skills/tpx-cases/references/6-gates.md, .claude/skills/tpx-cases/references/7-finish.md, .claude/skills/tpx-author/SKILL.md
+**depends-on**: [1]
+**검증**: `npm run check:skills 2>/dev/null || wc -l .claude/skills/tpx-*/SKILL.md .claude/skills/tpx-cases/references/*.md`
+
+### 할 일 9. 화면 — 시안 먼저, 그다음 보류 칸
+
+- **RED** — (시안 승인 뒤) 상세에 보류 목록이 그려지고, 값 넣기·제거·되돌리기가 통로를 부르고, `heldOpen > 0` 이면 「반영」이 막히고 이유가 보인다는 jsdom 검사가 실패
+- **GREEN** — 시안 A·B·C Artifact → 고른 안으로 `web/AuthoringHeld.tsx` · `api.ts` 두 함수 · `AuthoringTodo.tsx` 반영 버튼 막기
+- **REFACTOR** — 입력 칸은 `Form.tsx`·`schema.ts` 재사용
+
+**files**: apps/admin/src/web/AuthoringHeld.tsx, apps/admin/src/web/AuthoringHeld.test.tsx, apps/admin/src/web/api.ts, apps/admin/src/web/AuthoringTodo.tsx, apps/admin/src/web/AuthoringDetail.tsx
+**depends-on**: [5]
+**검증**: `npx vitest run apps/admin/src/web/AuthoringHeld.test.tsx apps/admin/src/web/AuthoringDetail.test.tsx`
+
+### 할 일 10. §2.7 동반 수정
+
+- **RED** — `grep -rn "판정 불가\|보류" docs/spec/ docs/SPEC.md docs/*.md` 결과 중 새 절을 안 가리키는 자리
+- **GREEN** — 아래 SPEC 동반 수정 표대로
+- **REFACTOR** — 없음
+
+**files**: docs/SPEC.md, docs/WORKSTREAMS.md, docs/DESIGN.md, docs/HOOKS.md, .claude/skills/spec-review/SKILL.md, docs/progress/WS-작성.md
+**depends-on**: [1]
+**검증**: `npm run check:spec`
+
+## SPEC 동반 수정 (§2.7)
+
+| 무엇 | 어디 | 할 일 |
+|---|---|---|
+| 같은 규칙 찾기 | `grep -rn "판정 불가\|보류\|K10\|기본값" docs/spec/` — 지금 명세에는 「판정 불가」「보류」가 0건(스킬에만 있다). K10 은 공통/2 §4 한 곳 + 정기 실행 §9.2 가 근거로 부른다 → §9.2 는 held 가 main 에 없으므로 바뀔 것 없음, 확인만 | 1 |
+| 색인 네 곳 | 라우터 표에 「보류 케이스에 사람이 값을 채운다」 줄 · 장 목록 줄 수는 check:spec · 절 번호 표·표 주인(`held_input` 은 authoring_request 칸이라 주인 그대로) | 10 |
+| SPEC 밖 | WORKSTREAMS 작성 갈래 줄 · spec-review 체크리스트(K13·held 가 main 에 들어가는지) · DESIGN.md 「작성 상태」(보류 칸) · HOOKS.md(해당 없음 확인 — CI 가벼운 길은 check:tests 로 K13 을 본다) · WORKFLOW(해당 없음) · design-mockup.html(해당 없음 — 시안은 Artifact) · **코드 상수** `catalog/rules.ts` 의 `RuleId`·`WHY` | 3 · 10 |
+| 숫자 빼기 | 「K1~K13」 같은 범위 표기를 새로 쓰지 않는다 | 1 |
+
+## Plan 메타
+
+할 일 10개 · 예상 묶음 4개 ([1,2] → [3,4,6,8,10] → [5] → [7,9]) · 구현 규율: TDD · 추가 검증: `npm run typecheck && npm test && npm run check:tests`
+
+## 리뷰 결과
+
+(계획 검토가 채운다)
+
+**렌즈**: plan-eng-review · plan-ceo-review · plan-design-review (3등급 = 3종) · 2026-09-29
+**판정**: BLOCKER 2건 · 주의 12건
+
+### BLOCKER 1 (eng) — 머지 경로에 작업방·자리·실행 환경이 없다
+지금 머지는 gh 로 보고 CI 기다리고 병합만 한다(자리 -1). 작업방 위치·동시 자리 · 비밀값 주입 · uid · push 뒤 head SHA 다시 읽기가 없다 — 없으면 옛 커밋 CI 초록으로 병합하거나 `--match-head-commit` 에서 늘 실패. 고칠 것: 7 을 7a(순수 적기·검사)·7b(껍데기 — authoring-run 관문 3 환경 재사용, push 뒤 PR 재조회)로.
+
+### BLOCKER 2 (ceo) — 정방향 요청은 3회 실행할 대상 서버가 없다
+집기 target 은 대조 요청에만 실린다. 정방향 보류 케이스를 어디서 돌릴지 정해야 한다.
+
+### 주의 (eng) 1 held 가 main 에 들어가는 것을 막는 장치가 없다(GitHub 직접 병합 · K10 예외로 CI 통과) → CI 에 「초안 아닌 PR 에 held 가 있으면 빨강」 · 2 held_input 을 둘 행 미정(이어하기·다시 작성) · 3 MERGE 대기·도는 중에 값 변경 가능 → 409 · 4 `.default()` 적기 범위(배열·객체·escape) → ts.factory 리터럴, 타입을 문자·숫자·불·enum 으로 제한
+### 주의 (ceo) 1 비밀값 칸(관리자 계정 등) 처리 규칙 · 2 반영 실패 뒤 흐름(입력 남는지·브랜치) · 3 범위가 커서 PR 둘로 나누기 제안 · 4 held 와 unconfirmed 겹칠 때
+### 주의 (design) 1 자리 — 다음 단계엔 한 줄+진척, 목록은 온 폭 표 · 2 DESIGN.md 작성 상태 표에 보류 남음·모두 처리·반영 실패 줄 · 3 사용자 말(「넣을 값」「기대 결과」, 칸 설명을 라벨로) · 4 제거는 모달 없이 줄 안에서, 저장 방식(자동/버튼)을 시안 차이축으로, 누가·언제, 0건이면 안 보임
+
+### 통과한 것
+kit held 가 unconfirmed 규칙 재사용 · fields 를 에이전트가 계산 · XWL 접두사 · 새 패키지 없음 · 목업 먼저 · 마이그레이션 번호 · 기대값 규칙 안 · HELD_OPEN
+
+## 게이트 1 — 지적 반영 (2026-09-29 사용자 「지적 반영하고 진행」)
+
+재검토 없이 아래를 할 일에 더한다.
+
+- **할 일 1(명세)** 에 더한다 — merges 본문 `env?`(정방향이고 heldOpen>0 이면 필수 · 테스트 계정 있는 줄만, 아니면 400 BAD_ENV · 대조는 원본 것을 물려받고 env 가 오면 400) · claim(MERGE) target 은 그 env 로 · held_input 은 **뿌리의 최신 끝난 실행 행**에만, 새 실행이 끝나면 같은 tcId·같은 칸 이름의 입력만 옮긴다 · MERGE 대기·도는 중 PUT/DELETE 409 `MERGE_ACTIVE` · 칸 타입은 string·number·boolean·enum 만(그 밖 칸은 제거만) · 비밀값 칸은 입력 없이 대상 서버 줄 테스트 계정에서 · 반영 실패 뒤 입력은 남고 다시 누르면 자식이 끝낸 커밋 위에 다시 적는다 · held+unconfirmed 는 둘 다 달 수 있고 채워도 unconfirmed 는 남는다
+- **할 일 3(검사기)** 에 더한다 — `check:tests --no-held`(held 가 하나라도 있으면 위반) · CI 가 **초안 아닌 PR** 에서 그것을 돌린다 (`.github/workflows/*` · docs/HOOKS.md)
+- **할 일 5(서버)** 에 더한다 — 409 MERGE_ACTIVE · merges env 판정 · 새 실행 끝날 때 입력 옮기기(finish 안)
+- **할 일 7 → 7a · 7b**
+  - 7a `scripts/authoring-held-apply.ts` 순수 — ts.factory 리터럴로만 `.default()` · 이미 default 면 바꾼다 · held 속성 제거 · 표 「제거함」 · held 남았는지 판정. RED 에 따옴표·줄바꿈·enum·optional 칸
+  - 7b `scripts/authoring-merge.ts` 껍데기 — held 입력이 있으면 자리 잡기(동시 상한에 센다) · authoring-run 관문 환경(작업방·uid·target 환경변수) 재사용 · typecheck·check:tests --no-held · 채운 케이스 `--repeat-each=3` · 자기 author-<뿌리> 브랜치에 `--force-with-lease`(CLAUDE.md §5 예외 안) · **push 뒤 PR 을 다시 읽어 새 head SHA 로 CI 를 기다린다**. RED 에 「옛 head 로 병합하지 않는다」
+- **할 일 9(화면)** — 시안 기준은 design 지적 4건. 반영 버튼 자리에 이유 한 줄 · 정방향이면 반영 때 대상 서버 고르기

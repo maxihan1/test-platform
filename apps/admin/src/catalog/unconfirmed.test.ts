@@ -78,6 +78,40 @@ describe('K11 — unconfirmed 는 비지 않은 문자열 리터럴', () => {
   });
 });
 
+function k13(source: string): string[] {
+  return checkSource('x.spec.ts', source)
+    .violations.filter((v) => v.rule === 'K13')
+    .map((v) => v.what);
+}
+
+describe('K13 — held 는 K11 과 같은 모양 검사', () => {
+  it('사유 리터럴은 통과한다', () => {
+    expect(k13(케이스(`held: '판정 불가 — 기획서에 한도가 없다',`))).toEqual([]);
+  });
+
+  it('빈 문자열·공백뿐은 위반이다', () => {
+    expect(k13(케이스(`held: '',`))).toHaveLength(1);
+    expect(k13(케이스(`held: '  ',`))).toHaveLength(1);
+  });
+
+  it('변수는 위반이다', () => {
+    expect(k13(케이스(`held: 사유,`, `const 사유 = '보류 — x';`))).toHaveLength(1);
+  });
+
+  it('축약 { held } 는 위반이다', () => {
+    expect(k13(케이스('held,', `const held = '보류 — x';`))).toHaveLength(1);
+  });
+
+  it('펼침·계산된 키는 꼬리표가 없어도 위반이다', () => {
+    expect(k13(케이스('...base,', `const base = {};`))).toHaveLength(1);
+    expect(k13(케이스(`[k]: '보류 — x',`, `const k = 'held';`))).toHaveLength(1);
+  });
+
+  it('held 를 어겨도 K11 로 잡지 않는다', () => {
+    expect(k11(케이스(`held: '',`))).toEqual([]);
+  });
+});
+
 describe('newlyUnconfirmed — 이미 있던 케이스에 새로 단 꼬리표', () => {
   const 없음 = 케이스('');
   const 있음 = 케이스(`unconfirmed: '기획서와 다름',`);

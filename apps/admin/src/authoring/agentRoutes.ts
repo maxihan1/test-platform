@@ -8,6 +8,9 @@ import { join } from 'node:path';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 자료목록 } from './assetStore.js';
+import { 보류모양검사, 옮겨올입력 } from './held.js';
+import { 뿌리, 뿌리잠그고 } from './history.js';
+import { 머지집기칸 } from './held-routes.js';
 import { 집기대상 } from './reverse.js';
 import { 진척검사 } from './stop.js';
 import { 사용량통로 } from './usage.js';
@@ -125,11 +128,14 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         const 토큰 = 읽을자료.some((a) => a.kind === 'FIGMA') ? await 피그마토큰(서비스) : null;
         // 테스트 계정도 같은 길이다 — 대조 행에만 싣고, 에이전트는 자식 환경에만 넘긴다 (§3.6 「로그인」)
         const target = await 집기대상(서비스, 집은것);
+        // 머지는 대조 칸이 없어 위 target 이 늘 없다. 보류 입력이 있으면 3회 실행할 대상을 여기서 싣는다 (§3.6 「★ 보류 케이스」)
+        const 보류칸 = 집은것.kind === 'MERGE' ? await 머지집기칸(서비스, 집은것) : {};
         return {
           ...집은것,
           assets,
           ...(토큰 === null ? {} : { figmaToken: 토큰 }),
           ...(target === undefined ? {} : { target }),
+          ...보류칸,
         };
       } catch (e) {
         // 되돌리기마저 던지면(DB 가 끊긴 같은 원인일 공산이 크다) 그 오류가 원래 원인을 덮는다.
@@ -234,16 +240,27 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         return reply.code(400).send({ error: 'BAD_PR_URL' });
       }
     }
+    // 모양이 틀리면 400 — 에이전트는 이 거절을 까닭과 함께 FAILED 로 다시 보내므로 행이 도는 중으로 남지 않는다
+    const 결과 = req.body?.result;
+    const 결과칸 = typeof 결과 === 'object' && 결과 !== null ? (결과 as { held?: unknown; heldUnknown?: unknown }) : {};
+    const 보류 = 결과칸.held === undefined ? [] : 보류모양검사(결과칸.held);
+    if (보류 === null || (결과칸.heldUnknown !== undefined && 결과칸.heldUnknown !== true)) {
+      return reply.code(400).send({ error: 'BAD_HELD' });
+    }
     const error = req.body?.error;
+    // 입력 옮기기와 끝내기를 뿌리 잠금 안의 한 UPDATE 로 — 사이에 들어온 PUT 을 덮거나, 옮기다 실패해 DONE 만 남지 않게
+    const 바뀌었나 = await 뿌리잠그고((await 뿌리(행.id)) ?? 행.id, async () =>
+      끝내기(행.id, {
+        status,
+        stopReason: 멈춤이유,
+        result: req.body?.result,
+        testSource: req.body?.testSource,
+        prUrl: typeof prUrl === 'string' ? prUrl : undefined,
+        error: typeof error === 'string' ? error : undefined,
+        heldInput: status === 'DONE' ? await 옮겨올입력(행.id, 보류) : null,
+      }),
+    );
     // 끝난 행에 또 오면 409 다. 안 막으면 판정과 PR 주소가 덮어써진다
-    const 바뀌었나 = await 끝내기(행.id, {
-      status,
-      stopReason: 멈춤이유,
-      result: req.body?.result,
-      testSource: req.body?.testSource,
-      prUrl: typeof prUrl === 'string' ? prUrl : undefined,
-      error: typeof error === 'string' ? error : undefined,
-    });
     if (!바뀌었나) return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
     return { ok: true };
   });
