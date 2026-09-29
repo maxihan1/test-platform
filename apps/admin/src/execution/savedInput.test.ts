@@ -193,10 +193,16 @@ describe.skipIf(연결 === undefined)('케이스 저장 입력값', () => {
     expect((await 저장행())[0]!.params).toEqual({ loginId: 'u', password: 'pa55' });
   });
 
-  it('저장은 덮어쓴다 — 다시 저장하며 안 보낸 비밀값 칸은 사라진다', async () => {
+  it('저장은 덮어쓴다 — 다만 안 보낸 비밀값 칸은 앞 저장값을 이어받는다', async () => {
     await 저장({ params: { loginId: 'u', password: 'pa55' } });
     await 저장({ params: { loginId: 'v' } });
-    expect((await 저장행())[0]!.params).toEqual({ loginId: 'v' });
+    expect((await 저장행())[0]!.params).toEqual({ loginId: 'v', password: 'pa55' });
+  });
+
+  it('비밀값이 아닌 칸은 안 보내면 사라진다', async () => {
+    await 저장({ params: { loginId: 'u', count: 5, password: 'pa55' } });
+    await 저장({ params: { loginId: 'u' } });
+    expect((await 저장행())[0]!.params).toEqual({ loginId: 'u', password: 'pa55' });
   });
 
   it('지우면 204 이고 행이 없다 — 없어도 204', async () => {
