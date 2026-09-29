@@ -4,12 +4,13 @@
 import { useMemo, useState } from 'react';
 
 import type { CaseRow, RunRequestItem, ServiceRow } from './api.js';
+import { 채운글자 } from './CaseRowParams.js';
 import { Form } from './Form.js';
 import { use말 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type 고친값표, type 글자표, 몇건, 실행항목 } from './pickRun.js';
 import { 넘었나, 상한 } from './runPlan.js';
-import { type Field, initialText, schemaToFields, toValues } from './schema.js';
+import { type Field, schemaToFields, toValues } from './schema.js';
 import { PLATFORM_LABEL } from './ui.js';
 
 export interface 실행요청 {
@@ -76,9 +77,10 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
     for (const [tcId, text] of Object.entries(글자)) {
       const 칸 = 칸들.get(tcId);
       if (text === undefined || 칸 === undefined) continue;
+      // 목록 줄의 `글자` 는 고친 칸만 든다. 조각에 바로 toValues 를 걸면 안 고친 칸이 "" · false 로 나간다 (2026-09-29)
       표[tcId] = {
-        params: toValues(칸.params, text.params),
-        expected: toValues(칸.expected, text.expected),
+        params: toValues(칸.params, 채운글자(칸.params, text.params)),
+        expected: toValues(칸.expected, 채운글자(칸.expected, text.expected)),
       };
     }
     return 표;
@@ -115,17 +117,20 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
    * 값이 한 뎁스 안에 있으면 무엇을 돌리는지 보려고 케이스마다 한 번씩 눌러야 한다 (SPEC §8.10).
    */
   function 글자of(tcId: string, which: 'params' | 'expected'): Record<string, string> {
-    const 손댄것 = 글자[tcId]?.[which];
-    if (손댄것 !== undefined) return 손댄것;
     const 칸 = 칸들.get(tcId);
-    return initialText((which === 'params' ? 칸?.params : 칸?.expected) ?? []);
+    return 채운글자((which === 'params' ? 칸?.params : 칸?.expected) ?? [], 글자[tcId]?.[which]);
   }
 
   function 고치기(tcId: string, which: 'params' | 'expected') {
     return (key: string, value: string) => {
       손댐();
       set글자((전) => {
-        const 지금 = 전[tcId] ?? { params: {}, expected: {} };
+        // 고친 칸 조각이 아니라 채운 글자에서 시작한다 — 표에 든 값이 곧 화면에 보이는 값이어야 한다
+        const 칸 = 칸들.get(tcId);
+        const 지금 = {
+          params: 채운글자(칸?.params ?? [], 전[tcId]?.params),
+          expected: 채운글자(칸?.expected ?? [], 전[tcId]?.expected),
+        };
         return { ...전, [tcId]: { ...지금, [which]: { ...지금[which], [key]: value } } };
       });
     };

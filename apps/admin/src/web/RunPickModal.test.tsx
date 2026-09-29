@@ -115,6 +115,40 @@ describe('RunPickModal', () => {
     );
   });
 
+  it('목록에서 한 칸만 고쳐 왔어도 안 고친 칸은 코드 기본값으로 실린다', () => {
+    // 2026-09-29 — 고친 칸 조각에 toValues 를 걸어 안 고친 기대값이 "" · false 로 나갔다
+    const 기대스키마: JsonSchema = {
+      type: 'object',
+      properties: {
+        homePath: { type: 'string', description: '첫 화면 주소', default: '/' },
+        flag: { type: 'boolean', description: '배너 보임', default: true },
+      },
+    };
+    const 로그인스키마: JsonSchema = {
+      type: 'object',
+      properties: { loginId: { type: 'string', description: '로그인 아이디' } },
+      required: ['loginId'],
+    };
+    const 대상 = { ...케이스('MKT-001', ['desktop'], 로그인스키마), expectedSchema: 기대스키마 };
+    const onRun = vi.fn();
+    render(
+      <RunPickModal
+        케이스들={[대상]}
+        service={서비스}
+        초기글자={{ 'MKT-001': { params: { loginId: 'u' }, expected: {} } }}
+        onRun={onRun}
+        onClose={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(실행버튼());
+
+    expect(onRun.mock.calls[0]?.[0].items).toEqual([
+      { tcId: 'MKT-001', platforms: ['desktop'], params: { loginId: 'u' }, expected: { homePath: '/', flag: true } },
+    ]);
+  });
+
   it('실행 항목 수는 디바이스 수가 다른 케이스들에서도 합이다', () => {
     // 둘짜리 하나 + 하나짜리 하나 = 3건. 곱셈이면 2나 4가 나온다
     그리기();
