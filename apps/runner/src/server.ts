@@ -11,7 +11,7 @@ registerRoutes(app);
 
 const port = Number(process.env.PORT ?? 4000);
 
-app.listen({ port, host: '0.0.0.0' }).catch((err: unknown) => {
+app.listen({ port, host: process.env.HOST ?? '0.0.0.0' }).catch((err: unknown) => {
   console.error(err);
   process.exit(1);
 });

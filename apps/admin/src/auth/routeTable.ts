@@ -52,6 +52,9 @@ export const 등급표: Record<string, 표값> = {
 
   // 주소는 케이스 아래지만 내용은 실행 결과 이력이다 (execution/routes.ts). 케이스 read 로 열면 실행을 못 보는 사람에게 결과가 샌다
   'GET /api/cases/:tcId/history': 실행읽기,
+  // 메모리에만 남는 시험 실행. 결과는 시작한 사람만 읽는다(execution/trial.ts)
+  'POST /api/cases/:tcId/test-run': 실행쓰기,
+  'GET /api/cases/:tcId/test-run/:trialId': 실행읽기,
   'GET /api/evidence/:id': 실행읽기,
   'GET /api/runs': 실행읽기,
   'GET /api/runs/last-by-case': 실행읽기,
