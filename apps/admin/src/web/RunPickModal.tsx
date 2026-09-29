@@ -67,8 +67,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
         케이스들.map((c) => [
           c.tcId,
           {
-            params: schemaToFields(c.paramSchema, c.savedInput?.params, c.savedInput?.savedSecrets),
-            expected: schemaToFields(c.expectedSchema, c.savedInput?.expected, c.savedInput?.savedSecrets),
+            params: schemaToFields(c.paramSchema, c.savedInput?.params, c.savedInput?.savedSecrets.params),
+            expected: schemaToFields(c.expectedSchema, c.savedInput?.expected, c.savedInput?.savedSecrets.expected),
           },
         ]),
       ),

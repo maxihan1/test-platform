@@ -79,8 +79,8 @@ export function CaseRowParams({
   on저장됨?: () => void;
 }) {
   const t = use말();
-  const 입력값 = schemaToFields(paramSchema, savedInput?.params, savedInput?.savedSecrets);
-  const 기대결과 = schemaToFields(expectedSchema, savedInput?.expected, savedInput?.savedSecrets);
+  const 입력값 = schemaToFields(paramSchema, savedInput?.params, savedInput?.savedSecrets.params);
+  const 기대결과 = schemaToFields(expectedSchema, savedInput?.expected, savedInput?.savedSecrets.expected);
   const 전체 = 입력값.length + 기대결과.length;
 
   // 펼 것이 없으면 자리를 만들지 않는다. 빈 네모가 줄마다 생기면 목록이 성기게 보인다

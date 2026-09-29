@@ -164,7 +164,7 @@ describe.skipIf(연결 === undefined)('케이스 저장 입력값', () => {
     expect(body).toMatchObject({
       params: { loginId: 'b' },
       expected: { homePath: '/home' },
-      savedSecrets: [],
+      savedSecrets: { params: [], expected: [] },
       savedBy: 'xsi-writer',
     });
     expect(typeof body.savedAt).toBe('string');
@@ -186,9 +186,9 @@ describe.skipIf(연결 === undefined)('케이스 저장 입력값', () => {
 
   it('비밀값은 응답에 싣지 않고 이름만 savedSecrets 에 둔다', async () => {
     const res = await 저장({ params: { loginId: 'u', password: 'pa55' } });
-    const body = res.json<{ params: Record<string, unknown>; savedSecrets: string[] }>();
+    const body = res.json<{ params: Record<string, unknown>; savedSecrets: { params: string[]; expected: string[] } }>();
     expect(body.params).toEqual({ loginId: 'u' });
-    expect(body.savedSecrets).toEqual(['password']);
+    expect(body.savedSecrets).toEqual({ params: ['password'], expected: [] });
     expect(JSON.stringify(body)).not.toContain('pa55');
     expect((await 저장행())[0]!.params).toEqual({ loginId: 'u', password: 'pa55' });
   });

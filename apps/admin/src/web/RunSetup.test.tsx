@@ -149,7 +149,7 @@ const 저장값케이스: CaseRow = {
       password: { type: 'string', description: '비밀번호' },
     },
   },
-  savedInput: { params: { userId: 'user1' }, expected: {}, savedSecrets: ['password'], savedBy: '맥시', savedAt: '2026-09-29T05:02:00.000Z' },
+  savedInput: { params: { userId: 'user1' }, expected: {}, savedSecrets: { params: ['password'], expected: [] }, savedBy: '맥시', savedAt: '2026-09-29T05:02:00.000Z' },
 };
 
 describe('실행 설정의 저장값 (도메인/실행 §8.2, 2026-09-29 시안 A)', () => {

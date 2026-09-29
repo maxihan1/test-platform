@@ -9,7 +9,7 @@ import type { Pool, PoolClient } from 'pg';
 import { z } from 'zod';
 
 // 화면이 가리는 칸과 서버가 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
-import { 가려야하나 } from '../web/mask.js';
+import { 가려야하나, 저장값나누기 } from '../web/mask.js';
 import { caseSchemas } from './paramSets.js';
 import type { RunItemInput } from './store.js';
 import { validate } from './validate.js';
@@ -19,7 +19,7 @@ type 값들 = Record<string, unknown>;
 export interface SavedInput {
   params: 값들;
   expected: 값들;
-  savedSecrets: string[];
+  savedSecrets: { params: string[]; expected: string[] };
   savedBy: string;
   savedAt: string;
 }
@@ -49,13 +49,6 @@ function 기본값뺀것(schema: JsonSchema, 값: 값들): 값들 {
   return Object.fromEntries(Object.entries(값).filter(([k, v]) => !isDeepStrictEqual(v, 칸[k]?.default)));
 }
 
-// 목록 응답은 서비스 전체 분량이라 비밀값 원문을 싣지 않는다. 원문은 실행을 만들 때 서버만 쓴다
-function 비밀값뺀것(schema: JsonSchema, 값: 값들): { 보일것: 값들; 비밀: string[] } {
-  const 칸 = 칸들(schema);
-  const 비밀 = Object.keys(값).filter((k) => 가려야하나(k, 칸[k] ?? {}));
-  return { 보일것: Object.fromEntries(Object.entries(값).filter(([k]) => !비밀.includes(k))), 비밀 };
-}
-
 function 비밀값만(schema: JsonSchema, 값: 값들): 값들 {
   const 칸 = 칸들(schema);
   return Object.fromEntries(Object.entries(값).filter(([k]) => 칸[k] !== undefined && 가려야하나(k, 칸[k])));
@@ -77,12 +70,13 @@ async function 저장한다(tcId: string, schemas: { paramSchema: JsonSchema; ex
      RETURNING saved_at`,
     [tcId, JSON.stringify(남은입력), JSON.stringify(남은기대), savedBy],
   );
-  const 입력 = 비밀값뺀것(schemas.paramSchema, 남은입력);
-  const 기대 = 비밀값뺀것(schemas.expectedSchema, 남은기대);
+  // 목록 응답과 같은 모양이다. 비밀값 원문은 실행을 만들 때 서버만 쓴다
+  const 입력 = 저장값나누기(schemas.paramSchema, 남은입력);
+  const 기대 = 저장값나누기(schemas.expectedSchema, 남은기대);
   return {
     params: 입력.보일것,
     expected: 기대.보일것,
-    savedSecrets: [...입력.비밀, ...기대.비밀],
+    savedSecrets: { params: 입력.비밀, expected: 기대.비밀 },
     savedBy,
     savedAt: r.rows[0]!.saved_at.toISOString(),
   };

@@ -38,6 +38,25 @@ export function 가려야하나(key: string, prop: Record<string, unknown>): boo
   return SECRET_NAMES.some((word) => lower.includes(word));
 }
 
+/**
+ * 케이스 저장값을 응답에 실을 모양으로 나눈다 (공통/2-명세선언 §4.1 비밀값 표).
+ *
+ * 비밀값 칸은 이름만 알린다. 지금 명세에 없는 칸은 뺀다 — 선언이 사라진 칸은 이름으로만 비밀을 가려야 해서
+ * `oldToken` 이 아닌 이름의 옛 비밀번호가 원문으로 나간다. 명세에 없는 칸은 실행에도 안 쓰인다
+ */
+export function 저장값나누기(schema: unknown, 값: Record<string, unknown>): { 보일것: Record<string, unknown>; 비밀: string[] } {
+  const properties = isPlainObject(schema) && isPlainObject(schema.properties) ? schema.properties : {};
+  const 보일것: Record<string, unknown> = {};
+  const 비밀: string[] = [];
+  for (const [key, value] of Object.entries(값)) {
+    if (!Object.hasOwn(properties, key)) continue;
+    const raw = properties[key];
+    if (가려야하나(key, isPlainObject(raw) ? raw : {})) 비밀.push(key);
+    else 보일것[key] = value;
+  }
+  return { 보일것, 비밀 };
+}
+
 function 보일값(value: unknown, 언어: 언어): string {
   if (value === null || value === undefined) return '—';
   // 스키마는 참·거짓만 알려 준다. 화면에는 코드 낱말 대신 사람이 읽는 두 낱말을 쓴다 (DESIGN.md).

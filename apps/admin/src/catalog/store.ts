@@ -5,7 +5,7 @@ import type { Pool } from 'pg';
 import type { CaseSpec, Platform } from '@platform/kit';
 
 // 화면이 가리는 칸과 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
-import { 가려야하나 } from '../web/mask.js';
+import { 저장값나누기 } from '../web/mask.js';
 
 export interface SaveResult {
   added: number;
@@ -54,8 +54,9 @@ export type CaseRow = Omit<CaseSpec, 'unconfirmed'> & {
 export interface SavedInput {
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
-  // 비밀값은 원문을 싣지 않고 저장돼 있다는 것만 알린다. 목록은 서비스 전체 분량이라 새면 한꺼번에 샌다
-  savedSecrets: string[];
+  // 비밀값은 원문을 싣지 않고 저장돼 있다는 것만 알린다. 목록은 서비스 전체 분량이라 새면 한꺼번에 샌다.
+  // 입력값과 기대결과에 같은 이름 칸이 있을 수 있어 자리별로 나눈다
+  savedSecrets: { params: string[]; expected: string[] };
   savedBy: string;
   savedAt: string;
 }
@@ -79,27 +80,14 @@ interface RawRow {
   total?: string;
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function 비밀값뺀것(schema: unknown, 값: Record<string, unknown>): { 보일것: Record<string, unknown>; 비밀: string[] } {
-  const properties = isPlainObject(schema) && isPlainObject(schema.properties) ? schema.properties : {};
-  const 비밀 = Object.keys(값).filter((k) => {
-    const prop = properties[k];
-    return 가려야하나(k, isPlainObject(prop) ? prop : {});
-  });
-  return { 보일것: Object.fromEntries(Object.entries(값).filter(([k]) => !비밀.includes(k))), 비밀 };
-}
-
 function toSaved(row: RawRow): SavedInput | null {
   if (row.saved_at === null || row.saved_by === null) return null;
-  const 입력 = 비밀값뺀것(row.param_schema, row.saved_params ?? {});
-  const 기대 = 비밀값뺀것(row.expected_schema, row.saved_expected ?? {});
+  const 입력 = 저장값나누기(row.param_schema, row.saved_params ?? {});
+  const 기대 = 저장값나누기(row.expected_schema, row.saved_expected ?? {});
   return {
     params: 입력.보일것,
     expected: 기대.보일것,
-    savedSecrets: [...입력.비밀, ...기대.비밀],
+    savedSecrets: { params: 입력.비밀, expected: 기대.비밀 },
     savedBy: row.saved_by,
     savedAt: row.saved_at.toISOString(),
   };

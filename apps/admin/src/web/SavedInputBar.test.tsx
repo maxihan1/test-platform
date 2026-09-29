@@ -23,7 +23,7 @@ const 빈: JsonSchema = {} as JsonSchema;
 const 저장값: SavedInput = {
   params: { userId: 'user1' },
   expected: {},
-  savedSecrets: ['password'],
+  savedSecrets: { params: ['password'], expected: [] },
   savedBy: '맥시',
   savedAt: '2026-09-29T05:02:00.000Z',
 };

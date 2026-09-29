@@ -152,7 +152,7 @@ describe('RunPickModal', () => {
   it('저장값이 있는 케이스는 칸이 저장값으로 채워져 열린다', () => {
     const 저장된 = {
       ...값있는케이스,
-      savedInput: { params: { userId: 'zpm-저장' }, expected: {}, savedSecrets: [], savedBy: 'qa', savedAt: '2026-09-29T00:00:00.000Z' },
+      savedInput: { params: { userId: 'zpm-저장' }, expected: {}, savedSecrets: { params: [], expected: [] }, savedBy: 'qa', savedAt: '2026-09-29T00:00:00.000Z' },
     };
     그리기([저장된]);
 

@@ -44,13 +44,13 @@ export interface CaseRow {
 /**
  * 케이스에 저장해 둔 입력값 (계획 2026-09-29 게이트 1).
  *
- * 비밀값은 응답에 싣지 않는다 — `params`·`expected` 에 비밀값 칸은 없고 저장된 칸 이름만 `savedSecrets` 에 온다.
+ * 비밀값은 응답에 싣지 않는다 — `params`·`expected` 에 비밀값 칸은 없고 저장된 칸 이름만 `savedSecrets` 의 같은 자리에 온다.
  * 비밀값 원문은 서버가 실행을 만들 때 채운다.
  */
 export interface SavedInput {
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
-  savedSecrets: string[];
+  savedSecrets: { params: string[]; expected: string[] };
   savedBy: string;
   savedAt: string;
 }
