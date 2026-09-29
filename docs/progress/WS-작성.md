@@ -474,10 +474,12 @@
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 뿌리 식은 `history.ts` 의 `사슬식` · `위로식` 이 정본이다 — 폐기(`stop.ts`)도 그것을 쓴다. 작업 폴더 `author-<행 번호>` 와 브랜치 `author-<뿌리>` 는 다르다
 
-## 2026-09-29 — 보류 케이스 사람 입력 (PR #108, 진행 중)
+## 2026-09-29 — 보류 케이스 사람 입력 (PR #108, 병합)
 
-- 완료: 명세 도메인/작성 §3.6 「★ 보류 케이스」 · §7 통로 · K10 예외 · K13 · kit `CaseSpec.held`(건너뛰기) · 데이터모델 `held_input`
-- 완료: §2.7 동반 수정 — SPEC 색인 라우터 줄 · 분량 · DESIGN.md 「작성 상태」 시안 A · HOOKS.md CI `--no-held` · spec-review B13 · WORKSTREAMS 진행 중 줄
-- 미완: 할 일 5(서버 `authoring/held.ts`) · 7(반영 에이전트 7a·7b) · 9(화면 `AuthoringHeld.tsx`) 진행 중 · `docs/wbs.md` 에 이 PR 태스크 줄이 없다(병합 때 정한다)
+- 완료: 명세 도메인/작성 §3.6 「★ 보류 케이스」 · §7 통로 · K10 예외 · K13 · kit `CaseSpec.held`(건너뛰기) · 데이터모델 `held_input` · compare_check 를 넓혀 정방향 반영 env 를 머지 행에
+- 완료: 서버 `authoring/held.ts`·`held-routes.ts`(넣기 · 제거 · 되돌리기 · HELD_OPEN · HELD_UNKNOWN · MERGE_ACTIVE · NOT_LATEST · mergeEnvs · 뿌리 잠금 안 판정 · finish 안 입력 옮기기)
+- 완료: 에이전트 `authoring-held.ts`(칸 계산 · 이름 · heldUnknown) · `authoring-held-apply.ts`(ts.factory 값 적기) · `authoring-held-merge.ts`(검사 → 3회 → 비밀번호 검사 → lease push → 새 머리로 CI)
+- 완료: 화면 시안 A `AuthoringHeld.tsx` · `AuthoringMergeStep.tsx` · 자식 스킬(보류도 케이스로) · CI `--no-held`
+- 미완: 실제 서버 한 바퀴(반영 → 3회 → 병합) — 5877 처리가 첫 실측 · 「모킹 필요」 항목은 여전히 케이스로 안 만든다 · 3회는 desktop 만
 - 막힌 것: 없음
-- 다음 세션이 알아야 할 것: held_input 은 뿌리의 최신 끝난 실행 행에만 받고 finish 가 같은 tcId · 같은 칸만 옮긴다. main 으로 못 가게 막는 자리는 셋(merges HELD_OPEN · 에이전트 · CI `--no-held`) — 하나만 믿지 않는다
+- 다음 세션이 알아야 할 것: main 으로 못 가게 막는 자리는 셋(merges HELD_OPEN/HELD_UNKNOWN · 반영 에이전트 · CI `--no-held`) — 하나만 믿지 않는다. 비밀값 칸의 아이디/비밀번호 가르기는 칸 이름 추측(`authoring-held-apply.ts` `비밀칸들`)
