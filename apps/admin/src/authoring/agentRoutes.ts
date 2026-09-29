@@ -8,7 +8,8 @@ import { join } from 'node:path';
 
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 자료목록 } from './assetStore.js';
-import { 보류모양검사, 입력이어받기 } from './held.js';
+import { 보류모양검사, 옮겨올입력 } from './held.js';
+import { 뿌리, 뿌리잠그고 } from './history.js';
 import { 머지집기칸 } from './held-routes.js';
 import { 집기대상 } from './reverse.js';
 import { 진척검사 } from './stop.js';
@@ -241,21 +242,26 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     }
     // 모양이 틀리면 400 — 에이전트는 이 거절을 까닭과 함께 FAILED 로 다시 보내므로 행이 도는 중으로 남지 않는다
     const 결과 = req.body?.result;
-    const 받은보류 = typeof 결과 === 'object' && 결과 !== null ? (결과 as { held?: unknown }).held : undefined;
-    const 보류 = 받은보류 === undefined ? [] : 보류모양검사(받은보류);
-    if (보류 === null) return reply.code(400).send({ error: 'BAD_HELD' });
+    const 결과칸 = typeof 결과 === 'object' && 결과 !== null ? (결과 as { held?: unknown; heldUnknown?: unknown }) : {};
+    const 보류 = 결과칸.held === undefined ? [] : 보류모양검사(결과칸.held);
+    if (보류 === null || (결과칸.heldUnknown !== undefined && 결과칸.heldUnknown !== true)) {
+      return reply.code(400).send({ error: 'BAD_HELD' });
+    }
     const error = req.body?.error;
+    // 입력 옮기기와 끝내기를 뿌리 잠금 안의 한 UPDATE 로 — 사이에 들어온 PUT 을 덮거나, 옮기다 실패해 DONE 만 남지 않게
+    const 바뀌었나 = await 뿌리잠그고((await 뿌리(행.id)) ?? 행.id, async () =>
+      끝내기(행.id, {
+        status,
+        stopReason: 멈춤이유,
+        result: req.body?.result,
+        testSource: req.body?.testSource,
+        prUrl: typeof prUrl === 'string' ? prUrl : undefined,
+        error: typeof error === 'string' ? error : undefined,
+        heldInput: status === 'DONE' ? await 옮겨올입력(행.id, 보류) : null,
+      }),
+    );
     // 끝난 행에 또 오면 409 다. 안 막으면 판정과 PR 주소가 덮어써진다
-    const 바뀌었나 = await 끝내기(행.id, {
-      status,
-      stopReason: 멈춤이유,
-      result: req.body?.result,
-      testSource: req.body?.testSource,
-      prUrl: typeof prUrl === 'string' ? prUrl : undefined,
-      error: typeof error === 'string' ? error : undefined,
-    });
     if (!바뀌었나) return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
-    if (status === 'DONE') await 입력이어받기(행.id, 보류);
     return { ok: true };
   });
 

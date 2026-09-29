@@ -15,6 +15,8 @@ export interface 칸 {
 /** 끝내기 result.held[] 한 줄. fields 는 에이전트 스크립트가 코드에서 계산한다 */
 export interface 보류 {
   tcId: string;
+  /** 케이스 이름(spec.name) — 화면의 「무엇을 확인하나」. 옛 결과에는 없다 */
+  name?: string;
   file: string;
   kind: 'UNDECIDABLE' | 'ON_HOLD';
   reason: string;
@@ -140,7 +142,7 @@ export async function 입력읽기(id: number): Promise<보류입력> {
   return r.rows[0]?.held_input ?? {};
 }
 
-const 보류키 = ['tcId', 'file', 'kind', 'reason', 'fields'];
+const 보류키 = ['tcId', 'name', 'file', 'kind', 'reason', 'fields'];
 const 칸키 = ['side', 'key', 'description', 'type', 'options'];
 
 export function tcId인가(v: unknown): v is string {
@@ -171,9 +173,15 @@ export function 보류모양검사(v: unknown): 보류[] | null {
     if (!tcId인가(h.tcId) || 본것.has(h.tcId)) return null;
     본것.add(h.tcId);
     if (!글인가(h.file) || !글인가(h.reason) || (h.kind !== 'UNDECIDABLE' && h.kind !== 'ON_HOLD')) return null;
+    if (h.name !== undefined && (typeof h.name !== 'string' || h.name.length > 300)) return null;
     if (!Array.isArray(h.fields) || !h.fields.every(칸모양)) return null;
   }
   return v as 보류[];
+}
+
+/** 에이전트가 보류 목록을 못 읽었나. 그러면 held 가 비어도 보류가 없다는 뜻이 아니다 — 반영을 막는다 */
+export function 보류모름(result: unknown): boolean {
+  return 객체인가(result) && result.heldUnknown === true;
 }
 
 /** 행의 result.held — 끝내기에서 모양을 본 뒤 저장된 값이다 */
@@ -183,22 +191,19 @@ export function 보류들(result: unknown): 보류[] {
 }
 
 /**
- * 새 실행이 DONE 으로 끝났을 때 같은 뿌리의 앞 DONE 실행에서 입력을 옮겨 온다.
+ * 새 실행이 DONE 으로 끝날 때 같은 뿌리의 앞 DONE 실행에서 옮겨 올 입력. 끝내기가 같은 UPDATE 로 적는다 —
+ * 따로 적으면 끝난 뒤 · 적기 전 사이에 들어온 사람 입력을 덮고, 적기가 실패하면 DONE 만 남는다.
  * 머지 행은 입력을 안 가진다. 멈춘 · 실패한 실행은 result.held 가 없어 입력도 못 받았으니 건너뛴다
  */
-export async function 입력이어받기(id: number, 새보류들: 보류[]): Promise<void> {
-  if (새보류들.length === 0) return;
+export async function 옮겨올입력(id: number, 새보류들: 보류[]): Promise<보류입력 | null> {
+  if (새보류들.length === 0) return null;
   const 뿌리번호 = (await 뿌리(id)) ?? id;
-  const pool = await db();
-  const r = await pool.query<{ held_input: 보류입력 | null }>(
+  const r = await (await db()).query<{ held_input: 보류입력 | null }>(
     `WITH RECURSIVE ${사슬식('id = $1')}
      SELECT a.held_input FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id
       WHERE a.id < $2 AND a.kind <> 'MERGE' AND a.status = 'DONE'
       ORDER BY a.id DESC LIMIT 1`,
     [뿌리번호, id],
   );
-  const 옮길것 = 입력옮기기(r.rows[0]?.held_input ?? null, 새보류들);
-  if (옮길것 !== null) {
-    await pool.query('UPDATE authoring_request SET held_input = $2 WHERE id = $1', [id, JSON.stringify(옮길것)]);
-  }
+  return 입력옮기기(r.rows[0]?.held_input ?? null, 새보류들);
 }

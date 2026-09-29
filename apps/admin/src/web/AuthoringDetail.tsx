@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect } from 'react';
 
-import { api, type AuthoringAsset, type AuthoringRow, type EnvRow } from './api.js';
+import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
 import { AuthoringHeld } from './AuthoringHeld.js';
 import { AuthoringRuns } from './AuthoringRuns.js';
 import { AuthoringStatusCard } from './AuthoringStatusCard.js';
@@ -48,7 +48,7 @@ function 산출물설명(
   return `${t('표시 사본')} — ${이름}`;
 }
 
-export function AuthoringDetail({ service, id, envs = [], 할수 }: { service: string; id: number; envs?: EnvRow[]; 할수: 판정 }) {
+export function AuthoringDetail({ service, id, 할수 }: { service: string; id: number; 할수: 판정 }) {
   const t = use말();
   const 언어 = use언어();
 
@@ -158,7 +158,7 @@ export function AuthoringDetail({ service, id, envs = [], 할수 }: { service: s
           </div>
 
           <div className="authoring-col">
-            <AuthoringTodo service={service} 요청={data} 할수={할수} 차이수={차이들?.length ?? 0} envs={envs} reload={reload} />
+            <AuthoringTodo service={service} 요청={data} 할수={할수} 차이수={차이들?.length ?? 0} reload={reload} />
 
             <section className="authoring-panel" aria-label={t('요청 정보')}>
               <h3>{t('요청 정보')}</h3>

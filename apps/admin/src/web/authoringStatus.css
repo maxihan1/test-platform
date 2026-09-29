@@ -233,6 +233,8 @@
 .held-fields { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 .held-field { display: grid; gap: 4px; }
 .held-field input, .held-field select { max-width: 320px; }
+.held-path { font-size: 12px; color: var(--ink-faint); }
+.held-open { position: sticky; left: 0; max-width: calc(100vw - 32px); }
 .held-side { font-size: 11.5px; letter-spacing: .04em; color: var(--ink-faint); }
 .held-bar { margin: 4px 0 8px; }
 .held-env { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 13px; }

@@ -3,21 +3,40 @@
 
 import type { FastifyInstance, FastifyReply } from 'fastify';
 
-import { 남은수, 보류들, 입력검사, 입력넣기, 입력읽기, 입력지우기, tcId인가, type 보류입력 } from './held.js';
+import { 남은수, 보류들, 보류모름, 입력검사, 입력넣기, 입력읽기, 입력지우기, tcId인가, type 보류입력 } from './held.js';
 import { 뿌리, 뿌리잠그고, 사슬식, 최신실행 } from './history.js';
 import { 번호 } from './params.js';
 import { 계정있는줄, 대상줄읽기 } from './reverse.js';
 import { db, 한건, type 요청 } from './store.js';
 
-/** 상세에 붙는 칸 — 요청한 그 행 것이다 */
-export async function 보류상세(행: { id: number; result: unknown }): Promise<{
+/** 반영 때 고를 수 있는 대상 서버 — 테스트 계정이 둘 다 있는 줄만. 운영 줄을 보이면 고른 뒤에야 BAD_ENV 로 막힌다 */
+async function 계정줄들(서비스: number): Promise<string[]> {
+  const r = await (await db()).query<{ env: string }>(
+    `SELECT env FROM service_env
+      WHERE service_id = $1 AND COALESCE(login_id, '') <> '' AND COALESCE(login_password, '') <> ''
+      ORDER BY env`,
+    [서비스],
+  );
+  return r.rows.map((줄) => 줄.env);
+}
+
+/** 상세에 붙는 칸 — 요청한 그 행 것이다. mergeEnvs 는 대상 서버를 고르는 정방향 보류에만 싣는다 */
+export async function 보류상세(행: { id: number; serviceId: number; compare: boolean; result: unknown }): Promise<{
   held: (ReturnType<typeof 보류들>[number] & { input: 보류입력[string] | null })[];
   heldOpen: number;
+  heldUnknown: boolean;
+  mergeEnvs?: string[];
 }> {
   const 보류 = 보류들(행.result);
-  if (보류.length === 0) return { held: [], heldOpen: 0 };
+  const heldUnknown = 보류모름(행.result);
+  if (보류.length === 0) return { held: [], heldOpen: 0, heldUnknown };
   const 입력 = await 입력읽기(행.id);
-  return { held: 보류.map((h) => ({ ...h, input: 입력[h.tcId] ?? null })), heldOpen: 남은수(보류, 입력) };
+  return {
+    held: 보류.map((h) => ({ ...h, input: 입력[h.tcId] ?? null })),
+    heldOpen: 남은수(보류, 입력),
+    heldUnknown,
+    ...(행.compare ? {} : { mergeEnvs: await 계정줄들(행.serviceId) }),
+  };
 }
 
 async function 머지도나(뿌리번호: number): Promise<boolean> {
@@ -32,13 +51,16 @@ async function 머지도나(뿌리번호: number): Promise<boolean> {
 
 /**
  * 머지 요청의 보류 판정. 통과면 머지 행에 둘 대상 서버(정방향만 — 대조는 원본 것을 쓴다).
- * 막는 것은 서버다 — 화면이 반영 버튼을 막아도 직접 부르면 보류가 main 에 들어간다 (§3.6 ⒜)
+ * 막는 것은 서버다 — 화면이 반영 버튼을 막아도 직접 부르면 보류가 main 에 들어간다 (§3.6 ⒜).
+ * **뿌리 잠금 안에서 부른다** — 밖에서 보면 판정과 머지 행 사이에 PUT · DELETE 가 끼어 판정이 옛것이 된다
  */
 export async function 머지보류판정(
   행: 요청,
   서비스: number,
   env: unknown,
-): Promise<{ error: 'HELD_OPEN' | 'BAD_ENV'; code: 400 | 409 } | { env: string | null }> {
+): Promise<{ error: 'HELD_OPEN' | 'HELD_UNKNOWN' | 'BAD_ENV'; code: 400 | 409 } | { env: string | null }> {
+  // 목록을 못 읽었으면 held 가 비어도 보류가 없다는 뜻이 아니다 — 다시 작성해 목록을 읽혀야 한다
+  if (보류모름(행.result)) return { error: 'HELD_UNKNOWN', code: 409 };
   const 보류 = 보류들(행.result);
   const 입력 = 보류.length === 0 ? {} : await 입력읽기(행.id);
   if (남은수(보류, 입력) > 0) return { error: 'HELD_OPEN', code: 409 };
@@ -64,6 +86,8 @@ export async function 머지집기칸(
   const 입력 = await 입력읽기(머지.sourceId);
   if (Object.keys(입력).length === 0) return {};
   const held = Object.fromEntries(Object.entries(입력).map(([tcId, { by: _누가, at: _언제, ...값 }]) => [tcId, 값]));
+  // 제거만 했으면 돌릴 케이스가 없다 — 비밀번호를 실어 보낼 까닭도 없다
+  if (Object.values(입력).every((e) => e.removed === true)) return { held };
   const 원본 = await 한건(머지.sourceId);
   // 정방향은 머지 요청에 사람이 고른 줄이 머지 행 env 에 있다 (merges 가 적는다)
   const env = 원본?.compare === true ? 원본.env : 머지.env;

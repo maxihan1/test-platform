@@ -10,7 +10,7 @@ import { type 계정, type 사본, 사본환경, 파일거부사유 } from './au
 import { 모양보기, 사본만들기, 사본치우기, 자식거두기, 트리실제 } from './authoring-child.js';
 import { type 보고손, 돌린다, 쉬기, 친다 } from './authoring-io.js';
 import { 도는번호 } from './authoring-keeping.js';
-import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
+import { 계정섞였나, 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
 import {
   type 보류입력,
   값적기,
@@ -39,7 +39,7 @@ export function 보류입력들(것: 집은것): unknown {
 }
 
 /** 적은 뒤 쓸 글 — 3회 실행 뒤 트리를 되돌리고 이것만 다시 써서 커밋한다(케이스 코드가 돌며 바꾼 것은 안 올린다) */
-interface 쓸것 {
+export interface 쓸것 {
   쓰기: Map<string, string>;
   지우기: string[];
 }
@@ -52,7 +52,15 @@ function 케이스들(트리: string): { 경로: string; 글: string }[] {
     .map((p) => ({ 경로: join('tests', p), 글: readFileSync(join(뿌리, p), 'utf8') }));
 }
 
-function 계산(트리: string, 서비스: string, held: Record<string, 보류입력>): 쓸것 | { 사유: string } {
+/** 넣은 값이 비밀번호 원문이면 거절한다 — 사람이 값 칸에 계정을 적으면 그대로 코드에 박혀 저장소로 나간다 */
+export const 비밀거절 = '넣은 값에 테스트 계정 비밀번호가 들어 있어 올리지 않았다';
+
+export function 계산(
+  트리: string,
+  서비스: string,
+  held: Record<string, 보류입력>,
+  비밀: string | null | undefined,
+): 쓸것 | { 사유: string } {
   const 모두 = 케이스들(트리);
   const 쓰기 = new Map<string, string>();
   const 지우기: string[] = [];
@@ -76,13 +84,14 @@ function 계산(트리: string, 서비스: string, held: Record<string, 보류�
     .filter((f) => 보류남음(쓰기.get(f.경로) ?? f.글))
     .map((f) => 케이스tcId(f.글) ?? f.경로);
   if (남음.length > 0) return { 사유: `보류 표시가 남아 병합하지 않는다: ${남음.join(' · ')}` };
+  if (계정섞였나([...쓰기.values()], 비밀)) return { 사유: 비밀거절 };
   return { 쓰기, 지우기 };
 }
 
-function 적용(자리: 사본, 쓸: 쓸것): string | null {
+export function 적용(자리: 사본, 쓸: 쓸것): string | null {
   const 트리 = 자리.트리;
-  // 쓰기는 링크를 따라간다 — 케이스 코드가 돌며 폴더를 링크로 바꿔 두면 트리 밖에 쓴다
-  const 거부 = 파일거부사유([...쓸.쓰기.keys()].map((f) => 모양보기(트리, f)), 트리실제(자리));
+  // 쓰기 · 지우기는 링크를 따라간다 — 케이스 코드가 돌며 폴더를 링크로 바꿔 두면 트리 밖에 쓰거나 지운다
+  const 거부 = 파일거부사유([...쓸.쓰기.keys(), ...쓸.지우기].map((f) => 모양보기(트리, f)), 트리실제(자리));
   if (거부 !== null) return 거부;
   for (const [f, 글] of 쓸.쓰기) writeFileSync(join(트리, f), 글);
   for (const f of 쓸.지우기) rmSync(join(트리, f), { force: true });
@@ -137,7 +146,7 @@ export async function 보류반영(
   if (반영커밋인가(본문.낸것) && !깃(['-c', 'core.hooksPath=/dev/null', 'checkout', '-q', '--detach', '-f', 'HEAD~1']).ok) {
     return 그만('앞 반영 커밋의 부모로 못 갔다');
   }
-  const 쓸 = 계산(자리.트리, 준비.서비스, held);
+  const 쓸 = 계산(자리.트리, 준비.서비스, held, 비밀);
   if ('사유' in 쓸) return 그만(쓸.사유);
   const 먼저 = 적용(자리, 쓸);
   if (먼저 !== null) return 그만(먼저);
@@ -169,10 +178,12 @@ export async function 보류반영(
   if (!깃(['reset', '-q', '--hard']).ok) return 그만('트리를 되돌리지 못했다');
   const 다시 = 적용(자리, 쓸);
   if (다시 !== null) return 그만(다시);
+  const 메시지 = 커밋메시지(뿌리, 준비.서비스);
+  if (계정섞였나([메시지], 비밀)) return 그만(비밀거절);
   for (const 인자 of [
     ['add', '-A', '--', ...쓸.쓰기.keys(), ...쓸.지우기],
     // 제목은 에이전트 커밋 모양 그대로 — 이어하기·덮어쓰기 검사가 에이전트 것으로 읽는다
-    ['commit', '-q', '-m', 커밋메시지(뿌리, 준비.서비스), '-m', 반영표시],
+    ['commit', '-q', '-m', 메시지, '-m', 반영표시],
   ]) {
     const r = 깃(인자);
     if (!r.ok) return 그만(`값 커밋을 못 만들었다: ${r.까닭}`);

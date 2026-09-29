@@ -266,24 +266,28 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       if (행.status !== 'DONE' || 행.prUrl === null) {
         return reply.code(409).send({ error: 'NOT_MERGEABLE', detail: 행.status });
       }
-      const 보류 = await 머지보류판정(행, 서비스, req.body?.env);
-      if ('error' in 보류) return reply.code(보류.code).send({ error: 보류.error });
-
-      const id = await 뿌리잠그고(뿌리번호, async () => (await 도는실행있나(뿌리번호)) ? null : 줄세우기({
-        서비스,
-        kind: 'MERGE',
-        원본: 행.id,
-        // ★ 기획서 본문을 복사하지 않는다. 그것은 실행 등급이 쓴 자유 텍스트이고 맥에서 도는
-        // 에이전트가 읽고 따르는 지시문이다 — 머지 행에까지 실어 보내면 admin 이 승인한 것은
-        // 「이 요청을 머지한다」인데 맥에게 가는 것은 그 사람이 쓴 문장이 된다.
-        // 맥은 원본 번호로 필요한 것을 읽으면 된다 (2026-09-22 보안 검토가 잡았다)
-        기획서: `머지 요청 — 원본 #${String(행.id)}`,
-        누가: req.user?.username ?? '',
-        이름: req.user?.displayName ?? '',
-        머지대상: 보류.env,
-      }));
-      if (id === null) return reply.code(409).send({ error: 'RUN_ACTIVE' });
-      return reply.code(201).send({ id });
+      // 보류 판정도 잠금 안에서 — 밖에서 보면 판정과 머지 행 사이에 PUT · DELETE 가 끼어든다
+      const 세움 = await 뿌리잠그고(뿌리번호, async (): Promise<{ error: string; code: number } | { id: number }> => {
+        if (await 도는실행있나(뿌리번호)) return { error: 'RUN_ACTIVE', code: 409 };
+        const 보류 = await 머지보류판정(행, 서비스, req.body?.env);
+        if ('error' in 보류) return 보류;
+        const id = await 줄세우기({
+          서비스,
+          kind: 'MERGE',
+          원본: 행.id,
+          // ★ 기획서 본문을 복사하지 않는다. 그것은 실행 등급이 쓴 자유 텍스트이고 맥에서 도는
+          // 에이전트가 읽고 따르는 지시문이다 — 머지 행에까지 실어 보내면 admin 이 승인한 것은
+          // 「이 요청을 머지한다」인데 맥에게 가는 것은 그 사람이 쓴 문장이 된다.
+          // 맥은 원본 번호로 필요한 것을 읽으면 된다 (2026-09-22 보안 검토가 잡았다)
+          기획서: `머지 요청 — 원본 #${String(행.id)}`,
+          누가: req.user?.username ?? '',
+          이름: req.user?.displayName ?? '',
+          머지대상: 보류.env,
+        });
+        return { id };
+      });
+      if ('error' in 세움) return reply.code(세움.code).send({ error: 세움.error });
+      return reply.code(201).send({ id: 세움.id });
     },
   );
 

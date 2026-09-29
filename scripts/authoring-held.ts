@@ -16,6 +16,7 @@ export interface 보류칸 {
 
 export interface 보류 {
   tcId: string;
+  name?: string;
   file: string;
   kind: 'UNDECIDABLE' | 'ON_HOLD';
   reason: string;
@@ -53,6 +54,8 @@ export function 보류목록(명세들: unknown[]): 보류[] {
     if (typeof s.filePath !== 'string') return [];
     return {
       tcId: s.tcId,
+      // 서버가 300자 넘는 이름을 거절한다 — 이름 하나로 끝내기 전체가 400 이 되지 않게 자른다
+      ...(typeof s.name === 'string' ? { name: s.name.slice(0, 300) } : {}),
       file: `tests/${s.filePath}`,
       // 머리가 틀린 것은 K13 이 잡는다. 여기서는 사람이 값을 넣는 쪽으로 둔다
       kind: s.held.startsWith('판정 불가') ? 'UNDECIDABLE' : 'ON_HOLD',
@@ -92,20 +95,22 @@ function 보류읽기(자리: 사본, 자식: 계정 | null, 폴더: string): �
   return 보류목록(명세들);
 }
 
-/** DONE 끝내기에 result.held 를 싣는 손. 못 읽으면 삼키지 않고 error 에 남긴다 — PR 은 이미 섰다 */
+/**
+ * DONE 끝내기 몸에 보류를 싣는다. 못 읽으면 삼키지 않고 error 에 남기고 heldUnknown 을 단다 — PR 은 이미 섰다.
+ * 빈 held 로 보내면 서버는 「보류 없음」으로 읽고 반영을 푼다 — 값 없이 건너뛰는 케이스가 main 에 들어간다
+ */
+export function 보류실은몸(몸: Record<string, unknown>, 읽음: 보류[] | { 사유: string }): Record<string, unknown> {
+  const 결과 = 물건인가(몸.result) ? 몸.result : {};
+  if ('사유' in 읽음) {
+    const 앞 = typeof 몸.error === 'string' ? `${몸.error} · ` : '';
+    return { ...몸, error: `${앞}${읽음.사유}`, result: { ...결과, heldUnknown: true } };
+  }
+  return 읽음.length === 0 ? 몸 : { ...몸, result: { ...결과, held: 읽음 } };
+}
+
 export function 보류싣는손(손: 보고손, 자리: 사본, 자식: 계정 | null, 폴더: string): 보고손 {
   return {
     ...손,
-    끝내기: (몸) => {
-      if (몸.status !== 'DONE') return 손.끝내기(몸);
-      const 읽음 = 보류읽기(자리, 자식, 폴더);
-      if ('사유' in 읽음) {
-        const 앞 = typeof 몸.error === 'string' ? `${몸.error} · ` : '';
-        return 손.끝내기({ ...몸, error: `${앞}${읽음.사유}` });
-      }
-      if (읽음.length === 0) return 손.끝내기(몸);
-      const 결과 = 물건인가(몸.result) ? 몸.result : {};
-      return 손.끝내기({ ...몸, result: { ...결과, held: 읽음 } });
-    },
+    끝내기: (몸) => (몸.status === 'DONE' ? 손.끝내기(보류실은몸(몸, 보류읽기(자리, 자식, 폴더))) : 손.끝내기(몸)),
   };
 }

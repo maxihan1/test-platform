@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { 보류목록, 스캔풀기, 스캔표시 } from './authoring-held.js';
+import { 보류목록, 보류실은몸, 스캔풀기, 스캔표시 } from './authoring-held.js';
 
 const 스키마 = (s: z.ZodObject) => z.toJSONSchema(s, { io: 'input' });
 
@@ -43,6 +43,7 @@ describe('보류목록', () => {
     expect(보류목록([보류케이스, 정식케이스])).toEqual([
       {
         tcId: 'MKT-041',
+        name: '쿠폰 두 장',
         file: 'tests/market/coupon.spec.ts',
         kind: 'UNDECIDABLE',
         reason: '판정 불가 — 쿠폰 중복 기준이 없다',
@@ -72,6 +73,15 @@ describe('보류목록', () => {
     expect(보류목록([보류, 모름]).map((h) => h.kind)).toEqual(['ON_HOLD', 'ON_HOLD']);
   });
 
+  it('이름은 300자까지만 싣고 글이 아니면 뺀다 — 서버가 300자 넘는 이름을 거절한다', () => {
+    const [긴, 없는] = 보류목록([
+      { ...보류케이스, name: '가'.repeat(400) },
+      { ...보류케이스, tcId: 'MKT-042', name: 3 },
+    ]);
+    expect(긴?.name).toHaveLength(300);
+    expect(없는 !== undefined && 'name' in 없는).toBe(false);
+  });
+
   it('모양이 틀린 것은 건너뛴다 — 자식이 만든 코드가 낸 값이라 믿지 않는다', () => {
     expect(보류목록([null, 'x', { tcId: 1, held: 'a' }, { ...정식케이스, held: '   ' }])).toEqual([]);
   });
@@ -86,5 +96,23 @@ describe('스캔풀기', () => {
     expect(스캔풀기('[1]')).toBeNull();
     expect(스캔풀기(`${스캔표시}{}`)).toBeNull();
     expect(스캔풀기(`${스캔표시}깨짐`)).toBeNull();
+  });
+});
+
+describe('보류실은몸', () => {
+  const 몸 = { status: 'DONE' as const, prUrl: 'https://x/pull/1', result: { summary: 'a' } };
+
+  it('못 읽었으면 까닭을 error 에 잇고 result.heldUnknown 을 단다 — 비어 보이는 held 로 반영이 풀리면 안 된다', () => {
+    expect(보류실은몸({ ...몸, error: '앞 까닭' }, { 사유: '보류 케이스를 못 읽었다 (종료 1)' })).toEqual({
+      ...몸,
+      error: '앞 까닭 · 보류 케이스를 못 읽었다 (종료 1)',
+      result: { summary: 'a', heldUnknown: true },
+    });
+  });
+
+  it('읽었으면 held 를 싣고 없으면 몸 그대로', () => {
+    expect(보류실은몸(몸, [])).toEqual(몸);
+    const 하나 = { tcId: 'MKT-041', file: 'tests/a.spec.ts', kind: 'ON_HOLD' as const, reason: '보류 — a', fields: [] };
+    expect(보류실은몸(몸, [하나])).toEqual({ ...몸, result: { summary: 'a', held: [하나] } });
   });
 });

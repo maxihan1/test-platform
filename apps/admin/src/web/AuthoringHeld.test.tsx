@@ -25,6 +25,7 @@ vi.mock('./api.js', async () => {
 
 const 토스트: 보류줄 = {
   tcId: 'MKT-030',
+  name: '알림 토스트가 정해진 시간 뒤 사라진다',
   file: 'tests/mkt/toast.spec.ts',
   kind: 'UNDECIDABLE',
   reason: '판정 불가 — 알림이 사라졌다고 볼 기준이 기획서에 없다',
@@ -94,7 +95,9 @@ describe('보류 케이스 표', () => {
     expect(screen.getByText('판정 불가')).toBeTruthy();
     expect(screen.getAllByText('보류')).toHaveLength(2);
     expect(screen.getByText('알림이 사라졌다고 볼 기준이 기획서에 없다')).toBeTruthy();
-    expect(screen.getByText('tests/mkt/toast.spec.ts')).toBeTruthy();
+    expect(screen.getByText('알림 토스트가 정해진 시간 뒤 사라진다')).toBeTruthy();
+    expect(screen.getByText('tests/mkt/toast.spec.ts').className).toContain('held-path');
+    expect(screen.getByText('tests/mkt/banner.spec.ts').className).not.toContain('held-path');
     expect(screen.getAllByText('값 필요')).toHaveLength(2);
     expect(screen.getByText('제거함')).toBeTruthy();
   });
@@ -149,11 +152,41 @@ describe('다음 단계의 보류 진척과 반영', () => {
     render(<AuthoringTodo service="MKT" 요청={줄({ held: [토스트, 배너, 삭제글], heldOpen: 2 })} 할수={운영} 차이수={0} reload={reload} />);
     expect(screen.getByText('보류 케이스 3건 중 1건 처리')).toBeTruthy();
     expect(screen.getByText('값 채움 0 · 제거 1')).toBeTruthy();
-    expect(screen.getByRole('link', { name: '보류 케이스로 가기' }).getAttribute('href')).toBe('#held');
     const 버튼 = screen.getByRole('button', { name: '테스트 반영하기' });
     expect((버튼 as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText('보류 케이스 2건이 남아 있어 아직 반영할 수 없습니다.')).toBeTruthy();
-    expect(screen.getByText('반영하면 넣은 값을 테스트 코드에 적고, 값을 채운 케이스를 3번 돌려 모두 통과해야 합칩니다.')).toBeTruthy();
+    expect(screen.queryByText(/3번 돌려/)).toBeNull();
+    expect(screen.queryByLabelText('대상 서버')).toBeNull();
+  });
+
+  it('보류 케이스로 가기는 해시 주소를 바꾸지 않고 표로 내려간다', () => {
+    const 내려감 = vi.fn();
+    Element.prototype.scrollIntoView = 내려감;
+    window.location.hash = '#/authoring/7';
+    render(
+      <>
+        <AuthoringTodo service="MKT" 요청={줄({ held: [배너], heldOpen: 1 })} 할수={운영} 차이수={0} reload={reload} />
+        <AuthoringHeld service="MKT" 요청번호={7} held={[배너]} 편집 reload={reload} />
+      </>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '보류 케이스로 가기' }));
+    expect(window.location.hash).toBe('#/authoring/7');
+    expect(내려감).toHaveBeenCalled();
+  });
+
+  it('보류 목록을 못 읽었으면 반영을 막고 다시 작성하라고 말한다', () => {
+    render(<AuthoringTodo service="MKT" 요청={줄({ held: [], heldOpen: 0, heldUnknown: true })} 할수={운영} 차이수={0} reload={reload} />);
+    expect((screen.getByRole('button', { name: '테스트 반영하기' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.')).toBeTruthy();
+  });
+
+  it('테스트 계정 있는 대상 서버가 없으면 고르기 대신 한 줄로 말하고 반영을 막는다', () => {
+    const 채운토스트 = { ...토스트, input: { params: { waitSec: 5 }, expected: { shownSec: 3 }, by: 'maxi', at: '2026-09-29T05:10:00.000Z' } };
+    render(<AuthoringTodo service="MKT" 요청={줄({ held: [채운토스트], heldOpen: 0, mergeEnvs: [] })} 할수={운영} 차이수={0} reload={reload} />);
+    expect(screen.queryByLabelText('대상 서버')).toBeNull();
+    expect(screen.getByText('테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.')).toBeTruthy();
+    expect((screen.getByRole('button', { name: '테스트 반영하기' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/3번 돌려/)).toBeTruthy();
   });
 
   it('보류가 없으면 진척도 설명도 없고 반영은 대상 서버 없이 보낸다', async () => {
@@ -165,13 +198,10 @@ describe('다음 단계의 보류 진척과 반영', () => {
 
   it('정방향이고 값을 채웠으면 대상 서버를 골라 함께 보낸다', async () => {
     const 채운토스트 = { ...토스트, input: { params: { waitSec: 5 }, expected: { shownSec: 3 }, by: 'maxi', at: '2026-09-29T05:10:00.000Z' } };
-    const envs = [
-      { env: 'dev', baseUrl: 'https://dev.x' },
-      { env: 'stg', baseUrl: 'https://stg.x' },
-    ];
     render(
-      <AuthoringTodo service="MKT" 요청={줄({ held: [채운토스트, 삭제글], heldOpen: 0 })} envs={envs} 할수={운영} 차이수={0} reload={reload} />,
+      <AuthoringTodo service="MKT" 요청={줄({ held: [채운토스트, 삭제글], heldOpen: 0, mergeEnvs: ['dev', 'stg'] })} 할수={운영} 차이수={0} reload={reload} />,
     );
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['dev', 'stg']);
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'stg' } });
     fireEvent.click(screen.getByRole('button', { name: '테스트 반영하기' }));
     await vi.waitFor(() => expect(머지).toHaveBeenCalledWith('MKT', 7, 'stg'));
@@ -183,7 +213,6 @@ describe('다음 단계의 보류 진척과 반영', () => {
       <AuthoringTodo
         service="MKT"
         요청={줄({ compare: true, env: 'stg', held: [채운토스트], heldOpen: 0 })}
-        envs={[{ env: 'stg', baseUrl: 'https://stg.x' }]}
         할수={운영}
         차이수={0}
         reload={reload}

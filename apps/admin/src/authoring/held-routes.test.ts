@@ -1,4 +1,4 @@
-// 보류 케이스 통로 검사 — 끝내기 모양 · 값 넣기 · 상세 · 머지 막기 · 집기 (SPEC 도메인/작성 §3.6 「★ 보류 케이스」 · §7)
+// 보류 케이스 통로 검사 — 끝내기 모양 · 입력 옮기기 · 값 넣기 · 되돌리기 (SPEC 도메인/작성 §3.6 「★ 보류 케이스」 · §7)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -26,7 +26,6 @@ const 쿠폰: 보류 = {
     { side: 'expected', key: 'total', description: '최종 금액', type: 'number' },
   ],
 };
-const 다채움 = { 'XWLR-001': { params: { wait: 3 }, expected: { total: 1 }, by: 사람, at: 'x' } };
 const 날짜: 보류 ={ tcId: 'XWLR-002', file: 'tests/xwlr/date.spec.ts', kind: 'ON_HOLD', reason: '보류 — 날짜', fields: [] };
 
 describe('등급과 경계', () => {
@@ -94,7 +93,6 @@ describe.skipIf(연결 === undefined)('보류 통로', () => {
   const 부르기 = (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, payload?: object) =>
     app.inject({ method, url, ...(payload === undefined ? {} : { payload }) });
   const 값넣기 = (id: number, tcId: string, 몸: object) => 부르기('PUT', `/api/authoring/requests/${id}/held/${tcId}`, 몸);
-  const 머지 = (몸: object) => 부르기('POST', `/api/authoring/merges?service=${접두사}`, 몸);
 
   beforeAll(async () => {
     const p = await pool();
@@ -146,6 +144,9 @@ describe.skipIf(연결 === undefined)('보류 통로', () => {
       ['enum 에 선택지 없음', { held: [{ ...쿠폰, fields: [{ side: 'params', key: 'a', description: 'a', type: 'enum' }] }] }],
       ['모르는 키', { held: [{ ...쿠폰, extra: 1 }] }],
       ['tcId 중복', { held: [쿠폰, 쿠폰] }],
+      ['이름이 글이 아님', { held: [{ ...쿠폰, name: 3 }] }],
+      ['이름이 300자 넘음', { held: [{ ...쿠폰, name: '가'.repeat(301) }] }],
+      ['heldUnknown 이 true 가 아님', { heldUnknown: 'yes' }],
     ])('%s 이면 400 BAD_HELD 이고 행은 도는 중으로 남는다', async (_이름, result) => {
       부르는이 = 맥;
       const id = await 넣기({ status: 'RUNNING' });
@@ -159,8 +160,26 @@ describe.skipIf(연결 === undefined)('보류 통로', () => {
     it('맞는 모양이면 받는다', async () => {
       부르는이 = 맥;
       const id = await 넣기({ status: 'RUNNING' });
-      const r = await 부르기('POST', `/api/authoring/requests/${id}/finish`, { status: 'DONE', result: { held: [쿠폰, 날짜] } });
+      const 이름붙은 = { ...쿠폰, name: '쿠폰 두 장을 겹쳐 쓰면 최종 금액이 기준대로 나온다' };
+      const r = await 부르기('POST', `/api/authoring/requests/${id}/finish`, { status: 'DONE', result: { held: [이름붙은, 날짜] } });
       expect(r.statusCode).toBe(200);
+      const 다른 = await 넣기({ status: 'RUNNING' });
+      const 모름 = await 부르기('POST', `/api/authoring/requests/${다른}/finish`, { status: 'DONE', result: { heldUnknown: true } });
+      expect(모름.statusCode).toBe(200);
+    });
+
+    it('옮길 입력보다 새 행에 이미 들어온 입력이 이긴다', async () => {
+      const 앞 = await 넣기({
+        status: 'DONE',
+        held: [쿠폰],
+        input: { 'XWLR-001': { params: { wait: 3 }, expected: { total: 100 }, by: 사람, at: '2026-09-29T00:00:00.000Z' } },
+      });
+      const 새입력 = { 'XWLR-001': { params: { wait: 9 }, expected: { total: 7 }, by: 'xwlr2', at: '2026-09-29T01:00:00.000Z' } };
+      const 새 = await 넣기({ status: 'RUNNING', kind: 'RERUN', source: 앞, input: 새입력 });
+      부르는이 = 맥;
+      const r = await 부르기('POST', `/api/authoring/requests/${새}/finish`, { status: 'DONE', result: { held: [쿠폰] } });
+      expect(r.statusCode).toBe(200);
+      expect(await 입력(새)).toEqual(새입력);
     });
 
     it('DONE 이면 앞 끝난 실행의 입력 가운데 같은 tcId · 같은 칸만 옮긴다', async () => {
@@ -246,96 +265,6 @@ describe.skipIf(연결 === undefined)('보류 통로', () => {
       const id = await 넣기({ status: 'DONE', held: [쿠폰] });
       await 넣기({ status: 'FAILED', kind: 'MERGE', source: id });
       expect((await 값넣기(id, 'XWLR-001', { removed: true })).statusCode).toBe(200);
-    });
-  });
-
-  describe('상세 held[] · heldOpen', () => {
-    it('result.held 한 줄마다 입력을 붙이고 남은 수를 센다', async () => {
-      const id = await 넣기({
-        status: 'DONE',
-        held: [쿠폰, 날짜],
-        input: { 'XWLR-001': { params: { wait: 3 }, expected: { total: 1 }, by: 사람, at: 'x' } },
-      });
-      const r = (await 부르기('GET', `/api/authoring/requests/${id}`)).json();
-      expect(r.heldOpen).toBe(1);
-      expect(r.held).toEqual([
-        { ...쿠폰, input: { params: { wait: 3 }, expected: { total: 1 }, by: 사람, at: 'x' } },
-        { ...날짜, input: null },
-      ]);
-    });
-
-    it('보류가 없으면 held: [] · heldOpen: 0', async () => {
-      const id = await 넣기({ status: 'DONE' });
-      const r = (await 부르기('GET', `/api/authoring/requests/${id}`)).json();
-      expect(r).toMatchObject({ held: [], heldOpen: 0 });
-    });
-  });
-
-  describe('머지 { sourceId, env? }', () => {
-
-    it('남은 보류가 있으면 409 HELD_OPEN', async () => {
-      const id = await 넣기({ status: 'DONE', held: [쿠폰] });
-      expect((await 머지({ sourceId: id })).json()).toMatchObject({ error: 'HELD_OPEN' });
-    });
-
-    it('정방향이고 채운 보류가 있으면 테스트 계정 있는 env 가 필수', async () => {
-      const id = await 넣기({ status: 'DONE', held: [쿠폰], input: 다채움 });
-      expect((await 머지({ sourceId: id })).json()).toMatchObject({ error: 'BAD_ENV' });
-      expect((await 머지({ sourceId: id, env: 'prod' })).json()).toMatchObject({ error: 'BAD_ENV' });
-      expect((await 머지({ sourceId: id, env: 'nope' })).json()).toMatchObject({ error: 'BAD_ENV' });
-      expect((await 머지({ sourceId: id, env: 'stg' })).statusCode).toBe(201);
-    });
-
-    it('제거만 했으면 env 없이 된다', async () => {
-      const id = await 넣기({ status: 'DONE', held: [날짜], input: { 'XWLR-002': { removed: true, by: 사람, at: 'x' } } });
-      expect((await 머지({ sourceId: id })).statusCode).toBe(201);
-    });
-
-    it('대조 원본은 env 를 물려받고 env 가 오면 400 BAD_ENV', async () => {
-      const id = await 넣기({ status: 'DONE', held: [쿠폰], input: 다채움, env: 'stg' });
-      expect((await 머지({ sourceId: id, env: 'stg' })).json()).toMatchObject({ error: 'BAD_ENV' });
-      expect((await 머지({ sourceId: id })).statusCode).toBe(201);
-    });
-  });
-
-  describe('집기(MERGE) held · target', () => {
-    const 집기 = async () => {
-      부르는이 = 맥;
-      return (await 부르기('POST', `/api/authoring/requests/claim?service=${접두사}`)).json();
-    };
-
-    it('대조 원본의 머지면 입력(by · at 뺀)과 원본 env 줄의 target 을 싣는다', async () => {
-      const id = await 넣기({
-        status: 'DONE',
-        held: [쿠폰, 날짜],
-        env: 'stg',
-        input: {
-          'XWLR-001': { params: { wait: 3 }, expected: { total: 1 }, by: 사람, at: 'x' },
-          'XWLR-002': { removed: true, by: 사람, at: 'x' },
-        },
-      });
-      expect((await 머지({ sourceId: id })).statusCode).toBe(201);
-      const r = await 집기();
-      expect(r.kind).toBe('MERGE');
-      expect(r.held).toEqual({ 'XWLR-001': { params: { wait: 3 }, expected: { total: 1 } }, 'XWLR-002': { removed: true } });
-      expect(r.target).toEqual({ env: 'stg', baseUrl: 'https://stg.xwlr.test', loginId: 'tester', loginPassword: 'pw-xwlr' });
-    });
-
-    it('정방향 머지면 머지 요청의 env 줄을 target 으로 싣는다', async () => {
-      const id = await 넣기({ status: 'DONE', held: [쿠폰], input: 다채움 });
-      expect((await 머지({ sourceId: id, env: 'stg' })).statusCode).toBe(201);
-      const r = await 집기();
-      expect(r.held).toEqual({ 'XWLR-001': { params: { wait: 3 }, expected: { total: 1 } } });
-      expect(r.target).toEqual({ env: 'stg', baseUrl: 'https://stg.xwlr.test', loginId: 'tester', loginPassword: 'pw-xwlr' });
-    });
-
-    it('입력이 없으면 두 키 자체가 없다', async () => {
-      const id = await 넣기({ status: 'DONE' });
-      expect((await 머지({ sourceId: id })).statusCode).toBe(201);
-      const r = await 집기();
-      expect(r.kind).toBe('MERGE');
-      expect('held' in r).toBe(false);
-      expect('target' in r).toBe(false);
     });
   });
 });

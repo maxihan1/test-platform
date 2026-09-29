@@ -10,6 +10,7 @@ import { message, when } from './ui.js';
 // 보류 통로에서만 만나는 서버 코드. 모르면 공통 번역(message)으로 넘긴다 — AuthoringNew 의 작성오류와 같은 모양
 const 보류오류: Record<string, string> = {
   HELD_OPEN: '보류 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요',
+  HELD_UNKNOWN: '보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.',
   MERGE_ACTIVE: '반영이 대기 중이거나 도는 중이라 지금은 값을 바꿀 수 없습니다',
   BAD_HELD: '넣은 값이 이 케이스의 칸과 맞지 않습니다',
 };
@@ -49,9 +50,10 @@ export function 보류진척({ 표, held }: { 표: string; held: 보류줄[] }) 
       <div className="status-bar held-bar" aria-hidden="true">
         <i style={{ width: `${String(Math.round(((채움 + 제거) / 전체) * 100))}%` }} />
       </div>
-      <a className="btn ghost" href="#held">
+      {/* 링크(#held)는 해시 라우터 주소(#/authoring/7)를 덮어 「없는 주소」로 간다 — 주소는 두고 내려가기만 한다 */}
+      <button className="btn ghost" type="button" onClick={() => document.getElementById('held')?.scrollIntoView()}>
         {t('보류 케이스로 가기')}
-      </a>
+      </button>
     </일>
   );
 }
@@ -193,7 +195,17 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                         {h.kind === 'UNDECIDABLE' ? t('판정 불가') : t('보류')}
                       </span>
                     </td>
-                    <td className={s === 'removed' ? 'mono held-rm' : 'mono'}>{h.file}</td>
+                    <td className={s === 'removed' ? 'held-rm' : undefined}>
+                      {h.name === undefined ? (
+                        <span className="mono">{h.file}</span>
+                      ) : (
+                        <>
+                          {h.name}
+                          <br />
+                          <span className="mono held-path">{h.file}</span>
+                        </>
+                      )}
+                    </td>
                     <td>{머리뗀(h.reason)}</td>
                     <td className="held-state">
                       <span className={s === 'removed' ? 'held-rm' : undefined}>{상태글[s]}</span>
@@ -232,20 +244,23 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                     <tr className="open">
                       <td />
                       <td colSpan={4}>
-                        <div className="held-fields">
-                          {h.fields.map((f) => (
-                            <입력칸
-                              key={칸이름(f)}
-                              f={f}
-                              값={초안들[칸이름(f)] ?? ''}
-                              바꿈={(v) => set초안들((앞) => ({ ...앞, [칸이름(f)]: v }))}
-                              벗어남={(v) => 저장(h, 칸이름(f), v)}
-                            />
-                          ))}
+                        {/* 좁은 화면에서 표가 옆으로 밀리면 펼친 칸이 화면 밖에 그려진다 — 보이는 자리에 붙인다 */}
+                        <div className="held-open">
+                          <div className="held-fields">
+                            {h.fields.map((f) => (
+                              <입력칸
+                                key={칸이름(f)}
+                                f={f}
+                                값={초안들[칸이름(f)] ?? ''}
+                                바꿈={(v) => set초안들((앞) => ({ ...앞, [칸이름(f)]: v }))}
+                                벗어남={(v) => 저장(h, 칸이름(f), v)}
+                              />
+                            ))}
+                          </div>
+                          <p className={알림?.tcId === h.tcId && 알림.오류 ? 'error-text' : 'hint'}>
+                            {알림?.tcId === h.tcId ? 알림.글 : t('칸을 벗어나면 바로 저장됩니다')}
+                          </p>
                         </div>
-                        <p className={알림?.tcId === h.tcId && 알림.오류 ? 'error-text' : 'hint'}>
-                          {알림?.tcId === h.tcId ? 알림.글 : t('칸을 벗어나면 바로 저장됩니다')}
-                        </p>
                       </td>
                     </tr>
                   ) : null}

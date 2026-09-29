@@ -249,4 +249,7 @@ export const 작성말: Record<string, string> = {
   '보류 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요': 'Held cases remain, so this cannot be merged yet. Try refreshing.',
   '반영이 대기 중이거나 도는 중이라 지금은 값을 바꿀 수 없습니다': 'A merge is queued or running, so values cannot be changed now',
   '넣은 값이 이 케이스의 칸과 맞지 않습니다': 'The values do not match this case’s fields',
+  '보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.': 'Could not read the held cases. Run it again with the same materials.',
+  '테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.':
+    'No target server has a test account. Add one in Settings > Services.',
 };

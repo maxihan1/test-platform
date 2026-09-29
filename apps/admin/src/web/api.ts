@@ -342,6 +342,10 @@ export interface AuthoringRow {
   held?: AuthoringHeld[];
   /** 값도 제거도 안 된 보류 수. 0 보다 크면 서버가 반영을 막는다(HELD_OPEN) */
   heldOpen?: number;
+  /** 에이전트가 보류 목록을 못 읽었다. 참이면 서버가 반영을 막는다(HELD_UNKNOWN) */
+  heldUnknown?: boolean;
+  /** 반영 때 고를 수 있는 대상 서버 — 테스트 계정이 있는 줄 이름. 정방향 보류에만 온다 */
+  mergeEnvs?: string[];
 }
 
 export type AuthoringHeldValue = string | number | boolean;
@@ -366,6 +370,8 @@ export interface AuthoringHeldInput {
 /** 서버 `authoring/held.ts` 의 보류 + input. 케이스 이름 · 요구 번호는 오지 않는다 */
 export interface AuthoringHeld {
   tcId: string;
+  /** 케이스 이름 — 옛 결과에는 없다(그때는 파일 경로를 보인다) */
+  name?: string;
   file: string;
   kind: 'UNDECIDABLE' | 'ON_HOLD';
   reason: string;
