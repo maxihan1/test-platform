@@ -137,8 +137,11 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
       .catch((err: unknown) => set알림({ tcId, 글: 보류오류문장(err, 언어), 오류: true }));
   }
 
-  function 편다(h: 보류줄) {
+  function 편다(h: 보류줄, 누른것?: HTMLElement) {
     if (열린 === h.tcId) return set열린(null);
+    // 좁은 화면에서 표가 오른쪽으로 밀린 채 펼치면 입력 칸이 화면 밖(왼쪽)에 그려진다 — 표를 왼쪽 끝으로 되돌린다
+    const 표자리 = 누른것?.closest('.authoring-diffs-wrap');
+    if (표자리) 표자리.scrollLeft = 0;
     set열린(h.tcId);
     set알림(null);
     set초안들(Object.fromEntries(h.fields.map((f) => [칸이름(f), String(h.input?.[f.side]?.[f.key] ?? '')])));
@@ -225,7 +228,7 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                       ) : (
                         <>
                           {h.fields.length === 0 ? null : (
-                            <button className="btn ghost" type="button" aria-expanded={펼침} onClick={() => 편다(h)}>
+                            <button className="btn ghost" type="button" aria-expanded={펼침} onClick={(e) => 편다(h, e.currentTarget)}>
                               {펼침 ? t('접기') : t('값 넣기')}
                             </button>
                           )}
@@ -242,9 +245,7 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                   </tr>
                   {펼침 ? (
                     <tr className="open">
-                      <td />
-                      <td colSpan={4}>
-                        {/* 좁은 화면에서 표가 옆으로 밀리면 펼친 칸이 화면 밖에 그려진다 — 보이는 자리에 붙인다 */}
+                      <td colSpan={5}>
                         <div className="held-open">
                           <div className="held-fields">
                             {h.fields.map((f) => (
