@@ -166,9 +166,11 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
   // **어제도 그제도 깨져 있던 케이스가 전부 「이번에 새로 깨졌습니다」로 뜬다.**
   // 같은 서비스·같은 대상 서버에 도는 실행이 둘일 수 있다 — 막는 장치가 없다 (execution/dispatcher.ts).
   // RunInsights 가 **이번** 실행이 도는 중이면 안 부르는 것과 같은 이유이고, 그 거울상이다
+  //
+  // 시나리오 실행은 run_item 이 없어 고르면 모든 케이스가 「빠졌다」로 뜬다 (도메인/시나리오 §3.7 결정 10)
   const 앞 = await pool.query<{ run_id: string; started_at: Date; base_url: string }>(
     `SELECT run_id, started_at, base_url FROM test_run
-     WHERE service_id = $1 AND env = $2 AND started_at < $3 AND status <> 'RUNNING'
+     WHERE service_id = $1 AND env = $2 AND started_at < $3 AND status <> 'RUNNING' AND kind = 'CASE'
      ORDER BY started_at DESC
      LIMIT 1`,
     [현재.service_id, 현재.env, 현재.started_at],

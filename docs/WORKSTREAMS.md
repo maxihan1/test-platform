@@ -2,6 +2,9 @@
 
 > Phase 0가 끝나기 전에는 **절대 병렬로 시작하지 않는다.**
 > Phase 0는 계약을 확정하는 단계이고, 계약이 없으면 각 세션이 서로 다른 구조를 가정한다.
+>
+> **짝 문서 `docs/wbs.md`(진행판 원본)와 같이 움직인다** (2026-09-29). 여기 항목에 `✅`·`반영 완료` 와 PR 번호를 달면
+> wbs 의 그 태스크도 `[x]` 여야 한다 — 어긋나면 `npm run check:wbs` 가 CI 에서 막는다. 찍는 자리는 `tpx-merge` Step 1 이다.
 
 ---
 
@@ -35,21 +38,29 @@
    **이미지에서만 드러나는 것이 있었다** — 고정 spec 이 kit 을 값으로 부르면 `/tests`(require)와 섞여 죽는다. CI(Node 22)는 이것을 재현하지 못한다(러너 §5.2)
 3. ✅ **WS-A (PR #101, 2026-09-29)** — K12 검사기(`catalog/rules.ts`) · 「만들기」 판별 `caseSteps(소스)` → `{ steps: [{ title, line, skippable }], r16, usesRequest }`(`catalog/steps.ts`) ·
    `tpx-cases` R16 에 K12. **애매하면 「만들기」로 안 친다**(게이트 1 — 시나리오 §3.7). 4번 서버의 `case-parts` 응답은 이 함수 결과에서 `line` 만 빼면 된다
-4. **WS-B 서버 + WS-F** — `/api/scenarios/**` · 시험 실행(메모리 · 24시간 · 시작한 사람만) · 줄 세우기(동시성 상한 공유) · 재기동 복구 ·
-   **`test_run` 을 읽는 조회 전부에 `kind` 거르기**(`grep -rln "FROM test_run\|JOIN test_run" apps/admin/src` 로 센다) · `GET /api/runs?kind=` · 시나리오 실행 중단 409 ·
-   권한 두 줄(도메인/인증 §7 표) · **`auth/gate.ts` 등급표와 `auth/scope.ts` 라우트표 둘에 새 통로를 같이 넣는다** ·
-   **`spec-review` 체크리스트에 「`test_run` 조회에 `kind` 조건이 있는가」 항목을 더한다** — 규칙만 서고 검사가 없으면 새 조회가 조용히 섞는다.
-   **Grafana 질의의 `kind = 'CASE'` 가 먼저 들어가 있거나 이 PR 에 같이 둔다** — `grafana_ro` 는 `test_run` 을 표째로 읽어 시나리오 실행을 만드는 순간 패널에 섞인다(6번 WS-D 를 기다리면 그 사이가 빈다).
-   **디바이스는 버전 표에 있다**(PR #98) — 목록·상세의 `platform` 은 최신 버전 값이다. `GET /api/runs/:runId/scenario` 응답과 E2E 증적 머리(6번)에 그 실행의 디바이스를 실을지 착수할 때 정한다 — 지금 명세에는 안 나온다
-   **러너가 보장하는 것**(러너 §5.2) — 부품 오류 `NOT_RUN` 은 「앞 부품 실패」만, 줄 없이 끝난 부품은 `FAIL`+오류 꼬리 · `trialId` 는 UUID 만 받는다(admin 이 `crypto.randomUUID()`) ·
-   디바이스를 선언 안 한 케이스는 부품 `FAIL` · HTTP 타임아웃은 `timeoutMs + 30초` · API 경로 `//` 는 러너가 400 — **서버도 저장 때 막는다**(시나리오 §7) ·
-   `skipSteps` 가 「만들기」 절차 제목인지 러너는 안 가린다 — **서버가 조립 때 막는다**(시나리오 §7 `skippable`)
+4. **WS-B 서버 + WS-F — PR 셋으로 나눴다** (2026-09-29 사용자). ① 이 먼저 들어가야 ③ 이 시나리오 실행을 만들어도 케이스 자리에 안 섞인다.
    서버 코드 자리는 WS-시나리오(`apps/admin/src/scenario/**`) 이고, 기존 조회에 `kind` 를 붙이는 것은 각 갈래 폴더를 건드린다 — 계획의 `files` 에 싣는다
+   - ✅ **① 안전장치 (PR #106, 2026-09-29)** — **`test_run` 을 여러 행 훑는 조회에 `kind = 'CASE'`**(목록·머리 집계 `거르는조건` · 견주기 「직전 실행」) ·
+     Grafana `test_run` 을 읽는 패널 전부에 `kind = 'CASE'` · 시나리오 실행 중단 409 `NOT_ABORTABLE`(오류 글자는 게이트 1 사용자) · 재기동 복구가 안 끝난 부품을 `NA` + `ABORTED` 로(부품 먼저 · 실행 나중) ·
+     `spec-review` B12. **번호 하나로 짚는 조회와 `run_item` 을 거치는 조회는 거르지 않았다** — 지금은 시나리오 실행이 없어 안 섞인다. **명세(시나리오 §3.7 결정 10 · 실행 §3.2)는 「전부」라 적었다** —
+     단건 조회는 ③ 이 닫는다(아래). `run_item` 경유(케이스 이력)는 구조상 안 섞이므로 명세에 예외로 적을지 ③ 에서 정한다(§1.2 승인)
+   - **② 저장 + 권한** — `/api/scenarios` 목록·만들기·상세·버전·`PUT`(409 `STALE_VERSION`)·되돌리기·치우기 · `case-parts/:tcId`(`caseSteps(소스)` 결과에서 `line` 만 뺀다) ·
+     400 조립 거절 전부(시나리오 §7 — API 경로 `//` 는 러너도 400 이지만 **서버가 저장 때 막는다** · `skipSteps` 가 `skippable` 인지 러너는 안 가린다 — **서버가 조립 때 막는다**) ·
+     결정 8 점검(`needsCheck` · `runnable` · `checks`) · 권한 두 줄(도메인/인증 §7 표) · **`auth/routeTable.ts` 등급표와 `auth/scope.ts` 라우트표 둘에 새 통로를 같이 넣는다** —
+     새 폴더면 `scope.test.ts` 의 읽은 폴더 목록과 `gate.test.ts` 의 경로→기능 정규식도 손본다. 시나리오 번호로 서비스를 찾는 원천 종류가 새로 는다(`scope.ts` 의 `찾을것`·`질의`)
+   - **③ 실행 + 시험 실행** — `POST /api/scenarios/:id/runs` · 줄 세우기(`execution/dispatcher.ts` 의 `enqueue` 로 케이스와 같은 상한) · 러너 `/execute-scenario` 호출 · 결과를 `scenario_run_part`·`scenario_run_step` 에 ·
+     `GET /api/runs/:runId/scenario` · 사진 두 통로 · 시험 실행(메모리 · 24시간 · 시작한 사람만 · 새 시험 때 24시간 지난 `trial/*` 치우기) · `GET /api/runs?kind=scenario`(줄마다 `{ scenarioId, version, partCount, stoppedAt }`) ·
+     §7 계약 블록 `반영 완료`. **① 이 남긴 틈 둘을 여기서 막거나 WS-D 로 넘긴다** — `GET /api/runs/:runId`(`findRun`)가 시나리오 실행을 항목 0건인 케이스 실행 모양으로 내고,
+     `POST /api/runs/:runId/evidence` 가 빈 케이스 증적을 만든다(증적은 WS-D 가 E2E 증적으로 받는다 — 리포팅 §8.4).
+     **`execution/store.ts` 의 `finishRun` 을 시나리오에 그대로 쓰지 않는다** — `run_item` 이 0건이라 `NOT EXISTS` 가 늘 참이어서 부르는 즉시 `FINISHED` 가 된다(PR #106 코드 검토).
+     **디바이스는 버전 표에 있다**(PR #98) — 목록·상세의 `platform` 은 최신 버전 값이다. `GET /api/runs/:runId/scenario` 응답과 E2E 증적 머리(6번)에 그 실행의 디바이스를 실을지 착수할 때 정한다 — 지금 명세에는 안 나온다
+     **러너가 보장하는 것**(러너 §5.2) — 부품 오류 `NOT_RUN` 은 「앞 부품 실패」만, 줄 없이 끝난 부품은 `FAIL`+오류 꼬리 · `trialId` 는 UUID 만 받는다(admin 이 `crypto.randomUUID()`) ·
+     디바이스를 선언 안 한 케이스는 부품 `FAIL` · HTTP 타임아웃은 `timeoutMs + 30초`
 5. **WS-E 화면** — **시안 먼저**(목업 다섯 장이 모양의 정본 — 도메인/시나리오 §8.11) · 목록 · 조립 · 시험 실행 · 결과 · 실행 기록 탭 ·
    자리 `E2E 시나리오`(`layout.ts` 의 `자리목록()`, 영어 `E2E scenarios` 는 `messages/shell.ts`) · **코드 주석에 남은 「자리 넷」**(`layout.ts` · `messages/shell.ts`) ·
    `docs/design-mockup.html` 사이드바(코드에 들어간 뒤에 그린다 — 목업 머리 주석) · `E2E 시나리오` 폭을 화면에서 눈으로 확인
 6. **WS-D 증적** — E2E 증적(부품 층 · 모킹 한 줄 · 건너뜀) · 전체 증적의 E2E 요약 · **`reporting/html.test.ts` 의 `httpTrace` 금지를 한 줄 예외만큼 연다** ·
-   Grafana 대시보드 질의에 `kind = 'CASE'`. 명세 도메인/리포팅 §8.4 「E2E 시나리오 증적」 · §8.5
+   명세 도메인/리포팅 §8.4 「E2E 시나리오 증적」 · §8.5. (Grafana 질의의 `kind = 'CASE'` 는 4번 ① 이 넣었다)
 
 ## 🔐 인증·권한 개편 — ✅ 끝 (2026-09-28 · 명세 #90 · 서비스별 권한 #93 · 가입·첫 admin #95 · Grafana #96)
 

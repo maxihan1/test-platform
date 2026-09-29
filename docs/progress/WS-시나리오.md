@@ -31,3 +31,9 @@
 - 미완: 서버(WS-B) · 화면(WS-E) · 증적(WS-D)
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 서버 `GET /api/scenarios/case-parts/:tcId` 는 `caseSteps(파일 본문)` 을 부르고 `line` 만 뺀다. 조립 저장 때 `skipSteps` 가 `skippable` 인지도 같은 결과로 가린다. 다음은 WORKSTREAMS 4 WS-B
+
+## 2026-09-29 (2)
+- 완료: 서버를 PR 셋으로 나눔(사용자). ① 안전장치 PR #106 — 실행 목록·머리 집계(`거르는조건`)와 견주기 「직전 실행」에 `kind = 'CASE'` · Grafana `test_run` 패널 넷에 `kind = 'CASE'` · 시나리오 실행 중단 409 `NOT_ABORTABLE`(게이트 1 사용자) · 재기동 복구가 안 끝난 부품을 `NA` + `ABORTED` 로(부품 먼저 · 실행 나중) · `spec-review` B12
+- 미완: ② 저장·버전·부품 재료·권한 표 · ③ 실행·시험 실행·사진·`?kind=scenario` · 화면(WS-E) · 증적(WS-D)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 번호 하나로 짚는 조회(`findRun`·증적)는 거르지 않았다 — ③ 이 시나리오 실행을 만들면 케이스 모양으로 나온다(WORKSTREAMS 4번 ③ 줄). 검사 `apps/admin/src/execution/kind.test.ts`(접두사 `XBK`). 앱을 띄우는 검사는 등록이 띄우는 `recoverRunning` 과 경합하므로 먼저 한 번 `await recoverRunning()` 한다
