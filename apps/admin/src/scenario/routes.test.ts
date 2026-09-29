@@ -32,7 +32,7 @@ describe.skipIf(연결 === undefined)('시나리오 API', () => {
   let 서비스 = 0;
   let 뿌리 = '';
   const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
-  const 번호들 = ['XSR-001', 'XSR-002'];
+  const 번호들 = ['XSR-001', 'XSR-002', 'XSR-003'];
 
   const q = async (sql: string, 값: unknown[] = []) => {
     const { pool } = await import('../db/index.js');
@@ -76,9 +76,9 @@ describe.skipIf(연결 === undefined)('시나리오 API', () => {
     for (const tcId of 번호들) {
       await q(
         `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active)
-         VALUES ($1, $1 || ' 이름', '["desktop"]', '[]', 'xsr/a.spec.ts', '{}', '{}', true)
+         VALUES ($1, $1 || ' 이름', '["desktop"]', '[]', $2, '{}', '{}', true)
          ON CONFLICT (tc_id) DO UPDATE SET file_path = EXCLUDED.file_path, is_active = true`,
-        [tcId],
+        [tcId, tcId === 'XSR-003' ? '../밖.spec.ts' : 'xsr/a.spec.ts'],
       );
     }
 
@@ -222,11 +222,58 @@ describe.skipIf(연결 === undefined)('시나리오 API', () => {
     expect(상세.json<{ checks: unknown }>().checks).toEqual([{ seq: 1, reason: 'STEP_GONE' }]);
   });
 
+  it('tests 뿌리 밖 경로 케이스를 쓴 시나리오도 목록·상세가 200 이고 실행할 수 없다', async () => {
+    const { id } = await 만들기(서비스, 'XSR 밖', 'desktop', [케이스('XSR-003')], { username: 'xsr', displayName: '검사 사람' });
+    const 목록 = await app.inject({ method: 'GET', url: '/api/scenarios?service=XSR' });
+    expect(목록.statusCode).toBe(200);
+    expect(목록.json<{ items: { id: number; runnable: boolean }[] }>().items.find((s) => s.id === id)?.runnable).toBe(false);
+    const 상세 = await app.inject({ method: 'GET', url: `/api/scenarios/${id}` });
+    expect(상세.statusCode).toBe(200);
+    expect(상세.json<{ checks: unknown }>().checks).toEqual([{ seq: 1, reason: 'CASE_INACTIVE' }]);
+    expect(상세.body).not.toContain('밖.spec.ts');
+    expect((await app.inject({ method: 'GET', url: '/api/scenarios/case-parts/XSR-003' })).statusCode).toBe(404);
+  });
+
   it('치우면 204 이고 목록에서 빠진다', async () => {
     const { id } = (await 만들기요청({})).json<{ id: number }>();
     expect((await app.inject({ method: 'POST', url: `/api/scenarios/${id}/archive` })).statusCode).toBe(204);
     const 목록 = await app.inject({ method: 'GET', url: '/api/scenarios?service=XSR' });
     expect(목록.json<{ items: { id: number }[] }>().items.map((s) => s.id)).not.toContain(id);
+  });
+
+  const 버전수 = async (id: number) =>
+    Number((await q('SELECT count(*) AS n FROM scenario_version WHERE scenario_id = $1', [id])).rows[0].n);
+  const 고치기와되돌리기 = (id: number) =>
+    [
+      { method: 'PUT', url: `/api/scenarios/${id}`, payload: { name: 'XSR 고침', platform: 'desktop', parts: [케이스('XSR-001')], baseVersion: 1 } },
+      { method: 'POST', url: `/api/scenarios/${id}/restore`, payload: { version: 1 } },
+    ] as const;
+
+  it('치운 시나리오의 고치기·되돌리기는 409 SCENARIO_ARCHIVED 이고 새 버전이 안 생긴다', async () => {
+    const { id } = (await 만들기요청({})).json<{ id: number }>();
+    await app.inject({ method: 'POST', url: `/api/scenarios/${id}/archive` });
+    for (const 요청 of 고치기와되돌리기(id)) {
+      const res = await app.inject(요청);
+      expect(res.statusCode, 요청.url).toBe(409);
+      expect(res.json<{ error: string }>().error).toBe('SCENARIO_ARCHIVED');
+      expect(typeof res.json<{ detail: unknown }>().detail).toBe('string');
+    }
+    expect(await 버전수(id)).toBe(1);
+  });
+
+  it('비활성 서비스의 고치기·되돌리기는 400 INVALID_REQUEST 이고 새 버전이 안 생긴다', async () => {
+    const { id } = (await 만들기요청({})).json<{ id: number }>();
+    await q('UPDATE service SET is_active = false WHERE id = $1', [서비스]);
+    try {
+      for (const 요청 of 고치기와되돌리기(id)) {
+        const res = await app.inject(요청);
+        expect(res.statusCode, 요청.url).toBe(400);
+        expect(res.json()).toEqual({ error: 'INVALID_REQUEST', detail: '모르는 서비스다: XSR' });
+      }
+      expect(await 버전수(id)).toBe(1);
+    } finally {
+      await q('UPDATE service SET is_active = true WHERE id = $1', [서비스]);
+    }
   });
 
   it('목록은 service 가 없으면 400 SERVICE_REQUIRED 다', async () => {

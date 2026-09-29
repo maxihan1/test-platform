@@ -216,9 +216,10 @@ function 판정못낸사유(row: RawItem): string | null {
 
 export async function collectRun(runId: number): Promise<EvidenceDocument | null> {
   const pool = await db();
+  // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   const runs = await pool.query<RawRun>(
     `SELECT run_id, title, status, service_name, tests_repo, triggered_by_name, env, base_url, started_at
-       FROM test_run WHERE run_id = $1`,
+       FROM test_run WHERE run_id = $1 AND kind = 'CASE'`,
     [runId],
   );
   const run = runs.rows[0];

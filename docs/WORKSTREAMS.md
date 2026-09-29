@@ -51,26 +51,24 @@
      **PR #107 에서 정한 것** — `STEP_NEW` 는 명세에서 뺐다(게이트 0 사용자 — 저장된 부품에 그때의 절차 목록이 없어 못 가른다) · 상세 응답에 `service` · 만들기·고치기는 조립 검사 전부, **되돌리기는 모양만**(게이트 1) ·
      케이스 파일을 못 읽으면 그 케이스를 비활성으로 친다(점검 `CASE_INACTIVE` · 저장 400 · `case-parts` 404) · 조립 거절 400 `INVALID_REQUEST`(사유 여럿은 ` · ` 로 이음) · 없는 번호 404 `SCENARIO_NOT_FOUND` · 치우기 204 · 목록 `service` 없음 400 `SERVICE_REQUIRED` ·
      문법이 깨진 케이스 소스는 「만들기」를 못 끈다(`scenario/parts.ts` 가 `ts.transpileModule` 진단으로 먼저 본다 — `caseSteps` 는 깨진 소스에서도 절차를 찾는다) · 제한 시간 계산은 `scenario/validate.ts` 의 `시나리오제한시간`
-   - **③ 실행 + 시험 실행** — `POST /api/scenarios/:id/runs` · 줄 세우기(`execution/dispatcher.ts` 의 `enqueue` 로 케이스와 같은 상한) · 러너 `/execute-scenario` 호출 · 결과를 `scenario_run_part`·`scenario_run_step` 에 ·
-     `GET /api/runs/:runId/scenario` · 사진 두 통로 · 시험 실행(메모리 · 24시간 · 시작한 사람만 · 새 시험 때 24시간 지난 `trial/*` 치우기) · `GET /api/runs?kind=scenario`(줄마다 `{ scenarioId, version, partCount, stoppedAt }`) ·
-     §7 계약 블록 `반영 완료`. **① 이 남긴 틈 둘을 여기서 막거나 WS-D 로 넘긴다** — `GET /api/runs/:runId`(`findRun`)가 시나리오 실행을 항목 0건인 케이스 실행 모양으로 내고,
-     `POST /api/runs/:runId/evidence` 가 빈 케이스 증적을 만든다(증적은 WS-D 가 E2E 증적으로 받는다 — 리포팅 §8.4).
-     **② 가 넘긴 것** — 목록 `lastRun` 은 지금 늘 `null` 이다: 질의(`test_run.scenario_id` 색인이 없다 — `DISTINCT ON` 한 방)와 판정 접기(결정 9)를 진짜 실행 행으로 검사하며 만든다 ·
-     러너에 넘길 `timeoutMs` 는 `시나리오제한시간(parts)` 로 · 치운 시나리오(`is_active = false`)의 실행 여부를 정한다(되살리는 통로는 없다) · 되돌린 버전이 못 도는 조립이면 실행 요청 409(`runnable`)
-     **PR #107 검사가 넘긴 것(명세를 먼저 정한다)** — ① 케이스 없이 API·모킹만 있는 조립은 `시나리오제한시간` 이 0(러너는 `positive` 라 400)이고 `[api, wait 1]` 은 1ms 다 — API 부품에 몫을 주거나 최소값을 둔다 ·
-     ② 부품 수·글자 칸 길이 상한이 없다 — 러너는 조립 목록 JSON 120000바이트를 넘으면 400 이라 그 사이 크기는 저장만 되고 못 돈다(새 400 규칙이라 명세 변경) ·
-     ③ `PUT`·`restore` 가 치운 시나리오와 비활성 서비스의 시나리오에도 새 버전을 만든다(`POST` 는 비활성 서비스 400) — 치운 것의 실행 여부와 같이 정한다 ·
-     ④ 케이스 `file_path` 가 tests 뿌리 밖이면 `parts.ts` 가 던져 목록 전체가 500 · 뿌리 안의 심볼릭 링크는 따라간다 — `catalog/source.ts` 의 `readExcerpt` 와 같은 규칙이라 둘을 한 함수(`realpath` 비교)로 합칠 때 같이 고친다 ·
-     ⑤ 문법 깨진 소스 판별이 `scenario/parts.ts` 에만 있다(`caseSteps` 는 깨진 소스에서도 절차를 찾는다) — ③ 이 `caseSteps` 를 직접 부르면 같은 판별을 거친다
-     **`execution/store.ts` 의 `finishRun` 을 시나리오에 그대로 쓰지 않는다** — `run_item` 이 0건이라 `NOT EXISTS` 가 늘 참이어서 부르는 즉시 `FINISHED` 가 된다(PR #106 코드 검토).
-     **디바이스는 버전 표에 있다**(PR #98) — 목록·상세의 `platform` 은 최신 버전 값이다. `GET /api/runs/:runId/scenario` 응답과 E2E 증적 머리(6번)에 그 실행의 디바이스를 실을지 착수할 때 정한다 — 지금 명세에는 안 나온다
+   - ✅ **③-1 진짜 실행 (PR #109, 2026-09-29)** — 사용자가 ③ 을 둘로 나눴다(진짜 실행 → 시험 실행). `POST /api/scenarios/:id/runs`(`scenario/runRoutes.ts`) · `실행만들기`(`scenario/runStore.ts` — test_run `SCENARIO` + 부품 행 스냅샷) ·
+     `시나리오분배`·`결과저장`(`scenario/runResult.ts` — `enqueue` 로 케이스와 같은 상한 · 실행 행을 `RUNNING` 조건으로 먼저 닫고 0행이면 버림 · seq 짝 · 저장 실패는 부품 전부 NA 로 닫음 · `finishRun` 안 씀) ·
+     러너 호출 `callScenarioRunner`(`execution/runner.ts`) · `GET /api/runs/:runId/scenario`(`status`·`platform`·부품 스키마 셋) · 사진 `…/scenario/screenshots/:seq`(**절차 순번**) · 목록 `?kind=scenario`(E2E 탭 집계는 부품 판정 접기 — `scenario/verdict.ts`) · 시나리오 목록 `lastRun` ·
+     **게이트 0 사용자**(정본 명세 시나리오 §7 계약 블록 이유 줄) — 제한 시간 API 몫 30초 · 바닥 60초 · 부품 목록 100000바이트 400 · 치운 시나리오 409 `SCENARIO_ARCHIVED`(실행·고치기·되돌리기) · 단건 조회(`findRun`·증적·견주기) `kind='CASE'` → 시나리오 번호 404 · `run_item` 경유 조회 예외(명세 시나리오 §3.7 결정 10) ·
+     **게이트 1 사용자** — `runnable` 에 60분·크기·뿌리 밖 경로 · `GET /api/runs/:runId` 시나리오 번호 404 `SCENARIO_RUN`. ② 가 넘긴 ①②③ 은 닫았다. 정본 도메인/시나리오 §7
+   - **③-2 시험 실행** — `POST /api/scenario-trials` · `GET /api/scenario-trials/:trialId` · 사진 통로(메모리 · 24시간 · 시작한 사람만 · 새 시험 때 24시간 지난 `trial/*` 치우기 · `trialId` 는 `crypto.randomUUID()`) ·
+     러너 호출은 ③-1 의 `callScenarioRunner` 를 그대로 쓴다(`runId: null`, `trialId`) · 줄 세우기 `enqueue` 한 자리 · 조립 검사는 만들기와 같게 · 권한 두 표에 줄 셋 · §7 계약 블록을 `반영 완료` 로.
+     **남은 인계** — ② 인계 ④ 뿌리 밖 경로는 ③-1 게이트 2 에서 비활성으로 치게 고쳤다 · **뿌리 안 심볼릭 링크를 따라간다** — `catalog/source.ts` `readExcerpt` 와 한 함수(`realpath` 비교)로 합칠 때 같이 고친다 ·
+     ⑤ 문법 깨진 소스 판별은 `scenario/parts.ts` 에만 있다(`caseSteps` 를 직접 부르면 같은 판별을 거친다) · `test_run.scenario_id` 색인이 없다(`lastRun` 질의 — 수만 건이면 마이그레이션) · **실행 대기줄 상한이 없다** — 실행 쓰기 권한자가 60분짜리를 여러 번 누르면 케이스 실행까지 줄이 밀린다(케이스 `POST /api/runs` 도 같다 — 둘을 같이 정한다, PR #109 보안 검토)
      **러너가 보장하는 것**(러너 §5.2) — 부품 오류 `NOT_RUN` 은 「앞 부품 실패」만, 줄 없이 끝난 부품은 `FAIL`+오류 꼬리 · `trialId` 는 UUID 만 받는다(admin 이 `crypto.randomUUID()`) ·
      디바이스를 선언 안 한 케이스는 부품 `FAIL` · HTTP 타임아웃은 `timeoutMs + 30초`
 5. **WS-E 화면** — **시안 먼저**(목업 다섯 장이 모양의 정본 — 도메인/시나리오 §8.11) · 목록 · 조립 · 시험 실행 · 결과 · 실행 기록 탭 ·
    자리 `E2E 시나리오`(`layout.ts` 의 `자리목록()`, 영어 `E2E scenarios` 는 `messages/shell.ts`) · **코드 주석에 남은 「자리 넷」**(`layout.ts` · `messages/shell.ts`) ·
    `docs/design-mockup.html` 사이드바(코드에 들어간 뒤에 그린다 — 목업 머리 주석) · `E2E 시나리오` 폭을 화면에서 눈으로 확인
+   **결과 화면(`#/runs/:runId`)은 번호만 들고 온다** — `GET /api/runs/:runId` 가 404 `SCENARIO_RUN` 이면 `GET /api/runs/:runId/scenario` 로 갈아탄다(③-1). 목록 줄은 탭이 이미 가른다(`?kind=`) · 비밀값은 부품의 `paramSchema`·`expectedSchema` 로 가린다(`web/mask.ts`)
 6. **WS-D 증적** — E2E 증적(부품 층 · 모킹 한 줄 · 건너뜀) · 전체 증적의 E2E 요약 · **`reporting/html.test.ts` 의 `httpTrace` 금지를 한 줄 예외만큼 연다** ·
    명세 도메인/리포팅 §8.4 「E2E 시나리오 증적」 · §8.5. (Grafana 질의의 `kind = 'CASE'` 는 4번 ① 이 넣었다)
+   **③-1 이 막아 둔 것을 연다** — 증적 만들기·견주기가 시나리오 실행 번호에 404 다(`reporting/routes.ts` `실행상태` · `collect.ts` `collectRun` · `insights.ts` `compareWithPrevious` 의 `kind = 'CASE'`). E2E 증적을 만들 때 이 거르기를 `kind` 갈래로 바꾼다
 
 ## 🔐 인증·권한 개편 — ✅ 끝 (2026-09-28 · 명세 #90 · 서비스별 권한 #93 · 가입·첫 admin #95 · Grafana #96)
 

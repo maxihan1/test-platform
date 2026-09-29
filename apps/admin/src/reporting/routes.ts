@@ -20,7 +20,10 @@ const 증적본문 = z.object({
 // 있는지와 어떤 상태인지를 한 번에 묻는다. 둘로 나누면 같은 행을 두 번 왕복한다
 async function 실행상태(runId: number): Promise<string | null> {
   const { pool } = await import('../db/index.js');
-  const rows = await pool.query<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [runId]);
+  // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
+  const rows = await pool.query<{ status: string }>("SELECT status FROM test_run WHERE run_id = $1 AND kind = 'CASE'", [
+    runId,
+  ]);
   return rows.rows[0]?.status ?? null;
 }
 

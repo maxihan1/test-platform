@@ -26,9 +26,9 @@ export interface 케이스부품재료 {
 }
 
 /**
- * 없는 케이스 · 비활성 케이스 · 파일을 못 읽는 케이스는 **둘 다에서 빠진다** — 받는 쪽이 비활성으로 친다.
- * 파일이 없다고 던지면 git pull 뒤 스캔 전 한 건 때문에 그 서비스의 시나리오 목록 전체가 죽는다.
- * 던지는 것은 tests 뿌리 밖을 가리키는 경로 하나다 — 그건 고장이 아니라 막아야 할 값이다.
+ * 없는 케이스 · 비활성 케이스 · 파일을 못 읽는 케이스 · tests 뿌리 밖을 가리키는 케이스는 **둘 다에서 빠진다** —
+ * 받는 쪽이 비활성으로 친다. 던지면 한 건 때문에 그 서비스의 시나리오 목록 전체가 죽는다.
+ * 뿌리 밖 경로는 막아야 할 값이라 서버 로그에만 남긴다. 내부 경로를 응답에 싣지 않는다.
  *
  * `service` 를 주면 그 접두사의 케이스만 읽는다. 남의 서비스 케이스 파일을 열 까닭이 없다.
  */
@@ -47,7 +47,10 @@ export async function 케이스재료(
 
     const 경로 = resolve(뿌리, 행.filePath);
     // file_path 는 DB 를 거쳐 오지만 결국 파일을 여는 자리다 (catalog/source.ts readExcerpt 와 같은 규칙)
-    if (!경로.startsWith(뿌리 + sep)) throw new Error(`tests 폴더 밖의 경로다: ${tcId} ${행.filePath}`);
+    if (!경로.startsWith(뿌리 + sep)) {
+      console.warn(`tests 폴더 밖의 경로라 비활성으로 친다: ${tcId} ${행.filePath}`);
+      continue;
+    }
     let 소스: string;
     try {
       소스 = await readFile(경로, 'utf8');

@@ -3,7 +3,7 @@
 
 import type { ScenarioPart } from '@platform/kit';
 
-import type { 카탈로그 } from './validate.js';
+import { 제한시간크기사유, type 카탈로그 } from './validate.js';
 
 export interface 점검줄 {
   seq: number;
@@ -28,6 +28,7 @@ export function 점검(parts: ScenarioPart[], 재료: 카탈로그): 점검결�
   return {
     checks,
     needsCheck: checks.length > 0,
-    runnable: !checks.some((c) => c.reason === 'CASE_INACTIVE'),
+    // 옛 버전은 되돌리기로 60분·크기 규칙을 안 거치고 들어온다 — 러너 400 으로 쓰레기 실행이 남지 않게 여기서 막는다
+    runnable: !checks.some((c) => c.reason === 'CASE_INACTIVE') && 제한시간크기사유(parts).length === 0,
   };
 }

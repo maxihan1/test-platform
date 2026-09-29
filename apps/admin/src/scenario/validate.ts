@@ -36,12 +36,33 @@ export const 부품들모양: z.ZodType<ScenarioPart[]> = z.array(부품모양);
 export type 카탈로그 = Map<string, { platforms: Platform[]; isActive: boolean; skippable: string[] }>;
 
 const 케이스몫 = 300000;
+const API몫 = 30000;
 const 대기상한 = 60000;
+const 바닥 = 60000;
 const 제한시간상한 = 3600000;
+const 크기상한 = 100000;
+
+function 부품시간합(parts: ScenarioPart[]): number {
+  return parts.reduce(
+    (합, p) => 합 + (p.kind === 'case' ? 케이스몫 : p.kind === 'api' ? API몫 : p.kind === 'wait' ? p.ms : 0),
+    0,
+  );
+}
 
 /** 러너에 넘길 제한 시간. ③ 이 `timeoutMs` 로 쓴다 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」) */
 export function 시나리오제한시간(parts: ScenarioPart[]): number {
-  return parts.reduce((합, p) => 합 + (p.kind === 'case' ? 케이스몫 : p.kind === 'wait' ? p.ms : 0), 0);
+  return Math.max(부품시간합(parts), 바닥);
+}
+
+/** 60분·크기 상한 사유. 저장(조립검사)과 실행 가능 판정이 같은 것을 본다. 비면 통과다 */
+export function 제한시간크기사유(parts: ScenarioPart[]): string[] {
+  const 사유: string[] = [];
+  // 상한은 바닥 전 합으로 본다 — 바닥은 러너 몫이지 조립이 쓴 시간이 아니다
+  const 합 = 부품시간합(parts);
+  if (합 > 제한시간상한) 사유.push(`제한 시간 합이 ${합}ms 로 ${제한시간상한}ms 를 넘는다`);
+  const 크기 = Buffer.byteLength(JSON.stringify(parts));
+  if (크기 > 크기상한) 사유.push(`부품 목록이 ${크기}바이트로 ${크기상한}바이트를 넘는다`);
+  return 사유;
 }
 
 /** 거절 사유를 사람 말로 모은다. 비면 통과다. 되돌리기는 이것을 안 건다 (§7 restore) */
@@ -82,7 +103,5 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
     }
   });
 
-  const 합 = 시나리오제한시간(parts);
-  if (합 > 제한시간상한) 오류.push(`제한 시간 합이 ${합}ms 로 ${제한시간상한}ms 를 넘는다`);
-  return 오류;
+  return [...오류, ...제한시간크기사유(parts)];
 }
