@@ -3,11 +3,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   type 대상,
+  가림표,
+  가림표케이스,
   계정섞였나,
   글모두,
   대상점검,
   대상환경,
   되읽기인자,
+  비밀가리기,
   변환인자,
   사유거르기,
   올리기전검사,
@@ -140,6 +143,34 @@ describe('계정섞였나 — 올리는 글에 비밀번호 원문이 있나', (
     expect(계정섞였나(['케이스 본문'], 비밀)).toBe(false);
     expect(계정섞였나(['아무 글'], '')).toBe(false);
     expect(계정섞였나(['아무 글'], null)).toBe(false);
+  });
+});
+
+describe('비밀가리기 — 받은 자료·남은 파일에서 비밀번호를 가림표로 바꾼다', () => {
+  it('원문을 전부 가림표로 바꾼다', () => {
+    expect(비밀가리기('아이디 qa · 비밀번호 Pw9!x · 다시 Pw9!x', 'Pw9!x')).toBe(`아이디 qa · 비밀번호 ${가림표} · 다시 ${가림표}`);
+  });
+  it('JSON 에 이스케이프돼 적힌 꼴도 가린다', () => {
+    expect(비밀가리기('{"doc":"Ab\\"c9x"}', 'Ab"c9x')).toBe(`{"doc":"${가림표}"}`);
+  });
+  it('비밀이 없거나 비었으면 그대로다', () => {
+    expect(비밀가리기('Pw9!x', undefined)).toBe('Pw9!x');
+    expect(비밀가리기('Pw9!x', '')).toBe('Pw9!x');
+  });
+  it('가린 글에는 원문이 남지 않는다', () => {
+    expect(계정섞였나([비밀가리기('xxPw9!xPw9!xx', 'Pw9!x')], 'Pw9!x')).toBe(false);
+  });
+});
+
+describe('가림표케이스 — 케이스에 가림표가 남으면 비밀값 자리로 고치게 거절한다', () => {
+  it('spec 파일에 가림표가 있으면 까닭을 낸다', () => {
+    expect(가림표케이스([{ 경로: 'tests/mkt/MKT-001.spec.ts', 글: "fill('••••••')" }])).toContain('TARGET_LOGIN_PASSWORD');
+  });
+  it('표(md)가 기획서 문장을 옮긴 가림표는 괜찮다', () => {
+    expect(가림표케이스([{ 경로: 'docs/cases/MKT.md', 글: '비밀번호 •••••• 로 로그인' }])).toBeNull();
+  });
+  it('가림표가 없으면 null', () => {
+    expect(가림표케이스([{ 경로: 'tests/mkt/MKT-001.spec.ts', 글: 'fill(params.password)' }])).toBeNull();
   });
 });
 

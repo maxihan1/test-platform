@@ -121,7 +121,7 @@
 - **WS-작성 ③-1 에이전트 뼈대 — 반영 완료 (2026-09-26, PR #81).** 사용자가 ③ 을 둘로 나눴다(뼈대 → 표시).
   집을 때 `target` 재대조(줄 없음·계정 빠짐·서버 주소 http·https 아님·시작 주소 출처 어긋남·**비밀번호 4자 미만** → FAILED) ·
   계정·주소는 자식 환경 변수 `TARGET_*` 로만(프롬프트엔 이름만) · 화면만(입력 0 + 시작 주소) 돌기 · 원본 자료는 `INPUT` 만 ·
-  자식이 `<자료>/out/` 에 `diffs.json`·`reverse-spec.md` 를 쓰고, 에이전트가 링크·하드링크·크기·실제 경로를 본 뒤 **push 전에 케이스·PR 본문·차이·원고 전부에서 비밀번호 원문**을 찾는다(있으면 FAILED, 값은 사유에 없음) ·
+  자식이 `<자료>/out/` 에 `diffs.json`·`reverse-spec.md` 를 쓰고, 에이전트가 링크·하드링크·크기·실제 경로를 본 뒤 **push 전에 케이스·PR 본문·차이·원고 전부에서 비밀번호 원문**을 찾는다(있으면 중단 · 올리기 거절, 값은 사유에 없음 · 기획서에 적힌 것은 자식을 띄우기 전에 먼저 가린다 — 2026-09-29) ·
   역기획서는 에이전트가 pandoc 으로 바꾸고 **다시 글자로 되읽어 한 번 더 찾은 뒤** `outputs`(REVERSE_SPEC) · 원고의 그림 문법은 거절(서버 pandoc 2.9 에 `--sandbox` 가 없다) ·
   `finish` 에 `result.diffs`(허용 칸만 · 종류 셋 · `marked:false` 강제) · 케이스 PR 뒤의 실패는 **DONE + `error` 에 이유**(게이트 1). 판정은 `scripts/authoring-reverse.ts`.
   자식 절차는 `.claude/skills/tpx-author/references/reverse.md` — 로그인은 스크립트 안 `process.env` · 입력 직전 출처 확인 · 훑기 허용 목록 · 차이 처리 표.
