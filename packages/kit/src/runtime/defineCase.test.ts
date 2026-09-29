@@ -169,4 +169,44 @@ describe('defineCase', () => {
 
     expect('unconfirmed' in spec).toBe(false);
   });
+
+  it('보류 사유를 그대로 싣는다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-011',
+      name: '보류 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+      held: '보류 — 한도 금액이 기획서에 없다',
+    });
+
+    expect(spec.held).toBe('보류 — 한도 금액이 기획서에 없다');
+  });
+
+  it('보류 사유가 공백뿐이면 키를 싣지 않는다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-012',
+      name: '공백 보류 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+      held: '  ',
+    });
+
+    expect('held' in spec).toBe(false);
+  });
+
+  it('보류 케이스는 기본값 없는 칸이 있어도 선언된다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-013',
+      name: '값을 채워야 도는 케이스',
+      precondition: [],
+      params: z.object({ amount: z.number().describe('이체 금액') }),
+      expected: z.object({ message: z.string().describe('안내 문구') }),
+      held: '판정 불가 — 안내 문구가 기획서에 없다',
+    });
+
+    expect(spec.held).toBe('판정 불가 — 안내 문구가 기획서에 없다');
+    expect(spec.paramSchema).toMatchObject({ required: ['amount'] });
+  });
 });
