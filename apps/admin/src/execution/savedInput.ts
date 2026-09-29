@@ -54,16 +54,15 @@ function 비밀값만(schema: JsonSchema, 값: 값들): 값들 {
   return Object.fromEntries(Object.entries(값).filter(([k]) => 칸[k] !== undefined && 가려야하나(k, 칸[k])));
 }
 
-async function 저장한다(tcId: string, schemas: { paramSchema: JsonSchema; expectedSchema: JsonSchema }, params: 값들, expected: 값들, savedBy: string): Promise<SavedInput | null> {
-  const pool = await db();
+async function 저장한다(client: PoolClient, tcId: string, schemas: { paramSchema: JsonSchema; expectedSchema: JsonSchema }, params: 값들, expected: 값들, savedBy: string): Promise<SavedInput | null> {
   const 남은입력 = 기본값뺀것(schemas.paramSchema, params);
   const 남은기대 = 기본값뺀것(schemas.expectedSchema, expected);
   if (Object.keys(남은입력).length === 0 && Object.keys(남은기대).length === 0) {
-    await pool.query('DELETE FROM case_input WHERE tc_id = $1', [tcId]);
+    await client.query('DELETE FROM case_input WHERE tc_id = $1', [tcId]);
     return null;
   }
 
-  const r = await pool.query<{ saved_at: Date }>(
+  const r = await client.query<{ saved_at: Date }>(
     `INSERT INTO case_input (tc_id, params, expected, saved_by) VALUES ($1, $2, $3, $4)
      ON CONFLICT (tc_id) DO UPDATE SET params = EXCLUDED.params, expected = EXCLUDED.expected,
                                        saved_by = EXCLUDED.saved_by, saved_at = now()
@@ -94,23 +93,36 @@ export function 저장값통로(app: FastifyInstance): void {
     const schemas = await caseSchemas(tcId);
     if (schemas === null) return reply.code(404).send({ error: 'CASE_NOT_FOUND', detail: tcId });
 
-    // 화면은 저장된 비밀값을 받지 못해 다시 보낼 수 없다. 안 보낸 비밀값 칸은 앞 저장값을 이어받는다 —
-    // 안 그러면 다시 저장하는 순간 비밀번호가 지워진다. 지우려면 DELETE 로 통째로 되돌린다
-    const 앞 = (await (await db()).query<{ params: 값들; expected: 값들 }>(
-      'SELECT params, expected FROM case_input WHERE tc_id = $1',
-      [tcId],
-    )).rows[0];
-    const params = { ...비밀값만(schemas.paramSchema, 앞?.params ?? {}), ...parsed.data.params };
-    const expected = { ...비밀값만(schemas.expectedSchema, 앞?.expected ?? {}), ...parsed.data.expected };
+    const client = await (await db()).connect();
+    try {
+      await client.query('BEGIN');
+      // 화면은 저장된 비밀값을 받지 못해 다시 보낼 수 없다. 안 보낸 비밀값 칸은 앞 저장값을 이어받는다 —
+      // 안 그러면 다시 저장하는 순간 비밀번호가 지워진다. 지우려면 DELETE 로 통째로 되돌린다.
+      // 잠그고 읽는다 — 두 저장이 겹치면 늦은 쪽이 먼저 끝난 쪽이 바꾼 비밀번호를 옛 값으로 되돌린다
+      const 앞 = (await client.query<{ params: 값들; expected: 값들 }>(
+        'SELECT params, expected FROM case_input WHERE tc_id = $1 FOR UPDATE',
+        [tcId],
+      )).rows[0];
+      const params = { ...비밀값만(schemas.paramSchema, 앞?.params ?? {}), ...parsed.data.params };
+      const expected = { ...비밀값만(schemas.expectedSchema, 앞?.expected ?? {}), ...parsed.data.expected };
 
-    // param-sets 저장과 같은 검증이다. 어긋난 값이 저장되면 정기 실행에서 몇 주 뒤에 터진다
-    const violations = [...validate(schemas.paramSchema, params), ...validate(schemas.expectedSchema, expected)];
-    if (violations.length > 0) {
-      return reply.code(400).send({ error: 'INVALID_PARAMS', detail: violations[0]!.message, violations });
+      // param-sets 저장과 같은 검증이다. 어긋난 값이 저장되면 정기 실행에서 몇 주 뒤에 터진다
+      const violations = [...validate(schemas.paramSchema, params), ...validate(schemas.expectedSchema, expected)];
+      if (violations.length > 0) {
+        await client.query('ROLLBACK');
+        return reply.code(400).send({ error: 'INVALID_PARAMS', detail: violations[0]!.message, violations });
+      }
+
+      // 문 없이 이 라우트만 띄우는 검사에서만 사람이 비어 있다 (execution/routes.ts POST /runs 와 같다)
+      const saved = await 저장한다(client, tcId, schemas, params, expected, req.user?.username ?? '알 수 없음');
+      await client.query('COMMIT');
+      return saved;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
-
-    // 문 없이 이 라우트만 띄우는 검사에서만 사람이 비어 있다 (execution/routes.ts POST /runs 와 같다)
-    return 저장한다(tcId, schemas, params, expected, req.user?.username ?? '알 수 없음');
   });
 
   app.delete<{ Params: { tcId: string } }>('/cases/:tcId/saved-input', async (req, reply) => {

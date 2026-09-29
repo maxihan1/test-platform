@@ -199,6 +199,23 @@ describe.skipIf(연결 === undefined)('케이스 저장 입력값', () => {
     expect((await 저장행())[0]!.params).toEqual({ loginId: 'v', password: 'pa55' });
   });
 
+  it('이어받을 앞 저장값은 잠그고 읽는다 — 다른 저장이 끝난 뒤의 비밀값을 이어받는다', async () => {
+    await 직접저장({ loginId: 'u', password: 'old' });
+    const { pool } = await import('../db/index.js');
+    const 남 = await pool.connect();
+    try {
+      await 남.query('BEGIN');
+      await 남.query(`UPDATE case_input SET params = '{"loginId":"u","password":"new"}' WHERE tc_id = $1`, [케이스]);
+      const 요청 = 저장({ params: { loginId: 'v' } });
+      await new Promise((r) => setTimeout(r, 150));
+      await 남.query('COMMIT');
+      expect((await 요청).statusCode).toBe(200);
+    } finally {
+      남.release();
+    }
+    expect((await 저장행())[0]!.params).toEqual({ loginId: 'v', password: 'new' });
+  });
+
   it('비밀값이 아닌 칸은 안 보내면 사라진다', async () => {
     await 저장({ params: { loginId: 'u', count: 5, password: 'pa55' } });
     await 저장({ params: { loginId: 'u' } });
