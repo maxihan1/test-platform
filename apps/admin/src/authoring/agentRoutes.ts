@@ -128,7 +128,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         // 테스트 계정도 같은 길이다 — 대조 행에만 싣고, 에이전트는 자식 환경에만 넘긴다 (§3.6 「로그인」)
         const target = await 집기대상(서비스, 집은것);
         // 머지는 대조 칸이 없어 위 target 이 늘 없다. 보류 입력이 있으면 3회 실행할 대상을 여기서 싣는다 (§3.6 「★ 보류 케이스」)
-        const 보류칸 = 집은것.kind === 'MERGE' ? await 머지집기칸(서비스, 집은것, null) : {};
+        const 보류칸 = 집은것.kind === 'MERGE' ? await 머지집기칸(서비스, 집은것) : {};
         return {
           ...집은것,
           assets,

@@ -169,7 +169,7 @@ export function checkSource(file: string, text: string): SourceResult {
 
 // 접두사는 자유 형식이다. 플랫폼은 뜻을 모르고 모양과 중복만 본다 (SPEC §2, 2026-09-17).
 // 소문자를 막는 이유 — Pay-001과 PAY-001이 서로 다른 케이스가 되면 중복 검출이 조용히 샌다
-const TCID = /^[A-Z][A-Z0-9]{0,11}-\d{3}$/;
+export const TCID = /^[A-Z][A-Z0-9]{0,11}-\d{3}$/;
 const PLATFORMS = new Set(['desktop', 'mobile']);
 
 function missingDescribe(file: string, line: number, schema: JsonSchema, key: string): Violation[] {

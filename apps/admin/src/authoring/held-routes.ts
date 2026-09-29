@@ -59,14 +59,14 @@ export async function 머지보류판정(
 export async function 머지집기칸(
   서비스: number,
   머지: 요청,
-  머지env: string | null,
 ): Promise<{ held?: Record<string, unknown>; target?: Record<string, string | null> }> {
   if (머지.sourceId === null) return {};
   const 입력 = await 입력읽기(머지.sourceId);
   if (Object.keys(입력).length === 0) return {};
   const held = Object.fromEntries(Object.entries(입력).map(([tcId, { by: _누가, at: _언제, ...값 }]) => [tcId, 값]));
   const 원본 = await 한건(머지.sourceId);
-  const env = 원본?.compare === true ? 원본.env : 머지env;
+  // 정방향은 머지 요청에 사람이 고른 줄이 머지 행 env 에 있다 (merges 가 적는다)
+  const env = 원본?.compare === true ? 원본.env : 머지.env;
   if (env === null) return { held };
   const 줄 = await 대상줄읽기(서비스, env);
   return {

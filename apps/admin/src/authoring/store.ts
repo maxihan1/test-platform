@@ -184,6 +184,8 @@ export async function 줄세우기(입력: {
   대조?: { env: string; startUrl: string | null };
   // 이어서 작성만 채운다 — 넘겨받을 작업 폴더의 중단 요청 (DB CHECK 가 RERUN 에만 허락한다)
   이어받기?: number;
+  // 정방향 머지만 채운다 — 보류를 3회 돌릴 대상 서버 (DB CHECK 가 대조 아닌 행 중 MERGE 에만 허락한다)
+  머지대상?: string | null;
 }): Promise<number> {
   const pool = await db();
   const r = await pool.query<{ id: string }>(
@@ -201,7 +203,7 @@ export async function 줄세우기(입력: {
       입력.누가,
       입력.이름,
       입력.대조 !== undefined,
-      입력.대조?.env ?? null,
+      입력.대조?.env ?? 입력.머지대상 ?? null,
       입력.대조?.startUrl ?? null,
       입력.이어받기 ?? null,
     ],

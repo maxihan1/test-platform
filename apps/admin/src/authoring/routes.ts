@@ -280,6 +280,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         기획서: `머지 요청 — 원본 #${String(행.id)}`,
         누가: req.user?.username ?? '',
         이름: req.user?.displayName ?? '',
+        머지대상: 보류.env,
       }));
       if (id === null) return reply.code(409).send({ error: 'RUN_ACTIVE' });
       return reply.code(201).send({ id });

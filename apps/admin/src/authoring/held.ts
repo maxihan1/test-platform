@@ -1,5 +1,6 @@
 // 보류 케이스에 사람이 넣은 값(held_input) — 모양 검사 · 남은 수 · 새 실행으로 옮기기 · 저장 (SPEC 도메인/작성 §3.6 「★ 보류 케이스」)
 
+import { TCID } from '../catalog/rules.js';
 import { 뿌리, 사슬식 } from './history.js';
 import { db } from './store.js';
 
@@ -139,12 +140,11 @@ export async function 입력읽기(id: number): Promise<보류입력> {
   return r.rows[0]?.held_input ?? {};
 }
 
-const tcId모양 = /^[A-Z][A-Z0-9]{0,11}-\d{3}$/; // catalog/rules.ts TCID 의 사본 — §2 가 바뀌면 같이 고친다
 const 보류키 = ['tcId', 'file', 'kind', 'reason', 'fields'];
 const 칸키 = ['side', 'key', 'description', 'type', 'options'];
 
 export function tcId인가(v: unknown): v is string {
-  return typeof v === 'string' && tcId모양.test(v);
+  return typeof v === 'string' && TCID.test(v);
 }
 
 function 글인가(v: unknown): v is string {

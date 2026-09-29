@@ -321,7 +321,7 @@ describe.skipIf(연결 === undefined)('보류 통로', () => {
       expect(r.target).toEqual({ env: 'stg', baseUrl: 'https://stg.xwlr.test', loginId: 'tester', loginPassword: 'pw-xwlr' });
     });
 
-    it.skip('정방향 머지면 머지 요청의 env 줄을 target 으로 싣는다 — 머지 행에 env 를 둘 자리가 없다(compare_check)', async () => {
+    it('정방향 머지면 머지 요청의 env 줄을 target 으로 싣는다', async () => {
       const id = await 넣기({ status: 'DONE', held: [쿠폰], input: 다채움 });
       expect((await 머지({ sourceId: id, env: 'stg' })).statusCode).toBe(201);
       const r = await 집기();
