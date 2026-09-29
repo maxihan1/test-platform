@@ -304,15 +304,20 @@ export interface AbortResult {
 }
 
 // 이미 끝났거나 이미 멈춘 실행은 다시 멈출 수 없다. 그 사실을 부르는 쪽이 409로 알린다 (SPEC §7)
-export async function abortRun(runId: number): Promise<AbortResult | null> {
+// 시나리오 실행은 러너에 끊을 통로가 없어 DB 만 닫으면 러너는 계속 돈다. 그래서 따로 거절한다 (SPEC 실행 §7)
+export async function abortRun(runId: number): Promise<AbortResult | null | 'SCENARIO'> {
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');
 
-    const run = await client.query<{ status: string }>(
-      "SELECT status FROM test_run WHERE run_id = $1 FOR UPDATE",
+    const run = await client.query<{ status: string; kind: string }>(
+      "SELECT status, kind FROM test_run WHERE run_id = $1 FOR UPDATE",
       [runId],
     );
+    if (run.rows[0]?.kind === 'SCENARIO') {
+      await client.query('ROLLBACK');
+      return 'SCENARIO';
+    }
     if (run.rows[0]?.status !== 'RUNNING') {
       await client.query('ROLLBACK');
       return null;

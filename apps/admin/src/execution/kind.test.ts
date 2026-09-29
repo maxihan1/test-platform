@@ -1,11 +1,14 @@
 // 시나리오 실행이 케이스 실행 자리에 섞이지 않는지 본다 — 목록·집계·견주기·중단·재기동 복구 (SPEC 도메인/시나리오 §3.7 결정 10)
 
+import Fastify from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { compareWithPrevious } from '../reporting/insights.js';
 
 import { listRuns } from './queries.js';
+import executionRoutes from './routes.js';
 import { runSummary } from './runSummary.js';
+import { abortRun, recoverRunning } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XBK';
@@ -100,5 +103,38 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
     const B = await 실행({ startedAt: '2026-09-29T03:00:00Z' });
 
     expect((await compareWithPrevious(B)).previous?.runId).toBe(A);
+  });
+
+  const 상태 = async (runId: number) =>
+    (await q<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [runId])).rows[0]!.status;
+
+  it('도는 시나리오 실행은 저장소가 안 멈추고 그대로 둔다', async () => {
+    await 실행치우기();
+    const S = await 실행({ 시나리오: true, status: 'RUNNING' });
+
+    expect(await abortRun(S)).toBe('SCENARIO');
+    expect(await 상태(S)).toBe('RUNNING');
+    // 아래 재기동 복구 검사가 DB 의 RUNNING 을 전부 닫는다. 남겨 두면 이 fixture 가 그쪽 결과에 섞인다
+    await 실행치우기();
+  });
+
+  it('시나리오 실행 중단 요청은 409 NOT_ABORTABLE 이다', async () => {
+    await 실행치우기();
+    const app = Fastify();
+    await app.register(executionRoutes, { prefix: '/api' });
+    await app.ready();
+    // 등록이 띄운 재기동 복구가 먼저 끝나야 한다. 뒤에 돌면 fixture 를 ABORTED 로 닫아 409 NOT_RUNNING 이 된다
+    await recoverRunning();
+    try {
+      const S = await 실행({ 시나리오: true, status: 'RUNNING' });
+      const res = await app.inject({ method: 'POST', url: `/api/runs/${S}/abort` });
+
+      expect(res.statusCode).toBe(409);
+      expect(res.json().error).toBe('NOT_ABORTABLE');
+      expect(await 상태(S)).toBe('RUNNING');
+    } finally {
+      await app.close();
+      await 실행치우기();
+    }
   });
 });
