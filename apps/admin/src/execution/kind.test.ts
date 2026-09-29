@@ -2,6 +2,8 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { compareWithPrevious } from '../reporting/insights.js';
+
 import { listRuns } from './queries.js';
 import { runSummary } from './runSummary.js';
 
@@ -89,5 +91,14 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
     expect(목록.total).toBe(1);
     expect(목록.items.map((i) => i.runId)).toEqual([케이스실행]);
     expect((await runSummary(접두사, {})).runs).toBe(1);
+  });
+
+  it('견주기의 직전 실행은 시나리오 실행을 건너뛴다', async () => {
+    await 실행치우기();
+    const A = await 실행({ startedAt: '2026-09-29T01:00:00Z' });
+    await 실행({ 시나리오: true, startedAt: '2026-09-29T02:00:00Z' });
+    const B = await 실행({ startedAt: '2026-09-29T03:00:00Z' });
+
+    expect((await compareWithPrevious(B)).previous?.runId).toBe(A);
   });
 });
