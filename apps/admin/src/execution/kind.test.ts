@@ -1,11 +1,13 @@
 // 시나리오 실행이 케이스 실행 자리에 섞이지 않는지 본다 — 목록·집계·견주기·중단·재기동 복구 (SPEC 도메인/시나리오 §3.7 결정 10)
 
 import Fastify from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+import { collectRun } from '../reporting/collect.js';
 import { compareWithPrevious } from '../reporting/insights.js';
+import reportingRoutes from '../reporting/routes.js';
 
-import { listRuns } from './queries.js';
+import { findRun, listRuns } from './queries.js';
 import executionRoutes from './routes.js';
 import { runSummary } from './runSummary.js';
 import { abortRun, recoverRunning } from './store.js';
@@ -105,6 +107,101 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
     expect((await compareWithPrevious(B)).previous?.runId).toBe(A);
   });
 
+  it('실행 번호 하나로 짚는 케이스 조회는 시나리오 실행 번호를 없는 것으로 본다', async () => {
+    await 실행치우기();
+    const 케이스실행 = await 실행();
+    const S = await 실행({ 시나리오: true });
+
+    expect(await findRun(S)).toBeNull();
+    expect(await collectRun(S)).toBeNull();
+    expect((await findRun(케이스실행))?.runId).toBe(케이스실행);
+    expect((await collectRun(케이스실행))?.runId).toBe(케이스실행);
+    await expect(compareWithPrevious(S)).rejects.toThrow();
+
+    const app = Fastify();
+    await app.register(reportingRoutes, { prefix: '/api' });
+    await app.ready();
+    try {
+      const 증적 = await app.inject({ method: 'POST', url: `/api/runs/${S}/evidence`, payload: { format: 'HTML' } });
+      expect(증적.statusCode).toBe(404);
+      expect(증적.json().error).toBe('RUN_NOT_FOUND');
+
+      const 견주기 = await app.inject({ method: 'GET', url: `/api/runs/${S}/insights` });
+      expect(견주기.statusCode).toBe(404);
+      expect(견주기.json().error).toBe('RUN_NOT_FOUND');
+
+      expect((await app.inject({ method: 'GET', url: `/api/runs/${케이스실행}/insights` })).statusCode).toBe(200);
+    } finally {
+      await app.close();
+      await 실행치우기();
+    }
+  });
+
+  const 부품 = async (runId: number, 판정들: string[]) => {
+    for (const [i, 판정] of 판정들.entries()) {
+      await q(
+        `INSERT INTO scenario_run_part (run_id, seq, kind, part, status, finished_at) VALUES ($1, $2, 'wait', '{}', $3, now())`,
+        [runId, i + 1, 판정],
+      );
+    }
+  };
+
+  it('E2E 탭은 시나리오 실행만 내고 줄마다 부품 셈과 멈춘 자리를 싣는다', async () => {
+    await 실행치우기();
+    await 실행();
+    const 통과 = await 실행({ 시나리오: true });
+    await 부품(통과, ['PASS', 'PASS']);
+    const 실패 = await 실행({ 시나리오: true });
+    await 부품(실패, ['PASS', 'FAIL', 'NA']);
+    const 도는중통과 = await 실행({ 시나리오: true, status: 'RUNNING' });
+    await 부품(도는중통과, ['PASS', 'PASS']);
+    const 도는중실패 = await 실행({ 시나리오: true, status: 'RUNNING' });
+    await 부품(도는중실패, ['FAIL']);
+
+    try {
+      const 목록 = await listRuns(접두사, 1, 50, { kind: 'scenario' });
+      expect(목록.total).toBe(4);
+      const 줄 = (runId: number) => {
+        const 것 = 목록.items.find((i) => i.runId === runId)!;
+        return { scenarioId: 것.scenarioId, version: 것.version, partCount: 것.partCount, stoppedAt: 것.stoppedAt };
+      };
+      expect(줄(통과)).toEqual({ scenarioId: 시나리오, version: 1, partCount: 2, stoppedAt: null });
+      expect(줄(실패)).toEqual({ scenarioId: 시나리오, version: 1, partCount: 3, stoppedAt: 2 });
+      expect(줄(도는중실패)).toEqual({ scenarioId: 시나리오, version: 1, partCount: 1, stoppedAt: null });
+      expect(목록.items.every((i) => !('counts' in i))).toBe(true);
+      expect(목록.summary).toMatchObject({ runs: 4, allPass: 1, hasFail: 1 });
+
+      const 실패만 = await listRuns(접두사, 1, 50, { kind: 'scenario', state: 'failed' });
+      expect(실패만.items.map((i) => i.runId)).toEqual([실패]);
+      expect(실패만.summary).toMatchObject({ runs: 1, allPass: 0, hasFail: 1 });
+
+      expect((await runSummary(접두사, {})).runs).toBe(1);
+    } finally {
+      await 실행치우기();
+    }
+  });
+
+  it('GET /runs 는 kind=scenario 일 때만 시나리오 실행을 내고 모르는 kind 는 케이스로 본다', async () => {
+    await 실행치우기();
+    const 케이스실행 = await 실행();
+    const S = await 실행({ 시나리오: true });
+    const app = Fastify();
+    await app.register(executionRoutes, { prefix: '/api' });
+    await app.ready();
+    await recoverRunning();
+    try {
+      const 목록 = async (kind: string) =>
+        (await app.inject({ method: 'GET', url: `/api/runs?service=${접두사}${kind}` })).json<{ items: { runId: number }[] }>()
+          .items.map((i) => i.runId);
+      expect(await 목록('&kind=scenario')).toEqual([S]);
+      expect(await 목록('&kind=뭔가')).toEqual([케이스실행]);
+      expect(await 목록('')).toEqual([케이스실행]);
+    } finally {
+      await app.close();
+      await 실행치우기();
+    }
+  });
+
   const 상태 = async (runId: number) =>
     (await q<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [runId])).rows[0]!.status;
 
@@ -159,5 +256,41 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
       { seq: 2, status: 'NA', error: { message: 'ABORTED' }, 닫힘: true },
     ]);
     expect(await 상태(S)).toBe('ABORTED');
+  });
+
+  it('재기동 복구가 RUNNING 으로 집은 뒤 FINISHED 로 닫힌 실행은 ABORTED 로 덮지 않는다', async () => {
+    await 실행치우기();
+    const S = await 실행({ 시나리오: true, status: 'RUNNING' });
+    await q(`INSERT INTO scenario_run_part (run_id, seq, kind, part, status) VALUES ($1, 1, 'wait', '{}', 'NA')`, [S]);
+    const { pool } = await import('../db/index.js');
+    const 러너 = await pool.connect();
+    try {
+      // 러너가 막 닫는 중이다 — 행을 잠근 채 아직 COMMIT 전이라 복구의 SELECT 에는 RUNNING 으로 보인다
+      await 러너.query('BEGIN');
+      await 러너.query(
+        "UPDATE scenario_run_part SET status = 'PASS', finished_at = now() WHERE run_id = $1",
+        [S],
+      );
+      await 러너.query("UPDATE test_run SET status = 'FINISHED', finished_at = now() WHERE run_id = $1", [S]);
+      const 복구 = recoverRunning();
+      await vi.waitUntil(
+        async () =>
+          (
+            await q<{ n: string }>(
+              "SELECT count(*) AS n FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND query LIKE '%UPDATE scenario_run_part%' AND pid <> pg_backend_pid()",
+            )
+          ).rows[0]!.n !== '0',
+        { timeout: 5000, interval: 20 },
+      );
+      await 러너.query('COMMIT');
+      await 복구;
+    } finally {
+      러너.release();
+    }
+
+    expect(await 상태(S)).toBe('FINISHED');
+    const 부품 = await q<{ status: string }>('SELECT status FROM scenario_run_part WHERE run_id = $1', [S]);
+    expect(부품.rows).toEqual([{ status: 'PASS' }]);
+    await 실행치우기();
   });
 });

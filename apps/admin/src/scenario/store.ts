@@ -1,7 +1,9 @@
 // 시나리오와 버전 표를 읽고 쓴다. 저장마다 버전이 하나 오르고 옛 버전은 고치지 않는다 (SPEC 도메인/시나리오 §3.7 결정 7)
 
-import type { Platform, ScenarioPart } from '@platform/kit';
+import type { ItemStatus, Platform, ScenarioPart } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
+
+import { 접은판정SQL } from './verdict.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -21,8 +23,7 @@ export interface 목록줄 {
   version: number;
   partCount: number;
   isActive: boolean;
-  // 시나리오 실행이 아직 없다. 질의와 판정 접기는 ③ 이 진짜 실행 행으로 붙인다
-  lastRun: null;
+  lastRun: { runId: number; status: string; verdict: ItemStatus | null; finishedAt: string | null } | null;
   // 점검 재료. 라우트가 needsCheck·runnable 을 계산하고 응답에서 뺀다
   parts: ScenarioPart[];
 }
@@ -38,7 +39,9 @@ export interface 상세본 {
   versions: { version: number; savedBy: string; savedByName: string; savedAt: string }[];
 }
 
-export type 고치기결과 = { version: number } | { error: 'STALE_VERSION'; latest: number } | null;
+export type 치운것 = { error: 'SCENARIO_ARCHIVED' };
+export type 고치기결과 = { version: number } | { error: 'STALE_VERSION'; latest: number } | 치운것 | null;
+const 치웠다: 치운것 = { error: 'SCENARIO_ARCHIVED' };
 
 // 최신 버전 한 줄. 목록과 상세가 같은 뜻의 「최신」을 본다
 const 최신버전 = `
@@ -70,9 +73,25 @@ export async function 만들기(
 }
 
 export async function 목록(serviceId: number): Promise<목록줄[]> {
-  const r = await (await db()).query<버전행 & { id: string; name: string; is_active: boolean }>(
-    `SELECT sc.id, sc.name, sc.is_active, v.version, v.platform, v.parts
+  const r = await (await db()).query<
+    버전행 & {
+      id: string;
+      name: string;
+      is_active: boolean;
+      run_id: string | null;
+      run_status: string | null;
+      verdict: ItemStatus | null;
+      finished_at: Date | null;
+    }
+  >(
+    // ponytail: test_run.scenario_id 색인 없음 — 시나리오 실행이 수만 건이 되면 색인 마이그레이션
+    `SELECT sc.id, sc.name, sc.is_active, v.version, v.platform, v.parts,
+            r.run_id, r.status AS run_status, r.finished_at,
+            CASE WHEN r.status = 'RUNNING' THEN NULL
+                 ELSE (SELECT ${접은판정SQL('p')} FROM scenario_run_part p WHERE p.run_id = r.run_id) END AS verdict
        FROM scenario sc ${최신버전}
+       LEFT JOIN LATERAL (SELECT run_id, status, finished_at FROM test_run
+                           WHERE kind = 'SCENARIO' AND scenario_id = sc.id ORDER BY run_id DESC LIMIT 1) r ON true
       WHERE sc.service_id = $1 AND sc.is_active
       ORDER BY sc.id`,
     [serviceId],
@@ -84,7 +103,15 @@ export async function 목록(serviceId: number): Promise<목록줄[]> {
     version: row.version,
     partCount: row.parts.length,
     isActive: row.is_active,
-    lastRun: null,
+    lastRun:
+      row.run_id === null
+        ? null
+        : {
+            runId: Number(row.run_id),
+            status: row.run_status!,
+            verdict: row.verdict,
+            finishedAt: row.finished_at?.toISOString() ?? null,
+          },
     parts: row.parts,
   }));
 }
@@ -138,6 +165,7 @@ export async function 고치기(
     return await 쓰기(async (c) => {
       const 최신 = await 잠그고최신(c, id);
       if (최신 === null) return null;
+      if (최신 === '치움') return 치웠다;
       // 말없이 덮으면 앞사람의 조립이 이력에서 사라진다
       if (고칠것.baseVersion !== 최신) return { error: 'STALE_VERSION' as const, latest: 최신 };
       await c.query('UPDATE scenario SET name = $2 WHERE id = $1', [id, 고칠것.name]);
@@ -153,10 +181,15 @@ export async function 고치기(
 }
 
 /** 옛 버전을 복사한 새 버전. 시나리오나 그 버전이 없으면 null */
-export async function 되돌리기(id: number, version: number, 사람: 저장하는사람): Promise<{ version: number } | null> {
+export async function 되돌리기(
+  id: number,
+  version: number,
+  사람: 저장하는사람,
+): Promise<{ version: number } | 치운것 | null> {
   return 쓰기(async (c) => {
     const 최신 = await 잠그고최신(c, id);
     if (최신 === null) return null;
+    if (최신 === '치움') return 치웠다;
     const 옛것 = await c.query<버전행>(
       'SELECT platform, parts FROM scenario_version WHERE scenario_id = $1 AND version = $2',
       [id, version],
@@ -189,10 +222,13 @@ async function 쓰기<T>(일: (c: PoolClient) => Promise<T>): Promise<T> {
   }
 }
 
-// 시나리오 행을 잠가 같은 시나리오의 저장을 한 줄로 세운다. PK (scenario_id, version) 가 마지막 그물이다
-async function 잠그고최신(c: PoolClient, id: number): Promise<number | null> {
-  const 잠금 = await c.query('SELECT id FROM scenario WHERE id = $1 FOR UPDATE', [id]);
-  if (잠금.rowCount === 0) return null;
+// 시나리오 행을 잠가 같은 시나리오의 저장을 한 줄로 세운다. PK (scenario_id, version) 가 마지막 그물이다.
+// 치웠는지도 잠근 행에서 본다 — 잠그기 전에 보면 그 사이 치우기가 끼어 치운 것에 새 버전이 들어간다
+async function 잠그고최신(c: PoolClient, id: number): Promise<number | '치움' | null> {
+  const 잠금 = await c.query<{ is_active: boolean }>('SELECT is_active FROM scenario WHERE id = $1 FOR UPDATE', [id]);
+  const 행 = 잠금.rows[0];
+  if (행 === undefined) return null;
+  if (!행.is_active) return '치움';
   const r = await c.query<{ max: number }>('SELECT max(version) AS max FROM scenario_version WHERE scenario_id = $1', [id]);
   return r.rows[0]?.max ?? 0;
 }

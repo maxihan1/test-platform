@@ -1,7 +1,16 @@
 // 러너 POST /execute 호출 (SPEC §5.2). 판정은 러너가 만든다 — 여기서 다시 계산하지 않는다
 // 러너가 죽거나 붙지 못해도 던지지 않는다. 한 항목의 고장이 나머지 항목까지 끌고 내려가면 안 된다
 
-import type { ExecuteRequest, ExecuteResponse, RunningStep } from '@platform/kit';
+import http from 'node:http';
+import https from 'node:https';
+
+import type {
+  ExecuteRequest,
+  ExecuteResponse,
+  RunningStep,
+  ScenarioExecuteRequest,
+  ScenarioExecuteResponse,
+} from '@platform/kit';
 
 import type { PendingItem } from './store.js';
 
@@ -54,6 +63,54 @@ export async function 진행(): Promise<RunningStep[]> {
   }
 }
 
+// 400·404·500은 전부 { error, detail } 이다. 사람이 읽을 사유로 합쳐 둔다
+function 거절사유(status: number, json: unknown): string {
+  const detail = json as { error?: string; detail?: string } | null;
+  return detail === null
+    ? `러너가 ${status}로 거절했다`
+    : `러너가 거절했다: ${detail.error ?? status} — ${detail.detail ?? ''}`.trim();
+}
+
+// fetch(undici) 는 응답 머리를 300초까지만 기다린다(headersTimeout). 러너는 판이 끝나야 머리를 보내므로
+// 5분 넘는 케이스·시나리오가 그 벽에 끊긴다. 그래서 긴 호출은 node:http 로 보내고 제한은 요청 전체에 한 번만 건다
+export function 러너에보낸다(경로: string, 본문: unknown, 제한ms: number): Promise<{ status: number; json: unknown }> {
+  const url = new URL(`${runnerUrl()}${경로}`);
+  const data = JSON.stringify(본문);
+  return new Promise((resolve, reject) => {
+    const req = (url.protocol === 'https:' ? https : http).request(
+      url,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'content-length': Buffer.byteLength(data) },
+        // 공용 agent 의 keep-alive 소켓 제한(5초)이 긴 응답에 끼어들지 않게 한 번 쓰고 버린다
+        agent: false,
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c: Buffer) => chunks.push(c));
+        res.on('error', reject);
+        res.on('end', () => {
+          clearTimeout(timer);
+          const status = res.statusCode ?? 0;
+          try {
+            resolve({ status, json: JSON.parse(Buffer.concat(chunks).toString('utf8')) });
+          } catch (err) {
+            // 거절 응답의 본문이 JSON 이 아니면 상태만으로 사유를 만든다. 200 인데 못 읽으면 결과가 없는 것이다
+            if (status >= 200 && status < 300) reject(new Error(`러너 응답을 JSON 으로 읽지 못했다: ${String(err)}`));
+            else resolve({ status, json: null });
+          }
+        });
+      },
+    );
+    const timer = setTimeout(() => req.destroy(new Error(`러너가 ${제한ms}ms 안에 답하지 않았다`)), 제한ms);
+    req.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    req.end(data);
+  });
+}
+
 export async function callRunner(runId: number, item: PendingItem): Promise<ExecuteResponse> {
   const body: ExecuteRequest = {
     runId,
@@ -69,27 +126,36 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
 
   const startedAt = Date.now();
   try {
-    const res = await fetch(`${runnerUrl()}/execute`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(httpTimeoutMs(item.timeoutMs)),
-    });
+    const res = await 러너에보낸다('/execute', body, httpTimeoutMs(item.timeoutMs));
 
-    if (!res.ok) {
-      // 400·404·500은 전부 { error, detail } 이다. 사람이 읽을 사유로 합쳐 둔다
-      const detail = (await res.json().catch(() => null)) as { error?: string; detail?: string } | null;
-      const message = detail === null
-        ? `러너가 ${res.status}로 거절했다`
-        : `러너가 거절했다: ${detail.error ?? res.status} — ${detail.detail ?? ''}`.trim();
-      return { ...na(item, message), durationMs: Date.now() - startedAt };
+    if (res.status < 200 || res.status >= 300) {
+      return { ...na(item, 거절사유(res.status, res.json)), durationMs: Date.now() - startedAt };
     }
 
-    return (await res.json()) as ExecuteResponse;
+    return res.json as ExecuteResponse;
   } catch (err) {
     // 연결 실패·응답 없음. 이 항목만 NA로 접고 디스패처는 다음 항목으로 넘어간다.
     // 사람이 보는 문장은 사유 한 줄이고 원문(주소·포트)은 상세의 접힌 자리로 간다 (SPEC §8.3)
     const reason = err instanceof Error ? err.message : String(err);
     return { ...na(item, '러너에 닿지 못했습니다', reason), durationMs: Date.now() - startedAt };
+  }
+}
+
+// 시나리오 한 판을 러너에 맡긴다 (도메인/러너 「시나리오 실행」). 케이스 호출과 같은 문장으로 접는다 (도메인/시나리오 §7).
+// 거절·끊김이면 부품을 비워 돌려준다 — 부품마다 NA 를 채우는 것은 짝 없는 행을 닫는 저장 쪽 규칙이 한다
+export async function callScenarioRunner(요청: ScenarioExecuteRequest): Promise<ScenarioExecuteResponse> {
+  const startedAt = Date.now();
+  const 접는다 = (message: string, stack?: string): ScenarioExecuteResponse => ({
+    status: 'NA',
+    durationMs: Date.now() - startedAt,
+    parts: [],
+    error: { message, stack },
+  });
+  try {
+    const res = await 러너에보낸다('/execute-scenario', 요청, httpTimeoutMs(요청.timeoutMs));
+    if (res.status < 200 || res.status >= 300) return 접는다(거절사유(res.status, res.json));
+    return res.json as ScenarioExecuteResponse;
+  } catch (err) {
+    return 접는다('러너에 닿지 못했습니다', err instanceof Error ? err.message : String(err));
   }
 }

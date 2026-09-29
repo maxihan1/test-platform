@@ -106,6 +106,38 @@ describe('조립 검사', () => {
   });
 });
 
+describe('제한 시간 바닥 · API 몫 · 크기 상한', () => {
+  const api: ScenarioPart = { kind: 'api', method: 'GET', path: '/api/x', expectStatus: 200 };
+
+  it('합이 60000 보다 작으면 60000 으로 올리고 API 부품은 30000 씩 센다', () => {
+    expect(시나리오제한시간([api])).toBe(60000);
+    expect(시나리오제한시간([{ kind: 'wait', ms: 1 }])).toBe(60000);
+    expect(시나리오제한시간([케이스('SHOP-002'), api])).toBe(330000);
+  });
+
+  it('60분 상한은 바닥 올리기 전 합으로 본다', () => {
+    const 케이스들 = (n: number) => Array.from({ length: n }, () => 케이스('SHOP-002'));
+    expect(검사(케이스들(12))).toEqual([]);
+    expect(검사(케이스들(13))).toEqual([expect.stringMatching(/제한 시간/)]);
+    expect(검사([...케이스들(12), api])).toEqual([expect.stringMatching(/3630000ms/)]);
+  });
+
+  it('부품 목록 JSON 이 100000 바이트를 넘으면 거절한다', () => {
+    const 모킹 = (body: string): ScenarioPart[] => [
+      { kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body },
+    ];
+    const 바탕 = Buffer.byteLength(JSON.stringify(모킹('')));
+    // 한글 한 글자는 3바이트다 — 나머지는 ASCII 로 맞춘다
+    const 크기에맞춘 = (목표: number) => {
+      const 남은 = 목표 - 바탕;
+      return 모킹('가'.repeat(Math.floor(남은 / 3)) + 'a'.repeat(남은 % 3));
+    };
+    expect(Buffer.byteLength(JSON.stringify(크기에맞춘(100000)))).toBe(100000);
+    expect(검사(크기에맞춘(100000))).toEqual([]);
+    expect(검사(크기에맞춘(100001))).toEqual([expect.stringMatching(/100000바이트/)]);
+  });
+});
+
 describe('부품 모양', () => {
   it('모르는 kind 는 거절한다', () => {
     expect(부품들모양.safeParse([{ kind: 'sleep', ms: 10 }]).success).toBe(false);

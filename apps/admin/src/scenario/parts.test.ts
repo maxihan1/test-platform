@@ -96,8 +96,10 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
     expect(카탈로그.size).toBe(0);
   });
 
-  it('파일이 tests 뿌리 밖이면 던진다', async () => {
-    await expect(케이스재료(['XSP-004'])).rejects.toThrow(/tests 폴더 밖/);
+  it('파일이 tests 뿌리 밖이면 던지지 않고 두 맵에서 빠진다 — 비활성으로 친다', async () => {
+    const { 카탈로그, 부품재료 } = await 케이스재료(['XSP-004', 'XSP-001']);
+    expect([...카탈로그.keys()]).toEqual(['XSP-001']);
+    expect([...부품재료.keys()]).toEqual(['XSP-001']);
   });
 
   it('문법이 깨진 소스는 건너뛸 수 있는 절차가 없다', async () => {

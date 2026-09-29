@@ -4,9 +4,9 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { ExecuteRequest } from '@platform/kit';
+import type { ExecuteRequest, ScenarioExecuteRequest } from '@platform/kit';
 
-import { callRunner, httpTimeoutMs, 진행 } from './runner.js';
+import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
 
 const 항목: PendingItem = {
@@ -131,6 +131,95 @@ describe('callRunner', () => {
     // 목록에 그대로 쓰이는 문장이다. 원문 오류는 상세의 접힌 자리로 간다 (SPEC §8.3)
     expect(res.error?.message).toBe('러너에 닿지 못했습니다');
     expect(res.error?.stack).toBeTruthy();
+  });
+});
+
+describe('callScenarioRunner', () => {
+  const 요청: ScenarioExecuteRequest = {
+    runId: 9,
+    platform: 'desktop',
+    baseUrl: 'https://qa.example.com',
+    parts: [{ kind: 'wait', ms: 10 }],
+    timeoutMs: 60000,
+  };
+
+  async function 시나리오띄운다(code: number, body: unknown, 받은것?: { 본문: unknown }): Promise<void> {
+    const app = Fastify();
+    app.post('/execute-scenario', async (req, reply) => {
+      if (받은것 !== undefined) 받은것.본문 = req.body;
+      return reply.code(code).send(body);
+    });
+    await 붙인다(app);
+  }
+
+  it('/execute-scenario 에 요청을 그대로 싣고 러너 응답을 돌려준다', async () => {
+    const 받은것 = { 본문: null as unknown };
+    const 응답 = { status: 'PASS', durationMs: 12, parts: [{ seq: 1, status: 'PASS', durationMs: 10, steps: [], mocks: [] }] };
+    await 시나리오띄운다(200, 응답, 받은것);
+
+    expect(await callScenarioRunner(요청)).toEqual(응답);
+    expect(받은것.본문).toEqual(요청);
+  });
+
+  it('러너가 거절하면 부품을 비운 NA 와 케이스와 같은 문장으로 돌려준다', async () => {
+    await 시나리오띄운다(400, { error: 'INVALID_REQUEST', detail: 'parts 가 비었다' });
+
+    const res = await callScenarioRunner(요청);
+    expect(res.status).toBe('NA');
+    expect(res.parts).toEqual([]);
+    expect(res.error?.message).toBe('러너가 거절했다: INVALID_REQUEST — parts 가 비었다');
+  });
+
+  it('러너에 닿지 못해도 던지지 않는다. 원문은 stack 으로 간다', async () => {
+    process.env.RUNNER_URL = 'http://127.0.0.1:9';
+
+    const res = await callScenarioRunner(요청);
+    expect(res.status).toBe('NA');
+    expect(res.parts).toEqual([]);
+    expect(res.error?.message).toBe('러너에 닿지 못했습니다');
+    expect(res.error?.stack).toBeTruthy();
+  });
+});
+
+describe('러너에보낸다', () => {
+  async function 늦게띄운다(지연ms: number): Promise<void> {
+    const app = Fastify();
+    app.post('/execute', async () => {
+      await new Promise((r) => setTimeout(r, 지연ms));
+      return { 늦었다: true };
+    });
+    await 붙인다(app);
+  }
+
+  it('경로와 본문을 그대로 보내고 상태와 JSON 을 돌려준다', async () => {
+    const 받은것 = { 본문: null as unknown };
+    const app = Fastify();
+    app.post('/execute-scenario', async (req, reply) => {
+      받은것.본문 = req.body;
+      return reply.code(201).send({ 됐다: 1 });
+    });
+    await 붙인다(app);
+
+    expect(await 러너에보낸다('/execute-scenario', { 가: [1, '나'] }, 5000)).toEqual({ status: 201, json: { 됐다: 1 } });
+    expect(받은것.본문).toEqual({ 가: [1, '나'] });
+  });
+
+  it('제한 시간보다 늦게 오는 응답은 던진다 — 호출자가 「러너에 닿지 못했습니다」로 접는다', async () => {
+    await 늦게띄운다(500);
+
+    await expect(러너에보낸다('/execute', {}, 100)).rejects.toThrow();
+  });
+
+  it('응답 머리가 늦게 와도 제한 안이면 받는다', async () => {
+    await 늦게띄운다(1000);
+
+    expect(await 러너에보낸다('/execute', {}, 5000)).toEqual({ status: 200, json: { 늦었다: true } });
+  });
+
+  it('닫힌 포트면 던진다', async () => {
+    process.env.RUNNER_URL = 'http://127.0.0.1:9';
+
+    await expect(러너에보낸다('/execute', {}, 5000)).rejects.toThrow();
   });
 });
 
