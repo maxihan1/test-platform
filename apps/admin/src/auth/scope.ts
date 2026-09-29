@@ -55,6 +55,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/cases/:tcId/source': { 종류: '케이스', 칸: 'tcId' },
   '/api/cases/:tcId/history': { 종류: '케이스', 칸: 'tcId' },
   '/api/cases/:tcId/param-sets': { 종류: '케이스', 칸: 'tcId' },
+  '/api/cases/:tcId/saved-input': { 종류: '케이스', 칸: 'tcId' },
 
   '/api/runs/:runId': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/abort': { 종류: '실행', 칸: 'runId' },

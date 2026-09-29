@@ -14,6 +14,7 @@ import { notifyRun } from './notify.js';
 import { abortRunner, 진행 } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
+import { 저장값통로 } from './savedInput.js';
 import { findItem, findRun, listRuns, serviceExists } from './queries.js';
 import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
@@ -284,6 +285,8 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     }
     return saved;
   });
+
+  저장값통로(app);
 
   app.delete<{ Params: { id: string } }>('/param-sets/:id', async (req, reply) => {
     const id = 정수(req.params.id);
