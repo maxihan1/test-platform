@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 import { api, type CasePage, type CaseQuery, type ItemStatus, type Platform } from './api.js';
 import { 미확정나이 } from './unconfirmed.js';
+import { use엑셀받기 } from './CaseExport.js';
 import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄, 표머리 } from './CaseListParts.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
@@ -53,6 +54,7 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
   const lastMap: LastMap = {};
   for (const item of last.data?.items ?? []) lastMap[keyOf(item.tcId, item.platform)] = item;
 
+  const 엑셀 = use엑셀받기(조건, cases.data?.total ?? null);
   const 뽑기 = useRunPick({ service, 조건, 결과, 마지막: lastMap, 알림: setNotice });
 
   // 서비스를 바꾸면 첫 페이지로 돌아간다. 3페이지에서 케이스가 적은 서비스로 옮기면
@@ -187,7 +189,6 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
       />
 
       <div className="screen list-screen">
-
       {/* 목록을 열자마자 「지금 이 서비스가 어떤 상태인가」가 먼저 온다.
           배지 하나만 있을 때는 실패가 몇 건인지 세로로 훑어야 알았다 */}
       {셈.전체 === 0 ? null : (
@@ -219,7 +220,9 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
           on활성만={바꾸면첫쪽(set활성만)}
           on결과={바꾸면첫쪽(set결과)}
         />
+        {엑셀.버튼}
       </div>
+      {엑셀.알림}
 
       <div className="rows-scroll">
       {cases.error !== null ? (
