@@ -123,11 +123,11 @@ export const 작성말: Record<string, string> = {
   '{번호}단계 진행 중 · {퍼센트}%': 'Step {번호} in progress · {퍼센트}%',
   '{번호}단계에서 멈춤 · {퍼센트}%': 'Stopped at step {번호} · {퍼센트}%',
   '다시 작성은 실행 권한이 있는 사람이 합니다.': 'Someone with run rights can write it again.',
-  '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다.':
-    'Fix the cause first. This makes a new request with the same inputs and runs it from the start.',
+  '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다.':
+    'Fix the cause first. This runs the same request again from the start with the same inputs.',
   '대상 서버와 시작 주소도 원본 그대로 씁니다.': 'It uses the same target server and start URL as the original.',
-  '넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다.':
-    'This makes a new request with the same inputs and runs it from the start. This request stays as a record.',
+  '넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다. 지금까지의 실행은 실행 기록에 남습니다.':
+    'This runs the same request again from the start with the same inputs. Earlier runs stay in the run history.',
 
   // 이어하기 (도메인/작성 §7 「이어하기」)
   '이어서 작성': 'Continue writing',
@@ -137,11 +137,9 @@ export const 작성말: Record<string, string> = {
     'Takes over the {수} tests made before the stop and continues the rest.',
   '중단된 자리부터 남은 작업을 이어서 합니다.': 'Continues the rest from where it stopped.',
   '{날}까지 이어갈 수 있습니다.': 'You can continue until {날}.',
-  '작성 요청 #{번호}로 이어받았습니다': 'Continued as request #{번호}',
+  '이미 이어서 작성했습니다. 아래 실행 기록을 보세요.': 'Already continued. See the run history below.',
   '보관 기간이 지나 만든 것을 지웠습니다. 처음부터 다시 작성하세요.':
     'The keep period is over and what was made was deleted. Write again from the start.',
-  이어받음: 'Continued from',
-  '작성 요청 #{번호}의 중단 자리에서 이어받음': 'Continued from where request #{번호} stopped',
   '목록에서 사라집니다. 보관한 작업물도 지웁니다. 통계와 토큰 기록은 남습니다.':
     'It disappears from the list and the kept work is deleted. Stats and token records stay.',
 
@@ -204,4 +202,19 @@ export const 작성말: Record<string, string> = {
   '화면에만 있음': 'Only on screen',
   '문서에만 있음': 'Only in spec',
   '알 수 없는 종류': 'Unknown kind',
+  // 실행 기록 (도메인/작성 §7 「실행 기록」) — 번호는 하나, 실행은 차로 쌓인다
+  '{차}차': 'Run {차}',
+  차: 'Run',
+  방식: 'How',
+  처음: 'First',
+  처음부터: 'From scratch',
+  이어서: 'Continued',
+  시작: 'Started',
+  결과: 'Result',
+  테스트: 'Tests',
+  입력: 'Input',
+  출력: 'Output',
+  '캐시 읽기': 'Cache read',
+  '캐시 쓰기': 'Cache write',
+  '끊겨 하한': 'cut off, lower bound',
 };

@@ -302,6 +302,11 @@ describe('줄프롬프트 역방향 절 — 계정 값 없이 자리만 준다',
     expect(글).not.toContain('tester');
   });
 
+  it('재실행 · 이어받기도 미확정 사유의 요청 번호는 뿌리(맨 처음) 번호다 (§7 「실행 기록」)', () => {
+    const 글 = 줄프롬프트({ id: 12, kind: 'RERUN', sourceId: 5 }, 'PAY', [], undefined, { 화면만: false, 산출물폴더: '/w/out' });
+    expect(글).toContain('작성 요청 5 이다');
+  });
+
   it('화면만이면 기획서가 없다고 적고 빈 기획서 절을 싣지 않는다', () => {
     const 글 = 줄프롬프트({ id: 9, kind: 'AUTHOR' }, 'PAY', [], undefined, { 화면만: true, 산출물폴더: '/w/out' });
     expect(글).toContain('화면만');

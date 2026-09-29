@@ -1,7 +1,7 @@
 // 작성 에이전트의 순수 판정 — 과금 안전핀·자식 인자·줄 프롬프트·서버 응답 판정. 껍데기(authoring-agent.ts)가 부른다
 // authoring-agent.ts 가 478줄이 되어 나눴다 (2026-09-23)
 
-import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글 } from './authoring-assets.js';
+import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글, 자료출처 } from './authoring-assets.js';
 import { type 모델, 모델인자 } from './authoring-model.js';
 import { type 대상, 역방향절 } from './authoring-reverse.js';
 
@@ -183,7 +183,7 @@ export function 줄프롬프트(
     '',
     // 화면만은 기획서가 없다 — 빈 기획서 절을 싣으면 자식이 「기획서가 비었다」로 멈춘다
     ...(계획.length > 0 ? 자료목록글(계획) : 역방향?.화면만 === true ? [] : ['--- 기획서 ---', 것.specText ?? '']),
-    ...(역방향 === undefined ? [] : 역방향절({ ...역방향, 요청번호: 것.id })),
+    ...(역방향 === undefined ? [] : 역방향절({ ...역방향, 요청번호: 자료출처(것) })),
     ...(이어하기 === undefined ? [] : 이어하기절(이어하기)),
   ].join('\n');
 }

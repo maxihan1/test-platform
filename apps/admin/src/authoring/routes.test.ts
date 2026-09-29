@@ -175,6 +175,9 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
   describe('재실행은 자료를 새로 안 받고 곧장 줄에 선다', () => {
     it('기획서 없이 201 · PENDING', async () => {
       const 원본 = await 줄세우기({ 서비스, kind: 'AUTHOR', 기획서: '옛 행', 누가: 'x', 이름: 'x' });
+      // 대기 중인 실행이 있으면 다시 작성은 RUN_ACTIVE 다 (§7 「실행 기록」) — 끝난 원본을 다시 돌린다
+      const { pool } = await import('../db/index.js');
+      await pool.query(`UPDATE authoring_request SET status = 'FAILED', finished_at = now() WHERE id = $1`, [원본]);
       const res = await app.inject({
         method: 'POST',
         url: `/api/authoring/requests?service=${접두사}`,

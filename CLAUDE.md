@@ -274,6 +274,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   시나리오 실행 거르기 `XBK`(`execution/kind.test.ts`, 2026-09-29 — `XSC` 와 같은 순서로 자기 `service_id` 로만 지우고 그 `service` 행까지) ·
   시나리오 저장 `XSS`·`XSS2`(`scenario/store.test.ts`)·부품 재료 `XSP`(`scenario/parts.test.ts`)·라우트 `XSR`(`scenario/routes.test.ts`)·문 `XSA`·`XSA2`·`XSA3`(계정 `xsa-reader`·`xsa-writer`, `auth/gate.test.ts`·`auth/scope.test.ts`)(2026-09-29 — 전부 자기 `service_id`·id·이름 목록으로만 지우고 `LIKE` 를 안 쓴다. **`XSA` 로 시작하는 새 이름을 고르지 않는다**) ·
   작성 이어하기 `XRM`(`db/resume-columns.test.ts`)·`XWM`(`authoring/resume.test.ts`)(2026-09-28 — 둘 다 자기 `service_id` 로 지우고 그 `service` 행까지) ·
+  작성 실행 기록 `XWH`(`authoring/history.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   역방향 WS-B `XBU`(`execution/unconfirmed.test.ts`, 2026-09-26 — `test_run.title LIKE 'XBU%'`·`tc_id LIKE 'XBU-%'`·`prefix = 'XBU'`) ·
   에이전트 토큰 `xfu5`(계정)·`XFS6`(서비스)(`auth/agentToken.test.ts`, 2026-09-23 — `xfu4` 와 겹치지 않게 `'xfu5%'` 로만 지운다) ·
   테스트 계정 `xfu7`(계정)·`XFS7`(서비스)(`settings/testAccount.test.ts`, 2026-09-26 — `'xfu7%'`·`'XFS7%'` 로 지운다) ·
@@ -351,6 +352,9 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
 - SPEC 범위 밖 기능 추가 (메시지 큐, S3, 러너 확장) — "나중에 필요할 테니 미리"도 금지
 - 되돌리기 어려운 대규모 리팩터링 — 제안만 하고 승인을 받는다
 - `git push --force`, **브랜치 강제 삭제(`git branch -D`)**, 마이그레이션 되돌리기
+  — **예외 하나** (2026-09-29 사용자 승인): 작성 에이전트(`scripts/authoring-*`)가 **자기 `author-<번호>` 브랜치**에 하는 덮어쓰기.
+  이어서 작성 · 다시 작성이 같은 PR 을 갱신한다. 원격 머리 커밋이 에이전트 것이 아니면(사람이 올린 커밋) 에이전트가 스스로 거절한다
+  (도메인/작성 §7 「실행 기록」). 세션이 치는 명령에는 이 예외가 없다
 - 테스트를 통과시키려고 테스트를 수정하는 것
 - 사용자가 묻지 않은 것에 대한 장문의 설명
 
