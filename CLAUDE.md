@@ -272,7 +272,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   계약 반영 `XRC`(`db/reverse-columns.test.ts`, 2026-09-25 — 자기 `service_id` 로만 지운다) ·
   E2E 시나리오 표 `XSC`(`db/scenario-columns.test.ts`, 2026-09-28 — 부품 → `test_run` → 버전 → 시나리오를 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   시나리오 실행 거르기 `XBK`(`execution/kind.test.ts`, 2026-09-29 — `XSC` 와 같은 순서로 자기 `service_id` 로만 지우고 그 `service` 행까지) ·
-  시나리오 저장 `XSS`(`scenario/store.test.ts`)·부품 재료 `XSP`(`scenario/parts.test.ts`)·라우트 `XSR`(`scenario/routes.test.ts`)·문 `XSA`·`XSA2`·`XSA3`(계정 `xsa-reader`·`xsa-writer`, `auth/gate.test.ts`·`auth/scope.test.ts`)(2026-09-29 — 전부 자기 `service_id`·id·이름 목록으로만 지우고 `LIKE` 를 안 쓴다. **`XSA` 로 시작하는 새 이름을 고르지 않는다**) ·
+  시나리오 저장 `XSS`·`XSS2`(`scenario/store.test.ts`)·부품 재료 `XSP`(`scenario/parts.test.ts`)·라우트 `XSR`(`scenario/routes.test.ts`)·문 `XSA`·`XSA2`·`XSA3`(계정 `xsa-reader`·`xsa-writer`, `auth/gate.test.ts`·`auth/scope.test.ts`)(2026-09-29 — 전부 자기 `service_id`·id·이름 목록으로만 지우고 `LIKE` 를 안 쓴다. **`XSA` 로 시작하는 새 이름을 고르지 않는다**) ·
   작성 이어하기 `XRM`(`db/resume-columns.test.ts`)·`XWM`(`authoring/resume.test.ts`)(2026-09-28 — 둘 다 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   역방향 WS-B `XBU`(`execution/unconfirmed.test.ts`, 2026-09-26 — `test_run.title LIKE 'XBU%'`·`tc_id LIKE 'XBU-%'`·`prefix = 'XBU'`) ·
   에이전트 토큰 `xfu5`(계정)·`XFS6`(서비스)(`auth/agentToken.test.ts`, 2026-09-23 — `xfu4` 와 겹치지 않게 `'xfu5%'` 로만 지운다) ·
