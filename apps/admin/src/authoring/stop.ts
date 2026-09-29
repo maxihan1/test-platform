@@ -3,6 +3,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+import { 도는실행있나, 뿌리, 사슬식, 위로식, 최신실행, 최신식 } from './history.js';
 import { 번호 } from './params.js';
 import { db, 보관일, 빚기, 이어받기되나, 칸들, 폴더남기나, 한건, type 요청, type 행 } from './store.js';
 
@@ -39,7 +40,8 @@ function 손댈수있나(req: FastifyRequest, 행: 요청): boolean {
   return 행.requestedBy === req.user?.username || req.user?.role === 'admin';
 }
 
-async function 내행(req: FastifyRequest, reply: FastifyReply): Promise<요청 | null> {
+/** `뿌리로` 면 요청한 사람을 맨 처음 요청으로 본다 — 폐기는 요청 통째라 다시 돌린 사람이 남의 요청을 버리면 안 된다 (2026-09-29 검사) */
+async function 내행(req: FastifyRequest, reply: FastifyReply, 뿌리로 = false): Promise<요청 | null> {
   const id = 번호((req.params as { id?: string }).id);
   if (id === null) {
     await reply.code(400).send({ error: 'BAD_ID' });
@@ -51,7 +53,8 @@ async function 내행(req: FastifyRequest, reply: FastifyReply): Promise<요청 
     return null;
   }
   // 서비스 경계는 문이 봤다(라우트표 「작성요청」 갈래). 여기서는 같은 서비스의 남을 막는다
-  if (!손댈수있나(req, 행)) {
+  const 주인 = 뿌리로 ? await 한건((await 뿌리(행.id)) ?? 행.id) : 행;
+  if (주인 === null || !손댈수있나(req, 주인)) {
     await reply.code(403).send({ error: 'NOT_REQUESTER' });
     return null;
   }
@@ -82,13 +85,20 @@ async function 멈추기(id: number, 누가: string): Promise<'STOPPED' | 'RUNNI
   return r.rows[0]?.status ?? null;
 }
 
+/** 폐기는 요청 통째 — 그 뿌리의 실행을 모두 폐기한다. 판정(끝난 것만)은 누른 그 실행으로 본다 (§7 「실행 기록」) */
 async function 버리기(id: number): Promise<boolean> {
   const r = await (await db()).query(
-    `UPDATE authoring_request SET discarded_at = now()
-      WHERE id = $1 AND status IN ('FAILED', 'STOPPED', 'DRAFT') AND discarded_at IS NULL`,
+    `WITH RECURSIVE ${위로식('$1')}, ${사슬식('id = (SELECT id FROM 위 WHERE source_id IS NULL)')}
+     UPDATE authoring_request SET discarded_at = now()
+      WHERE id IN (SELECT id FROM 사슬) AND discarded_at IS NULL
+        AND EXISTS (SELECT 1 FROM authoring_request
+                     WHERE id = $1 AND status IN ('FAILED', 'STOPPED', 'DRAFT') AND discarded_at IS NULL)
+        -- 누른 것이 최신 실행이고 도는 실행이 없을 때만 — 옛 번호로 누르면 방금 선 실행 · 끝난 머지까지 버린다 (2026-09-29 검사)
+        AND $1::bigint = ${최신식('사슬')}
+        AND NOT EXISTS (SELECT 1 FROM 사슬 s JOIN authoring_request x ON x.id = s.id WHERE x.status IN ('PENDING', 'RUNNING'))`,
     [id],
   );
-  return r.rowCount === 1;
+  return (r.rowCount ?? 0) > 0;
 }
 
 /**
@@ -121,6 +131,12 @@ export async function 상세읽기(req: FastifyRequest, id: number) {
   const { progress, stopped_by, stopped_by_name: display_name, stale, resumable, keep, resumed_by } = row;
   const 행 = 빚기(row);
   const 됨 = 손댈수있나(req, 행) && 행.discardedAt === null;
+  // 폐기는 요청 통째 — 맨 처음 요청한 사람 · 최신 실행 · 도는 실행 없음을 버리기(아래)와 같게 본다
+  const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;
+  const 주인 = 뿌리번호 === 행.id ? 행 : await 한건(뿌리번호);
+  const 버릴수 =
+    주인 !== null && 손댈수있나(req, 주인) && 행.discardedAt === null &&
+    (await 최신실행(뿌리번호)) === 행.id && !(await 도는실행있나(뿌리번호));
   // 자식 전(NULL)도 멈출 수 있다 — 에이전트가 자식을 띄우기 직전에 요청을 본다 (§7 고침 3)
   const 도는중 = (progress === null || progress.childRunning === true) && 행.stopRequestedAt === null;
   return {
@@ -132,7 +148,7 @@ export async function 상세읽기(req: FastifyRequest, id: number) {
       됨 &&
       행.kind !== 'MERGE' &&
       (행.status === 'PENDING' || (행.status === 'RUNNING' && (도는중 || stale === true))),
-    canDiscard: 됨 && ['FAILED', 'STOPPED', 'DRAFT'].includes(행.status),
+    canDiscard: 버릴수 && ['FAILED', 'STOPPED', 'DRAFT'].includes(행.status),
     // 이어서 작성은 재실행과 같은 규칙 — 요청한 사람만이 아니라 작성 권한이면 누구나 (§7 「이어하기」)
     canResume: resumable,
     // 화면이 「10월 5일까지」를 그린다 — 보관일을 화면에 또 적지 않게 여기서 날짜로 준다
@@ -161,7 +177,7 @@ export async function 중단통로(app: FastifyInstance): Promise<void> {
   });
 
   app.post<{ Params: { id: string } }>('/authoring/requests/:id/discard', async (req, reply) => {
-    const 행 = await 내행(req, reply);
+    const 행 = await 내행(req, reply, true);
     if (행 === null) return reply;
     if (!(await 버리기(행.id))) return reply.code(409).send({ error: 'NOT_DISCARDABLE' });
     return { ok: true };

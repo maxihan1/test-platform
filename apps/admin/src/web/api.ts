@@ -331,6 +331,29 @@ export interface AuthoringRow {
   canResume?: boolean;
   resumeUntil?: string | null;
   resumedBy?: number | null;
+  /**
+   * 실행 기록 (도메인/작성 §7 「실행 기록」). 보이는 번호는 뿌리 하나 — 목록 줄은 그 뿌리의 최신 실행이다.
+   * 목록에는 rootId · runCount, 상세에는 rootId · runs 가 온다
+   */
+  rootId?: number;
+  runCount?: number;
+  runs?: AuthoringRun[];
+}
+
+/** 실행 기록 한 줄. 토큰은 그 실행이 쓴 것만 네 칸 — 앞 실행 것을 더하지 않는다 */
+export interface AuthoringRun {
+  id: number;
+  kind: 'AUTHOR' | 'RERUN' | 'MERGE';
+  resumeFrom: number | null;
+  status: AuthoringRow['status'];
+  stopReason: string | null;
+  error: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  caseFiles: number | null;
+  tokens: { input: number; output: number; cacheRead: number; cacheWrite: number; partial: boolean } | null;
+  prUrl: string | null;
 }
 
 /** 에이전트가 30초마다 올리는 진척. 모양은 서버가 가둔다 (도메인/작성 §7) */

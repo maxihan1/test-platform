@@ -11,6 +11,7 @@ import { AuthoringStartModal } from './AuthoringStartModal.js';
 import { 목록글 } from './authoringStatus.js';
 import { 보임라벨, 종류라벨, 줄보임, type 보임 } from './authoringView.js';
 import { Head } from './Head.js';
+import { 방식 } from './AuthoringRuns.js';
 import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
 import type { 판정 } from './role.js';
@@ -42,14 +43,23 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
   const t = use말();
   const 언어 = use언어();
   const 보 = 줄보임(것, 지금);
+  // 보이는 번호는 뿌리 하나다 — 줄은 그 요청의 최신 실행이고 몇 차인지 붙인다 (도메인/작성 §7 「실행 기록」)
+  const 번호 = 것.rootId ?? 것.id;
+  const 차 = 것.runCount ?? 1;
   return (
     <div className="row authoring-row">
       <div className="gutter" style={{ background: 띠색(보) }} />
-      <div className="tcid">#{것.id}</div>
+      <div className="tcid">#{번호}</div>
       <div className="title">
-        <a href={`#/authoring/${것.id}`}>{목록글(것, 언어)}</a>
+        <a href={`#/authoring/${String(번호)}`}>{목록글(것, 언어)}</a>
         <small>
-          {종류라벨(것.kind, 언어)}
+          {차 > 1 ? (
+            <>
+              {t('{차}차', { 차 })} · {방식(것, t)}
+            </>
+          ) : (
+            종류라벨(것.kind, 언어)
+          )}
           {것.compare === true ? ` · ${t('화면과 대조')}` : ''} · {t('요청한 사람')} {것.requestedByName} · {when(것.createdAt, 언어)}
         </small>
       </div>

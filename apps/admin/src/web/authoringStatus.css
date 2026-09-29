@@ -157,6 +157,9 @@
 .authoring-panel ol.authoring-assets { margin: 0; padding-left: 20px; font-size: 13.5px; display: grid; gap: 4px; }
 .authoring-panel ol.authoring-assets a { color: var(--ink); }
 .authoring-panel .authoring-diffs-wrap { margin-top: 0; }
+/* 실행 기록 — 두 단 아래 온 폭. 지금 보이는 실행(맨 위 줄)만 바탕을 깐다 — 판정 색은 안 쓴다 (DESIGN.md 원칙 1) */
+.authoring-runs { margin-top: 16px; }
+.authoring-runs tr.now td { background: var(--sheet-2); font-weight: 600; }
 
 /* 다음 단계 — 사람이 움직여야 하는 것만. 판정 색이 아니라 잉크 테두리로 앞에 세운다 */
 .authoring-todo {

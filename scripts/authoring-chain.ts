@@ -57,8 +57,41 @@ export function 진짜main풀기(낸것: string): string | null {
   return /^([0-9a-f]{40})\trefs\/heads\/main$/.exec(줄들[0]!)?.[1] ?? null;
 }
 
+/**
+ * 요청 하나에 브랜치 하나(`author-<뿌리>`) — 이어서 작성 · 다시 작성은 앞 실행의 커밋을 새 커밋 하나로 갈아 끼운다.
+ * 덮어쓰기는 **에이전트가 자기 브랜치에만** 한다(CLAUDE.md §5 예외, 2026-09-29 사용자). 사람이 올린 커밋이 머리에 있으면
+ * `덮어쓸수없는까닭` 이 먼저 막는다
+ */
 export function 푸시인자(번호: number): string[] {
-  return ['push', 'origin', `HEAD:refs/heads/${올릴브랜치(번호)}`];
+  return ['push', '--force', 'origin', `HEAD:refs/heads/${올릴브랜치(번호)}`];
+}
+
+type 치기 = (명령: string, 인자: string[]) => { ok: boolean; 낸것: string; 까닭?: string };
+
+/**
+ * 덮어써도 되나 — 원격 머리 커밋이 **이 요청 번호로** 에이전트가 올린 모양(`커밋메시지`)일 때만 (2026-09-29 계획 검토 · 검사).
+ * `그만` 은 다시 해도 같은 것(사람 커밋 · 이상한 머리) — 못 읽은 것은 네트워크일 수 있어 `다시하며` 가 다시 해 본다
+ */
+export function 덮어쓸수없는까닭(친다: 치기, 번호: number): { 까닭: string; 그만: boolean } | null {
+  const 브랜치 = 올릴브랜치(번호);
+  const 원격 = 친다('git', ['ls-remote', 'origin', `refs/heads/${브랜치}`]);
+  if (!원격.ok) return { 까닭: `원격 ${브랜치} 를 못 읽었다: ${원격.까닭 ?? ''}`, 그만: false };
+  const 머리 = 원격.낸것.split('\t')[0]?.trim() ?? '';
+  if (머리 === '') return null;
+  // 인자로 넘기기 전에 모양을 본다 — `-` 로 시작하면 옵션으로 읽힌다
+  if (!/^[0-9a-f]{40}$/.test(머리)) return { 까닭: `원격 ${브랜치} 머리가 커밋 번호 모양이 아니다`, 그만: true };
+  const 받음 = 친다('git', ['fetch', '--quiet', 'origin', 머리]);
+  if (!받음.ok) return { 까닭: `원격 ${브랜치} 머리를 못 받았다: ${받음.까닭 ?? ''}`, 그만: false };
+  const 제목 = 친다('git', ['log', '-1', '--format=%s', 머리]);
+  if (!제목.ok) return { 까닭: `원격 ${브랜치} 머리 커밋을 못 읽었다: ${제목.까닭 ?? ''}`, 그만: false };
+  return new RegExp(`^\\[WS-작성\\] \\S+ 작성 요청 ${String(번호)}번 케이스$`).test(제목.낸것.trim())
+    ? null
+    : { 까닭: `${브랜치} 의 마지막 커밋이 에이전트 것이 아니다(사람이 올린 커밋) — 덮어쓰지 않는다. 사람이 그 커밋을 PR 에 병합하거나 브랜치에서 뺀 뒤 다시 이어서 작성한다`, 그만: true };
+}
+
+/** 이미 열린 PR 을 이어 쓸 때 본문(요구사항 표 · 작성 요약)을 이번 실행 것으로 바꾼다 */
+export function PR본문고치기인자(prUrl: string, 본문: string): string[] {
+  return ['pr', 'edit', prUrl, '--body', 본문];
 }
 
 export function 커밋메시지(번호: number, 서비스: string): string {

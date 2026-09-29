@@ -29,10 +29,13 @@ const 전체제한 = 17 * 60_000;
 export function 머지브랜치거부사유(
   pr: { headRefName: string; isCrossRepository: boolean },
   원본번호: number | undefined,
+  // 요청 하나에 브랜치 하나(author-<뿌리>)가 된 뒤의 PR 과 그 전의 author-<실행 번호> PR 을 둘 다 받는다 (2026-09-29)
+  뿌리번호?: number,
 ): string | null {
   if (원본번호 === undefined) return '원본 요청 번호가 없다 — 어느 PR 인지 확인할 수 없다';
   const 기대 = 올릴브랜치(원본번호);
-  if (pr.isCrossRepository || pr.headRefName !== 기대) {
+  const 받는것 = [기대, ...(뿌리번호 === undefined ? [] : [올릴브랜치(뿌리번호)])];
+  if (pr.isCrossRepository || !받는것.includes(pr.headRefName)) {
     return `이 PR 은 에이전트가 올린 ${기대} 가 아니다 (${pr.isCrossRepository ? '포크 · ' : ''}${pr.headRefName}) — 병합하지 않는다`;
   }
   return null;
@@ -55,6 +58,7 @@ export async function 머지처리(
   원본번호: number | undefined,
   뿌리: string,
   호스트로: 칠때,
+  요청뿌리?: number,
 ): Promise<void> {
   const 뷰 = 친다('gh', ['pr', 'view', prUrl, '--json', 'headRefName,headRefOid,isDraft,state,isCrossRepository'], 뿌리);
   if (!뷰.ok) {
@@ -68,7 +72,7 @@ export async function 머지처리(
     state: string;
     isCrossRepository: boolean;
   };
-  const 남의것 = 머지브랜치거부사유(pr, 원본번호);
+  const 남의것 = 머지브랜치거부사유(pr, 원본번호, 요청뿌리);
   if (남의것 !== null) {
     await 손.끝내기({ status: 'FAILED', error: 남의것 });
     return;

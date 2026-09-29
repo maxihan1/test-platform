@@ -9,6 +9,8 @@ import {
   PR만들기인자,
   PR본문,
   PR찾기인자,
+  PR본문고치기인자,
+  덮어쓸수없는까닭,
   바뀐파일들,
   한줄,
   비밀섞였나,
@@ -141,7 +143,7 @@ export async function 올리기(
 
   for (const [인자, 설명] of [
     [['add', '--', ...파일들], '담기'],
-    [['commit', '-m', 커밋메시지(것.id, 서비스)], '커밋'],
+    [['commit', '-m', 커밋메시지(자료출처(것), 서비스)], '커밋'],
   ] as const) {
     const r = 트리에서('git', [...인자]);
     if (!r.ok) {
@@ -226,8 +228,11 @@ export async function 올리기(
   }
 
   // 훅은 안 돈다(사본환경) — 트리의 훅은 자식이 쓴 것이다. 같은 검사(타입·K 규칙)는 CI 의 가벼운 길이 한다
+  // 요청 하나에 브랜치 하나(author-<뿌리>) — 사람이 올린 커밋이 머리에 있으면 덮어쓰지 않는다 (§7 「실행 기록」)
   const 올림 = await 다시하며('push', () => {
-    const r = 트리에서('git', 푸시인자(것.id));
+    const 남의것 = 덮어쓸수없는까닭(트리에서, 자료출처(것));
+    if (남의것 !== null) return 남의것;
+    const r = 트리에서('git', 푸시인자(자료출처(것)));
     return r.ok ? { 값: true } : push실패(r);
   });
   if ('까닭' in 올림) {
@@ -237,10 +242,13 @@ export async function 올리기(
 
   // 재시도 전에 먼저 찾는다 — 만들기가 GitHub 에선 됐는데 답만 잃었으면 또 만들면 PR 이 둘이 된다
   const PR = await 다시하며('PR 만들기', () => {
-    const 있나 = 트리에서('gh', PR찾기인자(것.id));
+    const 있나 = 트리에서('gh', PR찾기인자(자료출처(것)));
     const 있는것 = 있나.ok ? (JSON.parse(있나.낸것 || '[]') as { url: string }[])[0]?.url : undefined;
-    if (있는것 !== undefined) return { 값: 있는것 };
-    const r = 트리에서('gh', PR만들기인자(것.id, 커밋메시지(것.id, 서비스), 본문글));
+    if (있는것 !== undefined) {
+      if (!트리에서('gh', PR본문고치기인자(있는것, 본문글)).ok) console.error(`[작성] ${것.id}번 PR 본문을 못 고쳤다 — 옛 본문이 남는다`);
+      return { 값: 있는것 };
+    }
+    const r = 트리에서('gh', PR만들기인자(자료출처(것), 커밋메시지(자료출처(것), 서비스), 본문글));
     const 주소 = r.낸것.trim().split('\n').pop() ?? '';
     return r.ok && 주소.startsWith('https://') ? { 값: 주소 } : { 까닭: r.까닭 || 'PR 주소가 안 찍혔다' };
   });

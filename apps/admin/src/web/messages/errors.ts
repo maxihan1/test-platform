@@ -76,4 +76,8 @@ export const 오류영어: Record<string, string> = {
   '실행이 끝나면 증적 문서를 만들 수 있습니다': 'Evidence can be generated once the run finishes',
   '열기 ↗': 'Open ↗',
   받기: 'Download',
+  '이 요청은 이미 다른 실행이 대기 중이거나 작성 중입니다. 새로 고쳐 보세요':
+    'Another run of this request is queued or writing. Refresh the page',
+  '이 요청에 더 최근 실행이 있습니다. 새로 고친 뒤 최신 실행에서 반영하세요':
+    'This request has a newer run. Refresh and merge from the latest run',
 };

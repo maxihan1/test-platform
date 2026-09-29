@@ -48,10 +48,9 @@ export function 이어서작성({
   if (요청.canResume !== true) {
     return (
       <일 표="A" 제목={t('이어서 작성')} 설명="">
+        {/* 이어받은 실행은 같은 번호의 실행 기록에 있다 — 새 번호로 가는 고리를 두지 않는다 (§7 「실행 기록」) */}
         {typeof 요청.resumedBy === 'number' ? (
-          <a href={`#/authoring/${String(요청.resumedBy)}`}>
-            {t('작성 요청 #{번호}로 이어받았습니다', { 번호: 요청.resumedBy })}
-          </a>
+          <p className="hint">{t('이미 이어서 작성했습니다. 아래 실행 기록을 보세요.')}</p>
         ) : (
           <p className="hint">{t('보관 기간이 지나 만든 것을 지웠습니다. 처음부터 다시 작성하세요.')}</p>
         )}

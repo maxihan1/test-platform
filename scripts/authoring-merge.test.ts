@@ -19,6 +19,12 @@ describe('머지브랜치거부사유 — 에이전트가 올린 그 PR 만 병�
   it('원본 번호가 없으면 거부한다', () => {
     expect(머지브랜치거부사유({ headRefName: 'author-12', isCrossRepository: false }, undefined)).not.toBeNull();
   });
+
+  it('뿌리 번호 브랜치도 받는다 — 이어서 작성은 author-<뿌리> 하나를 갱신하고, 옛 PR 은 author-<실행 번호> 다', () => {
+    expect(머지브랜치거부사유({ headRefName: 'author-5', isCrossRepository: false }, 12, 5)).toBeNull();
+    expect(머지브랜치거부사유({ headRefName: 'author-12', isCrossRepository: false }, 12, 5)).toBeNull();
+    expect(머지브랜치거부사유({ headRefName: 'author-6', isCrossRepository: false }, 12, 5)).not.toBeNull();
+  });
 });
 
 describe('한번에하나 — 서버 저장소에 쓰는 git 은 줄을 세운다', () => {

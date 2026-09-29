@@ -214,44 +214,58 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
         (r) => r['서비스'] === 'XDH 작성 현황' && r['방식'] === 방식 && r['결과'] === 결과,
       );
 
-    it('보통·성공 — 사용량을 알린 요청만 세고 입력+출력과 캐시를 갈라 중간값을 낸다', async () => {
+    it('보통·성공 — 사용량을 알린 실행만 세고 입력 · 출력 · 캐시 읽기 · 캐시 쓰기를 따로 낸다', async () => {
       const 보통 = await 줄('보통', '성공');
       expect(보통).toBeDefined();
-      expect(Number(보통!['요청 수'])).toBe(2);
-      expect(Number(보통!['입력+출력 중간값'])).toBe(275);
-      expect(Number(보통!['캐시 중간값'])).toBe(2100);
-      expect(Number(보통!['토큰 합계'])).toBe(4750);
+      expect(Number(보통!['실행 수'])).toBe(2);
+      expect(Number(보통!['입력 중간값'])).toBe(200);
+      expect(Number(보통!['출력 중간값'])).toBe(75);
+      expect(Number(보통!['캐시 읽기 중간값'])).toBe(2000);
+      expect(Number(보통!['캐시 쓰기 중간값'])).toBe(100);
+      expect(Number(보통!['입력 합계'])).toBe(400);
+      expect(Number(보통!['출력 합계'])).toBe(150);
+      expect(Number(보통!['캐시 읽기 합계'])).toBe(4000);
+      expect(Number(보통!['캐시 쓰기 합계'])).toBe(200);
       expect(Number(보통!['API 환산 (청구 아님) 합계'])).toBe(3);
-      expect(Number(보통!['비용 있는 요청'])).toBe(2);
+      expect(Number(보통!['비용 있는 실행'])).toBe(2);
     });
 
-    it('끊긴 요청은 끊김 줄 — 비용이 없어 비용 있는 요청이 0 이다', async () => {
+    it('끊긴 실행은 끊김 줄 — 비용이 없어 비용 있는 실행이 0 이다', async () => {
       const 끊김 = await 줄('보통', '끊김');
       expect(끊김).toBeDefined();
-      expect(Number(끊김!['요청 수'])).toBe(1);
-      expect(Number(끊김!['토큰 합계'])).toBe(450);
-      expect(Number(끊김!['비용 있는 요청'])).toBe(0);
+      expect(Number(끊김!['실행 수'])).toBe(1);
+      expect(Number(끊김!['입력 합계'])).toBe(40);
+      expect(Number(끊김!['출력 합계'])).toBe(10);
+      expect(Number(끊김!['캐시 읽기 합계'])).toBe(400);
+      expect(Number(끊김!['캐시 쓰기 합계'])).toBe(0);
+      expect(Number(끊김!['비용 있는 실행'])).toBe(0);
     });
 
-    it('재실행은 따로 한 줄이고 30일 전에 끝난 요청은 세지 않는다', async () => {
+    it('재실행은 따로 한 줄이고 30일 전에 끝난 실행은 세지 않는다', async () => {
       const 다시 = await 줄('재실행', '성공');
       expect(다시).toBeDefined();
-      expect(Number(다시!['토큰 합계'])).toBe(15);
+      expect(Number(다시!['입력 합계'])).toBe(10);
+      expect(Number(다시!['출력 합계'])).toBe(5);
       const 전부 = (await 읽기전용.query<Record<string, string>>(패널SQL('작성 토큰'))).rows.filter(
         (r) => r['서비스'] === 'XDH 작성 현황',
       );
-      expect(전부.reduce((합, r) => 합 + Number(r['토큰 합계']), 0)).toBe(4750 + 450 + 15 + 2000 + 10 + 80 + 5);
+      const 합 = (칸: string) => 전부.reduce((n, r) => n + Number(r[칸]), 0);
+      expect(합('입력 합계')).toBe(100 + 300 + 40 + 10 + 1000 + 7 + 60 + 4);
+      expect(합('출력 합계')).toBe(50 + 100 + 10 + 5 + 1000 + 3 + 20 + 1);
+      expect(합('캐시 읽기 합계')).toBe(1000 + 3000 + 400);
+      expect(합('캐시 쓰기 합계')).toBe(200);
     });
 
     it('대조는 방식이 따로고, 끊기지 않은 실패는 그 밖 실패다', async () => {
-      expect(Number((await 줄('화면과 대조', '성공'))!['토큰 합계'])).toBe(2000);
-      expect(Number((await 줄('재실행', '그 밖 실패'))!['토큰 합계'])).toBe(10);
+      expect(Number((await 줄('화면과 대조', '성공'))!['입력 합계'])).toBe(1000);
+      expect(Number((await 줄('재실행', '그 밖 실패'))!['입력 합계'])).toBe(7);
+      expect(Number((await 줄('재실행', '그 밖 실패'))!['출력 합계'])).toBe(3);
     });
 
     it('중단은 끊김보다 먼저 이유별로 가른다 — 끊긴 시간초과도 끊김 줄에 들지 않는다', async () => {
-      expect(Number((await 줄('보통', '중단 · 시간초과'))!['토큰 합계'])).toBe(80);
-      expect(Number((await 줄('보통', '중단 · 사용자'))!['토큰 합계'])).toBe(5);
-      expect(Number((await 줄('보통', '끊김'))!['요청 수'])).toBe(1);
+      expect(Number((await 줄('보통', '중단 · 시간초과'))!['입력 합계'])).toBe(60);
+      expect(Number((await 줄('보통', '중단 · 사용자'))!['출력 합계'])).toBe(1);
+      expect(Number((await 줄('보통', '끊김'))!['실행 수'])).toBe(1);
     });
   });
 });

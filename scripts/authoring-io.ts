@@ -76,6 +76,22 @@ export type 보고손 = {
   끝내기(몸: Record<string, unknown>): Promise<unknown>;
 };
 
+/**
+ * 끝났다는 보고가 400 으로 거절되면 대신 보낼 실패 보고. 뒤처리가 없으면 행이 RUNNING 으로 남는다 —
+ * 5877 은 서비스 저장소가 비어 PR 주소가 BAD_PR_URL 로 거절되고 작성 중에 멈춰 있었다 (2026-09-29).
+ * PR 주소는 까닭 글에 싣는다 — 거절된 칸을 또 보내면 또 거절된다
+ */
+export function 거절된보고대신(
+  상태: number,
+  답몸: unknown,
+  보낸것: Record<string, unknown>,
+): Record<string, unknown> | null {
+  if (상태 !== 400) return null;
+  const 까닭 = (답몸 as { error?: unknown } | null)?.error;
+  const pr = typeof 보낸것.prUrl === 'string' ? ` — PR ${보낸것.prUrl}` : '';
+  return { status: 'FAILED', error: `끝났다는 보고를 서버가 거절했다 (${String(까닭 ?? 400)})${pr}` };
+}
+
 export const 쉬기 = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function 보고손만들기(주소기지: string, 토큰: string, 서비스: string, id: number): 보고손 {
@@ -93,6 +109,11 @@ export function 보고손만들기(주소기지: string, 토큰: string, 서비�
         let 실패: unknown;
         try {
           const 답 = await 부른다(주소기지, 토큰, `/authoring/requests/${id}/finish${뒤}`, { method: 'POST', body: 몸 });
+          const 대신 = 거절된보고대신(답.status, 답.몸, 몸);
+          if (대신 !== null) {
+            console.error(`[작성] ${id}번 끝내기 보고가 거절됐다 — 실패로 다시 보낸다: ${String(대신.error)}`);
+            return await 부른다(주소기지, 토큰, `/authoring/requests/${id}/finish${뒤}`, { method: 'POST', body: 대신 });
+          }
           if (!기다렸다다시인가(답.status)) return 답;
           실패 = new Error(`끝났다는 보고에 서버가 ${답.status} 를 냈다`);
         } catch (err) {

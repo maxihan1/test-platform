@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   type 보고손,
+  거절된보고대신,
   다시하며,
   닫으며,
   부른다,
@@ -234,5 +235,19 @@ describe('한번더건다 — 자료 받기도 같은 손을 쓴다', () => {
       }),
     ).rejects.toThrow('다른 것');
     expect(불린수).toBe(1);
+  });
+});
+
+describe('거절된보고대신 — 끝났다는 보고가 400 이면 실패로 한 번 더 보내 RUNNING 에 남지 않게 한다 (2026-09-29 5877)', () => {
+  it('400 이면 거절 까닭과 PR 주소를 실어 FAILED 로 바꿔 보낸다', () => {
+    const 대신 = 거절된보고대신(400, { error: 'BAD_PR_URL' }, { status: 'DONE', prUrl: 'https://github.com/a/b/pull/105' });
+    expect(대신).toMatchObject({ status: 'FAILED' });
+    expect(String(대신?.error)).toContain('BAD_PR_URL');
+    expect(String(대신?.error)).toContain('https://github.com/a/b/pull/105');
+    expect(대신).not.toHaveProperty('prUrl');
+  });
+  it('400 이 아니면 바꾸지 않는다 — 409 는 이미 끝난 행이다', () => {
+    expect(거절된보고대신(409, { error: 'NOT_RUNNING' }, { status: 'DONE' })).toBeNull();
+    expect(거절된보고대신(200, { ok: true }, { status: 'DONE' })).toBeNull();
   });
 });
