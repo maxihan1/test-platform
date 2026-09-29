@@ -90,7 +90,9 @@ describe('조립 검사', () => {
     expect(검사([api('/\\evil.test/x')])).toHaveLength(1);
     expect(검사([api('/\t/evil.test/x')])).toHaveLength(1);
     expect(검사([api('/api/x\n')])).toHaveLength(1);
+    expect(검사([api('/api/x\x7f')])).toHaveLength(1);
     expect(검사([api('/api/x')])).toEqual([]);
+    expect(검사([api('/api/x?q=1&a=%2F')])).toEqual([]);
   });
 
   it('제한 시간 합이 60분이면 통과하고 1ms 넘으면 거절한다', () => {
