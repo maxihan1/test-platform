@@ -724,6 +724,7 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
   let app: FastifyInstance;
   const 서비스id: Record<string, number> = {};
   const 시나리오: Record<string, number> = {};
+  const 실행: Record<string, number> = {};
   const 계정들 = ['xsa-reader', 'xsa-writer'];
 
   const q = async (sql: string, 값: unknown[] = []) => {
@@ -751,6 +752,18 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
         `${prefix} 흐름`,
       ]);
       시나리오[prefix] = Number((s.rows[0] as { id: string }).id);
+      await q(
+        `INSERT INTO scenario_version (scenario_id, version, platform, parts, saved_by, saved_by_name)
+         VALUES ($1, 1, 'desktop', '[]', 'xsa', 'xsa')`,
+        [시나리오[prefix]],
+      );
+      const r2 = await q(
+        `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url,
+                               kind, scenario_id, scenario_version)
+         VALUES ($1, 'xsa', 'qa', 'FINISHED', $2, $1, '', '', 'SCENARIO', $3, 1) RETURNING run_id`,
+        [`${prefix} 흐름`, 서비스id[prefix], 시나리오[prefix]],
+      );
+      실행[prefix] = Number((r2.rows[0] as { run_id: string }).run_id);
     }
     const 배정: Record<string, 'read' | 'write'> = { 'xsa-reader': 'read', 'xsa-writer': 'write' };
     for (const [username, runs] of Object.entries(배정)) {
@@ -784,6 +797,9 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
         scope.put('/scenarios/:id', async () => ({ 지나감: true }));
         scope.post('/scenarios/:id/restore', async () => ({ 지나감: true }));
         scope.post('/scenarios/:id/archive', async () => ({ 지나감: true }));
+        scope.post('/scenarios/:id/runs', async () => ({ 지나감: true }));
+        scope.get('/runs/:runId/scenario', async () => ({ 지나감: true }));
+        scope.get('/runs/:runId/scenario/screenshots/:seq', async () => ({ 지나감: true }));
       },
       { prefix: '/api' },
     );
@@ -795,6 +811,8 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
     await q('DELETE FROM user_service WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     for (const id of Object.values(서비스id)) {
+      await q('DELETE FROM test_run WHERE service_id = $1', [id]);
+      await q('DELETE FROM scenario_version WHERE scenario_id IN (SELECT id FROM scenario WHERE service_id = $1)', [id]);
       await q('DELETE FROM scenario WHERE service_id = $1', [id]);
       await q('DELETE FROM service WHERE id = $1', [id]);
     }
@@ -808,6 +826,8 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
       `/api/scenarios/${내것}`,
       `/api/scenarios/${내것}/versions/1`,
       '/api/scenarios/case-parts/XSA-001',
+      `/api/runs/${실행.XSA}/scenario`,
+      `/api/runs/${실행.XSA}/scenario/screenshots/1`,
     ]) {
       expect((await app.inject({ method: 'GET', url, cookies })).statusCode, url).toBe(200);
     }
@@ -816,6 +836,7 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
       { method: 'PUT', url: `/api/scenarios/${내것}`, payload: {} },
       { method: 'POST', url: `/api/scenarios/${내것}/restore`, payload: {} },
       { method: 'POST', url: `/api/scenarios/${내것}/archive`, payload: {} },
+      { method: 'POST', url: `/api/scenarios/${내것}/runs`, payload: { env: 'qa' } },
     ] as const) {
       const res = await app.inject({ ...요청, cookies });
       expect(res.statusCode, 요청.url).toBe(403);
@@ -833,6 +854,9 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
       { method: 'POST', url: `/api/scenarios/${남의것}/restore` },
       { method: 'POST', url: `/api/scenarios/${남의것}/archive` },
       { method: 'GET', url: '/api/scenarios/case-parts/XSA2-001' },
+      { method: 'POST', url: `/api/scenarios/${남의것}/runs` },
+      { method: 'GET', url: `/api/runs/${실행.XSA2}/scenario` },
+      { method: 'GET', url: `/api/runs/${실행.XSA2}/scenario/screenshots/1` },
     ] as const) {
       const res = await app.inject({ ...요청, cookies, payload: {} });
       expect(res.statusCode, 요청.url).toBe(403);

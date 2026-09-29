@@ -88,6 +88,10 @@ export const 라우트표: Record<string, 원천> = {
   '/api/scenarios/:id/versions/:v': { 종류: '시나리오', 칸: 'id' },
   '/api/scenarios/:id/restore': { 종류: '시나리오', 칸: 'id' },
   '/api/scenarios/:id/archive': { 종류: '시나리오', 칸: 'id' },
+  '/api/scenarios/:id/runs': { 종류: '시나리오', 칸: 'id' },
+  // 결과·사진은 실행 번호의 서비스다 — 그 뒤에 시나리오가 치워져도 실행은 서비스에 매여 있다
+  '/api/runs/:runId/scenario': { 종류: '실행', 칸: 'runId' },
+  '/api/runs/:runId/scenario/screenshots/:seq': { 종류: '실행', 칸: 'runId' },
   '/api/scenarios/case-parts/:tcId': { 종류: '케이스', 칸: 'tcId' },
 };
 

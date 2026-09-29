@@ -52,8 +52,15 @@ const runBody = z.object({
 });
 
 // 러너와 어드민이 같은 볼륨을 본다. 경로 규칙은 artifacts/runs/{runId}/{historyId}/{seq}.png (SPEC §9)
-function artifactsDir(): string {
+export function artifactsDir(): string {
   return process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts');
+}
+
+// 시나리오 사진 통로(scenario/runRoutes.ts)도 같은 판정을 쓴다
+export async function 시나리오실행인가(runId: number): Promise<boolean> {
+  const { pool } = await import('../db/index.js');
+  const r = await pool.query("SELECT 1 FROM test_run WHERE run_id = $1 AND kind = 'SCENARIO'", [runId]);
+  return (r.rowCount ?? 0) > 0;
 }
 
 function page(raw: string | undefined): number {
@@ -198,8 +205,12 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
 
     const found = await findRun(runId);
-    if (found === null) return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
-    return found;
+    if (found !== null) return found;
+    // 번호만 들고 온 화면이 결과 화면을 갈아탈 수 있게 없는 번호와 가른다 (도메인/시나리오 §7)
+    if (await 시나리오실행인가(runId)) {
+      return reply.code(404).send({ error: 'SCENARIO_RUN', detail: `실행 ${runId}은 시나리오 실행이다 — /api/runs/${runId}/scenario` });
+    }
+    return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
   });
 
   app.get<{ Params: { runId: string; historyId: string } }>('/runs/:runId/items/:historyId', async (req, reply) => {

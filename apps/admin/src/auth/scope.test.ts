@@ -102,6 +102,13 @@ describe('라우트표', () => {
     expect(유령, `소스에 없는 라우트가 표에 남아 있다: ${유령.join(' · ')}`).toEqual([]);
   });
 
+  // 실행 요청은 아직 실행 번호가 없어 시나리오 번호로, 결과·사진은 그 실행 번호로 서비스를 찾는다
+  it('시나리오 실행 통로는 시나리오 번호 · 실행 번호로 서비스를 찾는다', () => {
+    expect(라우트표['/api/scenarios/:id/runs']).toEqual({ 종류: '시나리오', 칸: 'id' });
+    expect(라우트표['/api/runs/:runId/scenario']).toEqual({ 종류: '실행', 칸: 'runId' });
+    expect(라우트표['/api/runs/:runId/scenario/screenshots/:seq']).toEqual({ 종류: '실행', 칸: 'runId' });
+  });
+
   it('직전 실행 비교 조회는 실행 번호로 서비스를 찾는다', () => {
     expect(라우트표['/api/runs/:runId/insights']).toEqual({ 종류: '실행', 칸: 'runId' });
   });
