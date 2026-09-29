@@ -10,7 +10,8 @@ import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
-import { 이어받을수있나, 줄세우기, 한건, 한쪽, type 요청, type 상태 } from './store.js';
+import { 도는실행있나, 뿌리, 실행들, 최신실행, 한쪽 } from './history.js';
+import { 이어받을수있나, 줄세우기, 한건, type 요청, type 상태 } from './store.js';
 
 /**
  * 사진이 내려앉는 뿌리.
@@ -171,6 +172,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       if (행 === null || 행.kind !== 'AUTHOR' || 행.status === 'DRAFT' || (!이어서 && 행.discardedAt !== null)) {
         return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행?.kind} ${행?.status}` });
       }
+      // 같은 뿌리에 도는 실행이 있으면 둘이 같은 브랜치를 서로 덮는다 (§7 「실행 기록」)
+      if (await 도는실행있나(행.id)) return reply.code(409).send({ error: 'RUN_ACTIVE' });
       // 대조 원본이면 같은 대상 서버·시작 주소를 물려받는다 — 없으면 정방향으로 돌거나(대조) 읽을 입력이 없어 늘 실패한다(화면만).
       // 만든 뒤 계정이 빠졌을 수 있어 작성 요청과 같은 판정을 다시 한다 — 줄에서 한참 기다린 뒤 실패하지 않게 (2026-09-28 게이트 1)
       const 대조 = 행.compare
@@ -232,7 +235,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 없는 번호는 404 다. 「없는 것」과 「남의 것」이 뭉개지면 안 된다 (SPEC §7).
       // 서비스 경계는 문이 이미 봤다 — 이 틀은 라우트표에서 「번호로 서비스를 찾는」 갈래다
       if (행 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
-      return { ...행, assets: await 자료목록(행.id) };
+      const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;
+      return { ...행, assets: await 자료목록(행.id), rootId: 뿌리번호, runs: await 실행들(뿌리번호) };
     },
   );
 
@@ -247,6 +251,10 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       const 행 = await 원본확인(req.body?.sourceId, 서비스, reply);
       if (행 === null) return reply;
 
+      // 도는 실행이 있거나 뒤에 실행이 더 있으면 그 PR 은 이미 옛것이다 — 최신 실행만 머지한다 (§7 「실행 기록」)
+      const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;
+      if (await 도는실행있나(뿌리번호)) return reply.code(409).send({ error: 'RUN_ACTIVE' });
+      if ((await 최신실행(뿌리번호)) !== 행.id) return reply.code(409).send({ error: 'NOT_LATEST' });
       // 아직 안 끝났거나 실패한 요청은 머지할 것이 없다. PR 주소가 비어 있다
       if (행.status !== 'DONE' || 행.prUrl === null) {
         return reply.code(409).send({ error: 'NOT_MERGEABLE', detail: 행.status });

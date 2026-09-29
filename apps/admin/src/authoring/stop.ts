@@ -3,6 +3,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+import { 사슬식, 위로식 } from './history.js';
 import { 번호 } from './params.js';
 import { db, 보관일, 빚기, 이어받기되나, 칸들, 폴더남기나, 한건, type 요청, type 행 } from './store.js';
 
@@ -82,13 +83,17 @@ async function 멈추기(id: number, 누가: string): Promise<'STOPPED' | 'RUNNI
   return r.rows[0]?.status ?? null;
 }
 
+/** 폐기는 요청 통째 — 그 뿌리의 실행을 모두 폐기한다. 판정(끝난 것만)은 누른 그 실행으로 본다 (§7 「실행 기록」) */
 async function 버리기(id: number): Promise<boolean> {
   const r = await (await db()).query(
-    `UPDATE authoring_request SET discarded_at = now()
-      WHERE id = $1 AND status IN ('FAILED', 'STOPPED', 'DRAFT') AND discarded_at IS NULL`,
+    `WITH RECURSIVE ${위로식('$1')}, ${사슬식('id = (SELECT id FROM 위 WHERE source_id IS NULL)')}
+     UPDATE authoring_request SET discarded_at = now()
+      WHERE id IN (SELECT id FROM 사슬) AND discarded_at IS NULL
+        AND EXISTS (SELECT 1 FROM authoring_request
+                     WHERE id = $1 AND status IN ('FAILED', 'STOPPED', 'DRAFT') AND discarded_at IS NULL)`,
     [id],
   );
-  return r.rowCount === 1;
+  return (r.rowCount ?? 0) > 0;
 }
 
 /**
