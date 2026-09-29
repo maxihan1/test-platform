@@ -82,6 +82,11 @@ jobs:
       - name: 문서 계약 검사
         if: steps.skeleton.outputs.ready == '1'
         run: npm run check:docs-contract
+      # 진행판 원본(docs/wbs.md)과 WORKSTREAMS 의 완료 표시가 어긋나면 막는다. 체크만 바꾼 PR 은 docs 차선이라
+      # check:workflow 옆에 두면 안 돈다 — 그래서 설치 전 이 자리다 (node 표준 모듈만 쓴다)
+      - name: 진행판 동기화 검사 (wbs ↔ WORKSTREAMS)
+        if: steps.skeleton.outputs.ready == '1'
+        run: npm run check:wbs
       - name: 의존성 설치
         if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec'
         run: npm ci

@@ -1,0 +1,175 @@
+<title>테스트 플랫폼 진행판</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #F4F6F8; --surface: #FFFFFF; --ink: #1B2230; --muted: #5B6676; --line: #E1E6EC;
+    --accent: #0E7C6B; --done: #2F8F4E; --todo: #9AA4B2; --track: #E6EAEF;
+    --sans: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #12161D; --surface: #1A2029; --ink: #E5E9EF; --muted: #9AA5B4; --line: #2A323E;
+      --accent: #3FBFA9; --done: #5CC07E; --todo: #5E6978; --track: #262E39;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #12161D; --surface: #1A2029; --ink: #E5E9EF; --muted: #9AA5B4; --line: #2A323E;
+    --accent: #3FBFA9; --done: #5CC07E; --todo: #5E6978; --track: #262E39;
+  }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 64px; display: grid; gap: 28px; }
+  h1 { font-size: 22px; font-weight: 700; margin: 0; text-wrap: balance; }
+  h2 { font-size: 13px; font-weight: 500; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .top { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 20px; }
+  @media (max-width: 720px) { .top { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+  .big { font-family: var(--mono); font-size: 52px; font-weight: 500; line-height: 1; color: var(--accent); }
+  .big small { font-size: 22px; color: var(--muted); }
+  .ring-row { display: flex; align-items: center; gap: 18px; }
+  .counts { display: grid; gap: 2px; font-size: 14px; }
+  .excluded { margin-top: 14px; font-size: 12.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+  .bars { display: grid; gap: 10px; }
+  .bar { display: grid; grid-template-columns: 150px 1fr 88px; gap: 12px; align-items: center; font-size: 14px; }
+  @media (max-width: 480px) { .bar { grid-template-columns: 1fr 76px; } .bar .track { grid-column: 1 / -1; grid-row: 2; } }
+  .track { height: 10px; background: var(--track); border-radius: 5px; overflow: hidden; }
+  .fill { height: 100%; background: var(--accent); border-radius: 5px; }
+  .fill.zero { background: transparent; }
+  .bar .num { text-align: right; color: var(--muted); font-size: 13px; }
+  .recent { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .recent li { display: grid; grid-template-columns: 92px 128px 1fr; gap: 12px; font-size: 14px; align-items: baseline; }
+  @media (max-width: 560px) { .recent li { grid-template-columns: 1fr; gap: 0; } }
+  .date { color: var(--muted); font-family: var(--mono); font-size: 12.5px; }
+  .id { font-family: var(--mono); font-size: 12.5px; color: var(--accent); }
+  .filter { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter button { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .filter button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .filter button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .list-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .list-head h2 { margin: 0; }
+  details.area { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  details.area + details.area { margin-top: 10px; }
+  details.area > summary { list-style: none; cursor: pointer; padding: 14px 18px; display: grid; grid-template-columns: 1fr 140px 70px; gap: 12px; align-items: center; }
+  details.area > summary::-webkit-details-marker { display: none; }
+  details.area > summary .name { font-weight: 700; }
+  details.area > summary .name .key { font-family: var(--mono); font-weight: 400; color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+  @media (max-width: 480px) { details.area > summary { grid-template-columns: 1fr 60px; } details.area > summary .track { display: none; } }
+  .feat { border-top: 1px solid var(--line); padding: 12px 18px 14px; }
+  .feat-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .feat-head b { font-weight: 500; }
+  .phase { font-family: var(--mono); font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
+  .what { color: var(--muted); font-size: 13px; margin: 2px 0 8px; max-width: 70ch; }
+  .tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .tasks li { display: grid; grid-template-columns: 20px 112px 1fr; gap: 10px; align-items: baseline; font-size: 14px; }
+  @media (max-width: 560px) { .tasks li { grid-template-columns: 20px 1fr; } .tasks li .id { grid-column: 2; } .tasks li .t { grid-column: 2; } }
+  .box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--todo); display: inline-grid; place-items: center; transform: translateY(3px); }
+  .done .box { background: var(--done); border-color: var(--done); }
+  .done .box::after { content: ""; width: 8px; height: 4px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: translate(0, -1px) rotate(-45deg); }
+  .done .t { color: var(--muted); }
+  .t .ev { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+  .empty { color: var(--muted); font-size: 13px; padding: 4px 0; }
+  @media (prefers-reduced-motion: no-preference) { .fill { transition: width .4s ease; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>테스트 플랫폼 진행판</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section class="top">
+    <div class="panel">
+      <h2>전체 진행률</h2>
+      <div class="big" id="pct"></div>
+      <div class="counts" id="counts" style="margin-top:12px"></div>
+      <div class="excluded" id="excluded"></div>
+    </div>
+    <div class="panel">
+      <h2>단계별</h2>
+      <div class="bars" id="phases"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>영역별</h2>
+    <div class="bars" id="areas"></div>
+  </section>
+
+  <section class="panel">
+    <h2>최근 완료</h2>
+    <ul class="recent" id="recent"></ul>
+  </section>
+
+  <section>
+    <div class="list-head">
+      <h2>전체 작업 목록</h2>
+      <div class="filter" role="group" aria-label="목록 보기">
+        <button type="button" id="f-all" data-f="all">전체</button>
+        <button type="button" id="f-todo" data-f="todo">남은 것</button>
+        <button type="button" id="f-done" data-f="done">완료</button>
+      </div>
+    </div>
+    <div id="list"></div>
+  </section>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pct = (d, t) => (t ? Math.round((d / t) * 100) : 0);
+const bar = (label, d, t) => `<div class="bar"><span>${label}</span><div class="track"><div class="fill${d ? "" : " zero"}" style="width:${pct(d, t)}%"></div></div><span class="num">${d}/${t} · ${pct(d, t)}%</span></div>`;
+
+const tasks = DATA.areas.flatMap((a) => a.features.flatMap((f) => f.tasks.map((t) => ({ ...t, area: a, phase: f.phase }))));
+const done = tasks.filter((t) => t.done);
+$("meta").textContent = `docs/wbs.md 기준 · 갱신 ${DATA.generated} · main ${DATA.commit}`;
+$("pct").innerHTML = `${pct(done.length, tasks.length)}<small>%</small>`;
+$("counts").innerHTML = `<span>완료 <b class="num">${done.length}</b></span><span>남음 <b class="num">${tasks.length - done.length}</b></span><span>전체 <b class="num">${tasks.length}</b></span>`;
+$("excluded").textContent = DATA.note;
+
+const phases = [...new Set(tasks.map((t) => t.phase || "단계 미정"))].sort();
+$("phases").innerHTML = phases.map((p) => {
+  const ts = tasks.filter((t) => (t.phase || "단계 미정") === p);
+  return bar(p, ts.filter((t) => t.done).length, ts.length);
+}).join("");
+$("areas").innerHTML = DATA.areas.map((a) => {
+  const ts = a.features.flatMap((f) => f.tasks);
+  return bar(esc(a.name), ts.filter((t) => t.done).length, ts.length);
+}).join("");
+
+const recent = done.filter((t) => t.date).sort((x, y) => (x.date < y.date ? 1 : -1)).slice(0, 8);
+$("recent").innerHTML = recent.length
+  ? recent.map((t) => `<li><span class="date">${t.date}</span><span class="id">${t.id}</span><span>${esc(t.title)}</span></li>`).join("")
+  : `<li class="empty">아직 완료된 작업이 없습니다.</li>`;
+
+let filter = "all";
+try { filter = localStorage.getItem("tp-progress-filter") || "all"; } catch (e) {}
+function renderList() {
+  document.querySelectorAll(".filter button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === filter)));
+  const keep = (t) => filter === "all" || (filter === "done" ? t.done : !t.done);
+  $("list").innerHTML = DATA.areas.map((a) => {
+    const ts = a.features.flatMap((f) => f.tasks);
+    const d = ts.filter((t) => t.done).length;
+    const feats = a.features.map((f) => {
+      const shown = f.tasks.filter(keep);
+      if (!shown.length) return "";
+      return `<div class="feat"><div class="feat-head"><b>${esc(f.name)}</b>${f.phase ? `<span class="phase">${f.phase}</span>` : ""}</div>` +
+        (f.what ? `<p class="what">${esc(f.what)}</p>` : "") +
+        `<ul class="tasks">${shown.map((t) => `<li class="${t.done ? "done" : ""}"><span class="box" role="img" aria-label="${t.done ? "완료" : "남음"}"></span><span class="id">${t.id}</span><span class="t">${esc(t.title)}${t.done && t.evidence ? `<span class="ev">근거 ${esc(t.evidence)} · ${t.date || "wbs 작성 전 완료"}</span>` : ""}</span></li>`).join("")}</ul></div>`;
+    }).join("");
+    return `<details class="area" id="area-${a.key}" ${d ? "open" : ""}><summary><span class="name">${esc(a.name)}<span class="key">${a.key}</span></span><div class="track"><div class="fill${d ? "" : " zero"}" style="width:${pct(d, ts.length)}%"></div></div><span class="num" style="text-align:right;color:var(--muted);font-size:13px">${d}/${ts.length}</span></summary>${feats || `<div class="feat empty">이 보기에 해당하는 작업이 없습니다.</div>`}</details>`;
+  }).join("");
+}
+document.querySelectorAll(".filter button").forEach((b) => b.addEventListener("click", () => {
+  filter = b.dataset.f;
+  try { localStorage.setItem("tp-progress-filter", filter); } catch (e) {}
+  renderList();
+}));
+renderList();
+</script>

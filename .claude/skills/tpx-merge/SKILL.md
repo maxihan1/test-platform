@@ -25,10 +25,10 @@ description: /tpx 체인 7단계 — 게이트 2 승인 뒤 초안을 풀고 병
 
 | Step | 무엇 | 파일 |
 |---|---|---|
-| 1 | ★ 기록을 **먼저** 쓴다 — 그다음 미커밋·미푸시 전수 확인 | `references/1-record-ready-merge.md` |
+| 1 | ★ 기록을 **먼저** 쓴다(진행판 체크 포함) — 그다음 미커밋·미푸시 전수 확인 | `references/1-record-ready-merge.md` |
 | 2 | ★ 여기서 처음 초안 잠금을 푼다 — 새 CI 실행을 기다린다 | 〃 |
 | 3 | 병합 (원격 브랜치 함께 삭제) | 〃 |
-| 4 | ★ 작업방에서 나와(ExitWorktree) main 을 최신화한다 | `references/2-exit-cleanup-close.md` |
+| 4 | ★ 작업방에서 나와(ExitWorktree) main 을 최신화한다 — 성공하면 진행판 재게시 | `references/2-exit-cleanup-close.md` |
 | 5 | 브랜치를 치운다 — `-d` 만 쓴다 | 〃 |
 | 6 | 기록 — 서식과 기준 (Step 1 에서 이미 쓴다) | 〃 |
 | 7 | PR 을 닫는다 — `--done` 으로 체크리스트를 전부 채운다 | 〃 |
@@ -43,7 +43,7 @@ description: /tpx 체인 7단계 — 게이트 2 승인 뒤 초안을 풀고 병
    ├─ 미커밋 0 ✅ · 미푸시 0 ✅ · 검사 근거 확인 ✅
    ├─ gh pr ready → 초안 해제 · `[작업중]` 뗌
    ├─ 병합: PR #<번호> merged · 원격 브랜치 삭제 ✅
-   ├─ 작업방에서 나옴 → main 최신화 ✅ (뒤처짐 0)
+   ├─ 작업방에서 나옴 → main 최신화 ✅ (뒤처짐 0) · 진행판 재게시 ✅ (완료 N / M)
    ├─ 작업방: 정리 또는 유지
    ├─ 브랜치 정리: <N>개 (`-d`) · 정리 못 한 것 <없음 또는 목록>
    └─ 기록: progress ✅ · LEARNINGS <N건 또는 해당 없음>

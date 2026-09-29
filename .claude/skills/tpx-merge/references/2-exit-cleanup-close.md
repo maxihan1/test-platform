@@ -41,6 +41,17 @@ git rev-list --count main..origin/main    # 0 이어야 한다
 
 **0 이 아니면 최신화가 안 된 것이다.** 보고에 그대로 적는다.
 
+### 진행판 재게시 — pull 이 성공했을 때만
+
+실패했으면 건너뛴다 — 옛 진행률이 게시된다. 루트 체크아웃에서 돌린다.
+
+```bash
+npm run progress       # build/progress.html · 「완료 N / M」
+```
+
+그다음 `Artifact` 로 `file_path: <루트>/build/progress.html`, `url: https://claude.ai/artifact/LN2fiNzKQcyB3aym6rzQY3` 를 게시한다.
+**`url` 을 빼지 않는다** — 빼면 새 주소가 생겨 사용자가 보던 진행판이 멈춘다.
+
 ## Step 5. 브랜치를 치운다 — `-d` 만 쓴다
 
 **순서를 뒤집지 않는다.** `git branch -d` 는 그 브랜치가 **어느 작업방에든 체크아웃돼 있으면
