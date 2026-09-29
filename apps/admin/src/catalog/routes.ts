@@ -7,6 +7,8 @@ import { join } from 'node:path';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
 import type { 사용자 } from '../auth/store.js';
+import { renderCatalogXlsx } from './export.js';
+import { 엑셀자료, 한국시각 } from './exportData.js';
 import { scan, testsRoot, type Duplicate } from './scanner.js';
 import { readExcerpt } from './source.js';
 import { activeServices, findCase, findService, listCases, save } from './store.js';
@@ -170,6 +172,40 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         page: Math.max(1, Number(req.query.page ?? 1) || 1),
         pageSize: PAGE_SIZE,
       });
+    },
+  );
+
+  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string } }>(
+    '/catalog/export',
+    async (req, reply) => {
+      const service = req.query.service ?? '';
+      if (service === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
+      const 서비스 = await findService(service);
+      if (서비스 === null) return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
+
+      // 문은 (케이스, read) 만 봤다. 실행·작성 기록은 그 칸이 따로 있어야 싣는다 — 케이스 read 만으로 새면 안 된다 (카탈로그 §7)
+      const 되나 = (기능: 'runs' | 'authoring'): boolean =>
+        칸되는서비스(req.user?.services ?? [], 기능, 'read').includes(service);
+      const platform = req.query.platform;
+      const 자료 = await 엑셀자료({
+        service,
+        serviceId: 서비스.id,
+        q: req.query.q ?? '',
+        platform: platform === 'desktop' || platform === 'mobile' ? platform : undefined,
+        activeOnly: req.query.active !== 'false',
+        canSeeRuns: 되나('runs'),
+        canSeeAuthoring: 되나('authoring'),
+      });
+      const 날짜 = 한국시각(자료.generatedAt).slice(0, 10);
+      // 옛 브라우저용 ASCII 이름을 앞에 두고 한글 이름은 RFC 5987 로 싣는다 (authoring/assets.ts 머리글이름과 같은 인코딩)
+      const 한글 = encodeURIComponent(`${service}-테스트케이스-${날짜}.xlsx`).replace(
+        /['()*]/g,
+        (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+      );
+      return reply
+        .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        .header('content-disposition', `attachment; filename="${service}-testcases-${날짜}.xlsx"; filename*=UTF-8''${한글}`)
+        .send(await renderCatalogXlsx(자료));
     },
   );
 

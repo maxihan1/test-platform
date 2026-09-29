@@ -39,6 +39,7 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/auth/signup': 안따짐,
 
   'GET /api/catalog/cases': 케이스읽기,
+  'GET /api/catalog/export': 케이스읽기,
   'GET /api/catalog/cases/:tcId': 케이스읽기,
   'GET /api/catalog/scan': 케이스읽기,
   'GET /api/cases/:tcId/param-sets': 케이스읽기,

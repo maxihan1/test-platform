@@ -275,6 +275,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   시나리오 저장 `XSS`·`XSS2`(`scenario/store.test.ts`)·부품 재료 `XSP`(`scenario/parts.test.ts`)·라우트 `XSR`(`scenario/routes.test.ts`)·문 `XSA`·`XSA2`·`XSA3`(계정 `xsa-reader`·`xsa-writer`, `auth/gate.test.ts`·`auth/scope.test.ts`)(2026-09-29 — 전부 자기 `service_id`·id·이름 목록으로만 지우고 `LIKE` 를 안 쓴다. **`XSA` 로 시작하는 새 이름을 고르지 않는다**) ·
   작성 이어하기 `XRM`(`db/resume-columns.test.ts`)·`XWM`(`authoring/resume.test.ts`)(2026-09-28 — 둘 다 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 실행 기록 `XWH`(`authoring/history.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
+  케이스 엑셀 `XCX`(`catalog/export-routes.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지. 계정은 `'xcx-%'` · 케이스는 `tc_id LIKE 'XCX-%'`) ·
   작성 보류 입력 `XWL`(`authoring/held.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 보류 통로 `XWLR`(`authoring/held-routes.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 보류 머지 `XWLM`(`authoring/held-merge.test.ts`, 2026-09-29 — `held-routes.test.ts` 에서 떼어 냈다. 자기 `service_id` 로 지우고 그 `service` 행까지) ·
