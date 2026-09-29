@@ -17,7 +17,7 @@ import {
   올릴브랜치,
 } from './authoring-chain.js';
 import { type 보고손, type 칠때, type 판정기, 멈춤, 쉬기, 진짜main받기, 친다 } from './authoring-io.js';
-import { type 반영준비, 반영올리기, 반영치우기, 보류반영, 보류입력들 } from './authoring-gate-env.js';
+import { type 반영준비, 반영올리기, 반영치우기, 보류반영, 보류입력들 } from './authoring-held-merge.js';
 import { 보류있나 } from './authoring-held-apply.js';
 
 const 폴링간격 = 15_000;

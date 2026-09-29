@@ -1,5 +1,5 @@
 // 반영 때 보류 케이스에 사람이 넣은 값을 적는 순수 함수 — .default(리터럴) · held 빼기 · 표 「제거함」 · 올리기 인자 (도메인/작성 §3.6 「★ 보류 케이스」)
-// 껍데기(authoring-gate-env)가 부른다. 여기는 I/O 가 없다
+// 껍데기(authoring-held-merge)가 부른다. 여기는 I/O 가 없다
 
 import ts from 'typescript';
 
