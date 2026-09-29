@@ -54,6 +54,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 
 1. **§1 입력 확인** — `references/1-input.md`. 「입력은 자료 목록이다」대로 자료를 전부 읽는다
 2. **§2 요구사항 표** — `references/2-requirements.md`. `docs/cases/<접두사>.md` 에 쓴다. **중간에 멈추지 않는다**
+   쓰기 전에 `references/korean-ai-tells.md` 를 읽는다 — 표 문장부터 AI 티 없이 쓴다
 3. **§3 내부 게이트는 건너뛴다** — 표를 그대로 확정한다. 게이트가 물었을 것
    (합친 줄의 `name` · 자료 어긋남으로 `판정 불가` 가 된 줄)은 **결과 요약에 싣는다.** 사람이 PR 본문에서 본다.
    자료 어긋남 줄은 어긋난 값을 기본값 없는 칸으로 비운 `held: '판정 불가 — 자료 어긋남: <둘>'` 케이스로 쓴다 — 사람이 작성 화면에서 고른다
