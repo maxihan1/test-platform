@@ -88,6 +88,11 @@ export function 지울원본(계획: 읽을자료[]): string[] {
   return 계획.flatMap((c) => (c.kind === 'FILE' && c.변환 !== null ? [c.받을자리] : []));
 }
 
+/** 트리에서 가릴 파일 — 앞 실행이 바꾼 것 중 케이스 · 요구사항 표만. 이미 커밋된 파일을 다시 쓰면 PR 에 관계없는 수정이 섞인다 (2026-09-29 검사) */
+export function 가릴트리파일(바뀐: string[]): string[] {
+  return 바뀐.filter((f) => !f.split('/').includes('..') && (f.startsWith('tests/') || f.startsWith('docs/cases/')));
+}
+
 /** 글자 파일인가 — NUL 이 없으면 글자로 보고 가려 다시 쓴다. 그림·PDF 는 건드리지 않는다 */
 export function 글자인가(바이트: Uint8Array): boolean {
   return !바이트.subarray(0, 8000).includes(0);

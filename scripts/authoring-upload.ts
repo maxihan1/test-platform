@@ -27,6 +27,7 @@ import { type 보고손, type 판정기, 다시하며, 친다 } from './authorin
 import { type 표시준비물, 산출물보내기, 표시올리기, 표시준비 } from './authoring-marking.js';
 import { 거절로 } from './authoring-progress.js';
 import {
+  가림표케이스,
   계정섞였나,
   글모두,
   되읽기인자,
@@ -195,6 +196,9 @@ export async function 올리기(
     }
     const 차이글 = 차이파일.몸?.toString('utf8') ?? null;
     const 원고글 = 원고파일.몸?.toString('utf8') ?? null;
+    // 먼저 가린 원문이 케이스에 가림표로 남았으면 이어가는 자식이 비밀값 자리로 고치게 거절한다 (2026-09-29 검사)
+    const 가림남음 = 가림표케이스(전체.map((f) => ({ 경로: f, 글: 읽기(f) })));
+    if (가림남음 !== null) return void (await 손.끝내기(거절(가림남음)));
     const 샘 = 올리기전검사({ 케이스: 전체.map(읽기), PR본문: 본문글, 차이: 차이글, 원고: 원고글 }, 비밀);
     // 날 글자만 보면 JSON 이스케이프가 따옴표·역슬래시 든 비밀번호를 가린다 — 서버로 갈 푼 값에서도 찾는다 (finish 전 검사)
     const 정리 = 차이정리(차이글);

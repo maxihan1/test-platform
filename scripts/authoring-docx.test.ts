@@ -191,6 +191,10 @@ describe('글칸가리기 — 사람이 읽는 글 칸에서만 비밀번호를 
     const xml = '<w:tc><w:tcW w:w="1234"/><w:p w:rsidR="00A71234"><w:r><w:t>칸</w:t></w:r></w:p></w:tc>';
     expect(글칸가리기(xml, '1234')).toBe(xml);
   });
+  it('변경 추적의 지운 글 · 필드 코드 · 차트 글(a:t)도 가린다', () => {
+    const xml = '<w:delText>Pw9!x</w:delText><w:instrText> HYPERLINK "Pw9!x" </w:instrText><a:t>Pw9!x</a:t>';
+    expect(글칸가리기(xml, 'Pw9!x')).toBe(`<w:delText>${가림}</w:delText><w:instrText> HYPERLINK &quot;${가림}&quot; </w:instrText><a:t>${가림}</a:t>`);
+  });
   it('비밀이 없으면 그대로다', () => {
     expect(글칸가리기('<w:t>Pw9!x</w:t>', undefined)).toBe('<w:t>Pw9!x</w:t>');
   });

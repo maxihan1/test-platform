@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type 대상,
   가림표,
+  가림표케이스,
   계정섞였나,
   글모두,
   대상점검,
@@ -158,6 +159,18 @@ describe('비밀가리기 — 받은 자료·남은 파일에서 비밀번호를
   });
   it('가린 글에는 원문이 남지 않는다', () => {
     expect(계정섞였나([비밀가리기('xxPw9!xPw9!xx', 'Pw9!x')], 'Pw9!x')).toBe(false);
+  });
+});
+
+describe('가림표케이스 — 케이스에 가림표가 남으면 비밀값 자리로 고치게 거절한다', () => {
+  it('spec 파일에 가림표가 있으면 까닭을 낸다', () => {
+    expect(가림표케이스([{ 경로: 'tests/mkt/MKT-001.spec.ts', 글: "fill('••••••')" }])).toContain('TARGET_LOGIN_PASSWORD');
+  });
+  it('표(md)가 기획서 문장을 옮긴 가림표는 괜찮다', () => {
+    expect(가림표케이스([{ 경로: 'docs/cases/MKT.md', 글: '비밀번호 •••••• 로 로그인' }])).toBeNull();
+  });
+  it('가림표가 없으면 null', () => {
+    expect(가림표케이스([{ 경로: 'tests/mkt/MKT-001.spec.ts', 글: 'fill(params.password)' }])).toBeNull();
   });
 });
 

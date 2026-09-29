@@ -37,14 +37,14 @@ function 싼글(s: string): string {
 }
 
 /**
- * 글 칸(`<w:t>`)에서만 비밀번호를 가린다 — 칸들을 이어 붙여 찾으니 편집 이력으로 여러 칸에 갈린 것도 잡는다.
+ * 글 칸(`<w:t>` · 지운 글 `<w:delText>` · 필드 코드 `<w:instrText>` · 차트 글 `<a:t>`)에서만 비밀번호를 가린다 — 칸들을 이어 붙여 찾으니 편집 이력으로 여러 칸에 갈린 것도 잡는다.
  * 첫 칸에 가림표를 두고 나머지 칸에서는 걸친 글자를 뺀다. 태그·속성은 안 건드린다 — `1234` 가 `w:w="1234"` 를 바꾸면 워드가 깨진다 (2026-09-29 계획 검토).
  * 속성·문서 정보 칸에만 있는 것은 못 가린다 — 누설 검사가 그대로 잡는다
  */
 export function 글칸가리기(xml: string, 비밀: string | null | undefined): string {
   if (비밀 === null || 비밀 === undefined || 비밀 === '') return xml;
-  const 칸들 = [...xml.matchAll(/(<w:t(?:\s[^>]*)?>)([^<]*)(<\/w:t>)/g)];
-  const 글들 = 칸들.map((m) => 풀글(m[2] ?? ''));
+  const 칸들 = [...xml.matchAll(/(<(w:t|w:delText|w:instrText|a:t)(?:\s[^>]*)?>)([^<]*)(<\/\2>)/g)];
+  const 글들 = 칸들.map((m) => 풀글(m[3] ?? ''));
   const 이은 = 글들.join('');
   const 첫자리 = new Set<number>();
   const 가릴 = new Set<number>();
@@ -68,7 +68,7 @@ export function 글칸가리기(xml: string, 비밀: string | null | undefined):
   for (let n = 칸들.length - 1; n >= 0; n -= 1) {
     const m = 칸들[n]!;
     if (새글들[n] === 글들[n]) continue;
-    결과 = 결과.slice(0, m.index) + (m[1] ?? '') + 싼글(새글들[n] ?? '') + (m[3] ?? '') + 결과.slice(m.index + m[0].length);
+    결과 = 결과.slice(0, m.index) + (m[1] ?? '') + 싼글(새글들[n] ?? '') + (m[4] ?? '') + 결과.slice(m.index + m[0].length);
   }
   return 결과;
 }

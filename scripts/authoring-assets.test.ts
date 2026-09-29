@@ -1,7 +1,7 @@
 // 작성 에이전트의 자료 다루기 순수 함수 검사. 자료 순서·파일 변환·돌릴 조건·셸 허용 판정이 여기서 고정된다
 import { describe, expect, it } from 'vitest';
 
-import { 글자인가, 돌릴수있나, 못읽는자료, 셸허용됐나, 입력만, 자료계획, 자료출처, 지울원본, type 자료 } from './authoring-assets.js';
+import { 가릴트리파일, 글자인가, 돌릴수있나, 못읽는자료, 셸허용됐나, 입력만, 자료계획, 자료출처, 지울원본, type 자료 } from './authoring-assets.js';
 import { 역방향절 } from './authoring-reverse.js';
 import { 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 
@@ -228,6 +228,12 @@ describe('먼저 가리기 — 자식을 띄우기 전에 무엇을 지우고 �
   it('지울원본 — 글자로 바꾼 워드 원본만 고른다. 바꾸지 않은 자료와 피그마는 뺀다', () => {
     const 계획 = 자료계획([파일(1, 0, '기획.docx'), 파일(2, 1, '화면.pdf'), 파일(3, 2, '메모.md'), 피그마(4, 3, 'https://figma.com/x')], '/w/in', 'linux');
     expect(지울원본(계획)).toEqual(['/w/in/1.docx']);
+  });
+  it('가릴트리파일 — 트리에서는 앞 실행이 바꾼 케이스·표만 가린다. 이미 커밋된 파일·그 밖 파일은 안 건드린다', () => {
+    expect(가릴트리파일(['tests/mkt/MKT-001.spec.ts', 'docs/cases/MKT.md', 'package.json', 'docs/other.md', 'tests/../x'])).toEqual([
+      'tests/mkt/MKT-001.spec.ts',
+      'docs/cases/MKT.md',
+    ]);
   });
   it('글자인가 — NUL 바이트가 없으면 글자 파일이다', () => {
     expect(글자인가(Buffer.from('비밀번호 ••••••\n', 'utf8'))).toBe(true);

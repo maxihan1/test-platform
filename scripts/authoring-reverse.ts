@@ -181,6 +181,16 @@ export function 비밀가리기(글: string, 비밀: string | null | undefined):
 }
 
 /**
+ * 케이스(`.spec.ts`)에 가림표가 남았으면 거절 까닭 — 이어받은 실행은 앞 자식이 넣은 원문이 가려진 채 오고,
+ * 그대로 두면 로그인 칸에 `••••••` 가 박힌 케이스가 검사를 지나 조용히 깨진다 (2026-09-29 검사). 표·차이는 기획서 문장을 옮길 수 있어 안 본다
+ */
+export function 가림표케이스(파일들: { 경로: string; 글: string }[]): string | null {
+  const 남은 = 파일들.filter((f) => f.경로.endsWith('.spec.ts') && f.글.includes(가림표)).map((f) => f.경로);
+  if (남은.length === 0) return null;
+  return `케이스에 가린 비밀번호 표시(${가림표})가 남았다 — 계정은 process.env.TARGET_LOGIN_PASSWORD(비밀값 자리)로 바꿔라: ${남은.join(' · ')}`;
+}
+
+/**
  * push 전에 올릴 글 전부를 본다 (§3.6 「남는 한계」 — 올릴 파일 · result(diffs) · 케이스 diff · PR 본문).
  * 역기획서 `.docx` 는 바꾼 뒤 한 번 더 본다(`되읽기인자`) — 원고만 보면 변환이 끌어온 것을 못 본다
  */
