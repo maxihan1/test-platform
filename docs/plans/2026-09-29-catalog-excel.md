@@ -104,3 +104,15 @@
 ## 리뷰 결과
 
 (계획 검토가 채운다)
+
+**렌즈**: plan-eng · plan-ceo · plan-design (3등급 = 3종) · 2026-09-29 — **BLOCKER 1 · 주의 9**
+- BLOCKER (eng) — 시트 ① 「마지막 결과」(실행읽기) · 「사람이 값 채움 · 누가」(작성 read) 가 케이스 read 만으로 샌다 → 권한 없으면 비운다
+- 주의 — listCases LIMIT/OFFSET 재사용 · held_input 옮겨 적기로 시트 ② 중복 · 한글 파일 이름(filename*) · model 검사 29·33줄 · sonnet-5-5 + xhigh 실측 · PR 나누기(ceo) · 품질 기준선 없음(ceo) · 내려받기 실패 화면 · 받는 중 상태(design)
+
+## 게이트 1 — 지적 반영 (사용자)
+
+- 할 일 3·4 RED 에 더한다 — 실행 권한 없으면 「마지막 결과」 빈칸 · 작성 read 없으면 상태 칸에 「사람이 값 채움」 없음 · 시트 ② 는 뿌리마다 최신 끝난 실행 한 건(중복 0) · `listCases` 는 쪽 없는 모양을 옵션으로(목록 화면 응답 불변 검사) · 첨부 이름은 `authoring/assets.ts` 의 `filename*=UTF-8''` 방식
+- 할 일 2 — 29·33줄 검사도 새 기본값으로 · `claude --model claude-sonnet-5-5 --effort xhigh -p` 한 번 실측해 PR 에 적는다
+- 할 일 5 — 받는 동안 버튼 막고 「만드는 중…」 · 실패(403 · 500)면 목록 위 알림 한 줄. 링크가 아니라 fetch → blob 으로 받는다
+- 할 일 7 — progress 에 「opus→sonnet 품질 비교 기준선 없음 · 데모마켓 측정으로 비교」 다음 할 일
+- PR 나누기는 안 한다 — 사용자가 한 PR 을 원했다. 커밋은 셋(엑셀 · 모델 · AI 티 규칙)으로 나눈다
