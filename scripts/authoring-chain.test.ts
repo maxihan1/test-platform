@@ -465,22 +465,35 @@ describe('같은 PR 을 이어 갱신한다 — 브랜치는 요청 하나에 au
   });
   it('원격 머리 커밋이 에이전트가 올린 모양이면 덮어써도 된다', () => {
     const 러너 = 가짜({
-      'git ls-remote origin refs/heads/author-5': { ok: true, 낸것: 'abc123\trefs/heads/author-5\n' },
-      'git fetch --quiet origin abc123': { ok: true, 낸것: '' },
-      'git log -1 --format=%s abc123': { ok: true, 낸것: '[WS-작성] MKT 작성 요청 5번 케이스\n' },
+      'git ls-remote origin refs/heads/author-5': { ok: true, 낸것: `${'a'.repeat(40)}\trefs/heads/author-5\n` },
+      [`git fetch --quiet origin ${'a'.repeat(40)}`]: { ok: true, 낸것: '' },
+      [`git log -1 --format=%s ${'a'.repeat(40)}`]: { ok: true, 낸것: '[WS-작성] MKT 작성 요청 5번 케이스\n' },
     });
     expect(덮어쓸수없는까닭(러너, 5)).toBeNull();
   });
+  it('다른 요청 번호의 에이전트 커밋이면 덮어쓰지 않는다 — 번호까지 맞아야 한다', () => {
+    const 러너 = 가짜({
+      'git ls-remote origin refs/heads/author-5': { ok: true, 낸것: `${'a'.repeat(40)}\trefs/heads/author-5\n` },
+      [`git fetch --quiet origin ${'a'.repeat(40)}`]: { ok: true, 낸것: '' },
+      [`git log -1 --format=%s ${'a'.repeat(40)}`]: { ok: true, 낸것: '[WS-작성] MKT 작성 요청 6번 케이스\n' },
+    });
+    expect(덮어쓸수없는까닭(러너, 5)).toMatchObject({ 그만: true });
+  });
+  it('원격 머리가 커밋 번호 모양이 아니면 인자로 넘기지 않고 막는다', () => {
+    const 러너 = 가짜({ 'git ls-remote origin refs/heads/author-5': { ok: true, 낸것: '--upload-pack=x\trefs/heads/author-5\n' } });
+    expect(덮어쓸수없는까닭(러너, 5)).toMatchObject({ 그만: true });
+  });
   it('사람이 올린 커밋이 머리에 있으면 덮어쓰지 않는다', () => {
     const 러너 = 가짜({
-      'git ls-remote origin refs/heads/author-5': { ok: true, 낸것: 'def456\trefs/heads/author-5\n' },
-      'git fetch --quiet origin def456': { ok: true, 낸것: '' },
-      'git log -1 --format=%s def456': { ok: true, 낸것: '리뷰 반영\n' },
+      'git ls-remote origin refs/heads/author-5': { ok: true, 낸것: `${'b'.repeat(40)}\trefs/heads/author-5\n` },
+      [`git fetch --quiet origin ${'b'.repeat(40)}`]: { ok: true, 낸것: '' },
+      [`git log -1 --format=%s ${'b'.repeat(40)}`]: { ok: true, 낸것: '리뷰 반영\n' },
     });
-    expect(덮어쓸수없는까닭(러너, 5)).toContain('사람이 올린');
+    expect(덮어쓸수없는까닭(러너, 5)).toMatchObject({ 그만: true });
+    expect(덮어쓸수없는까닭(러너, 5)?.까닭).toContain('사람이 올린');
   });
-  it('원격을 못 읽으면 덮어쓰지 않는다', () => {
-    expect(덮어쓸수없는까닭(가짜({}), 5)).not.toBeNull();
+  it('원격을 못 읽으면 덮어쓰지 않는다 — 네트워크일 수 있어 다시 해 본다', () => {
+    expect(덮어쓸수없는까닭(가짜({}), 5)).toMatchObject({ 그만: false });
   });
   it('이미 있는 PR 은 본문을 새로 쓴다', () => {
     expect(PR본문고치기인자('https://github.com/a/b/pull/3', '본문')).toEqual(['pr', 'edit', 'https://github.com/a/b/pull/3', '--body', '본문']);

@@ -229,9 +229,9 @@ export async function 올리기(
 
   // 훅은 안 돈다(사본환경) — 트리의 훅은 자식이 쓴 것이다. 같은 검사(타입·K 규칙)는 CI 의 가벼운 길이 한다
   // 요청 하나에 브랜치 하나(author-<뿌리>) — 사람이 올린 커밋이 머리에 있으면 덮어쓰지 않는다 (§7 「실행 기록」)
-  const 남의것 = 덮어쓸수없는까닭(트리에서, 자료출처(것));
-  if (남의것 !== null) return void (await 손.끝내기(거절(남의것)));
   const 올림 = await 다시하며('push', () => {
+    const 남의것 = 덮어쓸수없는까닭(트리에서, 자료출처(것));
+    if (남의것 !== null) return 남의것;
     const r = 트리에서('git', 푸시인자(자료출처(것)));
     return r.ok ? { 값: true } : push실패(r);
   });
@@ -245,7 +245,7 @@ export async function 올리기(
     const 있나 = 트리에서('gh', PR찾기인자(자료출처(것)));
     const 있는것 = 있나.ok ? (JSON.parse(있나.낸것 || '[]') as { url: string }[])[0]?.url : undefined;
     if (있는것 !== undefined) {
-      트리에서('gh', PR본문고치기인자(있는것, 본문글));
+      if (!트리에서('gh', PR본문고치기인자(있는것, 본문글)).ok) console.error(`[작성] ${것.id}번 PR 본문을 못 고쳤다 — 옛 본문이 남는다`);
       return { 값: 있는것 };
     }
     const r = 트리에서('gh', PR만들기인자(자료출처(것), 커밋메시지(자료출처(것), 서비스), 본문글));
