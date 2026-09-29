@@ -42,7 +42,8 @@
    서버 코드 자리는 WS-시나리오(`apps/admin/src/scenario/**`) 이고, 기존 조회에 `kind` 를 붙이는 것은 각 갈래 폴더를 건드린다 — 계획의 `files` 에 싣는다
    - **① 안전장치 (PR #106)** — **`test_run` 을 여러 행 훑는 조회에 `kind = 'CASE'`**(목록·머리 집계 `거르는조건` · 견주기 「직전 실행」) ·
      Grafana `test_run` 을 읽는 패널 전부에 `kind = 'CASE'` · 시나리오 실행 중단 409 `NOT_ABORTABLE`(오류 글자는 게이트 1 사용자) · 재기동 복구가 안 끝난 부품을 `NA` + `ABORTED` 로(부품 먼저 · 실행 나중) ·
-     `spec-review` B12. **번호 하나로 짚는 조회와 `run_item` 을 거치는 조회는 거르지 않았다** — 구조상 안 섞인다(B12 의 예외 둘)
+     `spec-review` B12. **번호 하나로 짚는 조회와 `run_item` 을 거치는 조회는 거르지 않았다** — 지금은 시나리오 실행이 없어 안 섞인다. **명세(시나리오 §3.7 결정 10 · 실행 §3.2)는 「전부」라 적었다** —
+     단건 조회는 ③ 이 닫는다(아래). `run_item` 경유(케이스 이력)는 구조상 안 섞이므로 명세에 예외로 적을지 ③ 에서 정한다(§1.2 승인)
    - **② 저장 + 권한** — `/api/scenarios` 목록·만들기·상세·버전·`PUT`(409 `STALE_VERSION`)·되돌리기·치우기 · `case-parts/:tcId`(`caseSteps(소스)` 결과에서 `line` 만 뺀다) ·
      400 조립 거절 전부(시나리오 §7 — API 경로 `//` 는 러너도 400 이지만 **서버가 저장 때 막는다** · `skipSteps` 가 `skippable` 인지 러너는 안 가린다 — **서버가 조립 때 막는다**) ·
      결정 8 점검(`needsCheck` · `runnable` · `checks`) · 권한 두 줄(도메인/인증 §7 표) · **`auth/routeTable.ts` 등급표와 `auth/scope.ts` 라우트표 둘에 새 통로를 같이 넣는다** —
@@ -51,6 +52,7 @@
      `GET /api/runs/:runId/scenario` · 사진 두 통로 · 시험 실행(메모리 · 24시간 · 시작한 사람만 · 새 시험 때 24시간 지난 `trial/*` 치우기) · `GET /api/runs?kind=scenario`(줄마다 `{ scenarioId, version, partCount, stoppedAt }`) ·
      §7 계약 블록 `반영 완료`. **① 이 남긴 틈 둘을 여기서 막거나 WS-D 로 넘긴다** — `GET /api/runs/:runId`(`findRun`)가 시나리오 실행을 항목 0건인 케이스 실행 모양으로 내고,
      `POST /api/runs/:runId/evidence` 가 빈 케이스 증적을 만든다(증적은 WS-D 가 E2E 증적으로 받는다 — 리포팅 §8.4).
+     **`execution/store.ts` 의 `finishRun` 을 시나리오에 그대로 쓰지 않는다** — `run_item` 이 0건이라 `NOT EXISTS` 가 늘 참이어서 부르는 즉시 `FINISHED` 가 된다(PR #106 코드 검토).
      **디바이스는 버전 표에 있다**(PR #98) — 목록·상세의 `platform` 은 최신 버전 값이다. `GET /api/runs/:runId/scenario` 응답과 E2E 증적 머리(6번)에 그 실행의 디바이스를 실을지 착수할 때 정한다 — 지금 명세에는 안 나온다
      **러너가 보장하는 것**(러너 §5.2) — 부품 오류 `NOT_RUN` 은 「앞 부품 실패」만, 줄 없이 끝난 부품은 `FAIL`+오류 꼬리 · `trialId` 는 UUID 만 받는다(admin 이 `crypto.randomUUID()`) ·
      디바이스를 선언 안 한 케이스는 부품 `FAIL` · HTTP 타임아웃은 `timeoutMs + 30초`
