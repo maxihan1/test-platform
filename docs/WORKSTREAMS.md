@@ -44,7 +44,7 @@
      Grafana `test_run` 을 읽는 패널 전부에 `kind = 'CASE'` · 시나리오 실행 중단 409 `NOT_ABORTABLE`(오류 글자는 게이트 1 사용자) · 재기동 복구가 안 끝난 부품을 `NA` + `ABORTED` 로(부품 먼저 · 실행 나중) ·
      `spec-review` B12. **번호 하나로 짚는 조회와 `run_item` 을 거치는 조회는 거르지 않았다** — 지금은 시나리오 실행이 없어 안 섞인다. **명세(시나리오 §3.7 결정 10 · 실행 §3.2)는 「전부」라 적었다** —
      단건 조회는 ③ 이 닫는다(아래). `run_item` 경유(케이스 이력)는 구조상 안 섞이므로 명세에 예외로 적을지 ③ 에서 정한다(§1.2 승인)
-   - **② 저장 + 권한** — `/api/scenarios` 목록·만들기·상세·버전·`PUT`(409 `STALE_VERSION`)·되돌리기·치우기 · `case-parts/:tcId`(`caseSteps(소스)` 결과에서 `line` 만 뺀다) ·
+   - ✅ **② 저장 + 권한 (PR #107, 2026-09-29)** — `/api/scenarios` 목록·만들기·상세·버전·`PUT`(409 `STALE_VERSION`)·되돌리기·치우기 · `case-parts/:tcId`(`caseSteps(소스)` 결과에서 `line` 만 뺀다) ·
      400 조립 거절 전부(시나리오 §7 — API 경로 `//` 는 러너도 400 이지만 **서버가 저장 때 막는다** · `skipSteps` 가 `skippable` 인지 러너는 안 가린다 — **서버가 조립 때 막는다**) ·
      결정 8 점검(`needsCheck` · `runnable` · `checks`) · 권한 두 줄(도메인/인증 §7 표) · **`auth/routeTable.ts` 등급표와 `auth/scope.ts` 라우트표 둘에 새 통로를 같이 넣는다** —
      새 폴더면 `scope.test.ts` 의 읽은 폴더 목록과 `gate.test.ts` 의 경로→기능 정규식도 손본다. 시나리오 번호로 서비스를 찾는 원천 종류가 새로 는다(`scope.ts` 의 `찾을것`·`질의`)
