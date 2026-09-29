@@ -584,7 +584,8 @@ describe('줄 칸 이름 · 판정 묶음 · 실행할 케이스 창 (2026-09-30
   });
 
   it('실행 기록의 미확정 글자가 판정 글자로 선다', () => {
-    expect(규칙('.tally span.unconf')).toMatch(/font-weight:\s*600/);
+    expect(규칙('.runright .unconf-line.unconf')).toMatch(/font-weight:\s*600/);
+    expect(규칙('.right.runright')).toMatch(/flex-wrap:\s*nowrap/);
   });
 
   it('테스트 실행 패널이 동작줄 위 한 줄을 다 차지한다', () => {

@@ -231,7 +231,9 @@ function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: numbe
           {t('실행자 {이름}', { 이름: 실행자이름(run, 언어) })} · {상태라벨(run.status, 언어)}
         </small>
       </div>
-      <div className="right">
+      <div className="right runright">
+        {/* 판정 덩어리는 한 칸이다 — 미확정 글자가 숫자 옆에 붙으면 버튼이 아래 줄로 밀려 줄마다 자리가 틀어졌다 (2026-09-30) */}
+        <div className="verdict">
         <div className="tally">
           {판정없음(run.counts) ? (
             // 확정 0건에 0 을 셋 늘어놓으면 「다 잘 안 됐다」로 읽힌다. 안 센 것이지 0건이 아니다
@@ -259,11 +261,10 @@ function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: numbe
               </div>
             </>
           )}
-          {미확정 === '' ? null : (
-            <div>
-              <span className={판정없음(run.counts) ? 'unconf' : undefined}>{미확정}</span>
-            </div>
-          )}
+        </div>
+        {미확정 === '' ? null : (
+          <span className={판정없음(run.counts) ? 'unconf-line unconf' : 'unconf-line'}>{미확정}</span>
+        )}
         </div>
         {/* 눌러서 여는 상자다 (SPEC §8.7). 주소는 살아 있고 상자는 길을 하나 더한 것이다 */}
         <button type="button" className="btn small" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>

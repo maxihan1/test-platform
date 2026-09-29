@@ -142,6 +142,8 @@ describe('RunList 미확정 (도메인/실행 §8.7)', () => {
       expect((칸 as HTMLElement).style.color).toBe('');
     }
     expect(screen.getByText('미확정 2(통과 1 · 실패 1)').className).toContain('unconf');
+    expect(container.querySelector('.tally .unconf-line')).toBeNull();
+    expect(container.querySelector('.runright .verdict .unconf-line')).not.toBeNull();
   });
 
   it('확정 항목이 하나라도 있으면 숫자 그대로다', async () => {

@@ -533,8 +533,28 @@ body {
   color: var(--ink-muted);
 }
 
+/* 실행 기록 줄의 판정 칸. 숫자 셋과 미확정 글자를 세로로 쌓은 한 덩어리로 두고 버튼은 늘 오른쪽 끝에 세운다.
+   미확정 글자를 숫자 옆에 두면 폭이 244px 을 넘어 버튼이 아래 줄 왼쪽으로 밀렸다 (2026-09-30 브라우저 실측) */
+.right.runright {
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+
+.runright .verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.runright .unconf-line {
+  font-size: 11.5px;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
 /* 확정 판정이 없는 실행의 미확정 글자. 판정 글자로 세우되 판정 색은 안 칠한다 (DESIGN.md 원칙 1) */
-.tally span.unconf {
+.runright .unconf-line.unconf {
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);
