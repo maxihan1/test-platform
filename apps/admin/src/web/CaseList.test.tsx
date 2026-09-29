@@ -618,3 +618,39 @@ describe('CaseList 권한 칸', () => {
     expect(결과).not.toHaveBeenCalled();
   });
 });
+
+describe('CaseList 줄에서 저장값 저장', () => {
+  const 값있는케이스: CaseRow = {
+    ...케이스('ZPK-001'),
+    paramSchema: {
+      type: 'object',
+      properties: { currency: { type: 'string', description: '통화', default: 'KRW' } },
+    } as unknown as CaseRow['paramSchema'],
+  };
+  const 쪽 = (row: CaseRow): Paged<CaseRow> => ({ items: [row], total: 1, page: 1, pageSize: 2 });
+
+  it('다시 읽기가 도착할 때까지 고친 값을 그대로 두고, 도착하면 저장값이 칸을 채운다', async () => {
+    let 도착: (page: Paged<CaseRow>) => void = () => undefined;
+    const 다시읽기 = new Promise<Paged<CaseRow>>((resolve) => {
+      도착 = resolve;
+    });
+    let 부른수 = 0;
+    모킹(() => (++부른수 === 1 ? Promise.resolve(쪽(값있는케이스)) : 다시읽기));
+    const 저장 = vi.spyOn(api, 'saveInput').mockResolvedValue(null);
+    render(<CaseList service="ZPK" 할수={전부된다} 결과보나 />);
+    await screen.findByText('ZPK-001 케이스');
+    fireEvent.change(screen.getByLabelText(/통화/), { target: { value: 'USD' } });
+
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(부른수).toBe(2));
+    expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('USD');
+
+    도착(쪽({
+      ...값있는케이스,
+      savedInput: { params: { currency: 'USD' }, expected: {}, savedSecrets: { params: [], expected: [] }, savedBy: 'zpk', savedAt: '2026-09-29T00:00:00.000Z' },
+    }));
+    await waitFor(() => expect(screen.queryByText('안 저장한 값이 있습니다')).toBeNull());
+    expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('USD');
+  });
+});

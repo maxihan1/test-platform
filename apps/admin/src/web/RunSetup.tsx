@@ -1,13 +1,14 @@
 // 실행 설정 화면 (SPEC §8.2). 케이스의 paramSchema·expectedSchema를 읽어 입력 폼을 자동으로 만든다
 // 이 플랫폼의 핵심 — 코드를 고치지 않고 값만 바꿔 다시 돌리는 자리다
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { api, ApiError, type CaseRow, type ParamSetRow, type Platform, type ServiceRow, type User } from './api.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { 넘었나, 상한, 항목수 } from './runPlan.js';
+import { 저장값버튼들, 저장값표시 } from './SavedInputBar.js';
 import { initialText, schemaToFields, toValues } from './schema.js';
 import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
 import { fieldErrors, messagesByKey } from './validation.js';
@@ -43,6 +44,9 @@ export function RunSetup({ tcId, service, user }: Props) {
   const [repeat, setRepeat] = useState('1');
   const [notifySlack, setNotifySlack] = useState(false);
   const [setName, setSetName] = useState('');
+  // 이름이 비었다는 사유는 맨 아래 안내가 아니라 이름 칸 옆에 둔다. 아래 작은 글씨는 「눌러도 안 먹는다」로 읽혔다
+  const [이름빔, set이름빔] = useState(false);
+  const 이름칸 = useRef<HTMLInputElement>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<{ params: Record<string, string>; expected: Record<string, string> }>(
@@ -51,14 +55,14 @@ export function RunSetup({ tcId, service, user }: Props) {
   const [busy, setBusy] = useState(false);
 
   const row = found.data;
-  const paramFields = useMemo(() => (row === null ? [] : schemaToFields(row.paramSchema)), [row]);
-  const expectedFields = useMemo(() => (row === null ? [] : schemaToFields(row.expectedSchema)), [row]);
+  const paramFields = useMemo(() => (row === null ? [] : schemaToFields(row.paramSchema, row.savedInput?.params, row.savedInput?.savedSecrets.params)), [row]);
+  const expectedFields = useMemo(() => (row === null ? [] : schemaToFields(row.expectedSchema, row.savedInput?.expected, row.savedInput?.savedSecrets.expected)), [row]);
 
   // 케이스가 도착하면 default 값으로 칸을 채우고, 선언된 디바이스를 전부 고른다 (SPEC §8.2)
   useEffect(() => {
     if (row === null) return;
-    setParamText(initialText(schemaToFields(row.paramSchema)));
-    setExpectedText(initialText(schemaToFields(row.expectedSchema)));
+    setParamText(initialText(paramFields));
+    setExpectedText(initialText(expectedFields));
     setPlatforms(row.platforms);
     setTitle(t('{케이스} 실행', { 케이스: row.tcId }));
   }, [row]);
@@ -69,8 +73,8 @@ export function RunSetup({ tcId, service, user }: Props) {
   const params = toValues(paramFields, paramText);
   const expected = toValues(expectedFields, expectedText);
   const localErrors = {
-    params: fieldErrors(row.paramSchema, params),
-    expected: fieldErrors(row.expectedSchema, expected),
+    params: fieldErrors(row.paramSchema, params, paramFields),
+    expected: fieldErrors(row.expectedSchema, expected, expectedFields),
   };
   const shown = showErrors
     ? localErrors
@@ -136,10 +140,26 @@ export function RunSetup({ tcId, service, user }: Props) {
     }
   };
 
+  // 서버가 칸별 사유를 돌려주면 그 칸 아래에 붙인다 (SPEC §8.2)
+  const 사유붙이기 = (err: unknown) => {
+    if (err instanceof ApiError && err.violations.length > 0) {
+      const byKey = messagesByKey(err.violations);
+      setServerErrors({
+        params: pick(byKey, paramFields.map((f) => f.key)),
+        expected: pick(byKey, expectedFields.map((f) => f.key)),
+      });
+      setShowErrors(false);
+      setNotice(t('입력값이 명세와 맞지 않습니다.'));
+    } else {
+      setNotice(message(err, 언어));
+    }
+  };
+
   const saveSet = async () => {
     setShowErrors(true);
     if (setName.trim() === '') {
-      setNotice(t('저장할 이름을 적으세요.'));
+      set이름빔(true);
+      이름칸.current?.focus();
       return;
     }
 
@@ -150,18 +170,7 @@ export function RunSetup({ tcId, service, user }: Props) {
       setNotice(t('{이름}으로 저장했습니다.', { 이름: `'${setName.trim()}'` }));
       saved.reload();
     } catch (err) {
-      // 서버가 칸별 사유를 돌려주면 그 칸 아래에 붙인다 (SPEC §8.2)
-      if (err instanceof ApiError && err.violations.length > 0) {
-        const byKey = messagesByKey(err.violations);
-        setServerErrors({
-          params: pick(byKey, paramFields.map((f) => f.key)),
-          expected: pick(byKey, expectedFields.map((f) => f.key)),
-        });
-        setShowErrors(false);
-        setNotice(t('입력값이 명세와 맞지 않습니다.'));
-      } else {
-        setNotice(message(err, 언어));
-      }
+      사유붙이기(err);
     } finally {
       setBusy(false);
     }
@@ -192,6 +201,7 @@ export function RunSetup({ tcId, service, user }: Props) {
       <div className="sec">
         <div className="sec-h">
           <span>{t('입력값')}</span>
+          <저장값표시 saved={row.savedInput} />
           {saved.data === null || saved.data.items.length === 0 ? null : (
             <select defaultValue="" onChange={(e) => loadSet(e.target.value)}>
               <option value="">{t('저장된 입력값 세트 불러오기')}</option>
@@ -329,14 +339,21 @@ export function RunSetup({ tcId, service, user }: Props) {
           <>
             <input
               type="text"
-              placeholder={t('세트 이름')}
+              ref={이름칸}
+              aria-label={t('묶음 이름')}
+              placeholder={t('묶음 이름')}
               value={setName}
-              onChange={(e) => setSetName(e.target.value)}
+              onChange={(e) => {
+                setSetName(e.target.value);
+                set이름빔(false);
+              }}
               style={{ width: '140px' }}
             />
+            {이름빔 ? <span className="err">{t('묶음 이름을 적으세요')}</span> : null}
             <button className="btn ghost" onClick={() => void saveSet()} disabled={busy}>
               {t('이 값을 묶음으로 저장')}
             </button>
+            <저장값버튼들 tcId={row.tcId} 값={{ params, expected }} saved={row.savedInput} on다시읽기={found.reload} on실패={사유붙이기} />
           </>
         )}
         {만들건수 <= 1 ? null : (

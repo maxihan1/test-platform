@@ -105,3 +105,19 @@ curl -X POST localhost:3000/api/runs/<끝난RUN>/abort   # 409 NOT_RUNNING
 - `queries.ts` 가 300줄을 넘어 셋으로 갈렸다 — 거르개·머리 집계는 `runSummary.ts`, 응답 타입은 `runTypes.ts`(`queries.ts` 가 다시 내보낸다)
 - 미확정 미실행은 Slack 머리에서 실패로 센다(2026-09-26 게이트 1) — 러너가 죽어 못 돈 것을 가리지 않으려고
 - DB 검사 접두사는 `XBU`(`execution/unconfirmed.test.ts`)
+
+## 2026-09-29 — 케이스마다 실행 입력값 한 벌 저장 (PR #113)
+
+- 완료: 표 `case_input` · `PUT/DELETE /api/cases/:tcId/saved-input` · 케이스 응답 `savedInput`(비밀값은 이름만 `savedSecrets.params/expected`) ·
+  `createRun` 이 요청에 없는 칸을 지금 명세로 걸러 저장값으로 채움(정기 실행 포함) · 다시 저장할 때 안 보낸 비밀값은 앞 저장값 이어받기(트랜잭션 `FOR UPDATE`) ·
+  실행 조회 응답의 비밀값 가림 · 화면: 여러 건 실행 창 빈 값 버그 · 목록 줄 「저장」 · 실행 설정 「다음에도 이 값으로 채우기」·「코드 기본값으로」(두 단계) · 묶음 이름 안내
+- 미완: 묶음(param-set) 응답은 여전히 비밀값 평문 · required 비밀값을 비운 채 묶음 저장은 400 (원래 동작)
+- 막힌 것: 없음
+
+### 다음 세션이 알아야 할 것
+
+- 채우기 정본은 `execution/savedInput.ts` 의 `저장값을채운다` · 화면 쪽 같은 규칙은 `web/schema.ts` `명세에맞나`(둘 다 `validate` 한 칸씩)
+- 비밀값 판단·나누기는 `web/mask.ts`(`가려야하나`·`저장값나누기`·`가린값들`)를 서버도 쓴다
+- 이어받기 때문에 케이스 쓰기 권한자는 앞사람 비밀값을 다시 입력하지 않고도 다른 칸을 바꿔 저장할 수 있다 — 게이트 2 에서 그대로 두기로 했다
+- DB 검사 접두사 `XCI`(`db/case-input-columns.test.ts`) · `XSI`(`execution/savedInput.test.ts`)
+- `execution/queries.ts` 는 딱 300줄이다 — 더 넣으려면 먼저 나눈다

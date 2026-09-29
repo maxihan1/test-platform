@@ -66,8 +66,14 @@ export const 실행말: Record<string, string> = {
   '자리를 비울 때만 켜세요. 혼자 확인하는 실행까지 팀 채널에 보내면 알림이 너무 많아집니다':
     'Turn this on only when you step away. Self-checks in the team channel are just noise',
   '실행 제목': 'Run title',
-  '세트 이름': 'Set name',
   '이 값을 묶음으로 저장': 'Save these values as a set',
+  // 케이스 저장값 — 목록 줄과 실행 설정 화면이 같이 쓴다 (도메인/실행 §8.2)
+  '저장값 · {누가} · {언제}': 'Saved · {누가} · {언제}',
+  '다음에도 이 값으로 채우기': 'Prefill these values next time',
+  '코드 기본값으로': 'Back to code defaults',
+  '지우기 확인': 'Confirm clear',
+  '팀 모두와 정기 실행에 쓰입니다': 'Used by the whole team and scheduled runs',
+  '안 저장한 값이 있습니다': 'Unsaved changes',
   '실행': 'Run',
   '{케이스} 실행': 'Run {케이스}',
   '{케이스} 외 {나머지}건 실행': 'Run {케이스} and {나머지} more',
@@ -77,7 +83,8 @@ export const 실행말: Record<string, string> = {
     'This case belongs to another service. Switch services at the top.',
   '대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
     'Pick a target server. Evidence records which server was hit.',
-  '저장할 이름을 적으세요.': 'Enter a name to save.',
+  '묶음 이름': 'Set name',
+  '묶음 이름을 적으세요': 'Enter a set name',
   '{이름}으로 저장했습니다.': 'Saved as {이름}.',
   '입력값이 명세와 맞지 않습니다.': 'Inputs do not match the schema.',
   '이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다':

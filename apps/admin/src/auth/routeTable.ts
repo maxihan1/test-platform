@@ -47,6 +47,8 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/catalog/scan': 케이스쓰기,
   'POST /api/cases/:tcId/param-sets': 케이스쓰기,
   'DELETE /api/param-sets/:id': 케이스쓰기,
+  'PUT /api/cases/:tcId/saved-input': 케이스쓰기,
+  'DELETE /api/cases/:tcId/saved-input': 케이스쓰기,
 
   // 주소는 케이스 아래지만 내용은 실행 결과 이력이다 (execution/routes.ts). 케이스 read 로 열면 실행을 못 보는 사람에게 결과가 샌다
   'GET /api/cases/:tcId/history': 실행읽기,

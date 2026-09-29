@@ -10,6 +10,7 @@ import type { ItemStatus, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
+import { 가린값들 } from '../web/mask.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
 import type { RunItemDetail, RunItemSummary, RunSummary } from './runTypes.js';
@@ -176,7 +177,7 @@ function toItem(row: RawItem): RunItemSummary {
     tcName: row.tc_name,
     platform: row.platform,
     attempt: row.attempt,
-    params: row.params,
+    params: 가린값들(row.params, row.param_schema),
     paramSchema: row.param_schema,
     status: row.status,
     durationMs: row.duration_ms,
@@ -292,7 +293,7 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
     runId: Number(row.run_id),
     runTitle: row.run_title,
     precondition: row.precondition,
-    expected: row.expected,
+    expected: 가린값들(row.expected, row.expected_schema),
     expectedSchema: row.expected_schema,
     steps: steps.rows.map(toStep),
   };

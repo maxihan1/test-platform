@@ -28,10 +28,12 @@ describe.skipIf(연결 === undefined)('save', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
+    await pool.query("DELETE FROM case_input WHERE tc_id = 'ZZA-001'");
     await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZA%'");
   });
 
   afterAll(async () => {
+    await pool.query("DELETE FROM case_input WHERE tc_id = 'ZZA-001'");
     await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZA%'");
     await pool.end();
     const { pool: shared } = await import('../db/index.js');
@@ -193,6 +195,30 @@ describe.skipIf(연결 === undefined)('save', () => {
     it('미확정이 없으면 요약은 0 과 null 이다', async () => {
       const list = await listCases({ ...조건, service: 'ZZA0' });
       expect(list.unconfirmed).toEqual({ count: 0, oldestSince: null });
+    });
+
+    it('저장값은 목록·단건 모두 savedInput 으로 싣고 비밀값은 이름만, 명세에 없는 칸은 빼고 준다 — 없으면 null', async () => {
+      await save([spec('ZZA-001', {
+        paramSchema: { type: 'object', properties: { loginId: { type: 'string' }, pw: { type: 'string', secret: true } } },
+        expectedSchema: { type: 'object', properties: { flag: { type: 'boolean' } } },
+      })], false, 'ZZA');
+      await pool.query(
+        `INSERT INTO case_input (tc_id, params, expected, saved_by, saved_at)
+         VALUES ('ZZA-001', '{"loginId":"u","pw":"pa55","oldToken":"t0k"}', '{"flag":false}', 'zza', '2026-09-29T01:00:00Z')`,
+      );
+      const 기대 = {
+        params: { loginId: 'u' },
+        expected: { flag: false },
+        savedSecrets: { params: ['pw'], expected: [] },
+        savedBy: 'zza',
+        savedAt: '2026-09-29T01:00:00.000Z',
+      };
+      const list = await listCases(조건);
+      expect(list.items.find((i) => i.tcId === 'ZZA-001')?.savedInput).toEqual(기대);
+      expect(list.items.find((i) => i.tcId === 'ZZA-101')?.savedInput).toBeNull();
+      expect((await findCase('ZZA-001'))?.savedInput).toEqual(기대);
+      expect((await findCase('ZZA-101'))?.savedInput).toBeNull();
+      await pool.query("DELETE FROM case_input WHERE tc_id = 'ZZA-001'");
     });
 
     it('단건도 사유와 단 시각을 싣는다', async () => {

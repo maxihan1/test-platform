@@ -6,6 +6,8 @@ import type { ExecuteResponse, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
+import { 저장값을채운다 } from './savedInput.js';
+
 export const DEFAULT_TIMEOUT_MS = 300_000;
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
@@ -197,8 +199,11 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     );
     const runId = Number(run.rows[0]!.run_id);
 
+    // 요청에 없는 칸은 케이스 저장값으로 채운다. 채운 값도 run_item 에 박제된다 (도메인/실행 §3.2)
+    const 채운항목 = await 저장값을채운다(client, input.items, cases);
+
     const items: PendingItem[] = [];
-    for (const item of input.items) {
+    for (const item of 채운항목) {
       const spec = cases.get(item.tcId)!;
       const timeoutMs = item.timeoutMs ?? DEFAULT_TIMEOUT_MS;
       for (const platform of item.platforms) {

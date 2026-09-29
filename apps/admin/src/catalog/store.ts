@@ -4,6 +4,9 @@ import type { Pool } from 'pg';
 
 import type { CaseSpec, Platform } from '@platform/kit';
 
+// 화면이 가리는 칸과 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
+import { 저장값나누기 } from '../web/mask.js';
+
 export interface SaveResult {
   added: number;
   updated: number;
@@ -44,7 +47,19 @@ export type CaseRow = Omit<CaseSpec, 'unconfirmed'> & {
   scannedAt: string;
   unconfirmed: string | null;
   unconfirmedSince: string | null;
+  savedInput: SavedInput | null;
 };
+
+// 케이스 저장 입력값(case_input, 주인 WS-B). 실행 코드를 import 하지 않고 SQL 로만 읽는다 (공통/4-데이터모델 §6)
+export interface SavedInput {
+  params: Record<string, unknown>;
+  expected: Record<string, unknown>;
+  // 비밀값은 원문을 싣지 않고 저장돼 있다는 것만 알린다. 목록은 서비스 전체 분량이라 새면 한꺼번에 샌다.
+  // 입력값과 기대결과에 같은 이름 칸이 있을 수 있어 자리별로 나눈다
+  savedSecrets: { params: string[]; expected: string[] };
+  savedBy: string;
+  savedAt: string;
+}
 
 interface RawRow {
   tc_id: string;
@@ -58,7 +73,24 @@ interface RawRow {
   scanned_at: Date;
   unconfirmed: string | null;
   unconfirmed_since: Date | null;
+  saved_params: Record<string, unknown> | null;
+  saved_expected: Record<string, unknown> | null;
+  saved_by: string | null;
+  saved_at: Date | null;
   total?: string;
+}
+
+function toSaved(row: RawRow): SavedInput | null {
+  if (row.saved_at === null || row.saved_by === null) return null;
+  const 입력 = 저장값나누기(row.param_schema, row.saved_params ?? {});
+  const 기대 = 저장값나누기(row.expected_schema, row.saved_expected ?? {});
+  return {
+    params: 입력.보일것,
+    expected: 기대.보일것,
+    savedSecrets: { params: 입력.비밀, expected: 기대.비밀 },
+    savedBy: row.saved_by,
+    savedAt: row.saved_at.toISOString(),
+  };
 }
 
 function toCase(row: RawRow): CaseRow {
@@ -74,11 +106,16 @@ function toCase(row: RawRow): CaseRow {
     scannedAt: row.scanned_at.toISOString(),
     unconfirmed: row.unconfirmed,
     unconfirmedSince: row.unconfirmed_since?.toISOString() ?? null,
+    savedInput: toSaved(row),
   };
 }
 
 const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at, '
-  + 'unconfirmed, unconfirmed_since';
+  + 'unconfirmed, unconfirmed_since, '
+  + 'ci.params AS saved_params, ci.expected AS saved_expected, ci.saved_by, ci.saved_at';
+
+// USING 이라 tc_id 가 한 칸으로 합쳐져 WHERE·ORDER BY 의 tc_id 가 모호하지 않다
+const FROM = 'test_case LEFT JOIN case_input ci USING (tc_id)';
 
 // ILIKE에서 % 와 _ 는 아무 글자나 맞는 기호다. 사람이 친 검색어는 글자 그대로여야 한다
 function literal(term: string): string {
@@ -114,7 +151,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
   const pool = await db();
   const rows = await pool.query<RawRow>(
     `SELECT ${COLUMNS}, count(*) OVER () AS total
-       FROM test_case
+       FROM ${FROM}
       WHERE tc_id LIKE $1
         AND ($2 = '' OR tc_id ILIKE $3 ESCAPE '\\' OR name ILIKE $3 ESCAPE '\\')
         AND (NOT $4::boolean OR is_active)
@@ -157,7 +194,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
 export async function findCase(tcId: string): Promise<CaseRow | null> {
   const pool = await db();
   // 비활성 케이스도 돌려준다. 과거 실행 이력이 상세 화면을 열 때 이 경로를 쓴다
-  const rows = await pool.query<RawRow>(`SELECT ${COLUMNS} FROM test_case WHERE tc_id = $1`, [tcId]);
+  const rows = await pool.query<RawRow>(`SELECT ${COLUMNS} FROM ${FROM} WHERE tc_id = $1`, [tcId]);
   const row = rows.rows[0];
   return row === undefined ? null : toCase(row);
 }

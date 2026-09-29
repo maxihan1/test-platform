@@ -92,6 +92,8 @@ export const 케이스말: Record<string, string> = {
   '아니오': 'No',
   '기본값': 'Default',
   '에서 바꿈': 'changed',
+  '저장값': 'Saved',
+  '코드 기본값': 'code default',
 
   // 실행 결과 회차 요약 (group.ts)
   '{통과}/{전체} 통과': '{통과}/{전체} passed',

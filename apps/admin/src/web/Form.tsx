@@ -2,7 +2,7 @@
 // 값은 전부 글자로 들고 있다가 보낼 때 schema.ts의 toValues가 명세 타입으로 되돌린다
 
 import { use말 } from './i18n.js';
-import type { Field } from './schema.js';
+import { type Field, initialText } from './schema.js';
 
 interface Props {
   /** 같은 이름의 칸이 입력값과 기대결과에 동시에 있을 수 있다. id가 겹치면 라벨이 엉뚱한 칸을 가리킨다 */
@@ -23,13 +23,13 @@ const NO = '아니오';
  * **왜 늘 적나** — 값을 고칠 수는 있는데 「원래 값이 무엇이었나」를 볼 자리가 없었다.
  * 코드를 열어야 알 수 있으면 화면에서 값을 고치라고 해 놓고 판단할 근거를 안 준 것이다 (2026-09-21).
  */
-function 기본값글자(field: Field, t: (키: string) => string): string | null {
-  if (field.default === undefined || field.default === null) return null;
+function 값글자(value: unknown, secret: boolean, t: (키: string) => string): string | null {
+  if (value === undefined || value === null) return null;
   // 비밀값은 기본값도 가린다. 화면·증적과 같은 기준이다 (SPEC §4.1)
-  if (field.secret) return '********';
-  if (typeof field.default === 'boolean') return t(field.default ? YES : NO);
-  if (typeof field.default === 'object') return JSON.stringify(field.default);
-  return String(field.default);
+  if (secret) return '********';
+  if (typeof value === 'boolean') return t(value ? YES : NO);
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
 }
 
 export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
@@ -45,9 +45,14 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
         const id = `${idPrefix}-${field.key}`;
         const value = text[field.key] ?? '';
         const error = errors[field.key];
-        const 기본값 = 기본값글자(field, t);
-        // 빈 칸은 「지웠다」이지 「기본값 그대로」가 아니다. 그것도 바뀐 것으로 센다
-        const 바뀜 = 기본값 !== null && value !== 기본값;
+        const 저장됨 = field.saved === true || field.savedSecret === true;
+        // 저장된 비밀값은 서버만 안다. 값이 없어도 「저장돼 있다」는 사실은 보여야 한다
+        const 기본값 = field.savedSecret === true ? '********' : 값글자(field.default, field.secret, t);
+        // 저장값이 코드 기본값을 덮어도 코드 기본값이 화면에서 사라지면 안 된다 (계획 주의 6)
+        const 코드기본값 = 저장됨 ? 값글자(field.codeDefault, field.secret, t) : null;
+        // 빈 칸은 「지웠다」이지 「기본값 그대로」가 아니다. 그것도 바뀐 것으로 센다.
+        // 견주는 것은 보이는 글자가 아니라 칸이 처음 들고 있던 글자다 — 가린 글자·예/아니오와 견주면 늘 바뀐 것으로 보인다
+        const 바뀜 = 기본값 !== null && value !== (initialText([field])[field.key] ?? '');
 
         return (
           <div className="field" key={field.key}>
@@ -93,8 +98,9 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
             {기본값 === null ? null : (
               <div className={바뀜 ? 'deflt changed' : 'deflt'}>
                 {바뀜 ? <span className="mark" aria-hidden="true" /> : null}
-                {t('기본값')} {바뀜 ? <s>{기본값}</s> : 기본값}
+                {저장됨 ? t('저장값') : t('기본값')} {바뀜 ? <s>{기본값}</s> : 기본값}
                 {바뀜 ? ' ' + t('에서 바꿈') : ''}
+                {코드기본값 === null ? '' : ' · ' + t('코드 기본값') + ' ' + 코드기본값}
               </div>
             )}
             {/* 사유는 칸 아래 한 줄. 버튼은 비활성화하지 않는다 (SPEC §8.2) */}
