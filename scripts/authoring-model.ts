@@ -9,13 +9,13 @@ export interface 모델 {
 
 // CLI `--effort` 가 받는 값. 도움말(2.1.280)이 정본이다
 const effort들 = ['low', 'medium', 'high', 'xhigh', 'max'];
-// 별칭(opus)과 전체 이름(claude-opus-5-5 · claude-opus-5-5[1m])만. 인자 배열로 넘겨도 셸 글자는 애초에 안 받는다
+// 별칭(opus)과 전체 이름(claude-sonnet-5-5 · claude-opus-5-5[1m])만. 인자 배열로 넘겨도 셸 글자는 애초에 안 받는다
 const 모델모양 = /^[a-z0-9][a-z0-9.\-[\]]{0,63}$/;
 
 export function 모델설정(env: Record<string, string | undefined>): 모델 | { 까닭: string } {
-  const model = env.AUTHORING_MODEL || 'opus';
-  const effort = env.AUTHORING_EFFORT || 'high';
-  const 예비 = env.AUTHORING_FALLBACK_MODEL || 'sonnet';
+  const model = env.AUTHORING_MODEL || 'claude-sonnet-5-5';
+  const effort = env.AUTHORING_EFFORT || 'xhigh';
+  const 예비 = env.AUTHORING_FALLBACK_MODEL || 'opus';
   if (!모델모양.test(model)) return { 까닭: `AUTHORING_MODEL(${model}) 이 모델 이름 모양이 아니다` };
   if (!effort들.includes(effort)) return { 까닭: `AUTHORING_EFFORT(${effort}) 는 ${effort들.join('·')} 중 하나다` };
   if (예비 !== 'none' && !모델모양.test(예비)) {
