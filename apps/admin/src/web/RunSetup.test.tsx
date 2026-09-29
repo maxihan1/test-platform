@@ -254,4 +254,9 @@ describe('묶음 이름이 비었을 때', () => {
     fireEvent.change(screen.getByLabelText('묶음 이름'), { target: { value: '회원' } });
     expect(screen.queryByText('묶음 이름을 적으세요')).toBeNull();
   });
+  it('동작줄에 테스트 실행 버튼이 실행 옆에 있다', async () => {
+    await 그린다();
+
+    expect(screen.getByRole('button', { name: /테스트 실행/ })).toBeTruthy();
+  });
 });

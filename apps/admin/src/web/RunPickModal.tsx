@@ -158,6 +158,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
     <Modal
       제목={t('실행할 케이스 {건수}건', { 건수: 케이스들.length })}
       onClose={onClose}
+      더넓게
+      바깥눌러닫기={false}
       버튼={
         <>
           {/* 사유도 건수도 말풍선이 아니라 화면 줄이다. 오류는 --fail 로 적는다 (DESIGN.md) */}

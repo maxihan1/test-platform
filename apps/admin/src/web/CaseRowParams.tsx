@@ -100,6 +100,7 @@ export function CaseRowParams({
           fields={보일입력값}
           text={채운글자(입력값, 글자?.params)}
           errors={오류없음}
+          줄
           onChange={(key, value) => on값('params', key, value)}
         />
       )}
@@ -109,6 +110,7 @@ export function CaseRowParams({
           fields={보일기대결과}
           text={채운글자(기대결과, 글자?.expected)}
           errors={오류없음}
+          줄
           onChange={(key, value) => on값('expected', key, value)}
         />
       )}

@@ -193,4 +193,19 @@ describe('RunPickModal', () => {
     expect(실행버튼().hasAttribute('disabled')).toBe(true);
     expect(줄().textContent).toContain('1000건까지');
   });
+  it('뒷막을 눌러도 안 닫히고 취소는 닫는다 — 고친 값을 잃지 않게', () => {
+    const { onClose } = 그리기();
+
+    fireEvent.mouseDown(document.querySelector('.modal-back')!);
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('더 넓은 상자로 연다', () => {
+    그리기();
+
+    expect(screen.getByRole('dialog').classList.contains('wider')).toBe(true);
+  });
 });

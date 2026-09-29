@@ -233,21 +233,35 @@ function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: numbe
       </div>
       <div className="right">
         <div className="tally">
-          <div>
-            <b style={{ color: 'var(--pass)' }}>{run.counts.pass}</b>
-            <span>{t('통과')}</span>
-          </div>
-          <div>
-            <b style={{ color: 'var(--fail)' }}>{run.counts.fail}</b>
-            <span>{t('실패')}</span>
-          </div>
-          <div>
-            <b style={{ color: 'var(--na)' }}>{run.counts.na}</b>
-            <span>{t('미실행')}</span>
-          </div>
+          {판정없음(run.counts) ? (
+            // 확정 0건에 0 을 셋 늘어놓으면 「다 잘 안 됐다」로 읽힌다. 안 센 것이지 0건이 아니다
+            <>
+              {(['통과', '실패', '미실행'] as const).map((라벨) => (
+                <div key={라벨}>
+                  <b role="img" aria-label={t('확정 판정 없음')}>—</b>
+                  <span>{t(라벨)}</span>
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              <div>
+                <b style={{ color: 'var(--pass)' }}>{run.counts.pass}</b>
+                <span>{t('통과')}</span>
+              </div>
+              <div>
+                <b style={{ color: 'var(--fail)' }}>{run.counts.fail}</b>
+                <span>{t('실패')}</span>
+              </div>
+              <div>
+                <b style={{ color: 'var(--na)' }}>{run.counts.na}</b>
+                <span>{t('미실행')}</span>
+              </div>
+            </>
+          )}
           {미확정 === '' ? null : (
             <div>
-              <span>{미확정}</span>
+              <span className={판정없음(run.counts) ? 'unconf' : undefined}>{미확정}</span>
             </div>
           )}
         </div>

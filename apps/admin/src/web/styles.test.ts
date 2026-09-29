@@ -563,3 +563,37 @@ describe('사이드바의 select 를 OS 가 그리지 않는다 (LEARNINGS 2026-
     }
   });
 });
+
+describe('줄 칸 이름 · 판정 묶음 · 실행할 케이스 창 (2026-09-30)', () => {
+  it('줄의 라벨은 한 줄로 줄이고 폭이 84px 이다', () => {
+    const 블록 = 규칙('.pcell .field label');
+    expect(블록).toMatch(/text-overflow:\s*ellipsis/);
+    expect(블록).toMatch(/white-space:\s*nowrap/);
+    expect(규칙('.pcell .field')).toMatch(/grid-template-columns:\s*84px minmax\(0,\s*1fr\)/);
+  });
+
+  it('판정 칸이 고정 폭이라 「실행 이력 없음」이 폭을 못 민다', () => {
+    expect(규칙('.device')).toMatch(/(?:^|\s)width:\s*\d+px/);
+    expect(규칙('.device')).toMatch(/flex:\s*none/);
+    expect(규칙('.device-none')).not.toMatch(/white-space:\s*nowrap/);
+    expect(규칙('.device-none')).toMatch(/word-break:\s*keep-all/);
+  });
+
+  it('판정 묶음이 두 칸 폭을 늘 차지해 버튼이 같은 자리에 선다', () => {
+    expect(규칙('.right .devices')).toMatch(/min-width:\s*\d+px/);
+  });
+
+  it('실행할 케이스 창이 더 넓다', () => {
+    expect(규칙('.modal.wider')).toMatch(/max-width:\s*min\(1120px,\s*94vw\)/);
+  });
+
+  it('실행 기록의 미확정 글자가 판정 글자로 선다', () => {
+    expect(규칙('.tally span.unconf')).toMatch(/font-weight:\s*600/);
+  });
+
+  it('테스트 실행 패널이 동작줄 위 한 줄을 다 차지한다', () => {
+    const 블록 = 규칙('.trial');
+    expect(블록).toMatch(/order:\s*-1/);
+    expect(블록).toMatch(/flex:\s*0 0 100%/);
+  });
+});

@@ -474,6 +474,22 @@ export interface RunRequestItem {
   timeoutMs?: number;
 }
 
+export interface TrialRequest {
+  platform: Platform;
+  baseUrl: string;
+  params: Record<string, unknown>;
+  expected: Record<string, unknown>;
+}
+
+export interface TrialResult {
+  status: ItemStatus;
+  durationMs: number;
+  steps: StepResult[];
+  error?: { message: string };
+}
+
+export type TrialState = { status: 'RUNNING' } | { status: 'DONE'; result: TrialResult };
+
 // 서버가 칸별 사유를 돌려준 것(400 INVALID_PARAMS)과 진짜 고장을 갈라야
 // 화면이 오류를 칸 아래에 붙일지 위에 붙일지 정할 수 있다 (SPEC §8.2)
 export class ApiError extends Error {
@@ -698,6 +714,13 @@ export const api = {
 
   /** 대기 중인 것과 돌고 있는 것을 둘 다 끊는다 (SPEC §8.3) */
   abortRun: (runId: number) => call<{ aborted: number }>(`/runs/${runId}/abort`, { method: 'POST' }),
+
+  /** 실행 기록에 남기지 않는 테스트 실행. 이 서버가 꺼 두면 409 TRIAL_OFF, 이미 하나 돌면 409 TRIAL_BUSY */
+  startTrial: (tcId: string, body: TrialRequest) =>
+    call<{ trialId: string }>(`/cases/${encodeURIComponent(tcId)}/test-run`, json(body)),
+
+  getTrial: (tcId: string, trialId: string) =>
+    call<TrialState>(`/cases/${encodeURIComponent(tcId)}/test-run/${encodeURIComponent(trialId)}`),
 
   paramSets: (tcId: string) => call<{ items: ParamSetRow[] }>(`/cases/${encodeURIComponent(tcId)}/param-sets`),
 

@@ -11,12 +11,19 @@ interface Props {
   버튼: React.ReactNode;
   /** 표가 들어가 480px 에 안 들어가는 상자 (DESIGN.md 「②의 상자 둘」). 880px 로 연다 */
   넓게?: boolean;
+  /** 실행할 케이스 창처럼 표가 더 크게 필요한 상자 (`.modal.wider`) */
+  더넓게?: boolean;
+  /**
+   * 뒷막을 눌러 닫을지. 끄면 뒷막은 무시하고 Escape·취소 버튼은 그대로 닫는다.
+   * 값을 많이 고친 창을 빗나간 클릭 하나로 잃지 않게 한다
+   */
+  바깥눌러닫기?: boolean;
 }
 
 /** 포커스를 가둘 때 훑을 것들 */
 const 포커스가능 = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ 제목, onClose, children, 버튼, 넓게 = false }: Props) {
+export function Modal({ 제목, onClose, children, 버튼, 넓게 = false, 더넓게 = false, 바깥눌러닫기 = true }: Props) {
   const 상자 = useRef<HTMLDivElement>(null);
   // 닫으면 열기 전 있던 자리로 돌려준다 (DESIGN.md)
   const 열기전 = useRef<Element | null>(null);
@@ -64,11 +71,11 @@ export function Modal({ 제목, onClose, children, 버튼, 넓게 = false }: Pro
       className="modal-back"
       onMouseDown={(e) => {
         // 바깥 누르기 — 닫는 길 셋 중 하나. 상자 안에서 시작한 드래그는 세지 않는다
-        if (e.target === e.currentTarget) onClose();
+        if (바깥눌러닫기 && e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className={넓게 ? 'modal wide' : 'modal'}
+        className={더넓게 ? 'modal wider' : 넓게 ? 'modal wide' : 'modal'}
         role="dialog"
         aria-modal="true"
         aria-label={제목}

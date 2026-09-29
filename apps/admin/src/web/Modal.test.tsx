@@ -141,4 +141,31 @@ describe('Modal', () => {
     expect(document.activeElement).toBe(열기전);
     열기전.remove();
   });
+  it('바깥눌러닫기 를 끄면 뒷막을 눌러도 안 닫지만 Escape 와 버튼은 닫는다', () => {
+    const onClose = vi.fn();
+    const { container } = render(
+      <Modal 제목="값이 든 창" onClose={onClose} 바깥눌러닫기={false} 버튼={<button type="button" onClick={onClose}>취소</button>}>
+        <input aria-label="칸" />
+      </Modal>,
+    );
+
+    fireEvent.mouseDown(container.querySelector('.modal-back')!);
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByText('취소'));
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('더넓게 를 주면 wider 크기로 연다', () => {
+    render(
+      <Modal 제목="넓은 창" onClose={() => {}} 더넓게 버튼={null}>
+        <p>본문</p>
+      </Modal>,
+    );
+
+    expect(screen.getByRole('dialog').classList.contains('wider')).toBe(true);
+  });
 });
