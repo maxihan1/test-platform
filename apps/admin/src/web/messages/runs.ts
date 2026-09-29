@@ -84,7 +84,8 @@ export const 실행말: Record<string, string> = {
     'This case belongs to another service. Switch services at the top.',
   '대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
     'Pick a target server. Evidence records which server was hit.',
-  '저장할 이름을 적으세요.': 'Enter a name to save.',
+  '묶음 이름': 'Set name',
+  '묶음 이름을 적으세요': 'Enter a set name',
   '{이름}으로 저장했습니다.': 'Saved as {이름}.',
   '입력값이 명세와 맞지 않습니다.': 'Inputs do not match the schema.',
   '이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다':

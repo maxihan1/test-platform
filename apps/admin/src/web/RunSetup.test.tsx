@@ -218,3 +218,25 @@ describe('실행 설정의 저장값 (도메인/실행 §8.2, 2026-09-29 시안 
     expect(screen.queryByRole('button', { name: '코드 기본값으로' })).toBeNull();
   });
 });
+
+describe('묶음 이름이 비었을 때', () => {
+  it('이름 칸으로 커서를 보내고 그 칸 옆에 사유를 적는다. 버튼은 살아 있다', async () => {
+    await 그린다();
+    const 저장 = vi.spyOn(api, 'saveParamSet');
+    const 버튼 = screen.getByRole('button', { name: '이 값을 묶음으로 저장' }) as HTMLButtonElement;
+
+    fireEvent.click(버튼);
+
+    expect(버튼.disabled).toBe(false);
+    expect(저장).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(screen.getByLabelText('묶음 이름'));
+    expect(screen.getByText('묶음 이름을 적으세요')).toBeTruthy();
+  });
+
+  it('이름을 적기 시작하면 사유가 사라진다', async () => {
+    await 그린다();
+    fireEvent.click(screen.getByRole('button', { name: '이 값을 묶음으로 저장' }));
+    fireEvent.change(screen.getByLabelText('묶음 이름'), { target: { value: '회원' } });
+    expect(screen.queryByText('묶음 이름을 적으세요')).toBeNull();
+  });
+});

@@ -1,7 +1,7 @@
 // 실행 설정 화면 (SPEC §8.2). 케이스의 paramSchema·expectedSchema를 읽어 입력 폼을 자동으로 만든다
 // 이 플랫폼의 핵심 — 코드를 고치지 않고 값만 바꿔 다시 돌리는 자리다
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { api, ApiError, type CaseRow, type ParamSetRow, type Platform, type ServiceRow, type User } from './api.js';
 import { Form } from './Form.js';
@@ -44,6 +44,9 @@ export function RunSetup({ tcId, service, user }: Props) {
   const [repeat, setRepeat] = useState('1');
   const [notifySlack, setNotifySlack] = useState(false);
   const [setName, setSetName] = useState('');
+  // 이름이 비었다는 사유는 맨 아래 안내가 아니라 이름 칸 옆에 둔다. 아래 작은 글씨는 「눌러도 안 먹는다」로 읽혔다
+  const [이름빔, set이름빔] = useState(false);
+  const 이름칸 = useRef<HTMLInputElement>(null);
   const [showErrors, setShowErrors] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [serverErrors, setServerErrors] = useState<{ params: Record<string, string>; expected: Record<string, string> }>(
@@ -155,7 +158,8 @@ export function RunSetup({ tcId, service, user }: Props) {
   const saveSet = async () => {
     setShowErrors(true);
     if (setName.trim() === '') {
-      setNotice(t('저장할 이름을 적으세요.'));
+      set이름빔(true);
+      이름칸.current?.focus();
       return;
     }
 
@@ -335,11 +339,17 @@ export function RunSetup({ tcId, service, user }: Props) {
           <>
             <input
               type="text"
+              ref={이름칸}
+              aria-label={t('묶음 이름')}
               placeholder={t('세트 이름')}
               value={setName}
-              onChange={(e) => setSetName(e.target.value)}
+              onChange={(e) => {
+                setSetName(e.target.value);
+                set이름빔(false);
+              }}
               style={{ width: '140px' }}
             />
+            {이름빔 ? <span className="err">{t('묶음 이름을 적으세요')}</span> : null}
             <button className="btn ghost" onClick={() => void saveSet()} disabled={busy}>
               {t('이 값을 묶음으로 저장')}
             </button>
