@@ -158,14 +158,4 @@ describe('Modal', () => {
     fireEvent.click(screen.getByText('취소'));
     expect(onClose).toHaveBeenCalledTimes(2);
   });
-
-  it('더넓게 를 주면 wider 크기로 연다', () => {
-    render(
-      <Modal 제목="넓은 창" onClose={() => {}} 더넓게 버튼={null}>
-        <p>본문</p>
-      </Modal>,
-    );
-
-    expect(screen.getByRole('dialog').classList.contains('wider')).toBe(true);
-  });
 });

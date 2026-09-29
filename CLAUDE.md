@@ -288,6 +288,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   케이스 엑셀 `XCX`(`catalog/export-routes.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지. 계정은 `'xcx-%'` · 케이스는 `tc_id LIKE 'XCX-%'`) ·
   작성 보류 입력 `XWL`(`authoring/held.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 보류 통로 `XWLR`(`authoring/held-routes.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
+  케이스 테스트 실행 `XTR`(`execution/trialRoutes.test.ts`, 2026-09-30 — 자기 `service_id` 로만 지우고 그 `service` 행까지) ·
   작성 보류 머지 `XWLM`(`authoring/held-merge.test.ts`, 2026-09-29 — `held-routes.test.ts` 에서 떼어 냈다. 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   역방향 WS-B `XBU`(`execution/unconfirmed.test.ts`, 2026-09-26 — `test_run.title LIKE 'XBU%'`·`tc_id LIKE 'XBU-%'`·`prefix = 'XBU'`) ·
   에이전트 토큰 `xfu5`(계정)·`XFS6`(서비스)(`auth/agentToken.test.ts`, 2026-09-23 — `xfu4` 와 겹치지 않게 `'xfu5%'` 로만 지운다) ·

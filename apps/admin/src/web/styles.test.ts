@@ -583,10 +583,6 @@ describe('줄 칸 이름 · 판정 묶음 · 실행할 케이스 창 (2026-09-30
     expect(규칙('.right .devices')).toMatch(/min-width:\s*\d+px/);
   });
 
-  it('실행할 케이스 창이 더 넓다', () => {
-    expect(규칙('.modal.wider')).toMatch(/max-width:\s*min\(1120px,\s*94vw\)/);
-  });
-
   it('실행 기록의 미확정 글자가 판정 글자로 선다', () => {
     expect(규칙('.tally span.unconf')).toMatch(/font-weight:\s*600/);
   });

@@ -203,9 +203,9 @@ describe('RunPickModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('더 넓은 상자로 연다', () => {
+  it('넓은 상자로 연다', () => {
     그리기();
 
-    expect(screen.getByRole('dialog').classList.contains('wider')).toBe(true);
+    expect(screen.getByRole('dialog').classList.contains('wide')).toBe(true);
   });
 });
