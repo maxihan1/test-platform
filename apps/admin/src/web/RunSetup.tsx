@@ -73,8 +73,8 @@ export function RunSetup({ tcId, service, user }: Props) {
   const params = toValues(paramFields, paramText);
   const expected = toValues(expectedFields, expectedText);
   const localErrors = {
-    params: fieldErrors(row.paramSchema, params),
-    expected: fieldErrors(row.expectedSchema, expected),
+    params: fieldErrors(row.paramSchema, params, paramFields),
+    expected: fieldErrors(row.expectedSchema, expected, expectedFields),
   };
   const shown = showErrors
     ? localErrors

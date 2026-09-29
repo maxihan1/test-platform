@@ -219,6 +219,21 @@ describe('실행 설정의 저장값 (도메인/실행 §8.2, 2026-09-29 시안 
   });
 });
 
+describe('반드시 채울 비밀값 칸에 저장값이 있을 때', () => {
+  it('칸을 비워 두고 실행을 누르면 막지 않고 그 칸을 빼고 보낸다 — 서버가 저장값으로 채운다', async () => {
+    const 만들기 = await 그린다({
+      ...저장값케이스,
+      paramSchema: { ...저장값케이스.paramSchema, required: ['password'] },
+    });
+
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.click(실행버튼());
+
+    expect(만들기).toHaveBeenCalledTimes(1);
+    expect(만들기.mock.calls[0]?.[0].items[0]?.params).toEqual({ userId: 'user1' });
+  });
+});
+
 describe('묶음 이름이 비었을 때', () => {
   it('이름 칸으로 커서를 보내고 그 칸 옆에 사유를 적는다. 버튼은 살아 있다', async () => {
     await 그린다();

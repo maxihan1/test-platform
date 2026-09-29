@@ -5,6 +5,7 @@
 import { validate, type Violation } from '../execution/validate.js';
 
 import type { JsonSchema } from './api.js';
+import type { Field } from './schema.js';
 
 export type { Violation };
 
@@ -17,6 +18,11 @@ export function messagesByKey(violations: Violation[]): Record<string, string> {
   return messages;
 }
 
-export function fieldErrors(schema: JsonSchema, values: Record<string, unknown>): Record<string, string> {
-  return messagesByKey(validate(schema, values));
+/**
+ * 저장된 비밀값 칸(`savedSecret`)을 비워 두면 요청에서 빠지고 서버가 저장값으로 채운다 (도메인/실행 §3.2).
+ * 그 칸이 반드시 채울 칸이어도 화면이 「비었다」로 막으면 저장값이 있는데 실행이 안 된다
+ */
+export function fieldErrors(schema: JsonSchema, values: Record<string, unknown>, fields: Field[] = []): Record<string, string> {
+  const 서버가채울칸 = new Set(fields.filter((f) => f.savedSecret === true).map((f) => f.key));
+  return messagesByKey(validate(schema, values).filter((v) => !(서버가채울칸.has(v.path) && values[v.path] === undefined)));
 }
