@@ -1,5 +1,8 @@
 ## §5. 케이스 작성
 
+**쓰기 전에 `korean-ai-tells.md` 를 읽는다** — 코드 안의 한글(`name` · `precondition` · `test.step` 제목 · `verify` · `.describe()` · `held` 사유)도
+그 규칙대로 쓴다. 표에서 옮기는 글자는 표를 쓸 때 이미 지켰다. 코드에서 새로 짓는 절차 제목 · 칸 설명이 여기서 걸린다.
+
 본보기는 `tests/demo/DEMO-011.spec.ts`. 대상 주소는 데모 케이스와 같이 **직접 적는다**
 (데모 8건이 전부 그렇다). 실제 서비스는 러너가 실행마다 `PLATFORM_BASE_URL` 로 넘긴다.
 
