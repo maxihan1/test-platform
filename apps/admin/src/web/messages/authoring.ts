@@ -123,11 +123,11 @@ export const 작성말: Record<string, string> = {
   '{번호}단계 진행 중 · {퍼센트}%': 'Step {번호} in progress · {퍼센트}%',
   '{번호}단계에서 멈춤 · {퍼센트}%': 'Stopped at step {번호} · {퍼센트}%',
   '다시 작성은 실행 권한이 있는 사람이 합니다.': 'Someone with run rights can write it again.',
-  '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다.':
-    'Fix the cause first. This makes a new request with the same inputs and runs it from the start.',
+  '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다.':
+    'Fix the cause first. This runs the same request again from the start with the same inputs.',
   '대상 서버와 시작 주소도 원본 그대로 씁니다.': 'It uses the same target server and start URL as the original.',
-  '넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다.':
-    'This makes a new request with the same inputs and runs it from the start. This request stays as a record.',
+  '넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다. 지금까지의 실행은 실행 기록에 남습니다.':
+    'This runs the same request again from the start with the same inputs. Earlier runs stay in the run history.',
 
   // 이어하기 (도메인/작성 §7 「이어하기」)
   '이어서 작성': 'Continue writing',
@@ -137,7 +137,7 @@ export const 작성말: Record<string, string> = {
     'Takes over the {수} tests made before the stop and continues the rest.',
   '중단된 자리부터 남은 작업을 이어서 합니다.': 'Continues the rest from where it stopped.',
   '{날}까지 이어갈 수 있습니다.': 'You can continue until {날}.',
-  '작성 요청 #{번호}로 이어받았습니다': 'Continued as request #{번호}',
+  '이미 이어서 작성했습니다. 아래 실행 기록을 보세요.': 'Already continued. See the run history below.',
   '보관 기간이 지나 만든 것을 지웠습니다. 처음부터 다시 작성하세요.':
     'The keep period is over and what was made was deleted. Write again from the start.',
   '목록에서 사라집니다. 보관한 작업물도 지웁니다. 통계와 토큰 기록은 남습니다.':

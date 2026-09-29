@@ -332,8 +332,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     it('이미 이어받았으면 버튼 대신 이어받은 요청으로 가는 길을 준다', async () => {
       답 = 멈춤({ canResume: false, resumedBy: 12 });
       render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-      const 고리 = await screen.findByRole('link', { name: '작성 요청 #12로 이어받았습니다' });
-      expect(고리.getAttribute('href')).toBe('#/authoring/12');
+      expect(await screen.findByText('이미 이어서 작성했습니다. 아래 실행 기록을 보세요.')).toBeTruthy();
       expect(screen.queryByRole('button', { name: '이어서 작성' })).toBeNull();
     });
 
@@ -402,6 +401,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
             tokens: { input: 178, output: 113675, cacheRead: 13971466, cacheWrite: 0, partial: true } }),
         ],
       });
+      답들.set(9, 줄({ id: 9, kind: 'RERUN', sourceId: 5, status: 'DONE', rootId: 5 }));
       render(<AuthoringDetail service="PAY" id={5} 할수={실행까지} />);
       const 표 = await screen.findByRole('table', { name: '실행 기록' });
       const 줄들 = Array.from(표.querySelectorAll('tbody tr')).map((r) => Array.from(r.querySelectorAll('td')).map((c) => c.textContent));
@@ -413,6 +413,15 @@ describe('작성 진척 · 중단 · 폐기', () => {
       expect(줄들[2]!.slice(0, 2)).toEqual(['1차', '처음']);
       expect(줄들[2]![3]).toBe('실패 — 비밀번호가 들어 있다');
       expect(줄들[2]![5]).toBe('178 (끊겨 하한)');
+    });
+
+    it('머지가 실패했으면 끝난 작성 실행을 보여 반영 버튼이 다시 나온다 — 차이 · 산출물도 그 실행 것이다', async () => {
+      const 기록 = [실행({ id: 11, kind: 'MERGE', status: 'FAILED', error: 'CI 빨강' }), 실행({ id: 9, kind: 'RERUN', status: 'DONE' }), 실행({ id: 5 })];
+      답들.set(5, 줄({ id: 5, status: 'FAILED', prUrl: null, rootId: 5, runs: 기록 }));
+      답들.set(9, 줄({ id: 9, kind: 'RERUN', sourceId: 5, status: 'DONE', rootId: 5, runs: 기록 }));
+      render(<AuthoringDetail service="PAY" id={5} 할수={운영} />);
+      fireEvent.click(await screen.findByRole('button', { name: '테스트 반영하기' }));
+      expect(screen.getAllByText('실패 — CI 빨강').length).toBeGreaterThan(0);
     });
 
     it('실행이 하나뿐이면 기록 표를 그리지 않는다', async () => {
@@ -434,7 +443,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     expect(
       await screen.findByText(
-        '넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다. 대상 서버와 시작 주소도 원본 그대로 씁니다.',
+        '넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다. 지금까지의 실행은 실행 기록에 남습니다. 대상 서버와 시작 주소도 원본 그대로 씁니다.',
       ),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '같은 자료로 다시 작성' }));
@@ -445,7 +454,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     expect(
-      await screen.findByText('원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다.'),
+      await screen.findByText('원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다.'),
     ).toBeTruthy();
   });
 

@@ -53,21 +53,30 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
 
   // 보이는 번호는 뿌리 하나다 (도메인/작성 §7 「실행 기록」). 뿌리 상세는 실행 기록을, 상태 카드 · 다음 단계는
   // 최신 실행 상세를 그린다 — 버튼이 옛 실행에 걸리면 멈춤 · 이어서 작성이 엉뚱한 행으로 간다 (2026-09-29 계획 검토)
+  // 실패한 머지는 건너뛴다 — 끝난 작성 실행을 다시 보여 반영 버튼이 돌아온다(서버 `최신실행` 과 같은 규칙).
+  // 차이 · 산출물은 머지가 아니라 그것을 만든 작성 실행에 붙어 있다 (2026-09-29 검사)
   const 것 = useAsync<AuthoringRow>(() => api.authoringRequest(service, id), [service, id]);
   const 뿌리 = 것.data;
-  const 최신번호 = 뿌리?.runs?.[0]?.id ?? null;
-  const 따로 = 최신번호 !== null && 최신번호 !== id;
+  const 버튼번호 = 뿌리?.runs?.find((r) => !(r.kind === 'MERGE' && r.status === 'FAILED'))?.id ?? id;
+  const 작성번호 = 뿌리?.runs?.find((r) => r.kind !== 'MERGE')?.id ?? id;
   const 최신것 = useAsync<AuthoringRow | null>(
-    () => (따로 ? api.authoringRequest(service, 최신번호) : Promise.resolve(null)),
-    [service, 최신번호, 따로],
+    () => (버튼번호 !== id ? api.authoringRequest(service, 버튼번호) : Promise.resolve(null)),
+    [service, 버튼번호, id],
   );
-  const data = 따로 ? 최신것.data : 뿌리;
+  const 작성것 = useAsync<AuthoringRow | null>(
+    () => (작성번호 !== id && 작성번호 !== 버튼번호 ? api.authoringRequest(service, 작성번호) : Promise.resolve(null)),
+    [service, 작성번호, 버튼번호, id],
+  );
+  const data = 버튼번호 !== id ? 최신것.data : 뿌리;
+  const 작성 = 작성번호 === id ? 뿌리 : 작성번호 === 버튼번호 ? data : 작성것.data;
   const 뿌리읽기 = 것.reload;
   const 최신읽기 = 최신것.reload;
+  const 작성읽기 = 작성것.reload;
   const reload = useCallback(() => {
     뿌리읽기();
     최신읽기();
-  }, [뿌리읽기, 최신읽기]);
+    작성읽기();
+  }, [뿌리읽기, 최신읽기, 작성읽기]);
   const 도는중 = data !== null && !끝났나(data.status);
 
   // 예전 실행 번호로 들어오면 뿌리 번호 쪽으로 — 한 요청이 번호 여럿으로 흩어져 보이지 않게
@@ -85,14 +94,16 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
 
   if (것.error !== null) return <Failed error={것.error} />;
   if (최신것.error !== null) return <Failed error={최신것.error} />;
-  if (뿌리 === null || data === null) return <Loading />;
+  if (작성것.error !== null) return <Failed error={작성것.error} />;
+  // 번호가 바뀐 직후에는 옛 실행 답이 남아 있다 — 그 버튼을 누르면 엉뚱한 행이 멈추거나 폐기된다 (2026-09-29 검사)
+  if (뿌리 === null || data === null || 작성 === null || data.id !== 버튼번호 || 작성.id !== 작성번호) return <Loading />;
 
   // 입력과 산출물을 가른다. role 이 없으면 입력이다 — 이 칸을 모르는 옛 응답도 그대로 그린다.
   // 입력은 뿌리(맨 처음 요청)에, 산출물은 그것을 만든 실행에 붙는다
   const 입력 = (뿌리.assets ?? []).filter((a) => (a.role ?? 'INPUT') === 'INPUT');
-  const 자료들 = [...입력, ...(data.assets ?? [])];
-  const 산출물 = (data.assets ?? []).filter((a) => (a.role ?? 'INPUT') !== 'INPUT');
-  const 차이들 = 차이목록(data.result);
+  const 자료들 = [...입력, ...(작성.assets ?? [])];
+  const 산출물 = (작성.assets ?? []).filter((a) => (a.role ?? 'INPUT') !== 'INPUT');
+  const 차이들 = 차이목록(작성.result);
   const 부제 = data.compare === true ? `${종류라벨(data.kind, 언어)} · ${t('실제 화면과 대조')}` : 종류라벨(data.kind, 언어);
 
   return (
