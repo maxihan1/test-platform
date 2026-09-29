@@ -150,8 +150,9 @@ async function 사유로묶는다(pool: Pool, runId: number): Promise<실패덩�
 export async function compareWithPrevious(runId: number): Promise<비교> {
   const pool = await db();
 
+  // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   const 이번 = await pool.query<{ service_id: string | null; env: string; base_url: string; started_at: Date }>(
-    'SELECT service_id, env, base_url, started_at FROM test_run WHERE run_id = $1',
+    "SELECT service_id, env, base_url, started_at FROM test_run WHERE run_id = $1 AND kind = 'CASE'",
     [runId],
   );
   const 현재 = 이번.rows[0];

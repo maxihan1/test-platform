@@ -3,9 +3,11 @@
 import Fastify from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { collectRun } from '../reporting/collect.js';
 import { compareWithPrevious } from '../reporting/insights.js';
+import reportingRoutes from '../reporting/routes.js';
 
-import { listRuns } from './queries.js';
+import { findRun, listRuns } from './queries.js';
 import executionRoutes from './routes.js';
 import { runSummary } from './runSummary.js';
 import { abortRun, recoverRunning } from './store.js';
@@ -103,6 +105,36 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
     const B = await 실행({ startedAt: '2026-09-29T03:00:00Z' });
 
     expect((await compareWithPrevious(B)).previous?.runId).toBe(A);
+  });
+
+  it('실행 번호 하나로 짚는 케이스 조회는 시나리오 실행 번호를 없는 것으로 본다', async () => {
+    await 실행치우기();
+    const 케이스실행 = await 실행();
+    const S = await 실행({ 시나리오: true });
+
+    expect(await findRun(S)).toBeNull();
+    expect(await collectRun(S)).toBeNull();
+    expect((await findRun(케이스실행))?.runId).toBe(케이스실행);
+    expect((await collectRun(케이스실행))?.runId).toBe(케이스실행);
+    await expect(compareWithPrevious(S)).rejects.toThrow();
+
+    const app = Fastify();
+    await app.register(reportingRoutes, { prefix: '/api' });
+    await app.ready();
+    try {
+      const 증적 = await app.inject({ method: 'POST', url: `/api/runs/${S}/evidence`, payload: { format: 'HTML' } });
+      expect(증적.statusCode).toBe(404);
+      expect(증적.json().error).toBe('RUN_NOT_FOUND');
+
+      const 견주기 = await app.inject({ method: 'GET', url: `/api/runs/${S}/insights` });
+      expect(견주기.statusCode).toBe(404);
+      expect(견주기.json().error).toBe('RUN_NOT_FOUND');
+
+      expect((await app.inject({ method: 'GET', url: `/api/runs/${케이스실행}/insights` })).statusCode).toBe(200);
+    } finally {
+      await app.close();
+      await 실행치우기();
+    }
   });
 
   const 상태 = async (runId: number) =>

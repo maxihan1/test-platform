@@ -175,8 +175,10 @@ export async function findRun(
   runId: number,
 ): Promise<(RunSummary & { items: RunItemSummary[]; evidence: EvidenceSummary[] }) | null> {
   const pool = await db();
+  // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   const runs = await pool.query<RawRun>(
-    `SELECT ${RUN_COLUMNS} FROM test_run r LEFT JOIN run_item i USING (run_id) WHERE r.run_id = $1 GROUP BY r.run_id`,
+    `SELECT ${RUN_COLUMNS} FROM test_run r LEFT JOIN run_item i USING (run_id)
+      WHERE r.run_id = $1 AND r.kind = 'CASE' GROUP BY r.run_id`,
     [runId],
   );
   const row = runs.rows[0];
