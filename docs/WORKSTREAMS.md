@@ -395,6 +395,7 @@ CLAUDE.md와 SPEC 중 아래 5장을 읽어줘. 너는 WS-B(실행) 담당이다
 4. GET /api/cases/:tcId/history — 케이스별 이력
    GET /api/screenshots/... — 공유 볼륨의 스크린샷 서빙
 5. ParamSet CRUD — 저장 전 param_schema로 검증
+6. 저장값 case_input (2026-09-29) — PUT·DELETE /api/cases/:tcId/saved-input, createRun 이 요청에 없는 칸만 저장값으로 채운다(지금 명세로 칸마다 거른다). 카탈로그는 읽기만 한다 (실행 §3.2 · §8.2)
 
 러너는 아직 스텁일 수 있다. ExecuteResponse 형태의 가짜 응답으로 먼저 만들어라.
 러너 내부 구현은 WS-C 담당이다. apps/runner/** 를 고쳐야 하면 계약이나 API 로 되는지 먼저 보고, 안 되면 이유를 적는다.

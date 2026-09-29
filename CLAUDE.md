@@ -280,6 +280,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   계약 반영 `XRC`(`db/reverse-columns.test.ts`, 2026-09-25 — 자기 `service_id` 로만 지운다) ·
   E2E 시나리오 표 `XSC`(`db/scenario-columns.test.ts`, 2026-09-28 — 부품 → `test_run` → 버전 → 시나리오를 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   시나리오 실행 거르기 `XBK`(`execution/kind.test.ts`, 2026-09-29 — `XSC` 와 같은 순서로 자기 `service_id` 로만 지우고 그 `service` 행까지) ·
+  실행 저장값 표 `XCI`(`db/case-input-columns.test.ts`)·저장값 `XSI`(`execution/savedInput.test.ts`)(2026-09-29 — 둘 다 자기 `service_id`·`tc_id` 목록으로 `run_item` → `test_run` → `case_input` → `service_env` → `test_case` → `service` 순으로 지운다) ·
   시나리오 저장 `XSS`·`XSS2`(`scenario/store.test.ts`)·부품 재료 `XSP`(`scenario/parts.test.ts`)·라우트 `XSR`(`scenario/routes.test.ts`)·문 `XSA`·`XSA2`·`XSA3`(계정 `xsa-reader`·`xsa-writer`, `auth/gate.test.ts`·`auth/scope.test.ts`)(2026-09-29 — 전부 자기 `service_id`·id·이름 목록으로만 지우고 `LIKE` 를 안 쓴다. **`XSA` 로 시작하는 새 이름을 고르지 않는다**) ·
   시나리오 실행 `XSE`(`scenario/runStore.test.ts`)·실행 라우트 `XSU`(`scenario/runRoutes.test.ts`)(2026-09-29 — 둘 다 자기 `service_id` 로 step → part → `test_run` → 버전 → 시나리오 → `service_env` → 자기 `tc_id` 목록의 `test_case` → `service` 순으로 지운다) ·
   작성 이어하기 `XRM`(`db/resume-columns.test.ts`)·`XWM`(`authoring/resume.test.ts`)(2026-09-28 — 둘 다 자기 `service_id` 로 지우고 그 `service` 행까지) ·
