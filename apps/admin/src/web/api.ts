@@ -37,6 +37,22 @@ export interface CaseRow {
   /** 미확정 사유와 처음 미확정이 된 시각 (도메인/카탈로그 §3.1). 없으면 확정 케이스다 */
   unconfirmed?: string | null;
   unconfirmedSince?: string | null;
+  /** 다음 실행에 먼저 채울 저장값. 없으면 null 이고 칸은 코드 기본값으로 돈다 */
+  savedInput?: SavedInput | null;
+}
+
+/**
+ * 케이스에 저장해 둔 입력값 (계획 2026-09-29 게이트 1).
+ *
+ * 비밀값은 응답에 싣지 않는다 — `params`·`expected` 에 비밀값 칸은 없고 저장된 칸 이름만 `savedSecrets` 에 온다.
+ * 비밀값 원문은 서버가 실행을 만들 때 채운다.
+ */
+export interface SavedInput {
+  params: Record<string, unknown>;
+  expected: Record<string, unknown>;
+  savedSecrets: string[];
+  savedBy: string;
+  savedAt: string;
 }
 
 /** 케이스 목록 응답. 머리의 미확정 요약은 검색 조건을 안 따른다 — 서비스 전체다 (도메인/카탈로그 §7) */

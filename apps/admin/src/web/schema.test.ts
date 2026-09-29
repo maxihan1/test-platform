@@ -194,3 +194,46 @@ describe('toValues', () => {
     expect(toValues(schemaToFields(REQUIRED_SCHEMA), { username: '' })).toEqual({ username: '' });
   });
 });
+
+describe('schemaToFields — 저장값 (2026-09-29)', () => {
+  const LOGIN_SCHEMA = {
+    type: 'object',
+    properties: {
+      loginId: { type: 'string', description: '로그인 아이디', default: 'guest' },
+      retry: { type: 'integer', description: '재시도', default: 1 },
+      mode: { enum: ['빠름', '느림'], type: 'string', description: '모드', default: '빠름' },
+      password: { type: 'string', description: '비밀번호', secret: true },
+    },
+    required: ['password'],
+  };
+
+  it('저장값이 명세에 맞으면 그 칸 기본값을 덮고 코드 기본값을 남긴다', () => {
+    const field = schemaToFields(LOGIN_SCHEMA, { loginId: 'u' }).find((f) => f.key === 'loginId');
+    expect(field).toMatchObject({ default: 'u', saved: true, codeDefault: 'guest', optional: false });
+  });
+
+  it('타입이 다르거나 enum 밖인 저장값은 무시한다', () => {
+    const fields = schemaToFields(LOGIN_SCHEMA, { loginId: 3, retry: 1.5, mode: '중간' });
+    for (const field of fields) {
+      expect(field.saved).toBeUndefined();
+    }
+    expect(fields.find((f) => f.key === 'loginId')?.default).toBe('guest');
+  });
+
+  it('명세에 없는 칸의 저장값은 칸을 만들지 않는다', () => {
+    expect(schemaToFields(LOGIN_SCHEMA, { gone: 'x' }).map((f) => f.key)).not.toContain('gone');
+  });
+
+  it('저장된 비밀값 칸은 값 없이 표시만 하고 비워 두면 보내지 않는다', () => {
+    const fields = schemaToFields(LOGIN_SCHEMA, {}, ['password']);
+    const field = fields.find((f) => f.key === 'password');
+    expect(field).toMatchObject({ savedSecret: true, optional: true });
+    expect(field?.default).toBeUndefined();
+    expect(toValues(fields, initialText(fields))).not.toHaveProperty('password');
+  });
+
+  it('비밀값이 아닌 칸은 savedSecrets 에 이름이 있어도 표시하지 않는다', () => {
+    const field = schemaToFields(LOGIN_SCHEMA, {}, ['loginId']).find((f) => f.key === 'loginId');
+    expect(field?.savedSecret).toBeUndefined();
+  });
+});

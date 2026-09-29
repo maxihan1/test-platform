@@ -149,6 +149,17 @@ describe('RunPickModal', () => {
     ]);
   });
 
+  it('저장값이 있는 케이스는 칸이 저장값으로 채워져 열린다', () => {
+    const 저장된 = {
+      ...값있는케이스,
+      savedInput: { params: { userId: 'zpm-저장' }, expected: {}, savedSecrets: [], savedBy: 'qa', savedAt: '2026-09-29T00:00:00.000Z' },
+    };
+    그리기([저장된]);
+
+    expect((screen.getByLabelText('아이디') as HTMLInputElement).value).toBe('zpm-저장');
+    expect(screen.getByText(/저장값/)).toBeTruthy();
+  });
+
   it('실행 항목 수는 디바이스 수가 다른 케이스들에서도 합이다', () => {
     // 둘짜리 하나 + 하나짜리 하나 = 3건. 곱셈이면 2나 4가 나온다
     그리기();

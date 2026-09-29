@@ -51,14 +51,14 @@ export function RunSetup({ tcId, service, user }: Props) {
   const [busy, setBusy] = useState(false);
 
   const row = found.data;
-  const paramFields = useMemo(() => (row === null ? [] : schemaToFields(row.paramSchema)), [row]);
-  const expectedFields = useMemo(() => (row === null ? [] : schemaToFields(row.expectedSchema)), [row]);
+  const paramFields = useMemo(() => (row === null ? [] : schemaToFields(row.paramSchema, row.savedInput?.params, row.savedInput?.savedSecrets)), [row]);
+  const expectedFields = useMemo(() => (row === null ? [] : schemaToFields(row.expectedSchema, row.savedInput?.expected, row.savedInput?.savedSecrets)), [row]);
 
   // 케이스가 도착하면 default 값으로 칸을 채우고, 선언된 디바이스를 전부 고른다 (SPEC §8.2)
   useEffect(() => {
     if (row === null) return;
-    setParamText(initialText(schemaToFields(row.paramSchema)));
-    setExpectedText(initialText(schemaToFields(row.expectedSchema)));
+    setParamText(initialText(paramFields));
+    setExpectedText(initialText(expectedFields));
     setPlatforms(row.platforms);
     setTitle(t('{케이스} 실행', { 케이스: row.tcId }));
   }, [row]);

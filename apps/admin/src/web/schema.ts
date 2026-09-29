@@ -17,6 +17,11 @@ export interface Field {
   secret: boolean;
   options?: string[];
   default?: unknown;
+  /** `default` 가 코드 기본값이 아니라 저장값이다. 코드 기본값은 `codeDefault` 에 남긴다 */
+  saved?: true;
+  codeDefault?: unknown;
+  /** 저장된 비밀값이 있다. 값은 서버만 알아서 칸은 비어 있고, 비워 두면 서버가 채운다 */
+  savedSecret?: true;
 }
 
 interface Prop {
@@ -37,7 +42,28 @@ function kindOf(prop: Prop): FieldKind {
   return 'text';
 }
 
-export function schemaToFields(schema: JsonSchema): Field[] {
+/**
+ * 저장값이 지금 명세의 그 칸에 맞는가.
+ *
+ * 명세가 바뀐 뒤의 옛 저장값을 칸에 채우면 사람이 손대지 않아도 그 값이 요청에 실린다.
+ * 서버의 채우기(`저장값을채운다`)와 같은 규칙이어야 화면과 실행이 같은 값을 쓴다 (계획 게이트 1 BLOCKER 1)
+ */
+function 명세에맞나(prop: Prop, value: unknown): boolean {
+  if (Array.isArray(prop.enum)) return prop.enum.includes(value);
+  if (prop.type === 'string') return typeof value === 'string';
+  if (prop.type === 'boolean') return typeof value === 'boolean';
+  if (prop.type === 'integer') return Number.isInteger(value);
+  if (prop.type === 'number') return typeof value === 'number' && Number.isFinite(value);
+  if (prop.type === 'object') return isPlainObject(value);
+  if (prop.type === 'array') return Array.isArray(value);
+  return false;
+}
+
+export function schemaToFields(
+  schema: JsonSchema,
+  saved: Record<string, unknown> = {},
+  savedSecrets: string[] = [],
+): Field[] {
   const properties = isPlainObject(schema.properties) ? schema.properties : {};
   const required = (Array.isArray(schema.required) ? schema.required : []).filter(
     (key): key is string => typeof key === 'string',
@@ -46,8 +72,10 @@ export function schemaToFields(schema: JsonSchema): Field[] {
   return Object.entries(properties).map(([key, raw]) => {
     const prop: Prop = isPlainObject(raw) ? raw : {};
     const isRequired = required.includes(key);
+    const secret = 가려야하나(key, isPlainObject(raw) ? raw : {});
+    const 저장값 = saved[key];
 
-    return {
+    const field: Field = {
       key,
       // K4가 모든 칸에 .describe()를 강제한다. 그래도 없으면 코드의 칸 이름이라도 보여준다
       label: typeof prop.description === 'string' && prop.description !== '' ? prop.description : key,
@@ -55,10 +83,21 @@ export function schemaToFields(schema: JsonSchema): Field[] {
       required: isRequired,
       // default가 있으면 값이 이미 정해져 있다. 사람이 비워 두기로 고른 칸이 아니다
       optional: !isRequired && prop.default === undefined,
-      secret: 가려야하나(key, isPlainObject(raw) ? raw : {}),
+      secret,
       ...(Array.isArray(prop.enum) ? { options: prop.enum.map(String) } : {}),
       ...(prop.default === undefined ? {} : { default: prop.default }),
     };
+
+    if (secret && savedSecrets.includes(key)) {
+      // 값을 모르니 칸을 비워 둔다. 선택 칸이어야 빈 칸을 안 보내 서버가 저장값으로 채운다
+      const { default: codeDefault, ...rest } = field;
+      return { ...rest, optional: true, savedSecret: true, ...(codeDefault === undefined ? {} : { codeDefault }) };
+    }
+    if (저장값 !== undefined && 명세에맞나(prop, 저장값)) {
+      const { default: codeDefault, ...rest } = field;
+      return { ...rest, optional: false, default: 저장값, saved: true, ...(codeDefault === undefined ? {} : { codeDefault }) };
+    }
+    return field;
   });
 }
 

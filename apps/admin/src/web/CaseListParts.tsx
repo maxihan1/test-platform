@@ -186,6 +186,7 @@ export function 케이스줄({
           tcId={row.tcId}
           paramSchema={row.paramSchema}
           expectedSchema={row.expectedSchema}
+          savedInput={row.savedInput}
           글자={글자}
           on값={(어디, key, value) => on값(row.tcId, 어디, key, value)}
           on더보기={() => on더보기(row.tcId)}

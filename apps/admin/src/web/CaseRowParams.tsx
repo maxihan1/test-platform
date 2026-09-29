@@ -5,7 +5,7 @@
 // 새로 그리면 그 넷이 조용히 빠지고, 빠진 것 중 하나는 이 관리 화면의 로그인 비밀번호가
 // 테스트 입력값으로 서버에 가는 길이다 (Form.tsx 의 autoComplete 주석).
 
-import type { JsonSchema } from './api.js';
+import type { JsonSchema, SavedInput } from './api.js';
 import { Form } from './Form.js';
 import { use말 } from './i18n.js';
 import { type Field, initialText, schemaToFields } from './schema.js';
@@ -56,6 +56,7 @@ export function CaseRowParams({
   tcId,
   paramSchema,
   expectedSchema,
+  savedInput,
   글자,
   on값,
   on더보기,
@@ -63,14 +64,16 @@ export function CaseRowParams({
   tcId: string;
   paramSchema: JsonSchema;
   expectedSchema: JsonSchema;
+  /** 목록 줄과 상세·실행 창이 같은 값을 보이려면 저장값도 같이 받아야 한다 */
+  savedInput?: SavedInput | null;
   글자?: 줄글자;
   on값: (어디: 자리, key: string, value: string) => void;
   /** 넘친 칸을 보러 간다. 상세 펼침이 같은 자리를 연다 */
   on더보기: () => void;
 }) {
   const t = use말();
-  const 입력값 = schemaToFields(paramSchema);
-  const 기대결과 = schemaToFields(expectedSchema);
+  const 입력값 = schemaToFields(paramSchema, savedInput?.params, savedInput?.savedSecrets);
+  const 기대결과 = schemaToFields(expectedSchema, savedInput?.expected, savedInput?.savedSecrets);
   const 전체 = 입력값.length + 기대결과.length;
 
   // 펼 것이 없으면 자리를 만들지 않는다. 빈 네모가 줄마다 생기면 목록이 성기게 보인다

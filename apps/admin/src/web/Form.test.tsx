@@ -180,6 +180,61 @@ describe('Form', () => {
     expect(칸찾기(container, '비밀번호').getAttribute('type')).toBe('password');
   });
 
+  it('저장값이 있으면 안내 줄에 저장값과 코드 기본값이 같이 보인다', () => {
+    const fields = schemaToFields(
+      { type: 'object', properties: { loginId: { type: 'string', description: '아이디', default: 'guest' } } },
+      { loginId: 'u' },
+    );
+    const { container } = 그리기({ fields, text: { loginId: 'u' } });
+
+    const 줄 = container.querySelector('.deflt');
+    expect(줄?.textContent).toBe('저장값 u · 코드 기본값 guest');
+    expect(줄?.classList.contains('changed')).toBe(false);
+  });
+
+  it('코드 기본값이 없으면 저장값만 적는다', () => {
+    const fields = schemaToFields(
+      { type: 'object', properties: { loginId: { type: 'string', description: '아이디' } }, required: ['loginId'] },
+      { loginId: 'u' },
+    );
+    const { container } = 그리기({ fields, text: { loginId: 'u' } });
+
+    expect(container.querySelector('.deflt')?.textContent).toBe('저장값 u');
+  });
+
+  it('저장된 비밀값 칸은 저장값을 가려 적고 비워 두면 안 바뀐 것이다', () => {
+    const fields = schemaToFields(
+      { type: 'object', properties: { password: { type: 'string', description: '비밀번호', secret: true } } },
+      {},
+      ['password'],
+    );
+    const { container } = 그리기({ fields, text: { password: '' } });
+
+    const 줄 = container.querySelector('.deflt');
+    expect(줄?.textContent).toBe('저장값 ********');
+    expect(줄?.classList.contains('changed')).toBe(false);
+  });
+
+  it('비밀값 기본값을 손대지 않으면 바뀐 것으로 안 보인다', () => {
+    const fields = schemaToFields({
+      type: 'object',
+      properties: { password: { type: 'string', description: '비밀번호', secret: true, default: 'pw1' } },
+    });
+    const { container } = 그리기({ fields, text: { password: 'pw1' } });
+
+    expect(container.querySelector('.deflt')?.classList.contains('changed')).toBe(false);
+  });
+
+  it('비밀값 기본값을 고치면 바뀐 것으로 보인다', () => {
+    const fields = schemaToFields({
+      type: 'object',
+      properties: { password: { type: 'string', description: '비밀번호', secret: true, default: 'pw1' } },
+    });
+    const { container } = 그리기({ fields, text: { password: 'pw2' } });
+
+    expect(container.querySelector('.deflt')?.classList.contains('changed')).toBe(true);
+  });
+
   it('오류는 그 칸 아래 한 줄로 뜬다', () => {
     const { container } = 그리기({ errors: { name: '이름을 적어 주세요' } });
 
