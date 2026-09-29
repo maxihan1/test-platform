@@ -690,7 +690,7 @@ describe('등급 표', () => {
   it('표의 기능은 경로 접두사가 정한 기능과 같다 — 접두사예외만 빼고', () => {
     const 경로의기능 = (틀: string): 기능 | null => {
       if (/^\/api\/(catalog|cases|param-sets)(\/|$)/.test(틀)) return 'cases';
-      if (/^\/api\/(runs|evidence|screenshots)(\/|$)/.test(틀)) return 'runs';
+      if (/^\/api\/(runs|evidence|screenshots|scenarios)(\/|$)/.test(틀)) return 'runs';
       if (/^\/api\/authoring(\/|$)/.test(틀)) return 'authoring';
       return null;
     };
@@ -716,5 +716,148 @@ describe('등급 표', () => {
 
   it('자료 내려받기는 (작성, read) 다 — 상세를 보는 사람이 그 기획서도 본다', () => {
     expect(등급표['GET /api/authoring/requests/:id/assets/:assetId']).toEqual({ 기능: 'authoring', 칸: 'read' });
+  });
+});
+
+// 시나리오 통로의 문 — 실행 칸 · 번호의 서비스 · 만들기 본문의 service (도메인/시나리오 §7 · 인증 §7)
+describe.skipIf(연결 === undefined)('시나리오 문', () => {
+  let app: FastifyInstance;
+  const 서비스id: Record<string, number> = {};
+  const 시나리오: Record<string, number> = {};
+  const 계정들 = ['xsa-reader', 'xsa-writer'];
+
+  const q = async (sql: string, 값: unknown[] = []) => {
+    const { pool } = await import('../db/index.js');
+    return pool.query(sql, 값);
+  };
+
+  async function 출입증(username: string): Promise<Record<string, string>> {
+    const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username, password: '열려라참깨' } });
+    return { platform_session: res.cookies[0]!.value };
+  }
+
+  beforeAll(async () => {
+    for (const prefix of ['XSA', 'XSA2']) {
+      const r = await q(
+        `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+              VALUES ($1, $1, '#223344', '', 'xsa')
+         ON CONFLICT (prefix) DO UPDATE SET is_active = true
+           RETURNING id`,
+        [prefix],
+      );
+      서비스id[prefix] = Number((r.rows[0] as { id: string }).id);
+      const s = await q(`INSERT INTO scenario (service_id, name, created_by) VALUES ($1, $2, 'xsa') RETURNING id`, [
+        서비스id[prefix],
+        `${prefix} 흐름`,
+      ]);
+      시나리오[prefix] = Number((s.rows[0] as { id: string }).id);
+    }
+    const 배정: Record<string, 'read' | 'write'> = { 'xsa-reader': 'read', 'xsa-writer': 'write' };
+    for (const [username, runs] of Object.entries(배정)) {
+      await q(
+        `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password)
+              VALUES ($1, $1, $2, 'member', 'read', true, false)
+         ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = EXCLUDED.password_hash,
+                                              must_change_password = false`,
+        [username, await 해시('열려라참깨')],
+      );
+      await q(
+        `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
+              VALUES ($1, $2, 'read', $3, 'none')
+         ON CONFLICT (username, service_id) DO UPDATE SET perm_runs = EXCLUDED.perm_runs`,
+        [username, 서비스id.XSA, runs],
+      );
+    }
+
+    app = Fastify();
+    세션등록(app, 열쇠);
+    인증등록(app);
+    await app.register(authRoutes, { prefix: '/api' });
+    // 문만 본다. 진짜 라우트와 같은 모양의 자리를 둔다
+    await app.register(
+      async (scope) => {
+        scope.get('/scenarios', async () => ({ 지나감: true }));
+        scope.post('/scenarios', async () => ({ 지나감: true }));
+        scope.get('/scenarios/case-parts/:tcId', async () => ({ 지나감: true }));
+        scope.get('/scenarios/:id', async () => ({ 지나감: true }));
+        scope.get('/scenarios/:id/versions/:v', async () => ({ 지나감: true }));
+        scope.put('/scenarios/:id', async () => ({ 지나감: true }));
+        scope.post('/scenarios/:id/restore', async () => ({ 지나감: true }));
+        scope.post('/scenarios/:id/archive', async () => ({ 지나감: true }));
+      },
+      { prefix: '/api' },
+    );
+    await app.ready();
+  });
+
+  afterAll(async () => {
+    await app.close();
+    await q('DELETE FROM user_service WHERE username = ANY($1)', [계정들]);
+    await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
+    for (const id of Object.values(서비스id)) {
+      await q('DELETE FROM scenario WHERE service_id = $1', [id]);
+      await q('DELETE FROM service WHERE id = $1', [id]);
+    }
+  });
+
+  it('(실행, read) 만 있으면 보기는 되고 만들기·고치기는 403 이다', async () => {
+    const cookies = await 출입증('xsa-reader');
+    const 내것 = 시나리오.XSA;
+    for (const url of [
+      '/api/scenarios?service=XSA',
+      `/api/scenarios/${내것}`,
+      `/api/scenarios/${내것}/versions/1`,
+      '/api/scenarios/case-parts/XSA-001',
+    ]) {
+      expect((await app.inject({ method: 'GET', url, cookies })).statusCode, url).toBe(200);
+    }
+    for (const 요청 of [
+      { method: 'POST', url: '/api/scenarios', payload: { service: 'XSA' } },
+      { method: 'PUT', url: `/api/scenarios/${내것}`, payload: {} },
+      { method: 'POST', url: `/api/scenarios/${내것}/restore`, payload: {} },
+      { method: 'POST', url: `/api/scenarios/${내것}/archive`, payload: {} },
+    ] as const) {
+      const res = await app.inject({ ...요청, cookies });
+      expect(res.statusCode, 요청.url).toBe(403);
+      expect(res.json(), 요청.url).toEqual({ error: 'FORBIDDEN', need: 'runs:write' });
+    }
+  });
+
+  it('남의 서비스 시나리오 번호는 쓰기 등급이어도 403 이다', async () => {
+    const cookies = await 출입증('xsa-writer');
+    const 남의것 = 시나리오.XSA2;
+    for (const 요청 of [
+      { method: 'GET', url: `/api/scenarios/${남의것}` },
+      { method: 'GET', url: `/api/scenarios/${남의것}/versions/1` },
+      { method: 'PUT', url: `/api/scenarios/${남의것}?service=XSA` },
+      { method: 'POST', url: `/api/scenarios/${남의것}/restore` },
+      { method: 'POST', url: `/api/scenarios/${남의것}/archive` },
+      { method: 'GET', url: '/api/scenarios/case-parts/XSA2-001' },
+    ] as const) {
+      const res = await app.inject({ ...요청, cookies, payload: {} });
+      expect(res.statusCode, 요청.url).toBe(403);
+      expect(res.json(), 요청.url).toEqual({ error: 'SERVICE_FORBIDDEN', detail: 'XSA2' });
+    }
+    expect((await app.inject({ method: 'PUT', url: `/api/scenarios/${시나리오.XSA}`, cookies, payload: {} })).statusCode).toBe(200);
+  });
+
+  it('만들기 본문의 service 가 배정 밖이면 쿼리로 가려도 403 이다', async () => {
+    const cookies = await 출입증('xsa-writer');
+    const 만들기 = (url: string, payload: Record<string, unknown>) => app.inject({ method: 'POST', url, cookies, payload });
+    expect((await 만들기('/api/scenarios', { service: 'XSA' })).statusCode).toBe(200);
+    for (const url of ['/api/scenarios', '/api/scenarios?service=XSA']) {
+      const res = await 만들기(url, { service: 'XSA2' });
+      expect(res.statusCode, url).toBe(403);
+      expect(res.json(), url).toEqual({ error: 'SERVICE_FORBIDDEN', detail: 'XSA2' });
+    }
+  });
+
+  it('만들기 본문에 service 가 없거나 접두사 모양이 아니면 막는다', async () => {
+    const cookies = await 출입증('xsa-writer');
+    for (const payload of [{}, { service: 'xsa' }, { service: 123 }, { service: ['XSA'] }, { service: '' }]) {
+      const res = await app.inject({ method: 'POST', url: '/api/scenarios?service=XSA', cookies, payload });
+      expect(res.statusCode, JSON.stringify(payload)).toBe(403);
+      expect(res.json<{ error: string }>().error).toBe('SERVICE_FORBIDDEN');
+    }
   });
 });

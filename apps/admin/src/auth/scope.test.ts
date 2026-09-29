@@ -62,6 +62,7 @@ describe('라우트표', () => {
       'catalog',
       'execution',
       'reporting',
+      'scenario',
       'settings',
     ]);
     expect(라우트들.length).toBeGreaterThan(20);
@@ -249,5 +250,40 @@ describe.skipIf(연결 === undefined)('번호가 어느 서비스인가', () => 
   // 막으라는 §7 이 통합 이전 행 앞에서만 비켜 준 꼴이 된다
   it('서비스에 안 매인 옛 실행은 서비스없음이다', async () => {
     expect(await 자원의서비스({ 종류: '실행', 번호: 서비스없는실행번호 })).toBe(서비스없음);
+  });
+});
+
+describe.skipIf(연결 === undefined)('시나리오 번호가 어느 서비스인가', () => {
+  let 서비스 = 0;
+  let 시나리오 = 0;
+
+  const q = async (sql: string, 값: unknown[] = []) => {
+    const { pool } = await import('../db/index.js');
+    return pool.query(sql, 값);
+  };
+
+  beforeAll(async () => {
+    const r = await q(
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+            VALUES ('XSA3', '시나리오 경계 검사용', '#3A5FCD', '', 'xsa3')
+       ON CONFLICT (prefix) DO UPDATE SET is_active = true
+         RETURNING id`,
+    );
+    서비스 = Number((r.rows[0] as { id: string }).id);
+    const s = await q(`INSERT INTO scenario (service_id, name, created_by) VALUES ($1, 'XSA3 흐름', 'xsa') RETURNING id`, [
+      서비스,
+    ]);
+    시나리오 = Number((s.rows[0] as { id: string }).id);
+  });
+
+  afterAll(async () => {
+    await q('DELETE FROM scenario WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM service WHERE id = $1', [서비스]);
+  });
+
+  // gate.ts 의 번호 원천 나열은 if 사슬이라 빠뜨려도 타입이 못 잡는다. 빠지면 남의 서비스 시나리오를 고친다
+  it('시나리오 번호로 그 서비스를 찾고 없는 번호는 null 이다', async () => {
+    expect(await 자원의서비스({ 종류: '시나리오', 번호: 시나리오 })).toBe('XSA3');
+    expect(await 자원의서비스({ 종류: '시나리오', 번호: 999999999 })).toBeNull();
   });
 });
