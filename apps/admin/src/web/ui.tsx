@@ -1,7 +1,7 @@
 // 모든 화면이 함께 쓰는 조각. 판정 배지·디바이스 이름·시간 표기와 데이터 읽기 훅
 // 화면 표기는 PC / 모바일이다. desktop / mobile은 코드 안에서만 쓴다 (SPEC §2)
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { ApiError, type ItemStatus, type Platform } from './api.js';
@@ -70,7 +70,8 @@ export function Failed({ error }: { error: string }) {
 interface Async<T> {
   data: T | null;
   error: string | null;
-  reload: () => void;
+  /** 다시 읽고, 그 결과가 화면에 들어간 뒤 성공 여부로 풀린다. 도착한 뒤에 할 일(고친 글자 비우기 등)이 있을 때 기다린다 */
+  reload: () => Promise<boolean>;
 }
 
 /** 화면마다 같은 모양의 useEffect를 다섯 번 쓰지 않으려고 한 곳에 모았다 */
@@ -79,6 +80,7 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[]): Async<T> {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const 기다림 = useRef<((ok: boolean) => void)[]>([]);
 
   useEffect(() => {
     // 앞선 요청이 늦게 도착해 새 결과를 덮어쓰지 않게 막는다
@@ -88,15 +90,26 @@ export function useAsync<T>(load: () => Promise<T>, deps: unknown[]): Async<T> {
         if (live) {
           setData(result);
           setError(null);
+          for (const 풀기 of 기다림.current.splice(0)) 풀기(true);
         }
       })
       .catch((err: unknown) => {
-        if (live) setError(message(err, 언어));
+        if (!live) return;
+        setError(message(err, 언어));
+        for (const 풀기 of 기다림.current.splice(0)) 풀기(false);
       });
     return () => {
       live = false;
     };
   }, [...deps, tick]);
 
-  return { data, error, reload: useCallback(() => setTick((n) => n + 1), []) };
+  const reload = useCallback(
+    () =>
+      new Promise<boolean>((풀기) => {
+        기다림.current.push(풀기);
+        setTick((n) => n + 1);
+      }),
+    [],
+  );
+  return { data, error, reload };
 }

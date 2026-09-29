@@ -264,10 +264,9 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
             저장된다={할수('입력값저장')}
             on값={값고침}
             on더보기={더보기}
-            on저장됨={(tcId) => {
-              // 저장값이 곧 칸의 새 시작값이다. 고친 글자를 남기면 저장한 뒤에도 「안 저장한 값」으로 보인다
-              set글자((전) => ({ ...전, [tcId]: { params: {}, expected: {} } }));
-              cases.reload();
+            on저장됨={async (tcId) => {
+              // 저장값이 곧 칸의 새 시작값이다. 다시 읽기가 도착한 뒤에 비운다 — 먼저 비우면 도착 전까지 옛 값으로 돌아가 보인다
+              if (await cases.reload()) set글자((전) => ({ ...전, [tcId]: { params: {}, expected: {} } }));
             }}
           />
         ))}
