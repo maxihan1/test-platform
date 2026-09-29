@@ -2,6 +2,10 @@
 
 import type { Pool } from 'pg';
 
+import { 접은판정SQL } from '../scenario/verdict.js';
+
+import type { RunSummary } from './runTypes.js';
+
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
   return pool;
@@ -17,7 +21,13 @@ export interface 실행거르개 {
   q?: string;
   state?: 'running' | 'failed';
   env?: string;
+  /** 실행 기록의 탭. 없으면 case (SPEC 실행 §7 · 시나리오 §7 「실행 목록의 E2E 탭」) */
+  kind?: 'case' | 'scenario';
 }
+
+/** 시나리오 실행의 접은 판정. 도는 중이면 NULL 이라 통과·실패 어느 셈에도 안 든다 (SPEC 시나리오 §7 「판정 접기」) */
+const 시나리오판정 = `CASE WHEN r.status = 'RUNNING' THEN NULL
+       ELSE (SELECT ${접은판정SQL('p')} FROM scenario_run_part p WHERE p.run_id = r.run_id) END`;
 
 /**
  * `WHERE` 와 `HAVING` 을 같이 만든다.
@@ -27,7 +37,8 @@ export interface 실행거르개 {
  */
 export function 거르는조건(거르개: 실행거르개, 시작번호: number): { where: string; having: string; 값: unknown[] } {
   // 시나리오 실행은 run_item 이 없어 항목 0건인 케이스 실행처럼 섞인다. 목록·집계 모두 여기를 타므로 한 곳에 건다 (도메인/시나리오 §3.7 결정 10)
-  const where: string[] = [`r.kind = 'CASE'`];
+  const 시나리오 = 거르개.kind === 'scenario';
+  const where: string[] = [시나리오 ? `r.kind = 'SCENARIO'` : `r.kind = 'CASE'`];
   const 값: unknown[] = [];
   let n = 시작번호;
 
@@ -44,8 +55,10 @@ export function 거르는조건(거르개: 실행거르개, 시작번호: number
   // 도는 것은 칸으로 갈리지만 실패 섞임은 집계로 갈린다. 그래서 둘이 다른 절에 붙는다.
   // 실패는 확정 항목만 본다 — 미확정 실패는 「화면이 바뀌었다」는 신호지 실행의 실패가 아니다 (SPEC 실행 §3.2)
   if (거르개.state === 'running') where.push(`r.finished_at IS NULL`);
+  // 시나리오 실행은 run_item 이 없어 아래 HAVING 이 늘 0 을 센다. 부품 판정을 접은 값으로 거른다
+  if (거르개.state === 'failed' && 시나리오) where.push(`${시나리오판정} = 'FAIL'`);
   const having =
-    거르개.state === 'failed'
+    거르개.state === 'failed' && !시나리오
       ? `HAVING count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.unconfirmed IS NULL) > 0`
       : '';
 
@@ -78,6 +91,14 @@ export interface 실행집계 {
 export async function runSummary(service: string, 거르개: 실행거르개): Promise<실행집계> {
   const pool = await db();
   const 조건 = 거르는조건(거르개, 2);
+  // 시나리오는 접은 판정 하나를 바깥 셈의 네 칸 모양으로 옮긴다 — 바깥 all_pass·has_fail 식을 두 벌로 두지 않는다
+  const 셈 =
+    거르개.kind === 'scenario'
+      ? `(${시나리오판정} = 'PASS')::int AS pass, (${시나리오판정} = 'FAIL')::int AS fail, 0 AS na, 0 AS running`
+      : `count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS' AND i.unconfirmed IS NULL)::int AS pass,
+                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.unconfirmed IS NULL)::int AS fail,
+                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA' AND i.unconfirmed IS NULL)::int AS na,
+                count(i.history_id) FILTER (WHERE i.finished_at IS NULL)::int AS running`;
   const { rows } = await pool.query<{
     runs: number;
     all_pass: number;
@@ -93,10 +114,7 @@ export async function runSummary(service: string, 거르개: 실행거르개): P
             avg(duration)::int AS avg_duration_ms,
             max(duration)::int AS max_duration_ms
        FROM (
-         SELECT count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS' AND i.unconfirmed IS NULL)::int AS pass,
-                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.unconfirmed IS NULL)::int AS fail,
-                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA' AND i.unconfirmed IS NULL)::int AS na,
-                count(i.history_id) FILTER (WHERE i.finished_at IS NULL)::int AS running,
+         SELECT ${셈},
                 -- 도는 실행은 끝난 시각이 없다. NULL 이면 avg·count 가 알아서 뺀다
                 extract(epoch FROM (r.finished_at - r.started_at)) * 1000 AS duration
            FROM test_run r
@@ -118,3 +136,18 @@ export async function runSummary(service: string, 거르개: 실행거르개): P
     maxDurationMs: 것?.max_duration_ms ?? 0,
   };
 }
+
+/** E2E 탭의 줄. 케이스 판정 셈(counts) 대신 부품 셈을 싣는다 (SPEC 실행 §7 · 시나리오 §7 「실행 목록의 E2E 탭」) */
+export type 시나리오실행줄 = Omit<RunSummary, 'counts'> & {
+  scenarioId: number;
+  version: number;
+  partCount: number;
+  /** 처음으로 PASS 가 아닌 부품의 seq. 전부 PASS 거나 도는 중이면 null */
+  stoppedAt: number | null;
+};
+
+export const 시나리오칸 = `,
+  r.scenario_id, r.scenario_version,
+  (SELECT count(*)::int FROM scenario_run_part p WHERE p.run_id = r.run_id) AS part_count,
+  CASE WHEN r.status = 'RUNNING' THEN NULL
+       ELSE (SELECT min(p.seq) FROM scenario_run_part p WHERE p.run_id = r.run_id AND p.status <> 'PASS') END AS stopped_at`;

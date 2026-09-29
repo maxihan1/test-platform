@@ -137,6 +137,71 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
     }
   });
 
+  const 부품 = async (runId: number, 판정들: string[]) => {
+    for (const [i, 판정] of 판정들.entries()) {
+      await q(
+        `INSERT INTO scenario_run_part (run_id, seq, kind, part, status, finished_at) VALUES ($1, $2, 'wait', '{}', $3, now())`,
+        [runId, i + 1, 판정],
+      );
+    }
+  };
+
+  it('E2E 탭은 시나리오 실행만 내고 줄마다 부품 셈과 멈춘 자리를 싣는다', async () => {
+    await 실행치우기();
+    await 실행();
+    const 통과 = await 실행({ 시나리오: true });
+    await 부품(통과, ['PASS', 'PASS']);
+    const 실패 = await 실행({ 시나리오: true });
+    await 부품(실패, ['PASS', 'FAIL', 'NA']);
+    const 도는중통과 = await 실행({ 시나리오: true, status: 'RUNNING' });
+    await 부품(도는중통과, ['PASS', 'PASS']);
+    const 도는중실패 = await 실행({ 시나리오: true, status: 'RUNNING' });
+    await 부품(도는중실패, ['FAIL']);
+
+    try {
+      const 목록 = await listRuns(접두사, 1, 50, { kind: 'scenario' });
+      expect(목록.total).toBe(4);
+      const 줄 = (runId: number) => {
+        const 것 = 목록.items.find((i) => i.runId === runId)!;
+        return { scenarioId: 것.scenarioId, version: 것.version, partCount: 것.partCount, stoppedAt: 것.stoppedAt };
+      };
+      expect(줄(통과)).toEqual({ scenarioId: 시나리오, version: 1, partCount: 2, stoppedAt: null });
+      expect(줄(실패)).toEqual({ scenarioId: 시나리오, version: 1, partCount: 3, stoppedAt: 2 });
+      expect(줄(도는중실패)).toEqual({ scenarioId: 시나리오, version: 1, partCount: 1, stoppedAt: null });
+      expect(목록.items.every((i) => !('counts' in i))).toBe(true);
+      expect(목록.summary).toMatchObject({ runs: 4, allPass: 1, hasFail: 1 });
+
+      const 실패만 = await listRuns(접두사, 1, 50, { kind: 'scenario', state: 'failed' });
+      expect(실패만.items.map((i) => i.runId)).toEqual([실패]);
+      expect(실패만.summary).toMatchObject({ runs: 1, allPass: 0, hasFail: 1 });
+
+      expect((await runSummary(접두사, {})).runs).toBe(1);
+    } finally {
+      await 실행치우기();
+    }
+  });
+
+  it('GET /runs 는 kind=scenario 일 때만 시나리오 실행을 내고 모르는 kind 는 케이스로 본다', async () => {
+    await 실행치우기();
+    const 케이스실행 = await 실행();
+    const S = await 실행({ 시나리오: true });
+    const app = Fastify();
+    await app.register(executionRoutes, { prefix: '/api' });
+    await app.ready();
+    await recoverRunning();
+    try {
+      const 목록 = async (kind: string) =>
+        (await app.inject({ method: 'GET', url: `/api/runs?service=${접두사}${kind}` })).json<{ items: { runId: number }[] }>()
+          .items.map((i) => i.runId);
+      expect(await 목록('&kind=scenario')).toEqual([S]);
+      expect(await 목록('&kind=뭔가')).toEqual([케이스실행]);
+      expect(await 목록('')).toEqual([케이스실행]);
+    } finally {
+      await app.close();
+      await 실행치우기();
+    }
+  });
+
   const 상태 = async (runId: number) =>
     (await q<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [runId])).rows[0]!.status;
 

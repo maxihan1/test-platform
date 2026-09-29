@@ -174,7 +174,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     };
   });
 
-  app.get<{ Querystring: { service?: string; page?: string; q?: string; state?: string; env?: string } }>(
+  app.get<{ Querystring: { service?: string; page?: string; q?: string; state?: string; env?: string; kind?: string } }>(
     '/runs',
     async (req, reply) => {
       // 한 번에 한 서비스만 본다. 섞이면 목록이 남의 실행으로 채워진다 (SPEC §8 · §8.7)
@@ -189,6 +189,8 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
         ...(req.query.q === undefined ? {} : { q: req.query.q }),
         ...(state === undefined ? {} : { state }),
         ...(req.query.env === undefined ? {} : { env: req.query.env }),
+        // 모르는 kind 는 state 처럼 조용히 case 로 본다 (SPEC 시나리오 §7 「실행 목록의 E2E 탭」)
+        kind: req.query.kind === 'scenario' ? 'scenario' : 'case',
       });
     },
   );

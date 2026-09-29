@@ -10,7 +10,7 @@ import type { ItemStatus, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
-import { runSummary, 거르는조건, type 실행거르개, type 실행집계 } from './runSummary.js';
+import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
 import type { RunItemDetail, RunItemSummary, RunSummary } from './runTypes.js';
 
@@ -82,6 +82,17 @@ function toRun(row: RawRun): RunSummary {
   };
 }
 
+function to시나리오줄(row: RawRun & { scenario_id: string; scenario_version: number; part_count: number; stopped_at: number | null }): 시나리오실행줄 {
+  const { counts: _counts, ...머리 } = toRun(row);
+  return {
+    ...머리,
+    scenarioId: Number(row.scenario_id),
+    version: row.scenario_version,
+    partCount: row.part_count,
+    stoppedAt: row.stopped_at,
+  };
+}
+
 // 접두사가 등록된 활성 서비스인지 본다. 배정 판정은 로그인이 붙을 때 이 함수 안이 바뀐다 (SPEC §3.5)
 export async function serviceExists(prefix: string): Promise<boolean> {
   const pool = await db();
@@ -89,21 +100,42 @@ export async function serviceExists(prefix: string): Promise<boolean> {
   return (rows.rowCount ?? 0) > 0;
 }
 
+type 실행목록<줄> = { items: 줄[]; total: number; page: number; pageSize: number; summary: 실행집계 };
+
+export async function listRuns(
+  service: string,
+  page: number,
+  pageSize: number,
+  거르개?: 실행거르개 & { kind?: 'case' },
+): Promise<실행목록<RunSummary>>;
+export async function listRuns(
+  service: string,
+  page: number,
+  pageSize: number,
+  거르개: 실행거르개 & { kind: 'scenario' },
+): Promise<실행목록<시나리오실행줄>>;
+export async function listRuns(
+  service: string,
+  page: number,
+  pageSize: number,
+  거르개: 실행거르개,
+): Promise<실행목록<RunSummary> | 실행목록<시나리오실행줄>>;
 export async function listRuns(
   service: string,
   page: number,
   pageSize: number,
   거르개: 실행거르개 = {},
-): Promise<{ items: RunSummary[]; total: number; page: number; pageSize: number; summary: 실행집계 }> {
+): Promise<실행목록<RunSummary> | 실행목록<시나리오실행줄>> {
   const pool = await db();
+  const 시나리오 = 거르개.kind === 'scenario';
   const 조건 = 거르는조건(거르개, 4);
   // test_run.service_id 한 칸이 run_item 의 tc_id 접두사까지 따라가는 조인을 없앤다 (SPEC §6)
   //
   // count(*) OVER () 가 HAVING 뒤·LIMIT 앞에서 돈다. 그래서 거르개를 걸어도 총건수가
   // **걸린 뒤의 수**다 (2026-09-22 실측 — 감싸는 서브질의로 바꿔도 결과가 같았다).
   // 계획 검토가 「HAVING 이전을 센다」고 의심했는데 재 보니 그렇지 않았다
-  const rows = await pool.query<RawRun>(
-    `SELECT ${RUN_COLUMNS}, count(*) OVER ()::int AS grand_total
+  const rows = await pool.query<Parameters<typeof to시나리오줄>[0]>(
+    `SELECT ${RUN_COLUMNS}${시나리오 ? 시나리오칸 : ''}, count(*) OVER ()::int AS grand_total
        FROM test_run r
        LEFT JOIN run_item i USING (run_id)
       WHERE r.service_id = (SELECT id FROM service WHERE prefix = $3) ${조건.where}
@@ -114,13 +146,8 @@ export async function listRuns(
     [pageSize, (page - 1) * pageSize, service, ...조건.값],
   );
 
-  return {
-    items: rows.rows.map(toRun),
-    total: rows.rows[0]?.grand_total ?? 0,
-    page,
-    pageSize,
-    summary: await runSummary(service, 거르개),
-  };
+  const 머리 = { total: rows.rows[0]?.grand_total ?? 0, page, pageSize, summary: await runSummary(service, 거르개) };
+  return 시나리오 ? { items: rows.rows.map(to시나리오줄), ...머리 } : { items: rows.rows.map(toRun), ...머리 };
 }
 
 interface RawItem {
