@@ -179,7 +179,7 @@ describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', (
     고른다('결제 서비스 실행', '쓰기');
     고른다('결제 서비스 케이스', '안 씀');
 
-    expect(screen.getByRole('status').textContent).toContain('실행 설정에서 고를 케이스가 안 보입니다.');
+    expect(screen.getByRole('status').textContent).toContain('이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.');
     expect((screen.getByText('계정 추가') as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -189,7 +189,7 @@ describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', (
     for (const 기능 of ['케이스', '실행', '작성']) 고른다(`결제 서비스 ${기능}`, '안 씀');
 
     expect(screen.getByRole('status').textContent).toContain(
-      '세 칸이 다 안 씀이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.',
+      '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.',
     );
     expect((screen.getByText('계정 추가') as HTMLButtonElement).disabled).toBe(true);
   });

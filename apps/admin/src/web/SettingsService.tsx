@@ -172,8 +172,8 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
           />
           <div className="hint">
             {새것
-              ? t('만들 때만 정합니다. 케이스 번호(PAY-001) 안에 박히므로 나중에 바꿀 수 없습니다')
-              : t('만든 뒤에는 바꿀 수 없습니다. 케이스 번호 안에 이미 박혀 있습니다')}
+              ? t('만들 때만 정합니다. 케이스 번호(PAY-001)에 들어가므로 나중에 바꿀 수 없습니다')
+              : t('만든 뒤에는 바꿀 수 없습니다. 케이스 번호에 이미 들어가 있습니다')}
           </div>
           {접두사틀림 === null ? null : <div className="err">{접두사틀림}</div>}
         </div>
@@ -214,7 +214,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
             onChange={(e) => setTestsRepo(e.target.value)}
             placeholder="https://github.com/..."
           />
-          <div className="hint">{t('적어 두기만 합니다. 플랫폼이 받아오지는 않습니다')}</div>
+          <div className="hint">{t('기록용으로만 적어 둡니다. 플랫폼이 이 저장소를 받아오지는 않습니다')}</div>
         </div>
       </div>
 
@@ -281,7 +281,7 @@ function 비밀칸(p: {
           </div>
         )}
         <div className="hint">
-          {p.값 === '' && !p.새것 ? p.비울때 : t('비밀값이라 한 번 넣으면 되돌려 보여주지 않습니다')}
+          {p.값 === '' && !p.새것 ? p.비울때 : t('비밀값이라 한 번 넣으면 다시 보여 주지 않습니다')}
         </div>
         {p.children}
       </div>

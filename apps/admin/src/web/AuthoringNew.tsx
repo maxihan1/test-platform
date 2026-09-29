@@ -28,7 +28,7 @@ function 거절사유(파일: File): string | null {
   const 점 = 파일.name.lastIndexOf('.');
   // 점이 맨 앞뿐인 이름(`.md`)은 서버의 extname 이 확장자 없음으로 읽는다. 여기서도 같게 본다
   if (점 <= 0 || !받는종류.split(',').includes(파일.name.slice(점).toLowerCase())) {
-    return '받지 않는 파일입니다. PDF · 워드 · md · txt 만 받습니다';
+    return '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다';
   }
   // 서버 assets.ts 의 이름인가와 같은 규칙. `"` 를 \u0022 로 적은 것은 messages.test 의 글자 훑기가
   // 정규식 안의 따옴표를 문자열 시작으로 읽기 때문이다
@@ -36,16 +36,16 @@ function 거절사유(파일: File): string | null {
     return '파일 이름에 쓸 수 없는 글자(따옴표 · 빗금 · ..)가 있습니다';
   }
   if (파일.size === 0) return '빈 파일은 올릴 수 없습니다';
-  if (파일.size > 파일상한) return '파일이 한 파일 상한보다 큽니다';
+  if (파일.size > 파일상한) return '파일 크기가 한 파일 상한을 넘었습니다';
   return null;
 }
 
 // 이 폼에서만 만나는 서버 코드. 모르면 공통 번역(message)으로 넘긴다
 const 작성오류: Record<string, string> = {
-  BAD_FIGMA_URL: '피그마 주소 모양이 다릅니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam 은 받지 않습니다)',
-  BAD_FILE_TYPE: '받지 않는 파일입니다. PDF · 워드 · md · txt 만 받습니다',
+  BAD_FIGMA_URL: '피그마 주소 형식이 맞지 않습니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam은 받지 않습니다)',
+  BAD_FILE_TYPE: '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다',
   BAD_NAME: '파일 이름에 쓸 수 없는 글자(따옴표 · 빗금 · ..)가 있습니다',
-  TOO_MANY_ASSETS: '자료가 한 요청에 넣을 수 있는 개수를 넘었습니다',
+  TOO_MANY_ASSETS: '한 요청에 넣을 수 있는 자료 개수를 넘었습니다',
   NO_ASSETS: '자료가 하나도 없습니다. 파일이나 피그마 주소를 넣으세요',
   NOT_REQUESTER: '요청한 사람만 자료를 올릴 수 있습니다',
   // 역방향 (도메인/작성 §7 AUTHOR 역방향). 화면은 계정 없는 줄을 미리 거르지 않는다 — 서버 거절을 풀어 준다
@@ -97,7 +97,7 @@ export function AuthoringNew({
   const 못보낸다 = 빈것 || 거절.size > 0 || 너무많다 || 서버없음;
 
   function 사유(err: unknown): string {
-    if (err instanceof ApiError && err.status === 413) return t('파일이 한 파일 상한보다 큽니다');
+    if (err instanceof ApiError && err.status === 413) return t('파일 크기가 한 파일 상한을 넘었습니다');
     const 말 = err instanceof ApiError ? 작성오류[err.code] : undefined;
     return 말 === undefined ? message(err, 언어) : t(말);
   }
@@ -128,7 +128,7 @@ export function AuthoringNew({
       await api.submitAuthoringRequest(service, id);
     } catch (err) {
       const 어디 = 지금 === null ? 사유(err) : `${지금.name} — ${사유(err)}`;
-      set오류(`${t('이 요청은 줄에 서지 않았습니다. 새 요청으로 다시 넣으세요')} (${어디})`);
+      set오류(`${t('이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요')} (${어디})`);
       set보내는중(false);
       return;
     }
@@ -201,7 +201,7 @@ export function AuthoringNew({
                 onChange={(e) => set시작주소(e.target.value)}
               />
             </label>
-            <small>{t('비우면 기획서가 말하는 화면에서 시작합니다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 역기획서를 만듭니다')}</small>
+            <small>{t('비우면 기획서에 나온 화면에서 시작합니다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 역기획서를 만듭니다')}</small>
           </>
         ) : null}
       </div>
@@ -213,7 +213,7 @@ export function AuthoringNew({
           {t(이유)} — {이름들.join(' · ')}
         </span>
       ))}
-      {너무많다 ? <span className="error-text">{t('자료가 한 요청에 넣을 수 있는 개수를 넘었습니다')}</span> : null}
+      {너무많다 ? <span className="error-text">{t('한 요청에 넣을 수 있는 자료 개수를 넘었습니다')}</span> : null}
       {오류 === null ? null : <span className="error-text">{오류}</span>}
     </form>
   );

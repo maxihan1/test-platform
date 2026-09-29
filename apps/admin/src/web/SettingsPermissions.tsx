@@ -115,17 +115,17 @@ export function PermissionPicker({
                 {/* allOff 는 운영이어도 서버가 거절한다. 칸이 숨어 있어도 이유는 보여야 한다 */}
                 {경고 === 'allOff' ? (
                   <div className="hint set-perm-warn" role="status">
-                    {t('세 칸이 다 안 씀이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.')}
+                    {t('세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.')}
                   </div>
                 ) : 경고 === 'noCases' && !운영 ? (
                   <div className="hint set-perm-warn" role="status">
-                    {t('실행 설정에서 고를 케이스가 안 보입니다.')}
+                    {t('이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.')}
                   </div>
                 ) : null}
               </div>
             );
           })}
-          <div className="hint">{t('배정받지 않은 서비스는 그 사람의 띠에 뜨지 않습니다')}</div>
+          <div className="hint">{t('배정받지 않은 서비스는 그 사람의 서비스 목록에 뜨지 않습니다')}</div>
         </div>
       </div>
 

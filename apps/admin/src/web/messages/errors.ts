@@ -20,7 +20,7 @@ export const 오류영어: Record<string, string> = {
     'Case not found. It may have dropped out of the last scan.',
   '그 입력값 묶음을 찾지 못했습니다': 'Parameter set not found',
   '그 화면 사진을 찾지 못했습니다': 'Screenshot not found',
-  '그 테스트 코드 파일을 읽지 못했습니다. 캐시가 낡았을 수 있습니다':
+  '그 테스트 코드 파일을 읽지 못했습니다. 캐시가 오래되었을 수 있습니다':
     'Could not read the test file. The cache may be stale.',
   '그 항목을 찾지 못했습니다. 다른 사람이 지웠을 수 있습니다':
     'Not found. Someone else may have removed it.',
@@ -28,16 +28,16 @@ export const 오류영어: Record<string, string> = {
   // 실행
   '아직 진행 중인 실행입니다. 끝난 뒤에 증적 문서를 만듭니다':
     'This run is still going. Generate evidence after it finishes.',
-  '한 실행에는 한 서비스의 케이스만 담습니다': 'A run holds cases from one service only',
+  '한 실행에는 한 서비스의 케이스만 담을 수 있습니다': 'A run holds cases from one service only',
   '그 대상 서버가 이 서비스에 없습니다. 설정에서 먼저 넣습니다':
     'That target server is not in this service. Add it in Settings first.',
   '한 번에 만들 수 있는 항목 수를 넘었습니다': 'Too many items for one run',
 
   // 설정
   '그 접두사는 이미 다른 서비스가 쓰고 있습니다': 'Another service already uses that prefix',
-  '접두사 모양이 다릅니다. 대문자로 시작하는 영문·숫자 12자 이내입니다':
+  '접두사 형식이 맞지 않습니다. 대문자로 시작하는 영문·숫자 12자 이내여야 합니다':
     'Bad prefix. Start with a capital letter, letters and digits, 12 characters or fewer.',
-  '접두사는 만든 뒤에 바꿀 수 없습니다. 케이스 번호 안에 이미 박혀 있습니다':
+  '접두사는 만든 뒤에 바꿀 수 없습니다. 케이스 번호에 이미 들어가 있습니다':
     'A prefix cannot change once set. It is baked into case IDs.',
   '그 아이디는 이미 있습니다': 'That username is taken',
   '아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다':
@@ -53,7 +53,7 @@ export const 오류영어: Record<string, string> = {
   '이미 승인된 계정이라 거절할 수 없습니다': 'This account is already approved and cannot be rejected',
   '마지막 운영 계정입니다. 먼저 다른 사람을 운영으로 올립니다':
     'This is the last admin. Promote someone else first.',
-  '넣은 값 중에 모양이 다른 것이 있습니다': 'Some values are not in the right shape',
+  '입력한 값 중에 형식이 맞지 않는 것이 있습니다': 'Some values are not in the right shape',
 
   // 등급과 마지막 폴백
   '이 일을 할 수 있는 등급이 아닙니다': 'Your role cannot do this',

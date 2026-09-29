@@ -36,7 +36,7 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
   const t = use말();
 
   if (fields.length === 0) {
-    return <p className="hint">{t('이 케이스는 입력값을 선언하지 않았습니다.')}</p>;
+    return <p className="hint">{t('이 케이스에는 입력값이 없습니다.')}</p>;
   }
 
   return (

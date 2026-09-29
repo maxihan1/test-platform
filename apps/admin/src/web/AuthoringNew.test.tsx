@@ -140,7 +140,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     파일을고른다('하나.pdf', '둘.docx', '셋.md');
     fireEvent.click(보내기());
 
-    await screen.findByText(/이 요청은 줄에 서지 않았습니다\. 새 요청으로 다시 넣으세요/);
+    await screen.findByText(/이 요청은 대기열에 들어가지 못했습니다\. 새 요청으로 다시 넣으세요/);
     expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '올리기']);
     expect(screen.getByText(/둘\.docx/)).toBeTruthy();
     expect(넣었다).toBe(0);
@@ -151,7 +151,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     파일을고른다('기획서.pdf', '회의록.hwp');
 
     expect(screen.getByText(/회의록\.hwp/)).toBeTruthy();
-    expect(screen.getByText(/받지 않는 파일입니다/)).toBeTruthy();
+    expect(screen.getByText(/지원하지 않는 파일입니다/)).toBeTruthy();
     expect(보내기()).toHaveProperty('disabled', true);
   });
 
@@ -168,7 +168,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     피그마를적는다('https://www.figma.com/board/x');
     fireEvent.click(보내기());
 
-    await screen.findByText(/피그마 주소 모양이 다릅니다/);
+    await screen.findByText(/피그마 주소 형식이 맞지 않습니다/);
     expect(부름.map((b) => b.무엇)).toEqual(['만들기']);
   });
 
@@ -177,7 +177,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     ['0바이트 파일', () => 이파일들을고른다(크기를단파일('빈.pdf', 0)), /빈 파일/],
     ['이름에 따옴표가 든 파일', () => 파일을고른다('a"b.pdf'), /쓸 수 없는 글자/],
     ['이름에 ..가 든 파일', () => 파일을고른다('a..b.pdf'), /쓸 수 없는 글자/],
-    ['점으로 시작하고 확장자가 없는 이름(.md)', () => 파일을고른다('.md'), /받지 않는 파일/],
+    ['점으로 시작하고 확장자가 없는 이름(.md)', () => 파일을고른다('.md'), /지원하지 않는 파일/],
     [
       '파일과 피그마 줄을 합쳐 20을 넘는 것',
       () => {

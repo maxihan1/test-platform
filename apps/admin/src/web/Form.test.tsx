@@ -76,7 +76,7 @@ describe('Form', () => {
   it('칸이 없으면 선언하지 않았다고 알린다', () => {
     그리기({ fields: [] });
 
-    expect(screen.queryByText('이 케이스는 입력값을 선언하지 않았습니다.')).not.toBeNull();
+    expect(screen.queryByText('이 케이스에는 입력값이 없습니다.')).not.toBeNull();
   });
 
   it('라벨이 for 로 칸에 묶여 있다', () => {

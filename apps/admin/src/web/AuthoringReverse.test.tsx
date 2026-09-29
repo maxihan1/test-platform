@@ -223,7 +223,7 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
 
   it('시작 주소가 없으면 기획서가 말하는 화면에서 시작한다고 적는다', async () => {
     await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, assets: [자료(1, { name: '기획서.docx' })] }));
-    expect(screen.getByText('qa · 기획서가 말하는 화면에서 시작')).toBeTruthy();
+    expect(screen.getByText('qa · 기획서에 나온 화면에서 시작')).toBeTruthy();
   });
 
   it('입력 자료가 없는 대조 요청은 화면만이라고 적는다', async () => {

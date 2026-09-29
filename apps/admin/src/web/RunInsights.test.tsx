@@ -104,7 +104,7 @@ describe('직전 실행과 견준 칸 (SPEC §7 · §8.3)', () => {
     그리기(비교({ previous: null, 실패덩어리들: [덩어리('연결 시간 초과', [61])] }));
 
     await screen.findByText(/연결 시간 초과/);
-    expect(screen.queryByText(/직전 실행과 견줌/)).toBeNull();
+    expect(screen.queryByText(/직전 실행과 비교/)).toBeNull();
   });
 
   it('새로 깨진 케이스는 그 이름이 보인다', async () => {
@@ -119,13 +119,13 @@ describe('직전 실행과 견준 칸 (SPEC §7 · §8.3)', () => {
   it('직전 실행이 다른 주소에서 돌았으면 그 사실을 한 줄로 알린다', async () => {
     그리기(비교({ 주소바뀜: true }));
 
-    expect(await screen.findByText('직전 실행은 다른 주소에서 돌았습니다')).toBeDefined();
+    expect(await screen.findByText('직전 실행은 다른 주소에서 실행됐습니다')).toBeDefined();
   });
 
   it('직전에 있었으나 이번에 안 돈 케이스 수를 글자로 적는다', async () => {
     그리기(비교({ 빠진건수: 2 }));
 
-    expect(await screen.findByText(/이번에 돌지 않은 케이스 2건/)).toBeDefined();
+    expect(await screen.findByText(/이번에 실행되지 않은 케이스 2건/)).toBeDefined();
   });
 
   it('「그대로」라도 이번에 안 돌았으면 미실행 색으로 적는다', async () => {

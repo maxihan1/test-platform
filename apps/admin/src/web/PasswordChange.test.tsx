@@ -76,7 +76,7 @@ describe('비밀번호 변경 화면', () => {
     그리기();
     채운다({ 새것: 'short1' });
 
-    expect(screen.getByText('비밀번호는 8자 이상입니다')).toBeTruthy();
+    expect(screen.getByText('비밀번호는 8자 이상이어야 합니다')).toBeTruthy();
     expect(보냄).not.toHaveBeenCalled();
   });
 
@@ -91,8 +91,8 @@ describe('비밀번호 변경 화면', () => {
 
   it.each([
     ['INVALID_CREDENTIALS', '현재 비밀번호가 맞지 않습니다'],
-    ['PASSWORD_SAME', '지금 비밀번호와 다른 값을 넣습니다'],
-    ['PASSWORD_SHORT', '비밀번호는 8자 이상입니다'],
+    ['PASSWORD_SAME', '새 비밀번호는 현재 비밀번호와 달라야 합니다'],
+    ['PASSWORD_SHORT', '비밀번호는 8자 이상이어야 합니다'],
   ])('서버가 %s 로 거절하면 사람 말로 옮긴다', async (코드, 문장) => {
     vi.spyOn(api, 'changePassword').mockRejectedValue(new ApiError(400, 코드, ''));
     그리기();
@@ -119,7 +119,7 @@ describe('비밀번호 변경 화면', () => {
     const 칸 = screen.getByLabelText('새 비밀번호');
     expect(칸.getAttribute('aria-invalid')).toBe('true');
     const 사유 = document.getElementById(칸.getAttribute('aria-describedby') ?? '');
-    expect(사유?.textContent).toBe('비밀번호는 8자 이상입니다');
+    expect(사유?.textContent).toBe('비밀번호는 8자 이상이어야 합니다');
     expect(screen.getByLabelText('현재 비밀번호').getAttribute('aria-invalid')).toBeNull();
     expect(screen.getByLabelText('현재 비밀번호').getAttribute('aria-describedby')).toBeNull();
   });

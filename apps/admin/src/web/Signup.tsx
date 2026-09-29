@@ -28,7 +28,7 @@ export function Signup() {
     }
     if (값.displayName.trim() === '') 결과.displayName = t('이름을 채웁니다');
     if (값.password === '') 결과.password = t('비밀번호를 채웁니다');
-    else if (값.password.length < 비밀번호최소) 결과.password = t('비밀번호는 8자 이상입니다');
+    else if (값.password.length < 비밀번호최소) 결과.password = t('비밀번호는 8자 이상이어야 합니다');
     else if (값.password !== 값.confirm) 결과.confirm = t('두 비밀번호가 다릅니다');
     return 결과;
   }

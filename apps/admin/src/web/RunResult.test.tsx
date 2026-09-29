@@ -239,7 +239,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
 
-    const 접기 = await screen.findByText(/직전 실행과 견줌/);
+    const 접기 = await screen.findByText(/직전 실행과 비교/);
     const 상자 = 접기.closest('details');
     expect(상자, '견줌이 접기가 아니다').not.toBeNull();
     expect(상자?.hasAttribute('open'), '견줌이 펴진 채로 뜬다').toBe(false);
@@ -253,7 +253,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
     await screen.findAllByText(/만들기$/);
 
-    expect(screen.queryByText(/직전 실행과 견줌/)).toBeNull();
+    expect(screen.queryByText(/직전 실행과 비교/)).toBeNull();
     expect(document.querySelector('details')).toBeNull();
   });
 });
