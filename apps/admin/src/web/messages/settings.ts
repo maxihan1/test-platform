@@ -120,7 +120,7 @@ export const 설정말: Record<string, string> = {
   '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.':
     'All three set to Off cannot be saved. To unassign, turn the service off.',
   '먼저 서비스를 만듭니다': 'Create a service first',
-  '배정받지 않은 서비스는 그 사람의 서비스 목록에 뜨지 않습니다': 'Services not assigned do not show up in their bar',
+  '배정받지 않은 서비스는 그 사람의 띠에 뜨지 않습니다': 'Services not assigned do not show up in their bar',
   '비밀번호는 시스템이 만듭니다. 만든 직후': 'The system generates the password. It is shown',
   '한 번만': 'only once',
   '보여 줍니다': 'right after the account is created',

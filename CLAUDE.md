@@ -246,8 +246,9 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
 - **화면 한글 문구**: 화면(`apps/admin/src/web/**`)에 보이는 한글을 새로 쓰거나 고칠 때는
   [im-not-ai](https://github.com/epoko77-ai/im-not-ai)(`humanize-korean` 스킬)의 패턴으로 점검한다 (2026-09-29 사용자 지시).
   번역투(`~에 있어서`·`~에 의해`·`~를 통해`), AI 관용구(`시사하는 바가 크다`), 형식명사(`~는 점이다`),
-  억지 직역·어색한 조사를 피한다. 설치는 `/plugin marketplace add epoko77-ai/im-not-ai` →
-  `/plugin install humanize-korean@im-not-ai`. **이 저장소의 어조가 우선한다** — 오류·안내는 「~합니다」체에
+  억지 직역·어색한 조사를 피한다. 스킬은 전역(`~/.claude/skills/humanize-korean`)에 설치돼 있고
+  `/humanize-korean` 으로 부른다. 없는 기계라면 `git clone` 한 저장소에서 `./install.sh --claude-only --copy`.
+  **이 저장소의 어조가 우선한다** — 오류·안내는 「~합니다」체에
   마침표를 붙이지 않고(`errorText.test.ts` 가 지킨다), 제품 용어(케이스·서비스·실행)와 API 가 주는 값(enum)은 바꾸지 않는다.
   **한글 문구가 곧 영어 표(`messages/*.ts`)의 키다** — 문구를 고치면 표의 키와 화면 테스트가 찾는 문구도 같이 바꾼다
 - **에러**: 삼키지 않는다. 잡았으면 문맥을 붙여 다시 던지거나 구조화해 반환한다

@@ -117,7 +117,7 @@ export const 작성말: Record<string, string> = {
   '테스트 반영하기': 'Merge the tests',
   '검토가 끝나면 PR을 합쳐 케이스 목록에 올립니다.': 'After review, merge the PR to add the cases to the list.',
   '반영하는 중': 'Merging…',
-  '반영은 운영 권한이 있는 사람이 합니다.': 'Someone with admin rights merges it.',
+  '반영은 운영 권한이 있는 사람만 할 수 있습니다.': 'Someone with admin rights merges it.',
   '같은 자료로 다시 작성': 'Write again with the same inputs',
   '아직 배정 전': 'Not assigned yet',
   '{번호}단계 진행 중 · {퍼센트}%': 'Step {번호} in progress · {퍼센트}%',
@@ -135,7 +135,7 @@ export const 작성말: Record<string, string> = {
     'This request cannot be continued. It was already continued or its keep period is over. Refresh the page',
   '중단 전까지 만든 테스트 {수}개를 이어받아 남은 작업을 계속합니다.':
     'Takes over the {수} tests made before the stop and continues the rest.',
-  '중단된 자리부터 남은 작업을 이어서 합니다.': 'Continues the rest from where it stopped.',
+  '중단된 자리부터 남은 작업을 계속합니다.': 'Continues the rest from where it stopped.',
   '{날}까지 이어갈 수 있습니다.': 'You can continue until {날}.',
   '이미 이어서 작성했습니다. 아래 실행 기록을 보세요.': 'Already continued. See the run history below.',
   '보관 기간이 지나 작성 결과를 지웠습니다. 처음부터 다시 작성하세요.':

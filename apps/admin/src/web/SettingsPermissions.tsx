@@ -125,7 +125,7 @@ export function PermissionPicker({
               </div>
             );
           })}
-          <div className="hint">{t('배정받지 않은 서비스는 그 사람의 서비스 목록에 뜨지 않습니다')}</div>
+          <div className="hint">{t('배정받지 않은 서비스는 그 사람의 띠에 뜨지 않습니다')}</div>
         </div>
       </div>
 

@@ -56,7 +56,7 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
           {보내는중 ? t('반영하는 중') : t('테스트 반영하기')}
         </button>
       ) : (
-        <span className="hint">{t('반영은 운영 권한이 있는 사람이 합니다.')}</span>
+        <span className="hint">{t('반영은 운영 권한이 있는 사람만 할 수 있습니다.')}</span>
       )}
       {모름 ? <p className="held-why">{t('보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.')}</p> : null}
       {남은 > 0 ? <p className="held-why">{t('보류 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.', { 수: 남은 })}</p> : null}
