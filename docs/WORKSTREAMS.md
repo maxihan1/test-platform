@@ -152,7 +152,11 @@
 - **WS-작성 이어하기 — 반영 완료 (2026-09-28, PR #94).** 멈춘 요청을 멈춘 자리부터 이어간다 — 정방향 · 대조 같다. 정본 도메인/작성 §7 「이어하기」.
   사용자 결정 — 파일로 이어받기(대화 `--resume` 아님) · 에이전트 디스크(서버 `/work` 볼륨) · 중단만 7일 보관 · 자식이 일하다 끊김(CRASH) · 올리기 거절(REJECTED, 비밀번호 누설 포함)도 중단 · 120분 유지 · 화면 시안 A · 카드 제목 「다음 단계」.
   코드 `apps/admin/src/authoring/{routes,store,stop,agentStore}.ts` · `scripts/authoring-keep.ts`(순수) · `authoring-keeping.ts`(I/O) · `.claude/skills/tpx-author/references/resume.md` · `web/authoringTodoParts.tsx`.
-  **실제 한 바퀴는 아직이다** — 서버에서 작성 하나를 중단시키고 이어서 작성해 앞 실행의 케이스를 버리지 않는지, 올리기 거절을 이어가 고치는지 본다.
+  **실제 한 바퀴** — 2026-09-29 5873→5877 로 돌았다: 폴더가 컨테이너 재생성 뒤에도 남고 29개를 이어받았다. 5877 은 MKT 저장소 설정이 비어 끝내기가 거절됐다(아래 실행 기록에서 고침).
+- **WS-작성 실행 기록 — 반영 완료 (2026-09-29, PR #104).** 보이는 번호는 뿌리 하나, 이어서 작성 · 다시 작성 · 머지는 실행 기록. 정본 도메인/작성 §7 「실행 기록」.
+  사용자 결정 — 화면에서 묶기(DB 그대로) · 다시 작성도 같은 번호 · 같은 PR 갱신(에이전트가 자기 `author-<뿌리>` 만 덮어씀, CLAUDE.md §5 예외) · 상세 시안 A 표 · 토큰 네 칸(화면 · Grafana).
+  코드 `apps/admin/src/authoring/history.ts` · `scripts/authoring-chain.ts`(`덮어쓸수없는까닭`) · `authoring-io.ts`(`거절된보고대신`) · `web/AuthoringRuns.tsx`.
+  **다음** — 판정 불가 · 보류 케이스도 코드는 쓰고, 병합 전 작성 화면에서 사람이 기대값 · 파라미터를 채워 병합 (2026-09-29 사용자 요청, 새 PR)
 
 ---
 
