@@ -124,9 +124,10 @@ jobs:
         if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec' && steps.lane.outputs.lane != 'cases'
         run: npm run test:changed -- "$BASE" && npm run test:always
       # --if-present 를 안 붙인다 — cases 차선의 유일한 규칙 검사라 스크립트가 사라지면 그 자리에서 죽어야 한다
+      # --no-held — 이 잡은 초안이 아닌 PR 에서만 돈다. 값을 안 채운 보류 케이스(held)가 main 에 못 들어가게 한다 (K13)
       - name: 테스트 코드 규칙 검사 (SPEC §4 K표)
         if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec'
-        run: npm run check:tests
+        run: npm run check:tests -- --no-held
       - name: 비밀값 이름 목록이 세 곳에서 갈라지지 않았나 (SPEC §4.1)
         if: steps.skeleton.outputs.ready == '1' && steps.lane.outputs.lane != 'docs' && steps.lane.outputs.lane != 'spec'
         run: npm run check:secret-names --if-present

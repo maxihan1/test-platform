@@ -24,6 +24,7 @@ import { 계정들, 동시상한, 바탕거부사유, 호스트환경 } from './
 import { 도는자식, 멈춤, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
 import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
 import { type 판, 멈춘것닫기, 한건처리 } from './authoring-run.js';
+import { 보류있나 } from './authoring-held-apply.js';
 import { type 폴더자리, 나풀기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 // ── 껍데기 ────────────────────────────────────────────────────────────
@@ -200,7 +201,8 @@ async function 돈다(): Promise<number> {
         if (집은것인가(답.status, 답.몸)) {
           const 것 = 답.몸;
           집었나 = true;
-          const 자리번호 = 것.kind === 'MERGE' ? -1 : await 표.잡기();
+          // 보류 값을 적는 머지는 작업방을 열고 케이스를 3회 돌린다 — 동시 상한에 센다 (작성 §3.6 반영 1)
+          const 자리번호 = 것.kind === 'MERGE' && !보류있나((것 as { held?: unknown }).held) ? -1 : await 표.잡기();
           // 자리를 기다리는 동안 다른 줄이 거절을 받았으면 손을 뗀다. 그 행은 다음에 켤 때 멈춘 것으로 닫힌다
           if (멈춤.까닭 !== null) {
             if (자리번호 >= 0) 표.놓기(자리번호);

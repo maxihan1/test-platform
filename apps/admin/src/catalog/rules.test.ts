@@ -239,6 +239,21 @@ describe('checkSpec', () => {
     const 필수 = spec({ paramSchema: { ...칸('todo'), required: ['todo'] } });
     expect(checkSpec('x.spec.ts', 필수, 줄)[0].line).toBe(9);
   });
+
+  it('K10 — held 케이스의 기본값 없는 칸은 위반이 아니다. 사람이 채울 자리다', () => {
+    const 보류 = spec({ held: '판정 불가 — 한도가 없다', paramSchema: { ...칸('limit'), required: ['limit'] } });
+    expect(checkSpec('x.spec.ts', 보류, lines)).toEqual([]);
+  });
+
+  it('K13 — --no-held 면 held 케이스가 위반이다', () => {
+    const 보류 = spec({ held: '보류 — 확인 중' });
+    const found = checkSpec('x.spec.ts', 보류, lines, { noHeld: true });
+    expect(found.map((x) => x.rule)).toEqual(['K13']);
+  });
+
+  it('K13 — --no-held 여도 held 가 없으면 통과한다', () => {
+    expect(checkSpec('x.spec.ts', spec(), lines, { noHeld: true })).toEqual([]);
+  });
 });
 
 describe('checkRegistration', () => {

@@ -30,6 +30,7 @@ import {
 import { 머지처리 } from './authoring-merge.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
+import { 보류싣는손 } from './authoring-held.js';
 import { 사용량보고, 흐름풀기 } from './authoring-usage.js';
 import { 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './authoring-progress.js';
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
@@ -109,7 +110,7 @@ async function 한건(
       return;
     }
     // 브랜치는 author-<뿌리> — 그 전에 선 PR 은 prUrl 을 가진 원본 행(sourceId)의 author-<실행 번호> 다 (§7 「실행 기록」)
-    await 머지처리(손, 주소, 판.판정, 것.sourceId ?? undefined, 판.원천, 판.호스트로, 요청뿌리);
+    await 머지처리(손, 주소, 판.판정, 것.sourceId ?? undefined, 판.원천, 판.호스트로, 요청뿌리, { 것, 서비스, 판, 자식: 판.계정?.자식[자리번호] ?? null });
     return;
   }
 
@@ -287,14 +288,10 @@ async function 사본에서(
     return;
   }
 
+  // 보류 케이스는 자식의 말이 아니라 코드에서 계산해 DONE 에 싣는다 (작성 §3.6 「★ 보류 케이스」)
   await 올리기(
-    자리,
-    것,
-    서비스,
-    판.판정,
-    기준,
-    풀린.글,
-    손,
+    자리, 것, 서비스, 판.판정, 기준, 풀린.글,
+    보류싣는손(손, 자리, 자식, 케이스자리),
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 화면만, 입력자료: 자료들 },
   );
 }

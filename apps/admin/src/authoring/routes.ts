@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
+import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
@@ -236,13 +237,19 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 서비스 경계는 문이 이미 봤다 — 이 틀은 라우트표에서 「번호로 서비스를 찾는」 갈래다
       if (행 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
       const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;
-      return { ...행, assets: await 자료목록(행.id), rootId: 뿌리번호, runs: await 실행들(뿌리번호) };
+      return {
+        ...행,
+        assets: await 자료목록(행.id),
+        rootId: 뿌리번호,
+        runs: await 실행들(뿌리번호),
+        ...(await 보류상세(행)),
+      };
     },
   );
 
   // 머지만 경로가 갈린다. 같은 경로에 kind 로 얹으면 등급이 **본문 값**에 따라 갈려야 하고
   // 그러려면 문이 본문을 읽어야 한다. 경로가 다르면 경로만 보고 가른다 (SPEC §7)
-  app.post<{ Querystring: { service?: string }; Body: { sourceId?: unknown } }>(
+  app.post<{ Querystring: { service?: string }; Body: { sourceId?: unknown; env?: unknown } }>(
     '/authoring/merges',
     async (req, reply) => {
       const 서비스 = await 서비스번호(req, reply);
@@ -259,23 +266,31 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       if (행.status !== 'DONE' || 행.prUrl === null) {
         return reply.code(409).send({ error: 'NOT_MERGEABLE', detail: 행.status });
       }
-
-      const id = await 뿌리잠그고(뿌리번호, async () => (await 도는실행있나(뿌리번호)) ? null : 줄세우기({
-        서비스,
-        kind: 'MERGE',
-        원본: 행.id,
-        // ★ 기획서 본문을 복사하지 않는다. 그것은 실행 등급이 쓴 자유 텍스트이고 맥에서 도는
-        // 에이전트가 읽고 따르는 지시문이다 — 머지 행에까지 실어 보내면 admin 이 승인한 것은
-        // 「이 요청을 머지한다」인데 맥에게 가는 것은 그 사람이 쓴 문장이 된다.
-        // 맥은 원본 번호로 필요한 것을 읽으면 된다 (2026-09-22 보안 검토가 잡았다)
-        기획서: `머지 요청 — 원본 #${String(행.id)}`,
-        누가: req.user?.username ?? '',
-        이름: req.user?.displayName ?? '',
-      }));
-      if (id === null) return reply.code(409).send({ error: 'RUN_ACTIVE' });
-      return reply.code(201).send({ id });
+      // 보류 판정도 잠금 안에서 — 밖에서 보면 판정과 머지 행 사이에 PUT · DELETE 가 끼어든다
+      const 세움 = await 뿌리잠그고(뿌리번호, async (): Promise<{ error: string; code: number } | { id: number }> => {
+        if (await 도는실행있나(뿌리번호)) return { error: 'RUN_ACTIVE', code: 409 };
+        const 보류 = await 머지보류판정(행, 서비스, req.body?.env);
+        if ('error' in 보류) return 보류;
+        const id = await 줄세우기({
+          서비스,
+          kind: 'MERGE',
+          원본: 행.id,
+          // ★ 기획서 본문을 복사하지 않는다. 그것은 실행 등급이 쓴 자유 텍스트이고 맥에서 도는
+          // 에이전트가 읽고 따르는 지시문이다 — 머지 행에까지 실어 보내면 admin 이 승인한 것은
+          // 「이 요청을 머지한다」인데 맥에게 가는 것은 그 사람이 쓴 문장이 된다.
+          // 맥은 원본 번호로 필요한 것을 읽으면 된다 (2026-09-22 보안 검토가 잡았다)
+          기획서: `머지 요청 — 원본 #${String(행.id)}`,
+          누가: req.user?.username ?? '',
+          이름: req.user?.displayName ?? '',
+          머지대상: 보류.env,
+        });
+        return { id };
+      });
+      if ('error' in 세움) return reply.code(세움.code).send({ error: 세움.error });
+      return reply.code(201).send({ id: 세움.id });
     },
   );
 
   await 중단통로(app);
+  await 보류통로(app);
 }

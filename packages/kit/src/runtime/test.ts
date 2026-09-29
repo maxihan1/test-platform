@@ -151,6 +151,9 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   }
 
   base(spec.name, async ({ page, request }, testInfo) => {
+    // 보류 케이스는 사람이 채울 칸에 기본값이 없어 입력 검증부터 깨진다. 채워 held 를 지우면 그대로 돈다
+    base.skip(spec.held !== undefined, spec.held);
+
     // 선언하지 않은 환경에서 돌면 케이스의 전제가 깨진다. 판정 대신 건너뛴다
     base.skip(
       !spec.platforms.some((p) => p === testInfo.project.name),
