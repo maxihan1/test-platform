@@ -1,6 +1,8 @@
 // paramSchema·expectedSchema를 읽어 입력 칸을 만든다 (SPEC §8.2, DESIGN.md 폼 자동 생성 규칙)
 // 스키마는 zod 4의 z.toJSONSchema(schema, { io: 'input' }) 결과다. io가 input이라 .default()가 붙은 칸은 required에 없다
 
+import { validate } from '../execution/validate.js';
+
 import type { JsonSchema } from './api.js';
 import { 가려야하나 } from './mask.js';
 
@@ -46,17 +48,10 @@ function kindOf(prop: Prop): FieldKind {
  * 저장값이 지금 명세의 그 칸에 맞는가.
  *
  * 명세가 바뀐 뒤의 옛 저장값을 칸에 채우면 사람이 손대지 않아도 그 값이 요청에 실린다.
- * 서버의 채우기(`저장값을채운다`)와 같은 규칙이어야 화면과 실행이 같은 값을 쓴다 (계획 게이트 1 BLOCKER 1)
+ * 서버의 채우기(`저장값을채운다`)와 같은 검증기·같은 식이어야 화면과 실행이 같은 값을 쓴다 (계획 게이트 1 BLOCKER 1)
  */
-function 명세에맞나(prop: Prop, value: unknown): boolean {
-  if (Array.isArray(prop.enum)) return prop.enum.includes(value);
-  if (prop.type === 'string') return typeof value === 'string';
-  if (prop.type === 'boolean') return typeof value === 'boolean';
-  if (prop.type === 'integer') return Number.isInteger(value);
-  if (prop.type === 'number') return typeof value === 'number' && Number.isFinite(value);
-  if (prop.type === 'object') return isPlainObject(value);
-  if (prop.type === 'array') return Array.isArray(value);
-  return false;
+function 명세에맞나(key: string, raw: unknown, value: unknown): boolean {
+  return validate({ properties: { [key]: raw } }, { [key]: value }).length === 0;
 }
 
 export function schemaToFields(
@@ -93,7 +88,7 @@ export function schemaToFields(
       const { default: codeDefault, ...rest } = field;
       return { ...rest, optional: true, savedSecret: true, ...(codeDefault === undefined ? {} : { codeDefault }) };
     }
-    if (저장값 !== undefined && 명세에맞나(prop, 저장값)) {
+    if (저장값 !== undefined && 명세에맞나(key, raw, 저장값)) {
       const { default: codeDefault, ...rest } = field;
       return { ...rest, optional: false, default: 저장값, saved: true, ...(codeDefault === undefined ? {} : { codeDefault }) };
     }

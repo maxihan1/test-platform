@@ -220,6 +220,23 @@ describe('schemaToFields — 저장값 (2026-09-29)', () => {
     expect(fields.find((f) => f.key === 'loginId')?.default).toBe('guest');
   });
 
+  it('길이·범위 규칙에 어긋나는 저장값도 덮지 않는다 — 서버 채우기와 같은 검증기다', () => {
+    const schema = {
+      type: 'object',
+      properties: {
+        code: { type: 'string', maxLength: 3, default: 'abc' },
+        size: { type: 'integer', minimum: 1, default: 1 },
+      },
+    };
+    const fields = schemaToFields(schema, { code: 'abcd', size: 0 });
+    expect(fields.map((f) => f.saved)).toEqual([undefined, undefined]);
+  });
+
+  it('type 이 없는 칸은 서버처럼 통과시켜 저장값으로 덮는다', () => {
+    const field = schemaToFields({ type: 'object', properties: { any: { description: '아무 값' } } }, { any: 'x' })[0];
+    expect(field).toMatchObject({ default: 'x', saved: true });
+  });
+
   it('명세에 없는 칸의 저장값은 칸을 만들지 않는다', () => {
     expect(schemaToFields(LOGIN_SCHEMA, { gone: 'x' }).map((f) => f.key)).not.toContain('gone');
   });
