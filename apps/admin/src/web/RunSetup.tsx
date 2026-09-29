@@ -341,7 +341,7 @@ export function RunSetup({ tcId, service, user }: Props) {
               type="text"
               ref={이름칸}
               aria-label={t('묶음 이름')}
-              placeholder={t('세트 이름')}
+              placeholder={t('묶음 이름')}
               value={setName}
               onChange={(e) => {
                 setSetName(e.target.value);

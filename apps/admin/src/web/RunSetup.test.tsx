@@ -126,11 +126,11 @@ describe('실행 설정의 권한 칸', () => {
     expect(screen.getByText('이 값을 묶음으로 저장')).toBeTruthy();
   });
 
-  it('케이스 읽기면 묶음 저장도 세트 이름 칸도 없다', async () => {
+  it('케이스 읽기면 묶음 저장도 묶음 이름 칸도 없다', async () => {
     const 읽기만: User = { ...사람, services: [{ ...서비스, permissions: { cases: 'read', runs: 'write', authoring: 'write' } }] };
     await 그린다(케이스, 읽기만);
     expect(screen.queryByText('이 값을 묶음으로 저장')).toBeNull();
-    expect(screen.queryByPlaceholderText('세트 이름')).toBeNull();
+    expect(screen.queryByPlaceholderText('묶음 이름')).toBeNull();
   });
 
   it('실행 읽기면 실행 버튼이 없다', async () => {

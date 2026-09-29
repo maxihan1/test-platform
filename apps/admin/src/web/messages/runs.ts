@@ -66,7 +66,6 @@ export const 실행말: Record<string, string> = {
   '자리를 비울 때만 켜세요. 혼자 확인하는 실행까지 팀 채널에 보내면 알림이 너무 많아집니다':
     'Turn this on only when you step away. Self-checks in the team channel are just noise',
   '실행 제목': 'Run title',
-  '세트 이름': 'Set name',
   '이 값을 묶음으로 저장': 'Save these values as a set',
   // 케이스 저장값 — 목록 줄과 실행 설정 화면이 같이 쓴다 (도메인/실행 §8.2)
   '저장값 · {누가} · {언제}': 'Saved · {누가} · {언제}',
