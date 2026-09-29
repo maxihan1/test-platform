@@ -14,8 +14,8 @@ test('템플릿에 데이터 자리가 없으면 거부한다', () => {
 
 const 표본 = `# WBS
 
-## 다음 수
-- [ ] \`CAT-F1-99\` 영역 밖이 아니라 무시되는 절의 줄
+## 안내
+태스크가 아닌 글은 영역 밖에 있어도 된다.
 
 ## CAT — 카탈로그
 ### F1 스캐너 · Phase 1
@@ -42,9 +42,13 @@ test('영역·기능·무엇·태스크를 편다', () => {
   ]);
 });
 
-test('영역이 아닌 ## 절 아래 태스크 줄은 세지 않는다', () => {
-  const ids = parseWbs(표본).flatMap((a) => a.features.flatMap((f) => f.tasks.map((t) => t.id)));
-  assert.ok(!ids.includes('CAT-F1-99'));
+test('영역 제목을 잘못 쳐서 영역 밖이 된 태스크는 조용히 빠지지 않고 실패한다', () => {
+  assert.throws(() => parseWbs('## CAT - 카탈로그\n### F1\n- [x] `CAT-F1-01` 빠질 뻔\n'), /3행.*영역 밖/);
+});
+
+test('대문자 [X] 와 윈도 줄바꿈도 받는다', () => {
+  const [a] = parseWbs('## CAT — 카탈로그\r\n### F1\r\n- [X] `CAT-F1-01` 스캐너\r\n  - 근거 PR #1 · 2026-09-16\r\n');
+  assert.deepEqual(a.features[0].tasks[0], { id: 'CAT-F1-01', title: '스캐너', done: true, pr: 1, evidence: 'PR #1', date: '2026-09-16' });
 });
 
 test('기능 제목 없이 영역 바로 아래 온 태스크는 거부한다', () => {
@@ -86,6 +90,11 @@ test('② 추적 영역의 [x] PR 이 WORKSTREAMS 에 안 적혀 있다', () => 
 test('② 명세 PR 처럼 완료 표시 없이 제목에만 적혀 있어도 통과한다', () => {
   const errs = checkSync(wbs동기, '## 📐 역방향 — 명세 섰다(2026-09-25, PR #79)\n', ['REV']);
   assert.ok(!errs.some((e) => e.includes('REV-F1-01')));
+});
+
+test('② 색 코드(#79693A)는 PR 번호로 세지 않는다', () => {
+  const errs = checkSync(wbs동기, '색은 `#79693A` 와 `#79` 가 아니라 `#79FFFF`\n'.replace('`#79` 가 아니라 ', ''), ['REV']);
+  assert.ok(errs.some((e) => e.includes('REV-F1-01')));
 });
 
 test('③ [x] 인데 근거 줄이 없다', () => {

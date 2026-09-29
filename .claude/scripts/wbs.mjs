@@ -3,13 +3,16 @@
 // node 표준 모듈만 쓴다 — CI 의 문서 차선은 설치 전에 이 검사를 돌린다(check:spec 과 같은 자리).
 // 형식은 Devicefarm scripts/build_progress.py 를 옮겼다. 다른 점 하나 — 완료 날짜를 git 에서 캐지 않고 근거 줄에 적는다.
 
-const TASK = /^- \[( |x)\] `([A-Z0-9]+-[^`]+)` (.+)$/;
+const BOX = /^- \[[ xX]\]/;
+const TASK = /^- \[( |x|X)\] `([A-Z0-9]+-[A-Za-z0-9.-]+)` (.+)$/;
 const AREA = /^## ([A-Z0-9]+) — (.+?)\s*$/;
 const FEAT = /^### (.+?)(?: · (Phase [0-9.]+))?\s*$/;
 const EVID = /근거 PR #(\d+) · (\d{4}-\d{2}-\d{2})/;
+// WORKSTREAMS 의 PR 번호. 뒤에 16진 글자가 붙으면 색 코드(#79693A)라 뺀다 (코드 검토 2026-09-29)
+const PR_REF = /#(\d+)(?![0-9A-Za-z])/g;
 
 export function parseWbs(text) {
-  const lines = text.split('\n');
+  const lines = text.split(/\r?\n/);
   const areas = [];
   let area = null;
   let feat = null;
@@ -26,13 +29,16 @@ export function parseWbs(text) {
       area.features.push(feat);
     } else if (feat && line.startsWith('**무엇**') && !feat.what) {
       feat.what = line.replace('**무엇**', '').trim();
-    } else if (area && (m = TASK.exec(line))) {
+    } else if (BOX.test(line)) {
+      // 체크박스 줄은 전부 태스크로 읽히거나 실패한다 — 영역 제목 오타(— 대신 -) 하나로 태스크가 진행판에서 조용히 빠졌다 (코드 검토 2026-09-29)
+      if (!area) throw new Error(`${i + 1}행 체크박스가 영역 밖이다 — 위의 「## KEY — 이름」 제목을 확인한다`);
+      if (!(m = TASK.exec(line))) throw new Error(`${i + 1}행 체크박스가 「- [ ] \`KEY-번호\` 제목」 모양이 아니다`);
       if (!feat) throw new Error(`${i + 1}행 태스크가 기능 제목 밖에 있다`);
       const ev = EVID.exec(lines[i + 1] ?? '');
       feat.tasks.push({
         id: m[2],
         title: m[3].trim(),
-        done: m[1] === 'x',
+        done: m[1] !== ' ',
         pr: ev ? Number(ev[1]) : null,
         evidence: ev ? `PR #${ev[1]}` : null,
         date: ev ? ev[2] : null,
@@ -51,7 +57,7 @@ export function workstreamsDonePrs(text) {
   const prs = new Set();
   for (const line of text.split('\n')) {
     if (!line.includes('✅') && !line.includes('반영 완료')) continue;
-    for (const m of line.matchAll(/#(\d+)/g)) prs.add(Number(m[1]));
+    for (const m of line.matchAll(PR_REF)) prs.add(Number(m[1]));
   }
   return prs;
 }
@@ -71,7 +77,7 @@ export function checkSync(wbsText, workstreamsText, trackedKeys) {
   const wsDone = workstreamsDonePrs(workstreamsText);
   // ② 는 완료 줄이 아니라 문서 전체에서 찾는다 — 명세 PR 은 ✅ 없이 절 제목에만 적힌다(「명세 섰다(…, PR #73)」).
   // 남은 항목에는 PR 번호가 아직 없으므로 「wbs 만 체크하고 WORKSTREAMS 에 안 적었다」는 이것으로 잡힌다
-  const wsAny = new Set([...workstreamsText.matchAll(/#(\d+)/g)].map((m) => Number(m[1])));
+  const wsAny = new Set([...workstreamsText.matchAll(PR_REF)].map((m) => Number(m[1])));
   const wbsDone = new Set(tasks.filter((t) => t.done && t.pr).map((t) => t.pr));
 
   const seen = new Set();

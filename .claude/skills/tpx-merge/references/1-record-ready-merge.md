@@ -14,7 +14,7 @@
 
 `docs/wbs.md` 에서 이 PR 이 끝내는 태스크를 `[x]` 로 바꾸고 다음 줄에 `  - 근거 PR #<번호> · <오늘>` 을 단다.
 맞는 태스크가 없으면 그 영역·기능 아래 **새 번호로** 더한다(순번은 재사용하지 않는다).
-태스크가 추적 영역(REV·E2E·ACL — `.claude/scripts/check-wbs.mjs` 의 `TRACKED`)이면 **WORKSTREAMS 의 그 묶음 항목에도 `✅` 와 PR 번호를 단다.**
+태스크가 추적 영역(목록은 `.claude/scripts/check-wbs.mjs` 의 `TRACKED`)이면 **WORKSTREAMS 의 그 묶음 항목에도 `✅` 와 PR 번호를 단다.**
 
 ```bash
 npm run check:wbs      # 어긋남 0건이어야 한다. CI 도 같은 검사를 돈다

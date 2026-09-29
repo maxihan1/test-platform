@@ -6,7 +6,7 @@
 > **WORKSTREAMS.md 와 같이 움직인다.** 무엇을 어떻게 만드는지·순서·남은 것의 설명은 WORKSTREAMS 가 정본이고,
 > 여기는 **체크박스만** 둔다. 둘이 어긋나면 `npm run check:wbs` 가 빨개진다 —
 > WORKSTREAMS 에서 `✅`·`반영 완료` 가 붙은 PR 은 여기서 `[x]` 여야 하고,
-> 추적 영역(REV·E2E·ACL — `.claude/scripts/check-wbs.mjs` 의 `TRACKED`)의 `[x]` PR 은 WORKSTREAMS 에도 적혀 있어야 한다.
+> 추적 영역(목록은 `.claude/scripts/check-wbs.mjs` 의 `TRACKED`)의 `[x]` PR 은 WORKSTREAMS 에도 적혀 있어야 한다.
 >
 > **체크는 병합된 PR 이 있을 때만 찍는다.** 다음 줄에 `  - 근거 PR #N · YYYY-MM-DD`(병합일)를 단다. 없으면 검사가 막는다.
 > **순번은 재사용하지 않는다.** 태스크를 지우면 그 번호는 비운 채 둔다.

@@ -12,8 +12,8 @@ const text = readFileSync('docs/wbs.md', 'utf8');
 const areas = parseWbs(text);
 const tasks = areas.flatMap((a) => a.features.flatMap((f) => f.tasks));
 
-// 자가 검사 — 파서가 흘리면 숫자가 조용히 틀린다. 영역 절 안의 태스크 줄 수와 맞춘다
-const raw = text.split(/^## /m).filter((s) => /^[A-Z0-9]+ — /.test(s)).join('').match(/^- \[[ x]\] `/gm) ?? [];
+// 자가 검사 — 파서가 흘리면 숫자가 조용히 틀린다. 파일의 체크박스 줄 전부와 맞춘다
+const raw = text.match(/^- \[[ xX]\]/gm) ?? [];
 if (raw.length !== tasks.length) throw new Error(`파싱 ${tasks.length} ≠ 원문 ${raw.length}`);
 
 // 사람이 눌러 확인하는 완료 기준 — npm run count:done 과 같은 파일·같은 규칙
