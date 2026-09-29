@@ -168,6 +168,10 @@
   사용자 결정 — 화면에서 묶기(DB 그대로) · 다시 작성도 같은 번호 · 같은 PR 갱신(에이전트가 자기 `author-<뿌리>` 만 덮어씀, CLAUDE.md §5 예외) · 상세 시안 A 표 · 토큰 네 칸(화면 · Grafana).
   코드 `apps/admin/src/authoring/history.ts` · `scripts/authoring-chain.ts`(`덮어쓸수없는까닭`) · `authoring-io.ts`(`거절된보고대신`) · `web/AuthoringRuns.tsx`.
   **다음** — 판정 불가 · 보류 케이스도 코드는 쓰고, 병합 전 작성 화면에서 사람이 기대값 · 파라미터를 채워 병합 (2026-09-29 사용자 요청, 새 PR)
+- **WS-작성 보류 케이스 사람 입력 — 진행 중 (2026-09-29, PR #108).** 정본 도메인/작성 §3.6 「★ 보류 케이스 — 사람이 값을 채운다」.
+  한 PR 이 여러 갈래에 걸친다 — kit `CaseSpec.held`(건너뛰기) · 검사기 K10 예외 · K13 · `check:tests --no-held`(CI 가 초안 아닌 PR 에서) · 마이그레이션 `authoring_request.held_input` ·
+  서버 `apps/admin/src/authoring/held.ts`(넣기 · 제거 · 되돌리기 · `HELD_OPEN` · `MERGE_ACTIVE` · merges `env`) · 에이전트 `scripts/authoring-held.ts`(칸 계산) · `authoring-held-apply.ts`(값 적기 · 3회 실행) ·
+  화면 `web/AuthoringHeld.tsx`(WS-E 경로 안, 시안 A — DESIGN.md 「작성 상태」)
 
 ---
 

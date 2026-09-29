@@ -473,3 +473,11 @@
 - 미완: 브라우저 눈 확인(밝게 · 어둡게) · 실제 한 바퀴(다음 이어서 작성이 같은 PR 을 갱신하는지)
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 뿌리 식은 `history.ts` 의 `사슬식` · `위로식` 이 정본이다 — 폐기(`stop.ts`)도 그것을 쓴다. 작업 폴더 `author-<행 번호>` 와 브랜치 `author-<뿌리>` 는 다르다
+
+## 2026-09-29 — 보류 케이스 사람 입력 (PR #108, 진행 중)
+
+- 완료: 명세 도메인/작성 §3.6 「★ 보류 케이스」 · §7 통로 · K10 예외 · K13 · kit `CaseSpec.held`(건너뛰기) · 데이터모델 `held_input`
+- 완료: §2.7 동반 수정 — SPEC 색인 라우터 줄 · 분량 · DESIGN.md 「작성 상태」 시안 A · HOOKS.md CI `--no-held` · spec-review B13 · WORKSTREAMS 진행 중 줄
+- 미완: 할 일 5(서버 `authoring/held.ts`) · 7(반영 에이전트 7a·7b) · 9(화면 `AuthoringHeld.tsx`) 진행 중 · `docs/wbs.md` 에 이 PR 태스크 줄이 없다(병합 때 정한다)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: held_input 은 뿌리의 최신 끝난 실행 행에만 받고 finish 가 같은 tcId · 같은 칸만 옮긴다. main 으로 못 가게 막는 자리는 셋(merges HELD_OPEN · 에이전트 · CI `--no-held`) — 하나만 믿지 않는다
