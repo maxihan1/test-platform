@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const spec = defineCase({
   tcId: 'MKT-035',
   name: '화면 너비가 768px 이하면 메뉴가 햄버거 버튼으로 접히고 누르면 왼쪽에서 밀려 나온다',
-  precondition: ['화면 너비가 768px 이하인 기기로 게시판 목록을 열었다'],
+  precondition: ['화면 너비가 768px 이하인 기기로 게시판 목록을 열었다', '메뉴가 햄버거 버튼으로 접혀 있다'],
   platforms: ['mobile'],
   params: null,
   expected: z.object({

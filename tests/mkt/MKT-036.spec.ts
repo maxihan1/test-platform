@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const spec = defineCase({
   tcId: 'MKT-036',
   name: '로그인 안내 모달이 0.3초 동안 서서히 나타나고 서서히 사라진다',
-  precondition: ['비회원으로 게시글 상세를 열었다'],
+  precondition: ['비회원으로 게시글 상세를 열었다', '로그인 안내 모달이 떠 있다'],
   params: z.object({
     postPath: z.string().min(1).describe('열어 볼 게시글 상세 주소').default('/board/44'),
   }),
