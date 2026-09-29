@@ -54,12 +54,12 @@
    - ✅ **③-1 진짜 실행 (PR #109, 2026-09-29)** — 사용자가 ③ 을 둘로 나눴다(진짜 실행 → 시험 실행). `POST /api/scenarios/:id/runs`(`scenario/runRoutes.ts`) · `실행만들기`(`scenario/runStore.ts` — test_run `SCENARIO` + 부품 행 스냅샷) ·
      `시나리오분배`·`결과저장`(`scenario/runResult.ts` — `enqueue` 로 케이스와 같은 상한 · 실행 행을 `RUNNING` 조건으로 먼저 닫고 0행이면 버림 · seq 짝 · 저장 실패는 부품 전부 NA 로 닫음 · `finishRun` 안 씀) ·
      러너 호출 `callScenarioRunner`(`execution/runner.ts`) · `GET /api/runs/:runId/scenario`(`status`·`platform`·부품 스키마 셋) · 사진 `…/scenario/screenshots/:seq`(**절차 순번**) · 목록 `?kind=scenario`(E2E 탭 집계는 부품 판정 접기 — `scenario/verdict.ts`) · 시나리오 목록 `lastRun` ·
-     **게이트 0 사용자 여섯** — 제한 시간 API 몫 30초 · 바닥 60초 · 부품 목록 100000바이트 400 · 치운 시나리오 409 `SCENARIO_ARCHIVED`(실행·고치기·되돌리기) · 단건 조회(`findRun`·증적·견주기) `kind='CASE'` → 시나리오 번호 404 · `run_item` 경유 조회 예외(명세 시나리오 §3.7 결정 10) ·
+     **게이트 0 사용자**(정본 명세 시나리오 §7 계약 블록 이유 줄) — 제한 시간 API 몫 30초 · 바닥 60초 · 부품 목록 100000바이트 400 · 치운 시나리오 409 `SCENARIO_ARCHIVED`(실행·고치기·되돌리기) · 단건 조회(`findRun`·증적·견주기) `kind='CASE'` → 시나리오 번호 404 · `run_item` 경유 조회 예외(명세 시나리오 §3.7 결정 10) ·
      **게이트 1 사용자** — `runnable` 에 60분·크기·뿌리 밖 경로 · `GET /api/runs/:runId` 시나리오 번호 404 `SCENARIO_RUN`. ② 가 넘긴 ①②③ 은 닫았다. 정본 도메인/시나리오 §7
    - **③-2 시험 실행** — `POST /api/scenario-trials` · `GET /api/scenario-trials/:trialId` · 사진 통로(메모리 · 24시간 · 시작한 사람만 · 새 시험 때 24시간 지난 `trial/*` 치우기 · `trialId` 는 `crypto.randomUUID()`) ·
      러너 호출은 ③-1 의 `callScenarioRunner` 를 그대로 쓴다(`runId: null`, `trialId`) · 줄 세우기 `enqueue` 한 자리 · 조립 검사는 만들기와 같게 · 권한 두 표에 줄 셋 · §7 계약 블록을 `반영 완료` 로.
-     **남은 인계** — ② 인계 ④ 케이스 `file_path` 가 tests 뿌리 밖이면 `parts.ts` 가 던져 **목록·상세가 500**(실행 요청만 409 로 막았다) · 뿌리 안 심볼릭 링크를 따라간다 — `catalog/source.ts` `readExcerpt` 와 한 함수(`realpath` 비교)로 합칠 때 같이 고친다 ·
-     ⑤ 문법 깨진 소스 판별은 `scenario/parts.ts` 에만 있다(`caseSteps` 를 직접 부르면 같은 판별을 거친다) · `test_run.scenario_id` 색인이 없다(`lastRun` 질의 — 수만 건이면 마이그레이션)
+     **남은 인계** — ② 인계 ④ 뿌리 밖 경로는 ③-1 게이트 2 에서 비활성으로 치게 고쳤다 · **뿌리 안 심볼릭 링크를 따라간다** — `catalog/source.ts` `readExcerpt` 와 한 함수(`realpath` 비교)로 합칠 때 같이 고친다 ·
+     ⑤ 문법 깨진 소스 판별은 `scenario/parts.ts` 에만 있다(`caseSteps` 를 직접 부르면 같은 판별을 거친다) · `test_run.scenario_id` 색인이 없다(`lastRun` 질의 — 수만 건이면 마이그레이션) · **실행 대기줄 상한이 없다** — 실행 쓰기 권한자가 60분짜리를 여러 번 누르면 케이스 실행까지 줄이 밀린다(케이스 `POST /api/runs` 도 같다 — 둘을 같이 정한다, PR #109 보안 검토)
      **러너가 보장하는 것**(러너 §5.2) — 부품 오류 `NOT_RUN` 은 「앞 부품 실패」만, 줄 없이 끝난 부품은 `FAIL`+오류 꼬리 · `trialId` 는 UUID 만 받는다(admin 이 `crypto.randomUUID()`) ·
      디바이스를 선언 안 한 케이스는 부품 `FAIL` · HTTP 타임아웃은 `timeoutMs + 30초`
 5. **WS-E 화면** — **시안 먼저**(목업 다섯 장이 모양의 정본 — 도메인/시나리오 §8.11) · 목록 · 조립 · 시험 실행 · 결과 · 실행 기록 탭 ·
