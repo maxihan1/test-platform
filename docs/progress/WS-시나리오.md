@@ -37,3 +37,10 @@
 - 미완: ② 저장·버전·부품 재료·권한 표 · ③ 실행·시험 실행·사진·`?kind=scenario` · 화면(WS-E) · 증적(WS-D)
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 번호 하나로 짚는 조회(`findRun`·증적)는 거르지 않았다 — ③ 이 시나리오 실행을 만들면 케이스 모양으로 나온다(WORKSTREAMS 4번 ③ 줄). 검사 `apps/admin/src/execution/kind.test.ts`(접두사 `XBK`). 앱을 띄우는 검사는 등록이 띄우는 `recoverRunning` 과 경합하므로 먼저 한 번 `await recoverRunning()` 한다
+
+## 2026-09-29 (3)
+- 완료: 서버 ② PR #107 — `/api/scenarios` 목록·만들기·상세·옛 버전·고치기(409 `STALE_VERSION`)·되돌리기·치우기 · `case-parts/:tcId` · 조립 검사(`scenario/validate.ts`) · 점검(`checks.ts`) · 재료(`parts.ts`) · 권한(등급표 여덟 쌍 · 시나리오 원천 · 만들기 본문 `service` 갈래)
+- 완료: 게이트 0 사용자 — `STEP_NEW` 를 명세에서 뺐다. 게이트 1 사용자 — 되돌리기는 모양만 · 상세에 `service` · 파일 못 읽는 케이스는 비활성 · `lastRun` 은 ③
+- 미완: ③ 실행·시험 실행·사진·`?kind=scenario`·`lastRun` · 화면(WS-E) · 증적(WS-D)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 진입점 `apps/admin/src/scenario/routes.ts`. 재료는 `케이스재료(tcIds, service)` 가 한 요청에 tcId 마다 한 번 읽는다 — ③ 의 실행 요청도 이것으로 `runnable` 을 본다. 제한 시간은 `시나리오제한시간`. fixture 접두사 XSS·XSP·XSR·XSA

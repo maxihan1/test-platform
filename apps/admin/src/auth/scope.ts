@@ -16,7 +16,8 @@ export type 원천 =
   | { 종류: '실행'; 칸: string } // params[칸] 이 실행 번호다
   | { 종류: '증적'; 칸: string }
   | { 종류: '입력값묶음'; 칸: string }
-  | { 종류: '작성요청'; 칸: string }; // params[칸] 이 대기줄 행 번호다. 그 행의 service_id 가 서비스다 (§6)
+  | { 종류: '작성요청'; 칸: string } // params[칸] 이 대기줄 행 번호다. 그 행의 service_id 가 서비스다 (§6)
+  | { 종류: '시나리오'; 칸: string }; // params[칸] 이 시나리오 번호다. 그 행의 service_id 가 서비스다
 
 /**
  * **등록된 모든 `/api` 라우트가 여기 있어야 한다.**
@@ -80,12 +81,20 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests/:id/usage': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/stop': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/discard': { 종류: '작성요청', 칸: 'id' },
+
+  // E2E 시나리오 (도메인/시나리오 §7). POST 의 본문 service 는 gate.ts 의 본문 갈래가 같이 본다
+  '/api/scenarios': { 종류: '질의' },
+  '/api/scenarios/:id': { 종류: '시나리오', 칸: 'id' },
+  '/api/scenarios/:id/versions/:v': { 종류: '시나리오', 칸: 'id' },
+  '/api/scenarios/:id/restore': { 종류: '시나리오', 칸: 'id' },
+  '/api/scenarios/:id/archive': { 종류: '시나리오', 칸: 'id' },
+  '/api/scenarios/case-parts/:tcId': { 종류: '케이스', 칸: 'tcId' },
 };
 
 // SPEC §2 — 접두사는 자유 형식이고 플랫폼은 모양과 중복만 본다.
 // 서버의 정본은 settings/routes.ts 의 접두사모양이다. 여기는 경계 판정용 사본이라
 // §2 가 바뀌면 같이 고친다 (CLAUDE.md §2.7 ④ 「코드에 박힌 상수」)
-const 접두사모양 = /^[A-Z][A-Z0-9]{0,11}$/;
+export const 접두사모양 = /^[A-Z][A-Z0-9]{0,11}$/;
 
 /** `tcId` 앞 토막이 서비스다. 모양이 아니면 **모른다** — 경계 판정은 모르면 막는 쪽이다 */
 export function 케이스의서비스(tcId: unknown): string | null {
@@ -94,7 +103,7 @@ export function 케이스의서비스(tcId: unknown): string | null {
   return 접두사모양.test(접두사) ? 접두사 : null;
 }
 
-export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청'; 번호: number };
+export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오'; 번호: number };
 
 /** 번호 칸은 **라우트와 같은 엄격함**으로 읽는다. 느슨하면 문과 라우트가 다른 값을 본다 */
 export function 번호로(값: unknown): number | null {
@@ -118,6 +127,8 @@ const 질의: Record<찾을것['종류'], string> = {
   // 작성 요청은 service_id 가 NOT NULL 이다. 새 표라 「통합 이전 행」이 없다 (§6)
   작성요청:
     'SELECT s.prefix FROM authoring_request a JOIN service s ON s.id = a.service_id WHERE a.id = $1',
+  // 시나리오도 service_id 가 NOT NULL 이다
+  시나리오: 'SELECT s.prefix FROM scenario sc JOIN service s ON s.id = sc.service_id WHERE sc.id = $1',
 };
 
 /**

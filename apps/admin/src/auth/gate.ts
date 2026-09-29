@@ -7,7 +7,7 @@ import { 그라파나문, 그라파나틀인가 } from './grafanaGate.js';
 import { 토큰으로왔나, 확인 } from './identify.js';
 import { 칸되는서비스, type 서비스권한 } from './permissions.js';
 import { 필요권한, 토큰통로, type 권한값 } from './routeTable.js';
-import { 케이스의서비스, 라우트표, 번호로, 서비스없음, 자원의서비스 } from './scope.js';
+import { 케이스의서비스, 라우트표, 번호로, 서비스없음, 자원의서비스, 접두사모양 } from './scope.js';
 import type { 등급, 사용자 } from './store.js';
 
 declare module 'fastify' {
@@ -125,7 +125,8 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
     원천.종류 === '실행' ||
     원천.종류 === '증적' ||
     원천.종류 === '입력값묶음' ||
-    원천.종류 === '작성요청'
+    원천.종류 === '작성요청' ||
+    원천.종류 === '시나리오'
   ) {
     const 번호 = 번호로(params[원천.칸]);
     // 라우트는 이 값을 숫자로 읽는다. 문이 못 읽는 모양이면 둘이 다른 것을 보고 있다
@@ -142,6 +143,14 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
     const 본문 = 본문의서비스(req);
     if (본문 === 막는다) return 막는다;
     모인것.push(...본문);
+  }
+
+  // 시나리오 만들기는 서비스를 본문에 싣는다. 라우트는 그 값을 바꾸지 않고 그대로 쓴다 (도메인/시나리오 §7)
+  if (틀 === '/api/scenarios' && req.method === 'POST') {
+    const body = req.body;
+    const service = typeof body === 'object' && body !== null ? (body as { service?: unknown }).service : undefined;
+    if (typeof service !== 'string' || !접두사모양.test(service)) return 막는다;
+    모인것.push(service);
   }
 
   return [...new Set(모인것)];
