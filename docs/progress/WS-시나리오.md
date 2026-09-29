@@ -44,3 +44,10 @@
 - 미완: ③ 실행·시험 실행·사진·`?kind=scenario`·`lastRun` · 화면(WS-E) · 증적(WS-D)
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 진입점 `apps/admin/src/scenario/routes.ts`. 재료는 `케이스재료(tcIds, service)` 가 한 요청에 tcId 마다 한 번 읽는다 — ③ 의 실행 요청도 이것으로 `runnable` 을 본다. 제한 시간은 `시나리오제한시간`. fixture 접두사 XSS·XSP·XSR·XSA
+
+## 2026-09-29 (4)
+- 완료: 서버 ③-1 PR #109 — 사용자가 ③ 을 둘로 나눴다(진짜 실행 → 시험 실행). `POST /api/scenarios/:id/runs` · 실행 만들기(`scenario/runStore.ts`) · 러너 호출·결과 저장·줄 세우기(`execution/runner.ts` `callScenarioRunner` · `scenario/runResult.ts`) · 결과 조회·사진(`scenario/runRoutes.ts`) · 목록 `?kind=scenario` · 시나리오 목록 `lastRun` · 판정 접기 한 자리(`scenario/verdict.ts`)
+- 완료: 게이트 0 사용자 여섯(제한 시간 바닥·API 몫 · 크기 100000바이트 · 치운 것 409 · 단건 조회 kind · 결과 응답 칸 · run_item 경유 예외) · 게이트 1 사용자(E2E 탭 집계 · runnable 에 60분·크기·뿌리 밖 · `SCENARIO_RUN` 404 · 결과 저장 순서)
+- 미완: ③-2 시험 실행 · 화면(WS-E) · 증적(WS-D)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: ③-2 는 `callScenarioRunner` 를 `runId: null` + `trialId` 로 그대로 쓴다. 결과 저장 규칙의 정본은 도메인/시나리오 §7 「실행 결과를 적는 규칙」. fixture 접두사 XSE(runStore) · XSU(runRoutes)
