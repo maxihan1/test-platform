@@ -49,7 +49,7 @@ export function use엑셀받기(조건: CaseQuery, 건수: number | null): { 버
 
   return {
     버튼: (
-      <button className="btn ghost" onClick={() => void 받기()} disabled={받는중 || (건수 ?? 0) === 0}>
+      <button className="btn ghost case-export" onClick={() => void 받기()} disabled={받는중 || (건수 ?? 0) === 0}>
         {받는중 ? t('만드는 중…') : t('이 결과 엑셀로 ({건수}건)', { 건수: 건수 ?? 0 })}
       </button>
     ),

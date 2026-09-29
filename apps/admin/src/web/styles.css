@@ -546,6 +546,8 @@ body {
 }
 
 /* 케이스 엑셀 받기 실패 한 줄. 판정 색을 쓰지 않는다 — 실패한 것은 케이스가 아니라 받기다 (DESIGN.md) */
+.case-export { margin-left: auto; }
+
 .export-alert {
   padding: 8px 24px;
   border-bottom: 1px solid var(--rule-soft);
