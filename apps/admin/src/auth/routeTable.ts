@@ -77,6 +77,9 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/authoring/requests/:id/outputs': 작성쓰기,
   // 토큰 사용량 — 작성 에이전트가 부른다 (작성 §7 「토큰 사용량」)
   'POST /api/authoring/requests/:id/usage': 작성쓰기,
+  // 보류 케이스에 사람이 값을 넣거나 제거한다 — 화면이 부른다 (작성 §3.6 「★ 보류 케이스」)
+  'PUT /api/authoring/requests/:id/held/:tcId': 작성쓰기,
+  'DELETE /api/authoring/requests/:id/held/:tcId': 작성쓰기,
 
   // ★ 저장소를 영구히 바꾸는 일 — admin. 작성 쓰기와 같으면 「실행할 수 있는 사람 = 저장소를 고칠 수 있는 사람」이 된다
   'POST /api/authoring/merges': 'admin',

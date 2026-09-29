@@ -1,5 +1,6 @@
 // 보류 케이스에 사람이 넣은 값(held_input) — 모양 검사 · 남은 수 · 새 실행으로 옮기기 · 저장 (SPEC 도메인/작성 §3.6 「★ 보류 케이스」)
 
+import { 뿌리, 사슬식 } from './history.js';
 import { db } from './store.js';
 
 export interface 칸 {
@@ -136,4 +137,68 @@ export async function 입력읽기(id: number): Promise<보류입력> {
     [id],
   );
   return r.rows[0]?.held_input ?? {};
+}
+
+const tcId모양 = /^[A-Z][A-Z0-9]{0,11}-\d{3}$/; // catalog/rules.ts TCID 의 사본 — §2 가 바뀌면 같이 고친다
+const 보류키 = ['tcId', 'file', 'kind', 'reason', 'fields'];
+const 칸키 = ['side', 'key', 'description', 'type', 'options'];
+
+export function tcId인가(v: unknown): v is string {
+  return typeof v === 'string' && tcId모양.test(v);
+}
+
+function 글인가(v: unknown): v is string {
+  return typeof v === 'string' && v !== '';
+}
+
+function 칸모양(v: unknown): boolean {
+  if (!객체인가(v) || Object.keys(v).some((k) => !칸키.includes(k))) return false;
+  const { side, key, description, type, options } = v;
+  if ((side !== 'params' && side !== 'expected') || !글인가(key) || typeof description !== 'string') return false;
+  if (type === 'enum') return Array.isArray(options) && options.length > 0 && options.every((o) => typeof o === 'string');
+  return (type === 'string' || type === 'number' || type === 'boolean') && options === undefined;
+}
+
+/**
+ * 끝내기 result.held 의 모양. 맞으면 그대로, 아니면 null(→ 400 BAD_HELD).
+ * 이 값이 화면의 입력 칸과 반영 때 코드에 적힐 칸을 정한다 — 느슨하면 틀린 칸에 값이 들어간다
+ */
+export function 보류모양검사(v: unknown): 보류[] | null {
+  if (!Array.isArray(v)) return null;
+  const 본것 = new Set<string>();
+  for (const h of v) {
+    if (!객체인가(h) || Object.keys(h).some((k) => !보류키.includes(k))) return null;
+    if (!tcId인가(h.tcId) || 본것.has(h.tcId)) return null;
+    본것.add(h.tcId);
+    if (!글인가(h.file) || !글인가(h.reason) || (h.kind !== 'UNDECIDABLE' && h.kind !== 'ON_HOLD')) return null;
+    if (!Array.isArray(h.fields) || !h.fields.every(칸모양)) return null;
+  }
+  return v as 보류[];
+}
+
+/** 행의 result.held — 끝내기에서 모양을 본 뒤 저장된 값이다 */
+export function 보류들(result: unknown): 보류[] {
+  const held = 객체인가(result) ? result.held : undefined;
+  return Array.isArray(held) ? (held as 보류[]) : [];
+}
+
+/**
+ * 새 실행이 DONE 으로 끝났을 때 같은 뿌리의 앞 DONE 실행에서 입력을 옮겨 온다.
+ * 머지 행은 입력을 안 가진다. 멈춘 · 실패한 실행은 result.held 가 없어 입력도 못 받았으니 건너뛴다
+ */
+export async function 입력이어받기(id: number, 새보류들: 보류[]): Promise<void> {
+  if (새보류들.length === 0) return;
+  const 뿌리번호 = (await 뿌리(id)) ?? id;
+  const pool = await db();
+  const r = await pool.query<{ held_input: 보류입력 | null }>(
+    `WITH RECURSIVE ${사슬식('id = $1')}
+     SELECT a.held_input FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id
+      WHERE a.id < $2 AND a.kind <> 'MERGE' AND a.status = 'DONE'
+      ORDER BY a.id DESC LIMIT 1`,
+    [뿌리번호, id],
+  );
+  const 옮길것 = 입력옮기기(r.rows[0]?.held_input ?? null, 새보류들);
+  if (옮길것 !== null) {
+    await pool.query('UPDATE authoring_request SET held_input = $2 WHERE id = $1', [id, JSON.stringify(옮길것)]);
+  }
 }

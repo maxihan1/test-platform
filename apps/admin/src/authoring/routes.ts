@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
+import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
@@ -236,13 +237,19 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 서비스 경계는 문이 이미 봤다 — 이 틀은 라우트표에서 「번호로 서비스를 찾는」 갈래다
       if (행 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
       const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;
-      return { ...행, assets: await 자료목록(행.id), rootId: 뿌리번호, runs: await 실행들(뿌리번호) };
+      return {
+        ...행,
+        assets: await 자료목록(행.id),
+        rootId: 뿌리번호,
+        runs: await 실행들(뿌리번호),
+        ...(await 보류상세(행)),
+      };
     },
   );
 
   // 머지만 경로가 갈린다. 같은 경로에 kind 로 얹으면 등급이 **본문 값**에 따라 갈려야 하고
   // 그러려면 문이 본문을 읽어야 한다. 경로가 다르면 경로만 보고 가른다 (SPEC §7)
-  app.post<{ Querystring: { service?: string }; Body: { sourceId?: unknown } }>(
+  app.post<{ Querystring: { service?: string }; Body: { sourceId?: unknown; env?: unknown } }>(
     '/authoring/merges',
     async (req, reply) => {
       const 서비스 = await 서비스번호(req, reply);
@@ -259,6 +266,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       if (행.status !== 'DONE' || 행.prUrl === null) {
         return reply.code(409).send({ error: 'NOT_MERGEABLE', detail: 행.status });
       }
+      const 보류 = await 머지보류판정(행, 서비스, req.body?.env);
+      if ('error' in 보류) return reply.code(보류.code).send({ error: 보류.error });
 
       const id = await 뿌리잠그고(뿌리번호, async () => (await 도는실행있나(뿌리번호)) ? null : 줄세우기({
         서비스,
@@ -278,4 +287,5 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
   );
 
   await 중단통로(app);
+  await 보류통로(app);
 }

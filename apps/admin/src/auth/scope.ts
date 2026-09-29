@@ -80,6 +80,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests/:id/usage': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/stop': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/discard': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/held/:tcId': { 종류: '작성요청', 칸: 'id' },
 };
 
 // SPEC §2 — 접두사는 자유 형식이고 플랫폼은 모양과 중복만 본다.
