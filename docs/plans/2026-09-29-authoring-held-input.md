@@ -154,3 +154,15 @@
 
 ### 통과한 것
 kit held 가 unconfirmed 규칙 재사용 · fields 를 에이전트가 계산 · XWL 접두사 · 새 패키지 없음 · 목업 먼저 · 마이그레이션 번호 · 기대값 규칙 안 · HELD_OPEN
+
+## 게이트 1 — 지적 반영 (2026-09-29 사용자 「지적 반영하고 진행」)
+
+재검토 없이 아래를 할 일에 더한다.
+
+- **할 일 1(명세)** 에 더한다 — merges 본문 `env?`(정방향이고 heldOpen>0 이면 필수 · 테스트 계정 있는 줄만, 아니면 400 BAD_ENV · 대조는 원본 것을 물려받고 env 가 오면 400) · claim(MERGE) target 은 그 env 로 · held_input 은 **뿌리의 최신 끝난 실행 행**에만, 새 실행이 끝나면 같은 tcId·같은 칸 이름의 입력만 옮긴다 · MERGE 대기·도는 중 PUT/DELETE 409 `MERGE_ACTIVE` · 칸 타입은 string·number·boolean·enum 만(그 밖 칸은 제거만) · 비밀값 칸은 입력 없이 대상 서버 줄 테스트 계정에서 · 반영 실패 뒤 입력은 남고 다시 누르면 자식이 끝낸 커밋 위에 다시 적는다 · held+unconfirmed 는 둘 다 달 수 있고 채워도 unconfirmed 는 남는다
+- **할 일 3(검사기)** 에 더한다 — `check:tests --no-held`(held 가 하나라도 있으면 위반) · CI 가 **초안 아닌 PR** 에서 그것을 돌린다 (`.github/workflows/*` · docs/HOOKS.md)
+- **할 일 5(서버)** 에 더한다 — 409 MERGE_ACTIVE · merges env 판정 · 새 실행 끝날 때 입력 옮기기(finish 안)
+- **할 일 7 → 7a · 7b**
+  - 7a `scripts/authoring-held-apply.ts` 순수 — ts.factory 리터럴로만 `.default()` · 이미 default 면 바꾼다 · held 속성 제거 · 표 「제거함」 · held 남았는지 판정. RED 에 따옴표·줄바꿈·enum·optional 칸
+  - 7b `scripts/authoring-merge.ts` 껍데기 — held 입력이 있으면 자리 잡기(동시 상한에 센다) · authoring-run 관문 환경(작업방·uid·target 환경변수) 재사용 · typecheck·check:tests --no-held · 채운 케이스 `--repeat-each=3` · 자기 author-<뿌리> 브랜치에 `--force-with-lease`(CLAUDE.md §5 예외 안) · **push 뒤 PR 을 다시 읽어 새 head SHA 로 CI 를 기다린다**. RED 에 「옛 head 로 병합하지 않는다」
+- **할 일 9(화면)** — 시안 기준은 design 지적 4건. 반영 버튼 자리에 이유 한 줄 · 정방향이면 반영 때 대상 서버 고르기
