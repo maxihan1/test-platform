@@ -68,6 +68,13 @@ export const 실행말: Record<string, string> = {
   '실행 제목': 'Run title',
   '세트 이름': 'Set name',
   '이 값을 묶음으로 저장': 'Save these values as a set',
+  // 케이스 저장값 — 목록 줄과 실행 설정 화면이 같이 쓴다 (도메인/실행 §8.2)
+  '저장값 · {누가} · {언제}': 'Saved · {누가} · {언제}',
+  '다음에도 이 값으로 채우기': 'Prefill these values next time',
+  '코드 기본값으로': 'Back to code defaults',
+  '지우기 확인': 'Confirm clear',
+  '팀 모두와 정기 실행에 쓰입니다': 'Used by the whole team and scheduled runs',
+  '안 저장한 값이 있습니다': 'Unsaved changes',
   '실행': 'Run',
   '{케이스} 실행': 'Run {케이스}',
   '{케이스} 외 {나머지}건 실행': 'Run {케이스} and {나머지} more',

@@ -138,8 +138,10 @@ export function 케이스줄({
   글자,
   폈나 = false,
   실행된다 = true,
+  저장된다 = false,
   on값,
   on더보기,
+  on저장됨,
 }: {
   row: CaseRow;
   마지막: LastMap;
@@ -150,8 +152,10 @@ export function 케이스줄({
   폈나?: boolean;
   /** 고른 서비스에서 실행 쓰기인가. 아니면 줄의 실행 링크가 없다 (화면공통 §8) */
   실행된다?: boolean;
+  저장된다?: boolean;
   on값: (tcId: string, 어디: 'params' | 'expected', key: string, value: string) => void;
   on더보기: (tcId: string) => void;
+  on저장됨?: (tcId: string) => void;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -190,6 +194,8 @@ export function 케이스줄({
           글자={글자}
           on값={(어디, key, value) => on값(row.tcId, 어디, key, value)}
           on더보기={() => on더보기(row.tcId)}
+          저장된다={저장된다}
+          on저장됨={on저장됨 === undefined ? undefined : () => on저장됨(row.tcId)}
         />
       </div>
       <div className="right">

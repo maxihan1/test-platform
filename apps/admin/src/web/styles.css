@@ -2492,6 +2492,19 @@ select:focus {
   display: none;
 }
 
+/* 줄 끝의 저장값 표시·「저장」 버튼 (도메인/실행 §8.2, 2026-09-29 시안 A) */
+.saved-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.saved-tag {
+  font-size: 11.5px;
+  color: var(--pass);
+}
+
 /* 넘친 칸은 상세로 간다. 줄에 넷까지만 두는 규칙은 CaseRowParams.tsx 가 정본이다 */
 .pmore {
   align-self: flex-start;

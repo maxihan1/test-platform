@@ -8,6 +8,7 @@ import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { 넘었나, 상한, 항목수 } from './runPlan.js';
+import { 저장값버튼들, 저장값표시 } from './SavedInputBar.js';
 import { initialText, schemaToFields, toValues } from './schema.js';
 import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
 import { fieldErrors, messagesByKey } from './validation.js';
@@ -136,6 +137,21 @@ export function RunSetup({ tcId, service, user }: Props) {
     }
   };
 
+  // 서버가 칸별 사유를 돌려주면 그 칸 아래에 붙인다 (SPEC §8.2)
+  const 사유붙이기 = (err: unknown) => {
+    if (err instanceof ApiError && err.violations.length > 0) {
+      const byKey = messagesByKey(err.violations);
+      setServerErrors({
+        params: pick(byKey, paramFields.map((f) => f.key)),
+        expected: pick(byKey, expectedFields.map((f) => f.key)),
+      });
+      setShowErrors(false);
+      setNotice(t('입력값이 명세와 맞지 않습니다.'));
+    } else {
+      setNotice(message(err, 언어));
+    }
+  };
+
   const saveSet = async () => {
     setShowErrors(true);
     if (setName.trim() === '') {
@@ -150,18 +166,7 @@ export function RunSetup({ tcId, service, user }: Props) {
       setNotice(t('{이름}으로 저장했습니다.', { 이름: `'${setName.trim()}'` }));
       saved.reload();
     } catch (err) {
-      // 서버가 칸별 사유를 돌려주면 그 칸 아래에 붙인다 (SPEC §8.2)
-      if (err instanceof ApiError && err.violations.length > 0) {
-        const byKey = messagesByKey(err.violations);
-        setServerErrors({
-          params: pick(byKey, paramFields.map((f) => f.key)),
-          expected: pick(byKey, expectedFields.map((f) => f.key)),
-        });
-        setShowErrors(false);
-        setNotice(t('입력값이 명세와 맞지 않습니다.'));
-      } else {
-        setNotice(message(err, 언어));
-      }
+      사유붙이기(err);
     } finally {
       setBusy(false);
     }
@@ -192,6 +197,7 @@ export function RunSetup({ tcId, service, user }: Props) {
       <div className="sec">
         <div className="sec-h">
           <span>{t('입력값')}</span>
+          <저장값표시 saved={row.savedInput} />
           {saved.data === null || saved.data.items.length === 0 ? null : (
             <select defaultValue="" onChange={(e) => loadSet(e.target.value)}>
               <option value="">{t('저장된 입력값 세트 불러오기')}</option>
@@ -337,6 +343,7 @@ export function RunSetup({ tcId, service, user }: Props) {
             <button className="btn ghost" onClick={() => void saveSet()} disabled={busy}>
               {t('이 값을 묶음으로 저장')}
             </button>
+            <저장값버튼들 tcId={row.tcId} 값={{ params, expected }} saved={row.savedInput} on다시읽기={found.reload} on실패={사유붙이기} />
           </>
         )}
         {만들건수 <= 1 ? null : (

@@ -706,6 +706,12 @@ export const api = {
 
   deleteParamSet: (id: number) => call<void>(`/param-sets/${id}`, { method: 'DELETE' }),
 
+  /** 모든 칸이 코드 기본값과 같으면 서버가 행을 지우고 null 을 준다. 안 보낸 비밀값 칸은 앞 저장값을 이어받는다 */
+  saveInput: (tcId: string, body: { params: Record<string, unknown>; expected: Record<string, unknown> }) =>
+    call<SavedInput | null>(`/cases/${encodeURIComponent(tcId)}/saved-input`, { ...json(body), method: 'PUT' }),
+
+  clearInput: (tcId: string) => call<void>(`/cases/${encodeURIComponent(tcId)}/saved-input`, { method: 'DELETE' }),
+
   screenshot: (runId: number, historyId: number, seq: number) => `/api/screenshots/${runId}/${historyId}/${seq}.png`,
 
   // 작성 대기줄 (SPEC §7 · 도메인/작성 §7). 넣기·읽기는 화면이 부르고

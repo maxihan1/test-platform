@@ -261,8 +261,14 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
             글자={글자[row.tcId]}
             폈나={편줄.has(row.tcId)}
             실행된다={할수('실행')}
+            저장된다={할수('입력값저장')}
             on값={값고침}
             on더보기={더보기}
+            on저장됨={(tcId) => {
+              // 저장값이 곧 칸의 새 시작값이다. 고친 글자를 남기면 저장한 뒤에도 「안 저장한 값」으로 보인다
+              set글자((전) => ({ ...전, [tcId]: { params: {}, expected: {} } }));
+              cases.reload();
+            }}
           />
         ))}
         </>

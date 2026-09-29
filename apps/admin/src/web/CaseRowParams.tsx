@@ -8,7 +8,8 @@
 import type { JsonSchema, SavedInput } from './api.js';
 import { Form } from './Form.js';
 import { use말 } from './i18n.js';
-import { type Field, initialText, schemaToFields } from './schema.js';
+import { 고쳤나, 줄저장 } from './SavedInputBar.js';
+import { type Field, initialText, schemaToFields, toValues } from './schema.js';
 
 /**
  * 줄에 보이는 칸 수의 상한 (2026-09-21 결정).
@@ -60,6 +61,8 @@ export function CaseRowParams({
   글자,
   on값,
   on더보기,
+  저장된다 = false,
+  on저장됨,
 }: {
   tcId: string;
   paramSchema: JsonSchema;
@@ -70,6 +73,10 @@ export function CaseRowParams({
   on값: (어디: 자리, key: string, value: string) => void;
   /** 넘친 칸을 보러 간다. 상세 펼침이 같은 자리를 연다 */
   on더보기: () => void;
+  /** 케이스 쓰기인가. 아니면 고쳐도 「저장」이 없다 (화면공통 §8) */
+  저장된다?: boolean;
+  /** 목록 줄만 준다 — 저장한 뒤 고친 글자를 비우고 목록을 다시 읽어 저장값이 칸에 보이게 한다 */
+  on저장됨?: () => void;
 }) {
   const t = use말();
   const 입력값 = schemaToFields(paramSchema, savedInput?.params, savedInput?.savedSecrets);
@@ -109,6 +116,19 @@ export function CaseRowParams({
         <button type="button" className="pmore" onClick={on더보기}>
           {t('{개수}개 더', { 개수: 남은 })}
         </button>
+      )}
+      {on저장됨 === undefined ? null : (
+        <줄저장
+          tcId={tcId}
+          값={{
+            params: toValues(입력값, 채운글자(입력값, 글자?.params)),
+            expected: toValues(기대결과, 채운글자(기대결과, 글자?.expected)),
+          }}
+          고침={고쳤나(입력값, 글자?.params) || 고쳤나(기대결과, 글자?.expected)}
+          saved={savedInput}
+          된다={저장된다}
+          on저장됨={on저장됨}
+        />
       )}
     </div>
   );
