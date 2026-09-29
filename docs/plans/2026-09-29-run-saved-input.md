@@ -169,7 +169,7 @@
 ## 게이트 1 — 지적 반영 (2026-09-29 사용자 승인. 이 절이 위 할 일 본문을 덮어쓴다)
 
 - **할 일 3 (저장)** — PUT 은 명세 검증 뒤 **코드 기본값과 같은 칸을 빼고** 저장한다(`default` 와 깊은 비교). 모두 빠지면 행을 지운다.
-  응답·읽기 함수는 `savedInput` 의 **비밀값 칸 값을 싣지 않고 `savedSecrets: string[]`(저장된 비밀값 칸 이름)** 로만 알린다
+  응답·읽기 함수는 `savedInput` 의 **비밀값 칸 값을 싣지 않고 `savedSecrets: { params: string[]; expected: string[] }`(저장된 비밀값 칸 이름, 자리별)** 로만 알린다
 - **할 일 4 (응답)** — `savedInput: { params, expected, savedSecrets, savedBy, savedAt } | null`. `params` 에 비밀값 칸은 없다.
   카탈로그는 `case_input` 을 SQL 로만 읽는다(주인 WS-B, 데이터모델 §6 에 적는다)
 - **할 일 5 (채우기)** — `저장값을채운다` 는 트랜잭션 안에서 지금 `param_schema`·`expected_schema` 로 **칸마다** 걸러,
