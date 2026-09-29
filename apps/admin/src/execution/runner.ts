@@ -1,7 +1,13 @@
 // 러너 POST /execute 호출 (SPEC §5.2). 판정은 러너가 만든다 — 여기서 다시 계산하지 않는다
 // 러너가 죽거나 붙지 못해도 던지지 않는다. 한 항목의 고장이 나머지 항목까지 끌고 내려가면 안 된다
 
-import type { ExecuteRequest, ExecuteResponse, RunningStep } from '@platform/kit';
+import type {
+  ExecuteRequest,
+  ExecuteResponse,
+  RunningStep,
+  ScenarioExecuteRequest,
+  ScenarioExecuteResponse,
+} from '@platform/kit';
 
 import type { PendingItem } from './store.js';
 
@@ -54,6 +60,14 @@ export async function 진행(): Promise<RunningStep[]> {
   }
 }
 
+// 400·404·500은 전부 { error, detail } 이다. 사람이 읽을 사유로 합쳐 둔다
+async function 거절사유(res: Response): Promise<string> {
+  const detail = (await res.json().catch(() => null)) as { error?: string; detail?: string } | null;
+  return detail === null
+    ? `러너가 ${res.status}로 거절했다`
+    : `러너가 거절했다: ${detail.error ?? res.status} — ${detail.detail ?? ''}`.trim();
+}
+
 export async function callRunner(runId: number, item: PendingItem): Promise<ExecuteResponse> {
   const body: ExecuteRequest = {
     runId,
@@ -76,14 +90,7 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
       signal: AbortSignal.timeout(httpTimeoutMs(item.timeoutMs)),
     });
 
-    if (!res.ok) {
-      // 400·404·500은 전부 { error, detail } 이다. 사람이 읽을 사유로 합쳐 둔다
-      const detail = (await res.json().catch(() => null)) as { error?: string; detail?: string } | null;
-      const message = detail === null
-        ? `러너가 ${res.status}로 거절했다`
-        : `러너가 거절했다: ${detail.error ?? res.status} — ${detail.detail ?? ''}`.trim();
-      return { ...na(item, message), durationMs: Date.now() - startedAt };
-    }
+    if (!res.ok) return { ...na(item, await 거절사유(res)), durationMs: Date.now() - startedAt };
 
     return (await res.json()) as ExecuteResponse;
   } catch (err) {
@@ -91,5 +98,29 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
     // 사람이 보는 문장은 사유 한 줄이고 원문(주소·포트)은 상세의 접힌 자리로 간다 (SPEC §8.3)
     const reason = err instanceof Error ? err.message : String(err);
     return { ...na(item, '러너에 닿지 못했습니다', reason), durationMs: Date.now() - startedAt };
+  }
+}
+
+// 시나리오 한 판을 러너에 맡긴다 (도메인/러너 「시나리오 실행」). 케이스 호출과 같은 문장으로 접는다 (도메인/시나리오 §7).
+// 거절·끊김이면 부품을 비워 돌려준다 — 부품마다 NA 를 채우는 것은 짝 없는 행을 닫는 저장 쪽 규칙이 한다
+export async function callScenarioRunner(요청: ScenarioExecuteRequest): Promise<ScenarioExecuteResponse> {
+  const startedAt = Date.now();
+  const 접는다 = (message: string, stack?: string): ScenarioExecuteResponse => ({
+    status: 'NA',
+    durationMs: Date.now() - startedAt,
+    parts: [],
+    error: { message, stack },
+  });
+  try {
+    const res = await fetch(`${runnerUrl()}/execute-scenario`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(요청),
+      signal: AbortSignal.timeout(httpTimeoutMs(요청.timeoutMs)),
+    });
+    if (!res.ok) return 접는다(await 거절사유(res));
+    return (await res.json()) as ScenarioExecuteResponse;
+  } catch (err) {
+    return 접는다('러너에 닿지 못했습니다', err instanceof Error ? err.message : String(err));
   }
 }

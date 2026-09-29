@@ -1,12 +1,14 @@
-// 시나리오 실행 만들기 — test_run(SCENARIO) 한 행 · 부품마다 NA 행 · 러너 요청 · 거절 다섯 (SPEC 도메인/시나리오 §3.7 · §7)
+// 시나리오 실행 만들기 — test_run(SCENARIO) 한 행 · 부품마다 NA 행 · 러너 요청 · 거절 다섯 · 결과 저장 · 분배 (SPEC 도메인/시나리오 §3.7 · §7)
 
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { ScenarioPart } from '@platform/kit';
+import type { ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
+import Fastify from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { 결과저장, 시나리오분배 } from './runResult.js';
 import { 실행만들기, 시나리오실행오류 } from './runStore.js';
 import { 만들기, 고치기, 치우기 } from './store.js';
 
@@ -258,5 +260,199 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
 
     const 밖 = await 거절(await 버전바로넣기([케이스('XSE-003')]), 'qa', 'NOT_RUNNABLE');
     expect(밖.message).toContain('tests 폴더 밖');
+  });
+
+  const 세부품 = async (): Promise<number> => {
+    const { id } = await 만들기(
+      서비스,
+      'XSE 결과 저장',
+      'desktop',
+      [케이스('XSE-001'), { kind: 'api', method: 'GET', path: '/health', expectStatus: 200 }, { kind: 'wait', ms: 10 }],
+      사람,
+    );
+    return (await 실행만들기(id, 'qa', 사람)).runId;
+  };
+
+  const 부품행 = async (runId: number) =>
+    (
+      await q<{ seq: number; status: string; duration_ms: number | null; error: unknown; finished_at: Date | null }>(
+        `SELECT seq, status, duration_ms, error, mocks, skipped_steps, finished_at
+           FROM scenario_run_part WHERE run_id = $1 ORDER BY seq`,
+        [runId],
+      )
+    ).rows;
+
+  const 실행상태 = async (runId: number) =>
+    (await q<{ status: string; finished_at: Date | null }>('SELECT status, finished_at FROM test_run WHERE run_id = $1', [runId]))
+      .rows[0]!;
+
+  const 절차들 = async (runId: number) =>
+    (
+      await q(
+        `SELECT p.seq AS part_seq, s.seq, s.title, s.status, s.skipped, s.duration_ms, s.assertions, s.line,
+                s.screenshot_path, s.http_trace, s.error
+           FROM scenario_run_step s JOIN scenario_run_part p ON p.id = s.part_id
+          WHERE p.run_id = $1 ORDER BY s.seq`,
+        [runId],
+      )
+    ).rows;
+
+  it('결과저장이 부품·절차를 적고 실행을 FINISHED 로 닫는다', async () => {
+    const runId = await 세부품();
+    const 응답: ScenarioExecuteResponse = {
+      status: 'FAIL',
+      durationMs: 900,
+      parts: [
+        {
+          seq: 1,
+          status: 'FAIL',
+          durationMs: 700,
+          mocks: ['**/api/cart'],
+          error: { message: '한 건이 아니다' },
+          steps: [
+            { seq: 1, title: '상품을 담는다', status: 'PASS', durationMs: 0, assertions: [], skipped: true },
+            {
+              seq: 2,
+              title: '장바구니에 한 건이다',
+              status: 'FAIL',
+              durationMs: 40,
+              assertions: [{ statement: '한 건이다', status: 'FAIL', expected: 1, actual: 2, blocker: true }],
+              line: 9,
+              screenshotPath: 'artifacts/runs/1/scenario/2.png',
+              httpTrace: { request: { a: 1 }, response: { b: 2 } },
+              error: { message: '한 건이 아니다', stack: 'at x' },
+            },
+          ],
+        },
+        { seq: 2, status: 'PASS', durationMs: 50, mocks: [], steps: [] },
+        { seq: 3, status: 'PASS', durationMs: 10, mocks: [], steps: [] },
+      ],
+    };
+
+    expect(await 결과저장(runId, 응답)).toBe(true);
+
+    const 실행 = await 실행상태(runId);
+    expect(실행.status).toBe('FINISHED');
+    expect(실행.finished_at).not.toBeNull();
+
+    const 행들 = await 부품행(runId);
+    expect(행들.map(({ finished_at, ...r }) => ({ ...r, 닫힘: finished_at !== null }))).toEqual([
+      { seq: 1, status: 'FAIL', duration_ms: 700, error: { message: '한 건이 아니다' }, mocks: ['**/api/cart'], skipped_steps: ['상품을 담는다'], 닫힘: true },
+      { seq: 2, status: 'PASS', duration_ms: 50, error: null, mocks: [], skipped_steps: [], 닫힘: true },
+      { seq: 3, status: 'PASS', duration_ms: 10, error: null, mocks: [], skipped_steps: [], 닫힘: true },
+    ]);
+
+    expect(await 절차들(runId)).toEqual([
+      {
+        part_seq: 1, seq: 1, title: '상품을 담는다', status: 'PASS', skipped: true, duration_ms: 0, assertions: [],
+        line: null, screenshot_path: null, http_trace: null, error: null,
+      },
+      {
+        part_seq: 1, seq: 2, title: '장바구니에 한 건이다', status: 'FAIL', skipped: false, duration_ms: 40,
+        assertions: [{ statement: '한 건이다', status: 'FAIL', expected: 1, actual: 2, blocker: true }],
+        line: 9, screenshot_path: 'artifacts/runs/1/scenario/2.png',
+        http_trace: { request: { a: 1 }, response: { b: 2 } }, error: { message: '한 건이 아니다', stack: 'at x' },
+      },
+    ]);
+  });
+
+  it('이미 ABORTED 인 실행에 늦게 온 결과는 버린다. 아무 행도 안 바뀐다', async () => {
+    const runId = await 세부품();
+    await q("UPDATE test_run SET status = 'ABORTED', finished_at = now() WHERE run_id = $1", [runId]);
+    const 전 = await 부품행(runId);
+
+    const 응답: ScenarioExecuteResponse = {
+      status: 'PASS',
+      durationMs: 1,
+      parts: [{ seq: 1, status: 'PASS', durationMs: 1, mocks: [], steps: [{ seq: 1, title: 't', status: 'PASS', durationMs: 1, assertions: [] }] }],
+    };
+    expect(await 결과저장(runId, 응답)).toBe(false);
+
+    expect((await 실행상태(runId)).status).toBe('ABORTED');
+    expect(await 부품행(runId)).toEqual(전);
+    expect(await 절차들(runId)).toEqual([]);
+  });
+
+  it('응답에 없는 부품은 NA 와 사유로 닫고, 겹친 seq 는 첫 것만 · 모르는 seq 는 버린다', async () => {
+    const runId = await 세부품();
+    const 응답: ScenarioExecuteResponse = {
+      status: 'FAIL',
+      durationMs: 5,
+      parts: [
+        { seq: 1, status: 'PASS', durationMs: 3, mocks: [], steps: [] },
+        { seq: 1, status: 'FAIL', durationMs: 4, mocks: ['x'], steps: [] },
+        { seq: 9, status: 'FAIL', durationMs: 4, mocks: [], steps: [] },
+      ],
+    };
+    expect(await 결과저장(runId, 응답)).toBe(true);
+
+    const 행들 = await 부품행(runId);
+    expect(행들.map((r) => [r.seq, r.status, r.error])).toEqual([
+      [1, 'PASS', null],
+      [2, 'NA', { message: '러너가 이 부품 결과를 돌려주지 않았다' }],
+      [3, 'NA', { message: '러너가 이 부품 결과를 돌려주지 않았다' }],
+    ]);
+    expect(행들.every((r) => r.finished_at !== null)).toBe(true);
+    expect((await 실행상태(runId)).status).toBe('FINISHED');
+  });
+
+  it('러너 고장(부품 없음 + error)이면 부품 전부 NA 에 같은 문장이다', async () => {
+    const runId = await 세부품();
+    expect(
+      await 결과저장(runId, { status: 'NA', durationMs: 3, parts: [], error: { message: '러너에 닿지 못했습니다', stack: 'ECONNREFUSED' } }),
+    ).toBe(true);
+
+    const 행들 = await 부품행(runId);
+    expect(행들.map((r) => [r.status, r.error])).toEqual(Array(3).fill(['NA', { message: '러너에 닿지 못했습니다' }]));
+    expect((await 실행상태(runId)).status).toBe('FINISHED');
+  });
+
+  it('저장이 던지면 부품 전부 NA + 결과를 저장하지 못했다 로 닫는다', async () => {
+    const runId = await 세부품();
+    // title 이 NOT NULL 이라 절차 INSERT 가 던진다 — 부품 1 은 이미 고쳐진 뒤다
+    const 깨진: ScenarioExecuteResponse = {
+      status: 'PASS',
+      durationMs: 1,
+      parts: [
+        { seq: 1, status: 'PASS', durationMs: 1, mocks: [], steps: [{ seq: 1, title: null as unknown as string, status: 'PASS', durationMs: 1, assertions: [] }] },
+      ],
+    };
+    expect(await 결과저장(runId, 깨진)).toBe(false);
+
+    const 행들 = await 부품행(runId);
+    expect(행들.every((r) => r.status === 'NA' && r.finished_at !== null)).toBe(true);
+    expect((행들[0]!.error as { message: string }).message).toMatch(/^결과를 저장하지 못했다: /);
+    expect(await 절차들(runId)).toEqual([]);
+    expect((await 실행상태(runId)).status).toBe('FINISHED');
+  });
+
+  it('시나리오분배가 러너를 불러 결과를 적고 실행을 닫는다', async () => {
+    const runId = await 세부품();
+    const 요청: ScenarioExecuteRequest = { runId, platform: 'desktop', baseUrl: 'http://xse.example', parts: [], timeoutMs: 60000 };
+    const 받은: unknown[] = [];
+    const app = Fastify();
+    app.post('/execute-scenario', async (req) => {
+      받은.push(req.body);
+      return {
+        status: 'PASS',
+        durationMs: 30,
+        parts: [1, 2, 3].map((seq) => ({ seq, status: 'PASS', durationMs: 10, mocks: [], steps: [] })),
+      };
+    });
+    await app.listen({ port: 0, host: '127.0.0.1' });
+    const 원래 = process.env.RUNNER_URL;
+    const addr = app.server.address();
+    process.env.RUNNER_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
+    try {
+      await 시나리오분배(runId, 요청);
+    } finally {
+      await app.close();
+      if (원래 === undefined) delete process.env.RUNNER_URL;
+      else process.env.RUNNER_URL = 원래;
+    }
+
+    expect(받은).toEqual([요청]);
+    expect((await 실행상태(runId)).status).toBe('FINISHED');
+    expect((await 부품행(runId)).map((r) => r.status)).toEqual(['PASS', 'PASS', 'PASS']);
   });
 });
