@@ -37,15 +37,16 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
   const 올리는중 = 요청.status === 'RUNNING' && !멈춤요청됨 && 요청.canStop !== true && 요청.progress?.childRunning === false;
   const 표시사본 = (요청.assets ?? []).filter((a: AuthoringAsset) => a.role === 'MARKED');
 
-  /** 누르면 곧장 서버로 가는 일(반영 · 다시 작성). 새로 선 줄로 보낸다 — 여기 머물면 아무 일도 안 난 것처럼 보이고 또 누른다 (2026-09-23) */
+  /**
+   * 누르면 곧장 서버로 가는 일(반영 · 다시 작성 · 이어서 작성). 새 실행은 같은 번호의 실행 기록에 쌓이므로
+   * 이 쪽에 머물러 다시 읽는다 — 새 번호로 보내면 한 요청이 번호 여럿으로 흩어진다 (§7 「실행 기록」, 2026-09-29)
+   */
   function 새줄로(만든다: () => Promise<{ id: number }>) {
     if (보내는중) return;
     set보내는중(true);
     set오류(null);
     void 만든다()
-      .then((선것) => {
-        window.location.hash = `#/authoring/${String(선것.id)}`;
-      })
+      .then(() => reload())
       .catch((err: unknown) => set오류(message(err, 언어)))
       .finally(() => set보내는중(false));
   }

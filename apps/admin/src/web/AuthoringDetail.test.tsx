@@ -12,6 +12,8 @@ const 실행까지: 판정 = (무엇) => 무엇 !== '작성머지' && 무엇 !==
 const 보기만: 판정 = (무엇) => 무엇 === '증적받기';
 
 let 답: AuthoringRow;
+// 번호마다 다른 답 — 없으면 `답` (실행 기록: 뿌리 상세와 최신 실행 상세를 따로 읽는다)
+const 답들 = new Map<number, AuthoringRow>();
 let 부른횟수 = 0;
 const { 멈춤, 폐기, 다시 } = vi.hoisted(() => ({
   멈춤: vi.fn((_s: string, _id: number) => Promise.resolve({ status: 'RUNNING' as const })),
@@ -24,9 +26,9 @@ vi.mock('./api.js', async () => {
   return {
     ...진짜,
     api: {
-      authoringRequest: () => {
+      authoringRequest: (_s: string, id: number) => {
         부른횟수 += 1;
-        return Promise.resolve(답);
+        return Promise.resolve(답들.get(id) ?? 답);
       },
       createAuthoringMerge: () => Promise.resolve({ id: 2 }),
       stopAuthoring: 멈춤,
@@ -72,6 +74,7 @@ beforeEach(() => {
   멈춤.mockClear();
   폐기.mockClear();
   다시.mockClear();
+  답들.clear();
   window.location.hash = '';
   답 = 줄({});
 });
@@ -108,10 +111,13 @@ describe('작성 한 건 상세', () => {
     expect(링크.getAttribute('href')).toBe('https://github.com/x/y/pull/3');
   });
 
-  it('반영하기를 누르면 머지 요청을 세우고 새 줄로 간다', async () => {
+  it('반영하기를 누르면 머지 요청을 세우고 같은 요청 쪽에 머물러 다시 읽는다 — 번호는 하나다', async () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
+    await 첫읽기끝();
+    const 앞 = 부른횟수;
     fireEvent.click(await screen.findByRole('button', { name: '테스트 반영하기' }));
-    await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring/2'));
+    await vi.waitFor(() => expect(부른횟수).toBeGreaterThan(앞));
+    expect(window.location.hash).toBe('');
   });
 
   it('끝난 요청은 다시 읽지 않는다. 안 멈추면 탭 하나가 서버를 계속 두드린다', async () => {
@@ -270,11 +276,14 @@ describe('작성 진척 · 중단 · 폐기', () => {
     expect(await screen.findByText('시스템 · 시간초과')).toBeTruthy();
   });
 
-  it('실패한 정방향 작성은 같은 자료로 다시 작성하면 재실행 줄을 세우고 새 줄로 간다', async () => {
+  it('실패한 정방향 작성은 같은 자료로 다시 작성하면 재실행 줄을 세우고 같은 요청 쪽에서 다시 읽는다', async () => {
     답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함', canDiscard: true });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
+    await 첫읽기끝();
+    const 앞 = 부른횟수;
     fireEvent.click(await screen.findByRole('button', { name: '같은 자료로 다시 작성' }));
-    await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring/9'));
+    await vi.waitFor(() => expect(부른횟수).toBeGreaterThan(앞));
+    expect(window.location.hash).toBe('');
     expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 });
   });
 
@@ -309,7 +318,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
       expect(버튼들).toEqual(['이어서 작성', '같은 자료로 다시 작성', '폐기']);
       fireEvent.click(screen.getByRole('button', { name: '이어서 작성' }));
       await vi.waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7, resume: true }));
-      await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring/9'));
+      expect(window.location.hash).toBe('');
     });
 
     it('만든 테스트를 모르면 수 없이 적는다', async () => {
@@ -343,11 +352,74 @@ describe('작성 진척 · 중단 · 폐기', () => {
       expect(screen.getByText('올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다')).toBeTruthy();
     });
 
-    it('이어받은 요청은 어느 요청의 중단 자리에서 이어받았는지 적는다', async () => {
-      답 = 줄({ kind: 'RERUN', sourceId: 3, resumeFrom: 5, status: 'RUNNING', prUrl: null, finishedAt: null });
+  });
+
+  describe('실행 기록 — 번호는 하나 (도메인/작성 §7 「실행 기록」)', () => {
+    const 때 = '2026-09-29T00:13:00.000Z';
+    const 실행 = (덮을것: Partial<NonNullable<AuthoringRow['runs']>[number]>) => ({
+      id: 5,
+      kind: 'AUTHOR' as const,
+      resumeFrom: null,
+      status: 'FAILED' as const,
+      stopReason: null,
+      error: null,
+      createdAt: 때,
+      startedAt: 때,
+      finishedAt: 때,
+      caseFiles: null,
+      tokens: null,
+      prUrl: null,
+      ...덮을것,
+    });
+
+    it('예전 실행 번호로 열면 뿌리 번호 쪽으로 넘어간다', async () => {
+      답 = 줄({ id: 7, kind: 'RERUN', sourceId: 5, rootId: 5, runs: [] });
       render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-      const 고리 = await screen.findByRole('link', { name: '작성 요청 #5의 중단 자리에서 이어받음' });
-      expect(고리.getAttribute('href')).toBe('#/authoring/5');
+      await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring/5'));
+    });
+
+    it('뿌리 쪽은 제목이 뿌리 번호이고, 상태 카드 · 다음 단계는 최신 실행 것이다', async () => {
+      const 기록 = [실행({ id: 9, kind: 'RERUN', resumeFrom: 8, status: 'RUNNING', finishedAt: null }), 실행({ id: 5 })];
+      답들.set(5, 줄({ id: 5, status: 'FAILED', prUrl: null, error: '옛 실패', rootId: 5, runs: 기록 }));
+      답들.set(9, 줄({ id: 9, kind: 'RERUN', sourceId: 5, status: 'RUNNING', prUrl: null, finishedAt: null, canStop: true, rootId: 5, runs: 기록 }));
+      render(<AuthoringDetail service="PAY" id={5} 할수={실행까지} />);
+      expect(await screen.findByRole('button', { name: '작성 중단' })).toBeTruthy();
+      expect(screen.getByText('#5')).toBeTruthy();
+      expect(window.location.hash).toBe('');
+    });
+
+    it('실행 기록 표는 차마다 한 줄 — 방식 · 결과 · 테스트 · 토큰 입력 · 출력 · 캐시 읽기 · 캐시 쓰기', async () => {
+      답 = 줄({
+        id: 5,
+        status: 'FAILED',
+        prUrl: null,
+        rootId: 5,
+        runs: [
+          실행({ id: 9, kind: 'RERUN', resumeFrom: 8, status: 'DONE', caseFiles: 29, prUrl: 'https://github.com/x/y/pull/105',
+            tokens: { input: 96, output: 29405, cacheRead: 4042515, cacheWrite: 1200, partial: false } }),
+          실행({ id: 8, kind: 'RERUN', status: 'STOPPED', stopReason: 'USER' }),
+          실행({ id: 5, status: 'FAILED', error: '비밀번호가 들어 있다',
+            tokens: { input: 178, output: 113675, cacheRead: 13971466, cacheWrite: 0, partial: true } }),
+        ],
+      });
+      render(<AuthoringDetail service="PAY" id={5} 할수={실행까지} />);
+      const 표 = await screen.findByRole('table', { name: '실행 기록' });
+      const 줄들 = Array.from(표.querySelectorAll('tbody tr')).map((r) => Array.from(r.querySelectorAll('td')).map((c) => c.textContent));
+      expect(줄들).toHaveLength(3);
+      expect(줄들[0]).toEqual(['3차', '이어서', expect.any(String), '완료', '29', '96', '29,405', '4,042,515', '1,200']);
+      expect(줄들[1]!.slice(0, 2)).toEqual(['2차', '처음부터']);
+      expect(줄들[1]![3]).toBe('중단 — 사용자가 멈춤');
+      expect(줄들[1]!.slice(5)).toEqual(['—', '—', '—', '—']);
+      expect(줄들[2]!.slice(0, 2)).toEqual(['1차', '처음']);
+      expect(줄들[2]![3]).toBe('실패 — 비밀번호가 들어 있다');
+      expect(줄들[2]![5]).toBe('178 (끊겨 하한)');
+    });
+
+    it('실행이 하나뿐이면 기록 표를 그리지 않는다', async () => {
+      답 = 줄({ id: 5, rootId: 5, runs: [실행({ id: 5, status: 'DONE' })] });
+      render(<AuthoringDetail service="PAY" id={5} 할수={실행까지} />);
+      await 첫읽기끝();
+      expect(screen.queryByRole('table', { name: '실행 기록' })).toBeNull();
     });
   });
 

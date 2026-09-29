@@ -72,6 +72,16 @@ describe('작성 줄 목록', () => {
     render(<Authoring service="PAY" 할수={() => true} />);
     expect(await screen.findByText('중단')).toBeTruthy();
   });
+
+  it('여러 번 돈 요청은 뿌리 번호 한 줄 — 링크도 뿌리로 가고 몇 차인지 보인다 (도메인/작성 §7 「실행 기록」)', async () => {
+    줄들.push(줄({ id: 5877, kind: 'RERUN', sourceId: 5873, resumeFrom: 5876, rootId: 5873, runCount: 5, status: 'RUNNING', stageAt: new Date().toISOString() }));
+    render(<Authoring service="PAY" 할수={() => true} />);
+    expect(await screen.findByText('#5873')).toBeTruthy();
+    expect(screen.queryByText('#5877')).toBeNull();
+    const 고리 = screen.getAllByRole('link').find((a) => a.getAttribute('href')?.startsWith('#/authoring/'));
+    expect(고리?.getAttribute('href')).toBe('#/authoring/5873');
+    expect(screen.getByText(/5차 · 이어서/)).toBeTruthy();
+  });
 });
 
 // 작성 읽기면 새 작성 자리가 아예 없다 (화면공통 §8)

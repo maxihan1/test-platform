@@ -140,8 +140,6 @@ export const 작성말: Record<string, string> = {
   '작성 요청 #{번호}로 이어받았습니다': 'Continued as request #{번호}',
   '보관 기간이 지나 만든 것을 지웠습니다. 처음부터 다시 작성하세요.':
     'The keep period is over and what was made was deleted. Write again from the start.',
-  이어받음: 'Continued from',
-  '작성 요청 #{번호}의 중단 자리에서 이어받음': 'Continued from where request #{번호} stopped',
   '목록에서 사라집니다. 보관한 작업물도 지웁니다. 통계와 토큰 기록은 남습니다.':
     'It disappears from the list and the kept work is deleted. Stats and token records stay.',
 
@@ -204,4 +202,19 @@ export const 작성말: Record<string, string> = {
   '화면에만 있음': 'Only on screen',
   '문서에만 있음': 'Only in spec',
   '알 수 없는 종류': 'Unknown kind',
+  // 실행 기록 (도메인/작성 §7 「실행 기록」) — 번호는 하나, 실행은 차로 쌓인다
+  '{차}차': 'Run {차}',
+  차: 'Run',
+  방식: 'How',
+  처음: 'First',
+  처음부터: 'From scratch',
+  이어서: 'Continued',
+  시작: 'Started',
+  결과: 'Result',
+  테스트: 'Tests',
+  입력: 'Input',
+  출력: 'Output',
+  '캐시 읽기': 'Cache read',
+  '캐시 쓰기': 'Cache write',
+  '끊겨 하한': 'cut off, lower bound',
 };
