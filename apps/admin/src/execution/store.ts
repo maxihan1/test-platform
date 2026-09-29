@@ -299,6 +299,13 @@ const CLOSE_UNFINISHED = `
          error = jsonb_build_object('message', $2::text)
    WHERE run_id = $1 AND finished_at IS NULL`;
 
+// 케이스 쪽 CLOSE_UNFINISHED 와 같은 조건이다 — 먼저 온 기록을 덮지 않는다
+const CLOSE_UNFINISHED_PARTS = `
+  UPDATE scenario_run_part
+     SET status = 'NA', finished_at = now(), duration_ms = COALESCE(duration_ms, 0),
+         error = jsonb_build_object('message', 'ABORTED')
+   WHERE run_id = $1 AND finished_at IS NULL`;
+
 export interface AbortResult {
   aborted: number;
 }
@@ -354,6 +361,9 @@ export async function recoverRunning(): Promise<number> {
   const pool = await db();
   const running = await pool.query<{ run_id: string }>("SELECT run_id FROM test_run WHERE status = 'RUNNING'");
   for (const row of running.rows) {
+    // 시나리오 실행의 부품도 닫는다 (SPEC 실행 §3.2). 실행보다 먼저 — 여기서 죽어도 실행이 RUNNING 으로 남아
+    // 다음 기동이 다시 집는다. duration_ms 는 CLOSE_UNFINISHED 와 맞춘다 — 같은 마감이 두 표에서 다르게 보이지 않게
+    await pool.query(CLOSE_UNFINISHED_PARTS, [Number(row.run_id)]);
     await pool.query(CLOSE_UNFINISHED, [Number(row.run_id), 'ABORTED']);
     await pool.query("UPDATE test_run SET status = 'ABORTED', finished_at = now() WHERE run_id = $1", [
       Number(row.run_id),

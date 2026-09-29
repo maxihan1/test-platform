@@ -137,4 +137,27 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
       await 실행치우기();
     }
   });
+
+  it('재기동 복구가 시나리오 실행의 안 끝난 부품을 NA + ABORTED 로 닫는다', async () => {
+    await 실행치우기();
+    const S = await 실행({ 시나리오: true, status: 'RUNNING' });
+    await q(
+      `INSERT INTO scenario_run_part (run_id, seq, kind, part, status, error, finished_at) VALUES
+         ($1, 1, 'wait', '{}', 'PASS', '{"message":"그대로"}', now()),
+         ($1, 2, 'wait', '{}', 'NA', NULL, NULL)`,
+      [S],
+    );
+
+    await recoverRunning();
+
+    const 부품들 = await q<{ seq: number; status: string; error: { message: string } | null; 닫힘: boolean }>(
+      `SELECT seq, status, error, finished_at IS NOT NULL AS "닫힘" FROM scenario_run_part WHERE run_id = $1 ORDER BY seq`,
+      [S],
+    );
+    expect(부품들.rows).toEqual([
+      { seq: 1, status: 'PASS', error: { message: '그대로' }, 닫힘: true },
+      { seq: 2, status: 'NA', error: { message: 'ABORTED' }, 닫힘: true },
+    ]);
+    expect(await 상태(S)).toBe('ABORTED');
+  });
 });
