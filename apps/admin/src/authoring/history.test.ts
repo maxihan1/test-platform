@@ -24,6 +24,7 @@ describe.skipIf(연결 === undefined)('작성 요청 실행 기록', () => {
     prUrl?: string;
     error?: string;
     토큰?: [number, number, number, number];
+    요청자?: string;
   } = {}): Promise<number> {
     const { pool } = await import('../db/index.js');
     const 상태 = 칸.status ?? 'FAILED';
@@ -32,7 +33,7 @@ describe.skipIf(연결 === undefined)('작성 요청 실행 기록', () => {
          (service_id, kind, source_id, resume_from, requested_by, requested_by_name, status, claimed_by,
           stop_reason, stopped_by, pr_url, error, started_at, finished_at,
           tokens_input, tokens_output, tokens_cache_read, tokens_cache_write, tokens_partial)
-       VALUES ($1, $2, $3, $4, 'xwh-에이전트', '실행 기록 검사', $5, $6, $7, CASE WHEN $7::text IS NULL THEN NULL ELSE 'system' END,
+       VALUES ($1, $2, $3, $4, $14, '실행 기록 검사', $5, $6, $7, CASE WHEN $7::text IS NULL THEN NULL ELSE 'system' END,
                $8, $9, now() - interval '1 hour',
                CASE WHEN $5 IN ('PENDING', 'RUNNING') THEN NULL ELSE now() END,
                $10::int, $11::int, $12::int, $13::int, CASE WHEN $10::int IS NULL THEN NULL ELSE false END)
@@ -48,6 +49,7 @@ describe.skipIf(연결 === undefined)('작성 요청 실행 기록', () => {
         칸.prUrl ?? null,
         칸.error ?? null,
         ...(칸.토큰 ?? [null, null, null, null]),
+        칸.요청자 ?? 에이전트,
       ],
     );
     return Number(r.rows[0]!.id);
@@ -183,5 +185,45 @@ describe.skipIf(연결 === undefined)('작성 요청 실행 기록', () => {
     expect(Number(남은.rows[0]!.n)).toBe(0);
     expect((await 목록()).total).toBe(0);
     expect((await 목록('&discarded=1')).items.map((i) => i.rootId)).toEqual([가]);
+  });
+
+  const 버리기 = (id: number) => app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/discard?service=${접두사}` });
+
+  it('폐기는 그 뿌리의 최신 실행에서만, 도는 실행이 없을 때만 — 방금 선 실행을 같이 버리지 않는다', async () => {
+    const { pool } = await import('../db/index.js');
+    const 가 = await 행({ status: 'FAILED' });
+    await 행({ kind: 'RERUN', sourceId: 가, status: 'PENDING' });
+    expect((await 버리기(가)).statusCode).toBe(409);
+    const 나 = await 행({ status: 'FAILED' });
+    await 행({ kind: 'RERUN', sourceId: 나, status: 'FAILED' });
+    expect((await 버리기(나)).statusCode).toBe(409);
+    const 남은 = await pool.query<{ n: string }>(
+      'SELECT count(*) AS n FROM authoring_request WHERE id = ANY($1) AND discarded_at IS NOT NULL',
+      [[가, 나]],
+    );
+    expect(Number(남은.rows[0]!.n)).toBe(0);
+  });
+
+  it('통째 폐기는 맨 처음 요청한 사람(또는 admin)만 — 남의 요청을 다시 돌린 사람은 못 버린다', async () => {
+    const 가 = await 행({ status: 'FAILED', 요청자: 'xwh-남' });
+    const 가1 = await 행({ kind: 'RERUN', sourceId: 가, status: 'FAILED' });
+    const 버림 = await 버리기(가1);
+    expect(버림.statusCode).toBe(403);
+    expect((await 상세(가1)) as unknown as { canDiscard: boolean }).toMatchObject({ canDiscard: false });
+  });
+
+  it('실패한 머지는 최신에서 건너뛴다 — 끝난 작성 실행으로 다시 반영할 수 있다', async () => {
+    const 가 = await 행({ status: 'DONE', prUrl: 'https://github.com/acme/xwh/pull/6' });
+    await 행({ kind: 'MERGE', sourceId: 가, status: 'FAILED' });
+    const 머지 = await app.inject({ method: 'POST', url: `/api/authoring/merges?service=${접두사}`, payload: { sourceId: 가 } });
+    expect(머지.statusCode).toBe(201);
+  });
+
+  it('동시에 두 번 눌러도 한 뿌리에 새 실행은 하나만 선다', async () => {
+    const 가 = await 행({ status: 'FAILED' });
+    const 누름 = () =>
+      app.inject({ method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'RERUN', sourceId: 가 } });
+    const 답들 = await Promise.all([누름(), 누름(), 누름()]);
+    expect(답들.map((r) => r.statusCode).sort()).toEqual([201, 409, 409]);
   });
 });

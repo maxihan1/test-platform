@@ -114,13 +114,36 @@ export async function 도는실행있나(뿌리번호: number): Promise<boolean>
   return (r.rowCount ?? 0) > 0;
 }
 
-/** 그 뿌리의 가장 최근 실행 번호 */
+/** 실패한 머지는 「최신」에서 뺀다 — 빼지 않으면 CI 가 빨갛게 끝난 머지 뒤에 다시 반영할 길이 없다 (2026-09-29 검사) */
+export const 최신식 = (사슬이름: string) =>
+  `(SELECT max(s.id) FROM ${사슬이름} s JOIN authoring_request x ON x.id = s.id WHERE NOT (x.kind = 'MERGE' AND x.status = 'FAILED'))`;
+
+/** 그 뿌리의 가장 최근 실행 번호 — 실패한 머지는 건너뛴다 */
 export async function 최신실행(뿌리번호: number): Promise<number> {
-  const r = await (await db()).query<{ id: string }>(
-    `WITH RECURSIVE ${사슬식('id = $1')} SELECT max(id) AS id FROM 사슬`,
-    [뿌리번호],
-  );
+  const r = await (await db()).query<{ id: string }>(`WITH RECURSIVE ${사슬식('id = $1')} SELECT ${최신식('사슬')} AS id`, [
+    뿌리번호,
+  ]);
   return Number(r.rows[0]!.id);
+}
+
+/**
+ * 뿌리 하나에 새 실행을 세우는 일을 한 줄로 — 확인(`도는실행있나`)과 넣기 사이에 다른 누름이 끼면
+ * 둘이 같은 브랜치를 서로 덮는다 (2026-09-29 검사). 트랜잭션 잠금이라 끝나면 저절로 풀린다
+ */
+export async function 뿌리잠그고<T>(뿌리번호: number, 일: () => Promise<T>): Promise<T> {
+  const 손 = await (await db()).connect();
+  try {
+    await 손.query('BEGIN');
+    await 손.query(`SELECT pg_advisory_xact_lock(hashtext('authoring-root'), ($1::bigint % 2147483647)::int)`, [뿌리번호]);
+    const 값 = await 일();
+    await 손.query('COMMIT');
+    return 값;
+  } catch (e) {
+    await 손.query('ROLLBACK');
+    throw e;
+  } finally {
+    손.release();
+  }
 }
 
 export type 요약 = Omit<요청, 'specText'> & { rootId: number; runCount: number };

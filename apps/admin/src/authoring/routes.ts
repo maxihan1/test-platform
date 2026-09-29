@@ -10,7 +10,7 @@ import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
-import { 도는실행있나, 뿌리, 실행들, 최신실행, 한쪽 } from './history.js';
+import { 도는실행있나, 뿌리, 뿌리잠그고, 실행들, 최신실행, 한쪽 } from './history.js';
 import { 이어받을수있나, 줄세우기, 한건, type 요청, type 상태 } from './store.js';
 
 /**
@@ -168,12 +168,10 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       const 행 = 이어서 && 받은것.kind === 'RERUN' && 받은것.sourceId !== null ? await 한건(받은것.sourceId) : 받은것;
       // 재실행은 원본의 자료를 다시 읽는다. 원본이 재실행·머지면 자료가 없고, DRAFT 면 아직 다 안 올라왔다
       // 폐기한 원본도 다시 안 돌린다 — 목록에서 치운 것이 재실행으로 되살아난다 (§7 「중단 · 폐기 · 진척」).
-      // 이어서 작성은 멈춘 행의 폐기를 위에서 봤다 — 맨 처음 요청을 폐기해도 멈춘 행이 살아 있으면 이어간다
+      // 이어서 작성은 멈춘 행의 폐기를 위에서 봤다 — 폐기는 요청 통째라 맨 처음 요청만 폐기된 것은 2026-09-29 전 옛 행뿐이다
       if (행 === null || 행.kind !== 'AUTHOR' || 행.status === 'DRAFT' || (!이어서 && 행.discardedAt !== null)) {
         return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행?.kind} ${행?.status}` });
       }
-      // 같은 뿌리에 도는 실행이 있으면 둘이 같은 브랜치를 서로 덮는다 (§7 「실행 기록」)
-      if (await 도는실행있나(행.id)) return reply.code(409).send({ error: 'RUN_ACTIVE' });
       // 대조 원본이면 같은 대상 서버·시작 주소를 물려받는다 — 없으면 정방향으로 돌거나(대조) 읽을 입력이 없어 늘 실패한다(화면만).
       // 만든 뒤 계정이 빠졌을 수 있어 작성 요청과 같은 판정을 다시 한다 — 줄에서 한참 기다린 뒤 실패하지 않게 (2026-09-28 게이트 1)
       const 대조 = 행.compare
@@ -181,7 +179,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         : ({ compare: false } as const);
       if ('error' in 대조) return reply.code(400).send({ error: 대조.error });
       try {
-        const id = await 줄세우기({
+        // 같은 뿌리에 도는 실행이 있으면 둘이 같은 브랜치를 서로 덮는다 — 확인과 넣기를 뿌리 잠금 안에서 (§7 「실행 기록」)
+        const id = await 뿌리잠그고(행.id, async () => (await 도는실행있나(행.id)) ? null : 줄세우기({
           서비스,
           kind,
           원본: 행.id,
@@ -191,7 +190,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           이름,
           ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
           ...(이어서 ? { 이어받기: 받은것.id } : {}),
-        });
+        }));
+        if (id === null) return reply.code(409).send({ error: 'RUN_ACTIVE' });
         return reply.code(201).send({ id });
       } catch (e) {
         // 둘이 동시에 눌렀다 — 위 판정은 둘 다 통과하고 유일 색인이 뒤엣것을 막는다
@@ -260,7 +260,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         return reply.code(409).send({ error: 'NOT_MERGEABLE', detail: 행.status });
       }
 
-      const id = await 줄세우기({
+      const id = await 뿌리잠그고(뿌리번호, async () => (await 도는실행있나(뿌리번호)) ? null : 줄세우기({
         서비스,
         kind: 'MERGE',
         원본: 행.id,
@@ -271,7 +271,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         기획서: `머지 요청 — 원본 #${String(행.id)}`,
         누가: req.user?.username ?? '',
         이름: req.user?.displayName ?? '',
-      });
+      }));
+      if (id === null) return reply.code(409).send({ error: 'RUN_ACTIVE' });
       return reply.code(201).send({ id });
     },
   );
