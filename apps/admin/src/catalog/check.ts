@@ -81,6 +81,8 @@ async function warnNewTags(tagged: { file: string; tcId: string; text: string }[
 }
 
 async function main(): Promise<void> {
+  // CI 가 초안이 아닌 PR 에서 켠다. 작성 중(초안)에는 보류 케이스가 정상이라 기본은 끈다
+  const noHeld = process.argv.includes('--no-held');
   const root = testsRoot();
   const files = await caseFiles(root);
   const rel = (file: string): string => relative(root, file);
@@ -113,7 +115,7 @@ async function main(): Promise<void> {
     });
   }
   for (const spec of specs) {
-    violations.push(...checkSpec(spec.filePath, spec, propLines.get(spec.filePath) ?? new Map()));
+    violations.push(...checkSpec(spec.filePath, spec, propLines.get(spec.filePath) ?? new Map(), { noHeld }));
   }
 
   violations.push(...(await registration(files.map(rel))));

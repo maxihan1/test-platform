@@ -116,6 +116,9 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
 
     // DB 에서 먼저 닫는다. 러너 응답과 겹쳐도 finished_at IS NULL 조건이 먼저 온 것만 기록한다 (SPEC §7.1)
     const result = await abortRun(runId);
+    if (result === 'SCENARIO') {
+      return reply.code(409).send({ error: 'NOT_ABORTABLE', detail: `실행 ${runId}은 시나리오 실행이라 멈출 수 없다` });
+    }
     if (result === null) {
       return reply.code(409).send({ error: 'NOT_RUNNING', detail: `실행 ${runId}은 이미 끝났거나 멈춘 상태다` });
     }

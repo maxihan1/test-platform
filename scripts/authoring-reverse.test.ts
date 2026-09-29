@@ -3,11 +3,14 @@ import { describe, expect, it } from 'vitest';
 
 import {
   type 대상,
+  가림표,
+  가림표케이스,
   계정섞였나,
   글모두,
   대상점검,
   대상환경,
   되읽기인자,
+  비밀가리기,
   변환인자,
   사유거르기,
   올리기전검사,
@@ -143,6 +146,34 @@ describe('계정섞였나 — 올리는 글에 비밀번호 원문이 있나', (
   });
 });
 
+describe('비밀가리기 — 받은 자료·남은 파일에서 비밀번호를 가림표로 바꾼다', () => {
+  it('원문을 전부 가림표로 바꾼다', () => {
+    expect(비밀가리기('아이디 qa · 비밀번호 Pw9!x · 다시 Pw9!x', 'Pw9!x')).toBe(`아이디 qa · 비밀번호 ${가림표} · 다시 ${가림표}`);
+  });
+  it('JSON 에 이스케이프돼 적힌 꼴도 가린다', () => {
+    expect(비밀가리기('{"doc":"Ab\\"c9x"}', 'Ab"c9x')).toBe(`{"doc":"${가림표}"}`);
+  });
+  it('비밀이 없거나 비었으면 그대로다', () => {
+    expect(비밀가리기('Pw9!x', undefined)).toBe('Pw9!x');
+    expect(비밀가리기('Pw9!x', '')).toBe('Pw9!x');
+  });
+  it('가린 글에는 원문이 남지 않는다', () => {
+    expect(계정섞였나([비밀가리기('xxPw9!xPw9!xx', 'Pw9!x')], 'Pw9!x')).toBe(false);
+  });
+});
+
+describe('가림표케이스 — 케이스에 가림표가 남으면 비밀값 자리로 고치게 거절한다', () => {
+  it('spec 파일에 가림표가 있으면 까닭을 낸다', () => {
+    expect(가림표케이스([{ 경로: 'tests/mkt/MKT-001.spec.ts', 글: "fill('••••••')" }])).toContain('TARGET_LOGIN_PASSWORD');
+  });
+  it('표(md)가 기획서 문장을 옮긴 가림표는 괜찮다', () => {
+    expect(가림표케이스([{ 경로: 'docs/cases/MKT.md', 글: '비밀번호 •••••• 로 로그인' }])).toBeNull();
+  });
+  it('가림표가 없으면 null', () => {
+    expect(가림표케이스([{ 경로: 'tests/mkt/MKT-001.spec.ts', 글: 'fill(params.password)' }])).toBeNull();
+  });
+});
+
 describe('올리기전검사 — 올리기 전에 모은 글 전부를 본다', () => {
   it('케이스 · PR 본문 · 차이 파일 · 원고 중 하나라도 비밀번호가 있으면 사유 — 값은 싣지 않는다', () => {
     for (const 자리 of ['케이스', 'PR본문', '차이', '원고'] as const) {
@@ -269,6 +300,11 @@ describe('줄프롬프트 역방향 절 — 계정 값 없이 자리만 준다',
     expect(글).toContain('작성 요청 9');
     expect(글).not.toContain('Qa-pw-7731');
     expect(글).not.toContain('tester');
+  });
+
+  it('재실행 · 이어받기도 미확정 사유의 요청 번호는 뿌리(맨 처음) 번호다 (§7 「실행 기록」)', () => {
+    const 글 = 줄프롬프트({ id: 12, kind: 'RERUN', sourceId: 5 }, 'PAY', [], undefined, { 화면만: false, 산출물폴더: '/w/out' });
+    expect(글).toContain('작성 요청 5 이다');
   });
 
   it('화면만이면 기획서가 없다고 적고 빈 기획서 절을 싣지 않는다', () => {

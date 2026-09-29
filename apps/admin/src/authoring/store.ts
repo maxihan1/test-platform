@@ -184,6 +184,8 @@ export async function 줄세우기(입력: {
   대조?: { env: string; startUrl: string | null };
   // 이어서 작성만 채운다 — 넘겨받을 작업 폴더의 중단 요청 (DB CHECK 가 RERUN 에만 허락한다)
   이어받기?: number;
+  // 정방향 머지만 채운다 — 보류를 3회 돌릴 대상 서버 (DB CHECK 가 대조 아닌 행 중 MERGE 에만 허락한다)
+  머지대상?: string | null;
 }): Promise<number> {
   const pool = await db();
   const r = await pool.query<{ id: string }>(
@@ -201,7 +203,7 @@ export async function 줄세우기(입력: {
       입력.누가,
       입력.이름,
       입력.대조 !== undefined,
-      입력.대조?.env ?? null,
+      입력.대조?.env ?? 입력.머지대상 ?? null,
       입력.대조?.startUrl ?? null,
       입력.이어받기 ?? null,
     ],
@@ -274,52 +276,7 @@ export async function 한건(id: number): Promise<요청 | null> {
 }
 
 /** 목록 한 줄. 기획서 본문은 싣지 않는다 — 목록은 본문을 안 그리고, 한 쪽에 50 건이면 본문 50 개가 실린다 */
-export type 요약 = Omit<요청, 'specText'>;
-
-const 요약칸들 = 칸들.replace('spec_text, ', '');
-
-function 요약빚기(r: Omit<행, 'spec_text'>): 요약 {
-  const { specText: _본문, ...나머지 } = 빚기({ ...r, spec_text: null });
-  return 나머지;
-}
-
-export async function 한쪽(입력: {
-  서비스: number;
-  상태?: 상태;
-  // 참이면 폐기한 것만, 아니면 폐기한 것을 뺀다
-  폐기?: boolean;
-  쪽: number;
-  크기?: number;
-}): Promise<{ items: 요약[]; total: number; page: number; pageSize: number }> {
-  const pool = await db();
-  const 크기 = 입력.크기 ?? 50;
-  // 쪽 번호가 무한대면 건너뛸 개수도 무한대가 되어 DB 가 해석 못 하는 값이 간다
-  const 쪽 = Math.min(Math.max(1, Math.floor(입력.쪽) || 1), 1_000_000);
-  const 조건 =
-    (입력.폐기 === true ? ' AND discarded_at IS NOT NULL' : ' AND discarded_at IS NULL') +
-    (입력.상태 === undefined ? '' : ' AND status = $2');
-  const 값들: unknown[] = 입력.상태 === undefined ? [입력.서비스] : [입력.서비스, 입력.상태];
-
-  const 셈 = await pool.query<{ n: string }>(
-    `SELECT count(*) AS n FROM authoring_request WHERE service_id = $1${조건}`,
-    값들,
-  );
-  // **건너뛸 개수를 질의문 글자에 끼워 넣지 않는다.** 지금은 숫자로 걸러지므로 주입은 아니지만,
-  // 다음 사람이 여기에 문자열을 하나 더 얹으면 그때는 진짜 주입이 된다 (2026-09-22 보안 검토)
-  const r = await pool.query<Omit<행, 'spec_text'>>(
-    `SELECT ${요약칸들} FROM authoring_request
-      WHERE service_id = $1${조건}
-      ORDER BY id DESC
-      LIMIT $${값들.length + 1} OFFSET $${값들.length + 2}`,
-    [...값들, 크기, (쪽 - 1) * 크기],
-  );
-  return {
-    items: r.rows.map(요약빚기),
-    total: Number(셈.rows[0]!.n),
-    page: 쪽,
-    pageSize: 크기,
-  };
-}
+// 목록(`한쪽`)은 뿌리마다 한 줄이라 history.ts 로 옮겼다 (2026-09-29 실행 기록)
 
 // 에이전트가 부르는 쓰기(집기·단계·사진 자리·끝내기)는 agentStore.ts 로 뗐다 — 이 파일이 300줄을 넘었다. 부르는 쪽 import 는 그대로 둔다
 export { 끝내기, 단계올리기, 사진자리적기, 집기, 집기되돌리기 } from './agentStore.js';

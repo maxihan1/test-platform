@@ -100,6 +100,8 @@ export async function 끝내기(
     testSource?: unknown;
     prUrl?: string;
     error?: string;
+    /** 앞 실행에서 옮겨 온 보류 입력. 이미 들어온 입력이 이긴다 — 옮긴 것이 사람이 방금 넣은 값을 덮으면 안 된다 */
+    heldInput?: object | null;
   },
 ): Promise<boolean> {
   const pool = await db();
@@ -112,7 +114,8 @@ export async function 끝내기(
             error = COALESCE($6, error),
             stop_reason = $7::text,
             stopped_by = CASE WHEN $7::text IS NULL THEN NULL WHEN $7::text = 'USER' THEN stop_requested_by ELSE 'system' END,
-            finished_at = now()
+            finished_at = now(),
+            held_input = CASE WHEN $8::jsonb IS NULL THEN held_input ELSE $8::jsonb || COALESCE(held_input, '{}'::jsonb) END
       WHERE id = $1 AND status = 'RUNNING'`,
     [
       id,
@@ -122,6 +125,7 @@ export async function 끝내기(
       결과.prUrl ?? null,
       결과.error ?? null,
       결과.stopReason ?? null,
+      결과.heldInput ? JSON.stringify(결과.heldInput) : null,
     ],
   );
   return r.rowCount === 1;

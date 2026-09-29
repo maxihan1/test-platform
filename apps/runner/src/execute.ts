@@ -13,7 +13,7 @@ import { createProgressCollector } from './progress.js';
 import { parseResult, type RunnerResult } from './result.js';
 
 // playwright.config.ts가 있는 곳. 여기서 자식 프로세스를 띄워야 projects 정의가 잡힌다
-const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+export const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
 const reporterPath = resolve(appRoot, 'packages/kit/src/runtime/reporter.ts');
 
@@ -80,7 +80,7 @@ export function resolveSpecPath(root: string, filePath: string): string | null {
   return full;
 }
 
-function tail(text: string): string {
+export function tail(text: string): string {
   const trimmed = text.trim();
   return trimmed.length > 2000 ? trimmed.slice(-2000) : trimmed;
 }

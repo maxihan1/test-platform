@@ -2,7 +2,7 @@
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 
-import { 메모달기 } from './authoring-docx.js';
+import { 글칸가리기, 메모달기 } from './authoring-docx.js';
 
 const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
 
@@ -170,5 +170,58 @@ describe('메모달기 — 워드 원본에 메모를 단 사본', () => {
     const 폭탄 = await z.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
     expect(폭탄.length).toBeLessThan(1024 * 1024);
     expect(await 메모달기(폭탄, [{ anchor: '엑셀', 글: 'a' }], 날짜)).toEqual({ 사유: '워드 파일을 풀면 너무 크다' });
+  });
+});
+
+describe('글칸가리기 — 사람이 읽는 글 칸에서만 비밀번호를 가린다', () => {
+  const 가림 = '••••••';
+  it('한 칸 안의 비밀번호를 가린다', () => {
+    expect(글칸가리기('<w:p><w:r><w:t>비번 Pw9!x 입력</w:t></w:r></w:p>', 'Pw9!x')).toBe(`<w:p><w:r><w:t>비번 ${가림} 입력</w:t></w:r></w:p>`);
+  });
+  it('여러 칸으로 갈린 비밀번호도 가린다 — 첫 칸에 가림표, 나머지 칸은 걸친 글자를 뺀다', () => {
+    const xml = '<w:r><w:t>비번 Pw</w:t></w:r><w:r w:rsidR="00A1"><w:t xml:space="preserve">9!</w:t></w:r><w:r><w:t>x 입력</w:t></w:r>';
+    expect(글칸가리기(xml, 'Pw9!x')).toBe(
+      `<w:r><w:t>비번 ${가림}</w:t></w:r><w:r w:rsidR="00A1"><w:t xml:space="preserve"></w:t></w:r><w:r><w:t> 입력</w:t></w:r>`,
+    );
+  });
+  it('이스케이프된 글도 풀어서 찾고 다시 싸서 쓴다', () => {
+    expect(글칸가리기('<w:t>a&amp;b &lt;c</w:t>', 'a&b')).toBe(`<w:t>${가림} &lt;c</w:t>`);
+  });
+  it('속성값은 건드리지 않는다 — 1234 같은 비밀번호가 번호 속성과 겹쳐도 워드가 안 깨진다', () => {
+    const xml = '<w:tc><w:tcW w:w="1234"/><w:p w:rsidR="00A71234"><w:r><w:t>칸</w:t></w:r></w:p></w:tc>';
+    expect(글칸가리기(xml, '1234')).toBe(xml);
+  });
+  it('변경 추적의 지운 글 · 필드 코드 · 차트 글(a:t)도 가린다', () => {
+    const xml = '<w:delText>Pw9!x</w:delText><w:instrText> HYPERLINK "Pw9!x" </w:instrText><a:t>Pw9!x</a:t>';
+    expect(글칸가리기(xml, 'Pw9!x')).toBe(`<w:delText>${가림}</w:delText><w:instrText> HYPERLINK &quot;${가림}&quot; </w:instrText><a:t>${가림}</a:t>`);
+  });
+  it('비밀이 없으면 그대로다', () => {
+    expect(글칸가리기('<w:t>Pw9!x</w:t>', undefined)).toBe('<w:t>Pw9!x</w:t>');
+  });
+});
+
+describe('메모달기 — 비밀번호를 받으면 사본에서 먼저 가린다', () => {
+  async function 비번워드(): Promise<Uint8Array> {
+    const z = await JSZip.loadAsync(await 워드());
+    z.file(
+      'word/document.xml',
+      `<?xml version="1.0" encoding="UTF-8"?><w:document ${W}><w:body><w:p w:rsidR="00001234"><w:r><w:t>테스트 계정 비밀번호는 Pw</w:t></w:r><w:r><w:t>9!x 이다</w:t></w:r></w:p><w:sectPr /></w:body></w:document>`,
+    );
+    z.file('word/header1.xml', `<?xml version="1.0" encoding="UTF-8"?><w:hdr ${W}><w:p><w:r><w:t>머리 Pw9!x</w:t></w:r></w:p></w:hdr>`);
+    return z.generateAsync({ type: 'uint8array' });
+  }
+  it('올릴 글 어디에도 원문이 없고, 가린 문장을 anchor 로 줘도 메모가 붙는다', async () => {
+    const 결과 = await 메모달기(await 비번워드(), [{ anchor: '테스트 계정 비밀번호는 •••••• 이다', 글: '[D1] x' }], 날짜, 'Pw9!x');
+    if ('사유' in 결과) throw new Error(결과.사유);
+    expect(결과.찾음).toEqual([true]);
+    expect(결과.글들.some((g) => g.includes('Pw9!x'))).toBe(false);
+    const z = await JSZip.loadAsync(결과.바이트);
+    expect(await z.file('word/header1.xml')?.async('string')).toContain('머리 ••••••');
+    expect(await z.file('word/document.xml')?.async('string')).toContain('w:rsidR="00001234"');
+  });
+  it('비밀번호를 안 주면 예전처럼 원문이 글들에 남는다 — 누설 검사가 잡는다', async () => {
+    const 결과 = await 메모달기(await 비번워드(), [{ anchor: '이다', 글: 'x' }], 날짜);
+    if ('사유' in 결과) throw new Error(결과.사유);
+    expect(결과.글들.some((g) => g.includes('Pw9!x'))).toBe(true);
   });
 });

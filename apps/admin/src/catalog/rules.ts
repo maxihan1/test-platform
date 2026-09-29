@@ -5,9 +5,10 @@ import ts from 'typescript';
 
 import type { CaseSpec, JsonSchema } from '@platform/kit';
 
+import { caseSteps, isTestStep } from './steps.js';
 import { badTag } from './unconfirmed.js';
 
-export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K11';
+export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K11' | 'K12' | 'K13';
 
 export interface Violation {
   file: string;
@@ -35,6 +36,8 @@ const WHY: Record<RuleId, string> = {
   K9: '비밀번호가 화면과 증적 문서에 평문으로 박힌다',
   K10: '사람이 값을 채워야만 도는 케이스는 정기 실행이 돌리지 못한다',
   K11: '스캐너가 사유를 못 읽어 미확정 케이스가 정식으로 섞인다',
+  K12: '시나리오가 절차를 제목으로 건너뛰므로 하나를 풀면 둘이 건너뛰어진다',
+  K13: '보류 케이스가 값 없이 main 에 들어가면 아무것도 안 지키는 초록이 된다',
 };
 
 // check.ts 통과 줄이 이 목록에서 범위를 만든다. 손으로 적은 숫자는 규칙이 늘 때 조용히 틀린다
@@ -110,11 +113,7 @@ export function checkSource(file: string, text: string): SourceResult {
 
     if (ts.isCallExpression(node)) {
       const callee = node.expression;
-      const isStep =
-        ts.isPropertyAccessExpression(callee) &&
-        callee.name.text === 'step' &&
-        ts.isIdentifier(callee.expression) &&
-        callee.expression.text === 'test';
+      const isStep = isTestStep(node);
       const isVerify = ts.isIdentifier(callee) && callee.text === 'verify';
 
       if (isStep || isVerify) {
@@ -151,8 +150,17 @@ export function checkSource(file: string, text: string): SourceResult {
         v(file, lineOf(literal), 'K4', `${key} 키가 아예 없다. 없으면 없다고 적어야 한다`),
       );
     }
-    const bad = badTag(literal);
-    if (bad !== undefined) violations.push(v(file, lineOf(bad.node), 'K11', bad.what));
+    for (const [tag, rule] of [['unconfirmed', 'K11'], ['held', 'K13']] as const) {
+      const bad = badTag(literal, tag);
+      if (bad !== undefined) violations.push(v(file, lineOf(bad.node), rule, bad.what));
+    }
+  }
+
+  // 러너가 건너뛸 절차를 제목 글자 그대로 맞춘다 (packages/kit/src/runtime/step.ts)
+  const seen = new Set<string>();
+  for (const step of caseSteps(text).steps) {
+    if (seen.has(step.title)) violations.push(v(file, step.line, 'K12', `절차 제목 「${step.title}」이 이 케이스 안에서 겹친다`));
+    seen.add(step.title);
   }
 
   violations.sort((a, b) => a.line - b.line);
@@ -161,7 +169,7 @@ export function checkSource(file: string, text: string): SourceResult {
 
 // 접두사는 자유 형식이다. 플랫폼은 뜻을 모르고 모양과 중복만 본다 (SPEC §2, 2026-09-17).
 // 소문자를 막는 이유 — Pay-001과 PAY-001이 서로 다른 케이스가 되면 중복 검출이 조용히 샌다
-const TCID = /^[A-Z][A-Z0-9]{0,11}-\d{3}$/;
+export const TCID = /^[A-Z][A-Z0-9]{0,11}-\d{3}$/;
 const PLATFORMS = new Set(['desktop', 'mobile']);
 
 function missingDescribe(file: string, line: number, schema: JsonSchema, key: string): Violation[] {
@@ -252,7 +260,12 @@ export function checkRegistration(report: ListReport, files: string[]): Violatio
   return out;
 }
 
-export function checkSpec(file: string, spec: CaseSpec, propLines: Map<string, number>): Violation[] {
+export function checkSpec(
+  file: string,
+  spec: CaseSpec,
+  propLines: Map<string, number>,
+  { noHeld = false }: { noHeld?: boolean } = {},
+): Violation[] {
   const at = (key: string): number => propLines.get(key) ?? 1;
   const out: Violation[] = [];
 
@@ -270,8 +283,13 @@ export function checkSpec(file: string, spec: CaseSpec, propLines: Map<string, n
   out.push(...missingDescribe(file, at('expected'), spec.expectedSchema, 'expected'));
   // 비밀값은 입력에만 있다. 기대결과에 비밀번호를 적을 일이 없다 (SPEC §4.1)
   out.push(...missingSecretTag(file, at('params'), spec.paramSchema));
-  out.push(...requiredFields(file, at('params'), spec.paramSchema, 'params'));
-  out.push(...requiredFields(file, at('expected'), spec.expectedSchema, 'expected'));
+  // 보류 케이스의 기본값 없는 칸은 사람이 채울 자리다. 대신 --no-held 가 main 에 못 들이게 막는다
+  if (spec.held === undefined) {
+    out.push(...requiredFields(file, at('params'), spec.paramSchema, 'params'));
+    out.push(...requiredFields(file, at('expected'), spec.expectedSchema, 'expected'));
+  } else if (noHeld) {
+    out.push(v(file, at('held'), 'K13', `held가 남아 있다(${spec.held}). 값을 채우거나 케이스를 제거해야 한다`));
+  }
 
   return out;
 }

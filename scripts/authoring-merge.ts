@@ -17,6 +17,8 @@ import {
   올릴브랜치,
 } from './authoring-chain.js';
 import { type 보고손, type 칠때, type 판정기, 멈춤, 쉬기, 진짜main받기, 친다 } from './authoring-io.js';
+import { type 반영준비, 반영올리기, 반영치우기, 보류반영, 보류입력들 } from './authoring-held-merge.js';
+import { 보류있나 } from './authoring-held-apply.js';
 
 const 폴링간격 = 15_000;
 // ponytail: 루프 시간으로 잰다 — 맥에는 GNU timeout 이 없다. CI 가 늘 17분을 넘기면 이 숫자를 올린다
@@ -29,10 +31,13 @@ const 전체제한 = 17 * 60_000;
 export function 머지브랜치거부사유(
   pr: { headRefName: string; isCrossRepository: boolean },
   원본번호: number | undefined,
+  // 요청 하나에 브랜치 하나(author-<뿌리>)가 된 뒤의 PR 과 그 전의 author-<실행 번호> PR 을 둘 다 받는다 (2026-09-29)
+  뿌리번호?: number,
 ): string | null {
   if (원본번호 === undefined) return '원본 요청 번호가 없다 — 어느 PR 인지 확인할 수 없다';
   const 기대 = 올릴브랜치(원본번호);
-  if (pr.isCrossRepository || pr.headRefName !== 기대) {
+  const 받는것 = [기대, ...(뿌리번호 === undefined ? [] : [올릴브랜치(뿌리번호)])];
+  if (pr.isCrossRepository || !받는것.includes(pr.headRefName)) {
     return `이 PR 은 에이전트가 올린 ${기대} 가 아니다 (${pr.isCrossRepository ? '포크 · ' : ''}${pr.headRefName}) — 병합하지 않는다`;
   }
   return null;
@@ -55,6 +60,8 @@ export async function 머지처리(
   원본번호: number | undefined,
   뿌리: string,
   호스트로: 칠때,
+  요청뿌리?: number,
+  반영?: 반영준비,
 ): Promise<void> {
   const 뷰 = 친다('gh', ['pr', 'view', prUrl, '--json', 'headRefName,headRefOid,isDraft,state,isCrossRepository'], 뿌리);
   if (!뷰.ok) {
@@ -68,7 +75,7 @@ export async function 머지처리(
     state: string;
     isCrossRepository: boolean;
   };
-  const 남의것 = 머지브랜치거부사유(pr, 원본번호);
+  const 남의것 = 머지브랜치거부사유(pr, 원본번호, 요청뿌리);
   if (남의것 !== null) {
     await 손.끝내기({ status: 'FAILED', error: 남의것 });
     return;
@@ -97,24 +104,44 @@ export async function 머지처리(
     }
   };
 
+  // 보류 입력이 있으면 값을 적고 관문을 돌려 커밋까지 한다 (작성 §3.6 「★ 보류 케이스」 반영).
+  // 올리기는 초안을 푼 뒤다 — 초안에 올리면 잡을 건너뛴 success 실행이 새 머리에 붙어 검사 없이 병합할 수 있다
+  const held = 반영 === undefined ? undefined : 보류입력들(반영.것);
+  const 브랜치번호 = Number(pr.headRefName.slice('author-'.length));
+  const 적은자리 = 반영 !== undefined && 보류있나(held) ? await 보류반영(손, 반영, held, 브랜치번호, pr.headRefOid) : undefined;
+  if (적은자리 === null) return;
+
   const 이미준비됨 = !pr.isDraft;
   let 이후번호 = 0;
-  if (pr.isDraft) {
-    // 초안일 때 뜬 실행(잡을 건너뛴 채 끝난 것)을 기준으로 잡아 두고 그 뒤 실행만 본다.
-    // ★ 못 읽었으면 여기서 멈춘다 — 기준이 0 이 되면 건너뛴 채 success 로 끝난 초안 실행을
-    // 새 실행으로 읽어 **검사 없이 병합한다** (2026-09-23 검증이 잡았다)
-    const 전목록 = 목록읽기();
-    if (전목록 === null) {
-      await 손.끝내기({ status: 'FAILED', error: 'CI 실행 목록을 못 읽어 초안을 안 풀었다 — 다시 눌러라' });
-      return;
+  try {
+    if (pr.isDraft) {
+      // 초안일 때 뜬 실행(잡을 건너뛴 채 끝난 것)을 기준으로 잡아 두고 그 뒤 실행만 본다.
+      // ★ 못 읽었으면 여기서 멈춘다 — 기준이 0 이 되면 건너뛴 채 success 로 끝난 초안 실행을
+      // 새 실행으로 읽어 **검사 없이 병합한다** (2026-09-23 검증이 잡았다)
+      const 전목록 = 목록읽기();
+      if (전목록 === null) {
+        await 손.끝내기({ status: 'FAILED', error: 'CI 실행 목록을 못 읽어 초안을 안 풀었다 — 다시 눌러라' });
+        return;
+      }
+      const 전 = CI판정(pr.headRefOid, 전목록);
+      이후번호 = '번호' in 전 ? 전.번호 : 0;
+      const 풀기 = 친다('gh', PR준비인자(prUrl), 뿌리);
+      if (!풀기.ok) {
+        await 손.끝내기({ status: 'FAILED', error: `초안을 못 풀었다: ${풀기.까닭}` });
+        return;
+      }
     }
-    const 전 = CI판정(pr.headRefOid, 전목록);
-    이후번호 = '번호' in 전 ? 전.번호 : 0;
-    const 풀기 = 친다('gh', PR준비인자(prUrl), 뿌리);
-    if (!풀기.ok) {
-      await 손.끝내기({ status: 'FAILED', error: `초안을 못 풀었다: ${풀기.까닭}` });
-      return;
+    if (적은자리 !== undefined) {
+      const 새머리 = await 반영올리기(손, 적은자리, 브랜치번호, pr.headRefOid, prUrl, 뿌리);
+      if (새머리 === null) {
+        // 보류가 든 PR 이 준비 상태로 남으면 CI 가 빨갛게 돈다 — 풀어 둔 초안을 되돌린다
+        if (pr.isDraft) 친다('gh', ['pr', 'ready', '--undo', prUrl], 뿌리);
+        return;
+      }
+      pr.headRefOid = 새머리;
     }
+  } finally {
+    if (적은자리 !== undefined && 반영 !== undefined) await 반영치우기(적은자리, 반영.것.id, 반영.자식);
   }
 
   await 손.단계('CI 기다리는 중');

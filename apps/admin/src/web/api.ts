@@ -331,6 +331,68 @@ export interface AuthoringRow {
   canResume?: boolean;
   resumeUntil?: string | null;
   resumedBy?: number | null;
+  /**
+   * 실행 기록 (도메인/작성 §7 「실행 기록」). 보이는 번호는 뿌리 하나 — 목록 줄은 그 뿌리의 최신 실행이다.
+   * 목록에는 rootId · runCount, 상세에는 rootId · runs 가 온다
+   */
+  rootId?: number;
+  runCount?: number;
+  runs?: AuthoringRun[];
+  /** 보류 케이스 (도메인/작성 §3.6 「★ 보류 케이스」 · §7). 상세에만 — 끝난 결과의 held[] 에 사람 입력을 붙인 것 */
+  held?: AuthoringHeld[];
+  /** 값도 제거도 안 된 보류 수. 0 보다 크면 서버가 반영을 막는다(HELD_OPEN) */
+  heldOpen?: number;
+  /** 에이전트가 보류 목록을 못 읽었다. 참이면 서버가 반영을 막는다(HELD_UNKNOWN) */
+  heldUnknown?: boolean;
+  /** 반영 때 고를 수 있는 대상 서버 — 테스트 계정이 있는 줄 이름. 정방향 보류에만 온다 */
+  mergeEnvs?: string[];
+}
+
+export type AuthoringHeldValue = string | number | boolean;
+
+/** 사람이 채울 칸 하나. 기본값 있는 칸 · 비밀값 칸은 서버가 싣지 않는다 */
+export interface AuthoringHeldField {
+  side: 'params' | 'expected';
+  key: string;
+  description: string;
+  type: 'string' | 'number' | 'boolean' | 'enum';
+  options?: string[];
+}
+
+export interface AuthoringHeldInput {
+  params?: Record<string, AuthoringHeldValue>;
+  expected?: Record<string, AuthoringHeldValue>;
+  removed?: true;
+  by: string;
+  at: string;
+}
+
+/** 서버 `authoring/held.ts` 의 보류 + input. 케이스 이름 · 요구 번호는 오지 않는다 */
+export interface AuthoringHeld {
+  tcId: string;
+  /** 케이스 이름 — 옛 결과에는 없다(그때는 파일 경로를 보인다) */
+  name?: string;
+  file: string;
+  kind: 'UNDECIDABLE' | 'ON_HOLD';
+  reason: string;
+  fields: AuthoringHeldField[];
+  input: AuthoringHeldInput | null;
+}
+
+/** 실행 기록 한 줄. 토큰은 그 실행이 쓴 것만 네 칸 — 앞 실행 것을 더하지 않는다 */
+export interface AuthoringRun {
+  id: number;
+  kind: 'AUTHOR' | 'RERUN' | 'MERGE';
+  resumeFrom: number | null;
+  status: AuthoringRow['status'];
+  stopReason: string | null;
+  error: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  caseFiles: number | null;
+  tokens: { input: number; output: number; cacheRead: number; cacheWrite: number; partial: boolean } | null;
+  prUrl: string | null;
 }
 
 /** 에이전트가 30초마다 올리는 진척. 모양은 서버가 가둔다 (도메인/작성 §7) */
@@ -663,8 +725,25 @@ export const api = {
    * 경로가 갈린 이유는 등급 때문이다. 같은 경로에 `kind: 'MERGE'` 로 얹으면 등급이
    * **본문 값**에 따라 갈려야 하고, 그러려면 문이 본문을 읽어야 한다 (도메인/작성 §7).
    */
-  createAuthoringMerge: (service: string, sourceId: number) =>
-    call<{ id: number }>(`/authoring/merges?service=${encodeURIComponent(service)}`, json({ sourceId })),
+  createAuthoringMerge: (service: string, sourceId: number, env?: string) =>
+    call<{ id: number }>(`/authoring/merges?service=${encodeURIComponent(service)}`, json({ sourceId, env })),
+
+  /** 보류 케이스 한 건의 입력을 통째로 바꾼다 — 값이거나 제거. 누가 · 언제는 서버가 붙인다 */
+  putAuthoringHeld: (
+    service: string,
+    id: number,
+    tcId: string,
+    body: { params?: Record<string, AuthoringHeldValue>; expected?: Record<string, AuthoringHeldValue> } | { removed: true },
+  ) =>
+    call<{ ok: true }>(`/authoring/requests/${id}/held/${encodeURIComponent(tcId)}?service=${encodeURIComponent(service)}`, {
+      ...json(body),
+      method: 'PUT',
+    }),
+
+  deleteAuthoringHeld: (service: string, id: number, tcId: string) =>
+    call<{ ok: true }>(`/authoring/requests/${id}/held/${encodeURIComponent(tcId)}?service=${encodeURIComponent(service)}`, {
+      method: 'DELETE',
+    }),
 
   // 설정 (SPEC §7 · §8.8). 전부 운영(admin) 등급만 닿는다 — 서버 auth/gate.ts 가 막는다
   settingsServices: () => call<{ items: SettingsServiceRow[] }>('/settings/services'),

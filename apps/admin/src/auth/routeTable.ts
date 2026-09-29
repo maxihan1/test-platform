@@ -61,6 +61,16 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/runs/:runId/abort': 실행쓰기,
   'POST /api/runs/:runId/evidence': 실행쓰기,
 
+  // E2E 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7 · 인증 §7 「등급으로 갈리는 자리」)
+  'GET /api/scenarios': 실행읽기,
+  'GET /api/scenarios/:id': 실행읽기,
+  'GET /api/scenarios/:id/versions/:v': 실행읽기,
+  'GET /api/scenarios/case-parts/:tcId': 실행읽기,
+  'POST /api/scenarios': 실행쓰기,
+  'PUT /api/scenarios/:id': 실행쓰기,
+  'POST /api/scenarios/:id/restore': 실행쓰기,
+  'POST /api/scenarios/:id/archive': 실행쓰기,
+
   'GET /api/authoring/requests': 작성읽기,
   'GET /api/authoring/requests/:id': 작성읽기,
   'GET /api/authoring/requests/:id/assets/:assetId': 작성읽기,
@@ -77,6 +87,9 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/authoring/requests/:id/outputs': 작성쓰기,
   // 토큰 사용량 — 작성 에이전트가 부른다 (작성 §7 「토큰 사용량」)
   'POST /api/authoring/requests/:id/usage': 작성쓰기,
+  // 보류 케이스에 사람이 값을 넣거나 제거한다 — 화면이 부른다 (작성 §3.6 「★ 보류 케이스」)
+  'PUT /api/authoring/requests/:id/held/:tcId': 작성쓰기,
+  'DELETE /api/authoring/requests/:id/held/:tcId': 작성쓰기,
 
   // ★ 저장소를 영구히 바꾸는 일 — admin. 작성 쓰기와 같으면 「실행할 수 있는 사람 = 저장소를 고칠 수 있는 사람」이 된다
   'POST /api/authoring/merges': 'admin',

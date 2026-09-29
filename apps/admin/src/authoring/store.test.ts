@@ -2,7 +2,8 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { 끝내기, 단계올리기, 사진자리, 줄세우기, 집기, 집기되돌리기, 한건, 한쪽 } from './store.js';
+import { 한쪽 } from './history.js';
+import { 끝내기, 단계올리기, 사진자리, 줄세우기, 집기, 집기되돌리기, 한건 } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 

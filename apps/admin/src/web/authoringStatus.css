@@ -157,6 +157,9 @@
 .authoring-panel ol.authoring-assets { margin: 0; padding-left: 20px; font-size: 13.5px; display: grid; gap: 4px; }
 .authoring-panel ol.authoring-assets a { color: var(--ink); }
 .authoring-panel .authoring-diffs-wrap { margin-top: 0; }
+/* 실행 기록 — 두 단 아래 온 폭. 지금 보이는 실행(맨 위 줄)만 바탕을 깐다 — 판정 색은 안 쓴다 (DESIGN.md 원칙 1) */
+.authoring-runs { margin-top: 16px; }
+.authoring-runs tr.now td { background: var(--sheet-2); font-weight: 600; }
 
 /* 다음 단계 — 사람이 움직여야 하는 것만. 판정 색이 아니라 잉크 테두리로 앞에 세운다 */
 .authoring-todo {
@@ -216,3 +219,23 @@
   .status-steps li { font-size: 11px; }
   .status-row { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* 보류 케이스 — 사람이 할 일이지 판정이 아니다. 칩 · 상태 모두 잉크와 --rule 만 쓴다 (DESIGN.md 「작성 상태」 원칙 1) */
+.authoring-held { margin-top: 16px; }
+.authoring-held .dhist { min-width: 720px; }
+.authoring-held tr.open td { background: var(--sheet-2); }
+.held-chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; background: var(--sheet-2); color: var(--ink-muted); border: 1px solid var(--rule); white-space: nowrap; }
+.held-chip.und { border-style: dashed; border-color: var(--ink-faint); }
+.held-state { white-space: nowrap; font-size: 13px; }
+.held-rm { color: var(--ink-faint); text-decoration: line-through; }
+.held-btns { white-space: nowrap; }
+.held-btns .btn + .btn { margin-left: 6px; }
+.held-fields { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+.held-field { display: grid; gap: 4px; }
+.held-field input, .held-field select { max-width: 320px; }
+.held-path { font-size: 12px; color: var(--ink-faint); }
+.held-open { max-width: calc(100vw - 32px); }
+.held-side { font-size: 11.5px; letter-spacing: .04em; color: var(--ink-faint); }
+.held-bar { margin: 4px 0 8px; }
+.held-env { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 13px; }
+.authoring-todo .held-why { margin: 6px 0 0; color: var(--ink-muted); font-size: 13px; }

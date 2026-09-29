@@ -123,11 +123,11 @@ export const 작성말: Record<string, string> = {
   '{번호}단계 진행 중 · {퍼센트}%': 'Step {번호} in progress · {퍼센트}%',
   '{번호}단계에서 멈춤 · {퍼센트}%': 'Stopped at step {번호} · {퍼센트}%',
   '다시 작성은 실행 권한이 있는 사람이 합니다.': 'Someone with run rights can write it again.',
-  '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다.':
-    'Fix the cause first. This makes a new request with the same inputs and runs it from the start.',
+  '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다.':
+    'Fix the cause first. This runs the same request again from the start with the same inputs.',
   '대상 서버와 시작 주소도 원본 그대로 씁니다.': 'It uses the same target server and start URL as the original.',
-  '넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다.':
-    'This makes a new request with the same inputs and runs it from the start. This request stays as a record.',
+  '넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다. 지금까지의 실행은 실행 기록에 남습니다.':
+    'This runs the same request again from the start with the same inputs. Earlier runs stay in the run history.',
 
   // 이어하기 (도메인/작성 §7 「이어하기」)
   '이어서 작성': 'Continue writing',
@@ -137,11 +137,9 @@ export const 작성말: Record<string, string> = {
     'Takes over the {수} tests made before the stop and continues the rest.',
   '중단된 자리부터 남은 작업을 이어서 합니다.': 'Continues the rest from where it stopped.',
   '{날}까지 이어갈 수 있습니다.': 'You can continue until {날}.',
-  '작성 요청 #{번호}로 이어받았습니다': 'Continued as request #{번호}',
+  '이미 이어서 작성했습니다. 아래 실행 기록을 보세요.': 'Already continued. See the run history below.',
   '보관 기간이 지나 만든 것을 지웠습니다. 처음부터 다시 작성하세요.':
     'The keep period is over and what was made was deleted. Write again from the start.',
-  이어받음: 'Continued from',
-  '작성 요청 #{번호}의 중단 자리에서 이어받음': 'Continued from where request #{번호} stopped',
   '목록에서 사라집니다. 보관한 작업물도 지웁니다. 통계와 토큰 기록은 남습니다.':
     'It disappears from the list and the kept work is deleted. Stats and token records stay.',
 
@@ -204,4 +202,54 @@ export const 작성말: Record<string, string> = {
   '화면에만 있음': 'Only on screen',
   '문서에만 있음': 'Only in spec',
   '알 수 없는 종류': 'Unknown kind',
+  // 실행 기록 (도메인/작성 §7 「실행 기록」) — 번호는 하나, 실행은 차로 쌓인다
+  '{차}차': 'Run {차}',
+  차: 'Run',
+  방식: 'How',
+  처음: 'First',
+  처음부터: 'From scratch',
+  이어서: 'Continued',
+  시작: 'Started',
+  결과: 'Result',
+  테스트: 'Tests',
+  입력: 'Input',
+  출력: 'Output',
+  '캐시 읽기': 'Cache read',
+  '캐시 쓰기': 'Cache write',
+  '끊겨 하한': 'cut off, lower bound',
+  // 보류 케이스 (도메인/작성 §3.6 「★ 보류 케이스」 · 시안 A)
+  '보류 케이스': 'Held cases',
+  '{수}건 · 값을 넣거나 제거하세요': '{수} · fill in values or remove',
+  '판정 불가는 기획서에 판정 기준이 없던 것, 보류는 전제를 만들 수 없던 것입니다. 넣은 값은 테스트의 기본값이 되고, 실행할 때 바꿀 수 있습니다.':
+    'Undecidable means the spec had no pass criterion; on hold means the precondition could not be built. Values you enter become the test defaults and can be changed at run time.',
+  '무엇을 확인하나': 'What it checks',
+  '왜 보류됐나': 'Why it is held',
+  '판정 불가': 'Undecidable',
+  보류: 'On hold',
+  '값 필요': 'Needs values',
+  '값 채움': 'Filled',
+  제거함: 'Removed',
+  '값 넣기': 'Fill in',
+  접기: 'Collapse',
+  제거: 'Remove',
+  되돌리기: 'Undo',
+  '넣을 값': 'Input',
+  '기대 결과': 'Expected',
+  숫자: 'Number',
+  글자: 'Text',
+  '숫자를 넣으세요': 'Enter a number',
+  저장했습니다: 'Saved',
+  '칸을 벗어나면 바로 저장됩니다': 'Saved as soon as you leave the field',
+  '보류 케이스 {전체}건 중 {처리}건 처리': '{처리} of {전체} held cases handled',
+  '값 채움 {채움} · 제거 {제거}': 'filled {채움} · removed {제거}',
+  '보류 케이스로 가기': 'Go to held cases',
+  '보류 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.': '{수} held cases remain, so this cannot be merged yet.',
+  '반영하면 넣은 값을 테스트 코드에 적고, 값을 채운 케이스를 3번 돌려 모두 통과해야 합칩니다.':
+    'Merging writes your values into the test code, runs each filled case 3 times, and merges only if all pass.',
+  '보류 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요': 'Held cases remain, so this cannot be merged yet. Try refreshing.',
+  '반영이 대기 중이거나 도는 중이라 지금은 값을 바꿀 수 없습니다': 'A merge is queued or running, so values cannot be changed now',
+  '넣은 값이 이 케이스의 칸과 맞지 않습니다': 'The values do not match this case’s fields',
+  '보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.': 'Could not read the held cases. Run it again with the same materials.',
+  '테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.':
+    'No target server has a test account. Add one in Settings > Services.',
 };

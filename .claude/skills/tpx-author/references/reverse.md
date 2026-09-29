@@ -10,6 +10,9 @@
 
 ## 1. 받는 것
 
+**`••••••` 는 에이전트가 가린 비밀번호다** (2026-09-29) — 기획서 글자본 · 앞 실행이 남긴 파일에서 테스트 계정 비밀번호를 자식을 띄우기 전에 가린다.
+실제 값으로 읽지 않는다 — 로그인 칸에 넣지 않고, 「기획서 비밀번호 ≠ 화면」 같은 차이로 적지 않는다. 계정은 아래 환경 변수로만 쓴다.
+
 - 환경 변수 `TARGET_ENV` · `TARGET_BASE_URL` · `TARGET_START_URL`(없을 수 있다) · `TARGET_LOGIN_ID` · `TARGET_LOGIN_PASSWORD`
 - 산출물 폴더 — 프롬프트가 준 경로. 없으면 만든다(`mkdir -p`). **저장소 트리 밖이다** — 거기 쓴 것은 커밋되지 않고 에이전트가 읽어 올린다
 
@@ -45,6 +48,46 @@ await 브라우저.close();
 그다음 훑기는 탐침으로 — `npx playwright cli -s=rev open` → `state-load $TMPDIR/rev-state.json` → 시작 주소로 이동.
 
 **출처가 달라 멈췄으면** 그 화면은 훑지 않고 결과 요약에 `로그인 못 함 — 다른 출처(SSO)로 간다 · 이번 판 미지원` 을 적는다.
+
+### 끝내기 직전 — 비밀번호 점검 (2026-09-28)
+
+**결과 요약을 찍기 전에 한 번 돌린다.** 에이전트 올리기 검사가 보는 것 중 자식이 고칠 수 있는 것을 먼저 본다 —
+5873 은 케이스 26개를 다 만들고 올리기에서 걸려 멈췄다. 여기서 찾으면 그 자리에서 고치고 끝낸다.
+회원가입 예시 비밀번호가 우연히 계정 값과 같아도 걸린다 — 그때는 다른 예시 값으로 바꾼다.
+
+```js
+// $TMPDIR/secret-scan.mjs — 실행: node "$TMPDIR/secret-scan.mjs" tests/<폴더> docs/cases/<접두사>.md <산출물 폴더>
+// 값은 process.env 로만 읽고 자리(파일:줄)만 찍는다 — 값을 인자·출력에 두지 않는다(위 ★)
+import { readFileSync, readdirSync, lstatSync } from 'node:fs';
+import { join } from 'node:path';
+const 비밀 = process.env.TARGET_LOGIN_PASSWORD;
+if (!비밀) { console.log('비밀번호 점검: 계정 없음'); process.exit(0); }
+const 경로들 = process.argv.slice(2);
+// 경로를 틀리면 안 보고 「깨끗」이 나온다 — 거짓 초록을 막는다
+if (경로들.length === 0) { console.log('비밀번호 점검: 볼 경로가 없다'); process.exit(2); }
+const 꼴 = [비밀, JSON.stringify(비밀).slice(1, -1)]; // 따옴표·역슬래시 든 값은 코드·JSON 에 이스케이프돼 적힌다
+const 값들 = (v) => (typeof v === 'string' ? [v] : v && typeof v === 'object' ? Object.values(v).flatMap(값들) : []);
+const 찾은 = [];
+const 훑기 = (p) => {
+  const 것 = lstatSync(p, { throwIfNoEntry: false });
+  if (!것) { console.log(`비밀번호 점검: 없는 경로 ${p}`); process.exit(2); }
+  if (것.isDirectory()) return readdirSync(p).forEach((이름) => 훑기(join(p, 이름)));
+  if (!것.isFile()) return; // 링크·FIFO 는 따라가지 않는다 — 에이전트가 모양 검사로 따로 거절한다
+  const 글 = readFileSync(p, 'utf8');
+  글.split('\n').forEach((줄, i) => { if (꼴.some((v) => 줄.includes(v))) 찾은.push(`${p}:${i + 1}`); });
+  // diffs.json 은 에이전트가 푼 값에서도 본다 — 이스케이프가 날 글자를 가린다. 못 풀면 에이전트가 따로 거절한다
+  if (p.endsWith('.json')) { try { if (값들(JSON.parse(글)).some((v) => v.includes(비밀))) 찾은.push(`${p} (푼 값)`); } catch {} }
+};
+경로들.forEach(훑기);
+console.log(찾은.length === 0 ? '비밀번호 점검: 깨끗' : `비밀번호 점검: ${찾은.length}곳\n${찾은.join('\n')}`);
+process.exit(찾은.length === 0 ? 0 : 1);
+```
+
+- **찾으면 그 줄을 고친다** — 계정이면 `params` 비밀값 칸(K9), 로그인 스크립트면 `process.env`, 예시 값이면 다른 값으로. 고친 뒤 **깨끗이 나올 때까지** 다시 돌린다
+- 고쳤으면 관문 1~3 을 다시 돈다(표를 고쳤으면 관문 2 가 거기 든다). 케이스 구조를 바꿨으면(`params` 칸 추가) 관문 4 도
+- **없는 경로라고 나오면 경로를 바로잡고 다시 돌린다** — 「깨끗」 없이 결과 요약으로 가지 않는다
+- **결과 요약에도 계정 값을 쓰지 않는다** — 에이전트가 요약을 PR 본문에 싣고 거기까지 본다
+- **이 점검이 못 보는 것** — 기획서 원본의 워드 속성 · 문서 정보 칸에만 적힌 계정 값 · PDF · 피그마(에이전트가 원본 표시 사본을 본다) · 역기획서 원고를 워드로 바꾼 뒤 드러나는 것. 이때는 올리기에서 걸려 멈춘다 — 앞엣것은 자식이 고칠 수 없다
 
 ## 3. 훑기 — 허용 목록만
 
@@ -127,5 +170,5 @@ await 브라우저.close();
 `tpx-author` 결과 요약 끝에 한 줄.
 
 ```
-역방향: <대조 / 화면만> · 차이 N건(다름 a · 화면에만 b · 문서에만 c) · 미확정 케이스 M건 · 역기획서 <있음 / 없음 / 해당 없음> · 로그인 <됨 / 못 함(사유)> · 훑은 화면 K장[ · 예산으로 멈춤]
+역방향: <대조 / 화면만> · 차이 N건(다름 a · 화면에만 b · 문서에만 c) · 미확정 케이스 M건 · 역기획서 <있음 / 없음 / 해당 없음> · 로그인 <됨 / 못 함(사유)> · 훑은 화면 K장[ · 예산으로 멈춤] · 비밀번호 점검 <깨끗 / 고침 N곳>
 ```

@@ -15,6 +15,7 @@
     "baseUrl": ".",
     "paths": {
       "@platform/kit": ["packages/kit/src/index.ts"],
+      "@platform/kit/scenario": ["packages/kit/src/runtime/scenario.ts"],
       "@platform/kit/*": ["packages/kit/src/*"]
     }
   },

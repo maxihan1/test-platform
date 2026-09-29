@@ -9,6 +9,8 @@ import {
   PR만들기인자,
   PR본문,
   PR찾기인자,
+  PR본문고치기인자,
+  덮어쓸수없는까닭,
   바뀐파일들,
   한줄,
   비밀섞였나,
@@ -27,6 +29,7 @@ import { type 보고손, type 판정기, 다시하며, 친다 } from './authorin
 import { type 표시준비물, 산출물보내기, 표시올리기, 표시준비 } from './authoring-marking.js';
 import { 거절로 } from './authoring-progress.js';
 import {
+  가림표케이스,
   계정섞였나,
   글모두,
   되읽기인자,
@@ -77,7 +80,7 @@ function 산출물읽기(자리: 사본, 이름: string, 상한: number): { 몸:
 
 /**
  * **push 전에** 원고를 워드로 바꾸고, 바꾼 것을 문서 구조로 되읽어 비밀번호를 한 번 더 찾는다.
- * 새면 `누설` — 요청을 FAILED 로 끝낸다(명세 「있으면 올리지 않고 FAILED」). 못 바꾸면 `사유` — 케이스는 올리고 이유만 남긴다(게이트 1).
+ * 새면 `누설` — 요청을 올리기 거절 중단으로 끝낸다(명세 §3.6). 못 바꾸면 `사유` — 케이스는 올리고 이유만 남긴다(게이트 1).
  * PR 을 세우기 전에 하는 까닭 — 뒤에서 새는 것을 알면 이미 선 PR 이 실패 요청에 매달린다
  */
 function 역기획서준비(
@@ -140,7 +143,7 @@ export async function 올리기(
 
   for (const [인자, 설명] of [
     [['add', '--', ...파일들], '담기'],
-    [['commit', '-m', 커밋메시지(것.id, 서비스)], '커밋'],
+    [['commit', '-m', 커밋메시지(자료출처(것), 서비스)], '커밋'],
   ] as const) {
     const r = 트리에서('git', [...인자]);
     if (!r.ok) {
@@ -195,12 +198,15 @@ export async function 올리기(
     }
     const 차이글 = 차이파일.몸?.toString('utf8') ?? null;
     const 원고글 = 원고파일.몸?.toString('utf8') ?? null;
+    // 먼저 가린 원문이 케이스에 가림표로 남았으면 이어가는 자식이 비밀값 자리로 고치게 거절한다 (2026-09-29 검사)
+    const 가림남음 = 가림표케이스(전체.map((f) => ({ 경로: f, 글: 읽기(f) })));
+    if (가림남음 !== null) return void (await 손.끝내기(거절(가림남음)));
     const 샘 = 올리기전검사({ 케이스: 전체.map(읽기), PR본문: 본문글, 차이: 차이글, 원고: 원고글 }, 비밀);
     // 날 글자만 보면 JSON 이스케이프가 따옴표·역슬래시 든 비밀번호를 가린다 — 서버로 갈 푼 값에서도 찾는다 (finish 전 검사)
     const 정리 = 차이정리(차이글);
     const diffs = 'diffs' in 정리 ? 정리.diffs : [];
     const 준비 = 원고글 === null ? null : 역기획서준비(자리, 원고글, 비밀, 역?.자식 ?? null);
-    // 원본 표시도 여기서 만들어 검사한다 — 올릴 사본에서 새는 것을 PR 뒤에 알면 명세대로 FAILED 로 못 끝낸다.
+    // 원본 표시도 여기서 만들어 검사한다 — 올릴 사본에서 새는 것을 PR 뒤에 알면 명세대로 올리기 거절로 못 끝낸다.
     // 원본 파일은 자료를 가진 요청에서 받는다 — 재실행은 원본 요청이다(자기 번호로 받으면 404)
     const 표시 = 역 === undefined ? null : await 표시준비(역, 자료출처(것), 서비스, 역.입력자료, 것.figmaToken, diffs, 비밀);
     const 샌것 = (준비 !== null && '누설' in 준비) || (표시 !== null && '누설' in 표시);
@@ -222,8 +228,11 @@ export async function 올리기(
   }
 
   // 훅은 안 돈다(사본환경) — 트리의 훅은 자식이 쓴 것이다. 같은 검사(타입·K 규칙)는 CI 의 가벼운 길이 한다
+  // 요청 하나에 브랜치 하나(author-<뿌리>) — 사람이 올린 커밋이 머리에 있으면 덮어쓰지 않는다 (§7 「실행 기록」)
   const 올림 = await 다시하며('push', () => {
-    const r = 트리에서('git', 푸시인자(것.id));
+    const 남의것 = 덮어쓸수없는까닭(트리에서, 자료출처(것));
+    if (남의것 !== null) return 남의것;
+    const r = 트리에서('git', 푸시인자(자료출처(것)));
     return r.ok ? { 값: true } : push실패(r);
   });
   if ('까닭' in 올림) {
@@ -233,10 +242,13 @@ export async function 올리기(
 
   // 재시도 전에 먼저 찾는다 — 만들기가 GitHub 에선 됐는데 답만 잃었으면 또 만들면 PR 이 둘이 된다
   const PR = await 다시하며('PR 만들기', () => {
-    const 있나 = 트리에서('gh', PR찾기인자(것.id));
+    const 있나 = 트리에서('gh', PR찾기인자(자료출처(것)));
     const 있는것 = 있나.ok ? (JSON.parse(있나.낸것 || '[]') as { url: string }[])[0]?.url : undefined;
-    if (있는것 !== undefined) return { 값: 있는것 };
-    const r = 트리에서('gh', PR만들기인자(것.id, 커밋메시지(것.id, 서비스), 본문글));
+    if (있는것 !== undefined) {
+      if (!트리에서('gh', PR본문고치기인자(있는것, 본문글)).ok) console.error(`[작성] ${것.id}번 PR 본문을 못 고쳤다 — 옛 본문이 남는다`);
+      return { 값: 있는것 };
+    }
+    const r = 트리에서('gh', PR만들기인자(자료출처(것), 커밋메시지(자료출처(것), 서비스), 본문글));
     const 주소 = r.낸것.trim().split('\n').pop() ?? '';
     return r.ok && 주소.startsWith('https://') ? { 값: 주소 } : { 까닭: r.까닭 || 'PR 주소가 안 찍혔다' };
   });

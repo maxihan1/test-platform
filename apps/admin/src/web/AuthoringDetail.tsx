@@ -1,9 +1,11 @@
-// 작성 요청 한 건 상세 페이지. 왼쪽은 Status 카드와 차이, 오른쪽은 다음 단계와 요청 정보다
+// 작성 요청 한 건 상세 페이지. 왼쪽은 Status 카드와 차이, 오른쪽은 다음 단계와 요청 정보, 아래는 실행 기록이다
 // (도메인/작성 §3.6 · §7 · 도메인/인증 §7 「등급으로 갈리는 자리」 · DESIGN.md 「작성 상태」)
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 
 import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
+import { AuthoringHeld } from './AuthoringHeld.js';
+import { AuthoringRuns } from './AuthoringRuns.js';
 import { AuthoringStatusCard } from './AuthoringStatusCard.js';
 import { AuthoringTodo } from './AuthoringTodo.js';
 import { 끝났나, 종류라벨, 차이목록, 차이종류라벨 } from './authoringView.js';
@@ -50,10 +52,39 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
   const t = use말();
   const 언어 = use언어();
 
+  // 보이는 번호는 뿌리 하나다 (도메인/작성 §7 「실행 기록」). 뿌리 상세는 실행 기록을, 상태 카드 · 다음 단계는
+  // 최신 실행 상세를 그린다 — 버튼이 옛 실행에 걸리면 멈춤 · 이어서 작성이 엉뚱한 행으로 간다 (2026-09-29 계획 검토)
+  // 실패한 머지는 건너뛴다 — 끝난 작성 실행을 다시 보여 반영 버튼이 돌아온다(서버 `최신실행` 과 같은 규칙).
+  // 차이 · 산출물은 머지가 아니라 그것을 만든 작성 실행에 붙어 있다 (2026-09-29 검사)
   const 것 = useAsync<AuthoringRow>(() => api.authoringRequest(service, id), [service, id]);
-  const data = 것.data;
-  const reload = 것.reload;
+  const 뿌리 = 것.data;
+  const 버튼번호 = 뿌리?.runs?.find((r) => !(r.kind === 'MERGE' && r.status === 'FAILED'))?.id ?? id;
+  const 작성번호 = 뿌리?.runs?.find((r) => r.kind !== 'MERGE')?.id ?? id;
+  const 최신것 = useAsync<AuthoringRow | null>(
+    () => (버튼번호 !== id ? api.authoringRequest(service, 버튼번호) : Promise.resolve(null)),
+    [service, 버튼번호, id],
+  );
+  const 작성것 = useAsync<AuthoringRow | null>(
+    () => (작성번호 !== id && 작성번호 !== 버튼번호 ? api.authoringRequest(service, 작성번호) : Promise.resolve(null)),
+    [service, 작성번호, 버튼번호, id],
+  );
+  const data = 버튼번호 !== id ? 최신것.data : 뿌리;
+  const 작성 = 작성번호 === id ? 뿌리 : 작성번호 === 버튼번호 ? data : 작성것.data;
+  const 뿌리읽기 = 것.reload;
+  const 최신읽기 = 최신것.reload;
+  const 작성읽기 = 작성것.reload;
+  const reload = useCallback(() => {
+    뿌리읽기();
+    최신읽기();
+    작성읽기();
+  }, [뿌리읽기, 최신읽기, 작성읽기]);
   const 도는중 = data !== null && !끝났나(data.status);
+
+  // 예전 실행 번호로 들어오면 뿌리 번호 쪽으로 — 한 요청이 번호 여럿으로 흩어져 보이지 않게
+  const 뿌리번호 = 뿌리?.rootId;
+  useEffect(() => {
+    if (뿌리번호 !== undefined && 뿌리번호 !== id) window.location.hash = `#/authoring/${String(뿌리번호)}`;
+  }, [뿌리번호, id]);
 
   // 에이전트가 뒤에서 이어 간다. 끝날 때까지만 다시 묻고 끝나면 멈춘다 (RunResult 와 같은 모양)
   useEffect(() => {
@@ -63,20 +94,24 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
   }, [도는중, reload]);
 
   if (것.error !== null) return <Failed error={것.error} />;
-  if (data === null) return <Loading />;
+  if (최신것.error !== null) return <Failed error={최신것.error} />;
+  if (작성것.error !== null) return <Failed error={작성것.error} />;
+  // 번호가 바뀐 직후에는 옛 실행 답이 남아 있다 — 그 버튼을 누르면 엉뚱한 행이 멈추거나 폐기된다 (2026-09-29 검사)
+  if (뿌리 === null || data === null || 작성 === null || data.id !== 버튼번호 || 작성.id !== 작성번호) return <Loading />;
 
-  // 입력과 산출물을 가른다. role 이 없으면 입력이다 — 이 칸을 모르는 옛 응답도 그대로 그린다
-  const 자료들 = data.assets ?? [];
-  const 입력 = 자료들.filter((a) => (a.role ?? 'INPUT') === 'INPUT');
-  const 산출물 = 자료들.filter((a) => (a.role ?? 'INPUT') !== 'INPUT');
-  const 차이들 = 차이목록(data.result);
+  // 입력과 산출물을 가른다. role 이 없으면 입력이다 — 이 칸을 모르는 옛 응답도 그대로 그린다.
+  // 입력은 뿌리(맨 처음 요청)에, 산출물은 그것을 만든 실행에 붙는다
+  const 입력 = (뿌리.assets ?? []).filter((a) => (a.role ?? 'INPUT') === 'INPUT');
+  const 자료들 = [...입력, ...(작성.assets ?? [])];
+  const 산출물 = (작성.assets ?? []).filter((a) => (a.role ?? 'INPUT') !== 'INPUT');
+  const 차이들 = 차이목록(작성.result);
   const 부제 = data.compare === true ? `${종류라벨(data.kind, 언어)} · ${t('실제 화면과 대조')}` : 종류라벨(data.kind, 언어);
 
   return (
     <>
       {/* 상세의 제목은 **그 대상 자체**다 — 실행 결과가 `RUN 2113` 을 쓰는 것과 같은 모양.
           자리 이름(`테스트 작성`)을 또 쓰면 어느 요청을 보고 있는지가 안 보인다 */}
-      <Head 제목={`#${String(data.id)}`} 부제={부제} />
+      <Head 제목={`#${String(뿌리.id)}`} 부제={부제} />
 
       <div className="screen authoring-page">
         <div className="authoring-cols">
@@ -134,17 +169,6 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
                 <dd>{when(data.createdAt, 언어)}</dd>
                 <dt>{t('작성 에이전트')}</dt>
                 <dd>{data.claimedBy ?? t('아직 배정 전')}</dd>
-                {/* 이어서 작성한 요청 — 무엇을 이어받았는지 (도메인/작성 §7 「이어하기」) */}
-                {typeof data.resumeFrom === 'number' ? (
-                  <>
-                    <dt>{t('이어받음')}</dt>
-                    <dd>
-                      <a href={`#/authoring/${String(data.resumeFrom)}`}>
-                        {t('작성 요청 #{번호}의 중단 자리에서 이어받음', { 번호: data.resumeFrom })}
-                      </a>
-                    </dd>
-                  </>
-                ) : null}
                 {/* 역방향 (도메인/작성 §3.6 「★ 역방향」). 계정은 이 응답에 없다 — 집기 응답에만 있다 */}
                 {data.compare === true ? (
                   <>
@@ -168,7 +192,7 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
                   <ol className="authoring-assets" aria-label={t('입력 자료')}>
                     {입력.map((a) => (
                       <li key={a.id}>
-                        <자료고리 요청={data.id} 자료={a} 글={a.name} />
+                        <자료고리 요청={뿌리.id} 자료={a} 글={a.name} />
                       </li>
                     ))}
                   </ol>
@@ -191,6 +215,9 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
             </section>
           </div>
         </div>
+        {/* 보류는 최신 끝난 실행에 붙는다 — 서버가 그 행에만 입력을 받는다 (도메인/작성 §7) */}
+        <AuthoringHeld service={service} 요청번호={data.id} held={data.held ?? []} 편집={할수('작성요청')} reload={reload} />
+        <AuthoringRuns runs={뿌리.runs ?? []} />
       </div>
     </>
   );

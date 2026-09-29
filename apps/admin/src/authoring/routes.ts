@@ -7,10 +7,12 @@ import { resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
+import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
-import { 이어받을수있나, 줄세우기, 한건, 한쪽, type 요청, type 상태 } from './store.js';
+import { 도는실행있나, 뿌리, 뿌리잠그고, 실행들, 최신실행, 한쪽 } from './history.js';
+import { 이어받을수있나, 줄세우기, 한건, type 요청, type 상태 } from './store.js';
 
 /**
  * 사진이 내려앉는 뿌리.
@@ -167,7 +169,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       const 행 = 이어서 && 받은것.kind === 'RERUN' && 받은것.sourceId !== null ? await 한건(받은것.sourceId) : 받은것;
       // 재실행은 원본의 자료를 다시 읽는다. 원본이 재실행·머지면 자료가 없고, DRAFT 면 아직 다 안 올라왔다
       // 폐기한 원본도 다시 안 돌린다 — 목록에서 치운 것이 재실행으로 되살아난다 (§7 「중단 · 폐기 · 진척」).
-      // 이어서 작성은 멈춘 행의 폐기를 위에서 봤다 — 맨 처음 요청을 폐기해도 멈춘 행이 살아 있으면 이어간다
+      // 이어서 작성은 멈춘 행의 폐기를 위에서 봤다 — 폐기는 요청 통째라 맨 처음 요청만 폐기된 것은 2026-09-29 전 옛 행뿐이다
       if (행 === null || 행.kind !== 'AUTHOR' || 행.status === 'DRAFT' || (!이어서 && 행.discardedAt !== null)) {
         return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행?.kind} ${행?.status}` });
       }
@@ -178,7 +180,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         : ({ compare: false } as const);
       if ('error' in 대조) return reply.code(400).send({ error: 대조.error });
       try {
-        const id = await 줄세우기({
+        // 같은 뿌리에 도는 실행이 있으면 둘이 같은 브랜치를 서로 덮는다 — 확인과 넣기를 뿌리 잠금 안에서 (§7 「실행 기록」)
+        const id = await 뿌리잠그고(행.id, async () => (await 도는실행있나(행.id)) ? null : 줄세우기({
           서비스,
           kind,
           원본: 행.id,
@@ -188,7 +191,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           이름,
           ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
           ...(이어서 ? { 이어받기: 받은것.id } : {}),
-        });
+        }));
+        if (id === null) return reply.code(409).send({ error: 'RUN_ACTIVE' });
         return reply.code(201).send({ id });
       } catch (e) {
         // 둘이 동시에 눌렀다 — 위 판정은 둘 다 통과하고 유일 색인이 뒤엣것을 막는다
@@ -232,13 +236,20 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 없는 번호는 404 다. 「없는 것」과 「남의 것」이 뭉개지면 안 된다 (SPEC §7).
       // 서비스 경계는 문이 이미 봤다 — 이 틀은 라우트표에서 「번호로 서비스를 찾는」 갈래다
       if (행 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
-      return { ...행, assets: await 자료목록(행.id) };
+      const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;
+      return {
+        ...행,
+        assets: await 자료목록(행.id),
+        rootId: 뿌리번호,
+        runs: await 실행들(뿌리번호),
+        ...(await 보류상세(행)),
+      };
     },
   );
 
   // 머지만 경로가 갈린다. 같은 경로에 kind 로 얹으면 등급이 **본문 값**에 따라 갈려야 하고
   // 그러려면 문이 본문을 읽어야 한다. 경로가 다르면 경로만 보고 가른다 (SPEC §7)
-  app.post<{ Querystring: { service?: string }; Body: { sourceId?: unknown } }>(
+  app.post<{ Querystring: { service?: string }; Body: { sourceId?: unknown; env?: unknown } }>(
     '/authoring/merges',
     async (req, reply) => {
       const 서비스 = await 서비스번호(req, reply);
@@ -247,26 +258,39 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       const 행 = await 원본확인(req.body?.sourceId, 서비스, reply);
       if (행 === null) return reply;
 
+      // 도는 실행이 있거나 뒤에 실행이 더 있으면 그 PR 은 이미 옛것이다 — 최신 실행만 머지한다 (§7 「실행 기록」)
+      const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;
+      if (await 도는실행있나(뿌리번호)) return reply.code(409).send({ error: 'RUN_ACTIVE' });
+      if ((await 최신실행(뿌리번호)) !== 행.id) return reply.code(409).send({ error: 'NOT_LATEST' });
       // 아직 안 끝났거나 실패한 요청은 머지할 것이 없다. PR 주소가 비어 있다
       if (행.status !== 'DONE' || 행.prUrl === null) {
         return reply.code(409).send({ error: 'NOT_MERGEABLE', detail: 행.status });
       }
-
-      const id = await 줄세우기({
-        서비스,
-        kind: 'MERGE',
-        원본: 행.id,
-        // ★ 기획서 본문을 복사하지 않는다. 그것은 실행 등급이 쓴 자유 텍스트이고 맥에서 도는
-        // 에이전트가 읽고 따르는 지시문이다 — 머지 행에까지 실어 보내면 admin 이 승인한 것은
-        // 「이 요청을 머지한다」인데 맥에게 가는 것은 그 사람이 쓴 문장이 된다.
-        // 맥은 원본 번호로 필요한 것을 읽으면 된다 (2026-09-22 보안 검토가 잡았다)
-        기획서: `머지 요청 — 원본 #${String(행.id)}`,
-        누가: req.user?.username ?? '',
-        이름: req.user?.displayName ?? '',
+      // 보류 판정도 잠금 안에서 — 밖에서 보면 판정과 머지 행 사이에 PUT · DELETE 가 끼어든다
+      const 세움 = await 뿌리잠그고(뿌리번호, async (): Promise<{ error: string; code: number } | { id: number }> => {
+        if (await 도는실행있나(뿌리번호)) return { error: 'RUN_ACTIVE', code: 409 };
+        const 보류 = await 머지보류판정(행, 서비스, req.body?.env);
+        if ('error' in 보류) return 보류;
+        const id = await 줄세우기({
+          서비스,
+          kind: 'MERGE',
+          원본: 행.id,
+          // ★ 기획서 본문을 복사하지 않는다. 그것은 실행 등급이 쓴 자유 텍스트이고 맥에서 도는
+          // 에이전트가 읽고 따르는 지시문이다 — 머지 행에까지 실어 보내면 admin 이 승인한 것은
+          // 「이 요청을 머지한다」인데 맥에게 가는 것은 그 사람이 쓴 문장이 된다.
+          // 맥은 원본 번호로 필요한 것을 읽으면 된다 (2026-09-22 보안 검토가 잡았다)
+          기획서: `머지 요청 — 원본 #${String(행.id)}`,
+          누가: req.user?.username ?? '',
+          이름: req.user?.displayName ?? '',
+          머지대상: 보류.env,
+        });
+        return { id };
       });
-      return reply.code(201).send({ id });
+      if ('error' in 세움) return reply.code(세움.code).send({ error: 세움.error });
+      return reply.code(201).send({ id: 세움.id });
     },
   );
 
   await 중단통로(app);
+  await 보류통로(app);
 }

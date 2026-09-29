@@ -30,10 +30,12 @@ import {
 import { 머지처리 } from './authoring-merge.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
+import { 보류싣는손 } from './authoring-held.js';
 import { 사용량보고, 흐름풀기 } from './authoring-usage.js';
 import { 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './authoring-progress.js';
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 폴더자리 } from './authoring-token.js';
+import { 먼저가리기 } from './authoring-masking.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -95,20 +97,20 @@ async function 한건(
   박동: 박동,
 ): Promise<void> {
   if (것.kind === 'MERGE') {
-    // **머지 행에는 PR 주소가 안 실려 온다** — 서버가 줄을 세울 때 그 칸을 안 채운다
-    // (`authoring/store.ts` 의 `줄세우기`). 그래서 **원본 행을 읽어** 가져온다
+    // **머지 행에는 PR 주소가 안 실려 온다**(`store.ts` `줄세우기`) — 원본 행을 읽어 주소와 뿌리를 가져온다
     let 주소 = 것.prUrl ?? null;
-    if (주소 === null && typeof 것.sourceId === 'number') {
-      const 원본 = await 부른다(주소기지, 토큰, `/authoring/requests/${것.sourceId}?service=${encodeURIComponent(서비스)}`);
-      주소 = (원본.몸 as { prUrl?: string | null } | null)?.prUrl ?? null;
+    let 요청뿌리: number | undefined;
+    if (typeof 것.sourceId === 'number') {
+      const 원본 = (await 부른다(주소기지, 토큰, `/authoring/requests/${것.sourceId}?service=${encodeURIComponent(서비스)}`)).몸;
+      주소 ??= (원본 as { prUrl?: string | null } | null)?.prUrl ?? null;
+      요청뿌리 = (원본 as { rootId?: number } | null)?.rootId;
     }
     if (주소 === null) {
       await 손.끝내기({ status: 'FAILED', error: '머지할 초안 PR 주소가 없다' });
       return;
     }
-    // 확인하는 브랜치는 **prUrl 을 가진 원본 행**(sourceId)의 것이다 — 재실행이 올린 PR 이면 author-<재실행 번호>.
-    // 머지 행 자기 번호로 PR 을 올린 적은 없다
-    await 머지처리(손, 주소, 판.판정, 것.sourceId ?? undefined, 판.원천, 판.호스트로);
+    // 브랜치는 author-<뿌리> — 그 전에 선 PR 은 prUrl 을 가진 원본 행(sourceId)의 author-<실행 번호> 다 (§7 「실행 기록」)
+    await 머지처리(손, 주소, 판.판정, 것.sourceId ?? undefined, 판.원천, 판.호스트로, 요청뿌리, { 것, 서비스, 판, 자식: 판.계정?.자식[자리번호] ?? null });
     return;
   }
 
@@ -220,7 +222,9 @@ async function 사본에서(
       return;
     }
   }
-
+  // 역방향 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호를 먼저 가린다 (§3.6 「★ 역방향」)
+  const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 것.target?.loginPassword);
+  if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));
   await 손.단계('케이스를 만드는 중');
   if (박동.멈추라했다()) {
     await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' });
@@ -246,7 +250,7 @@ async function 사본에서(
   const 돌린것 = await 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
-      input: 줄프롬프트({ ...것, specText: 본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향, 방.이어하기),
+      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향, 방.이어하기),
       env: 환경,
       uid: 자식?.uid,
       gid: 자식?.gid,
@@ -284,14 +288,10 @@ async function 사본에서(
     return;
   }
 
+  // 보류 케이스는 자식의 말이 아니라 코드에서 계산해 DONE 에 싣는다 (작성 §3.6 「★ 보류 케이스」)
   await 올리기(
-    자리,
-    것,
-    서비스,
-    판.판정,
-    기준,
-    풀린.글,
-    손,
+    자리, 것, 서비스, 판.판정, 기준, 풀린.글,
+    보류싣는손(손, 자리, 자식, 케이스자리),
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 화면만, 입력자료: 자료들 },
   );
 }

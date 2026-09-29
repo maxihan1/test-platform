@@ -3,13 +3,15 @@
 import { useState } from 'react';
 
 import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
+import { 보류오류문장, 보류진척 } from './AuthoringHeld.js';
+import { 반영단계 } from './AuthoringMergeStep.js';
 import { 다시작성원본, 시간판 } from './authoringStatus.js';
 import { 이어서작성, 일 } from './authoringTodoParts.js';
 import { 줄보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import type { 판정 } from './role.js';
-import { message, when } from './ui.js';
+import { when } from './ui.js';
 
 type 확인 = 'stop' | 'discard' | null;
 
@@ -37,16 +39,17 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
   const 올리는중 = 요청.status === 'RUNNING' && !멈춤요청됨 && 요청.canStop !== true && 요청.progress?.childRunning === false;
   const 표시사본 = (요청.assets ?? []).filter((a: AuthoringAsset) => a.role === 'MARKED');
 
-  /** 누르면 곧장 서버로 가는 일(반영 · 다시 작성). 새로 선 줄로 보낸다 — 여기 머물면 아무 일도 안 난 것처럼 보이고 또 누른다 (2026-09-23) */
+  /**
+   * 누르면 곧장 서버로 가는 일(반영 · 다시 작성 · 이어서 작성). 새 실행은 같은 번호의 실행 기록에 쌓이므로
+   * 이 쪽에 머물러 다시 읽는다 — 새 번호로 보내면 한 요청이 번호 여럿으로 흩어진다 (§7 「실행 기록」, 2026-09-29)
+   */
   function 새줄로(만든다: () => Promise<{ id: number }>) {
     if (보내는중) return;
     set보내는중(true);
     set오류(null);
     void 만든다()
-      .then((선것) => {
-        window.location.hash = `#/authoring/${String(선것.id)}`;
-      })
-      .catch((err: unknown) => set오류(message(err, 언어)))
+      .then(() => reload())
+      .catch((err: unknown) => set오류(보류오류문장(err, 언어)))
       .finally(() => set보내는중(false));
   }
 
@@ -68,7 +71,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
             // 폐기한 것은 목록에서 사라진다. 여기 남으면 사라진 행을 보고 있게 된다
             window.location.hash = '#/authoring';
           });
-    void 할일.catch((err: unknown) => set오류(message(err, 언어))).finally(() => set보내는중(false));
+    void 할일.catch((err: unknown) => set오류(보류오류문장(err, 언어))).finally(() => set보내는중(false));
   }
 
   const 중단버튼 =
@@ -123,8 +126,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
   } else if (요청.status === 'DONE' && 요청.kind === 'MERGE') {
     본문 = <p>{t('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')}</p>;
   } else if (요청.status === 'DONE') {
-    // **화면이 버튼을 안 그리는 것은 편의이지 방어가 아니다** — 서버 gate.ts 가 다시 막는다
-    const 반영권한 = 할수('작성머지');
+    const held = 요청.held ?? [];
     let 번호 = 0;
     const 다음 = () => String(++번호);
     본문 =
@@ -150,15 +152,8 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
               ))}
             </일>
           )}
-          <일 표={다음()} 제목={t('테스트 반영하기')} 설명={t('검토가 끝나면 PR 을 합쳐 케이스 목록에 올립니다.')}>
-            {반영권한 ? (
-              <button className="btn" type="button" disabled={보내는중} onClick={() => 새줄로(() => api.createAuthoringMerge(service, 요청.id))}>
-                {보내는중 ? t('반영하는 중') : t('테스트 반영하기')}
-              </button>
-            ) : (
-              <span className="hint">{t('반영은 운영 권한이 있는 사람이 합니다.')}</span>
-            )}
-          </일>
+          {held.length === 0 ? null : <보류진척 표={다음()} held={held} />}
+          <반영단계 service={service} 요청={요청} 표={다음()} 반영권한={할수('작성머지')} 보내는중={보내는중} 새줄로={새줄로} />
         </ol>
       );
   } else {
@@ -172,8 +167,8 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
       ? t('다시 작성은 실행 권한이 있는 사람이 합니다.')
       : [
           요청.status === 'FAILED'
-            ? t('원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다.')
-            : t('넣었던 자료 그대로 새 요청을 만들어 처음부터 다시 돌립니다. 이 요청은 기록으로 남습니다.'),
+            ? t('원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다.')
+            : t('넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다. 지금까지의 실행은 실행 기록에 남습니다.'),
           ...(요청.compare === true ? [t('대상 서버와 시작 주소도 원본 그대로 씁니다.')] : []),
         ].join(' ');
     const 다시작성 = (

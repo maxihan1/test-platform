@@ -1,11 +1,11 @@
 // 절차 실행 규칙(SPEC §4 verify 실패 규칙)을 Playwright 없이 검사한다. 스크린샷과 결과 전달은 가짜 함수로 바꿔 끼운다
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { StepResult } from '../types.js';
-import type { RunScope } from './context.js';
+import { runScope, type RunScope } from './context.js';
 import { recordHttpTrace } from './http.js';
-import { runStep } from './step.js';
+import { runStep, step } from './step.js';
 import { verify } from './verify.js';
 
 function makeRun(shot: string | null = 'artifacts/runs/1/1/SEQ.png') {
@@ -138,5 +138,57 @@ describe('runStep', () => {
       request: { method: 'POST', url: 'https://example.test/posts' },
       response: { status: 201, body: '{}' },
     });
+  });
+});
+
+describe('step — 제목으로 건너뛰기 (E2E 시나리오)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete process.env.PLATFORM_HISTORY_ID;
+  });
+
+  it('건너뛸 제목이면 본문을 안 돌리고 판정 없이 건너뜀 한 건을 순번을 올려 적는다', async () => {
+    const { run, emitted } = makeRun();
+    run.skip = new Set(['계정을 만든다']);
+    const 본문 = vi.fn();
+
+    await runScope.run(run, async () => {
+      await step('계정을 만든다', 본문);
+    });
+
+    expect(본문).not.toHaveBeenCalled();
+    expect(emitted).toEqual([
+      { seq: 1, title: '계정을 만든다', status: 'PASS', durationMs: 0, assertions: [], skipped: true },
+    ]);
+  });
+
+  it('건너뛸 목록에 없는 절차는 그대로 돌고 순번이 이어진다', async () => {
+    const { run, emitted } = makeRun();
+    run.skip = new Set(['계정을 만든다']);
+
+    await runScope.run(run, async () => {
+      await step('계정을 만든다', async () => {});
+      await step('로그인한다', async () => {
+        await verify('로그인됐다', true, true);
+      });
+    });
+
+    expect(emitted.map((s) => [s.seq, s.title, s.skipped])).toEqual([
+      [1, '계정을 만든다', true],
+      [2, '로그인한다', undefined],
+    ]);
+  });
+
+  it('건너뛴 절차는 진행 줄을 흘리지 않는다', async () => {
+    process.env.PLATFORM_HISTORY_ID = '7';
+    const 쓰기 = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const { run } = makeRun();
+    run.skip = new Set(['계정을 만든다']);
+
+    await runScope.run(run, async () => {
+      await step('계정을 만든다', async () => {});
+    });
+
+    expect(쓰기).not.toHaveBeenCalled();
   });
 });
