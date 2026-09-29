@@ -43,6 +43,14 @@ describe('Grafana 대시보드 프로비저닝', () => {
     ]);
   });
 
+  it('test_run 을 읽는 패널은 시나리오 실행을 뺀다', () => {
+    const 읽는패널 = 대시보드.panels.filter((p) => p.targets.some((t) => t.rawSql.includes('test_run')));
+    expect(읽는패널.map((p) => p.title)).toEqual(['성공률 추이', '평균 소요시간', '실패 TOP 10 케이스', '최근 실행 목록']);
+    for (const p of 읽는패널) {
+      expect(p.targets.every((t) => t.rawSql.includes("kind = 'CASE'")), p.title).toBe(true);
+    }
+  });
+
   describe.skipIf(연결 === undefined)('패널 SQL', () => {
     let pool: Pool;
     let 읽기전용: Client;
