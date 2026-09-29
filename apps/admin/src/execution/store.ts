@@ -365,9 +365,11 @@ export async function recoverRunning(): Promise<number> {
     // 다음 기동이 다시 집는다. duration_ms 는 CLOSE_UNFINISHED 와 맞춘다 — 같은 마감이 두 표에서 다르게 보이지 않게
     await pool.query(CLOSE_UNFINISHED_PARTS, [Number(row.run_id)]);
     await pool.query(CLOSE_UNFINISHED, [Number(row.run_id), 'ABORTED']);
-    await pool.query("UPDATE test_run SET status = 'ABORTED', finished_at = now() WHERE run_id = $1", [
-      Number(row.run_id),
-    ]);
+    // 위 SELECT 뒤에 러너가 막 FINISHED 로 닫았을 수 있다. 끝까지 돈 실행을 ABORTED 로 덮지 않는다
+    await pool.query(
+      "UPDATE test_run SET status = 'ABORTED', finished_at = now() WHERE run_id = $1 AND status = 'RUNNING'",
+      [Number(row.run_id)],
+    );
   }
   return running.rowCount ?? 0;
 }

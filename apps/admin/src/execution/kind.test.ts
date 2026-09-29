@@ -1,7 +1,7 @@
 // 시나리오 실행이 케이스 실행 자리에 섞이지 않는지 본다 — 목록·집계·견주기·중단·재기동 복구 (SPEC 도메인/시나리오 §3.7 결정 10)
 
 import Fastify from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { collectRun } from '../reporting/collect.js';
 import { compareWithPrevious } from '../reporting/insights.js';
@@ -256,5 +256,41 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
       { seq: 2, status: 'NA', error: { message: 'ABORTED' }, 닫힘: true },
     ]);
     expect(await 상태(S)).toBe('ABORTED');
+  });
+
+  it('재기동 복구가 RUNNING 으로 집은 뒤 FINISHED 로 닫힌 실행은 ABORTED 로 덮지 않는다', async () => {
+    await 실행치우기();
+    const S = await 실행({ 시나리오: true, status: 'RUNNING' });
+    await q(`INSERT INTO scenario_run_part (run_id, seq, kind, part, status) VALUES ($1, 1, 'wait', '{}', 'NA')`, [S]);
+    const { pool } = await import('../db/index.js');
+    const 러너 = await pool.connect();
+    try {
+      // 러너가 막 닫는 중이다 — 행을 잠근 채 아직 COMMIT 전이라 복구의 SELECT 에는 RUNNING 으로 보인다
+      await 러너.query('BEGIN');
+      await 러너.query(
+        "UPDATE scenario_run_part SET status = 'PASS', finished_at = now() WHERE run_id = $1",
+        [S],
+      );
+      await 러너.query("UPDATE test_run SET status = 'FINISHED', finished_at = now() WHERE run_id = $1", [S]);
+      const 복구 = recoverRunning();
+      await vi.waitUntil(
+        async () =>
+          (
+            await q<{ n: string }>(
+              "SELECT count(*) AS n FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND query LIKE '%UPDATE scenario_run_part%' AND pid <> pg_backend_pid()",
+            )
+          ).rows[0]!.n !== '0',
+        { timeout: 5000, interval: 20 },
+      );
+      await 러너.query('COMMIT');
+      await 복구;
+    } finally {
+      러너.release();
+    }
+
+    expect(await 상태(S)).toBe('FINISHED');
+    const 부품 = await q<{ status: string }>('SELECT status FROM scenario_run_part WHERE run_id = $1', [S]);
+    expect(부품.rows).toEqual([{ status: 'PASS' }]);
+    await 실행치우기();
   });
 });

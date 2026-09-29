@@ -30,8 +30,11 @@ const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ e
 const 없음 = (reply: FastifyReply, detail: string) => reply.code(404).send({ error: 'SCENARIO_NOT_FOUND', detail });
 
 // 치운 것은 보기만, 비활성 서비스의 것은 만들기와 같게 400 이다 (게이트 0 승인 3). 거절이면 보낸 응답을 돌려준다
+// 치운 것 검사는 빠른 거절일 뿐이다 — 이 검사와 저장 사이에 치우기가 낄 수 있어 진짜 그물은 store 의 잠금 안 판정이다
+const 치웠음 = (reply: FastifyReply, id: number) =>
+  reply.code(409).send({ error: 'SCENARIO_ARCHIVED', detail: `치운 시나리오다: ${id}` });
 async function 고칠수없음(reply: FastifyReply, 지금: { id: number; isActive: boolean; service: string }) {
-  if (!지금.isActive) return reply.code(409).send({ error: 'SCENARIO_ARCHIVED', detail: `치운 시나리오다: ${지금.id}` });
+  if (!지금.isActive) return 치웠음(reply, 지금.id);
   if ((await findService(지금.service)) === null) return 잘못(reply, `모르는 서비스다: ${지금.service}`);
   return null;
 }
@@ -112,7 +115,7 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if (오류.length > 0) return 잘못(reply, 오류.join(' · '));
     const 결과 = await 고치기(id, parsed.data, 누가(req));
     if (결과 === null) return 없음(reply, req.params.id);
-    if ('error' in 결과) return reply.code(409).send(결과);
+    if ('error' in 결과) return 결과.error === 'SCENARIO_ARCHIVED' ? 치웠음(reply, id) : reply.code(409).send(결과);
     return 결과;
   });
 
@@ -127,6 +130,7 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if (거절 !== null) return 거절;
     const 결과 = await 되돌리기(id, parsed.data.version, 누가(req));
     if (결과 === null) return 없음(reply, `${req.params.id}/${parsed.data.version}`);
+    if ('error' in 결과) return 치웠음(reply, id);
     return 결과;
   });
 

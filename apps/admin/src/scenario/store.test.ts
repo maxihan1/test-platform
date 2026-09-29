@@ -119,6 +119,16 @@ describe.skipIf(연결 === undefined)('시나리오 저장소', () => {
     expect(await 치우기(999999999)).toBe(false);
   });
 
+  it('치운 시나리오는 고치기·되돌리기가 SCENARIO_ARCHIVED 이고 새 버전이 안 생긴다', async () => {
+    const { id } = await 만들기(서비스.XSS!, 'XSS 치운 뒤 고치기', 'desktop', 부품, 사람);
+    await 치우기(id);
+    expect(await 고치기(id, { name: 'a', platform: 'desktop', parts: 딴부품, baseVersion: 1 }, 사람)).toEqual({
+      error: 'SCENARIO_ARCHIVED',
+    });
+    expect(await 되돌리기(id, 1, 사람)).toEqual({ error: 'SCENARIO_ARCHIVED' });
+    expect((await 상세(id))?.versions).toHaveLength(1);
+  });
+
   it('목록은 그 서비스 것만 최신 버전으로 준다', async () => {
     const 내것 = await 만들기(서비스.XSS!, 'XSS 목록', 'desktop', 부품, 사람);
     await 고치기(내것.id, { name: 'XSS 목록', platform: 'mobile', parts: [...부품, ...딴부품], baseVersion: 1 }, 사람);

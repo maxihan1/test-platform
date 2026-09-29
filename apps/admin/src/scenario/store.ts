@@ -39,7 +39,9 @@ export interface 상세본 {
   versions: { version: number; savedBy: string; savedByName: string; savedAt: string }[];
 }
 
-export type 고치기결과 = { version: number } | { error: 'STALE_VERSION'; latest: number } | null;
+export type 치운것 = { error: 'SCENARIO_ARCHIVED' };
+export type 고치기결과 = { version: number } | { error: 'STALE_VERSION'; latest: number } | 치운것 | null;
+const 치웠다: 치운것 = { error: 'SCENARIO_ARCHIVED' };
 
 // 최신 버전 한 줄. 목록과 상세가 같은 뜻의 「최신」을 본다
 const 최신버전 = `
@@ -163,6 +165,7 @@ export async function 고치기(
     return await 쓰기(async (c) => {
       const 최신 = await 잠그고최신(c, id);
       if (최신 === null) return null;
+      if (최신 === '치움') return 치웠다;
       // 말없이 덮으면 앞사람의 조립이 이력에서 사라진다
       if (고칠것.baseVersion !== 최신) return { error: 'STALE_VERSION' as const, latest: 최신 };
       await c.query('UPDATE scenario SET name = $2 WHERE id = $1', [id, 고칠것.name]);
@@ -178,10 +181,15 @@ export async function 고치기(
 }
 
 /** 옛 버전을 복사한 새 버전. 시나리오나 그 버전이 없으면 null */
-export async function 되돌리기(id: number, version: number, 사람: 저장하는사람): Promise<{ version: number } | null> {
+export async function 되돌리기(
+  id: number,
+  version: number,
+  사람: 저장하는사람,
+): Promise<{ version: number } | 치운것 | null> {
   return 쓰기(async (c) => {
     const 최신 = await 잠그고최신(c, id);
     if (최신 === null) return null;
+    if (최신 === '치움') return 치웠다;
     const 옛것 = await c.query<버전행>(
       'SELECT platform, parts FROM scenario_version WHERE scenario_id = $1 AND version = $2',
       [id, version],
@@ -214,10 +222,13 @@ async function 쓰기<T>(일: (c: PoolClient) => Promise<T>): Promise<T> {
   }
 }
 
-// 시나리오 행을 잠가 같은 시나리오의 저장을 한 줄로 세운다. PK (scenario_id, version) 가 마지막 그물이다
-async function 잠그고최신(c: PoolClient, id: number): Promise<number | null> {
-  const 잠금 = await c.query('SELECT id FROM scenario WHERE id = $1 FOR UPDATE', [id]);
-  if (잠금.rowCount === 0) return null;
+// 시나리오 행을 잠가 같은 시나리오의 저장을 한 줄로 세운다. PK (scenario_id, version) 가 마지막 그물이다.
+// 치웠는지도 잠근 행에서 본다 — 잠그기 전에 보면 그 사이 치우기가 끼어 치운 것에 새 버전이 들어간다
+async function 잠그고최신(c: PoolClient, id: number): Promise<number | '치움' | null> {
+  const 잠금 = await c.query<{ is_active: boolean }>('SELECT is_active FROM scenario WHERE id = $1 FOR UPDATE', [id]);
+  const 행 = 잠금.rows[0];
+  if (행 === undefined) return null;
+  if (!행.is_active) return '치움';
   const r = await c.query<{ max: number }>('SELECT max(version) AS max FROM scenario_version WHERE scenario_id = $1', [id]);
   return r.rows[0]?.max ?? 0;
 }
