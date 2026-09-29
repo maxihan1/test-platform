@@ -229,6 +229,41 @@ describe.skipIf(연결 === undefined)('시나리오 API', () => {
     expect(목록.json<{ items: { id: number }[] }>().items.map((s) => s.id)).not.toContain(id);
   });
 
+  const 버전수 = async (id: number) =>
+    Number((await q('SELECT count(*) AS n FROM scenario_version WHERE scenario_id = $1', [id])).rows[0].n);
+  const 고치기와되돌리기 = (id: number) =>
+    [
+      { method: 'PUT', url: `/api/scenarios/${id}`, payload: { name: 'XSR 고침', platform: 'desktop', parts: [케이스('XSR-001')], baseVersion: 1 } },
+      { method: 'POST', url: `/api/scenarios/${id}/restore`, payload: { version: 1 } },
+    ] as const;
+
+  it('치운 시나리오의 고치기·되돌리기는 409 SCENARIO_ARCHIVED 이고 새 버전이 안 생긴다', async () => {
+    const { id } = (await 만들기요청({})).json<{ id: number }>();
+    await app.inject({ method: 'POST', url: `/api/scenarios/${id}/archive` });
+    for (const 요청 of 고치기와되돌리기(id)) {
+      const res = await app.inject(요청);
+      expect(res.statusCode, 요청.url).toBe(409);
+      expect(res.json<{ error: string }>().error).toBe('SCENARIO_ARCHIVED');
+      expect(typeof res.json<{ detail: unknown }>().detail).toBe('string');
+    }
+    expect(await 버전수(id)).toBe(1);
+  });
+
+  it('비활성 서비스의 고치기·되돌리기는 400 INVALID_REQUEST 이고 새 버전이 안 생긴다', async () => {
+    const { id } = (await 만들기요청({})).json<{ id: number }>();
+    await q('UPDATE service SET is_active = false WHERE id = $1', [서비스]);
+    try {
+      for (const 요청 of 고치기와되돌리기(id)) {
+        const res = await app.inject(요청);
+        expect(res.statusCode, 요청.url).toBe(400);
+        expect(res.json()).toEqual({ error: 'INVALID_REQUEST', detail: '모르는 서비스다: XSR' });
+      }
+      expect(await 버전수(id)).toBe(1);
+    } finally {
+      await q('UPDATE service SET is_active = true WHERE id = $1', [서비스]);
+    }
+  });
+
   it('목록은 service 가 없으면 400 SERVICE_REQUIRED 다', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/scenarios' });
     expect(res.statusCode).toBe(400);

@@ -29,6 +29,13 @@ function 누가(req: FastifyRequest): 저장하는사람 {
 const 잘못 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'INVALID_REQUEST', detail });
 const 없음 = (reply: FastifyReply, detail: string) => reply.code(404).send({ error: 'SCENARIO_NOT_FOUND', detail });
 
+// 치운 것은 보기만, 비활성 서비스의 것은 만들기와 같게 400 이다 (게이트 0 승인 3). 거절이면 보낸 응답을 돌려준다
+async function 고칠수없음(reply: FastifyReply, 지금: { id: number; isActive: boolean; service: string }) {
+  if (!지금.isActive) return reply.code(409).send({ error: 'SCENARIO_ARCHIVED', detail: `치운 시나리오다: ${지금.id}` });
+  if ((await findService(지금.service)) === null) return 잘못(reply, `모르는 서비스다: ${지금.service}`);
+  return null;
+}
+
 // 만들기·고치기는 조립 규칙을 전부 건다. 되돌리기는 안 건다 — 옛 조합의 복사본이라 막으면 영영 못 되돌린다
 async function 조립오류(parts: ScenarioPart[], platform: 'desktop' | 'mobile', service: string): Promise<string[]> {
   const { 카탈로그 } = await 케이스재료(케이스번호들(parts), service);
@@ -98,6 +105,8 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if (!parsed.success) return 잘못(reply, parsed.error.message);
     const 지금 = await 상세(id);
     if (지금 === null) return 없음(reply, req.params.id);
+    const 거절 = await 고칠수없음(reply, 지금);
+    if (거절 !== null) return 거절;
 
     const 오류 = await 조립오류(parsed.data.parts, parsed.data.platform, 지금.service);
     if (오류.length > 0) return 잘못(reply, 오류.join(' · '));
@@ -112,6 +121,10 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if (id === null) return 잘못(reply, req.params.id);
     const parsed = 되돌리기본문.safeParse(req.body);
     if (!parsed.success) return 잘못(reply, parsed.error.message);
+    const 지금 = await 상세(id);
+    if (지금 === null) return 없음(reply, req.params.id);
+    const 거절 = await 고칠수없음(reply, 지금);
+    if (거절 !== null) return 거절;
     const 결과 = await 되돌리기(id, parsed.data.version, 누가(req));
     if (결과 === null) return 없음(reply, `${req.params.id}/${parsed.data.version}`);
     return 결과;
