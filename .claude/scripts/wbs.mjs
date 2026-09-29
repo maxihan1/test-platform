@@ -41,3 +41,40 @@ export function parseWbs(text) {
   });
   return areas;
 }
+
+/**
+ * WORKSTREAMS 에서 `✅` 또는 `반영 완료` 가 붙은 줄의 PR 번호.
+ * ponytail: 줄 단위라 완료 줄 안에서 앞 PR 을 지나가며 언급해도(`위 PR #79 의 …`) 줍는다.
+ * 지금은 그런 PR 도 전부 끝난 것이라 해가 없다 — 오탐이 나면 항목 머리 `(PR #N, 날짜)` 만 읽게 좁힌다.
+ */
+export function workstreamsDonePrs(text) {
+  const prs = new Set();
+  for (const line of text.split('\n')) {
+    if (!line.includes('✅') && !line.includes('반영 완료')) continue;
+    for (const m of line.matchAll(/#(\d+)/g)) prs.add(Number(m[1]));
+  }
+  return prs;
+}
+
+/** 두 문서가 어긋난 곳을 한 줄씩. trackedKeys 는 WORKSTREAMS 가 묶음으로 관리하는 영역 */
+export function checkSync(wbsText, workstreamsText, trackedKeys) {
+  const errs = [];
+  const areas = parseWbs(wbsText);
+  const tasks = areas.flatMap((a) => a.features.flatMap((f) => f.tasks.map((t) => ({ ...t, area: a.key }))));
+  const wsDone = workstreamsDonePrs(workstreamsText);
+  const wbsDone = new Set(tasks.filter((t) => t.done && t.pr).map((t) => t.pr));
+
+  const seen = new Set();
+  for (const t of tasks) {
+    if (seen.has(t.id)) errs.push(`${t.id} — ID 가 겹친다`);
+    seen.add(t.id);
+    if (t.done && !t.pr) errs.push(`${t.id} — [x] 인데 다음 줄에 「근거 PR #N · YYYY-MM-DD」가 없다`);
+    if (t.done && t.pr && trackedKeys.includes(t.area) && !wsDone.has(t.pr)) {
+      errs.push(`${t.id} — PR #${t.pr} 가 WORKSTREAMS 의 완료 줄(✅·반영 완료)에 없다`);
+    }
+  }
+  for (const pr of [...wsDone].sort((x, y) => x - y)) {
+    if (!wbsDone.has(pr)) errs.push(`PR #${pr} — WORKSTREAMS 는 완료라는데 wbs 에 이 PR 을 근거로 단 [x] 태스크가 없다`);
+  }
+  return errs;
+}
