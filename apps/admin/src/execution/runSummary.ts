@@ -26,7 +26,8 @@ export interface 실행거르개 {
  * 「보이는 것」과 「세는 것」이 갈려, 3줄만 보이는 화면이 「42회」라고 말하게 된다.
  */
 export function 거르는조건(거르개: 실행거르개, 시작번호: number): { where: string; having: string; 값: unknown[] } {
-  const where: string[] = [];
+  // 시나리오 실행은 run_item 이 없어 항목 0건인 케이스 실행처럼 섞인다. 목록·집계 모두 여기를 타므로 한 곳에 건다 (도메인/시나리오 §3.7 결정 10)
+  const where: string[] = [`r.kind = 'CASE'`];
   const 값: unknown[] = [];
   let n = 시작번호;
 
