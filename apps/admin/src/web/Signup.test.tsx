@@ -55,7 +55,7 @@ describe('회원가입 화면', () => {
     const 보냄 = vi.spyOn(api, 'signup');
     채운다({ 비밀번호: 'short1' });
 
-    expect(screen.getByText('비밀번호는 8자 이상입니다')).toBeTruthy();
+    expect(screen.getByText('비밀번호는 8자 이상이어야 합니다')).toBeTruthy();
     expect(보냄).not.toHaveBeenCalled();
   });
 

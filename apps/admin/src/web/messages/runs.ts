@@ -63,7 +63,7 @@ export const 실행말: Record<string, string> = {
   '반복': 'Repeat',
   '반복 횟수': 'Repeat count',
   '끝나면 Slack 으로 알리기': 'Notify Slack when done',
-  '자리를 뜰 때만 켜세요. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 됩니다':
+  '자리를 비울 때만 켜세요. 혼자 확인하는 실행까지 팀 채널에 보내면 알림이 너무 많아집니다':
     'Turn this on only when you step away. Self-checks in the team channel are just noise',
   '실행 제목': 'Run title',
   '세트 이름': 'Set name',
@@ -71,11 +71,11 @@ export const 실행말: Record<string, string> = {
   '실행': 'Run',
   '{케이스} 실행': 'Run {케이스}',
   '{케이스} 외 {나머지}건 실행': 'Run {케이스} and {나머지} more',
-  '입력값을 바꿔 다시 실행해도 코드는 고치지 않습니다.': 'Changing inputs and rerunning never touches the code.',
+  '입력값을 바꿔 다시 실행해도 테스트 코드는 바뀌지 않습니다.': 'Changing inputs and rerunning never touches the code.',
   '실행할 디바이스를 하나 이상 고르세요.': 'Pick at least one device to run.',
   '이 케이스는 지금 보고 있는 서비스의 것이 아닙니다. 맨 위에서 서비스를 바꾸세요.':
     'This case belongs to another service. Switch services at the top.',
-  '대상 서버를 고르세요. 어느 서버에 쐈는지가 증적의 전제입니다.':
+  '대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
     'Pick a target server. Evidence records which server was hit.',
   '저장할 이름을 적으세요.': 'Enter a name to save.',
   '{이름}으로 저장했습니다.': 'Saved as {이름}.',
@@ -90,11 +90,11 @@ export const 실행말: Record<string, string> = {
   // 여러 건 실행 모달 (§8.10)
   '실행할 케이스 {건수}건': '{건수} cases to run',
   '선언된 입력값이 없습니다. 그대로 실행됩니다': 'No inputs declared. It runs as is',
-  '실행을 거는 중': 'Starting…',
+  '실행을 시작하는 중': 'Starting…',
   '취소': 'Cancel',
   '실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다':
     'Nothing to run. Everything picked is inactive or filtered out',
-  '목록이 너무 길어 앞 {모은수}건까지만 담았습니다. 검색으로 좁혀서 다시 거세요':
+  '목록이 너무 길어 앞 {모은수}건까지만 담았습니다. 검색으로 좁혀서 다시 실행하세요':
     'The list is too long — only the first {모은수} were taken. Narrow it with search and try again',
   '고른 {고른수}건 중 {담을수}건이 대상입니다. 나머지는 비활성이라 뺐습니다':
     '{담을수} of the {고른수} picked will run. The rest are inactive and were dropped',
@@ -114,15 +114,15 @@ export const 실행말: Record<string, string> = {
   '실행자 미상 (인증 도입 이전)': 'Unknown — before sign-in',
 
   // 견주기와 사유 묶음 (§8.3 → /runs/:runId/insights)
-  '직전 실행과 견줌': 'Compared with the previous run',
-  '직전 실행과 견주지 못했습니다.': 'Could not compare with the previous run.',
-  '직전 실행은 다른 주소에서 돌았습니다': 'The previous run used a different URL',
+  '직전 실행과 비교': 'Compared with the previous run',
+  '직전 실행과 비교하지 못했습니다.': 'Could not compare with the previous run.',
+  '직전 실행은 다른 주소에서 실행됐습니다': 'The previous run used a different URL',
   '새로깨짐': 'Newly broken',
   '계속깨짐': 'Still failing',
   '고쳐짐': 'Fixed',
   '그대로': 'Unchanged',
-  '나머지 {건수}건은 직전 실행과 같은 통과입니다': '{건수} more passed, same as the previous run',
-  '직전 실행에 있었으나 이번에 돌지 않은 케이스 {건수}건': '{건수} cases ran last time but not this time',
+  '나머지 {건수}건은 직전 실행처럼 통과했습니다': '{건수} more passed, same as the previous run',
+  '직전 실행에 있었으나 이번에 실행되지 않은 케이스 {건수}건': '{건수} cases ran last time but not this time',
   '같은 사유로 묶은 실패': 'Failures grouped by cause',
   '실패 항목 {건수}건': '{건수} failed items',
 

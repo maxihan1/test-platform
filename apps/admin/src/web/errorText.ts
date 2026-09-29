@@ -24,13 +24,13 @@ export const 오류말: Record<string, string> = {
   CASE_NOT_FOUND: '그 케이스를 찾지 못했습니다. 스캔에서 빠졌을 수 있습니다',
   PARAM_SET_NOT_FOUND: '그 입력값 묶음을 찾지 못했습니다',
   SCREENSHOT_NOT_FOUND: '그 화면 사진을 찾지 못했습니다',
-  SOURCE_NOT_FOUND: '그 테스트 코드 파일을 읽지 못했습니다. 캐시가 낡았을 수 있습니다',
+  SOURCE_NOT_FOUND: '그 테스트 코드 파일을 읽지 못했습니다. 캐시가 오래되었을 수 있습니다',
 
   // 화면이 버튼을 잠그는 것과 서버가 막는 것 사이의 틈에서 만난다 — 새로고침 직후나 두 탭.
   // 이게 없으면 서버가 보낸 detail 인 'RUNNING' 이 영문 그대로 화면에 뜬다 (SPEC §7)
   RUN_NOT_FINISHED: '아직 진행 중인 실행입니다. 끝난 뒤에 증적 문서를 만듭니다',
 
-  MIXED_SERVICE: '한 실행에는 한 서비스의 케이스만 담습니다',
+  MIXED_SERVICE: '한 실행에는 한 서비스의 케이스만 담을 수 있습니다',
   ENV_NOT_FOUND: '그 대상 서버가 이 서비스에 없습니다. 설정에서 먼저 넣습니다',
   // 대조 요청을 다시 작성할 때 물려받은 대상 서버를 다시 판정한다 — 작성 화면(AuthoringNew)과 같은 문장
   BAD_ENV: '이 대상 서버에는 테스트 계정이 없습니다. 설정 > 서비스에서 테스트 계정을 넣으세요',
@@ -43,8 +43,8 @@ export const 오류말: Record<string, string> = {
 
   // 설정 화면이 쓰던 것. 표를 합쳐 둔다
   PREFIX_TAKEN: '그 접두사는 이미 다른 서비스가 쓰고 있습니다',
-  PREFIX_SHAPE: '접두사 모양이 다릅니다. 대문자로 시작하는 영문·숫자 12자 이내입니다',
-  PREFIX_IMMUTABLE: '접두사는 만든 뒤에 바꿀 수 없습니다. 케이스 번호 안에 이미 박혀 있습니다',
+  PREFIX_SHAPE: '접두사 형식이 맞지 않습니다. 대문자로 시작하는 영문·숫자 12자 이내여야 합니다',
+  PREFIX_IMMUTABLE: '접두사는 만든 뒤에 바꿀 수 없습니다. 케이스 번호에 이미 들어가 있습니다',
   USERNAME_TAKEN: '그 아이디는 이미 있습니다',
   // 계정 코드 (도메인/인증 §7). 설정·가입·로그인 어디서 만나든 코드 글자가 그대로 뜨지 않게
   USERNAME_SHAPE: '아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다',
@@ -55,7 +55,7 @@ export const 오류말: Record<string, string> = {
   APPROVED_USER: '이미 승인된 계정이라 거절할 수 없습니다',
   LAST_ADMIN: '마지막 운영 계정입니다. 먼저 다른 사람을 운영으로 올립니다',
   NOT_FOUND: '그 항목을 찾지 못했습니다. 다른 사람이 지웠을 수 있습니다',
-  INVALID_REQUEST: '넣은 값 중에 모양이 다른 것이 있습니다',
+  INVALID_REQUEST: '입력한 값 중에 형식이 맞지 않는 것이 있습니다',
 };
 
 // 서버 gate.ts 의 FORBIDDEN 이 싣는 `need` — 'admin' 이거나 「기능:칸」이다 (도메인/인증 §7).

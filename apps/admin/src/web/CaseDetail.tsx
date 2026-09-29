@@ -129,7 +129,7 @@ export function CaseDetail({
         <div className="dlabel">
           {t('시험 절차')}
           {받은.절차 === null ? null : (
-            <span className="dfrom">{t('{실행이름} 에서 가져왔다', { 실행이름: 받은.절차.runTitle })}</span>
+            <span className="dfrom">{t('{실행이름}에서 가져옴', { 실행이름: 받은.절차.runTitle })}</span>
           )}
         </div>
         {마지막 === undefined ? (

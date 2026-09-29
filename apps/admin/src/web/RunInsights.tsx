@@ -64,7 +64,7 @@ export function RunInsights({
   // 견주기가 실패해도 결과 목록은 그대로 서야 한다. 대신 조용히 사라지지는 않는다
   if (견줌.error !== null)
     // 접지 않는다 — 오류는 펴야 보이면 안 된다. 대신 구획 여백을 줄여 자리를 덜 먹는다
-    return <div className="sec tight hint">{t말('직전 실행과 견주지 못했습니다.')} {견줌.error}</div>;
+    return <div className="sec tight hint">{t말('직전 실행과 비교하지 못했습니다.')} {견줌.error}</div>;
 
   const 값 = 견줌.data;
   if (값 === null) return null;
@@ -85,7 +85,7 @@ export function RunInsights({
       {앞 === null ? null : (
         <details className="sec fold">
           <summary className="sec-h">
-            {t말('직전 실행과 견줌')}
+            {t말('직전 실행과 비교')}
             <span>
               RUN {앞.runId} · {when(앞.startedAt, 언어)}
             </span>
@@ -94,7 +94,7 @@ export function RunInsights({
                 그래서 펴야 보이는 안이 아니라 `summary` 안에 둔다 (2026-09-22 자기검토) */}
             {!값.주소바뀜 ? null : (
               <span className="change" style={{ color: 'var(--na)' }}>
-                {t말('직전 실행은 다른 주소에서 돌았습니다')}
+                {t말('직전 실행은 다른 주소에서 실행됐습니다')}
               </span>
             )}
           </summary>
@@ -110,13 +110,13 @@ export function RunInsights({
           ))}
           {볼것.length === 값.케이스들.length ? null : (
             <p className="hint">
-              {t말('나머지 {건수}건은 직전 실행과 같은 통과입니다', { 건수: 값.케이스들.length - 볼것.length })}
+              {t말('나머지 {건수}건은 직전 실행처럼 통과했습니다', { 건수: 값.케이스들.length - 볼것.length })}
             </p>
           )}
           {/* 판정을 다섯째로 늘리지 않는다 — 넷의 뜻이 흐려진다. 수만 한 줄로 적는다 */}
           {값.빠진건수 === 0 ? null : (
             <p className="hint">
-              {t말('직전 실행에 있었으나 이번에 돌지 않은 케이스 {건수}건', { 건수: 값.빠진건수 })}
+              {t말('직전 실행에 있었으나 이번에 실행되지 않은 케이스 {건수}건', { 건수: 값.빠진건수 })}
             </p>
           )}
         </details>

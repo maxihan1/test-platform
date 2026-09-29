@@ -99,7 +99,7 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
           {t('줄 더하기')}
         </button>
         {envs.length === 0 ? (
-          <div className="hint">{t('하나도 없으면 실행 설정에서 고를 것이 없어 실행을 못 합니다')}</div>
+          <div className="hint">{t('하나도 없으면 실행할 때 고를 서버가 없어 실행할 수 없습니다')}</div>
         ) : (
           <div className="hint">{t('테스트 계정은 역방향 작성에서만 씁니다. 운영 서버 줄에는 넣지 않습니다')}</div>
         )}

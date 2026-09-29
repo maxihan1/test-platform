@@ -114,7 +114,7 @@ export function RunSetup({ tcId, service, user }: Props) {
     }
     if (env === '') {
       // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
-      setNotice(t('대상 서버를 고르세요. 어느 서버에 쐈는지가 증적의 전제입니다.'));
+      setNotice(t('대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.'));
       return;
     }
 
@@ -306,7 +306,7 @@ export function RunSetup({ tcId, service, user }: Props) {
                   checked={notifySlack}
                   onChange={(e) => setNotifySlack(e.target.checked)}
                 />
-                {t('자리를 뜰 때만 켜세요. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 됩니다')}
+                {t('자리를 비울 때만 켜세요. 혼자 확인하는 실행까지 팀 채널에 보내면 알림이 너무 많아집니다')}
               </label>
             </div>
           </div>
@@ -322,7 +322,7 @@ export function RunSetup({ tcId, service, user }: Props) {
 
       <div className="actions">
         <span className="note" style={notice === null ? undefined : { color: 'var(--fail)' }}>
-          {notice ?? t('입력값을 바꿔 다시 실행해도 코드는 고치지 않습니다.')}
+          {notice ?? t('입력값을 바꿔 다시 실행해도 테스트 코드는 바뀌지 않습니다.')}
         </span>
         {/* 묶음은 그 케이스의 서비스에 남는다 — 띠가 아니라 tcId 접두사의 칸을 본다 (SPEC §1 · 화면공통 §8) */}
         {!할수있나(user, 케이스서비스(row.tcId), '입력값저장') ? null : (

@@ -94,7 +94,7 @@ describe('작성 한 건 상세', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     await screen.findByText('테스터');
     expect(screen.queryByRole('button', { name: '테스트 반영하기' })).toBeNull();
-    expect(screen.getByText('반영은 운영 권한이 있는 사람이 합니다.')).toBeTruthy();
+    expect(screen.getByText('반영은 운영 권한이 있는 사람만 할 수 있습니다.')).toBeTruthy();
   });
 
   it('아직 안 끝난 요청에는 반영 버튼이 없고 할 일이 없다고 말한다', async () => {
@@ -181,7 +181,7 @@ describe('작성 한 건 상세', () => {
   it('준비 중(DRAFT) 요청에는 줄에 서지 않았으니 폐기하고 새 요청으로 다시 넣으라고 알린다', async () => {
     답 = 줄({ status: 'DRAFT', prUrl: null, finishedAt: null, startedAt: null, assets: [] });
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
-    expect(await screen.findByText('이 요청은 줄에 서지 않았습니다. 폐기하고 새 요청으로 다시 넣으세요')).toBeTruthy();
+    expect(await screen.findByText('이 요청은 대기열에 들어가지 못했습니다. 폐기하고 새 요청으로 다시 넣으세요')).toBeTruthy();
     expect(screen.getByText('자료 올리는 중')).toBeTruthy();
   });
 });
@@ -312,7 +312,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
       const 카드 = await screen.findByRole('region', { name: '다음 단계' });
       expect(카드.querySelector('h3')?.textContent).toBe('다음 단계');
       expect(카드.textContent).toContain(
-        '중단된 자리의 테스트 12개를 이어받아 남은 작업을 이어서 합니다. 10월 5일까지 이어갈 수 있습니다.',
+        '중단 전까지 만든 테스트 12개를 이어받아 남은 작업을 계속합니다. 10월 5일까지 이어갈 수 있습니다.',
       );
       const 버튼들 = Array.from(카드.querySelectorAll('button')).map((b) => b.textContent);
       expect(버튼들).toEqual(['이어서 작성', '같은 자료로 다시 작성', '폐기']);
@@ -325,7 +325,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
       답 = 멈춤({ canResume: true, resumeUntil: '2026-10-05T03:00:00.000Z', progress: null });
       render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
       expect(
-        await screen.findByText('중단된 자리부터 남은 작업을 이어서 합니다. 10월 5일까지 이어갈 수 있습니다.'),
+        await screen.findByText('중단된 자리부터 남은 작업을 계속합니다. 10월 5일까지 이어갈 수 있습니다.'),
       ).toBeTruthy();
     });
 
@@ -339,7 +339,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     it('보관 기간이 지났으면 까닭을 적고 처음부터 다시만 남긴다', async () => {
       답 = 멈춤({ canResume: false, resumedBy: null });
       render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-      expect(await screen.findByText('보관 기간이 지나 만든 것을 지웠습니다. 처음부터 다시 작성하세요.')).toBeTruthy();
+      expect(await screen.findByText('보관 기간이 지나 작성 결과를 지웠습니다. 처음부터 다시 작성하세요.')).toBeTruthy();
       expect(screen.queryByRole('button', { name: '이어서 작성' })).toBeNull();
       expect(screen.getByRole('button', { name: '같은 자료로 다시 작성' })).toBeTruthy();
     });
@@ -435,7 +435,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
   it('보기 등급에게는 다시 작성 버튼 대신 누가 하는지 알린다', async () => {
     답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함' });
     render(<AuthoringDetail service="PAY" id={7} 할수={보기만} />);
-    expect(await screen.findByText('다시 작성은 실행 권한이 있는 사람이 합니다.')).toBeTruthy();
+    expect(await screen.findByText('다시 작성은 실행 권한이 있는 사람만 할 수 있습니다.')).toBeTruthy();
   });
 
   it('화면과 대조한 요청도 같은 자료로 다시 작성하고, 대상 서버·시작 주소도 그대로라고 알린다', async () => {
@@ -469,7 +469,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
       assets: [{ id: 50, position: 1, kind: 'FILE', name: '기획서-표시.docx', figmaUrl: null, size: 10, role: 'MARKED', sourceAssetId: 11 }],
     });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-    expect(await screen.findByText('입력은 원본 요청 #3 것을 그대로 씁니다')).toBeTruthy();
+    expect(await screen.findByText('원본 요청 #3의 입력을 그대로 씁니다')).toBeTruthy();
     expect(screen.queryByText('화면만 — 기획서 없이 이 화면을 훑습니다')).toBeNull();
     expect(screen.getByText('표시 사본 — 원본 요청 #3의 자료')).toBeTruthy();
   });

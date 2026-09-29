@@ -297,7 +297,7 @@ export function ScanInfo({ scan, error }: { scan: LastScan | null; error: string
         <span className="scan-error">
           {scan.duplicates
             .map((dup) =>
-              t('{아이디}이 {파일1}와 {파일2}에 겹쳐 있습니다.', {
+              t('{아이디} 중복 — {파일1}, {파일2}', {
                 아이디: dup.tcId,
                 파일1: dup.files[0],
                 파일2: dup.files[1],

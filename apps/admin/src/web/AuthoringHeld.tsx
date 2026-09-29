@@ -11,7 +11,7 @@ import { message, when } from './ui.js';
 const 보류오류: Record<string, string> = {
   HELD_OPEN: '보류 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요',
   HELD_UNKNOWN: '보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.',
-  MERGE_ACTIVE: '반영이 대기 중이거나 도는 중이라 지금은 값을 바꿀 수 없습니다',
+  MERGE_ACTIVE: '반영이 대기 중이거나 진행 중이라 지금은 값을 바꿀 수 없습니다',
   BAD_HELD: '넣은 값이 이 케이스의 칸과 맞지 않습니다',
 };
 
@@ -171,7 +171,7 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
         {t('보류 케이스')} <span className="hint">{t('{수}건 · 값을 넣거나 제거하세요', { 수: held.length })}</span>
       </h3>
       <p className="hint">
-        {t('판정 불가는 기획서에 판정 기준이 없던 것, 보류는 전제를 만들 수 없던 것입니다. 넣은 값은 테스트의 기본값이 되고, 실행할 때 바꿀 수 있습니다.')}
+        {t('판정 불가는 기획서에 판정 기준이 없는 케이스, 보류는 전제를 만들 수 없는 케이스입니다. 넣은 값은 테스트의 기본값이 되고, 실행할 때 바꿀 수 있습니다.')}
       </p>
       <div className="authoring-diffs-wrap">
         <table className="dhist" aria-label={t('보류 케이스')}>

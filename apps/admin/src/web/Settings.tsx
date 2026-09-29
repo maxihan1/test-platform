@@ -45,7 +45,7 @@ export function Settings({ user, onMeChanged }: { user: User; onMeChanged: () =>
 
   return (
     <>
-      <Head 제목={t('설정')} 부제={t('운영 계정만 볼 수 있는 자리다')} />
+      <Head 제목={t('설정')} 부제={t('운영 계정만 볼 수 있는 화면입니다')} />
 
       <div className="screen">
       {/* 서비스는 자기 것인지 가리지 않고 늘 다시 읽는다 — 이름·색·대상 서버·웹훅이

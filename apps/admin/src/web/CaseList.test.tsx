@@ -403,7 +403,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
 
     fireEvent.click(모달실행());
 
-    const 거는중 = await screen.findByRole('button', { name: '실행을 거는 중' });
+    const 거는중 = await screen.findByRole('button', { name: '실행을 시작하는 중' });
     expect(거는중.hasAttribute('disabled')).toBe(true);
     // 말풍선이 아니라 버튼 글자다 (DESIGN.md 접근성 기준)
     expect(거는중.hasAttribute('title')).toBe(false);

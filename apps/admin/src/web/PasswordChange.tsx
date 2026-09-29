@@ -21,8 +21,8 @@ interface Props {
 // 서버가 400 으로 거절한 까닭을 어느 칸 아래에 붙일지
 const 서버사유: Record<string, [칸, string]> = {
   INVALID_CREDENTIALS: ['current', '현재 비밀번호가 맞지 않습니다'],
-  PASSWORD_SAME: ['next', '지금 비밀번호와 다른 값을 넣습니다'],
-  PASSWORD_SHORT: ['next', '비밀번호는 8자 이상입니다'],
+  PASSWORD_SAME: ['next', '새 비밀번호는 현재 비밀번호와 달라야 합니다'],
+  PASSWORD_SHORT: ['next', '비밀번호는 8자 이상이어야 합니다'],
 };
 
 export function PasswordChange({ 강제, onDone, onLogout }: Props) {
@@ -37,7 +37,7 @@ export function PasswordChange({ 강제, onDone, onLogout }: Props) {
   function 살핀다(): Partial<Record<칸, string>> {
     const 결과: Partial<Record<칸, string>> = {};
     if (값.current === '') 결과.current = t('현재 비밀번호를 채웁니다');
-    if (값.next.length < 비밀번호최소) 결과.next = t('비밀번호는 8자 이상입니다');
+    if (값.next.length < 비밀번호최소) 결과.next = t('비밀번호는 8자 이상이어야 합니다');
     else if (값.next !== 값.confirm) 결과.confirm = t('두 비밀번호가 다릅니다');
     return 결과;
   }

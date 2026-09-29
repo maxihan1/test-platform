@@ -20,7 +20,7 @@ export const 계정말: Record<string, string> = {
   '영문 소문자·숫자·. _ - 로 2~32자, 첫 글자는 소문자나 숫자입니다':
     'Lowercase letters, digits, . _ - only, 2–32 characters, starting with a letter or digit',
   '두 비밀번호가 다릅니다': 'The two passwords do not match',
-  '비밀번호는 8자 이상입니다': 'Passwords must be at least 8 characters',
+  '비밀번호는 8자 이상이어야 합니다': 'Passwords must be at least 8 characters',
   '비밀번호를 채웁니다': 'Fill in the password',
 
   // 비밀번호 변경 화면 (강제 · 스스로)
@@ -33,7 +33,7 @@ export const 계정말: Record<string, string> = {
   '바꾸는 중': 'Changing',
   '현재 비밀번호를 채웁니다': 'Fill in the current password',
   '현재 비밀번호가 맞지 않습니다': 'The current password is incorrect',
-  '지금 비밀번호와 다른 값을 넣습니다': 'Enter a password different from the current one',
+  '새 비밀번호는 현재 비밀번호와 달라야 합니다': 'Enter a password different from the current one',
 
   // 설정의 승인 대기 묶음 (§8.8)
   '승인 대기 {건수}': 'Pending approval {건수}',

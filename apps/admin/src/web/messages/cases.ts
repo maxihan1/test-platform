@@ -14,7 +14,7 @@ export const 케이스말: Record<string, string> = {
   '이 결과 엑셀로 ({건수}건)': 'Export these to Excel ({건수})',
   '만드는 중…': 'Building…',
   '마지막 실행 기준': 'as of last run',
-  '한 번도 안 돌렸다': 'never run',
+  '실행한 적 없음': 'never run',
   '케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다':
     'Collecting the case list. Run stays disabled until it finishes.',
 
@@ -22,7 +22,7 @@ export const 케이스말: Record<string, string> = {
   '아직 스캔 기록이 없습니다.': 'No scan yet.',
   '마지막 스캔 {때} · 추가 {추가} · 갱신 {갱신} · 비활성 {비활성}':
     'Last scan {때} · added {추가} · updated {갱신} · deactivated {비활성}',
-  '{아이디}이 {파일1}와 {파일2}에 겹쳐 있습니다.': '{아이디} appears in both {파일1} and {파일2}.',
+  '{아이디} 중복 — {파일1}, {파일2}': '{아이디} appears in both {파일1} and {파일2}.',
 
   // 검색 칸과 조건 칩
   '케이스 이름이나 ID로 찾기': 'Search by case name or ID',
@@ -60,7 +60,7 @@ export const 케이스말: Record<string, string> = {
   '다음 쪽에 있을 수 있습니다. 나머지 조건은 서버가 전체에서 거릅니다':
     'They may be on another page. The other filters are applied across all cases on the server.',
   '아직 케이스를 불러오지 않았습니다': 'No cases loaded yet',
-  '테스트 코드를 훑어 실행할 수 있는 케이스 목록을 만듭니다. 코드가 진실의 원천이라 목록은 그때마다 새로 만들어집니다':
+  '테스트 코드를 훑어 실행할 수 있는 케이스 목록을 만듭니다. 목록은 코드를 기준으로 그때마다 새로 만듭니다':
     'Scanning the test code builds the list of runnable cases. The code is the source of truth, so the list is rebuilt every time.',
   '케이스 불러오기': 'Load cases',
   '조건에 맞는 케이스가 없습니다': 'No cases match the filters',
@@ -75,7 +75,7 @@ export const 케이스말: Record<string, string> = {
   '입력값': 'Inputs',
   '기대결과': 'Expected',
   '시험 절차': 'Test steps',
-  '{실행이름} 에서 가져왔다': 'from {실행이름}',
+  '{실행이름}에서 가져옴': 'from {실행이름}',
   '아직 돌린 적이 없습니다. 한 번 돌리면 절차가 여기에 남습니다':
     'Never run. Run it once and the steps will show up here.',
   '절차를 불러오지 못했습니다': 'Could not load the steps',
@@ -85,7 +85,7 @@ export const 케이스말: Record<string, string> = {
   '아직 기록이 없습니다': 'No history yet',
 
   // 입력 칸 (Form)
-  '이 케이스는 입력값을 선언하지 않았습니다.': 'This case declares no inputs.',
+  '이 케이스에는 입력값이 없습니다.': 'This case declares no inputs.',
   '선택': 'Optional',
   '고르지 않음': 'Not selected',
   '예': 'Yes',

@@ -13,7 +13,7 @@ export const 설정말: Record<string, string> = {
 
   // 설정 화면의 틀 (§8.8)
   '설정': 'Settings',
-  '운영 계정만 볼 수 있는 자리다': 'Admins only',
+  '운영 계정만 볼 수 있는 화면입니다': 'Admins only',
   '설정은 운영 계정만 볼 수 있습니다': 'Only admins can open Settings',
   '필요하면 운영 계정인 사람에게 올려 달라고 합니다': 'Ask an admin to raise your role if you need it',
 
@@ -37,9 +37,9 @@ export const 설정말: Record<string, string> = {
   // 서비스 편집기
   '서비스 추가': 'Add service',
   '접두사': 'Prefix',
-  '만들 때만 정합니다. 케이스 번호(PAY-001) 안에 박히므로 나중에 바꿀 수 없습니다':
+  '만들 때만 정합니다. 케이스 번호(PAY-001)에 들어가므로 나중에 바꿀 수 없습니다':
     'Set once at creation. It is baked into case IDs like PAY-001, so it cannot change later',
-  '만든 뒤에는 바꿀 수 없습니다. 케이스 번호 안에 이미 박혀 있습니다':
+  '만든 뒤에는 바꿀 수 없습니다. 케이스 번호에 이미 들어가 있습니다':
     'Cannot be changed after creation. It is already baked into the case IDs',
   '대문자로 시작하는 영문·숫자 12자 이내로 적습니다. 예: PAY · MEM2':
     'Up to 12 letters and digits, starting with a capital. e.g. PAY · MEM2',
@@ -48,7 +48,7 @@ export const 설정말: Record<string, string> = {
   '테스트 폴더': 'Tests folder',
   '플랫폼이 실제로 훑을 폴더입니다': 'The folder the platform actually scans',
   '테스트 저장소': 'Tests repository',
-  '적어 두기만 합니다. 플랫폼이 받아오지는 않습니다': 'Recorded for reference only. The platform does not fetch it',
+  '기록용으로만 적어 둡니다. 플랫폼이 이 저장소를 받아오지는 않습니다': 'Recorded for reference only. The platform does not fetch it',
   'Slack 웹훅': 'Slack webhook',
   '피그마 토큰': 'Figma token',
   '이대로 저장하면 토큰을 지웁니다. 피그마 자료를 못 읽게 됩니다':
@@ -76,7 +76,7 @@ export const 설정말: Record<string, string> = {
   '그대로 두기': 'Keep current',
   '이대로 저장하면 알림을 끕니다. 그대로 두려면 「그대로 두기」를 누릅니다':
     'Saving like this turns notifications off. Press Keep current to leave it as is',
-  '비밀값이라 한 번 넣으면 되돌려 보여주지 않습니다': 'It is a secret, so it is never shown back once saved',
+  '비밀값이라 한 번 넣으면 다시 보여 주지 않습니다': 'It is a secret, so it is never shown back once saved',
 
   // 대상 서버 편집기
   '대상 서버': 'Target servers',
@@ -86,7 +86,7 @@ export const 설정말: Record<string, string> = {
   '대상 서버 {번호} 빼기': 'Remove target server {번호}',
   '빼기': 'Remove',
   '줄 더하기': 'Add row',
-  '하나도 없으면 실행 설정에서 고를 것이 없어 실행을 못 합니다':
+  '하나도 없으면 실행할 때 고를 서버가 없어 실행할 수 없습니다':
     'With none set there is nothing to pick when running, so runs cannot start',
 
   // 못 보내는 이유 (§8.2 — 버튼은 살려 두고 사유를 말한다)
@@ -116,8 +116,8 @@ export const 설정말: Record<string, string> = {
   '안 씀': 'Off',
   '읽기': 'Read',
   '쓰기': 'Write',
-  '실행 설정에서 고를 케이스가 안 보입니다.': 'No cases will show up to pick in run setup.',
-  '세 칸이 다 안 씀이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.':
+  '이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.': 'No cases will show up to pick in run setup.',
+  '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.':
     'All three set to Off cannot be saved. To unassign, turn the service off.',
   '먼저 서비스를 만듭니다': 'Create a service first',
   '배정받지 않은 서비스는 그 사람의 띠에 뜨지 않습니다': 'Services not assigned do not show up in their bar',

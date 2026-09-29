@@ -63,7 +63,7 @@ describe('실행 설정 화면 (SPEC §8.2)', () => {
     fireEvent.click(실행버튼());
 
     expect(만들기).not.toHaveBeenCalled();
-    expect(screen.getByText('대상 서버를 고르세요. 어느 서버에 쐈는지가 증적의 전제입니다.')).toBeTruthy();
+    expect(screen.getByText('대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.')).toBeTruthy();
   });
 
   it('대상 서버를 고르면 그 서버로 실행이 걸린다', async () => {
