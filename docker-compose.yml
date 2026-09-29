@@ -116,9 +116,9 @@ services:
       # 자식 claude 의 uid. 자리 k 는 이 값 + k 다. 0 이나 HOST_UID 와 겹치면 켜지지 않는다
       AUTHORING_CHILD_UID: "${AUTHORING_CHILD_UID:-20000}"
       AUTHORING_MAX_PARALLEL: "${AUTHORING_MAX_PARALLEL:-2}"   # 늘리면 mem_limit 도 한 건 4g 씩 늘린다
-      AUTHORING_MODEL: "${AUTHORING_MODEL:-opus}"
-      AUTHORING_EFFORT: "${AUTHORING_EFFORT:-high}"             # low · medium · high · xhigh · max
-      AUTHORING_FALLBACK_MODEL: "${AUTHORING_FALLBACK_MODEL:-sonnet}"   # 과부하·미제공일 때만 넘어간다. none 이면 끈다
+      AUTHORING_MODEL: "${AUTHORING_MODEL:-claude-sonnet-5-5}"
+      AUTHORING_EFFORT: "${AUTHORING_EFFORT:-xhigh}"            # low · medium · high · xhigh · max
+      AUTHORING_FALLBACK_MODEL: "${AUTHORING_FALLBACK_MODEL:-opus}"     # 과부하·미제공일 때만 넘어간다. none 이면 끈다
       # 켤 때와 하루 한 번 받는다. 점검(깃발)을 못 넘으면 직전 판으로 되돌린다. 0 이면 이미지 판 그대로
       AUTHORING_CLAUDE_AUTOUPDATE: "${AUTHORING_CLAUDE_AUTOUPDATE:-1}"
       AUTHORING_CLAUDE_VERSION: "${AUTHORING_CLAUDE_VERSION:-stable}"   # stable · latest · x.y.z

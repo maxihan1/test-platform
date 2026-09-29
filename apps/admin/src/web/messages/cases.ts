@@ -11,6 +11,8 @@ export const 케이스말: Record<string, string> = {
   '다시 스캔': 'Rescan',
   '전체 실행': 'Run all',
   '선택한 {건수}건 실행': 'Run {건수} selected',
+  '이 결과 엑셀로 ({건수}건)': 'Export these to Excel ({건수})',
+  '만드는 중…': 'Building…',
   '마지막 실행 기준': 'as of last run',
   '한 번도 안 돌렸다': 'never run',
   '케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다':

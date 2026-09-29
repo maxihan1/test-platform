@@ -483,3 +483,11 @@
 - 미완: 실제 서버 한 바퀴(반영 → 3회 → 병합) — 5877 처리가 첫 실측 · 「모킹 필요」 항목은 여전히 케이스로 안 만든다 · 3회는 desktop 만
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: main 으로 못 가게 막는 자리는 셋(merges HELD_OPEN/HELD_UNKNOWN · 반영 에이전트 · CI `--no-held`) — 하나만 믿지 않는다. 비밀값 칸의 아이디/비밀번호 가르기는 칸 이름 추측(`authoring-held-apply.ts` `비밀칸들`)
+
+## 2026-09-29 — 작성 모델 Sonnet 5.5 xhigh · AI 티 규칙 (PR #111, 진행 중)
+
+- 완료: 자식 claude 모델 기본값 `claude-sonnet-5-5` · effort `xhigh` · 예비 `opus` (전에는 `opus` · `high` · `sonnet`, 정본 공통/6-인프라 §9) · SETUP §8 에 `.env` 로 바꾸는 법과 다시 켜기
+- 완료: im-not-ai quick-rules 발췌(MIT)를 `tpx-cases/references/korean-ai-tells.md` 한 장으로 — 요구사항 표를 쓸 때부터 지킨다
+- 미완: opus→sonnet 품질 비교 기준선이 없다 — 데모마켓 측정으로 두 모델을 비교한다 (다음 할 일)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 모델 기본값을 바꾸면 서버 author 를 다시 켜야 반영된다. 자식 스킬만 바뀐 것은 다음 작성부터 반영된다(작업마다 원격 main SHA 로 만든 사본을 읽는다).

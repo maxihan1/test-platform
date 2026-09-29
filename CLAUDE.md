@@ -276,6 +276,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   시나리오 실행 `XSE`(`scenario/runStore.test.ts`)·실행 라우트 `XSU`(`scenario/runRoutes.test.ts`)(2026-09-29 — 둘 다 자기 `service_id` 로 step → part → `test_run` → 버전 → 시나리오 → `service_env` → 자기 `tc_id` 목록의 `test_case` → `service` 순으로 지운다) ·
   작성 이어하기 `XRM`(`db/resume-columns.test.ts`)·`XWM`(`authoring/resume.test.ts`)(2026-09-28 — 둘 다 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 실행 기록 `XWH`(`authoring/history.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
+  케이스 엑셀 `XCX`(`catalog/export-routes.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지. 계정은 `'xcx-%'` · 케이스는 `tc_id LIKE 'XCX-%'`) ·
   작성 보류 입력 `XWL`(`authoring/held.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 보류 통로 `XWLR`(`authoring/held-routes.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 보류 머지 `XWLM`(`authoring/held-merge.test.ts`, 2026-09-29 — `held-routes.test.ts` 에서 떼어 냈다. 자기 `service_id` 로 지우고 그 `service` 행까지) ·

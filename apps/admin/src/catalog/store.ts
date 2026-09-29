@@ -93,7 +93,8 @@ export interface CaseQuery {
   // 화면 칩은 「활성만」과 「전체」 둘이다 (§8.1). 기본은 활성만
   activeOnly: boolean;
   page: number;
-  pageSize: number;
+  // null 이면 쪽 없이 전부다 — 엑셀 내려받기가 쓴다 (카탈로그 §7 GET /api/catalog/export)
+  pageSize: number | null;
 }
 
 export interface CaseList {
@@ -104,7 +105,7 @@ export interface CaseList {
   // 화면이 순서를 정하지 않는다. 응답이 준 순서 그대로 그린다 (§8.1)
   sort: string;
   page: number;
-  pageSize: number;
+  pageSize: number | null;
   // 검색 조건을 따르지 않는다. 걸러 낸 뒤에도 서비스에 미확정이 몇 건 남았는지 알려야 한다 (카탈로그 §7)
   unconfirmed: { count: number; oldestSince: string | null };
 }
@@ -126,8 +127,9 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
       literal(query.q),
       query.activeOnly,
       query.platform === undefined ? null : JSON.stringify([query.platform]),
+      // LIMIT NULL 은 PostgreSQL 에서 제한 없음이다
       query.pageSize,
-      (query.page - 1) * query.pageSize,
+      query.pageSize === null ? 0 : (query.page - 1) * query.pageSize,
     ],
   );
 

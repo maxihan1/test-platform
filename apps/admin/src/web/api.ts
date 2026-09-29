@@ -538,7 +538,13 @@ function 로그인으로보낸다(): void {
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, init);
+  await 거절이면던진다(res, path);
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
 
+// JSON 이 아닌 답(엑셀 파일)을 받는 통로도 세션 끊김·오류 문장을 같은 길로 받는다
+async function 거절이면던진다(res: Response, path: string): Promise<void> {
   if (res.status === 401 && !끊김을가로채지않는곳.some((열린곳) => path.startsWith(열린곳))) {
     로그인으로보낸다();
   }
@@ -559,9 +565,6 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
       body.violations ?? [],
     );
   }
-
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
 }
 
 const json = (body: unknown): RequestInit => ({
@@ -578,6 +581,15 @@ export interface CaseQuery {
   /** 생략하면 활성만. 비활성 케이스는 기본으로 감춘다 (SPEC §8.1) */
   active?: boolean;
   page?: number;
+}
+
+// 목록과 엑셀이 같은 조건을 쓴다 — 두 벌이면 버튼 건수와 받은 파일 건수가 갈린다
+function 케이스조건(query: CaseQuery): URLSearchParams {
+  const params = new URLSearchParams({ service: query.service });
+  if (query.q !== undefined && query.q !== '') params.set('q', query.q);
+  if (query.platform !== undefined) params.set('platform', query.platform);
+  if (query.active === false) params.set('active', 'false');
+  return params;
 }
 
 export const api = {
@@ -597,11 +609,17 @@ export const api = {
     call<void>('/auth/password', json(body)),
 
   cases: (query: CaseQuery) => {
-    const params = new URLSearchParams({ service: query.service, page: String(query.page ?? 1) });
-    if (query.q !== undefined && query.q !== '') params.set('q', query.q);
-    if (query.platform !== undefined) params.set('platform', query.platform);
-    if (query.active === false) params.set('active', 'false');
+    const params = 케이스조건(query);
+    params.set('page', String(query.page ?? 1));
     return call<CasePage>(`/catalog/cases?${params.toString()}`);
+  },
+
+  /** 목록과 같은 조건의 케이스 전부를 엑셀로 받는다. 쪽은 없다 (도메인/카탈로그 §7 `GET /api/catalog/export`) */
+  caseExport: async (query: CaseQuery): Promise<{ 파일: Blob; 머리: string | null }> => {
+    const path = `/catalog/export?${케이스조건(query).toString()}`;
+    const res = await fetch(`/api${path}`, { credentials: 'same-origin' });
+    await 거절이면던진다(res, path);
+    return { 파일: await res.blob(), 머리: res.headers.get('content-disposition') };
   },
 
   caseOf: (tcId: string) => call<CaseRow>(`/catalog/cases/${encodeURIComponent(tcId)}`),

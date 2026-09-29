@@ -48,6 +48,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/runs/last-by-case': { 종류: '안매임' },
 
   '/api/catalog/cases': { 종류: '질의' }, // ?service= 를 필수로 요구한다
+  '/api/catalog/export': { 종류: '질의' },
   '/api/runs': { 종류: '질의' }, // GET 은 ?service=, POST 는 아래 본문 갈래가 같이 본다
 
   '/api/catalog/cases/:tcId': { 종류: '케이스', 칸: 'tcId' },

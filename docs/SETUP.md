@@ -272,7 +272,8 @@ openssl rand -hex 32
 4. **GitHub 토큰** — GitHub → Settings → Developer settings → **Fine-grained tokens** → 테스트 저장소 하나만 · **Contents 읽기/쓰기 · Pull requests 읽기/쓰기** → `GH_TOKEN` 에
 5. **리눅스 서버면** `HOST_UID`·`HOST_GID` 에 저장소 주인의 `id -u`·`id -g` 를 적는다 (맥은 비워도 된다) — 서버 저장소에 쓰는 일(부품 맞추기·병합 뒤 당기기)은 이 계정으로 한다.
    안 맞으면 사람이 `git pull` 을 못 한다. 자식 Claude 는 `AUTHORING_CHILD_UID`(비우면 `20000`)부터 동시 수만큼 uid 를 쓴다 — 서버에 이미 있는 uid 와 겹치지 않게 둔다.
-   모델(`opus`)·생각 깊이(`high`)·예비 모델(`sonnet`)·동시 수(`2`)를 바꾸려면 `.env.example` 의 `AUTHORING_*` 칸을 본다
+   모델(`claude-sonnet-5-5`)·생각 깊이(`xhigh`)·예비 모델(`opus`)·동시 수(`2`)를 바꾸려면 `.env.example` 의 `AUTHORING_*` 칸을 본다 (2026-09-29 기본값 변경 — 전에는 `opus`·`high`·`sonnet`).
+   `.env` 를 바꾼 뒤에는 author 를 다시 켜야 반영된다 — 아래 6번 첫 줄을 그대로 친다
 6. 켠다 — **저장소 뿌리에서**:
 
    ```bash
@@ -289,7 +290,7 @@ openssl rand -hex 32
 **자식은 따로 된 방에서 돈다** (2026-09-24). 작업마다 컨테이너 안 `/work` 에 사본을 만들고, 자식은 자리마다 다른 uid 로 돌아
 에이전트의 토큰·서버 저장소·다른 서비스의 작업을 못 건드린다. 서비스마다 따로 집고, 동시에 도는 작성 수는 `AUTHORING_MAX_PARALLEL`(기본 2 — 머지는 안 센다)이 막는다.
 **남는 한계** — 자식은 Claude 구독 토큰을 든다(로그인해야 해서). 구독 한도를 사람의 대화형 사용과 나눠 쓰고, 동시에 도는 수만큼 빨리 닳는다.
-**예비 모델(Sonnet)은 과부하일 때만 넘어간다** — 한도에 걸리면 그 요청이 「Claude 구독 한도에 걸렸다」로 실패한다.
+**예비 모델(Opus)은 과부하일 때만 넘어간다** — 한도에 걸리면 그 요청이 「Claude 구독 한도에 걸렸다」로 실패한다.
 **맥의 Docker Desktop 에서는 격리가 성립하지 않는다** — 폴더 공유가 uid 권한을 안 지킨다. 고객사는 리눅스 서버에 둔다.
 켜기 전에 저장소 뿌리에 `.env` 가 있어야 한다 — 없으면 docker 가 가림 자리를 root 소유 빈 파일로 만든다.
 한 서비스 안은 한 건씩 돈다 — 머지가 CI 를 최대 17분 기다리는 동안 그 서비스의 다음 작성이 선다.
@@ -318,7 +319,9 @@ AUTHORING_WORK_DIR=~/authoring-work npm run authoring-agent
 
 ### ★ 이 판이 병합되면 에이전트를 다시 켠다 (2026-09-23)
 
-**서버 author** 는 병합 뒤 스스로 main 을 당기지만 **떠 있는 프로세스는 옛 코드다.** 에이전트 코드·스킬이 바뀐 PR 이 병합되면 다시 띄운다.
+**서버 author** 는 병합 뒤 스스로 main 을 당기지만 **떠 있는 프로세스는 옛 코드다.** 에이전트 코드가 바뀐 PR 이 병합되면 다시 띄운다.
+**모델 기본값(`scripts/authoring-model.ts` · `docker-compose.yml`)이 바뀐 PR 도 같다** (2026-09-29 PR #111) — 다시 띄우기 전에는 옛 모델로 돈다.
+자식 스킬(`.claude/skills/**`)만 바뀐 경우는 다시 안 띄워도 다음 작성부터 반영된다 — 자식은 작업마다 GitHub main SHA 로 만든 사본의 스킬을 읽는다(`scripts/authoring-copy.ts` `사본준비`).
 
 ```bash
 docker compose -p test_platform --env-file .env --profile authoring up -d --build author
