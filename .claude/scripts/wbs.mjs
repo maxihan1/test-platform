@@ -69,6 +69,9 @@ export function checkSync(wbsText, workstreamsText, trackedKeys) {
   const areas = parseWbs(wbsText);
   const tasks = areas.flatMap((a) => a.features.flatMap((f) => f.tasks.map((t) => ({ ...t, area: a.key }))));
   const wsDone = workstreamsDonePrs(workstreamsText);
+  // ② 는 완료 줄이 아니라 문서 전체에서 찾는다 — 명세 PR 은 ✅ 없이 절 제목에만 적힌다(「명세 섰다(…, PR #73)」).
+  // 남은 항목에는 PR 번호가 아직 없으므로 「wbs 만 체크하고 WORKSTREAMS 에 안 적었다」는 이것으로 잡힌다
+  const wsAny = new Set([...workstreamsText.matchAll(/#(\d+)/g)].map((m) => Number(m[1])));
   const wbsDone = new Set(tasks.filter((t) => t.done && t.pr).map((t) => t.pr));
 
   const seen = new Set();
@@ -76,8 +79,8 @@ export function checkSync(wbsText, workstreamsText, trackedKeys) {
     if (seen.has(t.id)) errs.push(`${t.id} — ID 가 겹친다`);
     seen.add(t.id);
     if (t.done && !t.pr) errs.push(`${t.id} — [x] 인데 다음 줄에 「근거 PR #N · YYYY-MM-DD」가 없다`);
-    if (t.done && t.pr && trackedKeys.includes(t.area) && !wsDone.has(t.pr)) {
-      errs.push(`${t.id} — PR #${t.pr} 가 WORKSTREAMS 의 완료 줄(✅·반영 완료)에 없다`);
+    if (t.done && t.pr && trackedKeys.includes(t.area) && !wsAny.has(t.pr)) {
+      errs.push(`${t.id} — PR #${t.pr} 가 WORKSTREAMS 에 안 적혀 있다 — 그 묶음 항목에 ✅ 와 PR 번호를 단다`);
     }
   }
   for (const pr of [...wsDone].sort((x, y) => x - y)) {

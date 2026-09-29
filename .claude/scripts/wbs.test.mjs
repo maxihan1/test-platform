@@ -77,10 +77,15 @@ test('① WORKSTREAMS 에서 끝났는데 wbs 에 [x] 근거가 없다', () => {
   assert.ok(!errs.some((e) => e.includes('PR #200')), '완료 표시 없는 줄의 PR 은 보지 않는다');
 });
 
-test('② 추적 영역의 [x] 가 WORKSTREAMS 완료 줄에 없다', () => {
+test('② 추적 영역의 [x] PR 이 WORKSTREAMS 에 안 적혀 있다', () => {
   const errs = checkSync(wbs동기, '', ['REV']);
   assert.ok(errs.some((e) => e.includes('REV-F1-01') && e.includes('PR #79')));
   assert.ok(!errs.some((e) => e.includes('HAR-F1-01')), '추적 영역 밖은 보지 않는다');
+});
+
+test('② 명세 PR 처럼 완료 표시 없이 제목에만 적혀 있어도 통과한다', () => {
+  const errs = checkSync(wbs동기, '## 📐 역방향 — 명세 섰다(2026-09-25, PR #79)\n', ['REV']);
+  assert.ok(!errs.some((e) => e.includes('REV-F1-01')));
 });
 
 test('③ [x] 인데 근거 줄이 없다', () => {
