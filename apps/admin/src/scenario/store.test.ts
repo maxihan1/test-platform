@@ -20,6 +20,8 @@ describe.skipIf(연결 === undefined)('시나리오 저장소', () => {
   };
 
   const 치우기표 = async (id: number) => {
+    await q('DELETE FROM scenario_run_part WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [id]);
+    await q('DELETE FROM test_run WHERE service_id = $1', [id]);
     await q('DELETE FROM scenario_version WHERE scenario_id IN (SELECT id FROM scenario WHERE service_id = $1)', [id]);
     await q('DELETE FROM scenario WHERE service_id = $1', [id]);
   };
@@ -134,6 +136,59 @@ describe.skipIf(연결 === undefined)('시나리오 저장소', () => {
       lastRun: null,
       parts: [...부품, ...딴부품],
     });
+  });
+
+  const 실행넣기 = async (scenarioId: number | null, status: string, 부품판정: string[], kind = 'SCENARIO') => {
+    const r = await q(
+      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url,
+                             kind, scenario_id, scenario_version, finished_at)
+       VALUES ('XSS 실행', 'xss', 'qa', $1, $2, 'XSS', '', '', $3, $4, $5,
+               CASE WHEN $1 = 'RUNNING' THEN NULL ELSE now() END)
+       RETURNING run_id`,
+      [status, 서비스.XSS!, kind, scenarioId, scenarioId === null ? null : 1],
+    );
+    const runId = Number((r.rows[0] as { run_id: string }).run_id);
+    for (const [i, 판정] of 부품판정.entries()) {
+      await q(`INSERT INTO scenario_run_part (run_id, seq, kind, part, status) VALUES ($1, $2, 'wait', '{}', $3)`, [
+        runId,
+        i + 1,
+        판정,
+      ]);
+    }
+    return runId;
+  };
+  const 마지막실행 = async (id: number) => (await 목록(서비스.XSS!)).find((s) => s.id === id)?.lastRun;
+
+  it('실행이 없으면 lastRun 은 null 이다', async () => {
+    const { id } = await 만들기(서비스.XSS!, 'XSS 실행 없음', 'desktop', 부품, 사람);
+    expect(await 마지막실행(id)).toBeNull();
+  });
+
+  it('lastRun 은 가장 최근 실행 하나이고 다른 시나리오 실행과 케이스 실행은 안 본다', async () => {
+    const { id } = await 만들기(서비스.XSS!, 'XSS 최신', 'desktop', 부품, 사람);
+    const 딴것 = await 만들기(서비스.XSS!, 'XSS 딴 시나리오', 'desktop', 부품, 사람);
+    await 실행넣기(id, 'FINISHED', ['FAIL']);
+    const 최신 = await 실행넣기(id, 'FINISHED', ['PASS', 'PASS']);
+    await 실행넣기(딴것.id, 'FINISHED', ['FAIL']);
+    await 실행넣기(null, 'FINISHED', [], 'CASE');
+
+    const 본것 = await 마지막실행(id);
+    expect(본것).toMatchObject({ runId: 최신, status: 'FINISHED', verdict: 'PASS' });
+    expect(typeof 본것?.finishedAt).toBe('string');
+    expect((await 마지막실행(딴것.id))?.verdict).toBe('FAIL');
+  });
+
+  it.each([
+    ['FINISHED', ['PASS', 'PASS'], 'PASS'],
+    ['FINISHED', ['PASS', 'FAIL', 'NA'], 'FAIL'],
+    ['ABORTED', ['PASS', 'NA'], 'NA'],
+    ['RUNNING', ['PASS', 'NA'], null],
+  ])('실행 %s · 부품 %j 이면 verdict 는 %s 다', async (status, 판정, 기대) => {
+    const { id } = await 만들기(서비스.XSS!, `XSS 접기 ${status}`, 'desktop', 부품, 사람);
+    await 실행넣기(id, status, 판정);
+    const 본것 = await 마지막실행(id);
+    expect(본것?.verdict).toBe(기대);
+    expect(본것?.finishedAt === null).toBe(status === 'RUNNING');
   });
 
   it('없는 번호는 null 이다', async () => {

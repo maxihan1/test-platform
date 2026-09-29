@@ -1,7 +1,9 @@
 // 시나리오와 버전 표를 읽고 쓴다. 저장마다 버전이 하나 오르고 옛 버전은 고치지 않는다 (SPEC 도메인/시나리오 §3.7 결정 7)
 
-import type { Platform, ScenarioPart } from '@platform/kit';
+import type { ItemStatus, Platform, ScenarioPart } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
+
+import { 접은판정SQL } from './verdict.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -21,8 +23,7 @@ export interface 목록줄 {
   version: number;
   partCount: number;
   isActive: boolean;
-  // 시나리오 실행이 아직 없다. 질의와 판정 접기는 ③ 이 진짜 실행 행으로 붙인다
-  lastRun: null;
+  lastRun: { runId: number; status: string; verdict: ItemStatus | null; finishedAt: string | null } | null;
   // 점검 재료. 라우트가 needsCheck·runnable 을 계산하고 응답에서 뺀다
   parts: ScenarioPart[];
 }
@@ -70,9 +71,25 @@ export async function 만들기(
 }
 
 export async function 목록(serviceId: number): Promise<목록줄[]> {
-  const r = await (await db()).query<버전행 & { id: string; name: string; is_active: boolean }>(
-    `SELECT sc.id, sc.name, sc.is_active, v.version, v.platform, v.parts
+  const r = await (await db()).query<
+    버전행 & {
+      id: string;
+      name: string;
+      is_active: boolean;
+      run_id: string | null;
+      run_status: string | null;
+      verdict: ItemStatus | null;
+      finished_at: Date | null;
+    }
+  >(
+    // ponytail: test_run.scenario_id 색인 없음 — 시나리오 실행이 수만 건이 되면 색인 마이그레이션
+    `SELECT sc.id, sc.name, sc.is_active, v.version, v.platform, v.parts,
+            r.run_id, r.status AS run_status, r.finished_at,
+            CASE WHEN r.status = 'RUNNING' THEN NULL
+                 ELSE (SELECT ${접은판정SQL('p')} FROM scenario_run_part p WHERE p.run_id = r.run_id) END AS verdict
        FROM scenario sc ${최신버전}
+       LEFT JOIN LATERAL (SELECT run_id, status, finished_at FROM test_run
+                           WHERE kind = 'SCENARIO' AND scenario_id = sc.id ORDER BY run_id DESC LIMIT 1) r ON true
       WHERE sc.service_id = $1 AND sc.is_active
       ORDER BY sc.id`,
     [serviceId],
@@ -84,7 +101,15 @@ export async function 목록(serviceId: number): Promise<목록줄[]> {
     version: row.version,
     partCount: row.parts.length,
     isActive: row.is_active,
-    lastRun: null,
+    lastRun:
+      row.run_id === null
+        ? null
+        : {
+            runId: Number(row.run_id),
+            status: row.run_status!,
+            verdict: row.verdict,
+            finishedAt: row.finished_at?.toISOString() ?? null,
+          },
     parts: row.parts,
   }));
 }
