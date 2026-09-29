@@ -259,7 +259,8 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
     expect(초과.message).toContain('3600000ms');
 
     const 밖 = await 거절(await 버전바로넣기([케이스('XSE-003')]), 'qa', 'NOT_RUNNABLE');
-    expect(밖.message).toContain('tests 폴더 밖');
+    expect(밖.message).toContain('XSE-003');
+    expect(밖.message).not.toContain('밖.spec.ts');
   });
 
   const 세부품 = async (): Promise<number> => {

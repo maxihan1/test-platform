@@ -48,11 +48,42 @@ interface 케이스행 {
   expected_schema: unknown;
 }
 
-export async function 실행만들기(
-  id: number,
-  env: string,
-  사람: 저장하는사람,
-): Promise<{ runId: number; 요청: ScenarioExecuteRequest }> {
+interface 판정 {
+  version: number;
+  거절: 시나리오실행오류 | null;
+}
+
+type 실행 = { runId: number; 요청: ScenarioExecuteRequest };
+
+export async function 실행만들기(id: number, env: string, 사람: 저장하는사람): Promise<실행> {
+  // 판정(케이스 파일 읽기 · pool 연결)은 트랜잭션 밖에서 먼저 한다. 연결 하나를 쥔 채 pool 에서 또 꺼내면
+  // 동시 요청이 풀 크기만큼 올 때 교착한다. 그 사이 새 버전이 저장됐으면 새 버전으로 처음부터 다시 한다
+  // 누가 쉬지 않고 저장하면 끝나지 않으므로 세 번에서 멈춘다 — 사람이 다시 누르면 된다
+  for (let 번 = 0; 번 < 3; 번 += 1) {
+    const 결과 = await 잠그고만들기(id, env, 사람, await 미리판정(id));
+    if (결과 !== null) return 결과;
+  }
+  throw new 시나리오실행오류('NOT_RUNNABLE', '실행하는 사이 시나리오가 계속 새로 저장됐다. 다시 눌러 달라');
+}
+
+async function 미리판정(id: number): Promise<판정 | undefined> {
+  const r = await (await db()).query<{ version: number; prefix: string; parts: ScenarioPart[] }>(
+    `SELECT v.version, s.prefix, v.parts
+       FROM scenario sc
+       JOIN service s ON s.id = sc.service_id
+       JOIN LATERAL (SELECT version, parts FROM scenario_version
+                      WHERE scenario_id = sc.id ORDER BY version DESC LIMIT 1) v ON true
+      WHERE sc.id = $1`,
+    [id],
+  );
+  const 행 = r.rows[0];
+  if (행 === undefined) return undefined;
+  const 번호들 = 행.parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
+  return { version: 행.version, 거절: await 실행가능확인(행.parts, 번호들, 행.prefix) };
+}
+
+// 판정한 버전이 잠근 뒤의 최신과 다르면 null — 부른 쪽이 다시 판정한다
+async function 잠그고만들기(id: number, env: string, 사람: 저장하는사람, 판정: 판정 | undefined): Promise<실행 | null> {
   const c = await (await db()).connect();
   try {
     await c.query('BEGIN');
@@ -83,9 +114,14 @@ export async function 실행만들기(
       throw new 시나리오실행오류('ENV_NOT_FOUND', `${행.prefix} 서비스에 ${env} 대상 서버가 없다`);
     }
 
+    if (판정 === undefined || 판정.version !== 행.version) {
+      await c.query('ROLLBACK');
+      return null;
+    }
+    if (판정.거절 !== null) throw 판정.거절;
+
     const parts = 행.parts;
     const 번호들 = parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
-    await 실행가능확인(parts, 번호들, 행.prefix);
 
     // 스냅샷은 카탈로그 캐시에서 SQL 로 읽는다 — createRun 과 같은 까닭. 재료는 판정에만 쓴다
     const 케이스 = await c.query<케이스행>(
@@ -144,16 +180,11 @@ export async function 실행만들기(
   }
 }
 
-// 목록·상세의 runnable 과 같은 판정을 본다 (게이트 1). 뿌리 밖 경로는 목록에선 500 이지만 실행 요청에선 거절 사유다
-async function 실행가능확인(parts: ScenarioPart[], 번호들: string[], prefix: string): Promise<void> {
-  let 재료: Awaited<ReturnType<typeof 케이스재료>>;
-  try {
-    재료 = await 케이스재료(번호들, prefix);
-  } catch (err) {
-    throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: ${(err as Error).message}`);
-  }
+// 목록·상세의 runnable 과 같은 판정을 본다 (게이트 1). 뿌리 밖 경로도 재료에서 빠져 CASE_INACTIVE 가 된다
+async function 실행가능확인(parts: ScenarioPart[], 번호들: string[], prefix: string): Promise<시나리오실행오류 | null> {
+  const 재료 = await 케이스재료(번호들, prefix);
   const 결과 = 점검(parts, 재료.카탈로그);
-  if (결과.runnable) return;
+  if (결과.runnable) return null;
   const 사유 = [
     ...결과.checks
       .filter((ch) => ch.reason === 'CASE_INACTIVE')
@@ -163,5 +194,5 @@ async function 실행가능확인(parts: ScenarioPart[], 번호들: string[], pr
       }),
     ...제한시간크기사유(parts),
   ];
-  throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: ${사유.join(' · ')}`);
+  return new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: ${사유.join(' · ')}`);
 }

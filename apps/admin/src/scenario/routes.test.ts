@@ -32,7 +32,7 @@ describe.skipIf(연결 === undefined)('시나리오 API', () => {
   let 서비스 = 0;
   let 뿌리 = '';
   const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
-  const 번호들 = ['XSR-001', 'XSR-002'];
+  const 번호들 = ['XSR-001', 'XSR-002', 'XSR-003'];
 
   const q = async (sql: string, 값: unknown[] = []) => {
     const { pool } = await import('../db/index.js');
@@ -76,9 +76,9 @@ describe.skipIf(연결 === undefined)('시나리오 API', () => {
     for (const tcId of 번호들) {
       await q(
         `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active)
-         VALUES ($1, $1 || ' 이름', '["desktop"]', '[]', 'xsr/a.spec.ts', '{}', '{}', true)
+         VALUES ($1, $1 || ' 이름', '["desktop"]', '[]', $2, '{}', '{}', true)
          ON CONFLICT (tc_id) DO UPDATE SET file_path = EXCLUDED.file_path, is_active = true`,
-        [tcId],
+        [tcId, tcId === 'XSR-003' ? '../밖.spec.ts' : 'xsr/a.spec.ts'],
       );
     }
 
@@ -220,6 +220,18 @@ describe.skipIf(연결 === undefined)('시나리오 API', () => {
     });
     const 상세 = await app.inject({ method: 'GET', url: `/api/scenarios/${id}` });
     expect(상세.json<{ checks: unknown }>().checks).toEqual([{ seq: 1, reason: 'STEP_GONE' }]);
+  });
+
+  it('tests 뿌리 밖 경로 케이스를 쓴 시나리오도 목록·상세가 200 이고 실행할 수 없다', async () => {
+    const { id } = await 만들기(서비스, 'XSR 밖', 'desktop', [케이스('XSR-003')], { username: 'xsr', displayName: '검사 사람' });
+    const 목록 = await app.inject({ method: 'GET', url: '/api/scenarios?service=XSR' });
+    expect(목록.statusCode).toBe(200);
+    expect(목록.json<{ items: { id: number; runnable: boolean }[] }>().items.find((s) => s.id === id)?.runnable).toBe(false);
+    const 상세 = await app.inject({ method: 'GET', url: `/api/scenarios/${id}` });
+    expect(상세.statusCode).toBe(200);
+    expect(상세.json<{ checks: unknown }>().checks).toEqual([{ seq: 1, reason: 'CASE_INACTIVE' }]);
+    expect(상세.body).not.toContain('밖.spec.ts');
+    expect((await app.inject({ method: 'GET', url: '/api/scenarios/case-parts/XSR-003' })).statusCode).toBe(404);
   });
 
   it('치우면 204 이고 목록에서 빠진다', async () => {
