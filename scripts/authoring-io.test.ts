@@ -9,6 +9,7 @@ import {
   type 보고손,
   거절된보고대신,
   다시하며,
+  보고손만들기,
   닫으며,
   부른다,
   친다,
@@ -195,6 +196,19 @@ describe('부른다 — 서버에 못 닿은 요청은 한 번 더 건다 (#3336
     expect(받은것).toHaveLength(1);
   });
 
+  it('끝내기 — 셈을 뺀 몸이 또 400 이면 FAILED 로 한 번 더 보낸다 — RUNNING 에 남지 않게', async () => {
+    const 받은것 = 가짜(
+      () => new Response(JSON.stringify({ error: 'BAD_COVERAGE' }), { status: 400 }),
+      () => new Response(JSON.stringify({ error: 'BAD_PR_URL' }), { status: 400 }),
+      () => 답(200),
+    );
+    const 몸 = { status: 'DONE', prUrl: 'https://x/pull/1', result: { coverage: { total: 1 } } };
+    expect(((await 보고손만들기('http://x', 'c', 'MKT', 5).끝내기(몸)) as { status: number }).status).toBe(200);
+    const 보낸몸 = 받은것.map((o) => JSON.parse(String(o.body)) as Record<string, unknown>);
+    expect(보낸몸[1]).toEqual({ status: 'DONE', prUrl: 'https://x/pull/1' });
+    expect(보낸몸[2]).toMatchObject({ status: 'FAILED' });
+  });
+
   it('토큰을 Bearer 로 싣고 쿠키는 안 싣는다 — 맥은 비밀번호 로그인을 안 한다', async () => {
     const 받은것 = 가짜(() => 답(200));
     await 부른다('http://x', 'tpa_열쇠', '/stage');
@@ -245,6 +259,15 @@ describe('거절된보고대신 — 끝났다는 보고가 400 이면 실패로 
     expect(String(대신?.error)).toContain('BAD_PR_URL');
     expect(String(대신?.error)).toContain('https://github.com/a/b/pull/105');
     expect(대신).not.toHaveProperty('prUrl');
+  });
+  it('셈이 거절되면(BAD_COVERAGE) 셈만 뺀 같은 몸을 보낸다 — FAILED 로 바꾸면 PR · 보류 · 이어하기를 잃는다', () => {
+    const 몸 = { status: 'DONE', prUrl: 'https://github.com/a/b/pull/7', result: { held: [], coverage: { total: 1 } } };
+    expect(거절된보고대신(400, { error: 'BAD_COVERAGE' }, 몸)).toEqual({ status: 'DONE', prUrl: 'https://github.com/a/b/pull/7', result: { held: [] } });
+    const 거절 = { status: 'STOPPED', stopReason: 'REJECTED', error: 'push 실패', result: { coverage: { total: 1 } } };
+    expect(거절된보고대신(400, { error: 'BAD_COVERAGE' }, 거절)).toEqual({ status: 'STOPPED', stopReason: 'REJECTED', error: 'push 실패' });
+  });
+  it('셈이 없는 몸의 BAD_COVERAGE 는 다른 400 처럼 FAILED 다', () => {
+    expect(거절된보고대신(400, { error: 'BAD_COVERAGE' }, { status: 'DONE' })).toMatchObject({ status: 'FAILED' });
   });
   it('400 이 아니면 바꾸지 않는다 — 409 는 이미 끝난 행이다', () => {
     expect(거절된보고대신(409, { error: 'NOT_RUNNING' }, { status: 'DONE' })).toBeNull();

@@ -19,13 +19,11 @@ describe('줄프롬프트 — 원장 절 (도메인/작성 §3.6 「★ 원장�
     expect(글).toMatch(/관문 0/);
   });
 
-  it('앞 실행의 빠짐 목록이 있으면 그것부터 채우라고 한다', () => {
-    const 글 = 줄프롬프트(것, 'MKT', [], { 폴더: 'mkt', 서버들: [] }, undefined, undefined, {
-      사본: '/w/ledger.json',
-      요약: '요구 3',
-      빠짐파일: '/w/ledger-missing.json',
-    });
-    expect(글).toMatch(/\/w\/ledger-missing\.json.*먼저 채워라/);
+  it('빠져도 올리기를 거절하지 않고 셈에 남는다고 알린다 — 그래도 관문 0 을 초록으로 (2026-09-30 게이트 1)', () => {
+    const 글 = 줄프롬프트(것, 'MKT', [], { 폴더: 'mkt', 서버들: [] }, undefined, undefined, { 사본: '/w/ledger.json', 요약: '요구 3' });
+    expect(글).not.toContain('올리기 거절');
+    expect(글).toMatch(/거절하지 않고.*「빠짐」.*관문 0 을 초록으로/);
+    expect(글).not.toContain('ledger-missing');
   });
 
   it('원장이 없으면 까닭을 싣고 관문 0 을 건너뛰라고 한다', () => {

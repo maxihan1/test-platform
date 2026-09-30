@@ -26,7 +26,9 @@ import { type 계정, type 사본, 사본환경, 파일거부사유 } from './au
 import { 산출물읽기, 역기획서준비 } from './authoring-upload-reverse.js';
 import type { 원장 } from './authoring-ledger.js';
 import { tcId들, 원장판정 } from './authoring-ledger-check.js';
-import { 빠짐목록쓰기, 빠짐목록지우기, 빠짐파일이름, 케이스글들 } from './authoring-ledger-io.js';
+import { 케이스글들 } from './authoring-ledger-io.js';
+import { type 셈재료, 커버리지싣는손 } from './authoring-coverage.js';
+import { 보류싣는손 } from './authoring-held.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
 import { type 자료, 자료출처 } from './authoring-assets.js';
 import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
@@ -65,10 +67,13 @@ export async function 올리기(
   판정: 판정기,
   기준: string,
   자식출력: string,
-  손: 보고손,
-  역?: 역방향올리기,
-  원장재료?: { 값: 원장 | { 없음: string }; 폴더: string; 자료폴더: string },
+  원손: 보고손,
+  역: 역방향올리기 | undefined,
+  원장재료: { 값: 원장 | { 없음: string }; 폴더: string; 자식: 계정 | null },
 ): Promise<void> {
+  // 셈은 원장 대조 뒤에 선다 — 그 전의 끝내기에는 안 싣는다. 보류가 바깥이라 셈이 result.held 를 보고 보류를 센다 (§3.6 「★ 원장」)
+  let 셈: 셈재료 | null = null;
+  const 손 = 보류싣는손(커버리지싣는손(원손, () => 셈), 자리, 원장재료.자식, 원장재료.폴더);
   const 깃 = 사본환경(자리);
   // 거절 까닭은 화면과 이어받는 자식의 프롬프트로 간다 — 자식이 정한 파일 이름에 계정 원문이 섞일 수 있어 모두 거른다
   const 거절 = (까닭: string) => 거절로(사유거르기(까닭, 것.target?.loginPassword));
@@ -124,23 +129,17 @@ export async function 올리기(
     return;
   }
   const 읽기 = (f: string) => (모양보기(자리.트리, f).종류 === '파일' ? readFileSync(join(자리.트리, f), 'utf8') : '');
-  // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠지면 올리기 거절로 이어받게 한다 (§3.6 「★ 원장」)
-  const 추적 = 원장재료 === undefined ? null : 트리에서('git', ['ls-files', '-z', '--', `tests/${원장재료.폴더}`]);
-  if (추적 !== null && !추적.ok) return void (await 손.끝내기(거절(`원장 대조용 케이스 목록을 못 읽었다: ${추적.까닭}`)));
-  const 원장결과 =
-    원장재료 === undefined
-      ? null
-      : 원장판정(원장재료.값, 읽기(표), tcId들(케이스글들((추적?.낸것 ?? '').split('\0'), 원장재료.폴더, 읽기)), join(원장재료.자료폴더, 빠짐파일이름));
-  if (원장결과 !== null && '거절' in 원장결과 && 원장재료 !== undefined) {
-    빠짐목록쓰기(원장재료.자료폴더, 원장결과.빠짐목록);
-    await 손.끝내기(거절(원장결과.거절));
-    return;
-  }
-  if (원장재료 !== undefined) 빠짐목록지우기(원장재료.자료폴더);
+  // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠져도 거절하지 않고 셈과 PR 본문 머리에 남긴다 (§3.6 「★ 원장」, 2026-09-30 게이트 1)
+  const 추적 = 트리에서('git', ['ls-files', '-z', '--', `tests/${원장재료.폴더}`]);
+  if (!추적.ok) return void (await 손.끝내기(거절(`원장 대조용 케이스 목록을 못 읽었다: ${추적.까닭}`)));
+  const 원장결과 = 원장판정(원장재료.값, 읽기(표), tcId들(케이스글들(추적.낸것.split('\0'), 원장재료.폴더, 읽기)));
+  // 여기부터의 끝내기(DONE · 올리기 거절)에 셈이 실린다
+  const 원장값 = 원장재료.값;
+  셈 = '없음' in 원장값 ? { 없음: 원장값.없음 } : '대조' in 원장결과 ? { 대조: 원장결과.대조, 원장: 원장값 } : null;
   const 본문글 = PR본문({
     표: 읽기(표),
     // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다
-    요약: [...(원장결과 !== null && '머리글' in 원장결과 ? [원장결과.머리글, ''] : []), ...자식출력.trim().split('\n').slice(-40)].join('\n'),
+    요약: [원장결과.머리글, '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
   if (비밀섞였나([본문글, ...전체.map(읽기)], 것.figmaToken)) {
