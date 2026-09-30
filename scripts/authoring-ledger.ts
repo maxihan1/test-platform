@@ -1,6 +1,8 @@
 // 원장 — 기획서 글자본에서 요구 번호 목록을 뽑는다. 표와 맞대는 쪽은 authoring-ledger-check.ts 다
 // 자식(AI)이 아니라 이 스크립트가 뽑는다 — 같은 글이면 같은 원장이 나와야 대조가 성립한다 (도메인/작성 §3.6 「★ 원장」)
 
+import type { 읽을자료 } from './authoring-assets.js';
+
 export interface 원장항목 {
   번호: string;
   /** 어느 자료에서 나왔나 — 자료 이름 */
@@ -75,13 +77,96 @@ export function 번호찾기(글: string): { 번호들: string[]; 경고: string
 /** 가족마다 서로 다른 번호가 셋 이상이면 요구 번호 체계로 본다 — 외톨이(UTF-8 · ISO-9001)를 거른다 */
 const 가족하한 = 3;
 
-/** 자료 하나의 원장. 번호 가족이 없으면 문단 모드다 */
-export function 원장뽑기(글: string, 자료: string): 자료원장 {
+/** 요구로 셀 만큼 긴가 — 빈칸 뺀 15자. 머리글 · 「필수」 같은 칸 조각을 거른다 */
+const 짧은글 = 15;
+const 글상한 = 80;
+const 테두리 = /^[\s\-=+│|─┼:]+$/;
+const 목록항목 = /^\s*(?:[-*•]|\d+[.)])\s+/;
+// pandoc 표 행은 칸 사이가 빈칸 여럿이다. 테두리 글자로 시작하는 표도 행마다 가른다
+const 표행 = (줄: string) => /^\s*[│|]/.test(줄) || (줄.trim().match(/\S\s{3,}(?=\S)/g) ?? []).length >= 2;
+
+/** 문단 모드 — 빈 줄로 가른 덩이마다, 목록 항목과 표 행은 줄마다 하나. 번호는 나온 순서 */
+function 문단들(글: string): string[] {
+  const 단위: string[] = [];
+  let 모음: string[] = [];
+  const 내기 = () => {
+    if (모음.length > 0) 단위.push(모음.join(' '));
+    모음 = [];
+  };
+  for (const 날줄 of 글.split(/\r?\n/)) {
+    const 줄 = 날줄.trim();
+    if (줄 === '' || 테두리.test(줄)) {
+      내기();
+      continue;
+    }
+    if (목록항목.test(날줄) || 표행(날줄)) {
+      내기();
+      단위.push(줄);
+      continue;
+    }
+    모음.push(줄);
+  }
+  내기();
+  return 단위.filter((u) => u.replace(/\s/g, '').length >= 짧은글);
+}
+
+/** 자료 하나의 원장. 번호 가족이 없으면 문단 모드다. `머리` 는 문단 번호 앞말(P · P1 · P2) */
+export function 원장뽑기(글: string, 자료: string, 머리 = 'P'): 자료원장 {
   const { 번호들, 경고 } = 번호찾기(글);
   const 차례 = [...new Set(번호들)];
   const 셈: Record<string, number> = {};
   for (const 번호 of 차례) 셈[가족(번호)] = (셈[가족(번호)] ?? 0) + 1;
   const 가족들 = Object.fromEntries(Object.entries(셈).filter(([, n]) => n >= 가족하한));
-  const 항목 = 차례.filter((번호) => 가족(번호) in 가족들).map((번호) => ({ 번호, 자료 }));
-  return { 모드: '번호', 항목, 가족: 가족들, 경고 };
+  if (Object.keys(가족들).length > 0) {
+    const 항목 = 차례.filter((번호) => 가족(번호) in 가족들).map((번호) => ({ 번호, 자료 }));
+    return { 모드: '번호', 항목, 가족: 가족들, 경고 };
+  }
+  const 항목 = 문단들(글).map((u, i) => ({ 번호: `${머리}-${String(i + 1).padStart(3, '0')}`, 자료, 글: u.slice(0, 글상한) }));
+  return { 모드: '문단', 항목, 가족: {}, 경고 };
+}
+
+export interface 원장 {
+  항목: 원장항목[];
+  가족: Record<string, number>;
+  /** 자료 이름 → 모드 */
+  모드: Record<string, '번호' | '문단'>;
+  경고: string[];
+  /** 글자본이 없어 원장에 못 넣은 자료 — PR 본문에 싣는다 */
+  빠진자료: string[];
+}
+
+/** 글자본으로 읽을 수 있는 자료인가 — 워드는 에이전트가 .txt 로 바꿔 둔다. PDF 는 바꾸지 않는다 */
+const 글자본 = (경로: string) => /\.(txt|md)$/i.test(경로);
+
+/**
+ * 요청의 자료 전부로 원장을 만든다. 자료마다 모드를 따로 판정하고 겹치는 번호는 하나로 친다.
+ * `읽기` 를 받는 까닭 — 파일을 읽는 것은 껍데기의 일이고, 이 함수는 같은 글이면 같은 원장을 내야 한다
+ */
+export function 원장만들기(계획: 읽을자료[], 읽기: (경로: string) => string): { 원장: 원장 } | { 없음: string } {
+  const 글자료 = 계획.filter((c): c is Extract<읽을자료, { kind: 'FILE' }> => c.kind === 'FILE' && 글자본(c.읽을자리));
+  const 빠진자료 = 계획
+    .filter((c) => c.kind === 'FILE' && !글자본(c.읽을자리))
+    .map((c) => (c.kind === 'FILE' ? `${c.name}(${c.읽을자리.split('.').pop()?.toUpperCase() ?? ''})` : ''));
+  const 피그마 = 계획.filter((c) => c.kind === 'FIGMA').length;
+  const 못읽음 = [...빠진자료, ...(피그마 > 0 ? [`피그마 ${피그마}건`] : [])];
+  if (글자료.length === 0) return { 없음: `글자본이 있는 자료가 없다${못읽음.length > 0 ? ` — ${못읽음.join(' · ')}` : ''}` };
+
+  const 뽑은것 = 글자료.map((c) => ({ c, 글: 읽기(c.읽을자리) }));
+  const 문단자료수 = 뽑은것.filter(({ c, 글 }) => 원장뽑기(글, c.name).모드 === '문단').length;
+  const 합친: 원장 = { 항목: [], 가족: {}, 모드: {}, 경고: [], 빠진자료: 못읽음.filter((m) => !m.startsWith('피그마')) };
+  let 문단순번 = 0;
+  const 본번호 = new Set<string>();
+  for (const { c, 글 } of 뽑은것) {
+    const 첫 = 원장뽑기(글, c.name);
+    const 하나 = 첫.모드 === '문단' && 문단자료수 > 1 ? 원장뽑기(글, c.name, `P${String(++문단순번)}`) : 첫;
+    합친.모드[c.name] = 하나.모드;
+    합친.경고.push(...하나.경고);
+    for (const [가, n] of Object.entries(하나.가족)) 합친.가족[가] = (합친.가족[가] ?? 0) + n;
+    for (const 항 of 하나.항목) {
+      if (본번호.has(항.번호)) continue;
+      본번호.add(항.번호);
+      합친.항목.push(항);
+    }
+  }
+  return { 원장: 합친 };
 }

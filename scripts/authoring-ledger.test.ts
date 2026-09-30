@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { 번호찾기, 원장뽑기 } from './authoring-ledger.js';
+import type { 읽을자료 } from './authoring-assets.js';
+import { 번호찾기, 원장뽑기, 원장만들기 } from './authoring-ledger.js';
 
 const 데모마켓 = readFileSync(new URL('./fixtures/ledger/demomarket.txt', import.meta.url), 'utf8');
 
@@ -64,5 +65,85 @@ describe('원장뽑기 — 번호 모드', () => {
     expect(번호).toContain('REQ-BRD-008');
     expect(원장.가족).toEqual({ 'REQ-COM': 14, 'REQ-HOME': 11, 'REQ-MEM': 19, 'REQ-BRD': 17 });
     expect(원장.항목.every((h) => h.자료 === '3757')).toBe(true);
+  });
+});
+
+const 번호없는글 = [
+  '데모 기획서',
+  '',
+  '장바구니에 담은 상품은 로그인하지 않아도 30일 동안 남는다.',
+  '',
+  '-   쿠폰은 한 주문에 한 장만 쓸 수 있다',
+  '-   품절 상품은 담기 버튼이 눌리지 않는다',
+  '',
+  '  구분        내용                          비고',
+  '  ----------- ----------------------------- ------',
+  '  배송비      3만 원 이상이면 무료로 보낸다   필수',
+  '  반품        받은 날부터 7일 안에 신청한다   필수',
+  '',
+  '짧은 줄',
+].join('\n');
+
+describe('원장뽑기 — 문단 모드', () => {
+  it('번호 가족이 없으면 문단 · 목록 항목 · 표 행마다 P-번호를 매기고 짧은 줄과 테두리는 뺀다', () => {
+    const 원장 = 원장뽑기(번호없는글, '기획.md');
+    expect(원장.모드).toBe('문단');
+    expect(원장.항목.map((h) => [h.번호, h.글])).toEqual([
+      ['P-001', '장바구니에 담은 상품은 로그인하지 않아도 30일 동안 남는다.'],
+      ['P-002', '-   쿠폰은 한 주문에 한 장만 쓸 수 있다'],
+      ['P-003', '-   품절 상품은 담기 버튼이 눌리지 않는다'],
+      ['P-004', '배송비      3만 원 이상이면 무료로 보낸다   필수'],
+      ['P-005', '반품        받은 날부터 7일 안에 신청한다   필수'],
+    ]);
+  });
+
+  it('같은 글이면 같은 번호가 나온다', () => {
+    expect(원장뽑기(번호없는글, 'a')).toEqual(원장뽑기(번호없는글, 'a'));
+  });
+
+  it('글은 첫 80자만 싣는다', () => {
+    const 원장 = 원장뽑기('가'.repeat(120), 'a');
+    expect(원장.항목[0]?.글).toHaveLength(80);
+  });
+});
+
+describe('원장만들기 — 자료 여럿 · 원장 없음', () => {
+  const 파일 = (id: number, name: string, 읽을자리: string): 읽을자료 => ({
+    kind: 'FILE', id, name, 받을자리: 읽을자리, 변환: null, 읽을자리,
+  });
+  const 글들: Record<string, string> = {
+    '/a/1.txt': 'REQ-A-1 REQ-A-2 REQ-A-3',
+    '/a/2.md': 'REQ-A-3 REQ-A-4 REQ-A-5 은 다른 자료에도 있다',
+    '/a/3.md': 번호없는글,
+    '/a/4.md': 번호없는글,
+  };
+  const 읽기 = (경로: string) => 글들[경로] ?? '';
+
+  it('자료마다 따로 뽑아 합치고 겹치는 번호는 하나로 친다', () => {
+    const r = 원장만들기([파일(1, '가.docx', '/a/1.txt'), 파일(2, '나.md', '/a/2.md')], 읽기);
+    if (!('원장' in r)) throw new Error('원장이 없다');
+    expect(r.원장.항목.map((h) => h.번호)).toEqual(['REQ-A-1', 'REQ-A-2', 'REQ-A-3', 'REQ-A-4', 'REQ-A-5']);
+    expect(r.원장.항목[3]?.자료).toBe('나.md');
+  });
+
+  it('문단 모드 자료가 둘 이상이면 자료 순번을 번호에 넣는다', () => {
+    const r = 원장만들기([파일(3, '가.md', '/a/3.md'), 파일(4, '나.md', '/a/4.md')], 읽기);
+    if (!('원장' in r)) throw new Error('원장이 없다');
+    expect(r.원장.항목[0]?.번호).toBe('P1-001');
+    expect(r.원장.항목[5]?.번호).toBe('P2-001');
+  });
+
+  it('PDF 와 피그마는 글자본이 없어 까닭에 적고, 그것뿐이면 원장이 없다', () => {
+    const r = 원장만들기(
+      [파일(5, '화면.pdf', '/a/5.pdf'), { kind: 'FIGMA', id: 6, 주소: 'https://www.figma.com/design/x/' }],
+      읽기,
+    );
+    expect(r).toEqual({ 없음: '글자본이 있는 자료가 없다 — 화면.pdf(PDF) · 피그마 1건' });
+  });
+
+  it('글자본 자료가 하나라도 있으면 원장을 만들고 못 읽은 자료를 까닭에 남긴다', () => {
+    const r = 원장만들기([파일(1, '가.docx', '/a/1.txt'), 파일(5, '화면.pdf', '/a/5.pdf')], 읽기);
+    if (!('원장' in r)) throw new Error('원장이 없다');
+    expect(r.원장.빠진자료).toEqual(['화면.pdf(PDF)']);
   });
 });
