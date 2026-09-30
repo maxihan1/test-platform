@@ -3,6 +3,8 @@
 
 import type { FastifyReply } from 'fastify';
 
+import { 이어작성준비, 제출, 초안지우기 } from './assetStore.js';
+import { 자료파일복사 } from './assets.js';
 import { 행커버리지 } from './coverage.js';
 import { 최신실행, 뿌리잠그고 } from './history.js';
 import { 역방향칸판정 } from './reverse.js';
@@ -89,7 +91,7 @@ export async function 이어작성세우기(
   if (원본.kind !== 'AUTHOR' || 원본.status === 'DRAFT' || 원본.discardedAt !== null) {
     return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${원본.kind} ${원본.status}` });
   }
-  const 결과 = await 뿌리잠그고(원본.id, async (): Promise<{ code: number; error: string } | { id: number }> => {
+  const 결과 = await 뿌리잠그고(원본.id, async (): Promise<{ code: number; error: string } | Awaited<ReturnType<typeof 이어작성준비>>> => {
     const 까닭 = 막는까닭(await 이어작성상태읽기(원본.id));
     if (까닭 !== null) return { code: 409, error: 까닭 };
     // 대조 원본이면 같은 대상 서버 · 시작 주소를 물려받는다. 그 사이 계정이 빠졌을 수 있어 다시 판정한다 — 재실행과 같다
@@ -97,8 +99,36 @@ export async function 이어작성세우기(
       ? await 역방향칸판정({ compare: true, env: 원본.env, startUrl: 원본.startUrl }, 입력.서비스)
       : ({ compare: false } as const);
     if ('error' in 대조) return { code: 400, error: 대조.error };
-    throw new Error('자료 복사는 할 일 5');
+    try {
+      // 행은 잠금 안에서 — 다음 누름이 이 초안을 「이미 이어 작성함」으로 본다
+      return await 이어작성준비({
+        서비스: 입력.서비스,
+        원본,
+        누가: 입력.누가,
+        이름: 입력.이름,
+        ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
+      });
+    } catch (e) {
+      // 잠금은 한 서버 안의 순서다 — 유일 색인이 마지막 그물이다
+      if ((e as { constraint?: string }).constraint === 'authoring_request_continue_from_once') {
+        return { code: 409, error: 'ALREADY_CONTINUED' };
+      }
+      throw e;
+    }
   });
   if ('error' in 결과) return reply.code(결과.code).send({ error: 결과.error });
+  // 파일은 잠금 밖에서 복사한다 — 스무 개 · 20MB 를 잠금 안에서 옮기면 같은 뿌리의 다른 누름이 그만큼 선다.
+  // DRAFT 라 복사가 끝나기 전에는 에이전트가 안 집는다. 실패하면 초안을 지워 원본을 다시 풀어 준다
+  try {
+    await 자료파일복사(원본.id, 결과.id, 결과.파일);
+  } catch (e) {
+    await 초안지우기(결과.id);
+    throw e;
+  }
+  // 원본에 입력 자료가 있어야 여기 온다(NOTHING_LEFT) — 자료 0 이면 제출이 거짓이라 초안이 남는다
+  if (!(await 제출(결과.id))) {
+    await 초안지우기(결과.id);
+    throw new Error(`이어 작성 요청 ${String(결과.id)} 을 줄에 세우지 못했다`);
+  }
   return reply.code(201).send({ id: 결과.id });
 }
