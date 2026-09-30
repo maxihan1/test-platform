@@ -260,6 +260,23 @@ describe('RunPickModal 테스트 실행', () => {
     expect(주소칸().value).toBe('https://qa.example.com');
   });
 
+  it('도는 중에 또 누르면 안내하고 큐가 끝나면 그 안내를 걷는다', async () => {
+    vi.spyOn(api, 'startTrial').mockResolvedValue({ trialId: 't' });
+    let 풀기!: () => void;
+    vi.spyOn(api, 'getTrial').mockImplementation(
+      () => new Promise((ok) => { 풀기 = () => ok({ status: 'DONE', result: { status: 'PASS', durationMs: 1, steps: [] } }); }),
+    );
+    그리기([값없는케이스]);
+
+    fireEvent.change(주소칸(), { target: { value: 'http://localhost:3002' } });
+    fireEvent.click(테스트버튼());
+    fireEvent.click(테스트버튼());
+    await waitFor(() => expect(줄().textContent).toContain('이미 테스트 실행이 돌고 있습니다'));
+
+    풀기();
+    await waitFor(() => expect(줄().textContent).not.toContain('이미 테스트 실행이 돌고 있습니다'));
+  });
+
   it('기록에 남지 않는다는 안내가 보인다', () => {
     그리기();
     expect(screen.getByText('실행 기록에 남지 않습니다 · 24시간 뒤 사라집니다')).toBeTruthy();

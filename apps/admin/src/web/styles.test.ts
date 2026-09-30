@@ -574,6 +574,7 @@ describe('줄 칸 이름 · 판정 묶음 · 실행할 케이스 창 (2026-09-30
 
   it('줄 안의 숫자·예/아니오 칸이 남은 자리에 맞춰 줄어들어 마지막 결과 칸을 안 덮는다', () => {
     expect(규칙('.pcell .field select.narrow')).toMatch(/width:\s*100%/);
+    expect(규칙('.pcell .field > div')).toMatch(/min-width:\s*0/);
   });
 
   it('판정 칸이 고정 폭이라 「실행 이력 없음」이 폭을 못 민다', () => {

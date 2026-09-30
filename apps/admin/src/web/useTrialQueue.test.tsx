@@ -82,6 +82,44 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'notice' });
   });
 
+  it('두 번 눌러도 큐가 하나만 돈다', async () => {
+    const { 시작 } = 서버({});
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await Promise.all([
+        result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002'),
+        result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002'),
+      ]);
+    });
+
+    expect(시작).toHaveBeenCalledTimes(2);
+  });
+
+  it('이미 돌고 있는 것이 있으면(TRIAL_BUSY) 남은 줄에도 같은 안내를 붙이고 멈춘다', async () => {
+    const 시작 = vi.spyOn(api, 'startTrial').mockRejectedValue(new ApiError(409, 'TRIAL_BUSY', '바쁨', []));
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
+    });
+
+    expect(시작).toHaveBeenCalledTimes(1);
+    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '이미 테스트 실행이 돌고 있습니다' });
+  });
+
+  it('그 밖의 오류로 멈추면 남은 줄은 앞에서 멈췄다고 적는다 — 대기로 남기지 않는다', async () => {
+    vi.spyOn(api, 'startTrial').mockRejectedValue(new Error('네트워크 끊김'));
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
+    });
+
+    expect(result.current.줄들['X-1']).toMatchObject({ 종류: 'notice' });
+    expect(result.current.줄들['X-2']).toEqual({ 종류: 'notice', 글: '앞 케이스에서 멈춰 돌리지 못했습니다' });
+  });
+
   it('입력값이 명세와 안 맞는 줄은 그 줄만 안내하고 다음 줄을 이어 돈다', async () => {
     vi.spyOn(api, 'startTrial').mockImplementation((tcId) =>
       tcId === 'X-1'
