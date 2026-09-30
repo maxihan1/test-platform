@@ -31,4 +31,29 @@ describe('줄프롬프트 — 원장 절 (도메인/작성 §3.6 「★ 원장�
     expect(글).toContain('원장 없음 — 글자본이 있는 자료가 없다 — 화면.pdf(PDF)');
     expect(글).toMatch(/관문 0 은 건너뛴다/);
   });
+
+  it('이어 작성이면 원장 절 뒤에 이어 작성 절을 싣는다 — 원본 번호 · 남은 수 · 앞 번호 · 사본 경로', () => {
+    const 남은 = Array.from({ length: 25 }, (_, i) => `REQ-A-${String(i + 1)}`);
+    const 글 = 줄프롬프트(
+      것,
+      'MKT',
+      [],
+      { 폴더: 'mkt', 서버들: [] },
+      undefined,
+      undefined,
+      { 사본: '/w/ledger.json', 요약: '요구 172' },
+      { 원본: 5873, 남은, 사본: '/w/자료/continue.json' },
+    );
+    expect(글.indexOf('--- 이어 작성 ---')).toBeGreaterThan(글.indexOf('--- 원장 ---'));
+    expect(글).toContain('작성 요청 5873');
+    expect(글).toContain('남은 요구 25개');
+    expect(글).toContain('REQ-A-20');
+    expect(글).not.toContain('REQ-A-21');
+    expect(글).toContain('/w/자료/continue.json');
+    expect(글).toContain('references/continue.md');
+  });
+
+  it('이어 작성이 아니면 이어 작성 절이 없다', () => {
+    expect(줄프롬프트(것, 'MKT', [])).not.toContain('--- 이어 작성 ---');
+  });
 });

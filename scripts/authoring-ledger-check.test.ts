@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { 원장뽑기 } from './authoring-ledger.js';
-import { tcId들, 셈글, 원장대조, 원장판정, 제외종류 } from './authoring-ledger-check.js';
+import { tcId들, 사람이뺀번호, 셈글, 원장대조, 원장판정, 제외종류 } from './authoring-ledger-check.js';
 
 const 옛표 = readFileSync(new URL('./fixtures/ledger/mkt-5877.md', import.meta.url), 'utf8');
 const 데모마켓 = 원장뽑기(readFileSync(new URL('./fixtures/ledger/demomarket.txt', import.meta.url), 'utf8'), '3757');
@@ -206,5 +206,27 @@ describe('원장판정 — 에이전트가 올리기 직전에 부른다 · 빠�
     expect(r.머리글).toBe(
       '원장: 요구 3 → 케이스 1 · 제외 0 · 빠짐 2 · 번호 가족 REQ-A 3 · 원장에 못 넣은 자료 화면.pdf(PDF)\n⚠️ 빠짐 2 — REQ-A-2 · REQ-A-3',
     );
+  });
+});
+
+describe('「사람이 뺌」 — 기준 표에 이미 있던 것은 에이전트도 인정한다 (2026-09-30 게이트 1)', () => {
+  const 제외표 = 표([], ['| REQ-A-1 | 사람이 뺌 | 사람이 판정했다 |', '| REQ-A-2 | 사람이 뺌 | 자식이 적었다 |', '| REQ-A-3 | 다음 요청 | 다음 |']);
+
+  it('사람이뺀번호 가 제외 표에서 「사람이 뺌」 번호만 뽑는다', () => {
+    expect([...사람이뺀번호(제외표)]).toEqual(['REQ-A-1', 'REQ-A-2']);
+    expect([...사람이뺀번호('')]).toEqual([]);
+  });
+
+  it('목록에 든 번호의 줄은 제외로 세고, 목록 밖은 지금처럼 형식 오류다', () => {
+    const r = 원장대조(원장, 제외표, { 에이전트: true, 사람이뺌: new Set(['REQ-A-1']) });
+    expect(r.형식오류).toEqual(['제외 줄 「REQ-A-2」 — 「사람이 뺌」은 사람 세션만 쓴다']);
+    expect(r.빠짐).toEqual(['REQ-A-2']);
+    expect(r.셈.제외).toEqual({ '사람이 뺌': 1, '다음 요청': 1 });
+  });
+
+  it('원장판정 이 목록을 대조에 넘긴다', () => {
+    const 값 = { 항목: 원장, 가족: {}, 모드: {}, 경고: [], 빠진자료: [] };
+    const r = 원장판정(값, 제외표, new Set(), new Set(['REQ-A-1', 'REQ-A-2']));
+    expect('대조' in r && r.대조.형식오류).toEqual([]);
   });
 });

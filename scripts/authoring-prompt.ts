@@ -3,6 +3,7 @@
 
 import { type 읽을자료, 자료목록글, 자료출처 } from './authoring-assets.js';
 import type { 집은것 } from './authoring-rules.js';
+import { type 이어작성입력, 이어작성절 } from './authoring-continue.js';
 import { 역방향절 } from './authoring-reverse.js';
 
 /**
@@ -20,6 +21,7 @@ export function 줄프롬프트(
   역방향?: { 화면만: boolean; 산출물폴더: string },
   이어하기?: { 번호: number; 이유: string | null; 까닭: string | null },
   원장?: 원장입력,
+  이어작성?: 이어작성입력,
 ): string {
   return [
     `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
@@ -48,6 +50,7 @@ export function 줄프롬프트(
     ...(역방향 === undefined ? [] : 역방향절({ ...역방향, 요청번호: 자료출처(것) })),
     ...(이어하기 === undefined ? [] : 이어하기절(이어하기)),
     ...(원장 === undefined ? [] : 원장절(원장, 서비스, 대상?.폴더)),
+    ...(이어작성 === undefined ? [] : 이어작성절(이어작성)),
   ].join('\n');
 }
 
