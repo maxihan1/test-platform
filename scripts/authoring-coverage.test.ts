@@ -107,6 +107,12 @@ describe('커버리지실은몸', () => {
     expect(커버리지실은몸({ status: 'DONE' }, null)).toEqual({ status: 'DONE' });
   });
 
+  it('셈이 너무 크면 싣지 않는다 — 본문 상한(1MiB)을 넘으면 서버가 400 이 아니라 413 을 내 셈만 빼고 다시 보내는 길을 못 탄다', () => {
+    const 많이 = Array.from({ length: 60000 }, (_, i) => `REQ-LONGFAMILY-${String(i + 1)}`);
+    const 큰재료 = { 대조: { ...대조, 빠짐: 많이, 셈: { ...대조.셈, 총: 대조.셈.총 + 많이.length - 1, 빠짐: 많이.length } }, 원장: 원장값 };
+    expect(커버리지실은몸({ status: 'DONE' }, 큰재료)).toEqual({ status: 'DONE' });
+  });
+
   it('서버 모양 검사에 걸릴 셈은 싣지 않는다 — 셈 하나로 끝내기가 400 이 되지 않게', () => {
     const 긴번호 = { 대조: { ...대조, 빠짐: ['R'.repeat(201)] }, 원장: 원장값 };
     expect(커버리지실은몸({ status: 'DONE' }, 긴번호)).toEqual({ status: 'DONE' });

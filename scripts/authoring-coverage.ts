@@ -12,6 +12,8 @@ export type 셈재료 = { 대조: 대조결과; 원장: 원장 } | { 없음: str
 // 남은 요구로 이어 작성(③)이 맡을 번호를 따로 싣는다 — 종류 이름으로 가르면 서버가 목록을 옮겨 적어야 한다
 const 다음요청: 제외종류 = '다음 요청';
 const 이름상한 = 200;
+// 끝내기 본문 상한은 1MiB(서버 기본값)다. 넘으면 400 이 아니라 413 이라 「셈만 빼고 다시」 길을 못 탄다 — 나머지 몸이 들어갈 자리를 남긴다
+const 셈글상한 = 512 * 1024;
 
 const 물건인가 = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
@@ -55,6 +57,10 @@ export function 커버리지실은몸(몸: Record<string, unknown>, 재료: 셈�
   const 셈 = 커버리지만들기(재료, 보류);
   if (커버리지모양검사(셈) === null) {
     console.error('[작성] 셈이 서버 모양 검사에 안 맞아 싣지 않는다 — PR 본문 머리의 셈 줄은 그대로다');
+    return 몸;
+  }
+  if (Buffer.byteLength(JSON.stringify(셈)) > 셈글상한) {
+    console.error('[작성] 셈이 너무 커 싣지 않는다 — PR 본문 머리의 셈 줄은 그대로다');
     return 몸;
   }
   return { ...몸, result: { ...결과, coverage: 셈 } };

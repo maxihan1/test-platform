@@ -29,7 +29,9 @@ const 글상한 = 200;
 const 까닭상한 = 500;
 
 const 객체인가 = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const 수인가 = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0;
+// 칸이 INTEGER 라 그 위는 넣을 때 500 이다 — 에이전트는 5xx 를 몇 분 동안 다시 보내므로 여기서 400 으로 끊는다
+const 정수상한 = 2 ** 31 - 1;
+const 수인가 = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 정수상한;
 const 글목록인가 = (v: unknown): v is string[] =>
   Array.isArray(v) && v.every((x) => typeof x === 'string' && x.length > 0 && x.length <= 글상한);
 
