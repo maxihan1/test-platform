@@ -550,3 +550,25 @@ npx playwright cli --version    # npm ci 만 돌렸으면 바로 나온다
 끄려면 `.env` 의 그 줄을 비우고 3번을 다시 한다. 결과는 기록에 남지 않으니 통계·증적·알림에도 잡히지 않는다.
 컨테이너에서 러너에 안 닿는다는 오류가 나면 1번 러너가 켜져 있는지, 그 주소(`127.0.0.1`)가 컨테이너에서 닿는지부터 본다.
 **확인한 범위** — 맥의 Docker Desktop 에서만 컨테이너가 `host.docker.internal` 로 `127.0.0.1` 전용 러너에 닿는 것을 확인했다. 리눅스 Docker 는 이 이름이 브리지 주소로 풀려 `127.0.0.1` 전용 러너에 안 닿을 수 있고 확인하지 않았다 — 리눅스 서버에서는 켜지 않는다(위 「먼저 알아 둘 것」과 같은 이유다).
+
+## 11. 클라우드 세션에서 DB 검사 돌리기 (2026-09-30)
+
+DB 검사는 `DATABASE_URL` 이 없으면 **조용히 건너뛴다**(초록으로 보인다). 클라우드 세션(Claude Code on the web)에도 postgres 16 이 깔려 있어 띄우면 돌릴 수 있다.
+두 번 죽었다 — ① 데이터 폴더를 세션 임시 폴더(`/tmp/claude-0/…`)에 두면 하네스가 권한을 되돌려 몇 분 뒤 죽는다 ② 도구 셸 아래 `pg_ctl` 로 띄우면 그 셸이 거둬질 때 같이 죽는다(`ECONNREFUSED`).
+그래서 **하네스가 안 만지는 폴더**에 두고 **셸에서 떼어**(`setsid nohup`) 띄운다.
+
+```bash
+mkdir -p /var/lib/postgresql/tp && chown postgres:postgres /var/lib/postgresql/tp
+su postgres -c "/usr/lib/postgresql/16/bin/initdb -D /var/lib/postgresql/tp/data -U platform --auth=trust"
+su postgres -c "setsid nohup /usr/lib/postgresql/16/bin/postgres -D /var/lib/postgresql/tp/data -p 5433 -k /var/lib/postgresql/tp > /var/lib/postgresql/tp/log 2>&1 &"
+psql -h 127.0.0.1 -p 5433 -U platform -d postgres -c "CREATE DATABASE platform"
+psql -h 127.0.0.1 -p 5433 -U platform -d platform -f db/init/01-grafana-readonly.sql   # 마이그레이션보다 먼저 (CI 와 같은 순서)
+# dbmate 는 CI 와 같은 곳에서 받는다 (.github/workflows) — sslmode=disable 을 붙인다
+DATABASE_URL="postgres://platform:platform@127.0.0.1:5433/platform?sslmode=disable" dbmate --migrations-dir db/migrations --no-dump-schema up
+export DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/platform
+```
+
+- 죽었으면(`ECONNREFUSED`) `postmaster.pid` 를 지우고 셋째 줄만 다시 친다 — 데이터는 남아 있다
+- 화면 확인용으로 넣은 서비스 · 계정은 **검사 전에 치운다** — 「지금 살아 있는 것」을 훑는 검사가 다른 세상에서 시작한다(CLAUDE.md §3 fixture)
+- `pkill -f <무늬>` 는 쓰지 않는다 — 명령 줄에 그 무늬가 든 자기 셸까지 죽인다(2026-09-30). `pgrep -af` 로 번호를 보고 `kill <번호>`
+

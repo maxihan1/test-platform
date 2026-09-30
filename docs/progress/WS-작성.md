@@ -511,3 +511,15 @@
 - 미완: 실제 서버 한 바퀴(작성 → 끝내기에 셈 → 카드 · 패널에 보임) · 브라우저 눈 확인(밝게 · 어둡게) · ③ 남은 요구로 이어 작성
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 셈은 **실행마다** 선다 — 화면은 `AuthoringDetail.tsx` 의 `작성`(머지 뺀 최신 작성 실행) 것을 보인다. 저장된 `later` · `missing` 은 사본이다 — ③ 은 다시 계산할지 먼저 정한다(WORKSTREAMS ② 항목 「③ 에 넘길 것」). `authoring-run.ts` 298줄
+
+## 2026-09-30 — 작성 누락 막기 ③ 남은 요구로 이어 작성 (PR #121 · REV-F3-12)
+
+- 완료: `POST … { kind: 'AUTHOR', continueFrom }` — 원본 입력 자료(행 · 파일, 하드링크 우선) 복사 · 대조 설정 물려받기 · 409 `NOT_MERGED` · `ALREADY_CONTINUED` · `NOTHING_LEFT` · 칸 `continue_from`(폐기 안 된 것 하나) · 상세 `canContinue` · `continuedBy` · `continueFrom`(`apps/admin/src/authoring/continue.ts`)
+- 완료: 에이전트가 기준 SHA 의 main 표 · 케이스로 남은 번호를 세고 `--- 이어 작성 ---` 절 · `continue.json` · 막히면 자식 전 FAILED(`scripts/authoring-continue.ts` · `authoring-ledger-io.ts`) · 자식 절차 `tpx-author/references/continue.md`
+- 완료: **게이트 1 — main 표에 이미 있던 「사람이 뺌」은 에이전트 대조도 인정**(모든 작성 실행 · 원장 사본 `사람이뺌` 으로 자식 관문 0 도 같게)
+- 완료: 화면 — 반영 끝에 「남은 요구로 이어 작성」 · 못 누르는 까닭 · GitHub 직접 병합 안내 · 「#N의 남은 요구」 · 상세 번호마다 새로 그리기(`main.tsx` key)
+- 완료: 독립 검사 반영 — 뿌리 잠금 안에서 잠금 연결로만 묻기(풀 교착) · 실패 정리가 원래 오류를 덮지 않게
+- 미완: MKT(5873) 실제 한 바퀴 — 반영을 한 번 누르고(GitHub 에서 이미 병합) 이어 작성 → 124개 중 몇 개를 덮는지(REV-F4-03 과 같이) · `continue_from` 대시보드 칸 권한(후속)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 다시 작성 · 머지 · 보류 통로는 아직 `뿌리잠그고` 안에서 풀 연결을 쓴다(교착 여지 — LEARNINGS 2026-09-30). 원본을 API 로 다시 작성하면 이어 작성과 겹칠 수 있다(명세 「남는 한계」 ⓪). 기준 표는 케이스 파일마다 `git show` 한 번이다
+
