@@ -1,9 +1,9 @@
 // 작성 에이전트의 순수 판정 — 과금 안전핀·자식 인자·줄 프롬프트·서버 응답 판정. 껍데기(authoring-agent.ts)가 부른다
 // authoring-agent.ts 가 478줄이 되어 나눴다 (2026-09-23)
 
-import { type 권한설정, type 읽을자료, type 자료, 셸허용됐나, 자료목록글, 자료출처 } from './authoring-assets.js';
+import { type 권한설정, type 자료, 셸허용됐나 } from './authoring-assets.js';
 import { type 모델, 모델인자 } from './authoring-model.js';
-import { type 대상, 역방향절 } from './authoring-reverse.js';
+import { type 대상 } from './authoring-reverse.js';
 
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
 export interface 설정 extends 권한설정 {
@@ -144,71 +144,8 @@ export interface 집은것 {
   resumeFrom?: number | null;
 }
 
-/**
- * 줄에서 집은 작성 요청으로 자식 세션에게 시킬 일.
- *
- * **기획서는 맥이 받아 둔 자료 목록으로 넘긴다** (도메인/작성 §7 「자료」). 경로는 서버의 것이 아니라
- * 맥의 임시 폴더다 — 맥은 다른 기계라 서버의 경로를 못 읽는다.
- * 자료가 없는 옛 행만 본문(`specText`)을 그대로 싣는다.
- */
-export function 줄프롬프트(
-  것: 집은것,
-  서비스: string,
-  계획: 읽을자료[],
-  대상?: { 폴더: string; 서버들: { env: string; baseUrl: string }[] },
-  역방향?: { 화면만: boolean; 산출물폴더: string },
-  이어하기?: { 번호: number; 이유: string | null; 까닭: string | null },
-): string {
-  return [
-    `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
-    // tpx-author 가 입력으로 기대한다. 테스트 폴더(서비스 설정의 testsDir — 2026-09-25 계약 변경 승인)와 대상 서버 모두 /api/auth/me 응답의 것이다
-    ...(대상 === undefined
-      ? []
-      : [
-          `- 테스트 폴더는 \`tests/${대상.폴더}\` 다.`,
-          '- 대상 서버:',
-          ...대상.서버들.map((s) => `  - ${s.env} — ${s.baseUrl}`),
-        ]),
-    '- tpx-author 스킬을 따라라. 다른 체인 스킬은 부르지 마라.',
-    '',
-    '이 실행에는 답할 사람이 없다. 그래서 이것을 지켜라.',
-    '',
-    '1. **AskUserQuestion 을 부르지 마라.** 요구사항 표를 파일로 쓰고 그대로 진행해라.',
-    '2. **git·gh 를 부르지 마라.** commit·push·PR 은 맥이 한다.',
-    '3. **Bash 의 run_in_background 를 쓰지 마라.** 모든 명령을 끝까지 기다려라.',
-    '4. **끝내기 전에 띄운 명령이 전부 끝났는지 확인해라.** 먼저 끝내면 맥이 멈춘다.',
-    '5. **마지막에 tpx-author 의 결과 요약을 찍어라.** 맥이 그것을 PR 본문에 싣는다.',
-    '',
-    '관문 넷(형식·표 대조·3회 연속·일부러 부수기)은 전부 돌려라.',
-    '',
-    // 화면만은 기획서가 없다 — 빈 기획서 절을 싣으면 자식이 「기획서가 비었다」로 멈춘다
-    ...(계획.length > 0 ? 자료목록글(계획) : 역방향?.화면만 === true ? [] : ['--- 기획서 ---', 것.specText ?? '']),
-    ...(역방향 === undefined ? [] : 역방향절({ ...역방향, 요청번호: 자료출처(것) })),
-    ...(이어하기 === undefined ? [] : 이어하기절(이어하기)),
-  ].join('\n');
-}
-
-/** 중단 이유를 자식에게 사람 말로. 화면 라벨과 같은 말이다 (web/authoringView 의 중단이유라벨) */
-const 이유말: Record<string, string> = {
-  USER: '사용자가 멈춤',
-  TIMEOUT: '시간초과',
-  LIMIT: '구독 한도',
-  AGENT_RESTART: '에이전트 재시작',
-  AGENT_LOST: '에이전트 응답 없음',
-  CRASH: '작성 중 끊김',
-  REJECTED: '올리기 거절',
-};
-
-/** 이어받은 실행에 붙는 절 (도메인/작성 §7 「이어하기」). 무엇을 어떻게 이어가는지는 스킬 참고 파일이 정본이다 */
-function 이어하기절(이어하기: { 번호: number; 이유: string | null; 까닭: string | null }): string[] {
-  const 이유 = 이어하기.이유 === null ? '기록 없음' : (이유말[이어하기.이유] ?? 이어하기.이유);
-  return [
-    '',
-    '--- 이어하기 ---',
-    `이 작업방은 작성 요청 ${이어하기.번호} 이 멈춘 자리다. 멈춘 까닭: ${이유}${이어하기.까닭 === null ? '' : ` — ${이어하기.까닭}`}`,
-    '`.claude/skills/tpx-author/references/resume.md` 를 먼저 읽고 따라라. 이미 있는 표·케이스·차이 파일을 버리고 처음부터 하지 마라.',
-  ];
-}
+// 줄 프롬프트는 authoring-prompt.ts 로 뗐다 (2026-09-30 — 300줄). 부르는 쪽을 안 바꾸려고 다시 내보낸다
+export { 줄프롬프트 } from './authoring-prompt.js';
 
 /** 머지 요청을 실제로 칠 수 있나. 올릴 PR 주소가 없으면 할 일이 없다 */
 export function 머지할수있나(것: { kind: 집은것['kind']; prUrl?: string | null }): boolean {
