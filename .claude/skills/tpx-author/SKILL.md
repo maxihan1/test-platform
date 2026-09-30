@@ -1,6 +1,6 @@
 ---
 name: tpx-author
-description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author 컨테이너가 기본, 맥은 대체)의 자식 세션이 부른다. 사람이 직접 부르지 않는다. 에이전트가 넘긴 자료 목록으로 요구사항 표와 테스트케이스를 만들고 관문 넷을 통과시킨 뒤 결과 요약만 찍는다. git·PR·병합은 에이전트 스크립트가 한다.
+description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author 컨테이너가 기본, 맥은 대체)의 자식 세션이 부른다. 사람이 직접 부르지 않는다. 에이전트가 넘긴 자료 목록으로 요구사항 표와 테스트케이스를 만들고 관문(원장 대조와 넷)을 통과시킨 뒤 결과 요약만 찍는다. git·PR·병합은 에이전트 스크립트가 한다.
 ---
 
 # /tpx-author
@@ -24,6 +24,8 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
   실제 화면과 대조 · 화면만 · 계정 다루기 · 훑기 허용 목록 · `diffs.json` · 역기획서 원고가 거기 있다 (2026-09-26)
 - **이어하기 절**(`--- 이어하기 ---`) — 있으면 **`references/resume.md` 를 Read 로 열고 그대로 따른다.**
   앞 실행이 멈춘 작업방이다. 남은 표·케이스를 버리지 않고 남은 것만 한다 (2026-09-28)
+- **원장 절**(`--- 원장 ---`) — 에이전트가 자료 글자본에서 뽑은 요구 번호 목록의 사본 경로 · 수 · 관문 0 명령.
+  글자본이 없으면 `원장 없음 — <까닭>` 한 줄이다 (2026-09-30)
 
 ## 선행 읽기
 
@@ -38,7 +40,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 - **git 명령 전부** — commit·branch·checkout·stash·push 포함
 - **gh 명령 전부** — PR 만들기·ready·병합
 - **`/tpx` 와 다른 체인 스킬 호출**
-- **Bash 의 `run_in_background`** — 모든 명령은 앞에서 끝까지 기다린다
+- **Bash 의 `run_in_background`** — 모든 명령은 앞에서 끝까지 기다린다. **Agent 도구도 같다** — 서브에이전트는 앞에서 띄우고 끝날 때까지 기다린다
 - **AskUserQuestion** — 답할 사람이 없다. 사람은 PR 본문에서 표를 본다
 - **작업 폴더 밖 파일 수정** — 바꾸는 것은 `tests/<폴더>/*.spec.ts` 와 `docs/cases/<접두사>.md` 뿐이다.
   다른 파일이 바뀌면 에이전트 스크립트가 push 를 거부한다
@@ -54,18 +56,21 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 
 1. **§1 입력 확인** — `references/1-input.md`. 「입력은 자료 목록이다」대로 자료를 전부 읽는다
 2. **§2 요구사항 표** — `references/2-requirements.md`. `docs/cases/<접두사>.md` 에 쓴다. **중간에 멈추지 않는다**
+   프롬프트의 원장 절을 먼저 읽고 사본을 연다. 원장의 번호마다 케이스 줄 또는 「제외」 한 줄을 둔다(같은 파일 「원장」). 표를 다 쓰면 관문 0 을 `--tests` 없이 한 번 돌려 빠짐을 일찍 본다
    쓰기 전에 `references/korean-ai-tells.md` 를 읽는다 — 표 문장부터 AI 티 없이 쓴다. 케이스 코드의 한글(절차 제목 · 칸 설명 · 판정 문장)도 같다
 3. **§3 내부 게이트는 건너뛴다** — 표를 그대로 확정한다. 게이트가 물었을 것
    (합친 줄의 `name` · 자료 어긋남으로 `판정 불가` 가 된 줄)은 **결과 요약에 싣는다.** 사람이 PR 본문에서 본다.
    자료 어긋남 줄은 어긋난 값을 기본값 없는 칸으로 비운 `held: '판정 불가 — 자료 어긋남: <둘>'` 케이스로 쓴다 — 사람이 작성 화면에서 고른다
    무엇을 실을지는 `references/3-gate.md` 를 읽고 정한다
-4. **§4 selector 확정 → §5 케이스 작성** — `references/4-selector.md` → `references/5-writing.md`
-5. **§6 관문 넷** — `references/6-gates.md`. 형식 · 표 대조 · 3회 실행 · 일부러 부수기
+4. **§4 selector 확정 → §5 케이스 작성** — `references/4-selector.md` → `references/5-writing.md`.
+   **화면 묶음이 둘 이상이고 케이스가 8건 이상이면** 이 스킬의 `references/fanout.md` 대로 서브에이전트에게 나눠 맡긴다 (2026-09-30)
+5. **§6 관문** — `references/6-gates.md`. 원장 대조(관문 0) · 형식 · 표 대조 · 3회 실행 · 일부러 부수기
 6. **§7 표 되채우기** — `references/7-finish.md`. 1~3 만. **4 커밋은 하지 않는다** (에이전트 스크립트가 한다)
 
-관문 1·3 명령은 `tpx-cases` §6 과 같다. 파이프로 넘기지 않는다.
+관문 0·1·3 명령은 `tpx-cases` §6 과 같다. 파이프로 넘기지 않는다. 관문 0 의 원장 사본 경로는 원장 절에 있다.
 
 ```bash
+npm run check:ledger -- <원장 사본> docs/cases/<접두사>.md --tests tests/<폴더> --agent > /tmp/cl.log 2>&1; echo "EXIT=$?"
 npm run typecheck   > /tmp/tc.log 2>&1; echo "EXIT=$?"
 npm run check:tests > /tmp/ct.log 2>&1; echo "EXIT=$?"
 npx playwright test tests/<폴더> --project=desktop --repeat-each=3 --reporter=line > /tmp/pw.log 2>&1; echo "EXIT=$?"
@@ -80,6 +85,9 @@ npx playwright test tests/<폴더> --project=desktop --repeat-each=3 --reporter=
 - **역방향인데 로그인 직전 출처가 대상 서버와 다르다** — 입력하지 않고 그 화면을 멈춘다 (`references/reverse.md` §2)
 - **판정 불가 · 보류 · 모킹 필요로 빼려 한다** — 먼저 `tpx-cases` §5 「보류 · 모킹 필요로 빼기 전에」 표를 위에서부터 대 본다.
   화면 크기 · 늦춘 응답 · 가짜 응답 · 권한 · 계정 · 만들고 지우기로 풀리면 정식 케이스다. 결과 요약에 모킹한 케이스를 적는다
+- **관문 0 이 빨강** — 로그의 `빠짐:` · `형식 오류:` 대로 **표를 고친다.** 케이스를 만들거나, §5 「빼기 전에」 표로도 안 풀리면 맞는 종류로 「제외」 한 줄.
+  **통과시키려고 `다음 요청` 을 적지 않는다** — 5877 이 자유 문장으로 한 일이 그것이다. 에이전트가 종류별 개수를 PR 본문 머리에 싣고 사람이 본다.
+  `사람이 뺌` 은 자식이 못 쓴다. 관문 0 을 넘기지 못한 채 끝내면 올리기에서 거절된다
 - **케이스가 같은 이유로 3회 빨강** — `tpx-cases` §6 종료 조건대로 그 케이스에 `held: '보류 — <에러 첫 줄>'` 을 달고 나머지는 계속 간다
 
 ## 끝내기 전에
@@ -96,6 +104,8 @@ npx playwright test tests/<폴더> --project=desktop --repeat-each=3 --reporter=
 
 ```
 요구사항 N줄 → 케이스 M건 · 합친 것 J건 · 보류 K건(케이스로 씀) · 표만 L건
+원장: <관문 0 로그의 `원장:` 줄 그대로 / 원장 없음 — <까닭>>
+관문 0 원장 대조: EXIT=<값>
 관문 1 형식: EXIT=<값>
 관문 2 표 대조: <일치 / 어긋난 줄>
 관문 3 3회 실행: <pw.log 의 마지막 요약 줄 그대로 — 예: 9 passed> · EXIT=<값>
@@ -107,3 +117,4 @@ npx playwright test tests/<폴더> --project=desktop --repeat-each=3 --reporter=
 ```
 
 멈춘 경우에도 이 모양으로 찍고, 못 간 관문은 `안 돌림(<사유>)` 으로 적는다.
+**`원장:` 줄은 참고용이다** — PR 본문 머리의 셈은 에이전트가 메모리의 원장과 올릴 트리로 직접 센다. 자식의 요약을 안 믿는다 (2026-09-30).
