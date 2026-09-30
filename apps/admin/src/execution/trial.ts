@@ -69,6 +69,8 @@ export function 시작한다(사람: string, 실행: () => Promise<ExecuteRespon
   const 지금 = Date.now();
   치운다(지금);
   if ([...저장소.values()].some((항) => 항.사람 === 사람 && 항.결과 === null)) throw new TrialBusyError();
+  // 50건이 전부 돌고 있으면 버릴 것이 없다. 상한을 넘겨 받지 않고 거절한다
+  if (저장소.size >= 상한) throw new TrialBusyError();
 
   const id = randomUUID();
   const 이것: 항목 = { 사람, 시작: 지금, 결과: null };

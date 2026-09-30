@@ -7,6 +7,7 @@ import { z } from 'zod';
 
 import { caseSchemas } from './paramSets.js';
 import { 러너에보낸다, httpTimeoutMs } from './runner.js';
+import { 저장값을채운다 } from './savedInput.js';
 import { 시작한다, 읽는다, TrialBusyError } from './trial.js';
 import { validate } from './validate.js';
 
@@ -38,6 +39,23 @@ function 웹주소인가(값: string): boolean {
   }
 }
 
+async function 저장값으로채운다(
+  tcId: string,
+  platform: 'desktop' | 'mobile',
+  params: Record<string, unknown>,
+  expected: Record<string, unknown>,
+  schemas: { param_schema: unknown; expected_schema: unknown },
+): Promise<{ params: Record<string, unknown>; expected: Record<string, unknown> }> {
+  const { pool } = await import('../db/index.js');
+  const client = await pool.connect();
+  try {
+    const [채움] = await 저장값을채운다(client, [{ tcId, platforms: [platform], params, expected }], new Map([[tcId, schemas]]));
+    return { params: 채움!.params, expected: 채움!.expected };
+  } finally {
+    client.release();
+  }
+}
+
 async function 러너에서돌린다(주소: string, 요청: ExecuteRequest): Promise<ExecuteResponse> {
   const res = await 러너에보낸다('/execute', 요청, httpTimeoutMs(요청.timeoutMs), 주소);
   if (res.status < 200 || res.status >= 300) throw new Error(`러너가 ${res.status}로 거절했다: ${JSON.stringify(res.json)}`);
@@ -57,7 +75,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
 
     const parsed = body.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
-    const { platform, baseUrl, params, expected } = parsed.data;
+    const { platform, baseUrl } = parsed.data;
     if (!웹주소인가(baseUrl)) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 'baseUrl 은 http:// 또는 https:// 주소여야 합니다' });
     }
@@ -69,6 +87,12 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     if (!행.platforms.includes(platform)) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `${tcId} 는 ${platform} 환경을 지원하지 않습니다` });
     }
+
+    // 진짜 실행과 같은 길로 요청에 없는 칸을 저장값으로 채운다 — 저장된 비밀번호는 화면이 모른다(「입력됨」)
+    const { params, expected } = await 저장값으로채운다(tcId, platform, parsed.data.params, parsed.data.expected, {
+      param_schema: schemas.paramSchema,
+      expected_schema: schemas.expectedSchema,
+    });
 
     const violations = [...validate(schemas.paramSchema, params), ...validate(schemas.expectedSchema, expected)];
     if (violations.length > 0) {

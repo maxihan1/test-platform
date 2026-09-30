@@ -86,6 +86,11 @@ describe('테스트 실행 메모리 저장소', () => {
     expect(읽는다('새사람', 새것)).toEqual({ status: 'RUNNING' });
   });
 
+  it('50건이 전부 돌고 있으면 51번째는 TRIAL_BUSY 로 거절한다', () => {
+    for (let i = 0; i < 50; i += 1) 시작한다(`u${i}`, () => 미룬것().promise, 명세);
+    expect(() => 시작한다('새사람', () => 미룬것().promise, 명세)).toThrow(TrialBusyError);
+  });
+
   it('24시간 지난 것은 새로 시작할 때 치운다', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-30T00:00:00Z'));

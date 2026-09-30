@@ -113,6 +113,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
   });
 
   afterAll(async () => {
+    await q('DELETE FROM case_input WHERE tc_id = ANY($1)', [[케이스, 데스크톱만]]);
     await q('DELETE FROM user_service WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [[케이스, 데스크톱만]]);
@@ -181,6 +182,23 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     expect(본문.error).toBe('INVALID_PARAMS');
     expect(본문.violations.map((v) => v.path)).toEqual(['count']);
     expect(받은요청).toEqual([]);
+  });
+
+  it('요청에 없는 칸은 케이스 저장값으로 채워 러너에 보내고 결과에는 비밀값이 없다', async () => {
+    await q(
+      `INSERT INTO case_input (tc_id, params, expected, saved_by) VALUES ($1, $2, '{}', 'xtr-writer')
+       ON CONFLICT (tc_id) DO UPDATE SET params = EXCLUDED.params`,
+      [케이스, JSON.stringify({ loginId: '저장한아이디', password: '저장한비번!' })],
+    );
+    try {
+      const res = await 시작({ ...정상, params: {} });
+      expect(res.statusCode).toBe(202);
+      const 끝 = await 끝날때까지(res.json<{ trialId: string }>().trialId);
+      expect(받은요청[0]!.params).toMatchObject({ loginId: '저장한아이디', password: '저장한비번!' });
+      expect(JSON.stringify(끝)).not.toContain('저장한비번!');
+    } finally {
+      await q('DELETE FROM case_input WHERE tc_id = $1', [케이스]);
+    }
   });
 
   it('통과하면 202 와 trialId 를 주고 러너에 케이스 1건을 보낸다', async () => {
