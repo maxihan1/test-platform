@@ -10,7 +10,6 @@ export const spec = defineCase({
     checkedAfterFirst: z.number().describe('「전체 동의하기」를 한 번 누른 뒤 체크된 체크박스 수').default(4),
     checkedAfterSecond: z.number().describe('「전체 동의하기」를 두 번 누른 뒤 체크된 체크박스 수').default(0),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

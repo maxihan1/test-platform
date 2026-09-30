@@ -9,7 +9,6 @@ export const spec = defineCase({
   expected: z.object({
     columns: z.string().describe('표 머리 이름을 " | " 로 이은 것').default('과정 구분 | 세부 업무 | 1월 | 2월 | 3월 | 4월 | 5월 | 6월 | 7월 | 8월 | 9월 | 10월 | 11월 | 12월'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

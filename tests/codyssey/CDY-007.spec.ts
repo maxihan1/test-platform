@@ -12,7 +12,6 @@ export const spec = defineCase({
     checkboxCount: z.number().describe('체크박스 수').default(4),
     completeDisabled: z.boolean().describe('「교육과정 알림신청 완료」 버튼이 눌리지 않을지 여부').default(true),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

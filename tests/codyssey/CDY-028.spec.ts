@@ -10,7 +10,6 @@ export const spec = defineCase({
     title: z.string().describe('화면 제목').default('개인정보처리방침'),
     firstArticle: z.string().describe('첫 조항 제목').default('제1조 (개인정보의 처리 목적, 항목, 보유기간 및 수집방법)'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

@@ -13,7 +13,6 @@ export const spec = defineCase({
     title: z.string().describe('화면 제목').default('내 정보'),
     buttons: z.string().describe('보일 버튼 이름을 쉼표로 이은 것').default('회원탈퇴, 홈으로, 비밀번호 변경, 내정보 변경하기'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, params, expected }) => {

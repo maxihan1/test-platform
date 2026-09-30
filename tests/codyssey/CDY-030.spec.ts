@@ -11,7 +11,6 @@ export const spec = defineCase({
     buttons: z.string().describe('보일 버튼 이름을 쉼표로 이은 것').default('이전, 홈으로'),
     homePath: z.string().describe('「홈으로」를 누른 뒤 주소 경로').default('/'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

@@ -9,7 +9,6 @@ export const spec = defineCase({
   expected: z.object({
     headings: z.string().describe('제목과 소제목을 " | " 로 이은 것').default('코디세이 세계관 | BRAND | IDENTITY | STORY'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

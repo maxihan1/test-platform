@@ -9,7 +9,6 @@ export const spec = defineCase({
   expected: z.object({
     headings: z.string().describe('제목과 소제목을 " | " 로 이은 것').default('교육 콘텐츠 알아보기 | 7대 도메인 분야 | AI·SW 기초 학습 | AI·SW 심화 학습 | AI·SW 응용 학습'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

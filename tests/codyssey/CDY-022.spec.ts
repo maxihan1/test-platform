@@ -11,7 +11,6 @@ export const spec = defineCase({
     secondPageCount: z.number().describe('둘째 쪽 질문 수').default(10),
     titleChanged: z.boolean().describe('첫 질문 제목이 바뀔지 여부').default(true),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

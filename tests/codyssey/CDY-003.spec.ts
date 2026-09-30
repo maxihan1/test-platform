@@ -12,7 +12,6 @@ export const spec = defineCase({
     signupVisible: z.boolean().describe('「회원가입」 링크가 보일지 여부').default(true),
     loginVisible: z.boolean().describe('「로그인」 링크가 보일지 여부').default(true),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

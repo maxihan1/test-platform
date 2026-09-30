@@ -12,7 +12,6 @@ export const spec = defineCase({
     hasResult: z.boolean().describe('결과가 한 건 이상일지 여부').default(true),
     allContain: z.boolean().describe('모든 결과 제목에 검색어가 들어 있을지 여부').default(true),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, params, expected }) => {

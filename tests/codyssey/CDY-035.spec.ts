@@ -11,7 +11,6 @@ export const spec = defineCase({
   expected: z.object({
     message: z.string().describe('결과가 없을 때 문구').default('검색결과가 없습니다.'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, params, expected }) => {

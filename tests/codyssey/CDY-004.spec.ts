@@ -12,7 +12,6 @@ export const spec = defineCase({
     guideSubMenus: z.string().describe('「모집안내」 하위 메뉴 이름을 쉼표로 이은 것').default('AI 올인원, AI 네이티브'),
     boardSubMenus: z.string().describe('「알림마당」 하위 메뉴 이름을 쉼표로 이은 것').default('공지사항, 코디세이 사람들, FAQ'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

@@ -11,7 +11,6 @@ export const spec = defineCase({
     allHaveClose: z.boolean().describe('모든 팝업에 「닫기」 버튼이 있을지 여부').default(true),
     allHaveCheckbox: z.boolean().describe('모든 팝업에 「오늘 하루 다시보지 않기」 체크박스가 있을지 여부').default(true),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

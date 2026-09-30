@@ -12,7 +12,6 @@ export const spec = defineCase({
     message: z.string().describe('결과가 없을 때 문구').default('검색 결과가 없습니다.'),
     titleCount: z.number().describe('결과가 없을 때 질문 제목 수').default(0),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, params, expected }) => {
