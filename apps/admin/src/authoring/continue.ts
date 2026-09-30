@@ -1,9 +1,12 @@
 // 남은 요구로 이어 작성 — 원본 뿌리의 상태 판정 · 상세 칸 (SPEC 도메인/작성 §3.6 「★ 원장」 「남은 요구로 이어 작성」 · §7)
 // 반영 끝난 작성 요청의 「다음 요청」 · 「빠짐」 번호를 새 작성 요청(새 번호 · 새 PR)이 맡는다
 
+import type { FastifyReply } from 'fastify';
+
 import { 행커버리지 } from './coverage.js';
-import { 최신실행 } from './history.js';
-import { db, 한건 } from './store.js';
+import { 최신실행, 뿌리잠그고 } from './history.js';
+import { 역방향칸판정 } from './reverse.js';
+import { db, 한건, type 요청 } from './store.js';
 
 /**
  * 반영된 실행의 셈이 말하는 남은 요구. `모름` 은 셈이 없는 옛 요청이다 — 막지 않고 에이전트가 main 표로 다시 센다.
@@ -60,4 +63,42 @@ export function 막는까닭(상태: 이어작성상태): 'NOT_MERGED' | 'ALREAD
 export async function 이어작성상세(뿌리번호: number): Promise<{ canContinue: boolean; continuedBy: number | null }> {
   const 상태 = await 이어작성상태읽기(뿌리번호);
   return { canContinue: 막는까닭(상태) === null, continuedBy: 상태.이은것 };
+}
+
+/**
+ * 본문에 같이 오면 안 되는 칸. 자료 · 대조 설정은 원본 것을 물려받는다 — 재실행이 역방향 칸을 거절하는 것과 같은 코드다.
+ * 원본 확인보다 먼저 본다 — 모양이 틀린 요청에 DB 를 읽지 않는다
+ */
+export function 같이온칸(본문: Record<string, unknown>): 'BAD_FIGMA_URL' | 'BAD_ENV' | null {
+  const 피그마 = 본문.figma;
+  if (피그마 !== undefined && !(Array.isArray(피그마) && 피그마.length === 0)) return 'BAD_FIGMA_URL';
+  if (['compare', 'env', 'startUrl'].some((칸) => 본문[칸] !== undefined)) return 'BAD_ENV';
+  return null;
+}
+
+/**
+ * 원본(이미 서비스 경계를 본 행)에서 이어 작성 요청을 세운다. 병합 · 한 번만 · 남은 것 판정은 뿌리 잠금 안에서 —
+ * 판정과 넣기 사이에 다른 누름이나 원본의 다시 작성이 끼면 두 요청이 같은 남은 번호를 맡는다
+ */
+export async function 이어작성세우기(
+  reply: FastifyReply,
+  입력: { 서비스: number; 원본: 요청; 누가: string; 이름: string },
+): Promise<FastifyReply> {
+  const { 원본 } = 입력;
+  // 뿌리(작성 요청)만 받는다 — 화면은 rootId 를 보낸다. 실행 번호를 받아 주면 무엇을 물려받는지가 흐려진다
+  if (원본.kind !== 'AUTHOR' || 원본.status === 'DRAFT' || 원본.discardedAt !== null) {
+    return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${원본.kind} ${원본.status}` });
+  }
+  const 결과 = await 뿌리잠그고(원본.id, async (): Promise<{ code: number; error: string } | { id: number }> => {
+    const 까닭 = 막는까닭(await 이어작성상태읽기(원본.id));
+    if (까닭 !== null) return { code: 409, error: 까닭 };
+    // 대조 원본이면 같은 대상 서버 · 시작 주소를 물려받는다. 그 사이 계정이 빠졌을 수 있어 다시 판정한다 — 재실행과 같다
+    const 대조 = 원본.compare
+      ? await 역방향칸판정({ compare: true, env: 원본.env, startUrl: 원본.startUrl }, 입력.서비스)
+      : ({ compare: false } as const);
+    if ('error' in 대조) return { code: 400, error: 대조.error };
+    throw new Error('자료 복사는 할 일 5');
+  });
+  if ('error' in 결과) return reply.code(결과.code).send({ error: 결과.error });
+  return reply.code(201).send({ id: 결과.id });
 }

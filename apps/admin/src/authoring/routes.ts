@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
-import { 이어작성상세 } from './continue.js';
+import { 같이온칸, 이어작성상세, 이어작성세우기 } from './continue.js';
 import { 행커버리지 } from './coverage.js';
 import { 피그마주소정규화 } from './figma.js';
 import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
@@ -104,6 +104,15 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 부른 사람은 요청에 안 싣는다. 로그인한 세션에서 채운다 — 실행이 triggeredBy 를 그렇게 한다
       const 누가 = req.user?.username ?? '';
       const 이름 = req.user?.displayName ?? '';
+
+      // 남은 요구로 이어 작성 — 원본의 자료 · 대조 설정을 물려받는 새 작성 요청 (§3.6 「★ 원장」 「남은 요구로 이어 작성」)
+      if (kind === 'AUTHOR' && req.body?.continueFrom !== undefined) {
+        const 막힘 = 같이온칸(req.body);
+        if (막힘 !== null) return reply.code(400).send({ error: 막힘 });
+        const 원본 = await 원본확인(req.body.continueFrom, 서비스, reply);
+        if (원본 === null) return reply;
+        return 이어작성세우기(reply, { 서비스, 원본, 누가, 이름 });
+      }
 
       // 기획서는 본문이 아니라 자료로 온다. 행은 DRAFT 로 서고 파일은 뒤따라 올린다 (SPEC §7 「자료」)
       if (kind === 'AUTHOR') {
