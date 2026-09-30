@@ -167,6 +167,19 @@ export function useRunPick(옵션: {
     });
   }
 
+  /** 이 쪽에 보이는 줄을 전부 골랐으면 풀고, 아니면 전부 고른다. 다른 쪽에서 고른 것은 건드리지 않는다 */
+  function 모두뒤집기(줄들: CaseRow[]) {
+    set고른((전) => {
+      const 다음 = new Map(전);
+      const 전부 = 줄들.length > 0 && 줄들.every((row) => 전.has(row.tcId));
+      for (const row of 줄들) {
+        if (전부) 다음.delete(row.tcId);
+        else 다음.set(row.tcId, row);
+      }
+      return 다음;
+    });
+  }
+
   /** 서비스를 바꾸면 고른 것도 버린다. 남겨 두면 버튼이 「고른 2건」이라 말하고 사실이 아닌 이유를 보여준다 */
   function 비우기() {
     set고른(new Map());
@@ -195,6 +208,7 @@ export function useRunPick(옵션: {
     모으기,
     실행걸기,
     뒤집기,
+    모두뒤집기,
     비우기,
     닫기,
     사유지우기,

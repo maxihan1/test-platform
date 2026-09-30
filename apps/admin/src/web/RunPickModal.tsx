@@ -11,6 +11,7 @@ import { Modal } from './Modal.js';
 import { type 고친값표, type 글자표, 몇건, 실행항목 } from './pickRun.js';
 import { 넘었나, 상한 } from './runPlan.js';
 import { type Field, schemaToFields, toValues } from './schema.js';
+import { use여러건시험, 열주소칸, 시험배지 } from './RunPickTrial.js';
 import { PLATFORM_LABEL } from './ui.js';
 
 export interface 실행요청 {
@@ -98,6 +99,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
   const 건수 = 몇건(케이스들, Number(repeat) || 1);
   const 너무많나 = 넘었나(건수);
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
+  // 「▶ 테스트 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
+  const 시험 = use여러건시험({ 케이스들, 고친값, 대상주소: 주소, 알림: setNotice });
   /**
    * 한 줄이 넷을 겸한다 — 방금 누른 것에 대한 답 · 버튼을 죽인 이유 · **걸었다 거절당한 사유** · 건수 안내.
    *
@@ -171,6 +174,9 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
           </button>
           {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
           {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
+          <button className="btn ghost" onClick={시험.누름}>
+            {t('▶ 테스트 실행')}
+          </button>
           <button className="btn" onClick={실행} disabled={너무많나 || 거는중 === true}>
             {거는중 === true ? t('실행을 시작하는 중') : t('실행')}
           </button>
@@ -192,6 +198,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
         {주소 === null ? null : <span className="addr">{주소}</span>}
       </div>
 
+      <열주소칸 값={시험.열주소} 오류={시험.주소오류} onChange={시험.바꾸기} />
+
       {/* 고른 것이 왜 줄었는지. 제목의 건수만 보면 어디서 사라졌는지 아무 데도 안 적힌다 */}
       {안내 === undefined ? null : <div className="mnote">{안내}</div>}
 
@@ -209,6 +217,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
                 <span className="nm">{c.name}</span>
                 {/* 디바이스는 케이스가 선언한 것을 전부 쓴다. 여기서 고르지 않는다 (SPEC §8.10) */}
                 <span className="dev">{c.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ')}</span>
+                <시험배지 줄={시험.줄들[c.tcId]} />
               </div>
               {!값있나 || 칸 === undefined ? (
                 <p className="prow-none">{t('선언된 입력값이 없습니다. 그대로 실행됩니다')}</p>

@@ -73,7 +73,8 @@ async function 그리기(cases: (page: number) => Promise<Paged<CaseRow>> = 쪽�
   return { ...것, 스파이 };
 }
 
-const 고르기칸 = () => screen.getAllByRole('checkbox');
+const 고르기칸 = () => screen.getAllByRole('checkbox', { name: /고르기$/ });
+const 머리칸 = () => screen.getByRole('checkbox', { name: '이 쪽 전체 선택' }) as HTMLInputElement;
 const 실행버튼 = () => screen.getByRole('button', { name: /(전체|건) 실행$/ });
 // 모달의 버튼은 글자가 딱 '실행'이다. 목록 쪽은 앞에 '전체'·'선택한 N건'이 붙는다
 const 모달실행 = () => screen.getByRole('button', { name: '실행' });
@@ -187,6 +188,28 @@ describe('CaseList 여러 건 고르기', () => {
     expect(고르기칸()).toHaveLength(2);
     // ID 만 읽으면 화면을 안 보는 사람에게는 암호다
     expect(screen.getByRole('checkbox', { name: 'ZPK-001 ZPK-001 케이스 고르기' })).toBeTruthy();
+  });
+
+  it('머리의 체크박스가 이 쪽 케이스를 한 번에 고르고 다시 누르면 푼다', async () => {
+    await 그리기();
+    fireEvent.click(머리칸());
+    expect(고르기칸().every((칸) => (칸 as HTMLInputElement).checked)).toBe(true);
+    expect(실행버튼().textContent).toBe('선택한 2건 실행');
+
+    fireEvent.click(머리칸());
+    expect(고르기칸().some((칸) => (칸 as HTMLInputElement).checked)).toBe(false);
+    expect(실행버튼().textContent).toBe('전체 실행');
+  });
+
+  it('일부만 골랐으면 머리 체크박스가 일부 선택 상태이고 누르면 나머지까지 고른다', async () => {
+    await 그리기();
+    fireEvent.click(고르기칸()[0]!);
+    expect(머리칸().indeterminate).toBe(true);
+    expect(머리칸().checked).toBe(false);
+
+    fireEvent.click(머리칸());
+    expect(고르기칸().every((칸) => (칸 as HTMLInputElement).checked)).toBe(true);
+    expect(머리칸().indeterminate).toBe(false);
   });
 
   it('아무것도 안 고르면 버튼 글자가 전체 실행이다', async () => {

@@ -2393,6 +2393,30 @@ select:focus {
   color: var(--ink-faint);
 }
 
+/* 「테스트 실행」의 열 주소 칸과 케이스 줄마다 붙는 결과 (2026-09-30). 기록이 아니라 임시 결과라 판정 배지만 쓰고 색은 판정에서만 온다 */
+.trialurl input {
+  flex: 1;
+  min-width: 160px;
+  max-width: 360px;
+}
+
+.trial-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  justify-self: end;
+  text-align: right;
+}
+
+.trial-badge.dim {
+  color: var(--ink-faint);
+}
+
+.trial-badge.err {
+  color: var(--fail);
+}
+
 /* 고른 것 중 무엇이 왜 빠졌는지. 말풍선이 아니라 화면 줄이다 (DESIGN.md) */
 .mnote {
   font-size: 12.5px;
@@ -2513,6 +2537,17 @@ select:focus {
   background: var(--sheet-2);
   color: var(--ink);
   max-width: 136px;
+}
+
+/* 숫자·예/아니오 칸(`.narrow`)은 폼 화면에서 120px 고정이다. 줄에서는 라벨 열(84px)을 뺀 자리가 97px 라
+   그대로 두면 옆 「마지막 결과」 칸을 23px 덮었다 (2026-09-30 지적). 남는 자리에 맞춰 줄어들게 한다 */
+.pcell .field input.narrow,
+.pcell .field select.narrow {
+  width: 100%;
+}
+
+.pcell .field > div {
+  min-width: 0;
 }
 
 .pcell .field input:hover,

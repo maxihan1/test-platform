@@ -115,12 +115,27 @@ export function 조건칩들({
  *
  * `<table>` 이 아니라 격자라서 `role` 로 칸 이름을 읽히게 한다.
  */
-export function 표머리() {
+export function 표머리({ 고름상태, on모두고르기 }: { 고름상태?: 'none' | 'some' | 'all'; on모두고르기?: () => void } = {}) {
   const t = use말();
   return (
     <div className="rowhead" role="row">
       <span aria-hidden="true" />
-      <span aria-hidden="true" />
+      {/* 이 쪽에 보이는 케이스를 한 번에 고르고 푼다. 「전체 실행」은 이미 모든 쪽이라 여기는 보이는 쪽만이다 (2026-09-30) */}
+      {고름상태 === undefined || on모두고르기 === undefined ? (
+        <span aria-hidden="true" />
+      ) : (
+        <label className="pick">
+          <input
+            type="checkbox"
+            aria-label={t('이 쪽 전체 선택')}
+            checked={고름상태 === 'all'}
+            ref={(el) => {
+              if (el !== null) el.indeterminate = 고름상태 === 'some';
+            }}
+            onChange={on모두고르기}
+          />
+        </label>
+      )}
       {/* 두 언어가 같은 글자라 표를 안 탄다 */}
       <span role="columnheader">TC ID</span>
       <span role="columnheader">{t('케이스명')}</span>
