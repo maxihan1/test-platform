@@ -2,7 +2,7 @@
 // 값은 전부 글자로 들고 있다가 보낼 때 schema.ts의 toValues가 명세 타입으로 되돌린다
 
 import { use말 } from './i18n.js';
-import { type Field, initialText } from './schema.js';
+import { type Field, initialText, 짧은이름들 } from './schema.js';
 
 interface Props {
   /** 같은 이름의 칸이 입력값과 기대결과에 동시에 있을 수 있다. id가 겹치면 라벨이 엉뚱한 칸을 가리킨다 */
@@ -11,6 +11,8 @@ interface Props {
   text: Record<string, string>;
   errors: Record<string, string>;
   onChange: (key: string, value: string) => void;
+  /** 목록 줄 안이다. 라벨이 좁아 공통 앞부분을 뗀 짧은 이름을 쓴다. 상세·실행 설정은 전체 이름 그대로 */
+  줄?: boolean;
 }
 
 // 스키마는 참·거짓만 알려 준다. 화면에는 코드 낱말 대신 사람이 읽는 두 낱말을 쓴다 (DESIGN.md)
@@ -32,8 +34,9 @@ function 값글자(value: unknown, secret: boolean, t: (키: string) => string):
   return String(value);
 }
 
-export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
+export function Form({ idPrefix, fields, text, errors, onChange, 줄 = false }: Props) {
   const t = use말();
+  const 이름표 = 줄 ? 짧은이름들(fields) : null;
 
   if (fields.length === 0) {
     return <p className="hint">{t('이 케이스에는 입력값이 없습니다.')}</p>;
@@ -56,8 +59,9 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
 
         return (
           <div className="field" key={field.key}>
-            <label htmlFor={id}>
-              {field.label} {field.optional ? <span className="opt">{t('선택')}</span> : null}
+            {/* 줄에서는 이름을 줄이므로 전체 설명과 코드의 칸 이름은 마우스를 올려 본다 */}
+            <label htmlFor={id} title={`${field.label} · ${field.key}`}>
+              {이름표?.[field.key] ?? field.label} {field.optional ? <span className="opt">{t('선택')}</span> : null}
             </label>
             <div>
               {field.kind === 'enum' ? (
@@ -90,6 +94,10 @@ export function Form({ idPrefix, fields, text, errors, onChange }: Props) {
                   id={id}
                   className={field.kind === 'number' ? 'narrow' : undefined}
                   value={value}
+                  // 저장된 비밀값은 서버만 안다. 칸이 비어 보여도 「들어 있다」를 칸 안에서 알린다 (줄은 기본값 줄을 감춘다)
+                  placeholder={field.savedSecret === true && value === '' ? t('입력됨') : undefined}
+                  // 칸이 좁아 값이 잘린다. 비밀칸은 값을 다시 내보이지 않는다
+                  title={field.secret || value === '' ? undefined : value}
                   onChange={(e) => onChange(field.key, e.target.value)}
                 />
               )}

@@ -244,4 +244,57 @@ describe('Form', () => {
     const 묶음 = 칸찾기(container, '이름').closest('.field');
     expect(묶음?.lastElementChild).toBe(사유);
   });
+  it('저장된 비밀값이고 칸이 비면 입력 칸에 「입력됨」 안내가 있고 값은 비어 있다', () => {
+    const fields = schemaToFields(
+      { type: 'object', properties: { password: { type: 'string', description: '비밀번호', secret: true } } },
+      {},
+      ['password'],
+    );
+    const { container } = 그리기({ fields, text: { password: '' } });
+    const 칸 = 칸찾기(container, '비밀번호') as HTMLInputElement;
+
+    expect(칸.placeholder).toBe('입력됨');
+    expect(칸.value).toBe('');
+  });
+
+  it('저장 안 된 비밀값은 안내가 없다', () => {
+    const { container } = 그리기();
+
+    expect((칸찾기(container, '토큰') as HTMLInputElement).placeholder).toBe('');
+  });
+
+  it('라벨 title 은 설명과 칸 이름을 함께 준다', () => {
+    const { container } = 그리기();
+
+    expect(라벨찾기(container, '이름').title).toBe('이름 · name');
+  });
+
+  it('입력 칸 title 은 현재 값 전체이고 비밀 칸에는 없다', () => {
+    const { container } = 그리기({ text: { name: '아주 길고 긴 이름 값', apiToken: 'sekret' } });
+
+    expect((칸찾기(container, '이름') as HTMLInputElement).title).toBe('아주 길고 긴 이름 값');
+    expect((칸찾기(container, '토큰') as HTMLInputElement).title).toBe('');
+  });
+
+  it('줄로 그리면 공통 앞부분을 뗀 짧은 이름을 보이고 title 은 전체 이름이다', () => {
+    const fields: Field[] = [
+      { key: 'loginId', label: '테스트 회원 아이디', kind: 'text', required: true, optional: false, secret: false },
+      { key: 'password', label: '테스트 회원 비밀번호', kind: 'text', required: true, optional: false, secret: true },
+    ];
+    const { container } = 그리기({ fields, 줄: true });
+
+    const 라벨 = 라벨찾기(container, '아이디');
+    expect(라벨.textContent?.trim()).toBe('아이디');
+    expect(라벨.title).toBe('테스트 회원 아이디 · loginId');
+  });
+
+  it('줄이 아니면 전체 이름 그대로다', () => {
+    const fields: Field[] = [
+      { key: 'loginId', label: '테스트 회원 아이디', kind: 'text', required: true, optional: false, secret: false },
+      { key: 'password', label: '테스트 회원 비밀번호', kind: 'text', required: true, optional: false, secret: true },
+    ];
+    const { container } = 그리기({ fields });
+
+    expect(라벨찾기(container, '테스트 회원 아이디').textContent?.trim()).toBe('테스트 회원 아이디');
+  });
 });

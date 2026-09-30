@@ -70,6 +70,12 @@ services:
       AUTHORING_AGENT_USER: "${AUTHORING_AGENT_USER:-}"
       # /grafana/ 아래 요청을 넘겨줄 곳. grafana 는 바깥 포트가 없어 dashboard 망 안의 이름으로 닿는다 (SPEC §9.2)
       GRAFANA_URL: "${GRAFANA_URL:-http://grafana:3000}"
+      # 케이스 「테스트 실행」이 브라우저 창을 띄울 러너 주소. 비면 테스트 실행이 꺼진다 — 켜는 법은 docs/SETUP.md 「내 컴퓨터 러너」
+      LOCAL_RUNNER_URL: "${LOCAL_RUNNER_URL:-}"
+    # 컨테이너에서 호스트(내 컴퓨터)의 러너에 닿는 이름. 맥 Docker Desktop 에서만 127.0.0.1 전용 러너에 닿는 것을 확인했다 —
+    # 리눅스는 이 줄로 이름은 풀려도 브리지 주소라 안 닿을 수 있다 (docs/SETUP.md 「내 컴퓨터 러너」)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./tests:/tests:ro      # 스캔과 실패 지점 코드 발췌가 소스를 읽는다
       - artifacts:/artifacts   # 스크린샷 서빙, 증적 문서 저장

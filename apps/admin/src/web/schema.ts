@@ -97,6 +97,24 @@ export function schemaToFields(
 }
 
 /**
+ * 줄에 같이 보이는 칸들의 라벨에서 공통 앞부분(낱말 단위)을 뗀 이름. key → 짧은 이름.
+ *
+ * 뒤에서 자르면 「테스트 회원 아이디」·「테스트 회원 비밀번호」가 둘 다 「테스트 회원…」이 돼 못 가린다 (계획 주의 6).
+ * 칸이 하나뿐이거나 뗄 것이 없거나 떼면 빈 글자가 되는 칸이 있으면 원래 이름 그대로다
+ */
+export function 짧은이름들(fields: Field[]): Record<string, string> {
+  const 원래: Record<string, string> = Object.fromEntries(fields.map((f) => [f.key, f.label]));
+  if (fields.length < 2) return 원래;
+
+  const 낱말들 = fields.map((f) => f.label.split(/\s+/).filter((w) => w !== ''));
+  let 수 = 0;
+  while (낱말들.every((w) => w.length > 수 + 1 && w[수] === 낱말들[0]![수])) 수 += 1;
+  if (수 === 0) return 원래;
+
+  return Object.fromEntries(fields.map((f, i) => [f.key, 낱말들[i]!.slice(수).join(' ')]));
+}
+
+/**
  * 폼이 들고 있는 상태는 전부 글자다. 칸마다 시작값을 만든다.
  *
  * 객체·배열 기본값은 `String()` 이 아니라 `JSON.stringify` 로 편다 — `Form.tsx` 의 `기본값글자()` 가

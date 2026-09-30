@@ -86,6 +86,7 @@ export const 케이스말: Record<string, string> = {
 
   // 입력 칸 (Form)
   '이 케이스에는 입력값이 없습니다.': 'This case declares no inputs.',
+  '입력됨': 'Saved',
   '선택': 'Optional',
   '고르지 않음': 'Not selected',
   '예': 'Yes',

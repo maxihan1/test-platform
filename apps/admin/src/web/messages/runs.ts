@@ -15,6 +15,17 @@ export const 실행말: Record<string, string> = {
   '미실행': 'Not run',
   '남음': 'Left',
   '미확정': 'Unconfirmed',
+  '확정 판정 없음': 'No confirmed verdict',
+
+  // 테스트 실행 (실행 설정 화면)
+  '▶ 테스트 실행': '▶ Test run',
+  '테스트 실행 결과': 'Test run result',
+  '열 주소': 'Address to open',
+  '열 주소는 http:// 또는 https:// 로 시작해야 합니다': 'The address must start with http:// or https://',
+  '실행 기록에 남지 않습니다 · 24시간 뒤 사라집니다': 'Not saved to run history · removed after 24 hours',
+  '테스트를 실행하는 중입니다': 'Running the test…',
+  '이미 테스트 실행이 돌고 있습니다': 'A test run is already in progress',
+  '이 서버에는 테스트 실행이 켜져 있지 않습니다. 켜는 법은 SETUP': 'Test run is not enabled on this server. See SETUP for how to turn it on',
   '미확정 {수}({칸})': 'Unconfirmed {수} ({칸})',
   '통과 {수}': '{수} passed',
   '실패 {수}': '{수} failed',

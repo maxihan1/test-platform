@@ -2,7 +2,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { initialText, schemaToFields, toValues } from './schema.js';
+import { initialText, schemaToFields, toValues, 짧은이름들 } from './schema.js';
+import type { Field } from './schema.js';
 
 // DEMO-004 — enum 파라미터
 const ENUM_SCHEMA = {
@@ -252,5 +253,42 @@ describe('schemaToFields — 저장값 (2026-09-29)', () => {
   it('비밀값이 아닌 칸은 savedSecrets 에 이름이 있어도 표시하지 않는다', () => {
     const field = schemaToFields(LOGIN_SCHEMA, {}, ['loginId']).find((f) => f.key === 'loginId');
     expect(field?.savedSecret).toBeUndefined();
+  });
+});
+
+describe('짧은이름들', () => {
+  const 칸 = (key: string, label: string): Field => ({
+    key,
+    label,
+    kind: 'text',
+    required: true,
+    optional: false,
+    secret: false,
+  });
+
+  it('공통 앞부분을 낱말 단위로 뗀다', () => {
+    expect(짧은이름들([칸('a', '테스트 회원 아이디'), 칸('b', '테스트 회원 비밀번호')])).toEqual({
+      a: '아이디',
+      b: '비밀번호',
+    });
+  });
+
+  it('칸이 하나뿐이면 그대로 둔다', () => {
+    expect(짧은이름들([칸('a', '테스트 회원 아이디')])).toEqual({ a: '테스트 회원 아이디' });
+  });
+
+  it('뗄 앞부분이 없으면 그대로 둔다', () => {
+    expect(짧은이름들([칸('a', '아이디'), 칸('b', '비밀번호')])).toEqual({ a: '아이디', b: '비밀번호' });
+  });
+
+  it('떼면 빈 글자가 되는 칸이 있으면 그대로 둔다', () => {
+    expect(짧은이름들([칸('a', '회원'), 칸('b', '회원 비밀번호')])).toEqual({ a: '회원', b: '회원 비밀번호' });
+  });
+
+  it('낱말 중간은 자르지 않는다', () => {
+    expect(짧은이름들([칸('a', '회원가입 아이디'), 칸('b', '회원 아이디')])).toEqual({
+      a: '회원가입 아이디',
+      b: '회원 아이디',
+    });
   });
 });

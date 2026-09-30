@@ -163,6 +163,8 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
         scope.get('/evidence/:id', async () => ({ 지나감: true }));
         scope.delete('/param-sets/:id', async () => ({ 지나감: true }));
         scope.get('/cases/:tcId/history', async () => ({ 지나감: true }));
+        scope.post('/cases/:tcId/test-run', async () => ({ 지나감: true }));
+        scope.get('/cases/:tcId/test-run/:trialId', async () => ({ 지나감: true }));
         scope.get('/cases/:tcId/param-sets', async () => ({ 지나감: true }));
         scope.post('/cases/:tcId/param-sets', async () => ({ 지나감: true }));
         scope.get('/catalog/cases/:tcId', async () => ({ 지나감: true }));
@@ -534,6 +536,25 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     expect(res.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:read' });
   });
 
+  it('실행 read 만 있는 서비스에서 테스트 실행 시작은 need runs:write 이고 결과 읽기는 지난다', async () => {
+    const 쿠키 = { platform_session: await 출입증('xfu3-mixed') };
+    const 시작 = await app.inject({ method: 'POST', url: '/api/cases/XFS3B-001/test-run', cookies: 쿠키, payload: {} });
+    expect(시작.statusCode).toBe(403);
+    expect(시작.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:write' });
+    const 읽기 = await app.inject({ method: 'GET', url: '/api/cases/XFS3B-001/test-run/abc', cookies: 쿠키 });
+    expect(읽기.statusCode).toBe(200);
+  });
+
+  it('실행 칸이 없으면 테스트 실행 결과 읽기도 need runs:read 다', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/cases/XFS3A-001/test-run/abc',
+      cookies: { platform_session: await 출입증('xfu3-caseonly') },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:read' });
+  });
+
   it('배정받지 않은 서비스는 칸보다 먼저 SERVICE_FORBIDDEN 이다', async () => {
     const res = await app.inject({
       method: 'POST',
@@ -686,6 +707,8 @@ describe('등급 표', () => {
   // 접두사와 다른 기능에 일부러 묶은 자리. 까닭이 없으면 여기 넣지 않는다
   const 접두사예외: Record<string, { 기능: 기능; 까닭: string }> = {
     'GET /api/cases/:tcId/history': { 기능: 'runs', 까닭: '주소는 케이스 아래지만 내용은 실행 결과 이력이다 (execution/routes.ts)' },
+    'POST /api/cases/:tcId/test-run': { 기능: 'runs', 까닭: '주소는 케이스 아래지만 브라우저를 돌리는 실행이다 (execution/trialRoutes.ts)' },
+    'GET /api/cases/:tcId/test-run/:trialId': { 기능: 'runs', 까닭: '테스트 실행 결과 읽기다 (execution/trialRoutes.ts)' },
   };
   it('표의 기능은 경로 접두사가 정한 기능과 같다 — 접두사예외만 빼고', () => {
     const 경로의기능 = (틀: string): 기능 | null => {

@@ -18,6 +18,7 @@ import { 세션등록, 열쇠최소길이 } from './auth/session.js';
 import catalogRoutes from './catalog/routes.js';
 import { pool } from './db/index.js';
 import executionRoutes from './execution/routes.js';
+import trialRoutes from './execution/trialRoutes.js';
 import grafanaProxy from './grafana/proxy.js';
 import reportingRoutes from './reporting/routes.js';
 import scenarioRoutes from './scenario/routes.js';
@@ -43,6 +44,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(authoringAgentRoutes, { prefix: '/api' });
   app.register(catalogRoutes, { prefix: '/api' });
   app.register(executionRoutes, { prefix: '/api' });
+  app.register(trialRoutes, { prefix: '/api' });
   app.register(reportingRoutes, { prefix: '/api' });
   app.register(scenarioRoutes, { prefix: '/api' });
   app.register(scenarioRunRoutes, { prefix: '/api' });

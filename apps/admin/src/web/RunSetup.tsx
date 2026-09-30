@@ -9,6 +9,7 @@ import { use말, use언어 } from './i18n.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { 넘었나, 상한, 항목수 } from './runPlan.js';
 import { 저장값버튼들, 저장값표시 } from './SavedInputBar.js';
+import { TestRun } from './TestRun.js';
 import { initialText, schemaToFields, toValues } from './schema.js';
 import { Failed, Loading, message, PLATFORM_LABEL, useAsync } from './ui.js';
 import { fieldErrors, messagesByKey } from './validation.js';
@@ -364,6 +365,7 @@ export function RunSetup({ tcId, service, user }: Props) {
           </span>
         )}
         {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
+        <TestRun tcId={row.tcId} user={user} platforms={platforms} params={params} expected={expected} 대상주소={주소} on검증실패={사유붙이기} />
         {!할수있나(user, 케이스서비스(row.tcId), '실행') ? null : (
           <button className="btn" onClick={() => void run()} disabled={busy || 너무많나}>
             {t('실행')}

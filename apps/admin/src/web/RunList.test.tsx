@@ -125,6 +125,39 @@ describe('RunList 미확정 (도메인/실행 §8.7)', () => {
     expect(띠?.style.background).toBe('var(--rule)');
     expect(screen.getByText('미확정 2(통과 1 · 실패 1)')).toBeTruthy();
   });
+
+  it('확정 판정이 없으면 세 칸을 0 대신 줄표로 보이고 미확정 글자를 판정 글자로 세운다', async () => {
+    const 미확정만: RunSummary = {
+      ...실행(2131, 0),
+      title: 'ZRL 미확정만 줄표',
+      counts: { total: 2, pass: 0, fail: 0, na: 0, running: 0, unconfirmed: { total: 2, pass: 1, fail: 1, na: 0 } },
+    };
+    const { container } = await 그리기({ ...한쪽, items: [미확정만], total: 1 });
+    await screen.findByText(/ZRL 미확정만 줄표/);
+
+    const 줄표들 = container.querySelectorAll('.tally [aria-label="확정 판정 없음"]');
+    expect(줄표들).toHaveLength(3);
+    for (const 칸 of 줄표들) {
+      expect(칸.textContent).toBe('—');
+      expect((칸 as HTMLElement).style.color).toBe('');
+    }
+    expect(screen.getByText('미확정 2(통과 1 · 실패 1)').className).toContain('unconf');
+    expect(container.querySelector('.tally .unconf-line')).toBeNull();
+    expect(container.querySelector('.runright .verdict .unconf-line')).not.toBeNull();
+  });
+
+  it('확정 항목이 하나라도 있으면 숫자 그대로다', async () => {
+    const 섞임: RunSummary = {
+      ...실행(2132, 0),
+      title: 'ZRL 섞임',
+      counts: { total: 3, pass: 1, fail: 0, na: 0, running: 0, unconfirmed: { total: 2, pass: 2, fail: 0, na: 0 } },
+    };
+    const { container } = await 그리기({ ...한쪽, items: [섞임], total: 1 });
+    await screen.findByText(/ZRL 섞임/);
+
+    expect(container.querySelectorAll('.tally [aria-label="확정 판정 없음"]')).toHaveLength(0);
+    expect(container.querySelector('.tally b')?.textContent).toBe('1');
+  });
 });
 
 describe('RunList 집계 띠', () => {

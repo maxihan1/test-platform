@@ -171,3 +171,19 @@ describe('Grafana 는 로그인 뒤에 있다', () => {
     }
   });
 });
+
+describe('내 컴퓨터 러너(테스트 실행)', () => {
+  const admin = /^ {2}admin:\n((?: {4}.*\n|\s*\n)+)/m.exec(compose)?.[1] ?? '';
+
+  it('admin 이 LOCAL_RUNNER_URL 을 .env 로 받고 기본값은 비어 있다 — 비면 꺼진다', () => {
+    expect(admin).toMatch(/^ {6}LOCAL_RUNNER_URL:\s*"\$\{LOCAL_RUNNER_URL:-\}"/m);
+  });
+
+  it('admin 컨테이너가 host.docker.internal 로 호스트에 닿는다', () => {
+    expect(admin).toMatch(/extra_hosts:\s*\n\s*- "host\.docker\.internal:host-gateway"/);
+  });
+
+  it('.env.example 에 LOCAL_RUNNER_URL 이 있다', () => {
+    expect(readFileSync(resolve(process.cwd(), '.env.example'), 'utf8')).toMatch(/^LOCAL_RUNNER_URL=/m);
+  });
+});

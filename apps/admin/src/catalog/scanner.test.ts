@@ -84,7 +84,7 @@ describe('scan', () => {
 
   it('filePath는 tests 폴더 기준 상대 경로다', async () => {
     const { specs } = await scan();
-    expect(specs[0].filePath).toBe('demo/DEMO-001.spec.ts');
+    expect(specs.find((s) => s.tcId === 'DEMO-001')?.filePath).toBe('demo/DEMO-001.spec.ts');
   });
 
   it('zod 스키마가 JSON Schema로 변환돼 있고 describe가 라벨로 남는다', async () => {

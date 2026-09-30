@@ -73,8 +73,9 @@ function 거절사유(status: number, json: unknown): string {
 
 // fetch(undici) 는 응답 머리를 300초까지만 기다린다(headersTimeout). 러너는 판이 끝나야 머리를 보내므로
 // 5분 넘는 케이스·시나리오가 그 벽에 끊긴다. 그래서 긴 호출은 node:http 로 보내고 제한은 요청 전체에 한 번만 건다
-export function 러너에보낸다(경로: string, 본문: unknown, 제한ms: number): Promise<{ status: number; json: unknown }> {
-  const url = new URL(`${runnerUrl()}${경로}`);
+// 주소를 넘기면 그 러너로 간다 — 테스트 실행이 내 컴퓨터 러너(LOCAL_RUNNER_URL)를 부른다
+export function 러너에보낸다(경로: string, 본문: unknown, 제한ms: number, 주소: string = runnerUrl()): Promise<{ status: number; json: unknown }> {
+  const url = new URL(`${주소}${경로}`);
   const data = JSON.stringify(본문);
   return new Promise((resolve, reject) => {
     const req = (url.protocol === 'https:' ? https : http).request(

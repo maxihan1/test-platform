@@ -15,7 +15,8 @@ export default defineConfig({
   retries: 0,
   reporter: 'line',
   // 러너가 실행마다 PLATFORM_BASE_URL 로 넘긴다. 한 번 정하는 설정이 아니라 실행마다 바뀌는 값이다 (§5.2)
-  use: { baseURL: process.env.PLATFORM_BASE_URL },
+  // 내 컴퓨터 러너(npm run runner:local)만 창을 띄운다. 컨테이너 러너는 이 값이 없어 그대로 headless 다
+  use: { baseURL: process.env.PLATFORM_BASE_URL, ...(process.env.PLATFORM_HEADED === '1' ? { headless: false } : {}) },
   projects: [
     // 이름이 Platform 타입 값과 철자까지 같아야 한다. 러너가 그대로 --project 인자로 넘긴다
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
