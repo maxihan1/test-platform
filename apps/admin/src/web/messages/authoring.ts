@@ -263,4 +263,20 @@ export const 작성말: Record<string, string> = {
   '빠짐 {수}': 'missing {수}',
   '원장 밖 자료 {수}': 'files outside the ledger {수}',
   '셈 없음 — {까닭}': 'no count — {까닭}',
+  // 남은 요구로 이어 작성 (도메인/작성 §3.6 「★ 원장」) — 영어는 follow-up. continue 는 이어서 작성(재개)에만 쓴다
+  '남은 요구로 이어 작성': 'Follow up on remaining requirements',
+  '남은 요구는 #{번호} 요청이 맡았습니다.': 'Request #{번호} took the remaining requirements.',
+  '#{번호} 요청 보기': 'View request #{번호}',
+  '#{번호}의 남은 요구': 'Follow-up of #{번호}',
+  '기획서 요구를 세지 못해 이어 작성할 수 없습니다.': 'The spec requirements could not be counted, so there is no follow-up.',
+  '이어 작성할 요구가 없습니다. 모두 케이스로 만들었거나 제외했습니다.':
+    'Nothing left to follow up. Every requirement became a test case or was excluded.',
+  '이 요청은 이어 작성할 수 없습니다.': 'This request cannot be followed up.',
+  '반영한 실행 기준으로 다음 요청 {다음}개 · 빠짐 {빠짐}개가 남았습니다.':
+    'As of the merged run, {다음} left for the next request · {빠짐} missing.',
+  '이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 에이전트가 시작할 때 다시 셉니다.':
+    'They are written as a new request, and you move to its new number. The agent counts the remaining requirements again when it starts.',
+  '이어 작성은 작성 요청 권한이 있는 사람만 할 수 있습니다.': 'Only people who can request writing can start a follow-up.',
+  'GitHub 에서 이미 병합했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.':
+    'Even if the PR was merged on GitHub, merge here to follow up on the remaining requirements.',
 };

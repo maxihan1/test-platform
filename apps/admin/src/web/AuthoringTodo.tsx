@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 
-import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
+import { api, type AuthoringAsset, type AuthoringCoverage, type AuthoringRow } from './api.js';
 import { 보류오류문장, 보류진척 } from './AuthoringHeld.js';
 import { 반영단계 } from './AuthoringMergeStep.js';
 import { 다시작성원본, 시간판 } from './authoringStatus.js';
-import { 이어서작성, 일 } from './authoringTodoParts.js';
+import { 남은요구이어작성, 이어서작성, 일 } from './authoringTodoParts.js';
 import { 줄보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -22,10 +22,12 @@ interface Props {
   할수: 판정;
   /** 기획서와 화면의 차이 수 (역방향). 0 이면 확인할 차이 항목을 안 낸다 */
   차이수: number;
+  /** 머지를 뺀 최신 작성 실행의 셈 — 머지 행에는 셈이 없다. 남은 요구 수 · GitHub 직접 병합 안내가 이것을 본다 */
+  커버리지?: AuthoringCoverage | null;
   reload: () => void;
 }
 
-export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Props) {
+export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지 = null, reload }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [열린, set열린] = useState<확인>(null);
@@ -50,6 +52,26 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
     void 만든다()
       .then(() => reload())
       .catch((err: unknown) => set오류(보류오류문장(err, 언어)))
+      .finally(() => set보내는중(false));
+  }
+
+  /**
+   * 남은 요구로 이어 작성 — 새 요청이라 **새 번호로 간다**(실행 기록 규칙의 예외, 도메인/작성 §3.6 「★ 원장」).
+   * 서버가 막으면(다른 탭이 먼저 눌렀다) 까닭을 띄우고 다시 읽는다 — 항목이 까닭 줄로 바뀐다
+   */
+  function 새번호로(뿌리: number) {
+    if (보내는중) return;
+    set보내는중(true);
+    set오류(null);
+    void api
+      .createAuthoringRequest(service, { kind: 'AUTHOR', continueFrom: 뿌리 })
+      .then(({ id }) => {
+        window.location.hash = `#/authoring/${String(id)}`;
+      })
+      .catch((err: unknown) => {
+        set오류(보류오류문장(err, 언어));
+        reload();
+      })
       .finally(() => set보내는중(false));
   }
 
@@ -124,7 +146,17 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
       </>
     );
   } else if (요청.status === 'DONE' && 요청.kind === 'MERGE') {
-    본문 = <p>{t('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')}</p>;
+    본문 = (
+      <>
+        <p>{t('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')}</p>
+        {/* 이 칸을 모르는 옛 응답에는 안 그린다 */}
+        {요청.canContinue === undefined ? null : (
+          <ol>
+            <남은요구이어작성 요청={요청} 셈={커버리지} 권한={할수('작성요청')} 보내는중={보내는중} 새번호로={새번호로} />
+          </ol>
+        )}
+      </>
+    );
   } else if (요청.status === 'DONE') {
     const held = 요청.held ?? [];
     let 번호 = 0;
@@ -153,7 +185,15 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, reload }: Pr
             </일>
           )}
           {held.length === 0 ? null : <보류진척 표={다음()} held={held} />}
-          <반영단계 service={service} 요청={요청} 표={다음()} 반영권한={할수('작성머지')} 보내는중={보내는중} 새줄로={새줄로} />
+          <반영단계
+            service={service}
+            요청={요청}
+            표={다음()}
+            반영권한={할수('작성머지')}
+            보내는중={보내는중}
+            새줄로={새줄로}
+            커버리지={커버리지}
+          />
         </ol>
       );
   } else {

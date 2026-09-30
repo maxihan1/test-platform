@@ -348,6 +348,13 @@ export interface AuthoringRow {
   resumeUntil?: string | null;
   resumedBy?: number | null;
   /**
+   * 남은 요구로 이어 작성 (도메인/작성 §3.6 「★ 원장」). continueFrom 은 이 요청이 남은 요구를 맡은 원본 뿌리 — 목록에는 뿌리 것이 온다.
+   * 상세에만 — canContinue(서버가 뿌리 기준으로 잰다 · 권한은 화면이 본다) · continuedBy(남은 요구를 맡은 요청)
+   */
+  continueFrom?: number | null;
+  canContinue?: boolean;
+  continuedBy?: number | null;
+  /**
    * 실행 기록 (도메인/작성 §7 「실행 기록」). 보이는 번호는 뿌리 하나 — 목록 줄은 그 뿌리의 최신 실행이다.
    * 목록에는 rootId · runCount, 상세에는 rootId · runs 가 온다
    */
@@ -774,7 +781,8 @@ export const api = {
     service: string,
     body:
       | { kind: 'AUTHOR'; figma: string[]; compare?: true; env?: string; startUrl?: string }
-      | { kind: 'RERUN'; sourceId: number; resume?: true },
+      | { kind: 'RERUN'; sourceId: number; resume?: true }
+      | { kind: 'AUTHOR'; continueFrom: number },
   ) => call<{ id: number }>(`/authoring/requests?service=${encodeURIComponent(service)}`, json(body)),
 
   /** 파일 바이트를 그대로 보낸다. 이름은 본문에 자리가 없어 주소에 싣는다 */

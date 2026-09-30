@@ -3,9 +3,9 @@
 
 import { useState } from 'react';
 
-import { api, type AuthoringRow } from './api.js';
+import { api, type AuthoringCoverage, type AuthoringRow } from './api.js';
 import { 값을채웠나 } from './AuthoringHeld.js';
-import { 일 } from './authoringTodoParts.js';
+import { 남은수, 일 } from './authoringTodoParts.js';
 import { use말 } from './i18n.js';
 
 interface Props {
@@ -16,9 +16,11 @@ interface Props {
   반영권한: boolean;
   보내는중: boolean;
   새줄로: (만든다: () => Promise<{ id: number }>) => void;
+  /** 이 작성 실행의 셈 — 남은 요구가 있으면 반영을 눌러야 이어 작성할 수 있다고 알린다 */
+  커버리지: AuthoringCoverage | null;
 }
 
-export function 반영단계({ service, 요청, 표, 반영권한, 보내는중, 새줄로 }: Props) {
+export function 반영단계({ service, 요청, 표, 반영권한, 보내는중, 새줄로, 커버리지 }: Props) {
   const t = use말();
   const [고른서버, set고른서버] = useState<string | null>(null);
   const held = 요청.held ?? [];
@@ -30,6 +32,7 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
   const 줄들 = 요청.mergeEnvs ?? [];
   const 서버 = 줄들.includes(고른서버 ?? '') ? 고른서버 : (줄들[0] ?? null);
   const 서버없음 = 서버고름 && 서버 === null;
+  const 남음 = 남은수(커버리지);
 
   return (
     <일 표={표} 제목={t('테스트 반영하기')} 설명={t('검토가 끝나면 PR을 합쳐 케이스 목록에 올립니다.')}>
@@ -61,6 +64,11 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
       {모름 ? <p className="held-why">{t('보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.')}</p> : null}
       {남은 > 0 ? <p className="held-why">{t('보류 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.', { 수: 남은 })}</p> : null}
       {서버없음 ? <p className="held-why">{t('테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.')}</p> : null}
+      {/* 이어 작성은 플랫폼 반영만 인정한다(게이트 0) — GitHub 에서 직접 병합한 요청도 여기서 반영을 눌러야 한다.
+          에이전트는 이미 병합된 PR 의 반영을 성공으로 닫는다 (도메인/작성 §3.6 「남은 요구로 이어 작성」) */}
+      {남음 !== null && 남음.다음 + 남음.빠짐 > 0 ? (
+        <span className="hint">{t('GitHub 에서 이미 병합했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.')}</span>
+      ) : null}
       {held.length > 0 && 남은 === 0 ? (
         <span className="hint">{t('반영하면 넣은 값을 테스트 코드에 적고, 값을 채운 케이스를 3번 돌려 모두 통과해야 합칩니다.')}</span>
       ) : null}

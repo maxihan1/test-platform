@@ -87,6 +87,17 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
     }
   });
 
+  it.each(['NOT_MERGED', 'ALREADY_CONTINUED', 'NOTHING_LEFT', 'BAD_SOURCE'])(
+    '남은 요구로 이어 작성의 %s 도 같은 말투로 적고 영어로 옮긴다',
+    (code) => {
+      const 한국어 = 요청오류문장(code, 'ko');
+      expect(한국어).not.toContain(code);
+      expect(한국어.endsWith('.'), code).toBe(false);
+      expect(한국어.endsWith('다'), code).toBe(true);
+      expect(요청오류문장(code, 'en')).not.toBe(한국어);
+    },
+  );
+
   it.each(['USERNAME_SHAPE', 'PASSWORD_CHANGE_REQUIRED', 'NOT_APPROVED', 'ALREADY_APPROVED', 'APPROVED_USER', 'PENDING_APPROVAL'])(
     '계정 코드 %s 도 사람 말로 적고 영어로도 옮긴다',
     (code) => {

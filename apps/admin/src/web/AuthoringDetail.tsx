@@ -105,7 +105,17 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
   const 자료들 = [...입력, ...(작성.assets ?? [])];
   const 산출물 = (작성.assets ?? []).filter((a) => (a.role ?? 'INPUT') !== 'INPUT');
   const 차이들 = 차이목록(작성.result);
-  const 부제 = data.compare === true ? `${종류라벨(data.kind, 언어)} · ${t('실제 화면과 대조')}` : 종류라벨(data.kind, 언어);
+  const 부제글 = data.compare === true ? `${종류라벨(data.kind, 언어)} · ${t('실제 화면과 대조')}` : 종류라벨(data.kind, 언어);
+  // 남은 요구로 이어 작성한 요청 — 칸은 뿌리(작성 요청)에만 있다. 재실행이 최신이어도 뿌리 것을 읽는다 (§3.6 「★ 원장」)
+  const 원본 = 뿌리.continueFrom ?? null;
+  const 부제 =
+    원본 === null ? (
+      부제글
+    ) : (
+      <>
+        {부제글} · <a href={`#/authoring/${String(원본)}`}>{t('#{번호}의 남은 요구', { 번호: 원본 })}</a>
+      </>
+    );
 
   return (
     <>
@@ -159,7 +169,14 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
           </div>
 
           <div className="authoring-col">
-            <AuthoringTodo service={service} 요청={data} 할수={할수} 차이수={차이들?.length ?? 0} reload={reload} />
+            <AuthoringTodo
+              service={service}
+              요청={data}
+              할수={할수}
+              차이수={차이들?.length ?? 0}
+              커버리지={작성.coverage ?? null}
+              reload={reload}
+            />
 
             <section className="authoring-panel" aria-label={t('요청 정보')}>
               <h3>{t('요청 정보')}</h3>
