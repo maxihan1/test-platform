@@ -2515,6 +2515,17 @@ select:focus {
   max-width: 136px;
 }
 
+/* 숫자·예/아니오 칸(`.narrow`)은 폼 화면에서 120px 고정이다. 줄에서는 라벨 열(84px)을 뺀 자리가 97px 라
+   그대로 두면 옆 「마지막 결과」 칸을 23px 덮었다 (2026-09-30 지적). 남는 자리에 맞춰 줄어들게 한다 */
+.pcell .field input.narrow,
+.pcell .field select.narrow {
+  width: 100%;
+}
+
+.pcell .field > div {
+  min-width: 0;
+}
+
 .pcell .field input:hover,
 .pcell .field select:hover {
   border-color: #d8d3c6;

@@ -73,6 +73,7 @@ export const 케이스말: Record<string, string> = {
   // 케이스 상세 펼침
   '사전조건': 'Preconditions',
   '입력값': 'Inputs',
+  '이 쪽 전체 선택': 'Select all on this page',
   '기대결과': 'Expected',
   '시험 절차': 'Test steps',
   '{실행이름}에서 가져옴': 'from {실행이름}',

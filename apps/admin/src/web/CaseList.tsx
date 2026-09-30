@@ -250,7 +250,12 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
         />
       ) : (
         <>
-        <표머리 />
+        <표머리
+          고름상태={
+            보일것.every((row) => 뽑기.고른.has(row.tcId)) ? 'all' : 보일것.some((row) => 뽑기.고른.has(row.tcId)) ? 'some' : 'none'
+          }
+          on모두고르기={() => 뽑기.모두뒤집기(보일것)}
+        />
         {보일것.map((row) => (
           <케이스줄
             key={row.tcId}
