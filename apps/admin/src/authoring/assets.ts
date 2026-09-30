@@ -3,7 +3,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, link, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
 import { 집은쪽인가 } from './agentRoutes.js';
@@ -41,14 +41,18 @@ function 디스크이름(자료번호: number, 이름: string): string {
 
 /**
  * 이어 작성 — 원본 요청의 자료 파일을 새 요청 폴더에 새 자료 번호로 복사한다. 실패하면 새 폴더를 지우고 던진다.
- * 행은 `이어작성준비` 가 이미 복사했다 — 짝(옛 번호 → 새 번호)으로 디스크 이름을 찾는다
+ * 행은 `이어작성준비` 가 이미 복사했다 — 짝(옛 번호 → 새 번호)으로 디스크 이름을 찾는다.
+ * **하드링크를 먼저 쓴다** — 자료 파일은 올린 뒤 안 바뀐다. 그대로 복사하면 누르고 · 멈추고 · 폐기하기를 되풀이해
+ * 한 번에 최대 20개 × 20MB 씩 서버 디스크를 불릴 수 있다(2026-09-30 보안 검토). 다른 디스크라 못 걸면 복사한다
  */
 export async function 자료파일복사(옛요청: number, 새요청: number, 짝: { 옛: number; 새: number; name: string }[]): Promise<void> {
   const 새폴더 = 자료폴더(새요청);
   try {
     await mkdir(새폴더, { recursive: true });
     for (const f of 짝) {
-      await copyFile(join(자료폴더(옛요청), 디스크이름(f.옛, f.name)), join(새폴더, 디스크이름(f.새, f.name)));
+      const 옛것 = join(자료폴더(옛요청), 디스크이름(f.옛, f.name));
+      const 새것 = join(새폴더, 디스크이름(f.새, f.name));
+      await link(옛것, 새것).catch(() => copyFile(옛것, 새것));
     }
   } catch (e) {
     await rm(새폴더, { recursive: true, force: true });

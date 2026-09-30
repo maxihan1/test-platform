@@ -1,6 +1,6 @@
 // 남은 요구로 이어 작성 — 원본의 입력 자료를 복사해 새 작성 요청을 줄에 세운다 (SPEC 도메인/작성 §3.6 「★ 원장」 「남은 요구로 이어 작성」 · §7)
 
-import { readdirSync } from 'node:fs';
+import { readdirSync, statSync } from 'node:fs';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -94,4 +94,20 @@ describe.skipIf(연결 === undefined)('이어 작성 — 자료 복사 · 줄 �
     await writeFile(파일, '본문0');
     expect((await 판.이어작성({ kind: 'AUTHOR', continueFrom: 뿌리 })).statusCode).toBe(201);
   });
+
+  it('파일은 하드링크로 옮긴다 — 누르고 멈추고 폐기하기를 되풀이해도 디스크가 두 벌로 늘지 않는다', async () => {
+    const { 뿌리, 자료 } = await 판.원본({ coverage: 셈있음 });
+    const id = (await 판.이어작성({ kind: 'AUTHOR', continueFrom: 뿌리 })).json<{ id: number }>().id;
+    const 새자료 = (await 판.상세(id)).assets as { id: number }[];
+    const 옛 = statSync(join(자료폴더(뿌리), `${String(자료[0])}.docx`));
+    const 새 = statSync(join(자료폴더(id), `${String(새자료[0]!.id)}.docx`));
+    expect(새.ino).toBe(옛.ino);
+  });
+
+  it('서로 다른 원본 열둘을 한꺼번에 눌러도 다 선다 — 잠금 안에서 풀 연결을 또 잡지 않는다', async () => {
+    const 원본들 = await Promise.all(Array.from({ length: 12 }, () => 판.원본({ coverage: 셈있음 })));
+    const 답들 = await Promise.all(원본들.map(({ 뿌리 }) => 판.이어작성({ kind: 'AUTHOR', continueFrom: 뿌리 })));
+    expect(답들.map((d) => d.statusCode)).toEqual(Array(12).fill(201));
+  }, 20_000);
 });
+

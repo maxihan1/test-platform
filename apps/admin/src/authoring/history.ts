@@ -1,5 +1,7 @@
 // 작성 요청의 보이는 번호(뿌리)와 실행 기록 — DB 는 실행마다 행, 목록·상세는 뿌리 하나로 묶는다 (도메인/작성 §7 「실행 기록」)
 
+import type { PoolClient } from 'pg';
+
 import { db, 빚기, 칸들, type 상태, type 요청, type 행 } from './store.js';
 
 /**
@@ -128,14 +130,16 @@ export async function 최신실행(뿌리번호: number): Promise<number> {
 
 /**
  * 뿌리 하나에 새 실행을 세우는 일을 한 줄로 — 확인(`도는실행있나`)과 넣기 사이에 다른 누름이 끼면
- * 둘이 같은 브랜치를 서로 덮는다 (2026-09-29 검사). 트랜잭션 잠금이라 끝나면 저절로 풀린다
+ * 둘이 같은 브랜치를 서로 덮는다 (2026-09-29 검사). 트랜잭션 잠금이라 끝나면 저절로 풀린다.
+ * `일` 은 잠금을 쥔 연결(`손`)을 받는다 — 잠금 안에서 풀 연결을 또 잡으면 동시 누름이 풀 크기를 넘길 때
+ * 잠금을 쥔 쪽이 연결을 못 얻어 서버 전체가 선다(2026-09-30 보안 검토). 새 코드는 `손` 으로만 묻는다
  */
-export async function 뿌리잠그고<T>(뿌리번호: number, 일: () => Promise<T>): Promise<T> {
+export async function 뿌리잠그고<T>(뿌리번호: number, 일: (손: PoolClient) => Promise<T>): Promise<T> {
   const 손 = await (await db()).connect();
   try {
     await 손.query('BEGIN');
     await 손.query(`SELECT pg_advisory_xact_lock(hashtext('authoring-root'), ($1::bigint % 2147483647)::int)`, [뿌리번호]);
-    const 값 = await 일();
+    const 값 = await 일(손);
     await 손.query('COMMIT');
     return 값;
   } catch (e) {
