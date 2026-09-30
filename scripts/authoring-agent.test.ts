@@ -282,4 +282,39 @@ describe('줄프롬프트 — 자식에게 못박는 경계', () => {
   it('관문 넷을 전부 돌리라고 한다', () => {
     expect(글()).toMatch(/관문 넷/);
   });
+
+  it('서브에이전트도 백그라운드로 띄우지 말라고 한다 — 팬아웃이 먼저 끝나면 맥이 멈춘다 (2026-09-30)', () => {
+    expect(글()).toMatch(/Agent 도구도 백그라운드로 띄우지 마라/);
+  });
+});
+
+describe('줄프롬프트 — 원장 절 (도메인/작성 §3.6 「★ 원장」)', () => {
+  const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
+
+  it('원장이 있으면 사본 경로 · 셈 · 관문 0 명령을 싣는다', () => {
+    const 글 = 줄프롬프트(것, 'MKT', [], { 폴더: 'mkt', 서버들: [] }, undefined, undefined, {
+      사본: '/w/자료/ledger.json',
+      요약: '요구 172 · 번호 가족 REQ-COM 14',
+    });
+    expect(글).toContain('--- 원장 ---');
+    expect(글).toContain('/w/자료/ledger.json');
+    expect(글).toContain('요구 172 · 번호 가족 REQ-COM 14');
+    expect(글).toContain('npm run check:ledger -- /w/자료/ledger.json docs/cases/MKT.md --tests tests/mkt --agent');
+    expect(글).toMatch(/관문 0/);
+  });
+
+  it('앞 실행의 빠짐 목록이 있으면 그것부터 채우라고 한다', () => {
+    const 글 = 줄프롬프트(것, 'MKT', [], { 폴더: 'mkt', 서버들: [] }, undefined, undefined, {
+      사본: '/w/ledger.json',
+      요약: '요구 3',
+      빠짐파일: '/w/ledger-missing.json',
+    });
+    expect(글).toMatch(/\/w\/ledger-missing\.json.*먼저 채워라/);
+  });
+
+  it('원장이 없으면 까닭을 싣고 관문 0 을 건너뛰라고 한다', () => {
+    const 글 = 줄프롬프트(것, 'MKT', [], undefined, undefined, undefined, { 없음: '글자본이 있는 자료가 없다 — 화면.pdf(PDF)' });
+    expect(글).toContain('원장 없음 — 글자본이 있는 자료가 없다 — 화면.pdf(PDF)');
+    expect(글).toMatch(/관문 0 은 건너뛴다/);
+  });
 });

@@ -36,6 +36,7 @@ import { 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './aut
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 폴더자리 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
+import { 원장준비 } from './authoring-ledger-io.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -225,6 +226,8 @@ async function 사본에서(
   // 역방향 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호를 먼저 가린다 (§3.6 「★ 역방향」)
   const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 것.target?.loginPassword);
   if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));
+  // 원장은 가린 뒤 뽑는다 — 사본에 계정 원문이 남지 않게. 판정은 메모리의 것으로 한다 (§3.6 「★ 원장」)
+  const 원장 = 원장준비(계획, 자리.자료);
   await 손.단계('케이스를 만드는 중');
   if (박동.멈추라했다()) {
     await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' });
@@ -250,7 +253,7 @@ async function 사본에서(
   const 돌린것 = await 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
-      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향, 방.이어하기),
+      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향, 방.이어하기, 원장.입력),
       env: 환경,
       uid: 자식?.uid,
       gid: 자식?.gid,
