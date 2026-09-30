@@ -11,7 +11,7 @@ import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from '
 import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처 } from './authoring-assets.js';
 import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
-import { 닫을RUNNING, 자식환경 } from './authoring-chain.js';
+import { 자식환경 } from './authoring-chain.js';
 import { type 계정 } from './authoring-copy.js';
 import { 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
 import { type 작업방, 도는번호, 보관하기, 작업방준비 } from './authoring-keeping.js';
@@ -50,22 +50,6 @@ export interface 판 {
   계정: { 자식: 계정[]; 호스트: 계정 } | null;
   /** 원천에 쓰는 git 을 누구로 치나. root 면 호스트 uid 와 그 집 */
   호스트로: 칠때;
-}
-
-/** 켤 때 내 이름으로 잡힌 채 멈춘 RUNNING 을 닫는다. 에이전트가 꺼져 끊긴 것이라 아무도 안 끝낸다 */
-export async function 멈춘것닫기(주소기지: string, 토큰: string, 서비스들: string[], 나: string): Promise<void> {
-  for (const 서비스 of 서비스들) {
-    const 답 = await 부른다(주소기지, 토큰, `/authoring/requests?service=${encodeURIComponent(서비스)}&status=RUNNING`);
-    if (답.status !== 200) {
-      console.error(`[기다림] ${서비스} 의 RUNNING 목록을 못 읽었다 (${답.status}). 이번엔 건너뛴다.`);
-      continue;
-    }
-    const 목록 = (답.몸 as { items?: Parameters<typeof 닫을RUNNING>[0] }).items ?? [];
-    for (const { id, 몸 } of 닫을RUNNING(목록, 나)) {
-      await 보고손만들기(주소기지, 토큰, 서비스, id).끝내기(몸);
-      console.log(`[정리] ${서비스} 의 ${id}번은 에이전트가 꺼져 멈춘 채였다. ${String(몸.status)} 로 닫았다.`);
-    }
-  }
 }
 
 /** 한 건을 끝까지 처리한다. 단계는 사람이 화면에서 보는 그 줄이다. `자리번호` 가 자식 uid 를 고른다 */
