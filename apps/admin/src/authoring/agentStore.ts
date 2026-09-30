@@ -1,5 +1,6 @@
 // 작성 에이전트가 부르는 대기줄 쓰기 — 집기 · 되돌리기 · 단계(진척) · 사진 자리 · 끝내기 (도메인/작성 §7). store.ts 가 300줄을 넘어 뗐다
 
+import { type 셈칸, 커버리지칸 } from './coverage.js';
 import { db, 빚기, 칸들, type 요청, type 행 } from './store.js';
 
 /**
@@ -102,8 +103,11 @@ export async function 끝내기(
     error?: string;
     /** 앞 실행에서 옮겨 온 보류 입력. 이미 들어온 입력이 이긴다 — 옮긴 것이 사람이 방금 넣은 값을 덮으면 안 된다 */
     heldInput?: object | null;
+    /** result.coverage 를 옮긴 칸. 없으면 전부 비운다 — 셈은 result 와 같은 끝내기에서만 선다 */
+    coverage?: 셈칸;
   },
 ): Promise<boolean> {
+  const 칸 = 결과.coverage ?? 커버리지칸(null);
   const pool = await db();
   const r = await pool.query(
     `UPDATE authoring_request
@@ -115,7 +119,8 @@ export async function 끝내기(
             stop_reason = $7::text,
             stopped_by = CASE WHEN $7::text IS NULL THEN NULL WHEN $7::text = 'USER' THEN stop_requested_by ELSE 'system' END,
             finished_at = now(),
-            held_input = CASE WHEN $8::jsonb IS NULL THEN held_input ELSE $8::jsonb || COALESCE(held_input, '{}'::jsonb) END
+            held_input = CASE WHEN $8::jsonb IS NULL THEN held_input ELSE $8::jsonb || COALESCE(held_input, '{}'::jsonb) END,
+            coverage_total = $9, coverage_cased = $10, coverage_held = $11, coverage_excluded = $12, coverage_missing = $13
       WHERE id = $1 AND status = 'RUNNING'`,
     [
       id,
@@ -126,6 +131,11 @@ export async function 끝내기(
       결과.error ?? null,
       결과.stopReason ?? null,
       결과.heldInput ? JSON.stringify(결과.heldInput) : null,
+      칸.total,
+      칸.cased,
+      칸.held,
+      칸.excluded,
+      칸.missing,
     ],
   );
   return r.rowCount === 1;

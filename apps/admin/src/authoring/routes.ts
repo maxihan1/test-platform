@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
+import { 행커버리지 } from './coverage.js';
 import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
@@ -243,6 +244,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         rootId: 뿌리번호,
         runs: await 실행들(뿌리번호),
         ...(await 보류상세(행)),
+        coverage: 행커버리지(행.result),
       };
     },
   );
