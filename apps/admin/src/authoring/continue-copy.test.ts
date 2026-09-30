@@ -1,5 +1,6 @@
 // 남은 요구로 이어 작성 — 원본의 입력 자료를 복사해 새 작성 요청을 줄에 세운다 (SPEC 도메인/작성 §3.6 「★ 원장」 「남은 요구로 이어 작성」 · §7)
 
+import { readdirSync } from 'node:fs';
 import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -83,8 +84,11 @@ describe.skipIf(연결 === undefined)('이어 작성 — 자료 복사 · 줄 �
     const { 뿌리, 자료 } = await 판.원본({ coverage: 셈있음 });
     const 파일 = join(자료폴더(뿌리), `${String(자료[0])}.docx`);
     await rm(파일);
+    const 폴더들 = () => readdirSync(join(자료폴더(뿌리), '..')).sort();
+    const 앞 = 폴더들();
     const 답 = await 판.이어작성({ kind: 'AUTHOR', continueFrom: 뿌리 });
     expect(답.statusCode).toBe(500);
+    expect(폴더들()).toEqual(앞);
     const 남음 = await pool.query('SELECT 1 FROM authoring_request WHERE continue_from = $1', [뿌리]);
     expect(남음.rowCount).toBe(0);
     await writeFile(파일, '본문0');

@@ -51,9 +51,16 @@ describe.skipIf(연결 === undefined)('이어 작성 — 거절', () => {
     }
   });
 
-  it('뿌리가 아닌 실행 번호(머지)면 409 BAD_SOURCE — 화면은 rootId 를 보낸다', async () => {
-    const { 머지 } = await 판.원본({ coverage: 셈있음 });
+  it('뿌리가 아닌 실행 번호(머지 · 재실행)면 409 BAD_SOURCE — 화면은 rootId 를 보낸다', async () => {
+    const { pool } = await import('../db/index.js');
+    const { 뿌리, 머지 } = await 판.원본({ coverage: 셈있음 });
     expect(await 오류({ kind: 'AUTHOR', continueFrom: 머지 })).toEqual([409, 'BAD_SOURCE']);
+    const 재실행 = await pool.query<{ id: string }>(
+      `INSERT INTO authoring_request (service_id, kind, source_id, requested_by, requested_by_name, status)
+       VALUES ($1, 'RERUN', $2, 'xcont', '검사', 'FAILED') RETURNING id`,
+      [판.서비스, 뿌리],
+    );
+    expect(await 오류({ kind: 'AUTHOR', continueFrom: Number(재실행.rows[0]!.id) })).toEqual([409, 'BAD_SOURCE']);
   });
 
   it.each([

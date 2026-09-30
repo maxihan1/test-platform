@@ -125,6 +125,12 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
     expect(screen.getByText(글)).toBeTruthy();
   });
 
+  it('셈에 남은 것이 있는데 서버가 막으면(입력 자료 없는 옛 요청) 일반 까닭을 말한다', () => {
+    카드(줄({ canContinue: false }));
+    expect(screen.getByText('이 요청은 이어 작성할 수 없습니다.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '남은 요구로 이어 작성' })).toBeNull();
+  });
+
   it('서버가 409 로 막으면 오류 한 줄을 띄우고 다시 읽는다', async () => {
     만들기답 = () => Promise.reject(new ApiError(409, 'ALREADY_CONTINUED', ''));
     카드(줄({}));
@@ -180,6 +186,18 @@ describe('이어 작성 요청 — 원본 표시', () => {
     );
     const 고리 = await screen.findByRole('link', { name: '#5873의 남은 요구' });
     expect(고리.getAttribute('href')).toBe('#/authoring/5873');
+  });
+
+  it('재실행이 최신이어도 부제는 뿌리의 원본을 적는다 — 재실행 행에는 칸이 없다', async () => {
+    const 재실행 = { id: 5905, kind: 'RERUN' as const, resumeFrom: null, status: 'PENDING' as const, stopReason: null, error: null, createdAt: '2026-09-30T14:00:00Z', startedAt: null, finishedAt: null, caseFiles: null, tokens: null, prUrl: null };
+    답들.set(5901, 뿌리({ runs: [재실행, ...(뿌리().runs ?? [])] }));
+    답들.set(5905, 줄({ id: 5905, kind: 'RERUN', sourceId: 5901, status: 'PENDING', rootId: 5901, continueFrom: null, canContinue: false }));
+    render(
+      <언어함 value="ko">
+        <AuthoringDetail service="MKT" id={5901} 할수={다됨} />
+      </언어함>,
+    );
+    expect((await screen.findByRole('link', { name: '#5873의 남은 요구' })).getAttribute('href')).toBe('#/authoring/5873');
   });
 
   it('다른 요청 상세로 넘어갈 때 앞 요청의 답이 남아 있어도 앞 번호로 되돌려 보내지 않는다', async () => {
