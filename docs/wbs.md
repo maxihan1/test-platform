@@ -202,7 +202,8 @@
   - 근거 PR #119 · 2026-09-30
 - [x] `REV-F3-11` 커버리지 칸 — DB · finish result.coverage · 상세 · 작성 화면 · Grafana · 빠져도 올리기 거절 안 함(게이트 1)
   - 근거 PR #120 · 2026-09-30
-- [ ] `REV-F3-12` 남은 요구로 이어 작성 — continueFrom · 409 NOT_MERGED · NOTHING_LEFT · 「다음 요청」·「빠짐」 번호(계약 블록 대기)
+- [x] `REV-F3-12` 남은 요구로 이어 작성 — continueFrom · 409 NOT_MERGED · ALREADY_CONTINUED · NOTHING_LEFT · 자료 복사 · main 표의 「사람이 뺌」 인정
+  - 근거 PR #121 · 2026-09-30
 
 ### 실제 서버 확인 · Phase 2
 **무엇** 코드는 섰고 서버에서 한 바퀴 돌려 보는 일이 남았다.

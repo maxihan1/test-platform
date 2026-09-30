@@ -286,6 +286,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   작성 이어하기 `XRM`(`db/resume-columns.test.ts`)·`XWM`(`authoring/resume.test.ts`)(2026-09-28 — 둘 다 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 실행 기록 `XWH`(`authoring/history.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 커버리지 칸 `XWG`(`db/coverage-columns.test.ts`)·끝내기 셈 `XWJ`(`authoring/coverage-routes.test.ts`)·대시보드 커버리지 `XDJ`(`reporting/dashboard-coverage.test.ts`)(2026-09-30 — 셋 다 자기 `service_id` 로 지우고 그 `service` 행까지) ·
+  작성 이어 작성 칸 `XCF`(`db/continue-columns.test.ts`)·이어 작성 상세 `XWN`(`authoring/continue-detail.test.ts`)·거절 `XWP`(남의 서비스 `XWPB` 도 — `authoring/continue-reject.test.ts`)·자료 복사 `XWQ`(`authoring/continue-copy.test.ts`)(2026-09-30 — 판은 `authoring/continue-fixture.ts` 가 같이 차린다. 넷 다 자기 `service_id` 로 자료 → 요청 → `service_env` 순으로 지우고 그 `service` 행까지 · `LIKE` 를 안 쓴다) ·
   케이스 엑셀 `XCX`(`catalog/export-routes.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지. 계정은 `'xcx-%'` · 케이스는 `tc_id LIKE 'XCX-%'`) ·
   작성 보류 입력 `XWL`(`authoring/held.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 보류 통로 `XWLR`(`authoring/held-routes.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
