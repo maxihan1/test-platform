@@ -121,3 +121,11 @@ curl -X POST localhost:3000/api/runs/<끝난RUN>/abort   # 409 NOT_RUNNING
 - 이어받기 때문에 케이스 쓰기 권한자는 앞사람 비밀값을 다시 입력하지 않고도 다른 칸을 바꿔 저장할 수 있다 — 게이트 2 에서 그대로 두기로 했다
 - DB 검사 접두사 `XCI`(`db/case-input-columns.test.ts`) · `XSI`(`execution/savedInput.test.ts`)
 - `execution/queries.ts` 는 딱 300줄이다 — 더 넣으려면 먼저 나눈다
+
+## 2026-09-30 — 케이스 테스트 실행 · 실행 화면 개선 (PR #115)
+- 완료: 케이스 「테스트 실행」 — `POST /api/cases/:tcId/test-run` · `GET …/:trialId`(실행 기록 안 만듦, 결과는 메모리 24시간 · 사람당 1건 · 전체 50건) ·
+  `LOCAL_RUNNER_URL`(기본 없음 → 409 `TRIAL_OFF`) · 러너 `PLATFORM_HEADED`·`HOST` · 루트 `npm run runner:local` · compose `extra_hosts` · 결과 비밀값 가림 · 요청에 없는 칸은 저장값으로 채움
+- 미완: 리눅스 Docker 에서 127.0.0.1 전용 러너에 닿는지 미확인(맥 Docker Desktop 만 확인) · 사용자별 로컬 러너 등록(원격 서버용) · 시간 초과로 끝난 항목의 「러너에 닿지 못했습니다」 라벨 점검
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 진입점 `execution/trialRoutes.ts` · `execution/trial.ts`. 「내 컴퓨터」는 관리 서버와 브라우저가 같은 기계일 때만 뜻이 맞는다(SETUP §10). DB 검사 접두사 `XTR`.
+  RUN 20388 의 MKT-030·032 미실행은 저장된 로그인 값이 없어서였고, RUN 20389 의 0·0·0 은 전부 미확정이라 확정 집계에서 빠진 것이었다(설계대로)
