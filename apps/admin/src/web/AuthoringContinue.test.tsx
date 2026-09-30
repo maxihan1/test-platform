@@ -181,4 +181,24 @@ describe('이어 작성 요청 — 원본 표시', () => {
     const 고리 = await screen.findByRole('link', { name: '#5873의 남은 요구' });
     expect(고리.getAttribute('href')).toBe('#/authoring/5873');
   });
+
+  it('다른 요청 상세로 넘어갈 때 앞 요청의 답이 남아 있어도 앞 번호로 되돌려 보내지 않는다', async () => {
+    const 원본실행 = { id: 5873, kind: 'AUTHOR' as const, resumeFrom: null, status: 'DONE' as const, stopReason: null, error: null, createdAt: '2026-09-30T12:00:00Z', startedAt: null, finishedAt: null, caseFiles: null, tokens: null, prUrl: null };
+    답들.set(5873, 뿌리({ id: 5873, rootId: 5873, continueFrom: null, status: 'DONE', runs: [원본실행] }));
+    const 화면 = render(
+      <언어함 value="ko">
+        <AuthoringDetail service="MKT" id={5873} 할수={다됨} />
+      </언어함>,
+    );
+    await screen.findByText('#5873');
+    답들.set(5901, 뿌리());
+    window.location.hash = '#/authoring/5901';
+    화면.rerender(
+      <언어함 value="ko">
+        <AuthoringDetail service="MKT" id={5901} 할수={다됨} />
+      </언어함>,
+    );
+    await screen.findByRole('link', { name: '#5873의 남은 요구' });
+    expect(window.location.hash).toBe('#/authoring/5901');
+  });
 });

@@ -80,8 +80,10 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
   }, [뿌리읽기, 최신읽기, 작성읽기]);
   const 도는중 = data !== null && !끝났나(data.status);
 
-  // 예전 실행 번호로 들어오면 뿌리 번호 쪽으로 — 한 요청이 번호 여럿으로 흩어져 보이지 않게
-  const 뿌리번호 = 뿌리?.rootId;
+  // 예전 실행 번호로 들어오면 뿌리 번호 쪽으로 — 한 요청이 번호 여럿으로 흩어져 보이지 않게.
+  // **지금 번호의 답일 때만 넘긴다** — 다른 요청 상세로 넘어가는 동안(남은 요구 · 원본 고리) 앞 요청의 답이 남아 있으면
+  // 그 뿌리로 되돌려 보내 새 번호에 영영 못 간다 (2026-09-30 화면 확인에서 잡았다)
+  const 뿌리번호 = 뿌리?.id === id ? 뿌리.rootId : undefined;
   useEffect(() => {
     if (뿌리번호 !== undefined && 뿌리번호 !== id) window.location.hash = `#/authoring/${String(뿌리번호)}`;
   }, [뿌리번호, id]);
