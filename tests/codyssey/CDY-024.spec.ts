@@ -12,7 +12,6 @@ export const spec = defineCase({
     listButtonVisible: z.boolean().describe('상세에 「목록」 버튼이 보일지 여부').default(true),
     listTitle: z.string().describe('목록으로 돌아온 화면의 제목').default('공지사항'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

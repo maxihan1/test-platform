@@ -10,7 +10,6 @@ export const spec = defineCase({
     title: z.string().describe('열린 화면의 제목').default('AI 올인원'),
     path: z.string().describe('열린 화면의 주소 경로').default('/guide/recruitmentNotice'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

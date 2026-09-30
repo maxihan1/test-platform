@@ -9,7 +9,6 @@ export const spec = defineCase({
   expected: z.object({
     onlyCheckedGone: z.boolean().describe('체크하고 닫은 팝업만 사라질지 여부').default(true),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

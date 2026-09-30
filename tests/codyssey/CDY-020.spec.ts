@@ -10,7 +10,6 @@ export const spec = defineCase({
     allInOneCategories: z.string().describe('「AI 올인원」 탭의 분류를 " | " 로 이은 것').default('전체 | 모집 및 지원 | 교육생 입학연수과정 | AI·SW 기초 | Term Project 및 동료학습 | 교육 일정 및 방식 | 커리어 및 수료 혜택 | 비용 및 지원 제도'),
     nativeCategories: z.string().describe('「AI 네이티브」 탭의 분류를 " | " 로 이은 것').default('전체 | 교육과정 소개 | 교육 혜택 | 교육 신청 절차 | 교육 수료 | 기타'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

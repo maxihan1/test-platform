@@ -9,7 +9,6 @@ export const spec = defineCase({
   expected: z.object({
     headings: z.string().describe('제목과 소제목을 " | " 로 이은 것').default('지원혜택 | 누구에게나 열려 있는 기회 | AX시대, 도전과 설렘을 현실로! | 소개 영상'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

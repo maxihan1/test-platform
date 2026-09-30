@@ -12,7 +12,6 @@ export const spec = defineCase({
     qnaHref: z.string().describe('교육관련문의 메일 링크 주소').default('mailto:qna@codyssey.kr'),
     communicationHref: z.string().describe('제휴제안 메일 링크 주소').default('mailto:communication@codyssey.kr'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

@@ -10,7 +10,6 @@ export const spec = defineCase({
     campuses: z.string().describe('나올 캠퍼스 이름을 쉼표로 이은 것').default('서울 개포 캠퍼스, 대전 대전 캠퍼스, 경남 경남 캠퍼스'),
     hrefs: z.string().describe('캠퍼스 링크 주소를 쉼표로 이은 것').default('/loginForm, /daejeon/loginForm, /gyeongnam/loginForm'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

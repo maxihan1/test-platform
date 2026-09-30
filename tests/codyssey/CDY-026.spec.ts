@@ -11,7 +11,6 @@ export const spec = defineCase({
     searchVisible: z.boolean().describe('검색란이 보일지 여부').default(true),
     searchButtonVisible: z.boolean().describe('「검색」 버튼이 보일지 여부').default(true),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

@@ -10,7 +10,6 @@ export const spec = defineCase({
     answerShown: z.boolean().describe('질문을 누른 뒤 항목의 글이 늘어날지 여부').default(true),
     path: z.string().describe('질문을 누른 뒤 주소 경로').default('/board/faqGoList'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

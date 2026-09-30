@@ -11,7 +11,6 @@ export const spec = defineCase({
     title: z.string().describe('겹쳐 열린 창의 제목').default('개인정보처리방침'),
     buttons: z.string().describe('겹쳐 열린 창의 버튼 이름을 쉼표로 이은 것').default('닫기, 확인'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

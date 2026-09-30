@@ -10,7 +10,6 @@ export const spec = defineCase({
     title: z.string().describe('화면 제목').default('이용약관'),
     firstArticle: z.string().describe('첫 조항 제목').default('제1조 (목적)'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

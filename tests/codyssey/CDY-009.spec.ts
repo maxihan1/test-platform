@@ -13,7 +13,6 @@ export const spec = defineCase({
     disabledWithoutConsent: z.boolean().describe('필수 동의 없이 「교육과정 알림신청 완료」가 눌리지 않을지 여부').default(true),
     disabledWithConsent: z.boolean().describe('필수 동의 둘을 체크한 뒤 「교육과정 알림신청 완료」가 눌리지 않을지 여부').default(false),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, params, expected }) => {

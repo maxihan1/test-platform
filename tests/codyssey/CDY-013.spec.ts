@@ -10,7 +10,6 @@ export const spec = defineCase({
     headings: z.string().describe('보일 소제목을 " | " 로 이은 것').default('공간 소개 | 층별 안내 | 캠퍼스 소개영상 | 오시는 길'),
     goLinks: z.string().describe('「GO」 링크 주소를 쉼표로 이은 것').default('/about/campus, /daejeon/about/campus, /gyeongnam/about/campus'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {

@@ -9,7 +9,6 @@ export const spec = defineCase({
   expected: z.object({
     headings: z.string().describe('제목과 소제목을 " | " 로 이은 것').default('교육과정 | 교육안내 | AI 올인원 과정 (최대 18개월) | AI 네이티브 과정 (최대 5개월)'),
   }),
-  unconfirmed: '화면만 — 기획서 없음 (작성 요청 10779)',
 });
 
 test(spec, async ({ page, expected }) => {
