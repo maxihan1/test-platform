@@ -135,6 +135,24 @@
           "rawSql": "SELECT s.name AS \"서비스\",\n       CASE WHEN a.kind = 'RERUN' THEN '재실행' WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       CASE WHEN a.status = 'STOPPED' THEN '중단 · ' || CASE a.stop_reason WHEN 'USER' THEN '사용자' WHEN 'TIMEOUT' THEN '시간초과' WHEN 'LIMIT' THEN '구독 한도' WHEN 'AGENT_RESTART' THEN '에이전트 재시작' WHEN 'AGENT_LOST' THEN '에이전트 응답 없음' WHEN 'CRASH' THEN '작성 중 끊김' WHEN 'REJECTED' THEN '올리기 거절' END\n            WHEN a.tokens_partial THEN '끊김' WHEN a.status = 'DONE' THEN '성공' ELSE '그 밖 실패' END AS \"결과\",\n       count(*) AS \"실행 수\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_input::float8) AS \"입력 중간값\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_output::float8) AS \"출력 중간값\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_cache_read::float8) AS \"캐시 읽기 중간값\",\n       percentile_cont(0.5) WITHIN GROUP (ORDER BY a.tokens_cache_write::float8) AS \"캐시 쓰기 중간값\",\n       sum(a.tokens_input) AS \"입력 합계\",\n       sum(a.tokens_output) AS \"출력 합계\",\n       sum(a.tokens_cache_read) AS \"캐시 읽기 합계\",\n       sum(a.tokens_cache_write) AS \"캐시 쓰기 합계\",\n       round(coalesce(sum(a.cost_usd), 0), 2) AS \"API 환산 (청구 아님) 합계\",\n       count(a.cost_usd) AS \"비용 있는 실행\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind IN ('AUTHOR', 'RERUN')\n  AND a.status IN ('DONE', 'FAILED', 'STOPPED')\n  AND a.tokens_input IS NOT NULL\n  AND a.finished_at >= now() - interval '30 days'\nGROUP BY s.id, s.name, 2, 3\nORDER BY s.name, 2, 3"
         }
       ]
+    },
+    {
+      "id": 8,
+      "title": "작성 커버리지",
+      "description": "최근 30일(끝난 시각) 작성 · 재실행 실행이 기획서 요구를 얼마나 케이스로 덮었나 — 한 줄이 실행 하나, 최근 것부터 30줄. 요구 = 케이스로 덮음 + 제외 + 빠짐이고 케이스로 덮음에는 보류 케이스가 든다(보류로만은 그 일부 · 비면 보류를 못 셌다). 빠져도 올리기를 멈추지 않으므로 빠짐이 0 이 아닐 수 있다. 성공인데 칸이 비면 원장 없음이다(PDF · 피그마만 · 이 칸이 생기기 전 실행). 「다음 요청」 수와 원장에 못 넣은 자료는 칸이 없어 여기 없다 — 요청 상세의 Status 카드에서 본다 (도메인/리포팅 §8.5)",
+      "type": "table",
+      "datasource": { "type": "postgres", "uid": "platform-postgres" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "platform-postgres" },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT a.id AS \"번호\",\n       s.name AS \"서비스\",\n       CASE WHEN a.kind = 'RERUN' THEN '재실행' WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       CASE WHEN a.status = 'STOPPED' THEN '중단 · ' || CASE a.stop_reason WHEN 'USER' THEN '사용자' WHEN 'TIMEOUT' THEN '시간초과' WHEN 'LIMIT' THEN '구독 한도' WHEN 'AGENT_RESTART' THEN '에이전트 재시작' WHEN 'AGENT_LOST' THEN '에이전트 응답 없음' WHEN 'CRASH' THEN '작성 중 끊김' WHEN 'REJECTED' THEN '올리기 거절' END\n            WHEN a.status = 'DONE' THEN '성공' ELSE '실패' END AS \"결과\",\n       a.coverage_total AS \"요구\",\n       a.coverage_cased AS \"케이스로 덮음\",\n       round(100.0 * a.coverage_cased / NULLIF(a.coverage_total, 0)) AS \"케이스 %\",\n       a.coverage_held AS \"보류로만\",\n       a.coverage_excluded AS \"제외\",\n       a.coverage_missing AS \"빠짐\",\n       CASE WHEN a.coverage_total IS NULL THEN '원장 없음' ELSE '' END AS \"비고\",\n       a.finished_at AS \"끝난 시각\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind IN ('AUTHOR', 'RERUN')\n  AND a.status IN ('DONE', 'FAILED', 'STOPPED')\n  AND a.finished_at >= now() - interval '30 days'\n  AND (a.coverage_total IS NOT NULL OR a.status = 'DONE')\nORDER BY a.finished_at DESC\nLIMIT 30"
+        }
+      ]
     }
   ]
 }
