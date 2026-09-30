@@ -63,6 +63,16 @@ describe('커버리지만들기', () => {
     expect(커버리지만들기(섞임, new Set())).toMatchObject({ unread: ['화면.pdf'] });
   });
 
+  it('원장 없음 까닭 · 자료 이름은 서버 상한으로 자르되 이모지 짝을 가르지 않는다 — 셈이 통째로 빠지지 않게', () => {
+    const 긴까닭 = `${'가'.repeat(499)}😀끝`;
+    const 셈 = 커버리지만들기({ 없음: 긴까닭 }, null);
+    expect(커버리지모양검사(셈)).not.toBeNull();
+    expect('none' in 셈 && 셈.none).toBe('가'.repeat(499));
+    const 긴이름 = `${'a'.repeat(199)}😀.pdf`;
+    const 섞임 = 커버리지만들기({ 대조, 원장: { ...원장값, 빠진자료: [긴이름] } }, new Set());
+    expect('unread' in 섞임 && 섞임.unread).toEqual(['a'.repeat(199)]);
+  });
+
   it('원장이 없으면 까닭만 싣는다', () => {
     expect(커버리지만들기({ 없음: '글자본이 없는 자료(PDF · 피그마)' }, null)).toEqual({ none: '글자본이 없는 자료(PDF · 피그마)' });
   });

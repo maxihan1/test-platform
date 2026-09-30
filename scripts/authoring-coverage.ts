@@ -15,14 +15,28 @@ const 이름상한 = 200;
 // 끝내기 본문 상한은 1MiB(서버 기본값)다. 넘으면 400 이 아니라 413 이라 「셈만 빼고 다시」 길을 못 탄다 — 나머지 몸이 들어갈 자리를 남긴다
 const 셈글상한 = 512 * 1024;
 
+const 까닭상한 = 500;
+
 const 물건인가 = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * 서버는 UTF-16 길이로 잰다 — 그 길이로 자르되 끝이 짝 잃은 앞쪽 서로게이트면 한 칸 더 뺀다.
+ * 이모지를 가르면 jsonb 가 거절해 끝내기가 500 이 되고, 에이전트는 몇 분 다시 보내다 던진다
+ */
+function 자르기(글: string, 상한: number): string {
+  if (글.length <= 상한) return 글;
+  const 앞 = 글.slice(0, 상한);
+  const 끝 = 앞.charCodeAt(앞.length - 1);
+  return 끝 >= 0xd800 && 끝 <= 0xdbff ? 앞.slice(0, -1) : 앞;
+}
 
 /**
  * 셈을 만든다. `보류` 는 보류 케이스 tcId 들 — null 이면 모른다(보류 스캔은 DONE 때만 돈다 · 스캔 실패).
  * 보류로만 덮인 번호는 `cased` 에도 든다 — 보류 케이스도 덮는다(§3.6 「덮는다는 것」)
  */
 export function 커버리지만들기(재료: 셈재료, 보류: Set<string> | null): 커버리지 {
-  if ('없음' in 재료) return { none: 재료.없음 };
+  // 까닭에는 못 읽은 자료 이름이 줄지어 붙는다 — 길면 서버 상한에 걸려 셈이 통째로 빠진다
+  if ('없음' in 재료) return { none: 자르기(재료.없음, 까닭상한) };
   const { 대조, 원장 } = 재료;
   const 보류로만 =
     보류 === null ? null : [...대조.덮음.values()].filter((tc) => [...tc].every((t) => 보류.has(t))).length;
@@ -36,7 +50,7 @@ export function 커버리지만들기(재료: 셈재료, 보류: Set<string> | n
     missing: 대조.빠짐,
     later: [...대조.제외번호].filter(([, 종류]) => 종류 === 다음요청).map(([번호]) => 번호),
     // 자료 이름은 사람이 붙인 것이라 길 수 있다 — 서버 상한에 걸려 셈이 통째로 빠지지 않게 자른다
-    ...(원장.빠진자료.length > 0 ? { unread: 원장.빠진자료.map((이름) => 이름.slice(0, 이름상한)) } : {}),
+    ...(원장.빠진자료.length > 0 ? { unread: 원장.빠진자료.map((이름) => 자르기(이름, 이름상한)) } : {}),
   };
 }
 

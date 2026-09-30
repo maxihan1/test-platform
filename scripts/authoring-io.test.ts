@@ -209,6 +209,26 @@ describe('부른다 — 서버에 못 닿은 요청은 한 번 더 건다 (#3336
     expect(보낸몸[2]).toMatchObject({ status: 'FAILED' });
   });
 
+  it('끝내기 — 셈을 뺀 몸이 5xx 를 받으면 다음 시도도 셈을 뺀 몸으로 다시 보낸다 — PR 주소 · 보류를 잃지 않게', async () => {
+    vi.useFakeTimers();
+    try {
+      const 받은것 = 가짜(
+        () => new Response(JSON.stringify({ error: 'BAD_COVERAGE' }), { status: 400 }),
+        () => 답(503),
+        () => 답(200),
+      );
+      const 몸 = { status: 'DONE', prUrl: 'https://x/pull/1', result: { coverage: { total: 1 } } };
+      const 끝 = 보고손만들기('http://x', 'c', 'MKT', 5).끝내기(몸);
+      await vi.runAllTimersAsync();
+      expect(((await 끝) as { status: number }).status).toBe(200);
+      const 보낸몸 = 받은것.map((o) => JSON.parse(String(o.body)) as Record<string, unknown>);
+      expect(보낸몸).toHaveLength(3);
+      expect(보낸몸[2]).toEqual({ status: 'DONE', prUrl: 'https://x/pull/1' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('토큰을 Bearer 로 싣고 쿠키는 안 싣는다 — 맥은 비밀번호 로그인을 안 한다', async () => {
     const 받은것 = 가짜(() => 답(200));
     await 부른다('http://x', 'tpa_열쇠', '/stage');
@@ -265,6 +285,11 @@ describe('거절된보고대신 — 끝났다는 보고가 400 이면 실패로 
     expect(거절된보고대신(400, { error: 'BAD_COVERAGE' }, 몸)).toEqual({ status: 'DONE', prUrl: 'https://github.com/a/b/pull/7', result: { held: [] } });
     const 거절 = { status: 'STOPPED', stopReason: 'REJECTED', error: 'push 실패', result: { coverage: { total: 1 } } };
     expect(거절된보고대신(400, { error: 'BAD_COVERAGE' }, 거절)).toEqual({ status: 'STOPPED', stopReason: 'REJECTED', error: 'push 실패' });
+  });
+  it('본문 상한(413)에 걸린 몸에 셈이 있으면 셈만 뺀다 — 셈이 커서 넘친 것이다', () => {
+    const 몸 = { status: 'DONE', prUrl: 'p', result: { coverage: { total: 1 } } };
+    expect(거절된보고대신(413, null, 몸)).toEqual({ status: 'DONE', prUrl: 'p' });
+    expect(거절된보고대신(413, null, { status: 'DONE' })).toBeNull();
   });
   it('셈이 없는 몸의 BAD_COVERAGE 는 다른 400 처럼 FAILED 다', () => {
     expect(거절된보고대신(400, { error: 'BAD_COVERAGE' }, { status: 'DONE' })).toMatchObject({ status: 'FAILED' });
