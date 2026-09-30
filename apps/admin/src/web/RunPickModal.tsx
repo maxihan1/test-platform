@@ -11,7 +11,10 @@ import { Modal } from './Modal.js';
 import { type 고친값표, type 글자표, 몇건, 실행항목 } from './pickRun.js';
 import { 넘었나, 상한 } from './runPlan.js';
 import { type Field, schemaToFields, toValues } from './schema.js';
+import { 열주소칸, 시험배지 } from './RunPickTrial.js';
+import { 열주소기본값 } from './TestRun.js';
 import { PLATFORM_LABEL } from './ui.js';
+import { useTrialQueue } from './useTrialQueue.js';
 
 export interface 실행요청 {
   env: string;
@@ -60,6 +63,10 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
   const [notifySlack, setNotifySlack] = useState(false);
   const [글자, set글자] = useState<글자표>(초기글자 ?? {});
   const [notice, setNotice] = useState<string | null>(null);
+  // 「▶ 테스트 실행」 — 기록 없이 내 컴퓨터 러너로 한 건씩 차례로 (도메인/실행 §8.10)
+  const [적은주소, set적은주소] = useState<string | null>(null);
+  const [주소오류, set주소오류] = useState(false);
+  const 큐 = useTrialQueue();
 
   const 칸들 = useMemo(
     () =>
@@ -106,6 +113,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
    * 대신 위 둘까지 덮지는 않는다 — 옛 사유가 버튼이 죽은 이유를 가리면
    * 「왜 안 눌리는지」를 읽을 자리가 사라진다 (DESIGN.md 접근성 기준).
    */
+  const 열주소 = 적은주소 ?? 열주소기본값(주소);
   const 줄 =
     notice ??
     (너무많나
@@ -137,6 +145,18 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
         return { ...전, [tcId]: { ...지금, [which]: { ...지금[which], [key]: value } } };
       });
     };
+  }
+
+  function 테스트실행() {
+    // 버튼은 죽이지 않는다. 도는 중에 또 누르면 사유를 말한다 (DESIGN.md)
+    if (큐.도는중) {
+      setNotice(t('이미 테스트 실행이 돌고 있습니다'));
+      return;
+    }
+    const 거절 = !/^https?:\/\/\S/i.test(열주소.trim());
+    set주소오류(거절);
+    if (거절) return;
+    void 큐.시작(실행항목(케이스들, 고친값), 열주소.trim());
   }
 
   function 실행() {
@@ -171,6 +191,9 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
           </button>
           {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
           {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
+          <button className="btn ghost" onClick={테스트실행}>
+            {t('▶ 테스트 실행')}
+          </button>
           <button className="btn" onClick={실행} disabled={너무많나 || 거는중 === true}>
             {거는중 === true ? t('실행을 시작하는 중') : t('실행')}
           </button>
@@ -192,6 +215,15 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
         {주소 === null ? null : <span className="addr">{주소}</span>}
       </div>
 
+      <열주소칸
+        값={열주소}
+        오류={주소오류}
+        onChange={(값) => {
+          set적은주소(값);
+          set주소오류(false);
+        }}
+      />
+
       {/* 고른 것이 왜 줄었는지. 제목의 건수만 보면 어디서 사라졌는지 아무 데도 안 적힌다 */}
       {안내 === undefined ? null : <div className="mnote">{안내}</div>}
 
@@ -209,6 +241,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
                 <span className="nm">{c.name}</span>
                 {/* 디바이스는 케이스가 선언한 것을 전부 쓴다. 여기서 고르지 않는다 (SPEC §8.10) */}
                 <span className="dev">{c.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ')}</span>
+                <시험배지 줄={큐.줄들[c.tcId]} />
               </div>
               {!값있나 || 칸 === undefined ? (
                 <p className="prow-none">{t('선언된 입력값이 없습니다. 그대로 실행됩니다')}</p>

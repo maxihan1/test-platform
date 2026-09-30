@@ -5,9 +5,9 @@
 // 곱셈으로 세면 있지도 않은 조합을 센다 — 둘짜리 하나와 하나짜리 하나는 2도 4도 아닌 3건이다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import type { CaseRow, JsonSchema, Platform, ServiceRow } from './api.js';
+import { api, type CaseRow, type JsonSchema, type Platform, type ServiceRow } from './api.js';
 import { RunPickModal } from './RunPickModal.js';
 
 // globals 가 꺼져 있어 testing-library 가 스스로 cleanup 을 걸지 못한다. 직접 건다
@@ -207,5 +207,61 @@ describe('RunPickModal', () => {
     그리기();
 
     expect(screen.getByRole('dialog').classList.contains('wide')).toBe(true);
+  });
+});
+
+// 여러 건 「테스트 실행」 — 기록 없이 내 컴퓨터 러너로 한 건씩 차례로 (2026-09-30)
+describe('RunPickModal 테스트 실행', () => {
+  const 테스트버튼 = () => screen.getByRole('button', { name: '▶ 테스트 실행' });
+  const 주소칸 = () => screen.getByLabelText('열 주소') as HTMLInputElement;
+
+  function 서버모킹() {
+    const 시작 = vi.spyOn(api, 'startTrial').mockImplementation((tcId) => Promise.resolve({ trialId: `t-${tcId}` }));
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: { status: 'PASS', durationMs: 2100, steps: [] } });
+    return 시작;
+  }
+
+  it('버튼 글자는 「실행」이 아니라 별도이고 실행 버튼은 그대로다', () => {
+    그리기();
+    expect(테스트버튼()).toBeTruthy();
+    expect(실행버튼()).toBeTruthy();
+  });
+
+  it('열 주소를 적고 누르면 고른 케이스를 차례로 돌리고 줄마다 결과가 붙는다', async () => {
+    const 시작 = 서버모킹();
+    그리기();
+
+    fireEvent.change(주소칸(), { target: { value: 'http://localhost:3002' } });
+    fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'zpm-tester' } });
+    fireEvent.click(테스트버튼());
+
+    await waitFor(() => expect(screen.getAllByText('통과')).toHaveLength(2), { timeout: 5000 });
+    expect(시작.mock.calls.map(([id]) => id)).toEqual(['ZPM-001', 'ZPM-002']);
+    expect(시작).toHaveBeenCalledWith(
+      'ZPM-002',
+      expect.objectContaining({ platform: 'desktop', baseUrl: 'http://localhost:3002', params: { userId: 'zpm-tester' } }),
+    );
+  });
+
+  it('열 주소가 http(s) 가 아니면 안 돌리고 사유를 칸 아래에 적는다', () => {
+    const 시작 = 서버모킹();
+    그리기();
+
+    fireEvent.change(주소칸(), { target: { value: 'file:///etc/passwd' } });
+    fireEvent.click(테스트버튼());
+
+    expect(시작).not.toHaveBeenCalled();
+    expect(screen.getByText('열 주소는 http:// 또는 https:// 로 시작해야 합니다')).toBeTruthy();
+  });
+
+  it('대상 서버를 고르면 열 주소 기본값이 그 주소가 된다', () => {
+    그리기();
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    expect(주소칸().value).toBe('https://qa.example.com');
+  });
+
+  it('기록에 남지 않는다는 안내가 보인다', () => {
+    그리기();
+    expect(screen.getByText('실행 기록에 남지 않습니다 · 24시간 뒤 사라집니다')).toBeTruthy();
   });
 });
