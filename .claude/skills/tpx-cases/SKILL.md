@@ -65,5 +65,5 @@ LLM 출력은 비결정적이다. 같은 기획서를 두 번 넣으면 두 번 
 | §4 selector 확정 · 용어 사전 — R9 · R10 | `references/4-selector.md` | 화면을 열기 전 |
 | §5 케이스 작성 — R11~R14 · R16 | `references/5-writing.md` | `.spec.ts` 를 쓰기 전 |
 | §5 케이스 작성 — 화면 묶음이 여럿이면 (서브에이전트 팬아웃) | `.claude/skills/tpx-author/references/fanout.md` | 표를 얼리고 tcId 를 다 매긴 뒤 · 화면 묶음 둘 이상 · 케이스 8건 이상 |
-| §6 검증 관문 넷(관문 0 원장 대조 포함) · 종료 조건 | `references/6-gates.md` | 표를 다 쓴 뒤 관문 0 한 번 · 케이스를 다 쓴 뒤 전부 |
-| §7 표 되채우기와 커밋 · §8 반환 · 막혔을 때 | `references/7-finish.md` | 관문 넷을 통과한 뒤, 또는 막혔을 때 |
+| §6 검증 관문 넷 — 관문 0 원장 대조와 관문 1~4 · 종료 조건 | `references/6-gates.md` | 표를 다 쓴 뒤 관문 0 한 번 · 케이스를 다 쓴 뒤 전부 |
+| §7 표 되채우기와 커밋 · §8 반환 · 막혔을 때 | `references/7-finish.md` | §6 관문을 전부 통과한 뒤, 또는 막혔을 때 |

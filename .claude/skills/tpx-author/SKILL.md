@@ -49,7 +49,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 
 ## 절차 — `tpx-cases` 를 이 순서로 따른다
 
-`tpx-cases` 의 규칙(R1~R16 · 관문 넷 · 종료 조건)을 **그대로** 쓴다. 이 스킬이 덮어쓰는 것은
+`tpx-cases` 의 규칙(R1~R16 · §6 관문 전부(관문 0 포함) · 종료 조건)을 **그대로** 쓴다. 이 스킬이 덮어쓰는 것은
 아래 적은 자리뿐이다. `tpx-cases` 가 git·초안 PR·[6]·게이트 2 를 전제로 적은 문장은 **이 스킬이 이긴다.**
 
 **각 단계에 들어가기 전에 적힌 파일을 Read 로 연다** — 경로는 `.claude/skills/tpx-cases/` 아래다.
