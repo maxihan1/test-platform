@@ -252,4 +252,15 @@ export const 작성말: Record<string, string> = {
   '보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.': 'Could not read the held cases. Run it again with the same materials.',
   '테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.':
     'No target server has a test account. Add one in Settings > Services.',
+  // 기획서 요구 셈 (도메인/작성 §3.6 「★ 원장」) — Status 카드 한 줄
+  '기획서 요구': 'Spec requirements',
+  '{총}개 → 케이스로 덮음 {덮음} ({퍼센트}%)': '{총} → {덮음} covered by cases ({퍼센트}%)',
+  '{총}개 → 케이스로 덮음 {덮음}': '{총} → {덮음} covered by cases',
+  '보류로만 {수}': 'held only {수}',
+  '보류 모름': 'held unknown',
+  '제외 {수} (다음 요청 {다음})': 'excluded {수} (next request {다음})',
+  '제외 {수}': 'excluded {수}',
+  '빠짐 {수}': 'missing {수}',
+  '원장 밖 자료 {수}': 'files outside the ledger {수}',
+  '셈 없음 — {까닭}': 'no count — {까닭}',
 };
