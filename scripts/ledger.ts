@@ -31,7 +31,8 @@ if (명령 === '뽑기') {
     console.error('쓰는 법: npm run check:ledger -- <ledger.json> <표.md> [--tests <폴더>] [--agent]');
     process.exit(2);
   }
-  const 읽은 = JSON.parse(readFileSync(원장파일, 'utf8')) as { 원장?: 원장 };
+  // 사람이뺌 — 에이전트가 기준(main) 표에서 뽑아 사본에 실은 것. --agent 여도 이 번호의 「사람이 뺌」 줄은 인정한다 (2026-09-30 게이트 1)
+  const 읽은 = JSON.parse(readFileSync(원장파일, 'utf8')) as { 원장?: 원장; 사람이뺌?: string[] };
   if (읽은.원장 === undefined) {
     console.log('원장 없음 — 대조를 건너뛴다');
     process.exit(0);
@@ -45,7 +46,11 @@ if (명령 === '뽑기') {
             .filter((f) => f.endsWith('.spec.ts'))
             .map((f) => readFileSync(join(폴더, f), 'utf8')),
         );
-  const 결과 = 원장대조(읽은.원장.항목, readFileSync(표파일, 'utf8'), { 있는케이스, 에이전트: 인자.includes('--agent') });
+  const 결과 = 원장대조(읽은.원장.항목, readFileSync(표파일, 'utf8'), {
+    있는케이스,
+    에이전트: 인자.includes('--agent'),
+    사람이뺌: new Set(읽은.사람이뺌 ?? []),
+  });
   console.log(셈글(결과.셈, 읽은.원장.가족));
   for (const m of 결과.형식오류) console.log(`형식 오류: ${m}`);
   for (const m of 결과.경고) console.log(`경고: ${m}`);

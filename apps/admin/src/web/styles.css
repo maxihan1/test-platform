@@ -361,6 +361,12 @@ body {
   color: inherit;
 }
 
+/* 부제 안의 고리(남은 요구로 이어 작성한 원본 「#N의 남은 요구」)도 부제 색을 물려받고 밑줄로만 고리임을 보인다.
+   브라우저 기본 파랑이 뜨면 판정 색도 잉크도 아닌 색이 머리에 하나 선다 (2026-09-30 화면 확인) */
+.head-meta a {
+  color: inherit;
+}
+
 .head-acts {
   display: flex;
   gap: 8px;

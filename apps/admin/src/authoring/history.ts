@@ -1,5 +1,7 @@
 // 작성 요청의 보이는 번호(뿌리)와 실행 기록 — DB 는 실행마다 행, 목록·상세는 뿌리 하나로 묶는다 (도메인/작성 §7 「실행 기록」)
 
+import type { PoolClient } from 'pg';
+
 import { db, 빚기, 칸들, type 상태, type 요청, type 행 } from './store.js';
 
 /**
@@ -128,14 +130,16 @@ export async function 최신실행(뿌리번호: number): Promise<number> {
 
 /**
  * 뿌리 하나에 새 실행을 세우는 일을 한 줄로 — 확인(`도는실행있나`)과 넣기 사이에 다른 누름이 끼면
- * 둘이 같은 브랜치를 서로 덮는다 (2026-09-29 검사). 트랜잭션 잠금이라 끝나면 저절로 풀린다
+ * 둘이 같은 브랜치를 서로 덮는다 (2026-09-29 검사). 트랜잭션 잠금이라 끝나면 저절로 풀린다.
+ * `일` 은 잠금을 쥔 연결(`손`)을 받는다 — 잠금 안에서 풀 연결을 또 잡으면 동시 누름이 풀 크기를 넘길 때
+ * 잠금을 쥔 쪽이 연결을 못 얻어 서버 전체가 선다(2026-09-30 보안 검토). 새 코드는 `손` 으로만 묻는다
  */
-export async function 뿌리잠그고<T>(뿌리번호: number, 일: () => Promise<T>): Promise<T> {
+export async function 뿌리잠그고<T>(뿌리번호: number, 일: (손: PoolClient) => Promise<T>): Promise<T> {
   const 손 = await (await db()).connect();
   try {
     await 손.query('BEGIN');
     await 손.query(`SELECT pg_advisory_xact_lock(hashtext('authoring-root'), ($1::bigint % 2147483647)::int)`, [뿌리번호]);
-    const 값 = await 일();
+    const 값 = await 일(손);
     await 손.query('COMMIT');
     return 값;
   } catch (e) {
@@ -176,7 +180,8 @@ export async function 한쪽(입력: {
   const 값들: unknown[] = 입력.상태 === undefined ? [입력.서비스] : [입력.서비스, 입력.상태];
   const 최신 = `WITH RECURSIVE ${사슬식("service_id = $1 AND kind = 'AUTHOR'")},
     최신 AS (
-      SELECT DISTINCT ON (사슬.root_id) 사슬.root_id, count(*) OVER (PARTITION BY 사슬.root_id) AS run_count, ${요약칸들}
+      SELECT DISTINCT ON (사슬.root_id) 사슬.root_id, count(*) OVER (PARTITION BY 사슬.root_id) AS run_count,
+             (SELECT r.continue_from FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_continue_from, ${요약칸들}
         FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id
        ORDER BY 사슬.root_id, a.id DESC
     )`;
@@ -184,7 +189,7 @@ export async function 한쪽(입력: {
   const 셈 = await pool.query<{ n: string }>(`${최신} SELECT count(*) AS n FROM 최신 WHERE ${조건}`, 값들);
   // **건너뛸 개수를 질의문 글자에 끼워 넣지 않는다.** 지금은 숫자로 걸러지므로 주입은 아니지만,
   // 다음 사람이 여기에 문자열을 하나 더 얹으면 그때는 진짜 주입이 된다 (2026-09-22 보안 검토)
-  const r = await pool.query<Omit<행, 'spec_text'> & { root_id: string; run_count: string }>(
+  const r = await pool.query<Omit<행, 'spec_text'> & { root_id: string; run_count: string; root_continue_from: string | null }>(
     `${최신} SELECT * FROM 최신 WHERE ${조건}
       ORDER BY id DESC
       LIMIT $${값들.length + 1} OFFSET $${값들.length + 2}`,
@@ -193,7 +198,9 @@ export async function 한쪽(입력: {
   return {
     items: r.rows.map((x) => {
       const { specText: _본문, ...나머지 } = 빚기({ ...x, spec_text: null });
-      return { ...나머지, rootId: Number(x.root_id), runCount: Number(x.run_count) };
+      // 이어 작성은 뿌리(AUTHOR)에만 붙는다 — 줄의 다른 칸은 최신 실행 것이지만 이 칸은 뿌리 것을 싣는다
+      const continueFrom = x.root_continue_from === null ? null : Number(x.root_continue_from);
+      return { ...나머지, continueFrom, rootId: Number(x.root_id), runCount: Number(x.run_count) };
     }),
     total: Number(셈.rows[0]!.n),
     page: 쪽,

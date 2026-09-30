@@ -81,7 +81,8 @@ function 표읽기(글: string, 제목: string): Record<string, string>[] {
 export function 원장대조(
   원장: 원장항목[],
   표글: string,
-  선택: { 있는케이스?: Set<string>; 에이전트: boolean },
+  // 에이전트 — 참이면 「사람이 뺌」을 형식 오류로 친다. 단 사람이뺌(기준(main) 표에 이미 있던 번호)의 줄은 인정한다 — 사람의 결정이다 (2026-09-30 게이트 1)
+  선택: { 있는케이스?: Set<string>; 에이전트: boolean; 사람이뺌?: Set<string> },
 ): 대조결과 {
   const 형식오류: string[] = [];
   const 케이스로 = new Map<string, Set<string>>();
@@ -122,7 +123,7 @@ export function 원장대조(
       틀림(`모르는 종류 「${종류}」`);
       continue;
     }
-    if (종류 === '사람이 뺌' && 선택.에이전트) {
+    if (종류 === '사람이 뺌' && 선택.에이전트 && !(선택.사람이뺌?.has(번호들[0] ?? '') ?? false)) {
       틀림('「사람이 뺌」은 사람 세션만 쓴다');
       continue;
     }
@@ -159,6 +160,18 @@ export function 원장대조(
   };
 }
 
+/**
+ * 표의 「제외」에서 「사람이 뺌」 번호만. 에이전트가 기준(main) 표에서 뽑아 들고 대조에 넘긴다 —
+ * 사람이 병합 뒤 적은 결정을 다음 실행이 형식 오류 · 빠짐으로 세지 않게. 한 줄에 번호 하나가 아닌 줄은 뺀다(대조가 형식 오류로 본다)
+ */
+export function 사람이뺀번호(표글: string): Set<string> {
+  const 번호들 = 표읽기(표글, '제외')
+    .filter((행) => (행['종류'] ?? '').trim() === '사람이 뺌')
+    .map((행) => 번호찾기(행['요구'] ?? '').번호들)
+    .filter((b) => b.length === 1);
+  return new Set(번호들.map((b) => b[0] ?? ''));
+}
+
 /** PR 본문 머리에 싣는 셈 한 줄 — 에이전트가 센 것이다(자식 요약을 믿지 않는다) */
 export function 셈글(셈: 셈, 가족: Record<string, number>): string {
   const 제외수 = Object.values(셈.제외).reduce((a, n) => a + (n ?? 0), 0);
@@ -187,9 +200,10 @@ export function 원장판정(
   원장값: 원장 | { 없음: string },
   표글: string,
   있는케이스: Set<string>,
+  사람이뺌: Set<string> = new Set(),
 ): { 머리글: string; 대조: 대조결과 } | { 머리글: string; 없음: string } {
   if ('없음' in 원장값) return { 머리글: `⚠️ 원장 없음 — ${원장값.없음}. 빠진 요구를 기계로 확인하지 못했다`, 없음: 원장값.없음 };
-  const 결과 = 원장대조(원장값.항목, 표글, { 있는케이스, 에이전트: true });
+  const 결과 = 원장대조(원장값.항목, 표글, { 있는케이스, 에이전트: true, 사람이뺌 });
   const 못넣음 = 원장값.빠진자료.length > 0 ? ` · 원장에 못 넣은 자료 ${원장값.빠진자료.join(' · ')}` : '';
   const 줄들 = [`${셈글(결과.셈, 원장값.가족)}${못넣음}`, ...경고줄('빠짐', 결과.빠짐, 10), ...경고줄('형식 오류', 결과.형식오류, 3)];
   return { 머리글: 줄들.join('\n'), 대조: 결과 };

@@ -70,7 +70,9 @@ function Screen({
     case 'authoring':
       return <Authoring service={prefix} envs={service?.envs ?? []} 할수={할수} />;
     case 'authoringItem':
-      return <AuthoringDetail service={prefix} id={current.id} 할수={할수} />;
+      // 번호마다 새로 그린다 — 요청 사이를 오갈 때(남은 요구 · 원본 고리) 앞 요청의 답과 버튼 상태가 남으면
+      // 주소는 새 번호인데 앞 요청 화면이 보이고 다시 누를 수 있다 (2026-09-30 코드 검토)
+      return <AuthoringDetail key={current.id} service={prefix} id={current.id} 할수={할수} />;
     case 'runs':
       return <RunList service={prefix} 할수={할수} />;
     case 'run':

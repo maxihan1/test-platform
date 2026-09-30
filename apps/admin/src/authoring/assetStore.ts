@@ -168,6 +168,68 @@ export async function 산출물더하기(
   });
 }
 
+/**
+ * 남은 요구로 이어 작성 — 새 DRAFT 작성 요청을 세우고 원본의 **입력** 자료 행을 복사한다(표시 사본 · 역기획서는 안 가져온다).
+ * 파일은 라우트가 복사한다 — 디스크 이름 규칙이 거기 있다. 돌려주는 짝으로 원본 파일을 찾는다.
+ * 새 요청은 보통 작성 요청과 같아 내려받기 · 표시 원본 · 에이전트 자료 읽기가 그대로다 (§3.6 「남은 요구로 이어 작성」 — 참조하지 않고 복사, 게이트 1)
+ */
+export async function 이어작성준비(
+  입력: {
+    서비스: number;
+    원본: { id: number; specText: string | null; params: Record<string, unknown> };
+    누가: string;
+    이름: string;
+    대조?: { env: string; startUrl: string | null };
+  },
+  // 뿌리 잠금을 쥔 연결 — 주면 그 트랜잭션 안에서 넣는다(잠금 안에서 풀 연결을 또 잡지 않게). 안 주면 제 묶음을 연다
+  손?: PoolClient,
+): Promise<{ id: number; 파일: { 옛: number; 새: number; name: string }[] }> {
+  const 넣기 = async (client: PoolClient) => {
+    const r = await client.query<{ id: string }>(
+      `INSERT INTO authoring_request
+         (service_id, kind, spec_text, params, requested_by, requested_by_name, status, compare, env, start_url, continue_from)
+       VALUES ($1, 'AUTHOR', $2, $3, $4, $5, 'DRAFT', $6, $7, $8, $9)
+       RETURNING id`,
+      [
+        입력.서비스,
+        입력.원본.specText,
+        JSON.stringify(입력.원본.params),
+        입력.누가,
+        입력.이름,
+        입력.대조 !== undefined,
+        입력.대조?.env ?? null,
+        입력.대조?.startUrl ?? null,
+        입력.원본.id,
+      ],
+    );
+    const id = Number(r.rows[0]!.id);
+    const 옛것 = await client.query<{ id: string; position: number; kind: 'FILE' | 'FIGMA'; name: string; figma_url: string | null; size: string | null }>(
+      `SELECT id, position, kind, name, figma_url, size FROM authoring_asset
+        WHERE request_id = $1 AND role = 'INPUT' ORDER BY position`,
+      [입력.원본.id],
+    );
+    const 파일: { 옛: number; 새: number; name: string }[] = [];
+    for (const a of 옛것.rows) {
+      const 새 = await client.query<{ id: string }>(
+        `INSERT INTO authoring_asset (request_id, position, kind, name, figma_url, size)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        [id, a.position, a.kind, a.name, a.figma_url, a.size],
+      );
+      if (a.kind === 'FILE') 파일.push({ 옛: Number(a.id), 새: Number(새.rows[0]!.id), name: a.name });
+    }
+    return { id, 파일 };
+  };
+  return 손 === undefined ? 한묶음(넣기) : 넣기(손);
+}
+
+/** 파일 복사에 실패한 이어 작성 초안을 통째로 지운다 — 남으면 폐기 안 된 이어 작성으로 쳐 원본이 영영 막힌다 */
+export async function 초안지우기(요청: number): Promise<void> {
+  await 한묶음(async (client) => {
+    await client.query('DELETE FROM authoring_asset WHERE request_id = $1', [요청]);
+    await client.query("DELETE FROM authoring_request WHERE id = $1 AND status = 'DRAFT'", [요청]);
+  });
+}
+
 /** 파일 쓰기에 실패한 자료 행을 지운다. 행만 남으면 내려받기가 없는 파일을 찾는다 */
 export async function 자료지우기(자료번호: number): Promise<void> {
   await (await db()).query('DELETE FROM authoring_asset WHERE id = $1', [자료번호]);

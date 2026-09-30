@@ -80,8 +80,10 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
   }, [뿌리읽기, 최신읽기, 작성읽기]);
   const 도는중 = data !== null && !끝났나(data.status);
 
-  // 예전 실행 번호로 들어오면 뿌리 번호 쪽으로 — 한 요청이 번호 여럿으로 흩어져 보이지 않게
-  const 뿌리번호 = 뿌리?.rootId;
+  // 예전 실행 번호로 들어오면 뿌리 번호 쪽으로 — 한 요청이 번호 여럿으로 흩어져 보이지 않게.
+  // **지금 번호의 답일 때만 넘긴다** — 다른 요청 상세로 넘어가는 동안(남은 요구 · 원본 고리) 앞 요청의 답이 남아 있으면
+  // 그 뿌리로 되돌려 보내 새 번호에 영영 못 간다 (2026-09-30 화면 확인에서 잡았다)
+  const 뿌리번호 = 뿌리?.id === id ? 뿌리.rootId : undefined;
   useEffect(() => {
     if (뿌리번호 !== undefined && 뿌리번호 !== id) window.location.hash = `#/authoring/${String(뿌리번호)}`;
   }, [뿌리번호, id]);
@@ -105,7 +107,17 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
   const 자료들 = [...입력, ...(작성.assets ?? [])];
   const 산출물 = (작성.assets ?? []).filter((a) => (a.role ?? 'INPUT') !== 'INPUT');
   const 차이들 = 차이목록(작성.result);
-  const 부제 = data.compare === true ? `${종류라벨(data.kind, 언어)} · ${t('실제 화면과 대조')}` : 종류라벨(data.kind, 언어);
+  const 부제글 = data.compare === true ? `${종류라벨(data.kind, 언어)} · ${t('실제 화면과 대조')}` : 종류라벨(data.kind, 언어);
+  // 남은 요구로 이어 작성한 요청 — 칸은 뿌리(작성 요청)에만 있다. 재실행이 최신이어도 뿌리 것을 읽는다 (§3.6 「★ 원장」)
+  const 원본 = 뿌리.continueFrom ?? null;
+  const 부제 =
+    원본 === null ? (
+      부제글
+    ) : (
+      <>
+        {부제글} · <a href={`#/authoring/${String(원본)}`}>{t('#{번호}의 남은 요구', { 번호: 원본 })}</a>
+      </>
+    );
 
   return (
     <>
@@ -159,7 +171,14 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
           </div>
 
           <div className="authoring-col">
-            <AuthoringTodo service={service} 요청={data} 할수={할수} 차이수={차이들?.length ?? 0} reload={reload} />
+            <AuthoringTodo
+              service={service}
+              요청={data}
+              할수={할수}
+              차이수={차이들?.length ?? 0}
+              커버리지={작성.coverage ?? null}
+              reload={reload}
+            />
 
             <section className="authoring-panel" aria-label={t('요청 정보')}>
               <h3>{t('요청 정보')}</h3>

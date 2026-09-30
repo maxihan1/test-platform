@@ -7,7 +7,9 @@ import { resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
+import { 같이온칸, 이어작성상세, 이어작성세우기 } from './continue.js';
 import { 행커버리지 } from './coverage.js';
+import { 피그마주소정규화 } from './figma.js';
 import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
@@ -33,36 +35,8 @@ export function 사진뿌리(): string {
 // 번호 규칙의 정본은 params.ts 다. assets.ts 가 여기서 가져가므로 다시 내보낸다
 export { 번호 };
 
-/**
- * 피그마 주소를 **다시 조립해** 돌려준다. 모양이 아니면 null.
- *
- * **통과·거절로 보지 않는다** (2026-09-23 검토가 잡았다). 「Copy link」 주소에는 거의 항상 `&t=…` 가
- * 붙는데, 그 글자를 받으면 맥이 이 주소를 명령줄에 끼울 때 `&` 가 명령 구분자로 산다. 막으면 평범한 링크가 튕긴다.
- * 파일 키와 `node-id` 만 뽑아 새로 지으면 저장값에 셸 특수 글자가 원천적으로 없다.
- * FigJam(`/board`)은 화면 디자인이 아니라 안 받는다 (도메인/작성 §7 「자료」).
- */
-export function 피그마주소정규화(주소: unknown): string | null {
-  if (typeof 주소 !== 'string') return null;
-  let url: URL;
-  try {
-    url = new URL(주소);
-  } catch {
-    return null;
-  }
-  if (url.protocol !== 'https:') return null;
-  if (url.hostname !== 'figma.com' && url.hostname !== 'www.figma.com') return null;
-  const [, 종류, 본키, 갈래, 갈래키] = url.pathname.split('/');
-  if (종류 !== 'design' && 종류 !== 'file' && 종류 !== 'proto') return null;
-  // 브랜치 링크는 본 파일 키로 줄이면 main 을 읽는다. 브랜치 키가 그 자체로 파일처럼 열린다.
-  // 뒤에 키가 없으면 `branch` 는 브랜치가 아니라 파일 제목 조각이다
-  const 키 = 갈래 === 'branch' && 갈래키 !== undefined ? 갈래키 : 본키;
-  if (키 === undefined || !/^[A-Za-z0-9]{1,64}$/.test(키)) return null;
-  const 노드 = url.searchParams.get('node-id');
-  if (노드 === null) return `https://www.figma.com/design/${키}/`;
-  const 맞음 = /^(\d{1,10})[-:](\d{1,10})$/.exec(노드);
-  if (맞음 === null) return null;
-  return `https://www.figma.com/design/${키}/?node-id=${맞음[1]}-${맞음[2]}`;
-}
+// 피그마 주소 정규화는 figma.ts 로 뗐다 (2026-09-30 — 300줄). 검사가 여기서 가져가므로 다시 내보낸다
+export { 피그마주소정규화 } from './figma.js';
 
 // **배정은 여기서 안 본다. 문(auth/gate.ts)이 이미 막았다.**
 // 여기서 보는 것은 그 접두사의 서비스가 실재하고 살아 있는가 하나뿐이다 (catalog/routes.ts 와 같은 규칙)
@@ -130,6 +104,15 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 부른 사람은 요청에 안 싣는다. 로그인한 세션에서 채운다 — 실행이 triggeredBy 를 그렇게 한다
       const 누가 = req.user?.username ?? '';
       const 이름 = req.user?.displayName ?? '';
+
+      // 남은 요구로 이어 작성 — 원본의 자료 · 대조 설정을 물려받는 새 작성 요청 (§3.6 「★ 원장」 「남은 요구로 이어 작성」)
+      if (kind === 'AUTHOR' && req.body?.continueFrom !== undefined) {
+        const 막힘 = 같이온칸(req.body);
+        if (막힘 !== null) return reply.code(400).send({ error: 막힘 });
+        const 원본 = await 원본확인(req.body.continueFrom, 서비스, reply);
+        if (원본 === null) return reply;
+        return 이어작성세우기(reply, { 서비스, 원본, 누가, 이름 });
+      }
 
       // 기획서는 본문이 아니라 자료로 온다. 행은 DRAFT 로 서고 파일은 뒤따라 올린다 (SPEC §7 「자료」)
       if (kind === 'AUTHOR') {
@@ -245,6 +228,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         runs: await 실행들(뿌리번호),
         ...(await 보류상세(행)),
         coverage: 행커버리지(행.result),
+        ...(await 이어작성상세(뿌리번호)),
       };
     },
   );

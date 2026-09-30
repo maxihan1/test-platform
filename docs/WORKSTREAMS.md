@@ -153,14 +153,20 @@
 - **WS-작성 원장 대조 · 제외 종류 · 팬아웃 — 반영 완료 (2026-09-30, PR #119 · 셋 중 ①).** 5877 이 기획서 요구의 대부분을 못 덮었고 몇 개는 흔적이 없었다(숫자는 LEARNINGS 2026-09-30) — 관문이 모두 표 → 코드만 봤다.
   에이전트가 자식 전에 원장(요구 번호 · 번호 없으면 `P-001`)을 뽑아 들고, 올리기 직전 표와 맞대 셈을 PR 본문 머리에(빠지면 거절하던 것은 아래 ② 가 「거절 없이 기록」으로 바꿨다). 제외는 한 줄 하나 · 닫힌 다섯(정본 `scripts/authoring-ledger-check.ts`).
   자식은 관문 0 · API 케이스 절차 · 화면 묶음 팬아웃(동시 3 · 백그라운드 금지 · 표는 자식 혼자). 정본 도메인/작성 §3.6 「★ 원장」.
-  **남은 것** — ③ 남은 요구로 이어 작성(`continueFrom`) — 게이트 0 승인 · 계약 블록 `대기`. ③ 이 MKT 표의 「다음 요청」 · 「빠짐」 줄들을 맡는다(개수는 `npm run check:ledger` 첫 줄)
+  **남은 것** — ③ 남은 요구로 이어 작성은 아래 PR #121 에서 반영됐다
 - **WS-작성 커버리지 칸 — 반영 완료 (2026-09-30, PR #120 · 셋 중 ②).** 요청마다 기획서 요구를 몇 % 케이스로 덮었나가 PR 본문 글에만 있었다.
   에이전트가 원장 대조 뒤의 끝내기(DONE · 대조 뒤 올리기 거절)에 `result.coverage` 를 싣고 서버가 칸 다섯(`coverage_*` · 짝 CHECK · `grafana_ro`)에 옮긴다 · 틀리면 400 `BAD_COVERAGE` → 에이전트가 **셈만 빼고** 다시 보낸다 ·
   상세 `coverage` · Status 카드 `기획서 요구` 한 줄(**머지를 뺀 최신 작성 실행**의 셈) · Grafana 「작성 커버리지」(실행 한 줄 · 케이스 % · 성공인데 칸이 비면 원장 없음).
   **게이트 1 사용자 결정 — 빠져도 올리기를 거절하지 않고 기록만**(빠짐 목록 파일 · 이어하기의 「빠진 번호부터」를 걷었다) · 원장 없음 `{ none }` · 원장 밖 자료 `unread` 를 셈에 싣는다.
   정본 도메인/작성 §3.6 「★ 원장」 「셈을 남긴다」. 코드 `apps/admin/src/authoring/coverage.ts`(서버 · 에이전트 공용 모양 검사) · `scripts/authoring-coverage.ts`.
-  **③ 에 넘길 것** — 범위는 「다음 요청」 **· 「빠짐」** 번호(블록 글을 고쳤다) · 저장된 `later` · `missing` 은 **사본**이다 — 5877 은 ② 전이라 셈이 없고, 병합 뒤 사람이 표를 고치면 낡는다.
-  집을 때 물려받은 자료로 원장을 다시 뽑아 main 의 표와 맞댈지 ③ 계획이 정한다 · 기획서 하나의 누적을 대시보드로 보려면 `continue_from` 칸 권한이 더 필요하다
+  **③ 에 넘길 것** — 전부 아래 ③ 이 정했다(저장된 셈은 서버가 먼저 거르는 데만 · 에이전트는 기준 SHA 의 main 표로 다시 센다)
+- **WS-작성 남은 요구로 이어 작성 — 반영 완료 (2026-09-30, PR #121 · 셋 중 ③ · REV-F3-12).** 반영 끝난 작성 요청의 「다음 요청」 · 「빠짐」 번호를 새 작성 요청(새 번호 · 새 PR)이 맡는다.
+  사용자 결정 — 병합은 **플랫폼 반영만**(게이트 0 · GitHub 에서 직접 병합한 것은 반영을 한 번 누른다 — 에이전트가 이미 병합된 PR 을 DONE 으로 닫는다) · 자료는 **복사**(게이트 1 — 집기 `assetsFrom` 을 뺐다) ·
+  **main 표에 이미 있던 「사람이 뺌」은 에이전트 대조도 인정**(게이트 1 — 모든 작성 실행) · 에이전트가 세어 남은 것이 없으면 실패로 닫고 폐기 안내(게이트 1).
+  서버 `POST … { kind: 'AUTHOR', continueFrom }`(409 `NOT_MERGED` · `ALREADY_CONTINUED` · `NOTHING_LEFT`) · 상세 `canContinue` · `continuedBy` · `continueFrom` · 칸 `continue_from`(유일 색인은 폐기 안 된 것 하나).
+  에이전트는 집을 때 기준 SHA 의 main 표 · 케이스와 원장을 맞대 남은 번호를 세고 `--- 이어 작성 ---` 절 · `continue.json` 을 준다. 정본 도메인/작성 §3.6 「★ 원장」 「남은 요구로 이어 작성」.
+  코드 `apps/admin/src/authoring/continue.ts` · `scripts/authoring-continue.ts` · `authoring-ledger-io.ts` · `.claude/skills/tpx-author/references/continue.md` · `web/authoringTodoParts.tsx`.
+  **남은 것** — ① MKT(5873)에서 실제 한 바퀴: 반영을 한 번 누르고(GitHub 에서 이미 병합) 「남은 요구로 이어 작성」 → 124개 중 몇 개를 덮는지 셈으로 본다(REV-F4-03 과 같이) ② 기획서 하나의 누적을 대시보드로 보려면 `continue_from` 칸 권한(`grafana_ro`)이 더 필요하다(후속)
 - **WS-작성 토큰 사용량 · 훑기 「한 칸」 — 반영 완료 (2026-09-27, PR #86).** 5871(데모마켓 대조)이 홈에서 메뉴 전체를 한 칸으로 읽어 38장을 45분 훑고 60분에 걸려 결과 0 · 토큰도 몰랐다.
   자식을 `--output-format stream-json --verbose` 로 돌려 **어떤 끝내기보다 먼저** `POST …/:id/usage` 로 알린다(정상 = `modelUsage`, 끊김 = 메시지 id 마다 마지막 사본 · `tokens_partial` 하한값) ·
   칸 `tokens_input·output·cache_read·cache_write·partial` · `cost_usd`(API 환산, 청구 아님) · `tokens_model` · 결과 요약·한도 판정은 `result` 글로 · 로그는 도구 이름·글 첫 줄만.

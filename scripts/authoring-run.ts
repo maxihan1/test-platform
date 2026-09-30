@@ -11,7 +11,7 @@ import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from '
 import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처 } from './authoring-assets.js';
 import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
-import { 닫을RUNNING, 자식환경 } from './authoring-chain.js';
+import { 자식환경 } from './authoring-chain.js';
 import { type 계정 } from './authoring-copy.js';
 import { 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
 import { type 작업방, 도는번호, 보관하기, 작업방준비 } from './authoring-keeping.js';
@@ -35,7 +35,8 @@ import { 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './aut
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 폴더자리 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
-import { 원장준비 } from './authoring-ledger-io.js';
+import { 원장과남은번호 } from './authoring-ledger-io.js';
+import { 사본환경 } from './authoring-copy.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -50,22 +51,6 @@ export interface 판 {
   계정: { 자식: 계정[]; 호스트: 계정 } | null;
   /** 원천에 쓰는 git 을 누구로 치나. root 면 호스트 uid 와 그 집 */
   호스트로: 칠때;
-}
-
-/** 켤 때 내 이름으로 잡힌 채 멈춘 RUNNING 을 닫는다. 에이전트가 꺼져 끊긴 것이라 아무도 안 끝낸다 */
-export async function 멈춘것닫기(주소기지: string, 토큰: string, 서비스들: string[], 나: string): Promise<void> {
-  for (const 서비스 of 서비스들) {
-    const 답 = await 부른다(주소기지, 토큰, `/authoring/requests?service=${encodeURIComponent(서비스)}&status=RUNNING`);
-    if (답.status !== 200) {
-      console.error(`[기다림] ${서비스} 의 RUNNING 목록을 못 읽었다 (${답.status}). 이번엔 건너뛴다.`);
-      continue;
-    }
-    const 목록 = (답.몸 as { items?: Parameters<typeof 닫을RUNNING>[0] }).items ?? [];
-    for (const { id, 몸 } of 닫을RUNNING(목록, 나)) {
-      await 보고손만들기(주소기지, 토큰, 서비스, id).끝내기(몸);
-      console.log(`[정리] ${서비스} 의 ${id}번은 에이전트가 꺼져 멈춘 채였다. ${String(몸.status)} 로 닫았다.`);
-    }
-  }
 }
 
 /** 한 건을 끝까지 처리한다. 단계는 사람이 화면에서 보는 그 줄이다. `자리번호` 가 자식 uid 를 고른다 */
@@ -132,15 +117,18 @@ async function 한건(
   // 사람이 넣은 입력만 읽는다 — 원본에 에이전트 산출물(표시 사본·역기획서)이 붙어 있을 수 있다
   let 자료들 = 입력만(것.assets ?? []);
   let 본문 = 것.specText ?? null;
+  // 이어 작성의 원본 — 재실행 · 이어서 작성 행에는 칸이 없어 뿌리 상세에서 읽는다 (§3.6 「남은 요구로 이어 작성」)
+  let 이어작성원본 = 것.continueFrom ?? null;
   if (출처 !== 것.id) {
     const 원본 = await 부른다(주소기지, 토큰, `/authoring/requests/${출처}?service=${encodeURIComponent(서비스)}`);
     if (원본.status !== 200) {
       await 손.끝내기({ status: 'FAILED', error: `원본 요청(${출처}번)을 못 읽었다 (${원본.status})` });
       return;
     }
-    const 몸 = 원본.몸 as { assets?: 자료[]; specText?: string | null };
+    const 몸 = 원본.몸 as { assets?: 자료[]; specText?: string | null; continueFrom?: number | null };
     자료들 = 입력만(몸.assets ?? []);
     본문 = 본문 || (몸.specText ?? null);
+    이어작성원본 ??= 몸.continueFrom ?? null;
   }
 
   const 화면만 = 것.target !== undefined && Boolean(것.target.startUrl) && 자료들.length === 0;
@@ -159,7 +147,7 @@ async function 한건(
   let 방: 작업방 | null = null;
   try {
     방 = await 작업방준비(주소기지, 토큰, 서비스, 것, 판, 자식, 폴더.폴더, 기록손);
-    if (방 !== null) await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 방, 출처, 자료들, 본문, 서버들, 폴더.폴더, 기록손, 박동);
+    if (방 !== null) await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 방, 출처, 자료들, 본문, 서버들, 폴더.폴더, 기록손, 박동, 이어작성원본);
   } finally {
     // 성공·실패는 받은 기획서와 자식이 만든 것을 남기지 않는다. 중단은 7일 남긴다 —
     // 단 자식을 못 거뒀으면 손대지 않는다. 살아 있는 자식이 지우는 도중에 폴더를 링크로 바꿔 트리 밖을 지우게 할 수 있다.
@@ -185,6 +173,7 @@ async function 사본에서(
   케이스자리: string,
   손: 보고손,
   박동: 박동,
+  이어작성원본: number | null,
 ): Promise<void> {
   const { 자리, 기준 } = 방;
   const 계획 = 자료계획(자료들, 자리.자료);
@@ -225,7 +214,10 @@ async function 사본에서(
   // 역방향 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호를 먼저 가린다 (§3.6 「★ 역방향」)
   const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 것.target?.loginPassword);
   if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));
-  const 원장 = 원장준비(계획, 자리.자료); // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로 (§3.6 「★ 원장」)
+  // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로. 기준 표는 트리가 아니라 기준 SHA 에서 (§3.6 「★ 원장」)
+  const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
+  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본 });
+  if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
   await 손.단계('케이스를 만드는 중');
   if (박동.멈추라했다()) {
     await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' });
@@ -251,7 +243,7 @@ async function 사본에서(
   const 돌린것 = await 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
-      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향, 방.이어하기, 원장.입력),
+      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성),
       env: 환경,
       uid: 자식?.uid,
       gid: 자식?.gid,
@@ -293,6 +285,6 @@ async function 사본에서(
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 손,
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 화면만, 입력자료: 자료들 },
-    { 값: 원장.원장, 폴더: 케이스자리, 자식 },
+    { 값: 원장.원장, 폴더: 케이스자리, 자식, 사람이뺌: 원장.사람이뺌 },
   );
 }

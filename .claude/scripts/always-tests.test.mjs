@@ -16,6 +16,7 @@ const 패키지 = JSON.parse(readFileSync(join(루트, 'package.json'), 'utf8'))
 const 면제 = new Map([
   ['apps/admin/src/reporting/collect.test.ts', '읽는 collect.ts 를 import 도 한다 — --changed 가 고른다'],
   ['scripts/authoring-token.test.ts', '테스트가 만든 임시 파일만 읽는다'],
+  ['scripts/authoring-continue.test.ts', '테스트가 만든 임시 파일(원장 · 남은 번호 사본)만 읽는다'],
 ]);
 
 function 테스트파일들(폴더) {

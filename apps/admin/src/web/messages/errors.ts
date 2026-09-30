@@ -80,4 +80,10 @@ export const 오류영어: Record<string, string> = {
     'Another run of this request is queued or writing. Refresh the page',
   '이 요청에 더 최근 실행이 있습니다. 새로 고친 뒤 최신 실행에서 반영하세요':
     'This request has a newer run. Refresh and merge from the latest run',
+  // 남은 요구로 이어 작성 (도메인/작성 §3.6 「★ 원장」) — 영어는 follow-up. continue 는 이어서 작성(재개)에만 쓴다
+  '이 요청은 아직 반영되지 않았습니다. 테스트를 반영한 뒤에 이어 작성할 수 있습니다':
+    'This request is not merged yet. Merge the tests first, then start a follow-up',
+  '이미 남은 요구를 넘겨받은 요청이 있습니다. 화면을 새로 고칩니다': 'Another request already took the remaining requirements. Refresh the page',
+  '이어 작성할 남은 요구가 없습니다': 'No requirements are left for a follow-up',
+  '원본 요청이 폐기됐거나 아직 준비 중입니다. 화면을 새로 고칩니다': 'The original request was discarded or is still being prepared. Refresh the page',
 };

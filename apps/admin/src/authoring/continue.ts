@@ -1,0 +1,162 @@
+// 남은 요구로 이어 작성 — 원본 뿌리의 상태 판정 · 상세 칸 (SPEC 도메인/작성 §3.6 「★ 원장」 「남은 요구로 이어 작성」 · §7)
+// 반영 끝난 작성 요청의 「다음 요청」 · 「빠짐」 번호를 새 작성 요청(새 번호 · 새 PR)이 맡는다
+
+import type { FastifyReply } from 'fastify';
+import type { PoolClient } from 'pg';
+
+import { rm } from 'node:fs/promises';
+
+import { 이어작성준비, 제출, 초안지우기 } from './assetStore.js';
+import { 자료파일복사, 자료폴더 } from './assets.js';
+import { 행커버리지 } from './coverage.js';
+import { 사슬식, 뿌리잠그고, 최신식 } from './history.js';
+import { 역방향칸판정 } from './reverse.js';
+import { db, type 요청 } from './store.js';
+
+/**
+ * 반영된 실행의 셈이 말하는 남은 요구. `모름` 은 셈이 없는 옛 요청이다 — 막지 않고 에이전트가 main 표로 다시 센다.
+ * 셈은 사본이라 사람이 표를 고치면 낡는다 — 여기서는 「남은 것이 없다」가 확실할 때만 막는다
+ */
+export type 남은요구 = '있음' | '없음' | '원장없음' | '모름';
+
+export interface 이어작성상태 {
+  /** 뿌리의 최신 실행(실패한 머지는 뺀다)이 성공한 반영인가 — GitHub 에서 직접 병합한 것은 반영을 한 번 눌러야 선다(게이트 0) */
+  병합됨: boolean;
+  남음: 남은요구;
+  /** 원본에 사람이 넣은 자료가 있나 — 본문만 있는 옛 행 · 화면만은 원장을 못 만들어 이어 작성할 번호가 없다 */
+  입력있음: boolean;
+  /** 폐기 안 된 이어 작성 요청 번호 — 한 원본에 하나뿐이다(유일 색인) */
+  이은것: number | null;
+}
+
+function 남은것(result: unknown): 남은요구 {
+  const 셈 = 행커버리지(result);
+  if (셈 === null) return '모름';
+  if ('none' in 셈) return '원장없음';
+  return 셈.later.length + 셈.missing.length > 0 ? '있음' : '없음';
+}
+
+/**
+ * 뿌리 번호로 읽는다. 어느 실행 번호로 상세를 읽어도 같은 값이 나와야 한다 — 화면은 최신 실행 상세로 버튼을 그린다.
+ * **한 문장으로 묻는다** — 통로는 뿌리 잠금을 쥔 연결(`손`)로 부른다. 잠금 안에서 풀 연결을 또 잡지 않게
+ */
+export async function 이어작성상태읽기(뿌리번호: number, 손?: PoolClient): Promise<이어작성상태> {
+  const r = await (손 ?? (await db())).query<{
+    kind: string;
+    status: string;
+    반영결과: unknown;
+    입력: boolean;
+    이은것: string | null;
+  }>(
+    // 최신은 실패한 머지를 뺀다(`최신식`). 셈은 반영된 그 실행(머지의 원본) 것이다 — 머지 행에는 셈이 없다 (LEARNINGS 2026-09-30)
+    `WITH RECURSIVE ${사슬식('id = $1')}
+     SELECT l.kind, l.status, s.result AS "반영결과",
+            EXISTS (SELECT 1 FROM authoring_asset WHERE request_id = $1 AND role = 'INPUT') AS "입력",
+            (SELECT id FROM authoring_request WHERE continue_from = $1 AND discarded_at IS NULL) AS "이은것"
+       FROM authoring_request l LEFT JOIN authoring_request s ON s.id = l.source_id
+      WHERE l.id = ${최신식('사슬')}`,
+    [뿌리번호],
+  );
+  const 줄 = r.rows[0];
+  const 병합됨 = 줄 !== undefined && 줄.kind === 'MERGE' && 줄.status === 'DONE';
+  return {
+    병합됨,
+    남음: 병합됨 ? 남은것(줄.반영결과) : '모름',
+    입력있음: 줄?.입력 === true,
+    이은것: 줄?.이은것 == null ? null : Number(줄.이은것),
+  };
+}
+
+/** 이어 작성을 막는 까닭. 없으면 null — 통로의 409 와 상세의 canContinue 가 같은 판정을 쓴다 */
+export function 막는까닭(상태: 이어작성상태): 'NOT_MERGED' | 'ALREADY_CONTINUED' | 'NOTHING_LEFT' | null {
+  if (!상태.병합됨) return 'NOT_MERGED';
+  if (상태.이은것 !== null) return 'ALREADY_CONTINUED';
+  if (!상태.입력있음 || 상태.남음 === '없음' || 상태.남음 === '원장없음') return 'NOTHING_LEFT';
+  return null;
+}
+
+/** 상세에 싣는 두 칸. 권한은 화면이 본다 — canResume 과 같다 */
+export async function 이어작성상세(뿌리번호: number): Promise<{ canContinue: boolean; continuedBy: number | null }> {
+  const 상태 = await 이어작성상태읽기(뿌리번호);
+  return { canContinue: 막는까닭(상태) === null, continuedBy: 상태.이은것 };
+}
+
+/**
+ * 본문에 같이 오면 안 되는 칸. 자료 · 대조 설정은 원본 것을 물려받는다 — 재실행이 역방향 칸을 거절하는 것과 같은 코드다.
+ * 원본 확인보다 먼저 본다 — 모양이 틀린 요청에 DB 를 읽지 않는다
+ */
+export function 같이온칸(본문: Record<string, unknown>): 'BAD_FIGMA_URL' | 'BAD_ENV' | null {
+  const 피그마 = 본문.figma;
+  if (피그마 !== undefined && !(Array.isArray(피그마) && 피그마.length === 0)) return 'BAD_FIGMA_URL';
+  if (['compare', 'env', 'startUrl'].some((칸) => 본문[칸] !== undefined)) return 'BAD_ENV';
+  return null;
+}
+
+/**
+ * 원본(이미 서비스 경계를 본 행)에서 이어 작성 요청을 세운다. 병합 · 한 번만 · 남은 것 판정은 뿌리 잠금 안에서 —
+ * 판정과 넣기 사이에 다른 누름이나 원본의 다시 작성이 끼면 두 요청이 같은 남은 번호를 맡는다
+ */
+export async function 이어작성세우기(
+  reply: FastifyReply,
+  입력: { 서비스: number; 원본: 요청; 누가: string; 이름: string },
+): Promise<FastifyReply> {
+  const { 원본 } = 입력;
+  // 뿌리(작성 요청)만 받는다 — 화면은 rootId 를 보낸다. 실행 번호를 받아 주면 무엇을 물려받는지가 흐려진다
+  if (원본.kind !== 'AUTHOR' || 원본.status === 'DRAFT' || 원본.discardedAt !== null) {
+    return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${원본.kind} ${원본.status}` });
+  }
+  // 대조 원본이면 같은 대상 서버 · 시작 주소를 물려받는다. 그 사이 계정이 빠졌을 수 있어 다시 판정한다 — 재실행과 같다.
+  // 판정은 잠금 **밖**에서(풀을 쓴다), 거절은 잠금 안 판정 뒤에 — 409 가 400 보다 먼저라는 순서는 그대로다
+  const 대조 = 원본.compare
+    ? await 역방향칸판정({ compare: true, env: 원본.env, startUrl: 원본.startUrl }, 입력.서비스)
+    : ({ compare: false } as const);
+  const 결과 = await 뿌리잠그고(원본.id, async (손): Promise<{ code: number; error: string } | Awaited<ReturnType<typeof 이어작성준비>>> => {
+    const 까닭 = 막는까닭(await 이어작성상태읽기(원본.id, 손));
+    if (까닭 !== null) return { code: 409, error: 까닭 };
+    if ('error' in 대조) return { code: 400, error: 대조.error };
+    try {
+      // 행은 잠금을 쥔 연결의 트랜잭션 안에서 — 다음 누름이 이 초안을 「이미 이어 작성함」으로 본다
+      return await 이어작성준비(
+        {
+          서비스: 입력.서비스,
+          원본,
+          누가: 입력.누가,
+          이름: 입력.이름,
+          ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
+        },
+        손,
+      );
+    } catch (e) {
+      // 잠금은 한 서버 안의 순서다 — 유일 색인이 마지막 그물이다
+      if ((e as { constraint?: string }).constraint === 'authoring_request_continue_from_once') {
+        return { code: 409, error: 'ALREADY_CONTINUED' };
+      }
+      throw e;
+    }
+  });
+  if ('error' in 결과) return reply.code(결과.code).send({ error: 결과.error });
+  // 파일은 잠금 밖에서 복사한다 — 스무 개 · 20MB 를 잠금 안에서 옮기면 같은 뿌리의 다른 누름이 그만큼 선다.
+  // DRAFT 라 복사가 끝나기 전에는 에이전트가 안 집는다. 실패하면 초안을 지워 원본을 다시 풀어 준다
+  try {
+    await 자료파일복사(원본.id, 결과.id, 결과.파일);
+    // 원본에 입력 자료가 있어야 여기 온다(NOTHING_LEFT) — 자료 0 이면 제출이 거짓이라 초안이 남는다
+    if (!(await 제출(결과.id))) throw new Error(`이어 작성 요청 ${String(결과.id)} 을 줄에 세우지 못했다`);
+  } catch (원래) {
+    await 초안치우기(결과.id, 원래);
+    throw 원래;
+  }
+  return reply.code(201).send({ id: 결과.id });
+}
+
+/**
+ * 실패한 이어 작성 초안을 행 · 자료 폴더째 치운다 — 남으면 폐기 안 된 이어 작성으로 쳐 원본이 막히고 디스크에 파일이 남는다.
+ * 치우기마저 실패하면 두 오류를 함께 던진다 — 원래 오류를 덮지 않는다(CLAUDE.md 「에러」)
+ */
+async function 초안치우기(요청: number, 원래: unknown): Promise<void> {
+  try {
+    await 초안지우기(요청);
+    await rm(자료폴더(요청), { recursive: true, force: true });
+  } catch (정리오류) {
+    throw new AggregateError([원래, 정리오류], `이어 작성 요청 ${String(요청)} 이 실패했고 초안도 치우지 못했다`);
+  }
+}

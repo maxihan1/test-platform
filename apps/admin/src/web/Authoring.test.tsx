@@ -103,4 +103,14 @@ describe('작성 권한 칸', () => {
     expect(await screen.findByText('작성 요청이 들어오면 여기에 줄이 생깁니다')).toBeTruthy();
     expect(screen.queryByText('기획서를 넣으면 여기에 줄이 생깁니다')).toBeNull();
   });
+
+  it('남은 요구를 이어 작성한 요청 줄은 원본을 평문으로 적는다 — 줄 전체가 고리라 안에 고리를 두지 않는다', async () => {
+    줄들.push(줄({ id: 5901, rootId: 5901, continueFrom: 5873, runCount: 1 }));
+    줄들.push(줄({ id: 5910, rootId: 5902, continueFrom: 5877, kind: 'RERUN', runCount: 2 }));
+    render(<Authoring service="PAY" 할수={() => true} />);
+    const 첫 = await screen.findByText(/#5873의 남은 요구/);
+    expect(첫.textContent?.startsWith('#5873의 남은 요구')).toBe(true);
+    expect(첫.closest('a')).toBe(null);
+    expect(screen.getByText(/2차 · .* · #5877의 남은 요구/)).toBeTruthy();
+  });
 });
