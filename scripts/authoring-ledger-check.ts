@@ -25,6 +25,11 @@ export interface 대조결과 {
   셈: 셈;
 }
 
+/** 케이스 파일 글들에서 tcId 를 모은다 — 대조의 `있는케이스` 재료. 파일 이름이 아니라 선언을 본다(K2 가 그것을 지킨다) */
+export function tcId들(글들: string[]): Set<string> {
+  return new Set(글들.flatMap((글) => [...글.matchAll(/\btcId:\s*['"]([^'"]+)['"]/g)].map((m) => m[1] ?? '')));
+}
+
 /** 마크다운 표 한 줄을 칸으로. `\|` 는 칸 가름이 아니다 */
 function 칸들(줄: string): string[] {
   return 줄

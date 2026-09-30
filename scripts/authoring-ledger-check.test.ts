@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { 원장뽑기 } from './authoring-ledger.js';
-import { 까닭글, 셈글, 원장대조, 제외종류 } from './authoring-ledger-check.js';
+import { tcId들, 까닭글, 셈글, 원장대조, 제외종류 } from './authoring-ledger-check.js';
 
 const 옛표 = readFileSync(new URL('./fixtures/ledger/mkt-5877.md', import.meta.url), 'utf8');
 const 데모마켓 = 원장뽑기(readFileSync(new URL('./fixtures/ledger/demomarket.txt', import.meta.url), 'utf8'), '3757');
@@ -107,5 +107,11 @@ describe('글', () => {
     expect(셈글({ 총: 3, 케이스: 2, 제외: { '다음 요청': 1 }, 빠짐: 0 }, { 'REQ-A': 3 })).toBe(
       '원장: 요구 3 → 케이스 2 · 제외 1(다음 요청 1) · 빠짐 0 · 번호 가족 REQ-A 3',
     );
+  });
+});
+
+describe('tcId들', () => {
+  it('케이스 선언의 tcId 를 모은다', () => {
+    expect(tcId들(["defineCase({\n  tcId: 'MKT-001',", 'tcId: "MKT-002"', '주석 없음'])).toEqual(new Set(['MKT-001', 'MKT-002']));
   });
 });
