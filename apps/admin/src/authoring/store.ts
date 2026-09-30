@@ -64,6 +64,8 @@ export interface 요청 {
   discardedAt: string | null;
   // 이어받은 중단 요청 (§7 「이어하기」). 에이전트는 이 번호로 보관 폴더를 찾는다
   resumeFrom: number | null;
+  // 남은 요구를 이어 작성한 원본 뿌리 (§3.6 「★ 원장」). 작성 요청에만 찬다 — 에이전트는 이것으로 남은 번호만 맡는다
+  continueFrom: number | null;
 }
 
 export interface 행 {
@@ -94,6 +96,7 @@ export interface 행 {
   stop_requested_at: Date | null;
   discarded_at: Date | null;
   resume_from: string | null;
+  continue_from: string | null;
 }
 
 // BIGSERIAL 은 pg 가 문자열로 준다. 화면과 라우트는 숫자로 다루므로 여기서 한 번만 바꾼다
@@ -126,13 +129,14 @@ export function 빚기(r: 행): 요청 {
     stopRequestedAt: r.stop_requested_at?.toISOString() ?? null,
     discardedAt: r.discarded_at?.toISOString() ?? null,
     resumeFrom: r.resume_from === null ? null : Number(r.resume_from),
+    continueFrom: r.continue_from === null ? null : Number(r.continue_from),
   };
 }
 
 export const 칸들 = `id, service_id, kind, source_id, spec_text, params, requested_by, requested_by_name,
               claimed_by, status, stage, stage_at, result, test_source, screenshot_dir, pr_url,
               error, created_at, started_at, finished_at, compare, env, start_url,
-              stop_reason, stop_requested_at, discarded_at, resume_from`;
+              stop_reason, stop_requested_at, discarded_at, resume_from, continue_from`;
 
 /** 멈춘 요청의 작업 폴더를 보관하는 날 수. 에이전트는 이 판정을 서버에 물어 따른다 — 사본을 두지 않는다 (§7 「이어하기」) */
 export const 보관일 = 7;
