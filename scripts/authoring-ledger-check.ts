@@ -1,6 +1,7 @@
 // 원장 대조 — 원장의 번호마다 요구사항 표에서 케이스로 덮였는지, 「제외」 표에 사유와 함께 한 줄로 있는지 본다
 // 에이전트가 올리기 직전에 부르고(빠지면 올리기 거절), 사람과 자식은 `npm run check:ledger` 로 부른다 (도메인/작성 §3.6 「★ 원장」)
 
+import { 케이스tcId } from './authoring-held-apply.js';
 import { type 원장, type 원장항목, 번호찾기 } from './authoring-ledger.js';
 
 /** 제외 종류 — 닫힌 다섯. **목록의 정본은 여기다** — 명세 · 스킬은 이 목록을 가리킨다 */
@@ -25,9 +26,12 @@ export interface 대조결과 {
   셈: 셈;
 }
 
-/** 케이스 파일 글들에서 tcId 를 모은다 — 대조의 `있는케이스` 재료. 파일 이름이 아니라 선언을 본다(K2 가 그것을 지킨다) */
+/**
+ * 케이스 파일 글들에서 tcId 를 모은다 — 대조의 `있는케이스` 재료. 파일 이름이 아니라 **`defineCase` 선언**을 문법 트리로 읽는다.
+ * 글자로 찾으면 절차 제목에 「tcId: 'X'」 만 적어도 케이스가 있는 것으로 쳐 대조를 넘는다 (2026-09-30 코드 검토)
+ */
 export function tcId들(글들: string[]): Set<string> {
-  return new Set(글들.flatMap((글) => [...글.matchAll(/\btcId:\s*['"]([^'"]+)['"]/g)].map((m) => m[1] ?? '')));
+  return new Set(글들.map(케이스tcId).filter((t): t is string => t !== null));
 }
 
 /** 마크다운 표 한 줄을 칸으로. `\|` 는 칸 가름이 아니다 */
@@ -39,7 +43,7 @@ function 칸들(줄: string): string[] {
     .map((c) => c.trim());
 }
 
-/** `## <제목>` 절 아래 첫 표를 머리 칸 이름으로 읽는다. 절이 없으면 빈 배열 */
+/** `## <제목>` 절 아래 표를 전부(### 소제목으로 나눠도) 머리 칸 이름으로 읽는다. 다음 `#`·`##` 에서 멈춘다. 절이 없으면 빈 배열 */
 function 표읽기(글: string, 제목: string): Record<string, string>[] {
   const 줄들 = 글.split(/\r?\n/);
   const 시작 = 줄들.findIndex((l) => new RegExp(`^##\\s+${제목}\\s*$`).test(l.trim()));
@@ -49,7 +53,8 @@ function 표읽기(글: string, 제목: string): Record<string, string>[] {
   for (const l of 줄들.slice(시작 + 1)) {
     if (/^#{1,2}\s/.test(l)) break;
     if (!l.trim().startsWith('|')) {
-      if (머리 !== null) break;
+      // 표가 끝났다 — 다음 표는 머리 줄부터 다시 읽는다
+      머리 = null;
       continue;
     }
     const 칸 = 칸들(l);

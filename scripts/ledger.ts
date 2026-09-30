@@ -40,7 +40,11 @@ if (명령 === '뽑기') {
   const 있는케이스 =
     폴더 === undefined
       ? undefined
-      : tcId들(readdirSync(폴더).filter((f) => f.endsWith('.spec.ts')).map((f) => readFileSync(join(폴더, f), 'utf8')));
+      : tcId들(
+          readdirSync(폴더, { recursive: true, encoding: 'utf8' })
+            .filter((f) => f.endsWith('.spec.ts'))
+            .map((f) => readFileSync(join(폴더, f), 'utf8')),
+        );
   const 결과 = 원장대조(읽은.원장.항목, readFileSync(표파일, 'utf8'), { 있는케이스, 에이전트: 인자.includes('--agent') });
   console.log(셈글(결과.셈, 읽은.원장.가족));
   for (const m of 결과.형식오류) console.log(`형식 오류: ${m}`);

@@ -40,6 +40,12 @@ describe('번호찾기 — 추출과 대조가 같이 쓰는 한 함수', () => 
     ]);
   });
 
+  it('번호가 빽빽한 큰 글도 금방 끝난다 — 번호마다 앞 글 전체를 다시 훑지 않는다 (2026-09-30 보안 검토)', () => {
+    const 시작 = performance.now();
+    번호찾기('AB-1 '.repeat(80_000));
+    expect(performance.now() - 시작).toBeLessThan(2000);
+  });
+
   it('다른 가족으로 끝나는 범위와 너무 큰 범위는 양 끝만 두고 경고한다', () => {
     const 결과 = 번호찾기('REQ-A-001~REQ-B-003 · REQ-C-1~900');
     expect(결과.번호들).toEqual(['REQ-A-001', 'REQ-B-003', 'REQ-C-1', 'REQ-C-900']);
@@ -124,6 +130,17 @@ describe('원장만들기 — 자료 여럿 · 원장 없음', () => {
     if (!('원장' in r)) throw new Error('원장이 없다');
     expect(r.원장.항목.map((h) => h.번호)).toEqual(['REQ-A-1', 'REQ-A-2', 'REQ-A-3', 'REQ-A-4', 'REQ-A-5']);
     expect(r.원장.항목[3]?.자료).toBe('나.md');
+    expect(r.원장.가족).toEqual({ 'REQ-A': 5 });
+  });
+
+  it('글자본을 못 읽은 자료는 빠진 자료로 적고, 전부 못 읽으면 원장이 없다 — 빈 원장이 통과로 안 보이게', () => {
+    const 못읽음 = (경로: string) => (경로 === '/a/1.txt' ? null : 읽기(경로));
+    const r = 원장만들기([파일(1, '가.docx', '/a/1.txt'), 파일(2, '나.md', '/a/2.md')], 못읽음);
+    if (!('원장' in r)) throw new Error('원장이 없다');
+    expect(r.원장.빠진자료).toEqual(['가.docx(글자본을 못 읽음)']);
+    expect(원장만들기([파일(1, '가.docx', '/a/1.txt')], () => null)).toEqual({
+      없음: '글자본이 있는 자료가 없다 — 가.docx(글자본을 못 읽음)',
+    });
   });
 
   it('문단 모드 자료가 둘 이상이면 자료 순번을 번호에 넣는다', () => {

@@ -26,7 +26,7 @@ import { type 계정, type 사본, 사본환경, 파일거부사유 } from './au
 import { 산출물읽기, 역기획서준비 } from './authoring-upload-reverse.js';
 import type { 원장 } from './authoring-ledger.js';
 import { tcId들, 원장판정 } from './authoring-ledger-check.js';
-import { 빠짐목록쓰기, 빠짐파일이름, 케이스글들 } from './authoring-ledger-io.js';
+import { 빠짐목록쓰기, 빠짐목록지우기, 빠짐파일이름, 케이스글들 } from './authoring-ledger-io.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
 import { type 자료, 자료출처 } from './authoring-assets.js';
 import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
@@ -125,15 +125,18 @@ export async function 올리기(
   }
   const 읽기 = (f: string) => (모양보기(자리.트리, f).종류 === '파일' ? readFileSync(join(자리.트리, f), 'utf8') : '');
   // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠지면 올리기 거절로 이어받게 한다 (§3.6 「★ 원장」)
+  const 추적 = 원장재료 === undefined ? null : 트리에서('git', ['ls-files', '-z', '--', `tests/${원장재료.폴더}`]);
+  if (추적 !== null && !추적.ok) return void (await 손.끝내기(거절(`원장 대조용 케이스 목록을 못 읽었다: ${추적.까닭}`)));
   const 원장결과 =
     원장재료 === undefined
       ? null
-      : 원장판정(원장재료.값, 읽기(표), tcId들(케이스글들(자리.트리, 원장재료.폴더, 읽기)), join(원장재료.자료폴더, 빠짐파일이름));
+      : 원장판정(원장재료.값, 읽기(표), tcId들(케이스글들((추적?.낸것 ?? '').split('\0'), 원장재료.폴더, 읽기)), join(원장재료.자료폴더, 빠짐파일이름));
   if (원장결과 !== null && '거절' in 원장결과 && 원장재료 !== undefined) {
     빠짐목록쓰기(원장재료.자료폴더, 원장결과.빠짐목록);
     await 손.끝내기(거절(원장결과.거절));
     return;
   }
+  if (원장재료 !== undefined) 빠짐목록지우기(원장재료.자료폴더);
   const 본문글 = PR본문({
     표: 읽기(표),
     // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다

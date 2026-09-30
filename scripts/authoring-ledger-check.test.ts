@@ -78,6 +78,14 @@ describe('원장대조', () => {
     expect(원장대조(원장, 표([줄(많이, 'X-001')]), { 에이전트: true }).형식오류).toEqual(['요구 줄 출처 칸에 번호가 11개다 — 10개까지']);
   });
 
+  it('요구사항 절 안의 표가 여럿이어도(### 소제목으로 나눠도) 전부 읽는다', () => {
+    const 글 = 표([줄('REQ-A-1', 'X-001')]).replace(
+      '\n\n## 제외',
+      `\n\n### 둘째 화면\n\n| 요구 | 축 | 전제 | 조작 | 결과 | 출처 | tcId | 작성 시점 |\n|---|---|---|---|---|---|---|---|\n${줄('REQ-A-2 REQ-A-3', 'X-002')}\n\n## 제외`,
+    );
+    expect(원장대조(원장, 글, { 에이전트: true }).빠짐).toEqual([]);
+  });
+
   it('원장에 없는 번호는 경고만 한다', () => {
     const r = 원장대조(원장, 표([줄('REQ-A-1 REQ-A-2 REQ-A-3 REQ-A-9', 'X-001')]), { 에이전트: true });
     expect(r.빠짐).toEqual([]);
@@ -112,7 +120,13 @@ describe('글', () => {
 
 describe('tcId들', () => {
   it('케이스 선언의 tcId 를 모은다', () => {
-    expect(tcId들(["defineCase({\n  tcId: 'MKT-001',", 'tcId: "MKT-002"', '주석 없음'])).toEqual(new Set(['MKT-001', 'MKT-002']));
+    const 케이스 = (선언: string, 제목 = '연다') =>
+      `export const spec = defineCase({ ${선언}, name: 'n' });\ntest(spec, async () => { await test.step('${제목}', async () => {}); });`;
+    expect(tcId들([케이스("tcId: 'MKT-001'"), 케이스('tcId: `MKT-002`')])).toEqual(new Set(['MKT-001', 'MKT-002']));
+  });
+
+  it('선언이 아닌 글에 적힌 tcId 는 세지 않는다 — 절차 제목에 적어 대조를 넘지 못하게', () => {
+    expect(tcId들(["const x = 1; // tcId: 'MKT-050'\ntest.step(\"tcId: 'MKT-051'\", f);"])).toEqual(new Set());
   });
 });
 

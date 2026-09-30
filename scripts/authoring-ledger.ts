@@ -54,8 +54,9 @@ export function 번호찾기(글: string): { 번호들: string[]; 경고: string
   for (const m of 글.matchAll(번호식)) {
     const 시작 = m[1];
     if (시작 === undefined) continue;
-    // 범위의 끝은 이 반복에서 이미 처리했다 — 끝이 온전한 번호면 다음 매치로 다시 나온다
-    const 앞 = 글.slice(0, m.index);
+    // 범위의 끝은 이 반복에서 이미 처리했다 — 끝이 온전한 번호면 다음 매치로 다시 나온다.
+    // 바로 앞 몇 글자만 본다 — 앞 글 전체를 번호마다 다시 훑으면 번호가 빽빽한 큰 글에서 제곱 시간이 된다 (2026-09-30 보안 검토)
+    const 앞 = 글.slice(Math.max(0, m.index - 16), m.index);
     if (/[~～]\s*$/.test(앞)) continue;
     const 뒤 = 범위뒤식.exec(글.slice(m.index + 시작.length));
     if (뒤 === null) {
@@ -140,33 +141,44 @@ const 글자본 = (경로: string) => /\.(txt|md)$/i.test(경로);
 
 /**
  * 요청의 자료 전부로 원장을 만든다. 자료마다 모드를 따로 판정하고 겹치는 번호는 하나로 친다.
- * `읽기` 를 받는 까닭 — 파일을 읽는 것은 껍데기의 일이고, 이 함수는 같은 글이면 같은 원장을 내야 한다
+ * `읽기` 를 받는 까닭 — 파일을 읽는 것은 껍데기의 일이고, 이 함수는 같은 글이면 같은 원장을 내야 한다.
+ * `읽기` 가 null 이면 그 자료는 못 읽은 것이다 — 빈 글로 치면 요구 0 인 원장이 「빠짐 0」 으로 통과해 보인다
  */
-export function 원장만들기(계획: 읽을자료[], 읽기: (경로: string) => string): { 원장: 원장 } | { 없음: string } {
+export function 원장만들기(
+  계획: 읽을자료[],
+  읽기: (경로: string) => string | null,
+): { 원장: 원장 } | { 없음: string } {
   const 글자료 = 계획.filter((c): c is Extract<읽을자료, { kind: 'FILE' }> => c.kind === 'FILE' && 글자본(c.읽을자리));
   const 빠진자료 = 계획
     .filter((c) => c.kind === 'FILE' && !글자본(c.읽을자리))
     .map((c) => (c.kind === 'FILE' ? `${c.name}(${c.읽을자리.split('.').pop()?.toUpperCase() ?? ''})` : ''));
+  const 뽑은것 = 글자료.flatMap((c) => {
+    const 글 = 읽기(c.읽을자리);
+    if (글 === null) {
+      빠진자료.push(`${c.name}(글자본을 못 읽음)`);
+      return [];
+    }
+    return [{ c, 글, 첫: 원장뽑기(글, c.name) }];
+  });
   const 피그마 = 계획.filter((c) => c.kind === 'FIGMA').length;
-  const 못읽음 = [...빠진자료, ...(피그마 > 0 ? [`피그마 ${피그마}건`] : [])];
-  if (글자료.length === 0) return { 없음: `글자본이 있는 자료가 없다${못읽음.length > 0 ? ` — ${못읽음.join(' · ')}` : ''}` };
+  const 못읽음 = [...빠진자료, ...(피그마 > 0 ? [`피그마 ${String(피그마)}건`] : [])];
+  if (뽑은것.length === 0) return { 없음: `글자본이 있는 자료가 없다${못읽음.length > 0 ? ` — ${못읽음.join(' · ')}` : ''}` };
 
-  const 뽑은것 = 글자료.map((c) => ({ c, 글: 읽기(c.읽을자리) }));
-  const 문단자료수 = 뽑은것.filter(({ c, 글 }) => 원장뽑기(글, c.name).모드 === '문단').length;
-  const 합친: 원장 = { 항목: [], 가족: {}, 모드: {}, 경고: [], 빠진자료: 못읽음.filter((m) => !m.startsWith('피그마')) };
+  const 문단자료수 = 뽑은것.filter(({ 첫 }) => 첫.모드 === '문단').length;
+  const 합친: 원장 = { 항목: [], 가족: {}, 모드: {}, 경고: [], 빠진자료 };
   let 문단순번 = 0;
   const 본번호 = new Set<string>();
-  for (const { c, 글 } of 뽑은것) {
-    const 첫 = 원장뽑기(글, c.name);
+  for (const { c, 글, 첫 } of 뽑은것) {
     const 하나 = 첫.모드 === '문단' && 문단자료수 > 1 ? 원장뽑기(글, c.name, `P${String(++문단순번)}`) : 첫;
     합친.모드[c.name] = 하나.모드;
     합친.경고.push(...하나.경고);
-    for (const [가, n] of Object.entries(하나.가족)) 합친.가족[가] = (합친.가족[가] ?? 0) + n;
     for (const 항 of 하나.항목) {
       if (본번호.has(항.번호)) continue;
       본번호.add(항.번호);
       합친.항목.push(항);
     }
   }
+  // 가족 수는 겹친 번호를 걸러 낸 뒤에 센다 — 자료마다 센 것을 더하면 요약과 셈이 어긋난다 (2026-09-30 코드 검토)
+  for (const 항 of 합친.항목) if (항.글 === undefined) 합친.가족[가족(항.번호)] = (합친.가족[가족(항.번호)] ?? 0) + 1;
   return { 원장: 합친 };
 }
