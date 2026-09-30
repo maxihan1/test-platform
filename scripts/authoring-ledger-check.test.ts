@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { 원장뽑기 } from './authoring-ledger.js';
-import { tcId들, 까닭글, 셈글, 원장대조, 제외종류 } from './authoring-ledger-check.js';
+import { tcId들, 까닭글, 셈글, 원장대조, 원장판정, 제외종류 } from './authoring-ledger-check.js';
 
 const 옛표 = readFileSync(new URL('./fixtures/ledger/mkt-5877.md', import.meta.url), 'utf8');
 const 데모마켓 = 원장뽑기(readFileSync(new URL('./fixtures/ledger/demomarket.txt', import.meta.url), 'utf8'), '3757');
@@ -113,5 +113,32 @@ describe('글', () => {
 describe('tcId들', () => {
   it('케이스 선언의 tcId 를 모은다', () => {
     expect(tcId들(["defineCase({\n  tcId: 'MKT-001',", 'tcId: "MKT-002"', '주석 없음'])).toEqual(new Set(['MKT-001', 'MKT-002']));
+  });
+});
+
+describe('원장판정 — 에이전트가 올리기 직전에 부른다', () => {
+  const 원장값 = { 항목: 원장, 가족: { 'REQ-A': 3 }, 모드: { a: '번호' as const }, 경고: [], 빠진자료: [] };
+
+  it('다 덮였으면 PR 본문 머리글을 준다', () => {
+    const r = 원장판정(원장값, 표([줄('REQ-A-1 REQ-A-2 REQ-A-3', 'X-001')]), new Set(['X-001']), '/w/m.json');
+    expect(r).toEqual({ 머리글: '원장: 요구 3 → 케이스 3 · 제외 0 · 빠짐 0 · 번호 가족 REQ-A 3' });
+  });
+
+  it('빠지면 거절 까닭과 빠짐 목록 파일 글을 준다 — 형식 오류도 목록에 싣는다', () => {
+    const r = 원장판정(원장값, 표([줄('REQ-A-1', 'X-001')], ['| REQ-A-2 | 한 칸 밖 | x |']), new Set(['X-001']), '/w/m.json');
+    if (!('거절' in r)) throw new Error('거절이어야 한다');
+    expect(r.거절).toBe('원장 대조: 빠진 요구 2개 · 형식 오류 1개 — REQ-A-2 · REQ-A-3 · 전체는 /w/m.json');
+    expect(JSON.parse(r.빠짐목록)).toEqual({ 빠짐: ['REQ-A-2', 'REQ-A-3'], 형식오류: ['제외 줄 「REQ-A-2」 — 모르는 종류 「한 칸 밖」'] });
+  });
+
+  it('원장이 없으면 경고 머리글만 준다 — 대조를 건너뛴다', () => {
+    expect(원장판정({ 없음: '글자본이 있는 자료가 없다 — 화면.pdf(PDF)' }, '', new Set(), '/w/m.json')).toEqual({
+      머리글: '⚠️ 원장 없음 — 글자본이 있는 자료가 없다 — 화면.pdf(PDF). 빠진 요구를 기계로 확인하지 못했다',
+    });
+  });
+
+  it('원장에 못 넣은 자료가 있으면 머리글에 싣는다', () => {
+    const r = 원장판정({ ...원장값, 빠진자료: ['화면.pdf(PDF)'] }, 표([줄('REQ-A-1 REQ-A-2 REQ-A-3', 'X-001')]), new Set(['X-001']), '/w/m.json');
+    expect(r).toEqual({ 머리글: '원장: 요구 3 → 케이스 3 · 제외 0 · 빠짐 0 · 번호 가족 REQ-A 3 · 원장에 못 넣은 자료 화면.pdf(PDF)' });
   });
 });

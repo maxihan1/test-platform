@@ -24,6 +24,9 @@ import {
 } from './authoring-chain.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 산출물읽기, 역기획서준비 } from './authoring-upload-reverse.js';
+import type { 원장 } from './authoring-ledger.js';
+import { tcId들, 원장판정 } from './authoring-ledger-check.js';
+import { 빠짐목록쓰기, 빠짐파일이름, 케이스글들 } from './authoring-ledger-io.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
 import { type 자료, 자료출처 } from './authoring-assets.js';
 import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
@@ -64,6 +67,7 @@ export async function 올리기(
   자식출력: string,
   손: 보고손,
   역?: 역방향올리기,
+  원장재료?: { 값: 원장 | { 없음: string }; 폴더: string; 자료폴더: string },
 ): Promise<void> {
   const 깃 = 사본환경(자리);
   // 거절 까닭은 화면과 이어받는 자식의 프롬프트로 간다 — 자식이 정한 파일 이름에 계정 원문이 섞일 수 있어 모두 거른다
@@ -120,10 +124,20 @@ export async function 올리기(
     return;
   }
   const 읽기 = (f: string) => (모양보기(자리.트리, f).종류 === '파일' ? readFileSync(join(자리.트리, f), 'utf8') : '');
+  // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠지면 올리기 거절로 이어받게 한다 (§3.6 「★ 원장」)
+  const 원장결과 =
+    원장재료 === undefined
+      ? null
+      : 원장판정(원장재료.값, 읽기(표), tcId들(케이스글들(자리.트리, 원장재료.폴더, 읽기)), join(원장재료.자료폴더, 빠짐파일이름));
+  if (원장결과 !== null && '거절' in 원장결과 && 원장재료 !== undefined) {
+    빠짐목록쓰기(원장재료.자료폴더, 원장결과.빠짐목록);
+    await 손.끝내기(거절(원장결과.거절));
+    return;
+  }
   const 본문글 = PR본문({
     표: 읽기(표),
-    // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 앞쪽 수다까지 실을 필요는 없다
-    요약: 자식출력.trim().split('\n').slice(-40).join('\n'),
+    // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다
+    요약: [...(원장결과 !== null && '머리글' in 원장결과 ? [원장결과.머리글, ''] : []), ...자식출력.trim().split('\n').slice(-40)].join('\n'),
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
   if (비밀섞였나([본문글, ...전체.map(읽기)], 것.figmaToken)) {
