@@ -200,8 +200,9 @@
   - 근거 PR #108 · 2026-09-29
 - [x] `REV-F3-10` 요구 원장 대조 · 닫힌 제외 종류 · API 케이스 절차 · 서브에이전트 팬아웃(동시 3)
   - 근거 PR #119 · 2026-09-30
-- [ ] `REV-F3-11` 커버리지 칸 — DB · finish result.coverage · 상세 · 작성 화면 · Grafana (계약 블록 대기 · 도메인/작성 §3.6 「★ 원장」)
-- [ ] `REV-F3-12` 남은 요구로 이어 작성 — continueFrom · 409 NOT_MERGED · NOTHING_LEFT (계약 블록 대기)
+- [x] `REV-F3-11` 커버리지 칸 — DB · finish result.coverage · 상세 · 작성 화면 · Grafana · 빠져도 올리기 거절 안 함(게이트 1)
+  - 근거 PR #120 · 2026-09-30
+- [ ] `REV-F3-12` 남은 요구로 이어 작성 — continueFrom · 409 NOT_MERGED · NOTHING_LEFT · 「다음 요청」·「빠짐」 번호(계약 블록 대기)
 
 ### 실제 서버 확인 · Phase 2
 **무엇** 코드는 섰고 서버에서 한 바퀴 돌려 보는 일이 남았다.
