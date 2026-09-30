@@ -2486,7 +2486,7 @@ select:focus {
   margin-top: 6px;
 }
 
-/* 줄에서는 라벨 열을 62px 로 줄인다. 폼 화면의 132px 를 그대로 쓰면 케이스명이 밀린다 */
+/* 줄에서는 라벨 열을 84px 로 줄인다(2026-09-30, 62→84 — 짧은 이름 + 한 줄 줄임). 폼 화면의 132px 를 그대로 쓰면 케이스명이 밀린다 */
 .pcell .field {
   grid-template-columns: 84px minmax(0, 1fr);
   gap: 4px 9px;
