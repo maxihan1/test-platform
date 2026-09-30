@@ -116,7 +116,8 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
       <div className="screen authoring-page">
         <div className="authoring-cols">
           <div className="authoring-col">
-            <AuthoringStatusCard 요청={data} 지금={Date.now()} service={service} />
+            {/* 셈은 차이 표처럼 머지를 뺀 최신 작성 실행 것이다 — 머지 행에는 셈이 없다 */}
+            <AuthoringStatusCard 요청={data} 커버리지={작성.coverage ?? null} 지금={Date.now()} service={service} />
 
             {차이들 === null ? null : (
               <section className="authoring-panel">

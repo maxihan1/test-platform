@@ -362,7 +362,26 @@ export interface AuthoringRow {
   heldUnknown?: boolean;
   /** 반영 때 고를 수 있는 대상 서버 — 테스트 계정이 있는 줄 이름. 정방향 보류에만 온다 */
   mergeEnvs?: string[];
+  /** 기획서 요구 셈 (도메인/작성 §3.6 「★ 원장」). 상세에만 — null 이면 셈을 싣기 전의 실행이다 */
+  coverage?: AuthoringCoverage | null;
 }
+
+/**
+ * 한 실행이 뽑은 원장 전체의 셈. `cased` 는 보류 케이스로 덮은 것까지 넣고 `held` 는 그중 보류로만 덮은 수다.
+ * 원장을 못 만들면 `{ none: 까닭 }` 만 온다
+ */
+export type AuthoringCoverage =
+  | {
+      total: number;
+      cased: number;
+      /** null 이면 모른다 — 보류는 DONE 때만 센다 */
+      held: number | null;
+      excluded: Record<string, number>;
+      missing: string[];
+      later: string[];
+      unread?: string[];
+    }
+  | { none: string };
 
 export type AuthoringHeldValue = string | number | boolean;
 

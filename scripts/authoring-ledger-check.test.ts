@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { 원장뽑기 } from './authoring-ledger.js';
-import { tcId들, 까닭글, 셈글, 원장대조, 원장판정, 제외종류 } from './authoring-ledger-check.js';
+import { tcId들, 셈글, 원장대조, 원장판정, 제외종류 } from './authoring-ledger-check.js';
 
 const 옛표 = readFileSync(new URL('./fixtures/ledger/mkt-5877.md', import.meta.url), 'utf8');
 const 데모마켓 = 원장뽑기(readFileSync(new URL('./fixtures/ledger/demomarket.txt', import.meta.url), 'utf8'), '3757');
@@ -98,19 +98,36 @@ describe('원장대조', () => {
     expect(r.빠짐).not.toContain('REQ-COM-001');
   });
 
+  it('덮음은 번호마다 덮은 tcId 를 모은다 — 덮은 것으로 치는 줄만 · 원장 번호만', () => {
+    const r = 원장대조(
+      원장,
+      표([줄('REQ-A-1 REQ-A-2 REQ-A-9', 'X-001'), 줄('REQ-A-1', 'X-002'), 줄('REQ-A-3', '—'), 줄('REQ-A-3', 'X-009')]),
+      { 있는케이스: new Set(['X-001', 'X-002']), 에이전트: true },
+    );
+    expect(r.덮음).toEqual(
+      new Map([
+        ['REQ-A-1', new Set(['X-001', 'X-002'])],
+        ['REQ-A-2', new Set(['X-001'])],
+      ]),
+    );
+  });
+
+  it('제외번호는 원장 안이고 케이스로 안 덮인 번호만 싣는다 — 제외 셈과 같은 거름', () => {
+    const r = 원장대조(
+      원장,
+      표([줄('REQ-A-1', 'X-001')], ['| REQ-A-1 | 다음 요청 | 케이스도 있다 |', '| REQ-A-2 | 자료 없음 | 화면 없음 |', '| REQ-A-9 | 요구 아님 | 원장 밖 |']),
+      { 있는케이스: new Set(['X-001']), 에이전트: true },
+    );
+    expect(r.제외번호).toEqual(new Map([['REQ-A-2', '자료 없음']]));
+    expect(r.셈.제외).toEqual({ '자료 없음': 1 });
+  });
+
   it('제외 종류는 다섯뿐이다', () => {
     expect(제외종류).toEqual(['다음 요청', '되돌릴 수 없음', '자료 없음', '요구 아님', '사람이 뺌']);
   });
 });
 
 describe('글', () => {
-  it('까닭은 앞 10개와 전체 파일을 가리킨다', () => {
-    const 빠짐 = Array.from({ length: 12 }, (_, i) => `REQ-A-${String(i + 1)}`);
-    expect(까닭글({ 빠짐, 형식오류: ['x'], 경고: [], 셈: { 총: 12, 케이스: 0, 제외: {}, 빠짐: 12 } }, '/w/ledger-missing.json')).toBe(
-      '원장 대조: 빠진 요구 12개 · 형식 오류 1개 — REQ-A-1 · REQ-A-2 · REQ-A-3 · REQ-A-4 · REQ-A-5 · REQ-A-6 · REQ-A-7 · REQ-A-8 · REQ-A-9 · REQ-A-10 … · 전체는 /w/ledger-missing.json',
-    );
-  });
-
   it('셈 글은 총 · 케이스 · 제외 종류별 · 가족별을 싣는다', () => {
     expect(셈글({ 총: 3, 케이스: 2, 제외: { '다음 요청': 1 }, 빠짐: 0 }, { 'REQ-A': 3 })).toBe(
       '원장: 요구 3 → 케이스 2 · 제외 1(다음 요청 1) · 빠짐 0 · 번호 가족 REQ-A 3',
@@ -130,29 +147,64 @@ describe('tcId들', () => {
   });
 });
 
-describe('원장판정 — 에이전트가 올리기 직전에 부른다', () => {
+describe('원장판정 — 에이전트가 올리기 직전에 부른다 · 빠져도 거절하지 않는다', () => {
   const 원장값 = { 항목: 원장, 가족: { 'REQ-A': 3 }, 모드: { a: '번호' as const }, 경고: [], 빠진자료: [] };
 
-  it('다 덮였으면 PR 본문 머리글을 준다', () => {
-    const r = 원장판정(원장값, 표([줄('REQ-A-1 REQ-A-2 REQ-A-3', 'X-001')]), new Set(['X-001']), '/w/m.json');
-    expect(r).toEqual({ 머리글: '원장: 요구 3 → 케이스 3 · 제외 0 · 빠짐 0 · 번호 가족 REQ-A 3' });
-  });
-
-  it('빠지면 거절 까닭과 빠짐 목록 파일 글을 준다 — 형식 오류도 목록에 싣는다', () => {
-    const r = 원장판정(원장값, 표([줄('REQ-A-1', 'X-001')], ['| REQ-A-2 | 한 칸 밖 | x |']), new Set(['X-001']), '/w/m.json');
-    if (!('거절' in r)) throw new Error('거절이어야 한다');
-    expect(r.거절).toBe('원장 대조: 빠진 요구 2개 · 형식 오류 1개 — REQ-A-2 · REQ-A-3 · 전체는 /w/m.json');
-    expect(JSON.parse(r.빠짐목록)).toEqual({ 빠짐: ['REQ-A-2', 'REQ-A-3'], 형식오류: ['제외 줄 「REQ-A-2」 — 모르는 종류 「한 칸 밖」'] });
-  });
-
-  it('원장이 없으면 경고 머리글만 준다 — 대조를 건너뛴다', () => {
-    expect(원장판정({ 없음: '글자본이 있는 자료가 없다 — 화면.pdf(PDF)' }, '', new Set(), '/w/m.json')).toEqual({
-      머리글: '⚠️ 원장 없음 — 글자본이 있는 자료가 없다 — 화면.pdf(PDF). 빠진 요구를 기계로 확인하지 못했다',
+  it('다 덮였으면 셈 한 줄 머리글과 대조 결과를 준다', () => {
+    const 표글 = 표([줄('REQ-A-1 REQ-A-2 REQ-A-3', 'X-001')]);
+    expect(원장판정(원장값, 표글, new Set(['X-001']))).toEqual({
+      머리글: '원장: 요구 3 → 케이스 3 · 제외 0 · 빠짐 0 · 번호 가족 REQ-A 3',
+      대조: 원장대조(원장, 표글, { 있는케이스: new Set(['X-001']), 에이전트: true }),
     });
   });
 
-  it('원장에 못 넣은 자료가 있으면 머리글에 싣는다', () => {
-    const r = 원장판정({ ...원장값, 빠진자료: ['화면.pdf(PDF)'] }, 표([줄('REQ-A-1 REQ-A-2 REQ-A-3', 'X-001')]), new Set(['X-001']), '/w/m.json');
-    expect(r).toEqual({ 머리글: '원장: 요구 3 → 케이스 3 · 제외 0 · 빠짐 0 · 번호 가족 REQ-A 3 · 원장에 못 넣은 자료 화면.pdf(PDF)' });
+  it('빠지거나 형식 오류가 있어도 거절하지 않고 셈 줄 아래에 싣는다', () => {
+    const r = 원장판정(원장값, 표([줄('REQ-A-1', 'X-001')], ['| REQ-A-2 | 한 칸 밖 | x |']), new Set(['X-001']));
+    if (!('대조' in r)) throw new Error('대조가 있어야 한다');
+    expect(r).not.toHaveProperty('거절');
+    expect(r.머리글).toBe(
+      [
+        '원장: 요구 3 → 케이스 1 · 제외 0 · 빠짐 2 · 번호 가족 REQ-A 3',
+        '⚠️ 빠짐 2 — REQ-A-2 · REQ-A-3',
+        '⚠️ 형식 오류 1 — 제외 줄 「REQ-A-2」 — 모르는 종류 「한 칸 밖」',
+      ].join('\n'),
+    );
+    expect(r.대조.빠짐).toEqual(['REQ-A-2', 'REQ-A-3']);
+    expect(r.대조.형식오류).toEqual(['제외 줄 「REQ-A-2」 — 모르는 종류 「한 칸 밖」']);
+  });
+
+  it('빠짐은 앞 10개 · 형식 오류는 앞 3개만 싣고 더 있으면 말줄임을 붙인다', () => {
+    const 긴원장 = Array.from({ length: 12 }, (_, i) => ({ 번호: `REQ-C-${String(i + 1)}`, 자료: 'a' }));
+    const r = 원장판정(
+      { 항목: 긴원장, 가족: { 'REQ-C': 12 }, 모드: { a: '번호' }, 경고: [], 빠진자료: [] },
+      표([], ['| REQ-C-1 | 가 | x |', '| REQ-C-2 | 나 | x |', '| REQ-C-3 | 다 | x |', '| REQ-C-4 | 라 | x |']),
+      new Set(),
+    );
+    expect(r.머리글).toBe(
+      [
+        '원장: 요구 12 → 케이스 0 · 제외 0 · 빠짐 12 · 번호 가족 REQ-C 12',
+        '⚠️ 빠짐 12 — REQ-C-1 · REQ-C-2 · REQ-C-3 · REQ-C-4 · REQ-C-5 · REQ-C-6 · REQ-C-7 · REQ-C-8 · REQ-C-9 · REQ-C-10 …',
+        '⚠️ 형식 오류 4 — 제외 줄 「REQ-C-1」 — 모르는 종류 「가」 · 제외 줄 「REQ-C-2」 — 모르는 종류 「나」 · 제외 줄 「REQ-C-3」 — 모르는 종류 「다」 …',
+      ].join('\n'),
+    );
+  });
+
+  it('원장이 없으면 경고 머리글과 까닭을 준다 — 대조를 건너뛴다', () => {
+    expect(원장판정({ 없음: '글자본이 있는 자료가 없다 — 화면.pdf(PDF)' }, '', new Set())).toEqual({
+      머리글: '⚠️ 원장 없음 — 글자본이 있는 자료가 없다 — 화면.pdf(PDF). 빠진 요구를 기계로 확인하지 못했다',
+      없음: '글자본이 있는 자료가 없다 — 화면.pdf(PDF)',
+    });
+  });
+
+  it('원장에 못 넣은 자료가 있으면 셈 줄 끝에 싣는다', () => {
+    const r = 원장판정({ ...원장값, 빠진자료: ['화면.pdf(PDF)'] }, 표([줄('REQ-A-1 REQ-A-2 REQ-A-3', 'X-001')]), new Set(['X-001']));
+    expect(r.머리글).toBe('원장: 요구 3 → 케이스 3 · 제외 0 · 빠짐 0 · 번호 가족 REQ-A 3 · 원장에 못 넣은 자료 화면.pdf(PDF)');
+  });
+
+  it('못 넣은 자료와 빠짐이 같이 있으면 자료는 셈 줄 끝 · 빠짐은 다음 줄이다', () => {
+    const r = 원장판정({ ...원장값, 빠진자료: ['화면.pdf(PDF)'] }, 표([줄('REQ-A-1', 'X-001')]), new Set(['X-001']));
+    expect(r.머리글).toBe(
+      '원장: 요구 3 → 케이스 1 · 제외 0 · 빠짐 2 · 번호 가족 REQ-A 3 · 원장에 못 넣은 자료 화면.pdf(PDF)\n⚠️ 빠짐 2 — REQ-A-2 · REQ-A-3',
+    );
   });
 });
