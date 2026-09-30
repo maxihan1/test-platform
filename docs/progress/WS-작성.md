@@ -491,3 +491,13 @@
 - 미완: opus→sonnet 품질 비교 기준선이 없다 — 데모마켓 측정으로 두 모델을 비교한다 (다음 할 일)
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 모델 기본값을 바꾸면 서버 author 를 다시 켜야 반영된다. 자식 스킬만 바뀐 것은 다음 작성부터 반영된다(작업마다 원격 main SHA 로 만든 사본을 읽는다).
+
+## 2026-09-30 — 작성 누락 막기 ① 원장 대조 · 제외 종류 · 팬아웃 (PR #119)
+
+- 완료: 원장 추출(`scripts/authoring-ledger.ts` — 번호 모드 · 문단 모드 · 자료 여럿 · 원장 없음) · 대조(`authoring-ledger-check.ts` — 케이스 파일 확인 · 한 줄 하나 · 닫힌 종류 · 셈) · 껍데기(`authoring-ledger-io.ts`) · `npm run ledger` · `check:ledger`
+- 완료: 에이전트가 자식 전에 원장을 뽑아 줄 프롬프트에 원장 절 · 올리기 직전 대조(빠지면 REJECTED + `ledger-missing.json`) · PR 본문 머리에 셈 · 300줄 파일 둘 분리(`authoring-prompt.ts` · `authoring-upload-reverse.ts`)
+- 완료: 자식 스킬 관문 0 · 「제외」 표 · API 케이스 절차 · 팬아웃(`tpx-author/references/fanout.md`) · MKT 표 원장 기준(172 → 케이스 48 · 제외 124 · 빠짐 0) · 명세 §3.6 「★ 원장」
+- 미완: ② 커버리지 칸 ③ 남은 요구로 이어 작성 — 계약 블록 대기 · 실제 서버에서 원장 대조 · 팬아웃 한 바퀴(REV-F4-03)
+- 막힌 것: 없음. 이 컨테이너에 pandoc 이 없어 데모마켓 글자본은 워드 XML 에서 뽑은 것으로 셈을 맞췄다(서버는 `pandoc -t plain`)
+- 다음 세션이 알아야 할 것: 원장 사본은 자식이 고칠 수 있다 — 판정은 에이전트 메모리의 원장이 한다. `authoring-run.ts` 가 딱 300줄이다 — 다음 변경은 먼저 뗀다
+
