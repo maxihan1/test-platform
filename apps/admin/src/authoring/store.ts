@@ -9,7 +9,7 @@ export async function db(): Promise<Pool> {
   return pool;
 }
 
-export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE';
+export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT';
 // DRAFT 는 자료를 올리는 중이라 아직 줄에 안 섰다. 줄에 세우기는 assetStore.ts 의 `제출` 이 한다
 export type 상태 = 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'STOPPED';
 

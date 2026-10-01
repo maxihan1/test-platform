@@ -11,6 +11,7 @@ import Fastify from 'fastify';
 import authRoutes from './auth/routes.js';
 import authoringAgentRoutes from './authoring/agentRoutes.js';
 import authoringAssetRoutes from './authoring/assets.js';
+import authoringEditRoutes from './authoring/edit-routes.js';
 import authoringRoutes from './authoring/routes.js';
 import { 기본계정만들기 } from './auth/defaultAdmin.js';
 import { 인증등록 } from './auth/gate.js';
@@ -42,6 +43,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(authoringRoutes, { prefix: '/api' });
   app.register(authoringAssetRoutes, { prefix: '/api' });
   app.register(authoringAgentRoutes, { prefix: '/api' });
+  app.register(authoringEditRoutes, { prefix: '/api' });
   app.register(catalogRoutes, { prefix: '/api' });
   app.register(executionRoutes, { prefix: '/api' });
   app.register(trialRoutes, { prefix: '/api' });
