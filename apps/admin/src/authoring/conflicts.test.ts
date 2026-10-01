@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { 가져갈결정, 겹침들, 겹침모양검사, 겹침상한, 결정인가, 남은겹침수 } from './conflicts.js';
+import { 가져갈결정, 겹침들, 겹침모양검사, 겹침상한, 결정인가, 남은겹침수, type 겹침 } from './conflicts.js';
 
-const 한줄 = {
+const 한줄: 겹침 = {
   tcId: 'PAY-031',
   name: '쿠폰을 적용하면 금액이 준다',
   file: 'tests/pay/PAY-031.spec.ts',
