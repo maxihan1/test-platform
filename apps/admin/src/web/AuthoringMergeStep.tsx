@@ -67,7 +67,7 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
       {겹침 > 0 ? (
         <p className="held-why">
           {t('겹치는 케이스 {수}건을 아직 고르지 않아 반영할 수 없습니다.', { 수: 겹침 })}{' '}
-          <a href="#conflicts" onClick={(e) => { e.preventDefault(); document.getElementById('conflicts')?.scrollIntoView(); }}>{t('겹친 케이스로 가기')}</a>
+          <a href="#conflicts" onClick={(e) => { e.preventDefault(); const 칸 = document.getElementById('conflicts'); 칸?.scrollIntoView(); 칸?.focus(); }}>{t('겹친 케이스로 가기')}</a>
         </p>
       ) : null}
       {서버없음 ? <p className="held-why">{t('테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.')}</p> : null}

@@ -73,7 +73,7 @@ describe('겹친 케이스 표', () => {
 
   it('남긴다를 누르면 PUT 으로 보내고 다시 읽는다', async () => {
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침]} 편집 reload={reload} />);
-    fireEvent.click(screen.getAllByRole('button', { name: '남긴다' })[0] as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: 'PAY-041 남긴다' }));
     await vi.waitFor(() => expect(reload).toHaveBeenCalled());
     expect(넣기).toHaveBeenCalledWith('PAY', 7, 'PAY-041', 'KEEP');
   });
@@ -86,7 +86,7 @@ describe('겹친 케이스 표', () => {
 
   it('고른 줄에만 되돌리기가 있고 DELETE 를 보낸다', async () => {
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침, 요구겹침]} 편집 reload={reload} />);
-    const 되돌리기 = screen.getAllByRole('button', { name: '되돌리기' });
+    const 되돌리기 = screen.getAllByRole('button', { name: /되돌리기/ });
     expect(되돌리기).toHaveLength(1);
     fireEvent.click(되돌리기[0] as HTMLElement);
     await vi.waitFor(() => expect(지우기).toHaveBeenCalledWith('PAY', 7, 'PAY-043'));

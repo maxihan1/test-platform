@@ -48,7 +48,7 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 편집, r
   const 고른다 = (c: AuthoringConflict, a: AuthoringConflictAction) => () => api.putAuthoringConflict(service, 요청번호, c.tcId, a);
 
   return (
-    <section id="conflicts" className="authoring-panel authoring-conflicts" aria-labelledby="conflicts-title">
+    <section id="conflicts" tabIndex={-1} className="authoring-panel authoring-conflicts" aria-labelledby="conflicts-title">
       <div className="conflicts-head">
         <h3 id="conflicts-title">
           {t('겹친 케이스')} <span className="hint">{t('{수}건 · 아직 고르지 않은 것 {남은}건', { 수: conflicts.length, 남은 })}</span>
@@ -67,7 +67,7 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 편집, r
       <p className="hint">
         {t('먼저 반영된 케이스와 번호 · 요구 번호 · 이름이 겹칩니다. 케이스마다 남길지 뺄지 고른 뒤에 반영할 수 있습니다.')}
       </p>
-      {오류 === null ? null : <p className="error-text">{오류}</p>}
+      {오류 === null ? null : <p className="error-text" role="alert">{오류}</p>}
       <div className="authoring-diffs-wrap">
         <table className="dhist" aria-label={t('겹친 케이스')}>
           <thead>
@@ -129,16 +129,17 @@ export function AuthoringConflicts({ service, 요청번호, conflicts, 편집, r
                 <td className="held-btns">
                   {!편집 ? null : (
                     <>
-                      <button className={c.input?.action === 'KEEP' ? 'btn' : 'btn ghost'} type="button" disabled={보내는중} onClick={() => 보낸다([고른다(c, 'KEEP')])}>
+                      <button className={c.input?.action === 'KEEP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'KEEP'} aria-label={`${c.tcId} ${t('남긴다')}`} disabled={보내는중} onClick={() => 보낸다([고른다(c, 'KEEP')])}>
                         {t('남긴다')}
                       </button>
-                      <button className={c.input?.action === 'DROP' ? 'btn' : 'btn ghost'} type="button" disabled={보내는중} onClick={() => 보낸다([고른다(c, 'DROP')])}>
+                      <button className={c.input?.action === 'DROP' ? 'btn' : 'btn ghost'} type="button" aria-pressed={c.input?.action === 'DROP'} aria-label={`${c.tcId} ${t('뺀다')}`} disabled={보내는중} onClick={() => 보낸다([고른다(c, 'DROP')])}>
                         {t('뺀다')}
                       </button>
                       {c.input === null ? null : (
                         <button
                           className="btn ghost"
                           type="button"
+                          aria-label={`${c.tcId} ${t('되돌리기')}`}
                           disabled={보내는중}
                           onClick={() => 보낸다([() => api.deleteAuthoringConflict(service, 요청번호, c.tcId)])}
                         >
