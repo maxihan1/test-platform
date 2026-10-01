@@ -203,6 +203,7 @@ describe('케이스 고치기 상세', () => {
     const 상자 = within(screen.getByRole('dialog'));
     expect(상자.getByText(/다시 적용할 수 있습니다/)).toBeTruthy();
     expect(상자.queryByText(/이어서 작성/)).toBeNull();
+    expect(상자.queryByText(/끊긴|끊겼/)).toBeNull();
   });
 
   it('실행 기록의 방식은 케이스 고치기 · 다시 적용이다', async () => {

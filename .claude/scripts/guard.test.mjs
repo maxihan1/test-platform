@@ -53,10 +53,22 @@ test('무늬로 프로세스를 찾아 끄는 명령은 자기 셸까지 끈다 
     'for p in $(pgrep -f "tsx apps/admin/src/app.ts"); do kill $p; done',
     'kill $(pgrep -f app.ts)',
     'kill -9 $(pgrep -af vite)',
+    'pkill -fx app.ts',
+    'pkill --full app.ts',
+    'kill `pgrep -f app.ts`',
+    'pgrep -f app.ts | xargs kill',
+    'pgrep -af vite | xargs -r kill -9',
   ]) {
     assert.equal(isBanned(cmd), '무늬로 프로세스 끄기', `막았어야 한다: ${cmd}`);
   }
-  for (const cmd of ['pgrep -af "apps/admin/src/app.ts"', 'kill 12345', 'pkill node', 'grep -n "pkill -f" docs/SETUP.md']) {
+  for (const cmd of [
+    'pgrep -af "apps/admin/src/app.ts"',
+    'pgrep -af app.ts | head -3',
+    'kill 12345',
+    'pkill node',
+    'grep -n "pkill -f" docs/SETUP.md',
+    'ps aux | grep app.ts',
+  ]) {
     assert.ok(!isBanned(cmd), `통과했어야 한다: ${cmd}`);
   }
 });

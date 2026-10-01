@@ -31,8 +31,14 @@ const BANNED = [
   [/\brm\s+-rf\s+\/(?!home|tmp)/, '루트 경로 삭제'],
   // 명령 줄 무늬로 찾으면 그 무늬를 품은 도구 셸 자신도 걸려 같이 꺼진다 — 결과도 정리도 없이 셸이 죽는다.
   // SETUP §11 에 적었는데 2026-10-01 에 `$(pgrep -f …)` 로 또 겪었다. `pgrep -af` 로 번호를 보고 `kill <번호>`
-  [/\bpkill\s+(?:[^;&|]*\s)?-\w*f\b/, '무늬로 프로세스 끄기'],
-  [/\$\(\s*pgrep\s+(?:[^)]*\s)?-\w*f\b/, '무늬로 프로세스 끄기'],
+  // 무늬 고르개는 `-f` 를 품은 묶음(`-af` · `-fx`)과 `--full` 둘 다다. 치환은 `$(…)` 와 백틱 둘 다
+  [/\bpkill\s+(?:[^;&|]*\s)?(?:-\w*f\w*|--full)\b/, '무늬로 프로세스 끄기'],
+  [/(?:\$\(|`)\s*pgrep\s+(?:[^)`]*\s)?(?:-\w*f\w*|--full)\b/, '무늬로 프로세스 끄기'],
+];
+
+// 파이프로 이어지는 꼴은 구간을 나누면 둘로 갈라져 못 본다 — 나누기 전 명령 전체에 건다
+const BANNED_WHOLE = [
+  [/\bpgrep\s+(?:[^;&|]*\s)?(?:-\w*f\w*|--full)\b[^;&|]*\|\s*xargs\s+(?:-\S+\s+)*kill\b/, '무늬로 프로세스 끄기'],
 ];
 
 /** 금지 명령이면 그 이름을, 아니면 null. 판별식이 이 함수만 부른다 */
@@ -43,6 +49,9 @@ export function isBanned(command) {
     .replace(/'[^']*'/g, "''")
     .replace(/"[^"]*"/g, '""');
 
+  for (const [re, label] of BANNED_WHOLE) {
+    if (re.test(껍데기)) return label;
+  }
   for (const 구간 of 껍데기.split(/;|&&|\|\||\||\n/)) {
     const s = 구간.trim();
     if (!s) continue;

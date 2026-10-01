@@ -65,5 +65,5 @@ export const 고치기말: Record<string, string> = {
   '지금 main 위에서 같은 내용으로 다시 고칩니다. 지금까지의 실행은 실행 기록에 남습니다.':
     'Applies the same changes again on top of the current main. Earlier runs stay in the run history.',
   '다시 적용은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.': 'Only people with authoring write access can re-apply.',
-  '응답이 끊긴 고치기를 멈춥니다. 멈춘 뒤 다시 적용할 수 있습니다.': 'Stops the unresponsive change. You can re-apply it afterwards.',
+  '한동안 소식이 없는 고치기를 멈춥니다. 멈춘 뒤 다시 적용할 수 있습니다.': 'Stops the change that has been quiet for a while. You can re-apply it afterwards.',
 };
