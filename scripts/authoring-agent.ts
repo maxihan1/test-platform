@@ -21,11 +21,11 @@ import { pathToFileURL } from 'node:url';
 import { type 설정, type 설정자리, admin주소, 기다렸다다시인가, 선행검사, 주소안전한가, 집은것인가 } from './authoring-rules.js';
 import { 보관훑기 } from './authoring-keeping.js';
 import { 계정들, 동시상한, 바탕거부사유, 호스트환경 } from './authoring-copy.js';
-import { 도는자식, 멈춤, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
+import { 도는자식, 멈춤, 보고손만들기, 부른다, 자리들, 친다, 판정기만들기 } from './authoring-io.js';
 import { 모델설정, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과 } from './authoring-model.js';
 import { 멈춘것닫기 } from './authoring-closing.js';
 import { type 판, 한건처리 } from './authoring-run.js';
-import { 보류있나 } from './authoring-held-apply.js';
+import { 도는일들, 반영줄들, 자리놓을까 } from './authoring-lanes.js';
 import { type 폴더자리, 나풀기, 토큰고르기, 토큰모양인가, 토큰묻기, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 // ── 껍데기 ────────────────────────────────────────────────────────────
@@ -181,9 +181,22 @@ async function 돈다(): Promise<number> {
   const 표 = 자리들(켜기.상한);
   const 쉬기 = () => new Promise((resolve) => setTimeout(resolve, 쉬는시간));
 
+  const 일들 = 도는일들((err) => {
+    const 글 = err instanceof Error ? err.message : String(err);
+    // **거절만 끝낸다.** 기다린다고 안 풀리고 사람이 손대야 한다. 다른 줄의 자식도 거둔다 — 남으면 한도를 계속 쓴다
+    if (글.includes('서버가 거절했다')) {
+      멈춤.까닭 = 글;
+      for (const 자식 of 도는자식) 자식.kill('SIGKILL');
+      return;
+    }
+    console.error(`[작성] 건 처리 중 오류: ${글}`);
+  });
+  const 반영줄 = 반영줄들();
+
   /**
-   * 서비스 하나의 줄. **먼저 집고, 작성·재실행만 자리를 잡는다** — 머지는 CI 를 기다리기만 해서
-   * 자리(메모리·구독 한도)를 안 쓴다. 한 서비스 안은 여전히 한 건씩이다
+   * 서비스 하나의 줄. **자리를 먼저 잡고 나서 가져간다** — 가져간 채 자리를 기다리면 단계 글 없이 30분이 지나 「응답 없음」으로 보인다.
+   * 작성·재실행·고치기는 같은 서비스도 나란히 돈다(동시 상한이 막는다). 반영은 서비스마다 차례로 돈다 — 보류 값을 적는 반영만 자리를 계속 쓴다
+   * (작성 §3.6 「★ 반영 때 겹침 검사」)
    */
   const 줄돌기 = async (서비스: string): Promise<void> => {
     while (멈춤.까닭 === null) {
@@ -192,7 +205,14 @@ async function 돈다(): Promise<number> {
         클로드최신화(process.env.AUTHORING_CLAUDE_VERSION);
         마지막최신화 = Date.now();
       }
+      const 자리번호 = await 표.잡기();
+      // 자리를 기다리는 동안 다른 줄이 거절을 받았으면 손을 뗀다. 그 행은 다음에 켤 때 멈춘 것으로 닫힌다
+      if (멈춤.까닭 !== null) {
+        표.놓기(자리번호);
+        return;
+      }
       let 집었나 = false;
+      let 자리넘김 = false;
       try {
         const 답 = await 부른다(주소, 토큰, `/authoring/requests/claim?service=${encodeURIComponent(서비스)}`, {
           method: 'POST',
@@ -202,20 +222,20 @@ async function 돈다(): Promise<number> {
         if (집은것인가(답.status, 답.몸)) {
           const 것 = 답.몸;
           집었나 = true;
-          // 보류 값을 적는 머지는 작업방을 열고 케이스를 3회 돌린다 — 동시 상한에 센다 (작성 §3.6 반영 1)
-          const 자리번호 = 것.kind === 'MERGE' && !보류있나((것 as { held?: unknown }).held) ? -1 : await 표.잡기();
-          // 자리를 기다리는 동안 다른 줄이 거절을 받았으면 손을 뗀다. 그 행은 다음에 켤 때 멈춘 것으로 닫힌다
-          if (멈춤.까닭 !== null) {
-            if (자리번호 >= 0) 표.놓기(자리번호);
-            return;
+          const 놓나 = 자리놓을까(것);
+          console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}${놓나 ? '' : ` · 자리 ${자리번호}`}).`);
+          const 처리 = async () => {
+            await 한건처리(주소, 토큰, 서비스, 것, 판, 놓나 ? -1 : 자리번호, 서버표[서비스] ?? [], 폴더표[서비스]);
+            console.log(`[작성] ${것.id}번을 끝냈다.`);
+          };
+          자리넘김 = true;
+          if (놓나) {
+            표.놓기(자리번호);
+            const 손 = 보고손만들기(주소, 토큰, 서비스, 것.id);
+            일들.더하기(반영줄.걸기(서비스, () => 손.단계('앞 반영을 기다리는 중'), 처리));
+          } else {
+            일들.더하기(처리().finally(() => 표.놓기(자리번호)));
           }
-          console.log(`[작성] ${서비스} 의 ${것.id}번을 집었다 (${것.kind}${자리번호 < 0 ? '' : ` · 자리 ${자리번호}`}).`);
-          try {
-            await 한건처리(주소, 토큰, 서비스, 것, 판, 자리번호, 서버표[서비스] ?? [], 폴더표[서비스]);
-          } finally {
-            if (자리번호 >= 0) 표.놓기(자리번호);
-          }
-          console.log(`[작성] ${것.id}번을 끝냈다.`);
         } else if (기다렸다다시인가(답.status)) {
           console.error(`[기다림] ${서비스} 집기가 ${답.status} 를 냈다. 잠시 뒤 다시 묻는다.`);
         }
@@ -225,18 +245,21 @@ async function 돈다(): Promise<number> {
         if (글.includes('서버가 거절했다')) {
           멈춤.까닭 = 글;
           for (const 자식 of 도는자식) 자식.kill('SIGKILL');
+          if (!자리넘김) 표.놓기(자리번호);
           return;
         }
         // 연결이 끊긴 것은 서버가 다시 뜨는 중일 수 있다. **여기서 죽으면
         // 사람이 와서 다시 켤 때까지 아무도 못 되살린다**
         console.error(`[기다림] ${서비스}: ${글}`);
       }
+      if (!자리넘김) 표.놓기(자리번호);
       if (!집었나) await 쉬기();
     }
   };
 
   console.log(`[작성] 줄을 본다: ${서비스들.join(' · ')} · 동시에 ${켜기.상한}건 — 멈추려면 Ctrl+C.`);
   await Promise.all(서비스들.map(줄돌기));
+  await 일들.다기다리기();
   console.error(`[멈춤] ${멈춤.까닭}`);
   return 1;
 }
