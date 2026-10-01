@@ -276,18 +276,44 @@ describe.skipIf(연결 === undefined)('케이스 고치기 통로', () => {
       expect(res.json()).toEqual({ status: 'STOPPED' });
     });
 
-    it('도는 고치기 실행은 못 멈춘다 — 409 NOT_STOPPABLE · canStop 거짓 · 신호가 끊겨도', async () => {
+    it('도는 고치기 실행은 못 멈춘다 — 409 NOT_STOPPABLE · canStop 거짓', async () => {
       const id = await 세운번호({ edits });
-      await 바꾸기(id, 도는);
+      await 바꾸기(id, `${도는}, stage_at = now()`);
       expect((await 상세(id)).canStop).toBe(false);
       const res = await 부르기(`/api/authoring/requests/${String(id)}/stop`);
       expect([res.statusCode, res.json()]).toEqual([409, { error: 'NOT_STOPPABLE' }]);
       expect((await 읽기(id)).stop_requested_at).toBeNull();
+    });
 
+    // 병합된 고치기를 다시 적용하면 그 사이 같은 케이스로 선 다른 고치기와 둘 다 열려 EDIT_OPEN 을 비켜 간다
+    it('반영이 병합된 고치기는 다시 적용할 수 없다 — 409 BAD_SOURCE', async () => {
+      const id = await 세운번호({ edits });
+      await 바꾸기(id, 끝난);
+      await 행넣기({ kind: 'MERGE', source_id: id, status: 'DONE', spec_text: `머지 요청 — 원본 #${String(id)}` });
+      const res = await 다시적용(id);
+      expect([res.statusCode, (res.json() as { error: string }).error]).toEqual([409, 'BAD_SOURCE']);
+    });
+
+    // 에이전트가 다른 이름으로 다시 켜지면 닫을RUNNING 이 그 행을 안 닫는다 — 못 멈추면 폐기 · 다시 적용 · 새 고치기가 모두 막힌다
+    it('신호가 끊긴 고치기 실행은 곧장 AGENT_LOST 로 멈춘다', async () => {
+      const id = await 세운번호({ edits });
       await 바꾸기(id, `status = 'FAILED', finished_at = now()`);
       const 재실행 = await 고치기재실행(id, `${도는}, stage_at = now() - interval '10 minutes'`);
-      expect((await 상세(재실행)).canStop).toBe(false);
-      expect((await 부르기(`/api/authoring/requests/${String(재실행)}/stop`)).json()).toEqual({ error: 'NOT_STOPPABLE' });
+      expect((await 상세(재실행)).canStop).toBe(true);
+      const res = await 부르기(`/api/authoring/requests/${String(재실행)}/stop`);
+      expect(res.json()).toEqual({ status: 'STOPPED' });
+      expect((await 읽기(재실행)).stop_reason).toBe('AGENT_LOST');
+    });
+
+    // 작성 요청 · 재실행 본문의 params 에 edits 를 실으면 서버 검사(비밀값 · 비밀번호 · 겹침)를 건너뛴 고침이 줄에 선다
+    it('작성 요청 · 재실행 본문에 edits 를 실으면 400 BAD_EDIT', async () => {
+      const 실음 = { params: { edits: [{ tcId: 'XEB-001', expected: { title: 'x' } }] } };
+      const 작성 = await 부르기(`/api/authoring/requests?service=${접두사}`, { kind: 'AUTHOR', figma: [], ...실음 });
+      expect([작성.statusCode, 작성.json()]).toEqual([400, { error: 'BAD_EDIT', detail: 'params.edits' }]);
+      const id = await 세운번호({ edits });
+      await 바꾸기(id, `status = 'FAILED', finished_at = now()`);
+      const 재실행 = await 다시적용(id, 실음);
+      expect([재실행.statusCode, 재실행.json()]).toEqual([400, { error: 'BAD_EDIT', detail: 'params.edits' }]);
     });
 
     it('병합 전 끝난 고치기는 폐기된다 — canDiscard 참', async () => {

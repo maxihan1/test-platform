@@ -80,9 +80,10 @@ export async function 머지처리(
     await 손.끝내기({ status: 'FAILED', error: 남의것 });
     return;
   }
-  // 병합은 됐는데 보고만 잃은 경우다. 다시 누른 것을 실패로 닫으면 사람이 헷갈린다
+  // 병합은 됐는데 보고만 잃은 경우다. 다시 누른 것을 실패로 닫으면 사람이 헷갈린다.
+  // 이 길도 받아 온 뒤 끝낸다 — 안 받아 오면 케이스 고치기의 저장값이 말없이 남아 반영한 기대값을 가린다
   if (pr.state === 'MERGED') {
-    await 손.끝내기({ status: 'DONE', prUrl });
+    await 당기고끝내기(손, 'MERGED', prUrl, '', 뿌리, 호스트로);
     return;
   }
   if (pr.state !== 'OPEN') {
@@ -202,6 +203,10 @@ export async function 머지처리(
   // 당기기를 DONE 보다 먼저 한다 — 서버는 DONE 을 받으면 케이스 고치기의 저장값을 지우는데,
   // 체크아웃(/tests)이 옛 코드면 실행이 옛 기본값으로 돈다. 그래서 당겼는지를 함께 싣는다 (작성 §3.6 「★ 케이스 고치기」).
   // 예외는 여기서 false 로 닫는다 — 끝내기 전에 던지면 `닫으며` 가 된 병합을 FAILED 로 보낸다
+  await 당기고끝내기(손, 상태, prUrl, 친것.까닭, 뿌리, 호스트로);
+}
+
+async function 당기고끝내기(손: 보고손, 상태: string, prUrl: string, 까닭: string, 뿌리: string, 호스트로: 칠때): Promise<void> {
   const 당김 =
     상태 === 'MERGED'
       ? await 한번에하나(async () => main당기기(뿌리, 호스트로)).catch((e: unknown) => {
@@ -209,7 +214,7 @@ export async function 머지처리(
           return false;
         })
       : null;
-  await 손.끝내기(머지끝몸(상태, prUrl, 친것.까닭, 당김));
+  await 손.끝내기(머지끝몸(상태, prUrl, 까닭, 당김));
 }
 
 /** 병합 끝내기 몸. 병합됐으면 당겼는지(`pulled`)를 싣는다 — 서버가 이것이 true 일 때만 저장값을 지운다 */

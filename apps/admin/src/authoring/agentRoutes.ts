@@ -134,7 +134,9 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         // 머지는 대조 칸이 없어 위 target 이 늘 없다. 보류 입력이 있으면 3회 실행할 대상을 여기서 싣는다 (§3.6 「★ 보류 케이스」)
         const 보류칸 = 집은것.kind === 'MERGE' ? await 머지집기칸(서비스, 집은것) : {};
         // 고치기 실행은 자식 없이 이 목록만으로 고친다 — 키가 있는 것이 곧 고치기 실행이라는 신호다 (§3.6 「★ 케이스 고치기」)
-        const edits = 행의고칠것(집은것.params);
+        // 고치기 행이나 그 다시 적용만 — params.edits 가 실린 작성 행은 서버 검사를 안 거친 고침이라 경로를 안 바꾼다
+        const 고치기 = 집은것.kind === 'EDIT' || (집은것.kind === 'RERUN' && 집은것.sourceId !== null && (await 한건(집은것.sourceId))?.kind === 'EDIT');
+        const edits = 고치기 ? 행의고칠것(집은것.params) : null;
         return {
           ...집은것,
           assets,

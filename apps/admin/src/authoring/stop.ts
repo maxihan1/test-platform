@@ -78,8 +78,9 @@ async function 멈추기(id: number, 누가: string): Promise<'STOPPED' | 'RUNNI
             stop_requested_at = COALESCE(stop_requested_at, now()),
             stop_requested_by = COALESCE(stop_requested_by, $2)
       WHERE id = $1 AND kind <> 'MERGE' AND discarded_at IS NULL
-        -- 고치기 실행은 자식이 없어 도는 동안 멈춤 요청을 볼 자리가 없다 — 대기 중일 때만 (§3.6 「★ 케이스 고치기」)
-        AND (status = 'PENDING' OR NOT ${고치기실행식('authoring_request')})
+        -- 고치기 실행은 자식이 없어 도는 동안 멈춤 요청을 볼 자리가 없다 — 대기 중이거나 신호가 끊겼을 때만 (§3.6 「★ 케이스 고치기」).
+        -- 끊긴 것까지 막으면 다른 이름으로 다시 켜진 에이전트가 안 닫아 폐기 · 다시 적용 · 새 고치기가 모두 막힌다
+        AND (status = 'PENDING' OR ${묵음} OR NOT ${고치기실행식('authoring_request')})
         AND (status = 'PENDING'
              OR (status = 'RUNNING' AND (${묵음} OR progress IS NULL OR progress->>'childRunning' = 'true')))
       RETURNING status`,
@@ -154,7 +155,7 @@ export async function 상세읽기(req: FastifyRequest, id: number) {
     canStop:
       됨 &&
       행.kind !== 'MERGE' &&
-      (행.status === 'PENDING' || (행.status === 'RUNNING' && !고치기 && (도는중 || stale === true))),
+      (행.status === 'PENDING' || (행.status === 'RUNNING' && (stale === true || (!고치기 && 도는중)))),
     canDiscard: 버릴수 && (['FAILED', 'STOPPED', 'DRAFT'].includes(행.status) || (행.status === 'DONE' && 고치기)),
     // 이어서 작성은 재실행과 같은 규칙 — 요청한 사람만이 아니라 작성 권한이면 누구나 (§7 「이어하기」)
     canResume: resumable,

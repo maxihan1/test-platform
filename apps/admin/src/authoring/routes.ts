@@ -101,6 +101,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
 
       const params = req.body?.params;
       const 값 = typeof params === 'object' && params !== null ? (params as Record<string, unknown>) : {};
+      // edits 는 케이스 고치기 통로만 싣는다 — 여기로 실으면 서버 검사(비밀값 · 비밀번호 · 겹침)를 건너뛴 고침이 줄에 선다
+      if (Object.hasOwn(값, 'edits')) return reply.code(400).send({ error: 'BAD_EDIT', detail: 'params.edits' });
       // 부른 사람은 요청에 안 싣는다. 로그인한 세션에서 채운다 — 실행이 triggeredBy 를 그렇게 한다
       const 누가 = req.user?.username ?? '';
       const 이름 = req.user?.displayName ?? '';
@@ -157,6 +159,10 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 원본이 케이스 고치기면 다시 적용이다 — 새 main 위에서 같은 edits 로 다시 고친다 (§3.6 「★ 케이스 고치기」)
       if (행 === null || !['AUTHOR', 'EDIT'].includes(행.kind) || 행.status === 'DRAFT' || (!이어서 && 행.discardedAt !== null)) {
         return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행?.kind} ${행?.status}` });
+      }
+      // 병합된 고치기를 다시 적용하면 그 사이 같은 케이스로 선 고치기와 둘 다 열려 EDIT_OPEN 을 비켜 간다
+      if (행.kind === 'EDIT' && (await 한건(await 최신실행(행.id)))?.kind === 'MERGE') {
+        return reply.code(409).send({ error: 'BAD_SOURCE', detail: 'MERGED' });
       }
       // 대조 원본이면 같은 대상 서버·시작 주소를 물려받는다 — 없으면 정방향으로 돌거나(대조) 읽을 입력이 없어 늘 실패한다(화면만).
       // 만든 뒤 계정이 빠졌을 수 있어 작성 요청과 같은 판정을 다시 한다 — 줄에서 한참 기다린 뒤 실패하지 않게 (2026-09-28 게이트 1)

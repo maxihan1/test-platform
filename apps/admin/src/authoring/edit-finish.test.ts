@@ -127,6 +127,18 @@ describe.skipIf(연결 === undefined)('케이스 고치기 — 집기 · 반영 
       expect(res.statusCode, res.body).toBe(200);
       expect('edits' in (res.json() as object)).toBe(false);
     });
+
+    // 옛 통로로 params.edits 가 실린 작성 행이 있어도 에이전트를 고치기 경로로 보내지 않는다 — 서버 검사를 안 거친 고침이다
+    it('작성 행의 params 에 edits 가 있어도 싣지 않는다 · 원본이 고치기인 재실행은 싣는다', async () => {
+      const 작성 = await 행넣기({ kind: 'AUTHOR', status: 'DONE', spec_text: '기획서', params: JSON.stringify({ edits }) });
+      await 행넣기({ kind: 'RERUN', source_id: 작성, status: 'PENDING', params: JSON.stringify({ edits }) });
+      const 첫 = await app.inject({ method: 'POST', url: `/api/authoring/requests/claim?service=${접두사}` });
+      expect('edits' in (첫.json() as object)).toBe(false);
+      const 고치기 = await 행넣기({ kind: 'EDIT', status: 'FAILED', params: JSON.stringify({ edits }) });
+      await 행넣기({ kind: 'RERUN', source_id: 고치기, status: 'PENDING', params: JSON.stringify({ edits }) });
+      const 둘째 = await app.inject({ method: 'POST', url: `/api/authoring/requests/claim?service=${접두사}` });
+      expect((둘째.json() as { edits?: unknown }).edits).toEqual(edits);
+    });
   });
 
   describe('반영 끝내기 — 저장값', () => {
