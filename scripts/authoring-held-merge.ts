@@ -1,5 +1,6 @@
-// 반영 때 보류 값을 적고 관문(타입 · K 규칙 · 3회 실행)을 돌려 자기 author-<뿌리> 에 올리는 껍데기 (도메인/작성 §3.6 「★ 보류 케이스」 반영)
-// 판단은 authoring-held-apply 의 순수 함수에 있다. authoring-merge 가 300줄을 넘지 않게 뗐다
+// 반영 작업 폴더 — 보류 값을 적고 관문(타입 · K 규칙 · 3회 실행)을 돌린 뒤, 겹친 케이스를 고른 대로 바꾸고 main 을 합쳐
+// 자기 author-<뿌리> 에 올리는 껍데기 (도메인/작성 §3.6 「★ 보류 케이스」 반영 · 「★ 반영 때 겹침 검사」)
+// 판단은 authoring-held-apply · authoring-conflicts-apply 의 순수 함수에 있다. authoring-merge 가 300줄을 넘지 않게 뗐다
 
 import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -11,10 +12,12 @@ import { 모양보기, 사본만들기, 사본치우기, 자식거두기, 트리
 import { type 보고손, 돌린다, 쉬기, 친다 } from './authoring-io.js';
 import { 도는번호 } from './authoring-keeping.js';
 import { 계정섞였나, 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
+import { type 겹침판, 겹침쓸것, 결정들, 본문처리줄, 자식커밋찾기 } from './authoring-conflicts-io.js';
+import { main합치기 } from './authoring-main-merge.js';
 import {
   type 보류입력,
   값적기,
-  반영커밋인가,
+  보류있나,
   반영표시,
   반영푸시인자,
   보류남음,
@@ -26,16 +29,16 @@ import {
   표고치기,
 } from './authoring-held-apply.js';
 
-/** 머지 한 건이 반영에 쓰는 것. `자식` 은 그 머지가 잡은 자리의 uid 다(맥이면 null) */
+/** 머지 한 건이 반영에 쓰는 것. `자식` 은 그 머지가 잡은 자리의 uid 다(맥 · 자리 없는 반영이면 null) */
 export interface 반영준비 {
   것: 집은것;
   서비스: string;
   판: { 바탕: string; 원천: string; 원격주소: string };
   자식: 계정 | null;
-}
-
-export function 보류입력들(것: 집은것): unknown {
-  return (것 as { held?: unknown }).held;
+  /** 서비스 설정의 테스트 폴더. 못 받았으면 null — 겹침을 못 본다 */
+  폴더: string | null;
+  /** 원본이 고치기 실행이다 — 겹침을 안 보고 main 도 안 합친다 */
+  고치기: boolean;
 }
 
 /** 적은 뒤 쓸 글 — 3회 실행 뒤 트리를 되돌리고 이것만 다시 써서 커밋한다(케이스 코드가 돌며 바꾼 것은 안 올린다) */
@@ -113,23 +116,26 @@ function 관문환경(자리: 사본, 자식: 계정 | null, 비밀칸: string[]
 }
 
 /**
- * 값을 적고 관문을 돌려 커밋까지 한다. null 이면 이미 FAILED 로 끝냈다. 작업방은 `반영치우기` 가 치운다.
- * 자리는 **자식이 끝낸 커밋** — 머리가 앞 반영의 값 커밋이면 그 부모로 간다(명세 「실패하면」)
+ * 보류 값 → 관문 → 겹침 결정 → 커밋 → main 합치기. null 이면 이미 FAILED 로 끝냈다. 작업방은 `반영치우기` 가 치운다.
+ * 자리는 **자식이 끝낸 커밋** — 머리가 앞 반영 커밋(보류 값 · 겹침 처리 · main 합침)이면 그것들을 거슬러 간다(명세 「실패하면」).
+ * 보류가 없으면 트리의 코드를 하나도 돌리지 않는다 — 자리 없는 반영은 자식 uid 없이 에이전트 계정으로 연다
  */
-export async function 보류반영(
+export async function 반영작업방(
   손: 보고손,
   준비: 반영준비,
-  held: Record<string, 보류입력>,
   뿌리: number,
   머리: string,
-): Promise<사본 | null> {
+  겹침: 겹침판 | null,
+): Promise<{ 자리: 사본; 처리줄: string | null } | null> {
+  const 받은보류 = 준비.것.held;
+  const held = 보류있나(받은보류) ? 받은보류 : null;
   const 비밀 = 준비.것.target?.loginPassword;
   const 실패 = async (까닭: string) => (await 손.끝내기({ status: 'FAILED', error: 사유거르기(까닭, 비밀) }), null);
-  const 채움 = Object.values(held).some((입력) => 입력.removed !== true);
+  const 채움 = held !== null && Object.values(held).some((입력) => 입력.removed !== true);
   const 대상사유 = 채움 ? (준비.것.target === undefined ? '반영할 대상 서버가 없다' : 대상점검(준비.것.target)) : null;
   if (대상사유 !== null) return 실패(대상사유);
 
-  await 손.단계('보류 값을 적는 중');
+  await 손.단계(held !== null ? '보류 값을 적는 중' : '겹친 케이스를 고른 대로 바꾸는 중');
   // 훑기가 도는 반영의 작업방을 지우지 않게 — 3회 실행은 한 시간 훑기 간격에 걸칠 수 있다
   도는번호.add(준비.것.id);
   const 만든것 = await 사본만들기(준비.것.id, 준비.판.바탕, 준비.판.원천, 준비.판.원격주소, 머리, 준비.자식);
@@ -141,15 +147,54 @@ export async function 보류반영(
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
   const 그만 = async (까닭: string) => (await 반영치우기(자리, 준비.것.id, 준비.자식), 실패(까닭));
 
-  const 본문 = 깃(['log', '-1', '--format=%B']);
-  if (!본문.ok) return 그만(`머리 커밋을 못 읽었다: ${본문.까닭}`);
-  if (반영커밋인가(본문.낸것) && !깃(['-c', 'core.hooksPath=/dev/null', 'checkout', '-q', '--detach', '-f', 'HEAD~1']).ok) {
-    return 그만('앞 반영 커밋의 부모로 못 갔다');
+  const 자식커밋 = 겹침?.자식커밋 ?? 자식커밋찾기(깃, 'HEAD');
+  if (자식커밋 === null) return 그만('머리에서 자식이 끝낸 커밋을 못 찾았다');
+  if (자식커밋 !== 머리 && !깃(['-c', 'core.hooksPath=/dev/null', 'checkout', '-q', '--detach', '-f', 자식커밋]).ok) {
+    return 그만('앞 반영 커밋을 거슬러 자식이 끝낸 커밋으로 못 갔다');
   }
-  const 쓸 = 계산(자리.트리, 준비.서비스, held, 비밀);
+  const 쓸 = held === null ? { 쓰기: new Map<string, string>(), 지우기: [] } : await 보류관문(손, 준비, 자리, held, 비밀);
   if ('사유' in 쓸) return 그만(쓸.사유);
+  // 보류 값을 적은 트리 위에 고른 것을 얹는다 — 보류에서 뺀 케이스는 겹침 목록에 없다
+  const 고른 = 겹침 === null ? null : 겹침쓸것(자리.트리, 준비.서비스, 겹침, 결정들(준비.것.conflicts));
+  if (고른 !== null && '사유' in 고른) return 그만(고른.사유);
+  if (고른 !== null) {
+    const 거부 = 적용(자리, 고른);
+    if (거부 !== null) return 그만(거부);
+  }
+  const 메시지 = 커밋메시지(뿌리, 준비.서비스);
+  if (계정섞였나([메시지], 비밀)) return 그만(비밀거절);
+  const 담을것 = [...쓸.쓰기.keys(), ...쓸.지우기, ...(고른?.쓰기.keys() ?? []), ...(고른?.지우기 ?? [])];
+  if (담을것.length > 0) {
+    if (!깃(['add', '-A', '--', ...new Set(담을것)]).ok) return 그만('바꾼 파일을 담지 못했다');
+    // 다시 반영해 같은 글이 나오면 담을 것이 없다 — 빈 커밋은 안 만든다
+    if (!깃(['diff', '--cached', '--quiet']).ok) {
+      // 제목은 에이전트 커밋 모양 그대로 — 이어하기·덮어쓰기 검사가 에이전트 것으로 읽는다
+      const r = 깃(['commit', '-q', '-m', 메시지, '-m', 반영표시]);
+      if (!r.ok) return 그만(`반영 커밋을 못 만들었다: ${r.까닭}`);
+    }
+  }
+  if (겹침?.합칠까 === true) {
+    await 손.단계('main 을 합치는 중');
+    if (!깃(['fetch', '-q', 'origin', 겹침.mainSha]).ok) return 그만('main 을 작업 폴더에 못 받았다');
+    const 합침 = main합치기({ 트리: 자리.트리, 깃, mainSha: 겹침.mainSha, 표경로: `docs/cases/${준비.서비스}.md`, 폴더: 준비.폴더 ?? '', 메시지 });
+    if ('사유' in 합침) return 그만(합침.사유);
+  }
+  return { 자리, 처리줄: 고른?.처리줄 ?? null };
+}
+
+/** 보류 값을 적고 관문(타입 · K 규칙 · 채운 케이스 3회)을 돈 뒤, 케이스 코드가 바꾼 것을 되돌리고 계산한 글만 다시 쓴다 */
+async function 보류관문(
+  손: 보고손,
+  준비: 반영준비,
+  자리: 사본,
+  held: Record<string, 보류입력>,
+  비밀: string | null | undefined,
+): Promise<쓸것 | { 사유: string }> {
+  const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
+  const 쓸 = 계산(자리.트리, 준비.서비스, held, 비밀);
+  if ('사유' in 쓸) return 쓸;
   const 먼저 = 적용(자리, 쓸);
-  if (먼저 !== null) return 그만(먼저);
+  if (먼저 !== null) return { 사유: 먼저 };
 
   const 채운파일 = [...쓸.쓰기.keys()].filter((f) => f.endsWith('.spec.ts'));
   const 환경 = 관문환경(자리, 준비.자식, [...new Set(채운파일.flatMap((f) => 비밀칸들(쓸.쓰기.get(f) ?? '')))], 준비);
@@ -166,29 +211,19 @@ export async function 보류반영(
     if (r.코드 === 0) continue;
     const 문장들 = 설명 === '3회 실행' ? 실패문장들(r.낸것) : null;
     const 끝줄 = `${r.낸것}\n${r.오류}`.trim().split('\n').filter((줄) => 줄.trim() !== '').slice(-3).join(' / ');
-    return 그만(
-      문장들 !== null && 문장들.length > 0
-        ? `3회 실행에서 실패했다 — ${문장들.join(' · ')}`
-        : `${설명}가 실패했다 (${r.시간초과 ? '시간 초과' : `종료 ${String(r.코드)}`}): ${끝줄}`,
-    );
+    return {
+      사유:
+        문장들 !== null && 문장들.length > 0
+          ? `3회 실행에서 실패했다 — ${문장들.join(' · ')}`
+          : `${설명}가 실패했다 (${r.시간초과 ? '시간 초과' : `종료 ${String(r.코드)}`}): ${끝줄}`,
+    };
   }
 
   // 커밋 전에 케이스 코드가 남긴 것을 모두 죽이고 트리를 되돌린 뒤 계산한 글만 다시 쓴다
-  if (!(await 자식거두기(준비.자식))) return 그만('3회 실행이 남긴 프로세스를 거두지 못했다 — 올리지 않는다');
-  if (!깃(['reset', '-q', '--hard']).ok) return 그만('트리를 되돌리지 못했다');
+  if (!(await 자식거두기(준비.자식))) return { 사유: '3회 실행이 남긴 프로세스를 거두지 못했다 — 올리지 않는다' };
+  if (!깃(['reset', '-q', '--hard']).ok) return { 사유: '트리를 되돌리지 못했다' };
   const 다시 = 적용(자리, 쓸);
-  if (다시 !== null) return 그만(다시);
-  const 메시지 = 커밋메시지(뿌리, 준비.서비스);
-  if (계정섞였나([메시지], 비밀)) return 그만(비밀거절);
-  for (const 인자 of [
-    ['add', '-A', '--', ...쓸.쓰기.keys(), ...쓸.지우기],
-    // 제목은 에이전트 커밋 모양 그대로 — 이어하기·덮어쓰기 검사가 에이전트 것으로 읽는다
-    ['commit', '-q', '-m', 메시지, '-m', 반영표시],
-  ]) {
-    const r = 깃(인자);
-    if (!r.ok) return 그만(`값 커밋을 못 만들었다: ${r.까닭}`);
-  }
-  return 자리;
+  return 다시 === null ? 쓸 : { 사유: 다시 };
 }
 
 /**
@@ -202,10 +237,13 @@ export async function 반영올리기(
   옛머리: string,
   prUrl: string,
   cwd: string,
+  처리줄: string | null = null,
 ): Promise<string | null> {
   const 실패 = async (까닭: string) => (await 손.끝내기({ status: 'FAILED', error: 까닭 }), null);
   const 깃 = (명령: string, 인자: string[]) => 친다(명령, 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
   const 올린 = 깃('git', ['rev-parse', 'HEAD']).낸것.trim();
+  // 다시 지은 트리가 PR 머리와 같다 — 올릴 것이 없다
+  if (올린 === 옛머리) return 옛머리;
   const 남의것 = 덮어쓸수없는까닭(깃, 뿌리);
   if (남의것 !== null) return 실패(남의것.까닭);
   const r = 깃('git', 반영푸시인자(뿌리, 옛머리));
@@ -214,12 +252,23 @@ export async function 반영올리기(
     const 뷰 = 친다('gh', ['pr', 'view', prUrl, '--json', 'headRefOid'], cwd);
     if (뷰.ok) {
       const 판정 = 새머리판정(옛머리, 올린, (JSON.parse(뷰.낸것) as { headRefOid: string }).headRefOid);
-      if ('sha' in 판정) return 판정.sha;
+      if ('sha' in 판정) {
+        if (처리줄 !== null) PR본문에처리줄(prUrl, 처리줄, cwd);
+        return 판정.sha;
+      }
       if ('사유' in 판정) return 실패(판정.사유);
     }
     await 쉬기(3_000);
   }
   return 실패('올린 뒤 PR 머리가 새 커밋으로 안 바뀌었다 — 옛 커밋으로 병합하지 않는다');
+}
+
+/** 관문 3 기록이 옛 tc_id 를 가리키지 않게 PR 본문에 「겹침 처리」 줄을 단다. 못 달아도 반영은 막지 않는다 — 커밋에 이미 들었다 */
+function PR본문에처리줄(prUrl: string, 줄: string, cwd: string): void {
+  const 뷰 = 친다('gh', ['pr', 'view', prUrl, '--json', 'body'], cwd);
+  const 본문 = 뷰.ok ? ((JSON.parse(뷰.낸것) as { body?: string }).body ?? '') : null;
+  const 고침 = 본문 === null ? 뷰 : 친다('gh', ['pr', 'edit', prUrl, '--body', 본문처리줄(본문, 줄)], cwd);
+  if (!고침.ok) console.error(`[반영] PR 본문에 겹침 처리 줄을 못 달았다: ${고침.까닭}`);
 }
 
 export async function 반영치우기(자리: 사본, 번호: number, 자식: 계정 | null): Promise<void> {

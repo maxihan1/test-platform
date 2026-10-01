@@ -17,8 +17,8 @@ import {
   올릴브랜치,
 } from './authoring-chain.js';
 import { type 보고손, type 칠때, type 판정기, 멈춤, 쉬기, 진짜main받기, 친다 } from './authoring-io.js';
-import { type 반영준비, 반영올리기, 반영치우기, 보류반영, 보류입력들 } from './authoring-held-merge.js';
-import { 보류있나 } from './authoring-held-apply.js';
+import { type 반영준비, 반영올리기, 반영작업방, 반영치우기 } from './authoring-held-merge.js';
+import { 겹침보기 } from './authoring-conflicts-io.js';
 
 const 폴링간격 = 15_000;
 // ponytail: 루프 시간으로 잰다 — 맥에는 GNU timeout 이 없다. CI 가 늘 17분을 넘기면 이 숫자를 올린다
@@ -105,12 +105,15 @@ export async function 머지처리(
     }
   };
 
-  // 보류 입력이 있으면 값을 적고 관문을 돌려 커밋까지 한다 (작성 §3.6 「★ 보류 케이스」 반영).
+  // 지금 main 과 견줘 겹친 케이스를 보고(고르지 않았으면 여기서 멈춘다), 보류 값 · 고른 것 · main 합치기가 있으면
+  // 작업 폴더에서 커밋까지 한다 (작성 §3.6 「★ 보류 케이스」 반영 · 「★ 반영 때 겹침 검사」).
   // 올리기는 초안을 푼 뒤다 — 초안에 올리면 잡을 건너뛴 success 실행이 새 머리에 붙어 검사 없이 병합할 수 있다
-  const held = 반영 === undefined ? undefined : 보류입력들(반영.것);
+  const 길 = 반영 === undefined ? null : await 겹침보기(손, 반영, pr.headRefOid, 반영.판.원천, 호스트로, 한번에하나);
+  if (반영 !== undefined && 길 === null) return;
   const 브랜치번호 = Number(pr.headRefName.slice('author-'.length));
-  const 적은자리 = 반영 !== undefined && 보류있나(held) ? await 보류반영(손, 반영, held, 브랜치번호, pr.headRefOid) : undefined;
-  if (적은자리 === null) return;
+  const 작업 = 반영 !== undefined && 길?.길 === '작업방' ? await 반영작업방(손, 반영, 브랜치번호, pr.headRefOid, 길.판) : undefined;
+  if (작업 === null) return;
+  const 적은자리 = 작업?.자리;
 
   const 이미준비됨 = !pr.isDraft;
   let 이후번호 = 0;
@@ -133,7 +136,7 @@ export async function 머지처리(
       }
     }
     if (적은자리 !== undefined) {
-      const 새머리 = await 반영올리기(손, 적은자리, 브랜치번호, pr.headRefOid, prUrl, 뿌리);
+      const 새머리 = await 반영올리기(손, 적은자리, 브랜치번호, pr.headRefOid, prUrl, 뿌리, 작업?.처리줄 ?? null);
       if (새머리 === null) {
         // 보류가 든 PR 이 준비 상태로 남으면 CI 가 빨갛게 돈다 — 풀어 둔 초안을 되돌린다
         if (pr.isDraft) 친다('gh', ['pr', 'ready', '--undo', prUrl], 뿌리);

@@ -146,6 +146,10 @@ export interface 집은것 {
   resumeFrom?: number | null;
   /** 남은 요구로 이어 작성한 원본 뿌리 (도메인/작성 §3.6 「★ 원장」). 작성 요청에만 온다 — 재실행 · 이어서 작성은 원본 상세에서 읽는다 */
   continueFrom?: number | null;
+  /** 반영 행이고 보류 입력이 있을 때만 온다 — 모양은 authoring-held-apply 의 `보류있나` 가 본다 (§3.6 「★ 보류 케이스」) */
+  held?: unknown;
+  /** 반영 행에만 온다 — 원본의 겹침 결정 전부. 모양은 authoring-conflicts-io 의 `결정들` 이 본다 (§3.6 「★ 반영 때 겹침 검사」) */
+  conflicts?: unknown;
 }
 
 // 줄 프롬프트는 authoring-prompt.ts 로 뗐다 (2026-09-30 — 300줄). 부르는 쪽을 안 바꾸려고 다시 내보낸다

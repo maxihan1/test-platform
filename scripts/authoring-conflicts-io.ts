@@ -1,9 +1,15 @@
 // 반영 때 겹침 읽기 — 서버 저장소의 git 객체만 읽어 겹침판을 만든다(작업 폴더를 안 연다) · 반영 길 · 끝내기 몸 · PR 본문 줄
 // (SPEC 도메인/작성 §3.6 「★ 반영 때 겹침 검사」 「구현 세부」). 판단(겹침찾기 · 결정계산)은 authoring-conflicts · authoring-conflicts-apply 에 있다
 
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import type { 결정, 겹침 } from '../apps/admin/src/authoring/conflicts.js';
+import { 결정계산, 처리줄 } from './authoring-conflicts-apply.js';
 import { 겹침찾기, 표tcId들, type 케이스글 } from './authoring-conflicts.js';
-import { 반영커밋인가, 케이스tcId } from './authoring-held-apply.js';
+import { 반영커밋인가, 보류있나, 케이스tcId } from './authoring-held-apply.js';
+import type { 반영준비 } from './authoring-held-merge.js';
+import { type 보고손, type 칠때, 진짜main받기, 친다 } from './authoring-io.js';
 import type { 깃손 } from './authoring-ledger-io.js';
 import { 합칠까 } from './authoring-main-merge.js';
 
@@ -130,4 +136,70 @@ export function 본문처리줄(본문: string, 줄: string): string {
     .join('\n')
     .trimEnd();
   return `${남은}\n\n${줄}\n`;
+}
+
+/**
+ * 반영 행을 가져왔을 때 겹침을 보고 길을 정한다. null 이면 이미 끝냈다(겹침으로 멈춤 · 못 읽음).
+ * 서버 저장소에 받는 일(main · PR 머리)은 `줄`(한번에하나) 안에서 한다 — 둘이 겹치면 `.git` 잠금에서 한쪽이 죽는다.
+ * 고치기 반영은 새 케이스를 안 더해 겹침이 없고 main 도 합치지 않는다 — 고친 파일이 겹치면 다시 적용이다
+ */
+export async function 겹침보기(
+  손: 보고손,
+  준비: 반영준비,
+  머리: string,
+  원천: string,
+  호스트로: 칠때,
+  줄: <T>(일: () => Promise<T>) => Promise<T>,
+): Promise<{ 길: '그대로' | '작업방'; 판: 겹침판 | null } | null> {
+  const held = 준비.것.held;
+  const 보류 = 보류있나(held);
+  if (준비.고치기) return { 길: 보류 ? '작업방' : '그대로', 판: null };
+  if (준비.폴더 === null) {
+    await 손.끝내기({ status: 'FAILED', error: `${준비.서비스} 의 테스트 폴더 설정을 못 받아 겹치는 케이스를 못 봤다` });
+    return null;
+  }
+  const 폴더 = 준비.폴더;
+  await 손.단계('겹치는 케이스를 보는 중');
+  const 뺀것 = new Set(보류 ? Object.entries(held).filter(([, v]) => v.removed === true).map(([id]) => id) : []);
+  const 읽음 = await 줄(async () => {
+    const 메인 = 진짜main받기(원천, 호스트로);
+    if ('까닭' in 메인) return { 사유: `최신 main 을 못 받아 겹치는 케이스를 못 봤다: ${메인.까닭}` };
+    if (!친다('git', ['cat-file', '-e', `${머리}^{commit}`], 원천).ok) {
+      // 서버 저장소에 쓰므로 호스트 계정으로 받는다 — root 로 받으면 사람이 git pull 을 못 한다
+      const 받기 = 친다('git', ['fetch', 'origin', 머리], 원천, undefined, 120_000, 호스트로);
+      if (!받기.ok) return { 사유: `PR 머리를 못 받았다: ${받기.까닭}` };
+    }
+    return 겹침판읽기((인자) => 친다('git', 인자, 원천), { 머리, mainSha: 메인.sha, 폴더, 표경로: `docs/cases/${준비.서비스}.md`, 뺀것 });
+  });
+  if ('사유' in 읽음) {
+    await 손.끝내기({ status: 'FAILED', error: 읽음.사유 });
+    return null;
+  }
+  const 결정 = 결정들(준비.것.conflicts);
+  const 길 = 반영길({ 겹침: 읽음.겹침, 결정, 보류, 합칠까: 읽음.합칠까, 머리, 자식커밋: 읽음.자식커밋 });
+  if (길 === '멈춤') {
+    await 손.끝내기(겹침끝몸(읽음.겹침, 결정));
+    return null;
+  }
+  return { 길, 판: 읽음 };
+}
+
+/** 작업 폴더에서 고른 대로 바꿀 글 — 보류 값을 적은 뒤의 트리를 읽는다. 쓰기 · 지우기는 부르는 쪽이 링크를 보고 한다 */
+export function 겹침쓸것(
+  트리: string,
+  서비스: string,
+  판: 겹침판,
+  결정: { tcId: string; action: 결정 }[],
+): { 쓰기: Map<string, string>; 지우기: string[]; 처리줄: string | null } | { 사유: string } {
+  // 겹침은 자식이 끝낸 커밋에서 찾았고 작업 폴더도 그 커밋이다 — 없으면 트리가 어긋났다
+  const 없는 = 판.겹침.filter((c) => !existsSync(join(트리, c.file))).map((c) => c.tcId);
+  if (없는.length > 0) return { 사유: `겹친 케이스 파일이 작업 폴더에 없다 — ${없는.join(' · ')}` };
+  const 표 = join('docs', 'cases', `${서비스}.md`);
+  const 표있나 = existsSync(join(트리, 표));
+  const 요청표 = 표있나 ? readFileSync(join(트리, 표), 'utf8') : '';
+  const r = 결정계산({ 겹침: 판.겹침, 결정, 읽기: (f) => readFileSync(join(트리, f), 'utf8'), 요청표, 쓴번호: 판.쓴번호 });
+  if ('사유' in r) return r;
+  const 쓰기 = new Map(r.쓰기.map((w) => [w.file, w.글]));
+  if (표있나 && r.표 !== 요청표) 쓰기.set(표, r.표);
+  return { 쓰기, 지우기: r.지우기, 처리줄: 처리줄(r.바뀐것) };
 }
