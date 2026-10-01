@@ -150,7 +150,8 @@ export async function 뿌리잠그고<T>(뿌리번호: number, 일: (손: PoolCl
   }
 }
 
-export type 요약 = Omit<요청, 'specText'> & { rootId: number; runCount: number };
+// rootKind — 줄의 kind 는 최신 실행 것이라 반영 · 다시 적용 뒤에는 뿌리가 작성인지 고치기인지 안 보인다 (§7 목록)
+export type 요약 = Omit<요청, 'specText'> & { rootId: number; runCount: number; rootKind: 요청['kind'] };
 
 const 요약칸들 = 칸들
   .replace('spec_text, ', '')
@@ -182,7 +183,8 @@ export async function 한쪽(입력: {
   const 최신 = `WITH RECURSIVE ${사슬식('service_id = $1 AND source_id IS NULL')},
     최신 AS (
       SELECT DISTINCT ON (사슬.root_id) 사슬.root_id, count(*) OVER (PARTITION BY 사슬.root_id) AS run_count,
-             (SELECT r.continue_from FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_continue_from, ${요약칸들}
+             (SELECT r.continue_from FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_continue_from,
+             (SELECT r.kind FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_kind, ${요약칸들}
         FROM 사슬 JOIN authoring_request a ON a.id = 사슬.id
        ORDER BY 사슬.root_id, a.id DESC
     )`;
@@ -190,7 +192,7 @@ export async function 한쪽(입력: {
   const 셈 = await pool.query<{ n: string }>(`${최신} SELECT count(*) AS n FROM 최신 WHERE ${조건}`, 값들);
   // **건너뛸 개수를 질의문 글자에 끼워 넣지 않는다.** 지금은 숫자로 걸러지므로 주입은 아니지만,
   // 다음 사람이 여기에 문자열을 하나 더 얹으면 그때는 진짜 주입이 된다 (2026-09-22 보안 검토)
-  const r = await pool.query<Omit<행, 'spec_text'> & { root_id: string; run_count: string; root_continue_from: string | null }>(
+  const r = await pool.query<Omit<행, 'spec_text'> & { root_id: string; run_count: string; root_continue_from: string | null; root_kind: 요청['kind'] }>(
     `${최신} SELECT * FROM 최신 WHERE ${조건}
       ORDER BY id DESC
       LIMIT $${값들.length + 1} OFFSET $${값들.length + 2}`,
@@ -201,7 +203,7 @@ export async function 한쪽(입력: {
       const { specText: _본문, ...나머지 } = 빚기({ ...x, spec_text: null });
       // 이어 작성은 뿌리(AUTHOR)에만 붙는다 — 줄의 다른 칸은 최신 실행 것이지만 이 칸은 뿌리 것을 싣는다
       const continueFrom = x.root_continue_from === null ? null : Number(x.root_continue_from);
-      return { ...나머지, continueFrom, rootId: Number(x.root_id), runCount: Number(x.run_count) };
+      return { ...나머지, continueFrom, rootId: Number(x.root_id), runCount: Number(x.run_count), rootKind: x.root_kind };
     }),
     total: Number(셈.rows[0]!.n),
     page: 쪽,

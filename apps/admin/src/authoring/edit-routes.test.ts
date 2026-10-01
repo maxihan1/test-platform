@@ -230,6 +230,17 @@ describe.skipIf(연결 === undefined)('케이스 고치기 통로', () => {
       expect(목록.items.map((x) => [x.rootId, x.kind, x.runCount])).toEqual([[id, 'EDIT', 1]]);
     });
 
+    // 줄의 kind 는 최신 실행 것이라 반영 · 다시 적용 뒤에는 EDIT 가 아니다 — 화면은 뿌리 종류로 가른다
+    it('반영이 최신이어도 줄의 rootKind 는 뿌리 종류(EDIT)다', async () => {
+      const id = await 세운번호({ edits });
+      await 바꾸기(id, 끝난);
+      await 행넣기({ kind: 'MERGE', source_id: id, status: 'PENDING', spec_text: `머지 요청 — 원본 #${String(id)}` });
+      const 목록 = (await app.inject({ method: 'GET', url: `/api/authoring/requests?service=${접두사}` })).json() as {
+        items: { rootId: number; kind: string; rootKind: string }[];
+      };
+      expect(목록.items.map((x) => [x.rootId, x.kind, x.rootKind])).toEqual([[id, 'MERGE', 'EDIT']]);
+    });
+
     it('상세의 rootId 는 자기 번호이고 실행 기록이 하나다', async () => {
       const id = await 세운번호({ edits });
       const 본 = await 상세(id);
