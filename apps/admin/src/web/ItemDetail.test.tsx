@@ -49,8 +49,8 @@ const 항목: RunItemDetail = {
   ],
 };
 
-function 그린다() {
-  vi.spyOn(api, 'item').mockResolvedValue(항목);
+function 그린다(바꿀것: Partial<RunItemDetail> = {}) {
+  vi.spyOn(api, 'item').mockResolvedValue({ ...항목, ...바꿀것 });
   return render(<ItemDetail runId={RUN_ID} historyId={HISTORY_ID} />);
 }
 
@@ -76,5 +76,25 @@ describe('항목 상세 (SPEC §8.4)', () => {
     const 차례 = [...container.querySelectorAll('*')];
     expect(차례.indexOf(그림)).toBeGreaterThan(차례.indexOf(screen.getByText('응답 코드가 정상이다')));
     expect(차례.indexOf(그림)).toBeLessThan(차례.indexOf(screen.getByText('유효기간이 3600초다')));
+  });
+
+  // 값을 안 고치고 돌린 항목은 기대값이 비어 박제된다. 그 값은 박제 스키마의 기본값이다 (리포팅 §3.3)
+  it('기대결과 칸이 입력값 다음에 있고, 비어 박제된 값은 스키마 기본값으로 보인다', async () => {
+    그린다({
+      expected: {},
+      expectedSchema: { type: 'object', properties: { title: { type: 'string', description: '제목', default: 'AI 올인원' } } },
+    });
+
+    const 머리 = await screen.findByText('기대결과');
+    const 칸 = 머리.closest('.sec');
+    expect(칸?.textContent).toContain('제목');
+    expect(칸?.textContent).toContain('AI 올인원');
+    expect(칸?.previousElementSibling?.textContent).toContain('입력값');
+  });
+
+  it('기대값도 기본값도 없으면 「기대결과 없음」', async () => {
+    그린다();
+
+    expect(await screen.findByText('기대결과 없음')).toBeTruthy();
   });
 });

@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { api, type RunItemDetail, type StepResult } from './api.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
-import { fieldsOf } from './mask.js';
+import { fieldsOf, type Field } from './mask.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
 
 const MARK = { PASS: '✓', FAIL: '✗', NA: '–' } as const;
@@ -29,6 +29,8 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
   // 라벨도 마스킹도 항목에 박제된 스키마로 한다. 카탈로그를 읽으면 케이스 코드를 고친 날
   // 반년 전 증적의 라벨이 같이 바뀐다 (SPEC §3.3). 비밀값은 표시가 없어도 이름으로 가린다 (§4.1)
   const params = fieldsOf(item.params, item.paramSchema, 언어);
+  // 증적 블록과 모양이 같아야 한다 (SPEC §8.4). 비어 박제된 칸은 fieldsOf 가 박제 스키마의 기본값으로 채운다
+  const expected = fieldsOf(item.expected, item.expectedSchema, 언어);
 
   return (
     <div className="screen">
@@ -65,19 +67,8 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
         )}
       </div>
 
-      <div className="sec">
-        <div className="sec-h">{t말('입력값')}</div>
-        {params.length === 0 ? (
-          <p className="hint">{t말('입력 없음')}</p>
-        ) : (
-          params.map((field) => (
-            <div className="field" key={field.key}>
-              <label>{field.label}</label>
-              <div className="val">{field.value}</div>
-            </div>
-          ))
-        )}
-      </div>
+      <값칸 머리={t말('입력값')} 없음={t말('입력 없음')} 칸={params} />
+      <값칸 머리={t말('기대결과')} 없음={t말('기대결과 없음')} 칸={expected} />
 
       <div className="sec">
         <div className="sec-h">{t말('시험 절차')}</div>
@@ -97,6 +88,24 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
           {t말('값 바꿔 재실행')}
         </a>
       </div>
+    </div>
+  );
+}
+
+function 값칸({ 머리, 없음, 칸 }: { 머리: string; 없음: string; 칸: Field[] }) {
+  return (
+    <div className="sec">
+      <div className="sec-h">{머리}</div>
+      {칸.length === 0 ? (
+        <p className="hint">{없음}</p>
+      ) : (
+        칸.map((field) => (
+          <div className="field" key={field.key}>
+            <label>{field.label}</label>
+            <div className="val">{field.value}</div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
