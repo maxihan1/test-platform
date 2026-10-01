@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 비밀값 이름 목록이 여러 곳(아래 볼파일들)에서 갈라지지 않는지 본다. 다르면 종료 코드 1.
 //
-// 왜 세 벌인가 — 정본은 catalog/rules.ts 의 SECRET_NAMES 이고 K9 검사기가 그것으로
+// 왜 여러 벌인가 — 정본은 catalog/rules.ts 의 SECRET_NAMES 이고 K9 검사기가 그것으로
 // .meta({ secret: true }) 를 강제한다. 그런데 그 파일은 typescript 를 통째로 import 해서
 // 화면 번들(web/mask.ts)에 넣을 수 없고, reporting 은 컨텍스트가 달라 import 하지 않는다.
 // 복사가 불가피하므로 갈라지는 것을 기계가 본다.

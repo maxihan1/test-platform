@@ -15,7 +15,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 /**
  * 반영(MERGE)이 DONE 으로 끝난 직후 부른다. 원본이 고치기 실행일 때만 움직인다.
  * `pulled` 가 참일 때만 지운다 — 러너가 옛 기본값으로 도는데 저장값까지 없으면 판정이 뒤집힌다.
- * 거짓이면 사람이 손으로 지우도록 반영 행에 사유를 남긴다. 없으면(받아 오기 없이 끝낸 반영) 아무것도 안 한다
+ * 거짓이면 사람이 손으로 지우도록 반영 행에 사유를 남긴다. 없으면(pulled 를 안 싣는 옛 에이전트) 아무것도 안 한다
  */
 export async function 반영뒤저장값(손: PoolClient, 머지: { id: number; sourceId: number | null }, pulled: unknown): Promise<void> {
   if (머지.sourceId === null) return;
