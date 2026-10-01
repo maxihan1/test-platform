@@ -256,7 +256,14 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
                   "visible":{"type":"boolean","description":"보인다","default":true},
                   "title":{"type":"string","description":"제목","default":"AI 올인원"},
                   "token":{"type":"string","description":"토큰","default":"t-1","secret":true}}}',
-               'PASS', 300, now())`,
+               'PASS', 300, now()),
+              ($1, 'XDC-702', 'desktop', 1, '한 칸만 고쳐 돈 케이스', 'demo/XDC-702.spec.ts', 300000, '[]',
+               '{"username":"other","legacy":"x"}', '{}',
+               '{"type":"object","properties":{
+                  "username":{"type":"string","description":"아이디","default":"tester"},
+                  "memo":{"type":"string","description":"메모"},
+                  "password":{"type":"string","description":"비밀번호","default":"hunter2","secret":true}}}',
+               '{}', 'PASS', 300, now())`,
       [기본값실행],
     );
   });
@@ -494,6 +501,16 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
       { label: '메모', value: '직접 넣은 값' },
       { label: '비밀번호', value: '********' },
       { label: '아이디', value: 'tester' },
+    ]);
+  });
+
+  // web/mask.test.ts 의 「스키마 칸 순서를 따른다」 · 「스키마에 없는 값 칸은 맨 뒤」와 같은 규칙이다
+  it('고친 칸이 앞으로 오지 않고 스키마 칸 순서를 따르며, 스키마에 없는 값 칸은 맨 뒤에 붙는다', async () => {
+    const 문서 = await collectRun(기본값실행);
+    expect(문서!.items[1]!.params).toEqual([
+      { label: '비밀번호', value: '********' },
+      { label: '아이디', value: 'other' },
+      { label: 'legacy', value: 'x' },
     ]);
   });
 
