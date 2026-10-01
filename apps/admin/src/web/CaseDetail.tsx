@@ -187,7 +187,8 @@ export function CaseDetail({
       </div>
 
       {/* 맨 아래에 둔다 — 위의 기대결과 칸은 이번 실행 값이고 여기는 저장소의 코드다. 붙어 있으면 둘이 한 칸으로 읽힌다 */}
-      {고칠서비스 === undefined ? null : <코드기본값고치기 row={row} service={고칠서비스} />}
+      {/* 비활성 케이스는 서버가 늘 거절한다(BAD_EDIT) — 목록 확인 상자도 같은 까닭으로 뺀다 */}
+      {고칠서비스 === undefined || !row.isActive ? null : <코드기본값고치기 row={row} service={고칠서비스} />}
     </div>
     </Modal>
   );

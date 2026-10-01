@@ -110,6 +110,8 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
   const 차이들 = 차이목록(작성.result);
   // 케이스 고치기는 뿌리가 말한다 — 최신 실행이 다시 적용 · 반영이어도 「케이스 고치기」다 (DESIGN.md 「작성 상태」)
   const 고치기 = 뿌리.kind === 'EDIT';
+  // 반영이 실패했으면(다른 PR 과 충돌) 최신 버튼은 실패한 머지를 건너뛴 고치기 실행이다 — 거기서 다시 적용을 낸다 (작성 §3.6 「다시 적용」)
+  const 반영실패 = 뿌리.runs?.[0]?.kind === 'MERGE' && 뿌리.runs[0].status === 'FAILED';
   const 부제글 = 고치기
     ? 종류라벨('EDIT', 언어)
     : data.compare === true
@@ -185,7 +187,7 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
               할수={할수}
               차이수={차이들?.length ?? 0}
               커버리지={작성.coverage ?? null}
-              고치기={고치기}
+              고치기={고치기 ? { 반영실패 } : undefined}
               reload={reload}
             />
 

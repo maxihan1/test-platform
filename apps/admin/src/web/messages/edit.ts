@@ -14,7 +14,6 @@ export const 고치기말: Record<string, string> = {
   '요청을 보냈습니다.': 'Request sent.',
   '작성 요청 {번호}번': 'Authoring request #{번호}',
   '반영은 테스트 작성 화면에서 합니다.': 'Merge it from the test authoring screen.',
-  '보내는 중': 'Sending…',
   '요청 보내기': 'Send request',
   '케이스 삭제 요청': 'Request case deletion',
   '삭제 확인': 'Confirm deletion',
@@ -49,6 +48,13 @@ export const 고치기말: Record<string, string> = {
     'It disappears from the list. The PR stays open on GitHub — close it there.',
   '에이전트 응답이 끊겼습니다. 작성 중단을 누른 뒤 다시 적용하세요': 'The agent stopped responding. Stop it, then re-apply',
   '에이전트 순서를 기다리는 중입니다. 이 페이지를 닫아도 됩니다.': 'Waiting for the agent. You can close this page.',
+  '테스트를 반영하는 중입니다. CI 를 기다려 합치므로 몇 분 걸립니다. 이 페이지를 닫아도 됩니다.':
+    'Merging the tests. It waits for CI, so it takes a few minutes. You can close this page.',
+  '반영이 실패했습니다. 다른 PR 과 충돌했으면 지금 main 위에서 같은 내용으로 다시 고친 뒤 반영하세요.':
+    'The merge failed. If it conflicted with another PR, re-apply the same changes on the current main, then merge.',
+  // 고치기 에이전트의 단계 글 (authoringStatus.ts 단계글)
+  '케이스를 고치는 중': 'Changing cases',
+  '검사하는 중': 'Checking',
   '케이스를 고쳐 PR 로 올리는 중입니다. 이 페이지를 닫아도 됩니다.': 'Changing the cases and opening a PR. You can close this page.',
   '테스트가 반영됐습니다. 케이스 목록에서 「다시 스캔」을 누르면 바뀐 것이 보입니다.':
     'The tests are merged. Press “Rescan” on the case list to see the changes.',

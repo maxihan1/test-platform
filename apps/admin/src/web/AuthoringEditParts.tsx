@@ -4,7 +4,6 @@
 
 import { api, type AuthoringRow } from './api.js';
 import { 반영단계 } from './AuthoringMergeStep.js';
-import { 다시작성원본 } from './authoringStatus.js';
 import { 일 } from './authoringTodoParts.js';
 import type { 고칠줄 } from './authoringView.js';
 import { use말 } from './i18n.js';
@@ -43,11 +42,30 @@ interface Props {
   /** 서버가 잰 canStop · canDiscard 로 AuthoringTodo 가 만든 버튼. 못 누르면 null */
   중단버튼: React.ReactNode;
   폐기버튼: React.ReactNode;
+  /** 마지막 반영이 실패했다(다른 PR 과 충돌) — 완료 항목에 다시 적용을 더한다 */
+  반영실패: boolean;
 }
 
 /** 「다음 단계」 본문 — 폐기된 것은 AuthoringTodo 가 먼저 가른다 */
-export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄로, 중단버튼, 폐기버튼 }: Props) {
+export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄로, 중단버튼, 폐기버튼, 반영실패 }: Props) {
   const t = use말();
+  const 권한 = 할수('작성요청');
+  // 다시 적용은 늘 뿌리(EDIT)로 간다 — 재실행의 원본도 뿌리다
+  const 원본 = 요청.kind === 'EDIT' ? 요청.id : 요청.sourceId;
+  const 다시적용 = (표: string, 설명: string) => (
+    <일 표={표} 제목={t('다시 적용')} 설명={권한 ? 설명 : t('다시 적용은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.')}>
+      {권한 && 원본 !== null ? (
+        <button
+          className="btn"
+          type="button"
+          disabled={보내는중}
+          onClick={() => 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 원본 }))}
+        >
+          {보내는중 ? t('시작하는 중…') : t('다시 적용')}
+        </button>
+      ) : null}
+    </일>
+  );
   const 폐기 = (표: string) =>
     폐기버튼 === null ? null : (
       <일 표={표} 제목={t('폐기')} 설명={t('목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.')}>
@@ -63,9 +81,11 @@ export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄�
         <p>
           {끊김
             ? t('에이전트 응답이 끊겼습니다. 작성 중단을 누른 뒤 다시 적용하세요')
-            : 요청.status === 'PENDING'
-              ? t('에이전트 순서를 기다리는 중입니다. 이 페이지를 닫아도 됩니다.')
-              : t('케이스를 고쳐 PR 로 올리는 중입니다. 이 페이지를 닫아도 됩니다.')}
+            : 요청.kind === 'MERGE'
+              ? t('테스트를 반영하는 중입니다. CI 를 기다려 합치므로 몇 분 걸립니다. 이 페이지를 닫아도 됩니다.')
+              : 요청.status === 'PENDING'
+                ? t('에이전트 순서를 기다리는 중입니다. 이 페이지를 닫아도 됩니다.')
+                : t('케이스를 고쳐 PR 로 올리는 중입니다. 이 페이지를 닫아도 됩니다.')}
         </p>
         {중단버튼 === null ? null : (
           <>
@@ -94,36 +114,18 @@ export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄�
           </일>
         )}
         <반영단계 service={service} 요청={요청} 표="2" 반영권한={할수('작성머지')} 보내는중={보내는중} 새줄로={새줄로} 커버리지={null} />
-        {폐기('3')}
+        {반영실패
+          ? 다시적용('3', t('반영이 실패했습니다. 다른 PR 과 충돌했으면 지금 main 위에서 같은 내용으로 다시 고친 뒤 반영하세요.'))
+          : null}
+        {폐기(반영실패 ? '4' : '3')}
       </ol>
     );
   }
 
   // FAILED · STOPPED — 새 main 위에서 같은 고칠 내용으로 다시 고친다. 넘겨받을 작업 폴더가 없어 이어하기는 없다
-  const 권한 = 할수('작성요청');
-  const 원본 = 다시작성원본(요청);
   return (
     <ol>
-      <일
-        표="A"
-        제목={t('다시 적용')}
-        설명={
-          권한
-            ? t('지금 main 위에서 같은 내용으로 다시 고칩니다. 지금까지의 실행은 실행 기록에 남습니다.')
-            : t('다시 적용은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.')
-        }
-      >
-        {권한 && 원본 !== null ? (
-          <button
-            className="btn"
-            type="button"
-            disabled={보내는중}
-            onClick={() => 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 원본 }))}
-          >
-            {보내는중 ? t('시작하는 중…') : t('다시 적용')}
-          </button>
-        ) : null}
-      </일>
+      {다시적용('A', t('지금 main 위에서 같은 내용으로 다시 고칩니다. 지금까지의 실행은 실행 기록에 남습니다.'))}
       {폐기('B')}
     </ol>
   );

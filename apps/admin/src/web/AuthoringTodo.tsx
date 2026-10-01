@@ -25,12 +25,12 @@ interface Props {
   차이수: number;
   /** 머지를 뺀 최신 작성 실행의 셈 — 머지 행에는 셈이 없다. 남은 요구 수 · GitHub 직접 병합 안내가 이것을 본다 */
   커버리지?: AuthoringCoverage | null;
-  /** 뿌리가 케이스 고치기다 — 최신 실행이 반영 행이어도 고치기의 다음 단계를 낸다 (AuthoringEditParts.tsx) */
-  고치기?: boolean;
+  /** 뿌리가 케이스 고치기면 온다 — 최신 실행이 반영 행이어도 고치기의 다음 단계를 낸다 (AuthoringEditParts.tsx) */
+  고치기?: { 반영실패: boolean };
   reload: () => void;
 }
 
-export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지 = null, 고치기 = false, reload }: Props) {
+export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지 = null, 고치기, reload }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [열린, set열린] = useState<확인>(null);
@@ -115,8 +115,8 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
   let 본문: React.ReactNode;
   if (요청.discardedAt) {
     본문 = <p>{t('폐기됨')} · {when(요청.discardedAt, 언어)}</p>;
-  } else if (고치기) {
-    본문 = <고치기할일 {...{ service, 요청, 할수, 보내는중, 새줄로, 중단버튼, 폐기버튼 }} />;
+  } else if (고치기 !== undefined) {
+    본문 = <고치기할일 {...{ service, 요청, 할수, 보내는중, 새줄로, 중단버튼, 폐기버튼 }} 반영실패={고치기.반영실패} />;
   } else if (요청.status === 'DRAFT') {
     본문 = (
       <>
@@ -275,7 +275,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
           }
         >
           <p>
-            {확인글(열린, 요청, 고치기, 분, t)}
+            {확인글(열린, 요청, 고치기 !== undefined, 분, t)}
             {열린 === 'discard' ? (
               <>
                 <br />

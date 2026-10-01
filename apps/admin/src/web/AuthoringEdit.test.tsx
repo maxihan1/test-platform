@@ -165,6 +165,45 @@ describe('케이스 고치기 상세', () => {
     expect(screen.queryByText(/남은 요구/)).toBeNull();
   });
 
+  it('반영이 실패했으면 완료 항목에 다시 적용을 더한다 — 다른 PR 과 충돌한 고치기를 푸는 길이다', async () => {
+    const 기록 = [실행({ id: 12, kind: 'MERGE', status: 'FAILED', error: '충돌' }), 실행({ id: 7 })];
+    답들.set(7, 줄({ runs: 기록 }));
+    render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
+
+    const 할일 = within(await screen.findByRole('region', { name: '다음 단계' }));
+    expect(할일.getByRole('button', { name: '테스트 반영하기' })).toBeTruthy();
+    fireEvent.click(할일.getByRole('button', { name: '다시 적용' }));
+    await waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 }));
+  });
+
+  it('반영이 실패하지 않은 완료에는 다시 적용이 없다', async () => {
+    답들.set(7, 줄({}));
+    render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
+    const 할일 = within(await screen.findByRole('region', { name: '다음 단계' }));
+    expect(할일.queryByRole('button', { name: '다시 적용' })).toBeNull();
+  });
+
+  it('반영하는 동안은 반영 중이라 적는다. 고쳐서 올리는 중이 아니다', async () => {
+    const 기록 = [실행({ id: 12, kind: 'MERGE', status: 'RUNNING' }), 실행({ id: 7 })];
+    답들.set(7, 줄({ runs: 기록 }));
+    답들.set(12, 줄({ id: 12, kind: 'MERGE', sourceId: 7, params: {}, status: 'RUNNING', prUrl: null, finishedAt: null, stage: 'CI 기다리는 중', runs: 기록, canStop: false, canDiscard: false }));
+    render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
+
+    expect(await screen.findByText(/테스트를 반영하는 중입니다/)).toBeTruthy();
+    expect(screen.queryByText(/케이스를 고쳐 PR 로 올리는 중입니다/)).toBeNull();
+  });
+
+  it('신호가 끊긴 고치기는 서버가 멈춤을 주면 끊겼다고 알리고, 멈춤 상자는 다시 적용을 말한다', async () => {
+    답들.set(7, 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, stage: '검사하는 중', canStop: true, canDiscard: false }));
+    render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
+
+    expect(await screen.findByText(/에이전트 응답이 끊겼습니다/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '작성 중단' }));
+    const 상자 = within(screen.getByRole('dialog'));
+    expect(상자.getByText(/다시 적용할 수 있습니다/)).toBeTruthy();
+    expect(상자.queryByText(/이어서 작성/)).toBeNull();
+  });
+
   it('실행 기록의 방식은 케이스 고치기 · 다시 적용이다', async () => {
     const 기록 = [실행({ id: 9, kind: 'RERUN' }), 실행({ id: 7, status: 'FAILED' })];
     답들.set(7, 줄({ status: 'FAILED', prUrl: null, runs: 기록 }));

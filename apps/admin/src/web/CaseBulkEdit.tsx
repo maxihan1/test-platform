@@ -43,7 +43,9 @@ export function 고른것고치기({ service, 고른, 다되면 }: { service: st
     set열린(어느);
   }
 
+  // 보내는 동안은 닫지 않는다 — 닫으면 실패 까닭도, 만든 요청 번호도 볼 자리가 없이 고른 것만 비워진다
   function 닫는다() {
+    if (보내는중) return;
     set열린(null);
   }
 

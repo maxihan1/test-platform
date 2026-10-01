@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 고칠것검사 } from '../authoring/edit.js';
-import { ApiError, type CaseRow } from './api.js';
+import { api, ApiError, type CaseRow } from './api.js';
 import { 고치기오류문장, 고칠칸들, 기대값한줄, 바꾼값, 저장값지울칸 } from './caseEditView.js';
 import { initialText } from './schema.js';
 
@@ -120,10 +120,22 @@ describe('지금 기대값 한 줄', () => {
 });
 
 describe('고치기 오류 문장', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('겹치는 고치기는 그 요청 번호를 같이 보인다', () => {
     const 글 = 고치기오류문장(new ApiError(409, 'EDIT_OPEN', '12,15'), 'ko');
     expect(글).toContain('#12');
     expect(글).toContain('#15');
+  });
+
+  it('서버가 번호 배열로 준 겹침도 통신 계층을 거쳐 #번호로 보인다', async () => {
+    vi.stubGlobal('fetch', () =>
+      Promise.resolve({ ok: false, status: 409, json: () => Promise.resolve({ error: 'EDIT_OPEN', detail: [12, 15] }) } as Response),
+    );
+    const 오류 = await api.createAuthoringEdit('XEW', [{ tcId: 'XEW-001', delete: true }]).catch((err: unknown) => err);
+    expect(고치기오류문장(오류, 'ko')).toContain('#12 · #15');
   });
 
   it('그 밖의 오류는 공통 문장을 탄다', () => {

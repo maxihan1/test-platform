@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, ApiError, type CaseRow } from './api.js';
+import { CaseDetail } from './CaseDetail.js';
 import { 코드기본값고치기 } from './CaseEdit.js';
 
 afterEach(() => {
@@ -109,6 +110,24 @@ describe('코드 기본값 바꾸기 요청', () => {
     fireEvent.click(자리().getByRole('checkbox', { name: /확정/ }));
     fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', confirm: true }]));
+  });
+
+  it('기대값과 확정을 한 요청에 같이 싣는다', async () => {
+    const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 44 });
+    render(<코드기본값고치기 row={케이스({ unconfirmed: '문구가 기획서에 없다' })} service="XEW" />);
+
+    fireEvent.change(자리().getByLabelText(/상품 수/), { target: { value: '3' } });
+    fireEvent.click(자리().getByRole('checkbox', { name: /확정/ }));
+    fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
+    await waitFor(() =>
+      expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', expected: { count: 3 }, confirm: true }]),
+    );
+  });
+
+  it('비활성 케이스 상세에는 고치기 자리가 없다. 서버가 늘 거절한다', () => {
+    vi.spyOn(api, 'caseHistory').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
+    render(<CaseDetail row={케이스({ isActive: false })} 폈나 마지막={undefined} 고칠서비스="XEW" onClose={() => {}} on값={() => {}} />);
+    expect(screen.queryByRole('group', { name: '코드 기본값 바꾸기 요청' })).toBeNull();
   });
 
   it('삭제는 두 번 눌러야 가고, 곁에 E2E 시나리오가 못 돈다고 적는다', async () => {
