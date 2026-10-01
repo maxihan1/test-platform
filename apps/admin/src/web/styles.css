@@ -1416,6 +1416,11 @@ select:focus {
     min-height: 46px;
   }
 
+  /* 고르면 버튼이 넷까지 는다(케이스 고치기 요청) — 줄을 넘기지 않으면 글자가 한 자씩 세로로 꺾인다 (2026-10-01 화면 QA) */
+  .head-acts {
+    flex-wrap: wrap;
+  }
+
   /* 손가락으로 누르는 자리다 */
   .head-acts .btn {
     min-height: 44px;
@@ -2983,6 +2988,11 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 }
 .edit-delete {
   margin-top: 16px;
+}
+/* 보낸 뒤의 「작성 요청 N번」 고리 — 브라우저 기본 파랑을 쓰지 않는다(위 `.head-meta a` 와 같은 까닭) */
+.case-edit [role='status'] a,
+.modal [role='status'] a {
+  color: inherit;
 }
 /* 확인 상자 · 작성 상세의 케이스 목록. 사유 · 지금 기대값은 케이스 이름 아래 줄이다 */
 .edit-list {

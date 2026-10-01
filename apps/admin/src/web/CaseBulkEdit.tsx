@@ -16,7 +16,8 @@ const 미확정인가 = (row: CaseRow): boolean => typeof row.unconfirmed === 's
 
 /**
  * 고른 것이 없으면 아무것도 안 그린다. 권한은 부르는 쪽이 본다(작성 쓰기).
- * `다되면` — 요청이 섰다. 목록이 고른 것을 비운다 (상자는 열 때 담은 것을 들고 있어 안 흔들린다)
+ * `다되면` — 요청이 선 상자를 닫았다. 목록이 고른 것을 비운다. 상자가 떠 있는 동안 비우면 상자를 연 버튼이 사라져
+ * 닫을 때 포커스가 돌아갈 자리가 없다 — 부르는 쪽이 갈 자리를 정한다 (2026-10-01 화면 QA)
  */
 export function 고른것고치기({ service, 고른, 다되면 }: { service: string; 고른: ReadonlyMap<string, CaseRow>; 다되면: () => void }) {
   const t = use말();
@@ -47,6 +48,7 @@ export function 고른것고치기({ service, 고른, 다되면 }: { service: st
   function 닫는다() {
     if (보내는중) return;
     set열린(null);
+    if (만든번호 !== null) 다되면();
   }
 
   function 보낸다() {
@@ -55,10 +57,7 @@ export function 고른것고치기({ service, 고른, 다되면 }: { service: st
     set오류(null);
     void api
       .createAuthoringEdit(service, edits)
-      .then(({ id }) => {
-        set만든번호(id);
-        다되면();
-      })
+      .then(({ id }) => set만든번호(id))
       .catch((err: unknown) => set오류(고치기오류문장(err, 언어)))
       .finally(() => set보내는중(false));
   }
@@ -68,7 +67,8 @@ export function 고른것고치기({ service, 고른, 다되면 }: { service: st
 
   return (
     <>
-      {고른.size === 0 ? null : (
+      {/* 비활성만 골랐으면 보낼 것이 없다 — 확정 버튼처럼 감춘다 */}
+      {살아있는.length === 0 ? null : (
         <button className="btn ghost" type="button" onClick={() => 연다('delete')}>
           {t('삭제 요청')}
         </button>
@@ -85,7 +85,8 @@ export function 고른것고치기({ service, 고른, 다되면 }: { service: st
           onClose={닫는다}
           버튼={
             만든번호 !== null ? (
-              <button className="btn" type="button" onClick={닫는다}>
+              // 누른 보내기 버튼이 사라진다 — 닫기로 포커스를 받는다. key 로 새로 그려야 autoFocus 가 걸린다
+              <button key="close" className="btn" type="button" autoFocus onClick={닫는다}>
                 {t('닫기')}
               </button>
             ) : (

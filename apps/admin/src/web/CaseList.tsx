@@ -3,7 +3,7 @@
 // 목록은 케이스마다 이력을 따로 부르지 않는다. 상세 펼침만 예외이고 그것은 사람이 한 줄을 폈을 때다
 // 여러 건을 골라 거는 흐름은 useRunPick 이 통째로 들고 있다 (SPEC §8.10)
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { api, type CasePage, type CaseQuery, type ItemStatus, type Platform } from './api.js';
 import { 고른것고치기 } from './CaseBulkEdit.js';
@@ -40,6 +40,8 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
   const [글자, set글자] = useState<글자표>({});
   // 상세를 편 줄. 한 번에 여럿 펼 수 있고, 부른 것은 그 조각이 들고 있는다
   const [편줄, set편줄] = useState<ReadonlySet<string>>(new Set());
+  // 고치기 요청 상자를 닫으면 그 상자를 연 버튼이 고른 것과 같이 사라진다 — 포커스는 주 행동으로 보낸다
+  const 실행단추 = useRef<HTMLButtonElement>(null);
 
   const 조건: CaseQuery = {
     service,
@@ -157,10 +159,12 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
               </button>
             )}
             {/* 고른 것으로 삭제 · 확정 요청 — 작성 쓰기일 때만 (도메인/카탈로그 §8.1 「여러 건 골라」) */}
-            {!할수('작성요청') ? null : <고른것고치기 service={service} 고른={뽑기.고른} 다되면={뽑기.비우기} />}
+            {!할수('작성요청') ? null : (
+              <고른것고치기 service={service} 고른={뽑기.고른} 다되면={() => { 뽑기.비우기(); 실행단추.current?.focus(); }} />
+            )}
             {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
             {!할수('실행') ? null : (
-              <button className="btn" onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
+              <button className="btn" ref={실행단추} onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
                 {뽑기.고른.size === 0 ? t('전체 실행') : t('선택한 {건수}건 실행', { 건수: 뽑기.고른.size })}
               </button>
             )}

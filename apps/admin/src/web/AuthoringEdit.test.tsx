@@ -193,11 +193,12 @@ describe('케이스 고치기 상세', () => {
     expect(screen.queryByText(/케이스를 고쳐 PR 로 올리는 중입니다/)).toBeNull();
   });
 
-  it('신호가 끊긴 고치기는 서버가 멈춤을 주면 끊겼다고 알리고, 멈춤 상자는 다시 적용을 말한다', async () => {
+  it('신호가 한동안 없어 서버가 멈춤을 주면 멈출 길을 알리되 끊겼다고 단정하지 않는다. 멈춤 상자는 다시 적용을 말한다', async () => {
     답들.set(7, 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, stage: '검사하는 중', canStop: true, canDiscard: false }));
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
-    expect(await screen.findByText(/에이전트 응답이 끊겼습니다/)).toBeTruthy();
+    expect(await screen.findByText(/소식이 한동안 없습니다/)).toBeTruthy();
+    expect(screen.queryByText(/끊겼습니다/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '작성 중단' }));
     const 상자 = within(screen.getByRole('dialog'));
     expect(상자.getByText(/다시 적용할 수 있습니다/)).toBeTruthy();
@@ -213,6 +214,27 @@ describe('케이스 고치기 상세', () => {
     const 표 = within(await screen.findByRole('table', { name: '실행 기록' }));
     expect(표.getByText('다시 적용')).toBeTruthy();
     expect(표.getByText('케이스 고치기')).toBeTruthy();
+  });
+
+  it('실행 기록에서 도는 다시 적용은 고치는 중, 도는 반영은 반영 중이다', async () => {
+    const 기록 = [실행({ id: 12, kind: 'MERGE', status: 'RUNNING' }), 실행({ id: 9, kind: 'RERUN', status: 'RUNNING' }), 실행({ id: 7, status: 'FAILED' })];
+    답들.set(7, 줄({ status: 'FAILED', prUrl: null, runs: 기록 }));
+    답들.set(12, 줄({ id: 12, kind: 'MERGE', sourceId: 9, params: {}, status: 'RUNNING', prUrl: null, finishedAt: null, runs: 기록 }));
+    답들.set(9, 줄({ id: 9, kind: 'RERUN', sourceId: 7, status: 'RUNNING', prUrl: null, finishedAt: null, runs: 기록 }));
+    render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
+
+    const 표 = within(await screen.findByRole('table', { name: '실행 기록' }));
+    expect(표.getByText('고치는 중')).toBeTruthy();
+    expect(표.getByText('반영 중')).toBeTruthy();
+    expect(표.queryByText('작성 중')).toBeNull();
+  });
+
+  it('고칠 내용의 참거짓 값은 예 · 아니오로 적는다', async () => {
+    답들.set(7, 줄({ params: { edits: [{ tcId: 'PAY-004', expected: { shown: false } }] } }));
+    render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
+
+    const 목록 = within(await screen.findByRole('region', { name: '고칠 내용' }));
+    expect(목록.getByText(/기대값 shown: 아니오/)).toBeTruthy();
   });
 });
 

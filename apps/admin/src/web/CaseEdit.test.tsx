@@ -147,6 +147,33 @@ describe('코드 기본값 바꾸기 요청', () => {
     expect(await screen.findByRole('link', { name: '작성 요청 43번' })).toBeTruthy();
   });
 
+  it('삭제 확인 줄은 취소가 앞자리이고 포커스도 취소에 있다 — 더블클릭 · Enter 두 번이 삭제로 새지 않는다', () => {
+    const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 1 });
+    render(<코드기본값고치기 row={케이스()} service="XEW" />);
+
+    const 묻기 = screen.getByRole('button', { name: '케이스 삭제 요청' });
+    fireEvent.click(묻기);
+    const 취소 = screen.getByRole('button', { name: '취소' });
+    const 확인 = screen.getByRole('button', { name: '삭제 확인' });
+    expect(document.activeElement).toBe(취소);
+    expect(취소.compareDocumentPosition(확인) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(취소).not.toBe(묻기);
+
+    fireEvent.click(취소);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '케이스 삭제 요청' }));
+    expect(보냄).not.toHaveBeenCalled();
+  });
+
+  it('보낸 뒤 포커스는 결과 줄로 간다. 누른 버튼이 사라져도 길을 잃지 않는다', async () => {
+    vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 45 });
+    render(<코드기본값고치기 row={케이스()} service="XEW" />);
+
+    fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
+    fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
+    await screen.findByRole('link', { name: '작성 요청 45번' });
+    expect(document.activeElement).toBe(screen.getByRole('status'));
+  });
+
   it('겹치는 고치기가 열려 있으면 그 요청 번호를 같이 알린다', async () => {
     vi.spyOn(api, 'createAuthoringEdit').mockRejectedValue(new ApiError(409, 'EDIT_OPEN', '12'));
     render(<코드기본값고치기 row={케이스()} service="XEW" />);

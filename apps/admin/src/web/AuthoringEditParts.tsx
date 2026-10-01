@@ -6,12 +6,15 @@ import { api, type AuthoringRow } from './api.js';
 import { 반영단계 } from './AuthoringMergeStep.js';
 import { 일 } from './authoringTodoParts.js';
 import type { 고칠줄 } from './authoringView.js';
+import type { 기대값 } from '../authoring/edit.js';
 import { use말 } from './i18n.js';
 import type { 판정 } from './role.js';
 
 /** 케이스마다 한 줄 — 삭제 · 기대값 · 확정. 옛 값은 요청에 없어 PR 본문에서 본다 */
 export function 고칠내용({ 목록 }: { 목록: 고칠줄[] }) {
   const t = use말();
+  // 참거짓은 화면 다른 자리처럼 예 · 아니오로 (DESIGN.md) — 코드 낱말 false 를 그대로 보이지 않는다
+  const 값글 = (값: 기대값): string => (typeof 값 === 'boolean' ? t(값 ? '예' : '아니오') : String(값));
   return (
     <section className="authoring-panel" aria-label={t('고칠 내용')}>
       <h3>
@@ -23,7 +26,7 @@ export function 고칠내용({ 목록 }: { 목록: 고칠줄[] }) {
             <span className="mono">{줄.tcId}</span>{' '}
             {줄.삭제
               ? t('삭제')
-              : [...줄.기대값.map(([칸, 값]) => t('기대값 {칸}: {값}', { 칸, 값 })), ...(줄.확정 ? [t('확정')] : [])].join(' · ')}
+              : [...줄.기대값.map(([칸, 값]) => t('기대값 {칸}: {값}', { 칸, 값: 값글(값) })), ...(줄.확정 ? [t('확정')] : [])].join(' · ')}
           </li>
         ))}
       </ul>
@@ -74,13 +77,14 @@ export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄�
     );
 
   if (요청.status === 'PENDING' || 요청.status === 'RUNNING') {
-    // 도는 동안엔 자식이 없어 멈출 자리가 없다 — 서버가 대기 중 · 신호가 끊긴 것에만 canStop 을 준다 (작성 §3.6 「중단 · 폐기」)
+    // 도는 동안엔 자식이 없어 멈출 자리가 없다 — 서버가 대기 중 · 신호가 몇 분 끊긴 것에만 canStop 을 준다 (작성 §3.6 「중단 · 폐기」).
+    // 끊겼다고 단정하지 않는다 — 고치기 에이전트는 단계 글을 세 번만 올려 타입 검사가 길면 살아 있어도 신호가 빈다 (2026-10-01 화면 QA)
     const 끊김 = 요청.status === 'RUNNING' && 중단버튼 !== null;
     return (
       <>
         <p>
           {끊김
-            ? t('에이전트 응답이 끊겼습니다. 작성 중단을 누른 뒤 다시 적용하세요')
+            ? t('에이전트 소식이 한동안 없습니다. 검사가 길어지는 중일 수도 있습니다. 멈춘 것 같으면 작성 중단을 누른 뒤 다시 적용하세요')
             : 요청.kind === 'MERGE'
               ? t('테스트를 반영하는 중입니다. CI 를 기다려 합치므로 몇 분 걸립니다. 이 페이지를 닫아도 됩니다.')
               : 요청.status === 'PENDING'

@@ -62,6 +62,11 @@ describe('고른 것으로 고치기 요청', () => {
     expect(screen.getByRole('button', { name: '미확정 1건 확정 요청' })).toBeTruthy();
   });
 
+  it('비활성만 골랐으면 삭제 요청 버튼도 없다. 열어 봐야 보낼 것이 없다', () => {
+    render(<고른것고치기 service="XEW" 고른={고름(케이스('XEW-001', { isActive: false }))} 다되면={() => {}} />);
+    expect(screen.queryByRole('button', { name: '삭제 요청' })).toBeNull();
+  });
+
   it('삭제는 확인 상자를 거쳐 고른 것 전부를 지우는 요청 하나로 간다', async () => {
     const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 51 });
     const 다되면 = vi.fn();
@@ -80,7 +85,11 @@ describe('고른 것으로 고치기 요청', () => {
       ]),
     );
     expect((await screen.findByRole('link', { name: '작성 요청 51번' })).getAttribute('href')).toBe('#/authoring/51');
-    expect(다되면).toHaveBeenCalled();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '닫기' }));
+    expect(다되면).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    expect(다되면).toHaveBeenCalledTimes(1);
   });
 
   it('확정 상자는 미확정 케이스만 담고 케이스마다 사유와 지금 기대값을 보인다. 비밀값은 가린다', async () => {
@@ -104,7 +113,7 @@ describe('고른 것으로 고치기 요청', () => {
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-002', confirm: true }]));
   });
 
-  it('보낸 뒤 목록이 고른 것을 비워도 상자는 성공 문장을 들고 남는다', async () => {
+  it('고른 것은 성공 상자를 닫을 때 비운다 — 상자가 떠 있는 동안 목록이 흔들리지 않는다', async () => {
     vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 54 });
     function 판() {
       const [고른, set고른] = useState(고름(케이스('XEW-001')));
@@ -115,10 +124,10 @@ describe('고른 것으로 고치기 요청', () => {
     fireEvent.click(screen.getByRole('button', { name: '삭제 요청' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '삭제 요청 보내기' }));
     expect(await screen.findByRole('link', { name: '작성 요청 54번' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '삭제 요청' })).toBeNull();
 
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '닫기' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('button', { name: '삭제 요청' })).toBeNull();
   });
 
   it('보내는 동안은 상자를 닫지 않는다. 닫으면 결과를 볼 자리가 사라진다', async () => {

@@ -119,7 +119,7 @@ describe('고칠 내용 목록', () => {
     });
     expect(목록).toEqual([
       { tcId: 'PAY-001', 삭제: true, 기대값: [], 확정: false },
-      { tcId: 'PAY-002', 삭제: false, 기대값: [['state', '배송 중'], ['count', '2'], ['shown', 'false']], 확정: true },
+      { tcId: 'PAY-002', 삭제: false, 기대값: [['state', '배송 중'], ['count', 2], ['shown', false]], 확정: true },
     ]);
   });
 

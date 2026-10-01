@@ -1,6 +1,6 @@
 // 작성 요청 한 줄을 화면이 어떻게 보여 줄지 정한다 (도메인/작성 §3.6). 판단만 여기, 그림은 Authoring.tsx
 
-import { 고치기실행인가 as 서버판정, 행의고칠것 } from '../authoring/edit.js';
+import { 고치기실행인가 as 서버판정, 행의고칠것, type 기대값 } from '../authoring/edit.js';
 
 import type { AuthoringRow } from './api.js';
 import { t, type 언어 } from './i18n.js';
@@ -164,8 +164,8 @@ export function 차이종류라벨(kind: string, 언어: 언어): string {
 export interface 고칠줄 {
   tcId: string;
   삭제: boolean;
-  /** [칸 이름, 새 값 글자] */
-  기대값: [string, string][];
+  /** [칸 이름, 새 값] — 글자로 바꾸는 것은 그리는 쪽이다(참거짓을 예 · 아니오로) */
+  기대값: [string, 기대값][];
   확정: boolean;
 }
 
@@ -181,7 +181,11 @@ export function 고칠것목록(params: unknown): 고칠줄[] | null {
       return {
         tcId: e.tcId as string,
         삭제: e.delete === true,
-        기대값: Object.entries(기대).map(([칸, 값]): [string, string] => [칸, String(값)]),
+        // 서버가 다섯 꼴만 받지만 모양을 믿지 않는다 — 그 밖의 값은 글자로 펴서 보인다
+        기대값: Object.entries(기대).map(([칸, 값]): [string, 기대값] => [
+          칸,
+          typeof 값 === 'string' || typeof 값 === 'number' || typeof 값 === 'boolean' ? 값 : JSON.stringify(값),
+        ]),
         확정: e.confirm === true,
       };
     });

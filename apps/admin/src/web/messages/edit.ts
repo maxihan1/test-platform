@@ -46,7 +46,8 @@ export const 고치기말: Record<string, string> = {
   '바뀌기 전 값은 PR 본문에 있습니다.': 'The previous values are in the PR description.',
   '목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.':
     'It disappears from the list. The PR stays open on GitHub — close it there.',
-  '에이전트 응답이 끊겼습니다. 작성 중단을 누른 뒤 다시 적용하세요': 'The agent stopped responding. Stop it, then re-apply',
+  '에이전트 소식이 한동안 없습니다. 검사가 길어지는 중일 수도 있습니다. 멈춘 것 같으면 작성 중단을 누른 뒤 다시 적용하세요':
+    'No word from the agent for a while. The checks may just be slow. If it looks stuck, stop it, then re-apply',
   '에이전트 순서를 기다리는 중입니다. 이 페이지를 닫아도 됩니다.': 'Waiting for the agent. You can close this page.',
   '테스트를 반영하는 중입니다. CI 를 기다려 합치므로 몇 분 걸립니다. 이 페이지를 닫아도 됩니다.':
     'Merging the tests. It waits for CI, so it takes a few minutes. You can close this page.',
