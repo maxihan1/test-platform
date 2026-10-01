@@ -7,12 +7,12 @@ import { 보류있나 } from './authoring-held-apply.js';
  * 같은 서비스의 반영은 모두 차례로 돈다 — main 에 차례로 들어가야 겹침 견주기가 맞다(main 보호가 최신 main 위의 CI 를 강제하지 않는다).
  * 앞 반영을 기다리는 동안 `알림` 을 간격마다 다시 보낸다 — 안 보내면 단계 글 없이 30분이 지나 화면이 「응답 없음」으로 그린다
  */
-export function 반영줄들(알림간격 = 60_000) {
+export function 반영줄들(알림간격 = 60_000, 멈췄나: () => boolean = () => false) {
   const 꼬리 = new Map<string, Promise<unknown>>();
   return {
-    걸기<T>(서비스: string, 알림: () => Promise<unknown>, 일: () => Promise<T>): Promise<T> {
+    걸기<T>(서비스: string, 알림: () => Promise<unknown>, 일: () => Promise<T>): Promise<T | undefined> {
       const 앞 = 꼬리.get(서비스) ?? Promise.resolve();
-      const 이번 = (async (): Promise<T> => {
+      const 이번 = (async (): Promise<T | undefined> => {
         const 보내기 = () => void 알림().catch(() => undefined);
         보내기();
         const 시계 = setInterval(보내기, 알림간격);
@@ -21,7 +21,8 @@ export function 반영줄들(알림간격 = 60_000) {
         } finally {
           clearInterval(시계);
         }
-        return 일();
+        // 서버가 거절해 멈추는 중이면 줄에 서 있던 반영도 시작하지 않는다 — 시작하면 올려 놓고 끝내기가 안 받아져 행이 RUNNING 으로 남는다
+        return 멈췄나() ? undefined : 일();
       })();
       // 앞이 던져도 다음 반영은 돈다
       꼬리.set(서비스, 이번.catch(() => undefined));

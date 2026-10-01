@@ -43,6 +43,19 @@ describe('반영줄들', () => {
     await expect(둘째).resolves.toBe('됐다');
   });
 
+  it('멈춤이 걸리면 줄에 서 있던 반영은 시작하지 않는다', async () => {
+    let 멈춤 = false;
+    const 줄 = 반영줄들(60_000, () => 멈춤);
+    let 돌았다 = false;
+    const 첫째 = 줄.걸기('PAY', async () => {}, async () => {
+      await 잠깐(20);
+      멈춤 = true;
+    });
+    const 둘째 = 줄.걸기('PAY', async () => {}, async () => void (돌았다 = true));
+    await Promise.all([첫째, 둘째]);
+    expect(돌았다).toBe(false);
+  });
+
   it('알림이 실패해도 일은 돈다', async () => {
     const 줄 = 반영줄들(5);
     const 첫째 = 줄.걸기('PAY', async () => {}, () => 잠깐(30));

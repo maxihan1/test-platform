@@ -84,7 +84,8 @@ interface 읽은케이스 {
 function 읽기들(케이스들: 케이스글[]): 읽은케이스[] {
   return 케이스들.flatMap((c) => {
     const tcId = 케이스tcId(c.글);
-    return tcId === null ? [] : [{ tcId, name: 케이스이름(c.글) ?? '', file: c.file }];
+    // 이름은 서버 상한(300자)에 맞춘다 — 넘으면 끝내기 목록이 통째로 400 이다
+    return tcId === null ? [] : [{ tcId, name: (케이스이름(c.글) ?? '').slice(0, 300), file: c.file }];
   });
 }
 

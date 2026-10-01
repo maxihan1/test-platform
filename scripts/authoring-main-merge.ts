@@ -1,8 +1,8 @@
 // main 을 요청 브랜치에 합친다 — 같은 서비스를 동시에 작성한 요청이 먼저 반영된 뒤 반영할 때 (SPEC 도메인/작성 §3.6 「★ 반영 때 겹침 검사」)
 // 반영은 rebase 도 update-branch 도 안 해서, 표가 충돌하면 GitHub 이 CI 를 안 띄워 17분 뒤 실패했다. 작업방에서 합치고 표는 코드로 푼다
 
-import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { lstatSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { join, sep } from 'node:path';
 
 import { 반영표시, 케이스tcId } from './authoring-held-apply.js';
 import type { 깃손 } from './authoring-ledger-io.js';
@@ -26,6 +26,20 @@ export function 합칠까(main바뀐것: string[], 표경로: string, 폴더: st
   return main바뀐것.some((f) => f === 표경로 || f.startsWith(`tests/${폴더}/`));
 }
 
+/**
+ * 트리 안의 보통 파일인가 — 링크면 따라가지 않는다. 에이전트는 root 로 돌고 트리는 자식이 쓴 브랜치다.
+ * 링크 표를 따라가 읽고 쓰면 링크가 가리키는 서버 파일을 바꾼다 (보안 검토 2026-10-01)
+ */
+export function 안전한파일(트리: string, 경로: string): boolean {
+  try {
+    const 풀길 = join(트리, 경로);
+    if (!lstatSync(풀길).isFile()) return false;
+    return realpathSync(풀길).startsWith(realpathSync(트리) + sep);
+  } catch {
+    return false;
+  }
+}
+
 function 케이스들(트리: string, 폴더: string): Set<string> {
   const 결과 = new Set<string>();
   let 파일들: string[] = [];
@@ -34,7 +48,7 @@ function 케이스들(트리: string, 폴더: string): Set<string> {
   } catch {
     return 결과;
   }
-  for (const f of 파일들.filter((x) => x.endsWith('.spec.ts'))) {
+  for (const f of 파일들.filter((x) => x.endsWith('.spec.ts') && 안전한파일(트리, join('tests', 폴더, x)))) {
     const id = 케이스tcId(readFileSync(join(트리, 'tests', 폴더, f), 'utf8'));
     if (id !== null) 결과.add(id);
   }
@@ -50,14 +64,15 @@ export function main합치기(판: 합칠판): { 합침: boolean } | { 사유: s
   if (깃(['merge-base', '--is-ancestor', mainSha, 'HEAD']).ok) return { 합침: false };
   const 바탕 = 깃(['merge-base', 'HEAD', mainSha]);
   if (!바탕.ok) return { 사유: `main 과 갈라진 자리를 못 찾았다: ${바탕.까닭 ?? ''}` };
-  const 바뀐 = 깃(['diff', '--name-only', 바탕.낸것.trim(), mainSha]);
+  // -z — 한글 · 특수 문자 이름을 git 이 따옴표로 감싸 내면 이름이 안 맞는다
+  const 바뀐 = 깃(['diff', '--name-only', '-z', 바탕.낸것.trim(), mainSha]);
   if (!바뀐.ok) return { 사유: `main 에서 바뀐 파일을 못 읽었다: ${바뀐.까닭 ?? ''}` };
-  if (!합칠까(바뀐.낸것.split('\n').filter((f) => f !== ''), 표경로, 폴더)) return { 합침: false };
+  if (!합칠까(바뀐.낸것.split('\0').filter((f) => f !== ''), 표경로, 폴더)) return { 합침: false };
 
   const 되돌리기 = (사유: string) => (깃(['merge', '--abort']), { 사유 });
   const 합침 = 깃(['-c', 'merge.conflictStyle=diff3', 'merge', '--no-commit', '--no-ff', mainSha]);
   if (!합침.ok) {
-    const 충돌 = 깃(['diff', '--name-only', '--diff-filter=U']).낸것.split('\n').filter((f) => f !== '');
+    const 충돌 = 깃(['diff', '--name-only', '-z', '--diff-filter=U']).낸것.split('\0').filter((f) => f !== '');
     if (충돌.length === 0) return 되돌리기(`main 을 합치지 못했다: ${합침.까닭 ?? ''}`);
     const 남의것 = 충돌.filter((f) => f !== 표경로);
     if (남의것.length > 0) return 되돌리기(`main 과 같은 파일을 고쳐 합치지 못했다 — ${남의것.join(' · ')}. 다시 작성한다`);
@@ -65,20 +80,22 @@ export function main합치기(판: 합칠판): { 합침: boolean } | { 사유: s
     if (!깃(['ls-files', '-u', '--', 표경로]).낸것.split('\n').some((l) => /\s1\t/.test(l))) {
       return 되돌리기('새 서비스의 첫 요청 둘이 요구사항 표를 각자 만들었다 — 뒤 요청을 다시 작성한다');
     }
+    if (!안전한파일(트리, 표경로)) return 되돌리기(`요구사항 표가 보통 파일이 아니다 — ${표경로}. 다시 작성한다`);
     const 풀림 = 표덩이풀기(readFileSync(join(트리, 표경로), 'utf8'));
     if ('사유' in 풀림) return 되돌리기(`${풀림.사유} — 다시 작성한다`);
     writeFileSync(join(트리, 표경로), 풀림.글);
   }
 
   let 표있나 = true;
-  let 표글 = '';
   try {
-    표글 = readFileSync(join(트리, 표경로), 'utf8');
+    lstatSync(join(트리, 표경로));
   } catch {
     표있나 = false;
   }
   if (표있나) {
-    const 고친 = 요구번호다시매기기(표글);
+    // 읽기 전에 본다 — 링크를 따라가 읽은 글을 같은 자리에 되쓰면 링크 대상이 바뀐다
+    if (!안전한파일(트리, 표경로)) return 되돌리기(`요구사항 표가 보통 파일이 아니다 — ${표경로}. 다시 작성한다`);
+    const 고친 = 요구번호다시매기기(readFileSync(join(트리, 표경로), 'utf8'));
     const 전들 = ['HEAD', mainSha].map((r) => 깃(['show', `${r}:${표경로}`])).filter((r) => r.ok).map((r) => r.낸것);
     const 새오류 = 새형식오류(고친, 전들, 케이스들(트리, 폴더));
     if (새오류.length > 0) return 되돌리기(`합친 요구사항 표가 깨졌다 — ${새오류.slice(0, 3).join(' · ')}. 다시 작성한다`);

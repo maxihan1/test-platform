@@ -11,7 +11,7 @@ import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
  * `쓴번호` 에 지운 번호(표의 「제거함」)까지 넣는다 — 다시 쓰면 옛 실행 이력이 새 케이스에 붙는다
  */
 export function 다음번호(쓴번호: Set<string>, 접두사: string, 개수: number): string[] | null {
-  const 꼴 = new RegExp(`^${접두사}-(\\d{3})$`);
+  const 꼴 = new RegExp(`^${접두사.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-(\\d{3})$`);
   const 큰 = Math.max(0, ...[...쓴번호].map((id) => Number(꼴.exec(id)?.[1] ?? 0)));
   if (큰 + 개수 > 999) return null;
   return Array.from({ length: 개수 }, (_, i) => `${접두사}-${String(큰 + 1 + i).padStart(3, '0')}`);
@@ -31,9 +31,17 @@ const 칸들 = (줄: string) => 줄.split('|').map((c) => c.trim());
 
 /** 표 줄의 그 tcId 칸만 새 번호로. 「제거함(…)」 칸과 표 밖 글은 안 건드린다 */
 export function 표번호바꾸기(표: string, 옛: string, 새: string): string {
+  // 칸 단위로 본다 — 열 정렬로 공백이 다른 표나 다른 칸에 같은 글자가 든 줄에도 맞는다
   return 표
     .split('\n')
-    .map((줄) => (표줄인가(줄) ? 줄.split(`| ${옛} |`).join(`| ${새} |`) : 줄))
+    .map((줄) =>
+      표줄인가(줄)
+        ? 줄
+            .split('|')
+            .map((칸) => (칸.trim() === 옛 ? ` ${새} ` : 칸))
+            .join('|')
+        : 줄,
+    )
     .join('\n');
 }
 

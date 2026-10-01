@@ -24,6 +24,10 @@ describe('다음 번호', () => {
     expect(다음번호(new Set(['PAY-001', 'PAY-040', 'PAY-007', 'MKT-900']), 'PAY', 2)).toEqual(['PAY-041', 'PAY-042']);
   });
 
+  it('접두사에 정규식 글자가 있어도 글자 그대로 센다', () => {
+    expect(다음번호(new Set(['A.B-005', 'AXB-900']), 'A.B', 1)).toEqual(['A.B-006']);
+  });
+
   it('999 를 넘으면 null — 파일 이름 규칙이 세 자리다', () => {
     expect(다음번호(new Set(['PAY-998']), 'PAY', 1)).toEqual(['PAY-999']);
     expect(다음번호(new Set(['PAY-998']), 'PAY', 2)).toBeNull();
@@ -48,6 +52,13 @@ describe('표 고치기', () => {
     const 바뀐 = 표번호바꾸기(글, 'PAY-002', 'PAY-041');
     expect(바뀐).toContain(줄(1, 'PAY-041'));
     expect(바뀐).toContain('| 4 | 제거함(PAY-002) 과 비슷 | 제거함(PAY-002) |');
+  });
+
+  it('칸 공백이 어긋난 표도 그 tcId 칸만 바꾼다 · 다른 칸의 같은 글자는 안 바꾼다', () => {
+    const 글 = ['| 요구 | 관련 | tcId |', '|---|---|---|', '| 1 | PAY-002 와 비슷 | PAY-002      |', '|2|x|PAY-002|', ''].join('\n');
+    const 바뀐 = 표번호바꾸기(글, 'PAY-002', 'PAY-041');
+    expect(바뀐).toContain('| 1 | PAY-002 와 비슷 | PAY-041 |');
+    expect(바뀐).toContain('|2|x| PAY-041 |');
   });
 
   it('뺄 tcId 를 가진 표 줄은 절이 여럿이어도 통째로 뺀다', () => {

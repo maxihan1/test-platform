@@ -8,10 +8,11 @@ import type { 결정, 겹침 } from '../apps/admin/src/authoring/conflicts.js';
 import { 결정계산, 처리줄 } from './authoring-conflicts-apply.js';
 import { 겹침찾기, 표tcId들, type 케이스글 } from './authoring-conflicts.js';
 import { 반영커밋인가, 보류있나, 케이스tcId } from './authoring-held-apply.js';
+import { 겹침상한모양인가 } from '../apps/admin/src/authoring/conflicts.js';
 import type { 반영준비 } from './authoring-held-merge.js';
 import { type 보고손, type 칠때, 진짜main받기, 친다 } from './authoring-io.js';
 import type { 깃손 } from './authoring-ledger-io.js';
-import { 합칠까 } from './authoring-main-merge.js';
+import { 안전한파일, 합칠까 } from './authoring-main-merge.js';
 
 /** 자식이 남긴 커밋 사슬이 이보다 길 일은 없다 — 반영 한 번에 커밋이 둘(값 · 합침)이고 다시 반영하면 자식 커밋부터 다시 짓는다 */
 const 거슬러상한 = 20;
@@ -43,7 +44,8 @@ export interface 겹침판 {
   쓴번호: Set<string>;
 }
 
-const 줄들 = (글: string) => 글.split('\n').filter((f) => f !== '');
+// git 이 한글 · 특수 문자 이름을 따옴표로 감싸 내지 않게 -z 로 읽는다 — 감싼 이름은 파일을 못 찾아 겹침 검사를 건너뛴다
+const 줄들 = (글: string) => 글.split('\0').filter((f) => f !== '');
 
 /** 서버 저장소에서 읽는다 — 머리와 mainSha 는 이미 받아 둔 것이어야 한다. `뺀것` 은 보류에서 「제거」한 tc_id */
 export function 겹침판읽기(
@@ -61,10 +63,10 @@ export function 겹침판읽기(
     const r = 깃(인자);
     return r.ok ? 줄들(r.낸것) : null;
   };
-  const 더한길 = 목록(['diff', '--name-only', '--no-renames', '--diff-filter=A', 갈래점, 자식, '--', 폴더길]);
-  const main길 = 목록(['ls-tree', '-r', '--name-only', mainSha, '--', 폴더길]);
-  const 새로온길 = 목록(['diff', '--name-only', '--no-renames', '--diff-filter=A', 갈래점, mainSha, '--', 폴더길]);
-  const main바뀐 = 목록(['diff', '--name-only', 갈래점, mainSha]);
+  const 더한길 = 목록(['diff', '--name-only', '-z', '--no-renames', '--diff-filter=A', 갈래점, 자식, '--', 폴더길]);
+  const main길 = 목록(['ls-tree', '-r', '--name-only', '-z', mainSha, '--', 폴더길]);
+  const 새로온길 = 목록(['diff', '--name-only', '-z', '--no-renames', '--diff-filter=A', 갈래점, mainSha, '--', 폴더길]);
+  const main바뀐 = 목록(['diff', '--name-only', '-z', 갈래점, mainSha]);
   if (더한길 === null || main길 === null || 새로온길 === null || main바뀐 === null) return { 사유: '바뀐 케이스 파일 목록을 못 읽었다' };
 
   // 없는 파일(표가 아직 없는 새 서비스)은 빈 글자다
@@ -84,13 +86,11 @@ export function 겹침판읽기(
     const id = 케이스tcId(c.글);
     if (id !== null) 쓴번호.add(id);
   }
-  return {
-    자식커밋: 자식,
-    mainSha,
-    합칠까: 합칠까(main바뀐, 표경로, 폴더),
-    겹침: 겹침찾기({ 더한, main케이스, 새로들어온: new Set(새로온길), 요청표, main표, 표경로, 뺀것: 입력.뺀것 }),
-    쓴번호,
-  };
+  const 겹침 = 겹침찾기({ 더한, main케이스, 새로들어온: new Set(새로온길), 요청표, main표, 표경로, 뺀것: 입력.뺀것 });
+  // 서버가 끝내기 목록의 모양을 가둔다 — 모양이 틀린 줄이 하나라도 있으면 목록이 통째로 400 이라 사람이 고를 길도 없다
+  const 틀림 = 겹침.find((c) => !겹침상한모양인가(c));
+  if (틀림 !== undefined) return { 사유: `겹친 케이스의 번호나 이름 모양이 규칙과 다르다 — ${틀림.tcId}. 다시 작성한다` };
+  return { 자식커밋: 자식, mainSha, 합칠까: 합칠까(main바뀐, 표경로, 폴더), 겹침, 쓴번호 };
 }
 
 /** 집기 응답의 conflicts — 모양이 맞는 결정만. 서버가 이미 가뒀지만 에이전트도 남의 입력으로 읽는다 */
@@ -192,10 +192,11 @@ export function 겹침쓸것(
   결정: { tcId: string; action: 결정 }[],
 ): { 쓰기: Map<string, string>; 지우기: string[]; 처리줄: string | null } | { 사유: string } {
   // 겹침은 자식이 끝낸 커밋에서 찾았고 작업 폴더도 그 커밋이다 — 없으면 트리가 어긋났다
-  const 없는 = 판.겹침.filter((c) => !existsSync(join(트리, c.file))).map((c) => c.tcId);
-  if (없는.length > 0) return { 사유: `겹친 케이스 파일이 작업 폴더에 없다 — ${없는.join(' · ')}` };
+  const 없는 = 판.겹침.filter((c) => !안전한파일(트리, c.file)).map((c) => c.tcId);
+  if (없는.length > 0) return { 사유: `겹친 케이스 파일이 작업 폴더에 없거나 보통 파일이 아니다 — ${없는.join(' · ')}` };
   const 표 = join('docs', 'cases', `${서비스}.md`);
   const 표있나 = existsSync(join(트리, 표));
+  if (표있나 && !안전한파일(트리, 표)) return { 사유: `요구사항 표가 보통 파일이 아니다 — ${표}` };
   const 요청표 = 표있나 ? readFileSync(join(트리, 표), 'utf8') : '';
   const r = 결정계산({ 겹침: 판.겹침, 결정, 읽기: (f) => readFileSync(join(트리, f), 'utf8'), 요청표, 쓴번호: 판.쓴번호 });
   if ('사유' in r) return r;

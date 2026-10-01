@@ -62,6 +62,11 @@ function 줄모양(v: unknown): v is 겹침 {
   return Array.isArray(requirements) && requirements.length <= 20 && requirements.every((r) => 글인가(r, 100) && r !== '');
 }
 
+/** 한 줄이 끝내기 모양 검사를 넘나 — 에이전트가 보내기 전에 같은 규칙으로 본다(틀린 줄 하나가 목록 전체를 400 으로 만든다) */
+export function 겹침상한모양인가(줄: unknown): boolean {
+  return 줄모양(줄);
+}
+
 /**
  * 반영 FAILED 의 result.conflicts 모양. 맞으면 그대로, 아니면 null(→ 400 BAD_CONFLICTS).
  * 이 목록이 화면의 고르기 칸과 「무엇을 골라야 반영되나」를 정한다 — 느슨하면 없는 케이스를 고르라고 한다

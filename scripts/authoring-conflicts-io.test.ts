@@ -119,6 +119,36 @@ describe('겹침판 읽기', () => {
     expect(결과).toMatchObject({ 자식커밋: 머리커밋, 합칠까: false, 겹침: [] });
   });
 
+  it('한글 파일 이름도 겹침을 본다 — git 이 따옴표로 감싸 내는 이름에 속지 않는다', () => {
+    const g = 판();
+    g.쓰기('tests/pay/PAY-001.spec.ts', 케이스('PAY-001', '첫 케이스'));
+    g.커밋('바탕');
+    g.깃(['checkout', '-q', '-b', 'req']);
+    g.쓰기('tests/pay/쿠폰.spec.ts', 케이스('PAY-002', '쿠폰'));
+    const 머리커밋 = g.커밋('[WS-작성] PAY 작성 요청 7번 케이스');
+    g.깃(['checkout', '-q', 'main']);
+    g.쓰기('tests/pay/PAY-002.spec.ts', 케이스('PAY-002', '먼저 들어온'));
+    const mainSha = g.커밋('main');
+    const 결과 = 겹침판읽기(g.깃, { 머리: 머리커밋, mainSha, 폴더: 'pay', 표경로: 'docs/cases/PAY.md', 뺀것: new Set() });
+    if ('사유' in 결과) throw new Error(결과.사유);
+    expect(결과.겹침.map((c: 겹침) => [c.tcId, c.file])).toEqual([['PAY-002', 'tests/pay/쿠폰.spec.ts']]);
+  });
+
+  it('겹친 케이스의 번호 모양이 규칙과 다르면 사유 — 서버가 목록을 통째로 거절하기 전에', () => {
+    const g = 판();
+    g.쓰기('tests/pay/PAY-001.spec.ts', 케이스('PAY-001', '첫 케이스'));
+    g.커밋('바탕');
+    g.깃(['checkout', '-q', '-b', 'req']);
+    g.쓰기('tests/pay/bad.spec.ts', 케이스('pay-2', '쿠폰'));
+    const 머리커밋 = g.커밋('[WS-작성] PAY 작성 요청 7번 케이스');
+    g.깃(['checkout', '-q', 'main']);
+    g.쓰기('tests/pay/other.spec.ts', 케이스('pay-2', '먼저 들어온'));
+    const mainSha = g.커밋('main');
+    expect(겹침판읽기(g.깃, { 머리: 머리커밋, mainSha, 폴더: 'pay', 표경로: 'docs/cases/PAY.md', 뺀것: new Set() })).toEqual({
+      사유: expect.stringContaining('pay-2'),
+    });
+  });
+
   it('git 이 실패하면 사유', () => {
     const g = 판();
     expect(겹침판읽기(g.깃, { 머리: 'f'.repeat(40), mainSha: 'e'.repeat(40), 폴더: 'pay', 표경로: 'docs/cases/PAY.md', 뺀것: new Set() })).toEqual({

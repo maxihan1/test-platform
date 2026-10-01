@@ -1,6 +1,6 @@
 // main 을 요청 브랜치에 합치기 — 임시 git 저장소로 실제 합치기를 돌려 본다 (작성 §3.6 「★ 반영 때 겹침 검사」)
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -117,6 +117,19 @@ describe('main 합치기', () => {
       (t) => 쓰기(t, 'tests/pay/PAY-001.spec.ts', 케이스('PAY-001', '첫 케이스')),
     );
     expect(main합치기({ 트리, 깃, mainSha, ...판값 })).toEqual({ 사유: expect.stringContaining('각자') });
+    expect(깃(['status', '--porcelain']).낸것).toBe('');
+  });
+
+  it('요구사항 표가 심볼릭 링크면 따라가지 않고 거절한다 — 에이전트는 root 로 돈다', () => {
+    const { 트리, 깃, mainSha } = 갈라놓기(
+      (t) => {
+        rmSync(join(t, 'docs/cases/PAY.md'));
+        symlinkSync('/etc/hosts', join(t, 'docs/cases/PAY.md'));
+      },
+      (t) => 쓰기(t, 'docs/cases/PAY.md', 표('main 셈', [줄(1, 'PAY-001'), 줄(2, 'PAY-003')])),
+    );
+    const 결과 = main합치기({ 트리, 깃, mainSha, ...판값 });
+    expect(결과).toEqual({ 사유: expect.stringContaining('docs/cases/PAY.md') });
     expect(깃(['status', '--porcelain']).낸것).toBe('');
   });
 
