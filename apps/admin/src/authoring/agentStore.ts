@@ -1,5 +1,7 @@
 // 작성 에이전트가 부르는 대기줄 쓰기 — 집기 · 되돌리기 · 단계(진척) · 사진 자리 · 끝내기 (도메인/작성 §7). store.ts 가 300줄을 넘어 뗐다
 
+import type { PoolClient } from 'pg';
+
 import { type 셈칸, 커버리지칸 } from './coverage.js';
 import { db, 빚기, 칸들, type 요청, type 행 } from './store.js';
 
@@ -90,6 +92,7 @@ export async function 사진자리적기(id: number, 자리: string): Promise<bo
 /**
  * 끝났다고 알린다. **도는 중인 행에만 붙는다** — 끝난 행에 또 오면 false 다.
  * 안 막으면 판정과 PR 주소가 덮어써진다 (2026-09-22 검토가 잡았다).
+ * `손` 은 뿌리 잠금을 쥔 연결이다 — 반영 뒤 저장값 지우기가 이 UPDATE 와 한 트랜잭션이어야 반쪽이 안 남는다
  */
 export async function 끝내기(
   id: number,
@@ -106,10 +109,10 @@ export async function 끝내기(
     /** result.coverage 를 옮긴 칸. 없으면 전부 비운다 — 셈은 result 와 같은 끝내기에서만 선다 */
     coverage?: 셈칸;
   },
+  손?: PoolClient,
 ): Promise<boolean> {
   const 칸 = 결과.coverage ?? 커버리지칸(null);
-  const pool = await db();
-  const r = await pool.query(
+  const r = await (손 ?? (await db())).query(
     `UPDATE authoring_request
         SET status = $2,
             result = COALESCE($3::jsonb, result),

@@ -80,9 +80,10 @@ export async function 머지처리(
     await 손.끝내기({ status: 'FAILED', error: 남의것 });
     return;
   }
-  // 병합은 됐는데 보고만 잃은 경우다. 다시 누른 것을 실패로 닫으면 사람이 헷갈린다
+  // 병합은 됐는데 보고만 잃은 경우다. 다시 누른 것을 실패로 닫으면 사람이 헷갈린다.
+  // 이 길도 받아 온 뒤 끝낸다 — 안 받아 오면 케이스 고치기의 저장값이 말없이 남아 반영한 기대값을 가린다
   if (pr.state === 'MERGED') {
-    await 손.끝내기({ status: 'DONE', prUrl });
+    await 당기고끝내기(손, 'MERGED', prUrl, '', 뿌리, 호스트로);
     return;
   }
   if (pr.state !== 'OPEN') {
@@ -199,12 +200,27 @@ export async function 머지처리(
   await 손.단계('머지하는 중');
   const 친것 = 친다('gh', 머지인자(prUrl, pr.headRefOid), 뿌리);
   const 상태 = 병합뒤상태(친것.ok, 친다('gh', ['pr', 'view', prUrl, '--json', 'state'], 뿌리));
-  await 손.끝내기(
+  // 당기기를 DONE 보다 먼저 한다 — 서버는 DONE 을 받으면 케이스 고치기의 저장값을 지우는데,
+  // 체크아웃(/tests)이 옛 코드면 실행이 옛 기본값으로 돈다. 그래서 당겼는지를 함께 싣는다 (작성 §3.6 「★ 케이스 고치기」).
+  // 예외는 여기서 false 로 닫는다 — 끝내기 전에 던지면 `닫으며` 가 된 병합을 FAILED 로 보낸다
+  await 당기고끝내기(손, 상태, prUrl, 친것.까닭, 뿌리, 호스트로);
+}
+
+async function 당기고끝내기(손: 보고손, 상태: string, prUrl: string, 까닭: string, 뿌리: string, 호스트로: 칠때): Promise<void> {
+  const 당김 =
     상태 === 'MERGED'
-      ? { status: 'DONE', prUrl }
-      : { status: 'FAILED', error: `병합이 안 됐다 (${상태}): ${친것.까닭 || '충돌이나 보호 규칙을 봐라'}` },
-  );
-  if (상태 === 'MERGED') await 한번에하나(async () => main당기기(뿌리, 호스트로));
+      ? await 한번에하나(async () => main당기기(뿌리, 호스트로)).catch((e: unknown) => {
+          console.error(`[머지] main 당기기 중 예외: ${e instanceof Error ? e.message : String(e)}`);
+          return false;
+        })
+      : null;
+  await 손.끝내기(머지끝몸(상태, prUrl, 까닭, 당김));
+}
+
+/** 병합 끝내기 몸. 병합됐으면 당겼는지(`pulled`)를 싣는다 — 서버가 이것이 true 일 때만 저장값을 지운다 */
+export function 머지끝몸(상태: string, prUrl: string, 까닭: string, 당김: boolean | null): Record<string, unknown> {
+  if (상태 === 'MERGED') return { status: 'DONE', prUrl, result: { pulled: 당김 === true } };
+  return { status: 'FAILED', error: `병합이 안 됐다 (${상태}): ${까닭 || '충돌이나 보호 규칙을 봐라'}` };
 }
 
 /**
@@ -239,17 +255,21 @@ export function 당길까(가지: { ok: boolean; 낸것: string }, 상태: { ok:
   return null;
 }
 
-/** 호스트 계정으로 친다 — `status` 도 index 를 다시 쓰므로 root 로 치면 사람이 git 을 못 쓰게 된다 */
-function main당기기(뿌리: string, 호스트로: 칠때): void {
+/**
+ * 호스트 계정으로 친다 — `status` 도 index 를 다시 쓰므로 root 로 치면 사람이 git 을 못 쓰게 된다.
+ * 실제로 당겼을 때만 true — 건너뛰었거나 실패했으면 false 이고, 그러면 서버가 저장값을 지우지 않는다
+ */
+function main당기기(뿌리: string, 호스트로: 칠때): boolean {
   const 친다호스트 = (인자: string[]) => 친다('git', 인자, 뿌리, undefined, 120_000, 호스트로);
   const 사유 = 당길까(친다호스트(['symbolic-ref', '--short', 'HEAD']), 친다호스트(['status', '--porcelain']));
-  // 요청은 이미 DONE 이다. 실패해도 되돌리지 않고 사람이 볼 수 있게 찍는다 — 안 찍으면 「목록에 안 뜬다」가 조용히 돌아온다
+  // 병합은 이미 됐다. 실패해도 되돌리지 않고 사람이 볼 수 있게 찍는다 — 안 찍으면 「목록에 안 뜬다」가 조용히 돌아온다
   if (사유 !== null) {
     console.error(`[머지] main 을 안 당겼다: ${사유}. 새 테스트를 보려면 직접 git pull 하라.`);
-    return;
+    return false;
   }
   const r = 친다호스트(당김인자);
   console.log(r.ok ? '[머지] main 을 당겼다 — 새 테스트가 목록에 뜬다.' : `[머지] main 당기기 실패: ${r.까닭}`);
+  return r.ok;
 }
 
 /**

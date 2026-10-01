@@ -523,3 +523,10 @@
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 다시 작성 · 머지 · 보류 통로는 아직 `뿌리잠그고` 안에서 풀 연결을 쓴다(교착 여지 — LEARNINGS 2026-09-30). 원본을 API 로 다시 작성하면 이어 작성과 겹칠 수 있다(명세 「남는 한계」 ⓪). 기준 표는 케이스 파일마다 `git show` 한 번이다
 
+## 2026-10-01 — 케이스 고치기 ②-1: 서버 · 에이전트 · 명세 (PR #124 · AUT-F3-12)
+
+- 완료: kind `EDIT`(마이그레이션 · 제약 이름 `authoring_request_kind_check` · `authoring_request_source_pair_check`) · `POST /api/authoring/edits`(검사 `edit.ts` `고칠것검사` · 서비스 잠금 안 겹침 409 `EDIT_OPEN` · `edit-routes.ts`) · 목록 뿌리 `source_id IS NULL` · 줄 `rootKind` · RERUN 다시 적용(병합 뒤 409) · 고치기 실행 중단(대기 · 끊김만) · DONE 폐기 · 집기 `edits`(고치기 행 · 그 다시 적용만) · 반영 끝내기 같은 트랜잭션에서 저장값 칸 지우기(`edit-finish.ts` · `execution/savedInput.ts` `저장값칸지우기`, `result.pulled === true` 일 때만) · 반영이 main 을 받아 온 뒤 끝냄(이미 병합된 PR 도) · 에이전트 `scripts/authoring-edit.ts`(자식 없이 사본 · AST 고치기 · typecheck · check:tests · author-<뿌리> · PR) · `authoring-edit-apply.ts`(확정 · 고칠 글 · PR 본문) · 명세 작성 §3.6 「★ 케이스 고치기」 · §7 · 데이터모델 · 인증 · 카탈로그 · 실행 §8.2 · 색인 · DESIGN
+- 미완: ②-2 화면 — `docs/WORKSTREAMS.md` 「📐 케이스 고치기」 할 일 목록 · Grafana 커버리지에서 다시 적용 빼기(WS-D)
+- 막힌 것: 없음. 이 세션은 Playwright 브라우저 파일이 없어 브라우저 검사 4건이 main 에서도 실패한다(환경)
+- 다음 세션이 알아야 할 것: 「고치기 실행」 판정은 서버가 `params ? 'edits'`(중단 · 폐기 · 이어하기 · 저장값), 집기는 kind 로 한다 — `edits` 는 `/api/authoring/edits` 로만 선다(작성 · 재실행 본문은 400). 에이전트 실제 git · gh 는 연기 시험(로컬 bare 저장소 + 가짜 gh)으로만 돌려 봤다 — 서버 author 컨테이너에서 첫 요청 때 PR 본문 · 브랜치를 눈으로 본다
+

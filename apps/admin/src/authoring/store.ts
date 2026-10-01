@@ -2,6 +2,8 @@
 
 import type { Pool } from 'pg';
 
+import { 고치기실행식 } from './edit.js';
+
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. check:tests와 CI는 DB 없이 돌아야 하므로
 // 풀은 실제로 쓸 때 가져온다 (catalog/store.ts와 같은 방식)
 export async function db(): Promise<Pool> {
@@ -9,7 +11,7 @@ export async function db(): Promise<Pool> {
   return pool;
 }
 
-export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE';
+export type 종류 = 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT';
 // DRAFT 는 자료를 올리는 중이라 아직 줄에 안 섰다. 줄에 세우기는 assetStore.ts 의 `제출` 이 한다
 export type 상태 = 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'STOPPED';
 
@@ -143,7 +145,9 @@ export const 보관일 = 7;
 
 /** `별칭` 행이 보관 기간 안의 살아 있는 중단인가 — 아래 두 식의 바탕 */
 function 보관중(별칭: string): string {
+  // 고치기 실행은 자식 없이 main 사본에서 돌아 넘겨받을 작업 폴더가 없다 (§3.6 「★ 케이스 고치기」)
   return `(${별칭}.status = 'STOPPED' AND ${별칭}.kind IN ('AUTHOR', 'RERUN') AND ${별칭}.discarded_at IS NULL
+           AND NOT ${고치기실행식(별칭)}
            AND ${별칭}.finished_at > now() - interval '${보관일} days')`;
 }
 

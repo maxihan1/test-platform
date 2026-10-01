@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// 비밀값 이름 목록이 세 곳에서 갈라지지 않는지 본다. 다르면 종료 코드 1.
+// 비밀값 이름 목록이 여러 곳(아래 볼파일들)에서 갈라지지 않는지 본다. 다르면 종료 코드 1.
 //
-// 왜 세 벌인가 — 정본은 catalog/rules.ts 의 SECRET_NAMES 이고 K9 검사기가 그것으로
+// 왜 여러 벌인가 — 정본은 catalog/rules.ts 의 SECRET_NAMES 이고 K9 검사기가 그것으로
 // .meta({ secret: true }) 를 강제한다. 그런데 그 파일은 typescript 를 통째로 import 해서
 // 화면 번들(web/mask.ts)에 넣을 수 없고, reporting 은 컨텍스트가 달라 import 하지 않는다.
 // 복사가 불가피하므로 갈라지는 것을 기계가 본다.
 //
 // 왜 필요한가 — 2026-09-19 에 증적은 가렸는데 화면은 안 가리는 구멍이 실제로 났다.
-// 세 곳 중 하나만 고치면 「어디서는 가리고 어디서는 안 가린다」가 다시 난다 (LEARNINGS).
+// 여러 곳 중 하나만 고치면 「어디서는 가리고 어디서는 안 가린다」가 다시 난다 (LEARNINGS).
 //
-// 왜 파싱하지 않는가 — 한 줄짜리 배열 리터럴이고 세 곳 다 같은 모양이다.
+// 왜 파싱하지 않는가 — 한 줄짜리 배열 리터럴이고 모두 같은 모양이다.
 // TypeScript 파서를 끌어오면 이 검사기가 무거워질 뿐 잡는 것은 같다.
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -21,6 +21,8 @@ export const 볼파일들 = [
   'apps/admin/src/catalog/rules.ts',
   'apps/admin/src/reporting/collect.ts',
   'apps/admin/src/web/mask.ts',
+  // 케이스 고치기가 비밀값 칸을 기대값으로 못 받게 거른다 (2026-10-01 · 도메인/작성 §3.6 「★ 케이스 고치기」)
+  'apps/admin/src/authoring/edit.ts',
 ];
 
 /** 파일 본문에서 SECRET_NAMES 배열 리터럴을 뽑는다. 못 찾으면 null */
@@ -54,7 +56,7 @@ function main() {
 
   const 문제 = 어긋난것(목록들);
   if (문제.length === 0) {
-    console.log(`[check:secret-names] 세 곳이 같다 — ${목록들[0].words.join(' · ')}`);
+    console.log(`[check:secret-names] ${목록들.length}곳이 같다 — ${목록들[0].words.join(' · ')}`);
     return;
   }
 

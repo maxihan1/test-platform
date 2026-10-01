@@ -37,7 +37,7 @@ function 이름(p: ts.ObjectLiteralElementLike): string | undefined {
   return ts.isIdentifier(p.name) || ts.isStringLiteral(p.name) ? p.name.text : undefined;
 }
 
-function 명세글(sf: ts.SourceFile): ts.ObjectLiteralExpression | undefined {
+export function 명세글(sf: ts.SourceFile): ts.ObjectLiteralExpression | undefined {
   let 찾음: ts.ObjectLiteralExpression | undefined;
   const 걷기 = (n: ts.Node): void => {
     if (찾음 !== undefined) return;
@@ -52,12 +52,12 @@ function 명세글(sf: ts.SourceFile): ts.ObjectLiteralExpression | undefined {
   return 찾음;
 }
 
-function 속성(글: ts.ObjectLiteralExpression, 키: string): ts.PropertyAssignment | undefined {
+export function 속성(글: ts.ObjectLiteralExpression, 키: string): ts.PropertyAssignment | undefined {
   return 글.properties.find((p): p is ts.PropertyAssignment => 이름(p) === 키);
 }
 
 /** `.메서드(...)` 사슬을 거슬러 올라가며 이름이 맞는 호출을 찾는다 */
-function 사슬에서(식: ts.Expression, 메서드: string): ts.CallExpression | undefined {
+export function 사슬에서(식: ts.Expression, 메서드: string): ts.CallExpression | undefined {
   let n: ts.Expression = 식;
   while (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)) {
     if (n.expression.name.text === 메서드) return n;
@@ -67,7 +67,7 @@ function 사슬에서(식: ts.Expression, 메서드: string): ts.CallExpression 
 }
 
 /** params·expected 의 `z.object({...})` 칸들 */
-function 칸묶음(명세: ts.ObjectLiteralExpression, 쪽: 'params' | 'expected'): ts.ObjectLiteralExpression | undefined {
+export function 칸묶음(명세: ts.ObjectLiteralExpression, 쪽: 'params' | 'expected'): ts.ObjectLiteralExpression | undefined {
   const p = 속성(명세, 쪽);
   const 객체 = p === undefined ? undefined : 사슬에서(p.initializer, 'object');
   const 첫 = 객체?.arguments[0];
@@ -84,8 +84,21 @@ function 고치기(글: string, 고침들: 고침[]): string {
   return [...고침들].sort((a, b) => b.시작 - a.시작).reduce((acc, g) => acc.slice(0, g.시작) + g.글 + acc.slice(g.끝), 글);
 }
 
-function 읽기(글: string): ts.SourceFile {
+export function 읽기(글: string): ts.SourceFile {
   return ts.createSourceFile('case.ts', 글, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+}
+
+/** 앞 줄바꿈부터 뒤 쉼표까지 — 줄 하나가 통째로 빠진다 */
+function 빼는고침(원문: string, 속: ts.PropertyAssignment): 고침 {
+  const 쉼표 = /^\s*,/.exec(원문.slice(속.end));
+  return { 시작: 속.getFullStart(), 끝: 속.end + (쉼표?.[0].length ?? 0), 글: '' };
+}
+
+/** defineCase 의 속성 줄 하나를 뺀다(보류 `held` · 확정 `unconfirmed`). 없으면 원문 그대로 */
+export function 속성빼기(원문: string, 키: string): string {
+  const 명세 = 명세글(읽기(원문));
+  const 속 = 명세 === undefined ? undefined : 속성(명세, 키);
+  return 속 === undefined ? 원문 : 고치기(원문, [빼는고침(원문, 속)]);
 }
 
 /**
@@ -115,11 +128,7 @@ export function 값적기(원문: string, 입력: Pick<보류입력, 'params' | 
     }
   }
   const held = 속성(명세, 'held');
-  if (held !== undefined) {
-    // 앞 줄바꿈부터 뒤 쉼표까지 — 줄 하나가 통째로 빠진다
-    const 쉼표 = /^\s*,/.exec(원문.slice(held.end));
-    고침들.push({ 시작: held.getFullStart(), 끝: held.end + (쉼표?.[0].length ?? 0), 글: '' });
-  }
+  if (held !== undefined) 고침들.push(빼는고침(원문, held));
   return { 글: 고치기(원문, 고침들) };
 }
 

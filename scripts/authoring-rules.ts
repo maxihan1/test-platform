@@ -129,8 +129,10 @@ export function 선행검사(입력: {
 /** 줄에서 집어 온 한 건. 화면이 넣고 서버가 돌려주는 것 중 맥이 쓰는 칸만 */
 export interface 집은것 {
   id: number;
-  kind: 'AUTHOR' | 'RERUN' | 'MERGE';
+  kind: 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT';
   sourceId?: number | null;
+  /** 고치기 실행(EDIT · 원본이 EDIT 인 재실행)에만 온다 — 행의 params.edits 그대로. 모양은 authoring-edit 의 `편집들` 이 본다 (§3.6 「★ 케이스 고치기」) */
+  edits?: unknown;
   /** 옛 행만 있다. 새 작성 요청은 자료로 온다 */
   specText?: string | null;
   prUrl?: string | null;

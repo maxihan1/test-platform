@@ -1,6 +1,6 @@
 // 병합 뒤 상태 판단의 판별식 — 된 병합을 실패로 덮지 않는다
 import { describe, expect, it } from 'vitest';
-import { 당길까, 당김인자, 머지브랜치거부사유, 병합뒤상태, 한번에하나 } from './authoring-merge.js';
+import { 당길까, 당김인자, 머지끝몸, 머지브랜치거부사유, 병합뒤상태, 한번에하나 } from './authoring-merge.js';
 
 describe('머지브랜치거부사유 — 에이전트가 올린 그 PR 만 병합한다', () => {
   it('원본 요청이 올린 author-<번호> 이고 같은 저장소 것이면 통과다', () => {
@@ -61,6 +61,32 @@ describe('병합뒤상태 — 병합 명령이 성공했으면 상태를 못 읽
   it('병합 명령이 실패했고 상태도 못 읽었으면 못 읽음', () => {
     expect(병합뒤상태(false, { ok: true, 낸것: '<html>' })).toBe('못 읽음');
     expect(병합뒤상태(false, { ok: false, 낸것: '' })).toBe('못 읽음');
+  });
+});
+
+describe('머지끝몸 — 병합 끝내기에 서버 체크아웃을 당겼는지 싣는다 (케이스 고치기의 저장값 지우기가 이것을 본다)', () => {
+  const 주소 = 'https://github.com/o/r/pull/7';
+
+  it('병합됐고 당겼으면 DONE 에 pulled: true 를 싣는다', () => {
+    expect(머지끝몸('MERGED', 주소, '', true)).toEqual({ status: 'DONE', prUrl: 주소, result: { pulled: true } });
+  });
+
+  it('병합됐지만 못 당겼으면 pulled: false — 서버가 저장값을 지우지 않게', () => {
+    expect(머지끝몸('MERGED', 주소, '', false)).toEqual({ status: 'DONE', prUrl: 주소, result: { pulled: false } });
+  });
+
+  it('병합이 안 됐으면 FAILED 이고 result 를 싣지 않는다', () => {
+    expect(머지끝몸('OPEN', 주소, 'merge conflict', null)).toEqual({
+      status: 'FAILED',
+      error: '병합이 안 됐다 (OPEN): merge conflict',
+    });
+  });
+
+  it('병합이 안 됐고 까닭이 비면 기본 안내를 붙인다', () => {
+    expect(머지끝몸('못 읽음', 주소, '', null)).toEqual({
+      status: 'FAILED',
+      error: '병합이 안 됐다 (못 읽음): 충돌이나 보호 규칙을 봐라',
+    });
   });
 });
 
