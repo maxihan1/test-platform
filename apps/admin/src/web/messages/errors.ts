@@ -90,4 +90,8 @@ export const 오류영어: Record<string, string> = {
   '고칠 내용을 받을 수 없는 케이스나 칸이 있습니다': 'A case or field cannot take this change',
   '같은 케이스를 고치는 요청이 이미 열려 있습니다. 그 요청을 반영하거나 폐기한 뒤 다시 요청합니다':
     'Another open request already changes the same case. Merge or discard it, then request again',
+  // 반영 때 겹침 (도메인/작성 §3.6 「★ 반영 때 겹침 검사」)
+  '겹치는 케이스를 아직 다 고르지 않아 반영할 수 없습니다': 'Overlapping cases are not all decided yet, so the merge cannot start',
+  '이 반영의 겹침 목록에 없는 케이스입니다. 화면을 새로 고칩니다': 'This case is not in the overlap list of this merge. Refresh the page',
+  '반영이 대기 중이거나 진행 중이라 지금은 고를 수 없습니다': 'A merge is queued or running, so you cannot decide now',
 };

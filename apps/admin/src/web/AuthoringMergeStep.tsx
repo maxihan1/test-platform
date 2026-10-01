@@ -26,6 +26,7 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
   const held = 요청.held ?? [];
   const 남은 = 요청.heldOpen ?? 0;
   const 모름 = 요청.heldUnknown === true;
+  const 겹침 = 요청.conflictsOpen ?? 0;
   // 대조 요청은 원본의 대상 서버를 물려받는다 — 고르면 서버가 BAD_ENV 로 거절한다. 남은 보류가 있으면 고를 때가 아니다
   const 서버고름 = 남은 === 0 && 요청.compare !== true && 값을채웠나(held);
   // 테스트 계정 있는 줄만 서버가 싣는다 — 운영 줄을 보이면 고른 뒤에야 BAD_ENV 로 막힌다
@@ -52,8 +53,8 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
         <button
           className="btn"
           type="button"
-          // 막는 것은 서버다(HELD_OPEN · HELD_UNKNOWN · BAD_ENV) — 여기서 막는 것은 누르기 전에 까닭을 보이려는 편의다
-          disabled={보내는중 || 남은 > 0 || 모름 || 서버없음}
+          // 막는 것은 서버다(HELD_OPEN · HELD_UNKNOWN · CONFLICT_OPEN · BAD_ENV) — 여기서 막는 것은 누르기 전에 까닭을 보이려는 편의다
+          disabled={보내는중 || 남은 > 0 || 모름 || 겹침 > 0 || 서버없음}
           onClick={() => 새줄로(() => api.createAuthoringMerge(service, 요청.id, 서버고름 ? (서버 ?? undefined) : undefined))}
         >
           {보내는중 ? t('반영하는 중') : t('테스트 반영하기')}
@@ -63,6 +64,12 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
       )}
       {모름 ? <p className="held-why">{t('보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.')}</p> : null}
       {남은 > 0 ? <p className="held-why">{t('보류 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.', { 수: 남은 })}</p> : null}
+      {겹침 > 0 ? (
+        <p className="held-why">
+          {t('겹치는 케이스 {수}건을 아직 고르지 않아 반영할 수 없습니다.', { 수: 겹침 })}{' '}
+          <a href="#conflicts" onClick={(e) => { e.preventDefault(); document.getElementById('conflicts')?.scrollIntoView(); }}>{t('겹친 케이스로 가기')}</a>
+        </p>
+      ) : null}
       {서버없음 ? <p className="held-why">{t('테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.')}</p> : null}
       {/* 이어 작성은 플랫폼 반영만 인정한다(게이트 0) — GitHub 에서 직접 병합한 요청도 여기서 반영을 눌러야 한다.
           에이전트는 이미 병합된 PR 의 반영을 성공으로 닫는다 (도메인/작성 §3.6 「남은 요구로 이어 작성」) */}
