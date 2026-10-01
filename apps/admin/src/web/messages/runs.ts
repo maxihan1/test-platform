@@ -171,6 +171,7 @@ export const 실행말: Record<string, string> = {
   '이력 {번호}': 'History {번호}',
   '실행이 멈춘 사유': 'Why the run stopped',
   '입력 없음': 'No input',
+  '기대결과 없음': 'No expected result',
   '시험 절차': 'Test steps',
   '실행된 절차가 없습니다.': 'No steps were run.',
   '이 화면의 구성이 증적 문서에 그대로 출력됩니다.': 'This layout is what the evidence document prints.',

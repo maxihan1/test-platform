@@ -86,7 +86,18 @@ export function fieldsOf(values: unknown, schema: unknown, 언어: 언어): Fiel
   const 값 = isPlainObject(values) ? values : {};
   const properties = isPlainObject(schema) && isPlainObject(schema.properties) ? schema.properties : {};
 
-  return Object.entries(값).map(([key, value]) => {
+  // 증적(reporting/collect.ts)과 같은 규칙이다 — 요청이 비운 칸은 코드 기본값으로 돌았고 그 값은 박제 스키마의
+  // default 에만 남는다. 스키마 칸 순서로 걸어야 어느 칸을 고쳐 돌렸는지에 따라 순서가 안 바뀐다 (리포팅 §3.3)
+  const 칸: [string, unknown][] = [];
+  for (const [key, raw] of Object.entries(properties)) {
+    if (Object.hasOwn(값, key)) 칸.push([key, 값[key]]);
+    else if (isPlainObject(raw) && Object.hasOwn(raw, 'default')) 칸.push([key, raw.default]);
+  }
+  for (const [key, value] of Object.entries(값)) {
+    if (!Object.hasOwn(properties, key)) 칸.push([key, value]);
+  }
+
+  return 칸.map(([key, value]) => {
     const raw = properties[key];
     const prop: Record<string, unknown> = isPlainObject(raw) ? raw : {};
     const description = prop.description;

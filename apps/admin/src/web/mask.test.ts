@@ -66,6 +66,62 @@ describe('비밀값 가리기', () => {
   });
 });
 
+// 값을 안 고치고 돌린 항목이다. 값이 비어 박제되고 케이스는 코드 기본값으로 돌았다 (리포팅 §3.3).
+// API 가 DB(JSONB) 순서 그대로 주므로 그 순서로 적는다. reporting/collect.test.ts 와 같은 입력 · 같은 순서다
+const 기본값입력스키마 = {
+  type: 'object',
+  properties: {
+    memo: { type: 'string', description: '메모' },
+    password: { type: 'string', description: '비밀번호', default: 'hunter2', secret: true },
+    username: { type: 'string', description: '아이디', default: 'tester' },
+    optionalNote: { type: 'string', description: '선택 메모' },
+  },
+};
+const 기본값기대스키마 = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', description: '제목', default: 'AI 올인원' },
+    token: { type: 'string', description: '토큰', default: 't-1', secret: true },
+    visible: { type: 'boolean', description: '보인다', default: true },
+  },
+};
+
+describe('값이 빈 칸은 박제된 스키마의 기본값으로 채운다 (리포팅 §3.3)', () => {
+  it('기대값이 비어 있으면 기본값으로 채우고 비밀값 기본값은 가린다', () => {
+    expect(fieldsOf({}, 기본값기대스키마, 'ko').map((f) => [f.label, f.value])).toEqual([
+      ['제목', 'AI 올인원'],
+      ['토큰', '********'],
+      ['보인다', '예'],
+    ]);
+  });
+
+  it('차 있던 칸은 그 값을 쓰고, 기본값도 값도 없는 칸은 만들지 않는다', () => {
+    expect(fieldsOf({ memo: '직접 넣은 값' }, 기본값입력스키마, 'ko').map((f) => [f.label, f.value])).toEqual([
+      ['메모', '직접 넣은 값'],
+      ['비밀번호', '********'],
+      ['아이디', 'tester'],
+    ]);
+  });
+
+  it('스키마 칸 순서를 따른다 — 어느 칸을 고쳐 돌렸는지에 따라 순서가 바뀌지 않는다', () => {
+    const 고친것 = fieldsOf({ username: 'other', memo: '메모' }, 기본값입력스키마, 'ko').map((f) => f.key);
+    expect(고친것).toEqual(['memo', 'password', 'username']);
+  });
+
+  it('스키마에 없는 값 칸은 맨 뒤에 붙인다 — 박제 이전 행의 칸을 버리지 않는다', () => {
+    expect(fieldsOf({ legacy: 'x', memo: 'm' }, 기본값입력스키마, 'ko').map((f) => f.key)).toEqual([
+      'memo',
+      'password',
+      'username',
+      'legacy',
+    ]);
+  });
+
+  it('값 한 줄도 기본값으로 돈 항목의 값을 적는다', () => {
+    expect(한줄로({}, 기본값기대스키마, 'ko')).toBe('제목 AI 올인원 · 토큰 ******** · 보인다 예');
+  });
+});
+
 describe('어떤 값으로 돌렸는지 한 줄 (SPEC §8.3)', () => {
   it('라벨과 값을 붙여 가운뎃점으로 잇는다', () => {
     const 줄 = 한줄로(
