@@ -156,7 +156,18 @@ function toFields(json: unknown, schema: unknown): EvidenceField[] {
   const properties =
     isPlainObject(schema) && isPlainObject(schema.properties) ? schema.properties : {};
 
-  return Object.entries(values).map(([key, value]) => {
+  // 요청이 비운 칸은 비운 채 박제되고 케이스는 코드 기본값으로 돈다. 그 값은 박제 스키마의 default 에만 남는다.
+  // 스키마 칸 순서로 걷는다 — 값만 따라가면 같은 케이스도 어느 칸을 고쳤느냐에 따라 순서가 바뀐다 (리포팅 §3.3)
+  const 칸: [string, unknown][] = [];
+  for (const [key, raw] of Object.entries(properties)) {
+    if (Object.hasOwn(values, key)) 칸.push([key, values[key]]);
+    else if (isPlainObject(raw) && Object.hasOwn(raw, 'default')) 칸.push([key, raw.default]);
+  }
+  for (const [key, value] of Object.entries(values)) {
+    if (!Object.hasOwn(properties, key)) 칸.push([key, value]);
+  }
+
+  return 칸.map(([key, value]) => {
     const raw = properties[key];
     const prop: Record<string, unknown> = isPlainObject(raw) ? raw : {};
     const description = prop.description;

@@ -29,6 +29,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
   let 미기록실행: number;
   let 데스크톱: number;
   let 모바일: number;
+  let 기본값실행: number;
 
   async function 지운다(): Promise<void> {
     // 자식부터 지운다. run_item_step 은 CASCADE 지만 run_item 은 실행을 참조한다
@@ -227,6 +228,36 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
               ($1, 'XDC-502', 'desktop', 1, '러너가 판정을 못 준 케이스', 'demo/XDC-502.spec.ts', 300000,
                '[]', '{}', '{}', '{}', '{}', 'NA', 4200, '{"message":"러너에 닿지 못했습니다"}', now())`,
       [닫힌중단실행],
+    );
+
+    // 값을 안 고치고 돌린 항목이다. 요청이 빈 칸을 보내 값이 비어 박제되고, 케이스는 코드 기본값으로 돌았다.
+    // 기본값은 박제된 스키마의 default 에만 남는다 (리포팅 §3.3)
+    const 기본값 = await pool.query<{ run_id: string }>(
+      `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, base_url,
+                             service_id, service_name, tests_repo, started_at)
+       VALUES ('XDC 기본값으로 돈 실행', 'tester', '홍길동', 'FINISHED', 'qa', 'https://qa.example.com',
+               (SELECT id FROM service WHERE prefix = 'XDC'), 'XDC 결제 서비스',
+               'https://github.com/example/xdc-tests', '2026-09-19T06:00:00Z')
+       RETURNING run_id`,
+    );
+    기본값실행 = Number(기본값.rows[0]!.run_id);
+    await pool.query(
+      `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms,
+                             precondition, params, expected, param_schema, expected_schema,
+                             status, duration_ms, finished_at)
+       VALUES ($1, 'XDC-701', 'desktop', 1, '값을 안 고치고 돈 케이스', 'demo/XDC-701.spec.ts', 300000, '[]',
+               '{"memo":"직접 넣은 값"}', '{}',
+               '{"type":"object","properties":{
+                  "username":{"type":"string","description":"아이디","default":"tester"},
+                  "memo":{"type":"string","description":"메모"},
+                  "password":{"type":"string","description":"비밀번호","default":"hunter2","secret":true},
+                  "optionalNote":{"type":"string","description":"선택 메모"}}}',
+               '{"type":"object","properties":{
+                  "visible":{"type":"boolean","description":"보인다","default":true},
+                  "title":{"type":"string","description":"제목","default":"AI 올인원"},
+                  "token":{"type":"string","description":"토큰","default":"t-1","secret":true}}}',
+               'PASS', 300, now())`,
+      [기본값실행],
     );
   });
 
@@ -446,6 +477,24 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
   it('빈 환경 칸도 기록 없음으로 적는다', async () => {
     const 문서 = await collectRun(미기록실행);
     expect(문서!.header.env).toBe('기록 없음');
+  });
+
+  // JSONB 는 키를 길이 → 바이트 순으로 다시 세운다. 위에 넣은 순서가 아니라 그 순서로 나온다
+  // 같은 입력 · 같은 순서를 web/mask.test.ts 도 쓴다 — 증적과 화면이 갈라지면 둘 중 하나가 깨진다
+  it('값이 빈 칸은 박제된 스키마의 기본값으로 채우고, 스키마 칸 순서를 따른다', async () => {
+    const 문서 = await collectRun(기본값실행);
+    const 항목 = 문서!.items[0]!;
+    expect(항목.expected).toEqual([
+      { label: '제목', value: 'AI 올인원' },
+      { label: '토큰', value: '********' },
+      { label: '보인다', value: 'true' },
+    ]);
+    // 기본값도 값도 없는 선택 칸(optionalNote)은 지어내지 않는다
+    expect(항목.params).toEqual([
+      { label: '메모', value: '직접 넣은 값' },
+      { label: '비밀번호', value: '********' },
+      { label: '아이디', value: 'tester' },
+    ]);
   });
 
   it('같은 실행을 두 번 뽑으면 글자 하나 다르지 않다', async () => {
