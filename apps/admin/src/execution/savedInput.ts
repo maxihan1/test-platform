@@ -163,3 +163,17 @@ export async function 저장값을채운다(
     };
   });
 }
+
+/**
+ * 저장값의 기대값 칸 몇 개를 지운다. 남는 칸이 없으면 행을 지운다 — 빈 행은 「저장값 있음」으로 보인다.
+ * 케이스 고치기 반영이 병합되면 작성 쪽이 끝내기와 같은 트랜잭션(`손`)으로 부른다 —
+ * 저장값이 코드 기본값보다 앞서서 안 지우면 반영한 값이 실행에 안 쓰인다 (작성 §3.6 「★ 케이스 고치기」 저장값)
+ */
+export async function 저장값칸지우기(손: PoolClient, tcId: string, 칸들: string[]): Promise<void> {
+  if (칸들.length === 0) return;
+  await 손.query('UPDATE case_input SET expected = expected - $2::text[] WHERE tc_id = $1', [tcId, 칸들]);
+  await 손.query(
+    `DELETE FROM case_input WHERE tc_id = $1 AND params = '{}'::jsonb AND expected = '{}'::jsonb`,
+    [tcId],
+  );
+}

@@ -42,6 +42,11 @@ export function 고치기실행인가(행: { params: unknown }): boolean {
   return isPlainObject(행.params) && Object.hasOwn(행.params, 'edits');
 }
 
+/** 행 params 의 edits. 고치기 실행이 아니면 null — 집기 응답과 반영 뒤 저장값 지우기가 같이 읽는다 */
+export function 행의고칠것(params: unknown): unknown[] | null {
+  return isPlainObject(params) && Array.isArray(params.edits) ? params.edits : null;
+}
+
 // 정본은 catalog/rules.ts 의 SECRET_NAMES 다 — 그쪽은 검사기 묶음이라 import 하면 화면 쪽 의존이 딸려 온다.
 // collect.ts 와 같은 이유로 같은 목록을 둔다. 이름만 비밀값이고 표시가 없는 옛 케이스를 여기서도 막는다
 const SECRET_NAMES = ['password', 'passwd', 'pw', 'token', 'secret', 'apikey', 'credential'];

@@ -9,6 +9,8 @@ import { join } from 'node:path';
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 자료목록 } from './assetStore.js';
 import { 커버리지모양검사, 커버리지칸 } from './coverage.js';
+import { 행의고칠것 } from './edit.js';
+import { 반영뒤저장값 } from './edit-finish.js';
 import { 보류모양검사, 옮겨올입력 } from './held.js';
 import { 뿌리, 뿌리잠그고 } from './history.js';
 import { 머지집기칸 } from './held-routes.js';
@@ -131,12 +133,15 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         const target = await 집기대상(서비스, 집은것);
         // 머지는 대조 칸이 없어 위 target 이 늘 없다. 보류 입력이 있으면 3회 실행할 대상을 여기서 싣는다 (§3.6 「★ 보류 케이스」)
         const 보류칸 = 집은것.kind === 'MERGE' ? await 머지집기칸(서비스, 집은것) : {};
+        // 고치기 실행은 자식 없이 이 목록만으로 고친다 — 키가 있는 것이 곧 고치기 실행이라는 신호다 (§3.6 「★ 케이스 고치기」)
+        const edits = 행의고칠것(집은것.params);
         return {
           ...집은것,
           assets,
           ...(토큰 === null ? {} : { figmaToken: 토큰 }),
           ...(target === undefined ? {} : { target }),
           ...보류칸,
+          ...(edits === null ? {} : { edits }),
         };
       } catch (e) {
         // 되돌리기마저 던지면(DB 가 끊긴 같은 원인일 공산이 크다) 그 오류가 원래 원인을 덮는다.
@@ -243,7 +248,10 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     }
     // 모양이 틀리면 400 — 에이전트는 이 거절을 까닭과 함께 FAILED 로 다시 보내므로 행이 도는 중으로 남지 않는다
     const 결과 = req.body?.result;
-    const 결과칸 = typeof 결과 === 'object' && 결과 !== null ? (결과 as { held?: unknown; heldUnknown?: unknown; coverage?: unknown }) : {};
+    const 결과칸 =
+      typeof 결과 === 'object' && 결과 !== null
+        ? (결과 as { held?: unknown; heldUnknown?: unknown; coverage?: unknown; pulled?: unknown })
+        : {};
     const 보류 = 결과칸.held === undefined ? [] : 보류모양검사(결과칸.held);
     if (보류 === null || (결과칸.heldUnknown !== undefined && 결과칸.heldUnknown !== true)) {
       return reply.code(400).send({ error: 'BAD_HELD' });
@@ -252,19 +260,28 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     const 셈 = 결과칸.coverage === undefined ? null : 커버리지모양검사(결과칸.coverage);
     if (결과칸.coverage !== undefined && 셈 === null) return reply.code(400).send({ error: 'BAD_COVERAGE' });
     const error = req.body?.error;
-    // 입력 옮기기와 끝내기를 뿌리 잠금 안의 한 UPDATE 로 — 사이에 들어온 PUT 을 덮거나, 옮기다 실패해 DONE 만 남지 않게
-    const 바뀌었나 = await 뿌리잠그고((await 뿌리(행.id)) ?? 행.id, async () =>
-      끝내기(행.id, {
-        status,
-        stopReason: 멈춤이유,
-        result: req.body?.result,
-        testSource: req.body?.testSource,
-        prUrl: typeof prUrl === 'string' ? prUrl : undefined,
-        error: typeof error === 'string' ? error : undefined,
-        heldInput: status === 'DONE' ? await 옮겨올입력(행.id, 보류) : null,
-        coverage: 커버리지칸(셈),
-      }),
-    );
+    // 입력 옮기기와 끝내기를 뿌리 잠금 안의 한 UPDATE 로 — 사이에 들어온 PUT 을 덮거나, 옮기다 실패해 DONE 만 남지 않게.
+    // 고치기 반영의 저장값 지우기도 같은 트랜잭션 — 지우다 실패하면 DONE 도 안 남아 에이전트가 다시 알린다
+    const 바뀌었나 = await 뿌리잠그고((await 뿌리(행.id)) ?? 행.id, async (손) => {
+      const 됨 = await 끝내기(
+        행.id,
+        {
+          status,
+          stopReason: 멈춤이유,
+          result: req.body?.result,
+          testSource: req.body?.testSource,
+          prUrl: typeof prUrl === 'string' ? prUrl : undefined,
+          error: typeof error === 'string' ? error : undefined,
+          heldInput: status === 'DONE' ? await 옮겨올입력(행.id, 보류) : null,
+          coverage: 커버리지칸(셈),
+        },
+        손,
+      );
+      if (됨 && status === 'DONE' && 행.kind === 'MERGE') {
+        await 반영뒤저장값(손, 행, 결과칸.pulled);
+      }
+      return 됨;
+    });
     // 끝난 행에 또 오면 409 다. 안 막으면 판정과 PR 주소가 덮어써진다
     if (!바뀌었나) return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
     return { ok: true };
