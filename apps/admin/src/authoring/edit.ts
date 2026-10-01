@@ -29,6 +29,19 @@ export interface 고치기판 {
 
 export type 고치기결과 = { edits: 고칠것[] } | { error: 'BAD_EDIT'; detail: string };
 
+/**
+ * `별칭` 행이 「고치기 실행」인가 — SQL 참거짓 식. 케이스 고치기와 그 다시 적용 행만 `params.edits` 를 가진다.
+ * 중단 · 폐기 · 이어하기 · 저장값 지우기가 이것 하나로 가른다 — 자리마다 kind 로 따로 가르면 다시 적용 행을 빠뜨린다
+ */
+export function 고치기실행식(별칭: string): string {
+  return `(${별칭}.params ? 'edits')`;
+}
+
+/** 위 식과 같은 판정을 읽은 행에 */
+export function 고치기실행인가(행: { params: unknown }): boolean {
+  return isPlainObject(행.params) && Object.hasOwn(행.params, 'edits');
+}
+
 // 정본은 catalog/rules.ts 의 SECRET_NAMES 다 — 그쪽은 검사기 묶음이라 import 하면 화면 쪽 의존이 딸려 온다.
 // collect.ts 와 같은 이유로 같은 목록을 둔다. 이름만 비밀값이고 표시가 없는 옛 케이스를 여기서도 막는다
 const SECRET_NAMES = ['password', 'passwd', 'pw', 'token', 'secret', 'apikey', 'credential'];

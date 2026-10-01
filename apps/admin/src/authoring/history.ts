@@ -17,7 +17,7 @@ export function 사슬식(뿌리조건: string): string {
     )`;
 }
 
-/** 실행 번호 → 뿌리 번호(`위`). 원본을 거슬러 AUTHOR 까지 — `WITH RECURSIVE` 안에 넣는다 */
+/** 실행 번호 → 뿌리 번호(`위`). 원본을 거슬러 원본 없는 행(AUTHOR · EDIT)까지 — `WITH RECURSIVE` 안에 넣는다 */
 export function 위로식(번호자리: string): string {
   return `위(id, source_id) AS (
       SELECT id, source_id FROM authoring_request WHERE id = ${번호자리}
@@ -178,7 +178,8 @@ export async function 한쪽(입력: {
     (입력.폐기 === true ? 'discarded_at IS NOT NULL' : 'discarded_at IS NULL') +
     (입력.상태 === undefined ? '' : ' AND status = $2');
   const 값들: unknown[] = 입력.상태 === undefined ? [입력.서비스] : [입력.서비스, 입력.상태];
-  const 최신 = `WITH RECURSIVE ${사슬식("service_id = $1 AND kind = 'AUTHOR'")},
+  // 뿌리는 원본이 없는 행 — 작성 요청과 케이스 고치기(EDIT). kind 로 고르면 고치기가 목록에서 빠진다
+  const 최신 = `WITH RECURSIVE ${사슬식('service_id = $1 AND source_id IS NULL')},
     최신 AS (
       SELECT DISTINCT ON (사슬.root_id) 사슬.root_id, count(*) OVER (PARTITION BY 사슬.root_id) AS run_count,
              (SELECT r.continue_from FROM authoring_request r WHERE r.id = 사슬.root_id) AS root_continue_from, ${요약칸들}

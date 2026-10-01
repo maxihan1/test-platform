@@ -3,6 +3,7 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+import { 고치기실행식, 고치기실행인가 } from './edit.js';
 import { 도는실행있나, 뿌리, 사슬식, 위로식, 최신실행, 최신식 } from './history.js';
 import { 번호 } from './params.js';
 import { db, 보관일, 빚기, 이어받기되나, 칸들, 폴더남기나, 한건, type 요청, type 행 } from './store.js';
@@ -77,6 +78,8 @@ async function 멈추기(id: number, 누가: string): Promise<'STOPPED' | 'RUNNI
             stop_requested_at = COALESCE(stop_requested_at, now()),
             stop_requested_by = COALESCE(stop_requested_by, $2)
       WHERE id = $1 AND kind <> 'MERGE' AND discarded_at IS NULL
+        -- 고치기 실행은 자식이 없어 도는 동안 멈춤 요청을 볼 자리가 없다 — 대기 중일 때만 (§3.6 「★ 케이스 고치기」)
+        AND (status = 'PENDING' OR NOT ${고치기실행식('authoring_request')})
         AND (status = 'PENDING'
              OR (status = 'RUNNING' AND (${묵음} OR progress IS NULL OR progress->>'childRunning' = 'true')))
       RETURNING status`,
@@ -91,8 +94,11 @@ async function 버리기(id: number): Promise<boolean> {
     `WITH RECURSIVE ${위로식('$1')}, ${사슬식('id = (SELECT id FROM 위 WHERE source_id IS NULL)')}
      UPDATE authoring_request SET discarded_at = now()
       WHERE id IN (SELECT id FROM 사슬) AND discarded_at IS NULL
-        AND EXISTS (SELECT 1 FROM authoring_request
-                     WHERE id = $1 AND status IN ('FAILED', 'STOPPED', 'DRAFT') AND discarded_at IS NULL)
+        -- 고치기 실행은 병합 전 DONE 도 — 못 버리면 그 tcId 가 계속 EDIT_OPEN 에 걸린다 (§3.6 「★ 케이스 고치기」)
+        AND EXISTS (SELECT 1 FROM authoring_request 누른것
+                     WHERE 누른것.id = $1 AND 누른것.discarded_at IS NULL
+                       AND (누른것.status IN ('FAILED', 'STOPPED', 'DRAFT')
+                            OR (누른것.status = 'DONE' AND ${고치기실행식('누른것')})))
         -- 누른 것이 최신 실행이고 도는 실행이 없을 때만 — 옛 번호로 누르면 방금 선 실행 · 끝난 머지까지 버린다 (2026-09-29 검사)
         AND $1::bigint = ${최신식('사슬')}
         AND NOT EXISTS (SELECT 1 FROM 사슬 s JOIN authoring_request x ON x.id = s.id WHERE x.status IN ('PENDING', 'RUNNING'))`,
@@ -139,6 +145,7 @@ export async function 상세읽기(req: FastifyRequest, id: number) {
     (await 최신실행(뿌리번호)) === 행.id && !(await 도는실행있나(뿌리번호));
   // 자식 전(NULL)도 멈출 수 있다 — 에이전트가 자식을 띄우기 직전에 요청을 본다 (§7 고침 3)
   const 도는중 = (progress === null || progress.childRunning === true) && 행.stopRequestedAt === null;
+  const 고치기 = 고치기실행인가(행);
   return {
     ...행,
     progress,
@@ -147,8 +154,8 @@ export async function 상세읽기(req: FastifyRequest, id: number) {
     canStop:
       됨 &&
       행.kind !== 'MERGE' &&
-      (행.status === 'PENDING' || (행.status === 'RUNNING' && (도는중 || stale === true))),
-    canDiscard: 버릴수 && ['FAILED', 'STOPPED', 'DRAFT'].includes(행.status),
+      (행.status === 'PENDING' || (행.status === 'RUNNING' && !고치기 && (도는중 || stale === true))),
+    canDiscard: 버릴수 && (['FAILED', 'STOPPED', 'DRAFT'].includes(행.status) || (행.status === 'DONE' && 고치기)),
     // 이어서 작성은 재실행과 같은 규칙 — 요청한 사람만이 아니라 작성 권한이면 누구나 (§7 「이어하기」)
     canResume: resumable,
     // 화면이 「10월 5일까지」를 그린다 — 보관일을 화면에 또 적지 않게 여기서 날짜로 준다

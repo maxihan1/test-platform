@@ -201,4 +201,119 @@ describe.skipIf(연결 === undefined)('케이스 고치기 통로', () => {
       expect(결과.map((r) => r.statusCode).sort()).toEqual([201, 409, 409]);
     });
   });
+
+  describe('뿌리 · 다시 적용 · 중단 · 폐기', () => {
+    const edits = [{ tcId: 'XEB-001', expected: { total: 3 } }];
+    const 바꾸기 = async (id: number, sql: string) =>
+      (await pool()).query(`UPDATE authoring_request SET ${sql} WHERE id = $1`, [id]);
+    const 끝난 = `status = 'DONE', claimed_by = '${맥}', started_at = now(), finished_at = now(), pr_url = 'https://github.com/acme/xeb/pull/7'`;
+    const 멈춘 = `status = 'STOPPED', stop_reason = 'USER', stopped_by = '${사람}', finished_at = now()`;
+    const 도는 = `status = 'RUNNING', claimed_by = '${맥}', started_at = now()`;
+    const 상세 = async (id: number) =>
+      (await app.inject({ method: 'GET', url: `/api/authoring/requests/${String(id)}?service=${접두사}` })).json() as Record<string, unknown>;
+    const 부르기 = (url: string, payload: object = {}) => app.inject({ method: 'POST', url, payload });
+    const 다시적용 = (sourceId: number, 덧: object = {}) =>
+      부르기(`/api/authoring/requests?service=${접두사}`, { kind: 'RERUN', sourceId, ...덧 });
+    const 고치기재실행 = (원본: number, sql: string) =>
+      행넣기({ kind: 'RERUN', source_id: 원본, status: 'PENDING', params: JSON.stringify({ edits }) }).then(async (id) => {
+        await 바꾸기(id, sql);
+        return id;
+      });
+
+    it('목록에 고치기가 뿌리 한 줄로 선다', async () => {
+      const id = await 세운번호({ edits });
+      const 목록 = (await app.inject({ method: 'GET', url: `/api/authoring/requests?service=${접두사}` })).json() as {
+        items: { rootId: number; kind: string; runCount: number }[];
+        total: number;
+      };
+      expect(목록.total).toBe(1);
+      expect(목록.items.map((x) => [x.rootId, x.kind, x.runCount])).toEqual([[id, 'EDIT', 1]]);
+    });
+
+    it('상세의 rootId 는 자기 번호이고 실행 기록이 하나다', async () => {
+      const id = await 세운번호({ edits });
+      const 본 = await 상세(id);
+      expect(본.rootId).toBe(id);
+      expect((본.runs as unknown[]).length).toBe(1);
+      expect(본.canResume).toBe(false);
+    });
+
+    it('끝난 고치기는 반영(admin)할 수 있다', async () => {
+      const id = await 세운번호({ edits });
+      await 바꾸기(id, 끝난);
+      역할 = 'admin';
+      const res = await 부르기(`/api/authoring/merges?service=${접두사}`, { sourceId: id });
+      expect(res.statusCode, res.body).toBe(201);
+      const 머지 = await 읽기((res.json() as { id: number }).id);
+      expect([머지.kind, Number(머지.source_id)]).toEqual(['MERGE', id]);
+    });
+
+    it('원본이 고치기인 재실행은 201 이고 원본의 edits 를 그대로 싣는다', async () => {
+      const id = await 세운번호({ edits });
+      await 바꾸기(id, `status = 'FAILED', finished_at = now()`);
+      const res = await 다시적용(id, { params: { 딴것: 1 } });
+      expect(res.statusCode, res.body).toBe(201);
+      const 새것 = (res.json() as { id: number }).id;
+      expect((await 읽기(새것)).params).toEqual({ edits });
+      expect((await 상세(새것)).rootId).toBe(id);
+    });
+
+    it('고치기 실행은 이어서 작성을 안 받는다 — 409 NOT_RESUMABLE · canResume 거짓', async () => {
+      const id = await 세운번호({ edits });
+      await 바꾸기(id, 멈춘);
+      expect((await 다시적용(id, { resume: true })).json()).toEqual({ error: 'NOT_RESUMABLE' });
+      const 재실행 = await 고치기재실행(id, 멈춘);
+      const 본 = await 상세(재실행);
+      expect([본.canResume, 본.keepWorkspace]).toEqual([false, false]);
+      const res = await 다시적용(재실행, { resume: true });
+      expect([res.statusCode, res.json()]).toEqual([409, { error: 'NOT_RESUMABLE' }]);
+    });
+
+    it('대기 중 고치기 실행은 곧장 멈춘다', async () => {
+      const id = await 세운번호({ edits });
+      expect((await 상세(id)).canStop).toBe(true);
+      const res = await 부르기(`/api/authoring/requests/${String(id)}/stop`);
+      expect(res.json()).toEqual({ status: 'STOPPED' });
+    });
+
+    it('도는 고치기 실행은 못 멈춘다 — 409 NOT_STOPPABLE · canStop 거짓 · 신호가 끊겨도', async () => {
+      const id = await 세운번호({ edits });
+      await 바꾸기(id, 도는);
+      expect((await 상세(id)).canStop).toBe(false);
+      const res = await 부르기(`/api/authoring/requests/${String(id)}/stop`);
+      expect([res.statusCode, res.json()]).toEqual([409, { error: 'NOT_STOPPABLE' }]);
+      expect((await 읽기(id)).stop_requested_at).toBeNull();
+
+      await 바꾸기(id, `status = 'FAILED', finished_at = now()`);
+      const 재실행 = await 고치기재실행(id, `${도는}, stage_at = now() - interval '10 minutes'`);
+      expect((await 상세(재실행)).canStop).toBe(false);
+      expect((await 부르기(`/api/authoring/requests/${String(재실행)}/stop`)).json()).toEqual({ error: 'NOT_STOPPABLE' });
+    });
+
+    it('병합 전 끝난 고치기는 폐기된다 — canDiscard 참', async () => {
+      const id = await 세운번호({ edits });
+      await 바꾸기(id, 끝난);
+      expect((await 상세(id)).canDiscard).toBe(true);
+      const res = await 부르기(`/api/authoring/requests/${String(id)}/discard`);
+      expect([res.statusCode, res.json()]).toEqual([200, { ok: true }]);
+      expect((await 읽기(id)).discarded_at).not.toBeNull();
+    });
+
+    it('병합된 고치기는 폐기 못 한다 — 최신이 병합된 반영이다', async () => {
+      const id = await 세운번호({ edits });
+      await 바꾸기(id, 끝난);
+      const 머지 = await 행넣기({ kind: 'MERGE', source_id: id, status: 'DONE' });
+      for (const 번 of [id, 머지]) {
+        expect((await 상세(번)).canDiscard).toBe(false);
+        expect((await 부르기(`/api/authoring/requests/${String(번)}/discard`)).json()).toEqual({ error: 'NOT_DISCARDABLE' });
+      }
+    });
+
+    it('끝난 작성 요청은 여전히 폐기 못 한다 — DONE 폐기는 고치기 실행만', async () => {
+      const id = await 행넣기({ kind: 'AUTHOR', status: 'PENDING' });
+      await 바꾸기(id, 끝난);
+      expect((await 상세(id)).canDiscard).toBe(false);
+      expect((await 부르기(`/api/authoring/requests/${String(id)}/discard`)).json()).toEqual({ error: 'NOT_DISCARDABLE' });
+    });
+  });
 });

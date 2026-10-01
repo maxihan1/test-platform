@@ -154,7 +154,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       // 재실행은 원본의 자료를 다시 읽는다. 원본이 재실행·머지면 자료가 없고, DRAFT 면 아직 다 안 올라왔다
       // 폐기한 원본도 다시 안 돌린다 — 목록에서 치운 것이 재실행으로 되살아난다 (§7 「중단 · 폐기 · 진척」).
       // 이어서 작성은 멈춘 행의 폐기를 위에서 봤다 — 폐기는 요청 통째라 맨 처음 요청만 폐기된 것은 2026-09-29 전 옛 행뿐이다
-      if (행 === null || 행.kind !== 'AUTHOR' || 행.status === 'DRAFT' || (!이어서 && 행.discardedAt !== null)) {
+      // 원본이 케이스 고치기면 다시 적용이다 — 새 main 위에서 같은 edits 로 다시 고친다 (§3.6 「★ 케이스 고치기」)
+      if (행 === null || !['AUTHOR', 'EDIT'].includes(행.kind) || 행.status === 'DRAFT' || (!이어서 && 행.discardedAt !== null)) {
         return reply.code(409).send({ error: 'BAD_SOURCE', detail: `${행?.kind} ${행?.status}` });
       }
       // 대조 원본이면 같은 대상 서버·시작 주소를 물려받는다 — 없으면 정방향으로 돌거나(대조) 읽을 입력이 없어 늘 실패한다(화면만).
@@ -170,7 +171,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           kind,
           원본: 행.id,
           기획서: null,
-          값,
+          // 고칠 내용은 원본 것만 — 본문 params 로 다른 edits 를 실으면 검사 안 거친 고침이 줄에 선다
+          값: 행.kind === 'EDIT' ? { edits: 행.params.edits } : 값,
           누가,
           이름,
           ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
