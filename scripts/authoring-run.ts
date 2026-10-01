@@ -28,6 +28,7 @@ import {
   친다,
 } from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
+import { 고치기실행인가, 편집처리 } from './authoring-edit.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
 import { 사용량보고, 흐름풀기 } from './authoring-usage.js';
@@ -105,6 +106,8 @@ async function 한건(
     await 손.끝내기({ status: 'FAILED', error: 폴더?.사유 ?? `${서비스} 의 테스트 폴더 설정을 못 받았다` });
     return;
   }
+  // 케이스 고치기는 자식 없이 main 사본에서 고친다 (§3.6 「★ 케이스 고치기」)
+  if (고치기실행인가(것)) return 편집처리(손, 것, 서비스, 판, 판.계정?.자식[자리번호] ?? null, 폴더.폴더);
   // 역방향 — 집을 때 다시 대조한다. 만든 뒤 설정이 바뀌었을 수 있다 (도메인/작성 §7 집기 ★)
   const 대상사유 = 대상점검(것.target);
   if (대상사유 !== null) {

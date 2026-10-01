@@ -333,6 +333,23 @@ describe('켤 때 닫을 RUNNING', () => {
       { id: 3, 몸: { status: 'FAILED', error: '작성 에이전트가 꺼져 중단됐다 — 다시 넣어라' } },
     ]);
   });
+
+  it('고치기 실행(EDIT · edits 를 가진 재실행)은 이어갈 폴더가 없어 FAILED — 멈춤 요청이 있었어도 같다', () => {
+    const edits = [{ tcId: 'XEE-001', delete: true }];
+    const 목록 = [
+      { id: 1, status: 'RUNNING', claimedBy: 'mac', kind: 'EDIT', stopRequestedAt: null, params: { edits } },
+      { id: 2, status: 'RUNNING', claimedBy: 'mac', kind: 'RERUN', stopRequestedAt: '2026-10-01T00:00:00.000Z', params: { edits } },
+      { id: 3, status: 'RUNNING', claimedBy: 'mac', kind: 'RERUN', stopRequestedAt: null, params: {} },
+      { id: 4, status: 'RUNNING', claimedBy: 'mac', kind: 'AUTHOR', stopRequestedAt: null, params: null },
+    ];
+    const 실패 = { status: 'FAILED', error: '작성 에이전트가 꺼져 중단됐다 — 다시 적용하라' };
+    expect(닫을RUNNING(목록, 'mac')).toEqual([
+      { id: 1, 몸: 실패 },
+      { id: 2, 몸: 실패 },
+      { id: 3, 몸: { status: 'STOPPED', stopReason: 'AGENT_RESTART' } },
+      { id: 4, 몸: { status: 'STOPPED', stopReason: 'AGENT_RESTART' } },
+    ]);
+  });
 });
 
 describe('바뀐 파일 — 자식이 남긴 것을 작업방 상태에서 읽는다', () => {
