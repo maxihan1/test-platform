@@ -7,6 +7,7 @@ import { resolve } from 'node:path';
 
 import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
+import { 반영겹침판정, 겹침상세, 겹침통로 } from './conflict-routes.js';
 import { 같이온칸, 이어작성상세, 이어작성세우기 } from './continue.js';
 import { 행커버리지 } from './coverage.js';
 import { 피그마주소정규화 } from './figma.js';
@@ -235,6 +236,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         rootId: 뿌리번호,
         runs: await 실행들(뿌리번호),
         ...(await 보류상세(행)),
+        ...(await 겹침상세(행.id)),
         coverage: 행커버리지(행.result),
         ...(await 이어작성상세(뿌리번호)),
       };
@@ -261,10 +263,13 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         return reply.code(409).send({ error: 'NOT_MERGEABLE', detail: 행.status });
       }
       // 보류 판정도 잠금 안에서 — 밖에서 보면 판정과 머지 행 사이에 PUT · DELETE 가 끼어든다
-      const 세움 = await 뿌리잠그고(뿌리번호, async (): Promise<{ error: string; code: number } | { id: number }> => {
+      const 세움 = await 뿌리잠그고(뿌리번호, async (손): Promise<{ error: string; code: number; detail?: string } | { id: number }> => {
         if (await 도는실행있나(뿌리번호)) return { error: 'RUN_ACTIVE', code: 409 };
         const 보류 = await 머지보류판정(행, 서비스, req.body?.env);
         if ('error' in 보류) return 보류;
+        // 겹친 케이스를 다 고르기 전에는 반영하지 않는다 — 에이전트가 같은 겹침에서 또 멈춘다 (§3.6 「★ 반영 때 겹침 검사」)
+        const 겹침 = await 반영겹침판정(손, 행.id);
+        if (겹침 !== null) return 겹침;
         const id = await 줄세우기({
           서비스,
           kind: 'MERGE',
@@ -280,11 +285,12 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         });
         return { id };
       });
-      if ('error' in 세움) return reply.code(세움.code).send({ error: 세움.error });
+      if ('error' in 세움) return reply.code(세움.code).send({ error: 세움.error, detail: 세움.detail });
       return reply.code(201).send({ id: 세움.id });
     },
   );
 
   await 중단통로(app);
   await 보류통로(app);
+  await 겹침통로(app);
 }
