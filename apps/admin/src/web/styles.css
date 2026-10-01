@@ -2958,6 +2958,48 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   color: var(--ink-muted);
 }
 
+/* 케이스 고치기 (도메인/카탈로그 §8.1 · 도메인/작성 §3.6 「★ 케이스 고치기」).
+   상세 맨 아래 자리는 줄로 갈라 위의 기대결과 칸(이번 실행 값)과 섞여 보이지 않게 한다 */
+.case-edit {
+  border-top: 1px solid var(--rule);
+  padding-top: 16px;
+}
+.case-edit .btns,
+.edit-delete .btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.edit-confirm {
+  margin-top: 12px;
+}
+.edit-confirm label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.edit-delete {
+  margin-top: 16px;
+}
+/* 확인 상자 · 작성 상세의 케이스 목록. 사유 · 지금 기대값은 케이스 이름 아래 줄이다 */
+.edit-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  font-size: 13.5px;
+}
+.edit-list small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
 /* 막대의 미확정 칸은 옆 미실행 칸과 명도가 거의 같다(1.01:1). 틈으로 가른다 (DESIGN.md 「판정 표기」 미확정) */
 .stripe i.u {
   box-shadow: inset 2px 0 0 var(--sheet);

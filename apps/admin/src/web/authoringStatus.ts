@@ -1,6 +1,7 @@
 // 작성 요청 한 건을 Status 카드의 단계 막대 · 시간 막대로 바꾸는 판단. 그림은 AuthoringStatusCard.tsx (DESIGN.md 「작성 상태」)
 
 import type { AuthoringProgress, AuthoringRow } from './api.js';
+import { 고치기실행인가 } from './authoringView.js';
 import { t, type 언어 } from './i18n.js';
 
 /** 단계 막대의 다섯 칸 (말 키) */
@@ -40,9 +41,9 @@ export interface 자리 {
   멈춤: 'stopped' | 'failed' | null;
 }
 
-/** 머지는 자식을 안 띄워 이 다섯 칸을 안 밟는다 — null 이면 카드가 막대를 안 그린다 */
+/** 머지 · 케이스 고치기는 자식을 안 띄워 이 다섯 칸을 안 밟는다 — null 이면 카드가 막대를 안 그린다 */
 export function 단계자리(행: AuthoringRow): 자리 | null {
-  if (행.kind === 'MERGE') return null;
+  if (행.kind === 'MERGE' || 고치기실행인가(행)) return null;
   if (행.status === 'DONE') return { 끝난: 단계이름들.length, 지금: null, 멈춤: null };
   if (행.status === 'DRAFT' || 행.status === 'PENDING') return { 끝난: 0, 지금: null, 멈춤: null };
   // 집히기 전에 줄에서 뺀 것 — 준비 칸에서 멈춘 것처럼 그리면 시작한 적 있는 것으로 읽힌다
@@ -122,10 +123,13 @@ export function 목록글(행: AuthoringRow, 언어: 언어): string {
     // 거절은 고칠 것이 까닭에 있다 — 몇 단계에서 멈췄는지보다 그것이 먼저다 (작성 §7 「이어하기」)
     if (행.stopReason === 'REJECTED' && 행.error) return `${t('올리기 거절', 언어)} — ${행.error.split('\n')[0]}`;
     if (행.startedAt === null) return t('시작 전에 멈췄습니다', 언어);
+    // 고치기는 단계 막대가 없다 — 「준비 단계에서」라 하면 어디서 멈췄는지 거짓말을 한다
+    if (고치기실행인가(행)) return t('고치는 중에 멈췄습니다', 언어);
     const 칸 = 단계자리(행)?.지금 ?? 0;
     return t('{단계} 단계에서 멈췄습니다', 언어, { 단계: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
   }
   if (행.kind === 'MERGE') return t('테스트 반영 완료', 언어);
+  if (고치기실행인가(행)) return t('케이스를 고쳐 PR 로 올렸습니다', 언어);
   return 진척이찼나(행.progress)
     ? t('케이스 파일 {수}개를 만들었습니다', 언어, { 수: 행.progress.caseFiles })
     : t('테스트 코드를 PR 로 올렸습니다', 언어);
@@ -141,10 +145,11 @@ export function 짧은수(n: number): string {
 /**
  * 「같은 자료로 다시 작성」(RERUN)을 어느 요청으로 보내나 — 못 내면 null. 서버 규칙의 사본이다 — 정본은 도메인/작성 §7 RERUN:
  * 원본은 AUTHOR 여야 한다 — 대조 요청도 된다(2026-09-28). 재실행이면 자료를 가진 맨 처음 요청으로 보낸다(이어하기, 2026-09-28).
+ * 케이스 고치기(EDIT)도 원본이 된다 — 그 재실행이 「다시 적용」이다(도메인/작성 §3.6 「★ 케이스 고치기」, 2026-10-01).
  * 폐기한 원본도 서버가 거절한다. 버튼을 안 그리는 것은 편의이고 서버가 다시 막는다
  */
 export function 다시작성원본(행: AuthoringRow): number | null {
   if ((행.discardedAt ?? null) !== null || (행.status !== 'FAILED' && 행.status !== 'STOPPED')) return null;
-  if (행.kind === 'AUTHOR') return 행.id;
+  if (행.kind === 'AUTHOR' || 행.kind === 'EDIT') return 행.id;
   return 행.kind === 'RERUN' ? (행.sourceId ?? null) : null;
 }

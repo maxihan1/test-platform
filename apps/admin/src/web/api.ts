@@ -3,6 +3,8 @@
 
 import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
 
+import type { 고칠것 } from '../authoring/edit.js';
+
 import type { 권한칸, 등급 } from './role.js';
 
 export type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult };
@@ -300,8 +302,14 @@ export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
  */
 export interface AuthoringRow {
   id: number;
-  kind: 'AUTHOR' | 'RERUN' | 'MERGE';
+  /** EDIT 는 케이스 고치기 (도메인/작성 §3.6 「★ 케이스 고치기」) — 작성 요청처럼 뿌리다 */
+  kind: 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT';
   sourceId: number | null;
+  /**
+   * 케이스 고치기와 그 다시 적용은 `{ edits: [...] }` 를 싣는다. 모양을 화면이 믿지 않는다 —
+   * 읽는 쪽이 방어한다(`authoringView.ts` 의 `고칠것목록`). 옛 가짜 행을 안 고치려고 선택으로 둔다
+   */
+  params?: unknown;
   /** DRAFT 는 자료를 올리는 중 — 아직 줄에 안 섰다 (도메인/작성 §7 「자료」) */
   status: 'DRAFT' | 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED' | 'STOPPED';
   stage: string | null;
@@ -360,6 +368,8 @@ export interface AuthoringRow {
    */
   rootId?: number;
   runCount?: number;
+  /** 목록에만 — 뿌리의 종류. 줄의 kind 는 최신 실행 것이라 다시 적용 · 반영 뒤에는 고치기인지 안 보인다 */
+  rootKind?: AuthoringRow['kind'];
   runs?: AuthoringRun[];
   /** 보류 케이스 (도메인/작성 §3.6 「★ 보류 케이스」 · §7). 상세에만 — 끝난 결과의 held[] 에 사람 입력을 붙인 것 */
   held?: AuthoringHeld[];
@@ -424,7 +434,7 @@ export interface AuthoringHeld {
 /** 실행 기록 한 줄. 토큰은 그 실행이 쓴 것만 네 칸 — 앞 실행 것을 더하지 않는다 */
 export interface AuthoringRun {
   id: number;
-  kind: 'AUTHOR' | 'RERUN' | 'MERGE';
+  kind: AuthoringRow['kind'];
   resumeFrom: number | null;
   status: AuthoringRow['status'];
   stopReason: string | null;
@@ -817,6 +827,10 @@ export const api = {
    */
   createAuthoringMerge: (service: string, sourceId: number, env?: string) =>
     call<{ id: number }>(`/authoring/merges?service=${encodeURIComponent(service)}`, json({ sourceId, env })),
+
+  /** 케이스 고치기 — 값과 동작만 보낸다. 코드는 작성 에이전트가 PR 로 고친다 (도메인/작성 §3.6 「★ 케이스 고치기」) */
+  createAuthoringEdit: (service: string, edits: 고칠것[]) =>
+    call<{ id: number }>(`/authoring/edits?service=${encodeURIComponent(service)}`, json({ edits })),
 
   /** 보류 케이스 한 건의 입력을 통째로 바꾼다 — 값이거나 제거. 누가 · 언제는 서버가 붙인다 */
   putAuthoringHeld: (

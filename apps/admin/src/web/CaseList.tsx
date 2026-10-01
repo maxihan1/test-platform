@@ -6,9 +6,10 @@
 import { useState } from 'react';
 
 import { api, type CasePage, type CaseQuery, type ItemStatus, type Platform } from './api.js';
-import { 미확정나이 } from './unconfirmed.js';
+import { 고른것고치기 } from './CaseBulkEdit.js';
 import { use엑셀받기 } from './CaseExport.js';
-import { Empty, ScanInfo, 결과라벨, 조건칩들, 찾기폼, 케이스줄, 표머리 } from './CaseListParts.js';
+import { Empty, 목록부제 } from './CaseListNotes.js';
+import { 결과라벨, 조건칩들, 찾기폼, 케이스줄, 표머리 } from './CaseListParts.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
@@ -71,11 +72,6 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
     set편줄(new Set());
   }
 
-  const 미확정 = cases.data?.unconfirmed;
-  const 미확정요약 =
-    미확정 === undefined || 미확정.count === 0
-      ? null
-      : { 건수: 미확정.count, 일: 미확정.oldestSince === null ? null : 미확정나이(미확정.oldestSince) };
   const 보일것 = 마지막결과로거른다(cases.data?.items ?? [], lastMap, 결과);
   // 지금 보이는 것을 센다 — 칩을 걸면 숫자도 같이 좁혀져야 「보이는 것과 세는 것」이 갈리지 않는다
   const 셈 = 판정개수(보일것, lastMap);
@@ -141,35 +137,17 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
       {/* 제목과 주 행동은 본문 면 **바깥**에 선다. 안에 넣으면 머리와 본문이 다시 붙는다 (SPEC §8) */}
       {/* 자리 이름은 **무엇을 다루는 곳인가**(`테스트 케이스`), 화면 제목은
           **지금 보는 것이 무엇인가**(`테스트케이스 목록`)를 말한다 (SPEC §8) */}
-      {/* 스캔 결과가 머리 부제로 올라왔다 (2026-09-22). 목록 위에 따로 줄로 서면 49px 을 먹는데,
-          그 화면은 표가 창을 채우는 것이 일이라 그만큼 표가 잘린다.
-          **자리만 옮겼고 적히는 것은 그대로다** — 실패 사유도 여기 같이 뜬다 (SPEC §8.1) */}
+      {/* 스캔 결과 · 미확정 요약 · 모으는 중이 머리 부제에 선다 (CaseListNotes.tsx) */}
       <Head
         제목={t('테스트케이스 목록')}
         부제={
-          <>
-            {cases.data === null ? t('불러오는 중입니다') : t('모두 {건수}건', { 건수: cases.data.total })}
-            {/* 답을 못 받은 미확정은 잊힌다 — 건수와 가장 오래된 것의 나이를 머리에 둔다. 없으면 안 쓴다 (도메인/카탈로그 §8.1) */}
-            {미확정요약 === null ? null : (
-              <>
-                {' · '}
-                {미확정요약.일 === null
-                  ? t('미확정 {건수}건', { 건수: 미확정요약.건수 })
-                  : 미확정요약.일 === 0
-                    ? t('미확정 {건수}건 · 가장 오래된 것 오늘', { 건수: 미확정요약.건수 })
-                    : t('미확정 {건수}건 · 가장 오래된 것 {일}일째', { 건수: 미확정요약.건수, 일: 미확정요약.일 })}
-              </>
-            )}
-            {' · '}
-            <ScanInfo scan={scan.data} error={notice ?? scan.error} />
-            {/* 비활성 이유는 말풍선이 아니라 화면 줄이다 — 휴대폰에는 올릴 마우스가 없다 (DESIGN.md) */}
-            {!뽑기.모으는중 ? null : (
-              <span className="scan-text" role="status">
-                {' · '}
-                {t('케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다')}
-              </span>
-            )}
-          </>
+          <목록부제
+            전체={cases.data?.total ?? null}
+            미확정={cases.data?.unconfirmed}
+            scan={scan.data}
+            error={notice ?? scan.error}
+            모으는중={뽑기.모으는중}
+          />
         }
         행동={
           <>
@@ -178,6 +156,8 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
                 {scanning ? t('스캔하는 중') : t('다시 스캔')}
               </button>
             )}
+            {/* 고른 것으로 삭제 · 확정 요청 — 작성 쓰기일 때만 (도메인/카탈로그 §8.1 「여러 건 골라」) */}
+            {!할수('작성요청') ? null : <고른것고치기 service={service} 고른={뽑기.고른} 다되면={뽑기.비우기} />}
             {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
             {!할수('실행') ? null : (
               <button className="btn" onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
@@ -267,6 +247,7 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
             폈나={편줄.has(row.tcId)}
             실행된다={할수('실행')}
             저장된다={할수('입력값저장')}
+            고칠서비스={할수('작성요청') ? service : undefined}
             on값={값고침}
             on더보기={더보기}
             on저장됨={async (tcId) => {

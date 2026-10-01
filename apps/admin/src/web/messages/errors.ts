@@ -86,4 +86,9 @@ export const 오류영어: Record<string, string> = {
   '이미 남은 요구를 넘겨받은 요청이 있습니다. 화면을 새로 고칩니다': 'Another request already took the remaining requirements. Refresh the page',
   '이어 작성할 남은 요구가 없습니다': 'No requirements are left for a follow-up',
   '원본 요청이 폐기됐거나 아직 준비 중입니다. 화면을 새로 고칩니다': 'The original request was discarded or is still being prepared. Refresh the page',
+  // 케이스 고치기 (도메인/작성 §3.6 「★ 케이스 고치기」)
+  '고칠 내용이 지금 케이스와 맞지 않습니다. 목록을 새로 고친 뒤 다시 요청합니다':
+    'The change no longer matches the case. Refresh the list and request again',
+  '같은 케이스를 고치는 요청이 이미 열려 있습니다. 그 요청을 반영하거나 폐기한 뒤 다시 요청합니다':
+    'Another open request already changes the same case. Merge or discard it, then request again',
 };

@@ -7,10 +7,19 @@ import { when } from './ui.js';
 
 const 수 = new Intl.NumberFormat('en-US');
 
-/** 이 실행이 어떻게 섰나 — 목록 줄도 최신 실행의 방식을 이것으로 적는다 */
-export function 방식(실행: Pick<AuthoringRun, 'kind'> & { resumeFrom?: number | null }, t: (키: string) => string): string {
+/**
+ * 이 실행이 어떻게 섰나 — 목록 줄도 최신 실행의 방식을 이것으로 적는다.
+ * `뿌리종류` 가 EDIT 면 재실행은 「다시 적용」이다 — 같은 고칠 내용을 새 main 위에서 다시 고친다 (DESIGN.md 「작성 상태」)
+ */
+export function 방식(
+  실행: Pick<AuthoringRun, 'kind'> & { resumeFrom?: number | null },
+  t: (키: string) => string,
+  뿌리종류?: AuthoringRun['kind'],
+): string {
   if (실행.kind === 'MERGE') return t('머지');
+  if (실행.kind === 'EDIT') return t('케이스 고치기');
   if (실행.kind === 'AUTHOR') return t('처음');
+  if (뿌리종류 === 'EDIT') return t('다시 적용');
   return 실행.resumeFrom == null ? t('처음부터') : t('이어서');
 }
 
@@ -23,7 +32,7 @@ function 상태보임(status: AuthoringRun['status']): 보임 {
   return 'failed';
 }
 
-export function AuthoringRuns({ runs }: { runs: AuthoringRun[] }) {
+export function AuthoringRuns({ runs, 뿌리종류 }: { runs: AuthoringRun[]; 뿌리종류?: AuthoringRun['kind'] }) {
   const t = use말();
   const 언어 = use언어();
   // 한 번만 돈 요청은 기록이 곧 상태 카드다 — 같은 것을 두 번 그리지 않는다
@@ -67,7 +76,7 @@ export function AuthoringRuns({ runs }: { runs: AuthoringRun[] }) {
             {runs.map((r, i) => (
               <tr key={r.id} className={i === 0 ? 'now' : undefined}>
                 <td>{t('{차}차', { 차: runs.length - i })}</td>
-                <td>{방식(r, t)}</td>
+                <td>{방식(r, t, 뿌리종류)}</td>
                 <td>{when(r.startedAt ?? r.createdAt, 언어)}</td>
                 <td>{결과(r)}</td>
                 <td className="mono">{r.caseFiles === null ? '—' : String(r.caseFiles)}</td>

@@ -4,11 +4,12 @@
 import { useCallback, useEffect } from 'react';
 
 import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
+import { 고칠내용 } from './AuthoringEditParts.js';
 import { AuthoringHeld } from './AuthoringHeld.js';
 import { AuthoringRuns } from './AuthoringRuns.js';
 import { AuthoringStatusCard } from './AuthoringStatusCard.js';
 import { AuthoringTodo } from './AuthoringTodo.js';
-import { 끝났나, 종류라벨, 차이목록, 차이종류라벨 } from './authoringView.js';
+import { 고칠것목록, 끝났나, 종류라벨, 차이목록, 차이종류라벨 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import type { 판정 } from './role.js';
@@ -107,7 +108,13 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
   const 자료들 = [...입력, ...(작성.assets ?? [])];
   const 산출물 = (작성.assets ?? []).filter((a) => (a.role ?? 'INPUT') !== 'INPUT');
   const 차이들 = 차이목록(작성.result);
-  const 부제글 = data.compare === true ? `${종류라벨(data.kind, 언어)} · ${t('실제 화면과 대조')}` : 종류라벨(data.kind, 언어);
+  // 케이스 고치기는 뿌리가 말한다 — 최신 실행이 다시 적용 · 반영이어도 「케이스 고치기」다 (DESIGN.md 「작성 상태」)
+  const 고치기 = 뿌리.kind === 'EDIT';
+  const 부제글 = 고치기
+    ? 종류라벨('EDIT', 언어)
+    : data.compare === true
+      ? `${종류라벨(data.kind, 언어)} · ${t('실제 화면과 대조')}`
+      : 종류라벨(data.kind, 언어);
   // 남은 요구로 이어 작성한 요청 — 칸은 뿌리(작성 요청)에만 있다. 재실행이 최신이어도 뿌리 것을 읽는다 (§3.6 「★ 원장」)
   const 원본 = 뿌리.continueFrom ?? null;
   const 부제 =
@@ -130,6 +137,7 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
           <div className="authoring-col">
             {/* 셈은 차이 표처럼 머지를 뺀 최신 작성 실행 것이다 — 머지 행에는 셈이 없다 */}
             <AuthoringStatusCard 요청={data} 커버리지={작성.coverage ?? null} 지금={Date.now()} service={service} />
+            {고치기 ? <고칠내용 목록={고칠것목록(뿌리.params) ?? []} /> : null}
 
             {차이들 === null ? null : (
               <section className="authoring-panel">
@@ -177,6 +185,7 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
               할수={할수}
               차이수={차이들?.length ?? 0}
               커버리지={작성.coverage ?? null}
+              고치기={고치기}
               reload={reload}
             />
 
@@ -237,7 +246,7 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
         </div>
         {/* 보류는 최신 끝난 실행에 붙는다 — 서버가 그 행에만 입력을 받는다 (도메인/작성 §7) */}
         <AuthoringHeld service={service} 요청번호={data.id} held={data.held ?? []} 편집={할수('작성요청')} reload={reload} />
-        <AuthoringRuns runs={뿌리.runs ?? []} />
+        <AuthoringRuns runs={뿌리.runs ?? []} 뿌리종류={뿌리.kind} />
       </div>
     </>
   );

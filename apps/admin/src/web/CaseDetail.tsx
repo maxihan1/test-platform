@@ -17,6 +17,7 @@
 import { useEffect, useState } from 'react';
 
 import { api, type CaseRow, type HistoryRow, type LastResult, type RunItemDetail } from './api.js';
+import { 코드기본값고치기 } from './CaseEdit.js';
 import { 오류없음, 채운글자, type 줄글자 } from './CaseRowParams.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
@@ -37,6 +38,7 @@ export function CaseDetail({
   폈나,
   마지막,
   글자,
+  고칠서비스,
   onClose,
   on값,
 }: {
@@ -46,6 +48,8 @@ export function CaseDetail({
   마지막: LastResult | undefined;
   /** 줄에서 고쳐 넣은 값. 줄과 같은 표를 본다 (SPEC §8.1) */
   글자?: 줄글자;
+  /** 작성 쓰기일 때만 온다. 있으면 「코드 기본값 바꾸기 요청」 자리를 둔다 (도메인/카탈로그 §8.1) */
+  고칠서비스?: string;
   onClose: () => void;
   on값: (어디: 'params' | 'expected', key: string, value: string) => void;
 }) {
@@ -181,6 +185,9 @@ export function CaseDetail({
           </table>
         )}
       </div>
+
+      {/* 맨 아래에 둔다 — 위의 기대결과 칸은 이번 실행 값이고 여기는 저장소의 코드다. 붙어 있으면 둘이 한 칸으로 읽힌다 */}
+      {고칠서비스 === undefined ? null : <코드기본값고치기 row={row} service={고칠서비스} />}
     </div>
     </Modal>
   );

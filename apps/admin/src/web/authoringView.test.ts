@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AuthoringRow } from './api.js';
-import { 보임라벨, 멈춘듯기준, 줄보임, 중단이유라벨 } from './authoringView.js';
+import { 고치기실행인가, 고칠것목록, 보임라벨, 멈춘듯기준, 종류라벨, 줄보임, 중단이유라벨, 칩글 } from './authoringView.js';
 
 const 지금 = new Date('2026-09-22T12:00:00Z').getTime();
 
@@ -83,5 +83,51 @@ describe('중단 이유를 사람 말로', () => {
   it('모르는 값이나 빈 값은 기록 없음이다. 식별자를 화면에 흘리지 않는다', () => {
     expect(중단이유라벨('WHAT', 'ko')).toBe('기록 없음');
     expect(중단이유라벨(null, 'ko')).toBe('기록 없음');
+  });
+});
+
+describe('케이스 고치기를 가른다', () => {
+  const 고침 = { edits: [{ tcId: 'PAY-001', delete: true }] };
+
+  it('종류 글자는 케이스 고치기다', () => {
+    expect(종류라벨('EDIT', 'ko')).toBe('케이스 고치기');
+    expect(종류라벨('EDIT', 'en')).not.toMatch(/[가-힣]/);
+  });
+
+  it('params.edits 가 있는 행만 고치기 실행이다. 머지 행에는 없다', () => {
+    expect(고치기실행인가(줄({ kind: 'EDIT', params: 고침 }))).toBe(true);
+    expect(고치기실행인가(줄({ kind: 'RERUN', sourceId: 3, params: 고침 }))).toBe(true);
+    expect(고치기실행인가(줄({ kind: 'MERGE', sourceId: 3, params: {} }))).toBe(false);
+    expect(고치기실행인가(줄({ kind: 'AUTHOR' }))).toBe(false);
+  });
+
+  it('도는 고치기의 칩은 작성 중이 아니라 고치는 중이다. 머지는 반영 중이다', () => {
+    expect(칩글(줄({ kind: 'EDIT', params: 고침, status: 'RUNNING' }), 'running', 'ko')).toBe('고치는 중');
+    expect(칩글(줄({ kind: 'MERGE', status: 'RUNNING' }), 'running', 'ko')).toBe('반영 중');
+    expect(칩글(줄({ kind: 'AUTHOR', status: 'RUNNING' }), 'running', 'ko')).toBe('작성 중');
+    expect(칩글(줄({ kind: 'EDIT', params: 고침, status: 'DONE' }), 'done', 'ko')).toBe('완료');
+  });
+});
+
+describe('고칠 내용 목록', () => {
+  it('케이스마다 삭제 · 기대값 · 확정을 읽어 낸다', () => {
+    const 목록 = 고칠것목록({
+      edits: [
+        { tcId: 'PAY-001', delete: true },
+        { tcId: 'PAY-002', expected: { state: '배송 중', count: 2, shown: false }, confirm: true },
+      ],
+    });
+    expect(목록).toEqual([
+      { tcId: 'PAY-001', 삭제: true, 기대값: [], 확정: false },
+      { tcId: 'PAY-002', 삭제: false, 기대값: [['state', '배송 중'], ['count', '2'], ['shown', 'false']], 확정: true },
+    ]);
+  });
+
+  it('모양이 틀린 줄은 버리고, 배열이 아니면 null 이다', () => {
+    expect(고칠것목록({ edits: [null, 'x', { delete: true }, { tcId: 'PAY-003', confirm: true }] })).toEqual([
+      { tcId: 'PAY-003', 삭제: false, 기대값: [], 확정: true },
+    ]);
+    expect(고칠것목록({})).toBeNull();
+    expect(고칠것목록(undefined)).toBeNull();
   });
 });

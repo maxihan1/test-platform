@@ -9,7 +9,7 @@ import { api, type AuthoringRow, type EnvRow, type Paged } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
 import { AuthoringStartModal } from './AuthoringStartModal.js';
 import { 목록글 } from './authoringStatus.js';
-import { 보임라벨, 종류라벨, 줄보임, type 보임 } from './authoringView.js';
+import { 종류라벨, 줄보임, 칩글, type 보임 } from './authoringView.js';
 import { Head } from './Head.js';
 import { 방식 } from './AuthoringRuns.js';
 import { use말, use언어 } from './i18n.js';
@@ -55,10 +55,10 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
         <small>
           {차 > 1 ? (
             <>
-              {t('{차}차', { 차 })} · {방식(것, t)}
+              {t('{차}차', { 차 })} · {방식(것, t, 것.rootKind)}
             </>
           ) : 것.continueFrom == null ? (
-            종류라벨(것.kind, 언어)
+            종류라벨(것.rootKind ?? 것.kind, 언어)
           ) : null}
           {/* 평문이다 — 줄 전체가 링크라 안에 링크를 두면 마우스로 못 누른다. 첫 실행이면 종류 라벨 자리에 */}
           {것.continueFrom == null ? null : (
@@ -70,7 +70,7 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
           {것.compare === true ? ` · ${t('화면과 대조')}` : ''} · {t('요청한 사람')} {것.requestedByName} · {when(것.createdAt, 언어)}
         </small>
       </div>
-      <div className="right">{보임라벨(보, 언어)}</div>
+      <div className="right">{칩글(것, 보, 언어)}</div>
     </div>
   );
 }
