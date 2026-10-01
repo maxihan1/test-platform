@@ -45,6 +45,34 @@ test('세미콜론·파이프로 이어 붙여도 잡는다', () => {
   assert.ok(isBanned('ls && git push --force'), '&& 뒤의 강제 push 를 놓쳤다');
 });
 
+test('무늬로 프로세스를 찾아 끄는 명령은 자기 셸까지 끈다 — 막는다 (2026-09-30 · 2026-10-01 두 번)', () => {
+  // 명령 줄에 그 무늬가 들어 있어 도구 셸이 자기 자신을 찾아 끈다. 결과도 정리도 없이 셸이 죽는다
+  for (const cmd of [
+    'pkill -f "tsx apps/admin/src/app.ts"',
+    'pkill -9 -f app.ts',
+    'for p in $(pgrep -f "tsx apps/admin/src/app.ts"); do kill $p; done',
+    'kill $(pgrep -f app.ts)',
+    'kill -9 $(pgrep -af vite)',
+    'pkill -fx app.ts',
+    'pkill --full app.ts',
+    'kill `pgrep -f app.ts`',
+    'pgrep -f app.ts | xargs kill',
+    'pgrep -af vite | xargs -r kill -9',
+  ]) {
+    assert.equal(isBanned(cmd), '무늬로 프로세스 끄기', `막았어야 한다: ${cmd}`);
+  }
+  for (const cmd of [
+    'pgrep -af "apps/admin/src/app.ts"',
+    'pgrep -af app.ts | head -3',
+    'kill 12345',
+    'pkill node',
+    'grep -n "pkill -f" docs/SETUP.md',
+    'ps aux | grep app.ts',
+  ]) {
+    assert.ok(!isBanned(cmd), `통과했어야 한다: ${cmd}`);
+  }
+});
+
 test('막는 이유를 함께 돌려준다', () => {
   assert.equal(isBanned('git branch -D x'), '브랜치 강제 삭제');
   assert.equal(isBanned('git branch -d x'), null);

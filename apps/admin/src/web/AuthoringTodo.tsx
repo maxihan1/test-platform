@@ -4,9 +4,10 @@ import { useState } from 'react';
 
 import { api, type AuthoringAsset, type AuthoringCoverage, type AuthoringRow } from './api.js';
 import { 보류오류문장, 보류진척 } from './AuthoringHeld.js';
+import { 고치기할일 } from './AuthoringEditParts.js';
 import { 반영단계 } from './AuthoringMergeStep.js';
 import { 다시작성원본, 시간판 } from './authoringStatus.js';
-import { 남은요구이어작성, 이어서작성, 일 } from './authoringTodoParts.js';
+import { 남은요구이어작성, 이어서작성, 일, 확인글 } from './authoringTodoParts.js';
 import { 줄보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -24,10 +25,12 @@ interface Props {
   차이수: number;
   /** 머지를 뺀 최신 작성 실행의 셈 — 머지 행에는 셈이 없다. 남은 요구 수 · GitHub 직접 병합 안내가 이것을 본다 */
   커버리지?: AuthoringCoverage | null;
+  /** 뿌리가 케이스 고치기면 온다 — 최신 실행이 반영 행이어도 고치기의 다음 단계를 낸다 (AuthoringEditParts.tsx) */
+  고치기?: { 반영실패: boolean };
   reload: () => void;
 }
 
-export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지 = null, reload }: Props) {
+export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지 = null, 고치기, reload }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [열린, set열린] = useState<확인>(null);
@@ -112,6 +115,8 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
   let 본문: React.ReactNode;
   if (요청.discardedAt) {
     본문 = <p>{t('폐기됨')} · {when(요청.discardedAt, 언어)}</p>;
+  } else if (고치기 !== undefined) {
+    본문 = <고치기할일 {...{ service, 요청, 할수, 보내는중, 새줄로, 중단버튼, 폐기버튼 }} 반영실패={고치기.반영실패} />;
   } else if (요청.status === 'DRAFT') {
     본문 = (
       <>
@@ -270,13 +275,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
           }
         >
           <p>
-            {열린 === 'discard'
-              ? 요청.status === 'STOPPED'
-                ? t('목록에서 사라집니다. 보관한 작업물도 지웁니다. 통계와 토큰 기록은 남습니다.')
-                : t('목록에서 사라집니다. 통계와 토큰 기록은 남습니다.')
-              : 요청.status === 'PENDING'
-                ? t('아직 시작 전이라 바로 취소됩니다.')
-                : t('{분}분 동안 만든 것은 남겨 두어 나중에 이어서 작성할 수 있습니다.', { 분 })}
+            {확인글(열린, 요청, 고치기 !== undefined, 분, t)}
             {열린 === 'discard' ? (
               <>
                 <br />

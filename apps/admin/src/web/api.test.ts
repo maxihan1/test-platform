@@ -248,6 +248,15 @@ describe('작성 대기줄 (SPEC §7 · 도메인/작성 §7)', () => {
     expect(String(부름[0]?.url)).toContain('/authoring/merges');
   });
 
+  it('케이스 고치기는 고칠 것만 담아 자기 통로로 보낸다', async () => {
+    답 = { status: 201, body: { id: 9 } };
+    const 답받음 = await api.createAuthoringEdit('PAY', [{ tcId: 'PAY-001', delete: true }]);
+    expect(답받음).toEqual({ id: 9 });
+    expect(String(부름[0]?.url)).toBe('/api/authoring/edits?service=PAY');
+    expect(부름[0]?.init?.method).toBe('POST');
+    expect(JSON.parse(String(부름[0]?.init?.body))).toEqual({ edits: [{ tcId: 'PAY-001', delete: true }] });
+  });
+
   it('한 건 상세는 번호로 부른다', async () => {
     답 = { status: 200, body: { id: 7 } };
     await api.authoringRequest('PAY', 7);

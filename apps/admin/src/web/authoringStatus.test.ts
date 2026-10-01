@@ -171,3 +171,25 @@ describe('다시작성원본', () => {
     expect(다시작성원본(줄({ status: 'DONE' }))).toBeNull();
   });
 });
+
+describe('케이스 고치기 실행', () => {
+  const 고침 = { edits: [{ tcId: 'PAY-001', delete: true }] };
+
+  it('작성 단계 막대를 그리지 않는다. 자료 받기 · 케이스 작성을 안 밟는다', () => {
+    expect(단계자리(줄({ kind: 'EDIT', params: 고침, stage: '케이스를 고치는 중' }))).toBeNull();
+    expect(단계자리(줄({ kind: 'RERUN', sourceId: 3, params: 고침, status: 'DONE' }))).toBeNull();
+  });
+
+  it('목록 줄은 고친 결과 · 멈춘 사실을 고치기 말로 적는다', () => {
+    expect(목록글(줄({ kind: 'EDIT', params: 고침, status: 'DONE' }), 'ko')).toBe('케이스를 고쳐 PR 로 올렸습니다');
+    expect(목록글(줄({ kind: 'EDIT', params: 고침, status: 'STOPPED', stopReason: 'AGENT_LOST' }), 'ko')).toBe(
+      '고치는 중에 멈췄습니다',
+    );
+    expect(목록글(줄({ kind: 'EDIT', params: 고침, status: 'STOPPED', startedAt: null }), 'ko')).toBe('시작 전에 멈췄습니다');
+  });
+
+  it('다시 적용은 고치기 뿌리로 보낸다', () => {
+    expect(다시작성원본(줄({ kind: 'EDIT', params: 고침, status: 'FAILED' }))).toBe(1);
+    expect(다시작성원본(줄({ kind: 'RERUN', sourceId: 3, params: 고침, status: 'STOPPED' }))).toBe(3);
+  });
+});

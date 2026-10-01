@@ -1,5 +1,7 @@
 // 작성 요청 한 줄을 화면이 어떻게 보여 줄지 정한다 (도메인/작성 §3.6). 판단만 여기, 그림은 Authoring.tsx
 
+import { 고치기실행인가 as 서버판정, 행의고칠것, type 기대값 } from '../authoring/edit.js';
+
 import type { AuthoringRow } from './api.js';
 import { t, type 언어 } from './i18n.js';
 
@@ -62,7 +64,23 @@ export function 끝났나(status: AuthoringRow['status']): boolean {
 export function 종류라벨(kind: AuthoringRow['kind'], 언어: 언어): string {
   if (kind === 'MERGE') return t('머지', 언어);
   if (kind === 'RERUN') return t('재실행', 언어);
+  if (kind === 'EDIT') return t('케이스 고치기', 언어);
   return t('작성', 언어);
+}
+
+/**
+ * 케이스 고치기 실행인가 — 고치기와 그 다시 적용 행만 `params.edits` 를 가진다. 머지 행에는 없다.
+ * 판정은 서버 `authoring/edit.ts` 의 것을 그대로 쓴다 — 자리마다 kind 로 따로 가르면 다시 적용 행을 빠뜨린다
+ */
+export function 고치기실행인가(행: Pick<AuthoringRow, 'params'>): boolean {
+  return 서버판정({ params: 행.params });
+}
+
+/** 상태 칩 · 목록 줄 끝의 글자. 머지 · 고치기가 도는 것을 「작성 중」이라 하면 거짓말이다 */
+export function 칩글(행: AuthoringRow, 보: 보임, 언어: 언어): string {
+  if (보 === 'running' && 행.kind === 'MERGE') return t('반영 중', 언어);
+  if (보 === 'running' && 고치기실행인가(행)) return t('고치는 중', 언어);
+  return 보임라벨(보, 언어);
 }
 
 /** 보임을 사람 말로 (`runState.ts` 의 `상태라벨` 과 같은 모양) */
@@ -140,4 +158,35 @@ export function 차이종류라벨(kind: string, 언어: 언어): string {
   if (kind === 'SCREEN_ONLY') return t('화면에만 있음', 언어);
   if (kind === 'DOC_ONLY') return t('문서에만 있음', 언어);
   return t('알 수 없는 종류', 언어);
+}
+
+/** 고칠 내용 한 줄 (도메인/작성 §3.6 「★ 케이스 고치기」). 옛 값은 요청에 없다 — PR 본문이 옛 값 → 새 값을 적는다 */
+export interface 고칠줄 {
+  tcId: string;
+  삭제: boolean;
+  /** [칸 이름, 새 값] — 글자로 바꾸는 것은 그리는 쪽이다(참거짓을 예 · 아니오로) */
+  기대값: [string, 기대값][];
+  확정: boolean;
+}
+
+/** 행의 params 에서 고칠 내용을 꺼낸다. 모양을 믿지 않는다 — 배열이 아니면 null, tcId 없는 줄은 버린다 */
+export function 고칠것목록(params: unknown): 고칠줄[] | null {
+  const edits = 행의고칠것(params);
+  if (edits === null) return null;
+  return edits
+    .filter((e): e is Record<string, unknown> => typeof e === 'object' && e !== null && !Array.isArray(e))
+    .filter((e) => typeof e.tcId === 'string')
+    .map((e) => {
+      const 기대 = typeof e.expected === 'object' && e.expected !== null && !Array.isArray(e.expected) ? e.expected : {};
+      return {
+        tcId: e.tcId as string,
+        삭제: e.delete === true,
+        // 서버가 다섯 꼴만 받지만 모양을 믿지 않는다 — 그 밖의 값은 글자로 펴서 보인다
+        기대값: Object.entries(기대).map(([칸, 값]): [string, 기대값] => [
+          칸,
+          typeof 값 === 'string' || typeof 값 === 'number' || typeof 값 === 'boolean' ? 값 : JSON.stringify(값),
+        ]),
+        확정: e.confirm === true,
+      };
+    });
 }

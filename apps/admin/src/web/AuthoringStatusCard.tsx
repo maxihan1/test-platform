@@ -2,7 +2,7 @@
 
 import type { AuthoringCoverage, AuthoringRow } from './api.js';
 import { 단계글라벨, 단계라벨, 단계이름들, 단계자리, 시간판, 진척, 진척이찼나, 짧은수, 활동글 } from './authoringStatus.js';
-import { 보임라벨, 줄보임, 중단이유라벨, type 보임 } from './authoringView.js';
+import { 줄보임, 중단이유라벨, 칩글 as 칩글자, type 보임 } from './authoringView.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 시간글자 } from './RunProgressModal.js';
 
@@ -72,8 +72,8 @@ export function AuthoringStatusCard({
   const 시간 = 시간판(요청, 지금);
   const p = 진척이찼나(요청.progress) ? 요청.progress : null;
   const 도는중 = 요청.status === 'RUNNING';
-  // 머지도 같은 상태 칩을 쓰되 「작성 중」은 거짓말이다 — 반영하는 중이다
-  const 칩글 = 요청.kind === 'MERGE' && 보 === 'running' ? t('반영 중') : 보임라벨(보, 언어);
+  // 머지 · 고치기도 같은 상태 칩을 쓰되 「작성 중」은 거짓말이다 — 반영하는 중 · 고치는 중이다
+  const 칩글 = 칩글자(요청, 보, 언어);
 
   const 입력 = (요청.assets ?? []).filter((a) => (a.role ?? 'INPUT') === 'INPUT');
   const 파일수 = 입력.filter((a) => a.kind !== 'FIGMA').length;

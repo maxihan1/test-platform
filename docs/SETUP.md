@@ -570,5 +570,6 @@ export DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/platform
 
 - 죽었으면(`ECONNREFUSED`) `postmaster.pid` 를 지우고 셋째 줄만 다시 친다 — 데이터는 남아 있다
 - 화면 확인용으로 넣은 서비스 · 계정은 **검사 전에 치운다** — 「지금 살아 있는 것」을 훑는 검사가 다른 세상에서 시작한다(CLAUDE.md §3 fixture)
-- `pkill -f <무늬>` 는 쓰지 않는다 — 명령 줄에 그 무늬가 든 자기 셸까지 죽인다(2026-09-30). `pgrep -af` 로 번호를 보고 `kill <번호>`
+- `pkill -f <무늬>` · `kill $(pgrep -f <무늬>)` 는 쓰지 않는다 — 명령 줄에 그 무늬가 든 자기 셸까지 죽인다(2026-09-30 · 2026-10-01 두 번). `pgrep -af` 로 번호를 보고 `kill <번호>`.
+  두 번째 뒤로 `.claude/scripts/guard.mjs` 가 막는다
 

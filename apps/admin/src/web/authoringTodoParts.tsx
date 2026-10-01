@@ -20,6 +20,29 @@ export function 일({ 표, 제목, 설명, children }: { 표: string; 제목: st
   );
 }
 
+/**
+ * 중단 · 폐기 확인 상자의 본문. 케이스 고치기는 보관한 작업물이 없고 PR 이 GitHub 에 남는다 —
+ * 작성 요청과 같은 말을 쓰면 없는 「이어서 작성」을 약속한다 (도메인/작성 §3.6 「★ 케이스 고치기」 중단 · 폐기)
+ */
+export function 확인글(
+  열린: 'stop' | 'discard',
+  요청: AuthoringRow,
+  고치기: boolean,
+  분: number,
+  t: (키: string, 값?: Record<string, string | number>) => string,
+): string {
+  if (열린 === 'discard') {
+    if (고치기) return t('목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.');
+    return 요청.status === 'STOPPED'
+      ? t('목록에서 사라집니다. 보관한 작업물도 지웁니다. 통계와 토큰 기록은 남습니다.')
+      : t('목록에서 사라집니다. 통계와 토큰 기록은 남습니다.');
+  }
+  if (요청.status === 'PENDING') return t('아직 시작 전이라 바로 취소됩니다.');
+  // 끊겼다고 단정하지 않는다 — 고치기 에이전트는 신호를 드물게 올려 살아 있어도 비어 보인다 (DESIGN.md 「작성 상태」)
+  if (고치기) return t('한동안 소식이 없는 고치기를 멈춥니다. 멈춘 뒤 다시 적용할 수 있습니다.');
+  return t('{분}분 동안 만든 것은 남겨 두어 나중에 이어서 작성할 수 있습니다.', { 분 });
+}
+
 /** 「10월 5일」 — 이어갈 수 있는 마지막 날. 시각까지는 안 쓴다 */
 function 날짜(iso: string, 언어: 언어): string {
   return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { month: 'long', day: 'numeric' }).format(new Date(iso));

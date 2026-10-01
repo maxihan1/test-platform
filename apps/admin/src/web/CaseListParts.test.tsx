@@ -11,7 +11,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
 import type { CaseRow, JsonSchema } from './api.js';
-import { Empty, 케이스줄, 표머리 } from './CaseListParts.js';
+import { Empty } from './CaseListNotes.js';
+import { 케이스줄, 표머리 } from './CaseListParts.js';
 
 afterEach(cleanup);
 

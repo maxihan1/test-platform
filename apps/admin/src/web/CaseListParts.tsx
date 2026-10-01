@@ -1,10 +1,11 @@
-// 케이스 목록 화면이 그리는 조각 셋 — 케이스 한 줄 · 빈 목록 안내 · 스캔 결과 줄 (SPEC §8.1)
-// 고르는 칸이 붙으면서 CaseList 가 300줄을 넘었다. 판단은 CaseList 에 두고 그리는 쪽만 여기로 옮겼다
+// 케이스 목록 화면이 그리는 조각 — 찾기 칸 · 조건 칩 · 표머리 · 케이스 한 줄 (SPEC §8.1)
+// 고르는 칸이 붙으면서 CaseList 가 300줄을 넘었다. 판단은 CaseList 에 두고 그리는 쪽만 여기로 옮겼다.
+// 빈 목록 안내 · 스캔 결과 줄은 CaseListNotes.tsx 로 갔다 (2026-10-01 — 이 파일도 300줄을 넘었다)
 
-import type { CaseRow, ItemStatus, LastScan, Platform } from './api.js';
+import type { CaseRow, ItemStatus, Platform } from './api.js';
 import { CaseDetail } from './CaseDetail.js';
 import { CaseRowParams, type 줄글자 } from './CaseRowParams.js';
-import { keyOf, type LastMap, 마지막판정, 빈이유 } from './catalogView.js';
+import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import { 판정흐름 } from './Summary.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
@@ -154,6 +155,7 @@ export function 케이스줄({
   폈나 = false,
   실행된다 = true,
   저장된다 = false,
+  고칠서비스,
   on값,
   on더보기,
   on저장됨,
@@ -168,6 +170,8 @@ export function 케이스줄({
   /** 고른 서비스에서 실행 쓰기인가. 아니면 줄의 실행 링크가 없다 (화면공통 §8) */
   실행된다?: boolean;
   저장된다?: boolean;
+  /** 작성 쓰기일 때만 온다 — 없으면 상세에 「코드 기본값 바꾸기 요청」 자리가 없다 (도메인/카탈로그 §8.1) */
+  고칠서비스?: string;
   on값: (tcId: string, 어디: 'params' | 'expected', key: string, value: string) => void;
   on더보기: (tcId: string) => void;
   on저장됨?: (tcId: string) => void;
@@ -260,75 +264,10 @@ export function 케이스줄({
       폈나={폈나}
       마지막={마지막[keyOf(row.tcId, row.platforms[0] ?? 'desktop')]}
       글자={글자}
+      고칠서비스={고칠서비스}
       onClose={() => on더보기(row.tcId)}
       on값={(어디, key, value) => on값(row.tcId, 어디, key, value)}
     />
-    </>
-  );
-}
-
-/**
- * 목록이 비었을 때 (SPEC §8.1).
- *
- * 하나로 뭉뚱그리면 **검색한 적 없는 사람에게도 「찾는 케이스가 없습니다」라고 말한다.**
- * 이 화면은 이 도구를 처음 켠 사람이 만나는 자리다.
- */
-export function Empty({
-  형편,
-  onScan,
-  onClear,
-}: {
-  형편: Parameters<typeof 빈이유>[0];
-  onScan?: () => void;
-  onClear: () => void;
-}) {
-  const 것 = 빈이유(형편, use언어());
-  // 검색에 안 걸린 것만 「지우기」다. 나머지 둘은 다시 훑는 길을 준다 — 스캔 칸이 없으면 onScan 이 안 와 버튼도 없다 (화면공통 §8)
-  const 누르면 = 형편.건조건 ? onClear : onScan;
-
-  return (
-    <div className="empty">
-      {것.무엇}
-      <small>{것.왜}</small>
-      {누르면 === undefined ? null : (
-        <button className="btn" style={{ marginTop: '14px' }} onClick={누르면}>{것.버튼}</button>
-      )}
-    </div>
-  );
-}
-
-export function ScanInfo({ scan, error }: { scan: LastScan | null; error: string | null }) {
-  const t = use말();
-  const 언어 = use언어();
-
-  // 서버가 준 사유 원문은 번역하지 않는다 — 어느 케이스가 왜 걸렸는지가 원문에 들어 있다
-  if (error !== null) return <span className="scan-error">{error}</span>;
-  if (scan === null) return <span className="scan-text">{t('아직 스캔 기록이 없습니다.')}</span>;
-
-  return (
-    <>
-      <span className="scan-text">
-        {t('마지막 스캔 {때} · 추가 {추가} · 갱신 {갱신} · 비활성 {비활성}', {
-          때: when(scan.scannedAt, 언어),
-          추가: scan.added,
-          갱신: scan.updated,
-          비활성: scan.deactivated,
-        })}
-      </span>
-      {scan.duplicates.length === 0 ? null : (
-        <span className="scan-error">
-          {scan.duplicates
-            .map((dup) =>
-              t('{아이디} 중복 — {파일1}, {파일2}', {
-                아이디: dup.tcId,
-                파일1: dup.files[0],
-                파일2: dup.files[1],
-              }),
-            )
-            .join('\n')}
-        </span>
-      )}
-      {scan.error === undefined ? null : <span className="scan-error">{scan.error}</span>}
     </>
   );
 }

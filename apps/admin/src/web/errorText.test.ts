@@ -110,6 +110,19 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
     },
   );
 
+  it.each(['BAD_EDIT', 'EDIT_OPEN'])('케이스 고치기의 %s 도 같은 말투로 적고 영어로 옮긴다', (code) => {
+    const 한국어 = 요청오류문장(code, 'ko');
+    const 영어 = 요청오류문장(code, 'en');
+    expect(한국어).not.toContain(code);
+    expect(한국어.endsWith('.'), code).toBe(false);
+    expect(한국어.endsWith('다'), code).toBe(true);
+    expect(영어).not.toMatch(/[가-힣]/);
+  });
+
+  it('고칠 내용이 틀리면 서버가 짚은 케이스와 칸을 같이 보인다', () => {
+    expect(요청오류문장('BAD_EDIT', 'ko', 'PAY-001.state')).toContain('PAY-001.state');
+  });
+
   it('아이디 모양은 서버 규칙을 그대로 말한다', () => {
     expect(요청오류문장('USERNAME_SHAPE', 'ko')).toBe('아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다');
   });
