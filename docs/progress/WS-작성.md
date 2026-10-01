@@ -530,3 +530,13 @@
 - 막힌 것: 없음. 이 세션은 Playwright 브라우저 파일이 없어 브라우저 검사 4건이 main 에서도 실패한다(환경)
 - 다음 세션이 알아야 할 것: 「고치기 실행」 판정은 서버가 `params ? 'edits'`(중단 · 폐기 · 이어하기 · 저장값), 집기는 kind 로 한다 — `edits` 는 `/api/authoring/edits` 로만 선다(작성 · 재실행 본문은 400). 에이전트 실제 git · gh 는 연기 시험(로컬 bare 저장소 + 가짜 gh)으로만 돌려 봤다 — 서버 author 컨테이너에서 첫 요청 때 PR 본문 · 브랜치를 눈으로 본다
 
+## 2026-10-01 — 같은 서비스 동시 작성 · 반영 때 겹침 검사 ③-1: 서버 · 에이전트 · 명세 (PR #126 · AUT-F3-15)
+
+- 완료: 에이전트가 **자리를 먼저 잡고** 가져간다 — 작성 · 재실행 · 고치기는 같은 서비스도 동시 상한 안에서 나란히, **반영은 보류가 있든 없든 서비스마다 한 줄**(보류 있는 반영은 줄 차례 뒤 자리를 잡는다 · 줄에서 기다리는 동안 단계 글을 다시 올린다 · 서버가 거절해 멈추면 줄의 반영도 시작 안 함)(`authoring-lanes.ts` · `authoring-agent.ts` `줄돌기`)
+- 완료: 반영 때 **자식이 끝낸 커밋**과 지금 main 을 서버 저장소 git 객체로만 견줘 ⒜ 같은 tc_id(표 「제거함」 포함) ⒝ 같은 요구 번호(문단 번호 뺌 · 새로 들어온 케이스끼리) ⒞ 같은 이름이면 `result.conflicts` 로 멈춘다(`authoring-conflicts.ts` · `authoring-conflicts-io.ts`). 서버 `PUT` · `DELETE …/conflicts/:tcId` · 반영 409 `CONFLICT_OPEN` · 상세 `conflicts` · `conflictsOpen` · 집기 `conflicts`(결정 전부) · 끝내기 400 `BAD_CONFLICTS` · 칸 `conflict_input`
+- 완료: 고른 대로 적용(남긴다 + tc_id 겹침 → main · 표 · 요청의 가장 큰 번호 + 1, 뺀다 → 파일과 표 줄) · main 을 요청 브랜치에 합치기(요구사항 표는 diff3 덩이 · 양쪽이 같은 자리에 더한 줄은 main → 이 요청 순 · 「요구」 번호 겹치면 뒤로 · 「덮는 범위」는 이 요청 것) · PR 본문 「겹침 처리」 줄(`authoring-conflicts-apply.ts` · `authoring-table-merge.ts` · `authoring-main-merge.ts` · `authoring-held-merge.ts` `반영작업방`)
+- 완료: 독립 검사 넷(계획 대조 · 코드 · 명세 · 보안)이 낸 지적 반영 — 보류 반영이 줄을 건너뜀 · 링크 표 · 한글 이름(`-z`) · 모양 틀린 번호가 목록을 통째로 400 으로 만듦 · 멈춤 뒤 시작 · 표 칸 단위 바꾸기 (`docs/reviews/2026-10-01-WS-작성-동시작성.md`)
+- 미완: **③-2 화면**(고르기 칸 · 모두 남긴다 · `CONFLICT_OPEN` 문구 · 반영 실패 까닭을 상태 카드에 · 반영 실패한 작성에 「다시 작성」 · DESIGN 겹침 줄) — `docs/WORKSTREAMS.md` 「📐 동시 작성 · 반영 겹침」. 서버 author 컨테이너에서 두 요청을 같은 서비스에 넣고 반영 두 번을 눌러 보는 실측
+- 막힌 것: 없음. 이 PR 은 클라우드 세션에서 시작해 맥으로 옮겨 마쳤다 — 커밋하지 않은 작업 파일은 옮겨지지 않는다(LEARNINGS)
+- 다음 세션이 알아야 할 것: **③-2 가 병합되기 전에는 author 컨테이너를 이 판으로 다시 켜지 않는다** — 겹침이 생기면 고를 화면이 없다. 반영은 CI 를 기다리는 동안에도 같은 서비스의 다음 반영을 세워 둔다(최대 17분). 에이전트가 읽는 git 이름은 `-z` 로 읽는다. `authoring-run.ts` 298줄 · `authoring-agent.ts` 300줄 근처 — 다음에 더하면 갈라야 한다
+

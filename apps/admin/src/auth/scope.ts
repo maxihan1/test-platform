@@ -87,6 +87,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests/:id/stop': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/discard': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/held/:tcId': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/conflicts/:tcId': { 종류: '작성요청', 칸: 'id' },
 
   // E2E 시나리오 (도메인/시나리오 §7). POST 의 본문 service 는 gate.ts 의 본문 갈래가 같이 본다
   '/api/scenarios': { 종류: '질의' },

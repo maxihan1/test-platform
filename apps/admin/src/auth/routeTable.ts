@@ -99,6 +99,9 @@ export const 등급표: Record<string, 표값> = {
   // 보류 케이스에 사람이 값을 넣거나 제거한다 — 화면이 부른다 (작성 §3.6 「★ 보류 케이스」)
   'PUT /api/authoring/requests/:id/held/:tcId': 작성쓰기,
   'DELETE /api/authoring/requests/:id/held/:tcId': 작성쓰기,
+  // 반영 때 겹친 케이스 고르기 — 보류 값 넣기와 같은 무게. 반영 자체는 아래 merges 가 admin 으로 본다 (작성 §3.6 「★ 반영 때 겹침 검사」)
+  'PUT /api/authoring/requests/:id/conflicts/:tcId': 작성쓰기,
+  'DELETE /api/authoring/requests/:id/conflicts/:tcId': 작성쓰기,
   // 케이스 고치기 — 결과가 초안 PR 이라 작성 요청과 무게가 같다. 병합은 아래 merges 가 admin 으로 따로 본다 (작성 §3.6 「★ 케이스 고치기」)
   'POST /api/authoring/edits': 작성쓰기,
 

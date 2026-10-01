@@ -143,7 +143,7 @@ services:
       - author_node_modules:/repo/node_modules   # 리눅스용 부품. 호스트(맥) 것은 네이티브 부품이 달라 못 쓴다
       - author_work:/work                     # 작업 폴더. 중단된 작성은 7일 보관해 이어간다 — 컨테이너를 다시 만들어도 남아야 한다 (SPEC 도메인/작성 §7)
     networks: [authoring]
-    mem_limit: 8g             # 한 건(claude + 관문 3회 Chromium) 4g × 동시 2건
+    mem_limit: 8g             # 한 건(claude + 관문 3회 Chromium) 4g × 동시 상한(기본 2건 — AUTHORING_MAX_PARALLEL)
     shm_size: 2g              # Chromium 이 /dev/shm 을 넉넉히 쓴다
 
   grafana:

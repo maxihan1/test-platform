@@ -49,7 +49,7 @@ function 칸들(줄: string): string[] {
 }
 
 /** `## <제목>` 절 아래 표를 전부(### 소제목으로 나눠도) 머리 칸 이름으로 읽는다. 다음 `#`·`##` 에서 멈춘다. 절이 없으면 빈 배열 */
-function 표읽기(글: string, 제목: string): Record<string, string>[] {
+export function 표읽기(글: string, 제목: string): Record<string, string>[] {
   const 줄들 = 글.split(/\r?\n/);
   const 시작 = 줄들.findIndex((l) => new RegExp(`^##\\s+${제목}\\s*$`).test(l.trim()));
   if (시작 < 0) return [];
