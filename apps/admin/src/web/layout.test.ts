@@ -105,6 +105,28 @@ describe('자리 목록', () => {
     expect(지금자리('unknown', '#/authoring')).toBe('#/authoring');
   });
 
+  // 사이드바 하위 메뉴 — 늘 펼쳐 둔다 (화면공통 §8 「자리 목록」 · 2026-10-02 사용자 시안 A · PR #132)
+  it('테스트 케이스와 실행 기록이 UI 테스트 · 기능 테스트 하위를 품는다', () => {
+    const 자리들 = 자리목록(김, 'MEM', 'ko');
+    const 하위 = (이름: string) => 자리들.find((자리) => 자리.이름 === 이름)?.하위?.map((h) => [h.이름, h.해시, h.라벨]);
+    expect(하위('테스트 케이스')).toEqual([
+      ['UI 테스트', '#/cases/ui', '테스트 케이스 · UI 테스트'],
+      ['기능 테스트', '#/cases/fn', '테스트 케이스 · 기능 테스트'],
+    ]);
+    expect(하위('실행 기록')).toEqual([
+      ['UI 테스트', '#/runs/ui', '실행 기록 · UI 테스트'],
+      ['기능 테스트', '#/runs/fn', '실행 기록 · 기능 테스트'],
+    ]);
+    expect(자리들.find((자리) => 자리.이름 === '테스트 작성')?.하위).toBeUndefined();
+  });
+
+  it('목록은 종류까지 지금 자리다 · 종류를 모르는 상세는 묶음이다', () => {
+    expect(지금자리('cases', '#/cases', 'UI')).toBe('#/cases/ui');
+    expect(지금자리('cases', '#/cases', 'FN')).toBe('#/cases/fn');
+    expect(지금자리('runs', '#/cases', 'UI')).toBe('#/runs/ui');
+    expect(지금자리('setup', '#/cases')).toBe('#/cases');
+  });
+
   it('그래프는 Grafana 라 바깥으로 나간다', () => {
     const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프');
     expect(그래프?.바깥).toBe(true);

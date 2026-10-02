@@ -17,6 +17,26 @@ export interface 자리 {
   해시: string;
   /** Grafana 는 이 플랫폼 밖이다. 화살표로 그렇게 표시한다 (SPEC §8) */
   바깥?: boolean;
+  /** 늘 펼쳐 두는 하위 메뉴 (화면공통 §8 「자리 목록」 · PR #132) */
+  하위?: 하위자리[];
+}
+
+/** 같은 글자(「UI 테스트」)가 두 묶음에 나온다 — 화면 읽기 프로그램이 어느 묶음 것인지 알게 라벨에 묶음 이름을 붙인다 */
+export interface 하위자리 {
+  이름: string;
+  해시: string;
+  라벨: string;
+}
+
+function 종류하위(묶음: string, 바탕: '#/cases' | '#/runs', 언어: 언어): 하위자리[] {
+  return [
+    ['UI 테스트', 'ui'],
+    ['기능 테스트', 'fn'],
+  ].map(([이름, 꼬리]) => ({
+    이름: t(이름!, 언어),
+    해시: `${바탕}/${꼬리!}`,
+    라벨: `${묶음} · ${t(이름!, 언어)}`,
+  }));
 }
 
 /** 탭이 여럿일 때는 탭 글자만 보인다. 어느 서비스를 보고 있는지가 거기 있어야 한다 (SPEC §8) */
@@ -40,9 +60,15 @@ const 그래프주소 = '/grafana/';
  */
 export function 자리목록(user: User, prefix: string | null, 언어: 언어): 자리[] {
   const 목록: 자리[] = [];
-  if (기능보나(user, prefix, 'cases')) 목록.push({ 이름: t('테스트 케이스', 언어), 해시: '#/cases' });
+  if (기능보나(user, prefix, 'cases')) {
+    const 이름 = t('테스트 케이스', 언어);
+    목록.push({ 이름, 해시: '#/cases', 하위: 종류하위(이름, '#/cases', 언어) });
+  }
   if (기능보나(user, prefix, 'authoring')) 목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring' });
-  if (기능보나(user, prefix, 'runs')) 목록.push({ 이름: t('실행 기록', 언어), 해시: '#/runs' });
+  if (기능보나(user, prefix, 'runs')) {
+    const 이름 = t('실행 기록', 언어);
+    목록.push({ 이름, 해시: '#/runs', 하위: 종류하위(이름, '#/runs', 언어) });
+  }
   if (user.dashboard === 'read') 목록.push({ 이름: t('그래프', 언어), 해시: 그래프주소, 바깥: true });
   if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings' });
   return 목록;
@@ -58,8 +84,12 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
  * `main.tsx` 안에 두면 그 파일이 `createRoot` 를 모듈 자리에서 불러 **검사할 수가 없다.**
  * 판단은 여기, 그림은 거기 (이 파일 머리 주석과 같은 규칙).
  */
-export function 지금자리(name: string, 집: string): string {
-  if (name === 'runs' || name === 'run' || name === 'item') return '#/runs';
+export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN'): string {
+  // 목록은 종류까지 자리다. 실행 결과 · 항목 상세는 주소에 종류가 없어 묶음을 가리킨다 (PR #132)
+  const 꼬리 = 종류 === undefined ? '' : `/${종류 === 'UI' ? 'ui' : 'fn'}`;
+  if (name === 'runs') return `#/runs${꼬리}`;
+  if (name === 'cases') return `#/cases${꼬리}`;
+  if (name === 'run' || name === 'item') return '#/runs';
   if (name === 'authoring' || name === 'authoringItem') return '#/authoring';
   if (name === 'settings') return '#/settings';
   // 비밀번호 변경은 자리 목록에 없다. 집을 돌려주면 케이스에 밑줄이 가서 딴 화면처럼 보인다

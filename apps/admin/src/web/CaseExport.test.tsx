@@ -31,7 +31,7 @@ function 그리기(total: number) {
   vi.spyOn(api, 'lastByCase').mockResolvedValue({ items: [] });
   const 쪽: Paged<CaseRow> = { items: total === 0 ? [] : [케이스], total, page: 1, pageSize: 50 };
   vi.spyOn(api, 'cases').mockResolvedValue(쪽);
-  render(<CaseList service="XCX" 할수={() => true} 결과보나 />);
+  render(<CaseList kind="FN" service="XCX" 할수={() => true} 결과보나 />);
 }
 
 describe('케이스 목록 — 이 결과 엑셀로', () => {

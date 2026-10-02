@@ -86,7 +86,7 @@ function 모킹(답: Paged<RunSummary> & { summary: RunTally } = 한쪽) {
 
 async function 그리기(답?: Paged<RunSummary> & { summary: RunTally }) {
   const 스파이 = 모킹(답);
-  const 것 = render(<RunList service="ZRL" 할수={운영} />);
+  const 것 = render(<RunList kind="FN" service="ZRL" 할수={운영} />);
   await waitFor(() => expect(스파이).toHaveBeenCalled());
   return { ...것, 스파이 };
 }
@@ -108,6 +108,16 @@ describe('RunList 화면 머리', () => {
     // 증적은 실행 하나마다 만든다 (§8.4). 목록에서 무엇을 받는지가 명세에 없어 확정 목업의
     // 그 버튼을 뺐다 — 누르면 아무 일도 안 하는 버튼을 만들지 않는다 (2026-09-22 결정)
     expect(screen.queryByRole('button', { name: /증적/ })).toBeNull();
+  });
+});
+
+describe('RunList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
+  it('고른 종류로 부르고 부제 맨 앞에 종류를 적는다', async () => {
+    const 스파이 = 모킹();
+    const { container } = render(<RunList kind="UI" service="ZRL" 할수={운영} />);
+    await waitFor(() => expect(스파이).toHaveBeenCalledWith('ZRL', 1, { kind: 'UI' }));
+    await screen.findByText(/ZRL 실행 2113/);
+    expect(container.querySelector('.head')?.textContent).toMatch(/UI 테스트 · 모두/);
   });
 });
 

@@ -17,7 +17,7 @@ import { 칸띠 } from './Summary.js';
 import { Failed, Loading, seconds, useAsync, when } from './ui.js';
 import { 미확정글자, 판정없음 } from './unconfirmed.js';
 
-export function RunList({ service, 할수 }: { service: string; 할수: 판정 }) {
+export function RunList({ service, 할수, kind }: { service: string; 할수: 판정; kind: 'UI' | 'FN' }) {
   const t = use말();
   // 상자로 연 실행. 닫으면 **보던 자리와 검색 조건이 그대로 남는다** — 화면을 갈아타면 잃는 것들이다
   const [열린실행, set열린실행] = useState<number | null>(null);
@@ -43,7 +43,7 @@ export function RunList({ service, 할수 }: { service: string; 할수: 판정 }
     setState(undefined);
   }
 
-  const 조건: RunQuery = { ...(q === '' ? {} : { q }), ...(state === undefined ? {} : { state }) };
+  const 조건: RunQuery = { kind, ...(q === '' ? {} : { q }), ...(state === undefined ? {} : { state }) };
   const runs = useAsync<Paged<RunSummary> & { summary: RunTally }>(
     () => api.runs(service, page, 조건),
     [service, page, q, state],
@@ -68,7 +68,14 @@ export function RunList({ service, 할수 }: { service: string; 할수: 판정 }
 
   return (
     <>
-      <Head 제목={t('실행 기록')} 부제={t('모두 {건수}건', { 건수: runs.data.total })} />
+      <Head
+        제목={t('실행 기록')}
+        부제={
+          <>
+            {kind === 'UI' ? t('UI 테스트') : t('기능 테스트')} · {t('모두 {건수}건', { 건수: runs.data.total })}
+          </>
+        }
+      />
 
       {/* 아무것도 안 돌린 서비스에 0 넷을 늘어놓지 않는다 */}
       {runs.data.summary.runs === 0 ? null : <집계 것={runs.data.summary} />}
@@ -127,7 +134,7 @@ export function RunList({ service, 할수 }: { service: string; 할수: 판정 }
                 {t('조건 지우기')}
               </button>
             ) : (
-              <a className="btn" style={{ marginTop: '14px' }} href="#/cases">
+              <a className="btn" style={{ marginTop: '14px' }} href={kind === 'UI' ? '#/cases/ui' : '#/cases/fn'}>
                 {t('케이스 목록으로')}
               </a>
             )}

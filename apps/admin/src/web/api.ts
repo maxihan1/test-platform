@@ -94,6 +94,8 @@ export interface RunSummary {
   baseUrl: string;
   serviceName: string;
   status: string;
+  // 실행 하나에 한 종류다 (PR #131). 옛 가짜 응답을 안 고치려고 선택으로 둔다
+  kind?: 'UI' | 'FN' | 'SCENARIO';
   startedAt: string;
   finishedAt: string | null;
   counts: RunCounts;
@@ -199,6 +201,8 @@ export interface RunQuery {
   q?: string;
   state?: 'running' | 'failed';
   env?: string;
+  /** 없으면 UI · 기능 둘 다 — 진행 카드가 그렇게 부른다 (실행 §7 `?kind=` · PR #131) */
+  kind?: 'UI' | 'FN';
 }
 
 export interface HistoryRow {
@@ -667,6 +671,8 @@ export interface CaseQuery {
   /** 생략하면 활성만. 비활성 케이스는 기본으로 감춘다 (SPEC §8.1) */
   active?: boolean;
   page?: number;
+  /** 사이드바 하위 메뉴의 종류. 서버가 거른다 (카탈로그 §7 `?kind=` · PR #132) */
+  kind?: 'UI' | 'FN';
 }
 
 // 목록과 엑셀이 같은 조건을 쓴다 — 두 벌이면 버튼 건수와 받은 파일 건수가 갈린다
@@ -675,6 +681,7 @@ function 케이스조건(query: CaseQuery): URLSearchParams {
   if (query.q !== undefined && query.q !== '') params.set('q', query.q);
   if (query.platform !== undefined) params.set('platform', query.platform);
   if (query.active === false) params.set('active', 'false');
+  if (query.kind !== undefined) params.set('kind', query.kind === 'UI' ? 'ui' : 'fn');
   return params;
 }
 
@@ -732,6 +739,7 @@ export const api = {
     if (조건.q !== undefined && 조건.q !== '') params.set('q', 조건.q);
     if (조건.state !== undefined) params.set('state', 조건.state);
     if (조건.env !== undefined && 조건.env !== '') params.set('env', 조건.env);
+    if (조건.kind !== undefined) params.set('kind', 조건.kind === 'UI' ? 'ui' : 'fn');
     return call<Paged<RunSummary> & { summary: RunTally }>(`/runs?${params.toString()}`);
   },
 

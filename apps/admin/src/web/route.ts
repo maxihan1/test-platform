@@ -4,14 +4,18 @@
 import type { User } from './api.js';
 import { 기능보나, type 기능 } from './role.js';
 
+// 사이드바 하위 메뉴(UI 테스트 · 기능 테스트). 종류 없는 옛 주소는 기능이다 — 지금 케이스가 전부 기능이라서 (화면공통 §8 · PR #132)
+export type 케이스종류 = 'UI' | 'FN';
+const 종류글자: Record<string, 케이스종류> = { ui: 'UI', fn: 'FN' };
+
 export type Route =
   | { name: 'login' }
   | { name: 'signup' }
   | { name: 'password' }
   | { name: 'settings' }
-  | { name: 'cases' }
+  | { name: 'cases'; kind: 케이스종류 }
   | { name: 'setup'; tcId: string }
-  | { name: 'runs' }
+  | { name: 'runs'; kind: 케이스종류 }
   | { name: 'authoring' }
   | { name: 'authoringItem'; id: number }
   | { name: 'run'; runId: number }
@@ -26,7 +30,10 @@ export function route(hash: string): Route {
   if (parts.length === 1 && parts[0] === 'password') return { name: 'password' };
   if (parts.length === 1 && parts[0] === 'settings') return { name: 'settings' };
 
-  if (parts.length === 0 || (parts[0] === 'cases' && parts.length === 1)) return { name: 'cases' };
+  if (parts.length === 0 || (parts[0] === 'cases' && parts.length === 1)) return { name: 'cases', kind: 'FN' };
+  if (parts[0] === 'cases' && parts.length === 2 && 종류글자[parts[1]!] !== undefined) {
+    return { name: 'cases', kind: 종류글자[parts[1]!]! };
+  }
 
   if (parts[0] === 'cases' && parts.length === 3 && parts[2] === 'run') {
     return { name: 'setup', tcId: decodeURIComponent(parts[1]!) };
@@ -42,7 +49,8 @@ export function route(hash: string): Route {
   }
 
   if (parts[0] === 'runs') {
-    if (parts.length === 1) return { name: 'runs' };
+    if (parts.length === 1) return { name: 'runs', kind: 'FN' };
+    if (parts.length === 2 && 종류글자[parts[1]!] !== undefined) return { name: 'runs', kind: 종류글자[parts[1]!]! };
 
     const runId = Number(parts[1]);
     if (Number.isInteger(runId)) {
