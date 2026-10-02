@@ -51,6 +51,11 @@ describe('케이스 이름 · 표의 tc_id', () => {
     const 글 = 표([['1', '9 REQ-PAY-001', 'PAY-001'], ['2', '9 REQ-PAY-002', '제거함(PAY-002)']]);
     expect([...표tcId들(글)].sort()).toEqual(['PAY-001', 'PAY-002']);
   });
+
+  it('표의 tc_id 는 종류 글자가 든 꼴(-UI- · -FN-)도 센다', () => {
+    const 글 = 표([['1', '9 REQ-PAY-001', 'PAY-UI-001'], ['2', '9 REQ-PAY-002', '제거함(PAY-FN-002)']]);
+    expect([...표tcId들(글)].sort()).toEqual(['PAY-FN-002', 'PAY-UI-001']);
+  });
 });
 
 describe('겹침 찾기', () => {
@@ -77,6 +82,18 @@ describe('겹침 찾기', () => {
         with: [{ tcId: 'PAY-031', name: '장바구니 비우기', file: 'tests/pay/sub/PAY-031.spec.ts' }],
       },
     ]);
+  });
+
+  it('⒜ 종류 글자가 든 번호(MKT-UI-001)도 main 표에 있으면 겹침이다', () => {
+    const 결과 = 겹침찾기({
+      ...바탕,
+      더한: [{ file: 경로('MKT-UI-001'), 글: 케이스('MKT-UI-001', '배너가 보인다') }],
+      main케이스: [],
+      새로들어온: new Set(),
+      요청표: 표([['1', '9 REQ-MKT-004', 'MKT-UI-001']]),
+      main표: 표([['1', '7 REQ-MKT-010', 'MKT-UI-001']]),
+    });
+    expect(결과.map((c) => [c.tcId, c.kinds])).toEqual([['MKT-UI-001', ['TCID']]]);
   });
 
   it('⒜ main 표에 「제거함」으로만 남은 번호도 겹침이다', () => {

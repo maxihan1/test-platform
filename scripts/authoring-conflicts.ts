@@ -6,6 +6,7 @@ import ts from 'typescript';
 
 import type { 겹침, 겹침종류, 상대 } from '../apps/admin/src/authoring/conflicts.js';
 import { 겹침상한 } from '../apps/admin/src/authoring/conflicts.js';
+import { TCID } from '../apps/admin/src/catalog/rules.js';
 import { 명세글, 속성, 읽기, 케이스tcId } from './authoring-held-apply.js';
 import { 번호찾기 } from './authoring-ledger.js';
 import { 표읽기 } from './authoring-ledger-check.js';
@@ -32,7 +33,6 @@ export interface 견줄것 {
   뺀것: Set<string>;
 }
 
-const TCID꼴 = /^[A-Z][A-Z0-9]{0,11}-\d{3}$/;
 // 문단 모드 번호는 요청마다 P-001 부터 다시 매긴다 — 서로 다른 기획서가 같은 번호를 갖는다 (작성 §3.6 「★ 원장」 문단 모드)
 const 문단번호 = /^P\d*-\d+$/;
 
@@ -55,7 +55,7 @@ export function 표tcId들(표: string): Set<string> {
     if (!줄.trimStart().startsWith('|')) continue;
     for (const 칸 of 줄.split('|').map((c) => c.trim())) {
       const id = /^제거함\((.+)\)$/.exec(칸)?.[1] ?? 칸;
-      if (TCID꼴.test(id)) 결과.add(id);
+      if (TCID.test(id)) 결과.add(id);
     }
   }
   return 결과;
@@ -66,7 +66,7 @@ function 요구번호들(표: string): Map<string, Set<string>> {
   const 결과 = new Map<string, Set<string>>();
   for (const 행 of 표읽기(표, '요구사항')) {
     const tcId = (행['tcId'] ?? '').trim();
-    if (!TCID꼴.test(tcId)) continue;
+    if (!TCID.test(tcId)) continue;
     const 번호들 = 번호찾기(행['출처'] ?? '').번호들.filter((b) => !문단번호.test(b));
     const 모음 = 결과.get(tcId) ?? new Set<string>();
     번호들.forEach((b) => 모음.add(b));
