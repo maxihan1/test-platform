@@ -17,10 +17,13 @@ function frames(err: Error): { file: string; line: number }[] {
   return out;
 }
 
-// 케이스가 Page Object 메서드를 부르면 첫 프레임은 pages/*.page.ts 다. 화면은 케이스 파일을 발췌하므로 spec 프레임을 먼저 고른다
+// 케이스가 Page Object 메서드를 부르면 첫 프레임은 pages/*.page.ts 다. 화면은 케이스 파일을 발췌하므로 spec 프레임을 먼저 고른다.
+// 시나리오 러너(apps/runner/scenario/scenario.spec.ts)도 .spec.ts 라서 케이스 폴더(/tests/) 안의 것만 고른다
 function caller(err: Error): { file: string; line: number } | undefined {
   const all = frames(err);
-  return all.find((f) => f.file.endsWith('.spec.ts')) ?? all[0];
+  return (
+    all.find((f) => f.file.includes('/tests/') && !f.file.includes('/apps/runner/') && f.file.endsWith('.spec.ts')) ?? all[0]
+  );
 }
 
 export function callerLine(err: Error): number | undefined {
