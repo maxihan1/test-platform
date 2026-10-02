@@ -2,6 +2,8 @@
 
 import type { ItemStatus, Platform, StepResult } from '@platform/kit';
 
+import type { RunKind } from './runKind.js';
+
 export interface RunCounts {
   total: number;
   pass: number;
@@ -24,6 +26,8 @@ export interface RunSummary {
   // 실행 시점 서비스 이름. 설정에서 이름을 고쳐도 과거 기록은 그대로다 (SPEC §6 · §8.4)
   serviceName: string;
   status: string;
+  // 실행 하나에 한 종류다 — UI · FN · SCENARIO (SPEC 공통/4-데이터모델 「실행 종류」)
+  kind: RunKind;
   startedAt: string;
   finishedAt: string | null;
   counts: RunCounts;

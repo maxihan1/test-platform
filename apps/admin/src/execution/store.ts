@@ -7,6 +7,7 @@ import type { ExecuteResponse, Platform, StepResult } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 저장값을채운다 } from './savedInput.js';
+import { 실행종류 } from './runKind.js';
 
 export const DEFAULT_TIMEOUT_MS = 300_000;
 
@@ -20,6 +21,7 @@ export class RunInputError extends Error {
       | 'CASE_NOT_FOUND'
       | 'INVALID_REQUEST'
       | 'MIXED_SERVICE'
+      | 'MIXED_KIND'
       | 'ENV_NOT_FOUND'
       | 'SERVICE_FORBIDDEN'
       | 'TOO_MANY_ITEMS',
@@ -132,6 +134,9 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     throw new RunInputError('MIXED_SERVICE', `한 실행에 서비스가 섞여 있다: ${prefixes.join(', ')}`);
   }
   const prefix = prefixes[0] ?? '';
+  // 한 실행은 한 종류다 — 실행 기록 · 증적 · 견주기가 종류별로 갈린다 (SPEC 공통/4-데이터모델 「실행 종류」)
+  const kind = 실행종류(input.items.map((i) => i.tcId));
+  if (kind === null) throw new RunInputError('MIXED_KIND', '한 실행에 UI 테스트와 기능 테스트가 섞여 있다');
   if (input.env.trim() === '') throw new RunInputError('INVALID_REQUEST', '대상 서버를 고르지 않았다');
 
   const repeat = input.repeat ?? 1;
@@ -182,8 +187,8 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
 
     // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)
     const run = await client.query<{ run_id: string }>(
-      `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo, base_url, notify_slack)
-       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9) RETURNING run_id`,
+      `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo, base_url, notify_slack, kind)
+       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10) RETURNING run_id`,
       [
         input.title,
         input.triggeredBy,
@@ -195,6 +200,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
         found서비스.tests_repo,
         found서비스.base_url,
         input.notifySlack ?? false,
+        kind,
       ],
     );
     const runId = Number(run.rows[0]!.run_id);

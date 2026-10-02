@@ -180,7 +180,7 @@ describe.skipIf(연결 === undefined)('시나리오 저장소', () => {
     await 실행넣기(id, 'FINISHED', ['FAIL']);
     const 최신 = await 실행넣기(id, 'FINISHED', ['PASS', 'PASS']);
     await 실행넣기(딴것.id, 'FINISHED', ['FAIL']);
-    await 실행넣기(null, 'FINISHED', [], 'CASE');
+    await 실행넣기(null, 'FINISHED', [], 'FN');
 
     const 본것 = await 마지막실행(id);
     expect(본것).toMatchObject({ runId: 최신, status: 'FINISHED', verdict: 'PASS' });
