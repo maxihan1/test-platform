@@ -279,4 +279,26 @@ export const 작성말: Record<string, string> = {
   '이어 작성은 작성 요청 권한이 있는 사람만 할 수 있습니다.': 'Only people who can request writing can start a follow-up.',
   'GitHub 에서 이미 병합했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.':
     'Even if the PR was merged on GitHub, merge here to follow up on the remaining requirements.',
+  // 반영 때 겹침 (도메인/작성 §3.6 「★ 반영 때 겹침 검사」)
+  '겹친 케이스': 'Overlapping cases',
+  '{수}건 · 아직 고르지 않은 것 {남은}건': '{수} cases · {남은} not decided yet',
+  '모두 남긴다': 'Keep all',
+  '먼저 반영된 케이스와 번호 · 요구 번호 · 이름이 겹칩니다. 케이스마다 남길지 뺄지 고른 뒤에 반영할 수 있습니다.':
+    'These overlap an already merged case by ID, requirement number or name. Decide keep or drop for each case, then merge.',
+  '무엇이 겹쳤나': 'What overlaps',
+  '겹친 main 케이스': 'Overlapping case on main',
+  '고른 것': 'Decision',
+  '아직 안 고름': 'Not decided',
+  남긴다: 'Keep',
+  뺀다: 'Drop',
+  '번호 겹침': 'Same ID',
+  '요구 번호 겹침': 'Same requirement',
+  '이름 겹침': 'Same name',
+  '번호가 겹쳐 반영할 때 새 번호를 받습니다': 'The ID overlaps, so it gets a new ID when merged',
+  '겹치는 케이스 {수}건을 아직 고르지 않아 반영할 수 없습니다.': '{수} overlapping cases are not decided yet, so you cannot merge.',
+  '반영하지 못했습니다': 'The merge did not go through',
+  '같은 자료로 다시 작성하면 새 main 위에서 처음부터 다시 만듭니다. 지금까지의 실행은 실행 기록에 남습니다.':
+    'Writing again from the same material rebuilds on the latest main. Earlier runs stay in the run history.',
+  '반영 실패 까닭이 기록되지 않았습니다': 'No reason was recorded for the failed merge',
+  '겹친 케이스로 가기': 'Go to overlapping cases',
 };

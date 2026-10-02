@@ -377,6 +377,10 @@ export interface AuthoringRow {
   heldOpen?: number;
   /** 에이전트가 보류 목록을 못 읽었다. 참이면 서버가 반영을 막는다(HELD_UNKNOWN) */
   heldUnknown?: boolean;
+  /** 반영 때 겹친 케이스 (도메인/작성 §3.6 「★ 반영 때 겹침 검사」). 상세에만 — 가장 최근 반영이 겹침으로 실패했을 때의 목록에 사람 결정을 붙인 것 */
+  conflicts?: AuthoringConflict[];
+  /** 아직 고르지 않은 겹침 수. 0 보다 크면 서버가 반영을 막는다(CONFLICT_OPEN) */
+  conflictsOpen?: number;
   /** 반영 때 고를 수 있는 대상 서버 — 테스트 계정이 있는 줄 이름. 정방향 보류에만 온다 */
   mergeEnvs?: string[];
   /** 기획서 요구 셈 (도메인/작성 §3.6 「★ 원장」). 상세에만 — null 이면 셈을 싣기 전의 실행이다 */
@@ -399,6 +403,20 @@ export type AuthoringCoverage =
       unread?: string[];
     }
   | { none: string };
+
+export type AuthoringConflictKind = 'TCID' | 'REQUIREMENT' | 'NAME';
+export type AuthoringConflictAction = 'KEEP' | 'DROP';
+
+/** 서버 `authoring/conflicts.ts` 의 겹침 + input. `with` 는 main 에 이미 있는 케이스다 */
+export interface AuthoringConflict {
+  tcId: string;
+  name: string;
+  file: string;
+  kinds: AuthoringConflictKind[];
+  with: { tcId: string; name: string; file: string }[];
+  requirements?: string[];
+  input: { action: AuthoringConflictAction; by: string; at: string } | null;
+}
 
 export type AuthoringHeldValue = string | number | boolean;
 
@@ -842,6 +860,18 @@ export const api = {
     call<{ ok: true }>(`/authoring/requests/${id}/held/${encodeURIComponent(tcId)}?service=${encodeURIComponent(service)}`, {
       ...json(body),
       method: 'PUT',
+    }),
+
+  /** 겹친 케이스를 남기거나 뺀다 — 누가 · 언제는 서버가 붙인다. `id` 는 반영하려는 작성 실행 번호 */
+  putAuthoringConflict: (service: string, id: number, tcId: string, action: AuthoringConflictAction) =>
+    call<{ ok: true }>(`/authoring/requests/${id}/conflicts/${encodeURIComponent(tcId)}?service=${encodeURIComponent(service)}`, {
+      ...json({ action }),
+      method: 'PUT',
+    }),
+
+  deleteAuthoringConflict: (service: string, id: number, tcId: string) =>
+    call<{ ok: true }>(`/authoring/requests/${id}/conflicts/${encodeURIComponent(tcId)}?service=${encodeURIComponent(service)}`, {
+      method: 'DELETE',
     }),
 
   deleteAuthoringHeld: (service: string, id: number, tcId: string) =>

@@ -5,7 +5,9 @@ import { useCallback, useEffect } from 'react';
 
 import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
 import { 고칠내용 } from './AuthoringEditParts.js';
+import { AuthoringConflicts } from './AuthoringConflicts.js';
 import { AuthoringHeld } from './AuthoringHeld.js';
+import { AuthoringMergeFailed } from './AuthoringMergeFailed.js';
 import { AuthoringRuns } from './AuthoringRuns.js';
 import { AuthoringStatusCard } from './AuthoringStatusCard.js';
 import { AuthoringTodo } from './AuthoringTodo.js';
@@ -181,6 +183,16 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
           </div>
 
           <div className="authoring-col">
+            {/* 케이스 고치기는 자기 반영 실패 안내(다시 적용)가 있다 */}
+            {고치기 ? null : (
+              <AuthoringMergeFailed
+                service={service}
+                실행={뿌리.runs?.[0]}
+                원본={작성.kind === 'AUTHOR' ? 작성.id : (작성.sourceId ?? null)}
+                권한={할수('작성요청')}
+                reload={reload}
+              />
+            )}
             <AuthoringTodo
               service={service}
               요청={data}
@@ -246,6 +258,8 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
             </section>
           </div>
         </div>
+        {/* 겹침은 반영이 겹침으로 실패한 뒤 그 반영의 원본(최신 끝난 작성 실행)에 붙는다 — 보류와 같은 행이다 */}
+        <AuthoringConflicts service={service} 요청번호={data.id} conflicts={data.conflicts ?? []} 편집={할수('작성요청')} reload={reload} />
         {/* 보류는 최신 끝난 실행에 붙는다 — 서버가 그 행에만 입력을 받는다 (도메인/작성 §7) */}
         <AuthoringHeld service={service} 요청번호={data.id} held={data.held ?? []} 편집={할수('작성요청')} reload={reload} />
         <AuthoringRuns runs={뿌리.runs ?? []} 뿌리종류={뿌리.kind} />

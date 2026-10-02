@@ -239,3 +239,7 @@
 .held-bar { margin: 4px 0 8px; }
 .held-env { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 13px; }
 .authoring-todo .held-why { margin: 6px 0 0; color: var(--ink-muted); font-size: 13px; }
+
+.conflicts-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.conflicts-head h3 { margin: 0; }
+.authoring-conflicts .held-chip + .held-chip { margin-left: 4px; }
