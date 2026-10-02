@@ -192,7 +192,8 @@ UI Test 와 Functional Test 는 `tests/<폴더>/pages/<화면>.page.ts` 의 Page
 
 - **API 케이스는 Functional Test 다** (R17) — Page Object 를 쓰지 않는다.
 - **API 요구는 대상 서버로 요청하는 케이스로 쓴다.** 주소는 화면 케이스처럼 `/api/…` 상대 경로다 — 러너가 대상 주소를 넘긴다.
-  로그인한 세션이 필요하면 `page.request` 로 화면 로그인 쿠키를 같이 쓴다(`tests/mkt/MKT-045.spec.ts`)
+  로그인한 세션이 필요하면 `page.request` 로 화면 로그인 쿠키를 같이 쓴다 — 한 절차에서 화면으로 로그인하고 로그인 뒤에만 보이는 요소를 기다린 다음
+  `await page.request.get('/api/…')` 로 부른다(쿠키가 따라간다). 로그인 없는 요청은 `request` fixture 를 쓴다(`tests/demo/DEMO-004.spec.ts`)
 - **계정 값은 `params` 비밀값 칸으로만** 받는다(`.meta({ secret: true })`). 요청 본문에 값을 적지 않는다
 - 되돌릴 수 없는 요청(가입 · 결제 · 발송)은 API 로 보내도 되돌릴 수 없다 — 위 「빼기 전에」 표가 그대로 적용된다
 - **비기능 요구 가운데 브라우저에서 보이는 것은 화면 케이스다** — 입력칸 라벨은 UI Test, 키보드로 옮겨 다니기 · 모달이 뜨면 초점이 모달 안으로 ·
