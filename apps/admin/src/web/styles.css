@@ -313,7 +313,7 @@ body {
    접힌 레일에 「UI 테스」가 잘려 보였다 (2026-10-02 눈 확인) */
 .folded .side .side-nav a.side-sub {
   font-size: 0;
-  padding: 2px 0;
+  padding: 8px 0;
 }
 
 /* 사이드바 바닥으로 사람과 로그아웃을 미는 빈 칸 */

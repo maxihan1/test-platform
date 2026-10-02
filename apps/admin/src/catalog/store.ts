@@ -178,8 +178,10 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
   const summary = await pool.query<{ count: string; oldest: Date | null }>(
     `SELECT count(*) AS count, min(unconfirmed_since) AS oldest
        FROM test_case
-      WHERE tc_id LIKE $1 AND is_active AND unconfirmed IS NOT NULL`,
-    [`${query.service}-%`],
+      WHERE tc_id LIKE $1 AND is_active AND unconfirmed IS NOT NULL
+        -- 종류는 검색 조건이 아니라 사이드바가 고른 범위라 따른다 — UI 목록 부제에 기능 미확정이 섞이지 않게 (PR #132)
+        AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))`,
+    [`${query.service}-%`, query.kind ?? null],
   );
 
   return {

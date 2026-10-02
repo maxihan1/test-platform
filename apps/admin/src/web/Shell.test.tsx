@@ -162,9 +162,12 @@ describe('사이드바 하위 메뉴 (화면공통 §8 · PR #132)', () => {
     expect(screen.getByRole('link', { name: '테스트 케이스 · UI 테스트' }).getAttribute('aria-current')).toBeNull();
   });
 
-  it('종류를 모르는 상세(실행 결과)에서는 묶음이 지금 자리다', () => {
+  it('종류를 모르는 상세(실행 결과)에서는 묶음이 펼친 표시만 받는다 — 묶음 링크는 기능 목록이라 「지금 자리」가 아니다', () => {
     띄운다(결제, 'ko', () => {}, '#/runs');
-    expect(screen.getByRole('link', { name: '실행 기록' }).getAttribute('aria-current')).toBe('page');
+    const 묶음 = screen.getByRole('link', { name: '실행 기록' });
+    expect(묶음.getAttribute('aria-current')).toBeNull();
+    expect(묶음.hasAttribute('data-open')).toBe(true);
+    expect(screen.getByRole('group', { name: '실행 기록' })).toBeTruthy();
   });
 
   it('접혀도 하위 메뉴에 키보드로 닿는다 — 지우지 않고 글자만 숨긴다', () => {

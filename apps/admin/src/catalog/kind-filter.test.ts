@@ -43,4 +43,11 @@ describe.skipIf(연결 === undefined)('케이스 목록의 종류 거르기', ()
     expect(await 목록('FN')).toEqual(['XCK-001', 'XCK-FN-002']);
     expect(await 목록()).toEqual(['XCK-001', 'XCK-FN-002', 'XCK-UI-001']);
   });
+
+  it('미확정 요약도 종류를 따른다 — UI 목록 부제에 기능 미확정이 섞이지 않는다', async () => {
+    await q("UPDATE test_case SET unconfirmed = 'XCK 사유', unconfirmed_since = now() WHERE tc_id = 'XCK-001'");
+    const 셈 = async (kind?: 'UI' | 'FN') =>
+      (await listCases({ service: 'XCK', q: '', activeOnly: true, page: 1, pageSize: 50, kind })).unconfirmed.count;
+    expect([await 셈('UI'), await 셈('FN'), await 셈()]).toEqual([0, 1, 1]);
+  });
 });

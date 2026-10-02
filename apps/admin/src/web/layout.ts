@@ -95,7 +95,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN'): s
   // 비밀번호 변경은 자리 목록에 없다. 집을 돌려주면 케이스에 밑줄이 가서 딴 화면처럼 보인다
   if (name === 'password') return '#/password';
   // 케이스가 none 인 사람의 집은 케이스가 아니다 — 집은 route.ts 의 `집()` 이 권한으로 고른다
-  if (name === 'cases' || name === 'setup') return '#/cases';
+  if (name === 'setup') return '#/cases';
   return 집;
 }
 
