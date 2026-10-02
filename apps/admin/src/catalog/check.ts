@@ -15,7 +15,7 @@ import {
   type ListReport,
   type Violation,
 } from './rules.js';
-import { checkPageObject, pageObjectFiles } from './pageObject.js';
+import { checkNonCase, nonCaseFiles } from './pageObject.js';
 import { caseFiles, scan, testsRoot } from './scanner.js';
 import { gitEnv, hasTag, newlyUnconfirmed, oldSourceByTcId } from './unconfirmed.js';
 
@@ -100,9 +100,9 @@ async function main(): Promise<void> {
     texts.set(rel(file), text);
   }
 
-  // Page Object 는 K7 만 진다. registration 쪽에 섞으면 테스트가 없다고 K8 로 잘못 찍힌다
-  for (const file of await pageObjectFiles(root)) {
-    violations.push(...checkPageObject(rel(file), await readFile(file, 'utf8')));
+  // 케이스가 아닌 .ts 는 K7 만 진다. registration 쪽에 섞으면 테스트가 없다고 K8 로 잘못 찍힌다
+  for (const file of await nonCaseFiles(root)) {
+    violations.push(...checkNonCase(rel(file), await readFile(file, 'utf8')));
   }
 
   const { specs, failures, duplicates } = await scan(root);

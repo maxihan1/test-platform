@@ -1,4 +1,4 @@
-// 케이스 파일과 Page Object · Component 파일이 같이 지는 K7(주석·expect 금지)을 검사한다
+// 케이스 파일과 tests/ 아래 케이스가 아닌 .ts 파일(Page Object · 도우미)이 같이 지는 K7 을 검사한다
 
 import { readdir } from 'node:fs/promises';
 import { join, sep } from 'node:path';
@@ -37,19 +37,49 @@ export function k7(file: string, sf: ts.SourceFile): Violation[] {
   return out;
 }
 
-// Page Object 는 케이스가 아니라서 K1·K3 같은 케이스 규칙을 걸면 멀쩡한 파일이 위반으로 찍힌다
-export function checkPageObject(file: string, text: string): Violation[] {
-  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  return k7(file, sf).sort((a, b) => a.line - b.line);
+// 증적 · K6 · K12 는 케이스 파일의 절차 제목과 판정 문장만 읽는다. 다른 파일에 숨은 step · verify 는 결과에서 사라진다
+function stepOrVerify(file: string, sf: ts.SourceFile): Violation[] {
+  const out: Violation[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression;
+      const name =
+        ts.isPropertyAccessExpression(callee) &&
+        ts.isIdentifier(callee.expression) &&
+        callee.expression.text === 'test' &&
+        callee.name.text === 'step'
+          ? 'test.step 을'
+          : ts.isIdentifier(callee) && callee.text === 'verify'
+            ? 'verify 를'
+            : undefined;
+      if (name) {
+        out.push({
+          file,
+          line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
+          rule: 'K7',
+          what: `케이스가 아닌 파일에서 ${name} 부른다`,
+          why: '증적과 검사가 케이스 파일만 읽어 이 절차와 판정이 결과에서 빠진다',
+        });
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
 }
 
-// tests/<폴더>/pages/<이름>.page.ts · tests/<폴더>/components/<이름>.component.ts 자리만 Page Object 다
-const PAGE_OBJECT = /^[^/]+\/(?:pages\/[^/]+\.page|components\/[^/]+\.component)\.ts$/;
+// 케이스가 아니라서 K1·K3 같은 케이스 규칙을 걸면 멀쩡한 파일이 위반으로 찍힌다
+export function checkNonCase(file: string, text: string): Violation[] {
+  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  return [...k7(file, sf), ...stepOrVerify(file, sf)].sort((a, b) => a.line - b.line);
+}
 
-export async function pageObjectFiles(root: string): Promise<string[]> {
+// 이름 꼴은 cases-only 가 따로 본다. 여기서 꼴로 거르면 꼴이 어긋난 파일이 K7 을 아예 안 받는다
+export async function nonCaseFiles(root: string): Promise<string[]> {
   const entries = await readdir(root, { recursive: true });
   return entries
-    .filter((p) => PAGE_OBJECT.test(p.split(sep).join('/')))
+    .map((p) => p.split(sep).join('/'))
+    .filter((p) => p.endsWith('.ts') && !p.endsWith('.spec.ts') && !p.split('/').includes('node_modules'))
     .map((p) => join(root, p))
     .sort();
 }
