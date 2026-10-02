@@ -130,6 +130,47 @@ describe('main 합치기', () => {
       expect(깃(['rev-parse', 'HEAD']).낸것).toBe(머리전);
       expect(깃(['status', '--porcelain']).낸것).toBe('');
     });
+
+    const 바탕글 = 'export class LoginPage {\n  id = 1;\n\n\n\n\n\n  pw = 2;\n}\n';
+    it.each([
+      ['서로 다른 줄을 고쳐 git 이 깨끗이 합칠 수 있어도', 경로, 'tests/mkt/components/header.ts'],
+      ['components 도 같다', 'tests/mkt/components/header.ts', 경로],
+    ])('%s 거절한다', (_이름, 겹침, 다른것) => {
+      const { 트리, 깃, mainSha } = 갈라놓기(
+        (t) => {
+          쓰기(t, 겹침, 바탕글.replace('id = 1', 'id = 10'));
+          쓰기(t, 다른것, '요청\n');
+        },
+        (t) => 쓰기(t, 겹침, 바탕글.replace('pw = 2', 'pw = 20')),
+        (t) => {
+          쓰기(t, 겹침, 바탕글);
+          쓰기(t, 다른것, '바탕\n');
+        },
+      );
+      const 머리전 = 깃(['rev-parse', 'HEAD']).낸것;
+      const 결과 = main합치기({ 트리, 깃, mainSha, ...mkt값 });
+      expect(결과).toEqual({ 사유: expect.stringContaining(겹침) });
+      expect(결과).toEqual({ 사유: expect.stringContaining('다시 작성') });
+      expect(결과).toEqual({ 사유: expect.not.stringContaining(다른것) });
+      expect(깃(['rev-parse', 'HEAD']).낸것).toBe(머리전);
+      expect(깃(['status', '--porcelain']).낸것).toBe('');
+    });
+
+    it('한쪽만 고쳤거나 서로 다른 Page Object 를 고쳤으면 그대로 합친다', () => {
+      const 다른 = 'tests/mkt/pages/home.page.ts';
+      const { 트리, 깃, mainSha } = 갈라놓기(
+        (t) => 쓰기(t, 경로, 바탕글.replace('id = 1', 'id = 10')),
+        (t) => 쓰기(t, 다른, 'export class HomePage { main = 1; }\n'),
+        (t) => {
+          쓰기(t, 경로, 바탕글);
+          쓰기(t, 다른, 'export class HomePage {}\n');
+        },
+      );
+      expect(main합치기({ 트리, 깃, mainSha, ...mkt값 })).toEqual({ 합침: true });
+      expect(readFileSync(join(트리, 경로), 'utf8')).toContain('id = 10');
+      expect(readFileSync(join(트리, 다른), 'utf8')).toContain('main = 1');
+      expect(깃(['status', '--porcelain']).낸것).toBe('');
+    });
   });
 
   it('새 서비스의 첫 요청 둘이 표를 각자 만들었으면 합치지 않는다', () => {

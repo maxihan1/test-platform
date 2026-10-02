@@ -67,7 +67,16 @@ export function main합치기(판: 합칠판): { 합침: boolean } | { 사유: s
   // -z — 한글 · 특수 문자 이름을 git 이 따옴표로 감싸 내면 이름이 안 맞는다
   const 바뀐 = 깃(['diff', '--name-only', '-z', 바탕.낸것.trim(), mainSha]);
   if (!바뀐.ok) return { 사유: `main 에서 바뀐 파일을 못 읽었다: ${바뀐.까닭 ?? ''}` };
-  if (!합칠까(바뀐.낸것.split('\0').filter((f) => f !== ''), 표경로, 폴더)) return { 합침: false };
+  const main바뀐것 = 바뀐.낸것.split('\0').filter((f) => f !== '');
+  if (!합칠까(main바뀐것, 표경로, 폴더)) return { 합침: false };
+
+  // Page Object 는 git 이 다른 줄이라 조용히 합쳐도 한쪽 케이스를 깰 수 있다 — 서비스 폴더는 CI 가 안 돌려 아무도 못 잡는다
+  const 내바뀐 = 깃(['diff', '--name-only', '-z', 바탕.낸것.trim(), 'HEAD']);
+  if (!내바뀐.ok) return { 사유: `요청에서 바뀐 파일을 못 읽었다: ${내바뀐.까닭 ?? ''}` };
+  const 부품 = [`tests/${폴더}/pages/`, `tests/${폴더}/components/`];
+  const 둘다 = new Set(내바뀐.낸것.split('\0').filter((f) => f !== ''));
+  const 부품겹침 = main바뀐것.filter((f) => 둘다.has(f) && 부품.some((p) => f.startsWith(p)));
+  if (부품겹침.length > 0) return { 사유: `main 과 같은 파일을 고쳐 합치지 못했다 — ${부품겹침.join(' · ')}. 다시 작성한다` };
 
   const 되돌리기 = (사유: string) => (깃(['merge', '--abort']), { 사유 });
   const 합침 = 깃(['-c', 'merge.conflictStyle=diff3', 'merge', '--no-commit', '--no-ff', mainSha]);
