@@ -5,6 +5,7 @@ import ts from 'typescript';
 
 import type { CaseSpec, JsonSchema } from '@platform/kit';
 
+import { k7, K7_WHY } from './pageObject.js';
 import { caseSteps, isTestStep } from './steps.js';
 import { badTag } from './unconfirmed.js';
 
@@ -31,7 +32,7 @@ const WHY: Record<RuleId, string> = {
   K4: '깜빡한 것과 정말 없는 것을 구분할 수 없고 입력 폼 라벨을 못 만든다',
   K5: '러너의 --project가 실패한다',
   K6: '절차·판정 칸이 비어 증적이 못 된다',
-  K7: '같은 설명이 두 군데 생겨 한쪽이 거짓말을 시작한다',
+  K7: K7_WHY,
   K8: '문법 오류나 import 실패로 케이스가 등록되지 않는다',
   K9: '비밀번호가 화면과 증적 문서에 평문으로 박힌다',
   K10: '사람이 값을 채워야만 도는 케이스는 정기 실행이 돌리지 못한다',
@@ -75,20 +76,9 @@ export function checkSource(file: string, text: string): SourceResult {
   const lineAt = (pos: number): number => sf.getLineAndCharacterOfPosition(pos).line + 1;
   const lineOf = (node: ts.Node): number => lineAt(node.getStart(sf));
 
-  const violations: Violation[] = [];
   const propLines = new Map<string, number>();
 
-  // 주석은 토큰 앞의 트리비아로만 붙는다. 문자열·정규식 안의 슬래시는 토큰이 아니므로 여기 걸리지 않는다
-  const counted = new Set<number>();
-  const comments = (node: ts.Node): void => {
-    for (const r of ts.getLeadingCommentRanges(text, node.pos) ?? []) {
-      if (counted.has(r.pos)) continue;
-      counted.add(r.pos);
-      violations.push(v(file, lineAt(r.pos), 'K7', '주석이 있다'));
-    }
-    node.getChildren(sf).forEach(comments);
-  };
-  comments(sf);
+  const violations: Violation[] = k7(file, sf);
 
   let declared = 0;
   let literal: ts.ObjectLiteralExpression | undefined;
@@ -103,12 +93,6 @@ export function checkSource(file: string, text: string): SourceResult {
         const arg = d.initializer.arguments[0];
         if (literal === undefined && arg !== undefined && ts.isObjectLiteralExpression(arg)) literal = arg;
       }
-    }
-
-    if (ts.isIdentifier(node) && node.text === 'expect') {
-      violations.push(
-        v(file, lineOf(node), 'K7', 'expect를 직접 쓴다', '검증 문장이 결과에 남지 않아 증적 문서가 빈다'),
-      );
     }
 
     if (ts.isCallExpression(node)) {
