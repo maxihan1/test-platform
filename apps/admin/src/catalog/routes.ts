@@ -140,6 +140,11 @@ async function 실재하는서비스인가(prefix: string): Promise<boolean> {
   return (await findService(prefix)) !== null;
 }
 
+// 모르는 값은 거르지 않는다 — 실행 목록의 `?kind=` 와 같은 관례다 (카탈로그 §7 · PR #132)
+export function 종류읽기(값: string | undefined): 'UI' | 'FN' | undefined {
+  return 값 === 'ui' ? 'UI' : 값 === 'fn' ? 'FN' : undefined;
+}
+
 export default async function catalogRoutes(app: FastifyInstance): Promise<void> {
   // 배포는 컨테이너 재기동이다. 뜨는 김에 한 번 훑어 두면 배포 직후 목록이 최신이 된다 (SPEC §3.1)
   startup = runScan(app.log);
@@ -151,7 +156,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
     return 기록 === null ? null : 보이는결과(기록, req.user);
   });
 
-  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string } }>(
+  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string } }>(
     '/catalog/cases',
     async (req, reply) => {
       const service = req.query.service ?? '';
@@ -169,13 +174,14 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         q: req.query.q ?? '',
         platform: platform === 'desktop' || platform === 'mobile' ? platform : undefined,
         activeOnly: req.query.active !== 'false',
+        kind: 종류읽기(req.query.kind),
         page: Math.max(1, Number(req.query.page ?? 1) || 1),
         pageSize: PAGE_SIZE,
       });
     },
   );
 
-  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string } }>(
+  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string } }>(
     '/catalog/export',
     async (req, reply) => {
       const service = req.query.service ?? '';
@@ -193,18 +199,22 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         q: req.query.q ?? '',
         platform: platform === 'desktop' || platform === 'mobile' ? platform : undefined,
         activeOnly: req.query.active !== 'false',
+        kind: 종류읽기(req.query.kind),
         canSeeRuns: 되나('runs'),
         canSeeAuthoring: 되나('authoring'),
       });
       const 날짜 = 한국시각(자료.generatedAt).slice(0, 10);
+      // UI · 기능을 따로 받으면 이름이 같아 덮어쓴다 — 종류를 이름에 넣는다 (PR #132)
+      const 종류 = 종류읽기(req.query.kind);
+      const 꼬리 = 종류 === undefined ? '' : `-${종류}`;
       // 옛 브라우저용 ASCII 이름을 앞에 두고 한글 이름은 RFC 5987 로 싣는다 (authoring/assets.ts 머리글이름과 같은 인코딩)
-      const 한글 = encodeURIComponent(`${service}-테스트케이스-${날짜}.xlsx`).replace(
+      const 한글 = encodeURIComponent(`${service}-테스트케이스${꼬리}-${날짜}.xlsx`).replace(
         /['()*]/g,
         (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
       );
       return reply
         .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        .header('content-disposition', `attachment; filename="${service}-testcases-${날짜}.xlsx"; filename*=UTF-8''${한글}`)
+        .header('content-disposition', `attachment; filename="${service}-testcases${꼬리}-${날짜}.xlsx"; filename*=UTF-8''${한글}`)
         .send(await renderCatalogXlsx(자료));
     },
   );

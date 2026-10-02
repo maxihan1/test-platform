@@ -21,9 +21,13 @@ const 실행만 = 사람([서비스('PAY', { cases: 'none', runs: 'read', author
 
 describe('route', () => {
   it('빈 주소는 케이스 목록이다', () => {
-    expect(route('')).toEqual({ name: 'cases' });
-    expect(route('#/')).toEqual({ name: 'cases' });
-    expect(route('#/cases')).toEqual({ name: 'cases' });
+    expect(route('')).toEqual({ name: 'cases', kind: 'FN' });
+    expect(route('#/')).toEqual({ name: 'cases', kind: 'FN' });
+    expect(route('#/cases')).toEqual({ name: 'cases', kind: 'FN' });
+    // 사이드바 하위 메뉴 — 종류가 주소에 남아 새로고침에도 안 풀린다 (화면공통 §8 · PR #132)
+    expect(route('#/cases/fn')).toEqual({ name: 'cases', kind: 'FN' });
+    expect(route('#/cases/ui')).toEqual({ name: 'cases', kind: 'UI' });
+    expect(route('#/cases/zz')).toMatchObject({ name: 'unknown' });
   });
 
   it('케이스 실행 설정', () => {
@@ -31,7 +35,9 @@ describe('route', () => {
   });
 
   it('실행 묶음 목록과 실행 1건', () => {
-    expect(route('#/runs')).toEqual({ name: 'runs' });
+    expect(route('#/runs')).toEqual({ name: 'runs', kind: 'FN' });
+    expect(route('#/runs/ui')).toEqual({ name: 'runs', kind: 'UI' });
+    expect(route('#/runs/fn')).toEqual({ name: 'runs', kind: 'FN' });
     expect(route('#/runs/123')).toEqual({ name: 'run', runId: 123 });
   });
 

@@ -64,7 +64,16 @@ function Screen({
 
   switch (current.name) {
     case 'cases':
-      return <CaseList service={prefix} 할수={할수} 결과보나={기능보나(user, service?.prefix ?? null, 'runs')} />;
+      // 종류마다 새로 그린다 — 고른 것 · 쪽 · 검색어가 남으면 UI 와 기능을 섞어 골라 실행이 MIXED_KIND 로 거절된다 (PR #132)
+      return (
+        <CaseList
+          key={current.kind}
+          kind={current.kind}
+          service={prefix}
+          할수={할수}
+          결과보나={기능보나(user, service?.prefix ?? null, 'runs')}
+        />
+      );
     case 'setup':
       return <RunSetup tcId={current.tcId} service={service} user={user} />;
     case 'authoring':
@@ -74,7 +83,7 @@ function Screen({
       // 주소는 새 번호인데 앞 요청 화면이 보이고 다시 누를 수 있다 (2026-09-30 코드 검토)
       return <AuthoringDetail key={current.id} service={prefix} id={current.id} 할수={할수} />;
     case 'runs':
-      return <RunList service={prefix} 할수={할수} />;
+      return <RunList key={current.kind} kind={current.kind} service={prefix} 할수={할수} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
       return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
@@ -203,7 +212,10 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       언어={언어}
       on언어={on언어}
       onLogout={나간다}
-      current={지금자리(route(hash).name, 집(상태.user, 열린접두사))}
+      current={(() => {
+        const 지금 = route(hash);
+        return 지금자리(지금.name, 집(상태.user, 열린접두사), 'kind' in 지금 ? 지금.kind : undefined);
+      })()}
     >
       <Screen
         hash={hash}

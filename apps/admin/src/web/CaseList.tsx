@@ -22,7 +22,7 @@ import { Failed, Loading, message, useAsync } from './ui.js';
 import { useRunPick } from './useRunPick.js';
 
 // 결과보나 — 실행 칸이 none 이면 마지막 결과를 부르지 않는다. 부르면 서버가 403 을 낸다
-export function CaseList({ service, 할수, 결과보나 }: { service: string; 할수: 판정; 결과보나: boolean }) {
+export function CaseList({ service, 할수, 결과보나, kind }: { service: string; 할수: 판정; 결과보나: boolean; kind: 'UI' | 'FN' }) {
   const t = use말();
   const 언어 = use언어();
   const [typed, setTyped] = useState('');
@@ -45,6 +45,7 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
 
   const 조건: CaseQuery = {
     service,
+    kind,
     q,
     page,
     ...(디바이스 === 'ALL' ? {} : { platform: 디바이스 }),
@@ -144,6 +145,7 @@ export function CaseList({ service, 할수, 결과보나 }: { service: string; �
         제목={t('테스트케이스 목록')}
         부제={
           <목록부제
+            종류={kind}
             전체={cases.data?.total ?? null}
             미확정={cases.data?.unconfirmed}
             scan={scan.data}

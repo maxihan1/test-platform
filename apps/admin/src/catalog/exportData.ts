@@ -61,6 +61,7 @@ export async function 엑셀자료(입력: {
   q: string;
   platform?: Platform;
   activeOnly: boolean;
+  kind?: 'UI' | 'FN';
   canSeeRuns: boolean;
   canSeeAuthoring: boolean;
 }): Promise<ExportInput> {
@@ -69,6 +70,7 @@ export async function 엑셀자료(입력: {
     q: 입력.q,
     platform: 입력.platform,
     activeOnly: 입력.activeOnly,
+    kind: 입력.kind,
     page: 1,
     pageSize: null,
   });

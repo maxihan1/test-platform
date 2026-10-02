@@ -196,6 +196,24 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(자리).not.toMatch(/visibility:\s*hidden/);
   });
 
+  // 같은 특정도 규칙이 뒤에서 글자 크기를 다시 정해 접힘이 안 먹은 일이 두 번 났다(2026-09-21 · 2026-10-02) — 기계가 막는다
+  it('사이드바 링크에 글자 크기를 정하는 규칙마다 접힌 쪽이 같은 링크를 글자 0 으로 누른다', () => {
+    const 바깥 = css.replace(/@media[^{]*\{[\s\S]*?\n\}/g, '');
+    const 정한것 = [...바깥.matchAll(/^\.side \.side-nav a([^\s{,:]*)\s*\{([^}]*)\}/gm)]
+      .filter((m) => /font-size:\s*(?!0)/.test(m[2]!))
+      .map((m) => m[1]!);
+    for (const 꼬리 of 정한것) {
+      const 접힌 = new RegExp(`\\.folded \\.side \\.side-nav a${꼬리.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`).exec(바깥)?.[1] ?? '';
+      expect(접힌, `.side .side-nav a${꼬리} 에 맞는 접힌 규칙이 글자를 0 으로 누르지 않는다`).toMatch(/font-size:\s*0/);
+    }
+  });
+
+  it('접어도 하위 메뉴를 지우지 않고 글자만 누른다 — 뒤의 하위 글자 크기에 지지 않는다 (PR #132)', () => {
+    const 하위 = /\.folded \.side \.side-nav a\.side-sub\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(하위).toMatch(/font-size:\s*0/);
+    expect(하위).not.toMatch(/display:\s*none/);
+  });
+
   it('좁은 화면에서 거터가 쌓인 줄 전체를 덮는다', () => {
     // `grid-row: 1 / -1` 만으로는 안 된다. -1 은 **명시적으로 선언한** 줄의 끝을 가리켜서
     // 내용이 암시적 행으로 쌓이면 거터가 첫 줄만 덮는다 (WORKSTREAMS ⑪, 2026-09-19 실측).

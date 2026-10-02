@@ -132,6 +132,8 @@ export interface CaseQuery {
   page: number;
   // null 이면 쪽 없이 전부다 — 엑셀 내려받기가 쓴다 (카탈로그 §7 GET /api/catalog/export)
   pageSize: number | null;
+  // 사이드바 하위 메뉴(UI 테스트 · 기능 테스트). 없으면 둘 다 (카탈로그 §7 `?kind=` · PR #132)
+  kind?: 'UI' | 'FN';
 }
 
 export interface CaseList {
@@ -156,6 +158,8 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
         AND ($2 = '' OR tc_id ILIKE $3 ESCAPE '\\' OR name ILIKE $3 ESCAPE '\\')
         AND (NOT $4::boolean OR is_active)
         AND ($5::jsonb IS NULL OR platforms @> $5::jsonb)
+        -- UI 번호 꼴은 catalog/rules.ts tcId종류 와 같은 뜻이다
+        AND ($8::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($8 = 'UI'))
       ORDER BY tc_id
       LIMIT $6 OFFSET $7`,
     [
@@ -167,14 +171,17 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
       // LIMIT NULL 은 PostgreSQL 에서 제한 없음이다
       query.pageSize,
       query.pageSize === null ? 0 : (query.page - 1) * query.pageSize,
+      query.kind ?? null,
     ],
   );
 
   const summary = await pool.query<{ count: string; oldest: Date | null }>(
     `SELECT count(*) AS count, min(unconfirmed_since) AS oldest
        FROM test_case
-      WHERE tc_id LIKE $1 AND is_active AND unconfirmed IS NOT NULL`,
-    [`${query.service}-%`],
+      WHERE tc_id LIKE $1 AND is_active AND unconfirmed IS NOT NULL
+        -- 종류는 검색 조건이 아니라 사이드바가 고른 범위라 따른다 — UI 목록 부제에 기능 미확정이 섞이지 않게 (PR #132)
+        AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))`,
+    [`${query.service}-%`, query.kind ?? null],
   );
 
   return {

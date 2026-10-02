@@ -10,7 +10,7 @@
 // **어떤 인자로 서버를 불렀는가** 둘이다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type EvidenceRow, type RunSummary } from './api.js';
 import { RunResult } from './RunResult.js';
@@ -120,6 +120,14 @@ describe('실행 결과 화면의 증적 버튼 (SPEC §8.4)', () => {
     const 줄 = await screen.findByText(/만들지 못했습니다/);
     expect(줄.textContent).toContain('엑셀');
     expect(줄.textContent).toContain('시트가 너무 큽니다');
+  });
+});
+
+describe('실행 결과 머리의 종류 (PR #132)', () => {
+  it('머리 부제 맨 앞에 종류를 적는다 — 사이드바가 이 화면의 종류를 모른다', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, kind: 'UI', status: 'FINISHED', items: [], evidence: [] });
+    const { container } = render(<RunResult runId={실행.runId} 판정하기={() => 실행까지} />);
+    await waitFor(() => expect(container.querySelector('.head')?.textContent).toMatch(/UI 테스트 · /));
   });
 });
 

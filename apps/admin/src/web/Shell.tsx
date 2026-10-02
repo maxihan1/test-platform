@@ -99,13 +99,37 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         <nav className="side-nav">
           {자리목록(user, service?.prefix ?? null, 언어).map((자리) =>
             자리.바깥 === true ? (
-              <a key={자리.이름} href={자리.해시} target="_blank" rel="noreferrer">
+              <a key={자리.해시} href={자리.해시} target="_blank" rel="noreferrer">
                 {자리.이름} ↗
               </a>
-            ) : (
-              <a key={자리.이름} href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
+            ) : 자리.하위 === undefined ? (
+              <a key={자리.해시} href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
                 {자리.이름}
               </a>
+            ) : (
+              // 하위는 늘 펼쳐 둔다. 하위가 지금 자리면 묶음은 펼친 표시(data-open)만 — 밑줄이 둘이 되지 않게 (화면공통 §8 · PR #132)
+              // 묶음 링크는 기능 목록으로 간다 — 종류를 모르는 상세(실행 결과 등)에서 「지금 자리」라고 하면 다른 곳을 가리킨다.
+              // 그래서 묶음은 aria-current 를 안 받고 펼친 표시만 받는다 (2026-10-02 검사 지적)
+              <div key={자리.해시} className="side-group" role="group" aria-labelledby={`side-${자리.해시.slice(2)}`}>
+                <a
+                  id={`side-${자리.해시.slice(2)}`}
+                  href={자리.하위[1]!.해시}
+                  {...(current === 자리.해시 || current.startsWith(`${자리.해시}/`) ? { 'data-open': '' } : {})}
+                >
+                  {자리.이름}
+                </a>
+                {자리.하위.map((하위) => (
+                  <a
+                    key={하위.해시}
+                    className="side-sub"
+                    href={하위.해시}
+                    aria-label={하위.라벨}
+                    {...(current === 하위.해시 ? { 'aria-current': 'page' as const } : {})}
+                  >
+                    {하위.이름}
+                  </a>
+                ))}
+              </div>
             ),
           )}
         </nav>
