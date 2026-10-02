@@ -65,6 +65,9 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
    자료 어긋남 줄은 어긋난 값을 기본값 없는 칸으로 비운 `held: '판정 불가 — 자료 어긋남: <둘>'` 케이스로 쓴다 — 사람이 작성 화면에서 고른다
    무엇을 실을지는 `references/3-gate.md` 를 읽고 정한다
 4. **§4 selector 확정 → §5 케이스 작성** — `references/4-selector.md` → `references/5-writing.md`.
+   케이스는 UI Test 와 Functional Test 두 갈래다(R17). 예외 · 경계는 근거 넷에 적힌 것만 만든다(R18). 동작 요구는 Functional 케이스로 덮는다(R19).
+   Page Object 는 아직 쓰지 않는다 — #129 전까지 UI Test 도 케이스 파일 안에서 locator 를 쓴다(`two-kinds.md`).
+   §4 에서 기획서에 없는 화면 입력 규칙을 보면 표에 미확정 줄을 더해 케이스로 쓴다(`two-kinds.md` 「화면에만 있는 입력 규칙」)
    **화면 묶음이 둘 이상이고 케이스가 8건 이상이면** 이 스킬의 `references/fanout.md` 대로 서브에이전트에게 나눠 맡긴다 (2026-09-30)
 5. **§6 관문** — `references/6-gates.md`. 원장 대조(관문 0) · 형식 · 표 대조 · 3회 실행 · 일부러 부수기
 6. **§7 표 되채우기** — `references/7-finish.md`. 1~3 만. **4 커밋은 하지 않는다** (에이전트 스크립트가 한다)

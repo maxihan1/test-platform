@@ -1,6 +1,6 @@
 ## §5. 케이스 작성
 
-**쓰기 전에 `korean-ai-tells.md` 를 읽는다** — 코드 안의 한글(`name` · `precondition` · `test.step` 제목 · `verify` · `.describe()` · `held` 사유)도
+**쓰기 전에 `korean-ai-tells.md` 와 `wording.md`(문구 틀) 를 읽는다** — 코드 안의 한글(`name` · `precondition` · `test.step` 제목 · `verify` · `.describe()` · `held` 사유)도
 그 규칙대로 쓴다. 표에서 옮기는 글자는 표를 쓸 때 이미 지켰다. 코드에서 새로 짓는 절차 제목 · 칸 설명이 여기서 걸린다.
 
 본보기는 `tests/demo/DEMO-011.spec.ts`. 대상 주소는 데모 케이스와 같이 **직접 적는다**
@@ -139,6 +139,10 @@
 걸리는 둘만 미리 챙긴다 — **K10** `params`·`expected` 모든 칸에 `.default()` 또는 `.optional()` ·
 **K9** 이름에 `password`·`token`·`secret` 등이 들어가면 `.meta({ secret: true })`.
 
+### Page Object — UI Test
+
+**대기 — #129 에서 켠다.** 그 전에는 UI Test 도 케이스 파일 안에서 locator 를 쓴다. 본문은 `references/two-kinds.md` 「Page Object — UI Test」다.
+
 ### ★ 보류 · 모킹 필요로 빼기 전에 — 코드로 환경을 만든다 (2026-09-29 사용자)
 
 **보류는 최후 수단이다.** 전제가 화면 조작으로 안 생기면 **테스트 코드 안에서 만든다.** 5877 에서 보류 15줄 · 모킹 필요 2줄이
@@ -185,9 +189,10 @@
 `request` fixture 로 요청을 보내고 응답을 `verify` 한다. 요청 · 응답은 그 절차 결과에 `httpTrace` 로 남는다
 (`packages/kit/src/runtime/http.ts` · 선언 모양은 `docs/spec/공통/2-명세선언.md`).
 
+- **API 케이스는 Functional Test 다** (R17) — Page Object 를 쓰지 않는다.
 - **API 요구는 대상 서버로 요청하는 케이스로 쓴다.** 주소는 화면 케이스처럼 `/api/…` 상대 경로다 — 러너가 대상 주소를 넘긴다.
   로그인한 세션이 필요하면 `page.request` 로 화면 로그인 쿠키를 같이 쓴다(`tests/mkt/MKT-045.spec.ts`)
 - **계정 값은 `params` 비밀값 칸으로만** 받는다(`.meta({ secret: true })`). 요청 본문에 값을 적지 않는다
 - 되돌릴 수 없는 요청(가입 · 결제 · 발송)은 API 로 보내도 되돌릴 수 없다 — 위 「빼기 전에」 표가 그대로 적용된다
-- **비기능 요구 가운데 브라우저에서 보이는 것은 화면 케이스다** — 입력칸 라벨 · 키보드로 옮겨 다니기 · 모달이 뜨면 초점이 모달 안으로 ·
-  응답 본문에 비밀번호 원문이 없다(`page.waitForResponse` 로 받아 본다). 성능 수치처럼 판정 기준이 자료에 없으면 held 케이스다(위 절)
+- **비기능 요구 가운데 브라우저에서 보이는 것은 화면 케이스다** — 입력칸 라벨은 UI Test, 키보드로 옮겨 다니기 · 모달이 뜨면 초점이 모달 안으로 ·
+  응답 본문에 비밀번호 원문이 없다(`page.waitForResponse` 로 받아 본다)는 조작이 만든 결과라 Functional Test 다(R17). 성능 수치처럼 판정 기준이 자료에 없으면 held 케이스다(위 절)
