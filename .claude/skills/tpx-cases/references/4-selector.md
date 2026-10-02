@@ -69,7 +69,7 @@ npx playwright cli -s=probe close
 `getByTestId` > `getByRole` > `getByLabel` > `getByPlaceholder` > `getByText` > CSS 선택자 > XPath.
 
 - **testid 는 이름에 뜻이 있을 때만 맨 앞이다** — `login-button` 은 쓰고 `a8f3x` 처럼 빌드마다 바뀔 수 있는 생성값은 건너뛴다
-- **CSS · XPath 는 위 다섯으로 못 집을 때만 쓴다.** 쓴 까닭을 용어 사전의 그 요소 줄 `locator` 칸 뒤에 ` — 까닭: <한 줄>` 로 남긴다. 케이스 파일에는 주석을 못 쓴다
+- **CSS · XPath 는 위 다섯으로 못 집을 때만 쓴다.** 쓴 까닭을 용어 사전의 그 요소 줄 끝에 ` — 까닭: <한 줄>` 로 남긴다(locator 자체는 Page Object 에 둔다). 케이스 파일에는 주석을 못 쓴다
 - **`nth()` 로 판정 대상을 고르지 않는다** — 자리로 고른 것은 순서가 바뀌면 다른 것을 판정한다
 - 확정한 locator 는 Page Object 에 담는다 — UI Test · Functional Test 둘 다 (`references/two-kinds.md` 「Page Object」)
 
