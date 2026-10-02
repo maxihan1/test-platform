@@ -125,6 +125,7 @@ function pageObjects(sf: ts.SourceFile): { trusted: Set<string>; functions: Set<
 
   const good = new Set<string>(classes);
   const bad = new Set<string>();
+  const madeFrom = new Map<string, string>();
   const functions = new Set<string>();
   const visit = (node: ts.Node): void => {
     const name = declaredName(node);
@@ -137,7 +138,12 @@ function pageObjects(sf: ts.SourceFile): { trusted: Set<string>; functions: Set<
         ts.isIdentifier(node.initializer.expression) &&
         classes.has(node.initializer.expression.text);
       (made ? good : bad).add(name);
-      if (ts.isFunctionDeclaration(node) || (ts.isVariableDeclaration(node) && node.initializer !== undefined && holdsFunction(node.initializer))) {
+      if (made) madeFrom.set(name, (node.initializer.expression as ts.Identifier).text);
+      if (
+        ts.isFunctionDeclaration(node) ||
+        ts.isClassDeclaration(node) ||
+        (ts.isVariableDeclaration(node) && node.initializer !== undefined && holdsFunction(node.initializer))
+      ) {
         functions.add(name);
       }
     }
@@ -147,7 +153,43 @@ function pageObjects(sf: ts.SourceFile): { trusted: Set<string>; functions: Set<
     node.forEachChild(visit);
   };
   visit(sf);
-  return { trusted: new Set([...good].filter((n) => !bad.has(n))), functions };
+
+  // 판정 · 절차 함수를 값으로 쓰면(넘기기 · 옮겨 담기 · globalThis 에 걸기) Page Object 가 받아 부를 수 있다 — 그 파일은 아무것도 믿지 않는다
+  const kit = new Set<string>();
+  let poisoned = false;
+  for (const stmt of sf.statements) {
+    if (!ts.isImportDeclaration(stmt) || !ts.isStringLiteral(stmt.moduleSpecifier)) continue;
+    const from = stmt.moduleSpecifier.text;
+    if (from !== '@platform/kit' && !from.startsWith('@platform/kit/')) continue;
+    const bindings = stmt.importClause?.namedBindings;
+    if (bindings !== undefined && ts.isNamespaceImport(bindings)) poisoned = true;
+    if (bindings === undefined || !ts.isNamedImports(bindings)) continue;
+    for (const e of bindings.elements) {
+      if (['verify', 'test'].includes((e.propertyName ?? e.name).text)) kit.add(e.name.text);
+    }
+  }
+
+  // 믿는 이름은 부르는 자리에만 와야 한다. 대입 · 인자 · 값으로 쓰면 메서드를 바꿔치거나 판정이 든 곳으로 흘러간다
+  const calledOnly = (id: ts.Identifier, step: boolean): boolean => {
+    if (ts.isNewExpression(id.parent) && id.parent.expression === id) return !step;
+    let cur: ts.Expression = id;
+    let depth = 0;
+    while (ts.isPropertyAccessExpression(cur.parent) && cur.parent.expression === cur) {
+      cur = cur.parent;
+      depth += 1;
+    }
+    return (step ? depth <= 1 : depth >= 1) && ts.isCallExpression(cur.parent) && cur.parent.expression === cur;
+  };
+  const uses = (node: ts.Node): void => {
+    if (ts.isIdentifier(node) && declaredName(node.parent) !== node.text && !(ts.isPropertyAccessExpression(node.parent) && node.parent.name === node)) {
+      if (kit.has(node.text) && !calledOnly(node, true)) poisoned = true;
+      if (good.has(node.text) && !calledOnly(node, false)) bad.add(node.text);
+    }
+    node.forEachChild(uses);
+  };
+  uses(sf);
+  for (const [name, cls] of madeFrom) if (bad.has(cls)) bad.add(name);
+  return { trusted: poisoned ? new Set() : new Set([...good].filter((n) => !bad.has(n))), functions };
 }
 
 export function caseSteps(text: string): CaseSteps {

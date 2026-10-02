@@ -270,6 +270,33 @@ describe('caseSteps — Page Object', () => {
     expect(skippable(twice)[0]).toBe(false);
   });
 
+  it.each([
+    ['verify 를 넘김', `await 화면.열기(verify);`],
+    ['verify 를 옮겨 담아 넘김', `const v = verify;\n    await 화면.열기(v);`],
+    ['test 를 넘김', `await 화면.열기(test);`],
+    ['메서드 바꿔치기', `화면.열기 = async () => verify('숨은', 1, 2);\n    await 화면.열기();`],
+    ['프로토타입 바꿔치기', `로그인화면.prototype.열기 = async () => {};\n    await 화면.열기();`],
+    ['Object.assign', `Object.assign(화면, {});\n    await 화면.열기();`],
+    ['인스턴스를 값으로 넘김', `await page.evaluate(화면);\n    await 화면.열기();`],
+  ])('케이스가 판정 · Page Object 를 부르기 말고 다른 데 쓰면 믿지 않는다 — %s', (_, step) => {
+    expect(skippable(po(step, `  const 화면 = new 로그인화면(page);\n`))[0]).toBe(false);
+  });
+
+  it('절차 밖에서 판정을 값으로 쓰면 그 파일의 Page Object 를 아무것도 믿지 않는다', () => {
+    const outside = `  (globalThis as any).v = verify;\n  const 화면 = new 로그인화면(page);\n`;
+    expect(skippable(po(`await 화면.열기();`, outside))[0]).toBe(false);
+  });
+
+  it('kit 을 통째로 가져온 파일은 Page Object 를 믿지 않는다', () => {
+    const head = `import * as kit from '@platform/kit';\n${PAGE}`;
+    expect(skippable(po(`await new 로그인화면(page).열기();`, '', head))[0]).toBe(false);
+  });
+
+  it('절차 밖에서 선언한 클래스를 넘겨도 애매하다', () => {
+    const outside = `  class H { static f() { return verify('숨은', 1, 2); } }\n  const 화면 = new 로그인화면(page);\n`;
+    expect(skippable(po(`await 화면.열기(H.f);`, outside))[0]).toBe(false);
+  });
+
   it('클래스 이름을 다른 것으로 덮으면 믿지 않는다', () => {
     expect(skippable(po(`const 로그인화면 = 도우미;\n    await new 로그인화면(page).열기();`))[0]).toBe(false);
   });
