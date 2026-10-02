@@ -122,7 +122,7 @@ describe('원장대조', () => {
     expect(r.셈.제외).toEqual({ '자료 없음': 1 });
   });
 
-  it('새 번호 꼴 줄도 덮는다 — UI 케이스로만 덮인 번호는 UI만 에 원장 순서로 싣는다', () => {
+  it('새 번호 꼴 줄도 덮는다 — 종류는 tcId 로만 보고 축 칸은 안 본다 · UI 케이스로만 덮인 번호는 UI만 에 원장 순서로 싣는다', () => {
     const 축줄 = (출처: string, tcId: string, 축: string) => `| 1 | ${축} | 전 | 조 | 결 | ${출처} | ${tcId} | 2026-09-30 |`;
     const 있는케이스 = new Set(['MKT-UI-001', 'MKT-FN-002', 'MKT-003']);
     const r = 원장대조(
@@ -132,8 +132,14 @@ describe('원장대조', () => {
     );
     expect(r.빠짐).toEqual([]);
     expect(r.UI만).toEqual(['REQ-A-1']);
-    const 축만 = 원장대조(원장, 표([축줄('REQ-A-3', 'MKT-003', 'UI'), 축줄('REQ-A-1', 'MKT-UI-001', '정상')]), { 있는케이스, 에이전트: true });
-    expect(축만.UI만).toEqual(['REQ-A-1', 'REQ-A-3']);
+    const 축만 = 원장대조(
+      원장,
+      표([축줄('REQ-A-3', 'MKT-003', 'UI'), 축줄('REQ-A-2', 'MKT-FN-002', 'UI'), 축줄('REQ-A-1', 'MKT-UI-001', '정상')]),
+      { 있는케이스, 에이전트: true },
+    );
+    expect(축만.UI만).toEqual(['REQ-A-1']);
+    const 두자리 = 원장대조(원장, 표([줄('REQ-A-1', 'MKT-UI-01')]), { 있는케이스: new Set(['MKT-UI-01']), 에이전트: true });
+    expect(두자리.UI만).toEqual([]);
     const 파일없음 = 원장대조(원장, 표([줄('REQ-A-1', 'MKT-UI-009')]), { 있는케이스, 에이전트: true });
     expect(파일없음.형식오류).toEqual(['요구 줄의 tcId MKT-UI-009 케이스 파일이 없다']);
   });

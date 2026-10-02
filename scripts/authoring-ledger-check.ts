@@ -2,6 +2,7 @@
 // 에이전트가 올리기 직전에 부르고(빠짐 · 형식 오류는 셈과 PR 본문 머리에 적고 거절하지 않는다 — 2026-09-30 게이트 1),
 // 사람과 자식은 `npm run check:ledger` 로 부른다 (도메인/작성 §3.6 「★ 원장」)
 
+import { tcId종류 } from '../apps/admin/src/catalog/rules.js';
 import { 케이스tcId } from './authoring-held-apply.js';
 import { type 원장, type 원장항목, 번호찾기 } from './authoring-ledger.js';
 
@@ -105,8 +106,8 @@ export function 원장대조(
       형식오류.push(`요구 줄의 tcId ${tcId} 케이스 파일이 없다`);
       continue;
     }
-    // 옛 꼴 번호는 종류를 모르므로 축 칸이 UI 가 아니면 기능으로 본다
-    const UI줄 = /-UI-\d+$/.test(tcId) || (행['축'] ?? '').trim() === 'UI';
+    // 종류는 tcId 에서만 읽는다 — 옛 꼴은 기능으로 본다 (작성 §3.6). 축 칸은 자식이 쓴 글이라 믿지 않는다
+    const UI줄 = tcId종류(tcId) === 'UI';
     for (const b of 번호들) {
       케이스로.set(b, (케이스로.get(b) ?? new Set<string>()).add(tcId));
       if (!UI줄) 기능으로.add(b);
@@ -194,10 +195,10 @@ export function 셈글(셈: 셈, 가족: Record<string, number>): string {
 }
 
 /** 머리글 경고 한 줄 — PR 본문이 길어지지 않게 앞 몇 개만. 전체 목록은 `대조` 에 있다 */
-function 경고줄(이름: string, 목록: string[], 앞수: number): string[] {
+function 경고줄(이름: string, 목록: string[], 앞수: number, 머리 = '⚠️ '): string[] {
   if (목록.length === 0) return [];
   const 더 = 목록.length > 앞수 ? ' …' : '';
-  return [`⚠️ ${이름} ${String(목록.length)} — ${목록.slice(0, 앞수).join(' · ')}${더}`];
+  return [`${머리}${이름} ${String(목록.length)} — ${목록.slice(0, 앞수).join(' · ')}${더}`];
 }
 
 /**
@@ -215,7 +216,7 @@ export function 원장판정(
   const 결과 = 원장대조(원장값.항목, 표글, { 있는케이스, 에이전트: true, 사람이뺌 });
   const 못넣음 = 원장값.빠진자료.length > 0 ? ` · 원장에 못 넣은 자료 ${원장값.빠진자료.join(' · ')}` : '';
   // UI 로만 덮음은 경고가 아니라 보고다 — 원장은 그 요구가 동작 요구인지 모르므로 사람이 PR 에서 본다 (작성 §3.6 R19)
-  const UI만줄 = 경고줄('UI 로만 덮음', 결과.UI만, 10).map((줄) => 줄.replace(/^⚠️ /, ''));
+  const UI만줄 = 경고줄('UI 로만 덮음', 결과.UI만, 10, '');
   const 줄들 = [`${셈글(결과.셈, 원장값.가족)}${못넣음}`, ...UI만줄, ...경고줄('빠짐', 결과.빠짐, 10), ...경고줄('형식 오류', 결과.형식오류, 3)];
   return { 머리글: 줄들.join('\n'), 대조: 결과 };
 }
