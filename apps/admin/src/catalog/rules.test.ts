@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { checkRegistration, checkSource, checkSpec, formatViolation, tcId종류 } from './rules.js';
+import { checkRegistration, checkSource, checkSpec, formatViolation, tcId종류, 번호열쇠 } from './rules.js';
 
 const 정상 = `import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
@@ -171,6 +171,11 @@ describe('checkSpec', () => {
     expect(tcId종류('PAY-UI-001')).toBe('UI');
     expect(tcId종류('PAY-041')).toBe('FN');
     expect(tcId종류('PAY-FN-042')).toBe('FN');
+  });
+
+  it('번호열쇠 — FN 과 옛 꼴은 한 번호열이고 UI 는 따로다', () => {
+    expect(번호열쇠('MKT-FN-044')).toBe(번호열쇠('MKT-044'));
+    expect(번호열쇠('MKT-UI-044')).not.toBe(번호열쇠('MKT-044'));
   });
 
   it('K3 — name이 비면 잡는다', () => {

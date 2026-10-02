@@ -96,6 +96,33 @@ describe('겹침 찾기', () => {
     expect(결과.map((c) => [c.tcId, c.kinds])).toEqual([['MKT-UI-001', ['TCID']]]);
   });
 
+  it('⒜ 옛 꼴과 FN 꼴은 같은 번호라 겹침이다 — 어느 쪽이 main 이어도', () => {
+    const 견주기 = (요청: string, 메인: string) =>
+      겹침찾기({
+        ...바탕,
+        더한: [{ file: 경로(요청), 글: 케이스(요청, '배너 누르기') }],
+        main케이스: [{ file: 'tests/mkt/' + 메인 + '.spec.ts', 글: 케이스(메인, '쿠폰 받기') }],
+        새로들어온: new Set(),
+        요청표: '',
+        main표: '',
+      }).map((c) => [c.tcId, c.kinds, c.with.map((w) => w.tcId)]);
+    expect(견주기('MKT-FN-044', 'MKT-044')).toEqual([['MKT-FN-044', ['TCID'], ['MKT-044']]]);
+    expect(견주기('MKT-044', 'MKT-FN-044')).toEqual([['MKT-044', ['TCID'], ['MKT-FN-044']]]);
+    expect(견주기('MKT-UI-044', 'MKT-044')).toEqual([]);
+  });
+
+  it('⒜ main 표에만 남은 옛 꼴 번호도 FN 꼴과 겹친다', () => {
+    const 결과 = 겹침찾기({
+      ...바탕,
+      더한: [{ file: 경로('MKT-FN-044'), 글: 케이스('MKT-FN-044', '배너 누르기') }],
+      main케이스: [],
+      새로들어온: new Set(),
+      요청표: '',
+      main표: 표([['1', '7 REQ-MKT-010', '제거함(MKT-044)']]),
+    });
+    expect(결과.map((c) => [c.kinds, c.with])).toEqual([[['TCID'], [{ tcId: 'MKT-044', name: '', file: 표경로 }]]]);
+  });
+
   it('⒜ main 표에 「제거함」으로만 남은 번호도 겹침이다', () => {
     const 결과 = 겹침찾기({
       ...바탕,

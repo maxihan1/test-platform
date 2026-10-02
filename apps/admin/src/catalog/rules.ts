@@ -156,6 +156,8 @@ export function checkSource(file: string, text: string): SourceResult {
 export const TCID = /^[A-Z][A-Z0-9]{0,11}-(?:(?:UI|FN)-)?\d{3}$/;
 // 종류 글자가 없는 옛 꼴은 기능 테스트로 본다 (SPEC 도메인/작성 §3.6 「★ 테스트 두 갈래」)
 export const tcId종류 = (tcId: string): 'UI' | 'FN' => (/-UI-\d{3}$/.test(tcId) ? 'UI' : 'FN');
+// FN 과 옛 꼴은 한 번호열이다(MKT-044 = MKT-FN-044) — 글자로 견주면 같은 번호가 두 번 쓰여 실행 이력이 섞인다. UI 만 따로 센다
+export const 번호열쇠 = (tcId: string): string => tcId.replace(/-FN-(\d{3})$/, '-$1');
 const PLATFORMS = new Set(['desktop', 'mobile']);
 
 function missingDescribe(file: string, line: number, schema: JsonSchema, key: string): Violation[] {
