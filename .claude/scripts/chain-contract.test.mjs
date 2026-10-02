@@ -376,8 +376,12 @@ test('팬아웃 쓰기 범위에 pages/ 가 있다', () => {
   assert.match(fanout, /pages\//, 'fanout.md 의 쓰기 범위에 pages/ 가 없다');
 });
 
-// 기능 테스트는 E2E 「만들기」 판별이 page 직접 호출만 알아봐서 #130 전까지 page 를 직접 쓴다
-test('two-kinds.md 가 기능 테스트의 #130 전 규칙을 지킨다', () => {
+// #130 부터 E2E 「만들기」 판별이 Page Object 를 믿어 기능 테스트도 Page Object 를 쓴다. 옛 「#130 전까지」 문장이 되살아나면 두 규칙이 부딪친다
+test('지침이 기능 테스트도 Page Object 를 쓰게 한다', () => {
   const twoKinds = readFileSync(new URL('tpx-cases/references/two-kinds.md', DIR), 'utf8');
-  assert.match(twoKinds, /#130 (직후|전까지)/, 'two-kinds.md 에 #130 문장이 없다');
+  assert.match(twoKinds, /Functional Test 도 Page Object 를 쓴다/, 'two-kinds.md 에 기능 테스트의 Page Object 문장이 없다');
+  assert.match(twoKinds, /Page Object 메서드에 함수를 넘기지 않는다/, 'two-kinds.md 에 콜백 금지가 없다');
+  for (const s of ['tpx-cases', 'tpx-author']) {
+    assert.doesNotMatch(read(s), /#130 (직후|전까지)/, `${s} 에 #130 대기 문구가 남았다`);
+  }
 });
