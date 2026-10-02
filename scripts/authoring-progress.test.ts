@@ -88,6 +88,76 @@ describe('진척누적기 — 흐름 줄을 먹여 토큰·마지막 동작을 �
   });
 });
 
+const 말 = (id: string, text: string, parent: string | null = null) =>
+  JSON.stringify({
+    type: 'assistant',
+    message: { id, content: [{ type: 'text', text }], usage: { input_tokens: 1, output_tokens: 1 } },
+    parent_tool_use_id: parent,
+  });
+
+const 가짜시계 = () => {
+  let 초 = 1000;
+  return { 지금: () => 초 * 1000, 흐름: (n: number) => void (초 += n) };
+};
+
+describe('진척누적기 — 단계 표지', () => {
+  it('글 가운데 줄의 표지도 잡고 먹기가 그 줄을 돌려준다 · lastAction 은 글 첫 줄 그대로다', () => {
+    const 누적 = 진척누적기(60);
+    expect(누적.먹기(말('a', '표를 다 썼다\n[단계] 관문 3\n돌린다'))).toBe('[단계] 관문 3');
+    expect(누적.스냅샷({ elapsedSec: 0, caseFiles: 0 }).lastAction).toBe('» 표를 다 썼다');
+  });
+
+  it('parent_tool_use_id 가 null 인 자식 줄은 세고 문자열인 서브에이전트 줄은 안 센다', () => {
+    const 시계 = 가짜시계();
+    const 누적 = 진척누적기(60, {}, 시계.지금);
+    누적.먹기(말('a', '[단계] 케이스 작성'));
+    시계.흐름(30);
+    expect(누적.먹기(말('b', '[단계] 관문 1', 'toolu_01'))).toBe('» [단계] 관문 1');
+    expect(누적.단계표()).not.toMatch(/관문 1/);
+    expect(누적.단계표()).toMatch(/케이스 작성/);
+  });
+
+  it('같은 메시지가 블록마다 되풀이돼도 한 번만 적는다', () => {
+    const 누적 = 진척누적기(60);
+    누적.먹기(말('a', '[단계] 요구사항 표'));
+    expect(누적.먹기(말('a', '[단계] 요구사항 표'))).toBe('» [단계] 요구사항 표');
+    expect(누적.단계표().match(/요구사항 표/g)).toHaveLength(2);
+  });
+
+  it('단계 이름의 비밀번호를 가린다', () => {
+    const 누적 = 진척누적기(60, { loginPassword: 'pw-secret-9' });
+    expect(누적.먹기(말('a', '[단계] 로그인 pw-secret-9'))).not.toContain('pw-secret-9');
+    expect(누적.단계표()).not.toContain('pw-secret-9');
+  });
+
+  it('단계표 — 첫 표지 전 · 단계마다 시작과 걸린 시간 · 마지막은 부른 때까지 · 가장 긴 단계', () => {
+    const 시계 = 가짜시계();
+    const 누적 = 진척누적기(60, {}, 시계.지금);
+    시계.흐름(65);
+    누적.먹기(말('a', '[단계] 요구사항 표'));
+    시계.흐름(600);
+    누적.먹기(말('b', '[단계] 관문 3'));
+    시계.흐름(3725);
+    expect(누적.단계표()).toBe(
+      [
+        '| 단계 | 시작 | 걸린 시간 |',
+        '|---|---|---|',
+        '| (첫 표지 전) | 0:00 | 1:05 |',
+        '| 요구사항 표 | 1:05 | 10:00 |',
+        '| 관문 3 | 11:05 | 62:05 |',
+        '',
+        '가장 긴 단계: 관문 3 — 62:05',
+      ].join('\n'),
+    );
+  });
+
+  it('표지가 하나도 없으면 단계표는 빈 글이다', () => {
+    const 누적 = 진척누적기(60);
+    누적.먹기(말('a', '표를 쓴다'));
+    expect(누적.단계표()).toBe('');
+  });
+});
+
 describe('자식제한', () => {
   it('자식 한 번은 120분이다', () => {
     expect(자식제한).toBe(120 * 60_000);
