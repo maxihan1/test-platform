@@ -197,6 +197,23 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     });
   });
 
+  it('UI 테스트와 기능 테스트를 섞으면 400 MIXED_KIND 다 (PR #131)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: {
+        title: 'XBX 종류 섞임',
+        env: 'qa',
+        items: [
+          { tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} },
+          { tcId: 'XBX-UI-001', platforms: ['desktop'], params: {}, expected: {} },
+        ],
+      },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe('MIXED_KIND');
+  });
+
   it('본문에 실행자를 적어 보내도 그 값을 쓰지 않는다', async () => {
     const res = await app.inject({
       method: 'POST',
