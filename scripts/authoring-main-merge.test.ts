@@ -110,6 +110,28 @@ describe('main 합치기', () => {
     expect(깃(['status', '--porcelain']).낸것).toBe('');
   });
 
+  describe('같은 서비스 요청 둘이 같은 Page Object 를 만들거나 고치면 반영 실패로 사람에게 넘긴다', () => {
+    const 경로 = 'tests/mkt/pages/login.page.ts';
+    const mkt값 = { 표경로: 'docs/cases/MKT.md', 폴더: 'mkt', 메시지: '[WS-작성] MKT 작성 요청 8번 케이스' };
+
+    it.each([
+      ['둘 다 새로 만들었다', undefined],
+      ['둘 다 다르게 고쳤다', (t: string) => 쓰기(t, 경로, 'export class LoginPage {}\n')],
+    ])('%s', (_이름, 바탕) => {
+      const { 트리, 깃, mainSha } = 갈라놓기(
+        (t) => 쓰기(t, 경로, 'export class LoginPage { 요청 = 1; }\n'),
+        (t) => 쓰기(t, 경로, 'export class LoginPage { main = 1; }\n'),
+        바탕 ?? (() => undefined),
+      );
+      const 머리전 = 깃(['rev-parse', 'HEAD']).낸것;
+      const 결과 = main합치기({ 트리, 깃, mainSha, ...mkt값 });
+      expect(결과).toEqual({ 사유: expect.stringContaining(경로) });
+      expect(결과).toEqual({ 사유: expect.stringContaining('다시 작성') });
+      expect(깃(['rev-parse', 'HEAD']).낸것).toBe(머리전);
+      expect(깃(['status', '--porcelain']).낸것).toBe('');
+    });
+  });
+
   it('새 서비스의 첫 요청 둘이 표를 각자 만들었으면 합치지 않는다', () => {
     const { 트리, 깃, mainSha } = 갈라놓기(
       (t) => 쓰기(t, 'docs/cases/PAY.md', 표('요청', [줄(1, 'PAY-001')])),
