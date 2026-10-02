@@ -11,7 +11,7 @@ export type 제외종류 = (typeof 제외종류)[number];
 
 /** 출처 칸 하나에 몰아 적을 수 있는 번호 수 — 한 줄에 원장을 통째로 적어 대조를 통과하지 못하게 */
 const 출처상한 = 10;
-const tcId꼴 = /^[A-Z][A-Z0-9]{0,11}-\d+$/;
+const tcId꼴 = /^[A-Z][A-Z0-9]{0,11}-(?:(?:UI|FN)-)?\d+$/;
 
 export interface 셈 {
   총: number;
@@ -29,6 +29,8 @@ export interface 대조결과 {
   덮음: Map<string, Set<string>>;
   /** 원장 번호 → 제외 종류. 케이스로 덮인 번호는 뺀다 — `셈.제외` 와 같은 거름이라야 번호 목록이 종류별 수와 맞는다 */
   제외번호: Map<string, 제외종류>;
+  /** UI 케이스로만 덮인 원장 번호(원장 순서) — R19 를 사람이 PR 에서 보게 하는 보고용이다. 빠짐으로 세지 않는다 */
+  UI만: string[];
 }
 
 /**
@@ -88,6 +90,7 @@ export function 원장대조(
   const 케이스로 = new Map<string, Set<string>>();
   const 제외로 = new Map<string, 제외종류>();
   const 표번호 = new Set<string>();
+  const 기능으로 = new Set<string>();
 
   for (const 행 of 표읽기(표글, '요구사항')) {
     const 번호들 = 번호찾기(행['출처'] ?? '').번호들;
@@ -102,7 +105,12 @@ export function 원장대조(
       형식오류.push(`요구 줄의 tcId ${tcId} 케이스 파일이 없다`);
       continue;
     }
-    for (const b of 번호들) 케이스로.set(b, (케이스로.get(b) ?? new Set<string>()).add(tcId));
+    // 옛 꼴 번호는 종류를 모르므로 축 칸이 UI 가 아니면 기능으로 본다
+    const UI줄 = /-UI-\d+$/.test(tcId) || (행['축'] ?? '').trim() === 'UI';
+    for (const b of 번호들) {
+      케이스로.set(b, (케이스로.get(b) ?? new Set<string>()).add(tcId));
+      if (!UI줄) 기능으로.add(b);
+    }
   }
 
   for (const 행 of 표읽기(표글, '제외')) {
@@ -157,6 +165,7 @@ export function 원장대조(
     },
     덮음,
     제외번호,
+    UI만: 원장.map((h) => h.번호).filter((b) => 케이스로.has(b) && !기능으로.has(b)),
   };
 }
 
