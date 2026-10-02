@@ -142,6 +142,8 @@ export function RunResult({
 
   const 부제 = (
           <>
+            {/* 실행 하나에 한 종류다 — 사이드바가 종류를 모르는 화면이라 머리에 적는다 (PR #132) */}
+            {data.kind === 'UI' ? <>{t('UI 테스트')} · </> : data.kind === 'FN' ? <>{t('기능 테스트')} · </> : null}
             {when(data.startedAt, 언어)} · {data.title} · {t('실행자 {이름}', { 이름: 실행자이름(data, 언어) })}
             {' · '}
             {t('대상 서버 {서버}', { 서버: data.env })}

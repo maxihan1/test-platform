@@ -40,7 +40,7 @@ const 사람: User = {
   services: [결제, 정산],
 };
 
-function 띄운다(service: ServiceRow, 언어: 언어 = 'ko', on언어: (고른: 언어) => void = () => {}) {
+function 띄운다(service: ServiceRow, 언어: 언어 = 'ko', on언어: (고른: 언어) => void = () => {}, current = '#/cases') {
   vi.spyOn(api, 'runs').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 , summary: { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 } });
   return render(
     <언어함 value={언어}>
@@ -51,7 +51,7 @@ function 띄운다(service: ServiceRow, 언어: 언어 = 'ko', on언어: (고른
         언어={언어}
         on언어={on언어}
         onLogout={() => {}}
-        current="#/cases"
+        current={current}
       >
         <div>본문</div>
       </Shell>
@@ -103,8 +103,10 @@ describe('세로 껍데기 (SPEC §8)', () => {
     const 안 = within(사이드!);
     expect(안.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
     // 자리 목록만 센다 — 사이드바에는 `비밀번호 변경` 링크도 있다 (2026-09-28)
+    // 하위 메뉴도 링크다 (PR #132)
+    const 자리들 = 자리목록(사람, 결제.prefix, 'ko');
     expect(within(안.getByRole('navigation')).getAllByRole('link')).toHaveLength(
-      자리목록(사람, 결제.prefix, 'ko').length,
+      자리들.length + 자리들.reduce((합, 자리) => 합 + (자리.하위?.length ?? 0), 0),
     );
     expect(안.getByText(사람.displayName)).toBeTruthy();
   });
@@ -144,6 +146,31 @@ describe('사이드바 접기', () => {
     // 안 보이게 하려고 display:none 을 쓰면 탭 대상에서 빠진다.
     // 흐리게 두지 않는다는 규칙(SPEC §8)은 등급 이야기고, 접기는 사람이 되돌릴 수 있는 상태다
     expect(screen.getByRole('link', { name: '테스트 케이스' })).toBeTruthy();
+    사이드바접음을적는다(false);
+  });
+});
+
+describe('사이드바 하위 메뉴 (화면공통 §8 · PR #132)', () => {
+  it('하위가 지금 자리면 그 하위에 aria-current, 묶음은 펼친 표시만 한다', () => {
+    띄운다(결제, 'ko', () => {}, '#/runs/ui');
+    const 하위 = screen.getByRole('link', { name: '실행 기록 · UI 테스트' });
+    expect(하위.getAttribute('aria-current')).toBe('page');
+    expect(하위.getAttribute('href')).toBe('#/runs/ui');
+    const 묶음 = screen.getByRole('link', { name: '실행 기록' });
+    expect(묶음.getAttribute('aria-current')).toBeNull();
+    expect(묶음.hasAttribute('data-open')).toBe(true);
+    expect(screen.getByRole('link', { name: '테스트 케이스 · UI 테스트' }).getAttribute('aria-current')).toBeNull();
+  });
+
+  it('종류를 모르는 상세(실행 결과)에서는 묶음이 지금 자리다', () => {
+    띄운다(결제, 'ko', () => {}, '#/runs');
+    expect(screen.getByRole('link', { name: '실행 기록' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('접혀도 하위 메뉴에 키보드로 닿는다 — 지우지 않고 글자만 숨긴다', () => {
+    사이드바접음을적는다(true);
+    띄운다(결제, 'ko', () => {}, '#/cases/ui');
+    expect(screen.getByRole('link', { name: '테스트 케이스 · UI 테스트' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
 });

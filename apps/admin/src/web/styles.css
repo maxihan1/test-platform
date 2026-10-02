@@ -302,6 +302,17 @@ body {
   background: var(--rail-2);
 }
 
+/* 하위가 지금 자리면 접힌 레일에서는 묶음이 막대를 받는다. 하위 줄은 지우지 않고 글자와 높이만 눌러
+   탭이 닿게 둔다 — 위 자리 목록과 같은 이유다 (화면공통 §8 · PR #132) */
+.folded .side .side-nav a[data-open] {
+  border-left: 3px solid var(--rail-acc);
+  background: var(--rail-2);
+}
+
+.folded .side .side-nav a.side-sub {
+  padding: 2px 0;
+}
+
 /* 사이드바 바닥으로 사람과 로그아웃을 미는 빈 칸 */
 .side-gap {
   flex: 1;
@@ -1547,6 +1558,17 @@ select:focus {
     padding: 0 14px;
   }
 
+  .folded .side .side-nav a.side-sub {
+    padding: 0 14px;
+  }
+
+  /* 가로 줄에서 「UI 테스트」가 어느 묶음 것인지 보이게 묶음마다 줄을 바꾼다 (PR #132) */
+  .side .side-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
   .wrap.folded .side .side-pw {
     font-size: 12.5px;
   }
@@ -2040,6 +2062,24 @@ select:focus {
 .side .side-nav a:focus-visible {
   outline: 2px solid var(--rail-ink);
   outline-offset: -2px;
+}
+
+/* 하위 메뉴 — 늘 펼쳐 둔다. 묶음보다 작게 들여 쓴다. 색은 레일 토큰만 쓴다 (화면공통 §8 · 2026-10-02 시안 A · PR #132) */
+.side .side-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.side .side-nav a.side-sub {
+  padding: 6px 10px 6px 24px;
+  font-size: 12.5px;
+}
+
+/* 하위가 지금 자리일 때 묶음 — 밑줄(막대)은 하위가 갖고 묶음은 글자만 밝힌다 */
+.side .side-nav a[data-open] {
+  color: var(--rail-ink);
+  font-weight: 600;
 }
 
 /* 도는 실행이 있거나 갓 끝난 소식이 있을 때만 뜬다. 없으면 줄 자체가 없다 (SPEC §8) */
