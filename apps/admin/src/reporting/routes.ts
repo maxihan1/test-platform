@@ -10,6 +10,7 @@ import { 정수 } from '../routeParams.js';
 import { generate, 형식표 } from './generate.js';
 import { compareWithPrevious } from './insights.js';
 import { EvidenceBusyError, claim, findDocument, recoverPending } from './store.js';
+import { 종류조건 } from '../execution/runKind.js';
 
 const 증적본문 = z.object({
   // 형식은 셋뿐이다. 그 밖의 값은 400 — 만들 수 없는 형식으로 PENDING 행을 남기지 않는다 (SPEC §7)
@@ -21,7 +22,7 @@ const 증적본문 = z.object({
 async function 실행상태(runId: number): Promise<string | null> {
   const { pool } = await import('../db/index.js');
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
-  const rows = await pool.query<{ status: string }>("SELECT status FROM test_run WHERE run_id = $1 AND kind = 'CASE'", [
+  const rows = await pool.query<{ status: string }>(`SELECT status FROM test_run WHERE run_id = $1 AND ${종류조건('case', '')}`, [
     runId,
   ]);
   return rows.rows[0]?.status ?? null;

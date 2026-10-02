@@ -5,6 +5,7 @@ import type { Pool } from 'pg';
 import { 접은판정SQL } from '../scenario/verdict.js';
 
 import type { RunSummary } from './runTypes.js';
+import { 종류조건, type 목록종류 } from './runKind.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -22,7 +23,7 @@ export interface 실행거르개 {
   state?: 'running' | 'failed';
   env?: string;
   /** 실행 기록의 탭. 없으면 case (SPEC 실행 §7 · 시나리오 §7 「실행 목록의 E2E 탭」) */
-  kind?: 'case' | 'scenario';
+  kind?: 목록종류;
 }
 
 /** 시나리오 실행의 접은 판정. 도는 중이면 NULL 이라 통과·실패 어느 셈에도 안 든다 (SPEC 시나리오 §7 「판정 접기」) */
@@ -38,7 +39,7 @@ const 시나리오판정 = `CASE WHEN r.status = 'RUNNING' THEN NULL
 export function 거르는조건(거르개: 실행거르개, 시작번호: number): { where: string; having: string; 값: unknown[] } {
   // 시나리오 실행은 run_item 이 없어 항목 0건인 케이스 실행처럼 섞인다. 목록·집계 모두 여기를 타므로 한 곳에 건다 (도메인/시나리오 §3.7 결정 10)
   const 시나리오 = 거르개.kind === 'scenario';
-  const where: string[] = [시나리오 ? `r.kind = 'SCENARIO'` : `r.kind = 'CASE'`];
+  const where: string[] = [종류조건(거르개.kind ?? 'case')];
   const 값: unknown[] = [];
   let n = 시작번호;
 

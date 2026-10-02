@@ -30,6 +30,7 @@ function 문서(items: EvidenceItem[]): EvidenceDocument {
       serviceName: '결제',
       testsRepo: 'https://github.com/example/pay',
       title: '역방향',
+      kind: '기능 테스트',
       startedAt: '2026-09-26T00:00:00Z',
       triggeredByName: '김검수',
       env: 'qa',

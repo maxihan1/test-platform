@@ -18,6 +18,7 @@ import { 저장값통로 } from './savedInput.js';
 import { findItem, findRun, listRuns, serviceExists } from './queries.js';
 import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
+import { 목록종류읽기 } from './runKind.js';
 
 const PAGE_SIZE = 50;
 
@@ -191,7 +192,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
         ...(state === undefined ? {} : { state }),
         ...(req.query.env === undefined ? {} : { env: req.query.env }),
         // 모르는 kind 는 state 처럼 조용히 case 로 본다 (SPEC 시나리오 §7 「실행 목록의 E2E 탭」)
-        kind: req.query.kind === 'scenario' ? 'scenario' : 'case',
+        kind: 목록종류읽기(req.query.kind),
       });
     },
   );

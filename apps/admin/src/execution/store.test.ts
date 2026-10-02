@@ -199,6 +199,27 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
     ).rejects.toMatchObject({ code: 'MIXED_SERVICE' });
   });
 
+  it('UI 테스트와 기능 테스트가 섞이면 MIXED_KIND로 거절한다 (PR #131)', async () => {
+    await expect(
+      createRun({
+        title: 'XBS 종류 섞임',
+        triggeredBy: 'tester',
+        env: 'qa',
+        items: [
+          { ...항목, platforms: ['desktop'] },
+          { ...항목, tcId: 'XBS-UI-001', platforms: ['desktop'] },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: 'MIXED_KIND' });
+  });
+
+  it('기능 케이스 실행은 종류 FN 으로 남는다 (PR #131)', async () => {
+    const run = await createRun({ title: 'XBS 종류', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const { pool } = await import('../db/index.js');
+    const row = await pool.query('SELECT kind FROM test_run WHERE run_id = $1', [run.runId]);
+    expect(row.rows[0]?.kind).toBe('FN');
+  });
+
   it('그 서비스에 없는 대상 서버는 ENV_NOT_FOUND로 거절한다', async () => {
     await expect(
       createRun({ title: 'XBS 없는 환경', triggeredBy: 'tester', env: '없는환경', items: [{ ...항목, platforms: ['desktop'] }] }),

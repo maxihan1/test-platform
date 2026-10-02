@@ -24,7 +24,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "WITH folded AS (\n  SELECT date_trunc('day', r.started_at) AS 날짜,\n         r.run_id, i.tc_id, i.platform,\n         bool_and(i.status = 'PASS') AS passed\n  FROM run_item i\n  JOIN test_run r ON r.run_id = i.run_id\n  WHERE r.started_at >= now() - interval '30 days'\n    AND r.kind = 'CASE'\n    AND i.unconfirmed IS NULL\n  GROUP BY 1, 2, 3, 4\n)\nSELECT 날짜 AS time,\n       round(100.0 * count(*) FILTER (WHERE passed) / count(*), 1) AS \"성공률\"\nFROM folded\nGROUP BY 날짜\nORDER BY 날짜"
+          "rawSql": "WITH folded AS (\n  SELECT date_trunc('day', r.started_at) AS 날짜,\n         r.run_id, i.tc_id, i.platform,\n         bool_and(i.status = 'PASS') AS passed\n  FROM run_item i\n  JOIN test_run r ON r.run_id = i.run_id\n  WHERE r.started_at >= now() - interval '30 days'\n    AND r.kind IN ('UI','FN')\n    AND i.unconfirmed IS NULL\n  GROUP BY 1, 2, 3, 4\n)\nSELECT 날짜 AS time,\n       round(100.0 * count(*) FILTER (WHERE passed) / count(*), 1) AS \"성공률\"\nFROM folded\nGROUP BY 날짜\nORDER BY 날짜"
         }
       ]
     },
@@ -44,7 +44,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "time_series",
           "rawQuery": true,
-          "rawSql": "SELECT date_trunc('day', r.started_at) AS time,\n       round(avg(i.duration_ms)) AS \"평균 소요시간\"\nFROM run_item i\nJOIN test_run r ON r.run_id = i.run_id\nWHERE r.started_at >= now() - interval '30 days'\n  AND r.kind = 'CASE'\n  AND i.duration_ms IS NOT NULL\nGROUP BY 1\nORDER BY 1"
+          "rawSql": "SELECT date_trunc('day', r.started_at) AS time,\n       round(avg(i.duration_ms)) AS \"평균 소요시간\"\nFROM run_item i\nJOIN test_run r ON r.run_id = i.run_id\nWHERE r.started_at >= now() - interval '30 days'\n  AND r.kind IN ('UI','FN')\n  AND i.duration_ms IS NOT NULL\nGROUP BY 1\nORDER BY 1"
         }
       ]
     },
@@ -61,7 +61,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "WITH folded AS (\n  SELECT i.tc_id, max(i.tc_name) AS tc_name,\n         bool_or(i.status = 'FAIL') AS failed\n  FROM run_item i\n  JOIN test_run r ON r.run_id = i.run_id\n  WHERE r.started_at >= now() - interval '30 days'\n    AND r.kind = 'CASE'\n    AND i.unconfirmed IS NULL\n  GROUP BY i.run_id, i.tc_id, i.platform\n)\nSELECT tc_id AS \"케이스 ID\",\n       max(tc_name) AS \"케이스명\",\n       count(*) AS \"실패 건수\"\nFROM folded\nWHERE failed\nGROUP BY tc_id\nORDER BY count(*) DESC, tc_id\nLIMIT 10"
+          "rawSql": "WITH folded AS (\n  SELECT i.tc_id, max(i.tc_name) AS tc_name,\n         bool_or(i.status = 'FAIL') AS failed\n  FROM run_item i\n  JOIN test_run r ON r.run_id = i.run_id\n  WHERE r.started_at >= now() - interval '30 days'\n    AND r.kind IN ('UI','FN')\n    AND i.unconfirmed IS NULL\n  GROUP BY i.run_id, i.tc_id, i.platform\n)\nSELECT tc_id AS \"케이스 ID\",\n       max(tc_name) AS \"케이스명\",\n       count(*) AS \"실패 건수\"\nFROM folded\nWHERE failed\nGROUP BY tc_id\nORDER BY count(*) DESC, tc_id\nLIMIT 10"
         }
       ]
     },
@@ -78,7 +78,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT r.run_id AS \"실행 번호\",\n       r.title AS \"제목\",\n       r.service_name AS \"서비스\",\n       r.env AS \"대상 서버\",\n       r.status AS \"상태\",\n       r.started_at AS \"시작 시각\"\nFROM test_run r\nWHERE r.kind = 'CASE'\nORDER BY r.started_at DESC\nLIMIT 20"
+          "rawSql": "SELECT r.run_id AS \"실행 번호\",\n       r.title AS \"제목\",\n       r.service_name AS \"서비스\",\n       r.env AS \"대상 서버\",\n       r.status AS \"상태\",\n       CASE r.kind WHEN 'UI' THEN 'UI 테스트' ELSE '기능 테스트' END AS \"종류\",\n       r.started_at AS \"시작 시각\"\nFROM test_run r\nWHERE r.kind IN ('UI','FN')\nORDER BY r.started_at DESC\nLIMIT 20"
         }
       ]
     },

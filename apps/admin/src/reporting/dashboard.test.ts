@@ -44,12 +44,14 @@ describe('Grafana 대시보드 프로비저닝', () => {
     ]);
   });
 
-  it('test_run 을 읽는 패널은 시나리오 실행을 뺀다', () => {
+  it('test_run 을 읽는 패널은 케이스 실행(UI · 기능)만 본다 — 시나리오 실행을 뺀다 (PR #131)', () => {
     const 읽는패널 = 대시보드.panels.filter((p) => p.targets.some((t) => t.rawSql.includes('test_run')));
     expect(읽는패널.map((p) => p.title)).toEqual(['성공률 추이', '평균 소요시간', '실패 TOP 10 케이스', '최근 실행 목록']);
     for (const p of 읽는패널) {
-      expect(p.targets.every((t) => t.rawSql.includes("kind = 'CASE'")), p.title).toBe(true);
+      expect(p.targets.every((t) => t.rawSql.includes("kind IN ('UI','FN')")), p.title).toBe(true);
     }
+    const 최근 = 대시보드.panels.find((p) => p.title === '최근 실행 목록');
+    expect(최근?.targets[0]?.rawSql).toContain('AS "종류"');
   });
 
   describe.skipIf(연결 === undefined)('패널 SQL', () => {

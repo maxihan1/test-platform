@@ -302,7 +302,8 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   비밀번호 변경 `xpw`(계정)(`auth/password-change.test.ts`, 2026-09-28 — `'xpw%'` 로 지운다) ·
   Grafana 통로 `xgfp`(계정)(`grafana/proxy.test.ts`)·`xgfg`(계정)(`grafana/gate.test.ts`)(2026-09-28 — 각자 `'xgfp%'`·`'xgfg%'` 로만 지운다. `'xgf%'` 로 넓히지 않는다) ·
   케이스 고치기 `XEA`(`db/edit-columns.test.ts`)·`XEB`(`authoring/edit-routes.test.ts` — 케이스 `XEB-001`~`003` · `XEBO-001`)·`XEC`(`authoring/edit-finish.test.ts` — 케이스 `XEC-001`~`004`)(2026-10-01 — 셋 다 자기 `service_id` 와 정확한 tc_id 목록으로만 지우고 그 `service` 행까지. `LIKE` 를 안 쓴다. **`XEB` 로 시작하는 새 이름을 고르지 않는다**) ·
-  반영 겹침 `XCN`(`db/conflict-columns.test.ts`)·`XWY`(`authoring/conflict-routes.test.ts`)(2026-10-01 — 둘 다 자기 `service_id` 로 요청을 지우고 그 `service` 행까지. `LIKE` 를 안 쓴다).
+  반영 겹침 `XCN`(`db/conflict-columns.test.ts`)·`XWY`(`authoring/conflict-routes.test.ts`)(2026-10-01 — 둘 다 자기 `service_id` 로 요청을 지우고 그 `service` 행까지. `LIKE` 를 안 쓴다) ·
+  실행 종류 `XRK`(`execution/run-kind-db.test.ts`, 2026-10-02 — 자기 `service_id` 로 `test_run` 을 지우고 그 `service` 행까지. `LIKE` 를 안 쓴다).
   **`XWA`·`XWAR`·`XWS`·`XWU`·`XRC`·`XWV`·`XWO`·`XWK`·`XWT`·`XWTC` 는 `authoring_request` 를 `LIKE` 가 아니라 자기 `service_id` 로만 지운다** —
   `XWAR` 이 `XWA` 로 시작하므로 `LIKE 'XWA%'` 로 넓히면 남의 fixture 를 실행 도중에 지운다 (2026-09-22).
   **WS-D·WS-F는 `ZZ`로 시작하는 것을 쓰지 않는다.**

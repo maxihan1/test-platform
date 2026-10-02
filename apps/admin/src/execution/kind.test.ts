@@ -51,7 +51,7 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
       [
         서비스,
         칸.status ?? 'FINISHED',
-        칸.시나리오 === true ? 'SCENARIO' : 'CASE',
+        칸.시나리오 === true ? 'SCENARIO' : 'FN',
         칸.시나리오 === true ? 시나리오 : null,
         칸.시나리오 === true ? 1 : null,
         칸.startedAt ?? null,

@@ -275,7 +275,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
     await 공용.end();
   });
 
-  it('머리말 일곱 칸을 실행 스냅샷에서 그대로 가져온다', async () => {
+  it('머리말 여덟 칸을 실행 스냅샷에서 그대로 가져온다 — 종류는 사람 말로', async () => {
     const 문서 = await collectRun(실행);
     expect(문서).not.toBeNull();
     expect(문서!.runId).toBe(실행);
@@ -283,6 +283,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
       serviceName: 'XDC 결제 서비스',
       testsRepo: 'https://github.com/example/xdc-tests',
       title: 'XDC 야간 회귀',
+      kind: '기능 테스트',
       startedAt: '2026-09-19T01:02:03.000Z',
       triggeredByName: '홍길동',
       env: 'qa',

@@ -4,6 +4,7 @@
 import type { ItemStatus, Platform } from '@platform/kit';
 
 import type { Pool } from 'pg';
+import { 종류조건 } from '../execution/runKind.js';
 
 export interface EvidenceField {
   label: string;
@@ -51,6 +52,8 @@ export interface EvidenceHeader {
   serviceName: string;
   testsRepo: string;
   title: string;
+  // 실행 하나에 한 종류다. 사람이 읽는 말로 싣는다 — 「UI 테스트」 · 「기능 테스트」 (SPEC 리포팅 §8.4 · PR #131)
+  kind: string;
   startedAt: string;
   triggeredByName: string;
   env: string;
@@ -80,6 +83,7 @@ interface RawRun {
   env: string;
   base_url: string;
   started_at: Date;
+  kind: string;
 }
 
 interface RawItem {
@@ -229,8 +233,8 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
   const pool = await db();
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   const runs = await pool.query<RawRun>(
-    `SELECT run_id, title, status, service_name, tests_repo, triggered_by_name, env, base_url, started_at
-       FROM test_run WHERE run_id = $1 AND kind = 'CASE'`,
+    `SELECT run_id, title, status, service_name, tests_repo, triggered_by_name, env, base_url, started_at, kind
+       FROM test_run WHERE run_id = $1 AND ${종류조건('case', '')}`,
     [runId],
   );
   const run = runs.rows[0];
@@ -256,6 +260,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
       serviceName: run.service_name === '' ? 기록없음 : run.service_name,
       testsRepo: run.tests_repo === '' ? 기록없음 : run.tests_repo,
       title: run.title,
+      kind: run.kind === 'UI' ? 'UI 테스트' : '기능 테스트',
       startedAt: run.started_at.toISOString(),
       // 실행자만 문구가 다르다. 「기록이 없다」가 아니라 「그때는 로그인이 없었다」가 사실이다 (SPEC §8.4)
       triggeredByName:
