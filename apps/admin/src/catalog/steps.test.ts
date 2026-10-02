@@ -224,3 +224,53 @@ describe('caseSteps', () => {
     expect(caseSteps(body('', 'fixtures')).usesRequest).toBe(true);
   });
 });
+
+describe('caseSteps — Page Object', () => {
+  const PAGE = `import { 로그인화면 } from './pages/login.page.js';\n`;
+  const FILL = `await page.getByRole('textbox').fill('우유');`;
+  const po = (step: string, outside = '', head = PAGE): string =>
+    head + R16.replace(FILL, step).replace('async ({ page }) => {\n', `async ({ page }) => {\n${outside}`);
+
+  it('절차 안에서 Page Object 를 만들어 부르면 「만들기」다', () => {
+    expect(skippable(po(`const 화면 = new 로그인화면(page);\n    await 화면.열기();`))[0]).toBe(true);
+  });
+
+  it('test 본문에서 만든 Page Object 를 절차 안에서 불러도 「만들기」다', () => {
+    expect(skippable(po(`await 화면.열기();`, `  const 화면 = new 로그인화면(page);\n`))[0]).toBe(true);
+  });
+
+  it('만들자마자 부르거나 클래스에서 바로 불러도 「만들기」다', () => {
+    expect(skippable(po(`await new 로그인화면(page).열기();\n    await 로그인화면.주소();`))[0]).toBe(true);
+  });
+
+  it('components 의 Component 도 같다', () => {
+    const head = `import { 머리 } from './components/site-header.component.js';\n`;
+    expect(skippable(po(`await new 머리(page).펼친다();`, '', head))[0]).toBe(true);
+  });
+
+  it.each([
+    ['다른 파일의 도우미', `import { 로그인화면 } from './helpers.js';\n`],
+    ['상위 폴더', `import { 로그인화면 } from '../pages/login.page.js';\n`],
+    ['폴더를 거슬러 오름', `import { 로그인화면 } from './pages/../helpers.page.js';\n`],
+    ['이름 꼴이 아님', `import { 로그인화면 } from './pages/Login.page.js';\n`],
+  ])('Page Object 자리가 아닌 곳에서 가져온 클래스는 여전히 애매하다 — %s', (_, head) => {
+    expect(skippable(po(`await new 로그인화면(page).열기();`, '', head))[0]).toBe(false);
+  });
+
+  it('절차 밖에서 만든 함수를 Page Object 에 넘기면 애매하다 — 그 안의 판정이 안 보인다', () => {
+    const outside = `  const 판정 = async () => { await verify('숨은 판정', 1, 2); };\n  const 화면 = new 로그인화면(page);\n`;
+    expect(skippable(po(`await 화면.열기(판정);`, outside))[0]).toBe(false);
+  });
+
+  it('같은 이름에 Page Object 말고 다른 것을 담는 선언이 하나라도 있으면 믿지 않는다', () => {
+    const outside = `  let 화면 = new 로그인화면(page);\n  화면 = 도우미;\n`;
+    expect(skippable(po(`await 화면.열기();`, outside))[0]).toBe(false);
+    const twice = po(`await 화면.열기();`, `  const 화면 = new 로그인화면(page);\n`) +
+      `\ntest(spec, async ({ page }) => {\n  const 화면 = 도우미(page);\n  await 화면.열기();\n});\n`;
+    expect(skippable(twice)[0]).toBe(false);
+  });
+
+  it('클래스 이름을 다른 것으로 덮으면 믿지 않는다', () => {
+    expect(skippable(po(`const 로그인화면 = 도우미;\n    await new 로그인화면(page).열기();`))[0]).toBe(false);
+  });
+});
