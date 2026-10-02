@@ -52,14 +52,15 @@ LLM 출력은 비결정적이다. 같은 기획서를 두 번 넣으면 두 번 
 
 ## 절 · 파일 · 언제 연다
 
-절 번호와 R1~R16 은 영구 주소다 — 다른 문서가 `tpx-cases §4` 처럼 가리킨다. 본문은 아래 파일에 있다.
+절 번호와 R1~R19 는 영구 주소다 — 다른 문서가 `tpx-cases §4` 처럼 가리킨다. 본문은 아래 파일에 있다.
 
 **각 단계에 들어가기 전에 그 파일을 Read 로 연다 — 기억으로 하지 않는다.**
 
 | 절 | 파일 | 언제 연다 |
 |---|---|---|
 | §1 입력 확인 · 입력은 자료 목록이다 | `references/1-input.md` | 기획서·자료 목록을 받았을 때 맨 먼저 |
-| §2 요구사항 표 — R1~R8 · R15 · 원장 · 제외 · 표 형식 | `references/2-requirements.md` | 표를 쓰기 전 |
+| §2 요구사항 표 — R1~R8 · R15 · R17 · R18 · R19(UI · Functional · 근거 · 커버리지) · 원장 · 제외 · 표 형식 | `references/2-requirements.md` | 표를 쓰기 전 |
+| §2 · §5 테스트 두 갈래 — R17~R19 · Page Object | `references/two-kinds.md` | 표를 쓰기 전 · UI Test 코드를 쓰기 전 |
 | §2 · §5 문장 규칙 — 한국어 AI 티 (im-not-ai 발췌) | `references/korean-ai-tells.md` | 표를 쓰기 전 · `.spec.ts` 를 쓰기 전 |
 | 🛑 §3 내부 게이트 | `references/3-gate.md` | 표를 다 쓴 직후 |
 | §4 selector 확정 · 용어 사전 — R9 · R10 | `references/4-selector.md` | 화면을 열기 전 |

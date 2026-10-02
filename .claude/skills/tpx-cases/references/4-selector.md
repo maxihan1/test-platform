@@ -67,6 +67,7 @@ npx playwright cli -s=probe close
 
 **locator 우선순위** `getByRole` > `getByPlaceholder` > `getByTestId` > `getByText`.
 CSS 선택자·`nth()`·XPath 금지.
+**UI Test 는 확정한 locator 를 Page Object 파일에 담는다** (`references/two-kinds.md` 「Page Object — UI Test」).
 
 **이 금지는 「무엇을 판정할지 고르는 자리」에만 건다.** 대기 앵커(R13)는 다르다 —
 목록의 몇째가 붙었나 사라졌나를 기다리는 `nth(N).waitFor()` 와, 값이 바뀌기를 기다리는
