@@ -25,7 +25,7 @@
 작성 에이전트가 케이스를 UI Test(조작 없이 화면 구성)와 Functional Test(조작으로 생긴 결과 · 근거 넷에 적힌 예외 · 경계만)로 나눠 쓴다.
 **정본은 [`docs/spec/도메인/작성.md`](spec/도메인/작성.md) §3.6 「★ 테스트 두 갈래」 한 곳이다.** 남은 것은 그 절의 계약 블록 둘(대기)이다. 순서대로 한다.
 
-- [ ] (WS-작성 · WS-A · 하네스) **#129** tcId 종류 글자 · Page Object 켜기 — 판별식(`cases-only.mjs` · `catalog/rules.ts` TCID · `ci-covers-tests` · `authoring-ledger-check.ts` · `authoring-conflicts*.ts` · `catalog/pageObject.ts` K7 · `kit` 실패 줄) → 지침(`two-kinds.md` · `fanout.md` · `resume.md` · `continue.md`) → 커버리지 `uiOnly` 보고 · 명세 블록 ① ②
+- [x] (WS-작성 · WS-A · 하네스) **#129** ✅ tcId 종류 글자 · Page Object 켜기 — 판별식(`cases-only.mjs` · `catalog/rules.ts` TCID · `ci-covers-tests` · `authoring-ledger-check.ts` · `authoring-conflicts*.ts` · `catalog/pageObject.ts` K7 · `kit` 실패 줄) → 지침(`two-kinds.md` · `fanout.md` · `resume.md` · `continue.md`) → 커버리지 `uiOnly` 보고 · 명세 블록 ① ②
 - [ ] (WS-작성) 요청끼리 같은 Page Object 충돌을 반영 때 AI 가 합치기 · `coverage_*` 와 대시보드 UI · 기능 분리 · 케이스 고치기의 Page Object — 명세 작성 §3.6 블록 ③(대기). 그때까지는 반영 실패 → 「같은 자료로 다시 작성」 · 같은 서비스는 한 건씩 권장
 - [ ] (WS-A) **#130** 시나리오 「만들기」 판별(`catalog/steps.ts`)이 Page Object 호출을 알아본다 · 부품 후보에서 UI 를 뺀다(`scenario/validate.ts` · `parts.ts`) — 직후부터 Functional 도 Page Object
 - [ ] (contracts · WS-B · WS-D · WS-E) **#131** 실행 하나에 한 종류 — `test_run.kind` · 실행 만들기 · 정해진 시간 실행 쪼개기 · `kind = 'CASE'` 거르는 곳 · Grafana · 사이드바 하위 메뉴

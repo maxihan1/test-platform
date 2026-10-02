@@ -554,3 +554,11 @@
 - 완료: 계약 블록 둘(tcId 종류 글자 #129 · 실행 종류와 사이드바 #131) — 둘 다 대기. Page Object 는 지침에 「대기」로만
 - 미완: AUT-F3-18~23 (#129 판별식부터 · #130 · #131 · 단계 시각 · MKT/CDY 다시 작성 · 리포트 문구)
 - 다음 세션이 알아야 할 것: #129 는 **판별식부터** 넓힌다 — 지침만 켜면 올리기가 거부된다(LEARNINGS 2026-10-02). 서브에이전트 상한 3 은 단계 시각 실측 전까지 그대로. MKT · CDY 재작성은 #130 뒤이고 서버 실측을 겸한다
+
+## 2026-10-02 — 테스트 두 갈래 ② 번호 종류 글자 · Page Object 켜기 (PR #129 · AUT-F3-18)
+
+- 완료: 판별식(K2 TCID 세 꼴 · 번호열쇠 · 올리기 허용 목록 · CI 서비스 폴더 `service-folder.mjs` · 원장 · 겹침 종류별 번호 · 가림표 · kit 실패 줄) → Page Object 검사(`catalog/pageObject.ts` — tests/ 아래 케이스 아닌 .ts 전부 K7 · test.step · verify 금지) → 지침 켜기(two-kinds · fanout · resume · continue · tpx-author SKILL) → 커버리지 `uiOnly`(보고용) → 명세 블록 ① ② 반영 · ③ 대기
+- 완료: 요청과 main 이 같은 Page Object 를 바꿨으면 줄이 안 겹쳐도 반영 실패(`authoring-main-merge.ts`)
+- 미완: 블록 ③(AUT-F3-24 · 25) · #130 · #131 · 시각 기록 · MKT/CDY 재작성
+- 막힌 것: 로컬 DB 에 20261001* 마이그레이션이 없어 DB 테스트 49건이 환경 실패 · catalog scan 1건은 main 에서도 실패
+- 다음 세션이 알아야 할 것: **병합 뒤 서버를 먼저(또는 같이) 올리고 author 컨테이너를 다시 켠다** — 옛 서버는 uiOnly 끝내기를 400, 켜 둔 에이전트는 옛 판별식. 번호열쇠(`rules.ts`)가 옛 꼴과 FN 을 같은 번호로 접는다
