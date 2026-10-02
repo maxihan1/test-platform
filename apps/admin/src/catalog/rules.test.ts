@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
 
-import { checkRegistration, checkSource, checkSpec, formatViolation } from './rules.js';
+import { checkRegistration, checkSource, checkSpec, formatViolation, tcId종류 } from './rules.js';
 
 const 정상 = `import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
@@ -153,6 +153,24 @@ describe('checkSpec', () => {
     for (const tcId of ['TOOLONGDOMAIN-001', 'Pay-001', '2PAY-001', 'PAY-1']) {
       expect(checkSpec('x.spec.ts', spec({ tcId }), lines)[0]?.rule).toBe('K2');
     }
+  });
+
+  it('K2 — 종류 글자 UI·FN 이 붙은 꼴도 통과한다', () => {
+    for (const tcId of ['PAY-UI-001', 'PAY-FN-042']) {
+      expect(checkSpec('x.spec.ts', spec({ tcId }), lines)).toEqual([]);
+    }
+  });
+
+  it('K2 — 모르는 종류 글자·두 자리 번호·소문자 종류 글자는 잡는다', () => {
+    for (const tcId of ['PAY-XX-001', 'PAY-UI-1', 'PAY-ui-001']) {
+      expect(checkSpec('x.spec.ts', spec({ tcId }), lines)[0]?.rule).toBe('K2');
+    }
+  });
+
+  it('tcId종류 — 종류 글자를 읽고, 옛 꼴은 기능 테스트로 본다', () => {
+    expect(tcId종류('PAY-UI-001')).toBe('UI');
+    expect(tcId종류('PAY-041')).toBe('FN');
+    expect(tcId종류('PAY-FN-042')).toBe('FN');
   });
 
   it('K3 — name이 비면 잡는다', () => {

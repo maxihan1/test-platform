@@ -9,6 +9,7 @@ import {
   입력옮기기,
   입력읽기,
   입력지우기,
+  tcId인가,
   type 보류,
   type 보류입력,
 } from './held.js';
@@ -65,6 +66,12 @@ describe('입력검사', () => {
     expect(입력검사(칸들, { params: { name: '가', on: false } })).toEqual({ params: { name: '가', on: false } });
     expect(typeof 입력검사(칸들, { params: { on: 'true' } })).toBe('string');
     expect(typeof 입력검사(칸들, { params: { name: 1 } })).toBe('string');
+  });
+});
+
+describe('tcId인가', () => {
+  it('종류 글자가 붙은 tcId 도 받는다', () => {
+    expect(tcId인가('PAY-UI-001')).toBe(true);
   });
 });
 
