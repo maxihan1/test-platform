@@ -22,11 +22,15 @@
 
 ## 📐 테스트 두 갈래 — UI Test · Functional Test (2026-10-02, 지침 · 명세 PR #128 ✅)
 
-작성 에이전트가 케이스를 UI Test(Page Object)와 Functional Test(한 기능 · 근거 넷에 적힌 예외 · 경계만)로 나눠 쓴다.
-**정본은 [`docs/spec/도메인/작성.md`](spec/도메인/작성.md) §3.6 「★ 테스트 두 갈래」 한 곳이다.** 남은 것은 그 절의 계약 블록(대기)이다.
+작성 에이전트가 케이스를 UI Test(조작 없이 화면 구성)와 Functional Test(조작으로 생긴 결과 · 근거 넷에 적힌 예외 · 경계만)로 나눠 쓴다.
+**정본은 [`docs/spec/도메인/작성.md`](spec/도메인/작성.md) §3.6 「★ 테스트 두 갈래」 한 곳이다.** 남은 것은 그 절의 계약 블록 둘(대기)이다. 순서대로 한다.
 
-- [ ] (WS-A · WS-작성 · WS-B · WS-E) tcId 종류 글자 `<접두사>-UI-<3자리>` · `<접두사>-FN-<3자리>` — K2 · 스캐너 · 에이전트 번호 매기기(종류마다 번호열 · 겹침 새 번호) · 보류 · 겹침 tcId 모양 · 케이스 목록과 실행 기록의 종류 탭. 반영되면 `tpx-cases` R17 의 「반영되기 전에는」 문단을 걷는다
-- [ ] (WS-A) 시나리오 「만들기」 판별(`catalog/steps.ts`)이 Page Object 호출을 알아본다 — 그 뒤 Functional Test 도 Page Object 를 쓴다
+- [ ] (WS-작성 · WS-A · 하네스) **#129** tcId 종류 글자 · Page Object 켜기 — **판별식부터 넓힌다**(`cases-only.mjs` · `catalog/rules.ts` TCID · `authoring/held.ts` · `ci-covers-tests` · `authoring-ledger-check.ts` · `authoring-conflicts*.ts` · `check.ts`/`scanner.ts` 의 Page Object K7 · `kit` 실패 줄 번호). 그다음 서브에이전트 지시문(`fanout.md` 쓰기 범위 · 공용 Component 먼저 · `resume.md` 의 「테스트 밖 파일 되돌림」), 요청끼리 겹친 Page Object 를 반영 때 AI 가 합치기, 커버리지 UI · 기능 나눠 세기. 반영되면 `two-kinds.md` 의 「대기」 문단들을 걷는다
+- [ ] (WS-A) **#130** 시나리오 「만들기」 판별(`catalog/steps.ts`)이 Page Object 호출을 알아본다 · 부품 후보에서 UI 를 뺀다(`scenario/validate.ts` · `parts.ts`) — 직후부터 Functional 도 Page Object
+- [ ] (contracts · WS-B · WS-D · WS-E) **#131** 실행 하나에 한 종류 — `test_run.kind` · 실행 만들기 · 정해진 시간 실행 쪼개기 · `kind = 'CASE'` 거르는 곳 · Grafana · 사이드바 하위 메뉴
+- [ ] (WS-작성) 작성 단계별 시작 · 끝 시각 기록 — 서버 실측 전. 실측 뒤 가장 긴 단계부터 서브에이전트로 나눈다(상한 3 은 그때까지 그대로)
+- [ ] (WS-작성) #130 뒤 MKT · CDY 케이스 · 표 · 실행 기록을 지우고 다시 작성 — 서버 실측을 겸한다. DEMO · TODO 는 남긴다
+- [ ] (WS-D · WS-E) 리포트 문구 한 벌 — 판정 글자 표 여섯 벌 · 칸 이름 · 「미확정 — 기획 답 대기」 이름, 증적의 참/거짓 · 객체 값 · 절차 오류 사유 (실측 먼저)
 
 ## 📐 동시 작성 · 반영 겹침 — 서버 · 에이전트 · 명세(2026-10-01, PR #126) ✅ 섰다 · 화면(③-2, PR #127) ✅ 섰다
 

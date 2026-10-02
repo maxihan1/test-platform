@@ -1,6 +1,6 @@
 ## §5. 케이스 작성
 
-**쓰기 전에 `korean-ai-tells.md` 를 읽는다** — 코드 안의 한글(`name` · `precondition` · `test.step` 제목 · `verify` · `.describe()` · `held` 사유)도
+**쓰기 전에 `korean-ai-tells.md` 와 `wording.md`(문구 틀) 를 읽는다** — 코드 안의 한글(`name` · `precondition` · `test.step` 제목 · `verify` · `.describe()` · `held` 사유)도
 그 규칙대로 쓴다. 표에서 옮기는 글자는 표를 쓸 때 이미 지켰다. 코드에서 새로 짓는 절차 제목 · 칸 설명이 여기서 걸린다.
 
 본보기는 `tests/demo/DEMO-011.spec.ts`. 대상 주소는 데모 케이스와 같이 **직접 적는다**
@@ -141,7 +141,7 @@
 
 ### Page Object — UI Test
 
-**본문은 `references/two-kinds.md` 「Page Object — UI Test」다.** UI Test 를 쓰기 전에 연다.
+**대기 — #129 에서 켠다.** 그 전에는 UI Test 도 케이스 파일 안에서 locator 를 쓴다. 본문은 `references/two-kinds.md` 「Page Object — UI Test」다.
 
 ### ★ 보류 · 모킹 필요로 빼기 전에 — 코드로 환경을 만든다 (2026-09-29 사용자)
 

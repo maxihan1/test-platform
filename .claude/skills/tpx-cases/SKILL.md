@@ -36,6 +36,7 @@ LLM 출력은 비결정적이다. 같은 기획서를 두 번 넣으면 두 번 
 ```
 
 **§4 이후는 기획서를 다시 읽지 않는다.** 읽으면 비결정성이 뒤쪽까지 샌다.
+예외 하나 — §4 탐침에서 본, 기획서에 없는 화면 입력 규칙은 표에 미확정 줄로 더한다. 기획서를 다시 읽는 것이 아니라 화면에서 본 것을 적는 것이다 (`references/two-kinds.md` 「화면에만 있는 입력 규칙」, 2026-10-02 사용자).
 
 ### 「정본」이 무엇인지는 **시점으로 갈린다**
 
@@ -62,6 +63,7 @@ LLM 출력은 비결정적이다. 같은 기획서를 두 번 넣으면 두 번 
 | §2 요구사항 표 — R1~R8 · R15 · R17 · R18 · R19(UI · Functional · 근거 · 커버리지) · 원장 · 제외 · 표 형식 | `references/2-requirements.md` | 표를 쓰기 전 |
 | §2 · §5 테스트 두 갈래 — R17~R19 · Page Object | `references/two-kinds.md` | 표를 쓰기 전 · UI Test 코드를 쓰기 전 |
 | §2 · §5 문장 규칙 — 한국어 AI 티 (im-not-ai 발췌) | `references/korean-ai-tells.md` | 표를 쓰기 전 · `.spec.ts` 를 쓰기 전 |
+| §2 · §5 문구 틀 — 자리마다 꼴 · 사유 머리 · 낱말 | `references/wording.md` | 표를 쓰기 전 · `.spec.ts` 를 쓰기 전 |
 | 🛑 §3 내부 게이트 | `references/3-gate.md` | 표를 다 쓴 직후 |
 | §4 selector 확정 · 용어 사전 — R9 · R10 | `references/4-selector.md` | 화면을 열기 전 |
 | §5 케이스 작성 — R11~R14 · R16 | `references/5-writing.md` | `.spec.ts` 를 쓰기 전 |
