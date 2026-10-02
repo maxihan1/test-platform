@@ -17,10 +17,16 @@ function frames(err: Error): { file: string; line: number }[] {
   return out;
 }
 
+// 케이스가 Page Object 메서드를 부르면 첫 프레임은 pages/*.page.ts 다. 화면은 케이스 파일을 발췌하므로 spec 프레임을 먼저 고른다
+function caller(err: Error): { file: string; line: number } | undefined {
+  const all = frames(err);
+  return all.find((f) => f.file.endsWith('.spec.ts')) ?? all[0];
+}
+
 export function callerLine(err: Error): number | undefined {
-  return frames(err)[0]?.line;
+  return caller(err)?.line;
 }
 
 export function callerFile(err: Error): string | undefined {
-  return frames(err)[0]?.file;
+  return caller(err)?.file;
 }
