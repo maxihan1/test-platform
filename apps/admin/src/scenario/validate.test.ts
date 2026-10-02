@@ -47,6 +47,10 @@ describe('조립 검사', () => {
     for (const 문장 of 오류) expect(문장).toMatch(/SHOP 서비스의 케이스가 아니다/);
   });
 
+  it('UI 테스트는 재료를 보기 전에 거절한다 — E2E 부품은 기능 테스트만이다', () => {
+    expect(검사([케이스('SHOP-UI-001')])).toEqual(['1번 부품: SHOP-UI-001 는 UI 테스트라 E2E 부품이 될 수 없다']);
+  });
+
   it('없는 케이스와 비활성 케이스는 거절한다', () => {
     const 오류 = 검사([케이스('SHOP-999'), 케이스('SHOP-003')]);
     expect(오류).toHaveLength(2);

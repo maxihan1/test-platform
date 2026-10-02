@@ -25,7 +25,7 @@ test(spec, async ({ page }) => {
 `;
 
 describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
-  const 번호들 = ['XSP-001', 'XSP-002', 'XSP-003', 'XSP-004', 'XSP-005'];
+  const 번호들 = ['XSP-001', 'XSP-002', 'XSP-003', 'XSP-004', 'XSP-005', 'XSP-UI-001'];
   const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
   let 뿌리 = '';
 
@@ -53,6 +53,7 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
     await 케이스넣기('XSP-003', 'xsp/a.spec.ts', false);
     await 케이스넣기('XSP-004', '../밖.spec.ts');
     await 케이스넣기('XSP-005', 'xsp/broken.spec.ts');
+    await 케이스넣기('XSP-UI-001', 'xsp/a.spec.ts');
   });
 
   afterAll(async () => {
@@ -60,6 +61,12 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
     await rm(뿌리, { recursive: true, force: true });
     if (원래뿌리 === undefined) delete process.env.PLATFORM_TESTS_DIR;
     else process.env.PLATFORM_TESTS_DIR = 원래뿌리;
+  });
+
+  it('UI 테스트는 두 재료에서 다 빠진다 — E2E 부품은 기능 테스트만이다', async () => {
+    const { 카탈로그, 부품재료 } = await 케이스재료(['XSP-UI-001']);
+    expect(카탈로그.has('XSP-UI-001')).toBe(false);
+    expect(부품재료.has('XSP-UI-001')).toBe(false);
   });
 
   it('활성 케이스는 조립 재료와 case-parts 재료를 같이 준다 — line 은 없다', async () => {

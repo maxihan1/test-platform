@@ -59,9 +59,9 @@
 >   **동작 쪽을 `## 제외` 로 빼면서 UI 줄만 남기지 않는다** — 원장 셈은 그 번호를 덮은 것으로 센다. 동작이 정말 빠지면 UI 줄도 같이 빼고 제외 사유에 둘 다 적는다
 > - **예전 커버리지 규칙은 Functional 쪽에 그대로 산다** — 장 단위로 빼지 않기 · 모킹으로 예외 만들기(R4 · §5 「빼기 전에」) · API 케이스(§5) · 판정 불가 케이스. 달라진 것은 R18 로 근거 없는 줄을 막는 것뿐이다
 
-### Page Object — UI Test
+### Page Object
 
-UI Test 는 Page Object 를 쓴다. locator 를 케이스 파일에 직접 적지 않는다 (명세 도메인/작성 §3.6 「★ 테스트 두 갈래」).
+UI Test 와 Functional Test 는 Page Object 를 쓴다. locator 를 케이스 파일에 직접 적지 않는다 (명세 도메인/작성 §3.6 「★ 테스트 두 갈래」).
 올리기 허용 목록(`.claude/scripts/cases-only.mjs`)과 CI 가 아래 두 자리를 받는다. **이름은 `^[a-z][a-z0-9-]{0,40}$`** — 소문자로 시작하고 소문자 · 숫자 · 하이픈만 쓴다. 꼴이 다르면 올리기가 거절된다.
 
 | 무엇 | 규칙 |
@@ -69,10 +69,11 @@ UI Test 는 Page Object 를 쓴다. locator 를 케이스 파일에 직접 적�
 | 자리 · 이름 | `tests/<폴더>/pages/<화면>.page.ts` · 두 화면 이상에 나오는 부품만 `tests/<폴더>/components/<부품>.component.ts`. 화면 하나에 파일 하나 · 클래스 하나 · 생성자는 `page` 만 받는다. **`.spec.ts` · `.test.ts` 로 끝나는 이름 금지** — Playwright 가 테스트로 집는다 |
 | 담는 것 | §4 에서 확정한 locator(우선순위 그대로)와 짧은 동작(채우기 · 누르기 · 이동). **찾는 법의 정본은 여기다** — 용어 사전에는 이름과 뜻만 남긴다 |
 | 담지 않는 것 | `test.step` · `verify` · 기대값 · 판정. **K6 · K12 와 증적 문서가 케이스 파일의 절차 제목과 판정 문장을 글자로 읽는다** — Page Object 안의 `verify` 는 판정 0 건으로 센다 |
-| 금지 | 주석 · `expect` — `tests/**` 전체에 걸리는 규칙이라 Page Object 파일도 훅과 CI(`check:tests` K7)가 막는다 |
+| 금지 | 주석 · `expect` — `tests/**` 전체에 걸리는 규칙이라 Page Object 파일도 훅과 CI(`check:tests` K7)가 막는다. 가져오기는 같은 `tests/` 안 파일 · `@playwright/test`(`test` · `expect` 말고) · kit 의 타입뿐이다(명세 공통/2-명세선언 「Page Object 파일」) |
 | 부르는 법 | `import { 로그인화면 } from './pages/login.page.js'` (저장소가 `NodeNext` 라 `.js` 로 적는다). 관문 1 의 타입 검사와 관문 3 실행이 확인한다 |
 | 여럿이 같이 쓰기 | 이미 있으면 **고치거나 이름을 바꾸지 말고 더한다** — 다른 케이스가 그 주소를 쓴다. 공용 Component 는 팬아웃 전에 메인이 먼저 만들고 서브에이전트는 읽기만 한다. 요청 둘이 같은 Page Object 를 고치면 지금은 반영이 실패한다(「같은 자료로 다시 작성」). 같은 서비스는 한 건씩 돌린다 |
 
-**Functional Test 는 #130 직후부터 Page Object 를 쓴다** (2026-10-02 사용자). 그 전에는 `page` 를 직접 쓴다 —
-E2E 시나리오의 「만들기」 판별(`catalog/steps.ts`)이 `page` 로 시작하는 호출만 건너뛸 수 있는 절차로 알아보기 때문이다.
-그때까지 Functional 의 locator 는 용어 사전의 `locator` 칸이 정본이다. UI Test 의 locator 정본은 Page Object 이고 용어 사전에는 이름과 뜻만 둔다.
+**Functional Test 도 Page Object 를 쓴다** (2026-10-02 사용자 · PR #130). E2E 시나리오의 「만들기」 판별(`catalog/steps.ts`)이 Page Object 호출을 믿는다 —
+Page Object 파일은 판정 · 절차를 부르지도 들여오지도 못하기 때문이다. 그래서 **Page Object 메서드에 함수를 넘기지 않는다**(콜백 안의 판정이 안 보여 그 절차를 건너뛸 수 없게 된다).
+**Page Object 에서 `request` 를 쓰지 않는다** — E2E 의 모킹 경고(`usesRequest`)는 케이스 파일만 읽는다. API 케이스(R17 · §5)는 케이스 파일에서 `request` 를 직접 쓴다.
+찾는 법의 정본은 두 갈래 다 Page Object 이고 용어 사전에는 이름과 뜻만 둔다.

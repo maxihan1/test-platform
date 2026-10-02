@@ -4,6 +4,8 @@
 import type { Platform, ScenarioPart } from '@platform/kit';
 import { z } from 'zod';
 
+import { tcId종류 } from '../catalog/rules.js';
+
 // 부품 표의 정본은 도메인/시나리오 §3.7 · 코드 값은 공유계약 §5.1 ScenarioPart 다
 const 부품모양 = z.discriminatedUnion('kind', [
   z.object({
@@ -77,6 +79,11 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
       // 접두사부터 본다 — 남의 서비스 케이스가 있는지 없는지가 오류 문장으로 새지 않게
       if (!p.tcId.startsWith(`${service}-`)) {
         오류.push(`${자리}: ${p.tcId} 는 ${service} 서비스의 케이스가 아니다`);
+        return;
+      }
+      // 재료가 UI 를 빼 두므로 먼저 본다 — 아니면 「없거나 비활성」으로 잘못 말한다 (도메인/작성 §3.6 「★ 테스트 두 갈래」)
+      if (tcId종류(p.tcId) === 'UI') {
+        오류.push(`${자리}: ${p.tcId} 는 UI 테스트라 E2E 부품이 될 수 없다`);
         return;
       }
       const 케이스 = 재료.get(p.tcId);

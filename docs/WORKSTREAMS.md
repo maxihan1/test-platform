@@ -27,7 +27,7 @@
 
 - [x] (WS-작성 · WS-A · 하네스) **#129** ✅ tcId 종류 글자 · Page Object 켜기 — 판별식(`cases-only.mjs` · `catalog/rules.ts` TCID · `ci-covers-tests` · `authoring-ledger-check.ts` · `authoring-conflicts*.ts` · `catalog/pageObject.ts` K7 · `kit` 실패 줄) → 지침(`two-kinds.md` · `fanout.md` · `resume.md` · `continue.md`) → 커버리지 `uiOnly` 보고 · 명세 블록 ① ②
 - [ ] (WS-작성) 요청끼리 같은 Page Object 충돌을 반영 때 AI 가 합치기 · `coverage_*` 와 대시보드 UI · 기능 분리 · 케이스 고치기의 Page Object — 명세 작성 §3.6 블록 ③(대기). 그때까지는 반영 실패 → 「같은 자료로 다시 작성」 · 같은 서비스는 한 건씩 권장
-- [ ] (WS-A) **#130** 시나리오 「만들기」 판별(`catalog/steps.ts`)이 Page Object 호출을 알아본다 · 부품 후보에서 UI 를 뺀다(`scenario/validate.ts` · `parts.ts`) — 직후부터 Functional 도 Page Object
+- [x] (WS-A · WS-작성) **#130** ✅ 시나리오 「만들기」 판별(`catalog/steps.ts`)이 Page Object 호출을 알아본다 · 부품 후보에서 UI 를 뺀다(`scenario/validate.ts` · `parts.ts`) · K7 가져오기 허용 목록 · 판별 우회 막기 — Functional 도 Page Object(지침 켬)
 - [ ] (contracts · WS-B · WS-D · WS-E) **#131** 실행 하나에 한 종류 — `test_run.kind` · 실행 만들기 · 정해진 시간 실행 쪼개기 · `kind = 'CASE'` 거르는 곳 · Grafana · 사이드바 하위 메뉴
 - [ ] (WS-작성) 작성 단계별 시작 · 끝 시각 기록 — 서버 실측 전. 실측 뒤 가장 긴 단계부터 서브에이전트로 나눈다(상한 3 은 그때까지 그대로)
 - [ ] (WS-작성) #130 뒤 MKT · CDY 케이스 · 표 · 실행 기록을 지우고 다시 작성 — 서버 실측을 겸한다. DEMO · TODO 는 남긴다

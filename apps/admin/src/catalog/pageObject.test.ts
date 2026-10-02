@@ -48,6 +48,62 @@ describe('checkNonCase', () => {
     const found = checkNonCase('mkt/pages/login.page.ts', 글);
     expect(found.map((x) => [x.rule, x.what])).toEqual([['K7', '케이스가 아닌 파일에서 verify 를 부른다']]);
   });
+
+  // 이름을 바꿔 부르면 위의 두 검사를 피한다. E2E 「만들기」 판별이 Page Object 를 믿는 근거라 가져오는 자리에서 막는다
+  it.each([
+    ['이름을 바꿔 가져온 verify', "import { verify as 확인 } from '@platform/kit';"],
+    ['이름을 바꿔 가져온 test', "import { test as t } from '@platform/kit';"],
+    ['통째로 가져오기', "import * as kit from '@platform/kit';"],
+    ['다시 내보내기', "export { verify } from '@platform/kit';"],
+    ['통째로 다시 내보내기', "export * from '@platform/kit';"],
+  ])('케이스가 아닌 파일이 kit 의 판정 · 절차를 가져오면 K7 이다 — %s', (_, line) => {
+    const found = checkNonCase('mkt/pages/login.page.ts', `${line}\n${깨끗한글}`);
+    expect(found.map((x) => [x.rule, x.line])).toEqual([['K7', 1]]);
+  });
+
+  it.each([
+    ['kit 하위 경로', "import { verify as ok } from '@platform/kit/runtime';"],
+    ['tests 밖 상대 경로', "import { verify } from '../../../packages/kit/src/runtime/verify.js';"],
+    ['다른 패키지', "import { readFileSync } from 'node:fs';"],
+    ['playwright 의 test', "import { test as t } from '@playwright/test';"],
+    ['playwright 의 expect', "import { expect as e } from '@playwright/test';"],
+    ['playwright 통째로', "import * as pw from '@playwright/test';"],
+    ['import = require', "import k = require('@platform/kit');"],
+    ['tests 밖을 다시 내보냄', "export { LoginPage } from '../../../packages/x.js';"],
+  ])('케이스가 아닌 파일은 허용한 곳에서만 가져온다 — %s', (_, line) => {
+    const found = checkNonCase('mkt/pages/login.page.ts', `${line}\n${깨끗한글}`);
+    expect(found.length).toBeGreaterThan(0);
+    expect(found.every((x) => x.rule === 'K7' && x.line === 1)).toBe(true);
+  });
+
+  it.each([
+    ['require', "const k = require('@platform/kit');"],
+    ['변수 경로 동적 import', 'await import(m);'],
+  ])('부르는 자리에서 가져와도 K7 이다 — %s', (_, call) => {
+    const 글 = 깨끗한글.replace("await this.page.goto('https://example.com/login');", call);
+    expect(checkNonCase('mkt/pages/login.page.ts', 글).map((x) => x.rule)).toEqual(['K7']);
+  });
+
+  it.each([
+    ['playwright 타입', "import type { Locator } from '@playwright/test';"],
+    ['playwright 이름 하나만 타입', "import { type Locator } from '@playwright/test';"],
+    ['같은 서비스 Component', "import { 머리 } from '../components/site-header.component.js';"],
+  ])('허용한 곳에서 가져오는 것은 괜찮다 — %s', (_, line) => {
+    expect(checkNonCase('mkt/pages/login.page.ts', `${line}\n${깨끗한글}`)).toEqual([]);
+  });
+
+  it('kit 을 동적으로 가져와도 K7 이다', () => {
+    const 글 = 깨끗한글.replace("await this.page.goto('https://example.com/login');", "await import('@platform/kit');");
+    expect(checkNonCase('mkt/pages/login.page.ts', 글).map((x) => x.rule)).toEqual(['K7']);
+  });
+
+  it('kit 에서 판정 · 절차 말고 다른 것만 가져오는 것은 괜찮다', () => {
+    expect(checkNonCase('mkt/pages/login.page.ts', `import type { CaseSpec } from '@platform/kit';\n${깨끗한글}`)).toEqual([]);
+  });
+
+  it('tests 아래 JS 파일은 K7 이다 — 검사를 안 받고 import 로 풀린다', () => {
+    expect(checkNonCase('mkt/pages/login.page.js', 'export class LoginPage {}\n').map((x) => [x.rule, x.line])).toEqual([['K7', 1]]);
+  });
 });
 
 describe('nonCaseFiles', () => {
@@ -64,6 +120,8 @@ describe('nonCaseFiles', () => {
       'mkt/pages/a/b.page.ts',
       'mkt/helper.ts',
       'mkt/pages/x.ts',
+      'mkt/pages/y.page.js',
+      'mkt/pages/z.mjs',
     ]) {
       await writeFile(join(root, file), '');
     }
@@ -73,13 +131,15 @@ describe('nonCaseFiles', () => {
     await rm(root, { recursive: true, force: true });
   });
 
-  it('.spec.ts 가 아닌 .ts 를 깊이와 이름 꼴에 상관없이 모은다', async () => {
+  it('.spec.ts 가 아닌 .ts 와 JS 파일을 깊이와 이름 꼴에 상관없이 모은다', async () => {
     expect(await nonCaseFiles(root)).toEqual([
       join(root, 'mkt/components/site-header.component.ts'),
       join(root, 'mkt/helper.ts'),
       join(root, 'mkt/pages/a/b.page.ts'),
       join(root, 'mkt/pages/login.page.ts'),
       join(root, 'mkt/pages/x.ts'),
+      join(root, 'mkt/pages/y.page.js'),
+      join(root, 'mkt/pages/z.mjs'),
     ]);
   });
 

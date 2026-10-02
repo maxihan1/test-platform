@@ -562,3 +562,11 @@
 - 미완: 블록 ③(AUT-F3-24 · 25) · #130 · #131 · 시각 기록 · MKT/CDY 재작성
 - 막힌 것: 로컬 DB 에 20261001* 마이그레이션이 없어 DB 테스트 49건이 환경 실패 · catalog scan 1건은 main 에서도 실패
 - 다음 세션이 알아야 할 것: **병합 뒤 서버를 먼저(또는 같이) 올리고 author 컨테이너를 다시 켠다** — 옛 서버는 uiOnly 끝내기를 400, 켜 둔 에이전트는 옛 판별식. 번호열쇠(`rules.ts`)가 옛 꼴과 FN 을 같은 번호로 접는다
+
+## 2026-10-02 — 기능 테스트도 Page Object (PR #130)
+
+- 완료: two-kinds · 4-selector · 5-writing · tpx-author SKILL 의 「#130 전까지 page 직접」을 걷고 두 갈래 다 Page Object · 찾는 법의 정본도 Page Object(용어 사전은 이름 · 뜻 · CSS 까닭)
+- 완료: 지침에 「Page Object 메서드에 함수를 넘기지 않는다」 · 「Page Object 에서 request 를 쓰지 않는다」 · 가져오기 허용 목록. chain-contract 검사를 새 문장으로
+- 미완: author 컨테이너 재시작(병합 뒤 사람) · 다음은 #131 실행 종류 · MKT/CDY 재작성
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: API 케이스는 여전히 케이스 파일에서 `request` 를 직접 쓴다

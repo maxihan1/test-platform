@@ -109,3 +109,12 @@ curl 'localhost:3000/api/catalog/cases?service=NOPE'          # 403 SERVICE_FORB
 - 미완: 이름에 `pw` 가 든 칸(`desktopWidth`)이 `••••` 로 가려진다 — `web/mask.ts` 의 「모르면 가린다」 규칙 그대로. 내보내기 건수 상한 없음
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 실행 결과의 증적 엑셀(도메인/리포팅 §8.4)과 다른 파일이다. 권한이 없으면 「마지막 결과」(실행 read) · 「사람이 값 채움」과 시트 ②(작성 read)를 비운다. 시트 ② 는 뿌리마다 최신 끝난 실행 한 건만 — `held_input` 이 이어받을 때 옮겨 적혀 중복된다
+
+## 2026-10-02 — 테스트 두 갈래 ③ 「만들기」 판별 · E2E 부품에서 UI 빼기 (PR #130)
+
+- 완료: `catalog/steps.ts` 가 Page Object(`./pages/*.page.js` · `./components/*.component.js` 의 클래스 · 그 `new` · 그것만 담는 `const`)를 믿는다. 절차 밖 함수 · 클래스를 쓰는 절차, 판정을 값으로 쓰는 파일, 부르기 말고 다른 데 쓴 이름은 안 믿는다
+- 완료: `catalog/pageObject.ts` K7 — 케이스가 아닌 파일의 가져오기 허용 목록(같은 tests 안 · playwright(test · expect 말고) · kit 타입) · require · import= · 동적 import · tests 아래 JS 금지
+- 완료: `scenario/validate.ts` 가 UI 테스트 부품을 거절 · `parts.ts` 가 재료에서 뺀다(case-parts 404 · 저장된 부품은 CASE_INACTIVE)
+- 미완: 없음. Page Object 안 `throw` 는 판정이 아니라 막지 않는다
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 실제 케이스 111건의 「만들기」는 main 과 같은 8건. 우회 재현 스크립트는 세션 임시 폴더에만 있었다 — 단위 테스트(steps.test.ts 「caseSteps — Page Object」 · pageObject.test.ts)가 같은 모양을 지킨다
