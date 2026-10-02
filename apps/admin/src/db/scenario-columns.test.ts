@@ -217,8 +217,14 @@ describe.skipIf(연결 === undefined)('E2E 시나리오 표', () => {
     ]);
   });
 
-  it('kind 없이 넣은 실행은 CASE 다', async () => {
-    expect((await 실행()).kind).toBe('CASE');
+  it('kind 없이 넣은 실행은 FN 이다 — 옛 꼴 번호를 기능으로 보는 규칙과 같다 (PR #131)', async () => {
+    expect((await 실행()).kind).toBe('FN');
+  });
+
+  it('케이스 실행 종류는 UI · FN 이고 옛 CASE 는 거절한다 (PR #131)', async () => {
+    expect((await 실행({ kind: 'UI' })).kind).toBe('UI');
+    expect((await 실행({ kind: 'FN' })).kind).toBe('FN');
+    await expect(실행({ kind: 'CASE' })).rejects.toThrow('test_run_kind_check');
   });
 
   it('시나리오 실행은 시나리오와 버전을 둘 다 가진다', async () => {
@@ -227,7 +233,7 @@ describe.skipIf(연결 === undefined)('E2E 시나리오 표', () => {
     expect((await 실행({ kind: 'SCENARIO', scenarioId: s, version: 1 })).kind).toBe('SCENARIO');
     await expect(실행({ kind: 'SCENARIO' })).rejects.toThrow('test_run_scenario_check');
     await expect(실행({ kind: 'SCENARIO', scenarioId: s })).rejects.toThrow('test_run_scenario_check');
-    await expect(실행({ kind: 'CASE', scenarioId: s, version: 1 })).rejects.toThrow('test_run_scenario_check');
+    await expect(실행({ kind: 'FN', scenarioId: s, version: 1 })).rejects.toThrow('test_run_scenario_check');
     await expect(실행({ kind: 'X' })).rejects.toThrow('test_run_kind_check');
     await expect(실행({ kind: 'SCENARIO', scenarioId: s, version: 99 })).rejects.toThrow('test_run_scenario_version_fkey');
   });
