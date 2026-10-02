@@ -363,3 +363,21 @@ test('스킬 문서는 파일마다 200줄 이하다 — playwright-cli 제외',
   }
   assert.deepEqual(넘침, [], `200줄을 넘는 스킬 문서: ${넘침.join(', ')}. 절을 references/ 로 옮긴다`);
 });
+
+// #129 가 Page Object 와 종류별 번호를 켰다. 지침에 「대기」가 남으면 자식이 Page Object 를 안 쓴다 (2026-10-02)
+test('tpx-cases · tpx-author 에 「대기 — #129」가 남지 않았다', () => {
+  for (const s of ['tpx-cases', 'tpx-author']) {
+    assert.doesNotMatch(read(s), /대기[^\n]{0,8}#129|#129 (에서 켠다|전까지)/, `${s} 에 #129 대기 문구가 남았다`);
+  }
+});
+
+test('팬아웃 쓰기 범위에 pages/ 가 있다', () => {
+  const fanout = readFileSync(new URL('tpx-author/references/fanout.md', DIR), 'utf8');
+  assert.match(fanout, /pages\//, 'fanout.md 의 쓰기 범위에 pages/ 가 없다');
+});
+
+// 기능 테스트는 E2E 「만들기」 판별이 page 직접 호출만 알아봐서 #130 전까지 page 를 직접 쓴다
+test('two-kinds.md 가 기능 테스트의 #130 전 규칙을 지킨다', () => {
+  const twoKinds = readFileSync(new URL('tpx-cases/references/two-kinds.md', DIR), 'utf8');
+  assert.match(twoKinds, /#130 (직후|전까지)/, 'two-kinds.md 에 #130 문장이 없다');
+});

@@ -141,7 +141,8 @@
 
 ### Page Object — UI Test
 
-**대기 — #129 에서 켠다.** 그 전에는 UI Test 도 케이스 파일 안에서 locator 를 쓴다. 본문은 `references/two-kinds.md` 「Page Object — UI Test」다.
+UI Test 는 `tests/<폴더>/pages/<화면>.page.ts` 의 Page Object 로 화면을 다룬다. Functional Test 는 #130 전까지 `page` 를 직접 쓴다.
+자리 · 이름 꼴 · 담는 것 · 새 tcId 꼴은 `references/two-kinds.md` 「Page Object — UI Test」와 R17 이 정본이다.
 
 ### ★ 보류 · 모킹 필요로 빼기 전에 — 코드로 환경을 만든다 (2026-09-29 사용자)
 

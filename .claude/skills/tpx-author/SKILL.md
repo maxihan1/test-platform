@@ -18,7 +18,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 - **자료 목록** — 파일 경로와 원래 이름, 피그마 주소
 - **tcId 접두사** — 서비스 단위 (`tpx-cases` §1 의 2)
 - **테스트 폴더** — `tests/<폴더>`. 서비스 설정 `testsDir` 에서 온다.
-  새 서비스면 폴더가 아직 없을 수 있다 — 그때는 만들고 tcId 는 `<접두사>-001` 부터 시작한다
+  새 서비스면 폴더가 아직 없을 수 있다 — 그때는 만든다. 새 tcId 는 종류별로 매긴다. UI 는 `<접두사>-UI-NNN` · 기능은 `<접두사>-FN-NNN` 이다 (`two-kinds.md` R17)
 - **대상 화면 주소** — 없으면 아래 「멈출 때」를 따른다
 - **역방향 절**(`--- 역방향 ---`) — 있으면 **`references/reverse.md` 를 Read 로 열고 그대로 따른다.**
   실제 화면과 대조 · 화면만 · 계정 다루기 · 훑기 허용 목록 · `diffs.json` · 역기획서 원고가 거기 있다 (2026-09-26)
@@ -44,7 +44,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 - **`/tpx` 와 다른 체인 스킬 호출**
 - **Bash 의 `run_in_background`** — 모든 명령은 앞에서 끝까지 기다린다. **Agent 도구도 같다** — 서브에이전트는 앞에서 띄우고 끝날 때까지 기다린다
 - **AskUserQuestion** — 답할 사람이 없다. 사람은 PR 본문에서 표를 본다
-- **작업 폴더 밖 파일 수정** — 바꾸는 것은 `tests/<폴더>/*.spec.ts` 와 `docs/cases/<접두사>.md` 뿐이다.
+- **작업 폴더 밖 파일 수정** — 바꾸는 것은 `tests/<폴더>/*.spec.ts` · `tests/<폴더>/pages/*.page.ts` · `tests/<폴더>/components/*.component.ts` 와 `docs/cases/<접두사>.md` 뿐이다.
   다른 파일이 바뀌면 에이전트 스크립트가 push 를 거부한다
 
 ---
@@ -66,7 +66,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
    무엇을 실을지는 `references/3-gate.md` 를 읽고 정한다
 4. **§4 selector 확정 → §5 케이스 작성** — `references/4-selector.md` → `references/5-writing.md`.
    케이스는 UI Test 와 Functional Test 두 갈래다(R17). 예외 · 경계는 근거 넷에 적힌 것만 만든다(R18). 동작 요구는 Functional 케이스로 덮는다(R19).
-   Page Object 는 아직 쓰지 않는다 — #129 전까지 UI Test 도 케이스 파일 안에서 locator 를 쓴다(`two-kinds.md`).
+   UI Test 는 Page Object 를 쓰고 Functional Test 는 #130 전까지 `page` 를 직접 쓴다(`two-kinds.md` 「Page Object — UI Test」).
    §4 에서 기획서에 없는 화면 입력 규칙을 보면 표에 미확정 줄을 더해 케이스로 쓴다(`two-kinds.md` 「화면에만 있는 입력 규칙」)
    **화면 묶음이 둘 이상이고 케이스가 8건 이상이면** 이 스킬의 `references/fanout.md` 대로 서브에이전트에게 나눠 맡긴다 (2026-09-30)
 5. **§6 관문** — `references/6-gates.md`. 원장 대조(관문 0) · 형식 · 표 대조 · 3회 실행 · 일부러 부수기
