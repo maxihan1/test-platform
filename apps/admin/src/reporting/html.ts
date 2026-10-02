@@ -245,6 +245,7 @@ export function renderHtml(doc: EvidenceDocument, options: RenderOptions): strin
     `  <div class="repo">${안전(h.testsRepo)}</div>`,
     `  <dl class="meta">`,
     `    <dt>실행 제목</dt><dd>${안전(h.title)}</dd>`,
+    `    <dt>종류</dt><dd>${안전(h.kind)}</dd>`,
     `    <dt>실행 시각</dt><dd>${안전(h.startedAt)}</dd>`,
     `    <dt>실행자</dt><dd>${안전(h.triggeredByName)}</dd>`,
     `    <dt>대상 서버</dt><dd>${안전(h.env)}</dd>`,

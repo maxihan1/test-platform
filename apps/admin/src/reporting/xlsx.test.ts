@@ -13,6 +13,7 @@ const 머리말 = {
   serviceName: '커머스',
   testsRepo: 'https://git.example.com/commerce-tests',
   title: '야간 회귀',
+  kind: '기능 테스트',
   startedAt: '2026-09-18T22:00:00.000Z',
   triggeredByName: '김검수',
   env: 'qa',
@@ -102,7 +103,9 @@ describe('증적 문서 엑셀', () => {
       '실제',
       '판정',
       '스크린샷경로',
+      '종류',
     ]);
+    expect(셀(ws, 2, 27)).toBe('기능 테스트');
   });
 
   it('검증 문장 2개짜리 절차는 2행이 된다', async () => {

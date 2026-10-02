@@ -26,6 +26,7 @@ const 머리말 = {
   serviceName: '커머스',
   testsRepo: 'https://git.example.com/commerce-tests',
   title: '야간 회귀',
+  kind: '기능 테스트',
   startedAt: '2026-09-18T22:00:00.000Z',
   triggeredByName: '김검수',
   env: 'qa',
@@ -93,6 +94,7 @@ describe('증적 문서 HTML', () => {
     ]) {
       expect(html).toContain(값);
     }
+    expect(html).toContain('<dt>종류</dt><dd>기능 테스트</dd>');
   });
 
   it('반복 실행한 케이스는 회차마다 한 블록씩 나오고 회차 번호가 블록 머리에 있다', () => {

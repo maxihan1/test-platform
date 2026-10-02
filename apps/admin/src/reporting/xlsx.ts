@@ -53,6 +53,8 @@ const 머리행 = [
   '실제',
   '판정',
   '스크린샷경로',
+  // 맨 끝에 붙인다 — 앞에 끼우면 이 엑셀을 칸 위치로 읽는 시트가 전부 한 칸씩 밀린다 (PR #131)
+  '종류',
 ];
 
 type 칸값 = string | number | null;
@@ -118,7 +120,7 @@ export async function renderXlsx(doc: EvidenceDocument, options: RenderOptions):
   // 머리행만 고정한다. 머리행 길이만큼 가로로 훑는 표라 머리가 흘러가면 무슨 칸인지 못 읽는다
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
   sheet.addRow(머리행);
-  for (const item of doc.items) sheet.addRows(항목행들(doc, item));
+  for (const item of doc.items) sheet.addRows(항목행들(doc, item).map((행) => [...행, doc.header.kind]));
 
   // exceljs 는 자기 모듈 안에 Buffer 를 따로 선언해 둔다. 노드 Buffer 로 맞춰 내보낸다
   return Buffer.from(await workbook.xlsx.writeBuffer());
