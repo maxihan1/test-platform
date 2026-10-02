@@ -102,10 +102,11 @@ export function 커밋메시지(번호: number, 서비스: string): string {
  * 초안 PR 본문. 가벼운 길의 CI 는 새 케이스를 **실행하지 않는다** — 병합 근거는 맥의 관문 3 기록이라
  * 그 사실을 본문에 못박는다 (게이트 1 결정). 비밀값은 인자에 없으니 실릴 수가 없다.
  */
-export function PR본문(입력: { 표: string; 요약: string }): string {
+export function PR본문(입력: { 표: string; 요약: string; 단계?: string }): string {
   const 절들: string[] = [];
   if (입력.표.trim() !== '') 절들.push(`## 요구사항 표\n\n${입력.표.trim()}`);
   if (입력.요약.trim() !== '') 절들.push(`## 작성 요약\n\n${입력.요약.trim()}`);
+  if (입력.단계?.trim()) 절들.push(`## 단계 시각 (이번 실행)\n\n${입력.단계.trim()}`); // 이어하기는 본문을 갈아 써 앞 실행 표는 로그에만 남는다
   절들.push('관문 3 의 3회 실행 결과가 병합 근거다 — 가벼운 길의 CI 는 새 케이스를 돌리지 않는다.');
   return 절들.join('\n\n');
 }

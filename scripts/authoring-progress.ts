@@ -38,12 +38,22 @@ function 가리기(글: string, 비밀: 가릴것): string {
   return 사유거르기(토큰뺀, 비밀.loginPassword);
 }
 
-export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}) {
+/** 시간을 `분:초` 로 — 120분 제한이라 시는 안 쓴다 */
+const 분초 = (ms: number) => {
+  const 초 = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(초 / 60)}:${String(초 % 60).padStart(2, '0')}`;
+};
+
+// 0점(지금())은 누적기를 만든 때 — 자식을 띄우기 직전이다
+export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}, 지금: () => number = Date.now) {
   // 같은 메시지가 콘텐츠 블록마다 되풀이되고 앞 사본의 출력은 중간값이다 — 흐름풀기 와 같은 까닭으로 마지막 사본만
   const 턴 = new Map<string, number>();
   let 마지막: { 글: string; 때: string } | null = null;
+  // 단계 표지 — 어느 단계가 가장 긴지 재려고 에이전트 시계로 찍는다 (AUT-F3-21 · tpx-author 「단계 표지」)
+  const 시작 = 지금();
+  const 단계들: { 이름: string; 때: number }[] = [];
   return {
-    /** 줄 하나를 먹고, 로그에 흘릴 글을 돌려준다 — 로그와 진척이 같은 줄을 본다 */
+    /** 줄 하나를 먹고, 로그에 흘릴 글을 돌려준다. 새 단계 표지면 그 줄을 — lastAction 은 늘 글 첫 줄이다(작성 §7) */
     먹기(줄: string): string | null {
       const e = 읽기(줄);
       const m = e?.type === 'assistant' ? e.message : undefined;
@@ -53,7 +63,37 @@ export function 진척누적기(limitSec: number, 비밀: 가릴것 = {}) {
       if (날글 === null) return null;
       const 글 = 가리기(날글, 비밀);
       마지막 = { 글: 글자자르기(글, 160), 때: new Date().toISOString() };
-      return 글;
+      // 자식 줄도 parent_tool_use_id: null 을 단다 — 칸이 있는지로 거르면 다 버린다. 서브에이전트 줄은 값이 문자열이다
+      if (typeof (e as { parent_tool_use_id?: unknown }).parent_tool_use_id === 'string') return 글;
+      // 로그 줄은 글 첫 줄을 지키고 새 표지를 뒤에 붙인다 — 첫 줄이 곧 표지면 두 번 싣지 않는다
+      let 로그 = 글;
+      for (const c of m?.content ?? [])
+        for (const 한줄 of c.type === 'text' && c.text ? c.text.split('\n') : []) {
+          const 찾음 = /^\[단계\]\s*(.+?)\s*$/.exec(한줄);
+          if (찾음 === null) continue;
+          // 가림 안내문이 이름 자리에 들어가 표에 엉뚱한 단계로 남지 않게 — 가린 이름은 짧게
+          const 이름 = 가리기(찾음[1]!, 비밀) === 찾음[1] ? 글자자르기(찾음[1]!, 60) : '(가림)';
+          if (단계들.at(-1)?.이름 === 이름) continue;
+          단계들.push({ 이름, 때: 지금() });
+          if (!로그.endsWith(`[단계] ${이름}`)) 로그 += ` [단계] ${이름}`;
+        }
+      return 로그;
+    },
+    /** 단계마다 시작(자식 시작부터)과 걸린 시간. 마지막 단계는 지금 끝난 것으로 본다. 표지가 없으면 빈 글 */
+    단계표(): string {
+      if (단계들.length === 0) return '';
+      const 끝 = 지금();
+      const 줄들 = [{ 이름: '(첫 표지 전)', 때: 시작 }, ...단계들]
+        .map((s, i, 다) => ({ ...s, 걸림: (다[i + 1]?.때 ?? 끝) - s.때 }))
+        .filter((s, i) => i > 0 || s.걸림 > 0);
+      const 가장 = 줄들.reduce((a, b) => (b.걸림 > a.걸림 ? b : a));
+      return [
+        '| 단계 | 시작 | 걸린 시간 |',
+        '|---|---|---|',
+        ...줄들.map((s) => `| ${s.이름.replaceAll('|', '\\|')} | ${분초(s.때 - 시작)} | ${분초(s.걸림)} |`),
+        '',
+        `가장 긴 단계: ${가장.이름} — ${분초(가장.걸림)}`,
+      ].join('\n');
     },
     스냅샷(잰것: { elapsedSec: number; caseFiles: number; screens?: number }): 진척 {
       let tokens = 0;
