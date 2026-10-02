@@ -71,7 +71,7 @@ npx playwright cli -s=probe close
 - **testid 는 이름에 뜻이 있을 때만 맨 앞이다** — `login-button` 은 쓰고 `a8f3x` 처럼 빌드마다 바뀔 수 있는 생성값은 건너뛴다
 - **CSS · XPath 는 위 다섯으로 못 집을 때만 쓴다.** 쓴 까닭을 용어 사전의 그 요소 줄 `locator` 칸 뒤에 ` — 까닭: <한 줄>` 로 남긴다. 케이스 파일에는 주석을 못 쓴다
 - **`nth()` 로 판정 대상을 고르지 않는다** — 자리로 고른 것은 순서가 바뀌면 다른 것을 판정한다
-- Page Object 에 담는 것은 #129 에서 켠다 (`references/two-kinds.md` 「Page Object — UI Test」). 그 전에는 케이스 파일과 용어 사전이 들고 있다
+- UI Test 는 확정한 locator 를 Page Object 에 담는다 (`references/two-kinds.md` 「Page Object — UI Test」). Functional Test 는 #130 전까지 케이스 파일이 들고 있다
 
 **`nth()` 금지는 「무엇을 판정할지 고르는 자리」에만 건다.** 대기 앵커(R13)는 다르다 —
 목록의 몇째가 붙었나 사라졌나를 기다리는 `nth(N).waitFor()` 와, 값이 바뀌기를 기다리는
@@ -86,6 +86,9 @@ npx playwright cli -s=probe close
 표 아래에 붙인다. **값이 나오는 자리는 유지보수가 아니라 생성 비용이다** —
 케이스 파일들은 각자 locator 를 들고 있으므로 화면이 바뀌면 케이스마다 고쳐야 한다.
 사전이 아끼는 것은 **AI 가 화면을 해석하는 일**이다.
+
+**찾는 법의 정본은 갈래마다 다르다.** UI Test 는 Page Object 가 정본이고 사전에는 이름과 뜻만 둔다.
+Functional Test 는 #130 전까지 사전의 `locator` 칸이 정본이다.
 
 ```markdown
 ## 용어 사전

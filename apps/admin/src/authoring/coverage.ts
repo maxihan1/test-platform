@@ -9,6 +9,8 @@ export interface 원장셈 {
   missing: string[];
   later: string[];
   unread?: string[];
+  /** UI 케이스로만 덮이고 기능 케이스가 없는 번호 — 보고용이라 빠짐으로 세지 않는다 */
+  uiOnly?: string[];
 }
 export type 커버리지 = 원장셈 | { none: string };
 
@@ -20,7 +22,7 @@ export interface 셈칸 {
   missing: number | null;
 }
 
-const 셈키 = ['total', 'cased', 'held', 'excluded', 'missing', 'later', 'unread'];
+const 셈키 = ['total', 'cased', 'held', 'excluded', 'missing', 'later', 'unread', 'uiOnly'];
 const 필수키 = ['total', 'cased', 'held', 'excluded', 'missing', 'later'];
 // 종류 이름 목록은 여기 옮겨 적지 않는다 — 정본은 scripts/authoring-ledger-check.ts 의 제외종류다. 둘을 두면 한쪽이 뒤처진다
 const 종류이름상한 = 20;
@@ -47,7 +49,7 @@ export function 커버리지모양검사(v: unknown): 커버리지 | null {
     return 하나뿐 && typeof 까닭 === 'string' && 까닭.length > 0 && 까닭.length <= 까닭상한 ? { none: 까닭 } : null;
   }
   if (Object.keys(v).some((k) => !셈키.includes(k)) || 필수키.some((k) => !(k in v))) return null;
-  const { total, cased, held, excluded, missing, later, unread } = v;
+  const { total, cased, held, excluded, missing, later, unread, uiOnly } = v;
   if (!수인가(total) || !수인가(cased) || (held !== null && !수인가(held))) return null;
   if (!객체인가(excluded)) return null;
   const 종류들 = Object.entries(excluded);
@@ -58,6 +60,7 @@ export function 커버리지모양검사(v: unknown): 커버리지 | null {
   if (cased + 제외수 + missing.length !== total) return null;
   if (held !== null && held > cased) return null;
   if (later.length > 제외수) return null;
+  if (uiOnly !== undefined && (!글목록인가(uiOnly) || uiOnly.length > cased)) return null;
   return v as unknown as 원장셈;
 }
 

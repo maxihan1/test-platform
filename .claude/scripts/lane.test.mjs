@@ -16,6 +16,11 @@ const 표 = [
   [['tests/todo/TODO-001.spec.ts', 'docs/cases/TODO.md'], 'cases', '케이스 + 케이스 문서'],
   [['docs/cases/TODO.md', 'docs/SETUP.md'], 'docs', '케이스 문서 + 일반 문서'],
   [['tests/새폴더/X-001.spec.ts'], 'cases', '새 서비스 폴더 케이스 — 서비스 폴더는 CI 가 돌리지 않는다'],
+  [
+    ['tests/mkt/MKT-UI-001.spec.ts', 'tests/mkt/MKT-FN-049.spec.ts', 'tests/mkt/pages/login.page.ts', 'tests/mkt/components/site-header.component.ts'],
+    'cases',
+    '두 종류 번호 + Page Object · 공용 부품',
+  ],
   [['tests/todo/TODO-001.spec.ts', 'docs/SETUP.md'], 'full', '케이스 + 일반 문서는 cases 도 docs 도 아니다'],
   [['apps/admin/src/app.ts'], 'full', '코드'],
   [['docs/spec/x.md', 'apps/admin/src/app.ts'], 'full', '명세 + 코드'],

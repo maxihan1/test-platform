@@ -73,6 +73,11 @@ describe('커버리지만들기', () => {
     expect('unread' in 섞임 && 섞임.unread).toEqual(['a'.repeat(199)]);
   });
 
+  it('UI 케이스로만 덮인 번호를 uiOnly 로 싣는다 — 없으면 키를 안 싣는다', () => {
+    expect(커버리지만들기({ 대조: { ...대조, UI만: ['REQ-A-2'] }, 원장: 원장값 }, new Set())).toMatchObject({ uiOnly: ['REQ-A-2'] });
+    expect(커버리지만들기({ 대조: { ...대조, UI만: [] }, 원장: 원장값 }, new Set())).not.toHaveProperty('uiOnly');
+  });
+
   it('원장이 없으면 까닭만 싣는다', () => {
     expect(커버리지만들기({ 없음: '글자본이 없는 자료(PDF · 피그마)' }, null)).toEqual({ none: '글자본이 없는 자료(PDF · 피그마)' });
   });

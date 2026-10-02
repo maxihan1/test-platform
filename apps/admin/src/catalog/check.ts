@@ -15,6 +15,7 @@ import {
   type ListReport,
   type Violation,
 } from './rules.js';
+import { checkNonCase, nonCaseFiles } from './pageObject.js';
 import { caseFiles, scan, testsRoot } from './scanner.js';
 import { gitEnv, hasTag, newlyUnconfirmed, oldSourceByTcId } from './unconfirmed.js';
 
@@ -97,6 +98,11 @@ async function main(): Promise<void> {
     violations.push(...result.violations);
     propLines.set(rel(file), result.propLines);
     texts.set(rel(file), text);
+  }
+
+  // 케이스가 아닌 .ts 는 K7 만 진다. registration 쪽에 섞으면 테스트가 없다고 K8 로 잘못 찍힌다
+  for (const file of await nonCaseFiles(root)) {
+    violations.push(...checkNonCase(rel(file), await readFile(file, 'utf8')));
   }
 
   const { specs, failures, duplicates } = await scan(root);

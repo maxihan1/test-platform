@@ -32,6 +32,22 @@ describe('다음 번호', () => {
     expect(다음번호(new Set(['PAY-998']), 'PAY', 1)).toEqual(['PAY-999']);
     expect(다음번호(new Set(['PAY-998']), 'PAY', 2)).toBeNull();
   });
+
+  it('UI 는 따로 001 부터 센다 — 옛 꼴 · FN 번호는 안 본다', () => {
+    expect(다음번호(new Set(['MKT-041', 'MKT-FN-043']), 'MKT', 1, 'UI')).toEqual(['MKT-UI-001']);
+    expect(다음번호(new Set(['MKT-UI-003', 'MKT-090']), 'MKT', 1, 'UI')).toEqual(['MKT-UI-004']);
+  });
+
+  it('FN 과 옛 꼴은 한 번호열 — 둘을 통틀어 가장 큰 것 다음, 꼴은 원래대로', () => {
+    const 쓴 = new Set(['MKT-041', 'MKT-FN-043', 'MKT-UI-200']);
+    expect(다음번호(쓴, 'MKT', 1, 'FN')).toEqual(['MKT-FN-044']);
+    expect(다음번호(쓴, 'MKT', 1)).toEqual(['MKT-044']);
+  });
+
+  it('999 상한은 번호열마다', () => {
+    expect(다음번호(new Set(['MKT-999']), 'MKT', 1, 'UI')).toEqual(['MKT-UI-001']);
+    expect(다음번호(new Set(['MKT-UI-999']), 'MKT', 1, 'UI')).toBeNull();
+  });
 });
 
 describe('번호 바꾸기', () => {
@@ -167,6 +183,26 @@ describe('결정 계산', () => {
       쓴번호: new Set(['PAY-999']),
     });
     expect(결과).toEqual({ 사유: expect.stringContaining('999') });
+  });
+
+  it('옛 꼴과 UI 가 한 번에 겹치면 각자 자기 번호열의 다음 번호 — 개수가 섞이지 않는다', () => {
+    const 결과 = 결정계산({
+      겹침: [겹침줄('MKT-041', ['TCID']), 겹침줄('MKT-UI-001', ['TCID'])],
+      결정: [
+        { tcId: 'MKT-041', action: 'KEEP' },
+        { tcId: 'MKT-UI-001', action: 'KEEP' },
+      ],
+      읽기: (f) => 케이스(f.split('/').pop()!.replace('.spec.ts', '')),
+      요청표: 표([줄(1, 'MKT-041'), 줄(2, 'MKT-UI-001')]),
+      쓴번호: new Set(['MKT-041', 'MKT-FN-043', 'MKT-UI-001', 'MKT-UI-002']),
+    });
+    if ('사유' in 결과) throw new Error(결과.사유);
+    expect(결과.바뀐것).toEqual([
+      { 옛: 'MKT-041', 새: 'MKT-044' },
+      { 옛: 'MKT-UI-001', 새: 'MKT-UI-003' },
+    ]);
+    expect(결과.쓰기.map((w) => w.file)).toEqual(['tests/pay/MKT-044.spec.ts', 'tests/pay/MKT-UI-003.spec.ts']);
+    expect(결과.표).toContain(줄(2, 'MKT-UI-003'));
   });
 
   it('같은 판이면 다시 계산해도 같은 번호가 나온다 — CI 가 빨개져 다시 반영해도 번호가 안 바뀐다', () => {

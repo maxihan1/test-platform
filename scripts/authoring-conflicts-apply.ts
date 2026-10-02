@@ -6,15 +6,33 @@ import ts from 'typescript';
 import type { 결정, 겹침 } from '../apps/admin/src/authoring/conflicts.js';
 import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 
+export type 번호꼴 = 'UI' | 'FN' | '옛';
+
+/** tcId 를 번호열 머리 · 꼴 · 번호로 가른다. 번호 꼴이 아니면 null */
+export function 번호열머리(tcId: string): { 머리: string; 꼴: 번호꼴; 번호: number } | null {
+  const m = /^(.+?)-(?:(UI|FN)-)?(\d{3})$/.exec(tcId);
+  if (m === null) return null;
+  return { 머리: m[1] ?? '', 꼴: m[2] === 'UI' || m[2] === 'FN' ? m[2] : '옛', 번호: Number(m[3]) };
+}
+
+// FN 과 옛 꼴은 같은 번호열이다 — 같은 숫자를 두 번 쓰면 실행 이력이 섞인다. UI 만 따로 센다
+const 같은열 = (가: 번호꼴, 나: 번호꼴) => (가 === 'UI') === (나 === 'UI');
+
 /**
- * 같은 접두사의 가장 큰 번호 + 1 부터 `개수` 개. 999 를 넘으면 null — 파일 이름 규칙(cases-only 의 `-\d{3}`)이 세 자리다.
+ * 같은 머리 · 같은 번호열의 가장 큰 번호 + 1 부터 `개수` 개를 `꼴` 로. 999 를 넘으면 null — 파일 이름 규칙(cases-only 의 `케이스파일꼴`)이 세 자리다.
  * `쓴번호` 에 지운 번호(표의 「제거함」)까지 넣는다 — 다시 쓰면 옛 실행 이력이 새 케이스에 붙는다
  */
-export function 다음번호(쓴번호: Set<string>, 접두사: string, 개수: number): string[] | null {
-  const 꼴 = new RegExp(`^${접두사.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-(\\d{3})$`);
-  const 큰 = Math.max(0, ...[...쓴번호].map((id) => Number(꼴.exec(id)?.[1] ?? 0)));
+export function 다음번호(쓴번호: Set<string>, 접두사: string, 개수: number, 꼴: 번호꼴 = '옛'): string[] | null {
+  const 큰 = Math.max(
+    0,
+    ...[...쓴번호].map((id) => {
+      const 갈래 = 번호열머리(id);
+      return 갈래 !== null && 갈래.머리 === 접두사 && 같은열(갈래.꼴, 꼴) ? 갈래.번호 : 0;
+    }),
+  );
   if (큰 + 개수 > 999) return null;
-  return Array.from({ length: 개수 }, (_, i) => `${접두사}-${String(큰 + 1 + i).padStart(3, '0')}`);
+  const 머리 = 꼴 === '옛' ? 접두사 : `${접두사}-${꼴}`;
+  return Array.from({ length: 개수 }, (_, i) => `${머리}-${String(큰 + 1 + i).padStart(3, '0')}`);
 }
 
 /** defineCase 의 tcId 리터럴만 바꾼다 — 글자를 통째로 바꾸면 절차 제목 속 같은 번호까지 바뀐다 */
@@ -87,13 +105,8 @@ export function 결정계산(재료: 적용재료): 적용결과 | { 사유: str
   const 차례 = [...재료.겹침].sort((a, b) => a.tcId.localeCompare(b.tcId));
   const 바꿀 = 차례.filter((c) => 고른.get(c.tcId) === 'KEEP' && c.kinds.includes('TCID'));
   const 결과: 적용결과 = { 쓰기: [], 지우기: [], 표: 재료.요청표, 바뀐것: [] };
-  const 남은번호 = new Map<string, string[]>();
-  for (const 접두사 of new Set(바꿀.map((c) => c.tcId.replace(/-\d{3}$/, '')))) {
-    const 번호들 = 다음번호(재료.쓴번호, 접두사, 바꿀.filter((c) => c.tcId.startsWith(`${접두사}-`)).length);
-    if (번호들 === null) return { 사유: `${접두사} 의 새 번호가 999 를 넘는다 — 파일 이름 규칙이 세 자리다` };
-    남은번호.set(접두사, 번호들);
-  }
-
+  // 차례대로 하나씩 받아 쓴 것으로 더한다 — 옛 꼴과 FN 이 한 번호열을 나눠 써도 같은 숫자가 두 번 안 나온다
+  const 쓴 = new Set(재료.쓴번호);
   for (const c of 차례) {
     if (고른.get(c.tcId) === 'DROP') {
       결과.지우기.push(c.file);
@@ -102,8 +115,11 @@ export function 결정계산(재료: 적용재료): 적용결과 | { 사유: str
       continue;
     }
     if (!바꿀.includes(c)) continue;
-    const 새 = 남은번호.get(c.tcId.replace(/-\d{3}$/, ''))?.shift();
-    if (새 === undefined) return { 사유: `${c.tcId} 의 새 번호를 못 정했다` };
+    const 갈래 = 번호열머리(c.tcId);
+    if (갈래 === null) return { 사유: `${c.tcId} 의 새 번호를 못 정했다` };
+    const 새 = 다음번호(쓴, 갈래.머리, 1, 갈래.꼴)?.[0];
+    if (새 === undefined) return { 사유: `${c.tcId} 의 새 번호가 999 를 넘는다 — 파일 이름 규칙이 세 자리다` };
+    쓴.add(새);
     const 이름 = c.file.split('/').pop() ?? '';
     const 새파일 = 이름.includes(c.tcId) ? `${c.file.slice(0, c.file.length - 이름.length)}${이름.replace(c.tcId, 새)}` : c.file;
     if (새파일 !== c.file) 결과.지우기.push(c.file);

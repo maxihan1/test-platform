@@ -6,6 +6,8 @@ import { pathToFileURL } from 'node:url';
 
 import type { CaseSpec } from '@platform/kit';
 
+import { 번호열쇠 } from './rules.js';
+
 export interface Duplicate {
   tcId: string;
   files: [string, string];
@@ -54,8 +56,9 @@ export function duplicatesOf(specs: CaseSpec[]): Duplicate[] {
   const seen = new Map<string, string>();
   const found: Duplicate[] = [];
   for (const spec of specs) {
-    const first = seen.get(spec.tcId);
-    if (first === undefined) seen.set(spec.tcId, spec.filePath);
+    const 열쇠 = 번호열쇠(spec.tcId);
+    const first = seen.get(열쇠);
+    if (first === undefined) seen.set(열쇠, spec.filePath);
     else found.push({ tcId: spec.tcId, files: [first, spec.filePath] });
   }
   return found;

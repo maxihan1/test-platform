@@ -6,6 +6,7 @@ import ts from 'typescript';
 
 import type { 겹침, 겹침종류, 상대 } from '../apps/admin/src/authoring/conflicts.js';
 import { 겹침상한 } from '../apps/admin/src/authoring/conflicts.js';
+import { TCID, 번호열쇠 } from '../apps/admin/src/catalog/rules.js';
 import { 명세글, 속성, 읽기, 케이스tcId } from './authoring-held-apply.js';
 import { 번호찾기 } from './authoring-ledger.js';
 import { 표읽기 } from './authoring-ledger-check.js';
@@ -32,7 +33,6 @@ export interface 견줄것 {
   뺀것: Set<string>;
 }
 
-const TCID꼴 = /^[A-Z][A-Z0-9]{0,11}-\d{3}$/;
 // 문단 모드 번호는 요청마다 P-001 부터 다시 매긴다 — 서로 다른 기획서가 같은 번호를 갖는다 (작성 §3.6 「★ 원장」 문단 모드)
 const 문단번호 = /^P\d*-\d+$/;
 
@@ -55,7 +55,7 @@ export function 표tcId들(표: string): Set<string> {
     if (!줄.trimStart().startsWith('|')) continue;
     for (const 칸 of 줄.split('|').map((c) => c.trim())) {
       const id = /^제거함\((.+)\)$/.exec(칸)?.[1] ?? 칸;
-      if (TCID꼴.test(id)) 결과.add(id);
+      if (TCID.test(id)) 결과.add(id);
     }
   }
   return 결과;
@@ -66,7 +66,7 @@ function 요구번호들(표: string): Map<string, Set<string>> {
   const 결과 = new Map<string, Set<string>>();
   for (const 행 of 표읽기(표, '요구사항')) {
     const tcId = (행['tcId'] ?? '').trim();
-    if (!TCID꼴.test(tcId)) continue;
+    if (!TCID.test(tcId)) continue;
     const 번호들 = 번호찾기(행['출처'] ?? '').번호들.filter((b) => !문단번호.test(b));
     const 모음 = 결과.get(tcId) ?? new Set<string>();
     번호들.forEach((b) => 모음.add(b));
@@ -93,7 +93,7 @@ function 읽기들(케이스들: 케이스글[]): 읽은케이스[] {
 export function 겹침찾기(입력: 견줄것): 겹침[] {
   const main = 읽기들(입력.main케이스);
   const 새것 = main.filter((c) => 입력.새로들어온.has(c.file));
-  const main표id = 표tcId들(입력.main표);
+  const main표id = new Map([...표tcId들(입력.main표)].map((id) => [번호열쇠(id), id]));
   const 요청번호 = 요구번호들(입력.요청표);
   const main번호 = 요구번호들(입력.main표);
 
@@ -104,11 +104,13 @@ export function 겹침찾기(입력: 견줄것): 겹침[] {
     const 상대들 = new Map<string, 상대>();
     const 더하기 = (c: 상대) => 상대들.set(`${c.tcId} ${c.file}`, c);
 
-    const 같은id = main.filter((c) => c.tcId === 이것.tcId);
-    if (같은id.length > 0 || main표id.has(이것.tcId)) {
+    const 열쇠 = 번호열쇠(이것.tcId);
+    const 같은id = main.filter((c) => 번호열쇠(c.tcId) === 열쇠);
+    const 표id = main표id.get(열쇠);
+    if (같은id.length > 0 || 표id !== undefined) {
       종류.push('TCID');
       if (같은id.length > 0) 같은id.forEach(더하기);
-      else 더하기({ tcId: 이것.tcId, name: '', file: 입력.표경로 });
+      else 더하기({ tcId: 표id ?? 이것.tcId, name: '', file: 입력.표경로 });
     }
 
     const 내번호 = 요청번호.get(이것.tcId) ?? new Set<string>();

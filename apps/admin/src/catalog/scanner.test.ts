@@ -66,6 +66,11 @@ describe('duplicatesOf', () => {
     expect(found.map((d) => d.tcId)).toEqual(['DEMO-001', 'DEMO-002']);
   });
 
+  it('K2 — 옛 꼴과 FN 꼴은 같은 번호라 중복이다. UI 꼴은 따로 센다', () => {
+    const found = duplicatesOf([spec('MKT-044', 'a.spec.ts'), spec('MKT-FN-044', 'b.spec.ts'), spec('MKT-UI-044', 'c.spec.ts')]);
+    expect(found).toEqual([{ tcId: 'MKT-FN-044', files: ['a.spec.ts', 'b.spec.ts'] }]);
+  });
+
   it('중복이 없으면 빈 배열이다', () => {
     expect(duplicatesOf([spec('DEMO-001', 'a.spec.ts'), spec('DEMO-002', 'b.spec.ts')])).toEqual([]);
   });

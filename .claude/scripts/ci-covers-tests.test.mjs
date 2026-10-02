@@ -18,6 +18,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { 서비스폴더인가 } from './service-folder.mjs';
 
 const 루트 = new URL('../../', import.meta.url);
 const CI = new URL('.github/workflows/ci.yml', 루트);
@@ -116,21 +118,6 @@ export function 도는폴더(블록) {
     for (const m of 명령.matchAll(/tests\/([^/\s'"]+)/g)) 결과.add(m[1]);
   }
   return 결과;
-}
-
-/**
- * 작성 에이전트가 고객 서비스용으로 만든 폴더인가. 파일이 **전부** `<접두사>-NNN.spec.ts` 이고 접두사가 하나여야 참이다.
- *
- * 왜 면제하나 — 서비스 폴더는 CI 에서 돌 수가 없다. 대상이 고객사 내부 서버라 CI 에는 PLATFORM_BASE_URL 도 길도 없다.
- * 병합 근거는 에이전트가 PR 본문에 싣는 관문 3(3회 실행) 기록이다 (docs/HOOKS.md 「가벼운 길」).
- * 모양을 좁게 잡은 까닭 — 도우미 파일·섞인 이름·빈 폴더는 에이전트 산출물이 아니다. 그런 폴더(앞으로의 플랫폼
- * 샘플 등)는 여전히 CI 에서 돌거나 면제 목록에 사유를 달아야 걸린다.
- * 알려진 한계 — 사람이 그 모양으로 폴더를 만들면 이름만 보고 면제된다. 내용이 정말 에이전트 것인지는 안 본다.
- */
-export function 서비스폴더인가(파일이름들) {
-  if (파일이름들.length === 0) return false;
-  const 접두사들 = 파일이름들.map((n) => /^([A-Z][A-Z0-9]{0,11})-\d{3}\.spec\.ts$/.exec(n)?.[1]);
-  return 접두사들.every((p) => p !== undefined && p === 접두사들[0]);
 }
 
 const 원문 = 주석뺀다(readFileSync(CI, 'utf8'));
@@ -324,7 +311,7 @@ test('tests/ 아래 폴더가 전부 돌거나 사유를 달고 면제돼 있다
     .map((d) => d.name);
   const 도는것 = 도는폴더(블록 ?? '');
   const 빠진것 = 있는것.filter(
-    (이름) => !도는것.has(이름) && !면제.has(이름) && !서비스폴더인가(readdirSync(new URL(`${이름}/`, 테스트폴더))),
+    (이름) => !도는것.has(이름) && !면제.has(이름) && !서비스폴더인가(fileURLToPath(new URL(`${이름}/`, 테스트폴더))),
   );
   assert.deepEqual(
     빠진것,
@@ -363,14 +350,6 @@ test('치는명령은 주석을 명령으로 세지 않고, 여러 줄 명령도
   assert.equal(치는명령('      - name: 이름만 있다'), '');
   assert.equal(치는명령('      - run: npx playwright test tests/todo'), 'npx playwright test tests/todo');
   assert.match(치는명령(['      - run: |', '          첫 줄', '          둘째 줄'].join('\n')), /둘째 줄/);
-});
-
-test('서비스폴더인가는 에이전트가 만든 케이스 모양만 참이다', () => {
-  assert.equal(서비스폴더인가(['PAY-001.spec.ts', 'PAY-002.spec.ts']), true);
-  assert.equal(서비스폴더인가(['PAY-001.spec.ts', 'CARD-001.spec.ts']), false);
-  assert.equal(서비스폴더인가(['PAY-001.spec.ts', 'helpers.ts']), false);
-  assert.equal(서비스폴더인가([]), false);
-  assert.equal(서비스폴더인가(['pay-001.spec.ts']), false);
 });
 
 test('도는폴더는 실제로 치는 명령에서만 tests/ 이름을 뽑는다', () => {
