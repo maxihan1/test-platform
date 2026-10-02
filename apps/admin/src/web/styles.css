@@ -309,7 +309,10 @@ body {
   background: var(--rail-2);
 }
 
+/* 글자 크기도 여기서 다시 누른다 — 아래 `.side .side-nav a.side-sub` 가 같은 특정도라 뒤에 오는 그것이 이겨
+   접힌 레일에 「UI 테스」가 잘려 보였다 (2026-10-02 눈 확인) */
 .folded .side .side-nav a.side-sub {
+  font-size: 0;
   padding: 2px 0;
 }
 
@@ -1559,6 +1562,7 @@ select:focus {
   }
 
   .folded .side .side-nav a.side-sub {
+    font-size: 12.5px;
     padding: 0 14px;
   }
 
