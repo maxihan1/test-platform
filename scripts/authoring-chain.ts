@@ -274,6 +274,24 @@ export function 바뀐파일들(상태글: string): string[] {
     .flatMap((줄) => 줄.slice(3).split(' -> '));
 }
 
+/**
+ * 올리기 전에 지울 파일 — 자식이 tests · docs 밖에 **새로** 남긴 것(실행 로그를 `$로그` 로 저장한 것 같은).
+ * 11203 은 그 파일 하나로 케이스 142개를 못 올리고 이어서 작성을 70분 더 돌았다 (작성 §3.6 마무리 · 2026-10-03).
+ * 고친 파일 · tests · docs 안의 엉뚱한 파일은 케이스가 쓰는 것일 수 있어 지우지 않고 판정에 맡긴다.
+ * 상태는 `-z` 로 읽는다 — 따옴표 · 줄바꿈이 든 이름이 따옴표로 싸여 와 지우기가 헛돈다.
+ */
+export function 치울새파일들(z글: string): string[] {
+  return z글
+    .split('\0')
+    .filter((항목) => 항목.startsWith('?? '))
+    .map((항목) => 항목.slice(3))
+    .filter((f) => {
+      const 마디 = f.split('/');
+      // / 로 끝나는 것은 안쪽 저장소다 — 통째로 지우지 않고 판정이 거절하게 둔다
+      return !f.endsWith('/') && !f.startsWith('/') && !마디.includes('..') && 마디[0] !== 'tests' && 마디[0] !== 'docs';
+    });
+}
+
 /** push 는 됐는데 PR 만들기가 실패했다 다시 도는 경우. 또 만들면 같은 브랜치에 PR 이 둘이 된다 */
 export function PR찾기인자(번호: number): string[] {
   return ['pr', 'list', '--head', 올릴브랜치(번호), '--json', 'url'];

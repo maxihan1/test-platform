@@ -11,6 +11,7 @@ import {
   PR준비인자,
   닫을RUNNING,
   바뀐파일들,
+  치울새파일들,
   다시돌릴인자,
   머지인자,
   실행목록인자,
@@ -331,6 +332,37 @@ describe('켤 때 닫을 RUNNING', () => {
       { id: 3, 몸: { status: 'STOPPED', stopReason: 'AGENT_RESTART' } },
       { id: 4, 몸: { status: 'STOPPED', stopReason: 'AGENT_RESTART' } },
     ]);
+  });
+});
+
+describe('치울 새 파일 — tests · docs 밖에 자식이 새로 남긴 것 (작성 §3.6 · 2026-10-03)', () => {
+  const z = (...줄: string[]) => 줄.join('\0') + '\0';
+
+  it('tests · docs 밖의 추적 안 된 파일만 고른다', () => {
+    expect(치울새파일들(z('?? $로그', '?? tmp/x.log', '?? tests/mkt/a.spec.ts', '?? docs/cases/MKT.md'))).toEqual([
+      '$로그',
+      'tmp/x.log',
+    ]);
+  });
+
+  it('고친 파일 · 지운 파일은 고르지 않는다 — 판정이 거절한다', () => {
+    expect(치울새파일들(z(' M package.json', ' D scripts/a.ts', 'A  b.txt'))).toEqual([]);
+  });
+
+  it('첫 마디가 정확히 tests · docs 여야 한다', () => {
+    expect(치울새파일들(z('?? testsX/a', '?? tests', '?? docsy.md', '?? docs'))).toEqual(['testsX/a', 'docsy.md']);
+  });
+
+  it('안쪽 저장소(/ 로 끝남) · .. · 절대 경로는 안 고른다', () => {
+    expect(치울새파일들(z('?? inner/', '?? ../x', '?? /etc/x', '?? a/../b'))).toEqual([]);
+  });
+
+  it('따옴표 · 줄바꿈 · 공백이 든 이름도 그대로 낸다(-z)', () => {
+    expect(치울새파일들(z('?? "a b".log', '?? 줄\n바꿈'))).toEqual(['"a b".log', '줄\n바꿈']);
+  });
+
+  it('빈 출력이면 빈 목록이다', () => {
+    expect(치울새파일들('')).toEqual([]);
   });
 });
 
