@@ -21,6 +21,7 @@ import {
   푸시인자,
 } from './authoring-chain.js';
 import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-status.js';
+import { 끝검사줄들 } from './authoring-gate3.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 산출물읽기, 역기획서준비 } from './authoring-upload-reverse.js';
 import type { 원장 } from './authoring-ledger.js';
@@ -153,7 +154,7 @@ export async function 올리기(
     표경로: 표,
     표: 읽기(표),
     // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다
-    요약: [원장결과.머리글, ...지운줄, '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
+    요약: [원장결과.머리글, ...지운줄, ...끝검사줄들(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 것.target?.loginPassword)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
     단계: 단계표,
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
