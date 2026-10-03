@@ -30,6 +30,11 @@ export function 돌린다(
     cwd: string;
     input?: string;
     제한?: number;
+    /**
+     * 출력이 이만큼 없을 때만 죽인다 — 주면 `제한` 대신 쓴다. 작성 자식은 전체 시간이 아니라 응답 없음으로 멈춘다
+     * (작성 §7 TIMEOUT · 2026-10-03 사용자 — 120분 제한이 시간에 쫓긴 자식이 검사를 줄이게 만들었다)
+     */
+    조용한제한?: number;
     흘림?: boolean;
     흘림줄?: (줄: string) => string | null;
     신호?: AbortSignal;
@@ -49,10 +54,17 @@ export function 돌린다(
       gid: 선택.gid,
     });
     도는자식.add(자식);
-    const 시계 = setTimeout(() => {
+    const 죽이기 = () => {
       시간초과 = true;
       자식.kill('SIGKILL');
-    }, 선택.제한 ?? 120_000);
+    };
+    let 시계 = setTimeout(죽이기, 선택.조용한제한 ?? 선택.제한 ?? 120_000);
+    // 조용한 제한이면 출력이 올 때마다 시계를 다시 맞춘다
+    const 깨우기 = () => {
+      if (선택.조용한제한 === undefined) return;
+      clearTimeout(시계);
+      시계 = setTimeout(죽이기, 선택.조용한제한);
+    };
     // 이미 스스로 끝난 자식에 온 신호는 멈춤이 아니다 — 코드 0 으로 끝난 것을 중단으로 적으면 만든 케이스를 버린다
     const 멈추기 = () => {
       if (자식.exitCode !== null || 자식.signalCode !== null) return;
@@ -62,6 +74,7 @@ export function 돌린다(
     if (선택.신호?.aborted) 멈추기();
     else 선택.신호?.addEventListener('abort', 멈추기, { once: true });
     자식.stdout.on('data', (조각: Buffer) => {
+      깨우기();
       const 글 = 조각.toString('utf8');
       낸것 += 글;
       if (선택.흘림줄 !== undefined) {

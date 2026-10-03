@@ -38,3 +38,22 @@ describe('돌린다 — 멈출 신호', () => {
     expect(r.멈춤으로죽음).toBe(true);
   });
 });
+
+describe('돌린다 — 응답 없음 제한 (작성 §7 TIMEOUT · 2026-10-03)', () => {
+  it('출력이 계속 나오면 조용한 시간보다 오래 돌아도 죽이지 않는다', async () => {
+    const r = await 돌린다('sh', ['-c', 'for i in 1 2 3 4 5 6; do echo $i; sleep 0.1; done'], {
+      cwd: tmpdir(),
+      조용한제한: 300,
+    });
+    expect(r).toMatchObject({ 코드: 0, 시간초과: false });
+  });
+
+  it('출력이 조용한 시간 넘게 없으면 죽이고 시간초과로 낸다', async () => {
+    const r = await 돌린다('sh', ['-c', 'echo 시작; sleep 5'], {
+      cwd: tmpdir(),
+      조용한제한: 300,
+    });
+    expect(r.시간초과).toBe(true);
+    expect(r.코드).toBeNull();
+  });
+});

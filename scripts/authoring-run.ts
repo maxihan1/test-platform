@@ -237,16 +237,16 @@ async function 사본에서(
   const 환경 = {
     ...자식환경(process.env, 자리.gh, 것.figmaToken),
     // 맥은 둘 다 그대로 — 긴 임시 경로는 유닉스 소켓 104자 한도에 닿을 수 있다
-    ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }),
+    // 끝의 전체 3회 결과 파일 자리는 에이전트가 정한다 — 맥은 TMPDIR 이 시스템 것이라 거기 쓰면 못 찾는다. 임시는 실행마다 새것이다
+    ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }), AUTHORING_GATE3_DIR: 자리.임시,
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
     ...(것.target === undefined ? {} : 대상환경(것.target)),
   };
   const 화면만 = 것.target !== undefined && Boolean(것.target.startUrl) && 자료들.length === 0;
   const 역방향 = 것.target === undefined ? undefined : { 화면만, 산출물폴더: join(자리.자료, 'out') };
   const 인자 = 클로드인자(자리.자료, 판.모델);
-  const 제한 = 자식제한;
-  // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다 (작성 §7 「중단 · 폐기 · 진척」)
-  const 누적 = 진척누적기(제한 / 1000, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });
+  // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
+  const 누적 = 진척누적기(0, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });
   const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'), 방.옛케이스);
   const 돌린것 = await 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
@@ -255,7 +255,7 @@ async function 사본에서(
       env: 환경,
       uid: 자식?.uid,
       gid: 자식?.gid,
-      제한,
+      조용한제한: 자식제한,
       신호,
       흘림: true,
       // 이벤트 줄을 그대로 흘리면 훑은 화면 글·계정 원문이 로그에 남는다 — 도구 이름과 글 첫 줄만
