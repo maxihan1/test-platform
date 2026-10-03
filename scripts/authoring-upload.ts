@@ -7,7 +7,6 @@ import { join } from 'node:path';
 import type { 집은것 } from './authoring-rules.js';
 import {
   PR만들기인자,
-  PR본문,
   PR찾기인자,
   PR본문고치기인자,
   덮어쓸수없는까닭,
@@ -34,6 +33,7 @@ import { type 자료, 자료출처 } from './authoring-assets.js';
 import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
 import { type 표시준비물, 산출물보내기, 표시올리기, 표시준비 } from './authoring-marking.js';
 import { 거절로 } from './authoring-progress.js';
+import { PR본문 } from './authoring-pr-body.js';
 import {
   가림표케이스,
   계정섞였나,
@@ -138,6 +138,7 @@ export async function 올리기(
   const 원장값 = 원장재료.값;
   셈 = '없음' in 원장값 ? { 없음: 원장값.없음 } : '대조' in 원장결과 ? { 대조: 원장결과.대조, 원장: 원장값 } : null;
   const 본문글 = PR본문({
+    표경로: 표,
     표: 읽기(표),
     // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다
     요약: [원장결과.머리글, '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
