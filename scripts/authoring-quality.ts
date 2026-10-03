@@ -18,7 +18,8 @@ export interface 품질 {
 }
 
 const 케이스파일 = /\.spec\.ts$/;
-const CSS찾기 = /locator\(\s*['"`](?:[.#[]|\/\/|xpath=|css=)/g;
+// testid(`[data-testid=…]`)는 locator 1순위라 뺀다
+const CSS찾기 = /locator\(\s*['"`](?:[.#]|\[(?!data-testid)|\/\/|xpath=|css=)/g;
 const 도우미 = /^(?:export\s+)?(?:async\s+function\s+|function\s+|const\s+)([\p{L}_$][\p{L}\p{N}_$]*)\s*(?:\(|=\s*(?:async\s*)?\()/gmu;
 
 export function 품질숫자(파일들: 파일글[]): 품질 {

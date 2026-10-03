@@ -24,6 +24,10 @@ describe('품질 숫자 (작성 §3.6 · 2026-10-03 — 나눠 쓴 뒤 품질을
     expect(숫자.밖CSS).toBe(6);
   });
 
+  it('testid 로 찾는 것은 CSS 로 세지 않는다 — locator 1순위다', () => {
+    expect(품질숫자([{ 경로: 'tests/mkt/pages/a.page.ts', 글: "page.locator('[data-testid=\"x\"]')" }]).밖CSS).toBe(0);
+  });
+
   it('둘 이상의 케이스 파일에 같은 이름으로 만든 도우미를 센다 — 묶음마다 따로 만든 흔적', () => {
     const 숫자 = 품질숫자([
       { 경로: 'tests/mkt/MKT-FN-001.spec.ts', 글: 케이스('async function 가입한다(request) {}\nconst 탈퇴로치운다 = async () => {};') },
