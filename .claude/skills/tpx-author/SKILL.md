@@ -81,14 +81,19 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
    **팬아웃했으면 관문 3 은 `references/fanout.md` §5 의 분담이다** — 서브에이전트가 자기 파일 3회를 결과 파일로 남기고, 자식은 끝에 폴더 전체 3회를 **한 번**만 돈다. 그 뒤 고친 것은 그 파일과 그 Page Object · Component 를 쓰는 케이스만 3회
 6. **§7 표 되채우기** — `references/7-finish.md`. 1~3 만. **4 커밋은 하지 않는다** (에이전트 스크립트가 한다)
 
-관문 0·1·3 명령은 `tpx-cases` §6 과 같다. 파이프로 넘기지 않는다. 관문 0 의 원장 사본 경로는 원장 절에 있다.
+관문 0·1 명령은 `tpx-cases` §6 과 같다. **관문 3 은 다르다** — 결과 파일을 에이전트가 확인한다(아래). 파이프로 넘기지 않는다. 관문 0 의 원장 사본 경로는 원장 절에 있다.
 
 ```bash
 npm run check:ledger -- <원장 사본> docs/cases/<접두사>.md --tests tests/<폴더> --agent > /tmp/cl.log 2>&1; echo "EXIT=$?"
 npm run typecheck   > /tmp/tc.log 2>&1; echo "EXIT=$?"
 npm run check:tests > /tmp/ct.log 2>&1; echo "EXIT=$?"
-npx playwright test tests/<폴더> --project=desktop --repeat-each=3 --reporter=line > /tmp/pw.log 2>&1; echo "EXIT=$?"
+PLAYWRIGHT_JSON_OUTPUT_FILE="$AUTHORING_GATE3_DIR/gate3-final-1.json" npx playwright test tests/<폴더> --project=desktop --workers=1 --repeat-each=3 --reporter=line,json > /tmp/pw.log 2>&1; echo "EXIT=$?"
 ```
+
+**끝의 전체 3회 — 에이전트가 결과 파일로 확인한다** (2026-10-03 · 도메인/작성 §3.6).
+- 환경 변수 `AUTHORING_GATE3_DIR` 에 `gate3-final-<번호>.json` 으로 남긴다. 에이전트가 하나씩(`--workers=1`) · 파일마다 데스크톱 3회 · 실패 0 · 마지막 수정 뒤 실행인지 보고, 어기면 PR 본문에 ⚠️ 경고를 싣는다
+- **명령 하나는 최대 10분이다.** 케이스가 많아 넘을 것 같으면 파일을 나눠 **하나씩 차례로** 돈다 — 덩어리마다 `-1` · `-2` … 번호를 올리고 모든 파일을 한 번씩 덮는다. `--workers` 를 올리거나 일부만 돌리지 않는다(MKT 11208 이 그래서 케이스끼리 얽힌 실패를 못 봤다)
+- 그 뒤 케이스나 Page Object 를 고쳤으면 고친 파일과 그것을 쓰는 케이스를 다시 돌려 새 번호로 남긴다 — 고치기 전 결과는 옛 코드 기준이다
 
 ## 멈출 때
 
@@ -103,6 +108,8 @@ npx playwright test tests/<폴더> --project=desktop --repeat-each=3 --reporter=
   **통과시키려고 `다음 요청` 을 적지 않는다** — 5877 이 자유 문장으로 한 일이 그것이다. 에이전트가 종류별 개수를 PR 본문 머리에 싣고 사람이 본다.
   `사람이 뺌` 은 자식이 새로 못 쓴다(main 표에 이미 있던 줄은 에이전트도 인정한다 — 지우거나 고치지 않는다). 관문 0 을 넘기지 못한 채 끝내도 올라가지만(2026-09-30 게이트 1 — 거절하지 않는다) 셈 · PR 본문 머리 · 요청 화면에 「빠짐」으로 남는다
 - **케이스가 같은 이유로 3회 빨강** — `tpx-cases` §6 종료 조건대로 그 케이스에 `held: '보류 — <에러 첫 줄>'` 을 달고 나머지는 계속 간다
+- **같은 관문이 같은 이유로 3번 실패** — 더 고치지 않는다. 그 관문을 결과 요약에 `실패 — <이유 한 줄> (같은 이유 3번)` 으로 적고 남은 단계로 가서 끝낸다 (2026-10-03 사용자).
+  전체 시간 제한은 없다 — 출력이 20분 없을 때만 멈춘다(도메인/작성 §7 TIMEOUT). 그래서 헛도는 것을 이 규칙이 막는다. 시간에 쫓긴다고 관문을 줄이지 않는다
 
 ## 끝내기 전에
 
