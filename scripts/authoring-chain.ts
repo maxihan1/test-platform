@@ -262,18 +262,6 @@ export function 닫을RUNNING(
     }));
 }
 
-/**
- * 작업방 상태(`status --porcelain -uall`)에서 바뀐 파일을 뽑는다. 자식은 커밋을 안 하므로
- * 새 파일은 추적되지 않은 채 남는다 — `diff` 만 보면 새 케이스를 통째로 놓친다.
- * 이름 바꾸기는 옛 자리도 낸다. 옛 자리가 지워진 것도 올려야 하고, 판정도 둘 다 봐야 한다.
- */
-export function 바뀐파일들(상태글: string): string[] {
-  return 상태글
-    .split('\n')
-    .filter((줄) => 줄.length > 3)
-    .flatMap((줄) => 줄.slice(3).split(' -> '));
-}
-
 /** push 는 됐는데 PR 만들기가 실패했다 다시 도는 경우. 또 만들면 같은 브랜치에 PR 이 둘이 된다 */
 export function PR찾기인자(번호: number): string[] {
   return ['pr', 'list', '--head', 올릴브랜치(번호), '--json', 'url'];
