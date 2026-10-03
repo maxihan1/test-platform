@@ -5,7 +5,7 @@ import { lstatSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSy
 import { join, sep } from 'node:path';
 
 import { 가릴트리파일, 글자인가, 지울원본, type 읽을자료 } from './authoring-assets.js';
-import { 바뀐파일들 } from './authoring-chain.js';
+import { 바뀐파일들 } from './authoring-status.js';
 import { type 사본, 사본환경 } from './authoring-copy.js';
 import { 친다 } from './authoring-io.js';
 import { 비밀가리기 } from './authoring-reverse.js';

@@ -1,4 +1,4 @@
-// 자식이 끝난 사본을 올리는 껍데기 — 판정 → 커밋 → 다시 판정 → 파일 모양 → push → 초안 PR. 판단은 authoring-chain · authoring-copy 에 있다
+// 자식이 끝난 사본을 올리는 껍데기 — 판정 → 커밋 → 다시 판정 → 파일 모양 → push → 초안 PR. 판단은 authoring-chain · authoring-status · authoring-copy 에 있다
 // authoring-run.ts 가 300줄을 넘어 뗐다 (2026-09-24)
 
 import { readFileSync, rmSync } from 'node:fs';
@@ -10,8 +10,6 @@ import {
   PR찾기인자,
   PR본문고치기인자,
   덮어쓸수없는까닭,
-  바뀐파일들,
-  치울새파일들,
   한줄,
   비밀섞였나,
   push실패,
@@ -22,6 +20,7 @@ import {
   푸시거부사유,
   푸시인자,
 } from './authoring-chain.js';
+import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-status.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 산출물읽기, 역기획서준비 } from './authoring-upload-reverse.js';
 import type { 원장 } from './authoring-ledger.js';
@@ -91,9 +90,10 @@ export async function 올리기(
     await 손.끝내기(거절(`케이스 밖 새 파일을 못 지웠다: ${e instanceof Error ? e.message : String(e)}`));
     return;
   }
-  const 지운말 = 지운것.length === 0 ? [] : [사유거르기(`케이스 밖 새 파일을 지우고 올렸다: ${지운것.join(' · ')}`, 것.target?.loginPassword)];
-  if (지운말.length > 0) console.log(`[작성] ${것.id}번 — ${지운말[0]}`);
-  const 상태 =트리에서('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall']);
+  const 알림 = 지운말(지운것);
+  const 지운줄 = 알림 === null ? [] : [사유거르기(알림, 것.target?.loginPassword)];
+  if (지운줄.length > 0) console.log(`[작성] ${것.id}번 — ${지운줄[0]}`);
+  const 상태 = 트리에서('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall']);
   if (!상태.ok) {
     await 손.끝내기(거절(`바뀐 파일을 못 읽었다: ${상태.까닭}`));
     return;
@@ -153,7 +153,7 @@ export async function 올리기(
     표경로: 표,
     표: 읽기(표),
     // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다
-    요약: [원장결과.머리글, ...지운말, '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
+    요약: [원장결과.머리글, ...지운줄, '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
     단계: 단계표,
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
