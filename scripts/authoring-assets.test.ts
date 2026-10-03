@@ -209,9 +209,10 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
     expect(글).toContain('/w/author-7/assets/screens');
   });
 
-  it('역방향 절 — 화면만은 메뉴 1단계까지, 대조는 한 칸 정의를 가리킨다', () => {
+  it('역방향 절 — 화면만은 같은 사이트의 모든 화면, 대조는 한 칸 정의를 가리킨다', () => {
     const 화면만 = 역방향절({ 화면만: true, 산출물폴더: '/o/out', 요청번호: 1 }).join('\n');
-    expect(화면만).toContain('메뉴 1단계');
+    expect(화면만).toContain('같은 사이트의 모든 화면');
+    expect(화면만).not.toContain('메뉴 1단계');
     expect(화면만).not.toContain('바로 이어지는 한 칸');
     const 대조 = 역방향절({ 화면만: false, 산출물폴더: '/o/out', 요청번호: 1 }).join('\n');
     expect(대조).toContain('「한 칸」');
