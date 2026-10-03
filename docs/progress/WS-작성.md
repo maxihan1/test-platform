@@ -624,3 +624,9 @@
 - 완료: main 의 `tests/codyssey` · `docs/cases/CDY.md` 를 비웠다. 옛 것은 `~/Projects/cdy-baseline-pr135/`(케이스 49 · Page Object · 표 · PR #135 본문) · #135 병합 커밋
 - 미완: CDY 처음부터 다시 작성 → 66분 · UI 22 · 기능 27 과 비교(시간 · 케이스 수 · 미확정 연결 · `docker stats`)
 - 막힌 것: 없음
+
+## 2026-10-03 — MKT 비우기 (AUT-F3-30 준비, PR #142)
+
+- 완료: main 의 `tests/mkt` · `docs/cases/MKT.md` 를 비웠다. 옛 것은 `~/Projects/mkt-baseline-pr137/`(케이스 148 · Page Object · 표 · PR #137 본문) · #137 병합 커밋
+- 미완: CDY 메모리 최고치를 본 뒤 MKT 처음부터 다시 작성 → 233분(세 번) · 한 번에 약 125분 추정과 비교
+- 막힌 것: 없음
