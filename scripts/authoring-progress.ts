@@ -20,8 +20,12 @@ export interface 진척 {
   lastActionAt?: string;
 }
 
-/** 자식 한 번의 제한. 60분이던 때 5872 가 관문 2 에서 걸려 결과를 잃었다. 이어하기가 생긴 뒤에도 120분 — 한 번에 끝날 확률이 높고, 이어갈 때마다 파일을 다시 읽는다 (작성 §7 TIMEOUT) */
-export const 자식제한 = 120 * 60_000;
+/**
+ * 자식의 응답 없음 제한 — 출력이 이만큼 없으면 멈춘다. 전체 시간 상한은 없다 (작성 §7 TIMEOUT · 2026-10-03 사용자).
+ * 120분 전체 제한이던 때 MKT 자식이 마감에 쫓겨 끝의 전체 3회를 나눠 동시에 돌렸다. 헛도는 실행은 「같은 실패 3번」 규칙과 「작성 중단」이 막는다.
+ * 작성 쪽 명령 하나가 최대 10분 출력 없이 돌 수 있어 그보다 길게 둔다
+ */
+export const 자식제한 = 20 * 60_000;
 
 const 수 = (n: number | undefined) => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
 
@@ -38,7 +42,7 @@ function 가리기(글: string, 비밀: 가릴것): string {
   return 사유거르기(토큰뺀, 비밀.loginPassword);
 }
 
-/** 시간을 `분:초` 로 — 120분 제한이라 시는 안 쓴다 */
+/** 시간을 `분:초` 로 — 한 시간이 넘어도 분으로 센다(96:23) */
 const 분초 = (ms: number) => {
   const 초 = Math.max(0, Math.round(ms / 1000));
   return `${Math.floor(초 / 60)}:${String(초 % 60).padStart(2, '0')}`;
