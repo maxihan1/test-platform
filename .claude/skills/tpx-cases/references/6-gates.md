@@ -76,6 +76,7 @@ npx playwright test tests/<폴더> --project=desktop --repeat-each=3 --reporter=
 
 **관문 3 — 3회 연속 초록.** 2/3 면 초록이 아니라 **불안정**이고 대개 대기 누락이다.
 `mobile` 을 선언한 케이스가 있으면 `--project=mobile` 도 한 번 더.
+**작성 에이전트가 팬아웃했으면 분담이 다르다** — `tpx-author` `references/fanout.md` §5(서브에이전트가 자기 파일 3회 · 자식은 끝에 전체 3회 한 번 · 2026-10-03). 사람 세션은 이 절 그대로다.
 **held 케이스는 kit 이 건너뛴다** — 요약 줄에 `N skipped` 로 잡히고 관문을 막지 않는다. 값이 들어간 뒤 3회 실행은 반영 때 에이전트가 한다.
 
 **★ 인자 없이 돌리지 않는다.** `DEMO-002` 는 일부러 실패하고 `DEMO-009` 는 모바일에서 실패한다
