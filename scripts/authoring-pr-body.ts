@@ -37,7 +37,7 @@ export function PR본문(입력: { 표경로: string; 표: string; 요약: strin
   const 표절 = 표 === '' ? null : `표는 \`${입력.표경로}\` 에 있다 — ${표.length}자라 본문에 못 싣는다.`;
   const 표뺌 = 조립(표절, 입력.요약, 입력.단계);
   if (크기(표뺌) <= 본문상한) return 표뺌;
-  // 머리글(첫 빈 줄 앞 — 셈 · 빠짐 · UI 로만 덮음)은 통째로 둔다. 자식 출력은 줄마다 1,000자로 먼저 자르고 줄 단위로 가운데를 줄인다 —
+  // 머리글(첫 빈 줄 앞 — 셈 · 빠짐 · UI 로만 덮음)은 통째로 둔다. 자식 출력은 줄마다 1,000자로 먼저 자르고 앞줄부터 깎는다 —
   // 관문 3 줄 뒤에도 관문 4 · 보류 줄이 와서, 긴 꼬리 줄을 안 자르고 줄 수부터 줄이면 관문 3 기록(병합 근거)이 빠진다
   const 요약 = 입력.요약.trim();
   const 틈 = 요약.indexOf('\n\n');
@@ -46,7 +46,7 @@ export function PR본문(입력: { 표경로: string; 표: string; 요약: strin
   const 합쳐 = (남김: string[]) => 조립(표절, [머리, 남김.join('\n')].filter((s) => s !== '').join('\n\n'), 입력.단계);
   let 글 = 합쳐(줄들);
   for (let n = 줄들.length - 1; n >= 1 && 크기(글) > 본문상한; n = Math.floor(n / 2))
-    글 = 합쳐([...줄들.slice(0, Math.floor(n / 2)), 줄임, ...줄들.slice(줄들.length - Math.ceil(n / 2))]);
+    글 = 합쳐([줄임, ...줄들.slice(-n)]); // 앞(작업 기록)부터 깎는다 — 결과 요약은 꼬리에 있다
   // ponytail: 그래도 넘으면(머리글 · 단계표가 수만 자) 바이트로 끝을 자른다 — PR 을 못 여는 것보다 낫다. 그런 실행은 아직 없었다
   if (크기(글) > 본문상한) 글 = Buffer.from(글, 'utf8').subarray(0, 본문상한 - 3).toString('utf8').replace(/\uFFFD$/, '') + '…';
   return 글;
