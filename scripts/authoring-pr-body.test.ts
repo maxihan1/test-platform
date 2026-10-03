@@ -66,10 +66,29 @@ describe('PR본문 — GitHub 상한(UTF-8 바이트) 안에 맞춘다', () => {
     expect(글).toContain('## 단계 시각 (이번 실행)');
   });
 
-  it('한 줄이 상한보다 길면 그 줄 안을 잘라서라도 상한 안에 든다', () => {
-    const 글 = PR본문({ 표경로: 경로, 표: '', 요약: `${셈}\n\n${'가'.repeat(40000)}\n${꼬리}` });
+  it('관문 3 줄이 끝이 아니고 그 뒤 줄이 아주 길어도 관문 3 기록이 남는다 — 긴 줄을 먼저 자른다', () => {
+    const 작업 = Array.from({ length: 28 }, (_, i) => `작업 ${i}`);
+    const 결과 = ['관문 0 원장 대조: EXIT=0', '관문 1 형식: EXIT=0', '관문 2 표 대조: 일치', 꼬리, '관문 4 부수기: 기대값을 바꾸자 빨개졌다', `판정 불가·보류: ${'가'.repeat(25000)}`];
+    const 글 = PR본문({ 표경로: 경로, 표: '| 표 |'.repeat(20000), 요약: [셈, '', ...작업, ...결과].join('\n') });
     expect(바이트(글)).toBeLessThanOrEqual(본문상한);
     expect(글).toContain(셈);
     expect(글).toContain(꼬리);
+    expect(글).toContain('관문 4 부수기');
+  });
+
+  it('마지막 줄 하나가 상한보다 길어도 그 줄 안을 잘라 상한 안에 든다 · 이모지를 반으로 가르지 않는다', () => {
+    const 글 = PR본문({ 표경로: 경로, 표: '', 요약: `${셈}\n\n${꼬리}\n${'😀'.repeat(30000)}` });
+    expect(바이트(글)).toBeLessThanOrEqual(본문상한);
+    expect(글).toContain(꼬리);
+    expect(글).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
+  });
+
+  it('머리글만으로 상한을 넘어도 끝을 바이트로 잘라 PR 을 열 수 있게 한다', () => {
+    const 큰머리 = Array.from({ length: 20000 }, (_, i) => `빠짐 REQ-${i}`).join('\n');
+    expect(바이트(PR본문({ 표경로: 경로, 표: '', 요약: `${큰머리}\n\n${꼬리}` }))).toBeLessThanOrEqual(본문상한);
+  });
+
+  it('상한은 55,000바이트 — 반영 때 덧붙는 겹침 처리 줄(최대 약 6,000자)이 들어갈 자리를 남긴다', () => {
+    expect(본문상한).toBe(55_000);
   });
 });
