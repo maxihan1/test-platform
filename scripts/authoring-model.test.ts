@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { 모델설정, 모델인자, 버전뽑기, 업데이트인자, 업데이트할까, 점검통과, 한도걸렸나 } from './authoring-model.js';
 
 describe('모델설정 — .env 에서 읽는다', () => {
-  it('비면 claude-sonnet-5-5 · xhigh · 예비 opus 다 (2026-09-29 사용자 결정)', () => {
-    expect(모델설정({})).toEqual({ model: 'claude-sonnet-5-5', effort: 'xhigh', fallback: 'opus' });
+  it('비면 claude-opus-5-5 · high · 예비 sonnet 이다 (2026-10-04 사용자 결정 — 메인만. 보조는 .claude/agents 정의)', () => {
+    expect(모델설정({})).toEqual({ model: 'claude-opus-5-5', effort: 'high', fallback: 'sonnet' });
   });
 
   it('값을 주면 그것을 쓴다. 전체 이름도 된다', () => {
@@ -26,13 +26,13 @@ describe('모델설정 — .env 에서 읽는다', () => {
   });
 
   it('예비가 본 모델과 같으면 예비를 뺀다 — CLI 가 같은 모델을 예비로 받지 않는다', () => {
-    expect(모델설정({ AUTHORING_MODEL: 'opus' })).toEqual({ model: 'opus', effort: 'xhigh', fallback: null });
+    expect(모델설정({ AUTHORING_MODEL: 'sonnet' })).toEqual({ model: 'sonnet', effort: 'high', fallback: null });
   });
 
   it('예비를 끄려면 none 을 적는다', () => {
     expect(모델설정({ AUTHORING_FALLBACK_MODEL: 'none' })).toEqual({
-      model: 'claude-sonnet-5-5',
-      effort: 'xhigh',
+      model: 'claude-opus-5-5',
+      effort: 'high',
       fallback: null,
     });
   });

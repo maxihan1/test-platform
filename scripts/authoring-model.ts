@@ -13,9 +13,10 @@ const effort들 = ['low', 'medium', 'high', 'xhigh', 'max'];
 const 모델모양 = /^[a-z0-9][a-z0-9.\-[\]]{0,63}$/;
 
 export function 모델설정(env: Record<string, string | undefined>): 모델 | { 까닭: string } {
-  const model = env.AUTHORING_MODEL || 'claude-sonnet-5-5';
-  const effort = env.AUTHORING_EFFORT || 'xhigh';
-  const 예비 = env.AUTHORING_FALLBACK_MODEL || 'opus';
+  // 메인만이다 — 보조(화면 훑기 · 케이스 작성)는 .claude/agents 정의가 정한다 (2026-10-04 사용자 · SPEC 도메인/작성 §3.6)
+  const model = env.AUTHORING_MODEL || 'claude-opus-5-5';
+  const effort = env.AUTHORING_EFFORT || 'high';
+  const 예비 = env.AUTHORING_FALLBACK_MODEL || 'sonnet';
   if (!모델모양.test(model)) return { 까닭: `AUTHORING_MODEL(${model}) 이 모델 이름 모양이 아니다` };
   if (!effort들.includes(effort)) return { 까닭: `AUTHORING_EFFORT(${effort}) 는 ${effort들.join('·')} 중 하나다` };
   if (예비 !== 'none' && !모델모양.test(예비)) {

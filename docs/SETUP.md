@@ -272,7 +272,7 @@ openssl rand -hex 32
 4. **GitHub 토큰** — GitHub → Settings → Developer settings → **Fine-grained tokens** → 테스트 저장소 하나만 · **Contents 읽기/쓰기 · Pull requests 읽기/쓰기** → `GH_TOKEN` 에
 5. **리눅스 서버면** `HOST_UID`·`HOST_GID` 에 저장소 주인의 `id -u`·`id -g` 를 적는다 (맥은 비워도 된다) — 서버 저장소에 쓰는 일(부품 맞추기·병합 뒤 당기기)은 이 계정으로 한다.
    안 맞으면 사람이 `git pull` 을 못 한다. 자식 Claude 는 `AUTHORING_CHILD_UID`(비우면 `20000`)부터 동시 수만큼 uid 를 쓴다 — 서버에 이미 있는 uid 와 겹치지 않게 둔다.
-   모델(`claude-sonnet-5-5`)·생각 깊이(`xhigh`)·예비 모델(`opus`)·동시 수(`2`)를 바꾸려면 `.env.example` 의 `AUTHORING_*` 칸을 본다 (2026-09-29 기본값 변경 — 전에는 `opus`·`high`·`sonnet`).
+   메인 모델(`claude-opus-5-5`)·생각 깊이(`high`)·예비 모델(`sonnet`)·동시 수(`2`)를 바꾸려면 `.env.example` 의 `AUTHORING_*` 칸을 본다 (2026-10-04 기본값 변경 — 전에는 `claude-sonnet-5-5`·`xhigh`·`opus`). 보조 모델은 `.claude/agents/author-scan.md` · `author-write.md` 에서 바꾼다.
    `.env` 를 바꾼 뒤에는 author 를 다시 켜야 반영된다 — 아래 6번 첫 줄을 그대로 친다
 6. 켠다 — **저장소 뿌리에서**:
 
