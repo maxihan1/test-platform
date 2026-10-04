@@ -161,6 +161,51 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
     ]);
   });
 
+  describe('훑지 않을 경로', () => {
+    const 고치기 = async (payload: Record<string, unknown>) => {
+      const id = (await 목록()).find((s) => s.prefix === 'XFS4A')?.id;
+      return app.inject({ method: 'PATCH', url: `/api/settings/services/${String(id)}`, payload });
+    };
+    const 지금값 = async () => (await 목록()).find((s) => s.prefix === 'XFS4A')?.crawlExclude;
+
+    it('새 서비스는 빈 목록이고, 만들 때 보낸 값은 정리해 담는다', async () => {
+      expect(await 지금값()).toEqual([]);
+      await 서비스만들기('XFS4G', { crawlExclude: [' /daejeon/ ', '', '/daejeon'] });
+      expect((await 목록()).find((s) => s.prefix === 'XFS4G')?.crawlExclude).toEqual(['/daejeon']);
+    });
+
+    it('고쳐 넣으면 목록이 정리된 값을 돌려준다', async () => {
+      expect((await 고치기({ crawlExclude: ['/daejeon', '/gyeongnam/'] })).statusCode).toBe(200);
+      expect(await 지금값()).toEqual(['/daejeon', '/gyeongnam']);
+    });
+
+    it('안 보내면 그대로 둔다', async () => {
+      expect((await 고치기({ name: '이름만 바꿈' })).statusCode).toBe(200);
+      expect(await 지금값()).toEqual(['/daejeon', '/gyeongnam']);
+    });
+
+    it('틀린 값은 400 INVALID_REQUEST 이고 저장하지 않는다', async () => {
+      const 스물하나 = Array.from({ length: 21 }, (_, i) => `/p${String(i)}`);
+      for (const [줄들, 틀린줄] of [
+        [['daejeon'], 'daejeon'],
+        [['/a;b'], '/a;b'],
+        [스물하나, '/p20'],
+      ] as const) {
+        const res = await 고치기({ crawlExclude: 줄들 });
+        expect(res.statusCode, 틀린줄).toBe(400);
+        expect(res.json<{ error: string }>().error).toBe('INVALID_REQUEST');
+        expect(res.json<{ detail: string }>().detail).toContain(틀린줄);
+      }
+      expect((await 서비스만들기('XFS4H', { crawlExclude: ['daejeon'] })).statusCode).toBe(400);
+      expect(await 지금값()).toEqual(['/daejeon', '/gyeongnam']);
+    });
+
+    it('빈 목록을 보내면 비운다', async () => {
+      expect((await 고치기({ crawlExclude: [] })).statusCode).toBe(200);
+      expect(await 지금값()).toEqual([]);
+    });
+  });
+
   it('서비스를 지우지 않고 비활성으로 내린다', async () => {
     const id = (await 목록()).find((s) => s.prefix === 'XFS4C')?.id;
     await app.inject({
