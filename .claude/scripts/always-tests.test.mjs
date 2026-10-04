@@ -67,6 +67,7 @@ const 문서계약면제 = new Map([
   ['ci-covers-tests.test.mjs', 'ci.yml 과 tests/ 만 읽는다 — docs/ 는 면제 사유 글 안에만 나온다'],
   ['hook-contract.test.mjs', '훅 파일과 임시 저장소만 읽는다 — docs/ 는 임시 저장소에 만드는 경로다'],
   ['always-tests.test.mjs', 'package.json · vitest.config.ts · 테스트 소스만 읽는다'],
+  ['guard.test.mjs', '스킬 fanout.md 뼈대와 임시 폴더만 읽는다 — docs/ 는 금지 명령 판정 예시 문자열에만 나온다 (2026-10-04)'],
 ]);
 
 test('docs/ 의 내용을 읽는 판별식은 전부 check:docs-contract 에 있다', () => {
