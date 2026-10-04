@@ -1,6 +1,7 @@
 // 설정 화면이 하는 판단 (SPEC §8.8). 화면은 그리기만 하고 고를 것은 여기서 정한다
 
 import { 아이디모양 } from '../auth/rules.js';
+import { 제외경로정리, 제외경로최대개수, 제외경로최대글자 } from '../settings/rules.js';
 
 import type { EnvRow, SettingsServiceRow, UserRow } from './api.js';
 import { 요청오류문장 } from './errorText.js';
@@ -52,6 +53,8 @@ export function 서비스못보내는이유(
     name: string;
     testsDir: string;
     envs: EnvRow[];
+    /** 「훑지 않을 경로」 칸에 적은 그대로. 한 줄에 하나 */
+    제외: string;
   },
   언어: 언어,
 ): string | null {
@@ -67,7 +70,31 @@ export function 서비스못보내는이유(
   if (입력.envs.some((it) => it.env === '' || it.baseUrl === '')) {
     return t('대상 서버 줄에 빈 칸이 있습니다. 채우거나 그 줄을 뺍니다', 언어);
   }
+  // 서버와 같은 규칙 파일이다. 여러 줄 중 어느 줄인지 짚어 줘야 칸을 다시 뒤지지 않는다
+  const { 틀린줄, 까닭 } = 제외경로풀기(입력.제외);
+  if (까닭 !== undefined) {
+    return t(제외사유[까닭], 언어, { 줄: 틀린줄, 글자: 제외경로최대글자, 개수: 제외경로최대개수 });
+  }
   return null;
+}
+
+/** 키는 settings/rules.ts 의 `까닭` 이다. 까닭이 늘면 여기서 타입이 깨져 빠뜨리지 않는다 */
+const 제외사유 = {
+  모양: '「{줄}」 은 / 로 시작하고 글자·숫자·. _ ~ % - 만 쓸 수 있습니다',
+  길이: '경로는 {글자}자까지 적을 수 있습니다',
+  개수: '경로는 {개수}개까지 적을 수 있습니다',
+};
+
+// 결과를 `'틀린줄' in` 으로 가르면 messages.test.ts 가 그 낱말을 화면 글자로 잡는다. 빈 칸을 깔고 펼쳐서 판다
+function 제외경로풀기(글: string) {
+  return { 값: undefined, 틀린줄: '', 까닭: undefined, ...제외경로정리(글.split('\n')) };
+}
+
+/** 보낼 목록. 틀린 줄은 위 `서비스못보내는이유` 가 먼저 막는다 — 그래도 오면 빈 목록(전부 지움)을 보내지 않고 멈춘다 */
+export function 제외경로값(글: string): string[] {
+  const { 값, 틀린줄 } = 제외경로풀기(글);
+  if (값 === undefined) throw new Error(`crawlExclude: invalid line ${틀린줄}`);
+  return 값;
 }
 
 export function 계정못보내는이유(

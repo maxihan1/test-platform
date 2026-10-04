@@ -11,8 +11,10 @@ import {
   설정오류문장,
   접두사사유,
   웹훅칸,
+  제외경로값,
   피그마설정주소,
 } from './settingsView.js';
+import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
 import { message } from './ui.js';
 
@@ -97,6 +99,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
   const [testsRepo, setTestsRepo] = useState(row?.testsRepo ?? '');
   const [testsDir, setTestsDir] = useState(row?.testsDir ?? '');
   const [envs, setEnvs] = useState<줄[]>(() => 줄로(row?.envs ?? []));
+  const [제외, set제외] = useState((row?.crawlExclude ?? []).join('\n'));
   // 빈 글자와 「안 건드림」은 다르다. null 이면 서버에 아예 안 보낸다 (지금 것을 그대로 둔다)
   const [webhook, setWebhook] = useState<string | null>(새것 ? '' : null);
   const [figma, setFigma] = useState<string | null>(새것 ? '' : null);
@@ -104,7 +107,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
   const [err, setErr] = useState<string | null>(null);
 
   const 접두사틀림 = 접두사사유(prefix, 언어);
-  const 못보내는이유 = 서비스못보내는이유({ 새것, prefix, name, testsDir, envs }, 언어);
+  const 못보내는이유 = 서비스못보내는이유({ 새것, prefix, name, testsDir, envs, 제외 }, 언어);
 
 
   async function 보낸다() {
@@ -112,24 +115,19 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
     set보내는중(true);
     setErr(null);
     try {
+      const 같은칸 = { name, testsRepo, testsDir, envs: 보낼모양(envs), crawlExclude: 제외경로값(제외) };
       if (새것) {
         await api.createService({
           prefix,
-          name,
           color: 안쓰는서비스색,
-          testsRepo,
-          testsDir,
-          envs: 보낼모양(envs),
+          ...같은칸,
           ...(webhook === null || webhook === '' ? {} : { slackWebhook: webhook }),
           ...(figma === null || figma === '' ? {} : { figmaToken: figma }),
         });
       } else {
         // 접두사는 안 보낸다. 보내면 서버가 400 PREFIX_IMMUTABLE 을 낸다 (SPEC §8.8)
         await api.updateService(row.id, {
-          name,
-          testsRepo,
-          testsDir,
-          envs: 보낼모양(envs),
+          ...같은칸,
           ...(webhook === null ? {} : { slackWebhook: webhook }),
           ...(figma === null ? {} : { figmaToken: figma }),
         });
@@ -217,6 +215,8 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
           <div className="hint">{t('기록용으로만 적어 둡니다. 플랫폼이 이 저장소를 받아오지는 않습니다')}</div>
         </div>
       </div>
+
+      <CrawlExcludeField 값={제외} 바꾼다={set제외} />
 
       <EnvEditor envs={envs} onChange={setEnvs} />
 

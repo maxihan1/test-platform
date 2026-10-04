@@ -126,6 +126,7 @@ describe('서비스를 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살
     name: '결제 서비스',
     testsDir: 'pay',
     envs: [{ env: 'qa', baseUrl: 'https://qa.pay.test' }],
+    제외: '',
   };
 
   it('다 채웠으면 이유가 없다', () => {
@@ -169,6 +170,25 @@ describe('서비스를 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살
 
   it('명암비가 낮은 것은 막지 않는다. 그건 경고이지 오류가 아니다', () => {
     expect(서비스못보내는이유({ ...채운것 }, 'ko')).toBe(null);
+  });
+
+  it('훑지 않을 경로는 빈 줄 · 앞뒤 공백 · 끝의 / 를 봐준다', () => {
+    expect(서비스못보내는이유({ ...채운것, 제외: '/daejeon/\n\n  /gyeongnam  ' }, 'ko')).toBe(null);
+  });
+
+  it('/ 로 시작하지 않거나 셸 글자가 든 줄은 그 줄을 짚어 말한다', () => {
+    expect(서비스못보내는이유({ ...채운것, 제외: '/ok\ndaejeon' }, 'ko')).toContain('「daejeon」');
+    expect(서비스못보내는이유({ ...채운것, 제외: '/a;rm' }, 'ko')).toContain('/ 로 시작');
+  });
+
+  it('경로가 너무 길거나 너무 많으면 한도를 말한다', () => {
+    expect(서비스못보내는이유({ ...채운것, 제외: `/${'a'.repeat(100)}` }, 'ko')).toContain('100자');
+    const 스물하나 = Array.from({ length: 21 }, (_, i) => `/p${i}`).join('\n');
+    expect(서비스못보내는이유({ ...채운것, 제외: 스물하나 }, 'ko')).toContain('20개');
+  });
+
+  it('영어로도 낸다', () => {
+    expect(서비스못보내는이유({ ...채운것, 제외: 'daejeon' }, 'en')).toContain('"daejeon"');
   });
 });
 
