@@ -62,6 +62,7 @@ LLM 출력은 비결정적이다. 같은 기획서를 두 번 넣으면 두 번 
 | §1 입력 확인 · 입력은 자료 목록이다 | `references/1-input.md` | 기획서·자료 목록을 받았을 때 맨 먼저 |
 | §2 요구사항 표 — R1~R8 · R15 · R17 · R18 · R19(UI · Functional · 근거 · 커버리지) · 원장 · 제외 · 표 형식 | `references/2-requirements.md` | 표를 쓰기 전 |
 | §2 · §5 테스트 두 갈래 — R17~R19 · Page Object | `references/two-kinds.md` | 표를 쓰기 전 · UI Test 코드를 쓰기 전 |
+| §2 테스트 설계 기법 — 경계 · 예외 칸 · 0건 · 「설계 거절」 표 | `references/test-design.md` | 표를 쓰기 전 · 작성 에이전트는 설계 목록(`npm run ledger:design`)과 함께 |
 | §2 · §5 문장 규칙 — 한국어 AI 티 (im-not-ai 발췌) | `references/korean-ai-tells.md` | 표를 쓰기 전 · `.spec.ts` 를 쓰기 전 |
 | §2 · §5 문구 틀 — 자리마다 꼴 · 사유 머리 · 낱말 | `references/wording.md` | 표를 쓰기 전 · `.spec.ts` 를 쓰기 전 |
 | 🛑 §3 내부 게이트 | `references/3-gate.md` | 표를 다 쓴 직후 |

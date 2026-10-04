@@ -1,14 +1,17 @@
 // 원장 명령 — 사람 세션과 자식이 부른다. 판단은 authoring-ledger · authoring-ledger-check 의 순수 함수에 있다
 //   npm run ledger -- <글자본…>                                   원장 JSON 을 찍는다
-//   npm run check:ledger -- <ledger.json> <표.md> [--tests <폴더>] [--agent]   빠짐 · 형식 오류 · 칸 번호 어긋남이 있으면 종료 코드 1
+//   npm run check:ledger -- <ledger.json> <표.md> [--tests <폴더>] [--agent]   빠짐 · 형식 오류 · 칸 번호 어긋남(--agent 면 설계 칸 빠짐 · 설계 거절 형식 오류도)이 있으면 종료 코드 1
 //   npm run ledger:number -- <ledger.json> <표.md>                 칸마다 tcId 를 매겨 표를 고쳐 쓴다. 칸 재료가 없으면 종료 코드 2
+//   npm run ledger:design -- <ledger.json>                         설계 목록(요구마다 경계 · 예외 칸)과 요약을 찍는다
 
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
 import type { 읽을자료 } from './authoring-assets.js';
 import { type 원장, 원장만들기 } from './authoring-ledger.js';
-import { tcId들, 셈글, 요구줄들, 원장대조, 표번호채우기 } from './authoring-ledger-check.js';
+import { 설계글, 설계요약 } from './authoring-design.js';
+import { 설계대조 } from './authoring-design-check.js';
+import { tcId들, 설계거절행들, 셈글, 요구줄들, 원장대조, 표번호채우기 } from './authoring-ledger-check.js';
 import { type 칸재료, 칸번호 } from './authoring-slots.js';
 
 const [명령, ...인자] = process.argv.slice(2);
@@ -49,9 +52,11 @@ if (명령 === '뽑기') {
             .filter((f) => f.endsWith('.spec.ts'))
             .map((f) => readFileSync(join(폴더, f), 'utf8')),
         );
-  const 결과 = 원장대조(읽은.원장.항목, readFileSync(표파일, 'utf8'), {
+  const 표글 = readFileSync(표파일, 'utf8');
+  const 에이전트 = 인자.includes('--agent');
+  const 결과 = 원장대조(읽은.원장.항목, 표글, {
     있는케이스,
-    에이전트: 인자.includes('--agent'),
+    에이전트,
     사람이뺌: new Set(읽은.사람이뺌 ?? []),
     다음요청: new Set(읽은.다음요청 ?? []),
     칸재료: 읽은.칸재료 ?? null,
@@ -62,7 +67,22 @@ if (명령 === '뽑기') {
   for (const m of 결과.칸어긋남) console.log(`칸 번호 어긋남: ${m}`);
   for (const m of 결과.경고) console.log(`경고: ${m}`);
   if (결과.빠짐.length > 0) console.log(`빠짐: ${결과.빠짐.join(' · ')}`);
-  process.exit(결과.빠짐.length === 0 && 결과.형식오류.length === 0 && 결과.칸어긋남.length === 0 ? 0 : 1);
+  // 설계 칸은 작성 에이전트만 본다 — 사람 세션은 R18 로 판단한다 (작성 §3.6 「설계 기법」)
+  const 설계 =
+    에이전트 && 읽은.칸재료 != null
+      ? 설계대조(읽은.원장.항목, 요구줄들(표글), 설계거절행들(표글), new Set(결과.제외번호.keys()), new Set(읽은.칸재료.기준줄))
+      : null;
+  if (에이전트) console.log(설계요약(읽은.원장.항목));
+  // 기준 표를 못 읽어 칸 재료가 없으면 설계 대조를 건너뛴다 — 건너뛴 것을 말해 둔다(올리기 판정의 PR 머리와 같은 말)
+  if (에이전트 && 읽은.칸재료 == null) console.log('칸 번호 · 설계 칸 — 기준 표를 못 읽어 안 봤다');
+  if (설계 !== null) {
+    if (설계.빠짐.length > 0) console.log(`설계 칸 빠짐: ${설계.빠짐.join(' · ')}`);
+    for (const m of 설계.형식오류) console.log(`설계 거절 형식 오류: ${m}`);
+    if (설계.거절.length > 0) console.log(`설계 거절: ${설계.거절.join(' · ')}`);
+    if (설계.밖.length > 0) console.log(`설계 밖 칸: ${설계.밖.join(' · ')}`);
+  }
+  const 설계막힘 = 설계 !== null && (설계.빠짐.length > 0 || 설계.형식오류.length > 0);
+  process.exit(결과.빠짐.length === 0 && 결과.형식오류.length === 0 && 결과.칸어긋남.length === 0 && !설계막힘 ? 0 : 1);
 } else if (명령 === '번호') {
   const [원장파일, 표파일] = 인자;
   if (원장파일 === undefined || 표파일 === undefined) {
@@ -85,7 +105,16 @@ if (명령 === '뽑기') {
   for (const m of 칸.알림) console.log(m);
   for (const m of 칸.어긋남) console.log(`칸 번호 어긋남: ${m}`);
   process.exit(칸.어긋남.length === 0 ? 0 : 1);
+} else if (명령 === '설계') {
+  const [원장파일] = 인자;
+  if (원장파일 === undefined) {
+    console.error('쓰는 법: npm run ledger:design -- <ledger.json>');
+    process.exit(2);
+  }
+  const 읽은 = JSON.parse(readFileSync(원장파일, 'utf8')) as { 원장?: 원장 };
+  console.log(읽은.원장 === undefined ? '원장 없음 — 설계 목록이 없다' : 설계글(읽은.원장.항목));
+  process.exit(0);
 } else {
-  console.error('쓰는 법: tsx scripts/ledger.ts 뽑기|대조|번호 …');
+  console.error('쓰는 법: tsx scripts/ledger.ts 뽑기|대조|번호|설계 …');
   process.exit(2);
 }

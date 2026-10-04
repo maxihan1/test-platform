@@ -3,6 +3,7 @@
 // 사람과 자식은 `npm run check:ledger` 로 부른다 (도메인/작성 §3.6 「★ 원장」)
 
 import { tcId종류 } from '../apps/admin/src/catalog/rules.js';
+import { 경고줄, 설계대조, 설계줄들 } from './authoring-design-check.js';
 import { 케이스tcId } from './authoring-held-apply.js';
 import { type 원장, type 원장항목, 번호찾기 } from './authoring-ledger.js';
 import { type 칸재료, type 표줄, 칸번호 } from './authoring-slots.js';
@@ -269,11 +270,9 @@ export function 셈글(셈: 셈, 가족: Record<string, number>): string {
   return `원장: 요구 ${String(셈.총)} → 케이스 ${String(셈.케이스)} · 제외 ${String(제외수)}${종류별 === '' ? '' : `(${종류별})`} · 빠짐 ${String(셈.빠짐)}${가족글 === '' ? '' : ` · 번호 가족 ${가족글}`}`;
 }
 
-/** 머리글 경고 한 줄 — PR 본문이 길어지지 않게 앞 몇 개만. 전체 목록은 `대조` 에 있다 */
-function 경고줄(이름: string, 목록: string[], 앞수: number, 머리 = '⚠️ '): string[] {
-  if (목록.length === 0) return [];
-  const 더 = 목록.length > 앞수 ? ' …' : '';
-  return [`${머리}${이름} ${String(목록.length)} — ${목록.slice(0, 앞수).join(' · ')}${더}`];
+/** 「설계 거절」 표 줄 — 모든 칸이 빈 행은 표 틀의 빈 예시라 형식 오류로 넘기지 않는다 */
+export function 설계거절행들(표글: string): Record<string, string>[] {
+  return 표읽기(표글, '설계 거절').filter((행) => Object.values(행).some((v) => v !== ''));
 }
 
 /**
@@ -293,7 +292,9 @@ export function 원장판정(
   const 못넣음 = 원장값.빠진자료.length > 0 ? ` · 원장에 못 넣은 자료 ${원장값.빠진자료.join(' · ')}` : '';
   // UI 로만 덮음은 경고가 아니라 보고다 — 원장은 그 요구가 동작 요구인지 모르므로 사람이 PR 에서 본다 (작성 §3.6 R19)
   const UI만줄 = 경고줄('UI 로만 덮음', 결과.UI만, 10, '');
-  const 칸줄 = 기준 === undefined ? [] : 기준.칸재료 === null ? ['칸 번호 — 기준 표를 못 읽어 안 봤다'] : [...결과.칸알림, ...경고줄('칸 번호 어긋남', 결과.칸어긋남, 3)];
-  const 줄들 = [`${셈글(결과.셈, 원장값.가족)}${못넣음}`, ...UI만줄, ...경고줄('빠짐', 결과.빠짐, 10), ...경고줄('형식 오류', 결과.형식오류, 3), ...칸줄];
+  const 칸줄 = 기준 === undefined ? [] : 기준.칸재료 === null ? ['칸 번호 · 설계 칸 — 기준 표를 못 읽어 안 봤다'] : [...결과.칸알림, ...경고줄('칸 번호 어긋남', 결과.칸어긋남, 3)];
+  const 설계 = 기준?.칸재료 == null ? null : 설계대조(원장값.항목, 요구줄들(표글), 설계거절행들(표글), new Set(결과.제외번호.keys()), new Set(기준.칸재료.기준줄));
+  const 설계줄 = 기준 === undefined ? [] : 설계줄들(원장값.항목, 설계);
+  const 줄들 = [`${셈글(결과.셈, 원장값.가족)}${못넣음}`, ...UI만줄, ...경고줄('빠짐', 결과.빠짐, 10), ...경고줄('형식 오류', 결과.형식오류, 3), ...칸줄, ...설계줄];
   return { 머리글: 줄들.join('\n'), 대조: 결과 };
 }
