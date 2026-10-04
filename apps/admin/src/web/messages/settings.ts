@@ -49,6 +49,9 @@ export const 설정말: Record<string, string> = {
   '플랫폼이 실제로 훑을 폴더입니다': 'The folder the platform actually scans',
   '테스트 저장소': 'Tests repository',
   '기록용으로만 적어 둡니다. 플랫폼이 이 저장소를 받아오지는 않습니다': 'Recorded for reference only. The platform does not fetch it',
+  '훑지 않을 경로': 'Paths to skip',
+  '한 줄에 하나씩, / 로 시작하게 적습니다. 화면만 작성은 이 경로와 그 아래 화면을 훑지 않습니다. 비워 두면 모든 화면을 훑습니다':
+    'One per line, starting with /. Screen-only authoring skips these paths and everything under them. Leave it empty to crawl every screen',
   'Slack 웹훅': 'Slack webhook',
   '피그마 토큰': 'Figma token',
   '이대로 저장하면 토큰을 지웁니다. 피그마 자료를 못 읽게 됩니다':
@@ -95,6 +98,10 @@ export const 설정말: Record<string, string> = {
   '테스트 폴더를 채웁니다': 'Fill in the tests folder',
   '대상 서버 줄에 빈 칸이 있습니다. 채우거나 그 줄을 뺍니다':
     'A target server row has an empty field. Fill it in or remove the row',
+  '「{줄}」 — / 로 시작하고 글자·숫자·. _ ~ % - 만 쓸 수 있습니다':
+    '"{줄}" must start with / and use only letters, digits and . _ ~ % -',
+  '경로는 {글자}자까지 적을 수 있습니다': 'A path can be up to {글자} characters long',
+  '경로는 {개수}개까지 적을 수 있습니다': 'You can enter up to {개수} paths',
   '아이디를 채웁니다': 'Fill in the ID',
 
   // 계정 편집기

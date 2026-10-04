@@ -1,6 +1,8 @@
 // 화면 크롤러의 판정 — 따라갈 주소 · 같은 틀 · 지문 · 목록 · 로그인 풀림. 껍데기(authoring-crawl.ts)는 I/O 만 한다 (도메인/작성 §3.6 「★ 역방향」)
 import { createHash } from 'node:crypto';
 
+import { 제외경로정리, 제외되나 } from '../apps/admin/src/settings/rules.js';
+
 const 내려받기 = /\.(pdf|zip|7z|rar|hwpx?|docx?|xlsx?|pptx?|csv|txt|png|jpe?g|gif|svg|webp|ico|mp4|mov|avi|mp3|wav|apk|exe|dmg|msi)$/i;
 // 링크 글자 — 주소가 멀쩡해 보여도 이것이면 상태가 바뀐다(검토 BLOCKER — `/member/out.php` 가 「로그아웃」이었다)
 // 걸러진 주소는 index.json 에 남고 요약에 수가 실린다 — 「결제 내역」 같은 정상 화면이 빠지면 자식이 거기서 본다
@@ -153,4 +155,27 @@ export function 로그인풀렸나(x: { 요청: string; 최종: string; 비밀�
   const 로그인화면 = (u: URL) => 로그인주소.test(풀기(u.pathname));
   if (로그인화면(요청)) return false;
   return 로그인화면(최종) || (x.비밀번호칸 && x.아이디칸);
+}
+
+/** 서비스 설정의 훑지 않을 경로 아래 주소인가 — pathname 만 본다. 해시 라우트(`#/…`) 안 화면은 못 뺀다 (SPEC 도메인/작성 §3.6 · #153) */
+export function 빼는주소인가(주소: string, 뺄: readonly string[]): boolean {
+  if (뺄.length === 0) return false;
+  try {
+    return 제외되나(new URL(주소).pathname, 뺄);
+  } catch {
+    return false;
+  }
+}
+
+/** `--exclude <경로>` 를 모두 — 값이 명령줄로 들어오므로 설정 화면과 같은 규칙으로 거른다. 틀리면 까닭 글 */
+export function 뺄경로읽기(argv: readonly string[]): string[] | string {
+  const 줄들: string[] = [];
+  for (const [i, a] of argv.entries()) {
+    if (a !== '--exclude') continue;
+    const 값 = argv[i + 1];
+    if (값 === undefined || 값.startsWith('--')) return '--exclude 뒤에 경로가 없다';
+    줄들.push(값);
+  }
+  const 정리 = 제외경로정리(줄들);
+  return '값' in 정리 ? 정리.값 : `--exclude 값이 틀렸다(${정리.까닭}): ${정리.틀린줄}`;
 }

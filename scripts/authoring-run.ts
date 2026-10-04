@@ -34,7 +34,7 @@ import { 올리기 } from './authoring-upload.js';
 import { 사용량보고, 흐름풀기 } from './authoring-usage.js';
 import { 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './authoring-progress.js';
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
-import { type 폴더자리 } from './authoring-token.js';
+import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
 import { 사본환경 } from './authoring-copy.js';
@@ -62,12 +62,11 @@ export async function 한건처리(
   것: 집은것,
   판: 판,
   자리번호: number,
-  서버들: { env: string; baseUrl: string }[],
-  폴더: 폴더자리 | undefined,
+  설정: 서비스설정,
 ): Promise<void> {
   const 박동 = 박동손(보고손만들기(주소기지, 토큰, 서비스, 것.id));
   // 거절로 끝내기 없이 나가도 신호를 멈춘다 — 그 밖의 길은 끝내기가 멈춘다
-  await 닫으며(박동.손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판, 자리번호, 서버들, 폴더, 감싼손, 박동)).finally(박동.멈추기);
+  await 닫으며(박동.손, (감싼손) => 한건(주소기지, 토큰, 서비스, 것, 판, 자리번호, 설정, 감싼손, 박동)).finally(박동.멈추기);
 }
 
 async function 한건(
@@ -77,8 +76,7 @@ async function 한건(
   것: 집은것,
   판: 판,
   자리번호: number,
-  서버들: { env: string; baseUrl: string }[],
-  폴더: 폴더자리 | undefined,
+  설정: 서비스설정,
   손: 보고손,
   박동: 박동,
 ): Promise<void> {
@@ -100,19 +98,19 @@ async function 한건(
     }
     // 브랜치는 author-<뿌리> — 그 전에 선 PR 은 prUrl 을 가진 원본 행(sourceId)의 author-<실행 번호> 다 (§7 「실행 기록」)
     const 자식 = 판.계정?.자식[자리번호] ?? null;
-    const 반영폴더 = 폴더 === undefined || '사유' in 폴더 ? null : 폴더.폴더;
+    const 반영폴더 = '사유' in 설정.폴더 ? null : 설정.폴더.폴더;
     await 머지처리(손, 주소, 판.판정, 것.sourceId ?? undefined, 판.원천, 판.호스트로, 요청뿌리, { 것, 서비스, 판, 자식, 폴더: 반영폴더, 고치기 });
     return;
   }
 
   // 테스트 폴더는 서비스 설정의 testsDir 다 (2026-09-25 계약 변경 승인). 아직 없는 폴더여도 된다 — 자식이 만든다.
   // 사본을 만들기 전에 거른다 — 설정이 틀린 건에 작업방을 만들 까닭이 없다
-  if (폴더 === undefined || '사유' in 폴더) {
-    await 손.끝내기({ status: 'FAILED', error: 폴더?.사유 ?? `${서비스} 의 테스트 폴더 설정을 못 받았다` });
+  if ('사유' in 설정.폴더) {
+    await 손.끝내기({ status: 'FAILED', error: 설정.폴더.사유 });
     return;
   }
   // 케이스 고치기는 자식 없이 main 사본에서 고친다 (§3.6 「★ 케이스 고치기」)
-  if (고치기실행인가(것)) return 편집처리(손, 것, 서비스, 판, 판.계정?.자식[자리번호] ?? null, 폴더.폴더);
+  if (고치기실행인가(것)) return 편집처리(손, 것, 서비스, 판, 판.계정?.자식[자리번호] ?? null, 설정.폴더.폴더);
   // 역방향 — 집을 때 다시 대조한다. 만든 뒤 설정이 바뀌었을 수 있다 (도메인/작성 §7 집기 ★)
   const 대상사유 = 대상점검(것.target);
   if (대상사유 !== null) {
@@ -154,8 +152,8 @@ async function 한건(
   const 기록손: 보고손 = { ...손, 끝내기: (몸) => ((끝낸상태 = 몸.status), 손.끝내기(몸)) };
   let 방: 작업방 | null = null;
   try {
-    방 = await 작업방준비(주소기지, 토큰, 서비스, 것, 판, 자식, 폴더.폴더, 기록손);
-    if (방 !== null) await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 방, 출처, 자료들, 본문, 서버들, 폴더.폴더, 기록손, 박동, 이어작성원본);
+    방 = await 작업방준비(주소기지, 토큰, 서비스, 것, 판, 자식, 설정.폴더.폴더, 기록손);
+    if (방 !== null) await 사본에서(주소기지, 토큰, 서비스, 것, 판, 자식, 방, 출처, 자료들, 본문, 설정, 설정.폴더.폴더, 기록손, 박동, 이어작성원본);
   } finally {
     // 성공·실패는 받은 기획서와 자식이 만든 것을 남기지 않는다. 중단은 7일 남긴다 —
     // 단 자식을 못 거뒀으면 손대지 않는다. 살아 있는 자식이 지우는 도중에 폴더를 링크로 바꿔 트리 밖을 지우게 할 수 있다.
@@ -177,7 +175,7 @@ async function 사본에서(
   출처: number,
   자료들: 자료[],
   본문: string | null,
-  서버들: { env: string; baseUrl: string }[],
+  설정: 서비스설정,
   케이스자리: string,
   손: 보고손,
   박동: 박동,
@@ -243,7 +241,7 @@ async function 사본에서(
     ...(것.target === undefined ? {} : 대상환경(것.target)),
   };
   const 화면만 = 것.target !== undefined && Boolean(것.target.startUrl) && 자료들.length === 0;
-  const 역방향 = 것.target === undefined ? undefined : { 화면만, 산출물폴더: join(자리.자료, 'out') };
+  const 역방향 = 것.target === undefined ? undefined : { 화면만, 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = 클로드인자(자리.자료, 판.모델);
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
   const 누적 = 진척누적기(0, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });
@@ -251,7 +249,7 @@ async function 사본에서(
   const 돌린것 = await 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
-      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md')),
+      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md')),
       env: 환경,
       uid: 자식?.uid,
       gid: 자식?.gid,

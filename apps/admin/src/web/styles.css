@@ -619,7 +619,8 @@ input:not([type]),
 input[type='text'],
 input[type='password'],
 input[type='number'],
-select {
+select,
+.field textarea {
   font: inherit;
   font-size: 13px;
   background: var(--sheet);
@@ -627,6 +628,12 @@ select {
   border: 1px solid var(--rule);
   border-radius: 9px;
   padding: 7px 10px;
+}
+
+/* 설정 > 서비스 「훑지 않을 경로」(2026-10-04) — 한 줄에 경로 하나. 높이만 늘리게 한다.
+   설정 폼(.field) 안으로 좁힌다 — 작성 화면 · 창의 textarea 는 저마다 모양이 있다 */
+.field textarea {
+  resize: vertical;
 }
 
 /* 찾기 칸은 바깥 도구 줄 **안의 한 덩어리**다 (2026-09-22). 찾기와 조건 칩이 각자 줄을
@@ -1077,7 +1084,8 @@ select:focus {
 
 .field input[type='text'],
 .field input[type='password'],
-.field select {
+.field select,
+.field textarea {
   width: 100%;
 }
 

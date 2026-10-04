@@ -1,5 +1,5 @@
 // 화면 크롤러 — 작성 자식이 로그인 뒤 명령 한 번으로 돌린다. 링크만 따라가며 화면마다 ariaSnapshot · 입력칸 속성을 파일로 (도메인/작성 §3.6 「★ 역방향」)
-// 실행: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <로그인 상태 파일>] [--follow] [--max 100] [--minutes 10]
+// 실행: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <로그인 상태 파일>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]...
 // 판정은 authoring-crawl-rules 의 순수 함수에 있다. 여기는 브라우저 · 파일만 다룬다. 계정 값은 읽지 않는다 — 로그인은 자식이 한다
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { join, relative, resolve, sep } from 'node:path';
 import { chromium, type BrowserContext, type Page } from '@playwright/test';
 
 import { 견주기, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
-import { type 목록항목, 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
+import { type 목록항목, 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 빼는주소인가, 뺄경로읽기, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
 
 const 간격 = 1_000; // 운영 서버도 돈다 — 한 장씩, 1초 이상 띄운다
 const 부모상한 = 20; // 숫자가 아닌 상세(슬러그)가 장수를 다 먹지 않게. 그누보드 `/bbs/*.php` 처럼 한 폴더에 화면이 몰린 사이트가 있어 넉넉히
@@ -26,6 +26,8 @@ interface 인자 {
   최대: number;
   분: number;
   저장본: 저장본 | null;
+  /** 서비스 설정의 훑지 않을 경로 — 이 아래 주소는 열지 않는다 (#153) */
+  뺄: string[];
 }
 
 function 그만(말: string): never {
@@ -48,7 +50,7 @@ function 인자읽기(argv: string[]): 인자 {
     주소들.push(a);
   }
   const 출력 = 값('--out');
-  if (주소들.length === 0 || 출력 === undefined) 그만('쓰임: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <파일>] [--follow] [--max 100] [--minutes 10]');
+  if (주소들.length === 0 || 출력 === undefined) 그만('쓰임: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <파일>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]...');
   // 값이 틀리면 상한 · 마감이 꺼진다 — 거절하고, 상한을 넘는 값은 상한으로 자른다
   const 수 = (이름: string, 기본: number, 상한: number): number => {
     const 글 = 값(이름);
@@ -57,6 +59,8 @@ function 인자읽기(argv: string[]): 인자 {
     if (!Number.isFinite(n) || n < 1) 그만(`${이름} 값이 틀렸다: ${글}`);
     return Math.min(Math.floor(n), 상한);
   };
+  const 뺄 = 뺄경로읽기(argv);
+  if (typeof 뺄 === 'string') 그만(뺄);
   const 상태파일 = 값('--state') ?? null;
   // 로그아웃 크롤을 다 돈 뒤에 죽지 않게 먼저 본다
   if (상태파일 !== null && !existsSync(상태파일)) 그만(`로그인 상태 파일이 없다: ${상태파일}`);
@@ -73,7 +77,9 @@ function 인자읽기(argv: string[]): 인자 {
       }
     }
   }
-  return { 주소들, 출력: resolve(출력), 상태파일, 따라가기: argv.includes('--follow'), 최대: 수('--max', 장상한, 장상한), 분: 수('--minutes', 분상한, 분상한), 저장본: 저장 };
+  // 견주기 전에 뺀다 — 안 그러면 제외를 켠 첫 실행에서 그 경로의 저장 기록이 전부 「저장본에 있는데 못 본 화면」으로 뜬다 (#153)
+  if (저장 !== null) 저장 = { ...저장, 항목: 저장.항목.filter((x) => !빼는주소인가(x.주소, 뺄)) };
+  return { 주소들, 출력: resolve(출력), 상태파일, 따라가기: argv.includes('--follow'), 최대: 수('--max', 장상한, 장상한), 분: 수('--minutes', 분상한, 분상한), 저장본: 저장, 뺄 };
 }
 
 interface 입력칸 { 종류: string; 이름: string; 라벨: string; 안내: string; 필수: boolean; 읽기전용: boolean; 최대글자: number | null; 최소글자: number | null; 형식: string | null }
@@ -162,6 +168,12 @@ async function 한상태(맥락: BrowserContext, 상태: 상태, a: 인자, 몫:
     if (판.연속오류 >= 연속오류상한) return void (판.멈춘까닭 ??= '서버 오류 · 연결 실패가 이어짐');
     const 주소 = 대기.shift()!;
     if (연주소.has(주소)) continue;
+    // 시작 주소도 여기서 걸린다. 본 것으로 적어 두어 다른 화면의 같은 링크가 대기에 다시 안 쌓이게 (SPEC 도메인/작성 §3.6)
+    if (빼는주소인가(주소, a.뺄)) {
+      연주소.add(주소);
+      판.걸러짐.set(주소, { 글자: '', 까닭: '뺄 경로' });
+      continue;
+    }
     const 틀 = 틀키(주소);
     const 앞지문 = 틀들.get(틀) ?? [];
     if (앞지문.length >= 더볼수(틀)) continue;
@@ -180,6 +192,8 @@ async function 한상태(맥락: BrowserContext, 상태: 상태, a: 인자, 몫:
       continue;
     }
     판.연속오류 = 본.상태코드 === 429 || 본.상태코드 >= 500 ? 판.연속오류 + 1 : 0;
+    // 다른 주소에서 뺄 경로로 넘겨졌으면(리다이렉트) 그 화면도 남기지 않는다
+    if (빼는주소인가(본.최종, a.뺄)) continue;
     몫.장--;
     const 이지문 = 지문(본.구조);
     if (앞지문.includes(이지문)) {
@@ -226,12 +240,14 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
   // 에이전트가 저장본을 갈 때 본다 — 다 봤을 때만 이번에 못 본 화면을 지운다
   writeFileSync(join(a.출력, 'summary.json'), JSON.stringify({ 멈춘까닭: 판.멈춘까닭, 따라가기: a.따라가기, 상태들: 돈.상태들, 예외: 돈.예외 }));
   const 걸러짐 = [...판.걸러짐].map(([주소, v]) => ({ 주소, ...v }));
+  const 뺀수 = 걸러짐.filter((x) => x.까닭 === '뺄 경로').length;
   writeFileSync(join(a.출력, 'index.json'), JSON.stringify({ 화면: 판.본, 걸러짐 }, null, 1));
   writeFileSync(join(a.출력, 'list.json'), JSON.stringify(목록, null, 1));
   const 셈 = (s: string) => 판.본.filter((x) => x.상태 === s).length;
   console.log(
     `크롤: 로그아웃 ${셈('로그아웃')}장 · 로그인 ${셈('로그인')}장 · 목록 ${목록.length}장 · 빈 화면 의심 ${목록.filter((x) => x.짧음).length}장` +
-      ` · 걸러진 링크 ${걸러짐.length}개 · 부모 상한으로 안 연 것 ${판.잘림}개` +
+      ` · 걸러진 링크 ${걸러짐.length - 뺀수}개 · 뺄 경로 ${a.뺄.length}개(안 연 주소 ${뺀수}개) · 부모 상한으로 안 연 것 ${판.잘림}개` +
+      (a.주소들.some((x) => 빼는주소인가(x, a.뺄)) ? ' · ⚠️ 시작 주소가 뺄 경로 안이다 — 서비스 설정을 고친다' : '') +
       (견줌 === null
         ? ' · 저장본 없음'
         : ` · 저장본 같음 ${목록.filter((x) => x.저장본 === '같음').length} · 바뀜 ${목록.filter((x) => x.저장본 === '바뀜').length} · 새 화면 ${목록.filter((x) => x.저장본 === '새 화면').length}` +

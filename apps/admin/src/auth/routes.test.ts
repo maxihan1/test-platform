@@ -156,6 +156,29 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
     expect(서비스?.testsDir).toBe('xfs2');
   });
 
+  it('나를 물으면 배정 서비스마다 훑지 않을 경로(crawlExclude)가 온다', async () => {
+    const { pool } = await import('../db/index.js');
+    const 들어옴 = await 로그인('xfu2-live', '열려라참깨');
+    const 서비스칸 = async () =>
+      (
+        await app.inject({
+          method: 'GET',
+          url: '/api/auth/me',
+          cookies: { platform_session: 들어옴.cookies[0]!.value },
+        })
+      )
+        .json<{ user: { services: { prefix: string; crawlExclude: string[] }[] } }>()
+        .user.services.find((s) => s.prefix === 'XFS2')?.crawlExclude;
+
+    expect(await 서비스칸()).toEqual([]);
+    try {
+      await pool.query('UPDATE service SET crawl_exclude = $2 WHERE id = $1', [서비스id, ['/daejeon']]);
+      expect(await 서비스칸()).toEqual(['/daejeon']);
+    } finally {
+      await pool.query(`UPDATE service SET crawl_exclude = '{}' WHERE id = $1`, [서비스id]);
+    }
+  });
+
   it('로그아웃하면 204 이고 그 출입증은 더 안 통한다', async () => {
     const 들어옴 = await 로그인('xfu2-live', '열려라참깨');
     const 나감 = await app.inject({

@@ -293,6 +293,8 @@ export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
   testsRepo: string;
   /** 플랫폼이 실제로 훑을 폴더. 서비스마다 저장소가 다르다 (SPEC §9.2) */
   testsDir: string;
+  /** 화면만 작성이 크롤에서 뺄 경로 (도메인/인증 §7). 선택으로 둔 것은 hasFigmaToken 과 같은 이유 — 없으면 빈 목록으로 읽는다 */
+  crawlExclude?: string[];
   isActive: boolean;
   caseCount: number;
 }
@@ -899,6 +901,7 @@ export const api = {
     envs: EnvInput[];
     slackWebhook?: string;
     figmaToken?: string;
+    crawlExclude?: string[];
   }) => call<{ id: number }>('/settings/services', json(body)),
 
   /**
@@ -918,6 +921,8 @@ export const api = {
       slackWebhook?: string;
       /** 웹훅과 같다 — 빈 글자는 지우고, 안 보내면 그대로 둔다 */
       figmaToken?: string;
+      /** 안 보내면 그대로 두고 `[]` 면 비운다 */
+      crawlExclude?: string[];
     },
   ) => call<{ ok: true }>(`/settings/services/${id}`, { ...json(body), method: 'PATCH' }),
 

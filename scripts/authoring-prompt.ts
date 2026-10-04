@@ -18,7 +18,7 @@ export function 줄프롬프트(
   서비스: string,
   계획: 읽을자료[],
   대상?: { 폴더: string; 서버들: { env: string; baseUrl: string }[] },
-  역방향?: { 화면만: boolean; 산출물폴더: string },
+  역방향?: { 화면만: boolean; 산출물폴더: string; 제외?: readonly string[] },
   이어하기?: { 번호: number; 이유: string | null; 까닭: string | null },
   원장?: 원장입력,
   이어작성?: 이어작성입력,

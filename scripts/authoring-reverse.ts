@@ -63,9 +63,11 @@ export function 대상환경(t: 대상): Record<string, string> {
  * 줄 프롬프트에 덧붙이는 역방향 절. **계정 값은 싣지 않는다** — 환경 변수 이름만 알려 준다.
  * 절차의 정본은 `tpx-author` 스킬의 `references/reverse.md` 다. 여기는 그 파일을 열게 하고 이번 건의 자리만 준다
  */
-export function 역방향절(입력: { 화면만: boolean; 산출물폴더: string; 요청번호: number }): string[] {
+export function 역방향절(입력: { 화면만: boolean; 산출물폴더: string; 요청번호: number; 제외?: readonly string[] }): string[] {
   const 크롤 = join(dirname(입력.산출물폴더), 'crawl');
   const 저장본 = join(dirname(입력.산출물폴더), 'kept', 'index.json');
+  // 훑지 않을 경로는 화면만에만 — 대조는 기획서 화면만 본다. 값은 규칙으로 이미 걸렀지만 명령줄이라 작은따옴표로 한 겹 더 (§3.6 · #153)
+  const 뺄 = 입력.화면만 ? (입력.제외 ?? []) : [];
   return [
     '',
     '--- 역방향 ---',
@@ -81,8 +83,11 @@ export function 역방향절(입력: { 화면만: boolean; 산출물폴더: stri
     `- 본 화면은 \`${join(dirname(입력.산출물폴더), 'screens')}\` 에 화면마다 파일로 적고 대화에는 한 줄만 남겨라.`,
     // 화면 구조는 기계가 먼저 뽑는다 — AI 는 눌러 봐야 아는 「한 칸」만 연다 (§3.6 「★ 역방향」 크롤러 · 2026-10-04)
     입력.화면만
-      ? `- 로그인 상태 파일을 만든 뒤 \`npx tsx scripts/authoring-crawl.ts "$TARGET_START_URL" --follow --state <상태 파일> --keep ${저장본} --out ${크롤}\` 을 한 번 돌려 첫 목록(list.json)을 받아라(시작 주소가 없으면 TARGET_BASE_URL).`
+      ? `- 로그인 상태 파일을 만든 뒤 \`npx tsx scripts/authoring-crawl.ts "$TARGET_START_URL" --follow --state <상태 파일> --keep ${저장본} --out ${크롤}${뺄.map((x) => ` --exclude '${x}'`).join('')}\` 을 한 번 돌려 첫 목록(list.json)을 받아라(시작 주소가 없으면 TARGET_BASE_URL).`
       : `- 로그인 상태 파일을 만든 뒤 기획서가 말하는 화면 주소들로 \`npx tsx scripts/authoring-crawl.ts <주소들> --state <상태 파일> --keep ${저장본} --out ${크롤}\` 을 한 번 돌려라(링크는 따라가지 않는다).`,
+    ...(뺄.length === 0
+      ? []
+      : [`- 서비스 설정의 훑지 않을 경로(뺄 경로): ${뺄.join(' · ')} — 크롤러가 열지 않는다. 목록에 없는 주소 중 이 경로와 그 아래(마디 경계 — 「/a」 는 「/a/b」 를 빼고 「/ab」 는 안 뺀다)는 「더 갈 곳」에도 적지 마라.`]),
     // 저장본은 에이전트가 넣어 준다(없을 수 있다 — 그러면 전부 새 화면) — 목록의 「같음」은 저장 기록을 가져다 쓴다 (2026-10-04)
     `- 목록에 \`저장본: 같음\` 인 화면은 \`${dirname(저장본)}/<저장기록>\` 을 화면 기록 폴더로 복사하고 다시 훑지 마라(tpx-author scan-fanout.md §2).`,
     '- 훑기는 **30분**까지다. 넘으면 더 훑지 말고 본 것까지로 케이스를 만들고 결과 요약에 「예산으로 멈춤」을 적어라.',

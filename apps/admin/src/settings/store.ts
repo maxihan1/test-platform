@@ -46,6 +46,7 @@ export interface 서비스행 {
   envs: 대상서버[];
   hasSlackWebhook: boolean;
   hasFigmaToken: boolean;
+  crawlExclude: string[];
 }
 
 export async function db(): Promise<Pool> {
@@ -95,7 +96,7 @@ async function 대상서버넣기(client: PoolClient, serviceId: number, envs: �
 
 // 케이스 수는 test_case 에 서비스 칸이 없어 접두사로 센다. 그 표에는 서비스 칸이 없고 앞으로도 없다 (SPEC §6)
 const 서비스들 = `
-  SELECT s.id, s.prefix, s.name, s.color, s.tests_repo, s.tests_dir, s.is_active,
+  SELECT s.id, s.prefix, s.name, s.color, s.tests_repo, s.tests_dir, s.is_active, s.crawl_exclude,
          (s.slack_webhook IS NOT NULL AND s.slack_webhook <> '') AS has_slack_webhook,
          (s.figma_token IS NOT NULL AND s.figma_token <> '') AS has_figma_token,
          (SELECT count(*) FROM test_case tc
@@ -122,6 +123,7 @@ interface 서비스원행 {
   is_active: boolean;
   has_slack_webhook: boolean;
   has_figma_token: boolean;
+  crawl_exclude: string[];
   case_count: string;
   envs: 대상서버[];
 }
@@ -144,6 +146,7 @@ export async function 서비스목록(): Promise<서비스행[]> {
     hasSlackWebhook: r.has_slack_webhook,
     // 피그마 토큰도 같다 (2026-09-23, 도메인/인증 §8.8)
     hasFigmaToken: r.has_figma_token,
+    crawlExclude: r.crawl_exclude,
   }));
 }
 
@@ -156,13 +159,14 @@ export interface 서비스입력 {
   envs: 대상서버입력[];
   slackWebhook?: string;
   figmaToken?: string;
+  crawlExclude?: string[];
 }
 
 export async function 서비스만들기(입력: 서비스입력): Promise<number> {
   return 한묶음(async (client) => {
     const rows = await client.query<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, slack_webhook, figma_token)
-            VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''))
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, slack_webhook, figma_token, crawl_exclude)
+            VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''), $8)
        ON CONFLICT (prefix) DO NOTHING
          RETURNING id`,
       [
@@ -173,6 +177,7 @@ export async function 서비스만들기(입력: 서비스입력): Promise<numbe
         입력.testsDir,
         입력.slackWebhook ?? '',
         입력.figmaToken ?? '',
+        입력.crawlExclude ?? [],
       ],
     );
     const id = rows.rows[0]?.id === undefined ? undefined : Number(rows.rows[0].id);
@@ -193,6 +198,7 @@ export interface 서비스수정 {
   envs?: 대상서버입력[];
   slackWebhook?: string;
   figmaToken?: string;
+  crawlExclude?: string[];
 }
 
 export async function 서비스고치기(id: number, 수정: 서비스수정): Promise<void> {
@@ -209,7 +215,8 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
                                    ELSE $7 END,
               figma_token = CASE WHEN $8::text IS NULL THEN figma_token
                                  WHEN $8 = '' THEN NULL
-                                 ELSE $8 END
+                                 ELSE $8 END,
+              crawl_exclude = COALESCE($9::text[], crawl_exclude)
         WHERE id = $1`,
       [
         id,
@@ -220,6 +227,7 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
         수정.isActive ?? null,
         수정.slackWebhook ?? null,
         수정.figmaToken ?? null,
+        수정.crawlExclude ?? null,
       ],
     );
     if (rows.rowCount === 0) throw new 설정오류('NOT_FOUND');

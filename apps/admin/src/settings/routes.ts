@@ -8,6 +8,7 @@ import { 에이전트토큰만들기, 에이전트토큰지우기 } from '../aut
 import { 아이디모양 } from '../auth/rules.js';
 import { 정수 } from '../routeParams.js';
 
+import { 제외경로정리 } from './rules.js';
 import { 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
 import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수락, 비밀번호다시만들기 } from './users.js';
 
@@ -23,6 +24,14 @@ const 대상서버 = z.object({
   loginPassword: z.string().nullable().optional(),
 });
 
+// 저장은 정리한 값이다. 틀린 줄은 다른 틀린 칸과 같은 400 INVALID_REQUEST 의 detail 로 돌려준다 (SPEC 도메인/인증 §7 계약 변경 블록)
+const 훑지않을경로 = z.array(z.string()).transform((줄들, ctx) => {
+  const 결과 = 제외경로정리(줄들);
+  if ('값' in 결과) return 결과.값;
+  ctx.addIssue({ code: 'custom', message: `crawlExclude ${결과.까닭}: ${결과.틀린줄}` });
+  return z.NEVER;
+});
+
 const 새서비스 = z.object({
   prefix: z.string(),
   name: z.string().min(1),
@@ -32,6 +41,7 @@ const 새서비스 = z.object({
   envs: z.array(대상서버).default([]),
   slackWebhook: z.string().optional(),
   figmaToken: z.string().optional(),
+  crawlExclude: 훑지않을경로.optional(),
 });
 
 const 서비스수정 = z.object({
@@ -43,6 +53,7 @@ const 서비스수정 = z.object({
   envs: z.array(대상서버).optional(),
   slackWebhook: z.string().optional(),
   figmaToken: z.string().optional(),
+  crawlExclude: 훑지않을경로.optional(),
 });
 
 const 등급 = z.enum(['member', 'admin']);

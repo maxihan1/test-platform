@@ -195,3 +195,49 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
     expect(screen.getByText(/비밀번호가 비워집니다/)).toBeTruthy();
   });
 });
+
+describe('훑지 않을 경로 칸 (도메인/인증 §8.8 · 2026-10-04)', () => {
+  it('칸이 보이고, 두 줄을 적어 저장하면 crawlExclude 배열로 보낸다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    그린다();
+
+    fireEvent.change(screen.getByLabelText('훑지 않을 경로'), { target: { value: '/daejeon\n /gyeongnam/ \n' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
+    expect(고침.mock.calls[0]?.[1]).toMatchObject({ crawlExclude: ['/daejeon', '/gyeongnam'] });
+  });
+
+  it('있던 값이 한 줄에 하나씩 채워져 보인다', () => {
+    render(<ServiceSection rows={[{ ...서비스, crawlExclude: ['/daejeon', '/gyeongnam'] }]} onDone={() => {}} />);
+    fireEvent.click(screen.getByText('편집'));
+
+    expect((screen.getByLabelText('훑지 않을 경로') as HTMLTextAreaElement).value).toBe('/daejeon\n/gyeongnam');
+  });
+
+  it('/ 로 시작하지 않는 줄이 있으면 저장 버튼 아래에 이유를 말하고 보내지 않는다', () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    그린다();
+
+    fireEvent.change(screen.getByLabelText('훑지 않을 경로'), { target: { value: 'daejeon' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    expect(document.querySelector('.set-why')?.textContent).toContain('「daejeon」');
+    expect(고침).not.toHaveBeenCalled();
+  });
+
+  it('새 서비스를 만들 때도 crawlExclude 를 보낸다', async () => {
+    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 2 });
+    render(<ServiceSection rows={[]} onDone={() => {}} />);
+    fireEvent.click(screen.getByLabelText('더하기'));
+
+    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'CDY' } });
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '청도' } });
+    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'cdy' } });
+    fireEvent.change(screen.getByLabelText('훑지 않을 경로'), { target: { value: '/daejeon' } });
+    fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
+
+    await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
+    expect(만듦.mock.calls[0]?.[0]).toMatchObject({ crawlExclude: ['/daejeon'] });
+  });
+});

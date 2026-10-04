@@ -31,6 +31,8 @@ export interface 배정서비스 {
   hasSlackWebhook: boolean;
   /** 케이스 폴더 이름 (SPEC §6 `service.tests_dir`) */
   testsDir: string;
+  /** 화면만 작성이 훑지 않을 경로 (SPEC §6 `service.crawl_exclude`). 작성 에이전트가 건을 가져갈 때마다 읽는다 — 화면은 안 읽는다 (도메인/인증 §7) */
+  crawlExclude: string[];
   /** 이 서비스에서 기능마다 가진 칸. admin 은 저장값과 상관없이 전부 `write` (SPEC §3.5 · §7) */
   permissions: 서비스권한;
 }
@@ -66,6 +68,7 @@ const 한사람 = `
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
              'envs', COALESCE(e.envs, '[]'::json),
              'testsDir', s.tests_dir,
+             'crawlExclude', s.crawl_exclude,
              -- 칸은 이름을 짚어 담는다. row_to_json 으로 통째로 넣으면 표에 칸이 늘 때 응답이 말없이 불어난다
              'permissions', json_build_object(
                'cases', us.perm_cases, 'runs', us.perm_runs, 'authoring', us.perm_authoring),
