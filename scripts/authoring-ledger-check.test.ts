@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { 원장뽑기 } from './authoring-ledger.js';
-import { tcId들, 사람이뺀번호, 셈글, 원장대조, 원장판정, 제외종류 } from './authoring-ledger-check.js';
+import { tcId들, 사람이뺀번호, 셈글, 원장대조, 제외종류 } from './authoring-ledger-check.js';
+import { 원장판정 } from './authoring-ledger-verdict.js';
 
 const 옛표 = readFileSync(new URL('./fixtures/ledger/mkt-5877.md', import.meta.url), 'utf8');
 const 데모마켓 = 원장뽑기(readFileSync(new URL('./fixtures/ledger/demomarket.txt', import.meta.url), 'utf8'), '3757');

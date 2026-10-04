@@ -1,7 +1,8 @@
 // 원장 대조의 칸 번호 · 「다음 요청」 · 표 번호 채우기 검사 — 작성 에이전트가 케이스 경계와 tcId 를 코드로 정한다 (작성 §3.6 「칸과 번호」)
 import { describe, expect, it } from 'vitest';
 
-import { 사람이뺀번호, 요구줄들, 원장대조, 원장판정, 제외번호들, 표번호채우기 } from './authoring-ledger-check.js';
+import { 사람이뺀번호, 요구줄들, 원장대조, 제외번호들, 표번호채우기 } from './authoring-ledger-check.js';
+import { 원장판정 } from './authoring-ledger-verdict.js';
 import type { 설계 } from './authoring-design.js';
 import { type 칸재료, 칸재료만들기 } from './authoring-slots.js';
 
@@ -82,7 +83,7 @@ describe('칸 번호 · 「다음 요청」 — 작성 에이전트 (2026-10-04 
     const 어긋 = 원장판정(값, 글, 있음, { 사람이뺌: new Set(), 다음요청: new Set(), 칸재료: 빈재료 });
     expect(어긋.머리글).toContain('⚠️ 칸 번호 어긋남 1 — 요구 줄 1 tcId X-FN-010 — 칸 번호 X-FN-001');
     const 없음 = 원장판정(값, 글, 있음, { 사람이뺌: new Set(), 다음요청: new Set(), 칸재료: null });
-    expect(없음.머리글).toContain('칸 번호 · 설계 칸 — 기준 표를 못 읽어 안 봤다');
+    expect(없음.머리글).toContain('칸 번호 · 설계 칸 · 기법 — 기준 표를 못 읽어 안 봤다');
     expect(원장판정(값, 글, 있음).머리글).not.toContain('칸 번호');
   });
 });
@@ -132,9 +133,9 @@ describe('원장판정 — 설계 줄 (작성 §3.6 「설계 기법」)', () =>
     expect(원장판정(값, 정상표(), 있음).머리글).not.toContain('설계');
   });
 
-  it('칸 재료가 없으면 요약 한 줄과 「칸 번호 · 설계 칸」 못 봄 줄만 싣는다', () => {
+  it('칸 재료가 없으면 요약 한 줄과 「칸 번호 · 설계 칸 · 기법」 못 봄 줄만 싣는다', () => {
     const 머리 = 원장판정(값, 정상표(), 있음, 기준(null)).머리글;
-    expect(머리.split('\n').slice(-2)).toEqual(['칸 번호 · 설계 칸 — 기준 표를 못 읽어 안 봤다', '설계: 요구 3 중 경계 2 · 예외 0']);
+    expect(머리.split('\n').slice(-2)).toEqual(['칸 번호 · 설계 칸 · 기법 — 기준 표를 못 읽어 안 봤다', '설계: 요구 3 중 경계 2 · 예외 0']);
     expect(머리).not.toContain('설계 칸 빠짐');
   });
 
