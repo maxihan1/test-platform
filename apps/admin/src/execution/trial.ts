@@ -80,8 +80,8 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
   }
 
   return {
-    /** 실행은 밖에서 넣는다. 돌려주는 번호로 시작한 사람만 읽는다 */
-    시작한다(사람: string, 서비스: string, 실행: () => Promise<R>, 비밀: string[]): string {
+    /** 실행은 밖에서 넣는다. 번호를 실행에도 넘긴다(시나리오 사진 폴더 이름). 돌려주는 번호로 시작한 사람만 읽는다 */
+    시작한다(사람: string, 서비스: string, 실행: (id: string) => Promise<R>, 비밀: string[]): string {
       const 지금 = Date.now();
       치운다(지금);
       if ([...저장소.values()].some((항) => 항.사람 === 사람 && 항.결과 === null)) {
@@ -96,7 +96,7 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
       // 부품 여럿에서 모은 비밀은 이어 붙인 순서라 여기서 다시 줄 세운다
       const 가릴것 = 긴것부터(비밀);
 
-      void 실행()
+      void 실행(id)
         .then((r) => {
           이것.결과 = 가린다(r, 가릴것) as R;
         })
