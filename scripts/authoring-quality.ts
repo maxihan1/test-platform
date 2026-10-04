@@ -22,8 +22,25 @@ export interface 품질 {
 const 케이스파일 = /\.spec\.ts$/;
 // 준비할 것이 없는 상태 문구 — 낱말 포함이 아니라 문구 그대로 맞댄다(「홈 화면이 열려 있다 · 비회원이다」는 준비가 있다)
 const 준비없는상태 = new Set(['비회원이다', '로그아웃 상태다']);
-const 전제목록 = (글: string): string[] =>
-  [...(글.match(/precondition:\s*\[([^\]]*)\]/)?.[1] ?? '').matchAll(/['"`]([^'"`]*)['"`]/g)].map((m) => m[1]!.trim());
+// 따옴표 단위로 읽는다 — 글 안의 `]` · 다른 따옴표에 잘리지 않게. 목록이 아닌 전제(상수 참조)는 모르니 준비가 있는 것으로 본다
+const 문자열 = /'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`/y;
+const 전제목록 = (글: string): string[] => {
+  const 자리 = /precondition:\s*/.exec(글);
+  if (자리 === null) return [];
+  let i = 자리.index + 자리[0].length;
+  if (글[i] !== '[') return ['?'];
+  const 목록: string[] = [];
+  for (i++; i < 글.length; ) {
+    if (/[\s,]/.test(글[i]!)) { i++; continue; }
+    if (글[i] === ']') break;
+    문자열.lastIndex = i;
+    const m = 문자열.exec(글);
+    if (m === null) return ['?'];
+    목록.push((m[1] ?? m[2] ?? m[3] ?? '').trim());
+    i = 문자열.lastIndex;
+  }
+  return 목록;
+};
 // testid(`[data-testid=…]`)는 locator 1순위라 뺀다
 const CSS찾기 = /locator\(\s*['"`](?:[.#]|\[(?!data-testid)|\/\/|xpath=|css=)/g;
 const 도우미 = /^(?:export\s+)?(?:async\s+function\s+|function\s+|const\s+)([\p{L}_$][\p{L}\p{N}_$]*)\s*(?:\(|=\s*(?:async\s*)?\()/gmu;

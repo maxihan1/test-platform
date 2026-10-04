@@ -105,6 +105,31 @@ test('fanout 모드 — 작성 자식이 아니면 세지 않고, 기록을 못 
   assert.doesNotThrow(() => 돌린다({ AUTHORING_GATE3_DIR: '/없는/자리' }));
 });
 
+test('fanout 모드 — 기록에 한 줄씩 덧붙이고, 다섯 번째 묶음은 exit 2 로 막는다', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync, readFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const 가드 = new URL('./guard.mjs', import.meta.url).pathname;
+  const 자리 = mkdtempSync(`${tmpdir()}/fanout-`);
+  writeFileSync(`${자리}/fanout.log`, 'a\nb\nc\n');
+  const 띄운다 = (묶음) => spawnSync('node', [가드, 'fanout'], {
+    input: JSON.stringify({ tool_input: { prompt: 작성프롬프트(묶음) } }),
+    env: { PATH: process.env.PATH, AUTHORING_GATE3_DIR: 자리 },
+  });
+  assert.equal(띄운다('d').status, 0);
+  assert.equal(readFileSync(`${자리}/fanout.log`, 'utf8'), 'a\nb\nc\nd\n');
+  assert.equal(띄운다('e').status, 2);
+  assert.equal(readFileSync(`${자리}/fanout.log`, 'utf8'), 'a\nb\nc\nd\n');
+});
+
+test('훅이 세는 문구가 fanout.md §4 뼈대 첫 줄과 맞는다 — 뼈대가 바뀌면 훅이 말없이 0 을 센다', async () => {
+  const { readFileSync } = await import('node:fs');
+  const 뼈대 = readFileSync(new URL('../skills/tpx-author/references/fanout.md', import.meta.url), 'utf8')
+    .split('\n').find((줄) => 줄.includes('묶음을 만든다') && 줄.startsWith('>'));
+  assert.ok(뼈대, 'fanout.md §4 뼈대 첫 줄을 못 찾았다');
+  assert.deepEqual(fanoutVerdict([], 뼈대.replace('<묶음 이름>', '장바구니')), { 셈: '장바구니' });
+});
+
 test('거절 글은 남은 묶음을 자식이 직접 쓰라고 알린다', () => {
   assert.match(fanoutVerdict(['a', 'b', 'c', 'd'], 작성프롬프트('e')).거절, /직접 쓴다/);
 });

@@ -25,6 +25,15 @@ describe('품질 숫자 (작성 §3.6 · 2026-10-03 — 나눠 쓴 뒤 품질을
     expect(숫자).toMatchObject({ 케이스: 4, 준비없음: 3, 전제확인비율: 1 });
   });
 
+  it('전제 글 안의 `]` · 다른 따옴표에 잘리지 않고, 목록이 아닌 전제(상수)는 준비가 있는 것으로 본다', () => {
+    const 숫자 = 품질숫자([
+      { 경로: 'tests/mkt/MKT-FN-001.spec.ts', 글: 케이스("precondition: ['[500] 응답을 돌려주게 해 두었다'],\nawait verify('a', 1, 1, { blocker: true });") },
+      { 경로: 'tests/mkt/MKT-FN-002.spec.ts', 글: 케이스("precondition: [\"관리자 'admin' 으로 로그인해 있다\"],\nawait verify('a', 1, 1);") },
+      { 경로: 'tests/mkt/MKT-FN-003.spec.ts', 글: 케이스("precondition: 공통전제,\nawait verify('a', 1, 1, { blocker: true });") },
+    ]);
+    expect(숫자).toMatchObject({ 준비없음: 0, 전제확인비율: 2 / 3 });
+  });
+
   it('공용 부품(components) 밖의 CSS · XPath locator 만 센다', () => {
     const 숫자 = 품질숫자([
       { 경로: 'tests/mkt/pages/home.page.ts', 글: "page.locator('.toast'); page.locator(\"#modal\"); page.locator('//div'); page.getByRole('button')" },
