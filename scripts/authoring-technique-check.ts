@@ -30,6 +30,8 @@ export function 기법대조(
   for (const 줄 of [...줄들].sort((가, 나) => 가.차례 - 나.차례)) {
     if (기준줄.has(기준줄열쇠(줄)) || !TCID.test(줄.tcId) || tcId종류(줄.tcId) === 'UI' || !케이스글들.has(줄.tcId)) continue;
     const 칸 = 칸들.get(줄.tcId) ?? { 축: 줄.축.trim(), 번호들: new Set<string>() };
+    // 축이 다른 줄은 칸 번호 어긋남이 따로 잡는다 — 그 줄 설계를 섞으면 정상 줄의 예외 기법이 기대에 든다 (2026-10-05 계획 대조)
+    if (줄.축.trim() !== 칸.축) continue;
     for (const 번호 of 번호찾기(줄.출처).번호들) 칸.번호들.add(번호);
     칸들.set(줄.tcId, 칸);
   }
