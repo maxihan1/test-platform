@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-import { TECHNIQUES } from '@platform/kit/types';
+import { TECHNIQUES, type Technique } from '@platform/kit/types';
 
 import type { CaseRow, JsonSchema } from './api.js';
 import { Empty } from './CaseListNotes.js';
@@ -199,7 +199,7 @@ describe('표머리와 입력 칸 (SPEC §8.1)', () => {
 });
 
 describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () => {
-  const 줄그린다 = (techniques?: string[]) =>
+  const 줄그린다 = (techniques?: Technique[]) =>
     render(
       <케이스줄
         row={{ ...케이스({} as JsonSchema), unconfirmed: '기획서에 없는 문구', techniques }}
@@ -221,6 +221,14 @@ describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () 
     expect(container.querySelector('.title > .case-tag')?.textContent).toBe('미확정');
   });
 
+  it('「· 설계 기법」 글자와 태그는 한 덩어리라 좁은 폭에서도 갈라지지 않는다', () => {
+    const { container } = 줄그린다(['경계값 분석', '상태 전이']);
+
+    const 덩어리 = container.querySelector('.title small .tech-line');
+    expect(덩어리?.textContent).toBe('· 설계 기법 경계값 분석상태 전이');
+    expect(덩어리?.querySelectorAll('.tech-tag')).toHaveLength(2);
+  });
+
   it('기법이 없으면 「설계 기법」 글자도 태그도 없다', () => {
     const { container } = 줄그린다([]);
     expect(container.querySelector('.title small')?.textContent).not.toContain('설계 기법');
@@ -236,12 +244,20 @@ describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () 
   });
 
   it('라벨과 고르개는 한 덩어리라 도구 줄이 넘쳐도 갈라지지 않는다', () => {
+    const { container } = render(<기법고르개 기법="ALL" on기법={vi.fn()} />);
+
+    const 덩어리 = container.querySelector('.filter-group');
+    expect(덩어리?.textContent).toContain('설계 기법');
+    expect(덩어리?.contains(screen.getByRole('combobox', { name: '설계 기법' }))).toBe(true);
+  });
+
+  it('고르개 이름은 보이는 라벨 하나에서 온다 — 화면 읽기가 「설계 기법」을 한 번만 읽는다', () => {
     render(<기법고르개 기법="ALL" on기법={vi.fn()} />);
 
-    const 덩어리 = screen.getByRole('group', { name: '설계 기법' });
-    expect(덩어리.classList.contains('filter-group')).toBe(true);
-    expect(덩어리.textContent).toContain('설계 기법');
-    expect(덩어리.contains(screen.getByRole('combobox', { name: '설계 기법' }))).toBe(true);
+    const 고르개 = screen.getByRole('combobox', { name: '설계 기법' });
+    expect(고르개.hasAttribute('aria-label')).toBe(false);
+    expect(screen.queryByRole('group')).toBeNull();
+    expect(screen.getByText('설계 기법').tagName).toBe('LABEL');
   });
 
   it('고르면 고른 값을 올려 보낸다', () => {

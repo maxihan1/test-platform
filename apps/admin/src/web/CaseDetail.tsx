@@ -39,19 +39,19 @@ const 아직 = (): 받은것 => ({ 이력: null, 절차: null });
  * 기법 이름을 화면 글자로. 값은 kit 식별자라 그대로 두고 글자만 영어 표가 맡는다 (도메인/카탈로그 §3.1).
  * 낱말마다 키를 적는다 — 영어 표 검사가 소스의 글자로 키를 찾고, kit 에 기법이 늘면 `satisfies` 가 깨진다
  */
-export function use기법말(): (값: string) => string {
+export function use기법말(): (값: Technique) => string {
   const t = use말();
-  const 글: Record<string, string> = {
+  const 글 = {
     '경계값 분석': t('경계값 분석'),
     '동등 분할': t('동등 분할'),
     '결정 테이블': t('결정 테이블'),
     '상태 전이': t('상태 전이'),
   } satisfies Record<Technique, string>;
-  return (값) => 글[값] ?? 값;
+  return (값) => 글[값];
 }
 
 /** 목록 줄과 상세가 같이 쓴다. 판정 색이 아니다 (DESIGN.md 「설계 기법 태그」) */
-export function 기법태그들({ 기법들 }: { 기법들: string[] }) {
+export function 기법태그들({ 기법들 }: { 기법들: Technique[] }) {
   const 기법말 = use기법말();
   return 기법들.map((값) => (
     <span className="tech-tag" key={값}>

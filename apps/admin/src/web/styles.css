@@ -3039,6 +3039,11 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   margin-left: 4px;
 }
 
+/* 줄의 「· 설계 기법」 글자와 태그를 한 덩어리로 — 좁은 폭에서 글자만 윗줄 끝에 남지 않게 (2026-10-05 화면 점검) */
+.tech-line {
+  display: inline-block;
+}
+
 /* 케이스 고치기 (도메인/카탈로그 §8.1 · 도메인/작성 §3.6 「★ 케이스 고치기」).
    상세 맨 아래 자리는 줄로 갈라 위의 기대결과 칸(이번 실행 값)과 섞여 보이지 않게 한다 */
 .case-edit {

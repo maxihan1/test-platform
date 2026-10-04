@@ -43,7 +43,7 @@ export interface CaseRow {
   /** 다음 실행에 먼저 채울 저장값. 없으면 null 이고 칸은 코드 기본값으로 돈다 */
   savedInput?: SavedInput | null;
   /** 설계 기법 — kit `TECHNIQUES` 의 낱말. 서버는 늘 배열을 준다 (도메인/카탈로그 §7) */
-  techniques?: string[];
+  techniques?: Technique[];
 }
 
 /**
