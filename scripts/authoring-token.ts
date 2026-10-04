@@ -102,7 +102,10 @@ function 폴더고르기(prefix: string, 값: unknown): 폴더자리 {
 function 제외고르기(값: unknown): string[] {
   if (!Array.isArray(값) || !값.every((x): x is string => typeof x === 'string')) return [];
   const 정리 = 제외경로정리(값);
-  return '값' in 정리 ? 정리.값 : [];
+  if ('값' in 정리) return 정리.값;
+  // 한 줄만 틀려도 목록을 버린다 — 조용히 다 훑으면 사람이 모르니 남긴다
+  console.warn(`[작성] 훑지 않을 경로가 규칙에 안 맞아 버렸다(${정리.까닭}) — 이번 건은 다 훑는다`);
+  return [];
 }
 
 /** 서비스 하나의 작성 설정 — 대상 서버 · 테스트 폴더 · 훑지 않을 경로 */

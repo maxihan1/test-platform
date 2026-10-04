@@ -11,7 +11,7 @@ export function CrawlExcludeField({ 값, 바꾼다 }: { 값: string; 바꾼다: 
       <div>
         <textarea id="sf-exclude" rows={3} spellCheck={false} value={값} onChange={(e) => 바꾼다(e.target.value)} />
         <div className="hint">
-          {t('한 줄에 하나씩, / 로 시작하게 적습니다. 이 경로로 시작하는 화면은 화면만 작성이 훑지 않습니다. 비워 두면 모든 화면을 훑습니다')}
+          {t('한 줄에 하나씩, / 로 시작하게 적습니다. 화면만 작성은 이 경로와 그 아래 화면을 훑지 않습니다. 비워 두면 모든 화면을 훑습니다')}
         </div>
       </div>
     </div>
