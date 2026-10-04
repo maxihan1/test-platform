@@ -9,8 +9,8 @@ import { basename, join } from 'node:path';
 
 import type { 읽을자료 } from './authoring-assets.js';
 import { type 원장, 원장만들기 } from './authoring-ledger.js';
-import { 설계글 } from './authoring-design.js';
-import { 설계대조, 설계줄들 } from './authoring-design-check.js';
+import { 설계글, 설계요약 } from './authoring-design.js';
+import { 설계대조 } from './authoring-design-check.js';
 import { tcId들, 설계거절행들, 셈글, 요구줄들, 원장대조, 표번호채우기 } from './authoring-ledger-check.js';
 import { type 칸재료, 칸번호 } from './authoring-slots.js';
 
@@ -72,7 +72,9 @@ if (명령 === '뽑기') {
     에이전트 && 읽은.칸재료 != null
       ? 설계대조(읽은.원장.항목, 요구줄들(표글), 설계거절행들(표글), new Set(결과.제외번호.keys()), new Set(읽은.칸재료.기준줄))
       : null;
-  if (에이전트) console.log(설계줄들(읽은.원장.항목, null).join('\n'));
+  if (에이전트) console.log(설계요약(읽은.원장.항목));
+  // 기준 표를 못 읽어 칸 재료가 없으면 설계 대조를 건너뛴다 — 건너뛴 것을 말해 둔다(올리기 판정의 PR 머리와 같은 말)
+  if (에이전트 && 읽은.칸재료 == null) console.log('칸 번호 · 설계 칸 — 기준 표를 못 읽어 안 봤다');
   if (설계 !== null) {
     if (설계.빠짐.length > 0) console.log(`설계 칸 빠짐: ${설계.빠짐.join(' · ')}`);
     for (const m of 설계.형식오류) console.log(`설계 거절 형식 오류: ${m}`);

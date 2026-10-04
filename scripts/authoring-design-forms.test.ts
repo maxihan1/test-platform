@@ -19,4 +19,14 @@ describe('설계 — 글자본 꼴이 달라도 같다', () => {
     }
     expect([md.항목.filter((h) => (h.설계?.경계.length ?? 0) > 0).length, md.항목.filter((h) => (h.설계?.예외.length ?? 0) > 0).length]).toEqual([32, 53]);
   });
+
+  it('요구 번호(REQ-401 · REQ-MEM-501~503)의 숫자는 HTTP 번호 · 한도로 읽지 않는다', () => {
+    const 글 = [
+      '| REQ-401 | 주문 목록을 최신순으로 보여 준다 |',
+      '| REQ-402 | 주문 상세를 보여 준다 |',
+      '| REQ-403 | 주문 상태를 보여 준다 |',
+      '- REQ-MEM-501~503 회원 정보를 보여 준다',
+    ].join('\n');
+    expect(원장뽑기(글, '기획서.md').항목.filter((h) => h.설계 !== undefined)).toEqual([]);
+  });
 });

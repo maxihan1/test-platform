@@ -36,7 +36,7 @@ type 갈래 = 'UI' | 'FN';
 const 축차례 = ['UI', '정상', '경계', '예외'] as const;
 type 축 = (typeof 축차례)[number];
 const 상태차례 = ['정식', '미확정', '보류', '모킹'] as const;
-export type 상태 = (typeof 상태차례)[number];
+type 상태 = (typeof 상태차례)[number];
 
 // 앞에서부터 먼저 맞는 것 — 한 출처에 표시가 둘 적혀도 한 상태로 떨어지게. 줄표(— –)만 본다 — 붙임표는 「보류-해제」 같은 낱말에 든다
 const 상태표시: [RegExp, 상태][] = [
