@@ -120,36 +120,54 @@ function 문단들(글: string): string[] {
 const 지문내기 = (글: string) => createHash('sha256').update(글.replace(/\s+/g, ' ').trim()).digest('hex').slice(0, 16);
 
 // 장 제목 — 앞 장 마지막 요구에 붙이면 제목만 고쳐도 그 요구가 바뀐 것으로 나온다(2026-10-04 계획 검토 실측).
-// 「1. 사용자가 버튼을 누른다」 같은 단계 설명은 문장으로 끝나 제목이 아니다
-const 머리글 = (줄: string) => /^#{1,6}\s/.test(줄) || (/^\d+(?:\.\d+)*\.?\s+\S/.test(줄) && 줄.length <= 40 && !/[.다요]$/.test(줄));
+// md 자료는 `#` 만 제목이다(번호 줄은 목록). 변환한 글자본은 「4. 회원」 · 「2.1 공통」처럼 점 번호 뒤 빈칸 **하나**인 짧은 줄이다 —
+// 서버 변환의 본문 목록은 「1.  아이디」(빈칸 둘), 맥 변환은 탭이라 갈린다. 「1. 사용자가 누른다」처럼 문장으로 끝나면 제목이 아니다
+const 머리글 = (줄: string, md: boolean) =>
+  /^#{1,6}\s/.test(줄) || (!md && /^\d+\.(?:\d+\.?)* \S/.test(줄) && 줄.length <= 40 && !/[.다요]$/.test(줄));
 
-/** 줄 첫머리(표 테두리 · 목록 표시 뒤)에 있는 번호. 줄 가운데서 언급한 번호는 주인이 아니다 */
+// 행 번호 칸 — 「3   REQ-…」 · 「| 3 | REQ-…」. 지문에서 뺀다 — 행 하나를 끼우면 뒤 행 번호가 다 밀린다
+const 행번호 = /^(?:[│|]\s*)?\d+(?:\s*[│|]|\s{2,})\s*/;
+// 줄 앞 표시 — 표 테두리 · 목록 표시 · 제목 # · 괄호 · 번호 목록(1. · 1))
+const 앞표시 = /^(?:[\s│|*•\-#[(【■□▶◦▪○●]+|\d+[.)]\s+)*/u;
+// 번호 바로 뒤 조사 — 「REQ-001 을 먼저 거친다」는 다른 요구 글 안의 언급이지 그 번호의 정의가 아니다
+const 언급조사 = /^\s*(?:을|를|이|가|은|는|의|에|에서|와|과|로|으로|도|만|부터|까지)(?=$|[\s.,])/;
+
+/** 줄 첫머리(표시 뒤)에 있는 번호. 줄 가운데서 언급한 번호 · 조사가 붙은 언급은 주인이 아니다 */
 function 첫머리번호(줄: string): string | null {
-  const m = [...줄.matchAll(번호식)][0];
-  return m?.[1] !== undefined && /^[\s│|*•-]*$/.test(줄.slice(0, m.index)) ? m[1] : null;
+  const 뗀것 = 줄.replace(앞표시, '');
+  const m = [...뗀것.matchAll(번호식)][0];
+  if (m?.[1] === undefined || m.index !== 0) return null;
+  return 언급조사.test(뗀것.slice(m[1].length)) ? null : m[1];
 }
 
 /**
  * 번호 모드 지문 — 줄 첫머리에 원장 번호가 있는 줄부터 다음 그런 줄 전까지가 그 번호의 글이다. 줄 단위라 맥 변환(textutil)처럼
- * 칸마다 줄이 나뉘고 빈 줄이 없는 글자본도 요구마다 갈린다. 머리글은 주인을 끊고, 원장 번호 없는 표 행 · 테두리는 어디에도 안 붙는다.
+ * 칸마다 줄이 나뉘고 빈 줄이 없는 글자본도 요구마다 갈린다. 머리글은 주인을 끊는다. 표에서 첫 칸이 빈 줄(서버 변환 격자 표의 칸 안 목록)은
+ * 그 행 주인에 붙고, 원장 번호 없는 새 행은 주인을 끊는다. 숫자만 있는 줄(행 번호 칸)과 테두리는 어디에도 안 붙는다.
  * 첫머리에 한 번도 안 나온 번호(범위의 가운데 · 언급만 됨)는 그 번호가 나온 줄 전부다
  */
 function 번호지문(글: string, 원장번호: Set<string>): Map<string, string> {
   const 모음 = new Map<string, string[]>();
   const 언급 = new Map<string, string[]>();
-  const 넣기 = (곳: Map<string, string[]>, 번호: string, 줄: string) => 곳.set(번호, [...(곳.get(번호) ?? []), 줄]);
+  const 넣기 = (곳: Map<string, string[]>, 번호: string, 줄: string) => {
+    const 줄들 = 곳.get(번호);
+    if (줄들 === undefined) 곳.set(번호, [줄]);
+    else 줄들.push(줄);
+  };
+  const md = /^#{1,6}\s/m.test(글);
   let 주인: string | null = null;
   for (const 날줄 of 글.split(/\r?\n/)) {
-    const 줄 = 날줄.trim();
-    if (줄 === '' || 테두리.test(줄)) continue;
+    const 줄 = 날줄.trim().replace(행번호, '');
+    if (줄 === '' || 테두리.test(줄) || /^\d+$/.test(줄)) continue;
     const 번호들 = 번호찾기(줄).번호들.filter((n) => 원장번호.has(n));
     for (const 번호 of 번호들) 넣기(언급, 번호, 줄);
     const 첫 = 첫머리번호(줄);
+    const 표줄 = /^[│|]/.test(줄);
     if (첫 !== null && 원장번호.has(첫)) {
       주인 = 첫;
       넣기(모음, 첫, 줄);
-    } else if (머리글(줄)) 주인 = null;
-    else if (주인 !== null && !(/^[│|]/.test(줄) && 번호들.length === 0)) 넣기(모음, 주인, 줄);
+    } else if (머리글(줄, md) || (표줄 && !/^[│|]\s*[│|]/.test(줄) && 번호들.length === 0)) 주인 = null;
+    else if (주인 !== null) 넣기(모음, 주인, 줄);
   }
   return new Map([...원장번호].map((n) => [n, 지문내기((모음.get(n) ?? 언급.get(n) ?? []).join('\n'))]));
 }
