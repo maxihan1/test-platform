@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { 원장뽑기 } from './authoring-ledger.js';
-import { tcId들, 사람이뺀번호, 셈글, 요구줄들, 원장대조, 원장판정, 제외번호들, 제외종류 } from './authoring-ledger-check.js';
+import { tcId들, 사람이뺀번호, 셈글, 요구줄들, 원장대조, 원장판정, 제외번호들, 제외종류, 표번호채우기 } from './authoring-ledger-check.js';
 import { type 칸재료, 칸재료만들기 } from './authoring-slots.js';
 
 const 옛표 = readFileSync(new URL('./fixtures/ledger/mkt-5877.md', import.meta.url), 'utf8');
@@ -322,5 +322,47 @@ describe('칸 번호 · 「다음 요청」 — 작성 에이전트 (2026-10-04 
     const 없음 = 원장판정(값, 글, 있음, { 사람이뺌: new Set(), 다음요청: new Set(), 칸재료: null });
     expect(없음.머리글).toContain('칸 번호 — 기준 표를 못 읽어 안 봤다');
     expect(원장판정(값, 글, 있음).머리글).not.toContain('칸 번호');
+  });
+});
+
+describe('표번호채우기 — 「요구사항」 표의 tcId 칸만 바꾼다', () => {
+  const 글 = [
+    '# X',
+    '',
+    '## 요구사항',
+    '',
+    '| tcId | 요구 | 축 | 출처 |',
+    '|---|---|---|---|',
+    '| X-FN-010 | 1 | 정상 | a REQ-A-1 · 「A \\| B」 |',
+    '| `X-UI-009` | 2 | UI | a REQ-A-2 |',
+    '| 제거함(X-FN-003) | 3 | 예외 | a REQ-A-3 |',
+    '',
+    '## 미확정 케이스',
+    '',
+    '| tcId | 사유 |',
+    '|---|---|',
+    '| X-FN-010 | 화면 입력 검사 |',
+    '',
+  ].join('\n');
+
+  it('기대가 있는 줄의 tcId 칸만 바꾸고 백틱 · 다른 칸 · 다른 절은 그대로 둔다', () => {
+    const 새 = 표번호채우기(글, new Map([[0, 'X-FN-001'], [1, 'X-UI-002']]));
+    const 줄 = 새.split('\n');
+    expect(줄[6]).toBe('| X-FN-001 | 1 | 정상 | a REQ-A-1 · 「A \\| B」 |');
+    expect(줄[7]).toBe('| `X-UI-002` | 2 | UI | a REQ-A-2 |');
+    expect(줄[8]).toBe('| 제거함(X-FN-003) | 3 | 예외 | a REQ-A-3 |');
+    expect(줄[14]).toBe('| X-FN-010 | 화면 입력 검사 |');
+    expect(요구줄들(새).map((r) => r.tcId)).toEqual(['X-FN-001', 'X-UI-002', '제거함(X-FN-003)']);
+  });
+
+  it('바꿀 것이 없으면 글이 한 글자도 안 바뀌고 두 번 해도 같다', () => {
+    expect(표번호채우기(글, new Map())).toBe(글);
+    const 한번 = 표번호채우기(글, new Map([[0, 'X-FN-001']]));
+    expect(표번호채우기(한번, new Map([[0, 'X-FN-001']]))).toBe(한번);
+  });
+
+  it('줄 끝 \\r 를 지킨다', () => {
+    const crlf = 글.replace(/\n/g, '\r\n');
+    expect(표번호채우기(crlf, new Map([[0, 'X-FN-001']]))).toBe(표번호채우기(글, new Map([[0, 'X-FN-001']])).replace(/\n/g, '\r\n'));
   });
 });

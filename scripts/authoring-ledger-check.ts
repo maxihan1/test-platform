@@ -94,6 +94,28 @@ export function 표읽기(글: string, 제목: string): Record<string, string>[]
 
 const 백틱벗기기 = (글: string) => 글.trim().replace(/^`(.*)`$/, '$1').trim();
 
+/**
+ * 「요구사항」 표에서 `기대`(차례 → tcId)가 있는 줄의 tcId 칸만 고쳐 쓴다 — 번호 명령(`npm run ledger:number`)이 부른다.
+ * 다른 칸 · 다른 절(미확정 · 보류 표도 tcId 칸이 있다) · 줄 끝 `\r` · 칸의 백틱은 그대로 둔다
+ */
+export function 표번호채우기(표글: string, 기대: Map<number, string>): string {
+  const 줄들 = 표글.split('\n');
+  표몸줄들(줄들, '요구사항').forEach(({ 줄, 머리 }, 차례) => {
+    const 새 = 기대.get(차례);
+    const 열 = 머리.indexOf('tcId');
+    if (새 === undefined || 열 < 0) return;
+    const 원 = 줄들[줄] ?? '';
+    const 끝 = 원.endsWith('\r') ? '\r' : '';
+    const 조각 = 원.slice(0, 원.length - 끝.length).split(/(?<!\\)\|/);
+    const 자리 = 열 + (원.trim().startsWith('|') ? 1 : 0);
+    const 옛 = (조각[자리] ?? '').trim();
+    if (백틱벗기기(옛) === 새) return;
+    조각[자리] = ` ${옛.startsWith('`') ? `\`${새}\`` : 새} `;
+    줄들[줄] = 조각.join('|') + 끝;
+  });
+  return 줄들.join('\n');
+}
+
 /** 「요구사항」 표 줄을 칸 계산 재료로 — 차례는 표읽기 차례다 */
 export function 요구줄들(표글: string): 표줄[] {
   return 표읽기(표글, '요구사항').map((행, 차례) => ({ 차례, 출처: 행['출처'] ?? '', 축: (행['축'] ?? '').trim(), tcId: 백틱벗기기(행['tcId'] ?? '') }));
