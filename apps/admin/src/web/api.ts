@@ -1,7 +1,8 @@
 // Admin API 호출 한 곳 (SPEC §7). 응답 모양은 WS-A·WS-B가 실제로 내보내는 것을 그대로 옮겼다
 // 목 데이터는 두지 않는다 — 개발 서버도 /api를 진짜 admin으로 프록시한다 (vite.config.ts)
 
-import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult, Technique } from '@platform/kit';
+import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
+import type { Technique } from '@platform/kit/types';
 
 import type { 고칠것 } from '../authoring/edit.js';
 

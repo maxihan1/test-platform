@@ -706,7 +706,6 @@ select:focus {
   outline-offset: 2px;
 }
 
-/* 껍데기 넷 중 하나. 조건 줄의 라벨이다 (DESIGN.md 원칙 1 의 예외) */
 /* 라벨 + 고르개 한 덩어리 — 도구 줄이 넘치면 둘이 같이 다음 줄로 간다(설계 기법 고르개 · 2026-10-05) */
 .filter-group {
   display: inline-flex;
@@ -715,6 +714,7 @@ select:focus {
   white-space: nowrap;
 }
 
+/* 껍데기 넷 중 하나. 조건 줄의 라벨이다 (DESIGN.md 원칙 1 의 예외) */
 .filter-label {
   font-size: 11px;
   font-weight: 600;
