@@ -681,3 +681,12 @@
 - 미완: 실제 다시 작성에서 훑기 시간 실측. 다음 12(모델) → 8 · 9
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 맥 대체는 격리가 없다(같은 계정). 저장본 판정은 `authoring-screens-keep.ts`, 디스크 일은 `-io.ts`
+
+## 2026-10-04 — 작성 모델 (AUT-F3-38, PR #152)
+
+- 계기: 사용자 지시 12(메인 · 보조에 맞는 모델 · effort)
+- 완료: 메인 기본값 claude-opus-5-5 · high · 예비 sonnet · 보조 정의 `.claude/agents/author-scan.md`(Sonnet · medium) · `author-write.md`(Sonnet · high) · 자식만 `subagent_type` 으로 고름(사람 세션 /tpx-cases 는 안 고름) · surfaces HARNESS 에 `.claude/agents/**` · 명세 「모델」 줄 정본
+- 확인: 맥 2.1.289 · 서버 2.1.285 실험 — init `agents` 에 둘이 잡히고 result `modelUsage` 에 보조 sonnet · 메인 opus. 정의의 effort 반영은 미확인
+- 미완: 재측정에서 품질 숫자 · 시간 · `modelUsage` 원문으로 효과 판단(한도에 더 자주 걸리면 되돌림). 다음은 CDY 지역 사이트 빼기(계약 변경) → 재측정 → 8 · 9
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 토큰 기록의 모델 칸은 출력 최다 하나라 이제 Sonnet 으로 찍힌다 — 모델별은 result modelUsage. 보조는 예비 모델이 없다
