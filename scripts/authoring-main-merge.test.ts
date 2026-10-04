@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { 지문파일글, 지문파일읽기 } from './authoring-ledger-diff.js';
 import { 합칠까, main합치기 } from './authoring-main-merge.js';
 
 // GIT_* 를 전부 뺀다 — pre-push 훅 안에서는 git 이 GIT_DIR 을 넣어 두어 이 저장소에 커밋한다 (HOOKS.md)
@@ -206,5 +207,49 @@ describe('main 합치기', () => {
     expect(깃(['rev-parse', 'HEAD']).낸것).toBe(머리전);
     const 요청머리 = 깃(['rev-parse', 'HEAD']).낸것.trim();
     expect(main합치기({ 트리, 깃, mainSha: 요청머리, ...판값 })).toEqual({ 합침: false });
+  });
+});
+
+describe('main 합치기 — 요구 지문 파일 (작성 §3.6 「요구 지문」 반영 충돌 · 2026-10-04 게이트 1)', () => {
+  const 지문 = (항목: [string, string, string][], 자료: Record<string, string>) =>
+    지문파일글({ 판: 1, 자료: Object.fromEntries(Object.entries(자료).map(([k, 꼴]) => [k, { 꼴 }])), 항목: 항목.map(([번호, 자료이름, c]) => ({ 번호, 자료: 자료이름, 지문: c.repeat(16) })) });
+  const 자리 = 'docs/cases/PAY.fingerprint.json';
+  const 지문읽기 = (트리: string) => 지문파일읽기(readFileSync(join(트리, 자리), 'utf8'));
+
+  it('합칠까는 지문 파일만 바뀐 main 도 합친다 — 안 합치면 GitHub 에서 늦게 실패한다', () => {
+    expect(합칠까(['docs/cases/PAY.fingerprint.json'], 'docs/cases/PAY.md', 'pay')).toBe(true);
+  });
+
+  it('지문 파일만 충돌하고 표는 깨끗하면 세 갈래로 합친다 — 요청이 바꾼 항목이 이기고 main 이 넣은 다른 자료는 남는다', () => {
+    const { 트리, 깃, mainSha } = 갈라놓기(
+      (t) => 쓰기(t, 자리, 지문([['REQ-PAY-001', '가.docx', 'e'], ['REQ-PAY-002', '가.docx', 'b']], { '가.docx': '.docx/pandoc' })),
+      (t) =>
+        쓰기(t, 자리, 지문([['REQ-PAY-001', '가.docx', 'd'], ['REQ-PAY-002', '가.docx', 'b'], ['REQ-X-001', '다.md', 'c']], { '가.docx': '.docx/pandoc', '다.md': '.md/그대로' })),
+      (t) => {
+        쓰기(t, 'tests/pay/PAY-001.spec.ts', 케이스('PAY-001', '첫 케이스'));
+        쓰기(t, 'docs/cases/PAY.md', 표('바탕', [줄(1, 'PAY-001')]));
+        쓰기(t, 자리, 지문([['REQ-PAY-001', '가.docx', 'a'], ['REQ-PAY-002', '가.docx', 'b']], { '가.docx': '.docx/pandoc' }));
+      },
+    );
+    expect(main합치기({ 트리, 깃, mainSha, ...판값 })).toEqual({ 합침: true });
+    expect(지문읽기(트리)?.항목.map((h) => `${h.번호}:${h.지문[0] ?? ''}`)).toEqual(['REQ-PAY-001:e', 'REQ-PAY-002:b', 'REQ-X-001:c']);
+    expect(깃(['status', '--porcelain']).낸것).toBe('');
+  });
+
+  it('첫 요청 둘이 지문 파일을 각자 만들어도(바탕 없음) 둘을 합치고 같은 항목은 요청 것 · 표 충돌도 같이 푼다', () => {
+    const { 트리, 깃, mainSha } = 갈라놓기(
+      (t) => {
+        쓰기(t, 'docs/cases/PAY.md', 표('요청', [줄(1, 'PAY-001'), 줄(2, 'PAY-002')]));
+        쓰기(t, 'tests/pay/PAY-002.spec.ts', 케이스('PAY-002', '요청 케이스'));
+        쓰기(t, 자리, 지문([['REQ-PAY-001', '가.docx', 'e']], { '가.docx': '.docx/pandoc' }));
+      },
+      (t) => {
+        쓰기(t, 'docs/cases/PAY.md', 표('main', [줄(1, 'PAY-001'), 줄(2, 'PAY-003')]));
+        쓰기(t, 'tests/pay/PAY-003.spec.ts', 케이스('PAY-003', 'main 케이스'));
+        쓰기(t, 자리, 지문([['REQ-PAY-001', '가.docx', 'd'], ['REQ-X-001', '다.md', 'c']], { '가.docx': '.docx/pandoc', '다.md': '.md/그대로' }));
+      },
+    );
+    expect(main합치기({ 트리, 깃, mainSha, ...판값 })).toEqual({ 합침: true });
+    expect(지문읽기(트리)?.항목.map((h) => `${h.번호}:${h.지문[0] ?? ''}`)).toEqual(['REQ-PAY-001:e', 'REQ-X-001:c']);
   });
 });
