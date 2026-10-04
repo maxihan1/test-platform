@@ -215,16 +215,16 @@ async function 한상태(맥락: BrowserContext, 상태: 상태, a: 인자, 몫:
   }
 }
 
-function 남기기(a: 인자, 판: 판, 시작: number): void {
+function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string[]; 예외: boolean }): void {
   const 고른 = 목록고르기(판.본.filter((x) => !x.로그인풀림)) as 본화면[];
   const 견줌 = a.저장본 === null ? null : 견주기(고른, a.저장본, new Date().toISOString().slice(0, 10));
   const 목록 = 고른.map((본) => ({
     주소: 본.주소, 이름: 본.이름, 상태: 본.상태, 파일: 본.파일, 틀: 본.틀, 지문: 본.지문, 글자지문: 본.글자지문,
     ...(본.짧음 ? { 짧음: true } : {}),
-    ...(견줌?.표시.get(본.주소) ?? {}),
+    ...(견줌?.표시.get(`${본.상태} ${본.주소}`) ?? {}),
   }));
   // 에이전트가 저장본을 갈 때 본다 — 다 봤을 때만 이번에 못 본 화면을 지운다
-  writeFileSync(join(a.출력, 'summary.json'), JSON.stringify({ 멈춘까닭: 판.멈춘까닭, 따라가기: a.따라가기 }));
+  writeFileSync(join(a.출력, 'summary.json'), JSON.stringify({ 멈춘까닭: 판.멈춘까닭, 따라가기: a.따라가기, 상태들: 돈.상태들, 예외: 돈.예외 }));
   const 걸러짐 = [...판.걸러짐].map(([주소, v]) => ({ 주소, ...v }));
   writeFileSync(join(a.출력, 'index.json'), JSON.stringify({ 화면: 판.본, 걸러짐 }, null, 1));
   writeFileSync(join(a.출력, 'list.json'), JSON.stringify(목록, null, 1));
@@ -250,6 +250,8 @@ async function main(): Promise<void> {
   const 판: 판 = { 본: [], 걸러짐: new Map(), 잘림: 0, 연속오류: 0, 멈춘까닭: null };
   const 상태들: 상태[] = a.상태파일 === null ? ['로그아웃'] : ['로그아웃', '로그인'];
   const 브라우저 = await chromium.launch();
+  // 끝까지 돈 상태와 예외 — 에이전트가 저장본에서 못 본 화면을 지울지 이것으로 정한다
+  const 돈 = { 상태들: [] as string[], 예외: false };
   try {
     // 장수 · 시간을 상태마다 나눈다 — 로그아웃 크롤이 다 쓰면 로그인 화면을 하나도 못 본다
     for (const [i, 상태] of 상태들.entries()) {
@@ -260,10 +262,14 @@ async function main(): Promise<void> {
       판.연속오류 = 0;
       await 한상태(맥락, 상태, a, 몫, 판);
       await 맥락.close();
+      돈.상태들.push(상태);
     }
+  } catch (e) {
+    돈.예외 = true;
+    throw e;
   } finally {
     await 브라우저.close();
-    남기기(a, 판, 시작); // 도중에 죽어도 본 것까지는 남긴다
+    남기기(a, 판, 시작, 돈); // 도중에 죽어도 본 것까지는 남긴다
   }
 }
 

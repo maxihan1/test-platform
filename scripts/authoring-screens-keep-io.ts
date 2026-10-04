@@ -3,7 +3,7 @@
 import { lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { type 목록칸, 갈기, 이번것들, 저장본모양 } from './authoring-screens-keep.js';
+import { type 목록칸, type 상태, 갈기, 이번것들, 저장본모양 } from './authoring-screens-keep.js';
 
 const 접두사꼴 = /^[A-Z][A-Z0-9]{0,11}$/;
 const 기록상한 = 200_000;
@@ -39,10 +39,14 @@ function 새로쓰기(경로: string, 글: string): void {
   writeFileSync(경로, 글, { mode: 0o644, flag: 'wx' });
 }
 
-/** 자식을 띄우기 전 — 저장본을 자료 폴더 `kept/` 로 넣는다. 저장본이 없으면 아무것도 안 한다. 실패해도 작성은 간다(전부 훑을 뿐) */
-export function 저장본넣기(바탕: string, 접두사: string, 자료: string): number {
+/**
+ * 자식을 띄우기 전 — 저장본을 자료 폴더 `kept/` 로 넣는다. 저장본이 없으면 아무것도 안 한다. 실패해도 작성은 간다(전부 훑을 뿐).
+ * `있으면둠` — 이어받기는 크롤러를 다시 안 돌려 목록의 「같음」이 앞 실행의 `kept/` 를 가리킨다. 다시 넣으면 어긋난다 (검사 주의 2)
+ */
+export function 저장본넣기(바탕: string, 접두사: string, 자료: string, 있으면둠 = false): number {
   const 폴더 = 저장폴더(바탕, 접두사);
   if (폴더 === null || !폴더인가(폴더)) return 0;
+  if (있으면둠 && lstatSync(join(자료, 'kept'), { throwIfNoEntry: false }) !== undefined) return 0;
   const 원문 = 안전히읽기(폴더, 'index.json', 목록상한);
   if (원문 === null) return 0;
   let 저장;
@@ -88,8 +92,8 @@ export function 저장본갈기(바탕: string, 접두사: string, 자료: strin
   if (폴더 === null || !폴더인가(크롤)) return '화면 기록 저장: 크롤 목록이 없어 건너뜀';
   const 목록글 = 안전히읽기(크롤, 'list.json', 목록상한);
   if (목록글 === null) return '화면 기록 저장: 크롤 목록이 없어 건너뜀';
-  let 목록: 목록칸[];
-  let 요약: { 멈춘까닭?: unknown; 따라가기?: unknown } = {};
+  let 목록: (목록칸 & { 저장본?: unknown })[];
+  let 요약: { 멈춘까닭?: unknown; 따라가기?: unknown; 상태들?: unknown; 예외?: unknown } = {};
   try {
     목록 = (JSON.parse(목록글) as 목록칸[]).filter((x) => typeof x?.주소 === 'string' && typeof x?.틀 === 'string');
     요약 = JSON.parse(안전히읽기(크롤, 'summary.json', 10_000) ?? '{}') as typeof 요약;
@@ -102,8 +106,12 @@ export function 저장본갈기(바탕: string, 접두사: string, 자료: strin
       const 글 = 안전히읽기(화면, 이름, 기록상한);
       return 글 === null ? [] : [{ 이름, 글 }];
     });
-  const 이번 = 이번것들(목록, 기록들, 오늘);
-  const 지우기 = 화면만 && 요약.멈춘까닭 === null && 요약.따라가기 === true;
+  // 「같음」으로 재사용한 화면은 옛 항목을 그대로 둔다 — 훑은 날을 오늘로 바꾸면 30일 그물이 안 돈다 (검사 BLOCKER 2)
+  const 같음키 = new Set(목록.filter((x) => x.저장본 === '같음').map((x) => `${x.상태} ${x.틀}`));
+  const 이번 = 이번것들(목록, 기록들, 오늘).filter((x) => !같음키.has(x.키));
+  // 지우기는 화면만 · 크롤이 예외 없이 다 봤을 때, 실제로 돈 상태만 (검사 주의 1 — 상태 파일 없이 로그아웃만 돌면 로그인 기록은 남긴다)
+  const 돈상태 = Array.isArray(요약.상태들) ? 요약.상태들.filter((x): x is 상태 => x === '로그아웃' || x === '로그인') : [];
+  const 지울상태 = new Set<상태>(화면만 && 요약.멈춘까닭 === null && 요약.따라가기 === true && 요약.예외 !== true ? 돈상태 : []);
   try {
     if (!폴더인가(폴더)) {
       if (lstatSync(폴더, { throwIfNoEntry: false }) !== undefined) return '화면 기록 저장: 저장 폴더가 폴더가 아니라 건너뜀';
@@ -112,18 +120,19 @@ export function 저장본갈기(바탕: string, 접두사: string, 자료: strin
     const 옛글 = 안전히읽기(폴더, 'index.json', 목록상한);
     const 옛 = 옛글 === null ? { 판: 1 as const, 항목: [] } : 저장본모양(JSON.parse(옛글));
     for (const x of 이번) 바꿔쓰기(폴더, x.기록, 기록들.find((r) => r.이름 === x.원본)!.글);
-    // 「같음」으로 재사용한 화면은 새 기록을 안 썼어도 본 것이다 — 훑은 날은 그대로 둬 30일이 지나면 다시 훑게 한다
-    const 이번키 = new Set(이번.map((x) => x.키));
-    const 재사용 = 목록
-      .filter((x) => (x as { 저장본?: unknown }).저장본 === '같음' && !이번키.has(`${x.상태} ${x.틀}`))
-      .flatMap((x) => 옛.항목.filter((y) => y.키 === `${x.상태} ${x.틀}`));
-    const 새 = 갈기(옛, [...이번, ...재사용], 지우기);
+    // 재사용한 화면은 새 기록을 안 썼어도 본 것이다 — 옛 항목(훑은 날 그대로)을 본 것으로 넘긴다
+    const 재사용 = 옛.항목.filter((y) => 같음키.has(y.키));
+    const 새 = 갈기(옛, [...이번, ...재사용], 지울상태);
     바꿔쓰기(폴더, 'index.json', JSON.stringify(새));
-    if (지우기) {
+    if (지울상태.size > 0) {
       const 남길것 = new Set([...새.항목.map((x) => x.기록), 'index.json']);
       for (const 이름 of readdirSync(폴더)) if (!남길것.has(이름) && /\.md$/.test(이름)) rmSync(join(폴더, 이름), { force: true });
     }
-    return `화면 기록 저장: 갈음 ${이번.length}장 · 저장본 ${새.항목.length}장${지우기 ? ' (다 봐서 못 본 화면은 지움)' : ''}`;
+    const 오래된 = 재사용.reduce((n, y) => Math.max(n, Math.round((Date.parse(오늘) - Date.parse(y.훑은날)) / 86_400_000)), 0);
+    return (
+      `화면 기록 저장본: 재사용 ${재사용.length}장${재사용.length > 0 ? `(가장 오래된 것 ${오래된}일)` : ''} · 새로 저장 ${이번.length}장 · 저장본 ${새.항목.length}장` +
+      (지울상태.size > 0 ? ` · 다 봐서 ${[...지울상태].join(' · ')} 못 본 화면은 지움` : '')
+    );
   } catch (e) {
     return `화면 기록 저장: 실패 — ${e instanceof Error ? e.message : String(e)}`;
   }
