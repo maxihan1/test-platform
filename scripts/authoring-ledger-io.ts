@@ -4,10 +4,13 @@
 import { lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { TCID } from '../apps/admin/src/catalog/rules.js';
 import type { 읽을자료 } from './authoring-assets.js';
 import { type 원장, 원장만들기 } from './authoring-ledger.js';
 import { 지문파일글, 지문파일읽기, 지문파일자리, 지문합치기, 차이줄, 판견주기 } from './authoring-ledger-diff.js';
-import { tcId들, 사람이뺀번호 } from './authoring-ledger-check.js';
+import { type 기준결정, tcId들, 사람이뺀번호, 요구줄들, 제외번호들 } from './authoring-ledger-check.js';
+import { 표tcId들 } from './authoring-conflicts.js';
+import { 칸재료만들기 } from './authoring-slots.js';
 import { type 이어작성입력, 남은번호, 이어작성막힘, 이어작성사본이름 } from './authoring-continue.js';
 import type { 원장입력 } from './authoring-prompt.js';
 
@@ -33,6 +36,19 @@ function 새로쓰기(경로: string, 글: string): boolean {
   }
 }
 
+/** 기준(main) 판의 표 · 케이스로 대조에 넘길 것을 만든다. 표를 못 읽었으면(null) 칸 재료가 없다 — 쓰인 번호를 모르고 매기면 남의 케이스 파일을 덮어쓴다 */
+export function 기준결정만들기(기준표: { 표글: string; 있는케이스: Set<string>; 접두사: string } | null, 원장번호들: string[]): 기준결정 {
+  if (기준표 === null) return { 사람이뺌: new Set(), 다음요청: new Set(), 칸재료: null };
+  // 요구 줄 tcId 도 넣는다 — 표tcId들 은 백틱 칸을 못 본다. 「제거함(…)」 안 번호도 쓰인 번호다
+  const 줄tcId = 요구줄들(기준표.표글).map((줄) => /^제거함\((.+)\)$/.exec(줄.tcId)?.[1] ?? 줄.tcId).filter((t) => TCID.test(t));
+  const 쓰인 = new Set([...표tcId들(기준표.표글), ...줄tcId, ...기준표.있는케이스]);
+  return {
+    사람이뺌: 사람이뺀번호(기준표.표글),
+    다음요청: 제외번호들(기준표.표글, '다음 요청'),
+    칸재료: 칸재료만들기(기준표.접두사, 요구줄들(기준표.표글), 쓰인, 원장번호들),
+  };
+}
+
 /**
  * 원장을 만들어 **메모리에 든다**(`원장` — 올리기 판정이 이것을 쓴다). 자식에게는 사본 경로만 준다(`입력`).
  * 자식이 사본을 고쳐도 판정은 안 흔들린다. 사본을 못 쓰면 원장 없음으로 돈다 — 자식이 모르는 원장으로 거절하지 않는다
@@ -40,19 +56,21 @@ function 새로쓰기(경로: string, 글: string): boolean {
 export function 원장준비(
   계획: 읽을자료[],
   자료폴더: string,
-  사람이뺌: Set<string> = new Set(),
-): { 원장: 원장 | { 없음: string }; 입력: 원장입력 } {
+  기준표: { 표글: string; 있는케이스: Set<string>; 접두사: string } | null,
+): { 원장: 원장 | { 없음: string }; 입력: 원장입력; 기준: 기준결정 } {
   const r = 원장만들기(계획, 안전히읽기);
-  if (!('원장' in r)) return { 원장: r, 입력: r };
+  if (!('원장' in r)) return { 원장: r, 입력: r, 기준: 기준결정만들기(기준표, []) };
+  const 기준 = 기준결정만들기(기준표, r.원장.항목.map((h) => h.번호));
   const 사본 = join(자료폴더, 원장사본이름);
-  // 기준 표의 사람이 뺌을 같이 싣는다 — 자식의 관문 0(check:ledger --agent)이 에이전트의 올리기 판정과 같은 목록을 쓴다 (2026-09-30 게이트 1)
-  if (!새로쓰기(사본, JSON.stringify({ ...r, 사람이뺌: [...사람이뺌] }, null, 2))) {
+  // 기준 표의 결정 · 칸 재료를 같이 싣는다 — 자식의 관문 0(check:ledger --agent) · 번호 명령이 에이전트의 올리기 판정과 같은 재료를 쓴다 (2026-09-30 · 2026-10-04 게이트 1)
+  const 사본글 = { ...r, 사람이뺌: [...기준.사람이뺌], 다음요청: [...기준.다음요청], 칸재료: 기준.칸재료 };
+  if (!새로쓰기(사본, JSON.stringify(사본글, null, 2))) {
     const 없음 = { 없음: '원장 사본을 자료 폴더에 못 썼다' };
-    return { 원장: 없음, 입력: 없음 };
+    return { 원장: 없음, 입력: 없음, 기준 };
   }
   const 가족 = Object.entries(r.원장.가족).map(([k, n]) => `${k} ${String(n)}`).join(' · ');
   const 요약 = `요구 ${String(r.원장.항목.length)}${가족 === '' ? ' · 문단 모드' : ` · 번호 가족 ${가족}`}${r.원장.빠진자료.length > 0 ? ` · 원장에 못 넣은 자료 ${r.원장.빠진자료.join(' · ')}` : ''}`;
-  return { 원장: r.원장, 입력: { 사본, 요약 } };
+  return { 원장: r.원장, 입력: { 사본, 요약 }, 기준 };
 }
 
 /**
@@ -159,21 +177,20 @@ export function 원장과남은번호(입력: {
   폴더: string;
   이어작성원본: number | null;
 }):
-  | { 원장: 원장 | { 없음: string }; 입력: 원장입력; 사람이뺌: Set<string>; 이어작성?: 이어작성입력; 앞지문: { 글: string | null } | null }
+  | { 원장: 원장 | { 없음: string }; 입력: 원장입력; 기준: 기준결정; 이어작성?: 이어작성입력; 앞지문: { 글: string | null } | null }
   | { 막힘: string } {
   const 기준 = 기준읽기(입력.깃, 입력.기준, 입력.서비스, 입력.폴더);
   if ('까닭' in 기준) {
     if (입력.이어작성원본 !== null) return { 막힘: 기준.까닭 };
-    console.error(`[작성] ${기준.까닭} — 기준 표의 「사람이 뺌」 없이 대조한다`);
+    console.error(`[작성] ${기준.까닭} — 기준 표의 「사람이 뺌」 · 「다음 요청」 · 칸 재료 없이 대조한다`);
   }
-  const 사람이뺌 = '까닭' in 기준 ? new Set<string>() : 사람이뺀번호(기준.표글);
   // 올릴 때 지문 파일을 앞 판과 자료마다 합친다 — 트리가 아니라 기준 SHA 에서 읽는다(이어받은 트리는 앞 실행이 바꿨을 수 있다)
-  const r = { ...원장준비(입력.계획, 입력.자료폴더, 사람이뺌), 앞지문: 앞지문읽기(입력.깃, 입력.기준, 입력.서비스) };
-  if (입력.이어작성원본 === null || '까닭' in 기준) return { ...r, 사람이뺌 };
-  const 남은 = '없음' in r.원장 ? [] : 남은번호(r.원장, 기준.표글, 기준.있는케이스, 사람이뺌);
+  const r = { ...원장준비(입력.계획, 입력.자료폴더, '까닭' in 기준 ? null : { ...기준, 접두사: 입력.서비스 }), 앞지문: 앞지문읽기(입력.깃, 입력.기준, 입력.서비스) };
+  if (입력.이어작성원본 === null || '까닭' in 기준) return r;
+  const 남은 = '없음' in r.원장 ? [] : 남은번호(r.원장, 기준.표글, 기준.있는케이스, r.기준);
   const 막힘 = 이어작성막힘(r.원장, 남은);
   if (막힘 !== null) return { 막힘 };
   const 사본 = join(입력.자료폴더, 이어작성사본이름);
   if (!새로쓰기(사본, JSON.stringify({ 원본: 입력.이어작성원본, 남은 }, null, 2))) return { 막힘: '남은 번호 사본을 자료 폴더에 못 썼다' };
-  return { ...r, 사람이뺌, 이어작성: { 원본: 입력.이어작성원본, 남은, 사본 } };
+  return { ...r, 이어작성: { 원본: 입력.이어작성원본, 남은, 사본 } };
 }

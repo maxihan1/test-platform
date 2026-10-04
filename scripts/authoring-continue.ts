@@ -2,7 +2,7 @@
 // 저장된 셈(later · missing)은 쓰지 않는다 — 사본이라 사람이 병합 뒤 표를 고치면 낡는다. 판단은 여기 순수 함수, 읽기 · 쓰기는 authoring-ledger-io
 
 import type { 원장 } from './authoring-ledger.js';
-import { 원장대조 } from './authoring-ledger-check.js';
+import { type 기준결정, 원장대조 } from './authoring-ledger-check.js';
 
 /** 자식에게 주는 남은 번호 사본 — 자료 폴더 안. 판정은 에이전트 메모리의 원장으로 한다(자식이 고쳐도 안 흔들린다) */
 export const 이어작성사본이름 = 'continue.json';
@@ -20,8 +20,8 @@ export interface 이어작성입력 {
  * 케이스로 덮은 것 · 닫힌 제외(되돌릴 수 없음 · 자료 없음 · 요구 아님 · 기준 표에 있던 사람이 뺌)는 앞 요청이 끝낸 것이다.
  * 올리기 판정과 같은 대조(에이전트 모드)를 쓴다 — 둘이 다르면 셈에 남은 것이 이어 작성에서 안 잡히거나 그 반대가 된다
  */
-export function 남은번호(원장값: 원장, 표글: string, 있는케이스: Set<string>, 사람이뺌: Set<string>): string[] {
-  const r = 원장대조(원장값.항목, 표글, { 있는케이스, 에이전트: true, 사람이뺌 });
+export function 남은번호(원장값: 원장, 표글: string, 있는케이스: Set<string>, 기준: Pick<기준결정, '사람이뺌' | '다음요청'>): string[] {
+  const r = 원장대조(원장값.항목, 표글, { 있는케이스, 에이전트: true, 사람이뺌: 기준.사람이뺌, 다음요청: 기준.다음요청 });
   const 남음 = new Set([...r.빠짐, ...[...r.제외번호].filter(([, 종류]) => 종류 === '다음 요청').map(([b]) => b)]);
   return 원장값.항목.map((h) => h.번호).filter((b) => 남음.has(b));
 }

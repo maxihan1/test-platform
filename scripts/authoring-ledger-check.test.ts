@@ -34,6 +34,7 @@ describe('원장대조', () => {
     const r = 원장대조(원장, 표([줄('a §2 REQ-A-1 · REQ-A-2', 'X-001')], ['| REQ-A-3 | 다음 요청 | 이번 범위 밖 |']), {
       있는케이스: new Set(['X-001']),
       에이전트: true,
+      다음요청: new Set(['REQ-A-3']),
     });
     expect(r.빠짐).toEqual([]);
     expect(r.형식오류).toEqual([]);
@@ -247,7 +248,7 @@ describe('「사람이 뺌」 — 기준 표에 이미 있던 것은 에이전�
   });
 
   it('목록에 든 번호의 줄은 제외로 세고, 목록 밖은 지금처럼 형식 오류다', () => {
-    const r = 원장대조(원장, 제외표, { 에이전트: true, 사람이뺌: new Set(['REQ-A-1']) });
+    const r = 원장대조(원장, 제외표, { 에이전트: true, 사람이뺌: new Set(['REQ-A-1']), 다음요청: new Set(['REQ-A-3']) });
     expect(r.형식오류).toEqual(['제외 줄 「REQ-A-2」 — 「사람이 뺌」은 사람 세션만 쓴다']);
     expect(r.빠짐).toEqual(['REQ-A-2']);
     expect(r.셈.제외).toEqual({ '사람이 뺌': 1, '다음 요청': 1 });
@@ -255,7 +256,7 @@ describe('「사람이 뺌」 — 기준 표에 이미 있던 것은 에이전�
 
   it('원장판정 이 목록을 대조에 넘긴다', () => {
     const 값 = { 항목: 원장, 가족: {}, 모드: {}, 경고: [], 빠진자료: [], 꼴: {} };
-    const r = 원장판정(값, 제외표, new Set(), new Set(['REQ-A-1', 'REQ-A-2']));
+    const r = 원장판정(값, 제외표, new Set(), { 사람이뺌: new Set(['REQ-A-1', 'REQ-A-2']), 다음요청: new Set(['REQ-A-3']), 칸재료: null });
     expect('대조' in r && r.대조.형식오류).toEqual([]);
   });
 });
