@@ -7,9 +7,13 @@ const 위험글자 = /로그아웃|탈퇴|삭제|담기|결제|구매하기|주�
 // 주소의 동작 낱말 — 낱말 경계로만 본다(`/address` · `/outline` 은 따라간다)
 const 위험낱말 = /(?:^|[/_.\-?&=])(?:logout|logoff|signout|sign-out|log-out|out\.php|delete|del|remove|add|cancel|like|toggle|withdraw|unsubscribe|download|leave)(?=$|[/_.\-?&=])/i;
 const 동작인자 = /[?&](?:action|act|cmd|mode|op)=/i;
-// 같은 틀로 묶는 인자 — 쪽 번호 · 정렬 · 개수. 글자 값으로 화면을 가르는 인자(?modal= · ?bo_table=)는 묶지 않는다
-const 쪽인자 = new Set(['page', 'p', 'pg', 'pageno', 'sort', 'order', 'orderby', 'sst', 'sod', 'size', 'limit', 'offset', 'per', 'perpage']);
-const 숫자마디 = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24,})$/i;
+// 같은 틀로 묶는 인자 — 쪽 번호 · 정렬 · 개수 · 돌아갈 주소. 글자 값으로 화면을 가르는 인자(?modal= · ?bo_table=)는 묶지 않는다
+const 쪽인자 = new Set([
+  'page', 'p', 'pg', 'pageno', 'sort', 'order', 'orderby', 'sst', 'sod', 'size', 'limit', 'offset', 'per', 'perpage',
+  'next', 'returnurl', 'return', 'returnto', 'redirect', 'redirecturl', 'redirect_uri', 'from', 'continue', 'url',
+]);
+// 번호 마디 — 숫자 · UUID · 긴 16진수, 그리고 숫자가 넷 이상 든 주문 번호 꼴(`DM20261002-0001`)
+const 숫자마디 = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24,}|(?=(?:\D*\d){4})[\w-]+)$/i;
 
 const 해시라우트 = (해시: string): boolean => 해시.startsWith('#/') || 해시.startsWith('#!');
 
@@ -48,11 +52,12 @@ export function 틀키(주소: string): string {
   return `${마디정리(u.pathname)}${인자.length === 0 ? '' : `?${인자.join('&')}`}${해시}`;
 }
 
-/** 마지막 마디를 뺀 경로 — 숫자가 아닌 상세(슬러그)가 장수를 다 먹지 않게 부모마다 상한을 둔다 */
-export function 부모키(주소: string): string {
+/** 마지막 마디를 뺀 경로 — 숫자가 아닌 상세(슬러그)가 장수를 다 먹지 않게 부모마다 상한을 둔다. 최상위 화면은 null(상한 없음) */
+export function 부모키(주소: string): string | null {
   const u = new URL(주소);
   const 경로 = 해시라우트(u.hash) ? `${u.pathname}${u.hash}` : u.pathname;
-  return 경로.replace(/\/[^/]*\/?$/, '') || '/';
+  const 부모 = 경로.replace(/\/[^/]*\/?$/, '');
+  return 부모 === '' || 부모 === '/' || 부모 === '/#' || 부모 === '/#!' ? null : 부모;
 }
 
 /** 화면 구조의 지문 — 숫자만 다른 같은 구조(글 번호 · 날짜 · 개수)는 같은 값. 다음 실행이 바뀐 화면을 가를 때 쓴다 */
@@ -87,11 +92,14 @@ export function 목록고르기(항목들: 목록항목[]): 목록항목[] {
 
 const 로그인주소 = /log-?in|sign-?in|auth|로그인/i;
 
-/** 로그인 판에서 로그인 화면으로 튕겼나 — 로그인 화면이 아닌 곳에서 비밀번호 칸이 나오거나 로그인 주소로 돌려보내졌다 */
-export function 로그인풀렸나(x: { 요청: string; 최종: string; 비밀번호칸: boolean }): boolean {
+/**
+ * 로그인 판에서 로그인 화면으로 튕겼나 — 로그인 주소로 돌려보내졌거나, 로그인 화면이 아닌 곳에 아이디 칸과 비밀번호 칸이 같이 나왔다.
+ * 비밀번호 칸만 있는 본인 확인 화면(회원정보 수정)은 풀림이 아니다
+ */
+export function 로그인풀렸나(x: { 요청: string; 최종: string; 비밀번호칸: boolean; 아이디칸: boolean }): boolean {
   const 요청 = new URL(x.요청);
   const 최종 = new URL(x.최종);
   const 로그인화면 = (u: URL) => 로그인주소.test(decodeURIComponent(u.pathname));
   if (로그인화면(요청)) return false;
-  return x.비밀번호칸 || 로그인화면(최종);
+  return 로그인화면(최종) || (x.비밀번호칸 && x.아이디칸);
 }

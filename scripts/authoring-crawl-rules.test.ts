@@ -49,11 +49,15 @@ describe('주소고르기 — 링크 이동만으로 상태가 바뀌는 곳은 
 describe('틀키 — 숫자와 쪽 번호만 같은 틀로 묶는다 (검토 BLOCKER — ?modal= 로 화면을 가르는 사이트)', () => {
   it('숫자 마디 · 숫자 값만 다른 주소는 같은 틀', () => {
     expect(틀키('https://site.test/board/123')).toBe(틀키('https://site.test/board/456'));
+    expect(틀키('https://site.test/my/orders/DM20261002-0001')).toBe(틀키('https://site.test/my/orders/DM20260924-0002'));
+    expect(틀키('https://site.test/about/intro')).not.toBe(틀키('https://site.test/about/world'));
     expect(틀키('https://site.test/view?wr_id=3&bo_table=notice')).toBe(틀키('https://site.test/view?bo_table=notice&wr_id=9'));
   });
 
-  it('쪽 번호 · 정렬 인자는 빼고 묶는다', () => {
+  it('쪽 번호 · 정렬 · 돌아갈 주소 인자는 빼고 묶는다', () => {
     expect(틀키('https://site.test/list?page=2&sort=new')).toBe(틀키('https://site.test/list'));
+    expect(틀키('https://site.test/login?next=%2Fboard%2F9')).toBe(틀키('https://site.test/login'));
+    expect(틀키('https://site.test/login?returnUrl=/my')).toBe(틀키('https://site.test/login'));
   });
 
   it('글자 값으로 화면을 가르는 인자는 다른 틀이다', () => {
@@ -71,6 +75,11 @@ describe('부모키 — 숫자가 아닌 상세(슬러그)가 장수를 다 먹�
   it('마지막 마디를 뺀 경로', () => {
     expect(부모키('https://site.test/product/blue-shirt')).toBe(부모키('https://site.test/product/red-hat'));
     expect(부모키('https://site.test/product/blue-shirt')).not.toBe(부모키('https://site.test/news/a'));
+  });
+
+  it('최상위 화면은 상한을 안 둔다(null) — 데모마켓 실측에서 /signup · /cart 가 9번째라 잘렸다', () => {
+    expect(부모키('https://site.test/signup')).toBeNull();
+    expect(부모키('https://site.test/')).toBeNull();
   });
 });
 
@@ -91,16 +100,20 @@ describe('목록고르기 — 두 상태에 다 있으면 로그인 하나, 시�
 });
 
 describe('로그인풀렸나 — 로그인 판에서 로그인 화면으로 튕겼나', () => {
-  it('로그인 화면이 아닌 곳을 열었는데 비밀번호 칸이 나오면 풀렸다', () => {
-    expect(로그인풀렸나({ 요청: 'https://site.test/my', 최종: 'https://site.test/my', 비밀번호칸: true })).toBe(true);
+  it('로그인 화면이 아닌 곳을 열었는데 아이디 칸과 비밀번호 칸이 나오면 풀렸다', () => {
+    expect(로그인풀렸나({ 요청: 'https://site.test/my', 최종: 'https://site.test/my', 비밀번호칸: true, 아이디칸: true })).toBe(true);
   });
 
   it('로그인 주소로 돌려보내졌으면 풀렸다', () => {
-    expect(로그인풀렸나({ 요청: 'https://site.test/my', 최종: 'https://site.test/loginForm?next=/my', 비밀번호칸: false })).toBe(true);
+    expect(로그인풀렸나({ 요청: 'https://site.test/my', 최종: 'https://site.test/loginForm?next=/my', 비밀번호칸: false, 아이디칸: false })).toBe(true);
   });
 
-  it('로그인 화면 자체를 열었거나 비밀번호 칸이 없으면 아니다', () => {
-    expect(로그인풀렸나({ 요청: 'https://site.test/login', 최종: 'https://site.test/login', 비밀번호칸: true })).toBe(false);
-    expect(로그인풀렸나({ 요청: 'https://site.test/my', 최종: 'https://site.test/my', 비밀번호칸: false })).toBe(false);
+  it('비밀번호 칸만 있는 본인 확인 화면은 아니다 — 데모마켓 /my/profile 을 풀림으로 잘못 보고 멈췄다', () => {
+    expect(로그인풀렸나({ 요청: 'https://site.test/my/profile', 최종: 'https://site.test/my/profile', 비밀번호칸: true, 아이디칸: false })).toBe(false);
+  });
+
+  it('로그인 화면 자체를 열었거나 칸이 없으면 아니다', () => {
+    expect(로그인풀렸나({ 요청: 'https://site.test/login', 최종: 'https://site.test/login', 비밀번호칸: true, 아이디칸: true })).toBe(false);
+    expect(로그인풀렸나({ 요청: 'https://site.test/my', 최종: 'https://site.test/my', 비밀번호칸: false, 아이디칸: false })).toBe(false);
   });
 });
