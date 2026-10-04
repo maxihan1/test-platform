@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Claude Code 훅 가드. CLAUDE.md 규칙 중 기계적으로 판정되는 것만 강제한다. 모드는 argv[2]
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, appendFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 
 const mode = process.argv[2];
@@ -60,6 +60,21 @@ export function isBanned(command) {
     }
   }
   return null;
+}
+
+// 케이스 작성 보조는 묶음 넷까지 · 같은 묶음 다시 띄우기는 한 번까지 (도메인/작성 §3.6 「서브에이전트 팬아웃」, 2026-10-04).
+// MKT 11211 은 「한 차례」 규칙을 두고도 세 차례를 돌아 2차만 98분을 썼다 — 산문으로는 안 지켜져 기계로 막는다.
+// 묶음 이름은 tpx-author fanout.md §4 뼈대 첫 줄에서 뽑는다. 뼈대가 아닌 보조(화면 훑기)는 세지 않는다
+const 묶음넷 = 4;
+const 묶음줄 = /「([^」]+)」 묶음을 만든다/;
+export function fanoutVerdict(기록, 프롬프트) {
+  const 이름 = 묶음줄.exec(String(프롬프트 ?? ''))?.[1] ?? null;
+  if (이름 === null) return { 셈: null };
+  const 남은말 = ' 남은 묶음은 보조를 띄우지 말고 자식이 직접 쓴다 (tpx-author fanout.md §2 · §6).';
+  const 띄운수 = 기록.filter((x) => x === 이름).length;
+  if (띄운수 >= 2) return { 거절: `[차단] 「${이름}」 묶음은 이미 두 번 띄웠다 — 다시 띄우기는 한 번까지다(물러서기 포함).${남은말}` };
+  if (띄운수 === 0 && new Set(기록).size >= 묶음넷) return { 거절: `[차단] 케이스 작성 보조는 묶음 ${묶음넷}개까지다. 「${이름}」은 ${묶음넷 + 1}번째 묶음이다.${남은말}` };
+  return { 셈: 이름 };
 }
 
 const ESCAPE = process.env.ALLOW_PROTECTED === '1';
@@ -152,6 +167,23 @@ SPEC §4 — tests/** 에는 주석을 쓰지 않는다.
 
 검증은 verify(문장, 실제값, 기대값)만 쓴다. expect는 결과에 문장을 남기지 않아
 증적 문서에 아무것도 나오지 않는다.`);
+  }
+  ok();
+}
+
+if (mode === 'fanout') {
+  // 작성 자식에서만 켠다 — 에이전트가 자식에게만 이 변수를 준다(authoring-run). 사람 세션은 그냥 지나간다
+  const 자리 = process.env.AUTHORING_GATE3_DIR;
+  if (!자리) ok();
+  const 파일 = `${자리}/fanout.log`;
+  let 기록 = [];
+  try { 기록 = readFileSync(파일, 'utf8').split('\n').filter(Boolean); } catch { /* 처음이면 없다 */ }
+  const 판정 = fanoutVerdict(기록, input.prompt);
+  if (판정.거절) block(판정.거절);
+  // 한 응답의 호출 넷이 동시에 돌아 읽고 고쳐 쓰면 서로 덮는다 — 한 줄씩 덧붙이고 줄 수로 센다.
+  // ponytail: 다섯 이상을 한 응답에 나란히 띄우면 모두 빈 기록을 읽어 통과한다. 뼈대가 한 응답에 넷까지라 그대로 둔다
+  if (판정.셈) {
+    try { appendFileSync(파일, 판정.셈 + '\n'); } catch (e) { console.error(`[guard] 팬아웃 기록을 못 썼다 — 막지 않고 지나간다: ${e.message}`); }
   }
   ok();
 }

@@ -9,8 +9,10 @@ export interface 품질 {
   케이스: number;
   /** 케이스 파일마다 `verify(` 수의 평균 */
   판정평균: number;
-  /** `blocker: true` 판정이 하나라도 있는 케이스의 비율 — 준비 단계마다 화면이 맞는지 확인했나 */
+  /** 준비가 있는 케이스 가운데 `blocker: true` 판정이 하나라도 있는 비율 — 준비 단계마다 화면이 맞는지 확인했나 */
   전제확인비율: number;
+  /** 전제가 없거나 비회원 · 로그아웃 상태뿐이라 확인할 준비가 없는 케이스 — 비율에서 뺀다 (2026-10-04) */
+  준비없음: number;
   /** 공용 부품(components) 밖에서 CSS · XPath 로 찾은 locator 수 — 역할 · 라벨보다 쉽게 깨진다 */
   밖CSS: number;
   /** 둘 이상의 케이스 파일에 같은 이름으로 만든 도우미 — 묶음마다 따로 만든 흔적(MKT 11208 은 가입 · 탈퇴 도우미가 55개 파일) */
@@ -18,6 +20,27 @@ export interface 품질 {
 }
 
 const 케이스파일 = /\.spec\.ts$/;
+// 준비할 것이 없는 상태 문구 — 낱말 포함이 아니라 문구 그대로 맞댄다(「홈 화면이 열려 있다 · 비회원이다」는 준비가 있다)
+const 준비없는상태 = new Set(['비회원이다', '로그아웃 상태다']);
+// 따옴표 단위로 읽는다 — 글 안의 `]` · 다른 따옴표에 잘리지 않게. 목록이 아닌 전제(상수 참조)는 모르니 준비가 있는 것으로 본다
+const 문자열 = /'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|`((?:[^`\\]|\\.)*)`/y;
+const 전제목록 = (글: string): string[] => {
+  const 자리 = /precondition:\s*/.exec(글);
+  if (자리 === null) return [];
+  let i = 자리.index + 자리[0].length;
+  if (글[i] !== '[') return ['?'];
+  const 목록: string[] = [];
+  for (i++; i < 글.length; ) {
+    if (/[\s,]/.test(글[i]!)) { i++; continue; }
+    if (글[i] === ']') break;
+    문자열.lastIndex = i;
+    const m = 문자열.exec(글);
+    if (m === null) return ['?'];
+    목록.push((m[1] ?? m[2] ?? m[3] ?? '').trim());
+    i = 문자열.lastIndex;
+  }
+  return 목록;
+};
 // testid(`[data-testid=…]`)는 locator 1순위라 뺀다
 const CSS찾기 = /locator\(\s*['"`](?:[.#]|\[(?!data-testid)|\/\/|xpath=|css=)/g;
 const 도우미 = /^(?:export\s+)?(?:async\s+function\s+|function\s+|const\s+)([\p{L}_$][\p{L}\p{N}_$]*)\s*(?:\(|=\s*(?:async\s*)?\()/gmu;
@@ -25,7 +48,8 @@ const 도우미 = /^(?:export\s+)?(?:async\s+function\s+|function\s+|const\s+)([
 export function 품질숫자(파일들: 파일글[]): 품질 {
   const 케이스들 = 파일들.filter((f) => 케이스파일.test(f.경로));
   const 판정수 = 케이스들.reduce((n, f) => n + (f.글.match(/\bverify\(/g)?.length ?? 0), 0);
-  const 전제 = 케이스들.filter((f) => /blocker:\s*true/.test(f.글)).length;
+  const 준비있음 = 케이스들.filter((f) => 전제목록(f.글).some((p) => !준비없는상태.has(p)));
+  const 전제 = 준비있음.filter((f) => /blocker:\s*true/.test(f.글)).length;
   const 밖CSS = 파일들
     .filter((f) => !f.경로.split('/').includes('components'))
     .reduce((n, f) => n + (f.글.match(CSS찾기)?.length ?? 0), 0);
@@ -35,14 +59,15 @@ export function 품질숫자(파일들: 파일글[]): 품질 {
   const 겹친도우미 = [...이름파일수].filter(([, n]) => n >= 2).map(([이름]) => 이름).sort();
 
   const n = 케이스들.length;
-  return { 케이스: n, 판정평균: n === 0 ? 0 : 판정수 / n, 전제확인비율: n === 0 ? 0 : 전제 / n, 밖CSS, 겹친도우미 };
+  const 분모 = 준비있음.length;
+  return { 케이스: n, 판정평균: n === 0 ? 0 : 판정수 / n, 전제확인비율: 분모 === 0 ? 0 : 전제 / 분모, 준비없음: n - 분모, 밖CSS, 겹친도우미 };
 }
 
 /** PR 본문 「작성 요약」 머리에 싣는 한 줄. 도우미 이름은 앞 다섯까지 */
 export function 품질줄(q: 품질): string {
   const 이름 = q.겹친도우미.length === 0 ? '' : `(${q.겹친도우미.slice(0, 5).join(' · ')}${q.겹친도우미.length > 5 ? ' …' : ''})`;
   return (
-    `품질 숫자: 케이스 ${q.케이스} · 판정 평균 ${q.판정평균.toFixed(1)} · 전제 확인 ${Math.round(q.전제확인비율 * 100)}% · ` +
+    `품질 숫자: 케이스 ${q.케이스} · 판정 평균 ${q.판정평균.toFixed(1)} · 전제 확인 ${Math.round(q.전제확인비율 * 100)}%(준비 없는 케이스 ${q.준비없음} 제외) · ` +
     `공용 부품 밖 CSS·XPath ${q.밖CSS} · 여러 파일에 따로 만든 도우미 ${q.겹친도우미.length}개${이름}`
   );
 }

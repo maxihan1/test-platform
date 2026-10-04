@@ -1,7 +1,19 @@
 // 끝의 전체 3회 결과 파일 판정 검사 — Playwright json 리포터 모양(최상위 suites[].file · specs[].tests[].projectName)
 import { describe, expect, it } from 'vitest';
 
-import { 끝전체3회경고 } from './authoring-gate3.js';
+import { 끝전체3회경고, 남은임시도우미 } from './authoring-gate3.js';
+
+describe('남은 임시 도우미 (작성 §3.6 팬아웃 · 2026-10-04)', () => {
+  it('공용으로 옮기지 않은 draft 파일이 남으면 경고한다', () => {
+    expect(남은임시도우미(['mkt/components/header.component.ts', 'mkt/components/draft-cart.component.ts', 'mkt/MKT-FN-001.spec.ts'])).toBe(
+      '⚠️ 공용으로 옮기지 않은 임시 도우미 1개 — mkt/components/draft-cart.component.ts',
+    );
+  });
+
+  it('없으면 null', () => {
+    expect(남은임시도우미(['mkt/components/header.component.ts', 'mkt/pages/draft-list.page.ts'])).toBeNull();
+  });
+});
 
 const 시작 = '2026-10-03T10:00:00.000Z';
 const 뒤 = '2026-10-03T10:30:00.000Z';
