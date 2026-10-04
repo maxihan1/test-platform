@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import { 원장뽑기 } from './authoring-ledger.js';
-import { tcId들, 사람이뺀번호, 셈글, 원장대조, 원장판정, 제외종류 } from './authoring-ledger-check.js';
+import { tcId들, 사람이뺀번호, 셈글, 요구줄들, 원장대조, 원장판정, 제외번호들, 제외종류 } from './authoring-ledger-check.js';
+import { type 칸재료, 칸재료만들기 } from './authoring-slots.js';
 
 const 옛표 = readFileSync(new URL('./fixtures/ledger/mkt-5877.md', import.meta.url), 'utf8');
 const 데모마켓 = 원장뽑기(readFileSync(new URL('./fixtures/ledger/demomarket.txt', import.meta.url), 'utf8'), '3757');
@@ -34,6 +35,7 @@ describe('원장대조', () => {
     const r = 원장대조(원장, 표([줄('a §2 REQ-A-1 · REQ-A-2', 'X-001')], ['| REQ-A-3 | 다음 요청 | 이번 범위 밖 |']), {
       있는케이스: new Set(['X-001']),
       에이전트: true,
+      다음요청: new Set(['REQ-A-3']),
     });
     expect(r.빠짐).toEqual([]);
     expect(r.형식오류).toEqual([]);
@@ -247,7 +249,7 @@ describe('「사람이 뺌」 — 기준 표에 이미 있던 것은 에이전�
   });
 
   it('목록에 든 번호의 줄은 제외로 세고, 목록 밖은 지금처럼 형식 오류다', () => {
-    const r = 원장대조(원장, 제외표, { 에이전트: true, 사람이뺌: new Set(['REQ-A-1']) });
+    const r = 원장대조(원장, 제외표, { 에이전트: true, 사람이뺌: new Set(['REQ-A-1']), 다음요청: new Set(['REQ-A-3']) });
     expect(r.형식오류).toEqual(['제외 줄 「REQ-A-2」 — 「사람이 뺌」은 사람 세션만 쓴다']);
     expect(r.빠짐).toEqual(['REQ-A-2']);
     expect(r.셈.제외).toEqual({ '사람이 뺌': 1, '다음 요청': 1 });
@@ -255,7 +257,70 @@ describe('「사람이 뺌」 — 기준 표에 이미 있던 것은 에이전�
 
   it('원장판정 이 목록을 대조에 넘긴다', () => {
     const 값 = { 항목: 원장, 가족: {}, 모드: {}, 경고: [], 빠진자료: [], 꼴: {} };
-    const r = 원장판정(값, 제외표, new Set(), new Set(['REQ-A-1', 'REQ-A-2']));
+    const r = 원장판정(값, 제외표, new Set(), { 사람이뺌: new Set(['REQ-A-1', 'REQ-A-2']), 다음요청: new Set(['REQ-A-3']), 칸재료: null });
     expect('대조' in r && r.대조.형식오류).toEqual([]);
+  });
+});
+
+describe('칸 번호 · 「다음 요청」 — 작성 에이전트 (2026-10-04 게이트 1 · 작성 §3.6 「칸과 번호」)', () => {
+  const 칸줄 = (축: string, 출처: string, tcId: string) => `| 1 | ${축} | 전 | 조 | 결 | ${출처} | ${tcId} | 2026-10-04 |`;
+  const 번호들 = 원장.map((h) => h.번호);
+  const 빈재료: 칸재료 = { 접두사: 'X', 기준줄: [], 칸: {}, 쓰인: [] };
+
+  it('요구줄들 이 백틱을 벗기고 \\| 든 칸을 안 깬다', () => {
+    const 글 = 표([칸줄('UI', 'a §2 REQ-A-2 · 「A \\| B」', '`X-UI-002`')]);
+    expect(요구줄들(글)).toEqual([{ 차례: 0, 출처: 'a §2 REQ-A-2 · 「A \\| B」', 축: 'UI', tcId: 'X-UI-002' }]);
+  });
+
+  it('제외번호들 이 종류별 번호를 뽑고 사람이뺀번호 는 그것을 쓴다', () => {
+    const 글 = 표([], ['| REQ-A-1 | 다음 요청 | 다음 |', '| REQ-A-2 | 사람이 뺌 | 판정 |', '| REQ-A-3 | 다음 요청 | 다음 |']);
+    expect([...제외번호들(글, '다음 요청')]).toEqual(['REQ-A-1', 'REQ-A-3']);
+    expect([...사람이뺀번호(글)]).toEqual(['REQ-A-2']);
+  });
+
+  it('에이전트가 새로 쓴 「다음 요청」은 형식 오류이고 빠짐으로 센다 · 기준에 있던 번호는 인정한다', () => {
+    const 글 = 표([], ['| REQ-A-1 | 다음 요청 | 다음 |', '| REQ-A-2 | 다음 요청 | 다음 |', '| REQ-A-3 | 요구 아님 | 목차 |']);
+    const r = 원장대조(원장, 글, { 에이전트: true, 다음요청: new Set(['REQ-A-1']) });
+    expect(r.형식오류).toEqual(['제외 줄 「REQ-A-2」 — 「다음 요청」은 작성 에이전트가 새로 못 쓴다']);
+    expect(r.빠짐).toEqual(['REQ-A-2']);
+    expect(r.셈.제외).toEqual({ '다음 요청': 1, '요구 아님': 1 });
+  });
+
+  it('사람 세션(에이전트 아님)은 「다음 요청」을 막지 않는다', () => {
+    const 글 = 표([], ['| REQ-A-1 | 다음 요청 | 다음 |']);
+    expect(원장대조(원장, 글, { 에이전트: false }).형식오류).toEqual([]);
+  });
+
+  it('tcId 가 칸 번호와 다른 줄은 칸어긋남에 싣되 그 요구는 덮음이다', () => {
+    const 글 = 표([칸줄('UI', 'a REQ-A-2', 'X-UI-002'), 칸줄('정상', 'a REQ-A-2', 'X-FN-010')]);
+    const r = 원장대조(원장, 글, { 있는케이스: new Set(['X-UI-002', 'X-FN-010']), 에이전트: true, 칸재료: 빈재료 });
+    expect(r.칸어긋남).toEqual(['요구 줄 2 tcId X-FN-010 — 칸 번호 X-FN-004']);
+    expect(r.빠짐).toEqual(['REQ-A-1', 'REQ-A-3']);
+    expect(r.형식오류).toEqual([]);
+    expect([...(r.덮음.get('REQ-A-2') ?? [])]).toEqual(['X-UI-002', 'X-FN-010']);
+  });
+
+  it('기준 줄(같은 tcId · 같은 출처)은 칸 번호와 달라도 안 본다', () => {
+    const 기준 = 표([칸줄('정상', 'a REQ-A-2', 'X-010')]);
+    const 재료 = 칸재료만들기('X', 요구줄들(기준), ['X-010'], 번호들);
+    const r = 원장대조(원장, 기준, { 에이전트: true, 칸재료: 재료 });
+    expect(r.칸어긋남).toEqual([]);
+  });
+
+  it('칸재료가 없거나 에이전트가 아니면 번호를 안 본다', () => {
+    const 글 = 표([칸줄('정상', 'a REQ-A-2', 'X-FN-010')]);
+    expect(원장대조(원장, 글, { 에이전트: true }).칸어긋남).toEqual([]);
+    expect(원장대조(원장, 글, { 에이전트: false, 칸재료: 빈재료 }).칸어긋남).toEqual([]);
+  });
+
+  it('원장판정 이 칸 번호 어긋남 · 재료 없음을 머리글에 싣는다', () => {
+    const 값 = { 항목: 원장, 가족: {}, 모드: {}, 경고: [], 빠진자료: [], 꼴: {} };
+    const 글 = 표([칸줄('정상', 'a REQ-A-1 · REQ-A-2 · REQ-A-3', 'X-FN-010')]);
+    const 있음 = new Set(['X-FN-010']);
+    const 어긋 = 원장판정(값, 글, 있음, { 사람이뺌: new Set(), 다음요청: new Set(), 칸재료: 빈재료 });
+    expect(어긋.머리글).toContain('⚠️ 칸 번호 어긋남 1 — 요구 줄 1 tcId X-FN-010 — 칸 번호 X-FN-001');
+    const 없음 = 원장판정(값, 글, 있음, { 사람이뺌: new Set(), 다음요청: new Set(), 칸재료: null });
+    expect(없음.머리글).toContain('칸 번호 — 기준 표를 못 읽어 안 봤다');
+    expect(원장판정(값, 글, 있음).머리글).not.toContain('칸 번호');
   });
 });
