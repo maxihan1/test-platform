@@ -29,8 +29,10 @@ export function 모델인자(m: 모델): string[] {
 }
 
 /** 자식이 구독 한도에 걸려 멈췄나. 걸렸으면 사람이 「기다렸다 다시」를 알아야 한다 — 기획서 탓이 아니다 */
-export function 한도걸렸나(글: string): boolean {
-  return /usage limit reached|hit your limit|rate limit/i.test(글);
+// 한도 안내는 자식 글의 맨 끝 한 줄로 온다. 글 전체를 보면 대상 화면 문구(「daily limit」)를 인용한 채 끊긴 것도 한도로 남는다 (2026-10-04)
+export function 한도걸렸나(글: string, 오류 = ''): boolean {
+  const 끝줄 = 글.trimEnd().split('\n').pop() ?? '';
+  return /usage limit reached|hit your (?:\w+ )?limit|rate limit/i.test(`${끝줄}\n${오류}`);
 }
 
 const 하루 = 24 * 60 * 60 * 1000;

@@ -64,6 +64,15 @@ describe('한도걸렸나 — 예비 모델은 한도를 넘겨 주지 않는다
   it('평범한 실패는 한도가 아니다', () => {
     expect(한도걸렸나('Error: tests failed')).toBe(false);
   });
+
+  it('세션 한도 문구도 한도다 — MKT 11210 은 이 문구로 멈췄는데 끊김(CRASH)으로 남았다 (2026-10-04)', () => {
+    expect(한도걸렸나("관문 3 을 돌립니다.\nYou've hit your session limit · resets 5pm (UTC)")).toBe(true);
+  });
+
+  it('자식 글의 마지막 줄과 오류 출력만 본다 — 본문 중간에 인용한 한도 문구로 오판하지 않는다', () => {
+    expect(한도걸렸나("화면에 「You've hit your daily limit」 문구가 보인다.\n관문 2 를 돌리는 중입니다.")).toBe(false);
+    expect(한도걸렸나('관문 2 를 돌리는 중입니다.', 'Claude AI usage limit reached|1760000000')).toBe(true);
+  });
 });
 
 describe('CLI 최신화', () => {
