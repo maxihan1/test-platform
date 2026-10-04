@@ -1,0 +1,138 @@
+// 작성 결과 일관성 검사 — 같은 기획서로 여러 번 작성한 결과가 얼마나 같은지 재는 숫자
+import { describe, expect, it } from 'vitest';
+
+import { type 실행, 견주기, 견줌줄, 실행요약, 확인문장들 } from './authoring-consistency.js';
+
+const 케이스 = (tcId: string, ...문장: string[]) =>
+  `import { defineCase, test, verify } from '@platform/kit';\nexport const spec = defineCase({ tcId: '${tcId}', name: 'n', precondition: [], params: null, expected: null });\n` +
+  문장.map((s) => `await verify('${s}', 1, 1);`).join('\n');
+
+const 표 = (...줄: [string, string][]) =>
+  ['## 요구사항', '', '| 요구 | 출처 | tcId |', '|---|---|---|', ...줄.map(([출처, tcId], i) => `| ${String(i + 1)} | ${출처} | ${tcId} |`), '', '## 제외', ''].join('\n');
+
+describe('확인 문장 뽑기 (같은 입력이면 같은 결과 측정 · 2026-10-04)', () => {
+  it('verify 의 첫 인자 문자열을 차례대로 뽑고 빈칸은 하나로 모은다', () => {
+    const 글 = [
+      "await verify('로고가 보인다', a, true);",
+      'await verify(\n      "목록에   두 건이\n 보인다",\n      [x],\n      [y],\n    );',
+      "await verify(변수, 1, 1);",
+      'await verify(`금액은 ${n}원`, 1, 1);',
+    ].join('\n');
+    expect(확인문장들(글)).toEqual(['로고가 보인다', '목록에 두 건이 보인다']);
+  });
+
+  it('작은따옴표 안의 이스케이프된 따옴표에서 끊기지 않는다', () => {
+    expect(확인문장들("verify('「It\\'s」가 보인다', 1, 1)")).toEqual(["「It's」가 보인다"]);
+  });
+});
+
+describe('실행 하나 요약', () => {
+  const 파일들 = [
+    { 경로: 'MKT-FN-001.spec.ts', 글: 케이스('MKT-FN-001', 'a', 'b') },
+    { 경로: 'MKT-FN-002.spec.ts', 글: 케이스('MKT-FN-002', 'c') },
+    { 경로: 'pages/home.page.ts', 글: '' },
+    { 경로: 'mkt/components/home.page.ts', 글: '' },
+    { 경로: 'helpers/x.ts', 글: "export const spec = 1; verify('d', 1, 1)" },
+  ];
+
+  it('케이스 파일마다 tcId → 확인 문장을 모으고, 화면 파일은 pages · components 마디부터의 경로로 센다', () => {
+    const 요약 = 실행요약(파일들);
+    expect([...요약.케이스]).toEqual([
+      ['MKT-FN-001', new Set(['a', 'b'])],
+      ['MKT-FN-002', new Set(['c'])],
+    ]);
+    expect(요약.화면파일).toEqual(new Set(['pages/home.page.ts', 'components/home.page.ts']));
+    expect(요약.덮음).toBeNull();
+  });
+
+  it('표가 있으면 tcId → 덮은 원장 번호를 모은다 — R15 로 같은 tcId 를 가리킨 줄은 합치고, 백틱은 벗기고, 파일 없는 tcId 는 뺀다', () => {
+    const 요약 = 실행요약(
+      파일들,
+      표(['기획.docx §1 REQ-HOME-001', 'MKT-FN-001'], ['기획.docx §1 REQ-HOME-002 · REQ-HOME-003', '`MKT-FN-001`'], ['REQ-HOME-004', 'MKT-FN-009'], ['화면 `/`', 'MKT-FN-002']),
+    );
+    expect(요약.덮음).toEqual(new Map([['MKT-FN-001', new Set(['REQ-HOME-001', 'REQ-HOME-002', 'REQ-HOME-003'])]]));
+  });
+
+  it('표는 있는데 출처에 원장 번호가 하나도 없으면 빈 Map 이다(원장 없음 — 표 없음과 다르다)', () => {
+    expect(실행요약(파일들, 표(['화면 기록 home.md', 'MKT-FN-001'])).덮음).toEqual(new Map());
+  });
+
+  it('출처 칸의 번호 꼴 글자 가운데 tcId 와 같은 가족 · 서로 다른 번호가 셋 미만인 가족은 원장 번호로 치지 않는다 — R18 근거(화면 검사 — 날짜 ISO-8601)가 가짜 짝을 만든다', () => {
+    const 요약 = 실행요약(
+      파일들,
+      표(
+        ['REQ-HOME-001 · 화면 검사 — 날짜 ISO-8601', 'MKT-FN-001'],
+        ['REQ-HOME-002 · MKT-FN-002 · MKT-FN-007 · MKT-FN-008 과 같은 화면 · UTF-8 · ISO-8601', 'MKT-FN-001'],
+        ['REQ-HOME-003', 'MKT-FN-002'],
+      ),
+    );
+    expect(요약.덮음).toEqual(
+      new Map([
+        ['MKT-FN-001', new Set(['REQ-HOME-001', 'REQ-HOME-002'])],
+        ['MKT-FN-002', new Set(['REQ-HOME-003'])],
+      ]),
+    );
+  });
+
+  it('가족 수는 「제외」 표까지 표 전체에서 센다 — 요구사항 표에 하나뿐인 가족도 나머지가 제외됐으면 원장 번호다(MKT 기준선 REQ-ADM-001)', () => {
+    const 글 = `${표(['REQ-ADM-001', 'MKT-FN-001'])}| 요구 | 종류 | 사유 |\n|---|---|---|\n| REQ-ADM-002 | 다음 요청 | 관리자 화면 |\n| REQ-ADM-003 | 다음 요청 | 관리자 화면 |\n`;
+    expect(실행요약(파일들, 글).덮음).toEqual(new Map([['MKT-FN-001', new Set(['REQ-ADM-001'])]]));
+  });
+
+  it('표를 잘못 주면(요구사항 절이 없거나 이 폴더의 tcId 와 맞는 줄이 없으면) 「원장 없음」으로 넘기지 않고 멈춘다', () => {
+    expect(() => 실행요약(파일들, '### 요구사항\n\n| 출처 | tcId |\n|---|---|\n| REQ-A-001 | MKT-FN-001 |')).toThrow(/표를 읽지 못했다/);
+    expect(() => 실행요약(파일들, 표(['REQ-HOME-001', 'CDY-FN-001']))).toThrow(/표를 읽지 못했다/);
+  });
+});
+
+describe('두 실행 견주기 (게이트 1 — 글자가 아니라 원장 번호로 같은 케이스 · 같은 묶기를 잰다)', () => {
+  const 집합 = (...s: string[]) => new Set(s);
+  const 가: 실행 = {
+    케이스: new Map([['T1', 집합('s1', 's2')], ['T2', 집합('s3')], ['T3', 집합('s4')]]),
+    화면파일: 집합('pages/a.page.ts', 'pages/b.page.ts'),
+    덮음: new Map([['T1', 집합('R1', 'R2')], ['T2', 집합('R3')]]),
+  };
+  const 나: 실행 = {
+    케이스: new Map([['T1', 집합('s1')], ['T2', 집합('s5')], ['T4', 집합('s4')]]),
+    화면파일: 집합('pages/a.page.ts', 'components/c.component.ts'),
+    덮음: new Map([['T1', 집합('R1')], ['T2', 집합('R4')], ['T4', 집합('R3')]]),
+  };
+
+  it('손으로 셈한 값과 같다 — 같은 번호 T1(R1·R2 ↔ R1 = 0.5) · T2(R3 ↔ R4 = 0), 짝 R1|R2 ↔ 없음, 한쪽만 R2 · R4', () => {
+    const 견줌 = 견주기(가, 나);
+    expect(견줌).toEqual({
+      케이스: [3, 3],
+      문장겹침: 2 / 5,
+      화면겹침: 1 / 3,
+      원장: { 같은번호: 2, 같은요구: 1, 짝겹침: 0, a만: 1, b만: 1 },
+    });
+    expect(견줌줄(견줌)).toBe(
+      '케이스 3 · 3 | 같은 번호 같은 요구 2 중 1(50.0%) | 묶인 번호 짝 겹침 0.0% | 한쪽만 덮은 번호 1 · 1 | 확인 문장 겹침(표현까지) 40.0% | 화면 파일 겹침 33.3%',
+    );
+  });
+
+  it('표가 한쪽만 있으면 원장 숫자는 「표 없음」, 원장 번호가 없으면 「원장 없음」이다', () => {
+    expect(견주기(가, { ...나, 덮음: null }).원장).toBe('표 없음');
+    expect(견주기(가, { ...나, 덮음: new Map() }).원장).toBe('원장 없음');
+    expect(견줌줄(견주기(가, { ...나, 덮음: null }))).toBe('케이스 3 · 3 | 원장 숫자 표 없음 | 확인 문장 겹침(표현까지) 40.0% | 화면 파일 겹침 33.3%');
+  });
+
+  it('같은 번호의 분모는 두 실행에 다 있고 한쪽이라도 원장 번호를 덮은 tcId 다 — 둘 다 안 덮으면 빼고, 한쪽만 덮으면 넣고 「다름」으로 센다', () => {
+    const 견줌 = 견주기(
+      { ...가, 케이스: new Map([...가.케이스, ['T5', 집합()], ['T6', 집합()]]), 덮음: new Map([...(가.덮음 ?? []), ['T6', 집합('R6')]]) },
+      { ...나, 케이스: new Map([...나.케이스, ['T5', 집합()], ['T6', 집합()]]) },
+    );
+    expect(견줌.원장).toMatchObject({ 같은번호: 3, 같은요구: 1 });
+  });
+
+  it('빈 집합끼리는 0% 가 아니라 재료가 없다고 찍는다 — NaN 을 내지 않고 「겹침 0」으로도 안 읽히게', () => {
+    const 빈: 실행 = { 케이스: new Map([['T9', 집합()]]), 화면파일: 집합(), 덮음: new Map([['T9', 집합('R9')]]) };
+    const 견줌 = 견주기(빈, 빈);
+    expect(견줌).toMatchObject({ 문장겹침: null, 화면겹침: null, 원장: { 같은번호: 1, 같은요구: 1, 짝겹침: null } });
+    expect(견줌줄(견줌)).toBe(
+      '케이스 1 · 1 | 같은 번호 같은 요구 1 중 1(100.0%) | 묶인 번호 짝 겹침 — 짝 없음 | 한쪽만 덮은 번호 0 · 0 | 확인 문장 겹침(표현까지) — 문장 없음 | 화면 파일 겹침 — 파일 없음',
+    );
+    const 겹침없음 = 견주기({ ...빈, 케이스: new Map([['T8', 집합()]]), 덮음: new Map([['T8', 집합('R1')]]) }, 빈);
+    expect(견줌줄(겹침없음)).toContain('같은 번호 같은 요구 — 같은 번호 없음');
+  });
+});
