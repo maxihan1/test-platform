@@ -26,7 +26,7 @@ import { type 계정, type 사본, 사본환경, 파일거부사유 } from './au
 import { 산출물읽기, 역기획서준비 } from './authoring-upload-reverse.js';
 import { 저장본갈기 } from './authoring-screens-keep-io.js';
 import type { 원장 } from './authoring-ledger.js';
-import { tcId들, 원장판정 } from './authoring-ledger-check.js';
+import { type 기준결정, tcId들, 원장판정 } from './authoring-ledger-check.js';
 import { 케이스글들, 지문쓰기 } from './authoring-ledger-io.js';
 import { 지문파일자리 } from './authoring-ledger-diff.js';
 import { type 셈재료, 커버리지싣는손 } from './authoring-coverage.js';
@@ -72,7 +72,7 @@ export async function 올리기(
   자식출력: string,
   원손: 보고손,
   역: 역방향올리기 | undefined,
-  원장재료: { 값: 원장 | { 없음: string }; 폴더: string; 자식: 계정 | null; 사람이뺌: Set<string>; 앞지문: { 글: string | null } | null },
+  원장재료: { 값: 원장 | { 없음: string }; 폴더: string; 자식: 계정 | null; 기준: 기준결정; 앞지문: { 글: string | null } | null },
   단계표 = '',
 ): Promise<void> {
   // 셈은 원장 대조 뒤에 선다 — 그 전의 끝내기에는 안 싣는다. 보류가 바깥이라 셈이 result.held 를 보고 보류를 센다 (§3.6 「★ 원장」)
@@ -157,7 +157,7 @@ export async function 올리기(
   // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠져도 거절하지 않고 셈과 PR 본문 머리에 남긴다 (§3.6 「★ 원장」, 2026-09-30 게이트 1)
   const 추적 = 트리에서('git', ['ls-files', '-z', '--', `tests/${원장재료.폴더}`]);
   if (!추적.ok) return void (await 손.끝내기(거절(`원장 대조용 케이스 목록을 못 읽었다: ${추적.까닭}`)));
-  const 원장결과 = 원장판정(원장재료.값, 읽기(표), tcId들(케이스글들(추적.낸것.split('\0'), 원장재료.폴더, 읽기)), 원장재료.사람이뺌);
+  const 원장결과 = 원장판정(원장재료.값, 읽기(표), tcId들(케이스글들(추적.낸것.split('\0'), 원장재료.폴더, 읽기)), 원장재료.기준);
   // 여기부터의 끝내기(DONE · 올리기 거절)에 셈이 실린다
   const 원장값 = 원장재료.값;
   셈 = '없음' in 원장값 ? { 없음: 원장값.없음 } : '대조' in 원장결과 ? { 대조: 원장결과.대조, 원장: 원장값 } : null;
