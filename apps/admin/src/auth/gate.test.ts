@@ -6,6 +6,8 @@ import { dirname, join, resolve } from 'node:path';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { 시나리오시험 } from '../execution/trial.js';
+
 import { 에이전트토큰만들기 } from './agentToken.js';
 import { 권한이되나, 옛자동규칙, 인증등록 } from './gate.js';
 import { 해시 } from './password.js';
@@ -713,7 +715,7 @@ describe('등급 표', () => {
   it('표의 기능은 경로 접두사가 정한 기능과 같다 — 접두사예외만 빼고', () => {
     const 경로의기능 = (틀: string): 기능 | null => {
       if (/^\/api\/(catalog|cases|param-sets)(\/|$)/.test(틀)) return 'cases';
-      if (/^\/api\/(runs|evidence|screenshots|scenarios)(\/|$)/.test(틀)) return 'runs';
+      if (/^\/api\/(runs|evidence|screenshots|scenarios|scenario-trials)(\/|$)/.test(틀)) return 'runs';
       if (/^\/api\/authoring(\/|$)/.test(틀)) return 'authoring';
       return null;
     };
@@ -823,6 +825,9 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
         scope.post('/scenarios/:id/runs', async () => ({ 지나감: true }));
         scope.get('/runs/:runId/scenario', async () => ({ 지나감: true }));
         scope.get('/runs/:runId/scenario/screenshots/:seq', async () => ({ 지나감: true }));
+        scope.post('/scenario-trials', async () => ({ 지나감: true }));
+        scope.get('/scenario-trials/:trialId', async () => ({ 지나감: true }));
+        scope.get('/scenario-trials/:trialId/screenshots/:seq', async () => ({ 지나감: true }));
       },
       { prefix: '/api' },
     );
@@ -906,5 +911,40 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
       expect(res.statusCode, JSON.stringify(payload)).toBe(403);
       expect(res.json<{ error: string }>().error).toBe('SERVICE_FORBIDDEN');
     }
+  });
+
+  it('시험 실행 시작은 (실행, write) 이고 본문 service 가 배정 밖이면 403 이다', async () => {
+    const 읽기 = await 출입증('xsa-reader');
+    const 쓰기 = await 출입증('xsa-writer');
+    const 시작 = (cookies: Record<string, string>, payload: Record<string, unknown>) =>
+      app.inject({ method: 'POST', url: '/api/scenario-trials', cookies, payload });
+
+    expect((await 시작(읽기, { service: 'XSA' })).json()).toEqual({ error: 'FORBIDDEN', need: 'runs:write' });
+    expect((await 시작(쓰기, { service: 'XSA' })).statusCode).toBe(200);
+    expect((await 시작(쓰기, { service: 'XSA2' })).json()).toEqual({ error: 'SERVICE_FORBIDDEN', detail: 'XSA2' });
+    expect((await 시작(쓰기, {})).statusCode).toBe(403);
+  });
+
+  it('시험 결과·사진은 남의 번호 · 없는 번호 · 모양 아닌 번호를 문이 지나보낸다 — 라우트가 404 를 낸다', async () => {
+    시나리오시험.전부비운다();
+    const 남의것 = 시나리오시험.시작한다('누군가', 'XSA2', () => new Promise(() => {}), []);
+    const cookies = await 출입증('xsa-reader');
+    for (const 번호 of [남의것, '44444444-4444-4444-8444-444444444444', '모양아님']) {
+      for (const url of [`/api/scenario-trials/${번호}`, `/api/scenario-trials/${번호}/screenshots/1`]) {
+        expect((await app.inject({ method: 'GET', url, cookies })).statusCode, url).toBe(200);
+      }
+    }
+    시나리오시험.전부비운다();
+  });
+
+  it('내 시험이어도 그 서비스 배정이 없으면 403 이다', async () => {
+    시나리오시험.전부비운다();
+    const 내것 = 시나리오시험.시작한다('xsa-reader', 'XSA2', () => new Promise(() => {}), []);
+    const cookies = await 출입증('xsa-reader');
+    const res = await app.inject({ method: 'GET', url: `/api/scenario-trials/${내것}`, cookies });
+    expect(res.json()).toEqual({ error: 'SERVICE_FORBIDDEN', detail: 'XSA2' });
+    const 내XSA = (시나리오시험.전부비운다(), 시나리오시험.시작한다('xsa-reader', 'XSA', () => new Promise(() => {}), []));
+    expect((await app.inject({ method: 'GET', url: `/api/scenario-trials/${내XSA}`, cookies })).statusCode).toBe(200);
+    시나리오시험.전부비운다();
   });
 });

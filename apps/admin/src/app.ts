@@ -24,6 +24,7 @@ import grafanaProxy from './grafana/proxy.js';
 import reportingRoutes from './reporting/routes.js';
 import scenarioRoutes from './scenario/routes.js';
 import scenarioRunRoutes from './scenario/runRoutes.js';
+import scenarioTrialRoutes from './scenario/trialRoutes.js';
 import settingsRoutes from './settings/routes.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -50,6 +51,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(reportingRoutes, { prefix: '/api' });
   app.register(scenarioRoutes, { prefix: '/api' });
   app.register(scenarioRunRoutes, { prefix: '/api' });
+  app.register(scenarioTrialRoutes, { prefix: '/api' });
   app.register(settingsRoutes, { prefix: '/api' });
 
   // 대시보드는 /api 밖이다. 문(auth/grafanaGate.ts)을 지난 요청만 Grafana 로 넘어간다 (SPEC 도메인/인증 §7)
