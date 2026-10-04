@@ -1,6 +1,9 @@
 // 요구 글 하나에서 테스트 설계 기법이 요구하는 경계 근거 · 시험 값 · 예외 근거를 뽑는 순수 판정
 
-export type 기법 = '경계값 분석' | '동등 분할' | '결정 테이블' | '상태 전이';
+import type { Technique } from '@platform/kit/types';
+
+// 낱말 정본은 kit TECHNIQUES — 케이스 파일 techniques 와 같은 낱말이어야 기법 대조가 맞는다
+export type 기법 = Technique;
 export interface 경계근거 { 근거: string; 값: string[] }
 export interface 예외근거 { 기법: 기법; 근거: string }
 export interface 설계 { 경계: 경계근거[]; 예외: 예외근거[] }
