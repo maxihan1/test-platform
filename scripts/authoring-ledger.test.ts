@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import type { 읽을자료 } from './authoring-assets.js';
-import { 번호찾기, 원장뽑기, 원장만들기 } from './authoring-ledger.js';
+import { type 원장항목, 번호찾기, 원장뽑기, 원장만들기 } from './authoring-ledger.js';
 
 const 데모마켓 = readFileSync(new URL('./fixtures/ledger/demomarket.txt', import.meta.url), 'utf8');
 
@@ -272,5 +272,29 @@ describe('요구 지문 (2026-10-04 게이트 0 · 1 — 기획서 판이 바뀌
     const 셋 = r.원장.항목.find((h) => h.번호 === 'REQ-A-3');
     expect(셋?.자료).toBe('가.docx');
     expect(셋?.지문).toBe(원장뽑기(글들['/a/1.txt'] ?? '', '가.docx').항목.find((h) => h.번호 === 'REQ-A-3')?.지문);
+  });
+});
+
+describe('설계 (#157 — 요구마다 테스트 설계 기법으로 코드가 뽑은 경계 · 예외)', () => {
+  it('번호 모드는 한도가 있는 요구에만 설계가 붙고 없는 요구에는 키가 없다 · 지문은 나누기 전 값 그대로다', () => {
+    const 항목 = 원장뽑기(['| REQ-A-001 | 아이디는 4~12자다. 맞지 않으면 안내가 나온다. |', '| REQ-A-002 | 로고가 보인다. |', '| REQ-A-003 | 메뉴가 있다. |'].join('\n'), 'a').항목;
+    expect(항목[0]?.설계?.경계).toEqual([{ 근거: '4~12자', 값: ['3자', '4자', '12자', '13자'] }]);
+    expect(항목[0]?.설계?.예외.map((e) => e.기법)).toEqual(['동등 분할', '동등 분할']);
+    expect(항목[1]).not.toHaveProperty('설계');
+    expect(항목.map((h) => h.지문)).toEqual(['8b68bfe46bc143ba', '14f5a30223814362', '89135ab772d2ab75']);
+  });
+
+  it('문단 모드는 원장 글(앞 80자)이 아니라 문단 전체로 판정한다 — 80자 뒤의 한도 문장도 잡는다', () => {
+    const [항] = 원장뽑기('오늘 할 일 화면은 위쪽에 날짜와 인사말을 보여 주고 그 아래에 사용자가 적어 둔 할 일을 적은 차례대로 한 줄씩 늘어놓으며 끝낸 일에는 줄을 긋고 할 일이 하나도 없을 때는 아래쪽 영역이 보이지 않는다.', '기획.md').항목;
+    expect(항?.글).not.toContain('없을 때');
+    expect(항?.설계?.경계.map((b) => b.값)).toEqual([['0건', '1건']]);
+  });
+
+  it('데모마켓 맥 꼴(앞 61 요구 발췌)과 서버 꼴(전체 172)의 설계가 번호마다 같고 경계 · 예외 요구 수가 정해져 있다', () => {
+    const 셈 = (항목: 원장항목[]) => [항목.filter((h) => (h.설계?.경계.length ?? 0) > 0).length, 항목.filter((h) => (h.설계?.예외.length ?? 0) > 0).length];
+    const [맥, 서버] = [원장뽑기(데모마켓, '기획.docx').항목, 원장뽑기(서버꼴, '기획.docx').항목];
+    const 서버설계 = new Map(서버.map((h) => [h.번호, h.설계]));
+    for (const h of 맥) expect([h.번호, 서버설계.get(h.번호)]).toEqual([h.번호, h.설계]);
+    expect([셈(맥), 셈(서버)]).toEqual([[11, 15], [32, 50]]);
   });
 });

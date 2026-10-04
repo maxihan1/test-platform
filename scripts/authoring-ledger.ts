@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { extname } from 'node:path';
 
 import type { 읽을자료 } from './authoring-assets.js';
+import { type 설계, 설계하기 } from './authoring-design.js';
 
 export interface 원장항목 {
   번호: string;
@@ -14,6 +15,8 @@ export interface 원장항목 {
   글?: string;
   /** 요구 글의 지문 — 다음 판과 견줘 바뀐 요구를 기계가 가린다 (§3.6 「요구 지문」) */
   지문: string;
+  /** 요구 글에서 코드가 뽑은 경계 · 예외 — 자식이 고르면 요구마다 빠뜨리는 칸이 달라진다. 둘 다 비면 키가 없다 */
+  설계?: 설계;
 }
 
 export interface 자료원장 {
@@ -141,12 +144,12 @@ function 첫머리번호(줄: string): string | null {
 }
 
 /**
- * 번호 모드 지문 — 줄 첫머리에 원장 번호가 있는 줄부터 다음 그런 줄 전까지가 그 번호의 글이다. 줄 단위라 맥 변환(textutil)처럼
+ * 번호 모드 요구 글 — 줄 첫머리에 원장 번호가 있는 줄부터 다음 그런 줄 전까지가 그 번호의 글이다. 줄 단위라 맥 변환(textutil)처럼
  * 칸마다 줄이 나뉘고 빈 줄이 없는 글자본도 요구마다 갈린다. 머리글은 주인을 끊는다. 표에서 첫 칸이 빈 줄(서버 변환 격자 표의 칸 안 목록)은
  * 그 행 주인에 붙고, 원장 번호 없는 새 행은 주인을 끊는다. 숫자만 있는 줄(행 번호 칸)과 테두리는 어디에도 안 붙는다.
  * 첫머리에 한 번도 안 나온 번호(범위의 가운데 · 언급만 됨)는 그 번호가 나온 줄 전부다
  */
-function 번호지문(글: string, 원장번호: Set<string>): Map<string, string> {
+function 번호글들(글: string, 원장번호: Set<string>): Map<string, string> {
   const 모음 = new Map<string, string[]>();
   const 언급 = new Map<string, string[]>();
   const 넣기 = (곳: Map<string, string[]>, 번호: string, 줄: string) => {
@@ -169,7 +172,13 @@ function 번호지문(글: string, 원장번호: Set<string>): Map<string, strin
     } else if (머리글(줄, md) || (표줄 && !/^[│|]\s*[│|]/.test(줄) && 번호들.length === 0)) 주인 = null;
     else if (주인 !== null) 넣기(모음, 주인, 줄);
   }
-  return new Map([...원장번호].map((n) => [n, 지문내기((모음.get(n) ?? 언급.get(n) ?? []).join('\n'))]));
+  return new Map([...원장번호].map((n) => [n, (모음.get(n) ?? 언급.get(n) ?? []).join('\n')]));
+}
+
+// 원장 사본 JSON 이 요구마다 빈 설계로 불지 않게 경계 · 예외가 둘 다 비면 키를 안 싣는다
+function 설계칸(요구글: string): { 설계?: 설계 } {
+  const 설 = 설계하기(요구글);
+  return 설.경계.length + 설.예외.length > 0 ? { 설계: 설 } : {};
 }
 
 /** 자료 하나의 원장. 번호 가족이 없으면 문단 모드다. `머리` 는 문단 번호 앞말(P · P1 · P2) */
@@ -181,11 +190,15 @@ export function 원장뽑기(글: string, 자료: string, 머리 = 'P'): 자료�
   const 가족들 = Object.fromEntries(Object.entries(셈).filter(([, n]) => n >= 가족하한));
   if (Object.keys(가족들).length > 0) {
     const 원장번호 = 차례.filter((번호) => 가족(번호) in 가족들);
-    const 지문들 = 번호지문(글, new Set(원장번호));
-    const 항목 = 원장번호.map((번호) => ({ 번호, 자료, 지문: 지문들.get(번호) ?? 지문내기('') }));
+    const 글들 = 번호글들(글, new Set(원장번호));
+    const 항목 = 원장번호.map((번호) => {
+      const 요구글 = 글들.get(번호) ?? '';
+      return { 번호, 자료, 지문: 지문내기(요구글), ...설계칸(요구글) };
+    });
     return { 모드: '번호', 항목, 가족: 가족들, 경고 };
   }
-  const 항목 = 문단들(글).map((u, i) => ({ 번호: `${머리}-${String(i + 1).padStart(3, '0')}`, 자료, 글: u.slice(0, 글상한), 지문: 지문내기(u) }));
+  // 설계는 80자로 자른 글이 아니라 문단 전체로 판정한다 — 한도 문장이 80자 뒤에 오면 빠진다
+  const 항목 = 문단들(글).map((u, i) => ({ 번호: `${머리}-${String(i + 1).padStart(3, '0')}`, 자료, 글: u.slice(0, 글상한), 지문: 지문내기(u), ...설계칸(u) }));
   return { 모드: '문단', 항목, 가족: {}, 경고 };
 }
 
