@@ -1,7 +1,7 @@
 // 작성 결과 일관성 검사 — 같은 기획서로 여러 번 작성한 결과가 얼마나 같은지 재는 숫자
 import { describe, expect, it } from 'vitest';
 
-import { 실행요약, 확인문장들 } from './authoring-consistency.js';
+import { type 실행, 견주기, 견줌줄, 실행요약, 확인문장들 } from './authoring-consistency.js';
 
 const 케이스 = (tcId: string, ...문장: string[]) =>
   `import { defineCase, test, verify } from '@platform/kit';\nexport const spec = defineCase({ tcId: '${tcId}', name: 'n', precondition: [], params: null, expected: null });\n` +
@@ -55,5 +55,48 @@ describe('실행 하나 요약', () => {
 
   it('표는 있는데 출처에 원장 번호가 하나도 없으면 빈 Map 이다(원장 없음 — 표 없음과 다르다)', () => {
     expect(실행요약(파일들, 표(['화면 기록 home.md', 'MKT-FN-001'])).덮음).toEqual(new Map());
+  });
+});
+
+describe('두 실행 견주기 (게이트 1 — 글자가 아니라 원장 번호로 같은 케이스 · 같은 묶기를 잰다)', () => {
+  const 집합 = (...s: string[]) => new Set(s);
+  const 가: 실행 = {
+    케이스: new Map([['T1', 집합('s1', 's2')], ['T2', 집합('s3')], ['T3', 집합('s4')]]),
+    화면파일: 집합('pages/a.page.ts', 'pages/b.page.ts'),
+    덮음: new Map([['T1', 집합('R1', 'R2')], ['T2', 집합('R3')]]),
+  };
+  const 나: 실행 = {
+    케이스: new Map([['T1', 집합('s1')], ['T2', 집합('s5')], ['T4', 집합('s4')]]),
+    화면파일: 집합('pages/a.page.ts', 'components/c.component.ts'),
+    덮음: new Map([['T1', 집합('R1')], ['T2', 집합('R4')], ['T4', 집합('R3')]]),
+  };
+
+  it('손으로 셈한 값과 같다 — 같은 번호 T1(R1·R2 ↔ R1 = 0.5) · T2(R3 ↔ R4 = 0), 짝 R1|R2 ↔ 없음, 한쪽만 R2 · R4', () => {
+    const 견줌 = 견주기(가, 나);
+    expect(견줌).toEqual({
+      케이스: [3, 3],
+      문장겹침: 2 / 5,
+      화면겹침: 1 / 3,
+      원장: { 같은번호: 2, 같은요구: 1, 짝겹침: 0, a만: 1, b만: 1 },
+    });
+    expect(견줌줄(견줌)).toBe(
+      '케이스 3 · 3 | 같은 번호 같은 요구 2 중 1(50.0%) | 묶인 번호 짝 겹침 0.0% | 한쪽만 덮은 번호 1 · 1 | 확인 문장 겹침(표현까지) 40.0% | 화면 파일 겹침 33.3%',
+    );
+  });
+
+  it('표가 한쪽만 있으면 원장 숫자는 「표 없음」, 원장 번호가 없으면 「원장 없음」이다', () => {
+    expect(견주기(가, { ...나, 덮음: null }).원장).toBe('표 없음');
+    expect(견주기(가, { ...나, 덮음: new Map() }).원장).toBe('원장 없음');
+    expect(견줌줄(견주기(가, { ...나, 덮음: null }))).toBe('케이스 3 · 3 | 원장 숫자 표 없음 | 확인 문장 겹침(표현까지) 40.0% | 화면 파일 겹침 33.3%');
+  });
+
+  it('빈 집합끼리는 0% 가 아니라 「없음」이다 — NaN 을 내지 않는다', () => {
+    const 빈: 실행 = { 케이스: new Map([['T9', 집합()]]), 화면파일: 집합(), 덮음: new Map([['T9', 집합('R9')]]) };
+    const 견줌 = 견주기(빈, 빈);
+    expect(견줌).toMatchObject({ 문장겹침: null, 화면겹침: null, 원장: { 같은번호: 1, 같은요구: 1, 짝겹침: null } });
+    expect(견줌줄(견줌)).toContain('묶인 번호 짝 겹침 없음');
+    expect(견줌줄(견줌)).toContain('확인 문장 겹침(표현까지) 없음');
+    const 겹침없음 = 견주기({ ...빈, 케이스: new Map([['T8', 집합()]]), 덮음: new Map([['T8', 집합('R1')]]) }, 빈);
+    expect(견줌줄(겹침없음)).toContain('같은 번호 같은 요구 없음');
   });
 });
