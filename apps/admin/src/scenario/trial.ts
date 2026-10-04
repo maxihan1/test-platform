@@ -53,7 +53,13 @@ export async function 옛시험치우기(뿌리: string, 지금: number): Promis
   for (const 이름 of 이름들) {
     if (!uuid모양.test(이름)) continue;
     const 자리 = join(폴더, 이름);
-    const 정보 = await lstat(자리);
+    let 정보;
+    try {
+      정보 = await lstat(자리);
+    } catch {
+      // 동시에 시작한 다른 시험이 먼저 지웠다. 이 하나만 넘기고 나머지는 계속 치운다
+      continue;
+    }
     if (지금 - 정보.mtimeMs <= 하루) continue;
     // rm 은 링크 자체를 지우고 가리키던 곳으로 내려가지 않는다
     await rm(자리, { recursive: !정보.isSymbolicLink(), force: true });

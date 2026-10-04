@@ -73,10 +73,11 @@ export function 시험보관소<R, S extends string>(설정: 보관소설정<R, 
     }
   }
 
-  // 남의 번호와 없는 번호를 가르지 않는다 — 있는지도 알리지 않는다
+  // 남의 번호 · 없는 번호 · 24시간 지난 번호를 가르지 않는다 — 있는지도 알리지 않는다.
+  // 지난 것은 새 시험이 와야 지워지므로 읽을 때도 시각을 본다 — 사진 폴더는 이미 치워졌을 수 있다
   function 내것(사람: string, id: string): 항목<R> | null {
     const 항 = 저장소.get(id);
-    return 항 === undefined || 항.사람 !== 사람 ? null : 항;
+    return 항 === undefined || 항.사람 !== 사람 || Date.now() - 항.시작 > 하루 ? null : 항;
   }
 
   return {

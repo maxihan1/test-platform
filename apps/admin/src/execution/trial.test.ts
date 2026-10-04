@@ -97,7 +97,7 @@ describe('테스트 실행 메모리 저장소', () => {
     const 옛것 = 시작한다('kim', () => Promise.resolve(결과()), 명세);
     await vi.advanceTimersByTimeAsync(0);
     vi.setSystemTime(new Date('2026-10-01T00:00:01Z'));
-    expect(읽는다('kim', 옛것)?.status).toBe('DONE');
+    expect(읽는다('kim', 옛것)).toBeNull();
 
     시작한다('lee', () => 미룬것().promise, 명세);
     expect(읽는다('kim', 옛것)).toBeNull();
@@ -177,6 +177,17 @@ describe('시나리오 시험 실행 보관소', () => {
     expect(시나리오시험.읽는다('kim', id)).toMatchObject({
       result: { status: 'NA', parts: [], error: { message: '시험 실행을 끝내지 못했습니다', stack: '깨짐' } },
     });
+  });
+
+  it('24시간 지난 번호는 새 시험이 없어도 읽을 때 없는 것이다', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-04T00:00:00Z'));
+    const id = 시나리오시험.시작한다('kim', 'MKT', () => Promise.resolve(끝난것), []);
+    await vi.advanceTimersByTimeAsync(0);
+    vi.setSystemTime(new Date('2026-10-05T00:00:01Z'));
+    expect(시나리오시험.읽는다('kim', id)).toBeNull();
+    expect(시나리오시험.서비스('kim', id)).toBeNull();
+    vi.useRealTimers();
   });
 
   it('서비스는 시작한 사람에게만 알려 준다 — 남의 번호 · 없는 번호는 null', () => {
