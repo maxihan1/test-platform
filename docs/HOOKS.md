@@ -206,7 +206,7 @@ Phase 0가 끝나고 게이트 G1을 통과한 뒤부터 예외 없이 띄운다
 작성 에이전트는 이 파일 하나를 복사해 **병합 직전 판정**에 쓴다. **그래서 이 파일은 다른 파일을 import 하지 않는다.**
 
 - 가벼운 길 — 바뀐 파일(지운 것 포함)이 **전부** 케이스 `tests/<폴더>/<번호>.spec.ts`(번호 세 꼴 `<접두사>-NNN` · `-UI-NNN` · `-FN-NNN`) ·
-  Page Object `tests/<폴더>/pages/<이름>.page.ts` · `tests/<폴더>/components/<이름>.component.ts`(이름 `^[a-z][a-z0-9-]{0,40}$`) 이거나 `docs/cases/*.md` (2026-10-02 PR #129 — 꼴의 정본은 `cases-only.mjs` 상수).
+  Page Object `tests/<폴더>/pages/<이름>.page.ts` · `tests/<폴더>/components/<이름>.component.ts`(이름 `^[a-z][a-z0-9-]{0,40}$`) 이거나 `docs/cases/*.md` · 요구 지문 파일 `docs/cases/<접두사>.fingerprint.json`(도메인/작성 §3.6 「★ 원장」 「요구 지문」) (2026-10-02 PR #129 · 지문 파일은 2026-10-04 #155 — 꼴의 정본은 `cases-only.mjs` 상수).
   **새 서비스 폴더도 된다** (2026-09-25 게이트 1) — 앞 판은 「CI 실행 단계에 그 폴더가 없어 다음 무거운 PR 이 빨개진다」로
   새 폴더를 무겁게 보냈는데, 서비스 폴더는 CI 가 원래 못 돌린다(사내 대상 · `PLATFORM_BASE_URL` 없음).
   그래서 `ci-covers-tests` 가 **케이스 파일과 `pages/` · `components/` 의 Page Object 만 든 폴더**(접두사 하나)를 서비스 폴더로 보고 면제한다. 도우미 파일이 섞인 폴더는 여전히 사람이 CI 에 넣거나 사유를 달아 면제한다

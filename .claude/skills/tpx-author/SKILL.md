@@ -46,6 +46,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 - **Bash 의 `run_in_background`** — 모든 명령은 앞에서 끝까지 기다린다. **Agent 도구도 같다** — 서브에이전트는 앞에서 띄우고 끝날 때까지 기다린다
 - **AskUserQuestion** — 답할 사람이 없다. 사람은 PR 본문에서 표를 본다
 - **작업 폴더 밖 파일 수정** — 바꾸는 것은 `tests/<폴더>/*.spec.ts` · `tests/<폴더>/pages/*.page.ts` · `tests/<폴더>/components/*.component.ts` 와 `docs/cases/<접두사>.md` 뿐이다.
+  **`docs/cases/<접두사>.fingerprint.json`(요구 지문)은 만들거나 고치지 않는다** — 에이전트가 올릴 때 덮어쓰거나 앞 판으로 되돌린다. 관문 0 에 넘기는 원장 사본(`ledger.json`)과 다른 파일이다 (도메인/작성 §3.6 「요구 지문」)
   다른 파일이 바뀌면 에이전트 스크립트가 push 를 거부한다. `tests/` · `docs/` 밖에 **새로** 만든 파일(실행 로그 등)은 에이전트가 지우고 올린다 —
   필요한 출력은 `$TMPDIR` 에 둔다 (2026-10-03, 11203 이 `$로그` 파일 하나로 멈췄다)
 

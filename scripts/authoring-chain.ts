@@ -180,7 +180,7 @@ export function 다시돌릴인자(이미준비됨: boolean, 결과: CI결과): 
 export function 푸시거부사유(테스트만인가: boolean, 바뀐파일: string[]): string | null {
   if (바뀐파일.length === 0) return '바뀐 파일이 없다. 올릴 것이 없다.';
   if (테스트만인가) return null;
-  return `테스트만 바뀐 것이 아니다 — 맥은 케이스 spec(tests/<폴더>/<번호>.spec.ts) · Page Object(tests/<폴더>/pages/*.page.ts · components/*.component.ts) · docs/cases/*.md 만 올린다: ${바뀐파일.join(' · ')}`;
+  return `테스트만 바뀐 것이 아니다 — 맥은 케이스 spec(tests/<폴더>/<번호>.spec.ts) · Page Object(tests/<폴더>/pages/*.page.ts · components/*.component.ts) · docs/cases/*.md · docs/cases/<접두사>.fingerprint.json 만 올린다: ${바뀐파일.join(' · ')}`;
 }
 
 /**

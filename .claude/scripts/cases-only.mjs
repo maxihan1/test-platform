@@ -34,6 +34,8 @@ export function 테스트만인가(파일들) {
   return 파일들.every((f) => {
     if (f.split('/').includes('..')) return false;
     if (/^docs\/cases\/[^/]+\.md$/.test(f)) return true;
+    // 요구 지문 파일 — 에이전트가 표 옆에 쓴다(작성 §3.6 「요구 지문」). 접두사 꼴은 SPEC §2 tcId 접두사와 같다
+    if (/^docs\/cases\/[A-Z][A-Z0-9]{0,11}\.fingerprint\.json$/.test(f)) return true;
     return 케이스파일꼴.test(f) || 페이지파일꼴.test(f) || 부품파일꼴.test(f);
   });
 }

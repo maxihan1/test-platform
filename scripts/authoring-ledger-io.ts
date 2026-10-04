@@ -1,11 +1,12 @@
 // 원장 껍데기 — 자식을 띄우기 전에 자료 글자본을 읽어 원장을 만들고 사본을 쓴다. 판단은 authoring-ledger 의 순수 함수에 있다
 // authoring-run.ts 가 300줄에 닿아 이리로 뗐다 (2026-09-30)
 
-import { lstatSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { 읽을자료 } from './authoring-assets.js';
 import { type 원장, 원장만들기 } from './authoring-ledger.js';
+import { 지문파일글, 지문파일읽기, 지문파일자리, 지문합치기, 차이줄, 판견주기 } from './authoring-ledger-diff.js';
 import { tcId들, 사람이뺀번호 } from './authoring-ledger-check.js';
 import { type 이어작성입력, 남은번호, 이어작성막힘, 이어작성사본이름 } from './authoring-continue.js';
 import type { 원장입력 } from './authoring-prompt.js';
@@ -93,6 +94,58 @@ export function 기준읽기(깃: 깃손, 기준: string, 서비스: string, 폴
   return { 표글, 있는케이스: tcId들(케이스글) };
 }
 
+/** 기준(main) 판의 요구 지문 파일 글. 파일이 없으면 `{ 글: null }`, git 이 실패하면 null(못 읽음). git 에서 읽어 링크를 안 따라간다 */
+export function 앞지문읽기(깃: 깃손, 기준: string, 서비스: string): { 글: string | null } | null {
+  const 자리 = 지문파일자리(서비스);
+  const 목록 = 깃(['ls-tree', '--name-only', 기준, '--', 자리]);
+  if (!목록.ok) return null;
+  if (목록.낸것.trim() === '') return { 글: null };
+  const r = 깃(['show', `${기준}:${자리}`]);
+  return r.ok ? { 글: r.낸것 } : null;
+}
+
+/**
+ * `docs` · `docs/cases` 가 링크 아닌 진짜 폴더이고 실제 경로가 트리 안인가 — 없으면 만든다. 트리는 자식 uid 폴더라
+ * 자식이 그 자리를 트리 밖 폴더 링크로 바꿔 둘 수 있다. 마지막 이름만 지키면 root 가 트리 밖에 쓰고 지운다 (2026-10-04 계획 검토).
+ * 아니면 까닭 글을 돌려준다
+ */
+function 폴더막힘(트리: string): string | null {
+  try {
+    for (const 마디 of [['docs'], ['docs', 'cases']]) {
+      const 길 = join(트리, ...마디);
+      const 정보 = lstatSync(길, { throwIfNoEntry: false });
+      if (정보 === undefined) mkdirSync(길, { mode: 0o755 });
+      else if (!정보.isDirectory()) return `${마디.join('/')} 가 트리 안의 진짜 폴더가 아니다`;
+    }
+    return realpathSync(join(트리, 'docs', 'cases')) === join(realpathSync(트리), 'docs', 'cases') ? null : 'docs/cases 가 트리 밖을 가리킨다';
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
+/**
+ * 올리기 전에 트리에 요구 지문 파일을 쓴다 — 바뀐 파일 목록을 읽기 **전에** 불러야 커밋에 든다 (§3.6 「요구 지문」).
+ * 원장이 있으면 앞 판과 자료마다 합쳐 쓰고 PR 머리 줄을 돌려준다. 원장이 없으면 자식이 만진 파일을 앞 판으로 되돌리고 줄은 없다.
+ * `담기` 가 false 면 트리의 지문 파일을 커밋에 넣지 않는다 — 앞 판을 못 읽었거나(합칠 재료가 없다) 쓰기 · 되돌리기에 실패해
+ * 자식 손을 탄 파일이 남았을 수 있다 (2026-10-04 보안 검토)
+ */
+export function 지문쓰기(트리: string, 서비스: string, r: 원장 | { 없음: string }, 앞: { 글: string | null } | null): { 줄: string | null; 담기: boolean } {
+  const 경고 = (글: string) => ({ 줄: '없음' in r ? null : 글, 담기: false });
+  if (앞 === null) return 경고('⚠️ 앞 판 지문을 못 읽음 — 요구 지문 파일을 안 썼다');
+  const 막힘 = 폴더막힘(트리);
+  if (막힘 !== null) return 경고(`⚠️ 요구 지문 파일을 못 썼다 — ${막힘}`);
+  const 자리 = join(트리, 지문파일자리(서비스));
+  if ('없음' in r) {
+    if (앞.글 !== null) return { 줄: null, 담기: 새로쓰기(자리, 앞.글) };
+    rmSync(자리, { force: true, recursive: true });
+    return { 줄: null, 담기: true };
+  }
+  const 앞파일 = 앞.글 === null ? null : 지문파일읽기(앞.글);
+  if (!새로쓰기(자리, 지문파일글(지문합치기(앞파일, r)))) return 경고('⚠️ 요구 지문 파일을 못 썼다');
+  if (앞.글 === null) return { 줄: 차이줄('앞 판 없음'), 담기: true };
+  return { 줄: 앞파일 === null ? 차이줄('못 읽음') : 차이줄(판견주기(앞파일, r)), 담기: true };
+}
+
 /**
  * 자식을 띄우기 전 원장 준비 전부 — 기준 표의 사람이 뺌 · 원장 사본 · (이어 작성이면) 남은 번호와 그 사본.
  * 기준 표를 못 읽으면 보통 작성은 사람이 뺌 없이 돈다(이 판 전과 같다). 이어 작성은 막는다 — 남은 번호를 모르고 돌면 덮은 것까지 다시 맡는다
@@ -105,14 +158,17 @@ export function 원장과남은번호(입력: {
   서비스: string;
   폴더: string;
   이어작성원본: number | null;
-}): { 원장: 원장 | { 없음: string }; 입력: 원장입력; 사람이뺌: Set<string>; 이어작성?: 이어작성입력 } | { 막힘: string } {
+}):
+  | { 원장: 원장 | { 없음: string }; 입력: 원장입력; 사람이뺌: Set<string>; 이어작성?: 이어작성입력; 앞지문: { 글: string | null } | null }
+  | { 막힘: string } {
   const 기준 = 기준읽기(입력.깃, 입력.기준, 입력.서비스, 입력.폴더);
   if ('까닭' in 기준) {
     if (입력.이어작성원본 !== null) return { 막힘: 기준.까닭 };
     console.error(`[작성] ${기준.까닭} — 기준 표의 「사람이 뺌」 없이 대조한다`);
   }
   const 사람이뺌 = '까닭' in 기준 ? new Set<string>() : 사람이뺀번호(기준.표글);
-  const r = 원장준비(입력.계획, 입력.자료폴더, 사람이뺌);
+  // 올릴 때 지문 파일을 앞 판과 자료마다 합친다 — 트리가 아니라 기준 SHA 에서 읽는다(이어받은 트리는 앞 실행이 바꿨을 수 있다)
+  const r = { ...원장준비(입력.계획, 입력.자료폴더, 사람이뺌), 앞지문: 앞지문읽기(입력.깃, 입력.기준, 입력.서비스) };
   if (입력.이어작성원본 === null || '까닭' in 기준) return { ...r, 사람이뺌 };
   const 남은 = '없음' in r.원장 ? [] : 남은번호(r.원장, 기준.표글, 기준.있는케이스, 사람이뺌);
   const 막힘 = 이어작성막힘(r.원장, 남은);
