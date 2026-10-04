@@ -1,7 +1,7 @@
 // 케이스 엑셀에 실을 자료를 모은다 — 케이스 · 마지막 결과 · 보류 처리 기록 (카탈로그 §7 GET /api/catalog/export)
 // 권한 판단은 부르는 쪽(routes.ts)이 끝내고 여기는 그 결과만 받는다
 
-import type { Platform } from '@platform/kit';
+import type { Platform, Technique } from '@platform/kit';
 
 import { 보류들, type 보류입력 } from '../authoring/held.js';
 import { 사슬식 } from '../authoring/history.js';
@@ -62,6 +62,7 @@ export async function 엑셀자료(입력: {
   platform?: Platform;
   activeOnly: boolean;
   kind?: 'UI' | 'FN';
+  technique?: Technique | 'none';
   canSeeRuns: boolean;
   canSeeAuthoring: boolean;
 }): Promise<ExportInput> {
@@ -71,6 +72,7 @@ export async function 엑셀자료(입력: {
     platform: 입력.platform,
     activeOnly: 입력.activeOnly,
     kind: 입력.kind,
+    technique: 입력.technique,
     page: 1,
     pageSize: null,
   });
@@ -103,8 +105,10 @@ export async function 엑셀자료(입력: {
       unconfirmed: c.unconfirmed,
       lastResult: 결과칸(마지막.get(c.tcId)),
       filledBy: 채운이.get(c.tcId) ?? null,
+      techniques: c.techniques,
     })),
     held,
+    kind: 입력.kind,
     canSeeRuns: 입력.canSeeRuns,
     canSeeAuthoring: 입력.canSeeAuthoring,
   };

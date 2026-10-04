@@ -99,9 +99,9 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
 
     for (let n = 1; n <= 건수; n += 1) {
       await p.query(
-        `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema)
-         VALUES ($1, $2, '["desktop"]', '[]', 'xcx/a.spec.ts', '{}', '{}')`,
-        [번호(n), n === 2 ? '장바구니 담기' : `케이스 ${String(n)}`],
+        `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, techniques)
+         VALUES ($1, $2, '["desktop"]', '[]', 'xcx/a.spec.ts', '{}', '{}', $3)`,
+        [번호(n), n === 2 ? '장바구니 담기' : `케이스 ${String(n)}`, n === 2 ? ['경계값 분석'] : []],
       );
     }
 
@@ -189,6 +189,22 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
     expect(행들(await 책((await 받기('xcx-all')).rawPayload), '테스트 케이스')).toHaveLength(건수);
     const 거른 = 행들(await 책((await 받기('xcx-all', '&q=' + encodeURIComponent('장바구니'))).rawPayload), '테스트 케이스');
     expect(거른.map((r) => r[0])).toEqual([번호(2)]);
+  });
+
+  it('설계 기법 조건이 파일에 걸리고 기법이 맨 끝 열에 실린다 · 빈 값은 거르지 않는다', async () => {
+    const 거른 = 행들(await 책((await 받기('xcx-all', '&technique=' + encodeURIComponent('경계값 분석'))).rawPayload), '테스트 케이스');
+    expect(거른.map((r) => [r[0], r[8]])).toEqual([[번호(2), '경계값 분석']]);
+    expect(행들(await 책((await 받기('xcx-all', '&technique=')).rawPayload), '테스트 케이스')).toHaveLength(건수);
+  });
+
+  it('모르는 설계 기법은 목록 · 엑셀 둘 다 400 BAD_TECHNIQUE', async () => {
+    const 목록 = await app.inject({
+      method: 'GET',
+      url: `/api/catalog/cases?service=${접두사}&technique=bogus`,
+      cookies: { platform_session: 출입증.get('xcx-all')! },
+    });
+    const 엑셀 = await 받기('xcx-all', '&technique=bogus');
+    expect([목록.statusCode, 목록.json().error, 엑셀.statusCode, 엑셀.json().error]).toEqual([400, 'BAD_TECHNIQUE', 400, 'BAD_TECHNIQUE']);
   });
 
   it('목록 응답은 그대로다 — 쪽 크기 50 · 같은 모양', async () => {

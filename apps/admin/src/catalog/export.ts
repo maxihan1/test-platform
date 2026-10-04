@@ -9,7 +9,8 @@ import type { CaseSpec, ItemStatus, Platform } from '@platform/kit';
 import type { 보류, 입력한것, 칸 } from '../authoring/held.js';
 import { 가려야하나 } from '../web/mask.js';
 
-export interface ExportCase extends Pick<CaseSpec, 'tcId' | 'name' | 'platforms' | 'precondition' | 'paramSchema' | 'expectedSchema'> {
+export interface ExportCase
+  extends Pick<CaseSpec, 'tcId' | 'name' | 'platforms' | 'precondition' | 'paramSchema' | 'expectedSchema' | 'techniques'> {
   unconfirmed?: string | null;
   /** at 은 표에 그대로 적는 글자다 — 시간대 변환은 부르는 쪽 몫 */
   lastResult?: { status: ItemStatus; at: string } | null;
@@ -34,6 +35,8 @@ export interface ExportInput {
   held: ExportHeld[] | null;
   canSeeRuns: boolean;
   canSeeAuthoring: boolean;
+  /** UI 면 설계 기법 열을 안 만든다 — UI 테스트에는 기법이 없다 (카탈로그 §7) */
+  kind?: 'UI' | 'FN';
 }
 
 // reporting/xlsx.ts 와 같은 낱말이다. 한 납품물의 두 엑셀이 다른 말을 하면 안 된다
@@ -132,7 +135,15 @@ export async function renderCatalogXlsx(input: ExportInput): Promise<Buffer> {
   wb.created = new Date(input.generatedAt);
   wb.modified = wb.created;
 
-  시트(wb, '테스트 케이스', 케이스머리, [12, 40, 12, 36, 36, 36, 30, 22], input.cases.map((c) => 케이스행(c, input)));
+  // UI 테스트에는 기법이 없다. 열을 번호로 읽는 검사 · 사람이 있어 맨 끝에 둔다 (카탈로그 §7)
+  const 기법열 = input.kind !== 'UI';
+  시트(
+    wb,
+    '테스트 케이스',
+    기법열 ? [...케이스머리, '설계 기법'] : 케이스머리,
+    [12, 40, 12, 36, 36, 36, 30, 22, ...(기법열 ? [20] : [])],
+    input.cases.map((c) => (기법열 ? [...케이스행(c, input), c.techniques?.join(' · ') || null] : 케이스행(c, input))),
+  );
   if (input.held !== null) {
     시트(wb, '보류 처리 기록', 보류머리, [10, 12, 10, 40, 10, 36, 12, 18, 10], input.held.map(보류행));
   }
