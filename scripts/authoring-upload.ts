@@ -27,7 +27,7 @@ import { 산출물읽기, 역기획서준비 } from './authoring-upload-reverse.
 import { 저장본갈기 } from './authoring-screens-keep-io.js';
 import type { 원장 } from './authoring-ledger.js';
 import { tcId들, 원장판정 } from './authoring-ledger-check.js';
-import { 케이스글들 } from './authoring-ledger-io.js';
+import { 케이스글들, 지문쓰기 } from './authoring-ledger-io.js';
 import { type 셈재료, 커버리지싣는손 } from './authoring-coverage.js';
 import { 보류싣는손 } from './authoring-held.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
@@ -71,7 +71,7 @@ export async function 올리기(
   자식출력: string,
   원손: 보고손,
   역: 역방향올리기 | undefined,
-  원장재료: { 값: 원장 | { 없음: string }; 폴더: string; 자식: 계정 | null; 사람이뺌: Set<string> },
+  원장재료: { 값: 원장 | { 없음: string }; 폴더: string; 자식: 계정 | null; 사람이뺌: Set<string>; 앞지문: { 글: string | null } | null },
   단계표 = '',
 ): Promise<void> {
   // 셈은 원장 대조 뒤에 선다 — 그 전의 끝내기에는 안 싣는다. 보류가 바깥이라 셈이 result.held 를 보고 보류를 센다 (§3.6 「★ 원장」)
@@ -99,6 +99,9 @@ export async function 올리기(
   // 재사용 수 · 가장 오래된 날은 PR 본문 머리에도 싣는다 — 자식이 옮겨 적기를 빠뜨려도 사람이 본다
   const 저장줄 = 역 === undefined ? [] : [저장본갈기(dirname(자리.뿌리), 서비스, 자리.자료, 역.화면만)];
   if (저장줄.length > 0) console.log(`[작성] ${것.id}번 — ${저장줄[0]}`);
+  // 요구 지문 파일 — 바뀐 파일을 읽기 전에 써야 커밋에 든다. 원장이 없으면 자식이 만진 파일을 앞 판으로 되돌린다 (§3.6 「요구 지문」)
+  const 지문줄 = [지문쓰기(자리.트리, 서비스, 원장재료.값, 원장재료.앞지문)].filter((줄): 줄 is string => 줄 !== null);
+  if (지문줄.length > 0) console.log(`[작성] ${것.id}번 — ${지문줄[0] ?? ''}`);
   const 상태 = 트리에서('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall']);
   if (!상태.ok) {
     await 손.끝내기(거절(`바뀐 파일을 못 읽었다: ${상태.까닭}`));
@@ -159,7 +162,7 @@ export async function 올리기(
     표경로: 표,
     표: 읽기(표),
     // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다
-    요약: [원장결과.머리글, ...지운줄, ...저장줄, ...끝검사(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 것.target?.loginPassword)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
+    요약: [원장결과.머리글, ...지문줄, ...지운줄, ...저장줄, ...끝검사(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 것.target?.loginPassword)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
     단계: 단계표,
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
