@@ -18,6 +18,7 @@ const 면제 = new Map([
   ['scripts/authoring-token.test.ts', '테스트가 만든 임시 파일만 읽는다'],
   ['scripts/authoring-continue.test.ts', '테스트가 만든 임시 파일(원장 · 남은 번호 사본)만 읽는다'],
   ['scripts/authoring-main-merge.test.ts', '테스트가 만든 임시 git 저장소의 파일만 읽는다'],
+  ['scripts/authoring-screens-keep-io.test.ts', '테스트가 만든 임시 작업 바탕(저장본 · 자료 폴더)만 읽는다'],
 ]);
 
 function 테스트파일들(폴더) {

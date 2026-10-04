@@ -228,6 +228,11 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
     expect(대조).not.toContain('--follow');
   });
 
+  it('역방향 절 — 크롤러에 저장본(자료 폴더 kept/index.json)을 넘긴다 (2026-10-04 · 바뀐 화면만 다시 훑는다)', () => {
+    const 글 = 역방향절({ 화면만: true, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
+    expect(글).toContain('--keep /w/author-7/assets/kept/index.json');
+  });
+
   it('stream-json 으로 돌린다 — 끊겨도 토큰을 센다 (작성 §7 「토큰 사용량」)', () => {
     const 인자 = 클로드인자('/t', 기본모델);
     expect(인자[인자.indexOf('--output-format') + 1]).toBe('stream-json');
