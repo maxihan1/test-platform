@@ -2,7 +2,7 @@
 // authoring-run.ts 가 300줄을 넘어 뗐다 (2026-09-24)
 
 import { readFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import type { 집은것 } from './authoring-rules.js';
 import {
@@ -24,6 +24,7 @@ import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-stat
 import { 끝검사 } from './authoring-gate3.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 산출물읽기, 역기획서준비 } from './authoring-upload-reverse.js';
+import { 저장본갈기 } from './authoring-screens-keep-io.js';
 import type { 원장 } from './authoring-ledger.js';
 import { tcId들, 원장판정 } from './authoring-ledger-check.js';
 import { 케이스글들 } from './authoring-ledger-io.js';
@@ -94,6 +95,10 @@ export async function 올리기(
   const 알림 = 지운말(지운것);
   const 지운줄 = 알림 === null ? [] : [사유거르기(알림, 것.target?.loginPassword)];
   if (지운줄.length > 0) console.log(`[작성] ${것.id}번 — ${지운줄[0]}`);
+  // 역방향이면 이번에 본 화면 기록을 저장본(작업 바탕 · 저장소 밖)에 간다 — 다음 작성은 바뀐 화면만 훑는다 (§3.6 「★ 역방향」).
+  // 재사용 수 · 가장 오래된 날은 PR 본문 머리에도 싣는다 — 자식이 옮겨 적기를 빠뜨려도 사람이 본다
+  const 저장줄 = 역 === undefined ? [] : [저장본갈기(dirname(자리.뿌리), 서비스, 자리.자료, 역.화면만)];
+  if (저장줄.length > 0) console.log(`[작성] ${것.id}번 — ${저장줄[0]}`);
   const 상태 = 트리에서('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall']);
   if (!상태.ok) {
     await 손.끝내기(거절(`바뀐 파일을 못 읽었다: ${상태.까닭}`));
@@ -154,7 +159,7 @@ export async function 올리기(
     표경로: 표,
     표: 읽기(표),
     // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다
-    요약: [원장결과.머리글, ...지운줄, ...끝검사(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 것.target?.loginPassword)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
+    요약: [원장결과.머리글, ...지운줄, ...저장줄, ...끝검사(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 것.target?.loginPassword)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
     단계: 단계표,
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다

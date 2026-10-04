@@ -104,6 +104,18 @@ export function 지문(구조: string): string {
   return createHash('sha1').update(정리).digest('hex').slice(0, 12);
 }
 
+/**
+ * 글자 지문 — 크롤 파일 전체. 이것까지 같아야 저장 화면 기록을 그대로 쓴다 (2026-10-04).
+ * 본문 숫자(알림 수 · 글 번호)는 0 으로, `#` 머리 줄(주소 · 입력칸 규칙 — 최대 20자 → 30자)은 숫자까지 본다
+ */
+export function 글자지문(파일글: string): string {
+  const 정리 = 파일글
+    .split('\n')
+    .map((줄) => (줄.startsWith('#') ? 줄 : 줄.replace(/\d+/g, '0')).replace(/[ \t]+/g, ' '))
+    .join('\n');
+  return createHash('sha1').update(정리).digest('hex').slice(0, 12);
+}
+
 export interface 목록항목 {
   상태: '로그아웃' | '로그인';
   틀: string;

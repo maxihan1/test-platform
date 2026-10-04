@@ -2,12 +2,13 @@
 // 실행: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <로그인 상태 파일>] [--follow] [--max 100] [--minutes 10]
 // 판정은 authoring-crawl-rules 의 순수 함수에 있다. 여기는 브라우저 · 파일만 다룬다. 계정 값은 읽지 않는다 — 로그인은 자식이 한다
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve, sep } from 'node:path';
 
 import { chromium, type BrowserContext, type Page } from '@playwright/test';
 
-import { type 목록항목, 걸러진까닭, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
+import { 견주기, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
+import { type 목록항목, 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
 
 const 간격 = 1_000; // 운영 서버도 돈다 — 한 장씩, 1초 이상 띄운다
 const 부모상한 = 20; // 숫자가 아닌 상세(슬러그)가 장수를 다 먹지 않게. 그누보드 `/bbs/*.php` 처럼 한 폴더에 화면이 몰린 사이트가 있어 넉넉히
@@ -24,6 +25,7 @@ interface 인자 {
   따라가기: boolean;
   최대: number;
   분: number;
+  저장본: 저장본 | null;
 }
 
 function 그만(말: string): never {
@@ -58,13 +60,27 @@ function 인자읽기(argv: string[]): 인자 {
   const 상태파일 = 값('--state') ?? null;
   // 로그아웃 크롤을 다 돈 뒤에 죽지 않게 먼저 본다
   if (상태파일 !== null && !existsSync(상태파일)) 그만(`로그인 상태 파일이 없다: ${상태파일}`);
-  return { 주소들, 출력: resolve(출력), 상태파일, 따라가기: argv.includes('--follow'), 최대: 수('--max', 장상한, 장상한), 분: 수('--minutes', 분상한, 분상한) };
+  // 저장본(에이전트가 자료 폴더 kept/ 에 넣어 준 것) — 링크 · 큰 파일 · 틀린 모양은 없는 것으로 (2026-10-04 · 바뀐 화면만 다시 훑는다)
+  const 저장파일 = 값('--keep');
+  let 저장: 저장본 | null = null;
+  if (저장파일 !== undefined) {
+    const 정보 = lstatSync(저장파일, { throwIfNoEntry: false });
+    if (정보?.isFile() === true && 정보.size < 2_000_000) {
+      try {
+        저장 = 저장본모양(JSON.parse(readFileSync(저장파일, 'utf8')));
+      } catch {
+        저장 = null;
+      }
+    }
+  }
+  return { 주소들, 출력: resolve(출력), 상태파일, 따라가기: argv.includes('--follow'), 최대: 수('--max', 장상한, 장상한), 분: 수('--minutes', 분상한, 분상한), 저장본: 저장 };
 }
 
 interface 입력칸 { 종류: string; 이름: string; 라벨: string; 안내: string; 필수: boolean; 읽기전용: boolean; 최대글자: number | null; 최소글자: number | null; 형식: string | null }
 interface 본화면 extends 목록항목 {
   최종: string;
   지문: string;
+  글자지문: string;
   짧음: boolean;
   로그인풀림: boolean;
   입력칸: 입력칸[];
@@ -177,10 +193,11 @@ async function 한상태(맥락: BrowserContext, 상태: 상태, a: 인자, 몫:
     const 파일 = join(상태, `${String(판.본.length + 1).padStart(3, '0')}.yml`);
     const 구조 = 본.구조.length > 구조상한 ? `${본.구조.slice(0, 구조상한)}\n# … 길어서 잘랐다` : 본.구조;
     // 입력칸 속성은 머리에 — 보조는 이 파일만 읽는다
-    writeFileSync(join(a.출력, 파일), [`# ${본.최종}`, ...본.입력칸.map(칸줄), 구조, ''].join('\n'));
+    const 파일글 = [`# ${본.최종}`, ...본.입력칸.map(칸줄), 구조, ''].join('\n');
+    writeFileSync(join(a.출력, 파일), 파일글);
     판.본.push({
       상태, 틀: 앞지문.length === 0 ? 틀 : `${틀} (구조 다름)`, 주소, 최종: 본.최종, 이름: 본.제목, 파일, 시작: 시작틀.has(틀),
-      지문: 이지문, 짧음: 본.구조.length < 200, 로그인풀림: 풀림, 입력칸: 본.입력칸, 링크수: 본.링크.length,
+      지문: 이지문, 글자지문: 글자지문(파일글), 짧음: 본.구조.length < 200, 로그인풀림: 풀림, 입력칸: 본.입력칸, 링크수: 본.링크.length,
     });
     // 로그인이 풀렸으면 더 돌지 않는다 — 같은 상태 파일을 쓰는 보조도 튕긴다. 자식이 다시 로그인한다
     if (풀림) return void (판.멈춘까닭 ??= '로그인이 풀림');
@@ -198,11 +215,16 @@ async function 한상태(맥락: BrowserContext, 상태: 상태, a: 인자, 몫:
   }
 }
 
-function 남기기(a: 인자, 판: 판, 시작: number): void {
-  const 목록 = 목록고르기(판.본.filter((x) => !x.로그인풀림)).map((x) => {
-    const 본 = x as 본화면;
-    return { 주소: 본.주소, 이름: 본.이름, 상태: 본.상태, 파일: 본.파일, ...(본.짧음 ? { 짧음: true } : {}) };
-  });
+function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string[]; 예외: boolean }): void {
+  const 고른 = 목록고르기(판.본.filter((x) => !x.로그인풀림)) as 본화면[];
+  const 견줌 = a.저장본 === null ? null : 견주기(고른, a.저장본, new Date().toISOString().slice(0, 10));
+  const 목록 = 고른.map((본) => ({
+    주소: 본.주소, 이름: 본.이름, 상태: 본.상태, 파일: 본.파일, 틀: 본.틀, 지문: 본.지문, 글자지문: 본.글자지문,
+    ...(본.짧음 ? { 짧음: true } : {}),
+    ...(견줌?.표시.get(`${본.상태} ${본.주소}`) ?? {}),
+  }));
+  // 에이전트가 저장본을 갈 때 본다 — 다 봤을 때만 이번에 못 본 화면을 지운다
+  writeFileSync(join(a.출력, 'summary.json'), JSON.stringify({ 멈춘까닭: 판.멈춘까닭, 따라가기: a.따라가기, 상태들: 돈.상태들, 예외: 돈.예외 }));
   const 걸러짐 = [...판.걸러짐].map(([주소, v]) => ({ 주소, ...v }));
   writeFileSync(join(a.출력, 'index.json'), JSON.stringify({ 화면: 판.본, 걸러짐 }, null, 1));
   writeFileSync(join(a.출력, 'list.json'), JSON.stringify(목록, null, 1));
@@ -210,6 +232,10 @@ function 남기기(a: 인자, 판: 판, 시작: number): void {
   console.log(
     `크롤: 로그아웃 ${셈('로그아웃')}장 · 로그인 ${셈('로그인')}장 · 목록 ${목록.length}장 · 빈 화면 의심 ${목록.filter((x) => x.짧음).length}장` +
       ` · 걸러진 링크 ${걸러짐.length}개 · 부모 상한으로 안 연 것 ${판.잘림}개` +
+      (견줌 === null
+        ? ' · 저장본 없음'
+        : ` · 저장본 같음 ${목록.filter((x) => x.저장본 === '같음').length} · 바뀜 ${목록.filter((x) => x.저장본 === '바뀜').length} · 새 화면 ${목록.filter((x) => x.저장본 === '새 화면').length}` +
+          ` · 저장본에 있는데 못 본 화면 ${견줌.못본.length}${견줌.가장오래된 === null ? '' : ` · 가장 오래된 것 ${견줌.가장오래된}일`}`) +
       ` · 로그인 풀림 ${판.본.some((x) => x.로그인풀림) ? '있음 — 다시 로그인해 상태 파일을 새로 만든다' : '없음'}` +
       ` · 멈춘 까닭 ${판.멈춘까닭 ?? '다 봄'} · ${Math.round((Date.now() - 시작) / 1000)}초 · ${relative(process.cwd(), join(a.출력, 'list.json'))}`,
   );
@@ -224,6 +250,8 @@ async function main(): Promise<void> {
   const 판: 판 = { 본: [], 걸러짐: new Map(), 잘림: 0, 연속오류: 0, 멈춘까닭: null };
   const 상태들: 상태[] = a.상태파일 === null ? ['로그아웃'] : ['로그아웃', '로그인'];
   const 브라우저 = await chromium.launch();
+  // 끝까지 돈 상태와 예외 — 에이전트가 저장본에서 못 본 화면을 지울지 이것으로 정한다
+  const 돈 = { 상태들: [] as string[], 예외: false };
   try {
     // 장수 · 시간을 상태마다 나눈다 — 로그아웃 크롤이 다 쓰면 로그인 화면을 하나도 못 본다
     for (const [i, 상태] of 상태들.entries()) {
@@ -234,10 +262,14 @@ async function main(): Promise<void> {
       판.연속오류 = 0;
       await 한상태(맥락, 상태, a, 몫, 판);
       await 맥락.close();
+      돈.상태들.push(상태);
     }
+  } catch (e) {
+    돈.예외 = true;
+    throw e;
   } finally {
     await 브라우저.close();
-    남기기(a, 판, 시작); // 도중에 죽어도 본 것까지는 남긴다
+    남기기(a, 판, 시작, 돈); // 도중에 죽어도 본 것까지는 남긴다
   }
 }
 

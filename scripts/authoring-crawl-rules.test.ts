@@ -1,7 +1,7 @@
 // 화면 크롤러 판정 검사 — 따라갈 주소 · 같은 틀 · 지문 · 목록 · 로그인 풀림 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04)
 import { describe, expect, it } from 'vitest';
 
-import { 걸러진까닭, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
+import { 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
 
 const 기준 = 'https://site.test/main';
 
@@ -124,6 +124,15 @@ describe('지문 — 구조만 본다(글자 · 숫자는 뺀다)', () => {
 
   it('요소가 다르면 다른 값 — ?tab=1 과 ?tab=2', () => {
     expect(지문('- heading "공지"\n- list')).not.toBe(지문('- heading "공지"\n- textbox "검색"'));
+  });
+});
+
+describe('글자지문 — 크롤 파일 전체 · 숫자만 0 (2026-10-04 · 저장 기록을 그대로 쓸지 가른다)', () => {
+  it('본문 숫자만 다르면 같고, 글자 · 입력칸 머리(숫자 포함)가 다르면 다르다', () => {
+    expect(글자지문('# 입력칸: text 아이디 · 최대 20자\n- heading "공지 12"')).toBe(글자지문('# 입력칸: text 아이디 · 최대 20자\n- heading "공지 99"'));
+    expect(글자지문('# 입력칸: text 아이디 · 최대 20자\n- x')).not.toBe(글자지문('# 입력칸: text 아이디 · 최대 30자\n- x'));
+    expect(글자지문('- heading "공지"')).not.toBe(글자지문('- heading "FAQ"'));
+    expect(글자지문('# 입력칸: text 아이디 · 필수\n- x')).not.toBe(글자지문('# 입력칸: text 아이디\n- x'));
   });
 });
 
