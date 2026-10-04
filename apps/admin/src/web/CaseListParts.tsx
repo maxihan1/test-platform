@@ -112,8 +112,9 @@ export function 조건칩들({
 export function 기법고르개({ 기법, on기법 }: { 기법: 기법고름; on기법: (값: 기법고름) => void }) {
   const t = use말();
   const 기법말 = use기법말();
+  // 라벨과 고르개를 한 덩어리로 — 도구 줄이 넘치면 둘이 같이 다음 줄로 간다(따로 두면 라벨만 윗줄 끝에 남았다 — 2026-10-05 실측)
   return (
-    <>
+    <span className="filter-group" role="group" aria-label={t('설계 기법')}>
       <span className="filter-label">{t('설계 기법')}</span>
       <select aria-label={t('설계 기법')} value={기법} onChange={(e) => on기법(기법고름들.find((값) => 값 === e.target.value) ?? 'ALL')}>
         {기법고름들.map((값) => (
@@ -122,7 +123,7 @@ export function 기법고르개({ 기법, on기법 }: { 기법: 기법고름; on
           </option>
         ))}
       </select>
-    </>
+    </span>
   );
 }
 

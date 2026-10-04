@@ -235,6 +235,15 @@ describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () 
     expect(값들).toEqual([['ALL', '전체'], ...TECHNIQUES.map((값) => [값, 값]), ['none', '기법 없음']]);
   });
 
+  it('라벨과 고르개는 한 덩어리라 도구 줄이 넘쳐도 갈라지지 않는다', () => {
+    render(<기법고르개 기법="ALL" on기법={vi.fn()} />);
+
+    const 덩어리 = screen.getByRole('group', { name: '설계 기법' });
+    expect(덩어리.classList.contains('filter-group')).toBe(true);
+    expect(덩어리.textContent).toContain('설계 기법');
+    expect(덩어리.contains(screen.getByRole('combobox', { name: '설계 기법' }))).toBe(true);
+  });
+
   it('고르면 고른 값을 올려 보낸다', () => {
     const on기법 = vi.fn();
     render(<기법고르개 기법="ALL" on기법={on기법} />);
