@@ -12,7 +12,7 @@ export type 제외종류 = (typeof 제외종류)[number];
 
 /** 출처 칸 하나에 몰아 적을 수 있는 번호 수 — 한 줄에 원장을 통째로 적어 대조를 통과하지 못하게 */
 const 출처상한 = 10;
-export const tcId꼴 = /^[A-Z][A-Z0-9]{0,11}-(?:(?:UI|FN)-)?\d+$/;
+const tcId꼴 = /^[A-Z][A-Z0-9]{0,11}-(?:(?:UI|FN)-)?\d+$/;
 
 export interface 셈 {
   총: number;
