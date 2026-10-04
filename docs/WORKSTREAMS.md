@@ -101,8 +101,17 @@
      러너 호출 `callScenarioRunner`(`execution/runner.ts`) · `GET /api/runs/:runId/scenario`(`status`·`platform`·부품 스키마 셋) · 사진 `…/scenario/screenshots/:seq`(**절차 순번**) · 목록 `?kind=scenario`(E2E 탭 집계는 부품 판정 접기 — `scenario/verdict.ts`) · 시나리오 목록 `lastRun` ·
      **게이트 0 사용자**(정본 명세 시나리오 §7 계약 블록 이유 줄) — 제한 시간 API 몫 30초 · 바닥 60초 · 부품 목록 100000바이트 400 · 치운 시나리오 409 `SCENARIO_ARCHIVED`(실행·고치기·되돌리기) · 단건 조회(`findRun`·증적·견주기) `kind='CASE'` → 시나리오 번호 404 · `run_item` 경유 조회 예외(명세 시나리오 §3.7 결정 10) ·
      **게이트 1 사용자** — `runnable` 에 60분·크기·뿌리 밖 경로 · `GET /api/runs/:runId` 시나리오 번호 404 `SCENARIO_RUN`. ② 가 넘긴 ①②③ 은 닫았다. 정본 도메인/시나리오 §7
-   - **③-2 시험 실행** — `POST /api/scenario-trials` · `GET /api/scenario-trials/:trialId` · 사진 통로(메모리 · 24시간 · 시작한 사람만 · 새 시험 때 24시간 지난 `trial/*` 치우기 · `trialId` 는 `crypto.randomUUID()`) ·
-     러너 호출은 ③-1 의 `callScenarioRunner` 를 그대로 쓴다(`runId: null`, `trialId`) · 줄 세우기 `enqueue` 한 자리 · 조립 검사는 만들기와 같게 · 권한 두 표에 줄 셋 · §7 계약 블록을 `반영 완료` 로.
+   - ✅ **③-2 시험 실행 (PR #147, 2026-10-04)** — `POST /api/scenario-trials` · `GET …/:trialId` · 사진(`scenario/trial.ts` · `scenario/trialRoutes.ts`) ·
+     보관 규칙은 케이스 테스트 실행과 한 공장 함수(`execution/trial.ts` `시험보관소` — 사람당 1 · 50건 · 24시간 · 비밀값 가림, 끝 글자 `FINISHED`) · 서버 러너 줄 한 자리 · 조립 검사는 만들기와 같게 ·
+     **게이트 0 · 1 사용자** — 409 `TRIAL_BUSY` · 404 `TRIAL_NOT_FOUND`(남의 것 · 없는 것 · UUID 아님) · **문이 남의 번호를 서비스 판정 없이 지나보낸다**(원천 `시험` — 403 이면 번호와 서비스가 샌다) · 시작·끝 로그 · 옛 폴더는 UUID 이름만. 정본 도메인/시나리오 §7 「시험 실행 규칙」.
+     도중 멈춤은 없다 — 조립 화면(5번) 때 물을 것
+   - **⚠️ 재설계 먼저 (E2E-F1-11, 2026-10-04 사용자 「시험 실행 먼저, 재설계는 다음 PR」)** — 새 작성 방식(두 갈래 · Page Object, PR #128~#146)으로 만든 MKT·CDY 케이스가 부품으로 잘 안 이어진다(실측 — 표본 `~/Projects/mkt-run-pr144` · `~/Projects/cdy-run2-pr143`).
+     ① **케이스가 끝에서 자기 계정을 지운다** — MKT FN 109건 중 49건이 매번 새로 가입 · 39건이 `finally` 에서 `request.delete('/api/me')`. `finally` 는 건너뛰어도 돈다 → 다음 부품이 지워진 계정의 세션을 받는다. 결정 4 를 다시 연다(시나리오가 계정을 넣는다 / 뒷정리도 건너뛴다 / 부품용 FN 은 서비스 테스트 계정만 — 셋 중 하나)
+     ② **MKT 건너뛸 수 있는 준비 절차 6/432**(CDY 42/119) — 준비와 blocker 판정이 한 절차 · 파일 안 맨 함수 도우미는 「애매」 · `tpx-author/references/fanout.md` 지시에 R16(만들기/확인 가르기) 없음. 공용 도우미 규칙(작성 §3.6 `components/` · two-kinds 「Page Object 에서 request 금지」 · steps.ts 「맨 함수는 애매」)이 서로 부딪친다
+     ③ **부품 사이 상태 누출** — `page.clock.install` 8 · `addInitScript` 31 · `browser.newContext` 6(명세 「없다」는 낡음) · 러너가 `request` fixture 하나를 모든 부품에 같이 넘긴다(`apps/runner/scenario/scenario.spec.ts`)
+     ④ **건너뛰기를 잘못 고르면 빨강이 아니라 60초 시간 초과** — 시나리오 설정 `timeout: 0` · actionTimeout 없음 · MKT 가 시간 한도 없는 `waitFor()`
+     ⑤ 보류(`held`) · 미확정(`unconfirmed`, CDY FN 34건 전부) 부품을 명세가 안 다룬다 · 옛 번호(`DEMO-001`)는 `tcId종류` 가 FN 으로 쳐 부품이 된다 · 부품 비밀값을 저장값(`case_input`)으로 안 채운다 · `WORKSTREAMS` ·`runRoutes.ts` 주석의 `kind='CASE'`(지금은 `UI`/`FN`)
+     이미 맞는 것 — K12 위반 0 · 파일 하나에 test 하나 · Page Object 케이스를 러너 고정 spec 이 불러 돈다(ESM 실측, 러너 이미지 CJS 는 미확인)
      **남은 인계** — ② 인계 ④ 뿌리 밖 경로는 ③-1 게이트 2 에서 비활성으로 치게 고쳤다 · **뿌리 안 심볼릭 링크를 따라간다** — `catalog/source.ts` `readExcerpt` 와 한 함수(`realpath` 비교)로 합칠 때 같이 고친다 ·
      ⑤ 문법 깨진 소스 판별은 `scenario/parts.ts` 에만 있다(`caseSteps` 를 직접 부르면 같은 판별을 거친다) · `test_run.scenario_id` 색인이 없다(`lastRun` 질의 — 수만 건이면 마이그레이션) · **실행 대기줄 상한이 없다** — 실행 쓰기 권한자가 60분짜리를 여러 번 누르면 케이스 실행까지 줄이 밀린다(케이스 `POST /api/runs` 도 같다 — 둘을 같이 정한다, PR #109 보안 검토)
      **러너가 보장하는 것**(러너 §5.2) — 부품 오류 `NOT_RUN` 은 「앞 부품 실패」만, 줄 없이 끝난 부품은 `FAIL`+오류 꼬리 · `trialId` 는 UUID 만 받는다(admin 이 `crypto.randomUUID()`) ·

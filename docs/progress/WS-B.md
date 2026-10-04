@@ -137,3 +137,11 @@ curl -X POST localhost:3000/api/runs/<끝난RUN>/abort   # 409 NOT_RUNNING
 - 미완: 화면(사이드바 하위 메뉴 · 실행 기록 나누기) — #132(AUT-F3-26)
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 코드에 `'CASE'` 를 다시 쓰지 않는다(`종류조건`). 로컬 DB 에 이 마이그레이션을 걸면 실행 기록이 지워진다 — DB 테스트는 임시 DB 에 마이그레이션을 전부 걸어 돌렸다(LEARNINGS 2026-10-02 PR #131)
+
+## 2026-10-04 — E2E 시나리오 시험 실행 (PR #147, E2E-F1-10)
+
+- 완료: `POST /api/scenario-trials` · `GET …/:trialId` · `GET …/:trialId/screenshots/:seq` — 기록 없이 서버 러너 줄 한 자리 · 메모리 24시간 · 사람당 1 · 50건 · 시작한 사람만 · 비밀값 가림 · 24시간 지난 `trial/<uuid>` 치우기 · 시작·끝 로그
+- 완료: 보관 규칙을 케이스 테스트 실행과 한 공장 함수로(`execution/trial.ts` `시험보관소`) · 문의 원천 `시험`(남의 번호는 서비스 판정 없이 지나보내 라우트 404)
+- 미완: 도중 멈춤(명세에 없음 — 조립 화면 때) · E2E 명세 재설계(E2E-F1-11 — WORKSTREAMS 「📐 E2E 시나리오」 재설계 줄)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 진입점 `scenario/trialRoutes.ts` → `scenario/trial.ts` `시험시작`. 보관소는 `execution/trial.ts` 에 두 인스턴스(케이스 `DONE` · 시나리오 `FINISHED`). DB 검사 접두사 `XST` · `XSTR`
