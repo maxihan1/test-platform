@@ -61,12 +61,13 @@
 > `<표 머리 줄과 맡은 줄을 그대로 붙인다>`
 >
 > - tcId: `<UI 목록>` · `<FN 목록>` — 이 번호 말고는 만들지 않는다
+> - 설계 목록: `<맡은 줄 출처 번호의 npm run ledger:design 줄을 그대로 — 없으면 「없음」>`
 > - 맡은 화면의 Page Object: `tests/<폴더>/pages/<화면>.page.ts` — 이미 있으면 더하기만 한다
 > - 이미 있는 공용 부품 · 도우미(이것을 쓰고 새로 만들지 않는다): `<grep 으로 뽑은 경로: export 이름 목록 — 없으면 「없음」>`
 > - 묶음 slug: `<영문 slug>` — 모자란 도우미는 `tests/<폴더>/components/draft-<slug>.component.ts` 한 파일에만 적는다
 > - 테스트 폴더: `tests/<폴더>` · 본보기 `tests/demo/DEMO-011.spec.ts`
 > - 대상 서버: 환경 변수 `<이름들 — 값은 적지 않는다>`
-> - 먼저 Read 로 연다: `.claude/skills/tpx-cases/references/4-selector.md` · `5-writing.md` · `two-kinds.md` · `wording.md` · `korean-ai-tells.md`
+> - 먼저 Read 로 연다: `.claude/skills/tpx-cases/references/4-selector.md` · `5-writing.md` · `two-kinds.md` · `test-design.md` · `wording.md` · `korean-ai-tells.md`
 > - 맡은 줄의 `축` 칸이 `UI` 면 UI Test, `정상` · `예외` · `경계` 면 Functional Test 다 (`two-kinds.md` R17)
 > - 역방향이면: 맡은 줄 가운데 미확정 줄은 미확정 케이스로 쓴다(꼬리표 사유의 차이 번호는 줄에 있다). 화면 기록 `<화면 기록 폴더>/*.md` 를 다시 읽고 화면을 다시 훑지 않는다. 로그인 상태는 `state-load <로그인 상태 파일>`
 > - 용어 조각은 `<자리>/glossary/<묶음>.md` 에 `4-selector.md` 「용어 사전」 모양으로. 탐침 세션 이름은 `probe-<묶음>` — 다른 묶음과 겹치지 않게
@@ -84,6 +85,7 @@
 > 9. 준비 단계(전제)마다 그 화면이 맞는지 보는 판정을 `{ blocker: true }` 로 하나 둔다 — 준비가 틀어지면 뒤 판정이 엉뚱한 화면에서 실패한다
 > 10. 맡은 줄의 경계 요구에서 입력 칸이 한도를 넘는 글자를 막으면 「한도 + 1 을 넣으면 한도까지만 들어간다」로 쓴다. 케이스를 빼지 않는다(도메인/작성 §3.6 「★ 테스트 두 갈래」). 표에 없는 새 입력 규칙은 쓰지 말고 아래 「화면 입력 규칙」으로 돌려준다
 > 11. 경계 줄은 설계 목록의 값(표에 적힌 시험 값)을 그대로 쓴다. 맡은 줄의 설계 칸(경계 · 예외)을 빼지 않는다 — 못 쓰겠으면 「표에서 고칠 것」으로 돌려준다
+> 12. 기능 케이스의 `defineCase` 에 `techniques` 를 `test-design.md` 「기법 표시」 표대로 적는다 — 경계 줄은 `['경계값 분석']`, 예외 줄은 위 「설계 목록」이 그 요구에 낸 예외 기법, 정상 · UI 줄은 안 적는다
 >
 > **관문** — 파이프로 넘기지 않는다.
 > `npm run typecheck > <자리>/tc-<묶음>.log 2>&1; echo "EXIT=$?"` · `npm run check:tests > <자리>/ct-<묶음>.log 2>&1; echo "EXIT=$?"`
