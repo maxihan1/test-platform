@@ -218,6 +218,16 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
     expect(대조).toContain('「한 칸」');
   });
 
+  it('역방향 절 — 크롤 폴더(산출물 폴더 옆)와 크롤러 명령을 준다. 링크 따라가기는 화면만에만 (2026-10-04)', () => {
+    const 화면만 = 역방향절({ 화면만: true, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
+    expect(화면만).toContain('/w/author-7/assets/crawl');
+    expect(화면만).toContain('npx tsx scripts/authoring-crawl.ts');
+    expect(화면만).toContain('--follow');
+    const 대조 = 역방향절({ 화면만: false, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
+    expect(대조).toContain('npx tsx scripts/authoring-crawl.ts');
+    expect(대조).not.toContain('--follow');
+  });
+
   it('stream-json 으로 돌린다 — 끊겨도 토큰을 센다 (작성 §7 「토큰 사용량」)', () => {
     const 인자 = 클로드인자('/t', 기본모델);
     expect(인자[인자.indexOf('--output-format') + 1]).toBe('stream-json');
