@@ -56,7 +56,9 @@ function 두값(n: number, 아래: boolean, 쉼표: boolean, u: string): string[
 
 /** 요구 글 하나 → 경계 · 예외 근거. 같은 글이면 같은 결과 */
 export function 설계하기(원글: string): 설계 {
-  const 글 = 원글.replace(/\s+/g, ' ');
+  // 표 칸 경계를 `|` 로 남긴 뒤 빈칸을 접는다 — 서버 변환(pandoc)은 칸 사이가 넓은 빈칸, 맥 변환(textutil)은 줄바꿈이라
+  // 그냥 접으면 「409 아니오」처럼 다음 칸 글이 붙어 md 꼴(「409 |」)과 판정이 갈린다
+  const 글 = 원글.replace(/\r?\n|\t| {2,}/g, ' | ').replace(/\s+/g, ' ');
   const 경계: 경계근거[] = [];
   const 넣기 = (m: RegExpMatchArray, u: string, 값: (쉼표: boolean) => string[]) => {
     if (u === 'px' && !px조작.test(글.slice((m.index ?? 0) + m[0].length))) return;
