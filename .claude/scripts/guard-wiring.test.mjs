@@ -46,6 +46,7 @@ const 처리하나 = (모드) => {
 const 정본 = [
   { 모드: 'protected', 시점: 'PreToolUse', matcher: 'Edit|Write|MultiEdit' },
   { 모드: 'bash', 시점: 'PreToolUse', matcher: 'Bash' },
+  { 모드: 'fanout', 시점: 'PreToolUse', matcher: 'Agent|Task' },
   { 모드: 'tests', 시점: 'PostToolUse', matcher: 'Edit|Write|MultiEdit' },
   { 모드: 'review', 시점: 'Stop', matcher: '' },
 ];
