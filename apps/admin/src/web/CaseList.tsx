@@ -5,11 +5,12 @@
 
 import { useRef, useState } from 'react';
 
-import { api, type CasePage, type CaseQuery, type ItemStatus, type Platform } from './api.js';
+import { api, type CasePage } from './api.js';
 import { 고른것고치기 } from './CaseBulkEdit.js';
 import { use엑셀받기 } from './CaseExport.js';
+import { use검색조건 } from './CaseListFilter.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
-import { 결과라벨, 조건칩들, 찾기폼, 케이스줄, 표머리 } from './CaseListParts.js';
+import { 결과라벨, 기법고르개, 조건칩들, 찾기폼, 케이스줄, 표머리 } from './CaseListParts.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
@@ -25,15 +26,9 @@ import { useRunPick } from './useRunPick.js';
 export function CaseList({ service, 할수, 결과보나, kind }: { service: string; 할수: 판정; 결과보나: boolean; kind: 'UI' | 'FN' }) {
   const t = use말();
   const 언어 = use언어();
-  const [typed, setTyped] = useState('');
-  const [q, setQ] = useState('');
-  const [page, setPage] = useState(1);
+  const 검색 = use검색조건(service, kind);
+  const { 조건, 결과, page } = 검색;
   const [본서비스, set본서비스] = useState(service);
-  // 검색 조건 넷 중 셋은 서버가 거른다 (SPEC §8.1 표)
-  const [디바이스, set디바이스] = useState<Platform | 'ALL'>('ALL');
-  const [활성만, set활성만] = useState(true);
-  // 마지막 결과만 화면이 겹쳐 거른다 — 실행할 때마다 바뀌어 카탈로그가 알지 못한다
-  const [결과, set결과] = useState<ItemStatus | 'ALL'>('ALL');
   const [scanning, setScanning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   // 줄에서 고친 값. 모달도 같은 표를 쓴다 — 두 벌이면 두 자리가 다른 값을 보여준다 (SPEC §8.1)
@@ -43,15 +38,7 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
   // 고치기 요청 상자를 닫으면 그 상자를 연 버튼이 고른 것과 같이 사라진다 — 포커스는 주 행동으로 보낸다
   const 실행단추 = useRef<HTMLButtonElement>(null);
 
-  const 조건: CaseQuery = {
-    service,
-    kind,
-    q,
-    page,
-    ...(디바이스 === 'ALL' ? {} : { platform: 디바이스 }),
-    ...(활성만 ? {} : { active: false }),
-  };
-  const cases = useAsync<CasePage>(() => api.cases(조건), [service, q, page, 디바이스, 활성만]);
+  const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 검색.기법]);
   const scan = useAsync(() => api.lastScan(), []);
   const last = useAsync(() => (결과보나 ? api.lastByCase() : Promise.resolve({ items: [] })), [결과보나]);
 
@@ -65,9 +52,7 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
   // 빈 목록에 '3 / 1' 이 뜨고 사람은 목록이 비었다고 생각한다
   if (본서비스 !== service) {
     set본서비스(service);
-    setPage(1);
-    setQ('');
-    setTyped('');
+    검색.찾기비우기();
     // 고른 것도 같이 버린다. 남기면 다른 서비스에서 「고른 2건」이라 말한다
     뽑기.비우기();
     // 고친 값도 버린다. 칸 이름이 같으면(env·userId) 남의 서비스 케이스에 그대로 붙는다
@@ -78,7 +63,6 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
   const 보일것 = 마지막결과로거른다(cases.data?.items ?? [], lastMap, 결과);
   // 지금 보이는 것을 센다 — 칩을 걸면 숫자도 같이 좁혀져야 「보이는 것과 세는 것」이 갈리지 않는다
   const 셈 = 판정개수(보일것, lastMap);
-  const 건조건 = q !== '' || 디바이스 !== 'ALL' || !활성만 || 결과 !== 'ALL';
 
   async function rescan() {
     setScanning(true);
@@ -92,19 +76,6 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
     } finally {
       setScanning(false);
     }
-  }
-
-  function search(term: string) {
-    setQ(term);
-    setPage(1);
-  }
-
-  // 조건을 바꾸면 늘 첫 쪽으로 간다. 3쪽에서 조건을 좁히면 빈 목록에 '3쪽' 이 뜬다
-  function 바꾸면첫쪽<T>(set: (값: T) => void) {
-    return (값: T) => {
-      set(값);
-      setPage(1);
-    };
   }
 
   /** 한 칸을 고쳤다. 그 케이스 칸만 새로 만들고 나머지는 그대로 둔다 */
@@ -121,15 +92,6 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
       if (!다음.delete(tcId)) 다음.add(tcId);
       return 다음;
     });
-  }
-
-  function 조건지우기() {
-    setTyped('');
-    setQ('');
-    set디바이스('ALL');
-    set활성만(true);
-    set결과('ALL');
-    setPage(1);
   }
 
   // 총건수로 페이지 수를 계산하지 않는다. 그 값은 안내로만 쓴다 (SPEC §8.1)
@@ -191,21 +153,23 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
           실행 기록 화면은 원래부터 한 줄이라 둘의 모양이 이제 같다 */}
       <div className="toolbar">
         <찾기폼
-          typed={typed}
-          건조건={건조건}
-          onTyped={setTyped}
-          onSearch={() => search(typed)}
-          onClear={조건지우기}
+          typed={검색.typed}
+          건조건={검색.건조건}
+          onTyped={검색.setTyped}
+          onSearch={() => 검색.search(검색.typed)}
+          onClear={검색.조건지우기}
         />
 
         <조건칩들
-          디바이스={디바이스}
-          활성만={활성만}
+          디바이스={검색.디바이스}
+          활성만={검색.활성만}
           결과={결과}
-          on디바이스={바꾸면첫쪽(set디바이스)}
-          on활성만={바꾸면첫쪽(set활성만)}
-          on결과={바꾸면첫쪽(set결과)}
+          on디바이스={검색.on디바이스}
+          on활성만={검색.on활성만}
+          on결과={검색.on결과}
         />
+        {/* 디바이스 · 표시 칩처럼 고른 것은 그대로 둔다 — 다른 쪽에서 고른 것을 말없이 버리지 않는다 (도메인/카탈로그 §8.1 「설계 기법」) */}
+        {kind !== 'FN' ? null : <기법고르개 기법={검색.기법} on기법={검색.on기법} />}
         {엑셀.버튼}
       </div>
       {엑셀.알림}
@@ -228,11 +192,11 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
           형편={{
             scannedAt: scan.data?.scannedAt ?? null,
             전체건수: cases.data.total,
-            건조건,
-            친글자: q,
+            건조건: 검색.건조건,
+            친글자: 검색.q,
           }}
           onScan={할수('다시스캔') ? () => void rescan() : undefined}
-          onClear={조건지우기}
+          onClear={검색.조건지우기}
         />
       ) : (
         <>
@@ -268,11 +232,11 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
 
       {page === 1 && !더있나 ? null : (
         <div className="pager">
-          <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
+          <button onClick={() => 검색.setPage((n) => n - 1)} disabled={page <= 1}>
             {t('이전')}
           </button>
           <span>{t('{번호}쪽', { 번호: page })}</span>
-          <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
+          <button onClick={() => 검색.setPage((n) => n + 1)} disabled={!더있나}>
             {t('다음')}
           </button>
         </div>

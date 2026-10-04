@@ -78,6 +78,29 @@ function 통로를막는다() {
   return { 이력스파이, 항목스파이 };
 }
 
+describe('케이스 상세의 설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () => {
+  it('기법이 있으면 맨 위 구획에 태그로 그린다', () => {
+    통로를막는다();
+    const { container } = render(
+      <CaseDetail row={{ ...케이스, techniques: ['경계값 분석', '상태 전이'] }} 폈나 마지막={undefined} onClose={() => {}} on값={() => {}} />,
+    );
+
+    const 첫구획 = container.querySelector('.detail > .dsec');
+    expect(첫구획?.querySelector('.dlabel')?.textContent).toBe('설계 기법');
+    expect([...(첫구획?.querySelectorAll('.tech-tag') ?? [])].map((el) => el.textContent)).toEqual(['경계값 분석', '상태 전이']);
+  });
+
+  it('기법이 없으면 구획을 안 그린다', () => {
+    통로를막는다();
+    const { container } = render(
+      <CaseDetail row={{ ...케이스, techniques: [] }} 폈나 마지막={undefined} onClose={() => {}} on값={() => {}} />,
+    );
+
+    expect(screen.queryByText('설계 기법')).toBeNull();
+    expect(container.querySelector('.tech-tag')).toBeNull();
+  });
+});
+
 describe('케이스 상세 펼침', () => {
   it('접혀 있으면 아무것도 안 그리고 통로도 안 부른다', () => {
     const { 이력스파이, 항목스파이 } = 통로를막는다();

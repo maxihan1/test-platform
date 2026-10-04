@@ -187,6 +187,16 @@ describe('목록 두 곳은 보고 있는 서비스를 서버에 보낸다', () 
     expect(url).toContain('page=2');
   });
 
+  it('설계 기법은 번역 글자가 아니라 kit 원문 값으로 싣는다', async () => {
+    답 = { status: 200, body: { items: [], total: 0, page: 1, pageSize: 50 } };
+    await api.cases({ service: 'PAY', technique: '경계값 분석' });
+    await api.cases({ service: 'PAY', technique: 'none' });
+    await api.cases({ service: 'PAY' });
+
+    const 기법 = 부름.map(({ url }) => new URL(url, 'http://x').searchParams.get('technique'));
+    expect(기법).toEqual(['경계값 분석', 'none', null]);
+  });
+
   it('실행 기록 목록에도 service 가 실린다', async () => {
     답 = { status: 200, body: { items: [], total: 0, page: 1, pageSize: 50 } };
     await api.runs('PAY', 1);

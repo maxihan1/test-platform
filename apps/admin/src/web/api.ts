@@ -1,7 +1,7 @@
 // Admin API 호출 한 곳 (SPEC §7). 응답 모양은 WS-A·WS-B가 실제로 내보내는 것을 그대로 옮겼다
 // 목 데이터는 두지 않는다 — 개발 서버도 /api를 진짜 admin으로 프록시한다 (vite.config.ts)
 
-import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '@platform/kit';
+import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult, Technique } from '@platform/kit';
 
 import type { 고칠것 } from '../authoring/edit.js';
 
@@ -41,6 +41,8 @@ export interface CaseRow {
   unconfirmedSince?: string | null;
   /** 다음 실행에 먼저 채울 저장값. 없으면 null 이고 칸은 코드 기본값으로 돈다 */
   savedInput?: SavedInput | null;
+  /** 설계 기법 — kit `TECHNIQUES` 의 낱말. 서버는 늘 배열을 준다 (도메인/카탈로그 §7) */
+  techniques?: string[];
 }
 
 /**
@@ -675,6 +677,8 @@ export interface CaseQuery {
   page?: number;
   /** 사이드바 하위 메뉴의 종류. 서버가 거른다 (카탈로그 §7 `?kind=` · PR #132) */
   kind?: 'UI' | 'FN';
+  /** 설계 기법. `none` 은 기법이 안 적힌 케이스다 (도메인/카탈로그 §7 `?technique=`) */
+  technique?: Technique | 'none';
 }
 
 // 목록과 엑셀이 같은 조건을 쓴다 — 두 벌이면 버튼 건수와 받은 파일 건수가 갈린다
@@ -684,6 +688,7 @@ function 케이스조건(query: CaseQuery): URLSearchParams {
   if (query.platform !== undefined) params.set('platform', query.platform);
   if (query.active === false) params.set('active', 'false');
   if (query.kind !== undefined) params.set('kind', query.kind === 'UI' ? 'ui' : 'fn');
+  if (query.technique !== undefined) params.set('technique', query.technique);
   return params;
 }
 
