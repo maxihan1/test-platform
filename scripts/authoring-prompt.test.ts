@@ -57,3 +57,26 @@ describe('줄프롬프트 — 원장 절 (도메인/작성 §3.6 「★ 원장�
     expect(줄프롬프트(것, 'MKT', [])).not.toContain('--- 이어 작성 ---');
   });
 });
+
+describe('줄프롬프트 — 진행 메모 (도메인/작성 §7 「이어하기」 · 2026-10-04)', () => {
+  const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
+  const 메모 = '/w/author-1/assets/resume-memo.md';
+
+  it('메모 경로를 주면 단계마다 고쳐 쓰라고 공통 절에 싣는다', () => {
+    const 글 = 줄프롬프트(것, 'MKT', [], undefined, undefined, undefined, undefined, undefined, 메모);
+    expect(글).toContain(메모);
+    expect(글).toMatch(/진행 메모/);
+    expect(글).toContain('SKILL.md');
+  });
+
+  it('이어받은 실행이면 거절 까닭 다음에 메모를 읽고, 관문은 전부 다시 돈다고 이어하기 절에 싣는다', () => {
+    const 글 = 줄프롬프트(것, 'MKT', [], undefined, undefined, { 번호: 7, 이유: 'LIMIT', 까닭: null }, undefined, undefined, 메모);
+    const 절 = 글.slice(글.indexOf('--- 이어하기 ---'));
+    expect(절).toContain(메모);
+    expect(절).toMatch(/관문.*다시/);
+  });
+
+  it('메모 경로가 없으면 메모 줄이 없다', () => {
+    expect(줄프롬프트(것, 'MKT', [])).not.toMatch(/진행 메모/);
+  });
+});

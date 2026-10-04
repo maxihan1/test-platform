@@ -251,7 +251,7 @@ async function 사본에서(
   const 돌린것 = await 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
-      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성),
+      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md')),
       env: 환경,
       uid: 자식?.uid,
       gid: 자식?.gid,
