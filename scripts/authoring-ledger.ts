@@ -1,6 +1,9 @@
 // 원장 — 기획서 글자본에서 요구 번호 목록을 뽑는다. 표와 맞대는 쪽은 authoring-ledger-check.ts 다
 // 자식(AI)이 아니라 이 스크립트가 뽑는다 — 같은 글이면 같은 원장이 나와야 대조가 성립한다 (도메인/작성 §3.6 「★ 원장」)
 
+import { createHash } from 'node:crypto';
+import { extname } from 'node:path';
+
 import type { 읽을자료 } from './authoring-assets.js';
 
 export interface 원장항목 {
@@ -9,6 +12,8 @@ export interface 원장항목 {
   자료: string;
   /** 문단 모드만 — 첫 80자. 자식이 P-012 가 어느 글인지 알아야 한다 */
   글?: string;
+  /** 요구 글의 지문 — 다음 판과 견줘 바뀐 요구를 기계가 가린다 (§3.6 「요구 지문」). 원장만들기는 늘 채운다 */
+  지문?: string;
 }
 
 export interface 자료원장 {
@@ -111,6 +116,44 @@ function 문단들(글: string): string[] {
   return 단위.filter((u) => u.replace(/\s/g, '').length >= 짧은글);
 }
 
+/** 빈칸을 하나로 모은 글의 SHA-256 앞 16자 — 서버 변환(pandoc)은 칸 너비가 바뀌면 모든 줄의 빈칸이 달라진다 */
+const 지문내기 = (글: string) => createHash('sha256').update(글.replace(/\s+/g, ' ').trim()).digest('hex').slice(0, 16);
+
+// 장 제목 — 앞 장 마지막 요구에 붙이면 제목만 고쳐도 그 요구가 바뀐 것으로 나온다(2026-10-04 계획 검토 실측).
+// 「1. 사용자가 버튼을 누른다」 같은 단계 설명은 문장으로 끝나 제목이 아니다
+const 머리글 = (줄: string) => /^#{1,6}\s/.test(줄) || (/^\d+(?:\.\d+)*\.?\s+\S/.test(줄) && 줄.length <= 40 && !/[.다요]$/.test(줄));
+
+/** 줄 첫머리(표 테두리 · 목록 표시 뒤)에 있는 번호. 줄 가운데서 언급한 번호는 주인이 아니다 */
+function 첫머리번호(줄: string): string | null {
+  const m = [...줄.matchAll(번호식)][0];
+  return m?.[1] !== undefined && /^[\s│|*•-]*$/.test(줄.slice(0, m.index)) ? m[1] : null;
+}
+
+/**
+ * 번호 모드 지문 — 줄 첫머리에 원장 번호가 있는 줄부터 다음 그런 줄 전까지가 그 번호의 글이다. 줄 단위라 맥 변환(textutil)처럼
+ * 칸마다 줄이 나뉘고 빈 줄이 없는 글자본도 요구마다 갈린다. 머리글은 주인을 끊고, 원장 번호 없는 표 행 · 테두리는 어디에도 안 붙는다.
+ * 첫머리에 한 번도 안 나온 번호(범위의 가운데 · 언급만 됨)는 그 번호가 나온 줄 전부다
+ */
+function 번호지문(글: string, 원장번호: Set<string>): Map<string, string> {
+  const 모음 = new Map<string, string[]>();
+  const 언급 = new Map<string, string[]>();
+  const 넣기 = (곳: Map<string, string[]>, 번호: string, 줄: string) => 곳.set(번호, [...(곳.get(번호) ?? []), 줄]);
+  let 주인: string | null = null;
+  for (const 날줄 of 글.split(/\r?\n/)) {
+    const 줄 = 날줄.trim();
+    if (줄 === '' || 테두리.test(줄)) continue;
+    const 번호들 = 번호찾기(줄).번호들.filter((n) => 원장번호.has(n));
+    for (const 번호 of 번호들) 넣기(언급, 번호, 줄);
+    const 첫 = 첫머리번호(줄);
+    if (첫 !== null && 원장번호.has(첫)) {
+      주인 = 첫;
+      넣기(모음, 첫, 줄);
+    } else if (머리글(줄)) 주인 = null;
+    else if (주인 !== null && !(/^[│|]/.test(줄) && 번호들.length === 0)) 넣기(모음, 주인, 줄);
+  }
+  return new Map([...원장번호].map((n) => [n, 지문내기((모음.get(n) ?? 언급.get(n) ?? []).join('\n'))]));
+}
+
 /** 자료 하나의 원장. 번호 가족이 없으면 문단 모드다. `머리` 는 문단 번호 앞말(P · P1 · P2) */
 export function 원장뽑기(글: string, 자료: string, 머리 = 'P'): 자료원장 {
   const { 번호들, 경고 } = 번호찾기(글);
@@ -119,10 +162,12 @@ export function 원장뽑기(글: string, 자료: string, 머리 = 'P'): 자료�
   for (const 번호 of 차례) 셈[가족(번호)] = (셈[가족(번호)] ?? 0) + 1;
   const 가족들 = Object.fromEntries(Object.entries(셈).filter(([, n]) => n >= 가족하한));
   if (Object.keys(가족들).length > 0) {
-    const 항목 = 차례.filter((번호) => 가족(번호) in 가족들).map((번호) => ({ 번호, 자료 }));
+    const 원장번호 = 차례.filter((번호) => 가족(번호) in 가족들);
+    const 지문들 = 번호지문(글, new Set(원장번호));
+    const 항목 = 원장번호.map((번호) => ({ 번호, 자료, 지문: 지문들.get(번호) ?? 지문내기('') }));
     return { 모드: '번호', 항목, 가족: 가족들, 경고 };
   }
-  const 항목 = 문단들(글).map((u, i) => ({ 번호: `${머리}-${String(i + 1).padStart(3, '0')}`, 자료, 글: u.slice(0, 글상한) }));
+  const 항목 = 문단들(글).map((u, i) => ({ 번호: `${머리}-${String(i + 1).padStart(3, '0')}`, 자료, 글: u.slice(0, 글상한), 지문: 지문내기(u) }));
   return { 모드: '문단', 항목, 가족: {}, 경고 };
 }
 
@@ -134,6 +179,8 @@ export interface 원장 {
   경고: string[];
   /** 글자본이 없어 원장에 못 넣은 자료 — PR 본문에 싣는다 */
   빠진자료: string[];
+  /** 자료 이름 → 글자본 꼴(`.docx/pandoc`). 서버와 맥은 같은 워드를 다르게 풀어 지문이 다 달라진다 — 꼴이 다르면 견주지 않는다. 원장만들기는 늘 채운다 */
+  꼴?: Record<string, string>;
 }
 
 /** 글자본으로 읽을 수 있는 자료인가 — 워드는 에이전트가 .txt 로 바꿔 둔다. PDF 는 바꾸지 않는다 */
@@ -165,12 +212,13 @@ export function 원장만들기(
   if (뽑은것.length === 0) return { 없음: `글자본이 있는 자료가 없다${못읽음.length > 0 ? ` — ${못읽음.join(' · ')}` : ''}` };
 
   const 문단자료수 = 뽑은것.filter(({ 첫 }) => 첫.모드 === '문단').length;
-  const 합친: 원장 = { 항목: [], 가족: {}, 모드: {}, 경고: [], 빠진자료 };
+  const 합친: 원장 = { 항목: [], 가족: {}, 모드: {}, 경고: [], 빠진자료, 꼴: {} };
   let 문단순번 = 0;
   const 본번호 = new Set<string>();
   for (const { c, 글, 첫 } of 뽑은것) {
     const 하나 = 첫.모드 === '문단' && 문단자료수 > 1 ? 원장뽑기(글, c.name, `P${String(++문단순번)}`) : 첫;
     합친.모드[c.name] = 하나.모드;
+    합친.꼴 = { ...합친.꼴, [c.name]: `${extname(c.name).toLowerCase()}/${c.변환?.명령 ?? '그대로'}` };
     합친.경고.push(...하나.경고);
     for (const 항 of 하나.항목) {
       if (본번호.has(항.번호)) continue;

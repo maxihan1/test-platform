@@ -164,3 +164,69 @@ describe('원장만들기 — 자료 여럿 · 원장 없음', () => {
     expect(r.원장.빠진자료).toEqual(['화면.pdf(PDF)']);
   });
 });
+
+const 서버꼴 = readFileSync(new URL('./fixtures/ledger/demomarket-pandoc.txt', import.meta.url), 'utf8');
+const 지문표 = (글: string) => new Map(원장뽑기(글, '기획.docx').항목.map((h) => [h.번호, h.지문]));
+const 바뀐번호 = (앞: string, 뒤: string) => {
+  const [가, 나] = [지문표(앞), 지문표(뒤)];
+  return [...가].filter(([번호, 지문]) => 나.get(번호) !== 지문).map(([번호]) => 번호);
+};
+
+describe('요구 지문 (2026-10-04 게이트 0 · 1 — 기획서 판이 바뀌면 더함 · 바뀜 · 지움을 기계로)', () => {
+  it('원장 항목마다 16자 지문이 있고 같은 글이면 같다 — 맥 꼴 · 서버 꼴 둘 다', () => {
+    for (const 글 of [데모마켓, 서버꼴]) {
+      expect(원장뽑기(글, '기획.docx').항목.every((h) => /^[0-9a-f]{16}$/.test(h.지문 ?? ''))).toBe(true);
+      expect(바뀐번호(글, 글)).toEqual([]);
+    }
+  });
+
+  it('빈칸만 바뀌면 지문이 같다 — 서버 꼴은 칸 너비가 바뀌면 모든 줄의 빈칸과 테두리 길이가 달라진다', () => {
+    expect(바뀐번호(서버꼴, 서버꼴.replace(/ {3,}/g, '      ').replace(/-{10,}/g, '----------'))).toEqual([]);
+  });
+
+  it('요구 한 줄을 고치면 그 번호 하나만 바뀐다 — 서버 꼴(한 줄) · 맥 꼴(번호 · 글 · 구분이 줄 셋)', () => {
+    for (const 글 of [데모마켓, 서버꼴]) expect(바뀐번호(글, 글.replace('자동 넘김이 멈추고', '자동 넘김이 잠깐 멈추고'))).toEqual(['REQ-HOME-002']);
+  });
+
+  it('장 제목을 고쳐도 앞 장 마지막 요구가 안 바뀐다 — 제목 뒤 표 머리 칸도 어디에도 안 붙는다', () => {
+    for (const 글 of [데모마켓, 서버꼴]) expect(바뀐번호(글, 글.replace('3. 홈 (HOME)', '3. 홈 화면 (HOME)'))).toEqual([]);
+  });
+
+  it('줄 첫머리의 원장 번호가 주인이다 — 줄 가운데서 언급한 번호(REQ-ADM-003)는 자기 줄이 따로 있다', () => {
+    for (const 글 of [데모마켓, 서버꼴]) {
+      expect(바뀐번호(글, 글.replace('관리자 배너 관리(REQ-ADM-003)를 따른다', '관리자 배너 관리(REQ-ADM-003)를 그대로 따른다'))).toEqual(['REQ-HOME-004']);
+    }
+  });
+
+  it('번호 없는 이어진 문단은 앞 주인에 붙고, 원장 번호 없는 표 행과 테두리는 어디에도 안 붙는다', () => {
+    const 글 = ['REQ-X-001 로그인', '', '아이디와 비밀번호를 넣으면 들어간다.', '', '| ID | 요구 |', '|---|---|', '| REQ-X-002 | 나가기 |', '| REQ-X-003 | 가입 |'].join('\n');
+    expect(바뀐번호(글, 글.replace('들어간다', '홈으로 들어간다'))).toEqual(['REQ-X-001']);
+    expect(바뀐번호(글, 글.replace('| ID | 요구 |', '| 번호 | 요구사항 |'))).toEqual([]);
+  });
+
+  it('범위로 적은 줄(REQ-R-001~003)은 셋 다 지문이 있고 그 줄을 고치면 셋 다 바뀐다', () => {
+    const 글 = ['| REQ-R-001~003 | 목록을 보여 준다 |', '| REQ-R-004 | 지운다 |'].join('\n');
+    expect(바뀐번호(글, 글.replace('보여 준다', '모두 보여 준다'))).toEqual(['REQ-R-001', 'REQ-R-002', 'REQ-R-003']);
+  });
+
+  it('문단 모드는 문단 글이 지문이다 — 앞에 문단을 끼워 번호가 밀려도 지문은 그대로 남는다', () => {
+    const 글 = '로그인 화면에서 아이디를 넣으면 다음 화면으로 간다.\n\n장바구니에 담은 상품이 목록에 그대로 보인다.';
+    const 앞 = 원장뽑기(글, '기획.md').항목;
+    const 뒤 = 원장뽑기(`새로 더한 문단이 맨 앞에 들어와 번호를 민다.\n\n${글}`, '기획.md').항목;
+    expect(뒤.slice(1).map((h) => h.지문)).toEqual(앞.map((h) => h.지문));
+  });
+
+  it('원장만들기는 자료마다 글자본 꼴(확장자/변환 도구)을 싣고, 같은 번호가 자료 둘에 나오면 먼저 나온 자료의 지문이다', () => {
+    const 계획: 읽을자료[] = [
+      { kind: 'FILE', id: 1, name: '가.docx', 받을자리: '/a/1.docx', 변환: { 명령: 'pandoc', 인자: [] }, 읽을자리: '/a/1.txt' },
+      { kind: 'FILE', id: 2, name: '나.md', 받을자리: '/a/2.md', 변환: null, 읽을자리: '/a/2.md' },
+    ];
+    const 글들: Record<string, string> = { '/a/1.txt': 'REQ-A-1 하나\nREQ-A-2 둘\nREQ-A-3 셋', '/a/2.md': 'REQ-A-3 다른 글\nREQ-A-4 넷\nREQ-A-5 다섯' };
+    const r = 원장만들기(계획, (p) => 글들[p] ?? null);
+    if (!('원장' in r)) throw new Error('원장이 없다');
+    expect(r.원장.꼴).toEqual({ '가.docx': '.docx/pandoc', '나.md': '.md/그대로' });
+    const 셋 = r.원장.항목.find((h) => h.번호 === 'REQ-A-3');
+    expect(셋?.자료).toBe('가.docx');
+    expect(셋?.지문).toBe(원장뽑기(글들['/a/1.txt'] ?? '', '가.docx').항목.find((h) => h.번호 === 'REQ-A-3')?.지문);
+  });
+});
