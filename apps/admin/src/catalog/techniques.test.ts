@@ -84,8 +84,9 @@ describe('K14 — techniques 는 목록 안 낱말의 리터럴 배열', () => {
     expect(k14(케이스(`techniques: ['경계값 분석', '경계값 분석'],`))).toHaveLength(1);
   });
 
-  it('UI 케이스에 키가 있으면 빈 배열이어도 위반이다', () => {
-    expect(k14(케이스('techniques: [],', '', 'DEMO-UI-001'))).toEqual(['UI 케이스에는 techniques 를 달지 않는다']);
+  it('UI 판정은 실행한 tcId 로 checkSpec 이 한다 — 글자 검사는 꼴만 본다', () => {
+    expect(k14(케이스('techniques: [],', '', 'DEMO-UI-001'))).toEqual([]);
+    expect(k14(케이스(`techniques: ['오류 추정'],`, '', 'DEMO-UI-001'))).toEqual(['techniques 원소 「오류 추정」은 목록에 없다']);
   });
 
   it('위반 줄은 원소가 적힌 줄이다', () => {
@@ -101,16 +102,16 @@ describe('K14 — techniques 는 목록 안 낱말의 리터럴 배열', () => {
 });
 
 describe('케이스기법 — 케이스 파일 글에서 기법을 읽는다', () => {
-  it('리터럴 배열이면 적힌 차례 그대로 낱말을 준다', () => {
-    expect(케이스기법(케이스(`techniques: ['결정 테이블', '경계값 분석'],`))).toEqual(['결정 테이블', '경계값 분석']);
+  it('리터럴 배열이면 목록 차례로 · 중복 없이 낱말을 준다', () => {
+    expect(케이스기법(케이스(`techniques: ['결정 테이블', '경계값 분석', '결정 테이블'],`))).toEqual(['경계값 분석', '결정 테이블']);
   });
 
   it('키가 없으면 빈 목록이다', () => {
     expect(케이스기법(케이스(''))).toEqual([]);
   });
 
-  it('목록 밖 낱말은 거른다', () => {
-    expect(케이스기법(케이스(`techniques: ['오류 추정', '상태 전이'],`))).toEqual(['상태 전이']);
+  it('목록 밖 낱말이 있으면 K14 몫이라 null 이다 — 적힌 낱말을 「없음」으로 안내하지 않게', () => {
+    expect(케이스기법(케이스(`techniques: ['경계값분석', '상태 전이'],`))).toBeNull();
   });
 
   it('변수 값은 읽을 수 없어 null 이다', () => {

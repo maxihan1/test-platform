@@ -11,7 +11,7 @@ export interface BadTag {
 }
 
 // 따옴표 키('unconfirmed')·계산된 리터럴 키(['unconfirmed'])도 실행하면 같은 꼬리표다. 이름만 보면 변수 사유가 빠져나간다
-function isTagKey(name: ts.PropertyName | undefined, tag = 'unconfirmed'): boolean {
+export function isTagKey(name: ts.PropertyName | undefined, tag = 'unconfirmed'): boolean {
   if (name === undefined) return false;
   const key = ts.isComputedPropertyName(name) ? name.expression : name;
   return (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && key.text === tag;

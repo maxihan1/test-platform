@@ -5,23 +5,17 @@ import ts from 'typescript';
 import { TECHNIQUES } from '@platform/kit/types';
 import type { Technique } from '@platform/kit/types';
 
-import type { BadTag } from './unconfirmed.js';
+import { type BadTag, isTagKey } from './unconfirmed.js';
 
 const 낱말들: ReadonlySet<string> = new Set(TECHNIQUES);
+// 따옴표 키·리터럴 계산 키도 실행하면 같은 칸이다
+const isKey = (name: ts.PropertyName | undefined): boolean => isTagKey(name, 'techniques');
 
-// unconfirmed 의 isTagKey 와 같은 기준 — 따옴표 키·리터럴 계산 키도 실행하면 같은 칸이다
-function isKey(name: ts.PropertyName | undefined): boolean {
-  if (name === undefined) return false;
-  const key = ts.isComputedPropertyName(name) ? name.expression : name;
-  return (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && key.text === 'techniques';
-}
-
-// 펼침·글자가 아닌 계산 키는 K11 이 이미 막는다. 여기서 또 내면 한 자리에 위반 줄이 둘 생긴다
-export function badTechniques(literal: ts.ObjectLiteralExpression, ui: boolean): BadTag[] {
+// 펼침·글자가 아닌 계산 키는 K11 이 이미 막는다. 여기서 또 내면 한 자리에 위반 줄이 둘 생긴다.
+// UI 케이스인지는 실행한 tcId 로 checkSpec 이 본다 — 여기는 꼴만
+export function badTechniques(literal: ts.ObjectLiteralExpression): BadTag[] {
   const p = literal.properties.find((x) => isKey(x.name));
   if (p === undefined) return [];
-  // UI 목록에는 고르개가 없어 빈 배열이라도 아무도 못 본다
-  if (ui) return [{ node: p, what: 'UI 케이스에는 techniques 를 달지 않는다' }];
   if (!ts.isPropertyAssignment(p) || !ts.isArrayLiteralExpression(p.initializer)) {
     return [{ node: p, what: 'techniques 가 배열 리터럴이 아니다' }];
   }
@@ -66,7 +60,8 @@ export function 케이스기법(글: string): Technique[] | null {
   const p = literal.properties.find((x) => isKey(x.name));
   if (p === undefined) return [];
   if (!ts.isPropertyAssignment(p) || !ts.isArrayLiteralExpression(p.initializer)) return null;
-  const 글자 = p.initializer.elements.filter(ts.isStringLiteralLike);
-  if (글자.length !== p.initializer.elements.length) return null;
-  return 글자.map((e) => e.text).filter((t): t is Technique => 낱말들.has(t));
+  const 글자 = p.initializer.elements.filter(ts.isStringLiteralLike).map((e) => e.text);
+  // 목록 밖 낱말도 K14 몫이다 — 버리고 견주면 적힌 낱말을 「없음」으로 안내한다
+  if (글자.length !== p.initializer.elements.length || 글자.some((t) => !낱말들.has(t))) return null;
+  return TECHNIQUES.filter((t) => 글자.includes(t));
 }

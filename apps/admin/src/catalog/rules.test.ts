@@ -135,6 +135,19 @@ describe('checkSpec', () => {
     expect(checkSpec('x.spec.ts', spec(), lines)).toEqual([]);
   });
 
+  it('K14 — UI tcId 에 techniques 키가 있으면 빈 배열이어도 위반이다(변수 · as const tcId 도 실행한 tcId 로 본다)', () => {
+    const found = checkSpec('x.spec.ts', spec({ tcId: 'DEMO-UI-001' }), new Map([...lines, ['techniques', 8]]));
+    expect(found.map((x) => [x.rule, x.line, x.what])).toEqual([['K14', 8, 'UI 케이스에는 techniques 를 달지 않는다']]);
+  });
+
+  it('K14 — UI tcId 의 실행 결과에 techniques 가 있으면 위반이다', () => {
+    expect(checkSpec('x.spec.ts', spec({ tcId: 'DEMO-UI-001', techniques: ['경계값 분석'] }), lines)[0]?.rule).toBe('K14');
+  });
+
+  it('K14 — 기능 tcId 는 techniques 가 있어도 이 검사로는 위반이 아니다', () => {
+    expect(checkSpec('x.spec.ts', spec({ tcId: 'DEMO-FN-001', techniques: ['경계값 분석'] }), new Map([...lines, ['techniques', 8]]))).toEqual([]);
+  });
+
   it('K2 — tcId 형식이 어긋나면 잡는다', () => {
     expect(checkSpec('x.spec.ts', spec({ tcId: 'demo-1' }), lines)[0].rule).toBe('K2');
   });
