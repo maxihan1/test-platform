@@ -739,3 +739,13 @@
 - 미완: MKT 재측정(합격선 진행판 AUT-F3-43) · 기법 표시 · 거르기(AUT-F3-44 — 사용자 요청 · 계약 · 화면 시안) · API 로그인 열(AUT-F3-45 — 설계 판정 보강의 첫 할 일) · 오류 추정(AUT-F3-46)
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 판정은 글자 문구 짐작이다 — 오판은 자식이 「설계 거절」로 까닭과 함께 빼고 PR 머리에 센다. 낱말 목록의 정본은 `scripts/authoring-design.ts`. `authoring-ledger-check.ts` 는 딱 300 줄이라 더할 것은 `authoring-design-check.ts` 로
+
+## 2026-10-05 — 기능 테스트에 설계 기법 표시 · 거르기 (AUT-F3-44, PR #158)
+
+- 계기: 사용자 「만들어진 테스트가 어떤 기법으로 만들어졌는지 표시되고 필터도 됐으면 — UI 테스트에는 안 들어가고 FN 에만」
+- 완료: kit `TECHNIQUES` · `CaseSpec.techniques`(defineCase 가 목록 차례 · 중복 없이) · 마이그레이션 `test_case.techniques` · K14(`catalog/techniques.ts` — 리터럴 배열 · 목록 안 낱말 · UI 금지) · 카탈로그 저장 · `?technique=` · 엑셀 열 · 화면(고르개 · 작은 줄 태그 · 상세 구획 · 거르기 상태를 `CaseListFilter.ts` 로) · `scripts/authoring-technique-check.ts`(칸의 기대 기법 · 기법 대조) · 올리기 판정을 `scripts/authoring-ledger-verdict.ts` 로 떼고 `⚠️ 기법 어긋남 N` · 관문 0 `기법 어긋남:` · 스킬 `test-design.md` 「기법 표시」 · 명세
+- 실측: 2차 MKT 표(`MKT-144.md`) · 케이스 폴더로 관문 0 기법 어긋남 29(경계값 분석 10 · 동등 분할 14 · 결정 테이블이 낀 것 4 · 상태 전이가 낀 것 1) — 표를 따로 센 값(경계 10 · 설계 예외가 있는 예외 19)과 같다. TODO 사람 표를 기준 표로 두면 0(기준 줄 처리를 빼면 경계 1). `tests/**` K14 0
+- 구현 중 바뀐 것: ① 기법을 고르면 고른 값을 비우던 계획을 다른 칩처럼 유지로(명세 카탈로그 §8.1 같이 고침) ② 넓은 창에서도 고르개를 넣으면 도구 줄이 두 줄 — 라벨과 고르개를 한 덩어리로 묶어 갈라지지만 않게 함(한 줄 약속은 게이트 2 결정) ③ 한 tcId 의 줄이 여럿이면 첫 줄과 축이 같은 줄의 출처만 모은다(계획 대조 지적)
+- 미완: MKT · CDY 다시 작성 뒤 기법 어긋남 0 확인(진행판 AUT-F3-44 합격선) · API 로그인 열(AUT-F3-45) · 오류 추정(AUT-F3-46)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 기법 이름은 바꾸지 않는 식별자다(DB · URL · 케이스 파일). 표시 글은 `messages/cases.ts`. 기법을 읽는 함수는 `catalog/techniques.ts` 하나. 올리기 판정은 이제 `authoring-ledger-verdict.ts` 에 있다
