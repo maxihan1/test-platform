@@ -3,6 +3,7 @@
 // 표 글은 모른다 — 읽기는 authoring-ledger-check.ts 가 하고 읽은 줄을 넘긴다(거꾸로 import 하면 순환이 생긴다)
 
 import { TCID, tcId종류, 번호열쇠 } from '../apps/admin/src/catalog/rules.js';
+import { 번호열머리 } from './authoring-conflicts-apply.js';
 import { 번호찾기 } from './authoring-ledger.js';
 
 /** 한 케이스(덩이)에 줄 몇 개까지 — R5 의 확인 10문장과 같은 값 */
@@ -58,49 +59,67 @@ export function 기준줄열쇠(줄: Pick<표줄, 'tcId' | '출처'>): string {
 }
 
 interface 덩이 {
+  /** `${요구}|${갈래}|${축}|${상태}#${번째}` */
   열쇠: string;
+  /** 원장 번호 · 원장 밖 번호 · 번호가 없으면 `#${줄 차례}` */
   요구: string;
   /** 1부터. 원장 밖 요구면 없다 */
   원장차례: number | undefined;
   갈래: 갈래;
   축: 축;
   상태: 상태;
+  /** 한 칸 안 몇째 덩이(0부터) */
+  번째: number;
   줄들: 표줄[];
 }
 
-/** 줄들을 칸으로 묶어 칸 차례로 돌려준다. 축이 넷 밖인 줄은 어긋남에 싣고 뺀다 */
+// 칸 차례 — 원장 요구(원장 차례) → 원장 밖 번호(글자 차례) → 번호 없는 줄(표 차례)
+const 무리 = (d: 덩이) => (d.원장차례 !== undefined ? 0 : d.요구.startsWith('#') ? 2 : 1);
+const 무리안차례 = (d: 덩이) => d.원장차례 ?? (d.요구.startsWith('#') ? Number(d.요구.slice(1)) : 0);
+const 글차례 = (가: string, 나: string) => (가 < 나 ? -1 : 가 > 나 ? 1 : 0);
+const 칸차례 = (가: 덩이, 나: 덩이) =>
+  무리(가) - 무리(나) ||
+  무리안차례(가) - 무리안차례(나) ||
+  글차례(가.요구, 나.요구) ||
+  축차례.indexOf(가.축) - 축차례.indexOf(나.축) ||
+  상태차례.indexOf(가.상태) - 상태차례.indexOf(나.상태) ||
+  가.번째 - 나.번째;
+
+/** 줄들을 칸 · 덩이로 묶어 칸 차례로 돌려준다. 축이 넷 밖인 줄은 어긋남에 싣고 뺀다 */
 function 덩이로묶기(줄들: 표줄[], 원장번호들: string[], 어긋남: string[]): 덩이[] {
   const 원장차례 = new Map<string, number>();
   원장번호들.forEach((번호, i) => {
     if (!원장차례.has(번호)) 원장차례.set(번호, i + 1);
   });
-  const 칸들 = new Map<string, 덩이>();
+  const 칸들 = new Map<string, Omit<덩이, '열쇠' | '번째'>>();
   for (const 줄 of [...줄들].sort((가, 나) => 가.차례 - 나.차례)) {
     const 축 = 줄.축.trim();
     if (!축인가(축)) {
       어긋남.push(`요구 줄 ${줄.차례 + 1} 축 「${축}」 — UI · 정상 · 경계 · 예외 중 하나가 아니다`);
       continue;
     }
+    const 번호들 = 번호찾기(줄.출처).번호들;
     let 앞: { 요구: string; 원장차례: number } | undefined;
-    for (const 번호 of 번호찾기(줄.출처).번호들) {
+    for (const 번호 of 번호들) {
       const i = 원장차례.get(번호);
       if (i !== undefined && (앞 === undefined || i < 앞.원장차례)) 앞 = { 요구: 번호, 원장차례: i };
     }
-    const 요구 = 앞?.요구 ?? `#${줄.차례}`;
+    const 요구 = 앞?.요구 ?? 번호들[0] ?? `#${줄.차례}`;
     const 갈래: 갈래 = 축 === 'UI' ? 'UI' : 'FN';
     const 상태 = 상태표시.find(([식]) => 식.test(줄.출처))?.[1] ?? '정식';
-    const 열쇠 = `${요구}|${갈래}|${축}|${상태}#0`;
-    const 칸 = 칸들.get(열쇠) ?? { 열쇠, 요구, 원장차례: 앞?.원장차례, 갈래, 축, 상태, 줄들: [] };
+    const 칸열쇠 = `${요구}|${갈래}|${축}|${상태}`;
+    const 칸 = 칸들.get(칸열쇠) ?? { 요구, 원장차례: 앞?.원장차례, 갈래, 축, 상태, 줄들: [] };
     칸.줄들.push(줄);
-    칸들.set(열쇠, 칸);
+    칸들.set(칸열쇠, 칸);
   }
-  const 수 = (d: 덩이) => d.원장차례 ?? Number.MAX_SAFE_INTEGER;
-  return [...칸들.values()].sort(
-    (가, 나) =>
-      수(가) - 수(나) ||
-      축차례.indexOf(가.축) - 축차례.indexOf(나.축) ||
-      상태차례.indexOf(가.상태) - 상태차례.indexOf(나.상태),
-  );
+  const 덩이들: 덩이[] = [];
+  for (const [칸열쇠, 칸] of 칸들) {
+    for (let 번째 = 0; 번째 * 칸줄상한 < 칸.줄들.length; 번째 += 1) {
+      const 줄들 = 칸.줄들.slice(번째 * 칸줄상한, (번째 + 1) * 칸줄상한);
+      덩이들.push({ ...칸, 열쇠: `${칸열쇠}#${번째}`, 번째, 줄들 });
+    }
+  }
+  return 덩이들.sort(칸차례);
 }
 
 const 물려받는가 = (d: 덩이) => d.원장차례 !== undefined && !문단번호.test(d.요구);
@@ -126,9 +145,16 @@ export function 칸재료만들기(접두사: string, 기준줄들: 표줄[], �
 /** 줄마다 가져야 할 tcId. 판정은 칸 차례로 해서 줄 배열 순서가 결과를 바꾸지 않는다 */
 export function 칸번호(원장번호들: string[], 줄들: 표줄[], 재료: 칸재료): 칸결과 {
   const 어긋남: string[] = [];
+  const 알림: string[] = [];
   const { 접두사 } = 재료;
   const n = 원장번호들.length;
+  // 고정 범위 끝 — 이 번호까지는 원장 차례로 정해진 자리다. 세 자리를 넘으면 고정을 접고 칸 차례로 잇는다
   const 끝: Record<갈래, number> = { UI: n, FN: 3 * n };
+  for (const 갈래 of ['UI', 'FN'] as const) {
+    if (끝[갈래] <= 999) continue;
+    끝[갈래] = 0;
+    알림.push(`번호 상한 — 원장 ${n}개라 ${갈래 === 'UI' ? 'UI' : '기능'} 번호를 칸 차례로 매겼다`);
+  }
   const 기준 = new Set(재료.기준줄);
   const 덩이들 = 덩이로묶기(
     줄들.filter((줄) => !제거한줄(줄) && !기준.has(기준줄열쇠(줄))),
@@ -142,24 +168,42 @@ export function 칸번호(원장번호들: string[], 줄들: 표줄[], 재료: �
     번호.set(d, tcId);
     잡힌.add(번호열쇠(tcId));
   };
+  // 판정 차례가 결과를 바꾸지 않게 — 물려받기 · 고정을 모든 덩이에 먼저, 그다음 유지, 마지막에 새 번호
   for (const d of 덩이들) {
     const 물려 = 재료.칸[d.열쇠];
     if (물려받는가(d) && 물려 !== undefined) 정하기(d, 물려);
   }
   for (const d of 덩이들) {
-    if (번호.has(d) || d.상태 !== '정식' || d.원장차례 === undefined) continue;
+    if (번호.has(d) || d.상태 !== '정식' || d.번째 !== 0 || d.원장차례 === undefined || 끝[d.갈래] === 0) continue;
     const i = d.원장차례;
     const 고정 =
       d.갈래 === 'UI' ? `${접두사}-UI-${세자리(i)}` : `${접두사}-FN-${세자리((i - 1) * 3 + 기능축차례[d.축])}`;
     if (!잡힌.has(번호열쇠(고정))) 정하기(d, 고정);
   }
-  const 다음: Record<갈래, number> = { ...끝 };
+  // 지금 표에 이미 매긴 뒤 번호는 둔다 — 앞 차례에 칸이 생길 때마다 다시 매기면 이미 쓴 케이스 파일과 어긋난다
+  for (const d of 덩이들) {
+    const 첫 = d.줄들[0]?.tcId ?? '';
+    const 열 = 번호열머리(첫);
+    if (번호.has(d) || !TCID.test(첫) || 열?.머리 !== 접두사 || tcId종류(첫) !== d.갈래) continue;
+    if (열.번호 > 끝[d.갈래] && !잡힌.has(번호열쇠(첫))) 정하기(d, 첫);
+  }
+  const 다음: Record<갈래, number> = { UI: 끝.UI, FN: 끝.FN };
+  for (const 열쇠 of 잡힌) {
+    const 열 = 번호열머리(열쇠);
+    if (열 === null || 열.머리 !== 접두사) continue;
+    const 갈래 = 열.꼴 === 'UI' ? 'UI' : 'FN';
+    다음[갈래] = Math.max(다음[갈래], 열.번호);
+  }
   for (const d of 덩이들) {
     if (번호.has(d)) continue;
     다음[d.갈래] += 1;
-    번호.set(d, `${접두사}-${d.갈래}-${세자리(다음[d.갈래])}`);
+    if (다음[d.갈래] > 999) {
+      for (const 줄 of d.줄들) 어긋남.push(`요구 줄 ${줄.차례 + 1} — 새 번호가 999 를 넘는다`);
+      continue;
+    }
+    정하기(d, `${접두사}-${d.갈래}-${세자리(다음[d.갈래])}`);
   }
   const 기대 = new Map<number, string>();
   for (const [d, tcId] of 번호) for (const 줄 of d.줄들) 기대.set(줄.차례, tcId);
-  return { 기대, 어긋남, 알림: [] };
+  return { 기대, 어긋남, 알림 };
 }
