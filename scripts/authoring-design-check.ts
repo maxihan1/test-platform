@@ -1,7 +1,7 @@
 // 설계 대조 — 요구사항 표가 원장 설계가 요구한 경계 · 예외 칸을 덮었는지 보고 PR 머리 줄을 만든다
 // 표 글은 모른다 — 읽기는 authoring-ledger-check.ts 가 하고 읽은 줄을 넘긴다(거꾸로 import 하면 순환이 생긴다)
 
-import type { 설계 } from './authoring-design.js';
+import { type 설계, 설계요약 } from './authoring-design.js';
 import { 번호찾기 } from './authoring-ledger.js';
 import { type 표줄, 기준줄열쇠, 줄상태 } from './authoring-slots.js';
 
@@ -89,8 +89,7 @@ export function 경고줄(이름: string, 목록: string[], 앞수: number, 머�
 
 /** PR 머리 설계 줄. 요약은 늘 싣는다 — 덜 잡힌 문서(설계가 적게 붙은 요구)가 사람 눈에 보이게 */
 export function 설계줄들(원장: 설계항목[], 결과: 설계대조결과 | null): string[] {
-  const 셈 = (축: 칸축) => 원장.filter((h) => (h.설계?.[축].length ?? 0) > 0).length;
-  const 요약 = `설계: 요구 ${String(원장.length)} 중 경계 ${String(셈('경계'))} · 예외 ${String(셈('예외'))}`;
+  const 요약 = 설계요약(원장);
   if (결과 === null) return [요약];
   return [
     요약,

@@ -86,3 +86,21 @@ export function 설계하기(원글: string): 설계 {
   }
   return { 경계, 예외 };
 }
+
+/** `설계: 요구 N 중 경계 a · 예외 b` — PR 머리 줄과 설계 목록 명령이 같은 식을 쓴다 */
+export function 설계요약(항목들: readonly { 설계?: 설계 }[]): string {
+  const 셈 = (축: keyof 설계) => String(항목들.filter((h) => (h.설계?.[축].length ?? 0) > 0).length);
+  return `설계: 요구 ${String(항목들.length)} 중 경계 ${셈('경계')} · 예외 ${셈('예외')}`;
+}
+
+/** 설계 목록 — 설계가 있는 요구만 한 줄씩, 끝에 요약 */
+export function 설계글(항목들: readonly { 번호: string; 설계?: 설계 }[]): string {
+  const 줄들 = 항목들.flatMap(({ 번호, 설계: 설 }) => {
+    const 칸 = [
+      ...(설?.경계 ?? []).map((b) => `경계 「${b.근거}」 ${b.값.join(' · ')}`),
+      ...(설?.예외 ?? []).map((e) => `예외 ${e.기법} 「${e.근거}」`),
+    ];
+    return 칸.length > 0 ? [[번호, ...칸].join(' · ')] : [];
+  });
+  return [...줄들, 설계요약(항목들)].join('\n');
+}
