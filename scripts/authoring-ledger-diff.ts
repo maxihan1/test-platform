@@ -69,49 +69,57 @@ export function 지문파일읽기(글: string): 지문파일 | null {
 }
 
 const 이번자료 = (r: 원장) => Object.keys(r.모드);
-const 이번항목 = (r: 원장): 지문항목[] => r.항목.map((h) => ({ 번호: h.번호, 자료: h.자료, 지문: h.지문 ?? '' }));
+const 이번항목 = (r: 원장): 지문항목[] => r.항목.map((h) => ({ 번호: h.번호, 자료: h.자료, 지문: h.지문 }));
+/** 번호 모드 자료의 번호 — 번호 모드는 번호가 열쇠다. 문단 번호(P-001)는 자료마다 1부터라 열쇠가 못 된다 */
+const 번호모드번호 = (r: 원장) => new Set(r.항목.filter((h) => r.모드[h.자료] === '번호').map((h) => h.번호));
 
-/** 이번 원장 자료의 항목만 바꾸고 다른 자료 항목은 물려받는다 — 개정분만 보낸 요청이 앞 판 전체를 지우지 않게 */
+/**
+ * 이번 원장 자료의 항목만 바꾸고 다른 자료 항목은 물려받는다 — 개정분만 보낸 요청이 앞 판 전체를 지우지 않게.
+ * 물려받는 항목 가운데 이번 원장이 번호 모드로 다시 뽑은 번호는 뺀다 — 같은 번호가 자료 둘로 겹쳐 쌓이지 않게 (2026-10-04 코드 검토)
+ */
 export function 지문합치기(앞: 지문파일 | null, r: 원장): 지문파일 {
   const 이번 = new Set(이번자료(r));
-  const 남길자료 = Object.entries(앞?.자료 ?? {}).filter(([k]) => !이번.has(k));
+  const 다시뽑은 = 번호모드번호(r);
+  const 물려받은 = (앞?.항목 ?? []).filter((h) => !이번.has(h.자료) && !다시뽑은.has(h.번호));
+  const 쓰인 = new Set(물려받은.map((h) => h.자료));
+  const 남길자료 = Object.entries(앞?.자료 ?? {}).filter(([k]) => 쓰인.has(k));
   return {
     판: 1,
-    자료: Object.fromEntries([...남길자료, ...이번자료(r).map((k) => [k, { 꼴: r.꼴?.[k] ?? '' }] as const)]),
-    항목: [...(앞?.항목 ?? []).filter((h) => !이번.has(h.자료)), ...이번항목(r)],
+    자료: Object.fromEntries([...남길자료, ...이번자료(r).map((k) => [k, { 꼴: r.꼴[k] ?? '?/모름' }] as const)]),
+    항목: [...물려받은, ...이번항목(r)],
   };
 }
 
-/** 이번 원장의 자료마다 앞 판 같은 자료와 견준다. 꼴이 다르거나 앞 판에 없는 자료는 견주지 않고 따로 센다 */
+/**
+ * 이번 원장과 앞 판을 견준다. **번호 모드는 번호가 열쇠다** — 자료 이름을 바꾼 새 판도 바뀐 요구가 나오고, 같은 번호가 자료 둘에 있어도
+ * 거짓 더함 · 지움이 없다. 지움은 다시 보낸 자료(앞 판에 같은 이름이 있는 자료)에 있던 번호가 이번 원장 어디에도 없을 때다.
+ * 글자본 꼴이 다른 자료 · 다른 꼴로 뽑은 앞 지문과는 견주지 않는다. 문단 모드는 같은 자료 안에서 지문으로 짝짓는다
+ */
 export function 판견주기(앞: 지문파일, r: 원장): 판차이 {
   const 차이: 판차이 = { 더함: [], 바뀜: [], 지움: [], 짝: [], 새자료: [], 꼴다름: [] };
   const 새것 = 이번항목(r);
+  const 견줄 = new Set<string>();
   for (const 자료 of 이번자료(r)) {
     const 앞꼴 = 앞.자료[자료]?.꼴;
-    if (앞꼴 === undefined) {
-      차이.새자료.push(자료);
-      continue;
-    }
-    if (앞꼴 !== r.꼴?.[자료]) {
-      차이.꼴다름.push(자료);
-      continue;
-    }
-    const 옛 = 앞.항목.filter((h) => h.자료 === 자료);
-    const 새 = 새것.filter((h) => h.자료 === 자료);
-    if (r.모드[자료] === '번호') {
-      const 옛표 = new Map(옛.map((h) => [h.번호, h.지문]));
-      const 새번호 = new Set(새.map((h) => h.번호));
-      for (const h of 새) {
-        const 옛지문 = 옛표.get(h.번호);
-        if (옛지문 === undefined) 차이.더함.push(h.번호);
-        else if (옛지문 !== h.지문) 차이.바뀜.push(h.번호);
-      }
-      차이.지움.push(...옛.filter((h) => !새번호.has(h.번호)).map((h) => h.번호));
-      continue;
-    }
-    // 문단 모드 — 번호는 앞에 문단 하나만 끼워도 밀린다. 같은 지문끼리 짝짓는다
-    const 남은옛 = [...옛];
-    for (const h of 새) {
+    if (앞꼴 === undefined) 차이.새자료.push(자료);
+    else if (앞꼴 !== r.꼴[자료]) 차이.꼴다름.push(자료);
+    if (앞꼴 === undefined || 앞꼴 === r.꼴[자료]) 견줄.add(자료);
+  }
+  // 번호 모드
+  const 앞번호 = new Map<string, 지문항목>();
+  for (const h of 앞.항목) if (!앞번호.has(h.번호)) 앞번호.set(h.번호, h);
+  const 새번호 = 번호모드번호(r);
+  for (const h of 새것.filter((x) => r.모드[x.자료] === '번호' && 견줄.has(x.자료))) {
+    const 옛 = 앞번호.get(h.번호);
+    if (옛 === undefined) 차이.더함.push(h.번호);
+    else if (앞.자료[옛.자료]?.꼴 === r.꼴[h.자료] && 옛.지문 !== h.지문) 차이.바뀜.push(h.번호);
+  }
+  const 지운 = 앞.항목.filter((h) => 견줄.has(h.자료) && r.모드[h.자료] === '번호' && !새번호.has(h.번호)).map((h) => h.번호);
+  차이.지움.push(...new Set(지운));
+  // 문단 모드 — 번호는 앞에 문단 하나만 끼워도 밀린다. 같은 자료 안에서 같은 지문끼리 짝짓는다
+  for (const 자료 of 이번자료(r).filter((k) => r.모드[k] === '문단' && 견줄.has(k) && 앞.자료[k] !== undefined)) {
+    const 남은옛 = 앞.항목.filter((h) => h.자료 === 자료);
+    for (const h of 새것.filter((x) => x.자료 === 자료)) {
       const i = 남은옛.findIndex((o) => o.지문 === h.지문);
       if (i < 0) {
         차이.더함.push(h.번호);
@@ -140,23 +148,29 @@ export function 차이줄(r: 판차이 | '앞 판 없음' | '못 읽음'): strin
 }
 
 const 열쇠 = (h: 지문항목) => `${h.자료}\u0000${h.번호}`;
-const 같은가 = (a: 지문항목 | undefined, b: 지문항목 | undefined) => a?.지문 === b?.지문;
 
 /**
  * 반영 때 main 과 요청이 둘 다 지문 파일을 고쳤으면 세 갈래로 합친다 — 요청이 바꾼(더한 · 지운) 항목이 이기고 나머지는 main 을 따른다.
+ * 자료의 꼴도 같은 규칙이다 — 꼴과 항목이 다른 판에서 오면 다음 실행이 전부 거짓 바뀜이 된다(2026-10-04 코드 검토).
  * 바탕이 없으면 둘을 합치고 같은 항목은 요청 것. 한쪽이 파일을 지웠으면 남은 쪽
  */
 export function 지문세갈래(바탕: 지문파일 | null, main: 지문파일 | null, 요청: 지문파일 | null): 지문파일 | null {
   if (요청 === null) return main;
   if (main === null) return 요청;
-  const [b, m, r] = [바탕, main, 요청].map((f) => new Map((f?.항목 ?? []).map((h) => [열쇠(h), h])));
-  const 고른것 = (k: string): 지문항목 | undefined => {
-    const 요청것 = r?.get(k);
-    return 같은가(요청것, b?.get(k)) && (요청것 !== undefined) === b?.has(k) ? m?.get(k) : 요청것;
-  };
-  const 열쇠들 = [...new Set([...요청.항목, ...main.항목].map(열쇠))];
-  const 항목 = 열쇠들.map(고른것).filter((h): h is 지문항목 => h !== undefined);
+  const 표 = (f: 지문파일 | null) => new Map((f?.항목 ?? []).map((h) => [열쇠(h), h]));
+  const [b, m, r] = [표(바탕), 표(main), 표(요청)];
+  // 지문은 늘 16자라 「요청 것과 바탕 것의 지문이 같다」가 곧 「요청이 안 건드렸다」(둘 다 없음 포함)다
+  const 항목 = [...new Set([...요청.항목, ...main.항목].map(열쇠))]
+    .map((k) => (r.get(k)?.지문 === b.get(k)?.지문 ? m.get(k) : r.get(k)))
+    .filter((h): h is 지문항목 => h !== undefined);
+  const 꼴 = (k: string) => (요청.자료[k]?.꼴 === 바탕?.자료[k]?.꼴 ? (main.자료[k]?.꼴 ?? 요청.자료[k]?.꼴) : 요청.자료[k]?.꼴);
+  const 이름들 = [...new Set([...Object.keys(요청.자료), ...Object.keys(main.자료)])];
   const 쓰인 = new Set(항목.map((h) => h.자료));
-  const 자료 = Object.fromEntries(Object.entries({ ...main.자료, ...요청.자료 }).filter(([k]) => 쓰인.has(k) || k in 요청.자료));
+  const 자료 = Object.fromEntries(
+    이름들.flatMap((k) => {
+      const 고른 = 꼴(k);
+      return 고른 !== undefined && (쓰인.has(k) || k in 요청.자료) ? [[k, { 꼴: 고른 }]] : [];
+    }),
+  );
   return { 판: 1, 자료, 항목 };
 }
