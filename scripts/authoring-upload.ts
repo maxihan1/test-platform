@@ -2,7 +2,7 @@
 // authoring-run.ts 가 300줄을 넘어 뗐다 (2026-09-24)
 
 import { readFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import type { 집은것 } from './authoring-rules.js';
 import {
@@ -24,6 +24,7 @@ import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-stat
 import { 끝검사 } from './authoring-gate3.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 산출물읽기, 역기획서준비 } from './authoring-upload-reverse.js';
+import { 저장본갈기 } from './authoring-screens-keep-io.js';
 import type { 원장 } from './authoring-ledger.js';
 import { tcId들, 원장판정 } from './authoring-ledger-check.js';
 import { 케이스글들 } from './authoring-ledger-io.js';
@@ -94,6 +95,8 @@ export async function 올리기(
   const 알림 = 지운말(지운것);
   const 지운줄 = 알림 === null ? [] : [사유거르기(알림, 것.target?.loginPassword)];
   if (지운줄.length > 0) console.log(`[작성] ${것.id}번 — ${지운줄[0]}`);
+  // 역방향이면 이번에 본 화면 기록을 저장본(작업 바탕 · 저장소 밖)에 간다 — 다음 작성은 바뀐 화면만 훑는다 (§3.6 「★ 역방향」)
+  if (역 !== undefined) console.log(`[작성] ${것.id}번 — ${저장본갈기(dirname(자리.뿌리), 서비스, 자리.자료, 역.화면만)}`);
   const 상태 = 트리에서('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall']);
   if (!상태.ok) {
     await 손.끝내기(거절(`바뀐 파일을 못 읽었다: ${상태.까닭}`));

@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import type { 집은것 } from './authoring-rules.js';
 import { type 계정, type 사본, 남은사본, 사본자리 } from './authoring-copy.js';
 import { 사본만들기, 사본치우기, 새집 } from './authoring-child.js';
+import { 저장본넣기 } from './authoring-screens-keep-io.js';
 import { type 보고손, 멈춤, 부른다, 진짜main묻기, 친다 } from './authoring-io.js';
 import { 케이스파일들 } from './authoring-progress.js';
 import {
@@ -133,6 +134,8 @@ export async function 작업방준비(
         await 손.끝내기({ status: 'FAILED', error: `보관한 작업방을 넘겨받지 못했다: ${못함}` });
         return null;
       }
+      // 역방향이면 저장본을 다시 넣는다 — 앞 실행 뒤에 다른 건이 저장본을 갈았을 수 있다 (§3.6 「★ 역방향」 화면 기록 저장본)
+      if (것.target !== undefined) 저장본넣기(판.바탕, 서비스, 자리.자료);
       return {
         자리,
         기준: 표시.기준,
@@ -158,6 +161,7 @@ export async function 작업방준비(
   const 옛케이스 = 케이스파일들(join(만든것.자리.트리, 'tests', 케이스폴더));
   // 사본을 만들자마자 쓴다 — 꺼지며 끊긴 건은 finally 가 안 돌아 이것만 남는다
   보관쓰기(만든것.자리, { 서비스, 기준: 메인.sha, 옛케이스: [...옛케이스], 끝: false });
+  if (것.target !== undefined) 저장본넣기(판.바탕, 서비스, 만든것.자리.자료);
   return { 자리: 만든것.자리, 기준: 메인.sha, 옛케이스 };
 }
 
