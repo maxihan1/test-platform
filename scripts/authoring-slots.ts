@@ -184,7 +184,8 @@ export function 칸번호(원장번호들: string[], 줄들: 표줄[], 재료: �
   for (const d of 덩이들) {
     const 첫 = d.줄들[0]?.tcId ?? '';
     const 열 = 번호열머리(첫);
-    if (번호.has(d) || !TCID.test(첫) || 열?.머리 !== 접두사 || tcId종류(첫) !== d.갈래) continue;
+    // 옛 꼴(종류 글자 없음)은 안 둔다 — 새 번호는 -UI- · -FN- 을 단다(R17)
+    if (번호.has(d) || !TCID.test(첫) || 열?.머리 !== 접두사 || 열.꼴 === '옛' || tcId종류(첫) !== d.갈래) continue;
     if (열.번호 > 끝[d.갈래] && !잡힌.has(번호열쇠(첫))) 정하기(d, 첫);
   }
   const 다음: Record<갈래, number> = { UI: 끝.UI, FN: 끝.FN };

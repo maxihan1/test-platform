@@ -6,7 +6,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { 남은번호, 이어작성막힘 } from './authoring-continue.js';
-import { 기준읽기, 원장과남은번호, 원장준비 } from './authoring-ledger-io.js';
+import { 기준결정만들기, 기준읽기, 원장과남은번호, 원장준비 } from './authoring-ledger-io.js';
+import { 칸번호 } from './authoring-slots.js';
 
 const 표 = (요구줄: string[], 제외줄: string[]) =>
   [
@@ -151,6 +152,17 @@ describe('원장준비 — 사본에 기준 표의 사람이 뺌 · 다음 요�
     } finally {
       rmSync(폴더, { recursive: true, force: true });
     }
+  });
+});
+
+describe('기준결정만들기 — 기준 표의 「제거함」 번호는 쓰인 번호다', () => {
+  it('지운 번호를 고정 번호로 다시 주지 않는다 — 옛 실행 이력이 새 케이스에 붙는다', () => {
+    const 기준표 = 표([줄('REQ-A-2', '제거함(X-FN-004)')], []);
+    const 기준 = 기준결정만들기({ 표글: 기준표, 있는케이스: new Set(), 접두사: 'X' }, ['REQ-A-1', 'REQ-A-2', 'REQ-A-3']);
+    expect(기준.칸재료?.쓰인).toEqual(['X-FN-004']);
+    if (기준.칸재료 === null) return;
+    const r = 칸번호(['REQ-A-1', 'REQ-A-2', 'REQ-A-3'], [{ 차례: 0, 출처: 'a REQ-A-2', 축: '정상', tcId: '' }], 기준.칸재료);
+    expect(r.기대.get(0)).toBe('X-FN-010');
   });
 });
 
