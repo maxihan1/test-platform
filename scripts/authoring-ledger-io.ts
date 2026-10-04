@@ -106,43 +106,44 @@ export function 앞지문읽기(깃: 깃손, 기준: string, 서비스: string):
 
 /**
  * `docs` · `docs/cases` 가 링크 아닌 진짜 폴더이고 실제 경로가 트리 안인가 — 없으면 만든다. 트리는 자식 uid 폴더라
- * 자식이 그 자리를 트리 밖 폴더 링크로 바꿔 둘 수 있다. 마지막 이름만 지키면 root 가 트리 밖에 쓰고 지운다 (2026-10-04 계획 검토)
+ * 자식이 그 자리를 트리 밖 폴더 링크로 바꿔 둘 수 있다. 마지막 이름만 지키면 root 가 트리 밖에 쓰고 지운다 (2026-10-04 계획 검토).
+ * 아니면 까닭 글을 돌려준다
  */
-function 진짜폴더인가(트리: string): boolean {
-  for (const 마디 of [['docs'], ['docs', 'cases']]) {
-    const 길 = join(트리, ...마디);
-    const 정보 = lstatSync(길, { throwIfNoEntry: false });
-    if (정보 === undefined) mkdirSync(길, { mode: 0o755 });
-    else if (!정보.isDirectory()) return false;
+function 폴더막힘(트리: string): string | null {
+  try {
+    for (const 마디 of [['docs'], ['docs', 'cases']]) {
+      const 길 = join(트리, ...마디);
+      const 정보 = lstatSync(길, { throwIfNoEntry: false });
+      if (정보 === undefined) mkdirSync(길, { mode: 0o755 });
+      else if (!정보.isDirectory()) return `${마디.join('/')} 가 트리 안의 진짜 폴더가 아니다`;
+    }
+    return realpathSync(join(트리, 'docs', 'cases')) === join(realpathSync(트리), 'docs', 'cases') ? null : 'docs/cases 가 트리 밖을 가리킨다';
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
   }
-  return realpathSync(join(트리, 'docs', 'cases')) === join(realpathSync(트리), 'docs', 'cases');
 }
 
 /**
  * 올리기 전에 트리에 요구 지문 파일을 쓴다 — 바뀐 파일 목록을 읽기 **전에** 불러야 커밋에 든다 (§3.6 「요구 지문」).
- * 원장이 있으면 앞 판과 자료마다 합쳐 쓰고 PR 머리 줄을 돌려준다. 원장이 없으면 자식이 만진 파일을 앞 판으로 되돌린다(줄 없음).
- * 앞 판을 못 읽었으면(`앞` 이 null) 안 쓴다 — 합칠 재료가 없어 다른 자료 항목을 잃는다
+ * 원장이 있으면 앞 판과 자료마다 합쳐 쓰고 PR 머리 줄을 돌려준다. 원장이 없으면 자식이 만진 파일을 앞 판으로 되돌리고 줄은 없다.
+ * `담기` 가 false 면 트리의 지문 파일을 커밋에 넣지 않는다 — 앞 판을 못 읽었거나(합칠 재료가 없다) 쓰기 · 되돌리기에 실패해
+ * 자식 손을 탄 파일이 남았을 수 있다 (2026-10-04 보안 검토)
  */
-export function 지문쓰기(트리: string, 서비스: string, r: 원장 | { 없음: string }, 앞: { 글: string | null } | null): string | null {
-  if (앞 === null) return '없음' in r ? null : '⚠️ 앞 판 지문을 못 읽음 — 요구 지문 파일을 안 썼다';
-  let 폴더됨 = false;
-  try {
-    폴더됨 = 진짜폴더인가(트리);
-  } catch {
-    폴더됨 = false;
-  }
-  if (!폴더됨) return '⚠️ 요구 지문 파일을 못 썼다 — docs/cases 가 트리 안의 진짜 폴더가 아니다';
+export function 지문쓰기(트리: string, 서비스: string, r: 원장 | { 없음: string }, 앞: { 글: string | null } | null): { 줄: string | null; 담기: boolean } {
+  const 경고 = (글: string) => ({ 줄: '없음' in r ? null : 글, 담기: false });
+  if (앞 === null) return 경고('⚠️ 앞 판 지문을 못 읽음 — 요구 지문 파일을 안 썼다');
+  const 막힘 = 폴더막힘(트리);
+  if (막힘 !== null) return 경고(`⚠️ 요구 지문 파일을 못 썼다 — ${막힘}`);
   const 자리 = join(트리, 지문파일자리(서비스));
   if ('없음' in r) {
-    if (앞.글 === null) rmSync(자리, { force: true, recursive: true });
-    else 새로쓰기(자리, 앞.글);
-    return null;
+    if (앞.글 !== null) return { 줄: null, 담기: 새로쓰기(자리, 앞.글) };
+    rmSync(자리, { force: true, recursive: true });
+    return { 줄: null, 담기: true };
   }
   const 앞파일 = 앞.글 === null ? null : 지문파일읽기(앞.글);
-  if (!새로쓰기(자리, 지문파일글(지문합치기(앞파일, r))))
-    return '⚠️ 요구 지문 파일을 못 썼다';
-  if (앞.글 === null) return 차이줄('앞 판 없음');
-  return 앞파일 === null ? 차이줄('못 읽음') : 차이줄(판견주기(앞파일, r));
+  if (!새로쓰기(자리, 지문파일글(지문합치기(앞파일, r)))) return 경고('⚠️ 요구 지문 파일을 못 썼다');
+  if (앞.글 === null) return { 줄: 차이줄('앞 판 없음'), 담기: true };
+  return { 줄: 앞파일 === null ? 차이줄('못 읽음') : 차이줄(판견주기(앞파일, r)), 담기: true };
 }
 
 /**

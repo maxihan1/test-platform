@@ -42,7 +42,7 @@ function 지문다시쓰기(트리: string, 깃: 깃손, 바탕: string, mainSha
   const 결과 = 지문세갈래(판글(바탕), 판글(mainSha), 판글('HEAD'));
   const 풀길 = join(트리, 경로);
   const 있나 = lstatSync(풀길, { throwIfNoEntry: false }) !== undefined;
-  const 안쪽 = 있나 ? 안전한파일(트리, 경로) : realpathSync(dirname(풀길)).startsWith(realpathSync(트리) + sep);
+  const 안쪽 = 있나 ? 안전한파일(트리, 경로) : 트리안폴더(트리, dirname(풀길));
   if (!안쪽) return `요구 지문 파일이 보통 파일이 아니다 — ${경로}. 다시 작성한다`;
   if (결과 === null) return !있나 || 깃(['rm', '-q', '-f', '--', 경로]).ok ? null : '합친 요구 지문 파일을 지우지 못했다';
   writeFileSync(풀길, 지문파일글(결과));
@@ -58,6 +58,15 @@ export function 안전한파일(트리: string, 경로: string): boolean {
     const 풀길 = join(트리, 경로);
     if (!lstatSync(풀길).isFile()) return false;
     return realpathSync(풀길).startsWith(realpathSync(트리) + sep);
+  } catch {
+    return false;
+  }
+}
+
+/** 아직 없는 파일을 쓸 폴더가 트리 안인가 — 폴더가 없으면(합침 중 드문 경우) 던지지 않고 false 다. 던지면 합침이 걸린 채 남는다 */
+function 트리안폴더(트리: string, 폴더: string): boolean {
+  try {
+    return realpathSync(폴더).startsWith(realpathSync(트리) + sep);
   } catch {
     return false;
   }
