@@ -4,6 +4,7 @@
 import { lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { TCID } from '../apps/admin/src/catalog/rules.js';
 import type { 읽을자료 } from './authoring-assets.js';
 import { type 원장, 원장만들기 } from './authoring-ledger.js';
 import { 지문파일글, 지문파일읽기, 지문파일자리, 지문합치기, 차이줄, 판견주기 } from './authoring-ledger-diff.js';
@@ -38,7 +39,9 @@ function 새로쓰기(경로: string, 글: string): boolean {
 /** 기준(main) 판의 표 · 케이스로 대조에 넘길 것을 만든다. 표를 못 읽었으면(null) 칸 재료가 없다 — 쓰인 번호를 모르고 매기면 남의 케이스 파일을 덮어쓴다 */
 export function 기준결정만들기(기준표: { 표글: string; 있는케이스: Set<string>; 접두사: string } | null, 원장번호들: string[]): 기준결정 {
   if (기준표 === null) return { 사람이뺌: new Set(), 다음요청: new Set(), 칸재료: null };
-  const 쓰인 = new Set([...표tcId들(기준표.표글), ...기준표.있는케이스]);
+  // 요구 줄 tcId 도 넣는다 — 표tcId들 은 백틱 칸을 못 본다. 「제거함(…)」 안 번호도 쓰인 번호다
+  const 줄tcId = 요구줄들(기준표.표글).map((줄) => /^제거함\((.+)\)$/.exec(줄.tcId)?.[1] ?? 줄.tcId).filter((t) => TCID.test(t));
+  const 쓰인 = new Set([...표tcId들(기준표.표글), ...줄tcId, ...기준표.있는케이스]);
   return {
     사람이뺌: 사람이뺀번호(기준표.표글),
     다음요청: 제외번호들(기준표.표글, '다음 요청'),

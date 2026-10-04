@@ -38,11 +38,11 @@ type 축 = (typeof 축차례)[number];
 const 상태차례 = ['정식', '미확정', '보류', '모킹'] as const;
 type 상태 = (typeof 상태차례)[number];
 
-// 앞에서부터 먼저 맞는 것 — 한 출처에 표시가 둘 적혀도 한 상태로 떨어지게
+// 앞에서부터 먼저 맞는 것 — 한 출처에 표시가 둘 적혀도 한 상태로 떨어지게. 줄표(— –)만 본다 — 붙임표는 「보류-해제」 같은 낱말에 든다
 const 상태표시: [RegExp, 상태][] = [
-  [/보류\s*[—–-]/, '보류'],
-  [/화면 검사\s*[—–-]|화면에만\s*[—–-]|차이\s*D\d+/, '미확정'],
-  [/모킹\s*[—–-]/, '모킹'],
+  [/보류\s*[—–]/, '보류'],
+  [/화면 검사\s*[—–]|화면에만\s*[—–]|차이\s*D\d+/, '미확정'],
+  [/모킹\s*[—–]/, '모킹'],
 ];
 const 기능축차례: Record<축, number> = { UI: 0, 정상: 1, 경계: 2, 예외: 3 };
 
@@ -53,9 +53,9 @@ const 세자리 = (수: number) => String(수).padStart(3, '0');
 const 축인가 = (글: string): 글 is 축 => (축차례 as readonly string[]).includes(글);
 const 제거한줄 = (줄: 표줄) => 줄.tcId.startsWith('제거함(');
 
-/** 기준(main) 표 줄을 알아보는 열쇠 — 출처의 빈칸 수가 달라도 같은 줄이다 */
-export function 기준줄열쇠(줄: Pick<표줄, 'tcId' | '출처'>): string {
-  return `${줄.tcId}|${줄.출처.trim().replace(/\s+/g, ' ')}`;
+/** 기준(main) 표 줄을 알아보는 열쇠 — 출처의 빈칸 수가 달라도 같은 줄이다. 축이 들어야 축만 바꾼 줄이 기준 줄로 검사를 비켜 가지 않는다 */
+export function 기준줄열쇠(줄: Pick<표줄, 'tcId' | '축' | '출처'>): string {
+  return `${줄.tcId}|${줄.축.trim()}|${줄.출처.trim().replace(/\s+/g, ' ')}`;
 }
 
 interface 덩이 {
@@ -124,19 +124,21 @@ function 덩이로묶기(줄들: 표줄[], 원장번호들: string[], 어긋남:
 
 const 물려받는가 = (d: 덩이) => d.원장차례 !== undefined && !문단번호.test(d.요구);
 
-/** 기준 표 줄로 칸 재료를 만든다 — (칸, 덩이)마다 그 덩이 첫 줄 tcId. 한 번호를 두 덩이에 주지 않는다 */
+/** 기준 표 줄로 칸 재료를 만든다 — (칸, 덩이)마다 덩이 안에서 처음 쓸 만한 tcId. 한 번호를 두 덩이에 주지 않는다 */
 export function 칸재료만들기(접두사: string, 기준줄들: 표줄[], 쓰인: Iterable<string>, 원장번호들: string[]): 칸재료 {
   const 칸: Record<string, string> = {};
   const 준번호 = new Set<string>();
   for (const d of 덩이로묶기(기준줄들.filter((줄) => !제거한줄(줄)), 원장번호들, [])) {
-    const 첫 = d.줄들[0]?.tcId ?? '';
-    if (!물려받는가(d) || !TCID.test(첫) || tcId종류(첫) !== d.갈래 || 준번호.has(번호열쇠(첫))) continue;
-    칸[d.열쇠] = 첫;
-    준번호.add(번호열쇠(첫));
+    if (!물려받는가(d)) continue;
+    const 줄것 = d.줄들.map((줄) => 줄.tcId).find((t) => TCID.test(t) && tcId종류(t) === d.갈래 && !준번호.has(번호열쇠(t)));
+    if (줄것 === undefined) continue;
+    칸[d.열쇠] = 줄것;
+    준번호.add(번호열쇠(줄것));
   }
   return {
     접두사,
-    기준줄: 기준줄들.filter((줄) => TCID.test(줄.tcId)).map(기준줄열쇠),
+    // tcId 칸이 「—」인 줄(판정 불가 · 철회)도 기준 줄이다 — 번호 명령이 사람의 줄을 덮어쓰지 않게. 빈칸만 뺀다
+    기준줄: 기준줄들.filter((줄) => 줄.tcId !== '').map(기준줄열쇠),
     칸,
     쓰인: [...new Set(쓰인)].sort(),
   };
@@ -181,12 +183,17 @@ export function 칸번호(원장번호들: string[], 줄들: 표줄[], 재료: �
     if (!잡힌.has(번호열쇠(고정))) 정하기(d, 고정);
   }
   // 지금 표에 이미 매긴 뒤 번호는 둔다 — 앞 차례에 칸이 생길 때마다 다시 매기면 이미 쓴 케이스 파일과 어긋난다
-  for (const d of 덩이들) {
-    const 첫 = d.줄들[0]?.tcId ?? '';
-    const 열 = 번호열머리(첫);
+  // 덩이 안에서 번호가 적힌 줄을 찾는다 — 첫 줄만 보면 같은 칸 앞자리에 새 줄을 끼울 때 번호가 밀린다(2026-10-04 spec-review)
+  const 둘만한가 = (d: 덩이, tcId: string) => {
+    const 열 = 번호열머리(tcId);
     // 옛 꼴(종류 글자 없음)은 안 둔다 — 새 번호는 -UI- · -FN- 을 단다(R17)
-    if (번호.has(d) || !TCID.test(첫) || 열?.머리 !== 접두사 || 열.꼴 === '옛' || tcId종류(첫) !== d.갈래) continue;
-    if (열.번호 > 끝[d.갈래] && !잡힌.has(번호열쇠(첫))) 정하기(d, 첫);
+    if (!TCID.test(tcId) || 열?.머리 !== 접두사 || 열.꼴 === '옛' || tcId종류(tcId) !== d.갈래) return false;
+    return 열.번호 > 끝[d.갈래] && !잡힌.has(번호열쇠(tcId));
+  };
+  for (const d of 덩이들) {
+    if (번호.has(d)) continue;
+    const 둘것 = d.줄들.map((줄) => 줄.tcId).find((tcId) => 둘만한가(d, tcId));
+    if (둘것 !== undefined) 정하기(d, 둘것);
   }
   const 다음: Record<갈래, number> = { UI: 끝.UI, FN: 끝.FN };
   for (const 열쇠 of 잡힌) {

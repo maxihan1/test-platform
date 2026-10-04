@@ -106,8 +106,12 @@ export function 표번호채우기(표글: string, 기대: Map<number, string>):
     if (새 === undefined || 열 < 0) return;
     const 원 = 줄들[줄] ?? '';
     const 끝 = 원.endsWith('\r') ? '\r' : '';
-    const 조각 = 원.slice(0, 원.length - 끝.length).split(/(?<!\\)\|/);
-    const 자리 = 열 + (원.trim().startsWith('|') ? 1 : 0);
+    const 몸 = 원.slice(0, 원.length - 끝.length);
+    const 조각 = 몸.split(/(?<!\\)\|/);
+    const 앞 = 몸.trim().startsWith('|') ? 1 : 0;
+    const 자리 = 열 + 앞;
+    // 칸이 모자란 줄은 둔다 — 끝 가름 자리에 쓰면 표가 깨진다. 대조가 어긋남으로 보인다
+    if (자리 >= 조각.length - (몸.trimEnd().endsWith('|') ? 1 : 0)) return;
     const 옛 = (조각[자리] ?? '').trim();
     if (백틱벗기기(옛) === 새) return;
     조각[자리] = ` ${옛.startsWith('`') ? `\`${새}\`` : 새} `;
@@ -146,7 +150,8 @@ export function 원장대조(
       형식오류.push(`요구 줄 출처 칸에 번호가 ${String(번호들.length)}개다 — ${String(출처상한)}개까지`);
       continue;
     }
-    const tcId = (행['tcId'] ?? '').trim();
+    // 백틱을 벗긴다 — 번호 명령 · 칸 대조와 같은 글로 본다(사람 표는 tcId 를 백틱으로 감싼다)
+    const tcId = 백틱벗기기(행['tcId'] ?? '');
     if (!tcId꼴.test(tcId)) continue;
     if (선택.있는케이스 !== undefined && !선택.있는케이스.has(tcId)) {
       형식오류.push(`요구 줄의 tcId ${tcId} 케이스 파일이 없다`);
