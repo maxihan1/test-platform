@@ -17,7 +17,8 @@ export type 원천 =
   | { 종류: '증적'; 칸: string }
   | { 종류: '입력값묶음'; 칸: string }
   | { 종류: '작성요청'; 칸: string } // params[칸] 이 대기줄 행 번호다. 그 행의 service_id 가 서비스다 (§6)
-  | { 종류: '시나리오'; 칸: string }; // params[칸] 이 시나리오 번호다. 그 행의 service_id 가 서비스다
+  | { 종류: '시나리오'; 칸: string } // params[칸] 이 시나리오 번호다. 그 행의 service_id 가 서비스다
+  | { 종류: '시험'; 칸: string }; // params[칸] 이 시험 실행 번호다. 메모리 보관소가 시작한 사람에게만 서비스를 알려 준다
 
 /**
  * **등록된 모든 `/api` 라우트가 여기 있어야 한다.**
@@ -100,6 +101,10 @@ export const 라우트표: Record<string, 원천> = {
   '/api/runs/:runId/scenario': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/scenario/screenshots/:seq': { 종류: '실행', 칸: 'runId' },
   '/api/scenarios/case-parts/:tcId': { 종류: '케이스', 칸: 'tcId' },
+  // 시험 실행은 DB 에 없다. 시작은 본문 service 를 gate.ts 의 본문 갈래가 본다
+  '/api/scenario-trials': { 종류: '질의' },
+  '/api/scenario-trials/:trialId': { 종류: '시험', 칸: 'trialId' },
+  '/api/scenario-trials/:trialId/screenshots/:seq': { 종류: '시험', 칸: 'trialId' },
 };
 
 // SPEC §2 — 접두사는 자유 형식이고 플랫폼은 모양과 중복만 본다.

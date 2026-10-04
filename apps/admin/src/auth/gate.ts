@@ -3,6 +3,8 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
+import { 시나리오시험 } from '../execution/trial.js';
+
 import { 그라파나문, 그라파나틀인가 } from './grafanaGate.js';
 import { 토큰으로왔나, 확인 } from './identify.js';
 import { 칸되는서비스, type 서비스권한 } from './permissions.js';
@@ -145,8 +147,15 @@ async function 닿는서비스(req: FastifyRequest): Promise<string[] | typeof �
     모인것.push(...본문);
   }
 
-  // 시나리오 만들기는 서비스를 본문에 싣는다. 라우트는 그 값을 바꾸지 않고 그대로 쓴다 (도메인/시나리오 §7)
-  if (틀 === '/api/scenarios' && req.method === 'POST') {
+  // 남의 번호 · 없는 번호면 null 이라 아무것도 안 모은다 — 라우트가 404 를 내야 번호가 살아 있는지 안 샌다 (도메인/시나리오 §7)
+  if (원천.종류 === '시험') {
+    const 번호 = params[원천.칸];
+    const 서비스 = typeof 번호 === 'string' ? 시나리오시험.서비스(req.user?.username ?? '', 번호) : null;
+    if (서비스 !== null) 모인것.push(서비스);
+  }
+
+  // 시나리오 만들기 · 시험 실행은 서비스를 본문에 싣는다. 라우트는 그 값을 바꾸지 않고 그대로 쓴다 (도메인/시나리오 §7)
+  if ((틀 === '/api/scenarios' || 틀 === '/api/scenario-trials') && req.method === 'POST') {
     const body = req.body;
     const service = typeof body === 'object' && body !== null ? (body as { service?: unknown }).service : undefined;
     if (typeof service !== 'string' || !접두사모양.test(service)) return 막는다;

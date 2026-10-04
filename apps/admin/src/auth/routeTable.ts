@@ -79,6 +79,9 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/scenarios/:id/runs': 실행쓰기,
   'GET /api/runs/:runId/scenario': 실행읽기,
   'GET /api/runs/:runId/scenario/screenshots/:seq': 실행읽기,
+  'POST /api/scenario-trials': 실행쓰기,
+  'GET /api/scenario-trials/:trialId': 실행읽기,
+  'GET /api/scenario-trials/:trialId/screenshots/:seq': 실행읽기,
 
   'GET /api/authoring/requests': 작성읽기,
   'GET /api/authoring/requests/:id': 작성읽기,

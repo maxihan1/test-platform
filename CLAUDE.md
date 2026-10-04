@@ -291,6 +291,7 @@ SPEC은 계약이라 한 곳만 어긋나도 다른 갈래가 조용히 틀린�
   작성 보류 입력 `XWL`(`authoring/held.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   작성 보류 통로 `XWLR`(`authoring/held-routes.test.ts`, 2026-09-29 — 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   케이스 테스트 실행 `XTR`(`execution/trialRoutes.test.ts`, 2026-09-30 — 자기 `service_id` 로만 지우고 그 `service` 행까지) ·
+  시나리오 시험 실행 `XST`(`scenario/trial.test.ts`)·통로 `XSTR`·`XSTR2`(`scenario/trialRoutes.test.ts` — 계정 `xstr-a`·`xstr-b`·`xstr-c`)(2026-10-04 — 둘 다 자기 `service_id`·정확한 tc_id·계정 목록으로만 지우고 그 `service` 행까지. `LIKE` 를 안 쓴다. **`XST` 로 시작하는 새 이름을 고르지 않는다**) ·
   작성 보류 머지 `XWLM`(`authoring/held-merge.test.ts`, 2026-09-29 — `held-routes.test.ts` 에서 떼어 냈다. 자기 `service_id` 로 지우고 그 `service` 행까지) ·
   역방향 WS-B `XBU`(`execution/unconfirmed.test.ts`, 2026-09-26 — `test_run.title LIKE 'XBU%'`·`tc_id LIKE 'XBU-%'`·`prefix = 'XBU'`) ·
   에이전트 토큰 `xfu5`(계정)·`XFS6`(서비스)(`auth/agentToken.test.ts`, 2026-09-23 — `xfu4` 와 겹치지 않게 `'xfu5%'` 로만 지운다) ·

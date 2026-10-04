@@ -1,7 +1,7 @@
-import type { ExecuteResponse } from '@platform/kit';
+import type { ExecuteResponse, ScenarioExecuteResponse } from '@platform/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 시작한다, 읽는다, 전부비운다, TrialBusyError } from './trial.js';
+import { 시나리오시험, 시작한다, 읽는다, 전부비운다, TrialBusyError } from './trial.js';
 
 const 명세 = {
   paramSchema: { type: 'object', properties: { loginId: { type: 'string' }, password: { type: 'string', secret: true } } },
@@ -97,7 +97,7 @@ describe('테스트 실행 메모리 저장소', () => {
     const 옛것 = 시작한다('kim', () => Promise.resolve(결과()), 명세);
     await vi.advanceTimersByTimeAsync(0);
     vi.setSystemTime(new Date('2026-10-01T00:00:01Z'));
-    expect(읽는다('kim', 옛것)?.status).toBe('DONE');
+    expect(읽는다('kim', 옛것)).toBeNull();
 
     시작한다('lee', () => 미룬것().promise, 명세);
     expect(읽는다('kim', 옛것)).toBeNull();
@@ -142,5 +142,65 @@ describe('테스트 실행 메모리 저장소', () => {
     );
     await vi.waitFor(() => expect(읽는다('kim', id)?.status).toBe('DONE'));
     expect(JSON.stringify(읽는다('kim', id))).toContain('u 로 로그인한다');
+  });
+});
+
+describe('시나리오 시험 실행 보관소', () => {
+  beforeEach(() => {
+    전부비운다();
+    시나리오시험.전부비운다();
+  });
+
+  const 끝난것: ScenarioExecuteResponse = { status: 'PASS', durationMs: 5, parts: [] };
+  const 안끝남 = () => new Promise<ScenarioExecuteResponse>(() => {});
+
+  it('케이스 보관소와 따로 센다 — 같은 사람이 둘 다 돌릴 수 있다', () => {
+    시작한다('kim', () => 미룬것().promise, 명세);
+    expect(() => 시나리오시험.시작한다('kim', 'MKT', 안끝남, [])).not.toThrow();
+  });
+
+  it('끝나면 FINISHED 와 결과다', async () => {
+    const id = 시나리오시험.시작한다('kim', 'MKT', () => Promise.resolve(끝난것), []);
+    expect(시나리오시험.읽는다('kim', id)).toEqual({ status: 'RUNNING' });
+    await vi.waitFor(() => expect(시나리오시험.읽는다('kim', id)).toEqual({ status: 'FINISHED', result: 끝난것 }));
+  });
+
+  it('돌리는 중에 또 시작하면 시험 실행 문구로 거절한다', () => {
+    시나리오시험.시작한다('kim', 'MKT', 안끝남, []);
+    expect(() => 시나리오시험.시작한다('kim', 'MKT', 안끝남, [])).toThrow('이미 시험 실행이 돌고 있습니다');
+  });
+
+  it('던지면 내 컴퓨터 러너 안내가 아니라 시험 실행 문장으로 NA 다', async () => {
+    const id = 시나리오시험.시작한다('kim', 'MKT', () => Promise.reject(new Error('깨짐')), []);
+    await vi.waitFor(() => expect(시나리오시험.읽는다('kim', id)?.status).toBe('FINISHED'));
+    expect(JSON.stringify(시나리오시험.읽는다('kim', id))).not.toContain('내 컴퓨터');
+    expect(시나리오시험.읽는다('kim', id)).toMatchObject({
+      result: { status: 'NA', parts: [], error: { message: '시험 실행을 끝내지 못했습니다', stack: '깨짐' } },
+    });
+  });
+
+  it('24시간 지난 번호는 새 시험이 없어도 읽을 때 없는 것이다', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-04T00:00:00Z'));
+    const id = 시나리오시험.시작한다('kim', 'MKT', () => Promise.resolve(끝난것), []);
+    await vi.advanceTimersByTimeAsync(0);
+    vi.setSystemTime(new Date('2026-10-05T00:00:01Z'));
+    expect(시나리오시험.읽는다('kim', id)).toBeNull();
+    expect(시나리오시험.서비스('kim', id)).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('서비스는 시작한 사람에게만 알려 준다 — 남의 번호 · 없는 번호는 null', () => {
+    const id = 시나리오시험.시작한다('kim', 'MKT', 안끝남, []);
+    expect(시나리오시험.서비스('kim', id)).toBe('MKT');
+    expect(시나리오시험.서비스('lee', id)).toBeNull();
+    expect(시나리오시험.서비스('kim', '없는-번호')).toBeNull();
+  });
+
+  it('비밀 글자는 긴 것부터 바꾼다 — 짧은 비밀이 긴 비밀의 일부여도 조각이 안 남는다', async () => {
+    const 응답: ScenarioExecuteResponse = { status: 'FAIL', durationMs: 1, parts: [], error: { message: 'abc123 와 abc' } };
+    const id = 시나리오시험.시작한다('kim', 'MKT', () => Promise.resolve(응답), ['abc', 'abc123']);
+    await vi.waitFor(() => expect(시나리오시험.읽는다('kim', id)?.status).toBe('FINISHED'));
+    expect(시나리오시험.읽는다('kim', id)).toMatchObject({ result: { error: { message: '******** 와 ********' } } });
   });
 });
