@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { 나풀기, 토큰고르기, 토큰모양인가, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
+import { 건설정, 나풀기, 토큰고르기, 토큰모양인가, 토큰읽기, 토큰자리, 토큰저장 } from './authoring-token.js';
 
 const 좋은토큰 = `tpa_${'A1b2_-'.repeat(7)}z`;
 const 치울것: string[] = [];
@@ -93,9 +93,27 @@ describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테�
     expect(나풀기(몸)).toEqual({
       username: 'mac',
       서비스들: ['DEMO'],
-      서버표: { DEMO: [{ env: 'qa', baseUrl: 'https://qa.x' }] },
-      폴더표: { DEMO: { 폴더: 'demo' } },
+      설정표: { DEMO: { 서버들: [{ env: 'qa', baseUrl: 'https://qa.x' }], 폴더: { 폴더: 'demo' }, 제외: [] } },
     });
+  });
+
+  it('훑지 않을 경로는 설정과 같은 규칙으로 다시 거른다 — 끝의 / · 앞뒤 공백 · 중복을 걷는다 (#153)', () => {
+    const 풀린것 = 나풀기({ user: { ...몸.user, services: [{ ...몸.user.services[0], crawlExclude: ['/daejeon', ' /gyeongnam/ ', '/daejeon'] }] } });
+    if (typeof 풀린것 === 'string') throw new Error(풀린것);
+    expect(풀린것.설정표.DEMO?.제외).toEqual(['/daejeon', '/gyeongnam']);
+  });
+
+  it.each([
+    ['옛 서버라 칸이 없다', undefined],
+    ['배열이 아니다', '/daejeon'],
+    ['글자가 아닌 줄이 있다', ['/daejeon', 3]],
+    ['/ 로 시작하지 않는다', ['daejeon']],
+    ['셸 글자가 섞였다', ["/a';rm -rf ~;'"]],
+  ])('훑지 않을 경로가 %s — 빈 목록으로 두고 작성은 계속 간다 (#153)', (_이름, 값) => {
+    const 풀린것 = 나풀기({ user: { ...몸.user, services: [{ ...몸.user.services[0], crawlExclude: 값 }] } });
+    if (typeof 풀린것 === 'string') throw new Error(풀린것);
+    expect(풀린것.설정표.DEMO?.제외).toEqual([]);
+    expect(풀린것.설정표.DEMO?.폴더).toEqual({ 폴더: 'demo' });
   });
 
   it.each([
@@ -109,8 +127,8 @@ describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테�
   ])('테스트 폴더가 %s — 그 서비스만 폴더 대신 사유를 낸다', (_이름, 값) => {
     const 풀린것 = 나풀기({ user: { ...몸.user, services: [{ prefix: 'PAY', testsDir: 값, permissions: { authoring: 'write' } }, 몸.user.services[0]] } });
     if (typeof 풀린것 === 'string') throw new Error(풀린것);
-    expect(풀린것.폴더표.PAY).toEqual({ 사유: 'PAY 의 테스트 폴더 설정이 비었거나 한 칸 이름이 아니다 (설정 화면에서 고친다)' });
-    expect(풀린것.폴더표.DEMO).toEqual({ 폴더: 'demo' });
+    expect(풀린것.설정표.PAY?.폴더).toEqual({ 사유: 'PAY 의 테스트 폴더 설정이 비었거나 한 칸 이름이 아니다 (설정 화면에서 고친다)' });
+    expect(풀린것.설정표.DEMO?.폴더).toEqual({ 폴더: 'demo' });
   });
 
   const 읽기만 = { cases: 'write', runs: 'write', authoring: 'read' };
@@ -137,5 +155,28 @@ describe('나풀기 — /api/auth/me 로 이름·서비스·대상 서버·테�
 
   it('모양이 아니면 사유를 낸다', () => {
     expect(나풀기({ error: 'x' })).toMatch(/모양/);
+  });
+});
+
+describe('건설정 — 건을 가져갈 때 다시 읽은 me 로 훑지 않을 경로만 바꾼다 (BLOCKER 2 · 도메인/인증 §7)', () => {
+  const 켤때 = { 서버들: [{ env: 'qa', baseUrl: 'https://qa.x' }], 폴더: { 폴더: 'demo' }, 제외: ['/old'] };
+  const 새me = (서비스: unknown[]) => ({ user: { username: 'mac', role: 'member', services: 서비스 } });
+
+  it('설정을 바꿨으면 다음 건부터 새 경로를 쓴다 — 대상 서버 · 테스트 폴더는 켤 때 것 그대로', () => {
+    const 몸 = 새me([{ prefix: 'DEMO', envs: [], testsDir: 'other', crawlExclude: ['/daejeon'], permissions: { authoring: 'write' } }]);
+    expect(건설정(몸, 'DEMO', 켤때)).toEqual({ ...켤때, 제외: ['/daejeon'] });
+  });
+
+  it('비웠으면 빈 목록이다', () => {
+    const 몸 = 새me([{ prefix: 'DEMO', testsDir: 'demo', crawlExclude: [], permissions: { authoring: 'write' } }]);
+    expect(건설정(몸, 'DEMO', 켤때).제외).toEqual([]);
+  });
+
+  it.each([
+    ['못 읽었다', null],
+    ['모양이 아니다', { error: 'x' }],
+    ['그 서비스가 빠졌다', 새me([{ prefix: 'PAY', testsDir: 'pay', crawlExclude: ['/x'], permissions: { authoring: 'write' } }])],
+  ])('me 를 %s — 켤 때 읽은 것을 쓴다', (_이름, 몸) => {
+    expect(건설정(몸, 'DEMO', 켤때)).toBe(켤때);
   });
 });

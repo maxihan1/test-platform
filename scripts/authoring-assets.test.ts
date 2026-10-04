@@ -233,6 +233,23 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
     expect(글).toContain('--keep /w/author-7/assets/kept/index.json');
   });
 
+  it('역방향 절 — 화면만이면 훑지 않을 경로를 크롤러에 경로마다 --exclude(작은따옴표)로 붙이고 「더 갈 곳」에서도 빼게 한다 (#153)', () => {
+    const 제외 = ['/daejeon', '/gyeongnam'];
+    const 화면만 = 역방향절({ 화면만: true, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7, 제외 }).join('\n');
+    expect(화면만).toContain("--exclude '/daejeon' --exclude '/gyeongnam'");
+    expect(화면만).toContain('목록에 없는 주소 중 이 경로로 시작하는 것은 「더 갈 곳」에도 적지 마라');
+    expect(줄프롬프트({ id: 7, kind: 'AUTHOR' }, 'CDY', [], undefined, { 화면만: true, 산출물폴더: '/w/out', 제외 })).toContain("--exclude '/daejeon'");
+  });
+
+  it('역방향 절 — 대조와 훑지 않을 경로가 없는 화면만에는 --exclude 도 「더 갈 곳」 줄도 없다 (#153)', () => {
+    const 대조 = 역방향절({ 화면만: false, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7, 제외: ['/daejeon'] }).join('\n');
+    expect(대조).not.toContain('--exclude');
+    expect(대조).not.toContain('/daejeon');
+    const 없음 = 역방향절({ 화면만: true, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7, 제외: [] }).join('\n');
+    expect(없음).not.toContain('--exclude');
+    expect(없음).not.toContain('「더 갈 곳」에도');
+  });
+
   it('stream-json 으로 돌린다 — 끊겨도 토큰을 센다 (작성 §7 「토큰 사용량」)', () => {
     const 인자 = 클로드인자('/t', 기본모델);
     expect(인자[인자.indexOf('--output-format') + 1]).toBe('stream-json');

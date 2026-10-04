@@ -5,6 +5,8 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'n
 import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 
+import { 제외경로정리 } from '../apps/admin/src/settings/rules.js';
+
 /** 홈 아래 한 곳. 저장소 밖이라 커밋에 섞일 일이 없다 */
 export function 토큰자리(집: string): string {
   return join(집, '.test-platform', 'agent-token');
@@ -94,17 +96,32 @@ function 폴더고르기(prefix: string, 값: unknown): 폴더자리 {
 }
 
 /**
+ * 서비스 설정의 훑지 않을 경로(`crawlExclude`). 값이 자식 프롬프트의 크롤러 명령줄에 들어가므로 설정 화면과 같은 규칙으로 한 번 더 거른다.
+ * 틀리거나 없으면(옛 서버) 빈 목록 — 다 훑을 뿐 작성은 계속 간다 (SPEC 도메인/인증 §7 · #153)
+ */
+function 제외고르기(값: unknown): string[] {
+  if (!Array.isArray(값) || !값.every((x): x is string => typeof x === 'string')) return [];
+  const 정리 = 제외경로정리(값);
+  return '값' in 정리 ? 정리.값 : [];
+}
+
+/** 서비스 하나의 작성 설정 — 대상 서버 · 테스트 폴더 · 훑지 않을 경로 */
+export interface 서비스설정 {
+  서버들: 서버[];
+  폴더: 폴더자리;
+  제외: string[];
+}
+
+/**
  * `/api/auth/me` 응답에서 작성 에이전트가 쓸 것. 모양이 틀렸거나 작성 쓰기 권한이 어디에도 없으면 사유 글.
  * 대상 서버와 테스트 폴더는 자식(tpx-author)이 입력으로 기대한다 — 둘 다 이 응답에 실려 온다. 새 통로가 필요 없다
  */
-export function 나풀기(
-  몸: unknown,
-): { username: string; 서비스들: string[]; 서버표: Record<string, 서버[]>; 폴더표: Record<string, 폴더자리> } | string {
+export function 나풀기(몸: unknown): { username: string; 서비스들: string[]; 설정표: Record<string, 서비스설정> } | string {
   const user = (몸 as { user?: unknown } | null)?.user as
     | {
         username?: unknown;
         role?: unknown;
-        services?: { prefix: string; envs?: 서버[]; testsDir?: unknown; permissions?: { authoring?: unknown } }[];
+        services?: { prefix: string; envs?: 서버[]; testsDir?: unknown; crawlExclude?: unknown; permissions?: { authoring?: unknown } }[];
       }
     | undefined;
   if (user === undefined || typeof user.username !== 'string' || !Array.isArray(user.services)) {
@@ -119,7 +136,18 @@ export function 나풀기(
   return {
     username: user.username,
     서비스들: 맡은것.map((s) => s.prefix),
-    서버표: Object.fromEntries(맡은것.map((s) => [s.prefix, s.envs ?? []])),
-    폴더표: Object.fromEntries(맡은것.map((s) => [s.prefix, 폴더고르기(s.prefix, s.testsDir)])),
+    설정표: Object.fromEntries(
+      맡은것.map((s) => [s.prefix, { 서버들: s.envs ?? [], 폴더: 폴더고르기(s.prefix, s.testsDir), 제외: 제외고르기(s.crawlExclude) }]),
+    ),
   };
+}
+
+/**
+ * 건을 가져갈 때 다시 읽은 me 로 그 서비스의 훑지 않을 경로만 바꾼다 — 설정을 바꾸면 에이전트를 다시 켜지 않아도 다음 건부터 먹는다.
+ * 못 읽었거나 그 서비스가 빠졌으면 켤 때 것. 대상 서버 · 테스트 폴더는 켤 때 것 그대로다 (SPEC 도메인/인증 §7 · #153)
+ */
+export function 건설정(몸: unknown, 서비스: string, 켤때: 서비스설정): 서비스설정 {
+  const 새것 = 나풀기(몸);
+  const 제외 = typeof 새것 === 'string' ? undefined : 새것.설정표[서비스]?.제외;
+  return 제외 === undefined ? 켤때 : { ...켤때, 제외 };
 }

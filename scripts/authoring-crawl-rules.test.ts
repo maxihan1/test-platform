@@ -1,7 +1,7 @@
 // 화면 크롤러 판정 검사 — 따라갈 주소 · 같은 틀 · 지문 · 목록 · 로그인 풀림 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04)
 import { describe, expect, it } from 'vitest';
 
-import { 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
+import { 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 빼는주소인가, 뺄경로읽기, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
 
 const 기준 = 'https://site.test/main';
 
@@ -166,5 +166,53 @@ describe('로그인풀렸나 — 로그인 판에서 로그인 화면으로 튕�
   it('로그인 화면 자체를 열었거나 칸이 없으면 아니다', () => {
     expect(로그인풀렸나({ 요청: 'https://site.test/login', 최종: 'https://site.test/login', 비밀번호칸: true, 아이디칸: true })).toBe(false);
     expect(로그인풀렸나({ 요청: 'https://site.test/my', 최종: 'https://site.test/my', 비밀번호칸: false, 아이디칸: false })).toBe(false);
+  });
+});
+
+describe('빼는주소인가 — 서비스 설정의 훑지 않을 경로 아래 주소는 열지 않는다 (#153)', () => {
+  const 뺄 = ['/daejeon', '/gyeongnam'];
+
+  it('마디 경계로 본다 — /daejeon 은 그 자체와 그 아래를 빼고 /daejeonx 는 안 뺀다', () => {
+    expect(빼는주소인가('https://s.test/daejeon', 뺄)).toBe(true);
+    expect(빼는주소인가('https://s.test/daejeon/about?x=1', 뺄)).toBe(true);
+    expect(빼는주소인가('https://s.test/gyeongnam/notice/3', 뺄)).toBe(true);
+    expect(빼는주소인가('https://s.test/daejeonx', 뺄)).toBe(false);
+    expect(빼는주소인가('https://s.test/pwd/PwdSch', 뺄)).toBe(false);
+  });
+
+  it('인코딩은 풀어서 견준다', () => {
+    expect(빼는주소인가('https://s.test/%EB%8C%80%EC%A0%84/a', ['/대전'])).toBe(true);
+  });
+
+  it('해시 라우트(#/…) 안 화면은 경로로 못 뺀다', () => {
+    expect(빼는주소인가('https://s.test/#/daejeon/about', 뺄)).toBe(false);
+  });
+
+  it('목록이 비었거나 주소가 틀리면 빼지 않는다', () => {
+    expect(빼는주소인가('https://s.test/daejeon', [])).toBe(false);
+    expect(빼는주소인가('주소 아님', 뺄)).toBe(false);
+  });
+});
+
+describe('뺄경로읽기 — --exclude 를 여러 번 받아 설정과 같은 값 규칙으로 거른다 (#153)', () => {
+  it('여러 번 받고 끝의 / 를 걷고 같은 것은 하나로', () => {
+    expect(뺄경로읽기(['https://s.test', '--exclude', '/daejeon/', '--out', '/o', '--exclude', '/gyeongnam', '--exclude', '/daejeon'])).toEqual([
+      '/daejeon',
+      '/gyeongnam',
+    ]);
+  });
+
+  it('없으면 빈 목록', () => {
+    expect(뺄경로읽기(['https://s.test', '--out', '/o', '--follow'])).toEqual([]);
+  });
+
+  it('틀린 값은 까닭 글 — / 로 시작하지 않거나 셸 글자가 섞였다', () => {
+    expect(뺄경로읽기(['--exclude', 'daejeon'])).toMatch(/--exclude 값이 틀렸다.*daejeon/);
+    expect(뺄경로읽기(['--exclude', "/a';rm"])).toMatch(/--exclude 값이 틀렸다/);
+  });
+
+  it('값 없이 끝났거나 다음 깃발이 오면 까닭 글', () => {
+    expect(뺄경로읽기(['https://s.test', '--exclude'])).toMatch(/--exclude 뒤에 경로가 없다/);
+    expect(뺄경로읽기(['--exclude', '--follow'])).toMatch(/--exclude 뒤에 경로가 없다/);
   });
 });
