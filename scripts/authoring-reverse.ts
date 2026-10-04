@@ -77,6 +77,10 @@ export function 역방향절(입력: { 화면만: boolean; 산출물폴더: stri
     `- 산출물 폴더는 \`${입력.산출물폴더}\` 다. 차이 목록은 diffs.json${입력.화면만 ? ', 역기획서 원고는 reverse-spec.md' : ''} 로 거기에 써라.`,
     // 산출물 폴더 옆이다 — 그 폴더의 파일은 에이전트가 읽어 올리므로 화면 기록을 섞지 않는다
     `- 본 화면은 \`${join(dirname(입력.산출물폴더), 'screens')}\` 에 화면마다 파일로 적고 대화에는 한 줄만 남겨라.`,
+    // 화면 구조는 기계가 먼저 뽑는다 — AI 는 눌러 봐야 아는 「한 칸」만 연다 (§3.6 「★ 역방향」 크롤러 · 2026-10-04)
+    입력.화면만
+      ? `- 로그인 상태 파일을 만든 뒤 \`npx tsx scripts/authoring-crawl.ts "$TARGET_START_URL" --follow --state <상태 파일> --out ${join(dirname(입력.산출물폴더), 'crawl')}\` 을 한 번 돌려 첫 목록(list.json)을 받아라(시작 주소가 없으면 TARGET_BASE_URL).`
+      : `- 로그인 상태 파일을 만든 뒤 기획서가 말하는 화면 주소들로 \`npx tsx scripts/authoring-crawl.ts <주소들> --state <상태 파일> --out ${join(dirname(입력.산출물폴더), 'crawl')}\` 을 한 번 돌려라(링크는 따라가지 않는다).`,
     '- 훑기는 **30분**까지다. 넘으면 더 훑지 말고 본 것까지로 케이스를 만들고 결과 요약에 「예산으로 멈춤」을 적어라.',
   ];
 }
