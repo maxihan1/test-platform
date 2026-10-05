@@ -14,7 +14,8 @@ import { TECHNIQUES, type Technique } from '@platform/kit/types';
 
 import type { CaseRow, JsonSchema } from './api.js';
 import { Empty } from './CaseListNotes.js';
-import { 기법고르개, 케이스줄, 표머리 } from './CaseListParts.js';
+import { 표머리 } from './CaseListHead.js';
+import { 기법고르개, 케이스줄 } from './CaseListParts.js';
 import { 말 } from './messages.js';
 
 afterEach(cleanup);
@@ -181,6 +182,28 @@ describe('표머리와 입력 칸 (SPEC §8.1)', () => {
     render(<표머리 />);
     const 이름들 = screen.getAllByRole('columnheader').map((el) => el.textContent);
     expect(이름들).toEqual(['TC ID', '케이스명', '입력값', '마지막 결과']);
+  });
+
+  it('쌓인 줄에서 보일 「이 쪽 전체 선택」 글이 있고 화면 읽기에는 체크박스 이름 하나만 읽힌다 (PR #159)', () => {
+    const { container } = render(<표머리 고름상태="none" on모두고르기={vi.fn()} />);
+
+    const 글 = container.querySelector('.pick-all');
+    expect(글?.textContent).toBe('이 쪽 전체 선택');
+    expect(글?.getAttribute('aria-hidden')).toBe('true');
+    expect(screen.getAllByRole('checkbox', { name: '이 쪽 전체 선택' })).toHaveLength(1);
+  });
+
+  it('「이 쪽 전체 선택」 글을 눌러도 고른다 — 라벨처럼 보이는 글이 안 눌리면 20px 네모만 노리게 된다', () => {
+    const on모두고르기 = vi.fn();
+    const { container } = render(<표머리 고름상태="none" on모두고르기={on모두고르기} />);
+
+    fireEvent.click(container.querySelector('.pick-all')!);
+    expect(on모두고르기).toHaveBeenCalledTimes(1);
+  });
+
+  it('전체 선택이 없는 표머리에는 그 글도 없다', () => {
+    const { container } = render(<표머리 />);
+    expect(container.querySelector('.pick-all')).toBeNull();
   });
 
   it('입력 칸이 케이스명 칸 안에 있지 않다', () => {

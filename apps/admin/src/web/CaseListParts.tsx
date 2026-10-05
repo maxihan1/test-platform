@@ -1,4 +1,4 @@
-// 케이스 목록 화면이 그리는 조각 — 찾기 칸 · 조건 칩 · 표머리 · 케이스 한 줄 (SPEC §8.1)
+// 케이스 목록 화면이 그리는 조각 — 찾기 칸 · 조건 칩 · 케이스 한 줄 (SPEC §8.1). 표머리는 CaseListHead.tsx
 // 고르는 칸이 붙으면서 CaseList 가 300줄을 넘었다. 판단은 CaseList 에 두고 그리는 쪽만 여기로 옮겼다.
 // 빈 목록 안내 · 스캔 결과 줄은 CaseListNotes.tsx 로 갔다 (2026-10-01 — 이 파일도 300줄을 넘었다)
 
@@ -130,45 +130,6 @@ export function 기법고르개({ 기법, on기법 }: { 기법: 기법고름; on
   );
 }
 
-/**
- * 목록 맨 위 표머리 (SPEC §8.1, 2026-09-22).
- *
- * **좁은 화면에서는 감춘다.** 줄이 2단으로 접혀 칸이 세로로 눕기 때문이다 —
- * 케이스 목록은 §8 의 「좁은 화면에서 제대로 되는 둘」에 없다.
- * 실행 기록은 다르다 (실행 §8.7 은 감추지 않고 줄마다 라벨을 붙인다).
- *
- * `<table>` 이 아니라 격자라서 `role` 로 칸 이름을 읽히게 한다.
- */
-export function 표머리({ 고름상태, on모두고르기 }: { 고름상태?: 'none' | 'some' | 'all'; on모두고르기?: () => void } = {}) {
-  const t = use말();
-  return (
-    <div className="rowhead" role="row">
-      <span aria-hidden="true" />
-      {/* 이 쪽에 보이는 케이스를 한 번에 고르고 푼다. 「전체 실행」은 이미 모든 쪽이라 여기는 보이는 쪽만이다 (2026-09-30) */}
-      {고름상태 === undefined || on모두고르기 === undefined ? (
-        <span aria-hidden="true" />
-      ) : (
-        <label className="pick">
-          <input
-            type="checkbox"
-            aria-label={t('이 쪽 전체 선택')}
-            checked={고름상태 === 'all'}
-            ref={(el) => {
-              if (el !== null) el.indeterminate = 고름상태 === 'some';
-            }}
-            onChange={on모두고르기}
-          />
-        </label>
-      )}
-      {/* 두 언어가 같은 글자라 표를 안 탄다 */}
-      <span role="columnheader">TC ID</span>
-      <span role="columnheader">{t('케이스명')}</span>
-      <span role="columnheader">{t('입력값')}</span>
-      <span role="columnheader">{t('마지막 결과')}</span>
-    </div>
-  );
-}
-
 export function 케이스줄({
   row,
   마지막,
@@ -206,8 +167,8 @@ export function 케이스줄({
     <>
     <div className="row pickable">
       <div className="gutter" style={{ background: STATUS_COLOR[마지막판정(row, 마지막)] }} />
-      {/* 고르는 칸은 왼쪽 거터 칸 안이다. 줄 내용 쪽 첫 요소로 두면 620px 미만에서
-          줄이 2단으로 접힐 때 케이스명 위에 체크박스만 홀로 한 줄이 된다 (SPEC §8.1).
+      {/* 고르는 칸은 왼쪽 거터 칸 안이다. 줄 내용 쪽 첫 요소로 두면 목록이 좁아
+          줄이 쌓일 때 케이스명 위에 체크박스만 홀로 한 줄이 된다 (SPEC §8.1).
           label 로 감싸 칸 전체가 누르는 자리가 된다 — 15px 네모만 노리게 두지 않는다 */}
       <label className="pick">
         <input

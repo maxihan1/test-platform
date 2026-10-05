@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import { checkSource } from './rules.js';
-import { gitEnv, newlyUnconfirmed, oldSourceByTcId } from './unconfirmed.js';
+import { defineCase인자들, gitEnv, newlyUnconfirmed, oldSourceByTcId } from './unconfirmed.js';
 
 function 케이스(extra: string, head = ''): string {
   return `import { defineCase, test, verify } from '@platform/kit';
@@ -134,6 +134,25 @@ describe('newlyUnconfirmed — 이미 있던 케이스에 새로 단 꼬리표',
 
   it('따옴표 키로 새로 달아도 true', () => {
     expect(newlyUnconfirmed(없음, 케이스(`'unconfirmed': '기획서와 다름',`))).toBe(true);
+  });
+
+  it('둘째 defineCase 에만 꼬리표가 있어도 true', () => {
+    expect(newlyUnconfirmed(없음, `${케이스('')}\nexport const 둘째 = defineCase({ tcId: 'DEMO-002', unconfirmed: '기획서와 다름' });\n`)).toBe(true);
+  });
+});
+
+describe('defineCase인자들 — 케이스 파일 글에서 defineCase 인자를 찾는다', () => {
+  it('호출이 둘이면 인자 둘을 차례대로 준다', () => {
+    const 인자 = defineCase인자들(`defineCase({ tcId: 'A-001' });\ndefineCase({ tcId: 'A-002' });\n`);
+    expect(인자.map((l) => l.getText())).toEqual(["{ tcId: 'A-001' }", "{ tcId: 'A-002' }"]);
+  });
+
+  it('호출이 없으면 빈 목록이다', () => {
+    expect(defineCase인자들('export const spec = 1;\n')).toEqual([]);
+  });
+
+  it('인자 안의 defineCase 는 세지 않는다', () => {
+    expect(defineCase인자들(`defineCase({ tcId: 'A-001', name: defineCase({ tcId: 'A-002' }) });\n`)).toHaveLength(1);
   });
 });
 
