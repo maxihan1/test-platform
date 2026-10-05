@@ -269,6 +269,7 @@ describe('토큰 명암비 (DESIGN.md)', () => {
     ['--ink', '--paper', 본문],
     ['--ink-muted', '--sheet', 본문],
     ['--ink-muted', '--sheet-2', 본문],
+    ['--ink-muted', '--chip', 본문],
     ['--ink-faint', '--sheet', 본문],
     ['--ink-faint', '--sheet-2', 본문],
     ['--ink-faint', '--paper', 본문],

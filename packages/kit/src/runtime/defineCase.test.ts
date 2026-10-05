@@ -209,4 +209,55 @@ describe('defineCase', () => {
     expect(spec.held).toBe('판정 불가 — 안내 문구가 기획서에 없다');
     expect(spec.paramSchema).toMatchObject({ required: ['amount'] });
   });
+
+  it('설계 기법을 주면 명세에 그대로 싣는다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-FN-014',
+      name: '경계값 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+      techniques: ['경계값 분석'],
+    });
+
+    expect(spec.techniques).toEqual(['경계값 분석']);
+  });
+
+  it('설계 기법은 목록 차례로 맞추고 중복을 뺀다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-FN-015',
+      name: '기법 여럿 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+      techniques: ['상태 전이', '동등 분할', '상태 전이'],
+    });
+
+    expect(spec.techniques).toEqual(['동등 분할', '상태 전이']);
+  });
+
+  it('설계 기법이 비면 키를 싣지 않는다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-FN-016',
+      name: '빈 기법 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+      techniques: [],
+    });
+
+    expect('techniques' in spec).toBe(false);
+  });
+
+  it('설계 기법을 안 주면 키 자체가 없다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-FN-017',
+      name: '기법 없는 케이스',
+      precondition: [],
+      params: null,
+      expected: null,
+    });
+
+    expect('techniques' in spec).toBe(false);
+  });
 });

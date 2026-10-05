@@ -34,6 +34,7 @@ const 미확정: ExportCase = {
   unconfirmed: '기획서와 다름',
   lastResult: null,
   filledBy: { rootId: 5877, by: 'maxi' },
+  techniques: ['경계값 분석', '결정 테이블'],
 };
 
 const 보류들: ExportHeld[] = [
@@ -85,7 +86,7 @@ describe('renderCatalogXlsx', () => {
     const wb = await 읽기(기본);
     expect(wb.worksheets.map((s) => s.name)).toEqual(['테스트 케이스', '보류 처리 기록']);
     const [케이스, 보류] = wb.worksheets;
-    expect(줄(케이스, 1)).toEqual(['TC ID', '케이스명', '기기', '전제', '입력값', '기대값', '상태', '마지막 결과']);
+    expect(줄(케이스, 1)).toEqual(['TC ID', '케이스명', '기기', '전제', '입력값', '기대값', '상태', '마지막 결과', '설계 기법']);
     expect(줄(보류, 1)).toEqual(['작성 요청', 'TC ID', '구분', '왜 보류됐나', '처리', '넣은 값', '누가', '언제', '반영']);
     expect(케이스.views[0]).toMatchObject({ state: 'frozen', ySplit: 1 });
     expect(wb.created.toISOString()).toBe('2026-09-29T06:00:00.000Z');
@@ -111,6 +112,18 @@ describe('renderCatalogXlsx', () => {
     expect(셋째[2]).toBe('PC');
     expect(셋째[6]).toBe('미확정 — 기획서와 다름 · 모킹 · 사람이 값 채움 — 작성 요청 #5877 · maxi');
     expect(셋째[7]).toBe('—');
+  });
+
+  it('설계 기법은 맨 끝 열 — 기법을 · 로 잇고 없으면 빈칸', async () => {
+    const 케이스 = (await 읽기(기본)).worksheets[0];
+    expect(케이스.getRow(2).getCell(9).value).toBeNull();
+    expect(케이스.getRow(3).getCell(9).value).toBe('경계값 분석 · 결정 테이블');
+  });
+
+  it('UI 테스트 목록에서 받으면 설계 기법 열이 없다', async () => {
+    const 케이스 = (await 읽기({ ...기본, kind: 'UI' })).worksheets[0];
+    expect(줄(케이스, 1)).toEqual(['TC ID', '케이스명', '기기', '전제', '입력값', '기대값', '상태', '마지막 결과']);
+    expect(케이스.getRow(3).getCell(9).value).toBeNull();
   });
 
   it('보류 처리 기록 — 구분 · 처리 · 넣은 값 · 반영', async () => {

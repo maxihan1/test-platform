@@ -2,8 +2,11 @@
 // 고르는 칸이 붙으면서 CaseList 가 300줄을 넘었다. 판단은 CaseList 에 두고 그리는 쪽만 여기로 옮겼다.
 // 빈 목록 안내 · 스캔 결과 줄은 CaseListNotes.tsx 로 갔다 (2026-10-01 — 이 파일도 300줄을 넘었다)
 
+import { useId } from 'react';
+
 import type { CaseRow, ItemStatus, Platform } from './api.js';
-import { CaseDetail } from './CaseDetail.js';
+import { CaseDetail, use기법말, 기법태그들 } from './CaseDetail.js';
+import { 기법고름들, type 기법고름 } from './CaseListFilter.js';
 import { CaseRowParams, type 줄글자 } from './CaseRowParams.js';
 import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
@@ -62,7 +65,7 @@ export function 찾기폼({
   );
 }
 
-/** 검색 조건 넷 (SPEC §8.1 표가 정본). 서비스는 조건이 아니라 맨 위 띠의 선택이다 */
+/** 검색 조건 (SPEC §8.1 표가 정본). 서비스는 조건이 아니라 맨 위 띠의 선택이다 */
 export function 조건칩들({
   디바이스,
   활성만,
@@ -104,6 +107,26 @@ export function 조건칩들({
         </button>
       ))}
     </>
+  );
+}
+
+/** 설계 기법 — 기능 테스트 목록에만. 칩으로 늘어놓으면 도구 줄이 더 길어진다 (도메인/카탈로그 §8.1 「설계 기법」) */
+export function 기법고르개({ 기법, on기법 }: { 기법: 기법고름; on기법: (값: 기법고름) => void }) {
+  const t = use말();
+  const 기법말 = use기법말();
+  const id = useId();
+  // 한 덩어리라 넘쳐도 같이 다음 줄로 간다(2026-10-05 실측). 이름은 보이는 라벨 하나 — 감싸면 고른 값까지 이름에 붙어 for 로 잇는다
+  return (
+    <span className="filter-group">
+      <label className="filter-label" htmlFor={id}>{t('설계 기법')}</label>
+      <select id={id} value={기법} onChange={(e) => on기법(기법고름들.find((값) => 값 === e.target.value) ?? 'ALL')}>
+        {기법고름들.map((값) => (
+          <option key={값} value={값}>
+            {값 === 'ALL' ? t('전체') : 값 === 'none' ? t('기법 없음') : 기법말(값)}
+          </option>
+        ))}
+      </select>
+    </span>
   );
 }
 
@@ -202,7 +225,11 @@ export function 케이스줄({
         {row.name}
         {/* 사유 한 문장은 상세에서 본다. 줄에는 배지만 — 판정 색은 쓰지 않는다 (도메인/카탈로그 §8.1) */}
         {typeof row.unconfirmed === 'string' ? <span className="case-tag">{t('미확정')}</span> : null}
-        <small>{t('지원 디바이스 {목록}', { 목록: row.platforms.map((p) => t(PLATFORM_LABEL[p])).join(', ') })}</small>
+        {/* 기법은 이름 옆이 아니라 이 작은 줄에 — 이름 옆이면 기법이 둘일 때 둘째 태그가 다음 줄로 밀린다 (도메인/카탈로그 §8.1) */}
+        <small>
+          {t('지원 디바이스 {목록}', { 목록: row.platforms.map((p) => t(PLATFORM_LABEL[p])).join(', ') })}
+          {row.techniques?.length ? <> <span className="tech-line">· {t('설계 기법')} <기법태그들 기법들={row.techniques} /></span></> : null}
+        </small>
       </div>
       <div className="params">
         <CaseRowParams

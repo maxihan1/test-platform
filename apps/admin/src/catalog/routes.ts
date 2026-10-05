@@ -5,6 +5,8 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 
 import { join } from 'node:path';
 
+import { TECHNIQUES, type Technique } from '@platform/kit/types';
+
 import { 칸되는서비스 } from '../auth/permissions.js';
 import type { 사용자 } from '../auth/store.js';
 import { renderCatalogXlsx } from './export.js';
@@ -145,6 +147,16 @@ export function 종류읽기(값: string | undefined): 'UI' | 'FN' | undefined {
   return 값 === 'ui' ? 'UI' : 값 === 'fn' ? 'FN' : undefined;
 }
 
+// 빈 값은 거르지 않는다. 모르는 값은 null — `?kind=` 와 달리 이 조건을 보내는 옛 화면이 없고,
+// 거르지 않고 전부 내면 거른 줄 알고 틀린 목록을 믿는다 (카탈로그 §7)
+export function 기법읽기(값: string | undefined): Technique | 'none' | undefined | null {
+  if (값 === undefined || 값 === '') return undefined;
+  if (값 === 'none') return 'none';
+  return TECHNIQUES.find((t) => t === 값) ?? null;
+}
+
+const 모르는기법 = (값: string | undefined) => ({ error: 'BAD_TECHNIQUE', detail: `설계 기법 목록에 없는 값입니다 — ${String(값)}` });
+
 export default async function catalogRoutes(app: FastifyInstance): Promise<void> {
   // 배포는 컨테이너 재기동이다. 뜨는 김에 한 번 훑어 두면 배포 직후 목록이 최신이 된다 (SPEC §3.1)
   startup = runScan(app.log);
@@ -156,7 +168,9 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
     return 기록 === null ? null : 보이는결과(기록, req.user);
   });
 
-  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string } }>(
+  app.get<{
+    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string };
+  }>(
     '/catalog/cases',
     async (req, reply) => {
       const service = req.query.service ?? '';
@@ -167,6 +181,8 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         // 화면의 버그이거나 직접 찌른 것이고, 둘 다 감추는 편이 더 나쁘다 (SPEC §3.5)
         return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
       }
+      const technique = 기법읽기(req.query.technique);
+      if (technique === null) return reply.code(400).send(모르는기법(req.query.technique));
 
       const platform = req.query.platform;
       return listCases({
@@ -175,19 +191,22 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         platform: platform === 'desktop' || platform === 'mobile' ? platform : undefined,
         activeOnly: req.query.active !== 'false',
         kind: 종류읽기(req.query.kind),
+        technique,
         page: Math.max(1, Number(req.query.page ?? 1) || 1),
         pageSize: PAGE_SIZE,
       });
     },
   );
 
-  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string } }>(
+  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string } }>(
     '/catalog/export',
     async (req, reply) => {
       const service = req.query.service ?? '';
       if (service === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
       const 서비스 = await findService(service);
       if (서비스 === null) return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
+      const technique = 기법읽기(req.query.technique);
+      if (technique === null) return reply.code(400).send(모르는기법(req.query.technique));
 
       // 문은 (케이스, read) 만 봤다. 실행·작성 기록은 그 칸이 따로 있어야 싣는다 — 케이스 read 만으로 새면 안 된다 (카탈로그 §7)
       const 되나 = (기능: 'runs' | 'authoring'): boolean =>
@@ -200,6 +219,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         platform: platform === 'desktop' || platform === 'mobile' ? platform : undefined,
         activeOnly: req.query.active !== 'false',
         kind: 종류읽기(req.query.kind),
+        technique,
         canSeeRuns: 되나('runs'),
         canSeeAuthoring: 되나('authoring'),
       });

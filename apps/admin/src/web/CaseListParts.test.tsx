@@ -10,9 +10,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
+import { TECHNIQUES, type Technique } from '@platform/kit/types';
+
 import type { CaseRow, JsonSchema } from './api.js';
 import { Empty } from './CaseListNotes.js';
-import { 케이스줄, 표머리 } from './CaseListParts.js';
+import { 기법고르개, 케이스줄, 표머리 } from './CaseListParts.js';
+import { 말 } from './messages.js';
 
 afterEach(cleanup);
 
@@ -192,6 +195,83 @@ describe('표머리와 입력 칸 (SPEC §8.1)', () => {
     expect(입력칸).not.toBeNull();
     expect(이름칸!.contains(입력칸!)).toBe(false);
     expect(입력칸!.querySelector('input')).not.toBeNull();
+  });
+});
+
+describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () => {
+  const 줄그린다 = (techniques?: Technique[]) =>
+    render(
+      <케이스줄
+        row={{ ...케이스({} as JsonSchema), unconfirmed: '기획서에 없는 문구', techniques }}
+        마지막={{}}
+        고름={false}
+        뒤집기={() => {}}
+        on값={vi.fn()}
+        on더보기={vi.fn()}
+      />,
+    );
+
+  it('기법은 케이스명 옆이 아니라 아래 작은 줄에 「설계 기법」 글자와 같이 선다', () => {
+    const { container } = 줄그린다(['경계값 분석', '상태 전이']);
+
+    const 작은줄 = container.querySelector('.title small');
+    expect(작은줄?.textContent).toContain('설계 기법');
+    expect([...(작은줄?.querySelectorAll('.tech-tag') ?? [])].map((el) => el.textContent)).toEqual(['경계값 분석', '상태 전이']);
+    expect(container.querySelectorAll('.tech-tag')).toHaveLength(2);
+    expect(container.querySelector('.title > .case-tag')?.textContent).toBe('미확정');
+  });
+
+  it('「· 설계 기법」 글자와 태그는 한 덩어리라 좁은 폭에서도 갈라지지 않는다', () => {
+    const { container } = 줄그린다(['경계값 분석', '상태 전이']);
+
+    const 덩어리 = container.querySelector('.title small .tech-line');
+    expect(덩어리?.textContent).toBe('· 설계 기법 경계값 분석상태 전이');
+    expect(덩어리?.querySelectorAll('.tech-tag')).toHaveLength(2);
+  });
+
+  it('기법이 없으면 「설계 기법」 글자도 태그도 없다', () => {
+    const { container } = 줄그린다([]);
+    expect(container.querySelector('.title small')?.textContent).not.toContain('설계 기법');
+    expect(container.querySelector('.tech-tag')).toBeNull();
+  });
+
+  it('고르개는 전체 · kit 기법 차례 · 기법 없음이고 값은 kit 원문이다', () => {
+    render(<기법고르개 기법="ALL" on기법={vi.fn()} />);
+
+    const 고르개 = screen.getByRole('combobox', { name: '설계 기법' });
+    const 값들 = [...고르개.querySelectorAll('option')].map((el) => [el.value, el.textContent]);
+    expect(값들).toEqual([['ALL', '전체'], ...TECHNIQUES.map((값) => [값, 값]), ['none', '기법 없음']]);
+  });
+
+  it('라벨과 고르개는 한 덩어리라 도구 줄이 넘쳐도 갈라지지 않는다', () => {
+    const { container } = render(<기법고르개 기법="ALL" on기법={vi.fn()} />);
+
+    const 덩어리 = container.querySelector('.filter-group');
+    expect(덩어리?.textContent).toContain('설계 기법');
+    expect(덩어리?.contains(screen.getByRole('combobox', { name: '설계 기법' }))).toBe(true);
+  });
+
+  it('고르개 이름은 보이는 라벨 하나에서 온다 — 화면 읽기가 「설계 기법」을 한 번만 읽는다', () => {
+    render(<기법고르개 기법="ALL" on기법={vi.fn()} />);
+
+    const 고르개 = screen.getByRole('combobox', { name: '설계 기법' });
+    expect(고르개.hasAttribute('aria-label')).toBe(false);
+    expect(screen.queryByRole('group')).toBeNull();
+    expect(screen.getByText('설계 기법').tagName).toBe('LABEL');
+  });
+
+  it('고르면 고른 값을 올려 보낸다', () => {
+    const on기법 = vi.fn();
+    render(<기법고르개 기법="ALL" on기법={on기법} />);
+
+    fireEvent.change(screen.getByRole('combobox', { name: '설계 기법' }), { target: { value: '동등 분할' } });
+    expect(on기법).toHaveBeenCalledWith('동등 분할');
+  });
+
+  // 기법 낱말은 kit 에서 오므로 소스 훑기(messages.test.ts)만으로는 번역이 빠진 것을 못 잡는다
+  it('kit 의 기법 낱말이 영어 표에 다 있다', () => {
+    expect(TECHNIQUES.filter((값) => 말[값] === undefined)).toEqual([]);
+    expect([말['설계 기법'], 말['기법 없음']]).toEqual(['Design technique', 'No technique']);
   });
 });
 

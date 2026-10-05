@@ -4,7 +4,8 @@ import { relative, resolve } from 'node:path';
 
 import { z } from 'zod';
 
-import type { CaseSpec, JsonSchema, Platform, TcId } from '../types.js';
+import { TECHNIQUES } from '../types.js';
+import type { CaseSpec, JsonSchema, Platform, TcId, Technique } from '../types.js';
 import { callerFile } from './callsite.js';
 
 // 입력값·기대값 자리에 올 수 있는 것. 없으면 null로 '없다고 적는다' (SPEC §4)
@@ -26,6 +27,7 @@ export interface DefineCaseInput<P extends CaseSchema, E extends CaseSchema> {
   expected: E;
   unconfirmed?: string;
   held?: string;
+  techniques?: Technique[];
 }
 
 // 선언에 쓴 zod 스키마 원본. 실행 시점에 주입값을 검증하려면 JSON Schema가 아니라 원본이 필요하다.
@@ -67,6 +69,9 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
   // 빈 사유는 확정이다. 키를 아예 빼야 스캐너 JSON 에 빈 칸이 섞이지 않는다
   if (input.unconfirmed?.trim()) spec.unconfirmed = input.unconfirmed;
   if (input.held?.trim()) spec.held = input.held;
+  // 적은 차례가 달라도 DB · 엑셀에 같은 글자로 남게 목록 차례로 맞춘다
+  const techniques = TECHNIQUES.filter((t) => input.techniques?.includes(t));
+  if (techniques.length > 0) spec.techniques = techniques;
 
   schemas.set(spec, { params: input.params, expected: input.expected });
 

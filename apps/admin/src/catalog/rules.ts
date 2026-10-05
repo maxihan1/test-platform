@@ -7,9 +7,10 @@ import type { CaseSpec, JsonSchema } from '@platform/kit';
 
 import { k7, K7_WHY } from './pageObject.js';
 import { caseSteps, isTestStep } from './steps.js';
+import { badTechniques } from './techniques.js';
 import { badTag } from './unconfirmed.js';
 
-export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K11' | 'K12' | 'K13';
+export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K11' | 'K12' | 'K13' | 'K14';
 
 export interface Violation {
   file: string;
@@ -39,6 +40,7 @@ const WHY: Record<RuleId, string> = {
   K11: '스캐너가 사유를 못 읽어 미확정 케이스가 정식으로 섞인다',
   K12: '시나리오가 절차를 제목으로 건너뛰므로 하나를 풀면 둘이 건너뛰어진다',
   K13: '보류 케이스가 값 없이 main 에 들어가면 아무것도 안 지키는 초록이 된다',
+  K14: '「설계 기법」으로 못 거르는 케이스가 생기고 엑셀 열이 틀린다. UI 케이스에 붙으면 「기능 테스트에만」이 깨진다',
 };
 
 // check.ts 통과 줄이 이 목록에서 범위를 만든다. 손으로 적은 숫자는 규칙이 늘 때 조용히 틀린다
@@ -138,6 +140,7 @@ export function checkSource(file: string, text: string): SourceResult {
       const bad = badTag(literal, tag);
       if (bad !== undefined) violations.push(v(file, lineOf(bad.node), rule, bad.what));
     }
+    for (const bad of badTechniques(literal)) violations.push(v(file, lineOf(bad.node), 'K14', bad.what));
   }
 
   // 러너가 건너뛸 절차를 제목 글자 그대로 맞춘다 (packages/kit/src/runtime/step.ts)
@@ -262,6 +265,10 @@ export function checkSpec(
   }
   if (spec.name.trim() === '') {
     out.push(v(file, at('name'), 'K3', 'name이 비어 있다'));
+  }
+  // UI 는 실행한 tcId 로 가린다 — 글자로만 보면 변수 · `as const` tcId 가 빠져나간다. 빈 배열은 실행 결과에 안 남아 키 줄로 본다
+  if (tcId종류(spec.tcId) === 'UI' && (spec.techniques !== undefined || propLines.has('techniques'))) {
+    out.push(v(file, at('techniques'), 'K14', 'UI 케이스에는 techniques 를 달지 않는다'));
   }
   for (const platform of spec.platforms) {
     if (PLATFORMS.has(platform)) continue;

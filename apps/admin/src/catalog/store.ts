@@ -2,7 +2,7 @@
 
 import type { Pool } from 'pg';
 
-import type { CaseSpec, Platform } from '@platform/kit';
+import type { CaseSpec, Platform, Technique } from '@platform/kit';
 
 // 화면이 가리는 칸과 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
 import { 저장값나누기 } from '../web/mask.js';
@@ -23,9 +23,9 @@ async function db(): Promise<Pool> {
 const UPSERT = `
   INSERT INTO test_case
     (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at,
-     unconfirmed, unconfirmed_since)
+     unconfirmed, unconfirmed_since, techniques)
   VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(),
-          $8::text, CASE WHEN $8::text IS NULL THEN NULL ELSE now() END)
+          $8::text, CASE WHEN $8::text IS NULL THEN NULL ELSE now() END, $9::text[])
   ON CONFLICT (tc_id) DO UPDATE SET
     unconfirmed     = EXCLUDED.unconfirmed,
     -- 나이는 처음 단 때부터 잰다. 사유 글자를 고쳐도 유지하고, 풀리면 비워서 다시 달 때 새로 잰다 (카탈로그 §3.1)
@@ -37,12 +37,14 @@ const UPSERT = `
     file_path       = EXCLUDED.file_path,
     param_schema    = EXCLUDED.param_schema,
     expected_schema = EXCLUDED.expected_schema,
+    techniques      = EXCLUDED.techniques,
     is_active       = true,
     scanned_at      = now()
   RETURNING (xmax = 0) AS inserted`;
 
-// 명세의 unconfirmed 는 없으면 키가 없다. 응답은 화면이 칸을 늘 읽도록 null 로 채운다 (카탈로그 §7)
-export type CaseRow = Omit<CaseSpec, 'unconfirmed'> & {
+// 명세의 unconfirmed · techniques 는 없으면 키가 없다. 응답은 화면이 칸을 늘 읽도록 null · [] 로 채운다 (카탈로그 §7)
+export type CaseRow = Omit<CaseSpec, 'unconfirmed' | 'techniques'> & {
+  techniques: Technique[];
   isActive: boolean;
   scannedAt: string;
   unconfirmed: string | null;
@@ -73,6 +75,7 @@ interface RawRow {
   scanned_at: Date;
   unconfirmed: string | null;
   unconfirmed_since: Date | null;
+  techniques: Technique[];
   saved_params: Record<string, unknown> | null;
   saved_expected: Record<string, unknown> | null;
   saved_by: string | null;
@@ -106,12 +109,13 @@ function toCase(row: RawRow): CaseRow {
     scannedAt: row.scanned_at.toISOString(),
     unconfirmed: row.unconfirmed,
     unconfirmedSince: row.unconfirmed_since?.toISOString() ?? null,
+    techniques: row.techniques,
     savedInput: toSaved(row),
   };
 }
 
 const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at, '
-  + 'unconfirmed, unconfirmed_since, '
+  + 'unconfirmed, unconfirmed_since, techniques, '
   + 'ci.params AS saved_params, ci.expected AS saved_expected, ci.saved_by, ci.saved_at';
 
 // USING 이라 tc_id 가 한 칸으로 합쳐져 WHERE·ORDER BY 의 tc_id 가 모호하지 않다
@@ -134,6 +138,8 @@ export interface CaseQuery {
   pageSize: number | null;
   // 사이드바 하위 메뉴(UI 테스트 · 기능 테스트). 없으면 둘 다 (카탈로그 §7 `?kind=` · PR #132)
   kind?: 'UI' | 'FN';
+  // 설계 기법. none 은 기법이 안 적힌 것 전부다 (카탈로그 §7 `?technique=` · §8.1)
+  technique?: Technique | 'none';
 }
 
 export interface CaseList {
@@ -160,6 +166,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
         AND ($5::jsonb IS NULL OR platforms @> $5::jsonb)
         -- UI 번호 꼴은 catalog/rules.ts tcId종류 와 같은 뜻이다
         AND ($8::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($8 = 'UI'))
+        AND ($9::text IS NULL OR ($9 = 'none' AND cardinality(techniques) = 0) OR $9 = ANY(techniques))
       ORDER BY tc_id
       LIMIT $6 OFFSET $7`,
     [
@@ -172,6 +179,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
       query.pageSize,
       query.pageSize === null ? 0 : (query.page - 1) * query.pageSize,
       query.kind ?? null,
+      query.technique ?? null,
     ],
   );
 
@@ -244,6 +252,8 @@ export async function save(specs: CaseSpec[], deactivateMissing: boolean, prefix
         JSON.stringify(spec.paramSchema),
         JSON.stringify(spec.expectedSchema),
         spec.unconfirmed ?? null,
+        // 지우면 '{}' 로 덮어야 다시 스캔한 결과가 코드와 같다 — 비워 두면 옛 기법이 남는다
+        spec.techniques ?? [],
       ]);
       if (upserted.rows[0]?.inserted === true) added += 1;
     }

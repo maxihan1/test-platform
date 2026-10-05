@@ -10,6 +10,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import { api, ApiError, type CaseRow, type Paged, type Platform, type ServiceRow, type User } from './api.js';
 import { CaseList } from './CaseList.js';
+import { 언어함 } from './i18n.js';
 import type { 판정 } from './role.js';
 
 const 전부된다: 판정 = () => true;
@@ -685,5 +686,92 @@ describe('CaseList 줄에서 저장값 저장', () => {
     }));
     await waitFor(() => expect(screen.queryByText('안 저장한 값이 있습니다')).toBeNull());
     expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('USD');
+  });
+});
+
+// 고르개는 질의에 **kit 원문 값**을 싣는다. 번역 글자가 실리면 영어 화면에서 서버가 400 을 낸다
+describe('CaseList 설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () => {
+  const 고르개 = () => screen.getByRole('combobox', { name: '설계 기법' }) as HTMLSelectElement;
+  const 마지막질의 = (스파이: ReturnType<typeof 모킹>) => 스파이.mock.calls.at(-1)?.[0];
+
+  it('고르면 kit 원문 값으로 다시 부르고 첫 쪽으로 간다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    await waitFor(() => expect(마지막질의(스파이)?.page).toBe(2));
+
+    fireEvent.change(고르개(), { target: { value: '경계값 분석' } });
+
+    await waitFor(() => expect(마지막질의(스파이)).toEqual(expect.objectContaining({ technique: '경계값 분석', page: 1 })));
+  });
+
+  it('기법 없음은 none 으로 묻는다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.change(고르개(), { target: { value: 'none' } });
+    await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('none'));
+  });
+
+  it('전체로 돌리면 질의에 기법을 안 싣는다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.change(고르개(), { target: { value: '결정 테이블' } });
+    await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('결정 테이블'));
+
+    fireEvent.change(고르개(), { target: { value: 'ALL' } });
+    await waitFor(() => expect(마지막질의(스파이)).not.toHaveProperty('technique'));
+  });
+
+  it('고르면 고른 것은 그대로 둔다 — 디바이스 · 표시 칩과 같다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.click(고르기칸()[0]!);
+    expect(실행버튼().textContent).toBe('선택한 1건 실행');
+
+    fireEvent.change(고르개(), { target: { value: '상태 전이' } });
+    await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('상태 전이'));
+    expect(실행버튼().textContent).toBe('선택한 1건 실행');
+  });
+
+  it('조건 초기화가 기법도 비운다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.change(고르개(), { target: { value: '동등 분할' } });
+    await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('동등 분할'));
+
+    fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
+
+    expect(고르개().value).toBe('ALL');
+    await waitFor(() => expect(마지막질의(스파이)).not.toHaveProperty('technique'));
+  });
+
+  it('전체 실행도 고른 기법으로 모은다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.change(고르개(), { target: { value: '경계값 분석' } });
+    await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('경계값 분석'));
+    await screen.findByText('ZPK-001');
+    스파이.mockClear();
+
+    fireEvent.click(실행버튼());
+
+    await screen.findByRole('dialog');
+    expect(스파이.mock.calls.map(([q]) => q.technique)).toEqual(['경계값 분석', '경계값 분석']);
+  });
+
+  it('영어 화면에서 골라도 질의는 한국어 원문이다', async () => {
+    const 스파이 = 모킹(쪽주기);
+    render(
+      <언어함 value="en">
+        <CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 />
+      </언어함>,
+    );
+    await screen.findByText('ZPK-001');
+
+    const 옵션 = screen.getByRole('option', { name: 'Boundary value analysis' }) as HTMLOptionElement;
+    fireEvent.change(screen.getByRole('combobox', { name: 'Design technique' }), { target: { value: 옵션.value } });
+
+    await waitFor(() => expect(마지막질의(스파이)?.technique).toBe('경계값 분석'));
+  });
+
+  it('UI 테스트 목록에는 고르개가 없다', async () => {
+    모킹(쪽주기);
+    render(<CaseList kind="UI" service="ZPK" 할수={전부된다} 결과보나 />);
+    await screen.findByText('ZPK-001');
+    expect(screen.queryByRole('combobox', { name: '설계 기법' })).toBeNull();
   });
 });

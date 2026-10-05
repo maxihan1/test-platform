@@ -16,6 +16,8 @@
 
 import { useEffect, useState } from 'react';
 
+import type { Technique } from '@platform/kit/types';
+
 import { api, type CaseRow, type HistoryRow, type LastResult, type RunItemDetail } from './api.js';
 import { 코드기본값고치기 } from './CaseEdit.js';
 import { 오류없음, 채운글자, type 줄글자 } from './CaseRowParams.js';
@@ -32,6 +34,31 @@ interface 받은것 {
 
 // 이력이 null 이면 아직 안 받은 것이다. 둘을 한 번에 set 하므로 이 하나로 「받는 중」이 갈린다
 const 아직 = (): 받은것 => ({ 이력: null, 절차: null });
+
+/**
+ * 기법 이름을 화면 글자로. 값은 kit 식별자라 그대로 두고 글자만 영어 표가 맡는다 (도메인/카탈로그 §3.1).
+ * 낱말마다 키를 적는다 — 영어 표 검사가 소스의 글자로 키를 찾고, kit 에 기법이 늘면 `satisfies` 가 깨진다
+ */
+export function use기법말(): (값: Technique) => string {
+  const t = use말();
+  const 글 = {
+    '경계값 분석': t('경계값 분석'),
+    '동등 분할': t('동등 분할'),
+    '결정 테이블': t('결정 테이블'),
+    '상태 전이': t('상태 전이'),
+  } satisfies Record<Technique, string>;
+  return (값) => 글[값];
+}
+
+/** 목록 줄과 상세가 같이 쓴다. 판정 색이 아니다 (DESIGN.md 「설계 기법 태그」) */
+export function 기법태그들({ 기법들 }: { 기법들: Technique[] }) {
+  const 기법말 = use기법말();
+  return 기법들.map((값) => (
+    <span className="tech-tag" key={값}>
+      {기법말(값)}
+    </span>
+  ));
+}
 
 export function CaseDetail({
   row,
@@ -80,6 +107,7 @@ export function CaseDetail({
 
   const 입력값 = schemaToFields(row.paramSchema, row.savedInput?.params, row.savedInput?.savedSecrets.params);
   const 기대결과 = schemaToFields(row.expectedSchema, row.savedInput?.expected, row.savedInput?.savedSecrets.expected);
+  const 기법들 = row.techniques ?? [];
 
   return (
     <Modal
@@ -89,6 +117,13 @@ export function CaseDetail({
       버튼={<button className="btn" onClick={onClose}>{t('닫기')}</button>}
     >
     <div className="detail">
+      {기법들.length === 0 ? null : (
+        <div className="dsec">
+          <div className="dlabel">{t('설계 기법')}</div>
+          <기법태그들 기법들={기법들} />
+        </div>
+      )}
+
       {row.precondition.length === 0 ? null : (
         <div className="dsec">
           <div className="dlabel">{t('사전조건')}</div>
