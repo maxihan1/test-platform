@@ -466,12 +466,15 @@ describe('표머리와 줄이 같은 격자를 쓴다 (SPEC §8.1 · §8.7, 2026
       [...(토큰들()[이름] ?? '').matchAll(/(?:^|\s)(\d+)px/g)].reduce((합, m) => 합 + Number(m[1]), 0);
     // 넓은 창용 값은 고정 폭을 쓴다 — 그래야 표머리와 줄이 같은 자리에 선다
     expect(고정합('--list-cols'), '--list-cols 에 고정 폭이 없다').toBeGreaterThan(0);
-    // 그 값이 안 들어가는 창을 위한 좁은 구간 재정의가 있어야 한다
+    // 실행 기록 줄은 창이 좁으면 열을 비율로 바꾼다
     const 좁은구간 = /@media \(max-width: (\d+)px\) \{\s*:root \{([\s\S]*?)\}/.exec(css);
     expect(좁은구간, '고정 폭이 안 들어가는 창을 위한 :root 재정의가 없다').not.toBeNull();
     expect(좁은구간![2], '좁은 구간 값이 여전히 고정 폭이다 — 비율(fr)이어야 넘치지 않는다').toMatch(
-      /--list-cols:[^;]*fr/,
+      /--run-cols:[^;]*fr/,
     );
+    // 케이스 목록은 비율로 줄이지 않고 목록 폭이 고정 열보다 좁으면 줄을 쌓는다 — 비율 열은 입력 칸을 88px 까지 줄였다 (PR #159)
+    expect(좁은구간![2], '케이스 목록 열을 비율로 줄이면 입력 칸이 쪼그라든다 — 쌓기(`.case-rows`)가 맡는다').not.toMatch(/--list-cols/);
+    expect(css).toMatch(/@container caselist \(max-width: \d+px\)/);
   });
 
   it('좁은 화면에서는 표머리를 감춘다 — 줄이 2단으로 접혀 칸이 세로로 눕는다', () => {
