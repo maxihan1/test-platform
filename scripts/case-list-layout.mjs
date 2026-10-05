@@ -30,6 +30,9 @@ function 재기() {
   const 상자 = (e) => e.getBoundingClientRect();
   const 겹치나 = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
   const 문제 = [];
+  // 한 목록의 줄은 같은 상자 폭을 쓰니 쌓였는지는 첫 줄로 한 번 본다
+  const 첫줄 = document.querySelector('.row.pickable');
+  const 쌓였나 = 첫줄 !== null && getComputedStyle(첫줄).gridTemplateRows.split(' ').length >= 4;
   for (const [i, 줄] of [...document.querySelectorAll('.row.pickable')].entries()) {
     const 입력 = [...줄.querySelectorAll('.params input, .params select, .params label')].map(상자);
     const 오른쪽 = [...줄.querySelectorAll('.right > *')].map(상자);
@@ -39,19 +42,23 @@ function 재기() {
     for (const [j, d] of 디바이스.entries()) {
       const 칸 = 상자(d);
       for (const b of d.querySelectorAll('.sparktext b')) {
-        const 글 = 상자(b);
+        // 글자 자체의 폭을 잰다 — `b` 는 블록이라 상자가 늘 칸 폭이어서 글자가 넘쳐도 상자는 안 넘친다
+        const 범위 = document.createRange();
+        범위.selectNodeContents(b);
+        const 글 = 범위.getBoundingClientRect();
         if (글.right > 칸.right + 0.5 || 글.left < 칸.left - 0.5) 문제.push(`${i + 1}째 줄 ${j + 1}째 디바이스 집계 「${b.textContent}」가 칸 밖이다`);
       }
     }
-    const 쌓였나 = getComputedStyle(줄).gridTemplateRows.split(' ').length >= 4;
-    if (!쌓였나) for (const e of 줄.querySelectorAll('.params input, .params select')) if (상자(e).width < 90) 문제.push(`${i + 1}째 줄 표 모양 입력 칸이 ${Math.round(상자(e).width)}px 이다(90 미만)`);
+    if (!쌓였나) for (const e of 줄.querySelectorAll('.params input, .params select')) {
+      const 폭 = 상자(e).width;
+      if (폭 < 90) 문제.push(`${i + 1}째 줄 표 모양 입력 칸이 ${Math.round(폭)}px 이다(90 미만)`);
+    }
   }
   const 머리 = document.querySelector('.case-rows .rowhead');
   const 전체선택 = 머리?.querySelector('input[type=checkbox]');
-  if (전체선택 === null || 전체선택 === undefined || 상자(전체선택).width === 0) 문제.push('「이 쪽 전체 선택」 체크박스가 안 보인다');
+  if (!전체선택 || 상자(전체선택).width === 0) 문제.push('「이 쪽 전체 선택」 체크박스가 안 보인다');
   if (document.documentElement.scrollWidth > document.documentElement.clientWidth) 문제.push('페이지가 가로로 넘친다');
-  const 줄 = document.querySelector('.row.pickable');
-  return { 문제, 쌓였나: 줄 !== null && getComputedStyle(줄).gridTemplateRows.split(' ').length >= 4, 줄높이: Math.round(줄?.getBoundingClientRect().height ?? 0), 목록폭: Math.round(document.querySelector('.case-rows')?.getBoundingClientRect().width ?? 0) };
+  return { 문제, 쌓였나, 줄높이: Math.round(첫줄?.getBoundingClientRect().height ?? 0), 목록폭: Math.round(document.querySelector('.case-rows')?.getBoundingClientRect().width ?? 0) };
 }
 
 const 브라우저 = await chromium.launch();
@@ -67,7 +74,8 @@ for (const 언어 of ['ko', 'en']) {
       const 잼 = await 쪽.evaluate(재기);
       // 실행 기록 표머리는 창 620px 이상에서 늘 보인다 — 케이스 목록의 쌓기 규칙이 번지지 않았는지
       await 쪽.goto(`${주소}/#/runs/fn`);
-      await 쪽.waitForSelector('.row', { timeout: 15000 });
+      // 주소의 # 뒤만 바뀌어 케이스 줄이 남아 있을 수 있다 — 실행 기록 표머리로 기다린다
+      await 쪽.waitForSelector('.rowhead.runhead', { state: 'attached', timeout: 15000 });
       const 실행머리 = await 쪽.evaluate(() => { const h = document.querySelector('.rowhead.runhead'); return h !== null && getComputedStyle(h).display !== 'none'; });
       if (폭 > 620 && !실행머리) 잼.문제.push('실행 기록 표머리가 안 보인다');
       const 이름 = `${언어} · 사이드바 ${접음 ? '접음' : '폄'} · 창 ${폭}px · 목록 ${잼.목록폭}px · ${잼.쌓였나 ? '쌓임' : '표'} · 첫 줄 ${잼.줄높이}px`;
