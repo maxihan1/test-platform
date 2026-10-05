@@ -5,6 +5,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 
+import { 언어함 } from './i18n.js';
 import { 집계띠, 판정흐름, 칸띠 } from './Summary.js';
 
 afterEach(cleanup);
@@ -40,6 +41,25 @@ describe('판정흐름', () => {
     const 글 = container.querySelector('.sparktext')?.textContent ?? '';
     expect(글).toContain('통과 3');
     expect(글).toContain('실패 1');
+  });
+
+  it('개수는 판정마다 따로 서고 가운뎃점이 없다 — 60px 디바이스 칸 안에서 한 줄에 하나', () => {
+    const { container } = render(<판정흐름 recent={['PASS', 'PASS', 'FAIL', 'PASS']} />);
+
+    const 줄들 = [...container.querySelectorAll('.sparktext b')].map((el) => el.textContent);
+    expect(줄들).toEqual(['통과 3', '실패 1']);
+    expect(container.querySelector('.sparktext')?.textContent).not.toContain('·');
+  });
+
+  it('영어 화면이면 개수 글자도 영어다', () => {
+    const { container } = render(
+      <언어함 value="en">
+        <판정흐름 recent={['PASS', 'NA']} />
+      </언어함>,
+    );
+
+    const 줄들 = [...container.querySelectorAll('.sparktext b')].map((el) => el.textContent);
+    expect(줄들).toEqual(['Passed 1', 'Not run 1']);
   });
 
   it('다섯 번에 못 미치면 남는 자리를 빈 칸으로 채워 길이를 지킨다', () => {

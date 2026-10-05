@@ -2709,11 +2709,13 @@ select:focus {
   margin-top: 5px;
   font-size: 11.5px;
   color: var(--ink-faint);
-  white-space: nowrap;
 }
 
+/* 판정마다 한 줄 — 한 줄로 이으면 60px 디바이스 칸(`.device`)을 넘어 옆 디바이스 글자와 겹쳤다 (2026-10-05) */
 .sparktext b {
+  display: block;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .sparktext b.p {

@@ -108,6 +108,7 @@ const 흐름칸수 = 5;
  * 다섯 번 돌린 케이스의 막대 길이가 달라져 세로로 훑을 수가 없다 (DESIGN.md 원칙 3).
  */
 export function 판정흐름({ recent }: { recent: ItemStatus[] }) {
+  const t = use말();
   // 한 번도 안 돌렸으면 그릴 것이 없다. 빈 칸 다섯만 그리면 「돌렸는데 결과가 없다」로 읽힌다
   if (recent.length === 0) return null;
 
@@ -126,15 +127,13 @@ export function 판정흐름({ recent }: { recent: ItemStatus[] }) {
           <i key={`e-${String(i)}`} className="e" />
         ))}
       </span>
-      {/* 막대만 두면 색을 못 보는 사람에게는 회색 네모다. 개수를 글자로 같이 적는다 */}
+      {/* 막대만 두면 색을 못 보는 사람에게는 회색 네모다. 개수를 글자로 같이 적는다.
+          판정마다 한 줄 — 한 줄로 이으면 60px 디바이스 칸을 넘어 옆 디바이스 글자와 겹쳤다 (2026-10-05) */}
       <span className="sparktext">
-        {[...셈.entries()].map(([것, 수], i) => (
-          <span key={것}>
-            {i === 0 ? null : ' · '}
-            <b className={판정글자[것]}>
-              {STATUS_LABEL[것]} {수}
-            </b>
-          </span>
+        {[...셈.entries()].map(([것, 수]) => (
+          <b key={것} className={판정글자[것]}>
+            {t(STATUS_LABEL[것])} {수}
+          </b>
         ))}
       </span>
     </>
