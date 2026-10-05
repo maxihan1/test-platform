@@ -25,7 +25,7 @@ const 응답 = (url) => {
   return {};
 };
 
-// 페이지 안에서 잰다 — 같은 줄에서 겹치는 상자 · 줄 밖으로 나간 판정 · 자기 디바이스 칸을 넘은 집계 글자 · 표 모양 입력 칸 폭
+// 겹침은 위아래로 쌓인 상자를 빼려고 가로 · 세로가 둘 다 겹칠 때만 센다 — 가로만 보면 쌓인 줄의 입력 칸이 판정 아래에 있어도 걸렸다
 function 재기() {
   const 상자 = (e) => e.getBoundingClientRect();
   const 겹치나 = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
