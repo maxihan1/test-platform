@@ -135,8 +135,9 @@ body{
 .spark i.n{background:var(--na);height:12px}
 .spark i.e{background:transparent;border:1px solid var(--rule);height:8px}
 /* 그림 옆에 늘 글자를 같이 둔다. 이 줄이 없으면 위 네모는 색만으로 판정을 말한다 */
-.sparktext{display:block;margin-top:5px;font-size:11.5px;color:var(--ink-faint);white-space:nowrap}
-.sparktext b{font-weight:600}
+.sparktext{display:block;margin-top:5px;font-size:11.5px;color:var(--ink-faint)}
+/* 판정마다 한 줄 — 한 줄로 이으면 디바이스 칸을 넘어 옆 글자와 겹쳤다 (PR #159) */
+.sparktext b{display:block;font-weight:600;white-space:nowrap}
 .sparktext b.f{color:var(--fail)} .sparktext b.p{color:var(--pass)} .sparktext b.n{color:var(--na)}
 
 /* 고르는 칸 — 거터 바로 옆, 케이스 번호 앞 (SPEC §8.1) */
@@ -499,7 +500,7 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
                   </td>
                   <td class="r"><span class="badge b-pass">통과</span>
                     <span class="spark" aria-hidden="true"><i class="p"></i><i class="p"></i><i class="f"></i><i class="p"></i><i class="p"></i></span>
-                    <span class="sparktext"><b class="p">통과 4</b> · <b class="f">실패 1</b></span></td>
+                    <span class="sparktext"><b class="p">통과 4</b><b class="f">실패 1</b></span></td>
                   <td class="r">
                     <button class="btn btn-sm btn-on" aria-pressed="true">상세</button>
                     <button class="btn btn-sm">실행</button>
@@ -584,7 +585,7 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
                   </td>
                   <td class="r"><span class="badge b-fail">실패</span>
                     <span class="spark" aria-hidden="true"><i class="p"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></span>
-                    <span class="sparktext"><b class="f">실패 4</b> · <b class="p">통과 1</b></span></td>
+                    <span class="sparktext"><b class="f">실패 4</b><b class="p">통과 1</b></span></td>
                   <td class="r"><button class="btn btn-sm">상세</button> <button class="btn btn-sm">실행</button></td>
                 </tr>
 
@@ -599,7 +600,7 @@ summary .noedit{font-size:12.5px;color:var(--ink-faint);flex:0 0 auto}
                   <td><span class="pnone">고칠 값이 없다</span></td>
                   <td class="r"><span class="badge b-na">미실행</span>
                     <span class="spark" aria-hidden="true"><i class="e"></i><i class="e"></i><i class="e"></i><i class="e"></i><i class="n"></i></span>
-                    <span class="sparktext"><b class="n">미실행 1</b> · 돌린 적 없음 4</span></td>
+                    <span class="sparktext"><b class="n">미실행 1</b>돌린 적 없음 4</span></td>
                   <td class="r"><button class="btn btn-sm">상세</button> <button class="btn btn-sm">실행</button></td>
                 </tr>
 
