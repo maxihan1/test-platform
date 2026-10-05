@@ -10,7 +10,8 @@ import { 고른것고치기 } from './CaseBulkEdit.js';
 import { use엑셀받기 } from './CaseExport.js';
 import { use검색조건 } from './CaseListFilter.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
-import { 결과라벨, 기법고르개, 조건칩들, 찾기폼, 케이스줄, 표머리 } from './CaseListParts.js';
+import { 표머리 } from './CaseListHead.js';
+import { 결과라벨, 기법고르개, 조건칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
@@ -174,7 +175,8 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
       </div>
       {엑셀.알림}
 
-      <div className="rows-scroll">
+      {/* `case-rows` — 목록 폭이 좁으면 줄을 쌓는 규칙(styles.css)을 이 상자에만 건다. 실행 기록 · 작성 목록은 그대로다 */}
+      <div className="rows-scroll case-rows">
       {cases.error !== null ? (
         <Failed error={cases.error} />
       ) : cases.data === null ? (

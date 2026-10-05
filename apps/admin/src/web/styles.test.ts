@@ -618,3 +618,43 @@ describe('줄 칸 이름 · 판정 묶음 · 실행할 케이스 창 (2026-09-30
     expect(블록).toMatch(/flex:\s*0 0 100%/);
   });
 });
+
+// 창 621~900px(사이드바를 편 상태)에서 열을 비율로 줄여 입력 칸 · 판정 · 버튼이 겹쳤다. 목록 폭이 고정 열 최소 합보다
+// 좁으면 줄을 번호 → 케이스명 → 입력값 → 마지막 결과 · 버튼으로 쌓는다(PR #159 시안 A). 배치는 jsdom 이 못 잰다 — 규칙만 본다
+describe('케이스 목록이 좁으면 줄을 쌓는다 (PR #159)', () => {
+  const 쌓기 = /@container caselist \(max-width: (\d+)px\) \{([\s\S]*?)\n\}/.exec(css);
+  const 블록 = 쌓기?.[2] ?? '';
+
+  it('케이스 목록 상자에만 크기 기준을 건다 — 실행 기록 · 테스트 작성은 안 바뀐다', () => {
+    expect(규칙('.case-rows')).toMatch(/container:\s*caselist\s*\/\s*inline-size/);
+    expect(블록, '쌓기 규칙이 실행 기록 표머리를 건드린다').not.toContain('runhead');
+  });
+
+  it('기준 폭은 고정 열 최소 합 + 칸 사이 간격이다 — 열 폭을 바꾸면 같이 움직인다', () => {
+    const 열 = 토큰들()['--list-cols'] ?? '';
+    const 합 = [...열.matchAll(/(\d+)px/g)].reduce((n, m) => n + Number(m[1]), 0);
+    const 칸수 = 열.replace(/minmax\([^)]*\)/g, 'x').trim().split(/\s+/).length;
+    const 간격 = Number(/gap:\s*0 (\d+)px/.exec(규칙('.rowhead'))?.[1] ?? 0);
+    expect(Number(쌓기?.[1])).toBe(합 + 간격 * (칸수 - 1));
+  });
+
+  it('줄을 네 행으로 쌓고 거터 · 고르는 칸이 끝까지 덮는다', () => {
+    expect(블록).toMatch(/\.row\.pickable\s*\{[^}]*grid-template-rows:\s*auto auto auto auto/);
+    for (const [칸, 행] of [['tcid', 1], ['title', 2], ['params', 3], ['right', 4]] as const) {
+      expect(블록, `${칸} 이 ${행}행이 아니다`).toMatch(new RegExp(`\\.row\\.pickable \\.${칸}\\s*\\{[^}]*grid-row:\\s*${행};`));
+    }
+    expect(블록).toMatch(/\.row\.pickable \.gutter,\s*\.row\.pickable \.pick\s*\{[^}]*grid-row:\s*1 \/ -1/);
+  });
+
+  it('칸 이름만 감추고 「이 쪽 전체 선택」 줄은 남긴다', () => {
+    expect(블록).toMatch(/\.case-rows \.rowhead\s*\{[^}]*display:\s*grid/);
+    expect(블록).toMatch(/\.case-rows \.rowhead \[role='columnheader'\]\s*\{[^}]*display:\s*none/);
+    expect(블록).toMatch(/\.case-rows \.pick-all\s*\{[^}]*display:\s*block/);
+    expect(규칙('.pick-all'), '넓은 표에서는 전체 선택 글을 감춘다').toMatch(/display:\s*none/);
+  });
+
+  it('창 620px 규칙에는 케이스 줄 규칙이 남지 않는다 — 쌓기는 목록 폭 한 곳이 정한다', () => {
+    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(좁은화면).not.toContain('.row.pickable');
+  });
+});

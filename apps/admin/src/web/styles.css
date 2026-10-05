@@ -125,7 +125,8 @@
 
    그 구간만 비율로 바꾼다. **`fr` 은 내용이 아니라 칸 폭으로 정해지므로** 표머리와 줄이
    여전히 같은 자리에 선다 — 원래 버그의 원인이던 `auto`(내용을 따라간다)와 다르다.
-   좁은 화면(620px 미만)은 아래에서 줄이 통째로 세로로 접히므로 여기 안 걸린다 */
+   케이스 목록은 목록 폭이 866px 이하면 줄을 쌓으므로(아래 `.case-rows`) 이 비율 열은 사이드바를 접어
+   목록이 넓은 창에서만 쓴다. 실행 기록 줄은 여전히 이 구간과 620px 미만 접기를 쓴다 */
 @media (max-width: 1164px) {
   :root {
     --list-cols: 4px 20px 110px minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr);
@@ -741,7 +742,7 @@ select:focus {
 }
 
 /* 여러 건 고르기 (SPEC §8.1) — 고르는 칸은 왼쪽 거터 안, 판정 색 다음에 둔다.
-   줄 내용 쪽 첫 칸에 두면 620px 미만에서 줄이 2단으로 접힐 때
+   줄 내용 쪽 첫 칸에 두면 목록이 좁아 줄이 쌓일 때(아래 `.case-rows`)
    케이스명 위에 체크박스만 홀로 한 줄이 된다 */
 /* 케이스 줄은 입력 칸이 **케이스명과 다른 칸**이다 (SPEC §8.1, 2026-09-22).
    케이스명에 최소 너비를 준다 — 칸이 하나 늘어 이름이 밀리는데,
@@ -1593,21 +1594,6 @@ select:focus {
     font-size: 12.5px;
   }
 
-  /* 고르는 칸도 색 띠와 함께 거터 쪽에 남는다 — 내용 칸은 전부 3열로 보낸다 */
-  .row.pickable {
-    grid-template-columns: 4px 20px 1fr;
-  }
-
-  .row.pickable .tcid,
-  .row.pickable .title,
-  .row.pickable .right {
-    grid-column: 3;
-  }
-
-  .pick {
-    grid-row: 1 / -1;
-  }
-
   .tcid {
     grid-column: 2;
     padding: 12px 0 0;
@@ -1693,6 +1679,86 @@ select:focus {
 
   .side-pick {
     max-width: 100%;
+  }
+}
+
+/* 케이스 목록이 좁으면 줄을 쌓는다 — 번호 → 케이스명 → 입력값 → 마지막 결과 · 버튼 (PR #159 시안 A, DESIGN.md 「반응형」).
+   **창이 아니라 목록 폭으로 건다.** 같은 창이라도 사이드바를 접으면 목록이 약 200px 넓어진다 — 창 폭으로 걸면
+   접어도 쌓인 채 남거나, 펴면 다시 겹친다(창 621~900px 에서 입력 칸 · 판정 · 버튼이 겹쳤다 — 2026-10-05 실측).
+   기준 866 은 고정 열 최소 합(`--list-cols` 의 px 합 786 + 칸 사이 16 × 5)이다. 그보다 좁은 표는 열을 비율로 줄여
+   입력 값이 잘리거나 겹친다 — `styles.test.ts` 가 둘이 같이 움직이는지 본다.
+   케이스 목록 상자(`.case-rows`)에만 건다. 실행 기록 · 테스트 작성 표머리(`.runhead`)는 그대로다 */
+.case-rows {
+  container: caselist / inline-size;
+}
+
+/* 넓은 표에서는 칸 이름이 있어 「이 쪽 전체 선택」 글이 필요 없다 */
+.pick-all {
+  display: none;
+}
+
+@container caselist (max-width: 866px) {
+  /* 칸 이름만 감추고 전체 선택 한 줄은 남긴다 — 통째로 감추면 1024px 창에서도 여러 건 고르기가 사라진다.
+     창 620px 규칙의 `.rowhead { display: none }` 보다 앞서야 해서 상자 이름까지 붙인다 */
+  .case-rows .rowhead {
+    display: grid;
+    grid-template-columns: 4px 20px minmax(0, 1fr);
+    gap: 0 12px;
+  }
+
+  .case-rows .rowhead [role='columnheader'] {
+    display: none;
+  }
+
+  .case-rows .pick-all {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--ink-muted);
+  }
+
+  /* **행을 넷 다 적는다** — `1 / -1` 은 명시한 행의 끝까지라 빠지면 거터가 위 줄만 덮는다 (LEARNINGS 2026-09-19) */
+  .row.pickable {
+    grid-template-columns: 4px 20px minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    gap: 0 12px;
+  }
+
+  .row.pickable .gutter,
+  .row.pickable .pick {
+    grid-row: 1 / -1;
+  }
+
+  /* 체크박스는 번호 줄 높이에 둔다 — 쌓인 줄 한가운데면 옆 입력 칸에 딸린 것으로 읽힌다(누르는 칸은 그대로 줄 높이 전체) */
+  .row.pickable .pick {
+    align-items: flex-start;
+    padding-top: 13px;
+  }
+
+  .row.pickable .tcid {
+    grid-column: 3;
+    grid-row: 1;
+    padding: 12px 0 0;
+  }
+
+  .row.pickable .title {
+    grid-column: 3;
+    grid-row: 2;
+    padding: 2px 0 6px;
+  }
+
+  .row.pickable .params {
+    grid-column: 3;
+    grid-row: 3;
+    padding: 0 16px 6px 0;
+  }
+
+  .row.pickable .right {
+    grid-column: 3;
+    grid-row: 4;
+    padding: 0 16px 12px 0;
+    justify-content: flex-start;
   }
 }
 

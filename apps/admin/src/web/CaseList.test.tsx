@@ -106,6 +106,16 @@ describe('CaseList 집계 띠', () => {
   });
 });
 
+// 목록 폭으로 줄을 쌓는 규칙(styles.css `.case-rows`)은 케이스 목록 상자에만 걸린다 — 실행 기록 · 작성 목록은 안 바뀐다 (PR #159)
+describe('CaseList 스크롤 칸', () => {
+  it('줄이 든 스크롤 칸에 케이스 목록 표시가 있다', async () => {
+    await 그리기();
+    const 칸 = document.querySelector('.rows-scroll');
+    expect(칸?.classList.contains('case-rows')).toBe(true);
+    expect(칸?.querySelector('.row.pickable')).not.toBeNull();
+  });
+});
+
 // 창 794px 중 564px 을 위아래 UI 가 먼저 가져가 표에 206px(1.5줄)만 남았다 (2026-09-22 실측).
 // 스캔 줄 49px 과 필터 둘째 줄 66px 이 그 안에 있다
 describe('미확정 케이스 (도메인/카탈로그 §8.1)', () => {
