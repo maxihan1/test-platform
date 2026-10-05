@@ -102,6 +102,10 @@ describe('K14 — techniques 는 목록 안 낱말의 리터럴 배열', () => {
 });
 
 describe('케이스기법 — 케이스 파일 글에서 기법을 읽는다', () => {
+  it('defineCase 가 둘이면 첫 것의 기법을 읽는다', () => {
+    expect(케이스기법(`${케이스(`techniques: ['상태 전이'],`)}\ndefineCase({ tcId: 'DEMO-FN-002', techniques: ['동등 분할'] });\n`)).toEqual(['상태 전이']);
+  });
+
   it('리터럴 배열이면 목록 차례로 · 중복 없이 낱말을 준다', () => {
     expect(케이스기법(케이스(`techniques: ['결정 테이블', '경계값 분석', '결정 테이블'],`))).toEqual(['경계값 분석', '결정 테이블']);
   });
