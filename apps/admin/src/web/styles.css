@@ -125,9 +125,7 @@
 
    그 구간만 비율로 바꾼다. **`fr` 은 내용이 아니라 칸 폭으로 정해지므로** 표머리와 줄이
    여전히 같은 자리에 선다 — 원래 버그의 원인이던 `auto`(내용을 따라간다)와 다르다.
-   **케이스 목록(`--list-cols`)은 여기서 뺐다** (2026-10-05 · PR #159) — 비율로 줄이면 창 621~900px 에서
-   입력 칸 · 판정 · 버튼이 겹쳤고 겹치지 않는 폭에서도 입력 칸이 35~88px 로 쪼그라들었다. 대신 목록 폭이
-   고정 열 최소 합보다 좁으면 줄을 쌓는다(아래 `.case-rows`). 실행 기록 줄은 여전히 이 구간을 쓴다 */
+   지금은 실행 기록 줄(`--run-cols`)만 쓴다. 케이스 목록은 비율 대신 줄을 쌓는다(아래 `.case-rows` · DESIGN.md 「반응형」) */
 @media (max-width: 1164px) {
   :root {
     --run-cols: 4px 110px minmax(0, 1fr) minmax(0, 0.9fr);
@@ -1400,8 +1398,8 @@ select:focus {
 }
 
 @media (max-width: 620px) {
-  /* 줄이 2단으로 접히면 칸이 세로로 누워 표머리가 뜻을 잃는다 (SPEC §8.1).
-     케이스 목록은 §8 의 「좁은 화면에서 제대로 되는 둘」에 없다 */
+  /* 줄이 3단으로 접히면 칸이 세로로 누워 표머리가 뜻을 잃는다 (SPEC §8.1).
+     케이스 목록은 아래 `.case-rows` 쌓기 규칙이 「이 쪽 전체 선택」 줄을 되살린다 */
   .rowhead {
     display: none;
   }
@@ -1682,12 +1680,10 @@ select:focus {
   }
 }
 
-/* 케이스 목록이 좁으면 줄을 쌓는다 — 번호 → 케이스명 → 입력값 → 마지막 결과 · 버튼 (PR #159 시안 A, DESIGN.md 「반응형」).
-   **창이 아니라 목록 폭으로 건다.** 같은 창이라도 사이드바를 접으면 목록이 약 200px 넓어진다 — 창 폭으로 걸면
-   접어도 쌓인 채 남거나, 펴면 다시 겹친다(창 621~900px 에서 입력 칸 · 판정 · 버튼이 겹쳤다 — 2026-10-05 실측).
-   기준 866 은 고정 열 최소 합(`--list-cols` 의 px 합 786 + 칸 사이 16 × 5)이다. 그보다 좁은 표는 열을 비율로 줄여
-   입력 값이 잘리거나 겹친다 — `styles.test.ts` 가 둘이 같이 움직이는지 본다.
-   케이스 목록 상자(`.case-rows`)에만 건다. 실행 기록 · 테스트 작성 표머리(`.runhead`)는 그대로다 */
+/* 케이스 목록이 좁으면 줄을 쌓는다 — 번호 → 케이스명 → 입력값 → 마지막 결과 · 버튼 (PR #159 시안 A).
+   왜 창이 아니라 목록 폭인지 · 무엇을 잃는지는 DESIGN.md 「반응형」이 정본이다.
+   기준 866 은 고정 열 최소 합(`--list-cols` 의 px 합 + 칸 사이 16 × 5)이고 `styles.test.ts` 가 둘이 같이 움직이는지 본다.
+   케이스 목록 상자(`.case-rows`)에만 건다 — 실행 기록 · 테스트 작성 표머리(`.runhead`)는 그대로다 */
 .case-rows {
   container: caselist / inline-size;
 }
@@ -1700,10 +1696,14 @@ select:focus {
 @container caselist (max-width: 866px) {
   /* 칸 이름만 감추고 전체 선택 한 줄은 남긴다 — 통째로 감추면 1024px 창에서도 여러 건 고르기가 사라진다.
      창 620px 규칙의 `.rowhead { display: none }` 보다 앞서야 해서 상자 이름까지 붙인다 */
-  .case-rows .rowhead {
-    display: grid;
+  .case-rows .rowhead,
+  .row.pickable {
     grid-template-columns: 4px 20px minmax(0, 1fr);
     gap: 0 12px;
+  }
+
+  .case-rows .rowhead {
+    display: grid;
   }
 
   .case-rows .rowhead [role='columnheader'] {
@@ -1712,6 +1712,7 @@ select:focus {
 
   .case-rows .pick-all {
     display: block;
+    cursor: pointer;
     font-size: 12.5px;
     font-weight: 400;
     letter-spacing: 0;
@@ -1720,9 +1721,7 @@ select:focus {
 
   /* **행을 넷 다 적는다** — `1 / -1` 은 명시한 행의 끝까지라 빠지면 거터가 위 줄만 덮는다 (LEARNINGS 2026-09-19) */
   .row.pickable {
-    grid-template-columns: 4px 20px minmax(0, 1fr);
     grid-template-rows: auto auto auto auto;
-    gap: 0 12px;
   }
 
   .row.pickable .gutter,

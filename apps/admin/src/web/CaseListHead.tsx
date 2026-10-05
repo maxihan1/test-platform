@@ -1,5 +1,7 @@
 // 케이스 목록 표머리 — 칸 이름과 「이 쪽 전체 선택」. CaseListParts 가 300줄을 넘어 뗐다 (2026-10-05 · PR #159)
 
+import { useId } from 'react';
+
 import { use말 } from './i18n.js';
 
 /**
@@ -14,33 +16,34 @@ import { use말 } from './i18n.js';
  */
 export function 표머리({ 고름상태, on모두고르기 }: { 고름상태?: 'none' | 'some' | 'all'; on모두고르기?: () => void } = {}) {
   const t = use말();
-  const 고른다 = 고름상태 !== undefined && on모두고르기 !== undefined;
+  const id = useId();
   return (
     <div className="rowhead" role="row">
       <span aria-hidden="true" />
       {/* 이 쪽에 보이는 케이스를 한 번에 고르고 푼다. 「전체 실행」은 이미 모든 쪽이라 여기는 보이는 쪽만이다 (2026-09-30) */}
-      {!고른다 ? (
+      {고름상태 === undefined || on모두고르기 === undefined ? (
         <span aria-hidden="true" />
       ) : (
-        <label className="pick">
-          <input
-            type="checkbox"
-            aria-label={t('이 쪽 전체 선택')}
-            checked={고름상태 === 'all'}
-            ref={(el) => {
-              if (el !== null) el.indeterminate = 고름상태 === 'some';
-            }}
-            onChange={on모두고르기}
-          />
-        </label>
+        <>
+          <label className="pick">
+            <input
+              id={id}
+              type="checkbox"
+              aria-label={t('이 쪽 전체 선택')}
+              checked={고름상태 === 'all'}
+              ref={(el) => {
+                if (el !== null) el.indeterminate = 고름상태 === 'some';
+              }}
+              onChange={on모두고르기}
+            />
+          </label>
+          {/* 줄이 쌓였을 때만 보인다 — 칸 이름이 없으니 체크박스가 무엇을 고르는지 글로 적고, 라벨로 이어 글을 눌러도 고른다.
+              이름은 aria-label 이 먼저라 화면 읽기에서는 이 글을 뺀다 */}
+          <label className="pick-all" htmlFor={id} aria-hidden="true">
+            {t('이 쪽 전체 선택')}
+          </label>
+        </>
       )}
-      {/* 줄이 쌓였을 때만 보인다 — 칸 이름이 없으니 체크박스가 무엇을 고르는지 글로 적는다.
-          이름은 체크박스의 aria-label 하나라 화면 읽기에서는 뺀다 */}
-      {고른다 ? (
-        <span className="pick-all" aria-hidden="true">
-          {t('이 쪽 전체 선택')}
-        </span>
-      ) : null}
       {/* 두 언어가 같은 글자라 표를 안 탄다 */}
       <span role="columnheader">TC ID</span>
       <span role="columnheader">{t('케이스명')}</span>

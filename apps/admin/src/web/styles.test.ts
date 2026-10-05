@@ -474,10 +474,10 @@ describe('표머리와 줄이 같은 격자를 쓴다 (SPEC §8.1 · §8.7, 2026
     );
     // 케이스 목록은 비율로 줄이지 않고 목록 폭이 고정 열보다 좁으면 줄을 쌓는다 — 비율 열은 입력 칸을 88px 까지 줄였다 (PR #159)
     expect(좁은구간![2], '케이스 목록 열을 비율로 줄이면 입력 칸이 쪼그라든다 — 쌓기(`.case-rows`)가 맡는다').not.toMatch(/--list-cols/);
-    expect(css).toMatch(/@container caselist \(max-width: \d+px\)/);
   });
 
-  it('좁은 화면에서는 표머리를 감춘다 — 줄이 2단으로 접혀 칸이 세로로 눕는다', () => {
+  // 케이스 목록은 아래 「케이스 목록이 좁으면 줄을 쌓는다」가 전체 선택 줄을 되살린다 (PR #159)
+  it('창 620px 미만에서는 실행 기록 · 작성 목록 표머리를 감춘다 — 줄이 3단으로 접혀 칸이 세로로 눕는다', () => {
     const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     expect(좁은화면).toMatch(/\.rowhead\s*\{[^}]*display:\s*none/);
   });
@@ -654,6 +654,11 @@ describe('케이스 목록이 좁으면 줄을 쌓는다 (PR #159)', () => {
     expect(블록).toMatch(/\.case-rows \.rowhead \[role='columnheader'\]\s*\{[^}]*display:\s*none/);
     expect(블록).toMatch(/\.case-rows \.pick-all\s*\{[^}]*display:\s*block/);
     expect(규칙('.pick-all'), '넓은 표에서는 전체 선택 글을 감춘다').toMatch(/display:\s*none/);
+  });
+
+  it('판정 집계 글자는 판정마다 한 줄이다 — 한 줄로 이으면 60px 디바이스 칸을 넘어 옆 글자와 겹쳤다', () => {
+    expect(규칙('.sparktext b')).toMatch(/display:\s*block/);
+    expect(규칙('.sparktext'), '집계 묶음 전체를 한 줄로 묶으면 다시 겹친다').not.toMatch(/white-space:\s*nowrap/);
   });
 
   it('창 620px 규칙에는 케이스 줄 규칙이 남지 않는다 — 쌓기는 목록 폭 한 곳이 정한다', () => {

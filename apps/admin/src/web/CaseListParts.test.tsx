@@ -193,6 +193,14 @@ describe('표머리와 입력 칸 (SPEC §8.1)', () => {
     expect(screen.getAllByRole('checkbox', { name: '이 쪽 전체 선택' })).toHaveLength(1);
   });
 
+  it('「이 쪽 전체 선택」 글을 눌러도 고른다 — 라벨처럼 보이는 글이 안 눌리면 20px 네모만 노리게 된다', () => {
+    const on모두고르기 = vi.fn();
+    const { container } = render(<표머리 고름상태="none" on모두고르기={on모두고르기} />);
+
+    fireEvent.click(container.querySelector('.pick-all')!);
+    expect(on모두고르기).toHaveBeenCalledTimes(1);
+  });
+
   it('전체 선택이 없는 표머리에는 그 글도 없다', () => {
     const { container } = render(<표머리 />);
     expect(container.querySelector('.pick-all')).toBeNull();
