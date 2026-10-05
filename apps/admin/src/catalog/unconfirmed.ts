@@ -35,7 +35,8 @@ export function badTag(literal: ts.ObjectLiteralExpression, tag: 'unconfirmed' |
   return undefined;
 }
 
-// 케이스 파일의 defineCase 인자들 — 꼬리표 · 기법 읽기가 같이 쓴다. 인자 안으로는 안 들어간다
+// 꼬리표 · 기법 읽기가 한 걷기를 쓴다 — 따로 두면 한쪽만 고쳐져 둘이 다른 인자를 읽는다(#158 에 두 벌이었다).
+// 인자 안으로 안 들어가는 까닭: 케이스의 명세는 바깥 defineCase 호출이고, 인자 안의 호출은 그 값일 뿐이다
 export function defineCase인자들(text: string): ts.ObjectLiteralExpression[] {
   const sf = ts.createSourceFile('x.ts', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const found: ts.ObjectLiteralExpression[] = [];
