@@ -95,8 +95,8 @@ describe('읽은 수와 PR 의 바뀐 파일 수 대조', () => {
 
 describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
   const sha = 'm'.repeat(40);
-  const 된것 = (낸것: string) => ({ ok: true, 낸것, 까닭: '' });
-  const 실패 = (낸것: string, 까닭: string) => ({ ok: false, 낸것, 까닭 });
+  const 된것 = (낸것: string) => vi.fn(() => ({ ok: true, 낸것, 까닭: '' }));
+  const 실패 = (낸것: string, 까닭: string) => vi.fn(() => ({ ok: false, 낸것, 까닭 }));
   const 통과 = {
     메인: { sha } as { sha: string } | { 까닭: string },
     목록: 된것('tests/a/A-001.spec.ts\t\n'),
@@ -141,17 +141,28 @@ describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
     const 테스트만 = vi.fn(() => true);
     const 오류 = '{"message":"Sorry","status":"406"}\n';
     expect(병합직전막힘({ ...통과, 목록: 실패(오류, 'HTTP 406'), 테스트만 })).toBe('PR 의 바뀐 파일을 못 읽었다: HTTP 406');
-    expect(병합직전막힘({ ...통과, 목록: 실패(오류, 'HTTP 406'), 수: 실패('x', '못 읽음'), 테스트만 })).toBe(
+    const 수 = 실패('x', '못 읽음');
+    expect(병합직전막힘({ ...통과, 목록: 실패(오류, 'HTTP 406'), 수, 테스트만 })).toBe(
       'PR 의 바뀐 파일을 못 읽었다: HTTP 406',
     );
     expect(테스트만).not.toHaveBeenCalled();
   });
 
-  it('최신 main 을 못 받았으면 무엇보다 먼저 막는다', () => {
+  it('목록을 못 읽었으면 수를 묻지 않는다 — 동기 호출이 겹치면 생존 신호가 끊긴다', () => {
+    const 수 = 된것('1');
+    병합직전막힘({ ...통과, 목록: 실패('', 'HTTP 406'), 수, 테스트만: () => true });
+    expect(수).not.toHaveBeenCalled();
+  });
+
+  it('최신 main 을 못 받았으면 무엇보다 먼저 막고 목록 · 수를 묻지 않는다', () => {
     const 테스트만 = vi.fn(() => false);
-    expect(
-      병합직전막힘({ 메인: { 까닭: 'fetch 실패' }, 목록: 실패('', 'HTTP 406'), 수: 실패('2', '못 읽음'), 테스트만 }),
-    ).toBe('최신 main 을 못 받아 판정을 못 했다: fetch 실패');
+    const 목록 = 실패('', 'HTTP 406');
+    const 수 = 실패('2', '못 읽음');
+    expect(병합직전막힘({ 메인: { 까닭: 'fetch 실패' }, 목록, 수, 테스트만 })).toBe(
+      '최신 main 을 못 받아 판정을 못 했다: fetch 실패',
+    );
+    expect(목록).not.toHaveBeenCalled();
+    expect(수).not.toHaveBeenCalled();
     expect(테스트만).not.toHaveBeenCalled();
   });
 });
