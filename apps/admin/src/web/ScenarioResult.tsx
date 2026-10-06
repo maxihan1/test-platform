@@ -30,8 +30,11 @@ export function ScenarioResult({ runId, 상자안 = false }: { runId: number; �
 
   const 판정 = 접은판정(data.parts, data.status);
   const 미확정 = 미확정있나(data.parts);
+  // 도는 중에도 미확정 단계가 이미 있으면 알린다 — 판정 칩만 끝난 뒤에 붙는다 (§8.11)
   const 칩 =
-    판정 === null ? null : 판정 === 'PASS' && 미확정 ? (
+    판정 === null ? (
+      미확정 ? <span className="case-tag">{t('미확정 포함')}</span> : null
+    ) : 판정 === 'PASS' && 미확정 ? (
       <span className="case-tag">{t('통과 · 미확정 포함')}</span>
     ) : (
       <>

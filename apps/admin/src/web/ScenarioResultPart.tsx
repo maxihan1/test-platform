@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 
 import { use말, use언어 } from './i18n.js';
-import { 한줄로 } from './mask.js';
+import { 가린값들, 한줄로 } from './mask.js';
 import { scenarioApi, type ScenarioRunPart } from './scenarioApi.js';
 import { 값연결글, 건너뜀번호 } from './scenarioResultView.js';
 import { 카드요약, 종류글 } from './scenarioView.js';
@@ -84,7 +84,8 @@ export function ScenarioResultPart({ part, parts, runId }: { part: ScenarioRunPa
       {케이스?.links === undefined || 케이스.links.length === 0 ? null : (
         <세부 라벨={t('값 연결')}>
           {케이스.links.map((link, i) => {
-            const { 종류, 글 } = 값연결글(link, part.bound, 언어);
+            // 서버가 이미 가렸어도 한 번 더 — 서버 가리기에 빈틈이 생겨도 화면에 원문이 안 뜨게 (§7)
+            const { 종류, 글 } = 값연결글(link, 가린값들(part.bound, part.paramSchema), 언어);
             return (
               <div key={i}>
                 <span className="tech-tag">{종류}</span> <span>{글}</span>
