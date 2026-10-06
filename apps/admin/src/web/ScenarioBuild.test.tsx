@@ -189,6 +189,22 @@ describe('ScenarioBuild 기존 시나리오 불러오기', () => {
     expect(screen.queryByLabelText('시나리오 이름')).toBeNull();
   });
 
+  it('StrictMode 로 그려도 재료 하나가 500 이면 이름 칸 대신 오류 문장이 뜬다', async () => {
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세());
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => {
+      if (tcId === 'ZSB-002') throw new ApiError(500, 'INTERNAL', '서버가 아픕니다');
+      return 재료(tcId);
+    });
+    render(
+      <StrictMode>
+        <ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />
+      </StrictMode>,
+    );
+
+    expect(await screen.findByText('서버가 아픕니다')).toBeTruthy();
+    expect(screen.queryByLabelText('시나리오 이름')).toBeNull();
+  });
+
   it('재료더하기가 404 면 오류 줄 없이 재료 없음으로 둔다', async () => {
     심기.재료 = ['ZSB-404'];
     vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세());
@@ -317,6 +333,21 @@ describe('ScenarioBuild 저장', () => {
       baseVersion: 3,
     });
     expect(screen.queryByText('저장 안 된 변경 있음')).toBeNull();
+  });
+
+  it('저장 응답을 기다리는 사이 이름을 바꾸면 바꾼 글자가 남는다', async () => {
+    await 기존그리기();
+    let 끝내기: (값: { version: number }) => void = () => {};
+    vi.spyOn(scenarioApi, 'update').mockReturnValue(new Promise((끝) => (끝내기 = 끝)));
+    바꾸기(' 고친 이름 ');
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    바꾸기('저장 중에 친 글자');
+    await act(async () => {
+      끝내기({ version: 4 });
+    });
+
+    await waitFor(() => expect(screen.getByText('저장했습니다 · v4')).toBeTruthy());
+    expect(이름칸().value).toBe('저장 중에 친 글자');
   });
 
   it('STALE_VERSION 은 다른 사람이 먼저 저장했다는 문장이 뜬다', async () => {
