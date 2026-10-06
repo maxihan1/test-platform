@@ -50,28 +50,31 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
   const [저장본, set저장본] = useState(() => 찍는다('', 'desktop', []));
   const [저장오류, set저장오류] = useState<string | null>(null);
   const [저장하는중, set저장하는중] = useState(false);
-  // 같은 재료를 두 번 부르지 않으려고 이미 부른 번호를 기억한다
-  const 부른것 = useRef(new Set<string>());
+  // 같은 재료를 두 번 부르지 않으려고 부른 요청 자체를 기억한다. 번호만 기억하면 StrictMode 에서 둘째 읽기가
+  // 첫 읽기의 요청 결과를 못 받아 오류가 버려진다 — 같은 요청을 함께 기다려야 성공도 오류도 같이 받는다
+  const 부른것 = useRef(new Map<string, Promise<CasePartMaterial | null>>());
   // 언어를 바꿔도 불러온 초안을 다시 덮지 않으려고 효과의 의존에서 뺀다
   const 언어쪽 = useRef(언어);
   언어쪽.current = 언어;
 
   // 상세를 받아 초안 · 저장본 · 버전 · 점검 · 살아있나를 전부 갈아 끼운다. 재료는 새로 생긴 tcId 만 더 부른다.
   // 처음 불러오기와 되돌리기 뒤 다시 불러오기가 같은 길을 쓴다
+  const 재료받기 = useCallback((tcId: string): Promise<CasePartMaterial | null> => {
+    const 있던 = 부른것.current.get(tcId);
+    if (있던 !== undefined) return 있던;
+    const 요청 = 재료읽기(tcId);
+    부른것.current.set(tcId, 요청);
+    // 실패한 번호는 지워 두어야 같은 케이스를 나중에 다시 불러 본다
+    요청.catch(() => {
+      if (부른것.current.get(tcId) === 요청) 부른것.current.delete(tcId);
+    });
+    return 요청;
+  }, []);
+
   const 전부읽기 = useCallback(async (번호: number, 취소됨: () => boolean): Promise<number | null> => {
     const 상세 = await scenarioApi.detail(번호);
-    const 새번호들 = 케이스번호들(상세.parts).filter((n) => !부른것.current.has(n));
-    새번호들.forEach((n) => 부른것.current.add(n));
-    let 읽음: (readonly [string, CasePartMaterial | null])[];
-    try {
-      읽음 = await Promise.all(새번호들.map(async (n) => [n, await 재료읽기(n)] as const));
-    } catch (err) {
-      // 지워 두어야 같은 케이스를 나중에 재료더하기가 다시 불러 본다
-      새번호들.forEach((n) => 부른것.current.delete(n));
-      throw err;
-    }
-    // 재료는 케이스마다 같은 값이라 취소돼도 담는다. 버리면 이미 부른 번호라 다음 읽기가 다시 부르지 않아
-    // 패널이 「불러오는 중」에 갇힌다 — StrictMode 가 처음 읽기를 늘 취소한다 (2026-10-07 실측)
+    const 읽음 = await Promise.all(케이스번호들(상세.parts).map(async (n) => [n, await 재료받기(n)] as const));
+    // 재료는 케이스마다 같은 값이라 취소돼도 담는다 — StrictMode 가 처음 읽기를 늘 취소한다 (2026-10-07 실측)
     set재료((앞) => new Map([...앞, ...읽음]));
     if (취소됨()) return null;
     set서비스(상세.service);
@@ -86,7 +89,7 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
     set판((n) => n + 1);
     set불러옴(true);
     return 상세.parts.length;
-  }, []);
+  }, [재료받기]);
 
   useEffect(() => {
     if (id === null) return;
@@ -126,16 +129,11 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
 
   const 재료더하기 = useCallback((tcId: string) => {
     if (부른것.current.has(tcId)) return;
-    부른것.current.add(tcId);
-    재료읽기(tcId).then(
+    재료받기(tcId).then(
       (값) => set재료((앞) => new Map(앞).set(tcId, 값)),
-      (err: unknown) => {
-        // 지워 두어야 같은 케이스를 다시 고를 때 다시 불러 본다
-        부른것.current.delete(tcId);
-        set저장오류(message(err, 언어쪽.current));
-      },
+      (err: unknown) => set저장오류(message(err, 언어쪽.current)),
     );
-  }, []);
+  }, [재료받기]);
 
   const 바뀜 = 찍는다(이름, 디바이스, 단계들) !== 저장본;
 
@@ -156,6 +154,7 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
     set저장오류(null);
     set저장하는중(true);
     const 보낼이름 = 이름.trim();
+    const 보낼때이름 = 이름;
     try {
       let 결과: { id: number; version: number };
       if (id === null) {
@@ -171,7 +170,8 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
         결과 = { id, version };
       }
       // 서버가 공백을 다듬어 저장하니 초안도 맞춘다 — 안 맞추면 저장 직후에도 바뀐 것으로 읽힌다
-      set이름(보낼이름);
+      // 저장 응답을 기다리는 사이 친 글자는 덮지 않는다
+      set이름((앞) => (앞 === 보낼때이름 ? 보낼이름 : 앞));
       set저장본(찍는다(보낼이름, 디바이스, 단계들));
       set버전(결과.version);
       if (id !== null) await 다시읽기();
