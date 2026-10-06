@@ -14,8 +14,10 @@ import { 판정을만든다 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
 import { ScenarioLinks } from './ScenarioLinks.js';
 import { ScenarioOtherPanel } from './ScenarioOtherPanel.js';
+import { ScenarioPalette } from './ScenarioPalette.js';
 import { ScenarioPartPanel } from './ScenarioPartPanel.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
+import { 케이스바꾸기 } from './scenarioView.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
 
 export type { 조립탭 };
@@ -37,7 +39,7 @@ export function ScenarioBuild({
   // 새 시나리오는 단계를 넣는 일이 먼저라 추가 탭부터 연다
   const [탭, set탭] = useState<조립탭>(id === null ? 'add' : 'settings');
   const [고른번호, set고른번호] = useState<number | null>(null);
-  // 케이스 바꾸기를 눌러 추가 탭으로 넘어간 단계 번호. 추가 탭의 바꾸기 모드가 읽는다
+  // 케이스 바꾸기를 눌러 추가 탭으로 넘어간 단계 번호. 추가 탭의 바꾸기 모드가 읽는다. 탭이나 카드를 옮기면 풀려 엉뚱한 단계가 바뀌지 않는다
   const [바꿀번호, set바꿀번호] = useState<number | null>(null);
   const 처음고름 = useRef(false);
   const [떠날곳, set떠날곳] = useState<string | null>(null);
@@ -79,6 +81,31 @@ export function ScenarioBuild({
       return;
     }
     set저장글(t('저장했습니다 · v{버전}', { 버전: 결과.version }));
+  }
+
+  function 탭옮김(다음: 조립탭) {
+    set바꿀번호(null);
+    set탭(다음);
+  }
+  function 카드고름(번호: number | null) {
+    set바꿀번호(null);
+    set고른번호(번호);
+  }
+  function 끝에더하기(part: ScenarioPart) {
+    초안.단계들바꾸기([...초안.단계들, part]);
+    set고른번호(초안.단계들.length + 1);
+    set탭('settings');
+  }
+  function 케이스골랐다(tcId: string) {
+    초안.재료더하기(tcId);
+    if (바꿀번호 === null) {
+      끝에더하기({ kind: 'case', tcId, params: {}, expected: {}, skipSteps: [] });
+      return;
+    }
+    초안.단계들바꾸기(초안.단계들.map((p, i) => (i === 바꿀번호 - 1 && p.kind === 'case' ? 케이스바꾸기(p, tcId) : p)));
+    set고른번호(바꿀번호);
+    set바꿀번호(null);
+    set탭('settings');
   }
 
   const 고른단계 = 고른번호 === null ? undefined : 초안.단계들[고른번호 - 1];
@@ -130,7 +157,7 @@ export function ScenarioBuild({
         ))}
       </select>
       {!쓰나 || id === null ? null : (
-        <button type="button" className="btn ghost" onClick={() => set탭('history')}>
+        <button type="button" className="btn ghost" onClick={() => 탭옮김('history')}>
           {t('변경 이력')}
         </button>
       )}
@@ -161,8 +188,7 @@ export function ScenarioBuild({
           <p className="scn-note">{t('이 시나리오는 {서비스} 서비스 것입니다', { 서비스: 서비스이름 })}</p>
         )}
 
-        {/* 바꾸기 모드가 아직 없어 바꿀 번호는 화면 속성으로만 읽힌다 */}
-        <div className="scn-build" data-tab={탭} data-swap={바꿀번호 ?? undefined}>
+        <div className="scn-build" data-tab={탭}>
           <section className="scn-build-list" aria-label={t('시나리오 단계')}>
             <ScenarioCards
               단계들={초안.단계들}
@@ -171,13 +197,22 @@ export function ScenarioBuild({
               디바이스={초안.디바이스}
               쓰나={쓰나}
               고른번호={고른번호}
-              on고르기={set고른번호}
-              on탭={set탭}
+              on고르기={카드고름}
+              on탭={탭옮김}
             />
           </section>
           <section className="scn-build-panel" aria-label={t('단계 추가 · 설정')}>
-            <ScenarioTabs 탭={탭} on탭={set탭} 고른번호={고른번호} 쓰나={쓰나} 이력있나={id !== null}>
-              {탭 !== 'settings' || 고른번호 === null || 고른단계 === undefined ? null : 고른단계.kind === 'case' ? (
+            <ScenarioTabs 탭={탭} on탭={탭옮김} 고른번호={고른번호} 쓰나={쓰나} 이력있나={id !== null}>
+              {탭 === 'add' && 쓰나 ? (
+                <ScenarioPalette
+                  서비스={초안.서비스}
+                  디바이스={초안.디바이스}
+                  바꿀번호={바꿀번호}
+                  on케이스={케이스골랐다}
+                  on다른단계={끝에더하기}
+                  on바꾸기취소={() => set바꿀번호(null)}
+                />
+              ) : 탭 !== 'settings' || 고른번호 === null || 고른단계 === undefined ? null : 고른단계.kind === 'case' ? (
                 <ScenarioPartPanel
                   번호={고른번호}
                   단계={고른단계}
