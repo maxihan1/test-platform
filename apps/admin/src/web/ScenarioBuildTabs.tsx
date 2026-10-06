@@ -11,22 +11,7 @@ import type { 조립탭 } from './ScenarioTabs.js';
 import { ScenarioVersions } from './ScenarioVersions.js';
 import type { useScenarioDraft } from './useScenarioDraft.js';
 
-export function ScenarioBuildTabs({
-  id,
-  탭,
-  쓰나,
-  초안,
-  고른번호,
-  바꿀번호,
-  on케이스,
-  on다른단계,
-  on바꾸기취소,
-  on케이스바꾸기,
-  on바꿈,
-  on되돌림,
-  on칸오류,
-  시험,
-}: {
+interface Props {
   id: number | null;
   탭: 조립탭;
   쓰나: boolean;
@@ -41,19 +26,42 @@ export function ScenarioBuildTabs({
   on되돌림: () => void;
   on칸오류: (번호: number, 있나: boolean) => void;
   시험: ReactNode;
-}) {
-  if (탭 === 'add' && 쓰나) {
-    return (
-      <ScenarioPalette
-        서비스={초안.서비스}
-        디바이스={초안.디바이스}
-        바꿀번호={바꿀번호}
-        on케이스={on케이스}
-        on다른단계={on다른단계}
-        on바꾸기취소={on바꾸기취소}
-      />
-    );
-  }
+}
+
+export function ScenarioBuildTabs(props: Props) {
+  const { 탭, 쓰나, 초안, 바꿀번호, on케이스, on다른단계, on바꾸기취소 } = props;
+  // 팔레트는 늘 그려 두고 가리기만 한다. 내리면 단계를 넣을 때마다 케이스 목록을 처음부터 다시 받고 찾기 글자가 지워진다
+  return (
+    <>
+      {!쓰나 ? null : (
+        <div hidden={탭 !== 'add'}>
+          <ScenarioPalette
+            서비스={초안.서비스}
+            디바이스={초안.디바이스}
+            바꿀번호={바꿀번호}
+            on케이스={on케이스}
+            on다른단계={on다른단계}
+            on바꾸기취소={on바꾸기취소}
+          />
+        </div>
+      )}
+      {탭 === 'add' ? null : <TabBody {...props} />}
+    </>
+  );
+}
+
+function TabBody({
+  id,
+  탭,
+  쓰나,
+  초안,
+  고른번호,
+  on케이스바꾸기,
+  on바꿈,
+  on되돌림,
+  on칸오류,
+  시험,
+}: Props) {
   if (탭 === 'trial' && 쓰나) return <>{시험}</>;
   if (탭 === 'history' && id !== null) {
     return (
