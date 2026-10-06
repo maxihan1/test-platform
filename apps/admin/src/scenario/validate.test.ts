@@ -1,15 +1,15 @@
 // 조립 검사 — 400 으로 거절할 조립을 가린다 (SPEC 도메인/시나리오 §7 「400 으로 거절하는 조립」)
 
-import type { ScenarioPart } from '@platform/kit';
+import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
 import { type 카탈로그, 부품들모양, 시나리오제한시간, 조립검사 } from './validate.js';
 
 const 카탈로그재료: 카탈로그 = new Map([
-  ['SHOP-001', { platforms: ['desktop'], isActive: true, skippable: ['상품을 담는다'] }],
-  ['SHOP-002', { platforms: ['desktop', 'mobile'], isActive: true, skippable: [] }],
-  ['SHOP-003', { platforms: ['desktop'], isActive: false, skippable: [] }],
-  ['OTHER-001', { platforms: ['desktop'], isActive: true, skippable: [] }],
+  ['SHOP-001', { platforms: ['desktop'], isActive: true, skippable: ['상품을 담는다'], params: [] }],
+  ['SHOP-002', { platforms: ['desktop', 'mobile'], isActive: true, skippable: [], params: ['todoId', 'title'] }],
+  ['SHOP-003', { platforms: ['desktop'], isActive: false, skippable: [], params: [] }],
+  ['OTHER-001', { platforms: ['desktop'], isActive: true, skippable: [], params: [] }],
 ]);
 
 const 케이스 = (tcId: string, skipSteps: string[] = []): ScenarioPart => ({
@@ -198,5 +198,83 @@ describe('부품 모양', () => {
       const 부품 = { ...케이스('SHOP-002'), links: [이어주기] };
       expect(부품들모양.safeParse([부품]).success, JSON.stringify(이어주기)).toBe(false);
     }
+  });
+});
+
+describe('이어 주기 조립 (도메인/시나리오 §3.7 결정 12 · §7)', () => {
+  const 값 = (fromSeq: number) => ({ fromSeq, method: 'GET', urlPattern: '**/api/todos', jsonPath: 'data.id' }) as const;
+  const 넷 = (fromSeq: number): ScenarioLink[] => [
+    { kind: 'reuse', method: 'GET', urlPattern: '**/api/todos', fromSeq },
+    { kind: 'block', method: 'DELETE', urlPattern: '**/api/todos/*' },
+    { kind: 'rewrite', method: 'POST', urlPattern: '**/api/todos', to: { method: 'PUT', path: '/api/todos/{}', value: 값(fromSeq) } },
+    { kind: 'bind', param: 'todoId', value: 값(fromSeq) },
+  ];
+  const 이음 = (tcId: string, links: ScenarioLink[]): ScenarioPart => ({ kind: 'case', tcId, params: {}, expected: {}, skipSteps: [], links });
+  const 뒤에 = (tcId: string, links: ScenarioLink[]): ScenarioPart[] => [케이스('SHOP-001'), 이음(tcId, links)];
+
+  it('넘겨받기를 켠 부품이 앞 케이스를 가리키는 이어 주기 넷은 통과한다 — 꽂을 칸에 조립 값이 있어도 된다', () => {
+    const parts: ScenarioPart[] = [
+      { kind: 'api', method: 'GET', path: '/api/x', expectStatus: 200 },
+      케이스('SHOP-001'),
+      { kind: 'case', tcId: 'SHOP-002', params: { todoId: 'x' }, expected: {}, skipSteps: [], carryOver: true, links: 넷(2) },
+      이음('SHOP-002', 넷(3)),
+    ];
+    expect(검사(parts)).toEqual([]);
+  });
+
+  it('넘겨받기를 끈 부품에 건너뛰기나 이어 주기가 있으면 거절한다', () => {
+    const 끈 = (skipSteps: string[], links: ScenarioLink[]): ScenarioPart[] => [
+      케이스('SHOP-001'),
+      { kind: 'case', tcId: 'SHOP-001', params: {}, expected: {}, skipSteps, carryOver: false, links },
+    ];
+    const 사유 = ['2번 부품: 넘겨받기를 끈 부품에는 건너뛰기와 이어 주기를 걸 수 없다'];
+    const 막기: ScenarioLink = { kind: 'block', method: 'DELETE', urlPattern: '**/a' };
+    expect(검사(끈(['상품을 담는다'], []))).toEqual(사유);
+    expect(검사(끈([], [막기]))).toEqual(사유);
+    expect(검사(끈(['상품을 담는다'], [막기]))).toEqual(사유);
+    expect(검사(끈([], []))).toEqual([]);
+  });
+
+  it('이어 주기가 가리키는 부품이 자기보다 앞의 케이스 부품이 아니면 거절한다 — 돌려주기 · 바꿔 보내기 · 꽂기 셋 다', () => {
+    const 앞뒤 = (link: ScenarioLink): ScenarioPart[] => [
+      { kind: 'api', method: 'GET', path: '/api/x', expectStatus: 200 },
+      { kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body: '' },
+      케이스('SHOP-001'),
+      이음('SHOP-002', [link]),
+      케이스('SHOP-001'),
+    ];
+    const 셋 = (n: number) => 넷(n).filter((l) => l.kind !== 'block');
+    for (const link of 셋(3)) expect(검사(앞뒤(link)), JSON.stringify(link)).toEqual([]);
+    for (const n of [1, 2, 4, 5, 99]) {
+      for (const link of 셋(n)) {
+        expect(검사(앞뒤(link)), JSON.stringify(link)).toEqual([
+          `4번 부품: 이어 주기가 가리키는 ${n}번 부품은 자기보다 앞의 케이스 부품이 아니다`,
+        ]);
+      }
+    }
+  });
+
+  it('값 꽂기 칸이 그 케이스 입력값에 없거나 한 칸에 꽂기가 둘이면 거절한다', () => {
+    const 꽂기 = (param: string): ScenarioLink => ({ kind: 'bind', param, value: 값(1) });
+    expect(검사(뒤에('SHOP-002', [꽂기('userId')]))).toEqual(['2번 부품: 「userId」 는 SHOP-002 의 입력값 칸이 아니다']);
+    expect(검사(뒤에('SHOP-001', [꽂기('todoId')]))).toEqual(['2번 부품: 「todoId」 는 SHOP-001 의 입력값 칸이 아니다']);
+    expect(검사(뒤에('SHOP-002', [꽂기('todoId'), 꽂기('todoId'), 꽂기('todoId')]))).toEqual([
+      '2번 부품: 「todoId」 칸에 값 꽂기가 둘 이상이다',
+    ]);
+    expect(검사(뒤에('SHOP-002', [꽂기('todoId'), 꽂기('title')]))).toEqual([]);
+  });
+
+  it('바꿔 보내기 고치기 주소가 API 경로 규칙을 어기거나 {} 가 꼭 하나가 아니면 거절한다', () => {
+    const 바꿔 = (path: string) =>
+      뒤에('SHOP-002', [{ kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PATCH', path, value: 값(1) } }]);
+    for (const path of ['api/{}', 'https://evil.test/{}', '//evil.test/{}', '/\\evil.test/{}', '/\t/{}', '/a/{}\n', '/a/{}\x7f']) {
+      expect(검사(바꿔(path)), JSON.stringify(path)).toEqual([
+        '2번 부품: 바꿔 보내기 경로는 / 로 시작하고 // 로 시작하지 않으며 \\ 와 제어문자가 없어야 한다',
+      ]);
+    }
+    for (const path of ['/a', '/a/{}/{}']) {
+      expect(검사(바꿔(path)), path).toEqual(['2번 부품: 바꿔 보내기 경로에 {} 자리가 꼭 하나 있어야 한다']);
+    }
+    expect(검사(바꿔('/api/todos/{}?q=1'))).toEqual([]);
   });
 });
