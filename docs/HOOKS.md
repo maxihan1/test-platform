@@ -204,6 +204,9 @@ Phase 0가 끝나고 게이트 G1을 통과한 뒤부터 예외 없이 띄운다
 
 **무엇으로 판정하나** — `.claude/scripts/cases-only.mjs` 한 곳이다. 훅과 CI 는 `lane.mjs` 를 거쳐 이것을 부르고,
 작성 에이전트는 이 파일 하나를 복사해 **병합 직전 판정**에 쓴다. **그래서 이 파일은 다른 파일을 import 하지 않는다.**
+병합 직전의 바뀐 파일 목록은 `gh api --paginate repos/<저장소>/pulls/<번호>/files?per_page=100` 으로 받아 **이름 바꾼 파일의 옛 경로까지** 판정에 넣는다(올리기 전 판정의 `--no-renames` 와 같다).
+읽은 수가 PR 의 바뀐 파일 수와 다르거나 3000 이상이면 병합하지 않는다 — 그 API 는 3000개까지만 준다(`scripts/authoring-merge-files.ts`).
+`gh pr diff --name-only` 는 파일 300개가 넘으면 GitHub 이 HTTP 406 으로 거절해서 바꿨다 (2026-10-07 #144 · PR #167).
 
 - 가벼운 길 — 바뀐 파일(지운 것 포함)이 **전부** 케이스 `tests/<폴더>/<번호>.spec.ts`(번호 세 꼴 `<접두사>-NNN` · `-UI-NNN` · `-FN-NNN`) ·
   Page Object `tests/<폴더>/pages/<이름>.page.ts` · `tests/<폴더>/components/<이름>.component.ts`(이름 `^[a-z][a-z0-9-]{0,40}$`) 이거나 `docs/cases/*.md` · 요구 지문 파일 `docs/cases/<접두사>.fingerprint.json`(도메인/작성 §3.6 「★ 원장」 「요구 지문」) (2026-10-02 PR #129 · 지문 파일은 2026-10-04 #155 — 꼴의 정본은 `cases-only.mjs` 상수).
