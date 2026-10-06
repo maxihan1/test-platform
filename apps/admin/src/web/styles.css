@@ -3475,11 +3475,46 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 }
 
 /* E2E 시나리오 조립 (도메인/시나리오 §8.11). 왼쪽은 단계 카드, 오른쪽은 탭 한 칸. 좁은 창 규칙은 따로 둔다 */
+/* 조립 머리 — 좁은 폭에서 행동 묶음이 제목 칸을 짜부라뜨리지 않게 머리가 줄을 바꾼다.
+   제목 줄(번호 · 버전)은 글자 단위로 쪼개지지 않고 이름 칸은 최소 폭을 지킨다 (2026-10-07 화면 QA) */
+.scn-head {
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.scn-head .head-title {
+  flex: 1 1 360px;
+}
+
+.scn-head h1,
+.scn-head .head-meta > span {
+  white-space: nowrap;
+}
+
+.scn-head .head-acts {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .scn-name-input {
-  flex: 1 1 220px;
-  min-width: 0;
+  flex: 1 1 240px;
+  min-width: min(240px, 100%);
   color: var(--ink);
   font-weight: 600;
+}
+
+/* 620px 아래에서는 머리가 세로로 쌓여 flex-basis 가 높이가 된다 */
+@media (max-width: 620px) {
+  .scn-head {
+    align-items: stretch;
+  }
+
+  .scn-head .head-title,
+  .scn-head .head-acts {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+  }
 }
 
 .scn-note {

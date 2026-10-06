@@ -205,7 +205,7 @@ export function ScenarioBuild({
       <div className="scn-back">
         <a href="#/scenarios">{t('← 목록')}</a>
       </div>
-      <Head 제목={id === null ? t('새 시나리오') : `SC-${id}`} 부제={부제} 행동={행동} />
+      <Head 클래스="scn-head" 제목={id === null ? t('새 시나리오') : `SC-${id}`} 부제={부제} 행동={행동} />
 
       <div className="screen scn-screen">
         {상태글 === null ? null : (

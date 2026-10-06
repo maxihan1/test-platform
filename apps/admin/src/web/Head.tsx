@@ -11,15 +11,18 @@ export function Head({
   제목,
   부제,
   행동,
+  클래스,
 }: {
   제목: string;
   /** 이 화면이 지금 무엇을 보여주고 있는지. 없으면 줄 자체를 안 만든다 */
   부제?: ReactNode;
   /** 이 화면에서 가장 흔한 다음 행동. 없으면 자리를 안 만든다 */
   행동?: ReactNode;
+  /** 화면이 머리 배치를 따로 다듬어야 할 때 붙이는 클래스 */
+  클래스?: string;
 }) {
   return (
-    <header className="head">
+    <header className={클래스 === undefined ? 'head' : `head ${클래스}`}>
       <div className="head-title">
         <h1>{제목}</h1>
         {부제 === undefined ? null : <div className="head-meta">{부제}</div>}
