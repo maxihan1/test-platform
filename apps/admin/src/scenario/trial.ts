@@ -3,17 +3,19 @@
 import { lstat, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Platform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
+import type { Platform, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { findService } from '../catalog/store.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { callScenarioRunner } from '../execution/runner.js';
 import { artifactsDir } from '../execution/routes.js';
-import { 비밀글자들, 시나리오시험 } from '../execution/trial.js';
+import { 가린다, 긴것부터, 비밀글자들, 시나리오시험 } from '../execution/trial.js';
+import { 가린값들 } from '../web/mask.js';
 
-import { 케이스재료 } from './parts.js';
-import { 시나리오제한시간, 조립검사 } from './validate.js';
+import { type 케이스부품재료, 케이스재료 } from './parts.js';
+import { 부품채우기 } from './runStore.js';
+import { 시나리오제한시간, 제한시간크기사유, 조립검사 } from './validate.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -88,16 +90,21 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
     throw new 시험시작오류('ENV_NOT_FOUND', `${본문.service} 서비스에 ${본문.env} 대상 서버가 없다`);
   }
 
-  const 파일 = await pool.query<{ tc_id: string; file_path: string }>(
-    'SELECT tc_id, file_path FROM test_case WHERE tc_id = ANY($1::text[])',
+  const 행 = await pool.query<{ tc_id: string; file_path: string; param_schema: unknown; expected_schema: unknown }>(
+    'SELECT tc_id, file_path, param_schema, expected_schema FROM test_case WHERE tc_id = ANY($1::text[])',
     [번호들],
   );
-  const 경로 = new Map(파일.rows.map((r) => [r.tc_id, r.file_path]));
-  const parts: ScenarioExecuteRequest['parts'] = 본문.parts.map((p) =>
-    p.kind === 'case' ? { ...p, filePath: 경로.get(p.tcId) } : p,
+  const 케이스들 = new Map(행.rows.map((r) => [r.tc_id, r]));
+  // 진짜 실행과 같은 채우기다 — 조립에서 비운 비밀번호도 저장값으로 러너에 간다. 채우면 커지므로 다시 잰다 (§7)
+  const 채운부품 = await 부품채우기(pool, 본문.parts, 케이스들);
+  const 크기사유 = 제한시간크기사유(채운부품);
+  if (크기사유.length > 0) throw new 시험시작오류('INVALID_REQUEST', `저장값을 채운 뒤 ${크기사유.join(' · ')}`);
+  const parts: ScenarioExecuteRequest['parts'] = 채운부품.map((p) =>
+    p.kind === 'case' ? { ...p, filePath: 케이스들.get(p.tcId)?.file_path } : p,
   );
 
-  const 비밀 = 본문.parts.flatMap((p) => {
+  // 조립 본문이 아니라 채운 값으로 모은다 — 저장값에서 온 비밀번호는 본문에 없다
+  const 비밀 = 채운부품.flatMap((p) => {
     if (p.kind !== 'case') return [];
     const 재료 = 부품재료.get(p.tcId);
     return 재료 === undefined
@@ -123,7 +130,7 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
           timeoutMs: 시나리오제한시간(본문.parts),
         });
         console.info(`[scenario-trial] 끝 ${id} · ${사람.username} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
-        return 응답;
+        return 꽂은값가리기(응답, 본문.parts, 부품재료, 비밀);
       }),
     비밀,
   );
@@ -133,4 +140,29 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
     console.error('[scenario-trial] 옛 시험 사진 폴더를 치우지 못했다', err);
   });
   return trialId;
+}
+
+/**
+ * 값 꽂기로 넣은 값(bound)은 응답에서야 안다 — 보관소에 미리 줄 비밀 목록에 못 넣는다.
+ * 키로 먼저 가린다. 글자 바꾸기만으로는 숫자 비밀(pin: 1234)이 bound 에 남는다
+ */
+function 꽂은값가리기(
+  응답: ScenarioExecuteResponse,
+  조립: ScenarioPart[],
+  재료: Map<string, 케이스부품재료>,
+  비밀: string[],
+): ScenarioExecuteResponse {
+  const 꽂은비밀: string[] = [];
+  const 부품들 = 응답.parts.map((r) => {
+    if (r.bound === undefined) return r;
+    const p = 조립[r.seq - 1];
+    // 명세를 못 찾으면 가린값들이 이름으로 가린다 — 모를 때는 가리는 쪽으로 실패한다
+    const bound = 가린값들(r.bound, p?.kind === 'case' ? 재료.get(p.tcId)?.paramSchema : undefined);
+    for (const [k, v] of Object.entries(r.bound)) {
+      if (bound[k] !== v && (typeof v === 'string' || typeof v === 'number') && v !== '') 꽂은비밀.push(String(v));
+    }
+    return { ...r, bound };
+  });
+  // 채운 비밀과 한 줄로 세워야 짧은 비밀이 긴 비밀을 먼저 쪼개지 않는다
+  return 가린다({ ...응답, parts: 부품들 }, 긴것부터([...비밀, ...꽂은비밀])) as ScenarioExecuteResponse;
 }

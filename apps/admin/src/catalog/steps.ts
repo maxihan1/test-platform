@@ -1,4 +1,4 @@
-// 케이스 소스에서 절차 목록 · 건너뛸 수 있는 「만들기」 절차 · request 사용을 가려낸다 (도메인/시나리오 §3.7 결정 4·6).
+// 케이스 소스에서 절차 목록 · 건너뛸 수 있는 「만들기」 절차를 가려낸다 (도메인/시나리오 §3.7 결정 4).
 // 애매하면 「만들기」로 치지 않는다 — 틀리면 건너뛰기를 못 할 뿐이지만, 거꾸로 틀리면 판정이 말없이 사라진다
 // Page Object 는 믿는다 — 케이스가 아닌 파일은 K7(pageObject.ts)이 판정 · 절차를 들여오는 것까지 막는다
 
@@ -13,7 +13,6 @@ export interface CaseStep {
 export interface CaseSteps {
   steps: CaseStep[];
   r16: boolean;
-  usesRequest: boolean;
 }
 
 interface Found {
@@ -198,27 +197,18 @@ export function caseSteps(text: string): CaseSteps {
   const stack: Found[] = [];
   const fixtures = new Set<string>();
   const { trusted, functions } = pageObjects(sf);
-  let usesRequest = false;
 
   const walk = (node: ts.Node): void => {
     if (isTestCall(node)) {
       const fn = node.arguments[1];
       const param = isInlineFunction(fn) ? fn.parameters[0] : undefined;
-      // 무엇을 꺼내 쓰는지 모르면 쓴다고 본다. 모킹 경고가 빠지는 것보다 뜨는 편이 낫다
-      if (!isInlineFunction(fn)) usesRequest = true;
-      else if (param !== undefined && ts.isIdentifier(param.name)) {
-        usesRequest = true;
-        fixtures.add(param.name.text);
-      } else if (param !== undefined && ts.isObjectBindingPattern(param.name)) {
+      if (param !== undefined && ts.isIdentifier(param.name)) fixtures.add(param.name.text);
+      else if (param !== undefined && ts.isObjectBindingPattern(param.name)) {
         for (const e of param.name.elements) {
-          const key = e.propertyName ?? e.name;
-          if (e.dotDotDotToken !== undefined || !ts.isIdentifier(key) || key.text === 'request') usesRequest = true;
           if (ts.isIdentifier(e.name)) fixtures.add(e.name.text);
         }
       }
     }
-    // page.request 도 브라우저 컨텍스트의 route 를 안 거친다
-    if (ts.isPropertyAccessExpression(node) && node.name.text === 'request') usesRequest = true;
 
     if (isTestStep(node)) {
       const first = node.arguments[0];
@@ -277,5 +267,5 @@ export function caseSteps(text: string): CaseSteps {
     return [{ title: s.title, line: s.line, skippable }];
   });
 
-  return { steps, r16: steps.some((s) => s.skippable), usesRequest };
+  return { steps, r16: steps.some((s) => s.skippable) };
 }

@@ -47,9 +47,9 @@ export function 비밀글자들(명세: 시험명세): string[] {
 }
 
 // 긴 것부터 바꿔야 짧은 비밀이 긴 비밀의 일부일 때 조각이 남지 않는다
-const 긴것부터 = (비밀: string[]): string[] => [...비밀].sort((a, b) => b.length - a.length);
+export const 긴것부터 = (비밀: string[]): string[] => [...비밀].sort((a, b) => b.length - a.length);
 
-function 가린다(값: unknown, 비밀: string[]): unknown {
+export function 가린다(값: unknown, 비밀: string[]): unknown {
   if (typeof 값 === 'string') return 비밀.reduce((글, s) => 글.replaceAll(s, 가림), 값);
   if (Array.isArray(값)) return 값.map((v) => 가린다(v, 비밀));
   if (typeof 값 === 'object' && 값 !== null) {

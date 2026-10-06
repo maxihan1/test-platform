@@ -228,6 +228,9 @@ describe.skipIf(연결 === undefined)('시나리오 실행 통로', () => {
       paramSchema: { type: 'object' },
       expectedSchema: { type: 'string' },
       precondition: ['로그인했다'],
+      unconfirmed: null,
+      bound: {},
+      cleanup: [],
       steps: [
         { seq: 3, title: '상품을 담는다', status: 'PASS', durationMs: 5, assertions: [], skipped: true },
         {

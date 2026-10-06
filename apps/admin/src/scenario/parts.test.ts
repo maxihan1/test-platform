@@ -25,7 +25,7 @@ test(spec, async ({ page }) => {
 `;
 
 describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
-  const 번호들 = ['XSP-001', 'XSP-002', 'XSP-003', 'XSP-004', 'XSP-005', 'XSP-UI-001'];
+  const 번호들 = ['XSP-001', 'XSP-002', 'XSP-003', 'XSP-004', 'XSP-005', 'XSP-006', 'XSP-007', 'XSP-UI-001'];
   const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
   let 뿌리 = '';
 
@@ -34,12 +34,12 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
     return pool.query(sql, 값);
   };
 
-  const 케이스넣기 = (tcId: string, filePath: string, isActive = true) =>
+  const 케이스넣기 = (tcId: string, filePath: string, isActive = true, 입력스키마 = '{"type":"object","properties":{"todoId":{"type":"string"}}}') =>
     q(
       `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active)
-       VALUES ($1, $1 || ' 이름', '["desktop","mobile"]', '["로그인했다"]', $2, '{"type":"object"}', '{}', $3)
-       ON CONFLICT (tc_id) DO UPDATE SET file_path = EXCLUDED.file_path, is_active = EXCLUDED.is_active`,
-      [tcId, filePath, isActive],
+       VALUES ($1, $1 || ' 이름', '["desktop","mobile"]', '["로그인했다"]', $2, $4, '{}', $3)
+       ON CONFLICT (tc_id) DO UPDATE SET file_path = EXCLUDED.file_path, is_active = EXCLUDED.is_active, param_schema = EXCLUDED.param_schema`,
+      [tcId, filePath, isActive, 입력스키마],
     );
 
   beforeAll(async () => {
@@ -53,6 +53,9 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
     await 케이스넣기('XSP-003', 'xsp/a.spec.ts', false);
     await 케이스넣기('XSP-004', '../밖.spec.ts');
     await 케이스넣기('XSP-005', 'xsp/broken.spec.ts');
+    await 케이스넣기('XSP-006', 'xsp/a.spec.ts', true, 'null');
+    await 케이스넣기('XSP-007', 'xsp/a.spec.ts');
+    await q(`UPDATE test_case SET unconfirmed = '화면에서 본 값이다' WHERE tc_id = 'XSP-007'`);
     await 케이스넣기('XSP-UI-001', 'xsp/a.spec.ts');
   });
 
@@ -75,21 +78,32 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
       platforms: ['desktop', 'mobile'],
       isActive: true,
       skippable: ['상품을 담는다'],
+      params: ['todoId'],
     });
     expect(부품재료.get('XSP-001')).toEqual({
       tcId: 'XSP-001',
       name: 'XSP-001 이름',
       platforms: ['desktop', 'mobile'],
       precondition: ['로그인했다'],
-      paramSchema: { type: 'object' },
+      paramSchema: { type: 'object', properties: { todoId: { type: 'string' } } },
       expectedSchema: {},
       steps: [
         { title: '상품을 담는다', skippable: true },
         { title: '장바구니에 한 건이다', skippable: false },
       ],
       r16: true,
-      usesRequest: false,
+      unconfirmed: null,
     });
+  });
+
+  it('미확정 케이스는 사유를 싣는다 — 조립 화면의 미확정 칩이 읽는다', async () => {
+    const { 부품재료 } = await 케이스재료(['XSP-007']);
+    expect(부품재료.get('XSP-007')?.unconfirmed).toBe('화면에서 본 값이다');
+  });
+
+  it('입력값 스키마가 null 이면 입력값 칸이 없다', async () => {
+    const { 카탈로그 } = await 케이스재료(['XSP-006']);
+    expect(카탈로그.get('XSP-006')?.params).toEqual([]);
   });
 
   it('없는 케이스 · 비활성 · 파일을 못 읽는 케이스는 재료가 없다 — 비활성으로 친다', async () => {

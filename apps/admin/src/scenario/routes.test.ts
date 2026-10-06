@@ -292,8 +292,9 @@ describe.skipIf(연결 === undefined)('시나리오 API', () => {
         { title: '장바구니에 한 건이다', skippable: false },
       ],
       r16: true,
-      usesRequest: false,
+      unconfirmed: null,
     });
+    expect(res.json()).not.toHaveProperty('usesRequest');
     expect((await app.inject({ method: 'GET', url: '/api/scenarios/case-parts/XSR-999' })).statusCode).toBe(404);
   });
 });

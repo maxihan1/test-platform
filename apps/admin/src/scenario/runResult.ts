@@ -1,6 +1,6 @@
 // 시나리오 실행을 러너에 맡기고 결과를 부품·절차에 적어 실행을 닫는다 (SPEC 도메인/시나리오 §7 「실행 결과를 적는 규칙」)
 
-import type { ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
+import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
 
 import { enqueue } from '../execution/dispatcher.js';
@@ -27,8 +27,9 @@ export async function 결과저장(runId: number, 응답: ScenarioExecuteRespons
   try {
     return await 적는다(runId, 응답);
   } catch (err) {
-    // 원문은 부품 error 에도 남지만 운영자는 로그부터 본다 — 닫고 나서도 한 줄 남긴다
-    console.error(`[scenario] 실행 ${runId} 결과를 저장하지 못했다`, err);
+    // 원문은 부품 error 에도 남지만 운영자는 로그부터 본다 — 닫고 나서도 한 줄 남긴다.
+    // 뒷정리도 같이 버려지므로 어느 삭제가 실패했는지는 이 로그에만 남는다
+    console.error(`[scenario] 실행 ${runId} 결과를 저장하지 못했다`, err, { cleanup: 응답.cleanup ?? [] });
     await 저장실패로닫기(runId, err);
     return false;
   }
@@ -46,6 +47,8 @@ async function 적는다(runId: number, 응답: ScenarioExecuteResponse): Promis
     );
     if (닫힘.rowCount === 0) {
       await c.query('ROLLBACK');
+      // 러너가 대상 서버에 이미 보낸 삭제다. 결과를 버리면 어느 데이터가 지워졌는지는 이 로그에만 남는다
+      console.warn(`[scenario] 실행 ${runId} 결과가 늦게 와 버린다`, { cleanup: 응답.cleanup ?? [] });
       return false;
     }
 
@@ -72,6 +75,22 @@ async function 적는다(runId: number, 응답: ScenarioExecuteResponse): Promis
       await 부품적기(c, 행.id, 결과);
     }
 
+    // 뒷정리는 실행 한 벌로 온다. 러너가 그 부품 결과를 안 줬어도 이미 보낸 삭제는 그 행에 남아야 한다 (§7)
+    const 뒷정리 = new Map<number, Omit<ScenarioCleanup, 'fromSeq'>[]>();
+    for (const { fromSeq, ...줄 } of 응답.cleanup ?? []) {
+      const 묶음 = 뒷정리.get(fromSeq) ?? [];
+      묶음.push(줄);
+      뒷정리.set(fromSeq, 묶음);
+    }
+    for (const [seq, 줄들] of 뒷정리) {
+      const r = await c.query('UPDATE scenario_run_part SET cleanup = $3 WHERE run_id = $1 AND seq = $2', [
+        runId,
+        seq,
+        JSON.stringify(줄들),
+      ]);
+      if (r.rowCount === 0) console.warn(`[scenario] 실행 ${runId} 뒷정리 줄 fromSeq ${seq} 짝 없음 — 버림`);
+    }
+
     await c.query('COMMIT');
     return true;
   } catch (err) {
@@ -84,7 +103,8 @@ async function 적는다(runId: number, 응답: ScenarioExecuteResponse): Promis
 
 async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartResult): Promise<void> {
   await c.query(
-    `UPDATE scenario_run_part SET status = $2, duration_ms = $3, error = $4, mocks = $5, skipped_steps = $6, finished_at = now()
+    `UPDATE scenario_run_part SET status = $2, duration_ms = $3, error = $4, mocks = $5, skipped_steps = $6, bound = $7,
+                                  finished_at = now()
       WHERE id = $1`,
     [
       partId,
@@ -93,6 +113,7 @@ async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartR
       결과.error === undefined ? null : JSON.stringify(결과.error),
       JSON.stringify(결과.mocks),
       JSON.stringify(결과.steps.filter((s) => s.skipped === true).map((s) => s.title)),
+      JSON.stringify(결과.bound ?? {}),
     ],
   );
   // execution/store.ts 의 run_item_step 넣기와 같은 모양이다. 건너뜀 칸이 하나 더 있다

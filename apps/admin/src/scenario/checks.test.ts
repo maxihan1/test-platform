@@ -7,8 +7,8 @@ import { 점검 } from './checks.js';
 import type { 카탈로그 } from './validate.js';
 
 const 재료: 카탈로그 = new Map([
-  ['SHOP-001', { platforms: ['desktop'], isActive: true, skippable: ['상품을 담는다'] }],
-  ['SHOP-003', { platforms: ['desktop'], isActive: false, skippable: ['상품을 담는다'] }],
+  ['SHOP-001', { platforms: ['desktop'], isActive: true, skippable: ['상품을 담는다'], params: [] }],
+  ['SHOP-003', { platforms: ['desktop'], isActive: false, skippable: ['상품을 담는다'], params: [] }],
 ]);
 
 const 케이스 = (tcId: string, skipSteps: string[] = []): ScenarioPart => ({
