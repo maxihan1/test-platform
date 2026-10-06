@@ -12,9 +12,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { api, type EvidenceRow, type RunSummary } from './api.js';
+import { api, ApiError, type EvidenceRow, type RunSummary } from './api.js';
 import { RunResult } from './RunResult.js';
 import { 판정을만든다, type 판정 } from './role.js';
+import { scenarioApi } from './scenarioApi.js';
 import type { User } from './api.js';
 
 // 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
@@ -353,5 +354,22 @@ describe('실행 결과의 권한은 그 실행의 서비스로', () => {
     연다('MEM-001', 'FINISHED');
     await screen.findAllByText(/대상 서버/);
     expect(screen.queryByText('PDF 만들기')).toBeNull();
+  });
+});
+
+describe('시나리오 실행 번호면 E2E 결과 화면으로 갈아탄다', () => {
+  const 시나리오답 = {
+    scenarioId: 12, version: 3, status: 'FINISHED', platform: 'desktop' as const, title: '결제 시나리오',
+    env: 'qa', baseUrl: 'https://qa.example.com', triggeredBy: 'kim', triggeredByName: '김철수',
+    startedAt: '2026-09-15T17:13:00.000Z', finishedAt: '2026-09-15T17:25:00.000Z', parts: [],
+  };
+
+  it.each([false, true])('상자안=%s', async (상자안) => {
+    vi.spyOn(api, 'run').mockRejectedValue(new ApiError(404, 'SCENARIO_RUN', ''));
+    const 부름 = vi.spyOn(scenarioApi, 'result').mockResolvedValue(시나리오답);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안={상자안} />);
+
+    expect(await screen.findByText('단계별 결과')).toBeTruthy();
+    expect(부름).toHaveBeenCalledWith(RUN_ID);
   });
 });
