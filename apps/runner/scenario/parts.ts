@@ -64,7 +64,16 @@ function errorOf(thrown: unknown): { message: string; stack?: string } {
   return { message: err.message, ...(err.stack === undefined ? {} : { stack: err.stack }) };
 }
 
-const 기다림 = (ms: number) => new Promise<undefined>((done) => setTimeout(() => done(undefined), ms));
+// 먼저 끝나는 쪽을 받고 타이머를 지운다 — 남은 타이머가 자식 프로세스 종료를 늦추지 않게
+async function 늦어도<T>(일: Promise<T>, ms: number): Promise<T | undefined> {
+  let 타이머: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    일,
+    new Promise<undefined>((done) => {
+      타이머 = setTimeout(() => done(undefined), ms);
+    }),
+  ]).finally(() => clearTimeout(타이머));
+}
 
 // 케이스 부품 하나를 부품 시험 한도 안에서 돌린다. 넘으면 상태를 찍고 창을 닫는다 — 끝없는 기다림이
 // 시나리오 전체 제한 시간까지 가 판정 없음(TIMEOUT)이 되면 「틀린 건너뛰기는 언제나 빨강」이 깨진다 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
@@ -79,20 +88,14 @@ async function 한도안에(
   const 달림 = 지금.runCase(part, seq, 부품.phase, params);
   if (한도 <= 0) return { outcome: await 달림, 넘었다: false };
 
-  let 타이머: ReturnType<typeof setTimeout> | undefined;
-  const 넘음 = Symbol('넘음');
-  const 먼저 = await Promise.race([
-    달림,
-    new Promise<typeof 넘음>((done) => {
-      타이머 = setTimeout(() => done(넘음), 한도);
-    }),
-  ]).finally(() => clearTimeout(타이머));
-  if (먼저 !== 넘음) return { outcome: 먼저, 넘었다: false };
+  // 달림이 던지면 그대로 던진다 — 부르는 쪽이 이음 오류와 함께 실패 줄로 적는다
+  const 먼저 = await 늦어도(달림.then((outcome) => ({ outcome })), 한도);
+  if (먼저 !== undefined) return { outcome: 먼저.outcome, 넘었다: false };
 
   // 닫힌 도구로 늦게 온 미룬 삭제가 이 상태로 나간다 (계획 결정 6)
   부품.찍은상태 = await 지금.state().catch(() => undefined);
   await 지금.close().catch(() => undefined);
-  const 늦음 = await Promise.race([달림.catch(() => undefined), 기다림(늦은절차유예)]);
+  const 늦음 = await 늦어도(달림.catch(() => undefined), 늦은절차유예);
   return { outcome: 늦음, 넘었다: true };
 }
 
@@ -112,6 +115,8 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
       let steps: StepResult[] = [];
       let error: { message: string; stack?: string } | undefined;
       let bound: Record<string, unknown> | undefined;
+      // 케이스를 돌리기 시작한 부품 — 예외로 끝나도 이음 오류 · 안 걸린 이어 주기를 실어야 해서 블록 밖에 둔다
+      let 돈부품: 부품상태 | undefined;
 
       try {
         switch (part.kind) {
@@ -127,10 +132,12 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
 
             // 부품마다 새 창 — 앞 케이스의 시계 고정 · 주입 스크립트가 뒤로 새지 않게 로그인 상태만 넘긴다 (SPEC 도메인/시나리오 §3.7 결정 3)
             const 넘김 = part.carryOver === false ? undefined : await 지금창.state();
-            const 새창 = await deps.newWindow(넘김, 걸린, 부품);
-            await 지금창.close();
-            지금창 = 새창;
+            const 앞창 = 지금창;
+            // 앞 창을 닫다가 던져도 새 창이 지금 창이어야 끝에 닫힌다
+            지금창 = await deps.newWindow(넘김, 걸린, 부품);
+            await 앞창.close();
 
+            돈부품 = 부품;
             const { outcome, 넘었다 } = await 한도안에(지금창, part, seq, 부품, 꽂음.params, deps.partTimeoutMs);
             if (outcome !== undefined) {
               seq = outcome.seq;
@@ -144,13 +151,6 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
               status = 'FAIL';
               error = { message: `부품 제한 시간 ${deps.partTimeoutMs}ms 를 넘었다` };
             }
-            // 이음 오류가 먼저다 — 돌려줄 응답이 없어 막은 요청 때문에 케이스가 net::ERR_FAILED 로 먼저 실패하면 원인이 가려진다 (계획 결정 12)
-            if (부품.오류 !== undefined) {
-              status = 'FAIL';
-              error = { ...error, message: error === undefined ? 부품.오류 : `${부품.오류} · ${error.message}` };
-            }
-            const 안 = status === 'FAIL' ? 안걸린(부품) : undefined;
-            if (안 !== undefined) error = { ...error, message: error === undefined ? 안 : `${error.message}\n${안}` };
             break;
           }
           case 'api': {
@@ -194,6 +194,17 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
         // 줄 없이 끝나면 러너가 이 부품을 「안 돌았음」으로 채워 원인이 사라진다. 실패 줄로 남긴다
         status = 'FAIL';
         error = errorOf(thrown);
+      }
+
+      if (돈부품 !== undefined) {
+        // 이음 오류가 먼저다 — 돌려줄 응답이 없어 막은 요청 때문에 케이스가 net::ERR_FAILED 로 먼저 실패하면 원인이 가려진다 (계획 결정 12)
+        const 이음오류 = 돈부품.오류;
+        if (이음오류 !== undefined) {
+          status = 'FAIL';
+          error = { ...error, message: error === undefined ? 이음오류 : `${이음오류} · ${error.message}` };
+        }
+        const 안 = status === 'FAIL' ? 안걸린(돈부품) : undefined;
+        if (안 !== undefined) error = { ...error, message: error === undefined ? 안 : `${error.message}\n${안}` };
       }
 
       deps.write({
