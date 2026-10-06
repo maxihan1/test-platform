@@ -617,3 +617,23 @@ DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/tp_<이름> npx vitest 
 - 되돌리기(`rollback`)는 **임시 DB 에서만** 시험한다. 내 DB 를 되돌리는 것은 CLAUDE.md §5 금지다
 - 다 쓰면 `DROP DATABASE tp_<이름>`. 병합 뒤 내 DB 에는 `docker compose run --rm migrate` 로 올린다
 
+
+## 14. 러너 이미지로 시나리오 한 바퀴 — 고정 spec · kit 불러오기를 고쳤으면 (2026-10-06 · PR #162)
+
+**CI(Node 22 · 저장소 안 경로)는 러너 이미지의 `require` 경로를 재현하지 못한다.** 이미지의 `/tests` 는 `package.json` 이 없어 케이스가 kit · `@playwright/test` 를 `require` 로 부르고,
+고정 spec 은 `import` 로 부른다. 둘이 섞여 이미지에서만 죽은 적이 있다(LEARNINGS [WS-C] 2026-09-28). 그래서 `apps/runner/scenario/**` 나 kit 의 시나리오 모드를 고쳤으면
+**인터넷 없이 도는 가짜 케이스(`apps/runner/scenario/fixtures/`)와 실측 서버(`e2e-server.ts`)로 이미지에서 한 바퀴 돈다.** PR #100 코멘트에만 있던 명령을 두 번째 쓰임에 옮겼다.
+
+```bash
+docker build -f apps/runner/Dockerfile -t tp-runner-check .
+docker run --rm --name tp-runner-check -p 127.0.0.1:4099:4000 \
+  -v "$PWD/apps/runner/scenario/fixtures:/tests:ro" -e PLATFORM_TESTS_DIR=/tests tp-runner-check     # 다른 창에서 둔다
+npx tsx apps/runner/scenario/e2e-server.ts 4098 127.0.0.1                                             # 또 다른 창 — 받은 요청을 한 줄씩 찍는다
+curl -s -X POST -H 'content-type: application/json' --data @<요청.json> http://127.0.0.1:4099/execute-scenario
+```
+
+- 요청은 `apps/runner/scenario/e2e.test.ts` 의 조립과 같게 쓴다 — `baseUrl` 은 `http://host.docker.internal:4098`, 케이스 부품 `filePath` 는 `/tests` 기준 상대 경로(`XSF-004.case.ts`)
+- **실측 서버는 글 번호를 812 부터 매긴다.** 글을 만드는 조립을 연달아 보내면 번호가 밀린다 — 조립마다 서버를 다시 띄운다
+- 응답 `parts` 의 판정 · `bound` · `cleanup`(절대 주소 · 응답 코드)과 서버가 찍은 순서(미룬 `DELETE` 가 맨 끝 · 로그인한 채)를 브라우저 실측과 견준다
+- **Linux 도커(서버 · 클라우드 세션)** — `docker run` 에 `--add-host=host.docker.internal:host-gateway` 를 붙이고, 실측 서버를 `0.0.0.0` 에 연다(`… e2e-server.ts 4098 0.0.0.0`). **리눅스에서는 아직 돌려 보지 않았다** — 2026-10-06 한 바퀴는 맥 Docker Desktop 이다. `host.docker.internal` 이 리눅스에서 안 풀린 일은 §13 에서 겪었고, 127.0.0.1 전용 서버에 컨테이너가 못 닿을 수 있다는 것은 §10 이 적었다
+- 다 쓰면 `docker stop tp-runner-check` · 서버 창은 Ctrl+C

@@ -26,6 +26,33 @@ const executeRequest = z.object({
   timeoutMs: z.number().int().positive().default(300_000),
 });
 
+// `//host` 는 / 로 시작해도 다른 호스트로 풀린다. 대상 주소 밖으로 못 나가게 여기서 막는다
+const 대상경로 = z.string().startsWith('/').refine((p) => !p.startsWith('//'), '경로가 // 로 시작한다');
+const scenarioMethod = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+// 0번 부품은 없다. 부품 번호는 1부터다
+const 부품번호 = z.number().int().positive();
+const responseRef = z.object({
+  fromSeq: 부품번호,
+  method: scenarioMethod,
+  urlPattern: z.string().min(1),
+  jsonPath: z.string().min(1),
+});
+
+// 이어 주기 종류의 정본은 SPEC 도메인/시나리오 §3.7 결정 12 「이어 주기」 표다.
+// 넘겨받기를 끈 부품에 이어 주기가 달렸는지는 admin 조립 검사가 본다 — 입구는 모양만 본다
+const scenarioLink = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('reuse'), method: scenarioMethod, urlPattern: z.string().min(1), fromSeq: 부품번호 }),
+  z.object({ kind: z.literal('block'), method: scenarioMethod, urlPattern: z.string().min(1) }),
+  z.object({
+    kind: z.literal('rewrite'),
+    method: scenarioMethod,
+    urlPattern: z.string().min(1),
+    // {} 자리가 없으면 앞 데이터가 아니라 모음 주소(PUT /api/todos)로 가고, 둘이면 첫 자리만 바뀐다 — 꼭 하나 (SPEC 도메인/시나리오 §3.7 결정 12 「값 꺼내기」)
+    to: z.object({ method: z.enum(['PUT', 'PATCH']), path: 대상경로.refine((p) => p.split('{}').length === 2, '바꿔 보내기 경로에 {} 자리가 꼭 하나 있어야 한다'), value: responseRef }),
+  }),
+  z.object({ kind: z.literal('bind'), param: z.string().min(1), value: responseRef }),
+]);
+
 // E2E 시나리오 조립 목록. 부품 종류와 대기 상한의 정본은 SPEC 도메인/시나리오 §3.7 「부품」 표다 — 여기는 그것을 옮긴 것이다
 const scenarioPart = z.discriminatedUnion('kind', [
   z.object({
@@ -34,13 +61,15 @@ const scenarioPart = z.discriminatedUnion('kind', [
     params: z.record(z.string(), z.unknown()),
     expected: z.record(z.string(), z.unknown()),
     skipSteps: z.array(z.string()),
+    // z.object 는 모르는 칸을 오류 없이 버린다. 여기 안 적으면 admin 이 실어 보낸 이어 주기가 러너에서 조용히 사라진다
+    carryOver: z.boolean().optional(),
+    links: z.array(scenarioLink).optional(),
     filePath: z.string().min(1),
   }),
   z.object({
     kind: z.literal('api'),
-    method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
-    // `//host` 는 / 로 시작해도 다른 호스트로 풀린다. 대상 주소 밖으로 못 나가게 여기서 막는다
-    path: z.string().startsWith('/').refine((p) => !p.startsWith('//'), '경로가 // 로 시작한다'),
+    method: scenarioMethod,
+    path: 대상경로,
     body: z.unknown().optional(),
     expectStatus: z.number().int(),
   }),

@@ -3,13 +3,19 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 
-import type { StepProgress } from '@platform/kit';
+import type { ScenarioExecuteResponse, StepProgress } from '@platform/kit';
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { running, 진행을_모은다, type Running } from './execute.js';
 import { killTree } from './kill.js';
 import { registerRoutes } from './routes.js';
+import { executeScenario } from './scenario.js';
+
+// 입구가 실행에 무엇을 넘기는지만 본다. 진짜 실행은 자식 프로세스와 브라우저를 띄운다
+vi.mock('./scenario.js', () => ({
+  executeScenario: vi.fn(async (): Promise<ScenarioExecuteResponse> => ({ status: 'PASS', durationMs: 0, parts: [] })),
+}));
 
 function 서버() {
   const app = Fastify();
@@ -174,6 +180,8 @@ describe('POST /execute-scenario — 입구 검사', () => {
     runId: 7, platform: 'desktop', baseUrl: 'https://qa.example.com', parts: [{ kind: 'wait', ms: 1 }], timeoutMs: 1000, ...칸,
   });
   const 보냄 = (payload: object) => 서버().inject({ method: 'POST', url: '/execute-scenario', payload });
+  const 앞응답 = { fromSeq: 1, method: 'POST', urlPattern: '**/api/todos', jsonPath: 'data.id' };
+  const 이어주는케이스 = (links: unknown[]) => ({ ...케이스('todo/TODO-001.spec.ts'), links });
 
   it.each([
     ['형태가 계약과 다르다', { runId: '숫자가 아니다' }],
@@ -192,11 +200,40 @@ describe('POST /execute-scenario — 입구 검사', () => {
       parts: [{ kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body: '가'.repeat(45_000) }],
     }],
     ['제한 시간이 60분을 넘는다', { timeoutMs: 3_600_001 }],
+    ['이어 주기 종류를 모른다', { parts: [이어주는케이스([{ kind: 'teleport', method: 'GET', urlPattern: '**/a' }])] }],
+    ['바꿔 보내기 경로가 // 로 시작한다 — 대상 주소 밖으로 샌다', { parts: [이어주는케이스([
+      { kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PUT', path: '//evil.example/x', value: 앞응답 } },
+    ])] }],
+    ['바꿔 보내기 경로에 {} 자리가 없다 — 앞 데이터가 아니라 모음 주소로 간다', { parts: [이어주는케이스([
+      { kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PUT', path: '/api/todos', value: 앞응답 } },
+    ])] }],
+    ['바꿔 보내기 경로에 {} 자리가 둘이다 — 첫 자리만 바뀐다', { parts: [이어주는케이스([
+      { kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PUT', path: '/api/{}/items/{}', value: 앞응답 } },
+    ])] }],
+    ['앞 응답 돌려주기가 0번 부품을 가리킨다', { parts: [이어주는케이스([{ kind: 'reuse', method: 'GET', urlPattern: '**/a', fromSeq: 0 }])] }],
+    ['값 꽂기가 0번 부품을 가리킨다', { parts: [이어주는케이스([{ kind: 'bind', param: 'todoId', value: { ...앞응답, fromSeq: 0 } }])] }],
   ])('%s 이면 400 INVALID_REQUEST 다', async (_이름, 칸) => {
     const res = await 보냄(요청(칸));
 
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe('INVALID_REQUEST');
+  });
+
+  it('넘겨받기 끔과 이어 주기 넷을 버리지 않고 실행에 넘긴다', async () => {
+    const 이어주기 = [
+      { kind: 'reuse', method: 'POST', urlPattern: '**/api/todos', fromSeq: 1 },
+      { kind: 'block', method: 'DELETE', urlPattern: '**/api/cart' },
+      { kind: 'rewrite', method: 'POST', urlPattern: '**/api/todos', to: { method: 'PUT', path: '/api/todos/{}', value: 앞응답 } },
+      { kind: 'bind', param: 'todoId', value: 앞응답 },
+    ];
+    const 부품 = [{ ...케이스('todo/TODO-001.spec.ts'), carryOver: false }, 이어주는케이스(이어주기)];
+
+    const res = await 보냄(요청({ parts: 부품 }));
+
+    expect(res.statusCode).toBe(200);
+    expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({
+      parts: [expect.objectContaining({ carryOver: false }), expect.objectContaining({ links: 이어주기 })],
+    }));
   });
 
   it('케이스 파일이 없으면 404 CASE_NOT_FOUND 다', async () => {

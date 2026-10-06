@@ -40,6 +40,7 @@ export async function runStep(
   let fatal: unknown;
   let stopped = false;
 
+  if (run.phase) run.phase.inStep++;
   try {
     await stepScope.run(scope, async () => {
       await body();
@@ -53,6 +54,8 @@ export async function runStep(
       error = { message: err.message, ...(err.stack === undefined ? {} : { stack: err.stack }) };
       if (scope.line === undefined) scope.line = callerLine(err);
     }
+  } finally {
+    if (run.phase) run.phase.inStep--;
   }
 
   const durationMs = Date.now() - startedAt;
@@ -89,6 +92,8 @@ export async function step(
     throw new Error(`절차 '${title}'을 케이스 밖에서 선언했다. kit의 test(spec, ...) 안에서만 부를 수 있다`);
   }
   if (run.stopped) throw new StopTest();
+  // 건너뛰어도 첫 절차로 친다. 체크를 푼 「만들기」 뒤에 오는 삭제도 시나리오 끝으로 미뤄야 한다
+  if (run.phase) run.phase.started = true;
 
   // 건너뛴 절차도 순번을 차지한다. 빼 버리면 순번이 비고 「이 케이스가 준비를 세웠다」로 읽힌다 (SPEC 공통/3-공유계약 §5.1)
   if (run.skip?.has(title) === true) {

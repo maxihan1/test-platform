@@ -104,13 +104,14 @@ function errorOf(thrown: unknown): { message: string; stack?: string } {
 // E2E 시나리오의 부품 하나. 이 kit 인스턴스의 문맥으로 본체를 감싸야 본체 안 step() 이 문맥을 찾는다.
 // 부를 때마다 실패 표시·건너뛸 제목·결과 모으기를 새로 세운다 — 앞 부품의 것이 새면 안 된다 (SPEC 공통/3-공유계약 §5.1)
 function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): ScenarioCaseRunner {
-  return async ({ page, request, platform, params, expected, skipSteps, seq }) => {
+  return async ({ page, request, platform, params, expected, skipSteps, seq, phase }) => {
     const steps: StepResult[] = [];
     const run: RunScope = {
       seq,
       failed: false,
       stopped: false,
       skip: new Set(skipSteps),
+      phase,
       capture: (s) => capture(page, s),
       emit: async (result) => {
         steps.push(result);

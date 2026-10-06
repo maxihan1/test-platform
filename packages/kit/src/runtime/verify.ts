@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 import type { AssertionResult } from '../types.js';
 import { callerLine } from './callsite.js';
-import { stepScope } from './context.js';
+import { runScope, stepScope } from './context.js';
 
 // blocker 문장이 실패했다는 내부 신호. 절차를 끝내되 예외 실패와 구분하려고 별도 타입으로 둔다
 export class BlockerStop extends Error {
@@ -32,6 +32,10 @@ export async function verify(
         'test.step() 안에서만 부를 수 있다 (SPEC §4)',
     );
   }
+
+  // blocker 는 「준비가 됐나」를 본다. 통과 · 실패와 상관없이 시험 대상을 본 판정이 나오면 준비 구간이 끝난다
+  const phase = runScope.getStore()?.phase;
+  if (phase && options?.blocker !== true) phase.judged = true;
 
   const passed = isDeepStrictEqual(actual, expected);
   const result: AssertionResult = { statement, status: passed ? 'PASS' : 'FAIL', actual, expected };

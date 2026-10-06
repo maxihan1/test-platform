@@ -20,8 +20,11 @@ export default defineConfig({
   retries: 0,
   // 제한 시간의 정본은 러너 타이머다(timeoutMs). Playwright 기본 30초가 먼저 끊으면 부분 결과 모양이 갈린다
   timeout: 0,
+  // 케이스 부품 하나는 단독 실행과 같은 시험 한도로 돈다. 루트에 timeout 을 넣는 날 둘이 갈리지 않게 거기서 읽는다 — 없으면 Playwright 기본 30초 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
+  metadata: { partTimeoutMs: root.timeout ?? 30_000 },
   reporter: [[resolve(here, 'reporter.ts')]],
-  use: { baseURL: process.env.PLATFORM_BASE_URL },
+  // 루트 use 를 그대로 받는다 — 회사 서버의 기본 인증 · 사설 인증서 · 창 띄우기가 단독 실행과 같아야 한다
+  use: { ...root.use, baseURL: process.env.PLATFORM_BASE_URL },
   // 디바이스 이름과 모양은 케이스 실행과 같아야 한다. 베끼면 어긋나므로 루트 설정에서 가져온다
   projects: root.projects,
 });

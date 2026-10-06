@@ -1,14 +1,16 @@
-// 러너 시나리오 결과 조립 검사 — 결과 줄 읽기 · 빈 순번 채우기 · 스크린샷 폴더 환경변수 (SPEC 도메인/러너 §5.2 · 도메인/시나리오 §3.7 결정 9)
+// 러너 시나리오 결과 조립 검사 — 결과 줄 읽기 · 뒷정리 줄 읽기 · 빈 순번 채우기 · 스크린샷 폴더 환경변수 (SPEC 도메인/러너 §5.2 · 도메인/시나리오 §3.7 결정 9)
 
-import type { ScenarioExecuteRequest, ScenarioPartResult } from '@platform/kit';
+import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioPartResult } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
-import { finishScenario, parseParts, scenarioEnv } from './scenario.js';
+import { finishScenario, parseCleanup, parseParts, scenarioEnv } from './scenario.js';
 
 const 줄 = (p: Partial<ScenarioPartResult> & { seq: number }): ScenarioPartResult => ({
   status: 'PASS', durationMs: 1, steps: [], mocks: [], ...p,
 });
 const 흘림 = (p: ScenarioPartResult) => `@@SCENARIO_PART@@${JSON.stringify(p)}\n`;
+const 삭제 = (fromSeq: number): ScenarioCleanup => ({ fromSeq, method: 'DELETE', url: `https://x/api/${fromSeq}`, status: 200 });
+const 뒷정리 = (list: ScenarioCleanup[]) => `@@SCENARIO_CLEANUP@@${JSON.stringify(list)}\n`;
 
 describe('parseParts', () => {
   it('부품 결과 줄만 읽고 진행 줄·다른 출력은 버린다', () => {
@@ -43,6 +45,46 @@ describe('parseParts', () => {
     const stdout = `${흘림(줄({ seq: 1 }))}@@SCENARIO_PART@@{"seq":2,"sta`;
 
     expect(parseParts(stdout).map((p) => p.seq)).toEqual([1]);
+  });
+});
+
+describe('parseCleanup', () => {
+  it('뒷정리 줄을 읽고 부품 줄 · 다른 출력은 버린다', () => {
+    const stdout = `${흘림(줄({ seq: 1 }))}아무 말\n${뒷정리([삭제(1)])}`;
+
+    expect(parseCleanup(stdout)).toEqual([삭제(1)]);
+  });
+
+  it('여러 줄이면 마지막 것을 읽는다', () => {
+    expect(parseCleanup(뒷정리([삭제(1)]) + 뒷정리([삭제(2), 삭제(1)]))).toEqual([삭제(2), 삭제(1)]);
+  });
+
+  it('표시자는 줄 맨 앞에서만 읽는다', () => {
+    expect(parseCleanup(`화면: ${뒷정리([삭제(1)])}`)).toBeUndefined();
+  });
+
+  it('잘린 줄은 버린다', () => {
+    expect(parseCleanup(`${뒷정리([삭제(1)])}@@SCENARIO_CLEANUP@@[{"fromSeq":2,"me`)).toEqual([삭제(1)]);
+    expect(parseCleanup('@@SCENARIO_CLEANUP@@[{"fromSeq":2,"me')).toBeUndefined();
+  });
+
+  it('뒷정리 줄이 없으면 undefined 다', () => {
+    expect(parseCleanup(흘림(줄({ seq: 1 })))).toBeUndefined();
+  });
+});
+
+describe('finishScenario 뒷정리', () => {
+  it('안 죽였으면 받은 뒷정리를 싣는다 — 빈 목록도 싣는다', () => {
+    expect(finishScenario([줄({ seq: 1 })], 1, false, 10, '', [삭제(1)]).cleanup).toEqual([삭제(1)]);
+    expect(finishScenario([줄({ seq: 1 })], 1, false, 10, '', [])).toHaveProperty('cleanup', []);
+  });
+
+  it('제한 시간에 죽였으면 싣지 않는다', () => {
+    expect(finishScenario([줄({ seq: 1 })], 2, true, 10, '', [삭제(1)])).not.toHaveProperty('cleanup');
+  });
+
+  it('뒷정리 줄이 없었으면 칸이 없다', () => {
+    expect(finishScenario([줄({ seq: 1 })], 1, false, 10, '', undefined)).not.toHaveProperty('cleanup');
   });
 });
 

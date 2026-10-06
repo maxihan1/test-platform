@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { defineCase } from './defineCase.js';
-import { scenarioCase, type ScenarioCaseInput } from './scenario.js';
+import { scenarioCase, type ScenarioCaseInput, type ScenarioPhase } from './scenario.js';
 import { test } from './test.js';
 import { verify } from './verify.js';
 
@@ -18,6 +18,18 @@ const 입력 = (칸: Partial<ScenarioCaseInput> = {}): ScenarioCaseInput => ({
 });
 
 const 받은입력: unknown[] = [];
+
+// 본체 안에서 그 순간의 표시판을 찍어 둔다. 러너의 가로채기가 요청을 볼 때 읽는 값이 이것이다
+let 표시판: ScenarioPhase = { started: false, inStep: 0, judged: false };
+const 찍힌: Array<{ 언제: string } & ScenarioPhase> = [];
+const 찍는다 = (언제: string): void => {
+  찍힌.push({ 언제, ...표시판 });
+};
+const 새표시판 = (): ScenarioPhase => {
+  찍힌.length = 0;
+  표시판 = { started: false, inStep: 0, judged: false };
+  return 표시판;
+};
 
 beforeAll(() => {
   process.env.PLATFORM_SCENARIO_MODE = '1';
@@ -43,6 +55,41 @@ beforeAll(() => {
     await test.step('앞 절차', async () => {});
     await test.step('터진다', async () => {
       throw new Error('화면이 안 떴다');
+    });
+  });
+
+  test(defineCase({ tcId: 'XKS-004', name: '절차를 겹쳐 돈다', precondition: [], params: null, expected: null }), async () => {
+    찍는다('처음');
+    await test.step('만든다', async () => {
+      찍는다('바깥');
+      await test.step('안쪽', async () => {
+        찍는다('안쪽');
+      });
+      찍는다('안쪽 뒤');
+    });
+    찍는다('끝');
+  });
+
+  test(defineCase({ tcId: 'XKS-005', name: '겹친 절차에서 터진다', precondition: [], params: null, expected: null }), async () => {
+    await test.step('바깥', async () => {
+      await test.step('터진다', async () => {
+        찍는다('터지기 전');
+        throw new Error('안쪽에서 터졌다');
+      });
+    });
+  });
+
+  test(defineCase({
+    tcId: 'XKS-006', name: '준비를 확인하고 본다', precondition: [],
+    params: z.object({ 실제: z.number().default(1) }), expected: null,
+  }), async ({ params }) => {
+    await test.step('준비한다', async () => {
+      await verify('준비됐다', true, true, { blocker: true });
+      찍는다('blocker 뒤');
+    });
+    await test.step('본다', async () => {
+      await verify('값이 같다', params.실제, 1);
+      찍는다('판정 뒤');
     });
   });
 });
@@ -104,5 +151,45 @@ describe('시나리오 모드', () => {
     expect(결과.failed).toBe(true);
     expect(결과.error?.message).toBe('XKS-001은 모바일 환경을 선언하지 않았다');
     expect(결과.steps).toEqual([]);
+  });
+
+  describe('표시판 — 준비 구간과 절차 밖', () => {
+    it('첫 절차 전에는 시작 전이고 절차 밖이다 — 첫 절차가 서면 시작으로 바뀐다', async () => {
+      await scenarioCase('XKS-004')!(입력({ phase: 새표시판() }));
+
+      expect(찍힌[0]).toEqual({ 언제: '처음', started: false, inStep: 0, judged: false });
+      expect(찍힌.map((s) => [s.언제, s.started])).toEqual([
+        ['처음', false], ['바깥', true], ['안쪽', true], ['안쪽 뒤', true], ['끝', true],
+      ]);
+    });
+
+    it('절차 안에서는 겹친 만큼 세고 끝나면 0 으로 돌아간다 — 예외로 끝나도', async () => {
+      await scenarioCase('XKS-004')!(입력({ phase: 새표시판() }));
+      expect(찍힌.map((s) => [s.언제, s.inStep])).toEqual([
+        ['처음', 0], ['바깥', 1], ['안쪽', 2], ['안쪽 뒤', 1], ['끝', 0],
+      ]);
+
+      const 터진표시판 = 새표시판();
+      const 결과 = await scenarioCase('XKS-005')!(입력({ phase: 터진표시판 }));
+      expect(결과.error?.message).toBe('안쪽에서 터졌다');
+      expect(찍힌.map((s) => [s.언제, s.inStep])).toEqual([['터지기 전', 2]]);
+      expect(터진표시판.inStep).toBe(0);
+    });
+
+    it('건너뛴 절차도 첫 절차로 친다', async () => {
+      await scenarioCase('XKS-004')!(입력({ phase: 새표시판(), skipSteps: ['만든다'] }));
+
+      expect(찍힌.map((s) => [s.언제, s.started, s.inStep])).toEqual([['처음', false, 0], ['끝', true, 0]]);
+    });
+
+    it('blocker 판정은 준비 구간을 안 끝내고 그 밖 판정은 통과 · 실패 모두 끝낸다', async () => {
+      await scenarioCase('XKS-006')!(입력({ phase: 새표시판(), params: { 실제: 1 } }));
+      const 통과 = 찍힌.map((s) => [s.언제, s.judged]);
+      await scenarioCase('XKS-006')!(입력({ phase: 새표시판(), params: { 실제: 2 } }));
+      const 실패 = 찍힌.map((s) => [s.언제, s.judged]);
+
+      expect(통과).toEqual([['blocker 뒤', false], ['판정 뒤', true]]);
+      expect(실패).toEqual([['blocker 뒤', false], ['판정 뒤', true]]);
+    });
   });
 });

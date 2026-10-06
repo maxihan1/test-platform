@@ -4,8 +4,8 @@
 import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
 
-import type { ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
-import { SCENARIO_PART_MARKER } from '@platform/kit/scenario';
+import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
+import { SCENARIO_CLEANUP_MARKER, SCENARIO_PART_MARKER } from '@platform/kit/scenario';
 
 import { appRoot, tail } from './execute.js';
 import { killTree } from './kill.js';
@@ -46,6 +46,20 @@ export function parseParts(stdout: string): ScenarioPartResult[] {
   return parts;
 }
 
+// 고정 spec 이 시나리오 끝에 한 번 흘린다. 맨 앞 표시자 · 잘린 줄 규칙은 parseParts 와 같다
+export function parseCleanup(stdout: string): ScenarioCleanup[] | undefined {
+  let cleanup: ScenarioCleanup[] | undefined;
+  for (const line of stdout.split('\n')) {
+    if (!line.startsWith(SCENARIO_CLEANUP_MARKER)) continue;
+    try {
+      cleanup = JSON.parse(line.slice(SCENARIO_CLEANUP_MARKER.length)) as ScenarioCleanup[];
+    } catch (err) {
+      console.warn(`[runner] 시나리오 뒷정리 줄을 버린다: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  return cleanup;
+}
+
 const 빈부품 = (seq: number, message: string, status: ScenarioPartResult['status']): ScenarioPartResult => ({
   seq, status, durationMs: 0, steps: [], mocks: [], error: { message },
 });
@@ -58,6 +72,7 @@ export function finishScenario(
   killed: boolean,
   durationMs: number,
   꼬리: string,
+  cleanup?: ScenarioCleanup[],
 ): ScenarioExecuteResponse {
   const bySeq = new Map(lines.map((p) => [p.seq, p]));
   const parts: ScenarioPartResult[] = [];
@@ -84,7 +99,11 @@ export function finishScenario(
 
   if (killed) return { status: 'NA', durationMs, parts, error: { message: 'TIMEOUT' } };
   const status = parts.every((p) => p.status === 'PASS') ? 'PASS' : 'FAIL';
-  return { status, durationMs, parts, ...(사유 === undefined ? {} : { error: { message: 사유 } }) };
+  return {
+    status, durationMs, parts,
+    ...(cleanup === undefined ? {} : { cleanup }),
+    ...(사유 === undefined ? {} : { error: { message: 사유 } }),
+  };
 }
 
 // parts 의 case 부품 filePath 는 라우트가 절대 경로로 풀어 넘긴다 — 자식의 작업 폴더가 다르다
@@ -126,5 +145,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
   // 부품 줄이 다 PASS 인데 자식이 0 아닌 코드로 끝났다 — 뒷정리에서 났다. 판정은 부품 줄이 정본이라 남기기만 한다
   if (!killed && code !== 0) console.warn(`[runner] 시나리오 자식이 ${String(code)} 로 끝났다: ${tail(stderr)}`);
 
-  return finishScenario(parseParts(stdout), req.parts.length, killed, Date.now() - startedAt, tail(stderr) || tail(stdout));
+  return finishScenario(
+    parseParts(stdout), req.parts.length, killed, Date.now() - startedAt, tail(stderr) || tail(stdout), parseCleanup(stdout),
+  );
 }
