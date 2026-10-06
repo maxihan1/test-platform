@@ -56,6 +56,15 @@ describe('runParts — 새 창 · 시험 한도 · 이어 주기 · 뒷정리 (S
     expect([...이음.모킹]).toEqual([['**/a', { status: 200, contentType: 'text/plain', body: '둘째' }]]);
   });
 
+  it('같은 무늬를 다시 걸면 새 창에 넘기는 모킹 차례에서도 맨 뒤다 — 브라우저 · API 쪽 모두 나중 것이 이긴다', async () => {
+    const parts: Part[] = [모킹, { ...모킹, urlPattern: '**/b' }, { ...모킹, body: '둘째' }, 케이스('XRS-001')];
+    const { deps, 받은 } = 창들(parts);
+
+    await runParts(parts, deps);
+
+    expect(받은[1]!.mocks).toEqual(['**/b', '**/a']);
+  });
+
   describe('이어 주기 오류 · 안 걸린 이어 주기 (결정 12)', () => {
     it('이음 오류가 있으면 케이스가 통과로 끝나도 FAIL 이고 사유를 맨 앞에, 안 걸린 이어 주기를 줄 바꿔 덧붙인다', async () => {
       const parts: Part[] = [{ ...케이스('XRS-001'), links: [

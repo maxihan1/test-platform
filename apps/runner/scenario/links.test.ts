@@ -55,6 +55,10 @@ describe('무늬맞음', () => {
   it('깨진 무늬는 던지지 않고 안 맞는다', () => {
     expect(무늬맞음('**/api/{posts', 'https://x.com/api/posts', BASE)).toBe(false);
   });
+
+  it('대상 주소가 틀려도 던지지 않고 안 맞는다 — 응답 듣기 · route 안에서 엉뚱하게 죽지 않게', () => {
+    expect(무늬맞음('/api/*', 'https://x.com/api/a', '')).toBe(false);
+  });
 });
 
 describe('요청주소', () => {

@@ -204,6 +204,9 @@ describe('POST /execute-scenario — 입구 검사', () => {
     ['바꿔 보내기 경로가 // 로 시작한다 — 대상 주소 밖으로 샌다', { parts: [이어주는케이스([
       { kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PUT', path: '//evil.example/x', value: 앞응답 } },
     ])] }],
+    ['바꿔 보내기 경로에 {} 자리가 없다 — 앞 데이터가 아니라 모음 주소로 간다', { parts: [이어주는케이스([
+      { kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PUT', path: '/api/todos', value: 앞응답 } },
+    ])] }],
     ['앞 응답 돌려주기가 0번 부품을 가리킨다', { parts: [이어주는케이스([{ kind: 'reuse', method: 'GET', urlPattern: '**/a', fromSeq: 0 }])] }],
     ['값 꽂기가 0번 부품을 가리킨다', { parts: [이어주는케이스([{ kind: 'bind', param: 'todoId', value: { ...앞응답, fromSeq: 0 } }])] }],
   ])('%s 이면 400 INVALID_REQUEST 다', async (_이름, 칸) => {

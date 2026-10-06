@@ -213,3 +213,38 @@ describe('가르기 — API 쪽 모킹', () => {
     });
   });
 });
+
+describe('가르기 — 검사 반영 (2026-10-06 게이트 2)', () => {
+  it('브라우저 쪽은 route 가 이미 맞춘 무늬를 글자로 받는다 — 손으로 옮긴 무늬 맞추기가 상대 무늬에서 갈라도 막는다', async () => {
+    const 상대막기: ScenarioLink = { kind: 'block', method: 'DELETE', urlPattern: 'api/cart' };
+    const { 이음, 부품 } = 판([상대막기]);
+
+    await expect(가르기(이음, 부품, 'browser', 'DELETE', 'https://x.com/shop/api/cart', 'api/cart')).resolves.toEqual({
+      kind: 'fulfill', 응답: { status: 200, contentType: 'application/json', body: '{}' },
+    });
+    expect(부품.걸림).toEqual(new Set([0]));
+  });
+
+  it('바꿔 보내기 값이 「.」 · 「..」 이면 주소가 상위로 풀려서 fail', async () => {
+    const { 이음, 부품 } = 판([바꿔보내기]);
+    이음.응답.set('1 POST **/api/posts', Promise.resolve(json({ data: { id: '..' } })));
+
+    await expect(가르기(이음, 부품, 'api', 'POST', 'https://x.com/api/posts')).resolves.toEqual({
+      kind: 'fail', message: '1번 부품 응답의 data.id 값 「..」 은 주소에 넣을 수 없다',
+    });
+  });
+
+  it('API 쪽 가짜 응답(막기 · 모킹)도 적는다 — 브라우저 쪽은 fulfill 한 응답도 response 로 적히므로 같게', async () => {
+    const 뒤가씀: ScenarioLink = { kind: 'bind', param: 'x', value: { fromSeq: 2, method: 'DELETE', urlPattern: '**/api/cart', jsonPath: 'a' } };
+    const 배너: ScenarioLink = { kind: 'bind', param: 'y', value: { fromSeq: 2, method: 'GET', urlPattern: '**/api/banner', jsonPath: 'ad' } };
+    const 이음 = 새이음([케이스('A-001'), 케이스('A-002', [막기]), 케이스('A-003', [뒤가씀, 배너])], BASE);
+    const 부품 = 새부품(2, [막기]);
+    이음.모킹.set('**/api/banner', json({ ad: 1 }));
+
+    await 가르기(이음, 부품, 'api', 'DELETE', 'https://x.com/api/cart');
+    await 가르기(이음, 부품, 'api', 'GET', 'https://x.com/api/banner');
+
+    await expect(이음.응답.get('2 DELETE **/api/cart')).resolves.toEqual({ status: 200, contentType: 'application/json', body: '{}' });
+    await expect(이음.응답.get('2 GET **/api/banner')).resolves.toEqual(json({ ad: 1 }));
+  });
+});

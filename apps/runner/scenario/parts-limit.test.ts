@@ -3,6 +3,7 @@
 import type { ScenarioExecuteRequest } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import type { 미룬삭제 } from './links.js';
 import { runParts } from './parts.js';
 import { 쿠키, 창들 } from './parts-fake.js';
 
@@ -135,5 +136,63 @@ describe('예외로 끝난 부품 · 창 닫기', () => {
     const 앞 = 받은[0]!.창;
     expect(차례(앞.state)).toBeLessThan(차례(deps.newWindow, 1));
     expect(차례(deps.newWindow, 1)).toBeLessThan(차례(앞.close));
+  });
+});
+
+describe('기다림에 상한 (2026-10-06 게이트 2)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  const 미룸 = (fromSeq: number): 미룬삭제 => ({ fromSeq, url: `https://qa.example.com/api/posts/${fromSeq}`, headers: {}, state: { cookies: [], origins: [] } });
+
+  it('미룬 삭제 하나가 부품 시험 한도 안에 안 끝나면 그 줄에 오류를 남기고 나머지를 보낸다 — 다 통과한 시나리오가 판정 없음이 되지 않게', async () => {
+    vi.useFakeTimers();
+    const parts: Part[] = [케이스('XRS-001')];
+    const { deps, 뒷정리, 이음 } = 창들(parts, { partTimeoutMs: 1000 });
+    이음.미룸.push(미룸(1), 미룸(2));
+    deps.sendDelete = vi.fn((d: 미룬삭제) => (d.fromSeq === 2 ? new Promise<number>(() => {}) : Promise.resolve(200)));
+
+    const 돌림 = runParts(parts, deps);
+    await vi.advanceTimersByTimeAsync(1000);
+    await 돌림;
+
+    expect(뒷정리).toEqual([[
+      { fromSeq: 2, method: 'DELETE', url: 'https://qa.example.com/api/posts/2', error: '미룬 삭제가 1000ms 안에 끝나지 않았다' },
+      { fromSeq: 1, method: 'DELETE', url: 'https://qa.example.com/api/posts/1', status: 200 },
+    ]]);
+  });
+
+  it('부품 한도가 0(없음)이어도 미룬 삭제 하나는 30초까지만 기다린다', async () => {
+    vi.useFakeTimers();
+    const parts: Part[] = [케이스('XRS-001')];
+    const { deps, 뒷정리, 이음 } = 창들(parts, { partTimeoutMs: 0 });
+    이음.미룸.push(미룸(1));
+    deps.sendDelete = vi.fn(() => new Promise<number>(() => {}));
+
+    const 돌림 = runParts(parts, deps);
+    await vi.advanceTimersByTimeAsync(30_000);
+    await 돌림;
+
+    expect(뒷정리[0]).toEqual([{ fromSeq: 1, method: 'DELETE', url: 'https://qa.example.com/api/posts/1', error: '미룬 삭제가 30000ms 안에 끝나지 않았다' }]);
+  });
+
+  it('한도에 걸린 뒤 창 상태 읽기가 안 끝나도 창을 닫고 FAIL 로 멈춘다 — 부품 한도가 무력해지지 않게', async () => {
+    vi.useFakeTimers();
+    const parts: Part[] = [케이스('XRS-001')];
+    const { deps, 받은, 줄 } = 창들(parts, {
+      partTimeoutMs: 1000,
+      창마다: (n) => (n !== 1 ? {} : {
+        runCase: vi.fn(() => new Promise<never>(() => {})),
+        state: vi.fn(() => new Promise<never>(() => {})),
+      }),
+    });
+
+    const 돌림 = runParts(parts, deps);
+    await vi.advanceTimersByTimeAsync(11_000);
+    await 돌림;
+
+    expect(줄).toEqual([expect.objectContaining({ status: 'FAIL', error: { message: '부품 제한 시간 1000ms 를 넘었다' } })]);
+    expect(받은[1]!.창.close).toHaveBeenCalled();
   });
 });
