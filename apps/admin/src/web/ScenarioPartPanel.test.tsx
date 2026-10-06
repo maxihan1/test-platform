@@ -351,3 +351,31 @@ describe('ScenarioPartPanel 재료 없음 · 읽기 전용', () => {
     expect(screen.getByText('불러오는 중입니다.')).toBeTruthy();
   });
 });
+
+describe('ScenarioPartPanel 값 연결 자리', () => {
+  const 그리기값연결 = (현재: 케이스단계) =>
+    render(
+      <ScenarioPartPanel
+        번호={1}
+        단계={현재}
+        단계들={[현재]}
+        재료={new Map([[현재.tcId, 재료(현재.tcId)]])}
+        쓰나
+        on바꿈={vi.fn()}
+        on케이스바꾸기={vi.fn()}
+        값연결={<p>값 연결 편집 내용</p>}
+      />,
+    );
+
+  it('값연결을 넘기면 값 연결 제목 아래에 그 내용이 보인다', () => {
+    그리기값연결(단계('ZSB-001'));
+    expect(screen.getByRole('heading', { name: '값 연결' })).toBeTruthy();
+    expect(screen.getByText('값 연결 편집 내용')).toBeTruthy();
+  });
+
+  it('로그인 이어받기를 끄면 값 연결 자리가 없다', () => {
+    그리기값연결(단계('ZSB-001', { carryOver: false }));
+    expect(screen.queryByRole('heading', { name: '값 연결' })).toBeNull();
+    expect(screen.queryByText('값 연결 편집 내용')).toBeNull();
+  });
+});
