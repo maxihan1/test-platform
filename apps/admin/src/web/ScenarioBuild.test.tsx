@@ -2,6 +2,7 @@
 // E2E 시나리오 조립 화면 ① 검사 — 불러오기 · 머리 · 저장 · 권한 · 서비스 고정 · 떠나기 확인 (도메인/시나리오 §8.11)
 
 import type { ScenarioPart } from '@platform/kit';
+import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
@@ -152,6 +153,17 @@ describe('ScenarioBuild 기존 시나리오 불러오기', () => {
     const { caseParts } = await 기존그리기();
     await waitFor(() => expect(caseParts).toHaveBeenCalledTimes(2));
     expect(caseParts.mock.calls.map((c) => c[0]).sort()).toEqual(['ZSB-001', 'ZSB-002']);
+  });
+
+  it('StrictMode 로 불러오기가 두 번 돌아도 1번 설정 패널이 재료를 받아 케이스 이름을 그린다', async () => {
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세());
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
+    render(
+      <StrictMode>
+        <ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />
+      </StrictMode>,
+    );
+    expect(await screen.findByRole('heading', { name: 'ZSB-001 ZSB-001 케이스' })).toBeTruthy();
   });
 
   it('재료 하나가 404 여도 화면이 뜬다', async () => {
