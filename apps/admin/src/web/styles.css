@@ -3279,8 +3279,9 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   color: var(--ink-muted);
 }
 
-/* 이름 링크가 브라우저 기본 파랑으로 나오던 것 — 줄 글자색을 따른다 (2026-10-07 실측) */
-.scn-row-name {
+/* 이름 · 결과 칩 링크가 브라우저 기본 파랑으로 나오던 것 — 줄 글자색을 따른다 (2026-10-07 실측) */
+.scn-row-name,
+.scenario-result a {
   color: inherit;
 }
 
