@@ -92,7 +92,7 @@
 2. ✅ **KIT + WS-C 러너 (PR #100, 2026-09-28)** — kit 시나리오 모드(본체 꺼내기 · `RunScope` 하나 · 제목으로 건너뛰기) · 러너 고정 spec + 전용 설정 · `POST /execute-scenario` · 모킹 `context.route` · 결과 표시자(`protocol.ts`).
    명세 도메인/러너 §5.2 「시나리오 실행」. 「testDir 밖 파일은 안 잡힌다」는 실행으로 쟀다. 계약 블록 둘(러너 · 시나리오 모드) `반영 완료`.
    **이미지에서만 드러나는 것이 있었다** — 고정 spec 이 kit 을 값으로 부르면 `/tests`(require)와 섞여 죽는다. CI(Node 22)는 이것을 재현하지 못한다(러너 §5.2)
-3. ✅ **WS-A (PR #101, 2026-09-29)** — K12 검사기(`catalog/rules.ts`) · 「만들기」 판별 `caseSteps(소스)` → `{ steps: [{ title, line, skippable }], r16, usesRequest }`(`catalog/steps.ts`) ·
+3. ✅ **WS-A (PR #101, 2026-09-29)** — K12 검사기(`catalog/rules.ts`) · 「만들기」 판별 `caseSteps(소스)` → `{ steps: [{ title, line, skippable }], r16, usesRequest }`(`catalog/steps.ts` — `usesRequest` 는 PR #163 에서 뺐다) ·
    `tpx-cases` R16 에 K12. **애매하면 「만들기」로 안 친다**(게이트 1 — 시나리오 §3.7). 4번 서버의 `case-parts` 응답은 이 함수 결과에서 `line` 만 빼면 된다
 4. **WS-B 서버 + WS-F — PR 셋으로 나눴다** (2026-09-29 사용자). ① 이 먼저 들어가야 ③ 이 시나리오 실행을 만들어도 케이스 자리에 안 섞인다.
    서버 코드 자리는 WS-시나리오(`apps/admin/src/scenario/**`) 이고, 기존 조회에 `kind` 를 붙이는 것은 각 갈래 폴더를 건드린다 — 계획의 `files` 에 싣는다
@@ -127,7 +127,7 @@
      ✅ ⓐ **계약 반영 (PR #161, 2026-10-06)** — kit 타입(case 부품의 `carryOver` · `links` · `ScenarioLink` · `ScenarioResponseRef` · 결과의 `bound` · `cleanup`) · 마이그레이션 `scenario_run_part` 세 칸(`unconfirmed` · `bound` · `cleanup`)
      ✅ ⓑ **러너 + kit 시나리오 모드 (PR #162, 2026-10-06)** — 부품마다 새 창(로그인 상태만 · 디바이스는 Playwright 가 채움 · 모킹 다시 걸기) · 부품 시험 한도(루트 `timeout` · 0 은 없음) · 감싸기는 **러너 고정 spec 한 곳**(부품 `request` · `page.request` · 직접 만든 창 · 연결 — 게이트 0 사용자) · kit 은 준비 구간 · 절차 밖 표시판과 뒷정리 줄 표시자만 · 이어 주기 넷 · 뒷정리 미루기와 뒷정리 줄 · 러너 입구 zod `carryOver` · `links`.
         러너 이미지에서 `/tests` 케이스가 `require` 로 만든 연결도 감싸지는 것을 쟀다(SETUP §14 「러너 이미지로 시나리오 한 바퀴」)
-     ⓒ **서버** — **admin 조립 검사 `apps/admin/src/scenario/validate.ts` `부품모양` 에 `carryOver` · `links` 를 더한다 — ⓑ 와 같은 까닭이고, 옵션 칸이라 `z.ZodType<ScenarioPart[]>` 주석도 못 잡는다**. 러너 입구가 막는 이어 주기 모양(바꿔 보내기 경로의 `/` · `//` · `{}` · `fromSeq` 양의 정수 — `apps/runner/src/routes.ts`)을 admin 이 먼저 같은 글자로 400 으로 막는다 ·
+     ✅ ⓒ **서버 (PR #163, 2026-10-06)** — **admin 조립 검사 `apps/admin/src/scenario/validate.ts` `부품모양` 에 `carryOver` · `links` 를 더한다 — ⓑ 와 같은 까닭이고, 옵션 칸이라 `z.ZodType<ScenarioPart[]>` 주석도 못 잡는다**. 러너 입구가 막는 이어 주기 모양(바꿔 보내기 경로의 `/` · `//` · `{}` · `fromSeq` 양의 정수 — `apps/runner/src/routes.ts`)을 admin 이 먼저 같은 글자로 400 으로 막는다 ·
         조립 거절 400 더하기(시나리오 §7 「2026-10-06 이어 주기에서 더한 것」) · `case-parts` 의 `unconfirmed` · 실행 · 시험 실행이 빈 칸을 저장값으로 채워 박제 · 채운 뒤 크기 다시 재기 · 미확정 박제 ·
         결과 저장 `bound` · `cleanup`(실행 한 벌을 `fromSeq` 로 부품 행에 나눔) · 시험 실행 가리기를 채운 뒤 값과 `bound` 로 · 목록 `lastRun.unconfirmed` · E2E 탭 줄 `unconfirmed` · `summary.unconfirmedPass` · `runRoutes.ts` 주석 ·
         **`usesRequest` 를 뺀다** — ⓑ 가 직접 만든 창 · 연결까지 감싸지는 것을 러너 이미지에서 확인했다(PR #162 · 시나리오 §3.7 결정 6). 케이스 부품의 「모킹되지 않음」 경고와 그 칸이 대상이고, API 호출 부품의 경고는 그대로다.
@@ -143,8 +143,11 @@
    자리 `E2E 시나리오`(`layout.ts` 의 `자리목록()`, 영어 `E2E scenarios` 는 `messages/shell.ts`) · **코드 주석에 남은 「자리 넷」**(`layout.ts` · `messages/shell.ts`) ·
    `docs/design-mockup.html` 사이드바(코드에 들어간 뒤에 그린다 — 목업 머리 주석) · `E2E 시나리오` 폭을 화면에서 눈으로 확인
    **결과 화면(`#/runs/:runId`)은 번호만 들고 온다** — `GET /api/runs/:runId` 가 404 `SCENARIO_RUN` 이면 `GET /api/runs/:runId/scenario` 로 갈아탄다(③-1). 목록 줄은 탭이 이미 가른다(`?kind=`) · 비밀값은 부품의 `paramSchema`·`expectedSchema` 로 가린다(`web/mask.ts`)
+   **서버(PR #163)가 넘기는 것** — 결과 응답의 `part.params` · `part.expected` · `bound` 비밀 칸은 서버가 이미 가린다(화면도 한 번 더 가려도 같다) · 값 꽂기 칸의 실제 값은 `part.params` 가 아니라 `bound` 에 있다 ·
+   **조립에서 비운 입력 칸은 키를 빼고 저장한다** — 빈 글자(`""`)로 저장하면 그 칸은 저장값으로 안 채워진다(저장값은 조립에 없는 칸만 채운다, 시나리오 §3.7)
 6. **WS-D 증적** — E2E 증적(부품 층 · 모킹 한 줄 · 건너뜀) · 전체 증적의 E2E 요약 · **`reporting/html.test.ts` 의 `httpTrace` 금지를 한 줄 예외만큼 연다** ·
    **2026-10-06 재설계가 더한 표시** — 이어 주기 한 줄씩(비밀 칸에 꽂은 값은 `********`) · 「넘겨받기 끔」 · 부품마다 「미확정」과 머리 「미확정 포함」(요약 줄에도) · 끝에 보낸 뒷정리 줄(리포팅 §8.4) ·
+   **값 꽂기 칸의 실제 입력은 `part.params` 가 아니라 `bound` 다**(PR #163 — 그 칸은 저장값으로 안 채운다) · 결과 행의 비밀 칸은 서버가 가려 둔 값이 아니라 DB 원문이다 — 증적도 박제 스키마로 가린다 ·
    명세 도메인/리포팅 §8.4 「E2E 시나리오 증적」 · §8.5. (Grafana 질의의 `kind = 'CASE'` 는 4번 ① 이 넣었다)
    **③-1 이 막아 둔 것을 연다** — 증적 만들기·견주기가 시나리오 실행 번호에 404 다(`reporting/routes.ts` `실행상태` · `collect.ts` `collectRun` · `insights.ts` `compareWithPrevious` 의 `kind = 'CASE'`). E2E 증적을 만들 때 이 거르기를 `kind` 갈래로 바꾼다
 
