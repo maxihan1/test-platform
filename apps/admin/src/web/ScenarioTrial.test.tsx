@@ -152,6 +152,16 @@ describe('시험 실행 시작 전 막기', () => {
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('');
   });
 
+  it('막힌 뒤 대상 서버를 고르면 먼저 고르라는 줄이 사라진다', async () => {
+    await 기존그리기();
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    expect(screen.getByText('시험 실행할 대상 서버를 먼저 고릅니다')).toBeTruthy();
+
+    서버고르기('stg');
+
+    expect(screen.queryByText('시험 실행할 대상 서버를 먼저 고릅니다')).toBeNull();
+  });
+
   it('가리킴이 빈 값 연결이 있으면 문장을 띄우고 서버를 안 부른다', async () => {
     await 기존그리기([
       케이스단계('ZSB-001'),

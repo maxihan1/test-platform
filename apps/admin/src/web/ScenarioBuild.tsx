@@ -171,7 +171,11 @@ export function ScenarioBuild({
         <TrialControls
           서버들={user.services.find((s) => s.prefix === 초안.서비스)?.envs ?? []}
           서버={서버}
-          on서버={set서버}
+          on서버={(값) => {
+            // 서버를 고르면 「먼저 고릅니다」 문장은 이미 낡았다
+            set서버(값);
+            set시험글(null);
+          }}
           도는중={시험.단계 === 'running'}
           on시작={시험누름}
         />
