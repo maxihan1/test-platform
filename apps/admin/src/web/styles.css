@@ -3455,9 +3455,18 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   /* 손가락으로 누르는 자리는 46px 로 건다 — 위 `.evi-open` · `.side-nav a` 와 같은 기준 */
   .scn-back a,
   .scn-sc,
-  .scn-shot {
+  .scn-shot,
+  .scn-row-name,
+  .scenario-result a {
     display: inline-flex;
     align-items: center;
+    min-height: 46px;
+  }
+
+  /* 시나리오 목록의 대상 서버 고르개와 조립 머리의 이름 · 디바이스 · 대상 서버 칸. 실행 기록 툴바는 건드리지 않는다 */
+  #sc-env,
+  .scn-head input,
+  .scn-head select {
     min-height: 46px;
   }
 
