@@ -1,7 +1,7 @@
 import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
-import { API로그인 } from './components/account.component.js';
+import { API로그인, 관리자계정값 } from './components/account.component.js';
 
 export const spec = defineCase({
   tcId: 'MKT-FN-548',
@@ -16,8 +16,9 @@ export const spec = defineCase({
 });
 
 test(spec, async ({ request, params }) => {
+  const 계정 = 관리자계정값(params);
   await test.step('관리자 계정으로 로그인한다', async () => {
-    await API로그인(request, params.adminLoginId, params.adminPassword ?? '');
+    await API로그인(request, 계정.loginId, 계정.password);
   });
 
   await test.step('관리자 계정으로 로그인해 있는지 확인한다', async () => {
