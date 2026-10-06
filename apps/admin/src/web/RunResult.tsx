@@ -3,21 +3,22 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, ApiError, type ItemStatus, type Platform, type 항목진행 } from './api.js';
+import { api, ApiError, type ItemStatus, type Platform } from './api.js';
 import { filterGroups, groupByCase } from './group.js';
 import { Head } from './Head.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { use말, use언어 } from './i18n.js';
-import { Modal } from './Modal.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 진행상황 } from './runProgress.js';
+import { RunAbortModal } from './RunAbortModal.js';
 import { RunInsights } from './RunInsights.js';
 import { RunProgressModal } from './RunProgressModal.js';
 import { 결과줄 } from './RunResultRow.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
-import { Failed, Loading, message, PLATFORM_LABEL, PLATFORMS, STATUS_LABEL, useAsync, when } from './ui.js';
+import { Failed, Loading, PLATFORM_LABEL, PLATFORMS, STATUS_LABEL, useAsync, when } from './ui.js';
 import { 끝난미확정, 미확정글자 } from './unconfirmed.js';
+import { useRunProgress } from './useRunProgress.js';
 
 const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
@@ -48,14 +49,10 @@ function 케이스결과({
   const [page, setPage] = useState(1);
   const [멈출까, set멈출까] = useState(false);
   const [멈추는중, set멈추는중] = useState(false);
-  const [멈춤오류, set멈춤오류] = useState<string | null>(null);
   const [끝났다고알릴까말까, set알릴까] = useState(false);
   // 「진행 상자를 닫았다」와 「완료를 알았다」는 다른 말이다. 하나로 합치면 도는 중에 상자를 닫은 사람이
   // 실행이 끝난 것을 영영 못 듣는다 — 맨 위 알림 줄도 `본것들` 을 보므로 그를 못 구한다 (SPEC §8.9)
   const [진행열림, set진행열림] = useState(false);
-  // 그리는 값이라 `useState` 다. `useRef` 로 들면 값은 맞는데 화면이 다시 안 그려진다
-  // — 2026-09-21 에 이 화면 바로 옆에서 난 사고다 (아래 `앞선상태` 는 안 그리는 값이라 ref 가 맞다)
-  const [진행목록, set진행목록] = useState<항목진행[]>([]);
   // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다.
   // 화면에 안 나오는 값이라 `useRef` 로 둔다 — 그리는 값이면 `useState` 여야 한다 (2026-09-21 사고)
   const 앞선상태 = useRef<string | null>(null);
@@ -97,22 +94,7 @@ function 케이스결과({
     return () => clearInterval(timer);
   }, [running, 만드는문서있나, reload]);
 
-  // 러너의 「지금」은 DB 에 없다. 상세 조회와 별개의 통로라 같은 2초 주기로 따로 묻는다 (SPEC §7).
-  // **도는 중일 때만 부른다** — 끝난 실행을 열 때마다 러너를 깨울 이유가 없다
-  useEffect(() => {
-    if (!running) return;
-    const 묻는다 = () => {
-      void api
-        .progress(runId)
-        .then((답) => set진행목록(답.items))
-        // 진행은 곁들이다. 러너에 못 닿아도 결과 화면은 그대로 서 있어야 해서 절차를 지우고
-        // 이름까지만 아는 상태로 물러선다 — `진행상황()` 이 빈 목록을 그 뜻으로 받는다
-        .catch(() => set진행목록([]));
-    };
-    묻는다();
-    const timer = setInterval(묻는다, 2000);
-    return () => clearInterval(timer);
-  }, [running, runId]);
+  const 진행목록 = useRunProgress(running, runId);
 
   const 증적칸 = use증적(data, 실행판정(판정하기, data), reload);
 
@@ -272,42 +254,16 @@ function 케이스결과({
       )}
 
       {!멈출까 ? null : (
-        <Modal
-          제목={t('RUN {번호} 을 멈출까요?', { 번호: data.runId })}
+        <RunAbortModal
+          runId={data.runId}
+          멈추는중={멈추는중}
+          on멈추는중={set멈추는중}
           onClose={() => set멈출까(false)}
-          버튼={
-            <>
-              <button className="btn ghost" onClick={() => set멈출까(false)}>
-                {t('아니오')}
-              </button>
-              <button
-                className="btn"
-                disabled={멈추는중}
-                onClick={() => {
-                  set멈추는중(true);
-                  set멈춤오류(null);
-                  void api
-                    .abortRun(data.runId)
-                    .then(() => {
-                      set멈출까(false);
-                      reload();
-                    })
-                    .catch((err: unknown) => set멈춤오류(message(err, 언어)))
-                    .finally(() => set멈추는중(false));
-                }}
-              >
-                {멈추는중 ? t('중단하는 중') : t('중단§버튼')}
-              </button>
-            </>
-          }
-        >
-          <p>
-            {t('아직 시작하지 않은 항목은 대기줄에서 빼고, 이미 돌고 있는 항목은 끊습니다.')}
-            <br />
-            {t('되돌릴 수 없습니다.')}
-          </p>
-          {멈춤오류 === null ? null : <p className="err">{멈춤오류}</p>}
-        </Modal>
+          on멈춤={() => {
+            set멈출까(false);
+            reload();
+          }}
+        />
       )}
 
       {totalPages <= 1 ? null : (
