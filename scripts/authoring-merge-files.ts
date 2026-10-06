@@ -32,9 +32,12 @@ export function PR파일읽기(낸것: string): { 수: number; 파일들: string
   return { 수: 줄들.length, 파일들: 줄들.flatMap((줄) => 줄.split('\t').filter((f) => f !== '')) };
 }
 
-/** 판정 직전에 PR 을 새로 읽는다 — 함수 앞에서 읽은 PR 정보는 보류 빼기 커밋(`반영올리기`) 전 것이라 낡았다 */
+/**
+ * 판정 직전에 PR 을 새로 읽는다 — 함수 앞에서 읽은 PR 정보는 보류 빼기 커밋(`반영올리기`) 전 것이라 낡았다.
+ * 머리도 같이 읽는다 — 목록을 읽은 뒤 머리가 병합할 커밋과 같아야 그 목록이 병합할 커밋의 것이다
+ */
 export function PR수인자(prUrl: string): string[] {
-  return ['pr', 'view', prUrl, '--json', 'changedFiles', '-q', '.changedFiles'];
+  return ['pr', 'view', prUrl, '--json', 'changedFiles,headRefOid', '-q', '[.changedFiles, .headRefOid] | @tsv'];
 }
 
 /** 잘린 목록으로 판정하면 뒤쪽 코드 파일을 못 본다. 다 읽었다고 확인될 때만 null */
@@ -48,13 +51,15 @@ export function 파일수어긋남(읽은수: number, PR수글: string): string 
 type 친결과 = { ok: boolean; 낸것: string; 까닭: string };
 
 /**
- * 병합 직전 판정을 한 줄로. 앞 단계가 먼저 걸린다 — main → 목록 → 수 → 수 대조 → 테스트만.
+ * 병합 직전 판정을 한 줄로. 앞 단계가 먼저 걸린다 — main → 목록 → 수 → 머리 → 수 대조 → 테스트만.
+ * `머리` 는 병합할 커밋(`--match-head-commit` 에 넣는 것)이다.
  * 목록이 실패면 낸 글자를 읽지 않는다 — `gh api` 실패는 stdout 에 오류 JSON 한 줄을 내서 파일 하나로 세어진다.
  * 목록 · 수 · `테스트만` 은 앞이 다 통과했을 때만 부른다 — 셋 다 동기 호출이라 미리 몰아 치면
  * 그동안 생존 신호(30초)가 끊기고 서버는 3분이면 죽었다고 본다(authoring-heartbeat)
  */
 export function 병합직전막힘(입력: {
   메인: { sha: string } | { 까닭: string };
+  머리: string;
   목록: () => 친결과;
   수: () => 친결과;
   테스트만: (파일들: string[], 기준: string) => boolean;
@@ -65,8 +70,12 @@ export function 병합직전막힘(입력: {
   if (!목록.ok) return `PR 의 바뀐 파일을 못 읽었다: ${목록.까닭}`;
   const 수 = 입력.수();
   if (!수.ok) return `PR 의 바뀐 파일 수를 못 읽었다: ${수.까닭}`;
+  const [수글 = '', 그때머리 = ''] = 수.낸것.split('\t').map((칸) => 칸.trim());
+  if (그때머리 !== 입력.머리) {
+    return `PR 머리가 판정 사이에 바뀌었다 (${입력.머리.slice(0, 7)} → ${그때머리.slice(0, 7)}) — 판정하지 않는다`;
+  }
   const 읽음 = PR파일읽기(목록.낸것);
-  const 어긋남 = 파일수어긋남(읽음.수, 수.낸것);
+  const 어긋남 = 파일수어긋남(읽음.수, 수글);
   if (어긋남 !== null) return 어긋남;
   return 머지거부사유(입력.테스트만(읽음.파일들, 메인.sha), 읽음.파일들);
 }

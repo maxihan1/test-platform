@@ -190,6 +190,7 @@ export async function 머지처리(
   const 파일인자 = PR파일인자(prUrl);
   const 막힘 = 병합직전막힘({
     메인,
+    머리: pr.headRefOid,
     목록: () => (파일인자 === null ? { ok: false, 낸것: '', 까닭: `PR 주소 꼴이 아니다 (${prUrl})` } : 친다('gh', 파일인자, 뿌리)),
     수: () => 친다('gh', PR수인자(prUrl), 뿌리),
     테스트만: (파일들, 기준) => 판정(파일들, 기준, 뿌리),
