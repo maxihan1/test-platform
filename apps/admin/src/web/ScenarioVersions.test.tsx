@@ -211,4 +211,17 @@ describe('이 버전으로 되돌리기', () => {
     expect(await screen.findByText('목록에서 치운 시나리오라 고치거나 실행할 수 없습니다')).toBeTruthy();
     expect(screen.queryByText('v4 버전으로 되돌렸습니다')).toBeNull();
   });
+
+  it('되돌린 뒤 상세를 다시 불러오다 실패하면 조립 화면은 남고 상태 줄에 오류 문장이 뜬다', async () => {
+    await 이력열기();
+    vi.spyOn(scenarioApi, 'restore').mockResolvedValue({ version: 4 });
+    vi.spyOn(scenarioApi, 'detail').mockRejectedValue(new ApiError(500, 'SERVER_ERROR', ''));
+
+    fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
+    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 되돌리기' }));
+
+    expect(await screen.findByText('요청이 실패했습니다 (SERVER_ERROR)')).toBeTruthy();
+    expect(screen.getByLabelText('시나리오 이름')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^1케이스/ })).toBeTruthy();
+  });
 });
