@@ -1,4 +1,4 @@
-// 케이스 소스에서 「만들기」 절차와 request 사용을 가려내는 판별이 안전한 쪽으로 무너지는지 검사한다
+// 케이스 소스에서 「만들기」 절차를 가려내는 판별이 안전한 쪽으로 무너지는지 검사한다
 
 import { describe, expect, it } from 'vitest';
 
@@ -194,34 +194,9 @@ describe('caseSteps', () => {
     expect(caseSteps(between).steps.every((s) => !s.skippable)).toBe(true);
   });
 
-  it.each([
-    ['나머지로 받음', '{ page, ...rest }'],
-    ['문자열 키', "{ 'request': r }"],
-  ])('request 를 쓰는지 모르면 쓴다고 본다 — %s', (_, fixtures) => {
-    expect(caseSteps(body('', fixtures)).usesRequest).toBe(true);
-  });
-
-  it('page.request 도 브라우저 밖 통로라 request 사용이다', () => {
-    expect(caseSteps(body(`  await test.step('부른다', async () => {\n    await page.request.get('/x');\n  });`)).usesRequest).toBe(true);
-  });
-
-  it('test 본문을 이름으로 넘기면 request 를 쓴다고 본다', () => {
-    const named = `import { defineCase, test } from '@platform/kit';\nexport const spec = defineCase({ tcId: 'DEMO-001', name: 'x', precondition: [], params: null, expected: null });\ntest(spec, run);\n`;
-    expect(caseSteps(named).usesRequest).toBe(true);
-  });
-
   it('제목이 문자열 리터럴이 아닌 절차는 목록에 싣지 않는다 (K6 이 잡는다)', () => {
     const dynamic = R16.replace(`test.step('할 일을 만든다'`, 'test.step(title');
     expect(caseSteps(dynamic).steps.map((s) => s.title)).toEqual(['할 일이 한 건인지 확인한다', '완료를 누른다']);
-  });
-
-  it('request 를 꺼내 쓰면 usesRequest 다', () => {
-    expect(caseSteps(body('', '{ request, params }')).usesRequest).toBe(true);
-    expect(caseSteps(body('', '{ page }')).usesRequest).toBe(false);
-  });
-
-  it('구조 분해가 아니라 이름 하나로 받으면 request 를 쓴다고 본다 — 경고가 빠지는 쪽보다 낫다', () => {
-    expect(caseSteps(body('', 'fixtures')).usesRequest).toBe(true);
   });
 });
 

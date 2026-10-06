@@ -23,7 +23,7 @@ export interface 케이스부품재료 {
   expectedSchema: CaseSpec['expectedSchema'];
   steps: { title: string; skippable: boolean }[];
   r16: boolean;
-  usesRequest: boolean;
+  unconfirmed: string | null;
 }
 
 /**
@@ -82,7 +82,7 @@ export async function 케이스재료(
       expectedSchema: 행.expectedSchema,
       steps,
       r16: steps.some((s) => s.skippable),
-      usesRequest: 판별.usesRequest,
+      unconfirmed: 행.unconfirmed,
     });
   }
   return { 카탈로그: 카탈로그재료, 부품재료 };
