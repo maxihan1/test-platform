@@ -156,7 +156,9 @@ function 시나리오줄({
       <div className="gutter" style={{ background: 'var(--rule)' }} />
       <div className="tcid">SC-{줄.id}</div>
       <div className="title">
-        <a href={`#/scenarios/${줄.id}`}>{줄.name}</a>
+        <a className="scn-row-name" href={`#/scenarios/${줄.id}`}>
+          {줄.name}
+        </a>
         {!줄.needsCheck ? null : <span className="case-tag">{t('확인 필요')}</span>}
         {줄.runnable ? null : <span className="case-tag">{t('실행 불가')}</span>}
         <small>
