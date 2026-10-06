@@ -214,7 +214,7 @@ describe('ScenarioBuild 기존 시나리오 불러오기', () => {
 
   it('단계가 있게 불러온 시나리오는 1번 설정 탭이 열리고 새 시나리오는 단계 추가 탭이 열린다', async () => {
     const { unmount } = await 기존그리기();
-    expect(screen.getByRole('tab', { name: '1번 설정' }).getAttribute('aria-selected')).toBe('true');
+    expect((await screen.findByRole('tab', { name: '1번 설정' })).getAttribute('aria-selected')).toBe('true');
     unmount();
 
     새로그리기();
