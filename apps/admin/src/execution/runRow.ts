@@ -1,5 +1,7 @@
 // 실행 묶음 한 줄 — 칸 목록과 응답 모양으로 옮기기. queries.ts 가 300줄을 넘어 떼어 냈다 (SPEC 도메인/실행 §7)
 
+import type { ItemStatus } from '@platform/kit';
+
 import type { RunKind } from './runKind.js';
 import type { 시나리오실행줄 } from './runSummary.js';
 import type { RunSummary } from './runTypes.js';
@@ -70,7 +72,7 @@ export function toRun(row: RawRun): RunSummary {
 }
 
 export function to시나리오줄(
-  row: RawRun & { scenario_id: string; scenario_version: number; part_count: number; stopped_at: number | null; unconfirmed: boolean },
+  row: RawRun & { scenario_id: string; scenario_version: number; part_count: number; stopped_at: number | null; unconfirmed: boolean; verdict: ItemStatus | null },
 ): 시나리오실행줄 {
   const { counts: _counts, ...머리 } = toRun(row);
   return {
@@ -80,5 +82,6 @@ export function to시나리오줄(
     partCount: row.part_count,
     stoppedAt: row.stopped_at,
     unconfirmed: row.unconfirmed,
+    verdict: row.verdict,
   };
 }
