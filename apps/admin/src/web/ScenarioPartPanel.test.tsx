@@ -3,6 +3,7 @@
 
 import type { ScenarioPart } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { useState } from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 import type { CasePartMaterial } from './scenarioApi.js';
@@ -131,6 +132,45 @@ describe('ScenarioPartPanel 로그인 이어받기', () => {
 
     fireEvent.click(스위치);
     expect(마지막바꿈(on바꿈).carryOver).toBe(true);
+  });
+});
+
+describe('ScenarioPartPanel 로그인 이어받기를 껐다 켜기', () => {
+  it('끄면 초안 값은 비고 칸은 기억한 값으로 잠긴 채 보이며 다시 켜면 둘이 돌아온다', () => {
+    const 올림: 케이스단계[] = [];
+    const 묶음 = { kind: 'bind', param: 'id', value: { fromSeq: 1, method: 'GET', urlPattern: '**/a', jsonPath: 'id' } } as const;
+    function 상태있는() {
+      const [지금, set지금] = useState(
+        단계('ZSB-001', { skipSteps: ['로그인한다'], links: [묶음] }),
+      );
+      올림.push(지금);
+      return (
+        <ScenarioPartPanel
+          번호={1}
+          단계={지금}
+          단계들={[지금]}
+          재료={new Map([['ZSB-001', 준비있는('ZSB-001')]])}
+          쓰나
+          on바꿈={set지금}
+          on케이스바꾸기={vi.fn()}
+          값연결={(보일, 잠금) => <p>{`연결 ${보일.links?.length ?? 0} 잠금 ${String(잠금)}`}</p>}
+        />
+      );
+    }
+    render(<상태있는 />);
+    const 스위치 = screen.getByRole('switch', { name: '로그인 이어받기' });
+
+    fireEvent.click(스위치);
+
+    expect(올림.at(-1)).toMatchObject({ carryOver: false, skipSteps: [], links: [] });
+    expect((screen.getByRole('checkbox', { name: '로그인한다' }) as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByRole('checkbox', { name: '로그인한다' }) as HTMLInputElement).disabled).toBe(true);
+    expect(screen.getByText('연결 1 잠금 true')).toBeTruthy();
+
+    fireEvent.click(스위치);
+
+    expect(올림.at(-1)).toMatchObject({ carryOver: true, skipSteps: ['로그인한다'], links: [묶음] });
+    expect(screen.getByText('연결 1 잠금 false')).toBeTruthy();
   });
 });
 
