@@ -96,7 +96,8 @@ function globToRegexPattern(glob: string): string {
   return tokens.join('');
 }
 
-// ponytail: Playwright 의 상대 무늬 풀기(resolveGlobBase — 대소문자 · `..` · `?`)를 다 옮기지 않았다. 어긋나면 브라우저 실측 대조 표(e2e.test)가 잡는다
+// ponytail: Playwright 의 상대 무늬 풀기(resolveGlobBase — 대소문자 · `..` · `?`)를 다 옮기지 않았다. 어긋나면 막기 · 바꿔 보내기가
+// 조용히 안 걸린다 — 실패한 부품에 「안 걸린 이어 주기」로 드러난다(결정 12). 흔한 무늬는 브라우저 실측 대조 표(e2e.test)가 지킨다
 export function 무늬맞음(무늬: string, url: string, baseUrl: string): boolean {
   const 절대 = 무늬.startsWith('/') && !무늬.startsWith('//') ? new URL(baseUrl).origin + 무늬 : 무늬;
   try {
