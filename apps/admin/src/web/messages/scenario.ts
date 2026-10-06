@@ -152,4 +152,19 @@ export const 시나리오말: Record<string, string> = {
   '이 서비스에는 단계로 쓸 기능 테스트 케이스가 없습니다': 'This service has no functional test case to use as a step',
   '케이스가 많아 앞 {수}건만 보입니다. 찾기로 좁힙니다': 'Too many cases, so only the first {수} are shown. Narrow them with search',
   '{번호}번 단계를 바꿀 케이스를 고릅니다': 'Pick the case to replace step {번호}',
+  '시험 실행': 'Trial run',
+  '시험 실행 중': 'Trial running',
+  '시험 실행할 대상 서버를 먼저 고릅니다': 'Pick the target server before the trial run',
+  '단계를 하나 이상 넣어야 시험 실행할 수 있습니다': 'Add at least one step to run a trial',
+  '가져올 단계를 다시 골라야 시험 실행할 수 있습니다': 'Pick the step to take values from again to run a trial',
+  '시험 실행은 기록에 남지 않고 증적도 만들지 않습니다. 저장하지 않은 변경 내용으로도 실행해 볼 수 있습니다':
+    'A trial run leaves no record and makes no evidence. You can run it with unsaved changes too',
+  '시험 실행 중입니다': 'Trial run in progress',
+  '시험 실행 · {서버} · {초}': 'Trial run · {서버} · {초}',
+  '{번호}번에서 실패': 'Failed at step {번호}',
+  '자세히': 'Details',
+  '아직 시험 실행을 하지 않았습니다': 'No trial run yet',
+  '시험 결과를 찾지 못했습니다. 시간이 지났거나 서버가 다시 켜졌을 수 있습니다':
+    'The trial result was not found. It may have expired, or the server may have restarted',
+  '이미 시험 실행이 돌고 있습니다. 끝나면 다시 실행할 수 있습니다': 'A trial run is already in progress. You can run it again when it finishes',
 };

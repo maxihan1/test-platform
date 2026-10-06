@@ -12,13 +12,12 @@ import { Loading, Failed, PLATFORMS, PLATFORM_LABEL, when } from './ui.js';
 import { Modal } from './Modal.js';
 import { 판정을만든다 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
-import { ScenarioLinks } from './ScenarioLinks.js';
-import { ScenarioOtherPanel } from './ScenarioOtherPanel.js';
-import { ScenarioPalette } from './ScenarioPalette.js';
-import { ScenarioPartPanel } from './ScenarioPartPanel.js';
+import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
+import { 시험막는글, TrialControls, TrialSummary, TrialTab } from './ScenarioTrial.js';
 import { 케이스바꾸기 } from './scenarioView.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
+import { 시험열쇠, 시험열쇠옮기기, useScenarioTrial } from './useScenarioTrial.js';
 
 export type { 조립탭 };
 
@@ -36,6 +35,10 @@ export function ScenarioBuild({
   const 초안 = useScenarioDraft(id, 띠서비스?.prefix ?? null);
   const 판정 = 판정을만든다(user, 초안.서비스);
   const 쓰나 = 판정('실행') && 초안.살아있나;
+  const 시험 = useScenarioTrial(시험열쇠(id));
+  // 대상 서버는 기본값을 두지 않는다 — 실수로 운영 서버에 시험 실행을 보내지 않게 사람이 고른다
+  const [서버, set서버] = useState('');
+  const [시험글, set시험글] = useState<string | null>(null);
   // 새 시나리오는 단계를 넣는 일이 먼저라 추가 탭부터 연다
   const [탭, set탭] = useState<조립탭>(id === null ? 'add' : 'settings');
   const [고른번호, set고른번호] = useState<number | null>(null);
@@ -76,6 +79,7 @@ export function ScenarioBuild({
     if (결과 === null) return;
     if (id === null) {
       // 자기 이동에 떠나기 상자를 띄우지 않는다
+      시험열쇠옮기기(시험열쇠(null), 시험열쇠(결과.id));
       떠나기막기(null);
       window.location.hash = `#/scenarios/${결과.id}`;
       return;
@@ -96,6 +100,13 @@ export function ScenarioBuild({
     set고른번호(초안.단계들.length + 1);
     set탭('settings');
   }
+  function 시험누름() {
+    const 사유 = 시험막는글(t, 서버, 초안.단계들);
+    set시험글(사유);
+    if (사유 !== null) return;
+    set탭('trial');
+    void 시험.시작({ service: 초안.서비스, env: 서버, platform: 초안.디바이스, parts: 초안.단계들 });
+  }
   function 케이스골랐다(tcId: string) {
     초안.재료더하기(tcId);
     if (바꿀번호 === null) {
@@ -108,13 +119,13 @@ export function ScenarioBuild({
     set탭('settings');
   }
 
-  const 고른단계 = 고른번호 === null ? undefined : 초안.단계들[고른번호 - 1];
   function 고른단계바꿈(새단계: ScenarioPart) {
     초안.단계들바꾸기(초안.단계들.map((p, i) => (i === (고른번호 ?? 0) - 1 ? 새단계 : p)));
   }
   const 최신 = 초안.버전들[0];
   const 서비스이름 = user.services.find((s) => s.prefix === 초안.서비스)?.name ?? 초안.서비스;
   const 상태글 = 초안.저장오류 ?? 저장글;
+  const 시험알림 = 시험글 ?? 시험.오류문장;
 
   const 부제 = (
     <>
@@ -156,6 +167,15 @@ export function ScenarioBuild({
           </option>
         ))}
       </select>
+      {!쓰나 ? null : (
+        <TrialControls
+          서버들={user.services.find((s) => s.prefix === 초안.서비스)?.envs ?? []}
+          서버={서버}
+          on서버={set서버}
+          도는중={시험.단계 === 'running'}
+          on시작={시험누름}
+        />
+      )}
       {!쓰나 || id === null ? null : (
         <button type="button" className="btn ghost" onClick={() => 탭옮김('history')}>
           {t('변경 이력')}
@@ -182,6 +202,11 @@ export function ScenarioBuild({
             {상태글}
           </p>
         )}
+        {시험알림 === null ? null : (
+          <p className="scn-note" role="alert">
+            {시험알림}
+          </p>
+        )}
         {판정('실행') ? null : <p className="scn-note">{t('실행 권한이 있어야 고치고 돌릴 수 있습니다')}</p>}
         {초안.살아있나 ? null : <p className="scn-note">{t('목록에서 치운 시나리오라 보기만 할 수 있습니다')}</p>}
         {띠서비스 === null || 띠서비스.prefix === 초안.서비스 ? null : (
@@ -199,51 +224,27 @@ export function ScenarioBuild({
               고른번호={고른번호}
               on고르기={카드고름}
               on탭={탭옮김}
+              시험요약={쓰나 ? <TrialSummary 시험={시험} on자세히={() => 탭옮김('trial')} /> : undefined}
             />
           </section>
           <section className="scn-build-panel" aria-label={t('단계 추가 · 설정')}>
             <ScenarioTabs 탭={탭} on탭={탭옮김} 고른번호={고른번호} 쓰나={쓰나} 이력있나={id !== null}>
-              {탭 === 'add' && 쓰나 ? (
-                <ScenarioPalette
-                  서비스={초안.서비스}
-                  디바이스={초안.디바이스}
-                  바꿀번호={바꿀번호}
-                  on케이스={케이스골랐다}
-                  on다른단계={끝에더하기}
-                  on바꾸기취소={() => set바꿀번호(null)}
-                />
-              ) : 탭 !== 'settings' || 고른번호 === null || 고른단계 === undefined ? null : 고른단계.kind === 'case' ? (
-                <ScenarioPartPanel
-                  번호={고른번호}
-                  단계={고른단계}
-                  단계들={초안.단계들}
-                  재료={초안.재료}
-                  쓰나={쓰나}
-                  on바꿈={고른단계바꿈}
-                  on케이스바꾸기={() => {
-                    set바꿀번호(고른번호);
-                    set탭('add');
-                  }}
-                  값연결={
-                    <ScenarioLinks
-                      번호={고른번호}
-                      단계={고른단계}
-                      단계들={초안.단계들}
-                      재료={초안.재료}
-                      쓰나={쓰나}
-                      on바꿈={(links) => 고른단계바꿈({ ...고른단계, links })}
-                    />
-                  }
-                />
-              ) : (
-                <ScenarioOtherPanel
-                  번호={고른번호}
-                  단계={고른단계}
-                  단계들={초안.단계들}
-                  쓰나={쓰나}
-                  on바꿈={고른단계바꿈}
-                />
-              )}
+              <ScenarioBuildTabs
+                탭={탭}
+                쓰나={쓰나}
+                초안={초안}
+                고른번호={고른번호}
+                바꿀번호={바꿀번호}
+                on케이스={케이스골랐다}
+                on다른단계={끝에더하기}
+                on바꾸기취소={() => set바꿀번호(null)}
+                on케이스바꾸기={() => {
+                  set바꿀번호(고른번호);
+                  set탭('add');
+                }}
+                on바꿈={고른단계바꿈}
+                시험={<TrialTab 시험={시험} 단계들={초안.단계들} />}
+              />
             </ScenarioTabs>
           </section>
         </div>

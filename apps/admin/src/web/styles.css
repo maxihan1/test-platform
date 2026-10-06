@@ -3630,6 +3630,37 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   margin-top: 12px;
 }
 
+/* 시험 요약 상자는 중립이다. 판정 색은 실패 문장 줄 하나만 쓴다 */
+.scn-trial-sum {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+.scn-trial-sum p {
+  margin: 0;
+}
+
+.scn-trial-sum .btn {
+  margin-top: 8px;
+}
+
+.scn-trial-fail {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  overflow-wrap: anywhere;
+  background: var(--fail-bg);
+}
+
+.scn-trial-intro {
+  margin: 0;
+  padding: 10px 24px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
 .scn-tabs {
   display: flex;
   overflow-x: auto;
@@ -3847,6 +3878,7 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 }
 
 @media (max-width: 620px) {
+  .scn-trial-sum .btn,
   .scn-pal-swap .btn,
   .scn-pal-row .btn,
   .scn-palette > .scn-link-kinds .btn,
