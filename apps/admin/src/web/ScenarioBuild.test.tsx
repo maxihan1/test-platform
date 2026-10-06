@@ -398,7 +398,7 @@ describe('ScenarioBuild 권한 · 치운 것 · 서비스', () => {
 
   it('띠 서비스가 시나리오의 서비스와 다르면 안내 줄이 뜬다', async () => {
     await 기존그리기({}, 사람(), 서비스('ZSC'));
-    expect(screen.getByText('이 시나리오는 ZSB 서비스 서비스 것입니다')).toBeTruthy();
+    expect(screen.getByText('ZSB 서비스 서비스의 시나리오입니다')).toBeTruthy();
   });
 });
 

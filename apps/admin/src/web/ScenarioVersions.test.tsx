@@ -180,7 +180,7 @@ describe('이 버전으로 되돌리기', () => {
     fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 되돌리기' }));
 
     await waitFor(() => expect(복원).toHaveBeenCalledWith(12, 2));
-    expect(await screen.findByText('v4 버전으로 되돌렸습니다')).toBeTruthy();
+    expect(await screen.findByText('v2 내용으로 되돌렸습니다 · 지금 v4')).toBeTruthy();
     await waitFor(() => expect(다시).toHaveBeenCalled());
     expect(await screen.findByText(줄글(4, '조립자', 시각4))).toBeTruthy();
     expect(screen.getAllByText('지금 버전')).toHaveLength(1);
@@ -209,7 +209,7 @@ describe('이 버전으로 되돌리기', () => {
     fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 되돌리기' }));
 
     expect(await screen.findByText('목록에서 치운 시나리오라 고치거나 실행할 수 없습니다')).toBeTruthy();
-    expect(screen.queryByText('v4 버전으로 되돌렸습니다')).toBeNull();
+    expect(screen.queryByText(/내용으로 되돌렸습니다/)).toBeNull();
   });
 
   it('되돌린 뒤 상세를 다시 불러오다 실패하면 조립 화면은 남고 상태 줄에 오류 문장이 뜬다', async () => {
