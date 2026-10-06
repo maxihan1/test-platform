@@ -19,6 +19,8 @@ export const 고치기말: Record<string, string> = {
   '삭제 확인': 'Confirm deletion',
   '삭제하면 이 케이스를 쓰는 E2E 시나리오가 더 돌지 않습니다. 실행 기록은 남습니다.':
     'E2E scenarios that use this case stop running once it is deleted. Run history is kept.',
+  '이 케이스를 쓰는 E2E 시나리오 {수}개 — 삭제하면 다른 케이스로 바꿀 때까지 실행할 수 없습니다':
+    '{수} E2E scenarios use this case — once it is deleted they cannot run until you swap in another case',
 
   // 케이스 목록에서 고른 것 (CaseBulkEdit.tsx)
   '삭제 요청': 'Request deletion',

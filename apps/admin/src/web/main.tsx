@@ -10,6 +10,7 @@ import { AuthoringDetail } from './AuthoringDetail.js';
 import { CaseList } from './CaseList.js';
 import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
+import { useHash, 떠나기막기 } from './leaveGuard.js';
 import {
   고른서비스,
   고른서비스를읽는다,
@@ -24,6 +25,9 @@ import { 기능보나, 판정을만든다 } from './role.js';
 import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
+import { ScenarioBuild } from './ScenarioBuild.js';
+import { ScenarioList } from './ScenarioList.js';
+import { ScenarioRunList } from './ScenarioRunList.js';
 import { RunSetup } from './RunSetup.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
@@ -31,16 +35,6 @@ import { Signup } from './Signup.js';
 import { Loading } from './ui.js';
 import './styles.css';
 import './authoringStatus.css';
-
-function useHash(): string {
-  const [hash, setHash] = useState(window.location.hash);
-  useEffect(() => {
-    const onChange = () => setHash(window.location.hash);
-    window.addEventListener('hashchange', onChange);
-    return () => window.removeEventListener('hashchange', onChange);
-  }, []);
-  return hash;
-}
 
 function Screen({
   hash,
@@ -83,7 +77,17 @@ function Screen({
       // 주소는 새 번호인데 앞 요청 화면이 보이고 다시 누를 수 있다 (2026-09-30 코드 검토)
       return <AuthoringDetail key={current.id} service={prefix} id={current.id} 할수={할수} />;
     case 'runs':
+      // E2E 는 시나리오 실행만 모으는 별도 화면이다 — 줄 모양과 거르개가 UI · 기능 목록과 다르다
+      if (current.kind === 'E2E') return <ScenarioRunList key="E2E" service={prefix} 할수={할수} />;
       return <RunList key={current.kind} kind={current.kind} service={prefix} 할수={할수} />;
+    case 'scenarios':
+      // 서비스를 바꾸면 새로 그린다 — 고른 대상 서버와 앞 서비스의 실행 안내가 남으면 다른 서비스에 쏜다
+      return <ScenarioList key={prefix} service={prefix} envs={service?.envs ?? []} 할수={할수} />;
+    case 'scenarioNew':
+      // 서비스로 key 를 걸지 않는다 — 조립 중 띠를 바꿔도 초안이 그대로여야 한다. 서비스는 훅이 처음 받은 것으로 고정한다
+      return <ScenarioBuild key="new" id={null} 띠서비스={service} user={user} />;
+    case 'scenario':
+      return <ScenarioBuild key={current.id} id={current.id} 띠서비스={service} user={user} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
       return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
@@ -135,7 +139,11 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // **주소만 바뀌는 것으로는 부족하다** — 아래 「로그인했는데 주소가 로그인 화면」 갈래가
   // 곧장 집으로 되돌려 버려서 로그인 화면이 끝내 안 뜬다
   useEffect(() => {
-    세션끊김을받는다(() => set상태({ 어디: '밖' }));
+    세션끊김을받는다(() => {
+      // 로그인 화면으로 가는 길을 저장 안 한 조립이 막으면 안 된다
+      떠나기막기(null);
+      set상태({ 어디: '밖' });
+    });
   }, []);
 
   // 저장된 서비스가 배정에서 빠졌으면 실제로 연 것을 적어 둔다.
@@ -187,6 +195,8 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
 
   const 나간다 = () => {
     void api.logout().finally(() => {
+      // 로그인 화면으로 가는 길을 저장 안 한 조립이 막으면 안 된다
+      떠나기막기(null);
       set상태({ 어디: '밖' });
       window.location.hash = '#/login';
     });

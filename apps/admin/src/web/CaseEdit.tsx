@@ -13,6 +13,7 @@ import { 고치기오류문장, 고칠칸들, 기대값들, 기대값한줄, 바
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { initialText } from './schema.js';
+import { ScenarioUsage } from './ScenarioUsage.js';
 import { fieldErrors } from './validation.js';
 
 export function 코드기본값고치기({ row, service }: { row: CaseRow; service: string }) {
@@ -149,7 +150,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
                 </button>
               </div>
             )}
-            <p className="hint">{t('삭제하면 이 케이스를 쓰는 E2E 시나리오가 더 돌지 않습니다. 실행 기록은 남습니다.')}</p>
+            {지우려나 ? <ScenarioUsage service={service} tcIds={[row.tcId]} /> : null}
           </div>
         </>
       )}

@@ -87,8 +87,21 @@ async function db() {
 // kind 가 UI · FN 인 번호는 없는 것으로 본다 (§7)
 async function 결과(runId: number) {
   const pool = await db();
-  const 머리 = await pool.query<{ scenario_id: string; scenario_version: number; status: string; platform: Platform }>(
-    `SELECT r.scenario_id, r.scenario_version, r.status, v.platform
+  const 머리 = await pool.query<{
+    scenario_id: string;
+    scenario_version: number;
+    status: string;
+    platform: Platform;
+    title: string;
+    env: string;
+    base_url: string;
+    triggered_by: string;
+    triggered_by_name: string | null;
+    started_at: Date;
+    finished_at: Date | null;
+  }>(
+    `SELECT r.scenario_id, r.scenario_version, r.status, v.platform,
+            r.title, r.env, r.base_url, r.triggered_by, r.triggered_by_name, r.started_at, r.finished_at
        FROM test_run r
        JOIN scenario_version v ON v.scenario_id = r.scenario_id AND v.version = r.scenario_version
       WHERE r.run_id = $1 AND r.kind = 'SCENARIO'`,
@@ -152,7 +165,17 @@ async function 결과(runId: number) {
       error: p.error,
     })),
   };
-  return 가린다(본것, 긴것부터(비밀)) as typeof 본것;
+  // 머리 칸은 비밀이 아니다. 글자째 가리기에 넣으면 숫자 비밀(2026)이 시각 · 주소의 글자까지 지운다
+  return {
+    ...(가린다(본것, 긴것부터(비밀)) as typeof 본것),
+    title: 행.title,
+    env: 행.env,
+    baseUrl: 행.base_url,
+    triggeredBy: 행.triggered_by,
+    triggeredByName: 행.triggered_by_name,
+    startedAt: 행.started_at.toISOString(),
+    finishedAt: 행.finished_at?.toISOString() ?? null,
+  };
 }
 
 export default async function scenarioRunRoutes(app: FastifyInstance): Promise<void> {

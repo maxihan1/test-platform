@@ -29,10 +29,13 @@ export interface 하위자리 {
 }
 
 function 종류하위(묶음: string, 바탕: '#/cases' | '#/runs', 언어: 언어): 하위자리[] {
-  return [
+  const 종류들 = [
     ['UI 테스트', 'ui'],
     ['기능 테스트', 'fn'],
-  ].map(([이름, 꼬리]) => ({
+  ];
+  // E2E 는 돌린 기록에만 있다. 시나리오는 케이스가 아니라 케이스 목록에 없다 (도메인/실행 §8.7)
+  if (바탕 === '#/runs') 종류들.push(['E2E', 'e2e']);
+  return 종류들.map(([이름, 꼬리]) => ({
     이름: t(이름!, 언어),
     해시: `${바탕}/${꼬리!}`,
     라벨: `${묶음} · ${t(이름!, 언어)}`,
@@ -66,6 +69,8 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
   }
   if (기능보나(user, prefix, 'authoring')) 목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring' });
   if (기능보나(user, prefix, 'runs')) {
+    // 만드는 일(케이스 → 작성 → 시나리오) 끝, 보는 일 앞이다 (화면공통 §8). 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7)
+    목록.push({ 이름: t('E2E 시나리오', 언어), 해시: '#/scenarios' });
     const 이름 = t('실행 기록', 언어);
     목록.push({ 이름, 해시: '#/runs', 하위: 종류하위(이름, '#/runs', 언어) });
   }
@@ -84,13 +89,14 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
  * `main.tsx` 안에 두면 그 파일이 `createRoot` 를 모듈 자리에서 불러 **검사할 수가 없다.**
  * 판단은 여기, 그림은 거기 (이 파일 머리 주석과 같은 규칙).
  */
-export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN'): string {
+export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | 'E2E'): string {
   // 목록은 종류까지 자리다. 실행 결과 · 항목 상세는 주소에 종류가 없어 묶음을 가리킨다 (PR #132)
-  const 꼬리 = 종류 === undefined ? '' : `/${종류 === 'UI' ? 'ui' : 'fn'}`;
+  const 꼬리 = 종류 === undefined ? '' : `/${종류.toLowerCase()}`;
   if (name === 'runs') return `#/runs${꼬리}`;
   if (name === 'cases') return `#/cases${꼬리}`;
   if (name === 'run' || name === 'item') return '#/runs';
   if (name === 'authoring' || name === 'authoringItem') return '#/authoring';
+  if (name === 'scenarios' || name === 'scenarioNew' || name === 'scenario') return '#/scenarios';
   if (name === 'settings') return '#/settings';
   // 비밀번호 변경은 자리 목록에 없다. 집을 돌려주면 케이스에 밑줄이 가서 딴 화면처럼 보인다
   if (name === 'password') return '#/password';

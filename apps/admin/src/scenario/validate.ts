@@ -70,7 +70,7 @@ type 이어주기<K> = Extract<z.infer<typeof 이어주기모양>, { kind: K }>;
 >;
 
 /** params 는 케이스 입력값 칸 이름이다 — 값 꽂기가 없는 칸을 가리키는지 본다 */
-export type 카탈로그 = Map<string, { platforms: Platform[]; isActive: boolean; skippable: string[]; params: string[] }>;
+export type 카탈로그 = Map<string, { platforms: Platform[]; isActive: boolean; skippable: string[]; titles: string[]; params: string[] }>;
 
 const 케이스몫 = 300000;
 const API몫 = 30000;
@@ -137,7 +137,8 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
       }
       if (!케이스.platforms.includes(platform)) 오류.push(`${자리}: ${p.tcId} 는 ${platform} 을 선언하지 않았다`);
       for (const 제목 of p.skipSteps) {
-        if (!케이스.skippable.includes(제목)) 오류.push(`${자리}: 「${제목}」 은 건너뛸 수 있는 절차가 아니다`);
+        // 케이스에서 사라진 제목은 실행처럼 무시한다 — 명세 결정 8 · 2026-10-06 사용자
+        if (케이스.titles.includes(제목) && !케이스.skippable.includes(제목)) 오류.push(`${자리}: 「${제목}」 은 건너뛸 수 있는 절차가 아니다`);
       }
 
       // 이어 주기 (§3.7 결정 12)

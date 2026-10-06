@@ -5,6 +5,8 @@ export const 껍데기말: Record<string, string> = {
   // 제품과 자리 목록
   '테스트 플랫폼': 'Test Platform',
   '테스트 작성': 'Authoring',
+  // 영어는 못 박는다 (화면공통 §8 「자리 목록」)
+  'E2E 시나리오': 'E2E scenarios',
   '실행 기록': 'Run history',
   // 사이드바 하위 메뉴 · 목록 부제 (PR #132) — errors.ts 의 MIXED_KIND 문장과 같은 말을 쓴다
   'UI 테스트': 'UI tests',

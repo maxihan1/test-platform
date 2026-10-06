@@ -46,13 +46,17 @@ async function 조립오류(parts: ScenarioPart[], platform: 'desktop' | 'mobile
 }
 
 export default async function scenarioRoutes(app: FastifyInstance): Promise<void> {
-  app.get<{ Querystring: { service?: string } }>('/scenarios', async (req, reply) => {
+  app.get<{ Querystring: { service?: string; uses?: string | string[] } }>('/scenarios', async (req, reply) => {
     const prefix = req.query.service ?? '';
     if (prefix === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
     const 서비스 = await findService(prefix);
     if (서비스 === null) return 잘못(reply, `모르는 서비스다: ${prefix}`);
 
-    const 줄들 = await 목록(서비스.id);
+    const 전부 = await 목록(서비스.id);
+    // 케이스 삭제 요청 화면이 그 케이스를 쓰는 시나리오만 받으려는 거름. 목록은 최신 버전 부품만 들고 있다
+    // ?uses= 를 두 번 붙이면 Fastify 가 배열로 준다 — 쉼표로 이은 것과 같은 뜻으로 받는다
+    const 쓰는것 = new Set([req.query.uses ?? ''].flat().join(',').split(',').map((t) => t.trim()).filter((t) => t !== ''));
+    const 줄들 = 쓰는것.size === 0 ? 전부 : 전부.filter((s) => s.parts.some((p) => p.kind === 'case' && 쓰는것.has(p.tcId)));
     // 한 요청 안에서 케이스마다 한 번만 읽는다. 시나리오들이 같은 케이스를 여러 번 쓴다
     const { 카탈로그 } = await 케이스재료(줄들.flatMap((s) => 케이스번호들(s.parts)), prefix);
     return {

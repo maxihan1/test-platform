@@ -102,6 +102,20 @@ describe('칸띠 — 판정이 아닌 집계도 같은 띠로 그린다', () => 
     expect(screen.getByText('끝난 41회 기준')).toBeTruthy();
   });
 
+  it('비율 막대의 미확정 통과 칸은 판정 색 꼬리가 아닌 u 클래스다', () => {
+    const { container } = render(
+      <칸띠
+        칸들={[{ 라벨: '실행 횟수', 값: '3' }]}
+        비율={[
+          { 판정: 'PASS', 몫: 1 },
+          { 판정: 'U', 몫: 2 },
+        ]}
+      />,
+    );
+
+    expect([...container.querySelectorAll('.ratio i')].map((el) => el.className)).toEqual(['p', 'u']);
+  });
+
   it('비율 막대는 판정 칸이 있을 때만 그린다', () => {
     const { container } = render(<칸띠 칸들={[{ 라벨: '실행 횟수', 값: '42' }]} />);
 

@@ -3229,3 +3229,782 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 .trial-step.fail {
   font-weight: 600;
 }
+
+/* E2E 시나리오 (도메인/시나리오 §8.11 · 실행 §8.7) */
+/* 비율 막대의 미확정 통과 칸. 판정이 아니라서 판정 색 대신 중립 색이고, 2px 틈으로 이웃 칸과 가른다 (DESIGN 「결과 막대」) */
+.ratio .u{background:var(--ink-faint);box-shadow:inset 2px 0 0 var(--sheet)}
+
+/* 실행 기록 줄의 「미확정 포함」 칩은 판정 칸 안에서 왼쪽 끝에 붙는다 */
+.runright .verdict .case-tag {
+  margin-left: 0;
+  align-self: flex-start;
+}
+
+/* E2E 시나리오 목록 (도메인/시나리오 §8.11). 결과 칸의 칩은 판정이 아니라서 왼쪽 끝에 붙고 색이 없다 */
+.scenario-result {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.scenario-result .case-tag {
+  margin-left: 0;
+  align-self: flex-start;
+}
+
+/* 실행이 막힌 이유는 그 줄 바로 아래에 둔다 — 멀리 두면 어느 줄 이야기인지 모른다 */
+.scenario-note {
+  margin: 0;
+  padding: 8px 24px 10px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.scenario-foot {
+  margin: 0;
+  padding: 12px 24px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+/* E2E 실행 결과 (도메인/시나리오 §8.11). 단계는 한 면 안의 괘선 줄이다 — 단계마다 카드를 두르지 않는다.
+   판정 색은 Verdict 만 쓰고 모킹 세로선 · 응답 코드는 중립 색이다 */
+.scn-back {
+  margin-bottom: 8px;
+  font-size: 12.5px;
+}
+
+.scn-back a {
+  color: var(--ink-muted);
+}
+
+/* 이름 · 결과 칩 링크가 브라우저 기본 파랑으로 나오던 것 — 줄 글자색을 따른다 (2026-10-07 실측) */
+.scn-row-name,
+.scenario-result a {
+  color: inherit;
+}
+
+.scn-running {
+  margin: 0;
+  padding: 10px 24px;
+  font-size: 13px;
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.scn-info {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, auto));
+  justify-content: start;
+  gap: 8px 32px;
+  margin: 0;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.scn-info dt {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.scn-info dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.scn-heading {
+  margin: 0;
+  padding: 14px 24px 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scn-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.scn-part {
+  padding: 12px 24px;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 13px;
+}
+
+.scn-part.mocked {
+  padding-left: 21px;
+  border-left: 3px solid var(--ink-faint);
+}
+
+.scn-part-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.scn-seq {
+  min-width: 18px;
+  color: var(--ink-faint);
+}
+
+.scn-part .case-tag {
+  margin-left: 0;
+}
+
+.scn-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.scn-id {
+  margin-right: 4px;
+}
+
+.scn-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.scn-dur,
+.scn-notrun {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.scn-mock-note {
+  margin: 6px 0 0 26px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.scn-detail {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 8px;
+  margin: 6px 0 0 26px;
+  font-size: 12.5px;
+}
+
+.scn-k {
+  color: var(--ink-faint);
+}
+
+.scn-v {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+
+.scn-error {
+  margin: 6px 0 0 26px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.scn-toggle {
+  margin: 8px 0 0 26px;
+}
+
+.scn-proc {
+  list-style: none;
+  margin: 6px 0 0 26px;
+  padding: 0;
+  font-size: 12.5px;
+}
+
+.scn-proc li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 4px 0;
+}
+
+.scn-skip {
+  color: var(--ink-faint);
+}
+
+.scn-shot {
+  color: inherit;
+}
+
+@media (max-width: 620px) {
+  .scn-info {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scn-part {
+    padding: 12px 16px;
+  }
+
+  .scn-part.mocked {
+    padding-left: 13px;
+  }
+
+  .scn-end {
+    flex-basis: 100%;
+    margin-left: 26px;
+  }
+
+  /* 손가락으로 누르는 자리는 46px 로 건다 — 위 `.evi-open` · `.side-nav a` 와 같은 기준 */
+  .scn-back a,
+  .scn-sc,
+  .scn-shot,
+  .scn-row-name,
+  .scenario-result a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 46px;
+  }
+
+  /* 시나리오 목록의 대상 서버 고르개와 조립 머리의 이름 · 디바이스 · 대상 서버 칸. 실행 기록 툴바는 건드리지 않는다 */
+  #sc-env,
+  .scn-head input,
+  .scn-head select {
+    min-height: 46px;
+  }
+
+  .scn-toggle {
+    min-height: 46px;
+  }
+
+  .scn-mock-note,
+  .scn-detail,
+  .scn-error,
+  .scn-toggle,
+  .scn-proc {
+    margin-left: 0;
+  }
+}
+
+/* E2E 시나리오 조립 (도메인/시나리오 §8.11). 왼쪽은 단계 카드, 오른쪽은 탭 한 칸. 좁은 창 규칙은 따로 둔다 */
+/* 조립 머리 — 좁은 폭에서 행동 묶음이 제목 칸을 짜부라뜨리지 않게 머리가 줄을 바꾼다.
+   제목 줄(번호 · 버전)은 글자 단위로 쪼개지지 않고 이름 칸은 최소 폭을 지킨다 (2026-10-07 화면 QA) */
+.scn-head {
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.scn-head .head-title {
+  flex: 1 1 360px;
+}
+
+.scn-head h1,
+.scn-head .head-meta > span {
+  white-space: nowrap;
+}
+
+.scn-head .head-acts {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.scn-name-input {
+  flex: 1 1 240px;
+  min-width: min(240px, 100%);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* 620px 아래에서는 머리가 세로로 쌓여 flex-basis 가 높이가 된다 */
+@media (max-width: 620px) {
+  .scn-head {
+    align-items: stretch;
+  }
+
+  .scn-head .head-title,
+  .scn-head .head-acts {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+  }
+}
+
+.scn-note {
+  margin: 0;
+  padding: 8px 24px;
+  font-size: 13px;
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.scn-build {
+  display: grid;
+  /* 두 칸이 합쳐 640px 아래로 줄면 페이지가 아니라 이 영역만 가로로 구른다. 왼쪽은 280px 아래로 안 준다 */
+  grid-template-columns: minmax(280px, 1fr) minmax(360px, 1fr);
+  overflow-x: auto;
+}
+
+.scn-build-list {
+  min-width: 0;
+  min-height: 160px;
+  max-height: max(320px, calc(100vh - 240px));
+  overflow-y: auto;
+  border-right: 1px solid var(--rule);
+}
+
+.scn-build-panel {
+  min-width: 0;
+  min-height: 160px;
+  max-height: max(320px, calc(100vh - 240px));
+  overflow-y: auto;
+}
+
+.scn-cards-wrap {
+  padding: 12px 16px;
+}
+
+.scn-cards-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.scn-cards-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.scn-cards-hint,
+.scn-cards-empty {
+  margin: 4px 0 10px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.scn-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.scn-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 4px;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+}
+
+/* 모킹이 걸려 있는 동안의 단계 — 선을 굵게만 두고 판정 색은 안 쓴다 */
+.scn-card.mocked {
+  border-left: 3px solid var(--ink-faint);
+}
+
+.scn-card.selected {
+  border-color: var(--chrome);
+}
+
+.scn-card.mocked.selected {
+  border-left-color: var(--ink-faint);
+}
+
+.scn-card-pick {
+  grid-column: 1;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.scn-card-seq {
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.scn-card-name,
+.scn-card-sum {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scn-card-sum {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.scn-card-chips {
+  grid-column: 1;
+  padding: 0 10px 8px;
+}
+
+.scn-card-chips:empty {
+  display: none;
+}
+
+.scn-card-chips .case-tag:first-child {
+  margin-left: 0;
+}
+
+.scn-card-ops {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: flex-start;
+  padding: 4px;
+}
+
+.scn-op {
+  min-width: 28px;
+  min-height: 28px;
+  font: inherit;
+  color: var(--ink-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.scn-cards-trial {
+  margin-top: 12px;
+}
+
+/* 시험 요약 상자는 중립이다. 판정 색은 실패 문장 줄 하나만 쓴다 */
+.scn-trial-sum {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+
+.scn-trial-sum p {
+  margin: 0;
+}
+
+.scn-trial-sum .btn {
+  margin-top: 8px;
+}
+
+.scn-trial-fail {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  overflow-wrap: anywhere;
+  background: var(--fail-bg);
+}
+
+.scn-trial-na {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  overflow-wrap: anywhere;
+  background: var(--na-bg);
+  color: var(--na);
+}
+
+.scn-trial-intro {
+  margin: 0;
+  padding: 10px 24px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.scn-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--rule);
+}
+
+.scn-tab {
+  padding: 10px 14px;
+  font: inherit;
+  white-space: nowrap;
+  color: var(--ink-muted);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+
+.scn-tab[aria-selected='true'] {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--chrome);
+}
+
+.scn-tabpanel {
+  padding: 12px 16px;
+}
+
+/* 단계 설정 탭 속. 안내 줄은 판정 색 없이 중립 글자색이다 */
+.scn-set-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.scn-set-block {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+
+.scn-set-group legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scn-set-sub {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scn-set-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.scn-set-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.scn-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.scn-switch:disabled {
+  cursor: default;
+}
+
+.scn-switch-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  background: var(--ink-faint);
+  border-radius: 9px;
+}
+
+.scn-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--sheet);
+  border-radius: 50%;
+}
+
+.scn-switch[aria-checked='true'] .scn-switch-track {
+  background: var(--chrome);
+}
+
+.scn-switch[aria-checked='true'] .scn-switch-track::after {
+  left: 16px;
+}
+
+.scn-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.scn-link-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+@media (max-width: 620px) {
+  /* 손가락으로 누르는 자리는 46px — 위 `.scn-back a` 와 같은 기준 */
+  .scn-card-pick,
+  .scn-tab,
+  .scn-cards-head .btn,
+  .scn-switch,
+  .scn-check,
+  .scn-set .btn,
+  .scn-set .field input,
+  .scn-set .field select,
+  .scn-set .field textarea {
+    min-height: 46px;
+  }
+
+  .scn-op {
+    min-width: 46px;
+    min-height: 46px;
+  }
+}
+
+/* 단계 추가 탭의 팔레트. 판정 색 없이 중립 글자색이다 */
+.scn-pal-swap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.scn-pal-swap .scn-set-sub {
+  margin: 0;
+}
+
+.scn-pal-find {
+  display: block;
+  margin: 12px 0;
+}
+
+.scn-pal-find input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.scn-pal-group {
+  margin-bottom: 14px;
+}
+
+.scn-pal-fold {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.scn-pal-fold::before {
+  content: '▸ ';
+}
+
+.scn-pal-fold[aria-expanded='true']::before {
+  content: '▾ ';
+}
+
+.scn-pal-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scn-pal-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+}
+
+.scn-pal-id {
+  font-weight: 600;
+}
+
+.scn-pal-name {
+  flex: 1 1 140px;
+  min-width: 0;
+  color: var(--ink-muted);
+}
+
+@media (max-width: 620px) {
+  .scn-trial-sum .btn,
+  .scn-pal-swap .btn,
+  .scn-pal-row .btn,
+  .scn-palette > .scn-link-kinds .btn,
+  .scn-pal-find input,
+  .scn-pal-fold {
+    min-height: 46px;
+  }
+}
+
+/* 변경 이력 탭. 판정 색 없이 중립 글자색이다 */
+.scn-ver-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scn-ver-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+}
+
+.scn-ver-open {
+  padding: 4px 0;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.scn-ver-open[aria-expanded='true'] {
+  font-weight: 600;
+}
+
+.scn-ver-steps {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-muted);
+}
+
+.scn-ver-steps li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+/* 케이스 줄은 번호 · 이름 · 요약이 길어 줄을 바꾸면 칩만 윗줄에 혼자 남는다. 칩은 제 폭만 쓰고 글이 남은 폭에서 접힌다 */
+.scn-ver-steps li > span:last-child {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.scn-ver-steps .tech-tag {
+  flex: none;
+}
+
+.scn-ver-no {
+  min-width: 1.5em;
+}
+
+@media (max-width: 620px) {
+  .scn-ver-open,
+  .scn-ver .btn {
+    min-height: 46px;
+  }
+}

@@ -6,10 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { type 카탈로그, 부품들모양, 시나리오제한시간, 조립검사 } from './validate.js';
 
 const 카탈로그재료: 카탈로그 = new Map([
-  ['SHOP-001', { platforms: ['desktop'], isActive: true, skippable: ['상품을 담는다'], params: [] }],
-  ['SHOP-002', { platforms: ['desktop', 'mobile'], isActive: true, skippable: [], params: ['todoId', 'title'] }],
-  ['SHOP-003', { platforms: ['desktop'], isActive: false, skippable: [], params: [] }],
-  ['OTHER-001', { platforms: ['desktop'], isActive: true, skippable: [], params: [] }],
+  ['SHOP-001', { platforms: ['desktop'], isActive: true, skippable: ['상품을 담는다'], titles: ['상품을 담는다', '로그인 확인'], params: [] }],
+  ['SHOP-002', { platforms: ['desktop', 'mobile'], isActive: true, skippable: [], titles: ['상품을 담는다'], params: ['todoId', 'title'] }],
+  ['SHOP-003', { platforms: ['desktop'], isActive: false, skippable: [], titles: [], params: [] }],
+  ['OTHER-001', { platforms: ['desktop'], isActive: true, skippable: [], titles: [], params: [] }],
 ]);
 
 const 케이스 = (tcId: string, skipSteps: string[] = []): ScenarioPart => ({
@@ -65,6 +65,11 @@ describe('조립 검사', () => {
   it('건너뛸 수 없는 절차를 건너뛰면 거절한다', () => {
     expect(검사([케이스('SHOP-001', ['로그인 확인'])])).toEqual([expect.stringMatching(/로그인 확인/)]);
     expect(검사([케이스('SHOP-002', ['상품을 담는다'])])).toHaveLength(1);
+  });
+
+  it('케이스에 아예 없는 제목의 건너뛰기는 거절하지 않는다 — 실행이 무시한다 (결정 8)', () => {
+    expect(검사([케이스('SHOP-001', ['사라진 절차'])])).toEqual([]);
+    expect(검사([케이스('SHOP-001', ['사라진 절차', '로그인 확인'])])).toEqual([expect.stringMatching(/로그인 확인/)]);
   });
 
   it('켜져 있는 같은 무늬가 없는 모킹 끄기는 짝이 없다', () => {

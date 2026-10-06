@@ -8,6 +8,7 @@ import { 케이스말 } from './messages/cases.js';
 import { 고치기말 } from './messages/edit.js';
 import { 오류영어 } from './messages/errors.js';
 import { 실행말 } from './messages/runs.js';
+import { 시나리오말 } from './messages/scenario.js';
 import { 설정말 } from './messages/settings.js';
 import { 껍데기말 } from './messages/shell.js';
 
@@ -20,4 +21,5 @@ export const 말: Record<string, string> = {
   ...설정말,
   ...계정말,
   ...오류영어,
+  ...시나리오말,
 };

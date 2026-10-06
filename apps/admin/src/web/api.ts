@@ -631,7 +631,7 @@ function 로그인으로보낸다(): void {
   세션끊김?.();
 }
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
+export async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, init);
   await 거절이면던진다(res, path);
   if (res.status === 204) return undefined as T;
@@ -662,7 +662,7 @@ async function 거절이면던진다(res: Response, path: string): Promise<void>
   }
 }
 
-const json = (body: unknown): RequestInit => ({
+export const json = (body: unknown): RequestInit => ({
   method: 'POST',
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify(body),

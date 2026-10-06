@@ -41,6 +41,23 @@ describe('route', () => {
     expect(route('#/runs/123')).toEqual({ name: 'run', runId: 123 });
   });
 
+  // 실행 기록 셋째 하위 메뉴 (도메인/실행 §8.7 · 화면공통 §8) — 시나리오 실행만 모아 본다
+  it('실행 기록 E2E', () => {
+    expect(route('#/runs/e2e')).toEqual({ name: 'runs', kind: 'E2E' });
+  });
+
+  // 자리 `E2E 시나리오` (화면공통 §8 「자리 목록」 · 도메인/시나리오 §8.11)
+  it('시나리오 목록 · 새 시나리오 · 시나리오 한 건', () => {
+    expect(route('#/scenarios')).toEqual({ name: 'scenarios' });
+    expect(route('#/scenarios/new')).toEqual({ name: 'scenarioNew' });
+    expect(route('#/scenarios/12')).toEqual({ name: 'scenario', id: 12 });
+  });
+
+  it('시나리오 번호는 열 자리 숫자 글자만 받는다. 서버도 같은 모양으로 거른다', () => {
+    expect(route('#/scenarios/12a')).toMatchObject({ name: 'unknown' });
+    expect(route('#/scenarios/12345678901')).toMatchObject({ name: 'unknown' });
+  });
+
   it('항목 상세', () => {
     expect(route('#/runs/123/items/161')).toEqual({ name: 'item', runId: 123, historyId: 161 });
   });
@@ -107,6 +124,13 @@ describe('route', () => {
     expect(갈자리('#/runs', 사람([서비스('PAY', { cases: 'read', runs: 'none', authoring: 'none' })]), 'PAY')).toBe('#/cases');
   });
 
+  it('시나리오 목록과 새 시나리오는 실행 칸을 본다 (도메인/시나리오 §7 — 권한은 실행 칸)', () => {
+    const 실행없음 = 사람([서비스('PAY', { cases: 'read', runs: 'none', authoring: 'none' })]);
+    expect(갈자리('#/scenarios', 실행없음, 'PAY')).toBe('#/cases');
+    expect(갈자리('#/scenarios/new', 실행없음, 'PAY')).toBe('#/cases');
+    expect(갈자리('#/scenarios', 실행만, 'PAY')).toBe('#/scenarios');
+  });
+
   it('한 건 주소는 띠의 서비스로 가르지 않는다. 그 건의 서비스는 화면이 안다', () => {
     const 둘 = 사람([
       서비스('AAA', { cases: 'read', runs: 'none', authoring: 'none' }),
@@ -115,6 +139,7 @@ describe('route', () => {
     expect(갈자리('#/runs/5', 둘, 'AAA')).toBe('#/runs/5');
     expect(갈자리('#/runs/5/items/9', 둘, 'AAA')).toBe('#/runs/5/items/9');
     expect(갈자리('#/authoring/12', 둘, 'AAA')).toBe('#/authoring/12');
+    expect(갈자리('#/scenarios/12', 둘, 'AAA')).toBe('#/scenarios/12');
     expect(갈자리('#/cases/BBB-001/run', 케이스없음, 'PAY')).toBe('#/cases/BBB-001/run');
   });
 

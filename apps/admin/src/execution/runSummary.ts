@@ -1,5 +1,6 @@
 // 실행 기록 화면의 거르개와 머리 집계 (SPEC §8.7). queries.ts 가 300줄을 넘어 떼어 냈다 — 목록 질의와 집계가 같은 거르개를 쓴다
 
+import type { ItemStatus } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 미확정SQL, 접은판정SQL } from '../scenario/verdict.js';
@@ -158,6 +159,8 @@ export type 시나리오실행줄 = Omit<RunSummary, 'counts'> & {
   stoppedAt: number | null;
   /** 부품에 미확정 사유가 하나라도 있는 실행. 도는 중이어도 값이 있다 */
   unconfirmed: boolean;
+  /** 접은 판정 — 시나리오 §7 「판정 접기」. 도는 중이면 null. 줄 색의 근거 (stoppedAt 만으로는 실패와 시간 초과를 못 가른다) */
+  verdict: ItemStatus | null;
 };
 
 export const 시나리오칸 = `,
@@ -165,4 +168,5 @@ export const 시나리오칸 = `,
   (SELECT count(*)::int FROM scenario_run_part p WHERE p.run_id = r.run_id) AS part_count,
   CASE WHEN r.status = 'RUNNING' THEN NULL
        ELSE (SELECT min(p.seq) FROM scenario_run_part p WHERE p.run_id = r.run_id AND p.status <> 'PASS') END AS stopped_at,
-  ${시나리오미확정} AS unconfirmed`;
+  ${시나리오미확정} AS unconfirmed,
+  ${시나리오판정} AS verdict`;
