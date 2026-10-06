@@ -264,6 +264,35 @@ describe('단계 줄', () => {
   });
 });
 
+describe('도는 중 아직 안 돈 단계', () => {
+  const 대기중 = 부품(2, {
+    kind: 'api', tcId: null, tcName: null,
+    part: { kind: 'api', method: 'GET', path: '/api/orders', expectStatus: 200 },
+    status: 'NA', durationMs: null, error: null,
+  });
+
+  it('도는 동안은 판정 글자를 비운다', async () => {
+    연다(결과({ status: 'RUNNING', finishedAt: null, parts: [로그인, 대기중, 안돈] }));
+    await screen.findByText('단계별 결과');
+
+    const 줄들 = document.querySelectorAll('.scn-part');
+    expect(줄들).toHaveLength(3);
+    for (const 줄 of [줄들[1]!, 줄들[2]!]) {
+      expect(줄.querySelector('.verdict')).toBeNull();
+      expect(줄.textContent).not.toContain('미실행');
+      expect(줄.textContent).not.toContain('– 실행 안 됨');
+    }
+    expect(줄들[0]!.querySelector('.verdict')?.textContent).toBe('통과');
+  });
+
+  it('끝난 뒤 NOT_RUN 은 – 실행 안 됨을 보인다', async () => {
+    연다(결과({ parts: [로그인, 안돈] }));
+    await screen.findByText('단계별 결과');
+
+    expect(screen.getByText('– 실행 안 됨')).toBeTruthy();
+  });
+});
+
 describe('도는 중', () => {
   it('안내 문장을 보이고 2초마다 다시 묻다가 끝나면 멈춘다', async () => {
     vi.useFakeTimers();

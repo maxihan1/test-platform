@@ -444,7 +444,7 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     const { container } = await 끝낸것(실패결과);
 
     expect(screen.getByText('시험 실행 · stg · 3.40초')).toBeTruthy();
-    expect(screen.getByText('2번에서 실패')).toBeTruthy();
+    expect(screen.getByText('2번에서 멈춤')).toBeTruthy();
     expect(탭(container)).toBe('settings');
 
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
@@ -452,11 +452,61 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     expect(탭(container)).toBe('trial');
   });
 
+  it('모킹 켜기 · 끄기 단계는 통과가 아니라 적용됨으로 보인다', async () => {
+    sessionStorage.setItem('scn-trial:12', JSON.stringify({ trialId: 't-1', env: 'stg' }));
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({
+      status: 'FINISHED',
+      result: {
+        status: 'PASS',
+        durationMs: 900,
+        parts: [
+          { seq: 1, status: 'PASS', durationMs: 10, steps: [], mocks: [] },
+          { seq: 2, status: 'PASS', durationMs: 20, steps: [], mocks: [] },
+        ],
+      },
+    });
+    await 기존그리기([
+      { kind: 'mock', urlPattern: '**/api/**', status: 200, contentType: 'application/json', body: '{}' },
+      { kind: 'unmock', urlPattern: '**/api/**' },
+    ]);
+    await screen.findByText(/^시험 실행 · stg/);
+    fireEvent.click(screen.getByRole('button', { name: '자세히' }));
+
+    const 줄들 = within(screen.getByRole('tabpanel')).getAllByRole('listitem');
+    expect(줄들).toHaveLength(2);
+    for (const 줄 of 줄들) {
+      expect(within(줄).getByText('적용됨')).toBeTruthy();
+      expect(within(줄).queryByText('통과')).toBeNull();
+    }
+  });
+
+  it('시간 초과 같은 NA 결과는 실패 색이 아니라 판정 없음 색으로 칠한다', async () => {
+    sessionStorage.setItem('scn-trial:12', JSON.stringify({ trialId: 't-1', env: 'stg' }));
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({
+      status: 'FINISHED',
+      result: { status: 'NA', durationMs: 900, parts: [], error: { message: '러너가 거절했습니다' } },
+    });
+    await 기존그리기();
+    await screen.findByText(/^시험 실행 · stg/);
+
+    const 요약문장 = screen.getByText('러너가 거절했습니다');
+    expect(요약문장.className).toBe('scn-trial-na');
+    fireEvent.click(screen.getByRole('button', { name: '자세히' }));
+    const 탭문장 = within(screen.getByRole('tabpanel')).getByText('러너가 거절했습니다');
+    expect(탭문장.className).toBe('scn-trial-na');
+  });
+
+  it('FAIL 결과의 오류 문장은 실패 색이다', async () => {
+    await 끝낸것({ status: 'FAIL', durationMs: 900, parts: [], error: { message: '단계가 실패했습니다' } });
+
+    expect(screen.getByText('단계가 실패했습니다').className).toBe('scn-trial-fail');
+  });
+
   it('모두 통과면 그 글자를 보인다', async () => {
     await 끝낸것(통과결과);
 
     expect(screen.getByText('모두 통과')).toBeTruthy();
-    expect(screen.queryByText(/번에서 실패/)).toBeNull();
+    expect(screen.queryByText(/번에서 멈춤/)).toBeNull();
   });
 
   it('탭은 단계마다 종류 · 판정 · 소요 · 오류 · 실패 화면 · 안 돈 단계를 보인다', async () => {
