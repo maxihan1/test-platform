@@ -3695,6 +3695,14 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   background: var(--fail-bg);
 }
 
+.scn-trial-na {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  overflow-wrap: anywhere;
+  background: var(--na-bg);
+  color: var(--na);
+}
+
 .scn-trial-intro {
   margin: 0;
   padding: 10px 24px;

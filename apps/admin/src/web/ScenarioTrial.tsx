@@ -1,6 +1,6 @@
 // E2E 시나리오 시험 실행의 화면 조각 — 머리의 대상 서버 · 버튼, 왼쪽 요약, 오른쪽 시험 결과 탭 (도메인/시나리오 §8.11)
 
-import type { ScenarioPart, ScenarioPartResult } from '@platform/kit';
+import type { ScenarioExecuteResponse, ScenarioPart, ScenarioPartResult } from '@platform/kit';
 
 import type { EnvRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
@@ -54,6 +54,9 @@ export function TrialControls({
   );
 }
 
+// 실패 색은 FAIL 일 때만이다. 시간 초과 · 러너 거절 같은 NA 는 판정 없음 색이다
+const 오류칠 = (status: ScenarioExecuteResponse['status']) => (status === 'NA' ? 'scn-trial-na' : 'scn-trial-fail');
+
 export function TrialSummary({ 시험, on자세히 }: { 시험: 시험상태; on자세히: () => void }) {
   const t = use말();
   const 언어 = use언어();
@@ -69,14 +72,14 @@ export function TrialSummary({ 시험, on자세히 }: { 시험: 시험상태; on
   const 실패 = 결과.parts.find((p) => p.status === 'FAIL');
   const 문장 =
     실패 !== undefined
-      ? t('{번호}번에서 실패', { 번호: 실패.seq })
+      ? t('{번호}번에서 멈춤', { 번호: 실패.seq })
       : 결과.status === 'PASS'
         ? t('모두 통과')
         : (결과.error?.message ?? '');
   return (
     <div className="scn-trial-sum">
       <p>{t('시험 실행 · {서버} · {초}', { 서버: 시험.env, 초: seconds(결과.durationMs, 언어) })}</p>
-      {문장 === '' ? null : <p className={결과.status === 'PASS' ? undefined : 'scn-trial-fail'}>{문장}</p>}
+      {문장 === '' ? null : <p className={결과.status === 'PASS' ? undefined : 오류칠(결과.status)}>{문장}</p>}
       <button type="button" className="btn ghost" onClick={on자세히}>
         {t('자세히')}
       </button>
@@ -100,7 +103,7 @@ export function TrialTab({ 시험, 단계들 }: { 시험: 시험상태; 단계�
         <p className="scn-trial-intro">{t('아직 시험 실행을 하지 않았습니다')}</p>
       ) : (
         <>
-          {결과.error === undefined ? null : <p className="scn-trial-fail">{결과.error.message}</p>}
+          {결과.error === undefined ? null : <p className={오류칠(결과.status)}>{결과.error.message}</p>}
           <ol className="scn-steps">
             {결과.parts.map((p) => (
               <TrialRow key={p.seq} part={p} 종류={단계들[p.seq - 1]?.kind} trialId={시험.trialId} />
@@ -124,6 +127,7 @@ function TrialRow({
   const t = use말();
   const 언어 = use언어();
   const 안돌았다 = part.status === 'NA' && part.error?.message === 'NOT_RUN';
+  const 적용됨 = (종류 === 'mock' || 종류 === 'unmock') && part.status === 'PASS';
   const 사유 = part.error?.message ?? '';
   // 사진은 실패한 절차의 순번으로 저장된다. 부품 번호와 다르다
   const 실패절차 = part.steps.find((s) => s.status === 'FAIL');
@@ -133,7 +137,13 @@ function TrialRow({
         <span className="scn-seq">{part.seq}</span>
         {종류 === undefined ? null : <span className="tech-tag">{t(종류글[종류])}</span>}
         <span className="scn-end">
-          {안돌았다 ? <span className="scn-notrun">{t('– 실행 안 됨')}</span> : <Verdict status={part.status} />}
+          {적용됨 ? (
+            <span className="tech-tag">{t('적용됨')}</span>
+          ) : 안돌았다 ? (
+            <span className="scn-notrun">{t('– 실행 안 됨')}</span>
+          ) : (
+            <Verdict status={part.status} />
+          )}
           {안돌았다 ? null : <span className="scn-dur">{seconds(part.durationMs, 언어)}</span>}
         </span>
       </div>

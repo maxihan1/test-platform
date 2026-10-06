@@ -93,7 +93,7 @@ export function ScenarioResult({ runId, 상자안 = false }: { runId: number; �
         <h2 className="scn-heading">{t('단계별 결과')}</h2>
         <ol className="scn-steps">
           {data.parts.map((part) => (
-            <ScenarioResultPart key={part.seq} part={part} parts={data.parts} runId={runId} />
+            <ScenarioResultPart key={part.seq} part={part} parts={data.parts} runId={runId} 실행중={running} />
           ))}
         </ol>
       </div>

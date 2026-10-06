@@ -18,7 +18,18 @@ function 세부({ 라벨, children }: { 라벨: string; children: ReactNode }) {
   );
 }
 
-export function ScenarioResultPart({ part, parts, runId }: { part: ScenarioRunPart; parts: ScenarioRunPart[]; runId: number }) {
+export function ScenarioResultPart({
+  part,
+  parts,
+  runId,
+  실행중 = false,
+}: {
+  part: ScenarioRunPart;
+  parts: ScenarioRunPart[];
+  runId: number;
+  /** 도는 중에는 아직 안 돈 단계의 판정 글자를 비운다. 곧 돌 단계에 「미실행」을 붙이면 못 돈 것으로 읽힌다 */
+  실행중?: boolean;
+}) {
   const t = use말();
   const 언어 = use언어();
   // 처음 모양만 판정이 정한다. 사람이 누르면 그 뒤는 사람 몫이고, 도는 중에 실패가 뒤늦게 와도 따라 열린다
@@ -51,7 +62,7 @@ export function ScenarioResultPart({ part, parts, runId }: { part: ScenarioRunPa
         <span className="scn-end">
           {적용됨 ? (
             <span className="tech-tag">{t('적용됨')}</span>
-          ) : 안돌았다 ? (
+          ) : 실행중 && part.status === 'NA' ? null : 안돌았다 ? (
             <span className="scn-notrun">{t('– 실행 안 됨')}</span>
           ) : (
             <Verdict status={part.status} />

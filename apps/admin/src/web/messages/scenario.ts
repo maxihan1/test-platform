@@ -163,7 +163,6 @@ export const 시나리오말: Record<string, string> = {
     'A trial run leaves no record and makes no evidence. You can run it with unsaved changes too',
   '시험 실행 중입니다': 'Trial run in progress',
   '시험 실행 · {서버} · {초}': 'Trial run · {서버} · {초}',
-  '{번호}번에서 실패': 'Failed at step {번호}',
   '자세히': 'Details',
   '아직 시험 실행을 하지 않았습니다': 'No trial run yet',
   '시험 결과를 찾지 못했습니다. 시간이 지났거나 서버가 다시 켜졌을 수 있습니다':
