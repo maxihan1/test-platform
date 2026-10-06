@@ -210,11 +210,6 @@ export function 비밀섞였나(글들: string[], 비밀: string | undefined): b
   return 글들.some((글) => 글.includes(비밀));
 }
 
-/** 병합 직전에 PR 이 실제로 바꾼 파일. 올릴 때 판정했어도 그 뒤 누가 브랜치에 더 얹었을 수 있다 */
-export function PR파일인자(prUrl: string): string[] {
-  return ['pr', 'diff', prUrl, '--name-only'];
-}
-
 export function 머지거부사유(테스트만인가: boolean, 파일들: string[]): string | null {
   return 테스트만인가 && 파일들.length > 0 ? null : '이 PR 은 케이스만 바꾼 것이 아니다 — 맥은 병합하지 않는다';
 }
