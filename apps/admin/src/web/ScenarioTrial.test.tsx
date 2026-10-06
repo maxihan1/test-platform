@@ -152,6 +152,13 @@ describe('시험 실행 시작 전 막기', () => {
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('');
   });
 
+  it('대상 서버 고르개의 빈 선택지는 목록 화면처럼 「선택하세요」로 보인다', async () => {
+    await 기존그리기();
+    const 고르개 = screen.getByLabelText('대상 서버') as HTMLSelectElement;
+    expect(고르개.options[0]?.value).toBe('');
+    expect(고르개.options[0]?.textContent).toBe('선택하세요');
+  });
+
   it('막힌 뒤 대상 서버를 고르면 먼저 고르라는 줄이 사라진다', async () => {
     await 기존그리기();
     fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
