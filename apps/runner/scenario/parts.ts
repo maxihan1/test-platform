@@ -6,10 +6,12 @@
 import type { ScenarioCaseOutcome, ScenarioPhase } from '@platform/kit/scenario';
 import type { ItemStatus, ScenarioCleanup, ScenarioExecuteRequest, ScenarioPartResult, StepResult } from '@platform/kit';
 
-import { 꽂기, 새부품, 안걸린, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
+import { 꽂기, 새부품, 안걸린, 주소, type CasePart, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
+
+// 부품 검사가 이 파일에서 가져다 쓴다
+export { 주소 };
 
 type Part = ScenarioExecuteRequest['parts'][number];
-type CasePart = Extract<Part, { kind: 'case' }>;
 
 export type RouteHandler = (route: {
   fulfill(response: { status: number; contentType: string; body: string }): Promise<void>;
@@ -32,7 +34,7 @@ export interface 창 {
 
 export interface PartDeps {
   baseUrl: string;
-  // 0 이면 한도 없음 — 루트 설정 timeout 0(무제한)에 모든 부품이 0ms 에 죽지 않게 (계획 결정 16)
+  // 0 이면 한도 없음 — 루트 설정 timeout 0(무제한)에 모든 부품이 0ms 에 죽지 않게 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
   partTimeoutMs: number;
   이음: 이음;
   // 부품이 있으면 그 부품의 이어 주기를 그 창 · 그 창의 도구에 건다
@@ -43,13 +45,11 @@ export interface PartDeps {
   writeCleanup(list: ScenarioCleanup[]): void;
 }
 
-// 한도에 걸린 부품의 절차를 받으려고 창을 닫은 뒤 기다리는 시간. 창이 닫히면 Playwright 동작이 바로 실패해 대개 곧 온다 (계획 결정 4)
+// 한도에 걸린 부품의 절차를 받으려고 창을 닫은 뒤 기다리는 시간. 창이 닫히면 Playwright 동작이 바로 실패해 대개 곧 온다.
+// 닫기 전 상태 읽기에도 같은 상한을 건다 — 멈춘 창에서 안 돌아오면 부품 한도가 무력해진다 (SPEC 도메인/러너 §5.2 「부품 시험 한도」)
 const 늦은절차유예 = 5000;
-
-// new URL(path, base) 로 합치면 대상 주소의 경로(/shop)가 날아간다. `//` 로 시작하는 path 는 러너 입구가 막는다
-export function 주소(baseUrl: string, path: string): string {
-  return baseUrl.replace(/\/+$/, '') + path;
-}
+// 부품 한도가 0(없음)일 때 미룬 삭제 하나를 기다리는 상한 — 대상 서버가 안 답해도 다 통과한 시나리오가 판정 없음이 되지 않게 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
+const 뒷정리상한 = 30_000;
 
 // 앞 창의 쿠키 · localStorage 와 앞 부품 request 의 쿠키를 합친다. 같은 쿠키가 둘에 있으면 창 쪽 (SPEC 도메인/시나리오 §3.7 결정 3)
 export function 합친상태(창쪽: 상태, 요청쪽: 상태): 상태 {
@@ -57,6 +57,14 @@ export function 합친상태(창쪽: 상태, 요청쪽: 상태): 상태 {
   const 쿠키 = new Map(요청쪽.cookies.map((c) => [열쇠(c), c]));
   for (const c of 창쪽.cookies) 쿠키.set(열쇠(c), c);
   return { cookies: [...쿠키.values()], origins: 창쪽.origins };
+}
+
+// 닫기 · 상태 읽기 실패는 결과를 바꾸지 않지만 흔적은 남긴다 — 창이 새는 것을 나중에 찾을 수 있게
+function 남김(무엇: string) {
+  return (thrown: unknown): undefined => {
+    console.warn(`[runner] ${무엇}: ${thrown instanceof Error ? thrown.message : String(thrown)}`);
+    return undefined;
+  };
 }
 
 function errorOf(thrown: unknown): { message: string; stack?: string } {
@@ -92,9 +100,9 @@ async function 한도안에(
   const 먼저 = await 늦어도(달림.then((outcome) => ({ outcome })), 한도);
   if (먼저 !== undefined) return { outcome: 먼저.outcome, 넘었다: false };
 
-  // 닫힌 도구로 늦게 온 미룬 삭제가 이 상태로 나간다 (계획 결정 6)
-  부품.찍은상태 = await 지금.state().catch(() => undefined);
-  await 지금.close().catch(() => undefined);
+  // 닫힌 도구로 늦게 온 미룬 삭제가 이 상태로 나간다 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
+  부품.찍은상태 = await 늦어도(지금.state(), 늦은절차유예).catch(남김(`${part.tcId} 한도에 걸린 창 상태를 못 읽었다`));
+  await 지금.close().catch(남김(`${part.tcId} 한도에 걸린 창을 못 닫았다`));
   const 늦음 = await 늦어도(달림.catch(() => undefined), 늦은절차유예);
   return { outcome: 늦음, 넘었다: true };
 }
@@ -170,6 +178,8 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
             const { status: 코드, contentType, body } = part;
             const handler: RouteHandler = (route) => route.fulfill({ status: 코드, contentType, body });
             await 지금창.route(part.urlPattern, handler);
+            // 다시 걸면 맨 뒤로 — 새 창에 다시 걸 때도 나중 것이 이긴다
+            걸린.delete(part.urlPattern);
             걸린.set(part.urlPattern, handler);
             // 케이스의 API 요청도 같은 모킹을 거친다. 다시 걸면 맨 뒤로 — 브라우저 route 처럼 나중 것이 이긴다 (SPEC 도메인/시나리오 §3.7 결정 6)
             이음.모킹.delete(part.urlPattern);
@@ -197,7 +207,7 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
       }
 
       if (돈부품 !== undefined) {
-        // 이음 오류가 먼저다 — 돌려줄 응답이 없어 막은 요청 때문에 케이스가 net::ERR_FAILED 로 먼저 실패하면 원인이 가려진다 (계획 결정 12)
+        // 이음 오류가 먼저다 — 돌려줄 응답이 없어 막은 요청 때문에 케이스가 net::ERR_FAILED 로 먼저 실패하면 원인이 가려진다 (SPEC 도메인/시나리오 §3.7 결정 12 「이어 주기 때문에 실패하면」)
         const 이음오류 = 돈부품.오류;
         if (이음오류 !== undefined) {
           status = 'FAIL';
@@ -227,15 +237,17 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
   }
 }
 
-// 거꾸로 보낸다 — 나중에 만든 것이 먼저 만든 것에 기대 있을 수 있다. 하나가 실패해도 나머지는 보낸다 (계획 결정 15)
+// 거꾸로 보낸다 — 나중에 만든 것이 먼저 만든 것에 기대 있을 수 있다. 하나가 실패하거나 안 끝나도 나머지는 보낸다 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
 async function 뒷정리(deps: PartDeps): Promise<ScenarioCleanup[]> {
+  const 상한 = deps.partTimeoutMs > 0 ? deps.partTimeoutMs : 뒷정리상한;
   // 보내는 동안 늦게 온 삭제가 목록에 끼지 않게 먼저 얼린다 — 얼린 뒤 삭제는 미루지 않고 그대로 나간다
   deps.이음.얼림 = true;
   const 보냄: ScenarioCleanup[] = [];
   for (const d of [...deps.이음.미룸].reverse()) {
     const 줄 = { fromSeq: d.fromSeq, method: 'DELETE' as const, url: d.url };
     try {
-      보냄.push({ ...줄, status: await deps.sendDelete(d) });
+      const 끝 = await 늦어도(deps.sendDelete(d).then((status) => ({ status })), 상한);
+      보냄.push(끝 === undefined ? { ...줄, error: `미룬 삭제가 ${상한}ms 안에 끝나지 않았다` } : { ...줄, status: 끝.status });
     } catch (thrown) {
       보냄.push({ ...줄, error: errorOf(thrown).message });
     }

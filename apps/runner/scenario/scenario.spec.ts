@@ -15,15 +15,22 @@ const 목록 = JSON.parse(process.env.PLATFORM_SCENARIO ?? '[]') as ScenarioExec
 test('E2E 시나리오', async ({ browser }, testInfo) => {
   const baseUrl = process.env.PLATFORM_BASE_URL ?? '';
   const 이음 = 새이음(목록, baseUrl);
-  const 한도: unknown = testInfo.config.metadata['partTimeoutMs'];
-  const 감싸기 = 감싸기걸기(browser, request, 이음, baseUrl, testInfo.project.name);
+  const 적힌한도: unknown = testInfo.config.metadata['partTimeoutMs'];
+  const partTimeoutMs = typeof 적힌한도 === 'number' ? 적힌한도 : 30_000;
+  const 감싸기 = 감싸기걸기(browser, request, 이음, {
+    baseUrl,
+    platform: testInfo.project.name,
+    기본머리: testInfo.project.use.extraHTTPHeaders,
+    // parts.ts 의 미룬 삭제 상한과 같다 — 한도 0(없음)이면 30초
+    뒷정리한도: partTimeoutMs > 0 ? partTimeoutMs : 30_000,
+  });
   try {
     await runParts(목록, {
       baseUrl,
-      partTimeoutMs: typeof 한도 === 'number' ? 한도 : 30_000,
+      partTimeoutMs,
       이음,
-      newWindow: (state, mocks, 부품) => 감싸기.newWindow(state, mocks, 부품),
-      sendDelete: (d) => 감싸기.sendDelete(d),
+      newWindow: 감싸기.newWindow,
+      sendDelete: 감싸기.sendDelete,
       // 워커의 stdout 은 Playwright 가 갈아치웠다. 전용 리포터가 onStdOut 으로 되돌려 써야 러너에 닿는다
       write: (result) => {
         process.stdout.write(부품줄(result));
