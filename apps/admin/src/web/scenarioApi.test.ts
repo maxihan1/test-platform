@@ -14,7 +14,7 @@ function 보낸것(fetchMock: ReturnType<typeof 막는다>) {
   return { 주소, 메서드: init?.method ?? 'GET', 본문: init?.body === undefined ? undefined : JSON.parse(String(init.body)) };
 }
 
-const 부품 = [{ kind: 'case' as const, tcId: 'PAY-FN-001', params: {}, expected: {} }];
+const 부품 = [{ kind: 'case' as const, tcId: 'PAY-FN-001', params: {}, expected: {}, skipSteps: [] }];
 
 describe('시나리오 서버 호출 모음', () => {
   afterEach(() => vi.unstubAllGlobals());

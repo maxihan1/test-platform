@@ -95,4 +95,11 @@ export const 오류영어: Record<string, string> = {
   '겹치는 케이스를 아직 다 고르지 않아 반영할 수 없습니다': 'Overlapping cases are not all decided yet, so the merge cannot start',
   '이 반영의 겹침 목록에 없는 케이스입니다. 새로 고쳐 보세요': 'This case is not in the overlap list of this merge. Refresh the page',
   '반영이 대기 중이거나 진행 중이라 지금은 고를 수 없습니다': 'A merge is queued or running, so you cannot decide now',
+
+  // E2E 시나리오
+  '그 시나리오를 찾지 못했습니다': 'We could not find that scenario',
+  '목록에서 치운 시나리오라 고치거나 실행할 수 없습니다': 'This scenario was archived, so it cannot be edited or run',
+  '지금은 실행할 수 없는 시나리오입니다': 'This scenario cannot run right now',
+  '다른 사람이 먼저 저장했습니다. 새로 고침하면 지금 고친 내용이 사라집니다':
+    'Someone else saved first. Reloading will discard your current edits',
 };
