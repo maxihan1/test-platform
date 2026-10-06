@@ -119,6 +119,18 @@ describe('머리', () => {
     expect(document.querySelector('.head .verdict')).toBeNull();
   });
 
+  it('실패 머리는 미확정 단계가 있을 때만 미확정 포함 칩을 곁들인다', async () => {
+    연다(결과());
+    await screen.findByText('단계별 결과');
+    expect(document.querySelector('.head .verdict')?.textContent).toBe('실패');
+    expect(document.querySelector('.head .case-tag')?.textContent).toBe('미확정 포함');
+    cleanup();
+    연다(결과({ parts: [부품(1, { status: 'FAIL', error: { message: '깨짐' } })] }));
+    await screen.findByText('단계별 결과');
+    expect(document.querySelector('.head .verdict')?.textContent).toBe('실패');
+    expect(document.querySelector('.head .case-tag')).toBeNull();
+  });
+
   it('정보 칸 다섯', async () => {
     연다(결과());
     await screen.findByText('단계별 결과');
@@ -149,6 +161,36 @@ describe('단계 줄', () => {
     await screen.findByText('단계별 결과');
     expect(within(줄('XSX-003')).getByText('모킹이 적용된 상태로 실행했습니다 — **/api/pay')).toBeTruthy();
     expect(screen.queryAllByText(/모킹이 적용된 상태로/).length).toBe(1);
+  });
+
+  it('모킹 구간 안 API 호출 단계는 모킹되지 않음 — 케이스 단계는 모킹이 적용된 안내 그대로', async () => {
+    const 호출 = 부품(4, {
+      kind: 'api', tcId: null, tcName: null,
+      part: { kind: 'api', method: 'GET', path: '/api/orders', expectStatus: 200 },
+      mocks: ['**/api/pay'],
+    });
+    연다(결과({ parts: [모킹켜기, 결제, 호출] }));
+    await screen.findByText('단계별 결과');
+    const api = screen.getByText('API 호출').closest('.scn-part') as HTMLElement;
+    expect(within(api).getByText('모킹되지 않음').className).toContain('tech-tag');
+    expect(within(api).getByText('이 단계의 API 호출은 모킹되지 않습니다')).toBeTruthy();
+    expect(within(api).queryByText(/모킹이 적용된 상태로/)).toBeNull();
+    expect(api.className).toContain('mocked');
+    expect(within(줄('XSX-003')).getByText('모킹이 적용된 상태로 실행했습니다 — **/api/pay')).toBeTruthy();
+    expect(within(줄('XSX-003')).queryByText('모킹되지 않음')).toBeNull();
+  });
+
+  it('판정 없음 단계는 받은 사유 글자를 보이고 안 돈 단계는 실행 안 됨만', async () => {
+    const 멈춤 = 부품(5, { status: 'NA', error: { message: '러너가 이 부품 결과를 돌려주지 않았다' } });
+    연다(결과({ parts: [멈춤, 안돈] }));
+    await screen.findByText('단계별 결과');
+    const 멈춘줄 = 줄('XSX-005');
+    expect(within(멈춘줄).getByText('실행이 멈춘 사유')).toBeTruthy();
+    expect(within(멈춘줄).getByText('러너가 이 부품 결과를 돌려주지 않았다').className).not.toContain('scn-error');
+    const api = screen.getByText('API 호출').closest('.scn-part') as HTMLElement;
+    expect(within(api).getByText('– 실행 안 됨')).toBeTruthy();
+    expect(api.textContent).not.toContain('NOT_RUN');
+    expect(within(api).queryByText('실행이 멈춘 사유')).toBeNull();
   });
 
   it('입력값은 비밀을 가린다', async () => {
