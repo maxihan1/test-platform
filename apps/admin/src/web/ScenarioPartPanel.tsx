@@ -1,7 +1,7 @@
 // E2E 시나리오 조립 화면의 「N번 설정」 탭 속 — 케이스 단계의 전제 · 로그인 이어받기 · 준비 · 입력값 · 기대값 (도메인/시나리오 §8.11)
 
 import { useMemo, useState, type ReactNode } from 'react';
-import type { ScenarioPart } from '@platform/kit';
+import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 
 import { use말 } from './i18n.js';
 import type { CasePartMaterial } from './scenarioApi.js';
@@ -20,8 +20,8 @@ interface Props {
   쓰나: boolean;
   on바꿈: (새단계: CasePart) => void;
   on케이스바꾸기: () => void;
-  /** 값 연결 편집 칸. 넘기지 않으면 그 자리를 그리지 않는다 */
-  값연결?: ReactNode;
+  /** 값 연결 편집 칸. 넘기지 않으면 그 자리를 그리지 않는다. 함수면 로그인 이어받기를 끈 동안 기억해 둔 값과 잠금 여부를 받는다 */
+  값연결?: ReactNode | ((보일단계: CasePart, 잠금: boolean) => ReactNode);
 }
 
 export function ScenarioPartPanel(props: Props) {
@@ -61,6 +61,9 @@ function PanelBody({
   const t = use말();
   const 잠글까 = !쓰나;
   const 이어받나 = 단계.carryOver !== false;
+  // 끌 때 서버가 막는 skipSteps · links 를 초안에서 빼므로, 다시 켤 때 되살리려고 패널이 들고 있다. 패널이 내려가면 사라진다
+  const [끄기전, set끄기전] = useState<{ skipSteps: string[]; links: ScenarioLink[] } | null>(null);
+  const 보일단계 = 이어받나 || 끄기전 === null ? 단계 : { ...단계, ...끄기전 };
   const 입력칸 = useMemo(() => schemaToFields(케이스.paramSchema), [케이스]);
   const 기대칸 = useMemo(() => schemaToFields(케이스.expectedSchema), [케이스]);
   // 칸을 비우면 키가 빠져 되돌아오는 값이 없다. 글자를 여기서 들고 있어야 쓰는 중인 `1.` 이 안 날아간다
@@ -71,6 +74,16 @@ function PanelBody({
 
   const 아이디 = `scn-set-${번호}`;
   const 건너뛸것 = 케이스.steps.filter((s) => s.skippable);
+
+  function 이어받기바꿈() {
+    if (이어받나) {
+      set끄기전({ skipSteps: 단계.skipSteps, links: 단계.links ?? [] });
+      on바꿈(넘겨받기끄기(단계));
+      return;
+    }
+    on바꿈({ ...단계, carryOver: true, ...끄기전 });
+    set끄기전(null);
+  }
 
   function 준비바꿈(제목: string, 실행함: boolean) {
     const 나머지 = 단계.skipSteps.filter((x) => x !== 제목);
@@ -119,7 +132,7 @@ function PanelBody({
           aria-describedby={`${아이디}-carry`}
           className="scn-switch"
           disabled={잠글까}
-          onClick={() => on바꿈(이어받나 ? 넘겨받기끄기(단계) : { ...단계, carryOver: true })}
+          onClick={이어받기바꿈}
         >
           <span className="scn-switch-track" aria-hidden="true" />
           {t('로그인 이어받기')}
@@ -143,7 +156,7 @@ function PanelBody({
               <label className="scn-check" key={`${i}-${s.title}`}>
                 <input
                   type="checkbox"
-                  checked={!단계.skipSteps.includes(s.title)}
+                  checked={!보일단계.skipSteps.includes(s.title)}
                   disabled={잠글까 || !이어받나}
                   onChange={(e) => 준비바꿈(s.title, e.target.checked)}
                 />
@@ -185,10 +198,10 @@ function PanelBody({
         </fieldset>
       )}
 
-      {값연결 === undefined || !이어받나 ? null : (
+      {값연결 === undefined || (!이어받나 && (끄기전?.links.length ?? 0) === 0) ? null : (
         <div className="scn-set-block">
           <h4 className="scn-set-sub">{t('값 연결')}</h4>
-          {값연결}
+          {typeof 값연결 === 'function' ? 값연결(보일단계, !이어받나) : 값연결}
         </div>
       )}
     </div>
