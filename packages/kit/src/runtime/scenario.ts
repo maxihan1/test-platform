@@ -4,10 +4,13 @@
 import type { APIRequestContext, Page } from '@playwright/test';
 
 import type { StepResult } from '../types.js';
+import type { ScenarioPhase } from './context.js';
 import { SCENARIO_PART_MARKER } from './protocol.js';
 
 // 러너가 결과 줄을 가를 때 같은 표시자를 봐야 한다
 export { SCENARIO_PART_MARKER };
+// 러너가 표시판을 만들려면 모양을 알아야 한다. 고정 spec 은 이 진입점에서 타입만 가져간다
+export type { ScenarioPhase };
 
 export interface ScenarioCaseInput {
   page: Page;
@@ -18,6 +21,8 @@ export interface ScenarioCaseInput {
   skipSteps: readonly string[];
   // 앞 부품까지 쓴 절차 순번. 시나리오 전체에서 이어져야 스크린샷이 서로를 안 덮는다
   seq: number;
+  // 러너가 건넨 표시판. kit 이 적고 러너의 가로채기가 읽는다 (SPEC 공통/3-공유계약 §5.1 ④)
+  phase?: ScenarioPhase;
 }
 
 export interface ScenarioCaseOutcome {
