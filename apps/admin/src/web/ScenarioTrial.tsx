@@ -38,7 +38,7 @@ export function TrialControls({
   return (
     <>
       <select aria-label={t('대상 서버')} value={서버} onChange={(e) => on서버(e.target.value)}>
-        <option value="" />
+        <option value="">{t('선택하세요')}</option>
         {서버들.map((s) => (
           <option key={s.env} value={s.env}>
             {s.env}
