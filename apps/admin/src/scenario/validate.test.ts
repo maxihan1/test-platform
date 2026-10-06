@@ -162,4 +162,41 @@ describe('부품 모양', () => {
       expect(부품들모양.safeParse([부품]).success, JSON.stringify(부품)).toBe(false);
     }
   });
+
+  const 값 = { fromSeq: 1, method: 'GET', urlPattern: '**/api/todos', jsonPath: 'data.id' } as const;
+
+  it('넘겨받기와 이어 주기 넷은 모양 검사를 지나도 그대로 남는다', () => {
+    const parts: ScenarioPart[] = [
+      { kind: 'case', tcId: 'SHOP-001', params: {}, expected: {}, skipSteps: [], carryOver: false },
+      {
+        kind: 'case',
+        tcId: 'SHOP-002',
+        params: {},
+        expected: {},
+        skipSteps: [],
+        links: [
+          { kind: 'reuse', method: 'GET', urlPattern: '**/api/todos', fromSeq: 1 },
+          { kind: 'block', method: 'DELETE', urlPattern: '**/api/todos/*' },
+          { kind: 'rewrite', method: 'POST', urlPattern: '**/api/todos', to: { method: 'PUT', path: '/api/todos/{}', value: 값 } },
+          { kind: 'bind', param: 'todoId', value: 값 },
+        ],
+      },
+    ];
+    expect(부품들모양.parse(parts)).toEqual(parts);
+  });
+
+  it('이어 주기의 빈 무늬 · 빈 값 경로 · 모르는 메서드 · 0번 부품은 거절한다', () => {
+    for (const 이어주기 of [
+      { kind: 'reuse', method: 'GET', urlPattern: '', fromSeq: 1 },
+      { kind: 'reuse', method: 'GET', urlPattern: '**/a', fromSeq: 0 },
+      { kind: 'block', method: 'OPTIONS', urlPattern: '**/a' },
+      { kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'POST', path: '/a/{}', value: 값 } },
+      { kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PUT', path: '/a/{}', value: { ...값, fromSeq: 0 } } },
+      { kind: 'bind', param: 'todoId', value: { ...값, jsonPath: '' } },
+      { kind: 'bind', param: 'todoId', value: { ...값, urlPattern: '' } },
+    ]) {
+      const 부품 = { ...케이스('SHOP-002'), links: [이어주기] };
+      expect(부품들모양.safeParse([부품]).success, JSON.stringify(이어주기)).toBe(false);
+    }
+  });
 });
