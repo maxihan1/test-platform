@@ -3267,3 +3267,190 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   font-size: 12.5px;
   color: var(--ink-faint);
 }
+
+/* E2E 실행 결과 (도메인/시나리오 §8.11). 단계는 한 면 안의 괘선 줄이다 — 단계마다 카드를 두르지 않는다.
+   판정 색은 Verdict 만 쓰고 모킹 세로선 · 응답 코드는 중립 색이다 */
+.scn-back {
+  margin-bottom: 8px;
+  font-size: 12.5px;
+}
+
+.scn-back a {
+  color: var(--ink-muted);
+}
+
+.scn-running {
+  margin: 0;
+  padding: 10px 24px;
+  font-size: 13px;
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.scn-info {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, auto));
+  justify-content: start;
+  gap: 8px 32px;
+  margin: 0;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.scn-info dt {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.scn-info dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.scn-heading {
+  margin: 0;
+  padding: 14px 24px 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scn-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.scn-part {
+  padding: 12px 24px;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 13px;
+}
+
+.scn-part.mocked {
+  padding-left: 21px;
+  border-left: 3px solid var(--ink-faint);
+}
+
+.scn-part-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.scn-seq {
+  min-width: 18px;
+  color: var(--ink-faint);
+}
+
+.scn-part .case-tag {
+  margin-left: 0;
+}
+
+.scn-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.scn-id {
+  margin-right: 4px;
+}
+
+.scn-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.scn-dur,
+.scn-notrun {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.scn-mock-note {
+  margin: 6px 0 0 26px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.scn-detail {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 8px;
+  margin: 6px 0 0 26px;
+  font-size: 12.5px;
+}
+
+.scn-k {
+  color: var(--ink-faint);
+}
+
+.scn-v {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+
+.scn-error {
+  margin: 6px 0 0 26px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.scn-toggle {
+  margin: 8px 0 0 26px;
+}
+
+.scn-proc {
+  list-style: none;
+  margin: 6px 0 0 26px;
+  padding: 0;
+  font-size: 12.5px;
+}
+
+.scn-proc li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 4px 0;
+}
+
+.scn-skip {
+  color: var(--ink-faint);
+}
+
+.scn-shot {
+  color: inherit;
+}
+
+@media (max-width: 620px) {
+  .scn-info {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scn-part {
+    padding: 12px 16px;
+  }
+
+  .scn-part.mocked {
+    padding-left: 13px;
+  }
+
+  .scn-end {
+    flex-basis: 100%;
+    margin-left: 26px;
+  }
+
+  .scn-mock-note,
+  .scn-detail,
+  .scn-error,
+  .scn-toggle,
+  .scn-proc {
+    margin-left: 0;
+  }
+}

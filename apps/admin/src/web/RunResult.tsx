@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, type ItemStatus, type Platform, type 항목진행 } from './api.js';
+import { api, ApiError, type ItemStatus, type Platform, type 항목진행 } from './api.js';
 import { filterGroups, groupByCase } from './group.js';
 import { Head } from './Head.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
@@ -14,6 +14,7 @@ import { 진행상황 } from './runProgress.js';
 import { RunInsights } from './RunInsights.js';
 import { RunProgressModal } from './RunProgressModal.js';
 import { 결과줄 } from './RunResultRow.js';
+import { ScenarioResult } from './ScenarioResult.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
 import { Failed, Loading, message, PLATFORM_LABEL, PLATFORMS, STATUS_LABEL, useAsync, when } from './ui.js';
 import { 끝난미확정, 미확정글자 } from './unconfirmed.js';
@@ -22,11 +23,13 @@ const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 const DEVICES: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
 
-export function RunResult({
+function 케이스결과({
   runId,
   판정하기,
   상자안 = false,
+  on시나리오,
 }: {
+  on시나리오?: () => void;
   runId: number;
   판정하기: 판정하기;
   /**
@@ -57,7 +60,7 @@ export function RunResult({
   // 화면에 안 나오는 값이라 `useRef` 로 둔다 — 그리는 값이면 `useState` 여야 한다 (2026-09-21 사고)
   const 앞선상태 = useRef<string | null>(null);
 
-  const run = useAsync(() => api.run(runId), [runId]);
+  const run = useAsync(() => api.run(runId).catch((e: unknown) => { if (e instanceof ApiError && e.code === 'SCENARIO_RUN') on시나리오?.(); throw e; }), [runId]);
   const data = run.data;
   // ABORTED 를 빠뜨리면 사람이 멈춘 실행에서 2초마다 영원히 다시 묻는다 (SPEC §8.3)
   const running = data !== null && 도는중(data.status);
@@ -322,4 +325,10 @@ export function RunResult({
       )}
     </>
   );
+}
+
+export function RunResult(props: Parameters<typeof 케이스결과>[0]) {
+  const [시나리오, set시나리오] = useState<number | null>(null); // 시나리오 실행 번호는 404 SCENARIO_RUN 으로 알려 준다 — 갈래를 바깥에 둬 훅 순서를 지킨다
+  if (시나리오 === props.runId) return <ScenarioResult runId={props.runId} 상자안={props.상자안} />;
+  return <케이스결과 {...props} on시나리오={() => set시나리오(props.runId)} />;
 }

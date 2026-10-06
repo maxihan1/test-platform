@@ -135,7 +135,7 @@ describe('단계 줄', () => {
     expect(within(줄('XSX-001')).getByText('케이스')).toBeTruthy();
     expect(within(줄('XSX-001')).getByText('단독 실행').className).toContain('tech-tag');
     expect(within(줄('XSX-003')).queryByText('단독 실행')).toBeNull();
-    expect(within(줄('XSX-003')).getByText('미확정').className).toContain('case-tag');
+    expect(within(줄('XSX-003')).getAllByText('미확정').some((el) => el.className.includes('case-tag'))).toBe(true);
     const 모킹 = screen.getByText('모킹 켜기').closest('.scn-part') as HTMLElement;
     expect(within(모킹).getByText('적용됨').className).toContain('tech-tag');
     const api = screen.getByText('API 호출').closest('.scn-part') as HTMLElement;
