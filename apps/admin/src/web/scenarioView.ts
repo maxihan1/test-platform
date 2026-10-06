@@ -1,7 +1,7 @@
 // E2E 시나리오 조립 화면이 쓰는 계산 모음. 화면 없이 검사하려고 순수 함수로 뗐다
 
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
-import { TECHNIQUES } from '@platform/kit/types';
+import type { Technique } from '@platform/kit/types';
 
 import type { CaseRow, Platform } from './api.js';
 import { t, type 언어 } from './i18n.js';
@@ -51,8 +51,8 @@ export function 모킹구간(parts: ScenarioPart[]): string[][] {
   });
 }
 
-// 낱말을 글자로 적으면 영어 표의 키 규칙에 걸려서 계약 배열의 끝을 쓴다. 자리가 바뀌면 검사 파일이 먼저 깨진다
-const 상태전이 = TECHNIQUES.at(-1);
+// 상태 전이 기법이 붙은 케이스는 순서가 있는 흐름이라 단계 팔레트의 흐름 칸에 둔다
+const 상태전이: Technique = '상태 전이';
 
 /** 팔레트 두 칸. 상태 전이가 있거나 기법이 없으면 흐름, 그 밖은 입력값 */
 export function 팔레트차례(
