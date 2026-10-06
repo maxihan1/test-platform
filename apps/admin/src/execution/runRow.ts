@@ -69,7 +69,9 @@ export function toRun(row: RawRun): RunSummary {
   };
 }
 
-export function to시나리오줄(row: RawRun & { scenario_id: string; scenario_version: number; part_count: number; stopped_at: number | null }): 시나리오실행줄 {
+export function to시나리오줄(
+  row: RawRun & { scenario_id: string; scenario_version: number; part_count: number; stopped_at: number | null; unconfirmed: boolean },
+): 시나리오실행줄 {
   const { counts: _counts, ...머리 } = toRun(row);
   return {
     ...머리,
@@ -77,5 +79,6 @@ export function to시나리오줄(row: RawRun & { scenario_id: string; scenario_
     version: row.scenario_version,
     partCount: row.part_count,
     stoppedAt: row.stopped_at,
+    unconfirmed: row.unconfirmed,
   };
 }

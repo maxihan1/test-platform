@@ -2,7 +2,7 @@
 
 import type { Pool } from 'pg';
 
-import { 접은판정SQL } from '../scenario/verdict.js';
+import { 미확정SQL, 접은판정SQL } from '../scenario/verdict.js';
 
 import type { RunSummary } from './runTypes.js';
 import { 종류조건, type 목록종류 } from './runKind.js';
@@ -29,6 +29,9 @@ export interface 실행거르개 {
 /** 시나리오 실행의 접은 판정. 도는 중이면 NULL 이라 통과·실패 어느 셈에도 안 든다 (SPEC 시나리오 §7 「판정 접기」) */
 const 시나리오판정 = `CASE WHEN r.status = 'RUNNING' THEN NULL
        ELSE (SELECT ${접은판정SQL('p')} FROM scenario_run_part p WHERE p.run_id = r.run_id) END`;
+
+/** 미확정 부품이 섞였는가. 판정과 달리 도는 중에도 값이 있다 — 부품에 박제한 사유를 보기 때문이다 */
+const 시나리오미확정 = `(SELECT ${미확정SQL('p')} FROM scenario_run_part p WHERE p.run_id = r.run_id)`;
 
 /**
  * `WHERE` 와 `HAVING` 을 같이 만든다.
@@ -75,6 +78,8 @@ export interface 실행집계 {
   runs: number;
   /** 확정 항목에 실패도 미실행도 없고 확정 통과가 1건 이상인 실행. 미확정만 돌린 실행은 안 든다 */
   allPass: number;
+  /** E2E 탭만 싣는다. 접은 판정이 PASS 이지만 미확정 부품이 섞인 실행 — 정식 통과(allPass)로 안 센다 (SPEC 도메인/시나리오 §7) */
+  unconfirmedPass?: number;
   /** 확정 실패 항목이 하나라도 있는 실행 */
   hasFail: number;
   /** 평균을 낸 실행 수. 도는 실행은 소요가 없어 빠진다 — 몇 회를 셌는지 화면이 적는다 */
@@ -92,17 +97,21 @@ export interface 실행집계 {
 export async function runSummary(service: string, 거르개: 실행거르개): Promise<실행집계> {
   const pool = await db();
   const 조건 = 거르는조건(거르개, 2);
-  // 시나리오는 접은 판정 하나를 바깥 셈의 네 칸 모양으로 옮긴다 — 바깥 all_pass·has_fail 식을 두 벌로 두지 않는다
+  // 시나리오는 접은 판정 하나를 바깥 셈의 네 칸 모양으로 옮긴다 — 바깥 all_pass·has_fail 식을 두 벌로 두지 않는다.
+  // 미확정이 섞인 PASS 는 pass 가 아니라 unconfirmed_pass 로 간다. FAIL 은 미확정이어도 fail 이다
   const 셈 =
     거르개.kind === 'scenario'
-      ? `(${시나리오판정} = 'PASS')::int AS pass, (${시나리오판정} = 'FAIL')::int AS fail, 0 AS na, 0 AS running`
-      : `count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS' AND i.unconfirmed IS NULL)::int AS pass,
+      ? `(${시나리오판정} = 'PASS' AND NOT ${시나리오미확정})::int AS pass, (${시나리오판정} = 'FAIL')::int AS fail, 0 AS na, 0 AS running,
+                (${시나리오판정} = 'PASS' AND ${시나리오미확정})::int AS unconfirmed_pass`
+      : `0 AS unconfirmed_pass,
+                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS' AND i.unconfirmed IS NULL)::int AS pass,
                 count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.unconfirmed IS NULL)::int AS fail,
                 count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA' AND i.unconfirmed IS NULL)::int AS na,
                 count(i.history_id) FILTER (WHERE i.finished_at IS NULL)::int AS running`;
   const { rows } = await pool.query<{
     runs: number;
     all_pass: number;
+    unconfirmed_pass: number;
     has_fail: number;
     duration_of: number;
     avg_duration_ms: number | null;
@@ -110,6 +119,7 @@ export async function runSummary(service: string, 거르개: 실행거르개): P
   }>(
     `SELECT count(*)::int AS runs,
             count(*) FILTER (WHERE fail = 0 AND na = 0 AND running = 0 AND pass > 0)::int AS all_pass,
+            count(*) FILTER (WHERE unconfirmed_pass > 0)::int AS unconfirmed_pass,
             count(*) FILTER (WHERE fail > 0)::int AS has_fail,
             count(duration)::int AS duration_of,
             avg(duration)::int AS avg_duration_ms,
@@ -131,6 +141,7 @@ export async function runSummary(service: string, 거르개: 실행거르개): P
   return {
     runs: 것?.runs ?? 0,
     allPass: 것?.all_pass ?? 0,
+    ...(거르개.kind === 'scenario' ? { unconfirmedPass: 것?.unconfirmed_pass ?? 0 } : {}),
     hasFail: 것?.has_fail ?? 0,
     durationOf: 것?.duration_of ?? 0,
     avgDurationMs: 것?.avg_duration_ms ?? 0,
@@ -145,10 +156,13 @@ export type 시나리오실행줄 = Omit<RunSummary, 'counts'> & {
   partCount: number;
   /** 처음으로 PASS 가 아닌 부품의 seq. 전부 PASS 거나 도는 중이면 null */
   stoppedAt: number | null;
+  /** 부품에 미확정 사유가 하나라도 있는 실행. 도는 중이어도 값이 있다 */
+  unconfirmed: boolean;
 };
 
 export const 시나리오칸 = `,
   r.scenario_id, r.scenario_version,
   (SELECT count(*)::int FROM scenario_run_part p WHERE p.run_id = r.run_id) AS part_count,
   CASE WHEN r.status = 'RUNNING' THEN NULL
-       ELSE (SELECT min(p.seq) FROM scenario_run_part p WHERE p.run_id = r.run_id AND p.status <> 'PASS') END AS stopped_at`;
+       ELSE (SELECT min(p.seq) FROM scenario_run_part p WHERE p.run_id = r.run_id AND p.status <> 'PASS') END AS stopped_at,
+  ${시나리오미확정} AS unconfirmed`;

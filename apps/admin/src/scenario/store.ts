@@ -3,7 +3,7 @@
 import type { ItemStatus, Platform, ScenarioPart } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
 
-import { 접은판정SQL } from './verdict.js';
+import { 미확정SQL, 접은판정SQL } from './verdict.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -23,7 +23,7 @@ export interface 목록줄 {
   version: number;
   partCount: number;
   isActive: boolean;
-  lastRun: { runId: number; status: string; verdict: ItemStatus | null; finishedAt: string | null } | null;
+  lastRun: { runId: number; status: string; verdict: ItemStatus | null; finishedAt: string | null; unconfirmed: boolean } | null;
   // 점검 재료. 라우트가 needsCheck·runnable 을 계산하고 응답에서 뺀다
   parts: ScenarioPart[];
 }
@@ -81,6 +81,7 @@ export async function 목록(serviceId: number): Promise<목록줄[]> {
       run_id: string | null;
       run_status: string | null;
       verdict: ItemStatus | null;
+      unconfirmed: boolean;
       finished_at: Date | null;
     }
   >(
@@ -88,7 +89,8 @@ export async function 목록(serviceId: number): Promise<목록줄[]> {
     `SELECT sc.id, sc.name, sc.is_active, v.version, v.platform, v.parts,
             r.run_id, r.status AS run_status, r.finished_at,
             CASE WHEN r.status = 'RUNNING' THEN NULL
-                 ELSE (SELECT ${접은판정SQL('p')} FROM scenario_run_part p WHERE p.run_id = r.run_id) END AS verdict
+                 ELSE (SELECT ${접은판정SQL('p')} FROM scenario_run_part p WHERE p.run_id = r.run_id) END AS verdict,
+            (SELECT ${미확정SQL('p')} FROM scenario_run_part p WHERE p.run_id = r.run_id) AS unconfirmed
        FROM scenario sc ${최신버전}
        LEFT JOIN LATERAL (SELECT run_id, status, finished_at FROM test_run
                            WHERE kind = 'SCENARIO' AND scenario_id = sc.id ORDER BY run_id DESC LIMIT 1) r ON true
@@ -111,6 +113,7 @@ export async function 목록(serviceId: number): Promise<목록줄[]> {
             status: row.run_status!,
             verdict: row.verdict,
             finishedAt: row.finished_at?.toISOString() ?? null,
+            unconfirmed: row.unconfirmed,
           },
     parts: row.parts,
   }));
