@@ -60,3 +60,10 @@
 - 미완: 구현 PR 셋 — ⓐ 계약(E2E-F1-12) → ⓑ 러너·kit(E2E-F1-13) → ⓒ 서버(E2E-F1-14) → 화면(E2E-F1-06) → 증적(E2E-F1-07) · 하네스 보강 PR(경미 1 [재발] — 「같은 규칙 찾기」가 `.claude/skills/**` 와 spec 차선에서도 돌게)
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 새 계약 블록은 전부 `상태: 대기`. ⓑ 는 `request.newContext` 감싸기가 러너 이미지(`require`)에서 되는지 먼저 잰다(kit 두 벌 사고). `two-kinds.md` 의 「Page Object 에서 request 금지」 근거가 `usesRequest` 를 빼면 사라진다 — 작성 규칙이라 E2E PR 은 손대지 않는다
+
+## 2026-10-06 (2)
+- 완료: 재설계 ⓐ 계약 반영 PR #161 (E2E-F1-12) — kit 타입(`carryOver?` · `links?` · `ScenarioLink` · `ScenarioMethod` · `ScenarioResponseRef` · `bound?` · `cleanup?` · `ScenarioCleanup`) · 마이그레이션 `20261006000001_scenario_relink.sql`(scenario_run_part 끝에 `unconfirmed` · `bound '{}'` · `cleanup '[]'`) · 명세 블록 둘 반영 완료 · 데이터모델 SQL 을 끝에 붙이는 ALTER 로 · SETUP §13 임시 DB
+- 완료: 게이트 1 사용자 「지적 반영하고 진행」(임시 DB `tp_relink` · 기존 동작 DB 검사 실제로 · 기본값 검사 새 파일 XRL · 입구 zod 인계) · 게이트 2 「작은 것 고치고 병합」(기본값 검사를 칸 기본값 조회로 줄이자는 과설계 지적은 안 따름 — 실제 행을 넣어 보는 쪽이 ⓒ 가 기대는 동작이다)
+- 미완: ⓑ 러너·kit(E2E-F1-13) → ⓒ 서버(E2E-F1-14) → 화면(E2E-F1-06) → 증적(E2E-F1-07) · 하네스 보강 PR(「같은 규칙 찾기」 범위)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 새 칸은 전부 옵션이라 지금 러너 zod(`apps/runner/src/routes.ts` `scenarioPart`) · admin `validate.ts` `부품모양` 이 오류 없이 버린다 — ⓑ · ⓒ 가 먼저 더할 것. DB 검사는 SETUP §13 대로 임시 DB 에서
