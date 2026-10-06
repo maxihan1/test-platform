@@ -1,6 +1,6 @@
-// E2E 시나리오 조립 화면 ① — 머리 · 저장 · 권한 · 떠나기 확인. 왼쪽 단계 카드와 오른쪽 탭 속은 다음 할 일이 채운다 (도메인/시나리오 §8.11)
+// E2E 시나리오 조립 화면 — 머리 · 저장 · 권한 · 떠나기 확인 · 왼쪽 단계 카드와 오른쪽 탭 틀. 탭 속은 다음 할 일이 채운다 (도메인/시나리오 §8.11)
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { ServiceRow, User } from './api.js';
 import { Head } from './Head.js';
@@ -9,10 +9,11 @@ import { useBeforeUnload, 떠나기로했다, 떠나기막기 } from './leaveGua
 import { Loading, Failed, PLATFORMS, PLATFORM_LABEL, when } from './ui.js';
 import { Modal } from './Modal.js';
 import { 판정을만든다 } from './role.js';
+import { ScenarioCards } from './ScenarioCards.js';
+import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
 
-// 값이 영어인 이유 — 따옴표 안의 한국어는 messages.test 가 화면 글자로 읽어 번역표에 키를 요구한다. 탭 이름표는 화면에 안 나가는 식별자다
-export type 조립탭 = 'settings' | 'add' | 'trial' | 'history';
+export type { 조립탭 };
 
 export function ScenarioBuild({
   id,
@@ -30,6 +31,8 @@ export function ScenarioBuild({
   const 쓰나 = 판정('실행') && 초안.살아있나;
   // 새 시나리오는 단계를 넣는 일이 먼저라 추가 탭부터 연다
   const [탭, set탭] = useState<조립탭>(id === null ? 'add' : 'settings');
+  const [고른번호, set고른번호] = useState<number | null>(null);
+  const 처음고름 = useRef(false);
   const [떠날곳, set떠날곳] = useState<string | null>(null);
   const [저장글, set저장글] = useState<string | null>(null);
   const 막나 = 쓰나 && 초안.바뀜;
@@ -39,6 +42,13 @@ export function ScenarioBuild({
     // 읽기만 하는 사람이 주소로 연 새 화면은 쓸 데가 없다
     if (보낼곳) window.location.hash = '#/scenarios';
   }, [보낼곳]);
+
+  useEffect(() => {
+    // 불러온 시나리오는 첫 단계를 열어 두어 설정 탭이 바로 보이게 한다. 한 번만 — 나중에 고른 카드를 뺀 뒤 되돌리지 않는다
+    if (id === null || !초안.불러옴 || 처음고름.current) return;
+    처음고름.current = true;
+    if (초안.단계들.length > 0) set고른번호(1);
+  }, [id, 초안.불러옴, 초안.단계들.length]);
 
   useEffect(() => {
     if (!막나) return;
@@ -141,8 +151,21 @@ export function ScenarioBuild({
         )}
 
         <div className="scn-build" data-tab={탭}>
-          <section className="scn-build-list" aria-label={t('시나리오 단계')} />
-          <section className="scn-build-panel" aria-label={t('단계 추가 · 설정')} />
+          <section className="scn-build-list" aria-label={t('시나리오 단계')}>
+            <ScenarioCards
+              단계들={초안.단계들}
+              단계들바꾸기={초안.단계들바꾸기}
+              재료={초안.재료}
+              디바이스={초안.디바이스}
+              쓰나={쓰나}
+              고른번호={고른번호}
+              on고르기={set고른번호}
+              on탭={set탭}
+            />
+          </section>
+          <section className="scn-build-panel" aria-label={t('단계 추가 · 설정')}>
+            <ScenarioTabs 탭={탭} on탭={set탭} 고른번호={고른번호} 쓰나={쓰나} 이력있나={id !== null} />
+          </section>
         </div>
       </div>
 

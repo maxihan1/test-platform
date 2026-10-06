@@ -212,6 +212,16 @@ describe('ScenarioBuild 기존 시나리오 불러오기', () => {
     expect(container.querySelector('.scn-build')?.getAttribute('data-tab')).toBe('history');
   });
 
+  it('단계가 있게 불러온 시나리오는 1번 설정 탭이 열리고 새 시나리오는 단계 추가 탭이 열린다', async () => {
+    const { unmount } = await 기존그리기();
+    expect(screen.getByRole('tab', { name: '1번 설정' }).getAttribute('aria-selected')).toBe('true');
+    unmount();
+
+    새로그리기();
+    expect(screen.queryByRole('tab', { name: /번 설정/ })).toBeNull();
+    expect(screen.getByRole('tab', { name: '단계 추가' }).getAttribute('aria-selected')).toBe('true');
+  });
+
   it('이름을 고치면 저장 안 된 변경 있음 칩이 뜬다', async () => {
     await 기존그리기();
     expect(screen.queryByText('저장 안 된 변경 있음')).toBeNull();
