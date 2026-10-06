@@ -167,3 +167,47 @@ describe('ScenarioBuild 케이스 바꾸기', () => {
     expect(screen.queryByText(/번 단계를 바꿀 케이스를 고릅니다/)).toBeNull();
   });
 });
+
+describe('ScenarioBuild 잘못 적은 칸이 있을 때', () => {
+  const 대기상세 = (): ScenarioDetail => ({
+    id: 12,
+    service: 'ZSB',
+    name: 'ZSB 대기 흐름',
+    platform: 'desktop',
+    version: 1,
+    parts: [{ kind: 'wait', ms: 1000 }],
+    isActive: true,
+    versions: [{ version: 1, savedBy: 'zsb', savedByName: '홍길동', savedAt: '2026-10-06T00:10:00.000Z' }],
+    checks: [],
+  });
+
+  async function 열기() {
+    막기();
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(대기상세());
+    render(<ScenarioBuild id={12} 띠서비스={서비스} user={사람} />);
+    return (await screen.findByLabelText('기다릴 시간(초)')) as HTMLInputElement;
+  }
+
+  it('대기 칸에 0 을 넣고 저장을 누르면 서버를 안 부르고 사유가 뜬다', async () => {
+    const 칸 = await 열기();
+    const update = vi.spyOn(scenarioApi, 'update');
+    fireEvent.change(칸, { target: { value: '0' } });
+
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    expect((await screen.findByRole('status')).textContent).toBe('1번 단계의 잘못 적은 칸을 고쳐야 저장할 수 있습니다');
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('칸을 바르게 고치면 다시 저장된다', async () => {
+    const 칸 = await 열기();
+    const update = vi.spyOn(scenarioApi, 'update').mockResolvedValue({ version: 2 });
+    fireEvent.change(칸, { target: { value: '0' } });
+    fireEvent.change(칸, { target: { value: '5' } });
+
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(update.mock.calls[0]?.[1].parts).toEqual([{ kind: 'wait', ms: 5000 }]);
+  });
+});

@@ -184,6 +184,18 @@ describe('시험 실행 시작 전 막기', () => {
     expect(start).not.toHaveBeenCalled();
   });
 
+  it('칸에 잘못 적은 곳이 있으면 문장을 띄우고 서버를 안 부른다', async () => {
+    await 기존그리기([{ kind: 'wait', ms: 1000 }]);
+    const start = vi.spyOn(scenarioApi, 'startTrial');
+    서버고르기('stg');
+    fireEvent.change(screen.getByLabelText('기다릴 시간(초)'), { target: { value: '0' } });
+
+    fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+
+    expect(screen.getByText('1번 단계의 잘못 적은 칸을 고쳐야 시험 실행할 수 있습니다')).toBeTruthy();
+    expect(start).not.toHaveBeenCalled();
+  });
+
   it('단계가 0개면 문장을 띄우고 서버를 안 부른다', async () => {
     render(<ScenarioBuild id={null} 띠서비스={서비스('ZSB')} user={사람()} />);
     const start = vi.spyOn(scenarioApi, 'startTrial');
