@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { 고치기상한 } from '../authoring/edit.js';
 import { api, type CaseRow } from './api.js';
@@ -184,5 +184,18 @@ describe('고른 것으로 고치기 요청', () => {
     expect(await 상자.findByText(/이 케이스를 쓰는 E2E 시나리오 1개 — 삭제하면 다른 케이스로 바꿀 때까지 실행할 수 없습니다/)).toBeTruthy();
     expect(부름).toHaveBeenCalledWith('XEW', ['XEW-001', 'XEW-002']);
     expect(상자.getByRole('link', { name: 'SC-3 가입 흐름' }).getAttribute('href')).toBe('#/scenarios/3');
+  });
+
+  it('시나리오 목록을 못 읽어도 못 돈다는 말은 상자에 한 번만 나온다', async () => {
+    const 부름 = vi.spyOn(scenarioApi, 'list').mockRejectedValue(new Error('목록 실패'));
+    render(<고른것고치기 service="XEW" 고른={고름(케이스('XEW-001'))} 다되면={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '삭제 요청' }));
+    const 상자 = screen.getByRole('dialog');
+    await waitFor(() => expect(부름).toHaveBeenCalled());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(상자.textContent?.match(/E2E 시나리오(도|가) 더 돌지 않습니다/g)).toHaveLength(1);
   });
 });
