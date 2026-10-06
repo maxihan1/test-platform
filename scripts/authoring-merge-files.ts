@@ -8,15 +8,19 @@ const 목록상한 = 3000;
  * 병합 직전에 PR 이 실제로 바꾼 파일. 올릴 때 판정했어도 그 뒤 누가 브랜치에 더 얹었을 수 있다.
  * `gh pr diff --name-only` 는 300 개를 넘으면 HTTP 406 이고(2026-10-07 #144) 이름 바꾼 파일은 새 이름만 준다 —
  * 코드 파일을 tests/ 로 옮긴 PR 이 「테스트만」으로 통과한다. 파일 API 는 옛 경로(`previous_filename`)도 준다.
- * 주소가 PR 로 끝나지 않으면 인자를 안 만든다 — 뒤에 붙은 것이 API 경로에 섞인다
+ * 주소가 PR 로 끝나지 않으면 인자를 안 만든다 — 뒤에 붙은 것이 API 경로에 섞인다.
+ * 호스트는 회사 GitHub(Enterprise)도 받는다 — 서버(`병합주소인가`)가 https 저장소면 호스트를 안 가린다.
+ * 호스트 글자는 좁힌다 — `@` · 공백 · 앞 `-` 가 명령 인자로 들어가지 않게
  */
 export function PR파일인자(prUrl: string): string[] | null {
-  const m = /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)$/.exec(prUrl);
+  const m = /^https:\/\/([A-Za-z0-9][A-Za-z0-9.-]*(?::\d+)?)\/([\w.-]+)\/([\w.-]+)\/pull\/(\d+)$/.exec(prUrl);
   if (m === null) return null;
   return [
     'api',
+    '--hostname',
+    m[1],
     '--paginate',
-    `repos/${m[1]}/${m[2]}/pulls/${m[3]}/files?per_page=100`,
+    `repos/${m[2]}/${m[3]}/pulls/${m[4]}/files?per_page=100`,
     '--jq',
     '.[] | [.filename, (.previous_filename // "")] | @tsv',
   ];
