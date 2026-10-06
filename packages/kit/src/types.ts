@@ -78,12 +78,31 @@ export interface RunningStep extends StepProgress {
 // E2E 시나리오 — admin 과 러너가 주고받는 모양. 무엇이고 왜인지는 SPEC 도메인/시나리오 §3.7
 export type ScenarioPart =                         // 부품 목록의 정본은 도메인/시나리오 §3.7 「부품」 표
   | { kind: 'case'; tcId: TcId; params: Record<string, unknown>; expected: Record<string, unknown>;
-      skipSteps: string[] }                        // 건너뛸 「만들기」 절차 제목. 비면 전부 돈다
+      skipSteps: string[];                         // 건너뛸 「만들기」 절차 제목. 비면 전부 돈다
+      carryOver?: boolean;                         // 넘겨받기. 없으면 true. false 면 skipSteps · links 가 비어야 한다 (결정 12)
+      links?: ScenarioLink[] }                     // 이어 주기. 비면 없다 (결정 12)
   | { kind: 'api'; method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; path: string;   // '/' 로 시작. baseUrl 기준
       body?: unknown; expectStatus: number }
   | { kind: 'mock'; urlPattern: string; status: number; contentType: string; body: string }  // urlPattern 은 Playwright glob
   | { kind: 'unmock'; urlPattern: string }         // 같은 글자로 건 mock 을 푼다
   | { kind: 'wait'; ms: number };                  // 60000 까지
+
+// 이어 주기 중 조립하는 사람이 거는 넷. 무엇을 · 언제만 거는지는 도메인/시나리오 §3.7 결정 12 표가 정본이다 (2026-10-06)
+export type ScenarioLink =
+  | { kind: 'reuse'; method: ScenarioMethod; urlPattern: string; fromSeq: number }   // 앞 응답 돌려주기
+  | { kind: 'block'; method: ScenarioMethod; urlPattern: string }                    // 요청 막기. 200 {} 를 준다
+  | { kind: 'rewrite'; method: ScenarioMethod; urlPattern: string;                   // 바꿔 보내기. 본문은 그대로
+      to: { method: 'PUT' | 'PATCH'; path: string; value: ScenarioResponseRef } }   // path 의 {} 자리에 value
+  | { kind: 'bind'; param: string; value: ScenarioResponseRef };                      // 값 꽂기. params 의 그 칸
+
+export type ScenarioMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+export interface ScenarioResponseRef {             // 앞 부품이 받은 응답에서 값 하나
+  fromSeq: number;                                 // 자기보다 앞의 case 부품
+  method: ScenarioMethod;
+  urlPattern: string;                              // 그 부품에서 이 무늬에 처음 맞은 응답
+  jsonPath: string;                                // 응답 JSON 본문의 점 표기 경로. 'data.id'
+}
 
 export interface ScenarioExecuteRequest {          // POST /execute-scenario (도메인/러너 §5.2)
   runId: number | null;                            // null 이면 시험 실행. 기록이 없다
@@ -100,12 +119,22 @@ export interface ScenarioPartResult {
   durationMs: number;
   steps: StepResult[];                             // case 부품만 찬다. 순번은 시나리오 전체에서 이어진다
   mocks: string[];                                 // 이 부품이 도는 동안 걸려 있던 mock 의 urlPattern
+  bound?: Record<string, unknown>;                 // 값 꽂기로 넣은 값 (결정 12)
   error?: { message: string; stack?: string };
 }
 
 export interface ScenarioExecuteResponse {
-  status: ItemStatus;                              // 부품이 전부 PASS 일 때만 PASS
+  status: ItemStatus;                              // 부품이 전부 PASS 일 때만 PASS. 뒷정리 결과는 판정에 안 든다
   durationMs: number;
   parts: ScenarioPartResult[];
+  cleanup?: ScenarioCleanup[];                     // 시나리오 끝에 보낸 미룬 삭제, 보낸 순서대로. 제한 시간에 끊기면 없다 (결정 12)
   error?: { message: string; stack?: string };     // TIMEOUT · 러너 고장
+}
+
+export interface ScenarioCleanup {
+  fromSeq: number;                                 // 삭제를 미룬 부품
+  method: 'DELETE';
+  url: string;
+  status?: number;                                 // 응답 코드. 못 보냈으면 없고 error 가 찬다
+  error?: string;
 }

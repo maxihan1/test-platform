@@ -596,3 +596,24 @@ export DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/platform
 
 정해진 시간 실행은 이제 서비스마다 **실행 둘(UI 테스트 · 기능 테스트)** 을 만들고 아침 Slack 도 둘이 온다. 한쪽 종류의 케이스가 없으면 그쪽은 안 만든다.
 
+## 13. 임시 DB 로 DB 검사 돌리기 — 새 마이그레이션은 내 DB 에 먼저 걸지 않는다 (2026-10-06 · PR #161)
+
+새 마이그레이션이 든 브랜치의 DB 검사를 **평소 쓰는 `platform` DB 에 걸지 않는다.** 걸면 병합 전까지 다른 작업방의 검사(칸을 순서대로 대조하는 `*-columns.test.ts`)가 남의 파일에서 빨개지고,
+마이그레이션을 고쳐도 dbmate 는 이미 걸린 번호를 다시 안 돌려 옛 모양이 남는다. 지우는 마이그레이션이면 내 실행 기록이 지워진다(2026-10-02 PR #131).
+**같은 postgres 에 임시 DB 를 하나 만들어** 거기에 건다. 고치면 지우고 다시 만든다.
+
+```bash
+export PGPASSWORD=platform
+psql -h 127.0.0.1 -p 5433 -U platform -d postgres -c 'CREATE DATABASE tp_<이름>'
+psql -h 127.0.0.1 -p 5433 -U platform -d tp_<이름> -f db/init/01-grafana-readonly.sql   # 「role already exists」는 정상 — 역할은 서버에 하나다
+docker run --rm -v "$PWD/db:/db:ro" ghcr.io/amacneil/dbmate:2 \
+  --url "postgres://platform:platform@host.docker.internal:5433/tp_<이름>?sslmode=disable" \
+  --migrations-dir /db/migrations --no-dump-schema up            # 호스트에 dbmate 가 없어도 된다
+DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/tp_<이름> npx vitest run <폴더들>
+```
+
+- 작업방 안에서 돌린다 — `$PWD/db` 가 그 브랜치의 마이그레이션이다
+- `host.docker.internal` 은 맥 · 윈도우의 Docker Desktop 에서만 그대로 풀린다. **Linux 도커(서버 · 클라우드 세션)에서는 `docker run` 에 `--add-host=host.docker.internal:host-gateway` 를 붙인다** — 안 붙이면 dbmate 가 `could not translate host name` 으로 실패하고, 마이그레이션이 안 걸린 DB 에서 검사가 돈다
+- 되돌리기(`rollback`)는 **임시 DB 에서만** 시험한다. 내 DB 를 되돌리는 것은 CLAUDE.md §5 금지다
+- 다 쓰면 `DROP DATABASE tp_<이름>`. 병합 뒤 내 DB 에는 `docker compose run --rm migrate` 로 올린다
+
