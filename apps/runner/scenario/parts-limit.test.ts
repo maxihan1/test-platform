@@ -84,3 +84,56 @@ describe('부품 시험 한도', () => {
     expect(줄.map((r) => r.status)).toEqual(['PASS']);
   });
 });
+
+describe('예외로 끝난 부품 · 창 닫기', () => {
+  it('케이스 실행이 던져도 이음 오류를 맨 앞에 두고 안 걸린 이어 주기를 덧붙인다 (결정 12)', async () => {
+    const parts: Part[] = [{ ...케이스('XRS-001'), links: [
+      { kind: 'reuse', method: 'POST', urlPattern: '**/api/posts', fromSeq: 1 },
+      { kind: 'block', method: 'DELETE', urlPattern: '**/api/cart' },
+    ] }];
+    const { deps, 줄 } = 창들(parts, {
+      창마다: (n, 부품) => (n !== 1 ? {} : {
+        runCase: vi.fn(async () => {
+          부품!.걸림.add(0);
+          부품!.오류 ??= '1번 부품에 맞는 응답이 없다';
+          throw new Error('파일이 XRS-001 을 등록하지 않았다');
+        }),
+      }),
+    });
+
+    await runParts(parts, deps);
+
+    expect(줄[0]).toMatchObject({
+      status: 'FAIL',
+      error: { message: '1번 부품에 맞는 응답이 없다 · 파일이 XRS-001 을 등록하지 않았다\n안 걸린 이어 주기 — 요청 막기 DELETE **/api/cart' },
+    });
+  });
+
+  it('앞 창을 닫다가 던져도 새 창은 끝에 닫힌다 — 새 창이 새지 않는다', async () => {
+    const parts: Part[] = [케이스('XRS-001')];
+    const { deps, 받은, 줄 } = 창들(parts, {
+      창마다: (n) => (n !== 0 ? {} : {
+        close: vi.fn(async () => {
+          throw new Error('이미 닫혔다');
+        }),
+      }),
+    });
+
+    await runParts(parts, deps);
+
+    expect(줄[0]).toMatchObject({ status: 'FAIL', error: { message: '이미 닫혔다' } });
+    expect(받은[1]!.창.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('앞 창 상태를 읽고 → 새 창을 열고 → 앞 창을 닫는다', async () => {
+    const parts: Part[] = [케이스('XRS-001')];
+    const { deps, 받은 } = 창들(parts);
+
+    await runParts(parts, deps);
+
+    const 차례 = (f: unknown, n = 0) => vi.mocked(f as () => void).mock.invocationCallOrder[n]!;
+    const 앞 = 받은[0]!.창;
+    expect(차례(앞.state)).toBeLessThan(차례(deps.newWindow, 1));
+    expect(차례(deps.newWindow, 1)).toBeLessThan(차례(앞.close));
+  });
+});
