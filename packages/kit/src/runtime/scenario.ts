@@ -5,10 +5,10 @@ import type { APIRequestContext, Page } from '@playwright/test';
 
 import type { StepResult } from '../types.js';
 import type { ScenarioPhase } from './context.js';
-import { SCENARIO_PART_MARKER } from './protocol.js';
+import { SCENARIO_CLEANUP_MARKER, SCENARIO_PART_MARKER } from './protocol.js';
 
-// 러너가 결과 줄을 가를 때 같은 표시자를 봐야 한다
-export { SCENARIO_PART_MARKER };
+// 러너가 결과 줄 · 뒷정리 줄을 가를 때 같은 표시자를 봐야 한다
+export { SCENARIO_CLEANUP_MARKER, SCENARIO_PART_MARKER };
 // 러너가 표시판을 만들려면 모양을 알아야 한다. 고정 spec 은 이 진입점에서 타입만 가져간다
 export type { ScenarioPhase };
 
