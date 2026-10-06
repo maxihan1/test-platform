@@ -12,10 +12,10 @@ import {
   다시돌릴인자,
   머지거부사유,
   머지인자,
-  PR파일인자,
   실행목록인자,
   올릴브랜치,
 } from './authoring-chain.js';
+import { PR파일인자, PR파일읽기 } from './authoring-merge-files.js';
 import { type 보고손, type 칠때, type 판정기, 멈춤, 쉬기, 진짜main받기, 친다 } from './authoring-io.js';
 import { type 반영준비, 반영올리기, 반영작업방, 반영치우기 } from './authoring-held-merge.js';
 import { 겹침보기 } from './authoring-conflicts-io.js';
@@ -188,8 +188,9 @@ export async function 머지처리(
   // 케이스만 바꾼 PR 인지 병합 직전에 다시 본다. 판정 규칙은 켤 때 고정한 cases-only.mjs 이고
   // 기준은 GitHub 이 지금 말하는 main 이다 — 로컬 origin/main 은 자식이 옮겨 놓았을 수 있다
   const 메인 = await 한번에하나(async () => 진짜main받기(뿌리, 호스트로));
-  const 목록 = 친다('gh', PR파일인자(prUrl), 뿌리);
-  const 파일들 = 목록.낸것.split('\n').filter((f) => f !== '');
+  const 파일인자 = PR파일인자(prUrl);
+  const 목록 = 파일인자 === null ? { ok: false, 낸것: '', 까닭: `PR 주소 꼴이 아니다 (${prUrl})` } : 친다('gh', 파일인자, 뿌리);
+  const { 파일들 } = PR파일읽기(목록.낸것);
   const 막힘 = '까닭' in 메인
     ? `최신 main 을 못 받아 판정을 못 했다: ${메인.까닭}`
     : !목록.ok
