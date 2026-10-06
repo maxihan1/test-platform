@@ -70,12 +70,14 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
       새번호들.forEach((n) => 부른것.current.delete(n));
       throw err;
     }
+    // 재료는 케이스마다 같은 값이라 취소돼도 담는다. 버리면 이미 부른 번호라 다음 읽기가 다시 부르지 않아
+    // 패널이 「불러오는 중」에 갇힌다 — StrictMode 가 처음 읽기를 늘 취소한다 (2026-10-07 실측)
+    set재료((앞) => new Map([...앞, ...읽음]));
     if (취소됨()) return null;
     set서비스(상세.service);
     set이름(상세.name);
     set디바이스(상세.platform);
     set단계들(상세.parts);
-    set재료((앞) => new Map([...앞, ...읽음]));
     set점검(상세.checks);
     set버전(상세.version);
     set버전들(상세.versions);
