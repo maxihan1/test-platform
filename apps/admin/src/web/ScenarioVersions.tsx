@@ -69,7 +69,7 @@ export function ScenarioVersions({
     try {
       const { version } = await scenarioApi.restore(id, 버전);
       set펼침(null);
-      set글({ 뜻: 'status', 말: t('v{버전} 버전으로 되돌렸습니다', { 버전: version }) });
+      set글({ 뜻: 'status', 말: t('v{옛} 내용으로 되돌렸습니다 · 지금 v{새}', { 옛: 버전, 새: version }) });
       on되돌림();
     } catch (err) {
       set글({ 뜻: 'alert', 말: message(err, 언어) });

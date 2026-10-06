@@ -68,7 +68,7 @@ export const 시나리오말: Record<string, string> = {
   '저장했습니다 · v{버전}': 'Saved · v{버전}',
   '실행 권한이 있어야 고치고 돌릴 수 있습니다': 'You need run permission to edit and run this',
   '목록에서 치운 시나리오라 보기만 할 수 있습니다': 'This scenario was removed from the list, so it is view-only',
-  '이 시나리오는 {서비스} 서비스 것입니다': 'This scenario belongs to the {서비스} service',
+  '{서비스} 서비스의 시나리오입니다': 'This scenario belongs to the {서비스} service',
   '시나리오 이름을 적어야 저장할 수 있습니다': 'Enter a scenario name to save',
   '단계를 하나 이상 넣어야 저장할 수 있습니다': 'Add at least one step to save',
   '가져올 단계를 다시 골라야 저장할 수 있습니다': 'Pick the step to take values from again to save',
@@ -174,5 +174,5 @@ export const 시나리오말: Record<string, string> = {
   '이 버전으로 되돌리기': 'Restore this version',
   '되돌리는 중입니다': 'Restoring',
   '저장 안 된 변경이 있어 되돌릴 수 없습니다': 'You have unsaved changes, so you cannot restore',
-  'v{버전} 버전으로 되돌렸습니다': 'Restored as v{버전}',
+  'v{옛} 내용으로 되돌렸습니다 · 지금 v{새}': 'Restored the v{옛} content · now v{새}',
 };

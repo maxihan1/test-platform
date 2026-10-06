@@ -222,7 +222,7 @@ export function ScenarioBuild({
         {판정('실행') ? null : <p className="scn-note">{t('실행 권한이 있어야 고치고 돌릴 수 있습니다')}</p>}
         {초안.살아있나 ? null : <p className="scn-note">{t('목록에서 치운 시나리오라 보기만 할 수 있습니다')}</p>}
         {띠서비스 === null || 띠서비스.prefix === 초안.서비스 ? null : (
-          <p className="scn-note">{t('이 시나리오는 {서비스} 서비스 것입니다', { 서비스: 서비스이름 })}</p>
+          <p className="scn-note">{t('{서비스} 서비스의 시나리오입니다', { 서비스: 서비스이름 })}</p>
         )}
 
         <div className="scn-build" data-tab={탭}>
