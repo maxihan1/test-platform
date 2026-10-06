@@ -146,6 +146,8 @@ describe('기다림에 상한 (2026-10-06 게이트 2)', () => {
 
   const 미룸 = (fromSeq: number): 미룬삭제 => ({ fromSeq, url: `https://qa.example.com/api/posts/${fromSeq}`, headers: {}, state: { cookies: [], origins: [] } });
 
+  // 요청 한도(상한)는 sendDelete 에 넘겨 Playwright 가 먼저 끊고, 바깥은 5초 더 기다린다 — 같은 값이면 바깥이 먼저 끝나
+  // 아직 날아가는 삭제를 「안 끝났다」로 적고 다음 삭제가 겹쳐 나가 거꾸로 보내는 순서가 깨진다 (2026-10-06 재검사)
   it('미룬 삭제 하나가 부품 시험 한도 안에 안 끝나면 그 줄에 오류를 남기고 나머지를 보낸다 — 다 통과한 시나리오가 판정 없음이 되지 않게', async () => {
     vi.useFakeTimers();
     const parts: Part[] = [케이스('XRS-001')];
@@ -155,8 +157,11 @@ describe('기다림에 상한 (2026-10-06 게이트 2)', () => {
 
     const 돌림 = runParts(parts, deps);
     await vi.advanceTimersByTimeAsync(1000);
+    expect(뒷정리).toEqual([]);
+    await vi.advanceTimersByTimeAsync(5000);
     await 돌림;
 
+    expect(vi.mocked(deps.sendDelete).mock.calls.map(([d, 한도]) => [d.fromSeq, 한도])).toEqual([[2, 1000], [1, 1000]]);
     expect(뒷정리).toEqual([[
       { fromSeq: 2, method: 'DELETE', url: 'https://qa.example.com/api/posts/2', error: '미룬 삭제가 1000ms 안에 끝나지 않았다' },
       { fromSeq: 1, method: 'DELETE', url: 'https://qa.example.com/api/posts/1', status: 200 },
@@ -171,9 +176,10 @@ describe('기다림에 상한 (2026-10-06 게이트 2)', () => {
     deps.sendDelete = vi.fn(() => new Promise<number>(() => {}));
 
     const 돌림 = runParts(parts, deps);
-    await vi.advanceTimersByTimeAsync(30_000);
+    await vi.advanceTimersByTimeAsync(35_000);
     await 돌림;
 
+    expect(vi.mocked(deps.sendDelete).mock.calls[0]![1]).toBe(30_000);
     expect(뒷정리[0]).toEqual([{ fromSeq: 1, method: 'DELETE', url: 'https://qa.example.com/api/posts/1', error: '미룬 삭제가 30000ms 안에 끝나지 않았다' }]);
   });
 

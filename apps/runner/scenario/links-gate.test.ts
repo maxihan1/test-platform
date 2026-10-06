@@ -234,6 +234,15 @@ describe('가르기 — 검사 반영 (2026-10-06 게이트 2)', () => {
     });
   });
 
+  it('바꿔 보내기 값이 빈 글자면 모음 주소로 가서 fail', async () => {
+    const { 이음, 부품 } = 판([바꿔보내기]);
+    이음.응답.set('1 POST **/api/posts', Promise.resolve(json({ data: { id: '' } })));
+
+    await expect(가르기(이음, 부품, 'api', 'POST', 'https://x.com/api/posts')).resolves.toEqual({
+      kind: 'fail', message: '1번 부품 응답의 data.id 값 「」 은 주소에 넣을 수 없다',
+    });
+  });
+
   it('API 쪽 가짜 응답(막기 · 모킹)도 적는다 — 브라우저 쪽은 fulfill 한 응답도 response 로 적히므로 같게', async () => {
     const 뒤가씀: ScenarioLink = { kind: 'bind', param: 'x', value: { fromSeq: 2, method: 'DELETE', urlPattern: '**/api/cart', jsonPath: 'a' } };
     const 배너: ScenarioLink = { kind: 'bind', param: 'y', value: { fromSeq: 2, method: 'GET', urlPattern: '**/api/banner', jsonPath: 'ad' } };
