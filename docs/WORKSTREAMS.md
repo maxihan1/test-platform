@@ -119,22 +119,32 @@
      **게이트 2 에서 미룬 것** — ① 계정 둘이 60분짜리 시험으로 줄 2자리를 막을 수 있다(아래 「실행 대기줄 상한」과 같이 정한다) ② 비밀값이 `NA`·`PASS` 처럼 짧으면 판정 글자까지 가려진다(`execution/trial.ts` `가린다` — 케이스 테스트 실행에도 있던 동작) ·
      ③ 러너가 던진 원문(내부 주소)이 결과 `error.stack` 에 실린다 ④ 50건이 찼을 때와 내가 돌리는 중일 때 문구가 같다 ⑤ 바쁜지 검사가 조립 검사 뒤에 있어 연타하면 매번 케이스 파일을 읽는다 ·
      ⑥ `POST /api/scenario-trials` 가 범위 표에 `질의` 라 `?service=` 를 붙이면 그 서비스로도 배정을 본다(`/api/scenarios` 와 같다 — 더 막을 뿐 열지 않는다)
-   - **⚠️ 재설계 먼저 (E2E-F1-11, 2026-10-04 사용자 「시험 실행 먼저, 재설계는 다음 PR」)** — 새 작성 방식(두 갈래 · Page Object, PR #128~#146)으로 만든 MKT·CDY 케이스가 부품으로 잘 안 이어진다(실측 — 표본 `~/Projects/mkt-run-pr144` · `~/Projects/cdy-run2-pr143`).
-     ① **케이스가 끝에서 자기 계정을 지운다** — MKT FN 109건 중 49건이 매번 새로 가입 · 39건이 `finally` 에서 `request.delete('/api/me')`. `finally` 는 건너뛰어도 돈다 → 다음 부품이 지워진 계정의 세션을 받는다. 결정 4 를 다시 연다(시나리오가 계정을 넣는다 / 뒷정리도 건너뛴다 / 부품용 FN 은 서비스 테스트 계정만 — 셋 중 하나)
-     ② **MKT 건너뛸 수 있는 준비 절차 6/432**(CDY 42/119) — 준비와 blocker 판정이 한 절차 · 파일 안 맨 함수 도우미는 「애매」 · `tpx-author/references/fanout.md` 지시에 R16(만들기/확인 가르기) 없음. 공용 도우미 규칙(작성 §3.6 `components/` · two-kinds 「Page Object 에서 request 금지」 · steps.ts 「맨 함수는 애매」)이 서로 부딪친다
-     ③ **부품 사이 상태 누출** — `page.clock.install` 8 · `addInitScript` 31 · `browser.newContext` 6(명세 「없다」는 낡음) · 러너가 `request` fixture 하나를 모든 부품에 같이 넘긴다(`apps/runner/scenario/scenario.spec.ts`)
-     ④ **건너뛰기를 잘못 고르면 빨강이 아니라 60초 시간 초과** — 시나리오 설정 `timeout: 0` · actionTimeout 없음 · MKT 가 시간 한도 없는 `waitFor()`
-     ⑤ 보류(`held`) · 미확정(`unconfirmed`, CDY FN 34건 전부) 부품을 명세가 안 다룬다 · 옛 번호(`DEMO-001`)는 `tcId종류` 가 FN 으로 쳐 부품이 된다 · 부품 비밀값을 저장값(`case_input`)으로 안 채운다 · `WORKSTREAMS` ·`runRoutes.ts` 주석의 `kind='CASE'`(지금은 `UI`/`FN`)
-     이미 맞는 것 — K12 위반 0 · 파일 하나에 test 하나 · Page Object 케이스를 러너 고정 spec 이 불러 돈다(ESM 실측, 러너 이미지 CJS 는 미확인)
+   - ✅ **재설계 명세 (E2E-F1-11, PR #160, 2026-10-06)** — 정본 도메인/시나리오 §3.7 결정 12. **E2E 때문에 케이스 · 작성 규칙 · 작성 하네스를 안 바꾼다**(2026-10-04 사용자 — 작성 규칙 변경을 대안으로 내지 않는다).
+     10-04 조사의 다섯 구멍은 이렇게 닫았다 — ① 뒷정리가 지운다 → 「뒷정리 미루기」(10-06 표본은 고정 테스트 계정이라 계정 삭제는 가입 기능 케이스뿐) · ② 건너뛸 준비가 적다 → 작성은 그대로, 못 건너뛰는 준비가 앞 상태를 지우면 이어 주기(요청 막기 등) ·
+     ③ 상태 누출 → 부품마다 새 창 · 케이스 `request` 도 부품마다 새로 · 케이스가 직접 만드는 창 · 연결 감싸기(창 10-04 표본 6 · 연결 10-06 표본 18) · ④ 잘못 건너뛰면 시간 초과 → 케이스 부품에 단독 실행과 같은 시험 한도(넘으면 `FAIL`) ·
+     ⑤ 미확정 부품은 「미확정 포함」을 달고 쓴다 · 보류는 main 에 없다(K13) · 옛 번호는 기능 테스트 · 부품 빈 칸은 저장값으로 채운다(⑤ 의 둘은 10-06 사용자). `runRoutes.ts` 주석의 `kind='CASE'` 는 코드라 아래 ⓒ 가 고친다
+   - **재설계 구현 — PR 셋** (새 계약 블록은 전부 `상태: 대기` — `grep -rn "상태:    대기" docs/spec` 로 찾는다. 리포팅 §8.4 블록은 6번이 이어받는다)
+     ⓐ **계약 반영** — kit 타입(case 부품의 `carryOver` · `links` · `ScenarioLink` · `ScenarioResponseRef` · 결과의 `bound` · `cleanup`) · 마이그레이션 `scenario_run_part` 세 칸(`unconfirmed` · `bound` · `cleanup`)
+     ⓑ **러너 + kit 시나리오 모드** — 부품마다 새 창(로그인 상태만 · 디바이스 `use` · 모킹 다시 걸기) · 부품 시험 한도(루트 설정 `timeout` 을 읽음) · API 도구 감싸기(`request` · `page.request`) · 준비 구간과 절차 밖 표시 · 이어 주기 넷 · 뒷정리 미루기와 뒷정리 줄(표시자는 `protocol.ts` → `wire.ts`) ·
+        **케이스가 직접 만드는 창(Browser `newContext`, 10-04 표본 6건)과 API 연결(`@playwright/test` 의 `request.newContext`, 10-06 표본 18건)도 고정 spec 이 감싼다** (시나리오 §3.7 결정 12 「한계」).
+        **러너 이미지에서 한 번 부른다**(kit 두 벌 사고 — 러너 §5.2). 모듈 `request.newContext` 감싸기가 이미지(`require`)에서 되는지 먼저 잰다 — 안 되면 ⓒ 가 `usesRequest` 를 그 모양을 쓰는 케이스로 좁혀 남긴다
+     ⓒ **서버** — 조립 거절 400 더하기(시나리오 §7 「2026-10-06 이어 주기에서 더한 것」) · `case-parts` 의 `unconfirmed` · 실행 · 시험 실행이 빈 칸을 저장값으로 채워 박제 · 채운 뒤 크기 다시 재기 · 미확정 박제 ·
+        결과 저장 `bound` · `cleanup`(실행 한 벌을 `fromSeq` 로 부품 행에 나눔) · 시험 실행 가리기를 채운 뒤 값과 `bound` 로 · 목록 `lastRun.unconfirmed` · E2E 탭 줄 `unconfirmed` · `summary.unconfirmedPass` · `runRoutes.ts` 주석 ·
+        `usesRequest` 는 ⓑ 가 직접 만든 창 · 연결까지 감싸지는 것을 러너 이미지에서 확인한 뒤에만 뺀다(시나리오 §3.7 결정 6). 안 되면 `catalog/steps.ts` 판별에 `요청도구.newContext` · `browser().newContext` 모양을 더해 남긴다.
+        `usesRequest` 를 빼면 작성 규칙 `tpx-cases/references/two-kinds.md` 「Page Object 에서 `request` 를 쓰지 않는다」의 E2E 근거가 사라진다. 결정 3 이 구현되면 `tpx-cases/references/5-writing.md` 의 「시나리오는 한 page 로 이어 돈다」도 사실이 아니게 된다 —
+        **E2E 때문에 작성 규칙을 바꾸지 않으므로 이 PR 들은 손대지 않는다.** 두 문장을 남길지는 작성 쪽이 따로 정한다
      **남은 인계** — ② 인계 ④ 뿌리 밖 경로는 ③-1 게이트 2 에서 비활성으로 치게 고쳤다 · **뿌리 안 심볼릭 링크를 따라간다** — `catalog/source.ts` `readExcerpt` 와 한 함수(`realpath` 비교)로 합칠 때 같이 고친다 ·
      ⑤ 문법 깨진 소스 판별은 `scenario/parts.ts` 에만 있다(`caseSteps` 를 직접 부르면 같은 판별을 거친다) · `test_run.scenario_id` 색인이 없다(`lastRun` 질의 — 수만 건이면 마이그레이션) · **실행 대기줄 상한이 없다** — 실행 쓰기 권한자가 60분짜리를 여러 번 누르면 케이스 실행까지 줄이 밀린다(케이스 `POST /api/runs` 도 같다 — 둘을 같이 정한다, PR #109 보안 검토)
      **러너가 보장하는 것**(러너 §5.2) — 부품 오류 `NOT_RUN` 은 「앞 부품 실패」만, 줄 없이 끝난 부품은 `FAIL`+오류 꼬리 · `trialId` 는 UUID 만 받는다(admin 이 `crypto.randomUUID()`) ·
      디바이스를 선언 안 한 케이스는 부품 `FAIL` · HTTP 타임아웃은 `timeoutMs + 30초`
 5. **WS-E 화면** — **시안 먼저**(목업 다섯 장이 모양의 정본 — 도메인/시나리오 §8.11) · 목록 · 조립 · 시험 실행 · 결과 · 실행 기록 탭 ·
+   **2026-10-06 재설계가 더한 것은 목업 다섯 장에 없다** — 케이스 부품의 넘겨받기 스위치 · 이어 주기 칸 · 미확정 칩 · 빈 칸은 저장값으로 돈다는 안내 · 팔레트의 기법 차례와 「입력 변형 케이스」 접기 · 결과의 이어 주기 · 꽂은 값 · 뒷정리 줄(§8.11) ·
+   시나리오 목록과 실행 기록 E2E 탭의 「미확정 포함」 · 집계 띠 「미확정 포함 통과 N」(실행 §8.7). 시안에 넣어 고르게 한다 ·
    자리 `E2E 시나리오`(`layout.ts` 의 `자리목록()`, 영어 `E2E scenarios` 는 `messages/shell.ts`) · **코드 주석에 남은 「자리 넷」**(`layout.ts` · `messages/shell.ts`) ·
    `docs/design-mockup.html` 사이드바(코드에 들어간 뒤에 그린다 — 목업 머리 주석) · `E2E 시나리오` 폭을 화면에서 눈으로 확인
    **결과 화면(`#/runs/:runId`)은 번호만 들고 온다** — `GET /api/runs/:runId` 가 404 `SCENARIO_RUN` 이면 `GET /api/runs/:runId/scenario` 로 갈아탄다(③-1). 목록 줄은 탭이 이미 가른다(`?kind=`) · 비밀값은 부품의 `paramSchema`·`expectedSchema` 로 가린다(`web/mask.ts`)
 6. **WS-D 증적** — E2E 증적(부품 층 · 모킹 한 줄 · 건너뜀) · 전체 증적의 E2E 요약 · **`reporting/html.test.ts` 의 `httpTrace` 금지를 한 줄 예외만큼 연다** ·
+   **2026-10-06 재설계가 더한 표시** — 이어 주기 한 줄씩(비밀 칸에 꽂은 값은 `********`) · 「넘겨받기 끔」 · 부품마다 「미확정」과 머리 「미확정 포함」(요약 줄에도) · 끝에 보낸 뒷정리 줄(리포팅 §8.4) ·
    명세 도메인/리포팅 §8.4 「E2E 시나리오 증적」 · §8.5. (Grafana 질의의 `kind = 'CASE'` 는 4번 ① 이 넣었다)
    **③-1 이 막아 둔 것을 연다** — 증적 만들기·견주기가 시나리오 실행 번호에 404 다(`reporting/routes.ts` `실행상태` · `collect.ts` `collectRun` · `insights.ts` `compareWithPrevious` 의 `kind = 'CASE'`). E2E 증적을 만들 때 이 거르기를 `kind` 갈래로 바꾼다
 
