@@ -62,15 +62,15 @@ const 어긋남글 = (PR수: string, 읽은수: number) =>
 const 상한글 = 'PR 의 바뀐 파일이 3000개 이상이라 목록을 다 못 읽는다 — 맥은 병합하지 않는다';
 
 describe('읽은 수와 PR 의 바뀐 파일 수 대조', () => {
-  it('바뀐 파일 수는 PR 을 새로 읽어 숫자만 받는다', () => {
+  it('바뀐 파일 수와 그때의 머리 커밋을 PR 을 새로 읽어 한 줄로 받는다', () => {
     expect(PR수인자('https://github.com/x/y/pull/3')).toEqual([
       'pr',
       'view',
       'https://github.com/x/y/pull/3',
       '--json',
-      'changedFiles',
+      'changedFiles,headRefOid',
       '-q',
-      '.changedFiles',
+      '[.changedFiles, .headRefOid] | @tsv',
     ]);
   });
 
@@ -97,11 +97,15 @@ describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
   const sha = 'm'.repeat(40);
   const 된것 = (낸것: string) => vi.fn(() => ({ ok: true, 낸것, 까닭: '' }));
   const 실패 = (낸것: string, 까닭: string) => vi.fn(() => ({ ok: false, 낸것, 까닭 }));
+  const 머리 = 'a'.repeat(40);
+  const 수줄 = (수: string, 그때머리 = 머리) => 된것(`${수}\t${그때머리}\n`);
   const 통과 = {
     메인: { sha } as { sha: string } | { 까닭: string },
+    머리,
     목록: 된것('tests/a/A-001.spec.ts\t\n'),
-    수: 된것('1\n'),
+    수: 수줄('1'),
   };
+  const 머리글 = 'PR 머리가 판정 사이에 바뀌었다 (aaaaaaa → bbbbbbb) — 판정하지 않는다';
   const 아님 = '이 PR 은 케이스만 바꾼 것이 아니다 — 맥은 병합하지 않는다';
 
   it('다 통과하고 테스트만이면 막지 않는다 — 판정은 최신 main 기준으로 옛 경로까지 본다', () => {
@@ -115,25 +119,45 @@ describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
   });
 
   it('읽은 목록이 비었으면 병합하지 않는다', () => {
-    expect(병합직전막힘({ ...통과, 목록: 된것(''), 수: 된것('0'), 테스트만: () => true })).toBe(아님);
+    expect(병합직전막힘({ ...통과, 목록: 된것(''), 수: 수줄('0'), 테스트만: () => true })).toBe(아님);
   });
 
   it('3000 개 이상이면 테스트만 판정보다 먼저 막는다', () => {
     const 테스트만 = vi.fn(() => true);
     const 줄들 = Array.from({ length: 3000 }, (_, i) => `tests/a/A-${i}.spec.ts\t`).join('\n');
-    expect(병합직전막힘({ ...통과, 목록: 된것(줄들), 수: 된것('3000'), 테스트만 })).toBe(상한글);
+    expect(병합직전막힘({ ...통과, 목록: 된것(줄들), 수: 수줄('3000'), 테스트만 })).toBe(상한글);
     expect(테스트만).not.toHaveBeenCalled();
   });
 
   it('수가 어긋나면 테스트만 판정보다 먼저 막는다', () => {
     const 테스트만 = vi.fn(() => false);
-    expect(병합직전막힘({ ...통과, 수: 된것('2'), 테스트만 })).toBe(어긋남글('2', 1));
+    expect(병합직전막힘({ ...통과, 수: 수줄('2'), 테스트만 })).toBe(어긋남글('2', 1));
     expect(테스트만).not.toHaveBeenCalled();
   });
 
-  it('수를 못 읽었으면 어긋남 · 테스트만보다 먼저 막는다', () => {
+  it('판정 사이에 PR 머리가 바뀌었으면 병합하지 않는다 — 읽은 목록이 병합할 커밋의 것이 아니다', () => {
+    const 테스트만 = vi.fn(() => true);
+    expect(병합직전막힘({ ...통과, 수: 수줄('1', 'b'.repeat(40)), 테스트만 })).toBe(머리글);
+    expect(테스트만).not.toHaveBeenCalled();
+  });
+
+  it('머리가 바뀌었으면 수 어긋남 · 3000 보다 먼저 막는다', () => {
+    const 줄들 = Array.from({ length: 3000 }, (_, i) => `tests/a/A-${i}.spec.ts\t`).join('\n');
+    expect(병합직전막힘({ ...통과, 수: 수줄('2', 'b'.repeat(40)), 테스트만: () => false })).toBe(머리글);
+    expect(병합직전막힘({ ...통과, 목록: 된것(줄들), 수: 수줄('3000', 'b'.repeat(40)), 테스트만: () => true })).toBe(머리글);
+  });
+
+  it('머리를 못 읽었으면 병합하지 않는다', () => {
+    expect(병합직전막힘({ ...통과, 수: 된것('1\n'), 테스트만: () => true })).toBe(
+      'PR 머리가 판정 사이에 바뀌었다 (aaaaaaa → ) — 판정하지 않는다',
+    );
+  });
+
+  it('수를 못 읽었으면 머리 · 어긋남 · 테스트만보다 먼저 막는다', () => {
     const 테스트만 = vi.fn(() => false);
-    expect(병합직전막힘({ ...통과, 수: 실패('2', '시간 초과'), 테스트만 })).toBe('PR 의 바뀐 파일 수를 못 읽었다: 시간 초과');
+    expect(병합직전막힘({ ...통과, 수: 실패(`2\t${'b'.repeat(40)}`, '시간 초과'), 테스트만 })).toBe(
+      'PR 의 바뀐 파일 수를 못 읽었다: 시간 초과',
+    );
     expect(테스트만).not.toHaveBeenCalled();
   });
 
@@ -149,7 +173,7 @@ describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
   });
 
   it('목록을 못 읽었으면 수를 묻지 않는다 — 동기 호출이 겹치면 생존 신호가 끊긴다', () => {
-    const 수 = 된것('1');
+    const 수 = 수줄('1');
     병합직전막힘({ ...통과, 목록: 실패('', 'HTTP 406'), 수, 테스트만: () => true });
     expect(수).not.toHaveBeenCalled();
   });
@@ -158,7 +182,7 @@ describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
     const 테스트만 = vi.fn(() => false);
     const 목록 = 실패('', 'HTTP 406');
     const 수 = 실패('2', '못 읽음');
-    expect(병합직전막힘({ 메인: { 까닭: 'fetch 실패' }, 목록, 수, 테스트만 })).toBe(
+    expect(병합직전막힘({ 메인: { 까닭: 'fetch 실패' }, 머리, 목록, 수, 테스트만 })).toBe(
       '최신 main 을 못 받아 판정을 못 했다: fetch 실패',
     );
     expect(목록).not.toHaveBeenCalled();
