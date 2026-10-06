@@ -4,12 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 import { caseSteps } from './steps.js';
 
-function body(inner: string, fixtures = '{ page }'): string {
+function body(inner: string): string {
   return `import { defineCase, test, verify } from '@platform/kit';
 
 export const spec = defineCase({ tcId: 'DEMO-001', name: 'x', precondition: [], params: null, expected: null });
 
-test(spec, async (${fixtures}) => {
+test(spec, async ({ page }) => {
 ${inner}
 });
 `;
