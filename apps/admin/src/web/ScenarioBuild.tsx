@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import type { ScenarioPart } from '@platform/kit';
+
 import type { ServiceRow, User } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
@@ -10,6 +12,7 @@ import { Loading, Failed, PLATFORMS, PLATFORM_LABEL, when } from './ui.js';
 import { Modal } from './Modal.js';
 import { 판정을만든다 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
+import { ScenarioOtherPanel } from './ScenarioOtherPanel.js';
 import { ScenarioPartPanel } from './ScenarioPartPanel.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
@@ -78,6 +81,9 @@ export function ScenarioBuild({
   }
 
   const 고른단계 = 고른번호 === null ? undefined : 초안.단계들[고른번호 - 1];
+  function 고른단계바꿈(새단계: ScenarioPart) {
+    초안.단계들바꾸기(초안.단계들.map((p, i) => (i === (고른번호 ?? 0) - 1 ? 새단계 : p)));
+  }
   const 최신 = 초안.버전들[0];
   const 서비스이름 = user.services.find((s) => s.prefix === 초안.서비스)?.name ?? 초안.서비스;
   const 상태글 = 초안.저장오류 ?? 저장글;
@@ -170,18 +176,26 @@ export function ScenarioBuild({
           </section>
           <section className="scn-build-panel" aria-label={t('단계 추가 · 설정')}>
             <ScenarioTabs 탭={탭} on탭={set탭} 고른번호={고른번호} 쓰나={쓰나} 이력있나={id !== null}>
-              {탭 !== 'settings' || 고른번호 === null || 고른단계?.kind !== 'case' ? null : (
+              {탭 !== 'settings' || 고른번호 === null || 고른단계 === undefined ? null : 고른단계.kind === 'case' ? (
                 <ScenarioPartPanel
                   번호={고른번호}
                   단계={고른단계}
                   단계들={초안.단계들}
                   재료={초안.재료}
                   쓰나={쓰나}
-                  on바꿈={(새단계) => 초안.단계들바꾸기(초안.단계들.map((p, i) => (i === 고른번호 - 1 ? 새단계 : p)))}
+                  on바꿈={고른단계바꿈}
                   on케이스바꾸기={() => {
                     set바꿀번호(고른번호);
                     set탭('add');
                   }}
+                />
+              ) : (
+                <ScenarioOtherPanel
+                  번호={고른번호}
+                  단계={고른단계}
+                  단계들={초안.단계들}
+                  쓰나={쓰나}
+                  on바꿈={고른단계바꿈}
                 />
               )}
             </ScenarioTabs>

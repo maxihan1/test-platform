@@ -3756,7 +3756,8 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   .scn-check,
   .scn-set .btn,
   .scn-set .field input,
-  .scn-set .field select {
+  .scn-set .field select,
+  .scn-set .field textarea {
     min-height: 46px;
   }
 
