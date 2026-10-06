@@ -167,4 +167,11 @@ export const 시나리오말: Record<string, string> = {
   '시험 결과를 찾지 못했습니다. 시간이 지났거나 서버가 다시 켜졌을 수 있습니다':
     'The trial result was not found. It may have expired, or the server may have restarted',
   '이미 시험 실행이 돌고 있습니다. 끝나면 다시 실행할 수 있습니다': 'A trial run is already in progress. You can run it again when it finishes',
+  'v{버전} · {이름} · {시각}': 'v{버전} · {이름} · {시각}',
+  '지금 버전': 'Current version',
+  'v{버전} 단계': 'v{버전} steps',
+  '이 버전으로 되돌리기': 'Restore this version',
+  '되돌리는 중입니다': 'Restoring',
+  '저장 안 된 변경이 있어 되돌릴 수 없습니다': 'You have unsaved changes, so you cannot restore',
+  'v{버전} 버전으로 되돌렸습니다': 'Restored as v{버전}',
 };

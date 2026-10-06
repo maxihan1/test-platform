@@ -100,6 +100,11 @@ export function ScenarioBuild({
     set고른번호(초안.단계들.length + 1);
     set탭('settings');
   }
+  function 되돌림끝() {
+    set저장글(null);
+    // 되돌린 시나리오의 단계가 더 적으면 고른 번호가 없는 카드를 가리킨다
+    void 초안.새로불러오기().then((수) => set고른번호((앞) => (앞 !== null && 수 !== null && 앞 > 수 ? null : 앞)));
+  }
   function 시험누름() {
     const 사유 = 시험막는글(t, 서버, 초안.단계들);
     set시험글(사유);
@@ -234,6 +239,7 @@ export function ScenarioBuild({
           <section className="scn-build-panel" aria-label={t('단계 추가 · 설정')}>
             <ScenarioTabs 탭={탭} on탭={탭옮김} 고른번호={고른번호} 쓰나={쓰나} 이력있나={id !== null}>
               <ScenarioBuildTabs
+                id={id}
                 탭={탭}
                 쓰나={쓰나}
                 초안={초안}
@@ -247,6 +253,7 @@ export function ScenarioBuild({
                   set탭('add');
                 }}
                 on바꿈={고른단계바꿈}
+                on되돌림={되돌림끝}
                 시험={<TrialTab 시험={시험} 단계들={초안.단계들} />}
               />
             </ScenarioTabs>

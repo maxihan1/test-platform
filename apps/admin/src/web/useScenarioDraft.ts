@@ -45,6 +45,8 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
   const [버전, set버전] = useState<number | null>(null);
   const [버전들, set버전들] = useState<버전들>([]);
   const [살아있나, set살아있나] = useState(true);
+  // 초안을 통째로 갈아 끼울 때마다 오른다. 패널 key 에 넣어 글자 칸이 옛 값을 붙들지 않게 한다
+  const [판, set판] = useState(0);
   const [저장본, set저장본] = useState(() => 찍는다('', 'desktop', []));
   const [저장오류, set저장오류] = useState<string | null>(null);
   const [저장하는중, set저장하는중] = useState(false);
@@ -54,35 +56,50 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
   const 언어쪽 = useRef(언어);
   언어쪽.current = 언어;
 
+  // 상세를 받아 초안 · 저장본 · 버전 · 점검 · 살아있나를 전부 갈아 끼운다. 재료는 새로 생긴 tcId 만 더 부른다.
+  // 처음 불러오기와 되돌리기 뒤 다시 불러오기가 같은 길을 쓴다
+  const 전부읽기 = useCallback(async (번호: number, 취소됨: () => boolean): Promise<number | null> => {
+    const 상세 = await scenarioApi.detail(번호);
+    const 새번호들 = 케이스번호들(상세.parts).filter((n) => !부른것.current.has(n));
+    새번호들.forEach((n) => 부른것.current.add(n));
+    const 읽음 = await Promise.all(새번호들.map(async (n) => [n, await 재료읽기(n)] as const));
+    if (취소됨()) return null;
+    set서비스(상세.service);
+    set이름(상세.name);
+    set디바이스(상세.platform);
+    set단계들(상세.parts);
+    set재료((앞) => new Map([...앞, ...읽음]));
+    set점검(상세.checks);
+    set버전(상세.version);
+    set버전들(상세.versions);
+    set살아있나(상세.isActive);
+    set저장본(찍는다(상세.name, 상세.platform, 상세.parts));
+    set판((n) => n + 1);
+    set불러옴(true);
+    return 상세.parts.length;
+  }, []);
+
   useEffect(() => {
     if (id === null) return;
     let 끝남 = false;
-    (async () => {
-      try {
-        const 상세 = await scenarioApi.detail(id);
-        const 번호들 = 케이스번호들(상세.parts);
-        번호들.forEach((n) => 부른것.current.add(n));
-        const 읽음 = await Promise.all(번호들.map(async (n) => [n, await 재료읽기(n)] as const));
-        if (끝남) return;
-        set서비스(상세.service);
-        set이름(상세.name);
-        set디바이스(상세.platform);
-        set단계들(상세.parts);
-        set재료(new Map(읽음));
-        set점검(상세.checks);
-        set버전(상세.version);
-        set버전들(상세.versions);
-        set살아있나(상세.isActive);
-        set저장본(찍는다(상세.name, 상세.platform, 상세.parts));
-        set불러옴(true);
-      } catch (err) {
-        if (!끝남) set오류(message(err, 언어쪽.current));
-      }
-    })();
+    전부읽기(id, () => 끝남).catch((err: unknown) => {
+      if (!끝남) set오류(message(err, 언어쪽.current));
+    });
     return () => {
       끝남 = true;
     };
-  }, [id]);
+  }, [id, 전부읽기]);
+
+  /** 다 읽었으면 새 단계 수. 실패했거나 새 시나리오면 null */
+  const 새로불러오기 = useCallback(async (): Promise<number | null> => {
+    if (id === null) return null;
+    try {
+      return await 전부읽기(id, () => false);
+    } catch (err) {
+      set오류(message(err, 언어쪽.current));
+      return null;
+    }
+  }, [id, 전부읽기]);
 
   /** 초안은 건드리지 않고 서버가 들고 있는 버전 이력 · 확인 필요 · 치움 여부만 새로 읽는다 */
   const 다시읽기 = useCallback(async () => {
@@ -178,5 +195,7 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
     저장오류,
     저장하는중,
     다시읽기,
+    새로불러오기,
+    판,
   };
 }

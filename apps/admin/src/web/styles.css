@@ -3887,3 +3887,56 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
     min-height: 46px;
   }
 }
+
+/* 변경 이력 탭. 판정 색 없이 중립 글자색이다 */
+.scn-ver-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scn-ver-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+}
+
+.scn-ver-open {
+  padding: 4px 0;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.scn-ver-open[aria-expanded='true'] {
+  font-weight: 600;
+}
+
+.scn-ver-steps {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-muted);
+}
+
+.scn-ver-steps li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.scn-ver-no {
+  min-width: 1.5em;
+}
+
+@media (max-width: 620px) {
+  .scn-ver-open,
+  .scn-ver .btn {
+    min-height: 46px;
+  }
+}

@@ -164,7 +164,7 @@ describe('옛 버전 펼치기', () => {
 describe('이 버전으로 되돌리기', () => {
   it('restore 를 부르고 상세를 다시 불러 새 버전 줄과 알림이 나오고 케이스 패널 입력 칸이 새 값을 보인다', async () => {
     await 이력열기();
-    fireEvent.click(screen.getByRole('tab', { name: '1번 설정' }));
+    fireEvent.click(await screen.findByRole('tab', { name: '1번 설정' }));
     expect((screen.getByLabelText('이름') as HTMLInputElement).value).toBe('지금값');
     fireEvent.click(screen.getByRole('tab', { name: '변경 이력' }));
 
@@ -203,7 +203,7 @@ describe('이 버전으로 되돌리기', () => {
 
   it('치운 시나리오라 409 SCENARIO_ARCHIVED 가 오면 그 문장을 보이고 초안은 그대로다', async () => {
     await 이력열기();
-    vi.spyOn(scenarioApi, 'restore').mockRejectedValue(new ApiError(409, 'SCENARIO_ARCHIVED', 'archived'));
+    vi.spyOn(scenarioApi, 'restore').mockRejectedValue(new ApiError(409, 'SCENARIO_ARCHIVED', ''));
 
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
     fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 되돌리기' }));
