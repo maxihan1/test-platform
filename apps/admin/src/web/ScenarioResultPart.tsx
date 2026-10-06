@@ -36,6 +36,8 @@ export function ScenarioResultPart({ part, parts, runId }: { part: ScenarioRunPa
   const 케이스 = part.part.kind === 'case' ? part.part : null;
   const 적용됨 = (part.kind === 'mock' || part.kind === 'unmock') && part.status === 'PASS';
   const 안돌았다 = part.status === 'NA' && part.error?.message === 'NOT_RUN';
+  const 모킹구간 = part.mocks.length > 0 && part.kind !== 'mock';
+  const 모킹안탐 = 모킹구간 && part.kind === 'api';
   const 입력 = 케이스 === null ? '' : 한줄로({ ...케이스.params, ...part.bound }, part.paramSchema, 언어);
   const 이름 = part.kind === 'case' ? (
     <>
@@ -46,12 +48,13 @@ export function ScenarioResultPart({ part, parts, runId }: { part: ScenarioRunPa
   );
 
   return (
-    <li className={part.mocks.length > 0 && part.kind !== 'mock' ? 'scn-part mocked' : 'scn-part'}>
+    <li className={모킹구간 ? 'scn-part mocked' : 'scn-part'}>
       <div className="scn-part-head">
         <span className="scn-seq">{part.seq}</span>
         <span className="tech-tag">{t(종류글[part.kind])}</span>
         <span className="scn-name">{이름}</span>
         {part.unconfirmed === null ? null : <span className="case-tag">{t('미확정')}</span>}
+        {모킹안탐 ? <span className="tech-tag">{t('모킹되지 않음')}</span> : null}
         {케이스 !== null && 케이스.carryOver === false ? <span className="tech-tag">{t('단독 실행')}</span> : null}
         <span className="scn-end">
           {적용됨 ? (
@@ -65,9 +68,11 @@ export function ScenarioResultPart({ part, parts, runId }: { part: ScenarioRunPa
         </span>
       </div>
 
-      {part.mocks.length > 0 && part.kind !== 'mock' ? (
-        <p className="scn-mock-note">{t('모킹이 적용된 상태로 실행했습니다 — {무늬}', { 무늬: part.mocks.join(', ') })}</p>
-      ) : null}
+      {!모킹구간 ? null : (
+        <p className="scn-mock-note">
+          {모킹안탐 ? t('이 단계의 API 호출은 모킹되지 않습니다') : t('모킹이 적용된 상태로 실행했습니다 — {무늬}', { 무늬: part.mocks.join(', ') })}
+        </p>
+      )}
 
       {입력 === '' ? null : <세부 라벨={t('입력값')}>{입력}</세부>}
       {part.skippedSteps.length === 0 ? null : (
@@ -108,6 +113,9 @@ export function ScenarioResultPart({ part, parts, runId }: { part: ScenarioRunPa
         </세부>
       )}
       {part.unconfirmed === null ? null : <세부 라벨={t('미확정')}>{part.unconfirmed}</세부>}
+      {part.status !== 'NA' || 안돌았다 || part.error === null || part.error.message === '' ? null : (
+        <세부 라벨={t('실행이 멈춘 사유')}>{part.error.message}</세부>
+      )}
       {part.status !== 'FAIL' || part.error === null || part.error.message === '' ? null : (
         <pre className="scn-error">{part.error.message}</pre>
       )}

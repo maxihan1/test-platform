@@ -90,4 +90,5 @@ export const 시나리오말: Record<string, string> = {
   '단계 추가': 'Add step',
   '시험 결과': 'Trial result',
   '모킹되지 않음': 'Not mocked',
+  '이 단계의 API 호출은 모킹되지 않습니다': 'This step\'s API call is not mocked',
 };

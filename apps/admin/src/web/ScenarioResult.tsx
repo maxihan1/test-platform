@@ -29,11 +29,15 @@ export function ScenarioResult({ runId, 상자안 = false }: { runId: number; �
   if (data === null) return <Loading />;
 
   const 판정 = 접은판정(data.parts, data.status);
+  const 미확정 = 미확정있나(data.parts);
   const 칩 =
-    판정 === null ? null : 판정 === 'PASS' && 미확정있나(data.parts) ? (
+    판정 === null ? null : 판정 === 'PASS' && 미확정 ? (
       <span className="case-tag">{t('통과 · 미확정 포함')}</span>
     ) : (
-      <Verdict status={판정} />
+      <>
+        <Verdict status={판정} />
+        {미확정 ? <span className="case-tag">{t('미확정 포함')}</span> : null}
+      </>
     );
   const 부제 = (
     <>
