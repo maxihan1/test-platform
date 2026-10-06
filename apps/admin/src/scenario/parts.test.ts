@@ -25,7 +25,7 @@ test(spec, async ({ page }) => {
 `;
 
 describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
-  const 번호들 = ['XSP-001', 'XSP-002', 'XSP-003', 'XSP-004', 'XSP-005', 'XSP-006', 'XSP-UI-001'];
+  const 번호들 = ['XSP-001', 'XSP-002', 'XSP-003', 'XSP-004', 'XSP-005', 'XSP-006', 'XSP-007', 'XSP-UI-001'];
   const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
   let 뿌리 = '';
 
@@ -54,6 +54,8 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
     await 케이스넣기('XSP-004', '../밖.spec.ts');
     await 케이스넣기('XSP-005', 'xsp/broken.spec.ts');
     await 케이스넣기('XSP-006', 'xsp/a.spec.ts', true, 'null');
+    await 케이스넣기('XSP-007', 'xsp/a.spec.ts');
+    await q(`UPDATE test_case SET unconfirmed = '화면에서 본 값이다' WHERE tc_id = 'XSP-007'`);
     await 케이스넣기('XSP-UI-001', 'xsp/a.spec.ts');
   });
 
@@ -90,8 +92,13 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
         { title: '장바구니에 한 건이다', skippable: false },
       ],
       r16: true,
-      usesRequest: false,
+      unconfirmed: null,
     });
+  });
+
+  it('미확정 케이스는 사유를 싣는다 — 조립 화면의 미확정 칩이 읽는다', async () => {
+    const { 부품재료 } = await 케이스재료(['XSP-007']);
+    expect(부품재료.get('XSP-007')?.unconfirmed).toBe('화면에서 본 값이다');
   });
 
   it('입력값 스키마가 null 이면 입력값 칸이 없다', async () => {
