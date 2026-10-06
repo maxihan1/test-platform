@@ -44,6 +44,9 @@ const 정본: Record<string, 칸[]> = {
     ['duration_ms', 'integer', 'YES', false],
     ['error', 'jsonb', 'YES', false],
     ['finished_at', 'timestamp with time zone', 'YES', false],
+    ['unconfirmed', 'text', 'YES', false],
+    ['bound', 'jsonb', 'NO', true],
+    ['cleanup', 'jsonb', 'NO', true],
   ],
   scenario_run_step: [
     ['id', 'bigint', 'NO', true],
