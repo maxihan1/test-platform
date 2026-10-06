@@ -116,7 +116,7 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
         <>
           <label className="scn-pal-find">
             <span className="scn-set-sub">{t('케이스 찾기')}</span>
-            <input type="search" value={찾기} onChange={(e) => set찾기(e.target.value)} />
+            <input type="text" value={찾기} onChange={(e) => set찾기(e.target.value)} />
           </label>
           {!읽음.잘림 ? null : (
             <p className="scn-set-note">{t('케이스가 많아 앞 {수}건만 보입니다. 찾기로 좁힙니다', { 수: 읽음.목록.length })}</p>
