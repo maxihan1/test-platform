@@ -127,11 +127,11 @@
      ✅ ⓐ **계약 반영 (PR #161, 2026-10-06)** — kit 타입(case 부품의 `carryOver` · `links` · `ScenarioLink` · `ScenarioResponseRef` · 결과의 `bound` · `cleanup`) · 마이그레이션 `scenario_run_part` 세 칸(`unconfirmed` · `bound` · `cleanup`)
      ✅ ⓑ **러너 + kit 시나리오 모드 (PR #162, 2026-10-06)** — 부품마다 새 창(로그인 상태만 · 디바이스는 Playwright 가 채움 · 모킹 다시 걸기) · 부품 시험 한도(루트 `timeout` · 0 은 없음) · 감싸기는 **러너 고정 spec 한 곳**(부품 `request` · `page.request` · 직접 만든 창 · 연결 — 게이트 0 사용자) · kit 은 준비 구간 · 절차 밖 표시판과 뒷정리 줄 표시자만 · 이어 주기 넷 · 뒷정리 미루기와 뒷정리 줄 · 러너 입구 zod `carryOver` · `links`.
         러너 이미지에서 `/tests` 케이스가 `require` 로 만든 연결도 감싸지는 것을 쟀다(SETUP §14 「러너 이미지로 시나리오 한 바퀴」)
-     ⓒ **서버** — **admin 조립 검사 `apps/admin/src/scenario/validate.ts` `부품모양` 에 `carryOver` · `links` 를 더한다 — ⓑ 와 같은 까닭이고, 옵션 칸이라 `z.ZodType<ScenarioPart[]>` 주석도 못 잡는다** ·
+     ⓒ **서버** — **admin 조립 검사 `apps/admin/src/scenario/validate.ts` `부품모양` 에 `carryOver` · `links` 를 더한다 — ⓑ 와 같은 까닭이고, 옵션 칸이라 `z.ZodType<ScenarioPart[]>` 주석도 못 잡는다**. 러너 입구가 막는 이어 주기 모양(바꿔 보내기 경로의 `/` · `//` · `{}` · `fromSeq` 양의 정수 — `apps/runner/src/routes.ts`)을 admin 이 먼저 같은 글자로 400 으로 막는다 ·
         조립 거절 400 더하기(시나리오 §7 「2026-10-06 이어 주기에서 더한 것」) · `case-parts` 의 `unconfirmed` · 실행 · 시험 실행이 빈 칸을 저장값으로 채워 박제 · 채운 뒤 크기 다시 재기 · 미확정 박제 ·
         결과 저장 `bound` · `cleanup`(실행 한 벌을 `fromSeq` 로 부품 행에 나눔) · 시험 실행 가리기를 채운 뒤 값과 `bound` 로 · 목록 `lastRun.unconfirmed` · E2E 탭 줄 `unconfirmed` · `summary.unconfirmedPass` · `runRoutes.ts` 주석 ·
         **`usesRequest` 를 뺀다** — ⓑ 가 직접 만든 창 · 연결까지 감싸지는 것을 러너 이미지에서 확인했다(PR #162 · 시나리오 §3.7 결정 6). 케이스 부품의 「모킹되지 않음」 경고와 그 칸이 대상이고, API 호출 부품의 경고는 그대로다.
-        `usesRequest` 를 빼면 작성 규칙 `tpx-cases/references/two-kinds.md` 「Page Object 에서 `request` 를 쓰지 않는다」의 E2E 근거가 사라진다. 결정 3 이 구현되면 `tpx-cases/references/5-writing.md` 의 「시나리오는 한 page 로 이어 돈다」도 사실이 아니게 된다 —
+        `usesRequest` 를 빼면 작성 규칙 `tpx-cases/references/two-kinds.md` 「Page Object 에서 `request` 를 쓰지 않는다」의 E2E 근거가 사라진다. 결정 3(부품마다 새 창)이 PR #162 로 구현돼 `tpx-cases/references/5-writing.md` 의 「시나리오는 한 page 로 이어 돈다」도 이제 사실이 아니다 —
         **E2E 때문에 작성 규칙을 바꾸지 않으므로 이 PR 들은 손대지 않는다.** 두 문장을 남길지는 작성 쪽이 따로 정한다
      **남은 인계** — ② 인계 ④ 뿌리 밖 경로는 ③-1 게이트 2 에서 비활성으로 치게 고쳤다 · **뿌리 안 심볼릭 링크를 따라간다** — `catalog/source.ts` `readExcerpt` 와 한 함수(`realpath` 비교)로 합칠 때 같이 고친다 ·
      ⑤ 문법 깨진 소스 판별은 `scenario/parts.ts` 에만 있다(`caseSteps` 를 직접 부르면 같은 판별을 거친다) · `test_run.scenario_id` 색인이 없다(`lastRun` 질의 — 수만 건이면 마이그레이션) · **실행 대기줄 상한이 없다** — 실행 쓰기 권한자가 60분짜리를 여러 번 누르면 케이스 실행까지 줄이 밀린다(케이스 `POST /api/runs` 도 같다 — 둘을 같이 정한다, PR #109 보안 검토)

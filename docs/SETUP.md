@@ -635,5 +635,5 @@ curl -s -X POST -H 'content-type: application/json' --data @<요청.json> http:/
 - 요청은 `apps/runner/scenario/e2e.test.ts` 의 조립과 같게 쓴다 — `baseUrl` 은 `http://host.docker.internal:4098`, 케이스 부품 `filePath` 는 `/tests` 기준 상대 경로(`XSF-004.case.ts`)
 - **실측 서버는 글 번호를 812 부터 매긴다.** 글을 만드는 조립을 연달아 보내면 번호가 밀린다 — 조립마다 서버를 다시 띄운다
 - 응답 `parts` 의 판정 · `bound` · `cleanup`(절대 주소 · 응답 코드)과 서버가 찍은 순서(미룬 `DELETE` 가 맨 끝 · 로그인한 채)를 브라우저 실측과 견준다
-- **Linux 도커(서버 · 클라우드 세션)** — `docker run` 에 `--add-host=host.docker.internal:host-gateway` 를 붙이고, 실측 서버를 `0.0.0.0` 에 연다(`… e2e-server.ts 4098 0.0.0.0`). 안 그러면 컨테이너가 호스트 서버에 못 닿는다(§10 · §13 에서 겪은 것)
+- **Linux 도커(서버 · 클라우드 세션)** — `docker run` 에 `--add-host=host.docker.internal:host-gateway` 를 붙이고, 실측 서버를 `0.0.0.0` 에 연다(`… e2e-server.ts 4098 0.0.0.0`). **리눅스에서는 아직 돌려 보지 않았다** — 2026-10-06 한 바퀴는 맥 Docker Desktop 이다. `host.docker.internal` 이 리눅스에서 안 풀린 일은 §13 에서 겪었고, 127.0.0.1 전용 서버에 컨테이너가 못 닿을 수 있다는 것은 §10 이 적었다
 - 다 쓰면 `docker stop tp-runner-check` · 서버 창은 Ctrl+C
