@@ -30,13 +30,16 @@ export interface 띠칸 {
 
 const 판정색: Record<ItemStatus, string> = { PASS: 'p', FAIL: 'f', NA: 'n' };
 
+/** 비율 막대의 칸 하나. `U` 는 미확정 통과다 — 판정이 아니라서 판정 색 표에 안 넣고 막대에서만 `u` 로 그린다 */
+type 막대칸 = ItemStatus | 'U';
+
 /**
  * 숫자 몇 개를 큰 글자로 늘어놓는 띠 (SPEC §8).
  *
  * 판정 집계도 이것으로 그리고(`집계띠`), 판정이 아닌 집계도 이것으로 그린다.
  * 두 벌을 만들면 한쪽이 색 규칙을 잃는다.
  */
-export function 칸띠({ 칸들, 비율 }: { 칸들: readonly 띠칸[]; 비율?: readonly { 판정: ItemStatus; 몫: number }[] }) {
+export function 칸띠({ 칸들, 비율 }: { 칸들: readonly 띠칸[]; 비율?: readonly { 판정: 막대칸; 몫: number }[] }) {
   return (
     <div className="stats">
       <div className="stats-row">
@@ -58,7 +61,7 @@ export function 칸띠({ 칸들, 비율 }: { 칸들: readonly 띠칸[]; 비율?:
       {비율 === undefined || 비율.every((것) => 것.몫 === 0) ? null : (
         <div className="ratio">
           {비율.map((것) => (
-            <i key={것.판정} className={판정색[것.판정]} style={{ flexGrow: 것.몫 }} />
+            <i key={것.판정} className={것.판정 === 'U' ? 'u' : 판정색[것.판정]} style={{ flexGrow: 것.몫 }} />
           ))}
         </div>
       )}

@@ -3229,3 +3229,13 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 .trial-step.fail {
   font-weight: 600;
 }
+
+/* E2E 시나리오 (도메인/시나리오 §8.11 · 실행 §8.7) */
+/* 비율 막대의 미확정 통과 칸. 판정이 아니라서 판정 색 대신 중립 색이고, 2px 틈으로 이웃 칸과 가른다 (DESIGN 「결과 막대」) */
+.ratio .u{background:var(--ink-faint);box-shadow:inset 2px 0 0 var(--sheet)}
+
+/* 실행 기록 줄의 「미확정 포함」 칩은 판정 칸 안에서 왼쪽 끝에 붙는다 */
+.runright .verdict .case-tag {
+  margin-left: 0;
+  align-self: flex-start;
+}

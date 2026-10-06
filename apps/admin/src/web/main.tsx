@@ -24,6 +24,7 @@ import { 기능보나, 판정을만든다 } from './role.js';
 import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
+import { ScenarioRunList } from './ScenarioRunList.js';
 import { RunSetup } from './RunSetup.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
@@ -83,8 +84,8 @@ function Screen({
       // 주소는 새 번호인데 앞 요청 화면이 보이고 다시 누를 수 있다 (2026-09-30 코드 검토)
       return <AuthoringDetail key={current.id} service={prefix} id={current.id} 할수={할수} />;
     case 'runs':
-      // E2E 하위 화면은 계획 할 일 8 이 잇는다 — 그 전까지 케이스 목록에 E2E 이름표를 붙여 보이지 않게 빈 화면
-      if (current.kind === 'E2E') return <div className="screen" />;
+      // E2E 는 시나리오 실행만 모으는 별도 화면이다 — 줄 모양과 거르개가 UI · 기능 목록과 다르다
+      if (current.kind === 'E2E') return <ScenarioRunList key="E2E" service={prefix} 할수={할수} />;
       return <RunList key={current.kind} kind={current.kind} service={prefix} 할수={할수} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다

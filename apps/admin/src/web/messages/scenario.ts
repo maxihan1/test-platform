@@ -15,4 +15,12 @@ export const 시나리오말: Record<string, string> = {
   '{메서드} {무늬} ← {번호}번': '{메서드} {무늬} ← step {번호}',
   '모두 통과': 'All passed',
   '{번호}번에서 멈춤': 'Stopped at step {번호}',
+  '시나리오 이름 · 버전': 'Scenario · version',
+  '단계 · 멈춘 단계': 'Steps · stopped at',
+  '단계 {수}개': '{수} steps',
+  '미확정 포함': 'Includes unconfirmed',
+  '통과 · 미확정 포함': 'Passed · includes unconfirmed',
+  '시나리오 이름으로 찾기': 'Search by scenario name',
+  '이 서비스에서 아직 돌린 E2E 시나리오가 없습니다': 'No E2E scenario has run in this service yet',
+  '시나리오 목록으로': 'Go to scenarios',
 };
