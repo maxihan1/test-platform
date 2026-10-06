@@ -613,6 +613,7 @@ DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/tp_<이름> npx vitest 
 ```
 
 - 작업방 안에서 돌린다 — `$PWD/db` 가 그 브랜치의 마이그레이션이다
+- `host.docker.internal` 은 맥 · 윈도우의 Docker Desktop 에서만 그대로 풀린다. **Linux 도커(서버 · 클라우드 세션)에서는 `docker run` 에 `--add-host=host.docker.internal:host-gateway` 를 붙인다** — 안 붙이면 dbmate 가 `could not translate host name` 으로 실패하고, 마이그레이션이 안 걸린 DB 에서 검사가 돈다
 - 되돌리기(`rollback`)는 **임시 DB 에서만** 시험한다. 내 DB 를 되돌리는 것은 CLAUDE.md §5 금지다
 - 다 쓰면 `DROP DATABASE tp_<이름>`. 병합 뒤 내 DB 에는 `docker compose run --rm migrate` 로 올린다
 
