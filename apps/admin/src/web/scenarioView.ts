@@ -10,6 +10,15 @@ import { toValues, type Field } from './schema.js';
 
 type CasePart = Extract<ScenarioPart, { kind: 'case' }>;
 
+// 조립 카드 · 시험 결과 · 실행 결과가 같은 낱말을 쓰게 한 곳에 둔다
+export const 종류글: Record<ScenarioPart['kind'], string> = {
+  case: '케이스§단계',
+  api: 'API 호출',
+  mock: '모킹 켜기',
+  unmock: '모킹 끄기',
+  wait: '대기§단계',
+};
+
 /** null 은 재료 없음 — 서버가 404 를 준 비활성 · 사라진 케이스 */
 export type 재료들 = Map<string, CasePartMaterial | null>;
 

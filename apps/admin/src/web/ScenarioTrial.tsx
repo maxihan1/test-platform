@@ -5,18 +5,9 @@ import type { ScenarioPart, ScenarioPartResult } from '@platform/kit';
 import type { EnvRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi } from './scenarioApi.js';
-import { 가리킴빈곳 } from './scenarioView.js';
+import { 가리킴빈곳, 종류글 } from './scenarioView.js';
 import { seconds, Verdict } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
-
-// 색은 판정에서만 쓴다. 칩은 중립이다
-const 종류글: Record<ScenarioPart['kind'], string> = {
-  case: '케이스§단계',
-  api: 'API 호출',
-  mock: '모킹 켜기',
-  unmock: '모킹 끄기',
-  wait: '대기§단계',
-};
 
 /** 서버를 부르기 전에 걸러 낼 사유. 서버가 같은 것을 400 으로 거절하지만 그 문장은 영어 원문이다 */
 export function 시험막는글(

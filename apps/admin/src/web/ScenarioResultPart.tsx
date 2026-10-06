@@ -6,16 +6,8 @@ import { use말, use언어 } from './i18n.js';
 import { 한줄로 } from './mask.js';
 import { scenarioApi, type ScenarioRunPart } from './scenarioApi.js';
 import { 값연결글, 건너뜀번호 } from './scenarioResultView.js';
-import { 카드요약 } from './scenarioView.js';
+import { 카드요약, 종류글 } from './scenarioView.js';
 import { seconds, Verdict } from './ui.js';
-
-const 종류글: Record<ScenarioRunPart['kind'], string> = {
-  case: '케이스§단계',
-  api: 'API 호출',
-  mock: '모킹 켜기',
-  unmock: '모킹 끄기',
-  wait: '대기§단계',
-};
 
 function 세부({ 라벨, children }: { 라벨: string; children: ReactNode }) {
   return (

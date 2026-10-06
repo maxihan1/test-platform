@@ -5,19 +5,11 @@ import { useEffect, useRef, type ReactNode } from 'react';
 
 import type { Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
-import { 모킹구간, 빼기, 순서바꾸기, 카드요약, type 재료들 } from './scenarioView.js';
+import { 모킹구간, 빼기, 순서바꾸기, 카드요약, 종류글, type 재료들 } from './scenarioView.js';
 import type { 조립탭 } from './ScenarioTabs.js';
 import { PLATFORM_LABEL } from './ui.js';
 
 type 동작 = 'up' | 'down' | 'pick' | 'add';
-
-const 종류글: Record<ScenarioPart['kind'], string> = {
-  case: '케이스§단계',
-  api: 'API 호출',
-  mock: '모킹 켜기',
-  unmock: '모킹 끄기',
-  wait: '대기§단계',
-};
 
 /** 카드 하나가 옮겨지면 고른 번호가 어디로 가는지. 고른 카드는 따라가고 지나가는 카드는 한 칸 밀린다 */
 function 따라간번호(고른: number, from: number, to: number): number {
