@@ -8,7 +8,7 @@ import { runParts, type PartDeps, type RouteHandler, type 창 } from './parts.js
 
 type Part = ScenarioExecuteRequest['parts'][number];
 
-const 케이스 = (tcId = 'XRS-001', skipSteps: string[] = []): Part => ({
+const 케이스 = (tcId = 'XRS-001', skipSteps: string[] = []): Extract<Part, { kind: 'case' }> => ({
   kind: 'case', tcId, params: {}, expected: {}, skipSteps, filePath: `/tests/${tcId}.spec.ts`,
 });
 
