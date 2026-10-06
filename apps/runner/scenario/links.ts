@@ -193,7 +193,8 @@ async function 걸기(이음: 이음, link: Extract<ScenarioLink, { kind: 'reuse
   if ('사유' in 값) return { kind: 'fail', message: 값.사유 };
   // 값의 / 는 주소 글자로 감싸 다른 경로로 새지 않게 한다. . · .. 는 감싸도 그대로라 주소가 상위로 풀린다 (SPEC 도메인/시나리오 §3.7 결정 12 「값 꺼내기」)
   const 글자 = String(값.value);
-  if (글자 === '.' || 글자 === '..') {
+  // 빈 글자는 모음 주소(/api/todos/)로 간다 — 입구가 {} 를 꼭 하나로 막은 까닭과 같다
+  if (글자 === '' || 글자 === '.' || 글자 === '..') {
     return { kind: 'fail', message: `${link.to.value.fromSeq}번 부품 응답의 ${link.to.value.jsonPath} 값 「${글자}」 은 주소에 넣을 수 없다` };
   }
   const url = 주소(이음.baseUrl, link.to.path.replace('{}', encodeURIComponent(글자)));
@@ -204,7 +205,7 @@ async function 걸기(이음: 이음, link: Extract<ScenarioLink, { kind: 'reuse
 export async function 가르기(이음: 이음, 부품: 부품상태 | undefined, 채널: 'browser' | 'api', method: string, url: string, route무늬?: string): Promise<가름> {
   const m = method.toUpperCase();
   const 가름 = await 가르기만(이음, 부품, 채널, m, url, route무늬);
-  // API 쪽 가짜 응답도 적는다 — 브라우저 쪽은 fulfill 한 응답도 response 이벤트로 적히므로 같게 (SPEC 도메인/시나리오 §3.7 결정 12 「요청 고르기」)
+  // API 쪽 가짜 응답도 적는다 — 브라우저 쪽은 fulfill 한 응답도 response 이벤트로 적히므로 같게 (SPEC 도메인/시나리오 §3.7 결정 12 「요청 고르기」 · 러너 §5.2)
   if (채널 === 'api' && 부품 !== undefined && 가름.kind === 'fulfill') 적기(이음, 부품.seq, m, url, async () => 가름.응답);
   return 가름;
 }

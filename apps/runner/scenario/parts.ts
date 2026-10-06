@@ -8,9 +8,6 @@ import type { ItemStatus, ScenarioCleanup, ScenarioExecuteRequest, ScenarioPartR
 
 import { 꽂기, 새부품, 안걸린, 주소, type CasePart, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
 
-// 부품 검사가 이 파일에서 가져다 쓴다
-export { 주소 };
-
 type Part = ScenarioExecuteRequest['parts'][number];
 
 export type RouteHandler = (route: {
@@ -39,8 +36,8 @@ export interface PartDeps {
   이음: 이음;
   // 부품이 있으면 그 부품의 이어 주기를 그 창 · 그 창의 도구에 건다
   newWindow(state: 상태 | undefined, mocks: ReadonlyMap<string, RouteHandler>, 부품?: 부품상태): Promise<창>;
-  // 응답 코드를 돌려준다. 못 보내면 던진다
-  sendDelete(d: 미룬삭제): Promise<number>;
+  // 응답 코드를 돌려준다. 못 보내면 던진다. 한도는 Playwright 요청 한도로 건다 — 바깥 상한은 그보다 늦게 걸어야 날아가는 삭제와 다음 삭제가 겹치지 않는다
+  sendDelete(d: 미룬삭제, 한도: number): Promise<number>;
   write(result: ScenarioPartResult): void;
   writeCleanup(list: ScenarioCleanup[]): void;
 }
@@ -59,8 +56,8 @@ export function 합친상태(창쪽: 상태, 요청쪽: 상태): 상태 {
   return { cookies: [...쿠키.values()], origins: 창쪽.origins };
 }
 
-// 닫기 · 상태 읽기 실패는 결과를 바꾸지 않지만 흔적은 남긴다 — 창이 새는 것을 나중에 찾을 수 있게
-function 남김(무엇: string) {
+// 닫기 · 상태 읽기 실패는 결과를 바꾸지 않지만 흔적은 남긴다 — 창이 새는 것을 나중에 찾을 수 있게. window.ts 도 쓴다
+export function 남김(무엇: string) {
   return (thrown: unknown): undefined => {
     console.warn(`[runner] ${무엇}: ${thrown instanceof Error ? thrown.message : String(thrown)}`);
     return undefined;
@@ -246,7 +243,8 @@ async function 뒷정리(deps: PartDeps): Promise<ScenarioCleanup[]> {
   for (const d of [...deps.이음.미룸].reverse()) {
     const 줄 = { fromSeq: d.fromSeq, method: 'DELETE' as const, url: d.url };
     try {
-      const 끝 = await 늦어도(deps.sendDelete(d).then((status) => ({ status })), 상한);
+      // 요청 한도(상한)가 먼저 끝나 Playwright 오류가 남는다. 바깥은 연결 만들기 · 닫기가 멈출 때만 잡는다
+      const 끝 = await 늦어도(deps.sendDelete(d, 상한).then((status) => ({ status })), 상한 + 늦은절차유예);
       보냄.push(끝 === undefined ? { ...줄, error: `미룬 삭제가 ${상한}ms 안에 끝나지 않았다` } : { ...줄, status: 끝.status });
     } catch (thrown) {
       보냄.push({ ...줄, error: errorOf(thrown).message });

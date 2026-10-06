@@ -22,11 +22,13 @@ describe('만들때값 — 미룬 삭제에 다시 실을 로그인 상태 (Play
 });
 
 describe('sendDelete', () => {
+  // 감싸기걸기가 newContext 를 감싼 것으로 바꿔 끼우므로 원래 가짜 함수는 따로 쥔다
   const 가짜 = () => {
     const 연결 = { fetch: vi.fn(async () => ({ status: () => 200 })), dispose: vi.fn(async () => {}) };
-    const 요청도구 = { newContext: vi.fn(async () => 연결) } as unknown as APIRequest;
+    const 만들기 = vi.fn(async (_options?: object) => 연결);
+    const 요청도구 = { newContext: 만들기 } as unknown as APIRequest;
     const 브라우저 = { newContext: vi.fn() } as unknown as Browser;
-    return { 연결, 요청도구, 감싸기: 감싸기걸기(브라우저, 요청도구, 새이음([], 설정.baseUrl), 설정) };
+    return { 연결, 요청도구: { newContext: 만들기 }, 감싸기: 감싸기걸기(브라우저, 요청도구, 새이음([], 설정.baseUrl), 설정) };
   };
   const 미룸 = (칸: Partial<미룬삭제> = {}): 미룬삭제 => ({ fromSeq: 1, url: 'https://qa.example.com/api/posts/1', headers: {}, state: { cookies: [], origins: [] }, ...칸 });
 

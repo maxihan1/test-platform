@@ -47,8 +47,8 @@ const scenarioLink = z.discriminatedUnion('kind', [
     kind: z.literal('rewrite'),
     method: scenarioMethod,
     urlPattern: z.string().min(1),
-    // {} 자리가 없으면 앞 데이터가 아니라 모음 주소(PUT /api/todos)로 간다 (SPEC 도메인/시나리오 §3.7 결정 12 「값 꺼내기」)
-    to: z.object({ method: z.enum(['PUT', 'PATCH']), path: 대상경로.refine((p) => p.includes('{}'), '바꿔 보내기 경로에 {} 자리가 없다'), value: responseRef }),
+    // {} 자리가 없으면 앞 데이터가 아니라 모음 주소(PUT /api/todos)로 가고, 둘이면 첫 자리만 바뀐다 — 꼭 하나 (SPEC 도메인/시나리오 §3.7 결정 12 「값 꺼내기」)
+    to: z.object({ method: z.enum(['PUT', 'PATCH']), path: 대상경로.refine((p) => p.split('{}').length === 2, '바꿔 보내기 경로에 {} 자리가 꼭 하나 있어야 한다'), value: responseRef }),
   }),
   z.object({ kind: z.literal('bind'), param: z.string().min(1), value: responseRef }),
 ]);

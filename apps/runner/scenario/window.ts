@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import type { APIRequest, APIRequestContext, APIResponse, Browser, BrowserContext, Route } from '@playwright/test';
 
 import { 가르기, 빈응답, 요청주소, 적기, type CasePart, type 미룬삭제, type 받은응답, type 부품상태, type 상태, type 이음 } from './links.js';
-import { 합친상태, type RouteHandler, type 창 } from './parts.js';
+import { 남김, 합친상태, type RouteHandler, type 창 } from './parts.js';
 import { 꺼냄 } from './wire.js';
 
 type 연결옵션 = Parameters<APIRequest['newContext']>[0];
@@ -52,12 +52,6 @@ function 쿼리(params: unknown): Record<string, string | number | boolean> | un
     : undefined;
 }
 
-// 닫기 실패는 결과를 바꾸지 않지만 흔적은 남긴다 — 창이 새는 것을 나중에 찾을 수 있게
-const 남김 = (무엇: string) => (thrown: unknown): undefined => {
-  console.warn(`[runner] ${무엇}: ${thrown instanceof Error ? thrown.message : String(thrown)}`);
-  return undefined;
-};
-
 // API 도구 하나를 감싼다. 케이스가 받는 모양은 그대로다 — 케이스 파일은 안 바뀐다 (SPEC 도메인/시나리오 §3.7 결정 12)
 function 감싼도구(api: APIRequestContext, 이음값: 이음, 묶음: 도구묶음): APIRequestContext {
   return new Proxy(api, {
@@ -95,7 +89,8 @@ function 감싼도구(api: APIRequestContext, 이음값: 이음, 묶음: 도구�
 // continue 는 먼저 건 모킹을 건너뛰고 진짜 서버로 간다. 오류면 abort — 그냥 보내면 막으려던 준비가 서버를 바꾼다.
 // route 가 이미 맞춘 무늬를 가르기에 넘긴다 — 손으로 옮긴 무늬 맞추기가 갈라 조용히 안 걸리지 않게 (SPEC 도메인/러너 §5.2 「이어 주기를 건다」)
 async function 이어주기걸기(context: BrowserContext, 이음값: 이음, 부품: 부품상태): Promise<void> {
-  const 무늬들 = new Set(부품.links.flatMap((link) => (link.kind === 'bind' ? [] : [link.urlPattern])));
+  // 거꾸로 건다 — Playwright 는 나중 route 를 먼저 돌리므로, 한 주소에 두 무늬가 맞을 때 API 쪽처럼 앞 링크가 이긴다
+  const 무늬들 = [...new Set(부품.links.flatMap((link) => (link.kind === 'bind' ? [] : [link.urlPattern])))].reverse();
   for (const 무늬 of 무늬들) {
     await context.route(무늬, async (route: Route) => {
       const req = route.request();
@@ -108,8 +103,8 @@ async function 이어주기걸기(context: BrowserContext, 이음값: 이음, �
   }
 }
 
-// 가리킨 부품이면 창의 응답을 적는다. 자리는 오는 순간 잡는다. 3xx 는 본문을 못 읽어 자리만 차지하므로 건너뛴다 (SPEC 도메인/러너 §5.2 「이어 주기를 건다」)
-function 응답듣기(context: BrowserContext, 이음값: 이음, 부품: 부품상태): void {
+// 가리킨 부품이면 창의 응답을 적는다. 자리는 오는 순간 잡는다. 3xx 는 본문을 못 읽어 자리만 차지하므로 건너뛴다 (SPEC 도메인/시나리오 §3.7 결정 12 「요청 고르기」)
+export function 응답듣기(context: BrowserContext, 이음값: 이음, 부품: 부품상태): void {
   if (!이음값.가리킴.some((g) => g.fromSeq === 부품.seq)) return;
   context.on('response', (res) => {
     if (res.status() >= 300 && res.status() < 400) return;
@@ -128,10 +123,18 @@ interface 지금부품 {
 export interface 감싸기설정 {
   baseUrl: string;
   platform: string;
-  // 프로젝트 use 의 머리글 — 미룬 삭제는 머리글을 명시해 보내므로 Playwright 가 기본값을 안 채운다. 그래서 아래에 깐다
+  // 프로젝트 use 의 머리글 · 기본 인증 — 미룬 삭제는 칸을 명시해 보내므로 Playwright 가 기본값을 안 채운다. 그래서 모을 때 정해 둔다
   기본머리?: Record<string, string>;
-  // 미룬 삭제 하나의 Playwright 요청 한도 — parts.ts 의 상한과 같은 값이라 매달린 요청이 남지 않는다
-  뒷정리한도: number;
+  기본인증?: 미룬삭제['httpCredentials'];
+}
+
+// 미룬 삭제에 다시 실을 머리글 · 기본 인증. Playwright 와 같은 규칙이다 — 그 도구를 만들 때 그 칸을 안 줬을 때만 프로젝트 기본값을 쓴다
+// (playwright/lib/index.js runBeforeCreateRequestContext 의 `key in options`). 칸을 준 연결에 기본값을 깔면 다른 계정으로 나간다 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
+export function 만들때값(options: 연결옵션, 설정: 감싸기설정): 도구묶음['만들때'] {
+  return {
+    headers: options !== undefined && 'extraHTTPHeaders' in options ? options.extraHTTPHeaders : 설정.기본머리,
+    httpCredentials: options !== undefined && 'httpCredentials' in options ? options.httpCredentials : 설정.기본인증,
+  };
 }
 
 // 시나리오 동안 브라우저의 창 만들기와 @playwright/test 의 연결 만들기를 감싼다. 케이스가 require 로 불러도 같은 객체다 (2026-10-06 이미지 탐침)
@@ -142,8 +145,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
   let 걸린: ReadonlyMap<string, RouteHandler> = new Map();
 
   const 묶음 = (부품: 부품상태 | undefined, 상태읽기: () => Promise<상태>, options?: 연결옵션): 도구묶음 => ({
-    부품, 상태읽기, 기준: options?.baseURL ?? 설정.baseUrl,
-    만들때: { headers: options?.extraHTTPHeaders, httpCredentials: options?.httpCredentials },
+    부품, 상태읽기, 기준: options?.baseURL ?? 설정.baseUrl, 만들때: 만들때값(options, 설정),
   });
 
   // 한도에 걸린 부품이 늦게 만든 것은 받자마자 닫는다
@@ -158,11 +160,12 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
     const 부품 = 지금;
     if (부품 === undefined) return c;
     if (부품.닫힘) return 늦은것(() => c.close());
+    // 바로 목록에 올린다 — 아래 await 사이에 부품 창이 닫혀도 같이 닫히게
+    부품.직접만든.push(() => c.close());
     (c as { request: APIRequestContext }).request = 감싼도구(c.request, 이음값, 묶음(부품.부품, () => c.storageState(), options));
     for (const [무늬, handler] of 걸린) await c.route(무늬, handler);
     await 이어주기걸기(c, 이음값, 부품.부품);
     응답듣기(c, 이음값, 부품.부품);
-    부품.직접만든.push(() => c.close());
     return c;
   };
 
@@ -235,15 +238,16 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
       };
     },
 
-    // 모을 때의 로그인 상태로 새 연결을 만들어 보낸다 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
-    async sendDelete(d: 미룬삭제): Promise<number> {
+    // 모을 때의 로그인 상태로 새 연결을 만들어 보낸다. 한도는 parts.ts 가 정해 넘긴다 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
+    async sendDelete(d: 미룬삭제, 한도: number): Promise<number> {
       const 연결 = await 원래요청({
         storageState: d.state,
-        extraHTTPHeaders: { ...설정.기본머리, ...d.headers },
-        httpCredentials: d.httpCredentials,
+        extraHTTPHeaders: d.headers,
+        // 없으면 칸을 아예 안 넣는다 — 모을 때 이미 프로젝트 기본값까지 정했다
+        ...(d.httpCredentials === undefined ? {} : { httpCredentials: d.httpCredentials }),
       });
       try {
-        return (await 연결.fetch(d.url, { method: 'DELETE', timeout: 설정.뒷정리한도 })).status();
+        return (await 연결.fetch(d.url, { method: 'DELETE', timeout: 한도 })).status();
       } finally {
         await 연결.dispose().catch(남김('뒷정리 연결을 못 닫았다'));
       }

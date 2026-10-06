@@ -21,8 +21,7 @@ test('E2E 시나리오', async ({ browser }, testInfo) => {
     baseUrl,
     platform: testInfo.project.name,
     기본머리: testInfo.project.use.extraHTTPHeaders,
-    // parts.ts 의 미룬 삭제 상한과 같다 — 한도 0(없음)이면 30초
-    뒷정리한도: partTimeoutMs > 0 ? partTimeoutMs : 30_000,
+    기본인증: testInfo.project.use.httpCredentials,
   });
   try {
     await runParts(목록, {

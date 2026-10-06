@@ -3,8 +3,8 @@
 import type { ScenarioExecuteRequest, ScenarioPartResult } from '@platform/kit';
 import { describe, expect, it, vi } from 'vitest';
 
-import { 새이음, type 상태 } from './links.js';
-import { runParts, 주소, 합친상태, type PartDeps, type 창 } from './parts.js';
+import { 새이음, 주소, type 상태 } from './links.js';
+import { runParts, 합친상태, type PartDeps, type 창 } from './parts.js';
 
 type Part = ScenarioExecuteRequest['parts'][number];
 
