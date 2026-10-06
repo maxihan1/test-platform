@@ -37,6 +37,8 @@ description: /tpx 체인 5단계 — 승인된 계획의 할 일을 TDD 로 구�
   응답이 갈리면 직렬화돼 병렬 이점이 사라진다
 - **구현자는 `subagent_type: "tpx-implementer"`**(Sonnet · effort high — `.claude/agents/tpx-implementer.md`, 2026-10-06 사용자 · 토큰이 빨리 닳는다).
   **보안 · 비밀값 · 권한을 고치는 할 일만 `subagent_type: "general-purpose"` 에 `model: "opus"`** 로 낸다 — 그 자리에서 아끼면 품질이 떨어진다(PR #163 의 비밀번호 노출을 Opus 렌즈가 찾았다)
+- **정의를 못 찾으면**(「없는 에이전트」 오류 — 정의는 세션을 띄울 때 읽혀서, 그 뒤 병합되거나 받아 온 정의는 그 세션이 못 본다)
+  `subagent_type: "general-purpose"` 에 `model: "sonnet"` 으로 대신 내고 게이트 2 요약에 적는다. effort 는 정하지 못한다 — 새 세션부터는 정의가 잡힌다
 - 프롬프트에 **선행 읽기 본문을 인라인으로 붙인다.** 하위 작업자는 다시 읽지 않는다
 - 프롬프트에 반드시 넣을 것 — 할 일 블록 · `files` 목록 · `검증` 명령 ·
   **「선언된 `files` 밖을 고치면 BLOCKED 로 보고하라」**
@@ -58,7 +60,9 @@ description: /tpx 체인 5단계 — 승인된 계획의 할 일을 TDD 로 구�
 ### 2-C. 계획 대조 검증
 
 `subagent_type: "tpx-verifier"` 로 발행한다(Sonnet · effort medium). **읽기 전용 — 정의의 `tools` 가 읽기 셋뿐이라 Bash · 고치기를 못 한다.**
-차이가 길면 파일로 떨궈 그 경로를 넘긴다 — 검증자는 Read 로 읽는다
+차이가 길면 **작업방 밖**에 파일로 떨궈 그 경로를 넘긴다 — 배경 세션이면 `$CLAUDE_JOB_DIR/tmp/tpx-<할 일>.diff`, 아니면 `/tmp/tpx-<할 일>.diff`.
+작업방 안에 두면 추적 안 된 파일이 커밋 · 차선 판정에 섞인다. 검증자는 Read 로 읽는다(2026-10-06 PR #163 에서 배경 세션 자리로 읽힌 것을 확인)
+정의를 못 찾으면 위 2-A 처럼 `general-purpose` 에 `model: "sonnet"` 으로 내되 프롬프트에 「Bash · 고치기 금지」를 적는다
 
 - **컨트롤러가 할 일별 `git log` 와 `git diff` 를 먼저 직접 모아 프롬프트에 붙인다.**
   검증자가 추측으로 거짓 PASS 를 내는 경로를 막는다
