@@ -41,9 +41,8 @@ test('계획 대조 검증자 정의는 Sonnet · effort medium 이고 고치는
   assert.equal(m.model, 'sonnet');
   assert.equal(m.effort, 'medium');
   assert.ok(m.tools, 'tools 를 적지 않으면 모든 도구를 받는다 — 읽기 전용이 산문으로만 남는다');
-  for (const 금지 of ['Bash', 'Edit', 'Write', 'NotebookEdit']) {
-    assert.ok(!m.tools.split(/,\s*/).includes(금지), `검증자 tools 에 ${금지} 가 있다`);
-  }
+  // 허용 목록으로 본다 — 금지 목록이면 `*` · Agent(다른 에이전트를 띄워 고친다)를 넣어도 통과한다 (#164 검토 주의 1)
+  assert.deepEqual(m.tools.split(/,\s*/).sort(), ['Glob', 'Grep', 'Read']);
 });
 
 test('tpx-impl 이 구현자 · 검증자를 정의 이름으로 부르고 보안 할 일은 Opus 로 돌린다', () => {
@@ -52,6 +51,8 @@ test('tpx-impl 이 구현자 · 검증자를 정의 이름으로 부르고 보�
   assert.match(글, /subagent_type: "tpx-verifier"/);
   assert.match(글, /보안[\s\S]{0,120}model: "opus"/, '보안 · 비밀값 할 일을 Opus 로 돌린다는 줄이 없다');
   assert.doesNotMatch(글, /subagent_type: "general-purpose"` 로 발행한다\. \*\*읽기 전용/, '검증자가 아직 general-purpose 다');
+  // 정의는 세션을 띄울 때 읽힌다 — 그 뒤에 생긴 정의는 그 세션이 못 찾는다 (#164 검토 주의 2)
+  assert.match(글, /정의를 못 찾으면[\s\S]{0,160}model: "sonnet"/, '정의를 못 찾을 때 대신 낼 방법이 없다');
 });
 
 test('계획 검토 · 독립 검사 렌즈는 Opus 를 쓴다고 적혀 있다', () => {
