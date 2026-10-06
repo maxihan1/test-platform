@@ -78,6 +78,7 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
       platforms: ['desktop', 'mobile'],
       isActive: true,
       skippable: ['상품을 담는다'],
+      titles: ['상품을 담는다', '장바구니에 한 건이다'],
       params: ['todoId'],
     });
     expect(부품재료.get('XSP-001')).toEqual({

@@ -71,6 +71,7 @@ export async function 케이스재료(
       platforms: 행.platforms,
       isActive: true,
       skippable: steps.filter((s) => s.skippable).map((s) => s.title),
+      titles: steps.map((s) => s.title),
       params: typeof 칸들 === 'object' && 칸들 !== null ? Object.keys(칸들) : [],
     });
     부품재료.set(tcId, {
