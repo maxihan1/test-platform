@@ -9,6 +9,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { 고치기상한 } from '../authoring/edit.js';
 import { api, type CaseRow } from './api.js';
 import { 고른것고치기 } from './CaseBulkEdit.js';
+import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
 
 afterEach(() => {
   cleanup();
@@ -34,6 +35,10 @@ function 케이스(tcId: string, 덮을것: Partial<CaseRow> = {}): CaseRow {
     scannedAt: '2026-10-01T00:00:00.000Z',
     ...덮을것,
   };
+}
+
+function 시나리오(id: number, name: string): ScenarioRow {
+  return { id, name, platform: 'desktop', version: 1, partCount: 1, isActive: true, needsCheck: false, runnable: true, lastRun: null };
 }
 
 function 고름(...rows: CaseRow[]): ReadonlyMap<string, CaseRow> {
@@ -166,5 +171,18 @@ describe('고른 것으로 고치기 요청', () => {
     expect(상자.getByText(/비활성 1건은 뺐습니다/)).toBeTruthy();
     fireEvent.click(상자.getByRole('button', { name: '삭제 요청 보내기' }));
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', delete: true }]));
+  });
+
+  it('삭제 상자를 열면 고른 것을 쓰는 시나리오를 번호 · 이름으로 보인다', async () => {
+    const 부름 = vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [시나리오(3, '가입 흐름')] });
+    render(<고른것고치기 service="XEW" 고른={고름(케이스('XEW-001'), 케이스('XEW-002'))} 다되면={() => {}} />);
+
+    expect(부름).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '삭제 요청' }));
+    const 상자 = within(screen.getByRole('dialog'));
+
+    expect(await 상자.findByText(/이 케이스를 쓰는 E2E 시나리오 1개 — 삭제하면 다른 케이스로 바꿀 때까지 실행할 수 없습니다/)).toBeTruthy();
+    expect(부름).toHaveBeenCalledWith('XEW', ['XEW-001', 'XEW-002']);
+    expect(상자.getByRole('link', { name: 'SC-3 가입 흐름' }).getAttribute('href')).toBe('#/scenarios/3');
   });
 });

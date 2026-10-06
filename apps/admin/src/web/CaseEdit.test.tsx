@@ -8,6 +8,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { api, ApiError, type CaseRow } from './api.js';
 import { CaseDetail } from './CaseDetail.js';
 import { 코드기본값고치기 } from './CaseEdit.js';
+import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
 
 afterEach(() => {
   cleanup();
@@ -36,6 +37,12 @@ function 케이스(덮을것: Partial<CaseRow> = {}): CaseRow {
     ...덮을것,
   };
 }
+
+function 시나리오(id: number, name: string): ScenarioRow {
+  return { id, name, platform: 'desktop', version: 1, partCount: 1, isActive: true, needsCheck: false, runnable: true, lastRun: null };
+}
+
+const 기존문장 = '삭제하면 이 케이스를 쓰는 E2E 시나리오가 더 돌지 않습니다. 실행 기록은 남습니다.';
 
 function 자리() {
   return within(screen.getByRole('group', { name: '코드 기본값 바꾸기 요청' }));
@@ -130,11 +137,11 @@ describe('코드 기본값 바꾸기 요청', () => {
     expect(screen.queryByRole('group', { name: '코드 기본값 바꾸기 요청' })).toBeNull();
   });
 
-  it('삭제는 두 번 눌러야 가고, 곁에 E2E 시나리오가 못 돈다고 적는다', async () => {
+  it('삭제는 두 번 눌러야 간다', async () => {
+    vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
     const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 43 });
     render(<코드기본값고치기 row={케이스()} service="XEW" />);
 
-    expect(screen.getByText(/E2E 시나리오/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
     expect(보냄).not.toHaveBeenCalled();
 
@@ -148,6 +155,7 @@ describe('코드 기본값 바꾸기 요청', () => {
   });
 
   it('삭제 확인 줄은 취소가 앞자리이고 포커스도 취소에 있다 — 더블클릭 · Enter 두 번이 삭제로 새지 않는다', () => {
+    vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
     const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 1 });
     render(<코드기본값고치기 row={케이스()} service="XEW" />);
 
@@ -165,6 +173,7 @@ describe('코드 기본값 바꾸기 요청', () => {
   });
 
   it('보낸 뒤 포커스는 결과 줄로 간다. 누른 버튼이 사라져도 길을 잃지 않는다', async () => {
+    vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
     vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 45 });
     render(<코드기본값고치기 row={케이스()} service="XEW" />);
 
@@ -175,6 +184,7 @@ describe('코드 기본값 바꾸기 요청', () => {
   });
 
   it('겹치는 고치기가 열려 있으면 그 요청 번호를 같이 알린다', async () => {
+    vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
     vi.spyOn(api, 'createAuthoringEdit').mockRejectedValue(new ApiError(409, 'EDIT_OPEN', '12'));
     render(<코드기본값고치기 row={케이스()} service="XEW" />);
 
@@ -182,5 +192,45 @@ describe('코드 기본값 바꾸기 요청', () => {
     fireEvent.click(screen.getByRole('button', { name: '삭제 확인' }));
 
     expect(await screen.findByText(/#12/)).toBeTruthy();
+  });
+
+  it('삭제 요청을 누르기 전에는 시나리오 목록을 부르지 않고 안내도 없다', () => {
+    const 부름 = vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [시나리오(3, '가입 흐름')] });
+    render(<코드기본값고치기 row={케이스()} service="XEW" />);
+
+    expect(부름).not.toHaveBeenCalled();
+    expect(screen.queryByText(/E2E 시나리오/)).toBeNull();
+  });
+
+  it('삭제 요청을 누르면 이 케이스를 쓰는 시나리오를 번호 · 이름으로 보인다', async () => {
+    const 부름 = vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [시나리오(3, '가입 흐름'), 시나리오(8, '결제 흐름')] });
+    render(<코드기본값고치기 row={케이스()} service="XEW" />);
+
+    fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
+
+    expect(await screen.findByText(/이 케이스를 쓰는 E2E 시나리오 2개 — 삭제하면 다른 케이스로 바꿀 때까지 실행할 수 없습니다/)).toBeTruthy();
+    expect(부름).toHaveBeenCalledWith('XEW', ['XEW-001']);
+    expect(screen.getByRole('link', { name: 'SC-3 가입 흐름' }).getAttribute('href')).toBe('#/scenarios/3');
+    expect(screen.getByRole('link', { name: 'SC-8 결제 흐름' }).getAttribute('href')).toBe('#/scenarios/8');
+    expect(screen.queryByText(기존문장)).toBeNull();
+  });
+
+  it('쓰는 시나리오가 없으면 줄도 기존 문장도 없다', async () => {
+    const 부름 = vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
+    render(<코드기본값고치기 row={케이스()} service="XEW" />);
+
+    fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
+
+    await waitFor(() => expect(부름).toHaveBeenCalled());
+    expect(screen.queryByText(/E2E 시나리오/)).toBeNull();
+  });
+
+  it('시나리오 목록을 못 읽으면 못 돈다는 기존 문장으로 대신한다', async () => {
+    vi.spyOn(scenarioApi, 'list').mockRejectedValue(new ApiError(403, 'FORBIDDEN', '권한이 없습니다'));
+    render(<코드기본값고치기 row={케이스()} service="XEW" />);
+
+    fireEvent.click(screen.getByRole('button', { name: '케이스 삭제 요청' }));
+
+    expect(await screen.findByText(기존문장)).toBeTruthy();
   });
 });
