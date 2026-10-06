@@ -10,6 +10,12 @@ type MockPart = Extract<ScenarioPart, { kind: 'mock' }>;
 type UnmockPart = Extract<ScenarioPart, { kind: 'unmock' }>;
 type WaitPart = Extract<ScenarioPart, { kind: 'wait' }>;
 
+// 서버 조립 검사(scenario/validate.ts)의 API 경로 규칙과 같다 — API 단계 경로와 값 연결 수정 주소가 같이 쓴다
+export function 바른경로(글: string): boolean {
+  if (!글.startsWith('/') || 글.startsWith('//')) return false;
+  return ![...글].some((c) => c === '\\' || c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127);
+}
+
 export function 정수(글: string, 최소: number, 최대: number): number | null {
   const 깎음 = 글.trim();
   if (!/^\d+$/.test(깎음)) return null;

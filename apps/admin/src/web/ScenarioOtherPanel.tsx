@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { ScenarioPart } from '@platform/kit';
 
 import { use말 } from './i18n.js';
-import { MockBody, UnmockBody, WaitBody, 글칸, 정수, 칸, 코드문장, type 몸Props } from './ScenarioOtherParts.js';
+import { MockBody, UnmockBody, WaitBody, 글칸, 바른경로, 정수, 칸, 코드문장, type 몸Props } from './ScenarioOtherParts.js';
 import { 모킹구간 } from './scenarioView.js';
 
 type 다른단계 = Exclude<ScenarioPart, { kind: 'case' }>;
@@ -19,12 +19,6 @@ interface Props {
 }
 
 const 메서드들: ApiPart['method'][] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
-
-// 서버 조립 검사(scenario/validate.ts)의 API 경로 규칙과 같다
-function 바른경로(글: string): boolean {
-  if (!글.startsWith('/') || 글.startsWith('//')) return false;
-  return ![...글].some((c) => c === '\\' || c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127);
-}
 
 // 글자 상태는 번호나 종류가 바뀌면 처음부터 다시 시작한다
 export function ScenarioOtherPanel(props: Props) {

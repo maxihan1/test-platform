@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { ScenarioLink, ScenarioMethod, ScenarioPart, ScenarioResponseRef } from '@platform/kit';
 
 import { use말 } from './i18n.js';
-import { 글칸, 칸 } from './ScenarioOtherParts.js';
+import { 글칸, 바른경로, 칸 } from './ScenarioOtherParts.js';
 import type { 재료들 } from './scenarioView.js';
 import { schemaToFields } from './schema.js';
 
@@ -21,12 +21,6 @@ const 종류이름: Record<종류, string> = {
 };
 const 종류들: 종류[] = ['bind', 'block', 'reuse', 'rewrite'];
 const 앞이필요한종류 = new Set<종류>(['bind', 'reuse', 'rewrite']);
-
-// 서버 조립 검사(scenario/validate.ts)의 API 경로 규칙과 같다
-function 바른경로(글: string): boolean {
-  if (!글.startsWith('/') || 글.startsWith('//')) return false;
-  return ![...글].some((c) => c === '\\' || c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127);
-}
 
 function 메서드칸<M extends ScenarioMethod>({
   아이디,
