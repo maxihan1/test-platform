@@ -335,6 +335,19 @@ describe('ScenarioBuild 저장', () => {
     expect(screen.queryByText('저장 안 된 변경 있음')).toBeNull();
   });
 
+  it('저장했습니다 줄은 저장 뒤에 다시 고치면 사라진다', async () => {
+    await 기존그리기();
+    vi.spyOn(scenarioApi, 'update').mockResolvedValue({ version: 4 });
+    바꾸기('고친 이름');
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect((await screen.findByRole('status')).textContent).toBe('저장했습니다 · v4');
+
+    바꾸기('또 고친 이름');
+
+    expect(screen.queryByText('저장했습니다 · v4')).toBeNull();
+    expect(screen.getByText('저장 안 된 변경 있음')).toBeTruthy();
+  });
+
   it('저장 응답을 기다리는 사이 이름을 바꾸면 바꾼 글자가 남는다', async () => {
     await 기존그리기();
     let 끝내기: (값: { version: number }) => void = () => {};

@@ -452,6 +452,30 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     expect(탭(container)).toBe('trial');
   });
 
+  it('시험 결과 줄에 케이스는 번호와 이름이 붙고 다른 단계는 요약이 붙는다', async () => {
+    await 끝낸것(실패결과);
+    fireEvent.click(screen.getByRole('button', { name: '자세히' }));
+
+    const 줄들 = within(screen.getByRole('tabpanel')).getAllByRole('listitem');
+    expect(within(줄들[0]!).getByText('ZSB-001')).toBeTruthy();
+    expect(within(줄들[0]!).getByText('ZSB-001 케이스')).toBeTruthy();
+    expect(within(줄들[1]!).getByText('ZSB-002')).toBeTruthy();
+    expect(within(줄들[1]!).getByText('ZSB-002 케이스')).toBeTruthy();
+  });
+
+  it('모킹 단계 줄에는 무늬와 응답 코드 요약이 붙는다', async () => {
+    sessionStorage.setItem('scn-trial:12', JSON.stringify({ trialId: 't-1', env: 'stg' }));
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({
+      status: 'FINISHED',
+      result: { status: 'PASS', durationMs: 900, parts: [{ seq: 1, status: 'PASS', durationMs: 10, steps: [], mocks: [] }] },
+    });
+    await 기존그리기([{ kind: 'mock', urlPattern: '**/api/**', status: 200, contentType: 'application/json', body: '{}' }]);
+    await screen.findByText(/^시험 실행 · stg/);
+    fireEvent.click(screen.getByRole('button', { name: '자세히' }));
+
+    expect(within(screen.getByRole('tabpanel')).getByText('**/api/** → 200')).toBeTruthy();
+  });
+
   it('모킹 켜기 · 끄기 단계는 통과가 아니라 적용됨으로 보인다', async () => {
     sessionStorage.setItem('scn-trial:12', JSON.stringify({ trialId: 't-1', env: 'stg' }));
     vi.spyOn(scenarioApi, 'trial').mockResolvedValue({
