@@ -76,6 +76,12 @@ describe.skipIf(연결 === undefined)('시나리오 목록 uses 거르기', () =
     expect(await 이름들(' XSN-FN-001 ,,')).toEqual(['가']);
   });
 
+  it('uses 를 두 번 붙여도 500 없이 둘을 합쳐 거른다', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/scenarios?service=XSN&uses=XSN-FN-001&uses=XSN-FN-002' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ items: { name: string }[] }>().items.map((i) => i.name)).toEqual(['가', '나']);
+  });
+
   it('uses 가 없거나 빈 글자면 전부 낸다', async () => {
     const 전부 = ['가', '나', '다', '라', '마'];
     expect(await 이름들()).toEqual(전부);
