@@ -1,10 +1,27 @@
 // 시나리오 조립을 가린다 — 부품 모양(zod)과 400 으로 거절할 조립 규칙 (SPEC 도메인/시나리오 §7)
 // DB 와 파일을 모른다. 카탈로그 재료는 parts.ts 가 만들어 넘긴다
 
-import type { Platform, ScenarioPart } from '@platform/kit';
+import type { Platform, ScenarioLink, ScenarioPart, ScenarioResponseRef } from '@platform/kit';
 import { z } from 'zod';
 
 import { tcId종류 } from '../catalog/rules.js';
+
+// 러너 입구(apps/runner/src/routes.ts scenarioLink · responseRef)와 맞춘다 — 여기서 통과한 것을 러너가 400 으로 돌려보내면 저장만 되고 영영 못 돈다.
+// 바꿔 보내기 경로 규칙과 {} 개수는 사람 말 사유로 알려 주려고 조립검사가 본다
+const 메서드 = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+const 부품번호 = z.number().int().positive();
+const 응답값모양 = z.object({ fromSeq: 부품번호, method: 메서드, urlPattern: z.string().min(1), jsonPath: z.string().min(1) });
+const 이어주기모양 = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('reuse'), method: 메서드, urlPattern: z.string().min(1), fromSeq: 부품번호 }),
+  z.object({ kind: z.literal('block'), method: 메서드, urlPattern: z.string().min(1) }),
+  z.object({
+    kind: z.literal('rewrite'),
+    method: 메서드,
+    urlPattern: z.string().min(1),
+    to: z.object({ method: z.enum(['PUT', 'PATCH']), path: z.string(), value: 응답값모양 }),
+  }),
+  z.object({ kind: z.literal('bind'), param: z.string().min(1), value: 응답값모양 }),
+]);
 
 // 부품 표의 정본은 도메인/시나리오 §3.7 · 코드 값은 공유계약 §5.1 ScenarioPart 다
 const 부품모양 = z.discriminatedUnion('kind', [
@@ -14,10 +31,12 @@ const 부품모양 = z.discriminatedUnion('kind', [
     params: z.record(z.string(), z.unknown()),
     expected: z.record(z.string(), z.unknown()),
     skipSteps: z.array(z.string()),
+    carryOver: z.boolean().optional(),
+    links: z.array(이어주기모양).optional(),
   }),
   z.object({
     kind: z.literal('api'),
-    method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']),
+    method: 메서드,
     path: z.string(),
     body: z.unknown().optional(),
     expectStatus: z.number().int(),
@@ -34,6 +53,21 @@ const 부품모양 = z.discriminatedUnion('kind', [
 ]);
 
 export const 부품들모양: z.ZodType<ScenarioPart[]> = z.array(부품모양);
+
+// z.object 는 모르는 칸을 오류 없이 버리고 위 ZodType 주석은 빠진 선택 칸을 못 잡는다(carryOver · links 가 그렇게 사라졌다).
+// kit 에 칸이 더해졌는데 여기 안 적으면 그 칸 이름이 typecheck 오류로 뜬다
+type 빠진칸<K, Z> = Exclude<keyof K, keyof Z>;
+type 이어주기<K> = Extract<z.infer<typeof 이어주기모양>, { kind: K }>;
+({}) satisfies Record<
+  | 빠진칸<Extract<ScenarioPart, { kind: 'case' }>, Extract<z.infer<typeof 부품모양>, { kind: 'case' }>>
+  | 빠진칸<Extract<ScenarioLink, { kind: 'reuse' }>, 이어주기<'reuse'>>
+  | 빠진칸<Extract<ScenarioLink, { kind: 'block' }>, 이어주기<'block'>>
+  | 빠진칸<Extract<ScenarioLink, { kind: 'rewrite' }>, 이어주기<'rewrite'>>
+  | 빠진칸<Extract<ScenarioLink, { kind: 'rewrite' }>['to'], 이어주기<'rewrite'>['to']>
+  | 빠진칸<Extract<ScenarioLink, { kind: 'bind' }>, 이어주기<'bind'>>
+  | 빠진칸<ScenarioResponseRef, z.infer<typeof 응답값모양>>,
+  never
+>;
 
 export type 카탈로그 = Map<string, { platforms: Platform[]; isActive: boolean; skippable: string[] }>;
 

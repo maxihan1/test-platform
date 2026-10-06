@@ -4,6 +4,7 @@
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
+import type { ScenarioLink, ScenarioPart, ScenarioResponseRef } from '@platform/kit';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
@@ -83,6 +84,21 @@ const scenarioPart = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('unmock'), urlPattern: z.string().min(1) }),
   z.object({ kind: z.literal('wait'), ms: z.number().int().positive().max(60_000) }),
 ]);
+
+// kit 에 칸이 더해졌는데 여기 안 적으면 입구가 그 칸을 조용히 버린다 — 빠진 칸 이름이 typecheck 오류로 뜬다.
+// case 갈래는 kit 에 없는 filePath 를 더 가지므로 「kit 에 있는데 zod 에 없는 칸」 쪽만 본다
+type 빠진칸<K, Z> = Exclude<keyof K, keyof Z>;
+type 입구이어주기<K> = Extract<z.infer<typeof scenarioLink>, { kind: K }>;
+({}) satisfies Record<
+  | 빠진칸<Extract<ScenarioPart, { kind: 'case' }>, Extract<z.infer<typeof scenarioPart>, { kind: 'case' }>>
+  | 빠진칸<Extract<ScenarioLink, { kind: 'reuse' }>, 입구이어주기<'reuse'>>
+  | 빠진칸<Extract<ScenarioLink, { kind: 'block' }>, 입구이어주기<'block'>>
+  | 빠진칸<Extract<ScenarioLink, { kind: 'rewrite' }>, 입구이어주기<'rewrite'>>
+  | 빠진칸<Extract<ScenarioLink, { kind: 'rewrite' }>['to'], 입구이어주기<'rewrite'>['to']>
+  | 빠진칸<Extract<ScenarioLink, { kind: 'bind' }>, 입구이어주기<'bind'>>
+  | 빠진칸<ScenarioResponseRef, z.infer<typeof responseRef>>,
+  never
+>;
 
 // 조립 목록은 환경변수 하나로 넘긴다. 리눅스는 값 하나를 128KiB **바이트**로 자른다 — 넘으면 자식을 못 띄워 500 이 된다.
 // 한글은 한 글자가 3바이트라 글자 수로 재면 빠져나간다. 절대 경로로 푼 뒤에 잰다
