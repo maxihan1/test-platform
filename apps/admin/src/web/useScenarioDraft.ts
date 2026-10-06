@@ -3,7 +3,7 @@
 import type { ScenarioPart } from '@platform/kit';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { Platform } from './api.js';
+import { ApiError, type Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type CasePartMaterial, type ScenarioDetail } from './scenarioApi.js';
 import { 가리킴빈곳, type 재료들 } from './scenarioView.js';
@@ -15,8 +15,13 @@ type 버전들 = ScenarioDetail['versions'];
 const 찍는다 = (이름: string, 디바이스: Platform, 단계들: ScenarioPart[]): string =>
   JSON.stringify({ 이름, 디바이스, 단계들 });
 
-// 재료 한 건이 404 이거나 실패해도 그 tcId 만 null 로 둔다 — 한 건 때문에 화면 전체가 죽지 않게 한다
-const 재료읽기 = (tcId: string): Promise<CasePartMaterial | null> => scenarioApi.caseParts(tcId).catch(() => null);
+// 404 는 비활성 · 사라진 케이스라 그 tcId 만 null(재료 없음)로 둔다. 그 밖의 오류는 서버가 아픈 것이니 삼키지 않는다 —
+// 삼키면 「실행 불가」 칩처럼 보여 케이스 탓으로 읽힌다
+const 재료읽기 = (tcId: string): Promise<CasePartMaterial | null> =>
+  scenarioApi.caseParts(tcId).catch((err: unknown) => {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  });
 
 function 케이스번호들(parts: ScenarioPart[]): string[] {
   return [...new Set(parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : [])))];
@@ -95,7 +100,14 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
   const 재료더하기 = useCallback((tcId: string) => {
     if (부른것.current.has(tcId)) return;
     부른것.current.add(tcId);
-    void 재료읽기(tcId).then((값) => set재료((앞) => new Map(앞).set(tcId, 값)));
+    재료읽기(tcId).then(
+      (값) => set재료((앞) => new Map(앞).set(tcId, 값)),
+      (err: unknown) => {
+        // 지워 두어야 같은 케이스를 다시 고를 때 다시 불러 본다
+        부른것.current.delete(tcId);
+        set저장오류(message(err, 언어쪽.current));
+      },
+    );
   }, []);
 
   const 바뀜 = 찍는다(이름, 디바이스, 단계들) !== 저장본;

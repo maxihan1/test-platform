@@ -12,7 +12,7 @@ import { ScenarioBuild } from './ScenarioBuild.js';
 import { when } from './ui.js';
 
 // 새 시나리오는 단계를 넣는 길이 다음 할 일에서 생긴다. 그때까지 저장 흐름은 처음 한 번 단계를 심어 본다
-const 심기 = vi.hoisted(() => ({ 단계들: null as ScenarioPart[] | null }));
+const 심기 = vi.hoisted(() => ({ 단계들: null as ScenarioPart[] | null, 재료: [] as string[] }));
 vi.mock('./useScenarioDraft.js', async (원래) => {
   const 본 = await 원래<typeof import('./useScenarioDraft.js')>();
   const { useEffect } = await import('react');
@@ -22,6 +22,7 @@ vi.mock('./useScenarioDraft.js', async (원래) => {
       const 초안 = 본.useScenarioDraft(...인자);
       useEffect(() => {
         if (심기.단계들 !== null) 초안.단계들바꾸기(심기.단계들);
+        심기.재료.forEach((n) => 초안.재료더하기(n));
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, []);
       return 초안;
@@ -82,6 +83,7 @@ const 재료 = (tcId: string): CasePartMaterial => ({
 
 afterEach(() => {
   심기.단계들 = null;
+  심기.재료 = [];
   떠나기막기(null);
   cleanup();
   vi.restoreAllMocks();
@@ -161,6 +163,43 @@ describe('ScenarioBuild 기존 시나리오 불러오기', () => {
     render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />);
 
     expect((await screen.findByLabelText('시나리오 이름') as HTMLInputElement).value).toBe('ZSB 가입 흐름');
+  });
+
+  it('재료 하나가 404 가 아닌 오류(500)면 이름 칸 대신 오류 문장이 뜬다', async () => {
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세());
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => {
+      if (tcId === 'ZSB-002') throw new ApiError(500, 'INTERNAL', '서버가 아픕니다');
+      return 재료(tcId);
+    });
+    render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />);
+
+    expect(await screen.findByText('서버가 아픕니다')).toBeTruthy();
+    expect(screen.queryByLabelText('시나리오 이름')).toBeNull();
+  });
+
+  it('재료더하기가 404 면 오류 줄 없이 재료 없음으로 둔다', async () => {
+    심기.재료 = ['ZSB-404'];
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세());
+    const caseParts = vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => {
+      if (tcId === 'ZSB-404') throw new ApiError(404, 'CASE_NOT_FOUND', 'gone');
+      return 재료(tcId);
+    });
+    render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />);
+    await screen.findByLabelText('시나리오 이름');
+    await waitFor(() => expect(caseParts).toHaveBeenCalledWith('ZSB-404'));
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('재료더하기가 500 이면 오류 문장을 상태 줄에 싣는다', async () => {
+    심기.재료 = ['ZSB-500'];
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세());
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => {
+      if (tcId === 'ZSB-500') throw new ApiError(500, 'INTERNAL', '재료를 못 읽었습니다');
+      return 재료(tcId);
+    });
+    render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />);
+
+    expect((await screen.findByRole('status')).textContent).toBe('재료를 못 읽었습니다');
   });
 
   it('SC 번호 · 버전 줄 · 처음 탭 settings · 변경 이력 버튼이 나온다', async () => {
