@@ -114,7 +114,7 @@ export function 고른것고치기({ service, 고른, 다되면 }: { service: st
                   ? t('케이스 파일을 지우는 PR 을 올립니다. 반영하면 실행 대상에서 빠지고, 이 케이스를 쓰는 E2E 시나리오도 더 돌지 않습니다. 실행 기록은 남습니다.')
                   : t('미확정 표시를 떼는 PR 을 올립니다. 케이스마다 지금 기대값이 맞는지 보고 보내세요.')}
               </p>
-              {열린 === 'delete' ? <ScenarioUsage service={service} tcIds={담은.map((row) => row.tcId)} /> : null}
+              {열린 === 'delete' ? <ScenarioUsage service={service} tcIds={담은.map((row) => row.tcId)} 대신문장={false} /> : null}
               {빠진수 === 0 ? null : <p className="hint">{t('비활성 {수}건은 뺐습니다', { 수: 빠진수 })}</p>}
               {넘침 ? <p className="error-text">{t('한 번에 {상한}건까지 요청할 수 있습니다. 고른 것을 줄이세요', { 상한: 고치기상한 })}</p> : null}
               <ul className="edit-list">
