@@ -13,7 +13,7 @@ export const spec = defineCase({
 });
 
 test(spec, async ({ page }) => {
-  const 연결 = await 요청도구.newContext();
+  const 연결 = await 요청도구.newContext({ baseURL: process.env.PLATFORM_BASE_URL });
   let 글번호: number | undefined;
   try {
     await test.step('연결로 글을 만든다', async () => {

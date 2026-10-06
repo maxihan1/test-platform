@@ -152,6 +152,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
     });
     for (const [무늬, handler] of 걸린) await c.route(무늬, handler);
     await 이어주기걸기(c, 이음값, 부품.부품);
+    응답듣기(c, 이음값, 부품.부품, 부품.대기);
     부품.직접만든.push(() => c.close());
     return c;
   };
