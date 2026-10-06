@@ -3747,6 +3747,13 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   font-size: 13px;
 }
 
+.scn-link-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 @media (max-width: 620px) {
   /* 손가락으로 누르는 자리는 46px — 위 `.scn-back a` 와 같은 기준 */
   .scn-card-pick,

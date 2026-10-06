@@ -12,6 +12,7 @@ import { Loading, Failed, PLATFORMS, PLATFORM_LABEL, when } from './ui.js';
 import { Modal } from './Modal.js';
 import { 판정을만든다 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
+import { ScenarioLinks } from './ScenarioLinks.js';
 import { ScenarioOtherPanel } from './ScenarioOtherPanel.js';
 import { ScenarioPartPanel } from './ScenarioPartPanel.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
@@ -188,6 +189,16 @@ export function ScenarioBuild({
                     set바꿀번호(고른번호);
                     set탭('add');
                   }}
+                  값연결={
+                    <ScenarioLinks
+                      번호={고른번호}
+                      단계={고른단계}
+                      단계들={초안.단계들}
+                      재료={초안.재료}
+                      쓰나={쓰나}
+                      on바꿈={(links) => 고른단계바꿈({ ...고른단계, links })}
+                    />
+                  }
                 />
               ) : (
                 <ScenarioOtherPanel
