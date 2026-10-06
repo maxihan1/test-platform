@@ -2,6 +2,7 @@
 // E2E 시나리오 시험 실행 검사 — 대상 서버 · 시작 · 2초 묻기 · 이어 묻기 · 열쇠 옮기기 · 결과 탭 · 왼쪽 요약 (도메인/시나리오 §8.11)
 
 import type { ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
+import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
@@ -278,6 +279,75 @@ describe('시험 실행 돌리기', () => {
 
     expect(sessionStorage.getItem('scn-trial:new')).toBeNull();
     expect(JSON.parse(sessionStorage.getItem('scn-trial:55') ?? 'null')).toEqual({ trialId: 't-n', env: 'stg' });
+  });
+
+  it('StrictMode 로 그려 이어 묻기가 두 줄로 시작돼도 2초 타이머는 한 줄만 돈다', async () => {
+    sessionStorage.setItem('scn-trial:12', JSON.stringify({ trialId: 't-9', env: 'stg' }));
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세());
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING' });
+    const 타이머들 = vi.spyOn(globalThis, 'setTimeout');
+    const 이천 = () => 타이머들.mock.calls.filter((c) => c[1] === 2000).length;
+    render(
+      <StrictMode>
+        <ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />
+      </StrictMode>,
+    );
+    await screen.findByLabelText('시나리오 이름');
+    await waitFor(() => expect(이천()).toBeGreaterThan(0));
+    await act(async () => {
+      await new Promise((끝) => setTimeout(끝, 30));
+    });
+
+    expect(이천()).toBe(1);
+  });
+
+  it('새 시나리오 화면을 그리면 남아 있던 new 열쇠가 지워진다', async () => {
+    sessionStorage.setItem('scn-trial:new', JSON.stringify({ trialId: 't-old', env: 'stg' }));
+    const trial = vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING' });
+
+    render(<ScenarioBuild id={null} 띠서비스={서비스('ZSB')} user={사람()} />);
+
+    expect(sessionStorage.getItem('scn-trial:new')).toBeNull();
+    expect(trial).not.toHaveBeenCalled();
+  });
+
+  it('시험이 끝나 결과를 받으면 열쇠를 지우고 결과는 화면에 남는다', async () => {
+    sessionStorage.setItem('scn-trial:12', JSON.stringify({ trialId: 't-9', env: 'stg' }));
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'FINISHED', result: 통과결과 });
+
+    await 기존그리기();
+
+    expect(await screen.findByText('시험 실행 · stg · 1.50초')).toBeTruthy();
+    expect(sessionStorage.getItem('scn-trial:12')).toBeNull();
+  });
+
+  it('시작 응답이 늦는 사이 새 시나리오가 저장돼도 응답의 번호는 새 번호 열쇠에 적힌다', async () => {
+    심기.단계들 = [케이스단계('ZSB-001')];
+    심기.재료 = ['ZSB-001'];
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
+    let 응답하기: (값: { trialId: string }) => void = () => {};
+    vi.spyOn(scenarioApi, 'startTrial').mockReturnValue(new Promise((끝) => (응답하기 = 끝)));
+    vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING' });
+    vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 55, version: 1 });
+    render(<ScenarioBuild id={null} 띠서비스={서비스('ZSB')} user={사람()} />);
+    await waitFor(() => expect(screen.getByText('저장 안 된 변경 있음')).toBeTruthy());
+    fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '새 흐름' } });
+    서버고르기('stg');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '시험 실행' }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    });
+    await waitFor(() => expect(window.location.hash).toBe('#/scenarios/55'));
+
+    await act(async () => {
+      응답하기({ trialId: 't-late' });
+    });
+
+    expect(JSON.parse(sessionStorage.getItem('scn-trial:55') ?? 'null')).toEqual({ trialId: 't-late', env: 'stg' });
+    expect(sessionStorage.getItem('scn-trial:new')).toBeNull();
   });
 
   it('404 TRIAL_NOT_FOUND 면 멈추고 열쇠를 지우고 이 화면 문장을 띄운다', async () => {
