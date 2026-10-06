@@ -9,12 +9,12 @@ import { 말 } from './messages.js';
 
 const 여기 = dirname(fileURLToPath(import.meta.url));
 
-// 훑을 대상은 화면 코드뿐이다. 표 자신과 검사 파일은 `t(` 를 부르지 않거나 일부러 어긴 예를 담는다
+// 훑을 대상은 화면 코드뿐이다. 표 자신과 검사 파일(나눠 쓰는 도우미 `.fixture.tsx` 포함)은 `t(` 를 부르지 않거나 일부러 어긴 예를 담는다
 function 화면파일들(폴더: string): string[] {
   return readdirSync(폴더).flatMap((이름) => {
     const 길 = join(폴더, 이름);
     if (statSync(길).isDirectory()) return 이름 === 'dist' || 이름 === 'messages' ? [] : 화면파일들(길);
-    if (!/\.tsx?$/.test(이름) || /\.test\.tsx?$/.test(이름)) return [];
+    if (!/\.tsx?$/.test(이름) || /\.(test|fixture)\.tsx?$/.test(이름)) return [];
     if (이름 === 'i18n.ts' || 이름 === 'messages.ts') return [];
     return [길];
   });
