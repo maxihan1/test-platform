@@ -23,4 +23,15 @@ export const 시나리오말: Record<string, string> = {
   '시나리오 이름으로 찾기': 'Search by scenario name',
   '이 서비스에서 아직 돌린 E2E 시나리오가 없습니다': 'No E2E scenario has run in this service yet',
   '시나리오 목록으로': 'Go to scenarios',
+  '기능 테스트 케이스를 차례로 실행해 흐름이 끊기지 않는지 확인합니다': 'Run functional test cases in order to check the flow does not break',
+  '새 시나리오': 'New scenario',
+  '번호': 'No.',
+  '결과': 'Result',
+  '실행 전': 'Not run yet',
+  '확인 필요': 'Needs check',
+  '실행 불가': 'Cannot run',
+  '아직 만든 시나리오가 없습니다': 'No scenarios yet',
+  '기능 테스트 케이스를 단계로 이어 붙여 만듭니다': 'Build one by chaining functional test cases as steps',
+  '「통과 · 미확정 포함」은 기대값을 화면에서 읽은 케이스가 섞인 결과라 정식 통과로 세지 않습니다':
+    '"Passed · includes unconfirmed" means some cases read their expected values from the screen, so it does not count as a formal pass',
 };

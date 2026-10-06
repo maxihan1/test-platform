@@ -3239,3 +3239,31 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   margin-left: 0;
   align-self: flex-start;
 }
+
+/* E2E 시나리오 목록 (도메인/시나리오 §8.11). 결과 칸의 칩은 판정이 아니라서 왼쪽 끝에 붙고 색이 없다 */
+.scenario-result {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.scenario-result .case-tag {
+  margin-left: 0;
+  align-self: flex-start;
+}
+
+/* 실행이 막힌 이유는 그 줄 바로 아래에 둔다 — 멀리 두면 어느 줄 이야기인지 모른다 */
+.scenario-note {
+  margin: 0;
+  padding: 8px 24px 10px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.scenario-foot {
+  margin: 0;
+  padding: 12px 24px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}

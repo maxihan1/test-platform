@@ -24,6 +24,7 @@ import { 기능보나, 판정을만든다 } from './role.js';
 import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
+import { ScenarioList } from './ScenarioList.js';
 import { ScenarioRunList } from './ScenarioRunList.js';
 import { RunSetup } from './RunSetup.js';
 import { Settings } from './Settings.js';
@@ -87,6 +88,9 @@ function Screen({
       // E2E 는 시나리오 실행만 모으는 별도 화면이다 — 줄 모양과 거르개가 UI · 기능 목록과 다르다
       if (current.kind === 'E2E') return <ScenarioRunList key="E2E" service={prefix} 할수={할수} />;
       return <RunList key={current.kind} kind={current.kind} service={prefix} 할수={할수} />;
+    case 'scenarios':
+      // 서비스를 바꾸면 새로 그린다 — 고른 대상 서버와 앞 서비스의 실행 안내가 남으면 다른 서비스에 쏜다
+      return <ScenarioList key={prefix} service={prefix} envs={service?.envs ?? []} 할수={할수} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
       return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;

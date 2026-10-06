@@ -29,7 +29,7 @@ function 줄(id: number, 덮: Partial<ScenarioRow> = {}): ScenarioRow {
   return {
     id,
     name: `ZSM 시나리오 ${id}`,
-    platform: 'web',
+    platform: 'desktop',
     version: 2,
     partCount: 3,
     isActive: true,
@@ -224,7 +224,7 @@ describe('ScenarioList 실행', () => {
   });
 
   it('서버가 거절하면 그 문장을 그 줄 아래에 보인다', async () => {
-    vi.spyOn(scenarioApi, 'run').mockRejectedValue(new ApiError(409, 'SCENARIO_NOT_RUNNABLE', '실행할 수 없습니다'));
+    vi.spyOn(scenarioApi, 'run').mockRejectedValue(new ApiError(409, 'SCENARIO_NOT_RUNNABLE', ''));
     const { container } = await 그리기([줄(1), 줄(2)]);
     await screen.findByText(/ZSM 시나리오 1/);
 
