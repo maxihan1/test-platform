@@ -126,13 +126,13 @@ async function 해시가(해시: string) {
 }
 
 describe('ScenarioBuild 새 시나리오', () => {
-  it('이름은 비고 디바이스는 PC 이고 처음 탭은 추가이며 변경 이력 버튼이 없다', async () => {
+  it('이름은 비고 디바이스는 PC 이고 처음 탭은 add 이며 변경 이력 버튼이 없다', async () => {
     const { container } = 새로그리기();
 
     expect(이름칸().value).toBe('');
     expect(이름칸().placeholder).toBe('시나리오 이름');
     expect((screen.getByLabelText('디바이스') as HTMLSelectElement).value).toBe('desktop');
-    expect(container.querySelector('.scn-build')?.getAttribute('data-tab')).toBe('추가');
+    expect(container.querySelector('.scn-build')?.getAttribute('data-tab')).toBe('add');
     expect(screen.queryByRole('button', { name: '변경 이력' })).toBeNull();
     expect(screen.queryByText('저장 안 된 변경 있음')).toBeNull();
     expect(screen.getByRole('link', { name: '← 목록' }).getAttribute('href')).toBe('#/scenarios');
@@ -163,14 +163,14 @@ describe('ScenarioBuild 기존 시나리오 불러오기', () => {
     expect((await screen.findByLabelText('시나리오 이름') as HTMLInputElement).value).toBe('ZSB 가입 흐름');
   });
 
-  it('SC 번호 · 버전 줄 · 처음 탭 설정 · 변경 이력 버튼이 나온다', async () => {
+  it('SC 번호 · 버전 줄 · 처음 탭 settings · 변경 이력 버튼이 나온다', async () => {
     const { container } = await 기존그리기();
 
     expect(screen.getByText('SC-12')).toBeTruthy();
     expect(screen.getByText(`v3 · 홍길동 저장 · ${when('2026-10-06T00:10:00.000Z', 'ko')}`)).toBeTruthy();
-    expect(container.querySelector('.scn-build')?.getAttribute('data-tab')).toBe('설정');
+    expect(container.querySelector('.scn-build')?.getAttribute('data-tab')).toBe('settings');
     fireEvent.click(screen.getByRole('button', { name: '변경 이력' }));
-    expect(container.querySelector('.scn-build')?.getAttribute('data-tab')).toBe('이력');
+    expect(container.querySelector('.scn-build')?.getAttribute('data-tab')).toBe('history');
   });
 
   it('이름을 고치면 저장 안 된 변경 있음 칩이 뜬다', async () => {

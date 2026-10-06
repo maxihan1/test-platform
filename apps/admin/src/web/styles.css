@@ -3467,3 +3467,35 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
     margin-left: 0;
   }
 }
+
+/* E2E 시나리오 조립 (도메인/시나리오 §8.11). 왼쪽은 단계 카드, 오른쪽은 탭 한 칸. 좁은 창 규칙은 따로 둔다 */
+.scn-name-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.scn-note {
+  margin: 0;
+  padding: 8px 24px;
+  font-size: 13px;
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.scn-build {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.scn-build-list {
+  min-width: 0;
+  min-height: 160px;
+  border-right: 1px solid var(--rule);
+}
+
+.scn-build-panel {
+  min-width: 0;
+  min-height: 160px;
+}
