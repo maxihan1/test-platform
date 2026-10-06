@@ -7,6 +7,9 @@ import { 기능보나, type 기능 } from './role.js';
 // 사이드바 하위 메뉴(UI 테스트 · 기능 테스트). 종류 없는 옛 주소는 기능이다 — 지금 케이스가 전부 기능이라서 (화면공통 §8 · PR #132)
 export type 케이스종류 = 'UI' | 'FN';
 const 종류글자: Record<string, 케이스종류> = { ui: 'UI', fn: 'FN' };
+// 실행 기록에만 셋째 하위가 있다 — 케이스 목록에는 시나리오가 없다 (도메인/실행 §8.7)
+export type 실행종류 = 케이스종류 | 'E2E';
+const 실행종류글자: Record<string, 실행종류> = { ...종류글자, e2e: 'E2E' };
 
 export type Route =
   | { name: 'login' }
@@ -15,7 +18,10 @@ export type Route =
   | { name: 'settings' }
   | { name: 'cases'; kind: 케이스종류 }
   | { name: 'setup'; tcId: string }
-  | { name: 'runs'; kind: 케이스종류 }
+  | { name: 'runs'; kind: 실행종류 }
+  | { name: 'scenarios' }
+  | { name: 'scenarioNew' }
+  | { name: 'scenario'; id: number }
   | { name: 'authoring' }
   | { name: 'authoringItem'; id: number }
   | { name: 'run'; runId: number }
@@ -48,9 +54,16 @@ export function route(hash: string): Route {
     }
   }
 
+  // 번호 규칙은 작성과 같다 — 서버도 열 자리 숫자 글자만 받는다 (도메인/시나리오 §7)
+  if (parts[0] === 'scenarios') {
+    if (parts.length === 1) return { name: 'scenarios' };
+    if (parts.length === 2 && parts[1] === 'new') return { name: 'scenarioNew' };
+    if (parts.length === 2 && /^\d{1,10}$/.test(parts[1]!)) return { name: 'scenario', id: Number(parts[1]) };
+  }
+
   if (parts[0] === 'runs') {
     if (parts.length === 1) return { name: 'runs', kind: 'FN' };
-    if (parts.length === 2 && 종류글자[parts[1]!] !== undefined) return { name: 'runs', kind: 종류글자[parts[1]!]! };
+    if (parts.length === 2 && 실행종류글자[parts[1]!] !== undefined) return { name: 'runs', kind: 실행종류글자[parts[1]!]! };
 
     const runId = Number(parts[1]);
     if (Number.isInteger(runId)) {
@@ -75,6 +88,9 @@ const 기능자리: Partial<Record<Route['name'], 기능>> = {
   cases: 'cases',
   authoring: 'authoring',
   runs: 'runs',
+  // 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7). 새 시나리오는 띠의 서비스에 만든다
+  scenarios: 'runs',
+  scenarioNew: 'runs',
 };
 
 /**

@@ -62,23 +62,29 @@ describe('자리 목록', () => {
   const 이름들 = (user: User, prefix: string | null) => 자리목록(user, prefix, 'ko').map((자리) => 자리.이름);
 
   it('설정은 운영 계정에게만 뜬다. 흐리게가 아니라 아예 없다', () => {
-    expect(이름들(운영, 'PAY')).toEqual(['테스트 케이스', '테스트 작성', '실행 기록', '그래프', '설정']);
+    expect(이름들(운영, 'PAY')).toEqual(['테스트 케이스', '테스트 작성', 'E2E 시나리오', '실행 기록', '그래프', '설정']);
   });
 
   it('운영이 아닌 사람에게 설정 자리는 없다', () => {
-    expect(이름들(김, 'PAY')).toEqual(['테스트 케이스', '테스트 작성', '실행 기록', '그래프']);
-    expect(이름들(김, 'MEM')).toEqual(['테스트 케이스', '테스트 작성', '실행 기록', '그래프']);
+    expect(이름들(김, 'PAY')).toEqual(['테스트 케이스', '테스트 작성', 'E2E 시나리오', '실행 기록', '그래프']);
+    expect(이름들(김, 'MEM')).toEqual(['테스트 케이스', '테스트 작성', 'E2E 시나리오', '실행 기록', '그래프']);
   });
 
   it('고른 서비스에서 none 인 기능은 자리가 없다. 서비스를 바꾸면 자리도 바뀐다', () => {
-    expect(이름들(김, 'SET')).toEqual(['테스트 작성', '실행 기록', '그래프']);
+    expect(이름들(김, 'SET')).toEqual(['테스트 작성', 'E2E 시나리오', '실행 기록', '그래프']);
     const 작성없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'read', authoring: 'none' } }]);
-    expect(이름들(작성없음, 'MEM')).toEqual(['테스트 케이스', '실행 기록', '그래프']);
+    expect(이름들(작성없음, 'MEM')).toEqual(['테스트 케이스', 'E2E 시나리오', '실행 기록', '그래프']);
+  });
+
+  // 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7) — 실행이 none 이면 만드는 곳도 돌린 기록도 없다
+  it('E2E 시나리오 자리는 실행 칸을 본다', () => {
+    const 실행없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'none', authoring: 'read' } }]);
+    expect(이름들(실행없음, 'MEM')).toEqual(['테스트 케이스', '테스트 작성', '그래프']);
   });
 
   it('그래프는 사람의 대시보드 칸을 본다. 서비스와 상관없다', () => {
     const 대시보드없음 = 사람('member', [결제], 'none');
-    expect(이름들(대시보드없음, 'PAY')).toEqual(['테스트 케이스', '테스트 작성', '실행 기록']);
+    expect(이름들(대시보드없음, 'PAY')).toEqual(['테스트 케이스', '테스트 작성', 'E2E 시나리오', '실행 기록']);
   });
 
   it('넷 다 none 이면 자리가 하나도 없다', () => {
@@ -113,18 +119,28 @@ describe('자리 목록', () => {
       ['UI 테스트', '#/cases/ui', '테스트 케이스 · UI 테스트'],
       ['기능 테스트', '#/cases/fn', '테스트 케이스 · 기능 테스트'],
     ]);
+    // E2E 는 실행 기록에만 있다 — 케이스 목록에는 시나리오가 없다 (도메인/실행 §8.7)
     expect(하위('실행 기록')).toEqual([
       ['UI 테스트', '#/runs/ui', '실행 기록 · UI 테스트'],
       ['기능 테스트', '#/runs/fn', '실행 기록 · 기능 테스트'],
+      ['E2E', '#/runs/e2e', '실행 기록 · E2E'],
     ]);
     expect(자리들.find((자리) => 자리.이름 === '테스트 작성')?.하위).toBeUndefined();
+    expect(자리들.find((자리) => 자리.이름 === 'E2E 시나리오')?.하위).toBeUndefined();
   });
 
   it('목록은 종류까지 지금 자리다 · 종류를 모르는 상세는 묶음이다', () => {
     expect(지금자리('cases', '#/cases', 'UI')).toBe('#/cases/ui');
     expect(지금자리('cases', '#/cases', 'FN')).toBe('#/cases/fn');
     expect(지금자리('runs', '#/cases', 'UI')).toBe('#/runs/ui');
+    expect(지금자리('runs', '#/cases', 'E2E')).toBe('#/runs/e2e');
     expect(지금자리('setup', '#/cases')).toBe('#/cases');
+  });
+
+  it('시나리오 한 건과 새 시나리오는 E2E 시나리오 자리다. 목록에서 들어온 자리다', () => {
+    expect(지금자리('scenarios', '#/cases')).toBe('#/scenarios');
+    expect(지금자리('scenarioNew', '#/cases')).toBe('#/scenarios');
+    expect(지금자리('scenario', '#/cases')).toBe('#/scenarios');
   });
 
   it('그래프는 Grafana 라 바깥으로 나간다', () => {

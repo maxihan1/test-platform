@@ -83,6 +83,8 @@ function Screen({
       // 주소는 새 번호인데 앞 요청 화면이 보이고 다시 누를 수 있다 (2026-09-30 코드 검토)
       return <AuthoringDetail key={current.id} service={prefix} id={current.id} 할수={할수} />;
     case 'runs':
+      // E2E 하위 화면은 계획 할 일 8 이 잇는다 — 그 전까지 케이스 목록에 E2E 이름표를 붙여 보이지 않게 빈 화면
+      if (current.kind === 'E2E') return <div className="screen" />;
       return <RunList key={current.kind} kind={current.kind} service={prefix} 할수={할수} />;
     case 'run':
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
