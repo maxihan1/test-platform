@@ -3982,10 +3982,20 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 
 .scn-ver-steps li {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
   padding: 2px 0;
+}
+
+/* 케이스 줄은 번호 · 이름 · 요약이 길어 줄을 바꾸면 칩만 윗줄에 혼자 남는다. 칩은 제 폭만 쓰고 글이 남은 폭에서 접힌다 */
+.scn-ver-steps li > span:last-child {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.scn-ver-steps .tech-tag {
+  flex: none;
 }
 
 .scn-ver-no {
