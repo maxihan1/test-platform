@@ -2,7 +2,7 @@ import { lstat, lutimes, mkdir, mkdtemp, rm, stat, symlink, utimes, writeFile } 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import type { ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
+import type { ScenarioExecuteRequest, ScenarioPart, ScenarioPartResult } from '@platform/kit';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -89,6 +89,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
   let 뿌리 = '';
   let 사진뿌리 = '';
   let 받은요청: ScenarioExecuteRequest | null = null;
+  let 부품결과: ScenarioPartResult[] = [];
   const 원래 = {
     tests: process.env.PLATFORM_TESTS_DIR,
     artifacts: process.env.PLATFORM_ARTIFACTS_DIR,
@@ -102,13 +103,25 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     return pool.query(sql, 값);
   };
 
-  const 케이스 = (tcId: string): ScenarioPart => ({
+  const 케이스 = (tcId: string, 덧: Partial<Extract<ScenarioPart, { kind: 'case' }>> = {}): ScenarioPart => ({
     kind: 'case',
     tcId,
     params: { 아이디: 'xst-user', 비밀번호: 'xst-secret-77' },
     expected: {},
     skipSteps: [],
+    ...덧,
   });
+  const 저장값 = (params: Record<string, unknown>) =>
+    q(
+      `INSERT INTO case_input (tc_id, params, expected, saved_by) VALUES ('XST-001', $1, '{}', 'xst-a')
+       ON CONFLICT (tc_id) DO UPDATE SET params = EXCLUDED.params`,
+      [JSON.stringify(params)],
+    );
+  const 끝까지 = async (b: ReturnType<typeof 본문>) => {
+    const id = await 시험시작(사람, b);
+    await vi.waitFor(() => expect(시나리오시험.읽는다('xst-a', id)?.status).toBe('FINISHED'));
+    return 시나리오시험.읽는다('xst-a', id);
+  };
   const 본문 = (덧: Partial<{ service: string; env: string; parts: ScenarioPart[] }> = {}) => ({
     service: 'XST',
     env: 'qa',
@@ -138,7 +151,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
       await q(
         `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active)
          VALUES ($1, $1 || ' 이름', '["desktop"]', '[]', 'xst/a.spec.ts',
-                 '{"type":"object","properties":{"아이디":{"type":"string"},"비밀번호":{"type":"string","secret":true}}}',
+                 '{"type":"object","properties":{"아이디":{"type":"string"},"비밀번호":{"type":"string","secret":true},"pin":{"type":"integer","secret":true}}}',
                  '{"type":"object"}', true)
          ON CONFLICT (tc_id) DO UPDATE SET file_path = EXCLUDED.file_path, is_active = true, param_schema = EXCLUDED.param_schema`,
         [tcId],
@@ -148,21 +161,29 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     러너 = Fastify();
     러너.post('/execute-scenario', async (req) => {
       받은요청 = req.body as ScenarioExecuteRequest;
-      return { status: 'FAIL', durationMs: 3, parts: [], error: { message: '비밀번호 xst-secret-77 로 로그인 실패' } };
+      return {
+        status: 'FAIL',
+        durationMs: 3,
+        parts: 부품결과,
+        error: { message: '비밀번호 xst-secret-77 로 로그인 실패', stack: JSON.stringify(받은요청.parts) },
+      };
     });
     await 러너.listen({ port: 0, host: '127.0.0.1' });
     const addr = 러너.server.address();
     process.env.RUNNER_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     시나리오시험.전부비운다();
     받은요청 = null;
+    부품결과 = [];
+    await q('DELETE FROM case_input WHERE tc_id = ANY($1)', [번호들]);
   });
 
   afterAll(async () => {
     await 러너.close();
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM case_input WHERE tc_id = ANY($1)', [번호들]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);
     await q('DELETE FROM service WHERE id = $1', [서비스]);
     await rm(뿌리, { recursive: true, force: true });
@@ -211,5 +232,67 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     expect(결과).not.toContain('xst-secret-77');
     expect(결과).toContain('********');
     expect(시나리오시험.서비스('xst-a', trialId)).toBe('XST');
+  });
+
+  it('조립에 없는 비밀번호를 저장값으로 채워 러너에 보내고 결과에서는 가린다', async () => {
+    await 저장값({ 비밀번호: 'xst-saved-88' });
+    const 결과 = await 끝까지(본문({ parts: [케이스('XST-001', { params: { 아이디: 'xst-user' } })] }));
+
+    expect(받은요청?.parts[0]).toMatchObject({ params: { 아이디: 'xst-user', 비밀번호: 'xst-saved-88' } });
+    expect(결과).toMatchObject({ result: { error: { stack: expect.stringContaining('"비밀번호":"********"') } } });
+    expect(JSON.stringify(결과)).not.toContain('xst-saved-88');
+  });
+
+  it('러너가 꽂은 값의 비밀 칸은 숫자까지 bound 에서 가리고 다른 글자에서도 가린다', async () => {
+    부품결과 = [
+      {
+        seq: 1,
+        status: 'FAIL',
+        durationMs: 1,
+        steps: [],
+        mocks: [],
+        bound: { 비밀번호: 'xst-bound-99', pin: 1234, 아이디: 'xst-bound-id' },
+        error: { message: '꽂은 값 xst-bound-99 · 1234 로 실패' },
+      },
+    ];
+    const 결과 = await 끝까지(본문());
+
+    expect(결과).toMatchObject({
+      result: {
+        parts: [
+          {
+            bound: { 비밀번호: '********', pin: '********', 아이디: 'xst-bound-id' },
+            error: { message: '꽂은 값 ******** · ******** 로 실패' },
+          },
+        ],
+      },
+    });
+    expect(JSON.stringify(결과)).not.toContain('xst-bound-99');
+  });
+
+  it('저장값을 채운 뒤 부품 목록이 100000바이트를 넘으면 INVALID_REQUEST 다', async () => {
+    await 저장값({ 아이디: 'x'.repeat(100001) });
+    await expect(시험시작(사람, 본문({ parts: [케이스('XST-001', { params: {} })] }))).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+      message: expect.stringContaining('저장값을 채운 뒤 부품 목록이'),
+    });
+    expect(받은요청).toBeNull();
+  });
+
+  it('값 꽂기를 건 칸은 저장값이 있어도 러너에 안 보낸다', async () => {
+    await 저장값({ 비밀번호: 'xst-saved-88' });
+    const 꽂기 = { kind: 'bind' as const, param: '비밀번호', value: { fromSeq: 1, method: 'GET' as const, urlPattern: '**/me', jsonPath: 'pw' } };
+    await 끝까지(
+      본문({
+        parts: [
+          케이스('XST-001', { params: { 아이디: 'xst-user' } }),
+          케이스('XST-001', { params: { 아이디: 'xst-user' }, links: [꽂기] }),
+        ],
+      }),
+    );
+
+    expect(받은요청?.parts[0]).toMatchObject({ params: { 비밀번호: 'xst-saved-88' } });
+    expect(받은요청?.parts[1]).toMatchObject({ params: { 아이디: 'xst-user' } });
+    expect(받은요청?.parts[1]).not.toHaveProperty(['params', '비밀번호']);
   });
 });
