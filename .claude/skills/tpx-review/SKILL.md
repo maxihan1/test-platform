@@ -43,6 +43,9 @@ git diff --name-only origin/main...HEAD | node .claude/scripts/detect-tier.mjs
 
 **두 렌즈 이상이면 한 응답에 함께 발행한다.** 순차로 나누면 왕복만 2배가 된다.
 
+**렌즈를 서브 에이전트로 돌리면 `model: "opus"` 로 낸다** (2026-10-06 사용자) — 독립 검사는 아끼지 않는다.
+게이트 2 「고치고 재검사」의 바뀐 부분 재검사도 같다. 구현자 · 대조 검증자의 Sonnet 배분은 `tpx-impl` 이 정한다
+
 `spec-review` 와 `/qa-only` 는 **고치지 않고 보고만** 한다. 고치는 것은 [5] 의 몫이다.
 
 ## Step 3. gstack 렌즈에는 세 마디를 넣는다
