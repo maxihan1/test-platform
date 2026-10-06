@@ -10,6 +10,7 @@ import { AuthoringDetail } from './AuthoringDetail.js';
 import { CaseList } from './CaseList.js';
 import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
+import { useHash, 떠나기막기 } from './leaveGuard.js';
 import {
   고른서비스,
   고른서비스를읽는다,
@@ -33,16 +34,6 @@ import { Signup } from './Signup.js';
 import { Loading } from './ui.js';
 import './styles.css';
 import './authoringStatus.css';
-
-function useHash(): string {
-  const [hash, setHash] = useState(window.location.hash);
-  useEffect(() => {
-    const onChange = () => setHash(window.location.hash);
-    window.addEventListener('hashchange', onChange);
-    return () => window.removeEventListener('hashchange', onChange);
-  }, []);
-  return hash;
-}
 
 function Screen({
   hash,
@@ -142,7 +133,11 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // **주소만 바뀌는 것으로는 부족하다** — 아래 「로그인했는데 주소가 로그인 화면」 갈래가
   // 곧장 집으로 되돌려 버려서 로그인 화면이 끝내 안 뜬다
   useEffect(() => {
-    세션끊김을받는다(() => set상태({ 어디: '밖' }));
+    세션끊김을받는다(() => {
+      // 로그인 화면으로 가는 길을 저장 안 한 조립이 막으면 안 된다
+      떠나기막기(null);
+      set상태({ 어디: '밖' });
+    });
   }, []);
 
   // 저장된 서비스가 배정에서 빠졌으면 실제로 연 것을 적어 둔다.
@@ -194,6 +189,8 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
 
   const 나간다 = () => {
     void api.logout().finally(() => {
+      // 로그인 화면으로 가는 길을 저장 안 한 조립이 막으면 안 된다
+      떠나기막기(null);
       set상태({ 어디: '밖' });
       window.location.hash = '#/login';
     });
