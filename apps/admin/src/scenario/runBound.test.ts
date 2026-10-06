@@ -223,7 +223,18 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
     expect(저장실패로그).toContainEqual({ cleanup: 뒷정리 });
   });
 
-  it('결과 조회는 부품마다 unconfirmed · bound · cleanup 을 내고, 채운 저장값과 꽂은 값의 비밀 칸을 서버가 가린다', async () => {
+  it('이미 닫힌 실행에 결과가 늦게 오면 false 이고 버리는 뒷정리를 로그에 남긴다', async () => {
+    const 경고 = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const runId = await 세부품();
+    await q(`UPDATE test_run SET status = 'FINISHED', finished_at = now() WHERE run_id = $1`, [runId]);
+    const 뒷정리: ScenarioCleanup[] = [{ fromSeq: 1, method: 'DELETE', url: 'http://xsb.example/api/orders/7', status: 204 }];
+    expect(await 결과저장(runId, { status: 'PASS', durationMs: 1, parts: [통과(1)], cleanup: 뒷정리 })).toBe(false);
+
+    const 늦은로그 = 경고.mock.calls.find((c) => String(c[0]).includes(`실행 ${runId} 결과가 늦게 와`));
+    expect(늦은로그).toContainEqual({ cleanup: 뒷정리 });
+  });
+
+  it('결과 조회는 부품마다 unconfirmed · bound · cleanup 을 내고, 비밀 칸과 그 값이 절차 기록 · 오류 · 뒷정리 주소에 실린 글자를 서버가 가린다', async () => {
     const 원문 = { 비번: 'xsb-저장-비번-원문', 핀: 8642097, 코드: 5550123, 토큰: 'xsb-꽂은-토큰-원문' };
     await q(
       `INSERT INTO case_input (tc_id, params, expected, saved_by) VALUES ('XSB-001', $1, $2, 'xsb')
@@ -234,11 +245,19 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
       { kind: 'case', tcId: 'XSB-001', params: { 수량: 2 }, expected: { 합계: 3 }, skipSteps: [] },
       { kind: 'wait', ms: 10 },
     ]);
+    const 기록 = { request: { url: 'http://xsb.example/api/orders', body: { password: 원문.비번 } }, response: { status: 201 } };
     const 응답: ScenarioExecuteResponse = {
-      status: 'PASS',
+      status: 'FAIL',
       durationMs: 3,
-      parts: [통과(1, { 주문토큰: 원문.토큰, 주문번호: 7 }), 통과(2)],
-      cleanup: [{ fromSeq: 1, method: 'DELETE', url: 'http://xsb.example/api/orders/7', status: 204 }],
+      parts: [
+        {
+          ...통과(1, { 주문토큰: 원문.토큰, 주문번호: 7 }),
+          error: { message: `토큰 ${원문.토큰} 이 거절됐다` },
+          steps: [{ seq: 1, title: '주문을 만든다', status: 'PASS', durationMs: 1, assertions: [], httpTrace: 기록 }],
+        },
+        통과(2),
+      ],
+      cleanup: [{ fromSeq: 1, method: 'DELETE', url: `http://xsb.example/api/orders/7?token=${원문.토큰}`, status: 204 }],
     };
     expect(await 결과저장(runId, 응답)).toBe(true);
 
@@ -260,7 +279,11 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
         },
         unconfirmed: 'XSB 미확정 사유',
         bound: { 주문토큰: 가림, 주문번호: 7 },
-        cleanup: [{ method: 'DELETE', url: 'http://xsb.example/api/orders/7', status: 204 }],
+        cleanup: [{ method: 'DELETE', url: `http://xsb.example/api/orders/7?token=${가림}`, status: 204 }],
+      });
+      expect({ error: 첫?.error, steps: 첫?.steps }).toMatchObject({
+        error: { message: `토큰 ${가림} 이 거절됐다` },
+        steps: [{ httpTrace: { request: { url: 'http://xsb.example/api/orders', body: { password: 가림 } } } }],
       });
       expect({ unconfirmed: 둘?.unconfirmed, bound: 둘?.bound, cleanup: 둘?.cleanup }).toEqual({
         unconfirmed: null,
