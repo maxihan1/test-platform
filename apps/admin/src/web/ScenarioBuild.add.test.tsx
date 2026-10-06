@@ -98,6 +98,31 @@ describe('ScenarioBuild 단계 추가 탭', () => {
   });
 });
 
+describe('ScenarioBuild 팔레트 유지', () => {
+  it('단계를 하나 넣고 다시 단계 추가 탭을 열어도 케이스 목록을 다시 받지 않고 찾기 글자가 남는다', async () => {
+    막기();
+    render(<ScenarioBuild id={null} 띠서비스={서비스} user={사람} />);
+    const 찾기칸 = (await screen.findByLabelText('케이스 찾기')) as HTMLInputElement;
+    fireEvent.change(찾기칸, { target: { value: '002' } });
+    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-002 더하기' }));
+    await waitFor(() => expect(탭('1번 설정').getAttribute('aria-selected')).toBe('true'));
+
+    fireEvent.click(탭('단계 추가'));
+
+    expect((screen.getByLabelText('케이스 찾기') as HTMLInputElement).value).toBe('002');
+    expect(vi.mocked(api.cases)).toHaveBeenCalledTimes(1);
+  });
+
+  it('단계 추가 탭이 아닐 때 팔레트는 가려져 있다', async () => {
+    막기();
+    render(<ScenarioBuild id={null} 띠서비스={서비스} user={사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-001 더하기' }));
+    await waitFor(() => expect(탭('1번 설정').getAttribute('aria-selected')).toBe('true'));
+
+    expect(screen.queryByRole('button', { name: 'ZSB-002 더하기' })).toBeNull();
+  });
+});
+
 describe('ScenarioBuild 케이스 바꾸기', () => {
   const 상세 = (): ScenarioDetail => ({
     id: 12,
