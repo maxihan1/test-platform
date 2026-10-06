@@ -119,6 +119,28 @@ describe('머리', () => {
     expect(document.querySelector('.head .verdict')).toBeNull();
   });
 
+  it('도는 중이어도 미확정 단계가 있으면 머리에 미확정 포함 칩이 뜬다', async () => {
+    연다(결과({ status: 'RUNNING', finishedAt: null, parts: [부품(1, { unconfirmed: '사유' }), 안돈] }));
+    await screen.findByText('단계별 결과');
+    expect(document.querySelector('.head .verdict')).toBeNull();
+    expect(document.querySelector('.head .case-tag')?.textContent).toBe('미확정 포함');
+  });
+
+  it('값 주입 줄은 비밀 칸에 꽂힌 값을 서버가 안 가려 보내도 화면이 가린다', async () => {
+    const 비밀주입 = 부품(1, {
+      part: {
+        kind: 'case', tcId: 'XSX-001', params: {}, expected: {}, skipSteps: [],
+        links: [{ kind: 'bind', param: 'password', value: { fromSeq: 1, method: 'POST', urlPattern: '**/token', jsonPath: '$.pw' } }],
+      },
+      paramSchema: { type: 'object', properties: { password: { description: '비밀번호', secret: true } } },
+      bound: { password: 'hunter2' },
+    });
+    연다(결과({ parts: [비밀주입] }));
+    await screen.findByText('단계별 결과');
+    expect(document.body.textContent).not.toContain('hunter2');
+    expect(screen.getByText(/password ← 1번 POST \*\*\/token 응답의 \$\.pw = \*+/)).toBeTruthy();
+  });
+
   it('실패 머리는 미확정 단계가 있을 때만 미확정 포함 칩을 곁들인다', async () => {
     연다(결과());
     await screen.findByText('단계별 결과');
