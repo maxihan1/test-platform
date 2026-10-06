@@ -47,6 +47,8 @@ async function 적는다(runId: number, 응답: ScenarioExecuteResponse): Promis
     );
     if (닫힘.rowCount === 0) {
       await c.query('ROLLBACK');
+      // 러너가 대상 서버에 이미 보낸 삭제다. 결과를 버리면 어느 데이터가 지워졌는지는 이 로그에만 남는다
+      console.warn(`[scenario] 실행 ${runId} 결과가 늦게 와 버린다`, { cleanup: 응답.cleanup ?? [] });
       return false;
     }
 

@@ -9,6 +9,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
 import { artifactsDir, 시나리오실행인가 } from '../execution/routes.js';
+import { 가린다, 긴것부터, 비밀글자들 } from '../execution/trial.js';
 import { 정수 } from '../routeParams.js';
 import { 가린값들 } from '../web/mask.js';
 
@@ -110,7 +111,19 @@ async function 결과(runId: number) {
     [runId],
   );
 
-  return {
+  // 키로 가린 칸 밖에도 같은 값이 실린다 — 절차 기록의 요청 본문 · 오류 문장 · 뒷정리 주소. 시험 실행(scenario/trial.ts)과 같은 규칙으로 모아 글자째 가린다
+  const 비밀 = 부품.rows.flatMap((p) => {
+    const 가린꽂은값 = 가린값들(p.bound, p.param_schema);
+    // 숫자 비밀(pin: 1234)도 글자로 실린다
+    const 꽂은비밀 = Object.entries(p.bound).flatMap(([k, v]) =>
+      가린꽂은값[k] !== v && (typeof v === 'string' || typeof v === 'number') && v !== '' ? [String(v)] : [],
+    );
+    if (p.part.kind !== 'case') return 꽂은비밀;
+    const 명세 = { paramSchema: p.param_schema, expectedSchema: p.expected_schema, params: p.part.params, expected: p.part.expected };
+    return [...비밀글자들(명세), ...꽂은비밀];
+  });
+
+  const 본것 = {
     scenarioId: Number(행.scenario_id),
     version: 행.scenario_version,
     status: 행.status,
@@ -139,6 +152,7 @@ async function 결과(runId: number) {
       error: p.error,
     })),
   };
+  return 가린다(본것, 긴것부터(비밀)) as typeof 본것;
 }
 
 export default async function scenarioRunRoutes(app: FastifyInstance): Promise<void> {
