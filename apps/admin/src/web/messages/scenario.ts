@@ -91,4 +91,22 @@ export const 시나리오말: Record<string, string> = {
   '시험 결과': 'Trial result',
   '모킹되지 않음': 'Not mocked',
   '이 단계의 API 호출은 모킹되지 않습니다': 'This step\'s API call is not mocked',
+  '전제': 'Preconditions',
+  '기대값을 화면에서 읽은 케이스입니다. 이 단계가 들어간 실행에는 「미확정 포함」이 붙습니다':
+    'This case took its expected values from the screen. Runs that include this step are marked "Includes unconfirmed"',
+  '로그인 이어받기': 'Keep login from earlier step',
+  '앞 단계의 로그인 상태를 그대로 사용합니다. 끄면 새 창에서 단독으로 실행합니다':
+    'Uses the login state left by the earlier step. When off, this step runs alone in a new window',
+  '로그인 이어받기를 끄면 준비 건너뛰기와 값 연결을 쓸 수 없습니다':
+    'With login carry-over off, you cannot skip setup or link values',
+  '준비 — 체크한 것만 실행': 'Setup — only checked items run',
+  '{번호}번에서 이미 실행': 'Already run in step {번호}',
+  '이 케이스는 준비가 분리되어 있지 않아 건너뛸 수 없습니다':
+    'This case has no separable setup, so nothing can be skipped',
+  '기대값': 'Expected values',
+  '{번호}번 단계 값 사용': 'Uses value from step {번호}',
+  '비워 둔 칸은 이 케이스에 저장해 둔 값으로 실행합니다': 'Empty fields run with the values saved on this case',
+  '케이스 바꾸기': 'Change case',
+  '다른 케이스로 바꾸면 이 단계의 준비 · 입력값 설정은 처음부터 다시 합니다':
+    'Changing the case resets this step\'s setup and input settings',
 };

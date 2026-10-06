@@ -3658,11 +3658,105 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   padding: 12px 16px;
 }
 
+/* 단계 설정 탭 속. 안내 줄은 판정 색 없이 중립 글자색이다 */
+.scn-set-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.scn-set-block {
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+}
+
+.scn-set-group legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scn-set-sub {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scn-set-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.scn-set-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.scn-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.scn-switch:disabled {
+  cursor: default;
+}
+
+.scn-switch-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  background: var(--ink-faint);
+  border-radius: 9px;
+}
+
+.scn-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--sheet);
+  border-radius: 50%;
+}
+
+.scn-switch[aria-checked='true'] .scn-switch-track {
+  background: var(--chrome);
+}
+
+.scn-switch[aria-checked='true'] .scn-switch-track::after {
+  left: 16px;
+}
+
+.scn-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
 @media (max-width: 620px) {
   /* 손가락으로 누르는 자리는 46px — 위 `.scn-back a` 와 같은 기준 */
   .scn-card-pick,
   .scn-tab,
-  .scn-cards-head .btn {
+  .scn-cards-head .btn,
+  .scn-switch,
+  .scn-check,
+  .scn-set .btn,
+  .scn-set .field input,
+  .scn-set .field select {
     min-height: 46px;
   }
 

@@ -10,6 +10,7 @@ import { Loading, Failed, PLATFORMS, PLATFORM_LABEL, when } from './ui.js';
 import { Modal } from './Modal.js';
 import { 판정을만든다 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
+import { ScenarioPartPanel } from './ScenarioPartPanel.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
 
@@ -32,6 +33,8 @@ export function ScenarioBuild({
   // 새 시나리오는 단계를 넣는 일이 먼저라 추가 탭부터 연다
   const [탭, set탭] = useState<조립탭>(id === null ? 'add' : 'settings');
   const [고른번호, set고른번호] = useState<number | null>(null);
+  // 케이스 바꾸기를 눌러 추가 탭으로 넘어간 단계 번호. 추가 탭의 바꾸기 모드가 읽는다
+  const [바꿀번호, set바꿀번호] = useState<number | null>(null);
   const 처음고름 = useRef(false);
   const [떠날곳, set떠날곳] = useState<string | null>(null);
   const [저장글, set저장글] = useState<string | null>(null);
@@ -74,6 +77,7 @@ export function ScenarioBuild({
     set저장글(t('저장했습니다 · v{버전}', { 버전: 결과.version }));
   }
 
+  const 고른단계 = 고른번호 === null ? undefined : 초안.단계들[고른번호 - 1];
   const 최신 = 초안.버전들[0];
   const 서비스이름 = user.services.find((s) => s.prefix === 초안.서비스)?.name ?? 초안.서비스;
   const 상태글 = 초안.저장오류 ?? 저장글;
@@ -150,7 +154,8 @@ export function ScenarioBuild({
           <p className="scn-note">{t('이 시나리오는 {서비스} 서비스 것입니다', { 서비스: 서비스이름 })}</p>
         )}
 
-        <div className="scn-build" data-tab={탭}>
+        {/* 바꾸기 모드가 아직 없어 바꿀 번호는 화면 속성으로만 읽힌다 */}
+        <div className="scn-build" data-tab={탭} data-swap={바꿀번호 ?? undefined}>
           <section className="scn-build-list" aria-label={t('시나리오 단계')}>
             <ScenarioCards
               단계들={초안.단계들}
@@ -164,7 +169,22 @@ export function ScenarioBuild({
             />
           </section>
           <section className="scn-build-panel" aria-label={t('단계 추가 · 설정')}>
-            <ScenarioTabs 탭={탭} on탭={set탭} 고른번호={고른번호} 쓰나={쓰나} 이력있나={id !== null} />
+            <ScenarioTabs 탭={탭} on탭={set탭} 고른번호={고른번호} 쓰나={쓰나} 이력있나={id !== null}>
+              {탭 !== 'settings' || 고른번호 === null || 고른단계?.kind !== 'case' ? null : (
+                <ScenarioPartPanel
+                  번호={고른번호}
+                  단계={고른단계}
+                  단계들={초안.단계들}
+                  재료={초안.재료}
+                  쓰나={쓰나}
+                  on바꿈={(새단계) => 초안.단계들바꾸기(초안.단계들.map((p, i) => (i === 고른번호 - 1 ? 새단계 : p)))}
+                  on케이스바꾸기={() => {
+                    set바꿀번호(고른번호);
+                    set탭('add');
+                  }}
+                />
+              )}
+            </ScenarioTabs>
           </section>
         </div>
       </div>

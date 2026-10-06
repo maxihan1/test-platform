@@ -109,7 +109,7 @@ describe('ScenarioPartPanel 로그인 이어받기', () => {
     const { on바꿈 } = 그리기(
       단계('ZSB-001', {
         skipSteps: ['로그인한다'],
-        links: [{ kind: 'bind', param: 'id', value: { fromSeq: 1, method: 'GET', urlPattern: '**/a', path: 'id' } }],
+        links: [{ kind: 'bind', param: 'id', value: { fromSeq: 1, method: 'GET', urlPattern: '**/a', jsonPath: 'id' } }],
       }),
       준비있는('ZSB-001'),
     );
@@ -287,7 +287,7 @@ describe('ScenarioPartPanel 입력값 · 기대값', () => {
   it('값 연결이 걸린 칸은 잠기고 N번 단계 값 사용을 보인다', () => {
     그리기(
       단계('ZSB-002', {
-        links: [{ kind: 'bind', param: 'qty', value: { fromSeq: 2, method: 'GET', urlPattern: '**/a', path: 'q' } }],
+        links: [{ kind: 'bind', param: 'qty', value: { fromSeq: 2, method: 'GET', urlPattern: '**/a', jsonPath: 'q' } }],
       }),
       재료('ZSB-002', { paramSchema: 칸스키마 }),
       { 번호: 3 },
