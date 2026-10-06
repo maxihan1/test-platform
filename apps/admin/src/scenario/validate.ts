@@ -69,7 +69,8 @@ type 이어주기<K> = Extract<z.infer<typeof 이어주기모양>, { kind: K }>;
   never
 >;
 
-export type 카탈로그 = Map<string, { platforms: Platform[]; isActive: boolean; skippable: string[] }>;
+/** params 는 케이스 입력값 칸 이름이다 — 값 꽂기가 없는 칸을 가리키는지 본다 */
+export type 카탈로그 = Map<string, { platforms: Platform[]; isActive: boolean; skippable: string[]; params: string[] }>;
 
 const 케이스몫 = 300000;
 const API몫 = 30000;
@@ -101,6 +102,15 @@ export function 제한시간크기사유(parts: ScenarioPart[]): string[] {
   return 사유;
 }
 
+const 경로규칙 = '/ 로 시작하고 // 로 시작하지 않으며 \\ 와 제어문자가 없어야 한다';
+
+/** API 부품 경로와 바꿔 보내기 고치기 주소가 같은 규칙을 쓴다 (§7) */
+function 바른경로(path: string): boolean {
+  // `//host` 는 다른 호스트로 풀린다 — 대상 주소 밖으로 못 나가게 한다.
+  // URL 해석기는 `\` 를 `/` 로 읽고 탭·줄바꿈을 지워 `/\host` 도 `//host` 가 된다. 러너는 글자로 이어 붙여 안 새지만 두 겹으로 막는다
+  return path.startsWith('/') && !path.startsWith('//') && !/[\\\x00-\x1f\x7f]/.test(path);
+}
+
 /** 거절 사유를 사람 말로 모은다. 비면 통과다. 되돌리기는 이것을 안 건다 (§7 restore) */
 export function 조립검사(parts: ScenarioPart[], platform: Platform, service: string, 재료: 카탈로그): string[] {
   if (parts.length === 0) return ['부품이 하나도 없다'];
@@ -129,12 +139,34 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
       for (const 제목 of p.skipSteps) {
         if (!케이스.skippable.includes(제목)) 오류.push(`${자리}: 「${제목}」 은 건너뛸 수 있는 절차가 아니다`);
       }
-    } else if (p.kind === 'api') {
-      // `//host` 는 다른 호스트로 풀린다 — 대상 주소 밖으로 못 나가게 한다.
-      // URL 해석기는 `\` 를 `/` 로 읽고 탭·줄바꿈을 지워 `/\host` 도 `//host` 가 된다. 러너는 글자로 이어 붙여 안 새지만 두 겹으로 막는다
-      if (!p.path.startsWith('/') || p.path.startsWith('//') || /[\\\x00-\x1f\x7f]/.test(p.path)) {
-        오류.push(`${자리}: API 경로는 / 로 시작하고 // 로 시작하지 않으며 \\ 와 제어문자가 없어야 한다`);
+
+      // 이어 주기 (§3.7 결정 12)
+      const links = p.links ?? [];
+      if (p.carryOver === false && (p.skipSteps.length > 0 || links.length > 0)) {
+        오류.push(`${자리}: 넘겨받기를 끈 부품에는 건너뛰기와 이어 주기를 걸 수 없다`);
       }
+      const 꽂은칸 = new Set<string>();
+      const 겹친칸 = new Set<string>();
+      for (const 이음 of links) {
+        const 가리킴 =
+          이음.kind === 'reuse' ? 이음.fromSeq : 이음.kind === 'rewrite' ? 이음.to.value.fromSeq : 이음.kind === 'bind' ? 이음.value.fromSeq : null;
+        // 앞 케이스 부품만 받은 응답이 있다 — api · mock · 뒤 부품을 가리키면 러너가 꺼낼 값이 없다
+        if (가리킴 !== null && !(가리킴 <= i && parts[가리킴 - 1]?.kind === 'case')) {
+          오류.push(`${자리}: 이어 주기가 가리키는 ${가리킴}번 부품은 자기보다 앞의 케이스 부품이 아니다`);
+        }
+        if (이음.kind === 'rewrite') {
+          if (!바른경로(이음.to.path)) 오류.push(`${자리}: 바꿔 보내기 경로는 ${경로규칙}`);
+          // 러너 입구와 같은 문장이다 (apps/runner/src/routes.ts scenarioLink)
+          if (이음.to.path.split('{}').length !== 2) 오류.push(`${자리}: 바꿔 보내기 경로에 {} 자리가 꼭 하나 있어야 한다`);
+        } else if (이음.kind === 'bind') {
+          if (!케이스.params.includes(이음.param)) 오류.push(`${자리}: 「${이음.param}」 는 ${p.tcId} 의 입력값 칸이 아니다`);
+          else if (꽂은칸.has(이음.param)) 겹친칸.add(이음.param);
+          꽂은칸.add(이음.param);
+        }
+      }
+      for (const 칸 of 겹친칸) 오류.push(`${자리}: 「${칸}」 칸에 값 꽂기가 둘 이상이다`);
+    } else if (p.kind === 'api') {
+      if (!바른경로(p.path)) 오류.push(`${자리}: API 경로는 ${경로규칙}`);
     } else if (p.kind === 'mock') {
       켜진모킹.add(p.urlPattern);
     } else if (p.kind === 'unmock') {

@@ -65,10 +65,13 @@ export async function 케이스재료(
     // 파서가 너그러워 깨진 소스에서도 「만들기」 모양을 찾아낸다. 애매하면 만들기로 치지 않는다 (결정 4)
     const 깨짐 = (ts.transpileModule(소스, { reportDiagnostics: true }).diagnostics ?? []).length > 0;
     const steps = 판별.steps.map((s) => ({ title: s.title, skippable: s.skippable && !깨짐 }));
+    // jsonb 라 null 이나 properties 없는 스키마도 올 수 있다 — 입력값 칸이 없는 것으로 친다
+    const 칸들: unknown = 행.paramSchema?.properties;
     카탈로그재료.set(tcId, {
       platforms: 행.platforms,
       isActive: true,
       skippable: steps.filter((s) => s.skippable).map((s) => s.title),
+      params: typeof 칸들 === 'object' && 칸들 !== null ? Object.keys(칸들) : [],
     });
     부품재료.set(tcId, {
       tcId,
