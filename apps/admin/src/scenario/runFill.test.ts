@@ -67,7 +67,11 @@ describe.skipIf(연결 === undefined)('시나리오 실행 저장값 채우기',
     await q('DELETE FROM case_input WHERE tc_id = ANY($1)', [번호들]);
   };
 
-  const 케이스 = (tcId: string, params: Record<string, unknown> = {}, expected: Record<string, unknown> = {}): ScenarioPart => ({
+  const 케이스 = (
+    tcId: string,
+    params: Record<string, unknown> = {},
+    expected: Record<string, unknown> = {},
+  ): Extract<ScenarioPart, { kind: 'case' }> => ({
     kind: 'case',
     tcId,
     params,

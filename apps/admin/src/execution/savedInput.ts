@@ -11,7 +11,6 @@ import { z } from 'zod';
 // 화면이 가리는 칸과 서버가 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
 import { 가려야하나, 저장값나누기 } from '../web/mask.js';
 import { caseSchemas } from './paramSets.js';
-import type { RunItemInput } from './store.js';
 import { validate } from './validate.js';
 
 type 값들 = Record<string, unknown>;
@@ -141,12 +140,15 @@ function 채운것(schema: unknown, 요청: 값들, 저장: unknown): 값들 {
   return { ...요청, ...Object.fromEntries(더할것) };
 }
 
-/** 요청에 없는 칸만 케이스 저장값으로 채운 새 항목 목록. 정기 실행처럼 화면을 안 거치는 실행도 같은 길을 탄다 */
-export async function 저장값을채운다(
-  client: PoolClient,
-  items: RunItemInput[],
+/**
+ * 요청에 없는 칸만 케이스 저장값으로 채운 새 항목 목록. 정기 실행처럼 화면을 안 거치는 실행도 같은 길을 탄다.
+ * 시나리오 case 부품도 같은 규칙이라(시나리오 §3.7) 항목 모양을 묶지 않는다
+ */
+export async function 저장값을채운다<T extends { tcId: string; params: 값들; expected: 값들 }>(
+  client: Pick<PoolClient, 'query'>,
+  items: T[],
   schemas: Map<string, { param_schema: unknown; expected_schema: unknown }>,
-): Promise<RunItemInput[]> {
+): Promise<T[]> {
   const r = await client.query<{ tc_id: string; params: unknown; expected: unknown }>(
     'SELECT tc_id, params, expected FROM case_input WHERE tc_id = ANY($1::text[])',
     [items.map((i) => i.tcId)],
