@@ -236,3 +236,39 @@ describe('ScenarioBuild 잘못 적은 칸이 있을 때', () => {
     expect(update.mock.calls[0]?.[1].parts).toEqual([{ kind: 'wait', ms: 5000 }]);
   });
 });
+
+describe('ScenarioBuild 빈 칸이 남은 단계', () => {
+  it('모킹 켜기 뒤에 모킹 끄기를 더하면 켠 무늬가 기본으로 들어온다', async () => {
+    막기();
+    render(<ScenarioBuild id={null} 띠서비스={서비스} user={사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: '모킹 켜기' }));
+    fireEvent.click(탭('단계 추가'));
+
+    fireEvent.click(await screen.findByRole('button', { name: '모킹 끄기' }));
+
+    expect(((await screen.findByLabelText('끌 모킹')) as HTMLSelectElement).value).toBe('**/api/**');
+  });
+
+  it('무늬가 빈 모킹 끄기가 있으면 서버를 안 부르고 그 단계 번호로 막는다', async () => {
+    막기();
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue({
+      id: 12,
+      service: 'ZSB',
+      name: 'ZSB 빈칸 흐름',
+      platform: 'desktop',
+      version: 1,
+      parts: [{ kind: 'wait', ms: 1000 }, { kind: 'unmock', urlPattern: '' }],
+      isActive: true,
+      versions: [{ version: 1, savedBy: 'zsb', savedByName: '홍길동', savedAt: '2026-10-06T00:10:00.000Z' }],
+      checks: [],
+    });
+    const update = vi.spyOn(scenarioApi, 'update');
+    render(<ScenarioBuild id={12} 띠서비스={서비스} user={사람} />);
+    await screen.findByLabelText('기다릴 시간(초)');
+
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    expect((await screen.findByRole('status')).textContent).toBe('2번 단계의 잘못 적은 칸을 고쳐야 저장할 수 있습니다');
+    expect(update).not.toHaveBeenCalled();
+  });
+});
