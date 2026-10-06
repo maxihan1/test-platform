@@ -1,13 +1,15 @@
-// 시나리오 결과 저장이 부품 결과의 꽂은 값(bound)과 실행 한 벌의 뒷정리(cleanup)를 부품 행에 적는다 (SPEC 도메인/시나리오 §7)
+// 시나리오 결과 저장이 부품 결과의 꽂은 값(bound)과 실행 한 벌의 뒷정리(cleanup)를 부품 행에 적고, 결과 조회가 그것을 비밀 칸을 가려 낸다 (SPEC 도메인/시나리오 §7)
 
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { ScenarioCleanup, ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
+import Fastify from 'fastify';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 결과저장 } from './runResult.js';
+import scenarioRunRoutes from './runRoutes.js';
 import { 실행만들기 } from './runStore.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -29,6 +31,18 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
   const 원래뿌리 = process.env.PLATFORM_TESTS_DIR;
   const 번호들 = ['XSB-001'];
   const 사람 = { username: 'xsb', displayName: 'XSB 검사 사람' };
+  const 가림 = '********';
+  const 입력명세 = {
+    type: 'object',
+    properties: {
+      수량: { type: 'number' },
+      주문번호: { type: 'number' },
+      password: { type: 'string' },
+      핀: { type: 'number', secret: true },
+      주문토큰: { type: 'string', secret: true },
+    },
+  };
+  const 기대명세 = { type: 'object', properties: { 합계: { type: 'number' }, 확인코드: { type: 'number', secret: true } } };
 
   const q = async <T extends object = Record<string, unknown>>(sql: string, 값: unknown[] = []) => {
     const { pool } = await import('../db/index.js');
@@ -55,7 +69,7 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
   ];
 
   // 조립 검사를 안 거치고 버전을 넣는다 — 이 파일은 결과 저장만 본다
-  const 세부품 = async (): Promise<number> => {
+  const 세부품 = async (부품들: ScenarioPart[] = 부품): Promise<number> => {
     const s = await q<{ id: string }>(
       `INSERT INTO scenario (service_id, name, created_by) VALUES ($1, 'XSB 시나리오', 'xsb') RETURNING id`,
       [서비스],
@@ -64,7 +78,7 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
     await q(
       `INSERT INTO scenario_version (scenario_id, version, platform, parts, saved_by, saved_by_name)
        VALUES ($1, 1, 'desktop', $2, 'xsb', 'XSB 검사 사람')`,
-      [id, JSON.stringify(부품)],
+      [id, JSON.stringify(부품들)],
     );
     return (await 실행만들기(id, 'qa', 사람)).runId;
   };
@@ -102,9 +116,11 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
     await 치우기표();
     await q(`INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'http://xsb.example')`, [서비스]);
     await q(
-      `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active)
-       VALUES ('XSB-001', 'XSB-001 이름', '["desktop","mobile"]', '[]', 'xsb/a.spec.ts', '{"type":"object"}', '{"type":"object"}', true)
-       ON CONFLICT (tc_id) DO UPDATE SET file_path = EXCLUDED.file_path, is_active = true`,
+      `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, unconfirmed, is_active)
+       VALUES ('XSB-001', 'XSB-001 이름', '["desktop","mobile"]', '[]', 'xsb/a.spec.ts', $1, $2, 'XSB 미확정 사유', true)
+       ON CONFLICT (tc_id) DO UPDATE SET file_path = EXCLUDED.file_path, param_schema = EXCLUDED.param_schema,
+         expected_schema = EXCLUDED.expected_schema, unconfirmed = EXCLUDED.unconfirmed, is_active = true`,
+      [JSON.stringify(입력명세), JSON.stringify(기대명세)],
     );
   });
 
@@ -114,6 +130,7 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
 
   afterAll(async () => {
     await 치우기표();
+    await q('DELETE FROM case_input WHERE tc_id = ANY($1)', [번호들]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);
     await q('DELETE FROM service WHERE id = $1', [서비스]);
     await rm(뿌리, { recursive: true, force: true });
@@ -204,5 +221,54 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
     const 저장실패로그 = 오류.mock.calls.find((c) => String(c[0]).includes('결과를 저장하지 못했다'));
     expect(저장실패로그).toBeDefined();
     expect(저장실패로그).toContainEqual({ cleanup: 뒷정리 });
+  });
+
+  it('결과 조회는 부품마다 unconfirmed · bound · cleanup 을 내고, 채운 저장값과 꽂은 값의 비밀 칸을 서버가 가린다', async () => {
+    const 원문 = { 비번: 'xsb-저장-비번-원문', 핀: 8642097, 코드: 5550123, 토큰: 'xsb-꽂은-토큰-원문' };
+    await q(
+      `INSERT INTO case_input (tc_id, params, expected, saved_by) VALUES ('XSB-001', $1, $2, 'xsb')
+       ON CONFLICT (tc_id) DO UPDATE SET params = EXCLUDED.params, expected = EXCLUDED.expected`,
+      [JSON.stringify({ password: 원문.비번, 핀: 원문.핀 }), JSON.stringify({ 확인코드: 원문.코드 })],
+    );
+    const runId = await 세부품([
+      { kind: 'case', tcId: 'XSB-001', params: { 수량: 2 }, expected: { 합계: 3 }, skipSteps: [] },
+      { kind: 'wait', ms: 10 },
+    ]);
+    const 응답: ScenarioExecuteResponse = {
+      status: 'PASS',
+      durationMs: 3,
+      parts: [통과(1, { 주문토큰: 원문.토큰, 주문번호: 7 }), 통과(2)],
+      cleanup: [{ fromSeq: 1, method: 'DELETE', url: 'http://xsb.example/api/orders/7', status: 204 }],
+    };
+    expect(await 결과저장(runId, 응답)).toBe(true);
+
+    const app = Fastify();
+    await app.register(scenarioRunRoutes, { prefix: '/api' });
+    try {
+      const res = await app.inject({ method: 'GET', url: `/api/runs/${runId}/scenario` });
+      expect(res.statusCode).toBe(200);
+      for (const 값 of [원문.비번, String(원문.핀), String(원문.코드), 원문.토큰]) expect(res.body).not.toContain(값);
+
+      const [첫, 둘] = res.json<{ parts: Record<string, unknown>[] }>().parts;
+      expect({ part: 첫?.part, unconfirmed: 첫?.unconfirmed, bound: 첫?.bound, cleanup: 첫?.cleanup }).toEqual({
+        part: {
+          kind: 'case',
+          tcId: 'XSB-001',
+          params: { 수량: 2, password: 가림, 핀: 가림 },
+          expected: { 합계: 3, 확인코드: 가림 },
+          skipSteps: [],
+        },
+        unconfirmed: 'XSB 미확정 사유',
+        bound: { 주문토큰: 가림, 주문번호: 7 },
+        cleanup: [{ method: 'DELETE', url: 'http://xsb.example/api/orders/7', status: 204 }],
+      });
+      expect({ unconfirmed: 둘?.unconfirmed, bound: 둘?.bound, cleanup: 둘?.cleanup }).toEqual({
+        unconfirmed: null,
+        bound: {},
+        cleanup: [],
+      });
+    } finally {
+      await app.close();
+    }
   });
 });
