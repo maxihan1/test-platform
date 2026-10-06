@@ -3,7 +3,8 @@
 import type { ScenarioExecuteRequest, ScenarioPartResult } from '@platform/kit';
 import { describe, expect, it, vi } from 'vitest';
 
-import { runParts, 주소, type PartDeps, type 창 } from './parts.js';
+import { 새이음, type 상태 } from './links.js';
+import { runParts, 주소, 합친상태, type PartDeps, type 창 } from './parts.js';
 
 type Part = ScenarioExecuteRequest['parts'][number];
 
@@ -30,10 +31,13 @@ function 가짜(칸: Partial<창> & { baseUrl?: string } = {}) {
   const deps: PartDeps = {
     baseUrl,
     partTimeoutMs: 30_000,
+    이음: 새이음([], baseUrl),
     newWindow: vi.fn(async () => 지금창),
+    sendDelete: vi.fn(async () => 200),
     write: (result) => {
       줄.push(result);
     },
+    writeCleanup: () => {},
   };
   return { deps, 지금창, 줄 };
 }
@@ -130,5 +134,23 @@ describe('주소', () => {
   it('대상 주소 끝 / 를 떼고 문자열로 잇는다 — 대상 주소의 경로가 안 날아간다', () => {
     expect(주소('https://qa.example.com', '/api/a')).toBe('https://qa.example.com/api/a');
     expect(주소('https://qa.example.com/shop//', '/api/a')).toBe('https://qa.example.com/shop/api/a');
+  });
+});
+
+describe('합친상태', () => {
+  const 쿠키 = (name: string, domain = 'qa.example.com', value = 'v'): 상태['cookies'][number] => ({
+    name, value, domain, path: '/', expires: -1, httpOnly: false, secure: false, sameSite: 'Lax',
+  });
+
+  it('쿠키를 (이름 · 도메인 · 경로)로 합치고 겹치면 창 쪽, localStorage 는 창 것이다 (SPEC 도메인/시나리오 §3.7 결정 3)', () => {
+    const 창쪽: 상태 = { cookies: [쿠키('sid', 'qa.example.com', '창'), 쿠키('ui')], origins: [{ origin: 'https://qa.example.com', localStorage: [{ name: 'k', value: '1' }] }] };
+    const 요청쪽: 상태 = { cookies: [쿠키('sid', 'qa.example.com', '요청'), 쿠키('api'), 쿠키('sid', 'api.example.com', '요청')], origins: [] };
+
+    const 합침 = 합친상태(창쪽, 요청쪽);
+
+    expect(합침.cookies.map((c) => [c.name, c.domain, c.value]).sort()).toEqual([
+      ['api', 'qa.example.com', 'v'], ['sid', 'api.example.com', '요청'], ['sid', 'qa.example.com', '창'], ['ui', 'qa.example.com', 'v'],
+    ]);
+    expect(합침.origins).toEqual(창쪽.origins);
   });
 });
