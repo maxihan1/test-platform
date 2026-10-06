@@ -24,6 +24,7 @@ export function ScenarioBuildTabs({
   on케이스바꾸기,
   on바꿈,
   on되돌림,
+  on칸오류,
   시험,
 }: {
   id: number | null;
@@ -38,6 +39,7 @@ export function ScenarioBuildTabs({
   on케이스바꾸기: () => void;
   on바꿈: (새단계: ScenarioPart) => void;
   on되돌림: () => void;
+  on칸오류: (번호: number, 있나: boolean) => void;
   시험: ReactNode;
 }) {
   if (탭 === 'add' && 쓰나) {
@@ -68,7 +70,17 @@ export function ScenarioBuildTabs({
   const 고른단계 = 고른번호 === null ? undefined : 초안.단계들[고른번호 - 1];
   if (탭 !== 'settings' || 고른번호 === null || 고른단계 === undefined) return null;
   if (고른단계.kind !== 'case') {
-    return <ScenarioOtherPanel key={초안.판} 번호={고른번호} 단계={고른단계} 단계들={초안.단계들} 쓰나={쓰나} on바꿈={on바꿈} />;
+    return (
+      <ScenarioOtherPanel
+        key={초안.판}
+        번호={고른번호}
+        단계={고른단계}
+        단계들={초안.단계들}
+        쓰나={쓰나}
+        on바꿈={on바꿈}
+        on칸오류={on칸오류}
+      />
+    );
   }
   return (
     <ScenarioPartPanel

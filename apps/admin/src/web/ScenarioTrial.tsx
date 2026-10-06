@@ -11,13 +11,15 @@ import type { 시험상태 } from './useScenarioTrial.js';
 
 /** 서버를 부르기 전에 걸러 낼 사유. 서버가 같은 것을 400 으로 거절하지만 그 문장은 영어 원문이다 */
 export function 시험막는글(
-  t: (키: string) => string,
+  t: (키: string, 값?: { 번호: number }) => string,
   서버: string,
   단계들: ScenarioPart[],
+  칸오류번호: number | null,
 ): string | null {
   if (서버 === '') return t('시험 실행할 대상 서버를 먼저 고릅니다');
   if (단계들.length === 0) return t('단계를 하나 이상 넣어야 시험 실행할 수 있습니다');
   if (가리킴빈곳(단계들).length > 0) return t('가져올 단계를 다시 골라야 시험 실행할 수 있습니다');
+  if (칸오류번호 !== null) return t('{번호}번 단계의 잘못 적은 칸을 고쳐야 시험 실행할 수 있습니다', { 번호: 칸오류번호 });
   return null;
 }
 

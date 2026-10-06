@@ -47,6 +47,8 @@ export function ScenarioBuild({
   const 처음고름 = useRef(false);
   const [떠날곳, set떠날곳] = useState<string | null>(null);
   const [저장글, set저장글] = useState<string | null>(null);
+  // 지금 열린 패널에 잘못 적은 칸이 있는 단계 번호. 패널이 내려가면 칸 글자도 사라지고 초안은 옛 값 그대로라 하나면 된다
+  const [칸오류번호, set칸오류번호] = useState<number | null>(null);
   const 막나 = 쓰나 && 초안.바뀜;
   const 보낼곳 = id === null && !판정('실행');
 
@@ -75,7 +77,7 @@ export function ScenarioBuild({
 
   async function 저장누름() {
     set저장글(null);
-    const 결과 = await 초안.저장();
+    const 결과 = await 초안.저장(칸오류번호);
     if (결과 === null) return;
     if (id === null) {
       // 자기 이동에 떠나기 상자를 띄우지 않는다
@@ -106,7 +108,7 @@ export function ScenarioBuild({
     void 초안.새로불러오기().then((수) => set고른번호((앞) => (앞 !== null && 수 !== null && 앞 > 수 ? null : 앞)));
   }
   function 시험누름() {
-    const 사유 = 시험막는글(t, 서버, 초안.단계들);
+    const 사유 = 시험막는글(t, 서버, 초안.단계들, 칸오류번호);
     set시험글(사유);
     if (사유 !== null) return;
     set탭('trial');
@@ -254,6 +256,7 @@ export function ScenarioBuild({
                 }}
                 on바꿈={고른단계바꿈}
                 on되돌림={되돌림끝}
+                on칸오류={(번호, 있나) => set칸오류번호((앞) => (있나 ? 번호 : 앞 === 번호 ? null : 앞))}
                 시험={<TrialTab 시험={시험} 단계들={초안.단계들} />}
               />
             </ScenarioTabs>

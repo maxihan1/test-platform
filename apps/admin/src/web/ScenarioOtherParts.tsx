@@ -1,6 +1,6 @@
 // 다른 단계 설정 패널이 나눠 쓰는 칸 틀과 모킹 켜기 · 모킹 끄기 · 대기 단계의 칸 (도메인/시나리오 §8.11)
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ScenarioPart } from '@platform/kit';
 
 import { use말 } from './i18n.js';
@@ -57,6 +57,18 @@ export interface 몸Props<P> {
   잠금: boolean;
   단계: P;
   on바꿈: (새단계: 다른단계) => void;
+  /** 잘못 적은 칸이 생기거나 사라질 때 위로 알린다. 그 글자는 초안에 못 들어가 저장이 옛 값으로 나가기 때문이다 */
+  on오류?: (있나: boolean) => void;
+}
+
+// 알림 함수는 매 그림마다 새로 만들어지므로 ref 로 읽는다. 의존에 넣으면 그릴 때마다 켰다 껐다 한다
+export function use칸오류(on오류: ((있나: boolean) => void) | undefined, 있나: boolean) {
+  const 알림 = useRef(on오류);
+  알림.current = on오류;
+  useEffect(() => {
+    알림.current?.(있나);
+    return () => 알림.current?.(false);
+  }, [있나]);
 }
 
 export function 글칸({
@@ -88,9 +100,10 @@ export function 글칸({
 
 export const 코드문장 = '응답 코드는 100부터 599까지입니다';
 
-export function MockBody({ 아이디, 잠금, 단계, on바꿈 }: 몸Props<MockPart>) {
+export function MockBody({ 아이디, 잠금, 단계, on바꿈, on오류 }: 몸Props<MockPart>) {
   const [무늬, set무늬] = useState(단계.urlPattern);
   const [코드, set코드] = useState(String(단계.status));
+  use칸오류(on오류, 정수(코드, 100, 599) === null);
   const [형식, set형식] = useState(단계.contentType);
   const [본문, set본문] = useState(단계.body);
   return (
@@ -178,8 +191,9 @@ export function UnmockBody({ 아이디, 잠금, 단계, on바꿈, 앞 }: 몸Prop
   );
 }
 
-export function WaitBody({ 아이디, 잠금, 단계, on바꿈 }: 몸Props<WaitPart>) {
+export function WaitBody({ 아이디, 잠금, 단계, on바꿈, on오류 }: 몸Props<WaitPart>) {
   const [초, set초] = useState(String(단계.ms / 1000));
+  use칸오류(on오류, 정수(초, 1, 60) === null);
   return (
     <칸
       아이디={`${아이디}-wait`}

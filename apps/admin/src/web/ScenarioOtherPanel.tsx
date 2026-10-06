@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { ScenarioPart } from '@platform/kit';
 
 import { use말 } from './i18n.js';
-import { MockBody, UnmockBody, WaitBody, 글칸, 바른경로, 정수, 칸, 코드문장, type 몸Props } from './ScenarioOtherParts.js';
+import { MockBody, UnmockBody, WaitBody, 글칸, use칸오류, 바른경로, 정수, 칸, 코드문장, type 몸Props } from './ScenarioOtherParts.js';
 import { 모킹구간 } from './scenarioView.js';
 
 type 다른단계 = Exclude<ScenarioPart, { kind: 'case' }>;
@@ -16,6 +16,7 @@ interface Props {
   단계들: ScenarioPart[];
   쓰나: boolean;
   on바꿈: (새단계: 다른단계) => void;
+  on칸오류?: (번호: number, 있나: boolean) => void;
 }
 
 const 메서드들: ApiPart['method'][] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
@@ -25,7 +26,7 @@ export function ScenarioOtherPanel(props: Props) {
   return <PanelBody key={`${props.번호}-${props.단계.kind}`} {...props} />;
 }
 
-function PanelBody({ 번호, 단계, 단계들, 쓰나, on바꿈 }: Props) {
+function PanelBody({ 번호, 단계, 단계들, 쓰나, on바꿈, on칸오류 }: Props) {
   const t = use말();
   const 이름 = {
     api: 'API 호출',
@@ -35,17 +36,20 @@ function PanelBody({ 번호, 단계, 단계들, 쓰나, on바꿈 }: Props) {
   }[단계.kind];
   const 아이디 = `scn-set-${번호}`;
   const 잠금 = !쓰나;
+  function on오류(있나: boolean) {
+    on칸오류?.(번호, 있나);
+  }
   return (
     <div className="scn-set">
       <h3 className="scn-set-title">{t(이름)}</h3>
       {단계.kind === 'api' ? (
-        <ApiBody {...{ 아이디, 잠금, 단계, on바꿈 }} 모킹중={(모킹구간(단계들)[번호 - 1] ?? []).length > 0} />
+        <ApiBody {...{ 아이디, 잠금, 단계, on바꿈, on오류 }} 모킹중={(모킹구간(단계들)[번호 - 1] ?? []).length > 0} />
       ) : 단계.kind === 'mock' ? (
-        <MockBody {...{ 아이디, 잠금, 단계, on바꿈 }} />
+        <MockBody {...{ 아이디, 잠금, 단계, on바꿈, on오류 }} />
       ) : 단계.kind === 'unmock' ? (
         <UnmockBody {...{ 아이디, 잠금, 단계, on바꿈 }} 앞={모킹구간(단계들)[번호 - 1] ?? []} />
       ) : (
-        <WaitBody {...{ 아이디, 잠금, 단계, on바꿈 }} />
+        <WaitBody {...{ 아이디, 잠금, 단계, on바꿈, on오류 }} />
       )}
     </div>
   );
@@ -53,12 +57,13 @@ function PanelBody({ 번호, 단계, 단계들, 쓰나, on바꿈 }: Props) {
 
 const 경로문장 = '경로는 / 로 시작하고 // 로 시작하지 않아야 합니다';
 
-function ApiBody({ 아이디, 잠금, 단계, on바꿈, 모킹중 }: 몸Props<ApiPart> & { 모킹중: boolean }) {
+function ApiBody({ 아이디, 잠금, 단계, on바꿈, on오류, 모킹중 }: 몸Props<ApiPart> & { 모킹중: boolean }) {
   const t = use말();
   const [경로, set경로] = useState(단계.path);
   const [본문, set본문] = useState(단계.body === undefined ? '' : JSON.stringify(단계.body, null, 2));
   const [코드, set코드] = useState(String(단계.expectStatus));
   const 본문읽힘 = 본문.trim() === '' || 읽기(본문).ok;
+  use칸오류(on오류, !본문읽힘 || 정수(코드, 100, 599) === null);
 
   // 본문 키는 비우면 빠진다. 값이 undefined 인 키를 남기면 서버 검사가 다르게 본다
   function 본문넣기(글: string) {

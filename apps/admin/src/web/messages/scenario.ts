@@ -72,6 +72,7 @@ export const 시나리오말: Record<string, string> = {
   '시나리오 이름을 적어야 저장할 수 있습니다': 'Enter a scenario name to save',
   '단계를 하나 이상 넣어야 저장할 수 있습니다': 'Add at least one step to save',
   '가져올 단계를 다시 골라야 저장할 수 있습니다': 'Pick the step to take values from again to save',
+  '{번호}번 단계의 잘못 적은 칸을 고쳐야 저장할 수 있습니다': 'Fix the invalid field in step {번호} to save',
   '이 화면을 떠나면 저장하지 않은 내용이 사라집니다': 'If you leave this screen, unsaved changes are lost',
   '머무르기': 'Stay',
   '저장하지 않고 떠나기': 'Leave without saving',
@@ -157,6 +158,7 @@ export const 시나리오말: Record<string, string> = {
   '시험 실행할 대상 서버를 먼저 고릅니다': 'Pick the target server before the trial run',
   '단계를 하나 이상 넣어야 시험 실행할 수 있습니다': 'Add at least one step to run a trial',
   '가져올 단계를 다시 골라야 시험 실행할 수 있습니다': 'Pick the step to take values from again to run a trial',
+  '{번호}번 단계의 잘못 적은 칸을 고쳐야 시험 실행할 수 있습니다': 'Fix the invalid field in step {번호} to run a trial',
   '시험 실행은 기록에 남지 않고 증적도 만들지 않습니다. 저장하지 않은 변경 내용으로도 실행해 볼 수 있습니다':
     'A trial run leaves no record and makes no evidence. You can run it with unsaved changes too',
   '시험 실행 중입니다': 'Trial run in progress',

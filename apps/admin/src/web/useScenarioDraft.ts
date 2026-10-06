@@ -137,10 +137,13 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
 
   const 바뀜 = 찍는다(이름, 디바이스, 단계들) !== 저장본;
 
-  async function 저장(): Promise<{ id: number; version: number } | null> {
+  /** @param 칸오류번호 패널 칸에 잘못 적은 글자가 있는 단계 번호. 초안에는 옛 값이 남아 있어 그대로 저장하면 거짓말이 된다 */
+  async function 저장(칸오류번호: number | null = null): Promise<{ id: number; version: number } | null> {
     if (저장하는중) return null;
     const 사유 =
-      이름.trim() === ''
+      칸오류번호 !== null
+        ? t('{번호}번 단계의 잘못 적은 칸을 고쳐야 저장할 수 있습니다', { 번호: 칸오류번호 })
+        : 이름.trim() === ''
         ? t('시나리오 이름을 적어야 저장할 수 있습니다')
         : 단계들.length === 0
           ? t('단계를 하나 이상 넣어야 저장할 수 있습니다')
