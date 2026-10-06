@@ -113,6 +113,28 @@ describe('ScenarioBuild 팔레트 유지', () => {
     expect(vi.mocked(api.cases)).toHaveBeenCalledTimes(1);
   });
 
+  it('기존 시나리오를 열고 설정 탭만 보면 케이스 목록을 받지 않고 단계 추가 탭을 열면 받는다', async () => {
+    막기();
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue({
+      id: 12,
+      service: 'ZSB',
+      name: 'ZSB 대기 흐름',
+      platform: 'desktop',
+      version: 1,
+      parts: [{ kind: 'wait', ms: 1000 }],
+      isActive: true,
+      versions: [{ version: 1, savedBy: 'zsb', savedByName: '홍길동', savedAt: '2026-10-06T00:10:00.000Z' }],
+      checks: [],
+    });
+    render(<ScenarioBuild id={12} 띠서비스={서비스} user={사람} />);
+    await screen.findByLabelText('기다릴 시간(초)');
+
+    expect(vi.mocked(api.cases)).not.toHaveBeenCalled();
+    fireEvent.click(탭('단계 추가'));
+
+    await waitFor(() => expect(vi.mocked(api.cases)).toHaveBeenCalledTimes(1));
+  });
+
   it('단계 추가 탭이 아닐 때 팔레트는 가려져 있다', async () => {
     막기();
     render(<ScenarioBuild id={null} 띠서비스={서비스} user={사람} />);
