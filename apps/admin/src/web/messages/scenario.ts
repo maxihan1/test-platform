@@ -56,7 +56,7 @@ export const 시나리오말: Record<string, string> = {
   '정리': 'Cleanup',
   '마지막에 실행 {메서드} {주소} → {코드}': 'Sent at the end {메서드} {주소} → {코드}',
   '마지막에 실행 {메서드} {주소} — {오류}': 'Sent at the end {메서드} {주소} — {오류}',
-  '절차 {수}': '{수} steps',
+  '절차 {수}': 'Case steps ({수})',
   '실행 중입니다. 끝나면 결과가 채워집니다': 'Running. Results fill in when it finishes',
   '실패 화면 보기': 'View failure screen',
   '← 목록': '← List',

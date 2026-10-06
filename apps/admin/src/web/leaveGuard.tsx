@@ -22,7 +22,7 @@ export function useHash(): string {
       const 새것 = window.location.hash;
       if (새것 === 이전.current) return;
       if (막는쪽 !== null && !한번통과) {
-        // 방문 기록을 늘리지 않고 hashchange 도 다시 일으키지 않으려고 주소만 되돌린다
+        // 해시가 바뀔 때 방문 기록이 이미 한 칸 쌓였다. hashchange 를 다시 일으키지 않으려고 그 칸을 이전 주소로 덮는다 — 그래서 막힌 뒤 뒤로 가기 한 번은 같은 주소에 머문다
         window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search + 이전.current);
         막는쪽(새것);
         return;
