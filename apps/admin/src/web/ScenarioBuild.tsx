@@ -15,7 +15,7 @@ import { ScenarioCards } from './ScenarioCards.js';
 import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
 import { 시험막는글, TrialControls, TrialSummary, TrialTab } from './ScenarioTrial.js';
-import { 케이스바꾸기 } from './scenarioView.js';
+import { 끄기기본, 빈칸있는단계, 케이스바꾸기 } from './scenarioView.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
 import { 시험열쇠, 시험열쇠옮기기, useScenarioTrial } from './useScenarioTrial.js';
 
@@ -77,7 +77,7 @@ export function ScenarioBuild({
 
   async function 저장누름() {
     set저장글(null);
-    const 결과 = await 초안.저장(칸오류번호);
+    const 결과 = await 초안.저장(칸오류번호 ?? 빈칸있는단계(초안.단계들));
     if (결과 === null) return;
     if (id === null) {
       // 자기 이동에 떠나기 상자를 띄우지 않는다
@@ -98,7 +98,8 @@ export function ScenarioBuild({
     set고른번호(번호);
   }
   function 끝에더하기(part: ScenarioPart) {
-    초안.단계들바꾸기([...초안.단계들, part]);
+    const 넣을것 = part.kind === 'unmock' && part.urlPattern === '' ? { ...part, urlPattern: 끄기기본(초안.단계들) } : part;
+    초안.단계들바꾸기([...초안.단계들, 넣을것]);
     set고른번호(초안.단계들.length + 1);
     set탭('settings');
   }
@@ -108,7 +109,7 @@ export function ScenarioBuild({
     void 초안.새로불러오기().then((수) => set고른번호((앞) => (앞 !== null && 수 !== null && 앞 > 수 ? null : 앞)));
   }
   function 시험누름() {
-    const 사유 = 시험막는글(t, 서버, 초안.단계들, 칸오류번호);
+    const 사유 = 시험막는글(t, 서버, 초안.단계들, 칸오류번호 ?? 빈칸있는단계(초안.단계들));
     set시험글(사유);
     if (사유 !== null) return;
     set탭('trial');

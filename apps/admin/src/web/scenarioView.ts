@@ -139,6 +139,31 @@ export function 가리킴빈곳(parts: ScenarioPart[]): number[] {
   return 빈곳;
 }
 
+// 서버 조립 검사(scenario/validate.ts)가 min(1) 로 막는 칸들. 비운 채 저장하면 서버 400 영문 JSON 이 화면을 덮는다
+function 빈칸있나(p: ScenarioPart): boolean {
+  const 빔 = (글: string) => 글.trim() === '';
+  if (p.kind === 'mock' || p.kind === 'unmock') return 빔(p.urlPattern);
+  if (p.kind === 'api') return 빔(p.path);
+  if (p.kind !== 'case') return false;
+  return (p.links ?? []).some((l) => {
+    if (l.kind === 'bind') return 빔(l.param) || 빔(l.value.urlPattern) || 빔(l.value.jsonPath);
+    if (l.kind === 'rewrite') return 빔(l.urlPattern) || 빔(l.to.path) || 빔(l.to.value.urlPattern) || 빔(l.to.value.jsonPath);
+    return 빔(l.urlPattern);
+  });
+}
+
+/** 필수 칸이 빈 첫 단계의 번호. 없으면 null */
+export function 빈칸있는단계(parts: ScenarioPart[]): number | null {
+  const i = parts.findIndex(빈칸있나);
+  return i < 0 ? null : i + 1;
+}
+
+/** 모킹 끄기를 맨 끝에 더할 때의 기본 무늬 — 앞에서 켜져 있고 아직 안 꺼진 모킹 중 마지막 것. 없으면 빈칸 */
+export function 끄기기본(parts: ScenarioPart[]): string {
+  const 걸림 = 모킹구간([...parts, { kind: 'unmock', urlPattern: '' }]).at(-1) ?? [];
+  return 걸림.at(-1) ?? '';
+}
+
 /** 서버가 넘겨받기를 끈 단계의 건너뛰기 · 값 연결을 400 으로 막는다 */
 export function 넘겨받기끄기(part: CasePart): CasePart {
   return { ...part, carryOver: false, skipSteps: [], links: [] };
