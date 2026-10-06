@@ -62,7 +62,14 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
     const 상세 = await scenarioApi.detail(번호);
     const 새번호들 = 케이스번호들(상세.parts).filter((n) => !부른것.current.has(n));
     새번호들.forEach((n) => 부른것.current.add(n));
-    const 읽음 = await Promise.all(새번호들.map(async (n) => [n, await 재료읽기(n)] as const));
+    let 읽음: (readonly [string, CasePartMaterial | null])[];
+    try {
+      읽음 = await Promise.all(새번호들.map(async (n) => [n, await 재료읽기(n)] as const));
+    } catch (err) {
+      // 지워 두어야 같은 케이스를 나중에 재료더하기가 다시 불러 본다
+      새번호들.forEach((n) => 부른것.current.delete(n));
+      throw err;
+    }
     if (취소됨()) return null;
     set서비스(상세.service);
     set이름(상세.name);
@@ -96,7 +103,8 @@ export function useScenarioDraft(id: number | null, 새서비스: string | null)
     try {
       return await 전부읽기(id, () => false);
     } catch (err) {
-      set오류(message(err, 언어쪽.current));
+      // 서버에서 되돌리기는 이미 끝났으니 조립 화면을 오류 화면으로 바꾸지 않고 상태 줄에 알린다
+      set저장오류(message(err, 언어쪽.current));
       return null;
     }
   }, [id, 전부읽기]);
