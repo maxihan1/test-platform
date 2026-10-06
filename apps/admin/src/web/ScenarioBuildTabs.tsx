@@ -1,7 +1,7 @@
 // E2E 시나리오 조립 화면 오른쪽 탭의 속 — 단계 추가 · 시험 결과 · 변경 이력 · 고른 단계의 설정. 어느 것을 그릴지만 정하고 상태는 화면이 쥔다 (도메인/시나리오 §8.11)
 
 import type { ScenarioPart } from '@platform/kit';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import { ScenarioLinks } from './ScenarioLinks.js';
 import { ScenarioOtherPanel } from './ScenarioOtherPanel.js';
@@ -30,10 +30,13 @@ interface Props {
 
 export function ScenarioBuildTabs(props: Props) {
   const { 탭, 쓰나, 초안, 바꿀번호, on케이스, on다른단계, on바꾸기취소 } = props;
-  // 팔레트는 늘 그려 두고 가리기만 한다. 내리면 단계를 넣을 때마다 케이스 목록을 처음부터 다시 받고 찾기 글자가 지워진다
+  // 팔레트는 단계 추가 탭을 한 번 연 뒤로는 그려 두고 가리기만 한다. 내리면 단계를 넣을 때마다 케이스 목록을 처음부터 다시 받고
+  // 찾기 글자가 지워진다. 한 번도 안 열었으면 안 그린다 — 설정만 보는 사람이 목록을 20쪽씩 받을 까닭이 없다
+  const [열었나, set열었나] = useState(탭 === 'add');
+  if (탭 === 'add' && !열었나) set열었나(true);
   return (
     <>
-      {!쓰나 ? null : (
+      {!쓰나 || !열었나 ? null : (
         <div hidden={탭 !== 'add'}>
           <ScenarioPalette
             서비스={초안.서비스}
