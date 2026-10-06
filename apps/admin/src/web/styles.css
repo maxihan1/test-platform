@@ -3446,6 +3446,19 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
     margin-left: 26px;
   }
 
+  /* 손가락으로 누르는 자리는 46px 로 건다 — 위 `.evi-open` · `.side-nav a` 와 같은 기준 */
+  .scn-back a,
+  .scn-sc,
+  .scn-shot {
+    display: inline-flex;
+    align-items: center;
+    min-height: 46px;
+  }
+
+  .scn-toggle {
+    min-height: 46px;
+  }
+
   .scn-mock-note,
   .scn-detail,
   .scn-error,

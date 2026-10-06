@@ -39,7 +39,7 @@ export function ScenarioResult({ runId, 상자안 = false }: { runId: number; �
     <>
       <span>{t('E2E · 시나리오 v{버전} · {디바이스}', { 버전: data.version, 디바이스: t(PLATFORM_LABEL[data.platform]) })}</span>
       {' · '}
-      <a href={`#/scenarios/${data.scenarioId}`}>{`SC-${data.scenarioId}`}</a>
+      <a className="scn-sc" href={`#/scenarios/${data.scenarioId}`}>{`SC-${data.scenarioId}`}</a>
     </>
   );
   const 걸린시간 = data.finishedAt === null ? null : Date.parse(data.finishedAt) - Date.parse(data.startedAt);
