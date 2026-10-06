@@ -1,7 +1,7 @@
 // 이어 주기 규칙 — 어떤 요청에 무엇을 걸지 브라우저 없이 판단한다. Playwright 에 닿는 일은 window.ts 가 한다 (SPEC 도메인/시나리오 §3.7 결정 12)
 
 // kit 은 타입만 가져온다 — 값으로 부르면 케이스의 require 와 섞여 러너 이미지에서 죽는다 (parts.ts 머리 · 2026-09-28 이미지 실측)
-import type { BrowserContext } from '@playwright/test';
+import type { APIRequest, BrowserContext } from '@playwright/test';
 import type { ScenarioPhase } from '@platform/kit/scenario';
 import type { ScenarioExecuteRequest, ScenarioLink, ScenarioMethod, ScenarioResponseRef } from '@platform/kit';
 
@@ -14,7 +14,7 @@ export interface 미룬삭제 {
   fromSeq: number;
   url: string;                                   // 절대 주소 (결정 11)
   headers: Record<string, string>;               // 그 호출에 붙인 headers + 그 도구를 만들 때 준 extraHTTPHeaders
-  httpCredentials?: { username: string; password: string };
+  httpCredentials?: NonNullable<Parameters<APIRequest['newContext']>[0]>['httpCredentials'];
   state: 상태;                                    // 모을 때의 쿠키 — 못 읽으면 부품의 찍은상태 (결정 6)
 }
 
