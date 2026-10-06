@@ -4,12 +4,13 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { ItemStatus, Platform, ScenarioPart, StepResult } from '@platform/kit';
+import type { ItemStatus, Platform, ScenarioCleanup, ScenarioPart, StepResult } from '@platform/kit';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
 import { artifactsDir, 시나리오실행인가 } from '../execution/routes.js';
 import { 정수 } from '../routeParams.js';
+import { 가린값들 } from '../web/mask.js';
 
 import { 시나리오분배 } from './runResult.js';
 import { 실행만들기, 시나리오실행오류 } from './runStore.js';
@@ -42,6 +43,9 @@ interface 부품행 {
   param_schema: unknown;
   expected_schema: unknown;
   precondition: string[];
+  unconfirmed: string | null;
+  bound: Record<string, unknown>;
+  cleanup: Omit<ScenarioCleanup, 'fromSeq'>[];
 }
 
 interface 절차행 {
@@ -79,7 +83,7 @@ async function db() {
   return pool;
 }
 
-// kind 가 CASE 인 번호는 없는 것으로 본다 (§7)
+// kind 가 UI · FN 인 번호는 없는 것으로 본다 (§7)
 async function 결과(runId: number) {
   const pool = await db();
   const 머리 = await pool.query<{ scenario_id: string; scenario_version: number; status: string; platform: Platform }>(
@@ -94,7 +98,7 @@ async function 결과(runId: number) {
 
   const 부품 = await pool.query<부품행>(
     `SELECT id, seq, kind, tc_id, tc_name, part, status, duration_ms, skipped_steps, mocks, error,
-            param_schema, expected_schema, precondition
+            param_schema, expected_schema, precondition, unconfirmed, bound, cleanup
        FROM scenario_run_part WHERE run_id = $1 ORDER BY seq`,
     [runId],
   );
@@ -116,7 +120,11 @@ async function 결과(runId: number) {
       kind: p.kind,
       tcId: p.tc_id,
       tcName: p.tc_name,
-      part: p.part,
+      // 부품 행에는 사람이 본 적 없는 저장 비밀번호가 채워져 있다. 화면만 가리면 개발자 도구로 원문이 보인다 (실행 §8.2)
+      part:
+        p.part.kind === 'case'
+          ? { ...p.part, params: 가린값들(p.part.params, p.param_schema), expected: 가린값들(p.part.expected, p.expected_schema) }
+          : p.part,
       status: p.status,
       durationMs: p.duration_ms,
       skippedSteps: p.skipped_steps,
@@ -124,6 +132,9 @@ async function 결과(runId: number) {
       paramSchema: p.param_schema,
       expectedSchema: p.expected_schema,
       precondition: p.precondition,
+      unconfirmed: p.unconfirmed,
+      bound: 가린값들(p.bound, p.param_schema),
+      cleanup: p.cleanup,
       steps: 절차.rows.filter((s) => s.part_id === p.id).map(절차로),
       error: p.error,
     })),
