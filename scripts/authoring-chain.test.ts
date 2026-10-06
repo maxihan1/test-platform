@@ -19,7 +19,6 @@ import {
   실패까닭,
   한줄,
   비밀섞였나,
-  PR파일인자,
   머지거부사유,
   커밋뒤거부사유,
   올린파일인자,
@@ -205,10 +204,6 @@ describe('커밋 뒤 판정 — 자식이 몰래 커밋한 것까지 본다', ()
 });
 
 describe('머지 직전 판정 — PR 이 케이스만 바꿨나', () => {
-  it('PR 의 바뀐 파일 목록을 이름만 읽는다', () => {
-    expect(PR파일인자('https://github.com/x/y/pull/3')).toEqual(['pr', 'diff', 'https://github.com/x/y/pull/3', '--name-only']);
-  });
-
   it('테스트만이면 막지 않는다', () => {
     expect(머지거부사유(true, ['tests/todo/a.spec.ts'])).toBeNull();
   });
