@@ -132,7 +132,8 @@ export function ScenarioBuild({
   }
   const 최신 = 초안.버전들[0];
   const 서비스이름 = user.services.find((s) => s.prefix === 초안.서비스)?.name ?? 초안.서비스;
-  const 상태글 = 초안.저장오류 ?? 저장글;
+  // 저장했다는 줄은 그 뒤에 다시 고치면 낡은 말이다
+  const 상태글 = 초안.저장오류 ?? (초안.바뀜 ? null : 저장글);
   const 시험알림 = 시험글 ?? 시험.오류문장;
 
   const 부제 = (
@@ -258,7 +259,7 @@ export function ScenarioBuild({
                 on바꿈={고른단계바꿈}
                 on되돌림={되돌림끝}
                 on칸오류={(번호, 있나) => set칸오류번호((앞) => (있나 ? 번호 : 앞 === 번호 ? null : 앞))}
-                시험={<TrialTab 시험={시험} 단계들={초안.단계들} />}
+                시험={<TrialTab 시험={시험} 단계들={초안.단계들} 재료={초안.재료} />}
               />
             </ScenarioTabs>
           </section>

@@ -5,7 +5,7 @@ import type { ScenarioExecuteResponse, ScenarioPart, ScenarioPartResult } from '
 import type { EnvRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi } from './scenarioApi.js';
-import { 가리킴빈곳, 종류글 } from './scenarioView.js';
+import { 가리킴빈곳, 종류글, 카드요약, type 재료들 } from './scenarioView.js';
 import { seconds, Verdict } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
 
@@ -87,7 +87,7 @@ export function TrialSummary({ 시험, on자세히 }: { 시험: 시험상태; on
   );
 }
 
-export function TrialTab({ 시험, 단계들 }: { 시험: 시험상태; 단계들: ScenarioPart[] }) {
+export function TrialTab({ 시험, 단계들, 재료 }: { 시험: 시험상태; 단계들: ScenarioPart[]; 재료: 재료들 }) {
   const t = use말();
   const 결과 = 시험.결과;
   return (
@@ -106,7 +106,7 @@ export function TrialTab({ 시험, 단계들 }: { 시험: 시험상태; 단계�
           {결과.error === undefined ? null : <p className={오류칠(결과.status)}>{결과.error.message}</p>}
           <ol className="scn-steps">
             {결과.parts.map((p) => (
-              <TrialRow key={p.seq} part={p} 종류={단계들[p.seq - 1]?.kind} trialId={시험.trialId} />
+              <TrialRow key={p.seq} part={p} 단계={단계들[p.seq - 1]} 재료={재료} trialId={시험.trialId} />
             ))}
           </ol>
         </>
@@ -117,15 +117,27 @@ export function TrialTab({ 시험, 단계들 }: { 시험: 시험상태; 단계�
 
 function TrialRow({
   part,
-  종류,
+  단계,
+  재료,
   trialId,
 }: {
   part: ScenarioPartResult;
-  종류: ScenarioPart['kind'] | undefined;
+  단계: ScenarioPart | undefined;
+  재료: 재료들;
   trialId: string | null;
 }) {
   const t = use말();
   const 언어 = use언어();
+  const 종류 = 단계?.kind;
+  // 실행 결과 화면의 단계 줄과 같은 이름이다. 재료가 없으면 번호만 보인다
+  const 이름 =
+    단계 === undefined ? null : 단계.kind === 'case' ? (
+      <>
+        <b className="scn-id">{단계.tcId}</b> <span>{재료.get(단계.tcId)?.name ?? ''}</span>
+      </>
+    ) : (
+      <span>{카드요약(단계, undefined, 언어)}</span>
+    );
   const 안돌았다 = part.status === 'NA' && part.error?.message === 'NOT_RUN';
   const 적용됨 = (종류 === 'mock' || 종류 === 'unmock') && part.status === 'PASS';
   const 사유 = part.error?.message ?? '';
@@ -136,6 +148,7 @@ function TrialRow({
       <div className="scn-part-head">
         <span className="scn-seq">{part.seq}</span>
         {종류 === undefined ? null : <span className="tech-tag">{t(종류글[종류])}</span>}
+        {이름 === null ? null : <span className="scn-name">{이름}</span>}
         <span className="scn-end">
           {적용됨 ? (
             <span className="tech-tag">{t('적용됨')}</span>

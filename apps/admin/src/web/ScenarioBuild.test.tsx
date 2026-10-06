@@ -359,8 +359,9 @@ describe('ScenarioBuild 저장', () => {
       끝내기({ version: 4 });
     });
 
-    await waitFor(() => expect(screen.getByText('저장했습니다 · v4')).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: '저장' })).toBeTruthy());
     expect(이름칸().value).toBe('저장 중에 친 글자');
+    expect(screen.getByText('저장 안 된 변경 있음')).toBeTruthy();
   });
 
   it('STALE_VERSION 은 다른 사람이 먼저 저장했다는 문장이 뜬다', async () => {
