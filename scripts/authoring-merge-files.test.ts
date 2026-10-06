@@ -7,8 +7,22 @@ describe('병합 직전 PR 파일 목록 — 페이지로 받고 옛 경로까�
   it('diff 대신 파일 API 를 쪽당 100 개씩 끝까지 받는다 — gh pr diff 는 300 개를 넘으면 HTTP 406 이다', () => {
     expect(PR파일인자('https://github.com/x/y/pull/3')).toEqual([
       'api',
+      '--hostname',
+      'github.com',
       '--paginate',
       'repos/x/y/pulls/3/files?per_page=100',
+      '--jq',
+      '.[] | [.filename, (.previous_filename // "")] | @tsv',
+    ]);
+  });
+
+  it('회사 GitHub(Enterprise) 주소면 그 호스트로 묻는다 — 서버는 https 저장소면 호스트를 안 가린다', () => {
+    expect(PR파일인자('https://git.corp.example:8443/team/app/pull/12')).toEqual([
+      'api',
+      '--hostname',
+      'git.corp.example:8443',
+      '--paginate',
+      'repos/team/app/pulls/12/files?per_page=100',
       '--jq',
       '.[] | [.filename, (.previous_filename // "")] | @tsv',
     ]);
@@ -32,7 +46,13 @@ describe('병합 직전 PR 파일 목록 — 페이지로 받고 옛 경로까�
     'http://github.com/x/y/pull/3',
     'https://evil.example/https://github.com/x/y/pull/3',
     'https://github.com/x/y/z/pull/3',
-  ])('github PR 주소로 끝나지 않으면 인자를 안 만든다: %s', (주소) => {
+    'https://user@github.com/x/y/pull/3',
+    'https://git hub.com/x/y/pull/3',
+    'https://-x.example/x/y/pull/3',
+    'https://github.com:/x/y/pull/3',
+    'https://github.com:80a/x/y/pull/3',
+    'https:///x/y/pull/3',
+  ])('PR 주소로 끝나지 않거나 호스트에 이상한 글자가 끼면 인자를 안 만든다: %j', (주소) => {
     expect(PR파일인자(주소)).toBeNull();
   });
 });
