@@ -63,9 +63,11 @@ function 움직임줄이기() {
   });
 }
 
+const 서비스열기 = vi.fn();
+
 async function 열기(값: 대시보드응답) {
   읽기를(값);
-  const 결과 = render(<Dashboard />);
+  const 결과 = render(<Dashboard 서비스열기={서비스열기} />);
   await screen.findByText('일별 테스트 결과');
   return 결과;
 }
@@ -219,6 +221,13 @@ describe('요구사항 커버리지', () => {
     expect(링크.textContent).toContain('10월 5일');
     expect(줄.querySelector('.dash-cov-bar i')).not.toBeNull();
     expect(줄.textContent).toContain('85%');
+  });
+
+  it('요청 링크를 누르면 그 서비스로 바꾼다 — 작성 상세는 고른 서비스로 요청을 열고 대시보드에는 고르개가 없다', async () => {
+    const { container } = await 열기(응답());
+    서비스열기.mockClear();
+    within(container.querySelectorAll('.dash-cov-row')[0] as HTMLElement).getByRole('link').click();
+    expect(서비스열기).toHaveBeenCalledWith(1);
   });
 
   it('요구가 0 이면 막대와 퍼센트를 비운다', async () => {

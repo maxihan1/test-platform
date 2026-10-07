@@ -18,7 +18,7 @@ function 짧은날짜(iso: string, 언어: 언어): string {
   }).format(new Date(iso));
 }
 
-export function 요구커버리지({ 값 }: { 값: 자료 }) {
+export function 요구커버리지({ 값, 서비스열기 }: { 값: 자료; 서비스열기: (serviceId: number) => void }) {
   const t = use말();
   const 언어 = use언어();
   const 센것 = 값.coverage.filter((줄) => 줄.total > 0);
@@ -79,7 +79,8 @@ export function 요구커버리지({ 값 }: { 값: 자료 }) {
           <div key={서비스.id} className="dash-cov-row">
             <span className="dash-cov-name">
               <span>{서비스.이름}</span>
-              <a href={`#/authoring/${String(줄.requestId)}`}>
+              {/* 작성 상세는 고른 서비스로 요청을 연다. 대시보드엔 고르개가 없어 누를 때 그 서비스로 바꾼다 */}
+              <a href={`#/authoring/${String(줄.requestId)}`} onClick={() => 서비스열기(줄.serviceId)}>
                 {t('{날짜} · 요청 #{번호}', { 날짜: 짧은날짜(줄.finishedAt, 언어), 번호: 줄.requestId })}
               </a>
             </span>

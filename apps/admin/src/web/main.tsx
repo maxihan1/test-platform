@@ -43,12 +43,14 @@ function Screen({
   user,
   onMeChanged,
   on비밀번호바뀜,
+  on서비스,
 }: {
   hash: string;
   service: ServiceRow | null;
   user: User;
   onMeChanged: () => void;
   on비밀번호바뀜: (user: User) => void;
+  on서비스: (prefix: string) => void;
 }) {
   const t = use말();
   const current = route(hash);
@@ -59,7 +61,14 @@ function Screen({
 
   switch (current.name) {
     case 'dashboard':
-      return <Dashboard />;
+      return (
+        <Dashboard
+          서비스열기={(serviceId) => {
+            const 찾음 = user.services.find((서비스) => 서비스.id === serviceId);
+            if (찾음 !== undefined) on서비스(찾음.prefix);
+          }}
+        />
+      );
     case 'cases':
       // 종류마다 새로 그린다 — 고른 것 · 쪽 · 검색어가 남으면 UI 와 기능을 섞어 골라 실행이 MIXED_KIND 로 거절된다 (PR #132)
       return (
@@ -235,6 +244,11 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         service={열린것}
         user={상태.user}
         on비밀번호바뀜={(user) => 비밀번호바뀜(user, false)}
+        // 사이드바 고르개와 같은 길이다 — 대시보드에서 다른 서비스의 작성 요청을 열 때 쓴다
+        on서비스={(접두사) => {
+          고른서비스를적는다(접두사);
+          setPrefix(접두사);
+        }}
         onMeChanged={() => {
           // 설정 화면이 /auth/me 의 재료를 고쳤다 — 계정의 배정·등급이든 서비스의 이름·색·
           // 대상 서버·Slack 웹훅이든. 그 응답 하나가 띠·자리·실행 설정을 다 그린다.

@@ -228,7 +228,7 @@ function 통과율칸({ 값, children }: { 값: 자료; children?: ReactNode }) 
   );
 }
 
-export function Dashboard() {
+export function Dashboard({ 서비스열기 }: { 서비스열기: (serviceId: number) => void }) {
   const t = use말();
   const 시간대 = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
   const 읽음 = use대시보드(시간대);
@@ -281,7 +281,7 @@ export function Dashboard() {
                 <실패히트맵 값={읽음.값} />
               </판칸>
               <판칸 클래스="dash-cov" 제목={t('요구사항 커버리지')} 보조={t('마지막 작성 기준')}>
-                <요구커버리지 값={읽음.값} />
+                <요구커버리지 값={읽음.값} 서비스열기={서비스열기} />
               </판칸>
             </div>
           )}
