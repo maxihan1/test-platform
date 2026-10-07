@@ -124,6 +124,11 @@ export function 고른서비스(저장값: string | null, 배정: ServiceRow[]):
   return 찾은것 ?? 배정[0] ?? null;
 }
 
+/** 대시보드는 서비스를 번호로 준다. 배정 밖 번호면 고르지 않는다 — 고르개가 남의 서비스를 열면 서버가 403 을 낸다 */
+export function 배정서비스접두사(serviceId: number, 배정: ServiceRow[]): string | null {
+  return 배정.find((service) => service.id === serviceId)?.prefix ?? null;
+}
+
 export function 고른서비스를읽는다(): string | null {
   try {
     return localStorage.getItem(고른서비스키);

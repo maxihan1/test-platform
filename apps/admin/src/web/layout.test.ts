@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { RunSummary, ServiceRow, User } from './api.js';
-import { 고른서비스, 빈띠사유, 알림줄, 자리목록, 지금자리, 탭제목 } from './layout.js';
+import { 고른서비스, 배정서비스접두사, 빈띠사유, 알림줄, 자리목록, 지금자리, 탭제목 } from './layout.js';
 
 const 결제: ServiceRow = {
   id: 1,
@@ -173,6 +173,16 @@ describe('자리 목록', () => {
 
   it('대시보드 자리는 대시보드에 밑줄이 간다', () => {
     expect(지금자리('dashboard', '#/dashboard')).toBe('#/dashboard');
+  });
+});
+
+describe('번호로 배정 서비스 찾기', () => {
+  it('대시보드가 넘긴 서비스 번호로 그 배정 서비스의 접두사를 낸다', () => {
+    expect(배정서비스접두사(2, [결제, 회원])).toBe('MEM');
+  });
+
+  it('배정에 없는 번호면 아무것도 고르지 않는다', () => {
+    expect(배정서비스접두사(9, [결제, 회원])).toBe(null);
   });
 });
 

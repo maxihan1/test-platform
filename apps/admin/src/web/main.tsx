@@ -14,6 +14,7 @@ import { ItemDetail } from './ItemDetail.js';
 import { useHash, 떠나기막기 } from './leaveGuard.js';
 import {
   고른서비스,
+  배정서비스접두사,
   고른서비스를읽는다,
   고른서비스를적는다,
   고른언어를읽는다,
@@ -43,14 +44,14 @@ function Screen({
   user,
   onMeChanged,
   on비밀번호바뀜,
-  on서비스,
+  on서비스번호,
 }: {
   hash: string;
   service: ServiceRow | null;
   user: User;
   onMeChanged: () => void;
   on비밀번호바뀜: (user: User) => void;
-  on서비스: (prefix: string) => void;
+  on서비스번호: (serviceId: number) => void;
 }) {
   const t = use말();
   const current = route(hash);
@@ -61,14 +62,7 @@ function Screen({
 
   switch (current.name) {
     case 'dashboard':
-      return (
-        <Dashboard
-          서비스열기={(serviceId) => {
-            const 찾음 = user.services.find((서비스) => 서비스.id === serviceId);
-            if (찾음 !== undefined) on서비스(찾음.prefix);
-          }}
-        />
-      );
+      return <Dashboard 서비스열기={on서비스번호} />;
     case 'cases':
       // 종류마다 새로 그린다 — 고른 것 · 쪽 · 검색어가 남으면 UI 와 기능을 섞어 골라 실행이 MIXED_KIND 로 거절된다 (PR #132)
       return (
@@ -245,7 +239,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         user={상태.user}
         on비밀번호바뀜={(user) => 비밀번호바뀜(user, false)}
         // 사이드바 고르개와 같은 길이다 — 대시보드에서 다른 서비스의 작성 요청을 열 때 쓴다
-        on서비스={(접두사) => {
+        on서비스번호={(번호) => {
+          const 접두사 = 배정서비스접두사(번호, 상태.user.services);
+          if (접두사 === null) return;
           고른서비스를적는다(접두사);
           setPrefix(접두사);
         }}
