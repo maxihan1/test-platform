@@ -51,6 +51,34 @@ export const 대시보드말: Record<string, string> = {
   '실패 히트맵': 'Failure heatmap',
   '요구사항 커버리지': 'Requirement coverage',
 
+  // 일별 막대
+  '막대 위 숫자는 실패 건수': 'The number above a bar is the failure count',
+  '주말': 'Weekend',
+  '최근 {일}일 일별 테스트 결과. 통과 · 미실행 · 실패를 쌓은 막대':
+    'Daily test results for the last {일} days, stacked as passed, not run and failed',
+  '{날짜} ({요일}) 통과 {통과} · 미실행 {미실행} · 실패 {실패}': '{날짜} ({요일}) passed {통과} · not run {미실행} · failed {실패}',
+  '{날짜} ({요일}) 실행 없음': '{날짜} ({요일}) no runs',
+
+  // 통과율 칸 아래 일별 선
+  '일별 통과율': 'Daily pass rate',
+  '{날짜} 통과율 {값}%': '{날짜} pass rate {값}%',
+
+  // 실패 히트맵
+  '최근 {일}일 실패가 많은 케이스': 'Cases with the most failures in the last {일} days',
+  '2 이상': '2 or more',
+  '{날짜} 실패 없음': '{날짜} no failures',
+  '{날짜} 실패 1회': '{날짜} 1 failure',
+  '{날짜} 실패 2회 이상': '{날짜} 2 or more failures',
+  '최근 {일}일 실패가 많은 케이스 {수}개의 날짜별 실패 횟수. 가장 많은 것은 {TC}':
+    'Failures per day for the {수} cases with the most failures in the last {일} days. Most failures: {TC}',
+  '최근 {일}일 실패한 케이스가 없습니다': 'No cases failed in the last {일} days',
+
+  // 요구사항 커버리지
+  '마지막 작성 기준': 'Based on the last authoring run',
+  '케이스로 덮은 요구 {덮음} / {전체}': 'Requirements covered by cases {덮음} / {전체}',
+  '{날짜} · 요청 #{번호}': '{날짜} · request #{번호}',
+  '작성 기록이 없습니다': 'No authoring run yet',
+
   // 실행 0
   '아직 실행한 테스트가 없습니다': 'No tests have run yet',
   '테스트 케이스를 실행하면 여기에 통과율 · 신규 실패 · 일별 결과가 쌓입니다': 'Run test cases and the pass rate, new failures and daily results build up here',

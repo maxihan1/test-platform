@@ -335,7 +335,7 @@ describe('비어 있을 때', () => {
 });
 
 describe('그래프 칸 자리', () => {
-  it('일별 · 히트맵 · 커버리지 판과 제목만 있고 안은 비어 있다. 쌓이는 순서는 화면 읽기 순서다', async () => {
+  it('일별 · 히트맵 · 커버리지는 판이고 쌓이는 순서는 화면 읽기 순서다 (안의 그림은 DashboardCharts.test 가 본다)', async () => {
     읽기를(응답({ running: [실행중(12, 3, 8)] }));
     render(<Dashboard />);
     await screen.findByText('실행 중 1건');
@@ -347,7 +347,6 @@ describe('그래프 칸 자리', () => {
     for (const 제목 of ['일별 테스트 결과', '실패 히트맵', '요구사항 커버리지']) {
       const 판 = screen.getByRole('heading', { name: 제목 }).closest('section')!;
       expect(판.classList.contains('dash-slab')).toBe(true);
-      expect(판.querySelector('svg')).toBeNull();
     }
   });
 });

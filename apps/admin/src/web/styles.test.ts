@@ -808,3 +808,33 @@ describe('메뉴 아이콘 (DESIGN.md 원칙 5, 2026-10-07)', () => {
     expect(블록).toMatch(/flex:\s*none/);
   });
 });
+
+describe('대시보드 그래프 (DESIGN.md 원칙 1 · 2, 2026-10-07)', () => {
+  const 규칙들 = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ 선택자: m[1]!.trim(), 몸: m[2]! }));
+  const 그래프 = /\.dash-(daily|heat|cov|gauge|trend|day|key|days|weekend|fail-top)\b/;
+
+  it('그래프 규칙에 대표색 · 링크 색이 없다 — 그래프는 판정 색과 회색 단계만 쓴다', () => {
+    const 걸린것 = 규칙들.filter((r) => 그래프.test(r.선택자) && /var\(--(accent|link)\b/.test(r.몸)).map((r) => r.선택자);
+    expect(걸린것).toEqual([]);
+    expect(규칙들.filter((r) => 그래프.test(r.선택자)).length, '그래프 규칙이 없다').toBeGreaterThan(10);
+  });
+
+  it('누를 수 없는 그래프 판은 마우스를 올려도 들리지 않는다', () => {
+    const 들림 = 규칙들.filter(
+      (r) => /\.dash-(slab|daily|heat|cov|rate)\b[^,]*:hover/.test(r.선택자) && /transform|box-shadow|translate/.test(r.몸),
+    );
+    expect(들림.map((r) => r.선택자)).toEqual([]);
+    expect(첫규칙('.dash-slab')).not.toMatch(/cursor:\s*pointer/);
+  });
+
+  it('히트맵 칸 색은 토큰 셋(0 · 2 · 3 단계)이고 일별 막대는 판정 색이다', () => {
+    const 칸 = (이름: string) => 규칙들.find((r) => r.선택자 === `.dash-heat-row i.${이름}`)?.몸 ?? '';
+    expect(칸('h0')).toMatch(/var\(--heat-0\)/);
+    expect(칸('h1')).toMatch(/var\(--heat-2\)/);
+    expect(칸('h2')).toMatch(/var\(--heat-3\)/);
+    const 막대 = (이름: string) => 규칙들.find((r) => r.선택자 === `.dash-day rect.${이름}`)?.몸 ?? '';
+    expect(막대('p')).toMatch(/var\(--pass-chart\)/);
+    expect(막대('n')).toMatch(/var\(--na-chart\)/);
+    expect(막대('f')).toMatch(/var\(--fail\)/);
+  });
+});

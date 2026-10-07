@@ -6,6 +6,8 @@ import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { api, ApiError } from './api.js';
 import { 날짜글자, 도넛조각, 몫퍼센트, use올라가기, 안쪽고리길이, 증감, 통과율 } from './dashboardView.js';
 import { 서비스별표, 신규실패표, 실행중줄, 안내판 } from './DashboardTables.js';
+import { 일별막대, 실패히트맵, 통과율선 } from './DashboardCharts.js';
+import { 요구커버리지 } from './DashboardCoverage.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { Loading, message } from './ui.js';
@@ -268,13 +270,19 @@ export function Dashboard() {
             // 순서가 화면 읽기 순서다. 넓은 화면 배치는 CSS 격자가 자리로 옮긴다
             <div className="dash-board">
               <신규실패표 값={읽음.값} />
-              {/* 일별 통과율 선은 이 칸 아래에 꽂는다 (실행한 날이 셋 이상일 때만) */}
-              <통과율칸 값={읽음.값} />
+              <통과율칸 값={읽음.값}>
+                <통과율선 값={읽음.값} />
+              </통과율칸>
               <서비스별표 값={읽음.값} />
-              {/* 아래 셋은 판과 제목만 있다. 그래프는 children 으로 꽂는다 */}
-              <판칸 클래스="dash-daily" 제목={t('일별 테스트 결과')} />
-              <판칸 클래스="dash-heat" 제목={t('실패 히트맵')} />
-              <판칸 클래스="dash-cov" 제목={t('요구사항 커버리지')} />
+              <판칸 클래스="dash-daily" 제목={t('일별 테스트 결과')} 보조={t('막대 위 숫자는 실패 건수')}>
+                <일별막대 값={읽음.값} />
+              </판칸>
+              <판칸 클래스="dash-heat" 제목={t('실패 히트맵')} 보조={t('최근 {일}일 실패가 많은 케이스', { 일: 읽음.값.window.days })}>
+                <실패히트맵 값={읽음.값} />
+              </판칸>
+              <판칸 클래스="dash-cov" 제목={t('요구사항 커버리지')} 보조={t('마지막 작성 기준')}>
+                <요구커버리지 값={읽음.값} />
+              </판칸>
             </div>
           )}
         </div>

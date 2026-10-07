@@ -4780,6 +4780,467 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   color: var(--ink-muted);
 }
 
+/* ── 그래프 셋 + 통과율 선 ───────────────────────────────────────────────
+   색은 판정(통과 · 미실행 · 실패)과 회색 단계만 쓴다 — 대표색을 그래프에 쓰지 않는다 (DESIGN.md 원칙 1).
+   누를 수 없는 판이라 마우스를 올려도 들리지 않는다. 날짜 · 요일 · 숫자 글자는 SVG 가 아니라 HTML 이다 */
+.dash-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+  list-style: none;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.dash-key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-key .dash-sw {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.dash-key .dash-sw.p {
+  background: var(--pass-chart);
+}
+
+.dash-key .dash-sw.n {
+  background: var(--na-chart);
+}
+
+.dash-key .dash-sw.f {
+  background: var(--fail);
+}
+
+.dash-key .dash-sw.w {
+  background: var(--chart-weekend);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+
+.dash-key .dash-sw.h0 {
+  background: var(--heat-0);
+}
+
+.dash-key .dash-sw.h1 {
+  background: var(--heat-2);
+}
+
+.dash-key .dash-sw.h2 {
+  background: var(--heat-3);
+}
+
+/* 일별 — 막대 위 실패 숫자가 들어갈 위쪽 20px 을 비워 둔다. 세로는 viewBox 와 같은 200px 이라 1:1 이다 */
+.dash-daily-plot {
+  position: relative;
+  margin-left: 32px;
+  padding-top: 20px;
+}
+
+.dash-daily-plot svg {
+  display: block;
+  width: 100%;
+  height: 200px;
+  overflow: visible;
+}
+
+.dash-weekend {
+  fill: var(--chart-weekend);
+}
+
+.dash-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.dash-day rect {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: 자람 var(--dur) var(--ease) backwards;
+}
+
+.dash-day rect.p {
+  fill: var(--pass-chart);
+}
+
+.dash-day rect.n {
+  fill: var(--na-chart);
+}
+
+.dash-day rect.f {
+  fill: var(--fail);
+}
+
+@keyframes 자람 {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.dash-yaxis {
+  position: absolute;
+  left: -32px;
+  width: 26px;
+  text-align: right;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.dash-fail-top {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  font-size: 12px;
+  color: var(--fail-text);
+}
+
+.dash-note {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  max-width: 360px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--panel);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--ink-muted);
+  transform: translate(-50%, -50%);
+}
+
+.dash-days,
+.dash-heat-days {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  margin-top: 4px;
+}
+
+.dash-days {
+  margin-left: 32px;
+}
+
+.dash-days span,
+.dash-heat-days span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.dash-days i,
+.dash-heat-days i {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--ink-faint);
+}
+
+.dash-days .we,
+.dash-heat-days .we,
+.dash-days .we i {
+  color: var(--ink);
+}
+
+.dash-heat-days span {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+/* 히트맵 — 줄 머리(TC ID + 말줄임 이름) 다음에 14일 칸이 이어진다 */
+.dash-heat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dash-heat-row,
+.dash-heat-days {
+  display: grid;
+  grid-template-columns: clamp(96px, 20%, 240px) repeat(14, minmax(0, 1fr));
+  gap: 3px;
+  align-items: center;
+}
+
+.dash-heat-days {
+  margin-top: 4px;
+  margin-left: 0;
+}
+
+.dash-heat-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.dash-heat-head .mono {
+  flex: none;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.dash-heat-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-heat-row i {
+  display: block;
+  height: 22px;
+  border-radius: 2px;
+}
+
+.dash-heat-row i.h0 {
+  background: var(--heat-0);
+}
+
+.dash-heat-row i.h1 {
+  background: var(--heat-2);
+}
+
+.dash-heat-row i.h2 {
+  background: var(--heat-3);
+}
+
+.dash-heat .dash-calm {
+  margin-top: 12px;
+}
+
+/* 커버리지 — 두께는 아래 층을 먼저 깔아 만든다. 회색 단계만 쓴다 */
+.dash-gauge-wrap {
+  position: relative;
+  width: min(240px, 100%);
+  margin: 0 auto 12px;
+  aspect-ratio: 240 / 152;
+}
+
+.dash-gauge {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.dash-gauge-t,
+.dash-gauge-v {
+  fill: none;
+  stroke-width: 20;
+}
+
+.dash-gauge .side .dash-gauge-t {
+  stroke: var(--rail);
+}
+
+.dash-gauge .side .dash-gauge-v {
+  stroke: var(--chart-2);
+}
+
+.dash-gauge .top .dash-gauge-t {
+  stroke: var(--chart-track);
+}
+
+.dash-gauge .top .dash-gauge-v {
+  stroke: var(--chart-1);
+}
+
+.dash-gauge-v {
+  animation: 그려짐 var(--dur) var(--ease) 0.1s backwards;
+}
+
+.dash-tick {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.dash-tick.l {
+  top: 92%;
+  left: 10%;
+}
+
+.dash-tick.m {
+  top: 0;
+  left: 50%;
+}
+
+.dash-tick.r {
+  top: 92%;
+  left: 90%;
+}
+
+.dash-gauge-num {
+  position: absolute;
+  right: 0;
+  bottom: 12px;
+  left: 0;
+  font-size: 32px;
+  line-height: 1;
+  text-align: center;
+}
+
+.dash-gauge-num .dash-pct {
+  font-size: 16px;
+}
+
+.dash-gauge-cap {
+  padding: 4px 0 16px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+.dash-cov-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 30%) minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.dash-cov-row.none {
+  grid-template-columns: minmax(80px, 30%) minmax(0, 1fr);
+}
+
+.dash-cov-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dash-cov-name a {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.dash-cov-name a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.dash-cov-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.dash-cov-bar i {
+  display: block;
+  height: 100%;
+  background: var(--chart-1);
+  transform-origin: left;
+  animation: 자람가로 var(--dur) var(--ease) 0.1s backwards;
+}
+
+@keyframes 자람가로 {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.dash-cov-pct {
+  text-align: right;
+  font-size: 14px;
+}
+
+/* 통과율 칸 아래 우묵한 자리 — 일별 통과율 선 */
+.dash-trend {
+  padding: 12px 16px;
+  border-radius: 4px;
+  background: var(--well);
+}
+
+.dash-trend-plot {
+  position: relative;
+  height: 56px;
+}
+
+.dash-trend-plot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.dash-trend polyline {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.dash-trend-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chart-1);
+  transform: translate(-50%, -50%);
+}
+
+.dash-trend .dash-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+/* 날짜 글자가 칸보다 넓어지는 좁은 폭에서는 하루 걸러 보인다 — 오늘(마지막)은 늘 남는다 */
+@container (max-width: 1100px) and (min-width: 901px) {
+  .dash-daily .dash-days > span:nth-child(odd) {
+    visibility: hidden;
+  }
+}
+
+@container (max-width: 560px) {
+  .dash-slab {
+    padding: 16px;
+  }
+
+  .dash-daily-plot,
+  .dash-days {
+    margin-left: 28px;
+  }
+
+  .dash-yaxis {
+    left: -28px;
+    width: 24px;
+  }
+
+  .dash-days > span:nth-child(odd),
+  .dash-heat-days > span:nth-child(odd) {
+    visibility: hidden;
+    max-width: 0;
+    overflow: hidden;
+  }
+
+  /* 줄 머리가 좁아 TC ID 에 이름이 밀려난다 — 이름을 아래 줄로 내려 말줄임이 보이게 한다 */
+  .dash-heat-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .dash-heat-row i {
+    height: 30px;
+  }
+}
+
 /* 실행이 하나도 없을 때의 안내 한 장 */
 .dash-empty {
   display: flex;
