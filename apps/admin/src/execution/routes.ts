@@ -116,7 +116,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     markAborted(runId);
     // 돌고 있는 자식까지 끊는다. 대기 중인 것만 취소하면 5분짜리 케이스가 도는 중에는
     // 버튼이 아무 일도 안 하는 것처럼 보인다 (SPEC §8.3)
-    await Promise.all(미완.map((historyId) => abortRunner(historyId)));
+    await Promise.all(미완.map((i) => abortRunner(i.historyId, i.platform)));
 
     // 사람이 멈춘 것도 끝난 것이다. 알림이 실패해도 멈춤은 성립한다 (SPEC §8.9)
     try {

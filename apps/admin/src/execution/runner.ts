@@ -7,6 +7,7 @@ import https from 'node:https';
 import type {
   ExecuteRequest,
   ExecuteResponse,
+  Platform,
   RunningStep,
   ScenarioExecuteRequest,
   ScenarioExecuteResponse,
@@ -26,16 +27,31 @@ function runnerUrl(): string {
   return process.env.RUNNER_URL ?? 'http://localhost:4000';
 }
 
+// android 항목은 개발자 컴퓨터의 로컬 러너가 맡는다 (SPEC 실행 §7). 값이 없는데 여기까지 왔다면 실행 요청 통로의 거절을
+// 지나친 것이다 — 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이므로 컨테이너로 돌리지 않고 NA 로 접는다
+function 러너주소(platform: Platform): string | undefined {
+  if (platform !== 'android') return runnerUrl();
+  return process.env.LOCAL_RUNNER_URL || undefined;
+}
+
+// 진행을 물을 러너들. 로컬 러너가 있고 컨테이너와 다를 때만 둘이다
+function 러너들(): string[] {
+  const 로컬 = process.env.LOCAL_RUNNER_URL;
+  return 로컬 && 로컬 !== runnerUrl() ? [runnerUrl(), 로컬] : [runnerUrl()];
+}
+
 function na(item: PendingItem, message: string, stack?: string): ExecuteResponse {
   // 판정할 근거가 없으면 NA다. 실패와 구분돼야 러너 고장과 케이스 실패가 섞이지 않는다 (SPEC §3.2)
   return { historyId: item.historyId, status: 'NA', durationMs: 0, steps: [], error: { message, stack } };
 }
 
 // 돌고 있는 자식 프로세스를 그룹째 끊어 달라고 한다. 이미 끝났거나 러너가 모르는 historyId면 false다 —
-// 경합이지 고장이 아니므로 던지지 않는다 (SPEC §5.2)
-export async function abortRunner(historyId: number): Promise<boolean> {
+// 경합이지 고장이 아니므로 던지지 않는다 (SPEC §5.2). 그 항목을 맡은 러너 하나에만 보낸다 (SPEC 실행 §7)
+export async function abortRunner(historyId: number, platform: Platform): Promise<boolean> {
+  const 주소 = 러너주소(platform);
+  if (주소 === undefined) return false;
   try {
-    const res = await fetch(`${runnerUrl()}/abort`, {
+    const res = await fetch(`${주소}/abort`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ historyId }),
@@ -53,14 +69,20 @@ export async function abortRunner(historyId: number): Promise<boolean> {
 // 한 번 실패가 곧 「러너가 죽었다」는 아니고, 러너 고장을 사람에게 알리는 자리는 따로 있다 (SPEC §8.3).
 // **여기서 거르지 않는다.** 러너의 목록은 모든 서비스의 자식을 담고 runId 칸이 없다 (SPEC §5.2)
 export async function 진행(): Promise<RunningStep[]> {
-  try {
-    // 화면이 짧은 주기로 다시 묻는다. 오래 매달려 있어 봐야 다음 물음이 덮는다
-    const res = await fetch(`${runnerUrl()}/progress`, { signal: AbortSignal.timeout(3_000) });
-    if (!res.ok) return [];
-    return ((await res.json()) as { items?: RunningStep[] }).items ?? [];
-  } catch {
-    return [];
-  }
+  // 러너마다 따로 묻는다. 한쪽이 죽어도 다른 쪽 절차는 보여야 한다
+  const 목록 = await Promise.all(
+    러너들().map(async (주소): Promise<RunningStep[]> => {
+      try {
+        // 화면이 짧은 주기로 다시 묻는다. 오래 매달려 있어 봐야 다음 물음이 덮는다
+        const res = await fetch(`${주소}/progress`, { signal: AbortSignal.timeout(3_000) });
+        if (!res.ok) return [];
+        return ((await res.json()) as { items?: RunningStep[] }).items ?? [];
+      } catch {
+        return [];
+      }
+    }),
+  );
+  return 목록.flat();
 }
 
 // 400·404·500은 전부 { error, detail } 이다. 사람이 읽을 사유로 합쳐 둔다
@@ -125,9 +147,12 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
     timeoutMs: item.timeoutMs,
   };
 
+  const 주소 = 러너주소(item.platform);
+  if (주소 === undefined) return na(item, '이 서버에는 Android 앱을 돌릴 로컬 러너(LOCAL_RUNNER_URL)가 없다');
+
   const startedAt = Date.now();
   try {
-    const res = await 러너에보낸다('/execute', body, httpTimeoutMs(item.timeoutMs));
+    const res = await 러너에보낸다('/execute', body, httpTimeoutMs(item.timeoutMs), 주소);
 
     if (res.status < 200 || res.status >= 300) {
       return { ...na(item, 거절사유(res.status, res.json)), durationMs: Date.now() - startedAt };
