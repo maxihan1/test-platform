@@ -9,6 +9,7 @@ import {
 } from '@playwright/test';
 
 import type { StepResult } from '../types.js';
+import { captureApp, openApp, type AppDriver } from './app.js';
 import { shotPath } from './artifacts.js';
 import { runScope, type RunScope } from './context.js';
 import type { CaseHandle } from './defineCase.js';
@@ -18,8 +19,10 @@ import { STEP_ATTACHMENT } from './protocol.js';
 import { registerScenarioCase, type ScenarioCaseRunner } from './scenario.js';
 import { step, StopTest } from './step.js';
 
+// 브라우저 케이스에는 page, android 앱 케이스에는 driver 만 있다. 없는 쪽을 꺼내면 던진다
 export interface CaseBodyArgs<P, E> {
   page: Page;
+  driver: AppDriver;
   request: APIRequestContext;
   params: P;
   expected: E;
@@ -86,7 +89,44 @@ async function capture(page: Page, seq: number): Promise<string | undefined> {
 function platformLabel(project: string): string {
   if (project === 'desktop') return 'PC';
   if (project === 'mobile') return '모바일';
+  if (project === 'android') return 'Android 앱';
   return project;
+}
+
+function browserArgs<P, E>(
+  tcId: string,
+  page: Page,
+  request: APIRequestContext,
+  params: P,
+  expected: E,
+): CaseBodyArgs<P, E> {
+  return {
+    page,
+    get driver(): AppDriver {
+      throw new Error(`${tcId}은 브라우저 케이스라 driver 가 없다`);
+    },
+    request,
+    params,
+    expected,
+  };
+}
+
+function appArgs<P, E>(
+  tcId: string,
+  driver: AppDriver,
+  request: APIRequestContext,
+  params: P,
+  expected: E,
+): CaseBodyArgs<P, E> {
+  return {
+    get page(): Page {
+      throw new Error(`${tcId}은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다`);
+    },
+    driver,
+    request,
+    params,
+    expected,
+  };
 }
 
 async function emit(testInfo: TestInfo, result: StepResult): Promise<void> {
@@ -127,7 +167,7 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       const inputs = resolveInputs(spec, { params, expected });
       await runScope.run(run, async () => {
         try {
-          await body({ page, request: traced(request), ...inputs });
+          await body(browserArgs(spec.tcId, page, traced(request), inputs.params, inputs.expected));
         } catch (thrown) {
           if (!(thrown instanceof StopTest)) throw thrown;
         }
@@ -151,7 +191,27 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     return;
   }
 
-  base(spec.name, async ({ page, request }, testInfo) => {
+  const isApp = spec.platforms.includes('android');
+
+  // 케이스를 건너뛸지는 본문에서 가른다. fixture 는 그보다 먼저 돌아서 거기서 열면 보류 케이스도 Appium 에 붙는다
+  const appTest = isApp
+    ? base.extend<{ appSession: { open(): Promise<AppDriver> } }>({
+        appSession: async ({}, use) => {
+          let driver: AppDriver | undefined;
+          await use({ open: async () => (driver ??= await openApp(process.env)) });
+          if (driver === undefined) return;
+          // 본문 안 finally 는 제한 시간에 걸리면 안 돈다. 정리 단계는 그 뒤에도 돈다
+          try {
+            await driver.deleteSession();
+          } catch (err) {
+            // 닫기 실패로 이미 난 판정을 덮으면 안 된다. 대신 폰에 세션이 남았을 수 있다는 것은 알린다
+            console.error(`[kit] Appium 연결을 닫지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        },
+      })
+    : undefined;
+
+  const prepare = (testInfo: TestInfo) => {
     // 보류 케이스는 사람이 채울 칸에 기본값이 없어 입력 검증부터 깨진다. 채워 held 를 지우면 그대로 돈다
     base.skip(spec.held !== undefined, spec.held);
 
@@ -161,19 +221,26 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
       `${spec.tcId}은 ${platformLabel(testInfo.project.name)} 환경을 선언하지 않았다`,
     );
 
-    const { params, expected } = resolveInputs(spec, injectedInputs());
+    return resolveInputs(spec, injectedInputs());
+  };
 
+  const execute = async (
+    testInfo: TestInfo,
+    args: (inputs: { params: P; expected: E }) => CaseBodyArgs<P, E>,
+    capture: RunScope['capture'],
+    inputs: { params: P; expected: E },
+  ): Promise<void> => {
     const run: RunScope = {
       seq: 0,
       failed: false,
       stopped: false,
-      capture: (seq) => capture(page, seq),
+      capture,
       emit: (result) => emit(testInfo, result),
     };
 
     await runScope.run(run, async () => {
       try {
-        await body({ page, request: traced(request), params, expected });
+        await body(args(inputs));
       } catch (thrown) {
         // 멈춤 신호는 여기서 끝낸다. 진짜 예외는 Playwright가 위치까지 보여주도록 그대로 올린다
         if (!(thrown instanceof StopTest)) throw thrown;
@@ -181,6 +248,20 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     });
 
     if (run.failed) throw new Error(`검증 실패: ${run.firstFailure ?? spec.tcId}`);
+  };
+
+  if (appTest) {
+    appTest(spec.name, async ({ request, appSession }, testInfo) => {
+      const inputs = prepare(testInfo);
+      const driver = await appSession.open();
+      await execute(testInfo, (i) => appArgs(spec.tcId, driver, traced(request), i.params, i.expected), (seq) => captureApp(driver, seq), inputs);
+    });
+    return;
+  }
+
+  base(spec.name, async ({ page, request }, testInfo) => {
+    const inputs = prepare(testInfo);
+    await execute(testInfo, (i) => browserArgs(spec.tcId, page, traced(request), i.params, i.expected), (seq) => capture(page, seq), inputs);
   });
 }
 
