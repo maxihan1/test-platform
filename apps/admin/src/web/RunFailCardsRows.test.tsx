@@ -160,3 +160,20 @@ describe('실패 카드 — 통과 줄 · 거르개 · 쪽 · 불러오기 (실�
     expect((screen.getByRole('button', { name: '다음' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
+
+describe('묶인 칸의 화면은 실패한 절차 것만 (실행 §8.3)', () => {
+  it('통과한 절차에서 찍은 화면은 「실패 시점 화면」으로 나오지 않는다', async () => {
+    const 단계들 = () => [
+      단계(1, '화면을 연다', [['제목이 보인다', 'PASS', '예', '예']], { screenshotPath: 'cap.png' }),
+      단계(2, '가입 버튼을 누른다', [['가입한 이메일이 보인다', 'FAIL', 'new@demo.kr', '없음']], { screenshotPath: 'shot.png' }),
+    ];
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 11, {}, { steps: 단계들() }), 장치('mobile', 12, {}, { steps: 단계들() })])]),
+      [줄(11, 'ZZI-0001', 'desktop', 'FAIL'), 줄(12, 'ZZI-0001', 'mobile', 'FAIL')],
+    );
+
+    await screen.findByRole('article');
+    const 묶음사진 = [...document.querySelectorAll('.fc-shots img')].map((img) => img.getAttribute('src'));
+    expect(묶음사진).toEqual([`/api/screenshots/${RUN_ID}/11/2.png`, `/api/screenshots/${RUN_ID}/12/2.png`]);
+  });
+});
