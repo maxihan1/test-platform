@@ -2,6 +2,9 @@
 
 import { z } from 'zod';
 
+// 기본값이 곧 상한이다 — 더 길게 주면 디바이스 잠금을 그만큼 쥔다(2026-10-07 게이트 0). 줄이는 데만 쓴다
+export const DEFAULT_TIMEOUT_MS = 300_000;
+
 // routes.ts 가 300줄을 넘지 않게 여기로 뺐다
 export const runBody = z.object({
   title: z.string().min(1),
@@ -25,7 +28,7 @@ export const runBody = z.object({
         params: z.record(z.string(), z.unknown()).default({}),
         expected: z.record(z.string(), z.unknown()).default({}),
         // SPEC §10의 DEMO-007은 5초로 줘야 러너의 타임아웃 처리를 확인할 수 있다
-        timeoutMs: z.number().int().positive().optional(),
+        timeoutMs: z.number().int().positive().max(DEFAULT_TIMEOUT_MS).optional(),
       }),
     )
     .min(1),
@@ -51,6 +54,21 @@ export function 실행위치를본다(
   if (!env.LOCAL_RUNNER_URL) {
     // 운영자가 고칠 자리(환경값 이름)만 싣는다
     return { status: 409, error: 'LOCAL_OFF', detail: 'LOCAL_RUNNER_URL 이 비어 있다' };
+  }
+  return null;
+}
+
+// 앱 케이스를 desktop 으로 보내 실행 위치 검사 · 디바이스 줄을 건너뛰지 못하게 한다(2026-10-07 APP-F1-07).
+// CASE_NOT_FOUND 다음에 부르므로 표에 없는 tcId 는 보지 않는다
+export function 선언밖디바이스<P extends string>(
+  items: readonly { tcId: string; platforms: readonly P[] }[],
+  선언: ReadonlyMap<string, { platforms: readonly string[] }>,
+): { tcId: string; platform: P } | null {
+  for (const item of items) {
+    const 케이스 = 선언.get(item.tcId);
+    if (!케이스) continue;
+    const platform = item.platforms.find((p) => !케이스.platforms.includes(p));
+    if (platform !== undefined) return { tcId: item.tcId, platform };
   }
   return null;
 }
