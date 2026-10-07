@@ -51,3 +51,10 @@ export function 실행위치를본다(
   }
   return null;
 }
+
+// 정기 실행은 실행 위치를 고를 사람이 없고, admin 과 다른 프로세스라 디바이스 잠금을 같이 못 본다 —
+// 그래서 앱 케이스는 팜이 붙기 전까지 뺀다
+export function 앱케이스를뺀다<T extends { platforms: readonly string[] }>(items: T[]): { 남은: T[]; 뺀수: number } {
+  const 남은 = items.filter((c) => !c.platforms.includes('android'));
+  return { 남은, 뺀수: items.length - 남은.length };
+}
