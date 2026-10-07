@@ -93,75 +93,62 @@ function 비교(덮을것: Partial<비교값> = {}): 비교값 {
   };
 }
 
-function 그리기(값: 비교값, items: RunItemSummary[] = []) {
-  const 부름 = vi.spyOn(api, 'insights').mockResolvedValue(값);
-  render(<RunInsights runId={RUN_ID} status="FINISHED" items={items} />);
-  return 부름;
+function 그리기(값: 비교값) {
+  return render(<RunInsights insights={값} />);
 }
 
-describe('직전 실행과 견준 칸 (SPEC §7 · §8.3)', () => {
-  it('견줄 직전 실행이 없으면 비교 칸을 아예 안 그린다', async () => {
+describe('같은 사유로 실패 (SPEC §7 · §8.3 옆 칸)', () => {
+  it('견줄 앞 실행이 없어도 같은 사유 묶음은 그린다', () => {
     그리기(비교({ previous: null, 실패덩어리들: [덩어리('연결 시간 초과', [61])] }));
 
-    await screen.findByText(/연결 시간 초과/);
-    expect(screen.queryByText(/직전 실행과 비교/)).toBeNull();
+    expect(screen.getByText(/연결 시간 초과/)).toBeDefined();
+    expect(screen.getByText('같은 사유로 실패')).toBeDefined();
   });
 
-  it('새로 깨진 케이스는 그 이름이 보인다', async () => {
-    그리기(비교({ 케이스들: [견줌('ZZI-0001', '결제 취소 흐름', '새로깨짐')] }), [
-      항목(11, 'ZZI-0001', '결제 취소 흐름', 'FAIL'),
-    ]);
+  it('묶음이 몇 건인지를 글자로 적고 케이스 수로 속이지 않는다', () => {
+    그리기(비교({ previous: null, 실패덩어리들: [덩어리('기대값 200, 실제 500', [71, 72, 73])] }));
 
-    expect(await screen.findByText(/결제 취소 흐름/)).toBeDefined();
-    expect(screen.getByText('새로깨짐').style.color).toBe('var(--fail-text)');
+    expect(screen.getByText(/실패 항목 3건/)).toBeDefined();
+    expect(screen.queryByText(/케이스 3건/)).toBeNull();
   });
 
-  it('직전 실행이 다른 주소에서 돌았으면 그 사실을 한 줄로 알린다', async () => {
-    그리기(비교({ 주소바뀜: true }));
+  it('묶음마다 어느 케이스가 어느 디바이스에서 깨졌는지 한 줄로 이어 적는다', () => {
+    그리기(비교({ 실패덩어리들: [덩어리('연결 시간 초과', [61, 62])] }));
 
-    expect(await screen.findByText('직전 실행은 다른 주소에서 실행됐습니다')).toBeDefined();
+    expect(screen.getByText('ZZI-0007 장바구니 담기 (PC)')).toBeDefined();
   });
 
-  it('직전에 있었으나 이번에 안 돈 케이스 수를 글자로 적는다', async () => {
-    그리기(비교({ 빠진건수: 2 }));
+  it('묶음이 없으면 칸 제목도 없다', () => {
+    그리기(비교());
 
-    expect(await screen.findByText(/이번에 실행되지 않은 케이스 2건/)).toBeDefined();
-  });
-
-  it('「그대로」라도 이번에 안 돌았으면 미실행 색으로 적는다', async () => {
-    그리기(
-      비교({
-        케이스들: [
-          견줌('ZZI-0002', '쿠폰 적용', '그대로'),
-          견줌('ZZI-0003', '주소 검색', '고쳐짐'),
-        ],
-      }),
-      [항목(12, 'ZZI-0002', '쿠폰 적용', 'NA'), 항목(13, 'ZZI-0003', '주소 검색', 'PASS')],
-    );
-
-    expect((await screen.findByText('그대로')).style.color).toBe('var(--na-text)');
-    expect(screen.getByText('고쳐짐').style.color).toBe('var(--pass-text)');
-  });
-
-  it('직전과 같은 통과는 줄을 만들지 않고 수만 적는다', async () => {
-    그리기(
-      비교({
-        케이스들: [견줌('ZZI-0004', '로그인', '그대로'), 견줌('ZZI-0005', '로그아웃', '그대로')],
-      }),
-      [항목(14, 'ZZI-0004', '로그인', 'PASS'), 항목(15, 'ZZI-0005', '로그아웃', 'PASS')],
-    );
-
-    expect(await screen.findByText(/나머지 2건/)).toBeDefined();
-    expect(screen.queryByText(/ZZI-0004/)).toBeNull();
+    expect(screen.queryByText('같은 사유로 실패')).toBeNull();
   });
 });
 
-describe('같은 사유로 묶은 실패 (SPEC §7)', () => {
-  it('묶음이 몇 건인지를 글자로 적고 케이스 수로 속이지 않는다', async () => {
-    그리기(비교({ previous: null, 실패덩어리들: [덩어리('기대값 200, 실제 500', [71, 72, 73])] }));
+describe('해결 (SPEC §8.3 옆 칸)', () => {
+  it('직전 실행에서 깨졌다가 이번에 통과한 케이스만 이름으로 적는다', () => {
+    그리기(
+      비교({
+        케이스들: [
+          견줌('ZZI-0001', '결제 취소 흐름', '새로깨짐'),
+          견줌('ZZI-0002', '쿠폰 적용', '계속깨짐'),
+          견줌('ZZI-0003', '주소 검색', '고쳐짐'),
+          견줌('ZZI-0004', '로그인', '그대로'),
+        ],
+      }),
+    );
 
-    expect(await screen.findByText(/실패 항목 3건/)).toBeDefined();
-    expect(screen.queryByText(/케이스 3건/)).toBeNull();
+    expect(screen.getByText('해결')).toBeDefined();
+    expect(screen.getByText(/주소 검색/).textContent).toContain('PC');
+    expect(screen.queryByText(/결제 취소 흐름/)).toBeNull();
+    expect(screen.queryByText(/쿠폰 적용/)).toBeNull();
+    expect(screen.queryByText(/로그인/)).toBeNull();
+  });
+
+  it('고쳐진 것이 없으면 칸 제목도 없다', () => {
+    그리기(비교({ 케이스들: [견줌('ZZI-0004', '로그인', '그대로')] }));
+
+    expect(screen.queryByText('해결')).toBeNull();
   });
 });
 

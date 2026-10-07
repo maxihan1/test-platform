@@ -12,7 +12,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { api, ApiError, type EvidenceRow, type RunSummary } from './api.js';
+import {
+  api,
+  ApiError,
+  type EvidenceRow,
+  type FailureCase,
+  type ItemStatus,
+  type Platform,
+  type RunInsights as 비교값,
+  type RunItemSummary,
+  type RunSummary,
+} from './api.js';
 import { RunResult } from './RunResult.js';
 import { 판정을만든다, type 판정 } from './role.js';
 import { scenarioApi } from './scenarioApi.js';
@@ -70,16 +80,17 @@ describe('실행 결과 화면의 증적 버튼 (SPEC §8.4)', () => {
     expect(글들).toEqual(['PDF 만들기', '엑셀 만들기', 'HTML 만들기']);
   });
 
-  it('판정 숫자가 만들기 버튼보다 앞에 온다', async () => {
-    그리기('FINISHED');
+  it('요약 띠가 머리 바로 아래에 오고 머리에는 판정 숫자가 없다', async () => {
+    const { container } = 그리기('FINISHED');
 
     await screen.findAllByText(/만들기$/);
 
-    // 걸러내기 칩에도 `통과` 가 있다. 머리 띠 안에서만 본다
-    const 머리띠 = document.querySelector('.tally');
-    const 차례 = [...(머리띠?.children ?? [])].map((el) => (el.className === 'makebtns' ? '버튼들' : el.textContent));
-    // 좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀린다. 휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다
-    expect(차례.indexOf('버튼들')).toBeGreaterThan(차례.findIndex((it) => it?.includes('통과')));
+    // 머리의 집계 숫자는 요약 띠로 옮겼다 — 같은 숫자를 두 번 두지 않는다 (도메인/실행 §8.3)
+    const 머리 = container.querySelector('.head');
+    const 띠 = container.querySelector('.rs');
+    expect(띠).not.toBeNull();
+    expect(머리?.nextElementSibling?.firstElementChild).toBe(띠);
+    expect(container.querySelector('.tally')?.textContent).not.toContain('통과');
   });
 
   it('만들기 버튼은 색을 쓰지 않고 이유를 말풍선에 숨기지 않는다', async () => {
@@ -234,24 +245,27 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
     expect(document.querySelector('.screen .sec:not(.fold)')).toBeNull();
   });
 
-  it('화면 전체에서는 증적 문서가 지금처럼 블록으로 선다', async () => {
+  it('화면 전체에서는 증적 문서가 옆 칸에 선다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     그리기('FINISHED', [증적('PDF', 'READY')]);
     await screen.findAllByText(/만들기$/);
 
     expect(document.querySelector('.box-head')).toBeNull();
-    expect(document.querySelector('.screen .sec')?.textContent).toMatch(/만듦/);
+    expect(document.querySelector('.rr-side .sec')?.textContent).toMatch(/만듦/);
   });
 
-  it('견줌은 접힌 채로 뜬다 — 펴야 보인다', async () => {
+  it('직전 실행 대비 수는 접지 않고 요약 띠에 바로 보인다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(견줌있음);
-    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
+    그리기('FINISHED');
 
-    const 접기 = await screen.findByText(/직전 실행과 비교/);
-    const 상자 = 접기.closest('details');
-    expect(상자, '견줌이 접기가 아니다').not.toBeNull();
-    expect(상자?.hasAttribute('open'), '견줌이 펴진 채로 뜬다').toBe(false);
+    const 대비 = await waitFor(() => {
+      const 칸 = document.querySelector('.rs-diff');
+      expect(칸).not.toBeNull();
+      return 칸!;
+    });
+    expect(대비.textContent).toContain('RUN 2110');
+    expect(대비.textContent).toContain('신규 실패1');
+    expect(document.querySelector('details')).toBeNull();
   });
 
   // SPEC 공통/7-데모와-완료 §7 — 「첫 실행에서는 그 칸이 **아예 없다**」.
@@ -267,8 +281,8 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
   });
 });
 
-describe('상자 안에서는 케이스 줄만 스크롤한다 (SPEC §8.7, 2026-09-22 ②)', () => {
-  it('상자안 이면 머리·필터는 밖에, 케이스 줄은 .rows-scroll 안에 있다', async () => {
+describe('상자 안에서는 제목 아래 전부가 한 스크롤 칸이다 (SPEC §8.3 · §8.7, 2026-10-08)', () => {
+  it('상자안 이면 머리 · 요약 띠 · 본문이 모두 .rows-scroll 안에 있다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
 
@@ -276,11 +290,12 @@ describe('상자 안에서는 케이스 줄만 스크롤한다 (SPEC §8.7, 2026
 
     const 면 = document.querySelector('.screen');
     expect(면?.classList.contains('modal-results')).toBe(true);
-    const 스크롤칸 = 면?.querySelector('.rows-scroll');
-    expect(스크롤칸).not.toBeNull();
-    // 필터 줄은 스크롤칸 밖에 있다 — 스크롤해도 그대로 보여야 한다
-    expect(면?.querySelector(':scope > .toolbar')).not.toBeNull();
-    expect(스크롤칸?.querySelector('.toolbar')).toBeNull();
+    expect(면?.children).toHaveLength(1);
+    const 스크롤칸 = 면?.firstElementChild;
+    expect(스크롤칸?.classList.contains('rows-scroll')).toBe(true);
+    expect(스크롤칸?.querySelector('.box-head')).not.toBeNull();
+    expect(스크롤칸?.querySelector('.rs')).not.toBeNull();
+    expect(스크롤칸?.querySelector('.toolbar')).not.toBeNull();
   });
 
   it('상자안 이 아니면(화면 전체) 스크롤칸을 따로 두지 않는다 — 페이지가 그대로 스크롤한다', async () => {
@@ -417,5 +432,228 @@ describe('디바이스 칸은 그 실행에 든 디바이스로 정한다 (도�
     const { 칸, 칩 } = await 본다(['desktop', 'android']);
     expect(칸).toEqual(['PC', '모바일', 'Android 앱']);
     expect(칩.filter((글) => 글 === 'PC' || 글 === '모바일' || 글 === 'Android 앱')).toEqual(['PC', '모바일', 'Android 앱']);
+  });
+});
+
+// 끝난 실행은 요약 띠 → 실패 카드 → 통과 · 미실행 줄 → 미확정 묶음이고 옆 칸이 따라온다 (도메인/실행 §8.3, 2026-10-08)
+describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 미확정 묶음 · 옆 칸', () => {
+  function 항목줄(historyId: number, tcId: string, platform: Platform, status: ItemStatus, 미확정?: string): RunItemSummary {
+    return {
+      historyId, tcId, tcName: `이름-${tcId}`, platform, attempt: 1, params: {}, paramSchema: {},
+      status, durationMs: 1200, error: null, startedAt: '2026-09-15T17:13:00.000Z',
+      finishedAt: '2026-09-15T17:14:00.000Z', unconfirmed: 미확정 ?? null,
+    };
+  }
+
+  function 카드응답(tcId: string, platform: Platform = 'desktop'): FailureCase {
+    return {
+      tcId,
+      tcName: `이름-${tcId}`,
+      devices: [{
+        platform, change: null, streak: null, recent: ['FAIL'], attempts: 1, failedAttempts: 1,
+        item: {
+          historyId: 900, runId: RUN_ID, runTitle: '결제 회귀', tcId, tcName: `이름-${tcId}`, platform, attempt: 1,
+          params: {}, paramSchema: {}, status: 'FAIL', durationMs: 1000, error: null,
+          startedAt: '2026-09-15T17:13:00.000Z', finishedAt: '2026-09-15T17:14:00.000Z',
+          precondition: [], expected: {}, expectedSchema: {}, steps: [],
+        },
+      }],
+    };
+  }
+
+  function 끝난실행(items: RunItemSummary[], 증적들: EvidenceRow[] = []) {
+    const 확정 = items.filter((i) => typeof i.unconfirmed !== 'string');
+    const 미 = items.filter((i) => typeof i.unconfirmed === 'string');
+    const 셈 = (목록: RunItemSummary[], s: ItemStatus) => 목록.filter((i) => i.status === s).length;
+    return {
+      ...실행,
+      kind: 'FN' as const,
+      status: 'FINISHED',
+      counts: {
+        total: items.length, pass: 셈(확정, 'PASS'), fail: 셈(확정, 'FAIL'), na: 셈(확정, 'NA'), running: 0,
+        unconfirmed: { total: 미.length, pass: 셈(미, 'PASS'), fail: 셈(미, 'FAIL'), na: 셈(미, 'NA') },
+      },
+      items,
+      evidence: 증적들,
+    };
+  }
+
+  const 첫실행: 비교값 = { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들: [] };
+  const 견줌: 비교값 = {
+    previous: { runId: 2110, startedAt: '2026-09-14T10:00:00.000Z' },
+    주소바뀜: false,
+    빠진건수: 0,
+    케이스들: [
+      { tcId: 'ZRR-001', tcName: '이름-ZRR-001', platform: 'desktop', 판정: '새로깨짐' },
+      { tcId: 'ZRR-009', tcName: '이름-ZRR-009', platform: 'mobile', 판정: '고쳐짐' },
+    ],
+    실패덩어리들: [{
+      대표문장: '가입 완료 안내가 안 보인다',
+      건수: 2,
+      항목들: [
+        { historyId: 1, tcId: 'ZRR-001', tcName: '이름-ZRR-001', platform: 'desktop' },
+        { historyId: 2, tcId: 'ZRR-001', tcName: '이름-ZRR-001', platform: 'mobile' },
+      ],
+    }],
+  };
+
+  const 앞선가 = (앞: Element | null, 뒤: Element | null) =>
+    앞 !== null && 뒤 !== null && (앞.compareDocumentPosition(뒤) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+  const 판정칸 = (이름: string) =>
+    [...document.querySelectorAll('.rs-fbtn')].find((b) => b.textContent?.startsWith(이름)) as HTMLElement;
+
+  const 섞인항목 = [
+    항목줄(1, 'ZRR-001', 'desktop', 'FAIL'),
+    항목줄(2, 'ZRR-001', 'mobile', 'PASS'),
+    항목줄(3, 'ZRR-002', 'desktop', 'PASS'),
+    항목줄(4, 'ZRR-003', 'desktop', 'NA'),
+    항목줄(5, 'ZRR-004', 'desktop', 'PASS', '기획서에 값이 없습니다'),
+    항목줄(6, 'ZRR-005', 'desktop', 'FAIL'),
+    항목줄(7, 'ZRR-005', 'mobile', 'FAIL', '기획서에 값이 없습니다'),
+  ];
+
+  function 연다(items: RunItemSummary[], 인사이트: 비교값 = 첫실행, 상자안 = false, 증적들: EvidenceRow[] = []) {
+    vi.spyOn(api, 'run').mockResolvedValue(끝난실행(items, 증적들));
+    vi.spyOn(api, 'insights').mockResolvedValue(인사이트);
+    const 실패부름 = vi.spyOn(api, 'failures').mockResolvedValue({
+      items: [카드응답('ZRR-001'), 카드응답('ZRR-005')], total: 2, page: 1, pageSize: 5,
+    });
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안={상자안} />);
+    return 실패부름;
+  }
+
+  it('요약 띠 → 실패 카드 → 통과 · 미실행 줄 → 미확정 묶음 차례다', async () => {
+    연다(섞인항목, 견줌);
+    await screen.findByText('이름-ZRR-002');
+
+    const 띠 = document.querySelector('.rs');
+    const 카드 = await waitFor(() => {
+      const 목록 = document.querySelector('.fc-list');
+      expect(목록).not.toBeNull();
+      return 목록;
+    });
+    const 줄 = document.querySelector('.rr-rows .result-row');
+    const 미확정 = document.querySelector('.rr-unconf');
+    expect(앞선가(띠, 카드)).toBe(true);
+    expect(앞선가(카드, 줄)).toBe(true);
+    expect(앞선가(줄, 미확정)).toBe(true);
+    expect(미확정?.textContent).toContain('이름-ZRR-004');
+    expect(미확정?.textContent).toContain('기획서에 값이 없습니다');
+  });
+
+  it('도는 실행은 카드 통로도 견주기 통로도 부르지 않고 진행 집계와 줄 목록을 그린다', async () => {
+    const 견줌부름 = vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
+    const 실패부름 = vi.spyOn(api, 'failures');
+    vi.spyOn(api, 'progress').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'run').mockResolvedValue({
+      ...도는중응답, items: [항목줄(1, 'ZRR-001', 'desktop', 'PASS')],
+    });
+    const { container } = render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
+
+    await screen.findByText('이름-ZRR-001');
+    expect(실패부름).not.toHaveBeenCalled();
+    expect(견줌부름).not.toHaveBeenCalled();
+    expect(container.querySelector('.rs')).toBeNull();
+    expect(container.querySelector('.tally')?.textContent).toContain('통과');
+    expect(screen.getByText('실행 중단')).toBeTruthy();
+  });
+
+  it('실패가 0건이면 카드 통로를 부르지 않고 한 줄만 적는다', async () => {
+    const 실패부름 = 연다([항목줄(1, 'ZRR-002', 'desktop', 'PASS')]);
+
+    expect(await screen.findByText('실패한 케이스가 없습니다')).toBeTruthy();
+    expect(실패부름).not.toHaveBeenCalled();
+  });
+
+  it('판정별 보기 「실패」는 카드만, 「통과」는 줄만 그린다', async () => {
+    연다(섞인항목);
+    await screen.findByText('이름-ZRR-002');
+    await waitFor(() => expect(document.querySelector('.fc-list')).not.toBeNull());
+
+    fireEvent.click(판정칸('실패'));
+    expect(document.querySelector('.fc-list')).not.toBeNull();
+    expect(document.querySelector('.rr-rows')).toBeNull();
+    expect(document.querySelector('.rr-unconf')).toBeNull();
+
+    fireEvent.click(판정칸('통과'));
+    expect(document.querySelector('.fc-list')).toBeNull();
+    expect(document.querySelector('.rr-unconf')).toBeNull();
+    expect([...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent)).toEqual(['ZRR-002']);
+
+    fireEvent.click(판정칸('미실행'));
+    expect([...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent)).toEqual(['ZRR-003']);
+  });
+
+  it('PC 실패 · 모바일 통과 케이스는 카드에만 있고 줄 목록에 또 나오지 않는다', async () => {
+    연다(섞인항목);
+    await waitFor(() => expect(document.querySelector('.fc-list')).not.toBeNull());
+
+    const 줄들 = [...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent);
+    expect(줄들).toEqual(['ZRR-002', 'ZRR-003']);
+    expect(document.querySelector('.fc-list')?.textContent).toContain('이름-ZRR-001');
+  });
+
+  it('확정 실패 + 미확정 실패 케이스는 카드와 미확정 묶음에 나뉜다', async () => {
+    연다(섞인항목);
+    await waitFor(() => expect(document.querySelector('.fc-list')?.textContent).toContain('이름-ZRR-005'));
+
+    expect([...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent)).not.toContain('ZRR-005');
+    const 묶음 = [...document.querySelectorAll('.rr-unconf .tcid')].map((el) => el.textContent);
+    expect(묶음).toEqual(['ZRR-004', 'ZRR-005']);
+  });
+
+  it('디바이스 칩은 카드 통로에도 걸린다', async () => {
+    const 실패부름 = 연다(섞인항목);
+    await waitFor(() => expect(실패부름).toHaveBeenCalledWith(RUN_ID, 1, undefined));
+
+    fireEvent.click(screen.getByRole('button', { name: '모바일' }));
+    await waitFor(() => expect(실패부름).toHaveBeenLastCalledWith(RUN_ID, 1, 'mobile'));
+  });
+
+  it('옆 칸에 실행 정보 · 같은 사유로 실패 · 해결 · 증적 문서가 선다', async () => {
+    연다(섞인항목, 견줌, false, [증적('PDF', 'READY')]);
+    const 옆 = await waitFor(() => {
+      const 칸 = document.querySelector('.rr-side');
+      expect(칸?.textContent).toContain('가입 완료 안내가 안 보인다');
+      return 칸!;
+    });
+
+    const 글 = 옆.textContent ?? '';
+    for (const 조각 of [
+      '실행 정보', '결제', '기능 테스트', 'qa', 'https://qa-pay.example.com', '김철수', 'PC, 모바일', 'RUN 2110',
+      '같은 사유로 실패', '실패 항목 2건', '해결', '이름-ZRR-009', '증적 문서', '만듦',
+    ]) {
+      expect(글, 조각).toContain(조각);
+    }
+  });
+
+  it('견줄 앞이 없으면 비교 기준 · 해결 · 같은 사유 칸이 없다', async () => {
+    연다(섞인항목);
+    const 옆 = await waitFor(() => {
+      const 칸 = document.querySelector('.rr-side');
+      expect(칸?.textContent).toContain('실행 정보');
+      return 칸!;
+    });
+
+    expect(옆.textContent).not.toContain('비교 기준');
+    expect(옆.textContent).not.toContain('해결');
+    expect(옆.textContent).not.toContain('같은 사유로 실패');
+  });
+
+  it('상자 안에서는 옆 칸이 접힌 줄 하나이고 실행 정보는 그리지 않는다', async () => {
+    연다(섞인항목, 견줌, true);
+    const 접기 = await waitFor(() => {
+      const 칸 = document.querySelector('.rr-side details');
+      expect(칸).not.toBeNull();
+      return 칸!;
+    });
+
+    expect(document.querySelectorAll('.rr-side details')).toHaveLength(1);
+    expect(접기.hasAttribute('open')).toBe(false);
+    expect(접기.querySelector('summary')?.textContent).toBe('같은 사유로 실패 1묶음 · 해결 1');
+    expect(document.querySelector('.rr-side dl')).toBeNull();
+    expect(앞선가(document.querySelector('.rs'), document.querySelector('.rr-side'))).toBe(true);
+    expect(document.querySelector('.rows-scroll .rr-side')).not.toBeNull();
   });
 });
