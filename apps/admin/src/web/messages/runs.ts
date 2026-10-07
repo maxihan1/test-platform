@@ -151,6 +151,19 @@ export const 실행말: Record<string, string> = {
   '같은 사유로 묶은 실패': 'Failures grouped by cause',
   '실패 항목 {건수}건': '{건수} failed items',
 
+  // 실패 케이스 카드와 펼치기 (§8.3 결과 화면)
+  '실패한 케이스가 없습니다': 'No failed cases',
+  '상세 보기': 'View details',
+  '연속 실패 {회}회': 'Failed {회} runs in a row',
+  '연속 실패 {회}회 이상': 'Failed {회}+ runs in a row',
+  '{회수}회 중 {실패}회 실패': '{실패} of {회수} attempts failed',
+  '{서버} 서버 · 이 실행까지': '{서버} server · up to this run',
+  '맨 앞이 이번 실행': 'The first bar is this run',
+  '펼치기': 'Expand',
+  '접기': 'Collapse',
+  '{케이스} {디바이스} 펼치기': 'Expand {케이스} {디바이스}',
+  '{케이스} {디바이스} 접기': 'Collapse {케이스} {디바이스}',
+
   // 진행·완료 모달 (§8.9)
   'RUN {번호} 이 진행 중입니다': 'RUN {번호} is running',
   'RUN {번호} 이 끝났습니다': 'RUN {번호} finished',

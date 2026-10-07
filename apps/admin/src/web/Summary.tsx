@@ -99,7 +99,7 @@ export function 집계띠({ 전체, 통과, 실패, 미실행, 부제 }: 집계P
 const 판정글자: Record<ItemStatus, string> = { PASS: 'p', FAIL: 'f', NA: 'n' };
 
 /** 흐름 막대가 지키는 칸 수. 서버의 `최근몇건` 과 같은 값이다 (execution/history.ts) */
-const 흐름칸수 = 5;
+export const 흐름칸수 = 5;
 
 /**
  * 최근 판정 흐름 (SPEC §8.1).
@@ -110,7 +110,7 @@ const 흐름칸수 = 5;
  * 다섯에 못 미치면 **남는 자리를 빈 칸으로 채운다.** 안 채우면 두 번 돌린 케이스와
  * 다섯 번 돌린 케이스의 막대 길이가 달라져 세로로 훑을 수가 없다 (DESIGN.md 원칙 3).
  */
-export function 판정흐름({ recent }: { recent: ItemStatus[] }) {
+export function 판정흐름({ recent, 앞말 }: { recent: ItemStatus[]; 앞말?: string }) {
   const t = use말();
   // 한 번도 안 돌렸으면 그릴 것이 없다. 빈 칸 다섯만 그리면 「돌렸는데 결과가 없다」로 읽힌다
   if (recent.length === 0) return null;
@@ -122,6 +122,8 @@ export function 판정흐름({ recent }: { recent: ItemStatus[] }) {
 
   return (
     <>
+      {/* 실패 카드의 막대는 대상 서버 · 이 실행까지다. 케이스 목록 막대와 뜻이 달라 앞에 말을 붙인다 (실행 §8.3) */}
+      {앞말 === undefined ? null : <span className="flow-lead">{앞말}</span>}
       <span className="spark" aria-hidden="true">
         {칸들.map((것, i) => (
           <i key={`${것}-${String(i)}`} className={판정글자[것]} />
@@ -133,6 +135,7 @@ export function 판정흐름({ recent }: { recent: ItemStatus[] }) {
       {/* 막대만 두면 색을 못 보는 사람에게는 회색 네모다. 개수를 글자로 같이 적는다.
           판정마다 한 줄 — 한 줄로 이으면 60px 디바이스 칸을 넘어 옆 디바이스 글자와 겹쳤다 (2026-10-05) */}
       <span className="sparktext">
+        {앞말 === undefined ? null : <span className="sr-only">{t('맨 앞이 이번 실행')}</span>}
         {[...셈.entries()].map(([것, 수]) => (
           <b key={것} className={판정글자[것]}>
             {t(STATUS_LABEL[것])} {수}

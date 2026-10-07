@@ -188,6 +188,26 @@ export interface RunItemDetail extends RunItemSummary {
   steps: StepResult[];
 }
 
+/** 실패 카드의 디바이스 칸 하나 (SPEC §7 `GET /api/runs/:runId/failures`). change 는 새로깨짐 · 계속깨짐 만 오고 그 밖은 null */
+export interface FailureDevice {
+  platform: Platform;
+  change: '새로깨짐' | '계속깨짐' | null;
+  /** change 가 계속깨짐일 때만 recent 맨 앞에서 이어진 실패 수 */
+  streak: number | null;
+  /** 같은 대상 서버 · 이 실행까지의 판정 흐름. 맨 앞이 이번 실행이다 */
+  recent: ItemStatus[];
+  attempts: number;
+  failedAttempts: number;
+  /** 처음 실패한 회차. 항목 상세와 같은 함수가 읽은 값이라 비밀값이 이미 가려져 있다 */
+  item: RunItemDetail;
+}
+
+export interface FailureCase {
+  tcId: string;
+  tcName: string;
+  devices: FailureDevice[];
+}
+
 /** 케이스 한 건의 실행 이력 한 줄 (SPEC §7 `GET /api/cases/:tcId/history`) */
 /** 실행 기록 화면 머리의 집계 (SPEC §8.7). **거르개를 건 뒤의 집합**을 센다 */
 export interface RunTally {
@@ -775,6 +795,10 @@ export const api = {
   evidenceUrl: (id: number) => `/api/evidence/${id}`,
 
   item: (runId: number, historyId: number) => call<RunItemDetail>(`/runs/${runId}/items/${historyId}`),
+
+  /** 끝난 실행의 확정 실패를 케이스 카드로 쪽 단위로 준다. 디바이스 거르기는 서버가 한다 (SPEC §7) */
+  failures: (runId: number, page: number, platform?: Platform) =>
+    call<Paged<FailureCase>>(`/runs/${runId}/failures?page=${page}${platform === undefined ? '' : `&platform=${platform}`}`),
 
   createRun: (body: {
     title: string;
