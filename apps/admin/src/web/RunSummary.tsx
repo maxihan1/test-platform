@@ -112,7 +112,7 @@ export function RunSummary({
 
       {insights === null || 앞 === null ? null : (
         <div className="rs-diff">
-          <span className="rs-axis">{t('직전 실행 RUN {번호} 대비 · 항목 수', { 번호: 앞.runId })}</span>
+          <span className="rs-axis">{t('직전 실행 RUN {번호} 대비', { 번호: 앞.runId })}</span>
           <div className="rs-stats">
             <div className="rs-stat">
               <span className="rs-k f">{t('신규 실패')}</span>

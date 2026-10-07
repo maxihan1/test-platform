@@ -163,13 +163,13 @@ export const 실행말: Record<string, string> = {
   '항목 {전체}건 중 {통과}건 통과': '{통과} of {전체} items passed',
   '확정 항목 없음': 'No confirmed items',
   '판정별 보기 · 항목 수': 'View by verdict · items',
-  '직전 실행 RUN {번호} 대비 · 항목 수': 'Against previous run RUN {번호} · items',
+  '직전 실행 RUN {번호} 대비': 'Against previous run RUN {번호}',
+  '통과 · 미실행으로 건너뛰기': 'Skip to passed · not run',
   '연속 실패': 'Still failing',
   '해결': 'Fixed',
 
   // 실패 케이스 카드와 펼치기 (§8.3 결과 화면)
   '실패한 케이스가 없습니다': 'No failed cases',
-  '상세 보기': 'View details',
   '연속 실패 {회}회': 'Failed {회} runs in a row',
   '연속 실패 {회}회 이상': 'Failed {회}+ runs in a row',
   '{회수}회 중 {실패}회 실패': '{실패} of {회수} attempts failed',
@@ -182,6 +182,7 @@ export const 실행말: Record<string, string> = {
   '접기': 'Collapse',
   '{케이스} {디바이스} 펼치기': 'Expand {케이스} {디바이스}',
   '{케이스} {디바이스} 접기': 'Collapse {케이스} {디바이스}',
+  '{디바이스} {절차} 실패 시점 화면': 'Screenshot of {디바이스} when {절차} failed',
   '{케이스} 펼치기': 'Expand {케이스}',
   '{케이스} 접기': 'Collapse {케이스}',
 

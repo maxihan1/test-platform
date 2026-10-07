@@ -5283,6 +5283,19 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   font-weight: 600;
 }
 
+.skip-link:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.skip-link {
+  align-self: flex-start;
+}
+
 .fc-title:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
@@ -5316,9 +5329,38 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 }
 
 .fc-detail {
-  margin-left: auto;
   font-size: 12px;
   color: var(--link);
+}
+
+/* 한 줄 오른쪽 끝에 「상세」 링크와 「펼치기」를 붙여 둔다 */
+.fc-acts {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 같은 실패로 묶인 디바이스의 실패 시점 화면 — 이름을 달아 나란히, 좁으면 줄을 바꾼다 */
+.fc-shots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.fc-shot {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.fc-shot img {
+  display: block;
+  max-width: 260px;
+  border: 1px solid var(--line-2);
 }
 
 .fc-name-h {
@@ -5367,6 +5409,11 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   border-radius: 4px;
   padding: 1px 6px;
   color: var(--ink);
+}
+
+/* 신규 실패만 실패 글자 색이다. 테두리는 그대로 두어 연속 실패와 같은 틀에서 색 하나로 갈린다 (DESIGN.md 실행 결과) */
+.fc-tag.fc-new {
+  color: var(--fail-text);
 }
 
 .fc-flow {
@@ -5464,9 +5511,7 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   color: var(--ink);
 }
 
-.fc-line .btn {
-  margin-left: auto;
-}
+
 
 /* 결과 줄 아래 펼치기 띠. 줄 밑줄은 띠까지 묶어 하나만 긋는다 */
 .result-row {

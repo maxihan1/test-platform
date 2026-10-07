@@ -1,6 +1,7 @@
 // 실패 카드 안의 디바이스 칸 — 머리(변화 · 회차 · 소요 · 흐름 막대)와 사전조건 · 입력 · 절차 본문 (실행 §8.3)
 
-import type { FailureDevice, RunItemDetail } from './api.js';
+import { api, type FailureDevice, type RunItemDetail, type RunItemSummary } from './api.js';
+import { 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
 import { 증거본문 } from './ItemExpand.js';
 import { PLATFORM_LABEL, seconds, Verdict } from './ui.js';
@@ -37,11 +38,20 @@ export function 같은실패끼리(devices: FailureDevice[]): FailureDevice[][] 
   return [...묶음.values()];
 }
 
-export function RunFailDevice({ devices, env }: { devices: FailureDevice[]; env: string }) {
+export function RunFailDevice({ devices, env, items }: { devices: FailureDevice[]; env: string; items: RunItemSummary[] }) {
   const t = use말();
   const 언어 = use언어();
   const 대표 = devices[0]!.item;
   const 오류 = 오류줄(대표);
+  // 묶인 칸은 디바이스마다 화면이 다를 수 있다 — 절차는 한 번만 그리고 화면은 이름을 달아 나란히 놓는다
+  const 묶임 = devices.length > 1;
+  // 회차가 여럿이면 소요는 그 디바이스 회차의 평균이다 (§8.3 회차 요약). 회차 항목은 실행 응답에서 온다
+  const 소요글 = (d: FailureDevice): string => {
+    if (d.attempts <= 1) return seconds(d.item.durationMs, 언어);
+    const 칸 = items.filter((i) => i.tcId === d.item.tcId && i.platform === d.platform && typeof i.unconfirmed !== 'string');
+    const 평균 = 칸.length === 0 ? d.item.durationMs : 회차요약(칸).평균소요ms;
+    return t('{시간} 평균', { 시간: seconds(평균, 언어) });
+  };
 
   return (
     <div className="fc-dev">
@@ -55,14 +65,17 @@ export function RunFailDevice({ devices, env }: { devices: FailureDevice[]; env:
         return (
           <div key={d.platform} className="fc-meta">
             {devices.length > 1 ? <span className="fc-name">{PLATFORM_LABEL[d.platform]}</span> : null}
-            {변화 === null ? null : <span className="fc-tag">{변화}</span>}
+            {변화 === null ? null : <span className={d.change === '새로깨짐' ? 'fc-tag fc-new' : 'fc-tag'}>{변화}</span>}
             {d.attempts > 1 ? (
               <span>{t('{회수}회 중 {실패}회 실패', { 회수: d.attempts, 실패: d.failedAttempts })}</span>
             ) : null}
-            <span>{seconds(d.item.durationMs, 언어)}</span>
+            <span>{소요글(d)}</span>
             <span className="fc-flow">
               <판정흐름 recent={d.recent} 앞말={t('{서버} 서버 · 이 실행까지', { 서버: env })} />
             </span>
+            <a className="fc-detail" href={`#/runs/${String(d.item.runId)}/items/${String(d.item.historyId)}`}>
+              {t('상세')}
+            </a>
           </div>
         );
       })}
@@ -74,7 +87,28 @@ export function RunFailDevice({ devices, env }: { devices: FailureDevice[]; env:
         </div>
       )}
 
-      <증거본문 item={대표} />
+      <증거본문 item={대표} 화면숨김={묶임} />
+
+      {!묶임 ? null : (
+        <div className="fc-shots">
+          {devices.flatMap((d) =>
+            d.item.steps
+              .filter((step) => step.screenshotPath !== undefined)
+              .map((step) => (
+                <figure key={`${d.platform}-${String(step.seq)}`} className="fc-shot">
+                  <figcaption>{PLATFORM_LABEL[d.platform]}</figcaption>
+                  <a href={api.screenshot(d.item.runId, d.item.historyId, step.seq)} target="_blank" rel="noreferrer">
+                    <img
+                      src={api.screenshot(d.item.runId, d.item.historyId, step.seq)}
+                      alt={t('{디바이스} {절차} 실패 시점 화면', { 디바이스: PLATFORM_LABEL[d.platform], 절차: step.title })}
+                      loading="lazy"
+                    />
+                  </a>
+                </figure>
+              )),
+          )}
+        </div>
+      )}
     </div>
   );
 }

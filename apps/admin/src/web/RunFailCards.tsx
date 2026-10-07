@@ -91,7 +91,6 @@ function 카드({
   items: RunItemSummary[];
   platform: Platform | 'ALL';
 }) {
-  const t = use말();
   const 깨진 = new Set(c.devices.map((d) => d.platform));
   // 미확정 항목은 확정 판정과 상관없이 미확정 묶음에 모은다 — 여기서 또 그리면 같은 항목이 두 번 나온다.
   // 디바이스를 거른 동안에는 그 디바이스만 낸다. 깨진 디바이스는 서버가 카드에 안 실었어도 접힌 줄에 넣지 않는다 —
@@ -103,23 +102,17 @@ function 카드({
       .sort((a, b) => a.attempt - b.attempt);
     return 칸.length === 0 || 칸.some((i) => i.status === 'FAIL') ? [] : [칸];
   });
-  const 상세 = c.devices[0]?.item.historyId;
 
   return (
     <article className="fc-card">
       <div className="fc-head">
         <Verdict status="FAIL" />
         <span className="mono fc-tc">{c.tcId}</span>
-        {상세 === undefined ? null : (
-          <a className="fc-detail" href={`#/runs/${String(runId)}/items/${String(상세)}`}>
-            {t('상세 보기')}
-          </a>
-        )}
       </div>
       <h3 className="fc-name-h">{c.tcName}</h3>
 
       {같은실패끼리(c.devices).map((묶음) => (
-        <RunFailDevice key={묶음.map((d) => d.platform).join('-')} devices={묶음} env={env} />
+        <RunFailDevice key={묶음.map((d) => d.platform).join('-')} devices={묶음} env={env} items={items} />
       ))}
 
       {나머지.map((칸) => (

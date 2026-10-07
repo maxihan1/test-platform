@@ -22,9 +22,11 @@ interface StepProps {
   historyId: number;
   // 카드에서는 코드를 상세에만 둔다 — 코드 뷰는 기본 노출하지 않는다 (SPEC §8.4)
   코드?: boolean;
+  /** 같은 실패로 묶인 디바이스는 화면을 절차 밖에 디바이스마다 나란히 놓는다. 그때는 절차 안에서 뺀다 */
+  화면?: boolean;
 }
 
-export function Step({ step, tcId, runId, historyId, 코드 = true }: StepProps) {
+export function Step({ step, tcId, runId, historyId, 코드 = true, 화면 = true }: StepProps) {
   const t말 = use말();
   const 언어 = use언어();
   const firstFail = step.assertions.findIndex((assertion) => assertion.status === 'FAIL');
@@ -38,6 +40,7 @@ export function Step({ step, tcId, runId, historyId, 코드 = true }: StepProps)
       runId={runId}
       historyId={historyId}
       코드={코드}
+      화면={화면}
       className={evidenceAtEnd ? undefined : 'after-assert'}
     />
   );
@@ -84,18 +87,20 @@ interface AttachmentProps {
   runId: number;
   historyId: number;
   코드: boolean;
+  화면: boolean;
   className?: string;
 }
 
-function Attachments({ step, tcId, runId, historyId, 코드, className }: AttachmentProps) {
+function Attachments({ step, tcId, runId, historyId, 코드, 화면, className }: AttachmentProps) {
   const t말 = use말();
   const hasTrace = 코드 && step.httpTrace !== undefined;
   const hasCode = 코드 && step.line !== undefined;
-  if (step.screenshotPath === undefined && !hasCode && !hasTrace) return null;
+  const 사진 = 화면 && step.screenshotPath !== undefined;
+  if (!사진 && !hasCode && !hasTrace) return null;
 
   return (
     <div className={className}>
-      {step.screenshotPath === undefined ? null : (
+      {!사진 ? null : (
         <div className="shot">
           <a href={api.screenshot(runId, historyId, step.seq)} target="_blank" rel="noreferrer">
             {/* 카드가 여러 장 한꺼번에 뜨므로 화면 밖 이미지는 늦게 읽는다 */}

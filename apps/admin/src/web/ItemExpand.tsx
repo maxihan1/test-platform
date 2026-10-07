@@ -12,7 +12,7 @@ import { Failed, Loading, PLATFORM_LABEL, useAsync } from './ui.js';
  * 라벨도 마스킹도 항목에 박제된 스키마로 한다 — 카탈로그를 읽으면 케이스 코드를 고친 날 옛 증적의 라벨이 바뀐다.
  * 코드 뷰는 상세에만 둔다 (`코드={false}`).
  */
-export function 증거본문({ item }: { item: RunItemDetail }) {
+export function 증거본문({ item, 화면숨김 = false }: { item: RunItemDetail; 화면숨김?: boolean }) {
   const t = use말();
   const 언어 = use언어();
   const 입력 = fieldsOf(item.params, item.paramSchema, 언어);
@@ -51,7 +51,15 @@ export function 증거본문({ item }: { item: RunItemDetail }) {
           <span className="fc-faint">{t('실행된 절차가 없습니다.')}</span>
         ) : (
           item.steps.map((step) => (
-            <Step key={step.seq} step={step} tcId={item.tcId} runId={item.runId} historyId={item.historyId} 코드={false} />
+            <Step
+              key={step.seq}
+              step={step}
+              tcId={item.tcId}
+              runId={item.runId}
+              historyId={item.historyId}
+              코드={false}
+              화면={!화면숨김}
+            />
           ))
         )}
       </div>
@@ -90,22 +98,27 @@ export function ItemExpand({ runId, historyId, tcId, platform, className, childr
     <div className={className}>
       <div className="fc-line">
         {children}
-        <button
-          type="button"
-          className="btn small ghost"
-          aria-expanded={열림}
-          aria-controls={패널}
-          aria-label={t(열림 ? '{케이스} {디바이스} 접기' : '{케이스} {디바이스} 펼치기', {
-            케이스: tcId,
-            디바이스: PLATFORM_LABEL[platform],
-          })}
-          onClick={() => {
-            set열림(!열림);
-            set불렀나(true);
-          }}
-        >
-          {열림 ? t('접기') : t('펼치기')}
-        </button>
+        <span className="fc-acts">
+          <a className="fc-detail" href={`#/runs/${String(runId)}/items/${String(historyId)}`}>
+            {t('상세')}
+          </a>
+          <button
+            type="button"
+            className="btn small ghost"
+            aria-expanded={열림}
+            aria-controls={패널}
+            aria-label={t(열림 ? '{케이스} {디바이스} 접기' : '{케이스} {디바이스} 펼치기', {
+              케이스: tcId,
+              디바이스: PLATFORM_LABEL[platform],
+            })}
+            onClick={() => {
+              set열림(!열림);
+              set불렀나(true);
+            }}
+          >
+            {열림 ? t('접기') : t('펼치기')}
+          </button>
+        </span>
       </div>
       <div id={패널} hidden={!열림}>
         {불렀나 ? <상세본문 runId={runId} historyId={historyId} /> : null}

@@ -1,6 +1,6 @@
 // 끝난 실행의 결과 본문 — 요약 띠 → 실패 카드 → 통과 · 미실행 줄 → 미확정 묶음, 옆 칸 (도메인/실행 §8.3)
 
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 
 import type { ItemStatus, Platform, RunInsights as 비교 } from './api.js';
 import type { 증적칸 } from './EvidenceSection.js';
@@ -78,6 +78,7 @@ interface Props {
 export function 끝난결과(props: Props) {
   const { data, insights, 견줌오류, 증적칸, 상자안, 상자머리, 판정, on판정, device, on디바이스, page, on쪽 } = props;
   const t = use말();
+  const 통과제목 = useRef<HTMLHeadingElement>(null);
   const 디바이스들 = 실행디바이스들(data.items);
   const columns = device === 'ALL' ? 디바이스들 : [device];
   const { 줄들, 미확정, 카드안항목수 } = 갈라낸다(data.items, 판정, device);
@@ -86,6 +87,7 @@ export function 끝난결과(props: Props) {
   const 보이는줄 = 줄들.slice((보는쪽 - 1) * PAGE_SIZE, 보는쪽 * PAGE_SIZE);
   // 통로는 확정 실패가 있을 때만 부른다. 0건이면 부를 까닭이 없다 (§8.3)
   const 카드구획 = 판정 === 'ALL' || 판정 === 'FAIL';
+  const 줄구획 = !(판정 === 'FAIL' || (판정 === 'ALL' && 줄들.length === 0));
 
   const 본문 = (
     <>
@@ -98,6 +100,21 @@ export function 끝난결과(props: Props) {
             <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={on디바이스} />
           </div>
 
+          {/* 카드가 길면 키보드 · 화면 읽기로 통과 줄까지 카드 수만큼 탭해야 한다. 주소가 `#/` 로 가는 앱이라
+              `#id` 링크 대신 버튼으로 포커스를 옮긴다. 보이는 건 포커스가 왔을 때뿐이다 */}
+          {!카드구획 || !줄구획 || data.counts.fail === 0 ? null : (
+            <button
+              type="button"
+              className="btn small ghost skip-link"
+              onClick={() => {
+                통과제목.current?.focus();
+                통과제목.current?.scrollIntoView?.({ block: 'start' });
+              }}
+            >
+              {t('통과 · 미실행으로 건너뛰기')}
+            </button>
+          )}
+
           {!카드구획 ? null : data.counts.fail === 0 ? (
             <p className="empty">{t('실패한 케이스가 없습니다')}</p>
           ) : (
@@ -107,9 +124,9 @@ export function 끝난결과(props: Props) {
             </section>
           )}
 
-          {판정 === 'FAIL' || (판정 === 'ALL' && 줄들.length === 0) ? null : (
+          {!줄구획 ? null : (
             <section className="rr-sec rr-rows">
-              <h2 className="fc-title">
+              <h2 ref={통과제목} tabIndex={-1} className="fc-title">
                 {t('통과 · 미실행')} <span className="rr-n">{줄들.length}</span>
               </h2>
               {보이는줄.length === 0 ? (

@@ -129,11 +129,10 @@ describe('실패 카드 — 통과 줄 · 거르개 · 쪽 · 불러오기 (실�
     expect(await screen.findByText('실패한 케이스가 없습니다')).toBeDefined();
   });
 
-  it('카드에 상세 보기 링크가 있다 — 코드 뷰는 상세에만 둔다', async () => {
+  it('카드에는 코드 뷰가 없다 — 코드는 상세에만 둔다', async () => {
     그리기(쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 17)])]));
 
-    const 링크 = await screen.findByRole('link', { name: '상세 보기' });
-    expect(링크.getAttribute('href')).toBe(`#/runs/${RUN_ID}/items/17`);
+    await screen.findByRole('link', { name: '상세' });
     expect(screen.queryByText('실패 지점 코드')).toBeNull();
   });
 
