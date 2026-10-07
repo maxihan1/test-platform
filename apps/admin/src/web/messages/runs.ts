@@ -151,6 +151,15 @@ export const 실행말: Record<string, string> = {
   '같은 사유로 묶은 실패': 'Failures grouped by cause',
   '실패 항목 {건수}건': '{건수} failed items',
 
+  // 결과 화면 요약 띠 (§8.3)
+  '실패 {수}건': '{수} failed',
+  '항목 {전체}건 중 {통과}건 통과': '{통과} of {전체} items passed',
+  '확정 항목 없음': 'No confirmed items',
+  '판정별 보기 · 항목 수': 'View by verdict · items',
+  '직전 실행 RUN {번호} 대비 · 항목 수': 'Against previous run RUN {번호} · items',
+  '연속 실패': 'Still failing',
+  '해결': 'Fixed',
+
   // 실패 케이스 카드와 펼치기 (§8.3 결과 화면)
   '실패한 케이스가 없습니다': 'No failed cases',
   '상세 보기': 'View details',

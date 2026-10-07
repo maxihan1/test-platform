@@ -5537,3 +5537,212 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
     flex-wrap: wrap;
   }
 }
+
+/* 결과 화면 요약 띠 — 도넛 · 실패 수 · 판정별 보기 · 직전 실행 대비 (도메인/실행 §8.3). 도넛은 대시보드와 같은 그래프 토큰 */
+.rs {
+  display: grid;
+  grid-template-columns: auto minmax(240px, 1fr) minmax(220px, 1fr);
+  align-items: center;
+  gap: 24px 32px;
+  padding: 20px 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  container-type: inline-size;
+}
+
+.rs-rate {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+
+.rs-donut {
+  position: relative;
+  flex: none;
+  width: 152px;
+  height: 152px;
+}
+
+.rs-donut svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rs-track,
+.rs-seg {
+  fill: none;
+  stroke-width: 12;
+}
+
+.rs-track {
+  stroke: var(--chart-track);
+}
+
+.rs-seg {
+  animation: 그려짐 var(--dur) var(--ease) backwards;
+}
+
+.rs-seg.p {
+  stroke: var(--pass-chart);
+}
+
+.rs-seg.f {
+  stroke: var(--fail);
+}
+
+.rs-seg.n {
+  stroke: var(--na-chart);
+}
+
+.rs-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.rs-big {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.rs-pct {
+  font-size: 16px;
+  color: var(--ink-faint);
+}
+
+.rs-axis {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.rs-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rs-fails {
+  font-size: 14px;
+  padding: 4px 12px;
+}
+
+.rs-fails.none {
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.rs-of {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.rs-filter,
+.rs-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rs-diff {
+  grid-column: 1 / -1;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.rs-fbtns,
+.rs-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.rs-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 480px;
+}
+
+.rs-fbtn,
+.rs-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  background: var(--panel);
+  font-family: inherit;
+  text-align: left;
+}
+
+.rs-stat {
+  border-color: var(--line);
+}
+
+.rs-fbtn {
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.rs-fbtn[aria-pressed='true'] {
+  background: var(--rail-active);
+  border-color: var(--ink-faint);
+}
+
+.rs-fbtn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.rs-k {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.rs-k.a {
+  color: var(--ink-faint);
+}
+
+.rs-k.p {
+  color: var(--pass-text);
+}
+
+.rs-k.f {
+  color: var(--fail-text);
+}
+
+.rs-k.n {
+  color: var(--na-text);
+}
+
+.rs-n {
+  font-size: 20px;
+}
+
+.rs-note {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.rs-note.na {
+  color: var(--na-text);
+}
+
+/* 한 단 · 두 단은 창 폭이 아니라 그릇 폭으로 가른다 — 상자 안에서도 같은 규칙이다 */
+@container (max-width: 720px) {
+  .rs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
