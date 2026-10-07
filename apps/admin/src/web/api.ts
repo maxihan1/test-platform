@@ -5,6 +5,7 @@ import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '
 import type { Technique } from '@platform/kit/types';
 
 import type { 고칠것 } from '../authoring/edit.js';
+import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 
 import type { 권한칸, 등급 } from './role.js';
 
@@ -741,6 +742,12 @@ export const api = {
    * 목록에서 케이스마다 부르면 §8.1 의 「이력을 따로 부르지 않는다」를 어긴다
    */
   caseHistory: (tcId: string) => call<Paged<HistoryRow>>(`/cases/${encodeURIComponent(tcId)}/history`),
+
+  /** 서비스를 가로지른 품질 현황. `only=running` 이면 실행 중 줄만 온다 (도메인/리포팅 §7 · §8.12) */
+  dashboard: <무엇 extends 'running' | undefined = undefined>(tz: string, only?: 무엇) =>
+    call<무엇 extends 'running' ? Pick<대시보드응답, 'running'> : 대시보드응답>(
+      `/dashboard?tz=${encodeURIComponent(tz)}${only === 'running' ? '&only=running' : ''}`,
+    ),
 
   runs: (service: string, page: number, 조건: RunQuery = {}) => {
     const params = new URLSearchParams({ service, page: String(page) });

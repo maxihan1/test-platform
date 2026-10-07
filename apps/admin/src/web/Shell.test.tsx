@@ -254,3 +254,33 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
     사이드바접음을적는다(false);
   });
 });
+
+describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)', () => {
+  it('대시보드가 자리 목록 맨 위에 있고 지금 자리면 표시한다', () => {
+    띄운다(결제, 'ko', () => {}, '#/dashboard');
+    const 링크 = within(screen.getByRole('navigation')).getAllByRole('link')[0]!;
+    expect(링크.textContent).toBe('대시보드');
+    expect(링크.getAttribute('href')).toBe('#/dashboard');
+    expect(링크.getAttribute('aria-current')).toBe('page');
+  });
+
+  it('대시보드에서는 서비스 고르개와 알림 줄이 없다. 여러 서비스를 함께 보는 화면이라서다', () => {
+    const { container } = 띄운다(결제, 'ko', () => {}, '#/dashboard');
+    expect(screen.queryByRole('combobox', { name: '서비스 고르기' })).toBeNull();
+    expect(container.querySelector('.side-top')).toBeNull();
+    expect(api.runs).not.toHaveBeenCalled();
+    expect(container.querySelector('.toast-row')).toBeNull();
+  });
+
+  it('다른 자리에서는 고르개가 그대로 있다', () => {
+    띄운다(결제, 'ko', () => {}, '#/cases');
+    expect(screen.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
+    expect(api.runs).toHaveBeenCalled();
+  });
+
+  it('영어 이름은 Dashboard 다', () => {
+    띄운다(결제, 'en', () => {}, '#/dashboard');
+    expect(within(screen.getByRole('navigation')).getAllByRole('link')[0]!.textContent).toBe('Dashboard');
+  });
+});
+

@@ -8,6 +8,7 @@ import { api, type ServiceRow, type User, 돌아갈자리를꺼낸다, 세션끊
 import { Authoring } from './Authoring.js';
 import { AuthoringDetail } from './AuthoringDetail.js';
 import { CaseList } from './CaseList.js';
+import { Dashboard } from './Dashboard.js';
 import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
 import { useHash, 떠나기막기 } from './leaveGuard.js';
@@ -57,6 +58,8 @@ function Screen({
   const 할수 = 판정을만든다(user, service?.prefix ?? null);
 
   switch (current.name) {
+    case 'dashboard':
+      return <Dashboard />;
     case 'cases':
       // 종류마다 새로 그린다 — 고른 것 · 쪽 · 검색어가 남으면 UI 와 기능을 섞어 골라 실행이 MIXED_KIND 로 거절된다 (PR #132)
       return (
