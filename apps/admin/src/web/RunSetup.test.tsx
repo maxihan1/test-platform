@@ -260,3 +260,33 @@ describe('묶음 이름이 비었을 때', () => {
     expect(screen.getByRole('button', { name: /테스트 실행/ })).toBeTruthy();
   });
 });
+
+describe('실행 위치 (SPEC §8.2)', () => {
+  const 안드로이드케이스: CaseRow = { ...케이스, platforms: ['android'] };
+
+  it('Android 앱을 고르면 실행 요청에 location: local 이 실린다', async () => {
+    const 만들기 = await 그린다(안드로이드케이스);
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+
+    fireEvent.click(실행버튼());
+
+    expect(만들기.mock.calls[0]?.[0].location).toBe('local');
+  });
+
+  it('Android 앱이 있으면 실행 위치 고르개가 보이고 실행 버튼은 눌린다', async () => {
+    await 그린다(안드로이드케이스);
+
+    expect(screen.getByText('실행 위치')).toBeTruthy();
+    expect(실행버튼().disabled).toBe(false);
+  });
+
+  it('브라우저만 돌리면 location 을 싣지 않고 고르개도 없다', async () => {
+    const 만들기 = await 그린다();
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+
+    fireEvent.click(실행버튼());
+
+    expect(screen.queryByText('실행 위치')).toBeNull();
+    expect(만들기.mock.calls[0]?.[0].location).toBeUndefined();
+  });
+});
