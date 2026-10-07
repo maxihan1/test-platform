@@ -116,8 +116,8 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: String(tz ?? '') });
     }
     const 실행서비스 = 읽기되는서비스번호(req, 'runs');
-    if (only === 'running') return 대시보드실행중(실행서비스);
     try {
+      if (only === 'running') return await 대시보드실행중(tz, 실행서비스);
       return await 대시보드(tz, 실행서비스, 읽기되는서비스번호(req, 'authoring'));
     } catch (err) {
       if (err instanceof 틀린시간대) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: err.받은값 });

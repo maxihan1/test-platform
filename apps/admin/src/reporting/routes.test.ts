@@ -291,12 +291,14 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     }
   });
 
-  it('GET /api/dashboard — pg_timezone_names 에 없는 tz 는 400 이고 받은 값을 돌려준다', async () => {
+  it('GET /api/dashboard — pg_timezone_names 에 없는 tz 는 only=running 이어도 400 이고 받은 값을 돌려준다', async () => {
     지금사람 = 사람(실행만);
-    const res = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Mars%2FOlympus' });
+    for (const url of ['/api/dashboard?tz=Mars%2FOlympus', '/api/dashboard?tz=Mars%2FOlympus&only=running']) {
+      const res = await app.inject({ method: 'GET', url });
 
-    expect(res.statusCode).toBe(400);
-    expect(res.json()).toEqual({ error: 'INVALID_REQUEST', detail: 'Mars/Olympus' });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'INVALID_REQUEST', detail: 'Mars/Olympus' });
+    }
   });
 
   it('GET /api/dashboard — 실행 read 인 배정 서비스로 열 칸을 낸다', async () => {

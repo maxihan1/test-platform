@@ -271,7 +271,7 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
 
   describe('실행 중', () => {
     it('진행 중인 케이스 실행만 항목 수와 함께 낸다 — 시나리오 실행은 없다', async () => {
-      const { running } = await 대시보드실행중([A]);
+      const { running } = await 대시보드실행중('UTC', [A]);
       expect(running).toHaveLength(1);
       expect(running[0]).toMatchObject({
         runId: 실행번호['XDQ R4 도는 중'],
@@ -316,7 +316,7 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
     it('접기 · 실행 중 · 커버리지 어디에도 안 나온다', async () => {
       const 결과 = await 대시보드('UTC', [A], [A]);
       expect(JSON.stringify(결과)).not.toContain('XDQB');
-      expect(JSON.stringify(await 대시보드실행중([A]))).not.toContain('XDQB');
+      expect(JSON.stringify(await 대시보드실행중('UTC', [A]))).not.toContain('XDQB');
     });
 
     it('실행 서비스에만 있으면 커버리지에는 안 나오고, 둘 다에 있으면 나온다', async () => {

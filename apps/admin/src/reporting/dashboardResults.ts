@@ -199,9 +199,11 @@ async function 앞판정읽기(pool: Pool, runIds: number[]): Promise<Map<number
   return 결과;
 }
 
-/** 화면이 15초마다 부르는 가벼운 쪽 — 집계는 안 돌고 실행 중 줄만 읽는다 */
-export async function 대시보드실행중(실행서비스ids: number[]): Promise<{ running: 실행중[] }> {
-  return { running: await 실행중읽기(await db(), 실행서비스ids) };
+/** 화면이 15초마다 부르는 가벼운 쪽 — 집계는 안 돌고 실행 중 줄만 읽는다. tz 는 안 쓰지만 같은 통로라 틀린 이름은 똑같이 거절한다 */
+export async function 대시보드실행중(tz: string, 실행서비스ids: number[]): Promise<{ running: 실행중[] }> {
+  const pool = await db();
+  await 시간대확인(pool, tz);
+  return { running: await 실행중읽기(pool, 실행서비스ids) };
 }
 
 /**
