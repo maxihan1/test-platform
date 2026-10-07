@@ -171,7 +171,7 @@ describe('ScenarioRunList 줄', () => {
     const 띠들 = [...container.querySelectorAll<HTMLElement>('.row .gutter')].map((el) => el.style.background);
     expect(띠들).toEqual(줄들.map(E2E띠색));
     expect(띠들[0]).toBe('var(--pass)');
-    expect(띠들[1]).toBe('var(--rule)');
+    expect(띠들[1]).toBe('var(--line-2)');
     expect(띠들[2]).toBe('var(--fail)');
   });
 });

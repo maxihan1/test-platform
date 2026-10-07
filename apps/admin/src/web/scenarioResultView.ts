@@ -54,9 +54,9 @@ export function 멈춘단계글자(줄: ScenarioRunRow, 언어: 언어): string 
 
 /** 판정이 아닌 것(도는 중 · 미확정 통과 · 판정 없음)에는 판정 색을 안 쓴다 */
 export function E2E띠색(줄: ScenarioRunRow): string {
-  if (줄.status === 'RUNNING') return 'var(--rule)';
-  if (줄.verdict === 'PASS') return 줄.unconfirmed ? 'var(--rule)' : 'var(--pass)';
+  if (줄.status === 'RUNNING') return 'var(--line-2)';
+  if (줄.verdict === 'PASS') return 줄.unconfirmed ? 'var(--line-2)' : 'var(--pass)';
   if (줄.verdict === 'FAIL') return 'var(--fail)';
   if (줄.verdict === 'NA') return 'var(--na)';
-  return 'var(--rule)';
+  return 'var(--line-2)';
 }

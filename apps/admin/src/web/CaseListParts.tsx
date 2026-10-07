@@ -241,7 +241,7 @@ export function 케이스줄({
           {t('상세')}
         </button>
         {!실행된다 ? null : (
-          <a className="btn small" href={`#/cases/${encodeURIComponent(row.tcId)}/run`}>
+          <a className="btn small ghost" href={`#/cases/${encodeURIComponent(row.tcId)}/run`}>
             {t('실행')}
           </a>
         )}

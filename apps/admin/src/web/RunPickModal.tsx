@@ -165,8 +165,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
       바깥눌러닫기={false}
       버튼={
         <>
-          {/* 사유도 건수도 말풍선이 아니라 화면 줄이다. 오류는 --fail 로 적는다 (DESIGN.md) */}
-          <span className="note" role="status" style={빨갛나 ? { color: 'var(--fail)' } : undefined}>
+          {/* 사유도 건수도 말풍선이 아니라 화면 줄이다. 오류는 실패 글자색(--fail-text)으로 적는다 (DESIGN.md 원칙 1 오류 예외) */}
+          <span className="note" role="status" style={빨갛나 ? { color: 'var(--fail-text)' } : undefined}>
             {줄}
           </span>
           <button className="btn ghost" onClick={onClose}>

@@ -227,7 +227,7 @@ function 실행줄({ run, on열기 }: { run: ScenarioRunRow; on열기: (runId: n
             <span className="case-tag">{t('미확정 포함')}</span>
           ) : null}
         </div>
-        <button type="button" className="btn small" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>
+        <button type="button" className="btn small ghost" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>
           {t('결과 보기')}
         </button>
       </div>

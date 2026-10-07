@@ -215,7 +215,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
       'var(--pass)',
       'var(--fail)',
       'var(--na)',
-      'var(--rule)',
+      'var(--chart-track)',
     ]);
     expect(칸들.map((i) => i.style.flexGrow)).toEqual(['11', '1', '0', '22']);
   });
@@ -230,7 +230,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
       'var(--fail)',
       'var(--na)',
       'var(--ink-faint)',
-      'var(--rule)',
+      'var(--chart-track)',
     ]);
     expect(칸들.map((i) => i.style.flexGrow)).toEqual(['9', '1', '0', '2', '22']);
     expect(본문()).toContain('미확정 2(통과 1 · 실패 1)');

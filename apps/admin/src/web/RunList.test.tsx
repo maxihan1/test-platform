@@ -132,7 +132,7 @@ describe('RunList 미확정 (도메인/실행 §8.7)', () => {
     await screen.findByText(/ZRL 미확정만/);
 
     const 띠 = container.querySelector<HTMLElement>('.row .gutter');
-    expect(띠?.style.background).toBe('var(--rule)');
+    expect(띠?.style.background).toBe('var(--line-2)');
     expect(screen.getByText('미확정 2(통과 1 · 실패 1)')).toBeTruthy();
   });
 

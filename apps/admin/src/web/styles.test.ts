@@ -1,6 +1,6 @@
 // styles.css 가 DESIGN.md 의 약속을 지키는지 기계가 본다 — 사람이 훑어서는 되돌아오는 것을 못 막는다
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
@@ -14,6 +14,14 @@ function 토큰들(): Record<string, string> {
   return 표;
 }
 
+/** 화면 폴더의 CSS · 화면 코드 원본(검사 파일 제외). 인라인 style 의 var() 도 같은 토큰을 부른다 */
+function 화면원본들(): (readonly [string, string])[] {
+  const 폴더 = new URL('.', import.meta.url);
+  return readdirSync(폴더)
+    .filter((이름) => /\.(css|ts|tsx)$/.test(이름) && !/\.test\.tsx?$/.test(이름))
+    .map((이름) => [이름, readFileSync(new URL(이름, 폴더), 'utf8')] as const);
+}
+
 describe('화면 토큰 (DESIGN.md)', () => {
   it('방안지 격자를 페이지 바탕에 깔지 않는다', () => {
     const body = /\bbody\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
@@ -22,18 +30,27 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(body).not.toMatch(/background-size/);
   });
 
-  it('쓰는 토큰이 전부 :root 에 정의돼 있다', () => {
+  it('쓰는 토큰이 전부 :root 에 정의돼 있다 — 다른 CSS 파일과 화면 코드의 인라인 style 까지', () => {
     // 없는 토큰을 var() 로 부르면 그 속성이 통째로 무효가 된다 — 오류도 안 나고 조용히 사라진다.
-    // 2026-09-21 에 --lift 가 실제로 그랬다. 면이 바탕에서 떠 보이지 않는데 아무도 안 죽는다
+    // 2026-09-21 에 --lift 가 실제로 그랬다. 면이 바탕에서 떠 보이지 않는데 아무도 안 죽는다.
+    // 2026-10-07 토큰 교체 때 이 검사가 styles.css 만 읽어서 authoringStatus.css 와 인라인 `var(--rule)` 이 빠져나갔다
     const 있는것 = new Set(Object.keys(토큰들()));
-    const 부르는것 = new Set([...css.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!));
-    const 없는것 = [...부르는것].filter((이름) => !있는것.has(이름));
+    const 없는것 = 화면원본들().flatMap(([이름, 글]) =>
+      [...new Set([...글.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!))]
+        .filter((토큰) => !있는것.has(토큰))
+        .map((토큰) => `${이름}: ${토큰}`),
+    );
     expect(없는것, `:root 에 없는 토큰을 부른다 — ${없는것.join(', ')}`).toEqual([]);
   });
 
-  it('껍데기 색을 토큰 하나로 둔다', () => {
-    // 껍데기(띠·탭 밑줄·표머리)에만 쓰는 색이다. 자리마다 적으면 한쪽만 바뀐다
-    expect(토큰들()['--chrome']).toMatch(/^#[0-9a-f]{6}$/i);
+  it('대표색을 토큰 하나로 두고, 옛 껍데기 색은 부르지 않는다', () => {
+    // 대표색이 앉는 자리의 정본은 화면공통 §8 이다. 자리마다 값을 적으면 한쪽만 바뀐다.
+    // 껍데기 색은 2026-10-07 개편에서 대표색 자리로 합쳤다 — 되살아나면 「지금 자리」 색이 두 벌이 된다
+    const 표 = 토큰들();
+    for (const 이름 of ['--accent', '--accent-edge', '--on-accent', '--link']) {
+      expect(표[이름], 이름).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+    expect(css).not.toMatch(/var\(--chrome\b/);
   });
 
   it('싣지 않은 굵기를 부르지 않는다', () => {
@@ -56,15 +73,20 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(본문).toMatch(/min-height:\s*0/);
   });
 
-  it('면은 떠 있고 행에는 그림자가 없다', () => {
-    // 원칙 2 (2026-09-21 뒤집었다). 면은 radius 14px 에 옅은 그림자,
-    // 행마다 카드를 두르지 않는다 — 나열이 객체로 읽힌다
-    for (const 면 of ['.screen', '.modal', '.login-box']) {
+  it('면은 판 8px 이고, 위에 뜨는 상자만 그림자를 갖고, 행에는 그림자가 없다', () => {
+    // 원칙 2 (2026-10-07 새 토큰). 판 모서리는 8px 한 가지다.
+    // 어두운 바탕에서는 그림자가 면을 가르지 못해 목록 면은 테두리로 가른다 — 그림자는 다른 화면 위에 뜨는 상자만 쓴다.
+    // 두께 있는 판(--slab)은 그래프 · 요약 칸에만 둔다 (DESIGN.md 원칙 2)
+    const 첫정의 = (면: string) =>
       // 줄 맨 앞에 선 것이 첫 정의다. 좁은 화면 재정의는 들여쓴 채로 뒤에 또 나온다 —
       // 그것을 잡으면 「없다」고 거짓 실패한다 (2026-09-21 실제로 그랬다)
-      const 블록 = new RegExp(`^\\${면}\\s*\\{([^}]*)\\}`, 'm').exec(css)?.[1] ?? '';
-      expect(블록, `${면} 에 radius 14px 이 없다`).toMatch(/border-radius:\s*14px/);
-      expect(블록, `${면} 에 그림자가 없다`).toMatch(/box-shadow:/);
+      new RegExp(`^\\${면}\\s*\\{([^}]*)\\}`, 'm').exec(css)?.[1] ?? '';
+    for (const 면 of ['.screen', '.modal', '.login-box']) {
+      expect(첫정의(면), `${면} 에 radius 8px 이 없다`).toMatch(/border-radius:\s*8px/);
+    }
+    expect(첫정의('.screen'), '.screen 이 테두리로 갈리지 않는다').toMatch(/border:\s*1px solid var\(--line\)/);
+    for (const 면 of ['.modal', '.login-box']) {
+      expect(첫정의(면), `${면} 에 그림자가 없다`).toMatch(/box-shadow:/);
     }
     const 행 = /\n\.row\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
     expect(행, '행에 그림자를 주면 나열이 객체로 읽힌다').not.toMatch(/box-shadow:/);
@@ -94,13 +116,14 @@ describe('화면 토큰 (DESIGN.md)', () => {
     // 줄 맨 앞에 선 것이 첫 정의다. 좁은 화면 재정의는 들여쓴 채로 **앞에** 나온다 —
     // 그것을 잡으면 「규칙이 없다」고 거짓 실패한다 (2026-09-21, PR① 과 같은 함정)
     const 블록 = /^\.pcell \.field input,[^{]*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
-    expect(블록, '줄의 입력칸 규칙이 없다').toMatch(/border-radius:\s*8px/);
+    // 컨트롤 모서리는 4px 한 가지다 (DESIGN.md 「새 토큰」 크기 단계)
+    expect(블록, '줄의 입력칸 규칙이 없다').toMatch(/border-radius:\s*4px/);
   });
 
   it('펼침 패널이 줄과 다른 바탕을 쓴다', () => {
-    // 같은 바탕이면 어디까지가 그 줄의 상세인지 눈으로 못 가른다
+    // 같은 바탕이면 어디까지가 그 줄의 상세인지 눈으로 못 가른다. 판 안의 우묵한 자리라 --well 이다
     const 블록 = /^\.detail\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
-    expect(블록, '.detail 에 바탕이 없다').toMatch(/background:\s*var\(--sheet-2\)/);
+    expect(블록, '.detail 에 바탕이 없다').toMatch(/background:\s*var\(--well\)/);
   });
 
   it('좁은 화면에서 줄의 입력칸은 라벨이 값 위로 올라간다', () => {
@@ -119,7 +142,7 @@ describe('화면 토큰 (DESIGN.md)', () => {
   it('화면 머리가 본문과 다른 면이고 아래가 괘선으로 닫힌다', () => {
     // 머리와 본문이 같은 바탕이면 「헤드와 메인이 분리 안 돼 있다」로 다시 돌아간다 (2026-09-22)
     const 블록 = /^\.head\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
-    expect(블록, '.head 에 바탕이 없다').toMatch(/background:\s*var\(--sheet\)/);
+    expect(블록, '.head 에 바탕이 없다').toMatch(/background:\s*var\(--head\)/);
     expect(블록, '.head 아래가 안 닫혔다').toMatch(/border-bottom:/);
   });
 
@@ -137,16 +160,14 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(Number(값 ?? 0)).toBeGreaterThanOrEqual(44);
   });
 
-  it('로그인 상자가 짙은 바탕 위에 선다', () => {
-    // 들어가는 자리임을 분명히 한다. 밝은 바탕에 밝은 상자를 두면 상자가 안 보인다
+  it('로그인 상자가 가장 짙은 바탕 위에 판으로 서고 테두리로 갈린다', () => {
+    // 들어가는 자리임을 분명히 한다. 2026-09-22 에는 짙은 바탕에 밝은 상자라 밝기 차(15.40)가 갈랐다.
+    // 개편 뒤에는 둘 다 어두워 밝기로는 못 가른다(1.1 남짓) — 테두리와 그림자가 가른다 (2026-10-07)
     const 바깥 = /^\.login\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
-    expect(바깥, '.login 바탕이 짙지 않다').toMatch(/background:\s*var\(--rail\)/);
+    expect(바깥, '.login 바탕이 메뉴와 같은 가장 짙은 면이 아니다').toMatch(/background:\s*var\(--rail\)/);
     const 상자 = /^\.login-box\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
-    expect(상자, '.login-box 가 밝은 면이 아니다').toMatch(/background:\s*var\(--sheet\)/);
-
-    // 상자가 바탕에서 갈려 보여야 한다. UI 요소 기준 3:1 (DESIGN.md 명암비, 2026-09-22 실측 15.40)
-    const 표 = 토큰들();
-    expect(짝명암비(표['--sheet']!, 표['--rail']!)).toBeGreaterThanOrEqual(3);
+    expect(상자, '.login-box 가 판이 아니다').toMatch(/background:\s*var\(--panel\)/);
+    expect(상자, '.login-box 가 테두리로 갈리지 않는다').toMatch(/border:\s*1px solid var\(--line-2\)/);
   });
 
   it('모달 안의 진행 막대가 줄어들지 않는다', () => {
@@ -214,6 +235,11 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(하위).not.toMatch(/display:\s*none/);
   });
 
+  it('접혀 높이가 0 인 하위 메뉴도 키보드로 닿으면 높이를 되살려 포커스 링이 보인다 (2026-10-07)', () => {
+    const 포커스 = /\.folded \.side \.side-nav a\.side-sub:focus-visible\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(포커스).toMatch(/padding:\s*[1-9]/);
+  });
+
   it('좁은 화면에서 거터가 쌓인 줄 전체를 덮는다', () => {
     // `grid-row: 1 / -1` 만으로는 안 된다. -1 은 **명시적으로 선언한** 줄의 끝을 가리켜서
     // 내용이 암시적 행으로 쌓이면 거터가 첫 줄만 덮는다 (WORKSTREAMS ⑪, 2026-09-19 실측).
@@ -231,10 +257,23 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(Number(값)).toBeGreaterThanOrEqual(44);
   });
 
-  it('판정 세 색과 그 바탕이 전부 있다', () => {
+  it('판정 도형 색(--pass · --fail · --na)을 글자색으로 쓰지 않는다 — 글자는 밝은 판(-text)이다', () => {
+    // 어두운 바탕에서 도형 색을 글자에 쓰면 줄 hover 바탕 위에서 4.5 를 못 넘는다(--fail 4.10 · --na 4.32).
+    // 2026-10-07 토큰 교체 때 CSS 는 옮겼는데 화면 코드의 인라인 style 아홉 자리가 그대로 남았다
+    const 걸린것 = 화면원본들().flatMap(([이름, 글]) =>
+      [...글.matchAll(/(?<![\w-])color:\s*'?var\(--(?:pass|fail|na)\)/g)].map((m) => `${이름}: ${m[0]}`),
+    );
+    expect(걸린것).toEqual([]);
+  });
+
+  it('판정 세 색과 그 글자 · 옅은 바탕이 전부 있다', () => {
+    // 어두운 바탕에서는 도형(점 · 막대)과 글자가 같은 색이면 한쪽이 모자란다 — 둘을 따로 둔다 (DESIGN.md 「새 토큰」)
     const 표 = 토큰들();
-    for (const 이름 of ['--pass', '--fail', '--na', '--pass-bg', '--fail-bg', '--na-bg']) {
+    for (const 이름 of ['--pass', '--fail', '--na', '--pass-text', '--fail-text', '--na-text', '--fail-badge']) {
       expect(표[이름], 이름).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+    for (const 이름 of ['--pass-soft', '--fail-soft', '--na-soft']) {
+      expect(표[이름], 이름).toMatch(/^rgba\(/);
     }
   });
 });
@@ -252,6 +291,16 @@ function 짝명암비(a: string, b: string): number {
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 }
 
+/** 반투명 바탕(`rgba(...)`)을 아래 면 위에 겹친 실제 색. 옅은 판정 바탕은 판 위에서 섞여 보인다 */
+function 겹친색(rgba: string, 아래: string): string {
+  const [r, g, b, a] = (/rgba\(([^)]*)\)/.exec(rgba)?.[1] ?? '').split(',').map((v) => Number(v.trim()));
+  const 밑 = [1, 3, 5].map((i) => parseInt(아래.slice(i, i + 2), 16));
+  return `#${[r!, g!, b!]
+    .map((c, i) => Math.round(c * a! + 밑[i]! * (1 - a!)))
+    .map((v) => v.toString(16).padStart(2, '0'))
+    .join('')}`;
+}
+
 /**
  * DESIGN.md 의 명암비 표를 기계가 다시 잰다.
  *
@@ -264,77 +313,81 @@ describe('토큰 명암비 (DESIGN.md)', () => {
   const 본문 = 4.5;
   const 요소 = 3;
 
+  // 글자가 실제로 앉는 면마다 잰다. 표에 없는 짝을 새로 만들면 여기에 더한다 (2026-10-07 새 토큰)
+  const 글자 = ['--ink', '--ink-muted', '--ink-faint'];
+  const 면 = ['--bg', '--head', '--panel', '--well', '--rail-active'];
   it.each([
-    ['--ink', '--sheet', 본문],
-    ['--ink', '--paper', 본문],
-    ['--ink-muted', '--sheet', 본문],
-    ['--ink-muted', '--sheet-2', 본문],
-    ['--ink-muted', '--chip', 본문],
-    ['--ink-faint', '--sheet', 본문],
-    ['--ink-faint', '--sheet-2', 본문],
-    ['--ink-faint', '--paper', 본문],
-    ['--ink-faint', '--chip', 본문],
-    ['--chrome', '--sheet', 본문],
-    ['--chrome', '--paper', 본문],
-    ['--pass', '--pass-bg', 본문],
-    ['--fail', '--fail-bg', 본문],
-    ['--na', '--na-bg', 본문],
-    ['--pass', '--sheet', 본문],
-    ['--fail', '--sheet', 본문],
-    ['--rail-ink', '--rail', 본문],
-    ['--rail-ink', '--rail-2', 본문],
-    ['--rail-dim', '--rail', 본문],
-    ['--rail-dim', '--rail-2', 본문],
-    ['--rail-acc', '--rail', 본문],
-    ['--rail-acc', '--rail-2', 본문],
-  ])('%s 가 %s 위에서 기준 %s 를 넘는다', (앞, 뒤, 기준) => {
+    ...글자.flatMap((앞) => 면.map((뒤) => [앞, 뒤, 본문] as const)),
+    // 메뉴 — 지금 자리가 아닌 줄은 희미한 잉크, 지금 자리는 본문 잉크
+    ['--ink-faint', '--rail', 본문],
+    ['--ink', '--rail', 본문],
+    ['--link', '--panel', 본문],
+    ['--link', '--bg', 본문],
+    ['--on-accent', '--accent', 본문],
+    ['--pass-text', '--panel', 본문],
+    ['--fail-text', '--panel', 본문],
+    ['--na-text', '--panel', 본문],
+    // 도형 (점 · 막대 · 지금 자리 막대) — UI 요소 기준
+    ['--pass', '--panel', 요소],
+    ['--fail', '--panel', 요소],
+    ['--na', '--panel', 요소],
+    ['--na-chart', '--panel', 요소],
+    ['--accent', '--rail', 요소],
+  ] as const)('%s 가 %s 위에서 기준 %s 를 넘는다', (앞, 뒤, 기준) => {
     const 표 = 토큰들();
     expect(짝명암비(표[앞]!, 표[뒤]!)).toBeGreaterThanOrEqual(기준);
   });
 
-  it('띠의 흰 글자가 껍데기 색 위에서 읽힌다', () => {
-    expect(짝명암비('#ffffff', 토큰들()['--chrome']!)).toBeGreaterThanOrEqual(본문);
+  it.each([
+    ['--pass-text', '--pass-soft'],
+    ['--fail-text', '--fail-soft'],
+    ['--na-text', '--na-soft'],
+  ])('판정 배지 %s 가 판 위에 겹친 %s 에서 읽힌다', (앞, 뒤) => {
+    const 표 = 토큰들();
+    expect(짝명암비(표[앞]!, 겹친색(표[뒤]!, 표['--panel']!))).toBeGreaterThanOrEqual(본문);
   });
 
-  it('실패 배지의 흰 글자가 읽힌다. 반전은 여기 하나뿐이다', () => {
-    expect(짝명암비('#ffffff', 토큰들()['--fail']!)).toBeGreaterThanOrEqual(본문);
+  it('꽉 찬 실패 배지의 흰 글자가 읽힌다. 흰 글자 반전은 여기 하나뿐이다', () => {
+    // 실패 색(--fail) 위 흰 글자는 3.83 이라 모자란다 — 배지는 한 단계 짙은 --fail-badge 를 쓴다
+    expect(짝명암비('#ffffff', 토큰들()['--fail-badge']!)).toBeGreaterThanOrEqual(본문);
   });
 
   it('괘선은 기준 밖이다. 행 구분은 간격과 배치가 이미 하고 있다', () => {
     // DESIGN.md 가 적어 둔 예외다. 그 사실을 여기에도 남겨 다음 사람이 「빠뜨렸나」 묻지 않게 한다
     const 표 = 토큰들();
-    expect(짝명암비(표['--rule']!, 표['--sheet']!)).toBeLessThan(요소);
+    expect(짝명암비(표['--line']!, 표['--panel']!)).toBeLessThan(요소);
   });
 });
 
 /**
- * 화면과 증적 문서가 같은 토큰을 쓰는지 (DESIGN.md 「같은 레이아웃」).
+ * 증적 문서는 종이용 밝은 색을 따로 쓴다 (DESIGN.md 「컨셉」, 2026-10-07).
  *
- * **두 벌이 갈리면 화면을 보던 사람이 문서를 받았을 때 다시 배워야 한다.**
- * `reporting/html.ts` 는 화면 CSS 를 읽지 않고 값을 복사해 두므로 사람이 한쪽만 고치기 쉽다.
- * 2026-09-21 스킨 교체가 정확히 그 위험을 두 배로 키웠다 — 그래서 여기서 대조한다.
+ * 2026-09-21 부터 2026-10-07 까지는 「화면과 같은 값이다」를 봤다 — `reporting/html.ts` 가 화면 CSS 를 읽지 않고
+ * 값을 복사해 두어 한쪽만 고치기 쉬웠기 때문이다. 화면이 어두운 그래파이트로 바뀌면서
+ * **같은 배치를 종이용 밝은 색으로 찍는다**로 갈렸다. 같은 값을 볼 이유가 사라졌고,
+ * 그 대조가 대신 지켜 주던 명암비를 이제 문서 쪽 값으로 직접 잰다.
  */
-describe('증적 문서가 화면과 같은 토큰을 쓴다', () => {
+describe('증적 문서는 종이용 밝은 색으로 읽힌다', () => {
   const 문서 = readFileSync(new URL('../reporting/html.ts', import.meta.url), 'utf8');
+  const 값 = (이름: string) => new RegExp(`${이름}\\s*:\\s*(#[0-9a-fA-F]{6})`).exec(문서)?.[1] ?? '';
+
+  it('바탕이 밝다 — 종이에 찍는다', () => {
+    expect(밝기(값('--paper'))).toBeGreaterThan(0.7);
+    expect(밝기(값('--sheet'))).toBeGreaterThan(0.7);
+  });
 
   it.each([
-    '--paper',
-    '--sheet',
-    '--ink',
-    '--ink-muted',
-    '--ink-faint',
-    '--rule',
-    '--rule-soft',
-    '--pass',
-    '--pass-bg',
-    '--fail',
-    '--fail-bg',
-    '--na',
-    '--na-bg',
-  ])('%s 가 화면과 같은 값이다', (이름) => {
-    const 화면값 = 토큰들()[이름]!.toLowerCase();
-    const 문서값 = new RegExp(`${이름}\\s*:\\s*(#[0-9a-fA-F]{6})`).exec(문서)?.[1]?.toLowerCase();
-    expect(문서값, `${이름} 이 증적 문서에 없거나 값이 다르다`).toBe(화면값);
+    ['--ink', '--sheet'],
+    ['--ink', '--paper'],
+    ['--ink-muted', '--sheet'],
+    ['--ink-faint', '--sheet'],
+    ['--pass', '--pass-bg'],
+    ['--fail', '--fail-bg'],
+    ['--na', '--na-bg'],
+    ['--pass', '--sheet'],
+    ['--fail', '--sheet'],
+  ])('%s 가 %s 위에서 4.5 를 넘는다', (앞, 뒤) => {
+    expect(짝명암비(값(앞), 값(뒤))).toBeGreaterThanOrEqual(4.5);
   });
 });
 
@@ -664,5 +717,94 @@ describe('케이스 목록이 좁으면 줄을 쌓는다 (PR #159)', () => {
   it('창 620px 규칙에는 케이스 줄 규칙이 남지 않는다 — 쌓기는 목록 폭 한 곳이 정한다', () => {
     const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     expect(좁은화면).not.toContain('.row.pickable');
+  });
+});
+
+/** 줄 맨 앞에 선 첫 정의의 몸. 좁은 화면 재정의(들여쓴 것)는 잡지 않는다 */
+function 첫규칙(선택자: string): string {
+  const 이스케이프 = 선택자.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${이스케이프}\\s*\\{([^}]*)\\}`, 'm').exec(css)?.[1] ?? '';
+}
+
+describe('움직임 (DESIGN.md 원칙 4, 2026-10-07)', () => {
+  const 초 = (값: string) => (값.endsWith('ms') ? Number.parseFloat(값) / 1000 : Number.parseFloat(값));
+
+  it('시간 토큰이 상한 안이다 — 요소 0.3초 · 처음 등장 전체 0.5초 · 숫자 올라가기 0.4초', () => {
+    const 표 = 토큰들();
+    expect(초(표['--dur']!)).toBeLessThanOrEqual(0.3);
+    expect(초(표['--dur-intro']!)).toBeLessThanOrEqual(0.5);
+    expect(초(표['--dur-count']!)).toBeLessThanOrEqual(0.4);
+    expect(표['--ease']).toMatch(/^cubic-bezier\(/);
+  });
+
+  it('움직임의 시간은 토큰으로만 쓴다 — 숫자로 두는 것은 마우스를 올렸을 때 색이 바뀌는 0.15초 이하 전환뿐이다', () => {
+    // 숫자를 자리마다 적으면 상한(0.3초)을 넘는 값이 조용히 들어온다. 토큰은 위 검사가 본다
+    const 선언들 = [...css.matchAll(/(?:animation|transition)(?:-duration|-delay)?\s*:\s*([^;]+);/g)];
+    expect(선언들.length, '움직임이 하나도 없다').toBeGreaterThan(0);
+    for (const 선언 of 선언들) {
+      for (const 시간 of 선언[1]!.matchAll(/(?<![\w-])(\d*\.?\d+)(ms|s)\b/g)) {
+        expect(초(시간[0]), `${선언[0]} — 0.15초를 넘는 시간은 토큰(--dur …)을 쓴다`).toBeLessThanOrEqual(0.15);
+      }
+    }
+  });
+
+  it('되풀이 움직임은 실행 중 맥박 하나뿐이다', () => {
+    const 되풀이 = [...css.matchAll(/animation[\w-]*\s*:\s*([^;]*\binfinite\b[^;]*);/g)].map((m) => m[1]!);
+    expect(되풀이.length, '맥박이 없다').toBeGreaterThan(0);
+    for (const 값 of 되풀이) expect(값, `${값} — 되풀이는 맥박(--dur-pulse)만 쓴다`).toMatch(/var\(--dur-pulse\)/);
+  });
+
+  it('목록 판(.screen)은 투명도로만 나타난다 — transform 이 걸린 동안 포털 없는 모달이 판에 붙어 잘렸다', () => {
+    // 2026-10-07 화면 QA 가 움직임을 20초로 늘려 재현했다. 떠오름(translateY)은 모달을 그리지 않는 머리에만 쓴다
+    const 판 = [...css.matchAll(/^\.screen\s*\{([^}]*)\}/gm)].map((m) => m[1]!).filter((몸) => /animation:/.test(몸));
+    expect(판.length, '.screen 등장 움직임이 없다').toBeGreaterThan(0);
+    for (const 몸 of 판) expect(몸).not.toMatch(/떠오름/);
+    const 떠오름 = /@keyframes 떠오름\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    const 나타남 = /@keyframes 나타남\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(떠오름).toMatch(/transform/);
+    expect(나타남, '나타남에 transform 을 넣으면 같은 일이 다시 난다').not.toMatch(/transform/);
+  });
+
+  it('「움직임 줄이기」를 켠 사람에게는 움직임을 끄고 바뀐 상태를 바로 보인다', () => {
+    const 블록 = /@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(블록, '움직임 줄이기 규칙이 없다').toMatch(/animation:\s*none\s*!important/);
+    expect(블록).toMatch(/transition:\s*none\s*!important/);
+  });
+});
+
+describe('대표색 자리 (화면공통 §8 「대표색」, 2026-10-07)', () => {
+  it('사이드바의 지금 있는 자리가 대표색 막대를 받는다', () => {
+    // `.side-nav a[aria-current]` 만 보면 가로 탭 밑줄 규칙을 잡는다 — 사이드바 막대가 빠져도 통과했다 (2026-10-07 코드 검토)
+    expect(첫규칙(".side .side-nav a[aria-current='page']")).toMatch(/border-left-color:\s*var\(--accent\)/);
+  });
+
+  it('주 버튼은 대표색 위 짙은 글자이고, 나머지 버튼은 테두리만 쓴다', () => {
+    const 주 = 첫규칙('.btn');
+    expect(주).toMatch(/background:\s*var\(--accent\)/);
+    expect(주).toMatch(/color:\s*var\(--on-accent\)/);
+    expect(첫규칙('.btn.ghost')).toMatch(/background:\s*transparent/);
+  });
+
+  it('링크는 링크 색을 쓴다 — 규칙이 없으면 어두운 바탕에 브라우저 기본 파랑이 앉아 안 읽힌다', () => {
+    expect(첫규칙('a')).toMatch(/color:\s*var\(--link\)/);
+  });
+
+  it('되돌릴 수 없는 일을 확인하는 버튼은 테두리 버튼이어도 마우스를 올려도 빨간 테두리를 지킨다', () => {
+    // `.btn.ghost` · `.btn.ghost:hover` 가 같거나 높은 특정도로 앞에 있어 테두리를 덮었다 (2026-10-07 코드 검토 둘)
+    expect(css).toMatch(/^\.btn\.set-warn,\n\.set-warn\s*\{[^}]*border-color:\s*var\(--fail\)/m);
+    expect(첫규칙('.btn.set-warn:hover:not(:disabled)')).toMatch(/border-color:\s*var\(--fail\)/);
+  });
+
+  it('실행 중 맥박 점은 대표색이다', () => {
+    expect(첫규칙('.pulse')).toMatch(/var\(--accent\)/);
+  });
+});
+
+describe('메뉴 아이콘 (DESIGN.md 원칙 5, 2026-10-07)', () => {
+  it('메뉴 아이콘 상자는 20px 이고 줄어들지 않는다', () => {
+    const 블록 = 첫규칙('.side-ico');
+    expect(블록).toMatch(/width:\s*20px/);
+    expect(블록).toMatch(/height:\s*20px/);
+    expect(블록).toMatch(/flex:\s*none/);
   });
 });

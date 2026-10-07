@@ -14,6 +14,7 @@ import {
   탭제목,
 } from './layout.js';
 import { use말, type 언어 } from './i18n.js';
+import { 아이콘 } from './icons.js';
 import { 본것으로적는다, 알림본적있나 } from './runState.js';
 import { useAsync } from './ui.js';
 
@@ -100,10 +101,12 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
           {자리목록(user, service?.prefix ?? null, 언어).map((자리) =>
             자리.바깥 === true ? (
               <a key={자리.해시} href={자리.해시} target="_blank" rel="noreferrer">
+                <아이콘 이름={자리.아이콘} />
                 {자리.이름} ↗
               </a>
             ) : 자리.하위 === undefined ? (
               <a key={자리.해시} href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
+                <아이콘 이름={자리.아이콘} />
                 {자리.이름}
               </a>
             ) : (
@@ -116,6 +119,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
                   href={자리.하위[1]!.해시}
                   {...(current === 자리.해시 || current.startsWith(`${자리.해시}/`) ? { 'data-open': '' } : {})}
                 >
+                  <아이콘 이름={자리.아이콘} />
                   {자리.이름}
                 </a>
                 {자리.하위.map((하위) => (
@@ -218,7 +222,9 @@ function Notice({ service, 언어 }: { service: string; 언어: 언어 }) {
   return (
     <div className="toast-row">
       <a className="toast" href={`#/runs/${줄.runId}`}>
-        ▶ {줄.글}
+        {/* 실제로 도는 동안만 맥박이 뛴다 — 되풀이 움직임은 이것 하나다 (DESIGN.md 원칙 4). 끝난 소식은 멈춘 표시다 */}
+        {줄.끝났나 ? '▶ ' : <span className="pulse" aria-hidden="true" />}
+        {줄.글}
       </a>
       {/* 끝난 소식은 한 번 누르거나 닫으면 사라진다 (SPEC §8). 도는 중은 스스로 사라진다 */}
       {!줄.끝났나 ? null : (

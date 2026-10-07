@@ -29,13 +29,16 @@ export function 시간글자(ms: number, 언어: 언어): string {
 
 function 막대칸들(막대: 진행막대, 언어: 언어) {
   return [
-    { 이름: t('통과', 언어), 수: 막대.통과, 색: 'var(--pass)', 판정: true },
-    { 이름: t('실패', 언어), 수: 막대.실패, 색: 'var(--fail)', 판정: true },
-    { 이름: t('미실행', 언어), 수: 막대.미실행, 색: 'var(--na)', 판정: true },
+    // 색은 막대(도형), 글은 숫자 글자다 — 어두운 바탕에서 도형 색을 글자에 쓰면 4.5 를 못 넘는다 (DESIGN.md 「새 토큰」)
+    { 이름: t('통과', 언어), 수: 막대.통과, 색: 'var(--pass)', 글: 'var(--pass-text)', 판정: true },
+    { 이름: t('실패', 언어), 수: 막대.실패, 색: 'var(--fail)', 글: 'var(--fail-text)', 판정: true },
+    { 이름: t('미실행', 언어), 수: 막대.미실행, 색: 'var(--na)', 글: 'var(--na-text)', 판정: true },
     // 미확정은 판정 색을 쓰지 않는다 — 확정 판정에 안 드는 묶음이다 (도메인/실행 §3.2). 없으면 칸도 없다
-    ...(막대.미확정 > 0 ? [{ 이름: t('미확정', 언어), 수: 막대.미확정, 색: 'var(--ink-faint)', 판정: true }] : []),
+    ...(막대.미확정 > 0
+      ? [{ 이름: t('미확정', 언어), 수: 막대.미확정, 색: 'var(--ink-faint)', 글: 'var(--ink-faint)', 판정: true }]
+      : []),
     // 남은 것은 판정이 아니다. 판정 색 셋 중 하나를 쓰면 아직 안 난 결과가 결과처럼 읽힌다 (DESIGN.md)
-    { 이름: t('남음', 언어), 수: 막대.남은것, 색: 'var(--rule)', 판정: false },
+    { 이름: t('남음', 언어), 수: 막대.남은것, 색: 'var(--chart-track)', 글: 'var(--ink-muted)', 판정: false },
   ];
 }
 
@@ -57,7 +60,7 @@ function 판정칸들({ 칸들 }: { 칸들: ReturnType<typeof 막대칸들> }) {
     <div className="tally">
       {칸들.map((칸) => (
         <div key={칸.이름}>
-          <b style={칸.판정 ? { color: 칸.색 } : undefined}>{칸.수}</b>
+          <b style={칸.판정 ? { color: 칸.글 } : undefined}>{칸.수}</b>
           <span>{칸.이름}</span>
         </div>
       ))}
