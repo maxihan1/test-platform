@@ -58,6 +58,21 @@ export function 실행위치를본다(
   return null;
 }
 
+// 앱 케이스를 desktop 으로 보내 실행 위치 검사 · 디바이스 줄을 건너뛰지 못하게 한다(2026-10-07 APP-F1-07).
+// CASE_NOT_FOUND 다음에 부르므로 표에 없는 tcId 는 보지 않는다
+export function 선언밖디바이스<P extends string>(
+  items: readonly { tcId: string; platforms: readonly P[] }[],
+  선언: ReadonlyMap<string, { platforms: readonly string[] }>,
+): { tcId: string; platform: P } | null {
+  for (const item of items) {
+    const 케이스 = 선언.get(item.tcId);
+    if (!케이스) continue;
+    const platform = item.platforms.find((p) => !케이스.platforms.includes(p));
+    if (platform !== undefined) return { tcId: item.tcId, platform };
+  }
+  return null;
+}
+
 // 정기 실행은 실행 위치를 고를 사람이 없고, admin 과 다른 프로세스라 디바이스 잠금을 같이 못 본다 —
 // 그래서 앱 케이스는 팜이 붙기 전까지 뺀다
 export function 앱케이스를뺀다<T extends { platforms: readonly string[] }>(items: T[]): { 남은: T[]; 뺀수: number } {

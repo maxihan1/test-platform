@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_TIMEOUT_MS, runBody, 실행위치를본다, 앱케이스를뺀다 } from './location.js';
+import { DEFAULT_TIMEOUT_MS, runBody, 선언밖디바이스, 실행위치를본다, 앱케이스를뺀다 } from './location.js';
 
 const 안드로이드 = [{ platforms: ['android'] }];
 const 주소있음 = { LOCAL_RUNNER_URL: 'http://127.0.0.1:4100' };
@@ -66,6 +66,38 @@ describe('앱케이스를뺀다', () => {
     const r = 앱케이스를뺀다([웹]);
     expect(r.남은).toEqual([웹]);
     expect(r.뺀수).toBe(0);
+  });
+});
+
+describe('선언밖디바이스', () => {
+  const 선언 = new Map([
+    ['A-1', { platforms: ['android'] }],
+    ['W-1', { platforms: ['desktop'] }],
+    ['W-2', { platforms: ['desktop', 'mobile'] }],
+  ]);
+
+  it('앱 케이스(선언 android)를 desktop 으로 보내면 그 항목과 desktop 을 돌려준다', () => {
+    expect(선언밖디바이스([{ tcId: 'A-1', platforms: ['desktop'] }], 선언)).toEqual({ tcId: 'A-1', platform: 'desktop' });
+  });
+
+  it('웹 케이스(선언 desktop)를 desktop · mobile 로 보내면 처음 벗어난 mobile 을 돌려준다', () => {
+    expect(선언밖디바이스([{ tcId: 'W-1', platforms: ['desktop', 'mobile'] }], 선언)).toEqual({
+      tcId: 'W-1',
+      platform: 'mobile',
+    });
+  });
+
+  it('여러 항목이 전부 선언 안이면 null 이다', () => {
+    const items = [
+      { tcId: 'W-2', platforms: ['desktop', 'mobile'] },
+      { tcId: 'A-1', platforms: ['android'] },
+      { tcId: 'W-1', platforms: ['desktop'] },
+    ];
+    expect(선언밖디바이스(items, 선언)).toBeNull();
+  });
+
+  it('선언 표에 없는 tcId 는 건너뛴다 — 그 거절은 CASE_NOT_FOUND 몫이다', () => {
+    expect(선언밖디바이스([{ tcId: 'Z-9', platforms: ['android'] }], 선언)).toBeNull();
   });
 });
 
