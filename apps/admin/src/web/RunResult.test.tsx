@@ -373,3 +373,49 @@ describe('시나리오 실행 번호면 E2E 결과 화면으로 갈아탄다', (
     expect(부름).toHaveBeenCalledWith(RUN_ID);
   });
 });
+
+// 판정 칸과 디바이스 칩은 그 실행에 든 디바이스를 따른다 (도메인/실행 §8.3)
+describe('디바이스 칸은 그 실행에 든 디바이스로 정한다 (도메인/실행 §8.3)', () => {
+  type 기기 = 'desktop' | 'mobile' | 'android';
+
+  function 줄(tcId: string, platform: 기기) {
+    return {
+      historyId: 1, tcId, tcName: tcId, platform, attempt: 1, params: {}, paramSchema: {},
+      status: 'PASS' as const, durationMs: 1, error: null, startedAt: '2026-09-15T17:13:00.000Z', finishedAt: null,
+    };
+  }
+
+  async function 본다(platforms: 기기[]) {
+    vi.spyOn(api, 'run').mockResolvedValue({
+      ...실행, status: 'FINISHED', items: platforms.map((p, i) => 줄(`PAY-00${i + 1}`, p)), evidence: [],
+    });
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
+    await screen.findAllByText('PAY-001');
+    return {
+      칸: [...new Set([...document.querySelectorAll('.device-name')].map((el) => el.textContent))],
+      칩: [...document.querySelectorAll('button.chip')].map((el) => el.textContent),
+    };
+  }
+
+  it('브라우저 항목만 있으면 PC · 모바일 두 칸이다 — 한쪽만 돌았어도 둘 다 둔다', async () => {
+    const { 칸, 칩 } = await 본다(['desktop']);
+    expect(칸).toEqual(['PC', '모바일']);
+    expect(칩).toContain('PC');
+    expect(칩).toContain('모바일');
+    expect(칩).not.toContain('Android 앱');
+  });
+
+  it('Android 앱 항목만 있으면 칸 하나이고 PC · 모바일 칸과 칩이 없다', async () => {
+    const { 칸, 칩 } = await 본다(['android']);
+    expect(칸).toEqual(['Android 앱']);
+    expect(칩).toContain('Android 앱');
+    expect(칩).not.toContain('PC');
+    expect(칩).not.toContain('모바일');
+  });
+
+  it('둘이 섞이면 PC · 모바일 · Android 앱 차례로 셋이다', async () => {
+    const { 칸, 칩 } = await 본다(['desktop', 'android']);
+    expect(칸).toEqual(['PC', '모바일', 'Android 앱']);
+    expect(칩.filter((글) => 글 === 'PC' || 글 === '모바일' || 글 === 'Android 앱')).toEqual(['PC', '모바일', 'Android 앱']);
+  });
+});

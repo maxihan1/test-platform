@@ -133,6 +133,18 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
     expect(요청오류문장(code, 'en')).not.toMatch(/[가-힣]/);
   });
 
+  it.each([
+    ['LOCAL_OFF', '이 서버에는 Android 앱을 돌릴 로컬 러너가 연결되어 있지 않습니다'],
+    ['FARM_OFF', '디바이스 팜은 아직 준비 중입니다'],
+    ['DEVICE_BUSY', '디바이스가 다른 실행에 쓰이고 있습니다'],
+  ])('Android 앱 실행의 %s 도 사람 말로 적고 영어로 옮긴다', (code, 문장) => {
+    expect(요청오류문장(code, 'ko')).toBe(문장);
+    expect(문장.endsWith('.')).toBe(false);
+    expect(문장.endsWith('다')).toBe(true);
+    expect(요청오류문장(code, 'en')).not.toMatch(/[가-힣]/);
+    expect(요청오류문장(code, 'en')).not.toContain(code);
+  });
+
   it('아이디 모양은 서버 규칙을 그대로 말한다', () => {
     expect(요청오류문장('USERNAME_SHAPE', 'ko')).toBe('아이디는 영문 소문자·숫자·.·_·- 로 2~32자입니다');
   });
