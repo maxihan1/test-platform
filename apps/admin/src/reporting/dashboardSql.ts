@@ -4,24 +4,26 @@ import { 종류조건 } from '../execution/runKind.js';
 
 // 접는 규칙은 insights.ts 의 접기 SQL 과 같은 말이다 — 한 실행이 아니라 창 안 실행 전부를 한 번에 접는다.
 // 갈래가 셋이다(전부 PASS = PASS · 하나라도 FAIL = FAIL · 나머지 NA). 날은 started_at 을 tz 로 자른 글자다.
-// 사유는 실패한 첫 항목의 대표 문장이다(insights.ts 대표문장뽑기와 같다). actual · expected 는 읽지 않는다
+// 사유는 실패한 첫 항목의 대표 문장이다(insights.ts 대표문장뽑기와 같다). actual · expected 는 읽지 않는다.
+// 사유는 신규 실패(이번 창)에서만 쓰므로 $4(이번 창 첫날)보다 앞 날의 줄에는 안 뽑는다.
+// started_at 은 어느 실행이 최신인지 가르는 기준이다 — insights 와 앞 실행 고르기가 같은 기준을 쓴다
 // ponytail: 28일을 매번 접는다 — 설치가 커져 느리면 일별 요약 표를 둔다
 export const 접은줄SQL = `
   WITH 대상 AS (
     SELECT r.run_id, r.service_id, r.service_name, r.env, r.kind,
-           to_char((r.started_at AT TIME ZONE $2::text)::date, 'YYYY-MM-DD') AS day,
+           to_char((r.started_at AT TIME ZONE $2::text)::date, 'YYYY-MM-DD') AS day, r.started_at,
            COALESCE(r.finished_at, r.started_at) AS finished_at
     FROM test_run r
     WHERE r.service_id = ANY($1::bigint[]) AND r.status <> 'RUNNING' AND ${종류조건('case', 'r')}
       AND (r.started_at AT TIME ZONE $2::text)::date >= $3::date
   )
-  SELECT t.run_id, t.service_id, t.service_name, t.env, t.kind, t.day, t.finished_at,
+  SELECT t.run_id, t.service_id, t.service_name, t.env, t.kind, t.day, t.started_at, t.finished_at,
          i.tc_id, max(i.tc_name) AS tc_name, i.platform,
          CASE WHEN bool_or(i.status = 'FAIL')  THEN 'FAIL'
               WHEN bool_and(i.status = 'PASS') THEN 'PASS'
               ELSE 'NA' END AS verdict,
          bool_or(i.unconfirmed IS NOT NULL) AS unconfirmed,
-         CASE WHEN bool_or(i.status = 'FAIL') THEN (
+         CASE WHEN bool_or(i.status = 'FAIL') AND t.day >= $4::text THEN (
            SELECT COALESCE(
                     (SELECT a.value->>'statement'
                      FROM run_item_step s
@@ -36,10 +38,13 @@ export const 접은줄SQL = `
            ORDER BY f.history_id
            LIMIT 1) END AS reason
   FROM 대상 t JOIN run_item i ON i.run_id = t.run_id
-  GROUP BY t.run_id, t.service_id, t.service_name, t.env, t.kind, t.day, t.finished_at, i.tc_id, i.platform`;
+  GROUP BY t.run_id, t.service_id, t.service_name, t.env, t.kind, t.day, t.started_at, t.finished_at, i.tc_id, i.platform`;
 
 // 실행마다 바로 앞 끝난 실행 하나의 접은 판정이다. 같은 서비스 · env · kind 이고 진행 중은 건너뛴다.
-// 앞 실행은 창 밖이어도 찾는다 — 창 첫날 실행이 「앞이 없다」가 되면 안 된다. insights.ts compareWithPrevious 와 같은 규칙
+// 앞 실행은 창 밖이어도 찾는다 — 창 첫날 실행이 「앞이 없다」가 되면 안 된다. insights.ts compareWithPrevious 와 같은 규칙.
+// 넘기는 실행 번호는 이번 창 실행뿐이다(앞 판정은 이번 창 줄에서만 쓴다)
+// ponytail: test_run 에 (service_id, env, kind, started_at) 인덱스가 없어 실행마다 test_run 을 훑는다 —
+// 이번 창 실행 수만큼 도므로 실행이 수만 건으로 커져 느려지면 그 인덱스를 더한다(마이그레이션)
 export const 앞판정SQL = `
   SELECT c.run_id AS this_run, i.tc_id, i.platform,
          CASE WHEN bool_or(i.status = 'FAIL')  THEN 'FAIL'

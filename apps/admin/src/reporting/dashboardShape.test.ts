@@ -18,6 +18,7 @@ const 오늘 = '2026-10-07';
 let 번호 = 0;
 function 줄(덮: Partial<접은줄>): 접은줄 {
   번호 += 1;
+  const finishedAt = 덮.finishedAt ?? `${덮.day ?? 오늘}T10:00:00.000Z`;
   return {
     runId: 번호,
     serviceId: 1,
@@ -25,7 +26,8 @@ function 줄(덮: Partial<접은줄>): 접은줄 {
     env: 'stage',
     kind: 'UI',
     day: 오늘,
-    finishedAt: `${덮.day ?? 오늘}T10:00:00.000Z`,
+    startedAt: finishedAt,
+    finishedAt,
     tcId: 'MKT-001',
     tcName: '로그인',
     platform: 'desktop',
@@ -162,6 +164,41 @@ describe('서비스별', () => {
     expect(결과.서비스별[0]?.serviceName).toBe('쇼핑');
     expect(결과.서비스별[0]?.이번).toEqual({ 통과: 0, 실패: 0, 미실행: 0 });
     expect(결과.서비스별[0]?.직전.통과).toBe(1);
+  });
+
+  it('줄이 없는 서비스도 빈 칸으로 낸다 — 이름은 줄이 있으면 줄의 것, 없으면 서비스 표의 것', () => {
+    const 결과 = 대시보드집계(
+      [줄({ serviceId: 2, serviceName: '쇼핑(박제)', verdict: 'PASS' })],
+      new Map(),
+      오늘,
+      [
+        { id: 3, name: '배송' },
+        { id: 1, name: '마켓' },
+        { id: 2, name: '쇼핑(바뀐 이름)' },
+      ],
+    );
+    expect(결과.서비스별.map((s) => [s.serviceId, s.serviceName])).toEqual([
+      [1, '마켓'],
+      [2, '쇼핑(박제)'],
+      [3, '배송'],
+    ]);
+    expect(결과.서비스별[0]).toEqual({
+      serviceId: 1,
+      serviceName: '마켓',
+      이번: { 통과: 0, 실패: 0, 미실행: 0 },
+      직전: { 통과: 0, 실패: 0, 미실행: 0 },
+      마지막실행: null,
+      흐름: [],
+      신규실패수: 0,
+      해결수: 0,
+      견줌: false,
+    });
+  });
+
+  it('미확정 줄뿐인 서비스도 빈 칸으로 낸다', () => {
+    const 결과 = 대시보드집계([줄({ serviceId: 1, unconfirmed: true })], new Map(), 오늘, [{ id: 1, name: '마켓' }]);
+    expect(결과.서비스별).toHaveLength(1);
+    expect(결과.서비스별[0]?.마지막실행).toBeNull();
   });
 
   it('서비스 번호 순으로 낸다', () => {
@@ -417,6 +454,42 @@ describe('서비스별 최근 실행 흐름 · 해결', () => {
       [2, false],
       [3, false],
     ]);
+  });
+});
+
+describe('정렬은 시작 시각 기준이다 — 끝 시각이 겹쳐도 insights 와 같은 최신을 고른다', () => {
+  // A 는 10:00 에 시작해 12:00 에 끝났고 B 는 11:00 에 시작해 11:10 에 끝났다. B 의 앞 실행은 A 다
+  const A = (덮: Partial<접은줄> = {}): 접은줄 =>
+    줄({ runId: 31, startedAt: '2026-10-06T10:00:00.000Z', finishedAt: '2026-10-06T12:00:00.000Z', day: '2026-10-06', ...덮 });
+  const B = (덮: Partial<접은줄> = {}): 접은줄 =>
+    줄({ runId: 32, startedAt: '2026-10-06T11:00:00.000Z', finishedAt: '2026-10-06T11:10:00.000Z', day: '2026-10-06', ...덮 });
+  const 앞들 = new Map<number, 앞판정[]>([
+    [31, [앞('MKT-001', 'PASS')]],
+    [32, [앞('MKT-001', 'FAIL')]],
+  ]);
+
+  it('나중에 시작한 실행이 최신이라 먼저 시작한 실행의 실패는 신규 실패가 아니고 고쳐짐으로 센다', () => {
+    const 결과 = 대시보드집계([A({ verdict: 'FAIL' }), B({ verdict: 'PASS' })], 앞들, 오늘);
+    expect(결과.신규실패).toEqual([]);
+    expect(결과.서비스별[0]?.신규실패수).toBe(0);
+    expect(결과.서비스별[0]?.해결수).toBe(1);
+  });
+
+  it('마지막 실행과 흐름도 시작 시각 순이다', () => {
+    const 결과 = 대시보드집계([A({ verdict: 'FAIL' }), B({ verdict: 'PASS' })], 앞들, 오늘);
+    expect(결과.서비스별[0]?.마지막실행).toMatchObject({ runId: 32, finishedAt: '2026-10-06T11:10:00.000Z' });
+    expect(결과.서비스별[0]?.흐름).toEqual(['F', 'P']);
+  });
+
+  it('시작 시각이 같으면 실행 번호 순이다', () => {
+    const 같은시작 = '2026-10-06T10:00:00.000Z';
+    const 결과 = 대시보드집계(
+      [A({ startedAt: 같은시작, verdict: 'FAIL' }), B({ startedAt: 같은시작, verdict: 'PASS' })],
+      앞들,
+      오늘,
+    );
+    expect(결과.서비스별[0]?.마지막실행?.runId).toBe(32);
+    expect(결과.서비스별[0]?.흐름).toEqual(['F', 'P']);
   });
 });
 

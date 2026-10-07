@@ -2,14 +2,27 @@
 // CI에는 postgres가 없을 수 있다. 실접속 검사는 DATABASE_URL이 있을 때만 돈다
 
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { 대시보드, 대시보드실행중, 틀린시간대 } from './dashboardResults.js';
+import { 대시보드, 대시보드실행중, 시간대확인, 틀린시간대 } from './dashboardResults.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사들 = ['XDQ', 'XDQB', 'XDQT'];
 
 const 날짜글자 = (시각: Date, tz: string): string => 시각.toLocaleDateString('sv-SE', { timeZone: tz });
+
+describe('시간대 이름표 캐시', () => {
+  it('처음 읽기가 실패해도 캐시에 남기지 않고 다음 호출에서 다시 읽는다', async () => {
+    const query = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('연결이 끊겼다'))
+      .mockResolvedValue({ rows: [{ name: 'UTC' }] });
+    const pool = { query } as unknown as Pool;
+    await expect(시간대확인(pool, 'UTC')).rejects.toThrow('연결이 끊겼다');
+    await expect(시간대확인(pool, 'UTC')).resolves.toBeUndefined();
+    expect(query).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe.skipIf(연결 === undefined)('대시보드 질의', () => {
   let pool: Pool;

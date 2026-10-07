@@ -23,14 +23,23 @@ export class 틀린시간대 extends Error {
   }
 }
 
-// 이름표 목록은 서버가 도는 동안 안 바뀐다. 처음 한 번만 읽는다
-let 시간대들: Promise<Set<string>> | undefined;
+// 이름표 목록은 서버가 도는 동안 안 바뀐다. 연결마다 처음 한 번만 읽는다
+const 시간대들 = new WeakMap<Pool, Promise<Set<string>>>();
 
-async function 시간대확인(pool: Pool, tz: string): Promise<void> {
-  시간대들 ??= pool
-    .query<{ name: string }>('SELECT name FROM pg_timezone_names')
-    .then((r) => new Set(r.rows.map((row) => row.name)));
-  if (!(await 시간대들).has(tz)) throw new 틀린시간대(tz);
+export async function 시간대확인(pool: Pool, tz: string): Promise<void> {
+  let 목록 = 시간대들.get(pool);
+  if (목록 === undefined) {
+    // 실패한 promise 를 캐시에 두면 DB 가 잠깐 끊긴 뒤에도 재기동 때까지 500 이라 실패하면 비운다
+    목록 = pool
+      .query<{ name: string }>('SELECT name FROM pg_timezone_names')
+      .then((r) => new Set(r.rows.map((row) => row.name)))
+      .catch((e: unknown) => {
+        시간대들.delete(pool);
+        throw e;
+      });
+    시간대들.set(pool, 목록);
+  }
+  if (!(await 목록).has(tz)) throw new 틀린시간대(tz);
 }
 
 export interface 건수 {
@@ -106,6 +115,7 @@ interface 줄행 {
   env: string;
   kind: 'UI' | 'FN';
   day: string;
+  started_at: Date;
   finished_at: Date;
   tc_id: string;
   tc_name: string;
@@ -165,7 +175,8 @@ async function 커버리지읽기(pool: Pool, ids: number[]): Promise<커버리�
 async function 줄읽기(pool: Pool, ids: number[], tz: string, 오늘: string): Promise<접은줄[]> {
   if (ids.length === 0) return [];
   const 하한 = 날짜더하기(오늘, -(창날수 * 2 - 1));
-  const { rows } = await pool.query<줄행>(접은줄SQL, [ids, tz, 하한]);
+  const 이번시작 = 날짜더하기(오늘, -(창날수 - 1));
+  const { rows } = await pool.query<줄행>(접은줄SQL, [ids, tz, 하한, 이번시작]);
   return rows.map((r) => ({
     runId: Number(r.run_id),
     serviceId: Number(r.service_id),
@@ -173,6 +184,7 @@ async function 줄읽기(pool: Pool, ids: number[], tz: string, 오늘: string):
     env: r.env,
     kind: r.kind,
     day: r.day,
+    startedAt: r.started_at.toISOString(),
     finishedAt: r.finished_at.toISOString(),
     tcId: r.tc_id,
     tcName: r.tc_name,
@@ -220,8 +232,9 @@ export async function 대시보드(tz: string, 실행서비스ids: number[], 작
     await pool.query<{ today: string }>(`SELECT to_char((now() AT TIME ZONE $1::text)::date, 'YYYY-MM-DD') AS today`, [tz])
   ).rows[0]!.today;
   const 줄들 = await 줄읽기(pool, 실행서비스ids, tz, 오늘);
+  const 이번시작 = 날짜더하기(오늘, -(창날수 - 1));
   const [앞판정들, running, coverage, 서비스] = await Promise.all([
-    앞판정읽기(pool, [...new Set(줄들.map((줄) => 줄.runId))]),
+    앞판정읽기(pool, [...new Set(줄들.filter((줄) => 줄.day >= 이번시작 && 줄.day <= 오늘).map((줄) => 줄.runId))]),
     실행중읽기(pool, 실행서비스ids),
     커버리지읽기(pool, 작성서비스ids),
     pool.query<{ id: string; name: string }>('SELECT id, name FROM service WHERE id = ANY($1::bigint[]) ORDER BY id', [
@@ -229,16 +242,17 @@ export async function 대시보드(tz: string, 실행서비스ids: number[], 작
     ]),
   ]);
 
-  const 집계 = 대시보드집계(줄들, 앞판정들, 오늘);
+  const 서비스목록 = 서비스.rows.map((r) => ({ id: Number(r.id), name: r.name }));
+  const 집계 = 대시보드집계(줄들, 앞판정들, 오늘, 서비스목록);
   return {
     window: {
       tz,
       today: 오늘,
       days: 창날수,
-      from: 날짜더하기(오늘, -(창날수 - 1)),
+      from: 이번시작,
       previousFrom: 날짜더하기(오늘, -(창날수 * 2 - 1)),
     },
-    services: 서비스.rows.map((r) => ({ id: Number(r.id), name: r.name })),
+    services: 서비스목록,
     passRate: { current: 건수로(집계.이번), previous: 건수로(집계.직전) },
     daily: 집계.일별.map((d) => ({ day: d.day, ...건수로(d) })),
     newFailures: 집계.신규실패,

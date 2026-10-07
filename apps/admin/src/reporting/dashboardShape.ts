@@ -19,6 +19,8 @@ export interface 접은줄 {
   env: string;
   kind: 'UI' | 'FN';
   day: string;
+  /** 어느 실행이 최신인지는 insights 와 같이 시작 시각으로 가른다 — 끝 시각은 실행이 겹치면 순서가 뒤집힌다 */
+  startedAt: string;
   finishedAt: string;
   tcId: string;
   tcName: string;
@@ -104,6 +106,10 @@ export function 날짜더하기(day: string, 일수: number): string {
 }
 
 const 빈셈 = (): 셈 => ({ 통과: 0, 실패: 0, 미실행: 0 });
+const 새항목 = (id: number, name: string): { 칸: 서비스칸; 마지막: Map<number, 셈> } => ({
+  칸: { serviceId: id, serviceName: name, 이번: 빈셈(), 직전: 빈셈(), 마지막실행: null, 흐름: [], 신규실패수: 0, 해결수: 0, 견줌: false },
+  마지막: new Map(),
+});
 
 function 더한다(셈값: 셈, verdict: 접힌판정): void {
   if (verdict === 'PASS') 셈값.통과 += 1;
@@ -111,7 +117,7 @@ function 더한다(셈값: 셈, verdict: 접힌판정): void {
   else 셈값.미실행 += 1;
 }
 
-export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number, 앞판정[]>, 오늘: string): 집계 {
+export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number, 앞판정[]>, 오늘: string, 서비스들: { id: number; name: string }[] = []): 집계 {
   const 이번시작 = 날짜더하기(오늘, -(창날수 - 1));
   const 직전시작 = 날짜더하기(오늘, -(창날수 * 2 - 1));
   // 'YYYY-MM-DD' 는 글자 순서가 곧 날짜 순서다
@@ -127,7 +133,8 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     일별.set(day, { day, ...빈셈() });
   }
   const 서비스 = new Map<number, { 칸: 서비스칸; 마지막: Map<number, 셈> }>();
-  const 마지막끝 = new Map<number, { runId: number; finishedAt: string }>();
+  const 마지막끝 = new Map<number, { runId: number; startedAt: string; finishedAt: string }>();
+  const 앞맵 = 앞판정맵(앞판정들);
 
   for (const 줄 of 줄들) {
     const 이번인가 = 이번창(줄.day);
@@ -139,10 +146,7 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     const 하루 = 일별.get(줄.day);
     if (하루 !== undefined) 더한다(하루, 줄.verdict);
 
-    const 서비스항목 = 서비스.get(줄.serviceId) ?? {
-      칸: { serviceId: 줄.serviceId, serviceName: 줄.serviceName, 이번: 빈셈(), 직전: 빈셈(), 마지막실행: null, 흐름: [], 신규실패수: 0, 해결수: 0, 견줌: false },
-      마지막: new Map<number, 셈>(),
-    };
+    const 서비스항목 = 서비스.get(줄.serviceId) ?? 새항목(줄.serviceId, 줄.serviceName);
     서비스.set(줄.serviceId, 서비스항목);
     if (이번인가 && 앞판정들.has(줄.runId)) 서비스항목.칸.견줌 = true;
     더한다(이번인가 ? 서비스항목.칸.이번 : 서비스항목.칸.직전, 줄.verdict);
@@ -151,14 +155,17 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     서비스항목.마지막.set(줄.runId, 실행셈);
     더한다(실행셈, 줄.verdict);
     const 끝 = 마지막끝.get(줄.serviceId);
-    if (끝 === undefined || 줄.finishedAt > 끝.finishedAt) {
-      마지막끝.set(줄.serviceId, { runId: 줄.runId, finishedAt: 줄.finishedAt });
+    if (끝 === undefined || 오래된순(끝, 줄) < 0) {
+      마지막끝.set(줄.serviceId, { runId: 줄.runId, startedAt: 줄.startedAt, finishedAt: 줄.finishedAt });
     }
   }
 
+  // 줄이 없는 서비스도 한 줄은 낸다 — 화면의 「마지막 실행이 없습니다」 갈래가 이 칸으로 탄다
+  for (const { id, name } of 서비스들) if (!서비스.has(id)) 서비스.set(id, 새항목(id, name));
+
   const 최근 = 최근판정(줄들);
-  const 신규전부 = 신규실패를뽑는다(줄들, 앞판정들, 이번창, 최근);
-  const 해결 = 해결을센다(줄들, 앞판정들, 이번창, 최근);
+  const 신규전부 = 신규실패를뽑는다(줄들, 앞맵, 이번창, 최근);
+  const 해결 = 해결을센다(줄들, 앞맵, 이번창, 최근);
   const 흐름 = 흐름을만든다(줄들, 이번창);
 
   const 서비스별 = [...서비스.values()]
@@ -167,7 +174,7 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
       const 셈값 = 끝 === undefined ? undefined : 마지막.get(끝.runId);
       return {
         ...칸,
-        마지막실행: 끝 === undefined || 셈값 === undefined ? null : { ...끝, ...셈값 },
+        마지막실행: 끝 === undefined || 셈값 === undefined ? null : { runId: 끝.runId, finishedAt: 끝.finishedAt, ...셈값 },
         흐름: 흐름.get(칸.serviceId) ?? [],
         신규실패수: 신규전부.filter((n) => n.serviceId === 칸.serviceId).length,
         해결수: 해결.get(칸.serviceId) ?? 0,
@@ -187,8 +194,14 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
 }
 
 const 케이스키 = (줄: 접은줄): string => `${줄.serviceId}\u0000${줄.tcId}\u0000${줄.platform}`;
-const 오래된순 = (a: 접은줄, b: 접은줄): number =>
-  a.finishedAt < b.finishedAt ? -1 : a.finishedAt > b.finishedAt ? 1 : a.runId - b.runId;
+const 오래된순 = <T extends { startedAt: string; runId: number }>(a: T, b: T): number =>
+  a.startedAt < b.startedAt ? -1 : a.startedAt > b.startedAt ? 1 : a.runId - b.runId;
+
+// 줄마다 앞 판정을 선형으로 찾지 않게 (실행, 케이스, 디바이스) 키 Map 을 한 번 만든다
+const 앞키 = (runId: number, tcId: string, platform: string): string => `${runId}\u0000${tcId}\u0000${platform}`;
+type 앞맵형 = Map<string, 앞판정>;
+const 앞판정맵 = (앞판정들: Map<number, 앞판정[]>): 앞맵형 =>
+  new Map([...앞판정들].flatMap(([runId, 목록]) => 목록.map((a): [string, 앞판정] => [앞키(runId, a.tcId, a.platform), a])));
 
 // (서비스, 케이스, 디바이스)마다 가장 최근 확정 판정. 신규 실패 · 해결을 「지금도 그런가」로 거르는 데 쓴다.
 // 미확정 줄은 판정이 아니라서 뺀다
@@ -218,21 +231,21 @@ function 흐름을만든다(줄들: 접은줄[], 이번창: (day: string) => boo
 
 // 앞 실행과 견줘 줄 하나의 변화를 본다. 앞에 없던 케이스와 어느 한쪽이 미확정인 케이스는 견주지 않는다
 // (insights.ts compareWithPrevious 와 같은 규칙)
-function 줄변화(줄: 접은줄, 앞판정들: Map<number, 앞판정[]>): 판정변화 | null {
+function 줄변화(줄: 접은줄, 앞맵: 앞맵형): 판정변화 | null {
   if (줄.unconfirmed) return null;
-  const 앞 = 앞판정들.get(줄.runId)?.find((a) => a.tcId === 줄.tcId && a.platform === 줄.platform);
+  const 앞 = 앞맵.get(앞키(줄.runId, 줄.tcId, 줄.platform));
   return 앞 === undefined || 앞.unconfirmed ? null : 판정표[앞.verdict][줄.verdict];
 }
 
 function 해결을센다(
   줄들: 접은줄[],
-  앞판정들: Map<number, 앞판정[]>,
+  앞맵: 앞맵형,
   이번창: (day: string) => boolean,
   최근: Map<string, 접힌판정>,
 ): Map<number, number> {
   const 키들 = new Map<number, Set<string>>();
   for (const 줄 of 줄들) {
-    if (!이번창(줄.day) || 최근.get(케이스키(줄)) !== 'PASS' || 줄변화(줄, 앞판정들) !== '고쳐짐') continue;
+    if (!이번창(줄.day) || 최근.get(케이스키(줄)) !== 'PASS' || 줄변화(줄, 앞맵) !== '고쳐짐') continue;
     키들.set(줄.serviceId, (키들.get(줄.serviceId) ?? new Set<string>()).add(케이스키(줄)));
   }
   return new Map([...키들].map(([id, 키]) => [id, 키.size]));
@@ -242,12 +255,12 @@ function 해결을센다(
 // 같은 (서비스, 케이스, 디바이스)는 가장 최근 새로 깨진 하나다. 상한은 부르는 쪽이 자른다(서비스별 건수는 전부를 센다)
 function 신규실패를뽑는다(
   줄들: 접은줄[],
-  앞판정들: Map<number, 앞판정[]>,
+  앞맵: 앞맵형,
   이번창: (day: string) => boolean,
   최근: Map<string, 접힌판정>,
 ): 신규실패칸[] {
   const 후보 = 줄들
-    .filter((줄) => 줄.verdict === 'FAIL' && 이번창(줄.day) && 줄변화(줄, 앞판정들) === '새로깨짐')
+    .filter((줄) => 줄.verdict === 'FAIL' && 이번창(줄.day) && 줄변화(줄, 앞맵) === '새로깨짐')
     .filter((줄) => 최근.get(케이스키(줄)) === 'FAIL')
     .sort((a, b) => 오래된순(b, a));
 
