@@ -31,12 +31,9 @@ export function RunInsights({ insights }: { insights: 비교 | null }) {
                 <span>{덩어리.대표문장}</span>
                 <span className="rr-cause-n">{t('실패 항목 {건수}건', { 건수: 덩어리.건수 })}</span>
               </span>
-              <span className="rr-cause-list">
-                {[
-                  ...new Set(
-                    덩어리.항목들.map((it) => `${it.tcId} ${it.tcName} (${PLATFORM_LABEL[it.platform]})`),
-                  ),
-                ].join(', ')}
+              {/* 케이스 이름은 요약 띠와 실패 카드에 이미 있다. 같은 (TC ID, 디바이스)는 회차 때문에 여럿이어도 한 번만 */}
+              <span className="rr-cause-list mono">
+                {[...new Set(덩어리.항목들.map((it) => `${it.tcId} ${PLATFORM_LABEL[it.platform]}`))].join(' · ')}
               </span>
             </div>
           ))}

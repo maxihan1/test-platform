@@ -24,7 +24,11 @@ export function 증거본문({ item }: { item: RunItemDetail }) {
         {item.precondition.length === 0 ? (
           <span className="fc-faint">{t('선언된 사전조건이 없습니다.')}</span>
         ) : (
-          item.precondition.map((line) => <span key={line}>{line}</span>)
+          <ul className="fc-list">
+            {item.precondition.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
         )}
       </div>
 

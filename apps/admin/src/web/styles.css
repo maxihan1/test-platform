@@ -5406,6 +5406,15 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   min-width: 56px;
 }
 
+.fc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .fc-faint {
   color: var(--ink-faint);
 }
@@ -5459,6 +5468,14 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 
 .result-row > .row {
   border-bottom: 0;
+}
+
+/* 결과 줄의 마지막 칸은 디바이스 둘 + 「상세」 + 「펼치기」 라 264px 로는 넘쳐 「펼치기」 가 아래 줄로 밀렸다.
+   공용 `--run-cols` 는 실행 기록이 같이 쓰므로 결과 줄에만 넓힌다. 1164px 이하는 비율 칸이라 접혀도 된다 */
+@media (min-width: 1165px) {
+  .result-row > .row {
+    grid-template-columns: 4px 128px minmax(0, 1fr) 330px;
+  }
 }
 
 .rr-expand {
