@@ -196,7 +196,7 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
     await 작성요청(A, 'AUTHOR', 'DONE', 40, [10, 5, 3, 2]);
     작성최신 = await 작성요청(A, 'RERUN', 'DONE', 5, [10, 8, 1, 1], 작성원본);
     await 작성요청(A, 'AUTHOR', 'STOPPED', 1, [10, 9, 0, 1]);
-    await 작성요청(B, 'AUTHOR', 'DONE', 3, [4, 4, 0, 0]);
+    await 작성요청(B, 'AUTHOR', 'DONE', 40, [4, 4, 0, 0]);
     await 작성요청(T, 'AUTHOR', 'DONE', 2, [0, 0, 0, 0]);
 
     const 시간대실행 = await pool.query<{ run_id: string }>(
@@ -304,6 +304,11 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
     it('요구가 0 이면 비율을 비운다', async () => {
       const 결과 = await 대시보드('UTC', [A], [A, T]);
       expect(결과.coverage.find((c) => c.serviceId === T)).toMatchObject({ total: 0, cased: 0, ratio: null });
+    });
+
+    it('30일 밖 DONE 만 있는 서비스는 커버리지에 없다', async () => {
+      const 결과 = await 대시보드('UTC', [B], [B]);
+      expect(결과.coverage).toEqual([]);
     });
   });
 
