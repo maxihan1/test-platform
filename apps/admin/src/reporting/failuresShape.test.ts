@@ -89,30 +89,58 @@ describe('케이스로묶는다', () => {
 });
 
 describe('쪽을자른다', () => {
+  const 디바이스 = (platform: Platform) => ({
+    platform,
+    change: null,
+    attempts: 1,
+    failedAttempts: 1,
+    firstFailedHistoryId: 1,
+  });
   const 케이스들 = Array.from({ length: 21 }, (_, i) => ({
-    tcId: `T-${i}`,
+    tcId: `T-${String(i).padStart(2, '0')}`,
     tcName: '',
-    devices: [],
+    devices: i % 2 === 0 ? [디바이스('desktop'), 디바이스('mobile')] : [디바이스('desktop')],
   }));
 
-  it('카드쪽크기 개씩 케이스 단위로 자른다', () => {
+  it('카드쪽크기 개씩 케이스 단위로 자르고 한 케이스의 디바이스는 같은 쪽에 남는다', () => {
     expect(카드쪽크기).toBe(20);
     const 일 = 쪽을자른다(케이스들, 1);
     expect(일.items).toHaveLength(20);
     expect(일).toMatchObject({ total: 21, page: 1, pageSize: 20 });
-    expect(쪽을자른다(케이스들, 2).items).toHaveLength(1);
+    expect(일.items[0]?.devices).toHaveLength(2);
+    const 이 = 쪽을자른다(케이스들, 2);
+    expect(이.items.map((c) => c.tcId)).toEqual(['T-20']);
+    expect(이.items[0]?.devices).toHaveLength(2);
   });
 
   it('범위를 넘는 쪽은 빈 items 다', () => {
     expect(쪽을자른다(케이스들, 3)).toMatchObject({ items: [], total: 21, page: 3 });
   });
+
+  it('platform 으로 먼저 거른 뒤 자르면 total 과 쪽 수가 거른 만큼 준다', () => {
+    const 행들: 행[] = [];
+    for (let i = 0; i < 25; i += 1) {
+      const tcId = `F-${String(i).padStart(2, '0')}`;
+      행들.push(행만들기(i * 2, tcId, 'desktop', 1, 'FAIL'));
+      if (i < 21) 행들.push(행만들기(i * 2 + 1, tcId, 'mobile', 1, 'FAIL'));
+    }
+    expect(쪽을자른다(케이스로묶는다(행들, 표([])), 1)).toMatchObject({ total: 25 });
+    const 모바일 = 케이스로묶는다(행들, 표([]), 'mobile');
+    expect(쪽을자른다(모바일, 1)).toMatchObject({ total: 21 });
+    expect(쪽을자른다(모바일, 1).items).toHaveLength(20);
+    expect(쪽을자른다(모바일, 2).items).toHaveLength(1);
+    expect(쪽을자른다(모바일, 3).items).toHaveLength(0);
+  });
 });
 
 describe('연속실패수', () => {
-  it('맨 앞에서부터 이어진 FAIL 수를 센다', () => {
-    expect(연속실패수(['FAIL', 'FAIL', 'PASS', 'FAIL'])).toBe(2);
-    expect(연속실패수(['FAIL', 'FAIL', 'FAIL'])).toBe(3);
-    expect(연속실패수([])).toBe(0);
-    expect(연속실패수(['PASS', 'FAIL'])).toBe(0);
+  it('계속깨짐일 때만 맨 앞에서부터 이어진 FAIL 수를 센다', () => {
+    expect(연속실패수('계속깨짐', ['FAIL', 'FAIL', 'PASS', 'FAIL'])).toBe(2);
+    expect(연속실패수('계속깨짐', ['FAIL', 'FAIL', 'FAIL', 'FAIL', 'FAIL'])).toBe(5);
+  });
+
+  it('새로깨짐이나 견줄 앞이 없으면 null 이다', () => {
+    expect(연속실패수('새로깨짐', ['FAIL', 'PASS'])).toBeNull();
+    expect(연속실패수(null, ['FAIL', 'FAIL', 'FAIL'])).toBeNull();
   });
 });
