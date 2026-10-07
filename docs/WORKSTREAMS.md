@@ -730,7 +730,7 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 > ② **SPEC §8.2 「검증 오류로 버튼을 비활성화하지 않는다」를 지금 어느 검사도 주장하지 않는다.**
 > 진짜 자리는 `RunSetup.tsx` 고 그물 밖이다 — 나머지를 덮을 때 1순위
 > ③ `Form.tsx` 의 오류 한 줄이 낭독기에 안 묶여 있다 (`aria-describedby` 없음)
-> ④ `DESIGN.md` 모달 규칙 중 **셋**은 아무 검사도 안 본다 (덮개·애니메이션·색).
+> ④ `DESIGN.md` 모달 규칙 중 **셋**은 아무 검사도 안 본다 (덮개·움직임·색).
 > `.modal-back` 의 색은 `--ink` 토큰을 손으로 베낀 상수다.
 > **폭과 높이는 2026-09-22 에 닫혔다** — `styles.test.ts` 가 넓은 상자 1400px 과 상한 94vh 를 본다.
 > **규칙이 몇 개인지는 여기 적지 않는다** — 정본은 `docs/DESIGN.md` 의 모달 절이다 (CLAUDE.md §2.7 ⑤)
@@ -909,8 +909,10 @@ CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
 다른 장이 필요하면 docs/SPEC.md(색인)에서 찾는다.
 소유 경로는 apps/admin/src/web/** 이다. 서버 코드를 고쳐야 하면 이유를 적는다 (CLAUDE.md §1.1).
 화면은 React + Vite다 (SPEC §9.1). Vite 설정은 네 폴더 안의 것을 쓴다.
-시작 전에 docs/DESIGN.md와 docs/design-mockup.html을 반드시 열어봐라.
-색·간격·구조는 목업을 기준으로 삼는다.
+시작 전에 docs/DESIGN.md와 그 맨 위의 시안 캔버스(https://claude.ai/artifact/CqkzdGZbgdQgDxJZFuA2pP)를 반드시 열어봐라.
+색·간격·구조는 시안 캔버스와 DESIGN.md 「새 토큰」을 기준으로 삼는다 (2026-10-07 개편).
+docs/design-mockup.html은 개편 전 기준이다 — 다르면 캔버스와 DESIGN.md가 맞다.
+새 토큰의 코드 반영은 묶음 1(진행판 WEB-F3-02)부터다. 그 전에 화면을 고치면 DESIGN.md 「지금 코드 값」을 따른다.
 
 화면 네 개는 이미 만들어져 main에 들어가 있다 (apps/admin/src/web/, 21개 파일).
 케이스 목록 · 실행 설정(폼 자동 생성) · 실행 결과 목록 · 항목 상세, 그리고 검색창과
