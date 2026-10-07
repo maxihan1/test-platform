@@ -12,6 +12,7 @@ export type 실행종류 = 케이스종류 | 'E2E';
 const 실행종류글자: Record<string, 실행종류> = { ...종류글자, e2e: 'E2E' };
 
 export type Route =
+  | { name: 'dashboard' }
   | { name: 'login' }
   | { name: 'signup' }
   | { name: 'password' }
@@ -36,7 +37,10 @@ export function route(hash: string): Route {
   if (parts.length === 1 && parts[0] === 'password') return { name: 'password' };
   if (parts.length === 1 && parts[0] === 'settings') return { name: 'settings' };
 
-  if (parts.length === 0 || (parts[0] === 'cases' && parts.length === 1)) return { name: 'cases', kind: 'FN' };
+  // 빈 주소는 집이다. 집이 대시보드가 된 뒤로 route 가 먼저 대시보드로 푼다 — 그 자리가 없는 사람은 `갈자리` 가 다음 집으로 보낸다
+  if (parts.length === 0 || (parts.length === 1 && parts[0] === 'dashboard')) return { name: 'dashboard' };
+
+  if (parts[0] === 'cases' && parts.length === 1) return { name: 'cases', kind: 'FN' };
   if (parts[0] === 'cases' && parts.length === 2 && 종류글자[parts[1]!] !== undefined) {
     return { name: 'cases', kind: 종류글자[parts[1]!]! };
   }
@@ -94,11 +98,20 @@ const 기능자리: Partial<Record<Route['name'], 기능>> = {
 };
 
 /**
- * 집. 남은 자리 중 맨 위다 (화면공통 §8 「자리 목록」).
+ * 대시보드 자리가 있나. 고른 서비스가 아니라 배정 서비스 **전체**의 실행 칸을 본다 —
+ * 여러 서비스를 가로지르는 화면이라 한 서비스의 칸으로 가르면 서비스를 바꿀 때 자리가 깜빡인다 (도메인/리포팅 §8.12)
+ */
+export function 대시보드보나(user: User | null): boolean {
+  return user?.services.some((서비스) => 서비스.permissions.runs !== 'none') ?? false;
+}
+
+/**
+ * 집. 남은 자리 중 맨 위다 (화면공통 §8 「자리 목록」). 대시보드 → 케이스 → 작성 → 실행 기록 순이다.
  *
  * 다 막혔으면 `#/cases` 로 둔다 — 그 사람에게는 껍데기가 「권한을 받지 않았습니다」를 덮어 그린다.
  */
 export function 집(user: User, prefix: string | null): string {
+  if (대시보드보나(user)) return '#/dashboard';
   const 순서: [기능, string][] = [['cases', '#/cases'], ['authoring', '#/authoring'], ['runs', '#/runs']];
   return 순서.find(([어느]) => 기능보나(user, prefix, 어느))?.[1] ?? '#/cases';
 }
@@ -108,6 +121,7 @@ export function 집(user: User, prefix: string | null): string {
  * 이유를 띄우지 않는다 — 서비스를 바꾸면 열릴 수 있는 자리라 안내보다 옮기는 편이 덜 헷갈린다
  */
 export function 갈자리(hash: string, user: User, prefix: string | null): string {
+  if (route(hash).name === 'dashboard') return 대시보드보나(user) ? hash : 집(user, prefix);
   const 어느 = 기능자리[route(hash).name];
   return 어느 === undefined || 기능보나(user, prefix, 어느) ? hash : 집(user, prefix);
 }

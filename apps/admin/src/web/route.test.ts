@@ -18,11 +18,20 @@ const 다봄 = 사람([서비스('PAY', { cases: 'read', runs: 'read', authoring
 // 케이스가 none 이라 집이 작성으로 내려간다
 const 케이스없음 = 사람([서비스('PAY', { cases: 'none', runs: 'read', authoring: 'write' })]);
 const 실행만 = 사람([서비스('PAY', { cases: 'none', runs: 'read', authoring: 'none' })]);
+// 실행 칸 read 인 서비스가 없으면 대시보드 자리가 없다 (화면공통 §8)
+const 대시보드없음 = 사람([서비스('PAY', { cases: 'read', runs: 'none', authoring: 'read' })]);
+const 작성만 = 사람([서비스('PAY', { cases: 'none', runs: 'none', authoring: 'write' })]);
 
 describe('route', () => {
-  it('빈 주소는 케이스 목록이다', () => {
-    expect(route('')).toEqual({ name: 'cases', kind: 'FN' });
-    expect(route('#/')).toEqual({ name: 'cases', kind: 'FN' });
+  // 빈 주소는 집이다 — 집이 대시보드가 된 뒤로 route 가 먼저 대시보드로 푼다 (2026-10-07 사용자 · 화면공통 §8)
+  it('빈 주소와 대시보드 주소는 대시보드다', () => {
+    expect(route('')).toEqual({ name: 'dashboard' });
+    expect(route('#/')).toEqual({ name: 'dashboard' });
+    expect(route('#/dashboard')).toEqual({ name: 'dashboard' });
+    expect(route('#/dashboard/x')).toMatchObject({ name: 'unknown' });
+  });
+
+  it('케이스 주소', () => {
     expect(route('#/cases')).toEqual({ name: 'cases', kind: 'FN' });
     // 사이드바 하위 메뉴 — 종류가 주소에 남아 새로고침에도 안 풀린다 (화면공통 §8 · PR #132)
     expect(route('#/cases/fn')).toEqual({ name: 'cases', kind: 'FN' });
@@ -96,7 +105,7 @@ describe('route', () => {
   });
 
   it('회원가입 화면도 돌아갈 자리로 기억하지 않는다. 로그인한 사람에게는 집이다', () => {
-    expect(돌아갈자리('#/signup', 다봄, 'PAY')).toBe('#/cases');
+    expect(돌아갈자리('#/signup', 다봄, 'PAY')).toBe('#/dashboard');
   });
 
   it('돌아갈 자리는 지금 주소다. 로그인이 끝나면 원래 가려던 화면으로 보낸다', () => {
@@ -104,23 +113,42 @@ describe('route', () => {
   });
 
   it('로그인 화면 자체는 돌아갈 자리로 기억하지 않는다. 기억하면 로그인 뒤 또 로그인 화면이다', () => {
-    expect(돌아갈자리('#/login', 다봄, 'PAY')).toBe('#/cases');
+    expect(돌아갈자리('#/login', 다봄, 'PAY')).toBe('#/dashboard');
   });
 
-  it('빈 주소는 케이스 목록으로 돌려보낸다', () => {
-    expect(돌아갈자리('', 다봄, 'PAY')).toBe('#/cases');
+  it('빈 주소는 집으로 돌려보낸다', () => {
+    expect(돌아갈자리('', 다봄, 'PAY')).toBe('#/dashboard');
+    expect(돌아갈자리('', 대시보드없음, 'PAY')).toBe('#/cases');
   });
 
-  it('집은 남은 자리 중 맨 위다. 케이스가 none 이면 케이스가 집이 아니다', () => {
-    expect(집(다봄, 'PAY')).toBe('#/cases');
-    expect(집(케이스없음, 'PAY')).toBe('#/authoring');
-    expect(집(실행만, 'PAY')).toBe('#/runs');
+  it('집은 남은 자리 중 맨 위다. 대시보드 → 케이스 → 작성 → 실행 기록 순이다', () => {
+    expect(집(다봄, 'PAY')).toBe('#/dashboard');
+    expect(집(케이스없음, 'PAY')).toBe('#/dashboard');
+    expect(집(실행만, 'PAY')).toBe('#/dashboard');
+    expect(집(대시보드없음, 'PAY')).toBe('#/cases');
+    expect(집(작성만, 'PAY')).toBe('#/authoring');
+  });
+
+  it('대시보드 자리는 고른 서비스가 아니라 배정 서비스 전체의 실행 칸을 본다', () => {
+    const 둘 = 사람([
+      서비스('AAA', { cases: 'read', runs: 'none', authoring: 'none' }),
+      서비스('BBB', { cases: 'read', runs: 'read', authoring: 'none' }),
+    ]);
+    expect(집(둘, 'AAA')).toBe('#/dashboard');
+    expect(갈자리('#/dashboard', 둘, 'AAA')).toBe('#/dashboard');
+    expect(갈자리('#/dashboard', 대시보드없음, 'PAY')).toBe('#/cases');
+    expect(갈자리('', 대시보드없음, 'PAY')).toBe('#/cases');
+  });
+
+  it('다 막혔으면 집은 케이스로 둔다. 껍데기가 안내를 덮어 그린다', () => {
+    expect(집(사람([]), null)).toBe('#/cases');
   });
 
   it('none 인 자리 주소를 직접 치면 집으로 보낸다', () => {
-    expect(갈자리('#/cases', 케이스없음, 'PAY')).toBe('#/authoring');
-    expect(갈자리('', 케이스없음, 'PAY')).toBe('#/authoring');
-    expect(갈자리('#/authoring', 실행만, 'PAY')).toBe('#/runs');
+    expect(갈자리('#/cases', 케이스없음, 'PAY')).toBe('#/dashboard');
+    expect(갈자리('', 케이스없음, 'PAY')).toBe('');
+    expect(갈자리('#/cases', 작성만, 'PAY')).toBe('#/authoring');
+    expect(갈자리('#/authoring', 실행만, 'PAY')).toBe('#/dashboard');
     expect(갈자리('#/runs', 사람([서비스('PAY', { cases: 'read', runs: 'none', authoring: 'none' })]), 'PAY')).toBe('#/cases');
   });
 
@@ -150,8 +178,9 @@ describe('route', () => {
   });
 
   it('로그인 뒤 돌아갈 자리도 같은 규칙을 따른다', () => {
-    expect(돌아갈자리('#/cases', 케이스없음, 'PAY')).toBe('#/authoring');
-    expect(돌아갈자리('#/login', 케이스없음, 'PAY')).toBe('#/authoring');
-    expect(돌아갈자리('', 실행만, 'PAY')).toBe('#/runs');
+    expect(돌아갈자리('#/cases', 케이스없음, 'PAY')).toBe('#/dashboard');
+    expect(돌아갈자리('#/login', 케이스없음, 'PAY')).toBe('#/dashboard');
+    expect(돌아갈자리('#/login', 작성만, 'PAY')).toBe('#/authoring');
+    expect(돌아갈자리('', 실행만, 'PAY')).toBe('#/dashboard');
   });
 });

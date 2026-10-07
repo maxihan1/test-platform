@@ -24,7 +24,7 @@ export interface 실패덩어리 {
 }
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (store.ts와 같은 방식)
-async function db(): Promise<Pool> {
+export async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
   return pool;
 }
@@ -59,7 +59,7 @@ const 접기 = `
 
 // 빠지는 조합이 없어야 한다. 앞이 NA 였다가 이번에 FAIL 이면 「이번에 처음 깨진 것」이 맞다 —
 // 그대로로 묻으면 새 실패가 칸에서 사라진다. 반대로 이번이 NA 인 것은 아직 못 돈 것이라 판정하지 않는다
-const 판정표: Record<접힌판정, Record<접힌판정, 변화>> = {
+export const 판정표: Record<접힌판정, Record<접힌판정, 변화>> = {
   PASS: { PASS: '그대로', FAIL: '새로깨짐', NA: '그대로' },
   FAIL: { PASS: '고쳐짐', FAIL: '계속깨짐', NA: '그대로' },
   NA: { PASS: '그대로', FAIL: '새로깨짐', NA: '그대로' },
@@ -114,7 +114,7 @@ interface 사유행 {
  *
  * 원문은 항목 상세가 그대로 갖고 있다. 여기서 자르는 것은 **요약 자리에 원문을 두지 않는 것**이다.
  */
-function 한줄로자른다(문장: string): string {
+export function 한줄로자른다(문장: string): string {
   const 첫줄 = (문장.split('\n')[0] ?? '').trim();
   return 첫줄.length > 대표문장길이 ? `${첫줄.slice(0, 대표문장길이)}…` : 첫줄;
 }

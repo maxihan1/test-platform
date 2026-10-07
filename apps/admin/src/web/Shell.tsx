@@ -35,9 +35,13 @@ interface Props {
 export function Shell({ user, service, onService, 언어, on언어, onLogout, current, children }: Props) {
   const t = use말();
 
+  // 대시보드는 서비스를 고르지 않는 화면이다 — 숨긴 고르개의 서비스 이름이 탭과 바닥 글에 남으면 그 서비스만 보는 것처럼 읽힌다
+  const 대시보드인가 = current === '#/dashboard';
+  const 제목 = 탭제목(대시보드인가 ? null : service, 언어);
+
   useEffect(() => {
-    document.title = 탭제목(service, 언어);
-  }, [service, 언어]);
+    document.title = 제목;
+  }, [제목]);
 
   // 띠에는 짧게, 왜인지와 무엇을 하면 되는지는 본문이 말한다.
   // 지금 자리를 같이 넘긴다 — 설정 화면은 배정이 없어도 열려야 한다 (그 배정을 만드는 자리다)
@@ -68,34 +72,37 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         </button>
         {/* 서비스 색은 2026-09-22 에 걷었다 (SPEC §8). 이름과 저장소 주소로 구분한다 —
             「이 파란 네모가 뭘 뜻하는지 모르겠다」가 걷은 이유다 */}
-        <div className="side-top">
-          {/* 무엇을 고르는 자리인지 **글자로 적는다.** 파란 네모를 걷은 이유가 바로
-              「이게 뭘 뜻하는지 모르겠다」였다 — 같은 실수를 고르개에서 되풀이하지 않는다 */}
-          <span className="side-cap">{t('서비스§고르개')}</span>
-          <div className="side-svc">
-            {service === null ? (
-              <span className="side-svc-name">{t('서비스 없음')}</span>
-            ) : (
-              <>
-                <select
-                  className="side-pick"
-                  value={service.prefix}
-                  onChange={(e) => {
-                    고른서비스를적는다(e.target.value);
-                    onService(e.target.value);
-                  }}
-                  aria-label={t('서비스 고르기')}
-                >
-                  {user.services.map((it) => (
-                    <option key={it.prefix} value={it.prefix}>
-                      {it.name}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
+        {/* 대시보드는 여러 서비스를 함께 본다. 고르개가 있으면 「이 서비스만」으로 읽힌다 (화면공통 §8) */}
+        {대시보드인가 ? null : (
+          <div className="side-top">
+            {/* 무엇을 고르는 자리인지 **글자로 적는다.** 파란 네모를 걷은 이유가 바로
+                「이게 뭘 뜻하는지 모르겠다」였다 — 같은 실수를 고르개에서 되풀이하지 않는다 */}
+            <span className="side-cap">{t('서비스§고르개')}</span>
+            <div className="side-svc">
+              {service === null ? (
+                <span className="side-svc-name">{t('서비스 없음')}</span>
+              ) : (
+                <>
+                  <select
+                    className="side-pick"
+                    value={service.prefix}
+                    onChange={(e) => {
+                      고른서비스를적는다(e.target.value);
+                      onService(e.target.value);
+                    }}
+                    aria-label={t('서비스 고르기')}
+                  >
+                    {user.services.map((it) => (
+                      <option key={it.prefix} value={it.prefix}>
+                        {it.name}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <nav className="side-nav">
           {자리목록(user, service?.prefix ?? null, 언어).map((자리) =>
@@ -166,7 +173,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
       </aside>
 
       <div className="main">
-        {service === null ? null : <Notice service={service.prefix} 언어={언어} />}
+        {service === null || 대시보드인가 ? null : <Notice service={service.prefix} 언어={언어} />}
 
         {사유 === null ? (
           children
@@ -181,7 +188,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
         {/* 제품 버전을 넣을 통로가 아직 없다 (빌드 시 주입되는 값이 없다).
             지어내는 대신 확실히 아는 것만 적는다 — 제품 이름과 지금 보고 있는 서비스 */}
-        <footer className="foot">{탭제목(service, 언어)}</footer>
+        <footer className="foot">{제목}</footer>
       </div>
     </div>
   );

@@ -297,3 +297,18 @@ describe('서비스 설정의 피그마 토큰 (도메인/인증 §8.8)', () => 
     expect(본문.figmaToken).toBe('figd_new');
   });
 });
+
+describe('앱 대시보드 (도메인/리포팅 §7 · §8.12)', () => {
+  it('시간대를 이름표 그대로 싣는다. 슬래시가 주소를 깨지 않게 인코딩한다', async () => {
+    답 = { status: 200, body: {} };
+    await api.dashboard('Asia/Seoul');
+    expect(부름[0]?.url).toBe('/api/dashboard?tz=Asia%2FSeoul');
+    expect(부름[0]?.init?.method ?? 'GET').toBe('GET');
+  });
+
+  it('실행 중 줄만 새로 받을 때는 only=running 을 붙인다', async () => {
+    답 = { status: 200, body: { running: [] } };
+    await api.dashboard('Asia/Seoul', 'running');
+    expect(부름[0]?.url).toBe('/api/dashboard?tz=Asia%2FSeoul&only=running');
+  });
+});

@@ -4,6 +4,7 @@
 export const 껍데기말: Record<string, string> = {
   // 제품과 자리 목록
   '테스트 플랫폼': 'Test Platform',
+  대시보드: 'Dashboard',
   '테스트 작성': 'Authoring',
   // 영어는 못 박는다 (화면공통 §8 「자리 목록」)
   'E2E 시나리오': 'E2E scenarios',

@@ -112,7 +112,7 @@ test('SPEC 을 고칠 때 CLAUDE.md §2.7 여섯 곳이 체인에 배선돼 있�
   const spec = read('tpx-spec');
   assert.match(spec, /§2\.7/, 'tpx-spec 이 §2.7 을 안 가리킨다');
   // ④ SPEC 밖 여섯 곳이 이름으로 들어 있어야 한다
-  for (const 곳 of ['WORKSTREAMS', 'spec-review', 'SETUP', 'WORKFLOW', 'design-mockup', '코드에 박힌 상수']) {
+  for (const 곳 of ['WORKSTREAMS', 'spec-review', 'SETUP', 'WORKFLOW', '시안 캔버스', '코드에 박힌 상수']) {
     assert.ok(spec.includes(곳), `§2.7 ④ 에 "${곳}" 이 빠졌다`);
   }
   // ③ 가장 잘 빠뜨리는 라우터 표

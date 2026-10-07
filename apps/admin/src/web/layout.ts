@@ -5,6 +5,7 @@ import type { RunSummary, ServiceRow, User } from './api.js';
 import { 기본언어, t, type 언어 } from './i18n.js';
 import type { 아이콘이름 } from './icons.js';
 import { 기능보나, 할수있나 } from './role.js';
+import { 대시보드보나 } from './route.js';
 import { 도는중 } from './runState.js';
 import { 미확정글자, 판정없음 } from './unconfirmed.js';
 
@@ -63,9 +64,12 @@ const 그래프주소 = '/grafana/';
  * 기능이 `none` 이면 그 자리가 없고, 설정은 운영 계정에게만 뜬다. **흐리게 두지 않고 아예 없다** —
  * 누를 수 없는 메뉴가 있으면 사람이 그것이 올 때까지 기다린다 (§8.6).
  * 케이스·작성·실행은 **고른 서비스**의 칸을 보고, 그래프는 사람의 대시보드 칸을 본다.
+ * 앱 대시보드는 배정 서비스 전체의 실행 칸이다 — 둘은 이름만 같고 칸이 다르다 (화면공통 §8).
  */
 export function 자리목록(user: User, prefix: string | null, 언어: 언어): 자리[] {
   const 목록: 자리[] = [];
+  // 맨 위다. 고른 서비스가 아니라 배정 서비스 전체의 실행 칸을 본다 (route.ts 의 `대시보드보나`)
+  if (대시보드보나(user)) 목록.push({ 이름: t('대시보드', 언어), 해시: '#/dashboard', 아이콘: 'dashboard' });
   if (기능보나(user, prefix, 'cases')) {
     const 이름 = t('테스트 케이스', 언어);
     목록.push({ 이름, 해시: '#/cases', 아이콘: 'cases', 하위: 종류하위(이름, '#/cases', 언어) });
@@ -95,6 +99,7 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
 export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | 'E2E'): string {
   // 목록은 종류까지 자리다. 실행 결과 · 항목 상세는 주소에 종류가 없어 묶음을 가리킨다 (PR #132)
   const 꼬리 = 종류 === undefined ? '' : `/${종류.toLowerCase()}`;
+  if (name === 'dashboard') return '#/dashboard';
   if (name === 'runs') return `#/runs${꼬리}`;
   if (name === 'cases') return `#/cases${꼬리}`;
   if (name === 'run' || name === 'item') return '#/runs';
@@ -117,6 +122,23 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
 export function 고른서비스(저장값: string | null, 배정: ServiceRow[]): ServiceRow | null {
   const 찾은것 = 배정.find((service) => service.prefix === 저장값);
   return 찾은것 ?? 배정[0] ?? null;
+}
+
+/** 대시보드는 서비스를 번호로 준다. 배정 밖 번호면 고르지 않는다 — 고르개가 남의 서비스를 열면 서버가 403 을 낸다 */
+export function 배정서비스접두사(serviceId: number, 배정: ServiceRow[]): string | null {
+  return 배정.find((service) => service.id === serviceId)?.prefix ?? null;
+}
+
+/**
+ * 대시보드가 사람의 권한에서 알아야 하는 둘.
+ * 케이스 자리가 있나 — 없는데 단추를 두면 `갈자리` 가 곧바로 되돌려 단추가 아무 일도 안 한다.
+ * 작성 서비스 — 커버리지 줄은 작성 칸이 `none` 이 아닌 서비스만 센다. 실행 칸 기준의 서비스 목록에는 작성을 못 보는 서비스가 섞인다
+ */
+export function 대시보드재료(user: User, prefix: string | null): { 케이스갈수있나: boolean; 작성서비스: { id: number; name: string }[] } {
+  return {
+    케이스갈수있나: 기능보나(user, prefix, 'cases'),
+    작성서비스: user.services.filter((서비스) => 서비스.permissions.authoring !== 'none').map(({ id, name }) => ({ id, name })),
+  };
 }
 
 export function 고른서비스를읽는다(): string | null {

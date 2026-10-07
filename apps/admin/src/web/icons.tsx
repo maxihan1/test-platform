@@ -1,9 +1,18 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'cases' | 'authoring' | 'scenarios' | 'runs' | 'graph' | 'settings';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'authoring' | 'scenarios' | 'runs' | 'graph' | 'settings';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
+  // 네 칸 격자 — 서비스를 가로질러 한눈에 보는 현황
+  dashboard: (
+    <>
+      <rect x="4" y="4" width="7" height="7" rx="1.5" />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    </>
+  ),
   // 문서 위 체크 — 테스트 케이스
   cases: (
     <>

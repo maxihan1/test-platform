@@ -808,3 +808,108 @@ describe('메뉴 아이콘 (DESIGN.md 원칙 5, 2026-10-07)', () => {
     expect(블록).toMatch(/flex:\s*none/);
   });
 });
+
+describe('대시보드 그래프 (DESIGN.md 원칙 1 · 2, 2026-10-07)', () => {
+  const 규칙들 = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ 선택자: m[1]!.trim(), 몸: m[2]! }));
+  const 그래프 = /\.dash-(daily|heat|cov|gauge|trend|day|key|days|weekend|fail-top)\b/;
+
+  it('그래프 규칙에 대표색 · 링크 색이 없다 — 그래프는 판정 색과 회색 단계만 쓴다', () => {
+    const 걸린것 = 규칙들.filter((r) => 그래프.test(r.선택자) && /var\(--(accent|link)\b/.test(r.몸)).map((r) => r.선택자);
+    expect(걸린것).toEqual([]);
+    expect(규칙들.filter((r) => 그래프.test(r.선택자)).length, '그래프 규칙이 없다').toBeGreaterThan(10);
+  });
+
+  it('누를 수 없는 그래프 판은 마우스를 올려도 들리지 않는다', () => {
+    const 들림 = 규칙들.filter(
+      (r) => /\.dash-(slab|daily|heat|cov|rate)\b[^,]*:hover/.test(r.선택자) && /transform|box-shadow|translate/.test(r.몸),
+    );
+    expect(들림.map((r) => r.선택자)).toEqual([]);
+    expect(첫규칙('.dash-slab')).not.toMatch(/cursor:\s*pointer/);
+  });
+
+  it('히트맵 칸 색은 토큰 셋(0 · 2 · 3 단계)이고 일별 막대는 판정 색이다', () => {
+    const 칸 = (이름: string) => 규칙들.find((r) => r.선택자 === `.dash-heat-row i.${이름}`)?.몸 ?? '';
+    expect(칸('h0')).toMatch(/var\(--heat-0\)/);
+    expect(칸('h1')).toMatch(/var\(--heat-2\)/);
+    expect(칸('h2')).toMatch(/var\(--heat-3\)/);
+    const 막대 = (이름: string) => 규칙들.find((r) => r.선택자 === `.dash-day rect.${이름}`)?.몸 ?? '';
+    expect(막대('p')).toMatch(/var\(--pass-chart\)/);
+    expect(막대('n')).toMatch(/var\(--na-chart\)/);
+    expect(막대('f')).toMatch(/var\(--fail\)/);
+  });
+});
+
+describe('대시보드 좁은 화면 · 표 · 포커스 (PR #173 독립 검사)', () => {
+  const 글 = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const 모든규칙 = [...글.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({
+    자리: m.index!,
+    선택자들: m[1]!.split(',').map((s) => s.trim()),
+    몸: m[2]!,
+  }));
+
+  /** `@container` 덩어리의 시작 · 끝 자리 */
+  function 컨테이너덩어리들(): { 시작: number; 끝: number }[] {
+    return [...글.matchAll(/@container[^{]*\{/g)].map((m) => {
+      let 깊이 = 1;
+      let 끝 = m.index! + m[0].length;
+      while (깊이 > 0) {
+        if (글[끝] === '{') 깊이 += 1;
+        if (글[끝] === '}') 깊이 -= 1;
+        끝 += 1;
+      }
+      return { 시작: m.index!, 끝 };
+    });
+  }
+
+  const 몸들 = (선택자: string): string =>
+    모든규칙
+      .filter((r) => r.선택자들.includes(선택자))
+      .map((r) => r.몸)
+      .join('\n');
+
+  it('대시보드 좁은 화면 컨테이너 쿼리가 그 선택자의 기본 규칙보다 뒤에 있다 — 같은 우선순위는 뒤 규칙이 이긴다', () => {
+    const 덩어리들 = 컨테이너덩어리들();
+    expect(덩어리들.length, '컨테이너 쿼리가 없다').toBeGreaterThan(0);
+    const 늦은기본: string[] = [];
+    for (const 덩어리 of 덩어리들) {
+      const 안 = 모든규칙.filter((r) => r.자리 > 덩어리.시작 && r.자리 < 덩어리.끝);
+      for (const 선택자 of 안.flatMap((r) => r.선택자들).filter((s) => s.startsWith('.dash'))) {
+        for (const 기본 of 모든규칙) {
+          const 밖 = !덩어리들.some((d) => 기본.자리 > d.시작 && 기본.자리 < d.끝);
+          if (밖 && 기본.선택자들.includes(선택자) && 기본.자리 > 덩어리.시작) 늦은기본.push(선택자);
+        }
+      }
+    }
+    expect([...new Set(늦은기본)]).toEqual([]);
+  });
+
+  it('서비스별 표의 이름 칸은 최소 폭이 있고 통과율은 한 줄이다 — 긴 머리글이 폭을 가져가 이름이 한 글자씩 꺾였다', () => {
+    expect(몸들('.dash-svc .dash-table td:first-child')).toMatch(/min-width:\s*(1[2-9]\d|[2-9]\d\d)px/);
+    expect(몸들('.dash-rate20')).toMatch(/white-space:\s*nowrap/);
+  });
+
+  it('신규 실패 표의 TC 아래 서비스 이름은 말줄임이다 — 길면 디바이스 · 실행 열이 스크롤 뒤로 밀렸다', () => {
+    const 몸 = 몸들('.dash-sub');
+    expect(몸).toMatch(/max-width:\s*\d+px/);
+    expect(몸).toMatch(/overflow:\s*hidden/);
+    expect(몸).toMatch(/text-overflow:\s*ellipsis/);
+  });
+
+  it('통과율 칸의 「직전 14일」 글자는 줄이 꺾이지 않는다', () => {
+    expect(몸들('.dash-prev span')).toMatch(/white-space:\s*nowrap/);
+  });
+
+  it('「직전 14일」 줄은 비어 있는 퍼센트 칸을 빼서 글자가 숫자 위로 안 겹친다 — 줄이 꺾이지 않게 한 뒤 1440 에서 겹쳤다', () => {
+    expect(몸들('.dash-lines li.dash-prev')).toMatch(/grid-template-columns:\s*12px minmax\(0, 1fr\) auto;/);
+  });
+
+  it('신규 실패 링크와 커버리지 링크의 포커스 고리는 잉크 2px 다 — 브라우저 기본 파랑을 안 쓴다', () => {
+    for (const 선택자 of ['.dash-test a.ink:focus-visible', '.dash-cov-name a:focus-visible']) {
+      expect(몸들(선택자), 선택자).toMatch(/outline:\s*2px solid var\(--ink\)/);
+    }
+  });
+
+  it('포커스를 못 받는 「외 N건」에는 포커스 규칙이 없다', () => {
+    expect(글).not.toMatch(/\.dash-live-more:focus-visible/);
+  });
+});

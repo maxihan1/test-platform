@@ -24,7 +24,7 @@ test-platform/                      ← 프로젝트 루트 (이름은 자유)
     ├── WORKFLOW.md                 ★ 어느 단계인가
     ├── WORKSTREAMS.md              ★ 누가 어느 폴더를 맡는가
     ├── DESIGN.md                   ★ 화면 기준
-    ├── design-mockup.html          ★ 화면 목업
+    ├── design-mockup.html          개편 전 화면 목업 (2026-10-07 동결 — 시각 기준은 DESIGN.md 맨 위 시안 캔버스)
     ├── HOOKS.md                    ★ 훅 설명
     ├── LEARNINGS.md                ★ 세션 간 학습 기록 (비어 있는 상태로 시작)
     ├── progress/                   ← 빈 폴더. 세션이 채운다
@@ -123,7 +123,7 @@ Claude Code에 던지기 전에 Maxi님이 직접 읽으실 순서다. 리뷰 �
 |------|------|------|
 | 1 | `WORKFLOW.md` | 전체 흐름이 납득되는가. 체크포인트 5개가 할 만한가 |
 | 2 | `SPEC.md` §1~4 | 만들려는 게 맞는가. 특히 §4 명세 선언 방식 |
-| 3 | `design-mockup.html` | 브라우저로 열어본다. 화면이 원하는 모양인가 |
+| 3 | 시안 캔버스 (`DESIGN.md` 맨 위 링크) | 브라우저로 열어본다. 화면이 원하는 모양인가 |
 | 4 | `SPEC.md` §8 | 화면 구성이 목업과 맞는가 |
 | 5 | `WORKSTREAMS.md` | 갈래 나눔이 이해되는가. 킥오프 프롬프트가 읽히는가 |
 | 6 | `CLAUDE.md` | 규칙 중 거슬리는 게 있는가 |

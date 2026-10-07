@@ -109,6 +109,11 @@ describe('라우트표', () => {
     expect(라우트표['/api/runs/:runId/scenario/screenshots/:seq']).toEqual({ 종류: '실행', 칸: 'runId' });
   });
 
+  // 서비스 여럿을 한 번에 모은다. 경계는 라우트가 실행 read 인 배정 서비스만 질의에 넘겨서 건다 (reporting/routes.ts)
+  it('앱 대시보드는 서비스에 안 매인다', () => {
+    expect(라우트표['/api/dashboard']).toEqual({ 종류: '안매임' });
+  });
+
   it('직전 실행 비교 조회는 실행 번호로 서비스를 찾는다', () => {
     expect(라우트표['/api/runs/:runId/insights']).toEqual({ 종류: '실행', 칸: 'runId' });
   });

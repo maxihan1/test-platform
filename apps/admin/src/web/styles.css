@@ -4205,3 +4205,1093 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
     transition: none !important;
   }
 }
+
+/* ── 앱 대시보드 (DESIGN.md 「대시보드」, 2026-10-07 · 9판 A 「실패 먼저」) ──────────
+   표는 선(위 2px · 행 괘선), 그래프 · 요약은 판(--slab) 이다 (원칙 2). 그래프와 표에는 대표색을 쓰지 않는다.
+   칸 쌓기는 창이 아니라 **대시보드 폭**을 본다 — 사이드바를 접고 펴면 같은 창에서도 본문 폭이 달라진다.
+   넓은 화면 배치는 grid 자리로 옮기고 DOM 순서는 화면 읽기 순서(실행 중 → 신규 실패 → 통과율 → 서비스별 → 일별 → 히트맵 → 커버리지)다 */
+.dash {
+  /* .main 이 세로 flex 라 안 막으면 창 높이에 맞춰 줄어든다 — .screen 과 같은 이유다 */
+  flex-shrink: 0;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+  min-width: 0;
+}
+
+.dash-board {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 24px 16px;
+}
+
+.dash-fail {
+  grid-column: 1 / 8;
+  grid-row: 1;
+}
+
+.dash-rate {
+  grid-column: 8 / 13;
+  grid-row: 1 / 3;
+}
+
+.dash-svc {
+  grid-column: 1 / 8;
+  grid-row: 2;
+}
+
+.dash-daily {
+  grid-column: 1 / 9;
+  grid-row: 3;
+}
+
+.dash-cov {
+  grid-column: 9 / 13;
+  grid-row: 3;
+}
+
+.dash-heat {
+  grid-column: 1 / 13;
+  grid-row: 4;
+}
+
+/* 등장 — 칸마다 차례로 나타난다. 차례 지연까지 합쳐 --dur-intro(0.5초) 안이다.
+   다시 받을 때는 같은 요소가 그대로 있어 애니메이션이 다시 시작하지 않는다 */
+.dash-slab {
+  min-width: 0;
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--slab);
+  animation: 떠오름 var(--dur) var(--ease) backwards;
+}
+
+.dash-flat {
+  min-width: 0;
+  padding-top: 16px;
+  border-top: 2px solid var(--line-2);
+  animation: 나타남 var(--dur) var(--ease) backwards;
+}
+
+.dash-board > :nth-child(2) {
+  animation-delay: 0.03s;
+}
+
+.dash-board > :nth-child(3) {
+  animation-delay: 0.06s;
+}
+
+.dash-board > :nth-child(4) {
+  animation-delay: 0.09s;
+}
+
+.dash-board > :nth-child(5) {
+  animation-delay: 0.12s;
+}
+
+.dash-board > :nth-child(6) {
+  animation-delay: 0.15s;
+}
+
+.dash-ttl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 0 0 16px;
+}
+
+.dash-ttl h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.dash-ttl h2 .num.bad {
+  color: var(--fail-text);
+}
+
+.dash-axis {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.dash .num {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* 실행 중 줄 — 머리 띠 색 위에 맥박 점 · RUN 번호 · 끝난 수 · 진행 막대 */
+.dash-live {
+  display: grid;
+  grid-template-columns: auto repeat(2, minmax(0, 1fr)) auto;
+  align-items: start;
+  gap: 8px 32px;
+  padding: 12px 20px;
+  background: var(--head);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  animation: 나타남 var(--dur) var(--ease) backwards;
+}
+
+.dash-live-head {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dash-live-head .pulse {
+  margin-right: 8px;
+  flex: none;
+}
+
+.dash-live-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 16px;
+  min-width: 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.dash-live-item:hover .one-line {
+  text-decoration: underline;
+}
+
+.dash-live-item:focus-visible,
+.dash-test a.ink:focus-visible,
+.dash-cov-name a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.dash-live-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 20px;
+}
+
+.dash-live-title .mono {
+  flex: none;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.dash-live-count {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.dash-live-count .num {
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.dash-live-fail {
+  font-weight: 600;
+  color: var(--fail-text);
+}
+
+.dash-live-more {
+  align-self: center;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 진행 막대 — 통과 · 실패 판정 색. 위 글자(끝난 수 · 실패 N)가 같은 말을 한다 */
+.dash-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  height: 8px;
+  gap: 1px;
+  overflow: hidden;
+  background: var(--well);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.dash-bar i {
+  display: block;
+  height: 100%;
+}
+
+.dash-bar i.p {
+  background: var(--pass);
+}
+
+.dash-bar i.f {
+  background: var(--fail);
+}
+
+/* 표 둘 */
+.dash-scroll {
+  overflow-x: auto;
+}
+
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+
+.dash-table th {
+  padding: 0 12px 8px 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.dash-table td {
+  padding: 12px 12px 12px 0;
+  border-top: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.dash-table .r {
+  text-align: right;
+}
+
+.dash-table th:last-child,
+.dash-table td:last-child {
+  padding-right: 0;
+}
+
+.dash-tc {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.dash-sub {
+  display: block;
+  max-width: 160px;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-test {
+  min-width: 240px;
+}
+
+/* 줄 제목 링크는 잉크다 — 줄마다 대표색이면 오렌지 기둥이 선다 (원칙 1) */
+.dash-test a.ink {
+  display: block;
+  max-width: 340px;
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-test a.ink:hover {
+  text-decoration: underline;
+}
+
+.dash-reason {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--fail-text);
+}
+
+.dash-name {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+/* 점 — 마지막 실행에 실패가 있으면 실패 색. 점만으로 말하지 않게 aria-label 이 같은 말을 한다 */
+.dash-dot {
+  flex: none;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 10px;
+  border-radius: 50%;
+}
+
+.dash-dot.p {
+  background: var(--pass);
+}
+
+.dash-dot.f {
+  background: var(--fail);
+}
+
+.dash-dot.n {
+  background: var(--na);
+}
+
+.dash-rate20 {
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+/* 긴 머리글(nowrap)이 폭을 가져가 이름 칸이 44px 로 눌리면 이름이 한 글자씩 꺾인다. 모자라면 표 안에서 가로로 민다 */
+.dash-svc .dash-table td:first-child {
+  min-width: 168px;
+}
+
+.dash-delta,
+.dash-when {
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+/* 흐름 막대는 케이스 목록의 `.spark` 와 같은 높이 규칙(통과 8 · 미실행 12 · 실패 16)을 쓴다. 폭만 좁힌다 — 20칸이 들어가야 한다 */
+.dash-flow.spark {
+  justify-content: flex-start;
+  gap: 2px;
+  margin-top: 0;
+}
+
+.dash-flow.spark i {
+  width: 5px;
+  border-radius: 1px;
+}
+
+.dash-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  margin-right: 4px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+}
+
+.dash-chip.f {
+  color: var(--fail-text);
+  background: var(--fail-soft);
+  border-color: transparent;
+}
+
+.dash-chip.p {
+  color: var(--pass-text);
+  background: var(--pass-soft);
+  border-color: transparent;
+}
+
+.dash-calm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.dash-calm.good {
+  color: var(--pass-text);
+}
+
+/* 통과율 칸 — 도넛 · 큰 숫자 · 세 줄. 아래 우묵한 자리에 일별 통과율 선이 꽂힌다 */
+.dash-rate {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dash-rate .dash-ttl {
+  margin: 0;
+}
+
+.dash-rate-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+
+.dash-rate-body > .dash-axis {
+  flex: 1 0 100%;
+}
+
+.dash-donut {
+  position: relative;
+  flex: none;
+  width: 220px;
+  height: 220px;
+}
+
+.dash-donut svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dash-track {
+  fill: none;
+  stroke: var(--chart-track);
+  stroke-width: 16;
+}
+
+.dash-track.thin {
+  stroke-width: 6;
+}
+
+.dash-seg {
+  fill: none;
+  stroke-width: 16;
+  animation: 그려짐 var(--dur) var(--ease) backwards;
+}
+
+.dash-seg.p {
+  stroke: var(--pass);
+}
+
+.dash-seg.f {
+  stroke: var(--fail);
+}
+
+.dash-seg.n {
+  stroke: var(--na);
+}
+
+.dash-ring-inner {
+  fill: none;
+  stroke: var(--pass);
+  stroke-opacity: 0.45;
+  stroke-width: 6;
+  animation: 그려짐 var(--dur) var(--ease) 0.1s backwards;
+}
+
+@keyframes 그려짐 {
+  from {
+    stroke-dasharray: 0 100;
+  }
+}
+
+.dash-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.dash-big {
+  font-size: 56px;
+  line-height: 1;
+}
+
+.dash-pct {
+  font-size: 20px;
+  color: var(--ink-faint);
+}
+
+/* 잉크 보조 — 증감은 판정이 아니라 판정 색을 쓰지 않는다 */
+.dash-delta-line {
+  max-width: 128px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+.dash-lines {
+  flex: 1 1 160px;
+  list-style: none;
+}
+
+.dash-lines li {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto 48px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.dash-lines li.dash-prev {
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+}
+
+.dash-lines li:first-child {
+  border-top: 0;
+}
+
+.dash-lines .num {
+  font-size: 16px;
+}
+
+.dash-lines .r {
+  text-align: right;
+}
+
+.dash-sw {
+  display: block;
+  width: 12px;
+  height: 8px;
+  border-radius: 1px;
+}
+
+.dash-sw.p {
+  background: var(--pass);
+}
+
+.dash-sw.f {
+  background: var(--fail);
+}
+
+.dash-sw.n {
+  background: var(--na);
+}
+
+.dash-sw.prev {
+  height: 4px;
+  background: var(--pass);
+  opacity: 0.45;
+}
+
+.dash-prev span {
+  white-space: nowrap;
+}
+
+.dash-prev span:nth-child(2) {
+  color: var(--ink-muted);
+}
+
+/* ── 그래프 셋 + 통과율 선 ───────────────────────────────────────────────
+   색은 판정(통과 · 미실행 · 실패)과 회색 단계만 쓴다 — 대표색을 그래프에 쓰지 않는다 (DESIGN.md 원칙 1).
+   누를 수 없는 판이라 마우스를 올려도 들리지 않는다. 날짜 · 요일 · 숫자 글자는 SVG 가 아니라 HTML 이다 */
+.dash-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+  list-style: none;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.dash-key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-key .dash-sw {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.dash-key .dash-sw.p {
+  background: var(--pass-chart);
+}
+
+.dash-key .dash-sw.n {
+  background: var(--na-chart);
+}
+
+.dash-key .dash-sw.f {
+  background: var(--fail);
+}
+
+.dash-key .dash-sw.w {
+  background: var(--chart-weekend);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+
+.dash-key .dash-sw.h0 {
+  background: var(--heat-0);
+}
+
+.dash-key .dash-sw.h1 {
+  background: var(--heat-2);
+}
+
+.dash-key .dash-sw.h2 {
+  background: var(--heat-3);
+}
+
+/* 일별 — 막대 위 실패 숫자가 들어갈 위쪽 20px 을 비워 둔다. 세로는 viewBox 와 같은 200px 이라 1:1 이다 */
+.dash-daily-plot {
+  position: relative;
+  margin-left: 32px;
+  padding-top: 20px;
+}
+
+.dash-daily-plot svg {
+  display: block;
+  width: 100%;
+  height: 200px;
+  overflow: visible;
+}
+
+.dash-weekend {
+  fill: var(--chart-weekend);
+}
+
+.dash-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.dash-day rect {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: 자람 var(--dur) var(--ease) backwards;
+}
+
+.dash-day rect.p {
+  fill: var(--pass-chart);
+}
+
+.dash-day rect.n {
+  fill: var(--na-chart);
+}
+
+.dash-day rect.f {
+  fill: var(--fail);
+}
+
+@keyframes 자람 {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.dash-yaxis {
+  position: absolute;
+  left: -32px;
+  width: 26px;
+  text-align: right;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+.dash-fail-top {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  font-size: 12px;
+  color: var(--fail-text);
+}
+
+.dash-note {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  max-width: 360px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--panel);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--ink-muted);
+  transform: translate(-50%, -50%);
+}
+
+.dash-days,
+.dash-heat-days {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  margin-top: 4px;
+}
+
+.dash-days {
+  margin-left: 32px;
+}
+
+.dash-days span,
+.dash-heat-days span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.dash-days i,
+.dash-heat-days i {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--ink-faint);
+}
+
+.dash-days .we,
+.dash-heat-days .we,
+.dash-days .we i {
+  color: var(--ink);
+}
+
+.dash-heat-days span {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+/* 히트맵 — 줄 머리(TC ID + 말줄임 이름) 다음에 14일 칸이 이어진다 */
+.dash-heat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dash-heat-row,
+.dash-heat-days {
+  display: grid;
+  grid-template-columns: clamp(96px, 20%, 240px) repeat(14, minmax(0, 1fr));
+  gap: 3px;
+  align-items: center;
+}
+
+.dash-heat-days {
+  margin-top: 4px;
+  margin-left: 0;
+}
+
+.dash-heat-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.dash-heat-head .mono {
+  flex: none;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.dash-heat-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-heat-row i {
+  display: block;
+  height: 22px;
+  border-radius: 2px;
+}
+
+.dash-heat-row i.h0 {
+  background: var(--heat-0);
+}
+
+.dash-heat-row i.h1 {
+  background: var(--heat-2);
+}
+
+.dash-heat-row i.h2 {
+  background: var(--heat-3);
+}
+
+.dash-heat .dash-calm {
+  margin-top: 12px;
+}
+
+/* 커버리지 — 두께는 아래 층을 먼저 깔아 만든다. 회색 단계만 쓴다 */
+.dash-gauge-wrap {
+  position: relative;
+  width: min(240px, 100%);
+  margin: 0 auto 12px;
+  aspect-ratio: 240 / 152;
+}
+
+.dash-gauge {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.dash-gauge-t,
+.dash-gauge-v {
+  fill: none;
+  stroke-width: 20;
+}
+
+.dash-gauge .side .dash-gauge-t {
+  stroke: var(--rail);
+}
+
+.dash-gauge .side .dash-gauge-v {
+  stroke: var(--chart-2);
+}
+
+.dash-gauge .top .dash-gauge-t {
+  stroke: var(--chart-track);
+}
+
+.dash-gauge .top .dash-gauge-v {
+  stroke: var(--chart-1);
+}
+
+.dash-gauge-v {
+  animation: 그려짐 var(--dur) var(--ease) 0.1s backwards;
+}
+
+.dash-tick {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.dash-tick.l {
+  top: 92%;
+  left: 10%;
+}
+
+.dash-tick.m {
+  top: 0;
+  left: 50%;
+}
+
+.dash-tick.r {
+  top: 92%;
+  left: 90%;
+}
+
+.dash-gauge-num {
+  position: absolute;
+  right: 0;
+  bottom: 12px;
+  left: 0;
+  font-size: 32px;
+  line-height: 1;
+  text-align: center;
+}
+
+.dash-gauge-num .dash-pct {
+  font-size: 16px;
+}
+
+.dash-gauge-cap {
+  padding: 4px 0 16px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--ink-muted);
+}
+
+.dash-cov-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 30%) minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.dash-cov-row.none {
+  grid-template-columns: minmax(80px, 30%) minmax(0, 1fr);
+}
+
+.dash-cov-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dash-cov-name a {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.dash-cov-name a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.dash-cov-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.dash-cov-bar i {
+  display: block;
+  height: 100%;
+  background: var(--chart-1);
+  transform-origin: left;
+  animation: 자람가로 var(--dur) var(--ease) 0.1s backwards;
+}
+
+@keyframes 자람가로 {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.dash-cov-pct {
+  text-align: right;
+  font-size: 14px;
+}
+
+/* 통과율 칸 아래 우묵한 자리 — 일별 통과율 선 */
+.dash-trend {
+  padding: 12px 16px;
+  border-radius: 4px;
+  background: var(--well);
+}
+
+.dash-trend-plot {
+  position: relative;
+  height: 56px;
+}
+
+.dash-trend-plot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.dash-trend polyline {
+  fill: none;
+  stroke: var(--chart-1);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.dash-trend-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chart-1);
+  transform: translate(-50%, -50%);
+}
+
+.dash-trend .dash-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+/* 좁은 폭 규칙은 대시보드 기본 규칙들 **뒤**에 둔다 — 같은 우선순위는 뒤에 온 규칙이 이긴다.
+   앞에 두었더니 `.dash-live` 기본 열(4칸)이 이겨 390 에서 실행 중 줄이 58px 로 눌렸다 (styles.test.ts 가 지킨다) */
+@container (max-width: 900px) {
+  .dash-board > * {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .dash-live {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* 휴대폰에서 끝났나 보는 길목이다. 46 은 브라우저 반올림이 깎아도 44 를 지키려는 값이다 */
+  .dash-live-item {
+    min-height: 46px;
+  }
+}
+
+/* 날짜 글자가 칸보다 넓어지는 좁은 폭에서는 하루 걸러 보인다 — 오늘(마지막)은 늘 남는다 */
+@container (max-width: 1100px) and (min-width: 901px) {
+  .dash-daily .dash-days > span:nth-child(odd) {
+    visibility: hidden;
+  }
+}
+
+@container (max-width: 560px) {
+  .dash-slab {
+    padding: 16px;
+  }
+
+  .dash-daily-plot,
+  .dash-days {
+    margin-left: 28px;
+  }
+
+  .dash-yaxis {
+    left: -28px;
+    width: 24px;
+  }
+
+  .dash-days > span:nth-child(odd),
+  .dash-heat-days > span:nth-child(odd) {
+    visibility: hidden;
+    max-width: 0;
+    overflow: hidden;
+  }
+
+  /* 줄 머리가 좁아 TC ID 에 이름이 밀려난다 — 이름을 아래 줄로 내려 말줄임이 보이게 한다 */
+  .dash-heat-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .dash-heat-row i {
+    height: 30px;
+  }
+}
+
+/* 실행이 하나도 없을 때의 안내 한 장 */
+.dash-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 720px;
+  padding: 40px;
+  animation: 나타남 var(--dur) var(--ease) backwards;
+}
+
+.dash-empty .side-ico {
+  width: 40px;
+  height: 40px;
+  color: var(--ink-faint);
+}
+
+.dash-empty h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.dash-empty p {
+  line-height: 1.7;
+  color: var(--ink-muted);
+}
+
+.dash-empty .btn {
+  margin-top: 8px;
+}
+
+.dash-error {
+  color: var(--fail-text);
+}

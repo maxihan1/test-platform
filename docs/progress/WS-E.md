@@ -734,3 +734,11 @@ npx vite --config apps/admin/src/web/vite.config.ts
 - 미완: 글자 크기 · 간격 단계(화면을 다시 그리는 묶음마다) · `design-mockup.html` 새로 그리기 · 명세의 「코드 반영은 묶음 1」 줄(화면공통 §8 · SPEC.md 라우터)은 대시보드 PR 에서 · 모달 닫힘 움직임은 넣지 않았다 · 독립 검사가 찾은 기존 문제(1024 폭 실행 결과 머리 깨짐 · 영어 케이스 목록 「Run」 밀림 · 여러 건 상자 TC ID 두 줄 — main 스타일로 견줘 같음 · 영어 실행 결과 칩 번역 누락 · 「저장됨」 · 경고 상자 · 증적 실패 줄의 판정 색)는 고치지 않았다
 - 막힌 것: 없음
 - 다음 세션이 알아야 할 것: 화면은 가짜 응답으로 찍어 본다 — `npx vite --config apps/admin/src/web/vite.config.ts --port 5199` 를 띄우고 `scripts/case-list-layout.mjs` 처럼 Playwright `route` 로 `/api/**` 를 채운다. 등장 움직임은 `backwards` 로만 채운다 — 끝난 뒤 transform 이 남으면 그 판이 안에서 여는 모달(포털 없음)의 고정 위치 기준이 된다. 아이콘 이름을 한글 문자열로 두면 `messages.test.ts` 가 화면 글자로 잡는다
+
+## 2026-10-07 — 묶음 1 대시보드 PR: 앱 대시보드 「품질 현황」 (WEB-F3-02 마무리, PR #173)
+
+- 계기: 묶음 1 의 둘째 PR. 사이드바 맨 위 · 로그인 첫 화면 · 테스트 결과만 · 서비스 권한(실행 read)을 따른다. 캔버스 9판 A 「실패 먼저」를 사용자가 골랐다
+- 완료: `GET /api/dashboard?tz=[&only=running]`(리포팅 §7 · §8.12 · 권한 (실행, read) 안매임 · 커버리지만 작성 read) · 집계 순수 함수 `dashboardShape.ts`(상수 `창날수` · `신규실패상한` · `히트맵케이스수` · `커버리지날수` · `흐름실행수`) · 질의 `dashboardResults.ts` · `dashboardSql.ts` · 화면 `Dashboard.tsx` · `DashboardTables.tsx` · `DashboardCharts.tsx` · `DashboardCoverage.tsx` · 자리 · 집 순서(대시보드 → 케이스 → 작성 → 실행) · 대시보드에서 고르개 · 알림 줄 숨김 · Grafana 「성공률 추이」 · 「실패 TOP 10」 뺌 · `design-mockup.html` 동결과 규칙 다섯 곳 · 진행판 WEB-F3-08 · 09
+- 미완: 실패 유형 칸(WEB-F3-07) · 정기 실행을 화면에서 켜기(WEB-F3-08) · Grafana 남은 패널 점검(WEB-F3-09) · 밝은 테마는 제품에 없다(`color-scheme: dark` 고정)
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 대시보드는 서비스를 섞어 보여 준다. 실행 결과(`#/runs/<id>`)는 RunResult 가 서비스를 스스로 가리지만 작성 상세는 고른 서비스로 열어서, 커버리지 링크는 누를 때 `서비스열기` 로 고른 서비스를 바꾼다. 다른 서비스의 화면으로 가는 링크를 더하면 같은 길을 쓴다. 신규 실패는 같은 대상 서버에서 다시 통과해야 빠진다(미실행 · 다른 서버 통과로는 안 빠진다 — 게이트 2). 「견줄 앞 실행」은 흐름 길이로 근사하지 말고 응답 `byService[].compared` 를 본다. DB 검사는 `tp_dashboard` DB 에 `XDQ` · `XDQB` · `XDQT` 접두사다

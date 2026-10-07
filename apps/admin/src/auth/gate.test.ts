@@ -172,6 +172,7 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
         scope.get('/catalog/cases/:tcId', async () => ({ 지나감: true }));
         scope.get('/cases/:tcId/source', async () => ({ 지나감: true }));
         scope.get('/runs/last-by-case', async () => ({ 지나감: true }));
+        scope.get('/dashboard', async () => ({ 지나감: true }));
         // 라우트표에 **일부러 안 넣은** 자리. 분류 안 된 라우트가 막히는지 보는 데 쓴다
         scope.get('/분류안된것', async () => ({ 지나감: true }));
       },
@@ -602,6 +603,17 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     expect(await lastByCase([])).toEqual([]);
   });
 
+  it('앱 대시보드는 서비스에 안 매인다 — 배정 중 하나라도 실행 read 면 지나고 없으면 need runs:read 다', async () => {
+    const url = '/api/dashboard?tz=Asia%2FSeoul';
+    for (const username of ['xfu3-viewer', 'xfu3-mixed', 'xfu3-admin0']) {
+      const res = await app.inject({ method: 'GET', url, cookies: { platform_session: await 출입증(username) } });
+      expect(res.statusCode, username).toBe(200);
+    }
+    const 막힘 = await app.inject({ method: 'GET', url, cookies: { platform_session: await 출입증('xfu3-caseonly') } });
+    expect(막힘.statusCode).toBe(403);
+    expect(막힘.json()).toEqual({ error: 'FORBIDDEN', need: 'runs:read' });
+  });
+
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -711,6 +723,7 @@ describe('등급 표', () => {
     'GET /api/cases/:tcId/history': { 기능: 'runs', 까닭: '주소는 케이스 아래지만 내용은 실행 결과 이력이다 (execution/routes.ts)' },
     'POST /api/cases/:tcId/test-run': { 기능: 'runs', 까닭: '주소는 케이스 아래지만 브라우저를 돌리는 실행이다 (execution/trialRoutes.ts)' },
     'GET /api/cases/:tcId/test-run/:trialId': { 기능: 'runs', 까닭: '테스트 실행 결과 읽기다 (execution/trialRoutes.ts)' },
+    'GET /api/dashboard': { 기능: 'runs', 까닭: '주소에 기능 접두사가 없다. 돌려주는 것이 실행 결과 집계다 (reporting/routes.ts)' },
   };
   it('표의 기능은 경로 접두사가 정한 기능과 같다 — 접두사예외만 빼고', () => {
     const 경로의기능 = (틀: string): 기능 | null => {
