@@ -156,3 +156,11 @@ curl -X POST localhost:3000/api/runs/<끝난RUN>/abort   # 409 NOT_RUNNING
 - 다음 세션이 알아야 할 것: 로컬 정식 실행은 **디바이스 팜 전까지의 임시 길**(게이트 0 사용자) — 팜이 붙으면 걷을 목록은 러너 §5.2 「디바이스 팜이 붙으면 걷을 것」. 결과는 맥에 admin · DB · 로컬 러너 · 폰을 같이 띄운 판에만 쌓인다(게이트 1 「맥 판이면 된다」). 진입점 `execution/location.ts`(`runBody` · `실행위치를본다` · `앱케이스를뺀다`) · `execution/phone.ts` · `execution/runner.ts` 「러너주소」 · 러너 `appSession.ts`. 새 오류 코드의 detail 은 화면 문장과 겹치지 않게(LEARNINGS 2026-10-07)
 - 실기기(갤럭시 S21+, 임시 DB `tp_appium`): 정식 실행 통과 8~10초 · 반복 2 겹침 없음 · 멈추면 연결 바로 닫힘 · 여는 도중 멈춰도 다음 실행 통과 · DEVICE_BUSY 안내 · 여러 건 창 고르개
 - 일부러 망가뜨려 본 것(전부 빨강이 됐다): ① 디바이스 줄 끄기 → `dispatcher.test.ts` 3건 ② 러너 연결 닫기 끊기 → `execute.test.ts` 3건 ③ `finishRun` 을 먼저 부르기 → 새 순서 단언 2건
+
+## 2026-10-08 — 디바이스 팜 전에 막을 것 둘 (PR #176, APP-F1-07)
+
+- 완료: 정식 실행 `POST /api/runs` 가 케이스 선언 밖 디바이스를 실행을 만들기 전에 400 `INVALID_REQUEST`(「<tcId> 는 <라벨> 환경을 선언하지 않았다」)로 거절 — `createRun` 의 `CASE_NOT_FOUND` 다음 · `INSERT test_run` 앞, 판정은 `location.ts` 의 순수 함수 `선언밖디바이스` · `timeoutMs` 상한 300000(5분, 게이트 0 사용자가 5 · 30 · 60분 중 골랐다) — `DEFAULT_TIMEOUT_MS` 를 `location.ts` 로 옮겨 기본값과 상한이 한 상수 · 명세 실행 §7 · §8.2 · 공통/3 §7.1 · 계약 블록 반영 완료
+- 미완: 반복을 곱한 총 점유(반복 1000 × 5분 ≈ 83시간)와 팜 러너가 admin 밖에서 닿을 때의 러너 상한 — 팜 작업 때 예약 시간과 같이 정한다(WORKSTREAMS 「📐 Appium」 9번) · 테스트 실행 `trialRoutes.ts` `제한ms` 는 같은 300000 을 따로 적는다
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 진입점 `execution/location.ts`(`DEFAULT_TIMEOUT_MS` · `runBody` · `선언밖디바이스`) → `store.ts` `createRun`. 상한은 HTTP 층(`runBody`)에만 있다 — `createRun` 을 직접 부르는 정기 실행은 `timeoutMs` 를 안 싣는다. `store.ts` 는 400줄(원래 300줄 규칙을 넘었다 — 더 넣으려면 먼저 나눈다). DB 검사 접두사 `XBP`(`declared.test.ts`, `createRun` 직접 호출)
+- 일부러 망가뜨려 본 것(전부 빨강이 됐다): ① 상한 `.max` 지움 → `location.test.ts` 1건 ② `createRun` 의 대조 호출 끊음 → `declared.test.ts` 1건 ③ `선언밖디바이스` 가 늘 null → `location.test.ts` 2건
