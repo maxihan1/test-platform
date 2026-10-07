@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { 칸되는서비스, type 기능 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
 import { 대시보드, 대시보드실행중, 틀린시간대 } from './dashboardResults.js';
+import { 실패카드 } from './failures.js';
 import { generate, 형식표 } from './generate.js';
 import { compareWithPrevious } from './insights.js';
 import { EvidenceBusyError, claim, findDocument, recoverPending } from './store.js';
@@ -18,6 +19,9 @@ const 증적본문 = z.object({
   // 형식은 셋뿐이다. 그 밖의 값은 400 — 만들 수 없는 형식으로 PENDING 행을 남기지 않는다 (SPEC §7)
   format: z.enum(['PDF', 'XLSX', 'HTML']),
 });
+
+// 모르는 디바이스로 거르면 빈 쪽이 나와 「실패 없음」으로 읽힌다. 400 으로 돌려보낸다 (도메인/리포팅 §7)
+const 카드디바이스 = z.enum(['desktop', 'mobile', 'android']).optional();
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (store.ts와 같은 방식)
 // 있는지와 어떤 상태인지를 한 번에 묻는다. 둘로 나누면 같은 행을 두 번 왕복한다
@@ -107,6 +111,27 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     }
     return compareWithPrevious(runId);
   });
+
+  // 실행 결과 화면의 실패 카드 재료 (도메인/리포팅 §7). insights 처럼 상세 응답과 따로 둔다
+  app.get<{ Params: { runId: string }; Querystring: { page?: unknown; platform?: unknown } }>(
+    '/runs/:runId/failures',
+    async (req, reply) => {
+      const runId = 정수(req.params.runId);
+      if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
+      // 같은 이름을 두 번 붙이면 배열로 온다. 글자 하나가 아니면 쪽 번호로 읽지 않는다
+      const page = typeof req.query.page === 'string' ? 정수(req.query.page) : null;
+      if (page === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: String(req.query.page ?? '') });
+      const platform = 카드디바이스.safeParse(req.query.platform);
+      if (!platform.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: String(req.query.platform) });
+
+      // 실패카드 는 compareWithPrevious 를 거쳐 없는 실행 · 시나리오 실행에 던진다. 여기서 막아야 500 이 아니라 404 다
+      const 상태 = await 실행상태(runId);
+      if (상태 === null) return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
+      // 도는 중이면 실패가 아직 다 안 모였다 — 카드 재료는 끝나야 사실이 된다
+      if (상태 === 'RUNNING') return reply.code(409).send({ error: 'RUN_NOT_FINISHED', detail: 상태 });
+      return 실패카드(runId, page, platform.data);
+    },
+  );
 
   // 서비스에 안 매인다. 문은 「배정 중 하나라도 실행 read」만 보므로 경계는 여기서 넘기는 번호 목록이 건다 (도메인/리포팅 §7 · 인증 §7)
   app.get<{ Querystring: { tz?: unknown; only?: unknown } }>('/dashboard', async (req, reply) => {
