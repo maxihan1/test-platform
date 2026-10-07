@@ -163,6 +163,8 @@ export const 실행말: Record<string, string> = {
   '접기': 'Collapse',
   '{케이스} {디바이스} 펼치기': 'Expand {케이스} {디바이스}',
   '{케이스} {디바이스} 접기': 'Collapse {케이스} {디바이스}',
+  '{케이스} 펼치기': 'Expand {케이스}',
+  '{케이스} 접기': 'Collapse {케이스}',
 
   // 진행·완료 모달 (§8.9)
   'RUN {번호} 이 진행 중입니다': 'RUN {번호} is running',

@@ -1,10 +1,12 @@
 // 실행 결과 목록의 케이스 한 줄 (SPEC §8.3). 판단은 RunResult 에 두고 그리는 쪽만 여기로 옮겼다
 // CaseList → CaseListParts 와 같은 이유다 — RunResult 가 300줄을 넘었다 (CLAUDE.md §3)
 
+import { useState } from 'react';
+
 import type { ItemStatus, Platform, RunItemSummary } from './api.js';
 import { type CaseGroup, 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
-import { ItemExpand } from './ItemExpand.js';
+import { 상세본문 } from './ItemExpand.js';
 import { 한줄로 } from './mask.js';
 import { 칸사유 } from './runState.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict } from './ui.js';
@@ -36,6 +38,9 @@ export function 결과줄({
   const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema, 언어);
   // 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3)
   const 사유 = 칸사유(칸들.flat(), 언어);
+  const [열림, set열림] = useState(false);
+  const [불렀나, set불렀나] = useState(false);
+  const 패널 = `result-expand-${String(runId)}-${group.tcId}`;
   const 미확정사유 = 칸들.flat().find((i) => typeof i.unconfirmed === 'string')?.unconfirmed ?? null;
 
   return (
@@ -79,21 +84,34 @@ export function 결과줄({
               {t('상세')}
             </a>
           )}
+          {첫항목 === undefined ? null : (
+            <button
+              type="button"
+              className="btn small ghost"
+              aria-expanded={열림}
+              aria-controls={패널}
+              aria-label={t(열림 ? '{케이스} 접기' : '{케이스} 펼치기', { 케이스: group.tcId })}
+              onClick={() => {
+                set열림(!열림);
+                set불렀나(true);
+              }}
+            >
+              {열림 ? t('접기') : t('펼치기')}
+            </button>
+          )}
         </div>
       </div>
-      {/* 펼친 본문이 격자 칸(디바이스 칸) 안에 갇히지 않도록 줄 아래 전폭 띠로 둔다 */}
-      {칸들.map((칸) => (
-        <ItemExpand
-          key={칸[0]!.platform}
-          className="rr-expand"
-          runId={runId}
-          historyId={칸[0]!.historyId}
-          tcId={칸[0]!.tcId}
-          platform={칸[0]!.platform}
-        >
-          <b>{PLATFORM_LABEL[칸[0]!.platform]}</b>
-        </ItemExpand>
-      ))}
+      {/* 접어도 지우지 않고 가려 둔다 — 다시 펴도 상세를 다시 부르지 않는다 */}
+      <div id={패널} className="rr-expand" hidden={!열림}>
+        {!불렀나
+          ? null
+          : 칸들.map((칸) => (
+              <div className="rr-dev" key={칸[0]!.platform}>
+                <디바이스머리 칸={칸} />
+                <상세본문 runId={runId} historyId={칸[0]!.historyId} />
+              </div>
+            ))}
+      </div>
     </div>
   );
 }
@@ -131,5 +149,28 @@ function Verdicts({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
         {요약.회차수 > 1 ? t('{시간} 평균', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}
       </span>
     </>
+  );
+}
+
+// 펼친 패널의 디바이스 머리. 판정 · 소요는 칸 요약과 같은 함수를 써서 줄 위의 글자와 어긋나지 않는다
+function 디바이스머리({ 칸 }: { 칸: RunItemSummary[] }) {
+  const t = use말();
+  const 언어 = use언어();
+  const 요약 = 회차요약(칸);
+
+  return (
+    <div className="fc-line" data-testid="rr-dev-head">
+      <b>{PLATFORM_LABEL[칸[0]!.platform]}</b>
+      {요약.글 === null ? (
+        <Verdict status={요약.status} />
+      ) : (
+        <span className={`verdict ${요약.status === 'PASS' ? 'v-pass' : 요약.status === 'FAIL' ? 'v-fail' : 'v-na'}`}>
+          {요약.글}
+        </span>
+      )}
+      <span>
+        {요약.회차수 > 1 ? t('{시간} 평균', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}
+      </span>
+    </div>
   );
 }

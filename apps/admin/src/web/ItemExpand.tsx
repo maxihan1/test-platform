@@ -55,7 +55,7 @@ export function 증거본문({ item }: { item: RunItemDetail }) {
   );
 }
 
-function 상세본문({ runId, historyId }: { runId: number; historyId: number }) {
+export function 상세본문({ runId, historyId }: { runId: number; historyId: number }) {
   const 상세 = useAsync(() => api.item(runId, historyId), [runId, historyId]);
   if (상세.error !== null) return <Failed error={상세.error} />;
   if (상세.data === null) return <Loading />;

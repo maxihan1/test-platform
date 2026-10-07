@@ -5502,6 +5502,14 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   padding: 8px 0 12px;
 }
 
+.rr-dev {
+  padding: 8px 0 4px;
+}
+
+.rr-dev + .rr-dev {
+  border-top: 1px solid var(--line-2);
+}
+
 .flow-lead {
   font-size: 12px;
   color: var(--ink-faint);
@@ -5522,10 +5530,6 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 @media (max-width: 620px) {
   .fc-card {
     padding: 14px 16px 16px;
-  }
-
-  .rr-expand .btn {
-    min-height: 44px;
   }
 
   .fc-flow {
