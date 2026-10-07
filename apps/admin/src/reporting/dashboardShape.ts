@@ -1,12 +1,14 @@
 // 앱 대시보드 숫자(통과율 · 일별 · 서비스별 · 신규 실패 · 히트맵)를 접은 줄에서 만드는 순수 함수
 
+import { 히트맵을만든다, type 히트맵줄 } from './dashboardHeat.js';
 import { 판정표, type 변화 as 판정변화 } from './insights.js';
+
+export { 히트맵케이스수, type 히트맵줄 } from './dashboardHeat.js';
 
 export const 창날수 = 14;
 /** 커버리지 추이를 보는 날 수. 질의(할 일 4)가 쓰고 여기서는 값만 둔다 */
 export const 커버리지날수 = 30;
 export const 신규실패상한 = 10;
-export const 히트맵케이스수 = 8;
 
 export type 접힌판정 = 'PASS' | 'FAIL' | 'NA';
 
@@ -78,14 +80,6 @@ export interface 신규실패칸 {
   platform: 'desktop' | 'mobile';
   finishedAt: string;
   reason: string | null;
-}
-
-export interface 히트맵줄 {
-  tcId: string;
-  tcName: string;
-  실패수: number;
-  /** 오래된 날부터 오늘까지 14칸. 0 · 1 · 2 (2 이상은 2) */
-  칸: (0 | 1 | 2)[];
 }
 
 export interface 집계 {
@@ -189,7 +183,7 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     일별: [...일별.values()],
     서비스별,
     신규실패: 신규전부.slice(0, 신규실패상한),
-    히트맵: 히트맵을만든다(줄들, 이번시작, 이번창),
+    히트맵: 히트맵을만든다(줄들, Array.from({ length: 창날수 }, (_, i) => 날짜더하기(이번시작, i)), 이번창),
   };
 }
 
@@ -273,35 +267,4 @@ function 신규실패를뽑는다(
     결과.push({ runId, serviceId, serviceName, env, kind, tcId, tcName, platform, finishedAt, reason });
   }
   return 결과;
-}
-
-function 히트맵을만든다(줄들: 접은줄[], 이번시작: string, 이번창: (day: string) => boolean): 히트맵줄[] {
-  const 날들 = Array.from({ length: 창날수 }, (_, i) => 날짜더하기(이번시작, i));
-  const 케이스 = new Map<string, { tcName: string; 최근: string; 날별: number[]; 실패수: number }>();
-  for (const 줄 of 줄들) {
-    if (줄.verdict !== 'FAIL' || 줄.unconfirmed || !이번창(줄.day)) continue;
-    const 항목 = 케이스.get(줄.tcId) ?? {
-      tcName: 줄.tcName,
-      최근: 줄.finishedAt,
-      날별: new Array<number>(창날수).fill(0),
-      실패수: 0,
-    };
-    케이스.set(줄.tcId, 항목);
-    if (줄.finishedAt >= 항목.최근) {
-      항목.최근 = 줄.finishedAt;
-      항목.tcName = 줄.tcName;
-    }
-    const 자리 = 날들.indexOf(줄.day);
-    항목.날별[자리] = (항목.날별[자리] ?? 0) + 1;
-    항목.실패수 += 1;
-  }
-  return [...케이스.entries()]
-    .sort(([a, x], [b, y]) => y.실패수 - x.실패수 || (a < b ? -1 : a > b ? 1 : 0))
-    .slice(0, 히트맵케이스수)
-    .map(([tcId, 항목]) => ({
-      tcId,
-      tcName: 항목.tcName,
-      실패수: 항목.실패수,
-      칸: 항목.날별.map((n) => (n >= 2 ? 2 : n === 1 ? 1 : 0)),
-    }));
 }

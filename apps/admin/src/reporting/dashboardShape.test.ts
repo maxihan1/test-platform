@@ -520,6 +520,18 @@ describe('히트맵', () => {
     expect(첫?.칸[0]).toBe(0);
   });
 
+  it('케이스 이름은 가장 나중에 시작한 실행의 것이다 — 끝 시각이 늦어도 먼저 시작했으면 아니다', () => {
+    const 결과 = 대시보드집계(
+      [
+        줄({ runId: 41, tcName: '옛 이름', startedAt: '2026-10-06T10:00:00.000Z', finishedAt: '2026-10-06T12:00:00.000Z', day: '2026-10-06', verdict: 'FAIL' }),
+        줄({ runId: 42, tcName: '새 이름', startedAt: '2026-10-06T11:00:00.000Z', finishedAt: '2026-10-06T11:10:00.000Z', day: '2026-10-06', verdict: 'FAIL' }),
+      ],
+      new Map(),
+      오늘,
+    );
+    expect(결과.히트맵[0]?.tcName).toBe('새 이름');
+  });
+
   it('실패 수가 같으면 tc_id 오름차순이고 상위 8개만 낸다', () => {
     const 줄들 = Array.from({ length: 히트맵케이스수 + 2 }, (_, i) =>
       줄({ tcId: `MKT-${String(90 - i).padStart(3, '0')}`, verdict: 'FAIL' }),
