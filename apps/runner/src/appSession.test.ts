@@ -79,11 +79,28 @@ describe('앱연결을닫는다', () => {
 
   it('PLATFORM_APPIUM_URL 이 없으면 보내지 않는다', async () => {
     delete process.env.PLATFORM_APPIUM_URL;
-    번호를_적는다(3, 9, 'abc-123');
+    const file = 번호를_적는다(3, 9, 'abc-123');
 
     await 앱연결을닫는다(3, 9);
 
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(existsSync(file)).toBe(true);
+  });
+
+  it('번호 파일 자리에 폴더가 있으면 오류를 기록하고 아무것도 안 보낸다', async () => {
+    const file = join(runDir('3', '9'), APPIUM_SESSION_FILE);
+    mkdirSync(file, { recursive: true });
+
+    await expect(앱연결을닫는다(3, 9)).resolves.toBeUndefined();
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Appium 연결 번호를 읽지 못했다'));
+  });
+
+  it('번호 파일이 없으면 오류도 기록하지 않는다', async () => {
+    await 앱연결을닫는다(3, 9);
+
+    expect(console.error).not.toHaveBeenCalled();
   });
 
   it('Appium 이 500 으로 답해도 던지지 않고 파일은 지운다', async () => {

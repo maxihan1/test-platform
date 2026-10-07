@@ -1,6 +1,10 @@
 // 러너 실행 로직의 단위 테스트. 판정 규칙과 경로 검증은 자식 프로세스 없이 확인할 수 있어야 한다
 
-import type { ExecuteRequest } from '@platform/kit';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+
+import { runDir, type ExecuteRequest } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 앱연결을닫는다 } from './appSession.js';
@@ -150,5 +154,24 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
     await execute(요청('desktop'), 'a.spec.ts');
 
     expect(닫기).not.toHaveBeenCalled();
+  });
+
+  it('상대 경로 환경값도 자식에게는 러너 cwd 기준 절대 경로로 넘긴다', async () => {
+    const 임시 = mkdtempSync(join(tmpdir(), 'exec-env-'));
+    const 기록 = join(임시, 'env.txt');
+    const 원래 = process.env.PLATFORM_ARTIFACTS_DIR;
+    process.env.PLATFORM_ARTIFACTS_DIR = './artifacts';
+    스크립트.지금 = `printf %s "$PLATFORM_ARTIFACTS_DIR" > '${기록}'`;
+    try {
+      await execute(요청('desktop'), 'a.spec.ts');
+
+      const 자식값 = readFileSync(기록, 'utf8');
+      expect(자식값).toBe(resolve('./artifacts'));
+      expect(runDir('5', '8').startsWith(`${자식값}/`)).toBe(true);
+    } finally {
+      if (원래 === undefined) delete process.env.PLATFORM_ARTIFACTS_DIR;
+      else process.env.PLATFORM_ARTIFACTS_DIR = 원래;
+      rmSync(임시, { recursive: true, force: true });
+    }
   });
 });

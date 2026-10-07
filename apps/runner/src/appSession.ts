@@ -15,7 +15,11 @@ export async function 앱연결을닫는다(runId: number, historyId: number): P
   let sessionId: string;
   try {
     sessionId = (await readFile(file, 'utf8')).trim();
-  } catch {
+  } catch (err) {
+    // 파일이 없는 것은 번호를 안 남긴 정상 항목이다. 그 밖(권한·폴더 등)은 연결이 안 닫힌 채 남을 수 있어 알린다
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.error(`[runner] Appium 연결 번호를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    }
     return;
   }
   const raw = process.env.PLATFORM_APPIUM_URL;
@@ -42,7 +46,9 @@ export async function 앱연결을닫는다(runId: number, historyId: number): P
     // 던지면 이미 난 판정(PASS·FAIL·ABORTED)이 닫기 실패에 덮인다. 알리기만 하고 넘어간다
     console.error(`[runner] Appium 연결을 닫지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
-    // 번호가 남아 있으면 다음 실행이 이미 닫힌 연결을 또 닫으려 한다
-    await rm(file, { force: true });
+    // 번호가 남아 있으면 다음 실행이 이미 닫힌 연결을 또 닫으려 한다. 지우기 실패도 던지면 이미 난 판정이 덮인다
+    await rm(file, { force: true }).catch((err: unknown) => {
+      console.error(`[runner] Appium 연결 번호 파일을 지우지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    });
   }
 }
