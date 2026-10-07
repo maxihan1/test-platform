@@ -9,6 +9,8 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import type { 서비스권한 } from '../auth/permissions.js';
+import type { 사용자 } from '../auth/store.js';
 import reportingRoutes from './routes.js';
 import { claim, fail, findDocument, type EvidenceRow } from './store.js';
 
@@ -26,6 +28,35 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
   let pool: Pool;
   let runId: number;
   let 증적폴더: string;
+  let 대시보드서비스 = 0;
+  let 도는실행 = 0;
+  let 지금사람: 사용자 | null = null;
+
+  const 실행만 = { cases: 'none', runs: 'read', authoring: 'none' } as const satisfies 서비스권한;
+  const 작성만 = { cases: 'none', runs: 'none', authoring: 'read' } as const satisfies 서비스권한;
+
+  function 사람(permissions: 서비스권한): 사용자 {
+    return {
+      username: 'xdr-사람',
+      displayName: '검수자',
+      role: 'member',
+      dashboard: 'none',
+      mustChangePassword: false,
+      services: [
+        {
+          id: 대시보드서비스,
+          prefix: 'XDR',
+          name: 'XDR 대시보드',
+          color: '#223344',
+          envs: [],
+          hasSlackWebhook: false,
+          testsDir: 'xdr',
+          crawlExclude: [],
+          permissions,
+        },
+      ],
+    };
+  }
 
   // 배경에서 파일이 만들어진다. 고정 대기는 느린 기계에서 흔들리므로 DB 상태가 바뀔 때까지 짧게 되묻는다
   async function 끝날때까지(id: number, 상한ms = 20_000): Promise<EvidenceRow> {
@@ -54,6 +85,7 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
   async function 실행까지치운다(): Promise<void> {
     await 치운다();
     await pool.query('DELETE FROM test_run WHERE title LIKE $1', [`${제목}%`]);
+    await pool.query(`DELETE FROM service WHERE prefix = 'XDR'`);
   }
 
   beforeAll(async () => {
@@ -62,10 +94,25 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     const run = await pool.query<{ run_id: string }>(실행, [제목, 'FINISHED']);
     runId = Number(run.rows[0].run_id);
 
+    const 서비스 = await pool.query<{ id: string }>(
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir) VALUES ('XDR', 'XDR 대시보드', '#223344', '', 'xdr') RETURNING id`,
+    );
+    대시보드서비스 = Number(서비스.rows[0]!.id);
+    const 도는것 = await pool.query<{ run_id: string }>(
+      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url)
+       VALUES ($1, 'xdr', 'qa', 'RUNNING', $2, 'XDR 대시보드', '', '') RETURNING run_id`,
+      [`${제목} 대시보드 도는 중`, 대시보드서비스],
+    );
+    도는실행 = Number(도는것.rows[0]!.run_id);
+
     증적폴더 = await mkdtemp(join(tmpdir(), 'xdr-evidence-'));
     process.env.PLATFORM_ARTIFACTS_DIR = 증적폴더;
 
     app = Fastify();
+    app.decorateRequest('user', null);
+    app.addHook('preHandler', async (req) => {
+      req.user = 지금사람;
+    });
     await app.register(reportingRoutes, { prefix: '/api' });
     await app.ready();
   });
@@ -233,5 +280,58 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     const 없음 = await app.inject({ method: 'GET', url: '/api/evidence/999999999' });
     expect(없음.statusCode).toBe(404);
     expect(없음.json().error).toBe('EVIDENCE_NOT_FOUND');
+  });
+
+  it('GET /api/dashboard — tz 가 없으면 only=running 이어도 400 이다', async () => {
+    지금사람 = 사람(실행만);
+    for (const url of ['/api/dashboard', '/api/dashboard?only=running', '/api/dashboard?tz=']) {
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.statusCode, url).toBe(400);
+      expect(res.json().error, url).toBe('INVALID_REQUEST');
+    }
+  });
+
+  it('GET /api/dashboard — pg_timezone_names 에 없는 tz 는 400 이고 받은 값을 돌려준다', async () => {
+    지금사람 = 사람(실행만);
+    const res = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Mars%2FOlympus' });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json()).toEqual({ error: 'INVALID_REQUEST', detail: 'Mars/Olympus' });
+  });
+
+  it('GET /api/dashboard — 실행 read 인 배정 서비스로 열 칸을 낸다', async () => {
+    지금사람 = 사람(실행만);
+    const res = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul' });
+
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(Object.keys(body).sort()).toEqual(
+      ['window', 'services', 'passRate', 'daily', 'newFailures', 'byService', 'heatmap', 'coverage', 'running', 'unconfirmed'].sort(),
+    );
+    expect(body.window.tz).toBe('Asia/Seoul');
+    expect(body.services).toEqual([{ id: 대시보드서비스, name: 'XDR 대시보드' }]);
+    expect(body.running.map((r: { runId: number }) => r.runId)).toEqual([도는실행]);
+  });
+
+  it('GET /api/dashboard — 실행 칸이 없는 배정 서비스는 모으지 않는다', async () => {
+    지금사람 = 사람(작성만);
+    const res = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().services).toEqual([]);
+    expect(res.json().running).toEqual([]);
+  });
+
+  it('GET /api/dashboard?only=running — running 한 칸만 낸다', async () => {
+    지금사람 = 사람(실행만);
+    const res = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul&only=running' });
+
+    expect(res.statusCode).toBe(200);
+    expect(Object.keys(res.json())).toEqual(['running']);
+    expect(res.json().running.map((r: { runId: number }) => r.runId)).toEqual([도는실행]);
+
+    지금사람 = 사람(작성만);
+    const 없음 = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul&only=running' });
+    expect(없음.json()).toEqual({ running: [] });
   });
 });

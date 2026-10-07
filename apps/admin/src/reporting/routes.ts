@@ -3,10 +3,12 @@
 
 import { readFile } from 'node:fs/promises';
 
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
+import { 칸되는서비스, type 기능 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
+import { 대시보드, 대시보드실행중, 틀린시간대 } from './dashboardResults.js';
 import { generate, 형식표 } from './generate.js';
 import { compareWithPrevious } from './insights.js';
 import { EvidenceBusyError, claim, findDocument, recoverPending } from './store.js';
@@ -26,6 +28,13 @@ async function 실행상태(runId: number): Promise<string | null> {
     runId,
   ]);
   return rows.rows[0]?.status ?? null;
+}
+
+// 칸 판정은 last-by-case 와 같은 칸되는서비스 하나로 한다. 그것이 접두사를 주므로 대시보드 질의가 거르는 번호로 바꾼다
+function 읽기되는서비스번호(req: FastifyRequest, 어느기능: 기능): number[] {
+  const 배정 = req.user?.services ?? [];
+  const 되는곳 = new Set(칸되는서비스(배정, 어느기능, 'read'));
+  return 배정.filter((s) => 되는곳.has(s.prefix)).map((s) => s.id);
 }
 
 export default async function reportingRoutes(app: FastifyInstance): Promise<void> {
@@ -97,6 +106,23 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
       return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
     }
     return compareWithPrevious(runId);
+  });
+
+  // 서비스에 안 매인다. 문은 「배정 중 하나라도 실행 read」만 보므로 경계는 여기서 넘기는 번호 목록이 건다 (도메인/리포팅 §7 · 인증 §7)
+  app.get<{ Querystring: { tz?: unknown; only?: unknown } }>('/dashboard', async (req, reply) => {
+    const { tz, only } = req.query;
+    // 같은 이름을 두 번 붙이면 배열로 온다. 글자 하나가 아니면 시간대로 읽지 않는다
+    if (typeof tz !== 'string' || tz === '') {
+      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: String(tz ?? '') });
+    }
+    const 실행서비스 = 읽기되는서비스번호(req, 'runs');
+    if (only === 'running') return 대시보드실행중(실행서비스);
+    try {
+      return await 대시보드(tz, 실행서비스, 읽기되는서비스번호(req, 'authoring'));
+    } catch (err) {
+      if (err instanceof 틀린시간대) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: err.받은값 });
+      throw err;
+    }
   });
 
   // 영구 주소다. 메신저나 컴플라이언스 도구에 붙여 둔 링크가 썩지 않아야 한다 (SPEC §7)

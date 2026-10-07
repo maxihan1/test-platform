@@ -58,6 +58,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/evidence/:id': 실행읽기,
   'GET /api/runs': 실행읽기,
   'GET /api/runs/last-by-case': 실행읽기,
+  // 주소에 기능 접두사가 없지만 돌려주는 것이 실행 결과 집계다. 커버리지 칸만 라우트가 작성 read 로 따로 거른다 (인증 §7)
+  'GET /api/dashboard': 실행읽기,
   'GET /api/runs/:runId': 실행읽기,
   'GET /api/runs/:runId/insights': 실행읽기,
   'GET /api/runs/:runId/items/:historyId': 실행읽기,
