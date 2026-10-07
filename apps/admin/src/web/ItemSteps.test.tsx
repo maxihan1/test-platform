@@ -18,7 +18,7 @@ const 절차: StepResult = {
   durationMs: 88,
   line: 19,
   screenshotPath: 'artifacts/runs/1/2/2.png',
-  httpTrace: { request: { method: 'GET' } },
+  httpTrace: { request: { method: 'GET' }, response: { status: 200 } },
   assertions: [
     { statement: '응답 코드가 정상이다', status: 'PASS', expected: 200, actual: 200 },
     { statement: '토큰이 발급된다', status: 'FAIL', expected: true, actual: false, blocker: true },
@@ -49,7 +49,7 @@ describe('절차 부품 (항목 상세 · 실패 카드 공용)', () => {
   it('스크린샷은 첫 실패 확인 바로 아래에 두고 lazy 로 읽는다', () => {
     const { container } = 그린다();
     const 실패 = container.querySelector('.assert.bad')!;
-    const 다음 = 실패.parentElement!.nextElementSibling!;
+    const 다음 = 실패.nextElementSibling!;
     expect(다음.querySelector('img')).toBeTruthy();
     expect(container.querySelector('img')!.getAttribute('loading')).toBe('lazy');
   });
