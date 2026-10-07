@@ -40,9 +40,11 @@ description: /tpx 체인 5단계 — 승인된 계획의 할 일을 TDD 로 구�
 - 묶음의 모든 할 일을 **한 응답 안에 여러 `Agent()` 호출**로 동시에 낸다.
   응답이 갈리면 직렬화돼 병렬 이점이 사라진다
 - **구현자는 `subagent_type: "tpx-implementer"`**(Sonnet · effort high — `.claude/agents/tpx-implementer.md`, 2026-10-06 사용자 · 토큰이 빨리 닳는다).
-  **보안 · 비밀값 · 권한을 고치는 할 일만 `subagent_type: "general-purpose"` 에 `model: "opus"`** 로 낸다 — 그 자리에서 아끼면 품질이 떨어진다(PR #163 의 비밀번호 노출을 Opus 렌즈가 찾았다)
+  **보안 · 비밀값 · 권한을 고치는 할 일만 `subagent_type: "general-purpose"` 에 `model: "opus"`** 로 낸다 — 그 자리에서 아끼면 품질이 떨어진다(PR #163 의 비밀번호 노출을 Opus 렌즈가 찾았다).
+  ponytail 규칙은 `tpx-implementer` 에만 자동으로 붙으므로(`.claude/settings.json` `env`) 이 프롬프트는 첫 줄에서 `ponytail:ponytail` 스킬을 부르라고 적는다
 - **정의를 못 찾으면**(「없는 에이전트」 오류 — 정의는 세션을 띄울 때 읽혀서, 그 뒤 병합되거나 받아 온 정의는 그 세션이 못 본다)
-  `subagent_type: "general-purpose"` 에 `model: "sonnet"` 으로 대신 내고 게이트 2 요약에 적는다. effort 는 정하지 못한다 — 새 세션부터는 정의가 잡힌다
+  `subagent_type: "general-purpose"` 에 `model: "sonnet"` 으로 대신 내고 게이트 2 요약에 적는다. effort 는 정하지 못한다 — 새 세션부터는 정의가 잡힌다.
+  이 프롬프트도 첫 줄에서 `ponytail:ponytail` 스킬을 부르라고 적는다 — 규칙이 `tpx-implementer` 에만 자동으로 붙는다(`.claude/settings.json` `env`)
 - 프롬프트에는 **계획 파일 경로 + 할 일 번호**를 넘겨 구현자가 원문을 읽게 한다 — 컨트롤러가 풀어 쓰지 않는다(LEARNINGS 2026-10-08)
 - 프롬프트에 반드시 넣을 것 — 계획 파일 경로 + 할 일 번호 · `files` 목록 · `검증` 명령 ·
   **「선언된 `files` 밖을 고치면 BLOCKED 로 보고하라」**

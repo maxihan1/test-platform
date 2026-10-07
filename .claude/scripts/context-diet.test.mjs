@@ -126,7 +126,7 @@ test('할 일 4 — tpx-impl 2-A 의 보안 줄과 대체 구현자 줄이 프�
   const 대체 = 줄들.findIndex((l) => l.includes('정의를 못 찾으면'));
   assert.ok(보안 >= 0 && 대체 >= 0, '대조군 — 보안 줄과 대체 구현자 줄이 2-A 에 있어야 한다');
   for (const [이름, 시작] of [['보안', 보안], ['대체 구현자', 대체]]) {
-    assert.ok(줄들.slice(시작, 시작 + 2).join('\n').includes('ponytail:ponytail'), `${이름} 줄 근처에 ponytail:ponytail 이 없다`);
+    assert.ok(줄들.slice(시작, 시작 + 3).join('\n').includes('ponytail:ponytail'), `${이름} 줄 근처에 ponytail:ponytail 이 없다`);
   }
   assert.ok(글.split('ponytail:ponytail').length - 1 >= 2, 'ponytail:ponytail 이 두 번 이상 나와야 한다');
 });
