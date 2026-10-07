@@ -1,11 +1,12 @@
 // 케이스 「테스트 실행」 통로 — 실행 기록 없이 내 컴퓨터 러너에 1건을 보내 창을 띄워 돌린다 (도메인/실행 §3.2 · §7)
 
-import type { ExecuteRequest, ExecuteResponse } from '@platform/kit';
+import type { ExecuteRequest, ExecuteResponse, Platform } from '@platform/kit';
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { caseSchemas } from './paramSets.js';
+import { 폰을놓는다, 폰을바로잡는다 } from './phone.js';
 import { 러너에보낸다, httpTimeoutMs } from './runner.js';
 import { 저장값을채운다 } from './savedInput.js';
 import { 시작한다, 읽는다, TrialBusyError } from './trial.js';
@@ -14,7 +15,7 @@ import { validate } from './validate.js';
 const 제한ms = 300_000;
 
 const body = z.object({
-  platform: z.enum(['desktop', 'mobile']),
+  platform: z.enum(['desktop', 'mobile', 'android']),
   baseUrl: z.string().min(1),
   params: z.record(z.string(), z.unknown()).default({}),
   expected: z.record(z.string(), z.unknown()).default({}),
@@ -41,7 +42,7 @@ function 웹주소인가(값: string): boolean {
 
 async function 저장값으로채운다(
   tcId: string,
-  platform: 'desktop' | 'mobile',
+  platform: Platform,
   params: Record<string, unknown>,
   expected: Record<string, unknown>,
   schemas: { param_schema: unknown; expected_schema: unknown },
@@ -110,8 +111,21 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       expected,
       timeoutMs: 제한ms,
     };
+    // 같은 디바이스에 연결 둘이 겹치면 뒤 연결이 앞을 가로챈다. 검증 전에 잡으면 400 경로에서 디바이스가 재기동 때까지 잠긴다
+    const 폰씀 = platform === 'android';
+    if (폰씀 && !폰을바로잡는다()) {
+      // detail 을 싣지 않는다 — 화면 문장이 사유를 다 말하고, 같은 말을 실으면 두 번 뜬다(location.ts 「거절」)
+      return reply.code(409).send({ error: 'DEVICE_BUSY' });
+    }
     try {
-      const trialId = 시작한다(req.user?.username ?? '알 수 없음', () => 러너에서돌린다(러너주소, 요청), {
+      const 일 = async (): Promise<ExecuteResponse> => {
+        try {
+          return await 러너에서돌린다(러너주소, 요청);
+        } finally {
+          if (폰씀) 폰을놓는다();
+        }
+      };
+      const trialId = 시작한다(req.user?.username ?? '알 수 없음', 일, {
         paramSchema: schemas.paramSchema,
         expectedSchema: schemas.expectedSchema,
         params,
@@ -119,6 +133,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       });
       return reply.code(202).send({ trialId });
     } catch (err) {
+      // 시작한다 가 던지면 일이 불리지 않았으므로 finally 가 안 돈다 — 여기서 놓는다
+      if (폰씀) 폰을놓는다();
       if (err instanceof TrialBusyError) return reply.code(409).send({ error: err.code, detail: err.message });
       throw err;
     }

@@ -16,13 +16,12 @@ import { RunProgressModal } from './RunProgressModal.js';
 import { 결과줄 } from './RunResultRow.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
-import { Failed, Loading, PLATFORM_LABEL, PLATFORMS, STATUS_LABEL, useAsync, when } from './ui.js';
+import { Failed, Loading, PLATFORM_LABEL, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
 import { 끝난미확정, 미확정글자 } from './unconfirmed.js';
 import { useRunProgress } from './useRunProgress.js';
 
 const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
-const DEVICES: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
 
 function 케이스결과({
   runId,
@@ -105,7 +104,8 @@ function 케이스결과({
   const totalPages = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));
   const shownPage = Math.min(page, totalPages);
   const shown = groups.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE);
-  const columns = device === 'ALL' ? PLATFORMS : [device];
+  const 디바이스들 = 실행디바이스들(data.items);
+  const columns = device === 'ALL' ? 디바이스들 : [device];
   const { pass, fail, na } = data.counts;
   const 미확정 = 미확정글자(data.counts, 언어);
   const 끝난미확정수 = 끝난미확정(data.counts);
@@ -224,7 +224,7 @@ function 케이스결과({
           </button>
         ))}
         <span className="filter-label">{t('디바이스')}</span>
-        {DEVICES.map((value) => (
+        {(['ALL', ...디바이스들] as (Platform | 'ALL')[]).map((value) => (
           <button className="chip" key={value} aria-pressed={device === value} onClick={() => choose(setDevice)(value)}>
             {value === 'ALL' ? t('전체') : PLATFORM_LABEL[value]}
           </button>

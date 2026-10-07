@@ -20,6 +20,7 @@ const 면제 = new Map([
   ['scripts/authoring-main-merge.test.ts', '테스트가 만든 임시 git 저장소의 파일만 읽는다'],
   ['scripts/authoring-screens-keep-io.test.ts', '테스트가 만든 임시 작업 바탕(저장본 · 자료 폴더)만 읽는다'],
   ['scripts/authoring-ledger-io.test.ts', '테스트가 만든 임시 트리(요구 지문 파일 · 링크 자리)만 읽고 쓴다'],
+  ['apps/runner/src/execute.test.ts', '가짜 자식이 임시 폴더에 쓴 환경값만 읽는다 — 저장소 파일이 아니다 (2026-10-07 PR #174)'],
 ]);
 
 function 테스트파일들(폴더) {

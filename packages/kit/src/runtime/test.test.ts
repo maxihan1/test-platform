@@ -16,7 +16,7 @@ const pw = vi.hoisted(() => ({
   }),
 }));
 
-const app = vi.hoisted(() => ({ openApp: vi.fn(), captureApp: vi.fn() }));
+const app = vi.hoisted(() => ({ openApp: vi.fn(), captureApp: vi.fn(), closeApp: vi.fn() }));
 
 vi.mock('@playwright/test', () => ({
   test: Object.assign(
@@ -44,7 +44,7 @@ const { defineCase } = await import('./defineCase.js');
 const { test } = await import('./test.js');
 const { scenarioCase } = await import('./scenario.js');
 
-const driver = { deleteSession: vi.fn() };
+const driver = { id: 'fake-driver' };
 
 beforeEach(() => {
   pw.registered.length = 0;
@@ -53,7 +53,7 @@ beforeEach(() => {
   pw.skip.mockClear();
   app.openApp.mockReset().mockResolvedValue(driver);
   app.captureApp.mockReset();
-  driver.deleteSession.mockReset().mockResolvedValue(undefined);
+  app.closeApp.mockReset().mockResolvedValue(undefined);
 });
 
 function androidSpec(extra: { held?: string } = {}) {
@@ -135,11 +135,12 @@ describe('test', () => {
     await pw.fixtures.appSession({}, async (session) => {
       await session.open();
     });
-    expect(driver.deleteSession).toHaveBeenCalledTimes(1);
+    expect(app.closeApp).toHaveBeenCalledTimes(1);
+    expect(app.closeApp).toHaveBeenCalledWith(driver);
 
-    driver.deleteSession.mockClear();
+    app.closeApp.mockClear();
     await pw.fixtures.appSession({}, async () => {});
-    expect(driver.deleteSession).not.toHaveBeenCalled();
+    expect(app.closeApp).not.toHaveBeenCalled();
   });
 
   it('여는 중에 제한 시간이 끝나도 열린 뒤에 닫는다', async () => {
@@ -157,11 +158,12 @@ describe('test', () => {
       });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(finished).toBe(false);
-    expect(driver.deleteSession).not.toHaveBeenCalled();
+    expect(app.closeApp).not.toHaveBeenCalled();
 
     opened(driver);
     await cleanup;
-    expect(driver.deleteSession).toHaveBeenCalledTimes(1);
+    expect(app.closeApp).toHaveBeenCalledTimes(1);
+    expect(app.closeApp).toHaveBeenCalledWith(driver);
   });
 
   it('여는 것이 실패했으면 닫기를 시도하지 않고 닫지 못했다고도 알리지 않는다', async () => {
@@ -177,7 +179,7 @@ describe('test', () => {
       { status: 'failed' },
     );
 
-    expect(driver.deleteSession).not.toHaveBeenCalled();
+    expect(app.closeApp).not.toHaveBeenCalled();
     expect(log).not.toHaveBeenCalled();
     log.mockRestore();
   });
@@ -195,14 +197,14 @@ describe('test', () => {
       { status: 'timedOut' },
     );
 
-    expect(driver.deleteSession).not.toHaveBeenCalled();
+    expect(app.closeApp).not.toHaveBeenCalled();
     expect(log).toHaveBeenCalledWith(expect.stringContaining('[kit] Appium 연결을 열지 못했다: 도우미 앱 설치 실패'));
     log.mockRestore();
   });
 
   it('연결을 못 닫아도 판정을 덮지 않고 이유를 알린다', async () => {
     test(androidSpec(), vi.fn());
-    driver.deleteSession.mockRejectedValue(new Error('세션 없음'));
+    app.closeApp.mockRejectedValue(new Error('세션 없음'));
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await pw.fixtures.appSession({}, async (session) => {

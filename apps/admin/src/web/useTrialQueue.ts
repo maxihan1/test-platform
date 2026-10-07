@@ -70,6 +70,11 @@ export function useTrialQueue(간격: number = 기본간격) {
         쓴다(항목.tcId, { 종류: 'notice', 글 });
         return 글;
       }
+      if (err instanceof ApiError && err.code === 'DEVICE_BUSY') {
+        // 디바이스 하나가 바쁜 것이라 그 줄만 안내하고 다음 줄은 이어 돈다
+        쓴다(항목.tcId, { 종류: 'notice', 글: message(err, 언어) });
+        return null;
+      }
       if (err instanceof ApiError && err.violations.length > 0) {
         // 그 케이스만 안 맞는다. 다음 줄은 이어 돈다
         쓴다(항목.tcId, { 종류: 'notice', 글: t('입력값이 명세와 맞지 않습니다.') });

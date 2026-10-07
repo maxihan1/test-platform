@@ -186,6 +186,15 @@ describe('TestRun', () => {
     expect(screen.getByText('이미 테스트 실행이 돌고 있습니다')).toBeTruthy();
   });
 
+  it('DEVICE_BUSY 면 디바이스가 쓰이고 있다고 알린다', async () => {
+    vi.spyOn(api, 'startTrial').mockRejectedValue(new ApiError(409, 'DEVICE_BUSY', ''));
+    그리기();
+
+    await 누르기();
+
+    expect(screen.getByText('디바이스가 다른 실행에 쓰이고 있습니다')).toBeTruthy();
+  });
+
   it('칸별 사유가 오면 호출한 쪽에 넘긴다', async () => {
     const 오류 = new ApiError(400, 'INVALID_PARAMS', '', [{ path: 'loginId', message: '필요합니다' }]);
     vi.spyOn(api, 'startTrial').mockRejectedValue(오류);

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { CaseRow, LastResult, Platform } from './api.js';
 import { keyOf, type LastMap } from './catalogView.js';
 import { 넘었나 } from './runPlan.js';
-import { 담을것, 몇건, 실행항목 } from './pickRun.js';
+import { 담을것, 몇건, 실행항목, 안드로이드있나 } from './pickRun.js';
 
 function 케이스(tcId: string, platforms: Platform[], isActive = true): CaseRow {
   return {
@@ -109,5 +109,15 @@ describe('몇건', () => {
     const 많이 = Array.from({ length: 501 }, (_, i) => 케이스(`ZZP-9${String(i).padStart(3, '0')}`, ['desktop', 'mobile']));
     expect(넘었나(몇건(많이, 1))).toBe(true);
     expect(넘었나(몇건([PC만, 둘다], 1))).toBe(false);
+  });
+});
+
+describe('안드로이드있나', () => {
+  it('하나라도 android 가 선언돼 있으면 true 다', () => {
+    expect(안드로이드있나([PC만, 케이스('ZZP-A01', ['android'])])).toBe(true);
+  });
+
+  it('브라우저만이면 false 다', () => {
+    expect(안드로이드있나([PC만, 둘다])).toBe(false);
   });
 });

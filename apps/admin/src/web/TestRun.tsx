@@ -110,6 +110,8 @@ export function TestRun({ tcId, user, platforms, params, expected, 대상주소,
         set상태({ 종류: 'notice', 글: t('이 서버에는 테스트 실행이 켜져 있지 않습니다. 켜는 법은 SETUP') });
       } else if (err instanceof ApiError && err.code === 'TRIAL_BUSY') {
         set상태({ 종류: 'notice', 글: t('이미 테스트 실행이 돌고 있습니다') });
+      } else if (err instanceof ApiError && err.code === 'DEVICE_BUSY') {
+        set상태({ 종류: 'notice', 글: message(err, 언어) });
       } else if (err instanceof ApiError && err.violations.length > 0) {
         on검증실패(err);
         set상태({ 종류: 'notice', 글: t('입력값이 명세와 맞지 않습니다.') });

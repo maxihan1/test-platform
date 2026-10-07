@@ -34,7 +34,7 @@ SPEC §3에 적힌 불변식. 깨지면 데이터가 조용히 거짓이 된다.
 | B3 | 러너 코드가 DB에 접근하는가 (DB 클라이언트 import, 커넥션 문자열, SQL) | 접근 없음 |
 | B4 | 스캔 시 `tcId` 중복을 검출해 실패시키는가 | 검출함 |
 | B5 | 코드에서 사라진 케이스를 삭제하는가, `is_active=false`로 두는가 | false 처리 |
-| B6 | 동시 실행 수가 설정값(기본 2)으로 제한되는가 | 제한됨 |
+| B6 | 동시 실행 수가 설정값(기본 2)으로 제한되는가 — Android 앱 항목은 그 상한 밖의 디바이스 줄에서 한 번에 하나인가(실행 §3.2, 2026-10-07) | 제한됨 · android 는 디바이스 줄 |
 | B7 | Reporting 컨텍스트가 `evidence_document` 외 테이블에 write 하는가 | write 없음 |
 | B8 | `platforms` 배열 길이만큼 `run_item`이 생성되는가 | 생성됨 |
 | B9 | **작성 자료** (도메인/작성 §7 「자료」 · 공통/4-데이터모델 §6 「작성 자료」) — `authoring_asset` 표의 `CHECK` 가 SPEC SQL 과 같은가 · `DRAFT→PENDING` 은 줄에 세우기 한 문장(`WHERE status='DRAFT'`)만 하고 집기는 `PENDING` 만 집는가 · 자료 통로 셋이 `auth/scope.ts` 라우트표와 `auth/routeTable.ts` 등급표 **둘 다에** 있는가 · 피그마 주소를 받은 그대로가 아니라 **정규화해 다시 조립한 값**으로 저장하는가 · **작성 에이전트 경로**는 자식이 `/tpx` 가 아니라 `tpx-author` 를 타고 git·PR 은 에이전트 스크립트가 하는가(작성 §3.6) · 테스트만 바뀐 PR·push 는 `.claude/scripts/cases-only.mjs` 판정으로만 가벼운 길을 고르는가 · **`cases-only.mjs` 가 다른 파일을 import 하지 않는가**(작성 에이전트가 그 파일 하나만 복사해 병합 판정에 쓴다) · 훅·CI 의 차선은 `lane.mjs` 한 곳에서 오는가(정본 docs/HOOKS.md 「차선」) | 전부 그렇다 |

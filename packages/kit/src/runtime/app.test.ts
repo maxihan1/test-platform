@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const remote = vi.hoisted(() => vi.fn());
 vi.mock('webdriverio', () => ({ remote }));
 
-import { appCapabilities, captureApp, openApp, type AppDriver } from './app.js';
+import { appCapabilities, captureApp, closeApp, openApp, type AppDriver } from './app.js';
 
 describe('appCapabilities', () => {
   it('UDID 가 없으면 appium:udid 를 넣지 않는다', () => {
@@ -28,10 +28,42 @@ describe('appCapabilities', () => {
   });
 });
 
+const SAVED_ENV = ['PLATFORM_ARTIFACTS_DIR', 'PLATFORM_RUN_ID', 'PLATFORM_HISTORY_ID'].map(
+  (key) => [key, process.env[key]] as const,
+);
+
+function restoreEnv(): void {
+  for (const [key, value] of SAVED_ENV) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+}
+
+const OPEN_ENV = { PLATFORM_APPIUM_URL: 'http://127.0.0.1:4723', PLATFORM_APP: '/tmp/a.apk' };
+
+async function exists(path: string): Promise<boolean> {
+  return stat(path).then(
+    () => true,
+    () => false,
+  );
+}
+
 describe('openApp', () => {
-  beforeEach(() => {
+  let artifacts: string;
+
+  beforeEach(async () => {
     remote.mockReset();
-    remote.mockResolvedValue({ fake: true });
+    remote.mockResolvedValue({ fake: true, sessionId: 'sess-1' });
+    artifacts = await mkdtemp(join(tmpdir(), 'app-open-'));
+    process.env.PLATFORM_ARTIFACTS_DIR = artifacts;
+    process.env.PLATFORM_RUN_ID = '7';
+    process.env.PLATFORM_HISTORY_ID = '9';
+  });
+
+  afterEach(async () => {
+    restoreEnv();
+    vi.restoreAllMocks();
+    await rm(artifacts, { recursive: true, force: true });
   });
 
   it('PLATFORM_APPIUM_URL 이 없으면 연결을 열기 전에 던진다', async () => {
@@ -53,7 +85,7 @@ describe('openApp', () => {
       PLATFORM_APPIUM_URL: 'http://127.0.0.1:4723',
       PLATFORM_APP: '/tmp/a.apk',
     });
-    expect(driver).toEqual({ fake: true });
+    expect(driver).toEqual({ fake: true, sessionId: 'sess-1' });
     expect(remote).toHaveBeenCalledWith({
       protocol: 'http',
       hostname: '127.0.0.1',
@@ -87,6 +119,68 @@ describe('openApp', () => {
     expect(remote.mock.calls[0]?.[0]).toMatchObject({ port: 443 });
     expect(remote.mock.calls[1]?.[0]).toMatchObject({ port: 80 });
     expect(remote.mock.calls[0]?.[0]).not.toHaveProperty('user');
+  });
+});
+
+describe('openApp 연결 번호 파일', () => {
+  let artifacts: string;
+
+  beforeEach(async () => {
+    remote.mockReset();
+    remote.mockResolvedValue({ sessionId: 'sess-1', deleteSession: vi.fn().mockResolvedValue(undefined) });
+    artifacts = await mkdtemp(join(tmpdir(), 'app-session-'));
+    process.env.PLATFORM_ARTIFACTS_DIR = artifacts;
+    process.env.PLATFORM_RUN_ID = '7';
+    process.env.PLATFORM_HISTORY_ID = '9';
+  });
+
+  afterEach(async () => {
+    restoreEnv();
+    vi.restoreAllMocks();
+    await rm(artifacts, { recursive: true, force: true });
+  });
+
+  const file = () => join(artifacts, 'runs/7/9/appium-session');
+
+  it('연결이 열리면 실행 폴더에 연결 번호 한 줄을 적는다', async () => {
+    await openApp(OPEN_ENV);
+    expect((await readFile(file(), 'utf8')).trim()).toBe('sess-1');
+  });
+
+  it('실행 번호 환경값이 없으면 0/0 폴더에 적는다', async () => {
+    delete process.env.PLATFORM_RUN_ID;
+    delete process.env.PLATFORM_HISTORY_ID;
+    await openApp(OPEN_ENV);
+    expect((await readFile(join(artifacts, 'runs/0/0/appium-session'), 'utf8')).trim()).toBe('sess-1');
+  });
+
+  it('closeApp 은 연결을 닫은 뒤 파일을 지운다', async () => {
+    const driver = await openApp(OPEN_ENV);
+    await closeApp(driver);
+    expect(driver.deleteSession).toHaveBeenCalledTimes(1);
+    expect(await exists(file())).toBe(false);
+  });
+
+  it('closeApp 은 파일이 없어도 조용히 끝난다', async () => {
+    const driver = await openApp(OPEN_ENV);
+    await rm(file());
+    await expect(closeApp(driver)).resolves.toBeUndefined();
+  });
+
+  it('닫기가 실패하면 던지고 파일을 남긴다', async () => {
+    const driver = await openApp(OPEN_ENV);
+    vi.mocked(driver.deleteSession).mockRejectedValue(new Error('세션 없음'));
+    await expect(closeApp(driver)).rejects.toThrow('세션 없음');
+    expect(await exists(file())).toBe(true);
+  });
+
+  it('파일을 못 써도 driver 를 돌려주고 이유를 알린다', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await mkdir(join(artifacts, 'runs/7'), { recursive: true });
+    await writeFile(join(artifacts, 'runs/7/9'), 'x');
+    const driver = await openApp(OPEN_ENV);
+    expect(driver.sessionId).toBe('sess-1');
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('[kit] Appium 연결 번호를 적지 못했다'));
   });
 });
 

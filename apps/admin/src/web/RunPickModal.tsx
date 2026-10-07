@@ -8,7 +8,8 @@ import { 채운글자 } from './CaseRowParams.js';
 import { Form } from './Form.js';
 import { use말 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { type 고친값표, type 글자표, 몇건, 실행항목 } from './pickRun.js';
+import { type 고친값표, type 글자표, 몇건, 실행항목, 안드로이드있나 } from './pickRun.js';
+import { RunLocation } from './RunLocation.js';
 import { 넘었나, 상한 } from './runPlan.js';
 import { type Field, schemaToFields, toValues } from './schema.js';
 import { use여러건시험, 열주소칸, 시험배지 } from './RunPickTrial.js';
@@ -18,6 +19,8 @@ export interface 실행요청 {
   env: string;
   repeat: number;
   notifySlack: boolean;
+  /** Android 앱이 하나라도 있을 때만 싣는다. 서버가 없으면 400 이다 */
+  location?: 'local';
   items: RunRequestItem[];
 }
 
@@ -98,6 +101,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
 
   const 건수 = 몇건(케이스들, Number(repeat) || 1);
   const 너무많나 = 넘었나(건수);
+  const android = 안드로이드있나(케이스들);
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
   // 「▶ 테스트 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
   const 시험 = use여러건시험({ 케이스들, 고친값, 대상주소: 주소, 알림: setNotice });
@@ -153,6 +157,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
       // 화면이 세는 것과 같은 값을 보낸다. 소수를 그대로 보내면 서버의 z.number().int() 가 400 을 낸다
       repeat: Math.max(1, Math.floor(Number(repeat) || 1)),
       notifySlack,
+      ...(android ? { location: 'local' as const } : {}),
       items: 실행항목(케이스들, 고친값),
     });
   }
@@ -197,6 +202,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 사유, 안�
         {/* 고른 뒤 「어디로 쏘는지」를 확인할 자리가 있어야 한다 (SPEC §8.2) */}
         {주소 === null ? null : <span className="addr">{주소}</span>}
       </div>
+      <RunLocation android={android} />
 
       <열주소칸 값={시험.열주소} 오류={시험.주소오류} onChange={시험.바꾸기} />
 

@@ -62,6 +62,11 @@ export function 실행항목(케이스들: CaseRow[], 고친값: 고친값표): 
   }));
 }
 
+/** 실행 위치 칸을 보이고 요청에 location 을 실을지 가른다 (SPEC §8.10) */
+export function 안드로이드있나(케이스들: CaseRow[]): boolean {
+  return 케이스들.some((c) => c.platforms.includes('android'));
+}
+
 /**
  * 만들어질 실행 항목 수.
  *

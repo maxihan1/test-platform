@@ -137,6 +137,21 @@ describe('테스트 실행 큐 (여러 건을 차례로)', () => {
     expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'done' });
   });
 
+  it('디바이스가 쓰이는 중인 줄(DEVICE_BUSY)은 그 줄만 안내하고 다음 줄을 이어 돈다', async () => {
+    vi.spyOn(api, 'startTrial').mockImplementation((tcId) =>
+      tcId === 'X-1' ? Promise.reject(new ApiError(409, 'DEVICE_BUSY', '', [])) : Promise.resolve({ trialId: 't2' }),
+    );
+    vi.spyOn(api, 'getTrial').mockResolvedValue({ status: 'DONE', result: 통과 });
+    const { result } = renderHook(() => useTrialQueue(1));
+
+    await act(async () => {
+      await result.current.시작([항목('X-1'), 항목('X-2')], 'http://localhost:3002');
+    });
+
+    expect(result.current.줄들['X-1']).toEqual({ 종류: 'notice', 글: '디바이스가 다른 실행에 쓰이고 있습니다' });
+    expect(result.current.줄들['X-2']).toMatchObject({ 종류: 'done' });
+  });
+
   it('화면을 떠나면 남은 줄을 시작하지 않는다', async () => {
     const { 시작 } = 서버({});
     let 풀기!: () => void;

@@ -9,7 +9,7 @@ import {
 } from '@playwright/test';
 
 import type { StepResult } from '../types.js';
-import { captureApp, openApp, type AppDriver } from './app.js';
+import { captureApp, closeApp, openApp, type AppDriver } from './app.js';
 import { saveShot } from './artifacts.js';
 import { runScope, type RunScope } from './context.js';
 import type { CaseHandle } from './defineCase.js';
@@ -190,7 +190,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
           }
           // 본문 안 finally 는 제한 시간에 걸리면 안 돈다. 정리 단계는 그 뒤에도 돈다
           try {
-            await driver.deleteSession();
+            await closeApp(driver);
           } catch (err) {
             // 닫기 실패로 이미 난 판정을 덮으면 안 된다. 대신 폰에 세션이 남았을 수 있다는 것은 알린다
             console.error(`[kit] Appium 연결을 닫지 못했다: ${err instanceof Error ? err.message : String(err)}`);

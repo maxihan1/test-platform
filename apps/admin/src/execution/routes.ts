@@ -19,6 +19,7 @@ import { findItem, findRun, listRuns, serviceExists } from './queries.js';
 import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
 import { 목록종류읽기 } from './runKind.js';
+import { runBody, 실행위치를본다 } from './location.js';
 
 const PAGE_SIZE = 50;
 
@@ -26,31 +27,6 @@ const paramSetBody = z.object({
   name: z.string().min(1),
   params: z.record(z.string(), z.unknown()).default({}),
   expected: z.record(z.string(), z.unknown()).default({}),
-});
-
-const runBody = z.object({
-  title: z.string().min(1),
-  // 실행자는 여기 없다. 로그인한 사람에게서 온다 — 보내는 쪽이 정할 수 있으면 아무 이름이나
-  // 적을 수 있어 증적이 증적이 아니게 된다 (SPEC §3.5). 본문에 실려 와도 zod가 버린다
-  // 대상 서버 키. 기본값을 두지 않는다 — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §6).
-  // 주소는 요청이 싣지 않는다. 서버가 그 서비스의 service_env에서 찾는다
-  env: z.string().min(1),
-  // 요청 최상위에 하나다. 항목마다 다르면 실행 항목 수를 미리 셀 수 없다 (SPEC §8.2)
-  repeat: z.number().int().positive().default(1),
-  // 기본은 꺼짐. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 된다 (SPEC §8.2 · §8.9)
-  notifySlack: z.boolean().default(false),
-  items: z
-    .array(
-      z.object({
-        tcId: z.string().min(1),
-        platforms: z.array(z.enum(['desktop', 'mobile'])).min(1),
-        params: z.record(z.string(), z.unknown()).default({}),
-        expected: z.record(z.string(), z.unknown()).default({}),
-        // SPEC §10의 DEMO-007은 5초로 줘야 러너의 타임아웃 처리를 확인할 수 있다
-        timeoutMs: z.number().int().positive().optional(),
-      }),
-    )
-    .min(1),
 });
 
 // 러너와 어드민이 같은 볼륨을 본다. 경로 규칙은 artifacts/runs/{runId}/{historyId}/{seq}.png (SPEC §9)
@@ -86,13 +62,18 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
 
+    // createRun 에는 위치를 넘기지 않는다 — DB 에 남기지 않는다 (SPEC 실행 §7)
+    const { location, ...실행본문 } = parsed.data;
+    const 거절 = 실행위치를본다(실행본문.items, location, process.env);
+    if (거절) return reply.code(거절.status).send({ error: 거절.error, detail: 거절.detail });
+
     // 문(auth/gate.ts)이 모든 /api 앞에 서므로 여기 닿았으면 사람이 있다.
     // 문 없이 이 라우트만 띄우는 검사에서만 빈 자리가 생기고, 그때는 이름 칸을 비워 둔다 (SPEC §3.5)
     const 사람 = req.user ?? null;
 
     try {
       const { runId, items } = await createRun({
-        ...parsed.data,
+        ...실행본문,
         triggeredBy: 사람?.username ?? '알 수 없음',
         triggeredByName: 사람?.displayName,
       });
@@ -135,7 +116,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     markAborted(runId);
     // 돌고 있는 자식까지 끊는다. 대기 중인 것만 취소하면 5분짜리 케이스가 도는 중에는
     // 버튼이 아무 일도 안 하는 것처럼 보인다 (SPEC §8.3)
-    await Promise.all(미완.map((historyId) => abortRunner(historyId)));
+    await Promise.all(미완.map((i) => abortRunner(i.historyId, i.platform)));
 
     // 사람이 멈춘 것도 끝난 것이다. 알림이 실패해도 멈춤은 성립한다 (SPEC §8.9)
     try {

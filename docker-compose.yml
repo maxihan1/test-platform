@@ -78,7 +78,9 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./tests:/tests:ro      # 스캔과 실패 지점 코드 발췌가 소스를 읽는다
-      - artifacts:/artifacts   # 스크린샷 서빙, 증적 문서 저장
+      # 스크린샷 서빙, 증적 문서 저장. 기본은 이름 붙은 볼륨이다 — 로컬 러너(Android 앱)를 쓰는 맥은 ./artifacts 를 적어
+      # 그 러너가 쓰는 폴더를 같이 본다. 안 그러면 앱 스크린샷이 오류 없이 404 다 (SPEC 공통/6-인프라 §9.2)
+      - ${PLATFORM_ARTIFACTS_VOLUME:-artifacts}:/artifacts
     # 작성 에이전트(author)는 authoring 망에서만 admin 에 닿는다 — 기본 망의 postgres·runner 에는 못 닿게.
     # grafana 는 dashboard 망에서 admin 이 대신 연다 (2026-09-28)
     networks: [default, authoring, dashboard]
@@ -97,7 +99,7 @@ services:
       PORT: "4000"
     volumes:
       - ./tests:/tests:ro      # 테스트 소스 읽기 전용 마운트
-      - artifacts:/artifacts   # 스크린샷 공유 볼륨 (admin과 공유)
+      - ${PLATFORM_ARTIFACTS_VOLUME:-artifacts}:/artifacts   # 스크린샷 공유 볼륨 (admin과 같은 값을 본다)
     mem_limit: 4g              # 폭주해도 admin을 끌고 내려가지 않게
 
   # 작성 에이전트 — 화면이 세운 줄을 서버 안에서 집어 케이스를 만들고 PR 을 낸다 (SPEC 도메인/작성 §3.6 · 공통/6 §9).

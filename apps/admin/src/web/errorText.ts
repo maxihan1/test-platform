@@ -57,6 +57,11 @@ export const 오류말: Record<string, string> = {
   BAD_CONFLICT: '이 반영의 겹침 목록에 없는 케이스입니다. 새로 고쳐 보세요',
   MERGE_ACTIVE: '반영이 대기 중이거나 진행 중이라 지금은 고를 수 없습니다',
 
+  // Android 앱 실행 (도메인/실행 §8.2 · §8.10). 케이스 테스트 실행 · 실행 만들기가 같이 만난다
+  LOCAL_OFF: '이 서버에는 Android 앱을 돌릴 로컬 러너가 연결되어 있지 않습니다',
+  FARM_OFF: '디바이스 팜은 아직 준비 중입니다',
+  DEVICE_BUSY: '디바이스가 다른 실행에 쓰이고 있습니다',
+
   // E2E 시나리오 (도메인/시나리오 §7). TRIAL_BUSY · TRIAL_NOT_FOUND 는 시험 실행 화면이 따로 다룬다
   SCENARIO_NOT_FOUND: '그 시나리오를 찾지 못했습니다',
   SCENARIO_ARCHIVED: '목록에서 치운 시나리오라 고치거나 실행할 수 없습니다',
