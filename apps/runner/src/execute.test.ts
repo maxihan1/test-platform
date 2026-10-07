@@ -1,8 +1,25 @@
 // 러너 실행 로직의 단위 테스트. 판정 규칙과 경로 검증은 자식 프로세스 없이 확인할 수 있어야 한다
 
-import { describe, expect, it } from 'vitest';
+import type { ExecuteRequest } from '@platform/kit';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { killedResponse, resolveSpecPath, statusFromExit } from './execute.js';
+import { 앱연결을닫는다 } from './appSession.js';
+import { abort, execute, killedResponse, resolveSpecPath, running, statusFromExit } from './execute.js';
+import { killTree } from './kill.js';
+
+// playwright 대신 짧은 셸 스크립트를 띄운다. 어느 스크립트인지는 테스트가 정한다
+const 스크립트 = vi.hoisted(() => ({ 지금: 'exit 0' }));
+
+vi.mock('node:child_process', async (원본) => {
+  const 실제 = await 원본<typeof import('node:child_process')>();
+  return {
+    ...실제,
+    spawn: (_cmd: string, _args: readonly string[], opts: import('node:child_process').SpawnOptions) =>
+      실제.spawn('sh', ['-c', 스크립트.지금], opts),
+  };
+});
+
+vi.mock('./appSession.js', () => ({ 앱연결을닫는다: vi.fn() }));
 
 describe('statusFromExit', () => {
   it('exit code 0이면 PASS다', () => {
@@ -56,5 +73,82 @@ describe('resolveSpecPath', () => {
 
   it('절대 경로로 루트를 갈아치우려는 요청도 거부한다', () => {
     expect(resolveSpecPath('/tests', '/etc/passwd')).toBeNull();
+  });
+});
+
+describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
+  const 닫기 = vi.mocked(앱연결을닫는다);
+
+  afterEach(() => {
+    for (const { child } of running.values()) killTree(child);
+    running.clear();
+    닫기.mockReset();
+    vi.restoreAllMocks();
+  });
+
+  function 요청(platform: ExecuteRequest['platform'], timeoutMs = 10_000): ExecuteRequest {
+    return {
+      runId: 5,
+      historyId: 8,
+      tcId: 'AND-001',
+      platform,
+      filePath: 'a.spec.ts',
+      baseUrl: '',
+      params: {},
+      expected: {},
+      timeoutMs,
+    };
+  }
+
+  // 닫기가 끝나기 전에 응답이 나가면 admin 이 답을 받은 뒤에도 연결이 남는다. 늦게 끝나는 닫기로 순서를 잡는다
+  function 늦게_닫히게_한다(): { 닫혔나: () => boolean } {
+    let 닫힘 = false;
+    닫기.mockImplementation(async () => {
+      await new Promise((done) => setTimeout(done, 50));
+      닫힘 = true;
+    });
+    return { 닫혔나: () => 닫힘 };
+  }
+
+  it('android 항목이 정상 종료하면 응답 전에 닫는다', async () => {
+    스크립트.지금 = 'exit 0';
+    const 상태 = 늦게_닫히게_한다();
+
+    await execute(요청('android'), 'a.spec.ts');
+
+    expect(닫기).toHaveBeenCalledWith(5, 8);
+    expect(상태.닫혔나()).toBe(true);
+  });
+
+  it('android 항목을 abort 로 끊어도 응답 전에 닫는다', async () => {
+    스크립트.지금 = 'sleep 30';
+    const 상태 = 늦게_닫히게_한다();
+
+    const 응답 = execute(요청('android'), 'a.spec.ts');
+    await vi.waitFor(() => expect(running.has(8)).toBe(true));
+    abort(8);
+
+    expect((await 응답).error?.message).toBe('ABORTED');
+    expect(닫기).toHaveBeenCalledWith(5, 8);
+    expect(상태.닫혔나()).toBe(true);
+  });
+
+  it('android 항목이 제한 시간에 걸려도 응답 전에 닫는다', async () => {
+    스크립트.지금 = 'sleep 30';
+    const 상태 = 늦게_닫히게_한다();
+
+    const 응답 = await execute(요청('android', 200), 'a.spec.ts');
+
+    expect(응답.error?.message).toBe('TIMEOUT');
+    expect(닫기).toHaveBeenCalledWith(5, 8);
+    expect(상태.닫혔나()).toBe(true);
+  });
+
+  it('desktop 항목은 닫기를 부르지 않는다', async () => {
+    스크립트.지금 = 'exit 0';
+
+    await execute(요청('desktop'), 'a.spec.ts');
+
+    expect(닫기).not.toHaveBeenCalled();
   });
 });

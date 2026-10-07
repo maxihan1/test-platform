@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { ExecuteRequest, ExecuteResponse, ItemStatus, StepProgress } from '@platform/kit';
 
+import { 앱연결을닫는다 } from './appSession.js';
 import { killTree } from './kill.js';
 import { createProgressCollector } from './progress.js';
 import { parseResult, type RunnerResult } from './result.js';
@@ -161,6 +162,10 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
     clearTimeout(timer);
     running.delete(req.historyId);
   });
+
+  // killedBy 와 상관없이 닫는다 — 정상 종료라도 kit 의 닫기가 실패했으면 번호 파일이 남는다.
+  // 답하기 전에 끝내야 admin 이 답을 받았을 때 팜의 디바이스가 이미 풀려 있다
+  if (req.platform === 'android') await 앱연결을닫는다(req.runId, req.historyId);
 
   if (entry.killedBy !== null) {
     return killedResponse(req.historyId, entry.killedBy, Date.now() - startedAt, stdout);
