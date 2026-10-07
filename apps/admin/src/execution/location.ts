@@ -2,6 +2,9 @@
 
 import { z } from 'zod';
 
+// 기본값이 곧 상한이다 — 더 길게 주면 디바이스 잠금을 그만큼 쥔다(2026-10-07 게이트 0). 줄이는 데만 쓴다
+export const DEFAULT_TIMEOUT_MS = 300_000;
+
 // routes.ts 가 300줄을 넘지 않게 여기로 뺐다
 export const runBody = z.object({
   title: z.string().min(1),
@@ -25,7 +28,7 @@ export const runBody = z.object({
         params: z.record(z.string(), z.unknown()).default({}),
         expected: z.record(z.string(), z.unknown()).default({}),
         // SPEC §10의 DEMO-007은 5초로 줘야 러너의 타임아웃 처리를 확인할 수 있다
-        timeoutMs: z.number().int().positive().optional(),
+        timeoutMs: z.number().int().positive().max(DEFAULT_TIMEOUT_MS).optional(),
       }),
     )
     .min(1),

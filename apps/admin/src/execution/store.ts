@@ -6,10 +6,9 @@ import type { ExecuteResponse, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
+import { DEFAULT_TIMEOUT_MS } from './location.js';
 import { 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
-
-export const DEFAULT_TIMEOUT_MS = 300_000;
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
 const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };

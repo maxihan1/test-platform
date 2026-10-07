@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { runBody, 실행위치를본다, 앱케이스를뺀다 } from './location.js';
+import { DEFAULT_TIMEOUT_MS, runBody, 실행위치를본다, 앱케이스를뺀다 } from './location.js';
 
 const 안드로이드 = [{ platforms: ['android'] }];
 const 주소있음 = { LOCAL_RUNNER_URL: 'http://127.0.0.1:4100' };
@@ -81,5 +81,16 @@ describe('runBody', () => {
     const 로컬 = runBody.safeParse({ ...기본, location: 'local' });
     expect(로컬.success && 로컬.data.location).toBe('local');
     expect(runBody.safeParse(기본).success).toBe(true);
+  });
+
+  it('항목 timeoutMs 는 300000 까지 받고 넘으면 거절한다 — 없으면 통과다', () => {
+    const 시간 = (timeoutMs: number) => ({ ...기본, items: [{ ...기본.items[0], timeoutMs }] });
+    expect(runBody.safeParse(시간(300001)).success).toBe(false);
+    expect(runBody.safeParse(시간(300000)).success).toBe(true);
+    expect(runBody.safeParse(기본).success).toBe(true);
+  });
+
+  it('기본 timeoutMs 가 곧 상한이다 — 300000 하나', () => {
+    expect(DEFAULT_TIMEOUT_MS).toBe(300000);
   });
 });
