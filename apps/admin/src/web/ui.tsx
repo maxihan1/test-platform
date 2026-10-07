@@ -9,6 +9,8 @@ import { 요청오류문장 } from './errorText.js';
 
 export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 export const PLATFORMS: Platform[] = ['desktop', 'mobile'];
+/** 결과 화면이 디바이스를 늘어놓는 차례. 카드 안 줄과 옆 칸이 같은 순서를 쓴다 */
+export const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android'];
 
 /**
  * 결과 칸과 디바이스 칩이 그 실행에 든 디바이스를 따르게 한다 (도메인/실행 §8.3).

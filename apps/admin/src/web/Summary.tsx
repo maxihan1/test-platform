@@ -123,8 +123,22 @@ export function 판정흐름({ recent, 앞말 }: { recent: ItemStatus[]; 앞말?
   return (
     <>
       {/* 실패 카드의 막대는 대상 서버 · 이 실행까지다. 케이스 목록 막대와 뜻이 달라 앞에 말을 붙인다 (실행 §8.3) */}
-      {앞말 === undefined ? null : <span className="flow-lead">{앞말}</span>}
-      <span className="spark" aria-hidden="true">
+      {앞말 === undefined ? null : <span className="flow-lead" aria-hidden="true">{앞말}</span>}
+      {/* 앞말이 있는 막대(실패 카드)는 그림 하나로 읽힌다 — 이름이 어느 서버 · 몇 회 · 어느 쪽이 이번인지 말한다.
+          케이스 목록 막대는 옆의 개수 글자가 읽어 주므로 그대로 숨긴다 */}
+      <span
+        className="spark"
+        {...(앞말 === undefined
+          ? { 'aria-hidden': true }
+          : {
+              role: 'img',
+              'aria-label': t('{앞말} 최근 {회}회, 맨 앞이 이번 실행: {판정}', {
+                앞말,
+                회: 칸들.length,
+                판정: 칸들.map((것) => t(STATUS_LABEL[것])).join(', '),
+              }),
+            })}
+      >
         {칸들.map((것, i) => (
           <i key={`${것}-${String(i)}`} className={판정글자[것]} />
         ))}
@@ -135,7 +149,6 @@ export function 판정흐름({ recent, 앞말 }: { recent: ItemStatus[]; 앞말?
       {/* 막대만 두면 색을 못 보는 사람에게는 회색 네모다. 개수를 글자로 같이 적는다.
           판정마다 한 줄 — 한 줄로 이으면 60px 디바이스 칸을 넘어 옆 디바이스 글자와 겹쳤다 (2026-10-05) */}
       <span className="sparktext">
-        {앞말 === undefined ? null : <span className="sr-only">{t('맨 앞이 이번 실행')}</span>}
         {[...셈.entries()].map(([것, 수]) => (
           <b key={것} className={판정글자[것]}>
             {t(STATUS_LABEL[것])} {수}

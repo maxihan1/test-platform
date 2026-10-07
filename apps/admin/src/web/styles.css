@@ -732,6 +732,13 @@ input[type='file']::file-selector-button {
 
    **묶는 일을 CSS 가 한다.** 화면 코드는 지금처럼 `.chip` 을 나란히 그리면 되고
    이웃끼리 테두리를 접는 것은 `+` 가 맡는다 — TSX 를 안 건드린다 */
+/* 칩 묶음에 이름을 붙이려고 감싼 상자다. 감싸기 전 `.toolbar` 가 칩 사이에 주던 간격을 그대로 준다 */
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .chip {
   font-size: 12.5px;
   /* 누르는 자리는 최소 36px. 44px 은 DESIGN.md 대로 실행 기록 목록과 실행 결과 두 화면에만 건다 */

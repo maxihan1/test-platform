@@ -79,6 +79,11 @@ export interface 갈림 {
   줄들: CaseGroup[];
   /** 미확정 항목. 확정 판정과 상관없이 따로 모으고 「전체」에서만 낸다 */
   미확정: CaseGroup[];
+  /**
+   * 판정별 보기 「통과」 · 「미실행」에서 **실패 카드 안에만 있어** 줄 목록에 안 나오는 그 판정의 항목 수.
+   * 줄 목록 아래 한 줄 안내가 읽는다 — 항목 수 집계와 줄 수가 왜 다른지 알려 준다
+   */
+  카드안항목수: number;
 }
 
 /**
@@ -98,12 +103,17 @@ export function 갈라낸다(
   const 확정 = 보는.filter((i) => !미확정항목(i));
   const 실패케이스 = new Set(확정.filter((i) => i.status === 'FAIL').map((i) => i.tcId));
 
+  // 줄은 「그 판정 항목이 하나라도 있는」 케이스다 (명세 문장). 회차 요약 판정으로 가르면
+  // 통과 한 번 · 미실행 한 번인 줄이 「통과」에서 빠져 판정별 보기 수와 어긋난다
+  const 있는줄 = (g: CaseGroup): boolean =>
+    판정 === 'ALL' || Object.values(g.byPlatform).some((칸) => 칸?.some((i) => i.status === 판정));
+  const 줄후보 = groupByCase(확정.filter((i) => !실패케이스.has(i.tcId)));
+
   return {
-    줄들:
-      판정 === 'FAIL'
-        ? []
-        : filterGroups(groupByCase(확정.filter((i) => !실패케이스.has(i.tcId))), 판정, 'ALL'),
+    줄들: 판정 === 'FAIL' ? [] : 줄후보.filter(있는줄),
     미확정: 판정 === 'ALL' ? groupByCase(보는.filter(미확정항목)) : [],
+    카드안항목수:
+      판정 === 'PASS' || 판정 === 'NA' ? 확정.filter((i) => 실패케이스.has(i.tcId) && i.status === 판정).length : 0,
   };
 }
 

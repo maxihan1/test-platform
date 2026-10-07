@@ -6,11 +6,8 @@ import { api, type FailureCase, type Platform, type RunItemSummary } from './api
 import { 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
 import { ItemExpand } from './ItemExpand.js';
-import { 다음이있나 } from './paging.js';
 import { 같은실패끼리, RunFailDevice } from './RunFailDevice.js';
-import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict } from './ui.js';
-
-const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android'];
+import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, 디바이스순서 } from './ui.js';
 
 interface Props {
   runId: number;
@@ -50,7 +47,9 @@ function 카드목록({ runId, env, items, platform }: Props) {
     넘김.current = true;
     set쪽상태({ 거르개: platform, 쪽: 다음쪽 });
   };
-  const 더있나 = 다음이있나(응답.data);
+  // 총수는 서버가 실패 케이스를 그룹으로 센 정확한 값이다. 받은 건수가 쪽 크기와 같다고 더 있다고 보면
+  // 정확히 한 쪽 크기일 때 빈 다음 쪽이 열린다
+  const 더있나 = 쪽 * 응답.data.pageSize < 응답.data.total;
 
   return (
     <section className="fc-list">
@@ -61,7 +60,7 @@ function 카드목록({ runId, env, items, platform }: Props) {
       {응답.data.items.length === 0 ? (
         <p className="empty">{t('실패한 케이스가 없습니다')}</p>
       ) : (
-        응답.data.items.map((c) => <카드 key={c.tcId} c={c} runId={runId} env={env} items={items} />)
+        응답.data.items.map((c) => <카드 key={c.tcId} c={c} runId={runId} env={env} items={items} platform={platform} />)
       )}
 
       {쪽 === 1 && !더있나 ? null : (
@@ -79,16 +78,30 @@ function 카드목록({ runId, env, items, platform }: Props) {
   );
 }
 
-function 카드({ c, runId, env, items }: { c: FailureCase; runId: number; env: string; items: RunItemSummary[] }) {
+function 카드({
+  c,
+  runId,
+  env,
+  items,
+  platform,
+}: {
+  c: FailureCase;
+  runId: number;
+  env: string;
+  items: RunItemSummary[];
+  platform: Platform | 'ALL';
+}) {
   const t = use말();
   const 깨진 = new Set(c.devices.map((d) => d.platform));
-  // 미확정 항목은 확정 판정과 상관없이 미확정 묶음에 모은다 — 여기서 또 그리면 같은 항목이 두 번 나온다
-  const 나머지 = 디바이스순서.flatMap((platform) => {
-    if (깨진.has(platform)) return [];
+  // 미확정 항목은 확정 판정과 상관없이 미확정 묶음에 모은다 — 여기서 또 그리면 같은 항목이 두 번 나온다.
+  // 디바이스를 거른 동안에는 그 디바이스만 낸다. 깨진 디바이스는 서버가 카드에 안 실었어도 접힌 줄에 넣지 않는다 —
+  // 실패가 「통과 · 미실행」 줄처럼 접혀 보이면 안 된다
+  const 나머지 = 디바이스순서.flatMap((칸디바이스) => {
+    if (깨진.has(칸디바이스) || (platform !== 'ALL' && platform !== 칸디바이스)) return [];
     const 칸 = items
-      .filter((i) => i.tcId === c.tcId && i.platform === platform && typeof i.unconfirmed !== 'string')
+      .filter((i) => i.tcId === c.tcId && i.platform === 칸디바이스 && typeof i.unconfirmed !== 'string')
       .sort((a, b) => a.attempt - b.attempt);
-    return 칸.length === 0 ? [] : [칸];
+    return 칸.length === 0 || 칸.some((i) => i.status === 'FAIL') ? [] : [칸];
   });
   const 상세 = c.devices[0]?.item.historyId;
 

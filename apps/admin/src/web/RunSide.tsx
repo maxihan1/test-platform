@@ -1,16 +1,14 @@
 // 결과 화면 옆 칸 — 실행 정보 · 같은 사유로 실패 · 해결 · 증적 문서. 상자 안에서는 접힌 줄 하나 (도메인/실행 §8.3)
 
-import { api, type Platform, type RunInsights as 비교 } from './api.js';
+import { api, type RunInsights as 비교 } from './api.js';
 import { type 증적칸, 증적알림과목록 } from './EvidenceSection.js';
 import { use말, use언어 } from './i18n.js';
 import { RunInsights, 해결들 } from './RunInsights.js';
 import { 시간글자 } from './RunProgressModal.js';
 import { 실행자이름 } from './runState.js';
-import { PLATFORM_LABEL, when } from './ui.js';
+import { PLATFORM_LABEL, when, 디바이스순서 } from './ui.js';
 
 type 실행 = Awaited<ReturnType<typeof api.run>>;
-
-const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android'];
 
 interface Props {
   data: 실행;

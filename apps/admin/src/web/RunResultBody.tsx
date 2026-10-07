@@ -29,11 +29,14 @@ export function 디바이스칩({
   return (
     <>
       <span className="filter-label">{t('디바이스')}</span>
-      {(['ALL', ...디바이스들] as (Platform | 'ALL')[]).map((값) => (
-        <button className="chip" key={값} aria-pressed={device === 값} onClick={() => on디바이스(값)}>
-          {값 === 'ALL' ? t('전체') : PLATFORM_LABEL[값]}
-        </button>
-      ))}
+      {/* 판정별 보기에도 「전체」가 있다 — 화면 읽기에서 어느 묶음의 「전체」인지 이름으로 가른다 */}
+      <div className="chip-group" role="group" aria-label={t('디바이스로 거르기')}>
+        {(['ALL', ...디바이스들] as (Platform | 'ALL')[]).map((값) => (
+          <button className="chip" key={값} aria-pressed={device === 값} onClick={() => on디바이스(값)}>
+            {값 === 'ALL' ? t('전체') : PLATFORM_LABEL[값]}
+          </button>
+        ))}
+      </div>
     </>
   );
 }
@@ -77,7 +80,7 @@ export function 끝난결과(props: Props) {
   const t = use말();
   const 디바이스들 = 실행디바이스들(data.items);
   const columns = device === 'ALL' ? 디바이스들 : [device];
-  const { 줄들, 미확정 } = 갈라낸다(data.items, 판정, device);
+  const { 줄들, 미확정, 카드안항목수 } = 갈라낸다(data.items, 판정, device);
   const 전체쪽 = Math.max(1, Math.ceil(줄들.length / PAGE_SIZE));
   const 보는쪽 = Math.min(page, 전체쪽);
   const 보이는줄 = 줄들.slice((보는쪽 - 1) * PAGE_SIZE, 보는쪽 * PAGE_SIZE);
@@ -99,19 +102,25 @@ export function 끝난결과(props: Props) {
             <p className="empty">{t('실패한 케이스가 없습니다')}</p>
           ) : (
             <section className="rr-sec">
-              <RunFailCards runId={data.runId} env={data.env} items={data.items} platform={device} />
+              {/* 칩이나 실행이 바뀌면 새로 그린다 — 앞 거르개 · 앞 실행의 쪽 번호가 남으면 안 된다 */}
+              <RunFailCards key={`${String(data.runId)}-${device}`} runId={data.runId} env={data.env} items={data.items} platform={device} />
             </section>
           )}
 
           {판정 === 'FAIL' || (판정 === 'ALL' && 줄들.length === 0) ? null : (
             <section className="rr-sec rr-rows">
-              <h2 className="fc-title">{t('통과 · 미실행')}</h2>
+              <h2 className="fc-title">
+                {t('통과 · 미실행')} <span className="rr-n">{줄들.length}</span>
+              </h2>
               {보이는줄.length === 0 ? (
                 <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
               ) : (
                 보이는줄.map((group) => <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />)
               )}
               <쪽넘김 쪽={보는쪽} 전체쪽={전체쪽} on쪽={on쪽} />
+              {카드안항목수 === 0 ? null : (
+                <p className="rr-axis">{t('실패한 케이스 안의 항목 {건수}건은 「전체」에서 카드로 봅니다', { 건수: 카드안항목수 })}</p>
+              )}
             </section>
           )}
 
