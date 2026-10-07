@@ -274,7 +274,7 @@ function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: numbe
         )}
         </div>
         {/* 눌러서 여는 상자다 (SPEC §8.7). 주소는 살아 있고 상자는 길을 하나 더한 것이다 */}
-        <button type="button" className="btn small" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>
+        <button type="button" className="btn small ghost" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>
           {t('결과 보기')}
         </button>
       </div>

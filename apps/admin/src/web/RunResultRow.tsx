@@ -73,7 +73,7 @@ export function 결과줄({
           })}
         </div>
         {첫항목 === undefined ? null : (
-          <a className="btn small" href={`#/runs/${runId}/items/${첫항목.historyId}`}>
+          <a className="btn small ghost" href={`#/runs/${runId}/items/${첫항목.historyId}`}>
             {t('상세')}
           </a>
         )}

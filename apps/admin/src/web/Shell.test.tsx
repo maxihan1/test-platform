@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { api, type ServiceRow, type User } from './api.js';
+import { api, type RunSummary, type ServiceRow, type User } from './api.js';
 import { 언어함, type 언어 } from './i18n.js';
 import { 사이드바접음을적는다, 자리목록, 탭제목 } from './layout.js';
 import { Shell } from './Shell.js';
@@ -252,5 +252,71 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
     띄운다(결제);
     expect(screen.getByLabelText('언어')).toBeTruthy();
     사이드바접음을적는다(false);
+  });
+});
+
+describe('메뉴 아이콘 (DESIGN.md 원칙 5, 2026-10-07)', () => {
+  it('맨 위 자리마다 글자 곁에 아이콘이 서고, 화면 읽기는 글자만 읽는다', () => {
+    띄운다(결제);
+    for (const 자리 of 자리목록(사람, 결제.prefix, 'ko')) {
+      const 링크 = screen.getByRole('link', { name: 자리.바깥 === true ? `${자리.이름} ↗` : 자리.이름 });
+      const 그림 = 링크.querySelector('svg');
+      expect(그림, `${자리.이름} 에 아이콘이 없다`).not.toBeNull();
+      expect(그림!.getAttribute('aria-hidden')).toBe('true');
+    }
+  });
+
+  it('하위 메뉴에는 아이콘을 두지 않는다 — 묶음의 아이콘이 이미 어느 기능인지 말한다', () => {
+    띄운다(결제);
+    const 하위들 = [...document.querySelectorAll('.side-sub')];
+    expect(하위들.length).toBeGreaterThan(0);
+    for (const 하위 of 하위들) expect(하위.querySelector('svg')).toBeNull();
+  });
+});
+
+describe('실행 중 표시 (DESIGN.md 원칙 4, 2026-10-07)', () => {
+  const 실행 = (status: string, finishedAt: string | null): RunSummary => ({
+    runId: 77,
+    title: '결제 회귀',
+    triggeredBy: 'zsh1',
+    triggeredByName: null,
+    env: 'dev',
+    baseUrl: 'https://dev.example',
+    serviceName: '결제 서비스',
+    status,
+    startedAt: new Date().toISOString(),
+    finishedAt,
+    counts: { total: 4, pass: 1, fail: 0, na: 0, running: finishedAt === null ? 3 : 0 },
+  });
+
+  function 띄운다_실행(run: RunSummary) {
+    vi.spyOn(api, 'runs').mockResolvedValue({
+      items: [run],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+      summary: { runs: 1, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 },
+    });
+    render(
+      <언어함 value="ko">
+        <Shell user={사람} service={결제} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={() => {}} current="#/cases">
+          <div>본문</div>
+        </Shell>
+      </언어함>,
+    );
+  }
+
+  it('도는 실행이 있으면 알림 줄에 맥박 점이 선다. 점은 꾸밈이라 화면 읽기는 글자만 읽는다', async () => {
+    띄운다_실행(실행('RUNNING', null));
+    const 줄 = await screen.findByRole('link', { name: /RUN 77/ });
+    const 점 = 줄.querySelector('.pulse');
+    expect(점).not.toBeNull();
+    expect(점!.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('끝난 소식에는 맥박 점이 없다 — 되풀이 움직임은 실제로 도는 동안만이다', async () => {
+    띄운다_실행(실행('FINISHED', new Date().toISOString()));
+    const 줄 = await screen.findByRole('link', { name: /RUN 77/ });
+    expect(줄.querySelector('.pulse')).toBeNull();
   });
 });
