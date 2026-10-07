@@ -110,7 +110,7 @@ grep -rn "<핵심 낱말>" docs/spec/ docs/SPEC.md
 | `spec-review` 체크리스트 · `npm run check:*` | 검사가 옛 기준이면 **초록불이 거짓말을 한다** |
 | `docs/SETUP.md` · `docs/HOOKS.md` · `docs/DESIGN.md` | 사람이 따라 하는 절차와 화면 기준 |
 | `docs/WORKFLOW.md` | 지금이 어느 단계이고 무엇이 남았는가 |
-| `docs/design-mockup.html` | 화면 규칙이 바뀌었으면 |
+| 시안 캔버스(`docs/DESIGN.md` 맨 위 링크) | 화면 규칙이 바뀌었으면 판을 더한다. `docs/design-mockup.html` 은 2026-10-07 개편 전 기록으로 동결했다 — 고치지 않는다 |
 | **코드에 박힌 상수** | SPEC 의 형식·숫자·열거값을 코드가 복사해 둔 자리. 정규식·상한 같은 것 |
 
 **마지막 줄이 가장 늦게 드러난다.** 이번 범위 밖이면 그 갈래 킥오프에 항목으로 넘기는 편이 낫다.
