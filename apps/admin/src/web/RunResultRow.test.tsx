@@ -125,58 +125,74 @@ describe('결과줄 (SPEC §8.3)', () => {
       };
     }
 
-    it('디바이스마다 접힌 펼치기 버튼이 있고 이름에 TC ID 와 디바이스가 든다', () => {
+    it('줄마다 접힌 펼치기 버튼이 하나이고 이름에 TC ID 가 든다 — 디바이스가 둘이어도 하나다', () => {
       그린다([항목(1, 'desktop', 'PASS'), 항목(2, 'mobile', 'PASS')]);
 
       const 버튼들 = screen.getAllByRole('button', { name: /펼치기/ });
-      expect(버튼들).toHaveLength(2);
-      expect(버튼들.every((b) => b.getAttribute('aria-expanded') === 'false')).toBe(true);
-      expect(screen.getByRole('button', { name: /ZZW-0001.*PC/ })).toBeTruthy();
-      expect(screen.getByRole('button', { name: /ZZW-0001.*모바일/ })).toBeTruthy();
+      expect(버튼들).toHaveLength(1);
+      expect(버튼들[0]!.getAttribute('aria-expanded')).toBe('false');
+      expect(버튼들[0]!.getAttribute('aria-controls')).not.toBeNull();
+      expect(screen.getByRole('button', { name: /ZZW-0001/ })).toBeTruthy();
     });
 
-    it('누르면 그 디바이스 첫 회차 상세를 불러와 사전조건 · 절차 · 모든 확인을 보인다', async () => {
-      const 첫회차 = 항목(11, 'desktop', 'PASS', 1);
-      const 부름 = vi.spyOn(api, 'item').mockResolvedValue(상세(첫회차));
-      그린다([항목(12, 'desktop', 'PASS', 2), 첫회차, 항목(13, 'mobile', 'PASS')]);
+    it('누르면 디바이스마다 첫 회차 상세를 불러와 머리와 사전조건 · 절차 · 모든 확인을 차례로 보인다', async () => {
+      const 데스크톱첫 = 항목(11, 'desktop', 'PASS', 1);
+      const 모바일 = 항목(13, 'mobile', 'PASS');
+      const 부름 = vi.spyOn(api, 'item').mockImplementation((_run, id) =>
+        Promise.resolve(상세(id === 11 ? 데스크톱첫 : 모바일, { precondition: [`사전조건 ${String(id)}`] })),
+      );
+      그린다([항목(12, 'desktop', 'PASS', 2), 데스크톱첫, 모바일]);
 
-      fireEvent.click(screen.getByRole('button', { name: /ZZW-0001.*PC/ }));
+      fireEvent.click(screen.getByRole('button', { name: /ZZW-0001/ }));
 
-      expect(await screen.findByText('가입 버튼을 누른다')).toBeTruthy();
-      expect(부름).toHaveBeenCalledTimes(1);
+      expect(await screen.findByText('사전조건 11')).toBeTruthy();
+      expect(await screen.findByText('사전조건 13')).toBeTruthy();
+      expect(부름).toHaveBeenCalledTimes(2);
       expect(부름).toHaveBeenCalledWith(7, 11);
-      expect(screen.getByText('로그인된 상태')).toBeTruthy();
-      expect(screen.getByText('가입 완료 안내가 보인다')).toBeTruthy();
-      expect(screen.getByText('가입한 이메일이 보인다')).toBeTruthy();
+      expect(부름).toHaveBeenCalledWith(7, 13);
+      expect(screen.getAllByText('가입 버튼을 누른다')).toHaveLength(2);
+      expect(screen.getAllByText('가입한 이메일이 보인다')).toHaveLength(2);
+      expect(screen.getAllByTestId('rr-dev-head').map((h) => h.textContent)).toEqual([
+        expect.stringContaining('PC'),
+        expect.stringContaining('모바일'),
+      ]);
     });
 
-    it('다시 누르면 접히고 또 누르면 다시 부르지 않는다', async () => {
+    it('접고 다시 펴도 상세를 다시 부르지 않는다', async () => {
       const 부름 = vi.spyOn(api, 'item').mockResolvedValue(상세(항목(1, 'desktop', 'PASS')));
-      그린다([항목(1, 'desktop', 'PASS')]);
-      const 버튼 = screen.getByRole('button', { name: /ZZW-0001.*PC/ });
+      그린다([항목(1, 'desktop', 'PASS'), 항목(2, 'mobile', 'PASS')]);
+      const 버튼 = screen.getByRole('button', { name: /ZZW-0001/ });
 
       fireEvent.click(버튼);
-      await screen.findByText('가입 버튼을 누른다');
+      await screen.findAllByText('가입 버튼을 누른다');
       fireEvent.click(버튼);
       expect(버튼.getAttribute('aria-expanded')).toBe('false');
       fireEvent.click(버튼);
       expect(버튼.getAttribute('aria-expanded')).toBe('true');
-      expect(부름).toHaveBeenCalledTimes(1);
+      expect(부름).toHaveBeenCalledTimes(2);
     });
 
-    it('못 불러오면 그 줄 안에 오류 한 줄을 적는다', async () => {
-      vi.spyOn(api, 'item').mockRejectedValue(new Error('상세를 못 읽었습니다'));
-      그린다([항목(1, 'desktop', 'PASS')]);
+    it('한 디바이스를 못 불러오면 그 자리에 오류 한 줄을 적고 다른 디바이스는 그린다', async () => {
+      vi.spyOn(api, 'item').mockImplementation((_run, id) =>
+        id === 1 ? Promise.reject(new Error('상세를 못 읽었습니다')) : Promise.resolve(상세(항목(2, 'mobile', 'PASS'))),
+      );
+      그린다([항목(1, 'desktop', 'PASS'), 항목(2, 'mobile', 'PASS')]);
 
-      fireEvent.click(screen.getByRole('button', { name: /ZZW-0001.*PC/ }));
+      fireEvent.click(screen.getByRole('button', { name: /ZZW-0001/ }));
 
       expect(await screen.findByText('상세를 못 읽었습니다')).toBeTruthy();
+      expect(await screen.findByText('가입 버튼을 누른다')).toBeTruthy();
     });
 
-    it('지원하지 않는 디바이스 칸에는 펼치기 버튼이 없다', () => {
+    it('지원하지 않는 디바이스는 패널에 머리도 호출도 없다', async () => {
+      const 부름 = vi.spyOn(api, 'item').mockResolvedValue(상세(항목(1, 'desktop', 'PASS')));
       그린다([항목(1, 'desktop', 'PASS')]);
 
-      expect(screen.queryByRole('button', { name: /ZZW-0001.*모바일/ })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: /ZZW-0001/ }));
+
+      await screen.findByText('가입 버튼을 누른다');
+      expect(screen.getAllByTestId('rr-dev-head')).toHaveLength(1);
+      expect(부름).toHaveBeenCalledTimes(1);
     });
 
     it('상세 링크는 그대로 있다', () => {
