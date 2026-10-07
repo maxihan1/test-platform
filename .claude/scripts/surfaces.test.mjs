@@ -134,3 +134,10 @@ test('배포 설정값 목록도 3등급 — 미분류로 새면 안 된다 (202
   assert.equal(detectTier(['.env.example']).tier, 3);
   assert.deepEqual(detectTier(['.env.example']).unmapped, []);
 });
+
+test('하위 폴더의 CLAUDE.md 도 HARNESS 다 — DOC(*.md)나 미분류로 새면 안 된다', () => {
+  assert.equal(surfaceOf('apps/admin/CLAUDE.md')?.name, 'HARNESS');
+  assert.equal(surfaceOf('CLAUDE.md')?.name, 'HARNESS');
+  assert.equal(detectTier(['apps/admin/CLAUDE.md']).tier, 1);
+  assert.deepEqual(detectTier(['apps/admin/CLAUDE.md']).unmapped, []);
+});
