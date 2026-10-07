@@ -13,7 +13,7 @@ export interface RenderOptions {
 }
 
 /** 화면 표기는 PC / 모바일이다. desktop / mobile 은 코드 안에서만 쓴다 (SPEC §2 · web/ui.tsx) */
-const 디바이스: Record<EvidenceItem['platform'], string> = { desktop: 'PC', mobile: '모바일' };
+const 디바이스: Record<EvidenceItem['platform'], string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 
 // html.ts 의 같은 표와 낱말이 어긋나면 한 문서의 두 형식이 다른 말을 한다. 고칠 때 둘을 같이 고친다
 const 판정글자: Record<EvidenceItem['status'], string> = {

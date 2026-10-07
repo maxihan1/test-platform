@@ -19,7 +19,7 @@ const executeRequest = z.object({
   runId: z.number(),
   historyId: z.number(),
   tcId: z.string(),
-  platform: z.enum(['desktop', 'mobile']),
+  platform: z.enum(['desktop', 'mobile', 'android']),
   filePath: z.string(),
   baseUrl: z.string(),
   params: z.record(z.string(), z.unknown()),

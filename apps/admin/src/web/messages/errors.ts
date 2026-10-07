@@ -96,6 +96,11 @@ export const 오류영어: Record<string, string> = {
   '이 반영의 겹침 목록에 없는 케이스입니다. 새로 고쳐 보세요': 'This case is not in the overlap list of this merge. Refresh the page',
   '반영이 대기 중이거나 진행 중이라 지금은 고를 수 없습니다': 'A merge is queued or running, so you cannot decide now',
 
+  // Android 앱 실행
+  '이 서버에는 Android 앱을 돌릴 로컬 러너가 연결되어 있지 않습니다': 'This server has no local runner for Android apps',
+  '디바이스 팜은 아직 준비 중입니다': 'The device farm is not available yet',
+  '디바이스가 다른 실행에 쓰이고 있습니다': 'The device is being used by another run',
+
   // E2E 시나리오
   '그 시나리오를 찾지 못했습니다': 'We could not find that scenario',
   '목록에서 치운 시나리오라 고치거나 실행할 수 없습니다': 'This scenario was archived, so it cannot be edited or run',

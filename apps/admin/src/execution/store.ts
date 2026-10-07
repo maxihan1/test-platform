@@ -12,7 +12,7 @@ import { 실행종류 } from './runKind.js';
 export const DEFAULT_TIMEOUT_MS = 300_000;
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
-const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일' };
+const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 
 // 요청이 잘못된 것과 서버가 고장난 것을 라우트가 문자열로 가려내지 않게 한다
 export class RunInputError extends Error {
@@ -356,14 +356,15 @@ export async function abortRun(runId: number): Promise<AbortResult | null | 'SCE
 }
 
 // 아직 끝나지 않은 항목의 historyId. 러너에 끊어 달라고 할 대상이다 (SPEC §5.2).
-// 대기 중인지 도는 중인지 DB로는 갈리지 않으므로 전부에 보낸다 — 러너가 모르는 것은 false를 돌려준다
-export async function unfinishedItems(runId: number): Promise<number[]> {
+// 대기 중인지 도는 중인지 DB로는 갈리지 않으므로 전부에 보낸다 — 러너가 모르는 것은 false를 돌려준다.
+// platform 은 맡은 러너를 고르는 데 쓴다 (SPEC 실행 §7)
+export async function unfinishedItems(runId: number): Promise<{ historyId: number; platform: Platform }[]> {
   const pool = await db();
-  const rows = await pool.query<{ history_id: string }>(
-    'SELECT history_id FROM run_item WHERE run_id = $1 AND finished_at IS NULL',
+  const rows = await pool.query<{ history_id: string; platform: Platform }>(
+    'SELECT history_id, platform FROM run_item WHERE run_id = $1 AND finished_at IS NULL',
     [runId],
   );
-  return rows.rows.map((r) => Number(r.history_id));
+  return rows.rows.map((r) => ({ historyId: Number(r.history_id), platform: r.platform }));
 }
 
 // 재기동으로 분배기가 사라지면 그 항목들은 영원히 끝나지 않아 FINISHED 조건이 결코 만족되지 않는다.

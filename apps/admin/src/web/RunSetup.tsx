@@ -8,6 +8,7 @@ import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { 케이스서비스, 할수있나 } from './role.js';
 import { 넘었나, 상한, 항목수 } from './runPlan.js';
+import { RunLocation } from './RunLocation.js';
 import { 저장값버튼들, 저장값표시 } from './SavedInputBar.js';
 import { TestRun } from './TestRun.js';
 import { initialText, schemaToFields, toValues } from './schema.js';
@@ -131,6 +132,7 @@ export function RunSetup({ tcId, service, user }: Props) {
         // 화면이 세는 것과 같은 값을 보낸다. 소수를 그대로 보내면 서버의 z.number().int() 가 400 을 낸다
         repeat: Math.max(1, Math.floor(Number(repeat) || 1)),
         notifySlack,
+        ...(platforms.includes('android') ? { location: 'local' as const } : {}),
         items: [{ tcId: row.tcId, platforms, params, expected }],
       });
       window.location.hash = `#/runs/${runId}`;
@@ -255,6 +257,7 @@ export function RunSetup({ tcId, service, user }: Props) {
             </label>
           ))}
         </div>
+        <RunLocation android={platforms.includes('android')} />
         <div className="field" style={{ marginTop: '10px' }}>
           <label htmlFor="run-env">{t('대상 서버')}</label>
           <div>

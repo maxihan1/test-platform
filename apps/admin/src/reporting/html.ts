@@ -12,7 +12,7 @@ export interface RenderOptions {
 }
 
 /** 화면 표기는 PC / 모바일이다. desktop / mobile 은 코드 안에서만 쓴다 (SPEC §2 · web/ui.tsx) */
-const 디바이스: Record<EvidenceItem['platform'], string> = { desktop: 'PC', mobile: '모바일' };
+const 디바이스: Record<EvidenceItem['platform'], string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 
 /** 판정 색은 통과 초록 · 실패 빨강 · 미실행 회색 셋뿐이다 (docs/DESIGN.md 「색은 판정만 갖는다」) */
 const 판정색: Record<EvidenceItem['status'], string> = {

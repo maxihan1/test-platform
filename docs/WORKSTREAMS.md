@@ -20,6 +20,28 @@
 그 문서의 **「시작 전에 풀어야 할 것」** 절은 **셋 다 풀렸지만 지우지 않았다** —
 무엇이 왜 막고 있었는지가 다음에 같은 자리를 만날 때 판단 재료다.
 
+## 📐 Appium(모바일 앱) — 로컬 실기기 러너(PR #171) · 실행 통로와 실행 위치(PR #174) 섰다, 남은 것은 갈래별 후속
+
+Android 앱 케이스(`platforms: ['android']`)를 **맥에 USB 로 연결한 폰**에서 Appium 으로 돌린다. 디바이스 팜(원격 폰 서비스)은 사용자가 따로 개발 중이다.
+**정본은 [`docs/spec/도메인/러너.md`](spec/도메인/러너.md) §5.2 「앱 실행 — Android · Appium (2026-10-07)」 한 곳이다.** 0단계 시험 기록은 [`docs/plans/2026-10-07-appium-시험.md`](plans/2026-10-07-appium-시험.md)(PR #170).
+돌리는 법은 [`docs/SETUP.md`](SETUP.md) §15 다. **관리 화면에서 정식 실행 · 테스트 실행으로 돌린다**(PR #174) — 실행 위치 「로컬」, 결과는 **폰을 꽂은 맥에 관리 서버 · DB · 로컬 러너를 같이 띄운 판**에만 쌓인다. 규칙 정본은 [`docs/spec/도메인/실행.md`](spec/도메인/실행.md) §3.2 · §7 이다.
+
+1. ✅ **로컬 실기기 러너 + 연습용 케이스 (PR #171, 2026-10-07)** — kit `defineCase` 의 android 케이스가 러너 환경값(`PLATFORM_APPIUM_URL` · `PLATFORM_APP` · `PLATFORM_DEVICE_UDID`)으로 Appium 에 붙는다 · 러너 `POST /execute` 가 `platform: "android"` 를 받는다 · K5 · `tests/mda/MDA-FN-001.spec.ts`(갤럭시 S21+ 실측 통과). 첫 연결의 시간은 못 쟀다(첫 실행이 시간 초과면 한 번 더)
+2. ✅ **실행 통로가 android 를 받는다 · 실행 위치 고르개 (PR #174, 2026-10-07)** — `POST /api/runs` 의 `location`(android 가 있으면 필수 · `FARM_OFF` · `LOCAL_OFF`) · 테스트 실행 android · 화면 「로컬 / 디바이스 팜(준비 중)」 · 결과 칸은 그 실행에 든 디바이스 · 정기 실행은 android 를 뺀다 · compose `PLATFORM_ARTIFACTS_VOLUME`
+3. ✅ **폰마다 한 번에 하나 (PR #174)** — android 항목은 전역 동시성 밖의 디바이스 줄 · 테스트 실행은 `DEVICE_BUSY`. 잠금은 admin 메모리 하나 — 재기동이면 사라진다(러너 §5.2 한계)
+4. ✅ **러너가 끊을 때 Appium 연결 닫기 (PR #174)** — kit 이 연결 번호 파일을 쓰고 러너가 끝난 뒤 지운다. 연결이 열리는 도중에 끊은 것만 남을 수 있다(러너 §5.2 한계 · 실측에서는 안 남음)
+5. ⬜ **WS-E** 엔진 고르개(L16) · 대상 서버마다 다른 앱 파일 (라벨 「Android 앱」과 실행 위치 고르개는 PR #174 가 했다)
+6. ⬜ **WS-A** 카탈로그 `?platform=` 이 android 를 받는다(`docs/spec/도메인/카탈로그.md` §7)
+7. ⬜ **WS-D** 증적 머리에 기기 모델 · 앱 버전 · 스크린샷 한 장 약 0.5MB 와 보관(L6)
+8. ⬜ **WS-작성** 앱 화면 읽기 mobilecli 들이기(승인 필요)
+9. ⬜ **디바이스 팜 접속 방식 확인** — 붙이면 [`러너.md`](spec/도메인/러너.md) §5.2 「디바이스 팜이 붙으면 걷을 것」을 걷는다: `location` 의 `'local'` · `LOCAL_OFF` · android → 로컬 분기 · 고르개 「로컬」 · **정기 실행 android 되살리기**. 로컬은 테스트 실행 전용이 된다(2026-10-07 게이트 0 사용자)
+10. ⬜ **WS-B 팜 전에 막을 것 둘 (PR #174 보안 검사)** — 정식 실행이 요청 디바이스를 케이스 선언과 대조하지 않는다(앱 케이스를 `['desktop']` 으로 보내면 위치 검사 · 디바이스 줄을 건너뛴다) · `timeoutMs` 상한이 없어 디바이스 잠금을 오래 쥘 수 있다. 진행판 `APP-F1-07`
+
+**코드에 박힌 값은 개수 대신 명령으로 센다** — 시나리오 쪽은 브라우저 전용이라 그대로가 맞다.
+```bash
+grep -rn "'desktop', 'mobile'" apps packages | grep -v '\.test\.ts'
+```
+
 ## 📐 테스트 두 갈래 — UI Test · Functional Test (2026-10-02, 지침 · 명세 PR #128 ✅)
 
 작성 에이전트가 케이스를 UI Test(조작 없이 화면 구성)와 Functional Test(조작으로 생긴 결과 · 근거 넷에 적힌 예외 · 경계만)로 나눠 쓴다.
@@ -504,7 +526,7 @@ CLAUDE.md와 SPEC 중 아래 5장을 읽어줘. 너는 WS-B(실행) 담당이다
    - 요청의 platforms 배열 길이만큼 run_item을 만든다 (케이스 1건 × 디바이스 2개 = 2행)
    - params/expected는 반드시 스냅샷으로 복사 저장 (param_set 참조 금지)
    - tc_name, precondition도 스냅샷
-2. 디스패처 — 동시성 2로 제한해 러너의 POST /execute를 동기 호출
+2. 디스패처 — 동시성 2로 제한해 러너의 POST /execute를 동기 호출. **Android 앱 항목은 그 상한 밖의 디바이스 줄에서 한 번에 하나**(실행 §3.2, 2026-10-07 PR #174)
    - 응답을 run_item / run_item_step에 저장
    - 러너가 죽거나 타임아웃이면 해당 항목만 NA로 기록하고 나머지는 계속
 3. GET /api/runs, /api/runs/:runId, /api/runs/:runId/items/:historyId
@@ -603,6 +625,8 @@ B. **바깥에서 끊을 통로를 낸다** (§5.2 · §3.4). 끊는 코드(kill
 C. **자동 재시도를 켜지 마라.** retries는 0 고정이다 (§5.2). playwright.config.ts는
    contracts 단위가 고치니 러너가 그 값을 덮어쓰지 않게만 한다
 D. **러너는 DB를 여전히 모른다.** 이 규칙 하나가 §5.3의 모든 이음새를 떠받친다 (§3.4)
+
+Android 앱 실행은 섰다(PR #171). 정본은 러너 §5.2 「앱 실행」이고 남은 것은 맨 위 「📐 Appium」 판이다.
 
 2026-09-21 에 **절차 단위 진행**이 들어왔다. 이미 만들어져 있으니 고칠 때 아래를 깨뜨리지 마라.
 E. **★ 리포터의 onStdOut 은 계약의 일부다** (SPEC §5.2). 케이스 코드는 Playwright **워커**에서 돌고

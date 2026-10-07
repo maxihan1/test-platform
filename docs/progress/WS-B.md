@@ -147,3 +147,12 @@ curl -X POST localhost:3000/api/runs/<끝난RUN>/abort   # 409 NOT_RUNNING
 - 다음 세션이 알아야 할 것: 진입점 `scenario/trialRoutes.ts` → `scenario/trial.ts` `시험시작`. 보관소는 `execution/trial.ts` 에 두 인스턴스(케이스 `DONE` · 시나리오 `FINISHED`). DB 검사 접두사 `XST` · `XSTR`
 - 게이트 2 「고치고 재검사」: 24시간 지난 번호는 읽을 때도 없는 것(케이스 테스트 실행도 같이 — 옛 검사 한 줄이 「24시간 1초 뒤에도 읽힌다」를 단언해 바꿨다) · 옛 폴더 치우기가 먼저 지워진 것 하나에 멈추지 않게(동시 삭제는 재현이 어려워 검사 없음)
 - 일부러 망가뜨려 본 것(전부 빨강이 됐다): ① 문이 시험의 서비스를 안 모음 → `gate.test.ts` 「내 시험이어도 배정 없으면 403」 ② 문이 남의 번호에도 서비스를 모음 → 「남의 번호를 문이 지나보낸다」 ③ 보관소가 주인을 안 봄 → 보관소 2건 · 통로 「남의 시험 404」 1건
+
+## 2026-10-07 — Appium 실행 통로 (PR #174, APP-F1-02)
+
+- 완료: `POST /api/runs` 가 android 와 `location`(android 가 있으면 필수 · `farm` 409 `FARM_OFF` · `LOCAL_RUNNER_URL` 비면 409 `LOCAL_OFF` — 실행을 만들기 전에 거절) · android 항목은 로컬 러너로, 전역 동시성 밖 디바이스 줄(`phone.ts`)에서 하나씩 · 중단은 `run_item.platform` 으로 맡은 러너에만 · 진행은 두 러너 합침 · 케이스 테스트 실행 android + `DEVICE_BUSY` · 정기 실행은 android 를 뺀다 · kit 연결 번호 파일 + 러너가 끝난 뒤 `DELETE /session`(10초) · compose `PLATFORM_ARTIFACTS_VOLUME` · 화면 고르개 「로컬 / 디바이스 팜(준비 중)」(사용자 시안 A) · 결과 칸은 그 실행에 든 디바이스
+- 미완: `APP-F1-07`(디바이스 팜 전에 — 요청 디바이스를 케이스 선언과 대조 · `timeoutMs` 상한, 보안 검사 주의 둘) · APP-F1-03~06
+- 막힌 것: 없음
+- 다음 세션이 알아야 할 것: 로컬 정식 실행은 **디바이스 팜 전까지의 임시 길**(게이트 0 사용자) — 팜이 붙으면 걷을 목록은 러너 §5.2 「디바이스 팜이 붙으면 걷을 것」. 결과는 맥에 admin · DB · 로컬 러너 · 폰을 같이 띄운 판에만 쌓인다(게이트 1 「맥 판이면 된다」). 진입점 `execution/location.ts`(`runBody` · `실행위치를본다` · `앱케이스를뺀다`) · `execution/phone.ts` · `execution/runner.ts` 「러너주소」 · 러너 `appSession.ts`. 새 오류 코드의 detail 은 화면 문장과 겹치지 않게(LEARNINGS 2026-10-07)
+- 실기기(갤럭시 S21+, 임시 DB `tp_appium`): 정식 실행 통과 8~10초 · 반복 2 겹침 없음 · 멈추면 연결 바로 닫힘 · 여는 도중 멈춰도 다음 실행 통과 · DEVICE_BUSY 안내 · 여러 건 창 고르개
+- 일부러 망가뜨려 본 것(전부 빨강이 됐다): ① 디바이스 줄 끄기 → `dispatcher.test.ts` 3건 ② 러너 연결 닫기 끊기 → `execute.test.ts` 3건 ③ `finishRun` 을 먼저 부르기 → 새 순서 단언 2건

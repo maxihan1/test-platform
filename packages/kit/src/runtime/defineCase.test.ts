@@ -43,6 +43,32 @@ describe('defineCase', () => {
     expect(spec.platforms).toEqual(['desktop']);
   });
 
+  it('android 하나만 선언하면 그대로 android 하나로 남는다', () => {
+    const spec = defineCase({
+      tcId: 'DEMO-004',
+      name: '앱 케이스',
+      platforms: ['android'],
+      precondition: [],
+      params: null,
+      expected: null,
+    });
+
+    expect(spec.platforms).toEqual(['android']);
+  });
+
+  it('android 를 다른 디바이스와 섞으면 던진다', () => {
+    expect(() =>
+      defineCase({
+        tcId: 'DEMO-005',
+        name: '섞인 케이스',
+        platforms: ['android', 'desktop'],
+        precondition: [],
+        params: null,
+        expected: null,
+      }),
+    ).toThrow('DEMO-005: android 는 다른 디바이스와 함께 선언하지 않는다');
+  });
+
   it('없다고 적은 자리는 빈 객체 스키마가 된다', () => {
     const spec = defineCase({
       tcId: 'DEMO-003',

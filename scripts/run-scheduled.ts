@@ -6,6 +6,7 @@
 import { listCases } from '../apps/admin/src/catalog/store.js';
 import { pool } from '../apps/admin/src/db/index.js';
 import { dispatch } from '../apps/admin/src/execution/dispatcher.js';
+import { 앱케이스를뺀다 } from '../apps/admin/src/execution/location.js';
 import { 종류별로나눈다 } from '../apps/admin/src/execution/runKind.js';
 import { createRun, MAX_ITEMS, RunInputError } from '../apps/admin/src/execution/store.js';
 
@@ -32,7 +33,17 @@ try {
     process.exit(1);
   }
 
-  const items = 목록.items.map((c) => ({
+  // 실행 위치를 고를 사람이 없고, 이 프로세스는 admin 과 달라 디바이스 잠금을 같이 못 본다
+  const { 남은, 뺀수 } = 앱케이스를뺀다(목록.items);
+  if (뺀수 > 0) {
+    console.log(`android 케이스 ${String(뺀수)}건은 정기 실행에서 뺐다 — 디바이스 팜이 붙기 전까지 (SPEC 공통/6-인프라 §9.2)`);
+  }
+  if (남은.length === 0) {
+    console.log(`${prefix} 서비스에 정기 실행으로 돌릴 케이스가 없어 실행을 만들지 않았다`);
+    process.exit(0);
+  }
+
+  const items = 남은.map((c) => ({
     tcId: c.tcId,
     platforms: c.platforms,
     // 빈 칸으로 보낸다. 요청에 없는 칸은 createRun 이 케이스 저장값(case_input)으로 채우고, 그것도 없으면

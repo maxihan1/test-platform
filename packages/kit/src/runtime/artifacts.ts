@@ -14,11 +14,28 @@ export interface ShotPath {
   recorded: string;
 }
 
+// 킷이 쓰는 파일과 러너가 찾는 파일이 한 폴더를 가리켜야 한다. 경로를 두 곳에서 계산하면 어긋날 때 조용히 못 닫는다
+export function runDir(runId: string, historyId: string): string {
+  return resolve(artifactsDir(), 'runs', runId, historyId);
+}
+
 export async function shotPath(seq: number): Promise<ShotPath> {
   const runId = process.env.PLATFORM_RUN_ID ?? '0';
   const historyId = process.env.PLATFORM_HISTORY_ID ?? '0';
   const recorded = `artifacts/runs/${runId}/${historyId}/${seq}.png`;
-  const absolute = resolve(artifactsDir(), `runs/${runId}/${historyId}/${seq}.png`);
+  const absolute = resolve(runDir(runId, historyId), `${seq}.png`);
   await mkdir(dirname(absolute), { recursive: true });
   return { absolute, recorded };
+}
+
+// 스크린샷이 실패해도 판정은 남겨야 한다. 대신 왜 없는지는 알린다. 브라우저·앱이 저장 방법만 다르게 넘긴다
+export async function saveShot(seq: number, save: (absolute: string) => Promise<unknown>): Promise<string | undefined> {
+  try {
+    const { absolute, recorded } = await shotPath(seq);
+    await save(absolute);
+    return recorded;
+  } catch (err) {
+    console.error(`[kit] ${seq}번 절차 스크린샷 실패: ${err instanceof Error ? err.message : String(err)}`);
+    return undefined;
+  }
 }

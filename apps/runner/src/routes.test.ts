@@ -7,7 +7,7 @@ import type { ScenarioExecuteResponse, StepProgress } from '@platform/kit';
 import Fastify from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { running, 진행을_모은다, type Running } from './execute.js';
+import { execute, running, 진행을_모은다, type Running } from './execute.js';
 import { killTree } from './kill.js';
 import { registerRoutes } from './routes.js';
 import { executeScenario } from './scenario.js';
@@ -15,6 +15,11 @@ import { executeScenario } from './scenario.js';
 // 입구가 실행에 무엇을 넘기는지만 본다. 진짜 실행은 자식 프로세스와 브라우저를 띄운다
 vi.mock('./scenario.js', () => ({
   executeScenario: vi.fn(async (): Promise<ScenarioExecuteResponse> => ({ status: 'PASS', durationMs: 0, parts: [] })),
+}));
+
+vi.mock('./execute.js', async (원본) => ({
+  ...(await 원본<typeof import('./execute.js')>()),
+  execute: vi.fn(async () => ({ status: 'PASS', durationMs: 0 })),
 }));
 
 function 서버() {
@@ -62,6 +67,20 @@ describe('POST /execute', () => {
 
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toBe('INVALID_REQUEST');
+  });
+
+  it('android 를 받는다 — 브라우저가 아니라 폰에 붙는 종류도 같은 입구를 지난다', async () => {
+    const res = await 서버().inject({
+      method: 'POST',
+      url: '/execute',
+      payload: {
+        runId: 1, historyId: 1, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+        baseUrl: 'https://qa.example.com', params: {}, expected: {},
+      },
+    });
+
+    expect(res.statusCode).not.toBe(400);
+    expect(execute).toHaveBeenCalledWith(expect.objectContaining({ platform: 'android' }), expect.any(String));
   });
 });
 
@@ -185,6 +204,7 @@ describe('POST /execute-scenario — 입구 검사', () => {
 
   it.each([
     ['형태가 계약과 다르다', { runId: '숫자가 아니다' }],
+    ['android 는 브라우저 시나리오에 못 쓴다', { platform: 'android' }],
     ['시험 실행인데 trialId 가 없다', { runId: null }],
     ['trialId 가 UUID 가 아니다 — 사진 폴더 경로에 그대로 들어간다', { runId: null, trialId: '../../etc' }],
     ['대기가 60초를 넘는다', { parts: [{ kind: 'wait', ms: 60_001 }] }],

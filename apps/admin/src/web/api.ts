@@ -784,6 +784,8 @@ export const api = {
     repeat?: number;
     /** 끝났을 때 Slack 으로 알릴지. 기본 꺼짐 (SPEC §8.9) */
     notifySlack?: boolean;
+    /** Android 앱이 있으면 반드시 싣는다 — 없으면 서버가 400 을 낸다 (SPEC §8.2). 브라우저만이면 싣지 않는다 */
+    location?: 'local' | 'farm';
     items: RunRequestItem[];
     // 실행자는 싣지 않는다. 로그인한 세션에서 서버가 채운다 —
     // 보내는 쪽이 정할 수 있으면 아무 이름이나 적을 수 있어 증적이 증적이 아니게 된다 (SPEC §3.5)

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { ExecuteRequest, ExecuteResponse, ItemStatus, StepProgress } from '@platform/kit';
 
+import { 앱연결을닫는다 } from './appSession.js';
 import { killTree } from './kill.js';
 import { createProgressCollector } from './progress.js';
 import { parseResult, type RunnerResult } from './result.js';
@@ -130,6 +131,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         // 스크린샷을 artifacts/runs/{runId}/{historyId}/ 아래에 쌓으려면 kit이 두 값을 알아야 한다 (SPEC §9)
         PLATFORM_RUN_ID: String(req.runId),
         PLATFORM_HISTORY_ID: String(req.historyId),
+        // 상대 경로(runner:local 의 ./artifacts)면 러너와 자식(cwd: appRoot)이 서로 다른 폴더를 본다. 러너 cwd 기준으로 못 박아 넘긴다
+        PLATFORM_ARTIFACTS_DIR: resolve(process.env.PLATFORM_ARTIFACTS_DIR ?? 'artifacts'),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       // 타임아웃 때 브라우저까지 한 번에 끊으려면 자식이 자기 프로세스 그룹의 장이어야 한다 (kill.ts)
@@ -161,6 +164,10 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
     clearTimeout(timer);
     running.delete(req.historyId);
   });
+
+  // killedBy 와 상관없이 닫는다 — 정상 종료라도 kit 의 닫기가 실패했으면 번호 파일이 남는다.
+  // 답하기 전에 끝내야 admin 이 답을 받았을 때 팜의 디바이스가 이미 풀려 있다
+  if (req.platform === 'android') await 앱연결을닫는다(req.runId, req.historyId);
 
   if (entry.killedBy !== null) {
     return killedResponse(req.historyId, entry.killedBy, Date.now() - startedAt, stdout);

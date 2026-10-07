@@ -117,6 +117,23 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
       timeoutMs: 7000,
     });
   });
+
+  it("android 케이스에 location 'farm' 으로 실행하면 409 FARM_OFF 이고 test_run 이 안 생긴다", async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: {
+        title: 'XBR 진행 위치 거절',
+        env: 'qa',
+        location: 'farm',
+        items: [{ tcId: 'XBR-010', platforms: ['android'] }],
+      },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error).toBe('FARM_OFF');
+    const rows = await pool.query("SELECT 1 FROM test_run WHERE title = 'XBR 진행 위치 거절'");
+    expect(rows.rowCount).toBe(0);
+  });
 });
 
 describe.skipIf(연결 === undefined)('ParamSet API', () => {

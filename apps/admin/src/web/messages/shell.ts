@@ -49,6 +49,7 @@ export const 껍데기말: Record<string, string> = {
   실패: 'Fail',
   미실행: 'Not run',
   모바일: 'Mobile',
+  'Android 앱': 'Android app',
   '불러오는 중입니다.': 'Loading…',
   '없는 주소입니다.': 'Page not found.',
   '케이스 목록으로': 'Go to case list',

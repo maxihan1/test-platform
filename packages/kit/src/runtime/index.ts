@@ -4,5 +4,6 @@ export { defineCase, type CaseHandle, type CaseSchema, type DefineCaseInput } fr
 export { test, type CaseBody, type CaseBodyArgs } from './test.js';
 export { verify, type VerifyOptions } from './verify.js';
 export { type StepOptions } from './step.js';
-export { RESULT_MARKER, PROGRESS_MARKER } from './protocol.js';
+export { RESULT_MARKER, PROGRESS_MARKER, APPIUM_SESSION_FILE } from './protocol.js';
+export { runDir } from './artifacts.js';
 export { 진행줄 } from './progress.js';

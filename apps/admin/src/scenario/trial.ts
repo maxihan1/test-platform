@@ -3,7 +3,7 @@
 import { lstat, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { Platform, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
+import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { findService } from '../catalog/store.js';
@@ -35,7 +35,7 @@ export class 시험시작오류 extends Error {
 export interface 시험본문 {
   service: string;
   env: string;
-  platform: Platform;
+  platform: BrowserPlatform;
   parts: ScenarioPart[];
 }
 

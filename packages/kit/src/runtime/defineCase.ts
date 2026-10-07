@@ -57,6 +57,11 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
   Error.captureStackTrace(here, defineCase);
   const file = callerFile(here);
 
+  // 앱 케이스는 브라우저 러너가 아닌 Appium 러너로 가므로 한 선언에 섞으면 어느 러너로 보낼지 정할 수 없다
+  if (input.platforms?.includes('android') && input.platforms.length > 1) {
+    throw new Error(`${input.tcId}: android 는 다른 디바이스와 함께 선언하지 않는다`);
+  }
+
   const spec: CaseSpec = {
     tcId: input.tcId,
     name: input.name,

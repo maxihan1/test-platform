@@ -7,8 +7,18 @@ import { t, use말, use언어, type 언어 } from './i18n.js';
 import { ApiError, type ItemStatus, type Platform } from './api.js';
 import { 요청오류문장 } from './errorText.js';
 
-export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일' };
+export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 export const PLATFORMS: Platform[] = ['desktop', 'mobile'];
+
+/**
+ * 결과 칸과 디바이스 칩이 그 실행에 든 디바이스를 따르게 한다 (도메인/실행 §8.3).
+ * 브라우저 칸은 한쪽만 돌았어도 둘 다 둔다 — 「PC 는 되는데 모바일만 깨짐」이 한 줄에서 보여야 한다.
+ */
+export function 실행디바이스들(items: { platform: Platform }[]): Platform[] {
+  const 앱 = items.some((it) => it.platform === 'android');
+  const 브라우저 = !앱 || items.some((it) => it.platform !== 'android');
+  return [...(브라우저 ? PLATFORMS : []), ...(앱 ? (['android'] as Platform[]) : [])];
+}
 
 export const STATUS_LABEL: Record<ItemStatus, string> = { PASS: '통과', FAIL: '실패', NA: '미실행' };
 const STATUS_CLASS: Record<ItemStatus, string> = { PASS: 'v-pass', FAIL: 'v-fail', NA: 'v-na' };

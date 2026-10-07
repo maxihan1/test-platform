@@ -1,6 +1,6 @@
 // 시나리오 실행을 만든다 — 최신 버전으로 test_run(SCENARIO) 한 행과 부품마다 NA 행을 세우고 러너 요청을 돌려준다 (SPEC 도메인/시나리오 §3.7 · §7)
 
-import type { Platform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
+import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
 
 import { 저장값을채운다 } from '../execution/savedInput.js';
@@ -36,7 +36,7 @@ interface 머리행 {
   tests_repo: string;
   service_active: boolean;
   version: number;
-  platform: Platform;
+  platform: BrowserPlatform;
   parts: ScenarioPart[];
 }
 
