@@ -115,7 +115,16 @@ describe('같은 사유로 실패 (SPEC §7 · §8.3 옆 칸)', () => {
   it('묶음마다 어느 케이스가 어느 디바이스에서 깨졌는지 한 줄로 이어 적는다', () => {
     그리기(비교({ 실패덩어리들: [덩어리('연결 시간 초과', [61, 62])] }));
 
-    expect(screen.getByText('ZZI-0007 장바구니 담기 (PC)')).toBeDefined();
+    expect(screen.getByText('ZZI-0007 PC')).toBeDefined();
+  });
+
+  it('항목은 케이스 이름 없이 TC ID 와 디바이스만, 같은 것은 한 번씩 적는다', () => {
+    const 묶음 = 덩어리('연결 시간 초과', [61, 62]);
+    묶음.항목들.push({ historyId: 63, tcId: 'ZZI-0008', tcName: '결제', platform: 'mobile' as Platform });
+    그리기(비교({ 실패덩어리들: [묶음] }));
+
+    expect(screen.queryByText(/장바구니 담기/)).toBeNull();
+    expect(screen.getByText('ZZI-0007 PC · ZZI-0008 모바일')).toBeDefined();
   });
 
   it('묶음이 없으면 칸 제목도 없다', () => {

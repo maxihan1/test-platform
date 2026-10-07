@@ -142,6 +142,20 @@ describe('실패 케이스 카드 (실행 §8.3)', () => {
     expect(within(카드들[1]!).getByText('가입한 계정')).toBeDefined();
   });
 
+  it('사전조건은 하나씩 서로 다른 목록 항목이다', async () => {
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1, {}, { precondition: ['사이트에 접근할 수 있다', '목록이 비어 있다'] })])]),
+      [줄(1, 'ZZI-0001', 'desktop', 'FAIL')],
+    );
+
+    const 카드 = within(await screen.findByRole('article'));
+    const 첫째 = 카드.getByText('사이트에 접근할 수 있다').closest('li');
+    const 둘째 = 카드.getByText('목록이 비어 있다').closest('li');
+    expect(첫째).not.toBeNull();
+    expect(둘째).not.toBeNull();
+    expect(첫째).not.toBe(둘째);
+  });
+
   it('입력 칸이 비어 박제되면 박제 스키마의 default 로, 비밀값은 가려서 적는다', async () => {
     그리기(
       쪽([
