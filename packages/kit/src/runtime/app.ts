@@ -2,7 +2,7 @@
 
 import type { Browser } from 'webdriverio';
 
-import { shotPath } from './artifacts.js';
+import { saveShot } from './artifacts.js';
 
 export type AppDriver = Browser;
 
@@ -49,14 +49,6 @@ export async function openApp(env: Env): Promise<AppDriver> {
   });
 }
 
-export async function captureApp(driver: AppDriver, seq: number): Promise<string | undefined> {
-  try {
-    const { absolute, recorded } = await shotPath(seq);
-    await driver.saveScreenshot(absolute);
-    return recorded;
-  } catch (err) {
-    // 스크린샷이 실패해도 판정은 남겨야 한다. 대신 왜 없는지는 알린다
-    console.error(`[kit] ${seq}번 절차 스크린샷 실패: ${err instanceof Error ? err.message : String(err)}`);
-    return undefined;
-  }
+export function captureApp(driver: AppDriver, seq: number): Promise<string | undefined> {
+  return saveShot(seq, (path) => driver.saveScreenshot(path));
 }

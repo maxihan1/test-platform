@@ -142,16 +142,40 @@ describe('test', () => {
     expect(driver.deleteSession).not.toHaveBeenCalled();
   });
 
-  it('본문이 던져도 fixture 정리가 열린 연결을 닫는다', async () => {
+  it('여는 중에 제한 시간이 끝나도 열린 뒤에 닫는다', async () => {
     test(androidSpec(), vi.fn());
+    let opened: (d: typeof driver) => void = () => {};
+    app.openApp.mockReturnValue(new Promise((resolve) => (opened = resolve)));
+
+    let finished = false;
+    const cleanup = pw.fixtures
+      .appSession({}, async (session) => {
+        void session.open();
+      })
+      .then(() => {
+        finished = true;
+      });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(finished).toBe(false);
+    expect(driver.deleteSession).not.toHaveBeenCalled();
+
+    opened(driver);
+    await cleanup;
+    expect(driver.deleteSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('여는 것이 실패했으면 닫기를 시도하지 않고 닫지 못했다고도 알리지 않는다', async () => {
+    test(androidSpec(), vi.fn());
+    app.openApp.mockRejectedValue(new Error('PLATFORM_APP 이 필요하다'));
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await pw.fixtures.appSession({}, async (session) => {
-      await session.open();
-      // 실제 Playwright 의 use 는 본문 예외로 거부되지 않는다. 본문 예외는 거기서 잡혀 시험 실패로만 남는다
-      await Promise.reject(new Error('본문이 던졌다')).catch(() => {});
+      await session.open().catch(() => {});
     });
 
-    expect(driver.deleteSession).toHaveBeenCalledTimes(1);
+    expect(driver.deleteSession).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
   });
 
   it('연결을 못 닫아도 판정을 덮지 않고 이유를 알린다', async () => {
@@ -175,6 +199,30 @@ describe('test', () => {
 
     const args = body.mock.calls[0][0] as { driver: unknown };
     expect(() => args.driver).toThrow('DEMO-B01은 브라우저 케이스라 driver 가 없다');
+  });
+
+  it('브라우저 케이스 인자는 펼쳐도 던지지 않고 driver 가 열거되지 않는다', async () => {
+    const body = vi.fn();
+    test(defineCase({ tcId: 'DEMO-B03', name: '브라우저', precondition: [], params: null, expected: null }), body);
+
+    await pw.registered[0]({ page: {}, request: {} }, { project: { name: 'desktop' } });
+
+    const args = body.mock.calls[0][0] as object;
+    expect(() => ({ ...args })).not.toThrow();
+    const { page: _page, ...rest } = args as { page: unknown };
+    expect(Object.keys(rest)).not.toContain('driver');
+    expect(Object.keys(args)).not.toContain('driver');
+  });
+
+  it('앱 케이스 인자도 펼쳐도 던지지 않고 page 가 열거되지 않는다', async () => {
+    const body = vi.fn();
+    test(androidSpec(), body);
+
+    await runApp('android');
+
+    const args = body.mock.calls[0][0] as object;
+    expect(() => ({ ...args })).not.toThrow();
+    expect(Object.keys(args)).not.toContain('page');
   });
 
   it('시나리오 부품 본문이 driver 를 꺼내면 던진다', async () => {

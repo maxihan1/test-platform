@@ -10,7 +10,7 @@ import {
 
 import type { StepResult } from '../types.js';
 import { captureApp, openApp, type AppDriver } from './app.js';
-import { shotPath } from './artifacts.js';
+import { saveShot } from './artifacts.js';
 import { runScope, type RunScope } from './context.js';
 import type { CaseHandle } from './defineCase.js';
 import { recordHttpTrace } from './http.js';
@@ -74,15 +74,7 @@ function traced(request: APIRequestContext): APIRequestContext {
 async function capture(page: Page, seq: number): Promise<string | undefined> {
   // 화면을 연 적이 없는 케이스는 찍어봐야 흰 그림만 남는다
   if (page.isClosed() || page.url() === 'about:blank') return undefined;
-  try {
-    const { absolute, recorded } = await shotPath(seq);
-    await page.screenshot({ path: absolute });
-    return recorded;
-  } catch (err) {
-    // 스크린샷이 실패해도 판정은 남겨야 한다. 대신 왜 없는지는 알린다
-    console.error(`[kit] ${seq}번 절차 스크린샷 실패: ${err instanceof Error ? err.message : String(err)}`);
-    return undefined;
-  }
+  return saveShot(seq, (path) => page.screenshot({ path }));
 }
 
 // desktop·mobile은 코드 안에서만 쓰는 값이다. 사람이 읽는 자리에는 PC·모바일로 적는다 (SPEC §8)
@@ -93,40 +85,24 @@ function platformLabel(project: string): string {
   return project;
 }
 
-function browserArgs<P, E>(
+// 없는 쪽(page / driver)은 꺼내면 던진다. 열거되면 `{ ...args }` 나 `({ page, ...rest })` 만 써도 터지므로 숨긴다
+function bodyArgs<P, E>(
   tcId: string,
-  page: Page,
   request: APIRequestContext,
-  params: P,
-  expected: E,
+  inputs: { params: P; expected: E },
+  side: { page: Page } | { driver: AppDriver },
 ): CaseBodyArgs<P, E> {
-  return {
-    page,
-    get driver(): AppDriver {
-      throw new Error(`${tcId}은 브라우저 케이스라 driver 가 없다`);
+  const [missing, message] =
+    'page' in side
+      ? ['driver', `${tcId}은 브라우저 케이스라 driver 가 없다`]
+      : ['page', `${tcId}은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다`];
+  const args = { request, params: inputs.params, expected: inputs.expected, ...side };
+  return Object.defineProperty(args, missing, {
+    get(): never {
+      throw new Error(message);
     },
-    request,
-    params,
-    expected,
-  };
-}
-
-function appArgs<P, E>(
-  tcId: string,
-  driver: AppDriver,
-  request: APIRequestContext,
-  params: P,
-  expected: E,
-): CaseBodyArgs<P, E> {
-  return {
-    get page(): Page {
-      throw new Error(`${tcId}은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다`);
-    },
-    driver,
-    request,
-    params,
-    expected,
-  };
+    enumerable: false,
+  }) as CaseBodyArgs<P, E>;
 }
 
 async function emit(testInfo: TestInfo, result: StepResult): Promise<void> {
@@ -167,7 +143,7 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       const inputs = resolveInputs(spec, { params, expected });
       await runScope.run(run, async () => {
         try {
-          await body(browserArgs(spec.tcId, page, traced(request), inputs.params, inputs.expected));
+          await body(bodyArgs(spec.tcId, traced(request), inputs, { page }));
         } catch (thrown) {
           if (!(thrown instanceof StopTest)) throw thrown;
         }
@@ -197,9 +173,17 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   const appTest = isApp
     ? base.extend<{ appSession: { open(): Promise<AppDriver> } }>({
         appSession: async ({}, use) => {
-          let driver: AppDriver | undefined;
-          await use({ open: async () => (driver ??= await openApp(process.env)) });
-          if (driver === undefined) return;
+          // 여는 중인 약속을 쥐어야 한다. 새 폰은 첫 연결에 도우미 앱을 깔아 오래 걸려, 열리는 도중 제한 시간이 오면 Appium 이 뒤늦게 세션을 만든다
+          let opening: Promise<AppDriver> | undefined;
+          await use({ open: () => (opening ??= openApp(process.env)) });
+          if (opening === undefined) return;
+          let driver: AppDriver;
+          try {
+            driver = await opening;
+          } catch {
+            // 여는 것이 실패했으면 닫을 세션이 없다. 오류는 이미 본문이 받아 시험 실패로 남았다
+            return;
+          }
           // 본문 안 finally 는 제한 시간에 걸리면 안 돈다. 정리 단계는 그 뒤에도 돈다
           try {
             await driver.deleteSession();
@@ -226,7 +210,8 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
 
   const execute = async (
     testInfo: TestInfo,
-    args: (inputs: { params: P; expected: E }) => CaseBodyArgs<P, E>,
+    request: APIRequestContext,
+    side: { page: Page } | { driver: AppDriver },
     captureStep: RunScope['capture'],
     inputs: { params: P; expected: E },
   ): Promise<void> => {
@@ -240,7 +225,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
 
     await runScope.run(run, async () => {
       try {
-        await body(args(inputs));
+        await body(bodyArgs(spec.tcId, traced(request), inputs, side));
       } catch (thrown) {
         // 멈춤 신호는 여기서 끝낸다. 진짜 예외는 Playwright가 위치까지 보여주도록 그대로 올린다
         if (!(thrown instanceof StopTest)) throw thrown;
@@ -254,14 +239,14 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
     appTest(spec.name, async ({ request, appSession }, testInfo) => {
       const inputs = prepare(testInfo);
       const driver = await appSession.open();
-      await execute(testInfo, (i) => appArgs(spec.tcId, driver, traced(request), i.params, i.expected), (seq) => captureApp(driver, seq), inputs);
+      await execute(testInfo, request, { driver }, (seq) => captureApp(driver, seq), inputs);
     });
     return;
   }
 
   base(spec.name, async ({ page, request }, testInfo) => {
     const inputs = prepare(testInfo);
-    await execute(testInfo, (i) => browserArgs(spec.tcId, page, traced(request), i.params, i.expected), (seq) => capture(page, seq), inputs);
+    await execute(testInfo, request, { page }, (seq) => capture(page, seq), inputs);
   });
 }
 
