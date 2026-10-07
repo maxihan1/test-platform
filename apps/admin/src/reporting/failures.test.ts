@@ -140,6 +140,8 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
     const 시나리오실행 = await 실행('XFC RS 시나리오', { kind: 'SCENARIO', 시나리오: [시나리오번호, 1], 시간전: 3 });
     await 항목(시나리오실행, 'RS', 'XFC-001', 'PASS');
 
+    const RE = await 실행('XFC RE 같은 시각', { 시간전: 2 });
+    await 항목(RE, 'RE', 'XFC-001', 'PASS');
     const RT = await 실행('XFC RT 이번', { 시간전: 2 });
     await 항목(RT, 'RT', 'XFC-001', 'FAIL', { attempt: 1, 검증문장: 개수문장, 비밀: true });
     await 항목(RT, 'RT', 'XFC-001', 'FAIL', { attempt: 2, 검증문장: 개수문장 });
@@ -149,6 +151,10 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
     await 항목(RT, 'RT', 'XFC-003', 'NA', { 오류: 'TIMEOUT' });
     await 항목(RT, 'RT', 'XFC-004', 'FAIL', { 미확정: true, 검증문장: '화면에서 본 문장' });
     await 항목(RT, 'RT', 'XFC-005', 'PASS');
+    await pool.query(
+      `UPDATE test_run SET started_at = (SELECT started_at FROM test_run WHERE run_id = $2) WHERE run_id = $1`,
+      [RE, RT],
+    );
 
     const RN = await 실행('XFC RN 이번 뒤', { 시간전: 1 });
     await 항목(RN, 'RN', 'XFC-001', 'PASS');
@@ -192,6 +198,13 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
     expect(데스크톱!.recent).toEqual(['FAIL', 'FAIL', 'FAIL', 'PASS']);
     expect(모바일!.recent).toEqual(['FAIL', 'PASS']);
     expect(결과.items[1]!.devices[0]!.recent).toEqual(['FAIL', 'PASS']);
+  });
+
+  it('이번 실행과 started_at 이 같은 다른 실행은 흐름 칸이 되지 않는다', async () => {
+    const 결과 = await 실패카드(실행번호['XFC RT 이번']!, 1);
+    const 데스크톱 = 결과.items[0]!.devices[0]!;
+    expect(데스크톱.recent).toEqual(['FAIL', 'FAIL', 'FAIL', 'PASS']);
+    expect(데스크톱.streak).toBe(3);
   });
 
   it('change 는 앞 실행과 견준 케이스 판정이고 연속 실패 수는 계속깨짐일 때만이다', async () => {
