@@ -29,12 +29,13 @@ Android 앱 케이스(`platforms: ['android']`)를 **맥에 USB 로 연결한 �
 1. ✅ **로컬 실기기 러너 + 연습용 케이스 (PR #171, 2026-10-07)** — kit `defineCase` 의 android 케이스가 러너 환경값(`PLATFORM_APPIUM_URL` · `PLATFORM_APP` · `PLATFORM_DEVICE_UDID`)으로 Appium 에 붙는다 · 러너 `POST /execute` 가 `platform: "android"` 를 받는다 · K5 · `tests/mda/MDA-FN-001.spec.ts`(갤럭시 S21+ 실측 통과). 첫 연결의 시간은 못 쟀다(첫 실행이 시간 초과면 한 번 더)
 2. ✅ **실행 통로가 android 를 받는다 · 실행 위치 고르개 (PR #174, 2026-10-07)** — `POST /api/runs` 의 `location`(android 가 있으면 필수 · `FARM_OFF` · `LOCAL_OFF`) · 테스트 실행 android · 화면 「로컬 / 디바이스 팜(준비 중)」 · 결과 칸은 그 실행에 든 디바이스 · 정기 실행은 android 를 뺀다 · compose `PLATFORM_ARTIFACTS_VOLUME`
 3. ✅ **폰마다 한 번에 하나 (PR #174)** — android 항목은 전역 동시성 밖의 디바이스 줄 · 테스트 실행은 `DEVICE_BUSY`. 잠금은 admin 메모리 하나 — 재기동이면 사라진다(러너 §5.2 한계)
-4. ✅ **러너가 끊을 때 Appium 연결 닫기 (PR #174)** — kit 이 연결 번호 파일을 쓰고 러너가 끝난 뒤 지운다. 연결이 열리는 도중에 끊은 것만 60초 남는다(러너 §5.2 한계)
+4. ✅ **러너가 끊을 때 Appium 연결 닫기 (PR #174)** — kit 이 연결 번호 파일을 쓰고 러너가 끝난 뒤 지운다. 연결이 열리는 도중에 끊은 것만 남을 수 있다(러너 §5.2 한계 · 실측에서는 안 남음)
 5. ⬜ **WS-E** 엔진 고르개(L16) · 대상 서버마다 다른 앱 파일 (라벨 「Android 앱」과 실행 위치 고르개는 PR #174 가 했다)
 6. ⬜ **WS-A** 카탈로그 `?platform=` 이 android 를 받는다(`docs/spec/도메인/카탈로그.md` §7)
 7. ⬜ **WS-D** 증적 머리에 기기 모델 · 앱 버전 · 스크린샷 한 장 약 0.5MB 와 보관(L6)
 8. ⬜ **WS-작성** 앱 화면 읽기 mobilecli 들이기(승인 필요)
 9. ⬜ **디바이스 팜 접속 방식 확인** — 붙이면 [`러너.md`](spec/도메인/러너.md) §5.2 「디바이스 팜이 붙으면 걷을 것」을 걷는다: `location` 의 `'local'` · `LOCAL_OFF` · android → 로컬 분기 · 고르개 「로컬」 · **정기 실행 android 되살리기**. 로컬은 테스트 실행 전용이 된다(2026-10-07 게이트 0 사용자)
+10. ⬜ **WS-B 팜 전에 막을 것 둘 (PR #174 보안 검사)** — 정식 실행이 요청 디바이스를 케이스 선언과 대조하지 않는다(앱 케이스를 `['desktop']` 으로 보내면 위치 검사 · 디바이스 줄을 건너뛴다) · `timeoutMs` 상한이 없어 디바이스 잠금을 오래 쥘 수 있다. 진행판 `APP-F1-07`
 
 **코드에 박힌 값은 개수 대신 명령으로 센다** — 시나리오 쪽은 브라우저 전용이라 그대로가 맞다.
 ```bash
@@ -525,7 +526,7 @@ CLAUDE.md와 SPEC 중 아래 5장을 읽어줘. 너는 WS-B(실행) 담당이다
    - 요청의 platforms 배열 길이만큼 run_item을 만든다 (케이스 1건 × 디바이스 2개 = 2행)
    - params/expected는 반드시 스냅샷으로 복사 저장 (param_set 참조 금지)
    - tc_name, precondition도 스냅샷
-2. 디스패처 — 동시성 2로 제한해 러너의 POST /execute를 동기 호출
+2. 디스패처 — 동시성 2로 제한해 러너의 POST /execute를 동기 호출. **Android 앱 항목은 그 상한 밖의 디바이스 줄에서 한 번에 하나**(실행 §3.2, 2026-10-07 PR #174)
    - 응답을 run_item / run_item_step에 저장
    - 러너가 죽거나 타임아웃이면 해당 항목만 NA로 기록하고 나머지는 계속
 3. GET /api/runs, /api/runs/:runId, /api/runs/:runId/items/:historyId
