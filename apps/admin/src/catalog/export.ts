@@ -40,7 +40,7 @@ export interface ExportInput {
 }
 
 // reporting/xlsx.ts 와 같은 낱말이다. 한 납품물의 두 엑셀이 다른 말을 하면 안 된다
-const 디바이스: Record<Platform, string> = { desktop: 'PC', mobile: '모바일' };
+const 디바이스: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 const 판정글자: Record<ItemStatus, string> = { PASS: '통과', FAIL: '실패', NA: '판정 불가' };
 const 구분글자: Record<보류['kind'], string> = { UNDECIDABLE: '판정 불가', ON_HOLD: '보류' };
 const 없음 = '—';

@@ -161,7 +161,7 @@ export const TCID = /^[A-Z][A-Z0-9]{0,11}-(?:(?:UI|FN)-)?\d{3}$/;
 export const tcId종류 = (tcId: string): 'UI' | 'FN' => (/-UI-\d{3}$/.test(tcId) ? 'UI' : 'FN');
 // FN 과 옛 꼴은 한 번호열이다(MKT-044 = MKT-FN-044) — 글자로 견주면 같은 번호가 두 번 쓰여 실행 이력이 섞인다. UI 만 따로 센다
 export const 번호열쇠 = (tcId: string): string => tcId.replace(/-FN-(\d{3})$/, '-$1');
-const PLATFORMS = new Set(['desktop', 'mobile']);
+const PLATFORMS = new Set(['desktop', 'mobile', 'android']);
 
 function missingDescribe(file: string, line: number, schema: JsonSchema, key: string): Violation[] {
   const properties = schema.properties;
@@ -272,7 +272,7 @@ export function checkSpec(
   }
   for (const platform of spec.platforms) {
     if (PLATFORMS.has(platform)) continue;
-    out.push(v(file, at('platforms'), 'K5', `platforms에 ${platform}가 있다. desktop·mobile만 된다`));
+    out.push(v(file, at('platforms'), 'K5', `platforms에 ${platform}가 있다. desktop·mobile·android 만 된다`));
   }
   out.push(...missingDescribe(file, at('params'), spec.paramSchema, 'params'));
   out.push(...missingDescribe(file, at('expected'), spec.expectedSchema, 'expected'));

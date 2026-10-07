@@ -550,6 +550,8 @@ npx playwright cli --version    # npm ci 만 돌렸으면 바로 나온다
 4. **눌러 본다.** 케이스의 실행 설정 화면에서 「▶ 테스트 실행」을 누르면 내 화면에 브라우저 창이 뜨고, 끝나면 결과가 동작줄 위에 나온다.
    **확인** — 창이 뜨고 결과 패널에 판정이 나오면 정상이다. 「이 서버에는 테스트 실행이 켜져 있지 않습니다」가 뜨면 2·3번이 안 된 것이다.
 
+**Android 앱 케이스는 이 버튼으로 아직 못 돌린다 — §15.**
+
 끄려면 `.env` 의 그 줄을 비우고 3번을 다시 한다. 결과는 기록에 남지 않으니 통계·증적·알림에도 잡히지 않는다.
 컨테이너에서 러너에 안 닿는다는 오류가 나면 1번 러너가 켜져 있는지, 그 주소(`127.0.0.1`)가 컨테이너에서 닿는지부터 본다.
 **확인한 범위** — 맥의 Docker Desktop 에서만 컨테이너가 `host.docker.internal` 로 `127.0.0.1` 전용 러너에 닿는 것을 확인했다. 리눅스 Docker 는 이 이름이 브리지 주소로 풀려 `127.0.0.1` 전용 러너에 안 닿을 수 있고 확인하지 않았다 — 리눅스 서버에서는 켜지 않는다(위 「먼저 알아 둘 것」과 같은 이유다).
@@ -637,3 +639,65 @@ curl -s -X POST -H 'content-type: application/json' --data @<요청.json> http:/
 - 응답 `parts` 의 판정 · `bound` · `cleanup`(절대 주소 · 응답 코드)과 서버가 찍은 순서(미룬 `DELETE` 가 맨 끝 · 로그인한 채)를 브라우저 실측과 견준다
 - **Linux 도커(서버 · 클라우드 세션)** — `docker run` 에 `--add-host=host.docker.internal:host-gateway` 를 붙이고, 실측 서버를 `0.0.0.0` 에 연다(`… e2e-server.ts 4098 0.0.0.0`). **리눅스에서는 아직 돌려 보지 않았다** — 2026-10-06 한 바퀴는 맥 Docker Desktop 이다. `host.docker.internal` 이 리눅스에서 안 풀린 일은 §13 에서 겪었고, 127.0.0.1 전용 서버에 컨테이너가 못 닿을 수 있다는 것은 §10 이 적었다
 - 다 쓰면 `docker stop tp-runner-check` · 서버 창은 Ctrl+C
+
+## 15. Android 앱 케이스 돌리기 — 맥에 연결한 폰 (2026-10-07 · PR #171)
+
+Android 앱을 조작하는 케이스(`platforms: ['android']`)를 **맥에 USB 로 꽂은 폰**에서 돌리는 법이다.
+앱을 조작하는 일은 Appium(앱 화면을 대신 눌러 주는 서버 프로그램)이 맡고, 러너가 그 서버에 붙는다.
+연습용 케이스는 `tests/mda/MDA-FN-001.spec.ts` 하나다(Sauce Labs 의 My Demo App 에서 장바구니 담기). 규칙은 SPEC 도메인/러너 §5.2 「앱 실행」이 정본이다.
+
+**하지 말 것 — `MDA` 를 서비스로 등록하지 않는다.** 관리 화면의 실행 창과 여러 건 실행은 아직 `android` 를 안 보낸다.
+서버가 이 요청을 400 으로 거절하고, 여러 건을 한꺼번에 돌렸다면 묶음 전체가 거절된다. 지금은 아래 두 길(직접 실행 · 러너 호출)로만 돌린다.
+
+**준비 — 처음 한 번**
+
+1. **adb**(컴퓨터에서 폰을 조종하는 Android 도구)가 있어야 한다. Android Studio 를 깔았다면 `~/Library/Android/sdk/platform-tools` 에 있다. PATH 에 없으면 아래처럼 한 번 더한다.
+   ```bash
+   export PATH="$PATH:$HOME/Library/Android/sdk/platform-tools"
+   ```
+2. **Java** 가 있어야 Appium 이 켜진다. `JAVA_HOME` 이 비어 있으면 Appium 이 시작하지 못한다.
+3. **Appium 과 Android 드라이버를 설치한다.** 저장소 부품이 아니라 내 컴퓨터에 까는 것이다. 판을 고정한다 — 실측한 판이다.
+   ```bash
+   npm i -g appium@3.8.0
+   appium driver install uiautomator2@8.7.0
+   ```
+4. **폰을 준비한다.** 설정에서 개발자 옵션을 켜고 「USB 디버깅」을 켠다. USB 로 맥에 꽂고, 폰에 뜨는 「이 컴퓨터를 허용하시겠습니까」를 허용한다. 화면 잠금은 풀어 둔다.
+   처음에는 폰이 「USB로 설치」를 허용할지 묻는다 — 허용한다(Appium 도우미 앱을 폰에 까는 데 쓴다).
+5. **확인한다.** 아래를 쳐서 폰 한 줄이 `device` 로 끝나면 정상이다. `unauthorized` 면 폰의 허용 창을 누른다.
+   ```bash
+   adb devices
+   ```
+6. **연습용 앱 파일(apk)을 받는다.** GitHub `saucelabs/my-demo-app-rn` 릴리스 v1.3.0 의 `Android-MyDemoAppRN.1.3.0.build-244.apk`(33MB)다. 저장소에 넣지 않고 내 컴퓨터 아무 곳에 둔다. 아래에서 그 경로를 `<apk 경로>` 로 쓴다.
+
+**돌리기**
+
+1. **Appium 을 켠다.** 창 하나를 따로 열어 켜 둔다.
+   ```bash
+   appium
+   ```
+2. **직접 실행** — 저장소 루트에서 친다.
+   ```bash
+   PLATFORM_APPIUM_URL=http://127.0.0.1:4723 PLATFORM_APP=<apk 경로> npx playwright test tests/mda --project=android
+   ```
+3. **러너를 거쳐 실행** — 러너를 `PLATFORM_APP` 을 준 채 켜고(`npm run runner:local` 이 `PLATFORM_APPIUM_URL` 은 알아서 싣는다), 다른 창에서 요청을 보낸다.
+   ```bash
+   PLATFORM_APP=<apk 경로> npm run runner:local
+   curl -X POST http://127.0.0.1:4001/execute -H 'Content-Type: application/json' -d '{"runId":999,"historyId":1,"tcId":"MDA-FN-001","platform":"android","filePath":"mda/MDA-FN-001.spec.ts","baseUrl":"http://example.invalid","params":{},"expected":{},"timeoutMs":120000}'
+   ```
+
+**확인** — 직접 실행은 폰 화면에서 앱이 열려 장바구니에 담기고 터미널에 `1 passed` 가 뜨면 정상이다(갤럭시 S21+ · Android 14 에서 12.5초 걸렸다).
+러너 호출은 응답에 `"status":"PASS"` 가 있고 둘째 절차에 `screenshotPath: artifacts/runs/999/1/2.png` 가 붙으면 정상이다.
+
+**문제가 생기면**
+
+- 「Android 앱 케이스를 돌리려면 PLATFORM_APPIUM_URL 이 필요하다」 · 「Android 앱 케이스를 돌리려면 PLATFORM_APP 이 필요하다」 같은 환경값 없음 오류는 위 명령 앞의 환경값이 빠진 것이다. 러너를 켰다면 `PLATFORM_APP` 을 준 채로 다시 켠다.
+- **폰에 Appium 도우미 앱을 처음 까는 첫 실행은 연결이 느려 제한 시간(30초)을 넘길 수 있다.** 이 첫 연결은 시간을 못 쟀다. 시간 초과로 끝나면 **한 번 더 돌린다.**
+- 폰이 여러 대 꽂혀 있으면 어느 폰인지 `PLATFORM_DEVICE_UDID=<adb devices 에 보이는 번호>` 를 같이 준다.
+- 같은 폰에 연결 둘이 겹치면 뒤 것이 앞 것을 가로챈다 — 폰 하나에는 한 번에 하나만 돌린다. 러너가 도중에 끊기면(중단 · 제한 시간) Appium 쪽 연결은 약 60초 뒤에 풀린다.
+
+**끄기** — Appium 창에서 Ctrl+C 를 누른다. 창을 닫아 버렸다면 번호를 보고 끈다. `pkill -f` 는 쓰지 않는다 — 그 무늬가 든 내 셸까지 같이 꺼진다.
+
+```bash
+pgrep -af appium
+kill <번호>
+```

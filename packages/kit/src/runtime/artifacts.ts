@@ -22,3 +22,15 @@ export async function shotPath(seq: number): Promise<ShotPath> {
   await mkdir(dirname(absolute), { recursive: true });
   return { absolute, recorded };
 }
+
+// 스크린샷이 실패해도 판정은 남겨야 한다. 대신 왜 없는지는 알린다. 브라우저·앱이 저장 방법만 다르게 넘긴다
+export async function saveShot(seq: number, save: (absolute: string) => Promise<unknown>): Promise<string | undefined> {
+  try {
+    const { absolute, recorded } = await shotPath(seq);
+    await save(absolute);
+    return recorded;
+  } catch (err) {
+    console.error(`[kit] ${seq}번 절차 스크린샷 실패: ${err instanceof Error ? err.message : String(err)}`);
+    return undefined;
+  }
+}

@@ -30,6 +30,10 @@
 시간 역순으로 위에 쌓는다. 항목 하나는 5줄을 넘기지 않는다.
 
 ```
+## [WS-C] 2026-10-07 · **Appium 연결을 「열린 결과」로 쥐어 연결 도중 제한 시간이면 세션을 버렸고, 없는 인자를 막는 getter 가 열거되어 `({ page, ...rest })` 만 써도 브라우저 케이스가 터질 뻔했다** (PR #171 게이트 2 code-review)
+- 왜: fixture 정리는 Playwright 제한 시간 뒤에도 돌지만 `driver ??= await openApp()` 은 연결이 끝나야 값이 든다 — 새 폰 첫 연결(도우미 앱 설치)이 바로 그 경우다. 객체 리터럴의 `get` 은 enumerable 이라 펼치기 · 나머지 받기가 getter 를 부른다
+- 해법: 여는 중인 Promise 를 쥐고(`opening ??= openApp()`) 정리가 기다려 닫는다 · 없는 쪽은 `Object.defineProperty(…, { enumerable: false })`(`packages/kit/src/runtime/test.ts`). **fixture 로 외부 자원을 열면 「여는 도중 끝남」 검사를 하나 둔다** — 재발하면 `tpx-plan` 체크리스트로 옮긴다
+
 ## [WS-E] 2026-10-07 · **밝은 화면을 어두운 토큰으로 바꾸고 검사 1,516개가 다 초록이었는데 브라우저로 넷, 독립 검사로 둘(BLOCKER)이 더 나왔다 — 두 번째 CSS 파일(`authoringStatus.css`)과 화면 코드의 인라인 `var(--rule)` 을 안 옮겼다** (PR #172)
 - 왜: 토큰 정의 검사가 `styles.css` 하나만 읽었고, 인라인 값을 단언하는 화면 검사는 옛 문자열을 그대로 기대해 초록이었다. 옛 토큰을 이름표대로 옮기면 「채운 버튼 = 주 버튼」 같은 옛 뜻도 따라와 줄마다 오렌지 기둥이 섰다
 - 환경: `color-scheme: dark` 가 없으면 select 의 펼친 목록을 OS 가 흰 바탕으로 그린다. 판에 `transform` 움직임을 걸면 포털 없는 모달이 그동안 판에 붙어 잘린다 — 둘 다 jsdom 은 못 본다
