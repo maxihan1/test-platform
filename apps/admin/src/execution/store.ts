@@ -6,7 +6,7 @@ import type { ExecuteResponse, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
-import { DEFAULT_TIMEOUT_MS } from './location.js';
+import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
 import { 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
 
@@ -100,6 +100,7 @@ interface CaseRow {
   param_schema: Record<string, unknown>;
   expected_schema: Record<string, unknown>;
   unconfirmed: string | null;
+  platforms: string[];
 }
 
 // 라벨·제한 시간·파일 경로도 실행 시점 값으로 박제한다. 카탈로그는 스캔 때마다 덮어쓰는 캐시라
@@ -177,12 +178,14 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다.
     // 미확정 사유도 여기서 박제한다 — 케이스가 나중에 확정돼도 그날의 집계가 바뀌면 안 된다 (SPEC 실행 §3.2)
     const found = await client.query<CaseRow>(
-      'SELECT tc_id, name, precondition, file_path, param_schema, expected_schema, unconfirmed FROM test_case WHERE tc_id = ANY($1::text[])',
+      'SELECT tc_id, name, precondition, file_path, param_schema, expected_schema, unconfirmed, platforms FROM test_case WHERE tc_id = ANY($1::text[])',
       [input.items.map((i) => i.tcId)],
     );
     const cases = new Map(found.rows.map((r) => [r.tc_id, r]));
     const missing = input.items.filter((i) => !cases.has(i.tcId)).map((i) => i.tcId);
     if (missing.length > 0) throw new RunInputError('CASE_NOT_FOUND', `카탈로그에 없는 케이스다: ${missing.join(', ')}`);
+    const 밖 = 선언밖디바이스(input.items, cases);
+    if (밖) throw new RunInputError('INVALID_REQUEST', `${밖.tcId} 는 ${PLATFORM_LABEL[밖.platform]} 환경을 선언하지 않았다`);
 
     // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)
     const run = await client.query<{ run_id: string }>(
