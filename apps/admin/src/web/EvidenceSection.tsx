@@ -182,7 +182,7 @@ export function 증적알림과목록({ 칸, 한줄로 = false }: { 칸: 증적�
                     받는 길은 `format` 원문 그대로 쓰고 보여주는 글자만 라벨이다 */}
                 {when(it.generatedAt, 언어)} 만듦 · {법.라벨}
                 <a
-                  className="btn small"
+                  className="btn small ghost"
                   style={{ marginLeft: '10px' }}
                   href={api.evidenceUrl(it.id)}
                   {...(법.새창 ? { target: '_blank', rel: 'noreferrer' } : {})}

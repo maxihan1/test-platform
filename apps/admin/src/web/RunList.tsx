@@ -228,7 +228,7 @@ function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: numbe
       {/* 미확정만 돌린 실행은 판정이 없다 — 성공 색도 실패 색도 칠하지 않는다 (도메인/실행 §3.2 · §8.7) */}
       <div
         className="gutter"
-        style={{ background: 판정없음(run.counts) ? 'var(--rule)' : run.counts.fail > 0 ? 'var(--fail)' : 'var(--pass)' }}
+        style={{ background: 판정없음(run.counts) ? 'var(--line-2)' : run.counts.fail > 0 ? 'var(--fail)' : 'var(--pass)' }}
       />
       <div className="tcid">RUN {run.runId}</div>
       <div className="title">
@@ -255,15 +255,15 @@ function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: numbe
           ) : (
             <>
               <div>
-                <b style={{ color: 'var(--pass)' }}>{run.counts.pass}</b>
+                <b style={{ color: 'var(--pass-text)' }}>{run.counts.pass}</b>
                 <span>{t('통과')}</span>
               </div>
               <div>
-                <b style={{ color: 'var(--fail)' }}>{run.counts.fail}</b>
+                <b style={{ color: 'var(--fail-text)' }}>{run.counts.fail}</b>
                 <span>{t('실패')}</span>
               </div>
               <div>
-                <b style={{ color: 'var(--na)' }}>{run.counts.na}</b>
+                <b style={{ color: 'var(--na-text)' }}>{run.counts.na}</b>
                 <span>{t('미실행')}</span>
               </div>
             </>

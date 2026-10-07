@@ -1,6 +1,6 @@
 // styles.css 가 DESIGN.md 의 약속을 지키는지 기계가 본다 — 사람이 훑어서는 되돌아오는 것을 못 막는다
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
@@ -14,6 +14,14 @@ function 토큰들(): Record<string, string> {
   return 표;
 }
 
+/** 화면 폴더의 CSS · 화면 코드 원본(검사 파일 제외). 인라인 style 의 var() 도 같은 토큰을 부른다 */
+function 화면원본들(): (readonly [string, string])[] {
+  const 폴더 = new URL('.', import.meta.url);
+  return readdirSync(폴더)
+    .filter((이름) => /\.(css|ts|tsx)$/.test(이름) && !/\.test\.tsx?$/.test(이름))
+    .map((이름) => [이름, readFileSync(new URL(이름, 폴더), 'utf8')] as const);
+}
+
 describe('화면 토큰 (DESIGN.md)', () => {
   it('방안지 격자를 페이지 바탕에 깔지 않는다', () => {
     const body = /\bbody\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
@@ -22,12 +30,16 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(body).not.toMatch(/background-size/);
   });
 
-  it('쓰는 토큰이 전부 :root 에 정의돼 있다', () => {
+  it('쓰는 토큰이 전부 :root 에 정의돼 있다 — 다른 CSS 파일과 화면 코드의 인라인 style 까지', () => {
     // 없는 토큰을 var() 로 부르면 그 속성이 통째로 무효가 된다 — 오류도 안 나고 조용히 사라진다.
-    // 2026-09-21 에 --lift 가 실제로 그랬다. 면이 바탕에서 떠 보이지 않는데 아무도 안 죽는다
+    // 2026-09-21 에 --lift 가 실제로 그랬다. 면이 바탕에서 떠 보이지 않는데 아무도 안 죽는다.
+    // 2026-10-07 토큰 교체 때 이 검사가 styles.css 만 읽어서 authoringStatus.css 와 인라인 `var(--rule)` 이 빠져나갔다
     const 있는것 = new Set(Object.keys(토큰들()));
-    const 부르는것 = new Set([...css.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!));
-    const 없는것 = [...부르는것].filter((이름) => !있는것.has(이름));
+    const 없는것 = 화면원본들().flatMap(([이름, 글]) =>
+      [...new Set([...글.matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]!))]
+        .filter((토큰) => !있는것.has(토큰))
+        .map((토큰) => `${이름}: ${토큰}`),
+    );
     expect(없는것, `:root 에 없는 토큰을 부른다 — ${없는것.join(', ')}`).toEqual([]);
   });
 
@@ -238,6 +250,15 @@ describe('화면 토큰 (DESIGN.md)', () => {
     const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     const 값 = /\.side \.side-nav a\s*\{[^}]*min-height:\s*(\d+)px/.exec(좁은화면)?.[1];
     expect(Number(값)).toBeGreaterThanOrEqual(44);
+  });
+
+  it('판정 도형 색(--pass · --fail · --na)을 글자색으로 쓰지 않는다 — 글자는 밝은 판(-text)이다', () => {
+    // 어두운 바탕에서 도형 색을 글자에 쓰면 줄 hover 바탕 위에서 4.5 를 못 넘는다(--fail 4.10 · --na 4.32).
+    // 2026-10-07 토큰 교체 때 CSS 는 옮겼는데 화면 코드의 인라인 style 아홉 자리가 그대로 남았다
+    const 걸린것 = 화면원본들().flatMap(([이름, 글]) =>
+      [...글.matchAll(/(?<![\w-])color:\s*'?var\(--(?:pass|fail|na)\)/g)].map((m) => `${이름}: ${m[0]}`),
+    );
+    expect(걸린것).toEqual([]);
   });
 
   it('판정 세 색과 그 글자 · 옅은 바탕이 전부 있다', () => {
@@ -737,7 +758,8 @@ describe('움직임 (DESIGN.md 원칙 4, 2026-10-07)', () => {
 
 describe('대표색 자리 (화면공통 §8 「대표색」, 2026-10-07)', () => {
   it('사이드바의 지금 있는 자리가 대표색 막대를 받는다', () => {
-    expect(첫규칙(".side-nav a[aria-current='page']")).toMatch(/var\(--accent\)/);
+    // `.side-nav a[aria-current]` 만 보면 가로 탭 밑줄 규칙을 잡는다 — 사이드바 막대가 빠져도 통과했다 (2026-10-07 코드 검토)
+    expect(첫규칙(".side .side-nav a[aria-current='page']")).toMatch(/border-left-color:\s*var\(--accent\)/);
   });
 
   it('주 버튼은 대표색 위 짙은 글자이고, 나머지 버튼은 테두리만 쓴다', () => {

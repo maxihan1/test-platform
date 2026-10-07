@@ -2,10 +2,9 @@
    styles.css 가 이미 2700줄을 넘어 떼어 냈다 — main.tsx 가 그 뒤에 싣는다 */
 
 .status-card {
-  background: var(--sheet);
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  box-shadow: var(--lift);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
   padding: 18px 20px;
   display: grid;
   gap: 14px;
@@ -26,14 +25,14 @@
   font-weight: 600;
   padding: 2px 10px;
   border-radius: 999px;
-  background: var(--chip);
+  background: var(--well);
   color: var(--ink);
   white-space: nowrap;
 }
 .status-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); }
-.status-chip.done { background: var(--pass-bg); color: var(--pass); }
+.status-chip.done { background: var(--pass-soft); color: var(--pass-text); }
 .status-chip.done .dot { background: var(--pass); }
-.status-chip.fail { background: var(--fail-bg); color: var(--fail); }
+.status-chip.fail { background: var(--fail-soft); color: var(--fail-text); }
 .status-chip.fail .dot { background: var(--fail); }
 .status-chip.quiet { color: var(--ink-muted); }
 .status-chip.quiet .dot { background: var(--ink-faint); }
@@ -56,7 +55,7 @@
   left: -50%;
   width: 100%;
   height: 2px;
-  background: var(--rule);
+  background: var(--line-2);
 }
 .status-steps li:first-child::before { display: none; }
 .status-steps li.done::before,
@@ -68,21 +67,21 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid var(--rule);
-  background: var(--sheet);
+  border: 2px solid var(--line-2);
+  background: var(--panel);
   display: grid;
   place-items: center;
   font-size: 11px;
   font-weight: 600;
 }
 .status-steps li.done { color: var(--ink-muted); }
-.status-steps li.done .m { background: var(--ink); border-color: var(--ink); color: var(--sheet); }
+.status-steps li.done .m { background: var(--ink); border-color: var(--ink); color: var(--panel); }
 .status-steps li.now { color: var(--ink); font-weight: 600; }
-.status-steps li.now .m { border-color: var(--ink); box-shadow: inset 0 0 0 3px var(--sheet), inset 0 0 0 10px var(--ink); }
+.status-steps li.now .m { border-color: var(--ink); box-shadow: inset 0 0 0 3px var(--panel), inset 0 0 0 10px var(--ink); }
 .status-steps li.halt { color: var(--ink); font-weight: 600; }
-.status-steps li.halt .m { border-color: var(--ink-faint); background: var(--sheet-2); color: var(--ink-muted); }
-.status-steps li.fail { color: var(--fail); font-weight: 600; }
-.status-steps li.fail .m { border-color: var(--fail); background: var(--fail-bg); color: var(--fail); }
+.status-steps li.halt .m { border-color: var(--ink-faint); background: var(--well); color: var(--ink-muted); }
+.status-steps li.fail { color: var(--fail-text); font-weight: 600; }
+.status-steps li.fail .m { border-color: var(--fail); background: var(--fail-soft); color: var(--fail-text); }
 
 .status-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 4px 12px; align-items: center; }
 .status-v { display: grid; gap: 4px; min-width: 0; }
@@ -91,30 +90,30 @@
 .status-sub b { color: var(--ink); }
 
 /* 막대 둘 — 판정 색을 쓰지 않는다. 시간은 한 단계 흐린 잉크라 진척과 갈린다 */
-.status-bar { height: 8px; background: var(--rule-soft); border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; }
+.status-bar { height: 8px; background: var(--line); border: 1px solid var(--line-2); border-radius: 2px; overflow: hidden; }
 .status-bar > i { display: block; height: 100%; background: var(--ink); }
 .status-bar.soft > i { background: var(--ink-faint); }
 
-.status-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
-.status-facts > div { background: var(--sheet-2); padding: 10px 12px; display: grid; gap: 2px; }
+.status-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line-2); border: 1px solid var(--line-2); }
+.status-facts > div { background: var(--well); padding: 10px 12px; display: grid; gap: 2px; }
 .status-facts b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.status-now { display: flex; gap: 8px; align-items: baseline; min-width: 0; background: var(--sheet-2); border-left: 3px solid var(--ink); padding: 8px 12px; }
+.status-now { display: flex; gap: 8px; align-items: baseline; min-width: 0; background: var(--well); border-left: 3px solid var(--ink); padding: 8px 12px; }
 .status-now .one-line { min-width: 0; }
 .status-now .ago { margin-left: auto; color: var(--ink-faint); font-size: 12px; white-space: nowrap; }
 
-.status-stop { background: var(--sheet-2); border: 1px solid var(--rule); padding: 10px 12px; font-size: 13px; }
-.status-reason { background: var(--fail-bg); color: var(--fail); padding: 10px 12px; font-size: 13px; border-radius: 2px; white-space: pre-wrap; }
+.status-stop { background: var(--well); border: 1px solid var(--line-2); padding: 10px 12px; font-size: 13px; }
+.status-reason { background: var(--fail-soft); color: var(--fail-text); padding: 10px 12px; font-size: 13px; border-radius: 4px; white-space: pre-wrap; }
 /* 중단의 까닭(작성 중 끊김 · 올리기 거절)은 판정이 아니다 — 거터처럼 판정 색을 안 쓴다 (DESIGN.md 원칙 1) */
-.status-reason.stopped { background: var(--sheet-2); color: var(--ink); border: 1px solid var(--rule); }
+.status-reason.stopped { background: var(--well); color: var(--ink); border: 1px solid var(--line-2); }
 
 /* 목록 한 줄을 통째로 누른다 — 제목 링크를 줄 위로 늘린다. 버튼을 따로 두지 않아도 키보드는 링크 하나로 닿는다 */
 .row.authoring-row { position: relative; }
-.row.authoring-row:hover { background: var(--sheet-2); }
+.row.authoring-row:hover { background: var(--rail-active); }
 .row.authoring-row .title a { color: var(--ink); text-decoration: none; font-weight: 600; }
 .row.authoring-row .title a::after { content: ''; position: absolute; inset: 0; }
 .row.authoring-row .title a:focus-visible { outline: none; }
-.row.authoring-row:focus-within { outline: 2px solid var(--chrome); outline-offset: -2px; }
+.row.authoring-row:focus-within { outline: 2px solid var(--ink); outline-offset: -2px; }
 
 /* 상세 페이지는 카드들이 제각각 떠 있다. 공용 .screen 의 흰 판을 걷는다 — 판 위에 카드를 또 띄우면 테두리가 겹친다 */
 .screen.authoring-page { background: none; border: 0; box-shadow: none; overflow: visible; }
@@ -123,10 +122,9 @@
 .authoring-cols { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .authoring-col { display: grid; gap: 16px; min-width: 0; }
 .authoring-panel {
-  background: var(--sheet);
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  box-shadow: var(--lift);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
   padding: 16px 18px;
   display: grid;
   gap: 12px;
@@ -137,9 +135,9 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
-  color: var(--chrome);
+  color: var(--ink-muted);
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--chrome);
+  border-bottom: 1px solid var(--line-2);
 }
 /* 공용 .detail 은 회색 띠 상자다. 판 안에서는 이름 | 값 두 칸이면 된다 — 상자 안에 상자를 겹치지 않는다 */
 .authoring-panel dl.detail {
@@ -155,18 +153,17 @@
 .authoring-panel dl.detail dt { color: var(--ink-faint); }
 .authoring-panel dl.detail dd { margin: 0; overflow-wrap: anywhere; }
 .authoring-panel ol.authoring-assets { margin: 0; padding-left: 20px; font-size: 13.5px; display: grid; gap: 4px; }
-.authoring-panel ol.authoring-assets a { color: var(--ink); }
+.authoring-panel ol.authoring-assets a { color: var(--link); }
 .authoring-panel .authoring-diffs-wrap { margin-top: 0; }
 /* 실행 기록 — 두 단 아래 온 폭. 지금 보이는 실행(맨 위 줄)만 바탕을 깐다 — 판정 색은 안 쓴다 (DESIGN.md 원칙 1) */
 .authoring-runs { margin-top: 16px; }
-.authoring-runs tr.now td { background: var(--sheet-2); font-weight: 600; }
+.authoring-runs tr.now td { background: var(--rail-active); font-weight: 600; }
 
 /* 다음 단계 — 사람이 움직여야 하는 것만. 판정 색이 아니라 잉크 테두리로 앞에 세운다 */
 .authoring-todo {
-  background: var(--sheet);
+  background: var(--panel);
   border: 1px solid var(--ink);
-  border-radius: 2px;
-  box-shadow: var(--lift);
+  border-radius: 8px;
   padding: 16px 18px;
   display: grid;
   gap: 12px;
@@ -199,7 +196,7 @@
   height: 28px;
   border-radius: 50%;
   background: var(--ink);
-  color: var(--sheet);
+  color: var(--panel);
   display: grid;
   place-items: center;
 }
@@ -223,8 +220,8 @@
 /* 보류 케이스 — 사람이 할 일이지 판정이 아니다. 칩 · 상태 모두 잉크와 --rule 만 쓴다 (DESIGN.md 「작성 상태」 원칙 1) */
 .authoring-held { margin-top: 16px; }
 .authoring-held .dhist { min-width: 720px; }
-.authoring-held tr.open td { background: var(--sheet-2); }
-.held-chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; background: var(--sheet-2); color: var(--ink-muted); border: 1px solid var(--rule); white-space: nowrap; }
+.authoring-held tr.open td { background: var(--rail-active); }
+.held-chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; background: var(--well); color: var(--ink-muted); border: 1px solid var(--line-2); white-space: nowrap; }
 .held-chip.und { border-style: dashed; border-color: var(--ink-faint); }
 .held-state { white-space: nowrap; font-size: 13px; }
 .held-rm { color: var(--ink-faint); text-decoration: line-through; }

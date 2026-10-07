@@ -212,7 +212,7 @@ function CodeView({ tcId, line }: { tcId: string; line: number }) {
     <details className="code" onToggle={(e) => setOpened(e.currentTarget.open)}>
       <summary>{t말('실패 지점 코드')}</summary>
       {source.error !== null ? (
-        <p className="hint" style={{ color: 'var(--fail)' }}>
+        <p className="hint" style={{ color: 'var(--fail-text)' }}>
           {source.error}
         </p>
       ) : source.data === null ? (

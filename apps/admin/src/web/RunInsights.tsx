@@ -4,7 +4,7 @@ import { api, type ItemStatus, type RunInsights as 비교, type RunItemSummary, 
 import { groupByCase, 회차요약 } from './group.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { 도는중 } from './runState.js';
-import { PLATFORM_LABEL, STATUS_COLOR, useAsync, when } from './ui.js';
+import { PLATFORM_LABEL, STATUS_TEXT_COLOR, useAsync, when } from './ui.js';
 
 const 키 = (tcId: string, platform: string): string => `${tcId}\u0000${platform}`;
 
@@ -93,7 +93,7 @@ export function RunInsights({
                 접힌 줄에서 안 보이면 다른 서버에서 돈 결과를 같은 조건으로 읽는다.
                 그래서 펴야 보이는 안이 아니라 `summary` 안에 둔다 (2026-09-22 자기검토) */}
             {!값.주소바뀜 ? null : (
-              <span className="change" style={{ color: 'var(--na)' }}>
+              <span className="change" style={{ color: 'var(--na-text)' }}>
                 {t말('직전 실행은 다른 주소에서 실행됐습니다')}
               </span>
             )}
@@ -103,7 +103,7 @@ export function RunInsights({
               {c.tcId} {c.tcName} · {PLATFORM_LABEL[c.platform]} ·{' '}
               {/* 낱말은 앞 실행과 견준 변화, 색은 **이번 판정**이다. `그대로` 하나가 「통과→통과」와
                   「미실행→미실행」을 둘 다 덮는데 뒤엣것은 괜찮은 것이 아니다 (DESIGN.md 원칙 1) */}
-              <span className="change" style={{ color: STATUS_COLOR[이번.get(키(c.tcId, c.platform)) ?? 'NA'] }}>
+              <span className="change" style={{ color: STATUS_TEXT_COLOR[이번.get(키(c.tcId, c.platform)) ?? 'NA'] }}>
                 {변화글자(c.판정, 언어)}
               </span>
             </div>

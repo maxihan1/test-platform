@@ -152,15 +152,15 @@ function 케이스결과({
           {/* 판정 숫자를 버튼보다 앞에 둔다. 좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀리는데,
               휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다 (docs/DESIGN.md · design-mockup.html) */}
           <div>
-            <b style={{ color: 'var(--pass)' }}>{pass}</b>
+            <b style={{ color: 'var(--pass-text)' }}>{pass}</b>
             <span>{t('통과')}</span>
           </div>
           <div>
-            <b style={{ color: 'var(--fail)' }}>{fail}</b>
+            <b style={{ color: 'var(--fail-text)' }}>{fail}</b>
             <span>{t('실패')}</span>
           </div>
           <div>
-            <b style={{ color: 'var(--na)' }}>{na}</b>
+            <b style={{ color: 'var(--na-text)' }}>{na}</b>
             <span>{t('미실행')}</span>
           </div>
           {/* 미확정은 확정 판정 칸 뒤에 묶음 글자로 붙는다. 없으면 안 쓴다 (도메인/실행 §8.3 · §3.2) */}

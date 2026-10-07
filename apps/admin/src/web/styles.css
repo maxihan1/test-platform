@@ -53,6 +53,11 @@
    명암비는 **손으로 적지 않는다** — styles.test.ts 가 글자가 앉는 면마다 토큰을 읽어 다시 잰다.
    증적 문서는 종이용 밝은 색을 따로 쓴다(reporting/html.ts) — 그 값은 이 블록을 따라오지 않는다 */
 :root {
+  /* 브라우저가 그리는 컨트롤(select 의 펼친 목록 · 스크롤바 · 날짜 고르개)도 어둡게 그리게 한다.
+     없으면 펼친 목록이 흰 바탕이라 밝은 잉크 글자가 안 읽힌다. body 가 아니라 여기다 —
+     좁은 화면에서 페이지 전체가 스크롤할 때 맨 바깥 스크롤바는 :root 를 따른다 (2026-10-07) */
+  color-scheme: dark;
+
   /* 바탕과 면 */
   --bg: #121110;
   /* 화면 머리 띠 · 실행 중 줄 */
@@ -171,9 +176,6 @@
 body {
   background: var(--bg);
   color: var(--ink);
-  /* 브라우저가 그리는 컨트롤(select 의 펼친 목록 · 스크롤바 · 날짜 고르개)도 어둡게 그리게 한다.
-     없으면 펼친 목록이 흰 바탕이라 밝은 잉크 글자가 안 읽힌다 (2026-10-07) */
-  color-scheme: dark;
   /* 폴백도 숫자 폭이 고정인 것으로 적는다 — 글꼴이 못 실렸을 때 대신 그릴 것들이다 (DESIGN.md) */
   font-family: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   font-size: 14px;
@@ -240,7 +242,8 @@ a {
   height: calc(100vh - var(--body-pad-top) - var(--body-pad-bottom));
 }
 
-/* 짙은 막대. 껍데기를 눌러야 오른쪽 면이 종이로 읽힌다 (DESIGN.md, 2026-09-21) */
+/* 가장 짙은 막대. 2026-09-21 에는 밝은 종이와 갈라 놓으려고 짙게 눌렀고, 2026-10-07 어두운 화면에서도
+   가장 짙은 면(--rail)으로 남아 「여기까지가 껍데기」를 가른다 (DESIGN.md 「개편 전 기록」) */
 .side {
   display: flex;
   flex-direction: column;
@@ -329,6 +332,8 @@ a {
 .folded .side .side-nav a {
   font-size: 0;
   padding: 10px 0;
+  /* 글자 폭이 0 이라 간격이 남으면 아이콘이 가운데에서 비켜 선다 */
+  gap: 0;
   justify-content: center;
   overflow: hidden;
   white-space: nowrap;
@@ -355,6 +360,11 @@ a {
   font-size: 0;
   padding: 0;
   border-left-width: 0;
+}
+
+/* 키보드로 닿으면 높이를 되살려 포커스 링이 보이게 한다 — 높이 0 이면 어디에 있는지 안 보인다 (2026-10-07 코드 검토) */
+.folded .side .side-nav a.side-sub:focus-visible {
+  padding: 8px 0;
 }
 
 /* 사이드바 바닥으로 사람과 로그아웃을 미는 빈 칸 */
@@ -416,10 +426,10 @@ a {
   color: inherit;
 }
 
-/* 부제 안의 고리(남은 요구로 이어 작성한 원본 「#N의 남은 요구」)도 부제 색을 물려받고 밑줄로만 고리임을 보인다.
-   브라우저 기본 파랑이 뜨면 판정 색도 잉크도 아닌 색이 머리에 하나 선다 (2026-09-30 화면 확인) */
+/* 부제 안의 고리(남은 요구로 이어 작성한 원본 「#N의 남은 요구」)는 링크 색이다 — 대표색 자리(화면공통 §8).
+   2026-09-30 에는 브라우저 기본 파랑을 피하려고 부제 색을 물려받게 했다. 2026-10-07 에 전역 `a` 가 링크 색을 갖게 되어 맞췄다 */
 .head-meta a {
-  color: inherit;
+  color: var(--link);
 }
 
 .head-acts {
@@ -664,7 +674,8 @@ select,
 .field textarea {
   font: inherit;
   font-size: 13px;
-  background: var(--panel);
+  /* 판 안의 우묵한 자리다 (DESIGN.md 「새 토큰」 --well) */
+  background: var(--well);
   color: var(--ink);
   border: 1px solid var(--line-2);
   border-radius: 4px;
@@ -699,6 +710,24 @@ input:focus,
 select:focus {
   outline: 2px solid var(--ink);
   outline-offset: -1px;
+}
+
+/* 파일 고르기 단추 — 브라우저 기본 회색 단추가 어두운 화면에서 혼자 튄다. 테두리 버튼과 같은 모양이다 */
+input[type='file'] {
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 13px;
+}
+
+input[type='file']::file-selector-button {
+  font: inherit;
+  margin-right: 10px;
+  padding: 5px 12px;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 /* 2026-09-21 — 같은 모양 칩 여덟 개가 한 줄에 늘어서 있던 것을 세그먼트로 묶었다.
@@ -1968,7 +1997,7 @@ select:focus {
 /* 2026-09-21 — 이 규칙은 띠가 가로로 누워 있던 때의 것이다. 지금 `.side-top` 는 사이드바 머리로
    들어갔고 배치는 아래 `.side .side-top` 가 덮는다. 규칙을 지우지 않는 이유는 이 이름으로
    단언하는 검사들이 있어서다 — 정리는 다음 PR 이다.
-   바탕은 서비스 색이 아니라 고정 껍데기 색(`--chrome`, 따뜻한 적갈색)이다.
+   바탕은 서비스 색이 아니라 고정색이다 — 2026-09-21 엔 껍데기 색, 2026-10-07 부터 지금 자리와 같은 짙은 회색(--rail-active).
    서비스 색은 사이드바 서비스 고르개의 네모 하나로 내려갔다 */
 /* 세로로 쌓는다 — 무엇을 고르는 자리인지 적은 라벨이 고르개 위에 선다 (2026-09-22).
    가로로 붙이면 이름이 길 때 고르개가 먼저 찌그러진다 */
@@ -2388,7 +2417,7 @@ select:focus {
   font-size: 13px;
 }
 
-/* 브라우저 기본 파랑·보라는 껍데기 색과 따로 논다. 다녀온 뒤에도 같은 색이다 (--chrome/--sheet 5.97) */
+/* 브라우저 기본 파랑·보라를 쓰지 않는다. 다녀온 뒤에도 같은 링크 색이다 (--link — 대표색 자리, 화면공통 §8) */
 .login-box a,
 .login-box a:visited {
   color: var(--link);
@@ -2524,11 +2553,12 @@ select:focus {
   color: var(--ink-muted);
 }
 
-/* 쓰기는 반전으로 눈에 띄게 한다. 고르개에서 눌린 칸과 같은 모양이라 따로 익힐 것이 없다 */
+/* 쓰기는 고르개에서 눌린 칸(`.chip[aria-pressed='true']`)과 같은 모양이라 따로 익힐 것이 없다.
+   2026-10-07 전에는 둘 다 잉크 반전이었다 — 어두운 화면에서 흰 덩어리가 가장 먼저 눈에 걸려 같이 바꿨다 */
 .set-perm-chip.is-write {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--panel);
+  background: var(--rail-active);
+  border-color: var(--ink-faint);
+  color: var(--ink);
   font-weight: 600;
 }
 
@@ -2574,7 +2604,9 @@ select:focus {
   margin-right: auto;
 }
 
-/* 한 번 더 누르면 실제로 벌어진다는 것을 글자와 테두리로 같이 말한다 */
+/* 한 번 더 누르면 실제로 벌어진다는 것을 글자와 테두리로 같이 말한다.
+   `.btn.set-warn` 을 같이 적는다 — 테두리 버튼(`.btn.ghost`)이 특정도로 이겨 빨간 테두리가 사라졌다 (2026-10-07 코드 검토) */
+.btn.set-warn,
 .set-warn {
   border-color: var(--fail);
   color: var(--fail-text);
@@ -3119,6 +3151,9 @@ select:focus {
   flex: 1;
   min-height: 84px;
   padding: 8px 10px;
+  /* 바탕을 안 적으면 어두운 화면에서 브라우저 기본 회색이 앉는다 — 다른 입력칸과 같은 우묵한 자리다 */
+  background: var(--well);
+  color: var(--ink);
   border: 1px solid var(--line-2);
   border-radius: 4px;
   font: inherit;
@@ -3225,10 +3260,10 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 .edit-delete {
   margin-top: 16px;
 }
-/* 보낸 뒤의 「작성 요청 N번」 고리 — 브라우저 기본 파랑을 쓰지 않는다(위 `.head-meta a` 와 같은 까닭) */
+/* 보낸 뒤의 「작성 요청 N번」 고리 — 링크 색이다(위 `.head-meta a` 와 같은 까닭) */
 .case-edit [role='status'] a,
 .modal [role='status'] a {
-  color: inherit;
+  color: var(--link);
 }
 /* 확인 상자 · 작성 상세의 케이스 목록. 사유 · 지금 기대값은 케이스 이름 아래 줄이다 */
 .edit-list {
@@ -3518,8 +3553,9 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   color: var(--ink-faint);
 }
 
+/* 「실패 화면 보기」는 본문 안 링크라 링크 색이다. 줄 제목 링크(.scn-row-name)는 줄을 여는 길이라 잉크로 둔다 */
 .scn-shot {
-  color: inherit;
+  color: var(--link);
 }
 
 @media (max-width: 620px) {
@@ -4125,12 +4161,16 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   }
 }
 
-/* 화면을 열 때 머리 → 판 차례로 한 번 떠오른다. 차례 지연까지 합쳐 --dur-intro(0.5초) 안이다.
-   **`backwards` 로만 채운다** — 끝난 뒤에도 transform 이 남으면 그 판이 고정 위치의 기준이 되어
-   안에서 여는 모달(포털 없이 그 자리에 그린다)이 창이 아니라 판에 붙는다 */
-.head,
-.screen {
+/* 화면을 열 때 머리가 떠오르고 판이 뒤따라 나타난다. 차례 지연까지 합쳐 --dur-intro(0.5초) 안이다.
+   **판(.screen)에는 transform 을 쓰지 않는다** — 판 안에서 여는 모달(포털 없이 그 자리에 그린다)이
+   움직이는 동안 창이 아니라 판에 붙어 잘렸다 (2026-10-07 화면 QA 가 20초로 늘려 재현). 투명도만 바꾸면
+   고정 위치의 기준이 그대로 창이다. `backwards` 로만 채워 끝난 뒤에는 아무것도 남기지 않는다 */
+.head {
   animation: 떠오름 var(--dur) var(--ease) backwards;
+}
+
+.screen {
+  animation: 나타남 var(--dur) var(--ease) backwards;
 }
 
 .head + .screen {
