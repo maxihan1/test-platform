@@ -235,6 +235,11 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(하위).not.toMatch(/display:\s*none/);
   });
 
+  it('접혀 높이가 0 인 하위 메뉴도 키보드로 닿으면 높이를 되살려 포커스 링이 보인다 (2026-10-07)', () => {
+    const 포커스 = /\.folded \.side \.side-nav a\.side-sub:focus-visible\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(포커스).toMatch(/padding:\s*[1-9]/);
+  });
+
   it('좁은 화면에서 거터가 쌓인 줄 전체를 덮는다', () => {
     // `grid-row: 1 / -1` 만으로는 안 된다. -1 은 **명시적으로 선언한** 줄의 끝을 가리켜서
     // 내용이 암시적 행으로 쌓이면 거터가 첫 줄만 덮는다 (WORKSTREAMS ⑪, 2026-09-19 실측).
@@ -749,6 +754,17 @@ describe('움직임 (DESIGN.md 원칙 4, 2026-10-07)', () => {
     for (const 값 of 되풀이) expect(값, `${값} — 되풀이는 맥박(--dur-pulse)만 쓴다`).toMatch(/var\(--dur-pulse\)/);
   });
 
+  it('목록 판(.screen)은 투명도로만 나타난다 — transform 이 걸린 동안 포털 없는 모달이 판에 붙어 잘렸다', () => {
+    // 2026-10-07 화면 QA 가 움직임을 20초로 늘려 재현했다. 떠오름(translateY)은 모달을 그리지 않는 머리에만 쓴다
+    const 판 = [...css.matchAll(/^\.screen\s*\{([^}]*)\}/gm)].map((m) => m[1]!).filter((몸) => /animation:/.test(몸));
+    expect(판.length, '.screen 등장 움직임이 없다').toBeGreaterThan(0);
+    for (const 몸 of 판) expect(몸).not.toMatch(/떠오름/);
+    const 떠오름 = /@keyframes 떠오름\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    const 나타남 = /@keyframes 나타남\s*\{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
+    expect(떠오름).toMatch(/transform/);
+    expect(나타남, '나타남에 transform 을 넣으면 같은 일이 다시 난다').not.toMatch(/transform/);
+  });
+
   it('「움직임 줄이기」를 켠 사람에게는 움직임을 끄고 바뀐 상태를 바로 보인다', () => {
     const 블록 = /@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
     expect(블록, '움직임 줄이기 규칙이 없다').toMatch(/animation:\s*none\s*!important/);
@@ -771,6 +787,12 @@ describe('대표색 자리 (화면공통 §8 「대표색」, 2026-10-07)', () =
 
   it('링크는 링크 색을 쓴다 — 규칙이 없으면 어두운 바탕에 브라우저 기본 파랑이 앉아 안 읽힌다', () => {
     expect(첫규칙('a')).toMatch(/color:\s*var\(--link\)/);
+  });
+
+  it('되돌릴 수 없는 일을 확인하는 버튼은 테두리 버튼이어도 마우스를 올려도 빨간 테두리를 지킨다', () => {
+    // `.btn.ghost` · `.btn.ghost:hover` 가 같거나 높은 특정도로 앞에 있어 테두리를 덮었다 (2026-10-07 코드 검토 둘)
+    expect(css).toMatch(/^\.btn\.set-warn,\n\.set-warn\s*\{[^}]*border-color:\s*var\(--fail\)/m);
+    expect(첫규칙('.btn.set-warn:hover:not(:disabled)')).toMatch(/border-color:\s*var\(--fail\)/);
   });
 
   it('실행 중 맥박 점은 대표색이다', () => {
