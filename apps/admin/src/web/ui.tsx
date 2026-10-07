@@ -7,7 +7,7 @@ import { t, use말, use언어, type 언어 } from './i18n.js';
 import { ApiError, type ItemStatus, type Platform } from './api.js';
 import { 요청오류문장 } from './errorText.js';
 
-export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일' };
+export const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 export const PLATFORMS: Platform[] = ['desktop', 'mobile'];
 
 export const STATUS_LABEL: Record<ItemStatus, string> = { PASS: '통과', FAIL: '실패', NA: '미실행' };

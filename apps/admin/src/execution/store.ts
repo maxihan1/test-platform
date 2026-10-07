@@ -12,7 +12,7 @@ import { 실행종류 } from './runKind.js';
 export const DEFAULT_TIMEOUT_MS = 300_000;
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
-const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일' };
+const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
 
 // 요청이 잘못된 것과 서버가 고장난 것을 라우트가 문자열로 가려내지 않게 한다
 export class RunInputError extends Error {

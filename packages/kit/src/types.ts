@@ -1,7 +1,8 @@
 // 모든 바운디드 컨텍스트가 주고받는 유일한 타입 계약 (SPEC §5.1). 여기가 흔들리면 병렬 5갈래가 전부 어긋난다
 
 export type TcId = string;                         // 'AUTH-002'
-export type Platform = 'desktop' | 'mobile';
+export type BrowserPlatform = 'desktop' | 'mobile';
+export type Platform = BrowserPlatform | 'android';
 export type ItemStatus = 'PASS' | 'FAIL' | 'NA';
 export type JsonSchema = Record<string, unknown>;  // zod 내장 z.toJSONSchema 출력. 검증하지 않고 그대로 저장·전달한다
 
@@ -107,7 +108,7 @@ export interface ScenarioResponseRef {             // 앞 부품이 받은 응�
 export interface ScenarioExecuteRequest {          // POST /execute-scenario (도메인/러너 §5.2)
   runId: number | null;                            // null 이면 시험 실행. 기록이 없다
   trialId?: string;                                // 시험 실행일 때만. admin 이 만든 UUID
-  platform: Platform;
+  platform: BrowserPlatform;
   baseUrl: string;
   parts: Array<ScenarioPart & { filePath?: string }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다
   timeoutMs: number;
