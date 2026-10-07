@@ -1,6 +1,6 @@
 // 앱 대시보드 숫자(통과율 · 일별 · 서비스별 · 신규 실패 · 히트맵)를 접은 줄에서 만드는 순수 함수
 
-import { 판정표 } from './insights.js';
+import { 판정표, type 변화 as 판정변화 } from './insights.js';
 
 export const 창날수 = 14;
 /** 커버리지 추이를 보는 날 수. 질의(할 일 4)가 쓰고 여기서는 값만 둔다 */
@@ -25,6 +25,8 @@ export interface 접은줄 {
   platform: 'desktop' | 'mobile';
   verdict: 접힌판정;
   unconfirmed: boolean;
+  /** 실패 줄의 대표 문장(insights 와 같은 말). 실제 값(actual · expected)은 싣지 않는다 — 비밀값이 샐 수 있다 */
+  reason: string | null;
 }
 
 // 이번 실행 번호를 키로 묶어 넘기므로 runId 를 안 싣는다. 키가 곧 「누구의 앞 실행인가」다.
@@ -46,12 +48,19 @@ export interface 일별칸 extends 셈 {
   day: string;
 }
 
+export const 흐름상한 = 20;
+
 export interface 서비스칸 {
   serviceId: number;
   serviceName: string;
   이번: 셈;
   직전: 셈;
   마지막실행: (셈 & { runId: number; finishedAt: string }) | null;
+  /** 창 안 실행을 오래된 것부터 최근 `흐름상한`개. F 실패 있음 · P 전부 통과 · N 그 밖(미확정 항목은 빼고 본다) */
+  흐름: ('F' | 'P' | 'N')[];
+  신규실패수: number;
+  /** insights 「고쳐짐」 — 앞 FAIL → 이번 PASS 이고 그 뒤 다시 실패하지 않은 (케이스, 디바이스) 수 */
+  해결수: number;
 }
 
 export interface 신규실패칸 {
@@ -64,6 +73,7 @@ export interface 신규실패칸 {
   tcName: string;
   platform: 'desktop' | 'mobile';
   finishedAt: string;
+  reason: string | null;
 }
 
 export interface 히트맵줄 {
@@ -128,7 +138,7 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     if (하루 !== undefined) 더한다(하루, 줄.verdict);
 
     const 서비스항목 = 서비스.get(줄.serviceId) ?? {
-      칸: { serviceId: 줄.serviceId, serviceName: 줄.serviceName, 이번: 빈셈(), 직전: 빈셈(), 마지막실행: null },
+      칸: { serviceId: 줄.serviceId, serviceName: 줄.serviceName, 이번: 빈셈(), 직전: 빈셈(), 마지막실행: null, 흐름: [], 신규실패수: 0, 해결수: 0 },
       마지막: new Map<number, 셈>(),
     };
     서비스.set(줄.serviceId, 서비스항목);
@@ -143,6 +153,11 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     }
   }
 
+  const 최근 = 최근판정(줄들);
+  const 신규전부 = 신규실패를뽑는다(줄들, 앞판정들, 이번창, 최근);
+  const 해결 = 해결을센다(줄들, 앞판정들, 이번창, 최근);
+  const 흐름 = 흐름을만든다(줄들, 이번창);
+
   const 서비스별 = [...서비스.values()]
     .map(({ 칸, 마지막 }) => {
       const 끝 = 마지막끝.get(칸.serviceId);
@@ -150,6 +165,9 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
       return {
         ...칸,
         마지막실행: 끝 === undefined || 셈값 === undefined ? null : { ...끝, ...셈값 },
+        흐름: 흐름.get(칸.serviceId) ?? [],
+        신규실패수: 신규전부.filter((n) => n.serviceId === 칸.serviceId).length,
+        해결수: 해결.get(칸.serviceId) ?? 0,
       };
     })
     .sort((a, b) => a.serviceId - b.serviceId);
@@ -160,44 +178,83 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     미확정건수,
     일별: [...일별.values()],
     서비스별,
-    신규실패: 신규실패를뽑는다(줄들, 앞판정들, 이번창),
+    신규실패: 신규전부.slice(0, 신규실패상한),
     히트맵: 히트맵을만든다(줄들, 이번시작, 이번창),
   };
 }
 
-// 앞 실행과 견줘 「새로깨짐」인 것만 낸다. 앞에 없던 케이스와 어느 한쪽이 미확정인 케이스는
-// 견주지 않는다 (insights.ts compareWithPrevious 와 같은 규칙)
+const 케이스키 = (줄: 접은줄): string => `${줄.serviceId}\u0000${줄.tcId}\u0000${줄.platform}`;
+const 오래된순 = (a: 접은줄, b: 접은줄): number =>
+  a.finishedAt < b.finishedAt ? -1 : a.finishedAt > b.finishedAt ? 1 : a.runId - b.runId;
+
+// (서비스, 케이스, 디바이스)마다 가장 최근 확정 판정. 신규 실패 · 해결을 「지금도 그런가」로 거르는 데 쓴다.
+// 미확정 줄은 판정이 아니라서 뺀다
+function 최근판정(줄들: 접은줄[]): Map<string, 접힌판정> {
+  const 결과 = new Map<string, 접힌판정>();
+  for (const 줄 of [...줄들].filter((l) => !l.unconfirmed).sort(오래된순)) 결과.set(케이스키(줄), 줄.verdict);
+  return 결과;
+}
+
+// 실행마다 한 글자로 접는다. 미확정은 빼고 보므로 미확정뿐인 실행은 N 이다
+function 흐름을만든다(줄들: 접은줄[], 이번창: (day: string) => boolean): Map<number, ('F' | 'P' | 'N')[]> {
+  const 실행들 = new Map<number, { 줄: 접은줄; 판정: 접힌판정[] }>();
+  for (const 줄 of 줄들) {
+    if (!이번창(줄.day)) continue;
+    const 실행 = 실행들.get(줄.runId) ?? { 줄, 판정: [] };
+    실행들.set(줄.runId, 실행);
+    if (!줄.unconfirmed) 실행.판정.push(줄.verdict);
+  }
+  const 서비스별 = new Map<number, ('F' | 'P' | 'N')[]>();
+  for (const { 줄, 판정 } of [...실행들.values()].sort((a, b) => 오래된순(a.줄, b.줄))) {
+    const 글자 = 판정.includes('FAIL') ? 'F' : 판정.length > 0 && 판정.every((v) => v === 'PASS') ? 'P' : 'N';
+    서비스별.set(줄.serviceId, [...(서비스별.get(줄.serviceId) ?? []), 글자]);
+  }
+  for (const [id, 글자들] of 서비스별) 서비스별.set(id, 글자들.slice(-흐름상한));
+  return 서비스별;
+}
+
+// 앞 실행과 견줘 줄 하나의 변화를 본다. 앞에 없던 케이스와 어느 한쪽이 미확정인 케이스는 견주지 않는다
+// (insights.ts compareWithPrevious 와 같은 규칙)
+function 줄변화(줄: 접은줄, 앞판정들: Map<number, 앞판정[]>): 판정변화 | null {
+  if (줄.unconfirmed) return null;
+  const 앞 = 앞판정들.get(줄.runId)?.find((a) => a.tcId === 줄.tcId && a.platform === 줄.platform);
+  return 앞 === undefined || 앞.unconfirmed ? null : 판정표[앞.verdict][줄.verdict];
+}
+
+function 해결을센다(
+  줄들: 접은줄[],
+  앞판정들: Map<number, 앞판정[]>,
+  이번창: (day: string) => boolean,
+  최근: Map<string, 접힌판정>,
+): Map<number, number> {
+  const 키들 = new Map<number, Set<string>>();
+  for (const 줄 of 줄들) {
+    if (!이번창(줄.day) || 최근.get(케이스키(줄)) !== 'PASS' || 줄변화(줄, 앞판정들) !== '고쳐짐') continue;
+    키들.set(줄.serviceId, (키들.get(줄.serviceId) ?? new Set<string>()).add(케이스키(줄)));
+  }
+  return new Map([...키들].map(([id, 키]) => [id, 키.size]));
+}
+
+// 「새로깨짐」인 것 가운데 지금도 실패인 것만 낸다 — 뒤 실행에서 다시 통과했거나 못 돌았으면 뺀다.
+// 같은 (서비스, 케이스, 디바이스)는 가장 최근 새로 깨진 하나다. 상한은 부르는 쪽이 자른다(서비스별 건수는 전부를 센다)
 function 신규실패를뽑는다(
   줄들: 접은줄[],
   앞판정들: Map<number, 앞판정[]>,
   이번창: (day: string) => boolean,
+  최근: Map<string, 접힌판정>,
 ): 신규실패칸[] {
   const 후보 = 줄들
-    .filter((줄) => 줄.verdict === 'FAIL' && !줄.unconfirmed && 이번창(줄.day))
-    .filter((줄) => {
-      const 앞 = 앞판정들.get(줄.runId)?.find((a) => a.tcId === 줄.tcId && a.platform === 줄.platform);
-      return 앞 !== undefined && !앞.unconfirmed && 판정표[앞.verdict].FAIL === '새로깨짐';
-    })
-    .sort((a, b) => (a.finishedAt < b.finishedAt ? 1 : a.finishedAt > b.finishedAt ? -1 : b.runId - a.runId));
+    .filter((줄) => 줄.verdict === 'FAIL' && 이번창(줄.day) && 줄변화(줄, 앞판정들) === '새로깨짐')
+    .filter((줄) => 최근.get(케이스키(줄)) === 'FAIL')
+    .sort((a, b) => 오래된순(b, a));
 
   const 본것 = new Set<string>();
   const 결과: 신규실패칸[] = [];
   for (const 줄 of 후보) {
-    const 키 = `${줄.serviceId}\u0000${줄.tcId}\u0000${줄.platform}`;
-    if (본것.has(키)) continue;
-    본것.add(키);
-    결과.push({
-      runId: 줄.runId,
-      serviceId: 줄.serviceId,
-      serviceName: 줄.serviceName,
-      env: 줄.env,
-      kind: 줄.kind,
-      tcId: 줄.tcId,
-      tcName: 줄.tcName,
-      platform: 줄.platform,
-      finishedAt: 줄.finishedAt,
-    });
-    if (결과.length === 신규실패상한) break;
+    if (본것.has(케이스키(줄))) continue;
+    본것.add(케이스키(줄));
+    const { runId, serviceId, serviceName, env, kind, tcId, tcName, platform, finishedAt, reason } = 줄;
+    결과.push({ runId, serviceId, serviceName, env, kind, tcId, tcName, platform, finishedAt, reason });
   }
   return 결과;
 }

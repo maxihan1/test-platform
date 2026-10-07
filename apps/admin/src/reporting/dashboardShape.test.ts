@@ -6,6 +6,7 @@ import {
   신규실패상한,
   히트맵케이스수,
   커버리지날수,
+  흐름상한,
   날짜더하기,
   대시보드집계,
   type 접은줄,
@@ -30,6 +31,7 @@ function 줄(덮: Partial<접은줄>): 접은줄 {
     platform: 'desktop',
     verdict: 'PASS',
     unconfirmed: false,
+    reason: null,
     ...덮,
   };
 }
@@ -256,6 +258,145 @@ describe('신규 실패', () => {
     );
     const 앞들 = new Map<number, 앞판정[]>(줄들.map((r) => [r.runId, [앞(r.tcId, 'PASS')]]));
     expect(대시보드집계(줄들, 앞들, 오늘).신규실패).toHaveLength(신규실패상한);
+  });
+});
+
+describe('신규 실패 — 지금도 실패인 것만', () => {
+  const 앞PASS = (...runIds: number[]): Map<number, 앞판정[]> => new Map(runIds.map((id) => [id, [앞('MKT-001', 'PASS')]]));
+
+  it('뒤 실행에서 다시 통과하면 뺀다', () => {
+    const 결과 = 대시보드집계(
+      [
+        줄({ runId: 10, day: '2026-10-03', finishedAt: '2026-10-03T10:00:00.000Z', verdict: 'FAIL' }),
+        줄({ runId: 11, day: '2026-10-05', finishedAt: '2026-10-05T10:00:00.000Z', verdict: 'PASS' }),
+      ],
+      앞PASS(10),
+      오늘,
+    );
+    expect(결과.신규실패).toEqual([]);
+    expect(결과.서비스별[0]?.신규실패수).toBe(0);
+  });
+
+  it('뒤 실행에서 못 돌았으면(미실행) 뺀다', () => {
+    const 결과 = 대시보드집계(
+      [
+        줄({ runId: 10, day: '2026-10-03', finishedAt: '2026-10-03T10:00:00.000Z', verdict: 'FAIL' }),
+        줄({ runId: 11, day: '2026-10-05', finishedAt: '2026-10-05T10:00:00.000Z', verdict: 'NA' }),
+      ],
+      앞PASS(10),
+      오늘,
+    );
+    expect(결과.신규실패).toEqual([]);
+  });
+
+  it('계속 실패면 처음 깨진 실행으로 남긴다', () => {
+    const 결과 = 대시보드집계(
+      [
+        줄({ runId: 10, day: '2026-10-03', finishedAt: '2026-10-03T10:00:00.000Z', verdict: 'FAIL' }),
+        줄({ runId: 11, day: '2026-10-05', finishedAt: '2026-10-05T10:00:00.000Z', verdict: 'FAIL' }),
+      ],
+      new Map([
+        [10, [앞('MKT-001', 'PASS')]],
+        [11, [앞('MKT-001', 'FAIL')]],
+      ]),
+      오늘,
+    );
+    expect(결과.신규실패.map((n) => n.runId)).toEqual([10]);
+  });
+
+  it('뒤 실행의 미확정 줄은 최근 판정이 아니다', () => {
+    const 결과 = 대시보드집계(
+      [
+        줄({ runId: 10, day: '2026-10-03', finishedAt: '2026-10-03T10:00:00.000Z', verdict: 'FAIL' }),
+        줄({ runId: 11, day: '2026-10-05', finishedAt: '2026-10-05T10:00:00.000Z', verdict: 'PASS', unconfirmed: true }),
+      ],
+      앞PASS(10),
+      오늘,
+    );
+    expect(결과.신규실패).toHaveLength(1);
+  });
+
+  it('사유를 그대로 옮기고 값 칸은 없다', () => {
+    const 결과 = 대시보드집계(
+      [줄({ runId: 10, verdict: 'FAIL', reason: '로그인 버튼이 보인다' })],
+      앞PASS(10),
+      오늘,
+    );
+    expect(결과.신규실패[0]?.reason).toBe('로그인 버튼이 보인다');
+    expect(Object.keys(결과.신규실패[0] ?? {})).not.toContain('actual');
+  });
+
+  it('서비스별 신규 실패 수는 상한으로 자르기 전 전부다', () => {
+    const 줄들 = Array.from({ length: 신규실패상한 + 3 }, (_, i) =>
+      줄({ runId: 300 + i, tcId: `MKT-${100 + i}`, verdict: 'FAIL' }),
+    );
+    const 앞들 = new Map<number, 앞판정[]>(줄들.map((r) => [r.runId, [앞(r.tcId, 'PASS')]]));
+    const 결과 = 대시보드집계(줄들, 앞들, 오늘);
+    expect(결과.신규실패).toHaveLength(신규실패상한);
+    expect(결과.서비스별[0]?.신규실패수).toBe(신규실패상한 + 3);
+  });
+});
+
+describe('서비스별 최근 실행 흐름 · 해결', () => {
+  const 실행줄 = (runId: number, day: string, verdict: 접은줄['verdict'], 덮: Partial<접은줄> = {}): 접은줄 =>
+    줄({ runId, day, finishedAt: `${day}T0${runId % 10}:00:00.000Z`, verdict, ...덮 });
+
+  it('실패 있음 F · 전부 통과 P · 그 밖 N 을 오래된 것부터 늘어놓는다', () => {
+    const 결과 = 대시보드집계(
+      [
+        실행줄(1, '2026-10-01', 'PASS'),
+        실행줄(1, '2026-10-01', 'PASS', { tcId: 'MKT-002' }),
+        실행줄(2, '2026-10-02', 'FAIL'),
+        실행줄(2, '2026-10-02', 'PASS', { tcId: 'MKT-002' }),
+        실행줄(3, '2026-10-03', 'NA'),
+        실행줄(4, '2026-10-04', 'PASS'),
+        실행줄(4, '2026-10-04', 'FAIL', { tcId: 'MKT-002', unconfirmed: true }),
+        실행줄(5, '2026-10-05', 'FAIL', { unconfirmed: true }),
+      ],
+      new Map(),
+      오늘,
+    );
+    expect(결과.서비스별[0]?.흐름).toEqual(['P', 'F', 'N', 'P', 'N']);
+  });
+
+  it('최근 흐름상한개만 남긴다', () => {
+    const 줄들 = Array.from({ length: 흐름상한 + 2 }, (_, i) =>
+      줄({ runId: 500 + i, day: '2026-10-07', finishedAt: `2026-10-07T10:${String(i).padStart(2, '0')}:00.000Z`, verdict: i === 0 ? 'FAIL' : 'PASS' }),
+    );
+    const 흐름 = 대시보드집계(줄들, new Map(), 오늘).서비스별[0]?.흐름;
+    expect(흐름).toHaveLength(흐름상한);
+    expect(흐름?.includes('F')).toBe(false);
+  });
+
+  it('고쳐짐은 앞 FAIL 이 이번 PASS 가 된 것이고 같은 케이스는 한 번만 센다', () => {
+    const 결과 = 대시보드집계(
+      [
+        실행줄(1, '2026-10-02', 'PASS'),
+        실행줄(2, '2026-10-04', 'PASS'),
+        실행줄(3, '2026-10-05', 'PASS', { tcId: 'MKT-002' }),
+        실행줄(4, '2026-10-06', 'PASS', { tcId: 'MKT-003' }),
+      ],
+      new Map([
+        [1, [앞('MKT-001', 'FAIL')]],
+        [2, [앞('MKT-001', 'FAIL')]],
+        [3, [앞('MKT-002', 'PASS')]],
+        [4, [앞('MKT-003', 'FAIL', { unconfirmed: true })]],
+      ]),
+      오늘,
+    );
+    expect(결과.서비스별[0]?.해결수).toBe(1);
+  });
+
+  it('고친 뒤 다시 실패하면 해결이 아니다', () => {
+    const 결과 = 대시보드집계(
+      [실행줄(1, '2026-10-02', 'PASS'), 실행줄(2, '2026-10-05', 'FAIL')],
+      new Map([
+        [1, [앞('MKT-001', 'FAIL')]],
+        [2, [앞('MKT-001', 'PASS')]],
+      ]),
+      오늘,
+    );
+    expect(결과.서비스별[0]?.해결수).toBe(0);
   });
 });
 
