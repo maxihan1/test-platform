@@ -912,6 +912,7 @@ CLAUDE.md와 SPEC 중 아래를 읽어줘. 너는 WS-E(화면) 담당이다.
 시작 전에 docs/DESIGN.md와 그 맨 위의 시안 캔버스(https://claude.ai/artifact/CqkzdGZbgdQgDxJZFuA2pP)를 반드시 열어봐라.
 색·간격·구조는 시안 캔버스와 DESIGN.md 「새 토큰」을 기준으로 삼는다 (2026-10-07 개편).
 docs/design-mockup.html은 개편 전 기준이다 — 다르면 캔버스와 DESIGN.md가 맞다.
+새 토큰의 코드 반영은 묶음 1(진행판 WEB-F3-02)부터다. 그 전에 화면을 고치면 DESIGN.md 「지금 코드 값」을 따른다.
 
 화면 네 개는 이미 만들어져 main에 들어가 있다 (apps/admin/src/web/, 21개 파일).
 케이스 목록 · 실행 설정(폼 자동 생성) · 실행 결과 목록 · 항목 상세, 그리고 검색창과
