@@ -83,7 +83,7 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
       ],
     );
     const historyId = Number(r.rows[0]!.history_id);
-    항목번호[`${키}|${platform}|${attempt}`] = historyId;
+    항목번호[`${키}|${tcId}|${platform}|${attempt}`] = historyId;
     if (검증문장 !== undefined) {
       await pool.query(
         `INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions) VALUES ($1, 1, '화면을 연다', 'PASS', 10, '[]')`,
@@ -170,7 +170,7 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
   it('item 은 항목 조회와 같은 함수로 읽은 것이라 비밀값이 가려진다', async () => {
     const 결과 = await 실패카드(실행번호['XFC RT 이번']!, 1);
     const 데스크톱 = 결과.items[0]!.devices[0]!;
-    const 원래 = await findItem(실행번호['XFC RT 이번']!, 항목번호['RT|desktop|1']!);
+    const 원래 = await findItem(실행번호['XFC RT 이번']!, 항목번호['RT|XFC-001|desktop|1']!);
     expect(데스크톱.item).toEqual(원래);
     expect(데스크톱.item.params).toEqual({ username: 'xfc-user', password: '********' });
     expect(데스크톱.item.expected).toEqual({ token: '********', count: 2 });
@@ -217,7 +217,7 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
     const 결과 = await 실패카드(실행번호['XFC RT 이번']!, 1);
     const 데스크톱 = 결과.items[0]!.devices[0]!;
     expect(데스크톱).toMatchObject({ attempts: 2, failedAttempts: 2 });
-    expect(데스크톱.item.historyId).toBe(항목번호['RT|desktop|1']);
+    expect(데스크톱.item.historyId).toBe(항목번호['RT|XFC-001|desktop|1']);
     expect(결과.items[0]!.devices[1]).toMatchObject({ attempts: 1, failedAttempts: 1 });
   });
 
