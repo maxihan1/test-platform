@@ -108,3 +108,25 @@ test('할 일 3 — spec-review 절차 1 이 LEARNINGS 를 헤딩으로 골라 �
   assert.ok(첫째.includes('docs/spec/` 아래 장을 전부 읽는다'), '전체 범위 검사의 장 전부 읽기가 빠졌다');
   assert.doesNotMatch(첫째, /`CLAUDE\.md`[^\n]*읽는다/, '이미 실린 CLAUDE.md 를 다시 읽으라는 말이 남았다');
 });
+
+test('할 일 4 — ponytail 규칙은 코드를 쓰는 보조 에이전트에만 자동으로 붙는다', () => {
+  const 값 = JSON.parse(read('.claude/settings.json')).env?.PONYTAIL_SUBAGENT_MATCHER;
+  assert.ok(값, 'settings.json env.PONYTAIL_SUBAGENT_MATCHER 가 없다');
+  const 정규식 = new RegExp(값, 'i');
+  for (const 맞음 of ['tpx-implementer', 'author-write']) assert.ok(정규식.test(맞음), `${맞음} 에 규칙이 안 붙는다`);
+  for (const 안맞음 of ['tpx-verifier', 'general-purpose', 'Explore', 'author-scan']) {
+    assert.ok(!정규식.test(안맞음), `${안맞음} 에도 규칙이 붙는다`);
+  }
+});
+
+test('할 일 4 — tpx-impl 2-A 의 보안 줄과 대체 구현자 줄이 프롬프트 첫 줄에서 ponytail 스킬을 부르게 한다', () => {
+  const 글 = 절(read('.claude/skills/tpx-impl/SKILL.md'), '### 2-A.');
+  const 줄들 = 글.split('\n');
+  const 보안 = 줄들.findIndex((l) => l.includes('보안 · 비밀값 · 권한을 고치는 할 일만'));
+  const 대체 = 줄들.findIndex((l) => l.includes('정의를 못 찾으면'));
+  assert.ok(보안 >= 0 && 대체 >= 0, '대조군 — 보안 줄과 대체 구현자 줄이 2-A 에 있어야 한다');
+  for (const [이름, 시작] of [['보안', 보안], ['대체 구현자', 대체]]) {
+    assert.ok(줄들.slice(시작, 시작 + 2).join('\n').includes('ponytail:ponytail'), `${이름} 줄 근처에 ponytail:ponytail 이 없다`);
+  }
+  assert.ok(글.split('ponytail:ponytail').length - 1 >= 2, 'ponytail:ponytail 이 두 번 이상 나와야 한다');
+});
