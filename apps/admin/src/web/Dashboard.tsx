@@ -36,6 +36,8 @@ function use대시보드(시간대: string): 읽음 {
   // 집계를 다시 받다 실패하면 「실행이 끝났다」 신호가 사라진다. 도는 실행이 없으면 타이머도 꺼지므로 상태로 들어 타이머를 살려 둔다
   const 다시받아야함 = useRef(false);
   const [재시도, set재시도] = useState(false);
+  // 집계는 무겁다. 서버가 느릴 때 15초마다 겹쳐 부르면 탭마다 부하를 보태고 늦게 온 옛 응답이 새것을 덮는다
+  const 집계받는중 = useRef(false);
 
   useEffect(() => {
     살아있다.current = true;
@@ -45,8 +47,13 @@ function use대시보드(시간대: string): 읽음 {
   }, []);
 
   const 전체읽기 = (처음: boolean): void => {
+    if (집계받는중.current) return;
+    집계받는중.current = true;
     api
       .dashboard(시간대)
+      .finally(() => {
+        집계받는중.current = false;
+      })
       .then((값) => {
         if (!살아있다.current) return;
         최근.current = 값;

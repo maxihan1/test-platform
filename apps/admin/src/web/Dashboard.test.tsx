@@ -419,6 +419,27 @@ describe('새로 고침', () => {
     expect(읽기).toHaveBeenCalledTimes(4);
   });
 
+  it('집계를 받는 동안에는 다음 주기에 또 부르지 않는다 — 서버가 느릴 때 무거운 요청이 탭마다 쌓이지 않는다', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const 첫 = 응답({ running: [실행중(12, 3, 8)] });
+    let 전체부름 = 0;
+    vi.spyOn(api, 'dashboard').mockImplementation(((_tz: string, only?: 'running') => {
+      if (only === 'running') return Promise.resolve({ running: [] });
+      전체부름 += 1;
+      if (전체부름 === 1) return Promise.resolve(첫);
+      if (전체부름 === 2) return Promise.reject(new Error('일시 오류'));
+      return new Promise(() => {});
+    }) as typeof api.dashboard);
+    render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
+    await 흘린다(0);
+    await 흘린다(15_000);
+    await 흘린다(15_000);
+    expect(전체부름).toBe(3);
+    await 흘린다(45_000);
+    expect(전체부름).toBe(3);
+  });
+
   it('화면을 떠나면 타이머를 끈다', async () => {
     vi.useFakeTimers();
     읽기를(응답({ running: [실행중(12, 3, 8)] }));

@@ -87,7 +87,10 @@ export function 요구커버리지({
               <a
                 href={`#/authoring/${String(줄.requestId)}`}
                 onClick={() => 서비스열기(줄.serviceId)}
-                onAuxClick={() => 서비스열기(줄.serviceId)}
+                onAuxClick={(e) => {
+                  // 가운데 버튼(새 탭)만 — 오른쪽 단추는 주소 복사 메뉴라 서비스를 바꾸면 사람이 모르게 바뀐다
+                  if (e.button === 1) 서비스열기(줄.serviceId);
+                }}
               >
                 {t('{날짜} · 요청 #{번호}', { 날짜: 짧은날짜(줄.finishedAt, 언어), 번호: 줄.requestId })}
               </a>

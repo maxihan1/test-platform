@@ -248,6 +248,14 @@ describe('요구사항 커버리지', () => {
     expect(서비스열기).toHaveBeenCalledWith(1);
   });
 
+  it('오른쪽 단추(링크 주소 복사 메뉴)로는 서비스를 바꾸지 않는다 — 대시보드엔 고르개가 없어 바뀐 줄 모른다', async () => {
+    const { container } = await 열기(응답());
+    서비스열기.mockClear();
+    const 링크 = within(container.querySelectorAll('.dash-cov-row')[0] as HTMLElement).getByRole('link');
+    fireEvent(링크, new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 2 }));
+    expect(서비스열기).not.toHaveBeenCalled();
+  });
+
   it('작성 칸이 none 인 서비스는 줄이 없다 — 「작성 기록이 없습니다」는 작성을 볼 수 있는 서비스에만 뜬다', async () => {
     읽기를(응답());
     const { container } = render(
