@@ -54,6 +54,6 @@ export const 대시보드말: Record<string, string> = {
   // 실행 0
   '아직 실행한 테스트가 없습니다': 'No tests have run yet',
   '테스트 케이스를 실행하면 여기에 통과율 · 신규 실패 · 일별 결과가 쌓입니다': 'Run test cases and the pass rate, new failures and daily results build up here',
-  '하루 한 번 정기 실행을 켜 두면 일별 결과가 날마다 이어져 추이가 보입니다': 'Turn on a daily scheduled run and daily results connect into a trend',
+  '하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다': 'Turn on a daily scheduled run and results build up into a trend',
   '테스트 케이스로 가기': 'Go to test cases',
 };
