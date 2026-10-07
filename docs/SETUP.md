@@ -690,7 +690,7 @@ Android 앱을 조작하는 케이스(`platforms: ['android']`)를 **맥에 USB 
 
 **문제가 생기면**
 
-- 「PLATFORM_APPIUM_URL 이 없다」 · 「PLATFORM_APP 이 없다」 같은 환경값 없음 오류는 위 명령 앞의 환경값이 빠진 것이다. 러너를 켰다면 `PLATFORM_APP` 을 준 채로 다시 켠다.
+- 「Android 앱 케이스를 돌리려면 PLATFORM_APPIUM_URL 이 필요하다」 · 「Android 앱 케이스를 돌리려면 PLATFORM_APP 이 필요하다」 같은 환경값 없음 오류는 위 명령 앞의 환경값이 빠진 것이다. 러너를 켰다면 `PLATFORM_APP` 을 준 채로 다시 켠다.
 - **폰에 Appium 도우미 앱을 처음 까는 첫 실행은 연결이 느려 제한 시간(30초)을 넘길 수 있다.** 이 첫 연결은 시간을 못 쟀다. 시간 초과로 끝나면 **한 번 더 돌린다.**
 - 폰이 여러 대 꽂혀 있으면 어느 폰인지 `PLATFORM_DEVICE_UDID=<adb devices 에 보이는 번호>` 를 같이 준다.
 - 같은 폰에 연결 둘이 겹치면 뒤 것이 앞 것을 가로챈다 — 폰 하나에는 한 번에 하나만 돌린다. 러너가 도중에 끊기면(중단 · 제한 시간) Appium 쪽 연결은 약 60초 뒤에 풀린다.
