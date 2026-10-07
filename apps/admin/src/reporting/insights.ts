@@ -3,6 +3,7 @@
 
 import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
+import { 판정접기식 } from './dashboardSql.js';
 
 export type 변화 = '새로깨짐' | '계속깨짐' | '고쳐짐' | '그대로';
 
@@ -45,17 +46,15 @@ interface 접힌행 {
 // 한 번도 못 돈 케이스가 실패로 잡히고, 러너가 고장 난 것이 케이스 탓으로 보인다 (SPEC §8.5).
 // 접는 규칙의 정본은 SPEC §8.3 회차 요약이고 화면 쪽 같은 규칙은 web/group.ts 의 회차요약() 이다
 const 접기 = `
-  SELECT tc_id,
-         max(tc_name) AS tc_name,
-         platform,
-         CASE WHEN bool_or(status = 'FAIL')  THEN 'FAIL'
-              WHEN bool_and(status = 'PASS') THEN 'PASS'
-              ELSE 'NA' END AS status,
-         bool_or(unconfirmed IS NOT NULL) AS 미확정
-  FROM run_item
-  WHERE run_id = $1
-  GROUP BY tc_id, platform
-  ORDER BY tc_id, platform`;
+  SELECT i.tc_id,
+         max(i.tc_name) AS tc_name,
+         i.platform,
+         ${판정접기식} AS status,
+         bool_or(i.unconfirmed IS NOT NULL) AS 미확정
+  FROM run_item i
+  WHERE i.run_id = $1
+  GROUP BY i.tc_id, i.platform
+  ORDER BY i.tc_id, i.platform`;
 
 // 빠지는 조합이 없어야 한다. 앞이 NA 였다가 이번에 FAIL 이면 「이번에 처음 깨진 것」이 맞다 —
 // 그대로로 묻으면 새 실패가 칸에서 사라진다. 반대로 이번이 NA 인 것은 아직 못 돈 것이라 판정하지 않는다

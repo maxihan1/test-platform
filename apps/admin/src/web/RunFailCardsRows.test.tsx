@@ -1,0 +1,179 @@
+// @vitest-environment jsdom
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+
+import { api } from './api.js';
+import { RunFailCards } from './RunFailCards.js';
+import { RUN_ID, 그리기, 단계, 상세, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+describe('실패 카드 — 통과 줄 · 거르개 · 쪽 · 불러오기 (실행 §8.3)', () => {
+  it('그 케이스의 통과 · 미실행 디바이스는 한 줄이고, 펼칠 때만 상세를 한 번 불러온다', async () => {
+    const 상세부름 = vi.spyOn(api, 'item').mockResolvedValue(
+      상세(2, 'mobile', {
+        status: 'PASS',
+        precondition: ['모바일 사전조건'],
+        steps: [단계(1, '모바일 절차', [['모바일 확인', 'PASS', true, true]])],
+      }),
+    );
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)])]),
+      [
+        줄(1, 'ZZI-0001', 'desktop', 'FAIL'),
+        줄(2, 'ZZI-0001', 'mobile', 'PASS', { durationMs: 3600 }),
+        줄(3, 'ZZI-0001', 'android', 'NA', { durationMs: null }),
+        줄(9, 'ZZI-0009', 'desktop', 'PASS'),
+      ],
+    );
+
+    const 모바일 = await screen.findByRole('button', { name: /ZZI-0001.*모바일/ });
+    expect(모바일.getAttribute('aria-expanded')).toBe('false');
+    expect(모바일.getAttribute('aria-controls')).not.toBeNull();
+    expect(screen.getByText('3.60초')).toBeDefined();
+    expect(screen.getByRole('button', { name: /ZZI-0001.*Android 앱/ })).toBeDefined();
+    expect(screen.queryByRole('button', { name: /ZZI-0009/ })).toBeNull();
+    expect(상세부름).not.toHaveBeenCalled();
+
+    fireEvent.click(모바일);
+    expect(await screen.findByText('모바일 절차')).toBeDefined();
+    expect(상세부름).toHaveBeenCalledTimes(1);
+    expect(상세부름).toHaveBeenCalledWith(RUN_ID, 2);
+    expect(screen.getByText('모바일 사전조건')).toBeDefined();
+    expect(모바일.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.click(모바일);
+    expect(모바일.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(모바일);
+    expect(모바일.getAttribute('aria-expanded')).toBe('true');
+    expect(상세부름).toHaveBeenCalledTimes(1);
+  });
+
+  it('펼친 상세를 불러오는 중이면 그 자리에 한 줄을, 못 불러오면 오류 한 줄을 적는다', async () => {
+    vi.spyOn(api, 'item').mockRejectedValue(new Error('상세를 못 읽었습니다'));
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)])]),
+      [줄(1, 'ZZI-0001', 'desktop', 'FAIL'), 줄(2, 'ZZI-0001', 'mobile', 'PASS')],
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: /ZZI-0001.*모바일/ }));
+    expect(screen.getByText('불러오는 중입니다.')).toBeDefined();
+    expect(await screen.findByText('상세를 못 읽었습니다')).toBeDefined();
+  });
+
+  it('디바이스 거르개가 바뀌면 서버에 다시 묻고 화면이 거르지 않는다', async () => {
+    const { 부름, rerender } = 그리기(쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)])]));
+    await screen.findByRole('article');
+    expect(부름.mock.calls[0]).toEqual([RUN_ID, 1, undefined]);
+
+    rerender(<RunFailCards runId={RUN_ID} env="qa" items={[줄(1, 'ZZI-0001', 'desktop', 'FAIL')]} platform="mobile" />);
+    await waitFor(() => expect(부름).toHaveBeenCalledTimes(2));
+    expect(부름.mock.calls[1]).toEqual([RUN_ID, 1, 'mobile']);
+  });
+
+  it('쪽이 둘 이상이면 이전 · 다음이 있고, 쪽을 넘기면 포커스가 카드 목록 머리로 간다', async () => {
+    const 첫쪽 = 쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)]), 케이스('ZZI-0002', '로그인', [장치('desktop', 2)])], { pageSize: 2, total: 3 });
+    const 둘째쪽 = 쪽([케이스('ZZI-0003', '결제', [장치('desktop', 3)])], { pageSize: 2, total: 3, page: 2 });
+    const 부름 = vi.spyOn(api, 'failures').mockResolvedValueOnce(첫쪽).mockResolvedValueOnce(둘째쪽);
+    render(
+      <RunFailCards
+        runId={RUN_ID}
+        env="qa"
+        items={[줄(1, 'ZZI-0001', 'desktop', 'FAIL'), 줄(2, 'ZZI-0002', 'desktop', 'FAIL'), 줄(3, 'ZZI-0003', 'desktop', 'FAIL')]}
+        platform="ALL"
+      />,
+    );
+
+    const 다음 = await screen.findByRole('button', { name: '다음' });
+    expect((screen.getByRole('button', { name: '이전' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(다음);
+
+    expect(await screen.findByText('ZZI-0003')).toBeDefined();
+    expect(부름.mock.calls[1]).toEqual([RUN_ID, 2, undefined]);
+    const 머리 = screen.getByRole('heading', { name: /실패한 케이스/ });
+    await waitFor(() => expect(document.activeElement).toBe(머리));
+    expect((screen.getByRole('button', { name: '다음' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('쪽이 하나뿐이면 이전 · 다음을 그리지 않는다', async () => {
+    그리기(쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)])]));
+
+    await screen.findByRole('article');
+    expect(screen.queryByRole('button', { name: '다음' })).toBeNull();
+  });
+
+  it('불러오는 중과 실패는 한 줄로 적는다', async () => {
+    vi.spyOn(api, 'failures').mockReturnValue(new Promise(() => undefined));
+    render(<RunFailCards runId={RUN_ID} env="qa" items={[줄(1, 'ZZI-0001', 'desktop', 'FAIL')]} platform="ALL" />);
+    expect(screen.getByText('불러오는 중입니다.')).toBeDefined();
+
+    cleanup();
+    vi.restoreAllMocks();
+    vi.spyOn(api, 'failures').mockRejectedValue(new Error('카드를 못 읽었습니다'));
+    render(<RunFailCards runId={RUN_ID} env="qa" items={[줄(1, 'ZZI-0001', 'desktop', 'FAIL')]} platform="ALL" />);
+    expect(await screen.findByText('카드를 못 읽었습니다')).toBeDefined();
+  });
+
+  it('항목이 하나도 없으면 통로를 부르지 않고, 서버가 빈 쪽을 줘도 같은 한 줄을 적는다', async () => {
+    const 부름 = vi.spyOn(api, 'failures').mockResolvedValue(쪽([]));
+    render(<RunFailCards runId={RUN_ID} env="qa" items={[]} platform="ALL" />);
+    expect(screen.getByText('실패한 케이스가 없습니다')).toBeDefined();
+    expect(부름).not.toHaveBeenCalled();
+
+    cleanup();
+    render(<RunFailCards runId={RUN_ID} env="qa" items={[줄(1, 'ZZI-0001', 'desktop', 'PASS')]} platform="ALL" />);
+    expect(await screen.findByText('실패한 케이스가 없습니다')).toBeDefined();
+  });
+
+  it('카드에는 코드 뷰가 없다 — 코드는 상세에만 둔다', async () => {
+    그리기(쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 17)])]));
+
+    await screen.findByRole('link', { name: '상세' });
+    expect(screen.queryByText('실패 지점 코드')).toBeNull();
+  });
+
+  it('실패 케이스가 정확히 한 쪽 크기면 빈 다음 쪽을 열지 않는다 — 쪽 수는 서버가 준 총수로 센다', async () => {
+    const 스무건 = Array.from({ length: 20 }, (_, i) =>
+      케이스(`ZZI-${String(i + 1).padStart(4, '0')}`, `케이스 ${i + 1}`, [장치('desktop', i + 1)]),
+    );
+    그리기(쪽(스무건, { pageSize: 20, total: 20 }));
+
+    await screen.findAllByRole('article');
+    expect(screen.queryByRole('button', { name: '다음' })).toBeNull();
+  });
+
+  it('총수가 한 쪽을 넘으면 다음이 열리고 마지막 쪽에서는 닫힌다', async () => {
+    const 첫쪽 = 쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)])], { pageSize: 1, total: 2 });
+    const 둘째쪽 = 쪽([케이스('ZZI-0002', '로그인', [장치('desktop', 2)])], { pageSize: 1, total: 2, page: 2 });
+    vi.spyOn(api, 'failures').mockResolvedValueOnce(첫쪽).mockResolvedValueOnce(둘째쪽);
+    render(<RunFailCards runId={RUN_ID} env="qa" items={[줄(1, 'ZZI-0001', 'desktop', 'FAIL')]} platform="ALL" />);
+
+    const 다음 = await screen.findByRole('button', { name: '다음' });
+    expect((다음 as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(다음);
+
+    await screen.findByText('ZZI-0002');
+    expect((screen.getByRole('button', { name: '다음' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+describe('묶인 칸의 화면은 실패한 절차 것만 (실행 §8.3)', () => {
+  it('통과한 절차에서 찍은 화면은 「실패 시점 화면」으로 나오지 않는다', async () => {
+    const 단계들 = () => [
+      단계(1, '화면을 연다', [['제목이 보인다', 'PASS', '예', '예']], { screenshotPath: 'cap.png' }),
+      단계(2, '가입 버튼을 누른다', [['가입한 이메일이 보인다', 'FAIL', 'new@demo.kr', '없음']], { screenshotPath: 'shot.png' }),
+    ];
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 11, {}, { steps: 단계들() }), 장치('mobile', 12, {}, { steps: 단계들() })])]),
+      [줄(11, 'ZZI-0001', 'desktop', 'FAIL'), 줄(12, 'ZZI-0001', 'mobile', 'FAIL')],
+    );
+
+    await screen.findByRole('article');
+    const 묶음사진 = [...document.querySelectorAll('.fc-shots img')].map((img) => img.getAttribute('src'));
+    expect(묶음사진).toEqual([`/api/screenshots/${RUN_ID}/11/2.png`, `/api/screenshots/${RUN_ID}/12/2.png`]);
+  });
+});

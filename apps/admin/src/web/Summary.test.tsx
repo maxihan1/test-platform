@@ -77,6 +77,24 @@ describe('판정흐름', () => {
   });
 });
 
+describe('판정흐름의 막대 이름 (실행 §8.3 · DESIGN.md 접근성)', () => {
+  it('앞말을 주면 막대가 그림 하나이고 이름이 앞말 · 회수 · 판정 차례를 읽어 준다', () => {
+    render(<판정흐름 recent={['FAIL', 'FAIL', 'PASS']} 앞말="qa 서버 · 이 실행까지" />);
+
+    expect(
+      screen.getByRole('img', { name: 'qa 서버 · 이 실행까지 최근 3회, 맨 앞이 이번 실행: 실패, 실패, 통과' }),
+    ).toBeTruthy();
+    expect(screen.queryByText('맨 앞이 이번 실행')).toBeNull();
+  });
+
+  it('앞말이 없으면 케이스 목록 그대로 막대를 화면 읽기에서 숨긴다', () => {
+    const { container } = render(<판정흐름 recent={['PASS', 'FAIL']} />);
+
+    expect(screen.queryByRole('img')).toBeNull();
+    expect(container.querySelector('.spark')?.getAttribute('aria-hidden')).toBe('true');
+  });
+});
+
 describe('칸띠 — 판정이 아닌 집계도 같은 띠로 그린다', () => {
   it('판정을 안 준 칸에는 판정 색이 붙지 않는다', () => {
     const { container } = render(

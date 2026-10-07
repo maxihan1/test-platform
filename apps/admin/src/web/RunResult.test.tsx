@@ -10,16 +10,11 @@
 // **어떤 인자로 서버를 불렀는가** 둘이다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { api, ApiError, type EvidenceRow, type RunSummary } from './api.js';
+import { api, type EvidenceRow } from './api.js';
 import { RunResult } from './RunResult.js';
-import { 판정을만든다, type 판정 } from './role.js';
-import { scenarioApi } from './scenarioApi.js';
-import type { User } from './api.js';
-
-// 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
-const 실행까지: 판정 = (무엇) => 무엇 !== '작성머지' && 무엇 !== '설정';
+import { RUN_ID, 그리기, 실행, 실행까지, 증적 } from './RunResult.fixture.js';
 
 // globals 가 꺼져 있어 testing-library 가 스스로 cleanup 을 걸지 못한다. 직접 건다.
 // 언마운트가 곧 `setInterval` 정리다 — 안 걸면 2초 폴링이 검사를 붙잡는다
@@ -30,38 +25,6 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-const RUN_ID = 2111;
-
-const 실행: RunSummary = {
-  runId: RUN_ID,
-  title: '결제 회귀',
-  triggeredBy: 'kim',
-  triggeredByName: '김철수',
-  env: 'qa',
-  baseUrl: 'https://qa-pay.example.com',
-  serviceName: '결제',
-  status: 'FINISHED',
-  startedAt: '2026-09-15T17:13:00.000Z',
-  finishedAt: '2026-09-15T17:25:00.000Z',
-  counts: { total: 3, pass: 2, fail: 1, na: 0, running: 0 },
-};
-
-function 증적(format: string, status: string, error: string | null = null): EvidenceRow {
-  return {
-    id: 9,
-    format,
-    status,
-    filePath: status === 'READY' ? `artifacts/evidence/9.${format.toLowerCase()}` : null,
-    error,
-    generatedAt: '2026-09-15T17:22:00.000Z',
-  };
-}
-
-function 그리기(status: string, 문서들: EvidenceRow[] = []) {
-  vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status, items: [], evidence: 문서들 });
-  return render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
-}
-
 describe('실행 결과 화면의 증적 버튼 (SPEC §8.4)', () => {
   it('끝난 실행에는 형식마다 만들기 버튼이 하나씩 뜬다', async () => {
     그리기('FINISHED');
@@ -70,16 +33,17 @@ describe('실행 결과 화면의 증적 버튼 (SPEC §8.4)', () => {
     expect(글들).toEqual(['PDF 만들기', '엑셀 만들기', 'HTML 만들기']);
   });
 
-  it('판정 숫자가 만들기 버튼보다 앞에 온다', async () => {
-    그리기('FINISHED');
+  it('요약 띠가 머리 바로 아래에 오고 머리에는 판정 숫자가 없다', async () => {
+    const { container } = 그리기('FINISHED');
 
     await screen.findAllByText(/만들기$/);
 
-    // 걸러내기 칩에도 `통과` 가 있다. 머리 띠 안에서만 본다
-    const 머리띠 = document.querySelector('.tally');
-    const 차례 = [...(머리띠?.children ?? [])].map((el) => (el.className === 'makebtns' ? '버튼들' : el.textContent));
-    // 좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀린다. 휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다
-    expect(차례.indexOf('버튼들')).toBeGreaterThan(차례.findIndex((it) => it?.includes('통과')));
+    // 머리의 집계 숫자는 요약 띠로 옮겼다 — 같은 숫자를 두 번 두지 않는다 (도메인/실행 §8.3)
+    const 머리 = container.querySelector('.head');
+    const 띠 = container.querySelector('.rs');
+    expect(띠).not.toBeNull();
+    expect(머리?.nextElementSibling?.firstElementChild).toBe(띠);
+    expect(container.querySelector('.tally')?.textContent).not.toContain('통과');
   });
 
   it('만들기 버튼은 색을 쓰지 않고 이유를 말풍선에 숨기지 않는다', async () => {
@@ -132,167 +96,6 @@ describe('실행 결과 머리의 종류 (PR #132)', () => {
   });
 });
 
-type Run상세 = Awaited<ReturnType<typeof api.run>>;
-
-const 도는중응답: Run상세 = {
-  ...실행,
-  status: 'RUNNING',
-  finishedAt: null,
-  counts: { total: 3, pass: 1, fail: 0, na: 0, running: 2 },
-  items: [],
-  evidence: [],
-};
-
-const 끝난응답: Run상세 = { ...실행, items: [], evidence: [] };
-
-function 상자라벨(): string | null {
-  return screen.getByRole('dialog').getAttribute('aria-label');
-}
-
-describe('실행 진행 상자 (SPEC §8.9)', () => {
-  it('도는 중인 실행을 열면 진행 상자가 떠 있다', async () => {
-    vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
-
-    await screen.findByRole('dialog');
-    expect(상자라벨()).toContain('진행 중입니다');
-  });
-
-  it('이미 끝난 실행을 열면 상자가 뜨지 않는다', async () => {
-    그리기('FINISHED');
-
-    await screen.findAllByText(/만들기$/);
-    expect(screen.queryByRole('dialog')).toBeNull();
-  });
-
-  it('진행 상자를 닫아도 폴링은 계속 돈다', async () => {
-    vi.useFakeTimers();
-    const 부름 = vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
-    await act(async () => {});
-
-    fireEvent.click(screen.getByText('닫기'));
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(부름).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(2000);
-    });
-
-    expect(부름).toHaveBeenCalledTimes(2);
-    expect(screen.queryByRole('dialog')).toBeNull();
-  });
-
-  it('진행 상자를 닫은 뒤 실행이 끝나면 완료 상자가 뜬다', async () => {
-    vi.useFakeTimers();
-    vi.spyOn(api, 'run').mockResolvedValueOnce(도는중응답).mockResolvedValue(끝난응답);
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
-    await act(async () => {});
-
-    fireEvent.click(screen.getByText('닫기'));
-    expect(screen.queryByRole('dialog')).toBeNull();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(2000);
-    });
-
-    expect(상자라벨()).toContain('끝났습니다');
-  });
-});
-
-// 상자 635px 중 603px(95%)을 정보 UI 가 먹고 케이스 목록에 32px 만 남았다 — 줄이 101px 이라
-// **한 줄도 안 들어갔다.** 증적 정보는 머리로 올리고 견줌은 접는다 (2026-09-22 실측)
-describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC §8.3, 2026-09-22)', () => {
-  const 견줌있음 = {
-    previous: { runId: 2110, startedAt: '2026-09-14T10:00:00.000Z' },
-    주소바뀜: false,
-    빠진건수: 0,
-    케이스들: [
-      { tcId: 'DEMO-003', tcName: '할 일 추가', platform: 'desktop' as const, 판정: '새로깨짐' as const },
-    ],
-    실패덩어리들: [],
-  };
-
-  const 첫실행 = { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들: [] };
-
-  it('상자 안에서는 증적 문서 정보가 RUN 머리 줄에 있다', async () => {
-    vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
-    vi.spyOn(api, 'run').mockResolvedValue({
-      ...실행,
-      status: 'FINISHED',
-      items: [],
-      evidence: [증적('PDF', 'READY')],
-    });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
-    await screen.findAllByText(/만들기$/);
-
-    const 머리 = document.querySelector('.box-head');
-    expect(머리?.textContent, '머리에 증적 문서 줄이 없다').toMatch(/만듦/);
-    // 같은 말을 두 번 하지 않는다 — 머리에 올렸으면 본문에 블록으로 또 서지 않는다.
-    // **접기(`.sec.fold`)는 빼고 본다** — 그것은 견줌 칸이고 증적과 상관이 없다.
-    // 안 빼면 견줌이 있는 실행에서 엉뚱한 이유로 빨개진다 (2026-09-22 자기검토)
-    expect(document.querySelector('.screen .sec:not(.fold)')).toBeNull();
-  });
-
-  it('화면 전체에서는 증적 문서가 지금처럼 블록으로 선다', async () => {
-    vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
-    그리기('FINISHED', [증적('PDF', 'READY')]);
-    await screen.findAllByText(/만들기$/);
-
-    expect(document.querySelector('.box-head')).toBeNull();
-    expect(document.querySelector('.screen .sec')?.textContent).toMatch(/만듦/);
-  });
-
-  it('견줌은 접힌 채로 뜬다 — 펴야 보인다', async () => {
-    vi.spyOn(api, 'insights').mockResolvedValue(견줌있음);
-    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
-
-    const 접기 = await screen.findByText(/직전 실행과 비교/);
-    const 상자 = 접기.closest('details');
-    expect(상자, '견줌이 접기가 아니다').not.toBeNull();
-    expect(상자?.hasAttribute('open'), '견줌이 펴진 채로 뜬다').toBe(false);
-  });
-
-  // SPEC 공통/7-데모와-완료 §7 — 「첫 실행에서는 그 칸이 **아예 없다**」.
-  // 접기를 null 체크 바깥에 두면 내용 없는 `<summary>` 한 줄이 남아 이 규칙이 깨진다
-  it('첫 실행에서는 견줌이 아예 없다 — 빈 접기 줄도 없다', async () => {
-    vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
-    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
-    await screen.findAllByText(/만들기$/);
-
-    expect(screen.queryByText(/직전 실행과 비교/)).toBeNull();
-    expect(document.querySelector('details')).toBeNull();
-  });
-});
-
-describe('상자 안에서는 케이스 줄만 스크롤한다 (SPEC §8.7, 2026-09-22 ②)', () => {
-  it('상자안 이면 머리·필터는 밖에, 케이스 줄은 .rows-scroll 안에 있다', async () => {
-    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
-
-    await screen.findAllByText(/만들기$/);
-
-    const 면 = document.querySelector('.screen');
-    expect(면?.classList.contains('modal-results')).toBe(true);
-    const 스크롤칸 = 면?.querySelector('.rows-scroll');
-    expect(스크롤칸).not.toBeNull();
-    // 필터 줄은 스크롤칸 밖에 있다 — 스크롤해도 그대로 보여야 한다
-    expect(면?.querySelector(':scope > .toolbar')).not.toBeNull();
-    expect(스크롤칸?.querySelector('.toolbar')).toBeNull();
-  });
-
-  it('상자안 이 아니면(화면 전체) 스크롤칸을 따로 두지 않는다 — 페이지가 그대로 스크롤한다', async () => {
-    그리기('FINISHED');
-    await screen.findAllByText(/만들기$/);
-
-    const 면 = document.querySelector('.screen');
-    expect(면?.classList.contains('modal-results')).toBe(false);
-    expect(면?.querySelector('.rows-scroll')).toBeNull();
-  });
-});
-
 describe('RunResult 화면 머리 (2026-09-22)', () => {
   it('RUN 번호가 h1 이고 본문 면 바깥에 선다', async () => {
     const { container } = 그리기('FINISHED');
@@ -309,113 +112,5 @@ describe('RunResult 화면 머리 (2026-09-22)', () => {
 
     // 그날 실제로 친 주소가 증적의 전제다 (SPEC §8.3)
     expect(container.querySelector('.head')?.textContent).toContain('대상 서버');
-  });
-});
-
-// 버튼은 띠에서 고른 서비스가 아니라 **그 실행의 서비스** 칸을 본다.
-// 띠가 회원(실행 읽기)인 채로 결제 실행 주소를 열면 결제 칸으로 가른다 (화면공통 §8)
-describe('실행 결과의 권한은 그 실행의 서비스로', () => {
-  const 김: User = {
-    username: 'kim', displayName: '김철수', role: 'member', dashboard: 'read', mustChangePassword: false,
-    services: [
-      { id: 1, prefix: 'PAY', name: '결제', color: '#000000', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'write', authoring: 'none' } },
-      { id: 2, prefix: 'MEM', name: '회원', color: '#000000', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'read', authoring: 'none' } },
-    ],
-  };
-
-  function 항목(tcId: string) {
-    return {
-      historyId: 1, tcId, tcName: tcId, platform: 'desktop' as const, attempt: 1, params: {}, paramSchema: {},
-      status: 'PASS' as const, durationMs: 1, error: null, startedAt: '2026-09-15T17:13:00.000Z', finishedAt: null,
-    };
-  }
-
-  function 연다(tcId: string, status: string) {
-    vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status, items: [항목(tcId)], evidence: [] });
-    vi.spyOn(api, 'progress').mockResolvedValue({ items: [] });
-    render(<RunResult runId={RUN_ID} 판정하기={(접두사) => 판정을만든다(김, 접두사)} 상자안 />);
-  }
-
-  it('실행 쓰기인 서비스의 실행이면 중단 버튼이 선다', async () => {
-    연다('PAY-001', 'RUNNING');
-    expect(await screen.findByText('실행 중단')).toBeTruthy();
-  });
-
-  it('실행 읽기인 서비스의 실행이면 중단 버튼이 없다', async () => {
-    연다('MEM-001', 'RUNNING');
-    await screen.findAllByText(/대상 서버/);
-    expect(screen.queryByText('실행 중단')).toBeNull();
-  });
-
-  it('증적 만들기도 그 실행의 서비스로 가른다', async () => {
-    연다('PAY-001', 'FINISHED');
-    expect(await screen.findByText('PDF 만들기')).toBeTruthy();
-    cleanup();
-    연다('MEM-001', 'FINISHED');
-    await screen.findAllByText(/대상 서버/);
-    expect(screen.queryByText('PDF 만들기')).toBeNull();
-  });
-});
-
-describe('시나리오 실행 번호면 E2E 결과 화면으로 갈아탄다', () => {
-  const 시나리오답 = {
-    scenarioId: 12, version: 3, status: 'FINISHED', platform: 'desktop' as const, title: '결제 시나리오',
-    env: 'qa', baseUrl: 'https://qa.example.com', triggeredBy: 'kim', triggeredByName: '김철수',
-    startedAt: '2026-09-15T17:13:00.000Z', finishedAt: '2026-09-15T17:25:00.000Z', parts: [],
-  };
-
-  it.each([false, true])('상자안=%s', async (상자안) => {
-    vi.spyOn(api, 'run').mockRejectedValue(new ApiError(404, 'SCENARIO_RUN', ''));
-    const 부름 = vi.spyOn(scenarioApi, 'result').mockResolvedValue(시나리오답);
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안={상자안} />);
-
-    expect(await screen.findByText('단계별 결과')).toBeTruthy();
-    expect(부름).toHaveBeenCalledWith(RUN_ID);
-  });
-});
-
-// 판정 칸과 디바이스 칩은 그 실행에 든 디바이스를 따른다 (도메인/실행 §8.3)
-describe('디바이스 칸은 그 실행에 든 디바이스로 정한다 (도메인/실행 §8.3)', () => {
-  type 기기 = 'desktop' | 'mobile' | 'android';
-
-  function 줄(tcId: string, platform: 기기) {
-    return {
-      historyId: 1, tcId, tcName: tcId, platform, attempt: 1, params: {}, paramSchema: {},
-      status: 'PASS' as const, durationMs: 1, error: null, startedAt: '2026-09-15T17:13:00.000Z', finishedAt: null,
-    };
-  }
-
-  async function 본다(platforms: 기기[]) {
-    vi.spyOn(api, 'run').mockResolvedValue({
-      ...실행, status: 'FINISHED', items: platforms.map((p, i) => 줄(`PAY-00${i + 1}`, p)), evidence: [],
-    });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
-    await screen.findAllByText('PAY-001');
-    return {
-      칸: [...new Set([...document.querySelectorAll('.device-name')].map((el) => el.textContent))],
-      칩: [...document.querySelectorAll('button.chip')].map((el) => el.textContent),
-    };
-  }
-
-  it('브라우저 항목만 있으면 PC · 모바일 두 칸이다 — 한쪽만 돌았어도 둘 다 둔다', async () => {
-    const { 칸, 칩 } = await 본다(['desktop']);
-    expect(칸).toEqual(['PC', '모바일']);
-    expect(칩).toContain('PC');
-    expect(칩).toContain('모바일');
-    expect(칩).not.toContain('Android 앱');
-  });
-
-  it('Android 앱 항목만 있으면 칸 하나이고 PC · 모바일 칸과 칩이 없다', async () => {
-    const { 칸, 칩 } = await 본다(['android']);
-    expect(칸).toEqual(['Android 앱']);
-    expect(칩).toContain('Android 앱');
-    expect(칩).not.toContain('PC');
-    expect(칩).not.toContain('모바일');
-  });
-
-  it('둘이 섞이면 PC · 모바일 · Android 앱 차례로 셋이다', async () => {
-    const { 칸, 칩 } = await 본다(['desktop', 'android']);
-    expect(칸).toEqual(['PC', '모바일', 'Android 앱']);
-    expect(칩.filter((글) => 글 === 'PC' || 글 === '모바일' || 글 === 'Android 앱')).toEqual(['PC', '모바일', 'Android 앱']);
   });
 });

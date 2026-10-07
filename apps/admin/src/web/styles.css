@@ -732,6 +732,13 @@ input[type='file']::file-selector-button {
 
    **묶는 일을 CSS 가 한다.** 화면 코드는 지금처럼 `.chip` 을 나란히 그리면 되고
    이웃끼리 테두리를 접는 것은 `+` 가 맡는다 — TSX 를 안 건드린다 */
+/* 칩 묶음에 이름을 붙이려고 감싼 상자다. 감싸기 전 `.toolbar` 가 칩 사이에 주던 간격을 그대로 준다 */
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .chip {
   font-size: 12.5px;
   /* 누르는 자리는 최소 36px. 44px 은 DESIGN.md 대로 실행 기록 목록과 실행 결과 두 화면에만 건다 */
@@ -1026,39 +1033,6 @@ input[type='file']::file-selector-button {
 /* 여백만 줄인 구획. 오류처럼 **접으면 안 되는 것**이 자리를 덜 먹게 한다 */
 .sec.tight {
   padding: 10px 24px;
-}
-
-/* 접는 구획 (2026-09-22). 상자 안에서 견줌과 사유 묶음이 각각 130px 쯤을 먹어
-   케이스 목록에 32px 밖에 안 남았다 — 줄 하나(101px)도 안 들어갔다.
-   눌러서 펴는 것으로 바꿔 접힌 값을 한 줄로 줄인다.
-   **펴고 접는 상태를 React 로 들지 않는다** — `<details>` 가 이미 한다 (ponytail 4단) */
-.sec.fold {
-  padding: 10px 24px;
-}
-
-/* `.sec-h` 가 `display: flex` 인데 `summary` 에 그대로 먹이면 **여는 삼각형이 사라진다.**
-   눌러서 펴는 것인지 안 보이게 되므로 `list-item` 으로 되돌린다 */
-.sec.fold > summary {
-  display: list-item;
-  list-style-position: inside;
-  cursor: pointer;
-  padding-bottom: 0;
-  margin-bottom: 0;
-  border-bottom: 0;
-}
-
-/* 펴면 제목 아래 괘선이 돌아온다. 안 그러면 내용이 제목에 붙는다 */
-.sec.fold[open] > summary {
-  padding-bottom: 10px;
-  margin-bottom: 14px;
-  border-bottom: 1px solid var(--line-2);
-}
-
-/* 접힌 줄에서도 어느 실행과 견줬는지는 보여야 한다 — 그게 펼지 말지의 판단 재료다 */
-.sec.fold > summary > span {
-  margin-left: 12px;
-  font-weight: 400;
-  color: var(--ink-faint);
 }
 
 /* 상자 안 RUN 머리 줄. 증적 안내·사유·문서 목록이 여기 한 줄로 들어온다 (2026-09-22) */
@@ -5294,4 +5268,735 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 
 .dash-error {
   color: var(--fail-text);
+}
+
+/* 실패 케이스 카드 (실행 §8.3 결과 화면). 판정 표기는 `.verdict` · `.spark` 부품을 그대로 쓴다 */
+.fc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fc-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.skip-link:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.skip-link {
+  align-self: flex-start;
+}
+
+.fc-title:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.fc-count {
+  color: var(--fail-text);
+}
+
+.fc-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 24px 20px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fc-tc {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.fc-detail {
+  font-size: 12px;
+  color: var(--link);
+}
+
+/* 한 줄 오른쪽 끝에 「상세」 링크와 「펼치기」를 붙여 둔다 */
+.fc-acts {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 같은 실패로 묶인 디바이스의 실패 시점 화면 — 이름을 달아 나란히, 좁으면 줄을 바꾼다 */
+.fc-shots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.fc-shot {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.fc-shot img {
+  display: block;
+  max-width: 260px;
+  border: 1px solid var(--line-2);
+}
+
+.fc-name-h {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.fc-dev {
+  border-top: 1px solid var(--line-2);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fc-devh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fc-devh b {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.fc-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* 변화 글자는 판정이 아니라 테두리 글자다 — 판정 색은 판정 배지만 갖는다 */
+.fc-tag {
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  padding: 1px 6px;
+  /* 연속 실패는 잉크 보조 — 요약 띠의 대비 칸(`.rs-k`)과 같은 색이다 (DESIGN 「실행 결과」 변화 글자) */
+  color: var(--ink-muted);
+}
+
+/* 신규 실패만 실패 글자 색이다. 테두리는 그대로 두어 연속 실패와 같은 틀에서 색 하나로 갈린다 (DESIGN.md 실행 결과) */
+.fc-tag.fc-new {
+  color: var(--fail-text);
+}
+
+.fc-flow {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fc-flow .spark,
+.fc-flow .sparktext {
+  margin-top: 0;
+}
+
+.fc-flow .sparktext {
+  display: flex;
+  gap: 8px;
+}
+
+.fc-err {
+  font-size: 13px;
+  color: var(--fail-text);
+  display: flex;
+  gap: 8px;
+}
+
+.fc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fc-sec {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.fc-k {
+  color: var(--ink-faint);
+  min-width: 56px;
+}
+
+.fc-pre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fc-faint {
+  color: var(--ink-faint);
+}
+
+.fc-kv {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.fc-kv label {
+  color: var(--ink-faint);
+}
+
+/* 카드 안에서는 실패 확인의 바탕이 카드 가장자리까지 번지지 않는다 */
+.fc-steps .assert.bad {
+  margin: 4px 0;
+  padding: 8px 12px 8px 12px;
+}
+
+.fc-steps .after-assert {
+  padding-left: 28px;
+}
+
+.fc-pass {
+  border-top: 1px solid var(--line-2);
+  padding-top: 8px;
+}
+
+.fc-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.fc-line b {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+
+
+/* 결과 줄 아래 펼치기 띠. 줄 밑줄은 띠까지 묶어 하나만 긋는다 */
+.result-row {
+  border-bottom: 1px solid var(--line);
+}
+
+.result-row > .row {
+  border-bottom: 0;
+}
+
+/* 결과 줄의 마지막 칸은 디바이스 둘(셋까지) + 「상세」 + 「펼치기」 라 264px 로는 넘쳐 「펼치기」 가 아래 줄로 밀렸다.
+   공용 `--run-cols` 는 실행 기록이 같이 쓰므로 결과 줄에만 넓힌다.
+   **창 폭이 아니라 본문 칸(`.rr-main`)의 폭으로 가른다** — 1165px 이상 창에서 옆 칸이 서면 본문이 560px 로 줄어
+   창 폭 기준은 제목 칸을 50px 로 눌렀고, 1164px 이하 창은 비율 칸이라 「펼치기」 가 「상세」에서 떨어져 아래로 내려갔다.
+   본문 칸이 700px 이상이면 칸을 360px 로 못 박고 버튼을 오른쪽 끝에 붙인다(2026-10-08 실측: 1024 · 1100 · 1440 창).
+   700px 미만은 공용 규칙 그대로이고 버튼이 접혀도 된다. 360 은 디바이스 셋 + 영어 「Details」 · 「Expand」 까지 한 줄에 드는 값이다 */
+.rr-main {
+  container-type: inline-size;
+}
+
+@container (min-width: 700px) {
+  .result-row > .row {
+    grid-template-columns: 4px 128px minmax(0, 1fr) 360px;
+  }
+
+  .result-row .right {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+}
+
+/* 「상세」 · 「펼치기」는 한 덩어리다. 본문 칸이 700px 아래(창 1200~1340 에서 옆 칸이 서면 560~690px)라 줄이 접혀도
+   둘이 갈라지지 않고 같이 오른쪽 끝에 붙는다. 「펼치기」 · 「접기」 글자 폭이 달라 펼친 줄의 「상세」가 밀리지 않게 폭을 고정한다 */
+.result-row .rr-acts {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.result-row .rr-acts > button {
+  min-width: 4.5em;
+  justify-content: center;
+}
+
+.rr-expand {
+  padding: 4px 16px 4px 20px;
+}
+
+.rr-expand .fc-body {
+  padding: 8px 0 12px;
+}
+
+.rr-dev {
+  padding: 8px 0 4px;
+}
+
+.rr-dev + .rr-dev {
+  border-top: 1px solid var(--line-2);
+}
+
+.flow-lead {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 620px) {
+  .fc-card {
+    padding: 14px 16px 16px;
+  }
+
+  .fc-flow {
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  /* 손가락으로 누르는 영역 44px — 실행 결과는 휴대폰에서 보는 두 화면 중 하나다 (DESIGN.md 접근성 기준).
+     카드 안 「펼치기」(34px) · 「상세」 링크 · 디바이스 칩이 모자랐다 */
+  .fc-acts .btn,
+  .rr .chip {
+    min-height: 44px;
+  }
+
+  .fc-detail {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* 브라우저 기본 파란 링 대신 잉크 2px (DESIGN.md 접근성 기준). 결과 화면의 링크 — 「상세」 · 실패 시점 화면 ·
+   옆 칸 RUN 링크 · 결과 줄의 판정 링크 — 와 상자 안 접힌 줄(summary) */
+.rr a:focus-visible,
+.rr summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* 결과 화면 요약 띠 — 도넛 · 실패 수 · 판정별 보기 · 직전 실행 대비 (도메인/실행 §8.3). 도넛은 대시보드와 같은 그래프 토큰 */
+.rs {
+  padding: 20px 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  container-type: inline-size;
+}
+
+/* 격자는 그릇(`.rs`) 안쪽에 둔다 — 한 단 전환(아래 @container)이 이 그릇의 폭으로 판정되게.
+   둘째 칸은 판정별 보기 네 칸의 글자가 꺾이지 않는 최소 폭까지만 줄어든다 */
+.rs-grid {
+  display: grid;
+  grid-template-columns: auto minmax(min-content, 1fr);
+  align-items: center;
+  gap: 24px 32px;
+}
+
+/* 한 줄에 도넛과 글 칸이 안 들어가는 폭(휴대폰)에서는 글 칸이 아래로 내려간다 */
+.rs-rate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+
+.rs-donut {
+  position: relative;
+  flex: none;
+  width: 152px;
+  height: 152px;
+}
+
+.rs-donut svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rs-track,
+.rs-seg {
+  fill: none;
+  stroke-width: 12;
+}
+
+.rs-track {
+  stroke: var(--chart-track);
+}
+
+.rs-seg {
+  animation: 그려짐 var(--dur) var(--ease) backwards;
+}
+
+.rs-seg.p {
+  stroke: var(--pass-chart);
+}
+
+.rs-seg.f {
+  stroke: var(--fail);
+}
+
+.rs-seg.n {
+  stroke: var(--na-chart);
+}
+
+.rs-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.rs-big {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.rs-pct {
+  font-size: 16px;
+  color: var(--ink-faint);
+}
+
+.rs-axis {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.rs-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  /* 이 칸이 0 까지 줄어 「실패 8건」 배지와 「항목 14건 중 4건 통과」가 한 글자씩 세로로 쌓였다 (2026-10-08 실측) */
+  min-width: 150px;
+}
+
+.rs-fails {
+  font-size: 14px;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+.rs-fails.none {
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.rs-of {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.rs-filter,
+.rs-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rs-diff {
+  grid-column: 1 / -1;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.rs-fbtns,
+.rs-stats {
+  display: grid;
+  gap: 8px;
+}
+
+/* 칸마다 글자 폭 아래로는 안 줄어든다 — 「미실행」이 「미실/행」으로 꺾였다. 넓어도 400px 까지만 벌어진다 */
+.rs-fbtns {
+  grid-template-columns: repeat(4, minmax(max-content, 1fr));
+  max-width: 400px;
+}
+
+.rs-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 480px;
+}
+
+.rs-fbtn,
+.rs-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  background: var(--panel);
+  font-family: inherit;
+  text-align: left;
+}
+
+.rs-stat {
+  border-color: var(--line);
+}
+
+.rs-fbtn {
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.rs-fbtn[aria-pressed='true'] {
+  background: var(--rail-active);
+  border-color: var(--ink-faint);
+}
+
+.rs-fbtn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.rs-k {
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.rs-k.a {
+  color: var(--ink-faint);
+}
+
+.rs-k.p {
+  color: var(--pass-text);
+}
+
+.rs-k.f {
+  color: var(--fail-text);
+}
+
+.rs-k.n {
+  color: var(--na-text);
+}
+
+.rs-n {
+  font-size: 20px;
+}
+
+.rs-note {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.rs-note.na {
+  color: var(--na-text);
+}
+
+/* 한 단 · 두 단은 창 폭이 아니라 요약 띠 자기 폭으로 가른다 — 상자 안에서도 같은 규칙이다.
+   두 단이 서려면 도넛 + 글 칸(326) + 간격(32) + 판정별 보기 네 칸(영어까지 약 296) = 654 가 필요해 660 밑에서 한 단이다.
+   (그릇 안쪽 폭이다 — 띠 폭에서 좌우 여백 48 을 뺀 값) */
+@container (max-width: 660px) {
+  .rs-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 결과 화면 본문 (도메인/실행 §8.3 · DESIGN.md 「실행 결과 — 증거 카드」). 면(.screen)의 판 · 테두리를 걷는다 —
+   요약 띠와 카드가 각자 판이고 줄 목록과 옆 칸은 선이다 (원칙 2). 한 단 · 두 단은 이 그릇 폭으로 가르므로
+   상자(.modal.wide)와 화면이 같은 규칙이다. 폭 숫자는 화면 실측 뒤에 확정한다 (DESIGN.md) */
+.screen.rr {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+/* 상자 안: 제목 · 닫기만 고정하고 이 칸 하나가 스크롤한다 */
+.rr-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 8px;
+}
+
+.rr-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.rr-cols.one {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.rr-main,
+.rr-side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.rr-sec,
+.rr-flat,
+.rr-side .sec {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0 0;
+  border: 0;
+  border-top: 2px solid var(--line-2);
+  min-width: 0;
+}
+
+.rr-h,
+.rr-side .sec-h {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.rr-kv {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.rr-kv dt {
+  color: var(--ink-faint);
+}
+
+.rr-kv dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rr-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.rr-cause {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.rr-cause-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rr-cause-n {
+  flex: none;
+  color: var(--fail-text);
+}
+
+.rr-cause-list {
+  font-size: 12px;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.rr-fixed {
+  font-size: 14px;
+}
+
+.rr-n {
+  color: var(--ink-muted);
+}
+
+.rr-axis {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* 상자 안 옆 칸. 접힌 줄 하나라 위 선만 두고 펴면 안쪽 구획이 그대로 선다 */
+.rr-fold {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  font-size: 14px;
+}
+
+.rr-fold > summary {
+  cursor: pointer;
+}
+
+.rr-fold[open] > summary {
+  margin-bottom: 12px;
+}
+
+@container (max-width: 900px) {
+  .rr-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

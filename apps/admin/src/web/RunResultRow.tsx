@@ -1,9 +1,12 @@
 // 실행 결과 목록의 케이스 한 줄 (SPEC §8.3). 판단은 RunResult 에 두고 그리는 쪽만 여기로 옮겼다
 // CaseList → CaseListParts 와 같은 이유다 — RunResult 가 300줄을 넘었다 (CLAUDE.md §3)
 
+import { useState } from 'react';
+
 import type { ItemStatus, Platform, RunItemSummary } from './api.js';
 import { type CaseGroup, 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
+import { 상세본문 } from './ItemExpand.js';
 import { 한줄로 } from './mask.js';
 import { 칸사유 } from './runState.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict } from './ui.js';
@@ -21,10 +24,13 @@ export function 결과줄({
   group,
   columns,
   runId,
+  미확정묶음 = false,
 }: {
   group: CaseGroup;
   columns: Platform[];
   runId: number;
+  /** 미확정은 판정이 아니라 거터에 판정 색 셋을 쓰지 않는다 (DESIGN.md 「판정 표기」). 디바이스 배지는 실제로 돈 결과 그대로 둔다 */
+  미확정묶음?: boolean;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -35,48 +41,80 @@ export function 결과줄({
   const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema, 언어);
   // 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3)
   const 사유 = 칸사유(칸들.flat(), 언어);
+  const [열림, set열림] = useState(false);
+  const [불렀나, set불렀나] = useState(false);
+  const 패널 = `result-expand-${String(runId)}-${group.tcId}`;
   const 미확정사유 = 칸들.flat().find((i) => typeof i.unconfirmed === 'string')?.unconfirmed ?? null;
 
   return (
-    <div className="row">
-      <div className="gutter" style={{ background: STATUS_COLOR[worst(칸들)] }} />
-      <div className="tcid">{group.tcId}</div>
-      <div className="title">
-        {group.tcName}
-        {/* 상세로 들어가야만 보이면 「어떤 값에서 깨졌는가」를 줄 사이에서 비교할 수 없다 (SPEC §8.3).
-            입력이 없는 케이스는 줄 자체를 안 만든다 */}
-        {입력줄 === '' ? null : <small>{입력줄}</small>}
-        {사유 === null ? null : <small className="why">{사유}</small>}
-        {/* 사유는 실행 때 박제한 값이다 — 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (도메인/실행 §8.3) */}
-        {미확정사유 === null ? null : (
-          // `why` 를 쓰지 않는다 — 미실행 판정 색이다. 미확정은 판정이 아니다 (DESIGN.md 「판정 표기」 미확정)
-          <small>
-            {t('미확정')} · {미확정사유}
-          </small>
-        )}
-      </div>
-      <div className="right">
-        <div className="devices">
-          {columns.map((platform) => {
-            const 칸 = group.byPlatform[platform];
-            return (
-              <div className="device" key={platform}>
-                <span className="device-name">{PLATFORM_LABEL[platform]}</span>
-                {/* 그 디바이스를 지원하지 않는 케이스는 칸을 —로 비운다 (SPEC §8.3) */}
-                {칸 === undefined || 칸.length === 0 ? (
-                  <span className="device-none">—</span>
-                ) : (
-                  <Verdicts 칸={칸} runId={runId} />
-                )}
-              </div>
-            );
-          })}
+    <div className="result-row">
+      <div className="row">
+        <div className="gutter" style={{ background: 미확정묶음 ? 'var(--line-2)' : STATUS_COLOR[worst(칸들)] }} />
+        <div className="tcid">{group.tcId}</div>
+        <div className="title">
+          {group.tcName}
+          {/* 상세로 들어가야만 보이면 「어떤 값에서 깨졌는가」를 줄 사이에서 비교할 수 없다 (SPEC §8.3).
+              입력이 없는 케이스는 줄 자체를 안 만든다 */}
+          {입력줄 === '' ? null : <small>{입력줄}</small>}
+          {사유 === null ? null : <small className="why">{사유}</small>}
+          {/* 사유는 실행 때 박제한 값이다 — 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (도메인/실행 §8.3) */}
+          {미확정사유 === null ? null : (
+            // `why` 를 쓰지 않는다 — 미실행 판정 색이다. 미확정은 판정이 아니다 (DESIGN.md 「판정 표기」 미확정)
+            <small>
+              {t('미확정')} · {미확정사유}
+            </small>
+          )}
         </div>
-        {첫항목 === undefined ? null : (
-          <a className="btn small ghost" href={`#/runs/${runId}/items/${첫항목.historyId}`}>
-            {t('상세')}
-          </a>
-        )}
+        <div className="right">
+          <div className="devices">
+            {columns.map((platform) => {
+              const 칸 = group.byPlatform[platform];
+              return (
+                <div className="device" key={platform}>
+                  <span className="device-name">{PLATFORM_LABEL[platform]}</span>
+                  {/* 그 디바이스를 지원하지 않는 케이스는 칸을 —로 비운다 (SPEC §8.3) */}
+                  {칸 === undefined || 칸.length === 0 ? (
+                    <span className="device-none">—</span>
+                  ) : (
+                    <Verdicts 칸={칸} runId={runId} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {/* 둘을 한 덩어리로 묶는다 — 본문 칸이 좁아 줄이 접혀도 「상세」와 「펼치기」가 갈라지지 않고 같이 오른쪽에 붙는다 */}
+          {첫항목 === undefined ? null : (
+            <span className="rr-acts">
+            <a className="btn small ghost" href={`#/runs/${runId}/items/${첫항목.historyId}`}>
+              {t('상세')}
+            </a>
+            <button
+              type="button"
+              className="btn small ghost"
+              aria-expanded={열림}
+              aria-controls={패널}
+              aria-label={t(열림 ? '{케이스} 접기' : '{케이스} 펼치기', { 케이스: group.tcId })}
+              onClick={() => {
+                set열림(!열림);
+                set불렀나(true);
+              }}
+            >
+              {열림 ? t('접기') : t('펼치기')}
+            </button>
+            </span>
+          )}
+        </div>
+      </div>
+      {/* 접어도 지우지 않고 가려 둔다 — 다시 펴도 상세를 다시 부르지 않는다 */}
+      <div id={패널} className="rr-expand" hidden={!열림}>
+        {!불렀나
+          ? null
+          : 칸들.map((칸) => (
+              <div className="rr-dev" key={칸[0]!.platform}>
+                <디바이스머리 칸={칸} />
+                <상세본문 runId={runId} historyId={칸[0]!.historyId} />
+              </div>
+            ))}
       </div>
     </div>
   );
@@ -115,5 +153,28 @@ function Verdicts({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
         {요약.회차수 > 1 ? t('{시간} 평균', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}
       </span>
     </>
+  );
+}
+
+// 펼친 패널의 디바이스 머리. 판정 · 소요는 칸 요약과 같은 함수를 써서 줄 위의 글자와 어긋나지 않는다
+function 디바이스머리({ 칸 }: { 칸: RunItemSummary[] }) {
+  const t = use말();
+  const 언어 = use언어();
+  const 요약 = 회차요약(칸);
+
+  return (
+    <div className="fc-line" data-testid="rr-dev-head">
+      <b>{PLATFORM_LABEL[칸[0]!.platform]}</b>
+      {요약.글 === null ? (
+        <Verdict status={요약.status} />
+      ) : (
+        <span className={`verdict ${요약.status === 'PASS' ? 'v-pass' : 요약.status === 'FAIL' ? 'v-fail' : 'v-na'}`}>
+          {요약.글}
+        </span>
+      )}
+      <span>
+        {요약.회차수 > 1 ? t('{시간} 평균', { 시간: seconds(요약.평균소요ms, 언어) }) : seconds(요약.평균소요ms, 언어)}
+      </span>
+    </div>
   );
 }

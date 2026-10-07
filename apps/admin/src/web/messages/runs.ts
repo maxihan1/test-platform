@@ -138,18 +138,53 @@ export const 실행말: Record<string, string> = {
   '{시간} 평균': '{시간} avg',
   '실행자 미상 (인증 도입 이전)': 'Unknown — before sign-in',
 
-  // 견주기와 사유 묶음 (§8.3 → /runs/:runId/insights)
-  '직전 실행과 비교': 'Compared with the previous run',
+  // 결과 화면 옆 칸 · 미확정 묶음 (§8.3 → /runs/:runId/insights)
   '직전 실행과 비교하지 못했습니다.': 'Could not compare with the previous run.',
   '직전 실행은 다른 주소에서 실행됐습니다': 'The previous run used a different URL',
+  '직전 실행에 있었으나 이번에 실행되지 않은 케이스 {건수}건': '{건수} cases ran last time but not this time',
+  // 변화 낱말은 서버가 준 값이라 코드 곳곳에 글자 그대로 있다 (api.ts · RunSummary · RunFailDevice) — 키가 있어야 한다
   '새로깨짐': 'Newly broken',
   '계속깨짐': 'Still failing',
   '고쳐짐': 'Fixed',
   '그대로': 'Unchanged',
-  '나머지 {건수}건은 직전 실행처럼 통과했습니다': '{건수} more passed, same as the previous run',
-  '직전 실행에 있었으나 이번에 실행되지 않은 케이스 {건수}건': '{건수} cases ran last time but not this time',
-  '같은 사유로 묶은 실패': 'Failures grouped by cause',
+  '같은 사유로 실패': 'Failed for the same reason',
   '실패 항목 {건수}건': '{건수} failed items',
+  '같은 사유로 실패 {묶음}묶음 · 해결 {건수}': 'Failed for the same reason: {묶음} groups · Fixed {건수}',
+  '실행 정보': 'Run info',
+  '테스트 유형': 'Test type',
+  '시작 시각': 'Started at',
+  '소요 시간': 'Duration',
+  '비교 기준': 'Compared with',
+  '통과 · 미실행': 'Passed · not run',
+  '통과율과 직전 실행 비교에서 뺐습니다': 'Left out of the pass rate and the comparison with the previous run',
+
+  // 결과 화면 요약 띠 (§8.3)
+  '실패 {수}건': '{수} failed',
+  '항목 {전체}건 중 {통과}건 통과': '{통과} of {전체} items passed',
+  '확정 항목 없음': 'No confirmed items',
+  '판정별 보기 · 항목 수': 'View by verdict · items',
+  '직전 실행 RUN {번호} 대비': 'Against previous run RUN {번호}',
+  '통과 · 미실행으로 건너뛰기': 'Skip to passed · not run',
+  '연속 실패': 'Still failing',
+  '해결': 'Fixed',
+
+  // 실패 케이스 카드와 펼치기 (§8.3 결과 화면)
+  '실패한 케이스가 없습니다': 'No failed cases',
+  '연속 실패 {회}회': 'Failed {회} runs in a row',
+  '연속 실패 {회}회 이상': 'Failed {회}+ runs in a row',
+  '{회수}회 중 {실패}회 실패': '{실패} of {회수} attempts failed',
+  '{서버} 서버 · 이 실행까지': '{서버} server · up to this run',
+  '{앞말} 최근 {회}회, 맨 앞이 이번 실행: {판정}': '{앞말}, last {회} runs, newest first: {판정}',
+  '디바이스로 거르기': 'Filter by device',
+  '실패한 케이스 안의 항목 {건수}건은 「전체」에서 카드로 봅니다':
+    '{건수} items inside failed cases appear as cards under "All"',
+  '펼치기': 'Expand',
+  '접기': 'Collapse',
+  '{케이스} {디바이스} 펼치기': 'Expand {케이스} {디바이스}',
+  '{케이스} {디바이스} 접기': 'Collapse {케이스} {디바이스}',
+  '{디바이스} {절차} 실패 시점 화면': 'Screenshot of {디바이스} when {절차} failed',
+  '{케이스} 펼치기': 'Expand {케이스}',
+  '{케이스} 접기': 'Collapse {케이스}',
 
   // 진행·완료 모달 (§8.9)
   'RUN {번호} 이 진행 중입니다': 'RUN {번호} is running',

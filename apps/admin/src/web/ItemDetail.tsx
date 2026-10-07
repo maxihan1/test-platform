@@ -1,21 +1,11 @@
 // 항목 상세 (SPEC §8.4). 증적 문서 PDF와 같은 레이아웃이어야 한다 (DESIGN.md)
 // 스크린샷과 코드는 실패한 '검증 문장' 아래에 둔다. 스텝 헤더가 아니다 — 어느 확인에서 깨졌는지와 화면이 붙어야 의미가 있다
 
-import { useState } from 'react';
-
-import { api, type RunItemDetail, type StepResult } from './api.js';
-import { t, use말, use언어, type 언어 } from './i18n.js';
+import { api, type RunItemDetail } from './api.js';
+import { use말, use언어 } from './i18n.js';
+import { Step } from './ItemSteps.js';
 import { fieldsOf, type Field } from './mask.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
-
-const MARK = { PASS: '✓', FAIL: '✗', NA: '–' } as const;
-
-function show(value: unknown, 언어: 언어): string {
-  if (value === null || value === undefined) return '—';
-  if (typeof value === 'boolean') return value ? t('예', 언어) : t('아니오', 언어);
-  if (typeof value === 'object') return JSON.stringify(value);
-  return String(value);
-}
 
 export function ItemDetail({ runId, historyId }: { runId: number; historyId: number }) {
   const t말 = use말();
@@ -75,7 +65,7 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
         {item.steps.length === 0 ? (
           <p className="hint">{t말('실행된 절차가 없습니다.')}</p>
         ) : (
-          item.steps.map((step) => <Step key={step.seq} step={step} item={item} />)
+          item.steps.map((step) => <Step key={step.seq} step={step} tcId={item.tcId} runId={item.runId} historyId={item.historyId} />)
         )}
       </div>
 
@@ -107,127 +97,5 @@ function 값칸({ 머리, 없음, 칸 }: { 머리: string; 없음: string; 칸: 
         ))
       )}
     </div>
-  );
-}
-
-function Step({ step, item }: { step: StepResult; item: RunItemDetail }) {
-  const t말 = use말();
-  const 언어 = use언어();
-  const firstFail = step.assertions.findIndex((assertion) => assertion.status === 'FAIL');
-  // capture:true로 찍은 스크린샷은 실패가 없다. 그때는 절차 끝에 붙인다
-  const evidenceAtEnd = firstFail === -1;
-
-  const attachments = (
-    <Attachments
-      step={step}
-      tcId={item.tcId}
-      runId={item.runId}
-      historyId={item.historyId}
-      className={evidenceAtEnd ? undefined : 'after-assert'}
-    />
-  );
-
-  return (
-    <div className="step">
-      <div className="step-h">
-        <span className="step-n">{step.seq}</span>
-        <span className="step-t">{step.title}</span>
-        <span className="dur">{step.durationMs}ms</span>
-        <Verdict status={step.status} />
-      </div>
-
-      {step.assertions.map((assertion, index) => (
-        <div key={`${assertion.statement}-${index}`}>
-          <div className={assertion.status === 'FAIL' ? 'assert bad' : 'assert'}>
-            <span className="mark" style={{ color: `var(--${assertion.status === 'PASS' ? 'pass' : assertion.status === 'FAIL' ? 'fail' : 'na'}-text)` }}>
-              {MARK[assertion.status]}
-            </span>
-            <span style={assertion.status === 'NA' ? { color: 'var(--ink-faint)' } : undefined}>
-              {assertion.statement}
-              {/* 이 문장이 뒤 절차를 멈추게 했다. 뒤가 왜 없는지 설명이 필요하다 (SPEC §8.4) */}
-              {assertion.blocker === true && assertion.status === 'FAIL' ? (
-                <span className="blocker">{t말('실행 중단§막음')}</span>
-              ) : null}
-            </span>
-            <span className="exp">{t말('기대 {값}', { 값: show(assertion.expected, 언어) })}</span>
-            <span className="act">
-              {t말('실제')} <b>{show(assertion.actual, 언어)}</b>
-            </span>
-          </div>
-          {index === firstFail ? attachments : null}
-        </div>
-      ))}
-
-      {evidenceAtEnd ? attachments : null}
-    </div>
-  );
-}
-
-interface AttachmentProps {
-  step: StepResult;
-  tcId: string;
-  runId: number;
-  historyId: number;
-  className?: string;
-}
-
-function Attachments({ step, tcId, runId, historyId, className }: AttachmentProps) {
-  const t말 = use말();
-  const hasTrace = step.httpTrace !== undefined;
-  if (step.screenshotPath === undefined && step.line === undefined && !hasTrace) return null;
-
-  return (
-    <div className={className}>
-      {step.screenshotPath === undefined ? null : (
-        <div className="shot">
-          <a href={api.screenshot(runId, historyId, step.seq)} target="_blank" rel="noreferrer">
-            <img
-              src={api.screenshot(runId, historyId, step.seq)}
-              alt={t말('{절차} 실패 시점 화면', { 절차: step.title })}
-            />
-          </a>
-        </div>
-      )}
-
-      {/* API 케이스는 화면이 없다. 같은 자리에 요청·응답 원문을 남긴다 (SPEC §4) */}
-      {!hasTrace ? null : (
-        <details className="code">
-          <summary>{t말('요청·응답 원문')}</summary>
-          <pre>{JSON.stringify(step.httpTrace, null, 2)}</pre>
-        </details>
-      )}
-
-      {step.line === undefined ? null : <CodeView tcId={tcId} line={step.line} />}
-    </div>
-  );
-}
-
-// 코드 뷰는 기본 접힘이다. 이 플랫폼의 전제가 "코드를 몰라도 쓴다"이므로 펼쳐야 보인다 (SPEC §8.4)
-function CodeView({ tcId, line }: { tcId: string; line: number }) {
-  const t말 = use말();
-  const [opened, setOpened] = useState(false);
-  const source = useAsync(() => (opened ? api.source(tcId, line) : Promise.resolve(null)), [opened, tcId, line]);
-
-  return (
-    <details className="code" onToggle={(e) => setOpened(e.currentTarget.open)}>
-      <summary>{t말('실패 지점 코드')}</summary>
-      {source.error !== null ? (
-        <p className="hint" style={{ color: 'var(--fail-text)' }}>
-          {source.error}
-        </p>
-      ) : source.data === null ? (
-        <p className="hint">{t말('불러오는 중입니다.')}</p>
-      ) : (
-        <pre>
-          {source.data.lines.map((row) => (
-            <span key={row.no} className={row.no === source.data!.focus ? 'focus' : undefined}>
-              <span className="no">{String(row.no).padStart(3, ' ')}</span>
-              {row.text}
-              {'\n'}
-            </span>
-          ))}
-        </pre>
-      )}
-    </details>
   );
 }

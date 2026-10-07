@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { RunItemSummary } from './api.js';
-import { filterGroups, groupByCase, 회차요약 } from './group.js';
+import { filterGroups, groupByCase, 갈라낸다, 회차요약 } from './group.js';
 
 function item(
   tcId: string,
@@ -140,5 +140,67 @@ describe('filterGroups', () => {
 
   it('두 필터는 같이 걸린다 — 모바일에서 실패한 것은 없다', () => {
     expect(filterGroups(groups, 'FAIL', 'mobile')).toEqual([]);
+  });
+});
+
+describe('갈라낸다 — 카드 · 줄 목록 · 미확정 묶음 (도메인/실행 §8.3)', () => {
+  const 미확정 = (it: RunItemSummary): RunItemSummary => ({ ...it, unconfirmed: '기획서에 값이 없습니다' });
+
+  const 항목들 = [
+    item('A-1', 'desktop', 'FAIL'),
+    item('A-1', 'mobile', 'PASS'),
+    item('B-1', 'desktop', 'PASS'),
+    item('B-1', 'mobile', 'NA'),
+    미확정(item('C-1', 'desktop', 'FAIL')),
+    item('D-1', 'desktop', 'PASS'),
+    미확정(item('D-1', 'mobile', 'FAIL')),
+    item('E-1', 'desktop', 'NA'),
+  ];
+
+  it('확정 실패가 하나라도 있는 케이스는 줄 목록에 없다 — 카드로 간다', () => {
+    const { 줄들 } = 갈라낸다(항목들, 'ALL', 'ALL');
+    expect(줄들.map((g) => g.tcId)).toEqual(['B-1', 'D-1', 'E-1']);
+  });
+
+  it('미확정 항목은 확정 판정과 상관없이 미확정 묶음으로 간다', () => {
+    const { 줄들, 미확정: 묶음 } = 갈라낸다(항목들, 'ALL', 'ALL');
+    expect(묶음.map((g) => g.tcId)).toEqual(['C-1', 'D-1']);
+    expect(묶음.flatMap((g) => Object.values(g.byPlatform).flat()).every((i) => typeof i?.unconfirmed === 'string')).toBe(true);
+    // 줄 목록 쪽 D-1 에는 확정 항목(PC 통과)만 남는다
+    expect(Object.keys(줄들.find((g) => g.tcId === 'D-1')?.byPlatform ?? {})).toEqual(['desktop']);
+  });
+
+  it('판정별 보기 「통과」는 줄 목록 중 통과 항목이 있는 케이스만, 미확정 묶음은 없다', () => {
+    const { 줄들, 미확정: 묶음 } = 갈라낸다(항목들, 'PASS', 'ALL');
+    expect(줄들.map((g) => g.tcId)).toEqual(['B-1', 'D-1']);
+    expect(묶음).toEqual([]);
+  });
+
+  it('판정별 보기 「미실행」은 미실행 항목이 있는 케이스만', () => {
+    expect(갈라낸다(항목들, 'NA', 'ALL').줄들.map((g) => g.tcId)).toEqual(['B-1', 'E-1']);
+  });
+
+  it('판정별 보기 「실패」는 줄 목록도 미확정 묶음도 비운다 — 카드만 남는다', () => {
+    expect(갈라낸다(항목들, 'FAIL', 'ALL')).toEqual({ 줄들: [], 미확정: [], 카드안항목수: 0 });
+  });
+
+  it('디바이스를 고르면 그 디바이스 항목만 놓고 가른다 — 모바일만 보면 A-1 은 통과 줄이다', () => {
+    const { 줄들, 미확정: 묶음 } = 갈라낸다(항목들, 'ALL', 'mobile');
+    expect(줄들.map((g) => g.tcId)).toEqual(['A-1', 'B-1']);
+    expect(묶음.map((g) => g.tcId)).toEqual(['D-1']);
+  });
+
+  it('판정별 보기 「통과」 · 「미실행」은 그 판정 항목이 하나라도 있는 줄이다 — 회차마다 판정이 갈려도 둘 다에 나온다', () => {
+    const 갈린 = [item('F-1', 'desktop', 'PASS', 1), item('F-1', 'desktop', 'NA', 2), item('G-1', 'desktop', 'PASS')];
+    expect(갈라낸다(갈린, 'PASS', 'ALL').줄들.map((g) => g.tcId)).toEqual(['F-1', 'G-1']);
+    expect(갈라낸다(갈린, 'NA', 'ALL').줄들.map((g) => g.tcId)).toEqual(['F-1']);
+  });
+
+  it('카드 안에만 있는 그 판정의 항목 수를 센다 — 「전체」 · 「실패」는 0 이고 디바이스를 고르면 그 디바이스만 센다', () => {
+    expect(갈라낸다(항목들, 'PASS', 'ALL').카드안항목수).toBe(1);
+    expect(갈라낸다(항목들, 'NA', 'ALL').카드안항목수).toBe(0);
+    expect(갈라낸다(항목들, 'ALL', 'ALL').카드안항목수).toBe(0);
+    expect(갈라낸다(항목들, 'FAIL', 'ALL').카드안항목수).toBe(0);
+    expect(갈라낸다(항목들, 'PASS', 'desktop').카드안항목수).toBe(0);
   });
 });

@@ -2,6 +2,11 @@
 
 import { 종류조건 } from '../execution/runKind.js';
 
+// 실행 한 번 안에서 한 (케이스, 디바이스)의 회차를 한 판정으로 접는 식이다. insights.ts 의 접기 · failures.ts 의 최근 흐름도 같은 식을 쓴다 — i 는 run_item 의 별칭이다
+export const 판정접기식 = `CASE WHEN bool_or(i.status = 'FAIL')  THEN 'FAIL'
+              WHEN bool_and(i.status = 'PASS') THEN 'PASS'
+              ELSE 'NA' END`;
+
 // 접는 규칙은 insights.ts 의 접기 SQL 과 같은 말이다 — 한 실행이 아니라 창 안 실행 전부를 한 번에 접는다.
 // 갈래가 셋이다(전부 PASS = PASS · 하나라도 FAIL = FAIL · 나머지 NA). 날은 started_at 을 tz 로 자른 글자다.
 // 사유는 실패한 첫 항목의 대표 문장이다(insights.ts 대표문장뽑기와 같다). actual · expected 는 읽지 않는다.
@@ -19,9 +24,7 @@ export const 접은줄SQL = `
   )
   SELECT t.run_id, t.service_id, t.service_name, t.env, t.kind, t.day, t.started_at, t.finished_at,
          i.tc_id, max(i.tc_name) AS tc_name, i.platform,
-         CASE WHEN bool_or(i.status = 'FAIL')  THEN 'FAIL'
-              WHEN bool_and(i.status = 'PASS') THEN 'PASS'
-              ELSE 'NA' END AS verdict,
+         ${판정접기식} AS verdict,
          bool_or(i.unconfirmed IS NOT NULL) AS unconfirmed,
          CASE WHEN bool_or(i.status = 'FAIL') AND t.day >= $4::text THEN (
            SELECT COALESCE(
@@ -47,9 +50,7 @@ export const 접은줄SQL = `
 // 이번 창 실행 수만큼 도므로 실행이 수만 건으로 커져 느려지면 그 인덱스를 더한다(마이그레이션)
 export const 앞판정SQL = `
   SELECT c.run_id AS this_run, i.tc_id, i.platform,
-         CASE WHEN bool_or(i.status = 'FAIL')  THEN 'FAIL'
-              WHEN bool_and(i.status = 'PASS') THEN 'PASS'
-              ELSE 'NA' END AS verdict,
+         ${판정접기식} AS verdict,
          bool_or(i.unconfirmed IS NOT NULL) AS unconfirmed
   FROM test_run c
   CROSS JOIN LATERAL (
