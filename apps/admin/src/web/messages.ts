@@ -5,6 +5,7 @@
 import { 계정말 } from './messages/auth.js';
 import { 작성말 } from './messages/authoring.js';
 import { 케이스말 } from './messages/cases.js';
+import { 대시보드말 } from './messages/dashboard.js';
 import { 고치기말 } from './messages/edit.js';
 import { 오류영어 } from './messages/errors.js';
 import { 실행말 } from './messages/runs.js';
@@ -22,4 +23,5 @@ export const 말: Record<string, string> = {
   ...계정말,
   ...오류영어,
   ...시나리오말,
+  ...대시보드말,
 };
