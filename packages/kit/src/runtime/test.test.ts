@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 type Body = (fixtures: unknown, testInfo: unknown) => Promise<void>;
 
 type Use = (session: { open(): Promise<unknown> }) => Promise<void>;
-type Fixture = (deps: object, use: Use) => Promise<void>;
+type Fixture = (deps: object, use: Use, testInfo?: { status: string }) => Promise<void>;
 
 const pw = vi.hoisted(() => ({
   registered: [] as Body[],
@@ -169,12 +169,34 @@ describe('test', () => {
     app.openApp.mockRejectedValue(new Error('PLATFORM_APP 이 필요하다'));
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await pw.fixtures.appSession({}, async (session) => {
-      await session.open().catch(() => {});
-    });
+    await pw.fixtures.appSession(
+      {},
+      async (session) => {
+        await session.open().catch(() => {});
+      },
+      { status: 'failed' },
+    );
 
     expect(driver.deleteSession).not.toHaveBeenCalled();
     expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it('여는 도중 제한 시간이 끝나고 여는 것마저 실패하면 그 이유를 알린다', async () => {
+    test(androidSpec(), vi.fn());
+    app.openApp.mockRejectedValue(new Error('도우미 앱 설치 실패'));
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await pw.fixtures.appSession(
+      {},
+      async (session) => {
+        void session.open().catch(() => {});
+      },
+      { status: 'timedOut' },
+    );
+
+    expect(driver.deleteSession).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('[kit] Appium 연결을 열지 못했다: 도우미 앱 설치 실패'));
     log.mockRestore();
   });
 

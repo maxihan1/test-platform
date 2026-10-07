@@ -172,7 +172,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   // 케이스를 건너뛸지는 본문에서 가른다. fixture 는 그보다 먼저 돌아서 거기서 열면 보류 케이스도 Appium 에 붙는다
   const appTest = isApp
     ? base.extend<{ appSession: { open(): Promise<AppDriver> } }>({
-        appSession: async ({}, use) => {
+        appSession: async ({}, use, testInfo) => {
           // 여는 중인 약속을 쥐어야 한다. 새 폰은 첫 연결에 도우미 앱을 깔아 오래 걸려, 열리는 도중 제한 시간이 오면 Appium 이 뒤늦게 세션을 만든다
           let opening: Promise<AppDriver> | undefined;
           await use({ open: () => (opening ??= openApp(process.env)) });
@@ -180,8 +180,12 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
           let driver: AppDriver;
           try {
             driver = await opening;
-          } catch {
-            // 여는 것이 실패했으면 닫을 세션이 없다. 오류는 이미 본문이 받아 시험 실패로 남았다
+          } catch (err) {
+            // 여는 것이 실패했으면 닫을 세션이 없다. 보통은 본문이 그 오류를 받아 시험 실패로 남았지만,
+            // 열리는 도중 제한 시간이 끝났으면 본문은 이미 떠났다 — 그때만 이유를 알린다
+            if (testInfo.status === 'timedOut') {
+              console.error(`[kit] Appium 연결을 열지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+            }
             return;
           }
           // 본문 안 finally 는 제한 시간에 걸리면 안 돈다. 정리 단계는 그 뒤에도 돈다
