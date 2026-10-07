@@ -21,5 +21,7 @@ export default defineConfig({
     // 이름이 Platform 타입 값과 철자까지 같아야 한다. 러너가 그대로 --project 인자로 넘긴다
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['iPhone 14'] } },
+    // 브라우저를 안 띄운다 — kit 이 Appium 으로 폰에 붙는다 (SPEC 도메인/러너 §5.2)
+    { name: 'android' },
   ],
 });
