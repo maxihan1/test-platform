@@ -5406,7 +5406,7 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   min-width: 56px;
 }
 
-.fc-list {
+.fc-pre {
   display: flex;
   flex-direction: column;
   gap: 2px;
