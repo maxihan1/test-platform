@@ -93,7 +93,8 @@ export function RunFailDevice({ devices, env, items }: { devices: FailureDevice[
         <div className="fc-shots">
           {devices.flatMap((d) =>
             d.item.steps
-              .filter((step) => step.screenshotPath !== undefined)
+              // capture:true 로 찍은 통과 절차 화면을 「실패 시점 화면」이라 부르면 안 된다 — 실패한 절차 것만
+              .filter((step) => step.screenshotPath !== undefined && step.status === 'FAIL')
               .map((step) => (
                 <figure key={`${d.platform}-${String(step.seq)}`} className="fc-shot">
                   <figcaption>{PLATFORM_LABEL[d.platform]}</figcaption>

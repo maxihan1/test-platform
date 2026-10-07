@@ -5408,7 +5408,8 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   border: 1px solid var(--line-2);
   border-radius: 4px;
   padding: 1px 6px;
-  color: var(--ink);
+  /* 연속 실패는 잉크 보조 — 요약 띠의 대비 칸(`.rs-k`)과 같은 색이다 (DESIGN 「실행 결과」 변화 글자) */
+  color: var(--ink-muted);
 }
 
 /* 신규 실패만 실패 글자 색이다. 테두리는 그대로 두어 연속 실패와 같은 틀에서 색 하나로 갈린다 (DESIGN.md 실행 결과) */
@@ -5541,6 +5542,19 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
     flex-wrap: nowrap;
     justify-content: flex-end;
   }
+}
+
+/* 「상세」 · 「펼치기」는 한 덩어리다. 본문 칸이 700px 아래(창 1200~1340 에서 옆 칸이 서면 560~690px)라 줄이 접혀도
+   둘이 갈라지지 않고 같이 오른쪽 끝에 붙는다. 「펼치기」 · 「접기」 글자 폭이 달라 펼친 줄의 「상세」가 밀리지 않게 폭을 고정한다 */
+.result-row .rr-acts {
+  display: inline-flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.result-row .rr-acts > button {
+  min-width: 4.5em;
+  justify-content: center;
 }
 
 .rr-expand {

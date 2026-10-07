@@ -82,12 +82,12 @@ export function 결과줄({
               );
             })}
           </div>
+          {/* 둘을 한 덩어리로 묶는다 — 본문 칸이 좁아 줄이 접혀도 「상세」와 「펼치기」가 갈라지지 않고 같이 오른쪽에 붙는다 */}
           {첫항목 === undefined ? null : (
+            <span className="rr-acts">
             <a className="btn small ghost" href={`#/runs/${runId}/items/${첫항목.historyId}`}>
               {t('상세')}
             </a>
-          )}
-          {첫항목 === undefined ? null : (
             <button
               type="button"
               className="btn small ghost"
@@ -101,6 +101,7 @@ export function 결과줄({
             >
               {열림 ? t('접기') : t('펼치기')}
             </button>
+            </span>
           )}
         </div>
       </div>
