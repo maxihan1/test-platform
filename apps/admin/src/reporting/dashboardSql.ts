@@ -2,7 +2,7 @@
 
 import { 종류조건 } from '../execution/runKind.js';
 
-// 실행 한 번 안에서 한 (케이스, 디바이스)의 회차를 한 판정으로 접는 식이다. failures.ts 의 최근 흐름도 같은 식을 쓴다 — i 는 run_item 의 별칭이다
+// 실행 한 번 안에서 한 (케이스, 디바이스)의 회차를 한 판정으로 접는 식이다. insights.ts 의 접기 · failures.ts 의 최근 흐름도 같은 식을 쓴다 — i 는 run_item 의 별칭이다
 export const 판정접기식 = `CASE WHEN bool_or(i.status = 'FAIL')  THEN 'FAIL'
               WHEN bool_and(i.status = 'PASS') THEN 'PASS'
               ELSE 'NA' END`;

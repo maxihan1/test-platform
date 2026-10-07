@@ -29,6 +29,7 @@ export interface FailureCards {
 }
 
 // 같은 서비스 · env · 종류의 끝난 실행을 이번 실행까지 모아 실행마다 회차를 접고, 쌍마다 새 것부터 최근몇건만 남긴다.
+// 앞 실행은 insights 의 직전 실행처럼 started_at 이 더 이른 것만이다 — 시각이 같은 실행이 끼면 streak 이 계속깨짐을 정한 실행과 어긋난다.
 // 미확정 항목은 칸이 안 된다 — 미확정만 있던 실행은 행이 없어 그 실행이 통째로 빠진다
 const 최근흐름SQL = `
   SELECT x.tc_id, x.platform, x.verdict
@@ -37,7 +38,7 @@ const 최근흐름SQL = `
            ROW_NUMBER() OVER (PARTITION BY i.tc_id, i.platform ORDER BY r.started_at DESC, r.run_id DESC) AS n
     FROM test_run t
     JOIN test_run r ON r.service_id = t.service_id AND r.env = t.env AND r.kind = t.kind
-                   AND r.status <> 'RUNNING' AND (r.started_at, r.run_id) <= (t.started_at, t.run_id)
+                   AND r.status <> 'RUNNING' AND (r.run_id = t.run_id OR r.started_at < t.started_at)
     JOIN run_item i ON i.run_id = r.run_id AND i.unconfirmed IS NULL
     WHERE t.run_id = $1
       AND (i.tc_id, i.platform) IN (SELECT * FROM unnest($2::text[], $3::text[]))
