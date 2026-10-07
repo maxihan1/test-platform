@@ -48,7 +48,7 @@ export interface 일별칸 extends 셈 {
   day: string;
 }
 
-export const 흐름상한 = 20;
+export const 흐름실행수 = 20;
 
 export interface 서비스칸 {
   serviceId: number;
@@ -56,7 +56,7 @@ export interface 서비스칸 {
   이번: 셈;
   직전: 셈;
   마지막실행: (셈 & { runId: number; finishedAt: string }) | null;
-  /** 창 안 실행을 오래된 것부터 최근 `흐름상한`개. F 실패 있음 · P 전부 통과 · N 그 밖(미확정 항목은 빼고 본다) */
+  /** 창 안 실행을 오래된 것부터 최근 `흐름실행수`개. F 실패 있음 · P 전부 통과 · N 그 밖(미확정 항목은 빼고 본다) */
   흐름: ('F' | 'P' | 'N')[];
   신규실패수: number;
   /** insights 「고쳐짐」 — 앞 FAIL → 이번 PASS 이고 그 뒤 다시 실패하지 않은 (케이스, 디바이스) 수 */
@@ -209,7 +209,7 @@ function 흐름을만든다(줄들: 접은줄[], 이번창: (day: string) => boo
     const 글자 = 판정.includes('FAIL') ? 'F' : 판정.length > 0 && 판정.every((v) => v === 'PASS') ? 'P' : 'N';
     서비스별.set(줄.serviceId, [...(서비스별.get(줄.serviceId) ?? []), 글자]);
   }
-  for (const [id, 글자들] of 서비스별) 서비스별.set(id, 글자들.slice(-흐름상한));
+  for (const [id, 글자들] of 서비스별) 서비스별.set(id, 글자들.slice(-흐름실행수));
   return 서비스별;
 }
 

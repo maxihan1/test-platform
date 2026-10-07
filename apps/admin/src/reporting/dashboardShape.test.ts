@@ -6,7 +6,7 @@ import {
   신규실패상한,
   히트맵케이스수,
   커버리지날수,
-  흐름상한,
+  흐름실행수,
   날짜더하기,
   대시보드집계,
   type 접은줄,
@@ -46,7 +46,7 @@ const 앞 = (tcId: string, verdict: 앞판정['verdict'], 덮: Partial<앞판정
 
 describe('상수', () => {
   it('명세가 정한 값이다', () => {
-    expect([창날수, 신규실패상한, 히트맵케이스수, 커버리지날수]).toEqual([14, 10, 8, 30]);
+    expect([창날수, 신규실패상한, 히트맵케이스수, 커버리지날수, 흐름실행수]).toEqual([14, 10, 8, 30, 20]);
   });
 });
 
@@ -359,12 +359,12 @@ describe('서비스별 최근 실행 흐름 · 해결', () => {
     expect(결과.서비스별[0]?.흐름).toEqual(['P', 'F', 'N', 'P', 'N']);
   });
 
-  it('최근 흐름상한개만 남긴다', () => {
-    const 줄들 = Array.from({ length: 흐름상한 + 2 }, (_, i) =>
+  it('최근 흐름실행수개만 남긴다', () => {
+    const 줄들 = Array.from({ length: 흐름실행수 + 2 }, (_, i) =>
       줄({ runId: 500 + i, day: '2026-10-07', finishedAt: `2026-10-07T10:${String(i).padStart(2, '0')}:00.000Z`, verdict: i === 0 ? 'FAIL' : 'PASS' }),
     );
     const 흐름 = 대시보드집계(줄들, new Map(), 오늘).서비스별[0]?.흐름;
-    expect(흐름).toHaveLength(흐름상한);
+    expect(흐름).toHaveLength(흐름실행수);
     expect(흐름?.includes('F')).toBe(false);
   });
 
