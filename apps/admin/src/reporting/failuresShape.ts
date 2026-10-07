@@ -34,7 +34,9 @@ export interface 실패케이스 {
 const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android'];
 const 변화무게 = (c: 카드변화) => (c === '새로깨짐' ? 0 : c === '계속깨짐' ? 1 : 2);
 
-export function 연속실패수(recent: ItemStatus[]): number {
+// 견줄 앞이 없거나 새로 깨진 실패에 「N회 연속」을 붙이면 사실과 어긋나서 계속깨짐만 숫자로 준다
+export function 연속실패수(change: 카드변화, recent: ItemStatus[]): number | null {
+  if (change !== '계속깨짐') return null;
   const 처음비실패 = recent.findIndex((s) => s !== 'FAIL');
   return 처음비실패 === -1 ? recent.length : 처음비실패;
 }
