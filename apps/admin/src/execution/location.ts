@@ -31,7 +31,9 @@ export const runBody = z.object({
     .min(1),
 });
 
-export type 거절 = { status: 400 | 409; error: 'INVALID_REQUEST' | 'FARM_OFF' | 'LOCAL_OFF'; detail: string };
+// 화면은 코드마다 자기 문장을 쓰고 detail 을 그 뒤에 붙인다(errorText.ts). 그래서 detail 에는 화면 문장이 말하지 않는 것만 싣는다 —
+// 같은 말을 실으면 화면에 두 번 뜬다(2026-10-07 실기기 확인)
+export type 거절 = { status: 400 | 409; error: 'INVALID_REQUEST' | 'FARM_OFF' | 'LOCAL_OFF'; detail?: string };
 
 // 실행을 만들기 전에 부른다 — 거절되면 test_run 이 생기지 않는다. 위치는 DB 에 남기지 않는다
 export function 실행위치를본다(
@@ -44,10 +46,11 @@ export function 실행위치를본다(
     return { status: 400, error: 'INVALID_REQUEST', detail: 'Android 앱 케이스를 돌리려면 실행 위치(location)를 골라야 한다' };
   }
   if (location === 'farm') {
-    return { status: 409, error: 'FARM_OFF', detail: '디바이스 팜은 아직 준비 중이다' };
+    return { status: 409, error: 'FARM_OFF' };
   }
   if (!env.LOCAL_RUNNER_URL) {
-    return { status: 409, error: 'LOCAL_OFF', detail: '이 서버에는 Android 앱을 돌릴 로컬 러너(LOCAL_RUNNER_URL)가 없다' };
+    // 운영자가 고칠 자리(환경값 이름)만 싣는다
+    return { status: 409, error: 'LOCAL_OFF', detail: 'LOCAL_RUNNER_URL 이 비어 있다' };
   }
   return null;
 }

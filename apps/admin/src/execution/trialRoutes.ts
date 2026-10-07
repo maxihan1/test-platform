@@ -114,7 +114,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     // 같은 디바이스에 연결 둘이 겹치면 뒤 연결이 앞을 가로챈다. 검증 전에 잡으면 400 경로에서 디바이스가 재기동 때까지 잠긴다
     const 폰씀 = platform === 'android';
     if (폰씀 && !폰을바로잡는다()) {
-      return reply.code(409).send({ error: 'DEVICE_BUSY', detail: '디바이스가 다른 실행에 쓰이고 있다' });
+      // detail 을 싣지 않는다 — 화면 문장이 사유를 다 말하고, 같은 말을 실으면 두 번 뜬다(location.ts 「거절」)
+      return reply.code(409).send({ error: 'DEVICE_BUSY' });
     }
     try {
       const 일 = async (): Promise<ExecuteResponse> => {

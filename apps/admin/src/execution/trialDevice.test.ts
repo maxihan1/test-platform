@@ -74,6 +74,8 @@ describe('케이스 테스트 실행 통로 — android 디바이스 잠금', ()
     const res = await 보낸다('XTR-AND', 안드로이드);
     expect(res.statusCode).toBe(409);
     expect(res.json<{ error: string }>().error).toBe('DEVICE_BUSY');
+    // 화면 문장이 사유를 다 말한다. 서버가 같은 말을 사유로 붙이면 화면에 두 번 뜬다
+    expect(res.json<{ detail?: string }>().detail).toBeUndefined();
     expect(보냄).not.toHaveBeenCalled();
   });
 

@@ -26,6 +26,11 @@ describe('실행위치를본다', () => {
     });
   });
 
+  it('409 사유는 화면 문장과 같은 말을 되풀이하지 않는다 — FARM_OFF 는 사유가 없고 LOCAL_OFF 는 값 이름만', () => {
+    expect(실행위치를본다(안드로이드, 'farm', 주소있음)?.detail).toBeUndefined();
+    expect(실행위치를본다(안드로이드, 'local', {})?.detail).toBe('LOCAL_RUNNER_URL 이 비어 있다');
+  });
+
   it("android + 'local' + 주소가 있으면 통과다", () => {
     expect(실행위치를본다(안드로이드, 'local', 주소있음)).toBeNull();
   });
