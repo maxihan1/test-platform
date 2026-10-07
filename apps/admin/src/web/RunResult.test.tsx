@@ -542,6 +542,14 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 미확정 묶�
     expect(미확정?.textContent).toContain('기획서에 값이 없습니다');
   });
 
+  it('미확정 묶음 줄은 거터를 판정 색이 아닌 중립으로 그린다', async () => {
+    연다(섞인항목, 견줌);
+    await screen.findByText('이름-ZRR-002');
+
+    const 거터 = document.querySelector('.rr-unconf .gutter')?.getAttribute('style') ?? '';
+    expect(거터).toContain('var(--line-2)');
+  });
+
   it('도는 실행은 카드 통로도 견주기 통로도 부르지 않고 진행 집계와 줄 목록을 그린다', async () => {
     const 견줌부름 = vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     const 실패부름 = vi.spyOn(api, 'failures');
