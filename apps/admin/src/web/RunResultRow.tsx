@@ -24,10 +24,13 @@ export function 결과줄({
   group,
   columns,
   runId,
+  미확정묶음 = false,
 }: {
   group: CaseGroup;
   columns: Platform[];
   runId: number;
+  /** 미확정은 판정이 아니라 거터에 판정 색 셋을 쓰지 않는다 (DESIGN.md 「판정 표기」). 디바이스 배지는 실제로 돈 결과 그대로 둔다 */
+  미확정묶음?: boolean;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -46,7 +49,7 @@ export function 결과줄({
   return (
     <div className="result-row">
       <div className="row">
-        <div className="gutter" style={{ background: STATUS_COLOR[worst(칸들)] }} />
+        <div className="gutter" style={{ background: 미확정묶음 ? 'var(--line-2)' : STATUS_COLOR[worst(칸들)] }} />
         <div className="tcid">{group.tcId}</div>
         <div className="title">
           {group.tcName}

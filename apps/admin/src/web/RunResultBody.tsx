@@ -121,7 +121,7 @@ export function 끝난결과(props: Props) {
                 {t('미확정')} <span className="rr-n">{미확정.length}</span>
               </h2>
               <p className="rr-axis">{t('통과율과 직전 실행 비교에서 뺐습니다')}</p>
-              {미확정.map((group) => <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />)}
+              {미확정.map((group) => <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} 미확정묶음 />)}
             </section>
           )}
         </div>
