@@ -11,12 +11,15 @@ export const spec = defineCase({
 
 test(spec, async ({ driver }) => {
   await test.step('첫 상품을 연다', async () => {
-    await (await driver.$$('~store item'))[0].click();
-    await verify('상품 화면이 열린다', await driver.$('~product screen').isDisplayed(), true);
+    await driver.$('~store item').click();
+    const opened = await driver.$('~product screen').waitForDisplayed().then(() => true, () => false);
+    await verify('상품 화면이 열린다', opened, true);
   });
 
   await test.step('장바구니에 담는다', async () => {
     await driver.$('~Add To Cart button').click();
-    await verify('장바구니 수가 1이다', await driver.$('~cart badge').$('android.widget.TextView').getText(), '1');
+    const count = driver.$('~cart badge').$('android.widget.TextView');
+    await count.waitForDisplayed();
+    await verify('장바구니 수가 1이다', await count.getText(), '1');
   }, { capture: true });
 });
