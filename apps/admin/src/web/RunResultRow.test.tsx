@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-import type { ItemStatus, Platform, RunItemSummary } from './api.js';
+import { api, type ItemStatus, type Platform, type RunItemDetail, type RunItemSummary } from './api.js';
 import { groupByCase } from './group.js';
 import { 결과줄 } from './RunResultRow.js';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 function 항목(
   n: number,
@@ -95,5 +98,91 @@ describe('결과줄 (SPEC §8.3)', () => {
     그린다([항목(1, 'desktop', 'NA')]);
 
     expect(screen.queryByText(/러너에 닿지 못했습니다/)).not.toBeNull();
+  });
+
+  describe('펼치기 (SPEC §8.3 통과 · 미실행 줄)', () => {
+    function 상세(요약: RunItemSummary, 덮을것: Partial<RunItemDetail> = {}): RunItemDetail {
+      return {
+        ...요약,
+        runId: 7,
+        runTitle: '결제 회귀',
+        precondition: ['로그인된 상태'],
+        expected: {},
+        expectedSchema: {},
+        steps: [
+          {
+            seq: 1,
+            title: '가입 버튼을 누른다',
+            status: 'PASS',
+            durationMs: 100,
+            assertions: [
+              { statement: '가입 완료 안내가 보인다', status: 'PASS', expected: true, actual: true },
+              { statement: '가입한 이메일이 보인다', status: 'PASS', expected: true, actual: true },
+            ],
+          },
+        ],
+        ...덮을것,
+      };
+    }
+
+    it('디바이스마다 접힌 펼치기 버튼이 있고 이름에 TC ID 와 디바이스가 든다', () => {
+      그린다([항목(1, 'desktop', 'PASS'), 항목(2, 'mobile', 'PASS')]);
+
+      const 버튼들 = screen.getAllByRole('button', { name: /펼치기/ });
+      expect(버튼들).toHaveLength(2);
+      expect(버튼들.every((b) => b.getAttribute('aria-expanded') === 'false')).toBe(true);
+      expect(screen.getByRole('button', { name: /ZZW-0001.*PC/ })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /ZZW-0001.*모바일/ })).toBeTruthy();
+    });
+
+    it('누르면 그 디바이스 첫 회차 상세를 불러와 사전조건 · 절차 · 모든 확인을 보인다', async () => {
+      const 첫회차 = 항목(11, 'desktop', 'PASS', 1);
+      const 부름 = vi.spyOn(api, 'item').mockResolvedValue(상세(첫회차));
+      그린다([항목(12, 'desktop', 'PASS', 2), 첫회차, 항목(13, 'mobile', 'PASS')]);
+
+      fireEvent.click(screen.getByRole('button', { name: /ZZW-0001.*PC/ }));
+
+      expect(await screen.findByText('가입 버튼을 누른다')).toBeTruthy();
+      expect(부름).toHaveBeenCalledTimes(1);
+      expect(부름).toHaveBeenCalledWith(7, 11);
+      expect(screen.getByText('로그인된 상태')).toBeTruthy();
+      expect(screen.getByText('가입 완료 안내가 보인다')).toBeTruthy();
+      expect(screen.getByText('가입한 이메일이 보인다')).toBeTruthy();
+    });
+
+    it('다시 누르면 접히고 또 누르면 다시 부르지 않는다', async () => {
+      const 부름 = vi.spyOn(api, 'item').mockResolvedValue(상세(항목(1, 'desktop', 'PASS')));
+      그린다([항목(1, 'desktop', 'PASS')]);
+      const 버튼 = screen.getByRole('button', { name: /ZZW-0001.*PC/ });
+
+      fireEvent.click(버튼);
+      await screen.findByText('가입 버튼을 누른다');
+      fireEvent.click(버튼);
+      expect(버튼.getAttribute('aria-expanded')).toBe('false');
+      fireEvent.click(버튼);
+      expect(버튼.getAttribute('aria-expanded')).toBe('true');
+      expect(부름).toHaveBeenCalledTimes(1);
+    });
+
+    it('못 불러오면 그 줄 안에 오류 한 줄을 적는다', async () => {
+      vi.spyOn(api, 'item').mockRejectedValue(new Error('상세를 못 읽었습니다'));
+      그린다([항목(1, 'desktop', 'PASS')]);
+
+      fireEvent.click(screen.getByRole('button', { name: /ZZW-0001.*PC/ }));
+
+      expect(await screen.findByText('상세를 못 읽었습니다')).toBeTruthy();
+    });
+
+    it('지원하지 않는 디바이스 칸에는 펼치기 버튼이 없다', () => {
+      그린다([항목(1, 'desktop', 'PASS')]);
+
+      expect(screen.queryByRole('button', { name: /ZZW-0001.*모바일/ })).toBeNull();
+    });
+
+    it('상세 링크는 그대로 있다', () => {
+      그린다([항목(1, 'desktop', 'PASS')]);
+
+      expect(screen.getByRole('link', { name: '상세' }).getAttribute('href')).toBe('#/runs/7/items/1');
+    });
   });
 });
