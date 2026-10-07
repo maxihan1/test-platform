@@ -5522,11 +5522,24 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   border-bottom: 0;
 }
 
-/* 결과 줄의 마지막 칸은 디바이스 둘 + 「상세」 + 「펼치기」 라 264px 로는 넘쳐 「펼치기」 가 아래 줄로 밀렸다.
-   공용 `--run-cols` 는 실행 기록이 같이 쓰므로 결과 줄에만 넓힌다. 1164px 이하는 비율 칸이라 접혀도 된다 */
-@media (min-width: 1165px) {
+/* 결과 줄의 마지막 칸은 디바이스 둘(셋까지) + 「상세」 + 「펼치기」 라 264px 로는 넘쳐 「펼치기」 가 아래 줄로 밀렸다.
+   공용 `--run-cols` 는 실행 기록이 같이 쓰므로 결과 줄에만 넓힌다.
+   **창 폭이 아니라 본문 칸(`.rr-main`)의 폭으로 가른다** — 1165px 이상 창에서 옆 칸이 서면 본문이 560px 로 줄어
+   창 폭 기준은 제목 칸을 50px 로 눌렀고, 1164px 이하 창은 비율 칸이라 「펼치기」 가 「상세」에서 떨어져 아래로 내려갔다.
+   본문 칸이 700px 이상이면 칸을 360px 로 못 박고 버튼을 오른쪽 끝에 붙인다(2026-10-08 실측: 1024 · 1100 · 1440 창).
+   700px 미만은 공용 규칙 그대로이고 버튼이 접혀도 된다. 360 은 디바이스 셋 + 영어 「Details」 · 「Expand」 까지 한 줄에 드는 값이다 */
+.rr-main {
+  container-type: inline-size;
+}
+
+@container (min-width: 700px) {
   .result-row > .row {
-    grid-template-columns: 4px 128px minmax(0, 1fr) 330px;
+    grid-template-columns: 4px 128px minmax(0, 1fr) 360px;
+  }
+
+  .result-row .right {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
   }
 }
 
@@ -5572,14 +5585,33 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
     margin-left: 0;
     flex-wrap: wrap;
   }
+
+  /* 손가락으로 누르는 영역 44px — 실행 결과는 휴대폰에서 보는 두 화면 중 하나다 (DESIGN.md 접근성 기준).
+     카드 안 「펼치기」(34px) · 「상세」 링크 · 디바이스 칩이 모자랐다 */
+  .fc-acts .btn,
+  .rr .chip {
+    min-height: 44px;
+  }
+
+  .fc-detail {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* 브라우저 기본 파란 링 대신 잉크 2px (DESIGN.md 접근성 기준). 결과 화면의 링크 — 「상세」 · 실패 시점 화면 ·
+   옆 칸 RUN 링크 · 결과 줄의 판정 링크 — 와 상자 안 접힌 줄(summary) */
+.rr a:focus-visible,
+.rr summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 /* 결과 화면 요약 띠 — 도넛 · 실패 수 · 판정별 보기 · 직전 실행 대비 (도메인/실행 §8.3). 도넛은 대시보드와 같은 그래프 토큰 */
 .rs {
-  display: grid;
-  grid-template-columns: auto minmax(240px, 1fr) minmax(220px, 1fr);
-  align-items: center;
-  gap: 24px 32px;
   padding: 20px 24px;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -5587,8 +5619,19 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   container-type: inline-size;
 }
 
+/* 격자는 그릇(`.rs`) 안쪽에 둔다 — 한 단 전환(아래 @container)이 이 그릇의 폭으로 판정되게.
+   둘째 칸은 판정별 보기 네 칸의 글자가 꺾이지 않는 최소 폭까지만 줄어든다 */
+.rs-grid {
+  display: grid;
+  grid-template-columns: auto minmax(min-content, 1fr);
+  align-items: center;
+  gap: 24px 32px;
+}
+
+/* 한 줄에 도넛과 글 칸이 안 들어가는 폭(휴대폰)에서는 글 칸이 아래로 내려간다 */
 .rs-rate {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 24px;
   min-width: 0;
@@ -5663,12 +5706,14 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  min-width: 0;
+  /* 이 칸이 0 까지 줄어 「실패 8건」 배지와 「항목 14건 중 4건 통과」가 한 글자씩 세로로 쌓였다 (2026-10-08 실측) */
+  min-width: 150px;
 }
 
 .rs-fails {
   font-size: 14px;
   padding: 4px 12px;
+  white-space: nowrap;
 }
 
 .rs-fails.none {
@@ -5680,6 +5725,7 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   font-size: 14px;
   line-height: 1.5;
   color: var(--ink-muted);
+  white-space: nowrap;
 }
 
 .rs-filter,
@@ -5699,8 +5745,13 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 .rs-fbtns,
 .rs-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+}
+
+/* 칸마다 글자 폭 아래로는 안 줄어든다 — 「미실행」이 「미실/행」으로 꺾였다. 넓어도 400px 까지만 벌어진다 */
+.rs-fbtns {
+  grid-template-columns: repeat(4, minmax(max-content, 1fr));
+  max-width: 400px;
 }
 
 .rs-stats {
@@ -5745,6 +5796,7 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 .rs-k {
   font-size: 12px;
   color: var(--ink-muted);
+  white-space: nowrap;
 }
 
 .rs-k.a {
@@ -5776,9 +5828,11 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   color: var(--na-text);
 }
 
-/* 한 단 · 두 단은 창 폭이 아니라 그릇 폭으로 가른다 — 상자 안에서도 같은 규칙이다 */
-@container (max-width: 720px) {
-  .rs {
+/* 한 단 · 두 단은 창 폭이 아니라 요약 띠 자기 폭으로 가른다 — 상자 안에서도 같은 규칙이다.
+   두 단이 서려면 도넛 + 글 칸(326) + 간격(32) + 판정별 보기 네 칸(영어까지 약 296) = 654 가 필요해 660 밑에서 한 단이다.
+   (그릇 안쪽 폭이다 — 띠 폭에서 좌우 여백 48 을 뺀 값) */
+@container (max-width: 660px) {
+  .rs-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
