@@ -227,14 +227,14 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
   const execute = async (
     testInfo: TestInfo,
     args: (inputs: { params: P; expected: E }) => CaseBodyArgs<P, E>,
-    capture: RunScope['capture'],
+    captureStep: RunScope['capture'],
     inputs: { params: P; expected: E },
   ): Promise<void> => {
     const run: RunScope = {
       seq: 0,
       failed: false,
       stopped: false,
-      capture,
+      capture: captureStep,
       emit: (result) => emit(testInfo, result),
     };
 

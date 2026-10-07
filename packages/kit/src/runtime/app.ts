@@ -39,6 +39,8 @@ export async function openApp(env: Env): Promise<AppDriver> {
     hostname: url.hostname,
     port: url.port ? Number(url.port) : DEFAULT_PORTS[url.protocol],
     path: url.pathname,
+    // 기본 수준(info)은 명령마다 stdout 에 찍어 러너가 실패 사유로 보는 꼬리를 채운다
+    logLevel: 'warn',
     ...(url.username && {
       user: decodeURIComponent(url.username),
       key: decodeURIComponent(url.password),

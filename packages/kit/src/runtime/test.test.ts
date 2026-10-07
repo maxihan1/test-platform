@@ -142,6 +142,18 @@ describe('test', () => {
     expect(driver.deleteSession).not.toHaveBeenCalled();
   });
 
+  it('본문이 던져도 fixture 정리가 열린 연결을 닫는다', async () => {
+    test(androidSpec(), vi.fn());
+
+    await pw.fixtures.appSession({}, async (session) => {
+      await session.open();
+      // 실제 Playwright 의 use 는 본문 예외로 거부되지 않는다. 본문 예외는 거기서 잡혀 시험 실패로만 남는다
+      await Promise.reject(new Error('본문이 던졌다')).catch(() => {});
+    });
+
+    expect(driver.deleteSession).toHaveBeenCalledTimes(1);
+  });
+
   it('연결을 못 닫아도 판정을 덮지 않고 이유를 알린다', async () => {
     test(androidSpec(), vi.fn());
     driver.deleteSession.mockRejectedValue(new Error('세션 없음'));

@@ -59,6 +59,7 @@ describe('openApp', () => {
       hostname: '127.0.0.1',
       port: 4723,
       path: '/',
+      logLevel: 'warn',
       capabilities: appCapabilities({ PLATFORM_APP: '/tmp/a.apk' }),
     });
   });
