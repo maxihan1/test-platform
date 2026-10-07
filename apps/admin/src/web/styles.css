@@ -5485,6 +5485,23 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   margin-left: auto;
 }
 
+/* 결과 줄 아래 펼치기 띠. 줄 밑줄은 띠까지 묶어 하나만 긋는다 */
+.result-row {
+  border-bottom: 1px solid var(--line);
+}
+
+.result-row > .row {
+  border-bottom: 0;
+}
+
+.rr-expand {
+  padding: 4px 16px 4px 20px;
+}
+
+.rr-expand .fc-body {
+  padding: 8px 0 12px;
+}
+
 .flow-lead {
   font-size: 12px;
   color: var(--ink-faint);
@@ -5505,6 +5522,10 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 @media (max-width: 620px) {
   .fc-card {
     padding: 14px 16px 16px;
+  }
+
+  .rr-expand .btn {
+    min-height: 44px;
   }
 
   .fc-flow {

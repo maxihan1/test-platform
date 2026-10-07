@@ -4,6 +4,7 @@
 import type { ItemStatus, Platform, RunItemSummary } from './api.js';
 import { type CaseGroup, 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
+import { ItemExpand } from './ItemExpand.js';
 import { 한줄로 } from './mask.js';
 import { 칸사유 } from './runState.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict } from './ui.js';
@@ -38,46 +39,61 @@ export function 결과줄({
   const 미확정사유 = 칸들.flat().find((i) => typeof i.unconfirmed === 'string')?.unconfirmed ?? null;
 
   return (
-    <div className="row">
-      <div className="gutter" style={{ background: STATUS_COLOR[worst(칸들)] }} />
-      <div className="tcid">{group.tcId}</div>
-      <div className="title">
-        {group.tcName}
-        {/* 상세로 들어가야만 보이면 「어떤 값에서 깨졌는가」를 줄 사이에서 비교할 수 없다 (SPEC §8.3).
-            입력이 없는 케이스는 줄 자체를 안 만든다 */}
-        {입력줄 === '' ? null : <small>{입력줄}</small>}
-        {사유 === null ? null : <small className="why">{사유}</small>}
-        {/* 사유는 실행 때 박제한 값이다 — 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (도메인/실행 §8.3) */}
-        {미확정사유 === null ? null : (
-          // `why` 를 쓰지 않는다 — 미실행 판정 색이다. 미확정은 판정이 아니다 (DESIGN.md 「판정 표기」 미확정)
-          <small>
-            {t('미확정')} · {미확정사유}
-          </small>
-        )}
-      </div>
-      <div className="right">
-        <div className="devices">
-          {columns.map((platform) => {
-            const 칸 = group.byPlatform[platform];
-            return (
-              <div className="device" key={platform}>
-                <span className="device-name">{PLATFORM_LABEL[platform]}</span>
-                {/* 그 디바이스를 지원하지 않는 케이스는 칸을 —로 비운다 (SPEC §8.3) */}
-                {칸 === undefined || 칸.length === 0 ? (
-                  <span className="device-none">—</span>
-                ) : (
-                  <Verdicts 칸={칸} runId={runId} />
-                )}
-              </div>
-            );
-          })}
+    <div className="result-row">
+      <div className="row">
+        <div className="gutter" style={{ background: STATUS_COLOR[worst(칸들)] }} />
+        <div className="tcid">{group.tcId}</div>
+        <div className="title">
+          {group.tcName}
+          {/* 상세로 들어가야만 보이면 「어떤 값에서 깨졌는가」를 줄 사이에서 비교할 수 없다 (SPEC §8.3).
+              입력이 없는 케이스는 줄 자체를 안 만든다 */}
+          {입력줄 === '' ? null : <small>{입력줄}</small>}
+          {사유 === null ? null : <small className="why">{사유}</small>}
+          {/* 사유는 실행 때 박제한 값이다 — 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (도메인/실행 §8.3) */}
+          {미확정사유 === null ? null : (
+            // `why` 를 쓰지 않는다 — 미실행 판정 색이다. 미확정은 판정이 아니다 (DESIGN.md 「판정 표기」 미확정)
+            <small>
+              {t('미확정')} · {미확정사유}
+            </small>
+          )}
         </div>
-        {첫항목 === undefined ? null : (
-          <a className="btn small ghost" href={`#/runs/${runId}/items/${첫항목.historyId}`}>
-            {t('상세')}
-          </a>
-        )}
+        <div className="right">
+          <div className="devices">
+            {columns.map((platform) => {
+              const 칸 = group.byPlatform[platform];
+              return (
+                <div className="device" key={platform}>
+                  <span className="device-name">{PLATFORM_LABEL[platform]}</span>
+                  {/* 그 디바이스를 지원하지 않는 케이스는 칸을 —로 비운다 (SPEC §8.3) */}
+                  {칸 === undefined || 칸.length === 0 ? (
+                    <span className="device-none">—</span>
+                  ) : (
+                    <Verdicts 칸={칸} runId={runId} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {첫항목 === undefined ? null : (
+            <a className="btn small ghost" href={`#/runs/${runId}/items/${첫항목.historyId}`}>
+              {t('상세')}
+            </a>
+          )}
+        </div>
       </div>
+      {/* 펼친 본문이 격자 칸(디바이스 칸) 안에 갇히지 않도록 줄 아래 전폭 띠로 둔다 */}
+      {칸들.map((칸) => (
+        <ItemExpand
+          key={칸[0]!.platform}
+          className="rr-expand"
+          runId={runId}
+          historyId={칸[0]!.historyId}
+          tcId={칸[0]!.tcId}
+          platform={칸[0]!.platform}
+        >
+          <b>{PLATFORM_LABEL[칸[0]!.platform]}</b>
+        </ItemExpand>
+      ))}
     </div>
   );
 }
