@@ -12,9 +12,9 @@ type 자료 = 대시보드응답;
 const 보이는실행수 = 2;
 type 서비스줄 = 자료['byService'][number];
 
-/** 서비스마다 창 안 끝난 실행이 둘 이상이어야 앞 실행과 견줄 수 있다. 창 밖 앞 실행은 응답에 없어 못 센다 */
+// 앞 실행은 14일 창 밖에 있을 수 있어 흐름 길이로는 못 가른다 — 서버가 실제로 견줬는지를 준다
 function 견줄앞실행있나(서비스들: 서비스줄[]): boolean {
-  return 서비스들.some((서비스) => 서비스.flow.length >= 2);
+  return 서비스들.some((서비스) => 서비스.compared);
 }
 
 export function 신규실패표({ 값 }: { 값: 자료 }) {
@@ -169,7 +169,7 @@ export function 서비스별표({ 값 }: { 값: 자료 }) {
                       <span className="dash-chip p">{t('해결 {수}', { 수: 서비스.resolvedCount })}</span>
                     ) : null}
                     {서비스.newFailureCount === 0 && 서비스.resolvedCount === 0 ? (
-                      <span className="dash-chip">{서비스.flow.length < 2 ? t('견줄 실행 없음') : t('변화 없음')}</span>
+                      <span className="dash-chip">{서비스.compared ? t('변화 없음') : t('견줄 실행 없음')}</span>
                     ) : null}
                   </td>
                   <td className="r dash-when">
@@ -217,11 +217,8 @@ export function 실행중줄({ 목록 }: { 목록: 자료['running'] }) {
           </a>
         );
       })}
-      {더 > 0 ? (
-        <a className="dash-live-more" href="#/runs">
-          {t('외 {수}건', { 수: 더 })}
-        </a>
-      ) : null}
+      {/* 링크를 두지 않는다 — 실행 기록은 고른 서비스 것만 보여 다른 서비스의 도는 실행이 거기 없다 */}
+      {더 > 0 ? <span className="dash-live-more">{t('외 {수}건', { 수: 더 })}</span> : null}
     </div>
   );
 }

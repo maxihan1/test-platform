@@ -59,6 +59,7 @@ function 응답(고침: Partial<대시보드응답> = {}): 대시보드응답 {
         flow: ['P', 'F', 'N', 'P'],
         newFailureCount: 2,
         resolvedCount: 1,
+        compared: true,
       },
       {
         serviceId: 2,
@@ -69,6 +70,7 @@ function 응답(고침: Partial<대시보드응답> = {}): 대시보드응답 {
         flow: ['P'],
         newFailureCount: 0,
         resolvedCount: 0,
+        compared: false,
       },
     ],
     heatmap: [],
@@ -180,7 +182,7 @@ describe('실행 중 줄', () => {
     render(<Dashboard />);
     expect(await screen.findByText('실행 중 4건')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: /RUN \d/ })).toHaveLength(2);
-    expect(screen.getByText('외 2건')).toBeTruthy();
+    expect(screen.getByText('외 2건').closest('a')).toBeNull();
   });
 });
 
@@ -214,11 +216,12 @@ describe('신규 실패 표', () => {
     읽기를(
       응답({
         newFailures: [],
-        byService: 응답().byService.map((서비스) => ({ ...서비스, flow: ['P'], newFailureCount: 0, resolvedCount: 0 })),
+        byService: 응답().byService.map((서비스) => ({ ...서비스, flow: ['P', 'P'], newFailureCount: 0, resolvedCount: 0, compared: false })),
       }),
     );
     render(<Dashboard />);
     expect(await screen.findByText('견줄 앞 실행이 없습니다')).toBeTruthy();
+    expect(screen.getAllByText('견줄 실행 없음')).toHaveLength(2);
     expect(screen.queryByText('새 실패가 없습니다')).toBeNull();
   });
 
@@ -226,11 +229,12 @@ describe('신규 실패 표', () => {
     읽기를(
       응답({
         newFailures: [],
-        byService: 응답().byService.map((서비스) => ({ ...서비스, flow: ['P', 'P'], newFailureCount: 0, resolvedCount: 0 })),
+        byService: 응답().byService.map((서비스) => ({ ...서비스, flow: ['P'], newFailureCount: 0, resolvedCount: 0, compared: true })),
       }),
     );
     render(<Dashboard />);
     expect(await screen.findByText('새 실패가 없습니다')).toBeTruthy();
+    expect(screen.queryByText('견줄 실행 없음')).toBeNull();
     expect(screen.queryByText('견줄 앞 실행이 없습니다')).toBeNull();
   });
 });

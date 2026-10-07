@@ -61,6 +61,8 @@ export interface 서비스칸 {
   신규실패수: number;
   /** insights 「고쳐짐」 — 앞 FAIL → 이번 PASS 이고 그 뒤 다시 실패하지 않은 (케이스, 디바이스) 수 */
   해결수: number;
+  /** 이번 창 실행 중 하나라도 앞 실행과 견줬나. 앞 실행은 창 밖에 있을 수 있어 흐름 길이로는 못 가른다 — 화면의 「견줄 앞 실행이 없습니다」 */
+  견줌: boolean;
 }
 
 export interface 신규실패칸 {
@@ -138,10 +140,11 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     if (하루 !== undefined) 더한다(하루, 줄.verdict);
 
     const 서비스항목 = 서비스.get(줄.serviceId) ?? {
-      칸: { serviceId: 줄.serviceId, serviceName: 줄.serviceName, 이번: 빈셈(), 직전: 빈셈(), 마지막실행: null, 흐름: [], 신규실패수: 0, 해결수: 0 },
+      칸: { serviceId: 줄.serviceId, serviceName: 줄.serviceName, 이번: 빈셈(), 직전: 빈셈(), 마지막실행: null, 흐름: [], 신규실패수: 0, 해결수: 0, 견줌: false },
       마지막: new Map<number, 셈>(),
     };
     서비스.set(줄.serviceId, 서비스항목);
+    if (이번인가 && 앞판정들.has(줄.runId)) 서비스항목.칸.견줌 = true;
     더한다(이번인가 ? 서비스항목.칸.이번 : 서비스항목.칸.직전, 줄.verdict);
 
     const 실행셈 = 서비스항목.마지막.get(줄.runId) ?? 빈셈();

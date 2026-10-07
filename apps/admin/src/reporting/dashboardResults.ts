@@ -90,6 +90,8 @@ export interface 대시보드응답 {
     flow: ('F' | 'P' | 'N')[];
     newFailureCount: number;
     resolvedCount: number;
+    /** 이번 창 실행 중 하나라도 앞 실행과 견줬나 — 아니면 화면이 「견줄 앞 실행이 없습니다」 */
+    compared: boolean;
   }[];
   heatmap: { tcId: string; tcName: string; failCount: number; cells: (0 | 1 | 2)[] }[];
   coverage: 커버리지[];
@@ -249,6 +251,7 @@ export async function 대시보드(tz: string, 실행서비스ids: number[], 작
       flow: s.흐름,
       newFailureCount: s.신규실패수,
       resolvedCount: s.해결수,
+      compared: s.견줌,
     })),
     heatmap: 집계.히트맵.map((h) => ({ tcId: h.tcId, tcName: h.tcName, failCount: h.실패수, cells: h.칸 })),
     coverage,

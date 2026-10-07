@@ -233,6 +233,12 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
       expect(칸.flow).toEqual(['F', 'P', 'F', 'F', 'F']);
       expect(칸.newFailureCount).toBe(2);
       expect(칸.resolvedCount).toBe(1);
+      expect(칸.compared).toBe(true);
+    });
+
+    it('앞 실행이 없는 서비스는 견주지 않았다고 낸다', async () => {
+      const 결과 = await 대시보드('UTC', [T], []);
+      expect(결과.byService.map((s) => s.compared)).toEqual([false]);
     });
 
     it('히트맵은 실패 많은 케이스부터다', async () => {

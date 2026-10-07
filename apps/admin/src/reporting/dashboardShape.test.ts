@@ -398,6 +398,26 @@ describe('서비스별 최근 실행 흐름 · 해결', () => {
     );
     expect(결과.서비스별[0]?.해결수).toBe(0);
   });
+
+  it('이번 창 실행 중 하나라도 앞 실행과 견줬으면 견줌이다 — 앞 실행이 창 밖이어도', () => {
+    const 결과 = 대시보드집계(
+      [
+        실행줄(1, '2026-10-05', 'PASS'),
+        실행줄(2, '2026-10-05', 'PASS', { serviceId: 2, serviceName: '결제' }),
+        실행줄(3, '2026-09-20', 'PASS', { serviceId: 3, serviceName: '배송' }),
+      ],
+      new Map([
+        [1, [앞('MKT-001', 'PASS')]],
+        [3, [앞('MKT-001', 'PASS')]],
+      ]),
+      오늘,
+    );
+    expect(결과.서비스별.map((s) => [s.serviceId, s.견줌])).toEqual([
+      [1, true],
+      [2, false],
+      [3, false],
+    ]);
+  });
 });
 
 describe('히트맵', () => {
