@@ -187,7 +187,8 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
   };
 }
 
-const 케이스키 = (줄: 접은줄): string => `${줄.serviceId}\u0000${줄.tcId}\u0000${줄.platform}`;
+// 대상 서버(env)까지 가른다 — qa 에서 깨진 것은 qa 에서 다시 통과해야 고친 것이다 (2026-10-07 게이트 2 사용자)
+const 케이스키 = (줄: 접은줄): string => `${줄.serviceId}\u0000${줄.env}\u0000${줄.tcId}\u0000${줄.platform}`;
 const 오래된순 = <T extends { startedAt: string; runId: number }>(a: T, b: T): number =>
   a.startedAt < b.startedAt ? -1 : a.startedAt > b.startedAt ? 1 : a.runId - b.runId;
 
@@ -197,11 +198,11 @@ type 앞맵형 = Map<string, 앞판정>;
 const 앞판정맵 = (앞판정들: Map<number, 앞판정[]>): 앞맵형 =>
   new Map([...앞판정들].flatMap(([runId, 목록]) => 목록.map((a): [string, 앞판정] => [앞키(runId, a.tcId, a.platform), a])));
 
-// (서비스, 케이스, 디바이스)마다 가장 최근 확정 판정. 신규 실패 · 해결을 「지금도 그런가」로 거르는 데 쓴다.
-// 미확정 줄은 판정이 아니라서 뺀다
+// (서비스, 대상 서버, 케이스, 디바이스)마다 가장 최근 확정 판정. 신규 실패 · 해결을 「지금도 그런가」로 거르는 데 쓴다.
+// 미확정 줄은 판정이 아니라서, 미실행은 못 돈 것이지 고친 것이 아니라서 뺀다
 function 최근판정(줄들: 접은줄[]): Map<string, 접힌판정> {
   const 결과 = new Map<string, 접힌판정>();
-  for (const 줄 of [...줄들].filter((l) => !l.unconfirmed).sort(오래된순)) 결과.set(케이스키(줄), 줄.verdict);
+  for (const 줄 of [...줄들].filter((l) => !l.unconfirmed && l.verdict !== 'NA').sort(오래된순)) 결과.set(케이스키(줄), 줄.verdict);
   return 결과;
 }
 
@@ -245,8 +246,8 @@ function 해결을센다(
   return new Map([...키들].map(([id, 키]) => [id, 키.size]));
 }
 
-// 「새로깨짐」인 것 가운데 지금도 실패인 것만 낸다 — 뒤 실행에서 다시 통과했거나 못 돌았으면 뺀다.
-// 같은 (서비스, 케이스, 디바이스)는 가장 최근 새로 깨진 하나다. 상한은 부르는 쪽이 자른다(서비스별 건수는 전부를 센다)
+// 「새로깨짐」인 것 가운데 지금도 실패인 것만 낸다 — 같은 대상 서버의 뒤 실행에서 다시 통과하면 뺀다(미실행으로는 안 뺀다).
+// 같은 (서비스, 대상 서버, 케이스, 디바이스)는 가장 최근 새로 깨진 하나다. 상한은 부르는 쪽이 자른다(서비스별 건수는 전부를 센다)
 function 신규실패를뽑는다(
   줄들: 접은줄[],
   앞맵: 앞맵형,
