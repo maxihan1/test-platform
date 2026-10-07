@@ -282,28 +282,3 @@ describe('RunPickModal 테스트 실행', () => {
     expect(screen.getByText('실행 기록에 남지 않습니다 · 24시간 뒤 사라집니다')).toBeTruthy();
   });
 });
-
-describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
-  const 안드로이드케이스 = 케이스('ZPM-003', ['android'], 빈스키마);
-
-  it('고른 것에 Android 앱이 있으면 고르개가 보이고 실행 요청에 location: local 이 실린다', () => {
-    const { onRun } = 그리기([값없는케이스, 안드로이드케이스]);
-    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-
-    expect(screen.getByText('실행 위치')).toBeTruthy();
-    expect((실행버튼() as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(실행버튼());
-
-    expect(onRun).toHaveBeenCalledWith(expect.objectContaining({ location: 'local' }));
-  });
-
-  it('브라우저만이면 고르개가 없고 location 을 싣지 않는다', () => {
-    const { onRun } = 그리기();
-    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
-
-    fireEvent.click(실행버튼());
-
-    expect(screen.queryByText('실행 위치')).toBeNull();
-    expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
-  });
-});

@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { dispatch, enqueue, markAborted } from './dispatcher.js';
 import { callRunner } from './runner.js';
-import type { PendingItem } from './store.js';
+import { finishRun, type PendingItem } from './store.js';
 
 vi.mock('./runner.js', () => ({ callRunner: vi.fn() }));
 vi.mock('./store.js', () => ({ finishItem: vi.fn(async () => undefined), finishRun: vi.fn(async () => undefined) }));
@@ -141,12 +141,15 @@ describe('dispatch 의 디바이스 줄', () => {
       return 결과(item.historyId);
     });
 
+    vi.mocked(finishRun).mockClear();
     const 끝 = dispatch(9002, [항목(1, 'android'), 항목(2, 'desktop'), 항목(3, 'desktop')]);
     await 잠깐();
     expect(시작.sort()).toEqual([1, 2, 3]);
+    expect(finishRun).not.toHaveBeenCalled();
 
     안드로이드.풀기();
     await 끝;
+    expect(finishRun).toHaveBeenCalledTimes(1);
   });
 
   it('멈춘 실행의 android 항목은 차례가 와도 러너를 부르지 않는다', async () => {
