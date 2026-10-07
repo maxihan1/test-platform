@@ -153,7 +153,7 @@ function 시나리오줄({
 
   return (
     <div className="row">
-      <div className="gutter" style={{ background: 'var(--rule)' }} />
+      <div className="gutter" style={{ background: 'var(--line-2)' }} />
       <div className="tcid">SC-{줄.id}</div>
       <div className="title">
         <a className="scn-row-name" href={`#/scenarios/${줄.id}`}>
@@ -175,7 +175,7 @@ function 시나리오줄({
           )}
         </div>
         {!쓰나 || !줄.runnable || !줄.isActive ? null : (
-          <button type="button" className="btn small" disabled={돌리는중} onClick={on실행}>
+          <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on실행}>
             {t('실행')}
           </button>
         )}

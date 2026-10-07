@@ -113,7 +113,7 @@ describe('직전 실행과 견준 칸 (SPEC §7 · §8.3)', () => {
     ]);
 
     expect(await screen.findByText(/결제 취소 흐름/)).toBeDefined();
-    expect(screen.getByText('새로깨짐').style.color).toBe('var(--fail)');
+    expect(screen.getByText('새로깨짐').style.color).toBe('var(--fail-text)');
   });
 
   it('직전 실행이 다른 주소에서 돌았으면 그 사실을 한 줄로 알린다', async () => {
@@ -139,8 +139,8 @@ describe('직전 실행과 견준 칸 (SPEC §7 · §8.3)', () => {
       [항목(12, 'ZZI-0002', '쿠폰 적용', 'NA'), 항목(13, 'ZZI-0003', '주소 검색', 'PASS')],
     );
 
-    expect((await screen.findByText('그대로')).style.color).toBe('var(--na)');
-    expect(screen.getByText('고쳐짐').style.color).toBe('var(--pass)');
+    expect((await screen.findByText('그대로')).style.color).toBe('var(--na-text)');
+    expect(screen.getByText('고쳐짐').style.color).toBe('var(--pass-text)');
   });
 
   it('직전과 같은 통과는 줄을 만들지 않고 수만 적는다', async () => {

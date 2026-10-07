@@ -3,6 +3,7 @@
 
 import type { RunSummary, ServiceRow, User } from './api.js';
 import { 기본언어, t, type 언어 } from './i18n.js';
+import type { 아이콘이름 } from './icons.js';
 import { 기능보나, 할수있나 } from './role.js';
 import { 도는중 } from './runState.js';
 import { 미확정글자, 판정없음 } from './unconfirmed.js';
@@ -15,6 +16,8 @@ const 고른서비스키 = '고른서비스';
 export interface 자리 {
   이름: string;
   해시: string;
+  /** 글자 곁에 서는 메뉴 아이콘 (DESIGN.md 원칙 5). 하위 메뉴에는 없다 — 묶음의 아이콘이 이미 말한다 */
+  아이콘: 아이콘이름;
   /** Grafana 는 이 플랫폼 밖이다. 화살표로 그렇게 표시한다 (SPEC §8) */
   바깥?: boolean;
   /** 늘 펼쳐 두는 하위 메뉴 (화면공통 §8 「자리 목록」 · PR #132) */
@@ -65,17 +68,17 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
   const 목록: 자리[] = [];
   if (기능보나(user, prefix, 'cases')) {
     const 이름 = t('테스트 케이스', 언어);
-    목록.push({ 이름, 해시: '#/cases', 하위: 종류하위(이름, '#/cases', 언어) });
+    목록.push({ 이름, 해시: '#/cases', 아이콘: 'cases', 하위: 종류하위(이름, '#/cases', 언어) });
   }
-  if (기능보나(user, prefix, 'authoring')) 목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring' });
+  if (기능보나(user, prefix, 'authoring')) 목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring', 아이콘: 'authoring' });
   if (기능보나(user, prefix, 'runs')) {
     // 만드는 일(케이스 → 작성 → 시나리오) 끝, 보는 일 앞이다 (화면공통 §8). 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7)
-    목록.push({ 이름: t('E2E 시나리오', 언어), 해시: '#/scenarios' });
+    목록.push({ 이름: t('E2E 시나리오', 언어), 해시: '#/scenarios', 아이콘: 'scenarios' });
     const 이름 = t('실행 기록', 언어);
-    목록.push({ 이름, 해시: '#/runs', 하위: 종류하위(이름, '#/runs', 언어) });
+    목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: 종류하위(이름, '#/runs', 언어) });
   }
-  if (user.dashboard === 'read') 목록.push({ 이름: t('그래프', 언어), 해시: 그래프주소, 바깥: true });
-  if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings' });
+  if (user.dashboard === 'read') 목록.push({ 이름: t('그래프', 언어), 해시: 그래프주소, 아이콘: 'graph', 바깥: true });
+  if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings', 아이콘: 'settings' });
   return 목록;
 }
 

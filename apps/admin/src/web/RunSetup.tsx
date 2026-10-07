@@ -332,7 +332,7 @@ export function RunSetup({ tcId, service, user }: Props) {
       </div>
 
       <div className="actions">
-        <span className="note" style={notice === null ? undefined : { color: 'var(--fail)' }}>
+        <span className="note" style={notice === null ? undefined : { color: 'var(--fail-text)' }}>
           {notice ?? t('입력값을 바꿔 다시 실행해도 테스트 코드는 바뀌지 않습니다.')}
         </span>
         {/* 묶음은 그 케이스의 서비스에 남는다 — 띠가 아니라 tcId 접두사의 칸을 본다 (SPEC §1 · 화면공통 §8) */}
