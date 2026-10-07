@@ -30,6 +30,10 @@
 시간 역순으로 위에 쌓는다. 항목 하나는 5줄을 넘기지 않는다.
 
 ```
+## [WS-C] 2026-10-07 · **Appium 연결을 「열린 결과」로 쥐어 연결 도중 제한 시간이면 세션을 버렸고, 없는 인자를 막는 getter 가 열거되어 `({ page, ...rest })` 만 써도 브라우저 케이스가 터질 뻔했다** (PR #171 게이트 2 code-review)
+- 왜: fixture 정리는 Playwright 제한 시간 뒤에도 돌지만 `driver ??= await openApp()` 은 연결이 끝나야 값이 든다 — 새 폰 첫 연결(도우미 앱 설치)이 바로 그 경우다. 객체 리터럴의 `get` 은 enumerable 이라 펼치기 · 나머지 받기가 getter 를 부른다
+- 해법: 여는 중인 Promise 를 쥐고(`opening ??= openApp()`) 정리가 기다려 닫는다 · 없는 쪽은 `Object.defineProperty(…, { enumerable: false })`(`packages/kit/src/runtime/test.ts`). **fixture 로 외부 자원을 열면 「여는 도중 끝남」 검사를 하나 둔다** — 재발하면 `tpx-plan` 체크리스트로 옮긴다
+
 ## [Appium] 2026-10-07 · **강제 종료 시험에서 Appium 로그의 「닫힘」 문구를 한 꼴만 찾아 「3분 넘게 연결이 안 풀린다」고 잘못 읽었다 — 실제로는 60초 뒤 닫혔고, 가로채인 연결은 아무 줄도 안 남겼다** (PR #170)
 - 왜: 정상 닫기는 `Removing session <번호>`, 시간 초과는 번호에 따옴표가 붙고, 다른 연결이 기기를 가로채면 줄이 아예 없다. Appium 3 은 열린 연결 목록(`GET /appium/sessions`)도 `session_discovery` 를 켜야 준다
 - 해법: 연결이 살았는지는 로그 문구 한 꼴로 보지 말고 그 번호로 직접 물어 판정한다(404 면 없다). 세 경로 정리는 `docs/plans/2026-10-07-appium-시험.md` 「시험하다 걸린 것」이 정본이다

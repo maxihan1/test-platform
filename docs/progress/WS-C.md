@@ -286,3 +286,15 @@
 **넷째를 기계가 보게 하는 것.** 저장된 입력값 묶음이 **지금 스키마와 맞는지** 보는 장치가 없다.
 자리는 `apps/admin/src/catalog/check.ts` 인데 **2등급이라 이번 1등급 작업에서 뺐다** —
 R14 의 blocker 세기를 미뤄 둔 자리와 같다. **둘을 한 건으로 묶어 잡는 것이 낫다.**
+
+## 2026-10-07 — Android 앱 케이스(Appium) · 로컬 실기기 러너 (PR #171)
+
+- **완료**: 기기 종류에 `android`(`BrowserPlatform` 분리 · 섞기 금지 — `defineCase` 가 던지고 `check:tests` 는 K8 로 찍는다) ·
+  kit 앱 갈래(`runtime/app.ts` — 러너 환경값 `PLATFORM_APPIUM_URL` · `PLATFORM_APP` · `PLATFORM_DEVICE_UDID` 로 Appium 연결, webdriverio 동적 import ·
+  `runtime/test.ts` — 여는 손잡이 fixture · 건너뛰기 뒤에 열기 · 정리에서 닫기) · 러너 `/execute` 가 android 를 받는다 · playwright `android` 프로젝트 ·
+  K5 · 연습용 케이스 `tests/mda/MDA-FN-001.spec.ts` · 명세(러너 §5.2 「앱 실행」이 정본) · SETUP §15 · WORKSTREAMS 「📐 Appium」 판 · 진행판 APP
+- **실측**: 갤럭시 S21+ · Android 14 · My Demo App 1.3.0 — 직접 실행 9.4~12.5초 통과 · 러너 경유 PASS 8.2~8.6초 · Playwright 제한 시간으로 끊어도 연결이 그 자리에서 닫힌다
+- **미완**: 관리 화면에서 실행(실행 통로 · 실행 위치 고르기 · 폰마다 하나 · 중단 때 연결 닫기) · 대상 서버별 앱 파일 · 화면 고르개 · 증적 기기 정보 · AI 작성(mobilecli) · 디바이스 팜 — WORKSTREAMS 「📐 Appium」 · 진행판 APP-F1-02~06
+- **막힌 것**: 없음
+- **다음 세션이 알아야 할 것**: 진입점은 `packages/kit/src/runtime/test.ts` 의 android 갈래와 `app.ts`. 돌려 보려면 SETUP §15.
+  **MDA 를 서비스로 등록하지 않는다** — 실행 통로 PR 전에는 실행 창이 android 를 보내 400 이다. 러너가 프로세스를 죽이는 중단은 아직 연결을 못 닫는다(Appium 60초 뒤 풀림)
