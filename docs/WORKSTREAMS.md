@@ -649,6 +649,10 @@ TDD로 진행하고, 각 단계마다 확인 방법을 알려줘.
 
 ### WS-D 리포팅
 
+> **실패 카드 통로 `GET /api/runs/:runId/failures` 가 2026-10-08 에 생겼다 (PR #175).** 실행 결과 화면의 실패 케이스 카드 재료다 — 정본 SPEC 도메인/리포팅 §7.
+> 순서 · 쪽 · 거르기는 순수 함수 `reporting/failuresShape.ts`, 질의는 `reporting/failures.ts`. 변화는 insights 의 `compareWithPrevious` 를, 항목 재료는 항목 상세의 `findItem` 을 **같이 쓴다** — 규칙을 두 벌로 두지 않는다.
+> 다음 일은 증적 PDF · HTML 을 같은 증거 카드 양식으로(진행판 WEB-F3-10) — 그때 §8.4 를 고친다.
+
 ```
 CLAUDE.md와 SPEC 중 아래 4장을 읽어줘. 너는 WS-D(리포팅) 담당이다.
   docs/spec/공통/1-제품과-구조.md · docs/spec/공통/5-화면공통.md
@@ -724,6 +728,10 @@ run_item에 데이터가 없으면 더미 행을 직접 INSERT해서 개발해�
 > 규칙의 정본은 SPEC 공통/5-화면공통 §8 「다국어」다.
 >
 > **서비스 색은 2026-09-22 에 화면에서 걷었다.** 어느 자리에도 안 쓴다 — 되살리려면 SPEC §8 부터 본다.
+>
+> **실행 결과 화면은 2026-10-08 에 증거 카드형으로 바뀌었다 (PR #175 · 진행판 WEB-F3-03).** 요약 띠 → 실패 케이스 카드(모두 펼침) → 통과 · 미실행 줄(펼치기) → 미확정 묶음 · 옆 칸.
+> 정본은 SPEC 도메인/실행 §8.3 「결과 화면은 요약 띠 → 실패 카드 → 통과 줄이다」, 모양은 DESIGN.md 「실행 결과」. 절차 그림은 항목 상세와 같은 `ItemSteps.tsx` 를 쓴다 — 한쪽만 고치지 않는다.
+> 증적 PDF · HTML 을 같은 양식으로 바꾸는 일은 진행판 WEB-F3-10 이다.
 >
 > 구조 — `main.tsx`(언어와 로그인 갈래) → `Shell.tsx`(사이드바·헤더·푸터) → 화면 여섯
 > (`CaseList` · `RunSetup` · `RunList` · `RunResult` · `ItemDetail` · `Settings`).
