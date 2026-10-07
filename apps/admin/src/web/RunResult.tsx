@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { api, ApiError, type ItemStatus, type Platform } from './api.js';
+import { api, ApiError, type ItemStatus, type Platform, type RunInsights as 비교 } from './api.js';
 import { filterGroups, groupByCase } from './group.js';
 import { Head } from './Head.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
@@ -11,16 +11,15 @@ import { use말, use언어 } from './i18n.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 진행상황 } from './runProgress.js';
 import { RunAbortModal } from './RunAbortModal.js';
-import { RunInsights } from './RunInsights.js';
 import { RunProgressModal } from './RunProgressModal.js';
+import { PAGE_SIZE, 끝난결과, 디바이스칩, 쪽넘김 } from './RunResultBody.js';
 import { 결과줄 } from './RunResultRow.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
-import { Failed, Loading, PLATFORM_LABEL, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
+import { Failed, Loading, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
 import { 끝난미확정, 미확정글자 } from './unconfirmed.js';
 import { useRunProgress } from './useRunProgress.js';
 
-const PAGE_SIZE = 20;
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 
 function 케이스결과({
@@ -97,6 +96,11 @@ function 케이스결과({
 
   const 증적칸 = use증적(data, 실행판정(판정하기, data), reload);
 
+  // 끝났을 때 한 번만 부른다 — 요약 띠와 옆 칸이 나눠 쓴다. 아직 도는 중이면 판정이 안 들어간 항목이
+  // `NA` 로 읽혀 앞 실행이 깨졌던 것이 전부 「고쳐짐」으로 보인다. 실패해도 결과는 그대로 선다 (도메인/실행 §8.3)
+  const 끝났나 = data !== null && !running;
+  const 견줌 = useAsync<비교 | null>(() => (끝났나 ? api.insights(runId) : Promise.resolve(null)), [runId, 끝났나]);
+
   if (run.error !== null) return <Failed error={run.error} />;
   if (data === null) return <Loading />;
 
@@ -149,25 +153,30 @@ function 케이스결과({
   const 행동 = (
 
           <div className="tally">
-          {/* 판정 숫자를 버튼보다 앞에 둔다. 좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀리는데,
-              휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다 (docs/DESIGN.md · design-mockup.html) */}
-          <div>
-            <b style={{ color: 'var(--pass-text)' }}>{pass}</b>
-            <span>{t('통과')}</span>
-          </div>
-          <div>
-            <b style={{ color: 'var(--fail-text)' }}>{fail}</b>
-            <span>{t('실패')}</span>
-          </div>
-          <div>
-            <b style={{ color: 'var(--na-text)' }}>{na}</b>
-            <span>{t('미실행')}</span>
-          </div>
-          {/* 미확정은 확정 판정 칸 뒤에 묶음 글자로 붙는다. 없으면 안 쓴다 (도메인/실행 §8.3 · §3.2) */}
-          {미확정 === '' ? null : (
-            <div>
-              <span>{미확정}</span>
-            </div>
+          {/* 끝난 실행의 집계 숫자는 요약 띠가 맡는다 — 같은 숫자를 두 번 두지 않는다 (도메인/실행 §8.3).
+              도는 동안에는 요약 띠가 없어 여기 남는다. 판정 숫자를 버튼보다 앞에 둔다 —
+              좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀리는데 휴대폰에서 이 화면이 하는 일은 「끝났나 보기」다 */}
+          {!running ? null : (
+            <>
+              <div>
+                <b style={{ color: 'var(--pass-text)' }}>{pass}</b>
+                <span>{t('통과')}</span>
+              </div>
+              <div>
+                <b style={{ color: 'var(--fail-text)' }}>{fail}</b>
+                <span>{t('실패')}</span>
+              </div>
+              <div>
+                <b style={{ color: 'var(--na-text)' }}>{na}</b>
+                <span>{t('미실행')}</span>
+              </div>
+              {/* 미확정은 확정 판정 칸 뒤에 묶음 글자로 붙는다. 없으면 안 쓴다 (도메인/실행 §8.3 · §3.2) */}
+              {미확정 === '' ? null : (
+                <div>
+                  <span>{미확정}</span>
+                </div>
+              )}
+            </>
           )}
           {/* 되돌릴 수 없으므로 누르면 한 번 더 묻는다 (SPEC §8.3) */}
           {!멈출수있나(data.status, 실행판정(판정하기, data)) ? null : (
@@ -179,61 +188,72 @@ function 케이스결과({
           </div>
   );
 
+  const 머리 = (
+    <div className="box-head">
+      <div className="head-meta">{부제}</div>
+      {행동}
+      {/* 증적 안내·사유·문서 목록을 **머리 줄 안에서** 한 줄로 그린다 (2026-09-22).
+          블록으로 두면 130px 을 먹어 케이스 목록에 32px 밖에 안 남았다 */}
+      <증적알림과목록 칸={증적칸} 한줄로 />
+    </div>
+  );
+
   return (
     <>
       {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8).
           **상자 안에서는 머리를 만들지 않는다** — 상자 제목이 이미 RUN 번호를 적고 있어
           같은 말이 두 번 나온다. 부제와 행동은 그대로 살린다 */}
-      {상자안 ? (
-        <div className="box-head">
-          <div className="head-meta">{부제}</div>
-          {행동}
-          {/* 증적 안내·사유·문서 목록을 **머리 줄 안에서** 한 줄로 그린다 (2026-09-22).
-              블록으로 두면 130px 을 먹어 케이스 목록에 32px 밖에 안 남았다 */}
-          <증적알림과목록 칸={증적칸} 한줄로 />
+      {상자안 ? (running ? 머리 : null) : <Head 제목={`RUN ${String(data.runId)}`} 부제={부제} 행동={행동} />}
+
+      {running ? (
+        <div className={상자안 ? 'screen modal-results' : 'screen'}>
+          {상자안 ? null : <증적알림과목록 칸={증적칸} />}
+
+          {pass + fail + na + 끝난미확정수 === 0 ? null : (
+            <div className="stripe">
+              <i style={{ background: 'var(--pass)', flex: pass }} />
+              <i style={{ background: 'var(--fail)', flex: fail }} />
+              <i style={{ background: 'var(--na)', flex: na }} />
+              {/* 판정 색이 아니다 — 확정 판정에 안 드는 묶음이다 (도메인/실행 §3.2) */}
+              {끝난미확정수 === 0 ? null : <i className="u" style={{ background: 'var(--ink-faint)', flex: 끝난미확정수 }} />}
+            </div>
+          )}
+
+          {/* 도는 동안에는 요약 띠도 카드도 없다 — 판정 칩이 거르개다 (도메인/실행 §8.3) */}
+          <div className="toolbar">
+            <span className="filter-label">{t('판정')}</span>
+            {STATUSES.map((value) => (
+              <button
+                className="chip"
+                key={value}
+                aria-pressed={status === value}
+                onClick={() => choose(setStatus)(value)}
+              >
+                {value === 'ALL' ? t('전체') : STATUS_LABEL[value]}
+              </button>
+            ))}
+            <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={choose(setDevice)} />
+          </div>
+
+          {/* 상자 안에서는 이 자리만 스크롤한다 — 위 필터·증적 버튼은 고정이다 (2026-09-22 ②) */}
+          {상자안 ? <div className="rows-scroll">{결과목록}</div> : 결과목록}
         </div>
       ) : (
-        <Head 제목={`RUN ${String(data.runId)}`} 부제={부제} 행동={행동} />
+        <끝난결과
+          data={data}
+          insights={견줌.data}
+          견줌오류={견줌.error}
+          증적칸={증적칸}
+          상자안={상자안}
+          상자머리={머리}
+          판정={status}
+          on판정={choose(setStatus)}
+          device={device}
+          on디바이스={choose(setDevice)}
+          page={page}
+          on쪽={setPage}
+        />
       )}
-
-      <div className={상자안 ? 'screen modal-results' : 'screen'}>
-      {상자안 ? null : <증적알림과목록 칸={증적칸} />}
-
-      {pass + fail + na + 끝난미확정수 === 0 ? null : (
-        <div className="stripe">
-          <i style={{ background: 'var(--pass)', flex: pass }} />
-          <i style={{ background: 'var(--fail)', flex: fail }} />
-          <i style={{ background: 'var(--na)', flex: na }} />
-          {/* 판정 색이 아니다 — 확정 판정에 안 드는 묶음이다 (도메인/실행 §3.2) */}
-          {끝난미확정수 === 0 ? null : <i className="u" style={{ background: 'var(--ink-faint)', flex: 끝난미확정수 }} />}
-        </div>
-      )}
-
-      <RunInsights runId={data.runId} status={data.status} items={data.items} />
-
-      <div className="toolbar">
-        <span className="filter-label">{t('판정')}</span>
-        {STATUSES.map((value) => (
-          <button
-            className="chip"
-            key={value}
-            aria-pressed={status === value}
-            onClick={() => choose(setStatus)(value)}
-          >
-            {value === 'ALL' ? t('전체') : STATUS_LABEL[value]}
-          </button>
-        ))}
-        <span className="filter-label">{t('디바이스')}</span>
-        {(['ALL', ...디바이스들] as (Platform | 'ALL')[]).map((value) => (
-          <button className="chip" key={value} aria-pressed={device === value} onClick={() => choose(setDevice)(value)}>
-            {value === 'ALL' ? t('전체') : PLATFORM_LABEL[value]}
-          </button>
-        ))}
-      </div>
-
-      {/* 상자 안에서는 이 자리만 스크롤한다 — 위 필터·증적 버튼은 고정이다 (2026-09-22 ②) */}
-      {상자안 ? <div className="rows-scroll">{결과목록}</div> : 결과목록}
-      </div>
 
       {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다.
           **상자 안에서는 열지 않는다** — 가두개가 겹치면 빠져나올 길이 없다 (SPEC §8.7) */}
@@ -266,19 +286,7 @@ function 케이스결과({
         />
       )}
 
-      {totalPages <= 1 ? null : (
-        <div className="pager">
-          <button onClick={() => setPage(shownPage - 1)} disabled={shownPage <= 1}>
-            {t('이전')}
-          </button>
-          <span>
-            {shownPage} / {totalPages}
-          </span>
-          <button onClick={() => setPage(shownPage + 1)} disabled={shownPage >= totalPages}>
-            {t('다음')}
-          </button>
-        </div>
-      )}
+      {running ? <쪽넘김 쪽={shownPage} 전체쪽={totalPages} on쪽={setPage} /> : null}
     </>
   );
 }

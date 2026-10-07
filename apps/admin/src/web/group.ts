@@ -74,6 +74,39 @@ export function 회차요약(칸: RunItemSummary[], 언어: 언어 = 기본언�
   };
 }
 
+export interface 갈림 {
+  /** 확정 실패가 없는 케이스의 확정 항목. 판정별 보기가 이미 걸려 있다 */
+  줄들: CaseGroup[];
+  /** 미확정 항목. 확정 판정과 상관없이 따로 모으고 「전체」에서만 낸다 */
+  미확정: CaseGroup[];
+}
+
+/**
+ * 끝난 실행의 항목을 카드 · 줄 목록 · 미확정 묶음으로 가른다 (도메인/실행 §8.3).
+ *
+ * 확정 실패가 하나라도 있는 케이스는 카드로 가므로 줄 목록에서 뺀다 — 같은 케이스가 두 번 나오지 않게.
+ * **디바이스를 먼저 거른다.** 카드 통로도 서버에서 그 디바이스로 거르므로, 모바일만 보면 PC 가 깨진 케이스의
+ * 모바일 통과분이 줄로 와야 한다. 거르기 전 항목으로 가르면 그 케이스가 카드에도 줄에도 안 나온다.
+ */
+export function 갈라낸다(
+  items: RunItemSummary[],
+  판정: ItemStatus | 'ALL',
+  platform: Platform | 'ALL',
+): 갈림 {
+  const 보는 = platform === 'ALL' ? items : items.filter((i) => i.platform === platform);
+  const 미확정항목 = (i: RunItemSummary): boolean => typeof i.unconfirmed === 'string';
+  const 확정 = 보는.filter((i) => !미확정항목(i));
+  const 실패케이스 = new Set(확정.filter((i) => i.status === 'FAIL').map((i) => i.tcId));
+
+  return {
+    줄들:
+      판정 === 'FAIL'
+        ? []
+        : filterGroups(groupByCase(확정.filter((i) => !실패케이스.has(i.tcId))), 판정, 'ALL'),
+    미확정: 판정 === 'ALL' ? groupByCase(보는.filter(미확정항목)) : [],
+  };
+}
+
 /** 디바이스 필터가 걸려 있으면 그 디바이스의 결과만 놓고 상태를 본다. 안 보이는 칸 때문에 행이 남으면 안 된다 */
 export function filterGroups(
   groups: CaseGroup[],
