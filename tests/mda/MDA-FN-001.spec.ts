@@ -19,7 +19,7 @@ test(spec, async ({ driver }) => {
   await test.step('장바구니에 담는다', async () => {
     await driver.$('~Add To Cart button').click();
     const count = driver.$('~cart badge').$('android.widget.TextView');
-    await count.waitForDisplayed();
-    await verify('장바구니 수가 1이다', await count.getText(), '1');
+    const shown = await count.waitForDisplayed().then(() => count.getText(), () => '');
+    await verify('장바구니 수가 1이다', shown, '1');
   }, { capture: true });
 });
