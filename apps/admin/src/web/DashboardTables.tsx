@@ -65,7 +65,9 @@ export function 신규실패표({ 값 }: { 값: 자료 }) {
                 <tr key={`${실패.runId}-${실패.tcId}-${실패.platform}`}>
                   <td>
                     <span className="mono dash-tc">{실패.tcId}</span>
-                    <span className="dash-sub">{실패.serviceName}</span>
+                    <span className="dash-sub" title={실패.serviceName}>
+                      {실패.serviceName}
+                    </span>
                   </td>
                   <td className="dash-test">
                     <a className="ink" href={`#/runs/${실패.runId}`} title={실패.tcName}>
@@ -223,7 +225,7 @@ export function 실행중줄({ 목록 }: { 목록: 자료['running'] }) {
   );
 }
 
-export function 안내판() {
+export function 안내판({ 케이스갈수있나 }: { 케이스갈수있나: boolean }) {
   const t = use말();
   return (
     <section className="dash-slab dash-empty">
@@ -231,9 +233,12 @@ export function 안내판() {
       <h2>{t('아직 실행한 테스트가 없습니다')}</h2>
       <p>{t('테스트 케이스를 실행하면 여기에 통과율 · 신규 실패 · 일별 결과가 쌓입니다')}</p>
       <p>{t('하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다')}</p>
-      <a className="btn" href="#/cases">
-        {t('테스트 케이스로 가기')}
-      </a>
+      {/* 케이스 자리가 없는 사람(실행 칸만 있는 사람)에게는 단추를 두지 않는다 — 눌러도 `갈자리` 가 곧바로 되돌린다 */}
+      {케이스갈수있나 ? (
+        <a className="btn" href="#/cases">
+          {t('테스트 케이스로 가기')}
+        </a>
+      ) : null}
     </section>
   );
 }

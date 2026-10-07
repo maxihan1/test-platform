@@ -18,7 +18,15 @@ function 짧은날짜(iso: string, 언어: 언어): string {
   }).format(new Date(iso));
 }
 
-export function 요구커버리지({ 값, 서비스열기 }: { 값: 자료; 서비스열기: (serviceId: number) => void }) {
+export function 요구커버리지({
+  값,
+  서비스열기,
+  작성서비스,
+}: {
+  값: 자료;
+  서비스열기: (serviceId: number) => void;
+  작성서비스: { id: number; name: string }[];
+}) {
   const t = use말();
   const 언어 = use언어();
   const 센것 = 값.coverage.filter((줄) => 줄.total > 0);
@@ -26,13 +34,8 @@ export function 요구커버리지({ 값, 서비스열기 }: { 값: 자료; 서�
   const 전체 = 센것.reduce((수, 줄) => 수 + 줄.total, 0);
   const 퍼센트 = 전체 === 0 ? null : 내림퍼센트(덮음, 전체);
   const 보임 = use올라가기(퍼센트 ?? 0);
-  // 요구사항 커버리지만 작성 칸 read 인 서비스는 services 에 없다 — 줄은 따로 붙인다
-  const 서비스들 = [
-    ...값.services.map((서비스) => ({ id: 서비스.id, 이름: 서비스.name })),
-    ...값.coverage
-      .filter((줄) => !값.services.some((서비스) => 서비스.id === 줄.serviceId))
-      .map((줄) => ({ id: 줄.serviceId, 이름: 줄.serviceName })),
-  ];
+  // 줄은 작성 칸이 none 이 아닌 배정 서비스로 만든다. 실행 칸 기준의 services 에는 작성을 못 보는 서비스가 섞여 거기에 「작성 기록이 없습니다」가 떴다
+  const 서비스들 = 작성서비스.map((서비스) => ({ id: 서비스.id, 이름: 서비스.name }));
 
   return (
     <>
@@ -47,9 +50,9 @@ export function 요구커버리지({ 값, 서비스열기 }: { 값: 자료; 서�
             </g>
           ))}
         </svg>
-        <span className="dash-axis dash-tick l">0</span>
-        <span className="dash-axis dash-tick m">50</span>
-        <span className="dash-axis dash-tick r">100</span>
+        <span className="dash-axis dash-tick l" aria-hidden="true">0</span>
+        <span className="dash-axis dash-tick m" aria-hidden="true">50</span>
+        <span className="dash-axis dash-tick r" aria-hidden="true">100</span>
         <span className="dash-gauge-num num">
           {퍼센트 === null ? (
             '—'
@@ -80,7 +83,12 @@ export function 요구커버리지({ 값, 서비스열기 }: { 값: 자료; 서�
             <span className="dash-cov-name">
               <span>{서비스.이름}</span>
               {/* 작성 상세는 고른 서비스로 요청을 연다. 대시보드엔 고르개가 없어 누를 때 그 서비스로 바꾼다 */}
-              <a href={`#/authoring/${String(줄.requestId)}`} onClick={() => 서비스열기(줄.serviceId)}>
+              {/* 가운데 버튼 · 새 탭은 click 이 아니라 auxclick 이다. 새 탭은 저장된 고른 서비스를 읽으므로 그 전에 바꿔 둔다 */}
+              <a
+                href={`#/authoring/${String(줄.requestId)}`}
+                onClick={() => 서비스열기(줄.serviceId)}
+                onAuxClick={() => 서비스열기(줄.serviceId)}
+              >
                 {t('{날짜} · 요청 #{번호}', { 날짜: 짧은날짜(줄.finishedAt, 언어), 번호: 줄.requestId })}
               </a>
             </span>

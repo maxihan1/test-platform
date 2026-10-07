@@ -1,3 +1,5 @@
+// 대시보드 화면이 쓰는 순수 계산 검사 — 통과율 · 증감 · 도넛 조각 · 날짜 글자 · 흐름 글자 (dashboardView.ts)
+
 import { describe, expect, it } from 'vitest';
 
 import { 날짜글자, 도넛조각, 몫퍼센트, 안쪽고리길이, 증감, 통과율, 흐름글자 } from './dashboardView.js';

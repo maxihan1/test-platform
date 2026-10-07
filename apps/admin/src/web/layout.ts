@@ -129,6 +129,18 @@ export function 배정서비스접두사(serviceId: number, 배정: ServiceRow[]
   return 배정.find((service) => service.id === serviceId)?.prefix ?? null;
 }
 
+/**
+ * 대시보드가 사람의 권한에서 알아야 하는 둘.
+ * 케이스 자리가 있나 — 없는데 단추를 두면 `갈자리` 가 곧바로 되돌려 단추가 아무 일도 안 한다.
+ * 작성 서비스 — 커버리지 줄은 작성 칸이 `none` 이 아닌 서비스만 센다. 실행 칸 기준의 서비스 목록에는 작성을 못 보는 서비스가 섞인다
+ */
+export function 대시보드재료(user: User, prefix: string | null): { 케이스갈수있나: boolean; 작성서비스: { id: number; name: string }[] } {
+  return {
+    케이스갈수있나: 기능보나(user, prefix, 'cases'),
+    작성서비스: user.services.filter((서비스) => 서비스.permissions.authoring !== 'none').map(({ id, name }) => ({ id, name })),
+  };
+}
+
 export function 고른서비스를읽는다(): string | null {
   try {
     return localStorage.getItem(고른서비스키);

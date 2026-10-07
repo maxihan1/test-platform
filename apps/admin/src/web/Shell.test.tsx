@@ -272,6 +272,18 @@ describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)',
     expect(container.querySelector('.toast-row')).toBeNull();
   });
 
+  it('탭 제목과 바닥 글에도 숨긴 「고른 서비스」 이름이 안 남는다 — 대시보드는 서비스 하나가 아니다', () => {
+    const { container } = 띄운다(결제, 'ko', () => {}, '#/dashboard');
+    expect(document.title).toBe('테스트 플랫폼');
+    expect(container.querySelector('.foot')!.textContent).toBe('테스트 플랫폼');
+  });
+
+  it('다른 자리에서는 탭 제목과 바닥 글에 서비스 이름이 있다', () => {
+    const { container } = 띄운다(결제, 'ko', () => {}, '#/cases');
+    expect(document.title).toBe('결제 서비스 · 테스트 플랫폼');
+    expect(container.querySelector('.foot')!.textContent).toBe('결제 서비스 · 테스트 플랫폼');
+  });
+
   it('다른 자리에서는 고르개가 그대로 있다', () => {
     띄운다(결제, 'ko', () => {}, '#/cases');
     expect(screen.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();

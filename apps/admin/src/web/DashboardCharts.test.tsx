@@ -2,7 +2,7 @@
 // 앱 대시보드 그래프 셋 검사 — 일별 막대 · 실패 히트맵 · 요구사항 커버리지 게이지 · 통과율 선 (DESIGN.md 「대시보드」)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { api } from './api.js';
@@ -65,9 +65,19 @@ function 움직임줄이기() {
 
 const 서비스열기 = vi.fn();
 
+/** 작성 칸이 read 이상인 배정 서비스 — 커버리지 줄은 이 목록으로 만든다 */
+const 기본재료 = {
+  케이스갈수있나: true,
+  작성서비스: [
+    { id: 1, name: 'ZDA 결제' },
+    { id: 2, name: 'ZDA 회원' },
+    { id: 3, name: 'ZDA 배송' },
+  ],
+};
+
 async function 열기(값: 대시보드응답) {
   읽기를(값);
-  const 결과 = render(<Dashboard 서비스열기={서비스열기} />);
+  const 결과 = render(<Dashboard 서비스열기={서비스열기} {...기본재료} />);
   await screen.findByText('일별 테스트 결과');
   return 결과;
 }
@@ -230,6 +240,25 @@ describe('요구사항 커버리지', () => {
     expect(서비스열기).toHaveBeenCalledWith(1);
   });
 
+  it('가운데 버튼으로 열어도 그 서비스로 바꾼다 — 새 탭은 저장된 고른 서비스를 읽는다', async () => {
+    const { container } = await 열기(응답());
+    서비스열기.mockClear();
+    const 링크 = within(container.querySelectorAll('.dash-cov-row')[0] as HTMLElement).getByRole('link');
+    fireEvent(링크, new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 }));
+    expect(서비스열기).toHaveBeenCalledWith(1);
+  });
+
+  it('작성 칸이 none 인 서비스는 줄이 없다 — 「작성 기록이 없습니다」는 작성을 볼 수 있는 서비스에만 뜬다', async () => {
+    읽기를(응답());
+    const { container } = render(
+      <Dashboard 서비스열기={서비스열기} {...기본재료} 작성서비스={기본재료.작성서비스.slice(0, 2)} />,
+    );
+    await screen.findByText('일별 테스트 결과');
+    const 줄들 = [...container.querySelectorAll('.dash-cov-row')].map((줄) => 줄.textContent);
+    expect(줄들).toHaveLength(2);
+    expect(container.querySelector('.dash-cov')!.textContent).not.toContain('ZDA 배송');
+  });
+
   it('요구가 0 이면 막대와 퍼센트를 비운다', async () => {
     const { container } = await 열기(응답());
     const 줄 = container.querySelectorAll('.dash-cov-row')[1]!;
@@ -250,6 +279,32 @@ describe('요구사항 커버리지', () => {
     const { container } = await 열기(응답({ coverage: [] }));
     expect(container.querySelector('.dash-gauge-num')!.textContent).toBe('—');
     expect(container.querySelector('.dash-cov')!.textContent).not.toContain('케이스로 덮은 요구');
+  });
+});
+
+describe('화면 읽기 (PR #173 독립 검사)', () => {
+  const 숨김 = (e: Element | null): boolean => e?.closest('[aria-hidden="true"]') != null;
+
+  it('눈금 · 막대 위 실패 숫자 · 날짜 줄 · 게이지 눈금은 화면 읽기가 건너뛴다 — 맥락 없는 숫자가 이어 읽혔다', async () => {
+    const { container } = await 열기(응답());
+    for (const 선택자 of ['.dash-yaxis', '.dash-fail-top', '.dash-days', '.dash-heat-days', '.dash-tick']) {
+      const 것들 = [...container.querySelectorAll(선택자)];
+      expect(것들.length, 선택자).toBeGreaterThan(0);
+      expect(것들.every(숨김), 선택자).toBe(true);
+    }
+  });
+
+  it('일별 그림의 이름에 합계와 실패가 가장 많은 날이 있다', async () => {
+    const { container } = await 열기(응답());
+    expect(container.querySelector('.dash-daily svg')!.getAttribute('aria-label')).toBe(
+      '최근 14일 통과 231 · 미실행 4 · 실패 13, 실패가 가장 많은 날 9/26',
+    );
+  });
+
+  it('실패가 한 건도 없으면 가장 많은 날 말을 빼고 합계만 적는다', async () => {
+    const 무실패 = 날들.map((day) => ({ day, ...건(5, 0, 0) }));
+    const { container } = await 열기(응답({ daily: 무실패 }));
+    expect(container.querySelector('.dash-daily svg')!.getAttribute('aria-label')).toBe('최근 14일 통과 70 · 미실행 0 · 실패 0');
   });
 });
 

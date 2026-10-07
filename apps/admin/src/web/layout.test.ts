@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { RunSummary, ServiceRow, User } from './api.js';
-import { 고른서비스, 배정서비스접두사, 빈띠사유, 알림줄, 자리목록, 지금자리, 탭제목 } from './layout.js';
+import { 고른서비스, 대시보드재료, 배정서비스접두사, 빈띠사유, 알림줄, 자리목록, 지금자리, 탭제목 } from './layout.js';
 
 const 결제: ServiceRow = {
   id: 1,
@@ -183,6 +183,23 @@ describe('번호로 배정 서비스 찾기', () => {
 
   it('배정에 없는 번호면 아무것도 고르지 않는다', () => {
     expect(배정서비스접두사(9, [결제, 회원])).toBe(null);
+  });
+});
+
+describe('대시보드 재료', () => {
+  it('케이스 자리가 있나는 고른 서비스의 케이스 칸을 본다 — 없으면 빈 안내판의 단추가 곧바로 되돌려진다', () => {
+    const 실행만 = 사람('member', [{ ...회원, permissions: { cases: 'none', runs: 'read', authoring: 'none' } }]);
+    expect(대시보드재료(실행만, 'MEM').케이스갈수있나).toBe(false);
+    expect(대시보드재료(김, 'PAY').케이스갈수있나).toBe(true);
+    expect(대시보드재료(김, null).케이스갈수있나).toBe(false);
+  });
+
+  it('작성 서비스는 작성 칸이 none 이 아닌 배정 서비스만 번호와 이름으로 준다', () => {
+    const 작성없음 = { ...회원, permissions: { cases: 'read' as const, runs: 'read' as const, authoring: 'none' as const } };
+    expect(대시보드재료(사람('member', [결제, 작성없음, 정산]), 'PAY').작성서비스).toEqual([
+      { id: 1, name: '결제 서비스' },
+      { id: 3, name: '정산 서비스' },
+    ]);
   });
 });
 

@@ -14,6 +14,7 @@ import { ItemDetail } from './ItemDetail.js';
 import { useHash, 떠나기막기 } from './leaveGuard.js';
 import {
   고른서비스,
+  대시보드재료,
   배정서비스접두사,
   고른서비스를읽는다,
   고른서비스를적는다,
@@ -62,7 +63,7 @@ function Screen({
 
   switch (current.name) {
     case 'dashboard':
-      return <Dashboard 서비스열기={on서비스번호} />;
+      return <Dashboard 서비스열기={on서비스번호} {...대시보드재료(user, service?.prefix ?? null)} />;
     case 'cases':
       // 종류마다 새로 그린다 — 고른 것 · 쪽 · 검색어가 남으면 UI 와 기능을 섞어 골라 실행이 MIXED_KIND 로 거절된다 (PR #132)
       return (

@@ -68,7 +68,8 @@ function 범례({ 항목들 }: { 항목들: [string, string][] }) {
 
 function 날짜줄({ 클래스, 날들 }: { 클래스: string; 날들: 날[] }) {
   return (
-    <div className={클래스}>
+    // 날짜 숫자만 이어 읽히면 맥락이 없다. 같은 말은 그림 요약 이름이 한다
+    <div className={클래스} aria-hidden="true">
       {클래스 === 'dash-heat-days' ? <div /> : null}
       {날들.map((날) => (
         <span key={날.day} className={날.주말 ? 'we' : undefined}>
@@ -90,6 +91,23 @@ export function 일별막대({ 값 }: { 값: 자료 }) {
   const 눈금들 = Array.from({ length: 꼭대기 / 단위 + 1 }, (_, i) => i * 단위);
   const 배율 = 높이 / 꼭대기;
   const 실행한날 = 날들.filter((날) => 합(날.건수) > 0).length;
+  const 총 = 날들.reduce((누적, 날) => ({ pass: 누적.pass + 날.건수.pass, notRun: 누적.notRun + 날.건수.notRun, fail: 누적.fail + 날.건수.fail }), {
+    pass: 0,
+    notRun: 0,
+    fail: 0,
+  });
+  // 같은 수면 앞선 날이다
+  const 실패많은날 = 날들.reduce((큰, 날) => (날.건수.fail > 큰.건수.fail ? 날 : 큰), 날들[0]!);
+  const 그림이름 =
+    총.fail === 0
+      ? t('최근 {일}일 통과 {통과} · 미실행 {미실행} · 실패 {실패}', { 일: 값.window.days, 통과: 총.pass, 미실행: 총.notRun, 실패: 총.fail })
+      : t('최근 {일}일 통과 {통과} · 미실행 {미실행} · 실패 {실패}, 실패가 가장 많은 날 {날짜}', {
+          일: 값.window.days,
+          통과: 총.pass,
+          미실행: 총.notRun,
+          실패: 총.fail,
+          날짜: 실패많은날.날짜,
+        });
 
   return (
     <>
@@ -106,7 +124,7 @@ export function 일별막대({ 값 }: { 값: 자료 }) {
           viewBox={`0 0 ${칸폭 * 날들.length} ${높이}`}
           preserveAspectRatio="none"
           role="img"
-          aria-label={t('최근 {일}일 일별 테스트 결과. 통과 · 미실행 · 실패를 쌓은 막대', { 일: 값.window.days })}
+          aria-label={그림이름}
         >
           {날들.map((날, 칸) =>
             날.주말 ? (
@@ -151,7 +169,7 @@ export function 일별막대({ 값 }: { 값: 자료 }) {
           })}
         </svg>
         {눈금들.map((눈금) => (
-          <span key={눈금} className="dash-axis dash-yaxis" style={{ top: 20 + 높이 - 눈금 * 배율 }}>
+          <span key={눈금} className="dash-axis dash-yaxis" aria-hidden="true" style={{ top: 20 + 높이 - 눈금 * 배율 }}>
             {눈금}
           </span>
         ))}
@@ -160,6 +178,7 @@ export function 일별막대({ 값 }: { 값: 자료 }) {
             <span
               key={날.day}
               className="num dash-fail-top"
+              aria-hidden="true"
               style={{ left: `${((칸 + 0.5) / 날들.length) * 100}%`, top: 20 + 높이 - 합(날.건수) * 배율 - 마디틈 * 2 }}
             >
               {날.건수.fail}

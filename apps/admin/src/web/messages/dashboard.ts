@@ -54,8 +54,9 @@ export const 대시보드말: Record<string, string> = {
   // 일별 막대
   '막대 위 숫자는 실패 건수': 'The number above a bar is the failure count',
   '주말': 'Weekend',
-  '최근 {일}일 일별 테스트 결과. 통과 · 미실행 · 실패를 쌓은 막대':
-    'Daily test results for the last {일} days, stacked as passed, not run and failed',
+  '최근 {일}일 통과 {통과} · 미실행 {미실행} · 실패 {실패}, 실패가 가장 많은 날 {날짜}':
+    'Last {일} days: passed {통과} · not run {미실행} · failed {실패}, most failures on {날짜}',
+  '최근 {일}일 통과 {통과} · 미실행 {미실행} · 실패 {실패}': 'Last {일} days: passed {통과} · not run {미실행} · failed {실패}',
   '{날짜} ({요일}) 통과 {통과} · 미실행 {미실행} · 실패 {실패}': '{날짜} ({요일}) passed {통과} · not run {미실행} · failed {실패}',
   '{날짜} ({요일}) 실행 없음': '{날짜} ({요일}) no runs',
 

@@ -35,9 +35,13 @@ interface Props {
 export function Shell({ user, service, onService, 언어, on언어, onLogout, current, children }: Props) {
   const t = use말();
 
+  // 대시보드는 서비스를 고르지 않는 화면이다 — 숨긴 고르개의 서비스 이름이 탭과 바닥 글에 남으면 그 서비스만 보는 것처럼 읽힌다
+  const 대시보드인가 = current === '#/dashboard';
+  const 제목 = 탭제목(대시보드인가 ? null : service, 언어);
+
   useEffect(() => {
-    document.title = 탭제목(service, 언어);
-  }, [service, 언어]);
+    document.title = 제목;
+  }, [제목]);
 
   // 띠에는 짧게, 왜인지와 무엇을 하면 되는지는 본문이 말한다.
   // 지금 자리를 같이 넘긴다 — 설정 화면은 배정이 없어도 열려야 한다 (그 배정을 만드는 자리다)
@@ -45,7 +49,6 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
   // 접은 것은 사람이 되돌릴 수 있는 상태라 저장해 둔다. 새로고침마다 다시 접게 하면 그 기능이 짐이 된다
   const [접음, set접음] = useState(사이드바접었나);
-  const 대시보드인가 = current === '#/dashboard';
 
   return (
     <div className={접음 ? 'wrap folded' : 'wrap'}>
@@ -185,7 +188,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
         {/* 제품 버전을 넣을 통로가 아직 없다 (빌드 시 주입되는 값이 없다).
             지어내는 대신 확실히 아는 것만 적는다 — 제품 이름과 지금 보고 있는 서비스 */}
-        <footer className="foot">{탭제목(service, 언어)}</footer>
+        <footer className="foot">{제목}</footer>
       </div>
     </div>
   );

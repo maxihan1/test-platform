@@ -4257,22 +4257,6 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   grid-row: 4;
 }
 
-@container (max-width: 900px) {
-  .dash-board > * {
-    grid-column: 1 / -1;
-    grid-row: auto;
-  }
-
-  .dash-live {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* 휴대폰에서 끝났나 보는 길목이다. 46 은 브라우저 반올림이 깎아도 44 를 지키려는 값이다 */
-  .dash-live-item {
-    min-height: 46px;
-  }
-}
-
 /* 등장 — 칸마다 차례로 나타난다. 차례 지연까지 합쳐 --dur-intro(0.5초) 안이다.
    다시 받을 때는 같은 요소가 그대로 있어 애니메이션이 다시 시작하지 않는다 */
 .dash-slab {
@@ -4383,7 +4367,8 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 }
 
 .dash-live-item:focus-visible,
-.dash-live-more:focus-visible {
+.dash-test a.ink:focus-visible,
+.dash-cov-name a:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
@@ -4496,8 +4481,11 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 
 .dash-sub {
   display: block;
+  max-width: 160px;
+  overflow: hidden;
   font-size: 12px;
   color: var(--ink-faint);
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -4508,7 +4496,7 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 /* 줄 제목 링크는 잉크다 — 줄마다 대표색이면 오렌지 기둥이 선다 (원칙 1) */
 .dash-test a.ink {
   display: block;
-  max-width: 360px;
+  max-width: 340px;
   overflow: hidden;
   font-weight: 600;
   color: var(--ink);
@@ -4557,6 +4545,12 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 
 .dash-rate20 {
   font-size: 20px;
+  white-space: nowrap;
+}
+
+/* 긴 머리글(nowrap)이 폭을 가져가 이름 칸이 44px 로 눌리면 이름이 한 글자씩 꺾인다. 모자라면 표 안에서 가로로 민다 */
+.dash-svc .dash-table td:first-child {
+  min-width: 168px;
 }
 
 .dash-delta,
@@ -4739,6 +4733,10 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   border-top: 1px solid var(--line);
 }
 
+.dash-lines li.dash-prev {
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+}
+
 .dash-lines li:first-child {
   border-top: 0;
 }
@@ -4774,6 +4772,10 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   height: 4px;
   background: var(--pass);
   opacity: 0.45;
+}
+
+.dash-prev span {
+  white-space: nowrap;
 }
 
 .dash-prev span:nth-child(2) {
@@ -5198,6 +5200,24 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   display: flex;
   justify-content: space-between;
   margin-top: 8px;
+}
+
+/* 좁은 폭 규칙은 대시보드 기본 규칙들 **뒤**에 둔다 — 같은 우선순위는 뒤에 온 규칙이 이긴다.
+   앞에 두었더니 `.dash-live` 기본 열(4칸)이 이겨 390 에서 실행 중 줄이 58px 로 눌렸다 (styles.test.ts 가 지킨다) */
+@container (max-width: 900px) {
+  .dash-board > * {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .dash-live {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* 휴대폰에서 끝났나 보는 길목이다. 46 은 브라우저 반올림이 깎아도 44 를 지키려는 값이다 */
+  .dash-live-item {
+    min-height: 46px;
+  }
 }
 
 /* 날짜 글자가 칸보다 넓어지는 좁은 폭에서는 하루 걸러 보인다 — 오늘(마지막)은 늘 남는다 */
