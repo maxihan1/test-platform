@@ -136,4 +136,28 @@ describe('실패 카드 — 통과 줄 · 거르개 · 쪽 · 불러오기 (실�
     expect(링크.getAttribute('href')).toBe(`#/runs/${RUN_ID}/items/17`);
     expect(screen.queryByText('실패 지점 코드')).toBeNull();
   });
+
+  it('실패 케이스가 정확히 한 쪽 크기면 빈 다음 쪽을 열지 않는다 — 쪽 수는 서버가 준 총수로 센다', async () => {
+    const 스무건 = Array.from({ length: 20 }, (_, i) =>
+      케이스(`ZZI-${String(i + 1).padStart(4, '0')}`, `케이스 ${i + 1}`, [장치('desktop', i + 1)]),
+    );
+    그리기(쪽(스무건, { pageSize: 20, total: 20 }));
+
+    await screen.findAllByRole('article');
+    expect(screen.queryByRole('button', { name: '다음' })).toBeNull();
+  });
+
+  it('총수가 한 쪽을 넘으면 다음이 열리고 마지막 쪽에서는 닫힌다', async () => {
+    const 첫쪽 = 쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)])], { pageSize: 1, total: 2 });
+    const 둘째쪽 = 쪽([케이스('ZZI-0002', '로그인', [장치('desktop', 2)])], { pageSize: 1, total: 2, page: 2 });
+    vi.spyOn(api, 'failures').mockResolvedValueOnce(첫쪽).mockResolvedValueOnce(둘째쪽);
+    render(<RunFailCards runId={RUN_ID} env="qa" items={[줄(1, 'ZZI-0001', 'desktop', 'FAIL')]} platform="ALL" />);
+
+    const 다음 = await screen.findByRole('button', { name: '다음' });
+    expect((다음 as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(다음);
+
+    await screen.findByText('ZZI-0002');
+    expect((screen.getByRole('button', { name: '다음' }) as HTMLButtonElement).disabled).toBe(true);
+  });
 });

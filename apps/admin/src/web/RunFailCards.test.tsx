@@ -170,14 +170,12 @@ describe('실패 케이스 카드 (실행 §8.3)', () => {
 });
 
 describe('판정흐름의 앞말', () => {
-  it('앞말을 주면 그 글과 「맨 앞이 이번 실행」 읽기 글이 붙고, 안 주면 지금과 같다', () => {
+  it('앞말을 주면 그 글이 붙고 막대 칸 수는 그대로다', () => {
     const { container, rerender } = render(<판정흐름 recent={['FAIL', 'PASS']} />);
     expect(container.querySelectorAll('.spark i')).toHaveLength(5);
-    expect(screen.queryByText('맨 앞이 이번 실행')).toBeNull();
 
     rerender(<판정흐름 recent={['FAIL', 'PASS']} 앞말="qa 서버 · 이 실행까지" />);
     expect(screen.getByText('qa 서버 · 이 실행까지')).toBeDefined();
-    expect(screen.getByText('맨 앞이 이번 실행')).toBeDefined();
     expect(container.querySelectorAll('.spark i')).toHaveLength(5);
   });
 });

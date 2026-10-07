@@ -141,8 +141,8 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 미확정 묶�
     }
   });
 
-  it('견줄 앞이 없으면 비교 기준 · 해결 · 같은 사유 칸이 없다', async () => {
-    연다(섞인항목);
+  it('견줄 앞이 없으면 비교 기준 · 해결 칸은 없고 같은 사유 칸만 선다', async () => {
+    연다(섞인항목, { ...첫실행, 실패덩어리들: 견줌.실패덩어리들 });
     const 옆 = await waitFor(() => {
       const 칸 = document.querySelector('.rr-side');
       expect(칸?.textContent).toContain('실행 정보');
@@ -151,7 +151,7 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 미확정 묶�
 
     expect(옆.textContent).not.toContain('비교 기준');
     expect(옆.textContent).not.toContain('해결');
-    expect(옆.textContent).not.toContain('같은 사유로 실패');
+    expect(옆.textContent).toContain('같은 사유로 실패');
   });
 
   it('상자 안에서는 옆 칸이 접힌 줄 하나이고 실행 정보는 그리지 않는다', async () => {
