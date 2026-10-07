@@ -4,7 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 
 import { 판정흐름 } from './Summary.js';
-import { 그리기, 기본단계, 단계, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
+import type { StepResult } from './api.js';
+import { RUN_ID, 그리기, 기본단계, 단계, 장치, 줄, 쪽, 케이스 } from './RunFailCards.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -166,6 +167,122 @@ describe('실패 케이스 카드 (실행 §8.3)', () => {
 
     await screen.findByText('가입한 이메일이 보인다');
     expect(screen.queryByText(/숨길 원문 오류/)).toBeNull();
+  });
+});
+
+describe('실패 카드의 디바이스 머리 (실행 §8.3 · DESIGN.md 실행 결과)', () => {
+  it('신규 실패 글자는 실패 글자 색 클래스를 쓰고 연속 실패는 안 쓴다', async () => {
+    const 칸 = (실제값: string) => ({ steps: 기본단계(실제값) });
+    그리기(
+      쪽([
+        케이스('ZZI-0001', '회원가입', [
+          장치('desktop', 1, { change: '새로깨짐' }, 칸('a')),
+          장치('mobile', 2, { change: '계속깨짐', streak: 2, recent: ['FAIL', 'FAIL', 'PASS'] }, 칸('b')),
+        ]),
+      ]),
+      [줄(1, 'ZZI-0001', 'desktop', 'FAIL'), 줄(2, 'ZZI-0001', 'mobile', 'FAIL')],
+    );
+
+    expect((await screen.findByText('신규 실패')).className).toContain('fc-new');
+    expect(screen.getByText('연속 실패 2회').className).not.toContain('fc-new');
+  });
+
+  it('회차가 둘 이상이면 소요는 회차 평균이고 「평균」을 붙인다', async () => {
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1, { attempts: 2, failedAttempts: 2 })])]),
+      [
+        줄(1, 'ZZI-0001', 'desktop', 'FAIL', { attempt: 1, durationMs: 400 }),
+        줄(2, 'ZZI-0001', 'desktop', 'FAIL', { attempt: 2, durationMs: 560 }),
+      ],
+    );
+
+    expect(await screen.findByText('0.48초 평균')).toBeDefined();
+    expect(screen.queryByText('4.20초')).toBeNull();
+  });
+
+  it('회차가 하나면 평균 글자 없이 그 회차의 소요다', async () => {
+    그리기(쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)])]));
+
+    expect(await screen.findByText('4.20초')).toBeDefined();
+    expect(screen.queryByText(/평균/)).toBeNull();
+  });
+});
+
+describe('디바이스마다 상세 링크 (실행 §8.3)', () => {
+  const 다른실패 = (실제값: string) => ({ steps: 기본단계(실제값) });
+
+  it('카드 머리에는 상세 링크가 없고 디바이스 머리 줄마다 「상세」가 자기 항목을 가리킨다', async () => {
+    그리기(
+      쪽([
+        케이스('ZZI-0001', '회원가입', [
+          장치('desktop', 11, {}, 다른실패('a')),
+          장치('mobile', 12, {}, 다른실패('b')),
+        ]),
+      ]),
+      [줄(11, 'ZZI-0001', 'desktop', 'FAIL'), 줄(12, 'ZZI-0001', 'mobile', 'FAIL')],
+    );
+
+    const 링크들 = await screen.findAllByRole('link', { name: '상세' });
+    expect(링크들.map((a) => a.getAttribute('href'))).toEqual([`#/runs/${RUN_ID}/items/11`, `#/runs/${RUN_ID}/items/12`]);
+    expect(screen.queryByRole('link', { name: '상세 보기' })).toBeNull();
+    expect(document.querySelector('.fc-head a')).toBeNull();
+  });
+
+  it('같은 실패로 묶인 디바이스도 각자 상세 링크를 갖는다', async () => {
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 11), 장치('mobile', 12)])]),
+      [줄(11, 'ZZI-0001', 'desktop', 'FAIL'), 줄(12, 'ZZI-0001', 'mobile', 'FAIL')],
+    );
+
+    const 링크들 = await screen.findAllByRole('link', { name: '상세' });
+    expect(링크들.map((a) => a.getAttribute('href'))).toEqual([`#/runs/${RUN_ID}/items/11`, `#/runs/${RUN_ID}/items/12`]);
+  });
+
+  it('카드 안 접힌 통과 줄에도 「상세」가 첫 회차를 가리킨다', async () => {
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 11)])]),
+      [줄(11, 'ZZI-0001', 'desktop', 'FAIL'), 줄(12, 'ZZI-0001', 'mobile', 'PASS', { attempt: 1 }), 줄(13, 'ZZI-0001', 'mobile', 'PASS', { attempt: 2 })],
+    );
+
+    await screen.findByRole('button', { name: /ZZI-0001.*모바일/ });
+    const 통과줄 = document.querySelector('.fc-pass');
+    expect(통과줄?.querySelector('a')?.getAttribute('href')).toBe(`#/runs/${RUN_ID}/items/12`);
+    expect(통과줄?.querySelector('a')?.textContent).toBe('상세');
+  });
+});
+
+describe('묶인 디바이스는 실패 시점 화면을 나란히 보인다 (실행 §8.3)', () => {
+  const 화면단계 = (): StepResult[] => [
+    단계(1, '가입 버튼을 누른다', [['가입한 이메일이 보인다', 'FAIL', 'new@demo.kr', '없음']], { screenshotPath: 'shot.png' }),
+  ];
+
+  it('같은 실패로 묶인 디바이스마다 이름을 단 화면이 하나씩 있다', async () => {
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 11, {}, { steps: 화면단계() }), 장치('mobile', 12, {}, { steps: 화면단계() })])]),
+      [줄(11, 'ZZI-0001', 'desktop', 'FAIL'), 줄(12, 'ZZI-0001', 'mobile', 'FAIL')],
+    );
+
+    await screen.findByRole('article');
+    const 사진들 = [...document.querySelectorAll('img')];
+    expect(사진들.map((img) => img.getAttribute('alt'))).toEqual([
+      'PC 가입 버튼을 누른다 실패 시점 화면',
+      '모바일 가입 버튼을 누른다 실패 시점 화면',
+    ]);
+    expect(사진들.map((img) => img.getAttribute('src'))).toEqual([
+      `/api/screenshots/${RUN_ID}/11/1.png`,
+      `/api/screenshots/${RUN_ID}/12/1.png`,
+    ]);
+  });
+
+  it('디바이스 하나뿐이면 절차 안에 그대로 한 장이다', async () => {
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 11, {}, { steps: 화면단계() })])]),
+      [줄(11, 'ZZI-0001', 'desktop', 'FAIL')],
+    );
+
+    await screen.findByRole('article');
+    const 사진들 = [...document.querySelectorAll('img')];
+    expect(사진들.map((img) => img.getAttribute('alt'))).toEqual(['가입 버튼을 누른다 실패 시점 화면']);
   });
 });
 

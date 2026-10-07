@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from './api.js';
 import { RunResult } from './RunResult.js';
 import { RUN_ID, 실행까지 } from './RunResult.fixture.js';
-import { 끝난실행, 섞인항목, 연다, 첫실행, 카드응답, 항목줄 } from './RunResultAssemble.fixture.js';
+import { 끝난실행, 앞선가, 섞인항목, 연다, 첫실행, 카드응답, 판정칸, 항목줄 } from './RunResultAssemble.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -135,5 +135,37 @@ describe('도는 중에서 끝남으로 바뀌면 견주기 · 카드 통로를 
 
     expect(견줌부름).toHaveBeenCalledWith(RUN_ID);
     expect(실패부름).toHaveBeenCalledWith(RUN_ID, 1, undefined);
+  });
+});
+
+describe('통과 · 미실행으로 건너뛰기 (게이트 1 제안 15)', () => {
+  const 버튼이름 = '통과 · 미실행으로 건너뛰기';
+
+  it('실패 카드 구획 앞에 있고 누르면 통과 · 미실행 구획 제목으로 포커스가 간다', async () => {
+    연다(섞인항목);
+    await waitFor(() => expect(document.querySelector('.fc-list')).not.toBeNull());
+
+    const 버튼 = screen.getByRole('button', { name: 버튼이름 });
+    expect(앞선가(버튼, document.querySelector('.fc-list'))).toBe(true);
+    fireEvent.click(버튼);
+
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: /^통과 · 미실행/ }));
+  });
+
+  it('실패 카드가 없으면 건너뛸 곳이 없다', async () => {
+    연다([항목줄(1, 'ZRR-002', 'desktop', 'PASS')]);
+    await screen.findByText('실패한 케이스가 없습니다');
+
+    expect(screen.queryByRole('button', { name: 버튼이름 })).toBeNull();
+  });
+
+  it('줄 목록이 없거나 카드가 안 보이는 판정별 보기에서도 없다', async () => {
+    연다(섞인항목);
+    await waitFor(() => expect(document.querySelector('.fc-list')).not.toBeNull());
+
+    fireEvent.click(판정칸('통과'));
+    expect(screen.queryByRole('button', { name: 버튼이름 })).toBeNull();
+    fireEvent.click(판정칸('실패'));
+    expect(screen.queryByRole('button', { name: 버튼이름 })).toBeNull();
   });
 });

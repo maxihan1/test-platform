@@ -113,7 +113,7 @@ describe('요약 띠 — 판정별 보기', () => {
 describe('요약 띠 — 직전 실행 대비', () => {
   it('직전 실행 번호와 신규 실패 · 연속 실패 · 해결 수를 보이고 누르는 칸이 아니다', () => {
     그린다(집계(47, 3, 0), 견줌());
-    expect(screen.getByText(/직전 실행 RUN 1038 대비/)).toBeTruthy();
+    expect(screen.getByText('직전 실행 RUN 1038 대비')).toBeTruthy();
     const 수 = (이름: string) =>
       within(screen.getByText(이름).closest('.rs-stat') as HTMLElement).getByText(/^\d+$/).textContent;
     expect(수('신규 실패')).toBe('2');
