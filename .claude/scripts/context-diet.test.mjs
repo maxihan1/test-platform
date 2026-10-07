@@ -95,3 +95,16 @@ test('할 일 2 — 에이전트 정의는 프롬프트와 그것이 가리킨 �
     assert.ok(본.includes('프롬프트와 그것이 가리킨 줄이 정본'), `${f} 가 위치 넘기기에 맞게 안 고쳐졌다`);
   }
 });
+
+test('할 일 3 — spec-review 절차 1 이 LEARNINGS 를 헤딩으로 골라 부분 읽기하고 CLAUDE.md 를 다시 읽지 않는다', () => {
+  const 본 = 절(read('.claude/skills/spec-review/SKILL.md'), '## 절차');
+  const 첫째 = 본.slice(본.indexOf('1.'), 본.indexOf('\n2.'));
+  assert.ok(첫째.includes('docs/LEARNINGS.md'), '대조군 — 절차 1 에 LEARNINGS 가 있어야 한다');
+  assert.ok(첫째.includes("grep -n '^## '"), "LEARNINGS 헤딩을 grep -n '^## ' 로 뽑는다는 말이 없다");
+  assert.ok(첫째.includes('키워드'), '검사 범위 키워드와 맞는 항목을 고른다는 말이 없다');
+  assert.ok(첫째.includes('최근 5건'), '최근 5건을 읽는다는 말이 없다');
+  assert.ok(첫째.includes('부분 읽기'), '부분 읽기라는 말이 없다');
+  assert.ok(첫째.includes('재발 여부를 반드시 확인한다'), '과거 위반 재발 확인이 빠졌다');
+  assert.ok(첫째.includes('docs/spec/` 아래 장을 전부 읽는다'), '전체 범위 검사의 장 전부 읽기가 빠졌다');
+  assert.doesNotMatch(첫째, /`CLAUDE\.md`[^\n]*읽는다/, '이미 실린 CLAUDE.md 를 다시 읽으라는 말이 남았다');
+});
