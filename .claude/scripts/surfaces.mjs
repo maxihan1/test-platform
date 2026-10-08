@@ -22,7 +22,7 @@ export const SURFACES = [
   { name: 'GUARD', tier: 2, globs: ['.claude/scripts/**', '.claude/hooks/**', '.github/workflows/**', 'scripts/**', 'package.json', 'tsconfig.json', 'vitest.config.ts'] },
 
   { name: 'WEB', tier: 1, globs: ['apps/admin/src/web/**'] },
-  { name: 'HARNESS', tier: 1, globs: ['.claude/skills/**', '.claude/agents/**', '.claude/settings.json', 'CLAUDE.md'] },
+  { name: 'HARNESS', tier: 1, globs: ['.claude/skills/**', '.claude/agents/**', '.claude/settings.json', '**/CLAUDE.md'] },
 
   { name: 'DOC', tier: 0, globs: ['docs/**', '*.md', '**/*.html'] },
 ];

@@ -543,7 +543,7 @@ WS-C가 가장 오래 걸리므로 가장 먼저 시작한다.
 세션이 죽거나 다음 날 이어서 할 때, 새 세션의 첫 프롬프트는 항상 이렇다.
 
 ```
-docs/SPEC.md(색인)를 읽고 WS-<X>가 읽을 장만 읽어줘. CLAUDE.md, docs/LEARNINGS.md도 읽어줘.
+docs/SPEC.md(색인)를 읽고 WS-<X>가 읽을 장만 읽어줘. docs/LEARNINGS.md 는 `grep -n '^## '` 헤딩에서 WS-<X> 와 맞는 것 + 최근 5건만 읽어줘.
 너는 WS-<X> 담당이다. docs/progress/WS-<X>.md에 이전 진행 상황이 있다.
 
 읽고 나서, 이어서 할 작업을 3~5줄로 요약해 보고해라.
