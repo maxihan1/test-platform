@@ -375,3 +375,21 @@ test('할 일 9 — tpx 차선 표 spec 행 · HOOKS 차선 표 spec 행은 명�
   const 문서뿐 = read('.claude/scripts/lane.mjs');
   assert.ok(문서뿐.includes("표면들[i] === 'SPEC'"), '대조군 — lane() 이 SPEC 표면을 따로 허용해야 한다');
 });
+
+test('할 일 1 — 펜스블록() 은 표지가 든 코드 펜스 하나만 돌려준다', async () => {
+  const { 펜스블록 } = await import('./md-sections.mjs');
+  const 글 = '산문 Agent({\n```js\nsubagent_type: "general-purpose"\n```\n중간\n```js\nAgent({ model: "opus"\n```\n끝';
+  const 본 = 펜스블록(글, 'Agent({');
+  assert.ok(본.includes('model: "opus"'), '표지가 든 펜스를 못 골랐다');
+  assert.ok(!본.includes('general-purpose') && !본.includes('중간') && !본.includes('산문'), '다른 펜스나 산문이 섞였다');
+  assert.equal(펜스블록(글, '없는 표지'), '', '표지가 없으면 빈 글이어야 한다');
+});
+
+test('할 일 1 — 검사 도우미 사본이 세 검사 파일에 없다(정본은 md-sections.mjs)', () => {
+  const 파일들 = ['review-structure.test.mjs', 'lens-handoff.test.mjs', 'agent-models.test.mjs'].filter((f) => existsSync(new URL(f, import.meta.url)));
+  assert.ok(파일들.length >= 2 && 파일들.includes('review-structure.test.mjs') && 파일들.includes('agent-models.test.mjs'), `대조군 — 읽은 파일이 부족하다: ${파일들}`);
+  for (const f of 파일들) {
+    const 글 = readFileSync(new URL(f, import.meta.url), 'utf8');
+    assert.ok(!/^const (절|소절|펜스안) =/m.test(글), `${f} 에 도우미 사본이 있다`);
+  }
+});
