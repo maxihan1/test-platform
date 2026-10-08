@@ -23,6 +23,8 @@ export function 임시저장소(더할파일들, 옮길것들 = []) {
   git('init', '-q');
   git('config', 'user.email', 't@example.com');
   git('config', 'user.name', 't');
+  // 가짜 npm 과 호출 기록이 작업 폴더에 「커밋 안 된 파일」로 보이면 통과 표지가 안 남는다
+  writeFileSync(join(뿌리, '.git', 'info', 'exclude'), '.fakebin\n.npm-calls*\n');
   쓴다('package.json', '{}');
   쓴다('tests/todo/TODO-001.spec.ts', 'x');
   for (const [원래] of 옮길것들) 쓴다(원래, `옮겨질 코드 ${원래}\n`.repeat(20));
@@ -45,12 +47,12 @@ export function 임시저장소(더할파일들, 옮길것들 = []) {
   return { 뿌리, sha: git('rev-parse', 'HEAD'), 가짜, 기록 };
 }
 
-export function 저장소에서돌린다({ 뿌리, sha, 가짜 }, 더할환경 = {}) {
+export function 저장소에서돌린다({ 뿌리, sha, 가짜 }, 더할환경 = {}, 입력 = `refs/heads/b ${sha} refs/heads/b ${ZERO}\n`) {
   const env = { ...깨끗한환경, PATH: `${가짜}:${process.env.PATH}`, ...더할환경 };
   delete env.ALLOW_PROTECTED;
   try {
     const out = execFileSync(HOOK, ['origin', 'https://example.com/r.git'], {
-      cwd: 뿌리, env, input: `refs/heads/b ${sha} refs/heads/b ${ZERO}\n`, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+      cwd: 뿌리, env, input: 입력, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
     });
     return { code: 0, out };
   } catch (e) {
