@@ -132,6 +132,14 @@ fi
 # 입력이 비었거나 삭제 줄뿐이거나 find 가 실패하거나 출력이 비면 표지를 믿지 않는다.
 # check:spec · check:docs-contract 는 재사용해도 돈다 (차이가 문서일 수 있고 1초 안팎이다).
 STAMP_JS="$(dirname "$0")/../scripts/check-stamp.mjs"
+
+# 검사 시작 때의 HEAD 와 작업 폴더 상태 — 검사 도중 누가 파일을 바꾸면 끝에 표지를 남기지 않는다.
+# 시작 때 코드가 덜 커밋돼 있었으면 put 이 스스로 거절하므로 훅은 「시작과 끝이 같은가」만 본다.
+# 못 읽으면 ? 로 둔다 — 끝에서도 못 읽으면 같아 보이지만 put 이 같은 명령을 못 읽어 거절한다
+snapshot() {
+  { git rev-parse HEAD; git -c core.quotePath=false status --porcelain --no-renames --untracked-files=all; } 2>/dev/null || echo "?"
+}
+start_state=$(snapshot)
 reuse=none
 if [ "$lane" = "full" ] && [ -n "$REFS" ]; then
   reuse=""
@@ -163,7 +171,7 @@ if [ "$reuse" != "none" ]; then
     echo "[pre-push] 통과 표지 — 단위 테스트와 검사 기록 확인을 건너뛴다. 통과"
     exit 0
   fi
-  echo "[pre-push] 통과 표지(local) — 단위 테스트는 건너뛰고 검사 기록 확인으로 간다"
+  echo "[pre-push] 통과 표지(tests) — 단위 테스트는 건너뛰고 검사 기록 확인으로 간다"
 fi
 
 if [ "$lane" = "spec" ] || [ "$reuse" = "tests" ]; then
@@ -214,7 +222,9 @@ fi
 # ── 통과 표지를 남긴다 — full 길이 기록 확인(또는 1등급 면제)까지 통과했을 때만 ──────────────
 # 훅은 HEAD 의 작업 폴더를 검사하므로 HEAD 가 아닌 커밋에는 스크립트가 거절한다.
 # 표지를 못 남겨도 push 는 막지 않는다 — 다음 push 가 검사를 한 번 더 도는 것뿐이다
-if [ "$lane" = "full" ] && [ -n "$REFS" ]; then
+if [ "$lane" = "full" ] && [ -n "$REFS" ] && [ "$(snapshot)" != "$start_state" ]; then
+  echo "[pre-push] 검사가 도는 동안 HEAD 나 작업 폴더가 바뀌었다 — 통과 표지를 남기지 않는다 (push 는 막지 않는다)"
+elif [ "$lane" = "full" ] && [ -n "$REFS" ]; then
   while IFS=' ' read -r _local_ref local_sha _remote_ref _remote_sha; do
     [ -z "$local_sha" ] && continue
     case "$local_sha" in
