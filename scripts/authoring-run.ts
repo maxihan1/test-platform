@@ -9,6 +9,7 @@ import { join } from 'node:path';
 
 import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 import { type 모델, 한도걸렸나 } from './authoring-model.js';
+import { 결제환경, 크레딧먼저, 크레딧바닥났나, 크레딧키이름 } from './authoring-billing.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처 } from './authoring-assets.js';
 import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
 import { 자식환경 } from './authoring-chain.js';
@@ -246,11 +247,12 @@ async function 사본에서(
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
   const 누적 = 진척누적기(0, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });
   const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'), 방.옛케이스);
-  const 돌린것 = await 박동.자식동안(재기, (신호) =>
+  // API 크레딧 키가 있으면 크레딧으로 먼저 — 시작하자마자 없으면 구독으로 한 번 더 (authoring-billing)
+  const { 돌린것, 크레딧으로 } = await 크레딧먼저(process.env[크레딧키이름] || undefined, (키) => 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
       input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md')),
-      env: 환경,
+      env: 결제환경(환경, 키),
       uid: 자식?.uid,
       gid: 자식?.gid,
       조용한제한: 자식제한,
@@ -262,7 +264,7 @@ async function 사본에서(
         return 글 === null ? null : `[작성] ${것.id}번 ${글}`;
       },
     }),
-  );
+  ), () => console.log(`[작성] ${것.id}번 API 크레딧이 없다 — 구독으로 다시 띄운다`));
   const 단계 = 누적.단계표(); // 거절 · 시간초과 · 멈춤 · 끊김에도 남게 어떤 return · 사용량보고보다 먼저 (AUT-F3-21)
   console.log(`[작성] ${것.id}번 단계 시각\n${단계 || '단계 표지 없음'}`);
   // 에이전트가 거절로 멈추는 중이면 자식을 죽인 것이다 — 서버도 받아 주지 않으니 보고하지 않는다
@@ -282,8 +284,8 @@ async function 사본에서(
     await 손.끝내기({ status: 'FAILED', error: 사유거르기(`claude 를 못 띄웠다: ${끝줄}`, 것.target?.loginPassword) });
     return;
   }
-  // 멈춤·시간초과·한도는 STOPPED — 다시 하면 이어질 수 있다. 한도는 stream 이 아니라 결과 글과 표준 오류로만 본다
-  const 끝낼것 = 끝낼상태(돌린것, 한도걸렸나(풀린.글, 돌린것.오류));
+  // 멈춤·시간초과·한도는 STOPPED — 다시 하면 이어질 수 있다. 한도는 stream 이 아니라 결과 글과 표준 오류로만 본다. 크레딧이 도중에 떨어진 것도 한도다(이어하기가 바로 구독으로 넘어간다)
+  const 끝낼것 = 끝낼상태(돌린것, 한도걸렸나(풀린.글, 돌린것.오류) || (크레딧으로 && 크레딧바닥났나(풀린.글, 돌린것.오류)));
   if (끝낼것 !== null) {
     await 손.끝내기(끝낼것);
     return;

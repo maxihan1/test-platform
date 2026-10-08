@@ -2,6 +2,7 @@
 // authoring-agent.ts 가 478줄이 되어 나눴다 (2026-09-23)
 
 import { type 권한설정, type 자료, 셸허용됐나 } from './authoring-assets.js';
+import { 크레딧키검사, 크레딧키이름 } from './authoring-billing.js';
 import { type 모델, 모델인자 } from './authoring-model.js';
 import { type 대상 } from './authoring-reverse.js';
 
@@ -115,6 +116,8 @@ export function 선행검사(입력: {
       '그 값을 지우고 다시 실행해라.',
     ].join('\n');
   }
+  const 크레딧 = 크레딧키검사(입력.env[크레딧키이름]);
+  if (크레딧 !== null) return 크레딧;
 
   // 토큰을 묻기 **전에** 본다. 물어 놓고 「사실 못 돈다」고 하면 그 입력이 헛것이 된다
   if (!셸허용됐나(입력.설정들)) {
