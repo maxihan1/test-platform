@@ -269,6 +269,10 @@ openssl rand -hex 32
 3. **Claude 토큰** — 아무 기계에서 `claude setup-token` → 브라우저로 로그인 → 나오는 `sk-ant-oat…` 값을 `CLAUDE_CODE_OAUTH_TOKEN` 에.
    **구독 한도를 쓴다(추가 비용 없음).** API 키(`sk-ant-api…`)를 넣으면 실비 청구라 컨테이너가 켜지지 않는다.
    **고객사 서버에는 그 회사 Claude 계정으로 만든 토큰을 넣는다** — 개인 구독 토큰을 남의 서버에 심지 않는다 (`docs/spec/도메인/작성.md` §3.6)
+   **(선택) API 크레딧 먼저 쓰기** (2026-10-08) — Max · Team 플랜은 매달 API 크레딧(Max 5x $100, 이월 없음)을 준다. 받으면 작성이 그 크레딧을 먼저 쓰고, 떨어지면 구독으로 넘어간다.
+   ① **결제 수단 · 자동 충전이 없는 Console 조직을 새로 만든다** — 그래야 떨어졌을 때 청구 없이 멈춘다. 구매 크레딧이나 자동 충전이 있는 조직이면 그 잔액에서 계속 빠진다(코드는 이 설정을 못 읽는다)
+   ② claude.ai(브라우저) → 설정 → 청구 → 「API 크레딧」 → 「조직 연결」 → ①의 조직 → 약관 동의 ③ 그 조직에서 API 키를 만들어 `.env` 의 `AUTHORING_CREDIT_KEY` 에(`ANTHROPIC_API_KEY` 가 아니다 — 그 이름은 여전히 막는다)
+   ④ author 를 다시 켠다. 크레딧이 없으면 로그에 `[작성] N번 API 크레딧이 없다 — 구독으로 다시 띄운다` 가 뜬다. 맥에서 돌릴 때도 같은 이름의 환경 변수다
 4. **GitHub 토큰** — GitHub → Settings → Developer settings → **Fine-grained tokens** → 테스트 저장소 하나만 · **Contents 읽기/쓰기 · Pull requests 읽기/쓰기** → `GH_TOKEN` 에
 5. **리눅스 서버면** `HOST_UID`·`HOST_GID` 에 저장소 주인의 `id -u`·`id -g` 를 적는다 (맥은 비워도 된다) — 서버 저장소에 쓰는 일(부품 맞추기·병합 뒤 당기기)은 이 계정으로 한다.
    안 맞으면 사람이 `git pull` 을 못 한다. 자식 Claude 는 `AUTHORING_CHILD_UID`(비우면 `20000`)부터 동시 수만큼 uid 를 쓴다 — 서버에 이미 있는 uid 와 겹치지 않게 둔다.

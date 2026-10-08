@@ -188,6 +188,13 @@ describe('선행검사 — 순서가 뒤집히면 돈이 샌다', () => {
     expect(선행검사({ env: {}, 설정들: [] })).toMatch(/Bash\(\*\)/);
   });
 
+  // 2026-10-08 — API 크레딧 키는 전용 이름으로만 받는다. 구독 토큰을 잘못 넣으면 크레딧이 아니라 구독으로 돈다
+  it('API 크레딧 키는 전용 이름의 Console 키만 받고, 모양이 틀리면 막는다', () => {
+    expect(선행검사({ env: { AUTHORING_CREDIT_KEY: 'sk-ant-api03-k' }, 설정들: 셸허용 })).toBeNull();
+    expect(선행검사({ env: { AUTHORING_CREDIT_KEY: 'sk-ant-oat01-x' }, 설정들: 셸허용 })).toMatch(/AUTHORING_CREDIT_KEY/);
+    expect(선행검사({ env: { ...더러운환경, AUTHORING_CREDIT_KEY: 'sk-ant-api03-k' }, 설정들: 셸허용 })).toMatch(/실비 청구/);
+  });
+
   // 2026-09-23 — 맥은 계정 이름을 안 든다. 토큰이 작성 에이전트 계정에만 발급되고 이름은 /me 가 알려 준다
   it('맥 계정 이름 없이도 과금·셸이 괜찮으면 막지 않는다', () => {
     expect(선행검사({ env: {}, 설정들: 셸허용 })).toBeNull();
