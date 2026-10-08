@@ -133,3 +133,44 @@ test('훅이 세는 문구가 fanout.md §4 뼈대 첫 줄과 맞는다 — 뼈�
 test('거절 글은 남은 묶음을 자식이 직접 쓰라고 알린다', () => {
   assert.match(fanoutVerdict(['a', 'b', 'c', 'd'], 작성프롬프트('e')).거절, /직접 쓴다/);
 });
+
+test('review 모드 — 1등급만 바뀌면 조용하고, 2등급 이상은 이름을 바꿔도 경고한다 (2026-10-08)', async () => {
+  const { spawnSync, execFileSync } = await import('node:child_process');
+  const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const 가드 = new URL('./guard.mjs', import.meta.url).pathname;
+  const 환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+  const 만든다 = () => {
+    const 뿌리 = mkdtempSync(join(tmpdir(), 'review-'));
+    const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { env: 환경, stdio: 'pipe' });
+    const 쓴다 = (경로, 내용) => { mkdirSync(join(뿌리, 경로, '..'), { recursive: true }); writeFileSync(join(뿌리, 경로), 내용); };
+    git('init', '-q');
+    git('config', 'user.email', 't@example.com');
+    git('config', 'user.name', 't');
+    쓴다('apps/admin/src/execution/b.ts', 'x\n');
+    git('add', '.');
+    git('commit', '-qm', 'base');
+    return { 뿌리, git, 쓴다 };
+  };
+  const 돌린다 = (뿌리) => spawnSync('node', [가드, 'review'], { input: JSON.stringify({ cwd: 뿌리 }), env: 환경, encoding: 'utf8' });
+
+  const 하나 = 만든다();
+  하나.쓴다('tests/x.spec.ts', 'y\n');
+  assert.equal(돌린다(하나.뿌리).status, 0, '테스트만 고쳤는데 경고했다');
+
+  const 둘 = 만든다();
+  둘.쓴다('apps/admin/src/web/a.tsx', 'y\n');
+  assert.equal(돌린다(둘.뿌리).status, 0, '화면만 고쳤는데 경고했다');
+
+  const 셋 = 만든다();
+  셋.쓴다('apps/admin/src/execution/b.ts', 'z\n');
+  const 결과 = 돌린다(셋.뿌리);
+  assert.equal(결과.status, 1, '2등급을 고쳤는데 경고하지 않았다');
+  assert.match(결과.stderr, /오늘 SPEC 검사 기록/);
+
+  const 넷 = 만든다();
+  mkdirSync(join(넷.뿌리, 'apps/admin/src/web'), { recursive: true });
+  넷.git('mv', 'apps/admin/src/execution/b.ts', 'apps/admin/src/web/b.ts');
+  assert.equal(돌린다(넷.뿌리).status, 1, '이름 바꾸기로 2등급이 숨었다');
+});
