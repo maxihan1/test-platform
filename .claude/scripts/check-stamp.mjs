@@ -2,7 +2,7 @@
 //
 // 쓰는 법
 //   check-stamp.mjs find [커밋]       `stamp=… kinds=… delta=…` 와 `reuse=<all|tests|none>` 두 줄. 늘 종료 0
-//   check-stamp.mjs run local         일곱 검사를 스스로 돌리고 전부 0 이면 HEAD 에 local 표지를 남긴다
+//   check-stamp.mjs run local         검사 묶음을 스스로 돌리고 전부 0 이면 HEAD 에 local 표지를 남긴다
 //   check-stamp.mjs put push <커밋>   pre-push 훅 전용. 스킬이 이 명령으로 찍는 길은 없다
 // 표지가 틀리면 검사 없이 코드가 들어가므로, 확신이 없으면 어디서든 none 이고 표지를 남기지 않는다.
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -36,7 +36,9 @@ export function 깨끗한가(상태줄들) {
 
 const git = (...인자) => execFileSync('git', ['-c', 'core.quotePath=false', ...인자], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
-const 표지폴더 = () => join(git('rev-parse', '--path-format=absolute', '--git-common-dir').trim(), 'tpx-checks');
+// 커밋마다 부르는 곳이 있어 git 을 매번 띄우지 않도록 한 번만 계산한다
+let 표지폴더값;
+const 표지폴더 = () => (표지폴더값 ??= join(git('rev-parse', '--path-format=absolute', '--git-common-dir').trim(), 'tpx-checks'));
 const 종류읽기 = (sha) => {
   const 파일 = join(표지폴더(), sha);
   return existsSync(파일) ? readFileSync(파일, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean) : [];
@@ -90,7 +92,7 @@ function put(종류, 이름, 앞이유 = null) {
   }
 }
 
-const 일곱 = [
+const 앞검사들 = [
   ['check:deps', ['run', 'check:deps']],
   ['typecheck', ['run', 'typecheck']],
   ['check:workflow', ['run', 'check:workflow']],
@@ -99,11 +101,14 @@ const 일곱 = [
 ];
 const 재사용때 = [['check:spec', ['run', 'check:spec']], ['check:docs-contract', ['run', 'check:docs-contract']]];
 
-/** 바뀐 경로를 못 읽으면 전체로 간다 — 덜 돌리는 쪽이 위험하다 */
+/** 커밋 안 된 package.json · db/ 도 테스트가 돌아야 하므로 작업 폴더 경로도 본다. 바뀐 경로를 못 읽으면 전체로 간다 — 덜 돌리는 쪽이 위험하다 */
 function 전체인가() {
   try {
     const 규칙 = new RegExp(전체규칙글자);
-    return git('diff', '--no-renames', '--name-only', 'origin/main...HEAD').split('\n').some((p) => 규칙.test(p));
+    const 커밋된 = git('diff', '--no-renames', '--name-only', 'origin/main...HEAD').split('\n');
+    const 작업중 = 상태줄들().map((줄) => 줄.slice(3));
+    // 따옴표 친 경로는 규칙에 댈 수 없어 전체로 친다
+    return [...커밋된, ...작업중].some((p) => p.startsWith('"') || 규칙.test(p));
   } catch {
     return true;
   }
@@ -130,13 +135,13 @@ function runLocal() {
   console.log(`로그 폴더: ${폴더}`);
   // 재사용해도 문서가 바뀌었을 수 있어 명세 검사 둘은 돈다. 코드가 덜 커밋돼 있으면 표지의 커밋과 다른 것을 검사하는 셈이라 재사용하지 않는다
   const 앞 = 깨끗한가(시작.줄들) ? 찾기(시작.head) : null;
-  if (앞 && 앞.kinds.includes('local') && 앞.reuse !== 'none' && ['same', 'docs'].includes(앞.delta)) {
+  if (앞 && 앞.kinds.includes('local') && ['same', 'docs'].includes(앞.delta)) {
     console.log(`재사용 local ${앞.stamp.slice(0, 12)}`);
     process.exitCode = 돌린다(재사용때, 폴더, cwd);
     return console.log('[check-stamp] 표지를 새로 남기지 않는다 — 앞 커밋의 local 표지를 재사용했다');
   }
   const 테스트 = 전체인가() ? [['test', ['test']]] : [['test:changed', ['run', 'test:changed', '--', 'origin/main']], ['test:always', ['run', 'test:always']]];
-  const 코드 = 돌린다([...일곱, ...테스트], 폴더, cwd);
+  const 코드 = 돌린다([...앞검사들, ...테스트], 폴더, cwd);
   process.exitCode = 코드;
   if (코드 !== 0) return console.log('[check-stamp] 표지를 남기지 않는다 — 실패한 명령이 있다');
   const 바뀜 = git('rev-parse', 'HEAD').trim() !== 시작.head || 상태줄들().join('\n') !== 시작.줄들.join('\n');
