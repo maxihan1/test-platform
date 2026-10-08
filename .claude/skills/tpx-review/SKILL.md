@@ -42,7 +42,7 @@ git diff --name-only origin/main...HEAD | node .claude/scripts/detect-tier.mjs
 | **2** | 위 + `spec-review` |
 | **3** | 위 + `/security-review`(인증·권한 표면) 또는 `ponytail:ponytail-review` |
 
-미분류 · 문서 자리 밖 문서 표면이 있으면 등급과 상관없이 `spec-review` 도 돈다 — `/tpx` 「등급별 절차」 아래 글머리를 따른다.
+훅이 검사 기록을 요구하는 변경이면 등급과 상관없이 `spec-review` 도 돈다 — `/tpx` 「등급별 절차」 아래 글머리를 따른다.
 
 **종수를 조용히 줄이지 않는다.** 렌즈 호출이 실패하면 부재를 요약에 적고
 진행 여부를 사용자가 정하게 한다.
