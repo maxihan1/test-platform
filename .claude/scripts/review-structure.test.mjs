@@ -1,7 +1,7 @@
 // 검토 구조 정리(PR #179)가 계획 검토를 저장소 안 기준으로 옮긴 자리를 지키는 검사.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
@@ -46,12 +46,16 @@ test('할 일 1 — Step 1 표가 등급마다 lenses.md 의 세 절을 가리�
   assert.ok(read(PR).includes('references/lenses.md'), 'SKILL.md 가 lenses.md 를 가리키지 않는다');
 });
 
+// 산문 줄이 같은 낱말을 받쳐 호출 블록을 바꿔도 초록이 되는 것을 막으려고 코드 펜스 안만 본다
+const 펜스안 = (글) => [...글.matchAll(/```[^\n]*\n([\s\S]*?)\n```/g)].map((m) => m[1]).join('\n');
+
 test('할 일 1 — 렌즈를 general-purpose · Opus 서브 에이전트로 내고 프롬프트에 위치 셋을 싣는다', () => {
-  const 본 = read(PR);
-  assert.match(본, /subagent_type: "general-purpose"/, 'general-purpose 서브 에이전트로 낸다는 줄이 없다');
-  assert.match(본, /model: "opus"/, 'model: "opus" 줄이 없다');
-  const 호출 = 절(본, '## Step 2');
+  const 호출 = 절(read(PR), '## Step 2');
   assert.ok(호출, '대조군 — Step 2 절이 있어야 한다');
+  const 블록 = 펜스안(호출);
+  assert.ok(블록.includes('Agent({'), '대조군 — Step 2 코드 펜스 안에 호출 블록이 있어야 한다');
+  assert.match(블록, /subagent_type: "general-purpose"/, '호출 블록에 general-purpose 서브 에이전트 줄이 없다');
+  assert.match(블록, /model: "opus"/, '호출 블록에 model: "opus" 줄이 없다');
   assert.ok(호출.includes('lenses.md'), '프롬프트에 lenses.md 절 위치가 없다');
   assert.ok(호출.includes('계획 파일'), '프롬프트에 계획 파일 경로가 없다');
   assert.ok(호출.includes('작업방 절대경로'), '프롬프트에 작업방 절대경로가 없다');
@@ -308,4 +312,44 @@ test('할 일 7 — spec-review 가 재검사 회차를 tpx-review 절로 가리
   const 새절 = 줄들(첫째).find((l) => l.includes('새 절')) ?? '';
   assert.ok(새절.includes('색인') && 새절.includes('라우터') && 새절.includes('grep -nF'), '절차 1 에 diff 의 새 절은 색인 · 라우터 표를 grep -nF 로 본다는 줄이 없다');
   assert.ok(!글.includes('check-stamp.mjs find'), 'spec-review 에 정본 규칙(find)을 옮겨 적었다');
+});
+
+test('할 일 8 — 펜스안() 헬퍼가 코드 펜스 안만 돌려준다', () => {
+  const 본 = 펜스안('산문 model: "opus"\n```js\nAgent({ model: "sonnet" })\n```\n끝');
+  assert.ok(본.includes('sonnet') && !본.includes('opus') && !본.includes('끝'), '펜스 밖 글이 섞였다');
+});
+
+test('할 일 8 — check-stamp.mjs find 는 체인 문서 전체에서 tpx-review 정본 소절에만 나온다', () => {
+  const 스킬들 = new URL('.claude/skills/', ROOT);
+  const 문서들 = readdirSync(스킬들, { recursive: true })
+    .filter((f) => f.endsWith('.md') && /^(tpx[^/]*|spec-review)\//.test(f));
+  assert.ok(문서들.includes('tpx-review/SKILL.md') && 문서들.includes('spec-review/references/checklist-g-h.md'), '대조군 — 체인 문서를 재귀로 읽어야 한다');
+  const 센다 = (글) => 글.split('check-stamp.mjs find').length - 1;
+  const 전체 = 문서들.reduce((합, f) => 합 + 센다(read(`.claude/skills/${f}`)), 0);
+  const 정본 = 센다(소절(read(TR), 정본제목));
+  assert.ok(정본 >= 1, '대조군 — 정본 소절에 find 가 있어야 한다');
+  assert.equal(전체, 정본, `정본 소절 밖에 find 가 ${전체 - 정본}군데 있다`);
+});
+
+test('할 일 8 — tpx 등급표 「계획 검토」 2등급 칸에 화면 렌즈가 있다', () => {
+  const 행 = read(TPX).split('\n').find((l) => l.startsWith('| 계획 검토')) ?? '';
+  const 칸 = 행.split('|').map((c) => c.trim());
+  assert.ok(칸[4]?.includes('공학 렌즈'), `대조군 — 2등급 칸이 공학 렌즈여야 한다: ${행}`);
+  assert.ok(칸[4].includes('화면 렌즈'), `2등급 칸에 화면 렌즈가 없다: ${칸[4]}`);
+  assert.ok(칸[5].includes('화면 렌즈'), `대조군 — 3등급 칸에는 화면 렌즈가 있다: ${칸[5]}`);
+});
+
+test('할 일 8 — tpx 차선 표 · HOOKS 차선 표가 lane() 을 가리키고 DOC 표면 조건을 적는다', () => {
+  const 본 = 절(read(TPX), '## 차선');
+  const 행 = (글, 머리) => 글.split('\n').find((l) => l.startsWith(머리)) ?? '';
+  const 대상 = [
+    ['tpx spec 행', 행(본, '| `spec`')],
+    ['tpx docs 행', 행(본, '| `docs`')],
+    ['HOOKS docs 행', 행(read('docs/HOOKS.md'), '| `docs` | 전부')],
+  ];
+  for (const [이름, 줄] of 대상) {
+    assert.ok(줄.length > 20, `대조군 — ${이름} 을 못 찾았다`);
+    assert.ok(줄.includes('`lane()`'), `${이름} 이 lane() 을 안 가리킨다: ${줄}`);
+    assert.ok(줄.includes('`DOC`'), `${이름} 이 DOC 표면 조건을 안 적는다: ${줄}`);
+  }
 });

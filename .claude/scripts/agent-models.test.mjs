@@ -55,10 +55,14 @@ test('tpx-impl 이 구현자 · 검증자를 정의 이름으로 부르고 보�
   assert.match(글, /정의를 못 찾으면[\s\S]{0,160}model: "sonnet"/, '정의를 못 찾을 때 대신 낼 방법이 없다');
 });
 
+// 산문 줄이 같은 낱말을 받쳐 호출 블록을 Explore · haiku 로 바꿔도 초록이 되는 것을 막는다
+const 펜스안 = (글) => [...글.matchAll(/```[^\n]*\n([\s\S]*?)\n```/g)].map((m) => m[1]).join('\n');
+
 test('계획 검토 · 독립 검사 렌즈는 Opus 를 쓴다고 적혀 있다', () => {
-  for (const s of ['tpx-plan-review', 'tpx-review']) {
-    assert.match(스킬(s), /model: "opus"/, `${s} 에 렌즈 모델(Opus) 줄이 없다`);
-  }
+  const 호출 = 펜스안(스킬('tpx-plan-review'));
+  assert.match(호출, /Agent\(\{/, '대조군 — tpx-plan-review 코드 펜스 안에 호출 블록이 있어야 한다');
+  assert.match(호출, /model: "opus"/, 'tpx-plan-review 호출 블록에 렌즈 모델(Opus) 줄이 없다');
+  assert.match(스킬('tpx-review'), /model: "opus"/, 'tpx-review 에 렌즈 모델(Opus) 줄이 없다');
 });
 
 // Step 2 제목에 「묶음마다」가 이미 있다 — 2-C 절만 잘라 보지 않으면 단언이 항진명제가 된다
@@ -88,4 +92,11 @@ test('대조 검증 차이 파일 이름에 PR 번호와 묶음 번호가 들어
 
 test('대조 검증에서 DRIFT 는 그 할 일만 다시 발행하고 다시 검증한다', () => {
   assert.match(절2C(), /DRIFT[^\n]*그 할 일만[^\n]*재검증/, 'DRIFT 가 그 할 일만 재발행 · 재검증한다는 줄이 없다');
+});
+
+test('대조 검증 차이는 길면 경로만 넘기고 해시 없는 PASS 는 그 할 일만 검증자에게 다시 묻는다', () => {
+  const 절 = 절2C();
+  assert.ok(절.includes('길면 경로만 넘긴다'), '차이가 길면 경로만 넘긴다는 줄이 없다');
+  assert.ok(!절.includes('프롬프트에도 붙인다'), '길 때도 프롬프트에 붙인다는 옛 줄이 남았다');
+  assert.match(절, /해시 없는 PASS[^\n]*그 할 일만[^\n]*검증자에게 다시 묻는다/, '해시 없는 PASS 를 그 할 일만 다시 묻는다는 줄이 없다');
 });
