@@ -182,15 +182,15 @@ Phase 0가 끝나고 게이트 G1을 통과한 뒤부터 예외 없이 띄운다
 
 | 차선 | 언제 | CI | pre-push | 검사 기록 |
 |---|---|---|---|---|
-| `docs` | `lane()` 이 가른다 — 전부 `DOC` 표면이면서 `lane.mjs` 의 `문서자리`(`docs/**` 의 md · html · `.gitkeep` 또는 루트 `*.md`), 명세 없음 | 설치 전 문서 검사 셋(`check:spec` · `check:docs-contract` · `check:wbs`). **설치도 안 한다** | `check:spec` · `check:docs-contract` | 요구 안 함 |
-| `spec` | `lane()` 이 가른다 — 전부 `DOC` 표면의 `문서자리`이거나 `SPEC` 표면(`docs/spec/**`·`docs/SPEC.md`)이고, `SPEC` 표면이 하나 이상 있다 | 설치 전 문서 검사 셋(`check:spec` · `check:docs-contract` · `check:wbs`). 설치도 안 한다 | `check:spec` · `check:docs-contract` | **요구한다** |
-| `cases` | 아래 「가벼운 길」 그대로 | 타입 · K 규칙 · 비밀값 이름 · 설치 전 문서 검사 셋(`check:spec` · `check:docs-contract` · `check:wbs`) | 타입 · `check:tests` | 요구 안 함 |
+| `docs` | `lane()` 이 가른다 — 전부 `DOC` 표면이면서 `lane.mjs` 의 `문서자리`(`docs/**` 의 md · html · `.gitkeep` 또는 루트 `*.md`), 명세 없음 | 설치 전 문서 검사(`check:spec` · `check:docs-contract` · `check:wbs`). **설치도 안 한다** | `check:spec` · `check:docs-contract` | 요구 안 함 |
+| `spec` | `lane()` 이 가른다 — 전부 `DOC` 표면의 `문서자리`이거나 `SPEC` 표면(`docs/spec/**`·`docs/SPEC.md`)이고, `SPEC` 표면이 하나 이상 있다 | 설치 전 문서 검사(`check:spec` · `check:docs-contract` · `check:wbs`). 설치도 안 한다 | `check:spec` · `check:docs-contract` | **요구한다** |
+| `cases` | 아래 「가벼운 길」 그대로 | 타입 · K 규칙 · 비밀값 이름 · 설치 전 문서 검사(`check:spec` · `check:docs-contract` · `check:wbs`) | 타입 · `check:tests` | 요구 안 함 |
 | `full` | 그 밖 (코드 · 스킬 · CLAUDE.md · 명세+코드 · 미분류) | 전부. 단위 테스트는 **바뀐 것과 이어진 것 1회** + `test:always`, 케이스는 **바뀐 것만** | 같음 (migration·설정이 바뀌면 전체). 통과 표지가 있으면 건너뛴다 (아래 「검사 재사용」) | 아래 「검사 재사용」의 「1등급 기록 면제」 행이 정한다 |
 
 - **`check:wbs` 는 차선과 상관없이 CI 에서 늘 돈다** (2026-09-29) — 진행판 원본 `docs/wbs.md` 와 `docs/WORKSTREAMS.md` 의 완료 표시가
   어긋나면 막는다. 체크만 바꾼 PR 은 `docs` 차선이라 `check:spec` 옆(설치 전)에 뒀다. 체크를 찍는 자리는 `tpx-merge` Step 1 이다
 - **모르면 full** — git diff 실패 · 빈 목록 · `..` · 판정 스크립트가 죽음. CI 는 무거운 단계의 조건을
-  「가벼운 셋이 아니다」로 적어서 판정 값이 비어도 full 이 된다
+  「가벼운 차선이 아니다」로 적어서 판정 값이 비어도 full 이 된다
 - **바뀐 파일이 0 인 push(빈 시작 커밋)는 훅이 검사 없이 통과시킨다.** 「diff 를 못 읽었다」가 아니라 「읽었더니 없다」라서다.
   이것 때문에 그날 첫 push 가 세 번 막혔다 (LEARNINGS 09-23 · 09-24 · 09-25)
 - **`test:always`** — `vitest --changed` 는 import 로 이어진 검사만 고른다. 파일을 직접 훑는 검사(모든 route 에 인증이 붙었나 등)는

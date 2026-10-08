@@ -236,6 +236,6 @@ test('할 일 1 — 검사 도우미 사본이 세 검사 파일에 없다(정�
   assert.equal(파일들.length, 3, `대조군 — 읽은 파일이 셋이어야 한다: ${파일들}`);
   for (const f of 파일들) {
     const 글 = readFileSync(new URL(f, import.meta.url), 'utf8');
-    assert.ok(!/^const (절|소절|펜스안) =/m.test(글), `${f} 에 도우미 사본이 있다`);
+    assert.ok(!/^const (절|소절|펜스안|펜스블록) =/m.test(글), `${f} 에 도우미 사본이 있다`);
   }
 });

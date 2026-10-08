@@ -164,7 +164,7 @@ test('migration 이 바뀐 커밋은 전체 단위 테스트 — 작업방 경�
   }
 });
 
-test('문서만 바뀐 커밋은 docs 차선 — check:spec 만 돌고 검사 기록 없이 통과한다', () => {
+test('문서만 바뀐 커밋은 docs 차선 — pre-push 문서 검사만 돌고 검사 기록 없이 통과한다', () => {
   const 저장소 = 임시저장소(['docs/SETUP.md']);
   try {
     const r = 저장소에서돌린다(저장소);
@@ -226,7 +226,8 @@ test('REFS 를 here-doc 으로 읽는 순회는 한 곳뿐이고 뒤 순회는 S
   assert.equal(순회세기('<<EOF\n$REFS\nEOF\n<<EOF\n$REFS\nEOF\n'), 2, '세는 정규식이 순회를 못 센다');
   const src = readFileSync(HOOK, 'utf8');
   assert.equal(순회세기(src), 1, 'REFS 를 읽는 순회가 한 곳이 아니다');
-  assert.equal((src.match(/for local_sha in \$SHAS/g) ?? []).length, 3, '차선 · 재사용 · 표지 순회가 SHAS 를 돌지 않는다');
+  const 코드 = src.split('\n').filter((줄) => !줄.trimStart().startsWith('#')).join('\n');
+  assert.equal((코드.match(/for local_sha in \$SHAS/g) ?? []).length, 3, '차선 · 재사용 · 표지 순회가 SHAS 를 돌지 않는다');
 });
 
 test('삭제 줄과 문서만 바꾼 커밋 ref 를 함께 올리면 docs 차선으로 검사 기록 없이 통과한다', () => {

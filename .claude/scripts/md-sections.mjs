@@ -25,9 +25,9 @@ export const 소절 = (글, 제목) => {
   return 모은.join('\n');
 };
 
-// 표지가 든 코드 펜스 하나의 안쪽 — 펜스 여럿을 이어 붙이면 다른 블록의 줄이 단언을 받쳐 준다
+// 표지가 든 코드 펜스 하나의 안쪽(펜스는 `소절` 처럼 줄 머리에서만 열고 닫는다) — 펜스 여럿을 이어 붙이면 다른 블록의 줄이 단언을 받쳐 준다
 export const 펜스블록 = (글, 표지) => {
-  for (const m of 글.matchAll(/```[^\n]*\n([\s\S]*?)\n```/g)) {
+  for (const m of 글.matchAll(/^```[^\n]*\n([\s\S]*?)\n?^```[ \t]*$/gm)) {
     if (m[1].includes(표지)) return m[1];
   }
   return '';

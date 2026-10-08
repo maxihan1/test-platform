@@ -163,6 +163,7 @@ test('할 일 5 — HOOKS 차선 표 docs · spec · cases 행 CI 칸은 ci.yml 
     const 칸 = 칸들(이름);
     assert.ok(칸.length >= 6, `대조군 — HOOKS 표 ${이름} 행을 못 찾았다`);
     for (const c of 설치전) assert.ok(칸[3].includes(`\`${c}\``), `HOOKS ${이름} 행 CI 칸에 ci.yml 이 도는 ${c} 가 없다: ${칸[3]}`);
+    for (const [, c] of 칸[3].matchAll(/`(check:[\w-]+)`/g)) assert.ok(설치전.includes(c), `HOOKS ${이름} 행 CI 칸의 ${c} 가 ci.yml 의 차선 조건 없는 단계에 없다: ${칸[3]}`);
   }
   for (const 이름 of ['docs', 'spec']) {
     for (const c of 훅검사) assert.ok(칸들(이름)[4].includes(`\`${c}\``), `HOOKS ${이름} 행 pre-push 칸에 docs_checks() 가 부르는 ${c} 가 없다: ${칸들(이름)[4]}`);
