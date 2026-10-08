@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { 절, 펜스블록 } from './md-sections.mjs';
+import { 절, 소절, 펜스블록 } from './md-sections.mjs';
 
 const AGENTS = new URL('../agents/', import.meta.url);
 const SKILLS = new URL('../skills/', import.meta.url);
@@ -154,7 +154,7 @@ test('tpx-merge 는 Step 2 의 CI 기다리기만 tpx-runner 에 맡기고 병�
   assert.doesNotMatch(호출, /## Step 3\./, 'Step 3 병합까지 Haiku 에 넘긴다 — 병합은 메인이 확인 뒤 직접 친다');
   assert.match(호출, /BEFORE[\s\S]*NOW[\s\S]*CI EXIT/, '프롬프트가 BEFORE · NOW · CI EXIT 를 보고하게 하지 않는다');
   assert.match(호출, /충돌[\s\S]*DIRTY[\s\S]*새 실행[\s\S]*시간 초과[\s\S]*빨강[\s\S]*보고만/, '멈출 때 명령 없이 보고만 하게 하지 않는다');
-  assert.match(호출, /timeout: 600000/, 'Bash 한 번 상한(timeout: 600000)을 적지 않았다');
+  assert.match(호출, /블록 전체를 Bash 한 번에[^\n]*timeout: 600000/, '프롬프트가 「블록 전체를 Bash 한 번에」 timeout: 600000 으로 부르게 하지 않는다');
   assert.match(호출, /제목/, '제목(`[작업중]` 을 뗀 것)을 메인이 만들어 넘기지 않는다');
   assert.match(글, /정의를 못 찾으면[\s\S]{0,160}general-purpose[\s\S]{0,80}model: "haiku"[\s\S]{0,40}effort: "low"/, '정의를 못 찾을 때 대신 낼 방법이 없다');
   assert.match(글, /정의를 못 찾으면[\s\S]{0,400}tpx-runner\.md[^\n]*본문[^\n]*프롬프트/, '대체 호출이 정의 본문을 프롬프트에 싣게 하지 않는다');
@@ -162,6 +162,7 @@ test('tpx-merge 는 Step 2 의 CI 기다리기만 tpx-runner 에 맡기고 병�
   assert.match(글, /Step 4[^\n]*메인/, 'Step 4 이후가 메인에 남는다는 줄이 없다');
   assert.match(글, /메인이[^\n]*gh run view <실행 번호> --json conclusion,headSha/, '메인이 실행을 직접 확인하는 명령이 없다');
   assert.match(글, /NOW[^\n]*BEFORE[^\n]*success[^\n]*PR 헤드|BEFORE[^\n]*NOW[^\n]*success[^\n]*PR 헤드/, '새 실행 · success · PR 헤드 일치를 확인한다는 줄이 없다');
+  assert.match(글, /PR 헤드[^\n]*--match-head-commit/, '확인한 PR 헤드 sha 를 병합에 --match-head-commit 으로 붙인다는 줄이 없다');
   assert.match(글, /메인이[^\n]*Step 3[^\n]*직접/, 'Step 3 병합을 메인이 직접 친다는 줄이 없다');
   assert.match(글, /gh pr view <번호> --json state[^\n]*메인|메인[^\n]*gh pr view <번호> --json state/, '병합 뒤 메인이 MERGED 를 직접 확인한다는 줄이 없다');
   assert.doesNotMatch(글, /gh run view <번호>/, '실행 번호 자리표시가 PR 번호(<번호>)와 같은 이름이다');
@@ -169,13 +170,26 @@ test('tpx-merge 는 Step 2 의 CI 기다리기만 tpx-runner 에 맡기고 병�
 
 test('Step 2 명령 블록은 Bash 한 번 상한 안이고 tpx-runner 로 돌 때는 엣지 표의 행동 없이 멈춰 보고한다', () => {
   const 글 = 스킬('tpx-merge');
-  assert.match(글, /timeout 540 gh run watch "\$NOW" --exit-status/, 'gh run watch 가 Bash 한 번 상한(10분) 안(timeout 540)이 아니다');
-  assert.doesNotMatch(글, /timeout 900/, '옛 timeout 900 이 남았다');
+  const 블록 = 펜스블록(소절(글, '## Step 2.'), 'gh pr ready');
+  assert.ok(블록, 'Step 2 에 gh pr ready 명령 블록이 없다');
+  assert.match(블록, /timeout 420 gh run watch "\$NOW" --exit-status/, 'gh run watch 가 timeout 420 이 아니다 — 기다림 최대 약 120초와 합쳐 Bash 한 번 상한(600초) 안이어야 한다');
+  assert.doesNotMatch(글, /timeout 540|timeout 900/, '옛 timeout 540 · 900 이 남았다');
+  const 루프 = 블록.search(/^for i in /m);
+  const 가드 = 블록.search(/\[ -z "\$NOW" \] \|\| \[ "\$NOW" = "\$BEFORE" \] && exit 1/);
+  assert.ok(루프 >= 0, '기다림 루프가 없다');
+  assert.match(블록, /\[ -n "\$NOW" \] && \[ "\$NOW" != "\$BEFORE" \] && break/, '기다림 루프가 빈 NOW 를 새 실행으로 본다 — [ -n "$NOW" ] 가 없다');
+  assert.ok(가드 > 루프, '루프 뒤에 NOW 가 비었거나 BEFORE 와 같으면 끝내는 가드가 없다');
+  assert.ok(블록.indexOf('timeout 420') > 가드, 'gh run watch 가 가드보다 앞에 있다');
   const 표 = 글.indexOf('### 실패 / 엣지');
   const 머리줄 = 글.indexOf('`tpx-runner` 로 돌 때는 이 표의 행동을 하지 않고 멈춰 보고한다');
   assert.ok(표 >= 0 && 머리줄 > 표 && 머리줄 < 글.indexOf('| 증상', 표), '엣지 표 앞에 「tpx-runner 로 돌 때는 이 표의 행동을 하지 않고 멈춰 보고한다」가 없다');
-  assert.match(글, /\|[^\n]*124[^\n]*실행 번호[^\n]*다시 지켜[^\n]*통과로 읽지 않는다/, '시간 초과(124)면 실행 번호로 다시 지켜보고 통과로 읽지 않는다는 행이 없다');
+  assert.match(글, /\|[^\n]*`CI EXIT` 가 124 이거나 없으면[^\n]*실행 번호[^\n]*timeout: 600000[^\n]*다시 지켜[^\n]*통과로 읽지 않는다/, '「CI EXIT 가 124 이거나 없으면」 실행 번호로 Bash timeout: 600000 으로 다시 지켜보고 통과로 읽지 않는다는 행이 없다');
   assert.doesNotMatch(글, /gh run view <번호>/, '실행 번호 자리표시가 PR 번호(<번호>)와 같은 이름이다');
+});
+
+test('Step 3 병합 명령은 메인이 확인한 PR 헤드 sha 를 --match-head-commit 으로 붙인다', () => {
+  const 병합 = 펜스블록(소절(스킬('tpx-merge'), '## Step 3.'), 'gh pr merge');
+  assert.match(병합, /gh pr merge <번호> --merge --delete-branch --match-head-commit <확인한 헤드 sha>/, 'Step 3 병합 명령에 --match-head-commit <확인한 헤드 sha> 가 없다');
 });
 
 test('tpx-review Step 4 는 EXIT 가 0 이 아닌 명령의 로그 요약을 tpx-runner 에 맡기고 로그 폴더를 넘긴다', () => {
