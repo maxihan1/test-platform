@@ -88,8 +88,8 @@ LEARNINGS 근거 — `docs/LEARNINGS.md` 「[WS-E] 2026-10-08 · **컨트롤러�
 
 ### 할 일 6. 남은 스킬 문구 지적 — PR #177 여섯 + #178 하나
 
-- **RED** — `context-diet.test.mjs` 를 고친다. ① 「게이트 2 3」 표에 `['tpx-spec', '## Step 1. 읽을 장을 좁힌다']` 를 더한다(지금 빨강 — `grep` 그대로) ② 「게이트 2 1」 의 `목록.includes('절대경로')` 를 `'작업방 절대경로'` 로 좁히고, 그 말이 「DB 를 건드리면」 괄호 안에 있지 않다고 단언(지금 빨강) ③ 「할 일 3」 · 「게이트 2 2」 의 `본.indexOf('1.')` · `본.indexOf('\n2.')` 에 대조군(`>= 0`, 끝이 시작보다 뒤)을 단다(지금 초록 — 대조군 보강) ④ 새 단언 — `spec-review` 절차 1 이 렌즈면 색인을 통째로 읽지 않고, A1~A3 은 diff 에 계약 파일이 있을 때만 그 SPEC 절을 `grep -nF` 로 열고, H2 는 바뀐 문장의 핵심 낱말 `grep -rn` 으로 본다(지금 빨강) ⑤ 새 단언 — `tpx` 선행 읽기 4 가 열린 미완을 「`grep -n '미완'` 으로 뽑는다 · 진행판 번호가 있으면 `docs/wbs.md` 에서 그 번호가 `- [ ]` 인지 본다 · 번호가 없으면 열린 것으로 친다 · `미완: 없음` 줄은 뺀다」로 찾는다 — 두 갈래를 다 단언(지금 빨강 · 검토 BLOCKER 2 — 미완 줄 대부분에 번호가 없다) ⑥ 새 단언 — `tpx-review` 선행 읽기의 `grep -nF` 괄호가 「헤딩의 `[` · `*` · `(` 가 정규식으로 읽히지 않게」다(지금 빨강) ⑦ 새 단언 — `tpx` 차선 표 `spec` · `docs` 행이 문서 자리를 `lane.mjs` 의 `문서자리` 로 가리킨다(지금 빨강 — `.gitkeep` 빠진 사본)
-- **GREEN** — `tpx-spec` Step 1 `grep -nF`(선행 읽기 겹침 해소는 뺐다 — 10건에 없고 `tpx-spec:12` 와 어긋난다, 검토 주의 6) · `tpx-impl` 2-A 환경 값 줄을 「작업방 절대경로 · DB 를 건드리면 검사용 `DATABASE_URL`」로 · `spec-review` 절차 1 렌즈 모드 범위 · `tpx` 선행 읽기 4 · `tpx-review` 선행 읽기 괄호 · `tpx` 차선 표 두 행
+- **RED** — `context-diet.test.mjs` 를 고친다. ① 「게이트 2 3」 표에 `['tpx-spec', '## Step 1. 읽을 장을 좁힌다']` 를 더한다(지금 빨강 — `grep` 그대로) ② 「게이트 2 1」 의 `목록.includes('절대경로')` 를 `'작업방 절대경로'` 로 좁히고, 그 말이 「DB 를 건드리면」 괄호 안에 있지 않다고 단언(지금 빨강) ③ 「할 일 3」 · 「게이트 2 2」 의 `본.indexOf('1.')` · `본.indexOf('\n2.')` 에 대조군(`>= 0`, 끝이 시작보다 뒤)을 단다(지금 초록 — 대조군 보강) ④ 새 단언 — `spec-review` 절차 1 이 렌즈면 색인을 통째로 읽지 않고, A1~A3 은 diff 에 계약 파일이 있을 때만 그 SPEC 절을 `grep -nF` 로 열고, H2 는 바뀐 문장의 핵심 낱말 `grep -rn` 으로 본다(지금 빨강) ⑤ 새 단언 — `tpx` 선행 읽기 4 가 열린 미완을 「`grep -n '미완'` 으로 뽑는다 · 진행판 번호가 있으면 `docs/wbs.md` 에서 그 번호가 `- [ ]` 인지 본다 · 번호가 없으면 열린 것으로 친다 · `미완: 없음` 줄은 뺀다」로 찾는다 — 두 갈래를 다 단언(지금 빨강 · 검토 BLOCKER 2 — 미완 줄 대부분에 번호가 없다) ⑥ 새 단언 — `tpx-review` 선행 읽기의 `grep -nF` 괄호가 「헤딩의 `[` · `*` · `(` 가 정규식으로 읽히지 않게」다(지금 빨강) ⑦ 새 단언 — `tpx` 차선 표 `spec` · `docs` 행이 문서 자리를 `lane.mjs` 의 `문서자리` 로 가리킨다(지금 빨강 — `.gitkeep` 빠진 사본) ⑧ 새 단언 — `tpx-impl` 「### 2-C.」 절에 `git -C` · `show --stat --patch` · `tpx-<PR 번호>-묶음` 이 든 모으기 명령 줄이 있다(지금 빨강 — 「구현 중 바뀐 것」)
+- **GREEN** — `tpx-spec` Step 1 `grep -nF`(선행 읽기 겹침 해소는 뺐다 — 10건에 없고 `tpx-spec:12` 와 어긋난다, 검토 주의 6) · `tpx-impl` 2-A 환경 값 줄을 「작업방 절대경로 · DB 를 건드리면 검사용 `DATABASE_URL`」로 · `spec-review` 절차 1 렌즈 모드 범위 · `tpx` 선행 읽기 4 · `tpx-review` 선행 읽기 괄호 · `tpx` 차선 표 두 행 · `tpx-impl` 2-C 에 묶음 차이를 모으는 명령 한 줄(`git -C <작업방> show --stat --patch <묶음 커밋 전부> > …/tpx-<PR 번호>-묶음<n>.diff` — 「구현 중 바뀐 것」 첫 줄)
 - **REFACTOR** — 없음
 
 **files**: .claude/skills/tpx-spec/SKILL.md, .claude/skills/tpx/SKILL.md, .claude/skills/tpx-review/SKILL.md, .claude/skills/tpx-impl/SKILL.md, .claude/skills/spec-review/SKILL.md, .claude/scripts/context-diet.test.mjs
@@ -122,6 +122,11 @@ LEARNINGS 근거 — `docs/LEARNINGS.md` 「[WS-E] 2026-10-08 · **컨트롤러�
 ## Plan 메타
 
 할 일 6개 · 예상 묶음 4개(1: 할 일 1 · 2 · 3 / 2: 할 일 4 / 3: 할 일 5 / 4: 할 일 6) · 구현 규율: TDD · 추가 검증: `node .claude/scripts/check-stamp.mjs run local`
+
+## 구현 중 바뀐 것
+
+- 묶음 1 대조 검증 때 할 일별 차이 파일 셋을 한 파일로 잇는 셸 명령(`{ echo …; cat …; } > 파일`)을 작업 폴더 격리 권한 검사가 거절했다. 우회하지 않고 파일 셋을 그대로 넘겼다. `git -C <작업방> show --stat --patch <묶음 커밋 전부> > tpx-<PR>-묶음<n>.diff` 한 번이면 한 파일이 되고 커밋 제목의 「할 일 N」이 구획이 된다 → 할 일 6 GREEN 에 `tpx-impl` 2-C 의 이 명령 한 줄을 더한다(files 는 이미 든다). 명세 문장은 안 걸린다
+- 묶음 1 검증자는 읽기만 해서 검사를 다시 못 돌렸다 — 컨트롤러가 검증 칸 명령을 모아 한 번 돌렸다(80건 EXIT 0 · `check:spec` EXIT 0 · `bash -n .claude/hooks/pre-push` EXIT 0)
 
 ## 리뷰 결과
 
