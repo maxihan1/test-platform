@@ -46,12 +46,16 @@ for v in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$v"; done
 # 어느 ref 든 git diff 가 실패하면 full 이다 (보수적). 입력이 비어도 full 이다.
 # ref 마다 차선이 다르면 full 이다.
 #
+# record= (검사 기록 요구)도 같은 출력에서 읽는다. skip 은 **모든 ref 가 skip** 일 때뿐이다 —
+# diff 를 못 읽은 ref 가 하나라도 있거나 ref 가 없으면 need 다 (일부 경로만 보고 면제하지 않는다).
+#
 # diff 가 **성공했는데 비었으면** 그 ref 는 올릴 파일이 없다 — 빈 시작 커밋(tpx-start)이 그렇다.
 # 이것을 full 로 보내 그날 첫 push 가 검사 기록 요구에 막힌 일이 세 번 났다 (LEARNINGS 09-23 · 09-24 · 09-25).
 # 「못 읽었다」와 「읽었더니 없다」는 다르다 — 앞엣것만 full 이다.
 LANE_JS="$(dirname "$0")/../scripts/lane.mjs"
 lane=""
 changed_all=""
+record=skip
 if [ -n "$REFS" ]; then
   while IFS=' ' read -r _local_ref local_sha _remote_ref _remote_sha; do
     [ -z "$local_sha" ] && continue
@@ -59,12 +63,14 @@ if [ -n "$REFS" ]; then
       *[!0]*) ;;
       *) continue ;;
     esac
-    changed=$(git -c core.quotePath=false diff --no-renames --name-only "origin/main...$local_sha" 2>/dev/null) || { lane=full; break; }
+    changed=$(git -c core.quotePath=false diff --no-renames --name-only "origin/main...$local_sha" 2>/dev/null) || { lane=full; record=need; break; }
     [ -z "$changed" ] && continue
     changed_all="$changed_all
 $changed"
-    this=$(printf '%s\n' "$changed" | node "$LANE_JS" origin/main | sed -n 's/^lane=//p')
+    lane_out=$(printf '%s\n' "$changed" | node "$LANE_JS" origin/main) || lane_out=""
+    this=$(printf '%s\n' "$lane_out" | sed -n 's/^lane=//p')
     [ -z "$this" ] && this=full
+    [ "$(printf '%s\n' "$lane_out" | sed -n 's/^record=//p')" = "skip" ] || record=need
     if [ -z "$lane" ]; then lane=$this; elif [ "$lane" != "$this" ]; then lane=full; fi
   done <<EOF
 $REFS
@@ -75,6 +81,7 @@ EOF
   fi
 else
   lane=full
+  record=need
 fi
 echo "[pre-push] 차선: $lane"
 
@@ -193,7 +200,9 @@ if [ "$ALLOW_PROTECTED" = "1" ]; then
 fi
 
 TODAY=$(date +%F)
-if ! ls docs/reviews/${TODAY}-*.md >/dev/null 2>&1; then
+if [ "$record" = "skip" ]; then
+  echo "[pre-push] 1등급 — 검사 기록을 요구하지 않는다"
+elif ! ls docs/reviews/${TODAY}-*.md >/dev/null 2>&1; then
   echo "" >&2
   echo "[차단] 오늘 날짜의 SPEC 검사 기록이 없다: docs/reviews/${TODAY}-*.md" >&2
   echo "" >&2
@@ -202,7 +211,7 @@ if ! ls docs/reviews/${TODAY}-*.md >/dev/null 2>&1; then
   exit 1
 fi
 
-# ── 통과 표지를 남긴다 — full 길이 기록 확인까지 통과했을 때만 ──────────────
+# ── 통과 표지를 남긴다 — full 길이 기록 확인(또는 1등급 면제)까지 통과했을 때만 ──────────────
 # 훅은 HEAD 의 작업 폴더를 검사하므로 HEAD 가 아닌 커밋에는 스크립트가 거절한다.
 # 표지를 못 남겨도 push 는 막지 않는다 — 다음 push 가 검사를 한 번 더 도는 것뿐이다
 if [ "$lane" = "full" ] && [ -n "$REFS" ]; then
