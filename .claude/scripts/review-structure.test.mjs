@@ -236,23 +236,30 @@ test('할 일 5 — 새 줄이 로컬 main 을 diff 기준으로 쓰지 않는�
 
 const 줄들 = (글) => 글.split('\n');
 
-test('할 일 7 — 표지 인정 조건은 local 이 있고 stamp 가 그 HEAD 이거나 delta 가 same · docs 일 때다(HEAD 는 40자, 문서 · 명세 차선은 check:spec EXIT=0)', () => {
+test('할 일 9 — 표지 인정은 렌즈가 find HEAD 를 불러 reuse= 줄 하나만 읽는다(tests · all 이면 인정, none 이면 아니다 — kinds= · delta= 는 안 읽는다, HEAD 는 40자, 문서 · 명세 차선은 check:spec EXIT=0)', () => {
   const 본 = 소절(read(TR), 정본제목);
   assert.ok(본.length > 200, '대조군 — 소절이 비어 있다');
-  const 인정 = /`kinds=` 에 `local`[^\n]*`stamp=`[^\n]*HEAD[^\n]*`delta=`[^\n]*`same` · `docs`/;
-  assert.ok(!인정.test('`stamp=` 가 그 HEAD 이고 `kinds=` 에 `local` 이 있는지만 본다'), '대조군 — 옛 문장은 인정 조건 꼴이 아니어야 한다');
-  assert.match(본, 인정, '`kinds=` local · `stamp=` HEAD · `delta=` same · docs 인정 조건이 없다');
+  const 줄 = 줄들(본).find((l) => l.includes('`reuse=`')) ?? '';
+  assert.ok(줄.includes('check-stamp.mjs find HEAD') && 줄.includes('지금 HEAD'), `find HEAD(지금 HEAD)를 렌즈가 부른다는 줄이 없다: ${줄}`);
+  assert.ok(/`tests` · `all`[^\n]*인정한다/.test(줄), `reuse= 가 tests · all 이면 인정한다는 말이 없다: ${줄}`);
+  assert.ok(/`none`[^\n]*인정하지 않는다/.test(줄 + '\n' + 본), 'reuse= 가 none 이면 인정하지 않는다는 말이 없다');
+  assert.ok(!/`tests` · `all`[^\n]*인정하지 않는다[^\n]*`none`[^\n]*인정한다/.test(줄), '인정 결론이 뒤집혔다');
+  assert.ok(!본.includes('`kinds=`') && !본.includes('`delta=`') && !본.includes('`stamp=`'), '렌즈가 kinds= · delta= · stamp= 를 직접 읽는 옛 인정 조건이 남았다(HOOKS.md 는 reuse= 줄만 읽는다고 한다)');
   assert.ok(본.includes('40자'), 'HEAD 를 40자로 넘기라는 말이 없다');
   const 차선 = 줄들(본).find((l) => l.includes('check:spec') && l.includes('EXIT=0')) ?? '';
   assert.ok(차선.includes('`docs`') && 차선.includes('`spec`') && 차선.includes('표지'), 'docs · spec 차선이 표지 대신 check:spec EXIT=0 을 넘긴다는 줄이 없다');
+  assert.ok(/`tests` · `all`/.test('`tests` · `all` 이면 인정한다') && !/`tests` · `all`[^\n]*인정한다/.test('`tests` · `all` 이면 인정하지 않는다'), '대조군 — 결론 낱말을 뒤집으면 꼴이 깨져야 한다');
 });
 
-test('할 일 7 — 인정이 안 되면 미확인은 G3 · H1 중대이고 G8 · G9 는 첫 회차 렌즈가 직접 판정한다', () => {
+test('할 일 9 — 인정이 안 되면 게이트 2 요약의 독립 중대이고 G3 · H1 체크리스트 항목이 아니다 · DB 없이 돌았으면 G3 미확인은 남는다 · G8 · G9 는 직접 판정', () => {
   const 본 = 소절(read(TR), 정본제목);
   const 미확인줄 = 줄들(본).filter((l) => l.includes('미확인'));
   assert.ok(미확인줄.length > 0, '대조군 — 미확인 줄이 있어야 한다');
   const 인정안 = 줄들(본).find((l) => l.includes('인정이 안')) ?? '';
-  assert.ok(인정안.includes('G3 · H1') && 인정안.includes('미확인') && 인정안.includes('중대'), '인정이 안 되면 G3 · H1 미확인 중대라는 줄이 없다');
+  for (const 낱말 of ['게이트 2 요약', '독립 중대', '검사 묶음이 이 HEAD 에서 초록인지 모른다', '단위 테스트', 'E1']) {
+    assert.ok(인정안.includes(낱말), `인정이 안 되면 줄에 "${낱말}" 이 없다: ${인정안}`);
+  }
+  assert.ok(!인정안.includes('G3') && !인정안.includes('H1'), '인정이 안 되면 미확인을 G3 · H1 체크리스트 항목으로 묶은 옛 문장이 남았다');
   assert.deepEqual(미확인줄.filter((l) => l.includes('G8') || l.includes('G9')), [], '미확인을 G8 · G9 에 묶은 옛 문장이 남았다');
   assert.ok(/G8 · G9[^\n]*직접/.test(본), 'G8 · G9 는 렌즈가 직접 부숴 판정한다는 말이 없다');
   const 디비 = 줄들(본).find((l) => l.includes('DATABASE_URL') && l.includes('미확인')) ?? '';
@@ -264,6 +271,7 @@ test('할 일 7 — 다시 안 돈다 목록 아래에 부숴 보기 사본의 �
   const 예외 = 줄들(본).find((l) => l.includes('사본') && l.includes('node --test') && l.includes('검사 파일')) ?? '';
   assert.ok(예외, '부숴 보기 사본의 검사 파일을 node --test 로 돈다는 예외 줄이 없다');
   assert.ok(예외.includes('저장소 배치 그대로'), '사본이 저장소 배치 그대로 뜬다는 말이 없다');
+  assert.ok(본.indexOf('다시 돌리지 않는다') >= 0, '대조군 — 다시 돌리지 않는다 문장이 있어야 한다');
   assert.ok(본.indexOf(예외) > 본.indexOf('다시 돌리지 않는다'), '예외가 다시 안 돈다 문장보다 앞에 있다');
   assert.ok(본.includes('${CLAUDE_JOB_DIR:-/tmp}'), '사본 자리 ${CLAUDE_JOB_DIR:-/tmp} 가 없다');
   assert.ok(!본.includes('(`/tmp` 아래)'), '/tmp 하나로만 적은 옛 사본 자리가 남았다');
@@ -294,7 +302,7 @@ test('할 일 7 — 고치고 재검사 절의 렌즈 일 · 강도 · 범위 �
   assert.ok(일.includes('A~C') && 일.includes('계약') && 일.includes('경계'), 'A~C 는 계약 · 경계 파일이 있을 때만이라는 말이 없다');
   assert.ok(/체크리스트 전부[^\n]*(안|않)/.test(일), '체크리스트 전부를 다시 돌지 않는다는 기존 말이 지워졌다');
   const 렌즈 = 줄들(본).find((l) => l.includes('다시 내는 렌즈')) ?? '';
-  assert.ok(렌즈.includes('지적이 있었으면 같은 강도') && /없었는데 코드가 바뀌었으면 `low`/.test(렌즈), '강도가 지적이 있었으면 같은 강도 · 없었는데 코드가 바뀌었으면 low 가 아니다');
+  assert.ok(렌즈.includes('지적을 낸 렌즈는 같은 강도') && 렌즈.includes('지적 없던 렌즈 중 `code-review` 만, 코드가 바뀌었으면 `low`'), '강도가 지적 낸 렌즈는 같은 강도 · 지적 없던 렌즈 중 code-review 만 코드가 바뀌었으면 low 가 아니다');
   assert.ok(본.includes('다른 범위 꼴이 먹히는지 확인하지 않았다'), 'origin/main...HEAD 근거(다른 꼴은 확인하지 않았다)가 없다');
 });
 
@@ -352,4 +360,18 @@ test('할 일 8 — tpx 차선 표 · HOOKS 차선 표가 lane() 을 가리키�
     assert.ok(줄.includes('`lane()`'), `${이름} 이 lane() 을 안 가리킨다: ${줄}`);
     assert.ok(줄.includes('`DOC`'), `${이름} 이 DOC 표면 조건을 안 적는다: ${줄}`);
   }
+});
+
+test('할 일 9 — tpx 차선 표 spec 행 · HOOKS 차선 표 spec 행은 명세 파일을 SPEC 표면으로 적는다(DOC 표면이 아니다)', () => {
+  const 행 = (글, 머리) => 글.split('\n').find((l) => l.startsWith(머리)) ?? '';
+  const 대상 = [
+    ['tpx spec 행', 행(절(read(TPX), '## 차선'), '| `spec`')],
+    ['HOOKS spec 행', 행(소절(read('docs/HOOKS.md'), '### 차선 — 바뀐 만큼만'), '| `spec` |')],
+  ];
+  for (const [이름, 줄] of 대상) {
+    assert.ok(줄.length > 20, `대조군 — ${이름} 을 못 찾았다`);
+    assert.ok(줄.includes('`SPEC` 표면'), `${이름} 이 명세 파일을 SPEC 표면이라 적지 않는다: ${줄}`);
+  }
+  const 문서뿐 = read('.claude/scripts/lane.mjs');
+  assert.ok(문서뿐.includes("표면들[i] === 'SPEC'"), '대조군 — lane() 이 SPEC 표면을 따로 허용해야 한다');
 });
