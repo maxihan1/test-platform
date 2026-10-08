@@ -50,12 +50,14 @@ test('삭제와 코드 push 가 섞이면 검사로 간다', () => {
   // 한 줄이라도 진짜 push 면 검사해야 한다
   const r = run(`(delete) ${ZERO} refs/heads/a ${SHA}\nrefs/heads/b ${SHA} refs/heads/b ${ZERO}\n`);
   assert.match(r.out, /검사 시작/, '섞였는데 건너뛰었다');
+  assert.doesNotMatch(r.out, /Test Files/, '진짜 저장소에서 단위 테스트를 돌렸다');
 });
 
 test('입력이 비면 검사로 간다 (보수적)', () => {
   // 빈 입력을 삭제로 보면 검사가 새어 나간다
   const r = run('');
   assert.match(r.out, /검사 시작/, '빈 입력을 삭제로 봤다');
+  assert.doesNotMatch(r.out, /Test Files/, '진짜 저장소에서 단위 테스트를 돌렸다');
 });
 
 test('stdin 을 두 번 읽지 않는다고 적어 뒀다', () => {
