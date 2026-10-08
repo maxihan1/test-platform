@@ -127,31 +127,54 @@ test('검증자 정의가 GREEN 이 고친 검사 파일 기준을 늘 보는 �
   assert.match(절2C(), /GREEN 커밋이 검사 파일을 고쳤으면[^\n]*tpx-verifier\.md/, '2-C 의 그 줄이 검증자 정의를 가리키지 않는다');
 });
 
-test('보조 실행자 정의는 Haiku · effort low 이고 고치는 도구가 없으며 로그 요약의 꼴을 정의 한 곳에 적는다', () => {
+test('보조 실행자 정의는 Haiku · effort low 이고 도구가 Bash · Glob · Grep · Read 뿐이며 파일을 고치지 않는 것은 산문 규칙이고 로그 요약의 꼴을 정의 한 곳에 적는다', () => {
   const m = 머리('tpx-runner');
   assert.equal(m.name, 'tpx-runner');
   assert.equal(m.model, 'haiku');
   assert.equal(m.effort, 'low');
   assert.ok(m.tools, 'tools 를 적지 않으면 모든 도구를 받는다');
   assert.deepEqual(m.tools.split(/,\s*/).sort(), ['Bash', 'Glob', 'Grep', 'Read']);
+  assert.doesNotMatch(m.description, /병합/, '병합은 메인이 한다 — 정의의 쓰임에 병합이 남았다');
   const 본문 = readFileSync(new URL('tpx-runner.md', AGENTS), 'utf8').replace(/^---\n[\s\S]*?\n---\n/, '');
-  for (const 낱말 of ['실패한 명령', '검사 이름', '원문 그대로', '파일:줄']) {
+  for (const 낱말 of ['실패한 명령', '검사 이름', '원문 그대로', '파일:줄', '줄 번호', '실행 번호']) {
     assert.ok(본문.includes(낱말), `로그 요약의 꼴에 「${낱말}」이 없다`);
   }
   assert.match(본문, /고칠 방법[^\n]*내지 않는다/, '요약이 고칠 방법을 내지 않는다는 줄이 없다');
+  assert.match(본문, /파일을 고치지 않는다/, '파일을 고치지 않는다는 산문 규칙이 없다');
+  assert.doesNotMatch(본문, /Opus 정의/, 'Opus 는 정의 파일이 없다 — 옛 문구가 남았다');
 });
 
-test('tpx-merge 는 Step 2 · 3 만 tpx-runner 에 맡기고 정의를 못 찾으면 Haiku 로 대신 낸다', () => {
+test('tpx-merge 는 Step 2 의 CI 기다리기만 tpx-runner 에 맡기고 병합은 메인이 새 실행 · success · 헤드를 확인한 뒤 직접 친다', () => {
   const 글 = 스킬('tpx-merge');
   const 호출 = 펜스블록(글, 'tpx-runner');
   assert.match(호출, /subagent_type: "tpx-runner"/, 'tpx-merge 에 tpx-runner 호출 블록이 없다');
   assert.match(호출, /1-record-ready-merge\.md/, '프롬프트가 명령 원문의 파일 경로를 가리키지 않는다');
   assert.match(호출, /## Step 2\./, '프롬프트가 Step 2 절 제목을 가리키지 않는다');
-  assert.match(호출, /## Step 3\./, '프롬프트가 Step 3 절 제목을 가리키지 않는다');
+  assert.doesNotMatch(호출, /## Step 3\./, 'Step 3 병합까지 Haiku 에 넘긴다 — 병합은 메인이 확인 뒤 직접 친다');
+  assert.match(호출, /BEFORE[\s\S]*NOW[\s\S]*CI EXIT/, '프롬프트가 BEFORE · NOW · CI EXIT 를 보고하게 하지 않는다');
+  assert.match(호출, /충돌[\s\S]*DIRTY[\s\S]*새 실행[\s\S]*시간 초과[\s\S]*빨강[\s\S]*보고만/, '멈출 때 명령 없이 보고만 하게 하지 않는다');
+  assert.match(호출, /timeout: 600000/, 'Bash 한 번 상한(timeout: 600000)을 적지 않았다');
+  assert.match(호출, /제목/, '제목(`[작업중]` 을 뗀 것)을 메인이 만들어 넘기지 않는다');
   assert.match(글, /정의를 못 찾으면[\s\S]{0,160}general-purpose[\s\S]{0,80}model: "haiku"[\s\S]{0,40}effort: "low"/, '정의를 못 찾을 때 대신 낼 방법이 없다');
+  assert.match(글, /정의를 못 찾으면[\s\S]{0,400}tpx-runner\.md[^\n]*본문[^\n]*프롬프트/, '대체 호출이 정의 본문을 프롬프트에 싣게 하지 않는다');
   assert.match(글, /Step 1[^\n]*메인/, 'Step 1 이 메인에 남는다는 줄이 없다');
   assert.match(글, /Step 4[^\n]*메인/, 'Step 4 이후가 메인에 남는다는 줄이 없다');
+  assert.match(글, /메인이[^\n]*gh run view <실행 번호> --json conclusion,headSha/, '메인이 실행을 직접 확인하는 명령이 없다');
+  assert.match(글, /NOW[^\n]*BEFORE[^\n]*success[^\n]*PR 헤드|BEFORE[^\n]*NOW[^\n]*success[^\n]*PR 헤드/, '새 실행 · success · PR 헤드 일치를 확인한다는 줄이 없다');
+  assert.match(글, /메인이[^\n]*Step 3[^\n]*직접/, 'Step 3 병합을 메인이 직접 친다는 줄이 없다');
   assert.match(글, /gh pr view <번호> --json state[^\n]*메인|메인[^\n]*gh pr view <번호> --json state/, '병합 뒤 메인이 MERGED 를 직접 확인한다는 줄이 없다');
+  assert.doesNotMatch(글, /gh run view <번호>/, '실행 번호 자리표시가 PR 번호(<번호>)와 같은 이름이다');
+});
+
+test('Step 2 명령 블록은 Bash 한 번 상한 안이고 tpx-runner 로 돌 때는 엣지 표의 행동 없이 멈춰 보고한다', () => {
+  const 글 = 스킬('tpx-merge');
+  assert.match(글, /timeout 540 gh run watch "\$NOW" --exit-status/, 'gh run watch 가 Bash 한 번 상한(10분) 안(timeout 540)이 아니다');
+  assert.doesNotMatch(글, /timeout 900/, '옛 timeout 900 이 남았다');
+  const 표 = 글.indexOf('### 실패 / 엣지');
+  const 머리줄 = 글.indexOf('`tpx-runner` 로 돌 때는 이 표의 행동을 하지 않고 멈춰 보고한다');
+  assert.ok(표 >= 0 && 머리줄 > 표 && 머리줄 < 글.indexOf('| 증상', 표), '엣지 표 앞에 「tpx-runner 로 돌 때는 이 표의 행동을 하지 않고 멈춰 보고한다」가 없다');
+  assert.match(글, /\|[^\n]*124[^\n]*실행 번호[^\n]*다시 지켜[^\n]*통과로 읽지 않는다/, '시간 초과(124)면 실행 번호로 다시 지켜보고 통과로 읽지 않는다는 행이 없다');
+  assert.doesNotMatch(글, /gh run view <번호>/, '실행 번호 자리표시가 PR 번호(<번호>)와 같은 이름이다');
 });
 
 test('tpx-review Step 4 는 EXIT 가 0 이 아닌 명령의 로그 요약을 tpx-runner 에 맡기고 로그 폴더를 넘긴다', () => {
@@ -159,6 +182,7 @@ test('tpx-review Step 4 는 EXIT 가 0 이 아닌 명령의 로그 요약을 tpx
   assert.match(절4, /EXIT[^\n]*0 이 아닌[^\n]*tpx-runner|tpx-runner[^\n]*EXIT[^\n]*0 이 아닌/, 'Step 4 에 실패 로그 요약을 tpx-runner 에 맡기는 줄이 없다');
   assert.match(절4, /tpx-runner[^\n]*로그 폴더|로그 폴더[^\n]*tpx-runner/, '요약을 맡길 때 로그 폴더 경로를 넘긴다는 줄이 없다');
   assert.match(절4, /tpx-runner\.md/, 'Step 4 가 요약의 꼴을 정의 파일에 맡기지 않는다');
+  assert.match(절4, /정의를 못 찾으면[^\n]*general-purpose[^\n]*tpx-runner\.md[^\n]*본문[^\n]*프롬프트/, 'Step 4 에 정의를 못 찾을 때 정의 본문을 프롬프트에 싣는 대체 호출이 없다');
 });
 
 test('tpx-plan 은 찾기를 Explore · Sonnet · medium 으로 내고 받은 파일:줄은 컨트롤러가 열어 확인한다', () => {
