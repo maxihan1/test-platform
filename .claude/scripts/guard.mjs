@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Claude Code 훅 가드. CLAUDE.md 규칙 중 기계적으로 판정되는 것만 강제한다. 모드는 argv[2]
 import { readFileSync, existsSync, readdirSync, appendFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
+import { 기록요구 } from './lane.mjs';
 
 const mode = process.argv[2];
 
@@ -194,9 +195,14 @@ if (mode === 'review') {
   if (ESCAPE || ev.stop_hook_active) ok();
   let changed = '';
   try {
-    changed = execSync('git status --porcelain -- apps packages tests', { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    // 이름 바꾸기가 새 경로 하나로 숨지 않게 --no-renames, 새 폴더가 한 줄로 접히지 않게 all
+    changed = execFileSync('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '--no-renames', '--untracked-files=all', '--', 'apps', 'packages', 'tests'],
+      { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   } catch { ok(); }
   if (!changed.trim()) ok();
+  // 따옴표 친 경로는 못 읽은 것이다 — 모르면 경고 쪽
+  const 줄들 = changed.split('\n').filter(Boolean);
+  if (!줄들.some((l) => l.slice(3).startsWith('"')) && !기록요구(줄들.map((l) => l.slice(3)))) ok();
 
   let latest = 0;
   try {
