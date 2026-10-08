@@ -89,13 +89,59 @@
 **depends-on**: [5]
 **검증**: `node --test .claude/scripts/guard.test.mjs .claude/scripts/guard-wiring.test.mjs`
 
+### 할 일 7. Haiku 5.5 배분 — 병합 대기 · 실패 로그 요약 · 관련 파일 찾기 (계획 검토 뒤 사용자 요청으로 더함)
+
+사용자 결정(2026-10-08) — 「품질을 떨어뜨리지 않는 전제로 Haiku 가 들어갈 만한 곳에는 Haiku 로」. 기준은 **입력이 크고 판단이 적으며, 결과를 컨트롤러가 바로 확인할 수 있는 일**이다. 명령 한 번짜리(상황판 갱신 · `run local`)는 보조 에이전트를 띄우는 비용이 더 커서 넣지 않는다. 판단 일(대조 검증 · 「같은 규칙인가」 · 검토 렌즈 · 작성 에이전트)은 그대로다.
+`tpx-merge` 는 Step 2 · 3 만 넘긴다 — Step 1 기록은 대화 맥락이 있어야 하고, Step 4 의 작업방 나오기(ExitWorktree)와 진행판 게시(Artifact)는 메인 세션 도구라 보조 에이전트가 쓸 수 있는지 확인하지 않았다. Step 2 의 CI 기다림이 확인을 여러 번 되풀이하는 구간이다.
+
+- **RED** — `agent-models.test.mjs` 에 ① `.claude/agents/tpx-runner.md` 가 `model: haiku` · `effort: low` · `tools` 허용 목록 `Bash, Glob, Grep, Read`(고치기 도구 · Agent 없음)이고, 본문이 로그 요약의 꼴(실패한 명령 · 검사 이름 · **원문 그대로의 에러 줄** · `파일:줄`, 고칠 방법은 내지 않는다)을 적는다 ② `tpx-merge` 가 Step 2 · 3 을 `subagent_type: "tpx-runner"` 로 내고 정의를 못 찾으면 `general-purpose` · `model: "haiku"`, Step 1 · Step 4 이후는 메인에 남는다 ③ `tpx-review` Step 4 가 `EXIT` 가 0 이 아닌 명령의 로그 요약을 `tpx-runner` 에 맡긴다(로그 폴더 경로를 넘긴다) ④ `tpx-plan` 이 고칠 자리 · 낱말 · 호출처 · 그 경로를 읽는 검사 찾기를 `subagent_type: "Explore"` · `model: "haiku"` 로 내고, 받은 `파일:줄` 은 컨트롤러가 그 줄을 열어 확인하며 「같은 규칙인가」 판단은 컨트롤러가 한다. 정의 · 문장이 없어 지금 실패한다. 호출 블록 단언은 할 일 1 의 `펜스블록()` 으로 본다
+- **GREEN** — 정의 파일 하나와 스킬 세 곳에 몇 줄씩. 로그 요약의 꼴은 정의 한 곳에만 적고 스킬은 정의를 가리킨다(spec-review H6). `tpx-merge` CI 빨강 때도 같은 정의로 `gh run view <번호> --log-failed` 요약을 받는다
+- **REFACTOR** — 없음
+
+**files**: .claude/agents/tpx-runner.md · .claude/skills/tpx-merge/SKILL.md · .claude/skills/tpx-merge/references/1-record-ready-merge.md · .claude/skills/tpx-review/SKILL.md · .claude/skills/tpx-plan/SKILL.md · .claude/scripts/agent-models.test.mjs
+**depends-on**: [3, 4]
+**검증**: `node --test .claude/scripts/agent-models.test.mjs .claude/scripts/chain-contract.test.mjs`
+
 ## SPEC 동반 수정 (§2.7)
 
 해당 없음 — SPEC 안 건드림. 다만 §3 「같은 규칙 찾기」는 명세를 안 고치는 할 일에도 돈다 — 할 일 3 은 `reuse=` · `check-stamp.mjs find` · `find HEAD` 로, 할 일 5 는 `check:spec 만` · `위와 같은데` 로, 할 일 6 은 `응답 끝 경고` · `guard.mjs review` 로 `docs/` · `.claude/` · `CLAUDE.md` 를 훑어 남은 사본이 없는지 각 할 일 GREEN 에서 본다.
 
 ## Plan 메타
 
-할 일 6개 · 예상 묶음 4개(① 1 · 2 ② 3 · 4 ③ 5 ④ 6) · 구현 규율: TDD · 추가 검증: `node .claude/scripts/check-stamp.mjs run local`(`package.json` 이 바뀌어 단위 테스트 전체 — 약 5분)
+할 일 7개 · 예상 묶음 4개(① 1 · 2 ② 3 · 4 ③ 5 · 7 ④ 6) · 구현 규율: TDD · 추가 검증: `node .claude/scripts/check-stamp.mjs run local`(`package.json` 이 바뀌어 단위 테스트 전체 — 약 5분)
 
 ## 리뷰 결과
 (계획 검토가 채운다)
+
+**렌즈**: 공학 (2등급 = 1종, Opus) · 2026-10-08 · 약 9.5분
+**판정**: BLOCKER 1건 · 주의 4건
+
+### BLOCKER 1 — 할 일 3 의 RED 와 GREEN 이 부딪히고, 옮겨 갈 기존 검사 하나가 바꿀 목록에서 빠졌다 (E4)
+RED 는 「체인 문서 어디에도 `check-stamp.mjs find` 와 `reuse=` 가 없다」를 단언하는데 GREEN 은 tpx-review Step 4 에 「`reuse=` 는 … 물음이 다르다」를 적으라 한다. `review-structure.test.mjs:106-121`(118줄)은 정본 소절에 `check-stamp.mjs find` · `reuse=` 가 **있어야** 통과하는데 할 일 3 의 바꿀 검사 목록(239-252 · 330-340)에 없다.
+왜 문제 — GREEN 을 쓰면 검사 둘이 빨개지고 고칠 근거가 계획에 없다. 구현자가 근거 없이 검사를 고치거나(CLAUDE.md §5) GREEN 을 덜 쓴다. 대조 검증자가 DRIFT 를 낸다.
+고칠 것 — ① 118줄의 두 낱말을 새 낱말(`지금 HEAD` · `EXIT=` · `pre-push` · `CI`)로 바꾼다고 RED 에 적는다 ② 까닭 문장을 `reuse=` 글자 없이 쓰거나 금지 단언을 `check-stamp.mjs find` 하나로 좁힌다 ③ 334줄 대조군(읽은 목록에 tpx-review · checklist-g-h 가 있다)을 남긴다.
+
+### 주의 1 — 커밋 안 된 코드를 얹은 채 돈 run local 도 새 조건에서는 이 HEAD 의 초록으로 통과한다 (할 일 3 · E3)
+`run local` 은 작업 폴더가 더러워도 EXIT=0 을 찍고 표지만 거절한다(`check-stamp.mjs:77 · 85 · 147-148`). 지금 방식은 「깨끗한 HEAD 에서 돌았다」도 보장했는데 새 방식은 잃는다. CI 가 마지막에 막지만 렌즈 인정에 새 틈이 생긴다.
+고칠 것 — 컨트롤러가 `run local` 의 `[check-stamp]` 줄도 넘긴다. 렌즈는 「local 표지를 남겼다: <지금 HEAD 40자>」이거나 「앞 커밋의 local 표지를 재사용했다」일 때만 인정한다(표지 저장소를 읽지 않고 실행 출력만 본다). docs · spec 차선은 `git status --porcelain` 에 문서 자리 밖 경로가 없는지 본다.
+
+### 주의 2 — `절()` 도우미가 빠져 lens-handoff 에 새 사본이 생긴다 (할 일 1 · E2)
+옮길 검사가 `절(글, '## Step 4')` · `절(read(SR), '## 절차')` · `절(read(TPX), '## 차선')` 도 부른다. md-sections.mjs 가 `절` 도 내보내고, RED ② 는 review-structure · lens-handoff · agent-models 세 파일에 `^const 절 =` · `^const 소절 =` · `^const 펜스안` 이 없다(m 플래그 · 「읽은 파일이 셋」 대조군)로 바꾼다. context-diet · cases-probe-contract 의 `절` 은 범위 밖.
+
+### 주의 3 — 할 일 2 는 글자 단언뿐이라 SHAS 에 삭제 줄이 섞여도 못 잡는다 (E4)
+기존 「삭제와 코드 push 가 섞이면」(hook-contract.test.mjs:61-67)은 「검사 시작」만 본다. 삭제 줄 + 문서만 바꾼 커밋 ref 를 함께 넣으면 `차선: docs` 가 찍히고 기록 없이 통과해야 한다는 임시 저장소 검사를 회귀 검사로 더한다(지금 훅에서도 초록).
+
+### 주의 4 — 할 일 5 의 ② · ③ 이 `docs` 행만 고정해 고치려는 `spec` 행 칸에는 검사가 없다 (E4)
+② · ③ 을 `docs` · `spec` 두 행에 똑같이 걸고, `cases` 행 CI 칸에도 ② 목록을 건다.
+
+### 참고(지적 아님)
+- docs · spec 차선의 렌즈 인정은 `check:spec` 하나인데 pre-push · CI 는 `check:docs-contract` 도 돈다 — 범위 밖이면 보고만
+- `check:spec 만` 낱말 찾기에 tpx/SKILL.md:113 · tpx-review:81 · hook-contract.test.mjs:167 이 걸리지만 세션이 직접 도는 명령이라 CI 표 사본이 아니다 — 그대로 둔다고 적어 두면 구현자가 files 밖을 안 고친다
+- 할 일 3 검증에 `chain-contract.test.mjs` 를 더하면 좋다(Step 4 「재사용」 단언 · 스킬 200줄 상한)
+- 묶음 ① 뒤로 이 브랜치의 run local 은 매번 전체 `npm test`(약 5분)
+
+### 통과한 것
+- E1 범위 — 여섯 할 일이 HAR-F1-25 · #178 미룬 둘에 걸린다. 고르지 않은 길과 까닭이 있다
+- E2 계약 · 정본 — 계약 넷 안 건드림. ci.yml 사본을 지우고 HOOKS 를 정본으로. 표 단언이 ci.yml · 훅 글자에서 목록을 뽑는다
+- E3 실패 경로 — 할 일 6 origin/main 없음 처리 · 할 일 2 빈 입력 · `break` 유지
+- E5 시간 — 새 대기 없음
