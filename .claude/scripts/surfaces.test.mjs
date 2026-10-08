@@ -135,7 +135,8 @@ test('배포 설정값 목록도 3등급 — 미분류로 새면 안 된다 (202
   assert.deepEqual(detectTier(['.env.example']).unmapped, []);
 });
 
-test('하위 폴더의 CLAUDE.md 도 HARNESS 다 — DOC(*.md)나 미분류로 새면 안 된다', () => {
+// 표 순서가 정한다 — HARNESS 가 DOC(*.md)보다 앞이다. 다른 표면 폴더(예 apps/admin/src/web/)의 CLAUDE.md 는 그 표면이 먼저 잡으니 여기서 다루지 않는다
+test('다른 표면 폴더 밖의 하위 CLAUDE.md(예 apps/admin/CLAUDE.md)도 HARNESS 다 — DOC(*.md)나 미분류로 새면 안 된다', () => {
   assert.equal(surfaceOf('apps/admin/CLAUDE.md')?.name, 'HARNESS');
   assert.equal(surfaceOf('CLAUDE.md')?.name, 'HARNESS');
   assert.equal(detectTier(['apps/admin/CLAUDE.md']).tier, 1);
