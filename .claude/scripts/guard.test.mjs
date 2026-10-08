@@ -3,6 +3,7 @@
 // 안전 장치를 느슨하게 만드는 변경이라 한쪽만 보면 위험하다.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { fanoutVerdict, isBanned } from './guard.mjs';
 
 test('진짜 위험한 명령을 막는다', () => {
@@ -215,4 +216,13 @@ test('현지날짜 — 한국 시간 새벽에도 pre-push 의 date +%F 와 같�
     `import { 현지날짜 } from ${JSON.stringify(가드)}; console.log(현지날짜(new Date('2026-10-08T20:00:00Z')));`],
     { env: { ...환경, TZ: 'Asia/Seoul' }, encoding: 'utf8' });
   assert.equal(결과.stdout.trim(), '2026-10-09', 결과.stderr);
+});
+
+test('응답 끝 경고의 오늘은 현지날짜() 로 셈하고 코드에 toISOString 이 없다 — 도우미만 두고 옛 줄로 되돌리는 길을 막는다', () => {
+  const 코드 = readFileSync(new URL('./guard.mjs', import.meta.url), 'utf8')
+    .split('\n')
+    .filter((줄) => !줄.trimStart().startsWith('//'))
+    .join('\n');
+  assert.match(코드, /const today = Date\.parse\(현지날짜\(\)\)/, 'review 블록이 오늘을 현지날짜() 로 셈하지 않는다');
+  assert.doesNotMatch(코드, /toISOString/, 'UTC toISOString 이 코드에 남아 있다 — 한국 00~09시에 pre-push 와 하루 어긋난다');
 });

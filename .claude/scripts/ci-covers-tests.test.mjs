@@ -264,6 +264,12 @@ test('문서 계약 검사가 모든 차선에서 돈다', () => {
   assert.equal(/^\s*if:\s*(.+)$/m.exec(단계)?.[1].trim(), 골격조건);
 });
 
+test('진행판 동기화 검사가 모든 차선에서 돈다 — 체크만 바꾼 PR 은 docs 차선이다', () => {
+  const 단계 = (블록 === null ? [] : 단계들(블록)).find((s) => 치는명령(s).includes('npm run check:wbs'));
+  assert.ok(단계, 'check:wbs 단계가 없다');
+  assert.equal(/^\s*if:\s*(.+)$/m.exec(단계)?.[1].trim(), 골격조건);
+});
+
 // 실행 단계만 보던 것을 check 잡 전체로 넓혔다 — check:spec 에 `|| true` 를 붙여도 초록이던 구멍 (spec-review G9)
 test('check 잡의 어느 단계도 실패를 삼키지 않는다 — continue-on-error · || true', () => {
   for (const 단계 of 블록 === null ? [] : 단계들(블록)) {
