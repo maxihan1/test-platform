@@ -188,4 +188,21 @@ test('review 모드 — 1등급만 바뀌면 조용하고, 2등급 이상은 이
   const 반대 = 돌린다(다섯.뿌리);
   assert.equal(반대.status, 1, '화면 파일을 2등급 자리로 옮겼는데 경고하지 않았다');
   assert.match(반대.stderr, /오늘 SPEC 검사 기록/);
+
+  const 커밋한다 = (저장소, 경로, 내용) => {
+    저장소.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+    저장소.쓴다(경로, 내용);
+    저장소.git('add', '.');
+    저장소.git('commit', '-qm', 'work');
+  };
+
+  const 여섯 = 만든다();
+  커밋한다(여섯, 'apps/admin/src/execution/b.ts', 'z\n');
+  const 커밋분 = 돌린다(여섯.뿌리);
+  assert.equal(커밋분.status, 1, '2등급을 커밋했고 작업 폴더가 깨끗한데 경고하지 않았다');
+  assert.match(커밋분.stderr, /apps\/admin\/src\/execution\/b\.ts/);
+
+  const 일곱 = 만든다();
+  커밋한다(일곱, 'apps/admin/src/web/a.tsx', 'y\n');
+  assert.equal(돌린다(일곱.뿌리).status, 0, '화면만 커밋했는데 경고했다');
 });
