@@ -92,8 +92,8 @@ test('계획 검토가 tpx-plan 을 다시 부르지 않는다', () => {
   assert.doesNotMatch(pr, /Skill\(\{\s*skill:\s*["']tpx-plan["']/, '계획 검토가 tpx-plan 을 재호출한다');
 });
 
-// --- 지적 2. gstack 렌즈 세 마디 ---
-test('gstack 렌즈 호출에 비대화형 세 마디가 박혀 있다', () => {
+// --- 지적 2. 계획 검토 렌즈 세 마디 ---
+test('계획 검토 렌즈 호출에 비대화형 세 마디가 박혀 있다', () => {
   const pr = read('tpx-plan-review');
   for (const 마디 of ['비대화형으로 한 번만', '계획을 고치지 말고', '재검토 루프를 돌리지 마라']) {
     assert.ok(pr.includes(마디), `"${마디}" 가 없다`);

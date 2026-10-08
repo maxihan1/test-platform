@@ -89,7 +89,7 @@ node .claude/scripts/detect-tier.mjs docs/spec/<고칠 파일> <그 밖에 건�
 | 표면 | `DOC` | `WEB` `TESTS` `HARNESS` | `ADMIN` `RUNNER` `AUTH` `GUARD` | `MIGRATION` `KIT` `SPEC` `COMPOSE` |
 | 계획 파일 | 없음 | 없음 | 1장 | 1장 + §1.2 절차 |
 | 도는 단계 | 1 · **5 인라인** · 6 · 7 | 〃 | 1~7 전량 | 1~7 전량 + 게이트 0 |
-| 계획 검토 | — | — | `/plan-eng-review` | 위 + `/plan-ceo-review` |
+| 계획 검토 | — | — | 공학 렌즈 | 위 + 제품 렌즈 (화면이면 화면 렌즈) |
 | 코드 검사 | `/code-review` | 위 + 화면이면 `/qa-only` | 위 + `spec-review` | 위 + `/security-review` |
 | 게이트 | 2만 | 2만 | 1+2 | **0+1+2** |
 
