@@ -55,7 +55,7 @@ git diff --name-only origin/main...HEAD | node .claude/scripts/detect-tier.mjs
 다만 Step 4 의 검사 묶음을 **먼저** 돌린 뒤 낸다. 프롬프트에 무엇을 싣는지는 Step 4 「렌즈에 넘기는 것」이 정한다.
 
 **렌즈를 서브 에이전트로 돌리면 `model: "opus"` 로 낸다** (2026-10-06 사용자) — 독립 검사는 아끼지 않는다.
-게이트 2 「고치고 재검사」의 바뀐 부분 재검사도 같다. 구현자 · 대조 검증자의 Sonnet 배분은 `tpx-impl` 이 정한다
+게이트 2 「고치고 재검사」의 바뀐 부분 재검사(아래 「고치고 재검사 — 바뀐 부분만」)도 같다. 구현자 · 대조 검증자의 Sonnet 배분은 `tpx-impl` 이 정한다
 
 `spec-review` 와 `/qa-only` 는 **고치지 않고 보고만** 한다. 고치는 것은 [5] 의 몫이다.
 
