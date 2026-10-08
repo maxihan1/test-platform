@@ -43,7 +43,7 @@ description: /tpx 체인 5단계 — 승인된 계획의 할 일을 TDD 로 구�
   **보안 · 비밀값 · 권한을 고치는 할 일만 `subagent_type: "general-purpose"` 에 `model: "opus"`** 로 낸다 — 그 자리에서 아끼면 품질이 떨어진다(PR #163 의 비밀번호 노출을 Opus 렌즈가 찾았다).
   ponytail 규칙은 `tpx-implementer` · `author-write` 에만 자동으로 붙으므로(`.claude/settings.json` `env`) 이 프롬프트는 첫 줄에서 `ponytail:ponytail` 스킬을 부르라고 적는다
 - **정의를 못 찾으면**(「없는 에이전트」 오류 — 정의는 세션을 띄울 때 읽혀서, 그 뒤 병합되거나 받아 온 정의는 그 세션이 못 본다)
-  `subagent_type: "general-purpose"` 에 `model: "sonnet"` 으로 대신 내고 게이트 2 요약에 적는다. effort 는 정하지 못한다 — 새 세션부터는 정의가 잡힌다.
+  `subagent_type: "general-purpose"` 에 `model: "sonnet"` · `effort: "high"` 로 대신 내고 게이트 2 요약에 적는다 — 새 세션부터는 정의가 잡힌다.
   이 프롬프트도 첫 줄에서 `ponytail:ponytail` 스킬을 부르라고 적는다 — 규칙이 `tpx-implementer` · `author-write` 에만 자동으로 붙는다(`.claude/settings.json` `env`)
 - 프롬프트에는 **계획 파일 경로 + 할 일 번호**를 넘겨 구현자가 원문을 읽게 한다 — 컨트롤러가 풀어 쓰지 않는다(LEARNINGS 2026-10-08)
 - 프롬프트에 반드시 넣을 것 — 계획 파일 경로 + 할 일 번호(작업방 기준 **절대경로**로) · `files` 목록 · `검증` 명령 ·
@@ -71,7 +71,7 @@ description: /tpx 체인 5단계 — 승인된 계획의 할 일을 TDD 로 구�
 차이는 **늘 파일로 떨구고 길면 경로만 넘긴다** — 파일은 **작업방 밖**에 두고, 배경 세션이면 `$CLAUDE_JOB_DIR/tmp/tpx-<PR 번호>-묶음<n>.diff`, 아니면 `/tmp/tpx-<PR 번호>-묶음<n>.diff`.
 PR 번호를 넣는 까닭은 다른 작업 폴더의 묶음 1 과 `/tmp` 에서 이름이 겹치지 않게 하려는 것이다.
 작업방 안에 두면 추적 안 된 파일이 커밋 · 차선 판정에 섞인다. 검증자는 Read 로 읽는다(2026-10-06 PR #163 에서 배경 세션 자리로 읽힌 것을 확인)
-정의를 못 찾으면 위 2-A 처럼 `general-purpose` 에 `model: "sonnet"` 으로 내되 프롬프트에 「Bash · 고치기 금지」를 적는다
+정의를 못 찾으면 위 2-A 처럼 `general-purpose` 에 `model: "sonnet"` · `effort: "medium"` 으로 내되 프롬프트에 「Bash · 고치기 금지」를 적는다
 
 - **컨트롤러가 묶음의 할 일별 `git log` 와 `git diff` 를 먼저 직접 모아 한 파일에 할 일 번호 구획으로 나눠 담는다. 프롬프트에는 짧으면 붙이고 길면 경로만 넘긴다.**
   명령은 `git -C <작업방> show --stat --patch <묶음 커밋 전부> > …/tpx-<PR 번호>-묶음<n>.diff` 한 번이다 — 커밋 제목의 할 일 번호가 구획이 된다.

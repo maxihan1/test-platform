@@ -33,6 +33,24 @@ description: /tpx 체인 7단계 — 게이트 2 승인 뒤 초안을 풀고 병
 | 6 | 기록 — 서식과 기준 (Step 1 에서 이미 쓴다) | 〃 |
 | 7 | PR 을 닫는다 — `--done` 으로 체크리스트를 전부 채운다 | 〃 |
 
+## Step 2 · 3 은 보조 에이전트에 맡긴다
+
+Step 2(초안 해제 · CI 기다림)와 Step 3(병합)만 `tpx-runner`(Haiku · effort low — `.claude/agents/tpx-runner.md`, 2026-10-08 사용자)로 넘긴다. 명령 원문은 파일에 있고 프롬프트는 그 경로와 절 제목만 가리킨다.
+Step 1(기록)은 대화 맥락이 있어야 해서, Step 4 이후(작업방 나오기 · 진행판 게시 · 브랜치 정리 · PR 닫기)는 메인 세션 도구가 필요해서 메인에 남는다.
+
+```
+Agent({
+  subagent_type: "tpx-runner",
+  description: "tpx-merge Step 2·3 — PR #<번호>",
+  prompt: "작업 디렉터리는 <작업방 절대경로> 다. .claude/skills/tpx-merge/references/1-record-ready-merge.md 의 " +
+          "`## Step 2.` 와 `## Step 3.` 절을 그 순서로 그대로 따르라. PR <번호> · 브랜치 <브랜치>. " +
+          "CI 가 빨강이면 병합하지 말고 `gh run view <번호> --log-failed` 의 요약만 내라(꼴은 정의를 따른다)."
+})
+```
+
+- **정의를 못 찾으면**(「없는 에이전트」 오류) `subagent_type: "general-purpose"` 에 `model: "haiku"` · `effort: "low"` 로 대신 낸다.
+- 돌아온 뒤 메인이 `gh pr view <번호> --json state` 로 MERGED 를 직접 확인한다. 확인 전에는 Step 4 로 가지 않는다.
+
 ## 출력
 
 ```
