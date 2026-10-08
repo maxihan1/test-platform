@@ -127,6 +127,39 @@ LEARNINGS 근거 — `docs/LEARNINGS.md` 「[WS-E] 2026-10-08 · **컨트롤러�
 
 - 묶음 1 대조 검증 때 할 일별 차이 파일 셋을 한 파일로 잇는 셸 명령(`{ echo …; cat …; } > 파일`)을 작업 폴더 격리 권한 검사가 거절했다. 우회하지 않고 파일 셋을 그대로 넘겼다. `git -C <작업방> show --stat --patch <묶음 커밋 전부> > tpx-<PR>-묶음<n>.diff` 한 번이면 한 파일이 되고 커밋 제목의 「할 일 N」이 구획이 된다 → 할 일 6 GREEN 에 `tpx-impl` 2-C 의 이 명령 한 줄을 더한다(files 는 이미 든다). 명세 문장은 안 걸린다
 - 묶음 1 검증자는 읽기만 해서 검사를 다시 못 돌렸다 — 컨트롤러가 검증 칸 명령을 모아 한 번 돌렸다(80건 EXIT 0 · `check:spec` EXIT 0 · `bash -n .claude/hooks/pre-push` EXIT 0)
+- 할 일 5 GREEN `f71e8fc2` 가 RED 에 쓴 「보고 형식」 단언 하나를 `절()` → `소절()` 로 바꾸고 대조군을 더했다. RED 그대로는 예시 코드 펜스 안의 `## 요약` 에서 잘려 구현과 상관없이 빨갰다(헬퍼 결함 — 대조 검증 PASS, spec-review 1회차 경미 2)
+
+## 게이트 2 「고치고 재검사」 반영 (2026-10-08 사용자)
+
+1회차 렌즈 — code-review medium(BLOCKER 0 · 주의 4 · 경미 10) · spec-review(`docs/reviews/2026-10-08-하네스-179.md` — 치명 0 · 중대 1 · 경미 3). 두 렌즈가 같은 구멍(표지 인정 조건)을 따로 짚었다.
+반영하지 않는 것 — code-review 경미 9(열린 미완 상한 — 게이트 1 에서 정한 길이다) · 재검사 범위 꼴 실측(code-review 를 `<커밋>..HEAD` 로 부르는 꼴은 확인하지 않았다).
+
+### 할 일 7. 정본 두 곳을 고친다 — 표지 인정 조건 · 재검사 범위
+
+- **RED** — `review-structure.test.mjs` 에 단언을 더한다.
+  ① `tpx-review` 「렌즈에 넘기는 것」이 표지를 `kinds=` 에 `local` 이 있고 `stamp=` 가 넘겨받은 HEAD 이거나 `delta=` 가 `same` · `docs` 일 때 인정한다(재사용 · 문서 커밋 뒤 — code-review 주의 1 · spec-review 중대) · HEAD 는 40자로 넘긴다 · `docs` · `spec` 차선은 표지 대신 `check:spec` `EXIT=0` 을 넘긴다
+  ② 인정이 안 되면 「미확인」은 G8 · G9 가 아니라 **G3 · H1** 이고(G8 · G9 는 첫 회차 렌즈가 직접 부숴 판정한다) 중대로 올린다 · DB 를 건드렸는데 `DATABASE_URL` 없이 돌았으면 G3 미확인(code-review 경미 2)
+  ③ 「다시 안 돈다」 목록 아래에 부숴 보기 사본의 검사 파일 하나는 `node --test` 로 돌린다는 예외 · 사본은 저장소 배치 그대로 뜬다 · 사본 자리는 `${CLAUDE_JOB_DIR:-/tmp}` 아래(code-review 경미 4 · spec-review 경미 1)
+  ④ code-review 에는 고정 args 뒤에 넘길 것을 한 줄로 덧붙인다(code-review 경미 3)
+  ⑤ 「고치고 재검사 — 바뀐 부분만」 — 기준점이 없으면(0·1등급 · 기록 없음) `origin/main...HEAD` · 한 기록에 회차가 여럿이면 마지막 `검사한 HEAD:` 줄 · 앞 지적은 `docs/reviews/` 와 PR 의 [6/7] 검사 코멘트 둘에서 읽는다(code-review 주의 3)
+  ⑥ 같은 절 「렌즈가 하는 일」에 고친 차이에 걸린 파일에 해당하는 체크리스트 항목은 다시 본다(A~C 는 차이에 계약 · 경계 파일이 있을 때만) · 「다시 내는 렌즈」 강도가 「지적이 있었으면 같은 강도, 없었는데 코드가 바뀌었으면 `low`」이고 범위 근거가 「다른 범위 꼴이 먹히는지 확인하지 않았다」(code-review 주의 2 · 경미 1)
+  ⑦ `spec-review` 「## 체크리스트는 references 에 있다」 절과 절차 3 이 재검사 회차는 `tpx-review` 「고치고 재검사 — 바뀐 부분만」을 따른다고 가리킨다 · 절차 1 렌즈 모드에 「diff 에 새 절이 있으면 색인의 그 절 번호와 라우터 표를 `grep -nF` 로 본다」(H3 · H4 — code-review 경미 8)
+- **GREEN** — 위 문장을 넣는다. 정본 밖에 규칙을 옮겨 적지 않는다(H6)
+- **REFACTOR** — 없음
+
+**files**: .claude/skills/tpx-review/SKILL.md, .claude/skills/spec-review/SKILL.md, .claude/scripts/review-structure.test.mjs
+**depends-on**: []
+**검증**: node --test .claude/scripts/review-structure.test.mjs .claude/scripts/chain-contract.test.mjs .claude/scripts/context-diet.test.mjs .claude/scripts/agent-models.test.mjs
+
+### 할 일 8. 새 검사를 단단히 하고 작은 문구를 고친다
+
+- **RED** — ① `review-structure.test.mjs` 의 계획 검토 호출 단언(`subagent_type: "general-purpose"` · `model: "opus"`)을 `tpx-plan-review` Step 2 코드 펜스 안만 잘라 본다. `agent-models.test.mjs` 「계획 검토 · 독립 검사 렌즈는 Opus」도 `tpx-plan-review` 는 코드 펜스 안을 본다(지금은 산문 줄 `:31` 이 받쳐 호출 블록을 `Explore` · `haiku` 로 바꿔도 초록 — code-review 주의 4) ② 「옮겨 적지 않는다」 단언을 줄 하나가 아니라 체인 문서 전체(`tpx*` · `spec-review` SKILL · references)에서 `check-stamp.mjs find` 가 정본 소절에만 나오는지 세는 꼴로(지금은 G3 다음 줄에 사본을 넣어도 초록 — code-review 경미 6) ③ `tpx/SKILL.md` 등급표 「계획 검토」 2등급 칸에 화면 렌즈가 있다(code-review 경미 5) ④ `tpx` 차선 표가 `lane.mjs` 의 `lane()` 을 가리킨다(DOC 표면 조건까지 — spec-review 경미 3). 고친 ①② 는 지금 구현에서 초록이 맞다 — 부숴 보기로 확인한다(사본에서 호출 블록을 바꾸면 빨강 · G3 다음 줄에 사본을 넣으면 빨강). ③④ 는 지금 빨강
+- **GREEN** — `tpx/SKILL.md` 등급표 2등급 칸 · 차선 표 두 행 · `docs/HOOKS.md` 차선 절의 「루트 `*.md`」 줄이 같은 정본을 가리키게(spec-review 경미 3) · `tpx-impl` 2-C 「길면 경로만 넘긴다」 · 「해시 없는 PASS 는 그 할 일만 검증자에게 다시 묻는다」(code-review 경미 7) · `.claude/hooks/pre-push` `snapshot()` 주석의 근거를 「`$RANDOM` 이 서브셸마다 다시 심긴다(bash 3.2.57 실측 — PR #178 3회차)」로(`$$` 는 두 번 다 같은 값 — code-review 경미 10, 주석만)
+- **REFACTOR** — 없음
+
+**files**: .claude/scripts/review-structure.test.mjs, .claude/scripts/agent-models.test.mjs, .claude/skills/tpx/SKILL.md, .claude/skills/tpx-impl/SKILL.md, docs/HOOKS.md, .claude/hooks/pre-push
+**depends-on**: [7]
+**검증**: node --test .claude/scripts/review-structure.test.mjs .claude/scripts/agent-models.test.mjs .claude/scripts/chain-contract.test.mjs .claude/scripts/context-diet.test.mjs .claude/scripts/guard.test.mjs .claude/scripts/hook-contract.test.mjs && npm run check:spec
 
 ## 리뷰 결과
 
