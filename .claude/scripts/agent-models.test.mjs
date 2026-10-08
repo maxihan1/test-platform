@@ -56,6 +56,17 @@ test('tpx-impl 이 구현자 · 검증자를 정의 이름으로 부르고 보�
   assert.match(글, /정의를 못 찾으면[\s\S]{0,160}model: "sonnet"/, '정의를 못 찾을 때 대신 낼 방법이 없다');
 });
 
+// 같은 작업방의 병렬 구현자가 서로의 미커밋 파일을 쓸어 담았다 (PR #181 묶음 ① · LEARNINGS 2026-10-07 재발)
+test('tpx-impl 구현자 프롬프트 필수 목록이 자기 files 만 이름으로 커밋하고 push 하지 않게 한다', () => {
+  const 글 = readFileSync(new URL('tpx-impl/SKILL.md', SKILLS), 'utf8');
+  const 시작 = 글.indexOf('프롬프트에 반드시 넣을 것');
+  assert.ok(시작 >= 0, '대조군 — 「프롬프트에 반드시 넣을 것」 줄이 있어야 한다');
+  const 목록 = 글.slice(시작, 글.indexOf('\n\n', 시작));
+  assert.match(목록, /git add <[^>]*경로>/, '자기 files 만 이름으로 git add 하라는 말이 없다');
+  assert.match(목록, /-A[^\n]*\.[^\n]*commit -a[^\n]*금지/, '`-A` · `.` · `commit -a` 금지가 없다');
+  assert.match(목록, /push 하지 않는다/, '구현자는 push 하지 않는다는 말이 없다');
+});
+
 test('계획 검토 · 독립 검사 렌즈는 Opus 를 쓴다고 적혀 있다', () => {
   const 호출 = 펜스블록(스킬('tpx-plan-review'), 'Agent({');
   assert.match(호출, /Agent\(\{/, '대조군 — tpx-plan-review 코드 펜스 안에 호출 블록이 있어야 한다');
