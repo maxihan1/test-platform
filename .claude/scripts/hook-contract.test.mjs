@@ -16,14 +16,32 @@ const SHA = 'a'.repeat(40);
 const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
 
 /** 훅을 stdin 입력과 함께 돌리고 종료 코드와 출력을 돌려준다 */
+// git 저장소가 아닌 빈 폴더 + 가짜 npm 에서 돌린다. 진짜 저장소에서 돌리면 「검사 시작」 뒤에 진짜 단위 테스트가
+// 끝까지 돌아 수 분이 걸린다 (2026-10-08 CI 492초 중 491초). 이 검사들이 보는 것은 「검사 시작」 글자와 종료 코드뿐이다
 function run(stdin) {
+  const 뿌리 = mkdtempSync(join(tmpdir(), 'pre-push-run-'));
+  const 가짜 = join(뿌리, '.fakebin');
+  const 기록 = join(뿌리, '.npm-calls');
+  mkdirSync(가짜);
+  writeFileSync(join(가짜, 'npm'), `#!/bin/sh\necho "$*" >> "${기록}"\n`);
+  chmodSync(join(가짜, 'npm'), 0o755);
+  const 호출 = () => {
+    try {
+      return readFileSync(기록, 'utf8');
+    } catch {
+      return '';
+    }
+  };
   try {
     const out = execFileSync(HOOK, ['origin', 'https://example.com/r.git'], {
+      cwd: 뿌리, env: { ...깨끗한환경, PATH: `${가짜}:${process.env.PATH}` },
       input: stdin, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
     });
-    return { code: 0, out };
+    return { code: 0, out, 호출: 호출() };
   } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` };
+    return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}`, 호출: 호출() };
+  } finally {
+    rmSync(뿌리, { recursive: true, force: true });
   }
 }
 
@@ -51,6 +69,7 @@ test('삭제와 코드 push 가 섞이면 검사로 간다', () => {
   const r = run(`(delete) ${ZERO} refs/heads/a ${SHA}\nrefs/heads/b ${SHA} refs/heads/b ${ZERO}\n`);
   assert.match(r.out, /검사 시작/, '섞였는데 건너뛰었다');
   assert.doesNotMatch(r.out, /Test Files/, '진짜 저장소에서 단위 테스트를 돌렸다');
+  assert.equal(r.호출, '', `진짜 npm 대신 가짜 npm 이 불렸다: ${r.호출}`);
 });
 
 test('입력이 비면 검사로 간다 (보수적)', () => {
@@ -58,6 +77,7 @@ test('입력이 비면 검사로 간다 (보수적)', () => {
   const r = run('');
   assert.match(r.out, /검사 시작/, '빈 입력을 삭제로 봤다');
   assert.doesNotMatch(r.out, /Test Files/, '진짜 저장소에서 단위 테스트를 돌렸다');
+  assert.equal(r.호출, '', `진짜 npm 대신 가짜 npm 이 불렸다: ${r.호출}`);
 });
 
 test('stdin 을 두 번 읽지 않는다고 적어 뒀다', () => {
