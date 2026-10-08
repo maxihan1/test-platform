@@ -229,3 +229,83 @@ test('할 일 5 — 새 줄이 로컬 main 을 diff 기준으로 쓰지 않는�
     assert.deepEqual(위반, [], `${파일} 에 로컬 main 꼴이 있다`);
   }
 });
+
+const 줄들 = (글) => 글.split('\n');
+
+test('할 일 7 — 표지 인정 조건은 local 이 있고 stamp 가 그 HEAD 이거나 delta 가 same · docs 일 때다(HEAD 는 40자, 문서 · 명세 차선은 check:spec EXIT=0)', () => {
+  const 본 = 소절(read(TR), 정본제목);
+  assert.ok(본.length > 200, '대조군 — 소절이 비어 있다');
+  const 인정 = /`kinds=` 에 `local`[^\n]*`stamp=`[^\n]*HEAD[^\n]*`delta=`[^\n]*`same` · `docs`/;
+  assert.ok(!인정.test('`stamp=` 가 그 HEAD 이고 `kinds=` 에 `local` 이 있는지만 본다'), '대조군 — 옛 문장은 인정 조건 꼴이 아니어야 한다');
+  assert.match(본, 인정, '`kinds=` local · `stamp=` HEAD · `delta=` same · docs 인정 조건이 없다');
+  assert.ok(본.includes('40자'), 'HEAD 를 40자로 넘기라는 말이 없다');
+  const 차선 = 줄들(본).find((l) => l.includes('check:spec') && l.includes('EXIT=0')) ?? '';
+  assert.ok(차선.includes('`docs`') && 차선.includes('`spec`') && 차선.includes('표지'), 'docs · spec 차선이 표지 대신 check:spec EXIT=0 을 넘긴다는 줄이 없다');
+});
+
+test('할 일 7 — 인정이 안 되면 미확인은 G3 · H1 중대이고 G8 · G9 는 첫 회차 렌즈가 직접 판정한다', () => {
+  const 본 = 소절(read(TR), 정본제목);
+  const 미확인줄 = 줄들(본).filter((l) => l.includes('미확인'));
+  assert.ok(미확인줄.length > 0, '대조군 — 미확인 줄이 있어야 한다');
+  const 인정안 = 줄들(본).find((l) => l.includes('인정이 안')) ?? '';
+  assert.ok(인정안.includes('G3 · H1') && 인정안.includes('미확인') && 인정안.includes('중대'), '인정이 안 되면 G3 · H1 미확인 중대라는 줄이 없다');
+  assert.deepEqual(미확인줄.filter((l) => l.includes('G8') || l.includes('G9')), [], '미확인을 G8 · G9 에 묶은 옛 문장이 남았다');
+  assert.ok(/G8 · G9[^\n]*직접/.test(본), 'G8 · G9 는 렌즈가 직접 부숴 판정한다는 말이 없다');
+  const 디비 = 줄들(본).find((l) => l.includes('DATABASE_URL') && l.includes('미확인')) ?? '';
+  assert.ok(디비.includes('G3'), 'DATABASE_URL 없이 돌았으면 G3 미확인이라는 줄이 없다');
+});
+
+test('할 일 7 — 다시 안 돈다 목록 아래에 부숴 보기 사본의 검사 파일은 node --test 로 돈다는 예외와 사본 자리가 있다', () => {
+  const 본 = 소절(read(TR), 정본제목);
+  const 예외 = 줄들(본).find((l) => l.includes('사본') && l.includes('node --test') && l.includes('검사 파일')) ?? '';
+  assert.ok(예외, '부숴 보기 사본의 검사 파일을 node --test 로 돈다는 예외 줄이 없다');
+  assert.ok(예외.includes('저장소 배치 그대로'), '사본이 저장소 배치 그대로 뜬다는 말이 없다');
+  assert.ok(본.indexOf(예외) > 본.indexOf('다시 돌리지 않는다'), '예외가 다시 안 돈다 문장보다 앞에 있다');
+  assert.ok(본.includes('${CLAUDE_JOB_DIR:-/tmp}'), '사본 자리 ${CLAUDE_JOB_DIR:-/tmp} 가 없다');
+  assert.ok(!본.includes('(`/tmp` 아래)'), '/tmp 하나로만 적은 옛 사본 자리가 남았다');
+});
+
+test('할 일 7 — Step 2 가 code-review 고정 args 뒤에 넘길 것을 한 줄로 가리킨다', () => {
+  const 본 = 절(read(TR), '## Step 2');
+  const 인덱스 = 줄들(본).findIndex((l) => l.includes('medium origin/main...HEAD in'));
+  assert.ok(인덱스 >= 0, '대조군 — 2~3등급 args 줄이 있어야 한다');
+  const 뒤 = 줄들(본).slice(인덱스 + 1, 인덱스 + 4).join('\n');
+  assert.ok(뒤.includes('args 뒤') && 뒤.includes('렌즈에 넘기는 것'), 'args 줄 바로 뒤에 넘길 것을 정본으로 가리키는 줄이 없다');
+  assert.ok(!본.includes('check-stamp.mjs find'), 'Step 2 에 정본 규칙(find)을 옮겨 적었다');
+});
+
+test('할 일 7 — 고치고 재검사 절이 기준점 없을 때 · 여러 회차 · 앞 지적 두 곳을 적는다', () => {
+  const 본 = 절(read(TR), 재검사제목);
+  const 기준 = 줄들(본).find((l) => l.includes('기준점이 없으면')) ?? '';
+  assert.ok(기준.includes('origin/main...HEAD') && 기준.includes('0·1등급'), '기준점이 없으면 origin/main...HEAD 라는 줄이 없다');
+  assert.ok(본.includes('마지막 `검사한 HEAD:` 줄'), '회차가 여럿이면 마지막 검사한 HEAD 줄이라는 말이 없다');
+  const 지적 = 줄들(본).find((l) => l.includes('docs/reviews/') && l.includes('[6/7] 검사')) ?? '';
+  assert.ok(지적.includes('PR'), '앞 지적을 docs/reviews/ 와 PR 의 [6/7] 검사 코멘트 둘에서 읽는다는 줄이 없다');
+});
+
+test('할 일 7 — 고치고 재검사 절의 렌즈 일 · 강도 · 범위 근거', () => {
+  const 본 = 절(read(TR), 재검사제목);
+  const 일 = 줄들(본).find((l) => l.includes('렌즈가 하는 일')) ?? '';
+  assert.ok(일.includes('해당하는 체크리스트 항목은 다시 본다'), '고친 차이에 걸린 파일의 체크리스트 항목은 다시 본다는 말이 없다');
+  assert.ok(일.includes('A~C') && 일.includes('계약') && 일.includes('경계'), 'A~C 는 계약 · 경계 파일이 있을 때만이라는 말이 없다');
+  assert.ok(/체크리스트 전부[^\n]*(안|않)/.test(일), '체크리스트 전부를 다시 돌지 않는다는 기존 말이 지워졌다');
+  const 렌즈 = 줄들(본).find((l) => l.includes('다시 내는 렌즈')) ?? '';
+  assert.ok(렌즈.includes('지적이 있었으면 같은 강도') && /없었는데 코드가 바뀌었으면 `low`/.test(렌즈), '강도가 지적이 있었으면 같은 강도 · 없었는데 코드가 바뀌었으면 low 가 아니다');
+  assert.ok(본.includes('다른 범위 꼴이 먹히는지 확인하지 않았다'), 'origin/main...HEAD 근거(다른 꼴은 확인하지 않았다)가 없다');
+});
+
+test('할 일 7 — spec-review 가 재검사 회차를 tpx-review 절로 가리키고 절차 1 이 새 절의 색인 · 라우터를 본다', () => {
+  const 글 = read(SR);
+  const 가리킴 = '고치고 재검사 — 바뀐 부분만';
+  const 참조절 = 절(글, '## 체크리스트는 references 에 있다');
+  assert.ok(참조절.includes('| A. 계약 위반 |'), '대조군 — 체크리스트 절을 잘라야 한다');
+  assert.ok(참조절.includes(가리킴) && 참조절.includes('tpx-review') && 참조절.includes('재검사'), '체크리스트 절이 재검사 회차를 tpx-review 절로 안 가리킨다');
+  const 절차 = 절(글, '## 절차');
+  const 셋째 = 절차.slice(절차.indexOf('\n3.'), 절차.indexOf('\n4.'));
+  assert.ok(셋째.length > 50, '대조군 — 절차 3 을 잘라야 한다');
+  assert.ok(셋째.includes(가리킴) && 셋째.includes('재검사'), '절차 3 이 재검사 회차를 tpx-review 절로 안 가리킨다');
+  const 첫째 = 절차.slice(절차.indexOf('1.'), 절차.indexOf('\n2.'));
+  const 새절 = 줄들(첫째).find((l) => l.includes('새 절')) ?? '';
+  assert.ok(새절.includes('색인') && 새절.includes('라우터') && 새절.includes('grep -nF'), '절차 1 에 diff 의 새 절은 색인 · 라우터 표를 grep -nF 로 본다는 줄이 없다');
+  assert.ok(!글.includes('check-stamp.mjs find'), 'spec-review 에 정본 규칙(find)을 옮겨 적었다');
+});
