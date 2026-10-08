@@ -149,3 +149,82 @@ test('할 일 4 — Step 3 이 세 마디를 자기 안에 적고 /tpx-plan-revi
     assert.ok(본.includes(마디), `"${마디}" 가 Step 3 에 없다`);
   }
 });
+
+const 재검사제목 = '## 고치고 재검사 — 바뀐 부분만';
+const TPX = '.claude/skills/tpx/SKILL.md';
+
+test('할 일 5 — tpx-review 에 「고치고 재검사」 절이 한 번 있고 비어 있지 않다', () => {
+  const 글 = read(TR);
+  assert.equal(글.split(재검사제목).length - 1, 1, '「고치고 재검사 — 바뀐 부분만」 절이 정확히 한 번이어야 한다');
+  assert.ok(절(글, 재검사제목).length > 200, '절이 비었다');
+  assert.ok(절(글, '## Step 4').length > 200, '대조군 — 다른 절을 읽을 수 있어야 한다');
+});
+
+test('할 일 5 — 범위는 앞 회차 검사 HEAD 부터의 차이와 앞 지적 목록이고 조상이 아니면 origin/main 으로 돌아간다', () => {
+  const 본 = 절(read(TR), 재검사제목);
+  for (const 낱말 of ['git diff <앞 회차 검사 HEAD>..HEAD', '지적 목록', 'git merge-base --is-ancestor', 'amend', 'rebase', 'origin/main...HEAD']) {
+    assert.ok(본.includes(낱말), `범위 규칙 "${낱말}" 이 없다`);
+  }
+});
+
+test('할 일 5 — 렌즈는 지적이 닫혔나와 같은 규칙 찾기만 하고 체크리스트 전부를 다시 돌지 않는다', () => {
+  const 본 = 절(read(TR), 재검사제목);
+  for (const 낱말 of ['닫혔나', '핵심 낱말', 'H2', 'H6', '체크리스트 전부']) {
+    assert.ok(본.includes(낱말), `렌즈가 할 일 "${낱말}" 이 없다`);
+  }
+  assert.match(본, /체크리스트 전부[^\n]*(안|않)/, '체크리스트 전부를 다시 돌지 않는다는 말이 아니다');
+});
+
+test('할 일 5 — 다시 내는 렌즈는 지적을 낸 렌즈뿐이고 고친 차이에 코드가 있으면 code-review low 를 늘 낸다', () => {
+  const 본 = 절(read(TR), 재검사제목);
+  for (const 낱말 of ['지적을 낸 렌즈', '같은 강도', '코드', 'code-review', '`low`', '앞 회차 지적이 없었어도']) {
+    assert.ok(본.includes(낱말), `렌즈 고르기 규칙 "${낱말}" 이 없다`);
+  }
+  assert.ok(/code-review[^\n]*origin\/main\.\.\.HEAD|origin\/main\.\.\.HEAD[^\n]*code-review/.test(본), 'code-review 범위가 origin/main...HEAD 로 적히지 않았다');
+});
+
+test('할 일 5 — 검사 묶음 · 부숴 보기는 「렌즈에 넘기는 것」을 가리키기만 한다', () => {
+  const 본 = 절(read(TR), 재검사제목);
+  assert.ok(본.includes('렌즈에 넘기는 것'), '정본 소절을 안 가리킨다');
+  for (const 낱말 of ['check-stamp.mjs find', '임시 사본', 'RED 커밋', 'stamp=']) {
+    assert.ok(!본.includes(낱말), `정본 규칙 "${낱말}" 을 옮겨 적었다`);
+  }
+});
+
+test('할 일 5 — tpx 「게이트」 절이 「고치고 재검사」를 고르면 tpx-review 의 그 절로 간다고 가리킨다', () => {
+  const 본 = 절(read(TPX), '## 게이트');
+  assert.ok(본.includes('| 🛑 **2** 병합'), '대조군 — 게이트 표가 있어야 한다');
+  assert.ok(본.includes('고치고 재검사 — 바뀐 부분만'), '새 절 제목을 안 가리킨다');
+  assert.ok(본.includes('tpx-review'), 'tpx-review 를 안 가리킨다');
+});
+
+test('할 일 5 — spec-review 절차 2 가 재검사면 넘겨받은 범위 · 앞 지적만 보게 한다', () => {
+  const 절차 = 절(read(SR), '## 절차');
+  const 시작 = 절차.indexOf('\n2.');
+  const 끝 = 절차.indexOf('\n3.');
+  assert.ok(시작 >= 0 && 끝 > 시작, '대조군 — 절차 2 를 잘라야 한다');
+  const 본 = 절차.slice(시작, 끝);
+  for (const 낱말 of ['재검사', '넘겨받은 범위', '앞 지적', '고치고 재검사']) {
+    assert.ok(본.includes(낱말), `절차 2 에 "${낱말}" 이 없다`);
+  }
+  assert.ok(본.includes('범위가 불분명하면 묻는다'), '기존 줄이 지워졌다');
+});
+
+test('할 일 5 — spec-review 보고 형식 머리에 검사한 HEAD 해시 줄이 있고 기존 예시 머리글은 남는다', () => {
+  const 본 = 절(read(SR), '## 보고 형식');
+  assert.ok(본.includes('검사한 HEAD'), '검사한 HEAD 줄이 없다');
+  assert.ok(본.indexOf('검사한 HEAD') < 본.indexOf('## 요약'), '검사한 HEAD 줄이 요약보다 뒤에 있다');
+  for (const 머리 of ['## 요약', '## 치명', '## 중대', '## 통과한 항목']) {
+    assert.ok(본.includes(머리), `예시 머리글 "${머리}" 이 지워졌다`);
+  }
+});
+
+test('할 일 5 — 새 줄이 로컬 main 을 diff 기준으로 쓰지 않는다(조상 확인 꼴 대조군 포함)', () => {
+  const 꼴 = /(?<!origin\/)\bmain\.\.\.?HEAD/;
+  assert.ok(!꼴.test('git diff <앞 회차 검사 HEAD>..HEAD'), '앞 회차 범위가 로컬 main 꼴로 읽힌다');
+  assert.ok(꼴.test('git diff main...HEAD'), '대조군 — 로컬 main 꼴을 잡아야 한다');
+  for (const 파일 of [TR, TPX, SR]) {
+    const 위반 = read(파일).split('\n').filter((l) => 꼴.test(l));
+    assert.deepEqual(위반, [], `${파일} 에 로컬 main 꼴이 있다`);
+  }
+});
