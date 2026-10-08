@@ -25,7 +25,7 @@ test('할 일 4 — 정본 소절이 Step 4 안에 있고 검사 묶음을 컨�
   for (const 낱말 of ['run local', 'node --test', 'npm test', 'test:changed']) {
     assert.ok(본.includes(낱말), `렌즈가 다시 안 돌릴 명령 "${낱말}" 이 없다`);
   }
-  for (const 낱말 of ['check-stamp.mjs find', 'reuse=', '미확인', '중대', 'G8', 'G9']) {
+  for (const 낱말 of ['지금 HEAD', 'EXIT=', '[check-stamp]', 'pre-push', 'CI', '미확인', '중대', 'G8', 'G9']) {
     assert.ok(본.includes(낱말), `렌즈가 확인하는 길 "${낱말}" 이 없다`);
   }
 });
@@ -55,19 +55,26 @@ test('할 일 4 — 다른 자리는 「렌즈에 넘기는 것」을 가리키�
   assert.ok(절(read(SR), '## 절차').includes('스스로 돌려도'), '사람이 직접 부르면 스스로 돌려도 된다는 줄이 빠졌다');
 });
 
-test('할 일 9 — 표지 인정은 렌즈가 find HEAD 를 불러 reuse= 줄 하나만 읽는다(tests · all 이면 인정, none 이면 아니다 — kinds= · delta= 는 안 읽는다, HEAD 는 40자, 문서 · 명세 차선은 check:spec EXIT=0)', () => {
+test('할 일 3 — 표지 인정은 렌즈가 넘겨받은 HEAD · EXIT 줄 · [check-stamp] 줄로 한다(표지 저장소는 안 읽는다, 문서 · 명세 차선은 check:spec EXIT=0 과 변경 상태 확인)', () => {
   const 본 = 소절(read(TR), 정본제목);
   assert.ok(본.length > 200, '대조군 — 소절이 비어 있다');
-  const 줄 = 줄들(본).find((l) => l.includes('`reuse=`')) ?? '';
-  assert.ok(줄.includes('check-stamp.mjs find HEAD') && 줄.includes('지금 HEAD'), `find HEAD(지금 HEAD)를 렌즈가 부른다는 줄이 없다: ${줄}`);
-  assert.ok(/`tests` · `all`[^\n]*인정한다/.test(줄), `reuse= 가 tests · all 이면 인정한다는 말이 없다: ${줄}`);
-  assert.ok(/`none`[^\n]*인정하지 않는다/.test(줄 + '\n' + 본), 'reuse= 가 none 이면 인정하지 않는다는 말이 없다');
-  assert.ok(!/`tests` · `all`[^\n]*인정하지 않는다[^\n]*`none`[^\n]*인정한다/.test(줄), '인정 결론이 뒤집혔다');
-  assert.ok(!본.includes('`kinds=`') && !본.includes('`delta=`') && !본.includes('`stamp=`'), '렌즈가 kinds= · delta= · stamp= 를 직접 읽는 옛 인정 조건이 남았다(HOOKS.md 는 reuse= 줄만 읽는다고 한다)');
-  assert.ok(본.includes('40자'), 'HEAD 를 40자로 넘기라는 말이 없다');
+  for (const 낱말 of ['`git rev-parse HEAD`', '지금 HEAD', '`EXIT=`', '[check-stamp]', 'local 표지를 남겼다: ', '앞 커밋의 local 표지를 재사용했다', '40자', 'pre-push', 'CI', '사이에 커밋하면 다시 돈다']) {
+    assert.ok(본.includes(낱말), `넘겨받은 결과로 인정하는 규칙 "${낱말}" 이 없다`);
+  }
+  for (const 낱말 of ['check-stamp.mjs find', 'reuse=', 'kinds=', 'delta=', 'stamp=']) {
+    assert.ok(!본.includes(낱말), `렌즈가 표지 저장소를 읽는 옛 규칙 "${낱말}" 이 남았다`);
+  }
+  assert.ok(!본.includes('네 가지'), '넘길 것 개수를 손으로 적었다');
+  const 스크립트 = read('.claude/scripts/check-stamp.mjs');
+  assert.ok(스크립트.includes('표지를 남겼다: ${sha}') && 스크립트.includes('앞 커밋의 local 표지를 재사용했다'), '대조군 — check-stamp.mjs 의 출력 글자가 문서가 옮긴 글자와 달라졌다');
   const 차선 = 줄들(본).find((l) => l.includes('check:spec') && l.includes('EXIT=0')) ?? '';
   assert.ok(차선.includes('`docs`') && 차선.includes('`spec`') && 차선.includes('표지'), 'docs · spec 차선이 표지 대신 check:spec EXIT=0 을 넘긴다는 줄이 없다');
-  assert.ok(/`tests` · `all`/.test('`tests` · `all` 이면 인정한다') && !/`tests` · `all`[^\n]*인정한다/.test('`tests` · `all` 이면 인정하지 않는다'), '대조군 — 결론 낱말을 뒤집으면 꼴이 깨져야 한다');
+  assert.ok(차선.includes('status --porcelain') && 차선.includes('문서 자리'), 'docs · spec 차선이 변경 상태(status --porcelain)로 문서 자리 밖 경로를 본다는 말이 없다');
+  const 요약 = 절(read(TR), '## Step 7');
+  assert.ok(요약.length > 200 && 요약.includes('검사 묶음이 이 HEAD 에서 초록인지 모른다') && 요약.includes('💡'), 'Step 7 에 「초록인지 모른다」를 💡 줄에 싣는다는 말이 없다');
+  const 훅행 = 소절(read('docs/HOOKS.md'), '### 검사 재사용').split('\n').find((l) => l.startsWith('| `find` 출력')) ?? '';
+  assert.ok(훅행.length > 20, '대조군 — HOOKS find 출력 행을 못 찾았다');
+  assert.ok(훅행.includes('훅만') && 훅행.includes('렌즈는 표지를 읽지 않는다') && !훅행.includes('훅 · 스킬'), `HOOKS find 출력 행이 렌즈는 표지를 안 읽는다고 적지 않는다: ${훅행}`);
 });
 
 test('할 일 9 — 인정이 안 되면 게이트 2 요약의 독립 중대이고 G3 · H1 체크리스트 항목이 아니다 · DB 없이 돌았으면 G3 미확인은 남는다 · G8 · G9 는 직접 판정', () => {
@@ -96,16 +103,15 @@ test('할 일 7 — 다시 안 돈다 목록 아래에 부숴 보기 사본의 �
   assert.ok(!본.includes('(`/tmp` 아래)'), '/tmp 하나로만 적은 옛 사본 자리가 남았다');
 });
 
-test('할 일 8 — check-stamp.mjs find 는 체인 문서 전체에서 tpx-review 정본 소절에만 나온다', () => {
+test('할 일 3 — 표지를 읽는 규칙(check-stamp.mjs find · reuse=)은 체인 문서 어디에도 없다', () => {
   const 스킬들 = new URL('.claude/skills/', ROOT);
   const 문서들 = readdirSync(스킬들, { recursive: true })
     .filter((f) => f.endsWith('.md') && /^(tpx[^/]*|spec-review)\//.test(f));
   assert.ok(문서들.includes('tpx-review/SKILL.md') && 문서들.includes('spec-review/references/checklist-g-h.md'), '대조군 — 체인 문서를 재귀로 읽어야 한다');
-  const 센다 = (글) => 글.split('check-stamp.mjs find').length - 1;
-  const 전체 = 문서들.reduce((합, f) => 합 + 센다(read(`.claude/skills/${f}`)), 0);
-  const 정본 = 센다(소절(read(TR), 정본제목));
-  assert.ok(정본 >= 1, '대조군 — 정본 소절에 find 가 있어야 한다');
-  assert.equal(전체, 정본, `정본 소절 밖에 find 가 ${전체 - 정본}군데 있다`);
+  for (const f of 문서들) {
+    const 글 = read(`.claude/skills/${f}`);
+    assert.ok(!글.includes('check-stamp.mjs find') && !글.includes('reuse='), `${f} 에 표지를 읽는 규칙(find · reuse=)이 남았다`);
+  }
 });
 
 test('할 일 8 — tpx 차선 표 · HOOKS 차선 표가 lane() 을 가리키고 DOC 표면 조건을 적는다', () => {
