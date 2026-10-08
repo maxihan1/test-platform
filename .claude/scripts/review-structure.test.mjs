@@ -211,7 +211,8 @@ test('할 일 5 — spec-review 절차 2 가 재검사면 넘겨받은 범위 ·
 });
 
 test('할 일 5 — spec-review 보고 형식 머리에 검사한 HEAD 해시 줄이 있고 기존 예시 머리글은 남는다', () => {
-  const 본 = 절(read(SR), '## 보고 형식');
+  const 본 = 소절(read(SR), '## 보고 형식');
+  assert.ok(본.includes('## 치명'), '대조군 — 코드 펜스 안 예시까지 읽어야 한다');
   assert.ok(본.includes('검사한 HEAD'), '검사한 HEAD 줄이 없다');
   assert.ok(본.indexOf('검사한 HEAD') < 본.indexOf('## 요약'), '검사한 HEAD 줄이 요약보다 뒤에 있다');
   for (const 머리 of ['## 요약', '## 치명', '## 중대', '## 통과한 항목']) {
