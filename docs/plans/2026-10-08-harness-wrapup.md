@@ -31,8 +31,8 @@
 
 ### 할 일 1. 검사 도우미를 한 곳으로 — 펜스는 호출 블록 하나만 · review-structure 를 둘로
 
-- **RED** — `review-structure.test.mjs` 에 ① `md-sections.mjs` 의 `펜스블록(글, 표지)` 가 표지가 든 펜스 하나만 돌려준다(펜스 둘 — 앞엔 `general-purpose`, 뒤엔 `Agent({ model: "opus"` — 에서 `Agent({` 로 고르면 `general-purpose` 가 없다) ② `.claude/scripts/*.test.mjs` 어디에도 `const 펜스안` · `const 소절 =` 정의가 없다(사본 금지). 도우미 파일이 없고 사본이 둘 있어 지금 실패한다
-- **GREEN** — `.claude/scripts/md-sections.mjs` 를 만들어 `소절`(지금 `review-structure.test.mjs:77-90` 그대로)과 `펜스블록` 을 내보낸다. `review-structure.test.mjs` · `agent-models.test.mjs` 가 import 해 쓰고 사본을 지운다. 계획 검토 호출 블록 단언(`review-structure.test.mjs:52-62`)과 `agent-models.test.mjs:61-` 은 `펜스블록(…, 'Agent({')` 한 블록에서 본다. 기존 `펜스안()` 헬퍼 단언(`:325-328`)은 `펜스블록` 단언으로 바꾼다
+- **RED** — `review-structure.test.mjs` 에 ① `md-sections.mjs` 의 `펜스블록(글, 표지)` 가 표지가 든 펜스 하나만 돌려준다(펜스 둘 — 앞엔 `general-purpose`, 뒤엔 `Agent({ model: "opus"` — 에서 `Agent({` 로 고르면 `general-purpose` 가 없다) ② `review-structure.test.mjs` · `lens-handoff.test.mjs` · `agent-models.test.mjs` 세 파일에 줄 머리 `const 절 =` · `const 소절 =` · `const 펜스안` 정의가 없다(사본 금지 · 정규식은 줄 머리 고정 `m` 플래그라 제 단언 글자에 안 걸린다 · 「읽은 파일이 셋」 대조군 — 게이트 1 주의 2). `context-diet` · `cases-probe-contract` 의 `절` 은 범위 밖이라 안 본다. 도우미 파일이 없고 사본이 있어 지금 실패한다
+- **GREEN** — `.claude/scripts/md-sections.mjs` 를 만들어 `절`(지금 `review-structure.test.mjs:12-18` 그대로) · `소절`(`:77-90` 그대로) · `펜스블록` 을 내보낸다. `review-structure.test.mjs` · `agent-models.test.mjs` 가 import 해 쓰고 사본을 지운다. 계획 검토 호출 블록 단언(`review-structure.test.mjs:52-62`)과 `agent-models.test.mjs:61-` 은 `펜스블록(…, 'Agent({')` 한 블록에서 본다. 기존 `펜스안()` 헬퍼 단언(`:325-328`)은 `펜스블록` 단언으로 바꾼다
 - **REFACTOR** — `review-structure.test.mjs` 를 둘로 나눈다. 새 `lens-handoff.test.mjs` 에 「렌즈에 넘기는 것」 정본 소절을 보는 검사(지금 `:106-147 · :239-279 · :330-340`)와 차선 표 검사(`:350-377`)를 옮긴다. 남는 쪽은 계획 검토 · Step 2/3 · 재검사 절. 둘 다 300줄 아래. `package.json` `check:docs-contract` 에 새 파일을 더한다. 옮긴 검사의 이름 · 단언은 바꾸지 않는다
 
 **files**: .claude/scripts/md-sections.mjs · .claude/scripts/review-structure.test.mjs · .claude/scripts/lens-handoff.test.mjs · .claude/scripts/agent-models.test.mjs · package.json
@@ -41,7 +41,7 @@
 
 ### 할 일 2. pre-push 가 올릴 커밋 목록을 한 번만 뽑는다
 
-- **RED** — `hook-contract.test.mjs` 에 훅 글자 단언 — `$REFS` 를 here-doc 으로 읽는 순회(`<<EOF` 다음 줄 `$REFS`)가 한 곳뿐이고, 그 뒤 순회는 `for local_sha in $SHAS` 꼴이다. 지금 네 곳이라 실패한다. 대조군 — 단언이 쓰는 정규식이 지금 훅에서 4 를 센다
+- **RED** — `hook-contract.test.mjs` 에 훅 글자 단언 — `$REFS` 를 here-doc 으로 읽는 순회(`<<EOF` 다음 줄 `$REFS`)가 한 곳뿐이고, 그 뒤 순회는 `for local_sha in $SHAS` 꼴이다. 지금 네 곳이라 실패한다. 대조군 — 단언이 쓰는 정규식이 지금 훅에서 4 를 센다. **회귀 검사 하나 더(지금 훅에서도 초록 — 게이트 1 주의 3)** — `hook-fixture.mjs` 임시 저장소로 삭제 줄과 문서만 바꾼 커밋 ref 를 함께 넣으면 `차선: docs` 가 찍히고 검사 기록 없이 통과한다(SHAS 가 삭제 줄을 못 거르면 `full` 로 가서 빨개진다)
 - **GREEN** — `REFS=$(cat)` 바로 뒤 순회 하나로 `SHAS`(빈 줄 · 로컬 sha 가 전부 0 인 삭제 줄을 뺀 로컬 sha)를 만든다. 삭제만 판정은 `[ -n "$REFS" ] && [ -z "$SHAS" ]`, 차선 · 재사용 · 표지 순회 셋은 `for local_sha in $SHAS`. 입력이 비면 검사로 간다는 규칙 · 차선 순회의 `break` · 각 블록의 `[ -n "$REFS" ]` 조건은 그대로다. 주석의 「stdin 은 한 번만 읽힌다」 설명은 `SHAS` 에 맞게 한 줄 고친다
 - **REFACTOR** — 없음
 
@@ -51,13 +51,13 @@
 
 ### 할 일 3. 렌즈는 넘겨받은 EXIT 줄과 HEAD 로 인정한다 — 표지를 읽지 않는다
 
-- **RED** — `lens-handoff.test.mjs` 의 표지 인정 검사(옛 「할 일 9 — 표지 인정은 렌즈가 find HEAD 를…」)를 새 규칙으로 바꾼다. 정본 소절에 ① 넘겨받은 HEAD 와 `git rev-parse HEAD`(지금 HEAD) 대조 ② `EXIT=` 줄이 전부 0 ③ 마지막 그물은 pre-push · CI ④ 컨트롤러는 커밋을 끝낸 뒤 `run local` 을 돌고 곧바로 렌즈를 낸다(사이에 커밋하면 다시 돈다)가 있다. 옛 「`check-stamp.mjs find` 는 정본 소절에만」 검사는 「체인 문서(`tpx*` · `spec-review`) 어디에도 `check-stamp.mjs find` 와 `reuse=` 가 없다」로 바꾼다. `tpx-review` Step 7 에 「초록인지 모른다」를 💡 줄에 싣는다는 문장이 있다. `HOOKS.md` `find` 출력 행이 「훅만 `reuse=` 줄을 읽는다」. 지금 문서가 옛 꼴이라 실패한다
-- **GREEN** — `tpx-review` Step 4 「렌즈에 넘기는 것」의 `find HEAD` 줄을 넘겨받은 결과로 인정하는 줄로 바꾸고 까닭(`reuse=` 는 pre-push 의 건너뛰기 판정이라 물음이 다르다 · LEARNINGS 2026-10-08)을 한 마디 붙인다. `docs` · `spec` 차선 줄은 「`check:spec` 의 `EXIT=0` 한 줄이 넘어온다 — 같은 규칙」으로. Step 7 서식 위 산문에 「렌즈가 『검사 묶음이 이 HEAD 에서 초록인지 모른다』를 냈으면 💡 의미 첫 줄에 싣는다」. `HOOKS.md:218` 「훅 · 스킬은」 → 「훅만 `reuse=` 줄을 읽는다. 렌즈는 표지를 읽지 않는다(`tpx-review` Step 4 「렌즈에 넘기는 것」)」
+- **RED** — `lens-handoff.test.mjs` 의 표지 인정 검사(옛 「할 일 9 — 표지 인정은 렌즈가 find HEAD 를…」)를 새 규칙으로 바꾼다. 정본 소절에 ① 넘겨받은 HEAD 와 `git rev-parse HEAD`(지금 HEAD) 대조 ② `EXIT=` 줄이 전부 0 ③ 넘겨받은 `run local` 의 `[check-stamp]` 줄이 「local 표지를 남겼다: <지금 HEAD 40자>」 또는 「앞 커밋의 local 표지를 재사용했다」 — 커밋 안 된 코드를 얹고 돈 결과를 거른다(표지 저장소를 읽지 않고 실행 출력만 본다 · 게이트 1 주의 1). `docs` · `spec` 차선은 `check:spec` `EXIT=0` 에 더해 렌즈가 `git status --porcelain` 에 문서 자리 밖 경로가 없는지 본다 ④ 마지막 그물은 pre-push · CI ⑤ 컨트롤러는 커밋을 끝낸 뒤 `run local` 을 돌고 곧바로 렌즈를 낸다(사이에 커밋하면 다시 돈다)가 있다. 넘길 것 목록은 개수를 적지 않는다(「네 가지」 → 「아래를」 — `[check-stamp]` 줄이 더해진다). 옛 「`check-stamp.mjs find` 는 정본 소절에만」 검사(지금 `review-structure:330-340`)는 「체인 문서(`tpx*` · `spec-review`) 어디에도 `check-stamp.mjs find` 와 `reuse=` 가 없다」로 바꾸고 `:334` 대조군(읽은 목록에 `tpx-review/SKILL.md` · `checklist-g-h.md`)은 남긴다. **옮긴 「할 일 4 — 정본 소절이 Step 4 안에 있고 …」(지금 `review-structure:106-121`)의 `:118` 이 요구하는 `'check-stamp.mjs find'` · `'reuse='` 는 새 낱말(`지금 HEAD` · `EXIT=` · `[check-stamp]` · `pre-push` · `CI`)로 바꾼다** — 새 규칙이 두 글자를 금하기 때문이다(게이트 1 BLOCKER). `tpx-review` Step 7 에 「초록인지 모른다」를 💡 줄에 싣는다는 문장이 있다. `HOOKS.md` `find` 출력 행이 「훅만 `reuse=` 줄을 읽는다」. 지금 문서가 옛 꼴이라 실패한다
+- **GREEN** — `tpx-review` Step 4 「렌즈에 넘기는 것」의 `find HEAD` 줄을 넘겨받은 결과로 인정하는 줄로 바꾸고 까닭을 `reuse=` 글자 없이 한 마디 붙인다 — 「통과 표지의 재사용 판정은 pre-push 가 무엇을 건너뛸지 정하는 것이라 렌즈의 물음과 다르다(LEARNINGS 2026-10-08)」. `docs` · `spec` 차선 줄은 RED ③ 꼴로. Step 7 서식 위 산문에 「렌즈가 『검사 묶음이 이 HEAD 에서 초록인지 모른다』를 냈으면 💡 의미 첫 줄에 싣는다」. `HOOKS.md:218` 「훅 · 스킬은」 → 「훅만 `reuse=` 줄을 읽는다. 렌즈는 표지를 읽지 않는다(`tpx-review` Step 4 「렌즈에 넘기는 것」)」
 - **REFACTOR** — `docs/LEARNINGS.md` 의 「렌즈가 「검사가 이 커밋에서 통과했나」를 …」 항목을 한 줄로 줄이고 `→ tpx-review Step 4 넘겨받은 EXIT · HEAD 대조로 승격 (2026-10-08)` 을 붙인다(CLAUDE.md §2.5)
 
 **files**: .claude/skills/tpx-review/SKILL.md · docs/HOOKS.md · .claude/scripts/lens-handoff.test.mjs · docs/LEARNINGS.md
 **depends-on**: [1]
-**검증**: `node --test .claude/scripts/lens-handoff.test.mjs && npm run check:docs-contract && npm run check:spec`
+**검증**: `node --test .claude/scripts/lens-handoff.test.mjs .claude/scripts/chain-contract.test.mjs && npm run check:docs-contract && npm run check:spec`
 
 ### 할 일 4. 대조 검증자 정의에 「GREEN 이 고친 검사 파일」 기준을 늘 보는 것으로 넣는다
 
@@ -71,8 +71,8 @@
 
 ### 할 일 5. HOOKS 차선 표를 실제 lane() · CI · pre-push 와 맞춘다
 
-- **RED** — `lens-handoff.test.mjs` 차선 표 검사를 넓힌다. ① `spec` 행에 「위와 같은데」가 없고 조건(`lane()` · `문서자리` · `SPEC` 표면)을 스스로 적는다 ② `docs` 행 CI 칸이 `ci.yml` 에서 차선 조건 없이 도는 `npm run check:*` 전부(지금 `check:spec` · `check:docs-contract` · `check:wbs`)를 이름으로 담는다 — 목록은 `ci.yml` 을 읽어 뽑는다 ③ `docs` 행 pre-push 칸이 `pre-push` 의 `docs_checks()` 가 부르는 `npm run check:*` 전부를 담는다 — 훅 글자에서 뽑는다 ④ 대조군을 `lane.mjs` 소스 grep 대신 `lane()` 호출로 — `docs/spec/a.md` → `spec`, `docs/spec/a.md` + `docs/HOOKS.md` → `spec`, `docs/HOOKS.md` → `docs`, `docs/x.mjs` → `full`. 뽑은 목록이 비면 실패하는 대조군을 둔다. 지금 표가 「`check:spec` 만」이라 실패한다
-- **GREEN** — `docs/HOOKS.md` 차선 표 `docs` · `spec` · `cases` 행 CI 칸을 「설치 전 문서 검사 셋(`check:spec` · `check:docs-contract` · `check:wbs`)」 기준으로, `docs` · `spec` 행 pre-push 칸을 `check:spec` · `check:docs-contract` 로, `spec` 행 조건을 스스로 적는다. 표 아래 `check:wbs` 줄은 CI 칸과 겹치지 않게 그대로 둔다. `ci.yml:13-16` 의 차선별 사본 네 줄은 지우고 정본 가리킴(12줄) · 「판정을 못 하면 full」 줄(17줄)만 남긴다(spec-review H6 — 정본 밖에서 옮겨 적지 않는다)
+- **RED** — `lens-handoff.test.mjs` 차선 표 검사를 넓힌다. ① `spec` 행에 「위와 같은데」가 없고 조건(`lane()` · `문서자리` · `SPEC` 표면)을 스스로 적는다 ② `docs` · `spec` · `cases` 행 CI 칸이 `ci.yml` 에서 차선 조건 없이 도는 `npm run check:*` 전부(지금 `check:spec` · `check:docs-contract` · `check:wbs`)를 이름으로 담는다 — 목록은 `ci.yml` 을 읽어 뽑는다 ③ `docs` · `spec` 행 pre-push 칸이(게이트 1 주의 4) `pre-push` 의 `docs_checks()` 가 부르는 `npm run check:*` 전부를 담는다 — 훅 글자에서 뽑는다 ④ 대조군을 `lane.mjs` 소스 grep 대신 `lane()` 호출로 — `docs/spec/a.md` → `spec`, `docs/spec/a.md` + `docs/HOOKS.md` → `spec`, `docs/HOOKS.md` → `docs`, `docs/x.mjs` → `full`. 뽑은 목록이 비면 실패하는 대조군을 둔다. 지금 표가 「`check:spec` 만」이라 실패한다
+- **GREEN** — `docs/HOOKS.md` 차선 표 `docs` · `spec` · `cases` 행 CI 칸을 「설치 전 문서 검사 셋(`check:spec` · `check:docs-contract` · `check:wbs`)」 기준으로, `docs` · `spec` 행 pre-push 칸을 `check:spec` · `check:docs-contract` 로, `spec` 행 조건을 스스로 적는다. 표 아래 `check:wbs` 줄은 CI 칸과 겹치지 않게 그대로 둔다. `ci.yml:13-16` 의 차선별 사본 네 줄은 지우고 정본 가리킴(12줄) · 「판정을 못 하면 full」 줄(17줄)만 남긴다(spec-review H6 — 정본 밖에서 옮겨 적지 않는다). `tpx/SKILL.md:113` · `tpx-review:81` · `hook-contract.test.mjs:167` 의 「`check:spec` 만」은 세션이 직접 도는 명령이라 CI 표 사본이 아니다 — 그대로 둔다
 - **REFACTOR** — 없음
 
 **files**: docs/HOOKS.md · .github/workflows/ci.yml · .claude/scripts/lens-handoff.test.mjs
@@ -145,3 +145,11 @@ RED 는 「체인 문서 어디에도 `check-stamp.mjs find` 와 `reuse=` 가 �
 - E2 계약 · 정본 — 계약 넷 안 건드림. ci.yml 사본을 지우고 HOOKS 를 정본으로. 표 단언이 ci.yml · 훅 글자에서 목록을 뽑는다
 - E3 실패 경로 — 할 일 6 origin/main 없음 처리 · 할 일 2 빈 입력 · `break` 유지
 - E5 시간 — 새 대기 없음
+
+## 게이트 1 결정
+
+지적 반영하고 진행 (2026-10-08 사용자). BLOCKER 1 · 주의 1~4 · 참고 2 · 3 을 할 일 1 · 2 · 3 · 5 블록 안에 「게이트 1」 표시로 넣었다. 재검토는 안 한다. 참고 1(docs · spec 차선 렌즈 인정이 `check:docs-contract` 를 안 봄)은 범위 밖 — 게이트 2 요약에 싣는다.
+
+## 구현 중 바뀐 것
+
+(구현이 채운다)
