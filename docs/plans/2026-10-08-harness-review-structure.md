@@ -129,6 +129,8 @@ LEARNINGS 근거 — `docs/LEARNINGS.md` 「[WS-E] 2026-10-08 · **컨트롤러�
 - 묶음 1 검증자는 읽기만 해서 검사를 다시 못 돌렸다 — 컨트롤러가 검증 칸 명령을 모아 한 번 돌렸다(80건 EXIT 0 · `check:spec` EXIT 0 · `bash -n .claude/hooks/pre-push` EXIT 0)
 - 할 일 5 GREEN `f71e8fc2` 가 RED 에 쓴 「보고 형식」 단언 하나를 `절()` → `소절()` 로 바꾸고 대조군을 더했다. RED 그대로는 예시 코드 펜스 안의 `## 요약` 에서 잘려 구현과 상관없이 빨갰다(헬퍼 결함 — 대조 검증 PASS, spec-review 1회차 경미 2)
 
+- 할 일 8 뒤 `run local` 에서 `always-tests.test.mjs` 「docs/ 의 내용을 읽는 판별식은 전부 check:docs-contract 에 있다」가 빨갰다 — 할 일 8 이 `review-structure.test.mjs` 에 `docs/HOOKS.md` 를 읽는 단언을 더했다. 문서만 고친 push 는 단위 테스트를 건너뛰므로 이 파일을 `package.json` `check:docs-contract` 에 더했다(컨트롤러 · 할 일 8 files 밖 — `package.json` 은 GUARD 2등급). 그 빨강이 RED, 한 줄이 GREEN
+
 ## 게이트 2 「고치고 재검사」 반영 (2026-10-08 사용자)
 
 1회차 렌즈 — code-review medium(BLOCKER 0 · 주의 4 · 경미 10) · spec-review(`docs/reviews/2026-10-08-하네스-179.md` — 치명 0 · 중대 1 · 경미 3). 두 렌즈가 같은 구멍(표지 인정 조건)을 따로 짚었다.
