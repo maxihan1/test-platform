@@ -345,7 +345,7 @@ test('할 일 8 — tpx 차선 표 · HOOKS 차선 표가 lane() 을 가리키�
   const 대상 = [
     ['tpx spec 행', 행(본, '| `spec`')],
     ['tpx docs 행', 행(본, '| `docs`')],
-    ['HOOKS docs 행', 행(read('docs/HOOKS.md'), '| `docs` | 전부')],
+    ['HOOKS docs 행', 행(소절(read('docs/HOOKS.md'), '### 차선 — 바뀐 만큼만'), '| `docs` |')],
   ];
   for (const [이름, 줄] of 대상) {
     assert.ok(줄.length > 20, `대조군 — ${이름} 을 못 찾았다`);

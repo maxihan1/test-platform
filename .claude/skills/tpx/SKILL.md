@@ -89,7 +89,7 @@ node .claude/scripts/detect-tier.mjs docs/spec/<고칠 파일> <그 밖에 건�
 | 표면 | `DOC` | `WEB` `TESTS` `HARNESS` | `ADMIN` `RUNNER` `AUTH` `GUARD` | `MIGRATION` `KIT` `SPEC` `COMPOSE` |
 | 계획 파일 | 없음 | 없음 | 1장 | 1장 + §1.2 절차 |
 | 도는 단계 | 1 · **5 인라인** · 6 · 7 | 〃 | 1~7 전량 | 1~7 전량 + 게이트 0 |
-| 계획 검토 | — | — | 공학 렌즈 | 위 + 제품 렌즈 (화면이면 화면 렌즈) |
+| 계획 검토 | — | — | 공학 렌즈 (화면이면 화면 렌즈) | 위 + 제품 렌즈 (화면이면 화면 렌즈) |
 | 코드 검사 | `/code-review` | 위 + 화면이면 `/qa-only` | 위 + `spec-review` | 위 + `/security-review` |
 | 게이트 | 2만 | 2만 | 1+2 | **0+1+2** |
 
@@ -109,8 +109,8 @@ CI·훅이 차선마다 무엇을 돌리는지는 `docs/HOOKS.md` 「차선」�
 
 | 차선 | 언제 | 체인 |
 |---|---|---|
-| `spec` | 바뀐 것이 `lane.mjs` 의 `문서자리`뿐이고 명세(`docs/spec/**`·`docs/SPEC.md`)가 있다 | 1 · 5 인라인 · 6 · 7. **계획·게이트 0/1 없음.** 렌즈는 `spec-review` 하나, **게이트 2 만** |
-| `docs` | 바뀐 것이 `lane.mjs` 의 `문서자리`뿐이고 명세가 없다 | 0등급 그대로. 렌즈 없이 `npm run check:spec` 만, 게이트 2 |
+| `spec` | `lane.mjs` 의 `lane()` 이 가른다 — 바뀐 것이 `DOC` 표면의 `문서자리`뿐이고 명세(`docs/spec/**`·`docs/SPEC.md`)가 있다 | 1 · 5 인라인 · 6 · 7. **계획·게이트 0/1 없음.** 렌즈는 `spec-review` 하나, **게이트 2 만** |
+| `docs` | `lane.mjs` 의 `lane()` 이 가른다 — 바뀐 것이 `DOC` 표면의 `문서자리`뿐이고 명세가 없다 | 0등급 그대로. 렌즈 없이 `npm run check:spec` 만, 게이트 2 |
 | `cases` · `full` | 그 밖 | 위 등급표대로 |
 
 명세와 코드가 섞이면 `full` 이다 — 계약을 코드와 함께 바꾸는 일이라 3등급 무게를 그대로 진다.

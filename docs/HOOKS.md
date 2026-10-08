@@ -182,7 +182,7 @@ Phase 0가 끝나고 게이트 G1을 통과한 뒤부터 예외 없이 띄운다
 
 | 차선 | 언제 | CI | pre-push | 검사 기록 |
 |---|---|---|---|---|
-| `docs` | 전부 `docs/**` 의 md · html · `.gitkeep` 또는 루트 `*.md`, 명세 없음 | `check:spec` 만. **설치도 안 한다** | `check:spec` | 요구 안 함 |
+| `docs` | `lane()` 이 가른다 — 전부 `DOC` 표면이면서 `lane.mjs` 의 `문서자리`(`docs/**` 의 md · html · `.gitkeep` 또는 루트 `*.md`), 명세 없음 | `check:spec` 만. **설치도 안 한다** | `check:spec` | 요구 안 함 |
 | `spec` | 위와 같은데 `docs/spec/**`·`docs/SPEC.md` 가 있다 | `check:spec` 만 | `check:spec` | **요구한다** |
 | `cases` | 아래 「가벼운 길」 그대로 | 타입 · K 규칙 · 비밀값 이름 · `check:spec` | 타입 · `check:tests` | 요구 안 함 |
 | `full` | 그 밖 (코드 · 스킬 · CLAUDE.md · 명세+코드 · 미분류) | 전부. 단위 테스트는 **바뀐 것과 이어진 것 1회** + `test:always`, 케이스는 **바뀐 것만** | 같음 (migration·설정이 바뀌면 전체). 통과 표지가 있으면 건너뛴다 (아래 「검사 재사용」) | 아래 「검사 재사용」의 「1등급 기록 면제」 행이 정한다 |

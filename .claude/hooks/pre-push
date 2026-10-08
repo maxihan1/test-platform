@@ -137,7 +137,8 @@ STAMP_JS="$(dirname "$0")/../scripts/check-stamp.mjs"
 # 시작 때 코드가 덜 커밋돼 있었으면 put 이 스스로 거절하므로 훅은 「시작과 끝이 같은가」만 본다.
 # 못 읽으면 부를 때마다 다른 값이 나온다 — 시작과 끝 둘 다 못 읽어도 「같음」으로 보지 않는다
 snapshot() {
-  # git 이 실패하면 값에 pid 와 난수를 섞는다 — 두 번 다 실패해도 「같음」으로 안 보므로 표지를 남기지 않는다
+  # git 이 실패하면 값에 난수를 섞는다 — 두 번 다 실패해도 「같음」으로 안 보므로 표지를 남기지 않는다.
+  # 근거는 $RANDOM 이 서브셸마다 다시 심긴다는 것이다(bash 3.2.57 실측 — PR #178 3회차). $$ 는 서브셸에서도 부모 pid 라 두 번 다 같은 값이다
   { git rev-parse HEAD && git -c core.quotePath=false status --porcelain --no-renames --untracked-files=all; } 2>/dev/null || echo "?$$.$RANDOM"
 }
 start_state=$(snapshot)
