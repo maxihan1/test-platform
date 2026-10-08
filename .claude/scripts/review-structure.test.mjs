@@ -2,20 +2,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { 절, 소절, 펜스블록 } from './md-sections.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
 const PR = '.claude/skills/tpx-plan-review/SKILL.md';
 const LENSES = '.claude/skills/tpx-plan-review/references/lenses.md';
-
-// `## 제목` 부터 다음 `## ` 제목 전까지
-const 절 = (글, 제목) => {
-  const 시작 = 글.indexOf(제목);
-  if (시작 < 0) return '';
-  const 나머지 = 글.slice(시작 + 제목.length);
-  const 끝 = 나머지.search(/\n## /);
-  return 끝 < 0 ? 나머지 : 나머지.slice(0, 끝);
-};
 
 test('할 일 1 — 계획 검토 SKILL.md 가 gstack 렌즈 스킬을 부르지 않는다', () => {
   const 본 = read(PR);
@@ -46,13 +38,10 @@ test('할 일 1 — Step 1 표가 등급마다 lenses.md 의 세 절을 가리�
   assert.ok(read(PR).includes('references/lenses.md'), 'SKILL.md 가 lenses.md 를 가리키지 않는다');
 });
 
-// 산문 줄이 같은 낱말을 받쳐 호출 블록을 바꿔도 초록이 되는 것을 막으려고 코드 펜스 안만 본다
-const 펜스안 = (글) => [...글.matchAll(/```[^\n]*\n([\s\S]*?)\n```/g)].map((m) => m[1]).join('\n');
-
 test('할 일 1 — 렌즈를 general-purpose · Opus 서브 에이전트로 내고 프롬프트에 위치 셋을 싣는다', () => {
   const 호출 = 절(read(PR), '## Step 2');
   assert.ok(호출, '대조군 — Step 2 절이 있어야 한다');
-  const 블록 = 펜스안(호출);
+  const 블록 = 펜스블록(호출, 'Agent({');
   assert.ok(블록.includes('Agent({'), '대조군 — Step 2 코드 펜스 안에 호출 블록이 있어야 한다');
   assert.match(블록, /subagent_type: "general-purpose"/, '호출 블록에 general-purpose 서브 에이전트 줄이 없다');
   assert.match(블록, /model: "opus"/, '호출 블록에 model: "opus" 줄이 없다');
@@ -72,22 +61,6 @@ const TR = '.claude/skills/tpx-review/SKILL.md';
 const SR = '.claude/skills/spec-review/SKILL.md';
 const GH = '.claude/skills/spec-review/references/checklist-g-h.md';
 const 정본제목 = '### 렌즈에 넘기는 것 — 검사 묶음은 다시 안 돈다';
-
-// 제목과 같은 깊이 이하의 다음 제목 전까지 (코드 펜스 안의 `#` 줄은 제목이 아니다)
-const 소절 = (글, 제목) => {
-  const 시작 = 글.indexOf(제목);
-  if (시작 < 0) return '';
-  const 깊이 = 제목.match(/^#+/)[0].length;
-  const 제목줄 = new RegExp(`^#{1,${깊이}} `);
-  const 모은 = [];
-  let 펜스 = false;
-  for (const 줄 of 글.slice(시작 + 제목.length).split('\n')) {
-    if (/^```/.test(줄)) 펜스 = !펜스;
-    if (!펜스 && 제목줄.test(줄)) break;
-    모은.push(줄);
-  }
-  return 모은.join('\n');
-};
 
 test('할 일 4 — 소절() 헬퍼가 같은 깊이 제목에서 자르고 더 깊은 제목은 넘긴다', () => {
   const 본 = 소절('## a\n### b\n본문\n#### c\n깊다\n```\n### 펜스\n```\n### d\n다음\n## e', '### b');
@@ -322,11 +295,6 @@ test('할 일 7 — spec-review 가 재검사 회차를 tpx-review 절로 가리
   assert.ok(!글.includes('check-stamp.mjs find'), 'spec-review 에 정본 규칙(find)을 옮겨 적었다');
 });
 
-test('할 일 8 — 펜스안() 헬퍼가 코드 펜스 안만 돌려준다', () => {
-  const 본 = 펜스안('산문 model: "opus"\n```js\nAgent({ model: "sonnet" })\n```\n끝');
-  assert.ok(본.includes('sonnet') && !본.includes('opus') && !본.includes('끝'), '펜스 밖 글이 섞였다');
-});
-
 test('할 일 8 — check-stamp.mjs find 는 체인 문서 전체에서 tpx-review 정본 소절에만 나온다', () => {
   const 스킬들 = new URL('.claude/skills/', ROOT);
   const 문서들 = readdirSync(스킬들, { recursive: true })
@@ -376,8 +344,7 @@ test('할 일 9 — tpx 차선 표 spec 행 · HOOKS 차선 표 spec 행은 명�
   assert.ok(문서뿐.includes("표면들[i] === 'SPEC'"), '대조군 — lane() 이 SPEC 표면을 따로 허용해야 한다');
 });
 
-test('할 일 1 — 펜스블록() 은 표지가 든 코드 펜스 하나만 돌려준다', async () => {
-  const { 펜스블록 } = await import('./md-sections.mjs');
+test('할 일 1 — 펜스블록() 은 표지가 든 코드 펜스 하나만 돌려준다', () => {
   const 글 = '산문 Agent({\n```js\nsubagent_type: "general-purpose"\n```\n중간\n```js\nAgent({ model: "opus"\n```\n끝';
   const 본 = 펜스블록(글, 'Agent({');
   assert.ok(본.includes('model: "opus"'), '표지가 든 펜스를 못 골랐다');

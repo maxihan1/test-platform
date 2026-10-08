@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { 펜스블록 } from './md-sections.mjs';
 
 const AGENTS = new URL('../agents/', import.meta.url);
 const SKILLS = new URL('../skills/', import.meta.url);
@@ -55,11 +56,8 @@ test('tpx-impl 이 구현자 · 검증자를 정의 이름으로 부르고 보�
   assert.match(글, /정의를 못 찾으면[\s\S]{0,160}model: "sonnet"/, '정의를 못 찾을 때 대신 낼 방법이 없다');
 });
 
-// 산문 줄이 같은 낱말을 받쳐 호출 블록을 Explore · haiku 로 바꿔도 초록이 되는 것을 막는다
-const 펜스안 = (글) => [...글.matchAll(/```[^\n]*\n([\s\S]*?)\n```/g)].map((m) => m[1]).join('\n');
-
 test('계획 검토 · 독립 검사 렌즈는 Opus 를 쓴다고 적혀 있다', () => {
-  const 호출 = 펜스안(스킬('tpx-plan-review'));
+  const 호출 = 펜스블록(스킬('tpx-plan-review'), 'Agent({');
   assert.match(호출, /Agent\(\{/, '대조군 — tpx-plan-review 코드 펜스 안에 호출 블록이 있어야 한다');
   assert.match(호출, /model: "opus"/, 'tpx-plan-review 호출 블록에 렌즈 모델(Opus) 줄이 없다');
   assert.match(스킬('tpx-review'), /model: "opus"/, 'tpx-review 에 렌즈 모델(Opus) 줄이 없다');
