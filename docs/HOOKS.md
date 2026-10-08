@@ -220,7 +220,7 @@ Phase 0가 끝나고 게이트 G1을 통과한 뒤부터 예외 없이 띄운다
 | `all` 로 통과한 push | 새 `push` 표지를 안 찍는다. 늘 원래 표지 커밋 기준으로 차이를 재서, 문서 커밋이 쌓여도 검사 안 한 코드가 묻어가지 않는다. `tests`(local 표지)로 기록 확인까지 통과하면 `push` 표지를 찍는다 |
 | 전체 단위 테스트 규칙 | migration · `package(-lock).json` · `vitest.config.*` · `tsconfig*` 가 바뀌면 `npm test` 전체다. `run local` 과 훅이 같은 정규식을 쓰고, 검사가 두 글자가 같은지 본다. `run local` 은 커밋된 경로에 더해 커밋 안 된 작업 폴더 경로까지 보고, 따옴표 친 경로나 못 읽는 경우는 전체로 간다. 훅은 diff 를 못 읽으면 남은 경로로 전체 여부를 정해 `test:changed` 로 간다 |
 | 1등급 기록 면제 | `lane.mjs` 의 `기록요구(파일들)` 한 곳이 판정한다. **요구하지 않는 것은 모든 경로가 1등급 표면(`TESTS` · `WEB` · `HARNESS`)이거나 `lane.mjs` 의 `문서자리`(명세 제외)일 때뿐이다.** 빈 목록(함수 판정이다 — 바뀐 파일 0 인 push 는 훅과 응답 끝 경고가 판정 전에 통과시킨다) · 미분류 · 명세 · 문서 표면이지만 문서 자리가 아닌 것(`docs/x.mjs` · `apps/admin/public/x.html`) · 2등급 이상은 요구한다. `.claude/settings.json` 은 훅 배선이라 GUARD(2등급)다 — 잘못 고치면 훅이 안 불려 검사가 조용히 꺼진다. 훅은 ref 하나라도 diff 가 실패하면 요구한다. 손으로 push 해도 같은 규칙이다. 명령줄은 `lane=` 아래에 `record=<need\|skip>` 을 찍는다 |
-| 응답 끝 경고 | `review` 훅(`guard.mjs`)도 같은 `기록요구()` 로 판정한다. 경로는 `--no-renames` porcelain 에서 읽고, 못 읽는 줄이 있으면 경고한다. `apps` · `packages` · `tests` 아래만 본다 — 그 밖의 경로(`.claude/**` 등)는 경고가 없고 push 에서 훅이 막는다. 1등급만 고쳤으면 조용하다 |
+| 응답 끝 경고 | `review` 훅(`guard.mjs`)도 같은 `기록요구()` 로 판정한다. 경로는 커밋 안 된 것은 `--no-renames` porcelain 에서, 커밋된 것은 `origin/main...HEAD` 차이(`--no-renames --name-only`)에서 읽고(차이가 실패하면 — `origin/main` 없음 — 커밋분은 빈 것으로 친다), 못 읽는 줄이 있으면 경고한다. `apps` · `packages` · `tests` 아래만 본다 — 그 밖의 경로(`.claude/**` 등)는 경고가 없고 push 에서 훅이 막는다. 1등급만 고쳤으면 조용하다 |
 
 **훅은** 재사용을 `full` 차선에서만 읽는다 — `docs` · `spec` · `cases` 차선은 원래 단위 테스트를 안 돈다.
 amend · rebase · 낡은 `origin/main` 은 차이를 트리로 재서 전부 none 이거나 보수적인 쪽으로 간다. 확신이 없으면 어디서든 none 이고 표지를 남기지 않는다.

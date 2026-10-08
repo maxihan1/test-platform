@@ -201,10 +201,19 @@ if (mode === 'review') {
     changed = execFileSync('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '--no-renames', '--untracked-files=all', '--', 'apps', 'packages', 'tests'],
       { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   } catch { ok(); }
-  if (!changed.trim()) ok();
+  // 커밋을 마친 2등급 작업은 작업 폴더가 깨끗해 status 에 안 잡힌다 — 커밋분은 origin/main 과의 차이로 본다.
+  // 응답마다 도는 경고라 diff 가 실패하면(origin/main 없음) 모를 때 떠들지 않고 커밋분은 빈 것으로 친다
+  let committed = '';
+  try {
+    committed = execFileSync('git', ['-c', 'core.quotePath=false', 'diff', '--no-renames', '--name-only', 'origin/main...HEAD', '--', 'apps', 'packages', 'tests'],
+      { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch { /* origin/main 없음 */ }
+  if (!changed.trim() && !committed.trim()) ok();
   // 따옴표 친 경로는 못 읽은 것이다 — 모르면 경고 쪽
   const 줄들 = changed.split('\n').filter(Boolean);
-  if (!줄들.some((l) => l.slice(3).startsWith('"')) && !기록요구(줄들.map((l) => l.slice(3)))) ok();
+  const 커밋줄 = committed.split('\n').filter(Boolean);
+  const 경로들 = [...줄들.map((l) => l.slice(3)), ...커밋줄];
+  if (!경로들.some((p) => p.startsWith('"')) && !기록요구(경로들)) ok();
 
   let latest = 0;
   try {
@@ -220,7 +229,7 @@ if (mode === 'review') {
 `[경고] 소스를 고쳤는데 오늘 SPEC 검사 기록이 없다.
 
 변경된 파일:
-${changed.trim().split('\n').slice(0, 8).map((l) => '  ' + l).join('\n')}
+${[...줄들, ...커밋줄].slice(0, 8).map((l) => '  ' + l).join('\n')}
 
 작업을 끝내기 전에 spec-review 스킬을 돌려라.
 치명 항목이 0건이면 docs/reviews/<날짜>-<WS>.md 에 결과를 남긴다.
