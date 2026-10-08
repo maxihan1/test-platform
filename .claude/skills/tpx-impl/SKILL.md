@@ -101,29 +101,21 @@ description: /tpx 체인 5단계 — 승인된 계획의 할 일을 TDD 로 구�
 
 ## Step 4. 푸시 전 최종 점검
 
-**종료 코드로 판정한다. 통과 건수로 하지 않는다.**
+**종료 코드로 판정한다. 통과 건수로 하지 않는다.** 일곱 검사를 스크립트 한 줄이 돈다.
 
 ```bash
-npm run check:deps      > /tmp/c.log 2>&1; echo "EXIT=$?"
-npm run typecheck       > /tmp/c.log 2>&1; echo "EXIT=$?"
-npm run check:workflow  > /tmp/c.log 2>&1; echo "EXIT=$?"
-npm run check:spec      > /tmp/c.log 2>&1; echo "EXIT=$?"
-npm run check:tests     > /tmp/c.log 2>&1; echo "EXIT=$?"
+node .claude/scripts/check-stamp.mjs run local > $CLAUDE_JOB_DIR/tmp/c.log 2>&1; echo "EXIT=$?"
 ```
 
-단위 테스트는 **바뀐 것과 이어진 것 + 늘 도는 목록을 1회** 돈다 (2026-09-25 — 서비스 전이라 전체 3회를 걷었다).
-DB 를 건드렸으면 `DATABASE_URL` 을 붙인다. 없으면 DB 검사가 조용히 건너뛴다.
-
-```bash
-npm run test:changed -- origin/main > /tmp/c.log 2>&1; echo "EXIT=$?"
-npm run test:always                 > /tmp/c.log 2>&1; echo "EXIT=$?"
-```
-
-migration·`package.json`·설정을 바꿨으면 `vitest run` 전체다 — 작업방 경로의 `.claude/` 때문에
-vitest 의 전체 재실행 트리거가 여기서는 안 걸린다 (`vitest.config.ts` 주석).
+- 도는 것은 `check:deps` · `typecheck` · `check:workflow` · `check:spec` · `check:tests` · 단위 테스트 둘(`test:changed` + `test:always`) 또는 전체다.
+  migration·`package.json`·설정을 바꿨으면 전체로 간다. **무엇을 어떻게 도는지의 정본은 `.claude/scripts/check-stamp.mjs` 다** — 여기에 목록을 옮겨 적지 않는다
+- 하나가 실패해도 일곱을 끝까지 돌고 명령마다 `<이름> EXIT=<n>` 줄을 찍는다. 종료 코드는 처음 실패한 명령의 것이다. 로그는 줄에 찍힌 로그 폴더에 명령별로 남는다
+- 「재사용 local <커밋>」 줄이 있으면 같은 커밋 검사를 다시 안 돈 것이다. `check:spec` · `check:docs-contract` 만 돈다
+- 「표지를 남기지 않는다 — <이유>」 줄은 통과 표지를 못 남겼다는 뜻이다. 종료 0 이면 검사는 통과다. 표지는 이 명령과 pre-push 훅만 찍는다
+- DB 를 건드렸으면 `DATABASE_URL` 을 붙인다. 없으면 DB 검사가 조용히 건너뛴다
 
 **파이프로 넘기지 않는다.** `cmd 2>&1 | tail` 은 셸이 보고하는 종료 코드를 `tail` 의 것으로 바꾼다.
-파일로 받고 `$?` 를 읽는다.
+파일로 받고 `$?` 를 읽는다. 배경 세션이면 로그를 `$CLAUDE_JOB_DIR/tmp/` 에 둔다.
 
 **「Tests N passed」와 「EXIT=1」은 같은 실행에서 동시에 참일 수 있다.**
 

@@ -63,20 +63,21 @@ git diff --name-only origin/main...HEAD | node .claude/scripts/detect-tier.mjs
 ## Step 4. 검사 명령을 종료 코드로 판정한다
 
 ```bash
-npm run check:deps      > /tmp/r.log 2>&1; echo "EXIT=$?"
-npm run typecheck       > /tmp/r.log 2>&1; echo "EXIT=$?"
-npm run check:workflow  > /tmp/r.log 2>&1; echo "EXIT=$?"
-npm run check:spec      > /tmp/r.log 2>&1; echo "EXIT=$?"
-npm run check:tests     > /tmp/r.log 2>&1; echo "EXIT=$?"
-npm run test:changed -- origin/main > /tmp/r.log 2>&1; echo "EXIT=$?"
-npm run test:always                 > /tmp/r.log 2>&1; echo "EXIT=$?"
+node .claude/scripts/check-stamp.mjs run local > $CLAUDE_JOB_DIR/tmp/r.log 2>&1; echo "EXIT=$?"
 ```
 
-**바뀐 것과 이어진 검사 + 늘 도는 목록을 1회** 돈다 (2026-09-25 — 서비스 전이라 전체 3회를 걷었다).
-DB 를 건드렸으면 `DATABASE_URL` 을 붙인다. migration·`package.json`·설정을 바꿨으면 `vitest run` 전체다.
-**`docs`·`spec` 차선이면 `check:spec` 하나만** 돈다 — 코드가 없다 (`/tpx` §차선).
+일곱 검사(`check:deps` · `typecheck` · `check:workflow` · `check:spec` · `check:tests` · 단위 테스트 둘 또는 전체)를 스크립트가 돈다.
+**바뀐 것과 이어진 검사 + 늘 도는 목록을 1회** 돌고 migration·`package.json`·설정을 바꿨으면 전체다 (2026-09-25 — 서비스 전이라 전체 3회를 걷었다).
+정본은 `.claude/scripts/check-stamp.mjs` 다 — 여기에 목록을 옮겨 적지 않는다.
+DB 를 건드렸으면 `DATABASE_URL` 을 붙인다.
+**`docs`·`spec` 차선이면 `check:spec` 하나만** 돈다 — 코드가 없다 (`/tpx` §차선). 이때는 이 명령을 부르지 않는다.
 
-**건수가 아니라 종료 코드다.** 「Tests N passed」와 「EXIT=1」은 동시에 참일 수 있다.
+- 명령마다 `<이름> EXIT=<n>` 줄을 찍는다. 하나가 실패해도 일곱을 끝까지 돌고, 종료 코드는 처음 실패한 명령의 것이다. 로그는 줄에 찍힌 로그 폴더에 명령별로 남는다
+- **「재사용 local <커밋>」 줄이 나왔으면 같은 커밋 검사를 다시 안 돈 것이다 — 게이트 2 요약에 그 줄을 싣는다.** `check:spec` · `check:docs-contract` 만 돌았다
+- 「표지를 남기지 않는다 — <이유>」 줄은 통과 표지를 못 남겼다는 뜻이다. 종료 0 이면 검사는 통과다. 표지는 이 명령과 pre-push 훅만 찍는다
+- 배경 세션이면 로그를 `$CLAUDE_JOB_DIR/tmp/` 에 둔다
+
+**건수가 아니라 종료 코드다.** 파이프(`| tail`)로 넘기면 종료 코드가 `tail` 의 것이 된다. 「Tests N passed」와 「EXIT=1」은 동시에 참일 수 있다.
 
 ## Step 5. SPEC 을 고쳤으면 §2.7 ⑥ 을 여기서 본다
 
