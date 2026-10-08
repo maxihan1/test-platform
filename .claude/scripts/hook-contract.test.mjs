@@ -3,27 +3,39 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, statSync, mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { HOOK, ZERO, 깨끗한환경, 임시저장소, 저장소에서돌린다, 불린것 } from './hook-fixture.mjs';
 
-const HOOK = fileURLToPath(new URL('../hooks/pre-push', import.meta.url));
-const ZERO = '0000000000000000000000000000000000000000';
 const SHA = 'a'.repeat(40);
 
-// 훅 안에서 이 검사가 돌면 git 이 물려준 GIT_DIR 등이 임시 저장소 대신 진짜 저장소를 가리킨다.
-// 2026-09-25 에 같은 모양의 검사가 실제 브랜치에 커밋하고 origin/main 을 옮겼다 (LEARNINGS)
-const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
-
+// git 저장소가 아닌 빈 폴더 + 가짜 npm 에서 돌린다. 진짜 저장소에서 돌리면 「검사 시작」 뒤에 진짜 단위 테스트가
+// 끝까지 돌아 수 분이 걸린다 (2026-10-08 CI 492초 중 491초). 이 검사들이 보는 것은 「검사 시작」 글자와 종료 코드뿐이다
 /** 훅을 stdin 입력과 함께 돌리고 종료 코드와 출력을 돌려준다 */
 function run(stdin) {
+  const 뿌리 = mkdtempSync(join(tmpdir(), 'pre-push-run-'));
+  const 가짜 = join(뿌리, '.fakebin');
+  const 기록 = join(뿌리, '.npm-calls');
+  mkdirSync(가짜);
+  writeFileSync(join(가짜, 'npm'), `#!/bin/sh\necho "$*" >> "${기록}"\n`);
+  chmodSync(join(가짜, 'npm'), 0o755);
+  const 호출 = () => {
+    try {
+      return readFileSync(기록, 'utf8');
+    } catch {
+      return '';
+    }
+  };
   try {
     const out = execFileSync(HOOK, ['origin', 'https://example.com/r.git'], {
+      cwd: 뿌리, env: { ...깨끗한환경, PATH: `${가짜}:${process.env.PATH}` },
       input: stdin, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
     });
-    return { code: 0, out };
+    return { code: 0, out, 호출: 호출() };
   } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` };
+    return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}`, 호출: 호출() };
+  } finally {
+    rmSync(뿌리, { recursive: true, force: true });
   }
 }
 
@@ -50,12 +62,16 @@ test('삭제와 코드 push 가 섞이면 검사로 간다', () => {
   // 한 줄이라도 진짜 push 면 검사해야 한다
   const r = run(`(delete) ${ZERO} refs/heads/a ${SHA}\nrefs/heads/b ${SHA} refs/heads/b ${ZERO}\n`);
   assert.match(r.out, /검사 시작/, '섞였는데 건너뛰었다');
+  assert.doesNotMatch(r.out, /Test Files/, '진짜 저장소에서 단위 테스트를 돌렸다');
+  assert.equal(r.호출, '', `진짜 npm 대신 가짜 npm 이 불렸다: ${r.호출}`);
 });
 
 test('입력이 비면 검사로 간다 (보수적)', () => {
   // 빈 입력을 삭제로 보면 검사가 새어 나간다
   const r = run('');
   assert.match(r.out, /검사 시작/, '빈 입력을 삭제로 봤다');
+  assert.doesNotMatch(r.out, /Test Files/, '진짜 저장소에서 단위 테스트를 돌렸다');
+  assert.equal(r.호출, '', `진짜 npm 대신 가짜 npm 이 불렸다: ${r.호출}`);
 });
 
 test('stdin 을 두 번 읽지 않는다고 적어 뒀다', () => {
@@ -78,60 +94,6 @@ test('기존 검사가 그대로 있다', () => {
 // **글자가 아니라 실제 동작을 본다** — 임시 git 저장소에 커밋을 만들고 훅을 그 안에서 돌린다.
 // npm 은 PATH 앞에 끼운 가짜로 바꿔 불린 인자만 적는다. 진짜 npm test 를 돌리면 이 검사가 수 분 걸린다.
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** base(origin/main) 하나와 그 위에 파일을 더한 커밋 하나가 있는 임시 저장소. 올릴 sha 를 돌려준다 */
-function 임시저장소(더할파일들, 옮길것들 = []) {
-  const 뿌리 = mkdtempSync(join(tmpdir(), 'pre-push-'));
-  const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { encoding: 'utf8', env: 깨끗한환경 }).trim();
-  const 쓴다 = (경로, 내용) => {
-    mkdirSync(join(뿌리, 경로, '..'), { recursive: true });
-    writeFileSync(join(뿌리, 경로), 내용);
-  };
-  git('init', '-q');
-  git('config', 'user.email', 't@example.com');
-  git('config', 'user.name', 't');
-  쓴다('package.json', '{}');
-  쓴다('tests/todo/TODO-001.spec.ts', 'x');
-  for (const [원래] of 옮길것들) 쓴다(원래, `옮겨질 코드 ${원래}\n`.repeat(20));
-  git('add', '.');
-  git('commit', '-qm', 'base');
-  git('update-ref', 'refs/remotes/origin/main', 'HEAD');
-  for (const f of 더할파일들) 쓴다(f, 'y');
-  for (const [원래, 새] of 옮길것들) git('mv', 원래, 새);
-  git('add', '.');
-  git('commit', '-qm', 'change', '--allow-empty');
-  const 가짜 = join(뿌리, '.fakebin');
-  mkdirSync(가짜);
-  const 기록 = join(뿌리, '.npm-calls');
-  // NPM_FAIL 에 준 낱말이 인자에 있으면 실패한다 — 「불렸다」가 아니라 「실패하면 막는다」를 보려고 (spec-review G9)
-  writeFileSync(
-    join(가짜, 'npm'),
-    `#!/bin/sh\necho "$*" >> "${기록}"\nenv | grep '^GIT_' >> "${기록}.git-env" || true\nif [ -n "$NPM_FAIL" ]; then case "$*" in *"$NPM_FAIL"*) exit 1 ;; esac; fi\n`,
-  );
-  chmodSync(join(가짜, 'npm'), 0o755);
-  return { 뿌리, sha: git('rev-parse', 'HEAD'), 가짜, 기록 };
-}
-
-function 저장소에서돌린다({ 뿌리, sha, 가짜 }, 더할환경 = {}) {
-  const env = { ...깨끗한환경, PATH: `${가짜}:${process.env.PATH}`, ...더할환경 };
-  delete env.ALLOW_PROTECTED;
-  try {
-    const out = execFileSync(HOOK, ['origin', 'https://example.com/r.git'], {
-      cwd: 뿌리, env, input: `refs/heads/b ${sha} refs/heads/b ${ZERO}\n`, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    return { code: 0, out };
-  } catch (e) {
-    return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` };
-  }
-}
-
-const 불린것 = (기록) => {
-  try {
-    return readFileSync(기록, 'utf8');
-  } catch {
-    return '';
-  }
-};
 
 test('테스트만 바뀐 커밋은 가벼운 길 — 타입·check:tests 만 돌고 검사 기록 없이 통과한다', () => {
   const 저장소 = 임시저장소(['tests/todo/TODO-002.spec.ts', 'docs/cases/TODO.md']);

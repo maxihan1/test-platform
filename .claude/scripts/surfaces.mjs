@@ -18,11 +18,12 @@ export const SURFACES = [
   { name: 'RUNNER', tier: 2, globs: ['apps/runner/**'] },
   { name: 'ADMIN', tier: 2, globs: ['apps/admin/src/catalog/**', 'apps/admin/src/execution/**', 'apps/admin/src/reporting/**', 'apps/admin/src/authoring/**', 'apps/admin/src/scenario/**', 'apps/admin/src/db/**', 'apps/admin/src/*.ts'] },
   // 훅도 CI 도 GUARD 다 — 안전 장치이고, 잘못 고치면 검사가 조용히 안 돈다.
-  // CI 는 특히 그렇다 — 줄 하나를 빠뜨리면 그 검사가 영영 안 돌고 초록불만 남는다
-  { name: 'GUARD', tier: 2, globs: ['.claude/scripts/**', '.claude/hooks/**', '.github/workflows/**', 'scripts/**', 'package.json', 'tsconfig.json', 'vitest.config.ts'] },
+  // CI 는 특히 그렇다 — 줄 하나를 빠뜨리면 그 검사가 영영 안 돌고 초록불만 남는다.
+  // 훅 배선(.claude/settings.json)도 같다 — 잘못 고치면 훅이 안 불려 검사가 조용히 꺼진다
+  { name: 'GUARD', tier: 2, globs: ['.claude/scripts/**', '.claude/hooks/**', '.claude/settings.json', '.github/workflows/**', 'scripts/**', 'package.json', 'tsconfig.json', 'vitest.config.ts'] },
 
   { name: 'WEB', tier: 1, globs: ['apps/admin/src/web/**'] },
-  { name: 'HARNESS', tier: 1, globs: ['.claude/skills/**', '.claude/agents/**', '.claude/settings.json', '**/CLAUDE.md'] },
+  { name: 'HARNESS', tier: 1, globs: ['.claude/skills/**', '.claude/agents/**', '**/CLAUDE.md'] },
 
   { name: 'DOC', tier: 0, globs: ['docs/**', '*.md', '**/*.html'] },
 ];

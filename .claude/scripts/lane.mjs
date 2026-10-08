@@ -6,8 +6,8 @@
 // 종료 0 의 뜻을 넓히면 에이전트가 문서 PR 까지 병합한다. 그래서 여기서 그 판정을 가져다 쓴다.
 //
 // 쓰는 법: git -c core.quotePath=false diff --no-renames --name-only <base>...HEAD | node lane.mjs <base>
-//   표준출력 `lane=<차선>` 한 줄. 종료 코드는 늘 0 이다 — CI 의 bash -e 를 죽이지 않는다.
-//   무엇이든 실패하면 `lane=full` 이다.
+//   표준출력 `lane=<차선>` 다음 줄에 `record=<need|skip>`. 종료 코드는 늘 0 이다 — CI 의 bash -e 를 죽이지 않는다.
+//   무엇이든 실패하면 `lane=full` · `record=need` 이다.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -29,6 +29,20 @@ export function lane(파일들) {
   return 표면들.includes('SPEC') ? 'spec' : 'docs';
 }
 
+/**
+ * 검사 기록(docs/reviews)을 요구해야 하나. 훅과 응답 끝 경고가 이 한 곳을 쓴다.
+ * 면제는 모든 경로가 1등급 표면이거나 문서 자리일 때뿐이다 — 명세·미분류·빈 목록·.. 경로는 모르는 것이라 요구한다.
+ * DOC 표면은 `docs/x.mjs` · 앱 폴더 html 도 잡으므로 표면만 보지 않고 문서 자리로 좁힌다
+ */
+export function 기록요구(파일들) {
+  if (파일들.length === 0) return true;
+  if (파일들.some((f) => f.split('/').includes('..'))) return true;
+  return !파일들.every((f) => {
+    const 표면 = surfaceOf(f);
+    return 표면?.tier === 1 || (표면?.name === 'DOC' && 문서자리(f));
+  });
+}
+
 function 직접불렸나() {
   try {
     return realpathSync.native(fileURLToPath(import.meta.url)) === realpathSync.native(process.argv[1] ?? '');
@@ -38,19 +52,19 @@ function 직접불렸나() {
 }
 
 function 판정(base) {
-  if (!base) return 'full';
+  if (!base) return { 차선: 'full', 요구: true };
   // 못 읽는 base 로 받은 목록은 믿을 수 없다 — 던지면 full 이다
   execFileSync('git', ['rev-parse', '--verify', '--quiet', `${base}^{commit}`], { stdio: ['ignore', 'pipe', 'pipe'] });
   const 파일들 = readFileSync(0, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
-  return lane(파일들);
+  return { 차선: lane(파일들), 요구: 기록요구(파일들) };
 }
 
 if (직접불렸나()) {
-  let 차선 = 'full';
+  let 결과 = { 차선: 'full', 요구: true };
   try {
-    차선 = 판정(process.argv[2]);
+    결과 = 판정(process.argv[2]);
   } catch (e) {
     console.error(`[lane] 판정을 못 했다 — full 로 간다: ${e.message}`);
   }
-  console.log(`lane=${차선}`);
+  console.log(`lane=${결과.차선}\nrecord=${결과.요구 ? 'need' : 'skip'}`);
 }

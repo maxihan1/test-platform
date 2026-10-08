@@ -46,12 +46,16 @@ for v in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$v"; done
 # 어느 ref 든 git diff 가 실패하면 full 이다 (보수적). 입력이 비어도 full 이다.
 # ref 마다 차선이 다르면 full 이다.
 #
+# record= (검사 기록 요구)도 같은 출력에서 읽는다. skip 은 **모든 ref 가 skip** 일 때뿐이다 —
+# diff 를 못 읽은 ref 가 하나라도 있거나 ref 가 없으면 need 다 (일부 경로만 보고 면제하지 않는다).
+#
 # diff 가 **성공했는데 비었으면** 그 ref 는 올릴 파일이 없다 — 빈 시작 커밋(tpx-start)이 그렇다.
 # 이것을 full 로 보내 그날 첫 push 가 검사 기록 요구에 막힌 일이 세 번 났다 (LEARNINGS 09-23 · 09-24 · 09-25).
 # 「못 읽었다」와 「읽었더니 없다」는 다르다 — 앞엣것만 full 이다.
 LANE_JS="$(dirname "$0")/../scripts/lane.mjs"
 lane=""
 changed_all=""
+record=skip
 if [ -n "$REFS" ]; then
   while IFS=' ' read -r _local_ref local_sha _remote_ref _remote_sha; do
     [ -z "$local_sha" ] && continue
@@ -59,12 +63,14 @@ if [ -n "$REFS" ]; then
       *[!0]*) ;;
       *) continue ;;
     esac
-    changed=$(git -c core.quotePath=false diff --no-renames --name-only "origin/main...$local_sha" 2>/dev/null) || { lane=full; break; }
+    changed=$(git -c core.quotePath=false diff --no-renames --name-only "origin/main...$local_sha" 2>/dev/null) || { lane=full; record=need; break; }
     [ -z "$changed" ] && continue
     changed_all="$changed_all
 $changed"
-    this=$(printf '%s\n' "$changed" | node "$LANE_JS" origin/main | sed -n 's/^lane=//p')
+    lane_out=$(printf '%s\n' "$changed" | node "$LANE_JS" origin/main) || lane_out=""
+    this=$(printf '%s\n' "$lane_out" | sed -n 's/^lane=//p')
     [ -z "$this" ] && this=full
+    [ "$(printf '%s\n' "$lane_out" | sed -n 's/^record=//p')" = "skip" ] || record=need
     if [ -z "$lane" ]; then lane=$this; elif [ "$lane" != "$this" ]; then lane=full; fi
   done <<EOF
 $REFS
@@ -75,10 +81,11 @@ EOF
   fi
 else
   lane=full
+  record=need
 fi
 echo "[pre-push] 차선: $lane"
 
-if [ "$lane" = "docs" ] || [ "$lane" = "spec" ]; then
+docs_checks() {
   # check:spec 은 node 표준 모듈만 쓴다 — 문서 PR 에 테스트·타입 검사가 볼 것이 없다
   if ! npm run check:spec --silent; then
     echo "" >&2
@@ -91,6 +98,10 @@ if [ "$lane" = "docs" ] || [ "$lane" = "spec" ]; then
     echo "[차단] 문서 계약 검사 실패. 위 메시지대로 고치고 다시 푸시해라." >&2
     exit 1
   fi
+}
+
+if [ "$lane" = "docs" ] || [ "$lane" = "spec" ]; then
+  docs_checks
   if [ "$lane" = "docs" ]; then
     echo "[pre-push] 문서만 바뀌었다 (docs 차선). 통과"
     exit 0
@@ -115,7 +126,56 @@ if [ "$lane" = "cases" ]; then
   exit 0
 fi
 
-if [ "$lane" = "spec" ]; then
+# ── 통과 표지 — 같은 커밋 · 문서만 더한 push 는 이미 돈 검사를 또 돌지 않는다 ──
+# 판정은 check-stamp.mjs find 한 곳에 있다 (all · tests · none). 훅은 reuse= 줄만 읽는다.
+# ref 가 여럿이면 가장 약한 값(all > tests > none)이고 **초기값은 none** 이다 —
+# 입력이 비었거나 삭제 줄뿐이거나 find 가 실패하거나 출력이 비면 표지를 믿지 않는다.
+# check:spec · check:docs-contract 는 재사용해도 돈다 (차이가 문서일 수 있고 1초 안팎이다).
+STAMP_JS="$(dirname "$0")/../scripts/check-stamp.mjs"
+
+# 검사 시작 때의 HEAD 와 작업 폴더 상태 — 검사 도중 누가 파일을 바꾸면 끝에 표지를 남기지 않는다.
+# 시작 때 코드가 덜 커밋돼 있었으면 put 이 스스로 거절하므로 훅은 「시작과 끝이 같은가」만 본다.
+# 못 읽으면 ? 로 둔다 — 끝에서도 못 읽으면 같아 보이지만 put 이 같은 명령을 못 읽어 거절한다
+snapshot() {
+  # git 이 실패하면 부를 때마다 다른 값 — 두 번 다 실패해도 「같음」으로 보고 표지를 남기지 않게 한다
+  { git rev-parse HEAD && git -c core.quotePath=false status --porcelain --no-renames --untracked-files=all; } 2>/dev/null || echo "?$$.$RANDOM"
+}
+start_state=$(snapshot)
+reuse=none
+if [ "$lane" = "full" ] && [ -n "$REFS" ]; then
+  reuse=""
+  while IFS=' ' read -r _local_ref local_sha _remote_ref _remote_sha; do
+    [ -z "$local_sha" ] && continue
+    case "$local_sha" in
+      *[!0]*) ;;
+      *) continue ;;
+    esac
+    this=none
+    if out=$(node "$STAMP_JS" find "$local_sha" </dev/null); then
+      this=$(printf '%s\n' "$out" | sed -n 's/^reuse=//p')
+    fi
+    case "$this" in all|tests) ;; *) this=none ;; esac
+    if [ -z "$reuse" ]; then reuse=$this
+    elif [ "$reuse" = "none" ] || [ "$this" = "none" ]; then reuse=none
+    elif [ "$reuse" = "tests" ] || [ "$this" = "tests" ]; then reuse=tests
+    fi
+  done <<EOF
+$REFS
+EOF
+  [ -z "$reuse" ] && reuse=none
+fi
+
+if [ "$reuse" != "none" ]; then
+  echo "[pre-push] 통과 표지가 있다 (재사용: $reuse) — 문서 검사 둘은 돈다"
+  docs_checks
+  if [ "$reuse" = "all" ]; then
+    echo "[pre-push] 통과 표지 — 단위 테스트와 검사 기록 확인을 건너뛴다. 통과"
+    exit 0
+  fi
+  echo "[pre-push] 통과 표지(tests) — 단위 테스트는 건너뛰고 검사 기록 확인으로 간다"
+fi
+
+if [ "$lane" = "spec" ] || [ "$reuse" = "tests" ]; then
   :
 elif [ -f package.json ]; then
   # 바뀐 것과 이어진 검사만 돈다 (vitest --changed) + import 로 안 이어지는 검사(test:always).
@@ -149,13 +209,33 @@ if [ "$ALLOW_PROTECTED" = "1" ]; then
 fi
 
 TODAY=$(date +%F)
-if ! ls docs/reviews/${TODAY}-*.md >/dev/null 2>&1; then
+if [ "$record" = "skip" ]; then
+  echo "[pre-push] 1등급 — 검사 기록을 요구하지 않는다"
+elif ! ls docs/reviews/${TODAY}-*.md >/dev/null 2>&1; then
   echo "" >&2
   echo "[차단] 오늘 날짜의 SPEC 검사 기록이 없다: docs/reviews/${TODAY}-*.md" >&2
   echo "" >&2
   echo "Claude Code에서 spec-review 스킬을 돌리고 결과를 저장한 뒤 푸시해라." >&2
   echo "정말 건너뛰어야 하면: git push --no-verify" >&2
   exit 1
+fi
+
+# ── 통과 표지를 남긴다 — full 길이 기록 확인(또는 1등급 면제)까지 통과했을 때만 ──────────────
+# 훅은 HEAD 의 작업 폴더를 검사하므로 HEAD 가 아닌 커밋에는 스크립트가 거절한다.
+# 표지를 못 남겨도 push 는 막지 않는다 — 다음 push 가 검사를 한 번 더 도는 것뿐이다
+if [ "$lane" = "full" ] && [ -n "$REFS" ] && [ "$(snapshot)" != "$start_state" ]; then
+  echo "[pre-push] 검사가 도는 동안 HEAD 나 작업 폴더가 바뀌었다 — 통과 표지를 남기지 않는다 (push 는 막지 않는다)"
+elif [ "$lane" = "full" ] && [ -n "$REFS" ]; then
+  while IFS=' ' read -r _local_ref local_sha _remote_ref _remote_sha; do
+    [ -z "$local_sha" ] && continue
+    case "$local_sha" in
+      *[!0]*) ;;
+      *) continue ;;
+    esac
+    node "$STAMP_JS" put push "$local_sha" </dev/null || echo "[pre-push] 경고: 통과 표지를 못 남겼다 (push 는 막지 않는다)" >&2
+  done <<EOF
+$REFS
+EOF
 fi
 
 echo "[pre-push] 통과"

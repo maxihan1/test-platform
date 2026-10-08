@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Claude Code 훅 가드. CLAUDE.md 규칙 중 기계적으로 판정되는 것만 강제한다. 모드는 argv[2]
 import { readFileSync, existsSync, readdirSync, appendFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
+import { 기록요구 } from './lane.mjs';
 
 const mode = process.argv[2];
 
@@ -34,6 +35,8 @@ const BANNED = [
   // 무늬 고르개는 `-f` 를 품은 묶음(`-af` · `-fx`)과 `--full` 둘 다다. 치환은 `$(…)` 와 백틱 둘 다
   [/\bpkill\s+(?:[^;&|]*\s)?(?:-\w*f\w*|--full)\b/, '무늬로 프로세스 끄기'],
   [/(?:\$\(|`)\s*pgrep\s+(?:[^)`]*\s)?(?:-\w*f\w*|--full)\b/, '무늬로 프로세스 끄기'],
+  // 세션이 Bash 로 표지를 만들면 검사를 돌리지 않고도 push 가 통과한다. `node` 로 부르는 꼴만 — `grep` 처럼 글자만 든 명령은 통과
+  [/\bnode\s+(?:[^;&|]*\s)?\S*check-stamp\.mjs\s+put(?:\s|$)/, '통과 표지 직접 찍기 — 표지는 run local 과 pre-push 훅만 찍는다'],
 ];
 
 // 파이프로 이어지는 꼴은 구간을 나누면 둘로 갈라져 못 본다 — 나누기 전 명령 전체에 건다
@@ -194,9 +197,14 @@ if (mode === 'review') {
   if (ESCAPE || ev.stop_hook_active) ok();
   let changed = '';
   try {
-    changed = execSync('git status --porcelain -- apps packages tests', { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    // 이름 바꾸기가 새 경로 하나로 숨지 않게 --no-renames, 새 폴더가 한 줄로 접히지 않게 all
+    changed = execFileSync('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '--no-renames', '--untracked-files=all', '--', 'apps', 'packages', 'tests'],
+      { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   } catch { ok(); }
   if (!changed.trim()) ok();
+  // 따옴표 친 경로는 못 읽은 것이다 — 모르면 경고 쪽
+  const 줄들 = changed.split('\n').filter(Boolean);
+  if (!줄들.some((l) => l.slice(3).startsWith('"')) && !기록요구(줄들.map((l) => l.slice(3)))) ok();
 
   let latest = 0;
   try {

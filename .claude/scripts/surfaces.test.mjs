@@ -32,6 +32,11 @@ test('스킬과 CLAUDE.md 는 1등급', () => {
   assert.equal(surfaceOf('CLAUDE.md').name, 'HARNESS');
 });
 
+test('.claude/settings.json 은 GUARD 2등급 — 훅 배선이라 잘못 고치면 검사가 조용히 꺼진다 (2026-10-08)', () => {
+  assert.equal(surfaceOf('.claude/settings.json').name, 'GUARD');
+  assert.equal(detectTier(['.claude/settings.json']).tier, 2);
+});
+
 test('마이그레이션과 공유 타입은 3등급', () => {
   assert.equal(detectTier(['db/migrations/20260916000001_init.sql']).tier, 3);
   assert.equal(detectTier(['packages/kit/src/types.ts']).tier, 3);

@@ -260,15 +260,33 @@ test('컨트롤러가 차선 규칙을 적었다 — 명세만 바뀌면 spec-re
   assert.match(절, /게이트 2/);
 });
 
-// 전체 npm test 를 3회 돌리던 자리. 이제 바뀐 것과 이어진 검사 + 늘 도는 목록이다
-test('구현·검사 단계가 전체 npm test 대신 바뀐 것만 돈다', () => {
+// 전체 npm test 를 3회 돌리던 자리. 이제 바뀐 것과 이어진 검사 + 늘 도는 목록이다.
+// 일곱 명령을 세션이 EXIT 줄로 읽던 것을 check-stamp.mjs run local 한 줄로 옮겼다 — 판정은 스크립트가 한다
+test('구현·검사 단계가 run local 한 줄로 바뀐 것만 돈다', () => {
+  const 스크립트 = readFileSync(new URL('./check-stamp.mjs', import.meta.url), 'utf8');
+  assert.match(스크립트, /test:changed/, 'check-stamp.mjs 가 test:changed 를 안 부른다');
+  assert.match(스크립트, /origin\/main/, 'check-stamp.mjs 가 origin/main 기준을 안 쓴다');
+  assert.match(스크립트, /test:always/, 'check-stamp.mjs 가 test:always 를 안 부른다 — 인증 route 검사가 빠진다');
   for (const s of ['tpx-impl', 'tpx-review']) {
     const 코드 = codeOf(s);
-    assert.match(코드, /npm run test:changed -- origin\/main/, `${s} 가 test:changed 를 안 부른다`);
-    assert.match(코드, /npm run test:always/, `${s} 가 test:always 를 안 부른다 — 인증 route 검사가 빠진다`);
+    assert.match(코드, /node \.claude\/scripts\/check-stamp\.mjs run local/, `${s} 가 check-stamp.mjs run local 을 안 부른다`);
     assert.doesNotMatch(코드, /(^|\s)npm test\b/m, `${s} 가 아직 전체 npm test 를 부른다`);
     assert.doesNotMatch(read(s), /연속 3회/, `${s} 에 옛 「연속 3회」 규칙이 남았다`);
   }
+});
+
+// 표지는 run local 과 훅만 찍는다 — 세션이 EXIT 줄을 읽고 도장을 찍는 길이 생기면 검사 없이 통과가 새 나간다
+test('스킬 어디에도 check-stamp.mjs put 이 없다', () => {
+  for (const s of STEP_SKILLS) {
+    assert.doesNotMatch(read(s), /check-stamp\.mjs put/, `${s} 가 표지를 직접 찍는 명령을 적었다`);
+  }
+});
+
+test('tpx-review Step 4 가 「재사용」 줄을 게이트 2 요약에 싣는다고 적었다', () => {
+  const 절 = /## Step 4[\s\S]*?(?=\n## )/.exec(read('tpx-review'))?.[0] ?? '';
+  assert.ok(절, 'tpx-review 에 Step 4 절이 없다');
+  assert.match(절, /재사용/);
+  assert.match(절, /게이트 2 요약/);
 });
 
 // 분리 뒤 SKILL.md 가 안 가리키는 references 파일은 아무도 안 읽는다
