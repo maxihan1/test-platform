@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
-import { 깨끗한환경, 임시저장소, 저장소에서돌린다, 불린것 } from './hook-fixture.mjs';
+import { 깨끗한환경, 임시저장소, 저장소에서돌린다, 불린것, ZERO } from './hook-fixture.mjs';
 
 // 훅은 현지 날짜(date +%F)로 기록 파일을 찾는다. toISOString 은 UTC 라 한국 시간 0~9시에 하루 어긋난다
 const 오늘 = execFileSync('date', ['+%F'], { encoding: 'utf8' }).trim();
@@ -157,6 +157,54 @@ test('⑧ HEAD 에 push 표지가 있어도 stdin 이 비면 기록을 요구한
     assert.equal(r.code, 1, `빈 입력인데 표지를 믿고 통과했다: ${r.out}`);
     assert.match(r.out, /docs\/reviews/, '검사 기록을 요구하지 않았다');
     assert.match(r.호출, /^run test:changed\b/m, '단위 테스트를 건너뛰었다');
+  } finally {
+    정리(저장소);
+  }
+});
+
+test('⑨ 화면만 바뀐 커밋은 검사 기록 없이 통과하고 1등급을 말한다', () => {
+  const 저장소 = 임시저장소(['apps/admin/src/web/x.tsx']);
+  try {
+    const r = 다시돌린다(저장소);
+    assert.equal(r.code, 0, `화면만 바꿨는데 막혔다: ${r.out}`);
+    assert.match(r.out, /1등급/, '기록을 요구하지 않는다고 말하지 않았다');
+    assert.doesNotMatch(r.out, /docs\/reviews/);
+    assert.match(r.호출, /^run test:changed\b/m, '단위 테스트는 돌아야 한다');
+    assert.match(표지(저장소, 저장소.sha), /^push$/m, '통과했는데 push 표지가 안 남았다');
+  } finally {
+    정리(저장소);
+  }
+});
+
+test('⑩ 스킬만 바뀐 커밋도 통과한다', () => {
+  const 저장소 = 임시저장소(['.claude/skills/x/SKILL.md']);
+  try {
+    const r = 다시돌린다(저장소);
+    assert.equal(r.code, 0, `스킬만 바꿨는데 막혔다: ${r.out}`);
+    assert.match(r.out, /1등급/);
+  } finally {
+    정리(저장소);
+  }
+});
+
+test('⑪ 미분류 코드는 여전히 검사 기록을 요구한다', () => {
+  const 저장소 = 임시저장소(['apps/x.ts']);
+  try {
+    const r = 다시돌린다(저장소);
+    assert.equal(r.code, 1, `기록 없이 통과했다: ${r.out}`);
+    assert.match(r.out, /docs\/reviews/);
+  } finally {
+    정리(저장소);
+  }
+});
+
+test('⑫ 두 ref 중 하나의 diff 가 실패하면 다른 ref 가 화면뿐이어도 기록을 요구한다', () => {
+  const 저장소 = 임시저장소(['apps/admin/src/web/x.tsx']);
+  try {
+    const 입력 = `refs/heads/a ${저장소.sha} refs/heads/a ${ZERO}\nrefs/heads/b ${'1'.repeat(40)} refs/heads/b ${ZERO}\n`;
+    const r = 다시돌린다(저장소, {}, 입력);
+    assert.equal(r.code, 1, `읽지 못한 ref 가 있는데 기록 없이 통과했다: ${r.out}`);
+    assert.match(r.out, /docs\/reviews/);
   } finally {
     정리(저장소);
   }
