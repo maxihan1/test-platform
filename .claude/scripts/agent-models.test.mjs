@@ -1,9 +1,9 @@
 // /tpx 체인 서브 에이전트의 모델 배분이 정의 파일과 스킬에 박혀 있는지 본다 (2026-10-06 사용자 — 토큰이 빨리 닳는다)
-// effort 는 호출 때 못 정하고 .claude/agents 머리로만 정해진다. 산문 「Sonnet 으로」만 두면 다음 세션이 잊는다
+// effort 는 정의 머리(.claude/agents)에 박고, 정의 없이 내는 호출은 호출 블록에 적는다. 산문 「Sonnet 으로」만 두면 다음 세션이 잊는다
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
-import { 펜스블록 } from './md-sections.mjs';
+import { 절, 펜스블록 } from './md-sections.mjs';
 
 const AGENTS = new URL('../agents/', import.meta.url);
 const SKILLS = new URL('../skills/', import.meta.url);
@@ -114,4 +114,51 @@ test('검증자 정의가 GREEN 이 고친 검사 파일 기준을 늘 보는 �
   assert.match(본문, /GREEN 커밋이 검사 파일을 고쳤으면[^\n]*「구현 중 바뀐 것」[^\n]*DRIFT/, '정의에 GREEN 이 고친 검사 파일 기준이 없다');
   assert.match(본문.split('\n').find((줄) => 줄.includes('거기 적힌 대로만')) ?? '', /늘 보는 기준/, '「거기 적힌 대로만 본다」 줄이 늘 보는 기준을 가리키지 않아 기준과 부딪힌다');
   assert.match(절2C(), /GREEN 커밋이 검사 파일을 고쳤으면[^\n]*tpx-verifier\.md/, '2-C 의 그 줄이 검증자 정의를 가리키지 않는다');
+});
+
+test('보조 실행자 정의는 Haiku · effort low 이고 고치는 도구가 없으며 로그 요약의 꼴을 정의 한 곳에 적는다', () => {
+  const m = 머리('tpx-runner');
+  assert.equal(m.name, 'tpx-runner');
+  assert.equal(m.model, 'haiku');
+  assert.equal(m.effort, 'low');
+  assert.ok(m.tools, 'tools 를 적지 않으면 모든 도구를 받는다');
+  assert.deepEqual(m.tools.split(/,\s*/).sort(), ['Bash', 'Glob', 'Grep', 'Read']);
+  const 본문 = readFileSync(new URL('tpx-runner.md', AGENTS), 'utf8').replace(/^---\n[\s\S]*?\n---\n/, '');
+  for (const 낱말 of ['실패한 명령', '검사 이름', '원문 그대로', '파일:줄']) {
+    assert.ok(본문.includes(낱말), `로그 요약의 꼴에 「${낱말}」이 없다`);
+  }
+  assert.match(본문, /고칠 방법[^\n]*내지 않는다/, '요약이 고칠 방법을 내지 않는다는 줄이 없다');
+});
+
+test('tpx-merge 는 Step 2 · 3 만 tpx-runner 에 맡기고 정의를 못 찾으면 Haiku 로 대신 낸다', () => {
+  const 글 = 스킬('tpx-merge');
+  const 호출 = 펜스블록(글, 'tpx-runner');
+  assert.match(호출, /subagent_type: "tpx-runner"/, 'tpx-merge 에 tpx-runner 호출 블록이 없다');
+  assert.match(호출, /1-record-ready-merge\.md/, '프롬프트가 명령 원문의 파일 경로를 가리키지 않는다');
+  assert.match(호출, /## Step 2\./, '프롬프트가 Step 2 절 제목을 가리키지 않는다');
+  assert.match(호출, /## Step 3\./, '프롬프트가 Step 3 절 제목을 가리키지 않는다');
+  assert.match(글, /정의를 못 찾으면[\s\S]{0,160}general-purpose[\s\S]{0,80}model: "haiku"[\s\S]{0,40}effort: "low"/, '정의를 못 찾을 때 대신 낼 방법이 없다');
+  assert.match(글, /Step 1[^\n]*메인/, 'Step 1 이 메인에 남는다는 줄이 없다');
+  assert.match(글, /Step 4[^\n]*메인/, 'Step 4 이후가 메인에 남는다는 줄이 없다');
+  assert.match(글, /gh pr view <번호> --json state[^\n]*메인|메인[^\n]*gh pr view <번호> --json state/, '병합 뒤 메인이 MERGED 를 직접 확인한다는 줄이 없다');
+});
+
+test('tpx-review Step 4 는 EXIT 가 0 이 아닌 명령의 로그 요약을 tpx-runner 에 맡기고 로그 폴더를 넘긴다', () => {
+  const 절4 = 절(스킬('tpx-review'), '## Step 4.');
+  assert.match(절4, /EXIT[^\n]*0 이 아닌[^\n]*tpx-runner|tpx-runner[^\n]*EXIT[^\n]*0 이 아닌/, 'Step 4 에 실패 로그 요약을 tpx-runner 에 맡기는 줄이 없다');
+  assert.match(절4, /tpx-runner[^\n]*로그 폴더|로그 폴더[^\n]*tpx-runner/, '요약을 맡길 때 로그 폴더 경로를 넘긴다는 줄이 없다');
+  assert.match(절4, /tpx-runner\.md/, 'Step 4 가 요약의 꼴을 정의 파일에 맡기지 않는다');
+});
+
+test('tpx-plan 은 찾기를 Explore · Sonnet · medium 으로 내고 받은 파일:줄은 컨트롤러가 열어 확인한다', () => {
+  const 글 = 스킬('tpx-plan');
+  assert.match(글, /subagent_type: "Explore"[\s\S]{0,80}model: "sonnet"[\s\S]{0,40}effort: "medium"/, 'tpx-plan 에 Explore 호출 줄이 없다');
+  assert.match(글, /파일:줄[^\n]*컨트롤러[^\n]*열어/, '받은 파일:줄을 컨트롤러가 열어 확인한다는 줄이 없다');
+  assert.match(글, /같은 규칙인가[^\n]*컨트롤러|컨트롤러[^\n]*같은 규칙인가/, '「같은 규칙인가」 판단을 컨트롤러가 한다는 줄이 없다');
+});
+
+test('tpx-impl 의 정의를 못 찾을 때 대체 호출은 effort 를 적고 「effort 는 정하지 못한다」가 없다', () => {
+  const 글 = 스킬('tpx-impl');
+  assert.doesNotMatch(글, /effort 는 정하지 못한다/, '에이전트 도구가 effort 를 받는데 못 정한다는 옛 줄이 남았다');
+  assert.match(글, /정의를 못 찾으면[\s\S]{0,200}model: "sonnet"[\s\S]{0,40}effort: "high"/, '구현자 대체 호출에 effort 가 없다');
 });
