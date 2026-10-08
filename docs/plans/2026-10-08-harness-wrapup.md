@@ -148,6 +148,52 @@ RED 는 「체인 문서 어디에도 `check-stamp.mjs find` 와 `reuse=` 가 �
 - E3 실패 경로 — 할 일 6 origin/main 없음 처리 · 할 일 2 빈 입력 · `break` 유지
 - E5 시간 — 새 대기 없음
 
+## 게이트 2 「고치고 재검사」 반영
+
+사용자 결정(2026-10-08 게이트 2) — 「고치고 재검사」. 1회차 검사 HEAD `137b90dc`. 지적 원문은 `docs/reviews/2026-10-08-하네스-181.md`(spec-review) · PR #181 「### [6/7] 검사 완료」 코멘트(code-review). 반영하지 않는 것 — code-review 주의 4 뒷부분(여러 날 걸리는 PR 에서 응답마다 경고 — 경고가 pre-push 의 다음 판정과 맞는 한 그대로) · code-review 경미 10(HEAD 가 `origin/main` 밖일 때 표지 줄이 없음 — 좁은 경우).
+
+### 할 일 8. 병합 대기 넘기기를 안전하게 — Haiku 는 기다리기만, 병합은 메인이 확인 뒤 (code-review BLOCKER 1 · 주의 3 · 경미 5 · 8 / spec-review 중대 C5 · 경미 5 · 6)
+
+- **RED** — `agent-models.test.mjs` 에 ① `tpx-merge` 의 `tpx-runner` 호출 블록이 Step 2 만 넘기고 Step 3 를 넘기지 않는다(블록에 `## Step 3.` 없음) ② 블록이 `BEFORE` · `NOW` · `CI EXIT` 를 보고하게 하고, 멈출 때(충돌 · `DIRTY` · 새 실행 안 뜸 · 시간 초과 · CI 빨강)는 명령 없이 보고만 하게 한다 · Step 2 블록을 Bash 한 번에 `timeout: 600000` 으로 ③ 메인이 `gh run view <실행 번호> --json conclusion,headSha` 로 새 실행(`NOW` ≠ `BEFORE`) · `success` · 헤드 sha 가 PR 헤드와 같은지 본 뒤에 Step 3 병합을 직접 친다 ④ 실행 번호 자리표시가 PR 번호(`<번호>`)와 다른 이름이다(`gh run view <번호>` 가 없다) ⑤ 제목(`[작업중]` 을 뗀 것)은 메인이 만들어 넘긴다 ⑥ `tpx-review` · `tpx-merge` 의 「정의를 못 찾으면」 대체 호출이 정의 파일(`tpx-runner.md`) 본문을 프롬프트에 싣게 한다 ⑦ `references/1-record-ready-merge.md` 「## Step 2.」 의 `gh run watch` 가 Bash 한 번 상한(10분) 안이고(`timeout 540`), 시간 초과(124)면 실행 번호를 그대로 넣어 다시 지켜보며 끊긴 것을 통과로 읽지 않는다 · 실패 · 엣지 표 앞에 「`tpx-runner` 로 돌 때는 이 표의 행동을 하지 않고 멈춰 보고한다」 ⑧ 정의 검사 이름의 「고치는 도구가 없으며」를 사실대로(Bash 가 있다 — 「파일을 고치지 않는다」는 산문 규칙). 지금 문서가 옛 꼴이라 실패한다
+- **GREEN** — `tpx-merge/SKILL.md` 「Step 2 · 3 은 보조 에이전트에 맡긴다」 절을 「Step 2 의 CI 기다리기만」으로 고친다. `tpx-runner.md` 에 CI 로그 요약의 줄 자리(로그 줄 번호 · 실행 번호)와 「Opus 정의」 문구 정정. `1-record-ready-merge.md` Step 2 블록 · 표 머리. `tpx-review` Step 4 대체 호출 한 줄
+- **REFACTOR** — 없음
+
+**files**: .claude/skills/tpx-merge/SKILL.md · .claude/skills/tpx-merge/references/1-record-ready-merge.md · .claude/agents/tpx-runner.md · .claude/skills/tpx-review/SKILL.md · .claude/scripts/agent-models.test.mjs
+**depends-on**: []
+**검증**: `node --test .claude/scripts/agent-models.test.mjs .claude/scripts/chain-contract.test.mjs && npm run check:docs-contract`
+
+### 할 일 9. 구현자 · 컨트롤러 커밋은 `git commit -- <경로>` 로 (code-review 주의 2 · 경미 9 / spec-review 경미 4)
+
+- **RED** — `agent-models.test.mjs` 의 「tpx-impl 구현자 프롬프트 필수 목록이 …」 단언을 `git commit` 에 경로를 붙이는 꼴(`-- <files 경로>`)로 바꾼다 — 같은 작업방의 index 는 구현자끼리 같이 쓰여 `git add <경로>` 만으로는 남이 올려 둔 파일이 내 커밋에 섞인다. 「컨트롤러도 같다」 · 「push 는 컨트롤러가 묶음 사이」가 Step 2 흐름(2-C 뒤 「묶음의 모든 할 일이 PASS 면」 근처)에 있다. 지금 문구가 `git add` 라 실패한다
+- **GREEN** — `tpx-impl` 2-A 줄을 「커밋은 `git commit -m … -- <files 경로>` 로 자기 파일만 · `-A` · `.` · `commit -a` 금지 · push 하지 않는다」로, 묶음 졸업 줄 옆에 push 한 줄. LEARNINGS 10-07 승격 줄에 「컨트롤러 커밋도 `commit -- <경로>`」가 남게 고친다
+- **REFACTOR** — 없음
+
+**files**: .claude/skills/tpx-impl/SKILL.md · .claude/scripts/agent-models.test.mjs · docs/LEARNINGS.md
+**depends-on**: [8]
+**검증**: `node --test .claude/scripts/agent-models.test.mjs .claude/scripts/chain-contract.test.mjs`
+
+### 할 일 10. 응답 끝 경고 날짜를 현지 날짜로 (code-review 주의 4 앞부분)
+
+- **RED** — `guard.test.mjs` 에 `guard.mjs` 가 내보내는 `현지날짜(d)` 를 `TZ=Asia/Seoul` 자식 프로세스에서 불러 `2026-10-08T20:00:00Z` → `2026-10-09` 를 단언한다(UTC `toISOString` 이면 `2026-10-08`). pre-push 는 `date +%F`(현지)라 둘이 한국 시간 00~09시에 엇갈렸다. 함수가 없어 지금 실패한다
+- **GREEN** — `guard.mjs` review 의 오늘 계산을 `현지날짜()` 로 바꾸고 내보낸다(파일 이름 날짜와 같은 `YYYY-MM-DD`)
+- **REFACTOR** — 없음
+
+**files**: .claude/scripts/guard.mjs · .claude/scripts/guard.test.mjs
+**depends-on**: []
+**검증**: `node --test .claude/scripts/guard.test.mjs .claude/scripts/guard-wiring.test.mjs`
+
+### 할 일 11. 검사 단언 단단히 · 손으로 센 개수 (spec-review 경미 1 · 2 · 3 · 6 / code-review 경미 6 · 7 · 11)
+
+- **RED** — ① `lens-handoff.test.mjs` 「할 일 5」가 양방향이다 — HOOKS CI 칸의 `check:*` 가 전부 `ci.yml` 의 차선 조건 없는 단계에 있다(`check:wbs` 단계를 지우면 빨강) ② `hook-contract.test.mjs` SHAS 글자 단언이 `#` 주석 줄을 빼고 센다 · 검사 이름의 「check:spec 만」을 실제(pre-push 문서 검사)대로 ③ `review-structure.test.mjs` — `펜스블록` 이 빈 펜스 뒤에서도 짝이 안 밀리고(줄 머리 고정) · 사본 금지에 `펜스블록` 을 더한다. 지금 꼴로 빨개야 하는 것만 RED 로 확인한다(이름 바꾸기는 GREEN)
+- **GREEN** — `md-sections.mjs` 펜스 정규식을 줄 머리 고정(`m` 플래그)으로. `docs/HOOKS.md` 「문서 검사 셋」 · `ci.yml` 머리 주석 「차선 넷」 · 「가벼운 셋」에서 손으로 센 개수를 뺀다
+- **REFACTOR** — 없음
+
+**files**: .claude/scripts/lens-handoff.test.mjs · .claude/scripts/hook-contract.test.mjs · .claude/scripts/review-structure.test.mjs · .claude/scripts/md-sections.mjs · docs/HOOKS.md · .github/workflows/ci.yml
+**depends-on**: []
+**검증**: `node --test .claude/scripts/lens-handoff.test.mjs .claude/scripts/hook-contract.test.mjs .claude/scripts/review-structure.test.mjs .claude/scripts/agent-models.test.mjs && npm run check:docs-contract`
+
+묶음 — ① 8 · 10 · 11 ② 9. 재검사는 `tpx-review` 「고치고 재검사 — 바뀐 부분만」(범위 `137b90dc..HEAD` · 두 렌즈 같은 강도).
+
 ## 게이트 1 결정
 
 지적 반영하고 진행 (2026-10-08 사용자). BLOCKER 1 · 주의 1~4 · 참고 2 · 3 을 할 일 1 · 2 · 3 · 5 블록 안에 「게이트 1」 표시로 넣었다. 재검토는 안 한다. 참고 1(docs · spec 차선 렌즈 인정이 `check:docs-contract` 를 안 봄)은 범위 밖 — 게이트 2 요약에 싣는다.
