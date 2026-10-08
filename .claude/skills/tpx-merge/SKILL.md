@@ -45,14 +45,14 @@ Agent({
   description: "tpx-merge Step 2 — PR #<번호>",
   prompt: "작업 디렉터리는 <작업방 절대경로> 다. .claude/skills/tpx-merge/references/1-record-ready-merge.md 의 " +
           "`## Step 2.` 절만 그대로 따르라(Step 3 은 하지 않는다). PR <번호> · 브랜치 <브랜치> · 새 제목 <제목>. " +
-          "Bash 는 한 번에 `timeout: 600000` 으로 부른다. 끝나면 BEFORE · NOW · CI EXIT 값을 그대로 보고하라. " +
+          "Step 2 명령 블록 전체를 Bash 한 번에 `timeout: 600000` 으로 부른다. 끝나면 BEFORE · NOW · CI EXIT 값을 그대로 보고하라. " +
           "충돌 · DIRTY · 새 실행 안 뜸 · 시간 초과 · CI 빨강이면 표의 행동은 하지 말고 값과 증상을 보고만 하라 " +
           "(빨강이면 `gh run view <실행 번호> --log-failed` 요약도 — 꼴은 정의를 따른다)."
 })
 ```
 
 - **정의를 못 찾으면**(「없는 에이전트」 오류) `subagent_type: "general-purpose"` 에 `model: "haiku"` · `effort: "low"` 로 대신 낸다. 이때 `.claude/agents/tpx-runner.md` 본문을 프롬프트 맨 앞에 실어 규율이 따라가게 한다.
-- 돌아온 뒤 메인이 `gh run view <실행 번호> --json conclusion,headSha` 로 확인한다. `NOW` ≠ `BEFORE`(새 실행) · `conclusion` 이 `success` · `headSha` 가 `gh pr view <번호> --json headRefOid` 의 PR 헤드와 같을 때만 Step 3 으로 간다. 하나라도 어긋나면 병합하지 않는다.
+- 돌아온 뒤 메인이 `gh run view <실행 번호> --json conclusion,headSha` 로 확인한다. `NOW` ≠ `BEFORE`(새 실행) · `conclusion` 이 `success` · `headSha` 가 `gh pr view <번호> --json headRefOid` 의 PR 헤드와 같을 때만 Step 3 으로 간다. 하나라도 어긋나면 병합하지 않는다. 병합에는 확인한 그 PR 헤드 sha 를 `--match-head-commit` 으로 붙인다.
 - 메인이 Step 3 병합을 직접 친 뒤 `gh pr view <번호> --json state` 로 MERGED 를 직접 확인한다. 확인 전에는 Step 4 로 가지 않는다.
 
 ## 출력

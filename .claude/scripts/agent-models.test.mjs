@@ -170,7 +170,7 @@ test('tpx-merge 는 Step 2 의 CI 기다리기만 tpx-runner 에 맡기고 병�
 
 test('Step 2 명령 블록은 Bash 한 번 상한 안이고 tpx-runner 로 돌 때는 엣지 표의 행동 없이 멈춰 보고한다', () => {
   const 글 = 스킬('tpx-merge');
-  const 블록 = 펜스블록(소절(글, '## Step 2.'), 'gh pr ready');
+  const 블록 = 펜스블록(소절(글, '## Step 2. ★'), 'gh pr ready');
   assert.ok(블록, 'Step 2 에 gh pr ready 명령 블록이 없다');
   assert.match(블록, /timeout 420 gh run watch "\$NOW" --exit-status/, 'gh run watch 가 timeout 420 이 아니다 — 기다림 최대 약 120초와 합쳐 Bash 한 번 상한(600초) 안이어야 한다');
   assert.doesNotMatch(글, /timeout 540|timeout 900/, '옛 timeout 540 · 900 이 남았다');
