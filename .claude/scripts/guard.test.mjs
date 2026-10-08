@@ -206,3 +206,13 @@ test('review 모드 — 1등급만 바뀌면 조용하고, 2등급 이상은 이
   커밋한다(일곱, 'apps/admin/src/web/a.tsx', 'y\n');
   assert.equal(돌린다(일곱.뿌리).status, 0, '화면만 커밋했는데 경고했다');
 });
+
+test('현지날짜 — 한국 시간 새벽에도 pre-push 의 date +%F 와 같은 날이다 (2026-10-08)', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const 가드 = new URL('./guard.mjs', import.meta.url).href;
+  const 환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_') && k !== 'ALLOW_PROTECTED'));
+  const 결과 = spawnSync('node', ['--input-type=module', '-e',
+    `import { 현지날짜 } from ${JSON.stringify(가드)}; console.log(현지날짜(new Date('2026-10-08T20:00:00Z')));`],
+    { env: { ...환경, TZ: 'Asia/Seoul' }, encoding: 'utf8' });
+  assert.equal(결과.stdout.trim(), '2026-10-09', 결과.stderr);
+});
