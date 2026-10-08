@@ -61,7 +61,7 @@ test('할 일 2 — tpx 선행 읽기가 본문 대신 위치와 절 제목을 �
   const 본 = 절(read('.claude/skills/tpx/SKILL.md'), '## 선행 읽기 — 여기서 한 번만 읽는다');
   assert.ok(본.includes('`파일:줄`'), '파일:줄 을 넘긴다는 말이 없다');
   assert.ok(본.includes('절 제목'), '절 제목을 함께 넘긴다는 말이 없다');
-  assert.match(본, /grep[^\n]*다시 찾/, '받는 쪽이 절 제목을 grep 해 다시 찾는다는 말이 없다');
+  assert.match(본, /grep -nF[^\n]*위치를 다시 잡/, '받는 쪽이 절 제목을 grep -nF 로 찾아 위치를 다시 잡는다는 말이 없다');
   assert.ok(본.includes('줄 범위'), '줄 범위만 연다는 말이 없다');
   assert.match(본, /progress[^\n]*마지막 항목/, 'progress 는 마지막 항목을 읽는다는 말이 없다');
   assert.ok(본.includes('아직 열린 미완'), '앞 항목에 남은 아직 열린 미완도 읽는다는 말이 없다');

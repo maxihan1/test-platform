@@ -52,7 +52,7 @@
     ]
   },
   "env": {
-    "PONYTAIL_SUBAGENT_MATCHER": "tpx-implementer|author-write"
+    "PONYTAIL_SUBAGENT_MATCHER": "^(tpx-implementer|author-write)$"
   },
   "extraKnownMarketplaces": {
     "ponytail": {

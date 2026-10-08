@@ -12,7 +12,7 @@ description: /tpx 체인 5단계 — 승인된 계획의 할 일을 TDD 로 구�
 ## 선행 읽기 — 컨트롤러가 1회 읽고 하위에는 위치를 넘긴다
 
 **하위 작업자에게 본문을 붙이지 않는다.** 아래는 `파일:줄` 과 **절 제목**으로 넘긴다.
-앞 묶음이 문서를 고치면 줄이 밀리므로, 받는 쪽은 절 제목을 grep 해 위치를 다시 찾고 그 줄 범위만 연다. 장 · 파일 전체를 다시 읽지 않는다.
+앞 묶음이 문서를 고치면 줄이 밀리므로, 받는 쪽은 절 제목을 `grep -nF '<절 제목>'` 로 찾아(고정 문자열 — 제목의 `[` · `*` · `(` 가 정규식으로 읽히지 않게) 위치를 다시 잡고 그 줄 범위만 연다. 장 · 파일 전체를 다시 읽지 않는다.
 
 - `/tpx-spec` 이 읽은 SPEC 절 — 장 · 절 제목 · 줄 범위
 - LEARNINGS 발췌 — 이번 작업 키워드 + 최근 5건의 헤딩
@@ -41,12 +41,13 @@ description: /tpx 체인 5단계 — 승인된 계획의 할 일을 TDD 로 구�
   응답이 갈리면 직렬화돼 병렬 이점이 사라진다
 - **구현자는 `subagent_type: "tpx-implementer"`**(Sonnet · effort high — `.claude/agents/tpx-implementer.md`, 2026-10-06 사용자 · 토큰이 빨리 닳는다).
   **보안 · 비밀값 · 권한을 고치는 할 일만 `subagent_type: "general-purpose"` 에 `model: "opus"`** 로 낸다 — 그 자리에서 아끼면 품질이 떨어진다(PR #163 의 비밀번호 노출을 Opus 렌즈가 찾았다).
-  ponytail 규칙은 `tpx-implementer` 에만 자동으로 붙으므로(`.claude/settings.json` `env`) 이 프롬프트는 첫 줄에서 `ponytail:ponytail` 스킬을 부르라고 적는다
+  ponytail 규칙은 `tpx-implementer` · `author-write` 에만 자동으로 붙으므로(`.claude/settings.json` `env`) 이 프롬프트는 첫 줄에서 `ponytail:ponytail` 스킬을 부르라고 적는다
 - **정의를 못 찾으면**(「없는 에이전트」 오류 — 정의는 세션을 띄울 때 읽혀서, 그 뒤 병합되거나 받아 온 정의는 그 세션이 못 본다)
   `subagent_type: "general-purpose"` 에 `model: "sonnet"` 으로 대신 내고 게이트 2 요약에 적는다. effort 는 정하지 못한다 — 새 세션부터는 정의가 잡힌다.
-  이 프롬프트도 첫 줄에서 `ponytail:ponytail` 스킬을 부르라고 적는다 — 규칙이 `tpx-implementer` 에만 자동으로 붙는다(`.claude/settings.json` `env`)
+  이 프롬프트도 첫 줄에서 `ponytail:ponytail` 스킬을 부르라고 적는다 — 규칙이 `tpx-implementer` · `author-write` 에만 자동으로 붙는다(`.claude/settings.json` `env`)
 - 프롬프트에는 **계획 파일 경로 + 할 일 번호**를 넘겨 구현자가 원문을 읽게 한다 — 컨트롤러가 풀어 쓰지 않는다(LEARNINGS 2026-10-08)
-- 프롬프트에 반드시 넣을 것 — 계획 파일 경로 + 할 일 번호 · `files` 목록 · `검증` 명령 ·
+- 프롬프트에 반드시 넣을 것 — 계획 파일 경로 + 할 일 번호(작업방 기준 **절대경로**로) · `files` 목록 · `검증` 명령 ·
+  환경 값(DB 를 건드리면 검사용 `DATABASE_URL` · 작업방 절대경로) ·
   **「선언된 `files` 밖을 고치면 BLOCKED 로 보고하라」**
 
 ### 2-B. 응답 처리
