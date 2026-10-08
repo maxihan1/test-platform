@@ -194,6 +194,32 @@ RED 는 「체인 문서 어디에도 `check-stamp.mjs find` 와 `reuse=` 가 �
 
 묶음 — ① 8 · 10 · 11 ② 9. 재검사는 `tpx-review` 「고치고 재검사 — 바뀐 부분만」(범위 `137b90dc..HEAD` · 두 렌즈 같은 강도).
 
+## 게이트 2 2회차 「고치고 재검사」 반영
+
+사용자 결정(2026-10-08 게이트 2 2회차) — 「고치고 재검사」. 2회차 검사 HEAD `8b700e8a`. 지적 원문은 `docs/reviews/2026-10-08-하네스-181.md` 「## 2회차」(spec-review) · PR #181 「### [6/7] 재검사 2회차 완료」 코멘트(code-review).
+
+### 할 일 12. 병합 대기 문서를 사실대로 — 상한 · 빈 실행 번호 · 헤드 고정 (code-review 2회차 주의 1 · 경미 1 · 2 · 3)
+
+- **RED** — `agent-models.test.mjs` 의 Step 2 블록 단언을 바꾼다. ① `gh run watch` 가 `timeout 420` 이다(기다림 최대 약 120초 + 420 = 블록 전체가 Bash 한 번 상한 600초 안 — `timeout 540` 단언을 바꾸는 것은 게이트 2 2회차 결정이 근거) ② 기다림 루프가 빈 `NOW` 를 새 실행으로 보지 않고(`[ -n "$NOW" ]`), 루프 뒤 가드가 `NOW` 가 비었거나 `BEFORE` 와 같으면 끝낸다 ③ 실패 · 엣지 표에 「`CI EXIT` 가 124 이거나 없으면」 같은 실행 번호로 Bash `timeout: 600000` 으로 다시 지켜보는 행이 있다 ④ `tpx-merge` 호출 프롬프트가 「블록 전체를 Bash 한 번에」라고 적는다 ⑤ Step 3 병합 명령이 `--match-head-commit <확인한 헤드 sha>` 를 붙인다. 지금 문서가 옛 꼴이라 실패한다
+- **GREEN** — `references/1-record-ready-merge.md` Step 2 블록 · 주석 · 표 행 · Step 3 명령, `tpx-merge/SKILL.md` 호출 프롬프트 · 메인 확인 줄
+- **REFACTOR** — 없음
+
+**files**: .claude/skills/tpx-merge/references/1-record-ready-merge.md · .claude/skills/tpx-merge/SKILL.md · .claude/scripts/agent-models.test.mjs
+**depends-on**: []
+**검증**: `node --test .claude/scripts/agent-models.test.mjs .claude/scripts/chain-contract.test.mjs && npm run check:docs-contract`
+
+### 할 일 13. 검사 단언 · 문구 마무리 (code-review 2회차 경미 4 · 5 / spec-review 2회차 경미 1 · 3 · 4)
+
+- **RED** — ① `ci-covers-tests.test.mjs` 의 「모든 차선에서 돈다」 검사가 `check:wbs` 단계까지 본다(`if:` 에 차선과 상관없는 거짓 조건을 달면 빨강) ② `hook-contract.test.mjs` SHAS 단언이 줄 머리 고정(`/^\s*for local_sha in \$SHAS; do$/gm`)으로 센다 ③ `guard.test.mjs` 가 review 블록이 오늘을 `현지날짜()` 로 계산하고 `toISOString` 을 쓰지 않는지 본다. 지금 꼴로 빨개야 하는 것만 RED 로 확인한다(지금 코드가 이미 맞으면 GREEN 에 같이 넣고 그 까닭을 보고한다)
+- **GREEN** — `tpx-impl/SKILL.md` 2-A 줄 「`-- <files 경로>`」를 「이번 커밋에서 바꾼 `files` 경로만」 뜻으로(`-- <…경로>` 꼴은 남겨 기존 `agent-models` 단언이 초록이게 — 그 파일은 할 일 12 몫이라 고치지 않는다). `docs/HOOKS.md` 「네 차선으로 가른다」에서 손으로 센 개수를 뺀다
+- **REFACTOR** — 없음
+
+**files**: .claude/scripts/ci-covers-tests.test.mjs · .claude/scripts/hook-contract.test.mjs · .claude/scripts/guard.test.mjs · .claude/skills/tpx-impl/SKILL.md · docs/HOOKS.md
+**depends-on**: []
+**검증**: `node --test .claude/scripts/ci-covers-tests.test.mjs .claude/scripts/hook-contract.test.mjs .claude/scripts/guard.test.mjs .claude/scripts/agent-models.test.mjs && npm run check:docs-contract`
+
+컨트롤러 몫 — 「## 구현 중 바뀐 것」 할 일 11 줄의 「1회차가 부숴 확인했다」를 사실대로 고친다(spec-review 2회차 경미 2). 묶음 — ① 12 · 13. 재검사는 `8b700e8a..HEAD` · 두 렌즈 같은 강도.
+
 ## 게이트 1 결정
 
 지적 반영하고 진행 (2026-10-08 사용자). BLOCKER 1 · 주의 1~4 · 참고 2 · 3 을 할 일 1 · 2 · 3 · 5 블록 안에 「게이트 1」 표시로 넣었다. 재검토는 안 한다. 참고 1(docs · spec 차선 렌즈 인정이 `check:docs-contract` 를 안 봄)은 범위 밖 — 게이트 2 요약에 싣는다.
@@ -207,5 +233,5 @@ RED 는 「체인 문서 어디에도 `check-stamp.mjs find` 와 `reuse=` 가 �
 - 계획 밖 추가(컨트롤러 · 게이트 2 에 싣는다) — 할 일 2 의 쓸어 담기가 LEARNINGS [환경] 2026-10-07(병렬 구현자의 미커밋 파일)과 같은 유형의 재발이라 CLAUDE.md §2.5 대로 장치로 옮겼다. `tpx-impl` 2-A 「프롬프트에 반드시 넣을 것」에 「자기 files 만 `git add <경로>` · `-A` · `.` · `commit -a` 금지 · push 안 함」 · `agent-models.test.mjs` 단언 하나(RED 빨강 확인 `not ok 4 … git add 하라는 말이 없다`) · LEARNINGS 10-07 항목 승격. 묶음 ② 부터 프롬프트에 이미 넣어 돌렸다
 - 할 일 3 보강 — 묶음 ② 대조 검증자가 짚은 「아래 셋이 모두」(손으로 센 개수)를 「아래가 모두」로 고쳤다
 - 할 일 8(게이트 2 반영) — 계획에 없던 보강 하나. Step 2 블록에 `[ "$NOW" = "$BEFORE" ] && exit 1` 과 `echo "BEFORE=… NOW=…"` 를 더했다. 이게 없으면 새 실행이 안 떴을 때 `gh run watch` 가 옛 실행을 지켜본다. 남는 틈 — 새 실행이 늦게(약 1분 넘어) 뜨면 기다림 + `timeout 540` 이 Bash 한 번 상한(600초)을 넘어 끊길 수 있다. 그때도 `BEFORE` · `NOW` 는 이미 찍혀 있고 `CI EXIT` 가 없으니 메인은 병합하지 않고 같은 실행 번호로 다시 지켜본다. GREEN(`64d94827`)이 RED 단언을 고친 곳은 없다
-- 할 일 11(게이트 2 반영) — RED(`e6f9d9bf`)에서 빨간 것은 `펜스블록` 빈 펜스 검사 하나뿐이다. SHAS 단언의 주석 줄 빼기 · 사본 금지의 `펜스블록` · CI 목록 거꾸로 방향은 지금 코드 · 문서가 이미 맞아 초록이라 GREEN(`6bc3ad64`)에 같이 넣었다. 이 셋이 무는지는 1회차 spec-review 가 사본에서 부숴 확인했다(주석만 남기기 · `check:wbs` 주석 처리가 그때 초록 — 단언 보강으로 막는다). 같은 손으로 센 개수라 files 안의 `docs/HOOKS.md` 「가벼운 셋」 · `ci.yml:13` 도 고쳤다. files 밖 `ci-covers-tests.test.mjs:34-35` · `lane.mjs` · `lane.test.mjs` 머리 주석의 「차선 넷」 · 「가벼운 셋」은 남는다 — 게이트 2 에 싣는다
+- 할 일 11(게이트 2 반영) — RED(`e6f9d9bf`)에서 빨간 것은 `펜스블록` 빈 펜스 검사 하나뿐이다. SHAS 단언의 주석 줄 빼기 · 사본 금지의 `펜스블록` · CI 목록 거꾸로 방향은 지금 코드 · 문서가 이미 맞아 초록이라 GREEN(`6bc3ad64`)에 같이 넣었다. 1회차 spec-review 가 사본에서 부숴 확인한 것은 옛 단언의 구멍(주석만 남기기 · `check:wbs` 주석 처리가 그때 초록)이고, 보강한 새 단언 셋을 부숴 본 적은 없다 — 2회차 spec-review 가 코드를 읽어 셋 다 제대로 문다고 판정했다(처음 이 줄에 「부숴 확인했다」고 잘못 적었다 — 2회차 경미 2). 같은 손으로 센 개수라 files 안의 `docs/HOOKS.md` 「가벼운 셋」 · `ci.yml:13` 도 고쳤다. files 밖 `ci-covers-tests.test.mjs:34-35` · `lane.mjs` · `lane.test.mjs` 머리 주석의 「차선 넷」 · 「가벼운 셋」은 남는다 — 게이트 2 에 싣는다
 - 할 일 7 — 사용자 질문(「Haiku effort 는?」 · 「max 가 낫지 않나?」) 뒤 effort 를 정했다. `tpx-runner` low(사용자 제안 — 메인이 MERGED · 로그 줄을 다시 확인) · `Explore` 는 사용자가 「찾기는 Sonnet 으로」를 골라 Haiku max → Sonnet medium. 에이전트 도구가 부를 때 effort 를 받아 `tpx-impl` 문장 · `agent-models` 주석을 고치므로 files 에 `tpx-impl/SKILL.md` 를 더했다
