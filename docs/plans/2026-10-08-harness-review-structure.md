@@ -131,6 +131,8 @@ LEARNINGS 근거 — `docs/LEARNINGS.md` 「[WS-E] 2026-10-08 · **컨트롤러�
 
 - 할 일 8 뒤 `run local` 에서 `always-tests.test.mjs` 「docs/ 의 내용을 읽는 판별식은 전부 check:docs-contract 에 있다」가 빨갰다 — 할 일 8 이 `review-structure.test.mjs` 에 `docs/HOOKS.md` 를 읽는 단언을 더했다. 문서만 고친 push 는 단위 테스트를 건너뛰므로 이 파일을 `package.json` `check:docs-contract` 에 더했다(컨트롤러 · 할 일 8 files 밖 — `package.json` 은 GUARD 2등급). 그 빨강이 RED, 한 줄이 GREEN
 
+- 할 일 8 GREEN `897d7c4e` 가 RED 에 쓴 HOOKS 행 찾기 단언의 찾는 글자를 GREEN 문구 대신 `### 차선` 소절의 `| \`docs\` |` 로 바꿨다(조건은 그대로 — 대조 검증 PASS). 할 일 5 에 이은 두 번째라 할 일 9 가 대조 검증 절차에 막는 줄을 더한다(spec-review 2회차 경미 2 [재발] · CLAUDE.md §2.5)
+
 ## 게이트 2 「고치고 재검사」 반영 (2026-10-08 사용자)
 
 1회차 렌즈 — code-review medium(BLOCKER 0 · 주의 4 · 경미 10) · spec-review(`docs/reviews/2026-10-08-하네스-179.md` — 치명 0 · 중대 1 · 경미 3). 두 렌즈가 같은 구멍(표지 인정 조건)을 따로 짚었다.
@@ -161,6 +163,21 @@ LEARNINGS 근거 — `docs/LEARNINGS.md` 「[WS-E] 2026-10-08 · **컨트롤러�
 
 **files**: .claude/scripts/review-structure.test.mjs, .claude/scripts/agent-models.test.mjs, .claude/skills/tpx/SKILL.md, .claude/skills/tpx-impl/SKILL.md, docs/HOOKS.md, .claude/hooks/pre-push
 **depends-on**: [7]
+**검증**: node --test .claude/scripts/review-structure.test.mjs .claude/scripts/agent-models.test.mjs .claude/scripts/chain-contract.test.mjs .claude/scripts/context-diet.test.mjs .claude/scripts/guard.test.mjs .claude/scripts/hook-contract.test.mjs && npm run check:spec
+
+## 게이트 2 「고치고 재검사」 2회차 반영 (2026-10-08 사용자)
+
+2회차 렌즈 — code-review medium(BLOCKER 0 · 주의 3 · 경미 8) · spec-review(같은 기록 「## 2회차」 — 치명 0 · 중대 1 · 경미 3). 두 렌즈가 같은 것(HOOKS.md:218 「스킬은 `reuse=` 줄만 읽는다」 ↔ 렌즈 인정 조건이 `kinds=` · `stamp=` · `delta=` 를 직접 읽음)을 짚었다. 두 회차 모두 표지 인정 조건 문단이 걸려서, 풀어 쓰지 않고 `reuse=` 줄 하나로 줄인다(게이트 2 2회차 사용자 결정).
+반영하지 않는 것 — 펜스 하나 고르기 · `펜스안()` 사본 합치기(code-review 경미 4 · 5 — 지금은 다른 펜스에 그 글자가 없어 문다) · 검사 파일 355줄 분리(경미 6 — 하네스 검사 파일은 400줄대가 이미 있다) · HOOKS 차선 표 CI · pre-push 칸(경미 8 — 이 PR 전부터 있던 어긋남).
+
+### 할 일 9. 표지 인정을 `reuse=` 줄 하나로 줄이고 남은 문구를 고친다
+
+- **RED** — ① `review-structure.test.mjs` 할 일 7 ① ② 단언을 바꾼다 — 「렌즈에 넘기는 것」이 렌즈에게 `node .claude/scripts/check-stamp.mjs find HEAD`(지금 HEAD)를 부르게 하고 `reuse=` 가 `tests` · `all` 이면 인정 · `none` 이면 미확인이다 · 인정 줄이 `kinds=` · `delta=` 를 읽지 않는다(HOOKS.md:218 과 같은 말 — H2) · 미확인은 체크리스트 항목이 아니라 게이트 2 요약의 독립 중대(「검사 묶음이 이 HEAD 에서 초록인지 모른다」 — 단위 테스트 · E1 까지 덮는다, code-review 주의 3 · spec-review 경미 3) · DB 를 건드렸는데 `DATABASE_URL` 없이 돌았으면 G3 미확인은 남는다 · `docs` · `spec` 차선 `check:spec` `EXIT=0` 줄도 남는다. 결론 낱말까지 본다(「인정한다」를 뒤집으면 빨강 — spec-review 2회차 부숴 볼 거리) ② `review-structure.test.mjs:267` 근처 `indexOf(예외) > indexOf('다시 돌리지 않는다')` 에 `>= 0` 대조군(code-review 경미 3) ③ 「다시 내는 렌즈」 줄이 「지적 없던 렌즈 중 code-review 만, 코드가 바뀌었으면 `low`」로 주어를 박는다(code-review 경미 2) ④ `tpx` 차선 표 `spec` 행 · HOOKS 차선 표 `spec` 행이 글자대로 성립한다 — 명세 파일은 `SPEC` 표면이다(spec-review 2회차 경미 1) ⑤ `agent-models.test.mjs` — `tpx-impl` 2-C 가 「GREEN 커밋이 검사 파일을 고쳤으면 계획 「구현 중 바뀐 것」에 그 줄이 있는지 검증자가 본다」고 적는다 · :71 이 「늘 파일로 떨구고 길면 경로만 넘긴다」로 :76 과 같은 말을 한다(code-review 경미 7). 지금 ①③④⑤ 는 빨강 · ② 는 대조군 보강이라 초록
+- **GREEN** — `tpx-review` 「렌즈에 넘기는 것」 인정 줄 · 미확인 줄 · 「다시 내는 렌즈」 줄, `tpx` 차선 표 `spec` 행, `docs/HOOKS.md` 차선 표 `spec` 행(:218 「스킬은 `reuse=` 줄만 읽는다」는 이제 맞으니 그대로), `tpx-impl` 2-C 두 줄
+- **REFACTOR** — 없음
+
+**files**: .claude/skills/tpx-review/SKILL.md, .claude/skills/tpx/SKILL.md, .claude/skills/tpx-impl/SKILL.md, docs/HOOKS.md, .claude/scripts/review-structure.test.mjs, .claude/scripts/agent-models.test.mjs
+**depends-on**: [8]
 **검증**: node --test .claude/scripts/review-structure.test.mjs .claude/scripts/agent-models.test.mjs .claude/scripts/chain-contract.test.mjs .claude/scripts/context-diet.test.mjs .claude/scripts/guard.test.mjs .claude/scripts/hook-contract.test.mjs && npm run check:spec
 
 ## 리뷰 결과
