@@ -34,6 +34,7 @@ test('조회 명령은 통과시킨다 (2026-09-18 오탐)', () => {
     'node .claude/scripts/check-stamp.mjs run local > /tmp/c.log 2>&1',
     'node .claude/scripts/check-stamp.mjs find',
     'grep -n "check-stamp.mjs put" .claude/skills/x.md',
+    'echo check-stamp.mjs put push',
   ]) {
     assert.ok(!isBanned(cmd), `통과했어야 한다: ${cmd}`);
   }

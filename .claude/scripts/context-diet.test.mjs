@@ -50,6 +50,14 @@ const 절 = (text, 제목) => {
   return 모은.join('\n');
 };
 
+// 절차 1 만 잘라 온다 — indexOf 가 -1 이면 slice 가 엉뚱한 곳을 잘라도 includes 단언이 초록이 될 수 있어 대조군을 둔다
+const 첫째절차 = (본) => {
+  const 시작 = 본.indexOf('1.');
+  const 끝 = 본.indexOf('\n2.');
+  assert.ok(시작 >= 0 && 끝 > 시작, '대조군 — 절차 1 의 시작과 끝(줄바꿈 뒤 2.)을 찾아야 한다');
+  return 본.slice(시작, 끝);
+};
+
 test('게이트 2 7 — 절() 헬퍼가 코드 펜스 안의 # 줄에서 자르지 않는다', () => {
   const 글 = '## a\n```\n# 펜스 안\n```\n본문\n## b\n다음';
   const 본 = 절(글, '## a');
@@ -116,7 +124,7 @@ test('할 일 2 — 에이전트 정의는 프롬프트와 그것이 가리킨 �
 
 test('할 일 3 — spec-review 절차 1 이 LEARNINGS 를 헤딩으로 골라 부분 읽기하고 CLAUDE.md 를 다시 읽지 않는다', () => {
   const 본 = 절(read('.claude/skills/spec-review/SKILL.md'), '## 절차');
-  const 첫째 = 본.slice(본.indexOf('1.'), 본.indexOf('\n2.'));
+  const 첫째 = 첫째절차(본);
   assert.ok(첫째.includes('docs/LEARNINGS.md'), '대조군 — 절차 1 에 LEARNINGS 가 있어야 한다');
   assert.ok(첫째.includes("grep -n '^## '"), "LEARNINGS 헤딩을 grep -n '^## ' 로 뽑는다는 말이 없다");
   assert.ok(첫째.includes('키워드'), '검사 범위 키워드와 맞는 항목을 고른다는 말이 없다');
@@ -156,12 +164,15 @@ test('게이트 2 1 — tpx-impl 2-A 「반드시 넣을 것」 목록에 환경
   assert.ok(시작 >= 0, '대조군 — 「반드시 넣을 것」 목록이 있어야 한다');
   const 목록 = 글.slice(시작).split('\n\n')[0];
   assert.ok(목록.includes('DATABASE_URL'), '목록에 검사용 DATABASE_URL 이 없다');
-  assert.ok(목록.includes('절대경로'), '목록에 작업방 절대경로가 없다');
+  assert.ok(목록.includes('작업방 절대경로'), '목록에 작업방 절대경로가 없다');
+  const 조건 = 목록.match(/DB 를 건드리면([^)]*)/);
+  assert.ok(조건, '대조군 — 「DB 를 건드리면」 조건이 목록에 있어야 한다');
+  assert.ok(!조건[1].includes('작업방 절대경로'), '작업방 절대경로가 「DB 를 건드리면」 조건 안에 들어 있다');
 });
 
 test('게이트 2 2 — spec-review 절차 1 이 렌즈로 불리면 넘겨받은 위치를 연다', () => {
   const 본 = 절(read('.claude/skills/spec-review/SKILL.md'), '## 절차');
-  const 첫째 = 본.slice(본.indexOf('1.'), 본.indexOf('\n2.'));
+  const 첫째 = 첫째절차(본);
   assert.ok(첫째.includes('넘겨받은 위치'), '렌즈로 불리면 넘겨받은 위치를 연다는 말이 없다');
   assert.ok(첫째.includes('위치 없음'), '직접 부르면(위치 없음) 어떻게 하는지 말이 없다');
   assert.ok(첫째.includes('docs/spec/` 아래 장을 전부 읽는다'), '전체 범위 검사 줄이 빠졌다');
@@ -172,9 +183,10 @@ test('게이트 2 3 — 절 제목 찾기는 고정 문자열 grep -nF 다', () 
     ['tpx', '## 선행 읽기 — 여기서 한 번만 읽는다'],
     ['tpx-impl', '## 선행 읽기'],
     ['tpx-review', '## 선행 읽기'],
+    ['tpx-spec', '## Step 1. 읽을 장을 좁힌다'],
   ]) {
     const 본 = 절(read(`.claude/skills/${파일}/SKILL.md`), 제목);
-    assert.ok(본.includes('grep -nF'), `${파일} 선행 읽기가 grep -nF 를 안 쓴다`);
+    assert.ok(본.includes('grep -nF'), `${파일} 에서 절 제목을 grep -nF 로 안 찾는다`);
   }
 });
 
@@ -202,4 +214,46 @@ test('게이트 2 9 — apps/admin/CLAUDE.md 머리에 기존 규칙 수정 · �
   const 머리 = read('apps/admin/CLAUDE.md').split('\n').slice(0, 8).join('\n');
   assert.match(머리, /기존 규칙 수정 · 삭제는[^\n]*§2\.5[^\n]*승인/, '머리에 수정 · 삭제 승인 줄이 없다');
   assert.ok(머리.includes('새 접두사 추가는 직접'), '새 접두사 추가는 직접이라는 말이 없다');
+});
+
+test('할 일 6 — spec-review 절차 1 이 렌즈면 색인을 통째로 읽지 않고, A1~A3 · H2 는 필요한 만큼만 연다', () => {
+  const 첫째 = 첫째절차(절(read('.claude/skills/spec-review/SKILL.md'), '## 절차'));
+  assert.ok(첫째.includes('색인을 통째로 읽지 않'), '렌즈로 불리면 색인을 통째로 읽지 않는다는 말이 없다');
+  assert.doesNotMatch(첫째, /색인\)를 읽는다/, '색인을 무조건 읽는 옛 문장이 남았다');
+  assert.match(첫째, /A1~A3[^\n]*계약 파일[^\n]*grep -nF/, 'A1~A3 은 diff 에 계약 파일이 있을 때만 SPEC 절을 grep -nF 로 연다는 말이 없다');
+  assert.match(첫째, /H2[^\n]*핵심 낱말[^\n]*grep -rn/, 'H2 는 바뀐 문장의 핵심 낱말을 grep -rn 으로 본다는 말이 없다');
+});
+
+test('할 일 6 — tpx 선행 읽기 4 가 열린 미완을 두 갈래로 찾는다 (번호 있으면 진행판 확인 · 없으면 열린 것)', () => {
+  const 본 = 절(read('.claude/skills/tpx/SKILL.md'), '## 선행 읽기 — 여기서 한 번만 읽는다');
+  assert.ok(본.includes("`grep -n '미완'`"), "미완을 grep -n '미완' 으로 뽑는다는 말이 없다");
+  assert.match(본, /진행판 번호가 있으면[^\n]*docs\/wbs\.md[^\n]*`- \[ \]`/, '번호가 있으면 docs/wbs.md 에서 `- [ ]` 인지 본다는 말이 없다');
+  assert.match(본, /번호가 없으면 열린 것으로 친다/, '번호가 없으면 열린 것으로 친다는 말이 없다');
+  assert.match(본, /`미완: 없음` 줄은 뺀다/, '「미완: 없음」 줄을 뺀다는 말이 없다');
+});
+
+test('할 일 6 — tpx-review 선행 읽기의 grep -nF 괄호가 정규식 문자 때문임을 적는다', () => {
+  const 본 = 절(read('.claude/skills/tpx-review/SKILL.md'), '## 선행 읽기');
+  assert.ok(본.includes('grep -nF'), '대조군 — grep -nF 가 있어야 한다');
+  assert.ok(본.includes('헤딩의 `[` · `*` · `(` 가 정규식으로 읽히지 않게'), '괄호 이유가 「헤딩의 [ * ( 가 정규식으로 읽히지 않게」가 아니다');
+});
+
+test('할 일 6 — tpx 차선 표 spec · docs 행이 문서 자리를 lane.mjs 의 문서자리로 가리킨다', () => {
+  const 표 = 절(read('.claude/skills/tpx/SKILL.md'), '## 차선 — 바뀐 만큼만 검사한다').split('\n');
+  for (const 이름 of ['spec', 'docs']) {
+    const 행 = 표.find((l) => l.startsWith(`| \`${이름}\` |`));
+    assert.ok(행, `대조군 — ${이름} 행이 있어야 한다`);
+    assert.ok(행.includes('`lane.mjs`') && 행.includes('`문서자리`'), `${이름} 행이 lane.mjs 의 문서자리를 안 가리킨다`);
+    assert.doesNotMatch(행, /md · html/, `${이름} 행에 .gitkeep 이 빠진 옛 사본이 남았다`);
+  }
+});
+
+test('할 일 6 — tpx-impl 2-C 가 묶음 차이를 한 명령으로 모으고 커밋 제목의 할 일 번호가 구획이 된다', () => {
+  const 글 = 절(read('.claude/skills/tpx-impl/SKILL.md'), '### 2-C.');
+  const 줄 = 글.split('\n').find((l) => l.includes('git -C'));
+  assert.ok(줄, '2-C 에 git -C 모으기 명령 줄이 없다');
+  assert.ok(줄.includes('show --stat --patch'), '모으기 명령이 show --stat --patch 가 아니다');
+  assert.ok(줄.includes('tpx-<PR 번호>-묶음'), '모으기 명령의 출력이 tpx-<PR 번호>-묶음<n>.diff 가 아니다');
+  assert.ok(줄.includes('커밋 제목의 할 일 번호가 구획이 된다'), '커밋 제목의 할 일 번호가 구획이 된다는 말이 없다');
+  assert.ok(글.includes('할 일 번호 구획'), '대조군 — 앞 묶음이 적은 「할 일 번호 구획」 문장이 남아야 한다');
 });
