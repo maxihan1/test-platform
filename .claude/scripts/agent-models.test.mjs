@@ -62,9 +62,10 @@ test('tpx-impl 구현자 프롬프트 필수 목록이 자기 files 만 이름�
   const 시작 = 글.indexOf('프롬프트에 반드시 넣을 것');
   assert.ok(시작 >= 0, '대조군 — 「프롬프트에 반드시 넣을 것」 줄이 있어야 한다');
   const 목록 = 글.slice(시작, 글.indexOf('\n\n', 시작));
-  assert.match(목록, /git add <[^>]*경로>/, '자기 files 만 이름으로 git add 하라는 말이 없다');
+  assert.match(목록, /git commit[^\n]*-- <[^>]*경로>/, '커밋에 `-- <files 경로>` 를 붙이라는 말이 없다');
   assert.match(목록, /-A[^\n]*\.[^\n]*commit -a[^\n]*금지/, '`-A` · `.` · `commit -a` 금지가 없다');
   assert.match(목록, /push 하지 않는다/, '구현자는 push 하지 않는다는 말이 없다');
+  assert.match(글, /묶음의 모든 할 일이 PASS 면[^\n]*\n[^\n]*컨트롤러[^\n]*commit[^\n]*-- <[^>]*경로>[^\n]*push/, '2-C 끝에 컨트롤러 커밋도 `commit -- <경로>` · push 는 묶음 사이라는 줄이 없다');
 });
 
 test('계획 검토 · 독립 검사 렌즈는 Opus 를 쓴다고 적혀 있다', () => {
