@@ -66,13 +66,13 @@ git diff --name-only origin/main...HEAD | node .claude/scripts/detect-tier.mjs
 node .claude/scripts/check-stamp.mjs run local > $CLAUDE_JOB_DIR/tmp/r.log 2>&1; echo "EXIT=$?"
 ```
 
-일곱 검사(`check:deps` · `typecheck` · `check:workflow` · `check:spec` · `check:tests` · 단위 테스트 둘 또는 전체)를 스크립트가 돈다.
+검사 묶음(`check:deps` · `typecheck` · `check:workflow` · `check:spec` · `check:tests` · 단위 테스트 둘 또는 전체 — 정본은 `check-stamp.mjs`)을 스크립트가 돈다.
 **바뀐 것과 이어진 검사 + 늘 도는 목록을 1회** 돌고 migration·`package.json`·설정을 바꿨으면 전체다 (2026-09-25 — 서비스 전이라 전체 3회를 걷었다).
 정본은 `.claude/scripts/check-stamp.mjs` 다 — 여기에 목록을 옮겨 적지 않는다.
 DB 를 건드렸으면 `DATABASE_URL` 을 붙인다.
 **`docs`·`spec` 차선이면 `check:spec` 하나만** 돈다 — 코드가 없다 (`/tpx` §차선). 이때는 이 명령을 부르지 않는다.
 
-- 명령마다 `<이름> EXIT=<n>` 줄을 찍는다. 하나가 실패해도 일곱을 끝까지 돌고, 종료 코드는 처음 실패한 명령의 것이다. 로그는 줄에 찍힌 로그 폴더에 명령별로 남는다
+- 명령마다 `<이름> EXIT=<n>` 줄을 찍는다. 하나가 실패해도 끝까지 돌고, 종료 코드는 처음 실패한 명령의 것이다. 로그는 줄에 찍힌 로그 폴더에 명령별로 남는다
 - **「재사용 local <커밋>」 줄이 나왔으면 같은 커밋 검사를 다시 안 돈 것이다 — 게이트 2 요약에 그 줄을 싣는다.** `check:spec` · `check:docs-contract` 만 돌았다
 - 「표지를 남기지 않는다 — <이유>」 줄은 통과 표지를 못 남겼다는 뜻이다. 종료 0 이면 검사는 통과다. 표지는 이 명령과 pre-push 훅만 찍는다
 - 배경 세션이면 로그를 `$CLAUDE_JOB_DIR/tmp/` 에 둔다
