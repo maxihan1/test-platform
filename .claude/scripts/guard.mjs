@@ -65,6 +65,10 @@ export function isBanned(command) {
   return null;
 }
 
+// 응답 끝 경고의 「오늘」 — pre-push 는 date +%F(현지)라 UTC toISOString 이면 한국 00~09시에 하루 어긋난다 (2026-10-08)
+export const 현지날짜 = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 // 케이스 작성 보조는 묶음 넷까지 · 같은 묶음 다시 띄우기는 한 번까지 (도메인/작성 §3.6 「서브에이전트 팬아웃」, 2026-10-04).
 // MKT 11211 은 「한 차례」 규칙을 두고도 세 차례를 돌아 2차만 98분을 썼다 — 산문으로는 안 지켜져 기계로 막는다.
 // 묶음 이름은 tpx-author fanout.md §4 뼈대 첫 줄에서 뽑는다. 뼈대가 아닌 보조(화면 훑기)는 세지 않는다
@@ -223,7 +227,7 @@ if (mode === 'review') {
     }
   } catch { /* 폴더 없음 */ }
 
-  const today = Date.parse(new Date().toISOString().slice(0, 10));
+  const today = Date.parse(현지날짜());
   if (latest < today) {
     console.error(
 `[경고] 소스를 고쳤는데 오늘 SPEC 검사 기록이 없다.
