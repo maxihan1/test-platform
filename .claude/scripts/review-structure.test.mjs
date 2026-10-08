@@ -226,6 +226,11 @@ test('할 일 1 — 펜스블록() 은 표지가 든 코드 펜스 하나만 돌
   assert.equal(펜스블록(글, '없는 표지'), '', '표지가 없으면 빈 글이어야 한다');
 });
 
+test('할 일 11 — 펜스블록() 은 빈 펜스 뒤에서도 펜스 짝이 밀리지 않는다', () => {
+  const 글 = '```\n```\n```js\nAgent({ model: "opus"\n```\n끝';
+  assert.equal(펜스블록(글, 'Agent({'), 'Agent({ model: "opus"', '빈 펜스 뒤에서 짝이 밀려 엉뚱한 줄을 돌려준다');
+});
+
 test('할 일 1 — 검사 도우미 사본이 세 검사 파일에 없다(정본은 md-sections.mjs)', () => {
   const 파일들 = ['review-structure.test.mjs', 'lens-handoff.test.mjs', 'agent-models.test.mjs'].filter((f) => existsSync(new URL(f, import.meta.url)));
   assert.equal(파일들.length, 3, `대조군 — 읽은 파일이 셋이어야 한다: ${파일들}`);
