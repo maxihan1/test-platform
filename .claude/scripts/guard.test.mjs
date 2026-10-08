@@ -140,7 +140,7 @@ test('review 모드 — 1등급만 바뀌면 조용하고, 2등급 이상은 이
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
   const 가드 = new URL('./guard.mjs', import.meta.url).pathname;
-  const 환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+  const 환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_') && k !== 'ALLOW_PROTECTED'));
   const 만든다 = () => {
     const 뿌리 = mkdtempSync(join(tmpdir(), 'review-'));
     const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { env: 환경, stdio: 'pipe' });
@@ -173,4 +173,13 @@ test('review 모드 — 1등급만 바뀌면 조용하고, 2등급 이상은 이
   mkdirSync(join(넷.뿌리, 'apps/admin/src/web'), { recursive: true });
   넷.git('mv', 'apps/admin/src/execution/b.ts', 'apps/admin/src/web/b.ts');
   assert.equal(돌린다(넷.뿌리).status, 1, '이름 바꾸기로 2등급이 숨었다');
+
+  const 다섯 = 만든다();
+  다섯.쓴다('apps/admin/src/web/b.tsx', 'x\n');
+  다섯.git('add', '.');
+  다섯.git('commit', '-qm', 'web');
+  다섯.git('mv', 'apps/admin/src/web/b.tsx', 'apps/admin/src/execution/c.ts');
+  const 반대 = 돌린다(다섯.뿌리);
+  assert.equal(반대.status, 1, '화면 파일을 2등급 자리로 옮겼는데 경고하지 않았다');
+  assert.match(반대.stderr, /오늘 SPEC 검사 기록/);
 });
