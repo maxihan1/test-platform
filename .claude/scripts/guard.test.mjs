@@ -13,6 +13,8 @@ test('진짜 위험한 명령을 막는다', () => {
     'npm run migrate:down',
     'rm -rf /etc',
     'cd /repo && git branch -D old-branch',
+    'node .claude/scripts/check-stamp.mjs put push HEAD',
+    'cd x && node /abs/.claude/scripts/check-stamp.mjs put push abc',
   ]) {
     assert.ok(isBanned(cmd), `막았어야 한다: ${cmd}`);
   }
@@ -29,6 +31,9 @@ test('조회 명령은 통과시킨다 (2026-09-18 오탐)', () => {
     'git branch -d merged-branch',
     'git push origin --delete old-remote',
     'git log --oneline',
+    'node .claude/scripts/check-stamp.mjs run local > /tmp/c.log 2>&1',
+    'node .claude/scripts/check-stamp.mjs find',
+    'grep -n "check-stamp.mjs put" .claude/skills/x.md',
   ]) {
     assert.ok(!isBanned(cmd), `통과했어야 한다: ${cmd}`);
   }
