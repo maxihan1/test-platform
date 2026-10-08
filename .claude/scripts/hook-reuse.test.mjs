@@ -114,6 +114,8 @@ test('⑤ 표지가 local 뿐이면 단위 테스트는 건너뛰고 기록은 �
     assert.match(막힘.out, /docs\/reviews/, '검사 기록을 요구하지 않았다');
     assert.equal(단위테스트를돌렸다(막힘.호출), false, `단위 테스트를 돌렸다: ${막힘.호출}`);
     assert.doesNotMatch(막힘.호출, /check:tests/, 'check:tests 를 돌렸다');
+    assert.match(막힘.out, /통과 표지\(tests\)/, 'tests 재사용인데 그렇게 말하지 않았다');
+    assert.doesNotMatch(막힘.out, /통과 표지\(local\)/, 'push 표지도 있을 수 있는데 local 이라고만 말했다');
     assert.match(막힘.호출, /check:spec/);
 
     const 통과 = 다시돌린다(있음);
@@ -205,6 +207,31 @@ test('⑫ 두 ref 중 하나의 diff 가 실패하면 다른 ref 가 화면뿐�
     const r = 다시돌린다(저장소, {}, 입력);
     assert.equal(r.code, 1, `읽지 못한 ref 가 있는데 기록 없이 통과했다: ${r.out}`);
     assert.match(r.out, /docs\/reviews/);
+  } finally {
+    정리(저장소);
+  }
+});
+
+test('⑬ 시작 때 코드가 덜 커밋돼 있으면 통과해도 표지를 안 남긴다', () => {
+  const 저장소 = 임시저장소([코드, 기록파일]);
+  try {
+    mkdirSync(join(저장소.뿌리, 'apps/admin/src/execution'), { recursive: true });
+    writeFileSync(join(저장소.뿌리, 'apps/admin/src/execution/wip.ts'), 'w');
+    const r = 저장소에서돌린다(저장소);
+    assert.equal(r.code, 0, `push 가 막혔다: ${r.out}`);
+    assert.equal(표지(저장소, 저장소.sha), '', '더러운 채 검사했는데 표지가 남았다');
+  } finally {
+    정리(저장소);
+  }
+});
+
+test('⑭ 단위 테스트 도중 작업 폴더가 바뀌면 push 는 통과해도 표지를 안 남기고 이유를 말한다', () => {
+  const 저장소 = 임시저장소([코드, 기록파일]);
+  try {
+    const r = 저장소에서돌린다(저장소, { NPM_ON: 'test:changed', NPM_SH: 'echo z > docs/mid.md' });
+    assert.equal(r.code, 0, `push 가 막혔다: ${r.out}`);
+    assert.match(r.out, /도는 동안.*표지를 남기지 않/, '표지를 안 남긴 이유를 말하지 않았다');
+    assert.equal(표지(저장소, 저장소.sha), '', '도중에 바뀌었는데 표지가 남았다');
   } finally {
     정리(저장소);
   }
