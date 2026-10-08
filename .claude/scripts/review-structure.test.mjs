@@ -115,7 +115,7 @@ test('할 일 4 — 정본 소절이 Step 4 안에 있고 검사 묶음을 컨�
   for (const 낱말 of ['run local', 'node --test', 'npm test', 'test:changed']) {
     assert.ok(본.includes(낱말), `렌즈가 다시 안 돌릴 명령 "${낱말}" 이 없다`);
   }
-  for (const 낱말 of ['check-stamp.mjs find', 'stamp=', 'kinds=', '미확인', '중대', 'G8', 'G9']) {
+  for (const 낱말 of ['check-stamp.mjs find', 'reuse=', '미확인', '중대', 'G8', 'G9']) {
     assert.ok(본.includes(낱말), `렌즈가 확인하는 길 "${낱말}" 이 없다`);
   }
 });

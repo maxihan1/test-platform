@@ -109,7 +109,7 @@ CI·훅이 차선마다 무엇을 돌리는지는 `docs/HOOKS.md` 「차선」�
 
 | 차선 | 언제 | 체인 |
 |---|---|---|
-| `spec` | `lane.mjs` 의 `lane()` 이 가른다 — 바뀐 것이 `DOC` 표면의 `문서자리`뿐이고 명세(`docs/spec/**`·`docs/SPEC.md`)가 있다 | 1 · 5 인라인 · 6 · 7. **계획·게이트 0/1 없음.** 렌즈는 `spec-review` 하나, **게이트 2 만** |
+| `spec` | `lane.mjs` 의 `lane()` 이 가른다 — 바뀐 것이 `DOC` 표면의 `문서자리`와 `SPEC` 표면(`docs/spec/**`·`docs/SPEC.md`)뿐이고 `SPEC` 이 하나 이상 있다 | 1 · 5 인라인 · 6 · 7. **계획·게이트 0/1 없음.** 렌즈는 `spec-review` 하나, **게이트 2 만** |
 | `docs` | `lane.mjs` 의 `lane()` 이 가른다 — 바뀐 것이 `DOC` 표면의 `문서자리`뿐이고 명세가 없다 | 0등급 그대로. 렌즈 없이 `npm run check:spec` 만, 게이트 2 |
 | `cases` · `full` | 그 밖 | 위 등급표대로 |
 
