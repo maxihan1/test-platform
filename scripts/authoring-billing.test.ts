@@ -50,9 +50,15 @@ describe('크레딧키검사 — Console API 키만 받는다', () => {
     expect(크레딧키검사('')).toBeNull();
   });
 
-  it('sk-ant-api 키는 통과, 구독 토큰(sk-ant-oat)이나 엉뚱한 값은 막는다', () => {
+  it('Console API 키는 접두사 꼴이 달라도 통과한다 — 2026-10 크레딧 조직에서 만든 키는 sk-ant-usr… 였고 /v1/models 가 200 이었다', () => {
     expect(크레딧키검사('sk-ant-api03-abc')).toBeNull();
+    expect(크레딧키검사('sk-ant-usr01-abc')).toBeNull();
+  });
+
+  it('구독 토큰 · 갱신 토큰 · 관리자 키 · 엉뚱한 값은 막는다', () => {
     expect(크레딧키검사('sk-ant-oat01-abc')).toMatch(/AUTHORING_CREDIT_KEY/);
+    expect(크레딧키검사('sk-ant-ort01-abc')).toMatch(/AUTHORING_CREDIT_KEY/);
+    expect(크레딧키검사('sk-ant-admin01-abc')).toMatch(/AUTHORING_CREDIT_KEY/);
     expect(크레딧키검사('hello')).toMatch(/AUTHORING_CREDIT_KEY/);
   });
 });
