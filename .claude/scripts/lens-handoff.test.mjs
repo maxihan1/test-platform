@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { 절, 소절 } from './md-sections.mjs';
+import { lane } from './lane.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
@@ -139,6 +140,34 @@ test('할 일 9 — tpx 차선 표 spec 행 · HOOKS 차선 표 spec 행은 명�
     assert.ok(줄.length > 20, `대조군 — ${이름} 을 못 찾았다`);
     assert.ok(줄.includes('`SPEC` 표면'), `${이름} 이 명세 파일을 SPEC 표면이라 적지 않는다: ${줄}`);
   }
-  const 문서뿐 = read('.claude/scripts/lane.mjs');
-  assert.ok(문서뿐.includes("표면들[i] === 'SPEC'"), '대조군 — lane() 이 SPEC 표면을 따로 허용해야 한다');
+  assert.equal(lane(['docs/spec/a.md']), 'spec', '대조군 — 명세만 바뀌면 spec 이다');
+  assert.equal(lane(['docs/spec/a.md', 'docs/HOOKS.md']), 'spec', '대조군 — 명세와 문서가 섞여도 spec 이다');
+  assert.equal(lane(['docs/HOOKS.md']), 'docs', '대조군 — 문서만이면 docs 다');
+  assert.equal(lane(['docs/x.mjs']), 'full', '대조군 — docs 아래 코드는 문서가 아니다');
+});
+
+test('할 일 5 — HOOKS 차선 표 docs · spec · cases 행 CI 칸은 ci.yml 의 차선 조건 없는 check 전부, docs · spec 행 pre-push 칸은 docs_checks() 가 부르는 check 전부를 담고 spec 행이 조건을 스스로 적는다', () => {
+  const 표 = 소절(read('docs/HOOKS.md'), '### 차선 — 바뀐 만큼만');
+  const 칸들 = (이름) => (표.split('\n').find((l) => l.startsWith(`| \`${이름}\` |`)) ?? '').split('|').map((c) => c.trim());
+  const ci = read('.github/workflows/ci.yml');
+  const 설치전 = ci
+    .split('\n      - name:')
+    .filter((단계) => !단계.includes('steps.lane'))
+    .flatMap((단계) => [...단계.matchAll(/^\s*run: npm run (check:[\w-]+)\s*$/gm)].map((m) => m[1]));
+  assert.ok(설치전.length > 0, '대조군 — ci.yml 에서 차선 조건 없는 check 를 하나도 못 뽑았다');
+  const 훅 = read('.claude/hooks/pre-push');
+  const 훅본 = 훅.slice(훅.indexOf('docs_checks() {'));
+  const 훅검사 = [...훅본.slice(0, 훅본.indexOf('\n}\n')).matchAll(/npm run (check:[\w-]+)/g)].map((m) => m[1]);
+  assert.ok(훅검사.length > 0, '대조군 — pre-push docs_checks() 에서 check 를 하나도 못 뽑았다');
+  for (const 이름 of ['docs', 'spec', 'cases']) {
+    const 칸 = 칸들(이름);
+    assert.ok(칸.length >= 6, `대조군 — HOOKS 표 ${이름} 행을 못 찾았다`);
+    for (const c of 설치전) assert.ok(칸[3].includes(`\`${c}\``), `HOOKS ${이름} 행 CI 칸에 ci.yml 이 도는 ${c} 가 없다: ${칸[3]}`);
+  }
+  for (const 이름 of ['docs', 'spec']) {
+    for (const c of 훅검사) assert.ok(칸들(이름)[4].includes(`\`${c}\``), `HOOKS ${이름} 행 pre-push 칸에 docs_checks() 가 부르는 ${c} 가 없다: ${칸들(이름)[4]}`);
+  }
+  const 조건 = 칸들('spec')[2];
+  assert.ok(!조건.includes('위와 같은데'), `HOOKS spec 행 조건이 위 행을 가리킨다: ${조건}`);
+  for (const 낱말 of ['`lane()`', '`문서자리`', '`SPEC` 표면']) assert.ok(조건.includes(낱말), `HOOKS spec 행 조건에 ${낱말} 이 없다: ${조건}`);
 });
