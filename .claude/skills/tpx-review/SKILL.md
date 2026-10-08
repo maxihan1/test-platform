@@ -47,7 +47,12 @@ git diff --name-only origin/main...HEAD | node .claude/scripts/detect-tier.mjs
 **종수를 조용히 줄이지 않는다.** 렌즈 호출이 실패하면 부재를 요약에 적고
 진행 여부를 사용자가 정하게 한다.
 
+**`/code-review` 는 args 를 고정한다** — 범위는 늘 `origin/main...HEAD` 다.
+- 0~1등급 `low origin/main...HEAD in <작업방 절대경로>`
+- 2~3등급 `medium origin/main...HEAD in <작업방 절대경로>`
+
 **두 렌즈 이상이면 한 응답에 함께 발행한다.** 순차로 나누면 왕복만 2배가 된다.
+다만 Step 4 의 검사 묶음을 **먼저** 돌린 뒤 낸다. 프롬프트에 무엇을 싣는지는 Step 4 「렌즈에 넘기는 것」이 정한다.
 
 **렌즈를 서브 에이전트로 돌리면 `model: "opus"` 로 낸다** (2026-10-06 사용자) — 독립 검사는 아끼지 않는다.
 게이트 2 「고치고 재검사」의 바뀐 부분 재검사도 같다. 구현자 · 대조 검증자의 Sonnet 배분은 `tpx-impl` 이 정한다
@@ -56,7 +61,7 @@ git diff --name-only origin/main...HEAD | node .claude/scripts/detect-tier.mjs
 
 ## Step 3. gstack 렌즈에는 세 마디를 넣는다
 
-`/qa-only` 처럼 gstack 렌즈를 부를 때는 `/tpx-plan-review` 와 같은 규약을 쓴다.
+`/qa-only` 처럼 gstack 렌즈를 부를 때는 프롬프트에 이 한 줄을 넣는다.
 
 > 비대화형으로 한 번만 검사하고 지적만 내라 — 고치지 말고, 질문하지 말고, 루프를 돌리지 마라.
 
@@ -79,6 +84,26 @@ DB 를 건드렸으면 `DATABASE_URL` 을 붙인다.
 - 로그는 `$CLAUDE_JOB_DIR`(배경 세션)이 있으면 거기에, 없으면 `/tmp` 에 둔다
 
 **건수가 아니라 종료 코드다.** 파이프(`| tail`)로 넘기면 종료 코드가 `tail` 의 것이 된다. 「Tests N passed」와 「EXIT=1」은 동시에 참일 수 있다.
+
+### 렌즈에 넘기는 것 — 검사 묶음은 다시 안 돈다
+
+컨트롤러가 위 명령을 **렌즈를 내기 전에 먼저** 돈다. 렌즈 프롬프트에 네 가지를 싣는다.
+
+- `로그 폴더:` 줄의 경로
+- 검사를 돈 때의 HEAD 해시
+- `EXIT=<n>` 줄
+- DB 를 건드렸으면 `DATABASE_URL` 을 붙여 돌렸는지
+
+렌즈는 검사 묶음(`run local` · `node --test` · `npm test` · `test:changed`)을 **다시 돌리지 않는다** — 첫 회차도 재검사 회차도 같다.
+대신 `node .claude/scripts/check-stamp.mjs find <HEAD>` 로 `stamp=` 가 그 HEAD 이고 `kinds=` 에 `local` 이 있는지만 본다.
+결과가 없거나 HEAD 가 다르면 `spec-review` G8 · G9 는 「미확인」으로 적고 중대로 센다.
+사람이 `spec-review` 를 직접 부르면 넘겨받은 것이 없으니 스스로 돌려도 된다.
+
+새 검사가 있을 때 부숴 보기는 회차마다 다르다.
+
+- **첫 회차** — 렌즈가 새 검사 중 최대 두 곳을 작업방 밖 임시 사본(`/tmp` 아래)에서 깨고 그 검사 파일만 돌린다. 작업 폴더는 안 건드린다
+- **재검사 회차** — 렌즈는 부수지 않는다. 고치는 쪽이 새로 만든 검사를 컨트롤러가 임시 사본에서 부숴 본 결과를 프롬프트에 넘긴다
+- **보안 · 비밀값 · 권한 장치** — 부수지 않는다. 자동 권한 검사가 노출 · 권한 확대로 읽어 막는다(LEARNINGS 2026-10-06). 할 일마다 RED 커밋에서 검사가 실패한 것을 근거로 요약 「부숴 본 것」에 적는다
 
 ## Step 5. SPEC 을 고쳤으면 §2.7 ⑥ 을 여기서 본다
 
