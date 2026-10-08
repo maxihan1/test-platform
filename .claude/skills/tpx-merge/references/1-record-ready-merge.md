@@ -47,15 +47,17 @@ BEFORE=$(gh run list --branch <브랜치> --limit 1 --json databaseId -q '.[0].d
 gh pr ready <번호>
 gh pr edit <번호> --title "<`[작업중]` 을 뗀 제목>"
 
-# ② ready 가 만든 **새 실행**이 뜰 때까지 기다린다 (최대 2분)
+# ② ready 가 만든 **새 실행**이 뜰 때까지 기다린다 (최대 2분). 안 뜨면 여기서 멈춘다
 for i in $(seq 1 24); do
   NOW=$(gh run list --branch <브랜치> --limit 1 --json databaseId -q '.[0].databaseId')
   [ "$NOW" != "$BEFORE" ] && break
   sleep 5
 done
+echo "BEFORE=$BEFORE NOW=$NOW"
+[ "$NOW" = "$BEFORE" ] && exit 1
 
-# ③ 그 실행이 끝날 때까지. 빨강이면 0 이 아닌 코드로 끝난다
-timeout 900 gh run watch "$NOW" --exit-status
+# ③ 그 실행이 끝날 때까지. Bash 한 번 상한(10분) 안이다. 빨강이면 0 이 아닌 코드로 끝난다
+timeout 540 gh run watch "$NOW" --exit-status
 echo "CI EXIT=$?"
 ```
 
@@ -89,10 +91,12 @@ echo "CI EXIT=$?"
 
 ### 실패 / 엣지
 
+`tpx-runner` 로 돌 때는 이 표의 행동을 하지 않고 멈춰 보고한다. 표의 행동은 메인이 한다.
+
 | 증상 | 어떻게 |
 |---|---|
 | 2분이 지나도 새 실행이 안 뜬다 | 워크플로가 안 떴다. `gh run list --branch <브랜치>` 로 확인하고 **병합하지 않는다**. **먼저 `gh pr view <번호> --json mergeStateStatus` 를 본다 — `DIRTY` 면 main 과 충돌이라 GitHub 가 CI 를 안 띄운다.** main 을 합쳐 충돌을 풀고 다시 올린다 (2026-09-28 PR #95 — 빈 커밋을 올려도 안 떴다) |
-| `timeout` 이 900초에 끊었다 | 큐가 막혔다. `gh run view <번호>` 로 상태를 보고 사용자에게 보고한다. **끊긴 것을 통과로 읽지 않는다** |
+| `timeout` 이 540초에 끊었다(`CI EXIT=124`) | 아직 도는 중이거나 큐가 막혔다. `gh run view <실행 번호>` 로 상태를 보고, 돌고 있으면 `NOW` 값을 그대로 넣은 `timeout 540 gh run watch <실행 번호> --exit-status` 로 다시 지켜본다. 계속 안 끝나면 사용자에게 보고한다. **끊긴 것을 통과로 읽지 않는다** |
 | CI 가 빨강 | **병합하지 않는다.** 고치고 푸시하면 `synchronize` 로 다시 돈다 |
 | 보호가 막는데 정말 병합해야 한다 | 관리자 우회 깃발이 있다. **체인은 절대 쓰지 않는다** — 사람이 이유를 대고 직접 친다. 명령은 `docs/HOOKS.md` 에 있다 |
 

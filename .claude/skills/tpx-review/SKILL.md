@@ -84,7 +84,7 @@ DB 를 건드렸으면 `DATABASE_URL` 을 붙인다.
 - **「재사용 local <커밋>」 줄이 나왔으면 같은 커밋 검사를 다시 안 돈 것이다 — 게이트 2 요약에 그 줄을 싣는다.** `check:spec` · `check:docs-contract` 만 돌았다
 - 「표지를 남기지 않는다 — <이유>」 줄은 통과 표지를 못 남겼다는 뜻이다. 종료 0 이면 검사는 통과다. 표지는 이 명령과 pre-push 훅만 찍는다
 - 로그는 `$CLAUDE_JOB_DIR`(배경 세션)이 있으면 거기에, 없으면 `/tmp` 에 둔다
-- `EXIT` 가 0 이 아닌 명령이 있으면 그 로그 요약을 `subagent_type: "tpx-runner"` 에 맡긴다(로그 폴더 경로를 넘긴다). 요약의 꼴은 `.claude/agents/tpx-runner.md` 가 정한다. 컨트롤러는 받은 `파일:줄`을 열어 본 뒤 고친다
+- `EXIT` 가 0 이 아닌 명령이 있으면 그 로그 요약을 `subagent_type: "tpx-runner"` 에 맡긴다(로그 폴더 경로를 넘긴다). 요약의 꼴은 `.claude/agents/tpx-runner.md` 가 정한다. 컨트롤러는 받은 `파일:줄`을 열어 본 뒤 고친다. 정의를 못 찾으면 `subagent_type: "general-purpose"` 에 `model: "haiku"` · `effort: "low"` 로 내되 `.claude/agents/tpx-runner.md` 본문을 프롬프트에 싣는다
 
 **건수가 아니라 종료 코드다.** 파이프(`| tail`)로 넘기면 종료 코드가 `tail` 의 것이 된다. 「Tests N passed」와 「EXIT=1」은 동시에 참일 수 있다.
 
