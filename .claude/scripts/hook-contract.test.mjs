@@ -164,7 +164,7 @@ test('migration 이 바뀐 커밋은 전체 단위 테스트 — 작업방 경�
   }
 });
 
-test('문서만 바뀐 커밋은 docs 차선 — check:spec 만 돌고 검사 기록 없이 통과한다', () => {
+test('문서만 바뀐 커밋은 docs 차선 — pre-push 문서 검사만 돌고 검사 기록 없이 통과한다', () => {
   const 저장소 = 임시저장소(['docs/SETUP.md']);
   try {
     const r = 저장소에서돌린다(저장소);
@@ -215,6 +215,37 @@ test('바뀐 파일이 0 인 커밋(빈 시작 커밋)은 검사 없이 통과�
   }
 });
 
+test('HOOKS.md 가 차선 개수를 손으로 적지 않고 tpx-impl 이 커밋 경로를 「바꾼 files 경로만」으로 적는다', () => {
+  const 문서 = readFileSync(new URL('../../docs/HOOKS.md', import.meta.url), 'utf8');
+  assert.doesNotMatch(문서, /[두세네다]\S* ?차선으로/, 'HOOKS.md 에 손으로 센 차선 개수가 남아 있다');
+  const 스킬 = readFileSync(new URL('../skills/tpx-impl/SKILL.md', import.meta.url), 'utf8');
+  assert.match(스킬, /git commit -m[^\n]*-- <[^>]*경로>[^\n]*이번 커밋에서 바꾼/, 'tpx-impl 2-A 커밋 줄이 「이번 커밋에서 바꾼 files 경로만」을 말하지 않는다');
+});
+
 test('판정 규칙을 훅에 복사하지 않고 lane.mjs 에 맡긴다', () => {
   assert.match(readFileSync(HOOK, 'utf8'), /lane\.mjs/);
+});
+
+// REFS 를 here-doc 으로 읽는 순회가 네 번 흩어져 있으면 삭제 줄을 거르는 규칙이 네 곳에 복사된다 (PR #181 할 일 2)
+const 순회세기 = (글) => (글.match(/<<EOF\n\$REFS\n/g) ?? []).length;
+
+test('REFS 를 here-doc 으로 읽는 순회는 한 곳뿐이고 뒤 순회는 SHAS 를 돈다', () => {
+  assert.equal(순회세기('<<EOF\n$REFS\nEOF\n<<EOF\n$REFS\nEOF\n'), 2, '세는 정규식이 순회를 못 센다');
+  const src = readFileSync(HOOK, 'utf8');
+  assert.equal(순회세기(src), 1, 'REFS 를 읽는 순회가 한 곳이 아니다');
+  const 코드 = src.split('\n').filter((줄) => !줄.trimStart().startsWith('#')).join('\n');
+  assert.equal((코드.match(/^\s*for local_sha in \$SHAS; do$/gm) ?? []).length, 3, '차선 · 재사용 · 표지 순회가 SHAS 를 돌지 않는다');
+});
+
+test('삭제 줄과 문서만 바꾼 커밋 ref 를 함께 올리면 docs 차선으로 검사 기록 없이 통과한다', () => {
+  const 저장소 = 임시저장소(['docs/SETUP.md']);
+  try {
+    const 입력 = `(delete) ${ZERO} refs/heads/old ${SHA}\nrefs/heads/b ${저장소.sha} refs/heads/b ${ZERO}\n`;
+    const r = 저장소에서돌린다(저장소, {}, 입력);
+    assert.equal(r.code, 0, `삭제 줄이 섞여 막혔다: ${r.out}`);
+    assert.match(r.out, /차선: docs/, `삭제 줄이 섞여 docs 차선이 아니다: ${r.out}`);
+    assert.doesNotMatch(불린것(저장소.기록), /^(test|run test|run typecheck)/m, '삭제 줄이 섞여 테스트를 돌렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
 });

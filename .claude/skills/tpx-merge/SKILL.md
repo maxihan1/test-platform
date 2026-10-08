@@ -33,6 +33,28 @@ description: /tpx 체인 7단계 — 게이트 2 승인 뒤 초안을 풀고 병
 | 6 | 기록 — 서식과 기준 (Step 1 에서 이미 쓴다) | 〃 |
 | 7 | PR 을 닫는다 — `--done` 으로 체크리스트를 전부 채운다 | 〃 |
 
+## Step 2 의 CI 기다리기만 보조 에이전트에 맡긴다
+
+Step 2(초안 해제 · 새 CI 실행 기다림)만 `tpx-runner`(Haiku · effort low — `.claude/agents/tpx-runner.md`, 2026-10-08 사용자)로 넘긴다. 명령 원문은 파일에 있고 프롬프트는 그 경로와 절 제목만 가리킨다.
+**Step 3(병합)은 메인이 직접 친다.** Haiku 가 읽은 `CI EXIT` 만 믿고 병합하면 되돌릴 수 없다. Step 1(기록)은 대화 맥락이 있어야 해서, Step 4 이후(작업방 나오기 · 진행판 게시 · 브랜치 정리 · PR 닫기)는 메인 세션 도구가 필요해서 메인에 남는다.
+제목(`[작업중]` 을 뗀 것)은 메인이 만들어 넘긴다.
+
+```
+Agent({
+  subagent_type: "tpx-runner",
+  description: "tpx-merge Step 2 — PR #<번호>",
+  prompt: "작업 디렉터리는 <작업방 절대경로> 다. .claude/skills/tpx-merge/references/1-record-ready-merge.md 의 " +
+          "`## Step 2.` 절만 그대로 따르라(Step 3 은 하지 않는다). PR <번호> · 브랜치 <브랜치> · 새 제목 <제목>. " +
+          "Step 2 명령 블록 전체를 Bash 한 번에 `timeout: 600000` 으로 부른다. 끝나면 BEFORE · NOW · CI EXIT 값을 그대로 보고하라. " +
+          "충돌 · DIRTY · 새 실행 안 뜸 · 시간 초과 · CI 빨강이면 표의 행동은 하지 말고 값과 증상을 보고만 하라 " +
+          "(빨강이면 `gh run view <실행 번호> --log-failed` 요약도 — 꼴은 정의를 따른다)."
+})
+```
+
+- **정의를 못 찾으면**(「없는 에이전트」 오류) `subagent_type: "general-purpose"` 에 `model: "haiku"` · `effort: "low"` 로 대신 낸다. 이때 `.claude/agents/tpx-runner.md` 본문을 프롬프트 맨 앞에 실어 규율이 따라가게 한다.
+- 돌아온 뒤 메인이 `gh run view <실행 번호> --json conclusion,headSha` 로 확인한다. `NOW` ≠ `BEFORE`(새 실행) · `conclusion` 이 `success` · `headSha` 가 `gh pr view <번호> --json headRefOid` 의 PR 헤드와 같을 때만 Step 3 으로 간다. 하나라도 어긋나면 병합하지 않는다. 병합에는 확인한 그 PR 헤드 sha 를 `--match-head-commit` 으로 붙인다.
+- 메인이 Step 3 병합을 직접 친 뒤 `gh pr view <번호> --json state` 로 MERGED 를 직접 확인한다. 확인 전에는 Step 4 로 가지 않는다.
+
 ## 출력
 
 ```

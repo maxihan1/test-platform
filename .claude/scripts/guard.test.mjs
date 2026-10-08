@@ -3,6 +3,7 @@
 // 안전 장치를 느슨하게 만드는 변경이라 한쪽만 보면 위험하다.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { fanoutVerdict, isBanned } from './guard.mjs';
 
 test('진짜 위험한 명령을 막는다', () => {
@@ -188,4 +189,40 @@ test('review 모드 — 1등급만 바뀌면 조용하고, 2등급 이상은 이
   const 반대 = 돌린다(다섯.뿌리);
   assert.equal(반대.status, 1, '화면 파일을 2등급 자리로 옮겼는데 경고하지 않았다');
   assert.match(반대.stderr, /오늘 SPEC 검사 기록/);
+
+  const 커밋한다 = (저장소, 경로, 내용) => {
+    저장소.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+    저장소.쓴다(경로, 내용);
+    저장소.git('add', '.');
+    저장소.git('commit', '-qm', 'work');
+  };
+
+  const 여섯 = 만든다();
+  커밋한다(여섯, 'apps/admin/src/execution/b.ts', 'z\n');
+  const 커밋분 = 돌린다(여섯.뿌리);
+  assert.equal(커밋분.status, 1, '2등급을 커밋했고 작업 폴더가 깨끗한데 경고하지 않았다');
+  assert.match(커밋분.stderr, /apps\/admin\/src\/execution\/b\.ts/);
+
+  const 일곱 = 만든다();
+  커밋한다(일곱, 'apps/admin/src/web/a.tsx', 'y\n');
+  assert.equal(돌린다(일곱.뿌리).status, 0, '화면만 커밋했는데 경고했다');
+});
+
+test('현지날짜 — 한국 시간 새벽에도 pre-push 의 date +%F 와 같은 날이다 (2026-10-08)', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const 가드 = new URL('./guard.mjs', import.meta.url).href;
+  const 환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_') && k !== 'ALLOW_PROTECTED'));
+  const 결과 = spawnSync('node', ['--input-type=module', '-e',
+    `import { 현지날짜 } from ${JSON.stringify(가드)}; console.log(현지날짜(new Date('2026-10-08T20:00:00Z')));`],
+    { env: { ...환경, TZ: 'Asia/Seoul' }, encoding: 'utf8' });
+  assert.equal(결과.stdout.trim(), '2026-10-09', 결과.stderr);
+});
+
+test('응답 끝 경고의 오늘은 현지날짜() 로 셈하고 코드에 toISOString 이 없다 — 도우미만 두고 옛 줄로 되돌리는 길을 막는다', () => {
+  const 코드 = readFileSync(new URL('./guard.mjs', import.meta.url), 'utf8')
+    .split('\n')
+    .filter((줄) => !줄.trimStart().startsWith('//'))
+    .join('\n');
+  assert.match(코드, /const today = Date\.parse\(현지날짜\(\)\)/, 'review 블록이 오늘을 현지날짜() 로 셈하지 않는다');
+  assert.doesNotMatch(코드, /toISOString/, 'UTC toISOString 이 코드에 남아 있다 — 한국 00~09시에 pre-push 와 하루 어긋난다');
 });

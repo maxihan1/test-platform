@@ -43,12 +43,13 @@ description: /tpx 체인 5단계 — 승인된 계획의 할 일을 TDD 로 구�
   **보안 · 비밀값 · 권한을 고치는 할 일만 `subagent_type: "general-purpose"` 에 `model: "opus"`** 로 낸다 — 그 자리에서 아끼면 품질이 떨어진다(PR #163 의 비밀번호 노출을 Opus 렌즈가 찾았다).
   ponytail 규칙은 `tpx-implementer` · `author-write` 에만 자동으로 붙으므로(`.claude/settings.json` `env`) 이 프롬프트는 첫 줄에서 `ponytail:ponytail` 스킬을 부르라고 적는다
 - **정의를 못 찾으면**(「없는 에이전트」 오류 — 정의는 세션을 띄울 때 읽혀서, 그 뒤 병합되거나 받아 온 정의는 그 세션이 못 본다)
-  `subagent_type: "general-purpose"` 에 `model: "sonnet"` 으로 대신 내고 게이트 2 요약에 적는다. effort 는 정하지 못한다 — 새 세션부터는 정의가 잡힌다.
+  `subagent_type: "general-purpose"` 에 `model: "sonnet"` · `effort: "high"` 로 대신 내고 게이트 2 요약에 적는다 — 새 세션부터는 정의가 잡힌다.
   이 프롬프트도 첫 줄에서 `ponytail:ponytail` 스킬을 부르라고 적는다 — 규칙이 `tpx-implementer` · `author-write` 에만 자동으로 붙는다(`.claude/settings.json` `env`)
 - 프롬프트에는 **계획 파일 경로 + 할 일 번호**를 넘겨 구현자가 원문을 읽게 한다 — 컨트롤러가 풀어 쓰지 않는다(LEARNINGS 2026-10-08)
 - 프롬프트에 반드시 넣을 것 — 계획 파일 경로 + 할 일 번호(작업방 기준 **절대경로**로) · `files` 목록 · `검증` 명령 ·
   환경 값(작업방 절대경로 · DB 를 건드리면 검사용 `DATABASE_URL`) ·
-  **「선언된 `files` 밖을 고치면 BLOCKED 로 보고하라」**
+  **「선언된 `files` 밖을 고치면 BLOCKED 로 보고하라」** ·
+  「커밋은 `git commit -m … -- <이번 커밋에서 바꾼 files 경로>` 로 자기 파일만 올린다(`files` 전부가 아니라 이번 커밋에서 바꾼 것만 — 아직 없는 경로를 넘기면 pathspec 오류로 멈춘다. 새 파일은 그 경로만 `git add` 한 뒤) — `-A` · `.` · `commit -a` 금지 · push 하지 않는다」(같은 작업방의 index 는 병렬 구현자끼리 같이 쓰여, `git add <경로>` 만으로는 남이 올려 둔 파일이 내 커밋에 섞인다 — PR #181. push 는 컨트롤러가 묶음 사이 `git status --short` 가 빌 때 한다)
 
 ### 2-B. 응답 처리
 
@@ -71,17 +72,18 @@ description: /tpx 체인 5단계 — 승인된 계획의 할 일을 TDD 로 구�
 차이는 **늘 파일로 떨구고 길면 경로만 넘긴다** — 파일은 **작업방 밖**에 두고, 배경 세션이면 `$CLAUDE_JOB_DIR/tmp/tpx-<PR 번호>-묶음<n>.diff`, 아니면 `/tmp/tpx-<PR 번호>-묶음<n>.diff`.
 PR 번호를 넣는 까닭은 다른 작업 폴더의 묶음 1 과 `/tmp` 에서 이름이 겹치지 않게 하려는 것이다.
 작업방 안에 두면 추적 안 된 파일이 커밋 · 차선 판정에 섞인다. 검증자는 Read 로 읽는다(2026-10-06 PR #163 에서 배경 세션 자리로 읽힌 것을 확인)
-정의를 못 찾으면 위 2-A 처럼 `general-purpose` 에 `model: "sonnet"` 으로 내되 프롬프트에 「Bash · 고치기 금지」를 적는다
+정의를 못 찾으면 위 2-A 처럼 `general-purpose` 에 `model: "sonnet"` · `effort: "medium"` 으로 내되 프롬프트에 「Bash · 고치기 금지」를 적는다
 
 - **컨트롤러가 묶음의 할 일별 `git log` 와 `git diff` 를 먼저 직접 모아 한 파일에 할 일 번호 구획으로 나눠 담는다. 프롬프트에는 짧으면 붙이고 길면 경로만 넘긴다.**
   명령은 `git -C <작업방> show --stat --patch <묶음 커밋 전부> > …/tpx-<PR 번호>-묶음<n>.diff` 한 번이다 — 커밋 제목의 할 일 번호가 구획이 된다.
   검증자가 추측으로 거짓 PASS 를 내는 경로를 막는다
-- **GREEN 커밋이 검사 파일을 고쳤으면 계획 「구현 중 바뀐 것」에 그 줄이 있는지 검증자가 본다.** 없으면 DRIFT 로 낸다
+- **GREEN 커밋이 검사 파일을 고쳤으면 계획 「구현 중 바뀐 것」에 그 줄이 있는지 검증자가 본다.** 없으면 DRIFT 로 낸다 — 검증자 정의(`tpx-verifier.md`)에 늘 보는 기준으로 있다
 - **판정 기준은 계획 파일 경로 + 할 일 번호들로 넘긴다.** 검증자가 원문 블록을 읽고 대조한다 — 컨트롤러가 요약해 옮기면 요약이 기준이 된다(LEARNINGS 2026-10-08)
 - 판정은 **할 일마다** 받는다 — PASS 응답에 그 할 일의 **실제 커밋 해시가 인용돼 있지 않으면** 해시 없는 PASS 는 그 할 일만 검증자에게 다시 묻는다(묶음 전체를 다시 돌리지 않는다)
 - `PASS` → 졸업 / `DRIFT` → 항목을 전달해 **그 할 일만** 재발행하고 그 할 일만 재검증(묶음 전체를 다시 돌리지 않는다) / `TDD_VIOLATION` → 복구 규율
 
 묶음의 모든 할 일이 PASS 면 다음 묶음으로.
+컨트롤러가 대신 하는 커밋(계획 · 기록)도 `git commit -m … -- <경로>` 로 하고, push 는 묶음 사이 `git status --short` 가 빌 때만 한다.
 
 ## Step 3. 화면을 건드렸으면 눈으로 본다
 

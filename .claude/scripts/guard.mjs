@@ -65,6 +65,10 @@ export function isBanned(command) {
   return null;
 }
 
+// 응답 끝 경고의 「오늘」 — pre-push 는 date +%F(현지)라 UTC toISOString 이면 한국 00~09시에 하루 어긋난다 (2026-10-08)
+export const 현지날짜 = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 // 케이스 작성 보조는 묶음 넷까지 · 같은 묶음 다시 띄우기는 한 번까지 (도메인/작성 §3.6 「서브에이전트 팬아웃」, 2026-10-04).
 // MKT 11211 은 「한 차례」 규칙을 두고도 세 차례를 돌아 2차만 98분을 썼다 — 산문으로는 안 지켜져 기계로 막는다.
 // 묶음 이름은 tpx-author fanout.md §4 뼈대 첫 줄에서 뽑는다. 뼈대가 아닌 보조(화면 훑기)는 세지 않는다
@@ -201,10 +205,19 @@ if (mode === 'review') {
     changed = execFileSync('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '--no-renames', '--untracked-files=all', '--', 'apps', 'packages', 'tests'],
       { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   } catch { ok(); }
-  if (!changed.trim()) ok();
+  // 커밋을 마친 2등급 작업은 작업 폴더가 깨끗해 status 에 안 잡힌다 — 커밋분은 origin/main 과의 차이로 본다.
+  // 응답마다 도는 경고라 diff 가 실패하면(origin/main 없음) 모를 때 떠들지 않고 커밋분은 빈 것으로 친다
+  let committed = '';
+  try {
+    committed = execFileSync('git', ['-c', 'core.quotePath=false', 'diff', '--no-renames', '--name-only', 'origin/main...HEAD', '--', 'apps', 'packages', 'tests'],
+      { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch { /* origin/main 없음 */ }
+  if (!changed.trim() && !committed.trim()) ok();
   // 따옴표 친 경로는 못 읽은 것이다 — 모르면 경고 쪽
   const 줄들 = changed.split('\n').filter(Boolean);
-  if (!줄들.some((l) => l.slice(3).startsWith('"')) && !기록요구(줄들.map((l) => l.slice(3)))) ok();
+  const 커밋줄 = committed.split('\n').filter(Boolean);
+  const 경로들 = [...줄들.map((l) => l.slice(3)), ...커밋줄];
+  if (!경로들.some((p) => p.startsWith('"')) && !기록요구(경로들)) ok();
 
   let latest = 0;
   try {
@@ -214,13 +227,13 @@ if (mode === 'review') {
     }
   } catch { /* 폴더 없음 */ }
 
-  const today = Date.parse(new Date().toISOString().slice(0, 10));
+  const today = Date.parse(현지날짜());
   if (latest < today) {
     console.error(
 `[경고] 소스를 고쳤는데 오늘 SPEC 검사 기록이 없다.
 
 변경된 파일:
-${changed.trim().split('\n').slice(0, 8).map((l) => '  ' + l).join('\n')}
+${[...줄들, ...커밋줄].slice(0, 8).map((l) => '  ' + l).join('\n')}
 
 작업을 끝내기 전에 spec-review 스킬을 돌려라.
 치명 항목이 0건이면 docs/reviews/<날짜>-<WS>.md 에 결과를 남긴다.
