@@ -44,7 +44,7 @@ LEARNINGS 근거 — `docs/LEARNINGS.md` 「[WS-E] 2026-10-08 · **컨트롤러�
 
 ### 할 일 3. 대조 검증을 묶음마다 한 번 돈다
 
-- **RED** — `agent-models.test.mjs` 에 단언을 더한다. `tpx-impl` 「### 2-C.」 절이 ① 검증자를 **묶음마다 하나** 낸다 ② 판정을 **할 일마다** 커밋 해시와 함께 받는다 ③ 차이 파일 이름이 `tpx-묶음<n>.diff` 이고 옛 `tpx-<할 일>.diff` 가 없다 ④ DRIFT 는 그 할 일만 재발행 · 재검증한다. 지금은 할 일마다 낸다는 꼴이라 ①③ 이 빨갛다
+- **RED** — `agent-models.test.mjs` 에 단언을 더한다. `tpx-impl` 「### 2-C.」 절이 ① 검증자를 **묶음마다 하나** 낸다 ② 판정을 **할 일마다** 커밋 해시와 함께 받는다 ③ 차이 파일 이름이 `tpx-<PR 번호>-묶음<n>.diff` 이고 옛 `tpx-<할 일>.diff` 가 없다(PR 번호 — 다른 작업 폴더의 묶음 1 과 `/tmp` 에서 안 겹치게, 검토 주의 7) ④ DRIFT 는 그 할 일만 재발행 · 재검증한다. 지금은 할 일마다 낸다는 꼴이라 ①③ 이 빨갛다
 - **GREEN** — 2-C 를 고친다. 컨트롤러가 묶음의 할 일별 `git log` · `git diff` 를 한 파일에 할 일 번호 구획으로 모은다. 판정 기준은 그대로 계획 파일 경로 + 할 일 번호들(LEARNINGS 2026-10-08). 「PASS 에 실제 커밋 해시가 없으면 거절」은 할 일마다
 - **REFACTOR** — 없음. 검증자 정의(`.claude/agents/tpx-verifier.md`)는 「부른 쪽이 넘긴 프롬프트가 정본」이라 안 바꾼다
 
@@ -52,30 +52,44 @@ LEARNINGS 근거 — `docs/LEARNINGS.md` 「[WS-E] 2026-10-08 · **컨트롤러�
 **depends-on**: []
 **검증**: node --test .claude/scripts/agent-models.test.mjs .claude/scripts/context-diet.test.mjs
 
-### 할 일 4. [6] 렌즈 호출을 고정한다 — code-review 강도 · 범위, 검사 · 부숴 보기는 컨트롤러가 넘긴다
+### 할 일 4. [6] 렌즈 호출을 고정한다 — code-review 강도 · 범위, 검사 묶음은 컨트롤러 결과를 넘긴다
 
-- **RED** — `review-structure.test.mjs` 에 단언을 더한다. ① `tpx-review` Step 2 가 0~1등급 `/code-review low origin/main...HEAD`, 2~3등급 `/code-review medium origin/main...HEAD` 로 부르고 args 에 작업방 절대경로를 싣는다 ② Step 2 가 「Step 4 검사와 부숴 보기를 먼저 하고 렌즈를 낸다」 ③ 부숴 보기는 컨트롤러가 새 검사마다 한 자리를 깨 그 검사 파일만 돌리고 되돌린다 · 보안 · 비밀값 · 권한 장치는 부수지 않고 RED 커밋을 근거로 쓴다 ④ 렌즈 프롬프트에 run local 로그 위치 · EXIT 줄 · 부숴 본 결과 위치를 싣고 「검사 명령을 다시 돌리지 말고 부숴 보지 마라 — 부족하면 무엇을 더 볼지 지적으로 내라」 ⑤ `spec-review` 절차가 렌즈로 불리면 검사 명령 · 부숴 보기를 직접 하지 않고 넘겨받은 결과로 판정한다(넘겨받지 못하면 「컨트롤러 결과 없음」으로 적는다) ⑥ `checklist-g-h.md` G3 의 `test:changed` 줄 · G8 · G9 가 렌즈 모드에서 넘겨받은 결과를 읽는다고 적는다 ⑦ Step 3 이 `/tpx-plan-review` 를 가리키지 않고 세 마디를 자기 안에 적는다
-- **GREEN** — 위 문장을 `tpx-review` Step 2 · 3 · 4 와 `spec-review` 절차 · G 체크리스트에 넣는다. 사람이 `spec-review` 를 직접 부르면(위치 없음) 지금처럼 스스로 돌려도 된다
-- **REFACTOR** — `docs/LEARNINGS.md` 「[환경] 2026-10-06 · **게이트 2 「부숴 보기」로」 항목을 한 줄로 줄이고 `→ tpx-review Step 4 「부숴 보기」로 승격 (2026-10-08)`
+정본은 `tpx-review` Step 4 안의 새 소절 `### 렌즈에 넘기는 것 — 검사 묶음은 다시 안 돈다` **한 곳**이다(검토 주의 2 · H6). 다른 자리는 그 소절 제목을 가리키기만 한다.
+
+- **RED** — `review-structure.test.mjs` 에 단언을 더한다.
+  ① `tpx-review` Step 2 가 0~1등급 `low origin/main...HEAD in <작업방 절대경로>`, 2~3등급 `medium origin/main...HEAD in <작업방 절대경로>` 를 code-review args 로 적는다(확인된 글자 그대로 — 검토 주의 3)
+  ② 정본 소절이 있고 다음을 적는다 — 컨트롤러가 Step 4 를 **먼저** 돌린다 · 렌즈 프롬프트에 `로그 폴더:` 경로 · 그때 HEAD · `EXIT` 줄 · DB 를 건드렸으면 `DATABASE_URL` 을 붙였는지를 싣는다 · 렌즈는 검사 묶음(`run local` · `node --test` · `npm test` · `test:changed`)을 다시 돌리지 않고 `node .claude/scripts/check-stamp.mjs find <HEAD>` 로 `stamp=` 가 그 HEAD · `kinds=` 에 `local` 인지만 본다 · 결과가 없거나 HEAD 가 다르면 G8 · G9 는 「미확인」으로 중대(검토 주의 1)
+  ③ 같은 소절이 부숴 보기를 적는다 — **첫 회차는 렌즈가** 새 검사 중 최대 두 곳을 작업방 밖 임시 사본에서 깨고 그 검사 파일만 돌린다 · 작업 폴더는 안 건드린다 · **재검사 회차는 렌즈가 부수지 않고** 고치며 새로 생긴 검사를 컨트롤러가 임시 사본에서 부숴 본 결과를 넘긴다 · 보안 · 비밀값 · 권한 장치는 부수지 않고 RED 커밋을 근거로 쓴다(게이트 1 사용자 결정 · 검토 BLOCKER 1)
+  ④ `tpx-review` Step 2 · `spec-review` 절차 · `checklist-g-h.md` G3 줄 · G8 · G9 설명이 「렌즈에 넘기는 것」을 가리킨다. 사람이 `spec-review` 를 직접 부르면(넘겨받은 것 없음) 스스로 돌려도 된다는 줄은 `spec-review` 절차에 남는다
+  ⑤ Step 3 이 `/tpx-plan-review` 를 가리키지 않고 세 마디를 자기 안에 적는다
+- **GREEN** — 소절 신설 · 가리키는 줄 · Step 2 args · Step 3. `--max-findings` 는 이 저장소 기록에 쓴 적이 없어 고정하지 않는다
+- **REFACTOR** — `docs/LEARNINGS.md` 「[환경] 2026-10-06 · **게이트 2 「부숴 보기」로」 항목을 한 줄로 줄이고 `→ tpx-review Step 4 「렌즈에 넘기는 것」으로 승격 (2026-10-08)`
 
 **files**: .claude/skills/tpx-review/SKILL.md, .claude/skills/spec-review/SKILL.md, .claude/skills/spec-review/references/checklist-g-h.md, .claude/scripts/review-structure.test.mjs, docs/LEARNINGS.md
 **depends-on**: [1]
-**검증**: node --test .claude/scripts/review-structure.test.mjs .claude/scripts/chain-contract.test.mjs .claude/scripts/context-diet.test.mjs
+**검증**: node --test .claude/scripts/review-structure.test.mjs .claude/scripts/chain-contract.test.mjs .claude/scripts/context-diet.test.mjs .claude/scripts/agent-models.test.mjs
 
 ### 할 일 5. 게이트 2 「고치고 재검사」는 바뀐 부분 문서 대조만
 
-- **RED** — `review-structure.test.mjs` 에 단언을 더한다. ① `tpx-review` 에 `## 고치고 재검사 — 바뀐 부분만` 절이 있다 ② 범위가 `git diff <앞 회차 검사 커밋>..HEAD` 와 앞 회차 검사 기록의 지적 목록이다 ③ 렌즈는 「지적이 닫혔나」와 바뀐 줄의 핵심 낱말로 같은 규칙 찾기(H2 · H6)만 하고 체크리스트 전부를 다시 돌지 않는다 ④ 다시 내는 렌즈는 앞 회차에 지적을 낸 렌즈뿐이다 ⑤ 검사 실행 · 부숴 보기는 할 일 4 처럼 컨트롤러 결과를 넘긴다 ⑥ `tpx/SKILL.md` 「게이트」 절이 「고치고 재검사」를 고르면 그 절로 간다고 가리킨다 ⑦ `spec-review` 절차 2(검사 범위)에 「재검사면 넘겨받은 범위 · 앞 지적만」
-- **GREEN** — 위 절 · 줄을 넣는다. code-review 를 다시 내면 범위는 그대로 `origin/main...HEAD`(차이가 작고, 다른 범위 꼴이 먹히는지 확인하지 않았다)
+- **RED** — `review-structure.test.mjs` 에 단언을 더한다.
+  ① `tpx-review` 에 `## 고치고 재검사 — 바뀐 부분만` 절이 있다
+  ② 범위가 `git diff <앞 회차 검사 HEAD>..HEAD` 와 앞 회차 검사 기록의 지적 목록이다. 앞 회차 HEAD 가 조상이 아니면(`git merge-base --is-ancestor` 실패 — amend · rebase) `origin/main...HEAD` 로 돌아간다(검토 주의 4)
+  ③ 렌즈는 「지적이 닫혔나」와 바뀐 줄의 핵심 낱말로 같은 규칙 찾기(H2 · H6)만 하고 체크리스트 전부를 다시 돌지 않는다
+  ④ 다시 내는 렌즈는 앞 회차에 지적을 낸 렌즈뿐이고(같은 강도), 고친 차이에 코드가 있으면 code-review 는 앞 회차 지적이 없었어도 `low` 로 늘 다시 낸다(게이트 1 사용자 결정)
+  ⑤ 검사 묶음 · 부숴 보기는 「렌즈에 넘기는 것」을 가리킨다(정본은 할 일 4 의 소절)
+  ⑥ `tpx/SKILL.md` 「게이트」 절이 「고치고 재검사」를 고르면 그 절로 간다고 가리킨다
+  ⑦ `spec-review` 절차 2(검사 범위)에 「재검사면 넘겨받은 범위 · 앞 지적만」, 「## 보고 형식」 머리에 검사한 HEAD 해시 줄
+- **GREEN** — 위 절 · 줄을 넣는다. code-review 를 다시 내도 범위는 `origin/main...HEAD`(차이가 작고, 다른 범위 꼴이 먹히는지 확인하지 않았다)
 - **REFACTOR** — `tpx-review` Step 2 의 「게이트 2 「고치고 재검사」의 바뀐 부분 재검사도 같다」 줄이 새 절을 가리키게
 
 **files**: .claude/skills/tpx-review/SKILL.md, .claude/skills/tpx/SKILL.md, .claude/skills/spec-review/SKILL.md, .claude/scripts/review-structure.test.mjs
 **depends-on**: [4]
-**검증**: node --test .claude/scripts/review-structure.test.mjs .claude/scripts/chain-contract.test.mjs
+**검증**: node --test .claude/scripts/review-structure.test.mjs .claude/scripts/chain-contract.test.mjs .claude/scripts/context-diet.test.mjs .claude/scripts/agent-models.test.mjs
 
 ### 할 일 6. 남은 스킬 문구 지적 — PR #177 여섯 + #178 하나
 
-- **RED** — `context-diet.test.mjs` 를 고친다. ① 「게이트 2 3」 표에 `['tpx-spec', '## Step 1. 읽을 장을 좁힌다']` 를 더한다(지금 빨강 — `grep` 그대로) ② 「게이트 2 1」 의 `목록.includes('절대경로')` 를 `'작업방 절대경로'` 로 좁히고, 그 말이 「DB 를 건드리면」 괄호 안에 있지 않다고 단언(지금 빨강) ③ 「할 일 3」 · 「게이트 2 2」 의 `본.indexOf('1.')` · `본.indexOf('\n2.')` 에 대조군(`>= 0`, 끝이 시작보다 뒤)을 단다(지금 초록 — 대조군 보강) ④ 새 단언 — `spec-review` 절차 1 이 렌즈면 색인을 통째로 읽지 않고, A1~A3 은 diff 에 계약 파일이 있을 때만 그 SPEC 절을 `grep -nF` 로 열고, H2 는 바뀐 문장의 핵심 낱말 `grep -rn` 으로 본다(지금 빨강) ⑤ 새 단언 — `tpx` 선행 읽기 4 가 열린 미완을 「`grep -n '미완'` 으로 뽑고 진행판 `docs/wbs.md` 에서 같은 번호가 `- [ ]` 인 것만」으로 찾는다(지금 빨강) ⑥ 새 단언 — `tpx-review` 선행 읽기의 `grep -nF` 괄호가 「헤딩의 `[` · `*` · `(` 가 정규식으로 읽히지 않게」다(지금 빨강) ⑦ 새 단언 — `tpx` 차선 표 `spec` · `docs` 행이 문서 자리를 `lane.mjs` 의 `문서자리` 로 가리킨다(지금 빨강 — `.gitkeep` 빠진 사본)
-- **GREEN** — `tpx-spec` Step 1 `grep -nF` · `tpx` 선행 읽기 2 를 「2등급 이상은 [2] `tpx-spec` Step 1 이 읽는다 — 0·1등급만 여기서 같은 규칙으로」로(겹침 해소) · `tpx-impl` 2-A 환경 값 줄을 「작업방 절대경로 · DB 를 건드리면 검사용 `DATABASE_URL`」로 · `spec-review` 절차 1 렌즈 모드 범위 · `tpx` 선행 읽기 4 · `tpx-review` 선행 읽기 괄호 · `tpx` 차선 표 두 행
+- **RED** — `context-diet.test.mjs` 를 고친다. ① 「게이트 2 3」 표에 `['tpx-spec', '## Step 1. 읽을 장을 좁힌다']` 를 더한다(지금 빨강 — `grep` 그대로) ② 「게이트 2 1」 의 `목록.includes('절대경로')` 를 `'작업방 절대경로'` 로 좁히고, 그 말이 「DB 를 건드리면」 괄호 안에 있지 않다고 단언(지금 빨강) ③ 「할 일 3」 · 「게이트 2 2」 의 `본.indexOf('1.')` · `본.indexOf('\n2.')` 에 대조군(`>= 0`, 끝이 시작보다 뒤)을 단다(지금 초록 — 대조군 보강) ④ 새 단언 — `spec-review` 절차 1 이 렌즈면 색인을 통째로 읽지 않고, A1~A3 은 diff 에 계약 파일이 있을 때만 그 SPEC 절을 `grep -nF` 로 열고, H2 는 바뀐 문장의 핵심 낱말 `grep -rn` 으로 본다(지금 빨강) ⑤ 새 단언 — `tpx` 선행 읽기 4 가 열린 미완을 「`grep -n '미완'` 으로 뽑는다 · 진행판 번호가 있으면 `docs/wbs.md` 에서 그 번호가 `- [ ]` 인지 본다 · 번호가 없으면 열린 것으로 친다 · `미완: 없음` 줄은 뺀다」로 찾는다 — 두 갈래를 다 단언(지금 빨강 · 검토 BLOCKER 2 — 미완 줄 대부분에 번호가 없다) ⑥ 새 단언 — `tpx-review` 선행 읽기의 `grep -nF` 괄호가 「헤딩의 `[` · `*` · `(` 가 정규식으로 읽히지 않게」다(지금 빨강) ⑦ 새 단언 — `tpx` 차선 표 `spec` · `docs` 행이 문서 자리를 `lane.mjs` 의 `문서자리` 로 가리킨다(지금 빨강 — `.gitkeep` 빠진 사본)
+- **GREEN** — `tpx-spec` Step 1 `grep -nF`(선행 읽기 겹침 해소는 뺐다 — 10건에 없고 `tpx-spec:12` 와 어긋난다, 검토 주의 6) · `tpx-impl` 2-A 환경 값 줄을 「작업방 절대경로 · DB 를 건드리면 검사용 `DATABASE_URL`」로 · `spec-review` 절차 1 렌즈 모드 범위 · `tpx` 선행 읽기 4 · `tpx-review` 선행 읽기 괄호 · `tpx` 차선 표 두 행
 - **REFACTOR** — 없음
 
 **files**: .claude/skills/tpx-spec/SKILL.md, .claude/skills/tpx/SKILL.md, .claude/skills/tpx-review/SKILL.md, .claude/skills/tpx-impl/SKILL.md, .claude/skills/spec-review/SKILL.md, .claude/scripts/context-diet.test.mjs
@@ -87,20 +101,22 @@ LEARNINGS 근거 — `docs/LEARNINGS.md` 「[WS-E] 2026-10-08 · **컨트롤러�
 - PR #178 code-review 1회차가 미룬 둘 — pre-push REFS 순회 네 벌 합치기 · 응답 끝 경고가 커밋된 2등급 작업을 못 봄(HOOKS.md 「응답 끝 경고」 행에 한계로 적혀 있다). 진행판 HAR-F1-24 범위 밖이다. 하려면 새 진행판 번호로
 - `/qa-only` 등 계획 검토가 아닌 gstack 렌즈 — 브라우저를 모는 도구라 저장소 기준으로 옮길 것이 아니다
 
-## 명세가 안 정한 것 — 제안 (게이트 1 에서 고른다)
+## 게이트 1 결정 (2026-10-08 사용자)
 
-| 무엇 | 제안 | 다른 길 |
-|---|---|---|
-| code-review 강도 | 0~1등급 `low` · 2~3등급 `medium` | 3등급만 `high` |
-| 재검사 때 다시 내는 렌즈 | 앞 회차에 지적을 낸 렌즈만 | 등급 렌즈 전부(지금과 같음 · 느림) |
-| 계획 검토 렌즈 | lenses.md 절마다 Opus 서브 에이전트 하나 | 절 전부를 서브 에이전트 하나가 |
+| 무엇 | 결정 |
+|---|---|
+| 계획 | 지적 반영하고 진행 — BLOCKER 2 · 주의 7 을 할 일 3~6 에 반영. 재검토 안 함 |
+| 첫 회차 부숴 보기 | 렌즈가 최대 두 곳 직접(임시 사본). 재검사 회차만 컨트롤러 결과를 넘긴다. 검사 묶음 재실행은 두 회차 다 막는다 |
+| code-review 강도 | 0~1등급 `low` · 2~3등급 `medium`, 범위는 늘 `origin/main...HEAD` |
+| 재검사 렌즈 | 앞 회차에 지적을 낸 렌즈만 + 고친 차이에 코드가 있으면 code-review `low` |
+| 계획 검토 렌즈 | lenses.md 절마다 Opus 서브 에이전트 하나(2등급은 공학 하나뿐이라 묻지 않았다) |
 
 ## SPEC 동반 수정 (§2.7)
 
 해당 없음 — SPEC 안 건드림. 같은 규칙 찾기는 했다.
 - `git grep -n 'plan-eng-review\|plan-ceo-review\|plan-design-review'`(계획 · 기록 · 진행 · LEARNINGS 제외) → `tpx-plan-review/SKILL.md:24 · :25 · :41` · `tpx/SKILL.md:92` 뿐. 할 일 1 이 덮는다
 - `git grep -n 'gstack'`(docs · CLAUDE.md · 체인 · spec-review) → 위 더하기 `tpx-review/SKILL.md:41 · :57 · :59`(qa-only — 할 일 4 ⑦ 이 :59 를 덮는다) · `spec-review/SKILL.md:3 · :110`(`/review` 담당 안내 — 계획 검토와 무관해 그대로)
-- 바뀌는 동작을 전제로 쓴 기존 검사 — `chain-contract.test.mjs` 「gstack 렌즈 호출에 비대화형 세 마디」(세 마디가 남아 단언 그대로 · 제목만) · 「tpx-review Step 4 가 「재사용」 줄을」(Step 4 머리 · 내용 유지) · 「diff 기준이 origin/main 이다」(새 줄이 `origin/main...HEAD` 를 쓰므로 그대로 초록) · 「references/*.md 는 전부 제 스킬의 SKILL.md 가 가리킨다」(lenses.md 를 SKILL.md 가 가리켜야 한다 — 할 일 1)
+- 바뀌는 동작을 전제로 쓴 기존 검사 — `chain-contract.test.mjs` 「gstack 렌즈 호출에 비대화형 세 마디」(세 마디가 남아 단언 그대로 · 제목만) · 「tpx-review Step 4 가 「재사용」 줄을」(Step 4 머리 · 내용 유지) · 「diff 기준이 origin/main 이다」(새 줄이 `origin/main...HEAD` 를 쓰므로 그대로 초록) · 「references/*.md 는 전부 제 스킬의 SKILL.md 가 가리킨다」(lenses.md 를 SKILL.md 가 가리켜야 한다 — 할 일 1) · `agent-models.test.mjs` 「계획 검토 · 독립 검사 렌즈는 Opus 를 쓴다」(`tpx-review` 의 `model: "opus"` 한 줄 — 할 일 4 · 5 가 Step 2 를 고친다) · `context-diet.test.mjs` 「할 일 3」 · 「게이트 2 2」(`spec-review` 절차를 `indexOf('\n2.')` 로 자른다 — 할 일 4 · 5 가 절차를 고친다). 할 일 4 · 5 `검증` 에 둘 다 넣었다(검토 주의 5)
 - HOOKS.md 「1등급 기록 면제」 행 · pre-push 주석에는 기존 검사가 없다. 문구 · 주석이라 할 일 2 는 `check:spec` 과 눈 대조로 본다
 
 ## Plan 메타
