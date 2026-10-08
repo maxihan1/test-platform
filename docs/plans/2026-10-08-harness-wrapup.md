@@ -94,11 +94,13 @@
 사용자 결정(2026-10-08) — 「품질을 떨어뜨리지 않는 전제로 Haiku 가 들어갈 만한 곳에는 Haiku 로」. 기준은 **입력이 크고 판단이 적으며, 결과를 컨트롤러가 바로 확인할 수 있는 일**이다. 명령 한 번짜리(상황판 갱신 · `run local`)는 보조 에이전트를 띄우는 비용이 더 커서 넣지 않는다. 판단 일(대조 검증 · 「같은 규칙인가」 · 검토 렌즈 · 작성 에이전트)은 그대로다.
 `tpx-merge` 는 Step 2 · 3 만 넘긴다 — Step 1 기록은 대화 맥락이 있어야 하고, Step 4 의 작업방 나오기(ExitWorktree)와 진행판 게시(Artifact)는 메인 세션 도구라 보조 에이전트가 쓸 수 있는지 확인하지 않았다. Step 2 의 CI 기다림이 확인을 여러 번 되풀이하는 구간이다.
 
-- **RED** — `agent-models.test.mjs` 에 ① `.claude/agents/tpx-runner.md` 가 `model: haiku` · `effort: low` · `tools` 허용 목록 `Bash, Glob, Grep, Read`(고치기 도구 · Agent 없음)이고, 본문이 로그 요약의 꼴(실패한 명령 · 검사 이름 · **원문 그대로의 에러 줄** · `파일:줄`, 고칠 방법은 내지 않는다)을 적는다 ② `tpx-merge` 가 Step 2 · 3 을 `subagent_type: "tpx-runner"` 로 내고 정의를 못 찾으면 `general-purpose` · `model: "haiku"`, Step 1 · Step 4 이후는 메인에 남는다 ③ `tpx-review` Step 4 가 `EXIT` 가 0 이 아닌 명령의 로그 요약을 `tpx-runner` 에 맡긴다(로그 폴더 경로를 넘긴다) ④ `tpx-plan` 이 고칠 자리 · 낱말 · 호출처 · 그 경로를 읽는 검사 찾기를 `subagent_type: "Explore"` · `model: "haiku"` 로 내고, 받은 `파일:줄` 은 컨트롤러가 그 줄을 열어 확인하며 「같은 규칙인가」 판단은 컨트롤러가 한다. 정의 · 문장이 없어 지금 실패한다. 호출 블록 단언은 할 일 1 의 `펜스블록()` 으로 본다
+effort(2026-10-08 사용자와 정함) — Haiku 5.5 는 `low`~`max` 를 받고 기본은 `medium` 이다(claude-api 참조). `tpx-runner` 는 정의 머리 `effort: low` — 사용자 제안(「단순한 거니까 low」)을 받았다. 절차가 정본 파일에 다 적혀 있어 깊게 생각할 몫이 없고, low 는 명령을 적게 · 묶어서 돌려 빠르다. 대신 메인이 두 번 확인한다 — 병합 뒤 메인이 `gh pr view <번호> --json state` 로 MERGED 를 직접 보고, 로그 요약은 로그 파일 경로 · 줄 번호를 같이 받아 메인이 그 줄을 열어 본 뒤 고친다. `Explore` 는 호출 블록에 `effort: "max"` — 찾기의 품질 위험은 빠뜨림이다(#159 사본 둘을 놓침). 사용자가 max 를 제안했고 찾기는 비용보다 빠짐없음이 중요해 받았다. 에이전트 도구가 부를 때 effort 를 받으므로 `tpx-impl` 의 「effort 는 정하지 못한다」 · `agent-models.test.mjs:1-2` 주석 「effort 는 호출 때 못 정하고」를 지금 사실대로 고친다.
+
+- **RED** — `agent-models.test.mjs` 에 ① `.claude/agents/tpx-runner.md` 가 `model: haiku` · `effort: low` · `tools` 허용 목록 `Bash, Glob, Grep, Read`(고치기 도구 · Agent 없음)이고, 본문이 로그 요약의 꼴(실패한 명령 · 검사 이름 · **원문 그대로의 에러 줄** · `파일:줄`, 고칠 방법은 내지 않는다)을 적는다 ② `tpx-merge` 가 Step 2 · 3 을 `subagent_type: "tpx-runner"` 로 내고 정의를 못 찾으면 `general-purpose` · `model: "haiku"`, Step 1 · Step 4 이후는 메인에 남는다 ③ `tpx-review` Step 4 가 `EXIT` 가 0 이 아닌 명령의 로그 요약을 `tpx-runner` 에 맡긴다(로그 폴더 경로를 넘긴다) ④ `tpx-plan` 이 고칠 자리 · 낱말 · 호출처 · 그 경로를 읽는 검사 찾기를 `subagent_type: "Explore"` · `model: "haiku"` · `effort: "max"` 로 내고, 받은 `파일:줄` 은 컨트롤러가 그 줄을 열어 확인하며 「같은 규칙인가」 판단은 컨트롤러가 한다. 정의 · 문장이 없어 지금 실패한다. 호출 블록 단언은 할 일 1 의 `펜스블록()` 으로 본다
 - **GREEN** — 정의 파일 하나와 스킬 세 곳에 몇 줄씩. 로그 요약의 꼴은 정의 한 곳에만 적고 스킬은 정의를 가리킨다(spec-review H6). `tpx-merge` CI 빨강 때도 같은 정의로 `gh run view <번호> --log-failed` 요약을 받는다
 - **REFACTOR** — 없음
 
-**files**: .claude/agents/tpx-runner.md · .claude/skills/tpx-merge/SKILL.md · .claude/skills/tpx-merge/references/1-record-ready-merge.md · .claude/skills/tpx-review/SKILL.md · .claude/skills/tpx-plan/SKILL.md · .claude/scripts/agent-models.test.mjs
+**files**: .claude/agents/tpx-runner.md · .claude/skills/tpx-merge/SKILL.md · .claude/skills/tpx-merge/references/1-record-ready-merge.md · .claude/skills/tpx-review/SKILL.md · .claude/skills/tpx-plan/SKILL.md · .claude/skills/tpx-impl/SKILL.md · .claude/scripts/agent-models.test.mjs
 **depends-on**: [3, 4]
 **검증**: `node --test .claude/scripts/agent-models.test.mjs .claude/scripts/chain-contract.test.mjs`
 
@@ -152,4 +154,6 @@ RED 는 「체인 문서 어디에도 `check-stamp.mjs find` 와 `reuse=` 가 �
 
 ## 구현 중 바뀐 것
 
-(구현이 채운다)
+- 할 일 1 — RED 의 사본 금지 검사 대조군을 처음엔 「읽은 파일 ≥ 2」로 썼다가 REFACTOR(`ecfdaca6`)에서 `lens-handoff.test.mjs` 가 생긴 뒤 계획대로 「정확히 셋」으로 조였다. GREEN 이 lens-handoff 없이도 초록이어야 했기 때문이다. GREEN 에서 고친 RED 단언은 없다
+- 할 일 2 — RED 가 따로 커밋되지 않았다. 같은 작업방에서 병렬로 돈 할 일 1 구현자의 GREEN 커밋 `620d3ae2` 가 할 일 2 구현자가 `hook-contract.test.mjs` 에 더한 +23줄(글자 단언 · 삭제 줄 회귀 검사)을 쓸어 담았다. RED 가 빨간 것은 할 일 2 구현자가 훅을 고치기 전에 확인했다(`not ok 18 - REFS 를 here-doc 으로 읽는 순회는 한 곳뿐이고 …` · 회귀 검사 `ok 19`). 아직 push 전이지만 기록을 다시 쓰지 않았다 — 대조 검증은 `620d3ae2` 의 `hook-contract.test.mjs` 부분을 할 일 2 RED 로 본다. GREEN(`77169b68`)이 RED 단언을 고친 곳은 없다
+- 할 일 7 — 사용자 질문(「Haiku effort 는?」 · 「max 가 낫지 않나?」) 뒤 effort 를 정했다. `tpx-runner` low(사용자 제안 — 메인이 MERGED · 로그 줄을 다시 확인) · `Explore` max. 에이전트 도구가 부를 때 effort 를 받아 `tpx-impl` 문장 · `agent-models` 주석을 고치므로 files 에 `tpx-impl/SKILL.md` 를 더했다
