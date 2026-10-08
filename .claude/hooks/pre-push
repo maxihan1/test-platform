@@ -8,23 +8,24 @@ set -e
 # 삭제는 로컬 sha 가 전부 0 이다. 코드를 안 올리므로 검사할 것이 없다.
 #
 # ★ stdin 은 **한 번만 읽힌다.** 여기서 다 읽어 변수에 담고, 아래 검사는 stdin 을
-#   쓰지 않는다. 뒤에서 또 읽으려 하면 빈 값을 받는다.
+#   쓰지 않는다. 뒤에서 또 읽으려 하면 빈 값을 받는다. 삭제 줄을 거르는 규칙도 여기 한 곳이다 —
+#   아래 순회는 모두 거른 결과(SHAS)를 돈다.
 # ★ 입력이 비면 **검사로 간다.** 삭제로 보면 검사가 새어 나간다 (보수적).
 #
 # 2026-09-18 — 원격 브랜치 여섯을 지우면서 전체 테스트가 여섯 번 돌았다.
 # 변수명은 ASCII 로 둔다 — bash 는 한글 변수명을 받지 않는다 (2026-09-18 실측)
 REFS=$(cat)
+SHAS=""
 if [ -n "$REFS" ]; then
-  only_deletes=1
   while IFS=' ' read -r _local_ref local_sha _remote_ref _remote_sha; do
     [ -z "$local_sha" ] && continue
     case "$local_sha" in
-      *[!0]*) only_deletes=0; break ;;
+      *[!0]*) SHAS="$SHAS $local_sha" ;;
     esac
   done <<EOF
 $REFS
 EOF
-  if [ "$only_deletes" = "1" ]; then
+  if [ -z "$SHAS" ]; then
     echo "[pre-push] 브랜치 삭제다. 올릴 코드가 없으므로 검사를 건너뛴다"
     exit 0
   fi
@@ -57,12 +58,7 @@ lane=""
 changed_all=""
 record=skip
 if [ -n "$REFS" ]; then
-  while IFS=' ' read -r _local_ref local_sha _remote_ref _remote_sha; do
-    [ -z "$local_sha" ] && continue
-    case "$local_sha" in
-      *[!0]*) ;;
-      *) continue ;;
-    esac
+  for local_sha in $SHAS; do
     changed=$(git -c core.quotePath=false diff --no-renames --name-only "origin/main...$local_sha" 2>/dev/null) || { lane=full; record=need; break; }
     [ -z "$changed" ] && continue
     changed_all="$changed_all
@@ -72,9 +68,7 @@ $changed"
     [ -z "$this" ] && this=full
     [ "$(printf '%s\n' "$lane_out" | sed -n 's/^record=//p')" = "skip" ] || record=need
     if [ -z "$lane" ]; then lane=$this; elif [ "$lane" != "$this" ]; then lane=full; fi
-  done <<EOF
-$REFS
-EOF
+  done
   if [ -z "$lane" ]; then
     echo "[pre-push] 바뀐 파일이 없다 (빈 커밋). 검사를 건너뛴다"
     exit 0
@@ -145,12 +139,7 @@ start_state=$(snapshot)
 reuse=none
 if [ "$lane" = "full" ] && [ -n "$REFS" ]; then
   reuse=""
-  while IFS=' ' read -r _local_ref local_sha _remote_ref _remote_sha; do
-    [ -z "$local_sha" ] && continue
-    case "$local_sha" in
-      *[!0]*) ;;
-      *) continue ;;
-    esac
+  for local_sha in $SHAS; do
     this=none
     if out=$(node "$STAMP_JS" find "$local_sha" </dev/null); then
       this=$(printf '%s\n' "$out" | sed -n 's/^reuse=//p')
@@ -160,9 +149,7 @@ if [ "$lane" = "full" ] && [ -n "$REFS" ]; then
     elif [ "$reuse" = "none" ] || [ "$this" = "none" ]; then reuse=none
     elif [ "$reuse" = "tests" ] || [ "$this" = "tests" ]; then reuse=tests
     fi
-  done <<EOF
-$REFS
-EOF
+  done
   [ -z "$reuse" ] && reuse=none
 fi
 
@@ -227,16 +214,9 @@ fi
 if [ "$lane" = "full" ] && [ -n "$REFS" ] && [ "$(snapshot)" != "$start_state" ]; then
   echo "[pre-push] 검사가 도는 동안 HEAD 나 작업 폴더가 바뀌었다 — 통과 표지를 남기지 않는다 (push 는 막지 않는다)"
 elif [ "$lane" = "full" ] && [ -n "$REFS" ]; then
-  while IFS=' ' read -r _local_ref local_sha _remote_ref _remote_sha; do
-    [ -z "$local_sha" ] && continue
-    case "$local_sha" in
-      *[!0]*) ;;
-      *) continue ;;
-    esac
+  for local_sha in $SHAS; do
     node "$STAMP_JS" put push "$local_sha" </dev/null || echo "[pre-push] 경고: 통과 표지를 못 남겼다 (push 는 막지 않는다)" >&2
-  done <<EOF
-$REFS
-EOF
+  done
 fi
 
 echo "[pre-push] 통과"
