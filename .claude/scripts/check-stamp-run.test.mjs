@@ -9,8 +9,9 @@ import { fileURLToPath } from 'node:url';
 import { 전체규칙글자 } from './check-stamp.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./check-stamp.mjs', import.meta.url));
-// 훅 안에서 돌면 git 이 물려준 GIT_DIR 등이 임시 저장소 대신 진짜 저장소를 가리킨다 (hook-contract.test.mjs 와 같은 이유)
-const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+// 훅 안에서 돌면 git 이 물려준 GIT_DIR 등이 임시 저장소 대신 진짜 저장소를 가리킨다 (hook-contract.test.mjs 와 같은 이유).
+// ALLOW_PROTECTED 를 물려받으면 put 이 표지를 안 남겨 검사가 거짓으로 실패한다
+const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_') && k !== 'ALLOW_PROTECTED'));
 
 function 임시저장소() {
   const 뿌리 = mkdtempSync(join(tmpdir(), 'check-stamp-'));
@@ -112,6 +113,46 @@ test('run local — package.json · db/ 가 바뀐 브랜치면 test:changed 대
     } finally {
       rmSync(저.뿌리, { recursive: true, force: true });
     }
+  }
+});
+
+test('run local — 커밋 안 된 package.json · db/ · tsconfig 도 전체 npm test 로 간다', () => {
+  const 경우 = [
+    ['package.json', '{"a":1}'],
+    ['db/migrations/0002.sql', 'x'],
+    ['tsconfig.json', '{}'],
+    ['db/a b.sql', 'x'],
+  ];
+  for (const [경로, 내용] of 경우) {
+    const 저 = 임시저장소();
+    try {
+      저.커밋('apps/admin/src/a.ts');
+      저.쓴다(경로, 내용);
+      const r = 로컬로돌린다(저);
+      assert.equal(r.종료, 0, r.출력);
+      assert.deepEqual(r.호출.slice(4), ['run check:tests', 'test'], 경로);
+    } finally {
+      rmSync(저.뿌리, { recursive: true, force: true });
+    }
+  }
+});
+
+test('run local — 앞 표지가 있어도 차이가 명세이거나 시작 때 코드가 덜 커밋돼 있으면 재사용하지 않는다', () => {
+  const 저 = 임시저장소();
+  try {
+    저.커밋('apps/admin/src/a.ts');
+    assert.equal(로컬로돌린다(저).종료, 0);
+    저.커밋('docs/spec/a.md');
+    let r = 로컬로돌린다(저);
+    assert.equal(r.호출.length, 7, '명세 차이는 전체 검사 묶음을 돈다');
+    assert.doesNotMatch(r.출력, /재사용/);
+    assert.equal(로컬로돌린다(저).종료, 0);
+    저.쓴다('apps/admin/src/dirty.ts', 'x');
+    r = 로컬로돌린다(저);
+    assert.equal(r.호출.length, 7, '코드가 덜 커밋됐으면 전체 검사 묶음을 돈다');
+    assert.doesNotMatch(r.출력, /재사용/);
+  } finally {
+    rmSync(저.뿌리, { recursive: true, force: true });
   }
 });
 

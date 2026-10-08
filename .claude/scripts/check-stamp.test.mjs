@@ -9,8 +9,9 @@ import { fileURLToPath } from 'node:url';
 import { 깨끗한가, 재사용 } from './check-stamp.mjs';
 
 const SCRIPT = fileURLToPath(new URL('./check-stamp.mjs', import.meta.url));
-// 훅 안에서 돌면 git 이 물려준 GIT_DIR 등이 임시 저장소 대신 진짜 저장소를 가리킨다 (hook-contract.test.mjs 와 같은 이유)
-const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+// 훅 안에서 돌면 git 이 물려준 GIT_DIR 등이 임시 저장소 대신 진짜 저장소를 가리킨다 (hook-contract.test.mjs 와 같은 이유).
+// ALLOW_PROTECTED 를 물려받으면 put 이 표지를 안 남겨 검사가 거짓으로 실패한다
+const 깨끗한환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_') && k !== 'ALLOW_PROTECTED'));
 
 test('재사용 — 종류와 차이로 건너뛸 범위를 가른다', () => {
   const 표 = [
