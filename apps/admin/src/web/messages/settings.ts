@@ -163,6 +163,7 @@ export const 설정말: Record<string, string> = {
   '기다리는 가입 신청이 없습니다': 'No sign-up requests waiting',
   '그런 서비스가 없습니다': 'No such service',
   '새 서비스': 'New service',
+  '저장했습니다': 'Saved',
   '기본 정보': 'Basics',
   '스크립트 번호 · 화면 맨 위 서비스 띠 · 스크립트를 읽어 올 폴더에 쓰입니다':
     'Used for script IDs, the service band at the top and the folder scripts are read from',

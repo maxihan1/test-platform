@@ -50,6 +50,12 @@ describe('route', () => {
     expect(route('#/settings/PAY/x')).toMatchObject({ name: 'unknown' });
   });
 
+  it('깨진 % 꼴 주소는 던지지 않고 없는 주소다 — 그리는 도중에 던지면 앱 전체가 빈 화면이 됐다', () => {
+    expect(route('#/settings/%')).toMatchObject({ name: 'unknown' });
+    expect(route('#/settings/%E0')).toMatchObject({ name: 'unknown' });
+    expect(route('#/cases/%/run')).toMatchObject({ name: 'unknown' });
+  });
+
   it('실행 묶음 목록과 실행 1건', () => {
     expect(route('#/runs')).toEqual({ name: 'runs', kind: 'FN' });
     expect(route('#/runs/ui')).toEqual({ name: 'runs', kind: 'UI' });

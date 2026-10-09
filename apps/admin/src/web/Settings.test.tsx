@@ -5,7 +5,7 @@
 // 틀에는 없어서, 등급이 낮은 사람에게 무엇을 보여주는지를 아무도 안 보고 있었다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
 import { Settings } from './Settings.js';
@@ -140,5 +140,55 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     펼친다('NOPE');
 
     expect(await screen.findByText('그런 서비스가 없습니다')).toBeTruthy();
+  });
+
+  it('손으로 친 소문자 접두사도 그 서비스를 연다 — 접두사는 늘 대문자다', async () => {
+    펼친다('zsu');
+
+    expect(await screen.findByRole('heading', { name: /ZSU 서비스/ })).toBeTruthy();
+  });
+
+  it('비활성 서비스도 메뉴에 접두사를 남기고 곁에 비활성을 단다', async () => {
+    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스, { ...둘째, isActive: false }] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} />);
+
+    const 링크 = await screen.findByRole('link', { name: /ZSU 서비스/ });
+    expect(링크.textContent).toContain('ZSU · 비활성');
+  });
+
+  it('저장하면 새로 읽은 값으로 칸을 다시 그리고 「저장했습니다」를 띄운다 — 적은 비밀값이 칸에 남아 또 가지 않게', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    const 목록 = vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="ZST" />);
+    await screen.findByRole('heading', { name: /ZST 서비스/ });
+
+    fireEvent.click(screen.getAllByRole('button', { name: '넣기' })[0]!);
+    fireEvent.change(screen.getByLabelText('Slack 웹훅'), { target: { value: 'https://hooks.slack.com/x' } });
+    목록.mockResolvedValue({ items: [{ ...서비스, hasSlackWebhook: true }] });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    expect(await screen.findByText('저장했습니다')).toBeTruthy();
+    expect(고침).toHaveBeenCalledTimes(1);
+    expect(screen.queryByLabelText('Slack 웹훅')).toBeNull();
+  });
+
+  it('새 서비스를 만들면 목록을 다시 읽은 뒤에 그 서비스 주소로 옮긴다', async () => {
+    window.location.hash = '#/settings/new';
+    vi.spyOn(api, 'createService').mockResolvedValue({ id: 9 });
+    const 목록 = vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="new" />);
+    await screen.findByText('새 서비스');
+
+    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
+    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
+    목록.mockResolvedValue({ items: [서비스, { ...서비스, id: 9, prefix: 'NEW', name: '새것' }] });
+    fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
+
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/NEW'));
+    expect(목록.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 });

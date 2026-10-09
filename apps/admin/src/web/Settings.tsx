@@ -1,6 +1,8 @@
 // 설정 화면의 틀 (SPEC §8.8). 왼쪽 설정 메뉴(서비스마다 · 계정 · 가입 신청)와 고른 것 하나를 오른쪽에 얹는다. 운영 계정에게만 보인다
 // 책상에서만 쓰는 화면이라 좁은 화면 대응을 하지 않는다 (§8)
 
+import { useState } from 'react';
+
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
 import { Head } from './Head.js';
 import { use말 } from './i18n.js';
@@ -26,6 +28,10 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
   // 못 닿는 등급이 주소를 직접 쳐도 서버 gate.ts 가 403 을 내므로 목록이 비어 올 뿐이다
   const services = useAsync<{ items: SettingsServiceRow[] }>(() => api.settingsServices(), []);
   const users = useAsync<{ items: UserRow[] }>(() => api.settingsUsers(), []);
+  // 저장한 서비스 칸을 새로 읽은 값으로 다시 그린다 — 안 그리면 적어 넣은 비밀값이 칸에 남아 다음 저장에 또 간다(2026-10-09 코드 검토)
+  const [판, set판] = useState(0);
+  // 방금 저장한 자리. 그 자리를 보는 동안만 「저장했습니다」를 띄운다 — 앞 판은 저장하면 폼이 닫혀 그것이 확인이었다
+  const [저장한곳, set저장한곳] = useState<string | null>(null);
 
   // 서버 gate.ts 가 이미 막지만, 주소를 직접 친 사람에게 403 대신 이유를 보여준다
   if (!할수있나(user, null, '설정')) {
@@ -46,13 +52,18 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
   if (services.data === null || users.data === null) return <Loading />;
 
   const 서비스들 = services.data.items;
-  const 고른 = 자리 ?? 서비스들[0]?.prefix ?? 'new';
+  // 접두사는 늘 대문자다. 손으로 친 소문자 주소도 그 서비스를 연다 — 메뉴 낱말(users · pending · new)만 그대로 둔다
+  const 고른 = 자리 === undefined ? (서비스들[0]?.prefix ?? 'new') : 메뉴낱말.has(자리) ? 자리 : 자리.toUpperCase();
   const 서비스 = 서비스들.find((it) => it.prefix === 고른);
   const 대기수 = users.data.items.filter((it) => it.isApproved === false).length;
-  // 서비스는 자기 것인지 가리지 않고 늘 다시 읽는다 — 이름·색·대상 서버·웹훅이 전부 /auth/me 에 실려 띠와 실행 창으로 간다
-  const 서비스다시 = () => {
-    services.reload();
+  // 서비스는 자기 것인지 가리지 않고 늘 다시 읽는다 — 이름·색·대상 서버·웹훅이 전부 /auth/me 에 실려 띠와 실행 창으로 간다.
+  // **읽은 뒤에** 칸을 다시 그리고 옮긴다 — 먼저 옮기면 옛 목록에 새 접두사가 없어 「그런 서비스가 없습니다」가 깜빡였다
+  const 서비스다시 = async (접두사: string, 옮기나: boolean) => {
     onMeChanged();
+    if (!(await services.reload())) return;
+    set판((n) => n + 1);
+    set저장한곳(접두사);
+    if (옮기나) window.location.hash = `#/settings/${encodeURIComponent(접두사)}`;
   };
 
   return (
@@ -71,25 +82,24 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
               <PendingSection rows={users.data.items} services={서비스들} onDone={users.reload} />
             )
           ) : 고른 === 'new' ? (
-            <ServicePanel
-              key="new"
-              onDone={(접두사) => {
-                서비스다시();
-                // 만든 서비스로 옮긴다. 새 서비스 칸에 남으면 같은 것을 또 만들려 한다
-                window.location.hash = `#/settings/${encodeURIComponent(접두사)}`;
-              }}
-            />
+            // 만든 서비스로 옮긴다. 새 서비스 칸에 남으면 같은 것을 또 만들려 한다
+            <ServicePanel key="new" onDone={(접두사) => void 서비스다시(접두사, true)} />
           ) : 서비스 === undefined ? (
             <div className="empty">{t('그런 서비스가 없습니다')}</div>
           ) : (
-            // 서비스마다 새로 그린다 — 앞 서비스에서 적다 만 글자가 다른 서비스 칸에 남으면 남의 서비스에 저장된다
-            <ServicePanel key={서비스.id} row={서비스} onDone={서비스다시} />
+            // 서비스마다 · 저장할 때마다 새로 그린다 — 앞 서비스에서 적다 만 글자가 다른 서비스 칸에 남으면 남의 서비스에 저장된다
+            <>
+              {저장한곳 === 서비스.prefix ? <p className="hint set-saved" role="status">{t('저장했습니다')}</p> : null}
+              <ServicePanel key={`${서비스.id}-${판}`} row={서비스} onDone={(접두사) => void 서비스다시(접두사, false)} />
+            </>
           )}
         </div>
       </div>
     </>
   );
 }
+
+const 메뉴낱말 = new Set(['users', 'pending', 'new']);
 
 /** 설정 안의 메뉴. 주소를 바꾸는 링크다 — 새로고침 · 뒤로 가기가 고른 것을 지킨다 */
 function 설정메뉴({ 서비스들, 고른, 계정수, 대기수 }: { 서비스들: SettingsServiceRow[]; 고른: string; 계정수: number; 대기수: number }) {
@@ -103,7 +113,8 @@ function 설정메뉴({ 서비스들, 고른, 계정수, 대기수 }: { 서비�
       {서비스들.map((it) => (
         <a key={it.id} href={`#/settings/${encodeURIComponent(it.prefix)}`} {...자리(it.prefix)}>
           <span className="set-nav-name">{it.name}</span>
-          <span className="set-nav-sub">{it.isActive ? it.prefix : t('비활성')}</span>
+          {/* 접두사는 늘 둔다 — 주소와 케이스 번호에 쓰이는 이름이다. 비활성이면 곁에 그 사실을 더한다 */}
+          <span className="set-nav-sub">{it.isActive ? it.prefix : `${it.prefix} · ${t('비활성')}`}</span>
         </a>
       ))}
       <a href="#/settings/new" className="set-nav-add" {...자리('new')}>

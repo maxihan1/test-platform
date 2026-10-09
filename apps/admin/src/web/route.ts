@@ -30,6 +30,19 @@ export type Route =
   | { name: 'item'; runId: number; historyId: number }
   | { name: 'unknown'; hash: string };
 
+/**
+ * 주소 조각을 푼다. 깨진 % 꼴(`%` · `%E0`)이면 null — 그 주소는 「없는 주소」다.
+ * decodeURIComponent 가 던지면 그리는 도중이라 앱 전체가 빈 화면이 됐다 (2026-10-09 코드 검토)
+ */
+function 풀기(조각: string): string | null {
+  try {
+    return decodeURIComponent(조각);
+  } catch (err) {
+    if (err instanceof URIError) return null;
+    throw err;
+  }
+}
+
 export function route(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter((part) => part !== '');
 
@@ -38,7 +51,10 @@ export function route(hash: string): Route {
   if (parts.length === 1 && parts[0] === 'password') return { name: 'password' };
   if (parts.length === 1 && parts[0] === 'settings') return { name: 'settings' };
   // 고른 자리를 주소에 남긴다 — 새로고침 · 뒤로 가기에 서비스 고른 것이 풀리면 처음 서비스로 튄다
-  if (parts.length === 2 && parts[0] === 'settings') return { name: 'settings', 자리: decodeURIComponent(parts[1]!) };
+  if (parts.length === 2 && parts[0] === 'settings') {
+    const 자리 = 풀기(parts[1]!);
+    if (자리 !== null) return { name: 'settings', 자리 };
+  }
 
   // 빈 주소는 집이다. 집이 대시보드가 된 뒤로 route 가 먼저 대시보드로 푼다 — 그 자리가 없는 사람은 `갈자리` 가 다음 집으로 보낸다
   if (parts.length === 0 || (parts.length === 1 && parts[0] === 'dashboard')) return { name: 'dashboard' };
@@ -49,7 +65,8 @@ export function route(hash: string): Route {
   }
 
   if (parts[0] === 'cases' && parts.length === 3 && parts[2] === 'run') {
-    return { name: 'setup', tcId: decodeURIComponent(parts[1]!) };
+    const tcId = 풀기(parts[1]!);
+    if (tcId !== null) return { name: 'setup', tcId };
   }
 
   // 번호는 숫자 글자만 받는다. 서버도 같은 모양으로 거른다 (도메인/작성 §7) —

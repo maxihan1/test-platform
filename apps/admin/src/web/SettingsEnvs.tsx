@@ -58,12 +58,11 @@ const 이름바꿈 = (it: 줄): boolean =>
   (it.새비밀번호 === null || it.새비밀번호 === '');
 
 /** 대상 서버는 여러 줄이다. 환경변수 한 줄로는 서비스가 셋만 되어도 안 들어간다 (SPEC §8.8) */
-/** @param 제목없이 「대상 서버」 구획 안에 설 때 — 구획 제목이 같은 말을 이미 한다 */
-export function EnvEditor({ envs, onChange, 제목없이 = false }: { envs: 줄[]; onChange: (next: 줄[]) => void; 제목없이?: boolean }) {
+/** 「대상 서버」 구획 안에 선다 — 구획 제목이 칸 이름을 이미 말해 라벨 열 없이 한 줄을 다 쓴다 (도메인/인증 §8.8) */
+export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: 줄[]) => void }) {
   const t = use말();
   return (
-    <div className={제목없이 ? 'field field-wide' : 'field'}>
-      {제목없이 ? null : <span className="field-label">{t('대상 서버')}</span>}
+    <div className="field field-wide">
       <div className="set-envs" role="group" aria-label={t('대상 서버 목록')}>
         {envs.map((it, i) => (
           // 줄을 빼면 뒤 줄이 DOM 을 물려받는다. 값은 state 가 쥐고 있어 안 틀리지만

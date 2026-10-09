@@ -92,10 +92,16 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
   return (
     <div className="set-panel">
       <h2 className="set-panel-h">
-        {새것 ? t('새 서비스') : row.name}
-        {새것 ? null : <span className="set-sub">{row.prefix}-</span>}
-        {새것 || row.isActive ? null : <span className="set-off">{t('비활성')}</span>}
-        {새것 ? null : <span className="set-sub">{t('케이스 {건수}건', { 건수: row.caseCount })}</span>}
+        {새것 ? (
+          t('새 서비스')
+        ) : (
+          <>
+            {row.name}
+            <span className="set-sub">{row.prefix}-</span>
+            {row.isActive ? null : <span className="set-off">{t('비활성')}</span>}
+            <span className="set-sub">{t('케이스 {건수}건', { 건수: row.caseCount })}</span>
+          </>
+        )}
       </h2>
 
       <구획 제목={t('기본 정보')} 쓰임={t('스크립트 번호 · 화면 맨 위 서비스 띠 · 스크립트를 읽어 올 폴더에 쓰입니다')}>
@@ -160,7 +166,7 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
       </구획>
 
       <구획 제목={t('대상 서버')} 쓰임={t('실행할 때 「대상 서버」에서 고르는 목록입니다. 하나도 없으면 실행할 수 없습니다')}>
-        <EnvEditor envs={envs} onChange={setEnvs} 제목없이 />
+        <EnvEditor envs={envs} onChange={setEnvs} />
       </구획>
 
       <구획 제목={t('실행 알림')} 쓰임={t('실행할 때 「끝나면 Slack 으로 알리기」를 켜면 이 채널로 결과를 보냅니다')}>
