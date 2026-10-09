@@ -91,23 +91,25 @@ function 케이스들(트리: string, 폴더: string): Set<string> {
 }
 
 /**
- * 양쪽이 고친 Page Object 하나를 세 판으로 AI 에 넘겨 받은 글로 쓴다. 실패면 사유.
+ * 양쪽이 고친 Page Object 하나를 세 판으로 AI 에 넘겨 받은 글로 쓴다. AI 를 불렀는지 · 실패면 사유.
  * git 이 깨끗이 합친 것도 다시 쓴다 — 다른 줄을 고쳐 조용히 합쳐져도 한쪽 케이스를 깰 수 있고, 서비스 폴더는 CI 가 안 돌려 아무도 못 잡는다
  */
-async function 부품쓰기(판: 합칠판, 바탕: string, 경로: string): Promise<string | null> {
+async function 부품쓰기(판: 합칠판, 바탕: string, 경로: string): Promise<{ AI: boolean } | { 사유: string }> {
   const 판글 = (판이름: string) => {
     const r = 판.깃(['show', `${판이름}:${경로}`]);
     return r.ok ? r.낸것 : null;
   };
   const main글 = 판글(판.mainSha);
   const 요청글 = 판글('HEAD');
-  if (main글 === null || 요청글 === null) return `한쪽이 지운 Page Object 라 합치지 못했다 — ${경로}. 다시 작성한다`;
+  // 같은 글이면(같이 지운 것 포함) git 이 이미 그 글로 합쳤다 — AI 를 부르면 실패할 길만 는다
+  if (main글 === 요청글) return { AI: false };
+  if (main글 === null || 요청글 === null) return { 사유: `한쪽이 지운 Page Object 라 합치지 못했다 — ${경로}. 다시 작성한다` };
   // 합침 중 트리의 그 자리가 링크면 따라가 쓰지 않는다 (위 안전한파일)
-  if (!안전한파일(판.트리, 경로)) return `Page Object 가 보통 파일이 아니다 — ${경로}. 다시 작성한다`;
+  if (!안전한파일(판.트리, 경로)) return { 사유: `Page Object 가 보통 파일이 아니다 — ${경로}. 다시 작성한다` };
   const 답 = await 판.부품합치기(경로, { 바탕: 판글(바탕), main: main글, 요청: 요청글 });
-  if ('사유' in 답) return `AI 가 Page Object 를 합치지 못했다 — ${경로}: ${답.사유}. 다시 작성한다`;
+  if ('사유' in 답) return { 사유: `AI 가 Page Object 를 합치지 못했다 — ${경로}: ${답.사유}. 다시 작성한다` };
   writeFileSync(join(판.트리, 경로), 답.글);
-  return 판.깃(['add', '--', 경로]).ok ? null : `합친 Page Object 를 담지 못했다 — ${경로}`;
+  return 판.깃(['add', '--', 경로]).ok ? { AI: true } : { 사유: `합친 Page Object 를 담지 못했다 — ${경로}` };
 }
 
 /**
@@ -150,9 +152,11 @@ export async function main합치기(판: 합칠판): Promise<{ 합침: boolean }
       writeFileSync(join(트리, 표경로), 풀림.글);
     }
   }
+  const AI합친것: string[] = [];
   for (const 경로 of 부품겹침) {
-    const 사유 = await 부품쓰기(판, 바탕.낸것.trim(), 경로);
-    if (사유 !== null) return 되돌리기(사유);
+    const r = await 부품쓰기(판, 바탕.낸것.trim(), 경로);
+    if ('사유' in r) return 되돌리기(r.사유);
+    if (r.AI) AI합친것.push(경로);
   }
   if (main바뀐것.includes(지문경로(표경로))) {
     const 사유 = 지문다시쓰기(트리, 깃, 바탕.낸것.trim(), mainSha, 지문경로(표경로));
@@ -176,7 +180,7 @@ export async function main합치기(판: 합칠판): Promise<{ 합침: boolean }
     if (!깃(['add', '--', 표경로]).ok) return 되돌리기('합친 요구사항 표를 담지 못했다');
   }
   // AI 가 합친 파일은 커밋에 남긴다 — 병합 뒤 그 케이스가 깨지면 어디서 왔는지 찾을 길이 이것뿐이다
-  const AI줄 = 부품겹침.length > 0 ? ['-m', `AI 가 합친 Page Object — ${부품겹침.join(' · ')}`] : [];
+  const AI줄 = AI합친것.length > 0 ? ['-m', `AI 가 합친 Page Object — ${AI합친것.join(' · ')}`] : [];
   const 커밋 = 깃(['commit', '-q', '-m', 판.메시지, '-m', 반영표시, ...AI줄]);
   if (!커밋.ok) return 되돌리기(`합침 커밋을 못 만들었다: ${커밋.까닭 ?? ''}`);
   return { 합침: true };

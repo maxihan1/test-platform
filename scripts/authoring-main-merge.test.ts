@@ -1,6 +1,6 @@
 // main 을 요청 브랜치에 합치기 — 임시 git 저장소로 실제 합치기를 돌려 본다 (작성 §3.6 「★ 반영 때 겹침 검사」)
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -188,6 +188,17 @@ describe('main 합치기', () => {
       expect(결과).toEqual({ 사유: `한쪽이 지운 Page Object 라 합치지 못했다 — ${경로}. 다시 작성한다` });
       expect(받은판).toEqual([]);
       expect(깃(['rev-parse', 'HEAD']).낸것).toBe(머리전);
+      expect(깃(['status', '--porcelain']).낸것).toBe('');
+    });
+
+    it.each([
+      ['같은 글로 고쳤다', (t: string) => 쓰기(t, 경로, 'export class LoginPage { 같이 = 1; }\n'), 'export class LoginPage { 같이 = 1; }\n'],
+      ['같이 지웠다', (t: string) => rmSync(join(t, 경로)), null],
+    ])('양쪽이 %s면 AI 없이 git 이 합친 그대로 둔다', async (_이름, 양쪽, 남을글) => {
+      const { 트리, 깃, mainSha } = 갈라놓기(양쪽, 양쪽, (t) => 쓰기(t, 경로, 'export class LoginPage {}\n'));
+      expect(await main합치기({ 트리, 깃, mainSha, ...mkt값, 부품합치기: 안부름 })).toEqual({ 합침: true });
+      expect(existsSync(join(트리, 경로)) ? readFileSync(join(트리, 경로), 'utf8') : null).toBe(남을글);
+      expect(깃(['log', '-1', '--format=%B']).낸것).not.toContain('AI 가 합친');
       expect(깃(['status', '--porcelain']).낸것).toBe('');
     });
 
