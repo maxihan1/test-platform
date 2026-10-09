@@ -40,13 +40,13 @@ export function 임시저장소(더할파일들, 옮길것들 = []) {
   const 기록 = join(뿌리, '.npm-calls');
   // NPM_FAIL 에 준 낱말이 인자에 있으면 실패한다 — 「불렸다」가 아니라 「실패하면 막는다」를 보려고 (spec-review G9)
   // NPM_ON 낱말이 인자에 있으면 NPM_SH 를 실행한다 — 검사 도중 작업 폴더가 바뀌는 일을 흉내 낸다
+  // npm 은 받은 DATABASE_URL 을 `.npm-calls.db` 에 적어 「검사가 임시 DB 를 받았나」를 본다
   writeFileSync(
     join(가짜, 'npm'),
-    `#!/bin/sh\necho "$*" >> "${기록}"\nenv | grep '^GIT_' >> "${기록}.git-env" || true\nif [ -n "$NPM_ON" ]; then case "$*" in *"$NPM_ON"*) eval "$NPM_SH" ;; esac; fi\nif [ -n "$NPM_FAIL" ]; then case "$*" in *"$NPM_FAIL"*) exit 1 ;; esac; fi\n`,
+    `#!/bin/sh\necho "$*" >> "${기록}"\necho "\${DATABASE_URL:-없음}" >> "${기록}.db"\nenv | grep '^GIT_' >> "${기록}.git-env" || true\nif [ -n "$NPM_ON" ]; then case "$*" in *"$NPM_ON"*) eval "$NPM_SH" ;; esac; fi\nif [ -n "$NPM_FAIL" ]; then case "$*" in *"$NPM_FAIL"*) exit 1 ;; esac; fi\n`,
   );
   chmodSync(join(가짜, 'npm'), 0o755);
-  // 임시 DB 를 만드는 psql · docker 도 가짜다 — 인자를 `.db-calls` 에 적고, DB_FAIL 이 인자에 있으면 실패한다.
-  // npm 은 받은 DATABASE_URL 을 `.npm-calls.db` 에 적어 「검사가 임시 DB 를 받았나」를 본다
+  // 임시 DB 를 만드는 psql · docker 도 가짜다 — 인자를 `.db-calls` 에 적고, DB_FAIL 이 인자에 있으면 실패한다
   const DB기록 = join(뿌리, '.db-calls');
   for (const 이름 of ['psql', 'docker']) {
     writeFileSync(
@@ -55,10 +55,6 @@ export function 임시저장소(더할파일들, 옮길것들 = []) {
     );
     chmodSync(join(가짜, 이름), 0o755);
   }
-  writeFileSync(
-    join(가짜, 'npm'),
-    `#!/bin/sh\necho "$*" >> "${기록}"\necho "\${DATABASE_URL:-없음}" >> "${기록}.db"\nenv | grep '^GIT_' >> "${기록}.git-env" || true\nif [ -n "$NPM_ON" ]; then case "$*" in *"$NPM_ON"*) eval "$NPM_SH" ;; esac; fi\nif [ -n "$NPM_FAIL" ]; then case "$*" in *"$NPM_FAIL"*) exit 1 ;; esac; fi\n`,
-  );
   return { 뿌리, sha: git('rev-parse', 'HEAD'), 가짜, 기록, DB기록 };
 }
 

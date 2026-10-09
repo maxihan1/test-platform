@@ -1,10 +1,13 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { configDefaults, defineConfig } from 'vitest/config';
 
 // tests/** 는 Playwright 전용이라 Vitest가 집어가면 안 된다 (SPEC §9.1)
 // `*.test.ts` 는 `.test.tsx` 를 안 문다. 확장자를 한 무늬에 담아 뿌리마다 빠지는 쪽이 없게 한다
 const 검사자리 = ['apps/**/*.test.ts?(x)', 'packages/**/*.test.ts?(x)', 'scripts/**/*.test.ts?(x)'];
+
+// 설정을 저장소 루트 밖에서 불러도 같은 목록이 나오게 이 파일 자리를 기준으로 읽는다(코드 검토 PR #186)
+const 루트 = import.meta.dirname;
 
 function 검사파일들(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -19,7 +22,10 @@ function 검사파일들(dir: string): string[] {
 // recoverRunning() 처럼 표 전체를 범위로 잡는 제품 코드는 남의 fixture 까지 닫는다 (spec-review G4).
 // 그래서 DATABASE_URL 을 읽는 파일만 한 프로세스에서 차례로 돌리고 나머지는 동시에 돈다 (2026-10-09 — 전부 차례로 돌 때 본문 55초 · 전체 4~5분).
 // 목록을 손으로 적지 않는다 — 새 DB 검사가 생기면 저절로 이쪽으로 온다
-const DB파일 = ['apps', 'packages', 'scripts'].flatMap(검사파일들).filter((f) => readFileSync(f, 'utf8').includes('DATABASE_URL'));
+const DB파일 = ['apps', 'packages', 'scripts']
+  .flatMap((d) => 검사파일들(join(루트, d)))
+  .filter((f) => readFileSync(f, 'utf8').includes('DATABASE_URL'))
+  .map((f) => relative(루트, f));
 
 export default defineConfig({
   test: {
