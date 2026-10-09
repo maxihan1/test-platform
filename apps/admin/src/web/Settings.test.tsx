@@ -142,6 +142,16 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(await screen.findByText('그런 서비스가 없습니다')).toBeTruthy();
   });
 
+  it('서비스가 하나도 없으면 새 서비스 칸을 연다 — 첫 운영자가 처음 하는 일이다', async () => {
+    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} />);
+
+    expect(await screen.findByText('새 서비스')).toBeTruthy();
+    expect(screen.getByRole('link', { name: '+ 서비스 추가' }).getAttribute('aria-current')).toBe('page');
+    expect((screen.getByLabelText('접두사') as HTMLInputElement).disabled).toBe(false);
+  });
+
   it('손으로 친 소문자 접두사도 그 서비스를 연다 — 접두사는 늘 대문자다', async () => {
     펼친다('zsu');
 

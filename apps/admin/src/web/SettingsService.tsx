@@ -104,7 +104,7 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
         )}
       </h2>
 
-      <구획 제목={t('기본 정보')} 쓰임={t('스크립트 번호 · 화면 맨 위 서비스 띠 · 스크립트를 읽어 올 폴더에 쓰입니다')}>
+      <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호 · 사이드바 맨 위 서비스 고르개 · 스크립트를 읽어 올 폴더에 쓰입니다')}>
         <div className="field">
           <label htmlFor="sf-prefix">{t('접두사')}</label>
           <div>
@@ -202,7 +202,7 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
 
       {/* 저장과 다른 일이라 따로 둔다 — 적다 만 칸은 저장하지 않고 상태만 뒤집는다 */}
       {새것 ? null : (
-        <구획 제목={t('서비스 끄기')} 쓰임={t('끄면 서비스 띠와 실행 창에서 사라집니다. 실행 기록과 스크립트는 남습니다')} 경고>
+        <구획 제목={t('서비스 끄기')} 쓰임={t('끄면 사이드바의 서비스 고르개에서 빠집니다. 실행 기록과 스크립트는 남습니다')} 경고>
           <div>
             <button className="btn ghost" disabled={보내는중} onClick={() => void 활성을뒤집는다()}>
               {row.isActive ? t('비활성으로 내리기') : t('다시 활성으로')}

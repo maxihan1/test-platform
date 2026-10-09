@@ -2543,9 +2543,8 @@ input[type='file']::file-selector-button {
   font-weight: 400;
 }
 
-/* 기다리는 가입 신청 수 — 알림 개수다 */
+/* 기다리는 가입 신청 수 — 굵게만 한다. 대표색 자리(화면공통 §8)가 아니다 */
 .set-nav-count {
-  color: var(--link);
   font-weight: 600;
 }
 

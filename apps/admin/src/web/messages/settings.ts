@@ -165,8 +165,8 @@ export const 설정말: Record<string, string> = {
   '새 서비스': 'New service',
   '저장했습니다': 'Saved',
   '기본 정보': 'Basics',
-  '스크립트 번호 · 화면 맨 위 서비스 띠 · 스크립트를 읽어 올 폴더에 쓰입니다':
-    'Used for script IDs, the service band at the top and the folder scripts are read from',
+  '케이스 번호 · 사이드바 맨 위 서비스 고르개 · 스크립트를 읽어 올 폴더에 쓰입니다':
+    'Used for case IDs, the service picker at the top of the sidebar and the folder scripts are read from',
   '실행할 때 「대상 서버」에서 고르는 목록입니다. 하나도 없으면 실행할 수 없습니다':
     'The list you pick from under Target server when running. With none, nothing can run',
   '실행 알림': 'Run notifications',
@@ -175,6 +175,6 @@ export const 설정말: Record<string, string> = {
   '기획서 · 피그마로 테스트 스크립트를 만들 때만 씁니다. 실행에는 영향이 없습니다':
     'Only used when building test scripts from specs and Figma. Runs are not affected',
   '서비스 끄기': 'Turn off service',
-  '끄면 서비스 띠와 실행 창에서 사라집니다. 실행 기록과 스크립트는 남습니다':
-    'Once off, it leaves the service band and the run window. Run history and scripts stay',
+  '끄면 사이드바의 서비스 고르개에서 빠집니다. 실행 기록과 스크립트는 남습니다':
+    'Once off, it leaves the service picker in the sidebar. Run history and scripts stay',
 };
