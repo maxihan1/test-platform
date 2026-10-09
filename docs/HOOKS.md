@@ -43,6 +43,8 @@ echo '{"tool_input":{"command":"git push --force origin main"}}' | node .claude/
 | `full` | 그 밖 | `typecheck` · `test:changed` + `test:always` · `.claude/` 가 바뀌면 `check:workflow` · `check:tests` |
 
 - `db/` · `package.json` · `vitest.config.*` · `tsconfig` 가 바뀌면 `npm test` 전체를 돈다 — vitest 의 자동 재실행 조건이 점 폴더(`.claude/worktrees`) 경로에서 안 걸린다
+- **서버 · DB 코드(`apps/` 의 화면 밖 · `packages/` · `scripts/` · `db/`)나 위 설정 파일이 바뀌면 임시 DB 에서 DB 검사도 돈다** (2026-10-09). 개발 postgres(127.0.0.1:5433)에 `tp_prepush_<번호>` 를 만들고 `db/init` · 마이그레이션을 건 뒤 `DATABASE_URL` 로 넘기고, 끝나면(실패해도) 지운다. **도커가 꺼져 있으면 막는다** — `docker compose up -d postgres` 뒤 다시 push. DB 검사는 `DATABASE_URL` 이 없으면 조용히 건너뛰므로 건너뛰지 않고 막는 쪽을 골랐다
+- 단위 테스트는 동시에 돈다. `DATABASE_URL` 을 읽는 검사 파일만 한 프로세스에서 차례로 돈다(`vitest.config.ts` 의 `db` 묶음 — 저절로 고른다). 전체 실측 DB 없이 75초 · DB 포함 109초(전에는 전부 차례로 268초)
 - 브랜치 삭제 push · 빈 시작 커밋은 검사 없이 지나간다. 입력이 비거나 diff 를 못 읽으면 `full` 이다(보수적)
 - 훅은 검사 전에 git 이 넣어 준 `GIT_*` 환경 변수를 걷는다 — 임시 저장소를 만드는 검사가 이 저장소에 커밋한 사고가 두 번 있었다
 - 동작은 `.claude/scripts/hook-contract.test.mjs` 가 임시 저장소에서 훅을 실제로 돌려 본다

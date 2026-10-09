@@ -140,6 +140,69 @@ test('코드가 섞인 커밋은 무거운 길 — 타입 검사 · 바뀐 것�
   }
 });
 
+// 사람 PR 에 CI 가 없어 DB 검사는 여기서만 돈다 (2026-10-09 사용자) — 개발 postgres 에 임시 DB 를 만들고 지운다
+test('서버 코드가 바뀐 커밋은 임시 DB 를 만들어 검사에 넘기고 끝나면 지운다', () => {
+  const 저장소 = 임시저장소(['apps/admin/src/execution/x.ts']);
+  try {
+    const r = 저장소에서돌린다(저장소);
+    assert.equal(r.code, 0, `막혔다: ${r.out}`);
+    const db = 불린것(저장소.DB기록);
+    const 이름 = /CREATE DATABASE (tp_prepush_\w+)/.exec(db)?.[1];
+    assert.ok(이름, `임시 DB 를 안 만들었다: ${db}`);
+    assert.match(db, /docker run .*dbmate.*up/, '마이그레이션을 안 걸었다');
+    assert.match(db, new RegExp(`DROP DATABASE IF EXISTS ${이름}`), '임시 DB 를 안 지웠다');
+    assert.match(불린것(`${저장소.기록}.db`), new RegExp(`127\\.0\\.0\\.1:5433/${이름}`), '검사가 임시 DB 주소를 못 받았다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('전체를 다시 도는 설정 파일이 바뀌어도 임시 DB 를 만든다', () => {
+  for (const 파일 of ['vitest.config.ts', 'package.json', 'db/migrations/20990101000000_x.sql']) {
+    const 저장소 = 임시저장소([파일]);
+    try {
+      저장소에서돌린다(저장소);
+      assert.match(불린것(저장소.DB기록), /CREATE DATABASE tp_prepush_/, `${파일} 을 바꿨는데 DB 를 안 만들었다`);
+    } finally {
+      rmSync(저장소.뿌리, { recursive: true, force: true });
+    }
+  }
+});
+
+test('검사가 실패해도 임시 DB 는 지운다', () => {
+  const 저장소 = 임시저장소(['apps/admin/src/execution/x.ts']);
+  try {
+    const r = 저장소에서돌린다(저장소, { NPM_FAIL: 'test:changed' });
+    assert.equal(r.code, 1);
+    assert.match(불린것(저장소.DB기록), /DROP DATABASE IF EXISTS tp_prepush_/, '실패 뒤 임시 DB 가 남았다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('개발 DB 에 못 붙으면 막고 도커를 켜라고 알린다 — 조용히 DB 검사를 건너뛰지 않는다', () => {
+  const 저장소 = 임시저장소(['apps/admin/src/execution/x.ts']);
+  try {
+    const r = 저장소에서돌린다(저장소, { DB_FAIL: 'CREATE DATABASE' });
+    assert.equal(r.code, 1, `DB 없이 통과했다: ${r.out}`);
+    assert.match(r.out, /도커/, '무엇을 하라는지 안 알렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('화면 · 하네스만 바뀐 커밋은 임시 DB 를 안 만든다', () => {
+  for (const 파일 of ['apps/admin/src/web/X.tsx', '.claude/scripts/x.mjs']) {
+    const 저장소 = 임시저장소([파일]);
+    try {
+      저장소에서돌린다(저장소);
+      assert.equal(불린것(저장소.DB기록), '', `${파일} 만 바꿨는데 DB 를 만들었다`);
+    } finally {
+      rmSync(저장소.뿌리, { recursive: true, force: true });
+    }
+  }
+});
+
 test('하네스(.claude/)가 바뀐 커밋은 하네스 검사도 돌고, 실패하면 막는다', () => {
   for (const 실패 of ['', 'check:workflow']) {
     const 저장소 = 임시저장소(['.claude/scripts/x.mjs']);
