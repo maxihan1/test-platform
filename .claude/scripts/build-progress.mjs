@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// docs/wbs.md 를 읽어 사용자용 진행판(단일 HTML)을 만든다. tpx-merge 가 병합 뒤 이것을 같은 Artifact URL 로 다시 게시한다.
+// docs/wbs.md 를 읽어 사용자용 진행판(단일 HTML)을 만든다. /tpx 4단계가 병합 뒤 이것을 같은 Artifact URL 로 다시 게시한다.
 //
 // 사용:  npm run progress [-- 출력경로]   (기본 build/progress.html)
 import { execFileSync } from 'node:child_process';
