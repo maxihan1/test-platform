@@ -14,6 +14,8 @@ import { 도는번호 } from './authoring-keeping.js';
 import { 계정섞였나, 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
 import { type 겹침판, 겹침쓸것, 결정들, 본문처리줄, 자식커밋찾기 } from './authoring-conflicts-io.js';
 import { main합치기 } from './authoring-main-merge.js';
+import type { 모델 } from './authoring-model.js';
+import { AI부품합치기 } from './authoring-po-merge.js';
 import {
   type 보류입력,
   값적기,
@@ -33,7 +35,7 @@ import {
 export interface 반영준비 {
   것: 집은것;
   서비스: string;
-  판: { 바탕: string; 원천: string; 원격주소: string };
+  판: { 바탕: string; 원천: string; 원격주소: string; 모델: 모델 };
   자식: 계정 | null;
   /** 서비스 설정의 테스트 폴더. 못 받았으면 null — 겹침을 못 본다 */
   폴더: string | null;
@@ -176,7 +178,15 @@ export async function 반영작업방(
   if (겹침?.합칠까 === true) {
     await 손.단계('main 을 합치는 중');
     if (!깃(['fetch', '-q', 'origin', 겹침.mainSha]).ok) return 그만('main 을 작업 폴더에 못 받았다');
-    const 합침 = main합치기({ 트리: 자리.트리, 깃, mainSha: 겹침.mainSha, 표경로: `docs/cases/${준비.서비스}.md`, 폴더: 준비.폴더 ?? '', 메시지 });
+    const 합침 = await main합치기({
+      트리: 자리.트리,
+      깃,
+      mainSha: 겹침.mainSha,
+      표경로: `docs/cases/${준비.서비스}.md`,
+      폴더: 준비.폴더 ?? '',
+      메시지,
+      부품합치기: AI부품합치기(준비.판.모델),
+    });
     if ('사유' in 합침) return 그만(합침.사유);
   }
   return { 자리, 처리줄: 고른?.처리줄 ?? null };

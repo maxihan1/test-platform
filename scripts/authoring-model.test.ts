@@ -114,8 +114,11 @@ describe('CLI 최신화', () => {
 
   it('점검 — 우리가 쓰는 깃발이 도움말에 다 있어야 통과다', () => {
     const 도움말 =
-      '--model <m>\n--effort <l>\n--fallback-model <m>\n--disallowedTools <t>\n--permission-mode <p>\n--output-format <f>\n--verbose\n';
+      '--model <m>\n--effort <l>\n--fallback-model <m>\n--disallowedTools <t>\n--permission-mode <p> (choices: "dontAsk")\n--output-format <f>\n--verbose\n' +
+      '--tools <t>\n--restricted\n--strict-mcp-config\n--json-schema <s>\n--no-session-persistence\n';
     expect(점검통과(도움말)).toBe(true);
+    expect(점검통과(도움말.replace('--restricted', ''))).toBe(false);
+    expect(점검통과(도움말.replace('"dontAsk"', '"manual"'))).toBe(false);
     expect(점검통과(도움말.replace('--disallowedTools', '--blockTools'))).toBe(false);
     expect(점검통과(도움말.replace('--output-format', '--format'))).toBe(false);
     expect(점검통과(도움말.replace('--verbose', ''))).toBe(false);

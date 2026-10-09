@@ -78,7 +78,7 @@ UI Test 와 Functional Test 는 Page Object 를 쓴다. locator 를 케이스 �
 | 담지 않는 것 | `test.step` · `verify` · 기대값 · 판정. **K6 · K12 와 증적 문서가 케이스 파일의 절차 제목과 판정 문장을 글자로 읽는다** — Page Object 안의 `verify` 는 판정 0 건으로 센다 |
 | 금지 | 주석 · `expect` — `tests/**` 전체에 걸리는 규칙이라 Page Object 파일도 훅과 CI(`check:tests` K7)가 막는다. 가져오기는 같은 `tests/` 안 파일 · `@playwright/test`(`test` · `expect` 말고) · kit 의 타입뿐이다(명세 공통/2-명세선언 「Page Object 파일」) |
 | 부르는 법 | `import { 로그인화면 } from './pages/login.page.js'` (저장소가 `NodeNext` 라 `.js` 로 적는다). 관문 1 의 타입 검사와 관문 3 실행이 확인한다 |
-| 여럿이 같이 쓰기 | 이미 있으면 **고치거나 이름을 바꾸지 말고 더한다** — 다른 케이스가 그 주소를 쓴다. 공용 Component 는 팬아웃 전에 메인이 먼저 만들고 서브에이전트는 읽기만 한다(모자란 도우미는 자기 묶음의 `components/draft-<slug>.component.ts` 에만 적고 메인이 공용으로 옮긴다 — `tpx-author` `fanout.md`). 요청 둘이 같은 Page Object 를 고치면 지금은 반영이 실패한다(「같은 자료로 다시 작성」). 같은 서비스는 한 건씩 돌린다 |
+| 여럿이 같이 쓰기 | 이미 있으면 **고치거나 이름을 바꾸지 말고 더한다** — 다른 케이스가 그 주소를 쓴다. 공용 Component 는 팬아웃 전에 메인이 먼저 만들고 서브에이전트는 읽기만 한다(모자란 도우미는 자기 묶음의 `components/draft-<slug>.component.ts` 에만 적고 메인이 공용으로 옮긴다 — `tpx-author` `fanout.md`). 요청 둘이 같은 Page Object 를 고치면 반영 때 AI 가 합치지만, 같은 멤버를 서로 다르게 바꿨으면 못 합쳐 반영이 실패한다(「같은 자료로 다시 작성」) |
 
 **Functional Test 도 Page Object 를 쓴다** (2026-10-02 사용자 · PR #130). E2E 시나리오의 「만들기」 판별(`catalog/steps.ts`)이 Page Object 호출을 믿는다 —
 Page Object 파일은 판정 · 절차를 부르지도 들여오지도 못하기 때문이다. 그래서 **Page Object 메서드에 함수를 넘기지 않는다**(콜백 안의 판정이 안 보여 그 절차를 건너뛸 수 없게 된다).

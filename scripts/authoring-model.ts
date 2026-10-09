@@ -59,7 +59,8 @@ export function 버전뽑기(글: string): string | null {
  * 설치는 됐는데 깃발이 사라진 판으로 돌면 막아 둔 도구가 조용히 풀린다 (2026-09-24 계획 검토)
  */
 export function 점검통과(도움말: string): boolean {
-  // 뒤의 둘은 토큰 사용량을 세는 출력 모양이다 — 사라지면 모든 작성 요청이 인자 오류로 멈춘다 (2026-09-27)
+  // --output-format · --verbose 는 토큰 사용량을 세는 출력 모양이다 — 사라지면 모든 작성 요청이 인자 오류로 멈춘다 (2026-09-27).
+  // 그 뒤는 반영 때 Page Object 를 합치는 도구 없는 claude 의 격리다 (authoring-po-merge)
   return [
     '--model',
     '--effort',
@@ -68,5 +69,11 @@ export function 점검통과(도움말: string): boolean {
     '--permission-mode',
     '--output-format',
     '--verbose',
+    '--tools',
+    '--restricted',
+    '--strict-mcp-config',
+    '--json-schema',
+    '--no-session-persistence',
+    'dontAsk',
   ].every((깃발) => 도움말.includes(깃발));
 }
