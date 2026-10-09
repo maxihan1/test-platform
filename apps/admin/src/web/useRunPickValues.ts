@@ -20,6 +20,8 @@ export type 칸오류표 = Record<string, 칸글자 | undefined>;
  */
 export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자표 | undefined, 손댐: () => void) {
   const [글자, set글자] = useState<글자표>(초기글자 ?? {});
+  // 한 건 창에서 묶음 · 저장값을 저장하다 서버가 준 칸별 사유 (SPEC §8.2). 칸을 고치면 옛 사유라 걷는다
+  const [서버오류, set서버오류] = useState<Record<string, string>>({});
 
   const 칸들 = useMemo(
     () =>
@@ -86,9 +88,25 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
     };
   }
 
+  /**
+   * 칸 아래 사유. 걸기 · 테스트 실행을 누른 뒤에는 명세 검사, 그 전에는 서버가 준 칸별 사유다.
+   * 서버 사유는 칸 이름으로 입력값 · 기대결과에 나눠 붙인다 — 한 표를 둘 다에 주면 한 칸의 사유가 두 자리에 뜬다
+   */
+  function 칸오류(tcId: string, which: 갈래, 검사보임: boolean): Record<string, string> {
+    if (검사보임) return 오류[tcId]?.[which] ?? {};
+    const 칸 = 칸들.get(tcId);
+    const 표: Record<string, string> = {};
+    for (const field of (which === 'params' ? 칸?.params : 칸?.expected) ?? []) {
+      const 글 = 서버오류[field.key];
+      if (글 !== undefined) 표[field.key] = 글;
+    }
+    return 표;
+  }
+
   function 고치기(tcId: string, which: 갈래) {
     return (key: string, value: string) => {
       손댐();
+      set서버오류({});
       set글자((전) => {
         const 지금 = 지금글자(전, tcId);
         return { ...전, [tcId]: { ...지금, [which]: { ...지금[which], [key]: value } } };
@@ -99,11 +117,12 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
   /** 입력값 묶음을 불러왔다. 묶음에 없는 칸은 지금 글자를 그대로 둔다 — 통째로 갈면 스키마가 늘었을 때 칸이 빈다 */
   function 불러오기(tcId: string, 값: 칸글자) {
     손댐();
+    set서버오류({});
     set글자((전) => {
       const 지금 = 지금글자(전, tcId);
       return { ...전, [tcId]: { params: { ...지금.params, ...값.params }, expected: { ...지금.expected, ...값.expected } } };
     });
   }
 
-  return { 칸들, 고친값, 오류, 글자of, 고치기, 불러오기 };
+  return { 칸들, 고친값, 오류, 글자of, 고치기, 불러오기, 칸오류, set서버오류 };
 }

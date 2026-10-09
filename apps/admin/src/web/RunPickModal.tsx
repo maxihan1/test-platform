@@ -59,26 +59,21 @@ interface Props {
   onRun: (요청: 실행요청) => void;
 }
 
-const 오류없음: Record<string, string> = {};
-
 export function RunPickModal({ 케이스들, service, 초기글자, 초기서버, user, 사유, 안내, 거는중, onClose, on값고침, on다시읽기, onRun }: Props) {
   const t = use말();
   const 언어 = use언어();
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2).
-  // 여는 쪽이 준 서버(실패 다시 실행 · 값 바꿔 재실행 — 그 실행의 서버)는 사람이 이미 고른 값이다
+  // 여는 쪽이 준 서버(실패 다시 실행 — 그 실행의 서버)는 사람이 이미 고른 값이다
   const [env, setEnv] = useState(service?.envs.some((it) => it.env === 초기서버) === true ? 초기서버! : '');
   const [repeat, setRepeat] = useState('1');
   const [notifySlack, setNotifySlack] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   // 칸 아래 사유를 언제 보일까. 치는 동안 빨간 글이 따라다니면 다 적기도 전에 틀렸다고 말한다
   const [오류보임, set오류보임] = useState(false);
-  // 한 건 창에서 묶음 · 저장값을 저장하다 서버가 준 칸별 사유 (SPEC §8.2)
-  const [서버오류, set서버오류] = useState<Record<string, string>>({});
 
   /** 사람이 뭔가 손댔다. 방금 누른 것에 대한 답과 옛 사유를 함께 치운다 */
   function 손댐() {
     setNotice(null);
-    set서버오류({});
     on값고침?.();
   }
 
@@ -109,29 +104,27 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       : (사유 ?? t('실행 항목이 {건수}건 생깁니다', { 건수 })));
   const 빨갛나 = notice !== null || 너무많나 || 사유 !== undefined;
 
-  /** 칸 아래 사유. 걸기를 누른 뒤에는 명세 검사, 그 전에는 서버가 준 칸별 사유다 */
-  function 칸오류(tcId: string, which: 'params' | 'expected'): Record<string, string> {
-    if (오류보임) return 값.오류[tcId]?.[which] ?? 오류없음;
-    return 한건 === null ? 오류없음 : 서버오류;
-  }
-
   /** 서버가 칸별 사유를 주면 그 칸 아래에 붙인다. 아니면 창의 한 줄로 (SPEC §8.2) */
   function 저장실패(err: unknown) {
     if (err instanceof ApiError && err.violations.length > 0) {
       set오류보임(false);
-      set서버오류(messagesByKey(err.violations));
+      값.set서버오류(messagesByKey(err.violations));
       setNotice(t('입력값이 명세와 맞지 않습니다.'));
     } else {
       setNotice(message(err, 언어));
     }
   }
 
-  function 실행() {
+  /** 고친 칸이 명세와 맞나. 안 맞으면 칸 아래 사유를 보이고 거짓 — 실행 · 테스트 실행이 같은 검사를 거친다 (§8.10) */
+  function 값이맞나(): boolean {
     set오류보임(true);
-    if (Object.keys(값.오류).length > 0) {
-      setNotice(t('입력값이 명세와 맞지 않습니다.'));
-      return;
-    }
+    if (Object.keys(값.오류).length === 0) return true;
+    setNotice(t('입력값이 명세와 맞지 않습니다.'));
+    return false;
+  }
+
+  function 실행() {
+    if (!값이맞나()) return;
     if (한건 !== null && 하나.디바이스.length === 0) {
       setNotice(t('실행할 디바이스를 하나 이상 고르세요.'));
       return;
@@ -169,7 +162,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           </button>
           {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
           {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
-          <button className="btn ghost" onClick={시험.누름}>
+          <button className="btn ghost" onClick={() => { if (값이맞나()) 시험.누름(); }}>
             {t('▶ 테스트 실행')}
           </button>
           <button className="btn" onClick={실행} disabled={너무많나 || 거는중 === true}>
@@ -239,7 +232,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
                       idPrefix={`p-${c.tcId}`}
                       fields={칸.params}
                       text={값.글자of(c.tcId, 'params')}
-                      errors={칸오류(c.tcId, 'params')}
+                      errors={값.칸오류(c.tcId, 'params', 오류보임)}
                       onChange={값.고치기(c.tcId, 'params')}
                     />
                   )}
@@ -248,7 +241,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
                       idPrefix={`e-${c.tcId}`}
                       fields={칸.expected}
                       text={값.글자of(c.tcId, 'expected')}
-                      errors={칸오류(c.tcId, 'expected')}
+                      errors={값.칸오류(c.tcId, 'expected', 오류보임)}
                       onChange={값.고치기(c.tcId, 'expected')}
                     />
                   )}

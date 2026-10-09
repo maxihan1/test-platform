@@ -123,7 +123,7 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
       isActive: true,
       scannedAt: '2026-09-21T00:00:00.000Z',
     });
-    vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
+    vi.spyOn(api, 'me').mockResolvedValue({ user: { ...사람, services: [{ ...사람.services[0]!, prefix: 'ZID' }] } });
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
   }
 

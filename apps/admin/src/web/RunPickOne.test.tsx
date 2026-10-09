@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 
-import type { CaseRow } from './api.js';
+import { api, type CaseRow } from './api.js';
 import { 그린다, 비밀스키마, 사람, 케이스 } from './runPick.fixture.js';
 
 afterEach(() => {
@@ -174,6 +174,19 @@ describe('한 건 창 — 고친 칸 검사', () => {
     fireEvent.click(실행버튼());
 
     expect(onRun).not.toHaveBeenCalled();
+    expect(줄().textContent).toBe('입력값이 명세와 맞지 않습니다.');
+    expect(document.querySelector('.prow-edit .err')).not.toBeNull();
+  });
+
+  it('테스트 실행도 같은 검사를 거친다 — 틀린 칸이면 보내지 않고 그 칸 아래에 사유를 붙인다', async () => {
+    const 시작 = vi.spyOn(api, 'startTrial');
+    await 그린다({ ...케이스, paramSchema: { type: 'object', properties: { count: { type: 'integer', description: '개수' } }, required: ['count'] } });
+    서버고르기();
+
+    fireEvent.change(screen.getByLabelText('개수'), { target: { value: 'abc' } });
+    fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
+
+    expect(시작).not.toHaveBeenCalled();
     expect(줄().textContent).toBe('입력값이 명세와 맞지 않습니다.');
     expect(document.querySelector('.prow-edit .err')).not.toBeNull();
   });

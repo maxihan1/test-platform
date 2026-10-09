@@ -77,7 +77,7 @@ function Screen({
       );
     case 'setup':
       // 옛 주소 — 한 건짜리 실행 설정 화면은 실행 창으로 합쳤다(2026-10-09). 북마크 · 지난 알림으로 와도 같은 창을 연다
-      return <RunWindow tcIds={[current.tcId]} onClose={() => { window.location.hash = '#/cases'; }} />;
+      return <RunWindow tcIds={[current.tcId]} onClose={() => { window.location.hash = '#/cases'; }} on걸림={() => undefined} />;
     case 'authoring':
       return <Authoring service={prefix} envs={service?.envs ?? []} 할수={할수} />;
     case 'authoringItem':
