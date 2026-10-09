@@ -93,6 +93,13 @@ describe('Status 카드 — 기획서 요구 셈 한 줄', () => {
     expect(셈줄().textContent).not.toContain('보류');
   });
 
+  it('갈래 수가 있으면 케이스로 덮음 뒤에 기능 · UI 테스트로 덮은 수를 붙인다', () => {
+    render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, casedFn: 40, casedUi: 12 } })} 지금={지금} />);
+    expect(셈줄().textContent).toBe(
+      '기획서 요구172개 → 케이스로 덮음 48 (28%) · 기능 테스트 40 · UI 테스트 12 · 보류로만 3 · 제외 124 (다음 요청 100) · 빠짐 0',
+    );
+  });
+
   it('보류로만 덮은 것이 0 이면 그 칸을 뺀다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, held: 0 } })} 지금={지금} />);
     expect(셈줄().textContent).not.toContain('보류');

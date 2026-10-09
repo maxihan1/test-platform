@@ -68,6 +68,9 @@ export interface 커버리지 {
   total: number;
   /** 요구가 0 이면 null */
   ratio: number | null;
+  /** cased 가운데 그 갈래 케이스가 덮은 요구 수. 갈래를 못 센 실행(이 칸 전)이면 null (도메인/작성 §3.6 「셈을 남긴다」) */
+  casedFn: number | null;
+  casedUi: number | null;
   finishedAt: string;
   /** 작성 화면에서 보이는 요청 번호(뿌리) */
   requestId: number;
@@ -157,6 +160,8 @@ async function 커버리지읽기(pool: Pool, ids: number[]): Promise<커버리�
     name: string;
     coverage_cased: number;
     coverage_total: number;
+    coverage_cased_fn: number | null;
+    coverage_cased_ui: number | null;
     finished_at: Date;
   }>(커버리지SQL, [ids, 커버리지날수]);
   return Promise.all(
@@ -166,6 +171,8 @@ async function 커버리지읽기(pool: Pool, ids: number[]): Promise<커버리�
       cased: r.coverage_cased,
       total: r.coverage_total,
       ratio: r.coverage_total === 0 ? null : r.coverage_cased / r.coverage_total,
+      casedFn: r.coverage_cased_fn,
+      casedUi: r.coverage_cased_ui,
       finishedAt: r.finished_at.toISOString(),
       requestId: (await 뿌리(Number(r.id))) ?? Number(r.id),
     })),

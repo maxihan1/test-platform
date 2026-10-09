@@ -41,6 +41,9 @@ function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t
     c.total > 0
       ? t('{총}개 → 케이스로 덮음 {덮음} ({퍼센트}%)', { 총: c.total, 덮음: c.cased, 퍼센트: Math.round((c.cased / c.total) * 100) })
       : t('{총}개 → 케이스로 덮음 {덮음}', { 총: c.total, 덮음: c.cased }),
+    // 갈래 수는 이 칸 전 실행에 없다 — 0 으로 채우면 「그 갈래로 덮은 요구 0개」로 읽힌다
+    c.casedFn === undefined ? null : t('기능 테스트 {수}', { 수: c.casedFn }),
+    c.casedUi === undefined ? null : t('UI 테스트 {수}', { 수: c.casedUi }),
     보류,
     c.later.length > 0 ? t('제외 {수} (다음 요청 {다음})', { 수: 제외, 다음: c.later.length }) : t('제외 {수}', { 수: 제외 }),
     t('빠짐 {수}', { 수: c.missing.length }),

@@ -76,7 +76,8 @@ export const 실행중SQL = `
 
 // 중단(STOPPED) · 실패는 대조 뒤 거절이거나 덮음이 끝나지 않아 status 조건으로 빠진다
 export const 커버리지SQL = `
-  SELECT DISTINCT ON (a.service_id) a.id, a.service_id, s.name, a.coverage_cased, a.coverage_total, a.finished_at
+  SELECT DISTINCT ON (a.service_id) a.id, a.service_id, s.name, a.coverage_cased, a.coverage_total,
+         a.coverage_cased_fn, a.coverage_cased_ui, a.finished_at
   FROM authoring_request a JOIN service s ON s.id = a.service_id
   WHERE a.service_id = ANY($1::bigint[]) AND a.status = 'DONE' AND a.kind IN ('AUTHOR', 'RERUN')
     AND a.coverage_total IS NOT NULL AND a.finished_at >= now() - $2::int * interval '1 day'

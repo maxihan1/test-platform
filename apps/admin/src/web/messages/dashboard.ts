@@ -76,7 +76,8 @@ export const 대시보드말: Record<string, string> = {
 
   // 요구사항 커버리지
   '마지막 작성 기준': 'Based on the last authoring run',
-  '케이스로 덮은 요구 {덮음} / {전체}': 'Requirements covered by test cases: {덮음} / {전체}',
+  '덮은 요구 {덮음} / {전체}': 'Requirements covered: {덮음} / {전체}',
+  기능: 'Functional',
   '{날짜} · 요청 #{번호}': '{날짜} · request #{번호}',
   '작성 기록이 없습니다': 'No authoring run yet',
 
