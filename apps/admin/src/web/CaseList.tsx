@@ -1,7 +1,7 @@
 // 케이스 목록 화면 (SPEC §8.1). JSON 원문은 목록에 절대 노출하지 않는다
 // '마지막 결과' 칸과 줄의 판정 흐름 막대를 GET /api/runs/last-by-case 한 번으로 전부 채운다 (SPEC §7.1)
 // 목록은 케이스마다 이력을 따로 부르지 않는다. 상세 펼침만 예외이고 그것은 사람이 한 줄을 폈을 때다
-// 여러 건을 골라 거는 흐름은 useRunPick 이 통째로 들고 있다 (SPEC §8.10)
+// 한 건(줄의 ▶) · 여러 건을 거는 흐름은 useRunPick 이 통째로 들고 있다 — 둘 다 같은 실행 창을 연다 (SPEC §8.10)
 
 import { useRef, useState } from 'react';
 
@@ -217,7 +217,7 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
             뒤집기={뽑기.뒤집기}
             글자={글자[row.tcId]}
             폈나={편줄.has(row.tcId)}
-            실행된다={할수('실행')}
+            on실행={할수('실행') ? (row) => void 뽑기.하나열기(row) : undefined}
             저장된다={할수('입력값저장')}
             고칠서비스={할수('작성요청') ? service : undefined}
             on값={값고침}
@@ -249,11 +249,13 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
           케이스들={뽑기.담은것}
           초기글자={글자}
           service={뽑기.서비스}
+          user={뽑기.사람}
           사유={뽑기.사유}
           안내={뽑기.안내}
           거는중={뽑기.거는중}
           onClose={뽑기.닫기}
           on값고침={뽑기.사유지우기}
+          on다시읽기={(tcId) => { void 뽑기.다시읽기(tcId); cases.reload(); }}
           onRun={(요청) => void 뽑기.실행걸기(요청)}
         />
       )}

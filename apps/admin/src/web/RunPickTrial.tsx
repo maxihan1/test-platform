@@ -1,13 +1,24 @@
-// 여러 건 실행 창의 「테스트 실행」 조각 — 열 주소 칸과 케이스 줄마다 붙는 결과 배지 (도메인/실행 §8.10)
+// 실행 창의 「테스트 실행」 조각 — 열 주소 칸과 케이스 줄마다 붙는 결과 배지 (도메인/실행 §8.10)
+// 한 건 · 여러 건이 같은 큐(useTrialQueue)로 돈다. 한 건짜리 화면의 따로 된 조각(TestRun)은 2026-10-09 에 합쳤다
 
 import { useEffect, useState } from 'react';
 
-import type { CaseRow } from './api.js';
+import type { CaseRow, TrialResult } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { type 고친값표, 실행항목 } from './pickRun.js';
-import { 열주소기본값 } from './TestRun.js';
 import { seconds, Verdict } from './ui.js';
 import { type 시험줄, useTrialQueue } from './useTrialQueue.js';
+
+/**
+ * 열 주소의 기본값. 대상 서버 주소가 Docker 안 이름(점 없는 호스트, 예 `demo`)이면 브라우저를 여는 쪽은
+ * 그 이름을 모르므로 `localhost` 로 바꾼다. 점이 있는 호스트·localhost·IP 는 그대로 둔다.
+ */
+export function 열주소기본값(주소: string | null): string {
+  if (주소 === null) return '';
+  return 주소.replace(/^(https?:\/\/)([^/:?#[]+)/i, (전체, 스킴: string, 호스트: string) =>
+    호스트.includes('.') || 호스트.toLowerCase() === 'localhost' ? 전체 : `${스킴}localhost`,
+  );
+}
 
 /**
  * 실행 창의 「▶ 테스트 실행」 상태와 동작을 한 벌로 든다. 열 주소는 대상 서버 주소가 기본이고 사람이 고치면 그 값이다.
@@ -42,6 +53,8 @@ export function use여러건시험(옵션: {
     누름: () => {
       // 버튼은 죽이지 않는다. 도는 중에 또 누르면 사유를 말한다 (DESIGN.md)
       if (큐.도는중) return 알림(() => 바쁨글);
+      // 한 건 창에서 디바이스를 다 끄면 돌릴 것이 없다. 큐는 첫 디바이스를 꺼내 쓰므로 빈 채로 보내면 안 된다
+      if (케이스들.some((c) => c.platforms.length === 0)) return 알림(() => t('실행할 디바이스를 하나 이상 고르세요.'));
       const 거절 = !/^https?:\/\/\S/i.test(열주소.trim());
       set주소오류(거절);
       if (!거절) void 큐.시작(실행항목(케이스들, 고친값), 열주소.trim());
@@ -88,5 +101,23 @@ export function 시험배지({ 줄 }: { 줄: 시험줄 | undefined }) {
       {/* 러너에 못 닿은 사정도 서버가 준 문장을 그대로 낸다 */}
       {줄.결과.error === undefined ? null : <span className="err">{줄.결과.error.message}</span>}
     </span>
+  );
+}
+
+/**
+ * 한 건 창에서는 배지 아래에 절차마다 판정을 펼친다 — 한 건짜리 화면의 테스트 실행이 보여 주던 것이다.
+ * 여러 건이면 줄이 길어져 배지만 둔다 (도메인/실행 §8.10)
+ */
+export function 시험절차({ 결과 }: { 결과: TrialResult }) {
+  return (
+    <ol className="trial-steps">
+      {결과.steps.map((step) => (
+        <li key={step.seq} className={step.status === 'FAIL' ? 'trial-step fail' : 'trial-step'}>
+          <Verdict status={step.status} />
+          <span>{step.title}</span>
+          {step.error === undefined ? null : <span className="err">{step.error.message}</span>}
+        </li>
+      ))}
+    </ol>
   );
 }

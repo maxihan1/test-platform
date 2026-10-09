@@ -1,17 +1,24 @@
 // 항목 상세 (SPEC §8.4). 증적 문서 PDF와 같은 레이아웃이어야 한다 (DESIGN.md)
 // 스크린샷과 코드는 실패한 '검증 문장' 아래에 둔다. 스텝 헤더가 아니다 — 어느 확인에서 깨졌는지와 화면이 붙어야 의미가 있다
 
+import { useState } from 'react';
+
 import { api, type RunItemDetail } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Step } from './ItemSteps.js';
 import { fieldsOf, type Field } from './mask.js';
+import { 케이스서비스 } from './role.js';
+import type { 판정하기 } from './runJudge.js';
+import { RunWindow } from './RunWindow.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
 
-export function ItemDetail({ runId, historyId }: { runId: number; historyId: number }) {
+/** @param 판정하기 그 항목의 서비스 칸으로 「값 바꿔 재실행」을 가른다 — 띠와 다른 서비스의 항목일 수 있다 */
+export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; historyId: number; 판정하기: 판정하기 }) {
   const t말 = use말();
   const 언어 = use언어();
   const detail = useAsync<RunItemDetail>(() => api.item(runId, historyId), [runId, historyId]);
   const item = detail.data;
+  const [다시, set다시] = useState(false);
 
   if (detail.error !== null) return <Failed error={detail.error} />;
   if (item === null) return <Loading />;
@@ -74,10 +81,20 @@ export function ItemDetail({ runId, historyId }: { runId: number; historyId: num
         <a className="btn ghost" href={`#/runs/${item.runId}`}>
           {t말('실행 결과')}
         </a>
-        <a className="btn" href={`#/cases/${encodeURIComponent(item.tcId)}/run`}>
-          {t말('값 바꿔 재실행')}
-        </a>
+        {/* 이 항목에서 쓴 값으로 실행 창을 연다. 비밀값 칸은 응답이 가려 주므로 비워서 연다 (도메인/실행 §8.10) */}
+        {!판정하기(케이스서비스(item.tcId))('실행') ? null : (
+          <button className="btn" onClick={() => set다시(true)}>
+            {t말('값 바꿔 재실행')}
+          </button>
+        )}
       </div>
+      {!다시 ? null : (
+        <RunWindow
+          tcIds={[item.tcId]}
+          지난값={{ [item.tcId]: { params: item.params, expected: item.expected } }}
+          onClose={() => set다시(false)}
+        />
+      )}
     </div>
   );
 }

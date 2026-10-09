@@ -5,20 +5,14 @@
 
 import { useState } from 'react';
 
-import {
-  api,
-  type CaseQuery,
-  type CaseRow,
-  type ItemStatus,
-  type RunRequestItem,
-  type ServiceRow,
-} from './api.js';
+import { api, type CaseQuery, type CaseRow, type ItemStatus, type ServiceRow, type User } from './api.js';
 import type { LastMap } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
 import { 담을것 } from './pickRun.js';
 import type { 실행요청 } from './RunPickModal.js';
 import { message } from './ui.js';
+import { useRunStart } from './useRunStart.js';
 
 /**
  * 「전체」를 담을 때 되돌 쪽 수의 한계.
@@ -32,20 +26,6 @@ const 쪽상한 = 40;
 
 /** 훅이 꺼낸 번역기를 모듈 안의 순수 함수들에 넘긴다 */
 type 말하기 = ReturnType<typeof use말>;
-
-/**
- * 실행 기록 목록이 이 제목으로 실행을 가리고(§8.7) 증적 문서 머리에도 박제된다(§8.3).
- *
- * 한 건이면 실행 설정 화면과 **같은 말**로 적는다 — 같은 일에 두 가지 제목이 생기지 않게.
- * 여러 건이면 맨 앞 케이스와 나머지 수로 적는다. 「3건 실행」처럼 수만 적으면
- * 목록에 같은 제목이 줄줄이 쌓여 무엇을 돌린 실행인지 가려낼 수 없다.
- */
-function 실행제목(items: RunRequestItem[], t: 말하기): string {
-  const 맨앞 = items[0]?.tcId ?? '';
-  return items.length <= 1
-    ? t('{케이스} 실행', { 케이스: 맨앞 })
-    : t('{케이스} 외 {나머지}건 실행', { 케이스: 맨앞, 나머지: items.length - 1 });
-}
 
 /** 조용히 줄어든 것을 모달에서 사람에게 말한다. 「전체」라 적힌 버튼이 앞부분만 거는 일이 없게 */
 function 빠진안내(
@@ -83,13 +63,11 @@ export function useRunPick(옵션: {
   const [담은것, set담은것] = useState<CaseRow[] | null>(null);
   // 대상 서버 목록은 배정 응답에만 실려 온다. 이 화면은 접두사만 받으므로 걸기 직전에 한 번 읽는다
   const [서비스, set서비스] = useState<ServiceRow | null>(null);
-  // 걸었다 거절당한 사유. **목록 줄에 적으면 모달 뒤에 깔린다** — 모달 안에 적는다 (SPEC §8.10)
-  const [사유, set사유] = useState<string | undefined>(undefined);
+  // 한 건 창이 실행자 이름과 묶음 · 저장값 권한을 이 사람으로 본다 — 같은 응답에서 같이 받는다
+  const [사람, set사람] = useState<User | null>(null);
   // 담는 사이에 빠진 것. 버튼이 「전체」라 말해 놓고 조용히 자르지 않는다
   const [안내, set안내] = useState<string | undefined>(undefined);
-  // 두 번 눌러도 실행이 둘 생기지 않게 막는다. 모달은 onRun 을 기다리지 않는다.
-  // useRef 로 두면 바뀌어도 다시 그리지 않아 최대 1000건을 만드는 동안 화면이 침묵한다
-  const [거는중, set거는중] = useState(false);
+  const 걸기 = useRunStart();
 
   /**
    * 「전체」는 보이는 쪽이 아니라 모든 쪽이다 (SPEC §8.1).
@@ -124,8 +102,7 @@ export function useRunPick(옵션: {
         알림(t('실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다'));
         return;
       }
-      const { user } = await api.me();
-      set서비스(user.services.find((it) => it.prefix === service) ?? null);
+      await 사람읽기();
       set안내(빠진안내({ 고른수: 고른.size, 담을수: 담을.length, 잘렸나, 모은수: 모은.length }, t));
       set담은것(담을);
     } catch (err) {
@@ -135,28 +112,43 @@ export function useRunPick(옵션: {
     }
   }
 
-  /**
-   * 모달이 「실행하기」를 누른 뒤 (SPEC §8.10 → §8.2).
-   *
-   * **칸별 사유를 되돌리지 못한다.** `POST /api/runs` 는 입력값을 명세로 검증하지 않아
-   * `violations` 를 아예 내지 않는다 — 어느 케이스의 어느 칸인지를 서버가 말해 주지 않는다.
-   * 그래서 지어내지 않고 서버가 준 한 줄을 **모달 안으로** 돌려보내고 모달은 열어 둔다.
-   * 거절당해도 `거는중` 을 반드시 풀어 다시 누를 수 있게 한다.
-   */
-  async function 실행걸기(요청: 실행요청) {
-    if (거는중) return;
-    set거는중(true);
+  async function 사람읽기() {
+    const { user } = await api.me();
+    set사람(user);
+    set서비스(user.services.find((it) => it.prefix === service) ?? null);
+  }
+
+  /** 목록 줄의 ▶ — 그 한 건으로 같은 창을 연다. 실행 문은 하나다 (도메인/실행 §8.10, 2026-10-09 UI 개편 묶음 4) */
+  async function 하나열기(row: CaseRow) {
     알림(null);
-    set사유(undefined);
-    try {
-      const { runId } = await api.createRun({ ...요청, title: 실행제목(요청.items, t) });
-      set담은것(null);
-      window.location.hash = `#/runs/${runId}`;
-    } catch (err) {
-      set사유(message(err, 언어));
-    } finally {
-      set거는중(false);
+    if (!row.isActive) {
+      // 빈 창을 열지 않는다. 비활성은 스캔이 코드에서 지웠다고 본 케이스라 서버가 400 을 낸다
+      알림(t('실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다'));
+      return;
     }
+    try {
+      await 사람읽기();
+      set안내(undefined);
+      set담은것([row]);
+    } catch (err) {
+      알림(message(err, 언어));
+    }
+  }
+
+  /** 한 건 창에서 저장값을 바꿨다. 「저장값 · 누가 · 언제」가 지금 것을 말하게 그 줄만 새로 읽는다 */
+  async function 다시읽기(tcId: string) {
+    try {
+      const 새 = await api.caseOf(tcId);
+      set담은것((전) => 전?.map((c) => (c.tcId === tcId ? 새 : c)) ?? 전);
+    } catch (err) {
+      알림(message(err, 언어));
+    }
+  }
+
+  /** 창이 「실행」을 누른 뒤 (SPEC §8.10 → §8.2). 걸리면 창을 닫는다 — 실패 사유는 창 안에 남는다 */
+  async function 실행걸기(요청: 실행요청) {
+    알림(null);
+    if (await 걸기.걸기(요청)) set담은것(null);
   }
 
   function 뒤집기(row: CaseRow) {
@@ -185,15 +177,10 @@ export function useRunPick(옵션: {
     set고른(new Map());
   }
 
-  /** 값을 고치면 아까 거절당한 사유는 더 이상 지금 화면의 사실이 아니다 */
-  function 사유지우기() {
-    set사유(undefined);
-  }
-
   function 닫기() {
     set담은것(null);
     // 다음에 열었을 때 지난번 사유와 안내가 남아 있으면 안 된다
-    set사유(undefined);
+    걸기.사유지우기();
     set안내(undefined);
   }
 
@@ -202,15 +189,19 @@ export function useRunPick(옵션: {
     모으는중,
     담은것,
     서비스,
-    사유,
+    사람,
+    사유: 걸기.사유,
     안내,
-    거는중,
+    거는중: 걸기.거는중,
     모으기,
+    하나열기,
+    다시읽기,
     실행걸기,
     뒤집기,
     모두뒤집기,
     비우기,
     닫기,
-    사유지우기,
+    // 값을 고치면 아까 거절당한 사유는 더 이상 지금 화면의 사실이 아니다
+    사유지우기: 걸기.사유지우기,
   };
 }

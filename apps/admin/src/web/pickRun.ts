@@ -3,6 +3,8 @@
 import type { CaseRow, ItemStatus, RunRequestItem } from './api.js';
 import { type LastMap, 마지막결과로거른다 } from './catalogView.js';
 import { 항목수 } from './runPlan.js';
+import type { 값들 } from './i18n.js';
+import type { Field } from './schema.js';
 
 /** 모달에서 케이스마다 고쳐 넣은 값. 안 고친 케이스는 아예 없다 */
 export type 고친값표 = Record<
@@ -60,6 +62,37 @@ export function 실행항목(케이스들: CaseRow[], 고친값: 고친값표): 
     params: 고친값[c.tcId]?.params ?? {},
     expected: 고친값[c.tcId]?.expected ?? {},
   }));
+}
+
+/**
+ * 실행 기록 목록이 이 제목으로 실행을 가리고(§8.7) 증적 문서 머리에도 박제된다(§8.3).
+ *
+ * 한 건이면 실행 창의 제목 칸 기본값과 **같은 말**로 적는다 — 같은 일에 두 가지 제목이 생기지 않게.
+ * 여러 건이면 맨 앞 케이스와 나머지 수로 적는다. 「3건 실행」처럼 수만 적으면
+ * 목록에 같은 제목이 줄줄이 쌓여 무엇을 돌린 실행인지 가려낼 수 없다.
+ */
+export function 실행제목(items: RunRequestItem[], t: (키: string, 값?: 값들) => string): string {
+  const 맨앞 = items[0]?.tcId ?? '';
+  return items.length <= 1
+    ? t('{케이스} 실행', { 케이스: 맨앞 })
+    : t('{케이스} 외 {나머지}건 실행', { 케이스: 맨앞, 나머지: items.length - 1 });
+}
+
+/**
+ * 지난 실행에서 쓴 값을 칸 글자로 편다 — 항목 상세의 「값 바꿔 재실행」이 창을 그 값으로 연다 (도메인/실행 §8.10).
+ *
+ * **비밀값 칸은 펴지 않는다.** 항목 응답은 비밀값을 `********` 로 가려 주므로(공통/2 §4.1) 그대로 채우면
+ * 별표가 비밀번호로 나간다. 빈 칸으로 두면 저장값이 있을 때 서버가 채우고, 없으면 사람이 다시 넣는다.
+ * 객체 값은 `initialText` 와 같이 JSON 으로 편다 — 다르면 손대지 않은 칸이 「바뀜」으로 보인다
+ */
+export function 지난값글자(fields: Field[], 값들: Record<string, unknown>): Record<string, string> {
+  const 글자: Record<string, string> = {};
+  for (const field of fields) {
+    const 값 = 값들[field.key];
+    if (field.secret || 값 === undefined || 값 === null) continue;
+    글자[field.key] = typeof 값 === 'object' ? JSON.stringify(값) : String(값);
+  }
+  return 글자;
 }
 
 /** 실행 위치 칸을 보이고 요청에 location 을 실을지 가른다 (SPEC §8.10) */

@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 import { api, type RunItemDetail } from './api.js';
 import { ItemDetail } from './ItemDetail.js';
+import type { 판정하기 } from './runJudge.js';
+import { 사람 } from './runPick.fixture.js';
 
 afterEach(() => {
   cleanup();
@@ -49,9 +51,9 @@ const 항목: RunItemDetail = {
   ],
 };
 
-function 그린다(바꿀것: Partial<RunItemDetail> = {}) {
+function 그린다(바꿀것: Partial<RunItemDetail> = {}, 판정: 판정하기 = () => () => true) {
   vi.spyOn(api, 'item').mockResolvedValue({ ...항목, ...바꿀것 });
-  return render(<ItemDetail runId={RUN_ID} historyId={HISTORY_ID} />);
+  return render(<ItemDetail runId={RUN_ID} historyId={HISTORY_ID} 판정하기={판정} />);
 }
 
 describe('항목 상세 (SPEC §8.4)', () => {
@@ -96,5 +98,73 @@ describe('항목 상세 (SPEC §8.4)', () => {
     그린다();
 
     expect(await screen.findByText('기대결과 없음')).toBeTruthy();
+  });
+});
+
+describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
+  const 값있는항목: Partial<RunItemDetail> = {
+    params: { userId: 'u-지난', password: '********' },
+    paramSchema: {
+      type: 'object',
+      properties: { userId: { type: 'string', description: '아이디' }, password: { type: 'string', description: '비밀번호' } },
+      required: ['password'],
+    },
+  };
+
+  function 창모킹() {
+    vi.spyOn(api, 'caseOf').mockResolvedValue({
+      tcId: 'ZID-001',
+      name: '로그인하면 토큰이 발급된다',
+      platforms: ['desktop'],
+      precondition: [],
+      filePath: 'tests/ZID-001.spec.ts',
+      paramSchema: 값있는항목.paramSchema!,
+      expectedSchema: {},
+      isActive: true,
+      scannedAt: '2026-09-21T00:00:00.000Z',
+    });
+    vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+  }
+
+  it('그 항목 서비스에서 실행할 수 있으면 버튼이 선다', async () => {
+    const 물은것: (string | null)[] = [];
+    그린다({}, (접두사) => {
+      물은것.push(접두사);
+      return (무엇) => 무엇 === '실행';
+    });
+
+    expect(await screen.findByRole('button', { name: '값 바꿔 재실행' })).toBeTruthy();
+    expect(물은것).toContain('ZID');
+  });
+
+  it('실행할 수 없으면 버튼이 없다', async () => {
+    그린다({}, () => () => false);
+
+    await screen.findByText('실행 결과');
+    expect(screen.queryByRole('button', { name: '값 바꿔 재실행' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '값 바꿔 재실행' })).toBeNull();
+  });
+
+  it('누르면 그 항목에서 쓴 값으로 채운 실행 창이 열리고 비밀값 칸은 비어 있다', async () => {
+    창모킹();
+    그린다(값있는항목);
+
+    fireEvent.click(await screen.findByRole('button', { name: '값 바꿔 재실행' }));
+
+    const 창 = within(await screen.findByRole('dialog', { name: '실행할 케이스 1건' }));
+    expect(((await 창.findByLabelText(/^아이디/)) as HTMLInputElement).value).toBe('u-지난');
+    expect((창.getByLabelText('비밀번호') as HTMLInputElement).value).toBe('');
+  });
+
+  it('창의 취소를 누르면 창이 닫힌다', async () => {
+    창모킹();
+    그린다(값있는항목);
+    fireEvent.click(await screen.findByRole('button', { name: '값 바꿔 재실행' }));
+    await screen.findByRole('dialog');
+
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

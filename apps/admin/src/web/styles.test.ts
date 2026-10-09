@@ -668,10 +668,6 @@ describe('줄 칸 이름 · 판정 묶음 · 실행할 케이스 창 (2026-09-30
     expect(규칙('.right.runright')).toMatch(/flex-wrap:\s*nowrap/);
   });
 
-  it('테스트 실행 패널이 동작줄 위 한 줄을 다 차지한다', () => {
-    const 블록 = 규칙('.trial');
-    expect(블록).toMatch(/order:\s*-1/);
-    expect(블록).toMatch(/flex:\s*0 0 100%/);
   it('화면 머리는 제목 칸이 모자라면 버튼 묶음을 아랫줄로 보낸다 — 고르면 버튼이 늘어 제목이 세로로 섰다 (WEB-F2-10)', () => {
     expect(규칙('.head')).toMatch(/flex-wrap:\s*wrap/);
     // 제목에 기준 폭이 있어야 버튼 묶음이 그보다 먼저 줄을 넘는다. 기준 폭 없이 1 이면 제목이 0 까지 줄어든다
