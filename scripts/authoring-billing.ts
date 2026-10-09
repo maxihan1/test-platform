@@ -10,11 +10,14 @@ import { 흐름풀기 } from './authoring-usage.js';
 
 export const 크레딧키이름 = 'AUTHORING_CREDIT_KEY';
 
-/** 키 모양만 본다. 구독 토큰(sk-ant-oat)을 넣으면 크레딧이 아니라 구독으로 돌아 넣은 뜻과 어긋난다 */
+/**
+ * 키 모양만 본다. 구독 토큰(sk-ant-oat · ort)을 넣으면 크레딧이 아니라 구독으로 돌아 넣은 뜻과 어긋나고, 관리자 키는 요청을 못 보낸다.
+ * Console API 키의 접두사는 하나가 아니다 — 2026-10 크레딧 조직에서 만든 키가 sk-ant-usr… 였다(/v1/models 200). 그래서 막을 것만 적는다
+ */
 export function 크레딧키검사(값: string | undefined): string | null {
   if (!값) return null;
-  if (/^sk-ant-api\d*-/.test(값)) return null;
-  return `${크레딧키이름} 는 크레딧을 받은 Console 조직의 API 키(sk-ant-api…)여야 한다. 구독 토큰은 CLAUDE_CODE_OAUTH_TOKEN 에 넣는다.`;
+  if (/^sk-ant-/.test(값) && !/^sk-ant-(?:oat|ort|admin)/.test(값)) return null;
+  return `${크레딧키이름} 는 크레딧을 받은 Console 조직의 API 키(sk-ant-…)여야 한다. 구독 토큰(sk-ant-oat…)은 CLAUDE_CODE_OAUTH_TOKEN 에, 관리자 키는 쓰지 않는다.`;
 }
 
 /** 자식이 API 크레딧이 없어 멈췄나. 한도걸렸나 처럼 끝 몇 줄과 표준 오류만 — 대상 화면 문구를 인용한 글까지 바닥으로 세지 않는다 */
@@ -34,20 +37,21 @@ export function 결제환경(
 }
 
 /**
- * 크레딧 키가 있으면 그 키로 먼저 띄운다. 시작하자마자(출력 0) 크레딧이 없으면 알리고 구독으로 한 번 더 띄운다.
- * 일하다 도중에 떨어졌으면 다시 띄우지 않는다 — 처음부터 다시 쓰면 만든 것과 겹친다. 부르는 쪽이 한도 멈춤으로 끝내고,
+ * 크레딧 키가 있으면 그 키로 먼저 띄운다. 시작하자마자(출력 0) 실패하면 까닭을 알리고 구독으로 한 번 더 띄운다 —
+ * 크레딧 바닥만이 아니라 새 조직의 속도 제한 · 폐기된 키도 그렇다. 구독은 돈이 안 나가고, 크레딧 키 탓에 작성이 막히면 안 된다.
+ * 일하다 도중에 실패했으면 다시 띄우지 않는다 — 처음부터 다시 쓰면 만든 것과 겹친다. 부르는 쪽이 한도 멈춤으로 끝내고,
  * 이어하기 때 이 함수가 다시 크레딧부터 시도해 바로 구독으로 넘어간다
  */
 export async function 크레딧먼저(
   키: string | undefined,
   띄운다: (키: string | undefined) => Promise<돌린결과>,
-  알린다: () => void,
+  알린다: (까닭: string) => void,
 ): Promise<{ 돌린것: 돌린결과; 크레딧으로: boolean }> {
   if (키 === undefined) return { 돌린것: await 띄운다(undefined), 크레딧으로: false };
   const 첫 = await 띄운다(키);
-  if (첫.멈춤으로죽음 || 첫.시간초과) return { 돌린것: 첫, 크레딧으로: true };
+  if (첫.멈춤으로죽음 || 첫.시간초과 || 첫.코드 === 0) return { 돌린것: 첫, 크레딧으로: true };
   const 풀린 = 흐름풀기(첫.낸것);
-  if (풀린.사용량.output > 0 || !크레딧바닥났나(풀린.글, 첫.오류)) return { 돌린것: 첫, 크레딧으로: true };
-  알린다();
+  if (풀린.사용량.output > 0) return { 돌린것: 첫, 크레딧으로: true };
+  알린다(`${풀린.글.trim()}\n${첫.오류.trim()}`.trim().split('\n').pop()?.slice(0, 160) ?? '');
   return { 돌린것: await 띄운다(undefined), 크레딧으로: false };
 }
