@@ -1,4 +1,4 @@
-// pre-push 훅 검사 둘(hook-contract · hook-reuse)이 같이 쓰는 임시 저장소 · 훅 실행 도우미
+// pre-push 훅 검사(hook-contract)가 쓰는 임시 저장소 · 훅 실행 도우미
 import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, chmodSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +23,7 @@ export function 임시저장소(더할파일들, 옮길것들 = []) {
   git('init', '-q');
   git('config', 'user.email', 't@example.com');
   git('config', 'user.name', 't');
-  // 가짜 npm 과 호출 기록이 작업 폴더에 「커밋 안 된 파일」로 보이면 통과 표지가 안 남는다
+  // 가짜 npm 과 호출 기록은 바뀐 파일 목록에 끼면 안 된다
   writeFileSync(join(뿌리, '.git', 'info', 'exclude'), '.fakebin\n.npm-calls*\n');
   쓴다('package.json', '{}');
   쓴다('tests/todo/TODO-001.spec.ts', 'x');
@@ -50,7 +50,6 @@ export function 임시저장소(더할파일들, 옮길것들 = []) {
 
 export function 저장소에서돌린다({ 뿌리, sha, 가짜 }, 더할환경 = {}, 입력 = `refs/heads/b ${sha} refs/heads/b ${ZERO}\n`) {
   const env = { ...깨끗한환경, PATH: `${가짜}:${process.env.PATH}`, ...더할환경 };
-  delete env.ALLOW_PROTECTED;
   try {
     const out = execFileSync(HOOK, ['origin', 'https://example.com/r.git'], {
       cwd: 뿌리, env, input: 입력, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],

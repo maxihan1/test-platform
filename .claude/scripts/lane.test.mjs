@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { lane, 기록요구 } from './lane.mjs';
+import { lane } from './lane.mjs';
 
 
 const 표 = [
@@ -43,8 +43,7 @@ for (const [파일들, 기대, 이름] of 표) {
 const 스크립트 = fileURLToPath(new URL('./lane.mjs', import.meta.url));
 const 전체출력 = (입력, ...인자) =>
   execFileSync('node', [스크립트, ...인자], { input: 입력, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-// 차선 줄은 첫 줄에 그대로 둔다 — CI 와 훅이 이 줄을 읽는다. record= 는 아래 줄이라 따로 본다
-const 돌린다 = (입력, ...인자) => 전체출력(입력, ...인자).split('\n')[0];
+const 돌린다 = 전체출력;
 
 test('lane CLI: 차선을 lane=<이름> 으로 찍는다', () => {
   assert.equal(돌린다('docs/SETUP.md\n', 'origin/main'), 'lane=docs');
@@ -79,38 +78,4 @@ test('cases-only.mjs 는 그대로다 — 문서만 바뀐 목록에 종료 1 (�
   };
   assert.equal(종료('docs/SETUP.md\n'), 1);
   assert.equal(종료('docs/spec/도메인/작성.md\n'), 1);
-});
-
-const 기록표 = [
-  [['apps/admin/src/web/x.tsx'], false, '화면만'],
-  [['.claude/skills/x/SKILL.md'], false, '스킬만'],
-  [['tests/a.spec.ts', 'docs/x.md'], false, '테스트 + 문서'],
-  [['README.md'], false, '루트 md'],
-  [['apps/x.ts'], true, '미분류'],
-  [['apps/admin/src/web/x.tsx', 'apps/admin/src/execution/y.ts'], true, '화면 + 2등급'],
-  [['docs/spec/a.md'], true, '명세 장'],
-  [['docs/SPEC.md'], true, '명세 색인'],
-  [['docs/x.mjs'], true, 'docs 아래 코드는 DOC 표면이어도 문서 자리가 아니다'],
-  [['apps/admin/public/x.html'], true, 'docs 밖 html'],
-  [['apps/admin/src/web/../execution/y.ts'], true, '.. 경로'],
-  [['.claude/scripts/lane.mjs'], true, '검사 스크립트는 2등급'],
-  [[], true, '빈 목록'],
-];
-
-for (const [파일들, 기대, 이름] of 기록표) {
-  test(`기록요구: ${이름} → ${기대 ? '요구' : '안 요구'}`, () => {
-    assert.equal(기록요구(파일들), 기대);
-  });
-}
-
-test('lane CLI: lane= 아래에 record= 한 줄을 찍는다', () => {
-  assert.equal(전체출력('apps/admin/src/web/x.tsx\n', 'origin/main'), 'lane=full\nrecord=skip');
-  assert.equal(전체출력('apps/admin/src/execution/y.ts\n', 'origin/main'), 'lane=full\nrecord=need');
-  assert.equal(전체출력('docs/spec/도메인/작성.md\n', 'origin/main'), 'lane=spec\nrecord=need');
-});
-
-test('lane CLI: 판정을 못 하면 record=need 이고 종료 코드는 0 이다', () => {
-  assert.equal(전체출력('apps/admin/src/web/x.tsx\n'), 'lane=full\nrecord=need', 'base 인자 없음');
-  assert.equal(전체출력('apps/admin/src/web/x.tsx\n', '없는-ref-xyz'), 'lane=full\nrecord=need', '없는 ref');
-  assert.equal(전체출력('', 'origin/main'), 'lane=full\nrecord=need', '빈 입력');
 });
