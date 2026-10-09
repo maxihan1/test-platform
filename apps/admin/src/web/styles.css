@@ -5085,6 +5085,11 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   color: var(--ink);
 }
 
+.dash-gauge-note {
+  margin: 0 0 12px;
+  text-align: center;
+}
+
 .dash-gauge-wrap.sm {
   width: min(170px, 100%);
   margin-bottom: 6px;

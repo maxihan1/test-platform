@@ -14,6 +14,9 @@ const 갈래들 = [
   { 이름: '기능 테스트', 짧은: '기능', 덮음: (줄: 줄) => 줄.casedFn, 막대: 'dash-cov-bar' },
   { 이름: 'UI 테스트', 짧은: 'UI', 덮음: (줄: 줄) => 줄.casedUi, 막대: 'dash-cov-bar ui' },
 ] as const;
+/** 갈래를 못 센 실행(칸 전)은 전체 하나로 보인다 — 비우면 배포 직후 모든 줄이 「—」가 되어 알던 숫자까지 사라진다 */
+const 전체만 = [{ 이름: '전체', 짧은: '전체', 덮음: (줄: 줄) => 줄.cased, 막대: 'dash-cov-bar' }] as const;
+const 갈래있나 = (줄: 줄): boolean => 줄.casedFn !== null && 줄.casedUi !== null;
 
 /** 올림으로 100 이 되면 아직 덮지 못한 요구가 있는데 다 덮은 것처럼 읽힌다 */
 const 내림퍼센트 = (덮음: number, 전체: number): number => Math.floor((덮음 * 100) / 전체);
@@ -74,7 +77,8 @@ export function 요구커버리지({
   const t = use말();
   const 언어 = use언어();
   // 갈래를 못 센 실행(이 칸 전)은 게이지에서 뺀다 — 넣으면 분모만 늘어 퍼센트가 낮아 보인다
-  const 센것 = 값.coverage.filter((줄) => 줄.total > 0 && 줄.casedFn !== null && 줄.casedUi !== null);
+  const 센것 = 값.coverage.filter((줄) => 줄.total > 0 && 갈래있나(줄));
+  const 뺀것 = 값.coverage.filter((줄) => 줄.total > 0 && !갈래있나(줄)).length;
   const 전체 = 센것.reduce((수, 줄) => 수 + 줄.total, 0);
   // 줄은 작성 칸이 none 이 아닌 배정 서비스로 만든다. 실행 칸 기준의 services 에는 작성을 못 보는 서비스가 섞여 거기에 「작성 기록이 없습니다」가 떴다
   const 서비스들 = 작성서비스.map((서비스) => ({ id: 서비스.id, 이름: 서비스.name }));
@@ -91,6 +95,12 @@ export function 요구커버리지({
           />
         ))}
       </div>
+      {/* 아래 줄에는 보이는데 게이지 분모에 없는 서비스가 있으면 그 까닭을 적는다 */}
+      {뺀것 === 0 ? null : (
+        <p className="dash-axis dash-gauge-note">
+          {t('기능 · UI 를 나누기 전에 작성한 서비스 {수}개는 게이지에 넣지 않았습니다', { 수: 뺀것 })}
+        </p>
+      )}
       {서비스들.map((서비스) => {
         const 줄 = 값.coverage.find((것) => 것.serviceId === 서비스.id);
         if (줄 === undefined) {
@@ -119,7 +129,7 @@ export function 요구커버리지({
               </a>
             </span>
             <span className="dash-cov-pairs">
-              {갈래들.map((갈래) => {
+              {(갈래있나(줄) ? 갈래들 : 전체만).map((갈래) => {
                 const 덮음 = 갈래.덮음(줄);
                 const 몫 = 줄.total === 0 || 덮음 === null ? null : 내림퍼센트(덮음, 줄.total);
                 return (

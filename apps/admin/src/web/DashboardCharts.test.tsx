@@ -237,7 +237,7 @@ describe('요구사항 커버리지', () => {
     expect(줄.querySelector('.dash-cov-bar.ui i')).not.toBeNull();
   });
 
-  it('갈래를 못 센 실행(이 칸 전)은 줄이 대시이고 게이지에서 빠진다 — 넣으면 분모만 늘어 퍼센트가 낮아 보인다', async () => {
+  it('갈래를 못 센 실행(이 칸 전)은 줄이 전체 막대 하나이고 게이지에서 빠지며 그 까닭을 한 줄로 적는다', async () => {
     const 옛 = 응답({
       coverage: [
         { serviceId: 1, serviceName: 'ZDA 결제', cased: 34, total: 40, ratio: 0.85, casedFn: 32, casedUi: 10, finishedAt: '2026-10-05T12:00:00.000Z', requestId: 12 },
@@ -246,9 +246,16 @@ describe('요구사항 커버리지', () => {
     });
     const { container } = await 열기(옛);
     const 줄 = container.querySelectorAll('.dash-cov-row')[1]!;
-    expect(줄.querySelector('.dash-cov-bar i')).toBeNull();
-    expect([...줄.querySelectorAll('.num')].map((n) => n.textContent)).toEqual(['—', '—']);
+    expect([...줄.querySelectorAll('.dash-cov-pair')].map((짝) => 짝.textContent)).toEqual(['전체8%']);
     expect(container.querySelector('.dash-gauge-cap')!.textContent).toBe('덮은 요구 32 / 40');
+    expect(container.querySelector('.dash-gauge-note')!.textContent).toBe(
+      '기능 · UI 를 나누기 전에 작성한 서비스 1개는 게이지에 넣지 않았습니다',
+    );
+  });
+
+  it('모든 서비스가 갈래를 셌으면 까닭 줄이 없다', async () => {
+    const { container } = await 열기(응답());
+    expect(container.querySelector('.dash-gauge-note')).toBeNull();
   });
 
   it('요청 링크를 누르면 그 서비스로 바꾼다 — 작성 상세는 고른 서비스로 요청을 열고 대시보드에는 고르개가 없다', async () => {

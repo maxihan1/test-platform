@@ -78,6 +78,9 @@ export const 대시보드말: Record<string, string> = {
   '마지막 작성 기준': 'Based on the last authoring run',
   '덮은 요구 {덮음} / {전체}': 'Requirements covered: {덮음} / {전체}',
   기능: 'Functional',
+  전체: 'All',
+  '기능 · UI 를 나누기 전에 작성한 서비스 {수}개는 게이지에 넣지 않았습니다':
+    '{수} services authored before the functional / UI split are left out of the gauges',
   '{날짜} · 요청 #{번호}': '{날짜} · request #{번호}',
   '작성 기록이 없습니다': 'No authoring run yet',
 
