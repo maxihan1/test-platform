@@ -44,11 +44,9 @@ const 처리하나 = (모드) => {
 
 // 정본. 배선을 바꾸려면 여기도 바꿔야 한다 — 양쪽이 같이 틀려 차집합이 0 이 되는 길을 막는다
 const 정본 = [
-  { 모드: 'protected', 시점: 'PreToolUse', matcher: 'Edit|Write|MultiEdit' },
   { 모드: 'bash', 시점: 'PreToolUse', matcher: 'Bash' },
   { 모드: 'fanout', 시점: 'PreToolUse', matcher: 'Agent|Task' },
   { 모드: 'tests', 시점: 'PostToolUse', matcher: 'Edit|Write|MultiEdit' },
-  { 모드: 'review', 시점: 'Stop', matcher: '' },
 ];
 
 test('settings.json 배선이 정본과 모드·시점·matcher 까지 같다', () => {

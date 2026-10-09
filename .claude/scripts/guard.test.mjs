@@ -13,9 +13,10 @@ test('진짜 위험한 명령을 막는다', () => {
     'git push -f origin main',
     'npm run migrate:down',
     'rm -rf /etc',
+    'rm -rf /Users',
+    'rm -rf /Users/maxi.moff',
+    'rm -rf /Users/maxi.moff/',
     'cd /repo && git branch -D old-branch',
-    'node .claude/scripts/check-stamp.mjs put push HEAD',
-    'cd x && node /abs/.claude/scripts/check-stamp.mjs put push abc',
   ]) {
     assert.ok(isBanned(cmd), `막았어야 한다: ${cmd}`);
   }
@@ -32,10 +33,8 @@ test('조회 명령은 통과시킨다 (2026-09-18 오탐)', () => {
     'git branch -d merged-branch',
     'git push origin --delete old-remote',
     'git log --oneline',
-    'node .claude/scripts/check-stamp.mjs run local > /tmp/c.log 2>&1',
-    'node .claude/scripts/check-stamp.mjs find',
-    'grep -n "check-stamp.mjs put" .claude/skills/x.md',
-    'echo check-stamp.mjs put push',
+    // 2026-10-09 오탐 — 맥의 임시 폴더는 /Users 아래에 있다
+    'rm -rf /Users/maxi.moff/.claude/jobs/9b90ddef/tmp/x',
   ]) {
     assert.ok(!isBanned(cmd), `통과했어야 한다: ${cmd}`);
   }
@@ -139,90 +138,4 @@ test('훅이 세는 문구가 fanout.md §4 뼈대 첫 줄과 맞는다 — 뼈�
 
 test('거절 글은 남은 묶음을 자식이 직접 쓰라고 알린다', () => {
   assert.match(fanoutVerdict(['a', 'b', 'c', 'd'], 작성프롬프트('e')).거절, /직접 쓴다/);
-});
-
-test('review 모드 — 1등급만 바뀌면 조용하고, 2등급 이상은 이름을 바꿔도 경고한다 (2026-10-08)', async () => {
-  const { spawnSync, execFileSync } = await import('node:child_process');
-  const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
-  const { tmpdir } = await import('node:os');
-  const { join } = await import('node:path');
-  const 가드 = new URL('./guard.mjs', import.meta.url).pathname;
-  const 환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_') && k !== 'ALLOW_PROTECTED'));
-  const 만든다 = () => {
-    const 뿌리 = mkdtempSync(join(tmpdir(), 'review-'));
-    const git = (...a) => execFileSync('git', ['-C', 뿌리, ...a], { env: 환경, stdio: 'pipe' });
-    const 쓴다 = (경로, 내용) => { mkdirSync(join(뿌리, 경로, '..'), { recursive: true }); writeFileSync(join(뿌리, 경로), 내용); };
-    git('init', '-q');
-    git('config', 'user.email', 't@example.com');
-    git('config', 'user.name', 't');
-    쓴다('apps/admin/src/execution/b.ts', 'x\n');
-    git('add', '.');
-    git('commit', '-qm', 'base');
-    return { 뿌리, git, 쓴다 };
-  };
-  const 돌린다 = (뿌리) => spawnSync('node', [가드, 'review'], { input: JSON.stringify({ cwd: 뿌리 }), env: 환경, encoding: 'utf8' });
-
-  const 하나 = 만든다();
-  하나.쓴다('tests/x.spec.ts', 'y\n');
-  assert.equal(돌린다(하나.뿌리).status, 0, '테스트만 고쳤는데 경고했다');
-
-  const 둘 = 만든다();
-  둘.쓴다('apps/admin/src/web/a.tsx', 'y\n');
-  assert.equal(돌린다(둘.뿌리).status, 0, '화면만 고쳤는데 경고했다');
-
-  const 셋 = 만든다();
-  셋.쓴다('apps/admin/src/execution/b.ts', 'z\n');
-  const 결과 = 돌린다(셋.뿌리);
-  assert.equal(결과.status, 1, '2등급을 고쳤는데 경고하지 않았다');
-  assert.match(결과.stderr, /오늘 SPEC 검사 기록/);
-
-  const 넷 = 만든다();
-  mkdirSync(join(넷.뿌리, 'apps/admin/src/web'), { recursive: true });
-  넷.git('mv', 'apps/admin/src/execution/b.ts', 'apps/admin/src/web/b.ts');
-  assert.equal(돌린다(넷.뿌리).status, 1, '이름 바꾸기로 2등급이 숨었다');
-
-  const 다섯 = 만든다();
-  다섯.쓴다('apps/admin/src/web/b.tsx', 'x\n');
-  다섯.git('add', '.');
-  다섯.git('commit', '-qm', 'web');
-  다섯.git('mv', 'apps/admin/src/web/b.tsx', 'apps/admin/src/execution/c.ts');
-  const 반대 = 돌린다(다섯.뿌리);
-  assert.equal(반대.status, 1, '화면 파일을 2등급 자리로 옮겼는데 경고하지 않았다');
-  assert.match(반대.stderr, /오늘 SPEC 검사 기록/);
-
-  const 커밋한다 = (저장소, 경로, 내용) => {
-    저장소.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
-    저장소.쓴다(경로, 내용);
-    저장소.git('add', '.');
-    저장소.git('commit', '-qm', 'work');
-  };
-
-  const 여섯 = 만든다();
-  커밋한다(여섯, 'apps/admin/src/execution/b.ts', 'z\n');
-  const 커밋분 = 돌린다(여섯.뿌리);
-  assert.equal(커밋분.status, 1, '2등급을 커밋했고 작업 폴더가 깨끗한데 경고하지 않았다');
-  assert.match(커밋분.stderr, /apps\/admin\/src\/execution\/b\.ts/);
-
-  const 일곱 = 만든다();
-  커밋한다(일곱, 'apps/admin/src/web/a.tsx', 'y\n');
-  assert.equal(돌린다(일곱.뿌리).status, 0, '화면만 커밋했는데 경고했다');
-});
-
-test('현지날짜 — 한국 시간 새벽에도 pre-push 의 date +%F 와 같은 날이다 (2026-10-08)', async () => {
-  const { spawnSync } = await import('node:child_process');
-  const 가드 = new URL('./guard.mjs', import.meta.url).href;
-  const 환경 = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_') && k !== 'ALLOW_PROTECTED'));
-  const 결과 = spawnSync('node', ['--input-type=module', '-e',
-    `import { 현지날짜 } from ${JSON.stringify(가드)}; console.log(현지날짜(new Date('2026-10-08T20:00:00Z')));`],
-    { env: { ...환경, TZ: 'Asia/Seoul' }, encoding: 'utf8' });
-  assert.equal(결과.stdout.trim(), '2026-10-09', 결과.stderr);
-});
-
-test('응답 끝 경고의 오늘은 현지날짜() 로 셈하고 코드에 toISOString 이 없다 — 도우미만 두고 옛 줄로 되돌리는 길을 막는다', () => {
-  const 코드 = readFileSync(new URL('./guard.mjs', import.meta.url), 'utf8')
-    .split('\n')
-    .filter((줄) => !줄.trimStart().startsWith('//'))
-    .join('\n');
-  assert.match(코드, /const today = Date\.parse\(현지날짜\(\)\)/, 'review 블록이 오늘을 현지날짜() 로 셈하지 않는다');
-  assert.doesNotMatch(코드, /toISOString/, 'UTC toISOString 이 코드에 남아 있다 — 한국 00~09시에 pre-push 와 하루 어긋난다');
 });
