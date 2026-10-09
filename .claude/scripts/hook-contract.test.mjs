@@ -157,6 +157,18 @@ test('서버 코드가 바뀐 커밋은 임시 DB 를 만들어 검사에 넘기
   }
 });
 
+test('전체를 다시 도는 설정 파일이 바뀌어도 임시 DB 를 만든다', () => {
+  for (const 파일 of ['vitest.config.ts', 'package.json', 'db/migrations/20990101000000_x.sql']) {
+    const 저장소 = 임시저장소([파일]);
+    try {
+      저장소에서돌린다(저장소);
+      assert.match(불린것(저장소.DB기록), /CREATE DATABASE tp_prepush_/, `${파일} 을 바꿨는데 DB 를 안 만들었다`);
+    } finally {
+      rmSync(저장소.뿌리, { recursive: true, force: true });
+    }
+  }
+});
+
 test('검사가 실패해도 임시 DB 는 지운다', () => {
   const 저장소 = 임시저장소(['apps/admin/src/execution/x.ts']);
   try {

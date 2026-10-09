@@ -83,7 +83,8 @@ if [ "$lane" = "full" ]; then
   # 사람 PR 에 CI 가 없어 DB 검사는 여기서만 돈다 (2026-10-09 사용자). DATABASE_URL 이 없으면 DB 검사는 조용히 건너뛰므로
   # 개발 postgres(docker compose 의 5433)에 임시 DB 를 만들어 넘긴다. 평소 쓰는 platform DB 에는 새 마이그레이션을 안 건다 (SETUP §13).
   # 못 붙으면 막는다 — 건너뛰면 초록이 거짓말을 한다
-  if printf '%s\n' "$changed_all" | grep -v '^apps/admin/src/web/' | grep -qE '^(apps/|packages/|scripts/|db/)'; then
+  # 전체를 다시 도는 설정 파일(아래 npm test 조건)이 바뀌어도 DB 검사가 같이 돌아야 한다
+  if printf '%s\n' "$changed_all" | grep -v '^apps/admin/src/web/' | grep -qE '^(apps/|packages/|scripts/|db/|package(-lock)?\.json$|vitest\.config\.|tsconfig)'; then
     DB_NAME="tp_prepush_$$"
     export PGPASSWORD=platform
     psql -h 127.0.0.1 -p 5433 -U platform -d postgres -qc "CREATE DATABASE $DB_NAME" >/dev/null 2>&1 \
