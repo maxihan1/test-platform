@@ -1,4 +1,6 @@
 // 작성 에이전트가 API 크레딧을 먼저 쓰고 떨어지면 구독으로 넘어가는 판단 검사
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import { 결제환경, 크레딧먼저, 크레딧바닥났나, 크레딧키검사 } from './authoring-billing.js';
@@ -104,15 +106,53 @@ describe('크레딧먼저 — 크레딧으로 먼저, 처음부터 없으면 구
     expect(r.크레딧으로).toBe(true);
   });
 
-  it('다른 까닭으로 실패했으면 다시 띄우지 않는다 — 구독으로 돌려도 같은 실패다', async () => {
-    const f = 띄우기([실행(결과줄('Invalid model name', 0))]);
+  it('시작하자마자(출력 0) 다른 까닭으로 실패해도 구독으로 한 번 더 — 폐기된 키 · 새 조직 속도 제한으로 작성이 막히지 않고, 구독은 돈이 안 나간다', async () => {
+    let 알림 = '';
+    const f = 띄우기([실행(결과줄('API Error: 429 rate_limit_error', 0)), 실행(결과줄('끝', 10), 0)]);
+    const r = await 크레딧먼저('sk-ant-api03-k', f.띄운다, (까닭) => { 알림 = 까닭; });
+    expect(f.받은키).toEqual(['sk-ant-api03-k', undefined]);
+    expect(r.크레딧으로).toBe(false);
+    expect(알림).toMatch(/429/);
+  });
+
+  it('출력이 0 이어도 성공으로 끝났으면 다시 띄우지 않는다', async () => {
+    const f = 띄우기([실행(결과줄('할 것이 없다', 0), 0)]);
     await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {});
     expect(f.받은키).toEqual(['sk-ant-api03-k']);
+  });
+
+  it('시작하자마자 크레딧이 없다는 까닭을 알림에 싣는다', async () => {
+    let 알림 = '';
+    const f = 띄우기([실행(결과줄('Credit balance is too low', 0)), 실행(결과줄('끝', 10), 0)]);
+    await 크레딧먼저('sk-ant-api03-k', f.띄운다, (까닭) => { 알림 = 까닭; });
+    expect(알림).toMatch(/Credit balance is too low/);
   });
 
   it('사람이 멈췄으면 다시 띄우지 않는다', async () => {
     const f = 띄우기([{ ...실행(결과줄('Credit balance is too low', 0)), 멈춤으로죽음: true }]);
     await 크레딧먼저('sk-ant-api03-k', f.띄운다, () => {});
     expect(f.받은키).toEqual(['sk-ant-api03-k']);
+  });
+});
+
+// 순수 함수만 보면 배선을 지워도 초록이다 — 2026-10-09 spec-review 가 사본에서 두 곳을 지워 1027건 그대로 통과했다
+describe('배선 — 돈이 지나는 마지막 자리', () => {
+  const 글 = (경로: string) => readFileSync(new URL(경로, import.meta.url), 'utf8');
+
+  it('자식 claude 의 환경은 결제환경을 거친다 — 구독 토큰과 크레딧 키가 같이 가지 않는다', () => {
+    const 실행글 = 글('./authoring-run.ts');
+    expect(실행글).toMatch(/크레딧먼저\(process\.env\[크레딧키이름\]/);
+    expect(실행글).toMatch(/env: 결제환경\(환경, 키\)/);
+  });
+
+  it('크레딧이 도중에 떨어지면 한도 멈춤이다 — 이어하기가 구독으로 잇는다', () => {
+    expect(글('./authoring-run.ts')).toMatch(/크레딧으로 && 크레딧바닥났나\(풀린\.글, 돌린것\.오류\)/);
+  });
+
+  it('호스트 uid 로 도는 명령(부품 설치 스크립트 포함)에는 크레딧 키를 안 넘긴다', () => {
+    const 시작 = 글('../apps/authoring/start.sh');
+    const 줄 = 시작.split('\n').find((l) => l.includes('env -u AUTHORING_AGENT_TOKEN')) ?? '';
+    expect(줄.length).toBeGreaterThan(10);
+    expect(줄).toContain('-u AUTHORING_CREDIT_KEY');
   });
 });
