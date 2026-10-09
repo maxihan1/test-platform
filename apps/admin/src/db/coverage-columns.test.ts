@@ -108,7 +108,7 @@ describe.skipIf(연결 === undefined)('작성 커버리지 칸', () => {
     ).rejects.toThrow(/check/i);
   });
 
-  it('대시보드 계정은 일곱 칸을 읽는다', async () => {
+  it('대시보드 계정은 커버리지 칸을 읽는다', async () => {
     const { Client } = await import('pg');
     const 주소 = new URL(연결 as string);
     주소.username = 'grafana_ro';

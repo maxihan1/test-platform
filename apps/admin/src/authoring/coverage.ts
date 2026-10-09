@@ -73,7 +73,7 @@ export function 커버리지모양검사(v: unknown): 커버리지 | null {
   return v as unknown as 원장셈;
 }
 
-/** 칸 일곱으로 옮긴다. 원장 없음 · 셈 없음은 전부 비운다 — 0 으로 채우면 「요구 0개」로 읽힌다 */
+/** 칸으로 옮긴다. 원장 없음 · 셈 없음은 전부 비운다 — 0 으로 채우면 「요구 0개」로 읽힌다 */
 export function 커버리지칸(c: 커버리지 | null): 셈칸 {
   if (c === null || 'none' in c) {
     return { total: null, cased: null, held: null, excluded: null, missing: null, casedFn: null, casedUi: null };
