@@ -384,8 +384,11 @@ a {
    되찾는 37px 중 글자에서 나오는 것은 2px 뿐이라 나머지를 여기서 뺀다 (2026-09-22) */
 .head {
   display: flex;
+  /* 제목 칸이 모자라면 버튼 묶음이 아랫줄로 내려간다. 안 그러면 제목이 한 자씩 세로로 서고
+     목록 높이가 0 이 됐다 — 케이스를 고르면 버튼이 셋 · 넷으로 는다(진행판 WEB-F2-10, 700px 창 · 사이드바 폄) */
+  flex-wrap: wrap;
   align-items: flex-end;
-  gap: 18px;
+  gap: 8px 18px;
   padding: 10px 20px 9px;
   margin-bottom: 14px;
   /* 머리 띠 색이다. 어두운 바탕에서는 그림자가 면을 가르지 못해 2026-10-07 에 걷고 바탕과 테두리로 가른다 */
@@ -396,7 +399,7 @@ a {
 }
 
 .head-title {
-  flex: 1;
+  flex: 1 1 240px;
   min-width: 0;
 }
 
@@ -431,8 +434,11 @@ a {
 
 .head-acts {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  margin-left: auto;
   align-items: center;
 }
 
