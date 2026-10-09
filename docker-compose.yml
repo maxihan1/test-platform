@@ -103,7 +103,7 @@ services:
     mem_limit: 4g              # 폭주해도 admin을 끌고 내려가지 않게
 
   # 작성 에이전트 — 화면이 세운 줄을 서버 안에서 집어 케이스를 만들고 PR 을 낸다 (SPEC 도메인/작성 §3.6 · 공통/6 §9).
-  # **선택 사항이다.** 토큰 셋을 .env 에 넣은 뒤 `docker compose --profile authoring up -d author` 로 켠다 (docs/SETUP.md §8)
+  # **선택 사항이다.** 필수 토큰 셋(선택으로 API 크레딧 키)을 .env 에 넣은 뒤 `docker compose --profile authoring up -d author` 로 켠다 (docs/SETUP.md §8)
   author:
     profiles: [authoring]
     build:

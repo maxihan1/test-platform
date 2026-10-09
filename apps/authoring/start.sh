@@ -30,11 +30,11 @@ case "${HOST_UID:-}" in ''|*[!0-9]*) deny "HOST_UID 가 숫자가 아니다 — 
 HOST_GID="${HOST_GID:-$HOST_UID}"
 case "$HOST_GID" in *[!0-9]*) deny "HOST_GID 가 숫자가 아니다 — 서버 저장소 주인의 id -g 를 .env 에 적어라" ;; esac
 case "${AUTHORING_CHILD_UID:-}" in ''|*[!0-9]*) deny "AUTHORING_CHILD_UID 가 숫자가 아니다 — 비우면 자식이 root 로 돈다" ;; esac
-# 호스트 uid 로 도는 것에는 에이전트·Claude 토큰을 안 넘긴다 — 도커 호스트의 같은 uid 가 environ 을 읽는다.
+# 호스트 uid 로 도는 것에는 에이전트·Claude 토큰 · API 크레딧 키를 안 넘긴다 — 도커 호스트의 같은 uid 가 environ 을 읽고, 부품 설치 스크립트는 남의 코드다.
 # GitHub 토큰은 git 설정(gh auth setup-git)에 필요해 남기고, 부품 맞추기에서는 따로 뺀다
 as_host() {
   setpriv --reuid="$HOST_UID" --regid="$HOST_GID" --clear-groups \
-    env -u AUTHORING_AGENT_TOKEN -u CLAUDE_CODE_OAUTH_TOKEN HOME="$HOST_HOME" TMPDIR=/tmp "$@"
+    env -u AUTHORING_AGENT_TOKEN -u CLAUDE_CODE_OAUTH_TOKEN -u AUTHORING_CREDIT_KEY HOME="$HOST_HOME" TMPDIR=/tmp "$@"
 }
 
 # 켤 때마다 비우고 시작한다 — 재시작하면 남은 .gitconfig 에 insteadOf 가 겹쳐 git config 가 죽고(set -e),
