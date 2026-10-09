@@ -10,11 +10,14 @@ import { 흐름풀기 } from './authoring-usage.js';
 
 export const 크레딧키이름 = 'AUTHORING_CREDIT_KEY';
 
-/** 키 모양만 본다. 구독 토큰(sk-ant-oat)을 넣으면 크레딧이 아니라 구독으로 돌아 넣은 뜻과 어긋난다 */
+/**
+ * 키 모양만 본다. 구독 토큰(sk-ant-oat · ort)을 넣으면 크레딧이 아니라 구독으로 돌아 넣은 뜻과 어긋나고, 관리자 키는 요청을 못 보낸다.
+ * Console API 키의 접두사는 하나가 아니다 — 2026-10 크레딧 조직에서 만든 키가 sk-ant-usr… 였다(/v1/models 200). 그래서 막을 것만 적는다
+ */
 export function 크레딧키검사(값: string | undefined): string | null {
   if (!값) return null;
-  if (/^sk-ant-api\d*-/.test(값)) return null;
-  return `${크레딧키이름} 는 크레딧을 받은 Console 조직의 API 키(sk-ant-api…)여야 한다. 구독 토큰은 CLAUDE_CODE_OAUTH_TOKEN 에 넣는다.`;
+  if (/^sk-ant-/.test(값) && !/^sk-ant-(?:oat|ort|admin)/.test(값)) return null;
+  return `${크레딧키이름} 는 크레딧을 받은 Console 조직의 API 키(sk-ant-…)여야 한다. 구독 토큰(sk-ant-oat…)은 CLAUDE_CODE_OAUTH_TOKEN 에, 관리자 키는 쓰지 않는다.`;
 }
 
 /** 자식이 API 크레딧이 없어 멈췄나. 한도걸렸나 처럼 끝 몇 줄과 표준 오류만 — 대상 화면 문구를 인용한 글까지 바닥으로 세지 않는다 */

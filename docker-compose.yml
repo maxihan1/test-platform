@@ -136,7 +136,7 @@ services:
       # `claude setup-token` 으로 만든 구독 토큰(sk-ant-oat…). API 키를 넣으면 실비 청구다 — 시작 스크립트가 막는다.
       # **고객사 서버는 그 회사 Claude 계정의 토큰이다** (SPEC 도메인/작성 §3.6)
       CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN:-}"
-      # 선택. 월간 API 크레딧을 받은 Console 조직의 키(sk-ant-api…) — 크레딧 먼저, 떨어지면 구독(SPEC 공통/6 §9 · SETUP.md)
+      # 선택. 월간 API 크레딧을 받은 Console 조직의 API 키(sk-ant-…, 구독 토큰 sk-ant-oat… 아님) — 크레딧 먼저, 떨어지면 구독(SPEC 공통/6 §9 · SETUP.md)
       AUTHORING_CREDIT_KEY: "${AUTHORING_CREDIT_KEY:-}"
       # PR 열기·병합 권한. 자식 세션에는 가짜 값으로 덮어 넘긴다
       GH_TOKEN: "${GH_TOKEN:-}"
