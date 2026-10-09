@@ -16,7 +16,8 @@ export type Route =
   | { name: 'login' }
   | { name: 'signup' }
   | { name: 'password' }
-  | { name: 'settings' }
+  /** 자리 — 설정 안에서 고른 것. 서비스 접두사 · `users` · `pending` · `new`. 없으면 첫 서비스다 (도메인/인증 §8.8) */
+  | { name: 'settings'; 자리?: string }
   | { name: 'cases'; kind: 케이스종류 }
   | { name: 'setup'; tcId: string }
   | { name: 'runs'; kind: 실행종류 }
@@ -36,6 +37,8 @@ export function route(hash: string): Route {
   if (parts.length === 1 && parts[0] === 'signup') return { name: 'signup' };
   if (parts.length === 1 && parts[0] === 'password') return { name: 'password' };
   if (parts.length === 1 && parts[0] === 'settings') return { name: 'settings' };
+  // 고른 자리를 주소에 남긴다 — 새로고침 · 뒤로 가기에 서비스 고른 것이 풀리면 처음 서비스로 튄다
+  if (parts.length === 2 && parts[0] === 'settings') return { name: 'settings', 자리: decodeURIComponent(parts[1]!) };
 
   // 빈 주소는 집이다. 집이 대시보드가 된 뒤로 route 가 먼저 대시보드로 푼다 — 그 자리가 없는 사람은 `갈자리` 가 다음 집으로 보낸다
   if (parts.length === 0 || (parts.length === 1 && parts[0] === 'dashboard')) return { name: 'dashboard' };

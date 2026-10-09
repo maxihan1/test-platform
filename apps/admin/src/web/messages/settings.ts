@@ -28,10 +28,7 @@ export const 설정말: Record<string, string> = {
   '비활성으로 내리기': 'Deactivate',
   '다시 활성으로': 'Reactivate',
   '아직 서비스가 없습니다': 'No services yet',
-  '위 「+」로 첫 서비스를 만듭니다': 'Use + above to create the first one',
   '케이스 {건수}건': '{건수} cases',
-  '대상 서버 없음': 'No target servers',
-  '대상 서버 {개수}개': '{개수} target servers',
   '배정 없음': 'Unassigned',
 
   // 서비스 편집기
@@ -159,4 +156,24 @@ export const 설정말: Record<string, string> = {
   '의 에이전트 토큰입니다. 선택해 복사하세요': "'s agent token. Select it to copy",
   '맥 에이전트 첫 실행에서 한 번 붙여넣습니다. 방법은 docs/SETUP.md 8절':
     'Paste it once on the Mac agent first run. See docs/SETUP.md section 8',
+  // 설정 안 메뉴와 서비스 구획 (2026-10-09 UI 개편 묶음 4 시안 A)
+  '설정 메뉴': 'Settings menu',
+  '+ 서비스 추가': '+ Add service',
+  '사람': 'People',
+  '기다리는 가입 신청이 없습니다': 'No sign-up requests waiting',
+  '그런 서비스가 없습니다': 'No such service',
+  '새 서비스': 'New service',
+  '기본 정보': 'Basics',
+  '스크립트 번호 · 화면 맨 위 서비스 띠 · 스크립트를 읽어 올 폴더에 쓰입니다':
+    'Used for script IDs, the service band at the top and the folder scripts are read from',
+  '실행할 때 「대상 서버」에서 고르는 목록입니다. 하나도 없으면 실행할 수 없습니다':
+    'The list you pick from under Target server when running. With none, nothing can run',
+  '실행 알림': 'Run notifications',
+  '실행할 때 「끝나면 Slack 으로 알리기」를 켜면 이 채널로 결과를 보냅니다':
+    'Results go to this channel when Notify Slack when done is on for a run',
+  '기획서 · 피그마로 테스트 스크립트를 만들 때만 씁니다. 실행에는 영향이 없습니다':
+    'Only used when building test scripts from specs and Figma. Runs are not affected',
+  '서비스 끄기': 'Turn off service',
+  '끄면 서비스 띠와 실행 창에서 사라집니다. 실행 기록과 스크립트는 남습니다':
+    'Once off, it leaves the service band and the run window. Run history and scripts stay',
 };

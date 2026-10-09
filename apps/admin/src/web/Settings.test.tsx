@@ -71,3 +71,74 @@ describe('설정 화면의 틀', () => {
     expect(container.querySelector('.head')).toBeNull();
   });
 });
+
+describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', () => {
+  const 둘째: SettingsServiceRow = { ...서비스, id: 2, prefix: 'ZSU', name: 'ZSU 서비스' };
+  const 대기: UserRow = { ...계정, username: 'zst-new', displayName: '가입자', isApproved: false, services: [] };
+
+  function 펼친다(자리?: string, 계정들: UserRow[] = [계정]) {
+    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스, 둘째] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: 계정들 });
+    return render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리={자리} />);
+  }
+
+  it('메뉴에 서비스마다 · 서비스 추가 · 계정이 주소 링크로 선다', async () => {
+    펼친다();
+    const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
+
+    const 링크들 = [...메뉴.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+    expect(링크들).toEqual(['#/settings/ZST', '#/settings/ZSU', '#/settings/new', '#/settings/users']);
+  });
+
+  it('자리가 없으면 첫 서비스를 연다', async () => {
+    펼친다();
+
+    expect(await screen.findByRole('heading', { name: /ZST 서비스/ })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /ZST 서비스/ }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('주소의 접두사로 그 서비스를 연다', async () => {
+    펼친다('ZSU');
+
+    expect(await screen.findByRole('heading', { name: /ZSU 서비스/ })).toBeTruthy();
+    expect((screen.getByLabelText('이름') as HTMLInputElement).value).toBe('ZSU 서비스');
+  });
+
+  it('users 면 계정, new 면 새 서비스를 연다', async () => {
+    const { unmount } = 펼친다('users');
+    expect(await screen.findByText('김설정')).toBeTruthy();
+    expect(screen.queryByLabelText('접두사')).toBeNull();
+    unmount();
+
+    펼친다('new');
+    expect(await screen.findByText('새 서비스')).toBeTruthy();
+    expect((screen.getByLabelText('접두사') as HTMLInputElement).disabled).toBe(false);
+  });
+
+  it('기다리는 가입 신청이 있을 때만 메뉴에 가입 신청과 그 수가 선다', async () => {
+    const { unmount } = 펼친다(undefined, [계정, 대기]);
+    const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
+
+    const 신청 = [...메뉴.querySelectorAll('a')].find((a) => a.getAttribute('href') === '#/settings/pending');
+    expect(신청?.textContent).toContain('가입 신청');
+    expect(신청?.textContent).toContain('1');
+    unmount();
+
+    펼친다();
+    const 다시 = await screen.findByRole('navigation', { name: '설정 메뉴' });
+    expect(다시.querySelector('a[href="#/settings/pending"]')).toBeNull();
+  });
+
+  it('pending 이면 가입 신청 묶음을 연다', async () => {
+    펼친다('pending', [계정, 대기]);
+
+    expect(await screen.findByText('가입자')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '수락' })).toBeTruthy();
+  });
+
+  it('없는 접두사면 그 사실을 적는다', async () => {
+    펼친다('NOPE');
+
+    expect(await screen.findByText('그런 서비스가 없습니다')).toBeTruthy();
+  });
+});

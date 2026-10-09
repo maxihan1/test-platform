@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type SettingsServiceRow } from './api.js';
-import { ServiceSection } from './SettingsService.js';
+import { ServicePanel } from './SettingsService.js';
 
 afterEach(() => {
   cleanup();
@@ -25,25 +25,59 @@ const 서비스: SettingsServiceRow = {
 };
 
 function 그린다() {
-  render(<ServiceSection rows={[서비스]} onDone={() => {}} />);
-  fireEvent.click(screen.getByText('편집'));
+  render(<ServicePanel row={서비스} onDone={() => {}} />);
 }
 
-describe('서비스 더하기는 + 아이콘 버튼이다 (2026-09-22)', () => {
-  it('글자 「더하기」 대신 + 기호가 뜨고, 화면을 안 보는 사람에게는 라벨로 뜻이 전해진다', () => {
-    render(<ServiceSection rows={[서비스]} onDone={() => {}} />);
+describe('서비스 설정은 구획마다 「어디에 쓰이나」를 단다 (도메인/인증 §8.8 · 2026-10-09 시안 A)', () => {
+  it('구획마다 — 기본 정보 · 대상 서버 · 실행 알림 · 테스트 작성 · 서비스 끄기 — 제목과 쓰임 한 줄을 갖는다', () => {
+    그린다();
 
-    const 버튼 = screen.getByLabelText('더하기');
-    expect(버튼.textContent).toBe('+');
+    const 구획들 = [...document.querySelectorAll('.set-card')].map((el) => el.querySelector('h3')?.textContent);
+    expect(구획들).toEqual(['기본 정보', '대상 서버', '실행 알림', '테스트 작성', '서비스 끄기']);
+    for (const 구획 of document.querySelectorAll('.set-card')) {
+      expect(구획.querySelector('.set-card-h p')?.textContent?.length ?? 0).toBeGreaterThan(10);
+    }
   });
 
-  it('누르면 열리고, 열린 채로 다시 누르면 라벨과 기호가 닫기로 바뀐다', () => {
-    render(<ServiceSection rows={[서비스]} onDone={() => {}} />);
+  it('칸이 제 구획 안에 선다 — Slack 은 실행 알림, 피그마와 훑지 않을 경로는 테스트 작성', () => {
+    그린다();
 
-    fireEvent.click(screen.getByLabelText('더하기'));
+    const 구획 = (제목: string) => [...document.querySelectorAll('.set-card')].find((el) => el.querySelector('h3')?.textContent === 제목);
+    expect(구획('실행 알림')?.textContent).toContain('Slack 웹훅');
+    expect(구획('테스트 작성')?.textContent).toContain('피그마 토큰');
+    expect(구획('테스트 작성')?.textContent).toContain('훑지 않을 경로');
+    expect(구획('대상 서버')?.querySelector('[role="group"]')).not.toBeNull();
+  });
 
-    const 버튼 = screen.getByLabelText('닫기');
-    expect(버튼.textContent).toBe('×');
+  it('새 서비스에는 서비스 끄기 구획이 없다 — 끌 것이 아직 없다', () => {
+    render(<ServicePanel onDone={() => {}} />);
+
+    expect(screen.getByText('새 서비스')).toBeTruthy();
+    expect(screen.queryByText('서비스 끄기')).toBeNull();
+  });
+
+  it('비활성으로 내리기는 저장과 따로 서비스 끄기 구획에서 한다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    const onDone = vi.fn();
+    render(<ServicePanel row={서비스} onDone={onDone} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '비활성으로 내리기' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { isActive: false }));
+    expect(onDone).toHaveBeenCalledWith('ZSS');
+  });
+
+  it('새 서비스를 만들면 그 접두사를 넘긴다 — 틀이 그 서비스로 옮겨 간다', async () => {
+    vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
+    const onDone = vi.fn();
+    render(<ServicePanel onDone={onDone} />);
+
+    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
+    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
+    fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith('NEW'));
   });
 });
 
@@ -71,8 +105,7 @@ function 피그마칸(): HTMLElement {
 describe('피그마 토큰 칸 (도메인/인증 §8.8)', () => {
   it('토큰을 넣고 저장하면 figmaToken 이 간다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
-    render(<ServiceSection rows={[서비스]} onDone={() => {}} />);
-    fireEvent.click(screen.getByText('편집'));
+    render(<ServicePanel row={서비스} onDone={() => {}} />);
 
     fireEvent.click(within(피그마칸()).getByRole('button', { name: '넣기' }));
     fireEvent.change(screen.getByLabelText('피그마 토큰'), { target: { value: 'figd_abc' } });
@@ -85,8 +118,7 @@ describe('피그마 토큰 칸 (도메인/인증 §8.8)', () => {
 
   it('안 건드리면 figmaToken 을 안 보낸다. 빈 글자가 가면 있던 토큰이 지워진다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
-    render(<ServiceSection rows={[{ ...서비스, hasFigmaToken: true }]} onDone={() => {}} />);
-    fireEvent.click(screen.getByText('편집'));
+    render(<ServicePanel row={{ ...서비스, hasFigmaToken: true }} onDone={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
@@ -94,8 +126,7 @@ describe('피그마 토큰 칸 (도메인/인증 §8.8)', () => {
   });
 
   it('저장된 서비스는 값 대신 「설정됨 · 다시 넣기」를 보인다', () => {
-    render(<ServiceSection rows={[{ ...서비스, hasFigmaToken: true }]} onDone={() => {}} />);
-    fireEvent.click(screen.getByText('편집'));
+    render(<ServicePanel row={{ ...서비스, hasFigmaToken: true }} onDone={() => {}} />);
 
     const 칸 = 피그마칸();
     expect(칸.textContent).toContain('설정됨');
@@ -122,8 +153,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
 
   it('안 건드리고 저장하면 아이디는 되돌려 보내고 비밀번호는 안 보낸다 — 서버가 유지한다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
-    render(<ServiceSection rows={[계정있음]} onDone={() => {}} />);
-    fireEvent.click(screen.getByText('편집'));
+    render(<ServicePanel row={계정있음} onDone={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
     await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
@@ -133,8 +163,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
 
   it('비밀번호는 값 대신 설정됨으로 보이고, 다시 넣으면 새 값을 보낸다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
-    render(<ServiceSection rows={[계정있음]} onDone={() => {}} />);
-    fireEvent.click(screen.getByText('편집'));
+    render(<ServicePanel row={계정있음} onDone={() => {}} />);
 
     const 줄 = screen.getByLabelText('대상 서버 1 테스트 아이디').closest('.set-env-login') as HTMLElement;
     expect(within(줄).getByText('비밀번호 설정됨')).toBeTruthy();
@@ -150,8 +179,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
 
   it('지우기를 누르고 저장하면 비밀번호를 null 로 보낸다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
-    render(<ServiceSection rows={[계정있음]} onDone={() => {}} />);
-    fireEvent.click(screen.getByText('편집'));
+    render(<ServicePanel row={계정있음} onDone={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 비밀번호 지우기' }));
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
@@ -161,8 +189,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
 
   it('새로 더한 줄은 빈 계정 칸을 null 로 보낸다 — 같은 이름의 옛 계정이 되살아나지 않게', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
-    render(<ServiceSection rows={[계정있음]} onDone={() => {}} />);
-    fireEvent.click(screen.getByText('편집'));
+    render(<ServicePanel row={계정있음} onDone={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 빼기' }));
     fireEvent.click(screen.getByRole('button', { name: '줄 더하기' }));
     fireEvent.change(screen.getByLabelText('대상 서버 1 키'), { target: { value: 'qa' } });
@@ -179,16 +206,14 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
   });
 
   it('계정 칸은 브라우저 자동완성을 받지 않는다 — 플랫폼 로그인 비밀번호가 채워지지 않게', () => {
-    render(<ServiceSection rows={[계정있음]} onDone={() => {}} />);
-    fireEvent.click(screen.getByText('편집'));
+    render(<ServicePanel row={계정있음} onDone={() => {}} />);
     expect(screen.getByLabelText('대상 서버 1 테스트 아이디').getAttribute('autocomplete')).toBe('off');
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 비밀번호 넣기' }));
     expect(screen.getByLabelText('대상 서버 1 테스트 비밀번호').getAttribute('autocomplete')).toBe('new-password');
   });
 
   it('계정이 있던 줄의 키 이름을 바꾸면 비밀번호가 비워진다고 알린다', () => {
-    render(<ServiceSection rows={[계정있음]} onDone={() => {}} />);
-    fireEvent.click(screen.getByText('편집'));
+    render(<ServicePanel row={계정있음} onDone={() => {}} />);
     expect(screen.queryByText(/비밀번호가 비워집니다/)).toBeNull();
 
     fireEvent.change(screen.getByLabelText('대상 서버 1 키'), { target: { value: 'qa2' } });
@@ -209,8 +234,7 @@ describe('훑지 않을 경로 칸 (도메인/인증 §8.8 · 2026-10-04)', () =
   });
 
   it('있던 값이 한 줄에 하나씩 채워져 보인다', () => {
-    render(<ServiceSection rows={[{ ...서비스, crawlExclude: ['/daejeon', '/gyeongnam'] }]} onDone={() => {}} />);
-    fireEvent.click(screen.getByText('편집'));
+    render(<ServicePanel row={{ ...서비스, crawlExclude: ['/daejeon', '/gyeongnam'] }} onDone={() => {}} />);
 
     expect((screen.getByLabelText('훑지 않을 경로') as HTMLTextAreaElement).value).toBe('/daejeon\n/gyeongnam');
   });
@@ -228,8 +252,7 @@ describe('훑지 않을 경로 칸 (도메인/인증 §8.8 · 2026-10-04)', () =
 
   it('새 서비스를 만들 때도 crawlExclude 를 보낸다', async () => {
     const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 2 });
-    render(<ServiceSection rows={[]} onDone={() => {}} />);
-    fireEvent.click(screen.getByLabelText('더하기'));
+    render(<ServicePanel onDone={() => {}} />);
 
     fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'CDY' } });
     fireEvent.change(screen.getByLabelText('이름'), { target: { value: '청도' } });
