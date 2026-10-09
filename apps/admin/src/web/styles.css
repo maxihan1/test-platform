@@ -2475,6 +2475,140 @@ input[type='file']::file-selector-button {
   padding-top: 6px;
 }
 
+/* 설정 안 메뉴 + 고른 것 하나 (2026-10-09 시안 A). 한 페이지에 다 쌓으면 무슨 설정인지 안 읽혔다(2026-10-07 사용자) */
+.set-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.set-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: sticky;
+  top: 0;
+}
+
+/* 묶음 이름은 구획 제목 라벨 잉크다 (화면공통 §8 껍데기 목록) */
+.set-nav h2 {
+  margin: 14px 12px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.set-nav h2:first-child {
+  margin-top: 0;
+}
+
+.set-nav a {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.set-nav a:hover {
+  background: var(--rail-active);
+  color: var(--ink);
+}
+
+/* 지금 있는 자리 — 사이드바처럼 왼쪽 막대가 대표색이다 (화면공통 §8 대표색 자리) */
+.set-nav a[aria-current='page'] {
+  background: var(--rail-active);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.set-nav a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.set-nav-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.set-nav-sub {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+
+/* 기다리는 가입 신청 수 — 굵게만 한다. 대표색 자리(화면공통 §8)가 아니다 */
+.set-nav-count {
+  font-weight: 600;
+}
+
+.set-nav-add {
+  font-size: 13px;
+}
+
+.set-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 920px;
+}
+
+.set-panel-h {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* 구획 하나 — 제목 아래 「어디에 쓰이나」 한 줄 */
+.set-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px 20px 12px;
+}
+
+/* 되돌리기 어려운 일은 테두리로 떼어 놓는다. 색은 실패 글자색이 아니라 테두리만 — 판정이 아니다 */
+.set-card.warn {
+  border-color: var(--line-2);
+}
+
+.set-card-h {
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.set-card-h h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.set-card-h p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+/* 「저장했습니다」 한 줄 — 판정이 아니라 판정 색을 안 쓴다 */
+.set-saved {
+  margin: 0 0 8px;
+}
+
+/* 구획 제목이 칸 이름을 대신하는 칸 — 라벨 열 없이 한 줄을 다 쓴다 */
+.field.field-wide {
+  grid-template-columns: 1fr;
+}
+
 .set-pick {
   display: flex;
   align-items: center;

@@ -191,15 +191,19 @@ describe('설정 화면에서의 자리', () => {
     return { username: 'zsp1', displayName: '김운영', role: 'admin', dashboard: 'read', mustChangePassword: false, services: [] };
   }
 
-  it('승인 대기는 계정 목록 위에 따로 묶이고 계정 목록에는 안 섞인다', async () => {
+  // 2026-10-09 설정 안 메뉴(시안 A) — 승인 대기와 계정이 각자 자리다. 섞이지 않는다는 규칙은 그대로다
+  it('가입 신청 자리에 승인 대기가 서고 계정 자리에는 안 섞인다', async () => {
     vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
     vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [운영자, 신청] });
-    render(<Settings user={사람()} onMeChanged={() => undefined} />);
+    const { unmount } = render(<Settings user={사람()} onMeChanged={() => undefined} 자리="pending" />);
 
-    const 대기머리 = await screen.findByText('승인 대기 1');
-    const 계정머리 = screen.getByText('계정', { selector: '.sec-h span' });
-    expect(대기머리.compareDocumentPosition(계정머리) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(await screen.findByText('승인 대기 1')).toBeTruthy();
     expect(screen.getAllByText('이민수')).toHaveLength(1);
+    unmount();
+
+    render(<Settings user={사람()} onMeChanged={() => undefined} 자리="users" />);
+    const 계정머리 = await screen.findByText('계정', { selector: '.sec-h span' });
     expect(within(계정머리.closest('section')!).queryByText('이민수')).toBeNull();
+    expect(screen.queryByText('승인 대기 1')).toBeNull();
   });
 });

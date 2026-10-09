@@ -1,4 +1,4 @@
-// 설정 화면의 서비스 구획 (SPEC §8.8). 접두사·이름·색·테스트 폴더·대상 서버·Slack 웹훅·피그마 토큰
+// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · 실행 알림 · 테스트 작성 · 서비스 끄기 구획
 // 지우지 않는다 — 비활성으로 내릴 뿐이다. 지우면 그 서비스로 돌린 과거 증적이 흔들린다
 
 import { useState, type ReactNode } from 'react';
@@ -18,78 +18,13 @@ import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
 import { message } from './ui.js';
 
-export function ServiceSection({ rows, onDone }: { rows: SettingsServiceRow[]; onDone: () => void }) {
-  const t = use말();
-  const [여는것, set여는것] = useState<number | 'new' | null>(null);
-
-  return (
-    <section className="sec">
-      <div className="sec-h">
-        <span>{t('서비스')}</span>
-        <button
-          type="button"
-          className="btn ghost icon"
-          aria-label={여는것 === 'new' ? t('닫기') : t('더하기')}
-          onClick={() => set여는것(여는것 === 'new' ? null : 'new')}
-        >
-          {여는것 === 'new' ? '×' : '+'}
-        </button>
-      </div>
-
-      {여는것 === 'new' ? (
-        <ServiceForm
-          onDone={() => {
-            set여는것(null);
-            onDone();
-          }}
-        />
-      ) : null}
-
-      {rows.length === 0 ? (
-        <div className="empty">
-          {t('아직 서비스가 없습니다')}
-          <small>{t('위 「+」로 첫 서비스를 만듭니다')}</small>
-        </div>
-      ) : (
-        rows.map((it) => (
-          <div key={it.id}>
-            <div className="set-row">
-              {/* 띠에서 쓸 색을 그대로 보여준다. 글자만 보고는 어떤 색인지 모른다 */}
-              <span className="set-name">
-                {it.name}
-                {it.isActive ? null : <span className="set-off">{t('비활성')}</span>}
-              </span>
-              <span className="set-sub">{it.prefix}-</span>
-              <span className="set-sub">{t('케이스 {건수}건', { 건수: it.caseCount })}</span>
-              <span className="set-sub">
-                {it.envs.length === 0
-                  ? t('대상 서버 없음')
-                  : t('대상 서버 {개수}개', { 개수: it.envs.length })}
-              </span>
-              <button
-                className="btn ghost"
-                onClick={() => set여는것(여는것 === it.id ? null : it.id)}
-              >
-                {여는것 === it.id ? t('닫기') : t('편집')}
-              </button>
-            </div>
-            {여는것 === it.id ? (
-              <ServiceForm
-                row={it}
-                onDone={() => {
-                  set여는것(null);
-                  onDone();
-                }}
-              />
-            ) : null}
-          </div>
-        ))
-      )}
-    </section>
-  );
-}
-
-function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => void }) {
+/**
+ * 고른 서비스 하나의 설정 — 구획마다 「어디에 쓰이나」를 한 줄로 단다 (2026-10-09 시안 A).
+ * 앞 판은 목록 줄을 펴면 칸 열 개가 한 줄로 이어져 무슨 설정인지 안 읽혔다(2026-10-07 사용자)
+ *
+ * @param onDone 저장했다. 접두사를 넘긴다 — 새로 만들었으면 그 서비스로 옮겨 간다
+ */
+export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone: (접두사: string) => void }) {
   const t = use말();
   // 아래 판단 넷은 순수 모듈에 있어 훅을 못 쓴다. 언어를 여기서 꺼내 넘긴다
   const 언어 = use언어();
@@ -108,7 +43,6 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
 
   const 접두사틀림 = 접두사사유(prefix, 언어);
   const 못보내는이유 = 서비스못보내는이유({ 새것, prefix, name, testsDir, envs, 제외 }, 언어);
-
 
   async function 보낸다() {
     if (못보내는이유 !== null) return;
@@ -132,7 +66,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
           ...(figma === null ? {} : { figmaToken: figma }),
         });
       }
-      onDone();
+      onDone(prefix);
     } catch (e) {
       setErr(오류문장(e, 언어));
     } finally {
@@ -147,7 +81,7 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
     setErr(null);
     try {
       await api.updateService(row.id, { isActive: !row.isActive });
-      onDone();
+      onDone(row.prefix);
     } catch (e) {
       setErr(오류문장(e, 언어));
     } finally {
@@ -156,101 +90,140 @@ function ServiceForm({ row, onDone }: { row?: SettingsServiceRow; onDone: () => 
   }
 
   return (
-    <div className="set-form">
-      <div className="field">
-        <label htmlFor="sf-prefix">{t('접두사')}</label>
-        <div>
-          <input
-            id="sf-prefix"
-            type="text"
-            value={prefix}
-            disabled={!새것}
-            onChange={(e) => setPrefix(e.target.value.toUpperCase())}
-            placeholder="PAY"
-          />
-          <div className="hint">
-            {새것
-              ? t('만들 때만 정합니다. 케이스 번호(PAY-001)에 들어가므로 나중에 바꿀 수 없습니다')
-              : t('만든 뒤에는 바꿀 수 없습니다. 케이스 번호에 이미 들어가 있습니다')}
+    <div className="set-panel">
+      <h2 className="set-panel-h">
+        {새것 ? (
+          t('새 서비스')
+        ) : (
+          <>
+            {row.name}
+            <span className="set-sub">{row.prefix}-</span>
+            {row.isActive ? null : <span className="set-off">{t('비활성')}</span>}
+            <span className="set-sub">{t('케이스 {건수}건', { 건수: row.caseCount })}</span>
+          </>
+        )}
+      </h2>
+
+      <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호 · 사이드바 맨 위 서비스 고르개 · 스크립트를 읽어 올 폴더에 쓰입니다')}>
+        <div className="field">
+          <label htmlFor="sf-prefix">{t('접두사')}</label>
+          <div>
+            <input
+              id="sf-prefix"
+              type="text"
+              value={prefix}
+              disabled={!새것}
+              onChange={(e) => setPrefix(e.target.value.toUpperCase())}
+              placeholder="PAY"
+            />
+            <div className="hint">
+              {새것
+                ? t('만들 때만 정합니다. 케이스 번호(PAY-001)에 들어가므로 나중에 바꿀 수 없습니다')
+                : t('만든 뒤에는 바꿀 수 없습니다. 케이스 번호에 이미 들어가 있습니다')}
+            </div>
+            {접두사틀림 === null ? null : <div className="err">{접두사틀림}</div>}
           </div>
-          {접두사틀림 === null ? null : <div className="err">{접두사틀림}</div>}
         </div>
-      </div>
 
-      <div className="field">
-        <label htmlFor="sf-name">{t('이름')}</label>
-        <input
-          id="sf-name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={t('결제 서비스')}
-        />
-      </div>
-
-      <div className="field">
-        <label htmlFor="sf-dir">{t('테스트 폴더')}</label>
-        <div>
+        <div className="field">
+          <label htmlFor="sf-name">{t('이름')}</label>
           <input
-            id="sf-dir"
+            id="sf-name"
             type="text"
-            value={testsDir}
-            onChange={(e) => setTestsDir(e.target.value)}
-            placeholder="pay"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('결제 서비스')}
           />
-          <div className="hint">{t('플랫폼이 실제로 훑을 폴더입니다')}</div>
         </div>
-      </div>
 
-      <div className="field">
-        <label htmlFor="sf-repo">{t('테스트 저장소')}</label>
-        <div>
-          <input
-            id="sf-repo"
-            type="text"
-            value={testsRepo}
-            onChange={(e) => setTestsRepo(e.target.value)}
-            placeholder="https://github.com/..."
-          />
-          <div className="hint">{t('기록용으로만 적어 둡니다. 플랫폼이 이 저장소를 받아오지는 않습니다')}</div>
+        <div className="field">
+          <label htmlFor="sf-dir">{t('테스트 폴더')}</label>
+          <div>
+            <input
+              id="sf-dir"
+              type="text"
+              value={testsDir}
+              onChange={(e) => setTestsDir(e.target.value)}
+              placeholder="pay"
+            />
+            <div className="hint">{t('플랫폼이 실제로 훑을 폴더입니다')}</div>
+          </div>
         </div>
-      </div>
 
-      <CrawlExcludeField 값={제외} 바꾼다={set제외} />
-
-      <EnvEditor envs={envs} onChange={setEnvs} />
-
-      <비밀칸 id="sf-hook" 이름={t('Slack 웹훅')} 설정됨={row?.hasSlackWebhook ?? false} 새것={새것}
-        값={webhook} 바꾼다={setWebhook} placeholder="https://hooks.slack.com/..."
-        비울때={t('이대로 저장하면 알림을 끕니다. 그대로 두려면 「그대로 두기」를 누릅니다')} />
-
-      {/* 규칙은 웹훅과 같다. 발급 안내를 옆에 둔다 — 어디서 만드는지 모르면 칸이 비어 남는다 (도메인/인증 §8.8) */}
-      <비밀칸 id="sf-figma" 이름={t('피그마 토큰')} 설정됨={row?.hasFigmaToken ?? false} 새것={새것}
-        값={figma} 바꾼다={setFigma} placeholder="figd_..."
-        비울때={t('이대로 저장하면 토큰을 지웁니다. 피그마 자료를 못 읽게 됩니다')}>
-        <div className="hint">
-          {t('Figma → Settings → Security → Personal access tokens 에서 만듭니다. 권한은 File content 읽기만, 만료일을 정합니다')}{' '}
-          <a href={피그마설정주소} target="_blank" rel="noopener noreferrer">
-            {t('Figma 설정 열기')} ↗
-          </a>
+        <div className="field">
+          <label htmlFor="sf-repo">{t('테스트 저장소')}</label>
+          <div>
+            <input
+              id="sf-repo"
+              type="text"
+              value={testsRepo}
+              onChange={(e) => setTestsRepo(e.target.value)}
+              placeholder="https://github.com/..."
+            />
+            <div className="hint">{t('기록용으로만 적어 둡니다. 플랫폼이 이 저장소를 받아오지는 않습니다')}</div>
+          </div>
         </div>
-      </비밀칸>
+      </구획>
+
+      <구획 제목={t('대상 서버')} 쓰임={t('실행할 때 「대상 서버」에서 고르는 목록입니다. 하나도 없으면 실행할 수 없습니다')}>
+        <EnvEditor envs={envs} onChange={setEnvs} />
+      </구획>
+
+      <구획 제목={t('실행 알림')} 쓰임={t('실행할 때 「끝나면 Slack 으로 알리기」를 켜면 이 채널로 결과를 보냅니다')}>
+        <비밀칸 id="sf-hook" 이름={t('Slack 웹훅')} 설정됨={row?.hasSlackWebhook ?? false} 새것={새것}
+          값={webhook} 바꾼다={setWebhook} placeholder="https://hooks.slack.com/..."
+          비울때={t('이대로 저장하면 알림을 끕니다. 그대로 두려면 「그대로 두기」를 누릅니다')} />
+      </구획>
+
+      <구획 제목={t('테스트 작성')} 쓰임={t('기획서 · 피그마로 테스트 스크립트를 만들 때만 씁니다. 실행에는 영향이 없습니다')}>
+        {/* 규칙은 웹훅과 같다. 발급 안내를 옆에 둔다 — 어디서 만드는지 모르면 칸이 비어 남는다 (도메인/인증 §8.8) */}
+        <비밀칸 id="sf-figma" 이름={t('피그마 토큰')} 설정됨={row?.hasFigmaToken ?? false} 새것={새것}
+          값={figma} 바꾼다={setFigma} placeholder="figd_..."
+          비울때={t('이대로 저장하면 토큰을 지웁니다. 피그마 자료를 못 읽게 됩니다')}>
+          <div className="hint">
+            {t('Figma → Settings → Security → Personal access tokens 에서 만듭니다. 권한은 File content 읽기만, 만료일을 정합니다')}{' '}
+            <a href={피그마설정주소} target="_blank" rel="noopener noreferrer">
+              {t('Figma 설정 열기')} ↗
+            </a>
+          </div>
+        </비밀칸>
+        <CrawlExcludeField 값={제외} 바꾼다={set제외} />
+      </구획>
 
       {err === null ? null : <div className="err">{err}</div>}
 
       <div className="set-foot">
-        {새것 ? null : (
-          <button className="btn ghost set-left" disabled={보내는중} onClick={() => void 활성을뒤집는다()}>
-            {row.isActive ? t('비활성으로 내리기') : t('다시 활성으로')}
-          </button>
-        )}
         {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
         <button className="btn" disabled={보내는중} onClick={() => void 보낸다()}>
           {새것 ? t('서비스 추가') : t('저장')}
         </button>
       </div>
       {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}
+
+      {/* 저장과 다른 일이라 따로 둔다 — 적다 만 칸은 저장하지 않고 상태만 뒤집는다 */}
+      {새것 ? null : (
+        <구획 제목={t('서비스 끄기')} 쓰임={t('끄면 사이드바의 서비스 고르개에서 빠집니다. 실행 기록과 스크립트는 남습니다')} 경고>
+          <div>
+            <button className="btn ghost" disabled={보내는중} onClick={() => void 활성을뒤집는다()}>
+              {row.isActive ? t('비활성으로 내리기') : t('다시 활성으로')}
+            </button>
+          </div>
+        </구획>
+      )}
     </div>
+  );
+}
+
+/** 설정 구획 하나 — 제목과 「어디에 쓰이나」 한 줄. 무슨 설정인지 칸 이름만으로는 안 읽혔다 (2026-10-07 사용자) */
+function 구획({ 제목, 쓰임, 경고 = false, children }: { 제목: string; 쓰임: string; 경고?: boolean; children: ReactNode }) {
+  return (
+    <section className={경고 ? 'set-card warn' : 'set-card'}>
+      <div className="set-card-h">
+        <h3>{제목}</h3>
+        <p>{쓰임}</p>
+      </div>
+      {children}
+    </section>
   );
 }
 
