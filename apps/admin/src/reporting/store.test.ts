@@ -8,7 +8,7 @@ import { EvidenceBusyError, claim, fail, findDocument, finish, recoverPending } 
 const 연결 = process.env.DATABASE_URL;
 
 // 정리 구문이 자기 fixture 만 지우도록 제목을 이 파일 것으로 좁힌다.
-// 'XDR%' 로 지우면 routes.test.ts 의 'XDR 증적 라우트 실행' 까지 걸어 간다 (docs/LEARNINGS.md)
+// 'XDR%' 로 지우면 routes.test.ts 의 'XDR 증적 라우트 실행' 까지 걸어 간다 (docs/archive/LEARNINGS.md)
 const 제목 = 'XDR 증적 상태 실행';
 
 const 실행 = `

@@ -21,14 +21,12 @@ test-platform/                      ← 프로젝트 루트 (이름은 자유)
 │           └── SKILL.md            ★ SPEC 검사 스킬
 └── docs/
     ├── SPEC.md                     ★ 무엇을 만드는가
-    ├── WORKFLOW.md                 ★ 어느 단계인가
-    ├── WORKSTREAMS.md              ★ 누가 어느 폴더를 맡는가
+    ├── WORKSTREAMS.md              ★ 어느 폴더가 무슨 일을 하는가
+    ├── wbs.md                      ★ 진행판 원본
     ├── DESIGN.md                   ★ 화면 기준
     ├── design-mockup.html          개편 전 화면 목업 (2026-10-07 동결 — 시각 기준은 DESIGN.md 맨 위 시안 캔버스)
     ├── HOOKS.md                    ★ 훅 설명
-    ├── LEARNINGS.md                ★ 세션 간 학습 기록 (비어 있는 상태로 시작)
-    ├── progress/                   ← 빈 폴더. 세션이 채운다
-    └── reviews/                    ← 빈 폴더. 검사 결과가 쌓인다
+    └── archive/                    옛 기록(공정표 · 실수 기록 · 진행 · 검사 · 계획서). 작업 중에 읽지 않는다 (2026-10-09)
 ```
 
 `apps/`, `packages/`, `db/`, `tests/`, `infra/`는 **만들지 마라.**
@@ -42,8 +40,7 @@ Phase 0에서 Claude Code가 만든다. 미리 만들면 빈 폴더 때문에 �
 mkdir -p test-platform && cd test-platform
 git init
 
-mkdir -p .claude/scripts .claude/skills/spec-review
-mkdir -p docs/progress docs/reviews
+mkdir -p .claude/scripts .claude/skills/spec-review docs
 
 # 받은 파일들을 위 구조대로 옮긴다
 #   CLAUDE.md          → ./CLAUDE.md
@@ -51,9 +48,6 @@ mkdir -p docs/progress docs/reviews
 #   guard.mjs          → .claude/scripts/guard.mjs
 #   SKILL.md           → .claude/skills/spec-review/SKILL.md
 #   나머지 .md와 html  → docs/
-
-# git이 빈 폴더를 추적하지 않으므로
-touch docs/progress/.gitkeep docs/reviews/.gitkeep
 
 cat > .gitignore <<'EOF'
 node_modules/
@@ -109,12 +103,11 @@ Claude Code에 던지기 전에 Maxi님이 직접 읽으실 순서다. 리뷰 �
 
 | 순서 | 파일 | 볼 것 |
 |------|------|------|
-| 1 | `WORKFLOW.md` | 전체 흐름이 납득되는가. 체크포인트 5개가 할 만한가 |
-| 2 | `SPEC.md` §1~4 | 만들려는 게 맞는가. 특히 §4 명세 선언 방식 |
-| 3 | 시안 캔버스 (`DESIGN.md` 맨 위 링크) | 브라우저로 열어본다. 화면이 원하는 모양인가 |
-| 4 | `SPEC.md` §8 | 화면 구성이 목업과 맞는가 |
-| 5 | `WORKSTREAMS.md` | 갈래 나눔이 이해되는가. 킥오프 프롬프트가 읽히는가 |
-| 6 | `CLAUDE.md` | 규칙 중 거슬리는 게 있는가 |
+| 1 | `SPEC.md` §1~4 | 만들려는 게 맞는가. 특히 §4 명세 선언 방식 |
+| 2 | 시안 캔버스 (`DESIGN.md` 맨 위 링크) | 브라우저로 열어본다. 화면이 원하는 모양인가 |
+| 3 | `SPEC.md` §8 | 화면 구성이 목업과 맞는가 |
+| 4 | `WORKSTREAMS.md` | 어느 폴더가 무슨 일을 하는지 이해되는가 |
+| 5 | `CLAUDE.md` | 규칙 중 거슬리는 게 있는가 |
 
 §5~7(타입·DB·API)은 코드에 가까운 부분이라 건너뛰셔도 된다.
 대신 **§11 완료 기준**은 꼭 보시라. 이게 "다 됐다"의 정의다.
@@ -136,7 +129,7 @@ claude
 데몬에서 태어나고, 터미널 앞에 붙인 환경변수가 세션까지 전달되지 않기 때문이다.
 설정 파일에 넣어야 한다. 자세한 것은 `HOOKS.md`.
 
-[0] 계획 검토는 2026-09-16에 끝났다 (`docs/reviews/2026-09-16-G0.md`).
+[0] 계획 검토는 2026-09-16에 끝났다 (`docs/archive/reviews/2026-09-16-G0.md`).
 바로 `docs/WORKSTREAMS.md`의 Phase 0 킥오프 프롬프트를 넣는다.
 
 Phase 0가 끝나고 G1을 통과하면 **스위치를 지운다.**
@@ -154,7 +147,7 @@ rm .claude/settings.local.json
 
 Phase 0 전에 정해야 했던 5건은 2026-09-16에 결정돼 SPEC에 들어갔다
 (기술 스택 §9.1 · 명세 추출 §3.1 · PDF 위치 §3.3 · 데모 대상 §10 · verify 실패 규칙 §4).
-경위는 `docs/reviews/2026-09-16-G0.md`에 있다.
+경위는 `docs/archive/reviews/2026-09-16-G0.md`에 있다.
 
 2026-09-17 SPEC 개정으로 아래 3건이 더 결정됐다.
 
@@ -411,7 +404,7 @@ npm run authoring-agent
 
 맥이 병합을 끝내면 **에이전트를 켠 체크아웃에서 `git pull --ff-only origin main` 을 한다** — 저장소 훅과 fsmonitor 는 끄고 당긴다(자식이 써 둔 훅이 맥 권한으로 돌지 않게).
 **이것은 훅만 막는다** — 자식은 `.git/config` 도 쓸 수 있어 다른 설정(`filter`·`core.sshCommand` 등)으로 맥 권한 명령을 걸 수 있다.
-진짜 해법은 자식의 쓰기 범위에서 뿌리 `.git` 을 빼는 것이고 후속이다 (`docs/progress/WS-작성.md` 8회차).
+진짜 해법은 자식의 쓰기 범위에서 뿌리 `.git` 을 빼는 것이고 후속이다 (`docs/archive/progress/WS-작성.md` 8회차).
 서버가 그 체크아웃의 `tests/` 를 보므로(`docker-compose.yml` 의 `./tests:/tests:ro`) 사람이 `git pull` 하지 않아도 **새 테스트가 목록에 뜬다** (「다시 스캔」은 누른다).
 
 - 체크아웃이 `main` 이 아니거나 **고치던 파일이 있으면 건너뛴다** — 터미널에 `[머지] main 을 안 당겼다: …` 가 찍힌다. 그때는 손으로 당긴다
