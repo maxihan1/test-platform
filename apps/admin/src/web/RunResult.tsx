@@ -12,6 +12,7 @@ import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 진행상황 } from './runProgress.js';
 import { RunAbortModal } from './RunAbortModal.js';
 import { RunProgressModal } from './RunProgressModal.js';
+import { 실패다시실행 } from './RerunFailed.js';
 import { PAGE_SIZE, 끝난결과, 디바이스칩, 쪽넘김 } from './RunResultBody.js';
 import { 결과줄 } from './RunResultRow.js';
 import { ScenarioResult } from './ScenarioResult.js';
@@ -151,7 +152,6 @@ function 케이스결과({
   );
 
   const 행동 = (
-
           <div className="tally">
           {/* 끝난 실행의 집계 숫자는 요약 띠가 맡는다 — 같은 숫자를 두 번 두지 않는다 (도메인/실행 §8.3).
               도는 동안에는 요약 띠가 없어 여기 남는다. 판정 숫자를 버튼보다 앞에 둔다 —
@@ -185,6 +185,7 @@ function 케이스결과({
             </button>
           )}
             <증적만들기버튼들 칸={증적칸} />
+            {running || 상자안 ? null : <실패다시실행 items={data.items} env={data.env} 된다={실행판정(판정하기, data)('실행')} />}
           </div>
   );
 

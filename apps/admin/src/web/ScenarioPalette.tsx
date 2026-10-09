@@ -1,4 +1,4 @@
-// E2E 시나리오 조립 화면 「단계 추가」 탭 속 — 기능 테스트 케이스 팔레트 · 다른 단계 넷 · 케이스 바꾸기 모드 (도메인/시나리오 §8.11)
+// E2E 시나리오 조립 화면 「단계 추가」 탭 속 — 기능 테스트 스크립트 팔레트 · 다른 단계 넷 · 케이스 바꾸기 모드 (도메인/시나리오 §8.11)
 
 import { useEffect, useState } from 'react';
 import type { ScenarioPart } from '@platform/kit';
@@ -111,7 +111,7 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
       ) : 읽음 === null || 차례 === null ? (
         <Loading />
       ) : 읽음.목록.length === 0 ? (
-        <p className="scn-set-note">{t('이 서비스에는 단계로 쓸 기능 테스트 케이스가 없습니다')}</p>
+        <p className="scn-set-note">{t('이 서비스에는 단계로 쓸 기능 테스트 스크립트가 없습니다')}</p>
       ) : (
         <>
           <label className="scn-pal-find">

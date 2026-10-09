@@ -145,7 +145,7 @@ describe('사이드바 접기', () => {
     띄운다(결제);
     // 안 보이게 하려고 display:none 을 쓰면 탭 대상에서 빠진다.
     // 흐리게 두지 않는다는 규칙(SPEC §8)은 등급 이야기고, 접기는 사람이 되돌릴 수 있는 상태다
-    expect(screen.getByRole('link', { name: '테스트 케이스' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '테스트 스크립트' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
 });
@@ -159,7 +159,7 @@ describe('사이드바 하위 메뉴 (화면공통 §8 · PR #132)', () => {
     const 묶음 = screen.getByRole('link', { name: '실행 기록' });
     expect(묶음.getAttribute('aria-current')).toBeNull();
     expect(묶음.hasAttribute('data-open')).toBe(true);
-    expect(screen.getByRole('link', { name: '테스트 케이스 · UI 테스트' }).getAttribute('aria-current')).toBeNull();
+    expect(screen.getByRole('link', { name: '테스트 스크립트 · UI 테스트' }).getAttribute('aria-current')).toBeNull();
   });
 
   it('종류를 모르는 상세(실행 결과)에서는 묶음이 펼친 표시만 받는다 — 묶음 링크는 기능 목록이라 「지금 자리」가 아니다', () => {
@@ -173,7 +173,7 @@ describe('사이드바 하위 메뉴 (화면공통 §8 · PR #132)', () => {
   it('접혀도 하위 메뉴에 키보드로 닿는다 — 지우지 않고 글자만 숨긴다', () => {
     사이드바접음을적는다(true);
     띄운다(결제, 'ko', () => {}, '#/cases/ui');
-    expect(screen.getByRole('link', { name: '테스트 케이스 · UI 테스트' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '테스트 스크립트 · UI 테스트' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
 });

@@ -1,7 +1,7 @@
 // 여러 케이스를 「테스트 실행」으로 한 건씩 차례로 돌리는 큐 — 기록에 남지 않는다 (도메인/실행 §3.2 · §7)
 //
 // 서버는 사람당 한 건만 받는다(TRIAL_BUSY). 그래서 병렬이 아니라 차례로 돌리고, 한 건이 끝나야 다음을 시작한다.
-// 새 서버 API 는 없다 — 실행 설정 화면의 「▶ 테스트 실행」이 쓰는 두 통로를 케이스마다 되풀이한다
+// 새 서버 API 는 없다 — 케이스 테스트 실행 통로 둘(시작 · 결과)을 케이스마다 되풀이한다
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -42,7 +42,7 @@ export function useTrialQueue(간격: number = 기본간격) {
   async function 한건(항목: RunRequestItem, 열주소: string): Promise<string | null> {
     쓴다(항목.tcId, { 종류: 'run' });
     try {
-      // 디바이스는 첫째 하나만 돈다. 실행 설정 화면의 테스트 실행과 같은 규칙이다
+      // 디바이스는 첫째 하나만 돈다 — 한 건 창은 사람이 고른 것 중 첫째다 (도메인/실행 §8.2)
       const { trialId } = await api.startTrial(항목.tcId, {
         platform: 항목.platforms[0]!,
         baseUrl: 열주소,

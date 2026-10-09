@@ -75,7 +75,7 @@ describe('ScenarioPalette 불러오기', () => {
     쪽들([]);
     그리기();
 
-    await screen.findByText('이 서비스에는 단계로 쓸 기능 테스트 케이스가 없습니다');
+    await screen.findByText('이 서비스에는 단계로 쓸 기능 테스트 스크립트가 없습니다');
   });
 
   it('불러오다 실패하면 오류 글을 보이고 찾기 칸은 없다', async () => {
@@ -154,7 +154,7 @@ describe('ScenarioPalette 더하기', () => {
   it('다른 단계 넷은 정해 둔 기본값으로 on다른단계를 부른다', async () => {
     쪽들([]);
     const 손 = 그리기();
-    await screen.findByText('이 서비스에는 단계로 쓸 기능 테스트 케이스가 없습니다');
+    await screen.findByText('이 서비스에는 단계로 쓸 기능 테스트 스크립트가 없습니다');
 
     fireEvent.click(screen.getByRole('button', { name: 'API 호출' }));
     fireEvent.click(screen.getByRole('button', { name: '모킹 켜기' }));

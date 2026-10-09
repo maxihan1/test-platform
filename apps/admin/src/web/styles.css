@@ -384,8 +384,11 @@ a {
    되찾는 37px 중 글자에서 나오는 것은 2px 뿐이라 나머지를 여기서 뺀다 (2026-09-22) */
 .head {
   display: flex;
+  /* 제목 칸이 모자라면 버튼 묶음이 아랫줄로 내려간다. 안 그러면 제목이 한 자씩 세로로 서고
+     목록 높이가 0 이 됐다 — 케이스를 고르면 버튼이 셋 · 넷으로 는다(진행판 WEB-F2-10, 700px 창 · 사이드바 폄) */
+  flex-wrap: wrap;
   align-items: flex-end;
-  gap: 18px;
+  gap: 8px 18px;
   padding: 10px 20px 9px;
   margin-bottom: 14px;
   /* 머리 띠 색이다. 어두운 바탕에서는 그림자가 면을 가르지 못해 2026-10-07 에 걷고 바탕과 테두리로 가른다 */
@@ -396,7 +399,7 @@ a {
 }
 
 .head-title {
-  flex: 1;
+  flex: 1 1 240px;
   min-width: 0;
 }
 
@@ -431,8 +434,11 @@ a {
 
 .head-acts {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 8px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  margin-left: auto;
   align-items: center;
 }
 
@@ -1544,6 +1550,12 @@ input[type='file']::file-selector-button {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
+  }
+
+  /* 줄의 ▶ 도 같다 — 정사각이라 폭까지 44px 이다 */
+  .row .btn.icon {
+    width: 44px;
+    height: 44px;
   }
 
   /* 244px 사이드바를 그대로 두면 내용 칸이 한 줄에 스무 글자도 못 받는다. 위아래로 쌓는다.
@@ -2729,6 +2741,45 @@ input[type='file']::file-selector-button {
   width: 56px;
 }
 
+/* 한 건 창 (2026-10-09 UI 개편 묶음 4) — 한 건짜리 실행 설정 화면이 하던 칸이 창 안에 선다.
+   사전조건 · 디바이스 · 제목은 대상 서버 아래 고정 칸이고, 묶음 · 저장값 줄은 입력값 칸 아래다 */
+.one-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: none;
+}
+
+.one-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.one-label {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.one-values {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 0 12px;
+}
+
+.one-save input[type='text'] {
+  flex: none;
+  width: 140px;
+}
+
+/* 목록 줄의 ▶ — 정사각 버튼 안에서 메뉴 아이콘보다 작게 선다 (진행판 WEB-F2-12) */
+.btn.icon .side-ico {
+  width: 16px;
+  height: 16px;
+}
+
 /* ── 줄의 입력 칸 · 판정 흐름 · 펼침 패널 (2026-09-21 ②) ─────────────────────
    값은 docs/design-mockup.html 이 정본이고 **자리는 제품 구조가 정본**이다.
    목업의 그 칸은 <table><td> 이고 여기는 CSS 격자 줄이라 셀렉터가 다르다.
@@ -3277,37 +3328,10 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   margin-top: 0;
 }
 
-/* 테스트 실행 패널 (실행 설정 화면). 버튼은 동작줄에 서고 패널은 그 위 한 줄을 다 차지한다 —
-   `.actions` 가 flex-wrap 이라 `order: -1` 과 100% 폭이면 줄 맨 앞으로 올라간다 */
-.trial {
-  order: -1;
-  flex: 0 0 100%;
-  text-align: left;
-  border: 1px solid var(--line-2);
-  border-radius: 8px;
-  background: var(--well);
-  padding: 8px 14px;
-}
-
-.trial summary {
-  cursor: pointer;
-  font-size: 12.5px;
-  color: var(--ink-muted);
-}
-
-.trial-body {
-  padding-top: 10px;
-}
-
-.trial-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
+/* 한 건 창의 테스트 실행 절차 — 배지 아래에 절차마다 판정을 펼친다 (RunPickTrial 시험절차) */
 .trial-steps {
   list-style: none;
-  margin: 8px 0 0;
+  margin: 0 0 8px;
   padding: 0;
 }
 

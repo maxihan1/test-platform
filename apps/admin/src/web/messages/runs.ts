@@ -17,16 +17,14 @@ export const 실행말: Record<string, string> = {
   '미확정': 'Unconfirmed',
   '확정 판정 없음': 'No confirmed verdict',
 
-  // 테스트 실행 (실행 설정 화면)
+  // 테스트 실행 (실행 창)
   '▶ 테스트 실행': '▶ Test run',
-  '테스트 실행 결과': 'Test run result',
   '열 주소': 'Address to open',
   '대기': 'Waiting',
   '실행 중': 'Running',
   '앞 케이스에서 멈춰 돌리지 못했습니다': 'Not run because an earlier case stopped the queue',
   '열 주소는 http:// 또는 https:// 로 시작해야 합니다': 'The address must start with http:// or https://',
   '실행 기록에 남지 않습니다 · 24시간 뒤 사라집니다': 'Not saved to run history · removed after 24 hours',
-  '테스트를 실행하는 중입니다': 'Running the test…',
   '이미 테스트 실행이 돌고 있습니다': 'A test run is already in progress',
   '이 서버에는 테스트 실행이 켜져 있지 않습니다. 켜는 법은 SETUP': 'Test run is not enabled on this server. See SETUP for how to turn it on',
   '미확정 {수}({칸})': 'Unconfirmed {수} ({칸})',
@@ -73,19 +71,15 @@ export const 실행말: Record<string, string> = {
   '입력값': 'Inputs',
   '기대결과': 'Expected result',
   '저장된 입력값 세트 불러오기': 'Load a saved input set',
-  '입력값은 이번 실행 기록에 그대로 저장됩니다.': 'Inputs are stored with this run record.',
   '대상 서버': 'Target server',
   '선택하세요': 'Select',
   '고르세요': 'Select',
   '실행자': 'Run by',
   '반복': 'Repeat',
-  '반복 횟수': 'Repeat count',
   '끝나면 Slack 으로 알리기': 'Notify Slack when done',
-  '자리를 비울 때만 켜세요. 혼자 확인하는 실행까지 팀 채널에 보내면 알림이 너무 많아집니다':
-    'Turn this on only when you step away. Self-checks in the team channel are just noise',
   '실행 제목': 'Run title',
   '이 값을 묶음으로 저장': 'Save these values as a set',
-  // 케이스 저장값 — 목록 줄과 실행 설정 화면이 같이 쓴다 (도메인/실행 §8.2)
+  // 케이스 저장값 — 목록 줄과 한 건 실행 창이 같이 쓴다 (도메인/실행 §8.2)
   '저장값 · {누가} · {언제}': 'Saved · {누가} · {언제}',
   '다음에도 이 값으로 채우기': 'Prefill these values next time',
   '코드 기본값으로': 'Back to code defaults',
@@ -95,10 +89,10 @@ export const 실행말: Record<string, string> = {
   '실행': 'Run',
   '{케이스} 실행': 'Run {케이스}',
   '{케이스} 외 {나머지}건 실행': 'Run {케이스} and {나머지} more',
-  '입력값을 바꿔 다시 실행해도 테스트 코드는 바뀌지 않습니다.': 'Changing inputs and rerunning never touches the code.',
   '실행할 디바이스를 하나 이상 고르세요.': 'Pick at least one device to run.',
-  '이 케이스는 지금 보고 있는 서비스의 것이 아닙니다. 맨 위에서 서비스를 바꾸세요.':
-    'This case belongs to another service. Switch services at the top.',
+  // 실행 창을 여는 다른 자리 — 실행 결과 · 항목 상세 (도메인/실행 §8.10)
+  '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
+  '비활성이라 뺀 케이스 {목록}': 'Left out as inactive: {목록}',
   '대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
     'Pick a target server. Evidence records which server was hit.',
   '묶음 이름': 'Set name',
@@ -107,8 +101,6 @@ export const 실행말: Record<string, string> = {
   '입력값이 명세와 맞지 않습니다.': 'Inputs do not match the schema.',
   '이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다':
     'This service has no target servers. Add one in Settings before running',
-  '지금 보고 있는 서비스가 {서비스}인데 이 케이스는 {접두사} 것입니다. 맨 위에서 서비스를 바꾸거나 그 서비스의 케이스 목록에서 다시 여세요':
-    'You are viewing {서비스} but this case belongs to {접두사}. Switch services at the top, or reopen it from the case list of that service',
   '한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)': 'Up to {상한} items per run ({지금} right now)',
   '실행 항목이 {건수}건 생깁니다': '{건수} run items will be created',
 

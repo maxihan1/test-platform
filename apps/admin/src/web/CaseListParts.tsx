@@ -10,6 +10,7 @@ import { 기법고름들, type 기법고름 } from './CaseListFilter.js';
 import { CaseRowParams, type 줄글자 } from './CaseRowParams.js';
 import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
+import { 아이콘 } from './icons.js';
 import { 판정흐름 } from './Summary.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
@@ -137,7 +138,7 @@ export function 케이스줄({
   뒤집기,
   글자,
   폈나 = false,
-  실행된다 = true,
+  on실행,
   저장된다 = false,
   고칠서비스,
   on값,
@@ -151,8 +152,8 @@ export function 케이스줄({
   /** 이 줄에서 고쳐 넣은 값. 없으면 코드의 기본값으로 돈다 */
   글자?: 줄글자;
   폈나?: boolean;
-  /** 고른 서비스에서 실행 쓰기인가. 아니면 줄의 실행 링크가 없다 (화면공통 §8) */
-  실행된다?: boolean;
+  /** 줄의 ▶ — 그 한 건으로 실행 창을 연다. 고른 서비스에서 실행 쓰기가 아니면 오지 않고 버튼도 없다 (화면공통 §8) */
+  on실행?: (row: CaseRow) => void;
   저장된다?: boolean;
   /** 작성 쓰기일 때만 온다 — 없으면 상세에 「코드 기본값 바꾸기 요청」 자리가 없다 (도메인/카탈로그 §8.1) */
   고칠서비스?: string;
@@ -240,10 +241,17 @@ export function 케이스줄({
         >
           {t('상세')}
         </button>
-        {!실행된다 ? null : (
-          <a className="btn small ghost" href={`#/cases/${encodeURIComponent(row.tcId)}/run`}>
-            {t('실행')}
-          </a>
+        {/* 글자 대신 아이콘이다 — 영어 「Run」이 「Details」 아래로 밀려 내려갔다(진행판 WEB-F2-12). 이름은 화면 읽기가 말한다 */}
+        {on실행 === undefined ? null : (
+          <button
+            type="button"
+            className="btn ghost icon"
+            aria-label={t('{케이스} 실행', { 케이스: row.tcId })}
+            title={t('실행')}
+            onClick={() => on실행(row)}
+          >
+            <아이콘 이름="run" />
+          </button>
         )}
       </div>
     </div>

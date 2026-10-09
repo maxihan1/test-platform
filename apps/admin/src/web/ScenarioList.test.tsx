@@ -68,7 +68,7 @@ describe('ScenarioList 머리 · 표머리', () => {
     const 머리 = container.querySelector('.head');
     expect(머리?.querySelector('h1')?.textContent).toBe('E2E 시나리오');
     expect(머리?.querySelector('.head-meta')?.textContent).toBe(
-      '기능 테스트 케이스를 차례로 실행해 흐름이 끊기지 않는지 확인합니다',
+      '기능 테스트 스크립트를 차례로 실행해 흐름이 끊기지 않는지 확인합니다',
     );
     expect(screen.getByRole('link', { name: '새 시나리오' }).getAttribute('href')).toBe('#/scenarios/new');
   });
@@ -250,7 +250,7 @@ describe('ScenarioList 빈 목록 · 오류', () => {
     await 그리기([]);
 
     expect(await screen.findByText(/아직 만든 시나리오가 없습니다/)).toBeTruthy();
-    expect(screen.getByText('기능 테스트 케이스를 단계로 이어 붙여 만듭니다')).toBeTruthy();
+    expect(screen.getByText('기능 테스트 스크립트를 단계로 이어 붙여 만듭니다')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: '새 시나리오' }).length).toBeGreaterThan(0);
   });
 

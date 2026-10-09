@@ -28,10 +28,10 @@ import { 기능보나, 판정을만든다 } from './role.js';
 import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
 import { RunList } from './RunList.js';
 import { RunResult } from './RunResult.js';
+import { RunWindow } from './RunWindow.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
 import { ScenarioList } from './ScenarioList.js';
 import { ScenarioRunList } from './ScenarioRunList.js';
-import { RunSetup } from './RunSetup.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import { Signup } from './Signup.js';
@@ -76,7 +76,8 @@ function Screen({
         />
       );
     case 'setup':
-      return <RunSetup tcId={current.tcId} service={service} user={user} />;
+      // 옛 주소 — 한 건짜리 실행 설정 화면은 실행 창으로 합쳤다(2026-10-09). 북마크 · 지난 알림으로 와도 같은 창을 연다
+      return <RunWindow tcIds={[current.tcId]} onClose={() => { window.location.hash = '#/cases'; }} on걸림={() => undefined} />;
     case 'authoring':
       return <Authoring service={prefix} envs={service?.envs ?? []} 할수={할수} />;
     case 'authoringItem':
@@ -99,7 +100,7 @@ function Screen({
       // 주소로 바로 오는 화면이라 띠와 다른 서비스의 실행일 수 있다 — 그 실행의 칸으로 가른다
       return <RunResult runId={current.runId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
     case 'item':
-      return <ItemDetail runId={current.runId} historyId={current.historyId} />;
+      return <ItemDetail runId={current.runId} historyId={current.historyId} 판정하기={(접두사) => 판정을만든다(user, 접두사)} />;
     case 'login':
     case 'signup':
       // 로그인했는데 주소가 로그인 화면이다. 위 useEffect 가 집으로 보내는 한 프레임 동안

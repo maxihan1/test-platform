@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { CaseRow, LastResult, Platform } from './api.js';
 import { keyOf, type LastMap } from './catalogView.js';
 import { 넘었나 } from './runPlan.js';
-import { 담을것, 몇건, 실행항목, 안드로이드있나 } from './pickRun.js';
+import { 담을것, 몇건, 실행제목, 실행항목, 안드로이드있나, 지난값글자 } from './pickRun.js';
+import { schemaToFields } from './schema.js';
 
 function 케이스(tcId: string, platforms: Platform[], isActive = true): CaseRow {
   return {
@@ -119,5 +120,51 @@ describe('안드로이드있나', () => {
 
   it('브라우저만이면 false 다', () => {
     expect(안드로이드있나([PC만, 둘다])).toBe(false);
+  });
+});
+
+describe('실행제목', () => {
+  const 말 = (키: string, 값: Record<string, string | number> = {}) => 키.replace(/\{(.+?)\}/g, (_, 이름: string) => String(값[이름]));
+
+  it('한 건이면 실행 창의 제목 칸 기본값과 같은 말이다', () => {
+    expect(실행제목(실행항목([PC만], {}), 말)).toBe('ZZP-0001 실행');
+  });
+
+  it('여러 건이면 맨 앞 케이스와 나머지 수를 적는다', () => {
+    expect(실행제목(실행항목([PC만, 둘다, 비활성], {}), 말)).toBe('ZZP-0001 외 2건 실행');
+  });
+});
+
+describe('지난값글자', () => {
+  const 칸들 = schemaToFields(
+    {
+      type: 'object',
+      properties: {
+        userId: { type: 'string', description: '아이디' },
+        password: { type: 'string', description: '비밀번호' },
+        count: { type: 'integer', description: '개수' },
+        tags: { type: 'object', description: '꼬리표' },
+        memo: { type: 'string', description: '메모' },
+      },
+    },
+    undefined,
+    undefined,
+  );
+
+  it('비밀값 칸은 응답이 가린 별표를 그대로 채우지 않도록 뺀다', () => {
+    expect(칸들.find((f) => f.key === 'password')?.secret).toBe(true);
+    expect(지난값글자(칸들, { userId: 'u9', password: '********' })).toEqual({ userId: 'u9' });
+  });
+
+  it('글자가 아닌 값은 글자로 바꾸고 객체는 JSON 으로 편다', () => {
+    expect(지난값글자(칸들, { count: 3, tags: { a: 1 } })).toEqual({ count: '3', tags: '{"a":1}' });
+  });
+
+  it('값이 없거나 null 이면 그 칸을 뺀다 — 코드 기본값으로 남는다', () => {
+    expect(지난값글자(칸들, { memo: null })).toEqual({});
+  });
+
+  it('스키마에 없는 키는 무시한다', () => {
+    expect(지난값글자(칸들, { 낯선키: 'x' })).toEqual({});
   });
 });

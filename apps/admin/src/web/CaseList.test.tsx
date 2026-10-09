@@ -603,9 +603,9 @@ describe('CaseList 화면 머리 (2026-09-22)', () => {
 
     const 머리 = container.querySelector('.head');
     expect(머리).not.toBeNull();
-    // 자리 이름(`테스트 케이스`)과 화면 제목(`테스트케이스 목록`)은 다른 말을 한다 (SPEC §8, 2026-09-22).
+    // 자리 이름(`테스트 스크립트`)과 화면 제목(`테스트 스크립트 목록`)은 다른 말을 한다 (SPEC §8, 2026-09-22).
     // 같으면 한 화면이 같은 말을 두 번 한다
-    expect(머리?.querySelector('h1')?.textContent).toBe('테스트케이스 목록');
+    expect(머리?.querySelector('h1')?.textContent).toBe('테스트 스크립트 목록');
     // 「다시 스캔」과 실행 버튼은 이 화면에서 가장 흔한 다음 행동이라 머리에 선다
     expect(머리?.textContent).toContain('다시 스캔');
     expect(머리?.textContent).toContain('실행');
@@ -647,11 +647,11 @@ describe('CaseList 권한 칸', () => {
     expect(screen.queryByRole('button', { name: /(전체|건) 실행$/ })).toBeNull();
   });
 
-  it('실행 읽기면 줄마다의 실행 링크도 없다', async () => {
+  it('실행 읽기면 줄마다의 실행 버튼도 없다', async () => {
     모킹(쪽주기);
     render(<CaseList kind="FN" service="ZPK" 할수={실행빼고} 결과보나 />);
     await screen.findByText('ZPK-001');
-    expect(screen.queryByRole('link', { name: '실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'ZPK-001 실행' })).toBeNull();
   });
 
   it('실행 칸이 none 이면 마지막 결과를 부르지 않는다 — 부르면 403 이다', async () => {

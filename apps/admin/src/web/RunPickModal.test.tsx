@@ -157,7 +157,9 @@ describe('RunPickModal', () => {
     그리기([저장된]);
 
     expect((screen.getByLabelText('아이디') as HTMLInputElement).value).toBe('zpm-저장');
-    expect(screen.getByText(/저장값/)).toBeTruthy();
+    // 칸 안내(저장값 · 코드 기본값)와 한 건 창의 「저장값 · 누가 · 언제」가 둘 다 선다
+    expect(screen.getByText(/코드 기본값 zpm-기본/)).toBeTruthy();
+    expect(screen.getByText(/저장값 · qa ·/)).toBeTruthy();
   });
 
   it('실행 항목 수는 디바이스 수가 다른 케이스들에서도 합이다', () => {
