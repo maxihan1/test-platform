@@ -51,7 +51,13 @@ describe('커버리지만들기', () => {
       excluded: { '다음 요청': 1, '요구 아님': 1 },
       missing: ['REQ-A-6'],
       later: ['REQ-A-4'],
+      casedFn: 3,
+      casedUi: 0,
     });
+  });
+
+  it('갈래 두 수를 대조에서 그대로 싣는다 — 같이 덮은 요구는 둘 다에 든다', () => {
+    expect(커버리지만들기({ 대조: { ...대조, 갈래: { 기능: 2, UI: 2 } }, 원장: 원장값 }, new Set())).toMatchObject({ casedFn: 2, casedUi: 2 });
   });
 
   it('보류를 모르면 null · 보류가 없으면 0', () => {
