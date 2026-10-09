@@ -31,7 +31,9 @@ const 답모양 = JSON.stringify({
 
 /**
  * 도구 0 · 설정 파일과 훅 무시 · MCP 0. 작업 폴더도 빈 임시 폴더라 자식이 심은 `.claude/` 를 읽지 않는다.
- * 에이전트는 root 로 돌아서, 여기서 도구 하나라도 열면 자식이 쓴 글이 root 권한으로 파일을 쓰게 된다
+ * 에이전트는 root 로 돌아서, 여기서 도구 하나라도 열면 자식이 쓴 글이 root 권한으로 파일을 쓰게 된다.
+ * dontAsk 는 두 번째 잠금이다 — 2.1.295 전 판은 실행 뒤 등록되는 내장 도구에 --tools · --restricted 가 안 걸린다(변경 이력).
+ * 허락이 필요한 도구(쓰기 · 명령 · 네트워크)는 이것이 다 거절한다. 읽기 도구는 못 막는다(2026-10-09 실측)
  */
 export function 합치기인자(m: 모델): string[] {
   return [
@@ -39,6 +41,8 @@ export function 합치기인자(m: 모델): string[] {
     ...모델인자(m),
     '--tools',
     '',
+    '--permission-mode',
+    'dontAsk',
     '--restricted',
     '--strict-mcp-config',
     '--no-session-persistence',
@@ -89,7 +93,8 @@ export function 합친답풀기(낸것: string): { 글: string } | { 사유: str
   const 몸 = r.structured_output as { ok?: unknown; content?: unknown; reason?: unknown } | undefined;
   if (typeof 몸 !== 'object' || 몸 === null || typeof 몸.ok !== 'boolean') return { 사유: 'AI 답 모양이 틀렸다' };
   if (!몸.ok) {
-    const 까닭 = typeof 몸.reason === 'string' ? 몸.reason.replace(/\s+/g, ' ').trim().slice(0, 사유상한) : '';
+    // 끝 마침표는 뗀다 — 부르는 쪽이 「… — <경로>: <까닭>. 다시 작성한다」로 잇는다
+    const 까닭 = typeof 몸.reason === 'string' ? 몸.reason.replace(/\s+/g, ' ').trim().replace(/\.+$/, '').slice(0, 사유상한) : '';
     return { 사유: 까닭 || '까닭을 남기지 않았다' };
   }
   if (typeof 몸.content !== 'string' || 몸.content.trim() === '') return { 사유: '합쳤다면서 글이 비었다' };

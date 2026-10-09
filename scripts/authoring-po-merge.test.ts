@@ -15,9 +15,10 @@ describe('합치기인자', () => {
   it('도구를 하나도 안 열고 설정 파일 · MCP 를 안 읽는다 — 에이전트가 root 로 돈다', () => {
     const 인자 = 합치기인자(모델);
     expect(인자[인자.indexOf('--tools') + 1]).toBe('');
+    expect(인자[인자.indexOf('--permission-mode') + 1]).toBe('dontAsk');
     expect(인자).toEqual(expect.arrayContaining(['--restricted', '--strict-mcp-config', '--no-session-persistence']));
     expect(인자).not.toContain('--add-dir');
-    expect(인자).not.toContain('--permission-mode');
+    expect(인자).not.toContain('acceptEdits');
   });
 });
 
@@ -40,6 +41,10 @@ describe('합친답풀기', () => {
     const r = 합친답풀기(답({ ok: false, reason: `submit 을\n  다르게 찾는다${'가'.repeat(300)}` }));
     expect(r).toEqual({ 사유: expect.stringMatching(/^submit 을 다르게 찾는다가+$/) });
     expect('사유' in r && r.사유.length).toBe(200);
+  });
+
+  it('까닭 끝의 마침표는 뗀다 — 실패 문구에서 마침표가 두 번 찍히지 않게', () => {
+    expect(합친답풀기(답({ ok: false, reason: '어느 쪽이 맞는지 알 수 없어 합치지 않습니다.' }))).toEqual({ 사유: '어느 쪽이 맞는지 알 수 없어 합치지 않습니다' });
   });
 
   it.each([
