@@ -24,7 +24,7 @@ export function 임시저장소(더할파일들, 옮길것들 = []) {
   git('config', 'user.email', 't@example.com');
   git('config', 'user.name', 't');
   // 가짜 npm 과 호출 기록은 바뀐 파일 목록에 끼면 안 된다
-  writeFileSync(join(뿌리, '.git', 'info', 'exclude'), '.fakebin\n.npm-calls*\n');
+  writeFileSync(join(뿌리, '.git', 'info', 'exclude'), '.fakebin\n.npm-calls*\n.db-calls\n');
   쓴다('package.json', '{}');
   쓴다('tests/todo/TODO-001.spec.ts', 'x');
   for (const [원래] of 옮길것들) 쓴다(원래, `옮겨질 코드 ${원래}\n`.repeat(20));
@@ -45,7 +45,21 @@ export function 임시저장소(더할파일들, 옮길것들 = []) {
     `#!/bin/sh\necho "$*" >> "${기록}"\nenv | grep '^GIT_' >> "${기록}.git-env" || true\nif [ -n "$NPM_ON" ]; then case "$*" in *"$NPM_ON"*) eval "$NPM_SH" ;; esac; fi\nif [ -n "$NPM_FAIL" ]; then case "$*" in *"$NPM_FAIL"*) exit 1 ;; esac; fi\n`,
   );
   chmodSync(join(가짜, 'npm'), 0o755);
-  return { 뿌리, sha: git('rev-parse', 'HEAD'), 가짜, 기록 };
+  // 임시 DB 를 만드는 psql · docker 도 가짜다 — 인자를 `.db-calls` 에 적고, DB_FAIL 이 인자에 있으면 실패한다.
+  // npm 은 받은 DATABASE_URL 을 `.npm-calls.db` 에 적어 「검사가 임시 DB 를 받았나」를 본다
+  const DB기록 = join(뿌리, '.db-calls');
+  for (const 이름 of ['psql', 'docker']) {
+    writeFileSync(
+      join(가짜, 이름),
+      `#!/bin/sh\necho "${이름} $*" >> "${DB기록}"\nif [ -n "$DB_FAIL" ]; then case "${이름} $*" in *"$DB_FAIL"*) exit 1 ;; esac; fi\n`,
+    );
+    chmodSync(join(가짜, 이름), 0o755);
+  }
+  writeFileSync(
+    join(가짜, 'npm'),
+    `#!/bin/sh\necho "$*" >> "${기록}"\necho "\${DATABASE_URL:-없음}" >> "${기록}.db"\nenv | grep '^GIT_' >> "${기록}.git-env" || true\nif [ -n "$NPM_ON" ]; then case "$*" in *"$NPM_ON"*) eval "$NPM_SH" ;; esac; fi\nif [ -n "$NPM_FAIL" ]; then case "$*" in *"$NPM_FAIL"*) exit 1 ;; esac; fi\n`,
+  );
+  return { 뿌리, sha: git('rev-parse', 'HEAD'), 가짜, 기록, DB기록 };
 }
 
 export function 저장소에서돌린다({ 뿌리, sha, 가짜 }, 더할환경 = {}, 입력 = `refs/heads/b ${sha} refs/heads/b ${ZERO}\n`) {
