@@ -7,7 +7,15 @@ const 연결 = process.env.DATABASE_URL;
 // fixture 접두사 — 자기 service_id 로만 지운다 (CLAUDE.md §3)
 const 접두사 = 'XWG';
 
-type 셈칸 = { total: number | null; cased: number | null; held: number | null; excluded: number | null; missing: number | null };
+type 셈칸 = {
+  total: number | null;
+  cased: number | null;
+  held: number | null;
+  excluded: number | null;
+  missing: number | null;
+  fn?: number | null;
+  ui?: number | null;
+};
 
 describe.skipIf(연결 === undefined)('작성 커버리지 칸', () => {
   let 서비스 = 0;
@@ -16,9 +24,10 @@ describe.skipIf(연결 === undefined)('작성 커버리지 칸', () => {
     const { pool } = await import('./index.js');
     return pool.query(
       `INSERT INTO authoring_request (service_id, kind, spec_text, requested_by, requested_by_name, status,
-                                      coverage_total, coverage_cased, coverage_held, coverage_excluded, coverage_missing)
-       VALUES ($1, 'AUTHOR', '본문', 'tester', '시험자', 'DONE', $2, $3, $4, $5, $6) RETURNING id`,
-      [서비스, 칸.total, 칸.cased, 칸.held, 칸.excluded, 칸.missing],
+                                      coverage_total, coverage_cased, coverage_held, coverage_excluded, coverage_missing,
+                                      coverage_cased_fn, coverage_cased_ui)
+       VALUES ($1, 'AUTHOR', '본문', 'tester', '시험자', 'DONE', $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      [서비스, 칸.total, 칸.cased, 칸.held, 칸.excluded, 칸.missing, 칸.fn ?? null, 칸.ui ?? null],
     );
   };
   const 맞는칸: 셈칸 = { total: 10, cased: 4, held: 1, excluded: 5, missing: 1 };
@@ -76,7 +85,30 @@ describe.skipIf(연결 === undefined)('작성 커버리지 칸', () => {
     await expect(넣기({ total: null, cased: null, held: 0, excluded: null, missing: null })).rejects.toThrow(/check/i);
   });
 
-  it('대시보드 계정은 다섯 칸을 읽는다', async () => {
+  it('갈래 두 칸은 둘 다 비거나 각각 0~케이스이고 합이 케이스 이상이면 받는다', async () => {
+    await expect(넣기({ ...맞는칸, fn: 3, ui: 2 })).resolves.toBeDefined();
+    await expect(넣기({ ...맞는칸, fn: 4, ui: 4 })).resolves.toBeDefined();
+    await expect(넣기({ ...맞는칸, fn: 4, ui: 0 })).resolves.toBeDefined();
+  });
+
+  it('갈래 두 칸 중 하나만 차면 막힌다', async () => {
+    await expect(넣기({ ...맞는칸, fn: 4, ui: null })).rejects.toThrow(/check/i);
+    await expect(넣기({ ...맞는칸, fn: null, ui: 0 })).rejects.toThrow(/check/i);
+  });
+
+  it('갈래가 케이스보다 많거나 음수거나 합이 케이스보다 작으면 막힌다', async () => {
+    await expect(넣기({ ...맞는칸, fn: 5, ui: 0 })).rejects.toThrow(/check/i);
+    await expect(넣기({ ...맞는칸, fn: 4, ui: -1 })).rejects.toThrow(/check/i);
+    await expect(넣기({ ...맞는칸, fn: 2, ui: 1 })).rejects.toThrow(/check/i);
+  });
+
+  it('셈이 비었는데 갈래만 차면 막힌다', async () => {
+    await expect(
+      넣기({ total: null, cased: null, held: null, excluded: null, missing: null, fn: 0, ui: 0 }),
+    ).rejects.toThrow(/check/i);
+  });
+
+  it('대시보드 계정은 일곱 칸을 읽는다', async () => {
     const { Client } = await import('pg');
     const 주소 = new URL(연결 as string);
     주소.username = 'grafana_ro';
@@ -86,7 +118,8 @@ describe.skipIf(연결 === undefined)('작성 커버리지 칸', () => {
     try {
       await expect(
         읽기.query(
-          'SELECT coverage_total, coverage_cased, coverage_held, coverage_excluded, coverage_missing FROM authoring_request LIMIT 1',
+          `SELECT coverage_total, coverage_cased, coverage_held, coverage_excluded, coverage_missing,
+                  coverage_cased_fn, coverage_cased_ui FROM authoring_request LIMIT 1`,
         ),
       ).resolves.toBeDefined();
       await expect(읽기.query('SELECT result FROM authoring_request LIMIT 1')).rejects.toThrow(/permission denied/);
