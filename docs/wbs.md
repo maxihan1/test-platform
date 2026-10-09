@@ -1,14 +1,11 @@
 # WBS — 영역 · 기능 · 태스크
 
 > **진행판의 원본이다.** `npm run progress` 가 이 파일을 읽어 `build/progress.html` 을 만들고,
-> `tpx-merge` 가 병합마다 같은 Artifact 주소로 다시 게시한다 (진행판 https://claude.ai/artifact/LN2fiNzKQcyB3aym6rzQY3).
+> `/tpx` 4단계가 병합마다 같은 Artifact 주소로 다시 게시한다 (진행판 https://claude.ai/artifact/LN2fiNzKQcyB3aym6rzQY3).
 >
-> **WORKSTREAMS.md 와 같이 움직인다.** 무엇을 어떻게 만드는지·순서·남은 것의 설명은 WORKSTREAMS 가 정본이고,
-> 여기는 **체크박스만** 둔다. 둘이 어긋나면 `npm run check:wbs` 가 빨개진다 —
-> WORKSTREAMS 에서 `✅`·`반영 완료` 가 붙은 PR 은 여기서 `[x]` 여야 하고,
-> 추적 영역(목록은 `.claude/scripts/check-wbs.mjs` 의 `TRACKED`)의 `[x]` PR 은 WORKSTREAMS 에도 적혀 있어야 한다.
+> 여기는 **체크박스만** 둔다. 진척은 이 파일 하나로 본다 — WORKSTREAMS 와 맞춰 보는 검사는 2026-10-09 에 걷었다.
 >
-> **체크는 병합된 PR 이 있을 때만 찍는다.** 다음 줄에 `  - 근거 PR #N · YYYY-MM-DD`(병합일)를 단다. 없으면 검사가 막는다.
+> **체크는 병합된 PR 이 있을 때만 찍는다.** 다음 줄에 `  - 근거 PR #N · YYYY-MM-DD`(병합일)를 단다.
 > **순번은 재사용하지 않는다.** 태스크를 지우면 그 번호는 비운 채 둔다.
 >
 > 사람이 눌러 확인하는 **완료 기준**은 여기 소관이 아니다 — `docs/spec/공통/7-데모와-완료.md` 가 그 축이고
