@@ -123,7 +123,8 @@ export async function 끝내기(
             stopped_by = CASE WHEN $7::text IS NULL THEN NULL WHEN $7::text = 'USER' THEN stop_requested_by ELSE 'system' END,
             finished_at = now(),
             held_input = CASE WHEN $8::jsonb IS NULL THEN held_input ELSE $8::jsonb || COALESCE(held_input, '{}'::jsonb) END,
-            coverage_total = $9, coverage_cased = $10, coverage_held = $11, coverage_excluded = $12, coverage_missing = $13
+            coverage_total = $9, coverage_cased = $10, coverage_held = $11, coverage_excluded = $12, coverage_missing = $13,
+            coverage_cased_fn = $14, coverage_cased_ui = $15
       WHERE id = $1 AND status = 'RUNNING'`,
     [
       id,
@@ -139,6 +140,8 @@ export async function 끝내기(
       칸.held,
       칸.excluded,
       칸.missing,
+      칸.casedFn,
+      칸.casedUi,
     ],
   );
   return r.rowCount === 1;

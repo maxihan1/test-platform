@@ -43,8 +43,8 @@ function 응답(고침: Partial<대시보드응답> = {}): 대시보드응답 {
     byService: [],
     heatmap: 히트,
     coverage: [
-      { serviceId: 1, serviceName: 'ZDA 결제', cased: 34, total: 40, ratio: 0.85, finishedAt: '2026-10-05T12:00:00.000Z', requestId: 12 },
-      { serviceId: 2, serviceName: 'ZDA 회원', cased: 0, total: 0, ratio: null, finishedAt: '2026-10-02T12:00:00.000Z', requestId: 9 },
+      { serviceId: 1, serviceName: 'ZDA 결제', cased: 34, total: 40, ratio: 0.85, casedFn: 32, casedUi: 10, finishedAt: '2026-10-05T12:00:00.000Z', requestId: 12 },
+      { serviceId: 2, serviceName: 'ZDA 회원', cased: 0, total: 0, ratio: null, casedFn: 0, casedUi: 0, finishedAt: '2026-10-02T12:00:00.000Z', requestId: 9 },
     ],
     running: [],
     unconfirmed: 0,
@@ -206,31 +206,56 @@ describe('요구사항 커버리지', () => {
     expect(container.querySelector('.dash-cov .dash-ttl')!.textContent).toContain('마지막 작성 기준');
   });
 
-  it('게이지 가운데에 서비스를 합친 퍼센트와 덮은 요구 N / M 이 있다', async () => {
+  it('기능 · UI 게이지 둘이 서비스를 합친 퍼센트와 덮은 요구 N / M 을 따로 보인다', async () => {
     const { container } = await 열기(응답());
-    const 판 = container.querySelector('.dash-cov')!;
-    expect(판.querySelector('.dash-gauge-num')!.textContent).toBe('85%');
-    expect(판.textContent).toContain('케이스로 덮은 요구 34 / 40');
-    expect(판.querySelectorAll('.dash-gauge path.dash-gauge-v').length).toBeGreaterThan(0);
+    const 게이지들 = [...container.querySelectorAll('.dash-cov .dash-gauge-one')];
+    expect(게이지들.map((g) => g.querySelector('.dash-gauge-kind')!.textContent)).toEqual(['기능 테스트', 'UI 테스트']);
+    expect(게이지들.map((g) => g.querySelector('.dash-gauge-num')!.textContent)).toEqual(['80%', '25%']);
+    expect(게이지들.map((g) => g.querySelector('.dash-gauge-cap')!.textContent)).toEqual(['덮은 요구 32 / 40', '덮은 요구 10 / 40']);
+    expect(게이지들[0]!.querySelectorAll('.dash-gauge path.dash-gauge-v').length).toBeGreaterThan(0);
   });
 
   it('퍼센트는 올리지 않고 내린다 — 하나라도 덮지 못했으면 100 이 되지 않는다', async () => {
     const 거의 = 응답({
-      coverage: [{ serviceId: 1, serviceName: 'ZDA 결제', cased: 999, total: 1000, ratio: 0.999, finishedAt: '2026-10-05T12:00:00.000Z', requestId: 12 }],
+      coverage: [
+        { serviceId: 1, serviceName: 'ZDA 결제', cased: 999, total: 1000, ratio: 0.999, casedFn: 999, casedUi: 0, finishedAt: '2026-10-05T12:00:00.000Z', requestId: 12 },
+      ],
     });
     const { container } = await 열기(거의);
     expect(container.querySelector('.dash-gauge-num')!.textContent).toBe('99%');
   });
 
-  it('서비스 줄에 이름 · 마지막 작성 날짜 링크 · 막대 · 퍼센트가 있다', async () => {
+  it('서비스 줄에 이름 · 마지막 작성 날짜 링크 · 기능 · UI 막대와 퍼센트가 있다', async () => {
     const { container } = await 열기(응답());
     const 줄 = container.querySelectorAll('.dash-cov-row')[0]!;
     expect(줄.textContent).toContain('ZDA 결제');
     const 링크 = within(줄 as HTMLElement).getByRole('link');
     expect(링크.getAttribute('href')).toBe('#/authoring/12');
     expect(링크.textContent).toContain('10월 5일');
-    expect(줄.querySelector('.dash-cov-bar i')).not.toBeNull();
-    expect(줄.textContent).toContain('85%');
+    expect([...줄.querySelectorAll('.dash-cov-pair')].map((짝) => 짝.textContent)).toEqual(['기능80%', 'UI25%']);
+    expect(줄.querySelectorAll('.dash-cov-bar i')).toHaveLength(2);
+    expect(줄.querySelector('.dash-cov-bar.ui i')).not.toBeNull();
+  });
+
+  it('갈래를 못 센 실행(이 칸 전)은 줄이 전체 막대 하나이고 게이지에서 빠지며 그 까닭을 한 줄로 적는다', async () => {
+    const 옛 = 응답({
+      coverage: [
+        { serviceId: 1, serviceName: 'ZDA 결제', cased: 34, total: 40, ratio: 0.85, casedFn: 32, casedUi: 10, finishedAt: '2026-10-05T12:00:00.000Z', requestId: 12 },
+        { serviceId: 2, serviceName: 'ZDA 회원', cased: 5, total: 60, ratio: 0.08, casedFn: null, casedUi: null, finishedAt: '2026-10-02T12:00:00.000Z', requestId: 9 },
+      ],
+    });
+    const { container } = await 열기(옛);
+    const 줄 = container.querySelectorAll('.dash-cov-row')[1]!;
+    expect([...줄.querySelectorAll('.dash-cov-pair')].map((짝) => 짝.textContent)).toEqual(['전체8%']);
+    expect(container.querySelector('.dash-gauge-cap')!.textContent).toBe('덮은 요구 32 / 40');
+    expect(container.querySelector('.dash-gauge-note')!.textContent).toBe(
+      '기능 · UI 를 나누기 전에 작성한 서비스 1개는 게이지에 넣지 않았습니다',
+    );
+  });
+
+  it('모든 서비스가 갈래를 셌으면 까닭 줄이 없다', async () => {
+    const { container } = await 열기(응답());
+    expect(container.querySelector('.dash-gauge-note')).toBeNull();
   });
 
   it('요청 링크를 누르면 그 서비스로 바꾼다 — 작성 상세는 고른 서비스로 요청을 열고 대시보드에는 고르개가 없다', async () => {
@@ -272,7 +297,7 @@ describe('요구사항 커버리지', () => {
     const 줄 = container.querySelectorAll('.dash-cov-row')[1]!;
     expect(줄.textContent).toContain('ZDA 회원');
     expect(줄.querySelector('.dash-cov-bar i')).toBeNull();
-    expect(줄.querySelector('.num')!.textContent).toBe('—');
+    expect([...줄.querySelectorAll('.num')].map((n) => n.textContent)).toEqual(['—', '—']);
   });
 
   it('작성 기록이 없는 서비스는 한 줄로 알린다', async () => {
@@ -286,7 +311,7 @@ describe('요구사항 커버리지', () => {
   it('요구가 하나도 없으면 게이지 가운데는 대시다', async () => {
     const { container } = await 열기(응답({ coverage: [] }));
     expect(container.querySelector('.dash-gauge-num')!.textContent).toBe('—');
-    expect(container.querySelector('.dash-cov')!.textContent).not.toContain('케이스로 덮은 요구');
+    expect(container.querySelector('.dash-cov')!.textContent).not.toContain('덮은 요구');
   });
 });
 

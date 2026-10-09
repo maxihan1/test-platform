@@ -125,17 +125,19 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
     일전: number,
     셈: [number, number, number, number] | null,
     원본: number | null = null,
+    갈래: [number, number] | null = null,
   ): Promise<number> {
     const r = await pool.query<{ id: string }>(
       `INSERT INTO authoring_request (service_id, kind, source_id, requested_by, requested_by_name, status,
                                       created_at, started_at, finished_at, stop_reason, stopped_by,
-                                      coverage_total, coverage_cased, coverage_excluded, coverage_missing)
+                                      coverage_total, coverage_cased, coverage_excluded, coverage_missing,
+                                      coverage_cased_fn, coverage_cased_ui)
        VALUES ($1, $2, $3, 'xdq', '시험자', $4, now() - $5::double precision * interval '1 day',
                now() - $5::double precision * interval '1 day', now() - $5::double precision * interval '1 day',
                CASE WHEN $4 = 'STOPPED' THEN 'REJECTED' END, CASE WHEN $4 = 'STOPPED' THEN 'system' END,
-               $6, $7, $8, $9)
+               $6, $7, $8, $9, $10, $11)
        RETURNING id`,
-      [서비스, 종류, 원본, 상태, 일전, ...(셈 ?? [null, null, null, null])],
+      [서비스, 종류, 원본, 상태, 일전, ...(셈 ?? [null, null, null, null]), ...(갈래 ?? [null, null])],
     );
     return Number(r.rows[0]!.id);
   }
@@ -207,7 +209,7 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
 
     작성원본 = await 작성요청(A, 'AUTHOR', 'DONE', 10, [10, 6, 2, 2]);
     await 작성요청(A, 'AUTHOR', 'DONE', 40, [10, 5, 3, 2]);
-    작성최신 = await 작성요청(A, 'RERUN', 'DONE', 5, [10, 8, 1, 1], 작성원본);
+    작성최신 = await 작성요청(A, 'RERUN', 'DONE', 5, [10, 8, 1, 1], 작성원본, [7, 3]);
     await 작성요청(A, 'AUTHOR', 'STOPPED', 1, [10, 9, 0, 1]);
     await 작성요청(B, 'AUTHOR', 'DONE', 40, [4, 4, 0, 0]);
     await 작성요청(T, 'AUTHOR', 'DONE', 2, [0, 0, 0, 0]);
@@ -315,6 +317,8 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
         cased: 8,
         total: 10,
         ratio: 0.8,
+        casedFn: 7,
+        casedUi: 3,
         requestId: 작성원본,
       });
       expect(작성최신).not.toBe(작성원본);
@@ -323,6 +327,11 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
     it('요구가 0 이면 비율을 비운다', async () => {
       const 결과 = await 대시보드('UTC', [A], [A, T]);
       expect(결과.coverage.find((c) => c.serviceId === T)).toMatchObject({ total: 0, cased: 0, ratio: null });
+    });
+
+    it('갈래를 못 센 실행(이 칸 전)이면 갈래 두 수를 비운다 — 0 이면 「덮은 요구 0개」로 읽힌다', async () => {
+      const 결과 = await 대시보드('UTC', [A], [A, T]);
+      expect(결과.coverage.find((c) => c.serviceId === T)).toMatchObject({ casedFn: null, casedUi: null });
     });
 
     it('30일 밖 DONE 만 있는 서비스는 커버리지에 없다', async () => {

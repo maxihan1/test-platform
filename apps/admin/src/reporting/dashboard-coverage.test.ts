@@ -42,6 +42,7 @@ describe('작성 커버리지 패널 글', () => {
 
   it('케이스 % 는 요구 0개에서 0 으로 나누지 않는다', () => {
     expect(패널SQL('작성 커버리지')).toContain('NULLIF(a.coverage_total, 0)');
+    expect(패널SQL('작성 커버리지').match(/NULLIF\(a\.coverage_total, 0\)/g)).toHaveLength(3);
   });
 });
 
@@ -62,16 +63,18 @@ describe.skipIf(연결 === undefined)('작성 커버리지 패널 SQL', () => {
     끝난때: string,
     셈: [number, number, number | null, number, number] | null,
     원본: number | null = null,
+    갈래: [number, number] | null = null,
   ) => {
     const r = await pool.query<{ id: string }>(
       `INSERT INTO authoring_request (service_id, kind, source_id, requested_by, requested_by_name, status,
                                       created_at, started_at, finished_at, stop_reason, stopped_by,
-                                      coverage_total, coverage_cased, coverage_held, coverage_excluded, coverage_missing)
+                                      coverage_total, coverage_cased, coverage_held, coverage_excluded, coverage_missing,
+                                      coverage_cased_fn, coverage_cased_ui)
        VALUES ($1, $2, $3, 'tester', '시험자', $4, now() - $5::interval, now() - $5::interval, now() - $5::interval,
                CASE WHEN $4 = 'STOPPED' THEN 'REJECTED' END, CASE WHEN $4 = 'STOPPED' THEN 'system' END,
-               $6, $7, $8, $9, $10)
+               $6, $7, $8, $9, $10, $11, $12)
        RETURNING id`,
-      [서비스, 종류, 원본, 상태, 끝난때, ...(셈 ?? [null, null, null, null, null])],
+      [서비스, 종류, 원본, 상태, 끝난때, ...(셈 ?? [null, null, null, null, null]), ...(갈래 ?? [null, null])],
     );
     return Number(r.rows[0]!.id);
   };
@@ -97,7 +100,7 @@ describe.skipIf(연결 === undefined)('작성 커버리지 패널 SQL', () => {
     서비스 = Number(r.rows[0]!.id);
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
 
-    const 원본 = await 넣기('AUTHOR', 'DONE', '1 minute', [10, 4, 1, 5, 1]);
+    const 원본 = await 넣기('AUTHOR', 'DONE', '1 minute', [10, 4, 1, 5, 1], null, [3, 2]);
     await 넣기('RERUN', 'STOPPED', '2 minutes', [8, 2, null, 6, 0], 원본);
     await 넣기('AUTHOR', 'DONE', '3 minutes', null);
     await 넣기('AUTHOR', 'FAILED', '4 minutes', null);
@@ -125,6 +128,17 @@ describe.skipIf(연결 === undefined)('작성 커버리지 패널 SQL', () => {
   it('케이스 % 는 덮은 수 / 요구 수이고 요구 0개면 비운다', async () => {
     const r = await 줄들();
     expect(r.map((줄) => (줄['케이스 %'] === null ? null : Number(줄['케이스 %'])))).toEqual([40, 25, null, null]);
+  });
+
+  it('기능 · UI 로 덮은 수와 % 를 따로 내고 갈래를 못 센 실행은 비운다', async () => {
+    const r = await 줄들();
+    const 수 = (v: unknown) => (v === null ? null : Number(v));
+    expect(r.map((줄) => [줄['기능으로 덮음'], 수(줄['기능 %']), 줄['UI 로 덮음'], 수(줄['UI %'])])).toEqual([
+      [3, 30, 2, 20],
+      [null, null, null, null],
+      [null, null, null, null],
+      [null, null, null, null],
+    ]);
   });
 
   it('성공인데 칸이 비면 원장 없음이라 적는다 · 보류를 모르면 비운다', async () => {

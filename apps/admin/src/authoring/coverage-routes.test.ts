@@ -1,4 +1,4 @@
-// 끝내기가 셈(result.coverage)을 칸 다섯에 옮기고 상세가 싣는지 (SPEC 도메인/작성 §7 finish · 상세 · §3.6 「★ 원장」)
+// 끝내기가 셈(result.coverage)을 칸에 옮기고 상세가 싣는지 (SPEC 도메인/작성 §7 finish · 상세 · §3.6 「★ 원장」)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -95,6 +95,20 @@ describe.skipIf(연결 === undefined)('셈 — 끝내기와 상세', () => {
       coverage_missing: 1,
     });
     expect((await 상세(id)).coverage).toEqual(셈);
+  });
+
+  it('갈래 두 수는 칸 둘에 옮기고 안 보낸 셈이면 그 칸만 빈다', async () => {
+    const { pool } = await import('../db/index.js');
+    const 갈래칸 = async (id: number) =>
+      (await pool.query('SELECT coverage_cased_fn, coverage_cased_ui FROM authoring_request WHERE id = $1', [id])).rows[0];
+    const 나눔 = await 넣기();
+    expect((await 끝내기(나눔, { status: 'DONE', result: { coverage: { ...셈, casedFn: 2, casedUi: 2 } } })).statusCode).toBe(200);
+    expect(await 갈래칸(나눔)).toEqual({ coverage_cased_fn: 2, coverage_cased_ui: 2 });
+    expect((await 상세(나눔)).coverage).toMatchObject({ casedFn: 2, casedUi: 2 });
+    const 옛 = await 넣기();
+    expect((await 끝내기(옛, { status: 'DONE', result: { coverage: 셈 } })).statusCode).toBe(200);
+    expect(await 갈래칸(옛)).toEqual({ coverage_cased_fn: null, coverage_cased_ui: null });
+    expect((await 칸읽기(옛)).coverage_cased).toBe(3);
   });
 
   it('올리기 거절(STOPPED · REJECTED)에도 옮긴다 — 보류는 모른다', async () => {

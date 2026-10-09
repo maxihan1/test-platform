@@ -29,6 +29,11 @@ describe('커버리지모양검사', () => {
     expect(커버리지모양검사({ ...맞는셈, uiOnly: ['A', 'B', 'C', 'D'] })).not.toBeNull();
   });
 
+  it('갈래 두 수를 받는다 — 같이 덮은 요구는 둘 다에 들어 합이 케이스를 넘을 수 있다', () => {
+    expect(커버리지모양검사({ ...맞는셈, casedFn: 3, casedUi: 2 })).toMatchObject({ casedFn: 3, casedUi: 2 });
+    expect(커버리지모양검사({ ...맞는셈, casedFn: 4, casedUi: 0 })).not.toBeNull();
+  });
+
   it('원장이 없으면 까닭 하나만 받는다', () => {
     expect(커버리지모양검사({ none: '글자본이 없는 자료(PDF · 피그마)' })).toEqual({ none: '글자본이 없는 자료(PDF · 피그마)' });
     expect(커버리지모양검사({ none: '' })).toBeNull();
@@ -60,6 +65,11 @@ describe('커버리지모양검사', () => {
     ['UI 로만 덮인 번호가 글 목록이 아님', { ...맞는셈, uiOnly: 'REQ-A-1' }],
     ['UI 로만 덮인 번호가 케이스보다 많음', { ...맞는셈, uiOnly: ['A', 'B', 'C', 'D', 'E'] }],
     ['원장 없음에 UI 로만 덮인 번호', { none: '원장 없음', uiOnly: [] }],
+    ['갈래 수가 하나만 옴', { ...맞는셈, casedFn: 4 }],
+    ['기능 수가 케이스보다 많음', { ...맞는셈, casedFn: 5, casedUi: 0 }],
+    ['UI 수가 음수', { ...맞는셈, casedFn: 4, casedUi: -1 }],
+    ['갈래 합이 케이스보다 작음', { ...맞는셈, casedFn: 2, casedUi: 1 }],
+    ['갈래 수가 글자', { ...맞는셈, casedFn: '4', casedUi: 0 }],
     ['모르는 키', { ...맞는셈, extra: 1 }],
     ['빠진 키', { total: 10, cased: 4, held: 1, excluded: {}, missing: [] }],
     ['배열', [맞는셈]],
@@ -70,11 +80,15 @@ describe('커버리지모양검사', () => {
 
 describe('커버리지칸', () => {
   it('제외는 종류를 합치고 빠짐은 수로 옮긴다', () => {
-    expect(커버리지칸(맞는셈)).toEqual({ total: 10, cased: 4, held: 1, excluded: 5, missing: 1 });
+    expect(커버리지칸(맞는셈)).toEqual({ total: 10, cased: 4, held: 1, excluded: 5, missing: 1, casedFn: null, casedUi: null });
+  });
+
+  it('갈래 두 수를 옮기고 없으면 비운다 — 0 이면 「그 갈래로 덮은 요구 0개」로 읽힌다', () => {
+    expect(커버리지칸({ ...맞는셈, casedFn: 3, casedUi: 2 })).toMatchObject({ casedFn: 3, casedUi: 2 });
   });
 
   it('원장이 없거나 셈이 없으면 전부 비운다', () => {
-    const 빈칸 = { total: null, cased: null, held: null, excluded: null, missing: null };
+    const 빈칸 = { total: null, cased: null, held: null, excluded: null, missing: null, casedFn: null, casedUi: null };
     expect(커버리지칸({ none: '원장 없음' })).toEqual(빈칸);
     expect(커버리지칸(null)).toEqual(빈칸);
   });

@@ -33,6 +33,8 @@ export interface 대조결과 {
   제외번호: Map<string, 제외종류>;
   /** UI 케이스로만 덮인 원장 번호(원장 순서) — R19 를 사람이 PR 에서 보게 하는 보고용이다. 빠짐으로 세지 않는다 */
   UI만: string[];
+  /** 그 갈래 케이스가 하나라도 덮은 원장 번호 수. 두 갈래가 같이 덮은 번호는 둘 다에 든다 — 대시보드가 갈래를 따로 본다 (작성 §3.6 「셈을 남긴다」) */
+  갈래: { 기능: number; UI: number };
   /** tcId 가 칸 번호와 다른 요구 줄 · 번호를 못 매긴 줄. 덮음 · 셈은 그대로다 — 번호 하나 틀렸다고 덮은 요구를 빠짐으로 떨구지 않는다 (작성 §3.6 「칸과 번호」) */
   칸어긋남: string[];
   칸알림: string[];
@@ -142,6 +144,7 @@ export function 원장대조(
   const 제외로 = new Map<string, 제외종류>();
   const 표번호 = new Set<string>();
   const 기능으로 = new Set<string>();
+  const UI로 = new Set<string>();
 
   for (const 행 of 표읽기(표글, '요구사항')) {
     const 번호들 = 번호찾기(행['출처'] ?? '').번호들;
@@ -161,7 +164,7 @@ export function 원장대조(
     const UI줄 = tcId종류(tcId) === 'UI';
     for (const b of 번호들) {
       케이스로.set(b, (케이스로.get(b) ?? new Set<string>()).add(tcId));
-      if (!UI줄) 기능으로.add(b);
+      (UI줄 ? UI로 : 기능으로).add(b);
     }
   }
 
@@ -235,6 +238,7 @@ export function 원장대조(
     덮음,
     제외번호,
     UI만: 원장.map((h) => h.번호).filter((b) => 케이스로.has(b) && !기능으로.has(b)),
+    갈래: { 기능: 원장.filter((h) => 기능으로.has(h.번호)).length, UI: 원장.filter((h) => UI로.has(h.번호)).length },
     칸어긋남,
     칸알림,
   };

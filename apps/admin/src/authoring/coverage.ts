@@ -1,4 +1,4 @@
-// 작성 실행의 셈(result.coverage) — 모양 검사 · 칸 다섯으로 옮기기 · 상세에 싣기 (SPEC 도메인/작성 §3.6 「★ 원장」 · §7 finish)
+// 작성 실행의 셈(result.coverage) — 모양 검사 · 칸으로 옮기기 · 상세에 싣기 (SPEC 도메인/작성 §3.6 「★ 원장」 · §7 finish)
 // DB · 서버 틀을 import 하지 않는다 — 작성 에이전트가 보내기 전에 같은 검사를 돌리려고 가져다 쓴다(scripts/authoring-coverage.ts)
 
 export interface 원장셈 {
@@ -11,6 +11,9 @@ export interface 원장셈 {
   unread?: string[];
   /** UI 케이스로만 덮이고 기능 케이스가 없는 번호 — 보고용이라 빠짐으로 세지 않는다 */
   uiOnly?: string[];
+  /** cased 가운데 그 갈래 케이스가 하나라도 덮은 요구 수. 둘이 같이 오거나 같이 없다 — 이 키 전 에이전트는 안 보낸다 */
+  casedFn?: number;
+  casedUi?: number;
 }
 export type 커버리지 = 원장셈 | { none: string };
 
@@ -20,9 +23,11 @@ export interface 셈칸 {
   held: number | null;
   excluded: number | null;
   missing: number | null;
+  casedFn: number | null;
+  casedUi: number | null;
 }
 
-const 셈키 = ['total', 'cased', 'held', 'excluded', 'missing', 'later', 'unread', 'uiOnly'];
+const 셈키 = ['total', 'cased', 'held', 'excluded', 'missing', 'later', 'unread', 'uiOnly', 'casedFn', 'casedUi'];
 const 필수키 = ['total', 'cased', 'held', 'excluded', 'missing', 'later'];
 // 종류 이름 목록은 여기 옮겨 적지 않는다 — 정본은 scripts/authoring-ledger-check.ts 의 제외종류다. 둘을 두면 한쪽이 뒤처진다
 const 종류이름상한 = 20;
@@ -49,7 +54,7 @@ export function 커버리지모양검사(v: unknown): 커버리지 | null {
     return 하나뿐 && typeof 까닭 === 'string' && 까닭.length > 0 && 까닭.length <= 까닭상한 ? { none: 까닭 } : null;
   }
   if (Object.keys(v).some((k) => !셈키.includes(k)) || 필수키.some((k) => !(k in v))) return null;
-  const { total, cased, held, excluded, missing, later, unread, uiOnly } = v;
+  const { total, cased, held, excluded, missing, later, unread, uiOnly, casedFn, casedUi } = v;
   if (!수인가(total) || !수인가(cased) || (held !== null && !수인가(held))) return null;
   if (!객체인가(excluded)) return null;
   const 종류들 = Object.entries(excluded);
@@ -61,14 +66,28 @@ export function 커버리지모양검사(v: unknown): 커버리지 | null {
   if (held !== null && held > cased) return null;
   if (later.length > 제외수) return null;
   if (uiOnly !== undefined && (!글목록인가(uiOnly) || uiOnly.length > cased)) return null;
+  // DB 짝 제약(authoring_request_coverage_kind_check)과 같은 규칙 — 여기서 400 으로 끊어야 넣을 때 500 이 안 난다
+  if (casedFn !== undefined || casedUi !== undefined) {
+    if (!수인가(casedFn) || !수인가(casedUi) || casedFn > cased || casedUi > cased || casedFn + casedUi < cased) return null;
+  }
   return v as unknown as 원장셈;
 }
 
-/** 칸 다섯으로 옮긴다. 원장 없음 · 셈 없음은 전부 비운다 — 0 으로 채우면 「요구 0개」로 읽힌다 */
+/** 칸으로 옮긴다. 원장 없음 · 셈 없음은 전부 비운다 — 0 으로 채우면 「요구 0개」로 읽힌다 */
 export function 커버리지칸(c: 커버리지 | null): 셈칸 {
-  if (c === null || 'none' in c) return { total: null, cased: null, held: null, excluded: null, missing: null };
+  if (c === null || 'none' in c) {
+    return { total: null, cased: null, held: null, excluded: null, missing: null, casedFn: null, casedUi: null };
+  }
   const 제외수 = Object.values(c.excluded).reduce((a, n) => a + n, 0);
-  return { total: c.total, cased: c.cased, held: c.held, excluded: 제외수, missing: c.missing.length };
+  return {
+    total: c.total,
+    cased: c.cased,
+    held: c.held,
+    excluded: 제외수,
+    missing: c.missing.length,
+    casedFn: c.casedFn ?? null,
+    casedUi: c.casedUi ?? null,
+  };
 }
 
 /** 상세가 싣는 셈 — 저장된 result 를 읽을 때도 다시 본다. 셈이 없거나 모양이 틀린 옛 행은 null */

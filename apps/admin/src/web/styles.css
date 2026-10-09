@@ -5069,6 +5069,41 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   font-size: 16px;
 }
 
+/* 요구사항 커버리지는 기능 · UI 게이지 둘을 나란히 둔다 — 칸이 4열이라 한 개는 작게 */
+.dash-gauges {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dash-gauge-kind {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ink);
+}
+
+.dash-gauge-note {
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.dash-gauge-wrap.sm {
+  width: min(170px, 100%);
+  margin-bottom: 6px;
+}
+
+.dash-gauge-wrap.sm .dash-gauge-num {
+  bottom: 6px;
+  font-size: 24px;
+}
+
+.dash-gauge-wrap.sm .dash-gauge-num .dash-pct {
+  font-size: 13px;
+}
+
 .dash-gauge-cap {
   padding: 4px 0 16px;
   font-size: 12px;
@@ -5078,16 +5113,12 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 
 .dash-cov-row {
   display: grid;
-  grid-template-columns: minmax(80px, 30%) minmax(0, 1fr) 48px;
+  grid-template-columns: minmax(80px, 30%) minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   padding: 10px 0;
   border-top: 1px solid var(--line);
   font-size: 12px;
-}
-
-.dash-cov-row.none {
-  grid-template-columns: minmax(80px, 30%) minmax(0, 1fr);
 }
 
 .dash-cov-name {
@@ -5132,6 +5163,24 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 .dash-cov-pct {
   text-align: right;
   font-size: 14px;
+}
+
+/* 짝을 한 격자에 풀어 둔다 — 영어(Functional)처럼 이름이 길어도 두 막대가 같은 자리에서 시작한다 */
+.dash-cov-pairs {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+}
+
+.dash-cov-pair {
+  display: contents;
+}
+
+/* UI 막대는 한 단계 어둡게 — 대표색 없이 회색 단계로만 두 갈래를 가른다 */
+.dash-cov-bar.ui i {
+  background: var(--chart-2);
 }
 
 /* 통과율 칸 아래 우묵한 자리 — 일별 통과율 선 */

@@ -431,6 +431,9 @@ export type AuthoringCoverage =
       missing: string[];
       later: string[];
       unread?: string[];
+      /** cased 가운데 그 갈래 케이스가 덮은 요구 수. 둘이 같이 덮으면 둘 다에 든다 — 이 키 전 실행에는 없다 */
+      casedFn?: number;
+      casedUi?: number;
     }
   | { none: string };
 

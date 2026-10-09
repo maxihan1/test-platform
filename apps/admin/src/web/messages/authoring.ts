@@ -256,6 +256,8 @@ export const 작성말: Record<string, string> = {
   '기획서 요구': 'Spec requirements',
   '{총}개 → 케이스로 덮음 {덮음} ({퍼센트}%)': '{총} → {덮음} covered by cases ({퍼센트}%)',
   '{총}개 → 케이스로 덮음 {덮음}': '{총} → {덮음} covered by cases',
+  '기능 테스트 {수}': 'functional tests {수}',
+  'UI 테스트 {수}': 'UI tests {수}',
   '보류로만 {수}': 'held only {수}',
   '보류 모름': 'held unknown',
   '제외 {수} (다음 요청 {다음})': 'excluded {수} (next request {다음})',
