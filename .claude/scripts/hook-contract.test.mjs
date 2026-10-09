@@ -63,7 +63,6 @@ test('삭제와 코드 push 가 섞이면 검사로 간다', () => {
   const r = run(`(delete) ${ZERO} refs/heads/a ${SHA}\nrefs/heads/b ${SHA} refs/heads/b ${ZERO}\n`);
   assert.match(r.out, /검사 시작/, '섞였는데 건너뛰었다');
   assert.doesNotMatch(r.out, /Test Files/, '진짜 저장소에서 단위 테스트를 돌렸다');
-  assert.equal(r.호출, '', `진짜 npm 대신 가짜 npm 이 불렸다: ${r.호출}`);
 });
 
 test('입력이 비면 검사로 간다 (보수적)', () => {
@@ -71,7 +70,6 @@ test('입력이 비면 검사로 간다 (보수적)', () => {
   const r = run('');
   assert.match(r.out, /검사 시작/, '빈 입력을 삭제로 봤다');
   assert.doesNotMatch(r.out, /Test Files/, '진짜 저장소에서 단위 테스트를 돌렸다');
-  assert.equal(r.호출, '', `진짜 npm 대신 가짜 npm 이 불렸다: ${r.호출}`);
 });
 
 test('stdin 을 두 번 읽지 않는다고 적어 뒀다', () => {
@@ -82,25 +80,22 @@ test('stdin 을 두 번 읽지 않는다고 적어 뒀다', () => {
 
 test('기존 검사가 그대로 있다', () => {
   const src = readFileSync(HOOK, 'utf8');
-  for (const 검사 of ['npm test', 'check:tests', 'docs/reviews']) {
+  for (const 검사 of ['npm test', 'check:tests', 'typecheck']) {
     assert.ok(src.includes(검사), `기존 검사가 사라졌다: ${검사}`);
   }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 가벼운 길 (2026-09-23 게이트 1 — CLAUDE.md §2.3 의 예외로 승인됨)
-//
-// 바뀐 파일이 테스트만(cases-only.mjs 판정)이면 전체 단위 테스트와 검사 기록 요구를 건너뛴다.
-// **글자가 아니라 실제 동작을 본다** — 임시 git 저장소에 커밋을 만들고 훅을 그 안에서 돌린다.
+// 차선별 동작. **글자가 아니라 실제 동작을 본다** — 임시 git 저장소에 커밋을 만들고 훅을 그 안에서 돌린다.
 // npm 은 PATH 앞에 끼운 가짜로 바꿔 불린 인자만 적는다. 진짜 npm test 를 돌리면 이 검사가 수 분 걸린다.
 // ─────────────────────────────────────────────────────────────────────────────
 
-test('테스트만 바뀐 커밋은 가벼운 길 — 타입·check:tests 만 돌고 검사 기록 없이 통과한다', () => {
+test('테스트만 바뀐 커밋은 cases 차선 — 타입·check:tests 만 돌고 통과한다', () => {
   const 저장소 = 임시저장소(['tests/todo/TODO-002.spec.ts', 'docs/cases/TODO.md']);
   try {
     const r = 저장소에서돌린다(저장소);
-    assert.equal(r.code, 0, `가벼운 길인데 막혔다: ${r.out}`);
-    assert.match(r.out, /가벼운 길/, '가벼운 길로 판정했다는 표시가 없다');
+    assert.equal(r.code, 0, `cases 차선인데 막혔다: ${r.out}`);
+    assert.match(r.out, /차선: cases/, 'cases 차선으로 판정하지 않았다');
     const 호출 = 불린것(저장소.기록);
     assert.match(호출, /typecheck/, '가벼운 길에서 타입 검사를 안 돌렸다');
     assert.match(호출, /check:tests/, '가벼운 길에서 check:tests 를 안 돌렸다');
@@ -130,13 +125,38 @@ test('훅은 검사를 부르기 전에 GIT_* 환경 변수를 걷는다', () =>
 const 바뀐것만돌았다 = (호출) =>
   /^run test:changed\b.*origin\/main/m.test(호출) && /^run test:always\b/m.test(호출);
 
-test('코드가 섞인 커밋은 무거운 길 — 바뀐 것과 이어진 테스트를 돌리고 검사 기록을 요구한다', () => {
+test('코드가 섞인 커밋은 무거운 길 — 타입 검사 · 바뀐 것과 이어진 테스트 · check:tests 를 돌고 통과한다', () => {
   const 저장소 = 임시저장소(['tests/todo/TODO-002.spec.ts', 'apps/x.ts']);
   try {
     const r = 저장소에서돌린다(저장소);
-    assert.equal(r.code, 1, `검사 기록 없이 통과했다: ${r.out}`);
-    assert.match(r.out, /docs\/reviews/, '검사 기록을 요구하지 않았다');
-    assert.ok(바뀐것만돌았다(불린것(저장소.기록)), `무거운 길인데 test:changed · test:always 를 안 돌렸다: ${불린것(저장소.기록)}`);
+    assert.equal(r.code, 0, `막혔다: ${r.out}`);
+    const 호출 = 불린것(저장소.기록);
+    assert.ok(바뀐것만돌았다(호출), `무거운 길인데 test:changed · test:always 를 안 돌렸다: ${호출}`);
+    assert.match(호출, /typecheck/, '사람 PR 에는 CI 가 없는데 타입 검사를 안 돌렸다');
+    assert.match(호출, /check:tests/, 'check:tests 를 안 돌렸다');
+    assert.doesNotMatch(호출, /check:workflow/, '하네스를 안 바꿨는데 하네스 검사를 돌렸다');
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
+  }
+});
+
+test('하네스(.claude/)가 바뀐 커밋은 하네스 검사도 돌고, 실패하면 막는다', () => {
+  for (const 실패 of ['', 'check:workflow']) {
+    const 저장소 = 임시저장소(['.claude/scripts/x.mjs']);
+    try {
+      const r = 저장소에서돌린다(저장소, 실패 ? { NPM_FAIL: 실패 } : {});
+      assert.match(불린것(저장소.기록), /check:workflow/, '하네스를 바꿨는데 하네스 검사를 안 돌렸다');
+      assert.equal(r.code, 실패 ? 1 : 0, `하네스 검사 ${실패 ? '실패' : '통과'}인데 종료 ${r.code}: ${r.out}`);
+    } finally {
+      rmSync(저장소.뿌리, { recursive: true, force: true });
+    }
+  }
+});
+
+test('타입 검사가 실패하면 막는다', () => {
+  const 저장소 = 임시저장소(['apps/x.ts']);
+  try {
+    assert.equal(저장소에서돌린다(저장소, { NPM_FAIL: 'typecheck' }).code, 1);
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });
   }
@@ -147,7 +167,7 @@ test('코드 파일을 spec 으로 옮긴 커밋은 무거운 길 — 이름 바
   const 저장소 = 임시저장소([], [['apps/x.ts', 'tests/todo/x.spec.ts']]);
   try {
     const r = 저장소에서돌린다(저장소);
-    assert.doesNotMatch(r.out, /가벼운 길/, `코드를 spec 으로 옮겼는데 가벼운 길로 갔다: ${r.out}`);
+    assert.doesNotMatch(r.out, /차선: cases/, `코드를 spec 으로 옮겼는데 cases 차선으로 갔다: ${r.out}`);
     assert.ok(바뀐것만돌았다(불린것(저장소.기록)), '무거운 길인데 test:changed · test:always 를 안 돌렸다');
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });
@@ -164,38 +184,34 @@ test('migration 이 바뀐 커밋은 전체 단위 테스트 — 작업방 경�
   }
 });
 
-test('문서만 바뀐 커밋은 docs 차선 — pre-push 문서 검사만 돌고 검사 기록 없이 통과한다', () => {
+test('문서만 바뀐 커밋은 docs 차선 — check:spec 만 돌고 통과한다', () => {
   const 저장소 = 임시저장소(['docs/SETUP.md']);
   try {
     const r = 저장소에서돌린다(저장소);
     assert.equal(r.code, 0, `문서만 바꿨는데 막혔다: ${r.out}`);
     const 호출 = 불린것(저장소.기록);
     assert.match(호출, /check:spec/, 'docs 차선에서 check:spec 을 안 돌렸다');
-    assert.match(호출, /check:docs-contract/, 'docs 차선에서 문서 계약 검사를 안 돌렸다');
     assert.doesNotMatch(호출, /^(test|run test|run typecheck)/m, `docs 차선인데 테스트·타입 검사를 돌렸다: ${호출}`);
   } finally {
     rmSync(저장소.뿌리, { recursive: true, force: true });
   }
 });
 
-test('docs 차선에서 check:spec · 문서 계약이 실패하면 push 를 막는다', () => {
-  for (const 낱말 of ['check:spec', 'check:docs-contract']) {
-    const 저장소 = 임시저장소(['docs/SETUP.md']);
-    try {
-      const r = 저장소에서돌린다(저장소, { NPM_FAIL: 낱말 });
-      assert.equal(r.code, 1, `${낱말} 이 실패했는데 통과했다: ${r.out}`);
-    } finally {
-      rmSync(저장소.뿌리, { recursive: true, force: true });
-    }
+test('docs 차선에서 check:spec 이 실패하면 push 를 막는다', () => {
+  const 저장소 = 임시저장소(['docs/SETUP.md']);
+  try {
+    const r = 저장소에서돌린다(저장소, { NPM_FAIL: 'check:spec' });
+    assert.equal(r.code, 1, `check:spec 이 실패했는데 통과했다: ${r.out}`);
+  } finally {
+    rmSync(저장소.뿌리, { recursive: true, force: true });
   }
 });
 
-test('명세가 바뀐 커밋은 spec 차선 — check:spec 을 돌리고 검사 기록을 요구한다', () => {
+test('명세가 바뀐 커밋은 spec 차선 — check:spec 만 돌고 통과한다', () => {
   const 저장소 = 임시저장소(['docs/spec/도메인/x.md']);
   try {
     const r = 저장소에서돌린다(저장소);
-    assert.equal(r.code, 1, `명세를 바꿨는데 검사 기록 없이 통과했다: ${r.out}`);
-    assert.match(r.out, /docs\/reviews/, '검사 기록을 요구하지 않았다');
+    assert.equal(r.code, 0, `명세를 바꿨는데 막혔다: ${r.out}`);
     const 호출 = 불린것(저장소.기록);
     assert.match(호출, /check:spec/, 'spec 차선에서 check:spec 을 안 돌렸다');
     assert.doesNotMatch(호출, /^(test|run test)/m, `spec 차선인데 테스트를 돌렸다: ${호출}`);
@@ -215,29 +231,11 @@ test('바뀐 파일이 0 인 커밋(빈 시작 커밋)은 검사 없이 통과�
   }
 });
 
-test('HOOKS.md 가 차선 개수를 손으로 적지 않고 tpx-impl 이 커밋 경로를 「바꾼 files 경로만」으로 적는다', () => {
-  const 문서 = readFileSync(new URL('../../docs/HOOKS.md', import.meta.url), 'utf8');
-  assert.doesNotMatch(문서, /[두세네다]\S* ?차선으로/, 'HOOKS.md 에 손으로 센 차선 개수가 남아 있다');
-  const 스킬 = readFileSync(new URL('../skills/tpx-impl/SKILL.md', import.meta.url), 'utf8');
-  assert.match(스킬, /git commit -m[^\n]*-- <[^>]*경로>[^\n]*이번 커밋에서 바꾼/, 'tpx-impl 2-A 커밋 줄이 「이번 커밋에서 바꾼 files 경로만」을 말하지 않는다');
-});
-
 test('판정 규칙을 훅에 복사하지 않고 lane.mjs 에 맡긴다', () => {
   assert.match(readFileSync(HOOK, 'utf8'), /lane\.mjs/);
 });
 
-// REFS 를 here-doc 으로 읽는 순회가 네 번 흩어져 있으면 삭제 줄을 거르는 규칙이 네 곳에 복사된다 (PR #181 할 일 2)
-const 순회세기 = (글) => (글.match(/<<EOF\n\$REFS\n/g) ?? []).length;
-
-test('REFS 를 here-doc 으로 읽는 순회는 한 곳뿐이고 뒤 순회는 SHAS 를 돈다', () => {
-  assert.equal(순회세기('<<EOF\n$REFS\nEOF\n<<EOF\n$REFS\nEOF\n'), 2, '세는 정규식이 순회를 못 센다');
-  const src = readFileSync(HOOK, 'utf8');
-  assert.equal(순회세기(src), 1, 'REFS 를 읽는 순회가 한 곳이 아니다');
-  const 코드 = src.split('\n').filter((줄) => !줄.trimStart().startsWith('#')).join('\n');
-  assert.equal((코드.match(/^\s*for local_sha in \$SHAS; do$/gm) ?? []).length, 3, '차선 · 재사용 · 표지 순회가 SHAS 를 돌지 않는다');
-});
-
-test('삭제 줄과 문서만 바꾼 커밋 ref 를 함께 올리면 docs 차선으로 검사 기록 없이 통과한다', () => {
+test('삭제 줄과 문서만 바꾼 커밋 ref 를 함께 올리면 docs 차선으로 통과한다', () => {
   const 저장소 = 임시저장소(['docs/SETUP.md']);
   try {
     const 입력 = `(delete) ${ZERO} refs/heads/old ${SHA}\nrefs/heads/b ${저장소.sha} refs/heads/b ${ZERO}\n`;

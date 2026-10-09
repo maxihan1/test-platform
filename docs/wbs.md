@@ -1,14 +1,11 @@
 # WBS — 영역 · 기능 · 태스크
 
 > **진행판의 원본이다.** `npm run progress` 가 이 파일을 읽어 `build/progress.html` 을 만들고,
-> `tpx-merge` 가 병합마다 같은 Artifact 주소로 다시 게시한다 (진행판 https://claude.ai/artifact/LN2fiNzKQcyB3aym6rzQY3).
+> `/tpx` 4단계가 병합마다 같은 Artifact 주소로 다시 게시한다 (진행판 https://claude.ai/artifact/LN2fiNzKQcyB3aym6rzQY3).
 >
-> **WORKSTREAMS.md 와 같이 움직인다.** 무엇을 어떻게 만드는지·순서·남은 것의 설명은 WORKSTREAMS 가 정본이고,
-> 여기는 **체크박스만** 둔다. 둘이 어긋나면 `npm run check:wbs` 가 빨개진다 —
-> WORKSTREAMS 에서 `✅`·`반영 완료` 가 붙은 PR 은 여기서 `[x]` 여야 하고,
-> 추적 영역(목록은 `.claude/scripts/check-wbs.mjs` 의 `TRACKED`)의 `[x]` PR 은 WORKSTREAMS 에도 적혀 있어야 한다.
+> 여기는 **체크박스만** 둔다. 진척은 이 파일 하나로 본다 — WORKSTREAMS 와 맞춰 보는 검사는 2026-10-09 에 걷었다.
 >
-> **체크는 병합된 PR 이 있을 때만 찍는다.** 다음 줄에 `  - 근거 PR #N · YYYY-MM-DD`(병합일)를 단다. 없으면 검사가 막는다.
+> **체크는 병합된 PR 이 있을 때만 찍는다.** 다음 줄에 `  - 근거 PR #N · YYYY-MM-DD`(병합일)를 단다.
 > **순번은 재사용하지 않는다.** 태스크를 지우면 그 번호는 비운 채 둔다.
 >
 > 사람이 눌러 확인하는 **완료 기준**은 여기 소관이 아니다 — `docs/spec/공통/7-데모와-완료.md` 가 그 축이고
@@ -439,7 +436,10 @@
   - 근거 PR #179 · 2026-10-08
 - [x] `HAR-F1-25` 렌즈의 검사 통과 확인 다시 보기 — 렌즈가 직접 확인하지 않고 넘겨받은 결과를 쓰고 확인은 pre-push · CI 에 맡길지, 아니면 `reuse=` 에 EXIT 줄 · 지금 HEAD 대조를 더할지(PR #179 게이트 2 세 회차 연속 같은 문단) · `tpx-impl` 2-C 의 「GREEN 이 고친 검사 파일」 기준을 검증자 프롬프트에 싣기 · 미확인 중대를 적는 자리 · 넘겨받은 40자 HEAD 쓰임 · HOOKS 차선 표 `spec` 행 「위와 같은데」 · `docs` 행 CI · pre-push 칸 · 검사 단언(펜스 하나 고르기 · `펜스안()` 사본 · `lane()` 을 불러 보는 대조군 · `review-structure.test.mjs` 377줄)
   - 근거 PR #181 · 2026-10-08 — 함께 한 것: PR #178 이 미룬 둘(pre-push 순회 하나 · 응답 끝 경고가 커밋분도 봄) · 보조 에이전트 모델 배분(Haiku 5.5 low 병합 대기 · 실패 로그 요약 / Sonnet medium 파일 찾기 · 병합은 메인이 확인 뒤) · 구현자 커밋은 `commit -- <경로>` · 응답 끝 경고 현지 날짜
-- [ ] `HAR-F1-26` PR #181 이 남긴 경미 — 병합 대기 문서(「블록 전체가 600초 안」 셈에 gh 호출 지연 · 다시 지켜보기에 `timeout` 감싸기 · BEFORE 없이 대신 쓴 실행 번호 확인 · `--match-head-commit` 거부 때 할 일) · 「손으로 센 차선 개수」 정규식이 좁고 오탐(`ci-covers-tests` · `lane` 주석의 「차선 넷」 포함) · `guard.test` 의 `toISOString` 금지가 파일 전체 · 같은 `tpx-impl` 커밋 줄을 검사 둘이 단언
+- [x] `HAR-F1-26` PR #181 이 남긴 경미 — 병합 대기 문서(「블록 전체가 600초 안」 셈에 gh 호출 지연 · 다시 지켜보기에 `timeout` 감싸기 · BEFORE 없이 대신 쓴 실행 번호 확인 · `--match-head-commit` 거부 때 할 일) · 「손으로 센 차선 개수」 정규식이 좁고 오탐(`ci-covers-tests` · `lane` 주석의 「차선 넷」 포함) · `guard.test` 의 `toISOString` 금지가 파일 전체 · 같은 `tpx-impl` 커밋 줄을 검사 둘이 단언
+  - 근거 PR #184 · 2026-10-09 — 대상 파일(병합 대기 문서 · ci-covers-tests · 응답 끝 경고 · tpx-impl)이 하네스 다이어트 2차에서 통째로 빠졌다
+- [x] `HAR-F1-27` 하네스 다이어트 2차 — /tpx 네 단계(시작 승인 한 번 · 끝 검사 한 명) · CI 는 작성 에이전트 PR 만 · 일 안 하던 훅 둘 제거 · 문서 문장 검사 테스트 제거 · CLAUDE.md 새 기준(테스트는 코드와 같이 · 실수 기록 멈춤)
+  - 근거 PR #184 · 2026-10-09
 
 ### 명세와 설계 기록 · Phase 0
 **무엇** SPEC 개정·분할과 검토 기록, 설계 결정 문서.
