@@ -53,9 +53,9 @@
 | **WS-E** 화면 | `spec/공통/1-제품과-구조` · `spec/공통/5-화면공통` · `spec/도메인/카탈로그` · `spec/도메인/실행` · `spec/도메인/리포팅` · `spec/도메인/인증` (§8.6·§8.8) · DESIGN.md | 3081줄 |
 | **WS-F** 인증 | `spec/공통/1-제품과-구조` · `spec/공통/5-화면공통` · `spec/도메인/인증` · `spec/공통/4-데이터모델` | 2274줄 |
 | **contracts** 계약 반영 | `spec/공통/1-제품과-구조` · `spec/공통/3-공유계약` · `spec/공통/4-데이터모델` · `spec/공통/6-인프라` · `spec/도메인/러너` | 2313줄 |
-| **WS-작성** 테스트 작성 | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/도메인/작성` · `spec/도메인/인증` | 3374줄 |
+| **WS-작성** 테스트 작성 | `spec/공통/1-제품과-구조` · `spec/공통/4-데이터모델` · `spec/도메인/작성` · `spec/도메인/인증` | 3387줄 |
 | **WS-시나리오** E2E 시나리오 (여러 갈래에 걸친다 — `docs/archive/WORKSTREAMS.md` 「📐 E2E 시나리오」) | `spec/공통/1-제품과-구조` · `spec/공통/3-공유계약` · `spec/공통/4-데이터모델` · `spec/도메인/시나리오` · `spec/도메인/러너` · `spec/도메인/실행` · `spec/도메인/인증` | 4103줄 |
-| **WS-0** 골격 · **integration** 통합·병합 | 14장 전부 | 7510줄 |
+| **WS-0** 골격 · **integration** 통합·병합 | 14장 전부 | 7523줄 |
 
 `spec/공통/1-제품과-구조`는 어느 갈래든 읽는다. 용어를 다르게 쓰면 나머지가 전부 어긋난다.
 WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드리므로 색인을 보고 필요한 장을 직접 연다.
@@ -111,7 +111,7 @@ WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드
 | **작성 입력(파일·피그마)을 바꿀 때** | 도메인/작성 §7 「자료」가 **정본이다** — 받는 종류·상한·피그마 주소 정규화·`DRAFT` 순서가 거기 있고 **상한 숫자는 그 절에만 적는다.** 표와 파일 저장 자리는 공통/4-데이터모델 §6 「작성 자료」, 피그마 토큰 칸은 도메인/인증 §8.8 → 새 통로는 아래 줄처럼 `auth/gate.ts`·`auth/scope.ts` 두 표에 같이 든다. 피그마를 읽는 명령은 `.claude/skills/tpx-cases/references/1-input.md` |
 | **작성 에이전트가 로그인하는 방법(에이전트 토큰)을 바꿀 때** | 도메인/인증 §7 「인증 적용 범위」가 **정본이다** — 토큰이 여는 통로 목록·발급 대상·해시가 거기 있다. 코드의 목록은 `auth/gate.ts` 의 `토큰통로`, 칸은 공통/4-데이터모델 §6 `app_user.agent_token_hash`, 화면은 도메인/인증 §8.8 계정 표, 에이전트가 토큰을 두는 자리는 `docs/SETUP.md` §8 |
 | **케이스를 지우거나 기대값을 코드에 적거나 미확정을 확정한다 (케이스 고치기)** | 도메인/작성 §3.6 「★ 케이스 고치기」가 **정본이다** — 받는 것(건수 상한 · 삭제 · 기대값 · 확정) · 거절 규칙(비밀값 칸 · 테스트 계정 비밀번호 · 겹치는 요청 `EDIT_OPEN`) · 다시 적용 · 중단 · 폐기 · 케이스를 안 돌리는 까닭 · 반영 뒤 저장값 지우기가 거기 있다. 통로는 같은 장 §7 `POST /api/authoring/edits`, 칸은 공통/4-데이터모델 `authoring_request`(kind `EDIT` · `params.edits`), 등급은 도메인/인증 §7, 화면은 도메인/카탈로그 §8.1 · DESIGN.md 「작성 상태」. 서버 `apps/admin/src/authoring/edit.ts`(검사 · 통로 · 상한 `고치기상한`), 저장값 지우기 `execution/savedInput.ts`, 에이전트 `scripts/authoring-edit.ts`(껍데기) · `scripts/authoring-edit-apply.ts`(고칠 글 계산) |
-| **같은 서비스를 여러 사람이 동시에 작성한다 · 반영 때 겹친 케이스(같은 tc_id · 요구 번호 · 이름)를 사람이 고른다** | 도메인/작성 §3.6 「★ 반영 때 겹침 검사 — 같은 서비스 동시 작성」이 **정본이다** — 동시 상한과 자리 · 반영을 서비스마다 차례로 · 무엇을 견주나 · 남긴다 · 뺀다 · 새 번호 · 요구사항 표 합치기 · 남는 한계가 거기 있다. 통로는 같은 장 §7(`PUT`·`DELETE …/:id/conflicts/:tcId` · 반영 409 `CONFLICT_OPEN` · 상세 `conflicts`), 칸은 공통/4-데이터모델 「작성 겹침 결정 칸」, 등급은 도메인/인증 §7, 동시 상한은 공통/6-인프라 `AUTHORING_MAX_PARALLEL`. 서버 `apps/admin/src/authoring/conflicts.ts`(모양 · 상한 `겹침상한`) · `conflict-routes.ts`, 에이전트 `scripts/authoring-conflicts.ts`(찾기) · `scripts/authoring-conflicts-apply.ts`(남긴다 · 뺀다) · `scripts/authoring-table-merge.ts` · `scripts/authoring-main-merge.ts`(main 합치기) |
+| **같은 서비스를 여러 사람이 동시에 작성한다 · 반영 때 겹친 케이스(같은 tc_id · 요구 번호 · 이름)를 사람이 고른다** | 도메인/작성 §3.6 「★ 반영 때 겹침 검사 — 같은 서비스 동시 작성」이 **정본이다** — 동시 상한과 자리 · 반영을 서비스마다 차례로 · 무엇을 견주나 · 남긴다 · 뺀다 · 새 번호 · 요구사항 표 합치기 · Page Object 합치기(AI) · 남는 한계가 거기 있다. 통로는 같은 장 §7(`PUT`·`DELETE …/:id/conflicts/:tcId` · 반영 409 `CONFLICT_OPEN` · 상세 `conflicts`), 칸은 공통/4-데이터모델 「작성 겹침 결정 칸」, 등급은 도메인/인증 §7, 동시 상한은 공통/6-인프라 `AUTHORING_MAX_PARALLEL`. 서버 `apps/admin/src/authoring/conflicts.ts`(모양 · 상한 `겹침상한`) · `conflict-routes.ts`, 에이전트 `scripts/authoring-conflicts.ts`(찾기) · `scripts/authoring-conflicts-apply.ts`(남긴다 · 뺀다) · `scripts/authoring-table-merge.ts` · `scripts/authoring-main-merge.ts`(main 합치기) · `scripts/authoring-po-merge.ts`(Page Object 를 AI 로 합치기) |
 | **작성한 것을 머지하는 자리를 건드린다** | 도메인/인증 §7 「등급으로 갈리는 자리」 표가 **정본이다** — 머지는 `admin` 이고 **표에 없는 경로의 기본값도 `admin`** 이다. 어느 통로가 어느 쪽인지는 도메인/작성 §7 이 경로마다 적는다. **화면이 버튼을 안 그리는 것은 편의이지 방어가 아니다** → **새 통로는 코드의 표 둘에 같이 든다** — `auth/gate.ts` 의 등급표(무슨 등급인가)와 `auth/scope.ts` 의 라우트표(어느 서비스인가). **다른 표다** |
 | **작성 에이전트가 도는 자리(서버 `author` 컨테이너 · 맥 대체)를 바꿀 때** | 도메인/작성 §3.6 「★ 서버 컨테이너가 기본이다」가 **정본이다** — 무엇을 가리고 어느 망에 두는지와 남는 한계가 거기 있다. 설정값·이미지는 공통/6-인프라 §9 「작성 에이전트 컨테이너 author」, 구성의 기계 검사는 `apps/admin/src/deploy.test.ts`, 시작 검사는 `apps/authoring/start.sh`. 사람이 따라 하는 설치 순서는 `docs/SETUP.md` §8. **모델·effort·예비 모델·CLI 최신화**는 `scripts/authoring-model.ts` (모델은 도메인/작성 §3.6 「모델」 줄 — 아래 줄), **동시 상한·자식 격리(작업마다 사본·자리 uid)** 는 `scripts/authoring-copy.ts` (2026-09-24) |
 | **작성 에이전트의 모델 · 생각 깊이(메인 · 보조)를 바꿀 때** | 도메인/작성 §3.6 「모델」 줄이 **정본이다** — 메인은 `.env` `AUTHORING_*`(값은 공통/6-인프라 §9), 보조는 `.claude/agents/author-scan.md` · `author-write.md`. 사람 세션 `/tpx-cases` 의 보조는 고르지 않는다 |
@@ -150,7 +150,7 @@ WS-0 과 integration 은 장을 따로 싣지 않는다 — 전 갈래를 건드
 | [러너](spec/도메인/러너.md) | §3.4 · §5.2 Runner HTTP 계약 · 앱 실행(Android · Appium) | 296 |
 | [인증](spec/도메인/인증.md) | §3.5 · §7 Auth·설정 API·인증 적용 범위·Grafana 통로 · §8.6 로그인·회원가입·비밀번호 변경 화면 · §8.8 설정 화면 | 723 |
 | [시나리오](spec/도메인/시나리오.md) | §3.7 · §7 Scenario — 조립·버전·시험 실행 · §8.11 E2E 시나리오 화면 | 582 |
-| [작성](spec/도메인/작성.md) | §3.6 · §7 Authoring — 대기줄·작업 단계·머지·자료(파일·피그마)·역방향(화면 대조)·케이스 고치기·반영 때 겹침 검사·테스트 두 갈래·설계 기법 | 1416 |
+| [작성](spec/도메인/작성.md) | §3.6 · §7 Authoring — 대기줄·작업 단계·머지·자료(파일·피그마)·역방향(화면 대조)·케이스 고치기·반영 때 겹침 검사·테스트 두 갈래·설계 기법 | 1429 |
 
 ---
 
