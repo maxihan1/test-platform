@@ -330,7 +330,7 @@ describe('비어 있을 때', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     expect(await screen.findByText('아직 실행한 테스트가 없습니다')).toBeTruthy();
     expect(screen.getByText(/정기 실행/)).toBeTruthy();
-    expect(screen.getByRole('link', { name: '테스트 케이스로 가기' }).getAttribute('href')).toBe('#/cases');
+    expect(screen.getByRole('link', { name: '테스트 스크립트로 가기' }).getAttribute('href')).toBe('#/cases');
     for (const 제목 of ['신규 실패', '통과율', '서비스별 품질', '일별 테스트 결과', '실패 히트맵', '요구사항 커버리지']) {
       expect(screen.queryByRole('heading', { name: 제목 })).toBeNull();
     }
@@ -338,11 +338,11 @@ describe('비어 있을 때', () => {
 });
 
 describe('케이스 자리가 없는 사람', () => {
-  it('빈 안내판에 「테스트 케이스로 가기」 단추를 두지 않는다 — 눌러도 갈 자리가 없어 곧바로 되돌려졌다', async () => {
+  it('빈 안내판에 「테스트 스크립트로 가기」 단추를 두지 않는다 — 눌러도 갈 자리가 없어 곧바로 되돌려졌다', async () => {
     읽기를(응답({ passRate: { current: 건(0, 0, 0), previous: 건(0, 0, 0) }, newFailures: [], byService: [], unconfirmed: 0 }));
     render(<Dashboard 서비스열기={() => {}} {...기본재료} 케이스갈수있나={false} />);
     expect(await screen.findByText('아직 실행한 테스트가 없습니다')).toBeTruthy();
-    expect(screen.queryByRole('link', { name: '테스트 케이스로 가기' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '테스트 스크립트로 가기' })).toBeNull();
   });
 });
 

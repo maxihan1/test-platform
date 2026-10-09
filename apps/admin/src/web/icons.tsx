@@ -13,7 +13,7 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
       <rect x="13" y="13" width="7" height="7" rx="1.5" />
     </>
   ),
-  // 문서 위 체크 — 테스트 케이스
+  // 문서 위 체크 — 테스트 스크립트
   cases: (
     <>
       <path d="M14 3H6v18h12V7z" />

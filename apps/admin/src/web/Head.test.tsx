@@ -33,7 +33,7 @@ describe('화면 머리', () => {
 
   it('주 행동을 주면 머리 안에 선다 — 본문이 아니다', () => {
     const { container } = render(
-      <Head 제목="테스트케이스 목록" 행동={<button type="button">전체 실행</button>} />,
+      <Head 제목="테스트 스크립트 목록" 행동={<button type="button">전체 실행</button>} />,
     );
 
     const 머리 = container.querySelector('.head');
