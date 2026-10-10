@@ -143,8 +143,8 @@ describe('filterGroups', () => {
   });
 });
 
-describe('갈라낸다 — 카드 · 줄 목록 · 미확정 묶음 (도메인/실행 §8.3)', () => {
-  const 미확정 = (it: RunItemSummary): RunItemSummary => ({ ...it, unconfirmed: '기획서에 값이 없습니다' });
+describe('갈라낸다 — 카드 · 줄 목록 (도메인/실행 §8.3)', () => {
+  const 미확정 = (it: RunItemSummary): RunItemSummary => ({ ...it, unconfirmed: '확인 필요 — MKT-REQ-003' });
 
   const 항목들 = [
     item('A-1', 'desktop', 'FAIL'),
@@ -154,40 +154,34 @@ describe('갈라낸다 — 카드 · 줄 목록 · 미확정 묶음 (도메인/�
     미확정(item('C-1', 'desktop', 'FAIL')),
     item('D-1', 'desktop', 'PASS'),
     미확정(item('D-1', 'mobile', 'FAIL')),
-    item('E-1', 'desktop', 'NA'),
+    미확정(item('E-1', 'desktop', 'NA')),
   ];
 
-  it('확정 실패가 하나라도 있는 케이스는 줄 목록에 없다 — 카드로 간다', () => {
+  it('실패가 하나라도 있는 케이스는 줄 목록에 없다 — 미확정 실패도 카드로 간다', () => {
     const { 줄들 } = 갈라낸다(항목들, 'ALL', 'ALL');
-    expect(줄들.map((g) => g.tcId)).toEqual(['B-1', 'D-1', 'E-1']);
+    expect(줄들.map((g) => g.tcId)).toEqual(['B-1', 'E-1']);
   });
 
-  it('미확정 항목은 확정 판정과 상관없이 미확정 묶음으로 간다', () => {
-    const { 줄들, 미확정: 묶음 } = 갈라낸다(항목들, 'ALL', 'ALL');
-    expect(묶음.map((g) => g.tcId)).toEqual(['C-1', 'D-1']);
-    expect(묶음.flatMap((g) => Object.values(g.byPlatform).flat()).every((i) => typeof i?.unconfirmed === 'string')).toBe(true);
-    // 줄 목록 쪽 D-1 에는 확정 항목(PC 통과)만 남는다
-    expect(Object.keys(줄들.find((g) => g.tcId === 'D-1')?.byPlatform ?? {})).toEqual(['desktop']);
+  it('미확정 항목도 제 차례의 줄에 든다 — 따로 묶은 칸이 없고 항목의 사유는 그대로 붙어 있다', () => {
+    const 섞인 = [item('B-1', 'desktop', 'PASS'), 미확정(item('C-2', 'desktop', 'PASS')), item('D-2', 'desktop', 'PASS')];
+    const { 줄들 } = 갈라낸다(섞인, 'ALL', 'ALL');
+    expect(줄들.map((g) => g.tcId)).toEqual(['B-1', 'C-2', 'D-2']);
+    expect(줄들[1]!.byPlatform.desktop?.[0]?.unconfirmed).toBe('확인 필요 — MKT-REQ-003');
+    expect(갈라낸다(섞인, 'ALL', 'ALL')).not.toHaveProperty('미확정');
   });
 
-  it('판정별 보기 「통과」는 줄 목록 중 통과 항목이 있는 케이스만, 미확정 묶음은 없다', () => {
-    const { 줄들, 미확정: 묶음 } = 갈라낸다(항목들, 'PASS', 'ALL');
-    expect(줄들.map((g) => g.tcId)).toEqual(['B-1', 'D-1']);
-    expect(묶음).toEqual([]);
-  });
-
-  it('판정별 보기 「미실행」은 미실행 항목이 있는 케이스만', () => {
+  it('판정별 보기 「통과」는 통과 항목이 있는 줄만, 「미실행」은 미확정 미실행도 센다', () => {
+    expect(갈라낸다(항목들, 'PASS', 'ALL').줄들.map((g) => g.tcId)).toEqual(['B-1']);
     expect(갈라낸다(항목들, 'NA', 'ALL').줄들.map((g) => g.tcId)).toEqual(['B-1', 'E-1']);
   });
 
-  it('판정별 보기 「실패」는 줄 목록도 미확정 묶음도 비운다 — 카드만 남는다', () => {
-    expect(갈라낸다(항목들, 'FAIL', 'ALL')).toEqual({ 줄들: [], 미확정: [], 카드안항목수: 0 });
+  it('판정별 보기 「실패」는 줄 목록을 비운다 — 카드만 남는다', () => {
+    expect(갈라낸다(항목들, 'FAIL', 'ALL')).toEqual({ 줄들: [], 카드안항목수: 0 });
   });
 
   it('디바이스를 고르면 그 디바이스 항목만 놓고 가른다 — 모바일만 보면 A-1 은 통과 줄이다', () => {
-    const { 줄들, 미확정: 묶음 } = 갈라낸다(항목들, 'ALL', 'mobile');
+    const { 줄들 } = 갈라낸다(항목들, 'ALL', 'mobile');
     expect(줄들.map((g) => g.tcId)).toEqual(['A-1', 'B-1']);
-    expect(묶음.map((g) => g.tcId)).toEqual(['D-1']);
   });
 
   it('판정별 보기 「통과」 · 「미실행」은 그 판정 항목이 하나라도 있는 줄이다 — 회차마다 판정이 갈려도 둘 다에 나온다', () => {
@@ -197,7 +191,7 @@ describe('갈라낸다 — 카드 · 줄 목록 · 미확정 묶음 (도메인/�
   });
 
   it('카드 안에만 있는 그 판정의 항목 수를 센다 — 「전체」 · 「실패」는 0 이고 디바이스를 고르면 그 디바이스만 센다', () => {
-    expect(갈라낸다(항목들, 'PASS', 'ALL').카드안항목수).toBe(1);
+    expect(갈라낸다(항목들, 'PASS', 'ALL').카드안항목수).toBe(2);
     expect(갈라낸다(항목들, 'NA', 'ALL').카드안항목수).toBe(0);
     expect(갈라낸다(항목들, 'ALL', 'ALL').카드안항목수).toBe(0);
     expect(갈라낸다(항목들, 'FAIL', 'ALL').카드안항목수).toBe(0);

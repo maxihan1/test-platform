@@ -304,16 +304,16 @@ describe('알림 줄', () => {
     expect(줄?.끝났나).toBe(true);
   });
 
-  it('미확정이 있으면 확정 집계 뒤에 미확정 묶음을 붙인다', () => {
+  it('미확정이 있어도 통과·실패는 모든 항목이고 「그중 미확정 N건」을 뒤에 붙인다', () => {
     const 섞인것 = { ...실행(2127, 'FINISHED', 7, 0), finishedAt: new Date().toISOString() };
-    섞인것.counts = { total: 7, pass: 5, fail: 0, na: 0, running: 0, unconfirmed: { total: 2, pass: 1, fail: 1, na: 0 } };
-    expect(알림줄([섞인것], 'ko', new Set())?.글).toBe('RUN 2127 이 끝났습니다 · 5 통과 · 미확정 2(통과 1 · 실패 1)');
+    섞인것.counts = { total: 7, pass: 6, fail: 1, na: 0, running: 0, unconfirmed: 2 };
+    expect(알림줄([섞인것], 'ko', new Set())?.글).toBe('RUN 2127 이 끝났습니다 · 6 통과 · 1 실패 · 그중 미확정 2건');
   });
 
-  it('미확정만 돌린 실행은 0 통과를 적지 않는다 — 판정이 없는 실행이다', () => {
+  it('미확정만 돌린 실행도 통과 수를 그대로 적는다 — 판정 없음 변형이 없다', () => {
     const 미확정만 = { ...실행(2128, 'FINISHED', 2, 0), finishedAt: new Date().toISOString() };
-    미확정만.counts = { total: 2, pass: 0, fail: 0, na: 0, running: 0, unconfirmed: { total: 2, pass: 2, fail: 0, na: 0 } };
-    expect(알림줄([미확정만], 'ko', new Set())?.글).toBe('RUN 2128 이 끝났습니다 · 미확정 2(통과 2)');
+    미확정만.counts = { total: 2, pass: 2, fail: 0, na: 0, running: 0, unconfirmed: 2 };
+    expect(알림줄([미확정만], 'ko', new Set())?.글).toBe('RUN 2128 이 끝났습니다 · 2 통과 · 그중 미확정 2건');
   });
 
   it('실패도 미실행도 없으면 통과만 적는다', () => {

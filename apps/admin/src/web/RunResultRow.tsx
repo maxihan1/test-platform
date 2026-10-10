@@ -24,13 +24,10 @@ export function 결과줄({
   group,
   columns,
   runId,
-  미확정묶음 = false,
 }: {
   group: CaseGroup;
   columns: Platform[];
   runId: number;
-  /** 미확정은 판정이 아니라 거터에 판정 색 셋을 쓰지 않는다 (DESIGN.md 「판정 표기」). 디바이스 배지는 실제로 돈 결과 그대로 둔다 */
-  미확정묶음?: boolean;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -49,7 +46,7 @@ export function 결과줄({
   return (
     <div className="result-row">
       <div className="row">
-        <div className="gutter" style={{ background: 미확정묶음 ? 'var(--line-2)' : STATUS_COLOR[worst(칸들)] }} />
+        <div className="gutter" style={{ background: STATUS_COLOR[worst(칸들)] }} />
         <div className="tcid">{group.tcId}</div>
         <div className="title">
           {group.tcName}
@@ -59,7 +56,7 @@ export function 결과줄({
           {사유 === null ? null : <small className="why">{사유}</small>}
           {/* 사유는 실행 때 박제한 값이다 — 지금의 케이스를 읽으면 확정된 뒤 옛 실행이 바뀌어 보인다 (도메인/실행 §8.3) */}
           {미확정사유 === null ? null : (
-            // `why` 를 쓰지 않는다 — 미실행 판정 색이다. 미확정은 판정이 아니다 (DESIGN.md 「판정 표기」 미확정)
+            // `why` 를 쓰지 않는다 — 미실행 판정 색이다. 미확정은 판정이 아니라 꼬리표다 (DESIGN.md 「판정 표기」 미확정)
             <small>
               {t('미확정')} · {미확정사유}
             </small>

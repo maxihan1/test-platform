@@ -107,7 +107,7 @@ export type ScenarioRunRow = Omit<RunSummary, 'counts'> & {
   verdict: ItemStatus | null;
 };
 
-export type ScenarioRunList = Paged<ScenarioRunRow> & { summary: RunTally & { unconfirmedPass: number } };
+export type ScenarioRunList = Paged<ScenarioRunRow> & { summary: RunTally };
 
 interface TrialBody {
   service: string;

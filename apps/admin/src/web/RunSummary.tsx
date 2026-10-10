@@ -3,14 +3,14 @@
 import type { ItemStatus, RunCounts, RunInsights } from './api.js';
 import { 도넛조각 } from './dashboardView.js';
 import { use말, use언어 } from './i18n.js';
-import { 미확정글자 } from './unconfirmed.js';
+import { 그중미확정글 } from './unconfirmed.js';
 
 const 칸수 = (insights: RunInsights, 판정: '새로깨짐' | '계속깨짐' | '고쳐짐'): number =>
   insights.케이스들.filter((c) => c.판정 === 판정).length;
 
 /**
  * 그리기만 한다. 견줌 자료는 부르는 쪽이 들고 온다 — null 이면 아직 못 받았거나 견줄 앞이 없는 것이라 대비 칸을 통째로 뺀다.
- * 통과율은 확정 항목만 센다. 미확정은 뺀다 (§3.2).
+ * 통과율은 미확정까지 모든 항목을 센다. 미확정은 「그중 N건」 한 줄로만 알린다 (§3.2).
  */
 export function RunSummary({
   counts,
@@ -27,7 +27,7 @@ export function RunSummary({
   const 언어 = use언어();
   const 전체 = counts.pass + counts.fail + counts.na;
   const 조각들 = 도넛조각({ pass: counts.pass, fail: counts.fail, notRun: counts.na });
-  const 미확정 = 미확정글자(counts, 언어);
+  const 미확정 = 그중미확정글(counts, 언어);
   const 앞 = insights?.previous ?? null;
 
   const 칸들 = [
@@ -88,7 +88,7 @@ export function RunSummary({
             )}
             <span className="rs-of">
               {전체 === 0
-                ? t('확정 항목 없음')
+                ? t('항목 없음')
                 : t('항목 {전체}건 중 {통과}건 통과', { 전체, 통과: counts.pass })}
             </span>
             {미확정 === '' ? null : <span className="rs-axis">{미확정}</span>}

@@ -1,4 +1,4 @@
-// 끝난 실행의 결과 본문 — 요약 띠 → 실패 카드 → 통과 · 미실행 줄 → 미확정 묶음, 옆 칸 (도메인/실행 §8.3)
+// 끝난 실행의 결과 본문 — 요약 띠 → 실패 카드 → 통과 · 미실행 줄, 옆 칸 (도메인/실행 §8.3)
 
 import { useRef, type ReactNode } from 'react';
 
@@ -81,11 +81,11 @@ export function 끝난결과(props: Props) {
   const 통과제목 = useRef<HTMLHeadingElement>(null);
   const 디바이스들 = 실행디바이스들(data.items);
   const columns = device === 'ALL' ? 디바이스들 : [device];
-  const { 줄들, 미확정, 카드안항목수 } = 갈라낸다(data.items, 판정, device);
+  const { 줄들, 카드안항목수 } = 갈라낸다(data.items, 판정, device);
   const 전체쪽 = Math.max(1, Math.ceil(줄들.length / PAGE_SIZE));
   const 보는쪽 = Math.min(page, 전체쪽);
   const 보이는줄 = 줄들.slice((보는쪽 - 1) * PAGE_SIZE, 보는쪽 * PAGE_SIZE);
-  // 통로는 확정 실패가 있을 때만 부른다. 0건이면 부를 까닭이 없다 (§8.3)
+  // 통로는 실패가 있을 때만 부른다. 0건이면 부를 까닭이 없다 (§8.3)
   const 카드구획 = 판정 === 'ALL' || 판정 === 'FAIL';
   const 줄구획 = !(판정 === 'FAIL' || (판정 === 'ALL' && 줄들.length === 0));
 
@@ -141,15 +141,6 @@ export function 끝난결과(props: Props) {
             </section>
           )}
 
-          {미확정.length === 0 ? null : (
-            <section className="rr-sec rr-unconf">
-              <h2 className="fc-title">
-                {t('미확정')} <span className="rr-n">{미확정.length}</span>
-              </h2>
-              <p className="rr-axis">{t('통과율과 직전 실행 비교에서 뺐습니다')}</p>
-              {미확정.map((group) => <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} 미확정묶음 />)}
-            </section>
-          )}
         </div>
 
         {상자안 ? null : <RunSide data={data} insights={insights} 견줌오류={견줌오류} 증적칸={증적칸} 상자안={false} />}

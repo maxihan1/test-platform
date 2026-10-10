@@ -78,7 +78,7 @@ describe('통과 · 미실행 구획 제목과 안내 (도메인/실행 §8.3)',
     연다(섞인항목);
     await screen.findByText('이름-ZRR-002');
 
-    expect(screen.getByRole('heading', { name: '통과 · 미실행 2' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '통과 · 미실행 3' })).toBeTruthy();
   });
 
   it('판정별 보기 「통과」에서 카드 안에만 있는 통과 항목 수를 줄 목록 아래 한 줄로 알린다', async () => {

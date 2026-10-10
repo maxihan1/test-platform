@@ -48,7 +48,7 @@ export function RunFailDevice({ devices, env, items }: { devices: FailureDevice[
   // 회차가 여럿이면 소요는 그 디바이스 회차의 평균이다 (§8.3 회차 요약). 회차 항목은 실행 응답에서 온다
   const 소요글 = (d: FailureDevice): string => {
     if (d.attempts <= 1) return seconds(d.item.durationMs, 언어);
-    const 칸 = items.filter((i) => i.tcId === d.item.tcId && i.platform === d.platform && typeof i.unconfirmed !== 'string');
+    const 칸 = items.filter((i) => i.tcId === d.item.tcId && i.platform === d.platform);
     const 평균 = 칸.length === 0 ? d.item.durationMs : 회차요약(칸).평균소요ms;
     return t('{시간} 평균', { 시간: seconds(평균, 언어) });
   };

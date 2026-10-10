@@ -78,3 +78,15 @@ export function 고치기오류문장(err: unknown, 언어: 언어): string {
   }
   return message(err, 언어);
 }
+
+// 표준 기획서가 정한 미확정의 사유는 이 머리로 시작한다. 케이스 파일의 꼬리표가 아니라 기획서 항목이 정한 미확정이라
+// 「확정」 PR 로는 안 풀린다 (도메인/작성 §3.6 「미확정」). 다음 태스크에서 꼬리표가 없어지면 이 갈림도 없어진다
+export const 기획서미확정머리 = '확인 필요 — ';
+
+/** 케이스 파일 꼬리표로 미확정인 케이스 — 「확정」 PR 로 풀리는 것만 */
+export const 꼬리표미확정인가 = (row: CaseRow): boolean =>
+  typeof row.unconfirmed === 'string' && !row.unconfirmed.startsWith(기획서미확정머리);
+
+/** 표준 기획서 항목이 정한 미확정인 케이스 — 「PRD 관리」에서 확정한다 */
+export const 기획서미확정인가 = (row: CaseRow): boolean =>
+  typeof row.unconfirmed === 'string' && row.unconfirmed.startsWith(기획서미확정머리);

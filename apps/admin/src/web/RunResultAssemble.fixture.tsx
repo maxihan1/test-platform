@@ -23,7 +23,7 @@ export function 항목줄(historyId: number, tcId: string, platform: Platform, s
   };
 }
 
-export function 카드응답(tcId: string, platform: Platform = 'desktop'): FailureCase {
+export function 카드응답(tcId: string, platform: Platform = 'desktop', 미확정?: string): FailureCase {
   return {
     tcId,
     tcName: `이름-${tcId}`,
@@ -33,23 +33,21 @@ export function 카드응답(tcId: string, platform: Platform = 'desktop'): Fail
         historyId: 900, runId: RUN_ID, runTitle: '결제 회귀', tcId, tcName: `이름-${tcId}`, platform, attempt: 1,
         params: {}, paramSchema: {}, status: 'FAIL', durationMs: 1000, error: null,
         startedAt: '2026-09-15T17:13:00.000Z', finishedAt: '2026-09-15T17:14:00.000Z',
-        precondition: [], expected: {}, expectedSchema: {}, steps: [],
+        precondition: [], expected: {}, expectedSchema: {}, steps: [], unconfirmed: 미확정 ?? null,
       },
     }],
   };
 }
 
 export function 끝난실행(items: RunItemSummary[], 증적들: EvidenceRow[] = []) {
-  const 확정 = items.filter((i) => typeof i.unconfirmed !== 'string');
-  const 미 = items.filter((i) => typeof i.unconfirmed === 'string');
-  const 셈 = (목록: RunItemSummary[], s: ItemStatus) => 목록.filter((i) => i.status === s).length;
+  const 셈 = (s: ItemStatus) => items.filter((i) => i.status === s).length;
   return {
     ...실행,
     kind: 'FN' as const,
     status: 'FINISHED',
     counts: {
-      total: items.length, pass: 셈(확정, 'PASS'), fail: 셈(확정, 'FAIL'), na: 셈(확정, 'NA'), running: 0,
-      unconfirmed: { total: 미.length, pass: 셈(미, 'PASS'), fail: 셈(미, 'FAIL'), na: 셈(미, 'NA') },
+      total: items.length, pass: 셈('PASS'), fail: 셈('FAIL'), na: 셈('NA'), running: 0,
+      unconfirmed: items.filter((i) => typeof i.unconfirmed === 'string').length,
     },
     items,
     evidence: 증적들,
@@ -95,7 +93,7 @@ export function 연다(items: RunItemSummary[], 인사이트: 비교값 = 첫실
   vi.spyOn(api, 'run').mockResolvedValue(끝난실행(items, 증적들));
   vi.spyOn(api, 'insights').mockResolvedValue(인사이트);
   const 실패부름 = vi.spyOn(api, 'failures').mockResolvedValue({
-    items: [카드응답('ZRR-001'), 카드응답('ZRR-005')], total: 2, page: 1, pageSize: 5,
+    items: [카드응답('ZRR-001'), 카드응답('ZRR-005', 'desktop', '기획서에 값이 없습니다')], total: 2, page: 1, pageSize: 5,
   });
   render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안={상자안} />);
   return 실패부름;

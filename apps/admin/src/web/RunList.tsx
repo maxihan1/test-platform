@@ -15,7 +15,7 @@ import { RunResultModal } from './RunResultModal.js';
 import { 상태라벨, 실행자이름 } from './runState.js';
 import { 칸띠 } from './Summary.js';
 import { Failed, Loading, seconds, useAsync, when } from './ui.js';
-import { 미확정글자, 판정없음 } from './unconfirmed.js';
+import { 그중미확정글 } from './unconfirmed.js';
 
 export function RunList({ service, 할수, kind }: { service: string; 할수: 판정; kind: 'UI' | 'FN' }) {
   const t = use말();
@@ -220,16 +220,12 @@ function 집계({ 것 }: { 것: RunTally }) {
 function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: number) => void }) {
   const t = use말();
   const 언어 = use언어();
-  const 미확정 = 미확정글자(run.counts, 언어);
+  const 미확정 = 그중미확정글(run.counts, 언어);
 
   return (
     <div className="row">
       {/* 왼쪽 색 띠는 한눈에 훑기 위한 것이고 판정은 아래 숫자와 글자가 말한다 (SPEC §8.7) */}
-      {/* 미확정만 돌린 실행은 판정이 없다 — 성공 색도 실패 색도 칠하지 않는다 (도메인/실행 §3.2 · §8.7) */}
-      <div
-        className="gutter"
-        style={{ background: 판정없음(run.counts) ? 'var(--line-2)' : run.counts.fail > 0 ? 'var(--fail)' : 'var(--pass)' }}
-      />
+      <div className="gutter" style={{ background: run.counts.fail > 0 ? 'var(--fail)' : 'var(--pass)' }} />
       <div className="tcid">RUN {run.runId}</div>
       <div className="title">
         {run.title}
@@ -239,39 +235,23 @@ function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: numbe
         </small>
       </div>
       <div className="right runright">
-        {/* 판정 덩어리는 한 칸이다 — 미확정 글자가 숫자 옆에 붙으면 버튼이 아래 줄로 밀려 줄마다 자리가 틀어졌다 (2026-09-30) */}
+        {/* 판정 덩어리는 한 칸이다 — 「그중 미확정」 글자가 숫자 옆에 붙으면 버튼이 아래 줄로 밀려 줄마다 자리가 틀어졌다 (2026-09-30) */}
         <div className="verdict">
         <div className="tally">
-          {판정없음(run.counts) ? (
-            // 확정 0건에 0 을 셋 늘어놓으면 「다 잘 안 됐다」로 읽힌다. 안 센 것이지 0건이 아니다
-            <>
-              {(['통과', '실패', '미실행'] as const).map((라벨) => (
-                <div key={라벨}>
-                  <b role="img" aria-label={t('확정 판정 없음')}>—</b>
-                  <span>{t(라벨)}</span>
-                </div>
-              ))}
-            </>
-          ) : (
-            <>
-              <div>
-                <b style={{ color: 'var(--pass-text)' }}>{run.counts.pass}</b>
-                <span>{t('통과')}</span>
-              </div>
-              <div>
-                <b style={{ color: 'var(--fail-text)' }}>{run.counts.fail}</b>
-                <span>{t('실패')}</span>
-              </div>
-              <div>
-                <b style={{ color: 'var(--na-text)' }}>{run.counts.na}</b>
-                <span>{t('미실행')}</span>
-              </div>
-            </>
-          )}
+          <div>
+            <b style={{ color: 'var(--pass-text)' }}>{run.counts.pass}</b>
+            <span>{t('통과')}</span>
+          </div>
+          <div>
+            <b style={{ color: 'var(--fail-text)' }}>{run.counts.fail}</b>
+            <span>{t('실패')}</span>
+          </div>
+          <div>
+            <b style={{ color: 'var(--na-text)' }}>{run.counts.na}</b>
+            <span>{t('미실행')}</span>
+          </div>
         </div>
-        {미확정 === '' ? null : (
-          <span className={판정없음(run.counts) ? 'unconf-line unconf' : 'unconf-line'}>{미확정}</span>
-        )}
+        {미확정 === '' ? null : <span className="unconf-line">{미확정}</span>}
         </div>
         {/* 눌러서 여는 상자다 (SPEC §8.7). 주소는 살아 있고 상자는 길을 하나 더한 것이다 */}
         <button type="button" className="btn small ghost" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>

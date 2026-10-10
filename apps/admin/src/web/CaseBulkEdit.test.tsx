@@ -67,6 +67,26 @@ describe('고른 것으로 고치기 요청', () => {
     expect(screen.getByRole('button', { name: '미확정 1건 확정 요청' })).toBeTruthy();
   });
 
+  it('표준 기획서가 정한 미확정은 확정 요청 수에 넣지 않는다 — 「PRD 관리」에서 확정한다', () => {
+    render(
+      <고른것고치기
+        service="XEW"
+        고른={고름(
+          케이스('XEW-001', { unconfirmed: '확인 필요 — XEW-REQ-003 · XEW-REQ-007' }),
+          케이스('XEW-002', { unconfirmed: '문구가 기획서에 없다' }),
+        )}
+        다되면={() => {}}
+      />,
+    );
+    expect(screen.getByRole('button', { name: '미확정 1건 확정 요청' })).toBeTruthy();
+
+    cleanup();
+    render(
+      <고른것고치기 service="XEW" 고른={고름(케이스('XEW-001', { unconfirmed: '확인 필요 — XEW-REQ-003' }))} 다되면={() => {}} />,
+    );
+    expect(screen.queryByRole('button', { name: /확정 요청/ })).toBeNull();
+  });
+
   it('비활성만 골랐으면 삭제 요청 버튼도 없다. 열어 봐야 보낼 것이 없다', () => {
     render(<고른것고치기 service="XEW" 고른={고름(케이스('XEW-001', { isActive: false }))} 다되면={() => {}} />);
     expect(screen.queryByRole('button', { name: '삭제 요청' })).toBeNull();

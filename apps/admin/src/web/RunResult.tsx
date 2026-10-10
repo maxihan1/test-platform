@@ -18,7 +18,7 @@ import { 결과줄 } from './RunResultRow.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
 import { Failed, Loading, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
-import { 끝난미확정, 미확정글자 } from './unconfirmed.js';
+import { 그중미확정글 } from './unconfirmed.js';
 import { useRunProgress } from './useRunProgress.js';
 
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
@@ -112,8 +112,7 @@ function 케이스결과({
   const 디바이스들 = 실행디바이스들(data.items);
   const columns = device === 'ALL' ? 디바이스들 : [device];
   const { pass, fail, na } = data.counts;
-  const 미확정 = 미확정글자(data.counts, 언어);
-  const 끝난미확정수 = 끝난미확정(data.counts);
+  const 미확정 = 그중미확정글(data.counts, 언어);
   const 결과목록 =
     shown.length === 0 ? (
       <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
@@ -170,7 +169,7 @@ function 케이스결과({
                 <b style={{ color: 'var(--na-text)' }}>{na}</b>
                 <span>{t('미실행')}</span>
               </div>
-              {/* 미확정은 확정 판정 칸 뒤에 묶음 글자로 붙는다. 없으면 안 쓴다 (도메인/실행 §8.3 · §3.2) */}
+              {/* 미확정은 위 숫자에 이미 센 항목이다 — 「그중 N건」 글자만 뒤에 붙는다. 없으면 안 쓴다 (도메인/실행 §8.3 · §3.2) */}
               {미확정 === '' ? null : (
                 <div>
                   <span>{미확정}</span>
@@ -210,13 +209,11 @@ function 케이스결과({
         <div className={상자안 ? 'screen modal-results' : 'screen'}>
           {상자안 ? null : <증적알림과목록 칸={증적칸} />}
 
-          {pass + fail + na + 끝난미확정수 === 0 ? null : (
+          {pass + fail + na === 0 ? null : (
             <div className="stripe">
               <i style={{ background: 'var(--pass)', flex: pass }} />
               <i style={{ background: 'var(--fail)', flex: fail }} />
               <i style={{ background: 'var(--na)', flex: na }} />
-              {/* 판정 색이 아니다 — 확정 판정에 안 드는 묶음이다 (도메인/실행 §3.2) */}
-              {끝난미확정수 === 0 ? null : <i className="u" style={{ background: 'var(--ink-faint)', flex: 끝난미확정수 }} />}
             </div>
           )}
 

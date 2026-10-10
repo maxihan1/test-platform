@@ -119,6 +119,20 @@ describe('코드 기본값 바꾸기 요청', () => {
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', confirm: true }]));
   });
 
+  it('표준 기획서가 정한 미확정에는 확정 고르개 대신 「PRD 관리」 안내만 있다', async () => {
+    const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 45 });
+    render(<코드기본값고치기 row={케이스({ unconfirmed: '확인 필요 — XEW-REQ-003 · XEW-REQ-007' })} service="XEW" />);
+
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(자리().getByText('「PRD 관리」에서 확정합니다')).toBeTruthy();
+    expect(자리().getByText(/확인 필요 — XEW-REQ-003 · XEW-REQ-007/)).toBeTruthy();
+    expect(자리().getByRole('button', { name: '요청 보내기' }).hasAttribute('disabled')).toBe(true);
+
+    fireEvent.change(자리().getByLabelText(/상품 수/), { target: { value: '3' } });
+    fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
+    await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', expected: { count: 3 } }]));
+  });
+
   it('기대값과 확정을 한 요청에 같이 싣는다', async () => {
     const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 44 });
     render(<코드기본값고치기 row={케이스({ unconfirmed: '문구가 기획서에 없다' })} service="XEW" />);

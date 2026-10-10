@@ -627,13 +627,6 @@ a {
   overflow-wrap: anywhere;
 }
 
-/* 확정 판정이 없는 실행의 미확정 글자. 판정 글자로 세우되 판정 색은 안 칠한다 (DESIGN.md 원칙 1) */
-.runright .unconf-line.unconf {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
-}
-
 .stripe {
   display: flex;
   height: 6px;
@@ -3437,11 +3430,6 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   color: var(--ink-faint);
 }
 
-/* 막대의 미확정 칸은 옆 미실행 칸과 명도가 거의 같다(1.01:1). 틈으로 가른다 (DESIGN.md 「판정 표기」 미확정) */
-.stripe i.u {
-  box-shadow: inset 2px 0 0 var(--panel);
-}
-
 /* 대상 서버 줄의 테스트 계정은 키·주소 아래 둘째 줄이다. 한 줄에 다섯 칸을 넣으면 좁은 창에서 주소가 잘린다 */
 .set-env-login {
   grid-column: 1 / -1;
@@ -3483,10 +3471,7 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 }
 
 /* E2E 시나리오 (도메인/시나리오 §8.11 · 실행 §8.7) */
-/* 비율 막대의 미확정 통과 칸. 판정이 아니라서 판정 색 대신 중립 색이고, 2px 틈으로 이웃 칸과 가른다 (DESIGN 「결과 막대」) */
-.ratio .u{background:var(--ink-faint);box-shadow:inset 2px 0 0 var(--panel)}
-
-/* 실행 기록 줄의 「미확정 포함」 칩은 판정 칸 안에서 왼쪽 끝에 붙는다 */
+/* 실행 기록 줄의 「미확정」 칩은 판정 칸 안에서 왼쪽 끝에 붙는다 */
 .runright .verdict .case-tag {
   margin-left: 0;
   align-self: flex-start;
@@ -3511,13 +3496,6 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   margin: 0;
   padding: 8px 24px 10px;
   border-bottom: 1px solid var(--line);
-}
-
-.scenario-foot {
-  margin: 0;
-  padding: 12px 24px;
-  font-size: 12.5px;
-  color: var(--ink-faint);
 }
 
 /* E2E 실행 결과 (도메인/시나리오 §8.11). 단계는 한 면 안의 괘선 줄이다 — 단계마다 카드를 두르지 않는다.
@@ -5574,6 +5552,13 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+}
+
+/* 미확정 실패 카드의 꼬리 글. 판정 색을 입히지 않는다 — 카드 위의 실패 배지가 판정이다 (DESIGN.md 「판정 표기」) */
+.fc-unconf {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-muted);
 }
 
 .fc-dev {

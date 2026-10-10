@@ -15,7 +15,6 @@ const 서버들: EnvRow[] = [
   { env: 'qa', baseUrl: 'https://qa.example.com' },
   { env: 'stg', baseUrl: 'https://stg.example.com' },
 ];
-const 미확정글자 = '「통과 · 미확정 포함」은 기대값을 화면에서 읽은 케이스가 섞인 결과라 정식 통과로 세지 않습니다';
 const 서버없음글자 = '이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다';
 const 서버고르기글자 = '대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.';
 
@@ -137,7 +136,7 @@ describe('ScenarioList 줄', () => {
     expect(within(행(container, 2)).getByText('미실행')).toBeTruthy();
   });
 
-  it('통과이면서 미확정이면 통과 · 미확정 포함 칩이다 — 판정 배지가 아니다', async () => {
+  it('미확정이 섞여도 통과는 통과 배지이고 「미확정」 꼬리표만 곁들인다', async () => {
     const { container } = await 그리기([
       줄(1, { lastRun: 지난실행({ unconfirmed: true }) }),
       줄(2, { lastRun: 지난실행({ runId: 91, verdict: 'FAIL', unconfirmed: true }) }),
@@ -145,11 +144,11 @@ describe('ScenarioList 줄', () => {
     await screen.findByText(/ZSM 시나리오 1/);
 
     const 첫 = 행(container, 0);
-    expect(첫.querySelector('.case-tag')?.textContent).toBe('통과 · 미확정 포함');
-    expect(within(첫).queryByText('통과')).toBeNull();
+    expect(첫.querySelector('.case-tag')?.textContent).toBe('미확정');
+    expect(within(첫).getByText('통과')).toBeTruthy();
     expect(첫.querySelector('a[href="#/runs/90"]')).toBeTruthy();
     expect(within(행(container, 1)).getByText('실패')).toBeTruthy();
-    expect(행(container, 1).querySelector('.case-tag')).toBeNull();
+    expect(행(container, 1).querySelector('.case-tag')?.textContent).toBe('미확정');
   });
 
   it('확인 필요 · 실행 불가 칩을 단다', async () => {
@@ -172,19 +171,6 @@ describe('ScenarioList 줄', () => {
     expect(within(행(container, 0)).getByRole('button', { name: '실행' })).toBeTruthy();
     expect(within(행(container, 1)).queryByRole('button', { name: '실행' })).toBeNull();
     expect(within(행(container, 2)).queryByRole('button', { name: '실행' })).toBeNull();
-  });
-});
-
-describe('ScenarioList 미확정 안내', () => {
-  it('미확정 섞인 통과 줄이 있을 때만 안내를 단다', async () => {
-    await 그리기([줄(1, { lastRun: 지난실행({ unconfirmed: true }) })]);
-    expect(await screen.findByText(미확정글자)).toBeTruthy();
-  });
-
-  it('없으면 안내가 없다', async () => {
-    await 그리기([줄(1, { lastRun: 지난실행() }), 줄(2, { lastRun: 지난실행({ verdict: 'FAIL', unconfirmed: true }) })]);
-    await screen.findByText(/ZSM 시나리오 1/);
-    expect(screen.queryByText(미확정글자)).toBeNull();
   });
 });
 

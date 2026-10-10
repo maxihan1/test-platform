@@ -1,4 +1,5 @@
 // 케이스 목록에서 고른 것으로 「삭제 요청」 · 「미확정 N건 확정 요청」 (도메인/카탈로그 §8.1 「여러 건 골라」 · 도메인/작성 §3.6 「★ 케이스 고치기」)
+// 확정 요청의 N 은 케이스 파일 꼬리표로 미확정인 것만 센다 — 표준 기획서가 정한 미확정은 「PRD 관리」에서 확정한다 (caseEditView.ts)
 // 둘 다 확인 상자(가로막는 상자)를 거친다. 확정은 화면에서 읽은 값을 정식 기대값으로 올리는 판단이라 상자에 케이스마다 근거를 싣는다
 
 import { useState } from 'react';
@@ -6,14 +7,13 @@ import { useState } from 'react';
 import { 고치기상한, type 고칠것 } from '../authoring/edit.js';
 
 import { api, type CaseRow } from './api.js';
-import { 고치기오류문장, 기대값한줄 } from './caseEditView.js';
+import { 고치기오류문장, 기대값한줄, 꼬리표미확정인가 } from './caseEditView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { ScenarioUsage } from './ScenarioUsage.js';
 
 type 무엇 = 'delete' | 'confirm';
 
-const 미확정인가 = (row: CaseRow): boolean => typeof row.unconfirmed === 'string';
 
 /**
  * 고른 것이 없으면 아무것도 안 그린다. 권한은 부르는 쪽이 본다(작성 쓰기).
@@ -32,11 +32,11 @@ export function 고른것고치기({ service, 고른, 다되면 }: { service: st
 
   // 비활성 케이스는 서버가 거절한다(BAD_EDIT) — 버튼 글자의 수도 보낼 것만 센다
   const 살아있는 = [...고른.values()].filter((row) => row.isActive);
-  const 미확정수 = 살아있는.filter(미확정인가).length;
+  const 미확정수 = 살아있는.filter(꼬리표미확정인가).length;
   if (고른.size === 0 && 열린 === null) return null;
 
   function 연다(어느: 무엇) {
-    const 후보 = 어느 === 'delete' ? [...고른.values()] : [...고른.values()].filter(미확정인가);
+    const 후보 = 어느 === 'delete' ? [...고른.values()] : [...고른.values()].filter(꼬리표미확정인가);
     const 대상 = 후보.filter((row) => row.isActive);
     set담은(대상);
     set빠진수(후보.length - 대상.length);

@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { 고칠것 } from '../authoring/edit.js';
 
 import { api, type CaseRow } from './api.js';
-import { 고치기오류문장, 고칠칸들, 기대값들, 기대값한줄, 바꾼값, 저장값지울칸 } from './caseEditView.js';
+import { 고치기오류문장, 고칠칸들, 기대값들, 기대값한줄, 기획서미확정인가, 꼬리표미확정인가, 바꾼값, 저장값지울칸 } from './caseEditView.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { initialText } from './schema.js';
@@ -38,7 +38,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
     set포커스(null);
   }, [포커스]);
 
-  const 미확정 = typeof row.unconfirmed === 'string';
+  const 미확정 = 꼬리표미확정인가(row);
   const 바꾼 = 바꾼값(칸들, 글);
   // 바꾼 칸만 본다 — 손대지 않은 칸은 지금 코드 값이라 사유를 낼 까닭이 없다. 「반드시 채울 칸」도 안 본다(안 보낸 칸은 코드 그대로다)
   const 칸오류 = fieldErrors({ ...row.expectedSchema, required: [] }, 바꾼);
@@ -84,6 +84,16 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
       )}
       {지울칸.length === 0 ? null : (
         <p className="hint">{t('{칸들} — 반영되면 이 저장값은 지워집니다', { 칸들: 지울칸.join(', ') })}</p>
+      )}
+
+      {/* 기획서 항목이 정한 미확정은 이 PR 로 안 풀린다 — 고르개 대신 어디서 확정하는지만 알린다 */}
+      {!기획서미확정인가(row) ? null : (
+        <div className="edit-confirm">
+          <p className="hint">{t('「PRD 관리」에서 확정합니다')}</p>
+          <p className="hint">
+            {t('미확정 사유')} · {row.unconfirmed}
+          </p>
+        </div>
       )}
 
       {/* 확정은 화면에서 읽은 값을 정식 기대값으로 올리는 사람의 판단이다 — 그 근거(사유 · 지금 값)를 곁에 둔다 */}

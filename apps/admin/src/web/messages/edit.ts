@@ -9,6 +9,7 @@ export const 고치기말: Record<string, string> = {
   '코드에서 바꿀 수 있는 기대결과 칸이 없습니다': 'This case has no expected result that can be changed in code',
   '{칸들} — 반영되면 이 저장값은 지워집니다': '{칸들} — the saved value will be removed once merged',
   '확정 — 지금 기대값이 맞다고 판정합니다': 'Confirm — I judge the current expected results to be correct',
+  '「PRD 관리」에서 확정합니다': 'Confirm it in "PRD management"',
   '미확정 사유': 'Why unconfirmed',
   '지금 기대값': 'Current expected results',
   '요청을 보냈습니다.': 'Request sent.',

@@ -38,9 +38,11 @@ export interface CaseRow {
   expectedSchema: JsonSchema;
   isActive: boolean;
   scannedAt: string;
-  /** 미확정 사유와 처음 미확정이 된 시각 (도메인/카탈로그 §3.1). 없으면 확정 케이스다 */
+  /**
+   * 미확정 사유 (도메인/카탈로그 §3.1). 없으면 확정 케이스다.
+   * 표준 기획서에서 계산한 것은 `확인 필요 — MKT-REQ-003 · MKT-REQ-007` 꼴이고, 아직 옮기지 않은 케이스는 옛 꼬리표 사유 글 그대로다
+   */
   unconfirmed?: string | null;
-  unconfirmedSince?: string | null;
   /** 다음 실행에 먼저 채울 저장값. 없으면 null 이고 칸은 코드 기본값으로 돈다 */
   savedInput?: SavedInput | null;
   /** 설계 기법 — kit `TECHNIQUES` 의 낱말. 서버는 늘 배열을 준다 (도메인/카탈로그 §7) */
@@ -63,7 +65,7 @@ export interface SavedInput {
 
 /** 케이스 목록 응답. 머리의 미확정 요약은 검색 조건을 안 따른다 — 서비스 전체다 (도메인/카탈로그 §7) */
 export interface CasePage extends Paged<CaseRow> {
-  unconfirmed?: { count: number; oldestSince: string | null };
+  unconfirmed?: { count: number };
 }
 
 export interface LastScan {
@@ -106,7 +108,7 @@ export interface RunSummary {
 }
 
 /**
- * 실행 집계 (도메인/실행 §7). pass·fail·na 는 **확정 항목만**이고 미확정은 `unconfirmed` 에서 따로 센다 (§3.2).
+ * 실행 집계 (도메인/실행 §7). pass·fail·na·running 은 미확정까지 모든 항목이고, `unconfirmed` 는 그중 미확정 항목 수 하나다 (§3.2).
  * `unconfirmed` 를 선택으로 둔 것은 이 칸을 모르는 기존 화면 검사의 가짜 응답을 안 고치려고다 — 없으면 미확정 0 으로 읽는다
  */
 export interface RunCounts {
@@ -115,7 +117,7 @@ export interface RunCounts {
   fail: number;
   na: number;
   running: number;
-  unconfirmed?: { total: number; pass: number; fail: number; na: number };
+  unconfirmed?: number;
 }
 
 // 그 실행으로 만든 증적 문서 (SPEC §7 · §8.4). status 는 PENDING | READY | FAILED

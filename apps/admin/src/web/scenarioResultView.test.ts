@@ -71,7 +71,7 @@ describe('멈춘단계글자 · E2E띠색', () => {
   it('E2E띠색 다섯', () => {
     expect(E2E띠색(줄({ status: 'RUNNING', verdict: null }))).toBe('var(--line-2)');
     expect(E2E띠색(줄({}))).toBe('var(--pass)');
-    expect(E2E띠색(줄({ unconfirmed: true }))).toBe('var(--line-2)');
+    expect(E2E띠색(줄({ unconfirmed: true }))).toBe('var(--pass)');
     expect(E2E띠색(줄({ verdict: 'FAIL' }))).toBe('var(--fail)');
     expect(E2E띠색(줄({ verdict: 'NA' }))).toBe('var(--na)');
     expect(E2E띠색(줄({ verdict: null }))).toBe('var(--line-2)');
