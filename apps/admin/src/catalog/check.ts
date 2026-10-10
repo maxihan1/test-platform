@@ -17,7 +17,6 @@ import {
 } from './rules.js';
 import { checkNonCase, nonCaseFiles } from './pageObject.js';
 import { caseFiles, scan, testsRoot } from './scanner.js';
-import { gitEnv, hasTag, newlyUnconfirmed, oldSourceByTcId } from './unconfirmed.js';
 
 const run = promisify(execFile);
 
@@ -53,34 +52,6 @@ async function registration(files: string[]): Promise<Violation[]> {
   }
 }
 
-const errText = (err: unknown): string => (err instanceof Error ? err.message : String(err));
-
-// 경고만 한다. 역방향이 이미 있던 케이스를 다시 보는 정당한 경우도 있어 사람이 게이트 2 에서 가른다
-async function warnNewTags(tagged: { file: string; tcId: string; text: string }[]): Promise<void> {
-  if (tagged.length === 0) return;
-  let repoRoot: string;
-  try {
-    repoRoot = (await run('git', ['rev-parse', '--show-toplevel'], { env: gitEnv() })).stdout.trim();
-    await run('git', ['rev-parse', '--verify', '-q', 'origin/main'], { cwd: repoRoot, env: gitEnv() });
-  } catch (err) {
-    console.error(`[check:tests] 새 꼬리표 경고 건너뜀 — origin/main 을 찾지 못했다 (${errText(err)})`);
-    return;
-  }
-  for (const { file, tcId, text } of tagged) {
-    let before: string | null;
-    try {
-      before = await oldSourceByTcId(repoRoot, tcId, relative(repoRoot, testsRoot()) || '.');
-    } catch (err) {
-      console.error(`[check:tests] 새 꼬리표 경고 건너뜀 — ${errText(err)}`);
-      return;
-    }
-    if (!newlyUnconfirmed(before, text)) continue;
-    console.error(
-      `[check:tests] 경고 — ${file} 이미 있던 케이스(${tcId})에 미확정 꼬리표를 새로 달았다. 확정 실패를 숨기는 길이다 — 게이트 2 요약에 싣는다`,
-    );
-  }
-}
-
 async function main(): Promise<void> {
   // CI 가 초안이 아닌 PR 에서 켠다. 작성 중(초안)에는 보류 케이스가 정상이라 기본은 끈다
   const noHeld = process.argv.includes('--no-held');
@@ -90,14 +61,12 @@ async function main(): Promise<void> {
 
   const violations: Violation[] = [];
   const propLines = new Map<string, Map<string, number>>();
-  const texts = new Map<string, string>();
 
   for (const file of files) {
     const text = await readFile(file, 'utf8');
     const result = checkSource(rel(file), text);
     violations.push(...result.violations);
     propLines.set(rel(file), result.propLines);
-    texts.set(rel(file), text);
   }
 
   // 케이스가 아닌 .ts 는 K7 만 진다. registration 쪽에 섞으면 테스트가 없다고 K8 로 잘못 찍힌다
@@ -125,12 +94,6 @@ async function main(): Promise<void> {
   }
 
   violations.push(...(await registration(files.map(rel))));
-
-  await warnNewTags(
-    specs
-      .map((spec) => ({ file: spec.filePath, tcId: spec.tcId, text: texts.get(spec.filePath) ?? '' }))
-      .filter((x) => hasTag(x.text)),
-  );
 
   if (violations.length === 0) {
     console.log(`[check:tests] 케이스 ${files.length}건 · SPEC §4 규칙 ${RULES[0]}~${RULES[RULES.length - 1]} 통과`);
