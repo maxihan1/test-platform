@@ -173,8 +173,8 @@ export const 작성말: Record<string, string> = {
   '실제 화면과 대조': 'Compare with the live screen',
   '화면과 대조': 'Screen compare',
   '시작 주소': 'Start URL',
-  '비우면 기획서에 나온 화면에서 시작합니다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 역기획서를 만듭니다':
-    'Leave empty to start from the screen the spec describes. With only a start URL and no spec, that screen is explored and a reverse spec is written',
+  '비우면 기획서에 나온 화면에서 시작합니다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 표준 기획서를 만듭니다':
+    'Leave empty to start from the screen the spec describes. With only a start URL and no spec, that screen is explored and the PRD is written',
   '이 서비스에는 대상 서버가 없습니다. 설정 > 서비스에서 먼저 넣으세요':
     'This service has no target servers. Add one in Settings > Services first',
   '이 대상 서버에는 테스트 계정이 없습니다. 설정 > 서비스에서 테스트 계정을 넣으세요':
