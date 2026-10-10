@@ -173,6 +173,11 @@ describe('가림표케이스 — 케이스에 가림표가 남으면 비밀값 �
     expect(까닭).toContain('TARGET_LOGIN_PASSWORD');
     expect(까닭).toContain('tests/mkt/components/login-form.component.ts');
   });
+  it('Helper(.helper.ts)에 가림표가 있으면 까닭과 그 경로를 낸다', () => {
+    const 까닭 = 가림표케이스([{ 경로: 'tests/mkt/helpers/login.helper.ts', 글: "fill('••••••')" }]);
+    expect(까닭).toContain('TARGET_LOGIN_PASSWORD');
+    expect(까닭).toContain('tests/mkt/helpers/login.helper.ts');
+  });
   it('표(md)가 기획서 문장을 옮긴 가림표는 괜찮다', () => {
     expect(가림표케이스([{ 경로: 'docs/cases/MKT.md', 글: '비밀번호 •••••• 로 로그인' }])).toBeNull();
   });

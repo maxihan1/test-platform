@@ -1,11 +1,11 @@
 // 작성 에이전트가 만든 고객 서비스 테스트 폴더인지 판정한다
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { 부품파일꼴, 케이스파일꼴, 페이지파일꼴 } from './cases-only.mjs';
+import { 도우미파일꼴, 부품파일꼴, 케이스파일꼴, 페이지파일꼴 } from './cases-only.mjs';
 
 /**
  * 작성 에이전트가 고객 서비스용으로 만든 폴더인가. 맨 위 파일이 **전부** 케이스 spec(`<접두사>-NNN` · `<접두사>-UI-NNN` ·
- * `<접두사>-FN-NNN`)이고 접두사가 하나이며, 하위 폴더는 `pages/`(`*.page.ts`) · `components/`(`*.component.ts`) 둘뿐이어야 참이다.
+ * `<접두사>-FN-NNN`)이고 접두사가 하나이며, 하위 폴더는 `pages/`(`*.page.ts`) · `components/`(`*.component.ts`) · `helpers/`(`*.helper.ts`) 셋뿐이어야 참이다.
  *
  * 왜 면제하나 — 서비스 폴더는 CI 에서 돌 수가 없다. 대상이 고객사 내부 서버라 CI 에는 PLATFORM_BASE_URL 도 길도 없다.
  * 병합 근거는 에이전트가 PR 본문에 싣는 관문 3(3회 실행) 기록이다 (docs/HOOKS.md 「가벼운 길」).
@@ -17,7 +17,7 @@ import { 부품파일꼴, 케이스파일꼴, 페이지파일꼴 } from './cases
 export function 서비스폴더인가(폴더경로) {
   // 꼴이 저장소 루트 기준 경로를 받으므로 폴더 이름 자리는 아무 이름으로 채운다
   const 경로 = (이름) => `tests/_/${이름}`;
-  const 하위꼴 = { pages: 페이지파일꼴, components: 부품파일꼴 };
+  const 하위꼴 = { pages: 페이지파일꼴, components: 부품파일꼴, helpers: 도우미파일꼴 };
   const 접두사들 = [];
   for (const d of readdirSync(폴더경로, { withFileTypes: true })) {
     if (d.isDirectory()) {

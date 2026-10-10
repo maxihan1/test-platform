@@ -29,6 +29,9 @@ test('서비스폴더인가는 에이전트가 만든 케이스 모양만 참이
     판정(['MKT-UI-001.spec.ts', 'MKT-041.spec.ts', 'pages/login.page.ts', 'components/site-header.component.ts']),
     true,
   );
+  assert.equal(판정(['MKT-001.spec.ts', 'helpers/login.helper.ts']), true);
+  assert.equal(판정(['MKT-001.spec.ts', 'helpers/login.page.ts']), false);
+  assert.equal(판정(['MKT-001.spec.ts', 'helpers/a/b.helper.ts']), false);
   assert.equal(판정(['PAY-001.spec.ts', 'CARD-001.spec.ts']), false);
   assert.equal(판정(['MKT-001.spec.ts', 'PAY-001.spec.ts']), false);
   assert.equal(판정(['PAY-001.spec.ts', 'helpers.ts']), false);

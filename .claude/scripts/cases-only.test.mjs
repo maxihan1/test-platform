@@ -48,12 +48,13 @@ test('spec 이름은 케이스 번호 모양(<접두사>-NNN.spec.ts)만 참 —
   assert.equal(테스트만인가(['tests/newsvc/PAY-001.spec.ts', 'tests/newsvc/PAY2-013.spec.ts']), true);
 });
 
-test('번호 세 꼴(-NNN · -UI-NNN · -FN-NNN)과 pages/components 의 Page Object 는 참', () => {
+test('번호 세 꼴(-NNN · -UI-NNN · -FN-NNN)과 pages/components/helpers 의 파일은 참', () => {
   for (const f of [
     'tests/mkt/MKT-UI-001.spec.ts',
     'tests/mkt/MKT-FN-049.spec.ts',
     'tests/mkt/pages/login.page.ts',
     'tests/mkt/components/site-header.component.ts',
+    'tests/mkt/helpers/login.helper.ts',
   ]) {
     assert.equal(테스트만인가([f]), true, f);
   }
@@ -68,6 +69,11 @@ test('Page Object 자리라도 꼴이 다르면 거짓 — 이름을 넓게 받�
     'tests/mkt/pages/Login Page.page.ts',
     'tests/mkt/pages/.page.ts',
     'tests/mkt/components/x.page.ts',
+    'tests/mkt/helpers/Login.helper.ts',
+    'tests/mkt/helpers/a/b.helper.ts',
+    'tests/mkt/helpers/x.page.ts',
+    'tests/mkt/helpers/x.component.ts',
+    'tests/mkt/helpers/x.ts',
     'tests/mkt/MKT-XX-001.spec.ts',
   ]) {
     assert.equal(테스트만인가([f]), false, f);

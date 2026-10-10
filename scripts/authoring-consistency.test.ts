@@ -48,16 +48,17 @@ describe('실행 하나 요약', () => {
     { 경로: 'MKT-FN-002.spec.ts', 글: 케이스('MKT-FN-002', 'c') },
     { 경로: 'pages/home.page.ts', 글: '' },
     { 경로: 'mkt/components/home.page.ts', 글: '' },
-    { 경로: 'helpers/x.ts', 글: "export const spec = 1; verify('d', 1, 1)" },
+    { 경로: 'mkt/helpers/login.helper.ts', 글: '' },
+    { 경로: 'utils/x.ts', 글: "export const spec = 1; verify('d', 1, 1)" },
   ];
 
-  it('케이스 파일마다 tcId → 확인 문장을 모으고, 화면 파일은 pages · components 마디부터의 경로로 센다', () => {
+  it('케이스 파일마다 tcId → 확인 문장을 모으고, 화면 파일은 pages · components · helpers 마디부터의 경로로 센다', () => {
     const 요약 = 실행요약(파일들);
     expect([...요약.케이스]).toEqual([
       ['MKT-FN-001', new Set(['a', 'b'])],
       ['MKT-FN-002', new Set(['c'])],
     ]);
-    expect(요약.화면파일).toEqual(new Set(['pages/home.page.ts', 'components/home.page.ts']));
+    expect(요약.화면파일).toEqual(new Set(['pages/home.page.ts', 'components/home.page.ts', 'helpers/login.helper.ts']));
     expect(요약.덮음).toBeNull();
     expect(요약.칸줄).toBeNull();
     expect(요약.제외셈).toBeNull();
