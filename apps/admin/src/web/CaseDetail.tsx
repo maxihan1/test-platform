@@ -46,6 +46,7 @@ export function use기법말(): (값: Technique) => string {
     '동등 분할': t('동등 분할'),
     '결정 테이블': t('결정 테이블'),
     '상태 전이': t('상태 전이'),
+    '오류 추정': t('오류 추정'),
   } satisfies Record<Technique, string>;
   return (값) => 글[값];
 }

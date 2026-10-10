@@ -7,7 +7,7 @@ export type ItemStatus = 'PASS' | 'FAIL' | 'NA';
 export type JsonSchema = Record<string, unknown>;  // zod 내장 z.toJSONSchema 출력. 검증하지 않고 그대로 저장·전달한다
 
 // 타입만으로는 검사기 · 화면이 목록을 돌 수 없어 값 하나를 계약에 둔다. 차례가 곧 표시 · 정렬 차례다
-export const TECHNIQUES = ['경계값 분석', '동등 분할', '결정 테이블', '상태 전이'] as const;
+export const TECHNIQUES = ['경계값 분석', '동등 분할', '결정 테이블', '상태 전이', '오류 추정'] as const;
 export type Technique = (typeof TECHNIQUES)[number];
 
 export interface CaseSpec {

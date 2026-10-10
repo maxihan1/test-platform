@@ -47,6 +47,7 @@ export const 케이스말: Record<string, string> = {
   '동등 분할': 'Equivalence partitioning',
   '결정 테이블': 'Decision table',
   '상태 전이': 'State transition',
+  '오류 추정': 'Error guessing',
   '기법 없음': 'No technique',
 
   // 케이스 한 줄
