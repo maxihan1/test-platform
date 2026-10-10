@@ -5,7 +5,7 @@ import type { PrdItem } from '@platform/kit/types';
 
 // 서버와 같은 검사를 쓴다 — 항목 하나가 상한을 넘어 판 전체가 거절되지 않게 미리 그 항목만 거른다
 import { type 들어온항목, 항목검사 } from '../apps/admin/src/prd/rules.js';
-import { 설계하기 } from './authoring-design.js';
+import { type 설계, 설계하기 } from './authoring-design.js';
 import { 경고줄 } from './authoring-design-check.js';
 import type { 원장항목 } from './authoring-ledger.js';
 
@@ -68,25 +68,28 @@ export function 판합치기(
   옮긴: 옮긴것,
 ): { items: 들어온항목[]; 지운번호: string[]; 모르는번호: string[] } {
   const 있는번호 = new Set(지금.map((i) => i.reqId));
-  // 지금 판에 없는 번호는 서버가 PRD_REUSED 로 판 전체를 거절한다 — 그 항목만 새 항목으로 돌린다
-  const 모르는번호 = 옮긴.items.flatMap((i) => (i.reqId !== undefined && !있는번호.has(i.reqId) ? [i.reqId] : []));
-  const 고침 = 옮긴.items.map(({ reqId, ...남은 }): 들어온항목 => (reqId !== undefined && 있는번호.has(reqId) ? { reqId, ...남은 } : 남은));
-  // 같은 요구 문장의 새 항목은 지금 판 번호를 물려받는다 — 자식이 번호 달기를 빠뜨려도 같은 원본을 다시 옮길 때 같은 요구가 둘이 되지 않게
-  const 고친번호 = new Set(고침.flatMap((i) => (i.reqId === undefined ? [] : [i.reqId])));
-  const 문장번호 = new Map(지금.filter((i) => !고친번호.has(i.reqId)).map((i) => [i.text.trim(), i.reqId]));
-  for (const i of 고침) {
-    const 번호 = i.reqId === undefined ? 문장번호.get(i.text.trim()) : undefined;
+  // 지금 판에 없는 번호는 서버가 PRD_REUSED 로 판 전체를 거절한다 — 그 항목만 번호를 떼어 새 항목으로 돌린다
+  const 고침 = 옮긴.items.map(({ reqId, ...남은 }) => ({ 항목: (reqId !== undefined && 있는번호.has(reqId) ? { reqId, ...남은 } : 남은) as 들어온항목, 뗀번호: reqId !== undefined && !있는번호.has(reqId) ? reqId : undefined }));
+  // 기능 묶음과 요구 문장이 같은 새 항목은 지금 판 번호를 물려받는다 — 자식이 번호 달기를 빠뜨려도 같은 원본을 다시 옮길 때 같은 요구가 둘이 되지 않게.
+  // 기능 묶음까지 보는 까닭 — 「필수 입력 항목이다」 같은 흔한 문장이 다른 기능 항목을 덮지 않게
+  const 열쇠 = (i: { feature: string; text: string }) => `${i.feature.trim()}\n${i.text.trim()}`;
+  const 고친번호 = new Set(고침.flatMap(({ 항목 }) => (항목.reqId === undefined ? [] : [항목.reqId])));
+  const 문장번호 = new Map(지금.filter((i) => !고친번호.has(i.reqId)).map((i) => [열쇠(i), i.reqId]));
+  for (const { 항목 } of 고침) {
+    const 번호 = 항목.reqId === undefined ? 문장번호.get(열쇠(항목)) : undefined;
     if (번호 === undefined) continue;
-    i.reqId = 번호;
-    문장번호.delete(i.text.trim());
+    항목.reqId = 번호;
+    문장번호.delete(열쇠(항목));
   }
-  const 자리 = new Map(고침.flatMap((i) => (i.reqId === undefined ? [] : [[i.reqId, i] as const])));
+  // 문장으로 번호를 찾은 항목은 새 항목이 아니다 — 남은 것만 「새 항목으로 올림」이다
+  const 모르는번호 = 고침.flatMap(({ 항목, 뗀번호 }) => (뗀번호 !== undefined && 항목.reqId === undefined ? [뗀번호] : []));
+  const 자리 = new Map(고침.flatMap(({ 항목 }) => (항목.reqId === undefined ? [] : [[항목.reqId, 항목] as const])));
   const 지움 = new Set(옮긴.removed);
   const 지운번호 = 지금.filter((i) => !자리.has(i.reqId) && 지움.has(i.reqId)).map((i) => i.reqId);
   return {
     items: [
       ...지금.flatMap((i) => (자리.has(i.reqId) ? [자리.get(i.reqId)!] : 지움.has(i.reqId) ? [] : [i])),
-      ...고침.filter((i) => i.reqId === undefined),
+      ...고침.flatMap(({ 항목 }) => (항목.reqId === undefined ? [항목] : [])),
     ],
     지운번호,
     모르는번호,
@@ -107,20 +110,27 @@ export interface 옮기기대조결과 {
  * 잃은 것만 본다 — 여러 번호를 한 항목에 합치면 남는 칸은 늘 생긴다. 이번 항목만 본다 — 남긴 기존 항목의 문단 번호(`P-001`)는 다른 자료 것일 수 있다
  */
 export function 옮기기대조(원장: readonly Pick<원장항목, '번호' | '설계'>[], 옮긴: 옮긴것): 옮기기대조결과 {
-  const 덮은항목 = new Map<string, 들어온항목[]>();
-  for (const i of 옮긴.items) for (const b of i.basis) if (b.ref !== undefined) 덮은항목.set(b.ref, [...(덮은항목.get(b.ref) ?? []), i]);
+  // 항목 설계는 한 번만 계산한다 — 여러 번호를 근거로 단 항목이 번호마다 다시 판정되지 않게
+  const 덮은항목 = new Map<string, 설계[]>();
+  for (const i of 옮긴.items) {
+    const 설 = 설계하기(i.text);
+    for (const ref of new Set(i.basis.flatMap((b) => (b.ref === undefined ? [] : [b.ref])))) {
+      const 목록 = 덮은항목.get(ref);
+      if (목록 === undefined) 덮은항목.set(ref, [설]);
+      else 목록.push(설);
+    }
+  }
   const 아님 = new Map(옮긴.notRequirements.map((r) => [r.ref, r.reason]));
   const 결과: 옮기기대조결과 = { 요구수: 원장.length, 빠짐: [], 요구아님: [], 설계잃음: [] };
   for (const { 번호, 설계: 원 } of 원장) {
-    const 덮은 = 덮은항목.get(번호);
-    if (덮은 === undefined) {
+    const 설계들 = 덮은항목.get(번호);
+    if (설계들 === undefined) {
       const 까닭 = 아님.get(번호);
       if (까닭 === undefined) 결과.빠짐.push(번호);
       else 결과.요구아님.push(`${번호}(${까닭})`);
       continue;
     }
     if (원 === undefined) continue;
-    const 설계들 = 덮은.map((i) => 설계하기(i.text));
     const 값들 = new Set(설계들.flatMap((s) => s.경계.flatMap((b) => b.값)));
     // ponytail: 예외는 기법 이름으로만 견준다 — 같은 기법의 두 번째 근거만 잃으면 못 본다. 잦으면 판정 함수가 근거 갈래를 돌려주게 한다
     const 기법들 = new Set(설계들.flatMap((s) => s.예외.map((e) => e.기법)));

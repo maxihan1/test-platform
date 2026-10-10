@@ -88,9 +88,19 @@ describe('판합치기', () => {
     expect(r.지운번호).toEqual(['MKT-REQ-001']);
   });
 
-  it('번호 없는 새 항목이 기존 요구 문장과 같으면 그 번호를 물려받는다', () => {
+  it('번호 없는 새 항목이 기존 항목과 기능 묶음 · 요구 문장이 같으면 그 번호를 물려받는다', () => {
     const r = 판합치기(지금, 옮김([항목(' 아이디는 4자 이상 ', ['REQ-MEM-001']), 항목('아이디는 4자 이상', ['REQ-MEM-001'])]));
     expect(r.items.map((i) => i.reqId)).toEqual(['MKT-REQ-001', 'MKT-REQ-002', 'MKT-REQ-003', undefined]);
+  });
+
+  it('요구 문장이 같아도 기능 묶음이 다르면 물려받지 않는다', () => {
+    const r = 판합치기(지금, 옮김([항목('장바구니는 20개까지', ['REQ-MEM-012'])]));
+    expect(r.items.map((i) => [i.reqId, i.feature])).toEqual([
+      ['MKT-REQ-001', '회원가입'],
+      ['MKT-REQ-002', '장바구니'],
+      ['MKT-REQ-003', '회원가입'],
+      [undefined, '회원가입'],
+    ]);
   });
 
   it('번호를 고친 기존 항목의 옛 문장은 새 항목이 물려받지 않는다', () => {
@@ -102,6 +112,12 @@ describe('판합치기', () => {
     const r = 판합치기(지금, 옮김([항목('새 규칙', ['REQ-MEM-011'], { reqId: 'MKT-REQ-099' })]));
     expect(r.items.at(-1)).not.toHaveProperty('reqId');
     expect(r.모르는번호).toEqual(['MKT-REQ-099']);
+  });
+
+  it('모르는 번호를 뗀 항목이 문장으로 기존 번호를 찾으면 새 항목으로 세지 않는다', () => {
+    const r = 판합치기(지금, 옮김([항목('탈퇴는 확인을 한 번 더 묻는다', ['REQ-MEM-010'], { reqId: 'MKT-REQ-099' })]));
+    expect(r.items.map((i) => i.reqId)).toEqual(['MKT-REQ-001', 'MKT-REQ-002', 'MKT-REQ-003']);
+    expect(r.모르는번호).toEqual([]);
   });
 });
 
