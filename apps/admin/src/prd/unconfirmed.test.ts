@@ -6,7 +6,9 @@ import { 미확정사유SQL } from './unconfirmed.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 근거 = [{ from: '기획서.docx', quote: '장바구니는 20개까지' }];
-const 항목 = (reqId: string, status: 'CONFIRMED' | 'NEEDS_CHECK') => ({ reqId, feature: '장바구니', text: reqId, basis: 근거, status });
+const 항목 = (reqId: string, status: 'CONFIRMED' | 'NEEDS_CHECK', 사람 = false) => ({
+  reqId, feature: '장바구니', text: reqId, basis: 근거, status, ...(사람 ? { byPerson: true } : {}),
+});
 
 describe.skipIf(연결 === undefined)('미확정사유SQL', () => {
   let 서비스 = 0;
@@ -70,26 +72,40 @@ describe.skipIf(연결 === undefined)('미확정사유SQL', () => {
     await q('DELETE FROM service WHERE id = $1', [서비스]);
   });
 
-  it('덮는 요구 가운데 지금 판에서 확인 필요인 번호들이 사유다 — 꼬리표는 안 본다', async () => {
+  it('덮는 요구 가운데 지금 판에서 확인 필요인 번호들이 사유다 — 꼬리표가 있어도', async () => {
     await 판넣기(1, [항목('XUN-REQ-001', 'NEEDS_CHECK'), 항목('XUN-REQ-002', 'NEEDS_CHECK'), 항목('XUN-REQ-003', 'CONFIRMED')]);
     await 지도([
       ['XUN-REQ-002', 'XUN-FN-001'],
       ['XUN-REQ-001', 'XUN-FN-001'],
       ['XUN-REQ-003', 'XUN-FN-001'],
-      ['XUN-REQ-003', 'XUN-FN-002'],
+      ['XUN-REQ-001', 'XUN-FN-002'],
     ]);
     expect(await 사유들()).toMatchObject({
       'XUN-FN-001': '확인 필요 — XUN-REQ-001 · XUN-REQ-002',
-      'XUN-FN-002': null,
+      'XUN-FN-002': '확인 필요 — XUN-REQ-001',
     });
   });
 
-  it('확정은 다음 판부터 먹는다 — 옛 판은 안 본다', async () => {
+  it('덮는 요구가 다 확정이어도 사람이 확정한 것이 없으면 꼬리표를 따른다 — 이어 작성의 화면 규칙 줄이 가까운 확정 요구에 붙는다', async () => {
+    await 판넣기(1, [항목('XUN-REQ-001', 'CONFIRMED'), 항목('XUN-REQ-002', 'CONFIRMED', true)]);
+    await 지도([
+      ['XUN-REQ-001', 'XUN-FN-002'],
+      ['XUN-REQ-002', 'XUN-FN-003'],
+      ['XUN-REQ-001', 'XUN-FN-004'],
+    ]);
+    expect(await 사유들()).toMatchObject({
+      'XUN-FN-002': '화면에만 있는 규칙이다',
+      'XUN-FN-003': null,
+      'XUN-FN-004': null,
+    });
+  });
+
+  it('「PRD 관리」에서 사람이 확정하면 다음 판부터 꼬리표가 있어도 확정이다 — 옛 판은 안 본다', async () => {
     await 판넣기(1, [항목('XUN-REQ-001', 'NEEDS_CHECK')]);
-    await 지도([['XUN-REQ-001', 'XUN-FN-001']]);
-    expect((await 사유들())['XUN-FN-001']).toBe('확인 필요 — XUN-REQ-001');
-    await 판넣기(2, [항목('XUN-REQ-001', 'CONFIRMED')]);
-    expect((await 사유들())['XUN-FN-001']).toBeNull();
+    await 지도([['XUN-REQ-001', 'XUN-FN-001'], ['XUN-REQ-001', 'XUN-FN-002']]);
+    expect((await 사유들())['XUN-FN-002']).toBe('확인 필요 — XUN-REQ-001');
+    await 판넣기(2, [항목('XUN-REQ-001', 'CONFIRMED', true)]);
+    expect(await 사유들()).toMatchObject({ 'XUN-FN-001': null, 'XUN-FN-002': null });
   });
 
   it('지금 판에 덮는 요구가 하나도 없으면 꼬리표를 따른다 — 옛 표 번호 · 지도 밖 · 판에서 지운 번호', async () => {

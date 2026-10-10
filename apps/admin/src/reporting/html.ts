@@ -104,8 +104,9 @@ function 블록(item: EvidenceItem): string[] {
   return [
     `<section class="item">`,
     `    <h2 class="item-head"><span class="tc-id">${안전(item.tcId)}</span><span class="tc-name">${안전(item.tcName)}</span><span class="badge">${디바이스[item.platform]}</span><span class="badge">${item.attempt}회차</span>${판정(item.status)}${소요(item.durationMs)}${사유}</h2>`,
-    // 미확정 블록 머리에 사유 한 문장. 판정 색을 쓰지 않는다 — 사유 줄은 꼬리표일 뿐 판정이 아니다 (DESIGN.md 「판정 표기」 미확정)
-    ...(item.unconfirmed === null ? [] : [`    <div class="u-reason">${안전(item.unconfirmed)}</div>`]),
+    // 미확정 블록 머리에 「미확정 · 사유」 한 줄. 묶음 머리가 없어져 이 글자가 없으면 꼬리표 사유만으로는 미확정인지 모른다.
+    // 판정 색을 쓰지 않는다 — 꼬리표일 뿐 판정이 아니다 (DESIGN.md 「판정 표기」 미확정)
+    ...(item.unconfirmed === null ? [] : [`    <div class="u-reason">미확정 · ${안전(item.unconfirmed)}</div>`]),
     `    <div class="row">`,
     `      <div class="row-k">사전조건</div>`,
     `      <div class="row-v">`,

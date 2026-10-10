@@ -63,9 +63,9 @@ describe('증적 HTML — 미확정', () => {
     expect(글).not.toContain('<b>다름</b>');
   });
 
-  it('사유 줄은 판정 색을 입지 않는다 — 미확정은 판정이 아니다', () => {
+  it('사유 줄은 「미확정 · 사유」 꼴이고 판정 색을 입지 않는다 — 미확정은 판정이 아니다', () => {
     const 글 = renderHtml(문서([항목('A-2', 'PASS', '다름 D1')]), 옵션);
-    const 줄 = /<div class="([^"]*)">다름 D1<\/div>/.exec(글);
+    const 줄 = /<div class="([^"]*)">미확정 · 다름 D1<\/div>/.exec(글);
     expect(줄?.[1]).toBe('u-reason');
     expect(글).toMatch(/\.u-reason\{[^}]*color:var\(--ink-muted\)/);
   });

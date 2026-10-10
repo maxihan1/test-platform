@@ -1,4 +1,4 @@
-// 증적 자료의 미확정 사유 검사 — run_item 에 박제된 값을 읽고 케이스가 나중에 확정돼도 그대로다 (도메인/리포팅 「미확정 항목은 따로 묶는다」)
+// 증적 자료의 미확정 사유 검사 — run_item 에 박제된 값을 읽고 케이스가 나중에 확정돼도 그대로다 (도메인/리포팅 「미확정 항목은 꼬리표로 보인다」)
 // CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다. fixture 접두사 XDU — 자기 것만 지운다 (CLAUDE.md §3)
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
