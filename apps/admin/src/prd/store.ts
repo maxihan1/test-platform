@@ -78,6 +78,12 @@ export async function 판목록(서비스: number): Promise<판줄[]> {
   return r.rows.map((x) => ({ version: x.version, source: x.source, savedByName: x.saved_by_name, savedAt: x.saved_at.toISOString() }));
 }
 
+/** 요청이 집힐 때 적힌 읽은 판(prd_version). 안 적혔으면 null */
+export async function 읽은판(요청: number): Promise<number | null> {
+  const r = await (await db()).query<{ prd_version: number | null }>('SELECT prd_version FROM authoring_request WHERE id = $1', [요청]);
+  return r.rows[0]?.prd_version ?? null;
+}
+
 export async function 판하나(서비스: number, version: number): Promise<{ version: number; items: PrdItem[] } | null> {
   const 판 = await 판읽기(await db(), 서비스, version);
   return 판 === null ? null : { version: 판.version, items: 판.items };

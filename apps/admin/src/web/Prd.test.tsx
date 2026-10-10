@@ -96,6 +96,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
     await vi.waitFor(() => expect(반영).toHaveBeenCalledWith('MKT'));
     expect(await within(칸).findByText('작성 요청 6120번을 만들었습니다')).toBeTruthy();
     expect(within(칸).getByRole('link', { name: '#6120 요청 보기' }).getAttribute('href')).toBe('#/authoring/6120');
+    expect((within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('이미 열린 반영이 있으면 그 요청 번호로 가는 링크를 띄운다', async () => {

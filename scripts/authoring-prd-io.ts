@@ -72,7 +72,8 @@ export async function 판받기(
     if ('까닭' in 판) return { 까닭: `표준 기획서 지금 판을 못 읽었다 (${판.까닭})` };
     const 지금판 = join(자료폴더, 'prd-current.json');
     // 글 값만 가린다 — JSON 글을 통째로 가리면 비밀번호가 키 · 숫자와 같을 때(「text」 · 「1234」) 깨진 JSON 이 돼 작성이 멈춘다
-    const 가린글 = JSON.stringify({ version: 판.version, items: 판.items }, (_k, v: unknown) => (typeof v === 'string' ? 비밀가리기(v, 비밀) : v), 2);
+    const 가리기 = (_k: string, v: unknown) => (typeof v === 'string' ? 비밀가리기(v, 비밀) : v);
+    const 가린글 = JSON.stringify({ version: 판.version, items: 판.items }, 가리기, 2);
     // 이어받은 폴더면 앞 자식이 이 이름에 링크를 심어 뒀을 수 있다 — 지우고 새로 만든다(링크를 따라가 남의 파일에 쓰지 않게)
     rmSync(지금판, { force: true });
     writeFileSync(지금판, 가린글, { mode: 0o644, flag: 'wx' });
@@ -80,7 +81,7 @@ export async function 판받기(
       입력: { 지금판, 결과: join(자료폴더, 'out', 결과이름), 판: 판.version, 항목수: 판.items.length },
       앞판: { version: 판.version, 번호들: 판.items.map((i) => i.reqId), items: (JSON.parse(가린글) as { items: PrdItem[] }).items },
       // 옛 문장도 반영 계획 사본으로 자식에게 간다 — 같은 손으로 가린다
-      기준판: 판.base === null ? null : (JSON.parse(JSON.stringify(판.base, (_k, v: unknown) => (typeof v === 'string' ? 비밀가리기(v, 비밀) : v))) as 판),
+      기준판: 판.base === null ? null : (JSON.parse(JSON.stringify(판.base, 가리기)) as 판),
     };
   } catch (err) {
     return { 까닭: `표준 기획서 지금 판을 못 읽었다: ${거절말고(err)}` };

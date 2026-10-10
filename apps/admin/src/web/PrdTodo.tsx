@@ -37,6 +37,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
   const [고른, set고른] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [반영결과, set반영결과] = useState<{ 글: string; 번호들: number[] } | null>(null);
+  const [세움, set세움] = useState(false);
   const 언어 = use언어();
   const 기다림 = 확인필요줄(now.items);
   const 반영 = 반영안됨줄(now);
@@ -59,6 +60,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
     try {
       const { id } = await prdApi.apply(service);
       set반영결과({ 글: t('작성 요청 {번호}번을 만들었습니다', { 번호: id }), 번호들: [id] });
+      set세움(true);
     } catch (err) {
       // 열린 반영이 있으면 서버가 그 요청 번호들을 준다 — 글자로 오면 「12,15」다(케이스 고치기의 EDIT_OPEN 과 같다)
       const 열린 = err instanceof ApiError && err.code === 'APPLY_OPEN' ? err.message.split(',').map(Number).filter(Number.isSafeInteger) : [];
@@ -150,7 +152,8 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
                 ))}
               </span>
             )}
-            <button className="btn small" disabled={busy} onClick={() => void 테스트에반영()}>
+            {/* 세운 뒤 또 누르면 자기가 세운 요청에 APPLY_OPEN 이 난다 — 막아 둔다. 판을 다시 읽어도 반영 안 됨은 병합 전까지 그대로다 */}
+            <button className="btn small" disabled={busy || 세움} onClick={() => void 테스트에반영()}>
               {t('바뀐 요구 {건수}건 테스트에 반영', { 건수: 반영.length })}
             </button>
           </footer>

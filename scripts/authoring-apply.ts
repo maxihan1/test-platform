@@ -19,7 +19,7 @@ const 네종류: 축[] = ['정상', '경계', '예외', 'UI'];
 
 export interface 다시쓸요구 {
   번호: string;
-  /** 기준 판에 없던 번호면 null — 표가 이미 덮고 있어 새로 만들지 않고 고쳐 쓴다 */
+  /** 기준 판에 없던 번호면 null(기준 판이 없거나 새로 더한 번호) — 표가 이미 덮고 있어 새로 만들지 않고 네 종류를 다 고쳐 쓴다 */
   옛문장: string | null;
   새문장: string;
   다시쓸종류: 축[];
@@ -32,7 +32,7 @@ export interface 반영계획 {
   기준판: number | null;
   지금판: number;
   다시씀: 다시쓸요구[];
-  /** 덮는 케이스가 없는 새 항목 */
+  /** 덮는 케이스가 없는 번호 — 새로 더했거나, 바뀌었는데 표가 아직 안 덮었다. 설계 목록 그대로 새로 쓴다 */
   새항목: string[];
   지움: { 번호: string; 지울케이스: string[]; 남길케이스: string[] }[];
 }
@@ -76,10 +76,11 @@ export function 반영계획만들기(
   const 덮던 = (번호: string) => 지도.filter((j) => j.reqId === 번호).map((j) => ({ tcId: j.tcId, 축: j.axis }));
   const 옛글 = new Map((기준?.items ?? []).map((x) => [x.reqId, x.text]));
   const 새글 = new Map(지금.items.map((x) => [x.reqId, x.text]));
-  const 다시씀 = [...차이.changed, ...차이.added].flatMap((번호): 다시쓸요구[] => {
+  const 바뀐것 = [...차이.changed, ...차이.added];
+  const 다시씀 = 바뀐것.flatMap((번호): 다시쓸요구[] => {
     const 케이스 = 덮던(번호);
+    if (케이스.length === 0) return [];
     const 옛문장 = 옛글.get(번호) ?? null;
-    if (옛문장 === null && 케이스.length === 0) return [];
     const 새문장 = 새글.get(번호) ?? '';
     return [{ 번호, 옛문장, 새문장, 다시쓸종류: 옛문장 === null ? 네종류 : 바뀐종류(옛문장, 새문장), 케이스 }];
   });
@@ -89,7 +90,7 @@ export function 반영계획만들기(
     기준판: 기준?.version ?? null,
     지금판: 지금.version,
     다시씀,
-    새항목: 차이.added.filter((번호) => 덮던(번호).length === 0),
+    새항목: 바뀐것.filter((번호) => 덮던(번호).length === 0),
     지움: 차이.removed.map((번호) => {
       const 케이스 = [...new Set(덮던(번호).map((c) => c.tcId))];
       return { 번호, 지울케이스: 케이스.filter((t) => !남나(t)), 남길케이스: 케이스.filter(남나) };
@@ -119,7 +120,7 @@ export function 반영절(입력: 반영입력): string[] {
 /** PR 본문 머리 줄 — 판 견줌과, 자식이 끝낸 뒤에도 남은 지울 케이스 파일. 지우지 않고 보이기만 한다(사람이 병합 전에 본다) */
 export function 반영뒤줄(계획: 반영계획, 트리: string, 폴더: string): string[] {
   const 앞 = 계획.기준판 === null ? '기준 판 없음' : `판 ${String(계획.기준판)}`;
-  const 머리 = `표준 기획서 반영: ${앞} → ${계획.기준판 === null ? '판 ' : ''}${String(계획.지금판)} · 다시 씀 ${String(계획.다시씀.length)} · 새 항목 ${String(계획.새항목.length)} · 지움 ${String(계획.지움.length)}`;
+  const 머리 = `표준 기획서 반영: ${앞} → 판 ${String(계획.지금판)} · 다시 씀 ${String(계획.다시씀.length)} · 새 항목 ${String(계획.새항목.length)} · 지움 ${String(계획.지움.length)}`;
   try {
     const 있는 = new Set([...케이스파일들(join(트리, 'tests', 폴더))].map((p) => basename(p, '.spec.ts')));
     return [머리, ...경고줄('지운 요구만 덮던 케이스가 남음', 계획.지움.flatMap((x) => x.지울케이스).filter((t) => 있는.has(t)), 10)];
