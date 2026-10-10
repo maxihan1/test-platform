@@ -31,6 +31,7 @@ const 판 = {
     케이스('SHOP-002', { unconfirmed: '화면에서 본 값' }),
     케이스('SHOP-003', { active: false }),
     케이스('SHOP-004', { expectedSchema: null }),
+    케이스('SHOP-005', { unconfirmed: '확인 필요 — SHOP-REQ-003' }),
     케이스('OTHER-001'),
   ]),
   접두사: 'SHOP',
@@ -117,6 +118,7 @@ describe('고칠것검사 — 줄마다 거절', () => {
     ['expected 가 null', [{ tcId: 'SHOP-001', expected: null }], 'SHOP-001'],
     ['confirm 이 true 가 아님', [{ tcId: 'SHOP-002', confirm: false }], 'SHOP-002'],
     ['미확정이 아닌 케이스를 확정', [{ tcId: 'SHOP-001', confirm: true }], 'SHOP-001'],
+    ['표준 기획서가 정한 미확정을 확정', [{ tcId: 'SHOP-005', confirm: true }], 'SHOP-005'],
   ])('%s', (_이름, edits, detail) => {
     expect(고칠것검사({ edits }, 판)).toEqual(나쁨(detail));
   });

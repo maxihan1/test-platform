@@ -78,7 +78,10 @@ describe('고른 것으로 고치기 요청', () => {
         다되면={() => {}}
       />,
     );
-    expect(screen.getByRole('button', { name: '미확정 1건 확정 요청' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '미확정 1건 확정 요청' }));
+    const 상자 = screen.getByRole('dialog');
+    expect(within(상자).getByText('표준 기획서가 정한 미확정 1건은 뺐습니다 — 「PRD 관리」에서 확정합니다')).toBeTruthy();
+    expect(within(상자).queryByText('XEW-001')).toBeNull();
 
     cleanup();
     render(

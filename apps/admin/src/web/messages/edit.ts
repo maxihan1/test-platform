@@ -34,6 +34,7 @@ export const 고치기말: Record<string, string> = {
   '미확정 표시를 떼는 PR 을 올립니다. 케이스마다 지금 기대값이 맞는지 보고 보내세요.':
     'This opens a PR that removes the unconfirmed mark. Check that each case’s current expected results are correct before sending.',
   '비활성 {수}건은 뺐습니다': '{수} inactive left out',
+  '표준 기획서가 정한 미확정 {수}건은 뺐습니다 — 「PRD 관리」에서 확정합니다': '{수} unconfirmed by the PRD left out — confirm them in "PRD management"',
   '한 번에 {상한}건까지 요청할 수 있습니다. 고른 것을 줄이세요': 'You can request up to {상한} at a time. Select fewer cases',
 
   // 작성 화면 (authoringView.ts · authoringStatus.ts · AuthoringRuns.tsx · AuthoringEditParts.tsx)

@@ -14,7 +14,8 @@ export const 확인필요머리 = '확인 필요 — ';
  * 실행 박제 · 시나리오 부품 박제 · 케이스 목록이 이 식 하나를 쓴다. 자리마다 따로 짜면 목록은 미확정인데 실행은 확정으로 박제된다
  */
 export function 미확정사유SQL(c: string): string {
-  // jsonb 포함(@>)으로 판의 항목 배열에서 번호 · 상태를 찾는다 — 배열을 펼치지 않아 케이스 목록 전체에 걸어도 가볍다
+  // jsonb 포함(@>)으로 판의 항목 배열에서 번호 · 상태를 찾는다 — 배열을 펼치지 않는다.
+  // ponytail: 케이스 행마다 req_case 를 tc_id 로 훑는다(색인 없음). 케이스 수천 · 지도 수만 줄이 되면 req_case(tc_id) 색인을 마이그레이션으로 더한다
   const 있다 = `pv.items @> jsonb_build_array(jsonb_build_object('reqId', rc.req_id))`;
   const 확인필요 = `pv.items @> jsonb_build_array(jsonb_build_object('reqId', rc.req_id, 'status', 'NEEDS_CHECK'))`;
   return `(SELECT CASE

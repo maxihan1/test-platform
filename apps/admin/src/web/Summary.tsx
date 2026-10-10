@@ -30,7 +30,6 @@ export interface 띠칸 {
 
 const 판정색: Record<ItemStatus, string> = { PASS: 'p', FAIL: 'f', NA: 'n' };
 
-
 /**
  * 숫자 몇 개를 큰 글자로 늘어놓는 띠 (SPEC §8).
  *
