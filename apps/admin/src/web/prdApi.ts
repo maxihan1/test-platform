@@ -2,14 +2,15 @@
 
 import type { PrdItem } from '@platform/kit';
 
+import type { 덮는케이스 } from '../prd/trace.js';
 import { call, json, 파일받기 } from './api.js';
 
 export interface PrdNow {
   /** 0 이면 아직 표준 기획서가 없다 */
   version: number;
   items: PrdItem[];
-  /** 지도 ① — 번호마다 덮는 활성 케이스. 반영 칸이 바뀔 수 있는 케이스를 쓰는 E2E 시나리오를 찾는다 */
-  cases: Record<string, { tcId: string; axis: string; techniques: string[] }[]>;
+  /** 지도 ① — 번호마다 덮는 활성 케이스. 추적표 칸이 세고, 반영 칸이 바뀔 수 있는 케이스를 쓰는 E2E 시나리오를 찾는다 */
+  cases: Record<string, 덮는케이스[]>;
   unapplied: { changed: string[]; added: string[]; removed: string[] };
   needsCheck: { count: number; oldestSince: string | null };
 }
@@ -36,6 +37,8 @@ export const prdApi = {
   revert: (service: string, baseVersion: number, toVersion: number) =>
     call<{ version: number }>(`/prd/revert${꼬리(service)}`, json({ baseVersion, toVersion })),
   wordExport: (service: string) => 파일받기(`/prd/export${꼬리(service)}&format=docx`),
+  /** 요구사항 추적표 엑셀. 마지막 결과 칸은 실행 read 가 있어야 찬다 */
+  rtmExport: (service: string) => 파일받기(`/prd/export${꼬리(service)}&format=xlsx`),
   /** 「바뀐 요구 N건 테스트에 반영」 — 작성 요청 하나를 세운다. 그 PR 이 병합돼야 반영 안 됨이 준다 */
   apply: (service: string) => call<{ id: number }>(`/prd/apply${꼬리(service)}`, json({})),
 };

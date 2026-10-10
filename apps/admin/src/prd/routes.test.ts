@@ -1,6 +1,7 @@
 // 표준 기획서 API 가 도메인/작성 §7 「표준 기획서 통로」의 경로 · 응답 · 거절을 지키는지 본다. 문 없이 라우트만 띄운다
 
 import Fastify, { type FastifyInstance } from 'fastify';
+import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -11,6 +12,7 @@ const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XPR';
 const 근거 = [{ from: '기획서.docx', ref: 'REQ-CART-1', quote: '장바구니는 20개까지 담는다' }];
 const 항목 = (text: string, 덧: Record<string, unknown> = {}) => ({ feature: '장바구니', text, basis: 근거, status: 'CONFIRMED', ...덧 });
+const 케이스들 = ['XPR-FN-001', 'XPR-FN-002'];
 
 describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
   let app: FastifyInstance;
@@ -28,6 +30,10 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     await q('DELETE FROM prd_version WHERE service_id = $1', [서비스]);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [서비스]);
+    await q('DELETE FROM test_run WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM req_case WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [케이스들]);
   };
 
   beforeAll(async () => {
@@ -40,6 +46,16 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     );
     서비스 = Number(s.rows[0]!.id);
     app = Fastify();
+    // 문 없이 띄운다 — 실행 칸만 머리글로 흉내 낸다. 추적표 엑셀이 실행 read 로 마지막 결과를 가른다
+    app.addHook('onRequest', async (req) => {
+      const runs = req.headers['x-runs'];
+      if (runs !== 'read' && runs !== 'none') return;
+      req.user = {
+        username: 'xpr',
+        displayName: '검사',
+        services: [{ prefix: 접두사, permissions: { cases: 'read', runs, authoring: 'read' } }],
+      } as unknown as NonNullable<typeof req.user>;
+    });
     await app.register(prdRoutes, { prefix: '/api' });
     await app.register(authoringRoutes, { prefix: '/api' });
     await app.ready();
@@ -148,11 +164,13 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     expect(행.rows[0]?.params).toEqual({ prdApply: true });
   });
 
-  it('워드는 지금 판을 싣고 그 서비스 테스트 계정 비밀번호를 가린다 · 판이 없으면 404 · docx 말고는 400', async () => {
+  it('워드는 지금 판을 싣고 그 서비스 테스트 계정 비밀번호를 가린다 · 판이 없으면 404 · docx · xlsx 말고는 400', async () => {
     const 없음 = await 부르기('GET', '/prd/export?format=docx');
     expect([없음.statusCode, 없음.json()]).toEqual([404, { error: 'NOT_FOUND' }]);
     const 엑셀 = await 부르기('GET', '/prd/export?format=xlsx');
-    expect([엑셀.statusCode, 엑셀.json()]).toEqual([400, { error: 'BAD_FORMAT' }]);
+    expect([엑셀.statusCode, 엑셀.json()]).toEqual([404, { error: 'NOT_FOUND' }]);
+    const 피디에프 = await 부르기('GET', '/prd/export?format=pdf');
+    expect([피디에프.statusCode, 피디에프.json()]).toEqual([400, { error: 'BAD_FORMAT' }]);
 
     await q(
       `INSERT INTO service_env (service_id, env, base_url, login_id, login_password) VALUES ($1, 'qa', 'https://qa.xpr.test', 'tester', 'Xpr!secret9')`,
@@ -167,5 +185,47 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     expect(본문).toContain('XPR-REQ-001');
     expect(본문).toContain('계정 •••••• 로 담는다');
     expect(본문).not.toContain('Xpr!secret9');
+  });
+
+  it('추적표 엑셀은 요구마다 덮는 케이스를 싣고, 마지막 결과는 실행 read 가 있을 때만 싣는다', async () => {
+    await 부르기('PUT', '/prd', { baseVersion: 0, items: [항목('20개까지 담는다'), 항목('비면 안내한다')] });
+    for (const tc of 케이스들) {
+      await q(
+        `INSERT INTO test_case (tc_id, name, file_path, param_schema, expected_schema, techniques)
+         VALUES ($1, '검사', 'tests/xpr/a.spec.ts', '{}', '{}', '{경계값 분석}')`,
+        [tc],
+      );
+    }
+    await q(
+      `INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XPR-REQ-001', 'XPR-FN-001', '경계'), ($1, 'XPR-REQ-001', 'XPR-FN-002', '정상')`,
+      [서비스],
+    );
+    const run = await q<{ run_id: string }>(
+      `INSERT INTO test_run (title, triggered_by, status, env, service_id, service_name, tests_repo, base_url)
+       VALUES ('XPR 실행', 'xpr', 'FINISHED', 'qa', $1, 'XPR', '', 'https://qa.xpr.test') RETURNING run_id`,
+      [서비스],
+    );
+    await q(
+      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, params, expected, status, duration_ms, finished_at,
+                             file_path, param_schema, expected_schema, timeout_ms)
+       VALUES ($1, 'XPR-FN-001', 'desktop', '검사', '{}', '{}', 'FAIL', 100, now(), 'tests/xpr/a.spec.ts', '{}', '{}', 300000)`,
+      [run.rows[0]!.run_id],
+    );
+
+    const 읽기 = async (runs: 'read' | 'none') => {
+      const r = await app.inject({ method: 'GET', url: `/api/prd/export?service=${접두사}&format=xlsx`, headers: { 'x-runs': runs } });
+      expect(r.statusCode).toBe(200);
+      expect(r.headers['content-type']).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      expect(r.headers['content-disposition']).toMatch(/^attachment; filename="XPR-RTM-v1-\d{4}-\d{2}-\d{2}\.xlsx"$/);
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(new Uint8Array(r.rawPayload).buffer);
+      const 줄 = (n: number) => (wb.getWorksheet('요구사항 추적표')!.getRow(n).values as unknown[]).slice(1);
+      return [줄(2), 줄(3)];
+    };
+    const [덮임, 안덮임] = await 읽기('read');
+    expect(덮임).toEqual(['XPR-REQ-001', '장바구니', '20개까지 담는다', '확정', 2, 'XPR-FN-001\nXPR-FN-002', 1, 1, 0, 0, '경계값 분석 2', '통과 0 · 실패 1 · 미실행 1']);
+    expect(안덮임!.slice(4, 6)).toEqual([0, '안 덮임']);
+    const [못봄] = await 읽기('none');
+    expect(못봄![11]).toBeUndefined();
   });
 });

@@ -7,6 +7,7 @@ export const 기획서말: Record<string, string> = {
   '판 {판} · 요구 {건수}건': 'Version {판} · {건수} requirements',
   '판 이력': 'Version history',
   '워드로 내려받기': 'Download as Word',
+  '추적표 엑셀로 내려받기': 'Download traceability matrix',
   '요구 더하기': 'Add requirement',
   '요구 더하기로 첫 요구를 적습니다': 'Use Add requirement to write the first one',
   '판 {판}으로 저장했습니다': 'Saved as version {판}',
@@ -54,6 +55,16 @@ export const 기획서말: Record<string, string> = {
   '요구 문장에서 잡힌 경계 · 예외가 없습니다': 'No boundaries or exceptions found in this requirement',
   고치기: 'Edit',
   '이 요구만 확정': 'Confirm this one',
+
+  // 추적표 칸 — 요구마다 덮는 케이스 · 마지막 결과 (도메인/작성 §3.6 「메뉴가 곧 요구사항 추적표다」)
+  '안 덮임': 'Not covered',
+  '안 덮임 {건수}건': '{건수} not covered',
+  '실패 {건수}건': '{건수} failing',
+  '기능 {건수}건': '{건수} functional',
+  'UI {건수}건': '{건수} UI',
+  '실패 {건수} / {전체}': '{건수} of {전체} failed',
+  '미실행 {건수} / {전체}': '{건수} of {전체} not run',
+  '마지막 결과를 못 읽었습니다 — {까닭}': 'Could not load the latest results — {까닭}',
 
   // 고치기 · 더하기 칸
   '새 요구': 'New requirement',

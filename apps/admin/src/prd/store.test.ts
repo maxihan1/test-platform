@@ -127,7 +127,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     expect(await s.기준판(서비스)).toBeNull();
   });
 
-  it('지도 ① 은 활성 케이스만 번호마다 묶는다', async () => {
+  it('지도 ① 은 활성 케이스만 번호마다 묶고 기기 목록을 싣는다', async () => {
     const s = await 저장소();
     for (const [tc, 활성] of [['XPS-001', true], ['XPS-002', false]] as const) {
       await q(
@@ -142,8 +142,8 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
       [서비스],
     );
     expect(await s.케이스지도(서비스)).toEqual({
-      'XPS-REQ-001': [{ tcId: 'XPS-001', axis: '경계', techniques: ['경계값 분석'] }],
-      'XPS-REQ-009': [{ tcId: 'XPS-001', axis: '정상', techniques: ['경계값 분석'] }],
+      'XPS-REQ-001': [{ tcId: 'XPS-001', axis: '경계', techniques: ['경계값 분석'], platforms: ['desktop'] }],
+      'XPS-REQ-009': [{ tcId: 'XPS-001', axis: '정상', techniques: ['경계값 분석'], platforms: ['desktop'] }],
     });
   });
 });

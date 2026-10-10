@@ -1,16 +1,16 @@
 // 「PRD 관리」 아래쪽의 전체 요구 — 기능 묶음으로 접고, 줄을 펴면 근거 · 설계 미리보기 · 고치기 (도메인/작성 §3.6 「★ 표준 기획서」)
-// 설계 미리보기는 저장하지 않고 작성 에이전트와 같은 판정 함수로 그때 계산한다 — 두 벌이면 미리보기와 실제 작성이 갈린다
+// 펼친 줄의 테스트 · 설계 미리보기 구획과 줄 끝 추적표 칸은 PrdTrace.tsx 가 그린다
 
 import type { PrdItem } from '@platform/kit';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
-import { 설계하기 } from '../../../../scripts/authoring-design.js';
-import { use기법말 } from './CaseDetail.js';
+import { 요구판정, 추적하기, type 결과읽기, type 추적 } from '../prd/trace.js';
 import { use말 } from './i18n.js';
 import type { 판짓기 } from './Prd.js';
 import { prdApi, type PrdItemDraft, type PrdNow } from './prdApi.js';
 import { PrdItemForm, 빈요구 } from './PrdItemForm.js';
 import { use나이글, use반영종류글 } from './PrdTodo.js';
+import { 설계미리보기, 추적칸, 테스트구획 } from './PrdTrace.js';
 import { 고친판, 뒤집은, 묶음들, 반영안됨줄, type 반영종류 } from './prdView.js';
 
 export function PrdList({
@@ -21,6 +21,8 @@ export function PrdList({
   더하기,
   on더하기닫기,
   여기,
+  결과,
+  케이스보나,
 }: {
   service: string;
   now: PrdNow;
@@ -28,6 +30,9 @@ export function PrdList({
   짓기: 판짓기;
   더하기: boolean;
   on더하기닫기: () => void;
+  /** 실행 read 가 없거나 아직 못 받았으면 null — 마지막 결과를 안 그린다 */
+  결과: 결과읽기 | null;
+  케이스보나: boolean;
   /** 케이스 목록에서 누른 요구 번호 — 그 묶음과 줄을 편 채로 열고 그 줄로 간다 */
   여기?: string;
 }) {
@@ -52,6 +57,8 @@ export function PrdList({
   const 묶음 = 묶음들(찾은것);
   const 기능들 = [...new Set(now.items.map((x) => x.feature))];
   const 반영표 = new Map(반영안됨줄(now).map((x) => [x.reqId, x.kind]));
+  const 추적표 = useMemo(() => new Map(now.items.map((x) => [x.reqId, 추적하기(now.cases[x.reqId] ?? [], 결과)])), [now, 결과]);
+  const 추적of = (reqId: string) => 추적표.get(reqId) ?? 추적하기([], 결과);
   // 찾는 동안은 맞은 묶음을 다 편다 — 접힌 묶음 속에 맞은 줄이 숨으면 「없다」로 읽힌다
   const 열렸나 = (feature: string) => 찾는말 !== '' || 연묶음.has(feature);
   const 모두폈나 = 묶음.length > 0 && 묶음.every((g) => 열렸나(g.feature));
@@ -102,6 +109,9 @@ export function PrdList({
         묶음.map((g) => {
           const 확인수 = g.items.filter((x) => x.status === 'NEEDS_CHECK').length;
           const 반영수 = g.items.filter((x) => 반영표.has(x.reqId)).length;
+          const 추적들 = g.items.map((x) => 추적of(x.reqId));
+          const 안덮임수 = 추적들.filter((a) => a.기능.length + a.UI.length === 0).length;
+          const 실패수 = 추적들.filter((a) => a.결과 !== null && 요구판정(a.결과) === 'FAIL').length;
           return (
             <div className="prd-group" key={g.feature}>
               <button className="prd-ghead" aria-expanded={열렸나(g.feature)} onClick={() => set연묶음(뒤집은(연묶음, g.feature))}>
@@ -113,6 +123,8 @@ export function PrdList({
                   {t('{건수}건', { 건수: g.items.length })}
                   {확인수 === 0 ? null : <> · {t('확인 필요 {건수}건', { 건수: 확인수 })}</>}
                   {반영수 === 0 ? null : <> · {t('반영 안 됨 {건수}건', { 건수: 반영수 })}</>}
+                  {안덮임수 === 0 ? null : <> · {t('안 덮임 {건수}건', { 건수: 안덮임수 })}</>}
+                  {실패수 === 0 ? null : <> · <span className="prd-gfail">{t('실패 {건수}건', { 건수: 실패수 })}</span></>}
                 </span>
               </button>
               {!열렸나(g.feature)
@@ -123,6 +135,8 @@ export function PrdList({
                       x={x}
                       여기={x.reqId === 여기}
                       반영={반영표.get(x.reqId)}
+                      추적={추적of(x.reqId)}
+                      케이스보나={케이스보나}
                       폈나={편줄.has(x.reqId)}
                       on펴기={() => {
                         // 고치던 줄을 접으면 취소와 같다 — 다시 펼 때 옛 칸이 버려진 글로 열리지 않게
@@ -156,6 +170,8 @@ function 요구줄({
   x,
   여기 = false,
   반영,
+  추적,
+  케이스보나,
   폈나,
   on펴기,
   쓰나,
@@ -169,6 +185,8 @@ function 요구줄({
   x: PrdItem;
   여기?: boolean;
   반영: 반영종류 | undefined;
+  추적: 추적;
+  케이스보나: boolean;
   폈나: boolean;
   on펴기: () => void;
   쓰나: boolean;
@@ -187,22 +205,25 @@ function 요구줄({
 
   return (
     <div className={여기 ? 'prd-item prd-here' : 'prd-item'} id={prd줄아이디(x.reqId)}>
-      <button className="prd-row" aria-expanded={폈나} onClick={on펴기}>
-        <span className="prd-id">{x.reqId}</span>
-        <span className="prd-text">{x.text}</span>
-        <span className="prd-tags">
-          {x.status === 'NEEDS_CHECK' ? (
-            <span className="case-tag prd-check">{나이 === null ? t('확인 필요') : t('확인 필요 · {나이}', { 나이 })}</span>
-          ) : (
-            <span className="prd-plain">{t('확정§상태')}</span>
-          )}
-          {반영 === undefined ? null : <span className="case-tag prd-changed">{t('{종류} · 반영 안 됨', { 종류: 종류글[반영] })}</span>}
-          {x.byPerson === true ? <span className="prd-plain">{t('사람이 고침')}</span> : null}
-        </span>
-        <span className="prd-caret" aria-hidden="true">
-          ▸
-        </span>
-      </button>
+      <div className="prd-line">
+        <button className="prd-row" aria-expanded={폈나} onClick={on펴기}>
+          <span className="prd-id">{x.reqId}</span>
+          <span className="prd-text">{x.text}</span>
+          <span className="prd-tags">
+            {x.status === 'NEEDS_CHECK' ? (
+              <span className="case-tag prd-check">{나이 === null ? t('확인 필요') : t('확인 필요 · {나이}', { 나이 })}</span>
+            ) : (
+              <span className="prd-plain">{t('확정§상태')}</span>
+            )}
+            {반영 === undefined ? null : <span className="case-tag prd-changed">{t('{종류} · 반영 안 됨', { 종류: 종류글[반영] })}</span>}
+            {x.byPerson === true ? <span className="prd-plain">{t('사람이 고침')}</span> : null}
+          </span>
+          <span className="prd-caret" aria-hidden="true">
+            ▸
+          </span>
+        </button>
+        <추적칸 reqId={x.reqId} 추적={추적} 케이스보나={케이스보나} />
+      </div>
       {!폈나 ? null : 고치나 ? (
         <div className="prd-detail">
           <PrdItemForm
@@ -215,6 +236,7 @@ function 요구줄({
         </div>
       ) : (
         <div className="prd-detail">
+          <테스트구획 추적={추적} />
           <section>
             <h3>{t('근거')}</h3>
             <dl className="prd-basis">
@@ -255,33 +277,5 @@ function 요구줄({
         </div>
       )}
     </div>
-  );
-}
-
-function 설계미리보기({ text }: { text: string }) {
-  const t = use말();
-  const 기법말 = use기법말();
-  const 설계 = useMemo(() => 설계하기(text), [text]);
-  if (설계.경계.length === 0 && 설계.예외.length === 0) return <p className="prd-none">{t('요구 문장에서 잡힌 경계 · 예외가 없습니다')}</p>;
-  return (
-    <ul className="prd-design">
-      {설계.경계.map((b, i) => (
-        <li key={`b${i}`}>
-          <span className="prd-tech">{기법말('경계값 분석')}</span>
-          <span>「{b.근거}」</span>
-          {b.값.map((값) => (
-            <span className="prd-val" key={값}>
-              {값}
-            </span>
-          ))}
-        </li>
-      ))}
-      {설계.예외.map((e, i) => (
-        <li key={`e${i}`}>
-          <span className="prd-tech">{기법말(e.기법)}</span>
-          <span>「{e.근거}」</span>
-        </li>
-      ))}
-    </ul>
   );
 }

@@ -1,10 +1,11 @@
 // 표준 기획서 판 표를 읽고 쓴다. 저장마다 새 판이고 옛 판은 고치지 않는다 — 되돌리기도 새 판 (도메인/작성 §3.6 「★ 표준 기획서」)
 
-import type { PrdItem } from '@platform/kit';
+import type { Platform, PrdItem } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
 
 import { 사슬식, 최신식 } from '../authoring/history.js';
 import { 반영안됨, 사람판, 옮기기판, 판같나, 확정판, type 들어온항목, type 앞판, type 판짓기오류 } from './rules.js';
+import type { 덮는케이스 } from './trace.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -208,23 +209,17 @@ export async function 옮기기(
   });
 }
 
-export interface 덮는케이스 {
-  tcId: string;
-  axis: string;
-  techniques: string[];
-}
-
 /** 지도 ① — 번호마다 덮는 활성 케이스. 표준 기획서에 없는 번호도 싣는다(화면이 「PRD 에 없음」으로 보인다) */
 export async function 케이스지도(서비스: number): Promise<Record<string, 덮는케이스[]>> {
-  const r = await (await db()).query<{ req_id: string; tc_id: string; axis: string; techniques: string[] }>(
-    `SELECT r.req_id, r.tc_id, r.axis, t.techniques
+  const r = await (await db()).query<{ req_id: string; tc_id: string; axis: string; techniques: string[]; platforms: Platform[] }>(
+    `SELECT r.req_id, r.tc_id, r.axis, t.techniques, t.platforms
        FROM req_case r JOIN test_case t ON t.tc_id = r.tc_id AND t.is_active
       WHERE r.service_id = $1
       ORDER BY r.req_id, r.tc_id, r.axis`,
     [서비스],
   );
   const 지도: Record<string, 덮는케이스[]> = {};
-  for (const x of r.rows) (지도[x.req_id] ??= []).push({ tcId: x.tc_id, axis: x.axis, techniques: x.techniques });
+  for (const x of r.rows) (지도[x.req_id] ??= []).push({ tcId: x.tc_id, axis: x.axis, techniques: x.techniques, platforms: x.platforms });
   return 지도;
 }
 
