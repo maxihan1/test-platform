@@ -1,5 +1,5 @@
 // 스캔 결과가 부른 사람이 케이스 read 인 서비스 것만 합쳐지는지 본다 (SPEC 도메인/인증 §7 「등급으로 갈리는 자리」)
-// 스캐너와 저장소를 흉내 내서 DB 없이 돈다
+// 스캐너 · 저장소 · 지도 채우기(DB 를 쓴다)를 흉내 내서 DB 없이 돈다
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -31,6 +31,8 @@ vi.mock('./store.js', () => ({
   findService: async () => null,
   listCases: async () => ({ items: [] }),
 }));
+
+vi.mock('./reqMap.js', () => ({ 지도채우기: async () => 0 }));
 
 vi.mock('./scanner.js', () => ({
   testsRoot: () => '/뿌리',

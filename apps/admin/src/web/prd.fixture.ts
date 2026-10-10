@@ -45,6 +45,7 @@ export function 판(덮을것: Partial<PrdNow> = {}): PrdNow {
   return {
     version: 12,
     items: [아이디, 아이디칸, 로그인실패, 잠금],
+    cases: {},
     unapplied: { changed: [], added: ['MKT-REQ-041'], removed: ['MKT-REQ-012'] },
     needsCheck: { count: 2, oldestSince: 며칠전(9) },
     ...덮을것,

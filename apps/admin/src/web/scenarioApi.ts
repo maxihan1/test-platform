@@ -117,9 +117,11 @@ interface TrialBody {
 }
 
 export const scenarioApi = {
+  /** `uses` 를 주면 그 케이스를 쓰는 시나리오만. 빈 `uses` 는 서버가 「전부」로 읽어 묻지 않고 빈 목록이다 */
   list: (service: string, uses?: string[]) => {
+    if (uses !== undefined && uses.length === 0) return Promise.resolve({ items: [] as ScenarioRow[] });
     const params = new URLSearchParams({ service });
-    if (uses !== undefined && uses.length > 0) params.set('uses', uses.join(','));
+    if (uses !== undefined) params.set('uses', uses.join(','));
     return call<{ items: ScenarioRow[] }>(`/scenarios?${params.toString()}`);
   },
 

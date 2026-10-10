@@ -1,4 +1,4 @@
-// 케이스를 지우기 전에 그 케이스를 쓰는 E2E 시나리오를 번호 · 이름으로 보이는 안내 (도메인/카탈로그 §8.1 · 도메인/시나리오 §3.7 결정 8)
+// 케이스를 지우거나 표준 기획서 반영으로 바꾸기 전에 그 케이스를 쓰는 E2E 시나리오를 번호 · 이름으로 보이는 안내 (도메인/카탈로그 §8.1 · 도메인/작성 §3.6 「고친 요구만 다시 작성」 · 도메인/시나리오 §3.7 결정 8)
 
 import { use말 } from './i18n.js';
 import { scenarioApi } from './scenarioApi.js';
@@ -7,9 +7,10 @@ import { useAsync } from './ui.js';
 /**
  * 목록을 못 읽어도(권한 · 서버 오류) 삭제를 막지 않는다 — 안내만 못 구체화하므로 못 돈다는 문장으로 대신한다.
  * 불러오는 동안과 0건일 때는 아무것도 안 그린다. 감싸는 상자가 그 문장을 이미 적었으면 `대신문장={false}` —
- * 일괄 삭제 상자가 그렇다. 안 끄면 같은 말이 두 번 나온다
+ * 일괄 삭제 상자가 그렇다. 안 끄면 같은 말이 두 번 나온다. `반영` 은 「PRD 관리」 반영 칸이다 — 바뀔 수 있는 케이스라 제목이 다르고
+ * 그 문장(삭제 경고)도 안 맞아 기본으로 끈다
  */
-export function ScenarioUsage({ service, tcIds, 대신문장 = true }: { service: string; tcIds: string[]; 대신문장?: boolean }) {
+export function ScenarioUsage({ service, tcIds, 반영 = false, 대신문장 = !반영 }: { service: string; tcIds: string[]; 반영?: boolean; 대신문장?: boolean }) {
   const t = use말();
   const { data, error } = useAsync(() => scenarioApi.list(service, tcIds), [service, tcIds.join(',')]);
 
@@ -19,7 +20,11 @@ export function ScenarioUsage({ service, tcIds, 대신문장 = true }: { service
   if (data === null || data.items.length === 0) return null;
   return (
     <div className="hint">
-      <p>{t('이 케이스를 쓰는 E2E 시나리오 {수}개 — 삭제하면 다른 케이스로 바꿀 때까지 실행할 수 없습니다', { 수: data.items.length })}</p>
+      <p>
+        {반영
+          ? t('이번 반영으로 바뀌거나 지워질 수 있는 케이스를 쓰는 E2E 시나리오 {수}개 — 병합한 뒤 시험 실행으로 확인하고 지운 케이스는 다른 케이스로 바꿉니다', { 수: data.items.length })
+          : t('이 케이스를 쓰는 E2E 시나리오 {수}개 — 삭제하면 다른 케이스로 바꿀 때까지 실행할 수 없습니다', { 수: data.items.length })}
+      </p>
       <ul className="edit-list">
         {data.items.map((줄) => (
           <li key={줄.id}>
