@@ -41,7 +41,11 @@ export default defineConfig({
       '**/tsconfig.json',
     ],
     projects: [
-      { extends: true, test: { name: 'db', include: DB파일, poolOptions: { forks: { singleFork: true } } } },
+      // 파일이 끝날 때 그 파일의 연결 풀을 닫는다 — 안 닫으면 연결이 쌓여 DB 상한을 넘는다 (setup 파일 머리 주석)
+      {
+        extends: true,
+        test: { name: 'db', include: DB파일, setupFiles: ['apps/admin/src/db/test-setup.ts'], poolOptions: { forks: { singleFork: true } } },
+      },
       // 동시에 돌면 CPU 를 나눠 써 무거운 검사(케이스 354개를 다시 읽는 scanner.test 등)가 기본 5초를 넘긴다. 멈춤을 잡는 데는 30초로 충분하다
       { extends: true, test: { name: 'unit', include: 검사자리, exclude: [...configDefaults.exclude, ...DB파일], testTimeout: 30_000 } },
     ],

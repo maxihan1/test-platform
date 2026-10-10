@@ -666,8 +666,12 @@ describe('등급 표', () => {
   });
 
   // ★ 옛 등급 하나를 서비스별 칸으로 옮긴 뒤 **누구의 할 수 있는 일도 바뀌지 않았나** (SPEC 도메인/인증 §7 「옛 등급에서 옮긴 값」)
-  // 일부러 바꾼 자리. 저장소를 영구히 바꾸는 일이라 admin 으로 올렸다 (SPEC 도메인/인증 §7)
-  const 일부러 = new Set(['POST /api/authoring/merges']);
+  // 일부러 바꾼 자리. 머지는 저장소를 영구히 바꾸는 일이라 admin 으로 올렸다 (SPEC 도메인/인증 §7).
+  // 표준 기획서 읽기는 GET 이지만 작성 에이전트의 일이라 다른 에이전트 통로처럼 (작성, write) 다 (같은 절 「작성 에이전트가 하는 일」)
+  const 일부러 = new Map<string, 옛등급>([
+    ['POST /api/authoring/merges', 'admin'],
+    ['GET /api/authoring/requests/:id/prd', 'operator'],
+  ]);
   const 옛높이 = { viewer: 0, operator: 1, admin: 2 } as const;
   type 옛등급 = keyof typeof 옛높이;
   const 옛등급들: 옛등급[] = ['viewer', 'operator', 'admin'];
@@ -689,7 +693,7 @@ describe('등급 표', () => {
         const [메서드 = '', 틀 = ''] = 쌍.split(' ');
         return { 쌍, 메서드, 틀 };
       });
-  const 옛것 = (쌍: string, 틀: string, 메서드: string): 옛등급 => (일부러.has(쌍) ? 'admin' : 옛자동규칙(틀, 메서드));
+  const 옛것 = (쌍: string, 틀: string, 메서드: string): 옛등급 => 일부러.get(쌍) ?? 옛자동규칙(틀, 메서드);
 
   it('옛 등급을 옮긴 권한으로 판정해도 통과·거절이 옛 규칙과 같다 — 배정 서비스 하나', () => {
     const 달라진것: string[] = [];
@@ -729,7 +733,7 @@ describe('등급 표', () => {
     const 경로의기능 = (틀: string): 기능 | null => {
       if (/^\/api\/(catalog|cases|param-sets)(\/|$)/.test(틀)) return 'cases';
       if (/^\/api\/(runs|evidence|screenshots|scenarios|scenario-trials)(\/|$)/.test(틀)) return 'runs';
-      if (/^\/api\/authoring(\/|$)/.test(틀)) return 'authoring';
+      if (/^\/api\/(authoring|prd)(\/|$)/.test(틀)) return 'authoring';
       return null;
     };
     const 어긋난것: string[] = [];

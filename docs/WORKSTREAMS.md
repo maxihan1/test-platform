@@ -14,7 +14,7 @@
 | **WS-E** | 화면 | `apps/admin/src/web/**` | Admin API 계약 |
 | **WS-F** | 인증 | `apps/admin/src/auth/**`, `apps/admin/src/settings/**`, `scripts/**`(아래 `authoring-*` 빼고) | DB 스키마 (`app_user`·`service`·`service_env`·`user_service`) |
 | **WS-시나리오** | E2E 시나리오 | `apps/admin/src/scenario/**` · `docs/spec/도메인/시나리오.md` (러너 고정 파일은 `apps/runner/**` 라 WS-C) | kit 타입(시나리오) · 러너 계약 |
-| **WS-작성** | 작성 | `apps/admin/src/authoring/**` · `apps/authoring/**` · `scripts/authoring-*.ts` · `docs/spec/도메인/작성.md` | DB 스키마 (`authoring_request` 등) |
+| **WS-작성** | 작성 | `apps/admin/src/authoring/**` · `apps/admin/src/prd/**`(표준 기획서) · `apps/authoring/**` · `scripts/authoring-*.ts` · `docs/spec/도메인/작성.md` | DB 스키마 (`authoring_request` 등) |
 
 - **`docs/cases/**` 는 어느 갈래도 아니다.** 서비스별 요구사항 표와 용어 사전이 사는 자리이고 표면은 `DOC` 다. 그 표가 가리키는 케이스 파일은 `tests/**` 라 WS-C 소유다
 - 화면(`apps/admin/src/web/**`)은 기능이 어느 갈래 것이든 WS-E 소유다

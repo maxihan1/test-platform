@@ -92,6 +92,15 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests/:id/discard': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/held/:tcId': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/conflicts/:tcId': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/prd': { 종류: '작성요청', 칸: 'id' },
+
+  // 표준 기획서 (도메인/작성 §7 「표준 기획서 통로」). 라우트가 ?service= 의 서비스 것만 읽고 쓴다
+  '/api/prd': { 종류: '질의' },
+  '/api/prd/versions': { 종류: '질의' },
+  '/api/prd/versions/:version': { 종류: '질의' },
+  '/api/prd/confirm': { 종류: '질의' },
+  '/api/prd/revert': { 종류: '질의' },
+  '/api/prd/apply': { 종류: '질의' },
 
   // E2E 시나리오 (도메인/시나리오 §7). POST 의 본문 service 는 gate.ts 의 본문 갈래가 같이 본다
   '/api/scenarios': { 종류: '질의' },

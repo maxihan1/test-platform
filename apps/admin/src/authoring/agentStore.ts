@@ -17,8 +17,12 @@ import { db, 빚기, 칸들, type 요청, type 행 } from './store.js';
 export async function 집기(서비스: number, 집는이: string): Promise<요청 | null> {
   const pool = await db();
   const r = await pool.query<행>(
+    // 읽은 판 — 작성 · 재실행 · 반영 요청 실행만 적는다. 케이스 고치기(그 다시 적용은 params.edits)와 머지는 표준 기획서를 안 읽는다.
+    // 표준 기획서가 없으면 비운다 (도메인/작성 §7 「표준 기획서 통로」)
     `UPDATE authoring_request
-        SET status = 'RUNNING', claimed_by = $2, started_at = now()
+        SET status = 'RUNNING', claimed_by = $2, started_at = now(),
+            prd_version = CASE WHEN kind = 'AUTHOR' OR (kind = 'RERUN' AND NOT (params ? 'edits'))
+                               THEN (SELECT max(version) FROM prd_version WHERE service_id = $1) END
       WHERE id = (
               SELECT id FROM authoring_request 줄
                WHERE service_id = $1 AND status = 'PENDING'

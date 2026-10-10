@@ -139,3 +139,22 @@ export interface ScenarioCleanup {
   status?: number;                                 // 응답 코드. 못 보냈으면 없고 error 가 찬다
   error?: string;
 }
+
+// 표준 기획서 — 서버 · 화면 · 작성 에이전트가 같은 모양을 쓴다. 무엇이고 왜인지는 SPEC 도메인/작성 §3.6 「★ 표준 기획서」
+export type PrdStatus = 'CONFIRMED' | 'NEEDS_CHECK';   // 확정 · 확인 필요. 확정은 사람이 판단한 것만이다
+
+export interface PrdBasis {
+  from: string;                                    // 자료 이름. 화면에서 본 것이면 '화면'
+  ref?: string;                                    // 원본 번호('REQ-HOME-001') 또는 화면 주소. 없으면 키가 없다
+  quote: string;                                   // 원본 문장 그대로
+}
+
+export interface PrdItem {
+  reqId: string;                                   // '<접두사>-REQ-<3자리>' — 고정. 지운 번호는 다시 안 준다
+  feature: string;                                 // 기능 묶음
+  text: string;                                    // 요구 문장 — 규칙 하나. 숫자 · 조건 낱말은 원본 글자 그대로
+  basis: PrdBasis[];                               // 근거 — 하나 이상. 문서끼리 다르면 둘 다
+  status: PrdStatus;
+  checkSince?: string;                             // 확인 필요가 된 때(ISO). 확인 필요인 동안 물려받고 확정이면 키가 없다
+  byPerson?: true;                                 // 사람이 마지막으로 고친 항목 — 옮기기가 덮지 않는다
+}

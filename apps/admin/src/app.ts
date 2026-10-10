@@ -21,6 +21,8 @@ import { pool } from './db/index.js';
 import executionRoutes from './execution/routes.js';
 import trialRoutes from './execution/trialRoutes.js';
 import grafanaProxy from './grafana/proxy.js';
+import prdAgentRoutes from './prd/agentRoutes.js';
+import prdRoutes from './prd/routes.js';
 import reportingRoutes from './reporting/routes.js';
 import scenarioRoutes from './scenario/routes.js';
 import scenarioRunRoutes from './scenario/runRoutes.js';
@@ -47,6 +49,8 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(authoringEditRoutes, { prefix: '/api' });
   app.register(catalogRoutes, { prefix: '/api' });
   app.register(executionRoutes, { prefix: '/api' });
+  app.register(prdRoutes, { prefix: '/api' });
+  app.register(prdAgentRoutes, { prefix: '/api' });
   app.register(trialRoutes, { prefix: '/api' });
   app.register(reportingRoutes, { prefix: '/api' });
   app.register(scenarioRoutes, { prefix: '/api' });
