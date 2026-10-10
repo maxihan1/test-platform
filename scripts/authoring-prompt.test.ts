@@ -107,3 +107,21 @@ describe('줄프롬프트 — 표준 기획서 절 (도메인/작성 §3.6 「�
     expect(줄프롬프트(것, 'MKT', [])).not.toContain('--- 표준 기획서 ---');
   });
 });
+
+describe('줄프롬프트 — 반영 절 (도메인/작성 §3.6 「사람이 고칠 때」 「고친 요구만 다시 작성」)', () => {
+  const 것 = { id: 9, kind: 'AUTHOR' as const, params: { prdApply: true } };
+  const 계획 = { 기준판: 3, 지금판: 5, 다시씀: [], 새항목: ['X-REQ-004'], 지움: [] };
+
+  it('자료가 없어도 빈 기획서 절을 싣지 않고, 반영 절에 셈 · 사본 경로 · 참고 파일을 싣는다', () => {
+    const 글 = 줄프롬프트(것, 'X', [], undefined, undefined, undefined, undefined, undefined, undefined, undefined, { 계획, 사본: '/work/apply.json' });
+    expect(글).not.toContain('--- 기획서 ---');
+    expect(글).toContain('--- 반영 ---');
+    expect(글).toContain('다시 씀 0 · 새 항목 1 · 지움 0');
+    expect(글).toContain('/work/apply.json');
+    expect(글).toContain('references/apply.md');
+  });
+
+  it('반영이 아니면 절이 없다', () => {
+    expect(줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'X', [])).not.toContain('--- 반영 ---');
+  });
+});

@@ -1,13 +1,16 @@
-// 「PRD 관리」 맨 위의 할 일 두 칸 — 확인 필요(골라서 한 번에 확정) · 반영 안 됨 (도메인/작성 §3.6 「사람이 고칠 때」 · 「미확정」)
+// 「PRD 관리」 맨 위의 할 일 두 칸 — 확인 필요(골라서 한 번에 확정) · 반영 안 됨(테스트에 반영) (도메인/작성 §3.6 「사람이 고칠 때」 · 「미확정」)
 // 확정은 PR 없이 바로 새 판이다. 확정은 QA 가 한다 — 기획자에게는 문서 · 화면 충돌만 묻는다 (2026-10-10 사용자)
 
 import type { PrdBasis } from '@platform/kit';
 import { useState } from 'react';
 
-import { use말 } from './i18n.js';
+import { ApiError } from './api.js';
+import { 요청오류문장 } from './errorText.js';
+import { use말, use언어 } from './i18n.js';
 import type { 판짓기 } from './Prd.js';
 import { prdApi, type PrdNow } from './prdApi.js';
 import { 뒤집은, 반영안됨줄, 확인필요줄, type 반영종류 } from './prdView.js';
+import { message } from './ui.js';
 import { 미확정나이 } from './unconfirmed.js';
 
 /** 「N일째」 · 「오늘」. 시각이 없으면 안 적는다 */
@@ -33,6 +36,9 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
   const 종류글 = use반영종류글();
   const [고른, set고른] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [반영결과, set반영결과] = useState<{ 글: string; 번호들: number[] } | null>(null);
+  const [세움, set세움] = useState(false);
+  const 언어 = use언어();
   const 기다림 = 확인필요줄(now.items);
   const 반영 = 반영안됨줄(now);
 
@@ -45,6 +51,21 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
   async function 확정() {
     setBusy(true);
     if (await 짓기((base) => prdApi.confirm(service, base, 보낼것))) set고른(new Set());
+    setBusy(false);
+  }
+
+  // 반영은 새 판이 아니라 작성 요청이다 — 판을 다시 읽지 않는다. 반영 안 됨은 그 PR 이 병합돼야 준다 (§7 「표준 기획서 통로」 apply)
+  async function 테스트에반영() {
+    setBusy(true);
+    try {
+      const { id } = await prdApi.apply(service);
+      set반영결과({ 글: t('작성 요청 {번호}번을 만들었습니다', { 번호: id }), 번호들: [id] });
+      set세움(true);
+    } catch (err) {
+      // 열린 반영이 있으면 서버가 그 요청 번호들을 준다 — 글자로 오면 「12,15」다(케이스 고치기의 EDIT_OPEN 과 같다)
+      const 열린 = err instanceof ApiError && err.code === 'APPLY_OPEN' ? err.message.split(',').map(Number).filter(Number.isSafeInteger) : [];
+      set반영결과({ 글: 열린.length > 0 ? 요청오류문장('APPLY_OPEN', 언어) : message(err, 언어), 번호들: 열린 });
+    }
     setBusy(false);
   }
 
@@ -118,6 +139,25 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
             ))}
           </ul>
         )}
+        {쓰나 && 반영.length > 0 ? (
+          <footer>
+            {반영결과 === null ? null : (
+              <span className="note" role="status">
+                {반영결과.글}
+                {반영결과.번호들.map((번호) => (
+                  <a key={번호} href={`#/authoring/${String(번호)}`}>
+                    {' '}
+                    {t('#{번호} 요청 보기', { 번호 })}
+                  </a>
+                ))}
+              </span>
+            )}
+            {/* 세운 뒤 또 누르면 자기가 세운 요청에 APPLY_OPEN 이 난다 — 막아 둔다. 판을 다시 읽어도 반영 안 됨은 병합 전까지 그대로다 */}
+            <button className="btn small" disabled={busy || 세움} onClick={() => void 테스트에반영()}>
+              {t('바뀐 요구 {건수}건 테스트에 반영', { 건수: 반영.length })}
+            </button>
+          </footer>
+        ) : null}
       </section>
     </div>
   );

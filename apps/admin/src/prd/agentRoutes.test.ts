@@ -86,7 +86,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 에이전트 통로', ()
 
   it('지금 판을 읽고, 올리면 AGENT 판이 서고 요청의 읽은 판이 그 판이 된다 — 사람이 고친 항목은 남긴다', async () => {
     const id = await 요청넣기('AUTHOR', 'RUNNING');
-    expect((await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}/prd` })).json()).toEqual({ version: 0, items: [] });
+    expect((await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}/prd` })).json()).toEqual({ version: 0, items: [], base: null });
 
     const 첫 = await app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/prd`, payload: { baseVersion: 0, items: [항목('5만원 이상 무료 배송')] } });
     expect(첫.json()).toEqual({ version: 1, keptByPerson: [] });
@@ -110,6 +110,33 @@ describe.skipIf(연결 === undefined)('표준 기획서 에이전트 통로', ()
       payload: { baseVersion: 3, items: [{ ...항목('x'), reqId: 'XPG-REQ-009' }] },
     });
     expect([지어냄.statusCode, 지어냄.json()]).toEqual([400, { error: 'PRD_REUSED', detail: 'XPG-REQ-009' }]);
+  });
+
+  it('기준 판(마지막으로 병합된 작성이 읽은 판)을 같이 싣는다 — 반영 요청이 바뀐 항목과 옛 문장을 안다', async () => {
+    await 사람저장(서비스, 접두사, 0, [항목('5만원 이상 무료 배송')], 사람);
+    const 앞작성 = await 요청넣기('AUTHOR', 'DONE');
+    await q('UPDATE authoring_request SET prd_version = 1 WHERE id = $1', [앞작성]);
+    await 요청넣기('MERGE', 'DONE', {}, 앞작성);
+    await 사람저장(서비스, 접두사, 1, [{ ...항목('3만원 이상 무료 배송'), reqId: 'XPG-REQ-001' }], 사람);
+    const 반영 = await 요청넣기('AUTHOR', 'RUNNING', { prdApply: true });
+    expect((await app.inject({ method: 'GET', url: `/api/authoring/requests/${반영}/prd` })).json()).toMatchObject({
+      version: 2,
+      items: [{ reqId: 'XPG-REQ-001', text: '3만원 이상 무료 배송' }],
+      base: { version: 1, items: [{ reqId: 'XPG-REQ-001', text: '5만원 이상 무료 배송' }] },
+    });
+  });
+
+  it('반영 요청은 집을 때 적은 판을 읽는다 — 그 뒤에 저장한 판은 다음 반영 몫이다', async () => {
+    await 사람저장(서비스, 접두사, 0, [항목('5만원 이상 무료 배송')], 사람);
+    const 반영 = await 요청넣기('AUTHOR', 'PENDING', { prdApply: true });
+    expect((await 집기(서비스, 에이전트))?.id).toBe(반영);
+    await 사람저장(서비스, 접두사, 1, [{ ...항목('3만원 이상 무료 배송'), reqId: 'XPG-REQ-001' }], 사람);
+    expect((await app.inject({ method: 'GET', url: `/api/authoring/requests/${반영}/prd` })).json()).toMatchObject({
+      version: 1,
+      items: [{ text: '5만원 이상 무료 배송' }],
+    });
+    const 작성 = await 요청넣기('AUTHOR', 'RUNNING');
+    expect((await app.inject({ method: 'GET', url: `/api/authoring/requests/${작성}/prd` })).json()).toMatchObject({ version: 2 });
   });
 
   it('집기가 작성 · 재실행에만 지금 판을 적고 케이스 고치기와 그 다시 적용은 비운다', async () => {

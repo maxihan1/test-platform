@@ -34,4 +34,6 @@ export const prdApi = {
   revert: (service: string, baseVersion: number, toVersion: number) =>
     call<{ version: number }>(`/prd/revert${꼬리(service)}`, json({ baseVersion, toVersion })),
   wordExport: (service: string) => 파일받기(`/prd/export${꼬리(service)}&format=docx`),
+  /** 「바뀐 요구 N건 테스트에 반영」 — 작성 요청 하나를 세운다. 그 PR 이 병합돼야 반영 안 됨이 준다 */
+  apply: (service: string) => call<{ id: number }>(`/prd/apply${꼬리(service)}`, json({})),
 };

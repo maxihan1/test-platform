@@ -25,6 +25,8 @@ export const 기획서말: Record<string, string> = {
   '반영 안 됨 {건수}건': '{건수} not in tests',
   '고친 요구가 아직 테스트에 없습니다': 'Edited requirements are not in the tests yet',
   '테스트와 어긋난 요구가 없습니다': 'Every requirement matches the tests',
+  '바뀐 요구 {건수}건 테스트에 반영': 'Apply {건수} changed requirements to tests',
+  '작성 요청 {번호}번을 만들었습니다': 'Created authoring request {번호}',
   바뀜: 'Changed',
   '새 항목': 'New',
   지움: 'Removed',

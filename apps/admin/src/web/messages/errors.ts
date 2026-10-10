@@ -111,4 +111,7 @@ export const 오류영어: Record<string, string> = {
     'Someone else changed the PRD first. The new version is loaded. Check it and try again',
   '요구 번호가 999 까지 찼습니다. 더 넣으려면 운영자와 정합니다':
     'Requirement IDs are used up to 999. Talk to an admin before adding more',
+  '테스트에 반영할 바뀐 요구가 없습니다': 'No changed requirements to apply to tests',
+  '이미 열린 반영 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤 다시 누릅니다':
+    'An apply request is already open. Merge or discard it, then try again',
 };

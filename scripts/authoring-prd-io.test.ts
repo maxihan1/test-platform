@@ -43,8 +43,16 @@ describe('판받기', () => {
     expect(r).toEqual({
       입력: { 지금판: join(자리.자료, 'prd-current.json'), 결과: join(자리.자료, 'out', 'prd.json'), 판: 2, 항목수: 1 },
       앞판: { version: 2, 번호들: ['MKT-REQ-001'], items: [있던] },
+      기준판: null,
     });
     expect(JSON.parse(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8'))).toEqual({ version: 2, items: [있던] });
+  });
+
+  it('기준 판을 같이 받는다 — 반영 계획의 옛 문장이라 같은 손으로 가리고, 지금 판 파일에는 안 싣는다', async () => {
+    vi.stubGlobal('fetch', async () => 답(200, { version: 3, items: [있던], base: { version: 2, items: [{ ...있던, text: '비번은 pass1234 이다' }] } }));
+    const r = await 판받기(서버, 'MKT', 7, 자리.자료, 'pass1234');
+    expect('기준판' in r && r.기준판).toEqual({ version: 2, items: [{ ...있던, text: '비번은 •••••• 이다' }] });
+    expect(JSON.parse(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8'))).not.toHaveProperty('base');
   });
 
   it('역방향 비밀번호는 날 글자와 이스케이프 꼴 둘 다 가려 쓰고, 원장을 만들 앞 판 항목도 가린 것이다', async () => {

@@ -78,6 +78,12 @@ export async function 판목록(서비스: number): Promise<판줄[]> {
   return r.rows.map((x) => ({ version: x.version, source: x.source, savedByName: x.saved_by_name, savedAt: x.saved_at.toISOString() }));
 }
 
+/** 요청이 집힐 때 적힌 읽은 판(prd_version). 안 적혔으면 null */
+export async function 읽은판(요청: number): Promise<number | null> {
+  const r = await (await db()).query<{ prd_version: number | null }>('SELECT prd_version FROM authoring_request WHERE id = $1', [요청]);
+  return r.rows[0]?.prd_version ?? null;
+}
+
 export async function 판하나(서비스: number, version: number): Promise<{ version: number; items: PrdItem[] } | null> {
   const 판 = await 판읽기(await db(), 서비스, version);
   return 판 === null ? null : { version: 판.version, items: 판.items };
@@ -223,12 +229,12 @@ export async function 케이스지도(서비스: number): Promise<Record<string,
 }
 
 /**
- * 「반영 안 됨」의 기준 판 항목 — 병합으로 끝난 반영(MERGE) 가운데 가장 최근 것이 병합한 작성 실행이 읽은 판.
+ * 「반영 안 됨」의 기준 판 — 병합으로 끝난 반영(MERGE) 가운데 가장 최근 것이 병합한 작성 실행이 읽은 판.
  * 케이스 고치기(EDIT · 그 다시 적용)는 표준 기획서를 안 읽어 기준이 못 된다. 기준이 없거나 그 실행이 판을 안 읽었으면 null — 전부 반영 안 됨이다
  */
-export async function 기준판(서비스: number): Promise<PrdItem[] | null> {
-  const r = await (await db()).query<{ items: PrdItem[] | null }>(
-    `SELECT v.items
+export async function 기준판(서비스: number): Promise<{ version: number; items: PrdItem[] } | null> {
+  const r = await (await db()).query<{ version: number | null; items: PrdItem[] | null }>(
+    `SELECT v.version, v.items
        FROM authoring_request m
        JOIN authoring_request src ON src.id = m.source_id
        LEFT JOIN prd_version v ON v.service_id = src.service_id AND v.version = src.prd_version
@@ -238,7 +244,8 @@ export async function 기준판(서비스: number): Promise<PrdItem[] | null> {
       LIMIT 1`,
     [서비스],
   );
-  return r.rows[0]?.items ?? null;
+  const 행 = r.rows[0];
+  return 행?.version == null || 행.items === null ? null : { version: 행.version, items: 행.items };
 }
 
 /**
@@ -251,7 +258,7 @@ export async function 반영세우기(
   사람: 저장하는사람,
 ): Promise<{ id: number } | { error: 'NOTHING_TO_APPLY' } | { error: 'APPLY_OPEN'; detail: number[] }> {
   const [지금, 기준] = await Promise.all([지금판(서비스), 기준판(서비스)]);
-  const 차이 = 반영안됨(기준, 지금?.items ?? []);
+  const 차이 = 반영안됨(기준?.items ?? null, 지금?.items ?? []);
   if (차이.changed.length + 차이.added.length + 차이.removed.length === 0) return { error: 'NOTHING_TO_APPLY' };
   return 잠그고(서비스, async (손) => {
     const 열린 = await 손.query<{ id: string }>(

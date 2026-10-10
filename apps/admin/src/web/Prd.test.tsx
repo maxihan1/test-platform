@@ -8,13 +8,14 @@ import { 판, 로그인실패 } from './prd.fixture.js';
 import type { PrdNow } from './prdApi.js';
 import type { 판정 } from './role.js';
 
-const { 지금, 확정, 워드 } = vi.hoisted(() => ({
+const { 지금, 확정, 워드, 반영 } = vi.hoisted(() => ({
   지금: vi.fn((_s: string): Promise<PrdNow> => Promise.reject(new Error('판을 정하지 않았다'))),
   확정: vi.fn((_s: string, _base: number, _ids: string[]) => Promise.resolve({ version: 13 })),
   워드: vi.fn((_s: string): Promise<{ 파일: Blob; 머리: string | null }> => Promise.reject(new Error('워드를 정하지 않았다'))),
+  반영: vi.fn((_s: string) => Promise.resolve({ id: 6120 })),
 }));
 
-vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, confirm: 확정, wordExport: 워드 } }));
+vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, confirm: 확정, wordExport: 워드, apply: 반영 } }));
 
 const 쓰는사람: 판정 = () => true;
 const 보는사람: 판정 = () => false;
@@ -24,6 +25,7 @@ beforeEach(() => {
   지금.mockResolvedValue(판());
   확정.mockClear();
   워드.mockReset();
+  반영.mockClear();
 });
 
 afterEach(() => cleanup());
@@ -85,8 +87,25 @@ describe('PRD 관리 — 할 일 먼저', () => {
     expect(within(칸).getByText('새 항목')).toBeTruthy();
     expect(within(칸).getByText('MKT-REQ-012')).toBeTruthy();
     expect(within(칸).getByText('지운 요구')).toBeTruthy();
-    // 받는 쪽(PRD-F4-03)이 붙인다 — 그 전에 누르면 실패하는 버튼을 두지 않는다 (2026-10-10 사용자)
-    expect(screen.queryByRole('button', { name: /테스트에 반영/ })).toBeNull();
+  });
+
+  it('반영 버튼을 누르면 작성 요청 하나를 세우고 그 요청으로 가는 링크를 띄운다', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
+    fireEvent.click(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }));
+    await vi.waitFor(() => expect(반영).toHaveBeenCalledWith('MKT'));
+    expect(await within(칸).findByText('작성 요청 6120번을 만들었습니다')).toBeTruthy();
+    expect(within(칸).getByRole('link', { name: '#6120 요청 보기' }).getAttribute('href')).toBe('#/authoring/6120');
+    expect((within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('이미 열린 반영이 있으면 그 요청 번호로 가는 링크를 띄운다', async () => {
+    반영.mockRejectedValueOnce(new ApiError(409, 'APPLY_OPEN', '6101'));
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
+    fireEvent.click(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' }));
+    expect(await within(칸).findByText(/이미 열린 반영 요청이 있습니다/)).toBeTruthy();
+    expect(within(칸).getByRole('link', { name: '#6101 요청 보기' }).getAttribute('href')).toBe('#/authoring/6101');
   });
 
   it('할 일이 없으면 두 칸 대신 한 줄', async () => {
@@ -103,6 +122,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
     expect(screen.queryAllByRole('checkbox')).toEqual([]);
     expect(screen.queryByRole('button', { name: /확정/ })).toBeNull();
     expect(screen.queryByRole('button', { name: '요구 더하기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /테스트에 반영/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /회원가입/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
     expect(screen.getByText('설계 미리보기')).toBeTruthy();
