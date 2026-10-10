@@ -70,11 +70,13 @@ function Screen({
       // 종류마다 새로 그린다 — 고른 것 · 쪽 · 검색어가 남으면 UI 와 기능을 섞어 골라 실행이 MIXED_KIND 로 거절된다 (PR #132)
       return (
         <CaseList
-          key={current.kind}
+          key={`${current.kind}:${current.req ?? ''}`}
           kind={current.kind}
           service={prefix}
           할수={할수}
           결과보나={기능보나(user, service?.prefix ?? null, 'runs')}
+          요구보나={기능보나(user, service?.prefix ?? null, 'authoring')}
+          요구={current.req}
         />
       );
     case 'setup':
@@ -82,7 +84,7 @@ function Screen({
       return <RunWindow tcIds={[current.tcId]} onClose={() => { window.location.hash = '#/cases'; }} on걸림={() => undefined} />;
     case 'prd':
       // 서비스마다 새로 그린다 — 앞 서비스에서 고른 확인 필요 · 펼친 줄 · 고치던 칸이 남으면 다른 서비스의 판에 보낸다
-      return <Prd key={prefix} service={prefix} 할수={할수} />;
+      return <Prd key={`${prefix}:${current.reqId ?? ''}`} service={prefix} 할수={할수} 여기={current.reqId} />;
     case 'authoring':
       return <Authoring service={prefix} envs={service?.envs ?? []} 할수={할수} />;
     case 'authoringItem':

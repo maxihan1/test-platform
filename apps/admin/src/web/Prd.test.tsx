@@ -208,6 +208,20 @@ describe('PRD 관리 — 전체 요구', () => {
     await vi.waitFor(() => expect(확정).toHaveBeenCalledWith('MKT', 12, ['MKT-REQ-032']));
   });
 
+  it('케이스 목록의 요구 번호에서 오면 그 묶음과 줄을 편 채로 열고 그 줄에 초점을 둔다 (도메인/카탈로그 §8.1 「맥락」)', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} 여기="MKT-REQ-041" />);
+    const 줄 = await screen.findByRole('button', { name: /MKT-REQ-041/ });
+    expect(줄.getAttribute('aria-expanded')).toBe('true');
+    expect(줄.closest('.prd-item')?.classList.contains('prd-here')).toBe(true);
+    expect(document.activeElement).toBe(줄);
+    expect(screen.queryByRole('button', { name: /MKT-REQ-031/ })).toBeNull();
+  });
+
+  it('지금 판에 없는 번호로 오면 아무것도 펴지 않는다', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} 여기="MKT-REQ-999" />);
+    expect((await screen.findByRole('button', { name: /로그인/ })).getAttribute('aria-expanded')).toBe('false');
+  });
+
   it('로그인 묶음의 두 근거를 다 보인다 — 문서끼리 달라 확인 필요가 된 항목', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /로그인/ }));

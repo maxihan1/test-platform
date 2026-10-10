@@ -48,6 +48,28 @@ export const 케이스말: Record<string, string> = {
   '오류 추정': 'Error guessing',
   '기법 없음': 'No technique',
 
+  // 맥락 — 기능 묶음 · 요구 · 종류 · 화면 (도메인/카탈로그 §8.1 「맥락」, 2026-10-11 시안 A).
+  // 종류 낱말은 지도 ① 의 축 값 그대로 질의에 가고 글자만 여기서 바뀐다
+  '종류': 'Type',
+  '정상': 'Normal',
+  '경계': 'Boundary',
+  '예외': 'Exception',
+  '기능 묶음 없음': 'No feature',
+  '화면': 'Screen',
+  '화면 조각': 'Component',
+  '실패 {건수}': '{건수} failed',
+  'PRD 에 연결되지 않은 케이스': 'Not linked to the PRD',
+  '앞 쪽에서 이어짐': 'Continued from the previous page',
+  '이것만 보기': 'Show only this',
+  '{이름}만 보기': 'Show only {이름}',
+  '연결된 요구 없음': 'No linked requirement',
+  'PRD 관리에서 보기': 'Open in PRD',
+  'PRD 에 없는 번호예요': 'Not in the PRD',
+  '외 {건수}건': '+{건수} more',
+  '요구': 'Requirements',
+  '요구 {번호}': 'Requirement {번호}',
+  '{조건} 조건 풀기': 'Remove filter {조건}',
+
   // 케이스 한 줄
   '{아이디} {이름} 고르기': 'Select {아이디} {이름}',
   '지원 디바이스 {목록}': 'Runs on {목록}',

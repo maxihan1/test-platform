@@ -2,7 +2,7 @@
 // 설계 미리보기는 저장하지 않고 작성 에이전트와 같은 판정 함수로 그때 계산한다 — 두 벌이면 미리보기와 실제 작성이 갈린다
 
 import type { PrdItem } from '@platform/kit';
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import { 설계하기 } from '../../../../scripts/authoring-design.js';
 import { use기법말 } from './CaseDetail.js';
@@ -20,6 +20,7 @@ export function PrdList({
   짓기,
   더하기,
   on더하기닫기,
+  여기,
 }: {
   service: string;
   now: PrdNow;
@@ -27,11 +28,23 @@ export function PrdList({
   짓기: 판짓기;
   더하기: boolean;
   on더하기닫기: () => void;
+  /** 케이스 목록에서 누른 요구 번호 — 그 묶음과 줄을 편 채로 열고 그 줄로 간다 */
+  여기?: string;
 }) {
   const t = use말();
   const [q, setQ] = useState('');
-  const [연묶음, set연묶음] = useState<Set<string>>(new Set());
-  const [편줄, set편줄] = useState<Set<string>>(new Set());
+  // 판을 받은 뒤에 그려지므로 처음 값에서 바로 찾는다. 지금 판에 없는 번호면 아무것도 안 편다
+  const 여기것 = 여기 === undefined ? undefined : now.items.find((x) => x.reqId === 여기);
+  const [연묶음, set연묶음] = useState<Set<string>>(() => new Set(여기것 === undefined ? [] : [여기것.feature]));
+  const [편줄, set편줄] = useState<Set<string>>(() => new Set(여기것 === undefined ? [] : [여기것.reqId]));
+  useEffect(() => {
+    if (여기것 === undefined) return;
+    const 줄 = document.getElementById(prd줄아이디(여기것.reqId));
+    // jsdom 에는 scrollIntoView 가 없다
+    줄?.scrollIntoView?.({ block: 'center' });
+    줄?.querySelector('button')?.focus({ preventScroll: true });
+    // 처음 열 때 한 번만 — 판이 바뀔 때마다 그 줄로 끌려가면 다른 줄을 고칠 수 없다
+  }, []);
   const [고치는, set고치는] = useState<string | null>(null);
 
   const 찾는말 = q.trim().toLowerCase();
@@ -108,6 +121,7 @@ export function PrdList({
                     <요구줄
                       key={x.reqId}
                       x={x}
+                      여기={x.reqId === 여기}
                       반영={반영표.get(x.reqId)}
                       폈나={편줄.has(x.reqId)}
                       on펴기={() => {
@@ -136,8 +150,11 @@ export function PrdList({
   );
 }
 
+const prd줄아이디 = (reqId: string) => `prd-item-${reqId}`;
+
 function 요구줄({
   x,
+  여기 = false,
   반영,
   폈나,
   on펴기,
@@ -150,6 +167,7 @@ function 요구줄({
   on확정,
 }: {
   x: PrdItem;
+  여기?: boolean;
   반영: 반영종류 | undefined;
   폈나: boolean;
   on펴기: () => void;
@@ -168,7 +186,7 @@ function 요구줄({
   const 나이 = 나이글(x.checkSince);
 
   return (
-    <div className="prd-item">
+    <div className={여기 ? 'prd-item prd-here' : 'prd-item'} id={prd줄아이디(x.reqId)}>
       <button className="prd-row" aria-expanded={폈나} onClick={on펴기}>
         <span className="prd-id">{x.reqId}</span>
         <span className="prd-text">{x.text}</span>

@@ -18,18 +18,23 @@ export type Route =
   | { name: 'password' }
   /** 자리 — 설정 안에서 고른 것. 서비스 접두사 · `users` · `pending` · `new`. 없으면 첫 서비스다 (도메인/인증 §8.8) */
   | { name: 'settings'; 자리?: string }
-  | { name: 'cases'; kind: 케이스종류 }
+  /** req — 「PRD 관리」에서 넘어온 요구 번호. 그 요구를 덮는 케이스만 거른다 (도메인/카탈로그 §8.1 「맥락」) */
+  | { name: 'cases'; kind: 케이스종류; req?: string }
   | { name: 'setup'; tcId: string }
   | { name: 'runs'; kind: 실행종류 }
   | { name: 'scenarios' }
   | { name: 'scenarioNew' }
   | { name: 'scenario'; id: number }
-  | { name: 'prd' }
+  /** reqId — 케이스 목록의 요구 번호에서 왔다. 그 항목을 펴서 보인다 */
+  | { name: 'prd'; reqId?: string }
   | { name: 'authoring' }
   | { name: 'authoringItem'; id: number }
   | { name: 'run'; runId: number }
   | { name: 'item'; runId: number; historyId: number }
   | { name: 'unknown'; hash: string };
+
+/** 「PRD 관리」의 그 항목 주소. 거기서 묶음을 펴고 그 줄로 간다 (도메인/카탈로그 §8.1 「맥락」) */
+export const PRD항목주소 = (reqId: string) => `#/prd/${encodeURIComponent(reqId)}`;
 
 /**
  * 주소 조각을 푼다. 깨진 % 꼴(`%` · `%E0`)이면 null — 그 주소는 「없는 주소」다.
@@ -65,12 +70,21 @@ export function route(hash: string): Route {
     return { name: 'cases', kind: 종류글자[parts[1]!]! };
   }
 
+  if (parts[0] === 'cases' && parts.length === 4 && 종류글자[parts[1]!] !== undefined && parts[2] === 'req') {
+    const req = 풀기(parts[3]!);
+    if (req !== null) return { name: 'cases', kind: 종류글자[parts[1]!]!, req };
+  }
+
   if (parts[0] === 'cases' && parts.length === 3 && parts[2] === 'run') {
     const tcId = 풀기(parts[1]!);
     if (tcId !== null) return { name: 'setup', tcId };
   }
 
   if (parts.length === 1 && parts[0] === 'prd') return { name: 'prd' };
+  // PRD 항목 번호는 늘 `<접두사>-REQ-<3자리>` 다(도메인/작성 §3.6 「칸과 번호」). 그 밖의 꼴은 없는 주소다
+  if (parts.length === 2 && parts[0] === 'prd' && /^[A-Z][A-Z0-9]{0,11}-REQ-\d{3}$/.test(parts[1]!)) {
+    return { name: 'prd', reqId: parts[1]! };
+  }
 
   // 번호는 숫자 글자만 받는다. 서버도 같은 모양으로 거른다 (도메인/작성 §7) —
   // 문과 라우트가 다른 값을 읽으면 그 틈으로 남의 행을 부르는 주소가 만들어진다

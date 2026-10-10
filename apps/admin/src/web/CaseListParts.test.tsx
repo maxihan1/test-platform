@@ -178,10 +178,18 @@ describe('아직 안 돌린 케이스 (SPEC §8.1)', () => {
 // 칸 이름이 없으면 각 칸이 무엇인지 화면만 봐서는 모른다 (SPEC §8.1, 2026-09-22).
 // 「표머리가 있다」만 보면 입력 칸이 여전히 케이스명 안에 있는 상태도 통과한다 — 둘을 같이 본다
 describe('표머리와 입력 칸 (SPEC §8.1)', () => {
-  it('칸 이름을 화면 낭독기가 읽는다', () => {
-    render(<표머리 />);
-    const 이름들 = screen.getAllByRole('columnheader').map((el) => el.textContent);
+  it('칸 이름이 차례로 글로 선다', () => {
+    const { container } = render(<표머리 />);
+    const 이름들 = [...container.querySelectorAll('.rowhead .colname')].map((el) => el.textContent);
     expect(이름들).toEqual(['TC ID', '케이스명', '입력값', '마지막 결과']);
+  });
+
+  // 표 부모 없는 row 는 행 이름을 내용으로 계산해 「이 쪽 전체 선택」을 두 번 읽었다 (진행판 WEB-F2-15)
+  it('표머리에는 표 부모 없는 행 역할이 없다 — 화면 읽기가 전체 선택을 한 번만 읽는다', () => {
+    render(<표머리 고름상태="none" on모두고르기={vi.fn()} />);
+    expect(screen.queryByRole('row')).toBeNull();
+    expect(screen.queryAllByRole('columnheader')).toHaveLength(0);
+    expect(screen.getAllByRole('checkbox', { name: '이 쪽 전체 선택' })).toHaveLength(1);
   });
 
   it('쌓인 줄에서 보일 「이 쪽 전체 선택」 글이 있고 화면 읽기에는 체크박스 이름 하나만 읽힌다 (PR #159)', () => {
@@ -244,12 +252,14 @@ describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () 
     expect(container.querySelector('.title > .case-tag')?.textContent).toBe('미확정');
   });
 
-  it('「· 설계 기법」 글자와 태그는 한 덩어리라 좁은 폭에서도 갈라지지 않는다', () => {
+  // 가운뎃점으로 이으면 덩어리가 다음 줄로 넘어갈 때 그 줄이 점으로 시작했다 (진행판 WEB-F2-14)
+  it('「설계 기법」 글자와 태그는 한 덩어리이고 작은 줄 어디에도 가운뎃점이 없다', () => {
     const { container } = 줄그린다(['경계값 분석', '상태 전이']);
 
     const 덩어리 = container.querySelector('.title small .tech-line');
-    expect(덩어리?.textContent).toBe('· 설계 기법 경계값 분석상태 전이');
+    expect(덩어리?.textContent).toBe('설계 기법 경계값 분석상태 전이');
     expect(덩어리?.querySelectorAll('.tech-tag')).toHaveLength(2);
+    expect(container.querySelector('.title small')?.textContent).not.toContain('·');
   });
 
   it('기법이 없으면 「설계 기법」 글자도 태그도 없다', () => {

@@ -9,9 +9,11 @@ import { api, type CasePage } from './api.js';
 import { 고른것고치기 } from './CaseBulkEdit.js';
 import { use엑셀받기 } from './CaseExport.js';
 import { use검색조건 } from './CaseListFilter.js';
+import { 걸린칩들, 묶음머리줄 } from './CaseListContext.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
 import { 표머리 } from './CaseListHead.js';
-import { 결과라벨, 기법고르개, 조건칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
+import { 결과라벨, 기법고르개, 조건칩들, 종류칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
+import { use묶음접기, 줄과머리 } from './caseGroups.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
@@ -24,10 +26,11 @@ import { Failed, Loading, message, useAsync } from './ui.js';
 import { useRunPick } from './useRunPick.js';
 
 // 결과보나 — 실행 칸이 none 이면 마지막 결과를 부르지 않는다. 부르면 서버가 403 을 낸다
-export function CaseList({ service, 할수, 결과보나, kind }: { service: string; 할수: 판정; 결과보나: boolean; kind: 'UI' | 'FN' }) {
+// 요구보나 — 작성 칸이 none 이면 요구 번호가 「PRD 관리」 고리가 아니라 글자다. 요구 — 「PRD 관리」에서 넘어온 요구 번호 (§8.1 「맥락」)
+export function CaseList({ service, 할수, 결과보나, 요구보나 = false, kind, 요구 }: { service: string; 할수: 판정; 결과보나: boolean; 요구보나?: boolean; kind: 'UI' | 'FN'; 요구?: string }) {
   const t = use말();
   const 언어 = use언어();
-  const 검색 = use검색조건(service, kind);
+  const 검색 = use검색조건(service, kind, 요구);
   const { 조건, 결과, page } = 검색;
   const [본서비스, set본서비스] = useState(service);
   const [scanning, setScanning] = useState(false);
@@ -39,8 +42,9 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
   // 고치기 요청 상자를 닫으면 그 상자를 연 버튼이 고른 것과 같이 사라진다 — 포커스는 주 행동으로 보낸다
   const 실행단추 = useRef<HTMLButtonElement>(null);
 
-  const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 검색.기법]);
+  const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 검색.기법, 검색.축, 검색.묶음, 검색.요구]);
   const scan = useAsync(() => api.lastScan(), []);
+  const 접기 = use묶음접기(cases.data?.groups);
   const last = useAsync(() => (결과보나 ? api.lastByCase() : Promise.resolve({ items: [] })), [결과보나]);
 
   const lastMap: LastMap = {};
@@ -59,11 +63,15 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
     // 고친 값도 버린다. 칸 이름이 같으면(env·userId) 남의 서비스 케이스에 그대로 붙는다
     set글자({});
     set편줄(new Set());
+    접기.비우기();
   }
 
   const 보일것 = 마지막결과로거른다(cases.data?.items ?? [], lastMap, 결과);
   // 지금 보이는 것을 센다 — 칩을 걸면 숫자도 같이 좁혀져야 「보이는 것과 세는 것」이 갈리지 않는다
   const 셈 = 판정개수(보일것, lastMap);
+  const 칸들 = 줄과머리(보일것, cases.data?.groups, new Set((cases.data?.items ?? []).map((row) => row.tcId)));
+  // 머리 건수는 쪽 밖까지 세므로 실패도 서비스 전체 마지막 결과에서 센다 — 디바이스 한쪽만 깨져도 실패(마지막판정과 같다)
+  const 실패한 = new Set((last.data?.items ?? []).filter((x) => x.status === 'FAIL').map((x) => x.tcId));
 
   async function rescan() {
     setScanning(true);
@@ -127,6 +135,11 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
             {!할수('작성요청') ? null : (
               <고른것고치기 service={service} 고른={뽑기.고른} 다되면={() => { 뽑기.비우기(); 실행단추.current?.focus(); }} />
             )}
+            {!접기.묶음있나 ? null : (
+              <button className="btn ghost" onClick={접기.모두}>
+                {접기.다접었나 ? t('모두 펴기') : t('모두 접기')}
+              </button>
+            )}
             {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
             {!할수('실행') ? null : (
               <button className="btn" ref={실행단추} onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
@@ -170,7 +183,9 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
           on결과={검색.on결과}
         />
         {/* 디바이스 · 표시 칩처럼 고른 것은 그대로 둔다 — 다른 쪽에서 고른 것을 말없이 버리지 않는다 (도메인/카탈로그 §8.1 「설계 기법」) */}
+        {kind !== 'FN' ? null : <종류칩들 축={검색.축} on축={검색.on축} />}
         {kind !== 'FN' ? null : <기법고르개 기법={검색.기법} on기법={검색.on기법} />}
+        <걸린칩들 검색={검색} />
         {엑셀.버튼}
       </div>
       {엑셀.알림}
@@ -208,10 +223,28 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
           }
           on모두고르기={() => 뽑기.모두뒤집기(보일것)}
         />
-        {보일것.map((row) => (
+        {칸들.map((칸) => {
+          if (칸.위.some((k) => 접기.접은.has(k))) return null; // 위 묶음이 접혀 있으면 머리도 줄도 그리지 않는다
+          if (!('row' in 칸)) {
+            return (
+              <묶음머리줄
+                key={칸.머리.열쇠}
+                머리={칸.머리}
+                접힘={접기.접은.has(칸.머리.열쇠)}
+                실패한={실패한}
+                걸린={검색.묶음}
+                on접기={() => 접기.뒤집기(칸.머리.열쇠)}
+                on이것만={검색.on묶음}
+              />
+            );
+          }
+          const row = 칸.row;
+          return (
           <케이스줄
             key={row.tcId}
             row={row}
+            요구보나={요구보나}
+            요구쓰나={접기.묶음있나}
             마지막={lastMap}
             고름={뽑기.고른.has(row.tcId)}
             뒤집기={뽑기.뒤집기}
@@ -227,7 +260,8 @@ export function CaseList({ service, 할수, 결과보나, kind }: { service: str
               if (await cases.reload()) set글자((전) => ({ ...전, [tcId]: { params: {}, expected: {} } }));
             }}
           />
-        ))}
+          );
+        })}
         </>
       )}
       </div>
