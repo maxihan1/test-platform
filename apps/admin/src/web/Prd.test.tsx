@@ -8,12 +8,13 @@ import { 판, 로그인실패 } from './prd.fixture.js';
 import type { PrdNow } from './prdApi.js';
 import type { 판정 } from './role.js';
 
-const { 지금, 확정 } = vi.hoisted(() => ({
+const { 지금, 확정, 워드 } = vi.hoisted(() => ({
   지금: vi.fn((_s: string): Promise<PrdNow> => Promise.reject(new Error('판을 정하지 않았다'))),
   확정: vi.fn((_s: string, _base: number, _ids: string[]) => Promise.resolve({ version: 13 })),
+  워드: vi.fn((_s: string): Promise<{ 파일: Blob; 머리: string | null }> => Promise.reject(new Error('워드를 정하지 않았다'))),
 }));
 
-vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, confirm: 확정 } }));
+vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, confirm: 확정, wordExport: 워드 } }));
 
 const 쓰는사람: 판정 = () => true;
 const 보는사람: 판정 = () => false;
@@ -22,6 +23,7 @@ beforeEach(() => {
   지금.mockReset();
   지금.mockResolvedValue(판());
   확정.mockClear();
+  워드.mockReset();
 });
 
 afterEach(() => cleanup());
@@ -34,6 +36,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     expect(await screen.findByText('요구 더하기로 첫 요구를 적습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '판 이력' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '워드로 내려받기' })).toBeNull();
   });
 
   it('머리에 판과 요구 수, 확인 필요는 오래 기다린 것부터 나이와 근거 자리를 단다', async () => {
@@ -152,5 +155,36 @@ describe('PRD 관리 — 전체 요구', () => {
     fireEvent.click(await screen.findByRole('button', { name: /로그인/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-040/ }));
     for (const b of 로그인실패.basis) expect(screen.getByText(`「${b.quote}」`)).toBeTruthy();
+  });
+});
+
+describe('PRD 관리 — 워드로 내려받기', () => {
+  it('보기 권한만 있어도 받고, 받는 동안 막고, 서버가 준 이름으로 저장한다', async () => {
+    let 끝내기: (값: { 파일: Blob; 머리: string | null }) => void = () => undefined;
+    워드.mockReturnValue(new Promise((r) => (끝내기 = r)));
+    Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:prd'), revokeObjectURL: vi.fn() });
+    const 누름 = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    render(<Prd service="MKT" 할수={보는사람} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '워드로 내려받기' }));
+    expect(워드).toHaveBeenCalledWith('MKT');
+    expect(screen.getByRole('button', { name: '만드는 중…' })).toHaveProperty('disabled', true);
+
+    끝내기({ 파일: new Blob(['x']), 머리: 'attachment; filename="MKT-PRD-v12.docx"' });
+    await vi.waitFor(() => expect(누름).toHaveBeenCalledOnce());
+    expect((누름.mock.contexts[0] as HTMLAnchorElement).download).toBe('MKT-PRD-v12.docx');
+    expect(screen.getByRole('button', { name: '워드로 내려받기' })).toHaveProperty('disabled', false);
+    누름.mockRestore();
+  });
+
+  it('거절당하면 알림 줄에 까닭을 띄우고 저장하지 않는다', async () => {
+    워드.mockRejectedValue(new ApiError(403, 'FORBIDDEN', 'authoring:read', []));
+    const 누름 = vi.spyOn(HTMLAnchorElement.prototype, 'click');
+    render(<Prd service="MKT" 할수={보는사람} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '워드로 내려받기' }));
+    expect((await screen.findByRole('status')).className).toBe('prd-note bad');
+    expect(누름).not.toHaveBeenCalled();
+    누름.mockRestore();
   });
 });

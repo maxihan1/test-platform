@@ -48,6 +48,15 @@ export async function 지금판(서비스: number): Promise<앞판 | null> {
   return 지금판읽기(await db(), 서비스);
 }
 
+/** 그 서비스 대상 서버 줄의 테스트 계정 비밀번호들 — 워드에서 가린다. 짧은 비밀번호를 거르는 문턱은 docx.ts 가 본다 */
+export async function 테스트비밀번호들(서비스: number): Promise<string[]> {
+  const r = await (await db()).query<{ login_password: string }>(
+    `SELECT login_password FROM service_env WHERE service_id = $1 AND COALESCE(login_password, '') <> ''`,
+    [서비스],
+  );
+  return r.rows.map((x) => x.login_password);
+}
+
 /** 에이전트 통로는 요청 번호로 서비스를 찾는다 — 번호 꼴(`<접두사>-REQ-`)에 쓸 접두사 */
 export async function 서비스접두사(서비스: number): Promise<string> {
   const r = await (await db()).query<{ prefix: string }>('SELECT prefix FROM service WHERE id = $1', [서비스]);

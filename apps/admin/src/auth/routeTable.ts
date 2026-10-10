@@ -114,6 +114,7 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/prd': 작성읽기,
   'GET /api/prd/versions': 작성읽기,
   'GET /api/prd/versions/:version': 작성읽기,
+  'GET /api/prd/export': 작성읽기,
   'PUT /api/prd': 작성쓰기,
   'POST /api/prd/confirm': 작성쓰기,
   'POST /api/prd/revert': 작성쓰기,

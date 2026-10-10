@@ -16,7 +16,7 @@ export interface 대상 {
  * 비밀번호가 이보다 짧으면 새는지 검사할 수 없다 — 짧은 글자는 아무 케이스 글에나 우연히 걸린다.
  * 그렇다고 문턱 아래를 안 보면 짧은 비밀번호는 검사 없이 나간다. 그래서 **돌리지 않는다** (2026-09-26 게이트 1)
  */
-const 비밀최소 = 4;
+export const 비밀최소 = 4;
 
 function 주소(글: unknown): URL | null {
   if (typeof 글 !== 'string') return null;

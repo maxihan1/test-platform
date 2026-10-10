@@ -2,7 +2,7 @@
 
 import type { PrdItem } from '@platform/kit';
 
-import { call, json } from './api.js';
+import { call, json, 파일받기 } from './api.js';
 
 export interface PrdNow {
   /** 0 이면 아직 표준 기획서가 없다 */
@@ -33,4 +33,5 @@ export const prdApi = {
     call<{ version: number }>(`/prd/confirm${꼬리(service)}`, json({ baseVersion, reqIds })),
   revert: (service: string, baseVersion: number, toVersion: number) =>
     call<{ version: number }>(`/prd/revert${꼬리(service)}`, json({ baseVersion, toVersion })),
+  wordExport: (service: string) => 파일받기(`/prd/export${꼬리(service)}&format=docx`),
 };

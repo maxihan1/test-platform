@@ -29,10 +29,14 @@ function 풀글(s: string): string {
   });
 }
 
-/** 메모 글을 XML 에 넣을 모양으로. XML 1.0 이 못 쓰는 제어 문자는 뺀다 — 들어가면 워드가 사본을 못 연다 (2026-09-26 검사) */
-function 싼글(s: string): string {
-  return s
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '')
+/** XML 1.0 이 못 쓰는 제어 문자를 뺀다 — 들어가면 워드가 사본을 못 연다 (2026-09-26 검사) */
+export function 제어빼기(s: string): string {
+  return s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '');
+}
+
+/** 메모 글을 XML 에 넣을 모양으로 */
+export function 싼글(s: string): string {
+  return 제어빼기(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 

@@ -1,6 +1,7 @@
 // 표준 기획서 API 가 도메인/작성 §7 「표준 기획서 통로」의 경로 · 응답 · 거절을 지키는지 본다. 문 없이 라우트만 띄운다
 
 import Fastify, { type FastifyInstance } from 'fastify';
+import JSZip from 'jszip';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import authoringRoutes from '../authoring/routes.js';
@@ -26,6 +27,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     await q('UPDATE authoring_request SET prd_version = NULL WHERE service_id = $1', [서비스]);
     await q('DELETE FROM prd_version WHERE service_id = $1', [서비스]);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
   };
 
   beforeAll(async () => {
@@ -144,5 +146,26 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     expect(r.statusCode).toBe(201);
     const 행 = await q<{ params: object }>('SELECT params FROM authoring_request WHERE id = $1', [(r.json() as { id: number }).id]);
     expect(행.rows[0]?.params).toEqual({ prdApply: true });
+  });
+
+  it('워드는 지금 판을 싣고 그 서비스 테스트 계정 비밀번호를 가린다 · 판이 없으면 404 · docx 말고는 400', async () => {
+    const 없음 = await 부르기('GET', '/prd/export?format=docx');
+    expect([없음.statusCode, 없음.json()]).toEqual([404, { error: 'NOT_FOUND' }]);
+    const 엑셀 = await 부르기('GET', '/prd/export?format=xlsx');
+    expect([엑셀.statusCode, 엑셀.json()]).toEqual([400, { error: 'BAD_FORMAT' }]);
+
+    await q(
+      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password) VALUES ($1, 'qa', 'https://qa.xpr.test', 'tester', 'Xpr!secret9')`,
+      [서비스],
+    );
+    await 부르기('PUT', '/prd', { baseVersion: 0, items: [항목('계정 Xpr!secret9 로 담는다')] });
+    const r = await 부르기('GET', '/prd/export?format=docx');
+    expect(r.statusCode).toBe(200);
+    expect(r.headers['content-type']).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    expect(r.headers['content-disposition']).toBe('attachment; filename="XPR-PRD-v1.docx"');
+    const 본문 = await (await JSZip.loadAsync(r.rawPayload)).file('word/document.xml')!.async('string');
+    expect(본문).toContain('XPR-REQ-001');
+    expect(본문).toContain('계정 •••••• 로 담는다');
+    expect(본문).not.toContain('Xpr!secret9');
   });
 });

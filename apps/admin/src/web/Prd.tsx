@@ -11,7 +11,7 @@ import { PrdList } from './PrdList.js';
 import { PrdTodo } from './PrdTodo.js';
 import { PrdVersions } from './PrdVersions.js';
 import type { 판정 } from './role.js';
-import { Failed, Loading, message, useAsync } from './ui.js';
+import { Failed, Loading, message, useAsync, 받을이름, 파일로저장 } from './ui.js';
 
 /** 새 판을 짓는 일 하나. 지금 판 번호를 넘겨 보낸다 — 그 사이 다른 저장이 있었으면 서버가 PRD_STALE 로 막는다 */
 export type 판짓기 = (일: (baseVersion: number) => Promise<{ version: number }>) => Promise<boolean>;
@@ -23,6 +23,7 @@ export function Prd({ service, 할수 }: { service: string; 할수: 판정 }) {
   const [알림, set알림] = useState<{ ok: boolean; 글: string } | null>(null);
   const [이력, set이력] = useState(false);
   const [더하기, set더하기] = useState(false);
+  const [받는중, set받는중] = useState(false);
 
   if (판.error !== null) return <Failed error={판.error} />;
   if (판.data === null) return <Loading />;
@@ -44,6 +45,20 @@ export function Prd({ service, 할수 }: { service: string; 할수: 판정 }) {
     }
   };
 
+  // 역기획서 워드의 자리다 — 보기 권한이면 받는다 (도메인/작성 §3.6 「워드로 내려받기」)
+  const 워드받기 = async () => {
+    set받는중(true);
+    set알림(null);
+    try {
+      const { 파일, 머리 } = await prdApi.wordExport(service);
+      파일로저장(파일, 받을이름(머리, `${service}-PRD.docx`));
+    } catch (err) {
+      set알림({ ok: false, 글: message(err, 언어) });
+    } finally {
+      set받는중(false);
+    }
+  };
+
   return (
     <>
       <Head
@@ -52,9 +67,14 @@ export function Prd({ service, 할수 }: { service: string; 할수: 판정 }) {
         행동={
           <>
             {now.version === 0 ? null : (
-              <button className="btn ghost" aria-expanded={이력} onClick={() => set이력(!이력)}>
-                {t('판 이력')}
-              </button>
+              <>
+                <button className="btn ghost" onClick={() => void 워드받기()} disabled={받는중}>
+                  {받는중 ? t('만드는 중…') : t('워드로 내려받기')}
+                </button>
+                <button className="btn ghost" aria-expanded={이력} onClick={() => set이력(!이력)}>
+                  {t('판 이력')}
+                </button>
+              </>
             )}
             {쓰나 ? (
               <button className="btn" onClick={() => set더하기(true)} disabled={더하기}>
