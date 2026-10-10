@@ -18,7 +18,7 @@ export interface CaseSpec {
   paramSchema: JsonSchema;      // zod → z.toJSONSchema 변환 결과. 코드에서 null이면 빈 객체 스키마
   expectedSchema: JsonSchema;
   filePath: string;             // 소스 루트 기준 상대 경로
-  unconfirmed?: string;         // 있으면 미확정 케이스, 값은 사유 한 문장. 역방향 작성과 정방향의 화면 입력 규칙만 단다
+  unconfirmed?: string;         // 있으면 미확정 케이스, 값은 사유 한 문장. 역방향 작성과 정방향의 화면 입력 규칙 · 오류 추정만 단다
   held?: string;                // 있으면 보류 케이스 — 사람이 값을 채워야 돈다. 머리는 「판정 불가 — 」 또는 「보류 — 」
   techniques?: Technique[];     // 기능 테스트에만 · 칸의 설계 기법. 값은 DB · URL 에 그대로 가는 식별자라 바꾸지 않는다
 }
