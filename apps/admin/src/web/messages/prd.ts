@@ -27,8 +27,8 @@ export const 기획서말: Record<string, string> = {
   '테스트와 어긋난 요구가 없습니다': 'Every requirement matches the tests',
   '바뀐 요구 {건수}건 테스트에 반영': 'Apply {건수} changed requirements to tests',
   '작성 요청 {번호}번을 만들었습니다': 'Created authoring request {번호}',
-  '이번 반영으로 바뀔 수 있는 케이스를 쓰는 E2E 시나리오 {수}개 — 병합한 뒤 시험 실행으로 확인합니다':
-    '{수} E2E scenarios use cases this apply may change — check them with a trial run after merging',
+  '이번 반영으로 바뀌거나 지워질 수 있는 케이스를 쓰는 E2E 시나리오 {수}개 — 병합한 뒤 시험 실행으로 확인하고 지운 케이스는 다른 케이스로 바꿉니다':
+    '{수} E2E scenarios use cases this apply may change or remove — after merging, check them with a trial run and swap in another case for any removed one',
   바뀜: 'Changed',
   '새 항목': 'New',
   지움: 'Removed',

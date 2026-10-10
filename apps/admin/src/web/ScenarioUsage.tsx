@@ -22,7 +22,7 @@ export function ScenarioUsage({ service, tcIds, 반영 = false, 대신문장 = !
     <div className="hint">
       <p>
         {반영
-          ? t('이번 반영으로 바뀔 수 있는 케이스를 쓰는 E2E 시나리오 {수}개 — 병합한 뒤 시험 실행으로 확인합니다', { 수: data.items.length })
+          ? t('이번 반영으로 바뀌거나 지워질 수 있는 케이스를 쓰는 E2E 시나리오 {수}개 — 병합한 뒤 시험 실행으로 확인하고 지운 케이스는 다른 케이스로 바꿉니다', { 수: data.items.length })
           : t('이 케이스를 쓰는 E2E 시나리오 {수}개 — 삭제하면 다른 케이스로 바꿀 때까지 실행할 수 없습니다', { 수: data.items.length })}
       </p>
       <ul className="edit-list">

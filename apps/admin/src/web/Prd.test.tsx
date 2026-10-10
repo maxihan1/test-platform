@@ -120,7 +120,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
     지금.mockResolvedValue(판({ cases: { 'MKT-REQ-012': [덮음('MKT-031')], 'MKT-REQ-041': [덮음('MKT-040'), 덮음('MKT-031')], 'MKT-REQ-031': [덮음('MKT-010')] } }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
-    expect(await within(칸).findByText('이번 반영으로 바뀔 수 있는 케이스를 쓰는 E2E 시나리오 1개 — 병합한 뒤 시험 실행으로 확인합니다')).toBeTruthy();
+    expect(await within(칸).findByText('이번 반영으로 바뀌거나 지워질 수 있는 케이스를 쓰는 E2E 시나리오 1개 — 병합한 뒤 시험 실행으로 확인하고 지운 케이스는 다른 케이스로 바꿉니다')).toBeTruthy();
     expect(부름).toHaveBeenCalledWith('MKT', ['MKT-031', 'MKT-040']);
     expect(within(칸).getByRole('link', { name: 'SC-3 회원가입 후 첫 주문' }).getAttribute('href')).toBe('#/scenarios/3');
   });
@@ -133,6 +133,16 @@ describe('PRD 관리 — 할 일 먼저', () => {
     const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
     expect(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' })).toBeTruthy();
     expect(부름).not.toHaveBeenCalled();
+    expect(within(칸).queryByText(/E2E 시나리오/)).toBeNull();
+  });
+
+  it('시나리오 목록을 못 읽으면 알림 없이 버튼만 남고 삭제 경고 문장도 없다', async () => {
+    const 부름 = vi.spyOn(scenarioApi, 'list').mockRejectedValue(new ApiError(403, 'FORBIDDEN', '권한이 없습니다'));
+    지금.mockResolvedValue(판({ cases: { 'MKT-REQ-012': [{ tcId: 'MKT-031', axis: '정상', techniques: [] }] } }));
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
+    await vi.waitFor(() => expect(부름).toHaveBeenCalledWith('MKT', ['MKT-031']));
+    expect(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' })).toBeTruthy();
     expect(within(칸).queryByText(/E2E 시나리오/)).toBeNull();
   });
 
