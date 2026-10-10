@@ -42,7 +42,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
   const 언어 = use언어();
   const 기다림 = 확인필요줄(now.items);
   const 반영 = 반영안됨줄(now);
-  // 반영 PR 이 다시 쓰거나 지울 수 있는 케이스 — 에이전트도 같은 지도로 덮던 케이스를 고른다 (도메인/작성 §3.6 「고친 요구만 다시 작성」)
+  // 반영 PR 이 다시 쓰거나 지울 수 있는 케이스 — 에이전트도 같은 요구사항 표(지도 ① 의 원본)로 덮던 케이스를 고른다 (도메인/작성 §3.6 「고친 요구만 다시 작성」)
   const 덮던케이스 = [...new Set(반영.flatMap((x) => (now.cases[x.reqId] ?? []).map((c) => c.tcId)))].sort();
 
   if (기다림.length === 0 && 반영.length === 0) return <p className="prd-clear">{t('확인할 요구도 테스트에 반영할 요구도 없습니다')}</p>;
@@ -144,7 +144,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
         )}
         {쓰나 && 반영.length > 0 ? (
           <footer>
-            <ScenarioUsage service={service} tcIds={덮던케이스} 대신문장={false} 반영 />
+            <ScenarioUsage service={service} tcIds={덮던케이스} 반영 />
             {반영결과 === null ? null : (
               <span className="note" role="status">
                 {반영결과.글}

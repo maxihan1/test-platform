@@ -32,6 +32,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 const 확인칸 = () => screen.getByRole('region', { name: /확인 필요 2건/ });
@@ -125,7 +126,8 @@ describe('PRD 관리 — 할 일 먼저', () => {
   });
 
   it('반영 안 됨 요구를 덮는 케이스가 없으면 시나리오를 묻지 않고 알림도 없다', async () => {
-    const 부름 = vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [] });
+    const 부름 = vi.fn();
+    vi.stubGlobal('fetch', 부름);
     지금.mockResolvedValue(판({ cases: { 'MKT-REQ-031': [{ tcId: 'MKT-010', axis: '정상', techniques: [] }] } }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });

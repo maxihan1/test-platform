@@ -29,6 +29,12 @@ describe('시나리오 서버 호출 모음', () => {
     expect(보낸것(m2).주소).toBe('/api/scenarios?service=PAY&uses=PAY-FN-001%2CPAY-FN-002');
   });
 
+  it('빈 uses 는 서버가 전부로 읽어 묻지 않고 빈 목록이다', async () => {
+    const m = 막는다(200, { items: [{ id: 1 }] });
+    expect(await scenarioApi.list('PAY', [])).toEqual({ items: [] });
+    expect(m).not.toHaveBeenCalled();
+  });
+
   it('읽는 호출은 응답을 그대로 돌려준다', async () => {
     막는다(200, { id: 12 });
     expect(await scenarioApi.detail(12)).toEqual({ id: 12 });
