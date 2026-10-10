@@ -12,6 +12,7 @@
 // 2번(기능 영역)은 2026-09-17 에 조건에서 빠졌다. 목록이 한 서비스로 좁혀지면
 // 그 안의 접두사는 전부 같아 거를 것이 없다 (§8)
 
+import { 케이스판정 } from '../prd/trace.js';
 import type { CaseRow, ItemStatus, LastResult, Platform } from './api.js';
 import { t, type 언어 } from './i18n.js';
 
@@ -27,10 +28,7 @@ export const keyOf = (tcId: string, platform: Platform): string => `${tcId}:${pl
  * 한 번도 안 돌린 것은 미실행이다.
  */
 export function 마지막판정(row: CaseRow, last: LastMap): ItemStatus {
-  const 것들 = row.platforms.map((platform) => last[keyOf(row.tcId, platform)]?.status);
-  if (것들.includes('FAIL')) return 'FAIL';
-  if (것들.length > 0 && 것들.every((status) => status === 'PASS')) return 'PASS';
-  return 'NA';
+  return 케이스판정(row.platforms.map((platform) => last[keyOf(row.tcId, platform)]?.status));
 }
 
 /** 집계 띠가 받는 네 숫자 */

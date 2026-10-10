@@ -1,11 +1,14 @@
 // 표준 기획서 HTTP 라우트 — 지금 판 · 판 이력 · 저장 · 일괄 확정 · 되돌리기 · 반영 요청 (도메인/작성 §7 「표준 기획서 통로」)
 // 배정과 권한(보기 작성 read · 고치기 작성 write)은 문(auth/gate.ts)이 ?service= 로 이미 봤다. 여기서는 그 서비스 것만 읽고 쓴다
 
+import type { PrdItem } from '@platform/kit';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+import { 칸되는서비스 } from '../auth/permissions.js';
 import { 번호 } from '../authoring/params.js';
 import { 서비스번호 } from '../authoring/routes.js';
 import { 한국시각 } from '../catalog/exportData.js';
+import { lastByCase } from '../execution/history.js';
 import { 워드만들기 } from './docx.js';
 import { 반영안됨, 본문상한, 확인필요, 항목검사 } from './rules.js';
 import {
@@ -22,6 +25,7 @@ import {
   type 저장결과,
   type 저장하는사람,
 } from './store.js';
+import { 추적표만들기 } from './xlsx.js';
 
 type 질의 = { Querystring: { service?: string } };
 type 본문 = 질의 & { Body: Record<string, unknown> | null };
@@ -66,14 +70,16 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     return 판 ?? reply.code(404).send({ error: 'NOT_FOUND' });
   });
 
-  // 엑셀(요구사항 추적표)은 PRD-F5-02 가 더한다 — 그 전에는 xlsx 도 BAD_FORMAT 이다 (작성 §7)
+  // 워드는 표준 기획서, 엑셀은 요구사항 추적표다 (작성 §3.6 「워드로 내려받기」 · 「메뉴가 곧 요구사항 추적표다」)
   app.get<{ Querystring: { service?: string; format?: string } }>('/prd/export', async (req, reply) => {
     const 서비스 = await 서비스번호(req, reply);
     if (서비스 === null) return reply;
-    if (req.query.format !== 'docx') return reply.code(400).send({ error: 'BAD_FORMAT' });
+    const format = req.query.format;
+    if (format !== 'docx' && format !== 'xlsx') return reply.code(400).send({ error: 'BAD_FORMAT' });
     const [판, 비밀번호들] = await Promise.all([지금판(서비스), 테스트비밀번호들(서비스)]);
     if (판 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
     const 접두사 = req.query.service ?? '';
+    if (format === 'xlsx') return 추적표보내기(reply, 서비스, 접두사, 판, 비밀번호들, 칸되는서비스(req.user?.services ?? [], 'runs', 'read').includes(접두사));
     const 파일 = await 워드만들기(
       { service: 접두사, version: 판.version, generatedAt: 한국시각(new Date().toISOString()), items: 판.items },
       비밀번호들,
@@ -121,4 +127,27 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     const 결과 = await 반영세우기(서비스, 누가(req));
     return 'error' in 결과 ? reply.code(409).send(결과) : reply.code(201).send(결과);
   });
+}
+
+// 문은 (작성, read) 만 봤다. 마지막 결과는 실행 read 가 있어야 싣는다 — 케이스 목록 엑셀과 같다 (도메인/카탈로그 §7)
+async function 추적표보내기(
+  reply: FastifyReply,
+  서비스: number,
+  접두사: string,
+  판: { version: number; items: PrdItem[] },
+  비밀번호들: string[],
+  결과보나: boolean,
+) {
+  const [cases, 결과들] = await Promise.all([케이스지도(서비스), 결과보나 ? lastByCase([접두사]) : Promise.resolve(null)]);
+  const 결과표 = 결과들 === null ? null : new Map(결과들.map((l) => [`${l.tcId}:${l.platform}`, l.status]));
+  const generatedAt = new Date().toISOString();
+  const 파일 = await 추적표만들기(
+    { generatedAt, items: 판.items, cases, 결과: 결과표 === null ? null : (tcId, platform) => 결과표.get(`${tcId}:${platform}`) },
+    비밀번호들,
+  );
+  const 날짜 = 한국시각(generatedAt).slice(0, 10);
+  return reply
+    .header('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    .header('content-disposition', `attachment; filename="${접두사}-RTM-v${String(판.version)}-${날짜}.xlsx"`)
+    .send(파일);
 }
