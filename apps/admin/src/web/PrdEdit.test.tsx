@@ -51,7 +51,7 @@ describe('PRD 관리 — 고치기', () => {
     expect(보낸것.map((x) => x.reqId)).toEqual(['MKT-REQ-031', 'MKT-REQ-032', 'MKT-REQ-040', 'MKT-REQ-041']);
     expect(보낸것[1]).toMatchObject({ reqId: 'MKT-REQ-032', text: '아이디 칸에는 12자까지 들어간다', status: 'CONFIRMED', basis: 아이디칸.basis });
     expect(await screen.findByText('판 13으로 저장했습니다')).toBeTruthy();
-    expect(screen.queryByLabelText('요구 문장')).toBeNull();
+    await vi.waitFor(() => expect(screen.queryByLabelText('요구 문장')).toBeNull());
   });
 
   it('빈 칸은 보내지 않고 어느 칸인지 말한다', async () => {

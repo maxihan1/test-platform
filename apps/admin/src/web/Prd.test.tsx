@@ -55,7 +55,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
     fireEvent.click(screen.getByRole('button', { name: '고른 1건 확정' }));
     await vi.waitFor(() => expect(확정).toHaveBeenCalledWith('MKT', 12, ['MKT-REQ-040']));
     expect(await screen.findByText('판 13으로 저장했습니다')).toBeTruthy();
-    expect(지금).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
   });
 
   it('모두 고르기는 확인 필요 전부를 고른다', async () => {
