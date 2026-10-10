@@ -66,6 +66,12 @@ describe('표준 기획서 워드', () => {
     expect(글만(xml)).toContain('계정 •••••• 로 로그인');
   });
 
+  it('비밀번호 사이에 제어 문자가 끼어도 빼고 나서 가린다', async () => {
+    const xml = await 본문([항목('MKT-REQ-001', '가', { text: '계정 Xpr!\u0001secret9 끝' })], ['Xpr!secret9']);
+    expect(xml).not.toContain('Xpr!secret9');
+    expect(글만(xml)).toContain('계정 •••••• 끝');
+  });
+
   it('겹친 비밀번호는 걸친 자리를 합쳐 한 번에 가려 남는 글자가 없다', () => {
     expect(비밀번호가리기('값 abcdef 끝', ['abcd', 'cdef'])).toBe('값 •••••• 끝');
     expect(비밀번호가리기('abcd와 cdef', ['abcd', 'cdef'])).toBe('••••••와 ••••••');

@@ -21,6 +21,7 @@ COPY apps/admin ./apps/admin
 # 이게 없으면 SETUP.md 가 안내하는 첫걸음이 ERR_MODULE_NOT_FOUND 로 죽고,
 # 회원가입 화면이 없으므로(§8.6) 처음 띄우는 사람은 로그인 자체를 못 한다.
 # scripts 는 ../apps/admin/src/** 를 상대경로로 부르므로 **그 둘이 같은 이미지에 있어야 한다**
+# 거꾸로 admin 서버도 scripts/authoring-docx · authoring-reverse 를 불러온다 (PRD 워드 — 2026-10-10)
 # (순서는 상관없다 — 해석은 실행할 때 일어난다)
 COPY scripts ./scripts
 

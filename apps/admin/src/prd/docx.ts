@@ -4,7 +4,7 @@
 import type { PrdItem } from '@platform/kit';
 import JSZip from 'jszip';
 
-import { 싼글 } from '../../../../scripts/authoring-docx.js';
+import { 싼글, 제어빼기 } from '../../../../scripts/authoring-docx.js';
 import { 가림표, 비밀최소 } from '../../../../scripts/authoring-reverse.js';
 import { 묶음들 } from '../web/prdView.js';
 
@@ -91,9 +91,12 @@ export function 비밀번호가리기(글: string, 비밀번호들: string[]): s
   return 글.split('').map((c, i) => (!덮음[i] ? c : i === 0 || !덮음[i - 1] ? 가림표 : '')).join('');
 }
 
-/** 글이 들어가는 칸 전부에서 비밀번호를 가린다 */
+/**
+ * 글이 들어가는 칸 전부에서 비밀번호를 가린다. 제어 문자를 먼저 뺀다 — 뒤에서 싼글이 빼면
+ * 비밀번호 사이에 끼어 가림을 지나친 원문이 문서에서 이어 붙는다 (2026-10-10 spec-review)
+ */
 function 가린항목(items: PrdItem[], 비밀번호들: string[]): PrdItem[] {
-  const 가림 = (글: string) => 비밀번호가리기(글, 비밀번호들);
+  const 가림 = (글: string) => 비밀번호가리기(제어빼기(글), 비밀번호들);
   return items.map((x) => ({
     ...x,
     feature: 가림(x.feature),
