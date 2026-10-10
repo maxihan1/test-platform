@@ -2,16 +2,12 @@
 // 반영은 rebase 도 update-branch 도 안 해서, 표가 충돌하면 GitHub 이 CI 를 안 띄워 17분 뒤 실패했다. 작업방에서 합치고 표는 코드로 푼다
 
 import { lstatSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
+import { join, sep } from 'node:path';
 
 import { 반영표시, 케이스tcId } from './authoring-held-apply.js';
-import { 지문세갈래, 지문파일글, 지문파일읽기 } from './authoring-ledger-diff.js';
 import type { 깃손 } from './authoring-ledger-io.js';
 import type { 부품합치기 } from './authoring-po-merge.js';
 import { 새형식오류, 요구번호다시매기기, 표덩이풀기 } from './authoring-table-merge.js';
-
-/** 표 옆의 요구 지문 파일 — `docs/cases/PAY.md` → `docs/cases/PAY.fingerprint.json` (§3.6 「요구 지문」) */
-const 지문경로 = (표경로: string) => 표경로.replace(/\.md$/, '.fingerprint.json');
 
 export interface 합칠판 {
   /** 작업방 트리 — 요청 브랜치가 꺼내져 있다 */
@@ -28,28 +24,9 @@ export interface 합칠판 {
   부품합치기: 부품합치기;
 }
 
-/** main 이 갈라진 뒤 이 서비스의 표 · 지문 파일이나 테스트 폴더를 바꿨나 — 다른 서비스 반영으로 main 이 움직일 때마다 합치면 반영마다 CI 를 한 번 더 돈다 */
+/** main 이 갈라진 뒤 이 서비스의 표나 테스트 폴더를 바꿨나 — 다른 서비스 반영으로 main 이 움직일 때마다 합치면 반영마다 CI 를 한 번 더 돈다 */
 export function 합칠까(main바뀐것: string[], 표경로: string, 폴더: string): boolean {
-  return main바뀐것.some((f) => f === 표경로 || f === 지문경로(표경로) || f.startsWith(`tests/${폴더}/`));
-}
-
-/**
- * 지문 파일을 바탕 · main · 요청(HEAD) 세 판에서 다시 계산해 쓴다 — git 의 줄 합치기는 충돌이 안 나도 JSON 을 깨뜨릴 수 있어 믿지 않는다.
- * 모양이 틀린 판은 없는 것으로 친다. 링크 · 트리 밖 자리면 쓰지 않는다
- */
-function 지문다시쓰기(트리: string, 깃: 깃손, 바탕: string, mainSha: string, 경로: string): string | null {
-  const 판글 = (판: string) => {
-    const r = 깃(['show', `${판}:${경로}`]);
-    return r.ok ? 지문파일읽기(r.낸것) : null;
-  };
-  const 결과 = 지문세갈래(판글(바탕), 판글(mainSha), 판글('HEAD'));
-  const 풀길 = join(트리, 경로);
-  const 있나 = lstatSync(풀길, { throwIfNoEntry: false }) !== undefined;
-  const 안쪽 = 있나 ? 안전한파일(트리, 경로) : 트리안폴더(트리, dirname(풀길));
-  if (!안쪽) return `요구 지문 파일이 보통 파일이 아니다 — ${경로}. 다시 작성한다`;
-  if (결과 === null) return !있나 || 깃(['rm', '-q', '-f', '--', 경로]).ok ? null : '합친 요구 지문 파일을 지우지 못했다';
-  writeFileSync(풀길, 지문파일글(결과));
-  return 깃(['add', '--', 경로]).ok ? null : '합친 요구 지문 파일을 담지 못했다';
+  return main바뀐것.some((f) => f === 표경로 || f.startsWith(`tests/${폴더}/`));
 }
 
 /**
@@ -61,15 +38,6 @@ export function 안전한파일(트리: string, 경로: string): boolean {
     const 풀길 = join(트리, 경로);
     if (!lstatSync(풀길).isFile()) return false;
     return realpathSync(풀길).startsWith(realpathSync(트리) + sep);
-  } catch {
-    return false;
-  }
-}
-
-/** 아직 없는 파일을 쓸 폴더가 트리 안인가 — 폴더가 없으면(합침 중 드문 경우) 던지지 않고 false 다. 던지면 합침이 걸린 채 남는다 */
-function 트리안폴더(트리: string, 폴더: string): boolean {
-  try {
-    return realpathSync(폴더).startsWith(realpathSync(트리) + sep);
   } catch {
     return false;
   }
@@ -138,9 +106,8 @@ export async function main합치기(판: 합칠판): Promise<{ 합침: boolean }
   if (!합침.ok) {
     const 충돌 = 깃(['diff', '--name-only', '-z', '--diff-filter=U']).낸것.split('\0').filter((f) => f !== '');
     if (충돌.length === 0) return 되돌리기(`main 을 합치지 못했다: ${합침.까닭 ?? ''}`);
-    const 남의것 = 충돌.filter((f) => f !== 표경로 && f !== 지문경로(표경로) && !부품겹침.includes(f));
+    const 남의것 = 충돌.filter((f) => f !== 표경로 && !부품겹침.includes(f));
     if (남의것.length > 0) return 되돌리기(`main 과 같은 파일을 고쳐 합치지 못했다 — ${남의것.join(' · ')}. 다시 작성한다`);
-    // 지문 파일만 충돌했으면 표 처리를 타지 않는다 — 타면 「표를 각자 만들었다」로 엉뚱하게 되돌린다 (2026-10-04 계획 검토)
     if (충돌.includes(표경로)) {
       // 바탕(1번 자리)이 없으면 양쪽이 표를 처음 만든 것이다 — 덩이로 풀면 표 둘이 통째로 섞인다
       if (!깃(['ls-files', '-u', '--', 표경로]).낸것.split('\n').some((l) => /\s1\t/.test(l))) {
@@ -157,10 +124,6 @@ export async function main합치기(판: 합칠판): Promise<{ 합침: boolean }
     const r = await 부품쓰기(판, 바탕.낸것.trim(), 경로);
     if ('사유' in r) return 되돌리기(r.사유);
     if (r.AI) AI합친것.push(경로);
-  }
-  if (main바뀐것.includes(지문경로(표경로))) {
-    const 사유 = 지문다시쓰기(트리, 깃, 바탕.낸것.trim(), mainSha, 지문경로(표경로));
-    if (사유 !== null) return 되돌리기(사유);
   }
 
   let 표있나 = true;

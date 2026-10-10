@@ -23,19 +23,18 @@ import {
 import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-status.js';
 import { 끝검사 } from './authoring-gate3.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
-import { 산출물읽기, 역기획서준비 } from './authoring-upload-reverse.js';
+import { 산출물읽기 } from './authoring-upload-reverse.js';
 import { 저장본갈기 } from './authoring-screens-keep-io.js';
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, tcId들 } from './authoring-ledger-check.js';
 import { tcId별글, 원장판정 } from './authoring-ledger-verdict.js';
-import { 케이스글들, 지문쓰기 } from './authoring-ledger-io.js';
-import { 지문파일자리 } from './authoring-ledger-diff.js';
+import { 케이스글들 } from './authoring-ledger-io.js';
 import { type 셈재료, 커버리지싣는손 } from './authoring-coverage.js';
 import { 보류싣는손 } from './authoring-held.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
 import { type 자료, 자료출처 } from './authoring-assets.js';
 import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
-import { type 표시준비물, 산출물보내기, 표시올리기, 표시준비 } from './authoring-marking.js';
+import { type 표시준비물, 표시올리기, 표시준비 } from './authoring-marking.js';
 import { 거절로 } from './authoring-progress.js';
 import { PR본문 } from './authoring-pr-body.js';
 import {
@@ -53,9 +52,9 @@ import {
 export interface 역방향올리기 {
   주소기지: string;
   토큰: string;
-  /** 자식 uid. 맥이면 null — pandoc 도 그 uid 로 돌린다(믿을 수 없는 원고를 연다) */
+  /** 자식 uid. 맥이면 null */
   자식: 계정 | null;
-  /** 기획서 없이 시작 주소만 — 역기획서가 없으면 이유를 남긴다 */
+  /** 기획서 없이 시작 주소만 */
   화면만: boolean;
   /** 사람이 넣은 입력 자료 — 표시할 원본이다 (§3.6 표시) */
   입력자료: 자료[];
@@ -73,7 +72,7 @@ export async function 올리기(
   자식출력: string,
   원손: 보고손,
   역: 역방향올리기 | undefined,
-  원장재료: { 값: 원장 | { 없음: string }; 폴더: string; 자식: 계정 | null; 기준: 기준결정; 앞지문: { 글: string | null } | null },
+  원장재료: { 값: 원장 | { 없음: string }; 폴더: string; 자식: 계정 | null; 기준: 기준결정 },
   단계표 = '',
   /** 표준 기획서 옮기기의 판 · 대조 줄 — 껍데기가 PR 을 만들기 전에 올리고 넘긴다 (§3.6 「★ 표준 기획서」 「옮기기」) */
   옮긴줄: string[] = [],
@@ -103,20 +102,15 @@ export async function 올리기(
   // 재사용 수 · 가장 오래된 날은 PR 본문 머리에도 싣는다 — 자식이 옮겨 적기를 빠뜨려도 사람이 본다
   const 저장줄 = 역 === undefined ? [] : [저장본갈기(dirname(자리.뿌리), 서비스, 자리.자료, 역.화면만)];
   if (저장줄.length > 0) console.log(`[작성] ${것.id}번 — ${저장줄[0]}`);
-  // 요구 지문 파일 — 바뀐 파일을 읽기 전에 써야 커밋에 든다. 원장이 없으면 자식이 만진 파일을 앞 판으로 되돌린다 (§3.6 「요구 지문」)
-  const 지문 = 지문쓰기(자리.트리, 서비스, 원장재료.값, 원장재료.앞지문);
-  if (지문.줄 !== null) console.log(`[작성] ${것.id}번 — ${지문.줄}`);
   const 상태 = 트리에서('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall']);
   if (!상태.ok) {
     await 손.끝내기(거절(`바뀐 파일을 못 읽었다: ${상태.까닭}`));
     return;
   }
-  // 지문 파일을 못 썼으면 트리의 그 파일(자식 손을 탔을 수 있다)은 안 담는다. 지문 파일만 바뀐 것은 「바뀐 파일이 없다」다 (§3.6 「요구 지문」)
-  const 지문자리 = 지문파일자리(서비스);
-  const 파일들 = 바뀐파일들(상태.낸것).filter((f) => 지문.담기 || f !== 지문자리);
+  const 파일들 = 바뀐파일들(상태.낸것);
   // 판정 규칙은 cases-only.mjs 가 정본이다. 켤 때 메모리에 고정한 판을 쓴다 — 자식이 파일을 바꿔도 그대로다
   const 테스트만 = (목록: string[]) => 판정(목록, 기준, 자리.트리, 깃);
-  const 거부 = 푸시거부사유(테스트만(파일들), 파일들.filter((f) => f !== 지문자리));
+  const 거부 = 푸시거부사유(테스트만(파일들), 파일들);
   if (거부 !== null) {
     await 손.끝내기(거절(거부));
     return;
@@ -169,7 +163,7 @@ export async function 올리기(
     표경로: 표,
     표: 읽기(표),
     // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다
-    요약: [원장결과.머리글, ...옮긴줄, ...(지문.줄 === null ? [] : [지문.줄]), ...지운줄, ...저장줄, ...끝검사(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 것.target?.loginPassword)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
+    요약: [원장결과.머리글, ...옮긴줄, ...지운줄, ...저장줄, ...끝검사(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 것.target?.loginPassword)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
     단계: 단계표,
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
@@ -177,44 +171,35 @@ export async function 올리기(
     await 손.끝내기(거절('올릴 파일이나 PR 본문에 피그마 토큰이 들어 있다 — 올리지 않는다'));
     return;
   }
-  // 역방향 — push 전에 올릴 글 전부(케이스·PR 본문·차이·역기획서)에서 테스트 계정 비밀번호를 찾는다 (§3.6 「남는 한계」)
+  // 역방향 — push 전에 올릴 글 전부(케이스·PR 본문·차이)에서 테스트 계정 비밀번호를 찾는다 (§3.6 「남는 한계」)
   const 비밀 = 것.target?.loginPassword;
-  let 역결과: { diffs: 차이[]; 워드: Buffer | null; 표시: 표시준비물 | null; 남길말: string[] } | null = null;
+  let 역결과: { diffs: 차이[]; 표시: 표시준비물 | null; 남길말: string[] } | null = null;
   if (것.target !== undefined) {
     const 차이파일 = 산출물읽기(자리, 'diffs.json', 글상한);
-    const 원고파일 = 산출물읽기(자리, 'reverse-spec.md', 글상한);
-    if ('사유' in 차이파일 || '사유' in 원고파일) {
-      await 손.끝내기(거절('사유' in 차이파일 ? 차이파일.사유 : ('사유' in 원고파일 ? 원고파일.사유 : '')));
+    if ('사유' in 차이파일) {
+      await 손.끝내기(거절(차이파일.사유));
       return;
     }
     const 차이글 = 차이파일.몸?.toString('utf8') ?? null;
-    const 원고글 = 원고파일.몸?.toString('utf8') ?? null;
     // 먼저 가린 원문이 케이스에 가림표로 남았으면 이어가는 자식이 비밀값 자리로 고치게 거절한다 (2026-09-29 검사)
     const 가림남음 = 가림표케이스(전체.map((f) => ({ 경로: f, 글: 읽기(f) })));
     if (가림남음 !== null) return void (await 손.끝내기(거절(가림남음)));
-    const 샘 = 올리기전검사({ 케이스: 전체.map(읽기), PR본문: 본문글, 차이: 차이글, 원고: 원고글 }, 비밀);
+    const 샘 = 올리기전검사({ 케이스: 전체.map(읽기), PR본문: 본문글, 차이: 차이글 }, 비밀);
     // 날 글자만 보면 JSON 이스케이프가 따옴표·역슬래시 든 비밀번호를 가린다 — 서버로 갈 푼 값에서도 찾는다 (finish 전 검사)
     const 정리 = 차이정리(차이글);
     const diffs = 'diffs' in 정리 ? 정리.diffs : [];
-    const 준비 = 원고글 === null ? null : 역기획서준비(자리, 원고글, 비밀, 역?.자식 ?? null);
     // 원본 표시도 여기서 만들어 검사한다 — 올릴 사본에서 새는 것을 PR 뒤에 알면 명세대로 올리기 거절로 못 끝낸다.
     // 원본 파일은 자료를 가진 요청에서 받는다 — 재실행은 원본 요청이다(자기 번호로 받으면 404)
     const 표시 = 역 === undefined ? null : await 표시준비(역, 자료출처(것), 서비스, 역.입력자료, 것.figmaToken, diffs, 비밀);
-    const 샌것 = (준비 !== null && '누설' in 준비) || (표시 !== null && '누설' in 표시);
+    const 샌것 = 표시 !== null && '누설' in 표시;
     if (샘 !== null || 계정섞였나(글모두(diffs), 비밀) || 샌것) {
       await 손.끝내기(거절('올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다'));
       return;
     }
-    const 남길말 = [
-      ...('사유' in 정리 ? [정리.사유] : []),
-      ...(준비 !== null && '사유' in 준비 ? [준비.사유] : []),
-      ...(원고글 === null && 역?.화면만 === true ? ['역기획서 원고(reverse-spec.md)가 없다'] : []),
-    ];
     역결과 = {
       diffs,
-      워드: 준비 !== null && '워드' in 준비 ? 준비.워드 : null,
       표시: 표시 !== null && !('누설' in 표시) ? 표시 : null,
-      남길말,
+      남길말: '사유' in 정리 ? [정리.사유] : [],
     };
   }
 
@@ -259,17 +244,6 @@ export async function 올리기(
     // 거절(401·403)은 다시 던진다 — 줄 돌기가 그걸 보고 멈춘다. 끝내기도 같은 거절을 받는다
     if (err instanceof Error && err.message.includes('서버가 거절했다')) throw err;
   };
-  try {
-    await 손.단계('역방향 산출물을 올리는 중');
-    if (역결과.워드 !== null) {
-      const 코드 = await 산출물보내기(역, 것.id, 서비스, '역기획서.docx', 'REVERSE_SPEC', 역결과.워드);
-      if (코드 !== 200) 남길말.push(`역기획서를 못 올렸다 (${코드})`);
-    }
-  } catch (err) {
-    거절이면던진다(err);
-    남길말.push(`역기획서를 못 올렸다: ${한줄(err)}`);
-  }
-  // 원본 표시 — 역기획서와 따로 잡는다. 앞이 던져도 표시는 하고, 사유가 서로 섞이지 않게 (2026-09-26 검사)
   let 표시된 = 역결과.diffs;
   try {
     if (역결과.표시 !== null) {

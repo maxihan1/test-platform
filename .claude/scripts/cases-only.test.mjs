@@ -26,14 +26,6 @@ test('tests/ 안이라도 spec 이 아닌 파일은 거짓 — 그걸 쓰는 다
   assert.equal(테스트만인가(['docs/cases/TODO.txt']), false);
 });
 
-test('요구 지문 파일 docs/cases/<접두사>.fingerprint.json 은 참 — 접두사 꼴 · 깊이 · 확장자가 다르면 거짓 (작성 §3.6 「요구 지문」)', () => {
-  assert.equal(테스트만인가(['tests/mkt/MKT-FN-001.spec.ts', 'docs/cases/MKT.md', 'docs/cases/MKT.fingerprint.json']), true);
-  assert.equal(테스트만인가(['docs/cases/x/MKT.fingerprint.json']), false);
-  assert.equal(테스트만인가(['docs/cases/mkt.fingerprint.json']), false);
-  assert.equal(테스트만인가(['docs/cases/MKT.fingerprint.js']), false);
-  assert.equal(테스트만인가(['docs/cases/MKT.ledger.json']), false);
-});
-
 test('빈 목록은 거짓 (보수적)', () => {
   assert.equal(테스트만인가([]), false);
 });

@@ -1,4 +1,4 @@
-// 역방향 작성의 에이전트 쪽 순수 판정 검사 — 집을 때 재대조 · 자식 환경 · 차이 파일 · 비밀번호 원문 · 역기획서 변환 (도메인/작성 §3.6 「★ 역방향」)
+// 역방향 작성의 에이전트 쪽 순수 판정 검사 — 집을 때 재대조 · 자식 환경 · 차이 파일 · 비밀번호 원문 (도메인/작성 §3.6 「★ 역방향」)
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -9,14 +9,11 @@ import {
   글모두,
   대상점검,
   대상환경,
-  되읽기인자,
   비밀가리기,
-  변환인자,
   사유거르기,
   올리기전검사,
   변환환경,
   산출물주소,
-  원고거부사유,
   차이정리,
 } from './authoring-reverse.js';
 import { 줄프롬프트 } from './authoring-rules.js';
@@ -185,9 +182,9 @@ describe('가림표케이스 — 케이스에 가림표가 남으면 비밀값 �
 });
 
 describe('올리기전검사 — 올리기 전에 모은 글 전부를 본다', () => {
-  it('케이스 · PR 본문 · 차이 파일 · 원고 중 하나라도 비밀번호가 있으면 사유 — 값은 싣지 않는다', () => {
-    for (const 자리 of ['케이스', 'PR본문', '차이', '원고'] as const) {
-      const 글들 = { 케이스: ['a'], PR본문: 'b', 차이: 'c', 원고: 'd', [자리]: 자리 === '케이스' ? [비밀] : 비밀 };
+  it('케이스 · PR 본문 · 차이 파일 중 하나라도 비밀번호가 있으면 사유 — 값은 싣지 않는다', () => {
+    for (const 자리 of ['케이스', 'PR본문', '차이'] as const) {
+      const 글들 = { 케이스: ['a'], PR본문: 'b', 차이: 'c', [자리]: 자리 === '케이스' ? [비밀] : 비밀 };
       const 사유 = 올리기전검사(글들, 비밀);
       expect(사유, 자리).toContain('비밀번호');
       expect(사유).not.toContain(비밀);
@@ -195,7 +192,7 @@ describe('올리기전검사 — 올리기 전에 모은 글 전부를 본다', 
   });
 
   it('깨끗하면 null', () => {
-    expect(올리기전검사({ 케이스: ['a'], PR본문: 'b', 차이: null, 원고: null }, 비밀)).toBeNull();
+    expect(올리기전검사({ 케이스: ['a'], PR본문: 'b', 차이: null }, 비밀)).toBeNull();
   });
 });
 
@@ -223,38 +220,6 @@ describe('변환환경 — pandoc 에 부모의 비밀을 물려주지 않는다
 
   it('부모에 PATH 가 없으면 기본 PATH', () => {
     expect(변환환경({}, { HOME: '/h', TMPDIR: '/t' }).PATH).toBe('/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin');
-  });
-});
-
-describe('역기획서 원고와 변환', () => {
-  it('그림 문법이 있으면 거절한다 — pandoc 이 바깥 파일을 끌어온다', () => {
-    expect(원고거부사유('# 주문\n![x](../../proc/1/environ)')).toContain('그림');
-    expect(원고거부사유('# 주문\n![x][r]\n\n[r]: /etc/passwd')).toContain('그림');
-  });
-
-  it('글과 표·링크만 있으면 받는다', () => {
-    expect(원고거부사유('# 주문\n\n| 항목 | 확인 필요 |\n|---|---|\n| 버튼 | 예 |\n\n[화면](https://qa.example.com)')).toBeNull();
-  });
-
-  it('변환 인자는 마크다운에서 워드로 · 되읽기 인자는 워드에서 글자로', () => {
-    expect(변환인자('/w/out/reverse-spec.md', '/w/out/reverse-spec.docx')).toEqual([
-      '-f',
-      'markdown',
-      '-t',
-      'docx',
-      '-o',
-      '/w/out/reverse-spec.docx',
-      '/w/out/reverse-spec.md',
-    ]);
-    expect(되읽기인자('/w/out/reverse-spec.docx', '/w/out/reverse-spec.check.json')).toEqual([
-      '-f',
-      'docx',
-      '-t',
-      'json',
-      '-o',
-      '/w/out/reverse-spec.check.json',
-      '/w/out/reverse-spec.docx',
-    ]);
   });
 });
 
@@ -320,7 +285,8 @@ describe('줄프롬프트 역방향 절 — 계정 값 없이 자리만 준다',
   it('화면만이면 기획서가 없다고 적고 빈 기획서 절을 싣지 않는다', () => {
     const 글 = 줄프롬프트({ id: 9, kind: 'AUTHOR' }, 'PAY', [], undefined, { 화면만: true, 산출물폴더: '/w/out' });
     expect(글).toContain('화면만');
-    expect(글).toContain('reverse-spec.md');
+    expect(글).toContain('표준 기획서(항목 전부 확인 필요)로 옮기고');
+    expect(글).not.toContain('reverse-spec.md');
     expect(글).not.toContain('--- 기획서 ---');
   });
 
