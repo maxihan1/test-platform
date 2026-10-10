@@ -27,6 +27,13 @@ describe('표번호바꾸기 — 올린 뒤 출처 칸의 임시 번호를 받�
     expect(readFileSync(표자리(), 'utf8')).toBe(표글.replace('MKT-NEW-001 ·', 'MKT-REQ-007 ·'));
   });
 
+  it('올린 뒤(남김금지)에는 받은 번호가 없는 임시 번호가 남으면 까닭을 돌려준다 — main 에 들어가면 다음 바꿔 적기가 엉뚱한 요구로 바꾼다', () => {
+    writeFileSync(표자리(), 표글);
+    expect(표번호바꾸기(트리, 'MKT', 맞춤, true)).toBe('요구사항 표에 받은 번호가 없는 임시 번호가 남았다 — MKT-NEW-0012. 결과 파일에 그 항목을 더하거나 표에서 고쳐라');
+    expect(readFileSync(표자리(), 'utf8')).toContain('MKT-REQ-007');
+    expect(표번호바꾸기(트리, 'MKT', new Map([['MKT-NEW-0012', 'MKT-REQ-008']]), true)).toBeNull();
+  });
+
   it('표가 없거나 맞춤표가 비면 할 일이 없다', () => {
     expect(표번호바꾸기(트리, 'MKT', 맞춤)).toBeNull();
     writeFileSync(표자리(), 표글);
@@ -72,7 +79,7 @@ describe('원장과남은번호 — 이어받은 폴더', () => {
     expect(readFileSync(남의것, 'utf8')).toBe('그대로');
     expect((JSON.parse(readFileSync(join(자료, 'ledger.json'), 'utf8')) as { 원장: { 항목: unknown[] } }).원장.항목).toHaveLength(1);
     // 자료가 없는(화면만) 옮기기는 원본 원장이 없다 — 옮기기 대조를 건너뛴다
-    expect(r.원본원장).toEqual({ 없음: '글자본이 있는 자료가 없다' });
+    expect(r.원본원장).toEqual({ 없음: '화면만 — 원본 자료가 없다' });
   });
 
   it('표준 기획서가 빈 서비스도 옮기는 요청이면 사본 자리를 준다 — 자식이 옮긴 뒤 다시 만든다. 이어 작성은 원장 없음이다', () => {

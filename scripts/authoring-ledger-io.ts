@@ -8,12 +8,12 @@ import type { PrdItem } from '@platform/kit/types';
 
 import { TCID } from '../apps/admin/src/catalog/rules.js';
 import type { 읽을자료 } from './authoring-assets.js';
-import { type 원장, 번호바꾸기, 원장만들기 } from './authoring-ledger.js';
+import { type 원장, 번호바꾸기, 번호찾기, 원장만들기 } from './authoring-ledger.js';
 import { type 기준결정, tcId들, 사람이뺀번호, 요구줄들, 제외번호들 } from './authoring-ledger-check.js';
 import { 표tcId들 } from './authoring-conflicts.js';
 import { 칸재료만들기 } from './authoring-slots.js';
 import { type 이어작성입력, 남은번호, 이어작성막힘, 이어작성사본이름 } from './authoring-continue.js';
-import { 옮긴것읽기, 판합치기, 표준원장 } from './authoring-prd.js';
+import { 옮긴것읽기, 임시꼴, 판합치기, 표준원장 } from './authoring-prd.js';
 import type { 원장입력 } from './authoring-prompt.js';
 
 export const 원장사본이름 = 'ledger.json';
@@ -89,7 +89,7 @@ const 요약 = (r: 원장) => {
  * 자식이 사본을 고쳐도 대조는 안 흔들린다. 사본을 못 쓰면 원장 없음으로 돈다
  */
 export function 원본원장준비(계획: 읽을자료[], 자료폴더: string): { 원장: 원장 | { 없음: string }; 입력: 원장입력 } {
-  const r = 원장만들기(계획, 안전히읽기);
+  const r = 계획.length === 0 ? { 없음: '화면만 — 원본 자료가 없다' } : 원장만들기(계획, 안전히읽기);
   if (!('원장' in r)) return { 원장: r, 입력: r };
   const 사본 = join(자료폴더, 원본원장사본이름);
   if (!새로쓰기(사본, JSON.stringify(r, null, 2))) return { 원장: r.원장, 입력: { 없음: '원본 원장 사본을 자료 폴더에 못 썼다' } };
@@ -157,16 +157,18 @@ function 폴더막힘(트리: string): string | null {
  * 표가 없으면 할 일이 없다(null). 못 쓰면 까닭 — 임시 번호가 남은 표는 올리지 않는다 (§3.6 「작성은 표준 기획서만 읽는다」).
  * 제자리에 쓴다 — 지우고 새로 만들면 root 파일이 돼 이어받은 자식이 표를 못 고친다. 그래서 링크 · 하드링크 · 트리 밖을 먼저 거른다(가리기와 같은 관례)
  */
-export function 표번호바꾸기(트리: string, 서비스: string, 맞춤: ReadonlyMap<string, string>): string | null {
+export function 표번호바꾸기(트리: string, 서비스: string, 맞춤: ReadonlyMap<string, string>, 남김금지 = false): string | null {
   const 자리 = join(트리, 'docs', 'cases', `${서비스}.md`);
   const 정보 = lstatSync(자리, { throwIfNoEntry: false });
-  if (맞춤.size === 0 || 정보 === undefined) return null;
+  if ((맞춤.size === 0 && !남김금지) || 정보 === undefined) return null;
   const 막힘 = 폴더막힘(트리) ?? (정보.isFile() && 정보.nlink === 1 ? null : '표가 일반 파일이 아니다');
   if (막힘 !== null) return `요구사항 표의 임시 번호를 못 바꿨다 — ${막힘}`;
   const 글 = readFileSync(자리, 'utf8');
   const 새글 = 번호바꾸기(글, 맞춤);
   if (새글 !== 글) writeFileSync(자리, 새글);
-  return null;
+  // 올린 뒤에도 남은 임시 번호 — 결과 파일에 없는 번호를 표에 적었다. main 에 들어가면 다음 실행의 바꿔 적기가 그 글자를 엉뚱한 요구로 바꾼다 (2026-10-10 spec-review)
+  const 남은 = 남김금지 ? [...new Set(번호찾기(새글).번호들.filter((n) => 임시꼴(서비스).test(n)))] : [];
+  return 남은.length === 0 ? null : `요구사항 표에 받은 번호가 없는 임시 번호가 남았다 — ${남은.slice(0, 10).join(' · ')}. 결과 파일에 그 항목을 더하거나 표에서 고쳐라`;
 }
 
 /**
