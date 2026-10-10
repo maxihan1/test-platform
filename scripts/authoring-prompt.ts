@@ -1,9 +1,10 @@
-// 자식 세션에게 주는 줄 프롬프트 — 자료 · 역방향 · 이어하기 · 원장 절을 잇는다
+// 자식 세션에게 주는 줄 프롬프트 — 자료 · 역방향 · 이어하기 · 원장 · 표준 기획서 절을 잇는다
 // authoring-rules.ts 가 300줄에 닿아 뗐다 (2026-09-30)
 
 import { type 읽을자료, 자료목록글, 자료출처 } from './authoring-assets.js';
 import type { 집은것 } from './authoring-rules.js';
 import { type 이어작성입력, 이어작성절 } from './authoring-continue.js';
+import type { 표준기획서입력 } from './authoring-prd-io.js';
 import { 역방향절 } from './authoring-reverse.js';
 
 /**
@@ -23,6 +24,7 @@ export function 줄프롬프트(
   원장?: 원장입력,
   이어작성?: 이어작성입력,
   메모경로?: string,
+  표준기획서?: 표준기획서입력,
 ): string {
   return [
     `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
@@ -53,6 +55,7 @@ export function 줄프롬프트(
     ...(역방향 === undefined ? [] : 역방향절({ ...역방향, 요청번호: 자료출처(것) })),
     ...(이어하기 === undefined ? [] : 이어하기절(이어하기, 메모경로)),
     ...(원장 === undefined ? [] : 원장절(원장, 서비스, 대상?.폴더)),
+    ...(표준기획서 === undefined ? [] : 표준기획서절(표준기획서)),
     ...(이어작성 === undefined ? [] : 이어작성절(이어작성)),
   ].join('\n');
 }
@@ -72,6 +75,18 @@ function 원장절(원장: 원장입력, 서비스: string, 폴더: string | und
     '요구사항 표의 번호마다 **케이스 줄(출처 칸) 또는 「제외」 한 줄**을 둬라. 규칙은 `tpx-cases` `references/2-requirements.md` 「원장」이다.',
     `관문 넷 앞에 관문 0(원장 대조)을 돌려라: \`npm run check:ledger -- ${원장.사본} docs/cases/${서비스}.md${케이스자리} --agent\``,
     '**올리기 직전에 에이전트가 같은 대조를 다시 한다** — 빠진 번호는 거절하지 않고 PR 본문 머리와 요청의 셈에 「빠짐」으로 남는다. 그래도 관문 0 을 초록으로 만들어라.',
+  ];
+}
+
+/** 옮기기 절 — 자식은 결과 파일만 쓰고 대조 · 올리기는 에이전트가 한다 (§3.6 「★ 표준 기획서」 「옮기기」) */
+function 표준기획서절(입력: 표준기획서입력): string[] {
+  return [
+    '',
+    '--- 표준 기획서 ---',
+    '자료를 다 읽은 뒤 요구사항 표 앞에 자료를 표준 기획서로 옮겨라. `.claude/skills/tpx-author/references/prd.md` 를 먼저 읽고 따라라.',
+    `- 지금 판(판 ${String(입력.판)} · 항목 ${String(입력.항목수)}): ${입력.지금판}`,
+    `- 결과를 쓸 곳: ${입력.결과} — 폴더가 없으면 만든다`,
+    '- 올리기 직전에 에이전트가 이 파일을 읽어 원장과 대조하고 서버에 올린다. 어긋나도 거절하지 않고 PR 본문 머리에 남는다.',
   ];
 }
 
