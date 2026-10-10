@@ -3,7 +3,7 @@
 
 import { type 설계, 설계요약 } from './authoring-design.js';
 import { 번호찾기 } from './authoring-ledger.js';
-import { type 표줄, 기준줄열쇠, 줄상태 } from './authoring-slots.js';
+import { type 표줄, 기준줄열쇠, 오류추정줄인가, 줄상태 } from './authoring-slots.js';
 
 export interface 설계항목 {
   번호: string;
@@ -63,7 +63,7 @@ export function 설계대조(
     // 줄이 없으면 원장대조가 빠짐으로 세고, 기준 줄만 있으면 사람이 이미 본 요구다 — 여기서 또 몰지 않는다
     if (설 === undefined || 제외번호.has(번호) || 든줄.every((줄) => 기준줄.has(기준줄열쇠(줄)))) continue;
     // 오류 추정 줄은 점검 목록으로 찌른 것이라 설계가 요구한 틀린 입력을 다룬 게 아니다 — 칸을 못 채운다
-    const 채운줄 = 든줄.filter((줄) => 줄상태(줄.출처) !== '오류추정');
+    const 채운줄 = 든줄.filter((줄) => !오류추정줄인가(줄.출처));
     for (const 축 of 칸축) {
       if (설[축].length > 0 && !거절칸.has(`${번호} ${축}`) && !채운줄.some((줄) => 줄.축.trim() === 축)) 빠짐.push(`${번호} ${축}`);
     }
