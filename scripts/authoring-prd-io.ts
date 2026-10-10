@@ -13,7 +13,7 @@ import { 거절글, 부른다 } from './authoring-io.js';
 import { type 원장, 번호바꾸기 } from './authoring-ledger.js';
 import type { 기준결정 } from './authoring-ledger-check.js';
 import { type 기준표, 기준결정만들기, 표번호바꾸기 } from './authoring-ledger-io.js';
-import { 대조줄들, 보낼항목, 새번호맞추기, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
+import { 대조줄들, 보낼항목, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
 import { 계정섞였나, 글모두, 비밀가리기 } from './authoring-reverse.js';
 import { 산출물읽기 } from './authoring-upload-reverse.js';
 
@@ -166,12 +166,13 @@ export async function 옮기기올리기(
     if (맞춤.size > 0) writeFileSync(join(자리.자료, 'out', 결과이름), 번호바꾸기(글, 맞춤));
     // 원장은 자식이 본 것과 같게 — 자식 앞 판에 결과 파일을 합친 항목에 받은 번호를 단다. 저장된 판으로 만들면 사람이 남긴 항목 ·
     // 그 사이 다른 저장이 차례를 밀어 칸 번호(원장 차례로 매긴다)가 어긋난다 (2026-10-10 코드 검토)
-    const 원장값 = 표준원장(판합치기(앞.items, 옮긴).items.map((i) => (i.임시 !== undefined && 맞춤.has(i.임시) ? { ...i, reqId: 맞춤.get(i.임시) } : i)));
+    const 항목들 = 판합치기(앞.items, 옮긴).items.map((i) => (i.임시 !== undefined && 맞춤.has(i.임시) ? { ...i, reqId: 맞춤.get(i.임시) } : i));
+    const 원장값 = 표준원장(항목들);
     const 사람것 = Array.isArray(받음.keptByPerson) ? 받음.keptByPerson.filter((v): v is string => typeof v === 'string') : [];
     return {
       줄: [...판줄들(받음.version, 옮긴, 합친, 사람것), ...대조],
       원장: 원장값,
-      기준: 기준결정만들기(기준 === null ? null : { ...기준, 접두사: 서비스 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호)),
+      기준: 기준결정만들기(기준 === null ? null : { ...기준, 접두사: 서비스 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호), 옛번호지도(항목들)),
     };
   } catch (err) {
     return 못함(거절말고(err));

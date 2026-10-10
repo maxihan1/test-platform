@@ -154,16 +154,39 @@ function 덩이로묶기(줄들: 표줄[], 원장번호들: string[], 어긋남:
 
 const 물려받는가 = (d: 덩이) => d.원장차례 !== undefined && !문단번호.test(d.요구);
 
-/** 기준 표 줄로 칸 재료를 만든다 — (칸, 덩이)마다 덩이 안에서 처음 쓸 만한 tcId. 한 번호를 두 덩이에 주지 않는다 */
-export function 칸재료만들기(접두사: string, 기준줄들: 표줄[], 쓰인: Iterable<string>, 원장번호들: string[]): 칸재료 {
+/**
+ * 기준 표 줄로 칸 재료를 만든다 — (칸, 덩이)마다 덩이 안에서 처음 쓸 만한 tcId. 한 번호를 두 덩이에 주지 않는다.
+ * `옛번호` 는 원본 번호 → 그 번호를 근거로 단 표준 기획서 항목 번호들(원장 차례)이다. 표준 기획서 전에 만든 표(옛 표)의 줄은 출처가
+ * 원본 번호라 원장 칸이 아니다 — 그 tcId 를 후보 항목들의 같은 칸에 모두 걸고, 칸번호가 원장 차례로 처음 나온 칸 하나에만 준다
+ * (작성 §3.6 「★ 표준 기획서」 「기존 서비스」 · PRD-F3-03)
+ */
+export function 칸재료만들기(
+  접두사: string,
+  기준줄들: 표줄[],
+  쓰인: Iterable<string>,
+  원장번호들: string[],
+  옛번호: ReadonlyMap<string, readonly string[]> = new Map(),
+): 칸재료 {
   const 칸: Record<string, string> = {};
   const 준번호 = new Set<string>();
-  for (const d of 덩이로묶기(기준줄들.filter((줄) => !제거한줄(줄)), 원장번호들, [])) {
+  const 덩이들 = 덩이로묶기(기준줄들.filter((줄) => !제거한줄(줄)), 원장번호들, []);
+  const 줄것 = (d: 덩이) => d.줄들.map((줄) => 줄.tcId).find((t) => TCID.test(t) && tcId종류(t) === d.갈래 && !준번호.has(번호열쇠(t)));
+  for (const d of 덩이들) {
     if (!물려받는가(d)) continue;
-    const 줄것 = d.줄들.map((줄) => 줄.tcId).find((t) => TCID.test(t) && tcId종류(t) === d.갈래 && !준번호.has(번호열쇠(t)));
-    if (줄것 === undefined) continue;
-    칸[d.열쇠] = 줄것;
-    준번호.add(번호열쇠(줄것));
+    const t = 줄것(d);
+    if (t === undefined) continue;
+    칸[d.열쇠] = t;
+    준번호.add(번호열쇠(t));
+  }
+  // 원장 칸이 먼저다 — 옛 줄은 원장 칸이 안 잡은 열쇠에만 건다
+  for (const d of 덩이들) {
+    const 후보 = d.원장차례 === undefined && !문단번호.test(d.요구) ? 옛번호.get(d.요구) : undefined;
+    const t = 후보 === undefined ? undefined : 줄것(d);
+    if (후보 === undefined || t === undefined) continue;
+    const 꼬리 = d.열쇠.slice(d.요구.length);
+    const 열쇠들 = 후보.map((번호) => `${번호}${꼬리}`).filter((열쇠) => 칸[열쇠] === undefined);
+    for (const 열쇠 of 열쇠들) 칸[열쇠] = t;
+    if (열쇠들.length > 0) 준번호.add(번호열쇠(t));
   }
   return {
     접두사,
@@ -200,10 +223,14 @@ export function 칸번호(원장번호들: string[], 줄들: 표줄[], 재료: �
     번호.set(d, tcId);
     잡힌.add(번호열쇠(tcId));
   };
-  // 판정 차례가 결과를 바꾸지 않게 — 물려받기 · 고정을 모든 덩이에 먼저, 그다음 유지, 마지막에 새 번호
+  // 판정 차례가 결과를 바꾸지 않게 — 물려받기 · 고정을 모든 덩이에 먼저, 그다음 유지, 마지막에 새 번호.
+  // 옛 표 번호는 후보 칸 여럿에 걸려 있다 — 칸 차례(원장 차례)로 처음 나온 덩이 하나만 받는다
+  const 물려줌 = new Set<string>();
   for (const d of 덩이들) {
     const 물려 = 재료.칸[d.열쇠];
-    if (물려받는가(d) && 물려 !== undefined) 정하기(d, 물려);
+    if (!물려받는가(d) || 물려 === undefined || 물려줌.has(번호열쇠(물려))) continue;
+    정하기(d, 물려);
+    물려줌.add(번호열쇠(물려));
   }
   for (const d of 덩이들) {
     if (번호.has(d) || d.상태 !== '정식' || d.번째 !== 0 || d.원장차례 === undefined || 끝[d.갈래] === 0) continue;

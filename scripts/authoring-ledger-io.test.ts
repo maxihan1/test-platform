@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { 원장과남은번호, 표번호바꾸기 } from './authoring-ledger-io.js';
+import { 원장과남은번호, 표번호바꾸기, 표준원장사본 } from './authoring-ledger-io.js';
 
 let 뿌리 = '';
 let 트리 = '';
@@ -91,5 +91,17 @@ describe('원장과남은번호 — 이어받은 폴더', () => {
     expect('막힘' in 옮김 ? null : 옮김.입력).toEqual({ 사본: join(자료, 'ledger.json'), 요약: '표준 기획서에 항목이 없다 — 옮긴 뒤 다시 만든다' });
     const 안옮김 = 부르기(false);
     expect('막힘' in 안옮김 ? null : 안옮김.입력).toEqual({ 없음: '표준 기획서에 항목이 없다' });
+  });
+});
+
+describe('표준원장사본 — 옛 표 번호 물려받기 (PRD-F3-03)', () => {
+  it('기준 표 줄의 원본 번호를 결과 파일 항목 근거로 찾아 칸 재료에 옛 tcId 를 건다', () => {
+    const 기준 = {
+      표글: '## 요구사항\n\n| 요구 | 축 | 전제 | 조작 | 결과 | 출처 | tcId | 작성 시점 |\n|---|---|---|---|---|---|---|---|\n| 1 | 정상 | 전 | 조 | 결 | 기획서.docx §4 REQ-MEM-001 | MKT-FN-001 | 2026-10-05 |\n',
+      있는케이스: new Set(['MKT-FN-001']),
+    };
+    const 결과 = { items: [{ feature: '가입', text: '아이디는 4자 이상이다', basis: [{ from: '기획서.docx', ref: 'REQ-MEM-001', quote: '아이디는 4~12자' }], status: 'CONFIRMED' }] };
+    const r = 표준원장사본([], 결과, 'MKT', 기준);
+    expect(r.기준.칸재료?.칸).toEqual({ 'MKT-NEW-001|FN|정상|정식#0': 'MKT-FN-001' });
   });
 });

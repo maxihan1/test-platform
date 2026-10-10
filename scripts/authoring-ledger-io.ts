@@ -13,7 +13,7 @@ import { type 기준결정, tcId들, 사람이뺀번호, 요구줄들, 제외번
 import { 표tcId들 } from './authoring-conflicts.js';
 import { 칸재료만들기 } from './authoring-slots.js';
 import { type 이어작성입력, 남은번호, 이어작성막힘, 이어작성사본이름 } from './authoring-continue.js';
-import { 옮긴것읽기, 임시꼴, 판합치기, 표준원장 } from './authoring-prd.js';
+import { 옛번호지도, 옮긴것읽기, 임시꼴, 판합치기, 표준원장 } from './authoring-prd.js';
 import type { 원장입력 } from './authoring-prompt.js';
 
 export const 원장사본이름 = 'ledger.json';
@@ -49,7 +49,11 @@ export function 새로쓰기(경로: string, 글: string): boolean {
 }
 
 /** 기준(main) 판의 표 · 케이스로 대조에 넘길 것을 만든다. 표를 못 읽었으면(null) 칸 재료가 없다 — 쓰인 번호를 모르고 매기면 남의 케이스 파일을 덮어쓴다 */
-export function 기준결정만들기(기준: (기준표 & { 접두사: string }) | null, 원장번호들: string[]): 기준결정 {
+export function 기준결정만들기(
+  기준: (기준표 & { 접두사: string }) | null,
+  원장번호들: string[],
+  옛번호?: ReadonlyMap<string, readonly string[]>,
+): 기준결정 {
   if (기준 === null) return { 사람이뺌: new Set(), 다음요청: new Set(), 칸재료: null };
   // 요구 줄 tcId 도 넣는다 — 표tcId들 은 백틱 칸을 못 본다. 「제거함(…)」 안 번호도 쓰인 번호다
   const 줄tcId = 요구줄들(기준.표글).map((줄) => /^제거함\((.+)\)$/.exec(줄.tcId)?.[1] ?? 줄.tcId).filter((t) => TCID.test(t));
@@ -57,7 +61,7 @@ export function 기준결정만들기(기준: (기준표 & { 접두사: string }
   return {
     사람이뺌: 사람이뺀번호(기준.표글),
     다음요청: 제외번호들(기준.표글, '다음 요청'),
-    칸재료: 칸재료만들기(기준.접두사, 요구줄들(기준.표글), 쓰인, 원장번호들),
+    칸재료: 칸재료만들기(기준.접두사, 요구줄들(기준.표글), 쓰인, 원장번호들, 옛번호),
   };
 }
 
@@ -73,8 +77,9 @@ export function 표준원장사본(
   기준: 기준표 | null,
 ): { 원장: 원장 | { 없음: string }; 기준: 기준결정; 글: string } {
   const 옮긴 = 옮긴몸 === undefined ? null : 옮긴것읽기(옮긴몸, 접두사);
-  const 원장값 = 표준원장(옮긴 === null || '사유' in 옮긴 ? 지금 : 판합치기(지금, 옮긴).items);
-  const 결정 = 기준결정만들기(기준 === null ? null : { ...기준, 접두사 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호));
+  const 항목들 = 옮긴 === null || '사유' in 옮긴 ? 지금 : 판합치기(지금, 옮긴).items;
+  const 원장값 = 표준원장(항목들);
+  const 결정 = 기준결정만들기(기준 === null ? null : { ...기준, 접두사 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호), 옛번호지도(항목들));
   const 사본 = '없음' in 원장값 ? 원장값 : { 원장: 원장값, 사람이뺌: [...결정.사람이뺌], 다음요청: [...결정.다음요청], 칸재료: 결정.칸재료 };
   return { 원장: 원장값, 기준: 결정, 글: JSON.stringify(사본, null, 2) };
 }
