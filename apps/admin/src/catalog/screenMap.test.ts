@@ -18,11 +18,13 @@ describe('가져온화면파일', () => {
       "import { SiteHeader } from './components/site-header.component';",
       "import { 로그인 } from './helpers/session.helper.js';",
       "import type { LoginPage } from './pages/login.page.js';",
+      "import { type JoinPage } from './pages/join.page.js';",
+      "import { type OrderPage, OrderList } from './pages/order.page.js';",
       "import { Other } from '../xcs/pages/other.page.js';",
       "import { Bad } from './pages/Bad.page.js';",
       "import { CartPage as 또 } from './pages/cart.page.js';",
     ].join('\n');
-    expect(가져온화면파일(글)).toEqual(['pages/cart.page.ts', 'components/site-header.component.ts']);
+    expect(가져온화면파일(글)).toEqual(['pages/cart.page.ts', 'components/site-header.component.ts', 'pages/order.page.ts']);
   });
 });
 
@@ -86,8 +88,8 @@ describe.skipIf(연결 === undefined)('화면지도채우기', () => {
       [케이스들],
     )).rows.map((r) => `${r.tc_id} ${r.file} ${r.screen_url ?? '-'}`);
   const 명세 = (tcId: string) => ({ tcId, filePath: `xcs/${tcId}.spec.ts` }) as CaseSpec;
-  const 채우기 = async (tcIds: string[]) =>
-    (await import('./screenMap.js')).화면지도채우기(서비스, 'XCS', 뿌리, tcIds.map(명세));
+  const 채우기 = async (tcIds: string[], 전부읽음 = true) =>
+    (await import('./screenMap.js')).화면지도채우기(서비스, 'XCS', 뿌리, tcIds.map(명세), 전부읽음);
 
   beforeAll(async () => {
     뿌리 = await mkdtemp(join(tmpdir(), 'xcs-db-'));
@@ -124,6 +126,16 @@ describe.skipIf(연결 === undefined)('화면지도채우기', () => {
     await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
     await 채우기(['XCS-001']);
     expect(await 지도()).toEqual(['XCS-001 tests/xcs/pages/login.page.ts /login']);
+  });
+
+  it('케이스 파일을 다 읽지 못한 스캔은 읽은 케이스 몫만 바꾸고 못 읽은 케이스의 줄은 둔다', async () => {
+    await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { CartPage } from './pages/cart.page.js';");
+    await writeFile(join(뿌리, 'xcs', 'XCS-002.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
+    await 채우기(케이스들);
+
+    await writeFile(join(뿌리, 'xcs', 'XCS-001.spec.ts'), "import { LoginPage } from './pages/login.page.js';");
+    await 채우기(['XCS-001'], false);
+    expect(await 지도()).toEqual(['XCS-001 tests/xcs/pages/login.page.ts /login', 'XCS-002 tests/xcs/pages/login.page.ts /login']);
   });
 
   it('화면 파일을 못 읽으면 던지고 옛 지도를 그대로 둔다', async () => {

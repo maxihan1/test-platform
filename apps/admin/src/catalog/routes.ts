@@ -110,7 +110,7 @@ async function runScan(log: FastifyBaseLogger): Promise<스캔기록> {
 
       // 지도 ② 는 케이스 파일에서 오므로 저장한 뒤에 채운다 — 표가 케이스를 외래 키로 건다
       try {
-        await 화면지도채우기(service.id, service.prefix, root, 내것);
+        await 화면지도채우기(service.id, service.prefix, root, 내것, found.failures.length === 0);
       } catch (err) {
         결과.problems.push(
           `${service.prefix} 서비스의 화면 파일로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
