@@ -32,7 +32,7 @@ const 결과쓰기 = (몸: unknown) => {
   mkdirSync(join(자리.자료, 'out'), { recursive: true });
   writeFileSync(join(자리.자료, 'out', 'prd.json'), typeof 몸 === 'string' ? 몸 : JSON.stringify(몸));
 };
-const 올리기 = (원본: 원장 | { 없음: string } = 원장하나, 비밀 = {}) => 옮기기올리기(서버, 'MKT', 7, 자리, 앞, 원본, 비밀, null);
+const 올리기 = (원본: 원장 | { 없음: string } = 원장하나, 비밀 = {}, 앞판: typeof 앞 = 앞) => 옮기기올리기(서버, 'MKT', 7, 자리, 앞판, 원본, 비밀, null);
 
 describe('판받기', () => {
   it('지금 판을 자료 폴더에 두고 프롬프트 재료와 앞 판을 돌려준다', async () => {
@@ -56,6 +56,13 @@ describe('판받기', () => {
     expect('앞판' in r && r.앞판.items[0]?.text).not.toContain('ss1234');
   });
 
+  it('비밀번호가 JSON 키와 같아도 글 값만 가려 깨진 JSON 을 만들지 않는다', async () => {
+    vi.stubGlobal('fetch', async () => 답(200, { version: 1, items: [{ ...있던, text: '본문 text 칸' }] }));
+    const r = await 판받기(서버, 'MKT', 7, 자리.자료, 'text');
+    expect('앞판' in r && r.앞판.items[0]?.text).toBe('본문 •••••• 칸');
+    expect(JSON.parse(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8'))).toMatchObject({ version: 1 });
+  });
+
   it('앞 자식이 심은 링크를 따라 쓰지 않고 지운 뒤 새로 만든다', async () => {
     const 남의것 = join(폴더, 'victim.txt');
     writeFileSync(남의것, '그대로');
@@ -75,11 +82,21 @@ describe('판받기', () => {
 
 describe('앞결과 — 이어받은 폴더의 결과 파일', () => {
   it('있으면 푼 값, 없거나 깨졌으면 undefined', () => {
-    expect(앞결과(자리)).toBeUndefined();
+    expect(앞결과(자리, [], 'MKT')).toBeUndefined();
     결과쓰기('{ 깨짐');
-    expect(앞결과(자리)).toBeUndefined();
+    expect(앞결과(자리, [], 'MKT')).toBeUndefined();
     결과쓰기({ items: [] });
-    expect(앞결과(자리)).toEqual({ items: [] });
+    expect(앞결과(자리, [], 'MKT')).toEqual({ items: [] });
+  });
+
+  it('앞 실행이 올린 뒤 바꿔 적기 전에 멈췄으면 판에 든 항목의 임시 번호를 표 · 결과 파일에서 받은 번호로 먼저 바꾼다', () => {
+    const 올라간 = { ...있던, reqId: 'MKT-REQ-009', text: '닉네임은 필수' };
+    결과쓰기({ items: [{ ...올라간, reqId: 'MKT-NEW-001' }] });
+    writeFileSync(join(자리.트리, 'docs', 'cases', 'MKT.md'), '| 1 | 정상 | 전 | 조 | 결 | MKT-NEW-001 | MKT-FN-010 |\n');
+    const 몸 = 앞결과(자리, [올라간 as never], 'MKT') as { items: { reqId: string }[] };
+    expect(몸.items[0]?.reqId).toBe('MKT-REQ-009');
+    expect(readFileSync(join(자리.트리, 'docs', 'cases', 'MKT.md'), 'utf8')).toContain('| MKT-REQ-009 |');
+    expect(readFileSync(join(자리.자료, 'out', 'prd.json'), 'utf8')).not.toContain('MKT-NEW-001');
   });
 });
 
@@ -114,7 +131,7 @@ describe('옮기기올리기', () => {
     });
     결과쓰기({ items: [{ ...새것, reqId: 'MKT-NEW-001' }] });
     writeFileSync(join(자리.트리, 'docs', 'cases', 'MKT.md'), '| 1 | 정상 | 전 | 조 | 결 | MKT-NEW-001 | MKT-FN-010 |\n');
-    const r = await 올리기();
+    const r = await 올리기(원장하나, {}, { ...앞, items: [있던, 남이더한] as never[] });
     expect(몸.baseVersion).toBe(2);
     expect(몸.items?.map((i) => [i.reqId, i.text, '임시' in i])).toEqual([
       ['MKT-REQ-001', '아이디는 4자 이상', false],
@@ -141,7 +158,7 @@ describe('옮기기올리기', () => {
     expect(r.줄.at(-1)).toBe('⚠️ 옮기기 대조 없음 — 화면.pdf(PDF)');
   });
 
-  it('지금 판을 못 읽거나 서버가 거절하거나 올린 판을 다시 못 읽으면 거절하고 대조 줄은 남긴다', async () => {
+  it('지금 판을 못 읽거나 서버가 거절하거나 올린 판을 다시 못 읽거나 새 항목을 못 찾으면 거절하고 대조 줄은 남긴다', async () => {
     결과쓰기({ items: [] });
     vi.stubGlobal('fetch', async () => 답(500));
     expect(await 올리기({ 없음: '글자본이 있는 자료가 없다' })).toEqual({
@@ -151,7 +168,11 @@ describe('옮기기올리기', () => {
     vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) =>
       init?.method === 'POST' ? 답(400, { error: 'PRD_FULL', detail: '1000' }) : 답(200, { version: 1, items: [] }));
     expect(await 올리기({ 없음: '글자본이 있는 자료가 없다' })).toMatchObject({ 거절: '표준 기획서를 못 올렸다 — 400 PRD_FULL 1000' });
-    vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => (init?.method === 'POST' ? 답(200, { version: 2 }) : 답(200, { version: 1, items: [] })));
+    let 올렸다 = false;
+    vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => (init?.method === 'POST' ? ((올렸다 = true), 답(200, { version: 2 })) : 올렸다 ? 답(500) : 답(200, { version: 1, items: [] })));
     expect(await 올리기({ 없음: '글자본이 있는 자료가 없다' })).toMatchObject({ 거절: expect.stringContaining('다시 못 읽어 새 번호를 모른다') as string });
+    결과쓰기({ items: [{ ...있던, reqId: 'MKT-NEW-001', text: '새 규칙' }] });
+    vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => (init?.method === 'POST' ? 답(200, { version: 2 }) : 답(200, { version: 1, items: [] })));
+    expect(await 올리기({ 없음: '글자본이 있는 자료가 없다' })).toMatchObject({ 거절: expect.stringContaining('올린 판에서 못 찾았다') as string });
   });
 });

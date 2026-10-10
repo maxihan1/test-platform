@@ -26,6 +26,8 @@ export interface 옮긴것 {
   notRequirements: { ref: string; reason: string }[];
   /** 모양 · 상한을 어겨 뺀 항목 — `<자리>.<칸>` */
   버림: string[];
+  /** 번호 없이 와서 임시 번호를 붙여 준 항목 — [파일 속 자리, 임시 번호]. `npm run prd:ledger` 가 파일에 적어 굳힌다 */
+  자동?: [number, string][];
 }
 
 const 글목록 = <T>(값: unknown, 고르기: (x: unknown) => T | null): T[] =>
@@ -46,6 +48,7 @@ export function 옮긴것읽기(몸: unknown, 접두사: string): 옮긴것 | { 
   const 버림: string[] = [];
   const 본번호 = new Set<string>();
   const 임시 = 임시꼴(접두사);
+  const 자리 = new Map<옮긴항목, number>();
   for (const [i, 항목] of x.items.entries()) {
     // 임시 번호는 서버 번호 꼴이 아니라 검사 전에 떼어 둔다
     const 날번호 = (항목 as { reqId?: unknown } | null)?.reqId;
@@ -58,10 +61,17 @@ export function 옮긴것읽기(몸: unknown, 접두사: string): 옮긴것 | { 
     }
     const 읽은 = 읽음.items[0]!;
     if (번호 !== undefined) 본번호.add(번호);
-    items.push({ ...(읽은.basis.every((b) => b.from === '화면') ? { ...읽은, status: 'NEEDS_CHECK' as const } : 읽은), ...(임시번호 === undefined ? {} : { 임시: 임시번호 }) });
+    const 읽은항목: 옮긴항목 = { ...(읽은.basis.every((b) => b.from === '화면') ? { ...읽은, status: 'NEEDS_CHECK' as const } : 읽은), ...(임시번호 === undefined ? {} : { 임시: 임시번호 }) };
+    자리.set(읽은항목, i);
+    items.push(읽은항목);
   }
   let 끝 = Math.max(0, ...items.map((i) => Number(임시.exec(i.임시 ?? '')?.[1] ?? 0)));
-  for (const i of items) if (i.reqId === undefined && i.임시 === undefined) i.임시 = `${접두사}-NEW-${String(++끝).padStart(3, '0')}`;
+  const 자동: [number, string][] = [];
+  for (const i of items) {
+    if (i.reqId !== undefined || i.임시 !== undefined) continue;
+    i.임시 = `${접두사}-NEW-${String(++끝).padStart(3, '0')}`;
+    자동.push([자리.get(i)!, i.임시]);
+  }
   const 문자 = (v: unknown) => (typeof v === 'string' && v.trim() !== '' ? v : null);
   return {
     items,
@@ -72,6 +82,7 @@ export function 옮긴것읽기(몸: unknown, 접두사: string): 옮긴것 | { 
       return ref === null ? null : { ref, reason: 문자(줄.reason) ?? '까닭 없음' };
     }),
     버림,
+    ...(자동.length > 0 ? { 자동 } : {}),
   };
 }
 
@@ -226,20 +237,21 @@ export function 표준원장(items: readonly 옮긴항목[]): 원장 | { 없음:
 }
 
 /**
- * 올린 뒤 임시 번호 → 서버가 준 번호. 서버는 보낸 차례대로 새 번호를 매기고 판을 번호 차례로 둔다(`apps/admin/src/prd/rules.ts` 옮기기판).
- * 그래서 저장된 판에서 보낸 번호 · 사람이 남긴 항목을 뺀 것이 새 항목이고 번호 차례가 보낸 차례다.
- * 수나 요구 문장이 안 맞으면 사유 — 그 사이 다른 저장이 끼었다. 그때 바꿔 적으면 표가 엉뚱한 요구를 가리킨다
+ * 올린 뒤 임시 번호 → 서버가 준 번호. 저장된 판에서 보낸 번호 · 사람이 남긴 항목을 뺀 것 가운데 기능 묶음 · 요구 문장이 같은 것을
+ * 번호 차례로 하나씩 짝짓는다 — 서버는 보낸 차례대로 새 번호를 매긴다(`apps/admin/src/prd/rules.ts` 옮기기판).
+ * 판 번호를 견주지 않는다 — 올린 뒤 다른 저장이 끼어도 그 항목이 남아 있으면 찾는다. 못 찾으면 사유 — 그때 바꿔 적으면 표가 엉뚱한 요구를 가리킨다
  */
 export function 새번호맞추기(보낸: readonly 옮긴항목[], 저장: readonly PrdItem[]): Map<string, string> | { 사유: string } {
   const 맞춤 = new Map(보낸.flatMap((i) => (i.reqId !== undefined && i.임시 !== undefined ? [[i.임시, i.reqId] as const] : [])));
   const 보낸번호 = new Set(보낸.flatMap((i) => (i.reqId === undefined ? [] : [i.reqId])));
-  const 새것 = 보낸.filter((i) => i.reqId === undefined);
-  const 받은것 = 저장.filter((i) => !보낸번호.has(i.reqId) && i.byPerson !== true).sort((a, b) => 번호수(a.reqId) - 번호수(b.reqId));
-  if (받은것.length !== 새것.length) return { 사유: `새 항목 ${String(새것.length)}개를 보냈는데 판에 ${String(받은것.length)}개가 새로 있다` };
+  const 후보 = 저장.filter((i) => !보낸번호.has(i.reqId) && i.byPerson !== true).sort((a, b) => 번호수(a.reqId) - 번호수(b.reqId));
   const 같다 = (a: { feature: string; text: string }, b: { feature: string; text: string }) => a.feature.trim() === b.feature.trim() && a.text.trim() === b.text.trim();
-  for (const [k, i] of 새것.entries()) {
-    const 받은 = 받은것[k]!;
-    if (!같다(i, 받은)) return { 사유: `${받은.reqId} 의 요구 문장이 보낸 것과 다르다` };
+  const 쓴 = new Set<string>();
+  for (const i of 보낸) {
+    if (i.reqId !== undefined) continue;
+    const 받은 = 후보.find((c) => !쓴.has(c.reqId) && 같다(c, i));
+    if (받은 === undefined) return { 사유: `새 항목 「${i.text.slice(0, 30)}」 을 올린 판에서 못 찾았다` };
+    쓴.add(받은.reqId);
     if (i.임시 !== undefined) 맞춤.set(i.임시, 받은.reqId);
   }
   return 맞춤;

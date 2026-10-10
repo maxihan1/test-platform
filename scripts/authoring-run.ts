@@ -217,7 +217,7 @@ async function 사본에서(
   const 옮긴다 = 이어작성원본 === null;
   // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로. 기준 표는 트리가 아니라 기준 SHA 에서. 이어받은 폴더면 앞 결과 파일의 임시 번호를 잇는다
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
-  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리) : undefined });
+  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined });
   if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
   await 손.단계('케이스를 만드는 중');
   if (박동.멈추라했다()) return void (await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' }));

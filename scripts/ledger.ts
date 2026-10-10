@@ -136,10 +136,24 @@ if (명령 === '뽑기') {
   const 지금 = JSON.parse(readFileSync(join(폴더, 'prd-current.json'), 'utf8')) as { items: PrdItem[] };
   const 재료 = JSON.parse(readFileSync(join(폴더, 기준재료이름), 'utf8')) as { 접두사: string; 기준표: { 표글: string; 있는케이스: string[] } | null };
   const 결과자리 = join(폴더, 'out', 'prd.json');
-  const 옮긴몸: unknown = existsSync(결과자리) ? JSON.parse(readFileSync(결과자리, 'utf8')) : undefined;
+  let 옮긴몸: unknown;
+  try {
+    옮긴몸 = existsSync(결과자리) ? JSON.parse(readFileSync(결과자리, 'utf8')) : undefined;
+  } catch (e) {
+    console.log(`결과 파일 JSON 이 깨졌다 — 고친 뒤 다시 돌려라: ${e instanceof Error ? e.message : String(e)}`);
+    process.exit(1);
+  }
   const 옮긴 = 옮긴몸 === undefined ? null : 옮긴것읽기(옮긴몸, 재료.접두사);
   if (옮긴 !== null && '사유' in 옮긴) console.log(`결과 파일을 못 읽었다 — ${옮긴.사유}. 지금 판만으로 만든다`);
   if (옮긴 !== null && !('사유' in 옮긴) && 옮긴.버림.length > 0) console.log(`버린 항목(모양 · 상한 · 겹친 번호): ${옮긴.버림.join(' · ')}`);
+  // 번호 없이 온 새 항목의 임시 번호를 파일에 적어 굳힌다 — 그대로 두면 파일을 고칠 때마다 차례가 밀려 표가 엉뚱한 요구를 가리킨다
+  const 자동 = 옮긴 !== null && !('사유' in 옮긴) ? (옮긴.자동 ?? []) : [];
+  if (자동.length > 0) {
+    const 항목들 = (옮긴몸 as { items: Record<string, unknown>[] }).items;
+    for (const [자리, 번호] of 자동) 항목들[자리]!.reqId = 번호;
+    writeFileSync(결과자리, `${JSON.stringify(옮긴몸, null, 2)}\n`);
+    console.log(`번호 없던 새 항목 ${String(자동.length)}개에 임시 번호를 적었다: ${자동.map(([, n]) => n).join(' · ')}`);
+  }
   const 기준 = 재료.기준표 === null ? null : { 표글: 재료.기준표.표글, 있는케이스: new Set(재료.기준표.있는케이스) };
   const r = 표준원장사본(지금.items, 옮긴몸, 재료.접두사, 기준);
   // 에이전트가 쓴 사본은 root 파일일 수 있다 — 폴더가 자식 것이라 지우고 새로 쓴다

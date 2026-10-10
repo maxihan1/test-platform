@@ -67,7 +67,8 @@ export async function 판받기(
     const 판 = await 지금판읽기(서버, 서비스, 번호);
     if ('까닭' in 판) return { 까닭: `표준 기획서 지금 판을 못 읽었다 (${판.까닭})` };
     const 지금판 = join(자료폴더, 'prd-current.json');
-    const 가린글 = 비밀가리기(JSON.stringify(판, null, 2), 비밀);
+    // 글 값만 가린다 — JSON 글을 통째로 가리면 비밀번호가 키 · 숫자와 같을 때(「text」 · 「1234」) 깨진 JSON 이 돼 작성이 멈춘다
+    const 가린글 = JSON.stringify(판, (_k, v: unknown) => (typeof v === 'string' ? 비밀가리기(v, 비밀) : v), 2);
     // 이어받은 폴더면 앞 자식이 이 이름에 링크를 심어 뒀을 수 있다 — 지우고 새로 만든다(링크를 따라가 남의 파일에 쓰지 않게)
     rmSync(지금판, { force: true });
     writeFileSync(지금판, 가린글, { mode: 0o644, flag: 'wx' });
@@ -80,15 +81,28 @@ export async function 판받기(
   }
 }
 
-/** 이어받은 폴더에 앞 자식이 쓴 결과 파일 — 원장 사본에 그 임시 번호를 이어 싣는다. 없거나 못 읽으면 undefined */
-export function 앞결과(자리: 사본): unknown {
+/**
+ * 이어받은 폴더에 앞 자식이 쓴 결과 파일 — 원장 사본에 그 임시 번호를 이어 싣는다. 없거나 못 읽으면 undefined.
+ * 앞 실행이 올린 뒤 번호를 바꿔 적기 전에 멈췄으면 그 항목은 이미 판에 있다(문장으로 번호를 물려받는다) — 표와 결과 파일의 임시 번호를
+ * 그 번호로 먼저 바꿔 둔다. 안 바꾸면 원장은 받은 번호 · 표는 임시 번호라 자식이 관문 0 을 못 넘긴다. 자식은 아직 안 떴다
+ */
+export function 앞결과(자리: 사본, 지금: readonly PrdItem[], 서비스: string): unknown {
   const 파일 = 산출물읽기(자리, 결과이름, 본문상한);
   if ('사유' in 파일 || 파일.몸 === null) return undefined;
+  const 글 = 파일.몸.toString('utf8');
+  let 몸: unknown;
   try {
-    return JSON.parse(파일.몸.toString('utf8')) as unknown;
+    몸 = JSON.parse(글);
   } catch {
     return undefined;
   }
+  const 옮긴 = 옮긴것읽기(몸, 서비스);
+  if ('사유' in 옮긴) return 몸;
+  const 맞춤 = new Map(판합치기(지금, 옮긴).items.flatMap((i) => (i.reqId !== undefined && i.임시 !== undefined ? [[i.임시, i.reqId] as const] : [])));
+  if (맞춤.size === 0 || 표번호바꾸기(자리.트리, 서비스, 맞춤) !== null) return 몸;
+  const 새글 = 번호바꾸기(글, 맞춤);
+  writeFileSync(join(자리.자료, 'out', 결과이름), 새글);
+  return JSON.parse(새글) as unknown;
 }
 
 /**
@@ -140,9 +154,9 @@ export async function 옮기기올리기(
       const 까닭 = [받음?.error, 받음?.detail].filter((v) => typeof v === 'string').join(' ');
       return 못함(`${String(답.status)}${까닭 === '' ? '' : ` ${까닭}`}`);
     }
-    // 새 번호는 저장된 판에서 읽는다 — 그 사이 다른 저장이 끼었으면 어느 번호가 우리 것인지 모른다
+    // 새 번호는 저장된 판에서 문장으로 짝지어 읽는다(응답에는 번호가 없다 — 계약 변경 없이)
     const 저장 = await 지금판읽기(서버, 서비스, 번호);
-    if ('까닭' in 저장 || 저장.version !== 받음.version) return 못함(`올린 판(${String(받음.version)})을 다시 못 읽어 새 번호를 모른다`);
+    if ('까닭' in 저장) return 못함(`올린 판(${String(받음.version)})을 다시 못 읽어 새 번호를 모른다 (${저장.까닭})`);
     const 맞춤 = 새번호맞추기(합친.items, 저장.items);
     if ('사유' in 맞춤) return 못함(맞춤.사유);
     // 표와 결과 파일의 임시 번호를 바꿔 적는다 — 이어하기가 이 파일을 다시 올려도 같은 번호를 가리키게.
@@ -150,7 +164,9 @@ export async function 옮기기올리기(
     const 표막힘 = 표번호바꾸기(자리.트리, 서비스, 맞춤);
     if (표막힘 !== null) return 못함(표막힘);
     if (맞춤.size > 0) writeFileSync(join(자리.자료, 'out', 결과이름), 번호바꾸기(글, 맞춤));
-    const 원장값 = 표준원장(저장.items);
+    // 원장은 자식이 본 것과 같게 — 자식 앞 판에 결과 파일을 합친 항목에 받은 번호를 단다. 저장된 판으로 만들면 사람이 남긴 항목 ·
+    // 그 사이 다른 저장이 차례를 밀어 칸 번호(원장 차례로 매긴다)가 어긋난다 (2026-10-10 코드 검토)
+    const 원장값 = 표준원장(판합치기(앞.items, 옮긴).items.map((i) => (i.임시 !== undefined && 맞춤.has(i.임시) ? { ...i, reqId: 맞춤.get(i.임시) } : i)));
     const 사람것 = Array.isArray(받음.keptByPerson) ? 받음.keptByPerson.filter((v): v is string => typeof v === 'string') : [];
     return {
       줄: [...판줄들(받음.version, 옮긴, 합친, 사람것), ...대조],
