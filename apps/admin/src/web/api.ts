@@ -183,6 +183,15 @@ export interface RunInsights {
   빠진건수: number;
   케이스들: { tcId: string; tcName: string; platform: Platform; 판정: 변화 }[];
   실패덩어리들: 실패덩어리[];
+  /** 이 실행에서 실패한 케이스가 덮는 요구 — 지금 판 기준이라 실행 때 박제하지 않는다 (도메인/리포팅 「실패 요구사항」). 선택으로 둔 것은 이 칸을 모르는 기존 가짜 응답을 안 고치려고다 */
+  실패요구들?: 실패요구[];
+}
+
+export interface 실패요구 {
+  reqId: string;
+  /** 표준 기획서 지금 판에 없는 번호면 null */
+  text: string | null;
+  tcIds: string[];
 }
 
 export interface RunItemSummary {
@@ -236,10 +245,19 @@ export interface FailureDevice {
   item: RunItemDetail;
 }
 
+/** 실패 카드의 「실패 원인」 판정. SCREEN 이 BUG 를 이긴다 */
+export type FailureJudgment =
+  | { kind: 'SCREEN'; requestId: number; byName: string; at: string }
+  | { kind: 'BUG'; byName: string; at: string }
+  | null;
+
 export interface FailureCase {
   tcId: string;
   tcName: string;
   devices: FailureDevice[];
+  /** 그 케이스가 지도 ① 로 덮는 요구. text 가 null 이면 표준 기획서 지금 판에 없는 번호 */
+  reqs: { reqId: string; text: string | null }[];
+  judgment: FailureJudgment;
 }
 
 /** 케이스 한 건의 실행 이력 한 줄 (SPEC §7 `GET /api/cases/:tcId/history`) */
@@ -850,6 +868,9 @@ export const api = {
   /** 끝난 실행의 확정 실패를 케이스 카드로 쪽 단위로 준다. 디바이스 거르기는 서버가 한다 (SPEC §7) */
   failures: (runId: number, page: number, platform?: Platform) =>
     call<Paged<FailureCase>>(`/runs/${runId}/failures?page=${page}${platform === undefined ? '' : `&platform=${platform}`}`),
+
+  /** 실패 카드의 「버그」 판정. 이미 있으면 처음 것이 돌아온다 (SPEC §7) */
+  markBug: (runId: number, tcId: string) => call<{ byName: string; at: string }>(`/runs/${runId}/bugs`, json({ tcId })),
 
   createRun: (body: {
     title: string;

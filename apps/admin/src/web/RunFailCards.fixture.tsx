@@ -15,6 +15,7 @@ import {
   type StepResult,
 } from './api.js';
 import { RunFailCards } from './RunFailCards.js';
+import type { 판정 } from './role.js';
 
 export const RUN_ID = 5011;
 
@@ -76,8 +77,8 @@ export function 장치(platform: Platform, historyId: number, 덮을것: Partial
   };
 }
 
-export function 케이스(tcId: string, tcName: string, devices: FailureDevice[]): FailureCase {
-  return { tcId, tcName, devices: devices.map((d) => ({ ...d, item: { ...d.item, tcId, tcName } })) };
+export function 케이스(tcId: string, tcName: string, devices: FailureDevice[], 덮을것: Partial<FailureCase> = {}): FailureCase {
+  return { tcId, tcName, reqs: [], judgment: null, devices: devices.map((d) => ({ ...d, item: { ...d.item, tcId, tcName } })), ...덮을것 };
 }
 
 export function 쪽(items: FailureCase[], 덮을것: Partial<Paged<FailureCase>> = {}): Paged<FailureCase> {
@@ -102,8 +103,13 @@ export function 줄(historyId: number, tcId: string, platform: Platform, status:
   };
 }
 
-export function 그리기(응답: Paged<FailureCase>, items: RunItemSummary[] = [줄(1, 'ZZI-0001', 'desktop', 'FAIL')], platform: Platform | 'ALL' = 'ALL') {
+export function 그리기(
+  응답: Paged<FailureCase>,
+  items: RunItemSummary[] = [줄(1, 'ZZI-0001', 'desktop', 'FAIL')],
+  platform: Platform | 'ALL' = 'ALL',
+  권한: 판정 = () => true,
+) {
   const 부름 = vi.spyOn(api, 'failures').mockResolvedValue(응답);
-  const 결과 = render(<RunFailCards runId={RUN_ID} env="qa" items={items} platform={platform} />);
+  const 결과 = render(<RunFailCards runId={RUN_ID} env="qa" items={items} platform={platform} 권한={권한} />);
   return { 부름, ...결과 };
 }

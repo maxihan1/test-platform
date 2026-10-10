@@ -69,6 +69,7 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/runs': 실행쓰기,
   'POST /api/runs/:runId/abort': 실행쓰기,
   'POST /api/runs/:runId/evidence': 실행쓰기,
+  'POST /api/runs/:runId/bugs': 실행쓰기,
 
   // E2E 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7 · 인증 §7 「등급으로 갈리는 자리」)
   'GET /api/scenarios': 실행읽기,

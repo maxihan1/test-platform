@@ -114,4 +114,6 @@ export const 오류영어: Record<string, string> = {
   '테스트에 반영할 바뀐 요구가 없습니다': 'No changed requirements to apply to tests',
   '이미 열린 반영 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤 다시 누릅니다':
     'An apply request is already open. Merge or discard it, then try again',
+  '이 실행에서 실패한 케이스가 아닙니다': 'This case did not fail in this run',
+  '이 케이스가 덮는 요구가 표준 기획서에 없습니다': 'The requirements this case covers are not in the PRD',
 };

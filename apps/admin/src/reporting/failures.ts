@@ -7,6 +7,7 @@ import { 최근몇건 } from '../execution/history.js';
 import type { RunItemDetail } from '../execution/runTypes.js';
 import { 판정접기식 } from './dashboardSql.js';
 import { 연속실패수, 쪽을자른다, 케이스로묶는다, type 실패행, type 실패디바이스, type 카드변화 } from './failuresShape.js';
+import { 카드요구들, 판정들, type 카드요구, type 판정 } from './failReqs.js';
 import { compareWithPrevious, db } from './insights.js';
 
 export interface FailureDevice extends Omit<실패디바이스, 'firstFailedHistoryId'> {
@@ -19,6 +20,9 @@ export interface FailureCase {
   tcId: string;
   tcName: string;
   devices: FailureDevice[];
+  /** 지도 ① 로 덮는 요구 — 지금 판 기준이라 실행 때 박제하지 않는다 */
+  reqs: 카드요구[];
+  judgment: 판정;
 }
 
 export interface FailureCards {
@@ -93,11 +97,16 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
     }
   }
 
+  const tcIds = 쪽.items.map((c) => c.tcId);
+  const [요구표, 판정표] = await Promise.all([카드요구들(runId, tcIds), 판정들(runId, tcIds)]);
+
   // ponytail: 쪽 크기만큼 묻는다 — 쪽이 커지면 한 질의로 모은다
   const items = await Promise.all(
     쪽.items.map(async (c): Promise<FailureCase> => ({
       tcId: c.tcId,
       tcName: c.tcName,
+      reqs: 요구표.get(c.tcId) ?? [],
+      judgment: 판정표.get(c.tcId) ?? null,
       devices: await Promise.all(
         c.devices.map(async ({ firstFailedHistoryId, ...나머지 }): Promise<FailureDevice> => {
           const item = await findItem(runId, firstFailedHistoryId);
