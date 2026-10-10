@@ -8,7 +8,7 @@ import type { PrdItem } from '@platform/kit/types';
 import { type 들어온항목, 번호수, 항목검사 } from '../apps/admin/src/prd/rules.js';
 import { type 설계, 설계하기 } from './authoring-design.js';
 import { 경고줄 } from './authoring-design-check.js';
-import { type 원장, type 원장항목, 가족 } from './authoring-ledger.js';
+import { type 원장, type 원장항목, 가족, 번호찾기 } from './authoring-ledger.js';
 
 /**
  * 결과 파일의 항목. `임시` 는 번호가 아직 없는 새 항목에 자식이 단 자리 번호(`<접두사>-NEW-001`)다 —
@@ -234,6 +234,23 @@ export function 표준원장(items: readonly 옮긴항목[]): 원장 | { 없음:
   const 가족들: Record<string, number> = {};
   for (const h of 항목) 가족들[가족(h.번호)] = (가족들[가족(h.번호)] ?? 0) + 1;
   return { 항목, 가족: 가족들, 모드: { '표준 기획서': '번호' }, 경고: [], 빠진자료: [], 꼴: {} };
+}
+
+/**
+ * 원본 번호 → 그 번호를 근거로 단 항목 번호들(원장 차례 · 임시 번호 포함). 표준 기획서 전에 만든 표(옛 표)의 줄이 출처에 원본 번호를 적어
+ * 칸 재료가 이것으로 옛 tcId 를 물려준다 (§3.6 「★ 표준 기획서」 「기존 서비스」 · PRD-F3-03). 화면 근거(주소)는 번호가 아니라 안 든다
+ */
+export function 옛번호지도(items: readonly 옮긴항목[]): Map<string, string[]> {
+  const 지도 = new Map<string, string[]>();
+  for (const i of items) {
+    const 번호 = i.reqId ?? i.임시;
+    if (번호 === undefined) continue;
+    for (const ref of new Set(i.basis.flatMap((b) => 번호찾기(b.ref ?? '').번호들))) {
+      const 목록 = 지도.get(ref) ?? [];
+      if (!목록.includes(번호)) 지도.set(ref, [...목록, 번호]);
+    }
+  }
+  return 지도;
 }
 
 /**

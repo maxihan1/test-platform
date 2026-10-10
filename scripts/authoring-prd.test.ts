@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { PrdItem } from '@platform/kit/types';
 
 import { 설계하기 } from './authoring-design.js';
-import { type 옮긴것, 대조줄들, 보낼항목, 새번호맞추기, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
+import { type 옮긴것, 대조줄들, 보낼항목, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
 
 const 근거 = (ref: string, quote = '원문') => ({ from: '기획서.docx', ref, quote });
 const 항목 = (text: string, refs: string[], 더: Partial<PrdItem> = {}) => ({
@@ -219,6 +219,22 @@ describe('표준원장 — 작성의 원장은 표준 기획서 항목이다', (
     expect('항목' in r && r.항목[0]?.설계?.경계.map((b) => b.값)).toEqual([['7자', '8자', '16자', '17자']]);
     expect('항목' in r && r.가족).toEqual({ 'MKT-REQ': 1, 'MKT-NEW': 1 });
     expect(표준원장([])).toEqual({ 없음: '표준 기획서에 항목이 없다' });
+  });
+});
+
+describe('옛번호지도 — 원본 번호 → 그 번호를 근거로 단 항목 (PRD-F3-03)', () => {
+  it('근거의 원본 번호마다 항목 번호를 원장 차례로 모은다 · 임시 번호도 든다 · 화면 주소는 번호가 아니다', () => {
+    const 지도 = 옛번호지도([
+      있던(1, '아이디는 4자 이상이다', { basis: [근거('REQ-MEM-001'), 근거('§4.1 REQ-MEM-001')] }),
+      { ...항목('아이디는 12자 이하다', ['REQ-MEM-001', 'REQ-MEM-002']), 임시: 'MKT-NEW-001' },
+      { ...항목('이름 오류 문구가 보인다', [], { basis: [{ from: '화면', ref: '/signup', quote: '이름은 2~10자입니다' }, 근거('REQ-MEM-006')], status: 'NEEDS_CHECK' }), 임시: 'MKT-NEW-002' },
+      항목('번호 없는 항목', ['REQ-MEM-009']),
+    ]);
+    expect([...지도]).toEqual([
+      ['REQ-MEM-001', ['MKT-REQ-001', 'MKT-NEW-001']],
+      ['REQ-MEM-002', ['MKT-NEW-001']],
+      ['REQ-MEM-006', ['MKT-NEW-002']],
+    ]);
   });
 });
 
