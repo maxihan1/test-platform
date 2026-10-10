@@ -49,7 +49,7 @@ describe('화면지도줄들', () => {
     await mkdir(join(뿌리, 'xcs', 'pages'), { recursive: true });
     await mkdir(join(뿌리, 'xcs', 'components'), { recursive: true });
     await writeFile(join(뿌리, 'xcs', 'pages', 'cart.page.ts'), "export class CartPage {\n  static readonly 주소 = '/cart';\n}");
-    await writeFile(join(뿌리, 'xcs', 'components', 'site-header.component.ts'), 'export class SiteHeader {}');
+    await writeFile(join(뿌리, 'xcs', 'components', 'site-header.component.ts'), "export class SiteHeader {\n  static readonly 주소 = '/';\n}");
     await writeFile(
       join(뿌리, 'xcs', 'XCS-001.spec.ts'),
       "import { CartPage } from './pages/cart.page.js';\nimport { SiteHeader } from './components/site-header.component.js';",
@@ -61,7 +61,7 @@ describe('화면지도줄들', () => {
     await rm(뿌리, { recursive: true, force: true });
   });
 
-  it('케이스마다 화면 파일을 저장소 뿌리 기준 경로로 잇고 주소를 붙인다', async () => {
+  it('케이스마다 화면 파일을 저장소 뿌리 기준 경로로 잇고 주소를 붙인다 — 화면 조각은 값을 적어 둬도 주소가 없다', async () => {
     const 명세 = (tcId: string) => ({ tcId, filePath: `xcs/${tcId}.spec.ts` }) as CaseSpec;
     expect(await 화면지도줄들(뿌리, [명세('XCS-001'), 명세('XCS-002')])).toEqual([
       { tcId: 'XCS-001', file: 'tests/xcs/pages/cart.page.ts', screenUrl: '/cart' },

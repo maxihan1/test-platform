@@ -66,7 +66,10 @@ export async function 화면지도줄들(root: string, specs: CaseSpec[]): Promi
     const 자리 = posix.dirname(spec.filePath.split(sep).join('/'));
     for (const 상대 of 가져온화면파일(await readFile(join(root, spec.filePath), 'utf8'))) {
       const 경로 = posix.join(자리, 상대);
-      if (!주소들.has(경로)) 주소들.set(경로, 화면주소(await readFile(join(root, 경로), 'utf8')));
+      // 화면 조각은 여러 화면에 나오므로 주소가 없다 — 값을 적어 둬도 넣지 않는다 (공통/4-데이터모델 case_screen)
+      if (!주소들.has(경로)) {
+        주소들.set(경로, 상대.startsWith('pages/') ? 화면주소(await readFile(join(root, 경로), 'utf8')) : null);
+      }
       줄들.push({ tcId: spec.tcId, file: `tests/${경로}`, screenUrl: 주소들.get(경로) ?? null });
     }
   }
