@@ -80,3 +80,21 @@ describe('줄프롬프트 — 진행 메모 (도메인/작성 §7 「이어하�
     expect(줄프롬프트(것, 'MKT', [])).not.toMatch(/진행 메모/);
   });
 });
+
+describe('줄프롬프트 — 표준 기획서 절 (도메인/작성 §3.6 「★ 표준 기획서」 「옮기기」)', () => {
+  const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
+
+  it('지금 판 경로 · 판 번호 · 결과 자리와 참고 파일을 싣는다', () => {
+    const 입력 = { 지금판: '/w/자료/prd-current.json', 결과: '/w/자료/out/prd.json', 판: 3, 항목수: 41 };
+    const 글 = 줄프롬프트(것, 'MKT', [], undefined, undefined, undefined, undefined, undefined, undefined, 입력);
+    expect(글).toContain('--- 표준 기획서 ---');
+    expect(글).toContain('판 3 · 항목 41');
+    expect(글).toContain('/w/자료/prd-current.json');
+    expect(글).toContain('/w/자료/out/prd.json');
+    expect(글).toContain('references/prd.md');
+  });
+
+  it('옮기지 않는 요청에는 절이 없다', () => {
+    expect(줄프롬프트(것, 'MKT', [])).not.toContain('--- 표준 기획서 ---');
+  });
+});

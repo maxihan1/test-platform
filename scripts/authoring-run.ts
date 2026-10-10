@@ -13,21 +13,10 @@ import { 결제환경, 크레딧먼저, 크레딧바닥났나, 크레딧키이�
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처 } from './authoring-assets.js';
 import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
 import { 자식환경 } from './authoring-chain.js';
-import { type 계정 } from './authoring-copy.js';
+import { type 계정, 사본환경 } from './authoring-copy.js';
 import { 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
 import { type 작업방, 도는번호, 보관하기, 작업방준비 } from './authoring-keeping.js';
-import {
-  type 보고손,
-  type 칠때,
-  type 판정기,
-  거절글,
-  닫으며,
-  돌린다,
-  멈춤,
-  보고손만들기,
-  부른다,
-  친다,
-} from './authoring-io.js';
+import { type 보고손, type 칠때, type 판정기, 거절글, 닫으며, 돌린다, 멈춤, 보고손만들기, 부른다, 친다 } from './authoring-io.js';
 import { 머지처리 } from './authoring-merge.js';
 import { 고치기실행인가, 편집처리 } from './authoring-edit.js';
 import { 자료받기 } from './authoring-marking.js';
@@ -38,7 +27,7 @@ import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
-import { 사본환경 } from './authoring-copy.js';
+import { 옮기기올리기, 판받기 } from './authoring-prd-io.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -230,6 +219,8 @@ async function 사본에서(
     await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' });
     return;
   }
+  // 표준 기획서 — 지금 판을 자식에게 준다. 자료가 없는 요청(화면만 · 반영)과 이어 작성(뿌리가 옮겼다)은 옮기지 않는다 (§3.6 「★ 표준 기획서」 「옮기기」)
+  const 기획서 = 자료들.length === 0 || 이어작성원본 !== null ? null : await 판받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 것.target?.loginPassword);
   // 환경은 **통째로** 준다. 피그마 토큰은 자식에게만, GitHub 자격증명과 에이전트 토큰은 뺀다.
   // 임시 자리는 작업마다 따로 — 공용 /tmp 면 같은 자리 uid 를 받은 다음 건이 앞 건이 심은 캐시를 돌린다.
   // 집을 바꾸는 것은 자리 uid 로 돌 때만 — 맥에서 바꾸면 Playwright 가 ~/Library/Caches 의 브라우저를 못 찾는다 (2026-09-24 코드 검토)
@@ -251,7 +242,7 @@ async function 사본에서(
   const { 돌린것, 크레딧으로 } = await 크레딧먼저(process.env[크레딧키이름] || undefined, (키) => 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
-      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md')),
+      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 기획서 === null || '줄' in 기획서 ? undefined : 기획서.입력),
       env: 결제환경(환경, 키),
       uid: 자식?.uid,
       gid: 자식?.gid,
@@ -290,11 +281,14 @@ async function 사본에서(
     await 손.끝내기(끝낼것);
     return;
   }
+  // 옮긴 표준 기획서는 PR 을 만들기 전에 올린다 — 판 · 대조 줄이 PR 본문 머리에 실린다. 멈춤 · 한도로 끝났으면 위에서 나가 이어하기가 이어 쓴다
+  const 옮긴줄 = 기획서 === null ? [] : '줄' in 기획서 ? [기획서.줄]
+    : await 옮기기올리기({ 주소기지, 토큰 }, 서비스, 것.id, 자리, 기획서.앞판, 원장.원장, { 피그마: 것.figmaToken, 계정: 것.target?.loginPassword });
 
   // 보류 케이스와 원장 셈은 자식의 말이 아니라 코드에서 계산해 끝내기에 싣는다 — 싣는 손은 올리기가 건다 (작성 §3.6)
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 손,
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 화면만, 입력자료: 자료들 },
-    { 값: 원장.원장, 폴더: 케이스자리, 자식, 기준: 원장.기준, 앞지문: 원장.앞지문 }, 단계,
+    { 값: 원장.원장, 폴더: 케이스자리, 자식, 기준: 원장.기준, 앞지문: 원장.앞지문 }, 단계, 옮긴줄,
   );
 }
