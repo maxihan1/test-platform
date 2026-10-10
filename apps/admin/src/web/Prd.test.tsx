@@ -72,7 +72,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
     await screen.findByText('판 12 · 요구 4건');
     fireEvent.click(screen.getByRole('checkbox', { name: 'MKT-REQ-032 고르기' }));
     fireEvent.click(screen.getByRole('button', { name: '고른 1건 확정' }));
-    expect(await screen.findByText('다른 사람이 먼저 PRD 를 저장했습니다. 새 판을 불러왔으니 다시 저장합니다')).toBeTruthy();
+    expect(await screen.findByText('다른 사람이 먼저 PRD 를 바꿨습니다. 새 판을 불러왔으니 확인하고 다시 합니다')).toBeTruthy();
     await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
   });
 

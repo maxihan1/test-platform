@@ -2,7 +2,7 @@
 // 설계 미리보기는 저장하지 않고 작성 에이전트와 같은 판정 함수로 그때 계산한다 — 두 벌이면 미리보기와 실제 작성이 갈린다
 
 import type { PrdItem } from '@platform/kit';
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 
 import { 설계하기 } from '../../../../scripts/authoring-design.js';
 import { use기법말 } from './CaseDetail.js';
@@ -11,13 +11,7 @@ import type { 판짓기 } from './Prd.js';
 import { prdApi, type PrdItemDraft, type PrdNow } from './prdApi.js';
 import { PrdItemForm, 빈요구 } from './PrdItemForm.js';
 import { use나이글, use반영종류글 } from './PrdTodo.js';
-import { 고친판, 묶음들, 반영안됨줄, type 반영종류 } from './prdView.js';
-
-function 뒤집은(모음: Set<string>, 값: string) {
-  const 새것 = new Set(모음);
-  if (!새것.delete(값)) 새것.add(값);
-  return 새것;
-}
+import { 고친판, 뒤집은, 묶음들, 반영안됨줄, type 반영종류 } from './prdView.js';
 
 export function PrdList({
   service,
@@ -43,7 +37,7 @@ export function PrdList({
   const 찾는말 = q.trim().toLowerCase();
   const 찾은것 = 찾는말 === '' ? now.items : now.items.filter((x) => `${x.reqId} ${x.feature} ${x.text}`.toLowerCase().includes(찾는말));
   const 묶음 = 묶음들(찾은것);
-  const 기능들 = 묶음들(now.items).map((g) => g.feature);
+  const 기능들 = [...new Set(now.items.map((x) => x.feature))];
   const 반영표 = new Map(반영안됨줄(now).map((x) => [x.reqId, x.kind]));
   // 찾는 동안은 맞은 묶음을 다 편다 — 접힌 묶음 속에 맞은 줄이 숨으면 「없다」로 읽힌다
   const 열렸나 = (feature: string) => 찾는말 !== '' || 연묶음.has(feature);
@@ -116,7 +110,11 @@ export function PrdList({
                       x={x}
                       반영={반영표.get(x.reqId)}
                       폈나={편줄.has(x.reqId)}
-                      on펴기={() => set편줄(뒤집은(편줄, x.reqId))}
+                      on펴기={() => {
+                        // 고치던 줄을 접으면 취소와 같다 — 다시 펼 때 옛 칸이 버려진 글로 열리지 않게
+                        if (편줄.has(x.reqId) && 고치는 === x.reqId) set고치는(null);
+                        set편줄(뒤집은(편줄, x.reqId));
+                      }}
                       쓰나={쓰나}
                       고치나={고치는 === x.reqId}
                       on고치기={() => set고치는(x.reqId)}
@@ -245,7 +243,7 @@ function 요구줄({
 function 설계미리보기({ text }: { text: string }) {
   const t = use말();
   const 기법말 = use기법말();
-  const 설계 = 설계하기(text);
+  const 설계 = useMemo(() => 설계하기(text), [text]);
   if (설계.경계.length === 0 && 설계.예외.length === 0) return <p className="prd-none">{t('요구 문장에서 잡힌 경계 · 예외가 없습니다')}</p>;
   return (
     <ul className="prd-design">

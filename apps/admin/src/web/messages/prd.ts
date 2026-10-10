@@ -62,14 +62,16 @@ export const 기획서말: Record<string, string> = {
   '원본 문장': 'Source sentence',
   '근거 더하기': 'Add source',
   '이 요구 지우기': 'Delete this requirement',
+  // 「지우기 확인」은 입력값 지우기(Confirm clear)에 이미 쓰인다 — 여기는 요구를 지운다
+  '지우기 확인§요구': 'Confirm delete',
   '지우지 않기': 'Keep it',
   '기능 묶음을 적습니다': 'Enter a feature',
   '요구 문장을 적습니다': 'Enter the requirement',
   '근거를 하나 이상 적습니다': 'Add at least one source',
   '근거마다 자료 이름을 적습니다': 'Every source needs a document name',
   '근거마다 원본 문장을 적습니다': 'Every source needs a sentence',
-  '글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 근거 {근거}개 · 근거 문장 {근거문장}자':
-    'Too long. Limits: feature {묶음} chars · requirement {문장} chars · {근거} sources · source sentence {근거문장} chars',
+  '글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 근거 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 근거 문장 {근거문장}자':
+    'Too long. Limits: feature {묶음} chars · requirement {문장} chars · {근거} sources · document name and source ID {자리} chars · source sentence {근거문장} chars',
 
   // 판 이력
   판: 'Version',

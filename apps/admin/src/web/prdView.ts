@@ -14,8 +14,15 @@ export function 묶음들(items: PrdItem[]): { feature: string; items: PrdItem[]
 
 /** 확인 필요는 오래 기다린 것부터. 시각이 없는 것은 맨 아래 — 서버가 늘 매기지만 옛 판을 되돌리면 빠질 수 있다 */
 export function 확인필요줄(items: PrdItem[]): PrdItem[] {
-  const 언제 = (x: PrdItem) => x.checkSince ?? '￿';
+  const 언제 = (x: PrdItem) => x.checkSince ?? '\uffff';
   return items.filter((x) => x.status === 'NEEDS_CHECK').sort((a, b) => 언제(a).localeCompare(언제(b)));
+}
+
+/** 고른 것 · 편 것 모음에서 값 하나를 넣고 뺀다 */
+export function 뒤집은(모음: ReadonlySet<string>, 값: string) {
+  const 새것 = new Set(모음);
+  if (!새것.delete(값)) 새것.add(값);
+  return 새것;
 }
 
 export type 반영종류 = keyof PrdNow['unapplied'];

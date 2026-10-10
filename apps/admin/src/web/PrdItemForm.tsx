@@ -45,10 +45,11 @@ export function PrdItemForm({
     basis: t('근거를 하나 이상 적습니다'),
     from: t('근거마다 자료 이름을 적습니다'),
     quote: t('근거마다 원본 문장을 적습니다'),
-    long: t('글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 근거 {근거}개 · 근거 문장 {근거문장}자', {
+    long: t('글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 근거 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 근거 문장 {근거문장}자', {
       묶음: 상한.기능묶음,
       문장: 상한.요구문장,
       근거: 상한.근거,
+      자리: 상한.근거자리,
       근거문장: 상한.근거문장,
     }),
   };
@@ -122,7 +123,7 @@ export function PrdItemForm({
         {on지우기 === undefined ? null : 지우기확인 ? (
           <>
             <button type="button" className="btn ghost small set-warn" disabled={busy} onClick={() => void 한다(on지우기)}>
-              {t('지우기 확인')}
+              {t('지우기 확인§요구')}
             </button>
             <button type="button" className="btn ghost small" onClick={() => set지우기확인(false)}>
               {t('지우지 않기')}

@@ -107,8 +107,8 @@ export const 오류영어: Record<string, string> = {
   '지금은 실행할 수 없는 시나리오입니다': 'This scenario cannot run right now',
   '다른 사람이 먼저 저장했습니다. 새로 고침하면 지금 고친 내용이 사라집니다':
     'Someone else saved first. Reloading will discard your current edits',
-  '다른 사람이 먼저 PRD 를 저장했습니다. 새 판을 불러왔으니 다시 저장합니다':
-    'Someone else saved the PRD first. The new version is loaded, so save again.',
+  '다른 사람이 먼저 PRD 를 바꿨습니다. 새 판을 불러왔으니 확인하고 다시 합니다':
+    'Someone else changed the PRD first. The new version is loaded. Check it and try again',
   '요구 번호가 999 까지 찼습니다. 더 넣으려면 운영자와 정합니다':
-    'Requirement IDs are used up to 999. Talk to an admin before adding more.',
+    'Requirement IDs are used up to 999. Talk to an admin before adding more',
 };

@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { use말 } from './i18n.js';
 import type { 판짓기 } from './Prd.js';
 import { prdApi, type PrdNow } from './prdApi.js';
-import { 반영안됨줄, 확인필요줄, type 반영종류 } from './prdView.js';
+import { 뒤집은, 반영안됨줄, 확인필요줄, type 반영종류 } from './prdView.js';
 import { 미확정나이 } from './unconfirmed.js';
 
 /** 「N일째」 · 「오늘」. 시각이 없으면 안 적는다 */
@@ -42,12 +42,6 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
   const 보낼것 = 기다림.filter((x) => 고른.has(x.reqId)).map((x) => x.reqId);
   const 오래된것 = 나이글(now.needsCheck.oldestSince);
 
-  function 뒤집기(reqId: string) {
-    const 새것 = new Set(고른);
-    if (!새것.delete(reqId)) 새것.add(reqId);
-    set고른(새것);
-  }
-
   async function 확정() {
     setBusy(true);
     if (await 짓기((base) => prdApi.confirm(service, base, 보낼것))) set고른(new Set());
@@ -75,7 +69,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
                     type="checkbox"
                     aria-label={t('{번호} 고르기', { 번호: x.reqId })}
                     checked={고른.has(x.reqId)}
-                    onChange={() => 뒤집기(x.reqId)}
+                    onChange={() => set고른(뒤집은(고른, x.reqId))}
                   />
                 ) : null}
                 <span className="prd-id">{x.reqId}</span>

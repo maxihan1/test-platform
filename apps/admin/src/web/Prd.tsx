@@ -38,7 +38,7 @@ export function Prd({ service, 할수 }: { service: string; 할수: 판정 }) {
       return true;
     } catch (err) {
       set알림({ ok: false, 글: message(err, 언어) });
-      // 다른 사람이 먼저 저장했다 — 지금 판을 다시 읽어야 고친 내용을 다시 보낼 수 있다. 고치던 칸은 그대로 남는다
+      // 다른 사람이 먼저 저장했다 — 지금 판을 다시 읽어야 다시 보낼 수 있다. 고치던 칸은 그 요구가 남아 있으면 그대로 남는다
       if (err instanceof ApiError && err.code === 'PRD_STALE') await 판.reload();
       return false;
     }

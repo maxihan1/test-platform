@@ -54,6 +54,16 @@ describe('PRD 관리 — 고치기', () => {
     await vi.waitFor(() => expect(screen.queryByLabelText('요구 문장')).toBeNull());
   });
 
+  it('고치던 줄을 접으면 고치기를 그만두고, 다시 펴면 고치기 전 모습이다', async () => {
+    await 펴서고치기(/회원가입/, /MKT-REQ-031/);
+    fireEvent.change(screen.getByLabelText('요구 문장'), { target: { value: '버릴 글' } });
+    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
+    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
+    expect(screen.queryByLabelText('요구 문장')).toBeNull();
+    expect(screen.getByRole('button', { name: '고치기' })).toBeTruthy();
+    expect(저장).not.toHaveBeenCalled();
+  });
+
   it('빈 칸은 보내지 않고 어느 칸인지 말한다', async () => {
     await 펴서고치기(/회원가입/, /MKT-REQ-031/);
     fireEvent.change(screen.getByLabelText('요구 문장'), { target: { value: '   ' } });
