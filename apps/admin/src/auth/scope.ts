@@ -98,6 +98,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/prd': { 종류: '질의' },
   '/api/prd/versions': { 종류: '질의' },
   '/api/prd/versions/:version': { 종류: '질의' },
+  '/api/prd/export': { 종류: '질의' },
   '/api/prd/confirm': { 종류: '질의' },
   '/api/prd/revert': { 종류: '질의' },
   '/api/prd/apply': { 종류: '질의' },
