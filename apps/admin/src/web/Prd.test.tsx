@@ -116,7 +116,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
   it('반영 안 됨 요구를 덮는 케이스를 쓰는 E2E 시나리오를 버튼 위에 번호 · 이름으로 보인다', async () => {
     const 시나리오: ScenarioRow = { id: 3, name: '회원가입 후 첫 주문', platform: 'desktop', version: 1, partCount: 2, isActive: true, needsCheck: false, runnable: true, lastRun: null };
     const 부름 = vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [시나리오] });
-    const 덮음 = (tcId: string) => ({ tcId, axis: '정상', techniques: [] });
+    const 덮음 = (tcId: string) => ({ tcId, axis: '정상', techniques: [], platforms: ['desktop' as const] });
     지금.mockResolvedValue(판({ cases: { 'MKT-REQ-012': [덮음('MKT-031')], 'MKT-REQ-041': [덮음('MKT-040'), 덮음('MKT-031')], 'MKT-REQ-031': [덮음('MKT-010')] } }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
@@ -128,7 +128,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
   it('반영 안 됨 요구를 덮는 케이스가 없으면 시나리오를 묻지 않고 알림도 없다', async () => {
     const 부름 = vi.fn();
     vi.stubGlobal('fetch', 부름);
-    지금.mockResolvedValue(판({ cases: { 'MKT-REQ-031': [{ tcId: 'MKT-010', axis: '정상', techniques: [] }] } }));
+    지금.mockResolvedValue(판({ cases: { 'MKT-REQ-031': [{ tcId: 'MKT-010', axis: '정상', techniques: [], platforms: ['desktop' as const] }] } }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
     expect(within(칸).getByRole('button', { name: '바뀐 요구 2건 테스트에 반영' })).toBeTruthy();
@@ -138,7 +138,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
 
   it('시나리오 목록을 못 읽으면 알림 없이 버튼만 남고 삭제 경고 문장도 없다', async () => {
     const 부름 = vi.spyOn(scenarioApi, 'list').mockRejectedValue(new ApiError(403, 'FORBIDDEN', '권한이 없습니다'));
-    지금.mockResolvedValue(판({ cases: { 'MKT-REQ-012': [{ tcId: 'MKT-031', axis: '정상', techniques: [] }] } }));
+    지금.mockResolvedValue(판({ cases: { 'MKT-REQ-012': [{ tcId: 'MKT-031', axis: '정상', techniques: [], platforms: ['desktop' as const] }] } }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     const 칸 = await screen.findByRole('region', { name: /반영 안 됨 2건/ });
     await vi.waitFor(() => expect(부름).toHaveBeenCalledWith('MKT', ['MKT-031']));

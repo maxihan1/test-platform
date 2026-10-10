@@ -375,6 +375,52 @@
   margin-left: 6px;
 }
 
+/* 줄 끝 추적표 칸 — 줄 버튼 밖에 선다(버튼 안에는 고리를 못 넣는다). 줄 전체가 한 덩어리로 밝아진다
+   (도메인/작성 §3.6 「메뉴가 곧 요구사항 추적표다」 · 2026-10-11 시안 A) */
+.prd-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 10rem;
+}
+.prd-line:hover {
+  background: var(--rail-active);
+}
+.prd-trace {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  padding: 9px 24px 9px 0;
+  font-size: 12.5px;
+}
+.prd-trace .case-tag {
+  margin-left: 0;
+}
+/* 판정이 아니라 색을 쓰지 않는다 — 테두리만 한 단계 짙게 */
+.prd-uncovered {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+}
+.prd-gfail {
+  color: var(--fail-text);
+}
+.prd-kv {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.prd-kv + .prd-kv {
+  margin-top: 4px;
+}
+.prd-kv b {
+  margin-left: 4px;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
 @media (max-width: 860px) {
   .prd-todo {
     grid-template-columns: minmax(0, 1fr);
@@ -402,6 +448,16 @@
   .prd-row {
     grid-template-columns: minmax(0, 1fr) 14px;
     padding-left: 24px;
+  }
+  .prd-line {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .prd-trace {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    padding: 0 24px 9px;
   }
   .prd-row > .prd-caret {
     grid-column: 2;

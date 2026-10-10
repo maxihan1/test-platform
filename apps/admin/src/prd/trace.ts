@@ -1,7 +1,7 @@
 // 요구사항 추적표의 셈 — 요구 하나를 덮는 케이스에서 기능 · UI 건수 · 종류 · 기법 숫자 · 마지막 결과를 낸다 (도메인/작성 §3.6 「메뉴가 곧 요구사항 추적표다」)
 // 「PRD 관리」 화면과 추적표 엑셀이 같이 쓴다 — 두 벌이면 화면과 엑셀 숫자가 갈린다
 
-import { TECHNIQUES, type ItemStatus, type Platform } from '@platform/kit';
+import { TECHNIQUES, type ItemStatus, type Platform, type Technique } from '@platform/kit';
 
 /** 지도 ① 한 줄 — 번호 하나를 덮는 활성 케이스. platforms 는 케이스 판정에 쓴다 (도메인/작성 §7 GET /api/prd `cases`) */
 export interface 덮는케이스 {
@@ -27,7 +27,7 @@ export interface 추적 {
   /** 지도 ① 의 축마다 케이스 수. 한 케이스가 축 둘을 덮으면 양쪽에 센다 */
   종류: Record<'정상' | '경계' | '예외' | 'UI', number>;
   /** 기능 케이스의 기법마다 케이스 수 — TECHNIQUES 차례, 0 은 뺀다 */
-  기법: [string, number][];
+  기법: [Technique, number][];
   /** 실행 보기 권한이 없으면 null */
   결과: 결과셈 | null;
 }
@@ -52,7 +52,7 @@ export function 추적하기(덮는: 덮는케이스[], 결과: 결과읽기 | n
   // 지도 ① 은 (번호, 케이스, 축) 이 한 줄이라 같은 케이스가 축마다 다시 온다
   const 케이스 = [...new Map(덮는.map((c) => [c.tcId, c])).values()];
   const 기능 = 케이스.filter((c) => !UI번호.test(c.tcId));
-  const 기법 = TECHNIQUES.map((t): [string, number] => [t, 기능.filter((c) => c.techniques.includes(t)).length]).filter(([, n]) => n > 0);
+  const 기법 = TECHNIQUES.map((t): [Technique, number] => [t, 기능.filter((c) => c.techniques.includes(t)).length]).filter(([, n]) => n > 0);
 
   let 셈: 결과셈 | null = null;
   if (결과 !== null) {
