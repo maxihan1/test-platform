@@ -33,6 +33,7 @@ vi.mock('./store.js', () => ({
 }));
 
 vi.mock('./reqMap.js', () => ({ 지도채우기: async () => 0 }));
+vi.mock('./screenMap.js', () => ({ 화면지도채우기: async () => 0 }));
 
 vi.mock('./scanner.js', () => ({
   testsRoot: () => '/뿌리',
