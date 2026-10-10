@@ -61,7 +61,7 @@ export function 줄프롬프트(
 }
 
 /** 에이전트가 만든 원장 — 자식에게는 사본 경로만 준다. 판정은 에이전트가 메모리의 원장으로 한다 (§3.6 「★ 원장」) */
-export type 원장입력 = { 사본: string; 요약: string } | { 없음: string };
+export type 원장입력 = { 사본: string; 요약: string; /** main 표의 옛 줄(출처가 원본 번호뿐) 수 — 옮기는 요청만 */ 옛줄?: number } | { 없음: string };
 
 function 원장절(원장: 원장입력, 서비스: string, 폴더: string | undefined): string[] {
   if ('없음' in 원장) {
@@ -75,6 +75,9 @@ function 원장절(원장: 원장입력, 서비스: string, 폴더: string | und
     '요구사항 표의 번호마다 **케이스 줄(출처 칸) 또는 「제외」 한 줄**을 둬라. 출처 칸에는 이 사본의 번호(`<접두사>-REQ-001` · 새 항목은 임시 번호 `<접두사>-NEW-001`)를 적는다. 규칙은 `tpx-cases` `references/2-requirements.md` 「원장」이다.',
     `관문 넷 앞에 관문 0(원장 대조)을 돌려라: \`npm run check:ledger -- ${원장.사본} docs/cases/${서비스}.md${케이스자리} --agent\``,
     '**올리기 직전에 에이전트가 같은 대조를 다시 한다** — 빠진 번호는 거절하지 않고 PR 본문 머리와 요청의 셈에 「빠짐」으로 남는다. 그래도 관문 0 을 초록으로 만들어라.',
+    ...(원장.옛줄 === undefined || 원장.옛줄 === 0
+      ? []
+      : [`**옛 표다** — main 표의 요구 줄 ${String(원장.옛줄)}개가 표준 기획서 번호가 아니라 원본 번호를 출처에 적었다(표준 기획서 전에 만든 표). \`.claude/skills/tpx-author/references/prd.md\` §6 대로 표를 표준 기획서 번호로 새로 쓰고 옛 줄과 새 표에 없는 옛 케이스 파일을 지워라. tcId 는 번호 명령이 옛 번호를 물려준다.`]),
   ];
 }
 

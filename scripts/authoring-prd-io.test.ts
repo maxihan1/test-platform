@@ -32,7 +32,7 @@ const 결과쓰기 = (몸: unknown) => {
   mkdirSync(join(자리.자료, 'out'), { recursive: true });
   writeFileSync(join(자리.자료, 'out', 'prd.json'), typeof 몸 === 'string' ? 몸 : JSON.stringify(몸));
 };
-const 올리기 = (원본: 원장 | { 없음: string } = 원장하나, 비밀 = {}, 앞판: typeof 앞 = 앞) => 옮기기올리기(서버, 'MKT', 7, 자리, 앞판, 원본, 비밀, null);
+const 올리기 = (원본: 원장 | { 없음: string } = 원장하나, 비밀 = {}, 앞판: typeof 앞 = 앞) => 옮기기올리기(서버, 'MKT', 7, 자리, 앞판, 원본, 비밀, null, 'mkt');
 
 describe('판받기', () => {
   it('지금 판을 자료 폴더에 두고 프롬프트 재료와 앞 판을 돌려준다', async () => {

@@ -12,7 +12,7 @@ import type { 사본 } from './authoring-copy.js';
 import { 거절글, 부른다 } from './authoring-io.js';
 import { type 원장, 번호바꾸기 } from './authoring-ledger.js';
 import type { 기준결정 } from './authoring-ledger-check.js';
-import { type 기준표, 기준결정만들기, 표번호바꾸기 } from './authoring-ledger-io.js';
+import { type 기준표, 기준결정만들기, 옛표줄들, 표번호바꾸기 } from './authoring-ledger-io.js';
 import { 대조줄들, 보낼항목, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
 import { 계정섞였나, 글모두, 비밀가리기 } from './authoring-reverse.js';
 import { 산출물읽기 } from './authoring-upload-reverse.js';
@@ -119,6 +119,8 @@ export async function 옮기기올리기(
   원본원장: 원장 | { 없음: string },
   비밀: { 피그마?: string; 계정?: string | null },
   기준: 기준표 | null,
+  /** 서비스 테스트 폴더 — 옛 표를 옮겼으면 남은 옛 케이스 파일을 본다 */
+  폴더: string,
 ): Promise<{ 줄: string[]; 원장: 원장 | { 없음: string }; 기준: 기준결정 } | { 거절: string; 줄: string[] }> {
   // 자식이 쓴 파일이라 링크 · 크기를 보고 읽는다(역방향 산출물과 같은 손)
   const 파일 = 산출물읽기(자리, 결과이름, 본문상한);
@@ -170,7 +172,7 @@ export async function 옮기기올리기(
     const 원장값 = 표준원장(항목들);
     const 사람것 = Array.isArray(받음.keptByPerson) ? 받음.keptByPerson.filter((v): v is string => typeof v === 'string') : [];
     return {
-      줄: [...판줄들(받음.version, 옮긴, 합친, 사람것), ...대조],
+      줄: [...판줄들(받음.version, 옮긴, 합친, 사람것), ...대조, ...(기준 === null ? [] : 옛표줄들(자리.트리, 서비스, 폴더, 기준.표글))],
       원장: 원장값,
       기준: 기준결정만들기(기준 === null ? null : { ...기준, 접두사: 서비스 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호), 옛번호지도(항목들)),
     };

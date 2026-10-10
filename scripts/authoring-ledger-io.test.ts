@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { 원장과남은번호, 표번호바꾸기, 표준원장사본 } from './authoring-ledger-io.js';
+import { 옛표줄들, 원장과남은번호, 표번호바꾸기, 표준원장사본 } from './authoring-ledger-io.js';
 
 let 뿌리 = '';
 let 트리 = '';
@@ -103,5 +103,35 @@ describe('표준원장사본 — 옛 표 번호 물려받기 (PRD-F3-03)', () =>
     const 결과 = { items: [{ feature: '가입', text: '아이디는 4자 이상이다', basis: [{ from: '기획서.docx', ref: 'REQ-MEM-001', quote: '아이디는 4~12자' }], status: 'CONFIRMED' }] };
     const r = 표준원장사본([], 결과, 'MKT', 기준);
     expect(r.기준.칸재료?.칸).toEqual({ 'MKT-NEW-001|FN|정상|정식#0': 'MKT-FN-001' });
+  });
+});
+
+describe('옛표줄들 — 옛 표를 옮긴 요청의 PR 머리 (PRD-F3-03)', () => {
+  const 머리 = '## 요구사항\n\n| 요구 | 축 | 전제 | 조작 | 결과 | 출처 | tcId | 작성 시점 |\n|---|---|---|---|---|---|---|---|\n';
+  const 행 = (n: number, 출처: string, tcId: string) => `| ${String(n)} | 정상 | 전 | 조 | 결 | ${출처} | ${tcId} | 2026-10-05 |\n`;
+  const 옛표 = 머리 + 행(1, '기획서.docx §2 REQ-COM-001', 'MKT-FN-001') + 행(2, '기획서.docx §2 REQ-COM-002', 'MKT-FN-004') + 행(3, '기획서.docx §2 REQ-COM-003 · 화면에만 — 문구', 'MKT-FN-050');
+
+  it('물려받은 옛 번호 · 남은 옛 출처 줄 · 안 지운 옛 케이스 파일을 센다', () => {
+    writeFileSync(표자리(), 머리 + 행(1, 'MKT-REQ-001', 'MKT-FN-001') + 행(2, 'MKT-REQ-002 · 화면에만 — 문구', 'MKT-FN-050') + 행(3, '기획서.docx §2 REQ-COM-002', 'MKT-FN-004'));
+    mkdirSync(join(트리, 'tests', 'mkt', 'shop'), { recursive: true });
+    for (const t of ['MKT-FN-001', 'MKT-FN-004', 'MKT-FN-050']) writeFileSync(join(트리, 'tests', 'mkt', 'shop', `${t}.spec.ts`), '');
+    expect(옛표줄들(트리, 'MKT', 'mkt', 옛표)).toEqual([
+      '옛 표 옮김: 옛 케이스 3 중 번호 물려받음 2 · 새 표에 없음 1',
+      '⚠️ 옛 출처(원본 번호) 줄이 남음 1 — 요구 3',
+      '⚠️ 새 표에 없는데 안 지운 옛 케이스 파일 1 — MKT-FN-004',
+    ]);
+  });
+
+  it('옮기는 요청이면 원장 입력에 기준 표의 옛 줄 수를 싣는다 — 프롬프트가 갈아쓰기를 알린다', () => {
+    const 자료 = join(뿌리, '자료');
+    mkdirSync(자료);
+    const 깃 = (인자: string[]) => ({ ok: true, 낸것: 인자[0] === 'ls-tree' ? 'docs/cases/MKT.md\0' : 옛표 });
+    const r = 원장과남은번호({ 계획: [], 자료폴더: 자료, 깃, 기준: 'abc', 서비스: 'MKT', 폴더: 'mkt', 이어작성원본: null, 지금: [], 옮긴다: true });
+    expect('막힘' in r || '없음' in r.입력 ? null : r.입력.옛줄).toBe(3);
+  });
+
+  it('기준 표에 옛 줄이 없으면 줄이 없다', () => {
+    writeFileSync(표자리(), 머리 + 행(1, 'MKT-REQ-001', 'MKT-FN-001'));
+    expect(옛표줄들(트리, 'MKT', 'mkt', 머리 + 행(1, 'MKT-REQ-001', 'MKT-FN-001'))).toEqual([]);
   });
 });

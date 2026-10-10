@@ -26,6 +26,12 @@ describe('줄프롬프트 — 원장 절 (도메인/작성 §3.6 「★ 원장�
     expect(글).not.toContain('ledger-missing');
   });
 
+  it('옛 표면 줄 수와 갈아쓰기 지침 자리를 싣는다 · 옛 줄이 없으면 안 싣는다 (PRD-F3-03)', () => {
+    const 글 = 줄프롬프트(것, 'MKT', [], { 폴더: 'mkt', 서버들: [] }, undefined, undefined, { 사본: '/w/ledger.json', 요약: '요구 3', 옛줄: 610 });
+    expect(글).toMatch(/옛 표다.*요구 줄 610개.*references\/prd\.md` §6/);
+    expect(줄프롬프트(것, 'MKT', [], undefined, undefined, undefined, { 사본: '/w/ledger.json', 요약: '요구 3', 옛줄: 0 })).not.toContain('옛 표다');
+  });
+
   it('원장이 없으면 까닭을 싣고 관문 0 을 건너뛰라고 한다', () => {
     const 글 = 줄프롬프트(것, 'MKT', [], undefined, undefined, undefined, { 없음: '글자본이 있는 자료가 없다 — 화면.pdf(PDF)' });
     expect(글).toContain('원장 없음 — 글자본이 있는 자료가 없다 — 화면.pdf(PDF)');
