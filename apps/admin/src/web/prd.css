@@ -58,6 +58,11 @@
   gap: 10px;
   align-items: center;
 }
+/* 반영 칸의 E2E 시나리오 알림은 버튼 위 한 줄을 다 쓴다 */
+.prd-card > footer > .hint {
+  flex-basis: 100%;
+  margin-top: 0;
+}
 .prd-card-empty {
   margin: 0;
   padding: 14px 16px;

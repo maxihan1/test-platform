@@ -8,6 +8,8 @@ export interface PrdNow {
   /** 0 이면 아직 표준 기획서가 없다 */
   version: number;
   items: PrdItem[];
+  /** 지도 ① — 번호마다 덮는 활성 케이스. 반영 칸이 바뀔 수 있는 케이스를 쓰는 E2E 시나리오를 찾는다 */
+  cases: Record<string, { tcId: string; axis: string; techniques: string[] }[]>;
   unapplied: { changed: string[]; added: string[]; removed: string[] };
   needsCheck: { count: number; oldestSince: string | null };
 }
