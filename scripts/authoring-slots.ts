@@ -22,6 +22,8 @@ export interface 칸재료 {
   접두사: string;
   기준줄: string[];
   칸: Record<string, string>;
+  /** 옛 표 줄의 tcId 후보 — 칸 열쇠 → 고를 차례의 tcId 들. 옛 표가 아니면 없다 (PRD-F3-03) */
+  옛칸?: Record<string, string[]>;
   쓰인: string[];
 }
 
@@ -157,7 +159,7 @@ const 물려받는가 = (d: 덩이) => d.원장차례 !== undefined && !문단�
 /**
  * 기준 표 줄로 칸 재료를 만든다 — (칸, 덩이)마다 덩이 안에서 처음 쓸 만한 tcId. 한 번호를 두 덩이에 주지 않는다.
  * `옛번호` 는 원본 번호 → 그 번호를 근거로 단 표준 기획서 항목 번호들(원장 차례)이다. 표준 기획서 전에 만든 표(옛 표)의 줄은 출처가
- * 원본 번호라 원장 칸이 아니다 — 그 tcId 를 후보 항목들의 같은 칸에 모두 걸고, 칸번호가 원장 차례로 처음 나온 칸 하나에만 준다
+ * 원본 번호라 원장 칸이 아니다 — 그 tcId 를 후보 항목들의 같은 칸 후보(`옛칸`)에 쌓고, 칸번호가 원장 차례로 아직 안 준 첫 후보를 준다
  * (작성 §3.6 「★ 표준 기획서」 「기존 서비스」 · PRD-F3-03)
  */
 export function 칸재료만들기(
@@ -178,21 +180,28 @@ export function 칸재료만들기(
     칸[d.열쇠] = t;
     준번호.add(번호열쇠(t));
   }
-  // 원장 칸이 먼저다 — 옛 줄은 원장 칸이 안 잡은 열쇠에만 건다
+  // 옛 표 줄 — 덩이 줄들의 원본 번호 전부로 후보 항목을 찾는다(첫 번호만 보면 뒤 번호만 근거로 단 항목이 못 받는다)
+  const 옛칸: Record<string, string[]> = {};
+  const 걸린수 = new Map<string, number>();
   for (const d of 덩이들) {
-    const 후보 = d.원장차례 === undefined && !문단번호.test(d.요구) ? 옛번호.get(d.요구) : undefined;
-    const t = 후보 === undefined ? undefined : 줄것(d);
-    if (후보 === undefined || t === undefined) continue;
+    if (d.원장차례 !== undefined) continue;
+    const 원본들 = new Set(d.줄들.flatMap((줄) => 번호찾기(줄.출처).번호들).filter((n) => !문단번호.test(n)));
+    const 후보 = new Set([...원본들].flatMap((n) => 옛번호.get(n) ?? []));
+    const t = 후보.size === 0 ? undefined : 줄것(d);
+    if (t === undefined) continue;
     const 꼬리 = d.열쇠.slice(d.요구.length);
-    const 열쇠들 = 후보.map((번호) => `${번호}${꼬리}`).filter((열쇠) => 칸[열쇠] === undefined);
-    for (const 열쇠 of 열쇠들) 칸[열쇠] = t;
-    if (열쇠들.length > 0) 준번호.add(번호열쇠(t));
+    for (const 번호 of 후보) (옛칸[`${번호}${꼬리}`] ??= []).push(t);
+    걸린수.set(t, (걸린수.get(t) ?? 0) + 후보.size);
   }
+  // 갈 곳이 적은 번호를 앞에 — 쪼개진 원본의 번호가 다른 원본의 하나뿐인 자리를 먼저 가져가 그 번호를 잃지 않게.
+  // ponytail: 탐욕 배정이다. 후보가 얽혀 그래도 잃으면 PR 머리 「새 표에 없음」에 보인다 — 잦으면 이분 매칭으로 바꾼다
+  for (const 목록 of Object.values(옛칸)) 목록.sort((가, 나) => (걸린수.get(가) ?? 0) - (걸린수.get(나) ?? 0));
   return {
     접두사,
     // tcId 칸이 「—」인 줄(판정 불가 · 철회)도 기준 줄이다 — 번호 명령이 사람의 줄을 덮어쓰지 않게. 빈칸만 뺀다
     기준줄: 기준줄들.filter((줄) => 줄.tcId !== '').map(기준줄열쇠),
     칸,
+    ...(Object.keys(옛칸).length > 0 ? { 옛칸 } : {}),
     쓰인: [...new Set(쓰인)].sort(),
   };
 }
@@ -223,14 +232,19 @@ export function 칸번호(원장번호들: string[], 줄들: 표줄[], 재료: �
     번호.set(d, tcId);
     잡힌.add(번호열쇠(tcId));
   };
-  // 판정 차례가 결과를 바꾸지 않게 — 물려받기 · 고정을 모든 덩이에 먼저, 그다음 유지, 마지막에 새 번호.
-  // 옛 표 번호는 후보 칸 여럿에 걸려 있다 — 칸 차례(원장 차례)로 처음 나온 덩이 하나만 받는다
-  const 물려줌 = new Set<string>();
+  // 판정 차례가 결과를 바꾸지 않게 — 물려받기 · 고정을 모든 덩이에 먼저, 그다음 유지, 마지막에 새 번호
   for (const d of 덩이들) {
     const 물려 = 재료.칸[d.열쇠];
-    if (!물려받는가(d) || 물려 === undefined || 물려줌.has(번호열쇠(물려))) continue;
-    정하기(d, 물려);
-    물려줌.add(번호열쇠(물려));
+    if (물려받는가(d) && 물려 !== undefined) 정하기(d, 물려);
+  }
+  // 옛 표 번호는 후보 칸 여럿에 걸려 있다 — 칸 차례(원장 차례)로 아직 안 준 첫 후보를 받는다. 원장 칸 물려받기가 먼저다
+  const 준 = new Set([...번호.values()].map(번호열쇠));
+  for (const d of 덩이들) {
+    if (번호.has(d) || !물려받는가(d)) continue;
+    const 옛 = 재료.옛칸?.[d.열쇠]?.find((t) => !준.has(번호열쇠(t)));
+    if (옛 === undefined) continue;
+    정하기(d, 옛);
+    준.add(번호열쇠(옛));
   }
   for (const d of 덩이들) {
     if (번호.has(d) || d.상태 !== '정식' || d.번째 !== 0 || d.원장차례 === undefined || 끝[d.갈래] === 0) continue;

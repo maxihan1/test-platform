@@ -67,10 +67,14 @@ export function 기준결정만들기(
   };
 }
 
-/** 출처가 원본 번호뿐인 요구 줄 — 표준 기획서 전에 만든 표(옛 표)의 줄이다. 번호 없는 줄은 모른다 (§3.6 「★ 표준 기획서」 「기존 서비스」) */
+/**
+ * 출처가 원본 번호뿐인 요구 줄 — 표준 기획서 전에 만든 표(옛 표)의 줄이다. 번호 없는 줄은 모른다 (§3.6 「★ 표준 기획서」 「기존 서비스」).
+ * 「제거함(…)」 줄은 지운 케이스의 기록이라 옛 줄로 안 센다 — 갈아쓸 때도 남는다
+ */
 export function 옛줄들(표글: string, 접두사: string): 표줄[] {
   const 새꼴 = new RegExp(`^${접두사}-(?:REQ|NEW)-\\d+$`);
   return 요구줄들(표글).filter((줄) => {
+    if (줄.tcId.startsWith('제거함(')) return false;
     const 번호들 = 번호찾기(줄.출처).번호들;
     return 번호들.length > 0 && !번호들.some((n) => 새꼴.test(n));
   });
@@ -81,6 +85,15 @@ export function 옛줄들(표글: string, 접두사: string): 표줄[] {
  * 지우지 않고 보이기만 한다 — 자식이 표를 덜 쓰고 끝났을 때 에이전트가 케이스를 무더기로 지우지 않게. 기준 표에 옛 줄이 없으면 빈 목록이다
  */
 export function 옛표줄들(트리: string, 서비스: string, 폴더: string, 기준표글: string): string[] {
+  try {
+    return 옛표셈(트리, 서비스, 폴더, 기준표글);
+  } catch (e) {
+    // 보이기만 하는 줄이다 — 서버에 판을 올린 뒤라 여기서 던지면 다 된 올리기가 거절이 된다
+    return [`⚠️ 옛 표 셈을 못 했다 — ${e instanceof Error ? e.message : String(e)}`];
+  }
+}
+
+function 옛표셈(트리: string, 서비스: string, 폴더: string, 기준표글: string): string[] {
   const 옛번호 = new Set(옛줄들(기준표글, 서비스).map((줄) => 줄.tcId).filter((t) => TCID.test(t)));
   if (옛번호.size === 0) return [];
   const 새표글 = 안전히읽기(join(트리, 'docs', 'cases', `${서비스}.md`)) ?? '';

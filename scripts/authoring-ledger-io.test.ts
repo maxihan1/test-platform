@@ -102,7 +102,7 @@ describe('표준원장사본 — 옛 표 번호 물려받기 (PRD-F3-03)', () =>
     };
     const 결과 = { items: [{ feature: '가입', text: '아이디는 4자 이상이다', basis: [{ from: '기획서.docx', ref: 'REQ-MEM-001', quote: '아이디는 4~12자' }], status: 'CONFIRMED' }] };
     const r = 표준원장사본([], 결과, 'MKT', 기준);
-    expect(r.기준.칸재료?.칸).toEqual({ 'MKT-NEW-001|FN|정상|정식#0': 'MKT-FN-001' });
+    expect(r.기준.칸재료?.옛칸).toEqual({ 'MKT-NEW-001|FN|정상|정식#0': ['MKT-FN-001'] });
   });
 });
 
@@ -128,6 +128,15 @@ describe('옛표줄들 — 옛 표를 옮긴 요청의 PR 머리 (PRD-F3-03)', (
     const 깃 = (인자: string[]) => ({ ok: true, 낸것: 인자[0] === 'ls-tree' ? 'docs/cases/MKT.md\0' : 옛표 });
     const r = 원장과남은번호({ 계획: [], 자료폴더: 자료, 깃, 기준: 'abc', 서비스: 'MKT', 폴더: 'mkt', 이어작성원본: null, 지금: [], 옮긴다: true });
     expect('막힘' in r || '없음' in r.입력 ? null : r.입력.옛줄).toBe(3);
+  });
+
+  it('「제거함」 줄은 옛 줄이 아니다 · 셈이 깨지면 던지지 않고 경고 한 줄이다 — 판을 올린 뒤라 거절이 되면 안 된다', () => {
+    const 제거함 = 행(4, '기획서.docx §2 REQ-COM-004', '제거함(MKT-FN-099)');
+    writeFileSync(표자리(), 머리 + 제거함);
+    mkdirSync(join(트리, 'tests'));
+    writeFileSync(join(트리, 'tests', 'mkt'), '폴더가 아니다');
+    expect(옛표줄들(트리, 'MKT', 'mkt', 머리 + 제거함)).toEqual([]);
+    expect(옛표줄들(트리, 'MKT', 'mkt', 옛표)[0]).toMatch(/^⚠️ 옛 표 셈을 못 했다 — /);
   });
 
   it('기준 표에 옛 줄이 없으면 줄이 없다', () => {
