@@ -125,6 +125,13 @@ describe('PRD 관리 — 고치기', () => {
 });
 
 describe('PRD 관리 — 판 이력', () => {
+  it('작성 쓰기가 없으면 판 이력은 보이고 되돌리기는 아예 없다', async () => {
+    render(<Prd service="MKT" 할수={() => false} />);
+    fireEvent.click(await screen.findByRole('button', { name: '판 이력' }));
+    expect(await screen.findByText('작성 에이전트 · 옮기기')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /되돌리기/ })).toBeNull();
+  });
+
   it('판마다 누가 무엇으로 만들었는지 보이고 지금 판에는 되돌리기가 없다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: '판 이력' }));

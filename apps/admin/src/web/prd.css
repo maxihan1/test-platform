@@ -93,9 +93,13 @@
   color: var(--ink-faint);
   font-size: 12.5px;
 }
+/* 고르는 칸은 케이스 목록(.pick)과 같은 잉크색이다 — 대표색은 화면공통 §8 「대표색」 자리에만 앉는다 */
 .prd-queue input[type='checkbox'] {
   margin: 3px 0 0;
-  accent-color: var(--accent);
+}
+.prd-queue input[type='checkbox'],
+.prd-all-pick input {
+  accent-color: var(--ink);
 }
 .prd-age {
   color: var(--ink-muted);
