@@ -155,8 +155,8 @@ export function Dashboard({
       ) : (
         <div className="dash">
           <실행중줄 목록={읽음.값.running} />
-          {/* 한 번도 안 돈 서비스에 빈 칸 여섯을 늘어놓지 않는다. 미확정만 있어도 돈 것이다 */}
-          {합(읽음.값.passRate.current) + 합(읽음.값.passRate.previous) === 0 && 읽음.값.unconfirmed === 0 ? (
+          {/* 한 번도 안 돈 서비스에 빈 칸 여섯을 늘어놓지 않는다. 미확정도 통과율 숫자에 들어 있다 */}
+          {합(읽음.값.passRate.current) + 합(읽음.값.passRate.previous) === 0 ? (
             <안내판 케이스갈수있나={케이스갈수있나} />
           ) : (
             // 순서가 화면 읽기 순서다. 넓은 화면 배치는 CSS 격자가 자리로 옮긴다

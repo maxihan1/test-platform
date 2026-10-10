@@ -58,13 +58,13 @@ export function 거르는조건(거르개: 실행거르개, 시작번호: number
     값.push(거르개.env);
   }
   // 도는 것은 칸으로 갈리지만 실패 섞임은 집계로 갈린다. 그래서 둘이 다른 절에 붙는다.
-  // 실패는 확정 항목만 본다 — 미확정 실패는 「화면이 바뀌었다」는 신호지 실행의 실패가 아니다 (SPEC 실행 §3.2)
+  // 실패는 미확정 항목도 센다 — 미확정은 꼬리표일 뿐 판정은 같다 (SPEC 실행 §3.2)
   if (거르개.state === 'running') where.push(`r.finished_at IS NULL`);
   // 시나리오 실행은 run_item 이 없어 아래 HAVING 이 늘 0 을 센다. 부품 판정을 접은 값으로 거른다
   if (거르개.state === 'failed' && 시나리오) where.push(`${시나리오판정} = 'FAIL'`);
   const having =
     거르개.state === 'failed' && !시나리오
-      ? `HAVING count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.unconfirmed IS NULL) > 0`
+      ? `HAVING count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL') > 0`
       : '';
 
   return { where: where.length === 0 ? '' : `AND ${where.join(' AND ')}`, having, 값 };
@@ -77,11 +77,9 @@ export function 거르는조건(거르개: 실행거르개, 시작번호: number
  */
 export interface 실행집계 {
   runs: number;
-  /** 확정 항목에 실패도 미실행도 없고 확정 통과가 1건 이상인 실행. 미확정만 돌린 실행은 안 든다 */
+  /** 항목에 실패도 미실행도 도는 것도 없고 통과가 1건 이상인 실행. 미확정 항목도 센다 */
   allPass: number;
-  /** E2E 탭만 싣는다. 접은 판정이 PASS 이지만 미확정 부품이 섞인 실행 — 정식 통과(allPass)로 안 센다 (SPEC 도메인/시나리오 §7) */
-  unconfirmedPass?: number;
-  /** 확정 실패 항목이 하나라도 있는 실행 */
+  /** 실패 항목이 하나라도 있는 실행 */
   hasFail: number;
   /** 평균을 낸 실행 수. 도는 실행은 소요가 없어 빠진다 — 몇 회를 셌는지 화면이 적는다 */
   durationOf: number;
@@ -93,26 +91,22 @@ export interface 실행집계 {
  * 집계는 쪽을 안 탄다. 목록과 **같은 거르개 함수**를 써서 둘이 갈라지지 않게 한다.
  *
  * 한 실행이 「모두 통과」인지는 항목 집계에서 나오므로 실행마다 한 번 접고 그것을 다시 센다.
- * 확정 항목만 센다. 확정 통과가 하나도 없는 실행(미확정만 돌린 실행)은 성공에도 실패에도 안 든다 (SPEC 실행 §3.2)
+ * 미확정 항목도 센다 — 미확정만 돌린 실행도 통과가 있으면 성공이다 (SPEC 실행 §3.2)
  */
 export async function runSummary(service: string, 거르개: 실행거르개): Promise<실행집계> {
   const pool = await db();
   const 조건 = 거르는조건(거르개, 2);
   // 시나리오는 접은 판정 하나를 바깥 셈의 네 칸 모양으로 옮긴다 — 바깥 all_pass·has_fail 식을 두 벌로 두지 않는다.
-  // 미확정이 섞인 PASS 는 pass 가 아니라 unconfirmed_pass 로 간다. FAIL 은 미확정이어도 fail 이다
   const 셈 =
     거르개.kind === 'scenario'
-      ? `(${시나리오판정} = 'PASS' AND NOT ${시나리오미확정})::int AS pass, (${시나리오판정} = 'FAIL')::int AS fail, 0 AS na, 0 AS running,
-                (${시나리오판정} = 'PASS' AND ${시나리오미확정})::int AS unconfirmed_pass`
-      : `0 AS unconfirmed_pass,
-                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS' AND i.unconfirmed IS NULL)::int AS pass,
-                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL' AND i.unconfirmed IS NULL)::int AS fail,
-                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA' AND i.unconfirmed IS NULL)::int AS na,
+      ? `(${시나리오판정} = 'PASS')::int AS pass, (${시나리오판정} = 'FAIL')::int AS fail, 0 AS na, 0 AS running`
+      : `count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS')::int AS pass,
+                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL')::int AS fail,
+                count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'NA')::int AS na,
                 count(i.history_id) FILTER (WHERE i.finished_at IS NULL)::int AS running`;
   const { rows } = await pool.query<{
     runs: number;
     all_pass: number;
-    unconfirmed_pass: number;
     has_fail: number;
     duration_of: number;
     avg_duration_ms: number | null;
@@ -120,7 +114,6 @@ export async function runSummary(service: string, 거르개: 실행거르개): P
   }>(
     `SELECT count(*)::int AS runs,
             count(*) FILTER (WHERE fail = 0 AND na = 0 AND running = 0 AND pass > 0)::int AS all_pass,
-            count(*) FILTER (WHERE unconfirmed_pass > 0)::int AS unconfirmed_pass,
             count(*) FILTER (WHERE fail > 0)::int AS has_fail,
             count(duration)::int AS duration_of,
             avg(duration)::int AS avg_duration_ms,
@@ -142,7 +135,6 @@ export async function runSummary(service: string, 거르개: 실행거르개): P
   return {
     runs: 것?.runs ?? 0,
     allPass: 것?.all_pass ?? 0,
-    ...(거르개.kind === 'scenario' ? { unconfirmedPass: 것?.unconfirmed_pass ?? 0 } : {}),
     hasFail: 것?.has_fail ?? 0,
     durationOf: 것?.duration_of ?? 0,
     avgDurationMs: 것?.avg_duration_ms ?? 0,

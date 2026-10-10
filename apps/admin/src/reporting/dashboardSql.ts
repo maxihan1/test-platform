@@ -37,7 +37,7 @@ export const 접은줄SQL = `
                     f.error->>'message')
            FROM run_item f
            WHERE f.run_id = t.run_id AND f.tc_id = i.tc_id AND f.platform = i.platform
-             AND f.status = 'FAIL' AND f.unconfirmed IS NULL
+             AND f.status = 'FAIL'
            ORDER BY f.history_id
            LIMIT 1) END AS reason
   FROM 대상 t JOIN run_item i ON i.run_id = t.run_id
@@ -50,8 +50,7 @@ export const 접은줄SQL = `
 // 이번 창 실행 수만큼 도므로 실행이 수만 건으로 커져 느려지면 그 인덱스를 더한다(마이그레이션)
 export const 앞판정SQL = `
   SELECT c.run_id AS this_run, i.tc_id, i.platform,
-         ${판정접기식} AS verdict,
-         bool_or(i.unconfirmed IS NOT NULL) AS unconfirmed
+         ${판정접기식} AS verdict
   FROM test_run c
   CROSS JOIN LATERAL (
     SELECT p.run_id FROM test_run p

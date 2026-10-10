@@ -136,7 +136,7 @@ export function 통과율칸({ 값, children }: { 값: 자료; children?: ReactN
             <b className="num">{앞통과율 === null ? '—' : `${앞통과율}%`}</b>
           </li>
         </ul>
-        {값.unconfirmed > 0 ? <p className="dash-axis">{t('미확정 {수}건은 따로 셉니다', { 수: 값.unconfirmed })}</p> : null}
+        {값.unconfirmed > 0 ? <p className="dash-axis">{t('그중 미확정 {수}건', { 수: 값.unconfirmed })}</p> : null}
       </div>
       {children}
     </판칸>
