@@ -40,6 +40,10 @@ describe('항목검사', () => {
     });
   });
 
+  it('reqId 가 null 이면 새 항목이다', () => {
+    expect(항목검사([{ ...새것(), reqId: null }], 'MKT')).toEqual({ items: [새것()] });
+  });
+
   it('999 개를 넘으면 PRD_FULL', () => {
     expect(항목검사(Array.from({ length: 1000 }, () => 새것()), 'MKT')).toEqual({ error: 'PRD_FULL', detail: '1000' });
   });

@@ -116,6 +116,11 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
       (r.json() as { id: number }).id,
     ]);
     expect(행.rows[0]).toEqual({ kind: 'AUTHOR', status: 'PENDING', params: { prdApply: true } });
+
+    const 또 = await 부르기('POST', '/prd/apply');
+    expect([또.statusCode, 또.json()]).toEqual([409, { error: 'APPLY_OPEN', detail: [(r.json() as { id: number }).id] }]);
+    await q('UPDATE authoring_request SET discarded_at = now() WHERE service_id = $1', [서비스]);
+    expect((await 부르기('POST', '/prd/apply')).statusCode).toBe(201);
   });
 
   it('작성 요청 통로로 prdApply 를 실으면 400, 반영 요청의 재실행은 prdApply 를 물려받는다', async () => {

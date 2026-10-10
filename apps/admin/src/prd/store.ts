@@ -3,7 +3,7 @@
 import type { PrdItem } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
 
-import { 줄세우기 } from '../authoring/store.js';
+import { 사슬식, 최신식 } from '../authoring/history.js';
 import { 반영안됨, 사람판, 옮기기판, 판같나, 확정판, type 들어온항목, type 앞판, type 판짓기오류 } from './rules.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
@@ -94,7 +94,10 @@ async function 잠그고<T>(서비스: number, 일: (손: PoolClient) => Promise
   }
 }
 
-/** 새 판을 넣고 번호를 돌려준다. 앞 판과 통째로 같으면 안 넣고 앞 판 번호다 — 옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게 */
+/**
+ * 새 판을 넣고 번호를 돌려준다. 앞 판과 통째로 같으면 안 넣고 앞 판 번호다 — 옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게.
+ * 표준 기획서가 없는데 빈 목록이면 0 이다(빈 판 1 을 만들지 않는다)
+ */
 async function 판넣기(
   손: PoolClient,
   서비스: number,
@@ -104,7 +107,7 @@ async function 판넣기(
   사람: 저장하는사람,
   요청: number | null = null,
 ): Promise<number> {
-  if (앞 !== null && 새.lastNo === 앞.lastNo && 판같나(새.items, 앞.items)) return 앞.version;
+  if (앞 === null ? 새.items.length === 0 : 새.lastNo === 앞.lastNo && 판같나(새.items, 앞.items)) return 앞?.version ?? 0;
   const version = (앞?.version ?? 0) + 1;
   await 손.query(
     `INSERT INTO prd_version (service_id, version, items, last_no, source, request_id, saved_by, saved_by_name)
@@ -173,17 +176,19 @@ export async function 옮기기(
   baseVersion: number,
   items: 들어온항목[],
   사람: 저장하는사람,
-): Promise<{ version: number; keptByPerson: string[] } | 판짓기오류 | { error: 'NOT_RUNNING' }> {
+): Promise<{ version: number; keptByPerson: string[] } | 판짓기오류 | { error: 'NOT_RUNNING'; detail: string }> {
   return 잠그고(서비스, async (손) => {
+    // 라우트가 이미 봤다. 여기는 그 사이 끝난 요청을 막는 그물이다
     const 상태 = await 손.query<{ status: string }>('SELECT status FROM authoring_request WHERE id = $1 FOR UPDATE', [요청]);
-    if (상태.rows[0]?.status !== 'RUNNING') return { error: 'NOT_RUNNING' as const };
+    const 지금상태 = 상태.rows[0]?.status ?? '';
+    if (지금상태 !== 'RUNNING') return { error: 'NOT_RUNNING' as const, detail: 지금상태 };
     const 지금 = await 지금판읽기(손, 서비스);
     const 받은판 = baseVersion === 0 ? null : await 판읽기(손, 서비스, baseVersion);
     if (baseVersion !== 0 && 받은판 === null) return { error: 'BAD_PRD' as const, detail: 'baseVersion' };
     const 새 = 옮기기판(받은판, 지금, items, 접두사, new Date().toISOString());
     if ('error' in 새) return 새;
     const version = await 판넣기(손, 서비스, 지금, 새, 'AGENT', 사람, 요청);
-    await 손.query('UPDATE authoring_request SET prd_version = $2 WHERE id = $1', [요청, version]);
+    await 손.query('UPDATE authoring_request SET prd_version = NULLIF($2, 0) WHERE id = $1', [요청, version]);
     return { version, keptByPerson: 새.keptByPerson };
   });
 }
@@ -227,18 +232,35 @@ export async function 기준판(서비스: number): Promise<PrdItem[] | null> {
   return r.rows[0]?.items ?? null;
 }
 
-/** 「바뀐 요구 N건 테스트에 반영」 — 자료 없는 작성 요청 하나를 곧장 줄에 세운다. 반영 안 됨이 0 이면 세우지 않는다 */
-export async function 반영세우기(서비스: number, 사람: 저장하는사람): Promise<{ id: number } | { error: 'NOTHING_TO_APPLY' }> {
-  const 지금 = await 지금판(서비스);
-  const 차이 = 반영안됨(await 기준판(서비스), 지금?.items ?? []);
+/**
+ * 「바뀐 요구 N건 테스트에 반영」 — 자료 없는 작성 요청 하나를 곧장 줄에 세운다. 반영 안 됨이 0 이면 세우지 않는다.
+ * 열린 반영(폐기 안 됨 · 최신 실행이 병합된 반영이 아님)이 있으면 APPLY_OPEN — 두 번 누르면 같은 판을 고치는 PR 이 둘 선다.
+ * 확인과 넣기를 서비스 잠금 안에서 한다(열린 케이스 고치기 EDIT_OPEN 과 같은 꼴)
+ */
+export async function 반영세우기(
+  서비스: number,
+  사람: 저장하는사람,
+): Promise<{ id: number } | { error: 'NOTHING_TO_APPLY' } | { error: 'APPLY_OPEN'; detail: number[] }> {
+  const [지금, 기준] = await Promise.all([지금판(서비스), 기준판(서비스)]);
+  const 차이 = 반영안됨(기준, 지금?.items ?? []);
   if (차이.changed.length + 차이.added.length + 차이.removed.length === 0) return { error: 'NOTHING_TO_APPLY' };
-  const id = await 줄세우기({
-    서비스,
-    kind: 'AUTHOR',
-    기획서: null,
-    값: { prdApply: true },
-    누가: 사람.username,
-    이름: 사람.displayName,
+  return 잠그고(서비스, async (손) => {
+    const 열린 = await 손.query<{ id: string }>(
+      `WITH RECURSIVE ${사슬식("service_id = $1 AND kind = 'AUTHOR' AND params->>'prdApply' = 'true' AND discarded_at IS NULL")}
+       SELECT r.id FROM authoring_request r
+        WHERE r.id IN (SELECT root_id FROM 사슬)
+          AND NOT EXISTS (SELECT 1 FROM authoring_request m
+                           WHERE m.id = ${최신식('(SELECT id FROM 사슬 WHERE root_id = r.id)')}
+                             AND m.kind = 'MERGE' AND m.status = 'DONE')
+        ORDER BY r.id`,
+      [서비스],
+    );
+    if (열린.rows.length > 0) return { error: 'APPLY_OPEN' as const, detail: 열린.rows.map((x) => Number(x.id)) };
+    const r = await 손.query<{ id: string }>(
+      `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status)
+       VALUES ($1, 'AUTHOR', '{"prdApply": true}', $2, $3, 'PENDING') RETURNING id`,
+      [서비스, 사람.username, 사람.displayName],
+    );
+    return { id: Number(r.rows[0]!.id) };
   });
-  return { id };
 }

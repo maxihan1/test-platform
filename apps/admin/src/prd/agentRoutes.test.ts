@@ -80,8 +80,8 @@ describe.skipIf(연결 === undefined)('표준 기획서 에이전트 통로', ()
     const 끝난것 = await 요청넣기('AUTHOR', 'DONE');
     const r = await app.inject({ method: 'GET', url: `/api/authoring/requests/${끝난것}/prd` });
     expect([r.statusCode, r.json()]).toEqual([409, { error: 'NOT_RUNNING', detail: 'DONE' }]);
-    const 올림 = await app.inject({ method: 'POST', url: `/api/authoring/requests/${끝난것}/prd`, payload: { baseVersion: 0, items: [] } });
-    expect([올림.statusCode, 올림.json()]).toEqual([409, { error: 'NOT_RUNNING' }]);
+    const 올림 = await app.inject({ method: 'POST', url: `/api/authoring/requests/${끝난것}/prd`, payload: { items: 'x' } });
+    expect([올림.statusCode, 올림.json()]).toEqual([409, { error: 'NOT_RUNNING', detail: 'DONE' }]);
   });
 
   it('지금 판을 읽고, 올리면 AGENT 판이 서고 요청의 읽은 판이 그 판이 된다 — 사람이 고친 항목은 남긴다', async () => {

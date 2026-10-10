@@ -43,7 +43,8 @@ export function 항목검사(값: unknown, 접두사: string): { items: 들어�
     const 틀림 = (칸: string): 판짓기오류 => ({ error: 'BAD_PRD', detail: `${String(i)}.${칸}` });
     if (typeof 항목 !== 'object' || 항목 === null) return 틀림('');
     const x = 항목 as Record<string, unknown>;
-    if (x.reqId !== undefined) {
+    // 번호가 없거나 null 이면 새 항목이다 — 화면 폼은 빈 번호를 null 로 보내기 쉽다
+    if (x.reqId !== undefined && x.reqId !== null) {
       if (typeof x.reqId !== 'string' || !꼴.test(x.reqId) || 번호수(x.reqId) === 0) return 틀림('reqId');
       if (본번호.has(x.reqId)) return 틀림('reqId');
       본번호.add(x.reqId);

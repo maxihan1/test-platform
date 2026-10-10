@@ -65,8 +65,12 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     ]);
   });
 
-  it('DB 에서 읽은 판을 그대로 다시 보내면 새 판을 안 만든다', async () => {
+  it('DB 에서 읽은 판을 그대로 다시 보내면 새 판을 안 만든다. 기획서가 없을 때 빈 목록도 판을 안 만든다', async () => {
     const s = await 저장소();
+    expect(await s.사람저장(서비스, 접두사, 0, [], 사람)).toEqual({ version: 0 });
+    const 요청 = await 요청넣기('AUTHOR');
+    expect(await s.옮기기(요청, 서비스, 접두사, 0, [], 사람)).toEqual({ version: 0, keptByPerson: [] });
+    expect(await s.판목록(서비스)).toEqual([]);
     await s.사람저장(서비스, 접두사, 0, [{ ...새것('20개까지'), basis: [{ from: '기획서.docx', ref: 'REQ-9', quote: '20개' }] }], 사람);
     const 지금 = await s.지금판(서비스);
     expect(await s.사람저장(서비스, 접두사, 1, 지금!.items, 사람)).toEqual({ version: 1 });
@@ -91,7 +95,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     expect(행.rows[0]?.prd_version).toBe(1);
     expect((await s.판목록(서비스))[0]?.source).toBe('AGENT');
     const 끝난것 = await 요청넣기('AUTHOR', { status: 'DONE' });
-    expect(await s.옮기기(끝난것, 서비스, 접두사, 1, [], 사람)).toEqual({ error: 'NOT_RUNNING' });
+    expect(await s.옮기기(끝난것, 서비스, 접두사, 1, [], 사람)).toEqual({ error: 'NOT_RUNNING', detail: 'DONE' });
   });
 
   it('기준 판은 가장 최근에 병합된 반영이 병합한 작성 실행이 읽은 판이다. 없으면 전부 반영 안 됨', async () => {
