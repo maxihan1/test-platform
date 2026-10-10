@@ -3,11 +3,16 @@
 //   npm run check:ledger -- <ledger.json> <표.md> [--tests <폴더>] [--agent]   빠짐 · 형식 오류 · 칸 번호 어긋남(--agent 면 설계 칸 빠짐 · 설계 거절 형식 오류도, --tests 까지 주면 기법 어긋남도)이 있으면 종료 코드 1
 //   npm run ledger:number -- <ledger.json> <표.md>                 칸마다 tcId 를 매겨 표를 고쳐 쓴다. 칸 재료가 없으면 종료 코드 2
 //   npm run ledger:design -- <ledger.json>                         설계 목록(요구마다 경계 · 예외 칸)과 요약을 찍는다
+//   npm run prd:ledger -- <자료 폴더>                              작성 자식 — 표준 기획서 지금 판 + 결과 파일로 원장 사본(ledger.json)을 다시 만든다
 
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 
+import type { PrdItem } from '@platform/kit/types';
+
 import type { 읽을자료 } from './authoring-assets.js';
+import { 기준재료이름, 원장사본이름, 표준원장사본 } from './authoring-ledger-io.js';
+import { 옮긴것읽기 } from './authoring-prd.js';
 import { type 원장, 원장만들기 } from './authoring-ledger.js';
 import { 설계글, 설계요약 } from './authoring-design.js';
 import { 설계대조 } from './authoring-design-check.js';
@@ -121,7 +126,46 @@ if (명령 === '뽑기') {
   const 읽은 = JSON.parse(readFileSync(원장파일, 'utf8')) as { 원장?: 원장 };
   console.log(읽은.원장 === undefined ? '원장 없음 — 설계 목록이 없다' : 설계글(읽은.원장.항목));
   process.exit(0);
+} else if (명령 === '표준') {
+  // 작성 자식이 표준 기획서 결과 파일을 쓰거나 고친 뒤 원장 사본을 다시 만든다 — 에이전트가 띄우기 전에 쓴 것과 같은 함수다 (작성 §3.6 「작성은 표준 기획서만 읽는다」)
+  const [폴더] = 인자;
+  if (폴더 === undefined) {
+    console.error('쓰는 법: npm run prd:ledger -- <자료 폴더>');
+    process.exit(2);
+  }
+  const 지금 = JSON.parse(readFileSync(join(폴더, 'prd-current.json'), 'utf8')) as { items: PrdItem[] };
+  const 재료 = JSON.parse(readFileSync(join(폴더, 기준재료이름), 'utf8')) as { 접두사: string; 기준표: { 표글: string; 있는케이스: string[] } | null };
+  const 결과자리 = join(폴더, 'out', 'prd.json');
+  let 옮긴몸: unknown;
+  try {
+    옮긴몸 = existsSync(결과자리) ? JSON.parse(readFileSync(결과자리, 'utf8')) : undefined;
+  } catch (e) {
+    console.log(`결과 파일 JSON 이 깨졌다 — 고친 뒤 다시 돌려라: ${e instanceof Error ? e.message : String(e)}`);
+    process.exit(1);
+  }
+  const 옮긴 = 옮긴몸 === undefined ? null : 옮긴것읽기(옮긴몸, 재료.접두사);
+  if (옮긴 !== null && '사유' in 옮긴) console.log(`결과 파일을 못 읽었다 — ${옮긴.사유}. 지금 판만으로 만든다`);
+  if (옮긴 !== null && !('사유' in 옮긴) && 옮긴.버림.length > 0) console.log(`버린 항목(모양 · 상한 · 겹친 번호): ${옮긴.버림.join(' · ')}`);
+  // 번호 없이 온 새 항목의 임시 번호를 파일에 적어 굳힌다 — 그대로 두면 파일을 고칠 때마다 차례가 밀려 표가 엉뚱한 요구를 가리킨다
+  const 자동 = 옮긴 !== null && !('사유' in 옮긴) ? (옮긴.자동 ?? []) : [];
+  if (자동.length > 0) {
+    const 항목들 = (옮긴몸 as { items: Record<string, unknown>[] }).items;
+    for (const [자리, 번호] of 자동) 항목들[자리]!.reqId = 번호;
+    writeFileSync(결과자리, `${JSON.stringify(옮긴몸, null, 2)}\n`);
+    console.log(`번호 없던 새 항목 ${String(자동.length)}개에 임시 번호를 적었다: ${자동.map(([, n]) => n).join(' · ')}`);
+  }
+  const 기준 = 재료.기준표 === null ? null : { 표글: 재료.기준표.표글, 있는케이스: new Set(재료.기준표.있는케이스) };
+  const r = 표준원장사본(지금.items, 옮긴몸, 재료.접두사, 기준);
+  // 에이전트가 쓴 사본은 root 파일일 수 있다 — 폴더가 자식 것이라 지우고 새로 쓴다
+  rmSync(join(폴더, 원장사본이름), { force: true });
+  writeFileSync(join(폴더, 원장사본이름), r.글);
+  if ('없음' in r.원장) console.log(`원장 없음 — ${r.원장.없음}`);
+  else {
+    const 임시 = r.원장.항목.filter((h) => h.번호.includes('-NEW-')).map((h) => h.번호);
+    console.log(`원장을 다시 만들었다 — 요구 ${String(r.원장.항목.length)} · 확인 필요 ${String(r.원장.항목.filter((h) => h.확인필요).length)} · 임시 번호 ${String(임시.length)}${임시.length > 0 ? `(${임시.slice(0, 10).join(' · ')})` : ''}`);
+  }
+  process.exit(0);
 } else {
-  console.error('쓰는 법: tsx scripts/ledger.ts 뽑기|대조|번호|설계 …');
+  console.error('쓰는 법: tsx scripts/ledger.ts 뽑기|대조|번호|설계|표준 …');
   process.exit(2);
 }

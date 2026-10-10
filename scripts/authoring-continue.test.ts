@@ -1,12 +1,12 @@
 // 남은 요구로 이어 작성 — 에이전트의 남은 번호 · 막힘 사유 (도메인/작성 §3.6 「★ 원장」 「남은 요구로 이어 작성」)
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import { 남은번호, 이어작성막힘 } from './authoring-continue.js';
-import { 기준결정만들기, 기준읽기, 원장과남은번호, 원장준비 } from './authoring-ledger-io.js';
+import { 기준결정만들기, 기준읽기, 원장과남은번호, 표준원장사본 } from './authoring-ledger-io.js';
 import { 칸번호 } from './authoring-slots.js';
 
 const 표 = (요구줄: string[], 제외줄: string[]) =>
@@ -118,40 +118,34 @@ describe('기준읽기 — 기준 SHA 의 표 · 케이스를 git 에서 (이어
   });
 });
 
-describe('원장준비 — 사본에 기준 표의 사람이 뺌 · 다음 요청 · 칸 재료를 싣는다', () => {
-  const 기준표 = 표([줄('REQ-A-1', 'X-FN-001')], ['| REQ-A-2 | 사람이 뺌 | 판정 |', '| REQ-A-3 | 다음 요청 | 시간 |']);
-  it('자식의 관문 0 이 에이전트와 같은 목록 · 재료를 쓴다', () => {
-    const 폴더 = mkdtempSync(join(tmpdir(), 'ledger-io-'));
-    try {
-      const 글 = join(폴더, 'a.txt');
-      writeFileSync(글, 'REQ-A-1 REQ-A-2 REQ-A-3');
-      const 계획 = [{ kind: 'FILE' as const, id: 1, name: 'a.txt', 받을자리: 글, 변환: null, 읽을자리: 글 }];
-      const r = 원장준비(계획, 폴더, { 표글: 기준표, 있는케이스: new Set(['X-FN-001', 'X-FN-007']), 접두사: 'X' });
-      expect('사본' in r.입력).toBe(true);
-      const 사본 = JSON.parse(readFileSync(join(폴더, 'ledger.json'), 'utf8')) as { 사람이뺌?: string[]; 다음요청?: string[]; 칸재료?: { 접두사: string; 쓰인: string[] } | null };
-      expect(사본.사람이뺌).toEqual(['REQ-A-2']);
-      expect(사본.다음요청).toEqual(['REQ-A-3']);
-      expect(사본.칸재료?.접두사).toBe('X');
-      expect(사본.칸재료?.쓰인).toEqual(['X-FN-001', 'X-FN-007']);
-      expect([...r.기준.다음요청]).toEqual(['REQ-A-3']);
-    } finally {
-      rmSync(폴더, { recursive: true, force: true });
-    }
+const 항목 = (n: number, text = `요구 ${String(n)}`) => ({
+  reqId: `X-REQ-${String(n).padStart(3, '0')}`,
+  feature: '가입',
+  text,
+  basis: [{ from: 'a.docx', quote: text }],
+  status: 'CONFIRMED' as const,
+});
+
+describe('표준원장사본 — 표준 기획서 항목이 원장이고 기준 표의 사람이 뺌 · 다음 요청 · 칸 재료를 싣는다', () => {
+  const 기준표 = 표([줄('X-REQ-001', 'X-FN-001')], ['| X-REQ-002 | 사람이 뺌 | 판정 |', '| X-REQ-003 | 다음 요청 | 시간 |']);
+  it('자식의 관문 0 이 에이전트와 같은 목록 · 재료를 쓴다 — 결과 파일의 새 항목은 임시 번호로 든다', () => {
+    const 결과 = { items: [{ feature: '가입', text: '닉네임은 2자 이상', basis: [{ from: '화면', ref: '/join', quote: '2자 이상' }], status: 'CONFIRMED' }] };
+    const r = 표준원장사본([항목(1), 항목(2), 항목(3)], 결과, 'X', { 표글: 기준표, 있는케이스: new Set(['X-FN-001', 'X-FN-007']) });
+    const 사본 = JSON.parse(r.글) as { 원장: { 항목: { 번호: string; 확인필요?: true }[] }; 사람이뺌: string[]; 다음요청: string[]; 칸재료: { 접두사: string; 쓰인: string[] } | null };
+    expect(사본.원장.항목.map((h) => h.번호)).toEqual(['X-REQ-001', 'X-REQ-002', 'X-REQ-003', 'X-NEW-001']);
+    expect(사본.원장.항목[3]?.확인필요).toBe(true);
+    expect(사본.사람이뺌).toEqual(['X-REQ-002']);
+    expect(사본.다음요청).toEqual(['X-REQ-003']);
+    expect(사본.칸재료?.접두사).toBe('X');
+    expect(사본.칸재료?.쓰인).toEqual(['X-FN-001', 'X-FN-007']);
+    expect([...r.기준.다음요청]).toEqual(['X-REQ-003']);
   });
 
-  it('기준 표를 못 읽었으면(null) 칸 재료가 null 이다 — 쓰인 번호를 모르고 매기지 않게', () => {
-    const 폴더 = mkdtempSync(join(tmpdir(), 'ledger-io-'));
-    try {
-      const 글 = join(폴더, 'a.txt');
-      writeFileSync(글, 'REQ-A-1 REQ-A-2 REQ-A-3');
-      const r = 원장준비([{ kind: 'FILE', id: 1, name: 'a.txt', 받을자리: 글, 변환: null, 읽을자리: 글 }], 폴더, null);
-      const 사본 = JSON.parse(readFileSync(join(폴더, 'ledger.json'), 'utf8')) as { 칸재료?: unknown; 다음요청?: string[] };
-      expect(사본.칸재료).toBe(null);
-      expect(사본.다음요청).toEqual([]);
-      expect(r.기준.칸재료).toBe(null);
-    } finally {
-      rmSync(폴더, { recursive: true, force: true });
-    }
+  it('기준 표를 못 읽었으면(null) 칸 재료가 null 이다 · 항목이 없으면 원장 없음이다', () => {
+    const r = 표준원장사본([항목(1)], undefined, 'X', null);
+    expect((JSON.parse(r.글) as { 칸재료?: unknown }).칸재료).toBe(null);
+    expect(r.기준.칸재료).toBe(null);
+    expect(표준원장사본([], undefined, 'X', null).원장).toEqual({ 없음: '표준 기획서에 항목이 없다' });
   });
 });
 
@@ -173,43 +167,42 @@ describe('기준결정만들기 — 기준 표의 「제거함」 번호는 쓰�
 });
 
 describe('원장과남은번호 — 자식 전 원장 준비 전부', () => {
-  const 표글 = 표([줄('REQ-A-1', 'X-001')], ['| REQ-A-2 | 다음 요청 | 시간 |', '| REQ-A-3 | 사람이 뺌 | 판정 |']);
+  const 표글 = 표([줄('X-REQ-001', 'X-001')], ['| X-REQ-002 | 다음 요청 | 시간 |', '| X-REQ-003 | 사람이 뺌 | 판정 |']);
   const 케이스글 = "export const spec = defineCase({ tcId: 'X-001', name: 'n' });";
   const 깃 = (망가짐 = false, 기준표 = 표글) => (인자: string[]) => {
     if (망가짐) return { ok: false, 낸것: '', 까닭: '망가짐' };
     if (인자[0] === 'ls-tree') return { ok: true, 낸것: 'docs/cases/X.md\0tests/x/a.spec.ts\0' };
     return { ok: true, 낸것: 인자[1]?.endsWith('.md') === true ? 기준표 : 케이스글 };
   };
-  const 차리기 = (본문: string) => {
-    const 폴더 = mkdtempSync(join(tmpdir(), 'continue-io-'));
-    const 글 = join(폴더, 'a.txt');
-    writeFileSync(글, 본문);
-    return { 폴더, 계획: [{ kind: 'FILE' as const, id: 1, name: 'a.txt', 받을자리: 글, 변환: null, 읽을자리: 글 }] };
-  };
-  const 부르기 = (폴더: string, 계획: ReturnType<typeof 차리기>['계획'], 망가짐: boolean, 이어작성원본: number | null, 기준표?: string) =>
-    원장과남은번호({ 계획, 자료폴더: 폴더, 깃: 깃(망가짐, 기준표), 기준: 'abc', 서비스: 'X', 폴더: 'x', 이어작성원본 });
+  const 차리기 = (수: number) => ({ 폴더: mkdtempSync(join(tmpdir(), 'continue-io-')), 지금: Array.from({ length: 수 }, (_, i) => 항목(i + 1)) });
+  const 부르기 = (폴더: string, 지금: ReturnType<typeof 항목>[], 망가짐: boolean, 이어작성원본: number | null, 기준표?: string) =>
+    원장과남은번호({ 계획: [], 자료폴더: 폴더, 깃: 깃(망가짐, 기준표), 기준: 'abc', 서비스: 'X', 폴더: 'x', 이어작성원본, 지금, 옮긴다: 이어작성원본 === null });
 
   it('이어 작성이면 남은 번호를 사본에 쓰고 절 재료를 준다 — 기준 표의 사람이 뺌은 빠진다', () => {
-    const { 폴더, 계획 } = 차리기('REQ-A-1 REQ-A-2 REQ-A-3 REQ-A-4');
+    const { 폴더, 지금 } = 차리기(4);
     try {
-      const r = 부르기(폴더, 계획, false, 5873);
+      const r = 부르기(폴더, 지금, false, 5873);
       expect('막힘' in r).toBe(false);
       if ('막힘' in r) return;
-      expect([...r.기준.사람이뺌]).toEqual(['REQ-A-3']);
-      expect([...r.기준.다음요청]).toEqual(['REQ-A-2']);
+      expect([...r.기준.사람이뺌]).toEqual(['X-REQ-003']);
+      expect([...r.기준.다음요청]).toEqual(['X-REQ-002']);
       expect(r.기준.칸재료?.쓰인).toEqual(['X-001']);
-      expect(r.이어작성).toEqual({ 원본: 5873, 남은: ['REQ-A-2', 'REQ-A-4'], 사본: join(폴더, 'continue.json') });
-      expect(JSON.parse(readFileSync(join(폴더, 'continue.json'), 'utf8'))).toEqual({ 원본: 5873, 남은: ['REQ-A-2', 'REQ-A-4'] });
+      expect(r.이어작성).toEqual({ 원본: 5873, 남은: ['X-REQ-002', 'X-REQ-004'], 사본: join(폴더, 'continue.json') });
+      expect(JSON.parse(readFileSync(join(폴더, 'continue.json'), 'utf8'))).toEqual({ 원본: 5873, 남은: ['X-REQ-002', 'X-REQ-004'] });
+      // 이어 작성은 옮기지 않는다 — 원본 원장이 없고 자식이 원장 사본과 다시 만들 재료를 받는다
+      expect(r.원본원장).toEqual({ 없음: '옮기지 않는 요청이다' });
+      expect(JSON.parse(readFileSync(join(폴더, 'ledger-base.json'), 'utf8'))).toMatchObject({ 접두사: 'X', 기준표: { 있는케이스: ['X-001'] } });
+      expect(r.입력).toEqual({ 사본: join(폴더, 'ledger.json'), 요약: '요구 4 · 번호 가족 X-REQ 4' });
     } finally {
       rmSync(폴더, { recursive: true, force: true });
     }
   });
 
   it('이어 작성인데 남은 것이 없으면 막는다', () => {
-    const { 폴더, 계획 } = 차리기('REQ-A-1 REQ-A-2 REQ-A-3');
-    const 다덮은표 = 표([줄('REQ-A-1', 'X-001')], ['| REQ-A-2 | 요구 아님 | 머리말 |', '| REQ-A-3 | 사람이 뺌 | 판정 |']);
+    const { 폴더, 지금 } = 차리기(3);
+    const 다덮은표 = 표([줄('X-REQ-001', 'X-001')], ['| X-REQ-002 | 요구 아님 | 머리말 |', '| X-REQ-003 | 사람이 뺌 | 판정 |']);
     try {
-      const r = 부르기(폴더, 계획, false, 5873, 다덮은표);
+      const r = 부르기(폴더, 지금, false, 5873, 다덮은표);
       expect(r).toEqual({ 막힘: expect.stringContaining('남은 요구가 없다') });
     } finally {
       rmSync(폴더, { recursive: true, force: true });
@@ -217,10 +210,10 @@ describe('원장과남은번호 — 자식 전 원장 준비 전부', () => {
   });
 
   it('기준 표를 못 읽으면 이어 작성은 막고 보통 작성은 사람이 뺌 없이 돈다', () => {
-    const { 폴더, 계획 } = 차리기('REQ-A-1 REQ-A-2 REQ-A-3');
+    const { 폴더, 지금 } = 차리기(3);
     try {
-      expect(부르기(폴더, 계획, true, 5873)).toEqual({ 막힘: expect.stringContaining('망가짐') });
-      const 보통 = 부르기(폴더, 계획, true, null);
+      expect(부르기(폴더, 지금, true, 5873)).toEqual({ 막힘: expect.stringContaining('망가짐') });
+      const 보통 = 부르기(폴더, 지금, true, null);
       expect('막힘' in 보통 ? null : [...보통.기준.사람이뺌]).toEqual([]);
       expect('막힘' in 보통 ? undefined : 보통.기준.칸재료).toBe(null);
       expect('막힘' in 보통 ? undefined : 보통.이어작성).toBe(undefined);

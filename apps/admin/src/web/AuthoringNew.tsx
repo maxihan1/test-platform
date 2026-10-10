@@ -201,7 +201,7 @@ export function AuthoringNew({
                 onChange={(e) => set시작주소(e.target.value)}
               />
             </label>
-            <small>{t('비우면 기획서에 나온 화면에서 시작합니다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 역기획서를 만듭니다')}</small>
+            <small>{t('비우면 기획서에 나온 화면에서 시작합니다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 표준 기획서를 만듭니다')}</small>
           </>
         ) : null}
       </div>

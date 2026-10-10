@@ -22,12 +22,12 @@ import { 고치기실행인가, 편집처리 } from './authoring-edit.js';
 import { 자료받기 } from './authoring-marking.js';
 import { 올리기 } from './authoring-upload.js';
 import { 사용량보고, 흐름풀기 } from './authoring-usage.js';
-import { 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './authoring-progress.js';
+import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } from './authoring-progress.js';
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
-import { 옮기기올리기, 판받기 } from './authoring-prd-io.js';
+import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -210,17 +210,17 @@ async function 사본에서(
   // 역방향 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호를 먼저 가린다 (§3.6 「★ 역방향」)
   const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 것.target?.loginPassword);
   if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));
-  // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로. 기준 표는 트리가 아니라 기준 SHA 에서 (§3.6 「★ 원장」)
+  // 작성은 표준 기획서만 읽는다 — 지금 판으로 원장을 만든다. 못 받으면 원장이 없어 작성하지 않는다 (§3.6 「작성은 표준 기획서만 읽는다」)
+  const 기획서 = await 판받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 것.target?.loginPassword);
+  if ('까닭' in 기획서) return void (await 손.끝내기({ status: 'FAILED', error: 기획서.까닭 }));
+  // 이어 작성만 옮기지 않는다 — 뿌리가 같은 자료를 이미 옮겼다(토큰). 화면만도 옮긴다(항목이 전부 확인 필요)
+  const 옮긴다 = 이어작성원본 === null;
+  // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로. 기준 표는 트리가 아니라 기준 SHA 에서. 이어받은 폴더면 앞 결과 파일의 임시 번호를 잇는다
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
-  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본 });
+  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined });
   if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
   await 손.단계('케이스를 만드는 중');
-  if (박동.멈추라했다()) {
-    await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' });
-    return;
-  }
-  // 표준 기획서 — 지금 판을 자식에게 준다. 자료가 없는 요청(화면만 · 반영)과 이어 작성(뿌리가 옮겼다)은 옮기지 않는다 (§3.6 「★ 표준 기획서」 「옮기기」)
-  const 기획서 = 자료들.length === 0 || 이어작성원본 !== null ? null : await 판받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 것.target?.loginPassword);
+  if (박동.멈추라했다()) return void (await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' }));
   // 환경은 **통째로** 준다. 피그마 토큰은 자식에게만, GitHub 자격증명과 에이전트 토큰은 뺀다.
   // 임시 자리는 작업마다 따로 — 공용 /tmp 면 같은 자리 uid 를 받은 다음 건이 앞 건이 심은 캐시를 돌린다.
   // 집을 바꾸는 것은 자리 uid 로 돌 때만 — 맥에서 바꾸면 Playwright 가 ~/Library/Caches 의 브라우저를 못 찾는다 (2026-09-24 코드 검토)
@@ -242,7 +242,7 @@ async function 사본에서(
   const { 돌린것, 크레딧으로 } = await 크레딧먼저(process.env[크레딧키이름] || undefined, (키) => 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
-      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 기획서 === null || '줄' in 기획서 ? undefined : 기획서.입력),
+      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 옮긴다 ? { ...기획서.입력, 원본: 원장.원본입력, 자료폴더: 자리.자료 } : undefined),
       env: 결제환경(환경, 키),
       uid: 자식?.uid,
       gid: 자식?.gid,
@@ -281,14 +281,19 @@ async function 사본에서(
     await 손.끝내기(끝낼것);
     return;
   }
-  // 옮긴 표준 기획서는 PR 을 만들기 전에 올린다 — 판 · 대조 줄이 PR 본문 머리에 실린다. 멈춤 · 한도로 끝났으면 위에서 나가 이어하기가 이어 쓴다
-  const 옮긴줄 = 기획서 === null ? [] : '줄' in 기획서 ? [기획서.줄]
-    : await 옮기기올리기({ 주소기지, 토큰 }, 서비스, 것.id, 자리, 기획서.앞판, 원장.원장, { 피그마: 것.figmaToken, 계정: 것.target?.loginPassword });
+  // 옮긴 표준 기획서는 PR 을 만들기 전에 올리고 표의 임시 번호를 받은 번호로 바꾼다 — 판 · 대조 줄이 PR 본문 머리에 실리고 원장은 올린 판이다.
+  // 못 올리면 올리기 거절 — 표가 판에 없는 번호를 가리킨다. 멈춤 · 한도로 끝났으면 위에서 나가 이어하기가 이어 쓴다
+  const 옮김 = !옮긴다 ? { 줄: [], 원장: 원장.원장, 기준: 원장.기준 }
+    : await 옮기기올리기({ 주소기지, 토큰 }, 서비스, 것.id, 자리, 기획서.앞판, 원장.원본원장, { 피그마: 것.figmaToken, 계정: 것.target?.loginPassword }, 원장.기준표);
+  if ('거절' in 옮김) {
+    console.log(`[작성] ${것.id}번 표준 기획서를 못 올려 거절한다\n${옮김.줄.join('\n')}`);
+    return void (await 손.끝내기(거절로(사유거르기(옮김.거절, 것.target?.loginPassword))));
+  }
 
   // 보류 케이스와 원장 셈은 자식의 말이 아니라 코드에서 계산해 끝내기에 싣는다 — 싣는 손은 올리기가 건다 (작성 §3.6)
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 손,
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 화면만, 입력자료: 자료들 },
-    { 값: 원장.원장, 폴더: 케이스자리, 자식, 기준: 원장.기준, 앞지문: 원장.앞지문 }, 단계, 옮긴줄,
+    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준 }, 단계, 옮김.줄,
   );
 }
