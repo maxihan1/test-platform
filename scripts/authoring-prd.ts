@@ -88,11 +88,13 @@ export function 판합치기(
 ): { items: 옮긴항목[]; 지운번호: string[]; 모르는번호: string[] } {
   const 있는번호 = new Set(지금.map((i) => i.reqId));
   const 아는번호 = (n: string) => 있는번호.has(n) || 앞번호.has(n);
-  // 기준 판에도 지금 판에도 없는 번호는 서버가 PRD_REUSED 로 판 전체를 거절한다 — 그 항목만 번호를 떼어 새 항목으로 돌린다.
-  // 뗀 번호는 자식이 표 출처 칸에 적었을 수 있다 — 임시 번호로 삼아 올린 뒤 서버가 준 번호로 바꿔 적는다
+  // 기준 판에도 지금 판에도 없는 번호는 서버가 PRD_REUSED 로 판 전체를 거절한다 — 그 항목만 번호를 떼어 새 항목으로 돌리고 새 임시 번호를 단다.
+  // 뗀 번호를 임시 번호로 삼지 않는다 — 지운 번호면 main 표의 옛 줄에도 있어 바꿔 적을 때 그 줄까지 바뀐다
+  let 끝 = Math.max(0, ...옮긴.items.map((i) => Number(/-NEW-(\d+)$/.exec(i.임시 ?? '')?.[1] ?? 0)));
   const 고침 = 옮긴.items.map(({ reqId, ...남은 }) => {
     const 뗀번호 = reqId !== undefined && !아는번호(reqId) ? reqId : undefined;
-    const 항목: 옮긴항목 = reqId !== undefined && 뗀번호 === undefined ? { reqId, ...남은 } : 뗀번호 === undefined ? 남은 : { ...남은, 임시: 남은.임시 ?? 뗀번호 };
+    const 새임시 = (n: string) => `${n.slice(0, n.lastIndexOf('-REQ-'))}-NEW-${String(++끝).padStart(3, '0')}`;
+    const 항목: 옮긴항목 = reqId !== undefined && 뗀번호 === undefined ? { reqId, ...남은 } : 뗀번호 === undefined ? 남은 : { ...남은, 임시: 새임시(뗀번호) };
     return { 항목, 뗀번호 };
   });
   // 기능 묶음과 요구 문장이 같은 새 항목은 지금 판 번호를 물려받는다 — 자식이 번호 달기를 빠뜨려도 같은 원본을 다시 옮길 때 같은 요구가 둘이 되지 않게.

@@ -196,10 +196,11 @@ describe('임시 번호 — 새 항목은 자식이 표에 적을 자리 번호�
     expect('items' in r && r.버림).toEqual(['2.reqId', '3.reqId']);
   });
 
-  it('판합치기 — 지금 판에 없는 번호는 임시 번호가 되고 문장이 같은 기존 항목은 번호를 물려받으며 임시 번호를 들고 간다', () => {
+  it('판합치기 — 지금 판에 없는 번호는 떼고 새 임시 번호를 단다(뗀 번호를 쓰면 main 표의 옛 줄까지 바뀐다) · 문장이 같은 기존 항목은 번호를 물려받으며 임시 번호를 들고 간다', () => {
     const 지금 = [있던(1, '아이디는 4자 이상')];
     const r = 판합치기(지금, 옮김([{ ...항목('아이디는 4자 이상', ['REQ-MEM-001']), 임시: 'MKT-NEW-001' }, 항목('새 규칙', ['REQ-MEM-011'], { reqId: 'MKT-REQ-099' })]));
-    expect(r.items.map((i) => [i.reqId, i.임시])).toEqual([['MKT-REQ-001', 'MKT-NEW-001'], [undefined, 'MKT-REQ-099']]);
+    expect(r.items.map((i) => [i.reqId, i.임시])).toEqual([['MKT-REQ-001', 'MKT-NEW-001'], [undefined, 'MKT-NEW-002']]);
+    expect(r.모르는번호).toEqual(['MKT-REQ-099']);
   });
 
   it('보낼항목은 임시 번호를 뗀다', () => {
