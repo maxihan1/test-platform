@@ -64,6 +64,7 @@ export const 기획서말: Record<string, string> = {
   'UI {건수}건': '{건수} UI',
   '실패 {건수} / {전체}': '{건수} of {전체} failed',
   '미실행 {건수} / {전체}': '{건수} of {전체} not run',
+  '마지막 결과를 못 읽었습니다 — {까닭}': 'Could not load the latest results — {까닭}',
 
   // 고치기 · 더하기 칸
   '새 요구': 'New requirement',

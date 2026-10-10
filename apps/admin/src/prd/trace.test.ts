@@ -1,3 +1,4 @@
+// 요구사항 추적표 셈(prd/trace.ts)이 케이스 판정 · 종류 · 기법 · 결과를 규칙대로 세는지 본다
 import type { ItemStatus, Platform } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 

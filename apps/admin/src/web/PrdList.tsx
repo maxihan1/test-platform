@@ -109,11 +109,9 @@ export function PrdList({
         묶음.map((g) => {
           const 확인수 = g.items.filter((x) => x.status === 'NEEDS_CHECK').length;
           const 반영수 = g.items.filter((x) => 반영표.has(x.reqId)).length;
-          const 안덮임수 = g.items.filter((x) => 추적of(x.reqId).기능.length + 추적of(x.reqId).UI.length === 0).length;
-          const 실패수 = g.items.filter((x) => {
-            const 셈 = 추적of(x.reqId).결과;
-            return 셈 !== null && 요구판정(셈) === 'FAIL';
-          }).length;
+          const 추적들 = g.items.map((x) => 추적of(x.reqId));
+          const 안덮임수 = 추적들.filter((a) => a.기능.length + a.UI.length === 0).length;
+          const 실패수 = 추적들.filter((a) => a.결과 !== null && 요구판정(a.결과) === 'FAIL').length;
           return (
             <div className="prd-group" key={g.feature}>
               <button className="prd-ghead" aria-expanded={열렸나(g.feature)} onClick={() => set연묶음(뒤집은(연묶음, g.feature))}>

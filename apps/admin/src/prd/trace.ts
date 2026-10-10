@@ -1,7 +1,8 @@
 // 요구사항 추적표의 셈 — 요구 하나를 덮는 케이스에서 기능 · UI 건수 · 종류 · 기법 숫자 · 마지막 결과를 낸다 (도메인/작성 §3.6 「메뉴가 곧 요구사항 추적표다」)
 // 「PRD 관리」 화면과 추적표 엑셀이 같이 쓴다 — 두 벌이면 화면과 엑셀 숫자가 갈린다
 
-import { TECHNIQUES, type ItemStatus, type Platform, type Technique } from '@platform/kit';
+// kit 묶음 입구는 러너 쪽(Playwright)까지 다시 내보낸다 — 화면 번들이 이 파일을 부르므로 타입 파일에서 바로 가져온다
+import { TECHNIQUES, type ItemStatus, type Platform, type Technique } from '@platform/kit/types';
 
 /** 지도 ① 한 줄 — 번호 하나를 덮는 활성 케이스. platforms 는 케이스 판정에 쓴다 (도메인/작성 §7 GET /api/prd `cases`) */
 export interface 덮는케이스 {

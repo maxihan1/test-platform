@@ -1,3 +1,4 @@
+// 요구사항 추적표 엑셀(prd/xlsx.ts)의 칸 · 안 덮임 바탕색 · 비밀번호 가림 · 실행 read 없을 때 빈 결과 칸을 본다
 import ExcelJS from 'exceljs';
 import type { Platform, PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';

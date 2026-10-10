@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
+// 「PRD 관리」 요구 줄의 추적표 칸 · 편 줄 테스트 구획 · 추적표 엑셀 버튼을 본다
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { api, type LastResult } from './api.js';
+import { api, ApiError, type LastResult } from './api.js';
 import { Prd } from './Prd.js';
 import { 판 } from './prd.fixture.js';
 import type { PrdNow } from './prdApi.js';
@@ -116,6 +117,14 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     expect(within(아이디).queryByRole('link')).toBeNull();
     expect(아이디.querySelector('.verdict')).toBeNull();
     expect(부름).not.toHaveBeenCalled();
+  });
+
+  it('마지막 결과를 못 읽으면 결과 칸을 비우고 그 까닭을 알린다', async () => {
+    vi.spyOn(api, 'lastByCase').mockRejectedValue(new ApiError(500, 'INTERNAL', 'DB 연결이 끊겼습니다'));
+    render(<Prd service="MKT" 할수={보는사람} 결과보나 케이스보나 />);
+    expect(await screen.findByText(/^마지막 결과를 못 읽었습니다 — /)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /회원가입/ }));
+    expect(줄of('MKT-REQ-031').querySelector('.verdict')).toBeNull();
   });
 
   it('추적표 엑셀은 보기 권한으로 받고 서버가 준 이름으로 저장한다', async () => {
