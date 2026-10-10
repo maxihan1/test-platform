@@ -110,6 +110,17 @@ export const 등급표: Record<string, 표값> = {
   'DELETE /api/authoring/requests/:id/conflicts/:tcId': 작성쓰기,
   // 케이스 고치기 — 결과가 초안 PR 이라 작성 요청과 무게가 같다. 병합은 아래 merges 가 admin 으로 따로 본다 (작성 §3.6 「★ 케이스 고치기」)
   'POST /api/authoring/edits': 작성쓰기,
+  // 표준 기획서 — 주소에 authoring 이 없지만 작성 기능이다. 반영 PR 의 병합은 아래 merges 가 admin 으로 따로 본다 (작성 §7 「표준 기획서 통로」)
+  'GET /api/prd': 작성읽기,
+  'GET /api/prd/versions': 작성읽기,
+  'GET /api/prd/versions/:version': 작성읽기,
+  'PUT /api/prd': 작성쓰기,
+  'POST /api/prd/confirm': 작성쓰기,
+  'POST /api/prd/revert': 작성쓰기,
+  'POST /api/prd/apply': 작성쓰기,
+  // 표준 기획서 읽기 · 올리기 — 작성 에이전트가 부른다. 라우트가 맥 계정 · 집은 쪽을 다시 본다
+  'GET /api/authoring/requests/:id/prd': 작성쓰기,
+  'POST /api/authoring/requests/:id/prd': 작성쓰기,
 
   // ★ 저장소를 영구히 바꾸는 일 — admin. 작성 쓰기와 같으면 「실행할 수 있는 사람 = 저장소를 고칠 수 있는 사람」이 된다
   'POST /api/authoring/merges': 'admin',
@@ -141,6 +152,8 @@ export const 토큰통로 = new Set([
   'POST /api/authoring/requests/:id/finish',
   'POST /api/authoring/requests/:id/outputs',
   'POST /api/authoring/requests/:id/usage',
+  'GET /api/authoring/requests/:id/prd',
+  'POST /api/authoring/requests/:id/prd',
   'GET /api/authoring/requests',
   'GET /api/authoring/requests/:id',
   'GET /api/authoring/requests/:id/assets/:assetId',

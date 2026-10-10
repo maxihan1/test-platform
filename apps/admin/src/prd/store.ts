@@ -48,6 +48,12 @@ export async function 지금판(서비스: number): Promise<앞판 | null> {
   return 지금판읽기(await db(), 서비스);
 }
 
+/** 에이전트 통로는 요청 번호로 서비스를 찾는다 — 번호 꼴(`<접두사>-REQ-`)에 쓸 접두사 */
+export async function 서비스접두사(서비스: number): Promise<string> {
+  const r = await (await db()).query<{ prefix: string }>('SELECT prefix FROM service WHERE id = $1', [서비스]);
+  return r.rows[0]!.prefix;
+}
+
 export interface 판줄 {
   version: number;
   source: 출처;
