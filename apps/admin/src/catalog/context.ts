@@ -44,6 +44,8 @@ export interface 맥락재료 {
 interface 자리 {
   // 기능 묶음이 판에 처음 나온 차례. 묶음 없음은 맨 뒤
   차례: number;
+  // 묶음 안 차례 — 화면 주소(없으면 파일 경로). 파일 이름 차례면 `signup-done` 이 `signup` 앞에 선다
+  화면차례: string;
   screen: string | null;
   screenUrl: string | null;
   part: string | null;
@@ -57,6 +59,8 @@ export function 맥락(표: 맥락표, tcId: string): CaseContext {
   const 것 = 표.get(tcId);
   return 것 === undefined ? 빈맥락 : { feature: 것.feature, reqs: 것.reqs, screens: 것.screens };
 }
+
+const 화면순 = (s: CaseScreen) => s.url ?? s.file;
 
 export function 맥락짓기(재료: 맥락재료): 맥락표 {
   const 번호차례 = new Map(재료.prd.map((x, i) => [x.reqId, i]));
@@ -87,8 +91,8 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
     );
     const 첫요구 = reqs.find((r) => 판.has(r.reqId));
     const feature = 첫요구 === undefined ? null : 판.get(첫요구.reqId)!.feature;
-    // 여러 화면을 쓰면 파일 이름이 앞선 것 아래에 묶는다 — 가져오는 차례는 지도에 없다(카탈로그 §8.1 「맥락」)
-    const screens = (화면들.get(tcId) ?? []).sort((a, b) => a.file.localeCompare(b.file));
+    // 여러 화면을 쓰면 주소가 앞선 것 아래에 묶는다 — 가져오는 차례는 지도에 없다(카탈로그 §8.1 「맥락」)
+    const screens = (화면들.get(tcId) ?? []).sort((a, b) => 화면순(a).localeCompare(화면순(b)) || a.file.localeCompare(b.file));
     const 화면 = screens.find((s) => s.file.endsWith('.page.ts')) ?? null;
     const 조각 = screens.find((s) => s.file.endsWith('.component.ts')) ?? null;
     표.set(tcId, {
@@ -97,6 +101,7 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
       screens,
       자리: {
         차례: feature === null ? Infinity : 묶음차례.get(feature)!,
+        화면차례: 화면 === null ? '' : 화면순(화면),
         screen: 화면?.file ?? null,
         screenUrl: 화면?.url ?? null,
         part: 조각?.file ?? null,
@@ -106,16 +111,21 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
   return 표;
 }
 
-const 빈자리: 자리 = { 차례: Infinity, screen: null, screenUrl: null, part: null };
+const 빈자리: 자리 = { 차례: Infinity, 화면차례: '', screen: null, screenUrl: null, part: null };
 
-/** 목록 순서 — 기능 묶음(판 차례) → 화면 → 화면 조각 → 번호. 화면 없는 케이스가 그 묶음 맨 앞이다 — 머리 줄 없이 묶음 바로 아래 선다 */
+/** 목록 순서 — 기능 묶음(판 차례) → 화면(주소) → 화면 조각 → 번호. 화면 없는 케이스가 그 묶음 맨 앞이다 — 머리 줄 없이 묶음 바로 아래 선다 */
 export function 줄세우기(tcIds: string[], 표: 맥락표): { 차례: string[]; groups: CaseGroup[] } {
   const 자리of = (id: string) => 표.get(id)?.자리 ?? 빈자리;
   const 차례 = [...tcIds].sort((a, b) => {
     const x = 자리of(a);
     const y = 자리of(b);
     if (x.차례 !== y.차례) return x.차례 < y.차례 ? -1 : 1;
-    return (x.screen ?? '').localeCompare(y.screen ?? '') || (x.part ?? '').localeCompare(y.part ?? '') || a.localeCompare(b);
+    return (
+      x.화면차례.localeCompare(y.화면차례) ||
+      (x.screen ?? '').localeCompare(y.screen ?? '') ||
+      (x.part ?? '').localeCompare(y.part ?? '') ||
+      a.localeCompare(b)
+    );
   });
 
   const groups: CaseGroup[] = [];

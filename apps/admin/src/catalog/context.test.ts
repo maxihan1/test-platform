@@ -73,6 +73,21 @@ describe('줄세우기', () => {
       { feature: null, screen: 화면('orders'), screenUrl: null, part: null, tcIds: ['XCL-FN-006'] },
     ]);
   });
+
+  it('화면은 주소 차례다 — 파일 이름 차례면 /signup/done 이 /signup 앞에 선다', () => {
+    const 둘 = 맥락짓기({
+      prd: 판,
+      reqs: [
+        { reqId: 'XCL-REQ-001', tcId: 'XCL-FN-010', axis: '정상' },
+        { reqId: 'XCL-REQ-001', tcId: 'XCL-FN-011', axis: '정상' },
+      ],
+      screens: [
+        { tcId: 'XCL-FN-010', file: 화면('signup-done'), url: '/signup/done' },
+        { tcId: 'XCL-FN-011', file: 화면('signup'), url: '/signup' },
+      ],
+    });
+    expect(줄세우기(['XCL-FN-010', 'XCL-FN-011'], 둘).차례).toEqual(['XCL-FN-011', 'XCL-FN-010']);
+  });
 });
 
 describe('맥락거르기', () => {
