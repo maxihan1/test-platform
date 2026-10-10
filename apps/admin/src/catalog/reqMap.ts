@@ -1,6 +1,6 @@
 // 요구사항 표 출처 칸에서 지도 ①(요구 ↔ 케이스)을 뽑아 req_case 의 그 서비스 몫을 다시 채운다 (카탈로그 §3.1 「지도」)
 
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 import type { Pool } from 'pg';
@@ -46,7 +46,7 @@ async function db(): Promise<Pool> {
 
 /**
  * 그 서비스 몫을 지우고 표에서 다시 채운다(사본이라 손으로 안 고친다). 표 파일이 없으면 비운다 — 덮는 것이 없다.
- * 다른 읽기 오류는 던진다 — 부르는 쪽이 옛 지도를 둔 채 스캔 문제로 남긴다
+ * 뿌리 폴더가 없거나 다른 읽기 오류면 던진다 — 부르는 쪽이 옛 지도를 둔 채 스캔 문제로 남긴다
  */
 export async function 지도채우기(serviceId: number, prefix: string): Promise<number> {
   let 표글 = '';
@@ -54,12 +54,16 @@ export async function 지도채우기(serviceId: number, prefix: string): Promis
     표글 = await readFile(join(casesRoot(), `${prefix}.md`), 'utf8');
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+    // 뿌리가 통째로 없으면 표가 없는 것이 아니라 마운트 · 작업 폴더가 틀린 것이다. 비우면 모든 서비스 지도가 말없이 사라진다
+    await stat(casesRoot());
   }
   const 줄들 = 지도줄들(표글, prefix);
 
   const client = await (await db()).connect();
   try {
     await client.query('BEGIN');
+    // 기동 스캔과 「다시 스캔」이 겹치면 뒤엣것의 넣기가 앞엣것이 넣은 줄과 부딪혀 거짓 실패가 난다. 서비스마다 차례로 세운다
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('req_case'), $1::int)", [serviceId]);
     await client.query('DELETE FROM req_case WHERE service_id = $1', [serviceId]);
     await client.query(
       `INSERT INTO req_case (service_id, req_id, tc_id, axis)

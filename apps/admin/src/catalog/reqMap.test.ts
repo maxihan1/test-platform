@@ -100,6 +100,18 @@ describe.skipIf(연결 === undefined)('지도채우기', () => {
     expect(await 지도()).toEqual([]);
   });
 
+  it('표 뿌리 폴더가 통째로 없으면 마운트가 틀린 것이라 던지고 옛 지도를 그대로 둔다', async () => {
+    await writeFile(join(폴더, 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 | XMP-FN-001 |']));
+    await 채우기();
+    process.env.PLATFORM_CASES_DIR = join(폴더, '없는-폴더');
+    try {
+      await expect(채우기()).rejects.toThrow();
+    } finally {
+      process.env.PLATFORM_CASES_DIR = 폴더;
+    }
+    expect(await 지도()).toEqual(['XMP-REQ-001 XMP-FN-001 정상']);
+  });
+
   it('표를 읽다 깨지면 던지고 옛 지도를 그대로 둔다', async () => {
     await writeFile(join(폴더, 'XMP.md'), 표(['| 1 | 정상 | XMP-REQ-001 | XMP-FN-001 |']));
     await 채우기();

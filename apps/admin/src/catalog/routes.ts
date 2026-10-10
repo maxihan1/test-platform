@@ -62,6 +62,16 @@ async function runScan(log: FastifyBaseLogger): Promise<스캔기록> {
       서비스별.set(service.prefix, 결과);
       const 어디 = (file: string): string => join(service.testsDir, file);
 
+      // 지도 ① 은 케이스 파일이 아니라 요구사항 표에서 온다 — 케이스 폴더가 깨지거나 번호가 겹쳐도 따로 갱신한다.
+      // 표를 못 읽으면 옛 지도를 남기고 문제로만 알린다 (카탈로그 §3.1 「지도」)
+      try {
+        await 지도채우기(service.id, service.prefix);
+      } catch (err) {
+        결과.problems.push(
+          `${service.prefix} 서비스의 요구사항 표로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+
       // 폴더가 아직 안 채워졌거나 이름이 틀리면 여기서 던진다. 그 서비스만 접고 나머지는 계속 훑는다 —
       // 한 서비스 때문에 다른 서비스의 케이스까지 사라지면 목록이 통째로 거짓말을 한다 (SPEC §3.1)
       let found;
@@ -96,15 +106,6 @@ async function runScan(log: FastifyBaseLogger): Promise<스캔기록> {
       결과.added = saved.added;
       결과.updated = saved.updated;
       결과.deactivated = saved.deactivated;
-
-      // 지도 ① 은 케이스 파일이 아니라 요구사항 표에서 온다. 표를 못 읽어도 케이스 갱신은 그대로 두고 옛 지도를 남긴다 (카탈로그 §3.1 「지도」)
-      try {
-        await 지도채우기(service.id, service.prefix);
-      } catch (err) {
-        결과.problems.push(
-          `${service.prefix} 서비스의 요구사항 표로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
     }
 
     const problems = [...서비스별.values()].flatMap((r) => r.problems);
