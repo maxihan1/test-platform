@@ -2,7 +2,7 @@
 
 import type { PrdItem } from '@platform/kit';
 
-import { call, json, 거절이면던진다 } from './api.js';
+import { call, json, 파일받기 } from './api.js';
 
 export interface PrdNow {
   /** 0 이면 아직 표준 기획서가 없다 */
@@ -33,11 +33,5 @@ export const prdApi = {
     call<{ version: number }>(`/prd/confirm${꼬리(service)}`, json({ baseVersion, reqIds })),
   revert: (service: string, baseVersion: number, toVersion: number) =>
     call<{ version: number }>(`/prd/revert${꼬리(service)}`, json({ baseVersion, toVersion })),
-  // 워드는 JSON 이 아니라 파일이다 — 케이스 엑셀(api.caseExport)과 같은 길로 받는다
-  wordExport: async (service: string): Promise<{ 파일: Blob; 머리: string | null }> => {
-    const path = `/prd/export${꼬리(service)}&format=docx`;
-    const res = await fetch(`/api${path}`, { credentials: 'same-origin' });
-    await 거절이면던진다(res, path);
-    return { 파일: await res.blob(), 머리: res.headers.get('content-disposition') };
-  },
+  wordExport: (service: string) => 파일받기(`/prd/export${꼬리(service)}&format=docx`),
 };

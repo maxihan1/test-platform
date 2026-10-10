@@ -4,7 +4,6 @@
 import { useState } from 'react';
 
 import { ApiError } from './api.js';
-import { 받을이름, 파일로저장 } from './CaseExport.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { prdApi } from './prdApi.js';
@@ -12,7 +11,7 @@ import { PrdList } from './PrdList.js';
 import { PrdTodo } from './PrdTodo.js';
 import { PrdVersions } from './PrdVersions.js';
 import type { 판정 } from './role.js';
-import { Failed, Loading, message, useAsync } from './ui.js';
+import { Failed, Loading, message, useAsync, 받을이름, 파일로저장 } from './ui.js';
 
 /** 새 판을 짓는 일 하나. 지금 판 번호를 넘겨 보낸다 — 그 사이 다른 저장이 있었으면 서버가 PRD_STALE 로 막는다 */
 export type 판짓기 = (일: (baseVersion: number) => Promise<{ version: number }>) => Promise<boolean>;
@@ -49,6 +48,7 @@ export function Prd({ service, 할수 }: { service: string; 할수: 판정 }) {
   // 역기획서 워드의 자리다 — 보기 권한이면 받는다 (도메인/작성 §3.6 「워드로 내려받기」)
   const 워드받기 = async () => {
     set받는중(true);
+    set알림(null);
     try {
       const { 파일, 머리 } = await prdApi.wordExport(service);
       파일로저장(파일, 받을이름(머리, `${service}-PRD.docx`));

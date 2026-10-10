@@ -5,7 +5,7 @@ import type { PrdItem } from '@platform/kit';
 import JSZip from 'jszip';
 
 import { 싼글 } from '../../../../scripts/authoring-docx.js';
-import { 비밀가리기 } from '../../../../scripts/authoring-reverse.js';
+import { 가림표, 비밀최소 } from '../../../../scripts/authoring-reverse.js';
 import { 묶음들 } from '../web/prdView.js';
 
 export interface 워드자료 {
@@ -78,10 +78,22 @@ function 표(items: PrdItem[]): string {
   );
 }
 
-/** 글이 들어가는 칸 전부에서 비밀번호를 가린다. 긴 것부터 — 짧은 것이 긴 것 안에 들면 긴 것의 남은 글자가 샌다 */
+/**
+ * 모든 비밀번호가 걸친 자리를 합쳐 한 번에 가린다 — 하나씩 바꾸면 앞의 가림이 겹친 다른 비밀번호를 쪼개 그 남은 글자가 샌다.
+ * 문턱(역방향 `비밀최소`)보다 짧은 비밀번호는 안 가린다 — `1` 같은 값은 요구 문장의 숫자를 다 지워 문서를 망가뜨린다
+ */
+export function 비밀번호가리기(글: string, 비밀번호들: string[]): string {
+  const 덮음 = new Array<boolean>(글.length).fill(false);
+  for (const 비밀 of 비밀번호들.filter((x) => x.length >= 비밀최소)) {
+    for (let i = 글.indexOf(비밀); i !== -1; i = 글.indexOf(비밀, i + 1)) 덮음.fill(true, i, i + 비밀.length);
+  }
+  // 자리는 indexOf 와 같은 UTF-16 단위다 — 덮인 구간의 첫 자리에만 가림표를 둔다
+  return 글.split('').map((c, i) => (!덮음[i] ? c : i === 0 || !덮음[i - 1] ? 가림표 : '')).join('');
+}
+
+/** 글이 들어가는 칸 전부에서 비밀번호를 가린다 */
 function 가린항목(items: PrdItem[], 비밀번호들: string[]): PrdItem[] {
-  const 차례 = [...비밀번호들].sort((a, b) => b.length - a.length);
-  const 가림 = (글: string) => 차례.reduce((g, 비밀) => 비밀가리기(g, 비밀), 글);
+  const 가림 = (글: string) => 비밀번호가리기(글, 비밀번호들);
   return items.map((x) => ({
     ...x,
     feature: 가림(x.feature),
@@ -120,7 +132,7 @@ const 관계 = (종류: string, 대상: string) =>
   `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/${종류}" Target="${대상}"/>` +
   '</Relationships>';
 
-export async function 워드만들기(자료: 워드자료, 비밀번호들: string[]): Promise<Uint8Array> {
+export async function 워드만들기(자료: 워드자료, 비밀번호들: string[]): Promise<Buffer> {
   const items = 가린항목(자료.items, 비밀번호들);
   const 확인수 = items.filter((x) => x.status === 'NEEDS_CHECK').length;
   const 머리글 = `판 ${String(자료.version)} · 요구 ${String(items.length)}건 · 확인 필요 ${String(확인수)}건 · ${자료.generatedAt} 내려받음`;
@@ -140,5 +152,5 @@ export async function 워드만들기(자료: 워드자료, 비밀번호들: str
     'word/document.xml',
     `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${몸}</w:body></w:document>`,
   );
-  return zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
+  return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 }

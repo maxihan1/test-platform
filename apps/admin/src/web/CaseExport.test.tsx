@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 
 import { api, ApiError, type CaseRow, type Paged } from './api.js';
 import { CaseList } from './CaseList.js';
-import { 받을이름 } from './CaseExport.js';
+import { 받을이름 } from './ui.js';
 
 afterEach(() => {
   cleanup();

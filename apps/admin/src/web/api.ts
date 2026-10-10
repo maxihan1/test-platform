@@ -662,8 +662,15 @@ export async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
-// JSON 이 아닌 답(엑셀 파일)을 받는 통로도 세션 끊김·오류 문장을 같은 길로 받는다
-export async function 거절이면던진다(res: Response, path: string): Promise<void> {
+/** JSON 이 아닌 답(케이스 엑셀 · PRD 워드)을 받는다. 머리는 Content-Disposition — 파일 이름이 거기 온다 */
+export async function 파일받기(path: string): Promise<{ 파일: Blob; 머리: string | null }> {
+  const res = await fetch(`/api${path}`, { credentials: 'same-origin' });
+  await 거절이면던진다(res, path);
+  return { 파일: await res.blob(), 머리: res.headers.get('content-disposition') };
+}
+
+// JSON 이 아닌 답을 받는 통로도 세션 끊김·오류 문장을 같은 길로 받는다
+async function 거절이면던진다(res: Response, path: string): Promise<void> {
   if (res.status === 401 && !끊김을가로채지않는곳.some((열린곳) => path.startsWith(열린곳))) {
     로그인으로보낸다();
   }
@@ -740,12 +747,7 @@ export const api = {
   },
 
   /** 목록과 같은 조건의 케이스 전부를 엑셀로 받는다. 쪽은 없다 (도메인/카탈로그 §7 `GET /api/catalog/export`) */
-  caseExport: async (query: CaseQuery): Promise<{ 파일: Blob; 머리: string | null }> => {
-    const path = `/catalog/export?${케이스조건(query).toString()}`;
-    const res = await fetch(`/api${path}`, { credentials: 'same-origin' });
-    await 거절이면던진다(res, path);
-    return { 파일: await res.blob(), 머리: res.headers.get('content-disposition') };
-  },
+  caseExport: (query: CaseQuery) => 파일받기(`/catalog/export?${케이스조건(query).toString()}`),
 
   caseOf: (tcId: string) => call<CaseRow>(`/catalog/cases/${encodeURIComponent(tcId)}`),
 

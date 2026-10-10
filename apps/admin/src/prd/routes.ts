@@ -71,17 +71,17 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     const 서비스 = await 서비스번호(req, reply);
     if (서비스 === null) return reply;
     if (req.query.format !== 'docx') return reply.code(400).send({ error: 'BAD_FORMAT' });
-    const 판 = await 지금판(서비스);
+    const [판, 비밀번호들] = await Promise.all([지금판(서비스), 테스트비밀번호들(서비스)]);
     if (판 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
     const 접두사 = req.query.service ?? '';
     const 파일 = await 워드만들기(
       { service: 접두사, version: 판.version, generatedAt: 한국시각(new Date().toISOString()), items: 판.items },
-      await 테스트비밀번호들(서비스),
+      비밀번호들,
     );
     return reply
       .header('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
       .header('content-disposition', `attachment; filename="${접두사}-PRD-v${String(판.version)}.docx"`)
-      .send(Buffer.from(파일));
+      .send(파일);
   });
 
   // 999 항목이 들어가야 해서 기본 1MiB 보다 넓힌다 (상한은 rules.ts)

@@ -4,7 +4,7 @@ import type { PrdItem } from '@platform/kit';
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 
-import { 워드만들기 } from './docx.js';
+import { 비밀번호가리기, 워드만들기 } from './docx.js';
 
 const 항목 = (reqId: string, feature: string, 덧: Partial<PrdItem> = {}): PrdItem => ({
   reqId,
@@ -52,7 +52,7 @@ describe('표준 기획서 워드', () => {
     expect(글).toContain('|화면 · /cart|“담기”|피그마|“20개”');
   });
 
-  it('비밀번호는 모든 글 칸에서 가리고, 긴 것부터 가려 짧은 것이 긴 것을 쪼개지 않는다', async () => {
+  it('비밀번호는 모든 글 칸에서 가린다', async () => {
     const xml = await 본문(
       [
         항목('MKT-REQ-001', 'abc1 묶음', {
@@ -64,6 +64,16 @@ describe('표준 기획서 워드', () => {
     );
     expect(xml).not.toContain('abc1');
     expect(글만(xml)).toContain('계정 •••••• 로 로그인');
+  });
+
+  it('겹친 비밀번호는 걸친 자리를 합쳐 한 번에 가려 남는 글자가 없다', () => {
+    expect(비밀번호가리기('값 abcdef 끝', ['abcd', 'cdef'])).toBe('값 •••••• 끝');
+    expect(비밀번호가리기('abcd와 cdef', ['abcd', 'cdef'])).toBe('••••••와 ••••••');
+    expect(비밀번호가리기('aaaaa', ['aaaa'])).toBe('••••••');
+  });
+
+  it('문턱보다 짧은 비밀번호는 가리지 않는다 — 요구 문장의 숫자가 지워지지 않게', () => {
+    expect(비밀번호가리기('1개까지 · 123개', ['1', '123', ''])).toBe('1개까지 · 123개');
   });
 
   it('XML 특수 문자는 풀어 쓰고 줄바꿈은 워드 줄바꿈으로', async () => {
