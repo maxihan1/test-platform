@@ -5,6 +5,7 @@ import type { Pool } from 'pg';
 import type { CaseSpec, Platform, Technique } from '@platform/kit';
 
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
+import { 맥락, 맥락거르기, 맥락읽기, 요구로찾기, 줄세우기, type CaseContext, type CaseGroup, type 맥락조건 } from './context.js';
 // 화면이 가리는 칸과 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
 import { 저장값나누기 } from '../web/mask.js';
 
@@ -80,7 +81,6 @@ interface RawRow {
   saved_expected: Record<string, unknown> | null;
   saved_by: string | null;
   saved_at: Date | null;
-  total?: string;
 }
 
 function toSaved(row: RawRow): SavedInput | null {
@@ -125,7 +125,10 @@ function literal(term: string): string {
   return `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 }
 
-export interface CaseQuery {
+// 목록 · 엑셀의 줄은 맥락(기능 묶음 · 요구 · 화면)을 단다. 단건(findCase)은 안 단다 — 실행 창 · 시나리오가 부르는데 쓰지 않는다
+export type CaseListItem = CaseRow & CaseContext;
+
+export interface CaseQuery extends 맥락조건 {
   // 보고 있는 서비스의 접두사. test_case에는 서비스 칸이 없다 — 번호가 이미 서비스를 말한다 (SPEC §1 · §6)
   service: string;
   q: string;
@@ -142,7 +145,7 @@ export interface CaseQuery {
 }
 
 export interface CaseList {
-  items: CaseRow[];
+  items: CaseListItem[];
   total: number;
   // 지금은 세어서 내므로 정확하다. 근사치로 바뀌는 날 화면이 이 값을 보고 판단한다 (§8.1)
   totalIsExact: boolean;
@@ -153,53 +156,68 @@ export interface CaseList {
   // 검색 조건을 따르지 않는다. 걸러 낸 뒤에도 서비스에 미확정이 몇 건 남았는지 알려야 한다 (카탈로그 §7)
   // 나이는 「PRD 관리」 메뉴가 확인 필요 항목으로 보인다 — 여기는 건수만 (도메인/작성 §3.6 「미확정」)
   unconfirmed: { count: number };
+  // 접는 자리마다 케이스 번호 — 쪽이 아니라 조건에 맞은 전부다. 묶음 머리 건수가 쪽마다 달라지지 않게 (도메인/카탈로그 §8.1 「맥락」)
+  groups: CaseGroup[];
+  // 서비스가 PRD 를 쓰나(기능 묶음이 붙은 케이스가 하나라도 있나). 검색 조건을 안 따른다 — 「기능 묶음 없음」만 보기에서도 묶음 머리가 서야 한다
+  hasFeatures: boolean;
 }
 
 export async function listCases(query: CaseQuery): Promise<CaseList> {
   const pool = await db();
-  const rows = await pool.query<RawRow>(
-    `SELECT ${COLUMNS}, count(*) OVER () AS total
-       FROM ${FROM}
+  // ponytail: 쪽마다 그 서비스 맥락(판 · 지도 ① ②)과 맞은 번호 전부를 다시 읽고 줄 세운다 — 「전체 실행」이 쪽을 돌면 쪽 수만큼 되풀이한다.
+  // 케이스 수천 건에서 느려지면 맥락표를 스캔 · 판 저장 때 갈아 끼우는 캐시로 둔다
+  const [표, 요약] = await Promise.all([
+    맥락읽기(query.service),
+    // 미확정 요약은 검색 조건 · 쪽과 상관없어 같이 띄운다
+    pool.query<{ count: string }>(
+      `SELECT count(*) AS count
+         FROM test_case c
+        WHERE tc_id LIKE $1 AND is_active AND ${미확정사유SQL('c')} IS NOT NULL
+          -- 종류는 검색 조건이 아니라 사이드바가 고른 범위라 따른다 — UI 목록 부제에 기능 미확정이 섞이지 않게 (PR #132)
+          AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))`,
+      [`${query.service}-%`, query.kind ?? null],
+    ),
+  ]);
+  // 순서가 기능 묶음 차례라 SQL 이 쪽을 못 자른다. 조건에 맞는 번호만 먼저 받고, 묶어 줄 세운 뒤 그 쪽 줄만 다시 읽는다
+  const 맞은번호 = await pool.query<{ tc_id: string }>(
+    `SELECT tc_id
+       FROM test_case
       WHERE tc_id LIKE $1
-        AND ($2 = '' OR tc_id ILIKE $3 ESCAPE '\\' OR name ILIKE $3 ESCAPE '\\')
+        -- 찾기는 요구 번호 · 요구 문장에도 맞는다. 그 판단은 표준 기획서를 읽은 쪽(요구로찾기)이 하고 번호만 넘긴다
+        AND ($2 = '' OR tc_id ILIKE $3 ESCAPE '\\' OR name ILIKE $3 ESCAPE '\\' OR tc_id = ANY($8::text[]))
         AND (NOT $4::boolean OR is_active)
         AND ($5::jsonb IS NULL OR platforms @> $5::jsonb)
         -- UI 번호 꼴은 catalog/rules.ts tcId종류 와 같은 뜻이다
-        AND ($8::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($8 = 'UI'))
-        AND ($9::text IS NULL OR ($9 = 'none' AND cardinality(techniques) = 0) OR $9 = ANY(techniques))
-      ORDER BY tc_id
-      LIMIT $6 OFFSET $7`,
+        AND ($6::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($6 = 'UI'))
+        AND ($7::text IS NULL OR ($7 = 'none' AND cardinality(techniques) = 0) OR $7 = ANY(techniques))`,
     [
       `${query.service}-%`,
       query.q,
       literal(query.q),
       query.activeOnly,
       query.platform === undefined ? null : JSON.stringify([query.platform]),
-      // LIMIT NULL 은 PostgreSQL 에서 제한 없음이다
-      query.pageSize,
-      query.pageSize === null ? 0 : (query.page - 1) * query.pageSize,
       query.kind ?? null,
       query.technique ?? null,
+      query.q === '' ? [] : 요구로찾기(표, query.q),
     ],
   );
-
-  const summary = await pool.query<{ count: string }>(
-    `SELECT count(*) AS count
-       FROM test_case c
-      WHERE tc_id LIKE $1 AND is_active AND ${미확정사유SQL('c')} IS NOT NULL
-        -- 종류는 검색 조건이 아니라 사이드바가 고른 범위라 따른다 — UI 목록 부제에 기능 미확정이 섞이지 않게 (PR #132)
-        AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))`,
-    [`${query.service}-%`, query.kind ?? null],
-  );
+  const { 차례, groups } = 줄세우기(맥락거르기(맞은번호.rows.map((r) => r.tc_id), 표, query), 표);
+  const 이쪽 = query.pageSize === null ? 차례 : 차례.slice((query.page - 1) * query.pageSize, query.page * query.pageSize);
+  const 읽은 = 이쪽.length === 0 ? [] : (await pool.query<RawRow>(`SELECT ${COLUMNS} FROM ${FROM} WHERE tc_id = ANY($1::text[])`, [이쪽])).rows;
+  const 행 = new Map(읽은.map((r) => [r.tc_id, r]));
+  // 두 번 읽는 사이에 사라진 줄은 뺀다 — 다음 스캔 · 새로 고침이 맞춘다
+  const items = 이쪽.flatMap((id) => (행.has(id) ? [{ ...toCase(행.get(id)!), ...맥락(표, id) }] : []));
 
   return {
-    items: rows.rows.map(toCase),
-    total: Number(rows.rows[0]?.total ?? 0),
+    items,
+    total: 차례.length,
     totalIsExact: true,
-    sort: 'tcId',
+    sort: 'feature',
     page: query.page,
     pageSize: query.pageSize,
-    unconfirmed: { count: Number(summary.rows[0]?.count ?? 0) },
+    unconfirmed: { count: Number(요약.rows[0]?.count ?? 0) },
+    groups,
+    hasFeatures: [...표.values()].some((x) => x.feature !== null),
   };
 }
 

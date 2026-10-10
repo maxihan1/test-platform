@@ -16,6 +16,9 @@ export interface ExportCase
   lastResult?: { status: ItemStatus; at: string } | null;
   /** 반영된 보류 입력이 있으면 그 작성 요청의 뿌리와 넣은 사람 */
   filledBy?: { rootId: number; by: string } | null;
+  /** 맥락 — 지도 ① 과 표준 기획서 지금 판 (카탈로그 §8.1 「맥락」). 요구 문장은 싣지 않는다 */
+  feature?: string | null;
+  reqIds?: string[];
 }
 
 export interface ExportHeld {
@@ -135,14 +138,19 @@ export async function renderCatalogXlsx(input: ExportInput): Promise<Buffer> {
   wb.created = new Date(input.generatedAt);
   wb.modified = wb.created;
 
-  // UI 테스트에는 기법이 없다. 열을 번호로 읽는 검사 · 사람이 있어 맨 끝에 둔다 (카탈로그 §7)
+  // UI 테스트에는 기법이 없다. 열을 번호로 읽는 검사 · 사람이 있어 새 열은 맨 끝에 붙인다 (카탈로그 §7)
   const 기법열 = input.kind !== 'UI';
   시트(
     wb,
     '테스트 케이스',
-    기법열 ? [...케이스머리, '설계 기법'] : 케이스머리,
-    [12, 40, 12, 36, 36, 36, 30, 22, ...(기법열 ? [20] : [])],
-    input.cases.map((c) => (기법열 ? [...케이스행(c, input), c.techniques?.join(' · ') || null] : 케이스행(c, input))),
+    [...케이스머리, ...(기법열 ? ['설계 기법'] : []), '기능 묶음', '요구 번호'],
+    [12, 40, 12, 36, 36, 36, 30, 22, ...(기법열 ? [20] : []), 18, 20],
+    input.cases.map((c) => [
+      ...케이스행(c, input),
+      ...(기법열 ? [c.techniques?.join(' · ') || null] : []),
+      c.feature ?? null,
+      c.reqIds?.join('\n') || null,
+    ]),
   );
   if (input.held !== null) {
     시트(wb, '보류 처리 기록', 보류머리, [10, 12, 10, 40, 10, 36, 12, 18, 10], input.held.map(보류행));

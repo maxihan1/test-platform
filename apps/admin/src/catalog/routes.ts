@@ -9,6 +9,7 @@ import { TECHNIQUES, type Technique } from '@platform/kit/types';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
 import type { 사용자 } from '../auth/store.js';
+import { 맥락조건읽기, 모르는종류, type 맥락글 } from './context.js';
 import { renderCatalogXlsx } from './export.js';
 import { 엑셀자료, 한국시각 } from './exportData.js';
 import { 지도채우기 } from './reqMap.js';
@@ -190,7 +191,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
   });
 
   app.get<{
-    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string };
+    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string } & 맥락글;
   }>(
     '/catalog/cases',
     async (req, reply) => {
@@ -204,9 +205,12 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
       }
       const technique = 기법읽기(req.query.technique);
       if (technique === null) return reply.code(400).send(모르는기법(req.query.technique));
+      const 맥락 = 맥락조건읽기(req.query);
+      if (맥락 === null) return reply.code(400).send(모르는종류(req.query.axis));
 
       const platform = req.query.platform;
       return listCases({
+        ...맥락,
         service,
         q: req.query.q ?? '',
         platform: platform === 'desktop' || platform === 'mobile' ? platform : undefined,
@@ -219,7 +223,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
     },
   );
 
-  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string } }>(
+  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string } & 맥락글 }>(
     '/catalog/export',
     async (req, reply) => {
       const service = req.query.service ?? '';
@@ -228,12 +232,15 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
       if (서비스 === null) return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
       const technique = 기법읽기(req.query.technique);
       if (technique === null) return reply.code(400).send(모르는기법(req.query.technique));
+      const 맥락 = 맥락조건읽기(req.query);
+      if (맥락 === null) return reply.code(400).send(모르는종류(req.query.axis));
 
       // 문은 (케이스, read) 만 봤다. 실행·작성 기록은 그 칸이 따로 있어야 싣는다 — 케이스 read 만으로 새면 안 된다 (카탈로그 §7)
       const 되나 = (기능: 'runs' | 'authoring'): boolean =>
         칸되는서비스(req.user?.services ?? [], 기능, 'read').includes(service);
       const platform = req.query.platform;
       const 자료 = await 엑셀자료({
+        ...맥락,
         service,
         serviceId: 서비스.id,
         q: req.query.q ?? '',

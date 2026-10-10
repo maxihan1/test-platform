@@ -207,10 +207,21 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
     expect([목록.statusCode, 목록.json().error, 엑셀.statusCode, 엑셀.json().error]).toEqual([400, 'BAD_TECHNIQUE', 400, 'BAD_TECHNIQUE']);
   });
 
-  it('목록 응답은 그대로다 — 쪽 크기 50 · 같은 모양', async () => {
+  it('모르는 종류는 목록 · 엑셀 둘 다 400 BAD_AXIS · 빈 값은 거르지 않는다', async () => {
+    const 목록 = await app.inject({
+      method: 'GET',
+      url: `/api/catalog/cases?service=${접두사}&axis=` + encodeURIComponent('성능'),
+      cookies: { platform_session: 출입증.get('xcx-all')! },
+    });
+    const 엑셀 = await 받기('xcx-all', '&axis=bogus');
+    expect([목록.statusCode, 목록.json().error, 엑셀.statusCode, 엑셀.json().error]).toEqual([400, 'BAD_AXIS', 400, 'BAD_AXIS']);
+    expect(행들(await 책((await 받기('xcx-all', '&axis=')).rawPayload), '테스트 케이스')).toHaveLength(건수);
+  });
+
+  it('목록 응답은 그대로다 — 쪽 크기 50 · 같은 모양에 묶음 번호표가 더해졌다', async () => {
     const res = await app.inject({ method: 'GET', url: `/api/catalog/cases?service=${접두사}`, cookies: { platform_session: 출입증.get('xcx-all')! } });
     const body = res.json<Record<string, unknown>>();
-    expect(Object.keys(body).sort()).toEqual(['items', 'page', 'pageSize', 'sort', 'total', 'totalIsExact', 'unconfirmed']);
+    expect(Object.keys(body).sort()).toEqual(['groups', 'hasFeatures', 'items', 'page', 'pageSize', 'sort', 'total', 'totalIsExact', 'unconfirmed']);
     expect(body).toEqual(
       await listCases({ service: 접두사, q: '', activeOnly: true, page: 1, pageSize: 50 }),
     );

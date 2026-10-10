@@ -200,6 +200,10 @@
 .prd-item {
   border-top: 1px solid var(--line);
 }
+/* 케이스 목록의 요구 번호에서 왔다 — 그 줄을 한 단계 밝은 면으로 (도메인/카탈로그 §8.1 「맥락」) */
+.prd-here {
+  background: var(--rail-active);
+}
 .prd-row {
   display: grid;
   grid-template-columns: 112px minmax(0, 1fr) auto 14px;

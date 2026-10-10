@@ -47,6 +47,35 @@ export interface CaseRow {
   savedInput?: SavedInput | null;
   /** 설계 기법 — kit `TECHNIQUES` 의 낱말. 서버는 늘 배열을 준다 (도메인/카탈로그 §7) */
   techniques?: Technique[];
+  /** 맥락 — 목록 응답에만 온다(단건에는 없다). 기능 묶음은 덮는 요구 가운데 PRD 차례가 가장 앞인 것의 묶음 (도메인/카탈로그 §8.1 「맥락」) */
+  feature?: string | null;
+  reqs?: CaseReq[];
+  screens?: CaseScreen[];
+}
+
+/** 지도 ① 의 축 칸 — 서버 `catalog/context.ts` 와 같은 넷 */
+export type 케이스축 = '정상' | '경계' | '예외' | 'UI';
+
+export interface CaseReq {
+  reqId: string;
+  /** PRD 지금 판에 없는 번호(옛 표의 원본 번호)면 null */
+  text: string | null;
+  axis: 케이스축;
+}
+
+export interface CaseScreen {
+  /** `tests/<폴더>/pages/<이름>.page.ts` 또는 `components/<이름>.component.ts` */
+  file: string;
+  url: string | null;
+}
+
+/** 목록이 접는 자리 하나. 쪽이 아니라 조건에 맞은 전부의 번호를 든다 — 묶음 머리 건수가 쪽마다 안 바뀌게 */
+export interface CaseGroup {
+  feature: string | null;
+  screen: string | null;
+  screenUrl: string | null;
+  part: string | null;
+  tcIds: string[];
 }
 
 /**
@@ -66,6 +95,9 @@ export interface SavedInput {
 /** 케이스 목록 응답. 머리의 미확정 요약은 검색 조건을 안 따른다 — 서비스 전체다 (도메인/카탈로그 §7) */
 export interface CasePage extends Paged<CaseRow> {
   unconfirmed?: { count: number };
+  groups?: CaseGroup[];
+  /** 서비스가 PRD 를 쓰나 — 검색 조건을 안 따른다. 「기능 묶음 없음」만 보기에서도 묶음 머리를 세운다 */
+  hasFeatures?: boolean;
 }
 
 export interface LastScan {
@@ -713,6 +745,12 @@ export interface CaseQuery {
   kind?: 'UI' | 'FN';
   /** 설계 기법. `none` 은 기법이 안 적힌 케이스다 (도메인/카탈로그 §7 `?technique=`) */
   technique?: Technique | 'none';
+  /** 맥락 거르기 (도메인/카탈로그 §7). feature 의 빈 글자는 「기능 묶음 없음」이다 */
+  feature?: string;
+  screen?: string;
+  part?: string;
+  axis?: 케이스축;
+  req?: string;
 }
 
 // 목록과 엑셀이 같은 조건을 쓴다 — 두 벌이면 버튼 건수와 받은 파일 건수가 갈린다
@@ -723,6 +761,12 @@ function 케이스조건(query: CaseQuery): URLSearchParams {
   if (query.active === false) params.set('active', 'false');
   if (query.kind !== undefined) params.set('kind', query.kind === 'UI' ? 'ui' : 'fn');
   if (query.technique !== undefined) params.set('technique', query.technique);
+  // feature 는 빈 글자도 보낸다 — 「기능 묶음 없음」이다
+  if (query.feature !== undefined) params.set('feature', query.feature);
+  for (const 칸 of ['screen', 'part', 'axis', 'req'] as const) {
+    const 값 = query[칸];
+    if (값 !== undefined) params.set(칸, 값);
+  }
   return params;
 }
 

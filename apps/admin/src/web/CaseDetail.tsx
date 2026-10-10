@@ -24,6 +24,7 @@ import { 오류없음, 채운글자, type 줄글자 } from './CaseRowParams.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
+import { PRD항목주소 } from './route.js';
 import { schemaToFields } from './schema.js';
 import { PLATFORM_LABEL, seconds, Verdict, when } from './ui.js';
 
@@ -67,11 +68,14 @@ export function CaseDetail({
   마지막,
   글자,
   고칠서비스,
+  요구보나 = false,
   onClose,
   on값,
 }: {
   row: CaseRow;
   폈나: boolean;
+  /** 작성 보기 권한 — 있으면 요구 번호가 「PRD 관리」 고리다 */
+  요구보나?: boolean;
   /** 마지막 결과. 있으면 그 실행의 절차를 가져온다. 없으면 절차를 아예 안 부른다 */
   마지막: LastResult | undefined;
   /** 줄에서 고쳐 넣은 값. 줄과 같은 표를 본다 (SPEC §8.1) */
@@ -118,6 +122,21 @@ export function CaseDetail({
       버튼={<button className="btn" onClick={onClose}>{t('닫기')}</button>}
     >
     <div className="detail">
+      {/* 줄에는 첫 요구만 — 덮는 요구 전부는 여기서 본다 (도메인/카탈로그 §8.1 「맥락」) */}
+      {(row.reqs ?? []).length === 0 ? null : (
+        <div className="dsec">
+          <div className="dlabel">{t('요구')}</div>
+          <ul className="dlist case-reqs">
+            {row.reqs!.map((r) => (
+              <li key={`${r.reqId}:${r.axis}`}>
+                {r.text === null || !요구보나 ? <span className="case-req-id">{r.reqId}</span> : <a className="case-req-id" href={PRD항목주소(r.reqId)}>{r.reqId}</a>}{' '}
+                <span className="axis-tag">{t(r.axis)}</span> {r.text ?? t('PRD 에 없는 번호예요')}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {기법들.length === 0 ? null : (
         <div className="dsec">
           <div className="dlabel">{t('설계 기법')}</div>

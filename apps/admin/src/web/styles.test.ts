@@ -704,7 +704,7 @@ describe('케이스 목록이 좁으면 줄을 쌓는다 (PR #159)', () => {
 
   it('칸 이름만 감추고 「이 쪽 전체 선택」 줄은 남긴다', () => {
     expect(블록).toMatch(/\.case-rows \.rowhead\s*\{[^}]*display:\s*grid/);
-    expect(블록).toMatch(/\.case-rows \.rowhead \[role='columnheader'\]\s*\{[^}]*display:\s*none/);
+    expect(블록).toMatch(/\.case-rows \.rowhead \.colname\s*\{[^}]*display:\s*none/);
     expect(블록).toMatch(/\.case-rows \.pick-all\s*\{[^}]*display:\s*block/);
     expect(규칙('.pick-all'), '넓은 표에서는 전체 선택 글을 감춘다').toMatch(/display:\s*none/);
   });

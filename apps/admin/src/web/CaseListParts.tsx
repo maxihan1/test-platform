@@ -4,8 +4,9 @@
 
 import { useId } from 'react';
 
-import type { CaseRow, ItemStatus, Platform } from './api.js';
-import { CaseDetail, use기법말, 기법태그들 } from './CaseDetail.js';
+import type { CaseRow, ItemStatus, Platform, 케이스축 } from './api.js';
+import { CaseDetail, use기법말 } from './CaseDetail.js';
+import { 케이스맥락 } from './CaseListContext.js';
 import { 기법고름들, type 기법고름 } from './CaseListFilter.js';
 import { CaseRowParams, type 줄글자 } from './CaseRowParams.js';
 import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
@@ -16,6 +17,8 @@ import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
 const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 const 디바이스칩: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
+// 종류는 기능 목록에만 — UI 는 넷째 종류라 UI 목록 전부다 (도메인/카탈로그 §8.1 「맥락」)
+const 종류칩: (Exclude<케이스축, 'UI'> | 'ALL')[] = ['ALL', '정상', '경계', '예외'];
 // 빈 목록 안내도 같은 말을 쓴다. 두 벌을 두면 칩과 안내가 서로 다른 이름으로 같은 것을 부른다
 export const 결과라벨: Record<ItemStatus | 'ALL', string> = {
   ALL: '전체',
@@ -84,30 +87,52 @@ export function 조건칩들({
 }) {
   const t = use말();
 
+  // 라벨과 칩은 한 덩어리로 같이 다음 줄로 간다 — 라벨만 윗줄 끝에 홀로 남았다 (진행판 WEB-F2-11)
   return (
     <>
-      <span className="filter-label">{t('디바이스')}</span>
-      {디바이스칩.map((값) => (
-        <button className="chip" key={값} aria-pressed={디바이스 === 값} onClick={() => on디바이스(값)}>
-          {값 === 'ALL' ? t('전체') : t(PLATFORM_LABEL[값])}
+      <span className="filter-group">
+        <span className="filter-label">{t('디바이스')}</span>
+        {디바이스칩.map((값) => (
+          <button className="chip" key={값} aria-pressed={디바이스 === 값} onClick={() => on디바이스(값)}>
+            {값 === 'ALL' ? t('전체') : t(PLATFORM_LABEL[값])}
+          </button>
+        ))}
+      </span>
+      <span className="filter-group">
+        <span className="filter-label">{t('표시')}</span>
+        {/* 비활성 케이스는 기본으로 감춘다. 코드에서 사라진 케이스는 지우지 않고 남겨 두므로
+            시간이 지날수록 목록이 과거로 채워진다 (SPEC §8.1) */}
+        <button className="chip" aria-pressed={활성만} onClick={() => on활성만(true)}>
+          {t('활성만')}
         </button>
-      ))}
-      <span className="filter-label">{t('표시')}</span>
-      {/* 비활성 케이스는 기본으로 감춘다. 코드에서 사라진 케이스는 지우지 않고 남겨 두므로
-          시간이 지날수록 목록이 과거로 채워진다 (SPEC §8.1) */}
-      <button className="chip" aria-pressed={활성만} onClick={() => on활성만(true)}>
-        {t('활성만')}
-      </button>
-      <button className="chip" aria-pressed={!활성만} onClick={() => on활성만(false)}>
-        {t('전체')}
-      </button>
-      <span className="filter-label">{t('마지막 결과')}</span>
-      {결과칩.map((값) => (
-        <button className="chip" key={값} aria-pressed={결과 === 값} onClick={() => on결과(값)}>
-          {t(결과라벨[값])}
+        <button className="chip" aria-pressed={!활성만} onClick={() => on활성만(false)}>
+          {t('전체')}
         </button>
-      ))}
+      </span>
+      <span className="filter-group">
+        <span className="filter-label">{t('마지막 결과')}</span>
+        {결과칩.map((값) => (
+          <button className="chip" key={값} aria-pressed={결과 === 값} onClick={() => on결과(값)}>
+            {t(결과라벨[값])}
+          </button>
+        ))}
+      </span>
     </>
+  );
+}
+
+/** 종류 — 기능 테스트 목록에만. 서버가 지도 ① 의 축으로 거른다 (도메인/카탈로그 §7 `?axis=`) */
+export function 종류칩들({ 축, on축 }: { 축: 케이스축 | 'ALL'; on축: (값: 케이스축 | 'ALL') => void }) {
+  const t = use말();
+  return (
+    <span className="filter-group">
+      <span className="filter-label">{t('종류')}</span>
+      {종류칩.map((값) => (
+        <button className="chip" key={값} aria-pressed={축 === 값} onClick={() => on축(값)}>
+          {t(값 === 'ALL' ? '전체' : 값)}
+        </button>
+      ))}
+    </span>
   );
 }
 
@@ -144,6 +169,8 @@ export function 케이스줄({
   on값,
   on더보기,
   on저장됨,
+  요구보나 = false,
+  요구쓰나 = false,
 }: {
   row: CaseRow;
   마지막: LastMap;
@@ -160,6 +187,10 @@ export function 케이스줄({
   on값: (tcId: string, 어디: 'params' | 'expected', key: string, value: string) => void;
   on더보기: (tcId: string) => void;
   on저장됨?: (tcId: string) => void;
+  /** 작성 보기 권한 — 없으면 요구 번호가 「PRD 관리」 고리가 아니라 글자다 (도메인/카탈로그 §8.1 「맥락」) */
+  요구보나?: boolean;
+  /** 서비스가 PRD 를 쓴다 — 안 쓰면 「연결된 요구 없음」을 줄마다 달지 않는다 */
+  요구쓰나?: boolean;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -187,11 +218,8 @@ export function 케이스줄({
         {row.name}
         {/* 사유 한 문장은 상세에서 본다. 줄에는 배지만 — 판정 색은 쓰지 않는다 (도메인/카탈로그 §8.1) */}
         {typeof row.unconfirmed === 'string' ? <span className="case-tag">{t('미확정')}</span> : null}
-        {/* 기법은 이름 옆이 아니라 이 작은 줄에 — 이름 옆이면 기법이 둘일 때 둘째 태그가 다음 줄로 밀린다 (도메인/카탈로그 §8.1) */}
-        <small>
-          {t('지원 디바이스 {목록}', { 목록: row.platforms.map((p) => t(PLATFORM_LABEL[p])).join(', ') })}
-          {row.techniques?.length ? <> <span className="tech-line">· {t('설계 기법')} <기법태그들 기법들={row.techniques} /></span></> : null}
-        </small>
+        {/* 기법은 이름 옆이 아니라 아래 작은 줄에 — 이름 옆이면 기법이 둘일 때 둘째 태그가 다음 줄로 밀린다 (도메인/카탈로그 §8.1) */}
+        <케이스맥락 row={row} 요구보나={요구보나} 요구쓰나={요구쓰나} />
       </div>
       <div className="params">
         <CaseRowParams
@@ -261,6 +289,7 @@ export function 케이스줄({
       마지막={마지막[keyOf(row.tcId, row.platforms[0] ?? 'desktop')]}
       글자={글자}
       고칠서비스={고칠서비스}
+      요구보나={요구보나}
       onClose={() => on더보기(row.tcId)}
       on값={(어디, key, value) => on값(row.tcId, 어디, key, value)}
     />

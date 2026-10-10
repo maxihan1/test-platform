@@ -12,13 +12,15 @@ import { use말 } from './i18n.js';
  * 여러 건 고르기가 사라진다. 기준 폭은 `styles.css` `.case-rows` 가 정본이다.
  * 실행 기록은 다르다 (실행 §8.7 은 감추지 않고 줄마다 라벨을 붙인다).
  *
- * `<table>` 이 아니라 격자라서 `role` 로 칸 이름을 읽히게 한다.
+ * **표 역할(row · columnheader)을 달지 않는다** (진행판 WEB-F2-15). 표 부모 없이 row 만 달면 행 이름이 내용으로 계산돼
+ * 화면 읽기가 「이 쪽 전체 선택」을 행 이름과 체크박스로 두 번 읽었다. 표 부모로 감싸면 그 부모 안에서만 붙어 있어
+ * 줄이 스크롤할 때 표머리가 같이 밀려 올라간다(sticky). 줄도 표 역할이 없다 — 칸 이름은 그냥 글로 읽힌다.
  */
 export function 표머리({ 고름상태, on모두고르기 }: { 고름상태?: 'none' | 'some' | 'all'; on모두고르기?: () => void } = {}) {
   const t = use말();
   const id = useId();
   return (
-    <div className="rowhead" role="row">
+    <div className="rowhead">
       <span aria-hidden="true" />
       {/* 이 쪽에 보이는 케이스를 한 번에 고르고 푼다. 「전체 실행」은 이미 모든 쪽이라 여기는 보이는 쪽만이다 (2026-09-30) */}
       {고름상태 === undefined || on모두고르기 === undefined ? (
@@ -45,10 +47,10 @@ export function 표머리({ 고름상태, on모두고르기 }: { 고름상태?: 
         </>
       )}
       {/* 두 언어가 같은 글자라 표를 안 탄다 */}
-      <span role="columnheader">TC ID</span>
-      <span role="columnheader">{t('케이스명')}</span>
-      <span role="columnheader">{t('입력값')}</span>
-      <span role="columnheader">{t('마지막 결과')}</span>
+      <span className="colname">TC ID</span>
+      <span className="colname">{t('케이스명')}</span>
+      <span className="colname">{t('입력값')}</span>
+      <span className="colname">{t('마지막 결과')}</span>
     </div>
   );
 }

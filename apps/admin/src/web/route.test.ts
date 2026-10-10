@@ -97,9 +97,17 @@ describe('route', () => {
     expect(route('#/authoring')).toEqual({ name: 'authoring' });
   });
 
-  it('PRD 관리', () => {
+  it('PRD 관리 — 요구 번호 꼴이면 그 항목을 펴서 연다', () => {
     expect(route('#/prd')).toEqual({ name: 'prd' });
+    expect(route('#/prd/MKT-REQ-003')).toEqual({ name: 'prd', reqId: 'MKT-REQ-003' });
     expect(route('#/prd/1')).toEqual({ name: 'unknown', hash: '#/prd/1' });
+    expect(route('#/prd/MKT-003')).toEqual({ name: 'unknown', hash: '#/prd/MKT-003' });
+  });
+
+  it('케이스 목록 — 「PRD 관리」에서 넘어온 요구 번호로 거른다 · 옛 표 번호도 받는다', () => {
+    expect(route('#/cases/fn/req/MKT-REQ-003')).toEqual({ name: 'cases', kind: 'FN', req: 'MKT-REQ-003' });
+    expect(route('#/cases/ui/req/REQ-COM-006')).toEqual({ name: 'cases', kind: 'UI', req: 'REQ-COM-006' });
+    expect(route('#/cases/zz/req/MKT-REQ-003')).toMatchObject({ name: 'unknown' });
   });
 
   it('작성 한 건 상세', () => {

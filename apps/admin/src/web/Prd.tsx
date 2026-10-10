@@ -16,7 +16,8 @@ import { Failed, Loading, message, useAsync, 받을이름, 파일로저장 } fro
 /** 새 판을 짓는 일 하나. 지금 판 번호를 넘겨 보낸다 — 그 사이 다른 저장이 있었으면 서버가 PRD_STALE 로 막는다 */
 export type 판짓기 = (일: (baseVersion: number) => Promise<{ version: number }>) => Promise<boolean>;
 
-export function Prd({ service, 할수 }: { service: string; 할수: 판정 }) {
+// 여기 — 케이스 목록의 요구 번호에서 왔다. 그 항목을 펴서 보인다 (도메인/카탈로그 §8.1 「맥락」)
+export function Prd({ service, 할수, 여기 }: { service: string; 할수: 판정; 여기?: string }) {
   const t = use말();
   const 언어 = use언어();
   const 판 = useAsync(() => prdApi.now(service), [service]);
@@ -100,7 +101,7 @@ export function Prd({ service, 할수 }: { service: string; 할수: 판정 }) {
       ) : (
         <>
           {now.version === 0 ? null : <PrdTodo service={service} now={now} 쓰나={쓰나} 짓기={짓기} />}
-          <PrdList service={service} now={now} 쓰나={쓰나} 짓기={짓기} 더하기={더하기} on더하기닫기={() => set더하기(false)} />
+          <PrdList service={service} now={now} 쓰나={쓰나} 짓기={짓기} 더하기={더하기} on더하기닫기={() => set더하기(false)} 여기={여기} />
         </>
       )}
     </>

@@ -6,6 +6,7 @@ import type { Platform, Technique } from '@platform/kit';
 import { 보류들, type 보류입력 } from '../authoring/held.js';
 import { 사슬식 } from '../authoring/history.js';
 import { lastByCase, type LastResult } from '../execution/history.js';
+import type { 맥락조건 } from './context.js';
 import type { ExportCase, ExportHeld, ExportInput } from './export.js';
 import { listCases } from './store.js';
 
@@ -55,7 +56,7 @@ function 결과칸(l: LastResult | undefined): ExportCase['lastResult'] {
   return l === undefined ? null : { status: l.status, at: 한국시각(l.finishedAt) };
 }
 
-export async function 엑셀자료(입력: {
+export async function 엑셀자료(입력: 맥락조건 & {
   service: string;
   serviceId: number;
   q: string;
@@ -67,6 +68,11 @@ export async function 엑셀자료(입력: {
   canSeeAuthoring: boolean;
 }): Promise<ExportInput> {
   const 목록 = await listCases({
+    feature: 입력.feature,
+    screen: 입력.screen,
+    part: 입력.part,
+    axis: 입력.axis,
+    req: 입력.req,
     service: 입력.service,
     q: 입력.q,
     platform: 입력.platform,
@@ -106,6 +112,8 @@ export async function 엑셀자료(입력: {
       lastResult: 결과칸(마지막.get(c.tcId)),
       filledBy: 채운이.get(c.tcId) ?? null,
       techniques: c.techniques,
+      feature: c.feature,
+      reqIds: [...new Set(c.reqs.map((r) => r.reqId))],
     })),
     held,
     kind: 입력.kind,
