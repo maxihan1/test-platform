@@ -6,6 +6,7 @@ import { extname } from 'node:path';
 
 import type { 읽을자료 } from './authoring-assets.js';
 import { type 설계, 설계하기 } from './authoring-design.js';
+import { type 표행, 로그인열, 칸들 } from './authoring-ledger-login.js';
 
 export interface 원장항목 {
   번호: string;
@@ -147,9 +148,10 @@ function 첫머리번호(줄: string): string | null {
  * 번호 모드 요구 글 — 줄 첫머리에 원장 번호가 있는 줄부터 다음 그런 줄 전까지가 그 번호의 글이다. 줄 단위라 맥 변환(textutil)처럼
  * 칸마다 줄이 나뉘고 빈 줄이 없는 글자본도 요구마다 갈린다. 머리글은 주인을 끊는다. 표에서 첫 칸이 빈 줄(서버 변환 격자 표의 칸 안 목록)은
  * 그 행 주인에 붙고, 원장 번호 없는 새 행은 주인을 끊는다. 숫자만 있는 줄(행 번호 칸)과 테두리는 어디에도 안 붙는다.
- * 첫머리에 한 번도 안 나온 번호(범위의 가운데 · 언급만 됨)는 그 번호가 나온 줄 전부다
+ * 첫머리에 한 번도 안 나온 번호(범위의 가운데 · 언급만 됨)는 그 번호가 나온 줄 전부다.
+ * 표 행과 머리 칸도 같이 모아 `로그인` 을 낸다 — 표 「로그인」 열 값이 예 · 필요 · 관리자 · 기호인 번호다(authoring-ledger-login.ts)
  */
-function 번호글들(글: string, 원장번호: Set<string>): Map<string, string> {
+function 번호글들(글: string, 원장번호: Set<string>): { 글들: Map<string, string>; 로그인: Map<string, string> } {
   const 모음 = new Map<string, string[]>();
   const 언급 = new Map<string, string[]>();
   const 넣기 = (곳: Map<string, string[]>, 번호: string, 줄: string) => {
@@ -159,6 +161,13 @@ function 번호글들(글: string, 원장번호: Set<string>): Map<string, strin
   };
   const md = /^#{1,6}\s/m.test(글);
   let 주인: string | null = null;
+  // 지금 표의 머리 칸 — 서버 변환 · md 는 칸 여럿인 한 줄, 맥 변환은 제목 뒤 주인 없는 줄을 하나씩 이어 모은다
+  let 머리: string[] = [];
+  let 머리이음 = false;
+  // ponytail: 맥 변환 행 뒤에 제목 없이 붙은 문단 · 제목 없이 이어진 두 표 · 여러 문단인 칸 · 앞 `|` 없는 md 표는 칸 수가 어긋나 못 읽는다.
+  // 잦으면 표 구조를 변환기에서 받는다
+  const 행 = new Map<string, 표행>();
+  let 지금행: 표행 | undefined;
   for (const 날줄 of 글.split(/\r?\n/)) {
     const 줄 = 날줄.trim().replace(행번호, '');
     if (줄 === '' || 테두리.test(줄) || /^\d+$/.test(줄)) continue;
@@ -166,18 +175,36 @@ function 번호글들(글: string, 원장번호: Set<string>): Map<string, strin
     for (const 번호 of 번호들) 넣기(언급, 번호, 줄);
     const 첫 = 첫머리번호(줄);
     const 표줄 = /^[│|]/.test(줄);
+    const 칸 = 칸들(날줄.trim());
     if (첫 !== null && 원장번호.has(첫)) {
       주인 = 첫;
       넣기(모음, 첫, 줄);
-    } else if (머리글(줄, md) || (표줄 && !/^[│|]\s*[│|]/.test(줄) && 번호들.length === 0)) 주인 = null;
-    else if (주인 !== null) 넣기(모음, 주인, 줄);
+      지금행 = { 머리, 칸, 줄마다: 칸.length === 1 };
+      // 같은 번호가 줄 첫머리에 또 나오면(뒤의 상세 제목) 먼저 나온 표 행을 둔다
+      if (!행.has(첫)) 행.set(첫, 지금행);
+      머리이음 = false;
+    } else if (머리글(줄, md) || (표줄 && !/^[│|]\s*[│|]/.test(줄) && 번호들.length === 0)) {
+      주인 = null;
+      머리이음 = 머리글(줄, md);
+      머리 = 머리이음 ? [] : 칸;
+    } else if (주인 !== null) {
+      넣기(모음, 주인, 줄);
+      if (지금행?.줄마다 === true) 지금행.칸.push(...칸);
+      // 서버 변환은 줄을 안 꺾는다(--wrap=none) — 행 뒤에 붙은 번호 없는 칸 여럿 줄은 제목 없이 이어진 다음 표의 머리다
+      else if (!표줄 && 칸.length > 1 && 번호들.length === 0) 머리 = 칸;
+    } else {
+      머리 = 칸.length === 1 && 머리이음 ? [...머리, ...칸] : 칸;
+      머리이음 = 칸.length === 1;
+    }
   }
-  return new Map([...원장번호].map((n) => [n, (모음.get(n) ?? 언급.get(n) ?? []).join('\n')]));
+  return { 글들: new Map([...원장번호].map((n) => [n, (모음.get(n) ?? 언급.get(n) ?? []).join('\n')])), 로그인: 로그인열(행) };
 }
 
 // 원장 사본 JSON 이 요구마다 빈 설계로 불지 않게 경계 · 예외가 둘 다 비면 키를 안 싣는다
-function 설계칸(요구글: string): { 설계?: 설계 } {
+function 설계칸(요구글: string, 로그인?: string): { 설계?: 설계 } {
   const 설 = 설계하기(요구글);
+  // 비로그인 · 일반 회원 요청이 401 · 403 으로 막히는 묶음이다. PRD 옮기기는 「로그인이 필요하다」로 적어 판정 함수가 같은 기법을 낸다
+  if (로그인 !== undefined) 설.예외.push({ 기법: '동등 분할', 근거: `로그인: ${로그인}` });
   return 설.경계.length + 설.예외.length > 0 ? { 설계: 설 } : {};
 }
 
@@ -190,10 +217,10 @@ export function 원장뽑기(글: string, 자료: string, 머리 = 'P'): 자료�
   const 가족들 = Object.fromEntries(Object.entries(셈).filter(([, n]) => n >= 가족하한));
   if (Object.keys(가족들).length > 0) {
     const 원장번호 = 차례.filter((번호) => 가족(번호) in 가족들);
-    const 글들 = 번호글들(글, new Set(원장번호));
+    const { 글들, 로그인 } = 번호글들(글, new Set(원장번호));
     const 항목 = 원장번호.map((번호) => {
       const 요구글 = 글들.get(번호) ?? '';
-      return { 번호, 자료, 지문: 지문내기(요구글), ...설계칸(요구글) };
+      return { 번호, 자료, 지문: 지문내기(요구글), ...설계칸(요구글, 로그인.get(번호)) };
     });
     return { 모드: '번호', 항목, 가족: 가족들, 경고 };
   }
