@@ -3,7 +3,7 @@
 
 import { type 설계, 설계요약 } from './authoring-design.js';
 import { 번호찾기 } from './authoring-ledger.js';
-import { type 표줄, 기준줄열쇠, 줄상태 } from './authoring-slots.js';
+import { type 표줄, 기준줄열쇠, 오류추정줄인가, 줄상태 } from './authoring-slots.js';
 
 export interface 설계항목 {
   번호: string;
@@ -24,7 +24,7 @@ const 칸축 = ['경계', '예외'] as const;
 type 칸축 = (typeof 칸축)[number];
 const 칸축인가 = (글: string): 글 is 칸축 => (칸축 as readonly string[]).includes(글);
 
-/** 표가 설계 칸을 덮었는지. 칸은 축이 같은 줄이면 상태 · 기준 줄 여부와 상관없이 채운다 — 칸을 다뤘는지만 본다. tcId 꼴 · 케이스 파일을 보는 원장대조의 덮음보다 느슨하다 (작성 §3.6 「설계 기법」) */
+/** 표가 설계 칸을 덮었는지. 칸은 축이 같은 줄이면 상태 · 기준 줄 여부와 상관없이 채운다(오류 추정 줄만 빼고) — 칸을 다뤘는지만 본다. tcId 꼴 · 케이스 파일을 보는 원장대조의 덮음보다 느슨하다 (작성 §3.6 「설계 기법」) */
 export function 설계대조(
   원장: 설계항목[],
   줄들: 표줄[],
@@ -61,9 +61,12 @@ export function 설계대조(
   for (const { 번호, 설계: 설 } of 원장) {
     const 든줄 = 번호줄.get(번호) ?? [];
     // 줄이 없으면 원장대조가 빠짐으로 세고, 기준 줄만 있으면 사람이 이미 본 요구다 — 여기서 또 몰지 않는다
-    if (설 === undefined || 제외번호.has(번호) || 든줄.every((줄) => 기준줄.has(기준줄열쇠(줄)))) continue;
+    // 오류 추정 줄은 점검 목록으로 찌른 것이라 설계가 요구한 틀린 입력을 다룬 게 아니다 — 칸을 못 채우고,
+    // 옛 요구에 그 줄만 붙었다고 사람이 이미 본 요구를 다시 몰지도 않는다
+    const 채운줄 = 든줄.filter((줄) => !오류추정줄인가(줄.출처));
+    if (설 === undefined || 제외번호.has(번호) || 채운줄.every((줄) => 기준줄.has(기준줄열쇠(줄)))) continue;
     for (const 축 of 칸축) {
-      if (설[축].length > 0 && !거절칸.has(`${번호} ${축}`) && !든줄.some((줄) => 줄.축.trim() === 축)) 빠짐.push(`${번호} ${축}`);
+      if (설[축].length > 0 && !거절칸.has(`${번호} ${축}`) && !채운줄.some((줄) => 줄.축.trim() === 축)) 빠짐.push(`${번호} ${축}`);
     }
   }
 

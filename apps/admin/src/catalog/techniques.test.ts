@@ -77,7 +77,7 @@ describe('K14 — techniques 는 목록 안 낱말의 리터럴 배열', () => {
   });
 
   it('목록 밖 낱말은 위반이고 그 낱말을 알린다', () => {
-    expect(k14(케이스(`techniques: ['오류 추정'],`))).toEqual(['techniques 원소 「오류 추정」은 목록에 없다']);
+    expect(k14(케이스(`techniques: ['탐색적 테스트'],`))).toEqual(['techniques 원소 「탐색적 테스트」은 목록에 없다']);
   });
 
   it('같은 낱말이 둘이면 위반이다', () => {
@@ -86,11 +86,11 @@ describe('K14 — techniques 는 목록 안 낱말의 리터럴 배열', () => {
 
   it('UI 판정은 실행한 tcId 로 checkSpec 이 한다 — 글자 검사는 꼴만 본다', () => {
     expect(k14(케이스('techniques: [],', '', 'DEMO-UI-001'))).toEqual([]);
-    expect(k14(케이스(`techniques: ['오류 추정'],`, '', 'DEMO-UI-001'))).toEqual(['techniques 원소 「오류 추정」은 목록에 없다']);
+    expect(k14(케이스(`techniques: ['탐색적 테스트'],`, '', 'DEMO-UI-001'))).toEqual(['techniques 원소 「탐색적 테스트」은 목록에 없다']);
   });
 
   it('위반 줄은 원소가 적힌 줄이다', () => {
-    const found = checkSource('x.spec.ts', 케이스(`techniques: ['오류 추정'],`)).violations.filter((v) => v.rule === 'K14');
+    const found = checkSource('x.spec.ts', 케이스(`techniques: ['탐색적 테스트'],`)).violations.filter((v) => v.rule === 'K14');
     expect(found[0]?.line).toBe(9);
   });
 

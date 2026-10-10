@@ -7,7 +7,7 @@ import { TCID, tcId종류 } from '../apps/admin/src/catalog/rules.js';
 import { 케이스기법 } from '../apps/admin/src/catalog/techniques.js';
 import type { 설계 } from './authoring-design.js';
 import { 번호찾기 } from './authoring-ledger.js';
-import type { 표줄 } from './authoring-slots.js';
+import { type 표줄, 오류추정줄인가 } from './authoring-slots.js';
 
 /** 칸의 기대 기법 — 늘 TECHNIQUES 차례 · 중복 없이. 설계 밖 경계 칸도 경계값 분석이다 */
 export function 기대기법(축: string, 설계들: readonly (설계 | undefined)[]): Technique[] {
@@ -41,8 +41,11 @@ export function 기법대조(
     // 글자로 못 읽은 것은 K14 가 잡는다 — 여기서 또 내면 거짓 어긋남이다
     const 적은 = 글 === undefined ? null : 케이스기법(글);
     if (적은 === null) continue;
-    // 둘 다 TECHNIQUES 차례 · 중복 없이라 글로 견주면 집합 비교다
-    const 기대 = 기대기법(줄.축.trim(), 번호찾기(줄.출처).번호들.map((번호) => 설계들.get(번호)));
+    // 둘 다 TECHNIQUES 차례 · 중복 없이라 글로 견주면 집합 비교다. 오류 추정 줄은 설계가 아니라 점검 목록에서 왔다
+    const 기대: Technique[] =
+      오류추정줄인가(줄.출처)
+        ? ['오류 추정']
+        : 기대기법(줄.축.trim(), 번호찾기(줄.출처).번호들.map((번호) => 설계들.get(번호)));
     if (기대.join() !== 적은.join()) 어긋남.push(`${tcId} — 「${글로(기대)}」이어야 한다(지금 「${글로(적은)}」)`);
   }
   return 어긋남;
