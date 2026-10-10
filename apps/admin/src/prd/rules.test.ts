@@ -3,7 +3,7 @@
 import type { PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
-import { 반영안됨, 사람판, 옮기기판, 확인필요, 확정판, 항목검사, type 들어온항목 } from './rules.js';
+import { 반영안됨, 사람판, 옮기기판, 확인필요, 화면번호들, 확정판, 항목검사, type 들어온항목 } from './rules.js';
 
 const 근거 = [{ from: '기획서.docx', ref: 'REQ-1', quote: '비밀번호는 8자 이상' }];
 const 항목 = (reqId: string, 덧: Partial<PrdItem> = {}): PrdItem => ({
@@ -151,6 +151,32 @@ describe('옮기기판', () => {
       keptByPerson: [],
       items: [{ reqId: 'MKT-REQ-001' }, { reqId: 'MKT-REQ-002', checkSince: 시각 }],
     });
+  });
+
+  it('화면이 맞음 번호는 사람이 고친 항목이어도 덮어 확정 · byPerson 으로 쓰고, 안 바뀐 번호는 지금 판 그대로다 — keptByPerson 에 안 넣는다', () => {
+    const 화면근거 = [{ from: '화면', ref: '/join', quote: '실행 RUN 42 실패 — 사람이 화면이 맞다고 판정' }];
+    const 확인중 = 항목('MKT-REQ-002', { status: 'NEEDS_CHECK', checkSince: '2026-10-01T00:00:00.000Z' });
+    const 지금판 = { ...받은판, version: 2, items: [항목('MKT-REQ-001', { text: '사람 고침', byPerson: true as const }), 확인중, 항목('MKT-REQ-003', { text: '사람 고침', byPerson: true as const })] };
+    const 보냄 = [
+      항목('MKT-REQ-001', { text: '화면대로', basis: 화면근거, status: 'NEEDS_CHECK' }),
+      { ...확인중, status: 'CONFIRMED' as const },
+      항목('MKT-REQ-003', { text: '문서 고침' }),
+    ];
+    const r = 옮기기판(받은판, 지금판, 보냄, 'MKT', 시각, new Set(['MKT-REQ-001', 'MKT-REQ-002']));
+    expect(r).toEqual({
+      lastNo: 3,
+      keptByPerson: ['MKT-REQ-003'],
+      items: [
+        { reqId: 'MKT-REQ-001', feature: '회원가입', text: '화면대로', basis: 화면근거, status: 'CONFIRMED', byPerson: true },
+        확인중,
+        지금판.items[2],
+      ],
+    });
+  });
+
+  it('화면이 맞음 번호는 요청 params.screenRight.reqIds 에서 읽는다', () => {
+    expect(화면번호들({ prdApply: true, screenRight: { runId: 1, tcId: 'MKT-FN-001', env: 'qa', reqIds: ['MKT-REQ-001', 2] } })).toEqual(new Set(['MKT-REQ-001']));
+    expect(화면번호들({ prdApply: true })).toEqual(new Set());
   });
 });
 

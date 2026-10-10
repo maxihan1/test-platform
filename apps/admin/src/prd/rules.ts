@@ -80,9 +80,23 @@ function 근거같나(a: PrdBasis[], b: PrdBasis[]): boolean {
   return a.length === b.length && a.every((x, i) => x.from === b[i]!.from && x.ref === b[i]!.ref && x.quote === b[i]!.quote);
 }
 
+/**
+ * 요구 자체(기능 묶음 · 요구 문장 · 근거)가 같은가 — 상태는 안 본다. 「화면이 맞음」 번호가 바뀌었나를 서버와 에이전트가 이것 하나로 가른다.
+ * 상태를 빼는 까닭 — 화면 근거뿐인 항목은 에이전트가 확인 필요로 읽어 보내지만 서버가 확정으로 단다
+ */
+export function 요구같나(a: Pick<PrdItem, 'feature' | 'text' | 'basis'>, b: Pick<PrdItem, 'feature' | 'text' | 'basis'>): boolean {
+  return a.feature === b.feature && a.text === b.text && 근거같나(a.basis, b.basis);
+}
+
 /** 사람이 보는 칸 넷(번호 빼고)이 같은가. byPerson · checkSince 는 견주지 않는다 */
 function 내용같나(a: 들어온항목 | PrdItem, b: PrdItem): boolean {
-  return a.feature === b.feature && a.text === b.text && a.status === b.status && 근거같나(a.basis, b.basis);
+  return a.status === b.status && 요구같나(a, b);
+}
+
+/** 작성 요청 params 의 「화면이 맞음」 번호(screenRight.reqIds). 화면이 맞음 요청이 아니면 빈 묶음 */
+export function 화면번호들(params: Record<string, unknown>): Set<string> {
+  const 번호들 = (params.screenRight as { reqIds?: unknown } | undefined)?.reqIds;
+  return new Set(Array.isArray(번호들) ? 번호들.filter((x): x is string => typeof x === 'string') : []);
 }
 
 /** 판 통째가 같은가 — 같으면 새 판을 안 만든다(옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게) */
@@ -183,7 +197,9 @@ export function 확정판(앞: 앞판 | null, 번호들: unknown): { items: PrdI
 /**
  * 옮기기(에이전트)가 올린 새 판. 거절하지 않고 합친다 —
  * 지금 판에서 사람이 고친 항목(byPerson)은 사람 것을 남기고, 받은 판 뒤에 사람이 지운 번호는 되살리지 않는다.
- * 둘 다 문서와 달랐던 번호를 keptByPerson 으로 돌려준다 — PR 본문 머리에 실린다
+ * 둘 다 문서와 달랐던 번호를 keptByPerson 으로 돌려준다 — PR 본문 머리에 실린다.
+ * 「화면이 맞음」 번호(`화면번호`)는 다르다 — 지금 판과 요구가 달라졌으면 사람 것이어도 보낸 것을 확정 · byPerson 으로 쓰고,
+ * 같으면 지금 판 그대로다. 사람이 화면이 맞다고 판정했으므로 keptByPerson 에 넣지 않는다 (§7 에이전트 `POST …/:id/prd`)
  */
 export function 옮기기판(
   받은판: 앞판 | null,
@@ -191,11 +207,13 @@ export function 옮기기판(
   보낸것: 들어온항목[],
   접두사: string,
   지금: string,
+  화면번호: ReadonlySet<string> = new Set(),
 ): { items: PrdItem[]; lastNo: number; keptByPerson: string[] } | 판짓기오류 {
   const 받은것들 = new Map((받은판?.items ?? []).map((x) => [x.reqId, x]));
   const 지금것들 = new Map((지금판?.items ?? []).map((x) => [x.reqId, x]));
   const 남김 = new Set<string>();
   const 쓸것: 들어온항목[] = [];
+  const 화면것들: PrdItem[] = [];
   for (const 항목 of 보낸것) {
     if (항목.reqId === undefined) {
       쓸것.push(항목);
@@ -207,6 +225,11 @@ export function 옮기기판(
       남김.add(항목.reqId); // 받은 판 뒤에 사람이 지웠다
       continue;
     }
+    if (화면번호.has(항목.reqId)) {
+      const { reqId, feature, text, basis } = 항목;
+      화면것들.push(요구같나(항목, 사람것) ? 사람것 : { reqId, feature, text, basis, status: 'CONFIRMED', byPerson: true });
+      continue;
+    }
     if (사람것.byPerson === true) {
       if (!내용같나(항목, 사람것)) 남김.add(항목.reqId);
       continue;
@@ -214,12 +237,13 @@ export function 옮기기판(
     쓸것.push(항목);
   }
   const 보낸번호 = new Set(보낸것.flatMap((x) => (x.reqId === undefined ? [] : [x.reqId])));
-  const 사람것들 = [...지금것들.values()].filter((x) => x.byPerson === true);
-  for (const x of 사람것들) if (!보낸번호.has(x.reqId) && 받은것들.has(x.reqId)) 남김.add(x.reqId); // 문서에서 빠졌는데 사람이 고친 것
+  const 화면몫 = new Set(화면것들.map((x) => x.reqId));
+  const 사람것들 = [...지금것들.values()].filter((x) => x.byPerson === true && !화면몫.has(x.reqId));
+  for (const x of 사람것들) if (!보낸번호.has(x.reqId) && 받은것들.has(x.reqId) && !화면번호.has(x.reqId)) 남김.add(x.reqId); // 문서에서 빠졌는데 사람이 고친 것
   const 매김 = 새번호주기(쓸것, 지금판?.lastNo ?? 0, 접두사);
   if ('error' in 매김) return 매김;
   const 새것 = 매김.items.map((x) => 표시달기(x, 지금것들.get(x.reqId), 지금, false));
-  const items = [...새것, ...사람것들].sort(번호차례);
+  const items = [...새것, ...사람것들, ...화면것들].sort(번호차례);
   return { items, lastNo: 매김.lastNo, keptByPerson: [...남김].sort() };
 }
 

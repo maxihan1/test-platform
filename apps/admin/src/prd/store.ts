@@ -5,6 +5,7 @@ import type { Pool, PoolClient } from 'pg';
 
 import { 사슬식, 최신식 } from '../authoring/history.js';
 import { 반영안됨, 사람판, 옮기기판, 판같나, 확정판, type 들어온항목, type 앞판, type 판짓기오류 } from './rules.js';
+import type { 화면이맞음 } from './screenRight.js';
 import type { 덮는케이스 } from './trace.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
@@ -192,6 +193,7 @@ export async function 옮기기(
   baseVersion: number,
   items: 들어온항목[],
   사람: 저장하는사람,
+  화면번호: ReadonlySet<string> = new Set(),
 ): Promise<{ version: number; keptByPerson: string[] } | 판짓기오류 | { error: 'NOT_RUNNING'; detail: string }> {
   return 잠그고(서비스, async (손) => {
     // 라우트가 이미 봤다. 여기는 그 사이 끝난 요청을 막는 그물이다
@@ -201,7 +203,7 @@ export async function 옮기기(
     const 지금 = await 지금판읽기(손, 서비스);
     const 받은판 = baseVersion === 0 ? null : await 판읽기(손, 서비스, baseVersion);
     if (baseVersion !== 0 && 받은판 === null) return { error: 'BAD_PRD' as const, detail: 'baseVersion' };
-    const 새 = 옮기기판(받은판, 지금, items, 접두사, new Date().toISOString());
+    const 새 = 옮기기판(받은판, 지금, items, 접두사, new Date().toISOString(), 화면번호);
     if ('error' in 새) return 새;
     const version = await 판넣기(손, 서비스, 지금, 새, 'AGENT', 사람, 요청);
     await 손.query('UPDATE authoring_request SET prd_version = NULLIF($2, 0) WHERE id = $1', [요청, version]);
@@ -246,15 +248,19 @@ export async function 기준판(서비스: number): Promise<{ version: number; i
 /**
  * 「바뀐 요구 N건 테스트에 반영」 — 자료 없는 작성 요청 하나를 곧장 줄에 세운다. 반영 안 됨이 0 이면 세우지 않는다.
  * 열린 반영(폐기 안 됨 · 최신 실행이 병합된 반영이 아님)이 있으면 APPLY_OPEN — 두 번 누르면 같은 판을 고치는 PR 이 둘 선다.
- * 확인과 넣기를 서비스 잠금 안에서 한다(열린 케이스 고치기 EDIT_OPEN 과 같은 꼴)
+ * 확인과 넣기를 서비스 잠금 안에서 한다(열린 케이스 고치기 EDIT_OPEN 과 같은 꼴).
+ * 「화면이 맞음」(`화면`)이면 반영 안 됨이 0 이어도 세운다 — 고칠 번호가 따로 있다 (§7 apply 「본문 screenRight」)
  */
 export async function 반영세우기(
   서비스: number,
   사람: 저장하는사람,
+  화면?: 화면이맞음,
 ): Promise<{ id: number } | { error: 'NOTHING_TO_APPLY' } | { error: 'APPLY_OPEN'; detail: number[] }> {
-  const [지금, 기준] = await Promise.all([지금판(서비스), 기준판(서비스)]);
-  const 차이 = 반영안됨(기준?.items ?? null, 지금?.items ?? []);
-  if (차이.changed.length + 차이.added.length + 차이.removed.length === 0) return { error: 'NOTHING_TO_APPLY' };
+  if (화면 === undefined) {
+    const [지금, 기준] = await Promise.all([지금판(서비스), 기준판(서비스)]);
+    const 차이 = 반영안됨(기준?.items ?? null, 지금?.items ?? []);
+    if (차이.changed.length + 차이.added.length + 차이.removed.length === 0) return { error: 'NOTHING_TO_APPLY' };
+  }
   return 잠그고(서비스, async (손) => {
     const 열린 = await 손.query<{ id: string }>(
       `WITH RECURSIVE ${사슬식("service_id = $1 AND kind = 'AUTHOR' AND params->>'prdApply' = 'true' AND discarded_at IS NULL")}
@@ -269,8 +275,8 @@ export async function 반영세우기(
     if (열린.rows.length > 0) return { error: 'APPLY_OPEN' as const, detail: 열린.rows.map((x) => Number(x.id)) };
     const r = await 손.query<{ id: string }>(
       `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status)
-       VALUES ($1, 'AUTHOR', '{"prdApply": true}', $2, $3, 'PENDING') RETURNING id`,
-      [서비스, 사람.username, 사람.displayName],
+       VALUES ($1, 'AUTHOR', $4, $2, $3, 'PENDING') RETURNING id`,
+      [서비스, 사람.username, 사람.displayName, JSON.stringify({ prdApply: true, ...(화면 === undefined ? {} : { screenRight: 화면 }) })],
     );
     return { id: Number(r.rows[0]!.id) };
   });

@@ -16,7 +16,7 @@ import { 케이스파일들 } from './authoring-progress.js';
 import { type 표줄, 줄상태, 칸재료만들기 } from './authoring-slots.js';
 import { type 이어작성입력, 남은번호, 이어작성막힘, 이어작성사본이름 } from './authoring-continue.js';
 import { 옛번호지도, 옮긴것읽기, 임시꼴, 판합치기, 표준원장 } from './authoring-prd.js';
-import { type 반영입력, 반영계획만들기, 반영막힘, 반영사본이름 } from './authoring-apply.js';
+import { type 반영입력, type 화면이맞음요청, 반영계획만들기, 반영막힘, 반영사본이름 } from './authoring-apply.js';
 import type { 원장입력 } from './authoring-prompt.js';
 
 export const 원장사본이름 = 'ledger.json';
@@ -248,8 +248,8 @@ export function 원장과남은번호(입력: {
   옮긴다: boolean;
   /** 이어받은 폴더에 앞 자식이 쓴 결과 파일. 없으면 undefined */
   옮긴몸?: unknown;
-  /** 반영 요청이면 지금 판 번호와 기준 판 */
-  반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null };
+  /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight */
+  반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청 };
 }):
   | { 원장: 원장 | { 없음: string }; 입력: 원장입력; 기준: 기준결정; 기준표: 기준표 | null; 원본원장: 원장 | { 없음: string }; 원본입력: 원장입력; 이어작성?: 이어작성입력; 반영?: 반영입력 }
   | { 막힘: string } {
@@ -283,7 +283,7 @@ export function 원장과남은번호(입력: {
     원본입력: 원본.입력,
   };
   if (입력.이어작성원본 === null && 입력.반영 !== undefined && 기준값 !== null) {
-    const 계획 = 반영계획만들기({ version: 입력.반영.지금판, items: 입력.지금 }, 입력.반영.기준판, 기준값.표글, 입력.서비스);
+    const 계획 = 반영계획만들기({ version: 입력.반영.지금판, items: 입력.지금 }, 입력.반영.기준판, 기준값.표글, 입력.서비스, 입력.반영.화면이맞음);
     const 막힘 = 반영막힘(계획);
     if (막힘 !== null) return { 막힘 };
     const 반영자리 = join(입력.자료폴더, 반영사본이름);
