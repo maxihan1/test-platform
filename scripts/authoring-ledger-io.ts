@@ -13,7 +13,7 @@ import { type 기준결정, tcId들, 사람이뺀번호, 요구줄들, 제외번
 import { 표tcId들 } from './authoring-conflicts.js';
 import { 경고줄 } from './authoring-design-check.js';
 import { 케이스파일들 } from './authoring-progress.js';
-import { type 표줄, 칸재료만들기 } from './authoring-slots.js';
+import { type 표줄, 줄상태, 칸재료만들기 } from './authoring-slots.js';
 import { type 이어작성입력, 남은번호, 이어작성막힘, 이어작성사본이름 } from './authoring-continue.js';
 import { 옛번호지도, 옮긴것읽기, 임시꼴, 판합치기, 표준원장 } from './authoring-prd.js';
 import type { 원장입력 } from './authoring-prompt.js';
@@ -81,7 +81,9 @@ export function 옛줄들(표글: string, 접두사: string): 표줄[] {
 }
 
 /**
- * 옛 표를 옮긴 요청의 PR 머리 줄 — 옛 케이스 번호 가운데 새 표가 물려받은 수 · 새 표에 남은 옛 출처 줄 · 새 표에 없는데 남은 옛 케이스 파일.
+ * 옛 표를 옮긴 요청의 PR 머리 줄 — 옛 케이스 번호 가운데 새 표가 물려받은 수 · 옛 미확정 케이스가 미확정 칸으로 물려받은 수 ·
+ * 새 표에 남은 옛 출처 줄 · 새 표에 없는데 남은 옛 케이스 파일. 미확정 칸으로 못 받은 옛 미확정은 문서대로 확정된 것(기획서와 화면이 다름)이거나
+ * 자식이 확인 필요를 빠뜨려 화면 값이 확정이 된 것이다 — 기계가 둘을 못 가르니 번호를 띄워 사람이 본다
  * 지우지 않고 보이기만 한다 — 자식이 표를 덜 쓰고 끝났을 때 에이전트가 케이스를 무더기로 지우지 않게. 기준 표에 옛 줄이 없으면 빈 목록이다
  */
 export function 옛표줄들(트리: string, 서비스: string, 폴더: string, 기준표글: string): string[] {
@@ -94,16 +96,23 @@ export function 옛표줄들(트리: string, 서비스: string, 폴더: string, 
 }
 
 function 옛표셈(트리: string, 서비스: string, 폴더: string, 기준표글: string): string[] {
-  const 옛번호 = new Set(옛줄들(기준표글, 서비스).map((줄) => 줄.tcId).filter((t) => TCID.test(t)));
+  const 옛 = 옛줄들(기준표글, 서비스).filter((줄) => TCID.test(줄.tcId));
+  const 옛번호 = new Set(옛.map((줄) => 줄.tcId));
   if (옛번호.size === 0) return [];
+  const 옛미확정 = new Set(옛.filter((줄) => 줄상태(줄.출처) === '미확정').map((줄) => 줄.tcId));
   const 새표글 = 안전히읽기(join(트리, 'docs', 'cases', `${서비스}.md`)) ?? '';
   const 남은옛줄 = 옛줄들(새표글, 서비스);
   const 옛자리 = new Set(남은옛줄.map((줄) => 줄.차례));
-  const 새번호 = new Set(요구줄들(새표글).filter((줄) => !옛자리.has(줄.차례)).map((줄) => 줄.tcId));
+  const 새줄 = 요구줄들(새표글).filter((줄) => !옛자리.has(줄.차례));
+  const 새번호 = new Set(새줄.map((줄) => 줄.tcId));
+  const 새미확정 = new Set(새줄.filter((줄) => 줄상태(줄.출처) === '미확정').map((줄) => 줄.tcId));
+  const 미확정못받음 = [...옛미확정].filter((t) => !새미확정.has(t)).sort();
   const 파일번호 = new Set([...케이스파일들(join(트리, 'tests', 폴더))].map((p) => basename(p, '.spec.ts')));
   const 물려받음 = [...옛번호].filter((t) => 새번호.has(t)).length;
   return [
     `옛 표 옮김: 옛 케이스 ${String(옛번호.size)} 중 번호 물려받음 ${String(물려받음)} · 새 표에 없음 ${String(옛번호.size - 물려받음)}`,
+    ...(옛미확정.size === 0 ? [] : [`옛 미확정 케이스 ${String(옛미확정.size)} 중 미확정 칸으로 물려받음 ${String(옛미확정.size - 미확정못받음.length)}`]),
+    ...경고줄('미확정 칸으로 못 물려받은 옛 미확정 케이스(문서대로 확정됐거나 확인 필요가 빠졌다)', 미확정못받음, 10),
     ...경고줄('옛 출처(원본 번호) 줄이 남음', 남은옛줄.map((줄) => `요구 ${String(줄.차례 + 1)}`), 10),
     ...경고줄('새 표에 없는데 안 지운 옛 케이스 파일', [...옛번호].filter((t) => !새번호.has(t) && 파일번호.has(t)).sort(), 10),
   ];
