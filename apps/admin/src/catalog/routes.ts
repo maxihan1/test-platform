@@ -11,6 +11,7 @@ import { 칸되는서비스 } from '../auth/permissions.js';
 import type { 사용자 } from '../auth/store.js';
 import { renderCatalogXlsx } from './export.js';
 import { 엑셀자료, 한국시각 } from './exportData.js';
+import { 지도채우기 } from './reqMap.js';
 import { scan, testsRoot, type Duplicate } from './scanner.js';
 import { readExcerpt } from './source.js';
 import { activeServices, findCase, findService, listCases, save } from './store.js';
@@ -60,6 +61,16 @@ async function runScan(log: FastifyBaseLogger): Promise<스캔기록> {
       const 결과: 서비스결과 = { added: 0, updated: 0, deactivated: 0, duplicates: [], problems: [] };
       서비스별.set(service.prefix, 결과);
       const 어디 = (file: string): string => join(service.testsDir, file);
+
+      // 지도 ① 은 케이스 파일이 아니라 요구사항 표에서 온다 — 케이스 폴더가 깨지거나 번호가 겹쳐도 따로 갱신한다.
+      // 표를 못 읽으면 옛 지도를 남기고 문제로만 알린다 (카탈로그 §3.1 「지도」)
+      try {
+        await 지도채우기(service.id, service.prefix);
+      } catch (err) {
+        결과.problems.push(
+          `${service.prefix} 서비스의 요구사항 표로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
 
       // 폴더가 아직 안 채워졌거나 이름이 틀리면 여기서 던진다. 그 서비스만 접고 나머지는 계속 훑는다 —
       // 한 서비스 때문에 다른 서비스의 케이스까지 사라지면 목록이 통째로 거짓말을 한다 (SPEC §3.1)

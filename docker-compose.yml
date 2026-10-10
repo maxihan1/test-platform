@@ -55,6 +55,7 @@ services:
       DATABASE_URL: postgres://platform:platform@postgres:5432/platform
       RUNNER_URL: http://runner:4000
       PLATFORM_TESTS_DIR: /tests
+      PLATFORM_CASES_DIR: /cases
       PLATFORM_ARTIFACTS_DIR: /artifacts
       PORT: "3000"
       # 로그인 세션을 서명하는 키. DB에 둘 수 없다. 없으면 admin이 기동을 거부한다 (SPEC §9 · §3.5).
@@ -78,6 +79,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./tests:/tests:ro      # 스캔과 실패 지점 코드 발췌가 소스를 읽는다
+      - ./docs/cases:/cases:ro # 스캔이 요구사항 표 출처 칸에서 지도 ①(요구 ↔ 케이스)을 채운다 (SPEC 도메인/카탈로그 §3.1 「지도」)
       # 스크린샷 서빙, 증적 문서 저장. 기본은 이름 붙은 볼륨이다 — 로컬 러너(Android 앱)를 쓰는 맥은 ./artifacts 를 적어
       # 그 러너가 쓰는 폴더를 같이 본다. 안 그러면 앱 스크린샷이 오류 없이 404 다 (SPEC 공통/6-인프라 §9.2)
       - ${PLATFORM_ARTIFACTS_VOLUME:-artifacts}:/artifacts
