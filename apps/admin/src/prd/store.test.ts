@@ -105,7 +105,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
     expect(await s.기준판(서비스)).toBeNull();
     const 뿌리 = await 요청넣기('AUTHOR', { status: 'DONE', prd: 1 });
     await 요청넣기('MERGE', { source: 뿌리, status: 'DONE' });
-    expect(await s.기준판(서비스)).toMatchObject([{ reqId: 'XPS-REQ-001' }]);
+    expect(await s.기준판(서비스)).toMatchObject({ version: 1, items: [{ reqId: 'XPS-REQ-001' }] });
     expect(await s.반영세우기(서비스, 사람)).toEqual({ error: 'NOTHING_TO_APPLY' });
 
     await s.사람저장(서비스, 접두사, 1, [{ ...새것('30개까지'), reqId: 'XPS-REQ-001' }], 사람);

@@ -48,7 +48,7 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     if (서비스 === null) return reply;
     const [판, cases, 기준] = await Promise.all([지금판(서비스), 케이스지도(서비스), 기준판(서비스)]);
     const items = 판?.items ?? [];
-    return { version: 판?.version ?? 0, items, cases, unapplied: 반영안됨(기준, items), needsCheck: 확인필요(items) };
+    return { version: 판?.version ?? 0, items, cases, unapplied: 반영안됨(기준?.items ?? null, items), needsCheck: 확인필요(items) };
   });
 
   app.get<질의>('/prd/versions', async (req, reply) => {
