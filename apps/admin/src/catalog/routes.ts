@@ -11,6 +11,7 @@ import { 칸되는서비스 } from '../auth/permissions.js';
 import type { 사용자 } from '../auth/store.js';
 import { renderCatalogXlsx } from './export.js';
 import { 엑셀자료, 한국시각 } from './exportData.js';
+import { 지도채우기 } from './reqMap.js';
 import { scan, testsRoot, type Duplicate } from './scanner.js';
 import { readExcerpt } from './source.js';
 import { activeServices, findCase, findService, listCases, save } from './store.js';
@@ -95,6 +96,15 @@ async function runScan(log: FastifyBaseLogger): Promise<스캔기록> {
       결과.added = saved.added;
       결과.updated = saved.updated;
       결과.deactivated = saved.deactivated;
+
+      // 지도 ① 은 케이스 파일이 아니라 요구사항 표에서 온다. 표를 못 읽어도 케이스 갱신은 그대로 두고 옛 지도를 남긴다 (카탈로그 §3.1 「지도」)
+      try {
+        await 지도채우기(service.id, service.prefix);
+      } catch (err) {
+        결과.problems.push(
+          `${service.prefix} 서비스의 요구사항 표로 지도를 채우지 못했다: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
     }
 
     const problems = [...서비스별.values()].flatMap((r) => r.problems);
