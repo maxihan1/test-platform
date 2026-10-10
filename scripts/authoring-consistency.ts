@@ -9,7 +9,7 @@ import type { 파일글 } from './authoring-quality.js';
 export interface 실행 {
   /** tcId → 확인 문장 */
   케이스: Map<string, Set<string>>;
-  /** `pages/…` · `components/…` 마디부터의 경로 — 이름만 쓰면 둘 아래 같은 이름이 하나로 합쳐진다 */
+  /** `pages/…` · `components/…` · `helpers/…` 마디부터의 경로 — 이름만 쓰면 셋 아래 같은 이름이 하나로 합쳐진다 */
   화면파일: Set<string>;
   /** tcId → 덮은 원장 번호. null 은 표 없음, 빈 Map 은 표는 있는데 원장 번호가 없음(화면만 작성) */
   덮음: Map<string, Set<string>> | null;
@@ -46,7 +46,7 @@ export function 실행요약(파일들: 파일글[], 표?: string): 실행 {
   const 화면파일 = new Set<string>();
   for (const f of 파일들) {
     const 마디 = f.경로.split('/');
-    const 자리 = 마디.findIndex((m) => m === 'pages' || m === 'components');
+    const 자리 = 마디.findIndex((m) => m === 'pages' || m === 'components' || m === 'helpers');
     if (자리 >= 0) 화면파일.add(마디.slice(자리).join('/'));
     if (!f.경로.endsWith('.spec.ts')) continue;
     const tcId = 케이스tcId(f.글);

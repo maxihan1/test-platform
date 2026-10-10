@@ -223,6 +223,11 @@ describe('caseSteps — Page Object', () => {
     expect(skippable(po(`await new 머리(page).펼친다();`, '', head))[0]).toBe(true);
   });
 
+  it('helpers 의 도우미도 같다', () => {
+    const head = `import { 세션 } from './helpers/session.helper.js';\n`;
+    expect(skippable(po(`await new 세션(page).로그인();`, '', head))[0]).toBe(true);
+  });
+
   it.each([
     ['다른 파일의 도우미', `import { 로그인화면 } from './helpers.js';\n`],
     ['상위 폴더', `import { 로그인화면 } from '../pages/login.page.js';\n`],

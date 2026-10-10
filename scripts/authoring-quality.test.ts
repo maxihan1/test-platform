@@ -34,10 +34,11 @@ describe('품질 숫자 (작성 §3.6 · 2026-10-03 — 나눠 쓴 뒤 품질을
     expect(숫자).toMatchObject({ 준비없음: 0, 전제확인비율: 2 / 3 });
   });
 
-  it('공용 부품(components) 밖의 CSS · XPath locator 만 센다', () => {
+  it('공용 부품(components · helpers) 밖의 CSS · XPath locator 만 센다', () => {
     const 숫자 = 품질숫자([
       { 경로: 'tests/mkt/pages/home.page.ts', 글: "page.locator('.toast'); page.locator(\"#modal\"); page.locator('//div'); page.getByRole('button')" },
       { 경로: 'tests/mkt/components/toast.component.ts', 글: "page.locator('.toast')" },
+      { 경로: 'tests/mkt/helpers/login.helper.ts', 글: "page.locator('#login')" },
       { 경로: 'tests/mkt/MKT-FN-001.spec.ts', 글: 케이스("page.locator('[data-x]'); page.locator('css=a'); page.locator('xpath=//a')") },
     ]);
     expect(숫자.밖CSS).toBe(6);

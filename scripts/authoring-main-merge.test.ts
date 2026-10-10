@@ -146,6 +146,7 @@ describe('main 합치기', () => {
     it.each([
       ['서로 다른 줄을 고쳐 git 이 깨끗이 합칠 수 있어도', 경로, 'tests/mkt/components/header.ts'],
       ['components 도 같다', 'tests/mkt/components/header.ts', 경로],
+      ['helpers 도 같다', 'tests/mkt/helpers/login.helper.ts', 경로],
     ])('%s AI 에 넘긴다 — 한쪽만 고친 파일은 안 넘긴다', async (_이름, 겹침, 다른것) => {
       const { 트리, 깃, mainSha } = 갈라놓기(
         (t) => {

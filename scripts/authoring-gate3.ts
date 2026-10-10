@@ -55,9 +55,9 @@ export function 끝검사줄들(결과폴더: string, 트리: string, 폴더: st
   return [...(경고 === null ? [] : [경고]), ...(임시 === null ? [] : [임시]), 품질줄(품질숫자(파일들))];
 }
 
-/** 보조가 모자란 도우미를 적어 둔 `components/draft-<묶음>` 이 남았나 — 자식이 합칠 때 공용으로 옮기고 지운다 (작성 §3.6 팬아웃, 2026-10-04) */
+/** 보조가 모자란 도우미를 적어 둔 `helpers/draft-<묶음>.helper.ts` 가 남았나 — 자식이 합칠 때 공용으로 옮기고 지운다 (작성 §3.6 팬아웃, 2026-10-04). 옛 자리 `components/draft-*` 도 잡는다 — 진행 중인 작업이 거기 쓸 수 있다 */
 export function 남은임시도우미(경로들: string[]): string | null {
-  const 남은것 = 경로들.filter((p) => /(^|\/)components\/draft-[^/]*\.ts$/.test(p));
+  const 남은것 = 경로들.filter((p) => /(^|\/)(components|helpers)\/draft-[^/]*\.ts$/.test(p));
   return 남은것.length === 0 ? null : `⚠️ 공용으로 옮기지 않은 임시 도우미 ${남은것.length}개 — ${남은것.join(' · ')}`;
 }
 

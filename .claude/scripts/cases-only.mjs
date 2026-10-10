@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 바뀐 파일이 「테스트만」(tests/<폴더>/ 의 spec · Page Object · 케이스 문서)인지 판정한다. pre-push 훅과 CI 가 가벼운 길을 고를 때 쓴다.
+// 바뀐 파일이 「테스트만」(tests/<폴더>/ 의 spec · Page Object · 화면 조각 · 공용 도우미 · 케이스 문서)인지 판정한다. pre-push 훅과 CI 가 가벼운 길을 고를 때 쓴다.
 //
 // 쓰는 법: git -c core.quotePath=false diff --name-only <base>...HEAD | node cases-only.mjs <base>
 //   종료 0 = 테스트만(가벼운 길) · 1 = 그 밖(무거운 길). 판정을 못 해도 1 이다 — 틀리면 코드가 검사 없이 들어간다.
@@ -13,16 +13,18 @@ import { fileURLToPath } from 'node:url';
 export const 케이스파일꼴 = /^tests\/[^/]+\/[A-Z][A-Z0-9]{0,11}-(?:(?:UI|FN)-)?\d{3}\.spec\.ts$/;
 export const 페이지파일꼴 = /^tests\/[^/]+\/pages\/[a-z][a-z0-9-]{0,40}\.page\.ts$/;
 export const 부품파일꼴 = /^tests\/[^/]+\/components\/[a-z][a-z0-9-]{0,40}\.component\.ts$/;
+export const 도우미파일꼴 = /^tests\/[^/]+\/helpers\/[a-z][a-z0-9-]{0,40}\.helper\.ts$/;
 
 /**
- * 파일 목록이 전부 케이스 spec · Page Object · 공용 부품 또는 `docs/cases/*.md` 인가. 폴더가 base 에 있었는지는 묻지 않는다.
+ * 파일 목록이 전부 케이스 spec · Page Object · 화면 조각 · 공용 도우미 또는 `docs/cases/*.md` 인가. 폴더가 base 에 있었는지는 묻지 않는다.
  * 전에는 새 폴더를 무거운 길로 보냈다(CI 실행 단계에 없어 다음 PR 이 빨개진다는 이유). 그런데 서비스 폴더는
  * CI 가 돌리지 않고, 케이스 병합의 근거는 작성 에이전트의 관문 3 기록이다. 새 서비스의 첫 케이스를
  * 막을 까닭이 없어 뺐다 (2026-09-25 사용자 승인).
  *
  * 대신 이름 꼴을 좁게 박는다 (2026-09-25 게이트 2 · 2026-10-02 #129 두 종류 케이스).
  * - spec 은 케이스 번호 세 꼴만 — `<접두사>-NNN` · `<접두사>-UI-NNN` · `<접두사>-FN-NNN` + `.spec.ts`
- * - Page Object 는 `tests/<폴더>/pages/<이름>.page.ts`, 공용 부품은 `tests/<폴더>/components/<이름>.component.ts`,
+ * - Page Object 는 `tests/<폴더>/pages/<이름>.page.ts`, 화면 조각은 `tests/<폴더>/components/<이름>.component.ts`,
+ *   로그인 · 계정 · 데이터 같은 공용 도우미는 `tests/<폴더>/helpers/<이름>.helper.ts`,
  *   이름은 `^[a-z][a-z0-9-]{0,40}$` 하나뿐이다
  * `ci-covers-tests` 가 이 꼴만 든 폴더를 서비스 폴더로 면제하므로, 더 넓게 받으면 cases 차선으로 들어온 폴더가
  * 면제에서 빠져 다음 full PR 이 남의 폴더 때문에 빨개진다. 기획서에 숨긴 지시로 아무 이름을 심는 길도 좁아진다 —
@@ -34,7 +36,7 @@ export function 테스트만인가(파일들) {
   return 파일들.every((f) => {
     if (f.split('/').includes('..')) return false;
     if (/^docs\/cases\/[^/]+\.md$/.test(f)) return true;
-    return 케이스파일꼴.test(f) || 페이지파일꼴.test(f) || 부품파일꼴.test(f);
+    return 케이스파일꼴.test(f) || 페이지파일꼴.test(f) || 부품파일꼴.test(f) || 도우미파일꼴.test(f);
   });
 }
 

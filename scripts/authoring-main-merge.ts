@@ -97,7 +97,7 @@ export async function main합치기(판: 합칠판): Promise<{ 합침: boolean }
 
   const 내바뀐 = 깃(['diff', '--name-only', '-z', 바탕.낸것.trim(), 'HEAD']);
   if (!내바뀐.ok) return { 사유: `요청에서 바뀐 파일을 못 읽었다: ${내바뀐.까닭 ?? ''}` };
-  const 부품 = [`tests/${폴더}/pages/`, `tests/${폴더}/components/`];
+  const 부품 = [`tests/${폴더}/pages/`, `tests/${폴더}/components/`, `tests/${폴더}/helpers/`];
   const 둘다 = new Set(내바뀐.낸것.split('\0').filter((f) => f !== ''));
   const 부품겹침 = main바뀐것.filter((f) => 둘다.has(f) && 부품.some((p) => f.startsWith(p)));
 

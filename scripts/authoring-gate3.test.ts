@@ -10,8 +10,14 @@ describe('남은 임시 도우미 (작성 §3.6 팬아웃 · 2026-10-04)', () =>
     );
   });
 
+  it('helpers 아래 draft 파일도 잡는다 — 옛 components 자리와 둘 다', () => {
+    expect(남은임시도우미(['mkt/helpers/login.helper.ts', 'mkt/helpers/draft-cart.helper.ts', 'mkt/components/draft-pay.component.ts'])).toBe(
+      '⚠️ 공용으로 옮기지 않은 임시 도우미 2개 — mkt/helpers/draft-cart.helper.ts · mkt/components/draft-pay.component.ts',
+    );
+  });
+
   it('없으면 null', () => {
-    expect(남은임시도우미(['mkt/components/header.component.ts', 'mkt/pages/draft-list.page.ts'])).toBeNull();
+    expect(남은임시도우미(['mkt/components/header.component.ts', 'mkt/helpers/login.helper.ts', 'mkt/pages/draft-list.page.ts'])).toBeNull();
   });
 });
 

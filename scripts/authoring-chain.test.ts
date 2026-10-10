@@ -174,6 +174,7 @@ describe('push 거부 — 테스트만 바뀐 것만 맥이 올린다', () => {
 
   it('cases-only 가 아니면 사유를 낸다', () => {
     expect(푸시거부사유(false, ['tests/todo/a.spec.ts', 'apps/admin/x.ts'])).toMatch(/테스트만/);
+    expect(푸시거부사유(false, ['apps/admin/x.ts'])).toContain('helpers/*.helper.ts');
   });
 
   it('바뀐 것이 없으면 올릴 것이 없다', () => {

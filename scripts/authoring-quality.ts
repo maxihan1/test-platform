@@ -13,7 +13,7 @@ export interface 품질 {
   전제확인비율: number;
   /** 전제가 없거나 비회원 · 로그아웃 상태뿐이라 확인할 준비가 없는 케이스 — 비율에서 뺀다 (2026-10-04) */
   준비없음: number;
-  /** 공용 부품(components) 밖에서 CSS · XPath 로 찾은 locator 수 — 역할 · 라벨보다 쉽게 깨진다 */
+  /** 공용 부품(components · helpers) 밖에서 CSS · XPath 로 찾은 locator 수 — 역할 · 라벨보다 쉽게 깨진다 */
   밖CSS: number;
   /** 둘 이상의 케이스 파일에 같은 이름으로 만든 도우미 — 묶음마다 따로 만든 흔적(MKT 11208 은 가입 · 탈퇴 도우미가 55개 파일) */
   겹친도우미: string[];
@@ -51,7 +51,7 @@ export function 품질숫자(파일들: 파일글[]): 품질 {
   const 준비있음 = 케이스들.filter((f) => 전제목록(f.글).some((p) => !준비없는상태.has(p)));
   const 전제 = 준비있음.filter((f) => /blocker:\s*true/.test(f.글)).length;
   const 밖CSS = 파일들
-    .filter((f) => !f.경로.split('/').includes('components'))
+    .filter((f) => !f.경로.split('/').some((m) => m === 'components' || m === 'helpers'))
     .reduce((n, f) => n + (f.글.match(CSS찾기)?.length ?? 0), 0);
 
   const 이름파일수 = new Map<string, number>();

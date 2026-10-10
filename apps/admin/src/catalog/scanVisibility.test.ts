@@ -20,19 +20,32 @@ function 명세(tcId: string, filePath: string): CaseSpec {
   };
 }
 
+const 화면지도 = vi.hoisted(() => ({ 차례: [] as string[], 부름: [] as unknown[][], 깨짐: false }));
+
 vi.mock('./store.js', () => ({
   activeServices: async () => [
     { id: 1, prefix: 'XCA', name: '가', testsDir: 'xca' },
     { id: 2, prefix: 'XCB', name: '나', testsDir: 'xcb' },
     { id: 3, prefix: 'XCC', name: '다', testsDir: 'xcc' },
   ],
-  save: async (specs: CaseSpec[]) => ({ added: specs.length, updated: 0, deactivated: 0 }),
+  save: async (specs: CaseSpec[], _deactivate: boolean, prefix: string) => {
+    화면지도.차례.push(`저장 ${prefix}`);
+    return { added: specs.length, updated: 0, deactivated: 0 };
+  },
   findCase: async () => null,
   findService: async () => null,
   listCases: async () => ({ items: [] }),
 }));
 
 vi.mock('./reqMap.js', () => ({ 지도채우기: async () => 0 }));
+vi.mock('./screenMap.js', () => ({
+  화면지도채우기: async (...인자: unknown[]) => {
+    화면지도.차례.push(`화면 ${String(인자[1])}`);
+    화면지도.부름.push(인자);
+    if (화면지도.깨짐) throw new Error('화면 파일 깨짐');
+    return 0;
+  },
+}));
 
 vi.mock('./scanner.js', () => ({
   testsRoot: () => '/뿌리',
@@ -112,6 +125,22 @@ describe('스캔 결과 거르기', () => {
     expect(body.duplicates).toEqual([{ tcId: 'XCB-009', files: ['b1.spec.ts', 'b2.spec.ts'] }]);
     expect(body.added).toBe(0);
     expect(body.error).toContain('나의 비밀 오류');
+  });
+
+  it('지도 ② 는 케이스를 저장한 뒤 그 케이스로 채우고, 겹친 서비스는 건너뛰고, 깨지면 문제 한 줄로 남긴다', async () => {
+    부르는이 = 사람('admin', {});
+    화면지도.차례.length = 0;
+    화면지도.부름.length = 0;
+    화면지도.깨짐 = true;
+    let body;
+    try {
+      body = (await app.inject({ method: 'POST', url: '/api/catalog/scan' })).json();
+    } finally {
+      화면지도.깨짐 = false;
+    }
+    expect(화면지도.차례).toEqual(['저장 XCA', '화면 XCA', '저장 XCC', '화면 XCC']);
+    expect(화면지도.부름[0]).toEqual([1, 'XCA', '/뿌리', [expect.objectContaining({ tcId: 'XCA-001' })], true]);
+    expect(body.error).toContain('XCA 서비스의 화면 파일로 지도를 채우지 못했다: 화면 파일 깨짐');
   });
 
   it('admin 은 배정 없이도 살아 있는 서비스 전부를 본다', async () => {
