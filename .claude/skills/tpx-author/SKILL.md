@@ -49,7 +49,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 - **`/tpx` 와 다른 체인 스킬 호출**
 - **Bash 의 `run_in_background`** — 모든 명령은 앞에서 끝까지 기다린다. **Agent 도구도 같다** — 서브에이전트는 앞에서 띄우고 끝날 때까지 기다린다
 - **AskUserQuestion** — 답할 사람이 없다. 사람은 PR 본문에서 표를 본다
-- **작업 폴더 밖 파일 수정** — 바꾸는 것은 `tests/<폴더>/*.spec.ts` · `tests/<폴더>/pages/*.page.ts` · `tests/<폴더>/components/*.component.ts` 와 `docs/cases/<접두사>.md` 뿐이다.
+- **작업 폴더 밖 파일 수정** — 바꾸는 것은 `tests/<폴더>/*.spec.ts` · `tests/<폴더>/pages/*.page.ts` · `tests/<폴더>/components/*.component.ts` · `tests/<폴더>/helpers/*.helper.ts` 와 `docs/cases/<접두사>.md` 뿐이다.
   표준 기획서 절이 있으면 자료 폴더의 결과 파일(`out/prd.json`)과 원장 사본(`npm run prd:ledger` 가 쓰는 `ledger.json`)도 바뀐다 — 저장소 밖이라 커밋되지 않는다.
   다른 파일이 바뀌면 에이전트 스크립트가 push 를 거부한다. `tests/` · `docs/` 밖에 **새로** 만든 파일(실행 로그 등)은 에이전트가 지우고 올린다 —
   필요한 출력은 `$TMPDIR` 에 둔다 (2026-10-03, 11203 이 `$로그` 파일 하나로 멈췄다)
