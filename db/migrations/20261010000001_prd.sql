@@ -19,7 +19,7 @@ CREATE TABLE prd_version (
   CHECK ((source = 'AGENT') = (request_id IS NOT NULL))
 );
 
--- 작성 실행이 읽은 판. 집을 때 서버가 지금 판을 적고 옮기기가 새 판을 올리면 바꾼다(EDIT · MERGE 는 비운다).
+-- 작성 실행이 읽은 판. 집을 때 서버가 지금 판을 적고 옮기기가 새 판을 올리면 바꾼다(케이스 고치기 EDIT 와 그 다시 적용 · MERGE 는 비운다).
 -- 「반영 안 됨」은 마지막으로 병합된 뿌리의 마지막 작성 실행의 이 값과 지금 판을 견준다 (도메인/작성 §3.6 「사람이 고칠 때」)
 ALTER TABLE authoring_request
   ADD COLUMN prd_version INTEGER,
