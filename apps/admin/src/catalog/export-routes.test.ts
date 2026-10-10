@@ -221,7 +221,7 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
   it('목록 응답은 그대로다 — 쪽 크기 50 · 같은 모양에 묶음 번호표가 더해졌다', async () => {
     const res = await app.inject({ method: 'GET', url: `/api/catalog/cases?service=${접두사}`, cookies: { platform_session: 출입증.get('xcx-all')! } });
     const body = res.json<Record<string, unknown>>();
-    expect(Object.keys(body).sort()).toEqual(['groups', 'items', 'page', 'pageSize', 'sort', 'total', 'totalIsExact', 'unconfirmed']);
+    expect(Object.keys(body).sort()).toEqual(['groups', 'hasFeatures', 'items', 'page', 'pageSize', 'sort', 'total', 'totalIsExact', 'unconfirmed']);
     expect(body).toEqual(
       await listCases({ service: 접두사, q: '', activeOnly: true, page: 1, pageSize: 50 }),
     );

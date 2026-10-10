@@ -142,6 +142,7 @@ export function 줄세우기(tcIds: string[], 표: 맥락표): { 차례: string[
 export interface 맥락조건 {
   /** 빈 글자는 「기능 묶음 없음」이다 */
   feature?: string;
+  /** 빈 글자는 「화면 없음」이다 — 화면 없이 화면 조각만 쓰는 묶음 머리가 자기 자리만 거르려면 필요하다 */
   screen?: string;
   part?: string;
   axis?: 종류;
@@ -155,7 +156,7 @@ export function 맥락거르기(tcIds: string[], 표: 맥락표, 조건: 맥락�
     const 곳 = 것?.자리 ?? 빈자리;
     const reqs = 것?.reqs ?? [];
     if (조건.feature !== undefined && (것?.feature ?? '') !== 조건.feature) return false;
-    if (조건.screen !== undefined && 곳.screen !== 조건.screen) return false;
+    if (조건.screen !== undefined && (곳.screen ?? '') !== 조건.screen) return false;
     if (조건.part !== undefined && 곳.part !== 조건.part) return false;
     if (조건.axis !== undefined && !reqs.some((r) => r.axis === 조건.axis)) return false;
     if (조건.req !== undefined && !reqs.some((r) => r.reqId === 조건.req)) return false;
@@ -168,6 +169,35 @@ export function 요구로찾기(표: 맥락표, q: string): string[] {
   const 말 = q.toLowerCase();
   return [...표].filter(([, 것]) => 것.reqs.some((r) => r.reqId.toLowerCase().includes(말) || (r.text?.toLowerCase().includes(말) ?? false))).map(([id]) => id);
 }
+
+/** 쿼리 글자 그대로 — 같은 이름을 두 번 보내면 Fastify 가 배열로 준다 */
+export type 맥락글 = { feature?: unknown; screen?: unknown; part?: unknown; axis?: unknown; req?: unknown };
+
+// 배열이면 마지막 값을 쓴다 — 배열을 그대로 견주면 아무것도 안 맞아 조용히 빈 목록이 된다
+const 한글자 = (x: unknown): string | undefined => {
+  const 끝 = Array.isArray(x) ? (x.at(-1) as unknown) : x;
+  return typeof 끝 === 'string' ? 끝 : undefined;
+};
+
+/**
+ * 맥락 거르기 조건을 읽는다(카탈로그 §7). feature · screen 은 빈 글자도 조건이다 — 「없음」. 나머지는 빈 값이면 안 거른다.
+ * 모르는 종류는 null — 설계 기법과 같은 까닭으로 거르지 않고 전부 내지 않는다
+ */
+export function 맥락조건읽기(q: 맥락글): 맥락조건 | null {
+  const [feature, screen, part, axis, req] = [q.feature, q.screen, q.part, q.axis, q.req].map(한글자);
+  const 있나 = (x: string | undefined): x is string => x !== undefined && x !== '';
+  const 종류 = 종류들.find((a) => a === axis);
+  if (있나(axis) && 종류 === undefined) return null;
+  return {
+    ...(feature === undefined ? {} : { feature }),
+    ...(screen === undefined ? {} : { screen }),
+    ...(있나(part) ? { part } : {}),
+    ...(종류 === undefined ? {} : { axis: 종류 }),
+    ...(있나(req) ? { req } : {}),
+  };
+}
+
+export const 모르는종류 = (값: unknown) => ({ error: 'BAD_AXIS', detail: `종류는 정상 · 경계 · 예외 · UI 중 하나입니다 — ${String(값)}` });
 
 /** 그 서비스의 지도 ① ② 와 표준 기획서 지금 판. 서비스 · 판이 없으면 빈 표다 */
 export async function 맥락읽기(prefix: string): Promise<맥락표> {

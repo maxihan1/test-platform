@@ -49,7 +49,7 @@ const 묶음들: CaseGroup[] = [
   { feature: '회원가입', screen: 화면, screenUrl: '/signup', part: null, tcIds: ['ZCL-FN-001'] },
   { feature: null, screen: null, screenUrl: null, part: null, tcIds: ['ZCL-FN-003'] },
 ];
-const 쪽: CasePage = { items: [겹침, 비번, 옛것], total: 3, page: 1, pageSize: 50, groups: 묶음들 };
+const 쪽: CasePage = { items: [겹침, 비번, 옛것], total: 3, page: 1, pageSize: 50, groups: 묶음들, hasFeatures: true };
 
 const 전부된다: 판정 = () => true;
 
@@ -109,6 +109,15 @@ describe('묶음 머리', () => {
     await screen.findByText('ZCL-FN-003');
     fireEvent.click(screen.getByRole('button', { name: '기능 묶음 없음만 보기' }));
     expect(마지막조건(스파이)).toMatchObject({ feature: '' });
+  });
+
+  it('「기능 묶음 없음」만 걸러도 PRD 를 쓰는 서비스면 묶음 머리 · 모두 접기 · 「연결된 요구 없음」이 남는다', async () => {
+    const 없는것 = 케이스('ZCL-FN-008');
+    그리기({ 받을쪽: { items: [없는것], total: 1, page: 1, pageSize: 50, hasFeatures: true, groups: [{ feature: null, screen: null, screenUrl: null, part: null, tcIds: ['ZCL-FN-008'] }] } });
+    await screen.findByText('ZCL-FN-008');
+    expect(screen.getByRole('button', { name: /^기능 묶음 없음\s*\d+건/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '모두 접기' })).toBeTruthy();
+    expect(screen.getByText('연결된 요구 없음')).toBeTruthy();
   });
 
   it('PRD 를 안 쓰는 서비스는 머리도 「연결된 요구 없음」도 없다', async () => {
@@ -176,11 +185,13 @@ describe('종류 칩 · 넘어온 요구 번호', () => {
     expect(screen.queryByText('종류')).toBeNull();
   });
 
-  it('「PRD 관리」에서 넘어온 요구 번호로 처음부터 거르고 칩으로 보이며 ✕ 로 푼다', async () => {
+  it('「PRD 관리」에서 넘어온 요구 번호로 처음부터 거르고 칩으로 보이며 ✕ 로 풀면 주소에서도 빠진다', async () => {
+    window.location.hash = '#/cases/fn/req/ZCL-REQ-003';
     const 스파이 = 그리기({ 요구: 'ZCL-REQ-003' });
     await screen.findByText('ZCL-FN-001');
     expect(스파이.mock.calls[0]![0]).toMatchObject({ req: 'ZCL-REQ-003' });
     fireEvent.click(screen.getByRole('button', { name: '요구 ZCL-REQ-003 조건 풀기' }));
     expect(마지막조건(스파이).req).toBeUndefined();
+    expect(window.location.hash).toBe('#/cases/fn');
   });
 });

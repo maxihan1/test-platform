@@ -96,6 +96,8 @@ export interface SavedInput {
 export interface CasePage extends Paged<CaseRow> {
   unconfirmed?: { count: number };
   groups?: CaseGroup[];
+  /** 서비스가 PRD 를 쓰나 — 검색 조건을 안 따른다. 「기능 묶음 없음」만 보기에서도 묶음 머리를 세운다 */
+  hasFeatures?: boolean;
 }
 
 export interface LastScan {

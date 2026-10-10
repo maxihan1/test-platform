@@ -83,6 +83,11 @@ describe.skipIf(연결 === undefined)('케이스 목록 맥락', () => {
     expect(받은.items[3]).toMatchObject({ reqs: [], screens: [] });
   });
 
+  it('PRD 를 쓰는 서비스인지는 검색 조건을 안 따른다 — 묶음 없는 케이스만 걸러도 참이다', async () => {
+    expect((await 목록({ feature: '' })).hasFeatures).toBe(true);
+    expect((await listCases({ service: 'XCLNONE', q: '', activeOnly: true, page: 1, pageSize: 50 })).hasFeatures).toBe(false);
+  });
+
   it('쪽은 묶음 차례로 자르고 · 묶음 번호표는 쪽이 아니라 맞은 전부다', async () => {
     const 둘째쪽 = await 목록({ page: 2, pageSize: 2 });
     expect(둘째쪽.items.map((c) => c.tcId)).toEqual(['XCL-FN-001', 'XCL-FN-004']);

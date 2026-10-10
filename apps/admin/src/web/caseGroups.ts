@@ -28,15 +28,17 @@ export function 파일이름(file: string): string {
   return (file.split('/').at(-1) ?? file).replace(/\.(page|component)\.ts$/, '');
 }
 
+export const 번호들 = (rows: CaseRow[]): ReadonlySet<string> => new Set(rows.map((row) => row.tcId));
+
 const 열쇠 = (...조각: (string | null | undefined)[]) => 조각.map((x) => x ?? '').join('\u0000');
 
 /**
  * 접은 머리 — 쪽을 넘겨도 남는다(같은 묶음이 다음 쪽으로 이어진다).
  * 「모두 접기」는 이 쪽이 아니라 서버가 준 기능 묶음 전부를 접는다 — 다음 쪽에서 펴진 묶음이 다시 나오지 않게
  */
-export function use묶음접기(groups: CaseGroup[] | undefined) {
+export function use묶음접기(groups: CaseGroup[] | undefined, 묶음보임: boolean) {
   const [접은, set접은] = useState<ReadonlySet<string>>(new Set());
-  const 첫단 = groups?.some((g) => g.feature !== null) ? [...new Set(groups.map((g) => 열쇠('f', g.feature)))] : [];
+  const 첫단 = 묶음보임 ? [...new Set((groups ?? []).map((g) => 열쇠('f', g.feature)))] : [];
   const 다접었나 = 첫단.length > 0 && 첫단.every((k) => 접은.has(k));
   return {
     접은,
@@ -56,15 +58,23 @@ export function use묶음접기(groups: CaseGroup[] | undefined) {
 
 /**
  * 쪽의 줄 사이에 머리를 끼운다.
- * 기능 묶음 머리는 묶음이 하나라도 있을 때만 — PRD 가 없는 서비스에서 「기능 묶음 없음」 머리 하나만 서면 줄 하나를 버린다.
- * 건수는 쪽이 아니라 서버가 준 묶음 번호표 전부로 센다
+ * 기능 묶음 머리는 서비스가 PRD 를 쓸 때만(묶음보임 — 서버 hasFeatures) — PRD 가 없는 서비스에서 「기능 묶음 없음」 머리 하나만 서면 줄 하나를 버린다.
+ * 지금 조건에 걸린 묶음으로 가르면 「기능 묶음 없음」만 보기에서 머리가 사라진다.
+ * 건수는 쪽이 아니라 서버가 준 묶음 번호표 전부로 센다. 단 화면이 거른 것(마지막 결과 칩)이 있으면 보이는 줄로만 센다 —
+ * 그 칩은 이 쪽 안에서만 거르고, 안 맞추면 「12건」 머리 아래 줄이 하나뿐이다
  */
-export function 줄과머리(rows: CaseRow[], groups: CaseGroup[] | undefined, 이쪽번호: ReadonlySet<string>): 목록칸[] {
+export function 줄과머리(
+  rows: CaseRow[],
+  groups: CaseGroup[] | undefined,
+  이쪽번호: ReadonlySet<string>,
+  묶음보임: boolean,
+  보이는번호?: ReadonlySet<string>,
+): 목록칸[] {
   if (groups === undefined || groups.length === 0) return rows.map((row) => ({ row, 위: [] }));
   const 자리 = new Map<string, CaseGroup>();
   for (const g of groups) for (const id of g.tcIds) 자리.set(id, g);
-  const 묶음보임 = groups.some((g) => g.feature !== null);
-  const 모으기 = (같나: (g: CaseGroup) => boolean) => groups.filter(같나).flatMap((g) => g.tcIds);
+  const 모으기 = (같나: (g: CaseGroup) => boolean) =>
+    groups.filter(같나).flatMap((g) => g.tcIds).filter((id) => 보이는번호 === undefined || 보이는번호.has(id));
 
   const 칸들: 목록칸[] = [];
   let 앞: CaseGroup | undefined;
@@ -99,7 +109,8 @@ export function 줄과머리(rows: CaseRow[], groups: CaseGroup[] | undefined, �
     }
     if (p !== null && 새조각) {
       const ids = 모으기((x) => x.feature === g.feature && x.screen === g.screen && x.part === g.part);
-      const 조건 = { feature, ...(g.screen === null ? {} : { screen: g.screen }), part: g.part! };
+      // 화면 없이 조각만 쓰는 자리는 「화면 없음」(빈 글자)까지 건다 — 빼면 같은 조각을 쓰는 다른 화면 케이스까지 걸린다
+      const 조건 = { feature, screen: g.screen ?? '', part: g.part! };
       끼우기(머리(3, p, g.part, ids, 조건, [f, s].filter((x) => x !== null)));
     }
     칸들.push({ row, 위: [f, s, p].filter((x) => x !== null) });

@@ -2,8 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { 맥락, 맥락거르기, 맥락짓기, 요구로찾기, 줄세우기, type 맥락재료 } from './context.js';
-import { 맥락조건읽기 } from './routes.js';
+import { 맥락, 맥락거르기, 맥락조건읽기, 맥락짓기, 요구로찾기, 줄세우기, type 맥락재료 } from './context.js';
 
 const 판: 맥락재료['prd'] = [
   { reqId: 'XCL-REQ-001', feature: '회원가입', text: '이메일은 한 번만 쓴다' },
@@ -99,6 +98,7 @@ describe('맥락거르기', () => {
     expect(맥락거르기(전부, 표, { feature: '회원가입', screen: 화면('signup'), part: 조각('terms') })).toEqual(['XCL-FN-003']);
     // 001 은 signup 도 쓰지만 login 아래 묶였다 — 「이것만 보기」에 다른 묶음 머리가 섞이지 않는다
     expect(맥락거르기(전부, 표, { screen: 화면('signup') })).toEqual(['XCL-FN-003', 'XCL-FN-005']);
+    expect(맥락거르기(전부, 표, { feature: '로그인', screen: '' })).toEqual(['XCL-FN-002']);
   });
 
   it('종류 · 요구 번호는 그 케이스가 덮는 요구 가운데 하나만 맞아도 걸린다', () => {
@@ -116,10 +116,14 @@ describe('요구로찾기', () => {
 });
 
 describe('맥락조건읽기', () => {
-  it('feature 는 빈 글자도 조건(묶음 없음) · 나머지 빈 값은 안 거르고 · 모르는 종류는 null', () => {
-    expect(맥락조건읽기({ feature: '', screen: '', part: '', axis: '', req: '' })).toEqual({ feature: '' });
+  it('feature · screen 은 빈 글자도 조건(없음) · 나머지 빈 값은 안 거르고 · 모르는 종류는 null', () => {
+    expect(맥락조건읽기({ feature: '', screen: '', part: '', axis: '', req: '' })).toEqual({ feature: '', screen: '' });
     expect(맥락조건읽기({ feature: '회원가입', axis: '경계', req: 'XCL-REQ-001' })).toEqual({ feature: '회원가입', axis: '경계', req: 'XCL-REQ-001' });
     expect(맥락조건읽기({ axis: '성능' })).toBeNull();
     expect(맥락조건읽기({})).toEqual({});
+  });
+
+  it('같은 이름을 두 번 보내면(배열) 마지막 값을 쓴다 — 배열을 견주면 조용히 빈 목록이 된다', () => {
+    expect(맥락조건읽기({ feature: ['로그인', '회원가입'], axis: ['정상', '경계'] })).toEqual({ feature: '회원가입', axis: '경계' });
   });
 });

@@ -13,7 +13,7 @@ import { 걸린칩들, 묶음머리줄 } from './CaseListContext.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
 import { 표머리 } from './CaseListHead.js';
 import { 결과라벨, 기법고르개, 조건칩들, 종류칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
-import { use묶음접기, 줄과머리 } from './caseGroups.js';
+import { use묶음접기, 번호들, 줄과머리 } from './caseGroups.js';
 import { Head } from './Head.js';
 import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
@@ -44,7 +44,8 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
 
   const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 검색.기법, 검색.축, 검색.묶음, 검색.요구]);
   const scan = useAsync(() => api.lastScan(), []);
-  const 접기 = use묶음접기(cases.data?.groups);
+  const 요구쓰나 = cases.data?.hasFeatures ?? false;
+  const 접기 = use묶음접기(cases.data?.groups, 요구쓰나);
   const last = useAsync(() => (결과보나 ? api.lastByCase() : Promise.resolve({ items: [] })), [결과보나]);
 
   const lastMap: LastMap = {};
@@ -69,7 +70,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   const 보일것 = 마지막결과로거른다(cases.data?.items ?? [], lastMap, 결과);
   // 지금 보이는 것을 센다 — 칩을 걸면 숫자도 같이 좁혀져야 「보이는 것과 세는 것」이 갈리지 않는다
   const 셈 = 판정개수(보일것, lastMap);
-  const 칸들 = 줄과머리(보일것, cases.data?.groups, new Set((cases.data?.items ?? []).map((row) => row.tcId)));
+  const 칸들 = 줄과머리(보일것, cases.data?.groups, 번호들(cases.data?.items ?? []), 요구쓰나, 결과 === 'ALL' ? undefined : 번호들(보일것));
   // 머리 건수는 쪽 밖까지 세므로 실패도 서비스 전체 마지막 결과에서 센다 — 디바이스 한쪽만 깨져도 실패(마지막판정과 같다)
   const 실패한 = new Set((last.data?.items ?? []).filter((x) => x.status === 'FAIL').map((x) => x.tcId));
 
@@ -185,7 +186,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
         {/* 디바이스 · 표시 칩처럼 고른 것은 그대로 둔다 — 다른 쪽에서 고른 것을 말없이 버리지 않는다 (도메인/카탈로그 §8.1 「설계 기법」) */}
         {kind !== 'FN' ? null : <종류칩들 축={검색.축} on축={검색.on축} />}
         {kind !== 'FN' ? null : <기법고르개 기법={검색.기법} on기법={검색.on기법} />}
-        <걸린칩들 검색={검색} />
+        <걸린칩들 검색={검색} kind={kind} />
         {엑셀.버튼}
       </div>
       {엑셀.알림}
@@ -244,7 +245,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             key={row.tcId}
             row={row}
             요구보나={요구보나}
-            요구쓰나={접기.묶음있나}
+            요구쓰나={요구쓰나}
             마지막={lastMap}
             고름={뽑기.고른.has(row.tcId)}
             뒤집기={뽑기.뒤집기}

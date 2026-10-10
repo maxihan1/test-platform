@@ -21,7 +21,7 @@ export function 머리이름(머리: 묶음머리, 없음글: string): string {
 /** 「이것만 보기」로 건 조건 칩의 글 — 위 묶음까지 `회원가입 › /signup › terms` */
 function 묶음글(머리: 묶음머리, 없음글: string): string {
   const { feature, screen, part } = 머리.조건;
-  return [feature === '' ? 없음글 : feature, screen === undefined ? null : 화면글(머리, screen), part === undefined ? null : 파일이름(part)]
+  return [feature === '' ? 없음글 : feature, screen === undefined || screen === '' ? null : 화면글(머리, screen), part === undefined ? null : 파일이름(part)]
     .filter((x) => x !== null)
     .join(' › ');
 }
@@ -134,14 +134,21 @@ export function 케이스맥락({ row, 요구보나, 요구쓰나 }: { row: Case
 /** 걸린 묶음 · 요구 번호 — 도구 줄에 칩으로 보이고 ✕ 로 푼다 */
 export function 걸린칩들({
   검색,
+  kind,
 }: {
   검색: { 묶음: 묶음조건 | null; on묶음: (값: 묶음조건 | null) => void; 요구: string | null; 요구지우기: () => void };
+  kind: 'UI' | 'FN';
 }) {
   const t = use말();
+  const 요구풀기 = () => {
+    // 주소에 요구 번호가 남으면 새로 고침이 조건을 되살린다. 주소만 바꾸고 목록은 그대로 둔다 — replaceState 는 hashchange 를 안 낸다
+    if (/\/req\//.test(window.location.hash)) history.replaceState(null, '', `#/cases/${kind === 'UI' ? 'ui' : 'fn'}`);
+    검색.요구지우기();
+  };
   return (
     <>
       {검색.묶음 === null ? null : <걸린칩 글={검색.묶음.이름} on풀기={() => 검색.on묶음(null)} />}
-      {검색.요구 === null ? null : <걸린칩 글={t('요구 {번호}', { 번호: 검색.요구 })} on풀기={검색.요구지우기} />}
+      {검색.요구 === null ? null : <걸린칩 글={t('요구 {번호}', { 번호: 검색.요구 })} on풀기={요구풀기} />}
     </>
   );
 }

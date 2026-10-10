@@ -158,11 +158,26 @@ export interface CaseList {
   unconfirmed: { count: number };
   // 접는 자리마다 케이스 번호 — 쪽이 아니라 조건에 맞은 전부다. 묶음 머리 건수가 쪽마다 달라지지 않게 (도메인/카탈로그 §8.1 「맥락」)
   groups: CaseGroup[];
+  // 서비스가 PRD 를 쓰나(기능 묶음이 붙은 케이스가 하나라도 있나). 검색 조건을 안 따른다 — 「기능 묶음 없음」만 보기에서도 묶음 머리가 서야 한다
+  hasFeatures: boolean;
 }
 
 export async function listCases(query: CaseQuery): Promise<CaseList> {
   const pool = await db();
-  const 표 = await 맥락읽기(query.service);
+  // ponytail: 쪽마다 그 서비스 맥락(판 · 지도 ① ②)과 맞은 번호 전부를 다시 읽고 줄 세운다 — 「전체 실행」이 쪽을 돌면 쪽 수만큼 되풀이한다.
+  // 케이스 수천 건에서 느려지면 맥락표를 스캔 · 판 저장 때 갈아 끼우는 캐시로 둔다
+  const [표, 요약] = await Promise.all([
+    맥락읽기(query.service),
+    // 미확정 요약은 검색 조건 · 쪽과 상관없어 같이 띄운다
+    pool.query<{ count: string }>(
+      `SELECT count(*) AS count
+         FROM test_case c
+        WHERE tc_id LIKE $1 AND is_active AND ${미확정사유SQL('c')} IS NOT NULL
+          -- 종류는 검색 조건이 아니라 사이드바가 고른 범위라 따른다 — UI 목록 부제에 기능 미확정이 섞이지 않게 (PR #132)
+          AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))`,
+      [`${query.service}-%`, query.kind ?? null],
+    ),
+  ]);
   // 순서가 기능 묶음 차례라 SQL 이 쪽을 못 자른다. 조건에 맞는 번호만 먼저 받고, 묶어 줄 세운 뒤 그 쪽 줄만 다시 읽는다
   const 맞은번호 = await pool.query<{ tc_id: string }>(
     `SELECT tc_id
@@ -191,19 +206,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
   const 읽은 = 이쪽.length === 0 ? [] : (await pool.query<RawRow>(`SELECT ${COLUMNS} FROM ${FROM} WHERE tc_id = ANY($1::text[])`, [이쪽])).rows;
   const 행 = new Map(읽은.map((r) => [r.tc_id, r]));
   // 두 번 읽는 사이에 사라진 줄은 뺀다 — 다음 스캔 · 새로 고침이 맞춘다
-  const items = 이쪽.flatMap((id) => {
-    const r = 행.get(id);
-    return r === undefined ? [] : [{ ...toCase(r), ...맥락(표, id) }];
-  });
-
-  const summary = await pool.query<{ count: string }>(
-    `SELECT count(*) AS count
-       FROM test_case c
-      WHERE tc_id LIKE $1 AND is_active AND ${미확정사유SQL('c')} IS NOT NULL
-        -- 종류는 검색 조건이 아니라 사이드바가 고른 범위라 따른다 — UI 목록 부제에 기능 미확정이 섞이지 않게 (PR #132)
-        AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))`,
-    [`${query.service}-%`, query.kind ?? null],
-  );
+  const items = 이쪽.flatMap((id) => (행.has(id) ? [{ ...toCase(행.get(id)!), ...맥락(표, id) }] : []));
 
   return {
     items,
@@ -212,8 +215,9 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     sort: 'feature',
     page: query.page,
     pageSize: query.pageSize,
-    unconfirmed: { count: Number(summary.rows[0]?.count ?? 0) },
+    unconfirmed: { count: Number(요약.rows[0]?.count ?? 0) },
     groups,
+    hasFeatures: [...표.values()].some((x) => x.feature !== null),
   };
 }
 
