@@ -4,6 +4,7 @@ import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioPart } from '@pla
 import type { Pool, PoolClient } from 'pg';
 
 import { 저장값을채운다 } from '../execution/savedInput.js';
+import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { 점검 } from './checks.js';
 import { 케이스재료 } from './parts.js';
 import type { 저장하는사람 } from './store.js';
@@ -127,8 +128,8 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
 
     // 스냅샷은 카탈로그 캐시에서 SQL 로 읽는다 — createRun 과 같은 까닭. 재료는 판정에만 쓴다
     const 케이스 = await c.query<케이스행>(
-      `SELECT tc_id, name, precondition, file_path, param_schema, expected_schema, unconfirmed
-         FROM test_case WHERE tc_id = ANY($1::text[])`,
+      `SELECT tc_id, name, precondition, file_path, param_schema, expected_schema, ${미확정사유SQL('c')} AS unconfirmed
+         FROM test_case c WHERE tc_id = ANY($1::text[])`,
       [번호들],
     );
     const 케이스들 = new Map(케이스.rows.map((r) => [r.tc_id, r]));
