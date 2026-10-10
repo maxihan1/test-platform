@@ -1,7 +1,6 @@
 // 실행이 어디까지 갔는지를 RunDetail 하나에서 계산한다 (SPEC §8.3 · §8.9). 화면 조각은 없다
 
 import type { RunItemSummary, RunSummary, 항목진행 } from './api.js';
-import { 끝난미확정 } from './unconfirmed.js';
 
 /** `api.run()` 이 주는 모양. 증적 목록은 진행과 무관해 뺐다 — 없는 값을 요구하면 호출부가 채워야 한다 */
 export type RunDetail = RunSummary & { items: RunItemSummary[] };
@@ -10,8 +9,6 @@ export interface 진행막대 {
   통과: number;
   실패: number;
   미실행: number;
-  /** 끝난 미확정 항목. 통과·실패·미실행은 확정 항목만이라 이 칸이 있어야 합이 total 이다 (도메인/실행 §8.9) */
-  미확정: number;
   남은것: number;
 }
 
@@ -46,7 +43,7 @@ const 대기줄최대 = 3;
  * 한 케이스가 디바이스 수만큼 행이 된다. 상한·쪽수 같은 다른 단위의 수를 여기에 섞지 않는다.
  *
  * **막대는 `counts` 넷을 그대로 옮긴다.** 서버가 `pass`·`fail`·`na`·`running` 으로 이미 전부를
- * 나눠 놓아 (`execution/queries.ts` 의 `RUN_COLUMNS`) 넷의 합이 `total` 과 정확히 같다.
+ * 나눠 놓아 (`execution/queries.ts` 의 `RUN_COLUMNS`) 넷의 합이 `total` 과 정확히 같다. 미확정은 따로 칸이 없다 — 그 넷에 들어 있다.
  * 여기서 빼서 다시 세면 그 순간 서버와 다른 수가 된다 — 중단된 실행에서 `na` 만큼 모자라던 자리다.
  *
  * **「실행중」과 「대기」로 가르지 않는다.** `running` 은 「도는 것」이 아니라 「안 끝난 것 전부」이고
@@ -76,7 +73,7 @@ export function 진행상황(data: RunDetail, 진행목록: 항목진행[]): 진
   const 도는중인historyId = new Set(지금도는것들.map((것) => 것.항목.historyId));
 
   return {
-    막대: { 통과: counts.pass, 실패: counts.fail, 미실행: counts.na, 미확정: 끝난미확정(counts), 남은것: counts.running },
+    막대: { 통과: counts.pass, 실패: counts.fail, 미실행: counts.na, 남은것: counts.running },
     // `끝난것.length` 가 아니라 `counts` 에서 낸다. 집계와 항목 목록은 **별개 질의**라
     // (`execution/queries.ts` 가 트랜잭션 없이 잇달아 친다) 도는 도중 한쪽만 새것일 수 있다 —
     // 그러면 「6 / 8 완료」인데 막대에 칠해진 것은 5칸인 순간이 2초 폴링 창 안에 생긴다.

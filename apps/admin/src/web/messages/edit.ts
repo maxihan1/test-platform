@@ -9,6 +9,7 @@ export const 고치기말: Record<string, string> = {
   '코드에서 바꿀 수 있는 기대결과 칸이 없습니다': 'This case has no expected result that can be changed in code',
   '{칸들} — 반영되면 이 저장값은 지워집니다': '{칸들} — the saved value will be removed once merged',
   '확정 — 지금 기대값이 맞다고 판정합니다': 'Confirm — I judge the current expected results to be correct',
+  '「PRD 관리」에서 확정합니다': 'Confirm it in "PRD management"',
   '미확정 사유': 'Why unconfirmed',
   '지금 기대값': 'Current expected results',
   '요청을 보냈습니다.': 'Request sent.',
@@ -33,6 +34,7 @@ export const 고치기말: Record<string, string> = {
   '미확정 표시를 떼는 PR 을 올립니다. 케이스마다 지금 기대값이 맞는지 보고 보내세요.':
     'This opens a PR that removes the unconfirmed mark. Check that each case’s current expected results are correct before sending.',
   '비활성 {수}건은 뺐습니다': '{수} inactive left out',
+  '표준 기획서가 정한 미확정 {수}건은 뺐습니다 — 「PRD 관리」에서 확정합니다': '{수} unconfirmed by the PRD left out — confirm them in "PRD management"',
   '한 번에 {상한}건까지 요청할 수 있습니다. 고른 것을 줄이세요': 'You can request up to {상한} at a time. Select fewer cases',
 
   // 작성 화면 (authoringView.ts · authoringStatus.ts · AuthoringRuns.tsx · AuthoringEditParts.tsx)

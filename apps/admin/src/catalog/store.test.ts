@@ -171,19 +171,18 @@ describe.skipIf(연결 === undefined)('save', () => {
       })], true, 'ZZA');
     });
 
-    it('items 에 사유와 단 시각이 실리고 없으면 null 이다', async () => {
+    it('items 에 사유가 실리고 없으면 null 이다 — 단 시각은 싣지 않는다', async () => {
       const list = await listCases(조건);
       const 확정 = list.items.find((i) => i.tcId === 'ZZA-001');
       const 미확정 = list.items.find((i) => i.tcId === 'ZZA-103');
-      expect(확정).toMatchObject({ unconfirmed: null, unconfirmedSince: null });
+      expect(확정?.unconfirmed).toBeNull();
       expect(미확정?.unconfirmed).toBe('나중에 단 사유');
-      expect(new Date(미확정?.unconfirmedSince ?? '').toISOString()).toBe(미확정?.unconfirmedSince);
+      expect(미확정).not.toHaveProperty('unconfirmedSince');
     });
 
-    it('서비스 요약은 활성 미확정만 세고 가장 오래 단 시각을 준다', async () => {
+    it('서비스 요약은 활성 미확정 건수만 준다', async () => {
       const list = await listCases(조건);
-      const 먼저 = list.items.find((i) => i.tcId === 'ZZA-101');
-      expect(list.unconfirmed).toEqual({ count: 2, oldestSince: 먼저?.unconfirmedSince });
+      expect(list.unconfirmed).toEqual({ count: 2 });
     });
 
     it('서비스 요약은 검색 조건을 따르지 않는다', async () => {
@@ -192,9 +191,9 @@ describe.skipIf(연결 === undefined)('save', () => {
       expect(list.unconfirmed.count).toBe(2);
     });
 
-    it('미확정이 없으면 요약은 0 과 null 이다', async () => {
+    it('미확정이 없으면 요약은 0 이다', async () => {
       const list = await listCases({ ...조건, service: 'ZZA0' });
-      expect(list.unconfirmed).toEqual({ count: 0, oldestSince: null });
+      expect(list.unconfirmed).toEqual({ count: 0 });
     });
 
     it('저장값은 목록·단건 모두 savedInput 으로 싣고 비밀값은 이름만, 명세에 없는 칸은 빼고 준다 — 없으면 null', async () => {
@@ -221,10 +220,9 @@ describe.skipIf(연결 === undefined)('save', () => {
       await pool.query("DELETE FROM case_input WHERE tc_id = 'ZZA-001'");
     });
 
-    it('단건도 사유와 단 시각을 싣는다', async () => {
+    it('단건도 사유를 싣는다', async () => {
       const found = await findCase('ZZA-101');
       expect(found?.unconfirmed).toBe('먼저 단 사유');
-      expect(typeof found?.unconfirmedSince).toBe('string');
     });
   });
 });

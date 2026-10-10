@@ -91,17 +91,19 @@ function 카드({
   items: RunItemSummary[];
   platform: Platform | 'ALL';
 }) {
+  const t = use말();
   const 깨진 = new Set(c.devices.map((d) => d.platform));
-  // 미확정 항목은 확정 판정과 상관없이 미확정 묶음에 모은다 — 여기서 또 그리면 같은 항목이 두 번 나온다.
   // 디바이스를 거른 동안에는 그 디바이스만 낸다. 깨진 디바이스는 서버가 카드에 안 실었어도 접힌 줄에 넣지 않는다 —
   // 실패가 「통과 · 미실행」 줄처럼 접혀 보이면 안 된다
   const 나머지 = 디바이스순서.flatMap((칸디바이스) => {
     if (깨진.has(칸디바이스) || (platform !== 'ALL' && platform !== 칸디바이스)) return [];
     const 칸 = items
-      .filter((i) => i.tcId === c.tcId && i.platform === 칸디바이스 && typeof i.unconfirmed !== 'string')
+      .filter((i) => i.tcId === c.tcId && i.platform === 칸디바이스)
       .sort((a, b) => a.attempt - b.attempt);
     return 칸.length === 0 || 칸.some((i) => i.status === 'FAIL') ? [] : [칸];
   });
+  // 사유는 실행 때 박제한 값이다 — 케이스 줄과 같은 꼬리 글이다 (도메인/실행 §8.3)
+  const 미확정사유 = c.devices.map((d) => d.item.unconfirmed).find((글) => typeof 글 === 'string') ?? null;
 
   return (
     <article className="fc-card">
@@ -110,6 +112,11 @@ function 카드({
         <span className="mono fc-tc">{c.tcId}</span>
       </div>
       <h3 className="fc-name-h">{c.tcName}</h3>
+      {미확정사유 === null ? null : (
+        <p className="fc-unconf">
+          {t('미확정')} · {미확정사유}
+        </p>
+      )}
 
       {같은실패끼리(c.devices).map((묶음) => (
         <RunFailDevice key={묶음.map((d) => d.platform).join('-')} devices={묶음} env={env} items={items} />

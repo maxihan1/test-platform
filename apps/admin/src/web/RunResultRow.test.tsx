@@ -79,13 +79,12 @@ describe('결과줄 (SPEC §8.3)', () => {
     expect(거터?.getAttribute('style')).toContain('var(--fail)');
   });
 
-  it('미확정 묶음 표시를 주면 거터가 판정 색이 아니다', () => {
-    const group = groupByCase([항목(1, 'desktop', 'FAIL')])[0]!;
-    const { container } = render(<결과줄 group={group} columns={['desktop']} runId={7} 미확정묶음 />);
+  it('미확정 실패 줄도 거터는 판정 색 그대로다 — 미확정은 꼬리표일 뿐이다', () => {
+    const { container } = 그린다([{ ...항목(1, 'desktop', 'FAIL'), unconfirmed: '확인 필요 — MKT-REQ-003' }], ['desktop']);
     const 거터 = container.querySelector('.gutter')?.getAttribute('style') ?? '';
 
-    expect(거터).toContain('var(--line-2)');
-    expect(거터).not.toContain('var(--fail)');
+    expect(거터).toContain('var(--fail)');
+    expect(screen.getByText('미확정 · 확인 필요 — MKT-REQ-003')).toBeTruthy();
   });
 
   it('지원하지 않는 디바이스 칸은 판정 대신 줄표로 비운다', () => {

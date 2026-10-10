@@ -25,7 +25,7 @@ describe('ScenarioPartPanel 머리 · 전제 · 미확정', () => {
   });
 
   it('미확정 케이스에만 미확정 안내가 나온다', () => {
-    const 안내 = '기대값을 화면에서 읽은 케이스입니다. 이 단계가 들어간 실행에는 「미확정 포함」이 붙습니다';
+    const 안내 = '미확정 케이스입니다. 이 단계가 들어간 실행에는 「미확정」 꼬리표가 붙습니다';
     그리기(단계('ZSB-001'), 재료('ZSB-001', { unconfirmed: '화면에서 읽음' }));
     expect(screen.getByText(안내)).toBeTruthy();
     cleanup();

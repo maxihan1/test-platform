@@ -174,7 +174,7 @@ function 실행표머리() {
   );
 }
 
-/** 판정인 칸에만 판정 색이 붙는다. 미확정 통과는 판정이 아니라서 색 없는 칸이다 (DESIGN.md 원칙 1) */
+/** 판정인 칸에만 판정 색이 붙는다 (DESIGN.md 원칙 1). 미확정 섞인 통과도 성공으로 센다 (도메인/시나리오 §3.7 결정 12) */
 function 집계({ 것 }: { 것: 목록답['summary'] }) {
   const t = use말();
   const 언어 = use언어();
@@ -185,7 +185,6 @@ function 집계({ 것 }: { 것: 목록답['summary'] }) {
       칸들={[
         { 라벨: t('실행 횟수'), 값: String(것.runs) },
         { 라벨: t('성공'), 값: String(것.allPass), 판정: 'PASS', 부제: 몫(것.allPass) },
-        { 라벨: t('통과 · 미확정 포함'), 값: String(것.unconfirmedPass), 부제: 몫(것.unconfirmedPass) },
         { 라벨: t('실패§실행'), 값: String(것.hasFail), 판정: 'FAIL', 부제: 몫(것.hasFail) },
         {
           라벨: t('평균 소요'),
@@ -195,9 +194,8 @@ function 집계({ 것 }: { 것: 목록답['summary'] }) {
       ]}
       비율={[
         { 판정: 'PASS', 몫: 것.allPass },
-        { 판정: 'U', 몫: 것.unconfirmedPass },
         { 판정: 'FAIL', 몫: 것.hasFail },
-        { 판정: 'NA', 몫: Math.max(0, 것.runs - 것.allPass - 것.unconfirmedPass - 것.hasFail) },
+        { 판정: 'NA', 몫: Math.max(0, 것.runs - 것.allPass - 것.hasFail) },
       ]}
     />
   );
@@ -223,9 +221,7 @@ function 실행줄({ run, on열기 }: { run: ScenarioRunRow; on열기: (runId: n
         <div className="verdict">
           <div>{t('단계 {수}개', { 수: run.partCount })}</div>
           {멈춤 === '' ? null : <div className="unconf-line">{멈춤}</div>}
-          {run.verdict === 'PASS' && run.unconfirmed ? (
-            <span className="case-tag">{t('미확정 포함')}</span>
-          ) : null}
+          {run.unconfirmed ? <span className="case-tag">{t('미확정')}</span> : null}
         </div>
         <button type="button" className="btn small ghost" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>
           {t('결과 보기')}

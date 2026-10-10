@@ -42,7 +42,6 @@ const 앞 = (tcId: string, verdict: 앞판정['verdict'], 덮: Partial<앞판정
   tcId,
   platform: 'desktop',
   verdict,
-  unconfirmed: false,
   ...덮,
 });
 
@@ -93,7 +92,7 @@ describe('창 나누기', () => {
     expect(결과.직전).toEqual({ 통과: 1, 실패: 0, 미실행: 1 });
   });
 
-  it('미확정 줄은 통과율 · 일별에서 빠지고 이번 창만 따로 센다', () => {
+  it('미확정 줄도 통과율 · 일별에 그대로 들고 이번 창의 그중 미확정 건수만 따로 센다', () => {
     const 결과 = 대시보드집계(
       [
         줄({ verdict: 'PASS' }),
@@ -103,27 +102,10 @@ describe('창 나누기', () => {
       new Map(),
       오늘,
     );
-    expect(결과.이번).toEqual({ 통과: 1, 실패: 0, 미실행: 0 });
-    expect(결과.직전).toEqual({ 통과: 0, 실패: 0, 미실행: 0 });
+    expect(결과.이번).toEqual({ 통과: 1, 실패: 1, 미실행: 0 });
+    expect(결과.직전).toEqual({ 통과: 1, 실패: 0, 미실행: 0 });
     expect(결과.미확정건수).toBe(1);
-    expect(결과.일별[13]).toEqual({ day: 오늘, 통과: 1, 실패: 0, 미실행: 0 });
-  });
-});
-
-describe('일별', () => {
-  it('날짜마다 셋을 세고 빈 날은 0 이다', () => {
-    const 결과 = 대시보드집계(
-      [
-        줄({ day: '2026-10-05', verdict: 'PASS' }),
-        줄({ day: '2026-10-05', verdict: 'FAIL', tcId: 'MKT-002' }),
-        줄({ day: '2026-10-05', verdict: 'NA', tcId: 'MKT-003' }),
-      ],
-      new Map(),
-      오늘,
-    );
-    const 하루 = 결과.일별.find((d) => d.day === '2026-10-05');
-    expect(하루).toEqual({ day: '2026-10-05', 통과: 1, 실패: 1, 미실행: 1 });
-    expect(결과.일별.find((d) => d.day === '2026-10-06')).toEqual({ day: '2026-10-06', 통과: 0, 실패: 0, 미실행: 0 });
+    expect(결과.일별[13]).toEqual({ day: 오늘, 통과: 1, 실패: 1, 미실행: 0 });
   });
 });
 
@@ -143,12 +125,12 @@ describe('서비스별', () => {
     );
     expect(결과.서비스별).toHaveLength(1);
     const 마켓 = 결과.서비스별[0];
-    expect(마켓?.이번).toEqual({ 통과: 1, 실패: 2, 미실행: 1 });
+    expect(마켓?.이번).toEqual({ 통과: 2, 실패: 2, 미실행: 1 });
     expect(마켓?.직전).toEqual({ 통과: 1, 실패: 0, 미실행: 0 });
     expect(마켓?.마지막실행).toEqual({
       runId: 101,
       finishedAt: '2026-10-06T09:00:00.000Z',
-      통과: 1,
+      통과: 2,
       실패: 1,
       미실행: 1,
     });
@@ -195,10 +177,10 @@ describe('서비스별', () => {
     });
   });
 
-  it('미확정 줄뿐인 서비스도 빈 칸으로 낸다', () => {
+  it('미확정 줄뿐인 서비스도 마지막 실행을 센다', () => {
     const 결과 = 대시보드집계([줄({ serviceId: 1, unconfirmed: true })], new Map(), 오늘, [{ id: 1, name: '마켓' }]);
     expect(결과.서비스별).toHaveLength(1);
-    expect(결과.서비스별[0]?.마지막실행).toBeNull();
+    expect(결과.서비스별[0]?.마지막실행).toMatchObject({ 통과: 1, 실패: 0, 미실행: 0 });
   });
 
   it('서비스 번호 순으로 낸다', () => {
@@ -239,16 +221,16 @@ describe('신규 실패', () => {
     expect(결과.신규실패).toEqual([]);
   });
 
-  it('어느 한쪽이 미확정이면 견주지 않는다', () => {
+  it('어느 한쪽이 미확정이어도 확정끼리처럼 견준다', () => {
     const 결과 = 대시보드집계(
       [
         줄({ runId: 10, tcId: 'MKT-001', verdict: 'FAIL', unconfirmed: true }),
         줄({ runId: 10, tcId: 'MKT-002', verdict: 'FAIL' }),
       ],
-      new Map([[10, [앞('MKT-001', 'PASS'), 앞('MKT-002', 'PASS', { unconfirmed: true })]]]),
+      new Map([[10, [앞('MKT-001', 'PASS'), 앞('MKT-002', 'PASS')]]]),
       오늘,
     );
-    expect(결과.신규실패).toEqual([]);
+    expect(결과.신규실패.map((n) => n.tcId).sort()).toEqual(['MKT-001', 'MKT-002']);
   });
 
   it('디바이스가 다르면 앞 판정과 짝이 아니다', () => {
@@ -353,7 +335,7 @@ describe('신규 실패 — 지금도 실패인 것만', () => {
     expect(결과.신규실패.map((n) => n.runId)).toEqual([10]);
   });
 
-  it('뒤 실행의 미확정 줄은 최근 판정이 아니다', () => {
+  it('뒤 실행의 미확정 줄도 최근 판정이다', () => {
     const 결과 = 대시보드집계(
       [
         줄({ runId: 10, day: '2026-10-03', finishedAt: '2026-10-03T10:00:00.000Z', verdict: 'FAIL' }),
@@ -362,7 +344,7 @@ describe('신규 실패 — 지금도 실패인 것만', () => {
       앞PASS(10),
       오늘,
     );
-    expect(결과.신규실패).toHaveLength(1);
+    expect(결과.신규실패).toHaveLength(0);
   });
 
   it('사유를 그대로 옮기고 값 칸은 없다', () => {
@@ -405,7 +387,7 @@ describe('서비스별 최근 실행 흐름 · 해결', () => {
       new Map(),
       오늘,
     );
-    expect(결과.서비스별[0]?.흐름).toEqual(['P', 'F', 'N', 'P', 'N']);
+    expect(결과.서비스별[0]?.흐름).toEqual(['P', 'F', 'N', 'F', 'F']);
   });
 
   it('최근 흐름실행수개만 남긴다', () => {
@@ -429,11 +411,11 @@ describe('서비스별 최근 실행 흐름 · 해결', () => {
         [1, [앞('MKT-001', 'FAIL')]],
         [2, [앞('MKT-001', 'FAIL')]],
         [3, [앞('MKT-002', 'PASS')]],
-        [4, [앞('MKT-003', 'FAIL', { unconfirmed: true })]],
+        [4, [앞('MKT-003', 'FAIL')]],
       ]),
       오늘,
     );
-    expect(결과.서비스별[0]?.해결수).toBe(1);
+    expect(결과.서비스별[0]?.해결수).toBe(2);
   });
 
   it('고친 뒤 다시 실패하면 해결이 아니다', () => {
@@ -533,6 +515,7 @@ describe('히트맵', () => {
     expect(결과.히트맵.map((h) => [h.tcId, h.실패수])).toEqual([
       ['MKT-002', 4],
       ['MKT-001', 1],
+      ['MKT-004', 1],
     ]);
     const 첫 = 결과.히트맵[0];
     expect(첫?.칸).toHaveLength(14);

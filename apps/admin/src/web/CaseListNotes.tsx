@@ -5,7 +5,6 @@ import type { CasePage, LastScan } from './api.js';
 import { 빈이유 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import { when } from './ui.js';
-import { 미확정나이 } from './unconfirmed.js';
 
 /**
  * 머리 부제. 스캔 결과가 머리 부제로 올라왔다 (2026-09-22) — 목록 위에 따로 줄로 서면 49px 을 먹는데,
@@ -29,20 +28,15 @@ export function 목록부제({
   모으는중: boolean;
 }) {
   const t = use말();
-  const 일 = 미확정 === undefined || 미확정.oldestSince === null ? null : 미확정나이(미확정.oldestSince);
 
   return (
     <>
       {종류 === 'UI' ? t('UI 테스트') : t('기능 테스트')} · {전체 === null ? t('불러오는 중입니다') : t('모두 {건수}건', { 건수: 전체 })}
-      {/* 답을 못 받은 미확정은 잊힌다 — 건수와 가장 오래된 것의 나이를 머리에 둔다. 없으면 안 쓴다 (도메인/카탈로그 §8.1) */}
+      {/* 건수만 둔다. 기획 답을 기다린 날 수는 「PRD 관리」 메뉴가 보인다. 없으면 안 쓴다 (도메인/카탈로그 §8.1) */}
       {미확정 === undefined || 미확정.count === 0 ? null : (
         <>
           {' · '}
-          {일 === null
-            ? t('미확정 {건수}건', { 건수: 미확정.count })
-            : 일 === 0
-              ? t('미확정 {건수}건 · 가장 오래된 것 오늘', { 건수: 미확정.count })
-              : t('미확정 {건수}건 · 가장 오래된 것 {일}일째', { 건수: 미확정.count, 일 })}
+          {t('미확정 {건수}건', { 건수: 미확정.count })}
         </>
       )}
       {' · '}

@@ -4,6 +4,7 @@ import type { Pool } from 'pg';
 
 import type { CaseSpec, Platform, Technique } from '@platform/kit';
 
+import { 미확정사유SQL } from '../prd/unconfirmed.js';
 // 화면이 가리는 칸과 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
 import { 저장값나누기 } from '../web/mask.js';
 
@@ -47,8 +48,8 @@ export type CaseRow = Omit<CaseSpec, 'unconfirmed' | 'techniques'> & {
   techniques: Technique[];
   isActive: boolean;
   scannedAt: string;
+  // 지도 ① 과 표준 기획서 지금 판에서 계산한 사유. 꼬리표 글자가 아니다 (prd/unconfirmed.ts)
   unconfirmed: string | null;
-  unconfirmedSince: string | null;
   savedInput: SavedInput | null;
 };
 
@@ -74,7 +75,6 @@ interface RawRow {
   is_active: boolean;
   scanned_at: Date;
   unconfirmed: string | null;
-  unconfirmed_since: Date | null;
   techniques: Technique[];
   saved_params: Record<string, unknown> | null;
   saved_expected: Record<string, unknown> | null;
@@ -108,14 +108,13 @@ function toCase(row: RawRow): CaseRow {
     isActive: row.is_active,
     scannedAt: row.scanned_at.toISOString(),
     unconfirmed: row.unconfirmed,
-    unconfirmedSince: row.unconfirmed_since?.toISOString() ?? null,
     techniques: row.techniques,
     savedInput: toSaved(row),
   };
 }
 
 const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at, '
-  + 'unconfirmed, unconfirmed_since, techniques, '
+  + `${미확정사유SQL('test_case')} AS unconfirmed, techniques, `
   + 'ci.params AS saved_params, ci.expected AS saved_expected, ci.saved_by, ci.saved_at';
 
 // USING 이라 tc_id 가 한 칸으로 합쳐져 WHERE·ORDER BY 의 tc_id 가 모호하지 않다
@@ -152,7 +151,8 @@ export interface CaseList {
   page: number;
   pageSize: number | null;
   // 검색 조건을 따르지 않는다. 걸러 낸 뒤에도 서비스에 미확정이 몇 건 남았는지 알려야 한다 (카탈로그 §7)
-  unconfirmed: { count: number; oldestSince: string | null };
+  // 나이는 「PRD 관리」 메뉴가 확인 필요 항목으로 보인다 — 여기는 건수만 (도메인/작성 §3.6 「미확정」)
+  unconfirmed: { count: number };
 }
 
 export async function listCases(query: CaseQuery): Promise<CaseList> {
@@ -183,10 +183,10 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     ],
   );
 
-  const summary = await pool.query<{ count: string; oldest: Date | null }>(
-    `SELECT count(*) AS count, min(unconfirmed_since) AS oldest
-       FROM test_case
-      WHERE tc_id LIKE $1 AND is_active AND unconfirmed IS NOT NULL
+  const summary = await pool.query<{ count: string }>(
+    `SELECT count(*) AS count
+       FROM test_case c
+      WHERE tc_id LIKE $1 AND is_active AND ${미확정사유SQL('c')} IS NOT NULL
         -- 종류는 검색 조건이 아니라 사이드바가 고른 범위라 따른다 — UI 목록 부제에 기능 미확정이 섞이지 않게 (PR #132)
         AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))`,
     [`${query.service}-%`, query.kind ?? null],
@@ -199,10 +199,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     sort: 'tcId',
     page: query.page,
     pageSize: query.pageSize,
-    unconfirmed: {
-      count: Number(summary.rows[0]?.count ?? 0),
-      oldestSince: summary.rows[0]?.oldest?.toISOString() ?? null,
-    },
+    unconfirmed: { count: Number(summary.rows[0]?.count ?? 0) },
   };
 }
 

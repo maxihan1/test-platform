@@ -278,15 +278,15 @@ describe('통과율 칸', () => {
     expect(container.querySelector('.dash-ring-inner')).not.toBeNull();
   });
 
-  it('미확정이 있으면 따로 센다는 한 줄을 단다. 없으면 달지 않는다', async () => {
+  it('미확정이 있으면 통과율 숫자에 이미 든 그중 미확정 N건 한 줄을 단다. 없으면 달지 않는다', async () => {
     읽기를(응답({ unconfirmed: 3 }));
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    expect(await screen.findByText('미확정 3건은 따로 셉니다')).toBeTruthy();
+    expect(await screen.findByText('그중 미확정 3건')).toBeTruthy();
     cleanup();
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await screen.findByText('87');
-    expect(screen.queryByText(/따로 셉니다/)).toBeNull();
+    expect(screen.queryByText(/그중 미확정/)).toBeNull();
   });
 });
 

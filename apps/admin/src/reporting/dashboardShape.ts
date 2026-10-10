@@ -39,7 +39,6 @@ export interface 앞판정 {
   tcId: string;
   platform: 'desktop' | 'mobile';
   verdict: 접힌판정;
-  unconfirmed: boolean;
 }
 
 export interface 셈 {
@@ -60,7 +59,7 @@ export interface 서비스칸 {
   이번: 셈;
   직전: 셈;
   마지막실행: (셈 & { runId: number; finishedAt: string }) | null;
-  /** 창 안 실행을 오래된 것부터 최근 `흐름실행수`개. F 실패 있음 · P 전부 통과 · N 그 밖(미확정 항목은 빼고 본다) */
+  /** 창 안 실행을 오래된 것부터 최근 `흐름실행수`개. F 실패 있음 · P 전부 통과 · N 그 밖 */
   흐름: ('F' | 'P' | 'N')[];
   신규실패수: number;
   /** insights 「고쳐짐」 — 앞 FAIL → 이번 PASS 이고 그 뒤 다시 실패하지 않은 (케이스, 디바이스) 수 */
@@ -85,7 +84,7 @@ export interface 신규실패칸 {
 export interface 집계 {
   이번: 셈;
   직전: 셈;
-  /** 이번 창의 미확정 줄 수. 통과율에는 안 들어가고 「미확정 N건은 따로 셉니다」에 쓴다 */
+  /** 이번 창 줄 중 미확정 수. 통과율 · 숫자에 이미 들어 있고 「그중 미확정 N건」에 쓴다 */
   미확정건수: number;
   일별: 일별칸[];
   서비스별: 서비스칸[];
@@ -134,7 +133,6 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     const 이번인가 = 이번창(줄.day);
     if (!이번인가 && !직전창(줄.day)) continue;
     if (이번인가 && 줄.unconfirmed) 미확정건수 += 1;
-    if (줄.unconfirmed) continue;
 
     더한다(이번인가 ? 이번 : 직전, 줄.verdict);
     const 하루 = 일별.get(줄.day);
@@ -198,22 +196,22 @@ type 앞맵형 = Map<string, 앞판정>;
 const 앞판정맵 = (앞판정들: Map<number, 앞판정[]>): 앞맵형 =>
   new Map([...앞판정들].flatMap(([runId, 목록]) => 목록.map((a): [string, 앞판정] => [앞키(runId, a.tcId, a.platform), a])));
 
-// (서비스, 대상 서버, 케이스, 디바이스)마다 가장 최근 확정 판정. 신규 실패 · 해결을 「지금도 그런가」로 거르는 데 쓴다.
-// 미확정 줄은 판정이 아니라서, 미실행은 못 돈 것이지 고친 것이 아니라서 뺀다
+// (서비스, 대상 서버, 케이스, 디바이스)마다 가장 최근 판정. 신규 실패 · 해결을 「지금도 그런가」로 거르는 데 쓴다.
+// 미실행은 못 돈 것이지 고친 것이 아니라서 뺀다
 function 최근판정(줄들: 접은줄[]): Map<string, 접힌판정> {
   const 결과 = new Map<string, 접힌판정>();
-  for (const 줄 of [...줄들].filter((l) => !l.unconfirmed && l.verdict !== 'NA').sort(오래된순)) 결과.set(케이스키(줄), 줄.verdict);
+  for (const 줄 of [...줄들].filter((l) => l.verdict !== 'NA').sort(오래된순)) 결과.set(케이스키(줄), 줄.verdict);
   return 결과;
 }
 
-// 실행마다 한 글자로 접는다. 미확정은 빼고 보므로 미확정뿐인 실행은 N 이다
+// 실행마다 한 글자로 접는다
 function 흐름을만든다(줄들: 접은줄[], 이번창: (day: string) => boolean): Map<number, ('F' | 'P' | 'N')[]> {
   const 실행들 = new Map<number, { 줄: 접은줄; 판정: 접힌판정[] }>();
   for (const 줄 of 줄들) {
     if (!이번창(줄.day)) continue;
     const 실행 = 실행들.get(줄.runId) ?? { 줄, 판정: [] };
     실행들.set(줄.runId, 실행);
-    if (!줄.unconfirmed) 실행.판정.push(줄.verdict);
+    실행.판정.push(줄.verdict);
   }
   const 서비스별 = new Map<number, ('F' | 'P' | 'N')[]>();
   for (const { 줄, 판정 } of [...실행들.values()].sort((a, b) => 오래된순(a.줄, b.줄))) {
@@ -224,12 +222,11 @@ function 흐름을만든다(줄들: 접은줄[], 이번창: (day: string) => boo
   return 서비스별;
 }
 
-// 앞 실행과 견줘 줄 하나의 변화를 본다. 앞에 없던 케이스와 어느 한쪽이 미확정인 케이스는 견주지 않는다
+// 앞 실행과 견줘 줄 하나의 변화를 본다. 앞에 없던 케이스는 견주지 않는다
 // (insights.ts compareWithPrevious 와 같은 규칙)
 function 줄변화(줄: 접은줄, 앞맵: 앞맵형): 판정변화 | null {
-  if (줄.unconfirmed) return null;
   const 앞 = 앞맵.get(앞키(줄.runId, 줄.tcId, 줄.platform));
-  return 앞 === undefined || 앞.unconfirmed ? null : 판정표[앞.verdict][줄.verdict];
+  return 앞 === undefined ? null : 판정표[앞.verdict][줄.verdict];
 }
 
 function 해결을센다(

@@ -120,7 +120,7 @@ function PanelBody({
       )}
       {케이스.unconfirmed === null ? null : (
         <p className="scn-set-note">
-          {t('기대값을 화면에서 읽은 케이스입니다. 이 단계가 들어간 실행에는 「미확정 포함」이 붙습니다')}
+          {t('미확정 케이스입니다. 이 단계가 들어간 실행에는 「미확정」 꼬리표가 붙습니다')}
         </p>
       )}
 

@@ -35,19 +35,19 @@ describe('머리', () => {
     expect(screen.queryByText('E2E 증적 받기')).toBeNull();
   });
 
-  it('통과인데 미확정이 섞이면 통과 · 미확정 포함 칩', async () => {
+  it('통과인데 미확정이 섞이면 통과 배지에 미확정 꼬리표만 곁들인다', async () => {
     연다(결과({ parts: [부품(1, { unconfirmed: '사유' })] }));
     await screen.findByText('단계별 결과');
     const 칩 = document.querySelector('.head .case-tag');
-    expect(칩?.textContent).toBe('통과 · 미확정 포함');
-    expect(document.querySelector('.head .verdict')).toBeNull();
+    expect(칩?.textContent).toBe('미확정');
+    expect(document.querySelector('.head .verdict')?.textContent).toBe('통과');
   });
 
-  it('도는 중이어도 미확정 단계가 있으면 머리에 미확정 포함 칩이 뜬다', async () => {
+  it('도는 중이어도 미확정 단계가 있으면 머리에 미확정 꼬리표가 뜬다', async () => {
     연다(결과({ status: 'RUNNING', finishedAt: null, parts: [부품(1, { unconfirmed: '사유' }), 안돈] }));
     await screen.findByText('단계별 결과');
     expect(document.querySelector('.head .verdict')).toBeNull();
-    expect(document.querySelector('.head .case-tag')?.textContent).toBe('미확정 포함');
+    expect(document.querySelector('.head .case-tag')?.textContent).toBe('미확정');
   });
 
   it('값 주입 줄은 비밀 칸에 꽂힌 값을 서버가 안 가려 보내도 화면이 가린다', async () => {
@@ -65,11 +65,11 @@ describe('머리', () => {
     expect(screen.getByText(/password ← 1번 POST \*\*\/token 응답의 \$\.pw = \*+/)).toBeTruthy();
   });
 
-  it('실패 머리는 미확정 단계가 있을 때만 미확정 포함 칩을 곁들인다', async () => {
+  it('실패 머리는 미확정 단계가 있을 때만 미확정 꼬리표를 곁들인다', async () => {
     연다(결과());
     await screen.findByText('단계별 결과');
     expect(document.querySelector('.head .verdict')?.textContent).toBe('실패');
-    expect(document.querySelector('.head .case-tag')?.textContent).toBe('미확정 포함');
+    expect(document.querySelector('.head .case-tag')?.textContent).toBe('미확정');
     cleanup();
     연다(결과({ parts: [부품(1, { status: 'FAIL', error: { message: '깨짐' } })] }));
     await screen.findByText('단계별 결과');

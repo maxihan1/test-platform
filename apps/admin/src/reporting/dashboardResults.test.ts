@@ -231,9 +231,9 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
   });
 
   describe('접은 줄', () => {
-    it('회차를 접고 미확정 · 시나리오 · 진행 중 실행을 뺀 수를 낸다', async () => {
+    it('회차를 접고 미확정까지 세되 시나리오 · 진행 중 실행을 뺀 수를 낸다', async () => {
       const 결과 = await 대시보드('UTC', [A], [A]);
-      expect(결과.passRate.current).toEqual({ pass: 4, fail: 6, notRun: 1 });
+      expect(결과.passRate.current).toEqual({ pass: 4, fail: 7, notRun: 1 });
       expect(결과.passRate.previous).toEqual({ pass: 0, fail: 0, notRun: 0 });
       expect(결과.unconfirmed).toBe(1);
       expect(결과.services).toEqual([{ id: A, name: 'XDQ 마켓' }]);
@@ -243,7 +243,7 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
       const 결과 = await 대시보드('UTC', [A], [A]);
       expect(결과.byService).toHaveLength(1);
       const 칸 = 결과.byService[0]!;
-      expect(칸.current).toEqual({ pass: 4, fail: 6, notRun: 1 });
+      expect(칸.current).toEqual({ pass: 4, fail: 7, notRun: 1 });
       expect(칸.lastRun).toMatchObject({ runId: 실행번호['XDQ R5'], pass: 0, fail: 2, notRun: 0 });
       expect(칸.flow).toEqual(['F', 'P', 'F', 'F', 'F']);
       expect(칸.newFailureCount).toBe(2);

@@ -22,10 +22,8 @@ interface NotifyRow {
   pass: number;
   fail: number;
   na: number;
-  // 끝난 미확정 항목. 위 셋은 확정 항목만이다 (SPEC 실행 §3.2)
-  u_pass: number;
-  u_fail: number;
-  u_na: number;
+  // 위 셋에 이미 들어 있는 항목 중 미확정인 수 — 「그중 미확정 N건」 (SPEC 실행 §3.2)
+  unconfirmed: number;
 }
 
 interface FailedCase {
@@ -40,12 +38,10 @@ const TARGET = `
   SELECT r.title, r.status, r.env, r.service_name, r.triggered_by, r.triggered_by_name,
          s.slack_webhook,
          EXTRACT(EPOCH FROM (r.finished_at - r.started_at)) * 1000 AS duration_ms,
-         count(i.history_id) FILTER (WHERE i.status = 'PASS' AND i.unconfirmed IS NULL)::int AS pass,
-         count(i.history_id) FILTER (WHERE i.status = 'FAIL' AND i.unconfirmed IS NULL)::int AS fail,
-         count(i.history_id) FILTER (WHERE i.status = 'NA' AND i.unconfirmed IS NULL)::int AS na,
-         count(i.history_id) FILTER (WHERE i.status = 'PASS' AND i.unconfirmed IS NOT NULL)::int AS u_pass,
-         count(i.history_id) FILTER (WHERE i.status = 'FAIL' AND i.unconfirmed IS NOT NULL)::int AS u_fail,
-         count(i.history_id) FILTER (WHERE i.status = 'NA' AND i.unconfirmed IS NOT NULL)::int AS u_na
+         count(i.history_id) FILTER (WHERE i.status = 'PASS')::int AS pass,
+         count(i.history_id) FILTER (WHERE i.status = 'FAIL')::int AS fail,
+         count(i.history_id) FILTER (WHERE i.status = 'NA')::int AS na,
+         count(i.history_id) FILTER (WHERE i.status IN ('PASS', 'FAIL', 'NA') AND i.unconfirmed IS NOT NULL)::int AS unconfirmed
     FROM test_run r
     LEFT JOIN service s ON s.id = r.service_id
     LEFT JOIN run_item i USING (run_id)
@@ -55,26 +51,15 @@ const TARGET = `
 // 색 막대를 쓰지 않는다. 판정은 글자로도 읽혀야 한다 (DESIGN.md).
 // SPEC §8.9 는 머리글 셋만 정하고 「미실행만 남은 실행」을 어느 쪽으로 볼지는 적지 않았다.
 // 실패로 본다 — 러너가 전부 죽어 한 건도 못 돈 실행에 [통과]가 나가면 아무도 안 본다.
-// 미확정도 같은 원칙이다 — 미확정 미실행을 실패 수에 넣는다 (2026-09-26 게이트 1).
-// 판정은 확정 항목만으로 가르고, 미확정 실패는 머리에 남긴다 — 「화면이 바뀌었다」는 신호가 숫자 줄에 묻히지 않게 (SPEC 실행 §3.2)
+// 미확정도 가르지 않는다 — 미확정 항목은 통과·실패·미실행으로 그대로 세고 머리에는 변형이 없다 (SPEC 실행 §3.2)
 function 머리글(run: NotifyRow): string {
   if (run.status === 'ABORTED') return '[중단]';
-  if (run.fail + run.na > 0) return '[실패]';
-  const 미확정실패 = run.u_fail + run.u_na;
-  if (run.pass === 0 && run.u_pass + 미확정실패 > 0) return 미확정실패 > 0 ? `[미확정 · 실패 ${미확정실패}]` : '[미확정]';
-  return 미확정실패 > 0 ? `[통과 · 미확정 실패 ${미확정실패}]` : '[통과]';
+  return run.fail + run.na > 0 ? '[실패]' : '[통과]';
 }
 
-// 미확정이 없으면 묶음을 아예 쓰지 않는다. 0 인 칸은 뺀다 (SPEC 실행 §3.2 「미확정 항목은 따로 센다」)
-function 미확정묶음(run: NotifyRow): string {
-  const 합 = run.u_pass + run.u_fail + run.u_na;
-  if (합 === 0) return '';
-  const 칸 = [
-    [run.u_pass, '통과'],
-    [run.u_fail, '실패'],
-    [run.u_na, '미실행'],
-  ].filter(([n]) => n !== 0).map(([n, 이름]) => `${이름} ${n}`);
-  return ` · 미확정 ${합}(${칸.join(' · ')})`;
+// 미확정이 없으면 안 붙인다
+function 미확정꼬리(run: NotifyRow): string {
+  return run.unconfirmed === 0 ? '' : ` · 그중 미확정 ${run.unconfirmed}건`;
 }
 
 export function 걸린시간(ms: number | null): string {
@@ -89,15 +74,14 @@ export function 본문(run: NotifyRow, 실패: FailedCase[], publicUrl: string, 
 
   const 줄 = [
     `${머리} ${run.service_name} · RUN ${runId} · ${run.title}`,
-    `통과 ${run.pass} · 실패 ${run.fail} · 미실행 ${run.na}${미확정묶음(run)} · ${걸린시간(run.duration_ms)} · 대상 서버 ${run.env} · 실행자 ${실행자}`,
+    `통과 ${run.pass} · 실패 ${run.fail} · 미실행 ${run.na}${미확정꼬리(run)} · ${걸린시간(run.duration_ms)} · 대상 서버 ${run.env} · 실행자 ${실행자}`,
   ];
 
   // 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다. 다섯을 넘으면 앞의 다섯만 적는다.
-  // 확정 실패를 먼저 적고 미확정 실패는 꼬리를 붙여 뒤에 둔다 (2026-09-26 사용자 결정)
+  // tc_id 차례 하나로 적고 미확정 항목에만 꼬리를 단다
   if (실패.length > 0) {
     줄.push('', '실패한 케이스');
-    const 차례 = [...실패.filter((c) => c.is_unconfirmed !== true), ...실패.filter((c) => c.is_unconfirmed === true)];
-    for (const c of 차례.slice(0, 5)) 줄.push(`  ${c.tc_id}  ${c.tc_name}${c.is_unconfirmed === true ? '  (미확정)' : ''}`);
+    for (const c of 실패.slice(0, 5)) 줄.push(`  ${c.tc_id}  ${c.tc_name}${c.is_unconfirmed === true ? '  (미확정)' : ''}`);
     if (실패.length > 5) 줄.push(`  외 ${실패.length - 5}건`);
   }
 

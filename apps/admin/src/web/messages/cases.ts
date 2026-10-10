@@ -38,8 +38,6 @@ export const 케이스말: Record<string, string> = {
   '통과': 'Passed',
   '실패': 'Failed',
   '미실행': 'Not run',
-  '미확정 {건수}건 · 가장 오래된 것 {일}일째': '{건수} unconfirmed · oldest waiting {일} day(s)',
-  '미확정 {건수}건 · 가장 오래된 것 오늘': '{건수} unconfirmed · oldest since today',
   '미확정 {건수}건': '{건수} unconfirmed',
   // 설계 기법 — 값은 kit 식별자 그대로 질의에 가고 글자만 여기서 바뀐다 (도메인/카탈로그 §8.1)
   '설계 기법': 'Design technique',

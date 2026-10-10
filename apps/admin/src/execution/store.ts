@@ -6,6 +6,8 @@ import type { ExecuteResponse, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
+import { 미확정사유SQL } from '../prd/unconfirmed.js';
+
 import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
 import { 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
@@ -176,9 +178,10 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     }
 
     // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다.
-    // 미확정 사유도 여기서 박제한다 — 케이스가 나중에 확정돼도 그날의 집계가 바뀌면 안 된다 (SPEC 실행 §3.2)
+    // 미확정 사유도 여기서 박제한다 — 확인 필요 항목이 나중에 확정돼도 그날 확정이 아니었다는 사실은 남아야 한다 (SPEC 실행 §3.2)
     const found = await client.query<CaseRow>(
-      'SELECT tc_id, name, precondition, file_path, param_schema, expected_schema, unconfirmed, platforms FROM test_case WHERE tc_id = ANY($1::text[])',
+      `SELECT tc_id, name, precondition, file_path, param_schema, expected_schema, ${미확정사유SQL('c')} AS unconfirmed, platforms
+         FROM test_case c WHERE tc_id = ANY($1::text[])`,
       [input.items.map((i) => i.tcId)],
     );
     const cases = new Map(found.rows.map((r) => [r.tc_id, r]));

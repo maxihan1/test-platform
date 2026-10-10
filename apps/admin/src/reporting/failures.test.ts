@@ -165,12 +165,13 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
     await pool.end();
   });
 
-  it('확정 실패만 카드에 든다 — 미확정 실패 · 통과 · 미실행은 안 든다', async () => {
+  it('실패는 미확정이어도 카드에 든다 — 통과 · 미실행만 안 든다', async () => {
     const 결과 = await 실패카드(실행번호['XFC RT 이번']!, 1);
-    expect(결과.items.map((c) => c.tcId)).toEqual(['XFC-001', 'XFC-002']);
+    expect(결과.items.map((c) => c.tcId)).toEqual(['XFC-001', 'XFC-002', 'XFC-004']);
     expect(결과.items[0]!.devices.map((d) => d.platform)).toEqual(['desktop', 'mobile']);
     expect(결과.items[1]!.devices.map((d) => d.platform)).toEqual(['mobile']);
-    expect(결과).toMatchObject({ total: 2, page: 1, pageSize: 20 });
+    expect(결과.items[2]!.devices.map((d) => d.platform)).toEqual(['desktop']);
+    expect(결과).toMatchObject({ total: 3, page: 1, pageSize: 20 });
   });
 
   it('item 은 항목 조회와 같은 함수로 읽은 것이라 비밀값이 가려진다', async () => {
@@ -195,7 +196,7 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
   it('최근 흐름은 같은 서비스 · env · 종류의 끝난 실행을 이번까지, 맨 앞이 이번이다', async () => {
     const 결과 = await 실패카드(실행번호['XFC RT 이번']!, 1);
     const [데스크톱, 모바일] = 결과.items[0]!.devices;
-    expect(데스크톱!.recent).toEqual(['FAIL', 'FAIL', 'FAIL', 'PASS']);
+    expect(데스크톱!.recent).toEqual(['FAIL', 'FAIL', 'FAIL', 'FAIL', 'PASS']);
     expect(모바일!.recent).toEqual(['FAIL', 'PASS']);
     expect(결과.items[1]!.devices[0]!.recent).toEqual(['FAIL', 'PASS']);
   });
@@ -203,14 +204,14 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
   it('이번 실행과 started_at 이 같은 다른 실행은 흐름 칸이 되지 않는다', async () => {
     const 결과 = await 실패카드(실행번호['XFC RT 이번']!, 1);
     const 데스크톱 = 결과.items[0]!.devices[0]!;
-    expect(데스크톱.recent).toEqual(['FAIL', 'FAIL', 'FAIL', 'PASS']);
-    expect(데스크톱.streak).toBe(3);
+    expect(데스크톱.recent).toEqual(['FAIL', 'FAIL', 'FAIL', 'FAIL', 'PASS']);
+    expect(데스크톱.streak).toBe(4);
   });
 
   it('change 는 앞 실행과 견준 케이스 판정이고 연속 실패 수는 계속깨짐일 때만이다', async () => {
     const 결과 = await 실패카드(실행번호['XFC RT 이번']!, 1);
     const [데스크톱, 모바일] = 결과.items[0]!.devices;
-    expect(데스크톱).toMatchObject({ change: '계속깨짐', streak: 3 });
+    expect(데스크톱).toMatchObject({ change: '계속깨짐', streak: 4 });
     expect(모바일).toMatchObject({ change: '새로깨짐', streak: null });
     expect(결과.items[1]!.devices[0]).toMatchObject({ change: '새로깨짐', streak: null });
   });
@@ -220,8 +221,8 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
     expect(모바일.total).toBe(2);
     expect(모바일.items.flatMap((c) => c.devices.map((d) => d.platform))).toEqual(['mobile', 'mobile']);
     const 데스크톱 = await 실패카드(실행번호['XFC RT 이번']!, 1, 'desktop');
-    expect(데스크톱.total).toBe(1);
-    expect(데스크톱.items[0]!.tcId).toBe('XFC-001');
+    expect(데스크톱.total).toBe(2);
+    expect(데스크톱.items.map((c) => c.tcId)).toEqual(['XFC-001', 'XFC-004']);
     const 안드로이드 = await 실패카드(실행번호['XFC RT 이번']!, 1, 'android');
     expect(안드로이드).toMatchObject({ items: [], total: 0 });
   });
@@ -236,6 +237,6 @@ describe.skipIf(연결 === undefined)('실패 카드 질의', () => {
 
   it('쪽 번호가 범위를 넘으면 빈 쪽이다', async () => {
     const 결과 = await 실패카드(실행번호['XFC RT 이번']!, 2);
-    expect(결과).toMatchObject({ items: [], total: 2, page: 2 });
+    expect(결과).toMatchObject({ items: [], total: 3, page: 2 });
   });
 });

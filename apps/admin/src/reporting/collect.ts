@@ -39,7 +39,7 @@ export interface EvidenceItem {
   notRunReason: string | null;
   /**
    * 미확정 사유 — 실행을 만들 때 박제된 값(`run_item.unconfirmed`). 비면 확정 항목이다.
-   * 케이스가 나중에 확정돼도 그날의 증적은 그대로여야 한다 (도메인/리포팅 「미확정 항목은 따로 묶는다」)
+   * 케이스가 나중에 확정돼도 그날의 증적은 그대로여야 한다 (도메인/리포팅 · 실행 §3.2)
    */
   unconfirmed: string | null;
   precondition: string[];

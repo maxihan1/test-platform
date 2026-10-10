@@ -40,17 +40,16 @@ function 줄(runId: number, 덮: Partial<ScenarioRunRow> = {}): ScenarioRunRow {
   };
 }
 
-const 집계: RunTally & { unconfirmedPass: number } = {
+const 집계: RunTally = {
   runs: 10,
   allPass: 4,
   hasFail: 3,
   durationOf: 9,
   avgDurationMs: 120000,
   maxDurationMs: 300000,
-  unconfirmedPass: 2,
 };
-const 빈집계: RunTally & { unconfirmedPass: number } = {
-  runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0, unconfirmedPass: 0,
+const 빈집계: RunTally = {
+  runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0,
 };
 
 const 한쪽: 목록답 = {
@@ -144,7 +143,7 @@ describe('ScenarioRunList 줄', () => {
     expect(행.querySelector('.title small')?.textContent).toContain('진행 중');
   });
 
-  it('통과이면서 미확정이면 미확정 포함 칩을 단다 — 판정 색이 아니다', async () => {
+  it('미확정이면 판정과 상관없이 「미확정」 꼬리표를 단다', async () => {
     const { container } = await 그리기({
       ...한쪽,
       items: [줄(14, { unconfirmed: true }), 줄(15), 줄(16, { verdict: 'FAIL', unconfirmed: true })],
@@ -152,8 +151,8 @@ describe('ScenarioRunList 줄', () => {
     await screen.findByText(/ZSL 시나리오 14/);
 
     const 칩들 = container.querySelectorAll('.row .case-tag');
-    expect(칩들).toHaveLength(1);
-    expect(칩들[0]?.textContent).toBe('미확정 포함');
+    expect(칩들).toHaveLength(2);
+    expect(칩들[0]?.textContent).toBe('미확정');
     expect((container.querySelectorAll('.row')[0] as HTMLElement).contains(칩들[0] as Element)).toBe(true);
   });
 
@@ -171,30 +170,29 @@ describe('ScenarioRunList 줄', () => {
     const 띠들 = [...container.querySelectorAll<HTMLElement>('.row .gutter')].map((el) => el.style.background);
     expect(띠들).toEqual(줄들.map(E2E띠색));
     expect(띠들[0]).toBe('var(--pass)');
-    expect(띠들[1]).toBe('var(--line-2)');
+    expect(띠들[1]).toBe('var(--pass)');
     expect(띠들[2]).toBe('var(--fail)');
   });
 });
 
 describe('ScenarioRunList 집계 띠', () => {
-  it('다섯 칸을 라벨로 낸다 — 미확정 통과 칸에는 판정 색이 없다', async () => {
+  it('네 칸을 라벨로 낸다 — 미확정 통과는 따로 칸이 없다', async () => {
     const { container } = await 그리기();
     await screen.findByText(/ZSL 시나리오 11/);
 
     const 칸들 = [...container.querySelectorAll('.stat')];
     expect(칸들.map((칸) => 칸.querySelector('.k')?.textContent)).toEqual([
-      '실행 횟수', '성공', '통과 · 미확정 포함', '실패', '평균 소요',
+      '실행 횟수', '성공', '실패', '평균 소요',
     ]);
-    expect(칸들.map((칸) => 칸.className)).toEqual(['stat', 'stat p', 'stat', 'stat f', 'stat']);
-    expect(칸들[2]?.querySelector('.v')?.textContent).toBe('2');
+    expect(칸들.map((칸) => 칸.className)).toEqual(['stat', 'stat p', 'stat f', 'stat']);
   });
 
-  it('비율 막대에 미확정 통과 칸이 따로 있다', async () => {
+  it('비율 막대는 통과 · 실패 · 미실행 셋이다', async () => {
     const { container } = await 그리기();
     await screen.findByText(/ZSL 시나리오 11/);
 
     const 칸들 = [...container.querySelectorAll('.ratio i')].map((el) => el.className);
-    expect(칸들).toEqual(['p', 'u', 'f', 'n']);
+    expect(칸들).toEqual(['p', 'f', 'n']);
   });
 
   it('아무것도 안 돌렸으면 띠가 없다', async () => {

@@ -210,11 +210,10 @@ async function 앞판정읽기(pool: Pool, runIds: number[]): Promise<Map<number
     tc_id: string;
     platform: 앞판정['platform'];
     verdict: 앞판정['verdict'];
-    unconfirmed: boolean;
   }>(앞판정SQL, [runIds]);
   for (const r of rows) {
     const 목록 = 결과.get(Number(r.this_run)) ?? [];
-    목록.push({ tcId: r.tc_id, platform: r.platform, verdict: r.verdict, unconfirmed: r.unconfirmed });
+    목록.push({ tcId: r.tc_id, platform: r.platform, verdict: r.verdict });
     결과.set(Number(r.this_run), 목록);
   }
   return 결과;

@@ -9,8 +9,8 @@ import { RunSummary } from './RunSummary.js';
 
 afterEach(cleanup);
 
-function 집계(pass: number, fail: number, na: number, 미확정?: RunCounts['unconfirmed']): RunCounts {
-  return { total: pass + fail + na + (미확정?.total ?? 0), pass, fail, na, running: 0, unconfirmed: 미확정 };
+function 집계(pass: number, fail: number, na: number, 미확정?: number): RunCounts {
+  return { total: pass + fail + na, pass, fail, na, running: 0, unconfirmed: 미확정 };
 }
 
 function 견줌(고침: Partial<RunInsights> = {}): RunInsights {
@@ -54,17 +54,17 @@ describe('요약 띠 — 통과율과 숫자', () => {
     expect(길이('n')).toBe('10 90');
   });
 
-  it('확정 항목이 없으면 「—」와 「확정 항목 없음」이다', () => {
-    const { container } = 그린다(집계(0, 0, 0, { total: 3, pass: 2, fail: 1, na: 0 }));
+  it('항목이 없으면 「—」와 「항목 없음」이다', () => {
+    const { container } = 그린다(집계(0, 0, 0));
     expect(container.querySelector('.rs-big')?.textContent).toBe('—');
-    expect(screen.getByText('확정 항목 없음')).toBeTruthy();
+    expect(screen.getByText('항목 없음')).toBeTruthy();
     expect(screen.queryByText(/중 .*건 통과/)).toBeNull();
   });
 
   it('중단 실행처럼 미실행만 있으면 0.0% 를 그대로 보인다', () => {
     const { container } = 그린다(집계(0, 0, 8));
     expect(container.querySelector('.rs-big')?.textContent).toBe('0.0%');
-    expect(screen.queryByText('확정 항목 없음')).toBeNull();
+    expect(screen.queryByText('항목 없음')).toBeNull();
   });
 
   it('「실패 N건」과 「항목 N건 중 M건 통과」를 적는다', () => {
@@ -80,12 +80,14 @@ describe('요약 띠 — 통과율과 숫자', () => {
     expect(container.querySelector('.v-fail')).toBeNull();
   });
 
-  it('미확정이 있으면 묶음 글자 한 줄을 단다', () => {
-    그린다(집계(47, 3, 0, { total: 2, pass: 1, fail: 1, na: 0 }));
-    expect(screen.getByText('미확정 2(통과 1 · 실패 1)')).toBeTruthy();
+  it('미확정 항목도 통과율과 숫자에 들어가고 「그중 미확정 N건」 한 줄만 단다', () => {
+    const { container } = 그린다(집계(47, 3, 0, 2));
+    expect(container.querySelector('.rs-big')?.textContent).toBe('94.0%');
+    expect(screen.getByText('항목 50건 중 47건 통과')).toBeTruthy();
+    expect(screen.getByText('그중 미확정 2건')).toBeTruthy();
   });
 
-  it('미확정이 없으면 묶음 글자가 없다', () => {
+  it('미확정이 없으면 「그중 미확정」 글이 없다', () => {
     그린다(집계(47, 3, 0));
     expect(screen.queryByText(/미확정/)).toBeNull();
   });

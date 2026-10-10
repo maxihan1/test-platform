@@ -30,7 +30,6 @@ export const 대시보드말: Record<string, string> = {
   '직전 {일}일': 'Previous {일} days',
   '직전 {일}일 실행 없음': 'No runs in the previous {일} days',
   '최근 {일}일 실행 없음': 'No runs in the last {일} days',
-  '미확정 {수}건은 따로 셉니다': '{수} unconfirmed are counted separately',
 
   // 서비스별 품질
   '서비스별 품질': 'Quality by service',

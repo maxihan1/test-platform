@@ -10,8 +10,8 @@ export interface RunCounts {
   fail: number;
   na: number;
   running: number;
-  // 미확정 항목 묶음. total 은 진행 중까지, pass·fail·na 는 끝난 것만이다 (SPEC 실행 §3.2 · §7)
-  unconfirmed: { total: number; pass: number; fail: number; na: number };
+  // 그중 미확정 항목 수(진행 중 포함). pass·fail·na·running 에도 이미 들어 있다 — 따로 묶지 않는다 (SPEC 실행 §3.2 · §7)
+  unconfirmed: number;
 }
 
 export interface RunSummary {

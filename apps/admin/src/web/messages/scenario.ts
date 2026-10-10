@@ -18,8 +18,6 @@ export const 시나리오말: Record<string, string> = {
   '시나리오 이름 · 버전': 'Scenario · version',
   '단계 · 멈춘 단계': 'Steps · stopped at',
   '단계 {수}개': '{수} steps',
-  '미확정 포함': 'Includes unconfirmed',
-  '통과 · 미확정 포함': 'Passed · includes unconfirmed',
   '시나리오 이름으로 찾기': 'Search by scenario name',
   '이 서비스에서 아직 돌린 E2E 시나리오가 없습니다': 'No E2E scenario has run in this service yet',
   '시나리오 목록으로': 'Go to scenarios',
@@ -32,8 +30,6 @@ export const 시나리오말: Record<string, string> = {
   '실행 불가': 'Cannot run',
   '아직 만든 시나리오가 없습니다': 'No scenarios yet',
   '기능 테스트 스크립트를 단계로 이어 붙여 만듭니다': 'Build one by chaining functional test scripts as steps',
-  '「통과 · 미확정 포함」은 기대값을 화면에서 읽은 케이스가 섞인 결과라 정식 통과로 세지 않습니다':
-    '"Passed · includes unconfirmed" means some cases read their expected values from the screen, so it does not count as a formal pass',
   '← 실행 기록 › E2E': '← Run history › E2E',
   'E2E · 시나리오 v{버전} · {디바이스}': 'E2E · scenario v{버전} · {디바이스}',
   '실행 시각': 'Run at',
@@ -93,8 +89,8 @@ export const 시나리오말: Record<string, string> = {
   '모킹되지 않음': 'Not mocked',
   '이 단계의 API 호출은 모킹되지 않습니다': 'This step\'s API call is not mocked',
   '전제': 'Preconditions',
-  '기대값을 화면에서 읽은 케이스입니다. 이 단계가 들어간 실행에는 「미확정 포함」이 붙습니다':
-    'This case took its expected values from the screen. Runs that include this step are marked "Includes unconfirmed"',
+  '미확정 케이스입니다. 이 단계가 들어간 실행에는 「미확정」 꼬리표가 붙습니다':
+    'This case is unconfirmed. Runs that include this step carry the "Unconfirmed" tag',
   '로그인 이어받기': 'Keep login from earlier step',
   '앞 단계의 로그인 상태를 그대로 사용합니다. 끄면 새 창에서 단독으로 실행합니다':
     'Uses the login state left by the earlier step. When off, this step runs alone in a new window',

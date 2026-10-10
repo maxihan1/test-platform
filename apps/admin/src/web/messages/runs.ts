@@ -15,7 +15,6 @@ export const 실행말: Record<string, string> = {
   '미실행': 'Not run',
   '남음': 'Left',
   '미확정': 'Unconfirmed',
-  '확정 판정 없음': 'No confirmed verdict',
 
   // 테스트 실행 (실행 창)
   '▶ 테스트 실행': '▶ Test run',
@@ -27,7 +26,7 @@ export const 실행말: Record<string, string> = {
   '실행 기록에 남지 않습니다 · 24시간 뒤 사라집니다': 'Not saved to run history · removed after 24 hours',
   '이미 테스트 실행이 돌고 있습니다': 'A test run is already in progress',
   '이 서버에는 테스트 실행이 켜져 있지 않습니다. 켜는 법은 SETUP': 'Test run is not enabled on this server. See SETUP for how to turn it on',
-  '미확정 {수}({칸})': 'Unconfirmed {수} ({칸})',
+  '그중 미확정 {수}건': 'Of these, {수} unconfirmed',
   '통과 {수}': '{수} passed',
   '실패 {수}': '{수} failed',
   '미실행 {수}': '{수} not run',
@@ -130,7 +129,7 @@ export const 실행말: Record<string, string> = {
   '{시간} 평균': '{시간} avg',
   '실행자 미상 (인증 도입 이전)': 'Unknown — before sign-in',
 
-  // 결과 화면 옆 칸 · 미확정 묶음 (§8.3 → /runs/:runId/insights)
+  // 결과 화면 옆 칸 (§8.3 → /runs/:runId/insights)
   '직전 실행과 비교하지 못했습니다.': 'Could not compare with the previous run.',
   '직전 실행은 다른 주소에서 실행됐습니다': 'The previous run used a different URL',
   '직전 실행에 있었으나 이번에 실행되지 않은 케이스 {건수}건': '{건수} cases ran last time but not this time',
@@ -148,12 +147,11 @@ export const 실행말: Record<string, string> = {
   '소요 시간': 'Duration',
   '비교 기준': 'Compared with',
   '통과 · 미실행': 'Passed · not run',
-  '통과율과 직전 실행 비교에서 뺐습니다': 'Left out of the pass rate and the comparison with the previous run',
 
   // 결과 화면 요약 띠 (§8.3)
   '실패 {수}건': '{수} failed',
   '항목 {전체}건 중 {통과}건 통과': '{통과} of {전체} items passed',
-  '확정 항목 없음': 'No confirmed items',
+  '항목 없음': 'No items',
   '판정별 보기 · 항목 수': 'View by verdict · items',
   '직전 실행 RUN {번호} 대비': 'Against previous run RUN {번호}',
   '통과 · 미실행으로 건너뛰기': 'Skip to passed · not run',

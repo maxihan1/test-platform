@@ -1,4 +1,4 @@
-// 미확정 부품이 섞인 시나리오 통과를 정식 통과와 따로 세는지 본다 — 시나리오 목록 lastRun · 실행 기록 E2E 탭 (SPEC 도메인/시나리오 §7 「판정 접기」)
+// 미확정 부품이 섞인 시나리오 통과도 정식 통과(allPass)로 세고 꼬리표만 남는지 본다 — 시나리오 목록 lastRun · 실행 기록 E2E 탭 (SPEC 도메인/시나리오 §7 「판정 접기」)
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -84,7 +84,7 @@ describe.skipIf(연결 === undefined)('시나리오 미확정 통과 셈', () =>
     await 치우기();
     미확정통과시나리오 = await 시나리오만들기('XSG 미확정 통과');
     확정통과시나리오 = await 시나리오만들기('XSG 확정 통과');
-    미확정실패시나리오 = await 시나리오만들기('XSG 미확정 실패');
+    미확정실패시나리오 = await 시나리오만들기('XSG 실패에 미확정 섞임');
     도는미확정시나리오 = await 시나리오만들기('XSG 도는 미확정');
     도는확정시나리오 = await 시나리오만들기('XSG 도는 확정');
   });
@@ -94,7 +94,7 @@ describe.skipIf(연결 === undefined)('시나리오 미확정 통과 셈', () =>
     await q('DELETE FROM service WHERE id = $1', [서비스]);
   });
 
-  it('목록 lastRun 과 E2E 탭 줄이 미확정 부품이 섞였는지 싣고 머리 집계가 미확정 통과를 따로 센다', async () => {
+  it('목록 lastRun 과 E2E 탭 줄이 미확정 부품이 섞였는지 싣고 머리 집계는 미확정 섞인 통과도 allPass 로 센다', async () => {
     await 실행치우기();
     const 미확정통과 = await 실행(미확정통과시나리오, [{ status: 'PASS' }, { status: 'PASS', unconfirmed: '화면에서 본 값' }]);
     const 확정통과 = await 실행(확정통과시나리오, [{ status: 'PASS' }, { status: 'PASS' }]);
@@ -111,7 +111,7 @@ describe.skipIf(연결 === undefined)('시나리오 미확정 통과 셈', () =>
       expect(줄(미확정통과)).toBe(true);
       expect(줄(확정통과)).toBe(false);
       expect(줄(미확정실패)).toBe(true);
-      expect(탭.summary).toMatchObject({ runs: 3, allPass: 1, unconfirmedPass: 1, hasFail: 1 });
+      expect(탭.summary).toMatchObject({ runs: 3, allPass: 2, hasFail: 1 });
     } finally {
       await 실행치우기();
     }
@@ -129,23 +129,7 @@ describe.skipIf(연결 === undefined)('시나리오 미확정 통과 셈', () =>
       const 탭 = await listRuns(접두사, 1, 50, { kind: 'scenario' });
       expect(탭.items.find((i) => i.runId === 도는미확정)!.unconfirmed).toBe(true);
       expect(탭.items.find((i) => i.runId === 도는확정)!.unconfirmed).toBe(false);
-      expect(탭.summary).toMatchObject({ runs: 2, allPass: 0, unconfirmedPass: 0, hasFail: 0 });
-    } finally {
-      await 실행치우기();
-    }
-  });
-
-  it('케이스 탭의 머리 집계에는 unconfirmedPass 칸이 없다', async () => {
-    await 실행치우기();
-    await q(
-      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, finished_at)
-       VALUES ('XSG 케이스 실행', 'xsg', 'qa', 'FINISHED', $1, 'XSG', '', '', 'FN', now())`,
-      [서비스],
-    );
-
-    try {
-      expect('unconfirmedPass' in (await listRuns(접두사, 1, 50)).summary).toBe(false);
-      expect('unconfirmedPass' in (await listRuns(접두사, 1, 50, { kind: 'case' })).summary).toBe(false);
+      expect(탭.summary).toMatchObject({ runs: 2, allPass: 0, hasFail: 0 });
     } finally {
       await 실행치우기();
     }

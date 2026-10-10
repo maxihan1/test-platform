@@ -16,7 +16,7 @@ export interface 히트맵줄 {
 export function 히트맵을만든다(줄들: 접은줄[], 날들: string[], 이번창: (day: string) => boolean): 히트맵줄[] {
   const 케이스 = new Map<string, { tcName: string; 최근: string; 날별: number[]; 실패수: number }>();
   for (const 줄 of 줄들) {
-    if (줄.verdict !== 'FAIL' || 줄.unconfirmed || !이번창(줄.day)) continue;
+    if (줄.verdict !== 'FAIL' || !이번창(줄.day)) continue;
     const 항목 = 케이스.get(줄.tcId) ?? {
       tcName: 줄.tcName,
       최근: 줄.startedAt,

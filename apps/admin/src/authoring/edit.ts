@@ -3,6 +3,7 @@
 import type { JsonSchema } from '@platform/kit';
 
 import { validate } from '../execution/validate.js';
+import { 확인필요머리 } from '../prd/unconfirmed.js';
 
 /** 한 요청의 케이스 수 상한 — 명세 작성 §3.6 「★ 케이스 고치기」가 정본 */
 export const 고치기상한 = 50;
@@ -144,8 +145,9 @@ function 줄검사(item: unknown, 판: 고치기판, 본것: Set<string>): 고�
   const 고침: { tcId: string; expected?: Record<string, 기대값>; confirm?: true } = { tcId };
   if (있나기대) 고침.expected = 기대값검사(tcId, item.expected, 케이스, 판.비밀번호들);
   if (있나확정) {
-    // 미확정 꼬리표가 없는 케이스는 풀 것이 없다. 조용히 넘기면 사람은 확정했다고 믿는다
-    if (item.confirm !== true || 케이스.unconfirmed === null) throw new 거절(tcId);
+    // 꼬리표가 미확정을 정하는 케이스만 푼다. 미확정이 아니면 풀 것이 없고 — 조용히 넘기면 사람은 확정했다고 믿는다 —
+    // 표준 기획서가 정한 미확정은 꼬리표를 떼도 안 풀린다(「PRD 관리」에서 확정 · 도메인/작성 §3.6 「미확정」)
+    if (item.confirm !== true || 케이스.unconfirmed === null || 케이스.unconfirmed.startsWith(확인필요머리)) throw new 거절(tcId);
     고침.confirm = true;
   }
   return 고침;

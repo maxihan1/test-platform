@@ -1,6 +1,6 @@
 // E2E 시나리오 목록 화면. 시나리오를 훑고 대상 서버를 골라 바로 실행한다 (도메인/시나리오 §8.11 · 실행 §8.7)
 //
-// 줄 격자와 클래스는 ScenarioRunList 와 같다. 색은 판정만 낸다 — 확인 필요 · 실행 불가 · 미확정 포함은 중립 칩이다.
+// 줄 격자와 클래스는 ScenarioRunList 와 같다. 색은 판정만 낸다 — 확인 필요 · 실행 불가 · 미확정은 중립 칩이다.
 
 import { Fragment, useState } from 'react';
 
@@ -31,7 +31,6 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
       {t('새 시나리오')}
     </a>
   ) : null;
-  const 미확정섞임 = list.data.items.some((it) => it.lastRun?.verdict === 'PASS' && it.lastRun.unconfirmed);
 
   async function 실행(id: number) {
     if (env === '') {
@@ -106,12 +105,6 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
             </>
           )}
         </div>
-
-        {!미확정섞임 ? null : (
-          <p className="scenario-foot">
-            {t('「통과 · 미확정 포함」은 기대값을 화면에서 읽은 케이스가 섞인 결과라 정식 통과로 세지 않습니다')}
-          </p>
-        )}
       </div>
     </>
   );
@@ -132,8 +125,12 @@ function 표머리() {
 function 결과({ 지난 }: { 지난: 마지막 }) {
   const t = use말();
   if (지난.verdict === null) return <>{t('실행 중')}</>;
-  if (지난.verdict === 'PASS' && 지난.unconfirmed) return <span className="case-tag">{t('통과 · 미확정 포함')}</span>;
-  return <Verdict status={지난.verdict} />;
+  return (
+    <>
+      <Verdict status={지난.verdict} />
+      {지난.unconfirmed ? <span className="case-tag">{t('미확정')}</span> : null}
+    </>
+  );
 }
 
 function 시나리오줄({

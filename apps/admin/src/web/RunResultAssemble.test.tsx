@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 결과 화면 조립 검사 — 요약 띠 · 카드 · 줄 · 미확정 묶음 · 옆 칸 (도메인/실행 §8.3)
+// 결과 화면 조립 검사 — 요약 띠 · 카드 · 줄 · 옆 칸 (도메인/실행 §8.3)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -26,9 +26,9 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-// 끝난 실행은 요약 띠 → 실패 카드 → 통과 · 미실행 줄 → 미확정 묶음이고 옆 칸이 따라온다 (도메인/실행 §8.3, 2026-10-08)
-describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 미확정 묶음 · 옆 칸', () => {
-  it('요약 띠 → 실패 카드 → 통과 · 미실행 줄 → 미확정 묶음 차례다', async () => {
+// 끝난 실행은 요약 띠 → 실패 카드 → 통과 · 미실행 줄이고 옆 칸이 따라온다. 미확정 항목은 제 차례에 꼬리표만 단다 (도메인/실행 §8.3, 2026-10-11)
+describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 옆 칸', () => {
+  it('요약 띠 → 실패 카드 → 통과 · 미실행 줄 차례이고 미확정 묶음 칸은 없다', async () => {
     연다(섞인항목, 견줌);
     await screen.findByText('이름-ZRR-002');
 
@@ -39,20 +39,30 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 미확정 묶�
       return 목록;
     });
     const 줄 = document.querySelector('.rr-rows .result-row');
-    const 미확정 = document.querySelector('.rr-unconf');
     expect(앞선가(띠, 카드)).toBe(true);
     expect(앞선가(카드, 줄)).toBe(true);
-    expect(앞선가(줄, 미확정)).toBe(true);
-    expect(미확정?.textContent).toContain('이름-ZRR-004');
-    expect(미확정?.textContent).toContain('기획서에 값이 없습니다');
+    expect(document.querySelector('.rr-unconf')).toBeNull();
   });
 
-  it('미확정 묶음 줄은 거터를 판정 색이 아닌 중립으로 그린다', async () => {
+  it('미확정 줄은 제 차례에 서고 「미확정 · 사유」 꼬리와 판정 색 거터를 단다', async () => {
+    연다(섞인항목, 견줌);
+    await screen.findByText('이름-ZRR-004');
+
+    expect([...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent)).toEqual(['ZRR-002', 'ZRR-003', 'ZRR-004']);
+    const 줄 = [...document.querySelectorAll('.rr-rows .result-row')].find((el) => el.textContent?.includes('ZRR-004'));
+    expect(줄?.textContent).toContain('미확정 · 기획서에 값이 없습니다');
+    expect(줄?.querySelector('.gutter')?.getAttribute('style')).toContain('var(--pass)');
+  });
+
+  it('요약은 미확정까지 모든 항목을 세고 「그중 미확정 N건」을 단다', async () => {
     연다(섞인항목, 견줌);
     await screen.findByText('이름-ZRR-002');
 
-    const 거터 = document.querySelector('.rr-unconf .gutter')?.getAttribute('style') ?? '';
-    expect(거터).toContain('var(--line-2)');
+    const 요약 = document.querySelector('.rs')?.textContent ?? '';
+    expect(요약).toContain('항목 7건 중 3건 통과');
+    expect(요약).toContain('그중 미확정 2건');
+    expect(판정칸('전체').textContent).toContain('7');
+    expect(판정칸('실패').textContent).toContain('3');
   });
 
   it('도는 실행은 카드 통로도 견주기 통로도 부르지 않고 진행 집계와 줄 목록을 그린다', async () => {
@@ -87,12 +97,10 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 미확정 묶�
     fireEvent.click(판정칸('실패'));
     expect(document.querySelector('.fc-list')).not.toBeNull();
     expect(document.querySelector('.rr-rows')).toBeNull();
-    expect(document.querySelector('.rr-unconf')).toBeNull();
 
     fireEvent.click(판정칸('통과'));
     expect(document.querySelector('.fc-list')).toBeNull();
-    expect(document.querySelector('.rr-unconf')).toBeNull();
-    expect([...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent)).toEqual(['ZRR-002']);
+    expect([...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent)).toEqual(['ZRR-002', 'ZRR-004']);
 
     fireEvent.click(판정칸('미실행'));
     expect([...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent)).toEqual(['ZRR-003']);
@@ -103,17 +111,16 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 미확정 묶�
     await waitFor(() => expect(document.querySelector('.fc-list')).not.toBeNull());
 
     const 줄들 = [...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent);
-    expect(줄들).toEqual(['ZRR-002', 'ZRR-003']);
+    expect(줄들).toEqual(['ZRR-002', 'ZRR-003', 'ZRR-004']);
     expect(document.querySelector('.fc-list')?.textContent).toContain('이름-ZRR-001');
   });
 
-  it('확정 실패 + 미확정 실패 케이스는 카드와 미확정 묶음에 나뉜다', async () => {
+  it('미확정 실패 케이스도 카드로 가고 카드에 미확정 꼬리가 붙는다 — 줄 목록에는 없다', async () => {
     연다(섞인항목);
     await waitFor(() => expect(document.querySelector('.fc-list')?.textContent).toContain('이름-ZRR-005'));
 
     expect([...document.querySelectorAll('.rr-rows .tcid')].map((el) => el.textContent)).not.toContain('ZRR-005');
-    const 묶음 = [...document.querySelectorAll('.rr-unconf .tcid')].map((el) => el.textContent);
-    expect(묶음).toEqual(['ZRR-004', 'ZRR-005']);
+    expect(document.querySelector('.fc-unconf')?.textContent).toBe('미확정 · 기획서에 값이 없습니다');
   });
 
   it('디바이스 칩은 카드 통로에도 걸린다', async () => {

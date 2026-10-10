@@ -122,51 +122,39 @@ describe('RunList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
 });
 
 describe('RunList 미확정 (도메인/실행 §8.7)', () => {
-  it('미확정만 돌린 실행은 판정 색을 칠하지 않고 미확정 묶음을 글자로 보인다', async () => {
+  it('미확정만 돈 실행도 통과 색을 칠하고 숫자를 그대로 보인다', async () => {
     const 미확정만: RunSummary = {
       ...실행(2130, 0),
       title: 'ZRL 미확정만',
-      counts: { total: 2, pass: 0, fail: 0, na: 0, running: 0, unconfirmed: { total: 2, pass: 1, fail: 1, na: 0 } },
+      counts: { total: 2, pass: 2, fail: 0, na: 0, running: 0, unconfirmed: 2 },
     };
     const { container } = await 그리기({ ...한쪽, items: [미확정만], total: 1 });
     await screen.findByText(/ZRL 미확정만/);
 
-    const 띠 = container.querySelector<HTMLElement>('.row .gutter');
-    expect(띠?.style.background).toBe('var(--line-2)');
-    expect(screen.getByText('미확정 2(통과 1 · 실패 1)')).toBeTruthy();
+    expect(container.querySelector<HTMLElement>('.row .gutter')?.style.background).toBe('var(--pass)');
+    expect(container.querySelector('.tally b')?.textContent).toBe('2');
+    expect(container.querySelector('.tally [aria-label="판정 없음"]')).toBeNull();
   });
 
-  it('확정 판정이 없으면 세 칸을 0 대신 줄표로 보이고 미확정 글자를 판정 글자로 세운다', async () => {
-    const 미확정만: RunSummary = {
-      ...실행(2131, 0),
-      title: 'ZRL 미확정만 줄표',
-      counts: { total: 2, pass: 0, fail: 0, na: 0, running: 0, unconfirmed: { total: 2, pass: 1, fail: 1, na: 0 } },
-    };
-    const { container } = await 그리기({ ...한쪽, items: [미확정만], total: 1 });
-    await screen.findByText(/ZRL 미확정만 줄표/);
-
-    const 줄표들 = container.querySelectorAll('.tally [aria-label="확정 판정 없음"]');
-    expect(줄표들).toHaveLength(3);
-    for (const 칸 of 줄표들) {
-      expect(칸.textContent).toBe('—');
-      expect((칸 as HTMLElement).style.color).toBe('');
-    }
-    expect(screen.getByText('미확정 2(통과 1 · 실패 1)').className).toContain('unconf');
-    expect(container.querySelector('.tally .unconf-line')).toBeNull();
-    expect(container.querySelector('.runright .verdict .unconf-line')).not.toBeNull();
-  });
-
-  it('확정 항목이 하나라도 있으면 숫자 그대로다', async () => {
+  it('미확정 수는 「그중 미확정 N건」 한 줄이다 — 실패가 있으면 실패 색이다', async () => {
     const 섞임: RunSummary = {
       ...실행(2132, 0),
       title: 'ZRL 섞임',
-      counts: { total: 3, pass: 1, fail: 0, na: 0, running: 0, unconfirmed: { total: 2, pass: 2, fail: 0, na: 0 } },
+      counts: { total: 3, pass: 1, fail: 2, na: 0, running: 0, unconfirmed: 2 },
     };
     const { container } = await 그리기({ ...한쪽, items: [섞임], total: 1 });
     await screen.findByText(/ZRL 섞임/);
 
-    expect(container.querySelectorAll('.tally [aria-label="확정 판정 없음"]')).toHaveLength(0);
-    expect(container.querySelector('.tally b')?.textContent).toBe('1');
+    expect(screen.getByText('그중 미확정 2건').className).toBe('unconf-line');
+    expect(container.querySelector<HTMLElement>('.row .gutter')?.style.background).toBe('var(--fail)');
+  });
+
+  it('미확정이 없으면 글을 쓰지 않는다', async () => {
+    const 확정만: RunSummary = { ...실행(2133, 0), title: 'ZRL 확정만', counts: { total: 3, pass: 3, fail: 0, na: 0, running: 0 } };
+    const { container } = await 그리기({ ...한쪽, items: [확정만], total: 1 });
+    await screen.findByText(/ZRL 확정만/);
+
+    expect(container.querySelector('.unconf-line')).toBeNull();
   });
 });
 
