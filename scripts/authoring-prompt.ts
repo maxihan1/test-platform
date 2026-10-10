@@ -1,9 +1,10 @@
-// 자식 세션에게 주는 줄 프롬프트 — 자료 · 역방향 · 이어하기 · 원장 · 표준 기획서 절을 잇는다
+// 자식 세션에게 주는 줄 프롬프트 — 자료 · 역방향 · 이어하기 · 원장 · 표준 기획서 · 이어 작성 · 반영 절을 잇는다
 // authoring-rules.ts 가 300줄에 닿아 뗐다 (2026-09-30)
 
 import { type 읽을자료, 자료목록글, 자료출처 } from './authoring-assets.js';
 import type { 집은것 } from './authoring-rules.js';
 import { type 이어작성입력, 이어작성절 } from './authoring-continue.js';
+import { type 반영입력, 반영요청인가, 반영절 } from './authoring-apply.js';
 import type { 표준기획서입력 } from './authoring-prd-io.js';
 import { 역방향절 } from './authoring-reverse.js';
 
@@ -25,6 +26,7 @@ export function 줄프롬프트(
   이어작성?: 이어작성입력,
   메모경로?: string,
   표준기획서?: 표준기획서입력 & { 원본: 원장입력; 자료폴더: string },
+  반영?: 반영입력,
 ): string {
   return [
     `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
@@ -50,13 +52,14 @@ export function 줄프롬프트(
     '',
     '관문 넷(형식·표 대조·3회 연속·일부러 부수기)은 전부 돌려라.',
     '',
-    // 화면만은 기획서가 없다 — 빈 기획서 절을 싣으면 자식이 「기획서가 비었다」로 멈춘다
-    ...(계획.length > 0 ? 자료목록글(계획) : 역방향?.화면만 === true ? [] : ['--- 기획서 ---', 것.specText ?? '']),
+    // 화면만 · 반영은 기획서가 없다 — 빈 기획서 절을 싣으면 자식이 「기획서가 비었다」로 멈춘다
+    ...(계획.length > 0 ? 자료목록글(계획) : 역방향?.화면만 === true || 반영요청인가(것) ? [] : ['--- 기획서 ---', 것.specText ?? '']),
     ...(역방향 === undefined ? [] : 역방향절({ ...역방향, 요청번호: 자료출처(것) })),
     ...(이어하기 === undefined ? [] : 이어하기절(이어하기, 메모경로)),
     ...(원장 === undefined ? [] : 원장절(원장, 서비스, 대상?.폴더)),
     ...(표준기획서 === undefined ? [] : 표준기획서절(표준기획서)),
     ...(이어작성 === undefined ? [] : 이어작성절(이어작성)),
+    ...(반영 === undefined ? [] : 반영절(반영)),
   ].join('\n');
 }
 

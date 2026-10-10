@@ -151,6 +151,8 @@ export interface 집은것 {
   continueFrom?: number | null;
   /** 반영 행이고 보류 입력이 있을 때만 온다 — 모양은 authoring-held-apply 의 `보류있나` 가 본다 (§3.6 「★ 보류 케이스」) */
   held?: unknown;
+  /** 행의 params 그대로 — 반영 요청(`prdApply`)인지 본다. 재실행 · 이어서 작성 행에는 서버가 원본 것을 물려 둔다 (§7 「표준 기획서 통로」) */
+  params?: unknown;
   /** 반영 행에만 온다 — 원본의 겹침 결정 전부. 모양은 authoring-conflicts-io 의 `결정들` 이 본다 (§3.6 「★ 반영 때 겹침 검사」) */
   conflicts?: unknown;
 }
