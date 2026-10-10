@@ -114,6 +114,12 @@ describe('판합치기', () => {
     expect(r.모르는번호).toEqual(['MKT-REQ-099']);
   });
 
+  it('기준 판에만 있던 번호(그 사이 지워짐)는 번호를 단 채 새 항목 앞에 보낸다 — 서버가 되살리지 않는다', () => {
+    const r = 판합치기(지금, 옮김([항목('새 규칙', ['REQ-MEM-011']), 항목('지워진 요구', ['REQ-MEM-004'], { reqId: 'MKT-REQ-004' })]), new Set(['MKT-REQ-004']));
+    expect(r.items.map((i) => i.reqId)).toEqual(['MKT-REQ-001', 'MKT-REQ-002', 'MKT-REQ-003', 'MKT-REQ-004', undefined]);
+    expect(r.모르는번호).toEqual([]);
+  });
+
   it('모르는 번호를 뗀 항목이 문장으로 기존 번호를 찾으면 새 항목으로 세지 않는다', () => {
     const r = 판합치기(지금, 옮김([항목('탈퇴는 확인을 한 번 더 묻는다', ['REQ-MEM-010'], { reqId: 'MKT-REQ-099' })]));
     expect(r.items.map((i) => i.reqId)).toEqual(['MKT-REQ-001', 'MKT-REQ-002', 'MKT-REQ-003']);

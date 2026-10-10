@@ -61,15 +61,18 @@ export function 옮긴것읽기(몸: unknown, 접두사: string): 옮긴것 | { 
 /**
  * 보낼 판 전체 — 서버는 보내지 않은 번호를 지운다(§7 에이전트 `POST …/:id/prd`).
  * 그래서 지금 판 차례를 지키며 고친 항목은 그 자리에, 지운다고 적은 번호만 빼고, **적지 않은 기존 항목은 그대로 남긴다** —
- * 원본이 일부 기능만 담아도 나머지 기능 항목이 안 지워지고, 자식이 빠뜨려도 항목이 사라지지 않는다(2026-10-10 시작 질문). 새 항목은 끝에
+ * 원본이 일부 기능만 담아도 나머지 기능 항목이 안 지워지고, 자식이 빠뜨려도 항목이 사라지지 않는다(2026-10-10 시작 질문). 새 항목은 끝에.
+ * `앞번호` 는 자식 앞 판(기준 판)의 번호 — 그 뒤 지워진 번호는 번호를 단 채 보내 서버가 되살리지 않고 돌려주게 한다
  */
 export function 판합치기(
   지금: readonly PrdItem[],
   옮긴: 옮긴것,
+  앞번호: ReadonlySet<string> = new Set(),
 ): { items: 들어온항목[]; 지운번호: string[]; 모르는번호: string[] } {
   const 있는번호 = new Set(지금.map((i) => i.reqId));
-  // 지금 판에 없는 번호는 서버가 PRD_REUSED 로 판 전체를 거절한다 — 그 항목만 번호를 떼어 새 항목으로 돌린다
-  const 고침 = 옮긴.items.map(({ reqId, ...남은 }) => ({ 항목: (reqId !== undefined && 있는번호.has(reqId) ? { reqId, ...남은 } : 남은) as 들어온항목, 뗀번호: reqId !== undefined && !있는번호.has(reqId) ? reqId : undefined }));
+  const 아는번호 = (n: string) => 있는번호.has(n) || 앞번호.has(n);
+  // 기준 판에도 지금 판에도 없는 번호는 서버가 PRD_REUSED 로 판 전체를 거절한다 — 그 항목만 번호를 떼어 새 항목으로 돌린다
+  const 고침 = 옮긴.items.map(({ reqId, ...남은 }) => ({ 항목: (reqId !== undefined && 아는번호(reqId) ? { reqId, ...남은 } : 남은) as 들어온항목, 뗀번호: reqId !== undefined && !아는번호(reqId) ? reqId : undefined }));
   // 기능 묶음과 요구 문장이 같은 새 항목은 지금 판 번호를 물려받는다 — 자식이 번호 달기를 빠뜨려도 같은 원본을 다시 옮길 때 같은 요구가 둘이 되지 않게.
   // 기능 묶음까지 보는 까닭 — 「필수 입력 항목이다」 같은 흔한 문장이 다른 기능 항목을 덮지 않게
   const 열쇠 = (i: { feature: string; text: string }) => `${i.feature.trim()}\n${i.text.trim()}`;
@@ -89,6 +92,8 @@ export function 판합치기(
   return {
     items: [
       ...지금.flatMap((i) => (자리.has(i.reqId) ? [자리.get(i.reqId)!] : 지움.has(i.reqId) ? [] : [i])),
+      // 기준 판 뒤에 지워진 번호 — 서버가 되살리지 않고 keptByPerson 으로 돌려준다
+      ...고침.flatMap(({ 항목 }) => (항목.reqId !== undefined && !있는번호.has(항목.reqId) ? [항목] : [])),
       ...고침.flatMap(({ 항목 }) => (항목.reqId === undefined ? [항목] : [])),
     ],
     지운번호,

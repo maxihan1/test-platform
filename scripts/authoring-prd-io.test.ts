@@ -12,6 +12,7 @@ import { 옮기기올리기, 판받기 } from './authoring-prd-io.js';
 const 서버 = { 주소기지: 'http://admin:3000', 토큰: 't' };
 const 답 = (status: number, 몸: unknown = {}) => new Response(JSON.stringify(몸), { status });
 const 있던 = { reqId: 'MKT-REQ-001', feature: '회원가입', text: '아이디는 4자 이상', basis: [{ from: '기획서.docx', ref: 'REQ-1', quote: '아이디 4자 이상' }], status: 'CONFIRMED' };
+const 앞 = { version: 2, 번호들: ['MKT-REQ-001', 'MKT-REQ-003'] };
 const 원장하나: 원장 = { 항목: [{ 번호: 'REQ-1', 자료: '기획서.docx', 지문: 'x' }, { 번호: 'REQ-2', 자료: '기획서.docx', 지문: 'y' }], 가족: {}, 모드: {}, 경고: [], 빠진자료: [], 꼴: {} };
 
 let 폴더 = '';
@@ -36,8 +37,16 @@ describe('판받기', () => {
     vi.stubGlobal('fetch', async (url: string) => (건것.push(url), 답(200, { version: 2, items: [있던] })));
     const r = await 판받기(서버, 'MKT', 7, 폴더);
     expect(건것).toEqual(['http://admin:3000/api/authoring/requests/7/prd?service=MKT']);
-    expect(r).toEqual({ 입력: { 지금판: join(폴더, 'prd-current.json'), 결과: join(폴더, 'out', 'prd.json'), 판: 2, 항목수: 1 } });
+    expect(r).toEqual({ 입력: { 지금판: join(폴더, 'prd-current.json'), 결과: join(폴더, 'out', 'prd.json'), 판: 2, 항목수: 1 }, 앞판: { version: 2, 번호들: ['MKT-REQ-001'] } });
     expect(JSON.parse(readFileSync(join(폴더, 'prd-current.json'), 'utf8'))).toEqual({ version: 2, items: [있던] });
+  });
+
+  it('역방향 비밀번호는 날 글자와 이스케이프 꼴 둘 다 가려 쓴다', async () => {
+    vi.stubGlobal('fetch', async () => 답(200, { version: 1, items: [{ ...있던, text: '비번은 pa"ss1234 이다' }] }));
+    await 판받기(서버, 'MKT', 7, 폴더, 'pa"ss1234');
+    const 글 = readFileSync(join(폴더, 'prd-current.json'), 'utf8');
+    expect(글).not.toContain('ss1234');
+    expect(글).toContain('••••••');
   });
 
   it('앞 자식이 심은 링크를 따라 쓰지 않고 지운 뒤 새로 만든다', async () => {
@@ -61,9 +70,9 @@ describe('옮기기올리기', () => {
   it('결과 파일이 없거나 JSON 이 아니면 올리지 않는다', async () => {
     const 건것 = vi.fn(async () => 답(200));
     vi.stubGlobal('fetch', 건것);
-    expect(await 옮기기올리기(서버, 'MKT', 7, 자리, 원장하나, {})).toEqual(['⚠️ 표준 기획서 결과(out/prd.json)가 없다 — 옮기지 않았다']);
+    expect(await 옮기기올리기(서버, 'MKT', 7, 자리, 앞, 원장하나, {})).toEqual(['⚠️ 표준 기획서 결과(out/prd.json)가 없다 — 옮기지 않았다']);
     결과쓰기('{ 깨짐');
-    expect(await 옮기기올리기(서버, 'MKT', 7, 자리, 원장하나, {})).toEqual(['⚠️ 표준 기획서 결과를 못 읽었다 — JSON 이 아니다']);
+    expect(await 옮기기올리기(서버, 'MKT', 7, 자리, 앞, 원장하나, {})).toEqual(['⚠️ 표준 기획서 결과를 못 읽었다 — JSON 이 아니다']);
     expect(건것).not.toHaveBeenCalled();
   });
 
@@ -71,7 +80,7 @@ describe('옮기기올리기', () => {
     const 건것 = vi.fn(async () => 답(200));
     vi.stubGlobal('fetch', 건것);
     결과쓰기({ items: [{ ...있던, reqId: undefined, quote: 'x', text: '비번은 pa"ss1234 로 들어간다' }] });
-    expect(await 옮기기올리기(서버, 'MKT', 7, 자리, 원장하나, { 계정: 'pa"ss1234' })).toEqual(['⚠️ 표준 기획서 결과에 비밀값이 들어 있다 — 올리지 않았다']);
+    expect(await 옮기기올리기(서버, 'MKT', 7, 자리, 앞, 원장하나, { 계정: 'pa"ss1234' })).toEqual(['⚠️ 표준 기획서 결과에 비밀값이 들어 있다 — 올리지 않았다']);
     expect(건것).not.toHaveBeenCalled();
   });
 
@@ -83,26 +92,39 @@ describe('옮기기올리기', () => {
       몸 = JSON.parse(String(init.body)) as typeof 몸;
       return 답(200, { version: 6, keptByPerson: ['MKT-REQ-001'] });
     });
-    결과쓰기({ items: [{ feature: '회원가입', text: '닉네임은 필수', basis: [{ from: '기획서.docx', ref: 'REQ-2', quote: '닉네임 필수' }], status: 'CONFIRMED' }] });
-    const 줄 = await 옮기기올리기(서버, 'MKT', 7, 자리, 원장하나, {});
-    expect(몸.baseVersion).toBe(5);
+    결과쓰기({
+      items: [
+        { feature: '회원가입', text: '닉네임은 필수', basis: [{ from: '기획서.docx', ref: 'REQ-2', quote: '닉네임 필수' }], status: 'CONFIRMED' },
+        { reqId: 'MKT-REQ-003', feature: '회원가입', text: '사람이 지운 요구', basis: [{ from: '기획서.docx', ref: 'REQ-2', quote: '지움' }], status: 'CONFIRMED' },
+      ],
+    });
+    const 줄 = await 옮기기올리기(서버, 'MKT', 7, 자리, 앞, 원장하나, {});
+    expect(몸.baseVersion).toBe(2);
     expect(몸.items?.map((i) => [i.reqId, i.text])).toEqual([
       ['MKT-REQ-001', '아이디는 4자 이상'],
       ['MKT-REQ-002', '장바구니는 20개까지'],
+      ['MKT-REQ-003', '사람이 지운 요구'],
       [undefined, '닉네임은 필수'],
     ]);
     expect(줄).toEqual([
-      '표준 기획서: 판 6 · 이번 자료 항목 1(확인 필요 0) · 지움 0',
+      '표준 기획서: 판 6 · 이번 자료 항목 2(확인 필요 0) · 지움 0',
       '⚠️ 사람이 고친 항목과 새 문서가 다름 1 — MKT-REQ-001',
       '옮기기 대조: 요구 2 중 빠짐 1 · 요구 아님 0 · 설계 잃음 0',
       '⚠️ 옮기기 빠짐 1 — REQ-1',
     ]);
   });
 
+  it('원장에 못 넣은 자료가 섞였으면 그 몫은 대조 없음 줄로 남긴다', async () => {
+    vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => (init?.method === 'POST' ? 답(200, { version: 3 }) : 답(200, { version: 2, items: [] })));
+    결과쓰기({ items: [] });
+    const 줄 = await 옮기기올리기(서버, 'MKT', 7, 자리, 앞, { ...원장하나, 빠진자료: ['화면.pdf(PDF)'] }, {});
+    expect(줄.at(-1)).toBe('⚠️ 옮기기 대조 없음 — 화면.pdf(PDF)');
+  });
+
   it('올리기 직전에 지금 판을 못 읽으면 올리지 않고 대조 줄은 남긴다', async () => {
     vi.stubGlobal('fetch', async () => 답(500));
     결과쓰기({ items: [] });
-    expect(await 옮기기올리기(서버, 'MKT', 7, 자리, { 없음: '글자본이 있는 자료가 없다' }, {})).toEqual([
+    expect(await 옮기기올리기(서버, 'MKT', 7, 자리, 앞, { 없음: '글자본이 있는 자료가 없다' }, {})).toEqual([
       '⚠️ 표준 기획서를 못 올렸다 — 지금 판을 못 읽었다 (500)',
       '⚠️ 옮기기 대조 없음 — 글자본이 있는 자료가 없다',
     ]);
@@ -112,7 +134,7 @@ describe('옮기기올리기', () => {
     vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) =>
       init?.method === 'POST' ? 답(400, { error: 'PRD_FULL', detail: '1000' }) : 답(200, { version: 1, items: [] }));
     결과쓰기({ items: [] });
-    expect(await 옮기기올리기(서버, 'MKT', 7, 자리, { 없음: '글자본이 있는 자료가 없다' }, {})).toEqual([
+    expect(await 옮기기올리기(서버, 'MKT', 7, 자리, 앞, { 없음: '글자본이 있는 자료가 없다' }, {})).toEqual([
       '⚠️ 표준 기획서를 못 올렸다 (400 PRD_FULL 1000)',
       '⚠️ 옮기기 대조 없음 — 글자본이 있는 자료가 없다',
     ]);
