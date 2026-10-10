@@ -90,8 +90,10 @@ function holdsFunction(node: ts.Node): boolean {
   return ts.isFunctionLike(node) || (node.forEachChild((c) => (holdsFunction(c) ? true : undefined)) ?? false);
 }
 
-// 경로를 앞뒤로 못 박는다 — `../` · `./pages/../` 로 Page Object 자리 밖 파일을 끌어오지 못하게. 이름 꼴은 cases-only.mjs 와 같다
-const PAGE_OBJECT = /^\.\/(?:pages\/[a-z][a-z0-9-]{0,40}\.page|components\/[a-z][a-z0-9-]{0,40}\.component)(?:\.js)?$/;
+// 경로를 앞뒤로 못 박는다 — `../` · `./pages/../` 로 Page Object 자리 밖 파일을 끌어오지 못하게. 이름 꼴은 cases-only.mjs 와 같다.
+// helpers 도 같은 K7 을 지고, components 에 있던 로그인 · 데이터 도구가 옮겨 간 자리라 똑같이 믿는다 (작성 §3.6 「지도」)
+const PAGE_OBJECT =
+  /^\.\/(?:pages\/[a-z][a-z0-9-]{0,40}\.page|components\/[a-z][a-z0-9-]{0,40}\.component|helpers\/[a-z][a-z0-9-]{0,40}\.helper)(?:\.js)?$/;
 
 function declaredName(node: ts.Node): string | undefined {
   if (
