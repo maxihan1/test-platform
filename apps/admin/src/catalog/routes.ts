@@ -9,6 +9,7 @@ import { TECHNIQUES, type Technique } from '@platform/kit/types';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
 import type { 사용자 } from '../auth/store.js';
+import { 종류들, type 맥락조건 } from './context.js';
 import { renderCatalogXlsx } from './export.js';
 import { 엑셀자료, 한국시각 } from './exportData.js';
 import { 지도채우기 } from './reqMap.js';
@@ -178,6 +179,27 @@ export function 기법읽기(값: string | undefined): Technique | 'none' | unde
 
 const 모르는기법 = (값: string | undefined) => ({ error: 'BAD_TECHNIQUE', detail: `설계 기법 목록에 없는 값입니다 — ${String(값)}` });
 
+type 맥락글 = { feature?: string; screen?: string; part?: string; axis?: string; req?: string };
+
+/**
+ * 맥락 거르기(카탈로그 §7). feature 는 빈 글자도 조건이다 — 「기능 묶음 없음」. 나머지는 빈 값이면 안 거른다.
+ * 모르는 종류는 null — 기법과 같은 까닭으로 거르지 않고 전부 내지 않는다
+ */
+export function 맥락조건읽기(q: 맥락글): 맥락조건 | null {
+  const 값 = (x: string | undefined) => (x === undefined || x === '' ? undefined : x);
+  const axis = 값(q.axis);
+  if (axis !== undefined && !종류들.some((a) => a === axis)) return null;
+  return {
+    ...(q.feature === undefined ? {} : { feature: q.feature }),
+    ...(값(q.screen) === undefined ? {} : { screen: q.screen }),
+    ...(값(q.part) === undefined ? {} : { part: q.part }),
+    ...(axis === undefined ? {} : { axis: 종류들.find((a) => a === axis) }),
+    ...(값(q.req) === undefined ? {} : { req: q.req }),
+  };
+}
+
+const 모르는종류 = (값: string | undefined) => ({ error: 'BAD_AXIS', detail: `종류는 정상 · 경계 · 예외 · UI 중 하나입니다 — ${String(값)}` });
+
 export default async function catalogRoutes(app: FastifyInstance): Promise<void> {
   // 배포는 컨테이너 재기동이다. 뜨는 김에 한 번 훑어 두면 배포 직후 목록이 최신이 된다 (SPEC §3.1)
   startup = runScan(app.log);
@@ -190,7 +212,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
   });
 
   app.get<{
-    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string };
+    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string } & 맥락글;
   }>(
     '/catalog/cases',
     async (req, reply) => {
@@ -204,9 +226,12 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
       }
       const technique = 기법읽기(req.query.technique);
       if (technique === null) return reply.code(400).send(모르는기법(req.query.technique));
+      const 맥락 = 맥락조건읽기(req.query);
+      if (맥락 === null) return reply.code(400).send(모르는종류(req.query.axis));
 
       const platform = req.query.platform;
       return listCases({
+        ...맥락,
         service,
         q: req.query.q ?? '',
         platform: platform === 'desktop' || platform === 'mobile' ? platform : undefined,
@@ -219,7 +244,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
     },
   );
 
-  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string } }>(
+  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string } & 맥락글 }>(
     '/catalog/export',
     async (req, reply) => {
       const service = req.query.service ?? '';
@@ -228,12 +253,15 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
       if (서비스 === null) return reply.code(403).send({ error: 'SERVICE_FORBIDDEN', detail: service });
       const technique = 기법읽기(req.query.technique);
       if (technique === null) return reply.code(400).send(모르는기법(req.query.technique));
+      const 맥락 = 맥락조건읽기(req.query);
+      if (맥락 === null) return reply.code(400).send(모르는종류(req.query.axis));
 
       // 문은 (케이스, read) 만 봤다. 실행·작성 기록은 그 칸이 따로 있어야 싣는다 — 케이스 read 만으로 새면 안 된다 (카탈로그 §7)
       const 되나 = (기능: 'runs' | 'authoring'): boolean =>
         칸되는서비스(req.user?.services ?? [], 기능, 'read').includes(service);
       const platform = req.query.platform;
       const 자료 = await 엑셀자료({
+        ...맥락,
         service,
         serviceId: 서비스.id,
         q: req.query.q ?? '',

@@ -71,7 +71,7 @@ describe.skipIf(연결 === undefined)('카탈로그 API', () => {
 
   it('GET /api/catalog/cases — 응답이 순서와 총건수의 성질을 같이 알려준다', async () => {
     const body = (await app.inject({ method: 'GET', url: '/api/catalog/cases?service=DEMO' })).json();
-    expect(body.sort).toBe('tcId');
+    expect(body.sort).toBe('feature');
     expect(body.totalIsExact).toBe(true);
     expect(body.page).toBe(1);
     expect(typeof body.pageSize).toBe('number');

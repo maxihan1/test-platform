@@ -35,6 +35,8 @@ const 미확정: ExportCase = {
   lastResult: null,
   filledBy: { rootId: 5877, by: 'maxi' },
   techniques: ['경계값 분석', '결정 테이블'],
+  feature: '로그인',
+  reqIds: ['MKT-REQ-002', 'MKT-REQ-007'],
 };
 
 const 보류들: ExportHeld[] = [
@@ -86,7 +88,7 @@ describe('renderCatalogXlsx', () => {
     const wb = await 읽기(기본);
     expect(wb.worksheets.map((s) => s.name)).toEqual(['테스트 케이스', '보류 처리 기록']);
     const [케이스, 보류] = wb.worksheets;
-    expect(줄(케이스, 1)).toEqual(['TC ID', '케이스명', '기기', '전제', '입력값', '기대값', '상태', '마지막 결과', '설계 기법']);
+    expect(줄(케이스, 1)).toEqual(['TC ID', '케이스명', '기기', '전제', '입력값', '기대값', '상태', '마지막 결과', '설계 기법', '기능 묶음', '요구 번호']);
     expect(줄(보류, 1)).toEqual(['작성 요청', 'TC ID', '구분', '왜 보류됐나', '처리', '넣은 값', '누가', '언제', '반영']);
     expect(케이스.views[0]).toMatchObject({ state: 'frozen', ySplit: 1 });
     expect(wb.created.toISOString()).toBe('2026-09-29T06:00:00.000Z');
@@ -114,16 +116,22 @@ describe('renderCatalogXlsx', () => {
     expect(셋째[7]).toBe('—');
   });
 
-  it('설계 기법은 맨 끝 열 — 기법을 · 로 잇고 없으면 빈칸', async () => {
+  it('기능 묶음 · 요구 번호는 설계 기법 뒤 — 번호는 줄마다 하나 · 없으면 빈칸', async () => {
+    const 케이스 = (await 읽기(기본)).worksheets[0];
+    expect([케이스.getRow(2).getCell(10).value, 케이스.getRow(2).getCell(11).value]).toEqual([null, null]);
+    expect([케이스.getRow(3).getCell(10).value, 케이스.getRow(3).getCell(11).value]).toEqual(['로그인', 'MKT-REQ-002\nMKT-REQ-007']);
+  });
+
+  it('설계 기법은 마지막 결과 다음 열 — 기법을 · 로 잇고 없으면 빈칸', async () => {
     const 케이스 = (await 읽기(기본)).worksheets[0];
     expect(케이스.getRow(2).getCell(9).value).toBeNull();
     expect(케이스.getRow(3).getCell(9).value).toBe('경계값 분석 · 결정 테이블');
   });
 
-  it('UI 테스트 목록에서 받으면 설계 기법 열이 없다', async () => {
+  it('UI 테스트 목록에서 받으면 설계 기법 열이 없고 기능 묶음이 그 자리에 선다', async () => {
     const 케이스 = (await 읽기({ ...기본, kind: 'UI' })).worksheets[0];
-    expect(줄(케이스, 1)).toEqual(['TC ID', '케이스명', '기기', '전제', '입력값', '기대값', '상태', '마지막 결과']);
-    expect(케이스.getRow(3).getCell(9).value).toBeNull();
+    expect(줄(케이스, 1)).toEqual(['TC ID', '케이스명', '기기', '전제', '입력값', '기대값', '상태', '마지막 결과', '기능 묶음', '요구 번호']);
+    expect(케이스.getRow(3).getCell(9).value).toBe('로그인');
   });
 
   it('보류 처리 기록 — 구분 · 처리 · 넣은 값 · 반영', async () => {
