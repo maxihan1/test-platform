@@ -6,6 +6,7 @@ import { extname } from 'node:path';
 
 import type { 읽을자료 } from './authoring-assets.js';
 import { type 설계, 설계하기 } from './authoring-design.js';
+import { type 표행, 로그인열, 칸들 } from './authoring-ledger-login.js';
 
 export interface 원장항목 {
   번호: string;
@@ -143,19 +144,12 @@ function 첫머리번호(줄: string): string | null {
   return 언급조사.test(뗀것.slice(m[1].length)) ? null : m[1];
 }
 
-// 표 「로그인」 열(AUT-F3-45) — 행 글에는 열 이름이 없어 판정 함수가 「예」의 뜻을 모른다. 그래서 원장을 뽑을 때 머리 칸과 행 칸을 맞춘다
-const 로그인머리 = /^(?:로그인|인증)(?:\s*(?:필요|여부))?$/;
-const 로그인값 = /(?:^|\s)(?:예|필요|관리자)$/;
-// 칸 — md · 격자 표는 테두리 글자(칸 안의 `\|` 는 글자다), 서버 변환은 넓은 빈칸 · 탭, 맥 변환은 줄 하나가 칸 하나다
-const 칸들 = (줄: string) =>
-  (/^[│|]/.test(줄) ? 줄.replace(/^[│|]|(?<!\\)[│|]$/g, '').split(/(?<!\\)[│|]/) : 줄.split(/\t|\s{2,}/)).map((c) => c.trim());
-
 /**
  * 번호 모드 요구 글 — 줄 첫머리에 원장 번호가 있는 줄부터 다음 그런 줄 전까지가 그 번호의 글이다. 줄 단위라 맥 변환(textutil)처럼
  * 칸마다 줄이 나뉘고 빈 줄이 없는 글자본도 요구마다 갈린다. 머리글은 주인을 끊는다. 표에서 첫 칸이 빈 줄(서버 변환 격자 표의 칸 안 목록)은
  * 그 행 주인에 붙고, 원장 번호 없는 새 행은 주인을 끊는다. 숫자만 있는 줄(행 번호 칸)과 테두리는 어디에도 안 붙는다.
  * 첫머리에 한 번도 안 나온 번호(범위의 가운데 · 언급만 됨)는 그 번호가 나온 줄 전부다.
- * `로그인` 은 표 「로그인」 열 값이 예 · 관리자인 번호다 — 머리 칸 수와 행 칸 수가 같을 때만 맞춘다
+ * 표 행과 머리 칸도 같이 모아 `로그인` 을 낸다 — 표 「로그인」 열 값이 예 · 필요 · 관리자 · 기호인 번호다(authoring-ledger-login.ts)
  */
 function 번호글들(글: string, 원장번호: Set<string>): { 글들: Map<string, string>; 로그인: Map<string, string> } {
   const 모음 = new Map<string, string[]>();
@@ -170,8 +164,10 @@ function 번호글들(글: string, 원장번호: Set<string>): { 글들: Map<str
   // 지금 표의 머리 칸 — 서버 변환 · md 는 칸 여럿인 한 줄, 맥 변환은 제목 뒤 주인 없는 줄을 하나씩 이어 모은다
   let 머리: string[] = [];
   let 머리이음 = false;
-  // ponytail: 맥 변환 행 뒤에 제목 없이 붙은 문단 · 서버 변환에서 꺾인 긴 칸은 칸 수가 어긋나 못 읽는다. 잦으면 표 구조를 변환기에서 받는다
-  const 행 = new Map<string, { 머리: string[]; 칸: string[]; 줄마다: boolean }>();
+  // ponytail: 맥 변환 행 뒤에 제목 없이 붙은 문단 · 제목 없이 이어진 두 표 · 여러 문단인 칸 · 앞 `|` 없는 md 표는 칸 수가 어긋나 못 읽는다.
+  // 잦으면 표 구조를 변환기에서 받는다
+  const 행 = new Map<string, 표행>();
+  let 지금행: 표행 | undefined;
   for (const 날줄 of 글.split(/\r?\n/)) {
     const 줄 = 날줄.trim().replace(행번호, '');
     if (줄 === '' || 테두리.test(줄) || /^\d+$/.test(줄)) continue;
@@ -183,7 +179,9 @@ function 번호글들(글: string, 원장번호: Set<string>): { 글들: Map<str
     if (첫 !== null && 원장번호.has(첫)) {
       주인 = 첫;
       넣기(모음, 첫, 줄);
-      행.set(첫, { 머리, 칸, 줄마다: 칸.length === 1 });
+      지금행 = { 머리, 칸, 줄마다: 칸.length === 1 };
+      // 같은 번호가 줄 첫머리에 또 나오면(뒤의 상세 제목) 먼저 나온 표 행을 둔다
+      if (!행.has(첫)) 행.set(첫, 지금행);
       머리이음 = false;
     } else if (머리글(줄, md) || (표줄 && !/^[│|]\s*[│|]/.test(줄) && 번호들.length === 0)) {
       주인 = null;
@@ -191,19 +189,15 @@ function 번호글들(글: string, 원장번호: Set<string>): { 글들: Map<str
       머리 = 머리이음 ? [] : 칸;
     } else if (주인 !== null) {
       넣기(모음, 주인, 줄);
-      const 지금행 = 행.get(주인);
       if (지금행?.줄마다 === true) 지금행.칸.push(...칸);
+      // 서버 변환은 줄을 안 꺾는다(--wrap=none) — 행 뒤에 붙은 번호 없는 칸 여럿 줄은 제목 없이 이어진 다음 표의 머리다
+      else if (!표줄 && 칸.length > 1 && 번호들.length === 0) 머리 = 칸;
     } else {
       머리 = 칸.length === 1 && 머리이음 ? [...머리, ...칸] : 칸;
       머리이음 = 칸.length === 1;
     }
   }
-  const 로그인 = new Map<string, string>();
-  for (const [번호, { 머리: 머, 칸 }] of 행) {
-    const 값 = 칸[머.findIndex((c) => 로그인머리.test(c))];
-    if (머.length === 칸.length && 값 !== undefined && 로그인값.test(값)) 로그인.set(번호, 값);
-  }
-  return { 글들: new Map([...원장번호].map((n) => [n, (모음.get(n) ?? 언급.get(n) ?? []).join('\n')])), 로그인 };
+  return { 글들: new Map([...원장번호].map((n) => [n, (모음.get(n) ?? 언급.get(n) ?? []).join('\n')])), 로그인: 로그인열(행) };
 }
 
 // 원장 사본 JSON 이 요구마다 빈 설계로 불지 않게 경계 · 예외가 둘 다 비면 키를 안 싣는다
