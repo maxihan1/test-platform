@@ -97,6 +97,11 @@ describe('route', () => {
     expect(route('#/authoring')).toEqual({ name: 'authoring' });
   });
 
+  it('PRD 관리', () => {
+    expect(route('#/prd')).toEqual({ name: 'prd' });
+    expect(route('#/prd/1')).toEqual({ name: 'unknown', hash: '#/prd/1' });
+  });
+
   it('작성 한 건 상세', () => {
     expect(route('#/authoring/12')).toEqual({ name: 'authoringItem', id: 12 });
   });
@@ -162,6 +167,8 @@ describe('route', () => {
     expect(갈자리('', 케이스없음, 'PAY')).toBe('');
     expect(갈자리('#/cases', 작성만, 'PAY')).toBe('#/authoring');
     expect(갈자리('#/authoring', 실행만, 'PAY')).toBe('#/dashboard');
+    expect(갈자리('#/prd', 실행만, 'PAY')).toBe('#/dashboard');
+    expect(갈자리('#/prd', 작성만, 'PAY')).toBe('#/prd');
     expect(갈자리('#/runs', 사람([서비스('PAY', { cases: 'read', runs: 'none', authoring: 'none' })]), 'PAY')).toBe('#/cases');
   });
 

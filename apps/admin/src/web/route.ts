@@ -24,6 +24,7 @@ export type Route =
   | { name: 'scenarios' }
   | { name: 'scenarioNew' }
   | { name: 'scenario'; id: number }
+  | { name: 'prd' }
   | { name: 'authoring' }
   | { name: 'authoringItem'; id: number }
   | { name: 'run'; runId: number }
@@ -69,6 +70,8 @@ export function route(hash: string): Route {
     if (tcId !== null) return { name: 'setup', tcId };
   }
 
+  if (parts.length === 1 && parts[0] === 'prd') return { name: 'prd' };
+
   // 번호는 숫자 글자만 받는다. 서버도 같은 모양으로 거른다 (도메인/작성 §7) —
   // 문과 라우트가 다른 값을 읽으면 그 틈으로 남의 행을 부르는 주소가 만들어진다
   if (parts[0] === 'authoring') {
@@ -110,6 +113,8 @@ export function route(hash: string): Route {
  */
 const 기능자리: Partial<Record<Route['name'], 기능>> = {
   cases: 'cases',
+  // 표준 기획서는 작성 칸을 쓴다 (화면공통 §8 · 도메인/작성 §3.6 「★ 표준 기획서」)
+  prd: 'authoring',
   authoring: 'authoring',
   runs: 'runs',
   // 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7). 새 시나리오는 띠의 서비스에 만든다

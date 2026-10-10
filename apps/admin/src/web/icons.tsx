@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'authoring' | 'scenarios' | 'runs' | 'graph' | 'settings' | 'run';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'authoring' | 'scenarios' | 'runs' | 'graph' | 'settings' | 'run';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -19,6 +19,14 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
       <path d="M14 3H6v18h12V7z" />
       <path d="M14 3v4h4" />
       <path d="m9 14 2 2 4-4" />
+    </>
+  ),
+  // 줄 앞에 번호 점이 찍힌 문서 — 요구를 규칙 하나씩 적은 기획서
+  prd: (
+    <>
+      <path d="M5 3h14v18H5z" />
+      <path d="M11 8h5M11 12h5M11 16h5" />
+      <path d="M8 8h.01M8 12h.01M8 16h.01" />
     </>
   ),
   // 펜 — 기획서에서 테스트를 쓴다
