@@ -6,6 +6,7 @@ export const 기획서말: Record<string, string> = {
   '아직 PRD 가 없습니다': 'No PRD yet',
   '판 {판} · 요구 {건수}건': 'Version {판} · {건수} requirements',
   '판 이력': 'Version history',
+  '워드로 내려받기': 'Download as Word',
   '요구 더하기': 'Add requirement',
   '요구 더하기로 첫 요구를 적습니다': 'Use Add requirement to write the first one',
   '판 {판}으로 저장했습니다': 'Saved as version {판}',

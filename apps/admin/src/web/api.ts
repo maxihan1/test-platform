@@ -663,7 +663,7 @@ export async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 // JSON 이 아닌 답(엑셀 파일)을 받는 통로도 세션 끊김·오류 문장을 같은 길로 받는다
-async function 거절이면던진다(res: Response, path: string): Promise<void> {
+export async function 거절이면던진다(res: Response, path: string): Promise<void> {
   if (res.status === 401 && !끊김을가로채지않는곳.some((열린곳) => path.startsWith(열린곳))) {
     로그인으로보낸다();
   }
