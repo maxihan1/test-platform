@@ -68,7 +68,7 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 옆 칸', () =
   it('도는 실행은 카드 통로도 견주기 통로도 부르지 않고 진행 집계와 줄 목록을 그린다', async () => {
     const 견줌부름 = vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     const 실패부름 = vi.spyOn(api, 'failures');
-    vi.spyOn(api, 'progress').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'progress').mockResolvedValue({ items: [], remainingMs: null });
     vi.spyOn(api, 'run').mockResolvedValue({
       ...도는중응답, items: [항목줄(1, 'ZRR-001', 'desktop', 'PASS')],
     });

@@ -112,6 +112,14 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     expect(screen.queryByText('12 / 34 완료')).not.toBeNull();
   });
 
+  it('도는 중이면 완료 수 아래에 남은 시간 글을 적는다 — 서버가 아직 못 쟀으면 계산 중이다', () => {
+    const { unmount } = render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={() => {}} />);
+    expect(screen.queryByText('남은 시간 계산 중')).not.toBeNull();
+    unmount();
+    render(<RunProgressModal data={도는중실행} 진행목록={[]} 남은ms={30_000} onClose={() => {}} />);
+    expect(screen.queryByText('1분 미만 남음')).not.toBeNull();
+  });
+
   it('지금 도는 것을 유일한 것으로 단정하지 않는다', () => {
     render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={() => {}} />);
 

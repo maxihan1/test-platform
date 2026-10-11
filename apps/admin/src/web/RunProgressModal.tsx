@@ -6,26 +6,12 @@ import { groupByCase, 회차요약 } from './group.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type RunDetail, type 진행막대, 진행상황 } from './runProgress.js';
+import { 실행남은글, 시간글자 } from './remainText.js';
 import { 도는중, 미실행사유 } from './runState.js';
 import { STATUS_LABEL } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
 const 실패목록최대 = 5;
-
-/**
- * 밀리초를 사람이 읽는 글자로.
- *
- * `ui.tsx` 의 `seconds()` 를 쓰지 않는다 — 소수 둘째 자리까지 적고 분으로 올리지 않아
- * 제한 5분이 「300.00초」로 나온다. 2초마다 바뀌는 자리라 소수점도 읽기를 방해한다.
- */
-export function 시간글자(ms: number, 언어: 언어): string {
-  const 초 = Math.round(ms / 1000);
-  if (초 < 60) return t('{초}초', 언어, { 초 });
-  const 남은초 = 초 % 60;
-  return 남은초 === 0
-    ? t('{분}분', 언어, { 분: 초 / 60 })
-    : t('{분}분 {초}초', 언어, { 분: Math.floor(초 / 60), 초: 남은초 });
-}
 
 function 막대칸들(막대: 진행막대, 언어: 언어) {
   return [
@@ -92,7 +78,7 @@ function 도는줄({ 항목, 절차 }: { 항목: RunItemSummary; 절차: 항목�
   );
 }
 
-function 진행내용({ data, 진행목록 }: { data: RunDetail; 진행목록: 항목진행[] }) {
+function 진행내용({ data, 진행목록, 남은ms }: { data: RunDetail; 진행목록: 항목진행[]; 남은ms: number | null }) {
   const t말 = use말();
   const 언어 = use언어();
   const { 막대, 끝난수, 전체수, 지금도는것들, 방금끝난것 } = 진행상황(data, 진행목록);
@@ -117,6 +103,7 @@ function 진행내용({ data, 진행목록 }: { data: RunDetail; 진행목록: �
       <판정칸들 칸들={칸들} />
       {그중미확정글(data.counts, 언어) === '' ? null : <p className="hint">{그중미확정글(data.counts, 언어)}</p>}
       <p>{t말('{끝난} / {전체} 완료', { 끝난: 끝난수, 전체: 전체수 })}</p>
+      <p className="hint">{실행남은글(남은ms, Date.now(), 언어)}</p>
 
       {지금도는것들.length === 0 ? null : (
         <div>
@@ -209,12 +196,15 @@ function 제목(data: RunDetail, 언어: 언어): string {
 export function RunProgressModal({
   data,
   진행목록,
+  남은ms = null,
   onClose,
 }: {
   data: RunDetail;
   /** 러너에게 따로 물어 온 지금 절차들. 기본값을 두지 않는다 — 두면 호출부가 조회를 빠뜨려도
    *  조용히 「절차 없는」 화면이 나온다. 컴파일 단계에서 배선하게 만든다 */
   진행목록: 항목진행[];
+  /** 서버가 잰 남은 시간. 모르면 null — 「계산 중」으로 적는다 */
+  남은ms?: number | null;
   onClose: () => void;
 }) {
   const t말 = use말();
@@ -232,7 +222,7 @@ export function RunProgressModal({
         </button>
       }
     >
-      {도는가 ? <진행내용 data={data} 진행목록={진행목록} /> : <완료내용 data={data} />}
+      {도는가 ? <진행내용 data={data} 진행목록={진행목록} 남은ms={남은ms} /> : <완료내용 data={data} />}
     </Modal>
   );
 }

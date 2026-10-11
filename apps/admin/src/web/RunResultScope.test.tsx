@@ -39,7 +39,7 @@ describe('실행 결과의 권한은 그 실행의 서비스로', () => {
 
   function 연다(tcId: string, status: string) {
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status, items: [항목(tcId)], evidence: [] });
-    vi.spyOn(api, 'progress').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'progress').mockResolvedValue({ items: [], remainingMs: null });
     render(<RunResult runId={RUN_ID} 판정하기={(접두사) => 판정을만든다(김, 접두사)} 상자안 />);
   }
 

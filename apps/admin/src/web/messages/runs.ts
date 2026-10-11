@@ -181,6 +181,10 @@ export const 실행말: Record<string, string> = {
   'RUN {번호} 이 끝났습니다': 'RUN {번호} finished',
   'RUN {번호} 이 멈췄습니다': 'RUN {번호} was stopped',
   '{끝난} / {전체} 완료': '{끝난} / {전체} done',
+  // 남은 시간 (remainText.ts) — 실행 진행 상자와 알림 줄이 같이 쓴다
+  '남은 시간 계산 중': 'Estimating time left',
+  '1분 미만 남음': 'Under 1 min left',
+  '약 {시간} 남음 · {시각} 종료 예상': 'About {시간} left · expected to end {시각}',
   '절차 {번호}': 'Step {번호}',
   '{시간}째': '{시간} in',
   '제한 {시간}': 'limit {시간}',

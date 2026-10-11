@@ -3,12 +3,8 @@
 import type { AuthoringCoverage, AuthoringRow } from './api.js';
 import { 단계글라벨, 단계라벨, 단계이름들, 단계자리, 시간판, 진척, 진척이찼나, 짧은수, 활동글 } from './authoringStatus.js';
 import { 줄보임, 중단이유라벨, 칩글 as 칩글자, type 보임 } from './authoringView.js';
-import { use말, use언어, type 언어 } from './i18n.js';
-import { 시간글자 } from './RunProgressModal.js';
-
-function 시각(d: Date, 언어: 언어): string {
-  return new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
-}
+import { use말, use언어 } from './i18n.js';
+import { 시각글자 as 시각, 시간글자, 작성남은글 } from './remainText.js';
 
 /** 칩 모양. 색은 판정(완료·실패·응답 없음)에만 — 나머지는 잉크다 (DESIGN.md 원칙 1) */
 function 칩모양(보: 보임): string {
@@ -73,6 +69,8 @@ export function AuthoringStatusCard({
   const 보 = 줄보임(요청, 지금);
   const 자리 = 단계자리(요청);
   const 시간 = 시간판(요청, 지금);
+  // 도는 동안만, 평소 걸린 시간을 서버가 줬을 때만 (도메인/작성 §7). 끝난 요청은 「걸림」 한 줄로 충분하다
+  const 남은글 = 요청.status === 'RUNNING' ? 작성남은글(시간.걸린ms ?? 0, 지금, 요청.expected, 언어) : null;
   const p = 진척이찼나(요청.progress) ? 요청.progress : null;
   const 도는중 = 요청.status === 'RUNNING';
   // 머지 · 고치기도 같은 상태 칩을 쓰되 「작성 중」은 거짓말이다 — 반영하는 중 · 고치는 중이다
@@ -160,10 +158,12 @@ export function AuthoringStatusCard({
                   {t('{지난} 지남 / 한도 {한도}', { 지난: 시간글자(시간.한도.지난ms, 언어), 한도: 시간글자(시간.한도.한도ms, 언어) })} ·{' '}
                   {t('시작 {시각}', { 시각: 시각(시간.시작, 언어) })} ·{' '}
                   <b>{t('늦어도 {시각} 완료', { 시각: 시각(시간.한도.늦어도, 언어) })}</b>
+                  {남은글 === null ? null : <> · {남은글}</>}
                 </>
               ) : (
                 <>
-                  {t('{지난} 지남', { 지난: 시간글자(시간.걸린ms ?? 0, 언어) })} · {t('시작 {시각}', { 시각: 시각(시간.시작, 언어) })}
+                  {t('{지난} 지남', { 지난: 시간글자(시간.걸린ms ?? 0, 언어) })} ·{' '}
+                  {남은글 ?? t('시작 {시각}', { 시각: 시각(시간.시작, 언어) })}
                 </>
               )}
             </span>

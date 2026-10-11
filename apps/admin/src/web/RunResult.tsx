@@ -93,7 +93,7 @@ function 케이스결과({
     return () => clearInterval(timer);
   }, [running, 만드는문서있나, reload]);
 
-  const 진행목록 = useRunProgress(running, runId);
+  const { 진행목록, 남은ms } = useRunProgress(running, runId);
 
   const 증적칸 = use증적(data, 실행판정(판정하기, data), reload);
 
@@ -260,6 +260,7 @@ function 케이스결과({
         <RunProgressModal
           data={data}
           진행목록={진행목록}
+          남은ms={남은ms}
           onClose={() => {
             set진행열림(false);
             // 끝난 뒤에 닫은 것만 「알림 봤다」로 적는다 — 새로고침해도 다시 안 뜬다 (SPEC §8.9).

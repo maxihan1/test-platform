@@ -72,6 +72,8 @@ export const 작성말: Record<string, string> = {
   '{시간} 걸림 (시작 {시작})': 'took {시간} (started {시작})',
   '{지난} 지남 / 한도 {한도}': '{지난} elapsed / limit {한도}',
   '{지난} 지남': '{지난} elapsed',
+  '평소보다 {넘은} 더 걸리고 있습니다': 'Taking {넘은} longer than usual',
+  '약 {시간} 남음 · {시각} 종료 예상 · 최근 {수}건 기준': 'About {시간} left · expected to end {시각} · based on the last {수}',
   '시작 {시각}': 'started {시각}',
   '늦어도 {시각} 완료': 'done by {시각} at the latest',
   '작성한 스크립트 파일': 'Scripts written',

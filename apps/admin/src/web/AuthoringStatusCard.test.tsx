@@ -68,6 +68,22 @@ describe('작성 Status 카드', () => {
     expect(screen.queryByRole('progressbar', { name: '시간' })).toBeNull();
   });
 
+  it('평소 걸린 시간을 알면 남은 시간 · 종료 예상 · 기준 건수를 지난 시간 뒤에 붙인다', () => {
+    render(<AuthoringStatusCard 요청={줄({ progress: null, expected: { ms: 18 * 60_000, samples: 8 } })} 지금={지금} />);
+    expect(screen.getByText(/^12분 지남 · 약 6분 남음 · \d{2}:\d{2} 종료 예상 · 최근 8건 기준$/)).toBeTruthy();
+  });
+
+  it('평소보다 오래 걸리면 얼마나 넘었는지를 적는다', () => {
+    render(<AuthoringStatusCard 요청={줄({ progress: null, expected: { ms: 10 * 60_000, samples: 3 } })} 지금={지금} />);
+    expect(screen.getByText('12분 지남 · 평소보다 2분 더 걸리고 있습니다')).toBeTruthy();
+  });
+
+  it('평소 시간을 모르면(null) 지금처럼 지난 시간과 시작 시각만 적는다', () => {
+    render(<AuthoringStatusCard 요청={줄({ progress: null, expected: null })} 지금={지금} />);
+    expect(screen.getByText(/12분 지남 · 시작/)).toBeTruthy();
+    expect(screen.queryByText(/남음/)).toBeNull();
+  });
+
   it('자식 전이면 한도 없이 지난 시간과 시작 시각만, 지금 하는 일은 단계 글이다', () => {
     render(<AuthoringStatusCard 요청={줄({ stage: '자료를 받는 중', progress: null })} 지금={지금} />);
     expect(screen.getByText(/12분 지남 · 시작/)).toBeTruthy();

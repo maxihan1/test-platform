@@ -435,6 +435,8 @@ export interface AuthoringRow {
   resumeFrom?: number | null;
   /** 상세에만 — 지금 이어서 작성할 수 있나 · 언제까지 · 누가 이어받았나 */
   canResume?: boolean;
+  /** 상세에만 — 같은 종류가 평소 걸린 시간(ms)과 센 건수. 모르면 null (남은 시간을 못 낸다) */
+  expected?: { ms: number; samples: number } | null;
   resumeUntil?: string | null;
   resumedBy?: number | null;
   /**
@@ -856,7 +858,7 @@ export const api = {
   insights: (runId: number) => call<RunInsights>(`/runs/${runId}/insights`),
 
   /** 지금 도는 절차들. 상세 조회와 별개다 — 상세는 DB 를, 이쪽은 러너의 지금을 본다 (SPEC §7) */
-  progress: (runId: number) => call<{ items: 항목진행[] }>(`/runs/${runId}/progress`),
+  progress: (runId: number) => call<{ items: 항목진행[]; remainingMs: number | null }>(`/runs/${runId}/progress`),
 
   /** 증적을 만든다. 실행까지 등급부터다 (SPEC §3.5) */
   makeEvidence: (runId: number, format: string) =>

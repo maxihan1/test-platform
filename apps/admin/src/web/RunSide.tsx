@@ -4,7 +4,7 @@ import { api, type RunInsights as 비교 } from './api.js';
 import { type 증적칸, 증적알림과목록 } from './EvidenceSection.js';
 import { use말, use언어 } from './i18n.js';
 import { RunInsights, 해결들 } from './RunInsights.js';
-import { 시간글자 } from './RunProgressModal.js';
+import { 시간글자 } from './remainText.js';
 import { 실행자이름 } from './runState.js';
 import { PLATFORM_LABEL, when, 디바이스순서 } from './ui.js';
 
