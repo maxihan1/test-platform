@@ -34,6 +34,7 @@ function 줄(덮: Partial<접은줄>): 접은줄 {
     verdict: 'PASS',
     unconfirmed: false,
     reason: null,
+    cause: null,
     ...덮,
   };
 }

@@ -14,6 +14,7 @@ import {
   type 접은줄,
 } from './dashboardShape.js';
 import { 접은줄SQL, 앞판정SQL, 실행중SQL, 커버리지SQL } from './dashboardSql.js';
+import { 원인을가른다, type 원인재료, type 실패유형 } from './failureType.js';
 import { db, 가려서자른다 } from './insights.js';
 
 /** 부르는 쪽이 400 INVALID_REQUEST 로 바꾼다 */
@@ -109,6 +110,8 @@ export interface 대시보드응답 {
   coverage: 커버리지[];
   running: 실행중[];
   unconfirmed: number;
+  /** 이번 창 실패 · 미실행 줄을 원인으로 나눈 것. types 는 다섯 유형 전부 · 화면 차례대로, stopped 는 실행이 멈춰 닫힌(ABORTED) 미실행 수 */
+  failureTypes: { types: { type: 실패유형; fail: number; notRun: number }[]; stopped: number };
 }
 
 interface 줄행 {
@@ -127,6 +130,7 @@ interface 줄행 {
   unconfirmed: boolean;
   // 사유를 가릴 비밀 목록을 그 항목의 박제값으로 만든다 (공통/2 §4.1)
   reason: { text: string | null; params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown } | null;
+  cause: 원인재료 | null;
 }
 
 async function 실행중읽기(pool: Pool, ids: number[]): Promise<실행중[]> {
@@ -200,6 +204,7 @@ async function 줄읽기(pool: Pool, ids: number[], tz: string, 오늘: string):
     verdict: r.verdict,
     unconfirmed: r.unconfirmed,
     reason: r.reason === null || r.reason.text === null ? null : 가려서자른다(r.reason.text, r.reason) || null,
+    cause: r.cause === null ? null : 원인을가른다(r.cause),
   }));
 }
 
@@ -278,5 +283,9 @@ export async function 대시보드(tz: string, 실행서비스ids: number[], 작
     coverage,
     running,
     unconfirmed: 집계.미확정건수,
+    failureTypes: {
+      types: 집계.실패유형.유형별.map((u) => ({ type: u.type, fail: u.실패, notRun: u.미실행 })),
+      stopped: 집계.실패유형.멈춤,
+    },
   };
 }

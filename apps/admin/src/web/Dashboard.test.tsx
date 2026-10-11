@@ -80,6 +80,7 @@ function 응답(고침: Partial<대시보드응답> = {}): 대시보드응답 {
     coverage: [],
     running: [],
     unconfirmed: 0,
+    failureTypes: { types: [], stopped: 0 },
     ...고침,
   };
 }
@@ -361,7 +362,7 @@ describe('그래프 칸 자리', () => {
     읽기를(응답({ running: [실행중(12, 3, 8)] }));
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await screen.findByText('실행 중 1건');
-    const 순서 = ['실행 중 1건', '신규 실패', '통과율', '서비스별 품질', '일별 테스트 결과', '실패 히트맵', '요구사항 커버리지'];
+    const 순서 = ['실행 중 1건', '신규 실패', '통과율', '서비스별 품질', '일별 테스트 결과', '실패 히트맵', '실패 유형', '요구사항 커버리지'];
     const 위치 = 순서.map((글) => screen.getByText(글, { selector: 'h2, .dash-live-head' }));
     for (let i = 1; i < 위치.length; i += 1) {
       expect(위치[i - 1]!.compareDocumentPosition(위치[i]!) & Node.DOCUMENT_POSITION_FOLLOWING, 순서[i]).toBeTruthy();
@@ -487,6 +488,6 @@ describe('새로 고침', () => {
     expect(container.querySelector('.dash-board')).toBe(판);
     expect(container.querySelector('.dash-ring')).toBe(도넛);
     expect(숫자.textContent).toBe('95%');
-    expect(container.querySelectorAll('.dash-board > *')).toHaveLength(6);
+    expect(container.querySelectorAll('.dash-board > *')).toHaveLength(7);
   });
 });

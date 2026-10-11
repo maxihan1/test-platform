@@ -302,14 +302,14 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     }
   });
 
-  it('GET /api/dashboard — 실행 read 인 배정 서비스로 열 칸을 낸다', async () => {
+  it('GET /api/dashboard — 실행 read 인 배정 서비스로 열한 칸을 낸다', async () => {
     지금사람 = 사람(실행만);
     const res = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul' });
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(Object.keys(body).sort()).toEqual(
-      ['window', 'services', 'passRate', 'daily', 'newFailures', 'byService', 'heatmap', 'coverage', 'running', 'unconfirmed'].sort(),
+      ['window', 'services', 'passRate', 'daily', 'newFailures', 'byService', 'heatmap', 'coverage', 'running', 'unconfirmed', 'failureTypes'].sort(),
     );
     expect(body.window.tz).toBe('Asia/Seoul');
     expect(body.services).toEqual([{ id: 대시보드서비스, name: 'XDR 대시보드' }]);

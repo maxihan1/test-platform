@@ -1,6 +1,7 @@
 // 앱 대시보드 숫자(통과율 · 일별 · 서비스별 · 신규 실패 · 히트맵)를 접은 줄에서 만드는 순수 함수
 
 import { 히트맵을만든다, type 히트맵줄 } from './dashboardHeat.js';
+import { 유형을센다, type 원인, type 유형셈 } from './failureType.js';
 import { 판정표, type 변화 as 판정변화 } from './insights.js';
 
 export { 히트맵케이스수, type 히트맵줄 } from './dashboardHeat.js';
@@ -31,6 +32,8 @@ export interface 접은줄 {
   unconfirmed: boolean;
   /** 실패 줄의 대표 문장(insights 와 같은 말). 실제 값(actual · expected)은 싣지 않는다 — 비밀값이 샐 수 있다 */
   reason: string | null;
+  /** 이번 창의 실패 · 미실행 줄만 찬다 — 통과 줄과 직전 창 줄은 null */
+  cause: 원인 | null;
 }
 
 // 이번 실행 번호를 키로 묶어 넘기므로 runId 를 안 싣는다. 키가 곧 「누구의 앞 실행인가」다.
@@ -90,6 +93,7 @@ export interface 집계 {
   서비스별: 서비스칸[];
   신규실패: 신규실패칸[];
   히트맵: 히트맵줄[];
+  실패유형: 유형셈;
 }
 
 // 날짜를 더하는 곳은 여기 하나다. UTC 로 계산하면 서머타임이 날짜를 건너뛰게 만들지 못한다
@@ -182,6 +186,7 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     서비스별,
     신규실패: 신규전부.slice(0, 신규실패상한),
     히트맵: 히트맵을만든다(줄들, Array.from({ length: 창날수 }, (_, i) => 날짜더하기(이번시작, i)), 이번창),
+    실패유형: 유형을센다(줄들.filter((줄) => 이번창(줄.day))),
   };
 }
 
