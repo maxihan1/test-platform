@@ -41,7 +41,7 @@ describe('실패 유형 칸', () => {
     expect(줄들[1]!.textContent).toContain('실패 1 · 미실행 3 — 화면에서 버튼 · 입력 칸을 끝내 찾지 못함');
     expect(줄들[2]!.textContent).toContain('제한 시간 안에 끝나지 않음');
     expect(줄들[2]!.textContent).not.toContain('실패 0');
-    expect(within(칸).getByText('사용자가 멈춘 미실행 2건은 세지 않았습니다')).toBeTruthy();
+    expect(within(칸).getByText('실행이 멈춰 돌지 못한 2건은 세지 않았습니다')).toBeTruthy();
   });
 
   it('실패 · 미실행이 하나도 없으면 줄 대신 짧게 알린다', () => {
@@ -54,6 +54,6 @@ describe('실패 유형 칸', () => {
   it('멈춘 미실행뿐이면 「없습니다」를 띄우지 않고 멈춘 수만 적는다 — 통과율 칸에는 미실행이 보인다', () => {
     const 칸 = 칸을그린다({}, 3);
     expect(칸.textContent).not.toContain('미실행이 없습니다');
-    expect(within(칸).getByText('사용자가 멈춘 미실행 3건은 세지 않았습니다')).toBeTruthy();
+    expect(within(칸).getByText('실행이 멈춰 돌지 못한 3건은 세지 않았습니다')).toBeTruthy();
   });
 });

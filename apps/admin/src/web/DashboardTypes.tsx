@@ -19,7 +19,7 @@ const 설명: Record<실패유형, string> = {
   mismatch: '확인 문장의 기대값과 실제 값이 다름',
   notFound: '화면에서 버튼 · 입력 칸을 끝내 찾지 못함',
   timeout: '제한 시간 안에 끝나지 않음',
-  environment: '대상 서버 · 러너에 닿지 못함',
+  environment: '대상 서버 · 러너에 닿지 못하거나 러너가 거절함',
   other: '스크립트 오류 등 위 넷이 아닌 것',
 };
 
@@ -83,7 +83,7 @@ export function 실패유형칸({ 값 }: { 값: 자료 }) {
         </>
       )}
       {stopped > 0 ? (
-        <p className="dash-types-foot">{t('사용자가 멈춘 미실행 {수}건은 세지 않았습니다', { 수: stopped })}</p>
+        <p className="dash-types-foot">{t('실행이 멈춰 돌지 못한 {수}건은 세지 않았습니다', { 수: stopped })}</p>
       ) : null}
     </section>
   );

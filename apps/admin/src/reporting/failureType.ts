@@ -4,7 +4,7 @@
 /** 화면 표시 차례와 같다 */
 export const 실패유형들 = ['mismatch', 'notFound', 'timeout', 'environment', 'other'] as const;
 export type 실패유형 = (typeof 실패유형들)[number];
-/** 사용자가 멈춘 미실행은 원인이 아니라 유형에 넣지 않고 따로 센다 */
+/** 실행이 멈춰 닫힌 미실행(ABORTED)은 유형에 넣지 않고 따로 센다 — 사람이 멈춘 것인지 서버가 다시 뜨며 닫은 것인지 DB 가 못 가른다(reporting/collect.ts 와 같은 판단) */
 export type 원인 = 실패유형 | 'stopped';
 
 export interface 원인재료 {

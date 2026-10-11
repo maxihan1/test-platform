@@ -53,7 +53,7 @@ describe('원인을가른다', () => {
     expect(실패('Error: 러너 화면의 값이 비어 있다')).toBe('other');
   });
 
-  it('사용자가 멈춘 미실행은 유형이 아니라 멈춤이다', () => {
+  it('실행이 멈춰 닫힌 미실행(ABORTED)은 유형이 아니라 멈춤이다', () => {
     expect(미실행('ABORTED')).toBe('stopped');
   });
 

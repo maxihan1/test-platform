@@ -110,7 +110,7 @@ export interface 대시보드응답 {
   coverage: 커버리지[];
   running: 실행중[];
   unconfirmed: number;
-  /** 이번 창 실패 · 미실행 줄을 원인으로 나눈 것. types 는 다섯 유형 전부 · 화면 차례대로, stopped 는 사용자가 멈춘 미실행 수 */
+  /** 이번 창 실패 · 미실행 줄을 원인으로 나눈 것. types 는 다섯 유형 전부 · 화면 차례대로, stopped 는 실행이 멈춰 닫힌(ABORTED) 미실행 수 */
   failureTypes: { types: { type: 실패유형; fail: number; notRun: number }[]; stopped: number };
 }
 
