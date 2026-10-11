@@ -44,6 +44,14 @@ describe('K13 — held 는 비지 않은 문자열 리터럴', () => {
     expect(k13(케이스(`held: 사유,`, `const 사유 = '보류 — x';`))).toHaveLength(1);
   });
 
+  it('치환 있는 템플릿 식은 위반이다', () => {
+    expect(k13(케이스('held: `보류 — ${b}`,', `const b = 'x';`))).toHaveLength(1);
+  });
+
+  it('따옴표 키에 변수를 달아도 위반이다', () => {
+    expect(k13(케이스(`'held': 사유,`, `const 사유 = '보류 — x';`))).toHaveLength(1);
+  });
+
   it('축약 { held } 는 위반이다', () => {
     expect(k13(케이스('held,', `const held = '보류 — x';`))).toHaveLength(1);
   });
