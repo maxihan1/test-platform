@@ -88,6 +88,12 @@
   min-height: 46px;
 }
 
+/* 알림 줄은 위에 붙이지 않는다 — PC 는 「알림」 버튼을 남기려고 붙였는데 휴대폰에서는 그 버튼이 아래 탭에 있고,
+   두 줄짜리 알림이 내리는 내내 화면 위 1/6 을 덮었다 (2026-10-12 390 실측) */
+.ph .nt-top {
+  position: static;
+}
+
 /* 실행 기록 하위(UI · 기능 · E2E). 고른 칩 테두리는 대표색이다 — 알림 서랍의 거르기 칩과 같은 뜻 */
 .ph-sub {
   display: flex;
@@ -218,6 +224,11 @@
   min-height: 46px;
 }
 
+/* 실행 창 값 칸을 펴는 버튼은 휴대폰에서만 — PC 에서는 칸을 접지 않는다 (도메인/실행 §8.10) */
+.prow-fold {
+  display: none;
+}
+
 /* 실행 결과의 「실패 N건 다시 실행」. PC 에서는 머리 행동 줄의 버튼 하나다 */
 .rerun-dock {
   display: contents;
@@ -243,9 +254,25 @@
     justify-content: center;
   }
 
+  /* 머리의 등장 움직임(translateY)이 도는 동안에는 고정 판이 머리를 기준으로 서 위에서 아래로 튄다 — 이 머리만 움직임을 끈다 */
+  .head:has(.rerun-dock) {
+    animation: none;
+  }
+
   /* 붙은 판 높이만큼 본문 끝을 더 띄운다 — 마지막 통과 줄이 판 밑에 깔리지 않게 */
   .main:has(.rerun-dock) {
     padding-bottom: 72px;
+  }
+
+  /* 여러 건 실행 창의 값 칸은 접는다 — `값` 을 누르거나 실행했는데 틀린 칸이 있으면 편다 (도메인/실행 §8.10 예외) */
+  .prow-fold {
+    display: inline-flex;
+    align-items: center;
+    min-height: 46px;
+  }
+
+  .prow:has(.prow-fold) + .prow-edit:not(.open) {
+    display: none;
   }
 
   /* 모달은 아래에서 올라오는 판이다. 좌우를 다 채우고 위 모서리만 둥글다 (DESIGN.md 「모달」) */

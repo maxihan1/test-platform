@@ -9,6 +9,7 @@ import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type 글자표, 몇건, 실행항목, 안드로이드있나 } from './pickRun.js';
 import { RunLocation } from './RunLocation.js';
+import { 반복과알림 } from './RunPickFoot.js';
 import { 한건값줄, 한건머리, use한건 } from './RunPickOne.js';
 import { 넘었나, 상한 } from './runPlan.js';
 import { use여러건시험, 열주소칸, 시험배지, 시험절차 } from './RunPickTrial.js';
@@ -70,6 +71,9 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const [notice, setNotice] = useState<string | null>(null);
   // 칸 아래 사유를 언제 보일까. 치는 동안 빨간 글이 따라다니면 다 적기도 전에 틀렸다고 말한다
   const [오류보임, set오류보임] = useState(false);
+  // 휴대폰에서 값 칸을 편 케이스. 저절로 접지 않는다 — 고치는 도중 사유가 사라졌다고 칸이 닫히면 안 된다 (도메인/실행 §8.10)
+  const [펼친, set펼친] = useState<ReadonlySet<string>>(new Set());
+  const 뒤집기 = (tcId: string) => set펼친((전) => new Set(전.has(tcId) ? [...전].filter((it) => it !== tcId) : [...전, tcId]));
 
   /** 사람이 뭔가 손댔다. 방금 누른 것에 대한 답과 옛 사유를 함께 치운다 */
   function 손댐() {
@@ -119,6 +123,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   function 값이맞나(): boolean {
     set오류보임(true);
     if (Object.keys(값.오류).length === 0) return true;
+    set펼친((전) => new Set([...전, ...Object.keys(값.오류)]));
     setNotice(t('입력값이 명세와 맞지 않습니다.'));
     return false;
   }
@@ -221,12 +226,18 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
                 {/* 여러 건이면 디바이스는 케이스가 선언한 것을 전부 쓴다. 여기서 고르지 않는다 (SPEC §8.10) */}
                 <span className="dev">{c.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ')}</span>
                 <시험배지 줄={시험줄} />
+                {/* 휴대폰에서만 보인다 — 여러 건이면 값을 접어 「실행」을 가깝게 둔다 (도메인/실행 §8.10 · phone.css) */}
+                {한건 !== null || !값있나 ? null : (
+                  <button type="button" className="btn small ghost prow-fold" aria-expanded={펼친.has(c.tcId)} onClick={() => 뒤집기(c.tcId)}>
+                    {t('값')}
+                  </button>
+                )}
               </div>
               {한건 !== null && 시험줄?.종류 === 'done' ? <시험절차 결과={시험줄.결과} /> : null}
               {!값있나 || 칸 === undefined ? (
                 <p className="prow-none">{t('선언된 입력값이 없습니다. 그대로 실행됩니다')}</p>
               ) : (
-                <div className="prow-edit">
+                <div className={펼친.has(c.tcId) ? 'prow-edit open' : 'prow-edit'}>
                   {칸.params.length === 0 ? null : (
                     <Form
                       idPrefix={`p-${c.tcId}`}
@@ -266,28 +277,13 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         })}
       </div>
 
-      <div className="mfoot">
-        <label htmlFor="pick-repeat">{t('반복')}</label>
-        {/* 새로 쓴 테스트가 매번 같은 결과를 내는지 여러 번 돌려 본다 (SPEC §3.2 · §5.2) */}
-        <input
-          type="text"
-          id="pick-repeat"
-          value={repeat}
-          onChange={(e) => { 손댐(); setRepeat(e.target.value); }}
-        />
-        {/* 웹훅이 없는 서비스에서는 칸 자체를 그리지 않는다. 흐리게 두지 않는다 (SPEC §8.2) */}
-        {service?.hasSlackWebhook !== true ? null : (
-          <label className="check-inline" htmlFor="pick-slack">
-            <input
-              type="checkbox"
-              id="pick-slack"
-              checked={notifySlack}
-              onChange={(e) => { setNotifySlack(e.target.checked); }}
-            />
-            {t('끝나면 Slack 으로 알리기')}
-          </label>
-        )}
-      </div>
+      <반복과알림
+        repeat={repeat}
+        on반복={(값) => { 손댐(); setRepeat(값); }}
+        slack칸={service?.hasSlackWebhook === true}
+        notifySlack={notifySlack}
+        onSlack={setNotifySlack}
+      />
     </Modal>
   );
 }

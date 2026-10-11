@@ -105,6 +105,8 @@ export const 실행말: Record<string, string> = {
 
   // 여러 건 실행 모달 (§8.10)
   '실행할 케이스 {건수}건': '{건수} cases to run',
+  // 휴대폰 실행 창에서 접힌 값 칸을 펴는 버튼 (도메인/실행 §8.10)
+  값: 'Values',
   '선언된 입력값이 없습니다. 그대로 실행됩니다': 'No inputs declared. It runs as is',
   '실행을 시작하는 중': 'Starting…',
   '취소': 'Cancel',

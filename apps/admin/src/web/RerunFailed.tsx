@@ -27,9 +27,12 @@ export function 실패다시실행({ items, env, 된다 }: { items: RunItemSumma
 
   return (
     <>
-      <button className="btn" onClick={() => set열림(true)}>
-        {t('실패 {건수}건 다시 실행', { 건수: 실패.length })}
-      </button>
+      {/* 휴대폰에서는 아래 탭 바로 위에 붙는다 — PC 에서는 머리 행동 줄의 버튼 하나다 (화면공통 §8 「휴대폰 화면」 · phone.css) */}
+      <div className="rerun-dock">
+        <button className="btn" onClick={() => set열림(true)}>
+          {t('실패 {건수}건 다시 실행', { 건수: 실패.length })}
+        </button>
+      </div>
       {!열림 ? null : <RunWindow tcIds={실패} 서버={env} onClose={() => set열림(false)} />}
     </>
   );
