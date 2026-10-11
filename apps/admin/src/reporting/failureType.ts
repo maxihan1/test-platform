@@ -11,14 +11,20 @@ export interface 원인재료 {
   /** 접은 판정이 고른 항목의 판정 — 실패가 있으면 실패 항목, 없으면 미실행 항목 */
   status: 'FAIL' | 'NA';
   assertFailed: boolean;
-  /** 항목 오류 원문과 첫 절차 오류 원문을 이은 것. 미실행은 항목 쪽에 「Test timeout」만 있고 기다리던 요소는 절차 쪽에 있다 */
-  message: string;
+  /** 항목 오류 원문. 서버가 넣은 러너 사유 · 러너의 `TIMEOUT` · `ABORTED` 는 여기에만 있다. 없으면 '' */
+  itemMessage: string;
+  /** 첫 절차 오류 원문. 테스트 제한 시간 미실행은 항목 쪽에 「Test timeout」만 있고 기다리던 요소는 여기 있다. 없으면 '' */
+  stepMessage: string;
 }
 
 // Playwright 는 오류 글에 색 코드를 섞는다(「\u001b[31mTest timeout…」) — 지우지 않으면 글 맞추기가 빗나간다
 const 색코드 = /\u001b\[[0-9;]*m/g;
-const 연결끊김 = /net::ERR_|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|socket hang up|fetch failed/;
+// net::ERR_ABORTED 는 앱이 스스로 이동을 끊은 것이라 뺀다
+const 연결끊김 = /net::ERR_(?!ABORTED)|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|socket hang up|fetch failed/;
 const 요소대기 = /waiting for (locator|getBy|selector)|element\(s\) not found|no such element|could not be located/i;
+// 서버가 미실행에 넣는 러너 사유(execution/runner.ts — 러너에 닿지 못함 · 러너가 거절 · 로컬 러너 없음). 글 머리만 본다 —
+// 어디든 「러너」가 들어 있나로 보면 「러너 상태」 같은 요소를 기다린 케이스까지 러너 고장이 된다
+const 러너사유 = /^(러너에 닿지 못했습니다|러너가 |이 서버에는 .*로컬 러너)/;
 // 기다리던 요소를 찾고 나서(보이지 않음 · 누를 수 없음) 시간이 다 된 것은 「못 찾음」이 아니다
 const 요소찾음 = /resolved to/;
 const 시간초과 = /^TIMEOUT\b|Timeout \d+ms exceeded|Test timeout of/;
@@ -30,11 +36,11 @@ const 시간초과 = /^TIMEOUT\b|Timeout \d+ms exceeded|Test timeout of/;
  * 넷 중 어디에도 안 맞으면 「그 밖」이다. 모르는 것을 넷 중 하나로 지어내지 않는다
  */
 export function 원인을가른다(재료: 원인재료): 원인 {
-  const 글 = 재료.message.replace(색코드, '');
-  if (재료.status === 'NA' && /^ABORTED\b/.test(글)) return 'stopped';
+  const 항목 = 재료.itemMessage.replace(색코드, '');
+  const 글 = `${항목}\n${재료.stepMessage.replace(색코드, '')}`;
+  if (재료.status === 'NA' && /^ABORTED\b/.test(항목)) return 'stopped';
   if (재료.assertFailed) return 'mismatch';
-  // 서버가 미실행에 넣는 한국어 사유는 모두 러너 쪽 고장이다(execution/runner.ts — 러너에 닿지 못함 · 러너가 거절 · 로컬 러너 없음)
-  if (연결끊김.test(글) || (재료.status === 'NA' && 글.includes('러너'))) return 'environment';
+  if (연결끊김.test(글) || (재료.status === 'NA' && 러너사유.test(항목))) return 'environment';
   if (요소대기.test(글) && !요소찾음.test(글)) return 'notFound';
   if (시간초과.test(글)) return 'timeout';
   return 'other';

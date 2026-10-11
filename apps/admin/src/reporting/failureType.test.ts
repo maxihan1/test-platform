@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 
 import { 원인을가른다, 유형을센다 } from './failureType.js';
 
-const 실패 = (message: string, assertFailed = false) => 원인을가른다({ status: 'FAIL', assertFailed, message });
-const 미실행 = (message: string) => 원인을가른다({ status: 'NA', assertFailed: false, message });
+const 실패 = (itemMessage: string, assertFailed = false, stepMessage = '') =>
+  원인을가른다({ status: 'FAIL', assertFailed, itemMessage, stepMessage });
+const 미실행 = (itemMessage: string, stepMessage = '') => 원인을가른다({ status: 'NA', assertFailed: false, itemMessage, stepMessage });
 
 describe('원인을가른다', () => {
   it('확인 문장이 실패했으면 오류 글과 상관없이 기대 결과 불일치다', () => {
@@ -36,6 +37,16 @@ describe('원인을가른다', () => {
     expect(실패('TypeError: fetch failed')).toBe('environment');
     expect(미실행('러너에 닿지 못했습니다')).toBe('environment');
     expect(미실행('러너가 거절했다: CASE_NOT_FOUND — codyssey/CDY-FN-002.spec.ts')).toBe('environment');
+  });
+
+  it('기다리던 요소 이름에 「러너」가 들어 있어도 러너 고장이 아니라 요소 미검출이다', () => {
+    expect(
+      미실행('Test timeout of 30000ms exceeded.', "locator.click: Test timeout of 30000ms exceeded.\nCall log:\n  - waiting for getByText('러너 상태')"),
+    ).toBe('notFound');
+  });
+
+  it('앱이 스스로 끊은 이동(net::ERR_ABORTED)은 환경 오류가 아니다', () => {
+    expect(실패('page.goto: net::ERR_ABORTED at http://localhost:3002/login')).toBe('other');
   });
 
   it('실패한 테스트가 던진 한국어 오류는 러너 고장이 아니다', () => {

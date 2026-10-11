@@ -9,18 +9,19 @@ export const 판정접기식 = `CASE WHEN bool_or(i.status = 'FAIL')  THEN 'FAIL
 
 // 「실패 유형」 칸의 재료(나누는 규칙은 failureType.ts). 이번 창의 실패 · 미실행 줄만 뽑는다.
 // 접은 판정이 실패면 첫 실패 회차, 미실행이면 첫 미실행 회차를 본다 — 접은 판정과 다른 회차의 원인을 세지 않으려고.
-// 오류는 항목 것과 첫 절차 것을 잇는다. 테스트 제한 시간 미실행은 항목 쪽에 「Test timeout」만 있고 기다리던 요소는 절차 쪽에 있다
+// 오류는 항목 것과 첫 절차 것을 따로 싣는다. 테스트 제한 시간 미실행은 항목 쪽에 「Test timeout」만 있고 기다리던 요소는 절차 쪽에 있다
 const 원인식 = `CASE WHEN NOT bool_and(i.status = 'PASS') AND t.day >= $4::text THEN (
            SELECT jsonb_build_object(
                     'status', f.status,
                     'assertFailed', EXISTS (
                       SELECT 1 FROM run_item_step s CROSS JOIN LATERAL jsonb_array_elements(s.assertions) AS a(value)
                       WHERE s.history_id = f.history_id AND a.value->>'status' = 'FAIL'),
-                    'message', concat_ws(E'\\n', f.error->>'message',
+                    'itemMessage', COALESCE(f.error->>'message', ''),
+                    'stepMessage', COALESCE(
                       (SELECT s.error->>'message' FROM run_item_step s
                        WHERE s.history_id = f.history_id AND s.error IS NOT NULL
                        ORDER BY s.seq
-                       LIMIT 1)))
+                       LIMIT 1), ''))
            FROM run_item f
            WHERE f.run_id = t.run_id AND f.tc_id = i.tc_id AND f.platform = i.platform AND f.status <> 'PASS'
            ORDER BY f.status = 'FAIL' DESC, f.history_id
