@@ -65,7 +65,8 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
   const 언어 = use언어();
   const [읽음, set읽음] = useState<읽은것 | null>(null);
   const [오류, set오류] = useState<string | null>(null);
-  const [추천, set추천] = useState<NextCase[]>([]);
+  // 어느 단계 기준 추천인지 같이 쥔다 — 단계를 더한 직후 한 번 그릴 때 앞 기준 추천이 새 머리 아래 보이지 않게
+  const [추천, set추천] = useState<{ 기준: string; items: NextCase[] } | null>(null);
   const [추천오류, set추천오류] = useState<string | null>(null);
   const [찾기, set찾기] = useState('');
   const [펼친, set펼친] = useState<ReadonlySet<string>>(new Set());
@@ -99,12 +100,12 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
   const 뒤번호 = 뒤?.tcId ?? null;
   useEffect(() => {
     let 끊김 = false;
-    set추천([]);
+    set추천(null);
     set추천오류(null);
     if (뒤번호 === null) return;
     scenarioApi.nextCases(서비스, 뒤번호).then(
       (값) => {
-        if (!끊김) set추천(값.items);
+        if (!끊김) set추천({ 기준: 뒤번호, items: 값.items });
       },
       (err: unknown) => {
         if (!끊김) set추천오류(message(err, 언어));
@@ -129,7 +130,8 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
   const 다폄 = 찾는중 && PRD씀;
   const 펴졌나 = (칸: 'group' | 'rest', feature: string | null) => 다폄 || 펼친.has(열쇠(칸, feature));
 
-  const 추천칸 = 읽음 === null ? [] : 추천줄들(읽음.목록, 디바이스, PRD씀, 추천).filter((x) => 걸린(x.row));
+  const 추천칸 =
+    읽음 === null || 추천 === null || 추천.기준 !== 뒤번호 ? [] : 추천줄들(읽음.목록, 디바이스, PRD씀, 추천.items).filter((x) => 걸린(x.row));
 
   const 줄 = (c: CaseRow, 이어짐?: string) => (
     <li key={c.tcId} className="scn-pal-row">

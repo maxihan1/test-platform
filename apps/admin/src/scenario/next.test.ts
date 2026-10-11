@@ -39,6 +39,12 @@ describe('다음케이스들', () => {
     expect(고른).not.toContain('MKT-FN-021');
   });
 
+  it('앞 케이스가 여러 화면을 쓰면 그 화면끼리의 연결은 다음 화면이 아니다', () => {
+    expect(다음케이스들('MKT-FN-030', 화면들, [...연결들, { from: '/cart', to: '/order' }, { from: '/order', to: '/cart' }])).toEqual([
+      { tcId: 'MKT-FN-050', screen: '/mypage' },
+    ]);
+  });
+
   it('앞 케이스의 화면 주소가 없거나 나간 연결이 없으면 빈 목록이다', () => {
     expect(다음케이스들('MKT-FN-099', 화면들, 연결들)).toEqual([]);
     expect(다음케이스들('MKT-FN-030', 화면들, [])).toEqual([]);

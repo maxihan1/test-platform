@@ -19,12 +19,14 @@ export function 머문틀(after: string, 화면들: 화면줄[]): string[] {
 }
 
 /**
- * 머문 화면에서 나간 연결의 도착 화면에 닿는 케이스. 같은 화면으로 돌아오는 연결은 다음 화면이 아니라 뺀다.
+ * 머문 화면에서 나간 연결의 도착 화면에 닿는 케이스. 앞 케이스가 이미 쓰는 화면으로 가는 연결은 다음 화면이 아니라 뺀다.
  * 앞 케이스 자신과 UI 테스트(E2E 부품이 아니다)는 뺀다. 여러 화면에 닿으면 받은 차례의 첫 화면을 적는다
  */
 export function 다음케이스들(after: string, 화면들: 화면줄[], 연결들: { from: string; to: string }[]): 다음케이스[] {
   const 머문 = new Set(머문틀(after, 화면들));
-  const 이어짐 = new Set(연결들.filter((l) => 머문.has(l.from) && l.to !== l.from).map((l) => l.to));
+  // ponytail: 머리 · 바닥 링크도 연결이라 홈 · 장바구니처럼 어디서나 가는 화면의 케이스는 늘 추천에 든다.
+  // 자주 가는 곳을 걸러 내면 「상품 상세 → 장바구니」 같은 진짜 흐름도 빠진다. 일괄 시험에서 너무 넓으면 크롤러가 링크 자리를 적게 한다
+  const 이어짐 = new Set(연결들.filter((l) => 머문.has(l.from) && !머문.has(l.to)).map((l) => l.to));
   const 고른 = new Map<string, string>();
   for (const x of 화면들) {
     const 곳 = 주소틀(x.url);
