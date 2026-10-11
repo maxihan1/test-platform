@@ -127,11 +127,19 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
 
   describe('칸 단위 권한', () => {
     it.each([
-      'SELECT tc_id, is_active FROM test_case LIMIT 1',
-      'SELECT id, prefix, name, is_active FROM service LIMIT 1',
+      'SELECT id, name FROM service LIMIT 1',
       'SELECT id, service_id, kind, status, compare, created_at, started_at, finished_at, stop_reason FROM authoring_request LIMIT 1',
     ])('연 칸은 읽힌다 — %s', async (sql) => {
       await expect(읽기전용.query(sql)).resolves.toBeDefined();
+    });
+
+    it.each([
+      'SELECT tc_id FROM test_case LIMIT 1',
+      'SELECT is_active FROM test_case LIMIT 1',
+      'SELECT prefix FROM service LIMIT 1',
+      'SELECT is_active FROM service LIMIT 1',
+    ])('「가장 오래된 미확정」만 읽던 칸은 거둔다 — %s', async (sql) => {
+      await expect(읽기전용.query(sql)).rejects.toThrow(/permission denied/);
     });
 
     it.each([
