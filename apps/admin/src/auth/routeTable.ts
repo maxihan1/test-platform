@@ -60,6 +60,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/runs/last-by-case': 실행읽기,
   // 주소에 기능 접두사가 없지만 돌려주는 것이 실행 결과 집계다. 커버리지 칸만 라우트가 작성 read 로 따로 거른다 (인증 §7)
   'GET /api/dashboard': 실행읽기,
+  // 대시보드와 같다 — 문은 배정 중 하나라도 실행 read 인지만 보고, 작성 요청은 라우트가 작성 read 인 서비스만 거른다 (notifications/routes.ts)
+  'GET /api/notifications': 실행읽기,
   'GET /api/runs/:runId': 실행읽기,
   'GET /api/runs/:runId/insights': 실행읽기,
   'GET /api/runs/:runId/failures': 실행읽기,

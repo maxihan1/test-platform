@@ -49,6 +49,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/runs/last-by-case': { 종류: '안매임' },
   // 앱 대시보드도 같다. 실행 read 인 배정 서비스만 질의에 넘긴다 (reporting/routes.ts)
   '/api/dashboard': { 종류: '안매임' },
+  // 진행 상황 · 알림도 같다. 실행 칸은 실행 read, 작성 요청은 작성 read 인 배정 서비스만 담는다 (notifications/routes.ts)
+  '/api/notifications': { 종류: '안매임' },
 
   '/api/catalog/cases': { 종류: '질의' }, // ?service= 를 필수로 요구한다
   '/api/catalog/export': { 종류: '질의' },
