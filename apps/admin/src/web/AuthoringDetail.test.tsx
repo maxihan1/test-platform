@@ -212,7 +212,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: null });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     await screen.findByText('테스터');
-    expect(screen.queryByText('올리는 중 — 멈출 수 없습니다')).toBeNull();
+    expect(screen.queryByText('저장하고 PR 을 만드는 중 — 멈출 수 없습니다')).toBeNull();
   });
 
   it('칸이 덜 찬 진척(childRunning 뿐)이어도 죽지 않는다', async () => {
@@ -256,7 +256,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
   it('자식이 끝나 올리는 중이면 멈출 수 없다고 말한다', async () => {
     답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: { ...도는진척, childRunning: false }, canStop: false });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-    expect(await screen.findByText('올리는 중 — 멈출 수 없습니다')).toBeTruthy();
+    expect(await screen.findByText('저장하고 PR 을 만드는 중 — 멈출 수 없습니다')).toBeTruthy();
   });
 
   it('중단된 것은 누가 왜 멈췄는지 보이고 다시 읽지 않는다', async () => {

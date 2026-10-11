@@ -137,7 +137,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
             {t('중단하는 중')} · {when(요청.stopRequestedAt ?? '', 언어)}
           </p>
         ) : null}
-        {올리는중 ? <p className="hint">{t('올리는 중 — 멈출 수 없습니다')}</p> : null}
+        {올리는중 ? <p className="hint">{t('저장하고 PR 을 만드는 중 — 멈출 수 없습니다')}</p> : null}
         {중단버튼 === null ? null : (
           <>
             <div className="btns">{중단버튼}</div>

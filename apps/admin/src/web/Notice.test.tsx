@@ -53,7 +53,7 @@ describe('「알림」 버튼', () => {
 describe('알림 줄', () => {
   it('도는 실행은 열기 링크와 남은 시간 글을, 도는 작성은 단계를 보인다', async () => {
     띄운다({ running: [도는실행(2113), 도는작성(5)], recent: [] });
-    expect(await screen.findByText('RUN 2113 이 진행 중입니다 · 12/40')).toBeTruthy();
+    expect(await screen.findByText('RUN 2113 이 진행 중입니다 · 12/40 · 실패 2')).toBeTruthy();
     expect(screen.getByText('남은 시간 계산 중')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: '열기' }).map((a) => a.getAttribute('href'))).toEqual(['#/runs/2113', '#/authoring/5']);
     expect(screen.getByText(/작성 요청 #5 이 진행 중입니다 · 3 \/ 5 단계 스크립트 작성/)).toBeTruthy();

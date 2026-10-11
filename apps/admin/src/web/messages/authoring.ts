@@ -166,7 +166,7 @@ export const 작성말: Record<string, string> = {
   폐기: 'Discard',
   '폐기하는 중': 'Discarding…',
   폐기됨: 'Discarded',
-  '올리는 중 — 멈출 수 없습니다': 'Uploading — cannot be stopped',
+  '저장하고 PR 을 만드는 중 — 멈출 수 없습니다': 'Saving and opening the PR — cannot be stopped',
   '작성을 멈출까요?': 'Stop writing?',
   '이 요청을 폐기할까요?': 'Discard this request?',
   '{분}분 동안 만든 것은 남겨 두어 나중에 이어서 작성할 수 있습니다.':
@@ -276,7 +276,7 @@ export const 작성말: Record<string, string> = {
   '#{번호} 요청 보기': 'View request #{번호}',
   '#{번호}의 남은 요구': 'Follow-up of #{번호}',
   '#{번호} 다음 · 기획서에 없는 화면': 'After #{번호} · screens not in the spec',
-  '기획서 요구를 세지 못해 이어 작성할 수 없습니다.': 'The spec requirements could not be counted, so there is no follow-up.',
+  'PRD 요구사항을 세지 못해 이어 작성할 수 없습니다.': 'The PRD requirements could not be counted, so there is no follow-up.',
   '이어 작성할 요구가 없습니다. 모두 케이스로 만들었거나 제외했습니다.':
     'Nothing left to follow up. Every requirement became a test case or was excluded.',
   '이 요청은 이어 작성할 수 없습니다.': 'This request cannot be followed up.',

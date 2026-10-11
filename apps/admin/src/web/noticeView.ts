@@ -131,7 +131,12 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
     const { counts } = n;
     return {
       ...바탕,
-      앞글: [t('RUN {번호} 이 진행 중입니다', 언어, { 번호: n.runId }), `${String(n.done)}/${String(n.total)}`].join(' · '),
+      // 막대는 aria-hidden 이라 색만으로 실패를 말하게 된다 — 실패가 있으면 글에도 적는다 (DESIGN 원칙 1)
+      앞글: [
+        t('RUN {번호} 이 진행 중입니다', 언어, { 번호: n.runId }),
+        `${String(n.done)}/${String(n.total)}`,
+        ...(counts.fail > 0 ? [t('실패 {수}', 언어, { 수: counts.fail })] : []),
+      ].join(' · '),
       막대: counts.total === 0 ? null : { 통과: counts.pass, 실패: counts.fail, 미실행: counts.na, 남음: counts.running },
       뒷글: 실행남은글(n.remainingMs, 지금, 언어),
     };
