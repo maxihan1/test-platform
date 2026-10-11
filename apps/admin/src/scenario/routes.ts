@@ -9,6 +9,7 @@ import { findService } from '../catalog/store.js';
 import { 정수 } from '../routeParams.js';
 
 import { 점검 } from './checks.js';
+import { 다음케이스읽기 } from './next.js';
 import { 케이스재료 } from './parts.js';
 import { 고치기, 되돌리기, 만들기, 목록, 상세, 옛버전, 치우기, type 저장하는사람 } from './store.js';
 import { 부품들모양, 조립검사 } from './validate.js';
@@ -85,6 +86,17 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     const 재료 = 부품재료.get(req.params.tcId);
     if (재료 === undefined) return reply.code(404).send({ error: 'CASE_NOT_FOUND', detail: req.params.tcId });
     return 재료;
+  });
+
+  // 다음 단계 추천. 정상 쪽 거르기 · 디바이스는 화면이 팔레트 목록으로 한다 (§8.11)
+  app.get<{ Querystring: { service?: string; after?: unknown } }>('/scenarios/next-cases', async (req, reply) => {
+    const prefix = req.query.service ?? '';
+    if (prefix === '') return reply.code(400).send({ error: 'SERVICE_REQUIRED' });
+    const 서비스 = await findService(prefix);
+    if (서비스 === null) return 잘못(reply, `모르는 서비스다: ${prefix}`);
+    // ?after= 를 두 번 붙이면 배열이 온다 — 어느 단계 뒤인지 모르니 추천하지 않는다
+    const after = typeof req.query.after === 'string' ? req.query.after : '';
+    return { items: await 다음케이스읽기(서비스.id, prefix, after) };
   });
 
   app.get<{ Params: { id: string } }>('/scenarios/:id', async (req, reply) => {

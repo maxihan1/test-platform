@@ -117,6 +117,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/runs/:runId/scenario': { 종류: '실행', 칸: 'runId' },
   '/api/runs/:runId/scenario/screenshots/:seq': { 종류: '실행', 칸: 'runId' },
   '/api/scenarios/case-parts/:tcId': { 종류: '케이스', 칸: 'tcId' },
+  // after 케이스가 그 서비스 것인지는 라우트가 접두사로 본다 — 질의 글자라 문이 params 로 못 읽는다
+  '/api/scenarios/next-cases': { 종류: '질의' },
   // 시험 실행은 DB 에 없다. 시작은 본문 service 를 gate.ts 의 본문 갈래가 본다
   '/api/scenario-trials': { 종류: '질의' },
   '/api/scenario-trials/:trialId': { 종류: '시험', 칸: 'trialId' },
