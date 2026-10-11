@@ -20,7 +20,7 @@ const 보기만: 판정 = (무엇) => 무엇 === '증적받기';
 
 // 본 알림은 브라우저에 남는다. jsdom 을 설치하지 않았으므로 가짜를 끼운다 (api.test.ts 와 같은 방식)
 const 보관 = new Map<string, string>();
-vi.stubGlobal('sessionStorage', {
+vi.stubGlobal('localStorage', {
   getItem: (key: string) => 보관.get(key) ?? null,
   setItem: (key: string, value: string) => 보관.set(key, value),
   removeItem: (key: string) => 보관.delete(key),

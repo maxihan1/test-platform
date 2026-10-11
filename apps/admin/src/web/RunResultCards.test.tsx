@@ -119,7 +119,7 @@ describe('도는 중에서 끝남으로 바뀌면 견주기 · 카드 통로를 
     vi.spyOn(api, 'run')
       .mockResolvedValueOnce(도는)
       .mockResolvedValue(끝난실행([항목줄(1, 'ZRR-001', 'desktop', 'FAIL')]));
-    vi.spyOn(api, 'progress').mockResolvedValue({ items: [] });
+    vi.spyOn(api, 'progress').mockResolvedValue({ items: [], remainingMs: null });
     const 견줌부름 = vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     const 실패부름 = vi.spyOn(api, 'failures').mockResolvedValue({
       items: [카드응답('ZRR-001')], total: 1, page: 1, pageSize: 5,

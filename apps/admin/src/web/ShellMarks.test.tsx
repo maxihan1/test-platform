@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 
-import { api, type RunSummary, type ServiceRow, type User } from './api.js';
+import { api, type NoticeRecent, type NoticeResponse, type NoticeRunning, type ServiceRow, type User } from './api.js';
 import { 언어함 } from './i18n.js';
 import { 자리목록 } from './layout.js';
 import { Shell } from './Shell.js';
@@ -33,28 +33,34 @@ const 사람: User = {
   services: [결제],
 };
 
-const 실행 = (status: string, finishedAt: string | null): RunSummary => ({
+const 도는실행: NoticeRunning = {
+  kind: 'run',
+  serviceId: 1,
+  prefix: 'ZSH',
+  serviceName: '결제 서비스',
   runId: 77,
   title: '결제 회귀',
-  triggeredBy: 'zsh1',
-  triggeredByName: null,
-  env: 'dev',
-  baseUrl: 'https://dev.example',
-  serviceName: '결제 서비스',
-  status,
+  total: 4,
+  done: 1,
+  counts: { total: 4, pass: 1, fail: 0, na: 0, running: 3 },
   startedAt: new Date().toISOString(),
-  finishedAt,
-  counts: { total: 4, pass: 1, fail: 0, na: 0, running: finishedAt === null ? 3 : 0 },
-});
+  remainingMs: null,
+};
 
-function 띄운다(runs: RunSummary[] = []) {
-  vi.spyOn(api, 'runs').mockResolvedValue({
-    items: runs,
-    total: runs.length,
-    page: 1,
-    pageSize: 20,
-    summary: { runs: runs.length, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 },
-  });
+const 끝난실행: NoticeRecent = {
+  kind: 'run',
+  serviceId: 1,
+  prefix: 'ZSH',
+  serviceName: '결제 서비스',
+  runId: 77,
+  title: '결제 회귀',
+  status: 'FINISHED',
+  counts: { total: 4, pass: 4, fail: 0, na: 0, running: 0 },
+  finishedAt: new Date().toISOString(),
+};
+
+function 띄운다(답: NoticeResponse = { running: [], recent: [] }) {
+  vi.spyOn(api, 'notifications').mockResolvedValue(답);
   render(
     <언어함 value="ko">
       <Shell user={사람} service={결제} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={() => {}} current="#/cases">
@@ -85,16 +91,16 @@ describe('메뉴 아이콘 (DESIGN.md 원칙 5)', () => {
 
 describe('실행 중 표시 (DESIGN.md 원칙 4)', () => {
   it('도는 실행이 있으면 알림 줄에 맥박 점이 선다. 점은 꾸밈이라 화면 읽기는 글자만 읽는다', async () => {
-    띄운다([실행('RUNNING', null)]);
-    const 줄 = await screen.findByRole('link', { name: /RUN 77/ });
-    const 점 = 줄.querySelector('.pulse');
+    띄운다({ running: [도는실행], recent: [] });
+    const 글 = await screen.findByText(/RUN 77 이 진행 중입니다/);
+    const 점 = 글.closest('.nt-line')?.querySelector('.pulse');
     expect(점).not.toBeNull();
     expect(점!.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('끝난 소식에는 맥박 점이 없다 — 되풀이 움직임은 실제로 도는 동안만이다', async () => {
-    띄운다([실행('FINISHED', new Date().toISOString())]);
-    const 줄 = await screen.findByRole('link', { name: /RUN 77/ });
-    expect(줄.querySelector('.pulse')).toBeNull();
+    띄운다({ running: [], recent: [끝난실행] });
+    const 글 = await screen.findByText(/RUN 77 이 끝났습니다/);
+    expect(글.closest('.nt-line')?.querySelector('.pulse')).toBeNull();
   });
 });

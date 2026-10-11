@@ -108,14 +108,19 @@ export async function notifyRun(runId: number): Promise<boolean> {
   );
 
   const text = 본문(run, 실패.rows, process.env.PLATFORM_PUBLIC_URL ?? '', runId);
-  const res = await fetch(run.slack_webhook, {
+  if (!(await 슬랙으로(run.slack_webhook, text))) return false;
+
+  await pool.query('UPDATE test_run SET notified_at = now() WHERE run_id = $1', [runId]);
+  return true;
+}
+
+// 작성 완료 알림(authoring/notify.ts)도 같은 방식으로 보낸다 — JSON 한 번, 10초 제한, 재시도 없음
+export async function 슬랙으로(webhook: string, text: string): Promise<boolean> {
+  const res = await fetch(webhook, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ text }),
     signal: AbortSignal.timeout(10_000),
   });
-  if (!res.ok) return false;
-
-  await pool.query('UPDATE test_run SET notified_at = now() WHERE run_id = $1', [runId]);
-  return true;
+  return res.ok;
 }

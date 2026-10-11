@@ -5,18 +5,31 @@ import { 고치기실행인가 } from './authoringView.js';
 import { t, type 언어 } from './i18n.js';
 
 /** 단계 막대의 다섯 칸 (말 키) */
-export const 단계이름들 = ['준비', '자료 받기', '케이스 작성', '올리기·PR', '완료'] as const;
+export const 단계이름들 = ['준비', '자료 · PRD 읽기', '스크립트 작성', '저장 · PR 생성', '완료'] as const;
 
 export function 단계라벨(이름: (typeof 단계이름들)[number], 언어: 언어): string {
   return t(이름, 언어);
 }
 
 /**
- * 에이전트가 올린 단계 글을 화면 말로. 아는 글은 영어 표에 있어 번역되고, 모르는 글은 그대로 나간다 —
- * `t()` 는 표에 없는 키를 그대로 돌려준다
+ * 에이전트가 올리는 단계 글 → 화면에 보일 글. 서버의 작성 컨테이너가 옛 글을 보내고 있어 에이전트 글을 바꿀 수 없다 —
+ * 화면 쪽에서 옮겨 보인다. 키는 에이전트 글(화면에 안 나간다), 값이 화면 글이다
  */
+const 화면글: Record<string, string> = {
+  '작업방을 만드는 중': '작업 폴더를 만드는 중',
+  '자료를 받는 중': '자료 · PRD 를 읽는 중',
+  '케이스를 만드는 중': '스크립트를 만드는 중',
+  '올리는 중': '저장하고 PR 을 만드는 중',
+  '역방향 산출물을 올리는 중': '대조 결과를 저장하는 중',
+  '케이스를 고치는 중': '스크립트를 고치는 중',
+  '겹치는 케이스를 보는 중': '겹치는 스크립트를 보는 중',
+  '채운 케이스를 3회 돌리는 중': '채운 스크립트를 3회 돌리는 중',
+  '보관한 작업방이 없어 처음부터 하는 중': '보관한 작업 폴더가 없어 처음부터 하는 중',
+};
+
+/** 에이전트가 올린 단계 글을 화면 말로. 표에 없는 글은 그대로 나간다 — `t()` 도 표에 없는 키를 그대로 돌려준다 */
 export function 단계글라벨(글: string, 언어: 언어): string {
-  return t(글, 언어);
+  return t(화면글[글] ?? 글, 언어);
 }
 
 /**
@@ -45,6 +58,19 @@ export interface 자리 {
   멈춤: 'stopped' | 'failed' | null;
 }
 
+/**
+ * 지금 어느 칸인가(0부터). 진척이 있으면 자식을 띄운 뒤다 — 모르는 글이어도 스크립트 작성까지는 왔다.
+ * 알림 줄처럼 진척을 모르는 곳은 `false` 를 넘긴다
+ */
+export function 단계칸(stage: string | null, 진척있나: boolean): number {
+  return (stage === null ? undefined : 단계글[stage]) ?? (진척있나 ? 2 : 0);
+}
+
+/** 반영처럼 다섯 칸을 안 밟는 요청의 글(`CI 기다리는 중` 같은)은 표에 없다 — 칸 번호로 옮기면 「1 / 5 단계 준비」로 거짓말한다 */
+export function 아는단계글(stage: string): boolean {
+  return Object.hasOwn(단계글, stage);
+}
+
 /** 머지 · 케이스 고치기는 자식을 안 띄워 이 다섯 칸을 안 밟는다 — null 이면 카드가 막대를 안 그린다 */
 export function 단계자리(행: AuthoringRow): 자리 | null {
   if (행.kind === 'MERGE' || 고치기실행인가(행)) return null;
@@ -52,8 +78,7 @@ export function 단계자리(행: AuthoringRow): 자리 | null {
   if (행.status === 'DRAFT' || 행.status === 'PENDING') return { 끝난: 0, 지금: null, 멈춤: null };
   // 집히기 전에 줄에서 뺀 것 — 준비 칸에서 멈춘 것처럼 그리면 시작한 적 있는 것으로 읽힌다
   if (행.status === 'STOPPED' && 행.startedAt === null) return { 끝난: 0, 지금: null, 멈춤: 'stopped' };
-  // 진척이 있으면 자식을 띄운 뒤다 — 모르는 글이어도 케이스 작성까지는 왔다
-  const 칸 = (행.stage === null ? undefined : 단계글[행.stage]) ?? (행.progress ? 2 : 0);
+  const 칸 = 단계칸(행.stage, Boolean(행.progress));
   const 멈춤 = 행.status === 'FAILED' ? 'failed' : 행.status === 'STOPPED' ? 'stopped' : null;
   return { 끝난: 칸, 지금: 칸, 멈춤 };
 }
@@ -133,9 +158,9 @@ export function 목록글(행: AuthoringRow, 언어: 언어): string {
     return t('{단계} 단계에서 멈췄습니다', 언어, { 단계: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
   }
   if (행.kind === 'MERGE') return t('테스트 반영 완료', 언어);
-  if (고치기실행인가(행)) return t('케이스를 고쳐 PR 로 올렸습니다', 언어);
+  if (고치기실행인가(행)) return t('스크립트를 고쳐 PR 을 만들었습니다', 언어);
   return 진척이찼나(행.progress)
-    ? t('케이스 파일 {수}개를 만들었습니다', 언어, { 수: 행.progress.caseFiles })
+    ? t('스크립트 파일 {수}개를 만들었습니다', 언어, { 수: 행.progress.caseFiles })
     : t('테스트 코드를 PR 로 올렸습니다', 언어);
 }
 

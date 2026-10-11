@@ -1,13 +1,11 @@
-// 맨 위 띠 · 자리 목록 · 알림 줄이 쓰는 규칙 (SPEC §8). 화면 조각은 Shell.tsx, 판단은 여기
+// 맨 위 띠 · 자리 목록이 쓰는 규칙 (SPEC §8). 화면 조각은 Shell.tsx, 판단은 여기
 // 한 번에 한 서비스만 본다 — 여러 서비스가 한 목록에 섞이면 엉뚱한 쪽에서 실행을 누르는 사고가 난다
 
-import type { RunSummary, ServiceRow, User } from './api.js';
+import type { ServiceRow, User } from './api.js';
 import { 기본언어, t, type 언어 } from './i18n.js';
 import type { 아이콘이름 } from './icons.js';
 import { 기능보나, 할수있나 } from './role.js';
 import { 대시보드보나 } from './route.js';
-import { 도는중 } from './runState.js';
-import { 그중미확정글 } from './unconfirmed.js';
 
 const 제품이름 = '테스트 플랫폼';
 
@@ -237,68 +235,4 @@ export function 빈띠사유(user: User, prefix: string | null, 언어: 언어, 
       ? t('설정에서 자기 자신을 서비스에 배정하세요', 언어)
       : t('운영 계정에게 서비스 배정을 요청하세요', 언어),
   };
-}
-
-export interface 알림 {
-  runId: number;
-  글: string;
-  /** 끝난 소식이면 닫기(×)를 그린다. 도는 중이면 스스로 사라지므로 닫을 것이 없다 */
-  끝났나: boolean;
-}
-
-/**
- * 끝난 지 이만큼 안 된 것만 「끝났습니다」로 알린다.
- *
- * 없으면 어제 끝난 실행이 오늘도 뜬다 — **그것은 소식이 아니라 기록이다.**
- * 한 번 돌리면 최악 50분이라 자리를 떴다 돌아오는 시간을 넉넉히 덮는다.
- */
-const 끝난소식유효 = 2 * 60 * 60 * 1000;
-
-/**
- * 자리 아래 한 줄 (SPEC §8).
- *
- * 한 번 돌리면 최악 50분이라 자리를 떴다 돌아오는 진입이 흔하다.
- * 이 줄 하나로 「무엇을 돌릴까」와 「아까 그거 끝났나」 두 상황을 다 받는다.
- * 도는 실행이 없으면 줄 자체가 없다 — 빈 줄을 자리만 잡아 두지 않는다.
- */
-export function 알림줄(runs: RunSummary[], 언어: 언어, 본것들: ReadonlySet<number> = new Set()): 알림 | null {
-  // 도는 것이 먼저다. 끝난 소식보다 지금 도는 것이 급하다
-  const 도는것 = runs.filter((run) => 도는중(run.status));
-  if (도는것.length > 0) {
-    // 여럿이면 가장 최근 것. 실행 번호는 커질수록 최근이다
-    const 것 = 도는것.reduce((a, b) => (b.runId > a.runId ? b : a));
-    const 끝난수 = 것.counts.total - 것.counts.running;
-    return {
-      runId: 것.runId,
-      글: t('RUN {번호} 이 진행 중입니다  {끝난}/{전체}', 언어, {
-        번호: 것.runId,
-        끝난: 끝난수,
-        전체: 것.counts.total,
-      }),
-      끝났나: false,
-    };
-  }
-
-  // 그 실행 화면에 있던 사람은 완료 모달로 이미 알았다 (§8.9).
-  // 같은 자리(본것들)를 봐서 두 번 알리지 않는다
-  const 지금 = Date.now();
-  const 갓끝난것 = runs.filter(
-    (run) =>
-      !본것들.has(run.runId) &&
-      run.finishedAt !== null &&
-      지금 - new Date(run.finishedAt).getTime() < 끝난소식유효,
-  );
-  if (갓끝난것.length === 0) return null;
-
-  const 것 = 갓끝난것.reduce((a, b) => (b.runId > a.runId ? b : a));
-  const 머리 = t(것.status === 'ABORTED' ? '멈췄습니다' : '끝났습니다', 언어);
-  const 집계 = [t('{수} 통과', 언어, { 수: 것.counts.pass })];
-  if (것.counts.fail > 0) 집계.push(t('{수} 실패', 언어, { 수: 것.counts.fail }));
-  if (것.counts.na > 0) 집계.push(t('{수} 미실행', 언어, { 수: 것.counts.na }));
-  // 미확정은 이미 위 숫자에 센 항목이다 — 「그중 N건」 한 줄만 뒤에 붙인다 (도메인/실행 §3.2)
-  const 미확정 = 그중미확정글(것.counts, 언어);
-  if (미확정 !== '') 집계.push(미확정);
-
-  const 글 = t('RUN {번호} 이 {머리} · {집계}', 언어, { 번호: 것.runId, 머리, 집계: 집계.join(' · ') });
-  return { runId: 것.runId, 글, 끝났나: true };
 }

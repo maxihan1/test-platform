@@ -3,20 +3,18 @@
 
 import { useEffect, useState } from 'react';
 
-import { api, type RunSummary, type ServiceRow, type User } from './api.js';
+import type { ServiceRow, User } from './api.js';
 import {
   고른서비스를적는다,
   빈띠사유,
   사이드바접었나,
   사이드바접음을적는다,
-  알림줄,
   자리목록,
   탭제목,
 } from './layout.js';
 import { use말, type 언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
-import { 본것으로적는다, 알림본적있나 } from './runState.js';
-import { useAsync } from './ui.js';
+import { Notice } from './Notice.js';
 
 interface Props {
   user: User;
@@ -173,7 +171,17 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
       </aside>
 
       <div className="main">
-        {service === null || 대시보드인가 ? null : <Notice service={service.prefix} 언어={언어} />}
+        {/* 서비스 고르개와 상관없이 볼 수 있는 서비스 전체를 받는다. 대시보드도 같은 이유로 줄은 숨기고 버튼만 둔다 */}
+        {service === null ? null : (
+          <Notice
+            줄숨김={대시보드인가}
+            서비스바꿈={(접두사) => {
+              // 서비스 고르개와 같은 길이다 — 고른 서비스를 적어 두고 화면이 읽는 서비스를 바꾼다
+              고른서비스를적는다(접두사);
+              onService(접두사);
+            }}
+          />
+        )}
 
         {사유 === null ? (
           children
@@ -190,62 +198,6 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
             지어내는 대신 확실히 아는 것만 적는다 — 제품 이름과 지금 보고 있는 서비스 */}
         <footer className="foot">{제목}</footer>
       </div>
-    </div>
-  );
-}
-
-/**
- * 도는 실행이 있으면 자리 아래 한 줄 (SPEC §8).
- *
- * 한 번 돌리면 최악 50분이라 자리를 떴다 돌아오는 진입이 흔하다.
- * 도는 것이 있을 때만 2초마다 다시 묻는다 — 없으면 목록을 한 번 부르고 만다.
- */
-function Notice({ service, 언어 }: { service: string; 언어: 언어 }) {
-  const t = use말();
-  const 닫기라벨 = t('알림 닫기');
-  const runs = useAsync<{ items: RunSummary[] }>(() => api.runs(service, 1), [service]);
-  // 닫은 것을 이 상태로도 들어야 같은 렌더에서 사라진다. 저장은 runState 가 한다
-  const [닫은것, set닫은것] = useState<ReadonlySet<number>>(() => new Set());
-  const 줄 = 알림줄(runs.data?.items ?? [], 언어, 닫은것);
-  const reload = runs.reload;
-  const 도는중인가 = 줄 !== null && !줄.끝났나;
-
-  // 도는 것이 있을 때만 2초마다 다시 묻는다. 없으면 한 번 부르고 만다
-  useEffect(() => {
-    if (!도는중인가) return;
-    const timer = setInterval(reload, 2000);
-    return () => clearInterval(timer);
-  }, [도는중인가, reload]);
-
-  // 완료 모달이 이미 알린 실행은 줄로 또 알리지 않는다 (SPEC §8.9)
-  useEffect(() => {
-    if (줄 !== null && 줄.끝났나 && 알림본적있나(줄.runId)) {
-      set닫은것((전) => new Set(전).add(줄.runId));
-    }
-  }, [줄?.runId, 줄?.끝났나]);
-
-  if (줄 === null) return null;
-
-  return (
-    <div className="toast-row">
-      <a className="toast" href={`#/runs/${줄.runId}`}>
-        {/* 실제로 도는 동안만 맥박이 뛴다 — 되풀이 움직임은 이것 하나다 (DESIGN.md 원칙 4). 끝난 소식은 멈춘 표시다 */}
-        {줄.끝났나 ? '▶ ' : <span className="pulse" aria-hidden="true" />}
-        {줄.글}
-      </a>
-      {/* 끝난 소식은 한 번 누르거나 닫으면 사라진다 (SPEC §8). 도는 중은 스스로 사라진다 */}
-      {!줄.끝났나 ? null : (
-        <button
-          className="toast-x"
-          aria-label={닫기라벨}
-          onClick={() => {
-            본것으로적는다(줄.runId);
-            set닫은것((전) => new Set(전).add(줄.runId));
-          }}
-        >
-          ×
-        </button>
-      )}
     </div>
   );
 }

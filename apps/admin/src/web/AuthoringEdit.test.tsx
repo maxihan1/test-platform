@@ -109,7 +109,7 @@ describe('케이스 고치기 상세', () => {
     expect(목록.getByText('삭제')).toBeTruthy();
     expect(목록.getByText(/기대값 state: 배송 중/)).toBeTruthy();
     expect(목록.getByText(/확정/)).toBeTruthy();
-    expect(screen.queryByText('자료 받기')).toBeNull();
+    expect(screen.queryByText('자료 · PRD 읽기')).toBeNull();
   });
 
   it('완료면 PR 검토 · 테스트 반영하기 · 폐기를 낸다', async () => {
@@ -246,7 +246,7 @@ describe('작성 목록의 케이스 고치기 줄', () => {
     render(<Authoring service="PAY" 할수={() => true} />);
 
     expect(await screen.findByText(/2차 · 다시 적용/)).toBeTruthy();
-    expect(screen.getByText('케이스를 고쳐 PR 로 올렸습니다')).toBeTruthy();
+    expect(screen.getByText('스크립트를 고쳐 PR 을 만들었습니다')).toBeTruthy();
     expect(screen.getAllByText(/케이스 고치기/).length).toBeGreaterThan(0);
     expect(screen.getByText('고치는 중')).toBeTruthy();
   });

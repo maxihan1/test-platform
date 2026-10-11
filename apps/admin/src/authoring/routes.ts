@@ -9,6 +9,7 @@ import { findService } from '../catalog/store.js';
 import { 자료상한, 자료목록, 준비세우기 } from './assetStore.js';
 import { 반영겹침판정, 겹침상세, 겹침통로 } from './conflict-routes.js';
 import { 같이온칸, 이어작성상세, 이어작성세우기 } from './continue.js';
+import { 다섯단계인가, 작성예상 } from './eta.js';
 import { 행커버리지 } from './coverage.js';
 import { 피그마주소정규화 } from './figma.js';
 import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
@@ -244,6 +245,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         coverage: 행커버리지(행.result),
         ...(await 이어작성상세(뿌리번호)),
         uncoveredOf: await 밖화면뿌리읽기(뿌리번호),
+        expected: 다섯단계인가(행) ? await 작성예상(행.serviceId) : null,
       };
     },
   );
