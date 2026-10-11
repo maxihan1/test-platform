@@ -93,6 +93,20 @@ describe('tail', () => {
     expect(자른것.length).toBeLessThanOrEqual(2000);
     expect(자른것.split('\n')[0]).toBe('a'.repeat(1000));
   });
+
+  it('끝부분이 줄바꿈 없는 긴 한 줄이면 조각을 남기지 않고 버린다', () => {
+    expect(tail(`${첫줄}\n잠깐\nReceived: "${'p'.repeat(2500)}"`)).toBe(`${첫줄}\n…`);
+  });
+
+  it('창이 마침 줄 첫머리에서 시작하면 그 줄을 버리지 않는다', () => {
+    expect(tail(`E\n${'z'.repeat(100)}\n${'y'.repeat(1996)}`)).toBe(`E\n…\n${'y'.repeat(1996)}`);
+  });
+
+  it('1000자 자리가 이모지를 가르면 짝 없는 반쪽을 남기지 않는다 — jsonb 가 받지 않는다', () => {
+    const 자른것 = tail(`${'a'.repeat(999)}😀${'b'.repeat(500)}\n${'c'.repeat(600)}`);
+    expect(자른것.split('\n')[0]).toBe('a'.repeat(999));
+    expect(/\p{Cs}/u.test(자른것)).toBe(false);
+  });
 });
 
 describe('resolveSpecPath', () => {
