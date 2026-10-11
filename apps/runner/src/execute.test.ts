@@ -88,10 +88,11 @@ describe('tail', () => {
     for (const 줄 of 뒤) expect(원문줄.has(줄)).toBe(true);
   });
 
-  it('첫 줄이 아주 길면 1000자까지만 남기고 전체 상한을 지킨다', () => {
-    const 자른것 = tail(`${'a'.repeat(5000)}\n${'b'.repeat(50)}`);
+  it('첫 줄이 1000자를 넘으면 자르지 않고 통째로 뺀다 — 1000자 자리에 걸친 비밀값 조각이 남지 않는다', () => {
+    const 자른것 = tail(`${'x'.repeat(995)}"pa55word-secret"\n${'c'.repeat(50)}\n${'d'.repeat(1500)}`);
+    expect(자른것.split('\n')[0]).toBe('…');
+    expect(자른것).not.toContain('pa55');
     expect(자른것.length).toBeLessThanOrEqual(2000);
-    expect(자른것.split('\n')[0]).toBe('a'.repeat(1000));
   });
 
   it('끝부분이 줄바꿈 없는 긴 한 줄이면 조각을 남기지 않고 버린다', () => {
@@ -102,10 +103,8 @@ describe('tail', () => {
     expect(tail(`E\n${'z'.repeat(100)}\n${'y'.repeat(1996)}`)).toBe(`E\n…\n${'y'.repeat(1996)}`);
   });
 
-  it('1000자 자리가 이모지를 가르면 짝 없는 반쪽을 남기지 않는다 — jsonb 가 받지 않는다', () => {
-    const 자른것 = tail(`${'a'.repeat(999)}😀${'b'.repeat(500)}\n${'c'.repeat(600)}`);
-    expect(자른것.split('\n')[0]).toBe('a'.repeat(999));
-    expect(/\p{Cs}/u.test(자른것)).toBe(false);
+  it('1000자 자리에 이모지가 있어도 짝 없는 반쪽을 남기지 않는다 — jsonb 가 받지 않는다', () => {
+    expect(/\p{Cs}/u.test(tail(`${'a'.repeat(999)}😀${'b'.repeat(500)}\n${'c'.repeat(600)}`))).toBe(false);
   });
 });
 
