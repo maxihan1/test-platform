@@ -745,7 +745,7 @@ input[type='file']::file-selector-button {
 
 .chip {
   font-size: 12.5px;
-  /* 누르는 자리는 최소 36px. 44px 은 DESIGN.md 대로 실행 기록 목록과 실행 결과 두 화면에만 건다 */
+  /* 누르는 자리는 최소 36px. 44px 은 DESIGN.md 대로 휴대폰 화면(창 620px 미만)에만 건다 */
   min-height: 36px;
   padding: 8px 13px;
   border: 1px solid var(--line-2);
@@ -1049,7 +1049,7 @@ input[type='file']::file-selector-button {
 }
 
 /* 증적을 받는 유일한 길이다. 인라인 글자로만 두면 누를 자리가 안 보이고 손가락도 못 맞춘다 —
-   좁은 화면에서 이 상자는 살아 있어야 한다 (SPEC §8 「좁은 화면에서 제대로 되는 둘」) */
+   좁은 화면에서 이 상자는 살아 있어야 한다 (SPEC 공통/5 §8 「휴대폰 화면」 — 실행 기록이 이 상자를 연다) */
 .evi-open {
   margin-left: 8px;
   color: var(--link);
@@ -1630,7 +1630,7 @@ input[type='file']::file-selector-button {
     flex-wrap: wrap;
   }
 
-  /* 손가락으로 누르는 영역 44px 은 이 두 화면에만 건다 (SPEC §8 · DESIGN.md) */
+  /* 손가락으로 누르는 영역 44px — 실행 기록 · 실행 결과 줄 (SPEC 공통/5 §8 「휴대폰 화면」 · DESIGN.md) */
   .right .btn,
   .right a.btn {
     min-height: 44px;
@@ -6024,7 +6024,7 @@ a.fr-id {
     flex-wrap: wrap;
   }
 
-  /* 손가락으로 누르는 영역 44px — 실행 결과는 휴대폰에서 보는 두 화면 중 하나다 (DESIGN.md 접근성 기준).
+  /* 손가락으로 누르는 영역 44px — 실행 결과는 휴대폰에서 여는 화면이다 (SPEC 공통/5 §8 「휴대폰 화면」 · DESIGN.md 접근성 기준).
      카드 안 「펼치기」(34px) · 「상세」 링크 · 디바이스 칩이 모자랐다 */
   .fc-acts .btn,
   .rr .chip {

@@ -1,4 +1,4 @@
-// 본문 맨 위 한 줄 — 왼쪽에 도는 실행 · 작성과 갓 끝난 소식, 오른쪽 끝에 늘 「알림」 버튼 (SPEC 공통/5-화면공통 §8 「알림」)
+// 본문 맨 위 한 줄 — 왼쪽에 도는 실행 · 작성과 갓 끝난 소식, 오른쪽 끝에 늘 「알림」 버튼(휴대폰은 아래 탭) (SPEC 공통/5-화면공통 §8 「알림」)
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';

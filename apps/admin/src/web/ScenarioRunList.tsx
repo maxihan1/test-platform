@@ -160,7 +160,7 @@ export function ScenarioRunList({ service, 할수 }: { service: string; 할수: 
   );
 }
 
-/** 좁은 화면에서도 감추지 않는다 — 실행 기록은 §8 이 좁은 화면에서 제대로 되는 둘로 지정했다 */
+/** 좁은 화면에서도 감추지 않는다 — 실행 기록은 휴대폰에서 여는 화면이다(공통/5 §8 「휴대폰 화면」) */
 function 실행표머리() {
   const t = use말();
   return (
