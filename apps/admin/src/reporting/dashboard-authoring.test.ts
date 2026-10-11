@@ -47,7 +47,6 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     await pool.query(
       "DELETE FROM authoring_request WHERE service_id IN (SELECT id FROM service WHERE prefix IN ('XDH', 'XDHOFF'))",
     );
-    await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'XDH-%' OR tc_id LIKE 'XDHOFF-%'");
     await pool.query("DELETE FROM service WHERE prefix IN ('XDH', 'XDHOFF')");
   };
 
@@ -64,23 +63,6 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
        RETURNING id`,
     );
     서비스id = Number(서비스.rows[0]!.id);
-
-    const 케이스들 = [
-      ['XDH-001', true, '10 days'],
-      ['XDH-002', true, '3 days'],
-      ['XDH-003', false, '20 days'],
-      ['XDH-004', true, null],
-      ['XDHOFF-001', true, '50 days'],
-    ] as const;
-    for (const [tcId, 활성, 전] of 케이스들) {
-      await pool.query(
-        `INSERT INTO test_case (tc_id, name, file_path, param_schema, expected_schema, is_active, unconfirmed, unconfirmed_since)
-         VALUES ($1, $1, '', '{}', '{}', $2,
-                 CASE WHEN $3::interval IS NULL THEN NULL ELSE '화면에서 본 값' END,
-                 now() - $3::interval)`,
-        [tcId, 활성, 전],
-      );
-    }
 
     const 요청 = async (
       종류: 'AUTHOR' | 'RERUN',
@@ -145,7 +127,7 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
 
   describe('칸 단위 권한', () => {
     it.each([
-      'SELECT tc_id, is_active, unconfirmed_since FROM test_case LIMIT 1',
+      'SELECT tc_id, is_active FROM test_case LIMIT 1',
       'SELECT id, prefix, name, is_active FROM service LIMIT 1',
       'SELECT id, service_id, kind, status, compare, created_at, started_at, finished_at, stop_reason FROM authoring_request LIMIT 1',
     ])('연 칸은 읽힌다 — %s', async (sql) => {
@@ -158,26 +140,9 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
       'SELECT slack_webhook FROM service LIMIT 1',
       'SELECT figma_token FROM service LIMIT 1',
       'SELECT name FROM test_case LIMIT 1',
-      'SELECT unconfirmed FROM test_case LIMIT 1',
       'SELECT login_password FROM service_env LIMIT 1',
     ])('기획서 본문·비밀값은 거부된다 — %s', async (sql) => {
       await expect(읽기전용.query(sql)).rejects.toThrow(/permission denied/);
-    });
-  });
-
-  describe('가장 오래된 미확정', () => {
-    const 줄들 = async () =>
-      (await 읽기전용.query<Record<string, string | number>>(패널SQL('가장 오래된 미확정'))).rows;
-
-    it('활성 케이스만 세고 가장 오래된 것의 나이를 일로 낸다', async () => {
-      const 줄 = (await 줄들()).find((r) => r['서비스'] === 'XDH 작성 현황');
-      expect(줄).toBeDefined();
-      expect(Number(줄!['미확정 건수'])).toBe(2);
-      expect(Number(줄!['카탈로그에 들어온 뒤 (일)'])).toBe(10);
-    });
-
-    it('내린 서비스는 나오지 않는다', async () => {
-      expect((await 줄들()).map((r) => r['서비스'])).not.toContain('XDH 내린 서비스');
     });
   });
 
