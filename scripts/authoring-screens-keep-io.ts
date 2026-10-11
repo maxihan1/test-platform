@@ -3,6 +3,7 @@
 import { lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { 모두덮음 } from './authoring-covered.js';
 import { 부른다 } from './authoring-io.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 목록칸, type 상태, 날수, 받은저장본, 이번것들 } from './authoring-screens-keep.js';
@@ -67,6 +68,13 @@ function 연결읽기(크롤: string): { 연결들: Map<string, { toUrl: string;
   return { 연결들, 못읽음: 원문 === null && lstatSync(join(크롤, 'links.json'), { throwIfNoEntry: false }) !== undefined };
 }
 
+/** 자료 폴더의 크롤 목록(list.json)이 전부 PRD 에 이미 있는 화면이면 그 장수, 아니면(목록이 없거나 못 읽거나 덮지 않은 화면이 있다) null (PRD-F6-03) */
+export function 크롤모두덮음(자료: string): number | null {
+  const 크롤 = join(자료, 'crawl');
+  const 글 = 폴더인가(크롤) ? 안전히읽기(크롤, 'list.json', 목록상한) : null;
+  return 글 === null ? null : 모두덮음(글);
+}
+
 /**
  * 자식을 띄우기 전 — 서버 저장본을 자료 폴더 `kept/` 로 넣는다. 저장본이 없으면 아무것도 안 한다. 실패해도 작성은 간다(전부 훑을 뿐).
  * `있으면둠` — 이어받기는 크롤러를 다시 안 돌려 목록의 「같음」이 앞 실행의 `kept/` 를 가리킨다. 다시 넣으면 어긋난다 (검사 주의 2)
@@ -122,8 +130,8 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
   const 같음키 = new Set(같은것.map((x) => `${x.상태} ${x.틀}`));
   const 이번 = 이번것들(목록, 기록들, 오늘).filter((x) => !같음키.has(x.키));
   const { 연결들, 못읽음 } = 연결읽기(크롤);
-  // 이름 · 틀 · 연결(버튼 · 링크 글자)도 서버에 남고 사람에게 보일 칸이다 — 본문과 같이 본다
-  const 볼글 = 이번.flatMap((x) => [x.글, x.이름, x.틀, ...(연결들.get(x.키) ?? []).flatMap((l) => [l.toUrl, l.via])]);
+  // 이름 · 틀 · 연결(버튼 · 링크 글자)도 서버에 남고 사람에게 보일 칸이다 — 본문과 같이 본다. 찾은 화면 이름(seen)은 목록 전체가 나간다
+  const 볼글 = [...목록.map((x) => x.이름 ?? ''), ...이번.flatMap((x) => [x.글, x.이름, x.틀, ...(연결들.get(x.키) ?? []).flatMap((l) => [l.toUrl, l.via])])];
   if (계정섞였나(볼글, 비밀)) return { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
   // 지우기는 크롤이 링크를 따라가 예외 없이 다 봤을 때, 실제로 돈 상태만 (검사 주의 1 — 상태 파일 없이 로그아웃만 돌면 로그인 기록은 남긴다)
   const 돈상태 = Array.isArray(요약.상태들) ? 요약.상태들.filter((x): x is 상태 => x === '로그아웃' || x === '로그인') : [];
@@ -140,7 +148,7 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
       const body = { state: x.상태, url: x.틀, name: x.이름.slice(0, 500), textFp: x.글자지문, structFp: x.지문, record: x.글, crawledAt: 지금.toISOString(), links: 연결들.get(x.키) ?? [] };
       if ((await 부른다(통로.주소기지, 통로.토큰, 길, { method: 'PUT', body })).status !== 204) 못올림 += 1;
     }
-    const seen = 목록.map((x) => ({ state: x.상태, url: x.틀 }));
+    const seen = 목록.map((x) => ({ state: x.상태, url: x.틀, name: (x.이름 ?? '').slice(0, 500) }));
     const 끝 = await 부른다(통로.주소기지, 통로.토큰, `${길}/done`, { method: 'POST', body: { seen, complete: 지울상태 } });
     const 지운수 = 끝.status === 200 ? (끝.몸 as { deleted?: unknown } | null)?.deleted : undefined;
     return {

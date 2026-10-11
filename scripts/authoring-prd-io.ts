@@ -15,6 +15,7 @@ import type { 기준결정 } from './authoring-ledger-check.js';
 import { type 기준표, 기준결정만들기, 옛표줄들, 표번호바꾸기 } from './authoring-ledger-io.js';
 import { type 옮긴것, 대조줄들, 보낼항목, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
 import { 계정섞였나, 글모두, 비밀가리기 } from './authoring-reverse.js';
+import { 크롤모두덮음 } from './authoring-screens-keep-io.js';
 import { 산출물읽기 } from './authoring-upload-reverse.js';
 
 export type 서버 = { 주소기지: string; 토큰: string };
@@ -152,7 +153,12 @@ export async function 옮기기올리기(
   폴더: string,
 ): Promise<{ 줄: string[]; 원장: 원장 | { 없음: string }; 기준: 기준결정 } | { 거절: string; 줄: string[] }> {
   const 읽음 = 결과읽기(자리, 서비스, 비밀);
-  if (읽음 === null) return { 거절: `표준 기획서 결과(out/${결과이름})가 없다`, 줄: [] };
+  if (읽음 === null) {
+    if (크롤모두덮음(자리.자료) === null) return { 거절: `표준 기획서 결과(out/${결과이름})가 없다`, 줄: [] };
+    // 크롤 목록이 전부 PRD 에 있으면 자식이 아무것도 안 쓴 것이 맞다 — 올릴 판이 없다. 올리기가 「기획서에 없는 화면이 없다」로 끝낸다 (PRD-F6-03)
+    const 원장값 = 표준원장(앞.items);
+    return { 줄: [], 원장: 원장값, 기준: 기준결정만들기(기준 === null ? null : { ...기준, 접두사: 서비스 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호), 옛번호지도(앞.items)) };
+  }
   if ('거절' in 읽음) return { 거절: 읽음.거절, 줄: [] };
   const { 글, 옮긴 } = 읽음;
   // 워드에 PDF · 피그마가 섞이면 원장은 있어도 그 자료 몫은 대조하지 못한다 — 그 사실도 남긴다. 화면만은 원본이 없어 대조할 것이 없다

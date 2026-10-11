@@ -24,7 +24,8 @@ import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-stat
 import { 끝검사 } from './authoring-gate3.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 산출물읽기 } from './authoring-upload-reverse.js';
-import { 저장본올리기 } from './authoring-screens-keep-io.js';
+import { 크롤모두덮음, 저장본올리기 } from './authoring-screens-keep-io.js';
+import { 다덮음사유 } from './authoring-covered.js';
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, tcId들 } from './authoring-ledger-check.js';
 import { tcId별글, 원장판정 } from './authoring-ledger-verdict.js';
@@ -32,7 +33,7 @@ import { 케이스글들 } from './authoring-ledger-io.js';
 import { type 셈재료, 커버리지싣는손 } from './authoring-coverage.js';
 import { 보류싣는손 } from './authoring-held.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
-import { type 자료, 자료출처 } from './authoring-assets.js';
+import { type 자료, 자료출처, 화면만인가 } from './authoring-assets.js';
 import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
 import { type 표시준비물, 표시올리기, 표시준비 } from './authoring-marking.js';
 import { 거절로 } from './authoring-progress.js';
@@ -115,7 +116,9 @@ export async function 올리기(
   const 테스트만 = (목록: string[]) => 판정(목록, 기준, 자리.트리, 깃);
   const 거부 = 푸시거부사유(테스트만(파일들), 파일들);
   if (거부 !== null) {
-    await 손.끝내기(거절(거부));
+    // 화면만인데 크롤러가 찾은 화면이 모두 PRD 에 있으면 올릴 것이 없는 게 맞다 — 올리기 거절(중단)이 아니라 이어서 작성할 것이 없는 실패다 (PRD-F6-03)
+    const 다덮음 = 파일들.length === 0 && 역 !== undefined && 화면만인가(것, 역.입력자료) ? 크롤모두덮음(자리.자료) : null;
+    await 손.끝내기(다덮음 === null ? 거절(거부) : { status: 'FAILED', error: 다덮음사유(다덮음) });
     return;
   }
 
