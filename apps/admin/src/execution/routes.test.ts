@@ -105,6 +105,7 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
     const body = res.json();
     expect(body.items.map((i: { historyId: number }) => i.historyId)).toEqual([내항목]);
     expect(JSON.stringify(body)).not.toContain('결제한다');
+    expect(body.remainingMs).toBeNull();
   });
 
   it('응답에 그 항목의 timeoutMs 가 실린다', async () => {

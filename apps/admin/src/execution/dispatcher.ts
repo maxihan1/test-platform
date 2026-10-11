@@ -10,7 +10,7 @@ import { finishItem, finishRun, type PendingItem } from './store.js';
 const 대기줄: (() => Promise<void>)[] = [];
 let 도는중 = 0;
 
-function limit(): number {
+export function limit(): number {
   const 설정 = Number(process.env.EXECUTION_CONCURRENCY);
   return Number.isInteger(설정) && 설정 > 0 ? 설정 : 2;
 }

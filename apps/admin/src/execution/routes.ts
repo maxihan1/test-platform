@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { 칸되는서비스 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
 import { dispatch, markAborted } from './dispatcher.js';
+import { 실행남은시간 } from './eta.js';
 import { notifyRun } from './notify.js';
 import { abortRunner, 진행 } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
@@ -136,7 +137,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     // 절차 제목이 이 화면에 뜬다 — 문(auth/scope.ts)은 「이 runId 를 볼 자격」만 보고 내용물은 안 본다.
     // 자기 DB 의 historyId 와 교집합만 낸다. 제한 시간도 같은 줄에 있어 한 질의로 끝난다 (SPEC §7)
     const 돌고있는것들 = await 진행();
-    if (돌고있는것들.length === 0) return { items: [] };
+    if (돌고있는것들.length === 0) return { items: [], remainingMs: await 실행남은시간(runId) };
 
     // **러너가 답한 것만 물어본다.** run_id 로만 좁히면 5000건짜리 실행에서 보는 사람마다
     // 2초에 한 번 5000행을 읽는다 — 정작 쓰는 것은 동시 실행 수만큼(기본 2)뿐이다
@@ -154,6 +155,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
         const timeoutMs = 내것.get(돌고있는것.historyId);
         return timeoutMs === undefined ? [] : [{ ...돌고있는것, timeoutMs }];
       }),
+      remainingMs: await 실행남은시간(runId),
     };
   });
 
