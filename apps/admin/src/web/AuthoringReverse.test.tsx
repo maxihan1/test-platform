@@ -96,10 +96,20 @@ describe('새 요청 — 실제 화면과 대조', () => {
     });
   });
 
-  it('대조인데 시작 주소도 자료도 없으면 보낼 수 없다', () => {
+  it('대조면 시작 주소도 자료도 없이 보낸다 — 기획서에 없는 화면만 작성한다', async () => {
+    폼();
+    expect(보내기().disabled).toBe(true);
+    대조를켠다();
+    expect(보내기().disabled).toBe(false);
+    fireEvent.click(보내기());
+    await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '세우기']));
+    expect(부름[0]?.값).toEqual({ service: 'PAY', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
+  });
+
+  it('대조 칸 설명이 기획서 화면을 먼저 쓰고 없는 화면이 이어진다고 알린다', () => {
     폼();
     대조를켠다();
-    expect(보내기().disabled).toBe(true);
+    expect(screen.getByText(/기획서가 있으면 기획서 화면을 먼저 작성하고, 병합되면 기획서에 없는 화면을 이어서 작성합니다/)).toBeTruthy();
   });
 
   it('대상 서버를 바꿔 고르면 그 서버로 보낸다', async () => {

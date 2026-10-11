@@ -91,8 +91,8 @@ export function AuthoringNew({
     if (이유 !== null) 거절.set(이유, [...(거절.get(이유) ?? []), f.name]);
   }
   const 너무많다 = 파일들.length + 주소들.length > 자료상한;
-  // 화면만(대조 + 시작 주소)은 기획서 없이 그 화면을 훑는다 — 자료 0 이어도 된다 (§7 submit)
-  const 빈것 = 파일들.length === 0 && 주소들.length === 0 && !(대조 && 주소 !== '');
+  // 화면만(대조 + 자료 0)은 기획서 없이 그 화면을 훑는다 — 시작 주소가 없어도 크롤러가 대상 서버 주소에서 시작한다 (§7 submit)
+  const 빈것 = 파일들.length === 0 && 주소들.length === 0 && !대조;
   const 서버없음 = 대조 && 서버 === null;
   const 못보낸다 = 빈것 || 거절.size > 0 || 너무많다 || 서버없음;
 
@@ -201,7 +201,7 @@ export function AuthoringNew({
                 onChange={(e) => set시작주소(e.target.value)}
               />
             </label>
-            <small>{t('비우면 기획서에 나온 화면에서 시작합니다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 표준 기획서를 만듭니다')}</small>
+            <small>{t('기획서가 있으면 기획서 화면을 먼저 작성하고, 병합되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다')}</small>
           </>
         ) : null}
       </div>

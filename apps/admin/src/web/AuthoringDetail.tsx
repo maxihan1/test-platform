@@ -121,12 +121,26 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
       : 종류라벨(data.kind, 언어);
   // 남은 요구로 이어 작성한 요청 — 칸은 뿌리(작성 요청)에만 있다. 재실행이 최신이어도 뿌리 것을 읽는다 (§3.6 「★ 원장」)
   const 원본 = 뿌리.continueFrom ?? null;
+  // 대조가 병합된 뒤 서버가 세운 기획서에 없는 화면 작성 — 그 대조 뿌리로 가는 고리 (§3.6 「기획서에 없는 화면 — 두 번째 작성」)
+  const 앞대조 = 뿌리.uncoveredOf ?? null;
   const 부제 =
-    원본 === null ? (
+    원본 === null && 앞대조 === null ? (
       부제글
     ) : (
       <>
-        {부제글} · <a href={`#/authoring/${String(원본)}`}>{t('#{번호}의 남은 요구', { 번호: 원본 })}</a>
+        {부제글}
+        {원본 === null ? null : (
+          <>
+            {' · '}
+            <a href={`#/authoring/${String(원본)}`}>{t('#{번호}의 남은 요구', { 번호: 원본 })}</a>
+          </>
+        )}
+        {앞대조 === null ? null : (
+          <>
+            {' · '}
+            <a href={`#/authoring/${String(앞대조)}`}>{t('#{번호} 다음 · 기획서에 없는 화면', { 번호: 앞대조 })}</a>
+          </>
+        )}
       </>
     );
 

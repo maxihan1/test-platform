@@ -442,6 +442,8 @@ export interface AuthoringRow {
    * 상세에만 — canContinue(서버가 뿌리 기준으로 잰다 · 권한은 화면이 본다) · continuedBy(남은 요구를 맡은 요청)
    */
   continueFrom?: number | null;
+  /** 이 요청을 세운 대조 뿌리 번호 — 병합 뒤 서버가 세운 기획서에 없는 화면 작성(§3.6). 목록·상세 모두 뿌리 것 */
+  uncoveredOf?: number | null;
   canContinue?: boolean;
   continuedBy?: number | null;
   /**

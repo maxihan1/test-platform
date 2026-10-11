@@ -113,4 +113,12 @@ describe('작성 권한 칸', () => {
     expect(첫.closest('a')).toBe(null);
     expect(screen.getByText(/2차 · .* · #5877의 남은 요구/)).toBeTruthy();
   });
+
+  it('대조 병합 뒤 서버가 세운 기획서에 없는 화면 요청 줄은 뿌리 번호와 함께 꼬리표를 단다', async () => {
+    줄들.push(줄({ id: 5920, rootId: 5920, uncoveredOf: 5901, runCount: 1 }));
+    render(<Authoring service="PAY" 할수={() => true} />);
+    const 꼬리 = await screen.findByText(/#5901 다음 · 기획서에 없는 화면/);
+    expect(꼬리.textContent?.startsWith('#5901 다음 · 기획서에 없는 화면')).toBe(true);
+    expect(꼬리.closest('a')).toBe(null);
+  });
 });

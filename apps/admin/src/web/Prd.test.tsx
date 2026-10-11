@@ -154,6 +154,49 @@ describe('PRD 관리 — 할 일 먼저', () => {
     expect(await screen.findByText('확인할 요구도 테스트에 반영할 요구도 없습니다')).toBeTruthy();
   });
 
+  it('찾은 화면이 있으면 할 일이 없어도 「PRD 에 없는 화면」 카드를 그린다', async () => {
+    지금.mockResolvedValue(
+      판({
+        items: [판().items[0]!],
+        unapplied: { changed: [], added: [], removed: [] },
+        needsCheck: { count: 0, oldestSince: null },
+        foundScreens: 5,
+        uncoveredScreens: [
+          { state: '로그인', url: '/cart', name: '장바구니' },
+          { state: '로그아웃', url: '/event/:n', name: '' },
+        ],
+      }),
+    );
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    const 카드 = await screen.findByRole('region', { name: 'PRD 에 없는 화면 2개' });
+    expect(screen.queryByText('확인할 요구도 테스트에 반영할 요구도 없습니다')).toBeNull();
+    expect(within(카드).getByText('찾은 화면 5개 중 · 아직 요구사항도 테스트도 없는 화면입니다')).toBeTruthy();
+    const 줄들 = within(카드).getAllByRole('listitem');
+    expect(줄들.map((줄) => 줄.textContent)).toEqual(['로그인/cart장바구니', '로그아웃/event/:n']);
+    expect(within(카드).getByText('테스트 작성에서 기획서 없이 「실제 화면과 대조」로 보내면 이 화면만 작성합니다')).toBeTruthy();
+    expect(within(카드).queryByRole('link')).toBeNull();
+  });
+
+  it('PRD 에 없는 화면이 0 이면 비었다고 적고, 열린 요청이 있으면 번호마다 고리를 단다', async () => {
+    지금.mockResolvedValue(판({ foundScreens: 3, uncoveredScreens: [], screensOpen: [31, 34] }));
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    const 카드 = await screen.findByRole('region', { name: 'PRD 에 없는 화면 0개' });
+    expect(within(카드).getByText('PRD 에 없는 화면이 없습니다')).toBeTruthy();
+    expect(within(카드).getByText(/#31 요청이 이 화면들을 작성하는 중입니다/)).toBeTruthy();
+    const 고리 = within(카드).getAllByRole('link');
+    expect(고리.map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+      ['#31 요청 보기', '#/authoring/31'],
+      ['#34 요청 보기', '#/authoring/34'],
+    ]);
+    expect(within(카드).queryByText(/기획서 없이/)).toBeNull();
+  });
+
+  it('찾은 화면이 0 이면 카드를 안 그린다', async () => {
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    await screen.findByText('판 12 · 요구 4건');
+    expect(screen.queryByRole('region', { name: /PRD 에 없는 화면/ })).toBeNull();
+  });
+
   it('작성 쓰기가 없으면 고르기 · 확정 · 더하기 · 고치기가 아예 없다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
     await screen.findByText('판 12 · 요구 4건');

@@ -173,8 +173,8 @@ export const 작성말: Record<string, string> = {
   '실제 화면과 대조': 'Compare with the live screen',
   '화면과 대조': 'Screen compare',
   '시작 주소': 'Start URL',
-  '비우면 기획서에 나온 화면에서 시작합니다. 기획서 없이 시작 주소만 넣으면 그 화면을 훑어 표준 기획서를 만듭니다':
-    'Leave empty to start from the screen the spec describes. With only a start URL and no spec, that screen is explored and the PRD is written',
+  '기획서가 있으면 기획서 화면을 먼저 작성하고, 병합되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다':
+    'With a spec, the spec screens are written first and, once merged, the screens it does not cover follow. Without a spec, only screens not yet in the PRD are written',
   '이 서비스에는 대상 서버가 없습니다. 설정 > 서비스에서 먼저 넣으세요':
     'This service has no target servers. Add one in Settings > Services first',
   '이 대상 서버에는 테스트 계정이 없습니다. 설정 > 서비스에서 테스트 계정을 넣으세요':
@@ -270,6 +270,7 @@ export const 작성말: Record<string, string> = {
   '남은 요구는 #{번호} 요청이 맡았습니다.': 'Request #{번호} took the remaining requirements.',
   '#{번호} 요청 보기': 'View request #{번호}',
   '#{번호}의 남은 요구': 'Follow-up of #{번호}',
+  '#{번호} 다음 · 기획서에 없는 화면': 'After #{번호} · screens not in the spec',
   '기획서 요구를 세지 못해 이어 작성할 수 없습니다.': 'The spec requirements could not be counted, so there is no follow-up.',
   '이어 작성할 요구가 없습니다. 모두 케이스로 만들었거나 제외했습니다.':
     'Nothing left to follow up. Every requirement became a test case or was excluded.',
