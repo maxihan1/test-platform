@@ -44,7 +44,7 @@ const 꽉 = (수: number) => Array.from({ length: 수 }, (_, i) => 케이스(`ZS
 function 그리기(옵션: { 디바이스?: Platform; 바꿀번호?: number | null; 서비스?: string } = {}) {
   const 손 = { on케이스: vi.fn(), on다른단계: vi.fn(), on바꾸기취소: vi.fn() };
   const 판 = (서비스: string) => (
-    <ScenarioPalette 서비스={서비스} 디바이스={옵션.디바이스 ?? 'desktop'} 바꿀번호={옵션.바꿀번호 ?? null} {...손} />
+    <ScenarioPalette 서비스={서비스} 디바이스={옵션.디바이스 ?? 'desktop'} 바꿀번호={옵션.바꿀번호 ?? null} 뒤={null} {...손} />
   );
   const { rerender } = render(판(옵션.서비스 ?? 'ZSP'));
   return { ...손, 서비스바꾸기: (서비스: string) => rerender(판(서비스)) };

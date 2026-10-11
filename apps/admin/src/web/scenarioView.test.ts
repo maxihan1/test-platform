@@ -15,6 +15,8 @@ import {
   조립값,
   카드요약,
   케이스바꾸기,
+  뒤케이스,
+  추천줄들,
   팔레트차례,
   type 재료들,
 } from './scenarioView.js';
@@ -160,6 +162,43 @@ describe('팔레트차례', () => {
       ['장바구니', ['B'], []],
       [null, ['E'], ['D']],
     ]);
+  });
+
+  describe('추천줄들', () => {
+    const 추천 = [
+      { tcId: 'C', screen: '/order' },
+      { tcId: 'A', screen: '/cart' },
+      { tcId: 'B', screen: '/cart' },
+      { tcId: 'D', screen: '/cart' },
+      { tcId: 'Z', screen: '/cart' },
+    ];
+
+    it('팔레트 목록 차례로, 디바이스에서 돌고 정상 쪽인 것만 이어지는 화면과 함께 낸다', () => {
+      const 목록 = [
+        { ...줄('A', ['desktop']), ...요구('장바구니', '정상') },
+        { ...줄('B', ['desktop']), ...요구('장바구니', '경계', '예외') },
+        { ...줄('C', ['desktop']), ...요구('주문', 'UI') },
+        { ...줄('D', ['mobile']), ...요구('장바구니', '정상') },
+        { ...줄('E', ['desktop']), ...요구('장바구니', '정상') },
+      ];
+      expect(추천줄들(목록, 'desktop', true, 추천).map((x) => [x.row.tcId, x.screen])).toEqual([
+        ['A', '/cart'],
+        ['C', '/order'],
+      ]);
+    });
+
+    it('PRD 를 안 쓰면 기법으로 정상 쪽을 가른다', () => {
+      const 목록 = [줄('A', ['desktop'], [경계]), 줄('B', ['desktop'], [상태]), 줄('C', ['desktop'])];
+      expect(추천줄들(목록, 'desktop', false, 추천).map((x) => x.row.tcId)).toEqual(['B', 'C']);
+    });
+  });
+});
+
+describe('뒤케이스', () => {
+  it('맨 뒤 케이스 단계 — 뒤에 붙은 API · 모킹 · 대기는 건너뛰고, 케이스가 없으면 null', () => {
+    expect(뒤케이스([케이스('A-1'), 케이스('A-2'), { kind: 'wait', ms: 1000 }, { kind: 'unmock', urlPattern: '**' }])).toEqual({ tcId: 'A-2', 번호: 2 });
+    expect(뒤케이스([{ kind: 'api', method: 'GET', path: '/', expectStatus: 200 }])).toBeNull();
+    expect(뒤케이스([])).toBeNull();
   });
 });
 

@@ -9,6 +9,7 @@ import { ScenarioPalette } from './ScenarioPalette.js';
 import { ScenarioPartPanel } from './ScenarioPartPanel.js';
 import type { 조립탭 } from './ScenarioTabs.js';
 import { ScenarioVersions } from './ScenarioVersions.js';
+import { 뒤케이스 } from './scenarioView.js';
 import type { useScenarioDraft } from './useScenarioDraft.js';
 
 interface Props {
@@ -42,6 +43,8 @@ export function ScenarioBuildTabs(props: Props) {
             서비스={초안.서비스}
             디바이스={초안.디바이스}
             바꿀번호={바꿀번호}
+            // 중간 단계를 바꾸는 중에는 맨 뒤 기준 추천이 안 맞는다
+            뒤={바꿀번호 === null ? 뒤케이스(초안.단계들) : null}
             on케이스={on케이스}
             on다른단계={on다른단계}
             on바꾸기취소={on바꾸기취소}

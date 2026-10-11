@@ -67,12 +67,14 @@ export async function 기존그리기(
 ) {
   const detail = vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세(덮));
   const caseParts = vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
+  vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [] });
   const 것 = render(<ScenarioBuild id={12} 띠서비스={띠} user={user} />);
   await screen.findByLabelText('시나리오 이름');
   return { ...것, detail, caseParts };
 }
 
 export function 새로그리기(user: User = 사람(), 띠: ServiceRow | null = 서비스('ZSB')) {
+  vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [] });
   return render(<ScenarioBuild id={null} 띠서비스={띠} user={user} />);
 }
 

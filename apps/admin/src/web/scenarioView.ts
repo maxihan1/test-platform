@@ -5,7 +5,7 @@ import type { Technique } from '@platform/kit/types';
 
 import type { CaseRow, Platform } from './api.js';
 import { t, type 언어 } from './i18n.js';
-import type { CasePartMaterial } from './scenarioApi.js';
+import type { CasePartMaterial, NextCase } from './scenarioApi.js';
 import { toValues, type Field } from './schema.js';
 
 type CasePart = Extract<ScenarioPart, { kind: 'case' }>;
@@ -99,6 +99,24 @@ export function 팔레트차례(
     (흐름인가(c, PRD씀) ? 곳.흐름 : 곳.입력값).push(c);
   }
   return { 묶음들: [...묶음.values()], 뺀수: cases.length - 도는.length };
+}
+
+/** 맨 뒤 케이스 단계 — 뒤에 API 호출 · 모킹 · 대기가 붙어도 브라우저 화면은 그대로라 그 케이스가 기준이다 (도메인/시나리오 §8.11 「다음 단계 추천」) */
+export function 뒤케이스(parts: ScenarioPart[]): { tcId: string; 번호: number } | null {
+  for (let i = parts.length - 1; i >= 0; i -= 1) {
+    const p = parts[i];
+    if (p?.kind === 'case') return { tcId: p.tcId, 번호: i + 1 };
+  }
+  return null;
+}
+
+/** 추천 줄 — 팔레트 목록 차례 그대로, 고른 디바이스에서 돌고 정상 쪽(흐름 칸)인 것만. 서버는 이어지는 화면에 닿는 케이스를 다 준다 */
+export function 추천줄들(cases: CaseRow[], platform: Platform, PRD씀: boolean, 추천: NextCase[]): { row: CaseRow; screen: string }[] {
+  const 화면 = new Map(추천.map((x) => [x.tcId, x.screen]));
+  return cases.flatMap((c) => {
+    const screen = 화면.get(c.tcId);
+    return screen !== undefined && c.platforms.includes(platform) && 흐름인가(c, PRD씀) ? [{ row: c, screen }] : [];
+  });
 }
 
 /** 비운 칸은 필수여도 키를 뺀다 — 서버는 키가 없는 칸만 저장값으로 채운다 */
