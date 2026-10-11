@@ -34,7 +34,7 @@ export const 대시보드말: Record<string, string> = {
   // 서비스별 품질
   '서비스별 품질': 'Quality by service',
   '직전 {일}일 대비': 'vs previous {일} days',
-  '최근 실행, 오른쪽이 최신': 'Recent runs, newest on the right',
+  '최근 실행, 맨 앞이 최신': 'Recent runs, newest first',
   '직전 실행과 견줌': 'Against previous run',
   '마지막 실행': 'Last run',
   '마지막 실행이 없습니다': 'No run yet',

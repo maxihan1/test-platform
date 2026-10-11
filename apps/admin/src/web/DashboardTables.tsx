@@ -122,7 +122,7 @@ export function 서비스별표({ 값 }: { 값: 자료 }) {
               <th scope="col" className="r">
                 {t('직전 {일}일 대비', { 일: 값.window.days })}
               </th>
-              <th scope="col">{t('최근 실행, 오른쪽이 최신')}</th>
+              <th scope="col">{t('최근 실행, 맨 앞이 최신')}</th>
               <th scope="col">{t('직전 실행과 견줌')}</th>
               <th scope="col" className="r">
                 {t('마지막 실행')}
@@ -157,7 +157,8 @@ export function 서비스별표({ 값 }: { 값: 자료 }) {
                       '—'
                     ) : (
                       <span className="spark dash-flow" role="img" aria-label={흐름라벨(서비스.flow, t)}>
-                        {서비스.flow.map((칸, 자리) => (
+                        {/* 서버는 오래된 것부터 준다. 막대는 케이스 목록 · 실패 카드처럼 맨 앞이 새 것이라 뒤집는다 (DESIGN 「최근 판정 흐름 막대」) */}
+                        {[...서비스.flow].reverse().map((칸, 자리) => (
                           <i key={자리} className={흐름글자(칸)} />
                         ))}
                       </span>
