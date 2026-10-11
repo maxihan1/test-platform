@@ -58,12 +58,14 @@ export async function 안옮김뒤(
   if ('거절' in 읽음) return { 거절: 읽음.거절, 줄: 반영줄 };
   const 번호들 = 화면.번호들.map((x) => x.번호);
   const 못함 = (까닭: string) => ({ 거절: `표준 기획서를 못 올렸다 — ${까닭}`, 줄: 반영줄 });
+  // 고쳤나는 자식이 본 판(가린 글)과 견준다 — 원문 판과 견주면 비밀번호가 든 요구가 늘 바뀐 것으로 잡혀 가림표가 올라간다
+  const 고친 = 화면대로합치기(앞.items, 읽음.옮긴, 번호들).고친;
+  if (고친.length === 0) return 그대로;
   try {
     // 반영 요청의 통로는 집을 때 읽은 판을 준다 — 서버가 그 뒤 사람이 고친 항목을 남기고 화면이 맞음 번호만 덮는다
     const 판 = await 지금판읽기(서버, 서비스, 번호);
     if ('까닭' in 판) return 못함(`지금 판을 못 읽었다 (${판.까닭})`);
-    const 합침 = 화면대로합치기(판.items, 읽음.옮긴, 번호들);
-    if (합침.고친.length === 0) return 그대로;
+    const 합침 = 화면대로합치기(판.items, 읽음.옮긴, 고친);
     const 답 = await 부른다(서버.주소기지, 서버.토큰, 통로(번호, 서비스), { method: 'POST', body: { baseVersion: 앞.version, items: 보낼항목(합침.items) } });
     const 받음 = 답.몸 as { version?: unknown; error?: unknown; detail?: unknown } | null;
     if (답.status !== 200 || typeof 받음?.version !== 'number') {
@@ -71,10 +73,10 @@ export async function 안옮김뒤(
       return 못함(`${String(답.status)}${까닭 === '' ? '' : ` ${까닭}`}`);
     }
     // 원장은 자식이 본 것과 같게 — 자식 앞 판(가린 항목)에 고친 번호를 넣는다. 올리기 판정이 새 문장으로 표를 본다
-    const 항목들 = 화면대로합치기(앞.items, 읽음.옮긴, 합침.고친).items;
+    const 항목들 = 화면대로합치기(앞.items, 읽음.옮긴, 고친).items;
     const 원장값 = 표준원장(항목들);
     return {
-      줄: [...반영줄, 화면이맞음줄(화면, 합침.고친)],
+      줄: [...반영줄, 화면이맞음줄(화면, 고친)],
       원장: 원장값,
       기준: 기준결정만들기(원장.기준표 === null ? null : { ...원장.기준표, 접두사: 서비스 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호), 옛번호지도(항목들)),
     };

@@ -117,6 +117,17 @@ describe('안옮김뒤', () => {
     ]);
   });
 
+  it('자식이 본 판(가린 글)과 견준다 — 비밀번호가 든 요구를 안 고쳤으면 올리지 않는다', async () => {
+    const 원문 = 판.map((i) => (i.reqId === 'X-REQ-001' ? { ...i, text: '비밀번호 pw1234 로 로그인한다' } : i));
+    const 가린 = 판.map((i) => (i.reqId === 'X-REQ-001' ? { ...i, text: '비밀번호 •••••• 로 로그인한다' } : i));
+    const 건것 = vi.fn(async () => 답(200, { version: 3, items: 원문 }));
+    vi.stubGlobal('fetch', 건것);
+    결과쓰기({ items: [가린[0]] });
+    const r = await 안옮김뒤(서버, 'X', 7, 자리, { version: 3, 번호들: 가린.map((i) => i.reqId), items: 가린 }, { 원장, 기준, 기준표: null, 반영: { 계획: 계획(), 사본: 'apply.json' } }, {}, 'x');
+    expect(r).toEqual({ 줄: [머리, '화면이 맞음: RUN 42 · X-FN-001 · 고친 요구 없음 — 케이스만'], 원장, 기준 });
+    expect(건것.mock.calls.some((c) => ((c as unknown[])[1] as RequestInit | undefined)?.method === 'POST')).toBe(false);
+  });
+
   it('못 올리거나 비밀값이 들었으면 올리기 거절이다', async () => {
     vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => (init?.method === 'POST' ? 답(400, { error: 'BAD_PRD', detail: '0.text' }) : 답(200, { version: 3, items: 판 })));
     결과쓰기({ items: [{ reqId: 'X-REQ-001', feature: '회원가입', text: '비밀번호는 10자 이상이어야 한다', basis: 화면근거, status: 'CONFIRMED' }] });

@@ -249,7 +249,7 @@ export function 원장과남은번호(입력: {
   /** 이어받은 폴더에 앞 자식이 쓴 결과 파일. 없으면 undefined */
   옮긴몸?: unknown;
   /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight */
-  반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청 };
+  반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청 | null };
 }):
   | { 원장: 원장 | { 없음: string }; 입력: 원장입력; 기준: 기준결정; 기준표: 기준표 | null; 원본원장: 원장 | { 없음: string }; 원본입력: 원장입력; 이어작성?: 이어작성입력; 반영?: 반영입력 }
   | { 막힘: string } {
@@ -283,8 +283,8 @@ export function 원장과남은번호(입력: {
     원본입력: 원본.입력,
   };
   if (입력.이어작성원본 === null && 입력.반영 !== undefined && 기준값 !== null) {
-    const 계획 = 반영계획만들기({ version: 입력.반영.지금판, items: 입력.지금 }, 입력.반영.기준판, 기준값.표글, 입력.서비스, 입력.반영.화면이맞음);
-    const 막힘 = 반영막힘(계획);
+    const 계획 = 반영계획만들기({ version: 입력.반영.지금판, items: 입력.지금 }, 입력.반영.기준판, 기준값.표글, 입력.서비스, 입력.반영.화면이맞음 ?? undefined);
+    const 막힘 = 입력.반영.화면이맞음 === null ? '화면이 맞음 칸(params.screenRight) 모양이 틀렸다 — 이 요청은 폐기하고 실행 결과에서 다시 누른다' : 반영막힘(계획);
     if (막힘 !== null) return { 막힘 };
     const 반영자리 = join(입력.자료폴더, 반영사본이름);
     if (!새로쓰기(반영자리, JSON.stringify(계획, null, 2))) return { 막힘: '반영 계획 사본을 자료 폴더에 못 썼다' };

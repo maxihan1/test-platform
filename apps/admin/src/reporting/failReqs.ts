@@ -5,6 +5,7 @@ import type { PrdItem } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 맥락짓기 } from '../catalog/context.js';
+import { 지금판 } from '../prd/store.js';
 import { db } from './insights.js';
 
 export interface 실패요구 {
@@ -43,14 +44,15 @@ async function 요구읽기(pool: Pool, runId: number, tcIds: string[]) {
   const 판: PrdItem[] = [];
   const 행들: { reqId: string; tcId: string; axis: '정상' | '경계' | '예외' | 'UI' }[] = [];
   if (서비스번호 !== undefined && tcIds.length > 0) {
+    // 지금 판은 「PRD 관리」와 같은 함수로 읽는다 — 정의가 두 벌이면 칸 · 고리가 메뉴와 어긋난다
     const [판행, 요구행] = await Promise.all([
-      pool.query<{ items: PrdItem[] }>('SELECT items FROM prd_version WHERE service_id = $1 ORDER BY version DESC LIMIT 1', [서비스번호]),
+      지금판(Number(서비스번호)),
       pool.query<{ req_id: string; tc_id: string; axis: '정상' | '경계' | '예외' | 'UI' }>(
         'SELECT req_id, tc_id, axis FROM req_case WHERE service_id = $1 AND tc_id = ANY($2)',
         [서비스번호, tcIds],
       ),
     ]);
-    판.push(...(판행.rows[0]?.items ?? []));
+    판.push(...(판행?.items ?? []));
     행들.push(...요구행.rows.map((r) => ({ reqId: r.req_id, tcId: r.tc_id, axis: r.axis })));
   }
   // 맥락짓기는 카탈로그 목록과 같은 차례 · 문장 규칙이다 — 화면 조각은 쓰지 않으므로 비워 넘긴다

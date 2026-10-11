@@ -58,11 +58,13 @@ export function 반영요청인가(것: { params?: unknown }): boolean {
 }
 
 /** 「화면이 맞음」 요청이면 그 칸. 재실행 · 이어서 작성 행에는 서버가 원본 것을 물려 둔다. 모양이 틀리면 없는 것으로 본다 */
-export function 화면이맞음읽기(것: { params?: unknown }): 화면이맞음요청 | undefined {
-  const s = (것.params as { screenRight?: Record<string, unknown> } | undefined)?.screenRight;
-  if (typeof s !== 'object' || s === null) return undefined;
-  const { runId, tcId, env, reqIds } = s;
-  if (typeof runId !== 'number' || typeof tcId !== 'string' || typeof env !== 'string' || !Array.isArray(reqIds)) return undefined;
+export function 화면이맞음읽기(것: { params?: unknown }): 화면이맞음요청 | null | undefined {
+  const s = (것.params as { screenRight?: unknown } | undefined)?.screenRight;
+  if (s === undefined) return undefined;
+  // 칸이 있는데 모양이 틀리면 null — 보통 반영으로 조용히 돌면 사람의 판정을 버리고 엉뚱한 까닭으로 실패한다
+  if (typeof s !== 'object' || s === null) return null;
+  const { runId, tcId, env, reqIds } = s as Record<string, unknown>;
+  if (typeof runId !== 'number' || typeof tcId !== 'string' || typeof env !== 'string' || !Array.isArray(reqIds)) return null;
   return { runId, tcId, env, reqIds: reqIds.filter((x): x is string => typeof x === 'string') };
 }
 
@@ -125,9 +127,10 @@ export function 반영계획만들기(
 
 /** 자식을 띄우지 않고 FAILED 로 끝낼 까닭. 앞 반영이 이미 넣었거나 같은 판을 다시 돌린 것이다. 화면이 맞음은 고칠 번호가 따로 있어 막지 않는다 */
 export function 반영막힘(계획: 반영계획): string | null {
-  return 계획.화면이맞음 === undefined && 계획.다시씀.length + 계획.새항목.length + 계획.지움.length === 0
-    ? '반영할 것이 없다 — 지금 판의 요구가 이미 테스트에 들어갔다. 이 요청은 폐기해도 된다'
-    : null;
+  if (계획.다시씀.length + 계획.새항목.length + 계획.지움.length > 0) return null;
+  if (계획.화면이맞음 === undefined) return '반영할 것이 없다 — 지금 판의 요구가 이미 테스트에 들어갔다. 이 요청은 폐기해도 된다';
+  // 누른 뒤 그 요구를 「PRD 관리」에서 지웠다 — 고칠 요구가 없는데 자식을 띄우면 빈 PR 이 선다
+  return 계획.화면이맞음.번호들.length === 0 ? '화면이 맞음 요구가 지금 판에 없다(누른 뒤 지웠다) — 이 요청은 폐기해도 된다' : null;
 }
 
 /**

@@ -101,6 +101,11 @@ describe('반영계획만들기', () => {
     expect([r.다시씀, r.새항목, r.지움]).toEqual([[], [], []]);
     expect(반영막힘(r)).toBeNull();
   });
+
+  it('화면이 맞음 번호가 읽은 판에 하나도 없고 반영할 것도 없으면 막는다 — 할 일 없는 자식을 띄우지 않는다', () => {
+    const r = 반영계획만들기(기준, 기준, main표, 'X', { runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-009'] });
+    expect(반영막힘(r)).toMatch(/지금 판에 없다/);
+  });
 });
 
 describe('화면이맞음읽기', () => {
@@ -108,7 +113,7 @@ describe('화면이맞음읽기', () => {
     const 칸 = { runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-002', 3] };
     expect(화면이맞음읽기({ params: { prdApply: true, screenRight: 칸 } })).toEqual({ ...칸, reqIds: ['X-REQ-002'] });
     expect(화면이맞음읽기({ params: { prdApply: true } })).toBeUndefined();
-    expect(화면이맞음읽기({ params: { screenRight: { ...칸, runId: '42' } } })).toBeUndefined();
+    expect(화면이맞음읽기({ params: { screenRight: { ...칸, runId: '42' } } })).toBeNull();
     expect(화면이맞음읽기({})).toBeUndefined();
   });
 });
@@ -191,6 +196,16 @@ describe('원장과남은번호 — 반영 요청', () => {
     try {
       expect(부르기(폴더, 기준판.items)).toEqual({ 막힘: expect.stringMatching(/반영할 것이 없다/) as unknown });
       expect(부르기(폴더, [항목('X-REQ-001', '10자')], true)).toEqual({ 막힘: expect.stringMatching(/망가짐/) as unknown });
+    } finally {
+      rmSync(폴더, { recursive: true, force: true });
+    }
+  });
+
+  it('화면이 맞음 칸 모양이 틀렸으면 보통 반영으로 돌지 않고 막는다', () => {
+    const 폴더 = mkdtempSync(join(tmpdir(), 'apply-io-'));
+    try {
+      const r = 원장과남은번호({ 계획: [], 자료폴더: 폴더, 깃: 깃(false), 기준: 'abc', 서비스: 'X', 폴더: 'x', 이어작성원본: null, 지금: [항목('X-REQ-001', '10자')], 옮긴다: false, 반영: { 지금판: 1, 기준판, 화면이맞음: null } });
+      expect(r).toEqual({ 막힘: expect.stringMatching(/screenRight/) as unknown });
     } finally {
       rmSync(폴더, { recursive: true, force: true });
     }

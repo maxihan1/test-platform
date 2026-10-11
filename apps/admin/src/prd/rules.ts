@@ -227,7 +227,10 @@ export function 옮기기판(
     }
     if (화면번호.has(항목.reqId)) {
       const { reqId, feature, text, basis } = 항목;
-      화면것들.push(요구같나(항목, 사람것) ? 사람것 : { reqId, feature, text, basis, status: 'CONFIRMED', byPerson: true });
+      // 받은 판과 같으면 에이전트가 안 고친 번호다 — 그 사이 사람이 고친 지금 것을 받은 판 사본으로 덮지 않는다
+      const 받은것 = 받은것들.get(reqId);
+      const 안고침 = 요구같나(항목, 사람것) || (받은것 !== undefined && 요구같나(항목, 받은것));
+      화면것들.push(안고침 ? 사람것 : { reqId, feature, text, basis, status: 'CONFIRMED', byPerson: true });
       continue;
     }
     if (사람것.byPerson === true) {

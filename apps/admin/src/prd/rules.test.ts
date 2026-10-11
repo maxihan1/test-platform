@@ -174,6 +174,12 @@ describe('옮기기판', () => {
     });
   });
 
+  it('화면이 맞음 번호라도 받은 판 그대로 온 항목은 에이전트가 안 고친 것이다 — 그 사이 사람이 고친 지금 것을 남긴다', () => {
+    const 지금판 = { ...받은판, version: 2, items: [항목('MKT-REQ-001'), 항목('MKT-REQ-002', { text: '그 사이 사람 고침', byPerson: true as const }), 항목('MKT-REQ-003')] };
+    const r = 옮기기판(받은판, 지금판, 받은판.items, 'MKT', 시각, new Set(['MKT-REQ-001', 'MKT-REQ-002']));
+    expect(r).toMatchObject({ keptByPerson: [], items: 지금판.items });
+  });
+
   it('화면이 맞음 번호는 요청 params.screenRight.reqIds 에서 읽는다', () => {
     expect(화면번호들({ prdApply: true, screenRight: { runId: 1, tcId: 'MKT-FN-001', env: 'qa', reqIds: ['MKT-REQ-001', 2] } })).toEqual(new Set(['MKT-REQ-001']));
     expect(화면번호들({ prdApply: true })).toEqual(new Set());
