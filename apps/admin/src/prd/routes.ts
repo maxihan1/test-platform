@@ -11,6 +11,7 @@ import { 한국시각 } from '../catalog/exportData.js';
 import { lastByCase } from '../execution/history.js';
 import { 워드만들기 } from './docx.js';
 import { 반영안됨, 본문상한, 확인필요, 항목검사 } from './rules.js';
+import { 반영본문, 화면이맞음채우기, type 화면이맞음 } from './screenRight.js';
 import {
   기준판,
   되돌리기,
@@ -121,10 +122,22 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     return 결과 === null ? reply.code(404).send({ error: 'NOT_FOUND' }) : 보내기(reply, 결과);
   });
 
-  app.post<질의>('/prd/apply', async (req, reply) => {
+  app.post<본문>('/prd/apply', async (req, reply) => {
     const 서비스 = await 서비스번호(req, reply);
     if (서비스 === null) return reply;
-    const 결과 = await 반영세우기(서비스, 누가(req));
+    const 받은 = 반영본문(req.body);
+    if (받은 === null) return reply.code(400).send({ error: 'INVALID_REQUEST' });
+    let 화면: 화면이맞음 | undefined;
+    if (받은.screenRight !== undefined) {
+      // 문은 (작성, write) 만 봤다. 실행 결과를 못 보는 사람이 실패 여부를 떠보는 길이 되지 않게 실행 read 를 따로 본다
+      if (!칸되는서비스(req.user?.services ?? [], 'runs', 'read').includes(req.query.service ?? '')) {
+        return reply.code(403).send({ error: 'FORBIDDEN', need: 'runs:read' });
+      }
+      const 채움 = await 화면이맞음채우기(서비스, 받은.screenRight.runId, 받은.screenRight.tcId);
+      if ('error' in 채움) return reply.code(채움.code).send({ error: 채움.error });
+      화면 = 채움;
+    }
+    const 결과 = await 반영세우기(서비스, 누가(req), 화면);
     return 'error' in 결과 ? reply.code(409).send(결과) : reply.code(201).send(결과);
   });
 }

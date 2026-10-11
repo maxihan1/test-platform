@@ -27,6 +27,8 @@ export function 카드응답(tcId: string, platform: Platform = 'desktop', 미�
   return {
     tcId,
     tcName: `이름-${tcId}`,
+    reqs: [],
+    judgment: null,
     devices: [{
       platform, change: null, streak: null, recent: ['FAIL'], attempts: 1, failedAttempts: 1,
       item: {

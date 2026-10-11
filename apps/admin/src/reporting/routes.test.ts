@@ -247,10 +247,11 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
 
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(Object.keys(body).sort()).toEqual(['previous', '빠진건수', '실패덩어리들', '주소바뀜', '케이스들'].sort());
+    expect(Object.keys(body).sort()).toEqual(['previous', '빠진건수', '실패덩어리들', '실패요구들', '주소바뀜', '케이스들'].sort());
     expect(body.previous).toBeNull();
     expect(body.케이스들).toEqual([]);
     expect(body.실패덩어리들).toEqual([]);
+    expect(body.실패요구들).toEqual([]);
   });
 
   it('GET /api/runs/:runId/insights — 없는 실행이면 404다', async () => {

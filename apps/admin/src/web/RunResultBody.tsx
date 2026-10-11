@@ -7,6 +7,8 @@ import type { 증적칸 } from './EvidenceSection.js';
 import { 갈라낸다 } from './group.js';
 import { use말 } from './i18n.js';
 import { RunFailCards } from './RunFailCards.js';
+import { RunFailedReqs } from './RunFailedReqs.js';
+import { 실행판정, type 판정하기 } from './runJudge.js';
 import { RunSide } from './RunSide.js';
 import { 결과줄 } from './RunResultRow.js';
 import { RunSummary } from './RunSummary.js';
@@ -62,6 +64,8 @@ export function 쪽넘김({ 쪽, 전체쪽, on쪽 }: { 쪽: number; 전체쪽: n
 interface Props {
   data: 실행;
   insights: 비교 | null;
+  /** 실패 요구사항 칸의 고리 · 카드 버튼을 그 실행 서비스의 권한으로 가른다 */
+  판정하기: 판정하기;
   견줌오류: string | null;
   증적칸: 증적칸;
   상자안: boolean;
@@ -76,9 +80,10 @@ interface Props {
 }
 
 export function 끝난결과(props: Props) {
-  const { data, insights, 견줌오류, 증적칸, 상자안, 상자머리, 판정, on판정, device, on디바이스, page, on쪽 } = props;
+  const { data, insights, 판정하기, 견줌오류, 증적칸, 상자안, 상자머리, 판정, on판정, device, on디바이스, page, on쪽 } = props;
   const t = use말();
   const 통과제목 = useRef<HTMLHeadingElement>(null);
+  const 권한 = 실행판정(판정하기, data);
   const 디바이스들 = 실행디바이스들(data.items);
   const columns = device === 'ALL' ? 디바이스들 : [device];
   const { 줄들, 카드안항목수 } = 갈라낸다(data.items, 판정, device);
@@ -92,6 +97,7 @@ export function 끝난결과(props: Props) {
   const 본문 = (
     <>
       <RunSummary counts={data.counts} insights={insights} 판정={판정} on판정={on판정} />
+      <RunFailedReqs 요구들={insights?.실패요구들 ?? []} 권한={권한} />
       {상자안 ? <RunSide data={data} insights={insights} 견줌오류={견줌오류} 증적칸={증적칸} 상자안 /> : null}
 
       <div className={상자안 ? 'rr-cols one' : 'rr-cols'}>
@@ -120,7 +126,7 @@ export function 끝난결과(props: Props) {
           ) : (
             <section className="rr-sec">
               {/* 칩이나 실행이 바뀌면 새로 그린다 — 앞 거르개 · 앞 실행의 쪽 번호가 남으면 안 된다 */}
-              <RunFailCards key={`${String(data.runId)}-${device}`} runId={data.runId} env={data.env} items={data.items} platform={device} />
+              <RunFailCards key={`${String(data.runId)}-${device}`} runId={data.runId} env={data.env} items={data.items} platform={device} 권한={권한} />
             </section>
           )}
 

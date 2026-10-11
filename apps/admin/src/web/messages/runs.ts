@@ -214,4 +214,17 @@ export const 실행말: Record<string, string> = {
   '요청·응답 원문': 'Raw request and response',
   '실패 지점 코드': 'Code at failure',
   '불러오는 중입니다.': 'Loading.',
+
+  // 실패 요구사항 칸 · 카드의 관련 요구사항 · 실패 원인 (도메인/리포팅 「실패 요구사항」)
+  '실패 요구사항 {건수}건': 'Failed requirements: {건수}',
+  '실패한 케이스가 덮는 요구입니다': 'Requirements covered by the failed cases',
+  '실패 케이스 {건수}': 'Failed cases: {건수}',
+  '{건수}건 더 보기': 'Show {건수} more',
+  '관련 요구사항': 'Related requirements',
+  'PRD 에 없는 번호': 'Not in the PRD',
+  '실패 원인': 'Cause',
+  '화면이 맞음': 'Screen is right',
+  '화면이 맞음으로 바꾸기': 'Change to screen is right',
+  '버그': 'Bug',
+  '작성 요청 #{번호}': 'Authoring request #{번호}',
 };

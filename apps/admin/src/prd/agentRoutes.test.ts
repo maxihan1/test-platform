@@ -112,6 +112,37 @@ describe.skipIf(연결 === undefined)('표준 기획서 에이전트 통로', ()
     expect([지어냄.statusCode, 지어냄.json()]).toEqual([400, { error: 'PRD_REUSED', detail: 'XPG-REQ-009' }]);
   });
 
+  it('화면이 맞음 요청은 그 번호의 바뀐 항목을 사람 것이어도 덮어 확정 · 사람이 고친 것으로 단다 — 다른 번호는 지금 규칙 그대로', async () => {
+    await 사람저장(서비스, 접두사, 0, [{ ...항목('5만원 이상 무료 배송'), status: 'NEEDS_CHECK' }, 항목('주문은 취소할 수 있다')], 사람);
+    await 사람저장(서비스, 접두사, 1, [{ ...항목('3만원 이상 무료 배송'), reqId: 'XPG-REQ-001', status: 'NEEDS_CHECK' }, { ...항목('주문은 하루 안에 취소한다'), reqId: 'XPG-REQ-002' }], 사람);
+    const id = await 요청넣기('AUTHOR', 'RUNNING', { prdApply: true, screenRight: { runId: 1, tcId: 'XPG-FN-001', env: 'qa', reqIds: ['XPG-REQ-001'] } });
+    const 화면근거 = [{ from: '화면', ref: '/cart', quote: '실행 RUN 1 실패 — 사람이 화면이 맞다고 판정' }];
+    const r = await app.inject({
+      method: 'POST',
+      url: `/api/authoring/requests/${id}/prd`,
+      payload: {
+        baseVersion: 2,
+        items: [
+          { ...항목('2만원 이상 무료 배송'), basis: 화면근거, status: 'NEEDS_CHECK', reqId: 'XPG-REQ-001' },
+          { ...항목('주문은 취소할 수 있다'), reqId: 'XPG-REQ-002' },
+        ],
+      },
+    });
+    expect(r.json()).toEqual({ version: 3, keptByPerson: ['XPG-REQ-002'] });
+    const 판 = await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}/prd` });
+    const items = (판.json() as { items: Record<string, unknown>[] }).items;
+    expect(items[0]).toEqual({ reqId: 'XPG-REQ-001', feature: '주문', text: '2만원 이상 무료 배송', basis: 화면근거, status: 'CONFIRMED', byPerson: true });
+    expect(items[1]).toMatchObject({ reqId: 'XPG-REQ-002', text: '주문은 하루 안에 취소한다', byPerson: true });
+
+    // 안 바뀐 번호는 지금 판 그대로 — 새 판이 서지 않는다
+    const 또 = await app.inject({
+      method: 'POST',
+      url: `/api/authoring/requests/${id}/prd`,
+      payload: { baseVersion: 3, items: [{ ...항목('2만원 이상 무료 배송'), basis: 화면근거, status: 'NEEDS_CHECK', reqId: 'XPG-REQ-001' }, { ...항목('주문은 하루 안에 취소한다'), reqId: 'XPG-REQ-002' }] },
+    });
+    expect(또.json()).toEqual({ version: 3, keptByPerson: [] });
+  });
+
   it('기준 판(마지막으로 병합된 작성이 읽은 판)을 같이 싣는다 — 반영 요청이 바뀐 항목과 옛 문장을 안다', async () => {
     await 사람저장(서비스, 접두사, 0, [항목('5만원 이상 무료 배송')], 사람);
     const 앞작성 = await 요청넣기('AUTHOR', 'DONE');

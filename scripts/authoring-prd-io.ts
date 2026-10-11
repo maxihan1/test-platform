@@ -13,11 +13,11 @@ import { 거절글, 부른다 } from './authoring-io.js';
 import { type 원장, 번호바꾸기 } from './authoring-ledger.js';
 import type { 기준결정 } from './authoring-ledger-check.js';
 import { type 기준표, 기준결정만들기, 옛표줄들, 표번호바꾸기 } from './authoring-ledger-io.js';
-import { 대조줄들, 보낼항목, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
+import { type 옮긴것, 대조줄들, 보낼항목, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
 import { 계정섞였나, 글모두, 비밀가리기 } from './authoring-reverse.js';
 import { 산출물읽기 } from './authoring-upload-reverse.js';
 
-type 서버 = { 주소기지: string; 토큰: string };
+export type 서버 = { 주소기지: string; 토큰: string };
 
 /** 자식 프롬프트의 표준 기획서 절 재료 */
 export interface 표준기획서입력 {
@@ -35,20 +35,20 @@ export interface 앞판 {
   items: PrdItem[];
 }
 
-const 결과이름 = 'prd.json';
+export const 결과이름 = 'prd.json';
 
 /** 거절(401 · 403)만 다시 던진다 — 줄 돌기가 그걸 보고 멈춘다. 그 밖은 까닭 글로 돌려준다 */
-function 거절말고(err: unknown): string {
+export function 거절말고(err: unknown): string {
   if (err instanceof Error && err.message.includes(거절글)) throw err;
   return err instanceof Error ? err.message : String(err);
 }
 
-const 통로 = (번호: number, 서비스: string) => `/authoring/requests/${String(번호)}/prd?service=${encodeURIComponent(서비스)}`;
+export const 통로 = (번호: number, 서비스: string) => `/authoring/requests/${String(번호)}/prd?service=${encodeURIComponent(서비스)}`;
 
 type 판 = { version: number; items: PrdItem[] };
 
 /** 지금 판과 기준 판(「반영 안 됨」의 기준 — 반영 요청이 쓴다). 기준 판 모양이 틀리면 없는 것으로 본다 */
-async function 지금판읽기(서버: 서버, 서비스: string, 번호: number): Promise<(판 & { base: 판 | null }) | { 까닭: string }> {
+export async function 지금판읽기(서버: 서버, 서비스: string, 번호: number): Promise<(판 & { base: 판 | null }) | { 까닭: string }> {
   const 답 = await 부른다(서버.주소기지, 서버.토큰, 통로(번호, 서비스));
   const 몸 = 답.몸 as { version?: unknown; items?: unknown; base?: { version?: unknown; items?: unknown } | null } | null;
   if (답.status !== 200 || typeof 몸?.version !== 'number' || !Array.isArray(몸.items)) return { 까닭: String(답.status) };
@@ -113,6 +113,28 @@ export function 앞결과(자리: 사본, 지금: readonly PrdItem[], 서비스:
 }
 
 /**
+ * 자식이 쓴 결과 파일을 읽는다 — 옮기기와 화면이 맞음이 같은 손을 쓴다. 파일이 없으면 null.
+ * 링크 · 크기를 보고 읽고(역방향 산출물과 같은 손) 비밀값이 들면 거절이다 — 올리면 「PRD 관리」 · 워드에 보인다
+ */
+export function 결과읽기(자리: 사본, 서비스: string, 비밀: { 피그마?: string; 계정?: string | null }): { 글: string; 옮긴: 옮긴것 } | { 거절: string } | null {
+  const 파일 = 산출물읽기(자리, 결과이름, 본문상한);
+  if ('사유' in 파일) return { 거절: 파일.사유 };
+  if (파일.몸 === null) return null;
+  const 글 = 파일.몸.toString('utf8');
+  let 몸: unknown;
+  try {
+    몸 = JSON.parse(글);
+  } catch {
+    return { 거절: '표준 기획서 결과를 못 읽었다 — JSON 이 아니다' };
+  }
+  // 날 글자와 푼 값을 둘 다 본다 — JSON 이스케이프가 따옴표 · 역슬래시 든 비밀번호를 가린다
+  const 글들 = [글, ...글모두(몸)];
+  if (비밀섞였나(글들, 비밀.피그마) || 계정섞였나(글들, 비밀.계정)) return { 거절: '표준 기획서 결과에 비밀값이 들어 있다 — 결과 파일에서 지워라' };
+  const 옮긴 = 옮긴것읽기(몸, 서비스);
+  return '사유' in 옮긴 ? { 거절: `표준 기획서 결과를 못 읽었다 — ${옮긴.사유}` } : { 글, 옮긴 };
+}
+
+/**
  * 자식이 정상으로 끝난 뒤 · 올리기 전에 부른다. 돌려준 줄이 PR 본문 머리에 실리고, 원장 · 기준은 올리기 판정이 쓴다.
  * **못 올리면 `거절`** — 표가 표준 기획서 번호(임시 번호 포함)에 매여 있어 판 없이 PR 을 세우면 표가 없는 요구를 가리킨다.
  * 이어하기가 결과 파일을 고쳐 다시 올린다 (2026-10-10 시작 질문)
@@ -129,22 +151,10 @@ export async function 옮기기올리기(
   /** 서비스 테스트 폴더 — 옛 표를 옮겼으면 남은 옛 케이스 파일을 본다 */
   폴더: string,
 ): Promise<{ 줄: string[]; 원장: 원장 | { 없음: string }; 기준: 기준결정 } | { 거절: string; 줄: string[] }> {
-  // 자식이 쓴 파일이라 링크 · 크기를 보고 읽는다(역방향 산출물과 같은 손)
-  const 파일 = 산출물읽기(자리, 결과이름, 본문상한);
-  if ('사유' in 파일) return { 거절: 파일.사유, 줄: [] };
-  if (파일.몸 === null) return { 거절: `표준 기획서 결과(out/${결과이름})가 없다`, 줄: [] };
-  const 글 = 파일.몸.toString('utf8');
-  let 몸: unknown;
-  try {
-    몸 = JSON.parse(글);
-  } catch {
-    return { 거절: '표준 기획서 결과를 못 읽었다 — JSON 이 아니다', 줄: [] };
-  }
-  // 날 글자와 푼 값을 둘 다 본다 — JSON 이스케이프가 따옴표 · 역슬래시 든 비밀번호를 가린다. 올리면 「PRD 관리」 · 워드에 보인다
-  const 글들 = [글, ...글모두(몸)];
-  if (비밀섞였나(글들, 비밀.피그마) || 계정섞였나(글들, 비밀.계정)) return { 거절: '표준 기획서 결과에 비밀값이 들어 있다 — 결과 파일에서 지워라', 줄: [] };
-  const 옮긴 = 옮긴것읽기(몸, 서비스);
-  if ('사유' in 옮긴) return { 거절: `표준 기획서 결과를 못 읽었다 — ${옮긴.사유}`, 줄: [] };
+  const 읽음 = 결과읽기(자리, 서비스, 비밀);
+  if (읽음 === null) return { 거절: `표준 기획서 결과(out/${결과이름})가 없다`, 줄: [] };
+  if ('거절' in 읽음) return { 거절: 읽음.거절, 줄: [] };
+  const { 글, 옮긴 } = 읽음;
   // 워드에 PDF · 피그마가 섞이면 원장은 있어도 그 자료 몫은 대조하지 못한다 — 그 사실도 남긴다. 화면만은 원본이 없어 대조할 것이 없다
   const 대조 = '없음' in 원본원장
     ? 대조줄들(원본원장)

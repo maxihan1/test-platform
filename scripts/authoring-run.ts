@@ -28,7 +28,7 @@ import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
-import { 반영뒤줄, 반영요청인가 } from './authoring-apply.js';
+import { 반영요청인가, 안옮김뒤, 화면이맞음읽기 } from './authoring-screen-right.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -218,7 +218,7 @@ async function 사본에서(
   const 옮긴다 = 이어작성원본 === null && !반영요청인가(것);
   // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로. 기준 표는 트리가 아니라 기준 SHA 에서. 이어받은 폴더면 앞 결과 파일의 임시 번호를 잇는다
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
-  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판 } : undefined });
+  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것) } : undefined });
   if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
   await 손.단계('케이스를 만드는 중');
   if (박동.멈추라했다()) return void (await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' }));
@@ -283,8 +283,8 @@ async function 사본에서(
     return;
   }
   // 옮긴 표준 기획서는 PR 을 만들기 전에 올리고 표의 임시 번호를 받은 번호로 바꾼다 — 판 · 대조 줄이 PR 본문 머리에 실리고 원장은 올린 판이다.
-  // 못 올리면 올리기 거절 — 표가 판에 없는 번호를 가리킨다. 멈춤 · 한도로 끝났으면 위에서 나가 이어하기가 이어 쓴다
-  const 옮김 = !옮긴다 ? { 줄: 원장.반영 === undefined ? [] : 반영뒤줄(원장.반영.계획, 자리.트리, 케이스자리), 원장: 원장.원장, 기준: 원장.기준 }
+  // 못 올리면 올리기 거절 — 표가 판에 없는 번호를 가리킨다. 멈춤 · 한도로 끝났으면 위에서 나가 이어하기가 이어 쓴다. 화면이 맞음은 고친 번호만 올린다
+  const 옮김 = !옮긴다 ? await 안옮김뒤({ 주소기지, 토큰 }, 서비스, 것.id, 자리, 기획서.앞판, 원장, { 피그마: 것.figmaToken, 계정: 것.target?.loginPassword }, 케이스자리)
     : await 옮기기올리기({ 주소기지, 토큰 }, 서비스, 것.id, 자리, 기획서.앞판, 원장.원본원장, { 피그마: 것.figmaToken, 계정: 것.target?.loginPassword }, 원장.기준표, 케이스자리);
   if ('거절' in 옮김) {
     console.log(`[작성] ${것.id}번 표준 기획서를 못 올려 거절한다\n${옮김.줄.join('\n')}`);

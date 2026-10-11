@@ -6,7 +6,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { 집은쪽인가 } from '../authoring/agentRoutes.js';
 import type { 요청 } from '../authoring/store.js';
 import { 누가, 판번호, 틀린판번호 } from './routes.js';
-import { 본문상한, 항목검사 } from './rules.js';
+import { 본문상한, 항목검사, 화면번호들 } from './rules.js';
 import { 기준판, 서비스접두사, 옮기기, 읽은판, 지금판, 판하나 } from './store.js';
 
 type 경로 = { Params: { id: string } };
@@ -42,7 +42,8 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
       const 접두사 = await 서비스접두사(행.serviceId);
       const 읽음 = 항목검사(req.body?.items, 접두사);
       if ('error' in 읽음) return reply.code(400).send(읽음);
-      const 결과 = await 옮기기(행.id, 행.serviceId, 접두사, baseVersion, 읽음.items, 누가(req));
+      // 화면이 맞음 요청이면 그 번호의 바뀐 항목을 서버가 확정 · 사람이 고친 것으로 단다 — 본문이 아니라 요청 행에서 읽는다
+      const 결과 = await 옮기기(행.id, 행.serviceId, 접두사, baseVersion, 읽음.items, 누가(req), 화면번호들(행.params));
       if (!('error' in 결과)) return 결과;
       return reply.code(결과.error === 'NOT_RUNNING' ? 409 : 400).send(결과);
     },

@@ -6,6 +6,9 @@ import { api, type FailureCase, type Platform, type RunItemSummary } from './api
 import { 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
 import { ItemExpand } from './ItemExpand.js';
+import type { 판정 } from './role.js';
+import { RunFailJudge } from './RunFailJudge.js';
+import { 관련요구줄 } from './RunFailedReqs.js';
 import { 같은실패끼리, RunFailDevice } from './RunFailDevice.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, 디바이스순서 } from './ui.js';
 
@@ -15,7 +18,11 @@ interface Props {
   /** 그 실행 응답의 항목 — 실패 케이스의 통과 · 미실행 디바이스 줄을 그리는 데 쓴다 */
   items: RunItemSummary[];
   platform: Platform | 'ALL';
+  /** 그 실행 서비스의 권한 — 「화면이 맞음」 · 「버그」 버튼과 요구 고리를 가른다. 안 주면 아무것도 못 하는 것으로 본다 */
+  권한?: 판정;
 }
+
+const 권한없음: 판정 = () => false;
 
 export function RunFailCards(props: Props) {
   const t = use말();
@@ -24,7 +31,7 @@ export function RunFailCards(props: Props) {
   return <카드목록 {...props} />;
 }
 
-function 카드목록({ runId, env, items, platform }: Props) {
+function 카드목록({ runId, env, items, platform, 권한 = 권한없음 }: Props) {
   const t = use말();
   const [쪽상태, set쪽상태] = useState({ 거르개: platform, 쪽: 1 });
   // 디바이스 거르개가 바뀌면 1쪽부터 — 앞 쪽 번호로 새 거르개를 부르면 쪽 수가 틀린다
@@ -39,6 +46,8 @@ function 카드목록({ runId, env, items, platform }: Props) {
     넘김.current = false;
     머리.current?.focus();
   }, [응답.data]);
+
+  const 다시읽기 = 응답.reload;
 
   if (응답.error !== null) return <Failed error={응답.error} />;
   if (응답.data === null) return <Loading />;
@@ -60,7 +69,9 @@ function 카드목록({ runId, env, items, platform }: Props) {
       {응답.data.items.length === 0 ? (
         <p className="empty">{t('실패한 케이스가 없습니다')}</p>
       ) : (
-        응답.data.items.map((c) => <카드 key={c.tcId} c={c} runId={runId} env={env} items={items} platform={platform} />)
+        응답.data.items.map((c) => (
+          <카드 key={c.tcId} c={c} runId={runId} env={env} items={items} platform={platform} 권한={권한} on남김={다시읽기} />
+        ))
       )}
 
       {쪽 === 1 && !더있나 ? null : (
@@ -84,12 +95,16 @@ function 카드({
   env,
   items,
   platform,
+  권한,
+  on남김,
 }: {
   c: FailureCase;
   runId: number;
   env: string;
   items: RunItemSummary[];
   platform: Platform | 'ALL';
+  권한: 판정;
+  on남김: () => void;
 }) {
   const t = use말();
   const 깨진 = new Set(c.devices.map((d) => d.platform));
@@ -118,6 +133,8 @@ function 카드({
         </p>
       )}
 
+      <관련요구줄 reqs={c.reqs} 권한={권한} />
+
       {같은실패끼리(c.devices).map((묶음) => (
         <RunFailDevice key={묶음.map((d) => d.platform).join('-')} devices={묶음} env={env} items={items} />
       ))}
@@ -125,6 +142,8 @@ function 카드({
       {나머지.map((칸) => (
         <통과줄 key={칸[0]!.platform} 칸={칸} runId={runId} />
       ))}
+
+      <RunFailJudge c={c} runId={runId} 권한={권한} on남김={on남김} />
     </article>
   );
 }
