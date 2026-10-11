@@ -13,10 +13,17 @@ if (prefix === undefined) {
 }
 
 try {
-  // 대상 서버는 설정에서 고른 줄이다. 꺼져 있으면 앞 판처럼 demo 로 돈다
-  const r = await pool.query<{ env: string | null }>('SELECT schedule_env AS env FROM service WHERE prefix = $1', [prefix]);
-  const env = r.rows[0]?.env ?? 'demo';
-  const 만든것 = await 정기실행을만든다(prefix, env, new Date().toISOString().slice(0, 10), console);
+  // 켜 둔 서비스면 그날 돈 것으로 친다 — 마지막으로 돈 때를 적어 그날 점검이 한 번 더 돌리지 않게 한다.
+  // 대상 서버는 설정에서 고른 줄, 꺼져 있으면 앞 판처럼 demo 다. 제목의 날짜는 설정의 시간대로 센다
+  const r = await pool.query<{ env: string | null; 날짜: string }>(
+    `UPDATE service SET schedule_last = CASE WHEN schedule_at IS NULL THEN schedule_last ELSE now() END
+      WHERE prefix = $1
+      RETURNING schedule_env AS env, to_char(now() AT TIME ZONE COALESCE(schedule_tz, 'UTC'), 'YYYY-MM-DD') AS "날짜"`,
+    [prefix],
+  );
+  const 서비스 = r.rows[0];
+  if (서비스 === undefined) throw new Error(`${prefix} 서비스가 없다. 설정 화면의 접두사를 확인해라`);
+  const 만든것 = await 정기실행을만든다(prefix, 서비스.env ?? 'demo', 서비스.날짜, console);
   await 만든것.끝;
   if (만든것.runIds.length > 0) console.log(`실행 ${만든것.runIds.join(' · ')}이 끝났다`);
   if (만든것.실패) process.exitCode = 1;

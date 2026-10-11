@@ -10,7 +10,7 @@ import { 시간대확인, 틀린시간대 } from '../reporting/dashboardResults.
 import { 정수 } from '../routeParams.js';
 
 import { 제외경로정리 } from './rules.js';
-import { 대상서버키, 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
+import { db, 서비스고치기, 서비스만들기, 서비스목록, 설정오류, 정기실행재료 } from './store.js';
 import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수락, 비밀번호다시만들기 } from './users.js';
 
 // SPEC §2 의 접두사 모양을 코드가 복사해 둔 자리다. §2 를 고치면 여기도 같이 움직인다 (CLAUDE.md §2.7 ⑤).
@@ -210,20 +210,27 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
   });
 }
 
-/** 정기 실행에서 스키마가 못 보는 두 칸 — 시간대 이름표와 대상 서버. 같이 보낸 envs 가 있으면 그것으로 본다 */
+/**
+ * 정기 실행에서 스키마가 못 보는 두 칸 — 시간대 이름표와 대상 서버. 같이 보낸 envs 가 있으면 그것으로 본다.
+ * envs 만 보내 켜 둔 정기 실행의 대상 서버를 빼도 막는다 — 안 막으면 다음 날부터 매일 실행을 못 만들고 로그에만 남는다
+ */
 async function 정기실행틀린칸(
   id: number,
   본문: { schedule?: { tz: string; env: string } | null; envs?: { env: string }[] },
 ): Promise<string | null> {
-  const 정기 = 본문.schedule;
-  if (정기 === undefined || 정기 === null) return null;
-  try {
-    const { pool } = await import('../db/index.js');
-    await 시간대확인(pool, 정기.tz);
-  } catch (err) {
-    if (err instanceof 틀린시간대) return `schedule.tz: ${정기.tz}`;
-    throw err;
+  const 보낸것 = 본문.schedule;
+  if (보낸것 === null || (보낸것 === undefined && 본문.envs === undefined)) return null;
+  if (보낸것 !== undefined) {
+    try {
+      await 시간대확인(await db(), 보낸것.tz);
+    } catch (err) {
+      if (err instanceof 틀린시간대) return `schedule.tz: ${보낸것.tz}`;
+      throw err;
+    }
   }
-  const 키들 = 본문.envs?.map((e) => e.env) ?? (await 대상서버키(id));
-  return 키들.includes(정기.env) ? null : `schedule.env: ${정기.env}`;
+  const 재료 = await 정기실행재료(id);
+  const 대상서버 = 보낸것?.env ?? 재료?.대상서버 ?? null;
+  if (재료 === null || 대상서버 === null) return null;
+  const 키들 = 본문.envs?.map((e) => e.env) ?? 재료.키들;
+  return 키들.includes(대상서버) ? null : `schedule.env: ${대상서버}`;
 }

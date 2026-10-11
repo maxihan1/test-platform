@@ -91,6 +91,11 @@ describe.skipIf(연결 === undefined)('설정 API — 정기 실행', () => {
     expect((await 내것()).schedule).toEqual({ at: '04:30', tz: 'Asia/Seoul', env: 'qa' });
   });
 
+  it('envs 만 보내 켜 둔 정기 실행의 대상 서버를 빼도 400 이다', async () => {
+    const res = await 고친다({ envs: [{ env: 'demo', baseUrl: 'https://demo.example.com' }] });
+    expect(res.json()).toEqual({ error: 'INVALID_REQUEST', detail: 'schedule.env: qa' });
+  });
+
   it('마지막 정기 실행은 마지막으로 돈 때 뒤에 스케줄러가 만든 실행만 번호 순으로 싣는다', async () => {
     const { pool } = await import('../db/index.js');
     await pool.query("UPDATE service SET schedule_last = '2026-10-12T18:00:00Z' WHERE id = $1", [id]);
@@ -118,5 +123,9 @@ describe.skipIf(연결 === undefined)('설정 API — 정기 실행', () => {
     const 하나 = await 내것();
     expect(하나.schedule).toBeNull();
     expect(하나.lastScheduled).not.toBeNull();
+
+    // 꺼 두면 대상 서버 줄을 마음대로 고친다
+    const 뺐다 = await 고친다({ envs: [{ env: 'demo', baseUrl: 'https://demo.example.com' }] });
+    expect(뺐다.statusCode).toBe(200);
   });
 });

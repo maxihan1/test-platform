@@ -179,6 +179,7 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
         <구획 제목={t('정기 실행')} 쓰임={t('매일 정한 시각에 이 서비스의 스크립트를 한 번 돌립니다. 대시보드의 통과율 · 일별 결과가 여기서 쌓입니다')}>
           <ScheduleFields
             값={schedule}
+            저장된={row.schedule ?? null}
             바꾼다={setSchedule}
             대상서버들={envs.map((it) => it.env).filter((env) => env !== '')}
             마지막={row.lastScheduled ?? null}

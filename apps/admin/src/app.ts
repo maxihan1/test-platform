@@ -19,6 +19,7 @@ import { 세션등록, 열쇠최소길이 } from './auth/session.js';
 import catalogRoutes from './catalog/routes.js';
 import { pool } from './db/index.js';
 import executionRoutes from './execution/routes.js';
+import { 정기실행켜기 } from './execution/scheduled.js';
 import trialRoutes from './execution/trialRoutes.js';
 import grafanaProxy from './grafana/proxy.js';
 import notificationRoutes from './notifications/routes.js';
@@ -92,7 +93,10 @@ if (열쇠바이트 < 열쇠최소길이) {
   .then((만들었나) => {
     // 비밀번호는 찍지 않는다 — 값은 SETUP.md 에 있고, 로그는 여러 사람이 본다
     if (만들었나) console.log('기본 계정 admin 을 만들었다. 첫 로그인에서 비밀번호를 바꿔야 한다 (SPEC §9.2)');
-    return buildApp().listen({ port, host: '0.0.0.0' });
+    const app = buildApp();
+    // 서비스 설정에서 켠 정기 실행을 1분마다 본다. 기동 경로에만 둔다 — buildApp 을 부르는 검사가 진짜 실행을 만들지 않게 (SPEC 공통/6-인프라 §9.2)
+    정기실행켜기(app);
+    return app.listen({ port, host: '0.0.0.0' });
   })
   .catch((err: unknown) => {
     console.error(err);

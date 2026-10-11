@@ -227,11 +227,21 @@ export interface 서비스수정 {
   schedule?: 정기실행 | null;
 }
 
-/** 정기 실행의 대상 서버가 그 서비스에 있는지 보려고 읽는다 (도메인/인증 §7 계약 변경 블록) */
-export async function 대상서버키(id: number): Promise<string[]> {
+/**
+ * 정기 실행의 대상 서버를 대 보려고 읽는다 — 지금 대상 서버 줄과 켜 둔 정기 실행의 대상 서버.
+ * 서비스가 없으면 null 이다 — 고치기가 404 를 낸다 (도메인/인증 §7 계약 변경 블록)
+ */
+export async function 정기실행재료(id: number): Promise<{ 키들: string[]; 대상서버: string | null } | null> {
   const pool = await db();
-  const r = await pool.query<{ env: string }>('SELECT env FROM service_env WHERE service_id = $1', [id]);
-  return r.rows.map((row) => row.env);
+  const r = await pool.query<{ envs: string[]; schedule_env: string | null }>(
+    `SELECT s.schedule_env, COALESCE(array_agg(e.env) FILTER (WHERE e.env IS NOT NULL), '{}') AS envs
+       FROM service s LEFT JOIN service_env e ON e.service_id = s.id
+      WHERE s.id = $1
+      GROUP BY s.id`,
+    [id],
+  );
+  const 줄 = r.rows[0];
+  return 줄 === undefined ? null : { 키들: 줄.envs, 대상서버: 줄.schedule_env };
 }
 
 export async function 서비스고치기(id: number, 수정: 서비스수정): Promise<void> {

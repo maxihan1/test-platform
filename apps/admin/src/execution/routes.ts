@@ -16,7 +16,6 @@ import { abortRunner, 진행 } from './runner.js';
 import { caseSchemas, createParamSet, deleteParamSet, listParamSets } from './paramSets.js';
 import { caseHistory, lastByCase } from './history.js';
 import { 저장값통로 } from './savedInput.js';
-import { 정기실행켜기 } from './scheduled.js';
 import { findItem, findRun, listRuns, serviceExists } from './queries.js';
 import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
@@ -57,9 +56,6 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     .catch((err: unknown) => {
       app.log.error(`[execution] 재기동 복구가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
     });
-
-  // 서비스 설정에서 켠 정기 실행을 1분마다 본다 (SPEC 공통/6-인프라 §9.2)
-  정기실행켜기(app);
 
   app.post('/runs', async (req, reply) => {
     const parsed = runBody.safeParse(req.body);

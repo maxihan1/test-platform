@@ -5169,6 +5169,15 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   transform: translate(-50%, -50%);
 }
 
+/* 일별 칸 안내 줄에서는 링크가 다음 줄로 선다. 빈 안내판에서는 글 뒤에 이어 붙는다 */
+.dash-note .dash-sched {
+  display: block;
+}
+
+.dash-empty .dash-sched {
+  margin-left: 6px;
+}
+
 .dash-days,
 .dash-heat-days {
   display: grid;

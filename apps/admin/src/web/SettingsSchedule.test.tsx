@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// 서비스 설정 「정기 실행」 구획 — 켜고 끄기 · 시간대 · 대상 서버 · 마지막 정기 실행
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -66,6 +67,19 @@ describe('서비스 설정 「정기 실행」 구획 (도메인/인증 §8.8 ·
     await waitFor(() =>
       expect(고침).toHaveBeenCalledWith(7, expect.objectContaining({ schedule: { at: '05:00', tz: 'Asia/Seoul', env: 'qa' } })),
     );
+  });
+
+  it('끄고 다시 켜면 저장된 시각 · 시간대 · 대상 서버로 돌아온다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServicePanel row={켜진서비스} onDone={() => {}} />);
+
+    fireEvent.click(screen.getByLabelText('매일 돌리기'));
+    fireEvent.click(screen.getByLabelText('매일 돌리기'));
+    expect((screen.getByLabelText('시각') as HTMLInputElement).value).toBe('04:30');
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalled());
+    expect(고침.mock.calls[0]![1]).not.toHaveProperty('schedule');
   });
 
   it('끄고 저장하면 null 을 보낸다', async () => {

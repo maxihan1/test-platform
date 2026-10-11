@@ -81,32 +81,35 @@ export async function 정기실행을만든다(prefix: string, env: string, 날�
 
 /**
  * 지금 돌 서비스를 집는다 — 고르는 것과 「마지막으로 돈 때」를 적는 것이 한 문장이라 둘이 같은 서비스를 집지 않는다.
- * 조건은 활성 · 켜짐 · 그 시간대의 지금이 정한 시각부터 1시간 안(자정을 넘지 않는다) · 그 시간대의 오늘 아직 안 돌았다 (§9.2)
+ * 조건은 활성 · 켜짐 · 그 시간대의 지금이 정한 시각부터 1시간 안(자정을 넘지 않는다) · 그 시간대의 오늘 아직 안 돌았다 (§9.2).
+ * 지금은 DB 시계다 — 실행의 started_at 도 DB 가 적어서 「마지막 정기 실행」이 두 시계의 차이로 실행을 놓치지 않는다
  */
 export async function 돌때가된서비스(
-  지금: Date,
-  // 검사는 트랜잭션 연결을 넘겨 되돌린다 — 그 DB 의 다른 서비스 「마지막으로 돈 때」를 덮지 않게
+  // 검사만 넘긴다. 검사는 트랜잭션 연결도 넘겨 되돌린다 — 그 DB 의 다른 서비스 「마지막으로 돈 때」를 덮지 않게
+  지금: Date | null = null,
   db?: Pick<PoolClient, 'query'>,
 ): Promise<{ prefix: string; env: string; 날짜: string }[]> {
   const 손 = db ?? (await import('../db/index.js')).pool;
   const r = await 손.query<{ prefix: string; env: string; 날짜: string }>(
-    `UPDATE service
-        SET schedule_last = $1
+    `WITH 기준 AS (SELECT COALESCE($1::timestamptz, now()) AS t)
+     UPDATE service
+        SET schedule_last = 기준.t
+       FROM 기준
       WHERE is_active
         AND schedule_at IS NOT NULL
-        AND ($1::timestamptz AT TIME ZONE schedule_tz)::time - schedule_at >= interval '0'
-        AND ($1::timestamptz AT TIME ZONE schedule_tz)::time - schedule_at <  interval '1 hour'
+        AND (기준.t AT TIME ZONE schedule_tz)::time - schedule_at >= interval '0'
+        AND (기준.t AT TIME ZONE schedule_tz)::time - schedule_at <  interval '1 hour'
         AND (schedule_last IS NULL
-             OR (schedule_last AT TIME ZONE schedule_tz)::date < ($1::timestamptz AT TIME ZONE schedule_tz)::date)
-      RETURNING prefix, schedule_env AS env, to_char($1::timestamptz AT TIME ZONE schedule_tz, 'YYYY-MM-DD') AS "날짜"`,
+             OR (schedule_last AT TIME ZONE schedule_tz)::date < (기준.t AT TIME ZONE schedule_tz)::date)
+      RETURNING prefix, schedule_env AS env, to_char(기준.t AT TIME ZONE schedule_tz, 'YYYY-MM-DD') AS "날짜"`,
     [지금],
   );
   return r.rows;
 }
 
 /** 1분마다 부른다. 만들다 실패해도 그날은 다시 안 돈다 — 1분마다 같은 실패를 되풀이하지 않는다 (§9.2) */
-export async function 정기실행점검(지금: Date, 로그: 로그): Promise<void> {
-  for (const { prefix, env, 날짜 } of await 돌때가된서비스(지금)) {
+export async function 정기실행점검(로그: 로그): Promise<void> {
+  for (const { prefix, env, 날짜 } of await 돌때가된서비스()) {
     try {
       const { 끝 } = await 정기실행을만든다(prefix, env, 날짜, 로그);
       void 끝.catch((err: unknown) => 로그.error(`[schedule] ${prefix} 분배가 깨졌다: ${err instanceof Error ? err.message : String(err)}`));
@@ -117,17 +120,16 @@ export async function 정기실행점검(지금: Date, 로그: 로그): Promise<
 }
 
 /**
- * admin 이 뜰 때 건다. 시각과 마지막으로 돈 때가 DB 에 있어 재기동해도 1분 넘게 밀리지 않는다 —
+ * admin 이 뜰 때 건다(app.ts 기동 경로 — 라우트를 띄우는 검사가 진짜 실행을 만들지 않게).
+ * 시각과 마지막으로 돈 때가 DB 에 있어 재기동해도 1분 넘게 밀리지 않는다 —
  * 앞 판이 「admin 안에 스케줄러를 넣지 않는다」고 한 까닭(메모리 타이머가 재기동마다 흔들린다)이 여기서는 없다 (§9.2)
  */
 export function 정기실행켜기(app: FastifyInstance): void {
   const 로그: 로그 = { info: (말) => app.log.info(말), error: (말) => app.log.error(말) };
   const 점검 = setInterval(() => {
-    void 정기실행점검(new Date(), 로그).catch((err: unknown) =>
+    void 정기실행점검(로그).catch((err: unknown) =>
       로그.error(`[schedule] 점검이 깨졌다: ${err instanceof Error ? err.message : String(err)}`),
     );
   }, 60_000);
-  // 검사가 앱을 띄웠다 닫는 동안 프로세스를 붙잡지 않는다
-  점검.unref();
   app.addHook('onClose', async () => clearInterval(점검));
 }

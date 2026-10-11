@@ -7,11 +7,14 @@ import { 처음대상서버 } from './settingsView.js';
 
 export function ScheduleFields({
   값,
+  저장된,
   바꾼다,
   대상서버들,
   마지막,
 }: {
   값: ScheduleSetting | null;
+  /** 서버에 저장돼 있는 것. 끄고 다시 켜면 이것으로 돌아온다 — 처음 값으로 덮으면 시각 · 시간대 · 대상 서버가 말없이 바뀐다 */
+  저장된: ScheduleSetting | null;
   바꾼다: (값: ScheduleSetting | null) => void;
   /** 지금 적힌 대상 서버 줄의 이름들. 저장 전의 것이라 방금 더한 줄도 고를 수 있다 */
   대상서버들: string[];
@@ -19,8 +22,9 @@ export function ScheduleFields({
 }) {
   const t = use말();
   const 언어 = use언어();
-  // 켤 때 이 브라우저의 시간대로 정한다. 이미 켜 둔 것은 저장된 시간대 그대로다 — 다른 시간대 사람이 고쳐도 시각이 밀리지 않게
-  const 켠다 = () => 바꾼다({ at: '03:00', tz: Intl.DateTimeFormat().resolvedOptions().timeZone, env: 처음대상서버(대상서버들) });
+  // 처음 켤 때 이 브라우저의 시간대로 정한다. 이미 켜 둔 것은 저장된 시간대 그대로다 — 다른 시간대 사람이 고쳐도 시각이 밀리지 않게
+  const 켠다 = () =>
+    바꾼다(저장된 ?? { at: '03:00', tz: Intl.DateTimeFormat().resolvedOptions().timeZone, env: 처음대상서버(대상서버들) });
   return (
     <>
       <label className="check-inline" htmlFor="sf-sched-on">
