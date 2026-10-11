@@ -218,3 +218,22 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
     }
   });
 });
+
+describe('execute 는 자식 출력을 UTF-8 로 이어 읽는다', () => {
+  const 요청: ExecuteRequest = {
+    runId: 5, historyId: 9, tcId: 'DEMO-001', platform: 'desktop', filePath: 'a.spec.ts',
+    baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+  };
+
+  it('한글 한 글자가 stderr 두 조각에 걸쳐도 깨지지 않는다', async () => {
+    스크립트.지금 = String.raw`printf '\352\260' >&2; sleep 0.2; printf '\200 실패\n' >&2; exit 1`;
+
+    expect((await execute(요청, 'a.spec.ts')).error?.message).toBe('가 실패');
+  });
+
+  it('결과 줄의 한글이 stdout 두 조각에 걸쳐도 깨지지 않는다', async () => {
+    스크립트.지금 = String.raw`printf '@@RESULT@@{"status":"FAIL","durationMs":1,"steps":[],"error":{"message":"\352\260'; sleep 0.2; printf '\200"}}\n'`;
+
+    expect((await execute(요청, 'a.spec.ts')).error?.message).toBe('가');
+  });
+});

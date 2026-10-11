@@ -37,7 +37,7 @@ export interface Running {
 // 물어보는 그 순간에 경과를 재야 받는 쪽 시계와의 차가 오차로 남지 않는다 (SPEC §5.2)
 export function 진행을_모은다(entry: Running, stdout: Readable): void {
   const collector = createProgressCollector();
-  stdout.on('data', (chunk: Buffer) => {
+  stdout.on('data', (chunk: Buffer | string) => {
     for (const step of collector.push(chunk.toString())) {
       entry.progress = { step, 시작한때: Date.now() };
     }
@@ -154,12 +154,15 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   const entry: Running = { child, killedBy: null };
   running.set(req.historyId, entry);
 
+  // 조각마다 따로 풀면 경계에 걸린 한글 한 글자가 � 둘이 된다. 결과 줄의 절차 제목 · 검증 문장도 같은 길로 온다 (scenario.ts 와 같다)
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
   진행을_모은다(entry, child.stdout);
 
   let stdout = '';
   let stderr = '';
-  child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
-  child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+  child.stdout.on('data', (chunk: string) => { stdout += chunk; });
+  child.stderr.on('data', (chunk: string) => { stderr += chunk; });
 
   const timer = setTimeout(() => {
     entry.killedBy = 'TIMEOUT';
