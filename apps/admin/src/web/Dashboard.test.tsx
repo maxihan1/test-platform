@@ -308,6 +308,16 @@ describe('서비스별 품질 표', () => {
     expect(within(회원).getByText('—', { selector: '.dash-delta' })).toBeTruthy();
   });
 
+  it('흐름 막대는 맨 앞이 최신이다 — 서버는 오래된 것부터 준다', async () => {
+    읽기를(응답());
+    render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
+    const 칸 = (await screen.findByRole('heading', { name: '서비스별 품질' })).closest('section')!;
+    expect(within(칸).getByRole('columnheader', { name: '최근 실행, 맨 앞이 최신' })).toBeTruthy();
+    const 결제 = within(칸).getAllByRole('row')[1]!;
+    const 네모들 = within(결제).getByRole('img', { name: /통과 2/ }).querySelectorAll('i');
+    expect([...네모들].map((네모) => 네모.className)).toEqual(['p', 'n', 'f', 'p']);
+  });
+
   it('마지막 실행에 실패가 있는지를 점이 글로도 말한다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
