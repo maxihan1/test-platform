@@ -61,7 +61,7 @@ export class 회원가입화면 {
     this.개인정보동의 = 본문.getByRole('checkbox', { name: '(필수) 개인정보 수집 동의' });
     this.마케팅동의 = 본문.getByRole('checkbox', { name: '(선택) 마케팅 수신 동의' });
     this.이용약관보기 = 본문.locator('button.view[data-term="terms"]');
-    this.가입하기 = 본문.getByRole('button', { name: '가입하기' });
+    this.가입하기 = 본문.locator('button.join');
     this.제출오류 = 본문.getByRole('alert');
   }
 
