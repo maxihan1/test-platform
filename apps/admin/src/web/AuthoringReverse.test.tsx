@@ -96,10 +96,20 @@ describe('새 요청 — 실제 화면과 대조', () => {
     });
   });
 
-  it('대조인데 시작 주소도 자료도 없으면 보낼 수 없다', () => {
+  it('대조면 시작 주소도 자료도 없이 보낸다 — 기획서에 없는 화면만 작성한다', async () => {
+    폼();
+    expect(보내기().disabled).toBe(true);
+    대조를켠다();
+    expect(보내기().disabled).toBe(false);
+    fireEvent.click(보내기());
+    await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '세우기']));
+    expect(부름[0]?.값).toEqual({ service: 'PAY', body: { kind: 'AUTHOR', figma: [], compare: true, env: 'qa' } });
+  });
+
+  it('대조 칸 설명이 기획서 화면을 먼저 쓰고 없는 화면이 이어진다고 알린다', () => {
     폼();
     대조를켠다();
-    expect(보내기().disabled).toBe(true);
+    expect(screen.getByText(/기획서가 있으면 기획서 화면을 먼저 작성하고, 병합되면 기획서에 없는 화면을 이어서 작성합니다/)).toBeTruthy();
   });
 
   it('대상 서버를 바꿔 고르면 그 서버로 보낸다', async () => {
@@ -223,12 +233,12 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
 
   it('시작 주소가 없으면 기획서가 말하는 화면에서 시작한다고 적는다', async () => {
     await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, assets: [자료(1, { name: '기획서.docx' })] }));
-    expect(screen.getByText('qa · 기획서에 나온 화면에서 시작')).toBeTruthy();
+    expect(screen.getByText('qa · 대상 서버 주소에서 시작')).toBeTruthy();
   });
 
   it('입력 자료가 없는 대조 요청은 화면만이라고 적는다', async () => {
     await 상세를연다(줄({ compare: true, env: 'qa', startUrl: 'https://qa.example.com/', assets: [] }));
-    expect(screen.getByText('화면만 — 기획서 없이 이 화면을 훑습니다')).toBeTruthy();
+    expect(screen.getByText('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')).toBeTruthy();
   });
 
   it('정방향 요청에는 대조 줄이 없다', async () => {

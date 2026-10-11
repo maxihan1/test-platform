@@ -118,6 +118,19 @@ describe('옮기기올리기', () => {
     expect(건것).not.toHaveBeenCalled();
   });
 
+  it('결과 파일이 없어도 크롤 목록이 전부 PRD 에 있는 화면이면 거절하지 않는다 — 화면만이 아무것도 안 쓴 것이 맞다 (PRD-F6-03)', async () => {
+    const 건것 = vi.fn(async () => 답(200));
+    vi.stubGlobal('fetch', 건것);
+    mkdirSync(join(자리.자료, 'crawl'));
+    writeFileSync(join(자리.자료, 'crawl', 'list.json'), JSON.stringify([{ 틀: '/', 덮음: true }, { 틀: '/cart', 덮음: true }]));
+    const r = await 올리기();
+    expect(r).toMatchObject({ 줄: [] });
+    expect('거절' in r).toBe(false);
+    expect(건것).not.toHaveBeenCalled();
+    writeFileSync(join(자리.자료, 'crawl', 'list.json'), JSON.stringify([{ 틀: '/', 덮음: true }, { 틀: '/cart' }]));
+    expect(await 올리기()).toEqual({ 거절: '표준 기획서 결과(out/prd.json)가 없다', 줄: [] });
+  });
+
   it('테스트 계정 비밀번호가 들었으면 이스케이프돼 있어도 올리지 않고 거절한다', async () => {
     const 건것 = vi.fn(async () => 답(200));
     vi.stubGlobal('fetch', 건것);

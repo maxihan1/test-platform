@@ -48,6 +48,9 @@ export function 판(덮을것: Partial<PrdNow> = {}): PrdNow {
     cases: {},
     unapplied: { changed: [], added: ['MKT-REQ-041'], removed: ['MKT-REQ-012'] },
     needsCheck: { count: 2, oldestSince: 며칠전(9) },
+    uncoveredScreens: [],
+    foundScreens: 0,
+    screensOpen: [],
     ...덮을것,
   };
 }

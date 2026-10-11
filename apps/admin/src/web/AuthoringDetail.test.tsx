@@ -470,7 +470,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     expect(await screen.findByText('원본 요청 #3의 입력을 그대로 씁니다')).toBeTruthy();
-    expect(screen.queryByText('화면만 — 기획서 없이 이 화면을 훑습니다')).toBeNull();
+    expect(screen.queryByText('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')).toBeNull();
     expect(screen.getByText('표시 사본 — 원본 요청 #3의 자료')).toBeTruthy();
   });
 

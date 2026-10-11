@@ -57,7 +57,7 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
             <>
               {t('{차}차', { 차 })} · {방식(것, t, 것.rootKind)}
             </>
-          ) : 것.continueFrom == null ? (
+          ) : 것.continueFrom == null && 것.uncoveredOf == null ? (
             종류라벨(것.rootKind ?? 것.kind, 언어)
           ) : null}
           {/* 평문이다 — 줄 전체가 링크라 안에 링크를 두면 마우스로 못 누른다. 첫 실행이면 종류 라벨 자리에 */}
@@ -65,6 +65,12 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
             <>
               {차 > 1 ? ' · ' : null}
               {t('#{번호}의 남은 요구', { 번호: 것.continueFrom })}
+            </>
+          )}
+          {것.uncoveredOf == null ? null : (
+            <>
+              {차 > 1 ? ' · ' : null}
+              {t('#{번호} 다음 · 기획서에 없는 화면', { 번호: 것.uncoveredOf })}
             </>
           )}
           {것.compare === true ? ` · ${t('화면과 대조')}` : ''} · {t('요청한 사람')} {것.requestedByName} · {when(것.createdAt, 언어)}

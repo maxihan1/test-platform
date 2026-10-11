@@ -51,16 +51,17 @@ export function 화면검사(몸: unknown): { 화면: 화면; links: 링크[] } 
   return { 화면: { state: b.state, url: b.url, name: b.name, textFp: b.textFp, structFp: b.structFp, record: b.record, crawledAt: b.crawledAt }, links };
 }
 
-/** done 본문 — 이번에 본 화면(재사용 포함)과 다 본 상태. 다 본 상태가 비면 아무것도 안 지운다 */
-export function 다봄검사(몸: unknown): { seen: { state: 상태; url: string }[]; complete: 상태[] } | 오류 {
+/** done 본문 — 이번에 본 화면(재사용 포함)과 다 본 상태. 다 본 상태가 비면 아무것도 안 지운다. name 은 찾은 화면 이름이다 */
+export function 다봄검사(몸: unknown): { seen: { state: 상태; url: string; name: string }[]; complete: 상태[] } | 오류 {
   const b = 칸들(몸);
   if (!Array.isArray(b.complete) || !b.complete.every(상태인가)) return 틀림('complete');
   if (!Array.isArray(b.seen) || b.seen.length > 상한.seen) return 틀림('seen');
-  const seen: { state: 상태; url: string }[] = [];
+  const seen: { state: 상태; url: string; name: string }[] = [];
   for (const [i, s] of b.seen.entries()) {
     const x = 칸들(s);
     if (!상태인가(x.state) || !글인가(x.url, 상한.url)) return 틀림(`seen.${i}`);
-    seen.push({ state: x.state, url: x.url });
+    if (x.name !== undefined && !글인가(x.name, 상한.name, true)) return 틀림(`seen.${i}`);
+    seen.push({ state: x.state, url: x.url, name: typeof x.name === 'string' ? x.name : '' });
   }
   return { seen, complete: [...new Set(b.complete)] };
 }
@@ -108,13 +109,30 @@ export async function 화면넣기(서비스: number, x: 화면, links: 링크[]
 }
 
 /**
- * 다 본 상태에서 이번에 못 본 화면의 기록과 그 화면에서 나간 연결을 지운다 — 지운 기록 수.
- * 로그인 없이 돈 날은 로그아웃만 다 본 상태라 로그인 기록이 남는다 (§3.6 「바뀐 화면만 다시 훑는다」)
+ * 본 화면을 찾은 화면(screen_found)에 넣고(같은 키는 이름만 바꾼다), 다 본 상태에서 이번에 못 본 화면의 기록 ·
+ * 연결 · 찾은 화면을 지운다 — 지운 화면 기록 수.
+ * 로그인 없이 돈 날은 로그아웃만 다 본 상태라 로그인 기록이 남는다 (§3.6 「바뀐 화면만 다시 훑는다」).
+ * 찾은 화면 넣기는 다 본 상태가 비어도 한다 — 비면 지우기만 안 한다
  */
-export async function 다봄(서비스: number, seen: { state: 상태; url: string }[], complete: 상태[]): Promise<number> {
-  if (complete.length === 0) return 0;
+export async function 다봄(서비스: number, seen: { state: 상태; url: string; name: string }[], complete: 상태[]): Promise<number> {
   const 값 = [서비스, complete, seen.map((s) => s.state), seen.map((s) => s.url)];
   return 한묶음(async (손) => {
+    await 손.query(
+      // 같은 키가 두 번 오면 ON CONFLICT 가 한 행을 두 번 고치려다 통째로 실패한다 — 하나로 줄인다.
+      // 빈 이름은 옛 이름을 지우지 않는다(이름 없이 보낸 done · 제목 없는 화면)
+      `INSERT INTO screen_found (service_id, state, url, name)
+       SELECT DISTINCT ON (s.state, s.url) $1::bigint, s.state, s.url, s.name
+         FROM unnest($2::text[], $3::text[], $4::text[]) AS s(state, url, name)
+        ORDER BY s.state, s.url, s.name DESC
+       ON CONFLICT (service_id, state, url) DO UPDATE SET name = COALESCE(NULLIF(EXCLUDED.name, ''), screen_found.name)`,
+      [서비스, seen.map((s) => s.state), seen.map((s) => s.url), seen.map((s) => s.name)],
+    );
+    if (complete.length === 0) return 0;
+    await 손.query(
+      `DELETE FROM screen_found f WHERE f.service_id = $1 AND f.state = ANY($2::text[])
+          AND NOT EXISTS (SELECT 1 FROM unnest($3::text[], $4::text[]) AS s(state, url) WHERE s.state = f.state AND s.url = f.url)`,
+      값,
+    );
     await 손.query(
       `DELETE FROM screen_link l WHERE l.service_id = $1 AND l.state = ANY($2::text[])
           AND NOT EXISTS (SELECT 1 FROM unnest($3::text[], $4::text[]) AS s(state, url) WHERE s.state = l.state AND s.url = l.from_url)`,

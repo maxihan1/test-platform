@@ -188,6 +188,18 @@ describe('이어 작성 요청 — 원본 표시', () => {
     expect(고리.getAttribute('href')).toBe('#/authoring/5873');
   });
 
+  it('기획서에 없는 화면 요청의 부제는 앞 대조 뿌리로 가는 고리를 둔다', async () => {
+    답들.set(5901, 뿌리({ continueFrom: null, uncoveredOf: 5873 }));
+    render(
+      <언어함 value="ko">
+        <AuthoringDetail service="MKT" id={5901} 할수={다됨} />
+      </언어함>,
+    );
+    const 고리 = await screen.findByRole('link', { name: '#5873 다음 · 기획서에 없는 화면' });
+    expect(고리.getAttribute('href')).toBe('#/authoring/5873');
+    expect(screen.queryByRole('link', { name: /남은 요구/ })).toBeNull();
+  });
+
   it('재실행이 최신이어도 부제는 뿌리의 원본을 적는다 — 재실행 행에는 칸이 없다', async () => {
     const 재실행 = { id: 5905, kind: 'RERUN' as const, resumeFrom: null, status: 'PENDING' as const, stopReason: null, error: null, createdAt: '2026-09-30T14:00:00Z', startedAt: null, finishedAt: null, caseFiles: null, tokens: null, prUrl: null };
     답들.set(5901, 뿌리({ runs: [재실행, ...(뿌리().runs ?? [])] }));

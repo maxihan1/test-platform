@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 저장본넣기, 저장본올리기 } from './authoring-screens-keep-io.js';
+import { 저장본넣기, 저장본올리기, 크롤모두덮음 } from './authoring-screens-keep-io.js';
 import { 저장이름 } from './authoring-screens-keep.js';
 
 const 통로 = { 주소기지: 'http://admin:3000', 토큰: 't', 번호: 7 };
@@ -98,7 +98,7 @@ describe('저장본올리기', () => {
       {
         url: 'http://admin:3000/api/authoring/requests/7/screens/done',
         method: 'POST',
-        body: { seen: [{ state: '로그아웃', url: '/' }, { state: '로그아웃', url: '/login' }], complete: ['로그아웃'] },
+        body: { seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그아웃', url: '/login', name: '로그인' }], complete: ['로그아웃'] },
       },
     ]);
   });
@@ -109,7 +109,18 @@ describe('저장본올리기', () => {
     서버(다봄답());
     expect(await 저장본올리기(통로, 자료, null, 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장 · 다 봐서 로그아웃 못 본 화면 1장 지움' });
     expect(건것들.filter((x) => x.method === 'PUT').map((x) => (x.body as { url: string }).url)).toEqual(['/']);
-    expect(건것들.at(-1)?.body).toEqual({ seen: [{ state: '로그아웃', url: '/' }, { state: '로그아웃', url: '/login' }], complete: ['로그아웃'] });
+    expect(건것들.at(-1)?.body).toEqual({ seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그아웃', url: '/login', name: '로그인' }], complete: ['로그아웃'] });
+  });
+
+  it('찾은 화면 이름(seen)은 500자로 자르고 · 이름이 없으면 빈 글이다 · 이름에 비밀번호가 있으면 하나도 안 올린다', async () => {
+    크롤쓰기([{ ...홈, 이름: '가'.repeat(600) }, { ...로그인화면, 이름: undefined }]);
+    서버(다봄답());
+    await 저장본올리기(통로, 자료, null, 지금);
+    expect((건것들.at(-1)?.body as { seen: { name: string }[] }).seen.map((x) => x.name.length)).toEqual([500, 0]);
+    건것들 = [];
+    크롤쓰기([{ ...홈, 이름: '비번 s3cr3t-pw 화면' }]);
+    expect(await 저장본올리기(통로, 자료, 's3cr3t-pw', 지금)).toEqual({ 거절: expect.stringContaining('비밀번호') });
+    expect(건것들).toEqual([]);
   });
 
   it('화면 연결 파일이 있는데 못 읽으면(링크) 연결 없이 올리고 줄에 적는다', async () => {
@@ -166,5 +177,22 @@ describe('저장본올리기', () => {
     expect(JSON.stringify(건것들)).not.toContain('비밀');
     서버(() => ({ status: 500 }));
     expect(await 저장본올리기(통로, 자료, null, 지금)).toEqual({ 줄: '화면 기록 저장: 실패 — 저장본을 못 읽었다(서버 500)' });
+  });
+});
+
+describe('크롤모두덮음 — 올리기가 「PRD 에 없는 화면 0」을 알아보는 읽기 (PRD-F6-03)', () => {
+  it('목록이 전부 덮음이면 장수, 덮지 않은 줄이 있거나 목록이 없으면 null', () => {
+    크롤쓰기([{ ...홈, 덮음: true }, { ...로그인화면, 덮음: true }]);
+    expect(크롤모두덮음(자료)).toBe(2);
+    크롤쓰기([{ ...홈, 덮음: true }, 로그인화면]);
+    expect(크롤모두덮음(자료)).toBeNull();
+    rmSync(join(자료, 'crawl'), { recursive: true });
+    expect(크롤모두덮음(자료)).toBeNull();
+  });
+
+  it('list.json 이 링크면 따라가지 않는다 — 자식이 자리 밖 파일을 읽히지 못하게', () => {
+    writeFileSync(join(폴더, '밖.json'), JSON.stringify([{ 덮음: true }]));
+    symlinkSync(join(폴더, '밖.json'), join(자료, 'crawl', 'list.json'));
+    expect(크롤모두덮음(자료)).toBeNull();
   });
 });

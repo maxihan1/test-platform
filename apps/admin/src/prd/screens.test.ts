@@ -22,6 +22,15 @@ describe('화면 기록 본문 검사', () => {
     expect(화면검사({ ...화면('로그인', '/cart'), links: [{ toUrl: '/a', via: '' }] })).toEqual({ error: 'BAD_SCREEN', detail: 'links.0.via' });
     expect(다봄검사({ seen: [], complete: true })).toEqual({ error: 'BAD_SCREEN', detail: 'complete' });
     expect(다봄검사({ seen: [{ state: '로그인' }], complete: [] })).toEqual({ error: 'BAD_SCREEN', detail: 'seen.0' });
+    expect(다봄검사({ seen: [{ state: '로그인', url: '/a', name: 3 }], complete: [] })).toEqual({ error: 'BAD_SCREEN', detail: 'seen.0' });
+    expect(다봄검사({ seen: [{ state: '로그인', url: '/a', name: 'x'.repeat(501) }], complete: [] })).toEqual({ error: 'BAD_SCREEN', detail: 'seen.0' });
+  });
+
+  it('seen 의 이름은 없어도 빈 글자도 된다', () => {
+    expect(다봄검사({ seen: [{ state: '로그인', url: '/a' }, { state: '로그인', url: '/b', name: '' }, { state: '로그아웃', url: '/c', name: '홈' }], complete: [] })).toEqual({
+      seen: [{ state: '로그인', url: '/a', name: '' }, { state: '로그인', url: '/b', name: '' }, { state: '로그아웃', url: '/c', name: '홈' }],
+      complete: [],
+    });
   });
 });
 
@@ -44,6 +53,7 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     return Number(r.rows[0]!.id);
   };
   const 치우기 = async () => {
+    await q('DELETE FROM screen_found WHERE service_id = $1', [서비스]);
     await q('DELETE FROM screen_link WHERE service_id = $1', [서비스]);
     await q('DELETE FROM screen_record WHERE service_id = $1', [서비스]);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
@@ -127,5 +137,47 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     const 키들 = (xs: object[]) => xs.map((x) => Object.values(x).slice(0, 2).join(' ')).sort();
     expect(키들(남은것.screens)).toEqual(['로그아웃 /', '로그인 /', '로그인 /mypage']);
     expect(키들(남은것.links)).toEqual(['로그아웃 /', '로그인 /', '로그인 /mypage']);
+  });
+
+  it('done 은 본 화면을 찾은 화면으로 남기고, 같은 키는 이름만 바꾸고, 다 본 상태에서 못 본 줄만 지운다', async () => {
+    const id = await 요청넣기('RUNNING');
+    const 다봄 = (몸: object) => app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/screens/done`, payload: 몸 });
+    const 찾음 = async () =>
+      (await q<{ state: string; url: string; name: string }>('SELECT state, url, name FROM screen_found WHERE service_id = $1 ORDER BY state COLLATE "C", url COLLATE "C"', [서비스])).rows;
+
+    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그인', url: '/', name: '홈' }, { state: '로그인', url: '/old' }], complete: [] })).json()).toEqual({ deleted: 0 });
+    expect(await 찾음()).toEqual([
+      { state: '로그아웃', url: '/', name: '홈' },
+      { state: '로그인', url: '/', name: '홈' },
+      { state: '로그인', url: '/old', name: '' },
+    ]);
+
+    await 다봄({ seen: [{ state: '로그인', url: '/', name: '메인' }], complete: [] });
+    expect((await 찾음()).map((x) => x.name)).toEqual(['홈', '메인', '']);
+
+    await 올리기(id, 화면('로그인', '/old'));
+    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그인', url: '/', name: '메인' }], complete: ['로그인'] })).json()).toEqual({ deleted: 1 });
+    expect(await 찾음()).toEqual([
+      { state: '로그아웃', url: '/', name: '홈' },
+      { state: '로그인', url: '/', name: '메인' },
+    ]);
+
+    expect((await 다봄({ seen: [], complete: [] })).json()).toEqual({ deleted: 0 });
+    expect(await 찾음()).toHaveLength(2);
+    expect((await 다봄({ seen: [], complete: ['로그아웃', '로그인'] })).json()).toEqual({ deleted: 0 });
+    expect(await 찾음()).toEqual([]);
+  });
+
+  it('done 에 같은 화면이 두 번 와도 받고, 빈 이름은 옛 이름을 지우지 않는다', async () => {
+    const id = await 요청넣기('RUNNING');
+    const 다봄 = (몸: object) => app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/screens/done`, payload: 몸 });
+    const 찾음 = async () => (await q<{ name: string }>('SELECT name FROM screen_found WHERE service_id = $1', [서비스])).rows;
+
+    const 겹침 = await 다봄({ seen: [{ state: '로그인', url: '/cart', name: '장바구니' }, { state: '로그인', url: '/cart' }], complete: [] });
+    expect(겹침.statusCode).toBe(200);
+    expect(await 찾음()).toEqual([{ name: '장바구니' }]);
+
+    await 다봄({ seen: [{ state: '로그인', url: '/cart' }], complete: [] });
+    expect(await 찾음()).toEqual([{ name: '장바구니' }]);
   });
 });

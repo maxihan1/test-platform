@@ -13,6 +13,11 @@ export interface PrdNow {
   cases: Record<string, 덮는케이스[]>;
   unapplied: { changed: string[]; added: string[]; removed: string[] };
   needsCheck: { count: number; oldestSince: string | null };
+  /** 「PRD 에 없는 화면」 — 찾은 화면 가운데 지도로 닿지 않는 화면(상태 · 같은 틀 차례). foundScreens 는 찾은 화면 수 */
+  uncoveredScreens: { state: string; url: string; name: string }[];
+  foundScreens: number;
+  /** 열린 화면만 요청 번호들 — 카드 아래 「#N 요청 보기」 고리 */
+  screensOpen: number[];
 }
 
 export interface PrdVersionRow {

@@ -77,6 +77,9 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
       cases: {},
       unapplied: { changed: [], added: [], removed: [] },
       needsCheck: { count: 0, oldestSince: null },
+      uncoveredScreens: [],
+      foundScreens: 0,
+      screensOpen: [],
     });
     expect((await app.inject({ method: 'GET', url: '/api/prd' })).json()).toEqual({ error: 'SERVICE_REQUIRED' });
   });

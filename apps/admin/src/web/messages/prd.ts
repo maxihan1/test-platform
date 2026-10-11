@@ -37,6 +37,15 @@ export const 기획서말: Record<string, string> = {
   오늘: 'today',
   '{일}일째': 'day {일}',
 
+  // 「PRD 에 없는 화면」 카드 (PRD-F6-03)
+  'PRD 에 없는 화면 {건수}개': '{건수} screens not in the PRD',
+  '찾은 화면 {전체}개 중 · 아직 요구사항도 테스트도 없는 화면입니다':
+    'Out of {전체} screens found · screens with no requirement or test yet',
+  'PRD 에 없는 화면이 없습니다': 'Every screen found is in the PRD',
+  '#{번호} 요청이 이 화면들을 작성하는 중입니다': 'Request #{번호} is writing these screens',
+  '테스트 작성에서 기획서 없이 「실제 화면과 대조」로 보내면 이 화면만 작성합니다':
+    'Send a request from Test authoring with Compare with the live screen and no spec, and only these screens are written',
+
   // 전체 요구
   '전체 요구': 'All requirements',
   '요구 문장 · 번호 검색': 'Search requirement text or ID',

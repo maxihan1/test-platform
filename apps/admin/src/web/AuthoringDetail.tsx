@@ -121,12 +121,26 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
       : 종류라벨(data.kind, 언어);
   // 남은 요구로 이어 작성한 요청 — 칸은 뿌리(작성 요청)에만 있다. 재실행이 최신이어도 뿌리 것을 읽는다 (§3.6 「★ 원장」)
   const 원본 = 뿌리.continueFrom ?? null;
+  // 대조가 병합된 뒤 서버가 세운 기획서에 없는 화면 작성 — 그 대조 뿌리로 가는 고리 (§3.6 「기획서에 없는 화면 — 두 번째 작성」)
+  const 앞대조 = 뿌리.uncoveredOf ?? null;
   const 부제 =
-    원본 === null ? (
+    원본 === null && 앞대조 === null ? (
       부제글
     ) : (
       <>
-        {부제글} · <a href={`#/authoring/${String(원본)}`}>{t('#{번호}의 남은 요구', { 번호: 원본 })}</a>
+        {부제글}
+        {원본 === null ? null : (
+          <>
+            {' · '}
+            <a href={`#/authoring/${String(원본)}`}>{t('#{번호}의 남은 요구', { 번호: 원본 })}</a>
+          </>
+        )}
+        {앞대조 === null ? null : (
+          <>
+            {' · '}
+            <a href={`#/authoring/${String(앞대조)}`}>{t('#{번호} 다음 · 기획서에 없는 화면', { 번호: 앞대조 })}</a>
+          </>
+        )}
       </>
     );
 
@@ -217,12 +231,12 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
                   <>
                     <dt>{t('대조할 화면')}</dt>
                     <dd>
-                      {data.env ?? t('기록 없음')} · {data.startUrl ?? t('기획서에 나온 화면에서 시작')}
+                      {data.env ?? t('기록 없음')} · {data.startUrl ?? t('대상 서버 주소에서 시작')}
                       {/* 재실행은 입력이 원본 요청에 있다 — 자기 입력이 비어도 화면만이 아니다 */}
                       {data.kind === 'RERUN' ? (
                         <small>{t('원본 요청 #{번호}의 입력을 그대로 씁니다', { 번호: data.sourceId ?? '—' })}</small>
                       ) : 입력.length === 0 ? (
-                        <small>{t('화면만 — 기획서 없이 이 화면을 훑습니다')}</small>
+                        <small>{t('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')}</small>
                       ) : null}
                     </dd>
                   </>

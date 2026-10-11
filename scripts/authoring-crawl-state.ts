@@ -32,6 +32,8 @@ export interface 인자 {
   저장본: 저장본 | null;
   /** 서비스 설정의 훑지 않을 경로 — 이 아래 주소는 열지 않는다 (#153) */
   뺄: string[];
+  /** PRD 에 이미 있는 화면의 같은 틀 — 목록 줄에 `덮음: true` 를 단다. 인자가 없으면 null (PRD-F6-03) */
+  덮은틀: Set<string> | null;
 }
 
 export interface 본화면 extends 목록항목 {

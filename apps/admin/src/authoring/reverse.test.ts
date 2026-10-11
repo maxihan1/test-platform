@@ -181,8 +181,14 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
       expect((await 한건(id))?.status).toBe('PENDING');
     });
 
-    it('대조만 켜고 시작 주소가 없으면 자료 0 은 409 NO_ASSETS', async () => {
+    it('대조면 시작 주소가 없어도 자료 0 으로 선다', async () => {
       const id = (await 만들기({ kind: 'AUTHOR', compare: true, env: 'qa' })).json<{ id: number }>().id;
+      expect((await 세우기(id)).statusCode).toBe(200);
+      expect((await 한건(id))?.status).toBe('PENDING');
+    });
+
+    it('대조가 아니면 자료 0 은 409 NO_ASSETS', async () => {
+      const id = (await 만들기({ kind: 'AUTHOR' })).json<{ id: number }>().id;
       const res = await 세우기(id);
       expect(res.statusCode).toBe(409);
       expect(res.json()).toEqual({ error: 'NO_ASSETS' });

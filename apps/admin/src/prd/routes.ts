@@ -10,6 +10,7 @@ import { 서비스번호 } from '../authoring/routes.js';
 import { 한국시각 } from '../catalog/exportData.js';
 import { lastByCase } from '../execution/history.js';
 import { 워드만들기 } from './docx.js';
+import { 찾은화면셈 } from './found.js';
 import { 반영안됨, 본문상한, 확인필요, 항목검사 } from './rules.js';
 import { 반영본문, 화면이맞음채우기, type 화면이맞음 } from './screenRight.js';
 import {
@@ -53,7 +54,14 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
     if (서비스 === null) return reply;
     const [판, cases, 기준] = await Promise.all([지금판(서비스), 케이스지도(서비스), 기준판(서비스)]);
     const items = 판?.items ?? [];
-    return { version: 판?.version ?? 0, items, cases, unapplied: 반영안됨(기준?.items ?? null, items), needsCheck: 확인필요(items) };
+    return {
+      version: 판?.version ?? 0,
+      items,
+      cases,
+      unapplied: 반영안됨(기준?.items ?? null, items),
+      needsCheck: 확인필요(items),
+      ...(await 찾은화면셈(서비스, items)),
+    };
   });
 
   app.get<질의>('/prd/versions', async (req, reply) => {

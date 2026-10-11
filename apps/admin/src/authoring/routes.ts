@@ -15,6 +15,7 @@ import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
+import { 밖화면뿌리읽기 } from './uncovered.js';
 import { 도는실행있나, 뿌리, 뿌리잠그고, 실행들, 최신실행, 한쪽 } from './history.js';
 import { 이어받을수있나, 줄세우기, 한건, type 요청, type 상태 } from './store.js';
 
@@ -242,6 +243,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         ...(await 겹침상세(행.id)),
         coverage: 행커버리지(행.result),
         ...(await 이어작성상세(뿌리번호)),
+        uncoveredOf: await 밖화면뿌리읽기(뿌리번호),
       };
     },
   );

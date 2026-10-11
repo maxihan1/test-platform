@@ -1,7 +1,7 @@
 // 작성 에이전트의 자료 다루기 순수 함수 검사. 자료 순서·파일 변환·돌릴 조건·셸 허용 판정이 여기서 고정된다
 import { describe, expect, it } from 'vitest';
 
-import { 가릴트리파일, 글자인가, 돌릴수있나, 못읽는자료, 셸허용됐나, 입력만, 자료계획, 자료출처, 지울원본, type 자료 } from './authoring-assets.js';
+import { 가릴트리파일, 글자인가, 돌릴수있나, 못읽는자료, 셸허용됐나, 입력만, 자료계획, 자료출처, 지울원본, 화면만인가, type 자료 } from './authoring-assets.js';
 import { 역방향절 } from './authoring-reverse.js';
 import { 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 
@@ -209,9 +209,9 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
     expect(글).toContain('/w/author-7/assets/screens');
   });
 
-  it('역방향 절 — 화면만은 같은 사이트의 모든 화면, 대조는 한 칸 정의를 가리킨다', () => {
+  it('역방향 절 — 화면만은 PRD 에 아직 없는 화면, 대조는 한 칸 정의를 가리킨다', () => {
     const 화면만 = 역방향절({ 화면만: true, 산출물폴더: '/o/out', 요청번호: 1 }).join('\n');
-    expect(화면만).toContain('같은 사이트의 모든 화면');
+    expect(화면만).toContain('PRD 에 아직 없는 화면만');
     expect(화면만).not.toContain('메뉴 1단계');
     expect(화면만).not.toContain('바로 이어지는 한 칸');
     const 대조 = 역방향절({ 화면만: false, 산출물폴더: '/o/out', 요청번호: 1 }).join('\n');
@@ -226,6 +226,24 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
     const 대조 = 역방향절({ 화면만: false, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
     expect(대조).toContain('npx tsx scripts/authoring-crawl.ts "${TARGET_START_URL:-$TARGET_BASE_URL}" <기획서가 말하는 화면 주소들> --follow --state <상태 파일> --login <로그인 스크립트>');
     expect(대조).toContain('기획서가 말하는 화면과 그 「한 칸」뿐');
+  });
+
+  it('역방향 절 — 화면만이면 크롤러에 --covered 를 붙이고 덮음 줄은 훑지 않게 한다. 대조는 둘 다 없다 (PRD-F6-03)', () => {
+    const 화면만 = 역방향절({ 화면만: true, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
+    expect(화면만).toContain('--keep /w/author-7/assets/kept/index.json --covered /w/author-7/assets/covered.json --out /w/author-7/assets/crawl');
+    expect(화면만).toContain('`덮음: true` 인 화면은 PRD 에 이미 있다 — 훑지 말고 항목 · 케이스도 만들지 마라');
+    expect(화면만).toContain('PRD 에 없는 화면 0');
+    const 대조 = 역방향절({ 화면만: false, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
+    expect(대조).not.toContain('--covered');
+    expect(대조).not.toContain('덮음');
+  });
+
+  it('화면만인가 — 대상 서버가 있고 자료가 0 이면 시작 주소가 없어도 화면만이다 (PRD-F6-03)', () => {
+    const 대상 = { env: 'dev', baseUrl: 'https://s.test', loginId: 'a', loginPassword: 'pass1234' };
+    expect(화면만인가({ target: 대상 }, [])).toBe(true);
+    expect(화면만인가({ target: { ...대상, startUrl: 'https://s.test/x' } }, [])).toBe(true);
+    expect(화면만인가({ target: 대상 }, [파일(1, 1, 'a.docx')])).toBe(false);
+    expect(화면만인가({}, [])).toBe(false);
   });
 
   it('역방향 절 — 크롤러에 저장본(자료 폴더 kept/index.json)을 넘긴다 (2026-10-04 · 바뀐 화면만 다시 훑는다)', () => {
