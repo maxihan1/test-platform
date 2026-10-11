@@ -152,6 +152,56 @@ export interface RunCounts {
   unconfirmed?: number;
 }
 
+/**
+ * 알림 통로 `GET /api/notifications` (SPEC 공통/5-화면공통 §8 「알림」). 볼 수 있는 서비스 전체에서 도는 것과 최근 7일 끝난 것을 준다.
+ * 읽음은 서버가 모른다 — 이 브라우저가 들고 있다 (`noticeRead.ts`)
+ */
+export interface NoticeService {
+  serviceId: number;
+  prefix: string;
+  serviceName: string;
+}
+
+export type NoticeRunning =
+  | (NoticeService & {
+      kind: 'run';
+      runId: number;
+      title: string;
+      total: number;
+      done: number;
+      counts: RunCounts;
+      startedAt: string;
+      remainingMs: number | null;
+    })
+  | (NoticeService & {
+      kind: 'authoring';
+      requestId: number;
+      title: string;
+      status: 'PENDING' | 'RUNNING';
+      stage: string | null;
+      startedAt: string | null;
+      expected: { ms: number; samples: number } | null;
+    });
+
+export type NoticeRecent =
+  | (NoticeService & { kind: 'run'; runId: number; title: string; status: string; counts: RunCounts; finishedAt: string })
+  | (NoticeService & {
+      kind: 'authoring';
+      requestId: number;
+      title: string;
+      status: 'DONE' | 'FAILED' | 'STOPPED';
+      finishedAt: string;
+      caseFiles: number | null;
+      prUrl: string | null;
+      error: string | null;
+      prdNeedsCheck: number;
+    });
+
+export interface NoticeResponse {
+  running: NoticeRunning[];
+  recent: NoticeRecent[];
+}
+
 // 그 실행으로 만든 증적 문서 (SPEC §7 · §8.4). status 는 PENDING | READY | FAILED
 export interface EvidenceRow {
   id: number;
@@ -859,6 +909,9 @@ export const api = {
 
   /** 지금 도는 절차들. 상세 조회와 별개다 — 상세는 DB 를, 이쪽은 러너의 지금을 본다 (SPEC §7) */
   progress: (runId: number) => call<{ items: 항목진행[]; remainingMs: number | null }>(`/runs/${runId}/progress`),
+
+  /** 본문 위 알림 줄과 서랍의 재료. 서비스 고르개와 상관없이 볼 수 있는 서비스 전체다 */
+  notifications: () => call<NoticeResponse>('/notifications'),
 
   /** 증적을 만든다. 실행까지 등급부터다 (SPEC §3.5) */
   makeEvidence: (runId: number, format: string) =>

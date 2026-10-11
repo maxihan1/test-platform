@@ -2259,63 +2259,6 @@ input[type='file']::file-selector-button {
   font-weight: 600;
 }
 
-/* 도는 실행이 있거나 갓 끝난 소식이 있을 때만 뜬다. 없으면 줄 자체가 없다 (SPEC §8) */
-.toast-row {
-  display: flex;
-  align-items: stretch;
-  background: var(--head);
-  border: 1px solid var(--line-2);
-  border-top: none;
-}
-
-.toast-row .toast {
-  flex: 1;
-  background: transparent;
-  border: none;
-}
-
-/* 끝난 소식은 한 번 누르거나 닫으면 사라진다 (SPEC §8) */
-.toast-x {
-  background: transparent;
-  border: none;
-  border-left: 1px solid var(--line);
-  color: var(--ink-muted);
-  font-size: 16px;
-  line-height: 1;
-  padding: 0 14px;
-  cursor: pointer;
-}
-
-.toast-x:hover {
-  background: var(--panel);
-  color: var(--ink);
-}
-
-.toast-x:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: -2px;
-}
-
-.toast {
-  display: block;
-  padding: 8px 14px;
-  background: var(--head);
-  border: 1px solid var(--line-2);
-  border-top: none;
-  color: var(--ink);
-  text-decoration: none;
-  font-size: 13.5px;
-}
-
-.toast:hover {
-  background: var(--panel);
-}
-
-.toast:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: -2px;
-}
-
 /* ── 로그인 (SPEC §8.6) ───────────────────────────────────────────── */
 
 /* 들어가는 자리임을 분명히 한다. 가장 짙은 바탕 위에 판 하나뿐이라
@@ -4503,11 +4446,6 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 
 .head + .screen {
   animation-delay: 0.08s;
-}
-
-/* 실행 중 줄과 끝난 소식은 들어올 때 한 번 나타난다 */
-.toast-row {
-  animation: 나타남 var(--dur) var(--ease);
 }
 
 /* 실행 중 맥박 점 — 대표색 자리(화면공통 §8 「실행 중 표시」). 되풀이 움직임은 이것 하나뿐이다 */

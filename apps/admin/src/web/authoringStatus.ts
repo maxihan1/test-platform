@@ -58,6 +58,14 @@ export interface 자리 {
   멈춤: 'stopped' | 'failed' | null;
 }
 
+/**
+ * 지금 어느 칸인가(0부터). 진척이 있으면 자식을 띄운 뒤다 — 모르는 글이어도 스크립트 작성까지는 왔다.
+ * 알림 줄처럼 진척을 모르는 곳은 `false` 를 넘긴다
+ */
+export function 단계칸(stage: string | null, 진척있나: boolean): number {
+  return (stage === null ? undefined : 단계글[stage]) ?? (진척있나 ? 2 : 0);
+}
+
 /** 머지 · 케이스 고치기는 자식을 안 띄워 이 다섯 칸을 안 밟는다 — null 이면 카드가 막대를 안 그린다 */
 export function 단계자리(행: AuthoringRow): 자리 | null {
   if (행.kind === 'MERGE' || 고치기실행인가(행)) return null;
@@ -65,8 +73,7 @@ export function 단계자리(행: AuthoringRow): 자리 | null {
   if (행.status === 'DRAFT' || 행.status === 'PENDING') return { 끝난: 0, 지금: null, 멈춤: null };
   // 집히기 전에 줄에서 뺀 것 — 준비 칸에서 멈춘 것처럼 그리면 시작한 적 있는 것으로 읽힌다
   if (행.status === 'STOPPED' && 행.startedAt === null) return { 끝난: 0, 지금: null, 멈춤: 'stopped' };
-  // 진척이 있으면 자식을 띄운 뒤다 — 모르는 글이어도 케이스 작성까지는 왔다
-  const 칸 = (행.stage === null ? undefined : 단계글[행.stage]) ?? (행.progress ? 2 : 0);
+  const 칸 = 단계칸(행.stage, Boolean(행.progress));
   const 멈춤 = 행.status === 'FAILED' ? 'failed' : 행.status === 'STOPPED' ? 'stopped' : null;
   return { 끝난: 칸, 지금: 칸, 멈춤 };
 }

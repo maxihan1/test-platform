@@ -41,7 +41,7 @@ const 사람: User = {
 };
 
 function 띄운다(service: ServiceRow, 언어: 언어 = 'ko', on언어: (고른: 언어) => void = () => {}, current = '#/cases') {
-  vi.spyOn(api, 'runs').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 , summary: { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 } });
+  vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
   return render(
     <언어함 value={언어}>
       <Shell
@@ -264,12 +264,12 @@ describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)',
     expect(링크.getAttribute('aria-current')).toBe('page');
   });
 
-  it('대시보드에서는 서비스 고르개와 알림 줄이 없다. 여러 서비스를 함께 보는 화면이라서다', () => {
+  it('대시보드에서는 서비스 고르개와 알림 줄이 없고 「알림」 버튼만 남는다. 여러 서비스를 함께 보는 화면이라서다', () => {
     const { container } = 띄운다(결제, 'ko', () => {}, '#/dashboard');
     expect(screen.queryByRole('combobox', { name: '서비스 고르기' })).toBeNull();
     expect(container.querySelector('.side-top')).toBeNull();
-    expect(api.runs).not.toHaveBeenCalled();
-    expect(container.querySelector('.toast-row')).toBeNull();
+    expect(container.querySelector('.nt-lines')).toBeNull();
+    expect(screen.getByRole('button', { name: /알림/ })).toBeTruthy();
   });
 
   it('탭 제목과 바닥 글에도 숨긴 「고른 서비스」 이름이 안 남는다 — 대시보드는 서비스 하나가 아니다', () => {
@@ -287,7 +287,7 @@ describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)',
   it('다른 자리에서는 고르개가 그대로 있다', () => {
     띄운다(결제, 'ko', () => {}, '#/cases');
     expect(screen.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
-    expect(api.runs).toHaveBeenCalled();
+    expect(api.notifications).toHaveBeenCalled();
   });
 
   it('영어 이름은 Dashboard 다', () => {

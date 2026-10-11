@@ -2,6 +2,7 @@
 // 자동 갱신을 멈출지도, 멈춤 버튼을 보일지도 전부 이 값으로 정한다 — 화면이 따로 상태를 들지 않는다
 
 import { t, type 언어 } from './i18n.js';
+import { 읽음들, 읽음으로적는다 } from './noticeRead.js';
 import type { 판정 } from './role.js';
 
 /**
@@ -60,37 +61,18 @@ export function 미실행사유(error: { message: string } | null, 언어: 언�
 }
 
 /**
- * 실행이 끝났다고 이미 알린 것들.
+ * 실행이 끝났다고 이미 알린 것들 — 알림의 「읽음」과 같은 자리다 (`noticeRead.ts`).
  *
  * **한 번 닫은 알림은 그 실행에 대해 다시 뜨지 않는다. 새로고침해도 마찬가지다** (SPEC §8.9).
  * 완료 모달과 §8 알림 줄이 **같은 자리를 본다** — 그 실행 화면에 있던 사람은
  * 모달로 이미 알았으므로 다른 화면으로 옮겼을 때 줄이 또 뜨면 두 번 알리는 것이다.
  */
-// 한국어 키를 쓰지 않는다. 화면 글자를 세는 그물(`messages.test.ts`)이 저장소 키까지 같이 센다
-const 본것키 = 'finished-runs';
-
-function 본것들(): Set<number> {
-  try {
-    const 값 = sessionStorage.getItem(본것키);
-    return new Set<number>(값 === null ? [] : (JSON.parse(값) as number[]));
-  } catch {
-    // 브라우저가 저장을 막아도 알림 자체는 떠야 한다. 새로고침에 다시 뜰 뿐이다
-    return new Set();
-  }
-}
-
 export function 알림본적있나(runId: number): boolean {
-  return 본것들().has(runId);
+  return 읽음들().has(`run:${String(runId)}`);
 }
 
 export function 본것으로적는다(runId: number): void {
-  try {
-    const 것들 = 본것들();
-    것들.add(runId);
-    sessionStorage.setItem(본것키, JSON.stringify([...것들]));
-  } catch {
-    // 위와 같다
-  }
+  읽음으로적는다([`run:${String(runId)}`]);
 }
 
 /**

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { RunSummary, ServiceRow, User } from './api.js';
-import { 고른서비스, 대시보드재료, 배정서비스접두사, 빈띠사유, 알림줄, 자리목록, 지금자리, 탭제목 } from './layout.js';
+import type { ServiceRow, User } from './api.js';
+import { 고른서비스, 대시보드재료, 배정서비스접두사, 빈띠사유, 자리목록, 지금자리, 탭제목 } from './layout.js';
 
 const 결제: ServiceRow = {
   id: 1,
@@ -31,22 +31,6 @@ function 사람(role: User['role'], services: ServiceRow[], dashboard: User['das
 
 const 운영 = 사람('admin', [결제]);
 const 김 = 사람('member', [결제, 회원, 정산]);
-
-function 실행(runId: number, status: string, total: number, running: number): RunSummary {
-  return {
-    runId,
-    title: `RUN ${runId}`,
-    triggeredBy: 'kim',
-    triggeredByName: '김철수',
-    env: 'qa',
-    baseUrl: 'https://qa.example.com',
-    serviceName: '결제 서비스',
-    status,
-    startedAt: '2026-09-19T01:00:00.000Z',
-    finishedAt: null,
-    counts: { total, pass: total - running, fail: 0, na: 0, running },
-  };
-}
 
 describe('탭 제목', () => {
   it('브라우저 탭에도 서비스 이름이 들어간다. 탭이 여럿일 때는 탭 글자만 보인다', () => {
@@ -271,80 +255,5 @@ describe('배정받은 서비스가 없을 때', () => {
 
   it('자리를 안 주면 지금까지처럼 군다', () => {
     expect(빈띠사유(사람('admin', []), null, 'ko')?.무엇).toBe('아직 배정받은 서비스가 없습니다');
-  });
-});
-
-describe('알림 줄', () => {
-  it('도는 실행이 있으면 한 줄로 알린다. 몇 건 중 몇 건인지 같이 적는다', () => {
-    const 줄 = 알림줄([실행(2113, 'RUNNING', 40, 28)], 'ko');
-    expect(줄?.runId).toBe(2113);
-    expect(줄?.글).toBe('RUN 2113 이 진행 중입니다  12/40');
-  });
-
-  it('도는 실행이 없으면 줄 자체가 없다. 빈 줄을 자리만 잡아 두지 않는다', () => {
-    expect(알림줄([실행(2113, 'FINISHED', 40, 0)], 'ko')).toBe(null);
-  });
-
-  it('중단된 실행은 도는 중이 아니다', () => {
-    expect(알림줄([실행(2113, 'ABORTED', 40, 12)], 'ko')).toBe(null);
-  });
-
-  it('실행이 하나도 없으면 줄이 없다', () => {
-    expect(알림줄([], 'ko')).toBe(null);
-  });
-
-  it('도는 것이 없고 끝난 지 얼마 안 된 것이 있으면 끝났다고 알린다 (SPEC §8.9)', () => {
-    const 끝난것 = { ...실행(2120, 'FINISHED', 10, 0), finishedAt: new Date().toISOString() };
-    끝난것.counts = { total: 10, pass: 8, fail: 1, na: 1, running: 0 };
-    const 줄 = 알림줄([끝난것], 'ko', new Set());
-    expect(줄?.runId).toBe(2120);
-    // 미실행이 있으면 그것도 적는다. SPEC §8.9 의 예시(8 통과 · 1 실패)는 미실행이 0 인 경우다 —
-    // 있는데 숨기면 「다 돌았다」로 읽힌다
-    expect(줄?.글).toBe('RUN 2120 이 끝났습니다 · 8 통과 · 1 실패 · 1 미실행');
-    expect(줄?.끝났나).toBe(true);
-  });
-
-  it('미확정이 있어도 통과·실패는 모든 항목이고 「그중 미확정 N건」을 뒤에 붙인다', () => {
-    const 섞인것 = { ...실행(2127, 'FINISHED', 7, 0), finishedAt: new Date().toISOString() };
-    섞인것.counts = { total: 7, pass: 6, fail: 1, na: 0, running: 0, unconfirmed: 2 };
-    expect(알림줄([섞인것], 'ko', new Set())?.글).toBe('RUN 2127 이 끝났습니다 · 6 통과 · 1 실패 · 그중 미확정 2건');
-  });
-
-  it('미확정만 돌린 실행도 통과 수를 그대로 적는다 — 판정 없음 변형이 없다', () => {
-    const 미확정만 = { ...실행(2128, 'FINISHED', 2, 0), finishedAt: new Date().toISOString() };
-    미확정만.counts = { total: 2, pass: 2, fail: 0, na: 0, running: 0, unconfirmed: 2 };
-    expect(알림줄([미확정만], 'ko', new Set())?.글).toBe('RUN 2128 이 끝났습니다 · 2 통과 · 그중 미확정 2건');
-  });
-
-  it('실패도 미실행도 없으면 통과만 적는다', () => {
-    const 깨끗한것 = { ...실행(2126, 'FINISHED', 5, 0), finishedAt: new Date().toISOString() };
-    깨끗한것.counts = { total: 5, pass: 5, fail: 0, na: 0, running: 0 };
-    expect(알림줄([깨끗한것], 'ko', new Set())?.글).toBe('RUN 2126 이 끝났습니다 · 5 통과');
-  });
-
-  it('중단된 실행은 멈췄다고 알린다. 사람이 멈춘 것도 끝난 것이다', () => {
-    const 멈춘것 = { ...실행(2121, 'ABORTED', 10, 0), finishedAt: new Date().toISOString() };
-    expect(알림줄([멈춘것], 'ko', new Set())?.글).toContain('멈췄습니다');
-  });
-
-  it('이미 본 알림은 다시 안 뜬다', () => {
-    const 끝난것 = { ...실행(2122, 'FINISHED', 10, 0), finishedAt: new Date().toISOString() };
-    expect(알림줄([끝난것], 'ko', new Set([2122]))).toBe(null);
-  });
-
-  it('도는 것이 있으면 그것을 먼저 알린다. 끝난 소식보다 지금 도는 것이 급하다', () => {
-    const 끝난것 = { ...실행(2123, 'FINISHED', 10, 0), finishedAt: new Date().toISOString() };
-    const 도는것 = 실행(2124, 'RUNNING', 40, 28);
-    expect(알림줄([끝난것, 도는것], 'ko', new Set())?.runId).toBe(2124);
-  });
-
-  it('오래전에 끝난 실행은 알리지 않는다. 그것은 기록이지 소식이 아니다', () => {
-    const 옛것 = { ...실행(2125, 'FINISHED', 10, 0), finishedAt: '2026-09-01T00:00:00.000Z' };
-    expect(알림줄([옛것], 'ko', new Set())).toBe(null);
-  });
-
-  it('도는 것이 여럿이면 가장 최근 것을 알린다', () => {
-    const 줄 = 알림줄([실행(2115, 'RUNNING', 10, 3), 실행(2113, 'RUNNING', 40, 28)], 'ko');
-    expect(줄?.runId).toBe(2115);
   });
 });
