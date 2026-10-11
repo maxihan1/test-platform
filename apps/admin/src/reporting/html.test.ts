@@ -20,7 +20,7 @@ const 글꼴파일들 = [
   'IBMPlexMono-Medium.woff2',
 ].map((이름) => new URL(`../web/fonts/${이름}`, import.meta.url));
 
-const 옵션 = { generatedAt: '2026-09-19 10:00' };
+const 옵션 = { generatedAt: '2026-09-19 10:00', format: 'HTML' } as const;
 
 const 머리말 = {
   serviceName: '커머스',
@@ -100,7 +100,7 @@ describe('증적 문서 HTML', () => {
   it('반복 실행한 케이스는 회차마다 한 블록씩 나오고 회차 번호가 블록 머리에 있다', () => {
     const html = renderHtml(문서([항목({ attempt: 1 }), 항목({ attempt: 2, status: 'FAIL' })]), 옵션);
 
-    expect(html.match(/<section class="item">/g)).toHaveLength(2);
+    expect(html.match(/<div class="row-k">사전조건<\/div>/g)).toHaveLength(2);
     expect(html).toContain('1회차');
     expect(html).toContain('2회차');
   });
@@ -154,7 +154,7 @@ describe('증적 문서 HTML', () => {
     );
 
     // 사유가 배지와 떨어지면 러너 고장과 사람이 멈춘 것을 구분할 수 없다 (SPEC §8.3)
-    const 머리 = html.split('\n').filter((줄) => 줄.includes('class="item-head"'));
+    const 머리 = html.split('\n').filter((줄) => 줄.includes('class="dev-head"'));
     expect(머리).toHaveLength(1);
     expect(머리[0]).toContain('미실행');
     expect(머리[0]).toContain('러너에 닿지 못했습니다');
@@ -240,6 +240,7 @@ describe('증적 문서 HTML', () => {
 
     // §3.3 재현 불변식. 본문에 new Date() 를 섞으면 여기서 빨간불이 난다
     expect(renderHtml(doc, 옵션)).toBe(renderHtml(doc, 옵션));
+    expect(renderHtml(doc, { ...옵션, format: 'PDF' })).toBe(renderHtml(doc, { ...옵션, format: 'PDF' }));
   });
 
   it('미실행 항목이 사유와 함께 문서에 남는다', () => {
