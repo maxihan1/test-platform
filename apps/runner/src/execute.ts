@@ -5,6 +5,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { dirname, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
+import { stripVTControlCharacters } from 'node:util';
 
 import type { ExecuteRequest, ExecuteResponse, ItemStatus, StepProgress } from '@platform/kit';
 
@@ -83,8 +84,9 @@ export function resolveSpecPath(root: string, filePath: string): string | null {
 
 // 앞을 그냥 잘라 내면 남은 글의 첫 줄이 원문 중간 줄(Received: …)이 되는데, admin 요약 자리는 그 첫 줄을 사유로 쓴다
 // (insights.ts 한줄로자른다). 줄 중간을 자르면 가리기가 못 알아보는 비밀값 조각도 남는다 — 그래서 첫 줄을 지키고 뒤는 줄 경계에서 자른다
+// Playwright 는 오류 글에 색 코드를 섞는데(「\u001b[31m…」) admin 요약은 첫 줄을 그대로 쓰니 여기서 걷는다
 export function tail(text: string): string {
-  const trimmed = text.trim();
+  const trimmed = stripVTControlCharacters(text).trim();
   if (trimmed.length <= 2000) return trimmed;
   const 줄끝 = trimmed.indexOf('\n');
   // 1000자 넘는 첫 줄은 자르지 않고 통째로 뺀다. 어디를 잘라도 그 자리에 걸친 비밀값이 조각으로 남고,

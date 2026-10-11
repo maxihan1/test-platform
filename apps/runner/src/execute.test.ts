@@ -74,6 +74,10 @@ describe('tail', () => {
     expect(tail('  짧은 오류\n둘째 줄  ')).toBe('짧은 오류\n둘째 줄');
   });
 
+  it('색 코드를 걷는다 — admin 요약은 첫 줄을 그대로 사유로 쓴다', () => {
+    expect(tail('\u001b[31mSyntaxError: x\u001b[39m\n다음')).toBe('SyntaxError: x\n다음');
+  });
+
   it('2000자를 넘어도 첫 줄은 원문 첫 줄이다 — 요약 자리가 그 줄을 사유로 쓴다', () => {
     const 자른것 = tail(원문);
     expect(자른것.length).toBeLessThanOrEqual(2000);
