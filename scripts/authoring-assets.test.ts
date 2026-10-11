@@ -218,14 +218,14 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
     expect(대조).toContain('「한 칸」');
   });
 
-  it('역방향 절 — 크롤 폴더(산출물 폴더 옆)와 크롤러 명령을 준다. 링크 따라가기는 화면만에만 (2026-10-04)', () => {
+  it('역방향 절 — 크롤 폴더(산출물 폴더 옆)와 크롤러 명령을 준다. 대조도 사이트 전체를 찍고 AI 는 기획서 화면만 훑는다 (PRD-F6-02)', () => {
     const 화면만 = 역방향절({ 화면만: true, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
     expect(화면만).toContain('/w/author-7/assets/crawl');
-    expect(화면만).toContain('npx tsx scripts/authoring-crawl.ts');
-    expect(화면만).toContain('--follow');
+    expect(화면만).toContain('npx tsx scripts/authoring-crawl.ts "$TARGET_START_URL" --follow --state <상태 파일> --login <로그인 스크립트>');
+    expect(화면만).not.toContain('기획서가 말하는 화면과 그 「한 칸」뿐');
     const 대조 = 역방향절({ 화면만: false, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7 }).join('\n');
-    expect(대조).toContain('npx tsx scripts/authoring-crawl.ts');
-    expect(대조).not.toContain('--follow');
+    expect(대조).toContain('npx tsx scripts/authoring-crawl.ts "$TARGET_START_URL" --follow --state <상태 파일> --login <로그인 스크립트>');
+    expect(대조).toContain('기획서가 말하는 화면과 그 「한 칸」뿐');
   });
 
   it('역방향 절 — 크롤러에 저장본(자료 폴더 kept/index.json)을 넘긴다 (2026-10-04 · 바뀐 화면만 다시 훑는다)', () => {
@@ -242,10 +242,9 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
     expect(줄프롬프트({ id: 7, kind: 'AUTHOR' }, 'CDY', [], undefined, { 화면만: true, 산출물폴더: '/w/out', 제외 })).toContain("--exclude '/daejeon'");
   });
 
-  it('역방향 절 — 대조와 훑지 않을 경로가 없는 화면만에는 --exclude 도 「더 갈 곳」 줄도 없다 (#153)', () => {
+  it('역방향 절 — 대조도 훑지 않을 경로를 붙이고, 그 경로가 없으면 --exclude 도 「더 갈 곳」 줄도 없다 (#153 · PRD-F6-02)', () => {
     const 대조 = 역방향절({ 화면만: false, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7, 제외: ['/daejeon'] }).join('\n');
-    expect(대조).not.toContain('--exclude');
-    expect(대조).not.toContain('/daejeon');
+    expect(대조).toContain("--exclude '/daejeon'");
     const 없음 = 역방향절({ 화면만: true, 산출물폴더: '/w/author-7/assets/out', 요청번호: 7, 제외: [] }).join('\n');
     expect(없음).not.toContain('--exclude');
     expect(없음).not.toContain('「더 갈 곳」에도');
