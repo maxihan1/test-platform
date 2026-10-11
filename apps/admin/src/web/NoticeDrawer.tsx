@@ -12,9 +12,11 @@ interface Props {
   지금: number;
   onClose: () => void;
   on읽음: (열쇠들: string[]) => void;
+  /** 작성 · PRD 고리는 사이드바 서비스로 읽는다 — 누르기 전에 그 알림의 서비스로 바꾼다 */
+  서비스바꿈: (접두사: string) => void;
 }
 
-export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음 }: Props) {
+export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음, 서비스바꿈 }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [고른거르개, set거르개] = useState<거르개>('all');
@@ -75,6 +77,7 @@ export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음 }: Prop
                   className="nt-item-link"
                   href={줄.열기}
                   onClick={() => {
+                    if (줄.종류 === 'authoring') 서비스바꿈(줄.접두사);
                     on읽음([줄.열쇠]);
                     onClose();
                   }}
@@ -94,6 +97,7 @@ export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음 }: Prop
                     <a
                       href="#/prd"
                       onClick={() => {
+                        서비스바꿈(줄.접두사);
                         on읽음([줄.열쇠]);
                         onClose();
                       }}

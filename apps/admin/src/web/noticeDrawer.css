@@ -1,0 +1,173 @@
+/* 알림 서랍 (SPEC 공통/5-화면공통 §8 「알림」 · DESIGN.md 원칙 1 · 4 · 5). 줄과 버튼은 noticeBar.css.
+   클래스 이름이 `nt-` 로 시작하는 것은 껍데기 검사가 옛 이름(notice)을 막고 있어서다. 색은 토큰만 쓴다 */
+
+/* ── 서랍 — 뒤를 어둡게 하지 않는다. 가로막는 상자가 아니다 (DESIGN.md 「모달」) ── */
+.nt-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 420px;
+  max-width: 100%;
+  background: var(--panel);
+  border-left: 1px solid var(--line-2);
+  box-shadow: -24px 0 60px -20px rgba(0, 0, 0, 0.8);
+  animation: nt-slide var(--dur) var(--ease);
+}
+
+@keyframes nt-slide {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.nt-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.nt-drawer-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.nt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.nt-chip {
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.nt-chip.on {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.nt-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.nt-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.nt-item-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.nt-item-link:hover {
+  background: var(--well);
+}
+
+/* 안 읽음은 대표색 점과 굵은 글씨다 */
+.nt-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.nt-item.unread .nt-dot {
+  background: var(--accent);
+}
+
+.nt-item.unread .nt-item-title {
+  font-weight: 600;
+}
+
+.nt-item-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nt-item-title {
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+
+.nt-item-sub {
+  color: var(--ink-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.nt-item-time {
+  flex: none;
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.nt-item-prd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 0 16px 10px 34px;
+  font-size: 12.5px;
+}
+
+.nt-item-prd .case-tag {
+  margin-left: 0;
+}
+
+.nt-empty {
+  flex: 1;
+  margin: 0;
+  padding: 32px 16px;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.nt-foot {
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+/* 좁은 화면 — 서랍은 화면 폭을 다 쓴다 */
+@media (max-width: 620px) {
+  .nt-drawer {
+    width: 100%;
+  }
+}

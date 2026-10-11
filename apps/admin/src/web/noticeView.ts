@@ -43,6 +43,9 @@ export interface 도는줄 {
   도는중: true;
   열쇠: string;
   서비스: string;
+  /** 작성 · PRD 고리는 사이드바 서비스로 읽어서, 누르기 전에 이 서비스로 바꾼다 */
+  접두사: string;
+  종류: 'run' | 'authoring';
   앞글: string;
   /** 실행만. 통과 · 실패 · 미실행 · 남음의 폭 */
   막대: 막대칸 | null;
@@ -54,6 +57,7 @@ export interface 끝난줄 {
   도는중: false;
   열쇠: string;
   서비스: string;
+  접두사: string;
   종류: 'run' | 'authoring';
   /** 판정 색 아이콘을 고른다 — 실패가 있으면 fail, 사람이 멈췄으면 halt(판정이 아니라 중립), 아니면 pass */
   모양: 'pass' | 'fail' | 'halt';
@@ -80,7 +84,7 @@ function 오류첫줄(오류: string | null): string | null {
 }
 
 export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
-  const 바탕 = { 도는중: false as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 열기: 열기주소(n), 끝난때: n.finishedAt };
+  const 바탕 = { 도는중: false as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 접두사: n.prefix, 열기: 열기주소(n), 끝난때: n.finishedAt };
 
   if (n.kind === 'run') {
     const { counts } = n;
@@ -121,7 +125,7 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
 }
 
 export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언어): 도는줄 {
-  const 바탕 = { 도는중: true as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 열기: 열기주소(n) };
+  const 바탕 = { 도는중: true as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 접두사: n.prefix, 종류: n.kind, 열기: 열기주소(n) };
 
   if (n.kind === 'run') {
     const { counts } = n;
@@ -139,15 +143,17 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
     return { ...바탕, 앞글: t('작성 요청 #{번호} 이 순서를 기다리고 있습니다', 언어, 값), 막대: null, 뒷글: null };
   }
   // 알림 통로는 진척을 안 싣는다 — 단계 칸은 에이전트가 올린 글로만 센다
-  const 칸 = 단계칸(n.stage, false);
   const 지난ms = Math.max(0, 지금 - Date.parse(n.startedAt));
-  const 앞 = [
-    t('작성 요청 #{번호} 이 진행 중입니다', 언어, 값),
-    n.stage !== null && !아는단계글(n.stage)
-      ? 단계글라벨(n.stage, 언어)
-      : t('{번호} / {전체} 단계 {이름}', 언어, { 번호: 칸 + 1, 전체: 단계이름들.length, 이름: 단계라벨(단계이름들[칸] ?? '준비', 언어) }),
-    t('{지난} 지남', 언어, { 지난: 시간글자(지난ms, 언어) }),
-  ];
+  // 반영 · 고치기는 다섯 단계를 안 밟는다 — 단계 글이 있으면 그 글만, 없으면 아무것도 안 붙인다
+  let 단계: string | null = null;
+  if (n.stage !== null && (!n.fiveSteps || !아는단계글(n.stage))) {
+    단계 = 단계글라벨(n.stage, 언어);
+  } else if (n.fiveSteps) {
+    // 알림 통로는 진척을 안 싣는다 — 단계 칸은 에이전트가 올린 글로만 센다
+    const 칸 = 단계칸(n.stage, false);
+    단계 = t('{번호} / {전체} 단계 {이름}', 언어, { 번호: 칸 + 1, 전체: 단계이름들.length, 이름: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
+  }
+  const 앞 = [t('작성 요청 #{번호} 이 진행 중입니다', 언어, 값), ...(단계 === null ? [] : [단계]), t('{지난} 지남', 언어, { 지난: 시간글자(지난ms, 언어) })];
   return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: 작성남은글(지난ms, 지금, n.expected, 언어) };
 }
 

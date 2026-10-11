@@ -10,7 +10,10 @@ import { Notice } from './Notice.js';
 import { 끝난실행, 끝난작성, 도는실행, 도는작성, 전에 } from './notice.fixture.js';
 import { 읽음들 } from './noticeRead.js';
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  서비스바꿈.mockClear();
+});
 
 afterEach(() => {
   cleanup();
@@ -18,11 +21,13 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+const 서비스바꿈 = vi.fn();
+
 function 띄운다(답: NoticeResponse, 줄숨김 = false) {
   const 부름 = vi.spyOn(api, 'notifications').mockResolvedValue(답);
   render(
     <언어함 value="ko">
-      <Notice 줄숨김={줄숨김} />
+      <Notice 줄숨김={줄숨김} 서비스바꿈={서비스바꿈} />
     </언어함>,
   );
   return 부름;
@@ -166,12 +171,55 @@ describe('알림 서랍', () => {
   });
 });
 
+describe('다른 서비스의 작성 · PRD 고리', () => {
+  const 다른서비스 = { serviceId: 2, prefix: 'ORD', serviceName: '주문 서비스' };
+
+  it('도는 작성의 열기를 누르면 먼저 그 알림의 서비스로 바꾼다. 실행의 열기는 서비스를 안 바꾼다', async () => {
+    띄운다({ running: [도는작성(5, 다른서비스), 도는실행(6, 다른서비스)], recent: [] });
+    const 열기들 = await screen.findAllByRole('link', { name: '열기' });
+    fireEvent.click(열기들[0]!);
+    expect(서비스바꿈).not.toHaveBeenCalled();
+    fireEvent.click(열기들[1]!);
+    expect(서비스바꿈).toHaveBeenCalledExactlyOnceWith('ORD');
+  });
+
+  it('끝난 줄의 작성 결과 · PRD 관리를 누르면 그 서비스로 바꾸고, 결과 보기는 안 바꾼다', async () => {
+    띄운다({
+      running: [],
+      recent: [끝난작성(9, { ...다른서비스, prdNeedsCheck: 3 }), 끝난작성(10, { ...다른서비스, prdNeedsCheck: 3, finishedAt: 전에(1) }), 끝난실행(7, {}, 다른서비스)],
+    });
+    fireEvent.click(await screen.findByRole('link', { name: '결과 보기' }));
+    expect(서비스바꿈).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole('link', { name: '작성 결과' })[0]!);
+    fireEvent.click(screen.getByRole('link', { name: 'PRD 관리' }));
+    expect(서비스바꿈.mock.calls).toEqual([['ORD'], ['ORD']]);
+  });
+
+  it('서랍의 작성 줄과 PRD 관리에서 확인 링크도 그 서비스로 바꾼 뒤 간다', async () => {
+    띄운다({ running: [], recent: [끝난작성(2, { ...다른서비스, prdNeedsCheck: 2 })] });
+    await screen.findByLabelText('안 읽은 알림 1건');
+    fireEvent.click(버튼());
+    const 서랍 = within(screen.getByRole('complementary', { name: '알림' }));
+    fireEvent.click(서랍.getByRole('link', { name: 'PRD 관리에서 확인' }));
+    expect(서비스바꿈).toHaveBeenCalledExactlyOnceWith('ORD');
+  });
+
+  it('서랍의 실행 줄은 서비스를 안 바꾼다', async () => {
+    띄운다({ running: [], recent: [끝난실행(1, {}, 다른서비스)] });
+    await screen.findByLabelText('안 읽은 알림 1건');
+    fireEvent.click(버튼());
+    fireEvent.click(within(screen.getByRole('complementary', { name: '알림' })).getAllByRole('link')[0]!);
+    expect(서비스바꿈).not.toHaveBeenCalled();
+  });
+});
+
 describe('읽음 목록 정리', () => {
-  it('서버 목록(7일)에 없는 열쇠는 지운다', async () => {
-    localStorage.setItem('notice-read', JSON.stringify(['run:1', 'run:999']));
+  it('서버 목록(7일)에 없고 적은 지 8일이 지난 열쇠만 지운다', async () => {
+    const 지금 = Date.now();
+    localStorage.setItem('notice-read', JSON.stringify({ 'run:1': 지금, 'run:998': 지금 - 9 * 86_400_000, 'run:999': 지금 }));
     띄운다({ running: [], recent: [끝난실행(1)] });
     await act(async () => {});
-    expect([...읽음들()]).toEqual(['run:1']);
+    expect([...읽음들()].sort()).toEqual(['run:1', 'run:999']);
   });
 });
 
@@ -181,7 +229,7 @@ describe('받아 오기', () => {
     const 부름 = vi.spyOn(api, 'notifications').mockRejectedValue(new ApiError(403, 'FORBIDDEN', '권한이 없습니다'));
     render(
       <언어함 value="ko">
-        <Notice 줄숨김={false} />
+        <Notice 줄숨김={false} 서비스바꿈={서비스바꿈} />
       </언어함>,
     );
     await act(async () => {});
@@ -197,7 +245,7 @@ describe('받아 오기', () => {
     const 부름 = vi.spyOn(api, 'notifications').mockResolvedValue({ running: [도는실행(1)], recent: [] });
     render(
       <언어함 value="ko">
-        <Notice 줄숨김={false} />
+        <Notice 줄숨김={false} 서비스바꿈={서비스바꿈} />
       </언어함>,
     );
     await act(async () => {});

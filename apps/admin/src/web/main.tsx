@@ -39,7 +39,8 @@ import { Signup } from './Signup.js';
 import { Loading } from './ui.js';
 import './styles.css';
 import './authoringStatus.css';
-import './notice.css';
+import './noticeBar.css';
+import './noticeDrawer.css';
 import './prd.css';
 
 function Screen({

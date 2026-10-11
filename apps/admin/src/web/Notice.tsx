@@ -57,7 +57,13 @@ function 막대({ 줄 }: { 줄: 도는줄 }) {
   );
 }
 
-function 도는줄그림({ 줄 }: { 줄: 도는줄 }) {
+/**
+ * 작성 상세(#/authoring) · PRD 관리(#/prd)는 사이드바에서 고른 서비스로 읽는다. 알림은 볼 수 있는 서비스 전체라
+ * 다른 서비스의 알림을 누르면 못 찾는다 — 가기 전에 그 알림의 서비스로 먼저 바꾼다. 실행(#/runs)은 서비스와 상관없이 열린다
+ */
+type 서비스바꿈 = (접두사: string) => void;
+
+function 도는줄그림({ 줄, 바꿈 }: { 줄: 도는줄; 바꿈: 서비스바꿈 }) {
   const t = use말();
   return (
     <div className="nt-line">
@@ -67,7 +73,13 @@ function 도는줄그림({ 줄 }: { 줄: 도는줄 }) {
       <막대 줄={줄} />
       {줄.뒷글 === null ? null : <span className="nt-sub">{줄.뒷글}</span>}
       <small className="nt-svc">{줄.서비스}</small>
-      <a className="nt-go" href={줄.열기}>
+      <a
+        className="nt-go"
+        href={줄.열기}
+        onClick={() => {
+          if (줄.종류 === 'authoring') 바꿈(줄.접두사);
+        }}
+      >
         {t('열기')}
       </a>
     </div>
@@ -76,7 +88,7 @@ function 도는줄그림({ 줄 }: { 줄: 도는줄 }) {
 
 const 모양글자 = { pass: '✓', fail: '✕', halt: '■' } as const;
 
-function 끝난줄그림({ 줄, on읽음 }: { 줄: 끝난줄; on읽음: (열쇠들: string[]) => void }) {
+function 끝난줄그림({ 줄, on읽음, 바꿈 }: { 줄: 끝난줄; on읽음: (열쇠들: string[]) => void; 바꿈: 서비스바꿈 }) {
   const t = use말();
   return (
     <div className="nt-line">
@@ -88,13 +100,26 @@ function 끝난줄그림({ 줄, on읽음 }: { 줄: 끝난줄; on읽음: (열쇠�
       {줄.확인필요 === 0 ? null : (
         <span className="nt-sub">
           {t('PRD 확인 필요 {수}건', { 수: 줄.확인필요 })}{' '}
-          <a href="#/prd" onClick={() => on읽음([줄.열쇠])}>
+          <a
+            href="#/prd"
+            onClick={() => {
+              바꿈(줄.접두사);
+              on읽음([줄.열쇠]);
+            }}
+          >
             {t('PRD 관리')}
           </a>
         </span>
       )}
       <small className="nt-svc">{줄.서비스}</small>
-      <a className="nt-go" href={줄.열기} onClick={() => on읽음([줄.열쇠])}>
+      <a
+        className="nt-go"
+        href={줄.열기}
+        onClick={() => {
+          if (줄.종류 === 'authoring') 바꿈(줄.접두사);
+          on읽음([줄.열쇠]);
+        }}
+      >
         {줄.열기라벨}
       </a>
       <button className="nt-x" aria-label={t('알림 닫기')} onClick={() => on읽음([줄.열쇠])}>
@@ -104,12 +129,12 @@ function 끝난줄그림({ 줄, on읽음 }: { 줄: 끝난줄; on읽음: (열쇠�
   );
 }
 
-function 한줄({ 줄 }: { 줄: 줄타입 }) {
-  return 줄.도는중 ? <도는줄그림 줄={줄} /> : <끝난줄그림 줄={줄} on읽음={읽음으로적는다} />;
+function 한줄({ 줄, 바꿈 }: { 줄: 줄타입; 바꿈: 서비스바꿈 }) {
+  return 줄.도는중 ? <도는줄그림 줄={줄} 바꿈={바꿈} /> : <끝난줄그림 줄={줄} on읽음={읽음으로적는다} 바꿈={바꿈} />;
 }
 
-/** `줄숨김` — 대시보드처럼 여러 서비스를 함께 보는 자리는 줄을 숨기고 버튼만 둔다 */
-export function Notice({ 줄숨김 }: { 줄숨김: boolean }) {
+/** `줄숨김` — 대시보드처럼 여러 서비스를 함께 보는 자리는 줄을 숨기고 버튼만 둔다. `서비스바꿈` — 사이드바 서비스를 바꾸는 길 */
+export function Notice({ 줄숨김, 서비스바꿈 }: { 줄숨김: boolean; 서비스바꿈: 서비스바꿈 }) {
   const t = use말();
   const 언어 = use언어();
   const { 답, 막힘 } = use알림받기();
@@ -152,7 +177,7 @@ export function Notice({ 줄숨김 }: { 줄숨김: boolean }) {
         {줄들.length === 0 ? null : (
           <div className="nt-lines">
             {줄들.map((줄) => (
-              <한줄 key={줄.열쇠} 줄={줄} />
+              <한줄 key={줄.열쇠} 줄={줄} 바꿈={서비스바꿈} />
             ))}
             {넘친수 === 0 ? null : (
               <div className="nt-line">
@@ -174,7 +199,7 @@ export function Notice({ 줄숨김 }: { 줄숨김: boolean }) {
           )}
         </button>
       </div>
-      {!열림 || 답 === null ? null : <NoticeDrawer recent={답.recent} 읽음={읽음} 지금={지금} onClose={닫는다} on읽음={읽음으로적는다} />}
+      {!열림 || 답 === null ? null : <NoticeDrawer recent={답.recent} 읽음={읽음} 지금={지금} onClose={닫는다} on읽음={읽음으로적는다} 서비스바꿈={서비스바꿈} />}
     </>
   );
 }

@@ -32,6 +32,7 @@ export function 도는작성(requestId: number, 덮을것: Partial<Extract<Notic
     stage: '케이스를 만드는 중',
     startedAt: 전에(12),
     expected: null,
+    fiveSteps: true,
     ...덮을것,
   };
 }

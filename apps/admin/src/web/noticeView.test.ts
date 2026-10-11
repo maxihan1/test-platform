@@ -42,6 +42,13 @@ describe('도는 줄', () => {
     expect(앞글).toContain('CI 기다리는 중');
     expect(앞글).not.toContain('/ 5 단계');
   });
+
+  it('다섯 단계를 안 밟는 작성(fiveSteps 가 false)은 「N / 5 단계」를 붙이지 않는다 — 단계 글이 있으면 그 글만, 없으면 아무것도 안 붙인다', () => {
+    const 글 = (stage: string | null) => 도는줄만들기(도는작성(9, { fiveSteps: false, stage }), 지금, 'ko').앞글;
+    expect(글('케이스를 만드는 중')).toBe('작성 요청 #9 이 진행 중입니다 · 스크립트를 만드는 중 · 12분 지남');
+    expect(글('CI 기다리는 중')).toBe('작성 요청 #9 이 진행 중입니다 · CI 기다리는 중 · 12분 지남');
+    expect(글(null)).toBe('작성 요청 #9 이 진행 중입니다 · 12분 지남');
+  });
 });
 
 describe('끝난 줄', () => {

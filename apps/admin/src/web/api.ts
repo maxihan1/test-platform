@@ -181,6 +181,8 @@ export type NoticeRunning =
       stage: string | null;
       startedAt: string | null;
       expected: { ms: number; samples: number } | null;
+      /** 다섯 단계를 밟는 작성인가 — 반영 · 고치기는 안 밟아 「N / 5 단계」를 붙이지 않는다 */
+      fiveSteps: boolean;
     });
 
 export type NoticeRecent =

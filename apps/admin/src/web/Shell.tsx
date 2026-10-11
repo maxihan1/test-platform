@@ -172,7 +172,16 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
       <div className="main">
         {/* 서비스 고르개와 상관없이 볼 수 있는 서비스 전체를 받는다. 대시보드도 같은 이유로 줄은 숨기고 버튼만 둔다 */}
-        {service === null ? null : <Notice 줄숨김={대시보드인가} />}
+        {service === null ? null : (
+          <Notice
+            줄숨김={대시보드인가}
+            서비스바꿈={(접두사) => {
+              // 서비스 고르개와 같은 길이다 — 고른 서비스를 적어 두고 화면이 읽는 서비스를 바꾼다
+              고른서비스를적는다(접두사);
+              onService(접두사);
+            }}
+          />
+        )}
 
         {사유 === null ? (
           children
