@@ -4407,7 +4407,7 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 /* ── 앱 대시보드 (DESIGN.md 「대시보드」, 2026-10-07 · 9판 A 「실패 먼저」) ──────────
    표는 선(위 2px · 행 괘선), 그래프 · 요약은 판(--slab) 이다 (원칙 2). 그래프와 표에는 대표색을 쓰지 않는다.
    칸 쌓기는 창이 아니라 **대시보드 폭**을 본다 — 사이드바를 접고 펴면 같은 창에서도 본문 폭이 달라진다.
-   넓은 화면 배치는 grid 자리로 옮기고 DOM 순서는 화면 읽기 순서(실행 중 → 신규 실패 → 통과율 → 서비스별 → 일별 → 히트맵 → 커버리지)다 */
+   넓은 화면 배치는 grid 자리로 옮기고 DOM 순서는 화면 읽기 순서(실행 중 → 신규 실패 → 통과율 → 서비스별 → 일별 → 히트맵 → 실패 유형 → 커버리지)다 */
 .dash {
   /* .main 이 세로 flex 라 안 막으면 창 높이에 맞춰 줄어든다 — .screen 과 같은 이유다 */
   flex-shrink: 0;
@@ -4451,7 +4451,12 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 }
 
 .dash-heat {
-  grid-column: 1 / 13;
+  grid-column: 1 / 9;
+  grid-row: 4;
+}
+
+.dash-types {
+  grid-column: 9 / 13;
   grid-row: 4;
 }
 
@@ -4490,7 +4495,8 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   animation-delay: 0.12s;
 }
 
-.dash-board > :nth-child(6) {
+/* 일곱째(커버리지)도 여섯째와 같이 나온다 — 숫자로 둘 수 있는 시간은 0.15초까지다(styles.test 가 지킨다) */
+.dash-board > :nth-child(n + 6) {
   animation-delay: 0.15s;
 }
 
@@ -4633,6 +4639,49 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 
 .dash-bar i.f {
   background: var(--fail);
+}
+
+.dash-bar i.n {
+  background: var(--na-chart);
+}
+
+/* 실패 유형 — 표처럼 선으로만 가른다. 막대는 실패 · 미실행 판정 색으로 나눠 칠한다 */
+.dash-types-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-types-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.dash-types-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.dash-types-head .num {
+  font-size: 16px;
+}
+
+.dash-types-note,
+.dash-types-foot {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.dash-types-foot {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
 }
 
 /* 표 둘 */

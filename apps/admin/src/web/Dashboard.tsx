@@ -9,6 +9,7 @@ import { 서비스별표, 신규실패표, 실행중줄, 안내판 } from './Das
 import { 일별막대, 실패히트맵, 통과율선 } from './DashboardCharts.js';
 import { 요구커버리지 } from './DashboardCoverage.js';
 import { 통과율칸, 판칸, 합 } from './DashboardRate.js';
+import { 실패유형칸 } from './DashboardTypes.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { Loading, message } from './ui.js';
@@ -172,6 +173,7 @@ export function Dashboard({
               <판칸 클래스="dash-heat" 제목={t('실패 히트맵')} 보조={t('최근 {일}일 실패가 많은 케이스', { 일: 읽음.값.window.days })}>
                 <실패히트맵 값={읽음.값} />
               </판칸>
+              <실패유형칸 값={읽음.값} />
               <판칸 클래스="dash-cov" 제목={t('요구사항 커버리지')} 보조={t('마지막 작성 기준')}>
                 <요구커버리지 값={읽음.값} 서비스열기={서비스열기} 작성서비스={작성서비스} />
               </판칸>

@@ -83,6 +83,22 @@ export const 대시보드말: Record<string, string> = {
   '{날짜} · 요청 #{번호}': '{날짜} · request #{번호}',
   '작성 기록이 없습니다': 'No authoring run yet',
 
+  // 실패 유형
+  '실패 유형': 'Failure types',
+  '최근 {일}일 실패 · 미실행의 원인': 'Causes of failed and not-run tests in the last {일} days',
+  '최근 {일}일 실패 · 미실행이 없습니다': 'No failed or not-run tests in the last {일} days',
+  '기대 결과 불일치': 'Expected result mismatch',
+  '요소 미검출': 'Element not found',
+  타임아웃: 'Timeout',
+  '환경 오류': 'Environment error',
+  '그 밖': 'Other',
+  '확인 문장의 기대값과 실제 값이 다름': 'A check’s expected and actual values differ',
+  '화면에서 버튼 · 입력 칸을 끝내 찾지 못함': 'A button or input never appeared on the screen',
+  '제한 시간 안에 끝나지 않음': 'Did not finish within the time limit',
+  '대상 서버 · 러너에 닿지 못함': 'Could not reach the target server or runner',
+  '스크립트 오류 등 위 넷이 아닌 것': 'Script errors and anything not in the four above',
+  '사용자가 멈춘 미실행 {수}건은 세지 않았습니다': '{수} not-run tests stopped by a user are not counted',
+
   // 실행 0
   '아직 실행한 테스트가 없습니다': 'No tests have run yet',
   '테스트 스크립트를 실행하면 여기에 통과율 · 신규 실패 · 일별 결과가 쌓입니다': 'Run test scripts and the pass rate, new failures and daily results build up here',
