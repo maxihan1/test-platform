@@ -64,4 +64,12 @@ describe('리포터가 케이스 파일을 못 읽은 오류를 넘겨받는다'
 
     expect(쓰기).toHaveBeenCalledWith('boom\n');
   });
+
+  it('문장 · 스택 · 값이 다 없으면 아무것도 흘리지 않는다 — 「undefined」가 사유가 되지 않게', () => {
+    const 쓰기 = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    new PlatformReporter().onError({});
+
+    expect(쓰기).not.toHaveBeenCalled();
+  });
 });

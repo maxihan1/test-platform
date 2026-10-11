@@ -88,7 +88,8 @@ class PlatformReporter implements Reporter {
   // 케이스 파일을 못 읽은 오류(문법 오류 · import 실패)는 여기로만 온다. 버리면 stdout · stderr 가 둘 다 비어
   // 사유 없는 실패가 된다. 테스트가 안 돌아 결과 줄이 없으니 러너는 stderr 를 사유로 싣는다 (도메인/러너 §5.2)
   onError(error: TestError): void {
-    process.stderr.write(`${error.message ?? String(error.value)}\n`);
+    const 문장 = error.message ?? error.stack ?? error.value;
+    if (문장 !== undefined) process.stderr.write(`${문장}\n`);
   }
 
   printsToStdio(): boolean {
