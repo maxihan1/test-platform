@@ -94,6 +94,8 @@ export const 라우트표: Record<string, 원천> = {
   '/api/authoring/requests/:id/held/:tcId': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/conflicts/:tcId': { 종류: '작성요청', 칸: 'id' },
   '/api/authoring/requests/:id/prd': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/screens': { 종류: '작성요청', 칸: 'id' },
+  '/api/authoring/requests/:id/screens/done': { 종류: '작성요청', 칸: 'id' },
 
   // 표준 기획서 (도메인/작성 §7 「표준 기획서 통로」). 라우트가 ?service= 의 서비스 것만 읽고 쓴다
   '/api/prd': { 종류: '질의' },

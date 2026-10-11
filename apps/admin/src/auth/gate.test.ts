@@ -667,10 +667,11 @@ describe('등급 표', () => {
 
   // ★ 옛 등급 하나를 서비스별 칸으로 옮긴 뒤 **누구의 할 수 있는 일도 바뀌지 않았나** (SPEC 도메인/인증 §7 「옛 등급에서 옮긴 값」)
   // 일부러 바꾼 자리. 머지는 저장소를 영구히 바꾸는 일이라 admin 으로 올렸다 (SPEC 도메인/인증 §7).
-  // 표준 기획서 읽기는 GET 이지만 작성 에이전트의 일이라 다른 에이전트 통로처럼 (작성, write) 다 (같은 절 「작성 에이전트가 하는 일」)
+  // 표준 기획서 · 화면 기록 읽기는 GET 이지만 작성 에이전트의 일이라 다른 에이전트 통로처럼 (작성, write) 다 (같은 절 「작성 에이전트가 하는 일」)
   const 일부러 = new Map<string, 옛등급>([
     ['POST /api/authoring/merges', 'admin'],
     ['GET /api/authoring/requests/:id/prd', 'operator'],
+    ['GET /api/authoring/requests/:id/screens', 'operator'],
   ]);
   const 옛높이 = { viewer: 0, operator: 1, admin: 2 } as const;
   type 옛등급 = keyof typeof 옛높이;
