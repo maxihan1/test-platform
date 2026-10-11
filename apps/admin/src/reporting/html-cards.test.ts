@@ -132,4 +132,18 @@ describe('증적 C 양식', () => {
     expect(줄).toContain('러너에 닿지 못했습니다');
     expect(줄).toContain('<span class="verdict v-na">미실행</span>');
   });
+
+  it('디바이스마다 미실행 사유가 다르면 줄에 사유를 모두 적는다', () => {
+    const html = renderHtml(
+      문서([
+        항목('D-1', { status: 'NOT_RUN', durationMs: null, notRunReason: '러너에 닿지 못했습니다' }),
+        항목('D-1', { platform: 'mobile', status: 'NOT_RUN', durationMs: null, notRunReason: '실행이 멈춰 돌지 못했습니다' }),
+      ]),
+      PDF,
+    );
+    const 줄 = html.split('\n').find((l) => l.includes('class="fold fold-line"') && l.includes('D-1 케이스')) ?? '';
+
+    expect(줄).toContain('러너에 닿지 못했습니다');
+    expect(줄).toContain('실행이 멈춰 돌지 못했습니다');
+  });
 });
