@@ -1,13 +1,14 @@
-// 증적 자료의 되비친 비밀값 검사 — 확인의 기대 · 실제 값과 판정 못 낸 사유에 실린 비밀 글자도 가린다 (공통/2 §4.1 · 진행판 WEB-F3-13)
+// 증적 자료 · 견주기의 되비친 비밀값 검사 — 확인의 기대 · 실제 값, 판정 못 낸 사유, 실패 덩어리 대표 문장에 실린 비밀 글자도 가린다 (공통/2 §4.1 · 진행판 WEB-F3-13)
 // CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다. fixture 접두사 XDK — 자기 service_id 로만 지운다 (apps/admin/CLAUDE.md)
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { collectRun } from './collect.js';
+import { compareWithPrevious } from './insights.js';
 
 const 연결 = process.env.DATABASE_URL;
 
-describe.skipIf(연결 === undefined)('증적 자료 — 되비친 비밀값', () => {
+describe.skipIf(연결 === undefined)('증적 · 견주기 — 되비친 비밀값', () => {
   let pool: Pool;
   let 실행 = 0;
   const 서비스 = "(SELECT id FROM service WHERE prefix = 'XDK')";
@@ -40,7 +41,10 @@ describe.skipIf(연결 === undefined)('증적 자료 — 되비친 비밀값', (
                '{"아이디":"tester","password":"pa55word"}', '{"apiKey":"k3y-777"}',
                '{"type":"object","properties":{"password":{"type":"string","secret":true}}}',
                '{"type":"object","properties":{"apiKey":{"type":"string","secret":true}}}',
-               'NA', 100, now(), '{"message":"pa55word 로 판정하지 못했다"}')
+               'NA', 100, now(), '{"message":"pa55word 로 판정하지 못했다"}'),
+              ($1, 'XDK-002', 'desktop', 1, '로그인한다', 'xdk/XDK-002.spec.ts', 300000, '[]',
+               '{"password":"pa55word"}', '{}', '{"type":"object","properties":{"password":{"type":"string","secret":true}}}', '{}',
+               'FAIL', 100, now(), '{"message":"pa55word 로 로그인하지 못했다\\nat login"}')
        RETURNING history_id`,
       [실행],
     );
@@ -60,5 +64,10 @@ describe.skipIf(연결 === undefined)('증적 자료 — 되비친 비밀값', (
     const 항목 = (await collectRun(실행))?.items[0];
     expect(항목?.notRunReason).toBe('******** 로 판정하지 못했다');
     expect(항목?.steps[0]?.assertions[0]).toMatchObject({ statement: '키가 맞다', expected: '********', actual: '********' });
+  });
+
+  it('실패 덩어리의 대표 문장(오류 첫 줄)에 되비친 비밀 글자가 ******** 다', async () => {
+    const 결과 = await compareWithPrevious(실행);
+    expect(결과.실패덩어리들.map((d) => d.대표문장)).toEqual(['******** 로 로그인하지 못했다']);
   });
 });
