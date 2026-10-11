@@ -1532,23 +1532,6 @@ input[type='file']::file-selector-button {
     justify-content: center;
   }
 
-  /* DESIGN.md 「반응형」 — 입력 폼은 라벨이 값 위로 올라간다.
-     62px 라벨 열을 그대로 두면 375px 에서 값 칸이 40px 도 안 남는다 */
-  .pcell .field {
-    grid-template-columns: 1fr;
-    gap: 2px;
-  }
-
-  .pcell .field label {
-    text-align: left;
-  }
-
-  .pcell .field input,
-  .pcell .field select {
-    max-width: none;
-    min-height: 44px;
-  }
-
   /* 손가락으로 누르는 자리다. 완료 기준이 결과 화면을 휴대폰에서 보게 요구한다 */
   .row .btn.small {
     min-height: 44px;

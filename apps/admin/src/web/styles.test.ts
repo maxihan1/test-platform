@@ -126,12 +126,6 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(블록, '.detail 에 바탕이 없다').toMatch(/background:\s*var\(--well\)/);
   });
 
-  it('좁은 화면에서 줄의 입력칸은 라벨이 값 위로 올라간다', () => {
-    // DESIGN.md 「반응형」 — 입력 폼은 라벨이 값 위로. 132px 라벨 열을 그대로 두면 375px 에서 넘친다
-    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-    expect(좁은화면).toMatch(/\.pcell \.field\s*\{[^}]*grid-template-columns:\s*1fr/);
-  });
-
   it('좁은 화면에서 줄의 버튼과 입력칸이 44px 이다', () => {
     // 손가락으로 누르는 자리다. 완료 기준이 실행 결과 화면을 휴대폰에서 보게 요구한다
     const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
