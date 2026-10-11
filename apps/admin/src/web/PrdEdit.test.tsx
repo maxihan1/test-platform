@@ -50,7 +50,7 @@ describe('PRD 관리 — 고치기', () => {
     expect([서비스, 기준]).toEqual(['MKT', 12]);
     expect(보낸것.map((x) => x.reqId)).toEqual(['MKT-REQ-031', 'MKT-REQ-032', 'MKT-REQ-040', 'MKT-REQ-041']);
     expect(보낸것[1]).toMatchObject({ reqId: 'MKT-REQ-032', text: '아이디 칸에는 12자까지 들어간다', status: 'CONFIRMED', basis: 아이디칸.basis });
-    expect(await screen.findByText('판 13으로 저장했습니다')).toBeTruthy();
+    expect(await screen.findByText('저장했습니다 (버전 13)')).toBeTruthy();
     await vi.waitFor(() => expect(screen.queryByLabelText('요구 문장')).toBeNull());
   });
 
@@ -124,30 +124,30 @@ describe('PRD 관리 — 고치기', () => {
   });
 });
 
-describe('PRD 관리 — 판 이력', () => {
-  it('작성 쓰기가 없으면 판 이력은 보이고 되돌리기는 아예 없다', async () => {
+describe('PRD 관리 — 버전 기록', () => {
+  it('작성 쓰기가 없으면 버전 기록은 보이고 복원은 아예 없다', async () => {
     render(<Prd service="MKT" 할수={() => false} />);
-    fireEvent.click(await screen.findByRole('button', { name: '판 이력' }));
-    expect(await screen.findByText('작성 에이전트 · 옮기기')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /되돌리기/ })).toBeNull();
+    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
+    expect(await screen.findByText('작성 에이전트 · AI 작성')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /복원/ })).toBeNull();
   });
 
-  it('판마다 누가 무엇으로 만들었는지 보이고 지금 판에는 되돌리기가 없다', async () => {
+  it('버전마다 누가 무엇으로 저장했는지 보이고 현재 버전에는 복원이 없다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '판 이력' }));
+    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
     const 줄들 = (await screen.findAllByRole('row')).slice(1);
-    expect(within(줄들[0]!).getByText('한지수 · 사람')).toBeTruthy();
-    expect(within(줄들[0]!).getByText('지금 판')).toBeTruthy();
-    expect(within(줄들[1]!).getByText('작성 에이전트 · 옮기기')).toBeTruthy();
+    expect(within(줄들[0]!).getByText('한지수 · 직접 수정')).toBeTruthy();
+    expect(within(줄들[0]!).getByText('현재 버전')).toBeTruthy();
+    expect(within(줄들[1]!).getByText('작성 에이전트 · AI 작성')).toBeTruthy();
   });
 
-  it('되돌리기는 한 번 더 묻고, 확인하면 지금 판 번호와 고른 판을 보낸다', async () => {
+  it('복원은 한 번 더 묻고, 확인하면 현재 버전 번호와 고른 버전을 보낸다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '판 이력' }));
-    fireEvent.click(await screen.findByRole('button', { name: '이 판으로 되돌리기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
+    fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 복원' }));
     expect(되돌림).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '판 11으로 되돌리기 확인' }));
+    fireEvent.click(screen.getByRole('button', { name: '버전 11 복원 확인' }));
     await vi.waitFor(() => expect(되돌림).toHaveBeenCalledWith('MKT', 12, 11));
-    expect(await screen.findByText('판 13으로 저장했습니다')).toBeTruthy();
+    expect(await screen.findByText('저장했습니다 (버전 13)')).toBeTruthy();
   });
 });

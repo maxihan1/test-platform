@@ -119,7 +119,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
               />
               {t('모두 고르기')}
             </label>
-            <span className="note">{t('확정하면 바로 새 판이 됩니다. PR 은 없습니다')}</span>
+            <span className="note">{t('확정하면 바로 새 버전으로 저장됩니다. PR 은 없습니다')}</span>
             <button className="btn small" disabled={busy || 보낼것.length === 0} onClick={() => void 확정()}>
               {t('고른 {건수}건 확정', { 건수: 보낼것.length })}
             </button>

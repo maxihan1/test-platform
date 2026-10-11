@@ -56,7 +56,7 @@ export function Prd({
   const 짓기: 판짓기 = async (일) => {
     try {
       const { version } = await 일(now.version);
-      set알림({ ok: true, 글: t('판 {판}으로 저장했습니다', { 판: version }) });
+      set알림({ ok: true, 글: t('저장했습니다 (버전 {버전})', { 버전: version }) });
       await 판.reload();
       return true;
     } catch (err) {
@@ -85,7 +85,7 @@ export function Prd({
     <>
       <Head
         제목={t('PRD 관리')}
-        부제={now.version === 0 ? t('아직 PRD 가 없습니다') : t('판 {판} · 요구 {건수}건', { 판: now.version, 건수: now.items.length })}
+        부제={now.version === 0 ? t('아직 PRD 가 없습니다') : t('버전 {버전} · 요구 {건수}건', { 버전: now.version, 건수: now.items.length })}
         행동={
           <>
             {now.version === 0 ? null : (
@@ -97,7 +97,7 @@ export function Prd({
                   {받는중 === 'xlsx' ? t('만드는 중…') : t('추적표 엑셀로 내려받기')}
                 </button>
                 <button className="btn ghost" aria-expanded={이력} onClick={() => set이력(!이력)}>
-                  {t('판 이력')}
+                  {t('버전 기록')}
                 </button>
               </>
             )}

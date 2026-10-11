@@ -42,13 +42,13 @@ describe('PRD 관리 — 할 일 먼저', () => {
     지금.mockResolvedValue(판({ version: 0, items: [], unapplied: { changed: [], added: [], removed: [] }, needsCheck: { count: 0, oldestSince: null } }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
     expect(await screen.findByText('요구 더하기로 첫 요구를 적습니다')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '판 이력' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '버전 기록' })).toBeNull();
     expect(screen.queryByRole('button', { name: '워드로 내려받기' })).toBeNull();
   });
 
   it('머리에 판과 요구 수, 확인 필요는 오래 기다린 것부터 나이와 근거 자리를 단다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    expect(await screen.findByText('판 12 · 요구 4건')).toBeTruthy();
+    expect(await screen.findByText('버전 12 · 요구 4건')).toBeTruthy();
     expect(within(확인칸()).getByText(/가장 오래된 것 9일째/)).toBeTruthy();
     const 줄들 = within(확인칸()).getAllByRole('listitem');
     expect(줄들.map((줄) => within(줄).getByText(/^MKT-REQ/).textContent)).toEqual(['MKT-REQ-040', 'MKT-REQ-032']);
@@ -58,19 +58,19 @@ describe('PRD 관리 — 할 일 먼저', () => {
 
   it('고른 확인 필요만 지금 판 번호와 함께 한 번에 확정하고 판을 다시 읽는다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('판 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구 4건');
     const 버튼 = screen.getByRole('button', { name: '고른 0건 확정' }) as HTMLButtonElement;
     expect(버튼.disabled).toBe(true);
     fireEvent.click(screen.getByRole('checkbox', { name: 'MKT-REQ-040 고르기' }));
     fireEvent.click(screen.getByRole('button', { name: '고른 1건 확정' }));
     await vi.waitFor(() => expect(확정).toHaveBeenCalledWith('MKT', 12, ['MKT-REQ-040']));
-    expect(await screen.findByText('판 13으로 저장했습니다')).toBeTruthy();
+    expect(await screen.findByText('저장했습니다 (버전 13)')).toBeTruthy();
     await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
   });
 
   it('모두 고르기는 확인 필요 전부를 고른다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('판 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구 4건');
     fireEvent.click(screen.getByRole('checkbox', { name: '모두 고르기' }));
     fireEvent.click(screen.getByRole('button', { name: '고른 2건 확정' }));
     await vi.waitFor(() => expect(확정).toHaveBeenCalledWith('MKT', 12, ['MKT-REQ-040', 'MKT-REQ-032']));
@@ -79,10 +79,10 @@ describe('PRD 관리 — 할 일 먼저', () => {
   it('다른 사람이 먼저 저장했으면 까닭을 말하고 새 판을 다시 읽는다', async () => {
     확정.mockRejectedValueOnce(new ApiError(409, 'PRD_STALE', ''));
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('판 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구 4건');
     fireEvent.click(screen.getByRole('checkbox', { name: 'MKT-REQ-032 고르기' }));
     fireEvent.click(screen.getByRole('button', { name: '고른 1건 확정' }));
-    expect(await screen.findByText('다른 사람이 먼저 PRD 를 바꿨습니다. 새 판을 불러왔으니 확인하고 다시 합니다')).toBeTruthy();
+    expect(await screen.findByText('다른 사람이 먼저 PRD 를 바꿨습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다')).toBeTruthy();
     await vi.waitFor(() => expect(지금).toHaveBeenCalledTimes(2));
   });
 
@@ -193,13 +193,13 @@ describe('PRD 관리 — 할 일 먼저', () => {
 
   it('찾은 화면이 0 이면 카드를 안 그린다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    await screen.findByText('판 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구 4건');
     expect(screen.queryByRole('region', { name: /PRD 에 없는 화면/ })).toBeNull();
   });
 
   it('작성 쓰기가 없으면 고르기 · 확정 · 더하기 · 고치기가 아예 없다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
-    await screen.findByText('판 12 · 요구 4건');
+    await screen.findByText('버전 12 · 요구 4건');
     expect(screen.queryAllByRole('checkbox')).toEqual([]);
     expect(screen.queryByRole('button', { name: /확정/ })).toBeNull();
     expect(screen.queryByRole('button', { name: '요구 더하기' })).toBeNull();
