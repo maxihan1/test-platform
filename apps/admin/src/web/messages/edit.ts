@@ -8,10 +8,6 @@ export const 고치기말: Record<string, string> = {
     'These are the expected results written in the test code. Only the fields you change go into the PR; once merged they become the defaults for the next runs',
   '코드에서 바꿀 수 있는 기대결과 칸이 없습니다': 'This case has no expected result that can be changed in code',
   '{칸들} — 반영되면 이 저장값은 지워집니다': '{칸들} — the saved value will be removed once merged',
-  '확정 — 지금 기대값이 맞다고 판정합니다': 'Confirm — I judge the current expected results to be correct',
-  '「PRD 관리」에서 확정합니다': 'Confirm it in "PRD management"',
-  '미확정 사유': 'Why unconfirmed',
-  '지금 기대값': 'Current expected results',
   '요청을 보냈습니다.': 'Request sent.',
   '작성 요청 {번호}번': 'Authoring request #{번호}',
   '반영은 테스트 작성 화면에서 합니다.': 'Merge it from the test authoring screen.',
@@ -25,16 +21,11 @@ export const 고치기말: Record<string, string> = {
 
   // 케이스 목록에서 고른 것 (CaseBulkEdit.tsx)
   '삭제 요청': 'Request deletion',
-  '미확정 {건수}건 확정 요청': 'Request confirming {건수} unconfirmed',
   '고른 {건수}건 삭제 요청': 'Request deleting {건수} selected',
   '삭제 요청 보내기': 'Send deletion request',
-  '확정 요청 보내기': 'Send confirmation request',
   '케이스 파일을 지우는 PR 을 올립니다. 반영하면 실행 대상에서 빠지고, 이 케이스를 쓰는 E2E 시나리오도 더 돌지 않습니다. 실행 기록은 남습니다.':
     'This opens a PR that deletes the case files. Once merged they are no longer run, and E2E scenarios that use them stop running too. Run history is kept.',
-  '미확정 표시를 떼는 PR 을 올립니다. 케이스마다 지금 기대값이 맞는지 보고 보내세요.':
-    'This opens a PR that removes the unconfirmed mark. Check that each case’s current expected results are correct before sending.',
   '비활성 {수}건은 뺐습니다': '{수} inactive left out',
-  '표준 기획서가 정한 미확정 {수}건은 뺐습니다 — 「PRD 관리」에서 확정합니다': '{수} unconfirmed by the PRD left out — confirm them in "PRD management"',
   '한 번에 {상한}건까지 요청할 수 있습니다. 고른 것을 줄이세요': 'You can request up to {상한} at a time. Select fewer cases',
 
   // 작성 화면 (authoringView.ts · authoringStatus.ts · AuthoringRuns.tsx · AuthoringEditParts.tsx)

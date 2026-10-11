@@ -1,9 +1,8 @@
-// 케이스 고치기 요청 본문 검사 — 지우기 · 기대값 넣기 · 미확정 풀기 (SPEC 도메인/작성 §3.6 「★ 케이스 고치기」)
+// 케이스 고치기 요청 본문 검사 — 지우기 · 기대값 넣기 (SPEC 도메인/작성 §3.6 「★ 케이스 고치기」)
 
 import type { JsonSchema } from '@platform/kit';
 
 import { validate } from '../execution/validate.js';
-import { 확인필요머리 } from '../prd/unconfirmed.js';
 
 /** 한 요청의 케이스 수 상한 — 명세 작성 §3.6 「★ 케이스 고치기」가 정본 */
 export const 고치기상한 = 50;
@@ -12,12 +11,11 @@ export type 기대값 = string | number | boolean;
 
 export type 고칠것 =
   | { tcId: string; delete: true }
-  | { tcId: string; expected?: Record<string, 기대값>; confirm?: true };
+  | { tcId: string; expected?: Record<string, 기대값> };
 
 export interface 케이스정보 {
   tcId: string;
   active: boolean;
-  unconfirmed: string | null;
   expectedSchema: unknown;
 }
 
@@ -52,7 +50,7 @@ export function 행의고칠것(params: unknown): unknown[] | null {
 // collect.ts 와 같은 이유로 같은 목록을 둔다. 이름만 비밀값이고 표시가 없는 옛 케이스를 여기서도 막는다
 const SECRET_NAMES = ['password', 'passwd', 'pw', 'token', 'secret', 'apikey', 'credential'];
 
-const 키들 = new Set(['tcId', 'delete', 'expected', 'confirm']);
+const 키들 = new Set(['tcId', 'delete', 'expected']);
 const 단순타입 = new Set(['string', 'number', 'integer', 'boolean']);
 
 class 거절 extends Error {
@@ -138,19 +136,9 @@ function 줄검사(item: unknown, 판: 고치기판, 본것: Set<string>): 고�
     return { tcId, delete: true };
   }
 
-  const 있나기대 = 'expected' in item;
-  const 있나확정 = 'confirm' in item;
-  if (!있나기대 && !있나확정) throw new 거절(tcId);
-
-  const 고침: { tcId: string; expected?: Record<string, 기대값>; confirm?: true } = { tcId };
-  if (있나기대) 고침.expected = 기대값검사(tcId, item.expected, 케이스, 판.비밀번호들);
-  if (있나확정) {
-    // 꼬리표가 미확정을 정하는 케이스만 푼다. 미확정이 아니면 풀 것이 없고 — 조용히 넘기면 사람은 확정했다고 믿는다 —
-    // 표준 기획서가 정한 미확정은 꼬리표를 떼도 안 풀린다(「PRD 관리」에서 확정 · 도메인/작성 §3.6 「미확정」)
-    if (item.confirm !== true || 케이스.unconfirmed === null || 케이스.unconfirmed.startsWith(확인필요머리)) throw new 거절(tcId);
-    고침.confirm = true;
-  }
-  return 고침;
+  // confirm 은 키 목록에 없어 위에서 이미 거절된다 — 미확정은 표준 기획서 항목 상태로만 정해진다(「PRD 관리」에서 확정)
+  if (!('expected' in item)) throw new 거절(tcId);
+  return { tcId, expected: 기대값검사(tcId, item.expected, 케이스, 판.비밀번호들) };
 }
 
 /** 고치기 요청 본문을 검사해 입력 순서 그대로 정규화한다. 한 줄이라도 틀리면 전체를 거절한다 */

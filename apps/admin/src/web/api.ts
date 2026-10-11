@@ -40,7 +40,7 @@ export interface CaseRow {
   scannedAt: string;
   /**
    * 미확정 사유 (도메인/카탈로그 §3.1). 없으면 확정 케이스다.
-   * 표준 기획서에서 계산한 것은 `확인 필요 — MKT-REQ-003 · MKT-REQ-007` 꼴이고, 아직 옮기지 않은 케이스는 옛 꼬리표 사유 글 그대로다
+   * 표준 기획서에서 계산한 `확인 필요 — MKT-REQ-003 · MKT-REQ-007` 꼴이다
    */
   unconfirmed?: string | null;
   /** 다음 실행에 먼저 채울 저장값. 없으면 null 이고 칸은 코드 기본값으로 돈다 */

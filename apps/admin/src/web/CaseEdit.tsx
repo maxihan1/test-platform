@@ -1,4 +1,4 @@
-// 케이스 상세의 「코드 기본값 바꾸기 요청」 — 기대값 · 확정 · 삭제를 작성 에이전트에 요청한다 (도메인/카탈로그 §8.1 · 도메인/작성 §3.6 「★ 케이스 고치기」)
+// 케이스 상세의 「코드 기본값 바꾸기 요청」 — 기대값 · 삭제를 작성 에이전트에 요청한다 (도메인/카탈로그 §8.1 · 도메인/작성 §3.6 「★ 케이스 고치기」)
 //
 // 위의 기대결과 칸(이번 실행 값 · 저장값)과 **이름을 가른다.** 거기는 다음 실행에 쓸 값이고 여기는 저장소의 코드다 —
 // 섞이면 이번 실행만 바꾸려던 값이 PR 로 올라간다.
@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { 고칠것 } from '../authoring/edit.js';
 
 import { api, type CaseRow } from './api.js';
-import { 고치기오류문장, 고칠칸들, 기대값들, 기대값한줄, 기획서미확정인가, 꼬리표미확정인가, 바꾼값, 저장값지울칸 } from './caseEditView.js';
+import { 고치기오류문장, 고칠칸들, 기대값들, 바꾼값, 저장값지울칸 } from './caseEditView.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { initialText } from './schema.js';
@@ -21,7 +21,6 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
   const 언어 = use언어();
   const 칸들 = 고칠칸들(row.expectedSchema);
   const [글, set글] = useState(initialText(칸들));
-  const [확정, set확정] = useState(false);
   const [지우려나, set지우려나] = useState(false);
   const [보내는중, set보내는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
@@ -38,12 +37,11 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
     set포커스(null);
   }, [포커스]);
 
-  const 미확정 = 꼬리표미확정인가(row);
   const 바꾼 = 바꾼값(칸들, 글);
   // 바꾼 칸만 본다 — 손대지 않은 칸은 지금 코드 값이라 사유를 낼 까닭이 없다. 「반드시 채울 칸」도 안 본다(안 보낸 칸은 코드 그대로다)
   const 칸오류 = fieldErrors({ ...row.expectedSchema, required: [] }, 바꾼);
   const 지울칸 = 저장값지울칸(row, 칸들, Object.keys(바꾼));
-  const 보낼것있나 = Object.keys(바꾼).length > 0 || (미확정 && 확정);
+  const 보낼것있나 = Object.keys(바꾼).length > 0;
 
   function 보낸다(고칠: 고칠것) {
     set보내는중(true);
@@ -63,7 +61,6 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
     보낸다({
       tcId: row.tcId,
       ...(Object.keys(바꾼).length > 0 ? { expected: 기대값들(바꾼) } : {}),
-      ...(미확정 && 확정 ? { confirm: true as const } : {}),
     });
   }
 
@@ -84,32 +81,6 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
       )}
       {지울칸.length === 0 ? null : (
         <p className="hint">{t('{칸들} — 반영되면 이 저장값은 지워집니다', { 칸들: 지울칸.join(', ') })}</p>
-      )}
-
-      {/* 기획서 항목이 정한 미확정은 이 PR 로 안 풀린다 — 고르개 대신 어디서 확정하는지만 알린다 */}
-      {!기획서미확정인가(row) ? null : (
-        <div className="edit-confirm">
-          <p className="hint">{t('「PRD 관리」에서 확정합니다')}</p>
-          <p className="hint">
-            {t('미확정 사유')} · {row.unconfirmed}
-          </p>
-        </div>
-      )}
-
-      {/* 확정은 화면에서 읽은 값을 정식 기대값으로 올리는 사람의 판단이다 — 그 근거(사유 · 지금 값)를 곁에 둔다 */}
-      {!미확정 ? null : (
-        <div className="edit-confirm">
-          <label>
-            <input type="checkbox" checked={확정} onChange={(e) => set확정(e.target.checked)} />
-            {t('확정 — 지금 기대값이 맞다고 판정합니다')}
-          </label>
-          <p className="hint">
-            {t('미확정 사유')} · {row.unconfirmed}
-          </p>
-          <p className="hint">
-            {t('지금 기대값')} · {기대값한줄(row.expectedSchema, 언어)}
-          </p>
-        </div>
       )}
 
       {만든번호 !== null ? (

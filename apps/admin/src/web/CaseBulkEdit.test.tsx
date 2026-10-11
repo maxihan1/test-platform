@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// 케이스 목록에서 고른 것으로 「삭제 요청」 · 「미확정 N건 확정 요청」 (도메인/카탈로그 §8.1 「여러 건 골라」).
-// 둘 다 확인 상자를 거치고, 확정 상자는 케이스마다 미확정 사유와 지금 기대값을 보인다
+// 케이스 목록에서 고른 것으로 「삭제 요청」 (도메인/카탈로그 §8.1 「여러 건 골라」).
+// 확인 상자를 거친다. 미확정을 골라도 확정 요청 버튼은 없다
 
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -49,45 +49,12 @@ describe('고른 것으로 고치기 요청', () => {
   it('하나도 안 골랐으면 버튼이 없다', () => {
     render(<고른것고치기 service="XEW" 고른={고름()} 다되면={() => {}} />);
     expect(screen.queryByRole('button', { name: '삭제 요청' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /확정 요청/ })).toBeNull();
   });
 
-  it('확정 버튼은 고른 것 가운데 미확정 수를 싣고, 0 이면 안 보인다', () => {
-    const { rerender } = render(<고른것고치기 service="XEW" 고른={고름(케이스('XEW-001'))} 다되면={() => {}} />);
+  it('미확정을 골라도 확정 요청 버튼은 없다', () => {
+    render(<고른것고치기 service="XEW" 고른={고름(케이스('XEW-001', { unconfirmed: '문구가 기획서에 없다' }))} 다되면={() => {}} />);
     expect(screen.getByRole('button', { name: '삭제 요청' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /확정 요청/ })).toBeNull();
-
-    rerender(
-      <고른것고치기
-        service="XEW"
-        고른={고름(케이스('XEW-001'), 케이스('XEW-002', { unconfirmed: '문구가 기획서에 없다' }))}
-        다되면={() => {}}
-      />,
-    );
-    expect(screen.getByRole('button', { name: '미확정 1건 확정 요청' })).toBeTruthy();
-  });
-
-  it('표준 기획서가 정한 미확정은 확정 요청 수에 넣지 않는다 — 「PRD 관리」에서 확정한다', () => {
-    render(
-      <고른것고치기
-        service="XEW"
-        고른={고름(
-          케이스('XEW-001', { unconfirmed: '확인 필요 — XEW-REQ-003 · XEW-REQ-007' }),
-          케이스('XEW-002', { unconfirmed: '문구가 기획서에 없다' }),
-        )}
-        다되면={() => {}}
-      />,
-    );
-    fireEvent.click(screen.getByRole('button', { name: '미확정 1건 확정 요청' }));
-    const 상자 = screen.getByRole('dialog');
-    expect(within(상자).getByText('표준 기획서가 정한 미확정 1건은 뺐습니다 — 「PRD 관리」에서 확정합니다')).toBeTruthy();
-    expect(within(상자).queryByText('XEW-001')).toBeNull();
-
-    cleanup();
-    render(
-      <고른것고치기 service="XEW" 고른={고름(케이스('XEW-001', { unconfirmed: '확인 필요 — XEW-REQ-003' }))} 다되면={() => {}} />,
-    );
-    expect(screen.queryByRole('button', { name: /확정 요청/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /확정/ })).toBeNull();
   });
 
   it('비활성만 골랐으면 삭제 요청 버튼도 없다. 열어 봐야 보낼 것이 없다', () => {
@@ -118,27 +85,6 @@ describe('고른 것으로 고치기 요청', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '닫기' }));
     expect(다되면).toHaveBeenCalledTimes(1);
-  });
-
-  it('확정 상자는 미확정 케이스만 담고 케이스마다 사유와 지금 기대값을 보인다. 비밀값은 가린다', async () => {
-    const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 52 });
-    render(
-      <고른것고치기
-        service="XEW"
-        고른={고름(케이스('XEW-001'), 케이스('XEW-002', { unconfirmed: '문구가 기획서에 없다' }))}
-        다되면={() => {}}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: '미확정 1건 확정 요청' }));
-    const 상자 = within(screen.getByRole('dialog'));
-    expect(상자.getByText(/문구가 기획서에 없다/)).toBeTruthy();
-    expect(상자.getByText(/주문 상태 결제 완료/)).toBeTruthy();
-    expect(상자.queryByText(/abc-secret/)).toBeNull();
-    expect(상자.queryByText(/XEW-001/)).toBeNull();
-
-    fireEvent.click(상자.getByRole('button', { name: '확정 요청 보내기' }));
-    await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-002', confirm: true }]));
   });
 
   it('고른 것은 성공 상자를 닫을 때 비운다 — 상자가 떠 있는 동안 목록이 흔들리지 않는다', async () => {

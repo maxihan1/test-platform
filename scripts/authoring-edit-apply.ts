@@ -1,32 +1,20 @@
-// 케이스 고치기(EDIT)를 main 사본의 글에 적는 순수 함수 — 기대값 · 확정 · 삭제와 PR 본문 줄 (도메인/작성 §3.6 「★ 케이스 고치기」)
+// 케이스 고치기(EDIT)를 main 사본의 글에 적는 순수 함수 — 기대값 · 삭제와 PR 본문 줄 (도메인/작성 §3.6 「★ 케이스 고치기」)
 // 껍데기(authoring-edit)가 부른다. 여기는 I/O 가 없다. 적는 장치는 보류 반영(authoring-held-apply)과 같은 것을 쓴다
 
 import ts from 'typescript';
 
-import { 값적기, 명세글, 사슬에서, 속성, 속성빼기, 읽기, 칸묶음, 케이스tcId, 표고치기 } from './authoring-held-apply.js';
+import { 값적기, 명세글, 사슬에서, 읽기, 칸묶음, 케이스tcId, 표고치기 } from './authoring-held-apply.js';
 
 /**
  * 어드민이 보낸 케이스 하나의 고칠 내용. 서버(apps/admin/src/authoring/edit.ts)가 이미 검사한 모양이다.
  * 서버 코드를 끌어오지 않고 여기 둔다 — 에이전트는 집은 JSON 만 받는다
  */
 export type 기대값 = string | number | boolean;
-export type 고칠것 = { tcId: string; delete: true } | { tcId: string; expected?: Record<string, 기대값>; confirm?: true };
+export type 고칠것 = { tcId: string; delete: true } | { tcId: string; expected?: Record<string, 기대값> };
 
 interface 글파일 {
   경로: string;
   글: string;
-}
-
-/** unconfirmed 줄을 통째로 뺀다 — 화면에서 읽은 값을 정식 기대값으로 올리는 사람의 판단이다. 이미 없으면 같은 글 */
-export function 확정하기(원문: string): { 글: string } | { 사유: string } {
-  if (명세글(읽기(원문)) === undefined) return { 사유: 'defineCase({...}) 를 코드에서 못 찾았다' };
-  return { 글: 속성빼기(원문, 'unconfirmed') };
-}
-
-export function 미확정사유(원문: string): string | null {
-  const 명세 = 명세글(읽기(원문));
-  const 값 = 명세 === undefined ? undefined : 속성(명세, 'unconfirmed')?.initializer;
-  return 값 !== undefined && ts.isStringLiteralLike(값) ? 값.text : null;
 }
 
 /** expected 칸마다 지금 `.default(...)` 인자의 코드 글자 — 사람이 PR 에서 코드와 같은 모양으로 읽는다 */
@@ -43,7 +31,7 @@ export function 기대기본값들(원문: string): Record<string, string> {
   return 값들;
 }
 
-/** 케이스 하나에 기대값을 적고 확정한다. 순서가 중요하다 — 확정 줄의 「지금 기대값」은 이번에 바꾼 뒤 값이다 */
+/** 케이스 하나에 기대값을 적는다 */
 function 케이스고치기(tcId: string, 원문: string, e: Exclude<고칠것, { delete: true }>): { 글: string; 줄들: string[] } | { 사유: string } {
   const 줄들: string[] = [];
   let 글 = 원문;
@@ -55,14 +43,6 @@ function 케이스고치기(tcId: string, 원문: string, e: Exclude<고칠것, 
     const 새 = 기대기본값들(r.글);
     // 이미 그 값이면 줄을 안 낸다 — 다시 적용(재실행)이 새 main 에서 일부만 바꾸는 일이 있다
     for (const 칸 of Object.keys(기대)) if (옛[칸] !== 새[칸]) 줄들.push(`- ${tcId} 기대값 ${칸}: ${옛[칸] ?? '없음'} → ${새[칸] ?? '없음'}`);
-    글 = r.글;
-  }
-  const 사유 = 미확정사유(글);
-  if (e.confirm === true && 사유 !== null) {
-    const r = 확정하기(글);
-    if ('사유' in r) return { 사유: `${tcId}: ${r.사유}` };
-    const 지금 = Object.entries(기대기본값들(글)).map(([칸, 값]) => `${칸}=${값}`);
-    줄들.push(`- ${tcId} 확정 — 미확정 사유: ${사유} · 지금 기대값: ${지금.length > 0 ? 지금.join(', ') : '없음'}`);
     글 = r.글;
   }
   return { 글, 줄들 };

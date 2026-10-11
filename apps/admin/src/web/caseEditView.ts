@@ -2,12 +2,10 @@
 // 그림은 CaseEdit.tsx(상세) · CaseBulkEdit.tsx(목록). 막는 것은 서버 authoring/edit.ts 다 — 여기는 누르기 전에 까닭을 보이려는 편의다
 
 import type { 기대값 } from '../authoring/edit.js';
-import { 확인필요머리 } from '../prd/unconfirmed.js';
 
 import { ApiError, type CaseRow, type JsonSchema } from './api.js';
 import { 요청오류문장 } from './errorText.js';
-import { t, type 언어 } from './i18n.js';
-import { fieldsOf } from './mask.js';
+import type { 언어 } from './i18n.js';
 import { type Field, initialText, schemaToFields, toValues } from './schema.js';
 import { message } from './ui.js';
 
@@ -57,13 +55,6 @@ export function 저장값지울칸(row: CaseRow, fields: Field[], 바꾼키들: 
   return fields.filter((f) => 바꾼키들.includes(f.key) && Object.hasOwn(저장, f.key)).map((f) => f.label);
 }
 
-/** 지금 코드의 기대값을 「라벨 값」으로 이어 쓴다. 비밀값은 `fieldsOf` 가 가린다 — 확정은 이것을 보고 하는 판단이다 */
-export function 기대값한줄(schema: JsonSchema, 언어: 언어): string {
-  const 칸들 = fieldsOf(undefined, schema, 언어);
-  if (칸들.length === 0) return t('기대결과 없음', 언어);
-  return 칸들.map((f) => `${f.label} ${f.value}`).join(' · ');
-}
-
 /** 보낼 값의 타입. 칸 검사는 지나갔다 — 글자로 남은 값은 검사기가 이미 사유를 냈다 */
 export function 기대값들(값: Record<string, unknown>): Record<string, 기대값> {
   return Object.fromEntries(
@@ -79,13 +70,3 @@ export function 고치기오류문장(err: unknown, 언어: 언어): string {
   }
   return message(err, 언어);
 }
-
-// 표준 기획서가 정한 미확정의 사유는 서버가 붙인 머리로 시작한다. 케이스 파일의 꼬리표가 아니라 기획서 항목이 정한 미확정이라
-// 「확정」 PR 로는 안 풀린다 (도메인/작성 §3.6 「미확정」). 꼬리표가 없어지면(PRD-F4-05) 이 갈림도 없어진다
-/** 케이스 파일 꼬리표로 미확정인 케이스 — 「확정」 PR 로 풀리는 것만 */
-export const 꼬리표미확정인가 = (row: CaseRow): boolean =>
-  typeof row.unconfirmed === 'string' && !row.unconfirmed.startsWith(확인필요머리);
-
-/** 표준 기획서 항목이 정한 미확정인 케이스 — 「PRD 관리」에서 확정한다 */
-export const 기획서미확정인가 = (row: CaseRow): boolean =>
-  typeof row.unconfirmed === 'string' && row.unconfirmed.startsWith(확인필요머리);

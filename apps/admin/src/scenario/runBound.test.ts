@@ -60,6 +60,8 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
     await q('DELETE FROM scenario_version WHERE scenario_id IN (SELECT id FROM scenario WHERE service_id = $1)', [서비스]);
     await q('DELETE FROM scenario WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM req_case WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM prd_version WHERE service_id = $1', [서비스]);
   };
 
   const 부품: ScenarioPart[] = [
@@ -116,12 +118,18 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
     await 치우기표();
     await q(`INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'http://xsb.example')`, [서비스]);
     await q(
-      `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, unconfirmed, is_active)
-       VALUES ('XSB-001', 'XSB-001 이름', '["desktop","mobile"]', '[]', 'xsb/a.spec.ts', $1, $2, 'XSB 미확정 사유', true)
+      `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active)
+       VALUES ('XSB-001', 'XSB-001 이름', '["desktop","mobile"]', '[]', 'xsb/a.spec.ts', $1, $2, true)
        ON CONFLICT (tc_id) DO UPDATE SET file_path = EXCLUDED.file_path, param_schema = EXCLUDED.param_schema,
-         expected_schema = EXCLUDED.expected_schema, unconfirmed = EXCLUDED.unconfirmed, is_active = true`,
+         expected_schema = EXCLUDED.expected_schema, is_active = true`,
       [JSON.stringify(입력명세), JSON.stringify(기대명세)],
     );
+    await q(
+      `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name)
+       VALUES ($1, 1, $2, 1, 'PERSON', 'xsb', '검사')`,
+      [서비스, JSON.stringify([{ reqId: 'XSB-REQ-001', feature: '주문', text: '확인 필요', basis: [{ from: '화면', quote: '주문' }], status: 'NEEDS_CHECK' }])],
+    );
+    await q("INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XSB-REQ-001', 'XSB-001', '정상')", [서비스]);
   });
 
   afterEach(() => {
@@ -277,7 +285,7 @@ describe.skipIf(연결 === undefined)('시나리오 결과 저장 — 꽂은 값
           expected: { 합계: 3, 확인코드: 가림 },
           skipSteps: [],
         },
-        unconfirmed: 'XSB 미확정 사유',
+        unconfirmed: '확인 필요 — XSB-REQ-001',
         bound: { 주문토큰: 가림, 주문번호: 7 },
         cleanup: [{ method: 'DELETE', url: `http://xsb.example/api/orders/7?token=${가림}`, status: 204 }],
       });

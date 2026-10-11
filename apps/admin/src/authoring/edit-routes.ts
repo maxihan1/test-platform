@@ -3,8 +3,6 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { 미확정사유SQL } from '../prd/unconfirmed.js';
-
 import { 고치기상한, 고칠것검사, type 고칠것, type 고치기판, type 케이스정보 } from './edit.js';
 import { 사슬식, 최신식 } from './history.js';
 import { 서비스번호 } from './routes.js';
@@ -19,8 +17,8 @@ async function 판읽기(서비스: number, 접두사: string, 본문: unknown):
   const 줄들: unknown[] = isPlainObject(본문) && Array.isArray(본문.edits) ? 본문.edits.slice(0, 고치기상한) : [];
   const tcIds = 줄들.flatMap((줄) => (isPlainObject(줄) && typeof 줄.tcId === 'string' ? [줄.tcId] : []));
   const pool = await db();
-  const 케이스 = await pool.query<{ tc_id: string; is_active: boolean; unconfirmed: string | null; expected_schema: unknown }>(
-    `SELECT tc_id, is_active, ${미확정사유SQL('c')} AS unconfirmed, expected_schema FROM test_case c WHERE tc_id = ANY($1::text[])`,
+  const 케이스 = await pool.query<{ tc_id: string; is_active: boolean; expected_schema: unknown }>(
+    `SELECT tc_id, is_active, expected_schema FROM test_case WHERE tc_id = ANY($1::text[])`,
     [tcIds],
   );
   // 빈 비밀번호를 넣으면 빈 글자 기대값이 「비밀번호와 같다」로 막힌다 — 계정 없는 줄은 비교 대상이 아니다
@@ -32,7 +30,7 @@ async function 판읽기(서비스: number, 접두사: string, 본문: unknown):
     케이스들: new Map<string, 케이스정보>(
       케이스.rows.map((r) => [
         r.tc_id,
-        { tcId: r.tc_id, active: r.is_active, unconfirmed: r.unconfirmed, expectedSchema: r.expected_schema },
+        { tcId: r.tc_id, active: r.is_active, expectedSchema: r.expected_schema },
       ]),
     ),
     접두사,

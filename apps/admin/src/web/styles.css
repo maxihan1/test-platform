@@ -3583,16 +3583,6 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   gap: 8px;
   margin-top: 12px;
 }
-.edit-confirm {
-  margin-top: 12px;
-}
-.edit-confirm label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13.5px;
-  font-weight: 600;
-}
 .edit-delete {
   margin-top: 16px;
 }

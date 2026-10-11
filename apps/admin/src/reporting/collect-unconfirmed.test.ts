@@ -14,6 +14,8 @@ describe.skipIf(연결 === undefined)('증적 자료 — 미확정 사유', () =
   async function 지운다(): Promise<void> {
     await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XDU%')");
     await pool.query("DELETE FROM test_run WHERE title LIKE 'XDU%'");
+    await pool.query("DELETE FROM req_case WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XDU')");
+    await pool.query("DELETE FROM prd_version WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XDU')");
     await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'XDU-%'");
     await pool.query("DELETE FROM service WHERE prefix = 'XDU'");
   }
@@ -26,8 +28,8 @@ describe.skipIf(연결 === undefined)('증적 자료 — 미확정 사유', () =
        VALUES ('XDU', 'XDU 미확정 서비스', '#334455', 'https://github.com/example/xdu-tests', 'xdu')`,
     );
     await pool.query(
-      `INSERT INTO test_case (tc_id, name, file_path, param_schema, expected_schema, unconfirmed)
-       VALUES ('XDU-001', '저장한다', 'xdu/XDU-001.spec.ts', '{}', '{}', '기획서와 다름 — 차이 D1 (작성 요청 7)')`,
+      `INSERT INTO test_case (tc_id, name, file_path, param_schema, expected_schema)
+       VALUES ('XDU-001', '저장한다', 'xdu/XDU-001.spec.ts', '{}', '{}')`,
     );
     const run = await pool.query<{ run_id: string }>(
       `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, base_url,
@@ -66,8 +68,14 @@ describe.skipIf(연결 === undefined)('증적 자료 — 미확정 사유', () =
     ]);
   });
 
-  it('케이스가 나중에 확정돼도 그날의 증적은 박제값 그대로다 — 리포팅은 test_case 를 안 읽는다', async () => {
-    await pool.query("UPDATE test_case SET unconfirmed = NULL WHERE tc_id = 'XDU-001'");
+  it('요구가 나중에 확정돼도 그날의 증적은 박제값 그대로다 — 리포팅은 표준 기획서를 안 읽는다', async () => {
+    const 서비스 = "(SELECT id FROM service WHERE prefix = 'XDU')";
+    await pool.query(
+      `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name)
+       VALUES (${서비스}, 1, $1, 1, 'PERSON', 'xdu', '검사')`,
+      [JSON.stringify([{ reqId: 'XDU-REQ-001', feature: '저장', text: '저장', basis: [{ from: '화면', quote: '저장' }], status: 'CONFIRMED', byPerson: true }])],
+    );
+    await pool.query(`INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES (${서비스}, 'XDU-REQ-001', 'XDU-001', '정상')`);
     const 문서 = await collectRun(실행);
     expect(문서?.items.find((i) => i.tcId === 'XDU-001')?.unconfirmed).toBe('기획서와 다름 — 차이 D1 (작성 요청 7)');
   });

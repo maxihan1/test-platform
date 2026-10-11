@@ -11,9 +11,14 @@ import { createRun } from './store.js';
 const 연결 = process.env.DATABASE_URL;
 
 const 케이스 = `
-  INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, unconfirmed)
-  VALUES ($1, $2, '["desktop","mobile"]', '[]', $3, '{}', '{}', $4)
-  ON CONFLICT (tc_id) DO UPDATE SET unconfirmed = EXCLUDED.unconfirmed`;
+  INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema)
+  VALUES ($1, $2, '["desktop","mobile"]', '[]', $3, '{}', '{}')
+  ON CONFLICT (tc_id) DO NOTHING`;
+
+const 서비스 = "(SELECT id FROM service WHERE prefix = 'XBU')";
+const 항목 = (reqId: string, status: string, byPerson = false) => ({
+  reqId, feature: '안내', text: reqId, basis: [{ from: '화면', quote: '안내' }], status, ...(byPerson ? { byPerson } : {}),
+});
 
 describe.skipIf(연결 === undefined)('미확정 항목', () => {
   let pool: Pool;
@@ -26,9 +31,25 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
   }
 
   async function 케이스를둔다(): Promise<void> {
-    await pool.query(케이스, ['XBU-001', '확정 케이스', 'demo/XBU-001.spec.ts', null]);
-    await pool.query(케이스, ['XBU-002', '미확정 케이스', 'demo/XBU-002.spec.ts', '기획서에 없는 안내 문구']);
-    await pool.query(케이스, ['XBU-003', '또 미확정', 'demo/XBU-003.spec.ts', '버튼 이름이 기획과 다름']);
+    await pool.query(케이스, ['XBU-001', '확정 케이스', 'demo/XBU-001.spec.ts']);
+    await pool.query(케이스, ['XBU-002', '미확정 케이스', 'demo/XBU-002.spec.ts']);
+    await pool.query(케이스, ['XBU-003', '또 미확정', 'demo/XBU-003.spec.ts']);
+  }
+
+  async function 판을올린다(version: number, items: object[]): Promise<void> {
+    await pool.query(
+      `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name)
+       VALUES (${서비스}, $1, $2, 3, 'PERSON', 'xbu', '검사')`,
+      [version, JSON.stringify(items)],
+    );
+  }
+
+  async function 미확정을차린다(): Promise<void> {
+    await pool.query(
+      `INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES
+         (${서비스}, 'XBU-REQ-001', 'XBU-002', '정상'), (${서비스}, 'XBU-REQ-002', 'XBU-003', '정상'), (${서비스}, 'XBU-REQ-003', 'XBU-001', '정상')`,
+    );
+    await 판을올린다(1, [항목('XBU-REQ-001', 'NEEDS_CHECK'), 항목('XBU-REQ-002', 'NEEDS_CHECK'), 항목('XBU-REQ-003', 'CONFIRMED')]);
   }
 
   async function 실행(title: string, items: { tcId: string; platforms: ('desktop' | 'mobile')[] }[]): Promise<number> {
@@ -78,14 +99,15 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
   beforeEach(async () => {
     await 치운다();
     await 케이스를둔다();
+    await 미확정을차린다();
   });
 
-  it('실행을 만들 때 케이스의 미확정 사유를 항목에 박제하고, 케이스가 나중에 확정돼도 그대로 둔다', async () => {
+  it('실행을 만들 때 케이스의 미확정 사유를 항목에 박제하고, 요구가 나중에 확정돼도 그대로 둔다', async () => {
     const runId = await 실행('XBU 박제', [
       { tcId: 'XBU-001', platforms: ['desktop'] },
       { tcId: 'XBU-002', platforms: ['desktop'] },
     ]);
-    await pool.query("UPDATE test_case SET unconfirmed = NULL WHERE tc_id = 'XBU-002'");
+    await 판을올린다(2, [항목('XBU-REQ-001', 'CONFIRMED', true), 항목('XBU-REQ-002', 'NEEDS_CHECK'), 항목('XBU-REQ-003', 'CONFIRMED')]);
 
     const { rows } = await pool.query<{ tc_id: string; unconfirmed: string | null }>(
       'SELECT tc_id, unconfirmed FROM run_item WHERE run_id = $1 ORDER BY tc_id',
@@ -93,32 +115,17 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
     );
     expect(rows).toEqual([
       { tc_id: 'XBU-001', unconfirmed: null },
-      { tc_id: 'XBU-002', unconfirmed: '기획서에 없는 안내 문구' },
+      { tc_id: 'XBU-002', unconfirmed: '확인 필요 — XBU-REQ-001' },
     ]);
   });
 
-  it('표준 기획서가 덮는 케이스는 확인 필요 요구 번호를 박제하고, 사람이 확정하면 다음 실행부터 꼬리표가 있어도 확정이다', async () => {
-    const 서비스 = "(SELECT id FROM service WHERE prefix = 'XBU')";
-    const 판 = (version: number, status: string, byPerson: boolean) =>
-      pool.query(
-        `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name)
-         VALUES (${서비스}, $1, $2, 2, 'PERSON', 'xbu', '검사')`,
-        [version, JSON.stringify([
-          { reqId: 'XBU-REQ-001', feature: '안내', text: '안내 문구', basis: [{ from: '화면', quote: '안내' }], status, ...(byPerson ? { byPerson } : {}) },
-          { reqId: 'XBU-REQ-002', feature: '안내', text: '버튼', basis: [{ from: '화면', quote: '버튼' }], status: 'CONFIRMED' },
-        ])],
-      );
-    await pool.query(
-      `INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES
-         (${서비스}, 'XBU-REQ-001', 'XBU-001', '정상'), (${서비스}, 'XBU-REQ-001', 'XBU-003', '정상'), (${서비스}, 'XBU-REQ-002', 'XBU-002', '정상')`,
-    );
-    await 판(1, 'NEEDS_CHECK', false);
+  it('표준 기획서가 덮는 케이스는 확인 필요 요구 번호를 박제하고, 사람이 확정하면 다음 실행부터 확정이다', async () => {
     const 앞 = await 실행('XBU 기획서 박제 앞', [
       { tcId: 'XBU-001', platforms: ['desktop'] },
       { tcId: 'XBU-002', platforms: ['desktop'] },
       { tcId: 'XBU-003', platforms: ['desktop'] },
     ]);
-    await 판(2, 'CONFIRMED', true);
+    await 판을올린다(2, [항목('XBU-REQ-001', 'CONFIRMED', true), 항목('XBU-REQ-002', 'NEEDS_CHECK'), 항목('XBU-REQ-003', 'CONFIRMED')]);
     const 뒤 = await 실행('XBU 기획서 박제 뒤', [
       { tcId: 'XBU-002', platforms: ['desktop'] },
       { tcId: 'XBU-003', platforms: ['desktop'] },
@@ -130,13 +137,13 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
         [runId],
       )).rows.map((r) => [r.tc_id, r.unconfirmed]);
     expect(await 사유(앞)).toEqual([
-      ['XBU-001', '확인 필요 — XBU-REQ-001'],
-      ['XBU-002', '기획서에 없는 안내 문구'],
-      ['XBU-003', '확인 필요 — XBU-REQ-001'],
+      ['XBU-001', null],
+      ['XBU-002', '확인 필요 — XBU-REQ-001'],
+      ['XBU-003', '확인 필요 — XBU-REQ-002'],
     ]);
     expect(await 사유(뒤)).toEqual([
-      ['XBU-002', '기획서에 없는 안내 문구'],
-      ['XBU-003', null],
+      ['XBU-002', null],
+      ['XBU-003', '확인 필요 — XBU-REQ-002'],
     ]);
   });
 
@@ -180,10 +187,10 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
     const run = await findRun(runId);
     expect(run?.items.map((i) => [i.tcId, i.unconfirmed])).toEqual([
       ['XBU-001', null],
-      ['XBU-002', '기획서에 없는 안내 문구'],
+      ['XBU-002', '확인 필요 — XBU-REQ-001'],
     ]);
     const 미확정 = run?.items.find((i) => i.tcId === 'XBU-002');
-    expect((await findItem(runId, 미확정!.historyId))?.unconfirmed).toBe('기획서에 없는 안내 문구');
+    expect((await findItem(runId, 미확정!.historyId))?.unconfirmed).toBe('확인 필요 — XBU-REQ-001');
   });
 
   it('Slack 알림이 미확정도 그대로 세고 머리에 미확정 변형 없이 그중 미확정 N건과 목록 꼬리만 단다', async () => {

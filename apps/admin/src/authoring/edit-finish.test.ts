@@ -14,7 +14,7 @@ const 못받음 = 'main 을 못 받아 와 저장값을 안 지웠다';
 
 const edits = [
   { tcId: 'XEC-001', expected: { title: '새 제목' } },
-  { tcId: 'XEC-002', expected: { total: 5 }, confirm: true },
+  { tcId: 'XEC-002', expected: { total: 5 } },
   { tcId: 'XEC-003', expected: { note: '새 메모' } },
   { tcId: 'XEC-004', delete: true },
 ];

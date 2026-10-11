@@ -182,7 +182,7 @@ UI Test 와 Functional Test 는 `tests/<폴더>/pages/<화면>.page.ts` 의 Page
 - 채울 칸 타입은 `string` · `number` · `boolean` · `enum` 만. 그 밖이면 화면이 못 받아 그 케이스는 제거만 된다
 - **나머지는 평소대로 쓴다** — selector · `test.step` · `verify` 문장 · 전제 판정. 반영 때 값만 들어가면 돈다
 - 비밀값 칸은 그대로 `.meta({ secret: true })` — 화면이 받지 않고 반영 때 테스트 계정 값으로 채운다
-- `held` 는 `unconfirmed` 와 같이 달 수 있다. 실행 때 kit 이 held 케이스를 건너뛴다
+- 미확정 케이스(`확인 필요` 항목을 덮는다)에도 `held` 를 달 수 있다. 실행 때 kit 이 held 케이스를 건너뛴다
 
 ### 화면 없는 요구 — API 케이스 (2026-09-30)
 

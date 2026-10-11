@@ -22,16 +22,15 @@ const 칸들 = {
 };
 
 function 케이스(tcId: string, 덧: Partial<케이스정보> = {}): [string, 케이스정보] {
-  return [tcId, { tcId, active: true, unconfirmed: null, expectedSchema: { type: 'object', properties: 칸들 }, ...덧 }];
+  return [tcId, { tcId, active: true, expectedSchema: { type: 'object', properties: 칸들 }, ...덧 }];
 }
 
 const 판 = {
   케이스들: new Map<string, 케이스정보>([
     케이스('SHOP-001'),
-    케이스('SHOP-002', { unconfirmed: '화면에서 본 값' }),
+    케이스('SHOP-002'),
     케이스('SHOP-003', { active: false }),
     케이스('SHOP-004', { expectedSchema: null }),
-    케이스('SHOP-005', { unconfirmed: '확인 필요 — SHOP-REQ-003' }),
     케이스('OTHER-001'),
   ]),
   접두사: 'SHOP',
@@ -41,36 +40,30 @@ const 판 = {
 const 나쁨 = (detail: string) => ({ error: 'BAD_EDIT', detail });
 
 describe('고칠것검사 — 맞는 요청', () => {
-  it('지우기 · 기대값 · 확정을 입력 순서대로 돌려준다', () => {
+  it('지우기 · 기대값을 입력 순서대로 돌려준다', () => {
     const 본문 = {
       edits: [
-        { tcId: 'SHOP-002', confirm: true, expected: { ok: true } },
+        { tcId: 'SHOP-002', expected: { ok: true } },
         { tcId: 'SHOP-001', delete: true },
       ],
     };
     expect(고칠것검사(본문, 판)).toEqual({
       edits: [
-        { tcId: 'SHOP-002', expected: { ok: true }, confirm: true },
+        { tcId: 'SHOP-002', expected: { ok: true } },
         { tcId: 'SHOP-001', delete: true },
       ],
     });
   });
 
-  it('기대값만 · 확정만 있는 줄은 없는 키를 만들어 넣지 않는다', () => {
+  it('기대값 줄은 없는 키를 만들어 넣지 않는다', () => {
     const 결과 = 고칠것검사(
-      { edits: [{ tcId: 'SHOP-001', expected: { title: '주문 완료', count: 0, price: -2, grade: 'A', level: '상' } }, { tcId: 'SHOP-002', confirm: true }] },
+      { edits: [{ tcId: 'SHOP-001', expected: { title: '주문 완료', count: 0, price: -2, grade: 'A', level: '상' } }] },
       판,
     );
     expect(결과).toEqual({
-      edits: [
-        { tcId: 'SHOP-001', expected: { title: '주문 완료', count: 0, price: -2, grade: 'A', level: '상' } },
-        { tcId: 'SHOP-002', confirm: true },
-      ],
+      edits: [{ tcId: 'SHOP-001', expected: { title: '주문 완료', count: 0, price: -2, grade: 'A', level: '상' } }],
     });
-    if ('edits' in 결과) {
-      expect(Object.keys(결과.edits[0] ?? {})).toEqual(['tcId', 'expected']);
-      expect(Object.keys(결과.edits[1] ?? {})).toEqual(['tcId', 'confirm']);
-    }
+    if ('edits' in 결과) expect(Object.keys(결과.edits[0] ?? {})).toEqual(['tcId', 'expected']);
   });
 
   it('상한 개수까지는 받는다', () => {
@@ -107,18 +100,17 @@ describe('고칠것검사 — 줄마다 거절', () => {
     ['없는 케이스', [{ tcId: 'SHOP-999', delete: true }], 'SHOP-999'],
     ['꺼진 케이스', [{ tcId: 'SHOP-003', delete: true }], 'SHOP-003'],
     ['다른 서비스 접두사', [{ tcId: 'OTHER-001', delete: true }], 'OTHER-001'],
-    ['같은 tcId 두 번', [{ tcId: 'SHOP-001', delete: true }, { tcId: 'SHOP-001', confirm: true }], 'SHOP-001'],
+    ['같은 tcId 두 번', [{ tcId: 'SHOP-001', delete: true }, { tcId: 'SHOP-001', expected: { ok: true } }], 'SHOP-001'],
     ['delete 가 true 가 아님', [{ tcId: 'SHOP-001', delete: false }], 'SHOP-001'],
     ['delete 에 expected 를 같이', [{ tcId: 'SHOP-001', delete: true, expected: { ok: true } }], 'SHOP-001'],
-    ['delete 에 confirm 을 같이', [{ tcId: 'SHOP-002', delete: true, confirm: true }], 'SHOP-002'],
     ['모르는 키', [{ tcId: 'SHOP-001', expected: { ok: true }, note: '왜' }], 'SHOP-001'],
     ['고칠 것이 없음', [{ tcId: 'SHOP-001' }], 'SHOP-001'],
     ['빈 expected', [{ tcId: 'SHOP-001', expected: {} }], 'SHOP-001'],
     ['expected 가 배열', [{ tcId: 'SHOP-001', expected: [true] }], 'SHOP-001'],
     ['expected 가 null', [{ tcId: 'SHOP-001', expected: null }], 'SHOP-001'],
-    ['confirm 이 true 가 아님', [{ tcId: 'SHOP-002', confirm: false }], 'SHOP-002'],
-    ['미확정이 아닌 케이스를 확정', [{ tcId: 'SHOP-001', confirm: true }], 'SHOP-001'],
-    ['표준 기획서가 정한 미확정을 확정', [{ tcId: 'SHOP-005', confirm: true }], 'SHOP-005'],
+    ['confirm 은 이제 모르는 키', [{ tcId: 'SHOP-002', confirm: true }], 'SHOP-002'],
+    ['expected 에 confirm 을 같이', [{ tcId: 'SHOP-001', expected: { ok: true }, confirm: true }], 'SHOP-001'],
+    ['delete 에 confirm 을 같이', [{ tcId: 'SHOP-002', delete: true, confirm: true }], 'SHOP-002'],
   ])('%s', (_이름, edits, detail) => {
     expect(고칠것검사({ edits }, 판)).toEqual(나쁨(detail));
   });

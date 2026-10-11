@@ -12,7 +12,7 @@ describe('고치기실행인가 — 자식 경로로 안 보낼 것을 가른다
   });
 
   it('edits 를 가진 재실행(다시 적용)도 고치기 실행이다', () => {
-    expect(고치기실행인가({ kind: 'RERUN', edits: [{ tcId: 'XEE-001', confirm: true }] })).toBe(true);
+    expect(고치기실행인가({ kind: 'RERUN', edits: [{ tcId: 'XEE-001', delete: true }] })).toBe(true);
   });
 
   it('edits 모양이 틀린 케이스 고치기 행도 자식 경로로 보내지 않는다', () => {
@@ -28,14 +28,17 @@ describe('고치기실행인가 — 자식 경로로 안 보낼 것을 가른다
 });
 
 describe('편집들 — 집은 것에서 고칠 내용을 꺼내 모양을 본다', () => {
-  it('삭제 · 기대값 · 확정 · 기대값과 확정을 그대로 꺼낸다', () => {
+  it('삭제 · 기대값을 그대로 꺼낸다', () => {
     const edits = [
       { tcId: 'XEE-001', delete: true },
       { tcId: 'XEE-002', expected: { heading: '제목', count: 3, visible: false } },
-      { tcId: 'XEE-003', confirm: true },
-      { tcId: 'XEE-004', expected: { heading: '다른 제목' }, confirm: true },
     ];
     expect(편집들({ id: 1, kind: 'EDIT', edits })).toEqual(edits);
+  });
+
+  it('「확정」을 뺀 뒤 confirm 은 서버처럼 모르는 키다 — 기대값과 같이 와도 null', () => {
+    expect(편집들({ edits: [{ tcId: 'XEE-001', expected: { heading: '제목' }, confirm: true }] })).toBeNull();
+    expect(편집들({ edits: [{ tcId: 'XEE-001', confirm: true }] })).toBeNull();
   });
 
   it('edits 가 없거나 배열이 아니면 null', () => {
@@ -52,11 +55,11 @@ describe('편집들 — 집은 것에서 고칠 내용을 꺼내 모양을 본�
   });
 
   it('삭제는 delete: true 하나만 — 다른 고침과 섞이거나 true 가 아니면 null', () => {
-    expect(편집들({ edits: [{ tcId: 'XEE-001', delete: true, confirm: true }] })).toBeNull();
+    expect(편집들({ edits: [{ tcId: 'XEE-001', delete: true, expected: { a: 1 } }] })).toBeNull();
     expect(편집들({ edits: [{ tcId: 'XEE-001', delete: false }] })).toBeNull();
   });
 
-  it('기대값도 확정도 없으면 null', () => {
+  it('기대값이 없으면 null', () => {
     expect(편집들({ edits: [{ tcId: 'XEE-001' }] })).toBeNull();
   });
 
@@ -68,19 +71,15 @@ describe('편집들 — 집은 것에서 고칠 내용을 꺼내 모양을 본�
     expect(편집들({ edits: [{ tcId: 'XEE-001', expected: ['a'] }] })).toBeNull();
   });
 
-  it('확정은 true 만', () => {
-    expect(편집들({ edits: [{ tcId: 'XEE-001', confirm: false }] })).toBeNull();
-  });
-
   it('모르는 키 · 빈 tcId · 줄바꿈 든 tcId · 같은 tcId 두 번은 null', () => {
-    expect(편집들({ edits: [{ tcId: 'XEE-001', confirm: true, extra: 1 }] })).toBeNull();
-    expect(편집들({ edits: [{ tcId: '', confirm: true }] })).toBeNull();
-    expect(편집들({ edits: [{ tcId: 'XEE-001\n- 가짜 줄', confirm: true }] })).toBeNull();
-    expect(편집들({ edits: [{ tcId: 7, confirm: true }] })).toBeNull();
+    expect(편집들({ edits: [{ tcId: 'XEE-001', expected: { a: 1 }, extra: 1 }] })).toBeNull();
+    expect(편집들({ edits: [{ tcId: '', expected: { a: 1 } }] })).toBeNull();
+    expect(편집들({ edits: [{ tcId: 'XEE-001\n- 가짜 줄', expected: { a: 1 } }] })).toBeNull();
+    expect(편집들({ edits: [{ tcId: 7, expected: { a: 1 } }] })).toBeNull();
     expect(
       편집들({
         edits: [
-          { tcId: 'XEE-001', confirm: true },
+          { tcId: 'XEE-001', expected: { a: 1 } },
           { tcId: 'XEE-001', delete: true },
         ],
       }),

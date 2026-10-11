@@ -11,13 +11,13 @@ const 폭들 = (process.argv[3] ?? '600,621,700,768,820,900,1000,1024,1100,1164,
 const 서비스 = { id: 1, prefix: 'MKT', name: '데모마켓', color: '#9e4a27', envs: [], hasSlackWebhook: false, testsDir: 'mkt', permissions: { cases: 'write', runs: 'write', authoring: 'write' } };
 const 사람 = { username: 'admin', displayName: '관리자', role: 'admin', dashboard: 'read', mustChangePassword: false, services: [서비스] };
 const 스키마 = { type: 'object', properties: { loginId: { type: 'string', description: '아이디', default: 'demo01' }, keepLogin: { type: 'boolean', description: '로그인 유지', default: true } } };
-const 케이스 = (tcId, platforms, techniques = []) => ({ tcId, name: '규칙에 맞는 아이디를 넣으면 안내 없이 다음 칸으로 넘어간다', platforms, precondition: [], paramSchema: 스키마, expectedSchema: { type: 'object', properties: {} }, filePath: `mkt/${tcId}.spec.ts`, isActive: true, scannedAt: '2026-10-05T00:00:00Z', unconfirmed: null, unconfirmedSince: null, savedInput: null, techniques });
+const 케이스 = (tcId, platforms, techniques = []) => ({ tcId, name: '규칙에 맞는 아이디를 넣으면 안내 없이 다음 칸으로 넘어간다', platforms, precondition: [], paramSchema: 스키마, expectedSchema: { type: 'object', properties: {} }, filePath: `mkt/${tcId}.spec.ts`, isActive: true, scannedAt: '2026-10-05T00:00:00Z', unconfirmed: null, savedInput: null, techniques });
 const 결과 = (tcId, platform, status, recent) => ({ tcId, platform, status, historyId: 1, runId: 1, durationMs: 3200, finishedAt: '2026-10-05T00:00:00Z', recent });
 const 실행 = { runId: 1, title: '회원가입 회귀', triggeredBy: 'admin', triggeredByName: '관리자', env: 'stage', baseUrl: 'https://stage.example.com', serviceName: '데모마켓', status: 'DONE', kind: 'FN', startedAt: '2026-10-05T00:00:00Z', finishedAt: '2026-10-05T00:01:00Z', counts: { total: 3, pass: 2, fail: 1, na: 0, running: 0 } };
 const 응답 = (url) => {
   const p = new URL(url).pathname;
   if (p === '/api/auth/me') return { user: 사람 };
-  if (p === '/api/catalog/cases') return { items: [케이스('MKT-FN-001', ['desktop', 'mobile']), 케이스('MKT-FN-002', ['desktop', 'mobile'], ['경계값 분석', '동등 분할']), 케이스('MKT-FN-003', ['desktop'])], total: 3, totalIsExact: true, sort: 'tc_id', page: 1, pageSize: 50, unconfirmed: { count: 0, oldestSince: null } };
+  if (p === '/api/catalog/cases') return { items: [케이스('MKT-FN-001', ['desktop', 'mobile']), 케이스('MKT-FN-002', ['desktop', 'mobile'], ['경계값 분석', '동등 분할']), 케이스('MKT-FN-003', ['desktop'])], total: 3, totalIsExact: true, sort: 'tc_id', page: 1, pageSize: 50, unconfirmed: { count: 0 } };
   if (p === '/api/catalog/scan') return { scannedAt: '2026-10-05T00:00:00Z', added: 0, updated: 3, deactivated: 0, duplicates: [] };
   // 두 디바이스 다 판정이 섞여야 집계 글자가 가장 길다 — 겹침이 나던 꼴이다
   if (p === '/api/runs/last-by-case') return { items: [결과('MKT-FN-001', 'desktop', 'PASS', ['PASS', 'FAIL', 'NA', 'PASS']), 결과('MKT-FN-001', 'mobile', 'FAIL', ['FAIL', 'NA', 'PASS']), 결과('MKT-FN-002', 'desktop', 'NA', ['NA'])] };

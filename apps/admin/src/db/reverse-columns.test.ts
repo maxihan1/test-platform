@@ -9,8 +9,6 @@ const 접두사 = 'XRC';
 
 // 계약 블록의 칸 목록을 그대로 옮긴 것. 블록이 바뀌면 여기도 같이 바뀐다
 const 계약칸: [string, string][] = [
-  ['test_case', 'unconfirmed'],
-  ['test_case', 'unconfirmed_since'],
   ['run_item', 'unconfirmed'],
   ['service_env', 'login_id'],
   ['service_env', 'login_password'],
@@ -76,6 +74,15 @@ describe.skipIf(연결 === undefined)('역방향 칸', () => {
     );
     const 있는칸 = new Set(r.rows.map((x) => `${x.table_name}.${x.column_name}`));
     expect(계약칸.filter(([표, 칸]) => !있는칸.has(`${표}.${칸}`))).toEqual([]);
+  });
+
+  it('test_case 의 미확정 두 칸은 없어졌고 run_item 의 박제 칸은 남았다 (PRD-F4-05)', async () => {
+    const { pool } = await import('../db/index.js');
+    const r = await pool.query<{ table_name: string; column_name: string }>(
+      `SELECT table_name, column_name FROM information_schema.columns
+        WHERE table_schema = current_schema() AND column_name LIKE 'unconfirmed%' AND table_name IN ('test_case', 'run_item')`,
+    );
+    expect(r.rows.map((x) => `${x.table_name}.${x.column_name}`)).toEqual(['run_item.unconfirmed']);
   });
 
   describe('대조 짝', () => {

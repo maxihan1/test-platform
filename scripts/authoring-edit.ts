@@ -44,7 +44,7 @@ function 기대값인가(값: unknown): 값 is 기대값 {
   return typeof 값 === 'string' || typeof 값 === 'boolean' || (typeof 값 === 'number' && Number.isFinite(값));
 }
 
-const 키들 = new Set(['tcId', 'delete', 'expected', 'confirm']);
+const 키들 = new Set(['tcId', 'delete', 'expected']);
 
 function 한줄모양(e: unknown): 고칠것 | null {
   // tcId 는 PR 본문 줄에 그대로 실린다 — 줄바꿈이 섞이면 가짜 줄을 끼운다
@@ -52,18 +52,10 @@ function 한줄모양(e: unknown): 고칠것 | null {
   if (Object.keys(e).some((k) => !키들.has(k))) return null;
   // 지우기는 다른 고침과 섞지 않는다 — 지운 파일에 기대값을 쓸 수 없다
   if ('delete' in e) return e.delete === true && Object.keys(e).length === 2 ? { tcId: e.tcId, delete: true } : null;
-  if (!('expected' in e) && !('confirm' in e)) return null;
-  const 고침: { tcId: string; expected?: Record<string, 기대값>; confirm?: true } = { tcId: e.tcId };
-  if ('expected' in e) {
-    const 기대 = e.expected;
-    if (!묶음인가(기대) || Object.keys(기대).length === 0 || !Object.values(기대).every(기대값인가)) return null;
-    고침.expected = 기대 as Record<string, 기대값>;
-  }
-  if ('confirm' in e) {
-    if (e.confirm !== true) return null;
-    고침.confirm = true;
-  }
-  return 고침;
+  if (!('expected' in e)) return null;
+  const 기대 = e.expected;
+  if (!묶음인가(기대) || Object.keys(기대).length === 0 || !Object.values(기대).every(기대값인가)) return null;
+  return { tcId: e.tcId, expected: 기대 as Record<string, 기대값> };
 }
 
 /**

@@ -116,59 +116,38 @@ describe.skipIf(연결 === undefined)('save', () => {
     expect(after.rows[0]?.n).toBe(before.rows[0]?.n);
   });
 
-  describe('미확정 꼬리표', () => {
-    async function 꼬리표(tcId: string): Promise<{ unconfirmed: string | null; since: Date | null }> {
-      const row = await pool.query<{ unconfirmed: string | null; unconfirmed_since: Date | null }>(
-        'SELECT unconfirmed, unconfirmed_since FROM test_case WHERE tc_id = $1',
-        [tcId],
-      );
-      return { unconfirmed: row.rows[0]?.unconfirmed ?? null, since: row.rows[0]?.unconfirmed_since ?? null };
-    }
-
-    let 처음: Date | null = null;
-
-    it('사유가 있는 명세를 저장하면 사유와 단 시각이 실린다', async () => {
-      await save([spec('ZZA-101', { unconfirmed: '기획서와 다름' })], false, 'ZZA');
-      const got = await 꼬리표('ZZA-101');
-      expect(got.unconfirmed).toBe('기획서와 다름');
-      expect(got.since).toBeInstanceOf(Date);
-      처음 = got.since;
-    });
-
-    it('사유 글자만 바뀌면 사유는 새 글이고 단 시각은 그대로다', async () => {
-      await save([spec('ZZA-101', { unconfirmed: '화면만 보고 만들었다' })], false, 'ZZA');
-      const got = await 꼬리표('ZZA-101');
-      expect(got.unconfirmed).toBe('화면만 보고 만들었다');
-      expect(got.since?.getTime()).toBe(처음?.getTime());
-    });
-
-    it('사유가 빠지면 사유와 단 시각이 둘 다 비워진다', async () => {
-      await save([spec('ZZA-101')], false, 'ZZA');
-      expect(await 꼬리표('ZZA-101')).toEqual({ unconfirmed: null, since: null });
-    });
-
-    it('풀렸다가 다시 달리면 단 시각이 새로 찍힌다', async () => {
-      await save([spec('ZZA-101', { unconfirmed: '다시 미확정' })], false, 'ZZA');
-      const got = await 꼬리표('ZZA-101');
-      expect(got.unconfirmed).toBe('다시 미확정');
-      expect(got.since).toBeInstanceOf(Date);
-      expect(got.since?.getTime()).toBeGreaterThan(처음?.getTime() ?? Infinity);
-    });
-  });
-
   describe('목록·단건의 미확정 칸', () => {
     const 조건 = { service: 'ZZA', q: '', activeOnly: true, page: 1, pageSize: 50 };
 
+    const 근거 = [{ from: '기획서.docx', quote: '장바구니는 20개까지' }];
+    let 서비스 = 0;
+
     beforeAll(async () => {
-      await save([
-        spec('ZZA-001'),
-        spec('ZZA-101', { unconfirmed: '먼저 단 사유' }),
-        spec('ZZA-102', { unconfirmed: '곧 비활성' }),
-      ], false, 'ZZA');
-      await save([spec('ZZA-103', { unconfirmed: '나중에 단 사유' })], false, 'ZZA');
-      await save([spec('ZZA-001'), spec('ZZA-101', { unconfirmed: '먼저 단 사유' }), spec('ZZA-103', {
-        unconfirmed: '나중에 단 사유',
-      })], true, 'ZZA');
+      await save([spec('ZZA-001'), spec('ZZA-101'), spec('ZZA-102')], false, 'ZZA');
+      await save([spec('ZZA-103')], false, 'ZZA');
+      await save([spec('ZZA-001'), spec('ZZA-101'), spec('ZZA-103')], true, 'ZZA');
+      const s = await pool.query<{ id: string }>(
+        `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+         VALUES ('ZZA', 'ZZA 목록 미확정 검사용', '#888888', '', 'zza') RETURNING id`,
+      );
+      서비스 = Number(s.rows[0]!.id);
+      await pool.query(
+        `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name)
+         VALUES ($1, 1, $2, 2, 'PERSON', 'zza', '검사')`,
+        [서비스, JSON.stringify([
+          { reqId: 'ZZA-REQ-001', feature: '장바구니', text: '확인 필요', basis: 근거, status: 'NEEDS_CHECK' },
+          { reqId: 'ZZA-REQ-002', feature: '장바구니', text: '확정', basis: 근거, status: 'CONFIRMED' },
+        ])],
+      );
+      for (const [req, tc] of [['ZZA-REQ-001', 'ZZA-101'], ['ZZA-REQ-001', 'ZZA-102'], ['ZZA-REQ-001', 'ZZA-103'], ['ZZA-REQ-002', 'ZZA-001']]) {
+        await pool.query(`INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, $2, $3, '정상')`, [서비스, req, tc]);
+      }
+    });
+
+    afterAll(async () => {
+      await pool.query('DELETE FROM req_case WHERE service_id = $1', [서비스]);
+      await pool.query('DELETE FROM prd_version WHERE service_id = $1', [서비스]);
+      await pool.query('DELETE FROM service WHERE id = $1', [서비스]);
     });
 
     it('items 에 사유가 실리고 없으면 null 이다 — 단 시각은 싣지 않는다', async () => {
@@ -176,7 +155,7 @@ describe.skipIf(연결 === undefined)('save', () => {
       const 확정 = list.items.find((i) => i.tcId === 'ZZA-001');
       const 미확정 = list.items.find((i) => i.tcId === 'ZZA-103');
       expect(확정?.unconfirmed).toBeNull();
-      expect(미확정?.unconfirmed).toBe('나중에 단 사유');
+      expect(미확정?.unconfirmed).toBe('확인 필요 — ZZA-REQ-001');
       expect(미확정).not.toHaveProperty('unconfirmedSince');
     });
 
@@ -222,7 +201,7 @@ describe.skipIf(연결 === undefined)('save', () => {
 
     it('단건도 사유를 싣는다', async () => {
       const found = await findCase('ZZA-101');
-      expect(found?.unconfirmed).toBe('먼저 단 사유');
+      expect(found?.unconfirmed).toBe('확인 필요 — ZZA-REQ-001');
     });
   });
 });
