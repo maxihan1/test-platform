@@ -81,6 +81,18 @@ export function 틀키(주소: string): string {
   return `${마디정리(u.pathname)}${인자.length === 0 ? '' : `?${인자.join('&')}`}${해시}`;
 }
 
+/**
+ * 화면 파일의 화면 주소 값(`/board/1` · 절대 주소)을 크롤러의 같은 틀로 — 찾은 화면 · 화면 기록의 url 과 맞춰 「PRD 에 없는 화면」을 가른다
+ * (도메인/작성 §3.6 「기획서에 없는 화면 — 두 번째 작성」). 주소로 못 읽으면 null
+ */
+export function 주소틀(주소: string): string | null {
+  try {
+    return 틀키(new URL(주소, 'http://x.invalid').href);
+  } catch {
+    return null;
+  }
+}
+
 /** 같은 틀 둘째 장을 열어 구조를 견줄까 — 인자의 숫자 값으로 화면을 가르는 틀(`?board_no=1` 공지 · `=4` 문의)만. 경로 숫자(글 상세)는 한 장이면 된다 */
 export function 둘째장볼까(틀: string): boolean {
   return /[?&][^=&]+=:n/.test(틀);
