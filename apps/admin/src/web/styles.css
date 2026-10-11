@@ -4450,9 +4450,11 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   grid-row: 3;
 }
 
+/* 옆 실패 유형(선)이 더 길다 — 늘리면 판 아래가 비어 판이 내용 높이에서 끝난다 */
 .dash-heat {
   grid-column: 1 / 9;
   grid-row: 4;
+  align-self: start;
 }
 
 .dash-types {
