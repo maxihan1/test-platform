@@ -69,7 +69,7 @@ export function 기록주소(글: string): string | null {
   return m === null ? null : m[1]!;
 }
 
-const 날수 = (앞: string, 뒤: string): number => Math.round((Date.parse(뒤) - Date.parse(앞)) / 86_400_000);
+export const 날수 = (앞: string, 뒤: string): number => Math.round((Date.parse(뒤) - Date.parse(앞)) / 86_400_000);
 
 /** 표시 · 맞추기의 키 — 같은 주소가 두 상태(시작 화면 · 대조의 기획서 화면)로 목록에 있어 상태까지 붙인다 */
 export const 줄키 = (x: { 상태: 상태; 주소: string }): string => `${x.상태} ${x.주소}`;
@@ -111,9 +111,9 @@ export function 견주기(
  * 이번에 쓴 화면 기록을 목록과 맞춰 저장할 항목으로 — 상태는 기록 이름 머리(`out-` · `in-`), 주소는 첫 줄.
  * 목록에 없는 기록(더 갈 곳 `extra-` · 손 목록)은 저장하지 않는다
  */
-export function 이번것들(목록: 목록칸[], 기록들: { 이름: string; 글: string }[], 오늘: string): (저장항목 & { 원본: string; 이름: string })[] {
+export function 이번것들(목록: 목록칸[], 기록들: { 이름: string; 글: string }[], 오늘: string): (저장항목 & { 원본: string; 이름: string; 글: string })[] {
   const 줄로 = new Map(목록.map((x) => [줄키(x), x]));
-  const 고른: (저장항목 & { 원본: string; 이름: string })[] = [];
+  const 고른: (저장항목 & { 원본: string; 이름: string; 글: string })[] = [];
   for (const r of 기록들) {
     const 주소 = 기록주소(r.글);
     const 상태 = r.이름.startsWith('out-') ? '로그아웃' : r.이름.startsWith('in-') ? '로그인' : null;
@@ -121,7 +121,7 @@ export function 이번것들(목록: 목록칸[], 기록들: { 이름: string; �
     if (x === undefined) continue;
     고른.push({
       키: `${x.상태} ${x.틀}`, 상태: x.상태, 틀: x.틀, 주소: x.주소, 지문: x.지문, 글자지문: x.글자지문, 기록: 저장이름(x.상태, x.틀), 훑은날: 오늘,
-      원본: r.이름, 이름: typeof x.이름 === 'string' ? x.이름 : '',
+      원본: r.이름, 이름: typeof x.이름 === 'string' ? x.이름 : '', 글: r.글,
     });
   }
   return 고른;

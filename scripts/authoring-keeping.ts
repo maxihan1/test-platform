@@ -186,6 +186,8 @@ export async function 보관훑기(바탕: string, 주소기지: string, 토큰:
   // 트리 밖을 지우게 할 수 있다. 에이전트가 다시 켜지면(프로세스가 다 죽은 뒤) 켤 때 훑기가 한다 (2026-09-28 보안 검사)
   if (멈춤.까닭 !== null) return;
   mkdirSync(바탕, { recursive: true, mode: 0o755 });
+  // 화면 기록 저장본은 DB 로 옮겼다(PRD-F6-01). 옛 디스크 저장본은 아무도 안 읽는데 로그인 화면의 이름 · 이메일이 들어 있어 지운다
+  rmSync(join(바탕, 'screens'), { recursive: true, force: true });
   for (const 이름 of 남은사본(readdirSync(바탕))) {
     const 번호 = Number(이름.slice('author-'.length));
     const 자리 = 사본자리(번호, 바탕);

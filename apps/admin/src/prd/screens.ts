@@ -1,7 +1,7 @@
 // 화면 기록 저장본 — 작성 에이전트가 훑은 화면마다의 기록과 화면 연결을 DB 에 둔다 (도메인/작성 §3.6 「바뀐 화면만 다시 훑는다」 · §7 「표준 기획서 통로」)
 // 맞추는 열쇠는 상태 + 같은 틀(url 칸)이다 — 번호만 다른 주소를 한 화면으로 봐야 게시판 글처럼 매번 다른 글이 열리는 화면도 다시 안 훑는다
 
-import type { Pool, PoolClient } from 'pg';
+import { db, 한묶음 } from '../settings/store.js';
 
 const 상태들 = ['로그아웃', '로그인'] as const;
 type 상태 = (typeof 상태들)[number];
@@ -65,26 +65,6 @@ export function 다봄검사(몸: unknown): { seen: { state: 상태; url: string
   return { seen, complete: [...new Set(b.complete)] };
 }
 
-// DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
-async function db(): Promise<Pool> {
-  const { pool } = await import('../db/index.js');
-  return pool;
-}
-
-async function 한묶음(일: (손: PoolClient) => Promise<void>): Promise<void> {
-  const 손 = await (await db()).connect();
-  try {
-    await 손.query('BEGIN');
-    await 일(손);
-    await 손.query('COMMIT');
-  } catch (err) {
-    await 손.query('ROLLBACK');
-    throw err;
-  } finally {
-    손.release();
-  }
-}
-
 /** 그 서비스의 화면 기록 전부와 화면 연결 — 에이전트가 자식 앞 `kept/` 를 만든다 */
 export async function 화면들(서비스: number): Promise<{ screens: 화면[]; links: ({ state: 상태; fromUrl: string } & 링크)[] }> {
   const p = await db();
@@ -134,8 +114,7 @@ export async function 화면넣기(서비스: number, x: 화면, links: 링크[]
 export async function 다봄(서비스: number, seen: { state: 상태; url: string }[], complete: 상태[]): Promise<number> {
   if (complete.length === 0) return 0;
   const 값 = [서비스, complete, seen.map((s) => s.state), seen.map((s) => s.url)];
-  let 지운수 = 0;
-  await 한묶음(async (손) => {
+  return 한묶음(async (손) => {
     await 손.query(
       `DELETE FROM screen_link l WHERE l.service_id = $1 AND l.state = ANY($2::text[])
           AND NOT EXISTS (SELECT 1 FROM unnest($3::text[], $4::text[]) AS s(state, url) WHERE s.state = l.state AND s.url = l.from_url)`,
@@ -146,7 +125,6 @@ export async function 다봄(서비스: number, seen: { state: 상태; url: stri
           AND NOT EXISTS (SELECT 1 FROM unnest($3::text[], $4::text[]) AS s(state, url) WHERE s.state = r.state AND s.url = r.url)`,
       값,
     );
-    지운수 = r.rowCount ?? 0;
+    return r.rowCount ?? 0;
   });
-  return 지운수;
 }

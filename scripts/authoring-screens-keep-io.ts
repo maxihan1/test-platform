@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { 부른다 } from './authoring-io.js';
 import { 계정섞였나 } from './authoring-reverse.js';
-import { type 목록칸, type 상태, 받은저장본, 이번것들, 저장본모양 } from './authoring-screens-keep.js';
+import { type 목록칸, type 상태, 날수, 받은저장본, 이번것들 } from './authoring-screens-keep.js';
 
 const 기록상한 = 200_000;
 const 목록상한 = 2_000_000;
@@ -49,9 +49,11 @@ function 새로쓰기(경로: string, 글: string): void {
 export async function 저장본넣기(통로: 화면통로, 자료: string, 있으면둠 = false): Promise<number> {
   const 넣을곳 = join(자료, 'kept');
   if (있으면둠 && lstatSync(넣을곳, { throwIfNoEntry: false }) !== undefined) return 0;
+  // 못 받아도 작성은 간다 — 까닭은 로그에 남긴다(매번 전부 훑게 되는 것을 사람이 찾게)
+  const 못받음 = (까닭: string) => (console.error(`[작성] ${통로.번호}번 — 화면 기록 저장본을 못 받아 전부 훑는다: ${까닭}`), 0);
   try {
     const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/screens`);
-    if (답.status !== 200) return 0;
+    if (답.status !== 200) return 못받음(`서버 ${답.status}`);
     const { 저장, 기록들 } = 받은저장본(답.몸);
     if (저장.항목.length === 0) return 0;
     rmSync(넣을곳, { force: true, recursive: true });
@@ -59,12 +61,10 @@ export async function 저장본넣기(통로: 화면통로, 자료: string, 있�
     for (const x of 저장.항목) 새로쓰기(join(넣을곳, x.기록), 기록들.get(x.기록)!);
     새로쓰기(join(넣을곳, 'index.json'), JSON.stringify(저장));
     return 저장.항목.length;
-  } catch {
-    return 0;
+  } catch (e) {
+    return 못받음(e instanceof Error ? e.message : String(e));
   }
 }
-
-const 날수 = (앞: string, 뒤: string): number => Math.round((Date.parse(뒤) - Date.parse(앞)) / 86_400_000);
 
 /**
  * 올릴 때 — 자료 폴더의 크롤 목록 · 화면 기록으로 이번에 본 화면만 서버에 올린다. 「같음」으로 재사용한 화면은 안 올린다(훑은 날을 그대로 둬야 30일 그물이 돈다).
@@ -99,23 +99,19 @@ export async function 저장본올리기(
   const 오늘 = 지금.toISOString().slice(0, 10);
   const 같은것 = 목록.filter((x) => x.저장본 === '같음');
   const 같음키 = new Set(같은것.map((x) => `${x.상태} ${x.틀}`));
-  const 이번 = 이번것들(목록, 기록들, 오늘)
-    .filter((x) => !같음키.has(x.키))
-    .map((x) => ({ ...x, 글: 기록들.find((r) => r.이름 === x.원본)!.글 }));
-  if (계정섞였나(이번.map((x) => x.글), 비밀)) return { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
+  const 이번 = 이번것들(목록, 기록들, 오늘).filter((x) => !같음키.has(x.키));
+  // 이름 · 틀도 서버에 남고 사람에게 보일 칸이다 — 본문과 같이 본다
+  if (계정섞였나(이번.flatMap((x) => [x.글, x.이름, x.틀]), 비밀)) return { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
   // 지우기는 화면만 · 크롤이 예외 없이 다 봤을 때, 실제로 돈 상태만 (검사 주의 1 — 상태 파일 없이 로그아웃만 돌면 로그인 기록은 남긴다)
   const 돈상태 = Array.isArray(요약.상태들) ? 요약.상태들.filter((x): x is 상태 => x === '로그아웃' || x === '로그인') : [];
   const 지울상태 = 화면만 && 요약.멈춘까닭 === null && 요약.따라가기 === true && 요약.예외 !== true ? [...new Set(돈상태)] : [];
-  // 재사용한 화면의 훑은 날은 자식 앞에 넣어 둔 kept/ 에 있다 — PR 본문 머리에 가장 오래된 날수를 싣는다
-  let 넣은것 = 저장본모양(null);
-  try {
-    넣은것 = 저장본모양(JSON.parse(안전히읽기(join(자료, 'kept'), 'index.json', 목록상한) ?? '{}'));
-  } catch {
-    // 자식이 고친 파일일 수 있다 — 날수만 못 싣는다
-  }
-  const 오래된 = 넣은것.항목.filter((y) => 같음키.has(y.키)).reduce((n, y) => Math.max(n, 날수(y.훑은날, 오늘)), 0);
   const 길 = `/authoring/requests/${통로.번호}/screens`;
   try {
+    // 재사용 수와 가장 오래된 날은 올리기 전 서버 저장본에서 센다 — 자식이 고칠 수 있는 kept/ 를 믿지 않는다
+    const 받음 = await 부른다(통로.주소기지, 통로.토큰, 길);
+    if (받음.status !== 200) return { 줄: `화면 기록 저장: 실패 — 저장본을 못 읽었다(서버 ${받음.status})` };
+    const 재사용 = 받은저장본(받음.몸).저장.항목.filter((y) => 같음키.has(y.키));
+    const 오래된 = 재사용.reduce((n, y) => Math.max(n, 날수(y.훑은날, 오늘)), 0);
     let 못올림 = 0;
     for (const x of 이번) {
       const body = { state: x.상태, url: x.틀, name: x.이름.slice(0, 500), textFp: x.글자지문, structFp: x.지문, record: x.글, crawledAt: 지금.toISOString(), links: [] };
@@ -126,7 +122,7 @@ export async function 저장본올리기(
     const 지운수 = 끝.status === 200 ? (끝.몸 as { deleted?: unknown } | null)?.deleted : undefined;
     return {
       줄:
-        `화면 기록 저장: 재사용 ${같은것.length}장${같은것.length > 0 ? `(가장 오래된 것 ${오래된}일)` : ''} · 새로 저장 ${이번.length - 못올림}장` +
+        `화면 기록 저장: 재사용 ${재사용.length}장${재사용.length > 0 ? `(가장 오래된 것 ${오래된}일)` : ''} · 새로 저장 ${이번.length - 못올림}장` +
         (못올림 > 0 ? ` · 못 올림 ${못올림}장` : '') +
         (지울상태.length === 0 ? '' : typeof 지운수 === 'number' ? ` · 다 봐서 ${지울상태.join(' · ')} 못 본 화면 ${지운수}장 지움` : ' · 못 본 화면 지우기 실패'),
     };

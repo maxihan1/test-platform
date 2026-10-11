@@ -84,7 +84,9 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     await app.close();
     await 치우기();
     await q('DELETE FROM service WHERE id = $1', [서비스]);
-    process.env.AUTHORING_AGENT_USER = 원래;
+    // undefined 를 넣으면 글자 "undefined" 가 된다 — 없던 값은 지운다
+    if (원래 === undefined) delete process.env.AUTHORING_AGENT_USER;
+    else process.env.AUTHORING_AGENT_USER = 원래;
   });
 
   it('맥 계정이 아니면 403, 끝난 요청이면 409', async () => {
