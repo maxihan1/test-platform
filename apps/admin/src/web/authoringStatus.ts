@@ -66,6 +66,11 @@ export function 단계칸(stage: string | null, 진척있나: boolean): number {
   return (stage === null ? undefined : 단계글[stage]) ?? (진척있나 ? 2 : 0);
 }
 
+/** 반영처럼 다섯 칸을 안 밟는 요청의 글(`CI 기다리는 중` 같은)은 표에 없다 — 칸 번호로 옮기면 「1 / 5 단계 준비」로 거짓말한다 */
+export function 아는단계글(stage: string): boolean {
+  return Object.hasOwn(단계글, stage);
+}
+
 /** 머지 · 케이스 고치기는 자식을 안 띄워 이 다섯 칸을 안 밟는다 — null 이면 카드가 막대를 안 그린다 */
 export function 단계자리(행: AuthoringRow): 자리 | null {
   if (행.kind === 'MERGE' || 고치기실행인가(행)) return null;

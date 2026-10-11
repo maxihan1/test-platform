@@ -1,7 +1,7 @@
 // 본문 위 알림 줄과 알림 서랍이 보일 것을 고르고 문구로 옮기는 순수 함수 (SPEC 공통/5-화면공통 §8 「알림」). 그림은 Notice.tsx
 
 import type { NoticeRecent, NoticeResponse, NoticeRunning } from './api.js';
-import { 단계라벨, 단계이름들, 단계칸 } from './authoringStatus.js';
+import { 단계글라벨, 단계라벨, 단계이름들, 단계칸, 아는단계글 } from './authoringStatus.js';
 import { t, type 언어 } from './i18n.js';
 import { 실행남은글, 시간글자, 작성남은글 } from './remainText.js';
 import { 그중미확정글 } from './unconfirmed.js';
@@ -143,7 +143,9 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
   const 지난ms = Math.max(0, 지금 - Date.parse(n.startedAt));
   const 앞 = [
     t('작성 요청 #{번호} 이 진행 중입니다', 언어, 값),
-    t('{번호} / {전체} 단계 {이름}', 언어, { 번호: 칸 + 1, 전체: 단계이름들.length, 이름: 단계라벨(단계이름들[칸] ?? '준비', 언어) }),
+    n.stage !== null && !아는단계글(n.stage)
+      ? 단계글라벨(n.stage, 언어)
+      : t('{번호} / {전체} 단계 {이름}', 언어, { 번호: 칸 + 1, 전체: 단계이름들.length, 이름: 단계라벨(단계이름들[칸] ?? '준비', 언어) }),
     t('{지난} 지남', 언어, { 지난: 시간글자(지난ms, 언어) }),
   ];
   return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: 작성남은글(지난ms, 지금, n.expected, 언어) };
