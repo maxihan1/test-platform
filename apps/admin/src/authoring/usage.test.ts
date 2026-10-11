@@ -164,7 +164,7 @@ describe.skipIf(연결 === undefined)('작성 토큰 사용량', () => {
     try {
       await expect(
         읽기.query(
-          'SELECT tokens_input, tokens_output, tokens_cache_read, tokens_cache_write, tokens_partial, cost_usd, tokens_model FROM authoring_request LIMIT 1',
+          'SELECT tokens_input, tokens_output, tokens_cache_read, tokens_cache_write, tokens_partial, cost_usd FROM authoring_request LIMIT 1',
         ),
       ).resolves.toBeDefined();
       await expect(읽기.query('SELECT error FROM authoring_request LIMIT 1')).rejects.toThrow(/permission denied/);

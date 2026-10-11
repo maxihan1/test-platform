@@ -127,11 +127,25 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
 
   describe('칸 단위 권한', () => {
     it.each([
-      'SELECT tc_id, is_active FROM test_case LIMIT 1',
-      'SELECT id, prefix, name, is_active FROM service LIMIT 1',
+      'SELECT id, name FROM service LIMIT 1',
       'SELECT id, service_id, kind, status, compare, created_at, started_at, finished_at, stop_reason FROM authoring_request LIMIT 1',
     ])('연 칸은 읽힌다 — %s', async (sql) => {
       await expect(읽기전용.query(sql)).resolves.toBeDefined();
+    });
+
+    it.each([
+      'SELECT prefix FROM service LIMIT 1',
+      'SELECT is_active FROM service LIMIT 1',
+      'SELECT tokens_model FROM authoring_request LIMIT 1',
+    ])('어느 패널도 안 읽는 칸은 거둔다 — %s', async (sql) => {
+      await expect(읽기전용.query(sql)).rejects.toThrow(/permission denied/);
+    });
+
+    it('test_case 는 어느 칸도 읽지 못한다 — 남은 패널이 안 읽는다', async () => {
+      const r = await pool.query<{ 읽나: boolean }>(
+        "SELECT has_any_column_privilege('grafana_ro', 'test_case', 'SELECT') AS \"읽나\"",
+      );
+      expect(r.rows[0]!.읽나).toBe(false);
     });
 
     it.each([

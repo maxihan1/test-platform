@@ -101,7 +101,7 @@ describe.skipIf(연결 === undefined)('작성 커버리지 패널 SQL', () => {
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
 
     const 원본 = await 넣기('AUTHOR', 'DONE', '1 minute', [10, 4, 1, 5, 1], null, [3, 2]);
-    await 넣기('RERUN', 'STOPPED', '2 minutes', [8, 2, null, 6, 0], 원본);
+    await 넣기('RERUN', 'STOPPED', '2 minutes', [3, 2, null, 1, 0], 원본);
     await 넣기('AUTHOR', 'DONE', '3 minutes', null);
     await 넣기('AUTHOR', 'FAILED', '4 minutes', null);
     await 넣기('MERGE', 'DONE', '5 minutes', null, 원본);
@@ -119,15 +119,15 @@ describe.skipIf(연결 === undefined)('작성 커버리지 패널 SQL', () => {
     const r = await 줄들();
     expect(r.map((줄) => [줄['방식'], 줄['결과'], 줄['요구']])).toEqual([
       ['보통', '성공', 10],
-      ['재실행', '중단 · 올리기 거절', 8],
+      ['재실행', '중단 · 올리기 거절', 3],
       ['보통', '성공', null],
       ['보통', '성공', 0],
     ]);
   });
 
-  it('케이스 % 는 덮은 수 / 요구 수이고 요구 0개면 비운다', async () => {
+  it('케이스 % 는 덮은 수 / 요구 수를 앱 대시보드처럼 내림하고 요구 0개면 비운다', async () => {
     const r = await 줄들();
-    expect(r.map((줄) => (줄['케이스 %'] === null ? null : Number(줄['케이스 %'])))).toEqual([40, 25, null, null]);
+    expect(r.map((줄) => (줄['케이스 %'] === null ? null : Number(줄['케이스 %'])))).toEqual([40, 66, null, null]);
   });
 
   it('기능 · UI 로 덮은 수와 % 를 따로 내고 갈래를 못 센 실행은 비운다', async () => {
