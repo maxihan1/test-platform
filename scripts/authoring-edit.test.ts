@@ -36,10 +36,8 @@ describe('편집들 — 집은 것에서 고칠 내용을 꺼내 모양을 본�
     expect(편집들({ id: 1, kind: 'EDIT', edits })).toEqual(edits);
   });
 
-  it('「확정」을 빼기 전에 세운 요청의 confirm 은 무시하고 기대값만 꺼낸다', () => {
-    expect(편집들({ edits: [{ tcId: 'XEE-001', expected: { heading: '제목' }, confirm: true }] })).toEqual([
-      { tcId: 'XEE-001', expected: { heading: '제목' } },
-    ]);
+  it('「확정」을 뺀 뒤 confirm 은 서버처럼 모르는 키다 — 기대값과 같이 와도 null', () => {
+    expect(편집들({ edits: [{ tcId: 'XEE-001', expected: { heading: '제목' }, confirm: true }] })).toBeNull();
     expect(편집들({ edits: [{ tcId: 'XEE-001', confirm: true }] })).toBeNull();
   });
 

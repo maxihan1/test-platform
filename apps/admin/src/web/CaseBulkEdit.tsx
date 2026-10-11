@@ -58,7 +58,7 @@ export function 고른것고치기({ service, 고른, 다되면 }: { service: st
       .finally(() => set보내는중(false));
   }
 
-  const 넘침 = 고치기상한 < 담은.length;
+  const 넘침 = 담은.length > 고치기상한;
 
   return (
     <>

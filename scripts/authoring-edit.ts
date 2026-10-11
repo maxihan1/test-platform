@@ -44,8 +44,7 @@ function 기대값인가(값: unknown): 값 is 기대값 {
   return typeof 값 === 'string' || typeof 값 === 'boolean' || (typeof 값 === 'number' && Number.isFinite(값));
 }
 
-// confirm 은 「확정」을 뺀 뒤에도 키로만 받아 무시한다 — 빼기 전에 세운 요청이 다시 적용(재실행)될 때 모르는 키로 통째로 거절되지 않게
-const 키들 = new Set(['tcId', 'delete', 'expected', 'confirm']);
+const 키들 = new Set(['tcId', 'delete', 'expected']);
 
 function 한줄모양(e: unknown): 고칠것 | null {
   // tcId 는 PR 본문 줄에 그대로 실린다 — 줄바꿈이 섞이면 가짜 줄을 끼운다
