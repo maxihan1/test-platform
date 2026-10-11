@@ -34,6 +34,13 @@ export interface 대상서버입력 {
   loginPassword?: string | null;
 }
 
+// 정기 실행 설정 한 벌. 시각은 시간대 안의 HH:MM 이다 (SPEC 공통/6-인프라 §9.2 · 도메인/인증 §7)
+export interface 정기실행 {
+  at: string;
+  tz: string;
+  env: string;
+}
+
 export interface 서비스행 {
   id: number;
   prefix: string;
@@ -47,6 +54,9 @@ export interface 서비스행 {
   hasSlackWebhook: boolean;
   hasFigmaToken: boolean;
   crawlExclude: string[];
+  schedule: 정기실행 | null;
+  /** 마지막으로 돈 때와 그 뒤 스케줄러가 만든 실행. 꺼도 남는다 */
+  lastScheduled: { at: string; runIds: number[] } | null;
 }
 
 export async function db(): Promise<Pool> {
@@ -97,6 +107,10 @@ async function 대상서버넣기(client: PoolClient, serviceId: number, envs: �
 // 케이스 수는 test_case 에 서비스 칸이 없어 접두사로 센다. 그 표에는 서비스 칸이 없고 앞으로도 없다 (SPEC §6)
 const 서비스들 = `
   SELECT s.id, s.prefix, s.name, s.color, s.tests_repo, s.tests_dir, s.is_active, s.crawl_exclude,
+         to_char(s.schedule_at, 'HH24:MI') AS schedule_at, s.schedule_tz, s.schedule_env, s.schedule_last,
+         -- 같은 점검이 만든 UI · 기능 실행이 둘 다 마지막으로 돈 때 뒤에 생긴다 (SPEC 공통/6-인프라 §9.2)
+         (SELECT COALESCE(json_agg(r.run_id ORDER BY r.run_id), '[]') FROM test_run r
+           WHERE r.service_id = s.id AND r.triggered_by = '스케줄러' AND r.started_at >= s.schedule_last) AS scheduled_run_ids,
          (s.slack_webhook IS NOT NULL AND s.slack_webhook <> '') AS has_slack_webhook,
          (s.figma_token IS NOT NULL AND s.figma_token <> '') AS has_figma_token,
          (SELECT count(*) FROM test_case tc
@@ -124,6 +138,12 @@ interface 서비스원행 {
   has_slack_webhook: boolean;
   has_figma_token: boolean;
   crawl_exclude: string[];
+  schedule_at: string | null;
+  schedule_tz: string | null;
+  schedule_env: string | null;
+  schedule_last: Date | null;
+  // json_agg 라 숫자로 온다
+  scheduled_run_ids: number[];
   case_count: string;
   envs: 대상서버[];
 }
@@ -147,6 +167,10 @@ export async function 서비스목록(): Promise<서비스행[]> {
     // 피그마 토큰도 같다 (2026-09-23, 도메인/인증 §8.8)
     hasFigmaToken: r.has_figma_token,
     crawlExclude: r.crawl_exclude,
+    // 셋은 DB 가 같이 비거나 같이 차게 막는다 (마이그레이션 20261012000001)
+    schedule: r.schedule_at === null ? null : { at: r.schedule_at, tz: r.schedule_tz ?? '', env: r.schedule_env ?? '' },
+    lastScheduled:
+      r.schedule_last === null ? null : { at: r.schedule_last.toISOString(), runIds: r.scheduled_run_ids },
   }));
 }
 
@@ -199,6 +223,15 @@ export interface 서비스수정 {
   slackWebhook?: string;
   figmaToken?: string;
   crawlExclude?: string[];
+  /** 안 보내면 그대로, null 이면 끈다 */
+  schedule?: 정기실행 | null;
+}
+
+/** 정기 실행의 대상 서버가 그 서비스에 있는지 보려고 읽는다 (도메인/인증 §7 계약 변경 블록) */
+export async function 대상서버키(id: number): Promise<string[]> {
+  const pool = await db();
+  const r = await pool.query<{ env: string }>('SELECT env FROM service_env WHERE service_id = $1', [id]);
+  return r.rows.map((row) => row.env);
 }
 
 export async function 서비스고치기(id: number, 수정: 서비스수정): Promise<void> {
@@ -216,7 +249,10 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
               figma_token = CASE WHEN $8::text IS NULL THEN figma_token
                                  WHEN $8 = '' THEN NULL
                                  ELSE $8 END,
-              crawl_exclude = COALESCE($9::text[], crawl_exclude)
+              crawl_exclude = COALESCE($9::text[], crawl_exclude),
+              schedule_at  = CASE WHEN $10 THEN $11::time ELSE schedule_at END,
+              schedule_tz  = CASE WHEN $10 THEN $12 ELSE schedule_tz END,
+              schedule_env = CASE WHEN $10 THEN $13 ELSE schedule_env END
         WHERE id = $1`,
       [
         id,
@@ -228,6 +264,10 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
         수정.slackWebhook ?? null,
         수정.figmaToken ?? null,
         수정.crawlExclude ?? null,
+        수정.schedule !== undefined,
+        수정.schedule?.at ?? null,
+        수정.schedule?.tz ?? null,
+        수정.schedule?.env ?? null,
       ],
     );
     if (rows.rowCount === 0) throw new 설정오류('NOT_FOUND');

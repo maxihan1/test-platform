@@ -6,10 +6,11 @@ import { z } from 'zod';
 
 import { 에이전트토큰만들기, 에이전트토큰지우기 } from '../auth/agentToken.js';
 import { 아이디모양 } from '../auth/rules.js';
+import { 시간대확인, 틀린시간대 } from '../reporting/dashboardResults.js';
 import { 정수 } from '../routeParams.js';
 
 import { 제외경로정리 } from './rules.js';
-import { 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
+import { 대상서버키, 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
 import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수락, 비밀번호다시만들기 } from './users.js';
 
 // SPEC §2 의 접두사 모양을 코드가 복사해 둔 자리다. §2 를 고치면 여기도 같이 움직인다 (CLAUDE.md §2.7 ⑤).
@@ -44,6 +45,13 @@ const 새서비스 = z.object({
   crawlExclude: 훑지않을경로.optional(),
 });
 
+// 시간대는 DB 이름표라 스키마 밖에서 본다 — 대시보드 tz 와 같은 검사다 (도메인/인증 §7 「정기 실행」 계약 변경 블록)
+const 정기실행 = z.object({
+  at: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+  tz: z.string().min(1),
+  env: z.string().min(1),
+});
+
 const 서비스수정 = z.object({
   name: z.string().min(1).optional(),
   color: z.string().min(1).optional(),
@@ -54,6 +62,7 @@ const 서비스수정 = z.object({
   slackWebhook: z.string().optional(),
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),
+  schedule: 정기실행.nullable().optional(),
 });
 
 const 등급 = z.enum(['member', 'admin']);
@@ -145,6 +154,8 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       }
       const id = 정수(req.params.id);
       if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
+      const 틀린칸 = await 정기실행틀린칸(id, parsed.data);
+      if (틀린칸 !== null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 틀린칸 });
       await 서비스고치기(id, parsed.data);
       return { ok: true };
     },
@@ -197,4 +208,22 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     await 에이전트토큰지우기(req.params.username);
     return reply.code(204).send();
   });
+}
+
+/** 정기 실행에서 스키마가 못 보는 두 칸 — 시간대 이름표와 대상 서버. 같이 보낸 envs 가 있으면 그것으로 본다 */
+async function 정기실행틀린칸(
+  id: number,
+  본문: { schedule?: { tz: string; env: string } | null; envs?: { env: string }[] },
+): Promise<string | null> {
+  const 정기 = 본문.schedule;
+  if (정기 === undefined || 정기 === null) return null;
+  try {
+    const { pool } = await import('../db/index.js');
+    await 시간대확인(pool, 정기.tz);
+  } catch (err) {
+    if (err instanceof 틀린시간대) return `schedule.tz: ${정기.tz}`;
+    throw err;
+  }
+  const 키들 = 본문.envs?.map((e) => e.env) ?? (await 대상서버키(id));
+  return 키들.includes(정기.env) ? null : `schedule.env: ${정기.env}`;
 }
