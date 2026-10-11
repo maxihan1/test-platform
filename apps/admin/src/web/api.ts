@@ -423,8 +423,19 @@ export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
   testsDir: string;
   /** 실제 화면과 대조하는 작성(대조 · 화면만)이 크롤에서 뺄 경로 (도메인/인증 §7). 선택으로 둔 것은 hasFigmaToken 과 같은 이유 — 없으면 빈 목록으로 읽는다 */
   crawlExclude?: string[];
+  /** 정기 실행 (도메인/인증 §7 「정기 실행」). 선택으로 둔 것은 hasFigmaToken 과 같은 이유 — 없으면 꺼짐으로 읽는다 */
+  schedule?: ScheduleSetting | null;
+  /** 마지막으로 돈 때와 그 뒤 스케줄러가 만든 실행. 꺼도 남는다 */
+  lastScheduled?: { at: string; runIds: number[] } | null;
   isActive: boolean;
   caseCount: number;
+}
+
+/** 정기 실행 한 벌 — 시각(HH:MM)은 그 시간대 기준이다 (SPEC 공통/6-인프라 §9.2) */
+export interface ScheduleSetting {
+  at: string;
+  tz: string;
+  env: string;
 }
 
 /** 설정 화면이 보는 계정 (SPEC §7 `/settings/users` · §8.8). `services` 는 접두사 목록이다 */
@@ -1093,6 +1104,8 @@ export const api = {
       figmaToken?: string;
       /** 안 보내면 그대로 두고 `[]` 면 비운다 */
       crawlExclude?: string[];
+      /** 안 보내면 그대로 두고 `null` 이면 끈다 */
+      schedule?: ScheduleSetting | null;
     },
   ) => call<{ ok: true }>(`/settings/services/${id}`, { ...json(body), method: 'PATCH' }),
 

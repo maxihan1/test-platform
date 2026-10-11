@@ -101,7 +101,7 @@ export function 끝났다고알릴까(그것: { 전: string; 후: string; runId:
  * 인증 이전 실행에는 확인된 실행자가 없다. 이름 칸이 비어 있는 것이 그 표시다.
  * **값을 지어내 채우지 않는다** — 모르는 것은 모른다고 적는 것이 기록이다.
  *
- * 정기 실행은 따로 가르지 않는다. `scripts/run-scheduled.ts` 가 이름을 `스케줄러` 로 박아 넣는다.
+ * 정기 실행은 따로 가르지 않는다. `execution/scheduled.ts` 가 이름을 `스케줄러` 로 박아 넣는다.
  */
 export function 실행자이름(run: { triggeredBy: string; triggeredByName: string | null }, 언어: 언어): string {
   const 이름 = run.triggeredByName;

@@ -11,7 +11,7 @@ import { Dashboard } from './Dashboard.js';
 const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** main.tsx 가 사람의 권한에서 뽑아 넘기는 재료 — 케이스 자리가 있는 사람 · 작성 칸이 read 이상인 서비스 */
-const 기본재료 = { 케이스갈수있나: true, 작성서비스: [] as { id: number; name: string }[] };
+const 기본재료 = { 케이스갈수있나: true, 설정갈수있나: false, 작성서비스: [] as { id: number; name: string }[] };
 
 function 건(pass: number, fail: number, notRun: number) {
   return { pass, fail, notRun };
@@ -354,6 +354,23 @@ describe('케이스 자리가 없는 사람', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} 케이스갈수있나={false} />);
     expect(await screen.findByText('아직 실행한 테스트가 없습니다')).toBeTruthy();
     expect(screen.queryByRole('link', { name: '테스트 스크립트로 가기' })).toBeNull();
+  });
+});
+
+describe('정기 실행 안내 줄 (리포팅 §8.12 빈 상태 · WEB-F3-08)', () => {
+  const 빈응답 = () => 응답({ passRate: { current: 건(0, 0, 0), previous: 건(0, 0, 0) }, newFailures: [], byService: [], unconfirmed: 0 });
+
+  it('설정에 갈 수 있는 사람에게는 정기 실행을 켜는 자리로 가는 링크를 단다', async () => {
+    읽기를(빈응답());
+    render(<Dashboard 서비스열기={() => {}} {...기본재료} 설정갈수있나 />);
+    expect((await screen.findByRole('link', { name: '설정에서 정기 실행 켜기' })).getAttribute('href')).toBe('#/settings');
+  });
+
+  it('설정에 못 가는 사람에게는 안내 한 줄만 둔다 — 눌러도 이유만 보인다', async () => {
+    읽기를(빈응답());
+    render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
+    expect(await screen.findByText('아직 실행한 테스트가 없습니다')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: '설정에서 정기 실행 켜기' })).toBeNull();
   });
 });
 

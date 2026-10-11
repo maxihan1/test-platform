@@ -2,6 +2,7 @@
 // 날짜 · 요일 · 숫자 글자는 SVG 가 아니라 HTML 이다 — 캔버스에서 계산 값이 든 SVG `<text>` 가 안 그려졌다
 
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
+import { 정기실행켜는곳 } from './DashboardTables.js';
 import { 날짜글자 } from './dashboardView.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 
@@ -81,7 +82,7 @@ function 날짜줄({ 클래스, 날들 }: { 클래스: string; 날들: 날[] }) 
   );
 }
 
-export function 일별막대({ 값 }: { 값: 자료 }) {
+export function 일별막대({ 값, 설정갈수있나 = false }: { 값: 자료; 설정갈수있나?: boolean }) {
   const t = use말();
   const 언어 = use언어();
   const 날들 = 창날들(값, 언어);
@@ -186,7 +187,10 @@ export function 일별막대({ 값 }: { 값: 자료 }) {
           ) : null,
         )}
         {실행한날 < 실행한날기준 ? (
-          <span className="dash-note">{t('하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다')}</span>
+          <span className="dash-note">
+            {t('하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다')}
+            {설정갈수있나 ? <정기실행켜는곳 /> : null}
+          </span>
         ) : null}
       </div>
       <날짜줄 클래스="dash-days" 날들={날들} />
