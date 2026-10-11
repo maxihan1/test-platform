@@ -5,7 +5,7 @@ import type { ItemStatus, Platform } from '@platform/kit';
 
 import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
-import { 가린다, 긴것부터, 비밀글자들 } from '../execution/trial.js';
+import { 가린다, 항목비밀 } from '../execution/trial.js';
 
 export interface EvidenceField {
   label: string;
@@ -276,14 +276,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
       // 40건 중 12건 돌고 멈춘 실행은 「12건 돌았다」가 아니라 「28건은 이래서 못 돌았다」여야 한다 (SPEC §8.4)
       const 못돈사유 = 미실행사유를찾는다(row, run.status);
       // 키로 가린 칸 밖에도 비밀값이 되비친다 — 확인의 기대 · 실제 값과 판정 못 낸 사유. 실행 조회 응답(execution/queries.ts)과 같은 규칙이다 (공통/2 §4.1)
-      const 비밀 = 긴것부터(
-        비밀글자들({
-          paramSchema: row.param_schema,
-          expectedSchema: row.expected_schema,
-          params: isPlainObject(row.params) ? row.params : {},
-          expected: isPlainObject(row.expected) ? row.expected : {},
-        }),
-      );
+      const 비밀 = 항목비밀(row);
 
       return {
         tcId: row.tc_id,
