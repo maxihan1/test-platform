@@ -88,6 +88,12 @@ describe('돌지 못한 항목의 사유 (SPEC §8.3)', () => {
     expect(미실행사유(null, 'ko')).toBe(null);
   });
 
+  it('제한 시간에 걸려 끊긴 것은 러너 장애와 다른 문장으로 적는다. 러너는 TIMEOUT 으로 돌려준다', () => {
+    expect(미실행사유({ message: 'TIMEOUT' }, 'ko')).toBe('제한 시간 초과');
+    expect(미실행사유({ message: 'TIMEOUT' }, 'en')).toBe('Timed out');
+    expect(칸사유([{ status: 'NA', error: { message: 'TIMEOUT' } }], 'ko')).toBe('제한 시간 초과');
+  });
+
   it('원문 오류는 목록에 쓰지 않는다. 상세의 접힌 자리에 둔다', () => {
     const 스택 = { message: 'connect ECONNREFUSED 127.0.0.1:4000', stack: 'Error: connect...' };
     expect(미실행사유(스택, 'ko')).toBe('러너에 닿지 못했습니다');

@@ -198,6 +198,7 @@ export const 실행말: Record<string, string> = {
 
   // 돌지 못한 항목의 사유 (§8.3)
   '사용자가 멈춤': 'Stopped by user',
+  '제한 시간 초과': 'Timed out',
   '러너에 닿지 못했습니다': 'Could not reach the runner',
 
   // 항목 상세 (§8.4)

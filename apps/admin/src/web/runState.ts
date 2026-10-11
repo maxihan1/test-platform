@@ -41,13 +41,16 @@ export function 멈출수있나(status: string, 할수: 판정): boolean {
 
 /** 서버가 사람의 중단을 이 값으로 저장한다 (`store.ts` 의 `CLOSE_UNFINISHED`) */
 const 사람이멈춤 = 'ABORTED';
+/** 러너가 케이스 제한 시간에 끊은 항목을 이 값으로 돌려준다 (`runner/src/execute.ts` 의 `killedResponse`) */
+const 시간초과 = 'TIMEOUT';
 
 /**
  * 돌지 못한 항목 옆에 적을 사유 (SPEC §8.3).
  *
  * **사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다.**
  * 서버는 대부분 이미 한국어를 넣어 준다 (`러너에 닿지 못했습니다`) —
- * 화면이 바꾸는 것은 `ABORTED` 하나뿐이다.
+ * 화면이 바꾸는 것은 러너가 영문 값으로 주는 `ABORTED` · `TIMEOUT` 둘이다.
+ * `TIMEOUT` 을 아래 갈래에 맡기면 시간이 모자랐던 케이스가 러너 장애로 보인다.
  *
  * **원문 오류(스택·주소·포트)는 목록에 쓰지 않는다.** 이 도구의 전제는 「코드를 몰라도 쓴다」다.
  * 못 알아볼 값이 오면 러너에 닿지 못한 것으로 적고 원문은 상세의 접힌 자리에 남긴다.
@@ -55,6 +58,7 @@ const 사람이멈춤 = 'ABORTED';
 export function 미실행사유(error: { message: string } | null, 언어: 언어): string | null {
   if (error === null) return null;
   if (error.message === 사람이멈춤) return t('사용자가 멈춤', 언어);
+  if (error.message === 시간초과) return t('제한 시간 초과', 언어);
   // 한국어 문장이면 서버가 사람이 읽으라고 넣은 것이다. 영문·기호로 시작하면 원문 오류다.
   // 서버가 준 문장은 그대로 낸다 — 화면이 지어낸 글자가 아니라 옮길 표에 없다
   return /^[가-힣]/.test(error.message) ? error.message : t('러너에 닿지 못했습니다', 언어);
