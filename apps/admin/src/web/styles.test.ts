@@ -362,13 +362,13 @@ describe('토큰 명암비 (DESIGN.md)', () => {
 /**
  * 증적 문서는 종이용 밝은 색을 따로 쓴다 (DESIGN.md 「컨셉」, 2026-10-07).
  *
- * 2026-09-21 부터 2026-10-07 까지는 「화면과 같은 값이다」를 봤다 — `reporting/html.ts` 가 화면 CSS 를 읽지 않고
+ * 2026-09-21 부터 2026-10-07 까지는 「화면과 같은 값이다」를 봤다 — `reporting/html.ts`(지금은 `htmlStyle.ts`) 가 화면 CSS 를 읽지 않고
  * 값을 복사해 두어 한쪽만 고치기 쉬웠기 때문이다. 화면이 어두운 그래파이트로 바뀌면서
  * **같은 배치를 종이용 밝은 색으로 찍는다**로 갈렸다. 같은 값을 볼 이유가 사라졌고,
  * 그 대조가 대신 지켜 주던 명암비를 이제 문서 쪽 값으로 직접 잰다.
  */
 describe('증적 문서는 종이용 밝은 색으로 읽힌다', () => {
-  const 문서 = readFileSync(new URL('../reporting/html.ts', import.meta.url), 'utf8');
+  const 문서 = readFileSync(new URL('../reporting/htmlStyle.ts', import.meta.url), 'utf8');
   const 값 = (이름: string) => new RegExp(`${이름}\\s*:\\s*(#[0-9a-fA-F]{6})`).exec(문서)?.[1] ?? '';
 
   it('바탕이 밝다 — 종이에 찍는다', () => {

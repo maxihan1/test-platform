@@ -30,8 +30,8 @@ export interface 실패케이스 {
   devices: 실패디바이스[];
 }
 
-// 같은 디바이스 순서가 화면 어디서나 같아야 해서 여기 한 곳에 둔다
-const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android'];
+// 같은 디바이스 순서가 화면 어디서나 같아야 해서 여기 한 곳에 둔다 — 증적 카드(html.ts)도 이 순서다
+export const 디바이스순서: Platform[] = ['desktop', 'mobile', 'android'];
 const 변화무게 = (c: 카드변화) => (c === '새로깨짐' ? 0 : c === '계속깨짐' ? 1 : 2);
 
 // 견줄 앞이 없거나 새로 깨진 실패에 「N회 연속」을 붙이면 사실과 어긋나서 계속깨짐만 숫자로 준다

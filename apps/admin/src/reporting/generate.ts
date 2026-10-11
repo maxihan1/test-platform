@@ -103,7 +103,7 @@ export async function generate(id: number, runId: number, format: EvidenceFormat
     // 엑셀만 HTML 을 거치지 않는다. 같은 모델을 표로 따로 편다 (SPEC §8.4)
     if (format === 'XLSX') await writeFile(파일경로, await renderXlsx(doc, { generatedAt: 행.generatedAt }));
     else {
-      const html = renderHtml(await 스크린샷을심는다(doc), { generatedAt: 행.generatedAt });
+      const html = renderHtml(await 스크린샷을심는다(doc), { generatedAt: 행.generatedAt, format });
       if (format === 'HTML') await writeFile(파일경로, html, 'utf8');
       else await 찍는다(html, 파일경로);
     }
