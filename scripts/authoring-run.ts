@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { type 집은것, 거절인가, 줄프롬프트, 클로드인자 } from './authoring-rules.js';
 import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { 결제환경, 크레딧먼저, 크레딧바닥났나, 크레딧키이름 } from './authoring-billing.js';
-import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처 } from './authoring-assets.js';
+import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처, 화면만인가 } from './authoring-assets.js';
 import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
 import { 자식환경 } from './authoring-chain.js';
 import { type 계정, 사본환경 } from './authoring-copy.js';
@@ -27,6 +27,7 @@ import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
+import { 덮은화면준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
 import { 반영요청인가, 안옮김뒤, 화면이맞음읽기 } from './authoring-screen-right.js';
 
@@ -128,12 +129,8 @@ async function 한건(
     이어작성원본 ??= 몸.continueFrom ?? null;
   }
 
-  const 화면만 = 것.target !== undefined && Boolean(것.target.startUrl) && 자료들.length === 0;
-  const 막힘 = 반영요청인가(것) ? null : 돌릴수있나({ specText: 본문, figmaToken: 것.figmaToken, 화면만 }, 자료들);
-  if (막힘 !== null) {
-    await 손.끝내기({ status: 'FAILED', error: 막힘 });
-    return;
-  }
+  const 막힘 = 반영요청인가(것) ? null : 돌릴수있나({ specText: 본문, figmaToken: 것.figmaToken, 화면만: 화면만인가(것, 자료들) }, 자료들);
+  if (막힘 !== null) return void (await 손.끝내기({ status: 'FAILED', error: 막힘 }));
 
   await 손.단계('작업방을 만드는 중');
   const 자식 = 판.계정?.자식[자리번호] ?? null;
@@ -220,6 +217,9 @@ async function 사본에서(
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
   const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것) } : undefined });
   if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
+  // 화면만은 PRD 에 이미 있는 화면을 기준 SHA 의 파일로 센다 — 못 세면 기획서 화면을 또 쓰므로 실패다 (§3.6 「기획서에 없는 화면 — 두 번째 작성」)
+  const 덮음 = 화면만인가(것, 자료들) ? 덮은화면준비({ 깃, 기준, 서비스, 폴더: 케이스자리, 번호들: 기획서.앞판.번호들, 자료폴더: 자리.자료 }) : null;
+  if (덮음 !== null && '까닭' in 덮음) return void (await 손.끝내기({ status: 'FAILED', error: `PRD 에 이미 있는 화면을 못 셌다 — ${덮음.까닭}` }));
   await 손.단계('케이스를 만드는 중');
   if (박동.멈추라했다()) return void (await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' }));
   // 환경은 **통째로** 준다. 피그마 토큰은 자식에게만, GitHub 자격증명과 에이전트 토큰은 뺀다.
@@ -233,8 +233,7 @@ async function 사본에서(
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
     ...(것.target === undefined ? {} : 대상환경(것.target)),
   };
-  const 화면만 = 것.target !== undefined && Boolean(것.target.startUrl) && 자료들.length === 0;
-  const 역방향 = 것.target === undefined ? undefined : { 화면만, 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
+  const 역방향 = 것.target === undefined ? undefined : { 화면만: 덮음 !== null, 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = 클로드인자(자리.자료, 판.모델);
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
   const 누적 = 진척누적기(0, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });

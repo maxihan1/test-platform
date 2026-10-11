@@ -1,7 +1,7 @@
 // 화면 크롤러 판정 검사 — 따라갈 주소 · 같은 틀 · 지문 · 목록 · 로그인 풀림 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04)
 import { describe, expect, it } from 'vitest';
 
-import { 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 빼는주소인가, 뺄경로읽기, 연결모으기, 주소고르기, 주소틀, 지문, 틀키 } from './authoring-crawl-rules.js';
+import { 걸러진까닭, 글자지문, 덮은틀읽기, 덮음인가, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 빼는주소인가, 뺄경로읽기, 연결모으기, 주소고르기, 주소틀, 지문, 틀키 } from './authoring-crawl-rules.js';
 
 describe('주소틀 — 화면 파일의 화면 주소를 크롤러 같은 틀로 (PRD-F6-03)', () => {
   it('경로 · 절대 주소 모두 크롤러와 같은 틀이 된다', () => {
@@ -12,6 +12,23 @@ describe('주소틀 — 화면 파일의 화면 주소를 크롤러 같은 틀�
   });
   it('주소로 못 읽으면 null', () => {
     expect(주소틀('http://')).toBeNull();
+  });
+});
+
+describe('덮은틀읽기 · 덮음인가 — 크롤러 --covered 로 목록 줄에 덮음을 단다 (PRD-F6-03)', () => {
+  it('같은 틀 문자열의 JSON 배열만 받는다 — 틀린 모양 · 깨진 글은 null(없는 것으로)', () => {
+    expect(덮은틀읽기('["/board/:n","/cart"]')).toEqual(new Set(['/board/:n', '/cart']));
+    expect(덮은틀읽기('[]')).toEqual(new Set());
+    expect(덮은틀읽기('["/a",1]')).toBeNull();
+    expect(덮은틀읽기('{"a":1}')).toBeNull();
+    expect(덮은틀읽기('깨짐')).toBeNull();
+  });
+
+  it('틀이 집합에 있으면 덮음 — 집합이 없으면 늘 아니다', () => {
+    const 덮은 = new Set(['/board/:n']);
+    expect(덮음인가(틀키('https://site.test/board/3'), 덮은)).toBe(true);
+    expect(덮음인가('/cart', 덮은)).toBe(false);
+    expect(덮음인가('/board/:n', null)).toBe(false);
   });
 });
 

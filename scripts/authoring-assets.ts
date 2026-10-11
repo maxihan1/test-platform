@@ -103,6 +103,11 @@ export function 자료출처(것: { id: number; kind: string; sourceId?: number 
   return 것.kind === 'RERUN' && typeof 것.sourceId === 'number' ? 것.sourceId : 것.id;
 }
 
+/** 화면만 요청인가 — 대상 서버가 있고 입력 자료가 0 이다. 시작 주소는 안 본다(없으면 대상 서버 주소에서 시작한다 · PRD-F6-03) */
+export function 화면만인가(것: { target?: unknown }, 자료들: readonly 자료[]): boolean {
+  return 것.target !== undefined && 자료들.length === 0;
+}
+
 /**
  * claude 를 불러도 되나. 막으면 사유를, 아니면 `null`.
  *

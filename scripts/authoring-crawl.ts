@@ -1,5 +1,5 @@
 // 화면 크롤러 — 작성 자식이 로그인 뒤 명령 한 번으로 돌린다. 링크를 따라가고 버튼을 눌러 화면마다 ariaSnapshot · 입력칸 속성 · 화면 연결을 파일로 (도메인/작성 §3.6 「★ 역방향」 · 「★ 표준 기획서」)
-// 실행: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <로그인 상태 파일>] [--login <로그인 스크립트>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]...
+// 실행: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <로그인 상태 파일>] [--login <로그인 스크립트>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]... [--covered <파일>]
 // 여기는 인자 · 결과 파일만. 상태 하나 도는 것은 authoring-crawl-state, 판정은 authoring-crawl-rules · authoring-crawl-press, 쪽 다루기는 authoring-crawl-page. 계정 값은 읽지 않는다 — 로그인은 자식의 스크립트가 한다
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { join, relative, resolve, sep } from 'node:path';
 import { chromium } from '@playwright/test';
 
 import { type 본화면, type 상태, type 인자, type 판, 한상태 } from './authoring-crawl-state.js';
-import { 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기 } from './authoring-crawl-rules.js';
+import { 덮은틀읽기, 덮음인가, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기 } from './authoring-crawl-rules.js';
 import { 견주기, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
 
 const 장상한 = 100;
@@ -35,7 +35,7 @@ function 인자읽기(argv: string[]): 인자 {
   }
   const 출력 = 값('--out');
   if (주소들.length === 0 || 출력 === undefined) {
-    그만('쓰임: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <파일>] [--login <스크립트>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]...');
+    그만('쓰임: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <파일>] [--login <스크립트>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]... [--covered <파일>]');
   }
   // 값이 틀리면 상한 · 마감이 꺼진다 — 거절하고, 상한을 넘는 값은 상한으로 자른다
   const 수 = (이름: string, 기본: number, 상한: number): number => {
@@ -65,11 +65,18 @@ function 인자읽기(argv: string[]): 인자 {
       }
     }
   }
+  // 덮은 틀(에이전트가 자료 폴더에 넣은 covered.json) — 링크 · 큰 파일 · 틀린 모양은 없는 것으로
+  const 덮은파일 = 값('--covered');
+  let 덮은틀: Set<string> | null = null;
+  if (덮은파일 !== undefined) {
+    const 정보 = lstatSync(덮은파일, { throwIfNoEntry: false });
+    if (정보?.isFile() === true && 정보.size < 2_000_000) 덮은틀 = 덮은틀읽기(readFileSync(덮은파일, 'utf8'));
+  }
   // 견주기 전에 뺀다 — 안 그러면 제외를 켠 첫 실행에서 그 경로의 저장 기록이 전부 「저장본에 있는데 못 본 화면」으로 뜬다 (#153)
   if (저장 !== null) 저장 = { ...저장, 항목: 저장.항목.filter((x) => !빼는주소인가(x.주소, 뺄)) };
   return {
     주소들, 출력: resolve(출력), 상태파일, 로그인: 상태파일 === null ? null : 로그인, 따라가기: argv.includes('--follow'),
-    최대: 수('--max', 장상한, 장상한), 분: 수('--minutes', 분상한, 분상한), 저장본: 저장, 뺄,
+    최대: 수('--max', 장상한, 장상한), 분: 수('--minutes', 분상한, 분상한), 저장본: 저장, 뺄, 덮은틀,
   };
 }
 
@@ -87,6 +94,7 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
   const 목록 = 고른.map((본) => ({
     주소: 본.주소, 이름: 본.이름, 상태: 본.상태, 파일: 본.파일, 틀: 본.틀, 지문: 본.지문, 글자지문: 본.글자지문,
     ...(본.짧음 ? { 짧음: true } : {}),
+    ...(덮음인가(본.틀, a.덮은틀) ? { 덮음: true } : {}),
     ...(견줌?.표시.get(`${본.상태} ${본.주소}`) ?? {}),
   }));
   // 에이전트가 저장본을 갈 때 본다 — 다 봤을 때만 이번에 못 본 화면을 지운다
@@ -101,6 +109,7 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
   const 셈 = (s: string) => 판.본.filter((x) => x.상태 === s).length;
   console.log(
     `크롤: 로그아웃 ${셈('로그아웃')}장 · 로그인 ${셈('로그인')}장 · 목록 ${목록.length}장 · 빈 화면 의심 ${목록.filter((x) => x.짧음).length}장` +
+      (a.덮은틀 === null ? '' : ` · PRD 에 있는 화면 ${고른.filter((x) => 덮음인가(x.틀, a.덮은틀)).length}장`) +
       ` · 걸러진 링크 ${걸러짐.length - 뺀수}개 · 뺄 경로 ${a.뺄.length}개(안 연 주소 ${뺀수}개) · 부모 상한으로 안 연 것 ${판.잘림}개` +
       ` · 누를 것 ${판.누를것}개 중 ${판.누름}개 누름 · 화면 연결 ${연결들.reduce((n, x) => n + x.연결.length, 0)}개 · 다시 로그인 ${판.다시로그인}번` +
       (a.주소들.some((x) => 빼는주소인가(x, a.뺄)) ? ' · ⚠️ 시작 주소가 뺄 경로 안이다 — 서비스 설정을 고친다' : '') +
