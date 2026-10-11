@@ -231,12 +231,12 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
                   <>
                     <dt>{t('대조할 화면')}</dt>
                     <dd>
-                      {data.env ?? t('기록 없음')} · {data.startUrl ?? t('기획서에 나온 화면에서 시작')}
+                      {data.env ?? t('기록 없음')} · {data.startUrl ?? t('대상 서버 주소에서 시작')}
                       {/* 재실행은 입력이 원본 요청에 있다 — 자기 입력이 비어도 화면만이 아니다 */}
                       {data.kind === 'RERUN' ? (
                         <small>{t('원본 요청 #{번호}의 입력을 그대로 씁니다', { 번호: data.sourceId ?? '—' })}</small>
                       ) : 입력.length === 0 ? (
-                        <small>{t('화면만 — 기획서 없이 이 화면을 훑습니다')}</small>
+                        <small>{t('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')}</small>
                       ) : null}
                     </dd>
                   </>

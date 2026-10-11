@@ -181,8 +181,8 @@ export const 작성말: Record<string, string> = {
     'This target server has no test account. Add one in Settings > Services',
   '시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다':
     'The start URL must be on the same address (domain · port) as the chosen target server',
-  '기획서에 나온 화면에서 시작': 'Starts from the screen the spec describes',
-  '화면만 — 기획서 없이 이 화면을 훑습니다': 'Screen only — explores this screen without a spec',
+  '대상 서버 주소에서 시작': 'Starts from the target server address',
+  '화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다': 'Screen only — without a spec, writes only the screens not in the PRD',
   '원본 요청 #{번호}의 입력을 그대로 씁니다': 'Uses the inputs of the original request #{번호} as they are',
   '원본 요청 #{번호}의 자료': 'Input of the original request #{번호}',
   '입력 자료': 'Inputs',

@@ -209,7 +209,7 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
     expect(글).toContain('/w/author-7/assets/screens');
   });
 
-  it('역방향 절 — 화면만은 같은 사이트의 모든 화면, 대조는 한 칸 정의를 가리킨다', () => {
+  it('역방향 절 — 화면만은 PRD 에 아직 없는 화면, 대조는 한 칸 정의를 가리킨다', () => {
     const 화면만 = 역방향절({ 화면만: true, 산출물폴더: '/o/out', 요청번호: 1 }).join('\n');
     expect(화면만).toContain('PRD 에 아직 없는 화면만');
     expect(화면만).not.toContain('메뉴 1단계');

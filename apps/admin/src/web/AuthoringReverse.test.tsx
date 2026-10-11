@@ -233,12 +233,12 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
 
   it('시작 주소가 없으면 기획서가 말하는 화면에서 시작한다고 적는다', async () => {
     await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, assets: [자료(1, { name: '기획서.docx' })] }));
-    expect(screen.getByText('qa · 기획서에 나온 화면에서 시작')).toBeTruthy();
+    expect(screen.getByText('qa · 대상 서버 주소에서 시작')).toBeTruthy();
   });
 
   it('입력 자료가 없는 대조 요청은 화면만이라고 적는다', async () => {
     await 상세를연다(줄({ compare: true, env: 'qa', startUrl: 'https://qa.example.com/', assets: [] }));
-    expect(screen.getByText('화면만 — 기획서 없이 이 화면을 훑습니다')).toBeTruthy();
+    expect(screen.getByText('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')).toBeTruthy();
   });
 
   it('정방향 요청에는 대조 줄이 없다', async () => {
