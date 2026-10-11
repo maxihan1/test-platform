@@ -1,4 +1,4 @@
-// 미확정·보류 꼬리표(unconfirmed·held)의 모양 검사 K11·K13
+// 보류 꼬리표(held)의 모양 검사 K13 과 기법 칸 검사 K14 가 같이 쓰는 도우미
 
 import ts from 'typescript';
 
@@ -7,15 +7,15 @@ export interface BadTag {
   what: string;
 }
 
-// 따옴표 키('unconfirmed')·계산된 리터럴 키(['unconfirmed'])도 실행하면 같은 꼬리표다. 이름만 보면 변수 사유가 빠져나간다
-export function isTagKey(name: ts.PropertyName | undefined, tag = 'unconfirmed'): boolean {
+// 따옴표 키('held')·계산된 리터럴 키(['held'])도 실행하면 같은 꼬리표다. 이름만 보면 변수 사유가 빠져나간다
+export function isTagKey(name: ts.PropertyName | undefined, tag: string): boolean {
   if (name === undefined) return false;
   const key = ts.isComputedPropertyName(name) ? name.expression : name;
   return (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && key.text === tag;
 }
 
 // K6 의 TITLE_KINDS 와 같은 기준이다 — 문자열 리터럴이나 치환 없는 템플릿만 글자로 읽힌다
-export function badTag(literal: ts.ObjectLiteralExpression, tag: 'unconfirmed' | 'held'): BadTag | undefined {
+export function badTag(literal: ts.ObjectLiteralExpression, tag: 'held'): BadTag | undefined {
   for (const p of literal.properties) {
     // 펼친 객체 안에 꼬리표가 숨어 있을 수 있는데 검사기는 그 글자를 못 읽는다
     if (ts.isSpreadAssignment(p)) return { node: p, what: `펼침(...)이 있어 ${tag} 사유를 글자로 읽을 수 없다` };

@@ -36,7 +36,13 @@ describe.skipIf(연결 === undefined)('설계 기법 저장 · 거르기', () =>
     const { pool } = await import('../db/index.js');
     return pool.query(sql, 값);
   };
-  const 지우기 = () => q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);
+  const 지우기 = async () => {
+    const 서비스 = (await q("SELECT id FROM service WHERE prefix = 'XTQ'")).rows.map((r) => r.id);
+    await q('DELETE FROM req_case WHERE service_id = ANY($1)', [서비스]);
+    await q('DELETE FROM prd_version WHERE service_id = ANY($1)', [서비스]);
+    await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);
+    await q("DELETE FROM service WHERE prefix = 'XTQ'");
+  };
 
   beforeAll(지우기);
   afterAll(지우기);
@@ -60,7 +66,7 @@ describe.skipIf(연결 === undefined)('설계 기법 저장 · 거르기', () =>
       [
         spec('XTQ-001', { techniques: ['경계값 분석'] }),
         spec('XTQ-002', { techniques: ['경계값 분석', '상태 전이'] }),
-        spec('XTQ-003', { unconfirmed: 'XTQ 사유' }),
+        spec('XTQ-003'),
       ],
       false,
       'XTQ',
@@ -81,6 +87,17 @@ describe.skipIf(연결 === undefined)('설계 기법 저장 · 거르기', () =>
   });
 
   it('미확정 요약은 기법을 안 따른다 — 검색 조건이다', async () => {
+    const 서비스 = (await q(
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+       VALUES ('XTQ', 'XTQ 기법 거르기 검사용', '#888888', '', 'xtq') RETURNING id`,
+    )).rows[0].id;
+    const 항목 = [{ reqId: 'XTQ-REQ-001', feature: '기능', text: '확인 필요', basis: [{ from: '기획서.docx', quote: '인용' }], status: 'NEEDS_CHECK' }];
+    await q(
+      `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name)
+       VALUES ($1, 1, $2, 1, 'PERSON', 'xtq', '검사')`,
+      [서비스, JSON.stringify(항목)],
+    );
+    await q("INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XTQ-REQ-001', 'XTQ-003', '정상')", [서비스]);
     expect((await 목록('경계값 분석')).unconfirmed.count).toBe(1);
   });
 });

@@ -94,10 +94,10 @@ describe('K14 — techniques 는 목록 안 낱말의 리터럴 배열', () => {
     expect(found[0]?.line).toBe(9);
   });
 
-  it('펼침은 K11 이 막으므로 K14 가 또 내지 않는다', () => {
+  it('펼침은 K13 이 막으므로 K14 가 또 내지 않는다', () => {
     const source = 케이스('...base,', `const base = { techniques: ['경계값 분석'] };`);
     expect(k14(source)).toEqual([]);
-    expect(checkSource('x.spec.ts', source).violations.map((v) => v.rule)).toContain('K11');
+    expect(checkSource('x.spec.ts', source).violations.map((v) => v.rule)).toContain('K13');
   });
 });
 

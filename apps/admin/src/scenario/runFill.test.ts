@@ -65,6 +65,8 @@ describe.skipIf(연결 === undefined)('시나리오 실행 저장값 채우기',
     await q('DELETE FROM scenario WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await q('DELETE FROM case_input WHERE tc_id = ANY($1)', [번호들]);
+    await q('DELETE FROM req_case WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM prd_version WHERE service_id = $1', [서비스]);
   };
 
   const 케이스 = (
@@ -120,17 +122,23 @@ describe.skipIf(연결 === undefined)('시나리오 실행 저장값 채우기',
     await 치우기표();
     await q(`INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'http://xsf.example')`, [서비스]);
 
-    const 케이스넣기 = (tcId: string, 입력: object, 기대: object, unconfirmed: string | null) =>
+    const 케이스넣기 = (tcId: string, 입력: object, 기대: object) =>
       q(
-        `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, unconfirmed)
-         VALUES ($1, $1 || ' 이름', '["desktop","mobile"]', '[]', 'xsf/a.spec.ts', $2, $3, true, $4)
+        `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active)
+         VALUES ($1, $1 || ' 이름', '["desktop","mobile"]', '[]', 'xsf/a.spec.ts', $2, $3, true)
          ON CONFLICT (tc_id) DO UPDATE SET file_path = EXCLUDED.file_path, param_schema = EXCLUDED.param_schema,
-           expected_schema = EXCLUDED.expected_schema, is_active = true, unconfirmed = EXCLUDED.unconfirmed`,
-        [tcId, JSON.stringify(입력), JSON.stringify(기대), unconfirmed],
+           expected_schema = EXCLUDED.expected_schema, is_active = true`,
+        [tcId, JSON.stringify(입력), JSON.stringify(기대)],
       );
-    await 케이스넣기('XSF-001', 입력스키마, 기대스키마, null);
-    await 케이스넣기('XSF-002', { type: 'object' }, { type: 'object' }, '화면에서 본 값이다');
-    await 케이스넣기('XSF-003', { type: 'object', properties: { memo: { type: 'string' } } }, { type: 'object' }, null);
+    await 케이스넣기('XSF-001', 입력스키마, 기대스키마);
+    await 케이스넣기('XSF-002', { type: 'object' }, { type: 'object' });
+    await 케이스넣기('XSF-003', { type: 'object', properties: { memo: { type: 'string' } } }, { type: 'object' });
+    await q(
+      `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name)
+       VALUES ($1, 1, $2, 1, 'PERSON', 'xsf', '검사')`,
+      [서비스, JSON.stringify([{ reqId: 'XSF-REQ-001', feature: '입력', text: '확인 필요', basis: [{ from: '화면', quote: '입력' }], status: 'NEEDS_CHECK' }])],
+    );
+    await q("INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XSF-REQ-001', 'XSF-002', '정상')", [서비스]);
 
     const 저장값넣기 = (tcId: string, params: object, expected: object) =>
       q(`INSERT INTO case_input (tc_id, params, expected, saved_by) VALUES ($1, $2, $3, 'xsf')`, [
@@ -189,7 +197,7 @@ describe.skipIf(연결 === undefined)('시나리오 실행 저장값 채우기',
       사람,
     );
 
-    expect((await 부품행들(runId)).map((r) => r.unconfirmed)).toEqual([null, '화면에서 본 값이다', null]);
+    expect((await 부품행들(runId)).map((r) => r.unconfirmed)).toEqual([null, '확인 필요 — XSF-REQ-001', null]);
   });
 
   it('채운 뒤 부품 목록이 100000바이트를 넘으면 NOT_RUNNABLE 이고 실행 · 부품 행이 안 남는다', async () => {

@@ -55,12 +55,15 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
     await 케이스넣기('XSP-005', 'xsp/broken.spec.ts');
     await 케이스넣기('XSP-006', 'xsp/a.spec.ts', true, 'null');
     await 케이스넣기('XSP-007', 'xsp/a.spec.ts');
-    await q(`UPDATE test_case SET unconfirmed = '화면에서 본 값이다' WHERE tc_id = 'XSP-007'`);
     await 케이스넣기('XSP-UI-001', 'xsp/a.spec.ts');
   });
 
   afterAll(async () => {
+    const 서비스 = (await q("SELECT id FROM service WHERE prefix = 'XSP'")).rows.map((r) => r.id);
+    await q('DELETE FROM req_case WHERE service_id = ANY($1)', [서비스]);
+    await q('DELETE FROM prd_version WHERE service_id = ANY($1)', [서비스]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);
+    await q("DELETE FROM service WHERE prefix = 'XSP'");
     await rm(뿌리, { recursive: true, force: true });
     if (원래뿌리 === undefined) delete process.env.PLATFORM_TESTS_DIR;
     else process.env.PLATFORM_TESTS_DIR = 원래뿌리;
@@ -98,8 +101,19 @@ describe.skipIf(연결 === undefined)('케이스 부품 재료', () => {
   });
 
   it('미확정 케이스는 사유를 싣는다 — 조립 화면의 미확정 칩이 읽는다', async () => {
+    const 서비스 = (await q(
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
+       VALUES ('XSP', 'XSP 부품 재료 검사용', '#888888', '', 'xsp') RETURNING id`,
+    )).rows[0].id;
+    const 항목 = [{ reqId: 'XSP-REQ-001', feature: '담기', text: '확인 필요', basis: [{ from: '화면', quote: '담기' }], status: 'NEEDS_CHECK' }];
+    await q(
+      `INSERT INTO prd_version (service_id, version, items, last_no, source, saved_by, saved_by_name)
+       VALUES ($1, 1, $2, 1, 'PERSON', 'xsp', '검사')`,
+      [서비스, JSON.stringify(항목)],
+    );
+    await q("INSERT INTO req_case (service_id, req_id, tc_id, axis) VALUES ($1, 'XSP-REQ-001', 'XSP-007', '정상')", [서비스]);
     const { 부품재료 } = await 케이스재료(['XSP-007']);
-    expect(부품재료.get('XSP-007')?.unconfirmed).toBe('화면에서 본 값이다');
+    expect(부품재료.get('XSP-007')?.unconfirmed).toBe('확인 필요 — XSP-REQ-001');
   });
 
   it('입력값 스키마가 null 이면 입력값 칸이 없다', async () => {

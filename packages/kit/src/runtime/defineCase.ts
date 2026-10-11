@@ -25,7 +25,6 @@ export interface DefineCaseInput<P extends CaseSchema, E extends CaseSchema> {
   precondition: string[];
   params: P;
   expected: E;
-  unconfirmed?: string;
   held?: string;
   techniques?: Technique[];
 }
@@ -72,7 +71,6 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
     filePath: file === undefined ? '' : relative(testsRoot(), file),
   };
   // 빈 사유는 확정이다. 키를 아예 빼야 스캐너 JSON 에 빈 칸이 섞이지 않는다
-  if (input.unconfirmed?.trim()) spec.unconfirmed = input.unconfirmed;
   if (input.held?.trim()) spec.held = input.held;
   // 적은 차례가 달라도 DB · 엑셀에 같은 글자로 남게 목록 차례로 맞춘다
   const techniques = TECHNIQUES.filter((t) => input.techniques?.includes(t));

@@ -25,14 +25,9 @@ async function db(): Promise<Pool> {
 const UPSERT = `
   INSERT INTO test_case
     (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at,
-     unconfirmed, unconfirmed_since, techniques)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(),
-          $8::text, CASE WHEN $8::text IS NULL THEN NULL ELSE now() END, $9::text[])
+     techniques)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, true, now(), $8::text[])
   ON CONFLICT (tc_id) DO UPDATE SET
-    unconfirmed     = EXCLUDED.unconfirmed,
-    -- 나이는 처음 단 때부터 잰다. 사유 글자를 고쳐도 유지하고, 풀리면 비워서 다시 달 때 새로 잰다 (카탈로그 §3.1)
-    unconfirmed_since = CASE WHEN EXCLUDED.unconfirmed IS NULL THEN NULL
-                             ELSE COALESCE(test_case.unconfirmed_since, now()) END,
     name            = EXCLUDED.name,
     platforms       = EXCLUDED.platforms,
     precondition    = EXCLUDED.precondition,
@@ -44,12 +39,12 @@ const UPSERT = `
     scanned_at      = now()
   RETURNING (xmax = 0) AS inserted`;
 
-// 명세의 unconfirmed · techniques 는 없으면 키가 없다. 응답은 화면이 칸을 늘 읽도록 null · [] 로 채운다 (카탈로그 §7)
-export type CaseRow = Omit<CaseSpec, 'unconfirmed' | 'techniques'> & {
+// 명세의 techniques 는 없으면 키가 없다. 응답은 화면이 칸을 늘 읽도록 null · [] 로 채운다 (카탈로그 §7)
+export type CaseRow = Omit<CaseSpec, 'techniques'> & {
   techniques: Technique[];
   isActive: boolean;
   scannedAt: string;
-  // 지도 ① 과 표준 기획서 지금 판에서 계산한 사유. 꼬리표 글자가 아니다 (prd/unconfirmed.ts)
+  // 지도 ① 과 표준 기획서 지금 판에서 계산한 사유 (prd/unconfirmed.ts)
   unconfirmed: string | null;
   savedInput: SavedInput | null;
 };
@@ -266,7 +261,6 @@ export async function save(specs: CaseSpec[], deactivateMissing: boolean, prefix
         spec.filePath,
         JSON.stringify(spec.paramSchema),
         JSON.stringify(spec.expectedSchema),
-        spec.unconfirmed ?? null,
         // 지우면 '{}' 로 덮어야 다시 스캔한 결과가 코드와 같다 — 비워 두면 옛 기법이 남는다
         spec.techniques ?? [],
       ]);

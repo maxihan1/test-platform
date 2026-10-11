@@ -5,13 +5,13 @@ import ts from 'typescript';
 import { TECHNIQUES } from '@platform/kit/types';
 import type { Technique } from '@platform/kit/types';
 
-import { type BadTag, defineCase인자들, isTagKey } from './unconfirmed.js';
+import { type BadTag, defineCase인자들, isTagKey } from './tags.js';
 
 const 낱말들: ReadonlySet<string> = new Set(TECHNIQUES);
 // 따옴표 키·리터럴 계산 키도 실행하면 같은 칸이다
 const isKey = (name: ts.PropertyName | undefined): boolean => isTagKey(name, 'techniques');
 
-// 펼침·글자가 아닌 계산 키는 K11 이 이미 막는다. 여기서 또 내면 한 자리에 위반 줄이 둘 생긴다.
+// 펼침·글자가 아닌 계산 키는 K13 이 이미 막는다. 여기서 또 내면 한 자리에 위반 줄이 둘 생긴다.
 // UI 케이스인지는 실행한 tcId 로 checkSpec 이 본다 — 여기는 꼴만
 export function badTechniques(literal: ts.ObjectLiteralExpression): BadTag[] {
   const p = literal.properties.find((x) => isKey(x.name));
