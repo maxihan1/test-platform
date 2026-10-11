@@ -41,17 +41,20 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  Reflect.deleteProperty(navigator, 'clipboard');
 });
 
-function 띄운다(current: string, user: User = 사람) {
-  return render(
+function 껍데기(current: string, user: User = 사람) {
+  return (
     <언어함 value="ko">
       <Shell user={user} service={결제} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={나가기} current={current}>
         <div>본문</div>
       </Shell>
-    </언어함>,
+    </언어함>
   );
 }
+
+const 띄운다 = (current: string, user: User = 사람) => render(껍데기(current, user));
 
 const 탭 = () => screen.getByRole('navigation', { name: '휴대폰 메뉴' });
 
@@ -107,6 +110,19 @@ describe('휴대폰 껍데기', () => {
     expect(나가기).toHaveBeenCalledOnce();
   });
 
+  it('사람 메뉴는 바깥을 누르거나 Esc 로 닫힌다 — 펼친 채 실패 카드를 덮지 않는다', () => {
+    띄운다('#/runs/fn');
+    const 메뉴 = document.querySelector('details.ph-me') as HTMLDetailsElement;
+    메뉴.open = true;
+    fireEvent.pointerDown(screen.getByText('본문'));
+    expect(메뉴.open).toBe(false);
+    메뉴.open = true;
+    fireEvent.pointerDown(screen.getByText('김수민'));
+    expect(메뉴.open).toBe(true);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(메뉴.open).toBe(false);
+  });
+
   it('실행 칸이 없는 서비스만 배정됐으면 실행 기록 탭이 없다', () => {
     // admin 은 모든 칸을 본다 — 칸으로 가르는 사람은 일반 등급이다
     띄운다('#/dashboard', { ...사람, role: 'member', services: [{ ...결제, permissions: { ...결제.permissions, runs: 'none' } }] });
@@ -132,7 +148,15 @@ describe('PC 전용 화면 안내', () => {
     띄운다('#/prd');
     fireEvent.click(screen.getByRole('button', { name: '주소 복사' }));
     expect(await screen.findByRole('button', { name: '주소를 복사했습니다' })).toBeTruthy();
-    Reflect.deleteProperty(navigator, 'clipboard');
+  });
+
+  it('다른 PC 전용 주소로 옮기면 「복사했습니다」가 남지 않는다 — 그 주소는 복사하지 않았다', async () => {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true });
+    const { rerender } = 띄운다('#/prd');
+    fireEvent.click(screen.getByRole('button', { name: '주소 복사' }));
+    expect(await screen.findByRole('button', { name: '주소를 복사했습니다' })).toBeTruthy();
+    rerender(껍데기('#/settings'));
+    expect(screen.getByRole('button', { name: '주소 복사' })).toBeTruthy();
   });
 
   it('http 로 열어 클립보드가 없으면 못 했다고 적는다 — 조용히 넘어가지 않는다', async () => {

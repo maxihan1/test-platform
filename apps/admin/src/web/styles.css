@@ -1493,7 +1493,7 @@ input[type='file']::file-selector-button {
      **값을 따로 적지 않고 토큰을 다시 정의한다** — `.wrap` 이 이 토큰으로 창 높이를 빼므로
      숫자를 두 곳에 두면 한쪽만 바뀌는 날 사이드바가 창보다 길어진다 (`:root` 주석) */
   :root {
-    --body-pad-bottom: 80px;
+    --body-pad-bottom: calc(var(--ph-tabs) + 24px);
   }
 
   /* 집계띠도 되돌린다. 눕힌 것은 PC 에서 세로를 아끼려던 것이고,

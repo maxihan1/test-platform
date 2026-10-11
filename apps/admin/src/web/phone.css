@@ -94,6 +94,11 @@
   position: static;
 }
 
+/* 알릴 줄이 없으면 버튼은 아래 탭에 가 있어 이 상자가 빈다 — 빈 띠를 남기지 않는다 */
+.ph .nt-top:empty {
+  display: none;
+}
+
 /* 실행 기록 하위(UI · 기능 · E2E). 고른 칩 테두리는 대표색이다 — 알림 서랍의 거르기 칩과 같은 뜻 */
 .ph-sub {
   display: flex;
@@ -129,7 +134,6 @@
   display: flex;
   background: var(--rail);
   border-top: 1px solid var(--line-2);
-  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .ph-tabs > a,
@@ -137,6 +141,11 @@
   flex: 1 1 0;
   min-width: 0;
   display: flex;
+}
+
+/* 알림 통로가 막힌 사람 · 서비스가 없는 사람은 Notice 가 버튼을 안 그린다 — 빈 칸이 탭 한 칸을 차지하지 않게 */
+.ph-slot:empty {
+  display: none;
 }
 
 /* 「알림」 탭은 Notice 가 그린 버튼이다(.nt-btn) — 본문 위 버튼 모양을 걷고 탭 모양을 입힌다 */
@@ -239,7 +248,7 @@
   .rerun-dock {
     position: fixed;
     right: 0;
-    bottom: calc(var(--ph-tabs) + env(safe-area-inset-bottom));
+    bottom: var(--ph-tabs);
     left: 0;
     z-index: 25;
     display: block;
@@ -259,7 +268,7 @@
     animation: none;
   }
 
-  /* 붙은 판 높이만큼 본문 끝을 더 띄운다 — 마지막 통과 줄이 판 밑에 깔리지 않게 */
+  /* 붙은 판 높이(위아래 10 · 버튼 46 · 선 1)만큼 본문 끝을 더 띄운다 — 마지막 통과 줄이 판 밑에 깔리지 않게 */
   .main:has(.rerun-dock) {
     padding-bottom: 72px;
   }
@@ -286,6 +295,5 @@
     max-width: none;
     border-bottom: 0;
     border-radius: 16px 16px 0 0;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 }

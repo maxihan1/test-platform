@@ -1,7 +1,7 @@
 // 휴대폰 껍데기 — 위 줄(서비스 고르개 · 사람 버튼) · 본문 · 아래 탭(대시보드 · 실행 기록 · 알림) (SPEC 공통/5-화면공통 §8 「휴대폰 화면」)
 // 휴대폰에서 하는 일은 결과 확인 · 진행 상황 · 다시 실행뿐이라 PC 전용 화면의 주소로 오면 그 화면 대신 안내를 그린다
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { ServiceRow, User } from './api.js';
 import { use말, type 언어 } from './i18n.js';
@@ -30,6 +30,21 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
   const t = use말();
   // 「알림」 버튼은 아래 탭의 한 칸이다. 줄 · 서랍과 열림 상태를 같이 쓰도록 Notice 가 이 자리에 버튼을 그린다
   const [알림자리, set알림자리] = useState<HTMLElement | null>(null);
+  const 메뉴 = useRef<HTMLDetailsElement>(null);
+  // 펼침(details)은 바깥을 눌러도 안 닫힌다 — 240px 메뉴가 실패 카드 · 다시 실행 판을 덮은 채 남았다 (2026-10-12 코드 검토)
+  useEffect(() => {
+    const 닫기 = (e: Event) => {
+      const 상자 = 메뉴.current;
+      if (상자 === null || !상자.open) return;
+      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !상자.contains(e.target as Node)) 상자.open = false;
+    };
+    document.addEventListener('pointerdown', 닫기);
+    document.addEventListener('keydown', 닫기);
+    return () => {
+      document.removeEventListener('pointerdown', 닫기);
+      document.removeEventListener('keydown', 닫기);
+    };
+  }, []);
   const 대시보드인가 = current === '#/dashboard';
   const 자리들 = 자리목록(user, service?.prefix ?? null, 언어);
   const 대시보드 = 자리들.find((it) => it.해시 === '#/dashboard');
@@ -48,7 +63,8 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
       </div>
     );
   } else if (!휴대폰자리인가(current)) {
-    본문 = <PC전용 자리={자리들.find((it) => current === it.해시 || current.startsWith(`${it.해시}/`))} 갈곳={실행기록 ?? 대시보드} />;
+    // 자리마다 새로 그린다 — 앞 주소에서 누른 「복사했습니다」가 다음 주소에 남으면 복사 안 한 주소를 복사했다고 말한다
+    본문 = <PC전용 key={current} 자리={자리들.find((it) => current === it.해시 || current.startsWith(`${it.해시}/`))} 갈곳={실행기록 ?? 대시보드} />;
   }
 
   return (
@@ -57,7 +73,7 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
         {/* 대시보드는 여러 서비스를 함께 본다 — PC 사이드바처럼 고르개를 숨긴다 (화면공통 §8 「껍데기」) */}
         {대시보드인가 ? <span className="ph-gap" /> : <서비스고르개 user={user} service={service} onService={onService} />}
         {/* 자리를 옮기면 접힌 채로 다시 그린다 — 비밀번호 변경을 누르고 와도 메뉴가 펼쳐진 채 남지 않는다 */}
-        <details key={current} className="ph-me">
+        <details key={current} ref={메뉴} className="ph-me">
           <summary aria-label={t('내 메뉴')}>
             <아이콘 이름="person" />
           </summary>
