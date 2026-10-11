@@ -19,6 +19,19 @@ export interface 실행 {
   제외셈: Map<string, number> | null;
 }
 
+/** 번호표 JSON(원장 번호 → 정답지 번호들, eval-prd.ts 가 쓴다). 모양이 틀리거나 비면 던진다 — 빈 표로 견주면 칸 겹침이 조용히 「없음」이 된다 */
+export function 번호표읽기(글: string): Map<string, string[]> {
+  const 값: unknown = JSON.parse(글);
+  if (typeof 값 !== 'object' || 값 === null || Array.isArray(값)) throw new Error('번호표는 { "MKT-REQ-001": ["REQ-COM-001"] } 꼴이어야 한다');
+  const 표 = new Map<string, string[]>();
+  for (const [번호, 원본] of Object.entries(값)) {
+    if (!Array.isArray(원본) || !원본.every((x): x is string => typeof x === 'string')) throw new Error(`번호표 ${번호} 의 값이 글자 배열이 아니다`);
+    표.set(번호, 원본);
+  }
+  if (표.size === 0) throw new Error('번호표가 비었다 — 정답지 번호에 닿는 PRD 항목이 없다');
+  return 표;
+}
+
 /** 축 → 갈래. 이 밖의 축은 칸이 아니다 */
 const 갈래 = new Map([
   ['UI', 'UI'],
@@ -40,8 +53,11 @@ export function 확인문장들(글: string): string[] {
   );
 }
 
-/** 케이스 폴더 하나(와 그 요구사항 표)를 견줄 꼴로 줄인다. 파일 없는 tcId 는 덮은 것으로 치지 않는다 — 원장 대조 ⒜ 와 같다 */
-export function 실행요약(파일들: 파일글[], 표?: string): 실행 {
+/**
+ * 케이스 폴더 하나(와 그 요구사항 표)를 견줄 꼴로 줄인다. 파일 없는 tcId 는 덮은 것으로 치지 않는다 — 원장 대조 ⒜ 와 같다.
+ * 바꾸기는 원장 번호 → 정답지 번호 표(eval-prd.ts 가 쓴다). 서비스가 다르면 같은 요구도 번호가 달라(MKT-REQ-014 ↔ MKU-REQ-020) 칸이 안 맞는다
+ */
+export function 실행요약(파일들: 파일글[], 표?: string, 바꾸기?: ReadonlyMap<string, readonly string[]>): 실행 {
   const 케이스 = new Map<string, Set<string>>();
   const 화면파일 = new Set<string>();
   for (const f of 파일들) {
@@ -67,13 +83,18 @@ export function 실행요약(파일들: 파일글[], 표?: string): 실행 {
   const 가족수 = new Map<string, Set<string>>();
   for (const 번호 of 번호찾기(표).번호들) 가족수.set(가족(번호), (가족수.get(가족(번호)) ?? new Set()).add(번호));
   const 원장번호 = (번호: string) => !tcId가족.has(가족(번호)) && (가족수.get(가족(번호))?.size ?? 0) >= 가족하한;
+  // 표에 없는 번호(화면만 근거인 요구)는 상대 실행에 같은 자리가 없어 뺀다
+  const 원장만 = (번호들: string[]) => {
+    const 남은 = 번호들.filter(원장번호);
+    return 바꾸기 === undefined ? 남은 : [...new Set(남은.flatMap((번호) => 바꾸기.get(번호) ?? []))];
+  };
 
   const 덮음 = new Map<string, Set<string>>();
   for (const 줄 of 줄들) {
-    const 번호들 = 줄.번호들.filter(원장번호);
+    const 번호들 = 원장만(줄.번호들);
     if (번호들.length > 0) 덮음.set(줄.tcId, new Set([...(덮음.get(줄.tcId) ?? []), ...번호들]));
   }
-  const 칸줄 = 줄들.map((줄) => ({ 번호들: 줄.번호들.filter(원장번호), 축: 줄.축 })).filter((줄) => 줄.번호들.length > 0 && 갈래.has(줄.축));
+  const 칸줄 = 줄들.map((줄) => ({ 번호들: 원장만(줄.번호들), 축: 줄.축 })).filter((줄) => 줄.번호들.length > 0 && 갈래.has(줄.축));
 
   const 셈 = new Map<string, number>();
   for (const 줄 of 표읽기(표, '제외')) {
