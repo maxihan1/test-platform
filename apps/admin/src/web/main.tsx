@@ -41,6 +41,7 @@ import './styles.css';
 import './authoringStatus.css';
 import './noticeBar.css';
 import './noticeDrawer.css';
+import './phone.css';
 import './prd.css';
 
 function Screen({

@@ -1,6 +1,7 @@
 // 본문 맨 위 한 줄 — 왼쪽에 도는 실행 · 작성과 갓 끝난 소식, 오른쪽 끝에 늘 「알림」 버튼 (SPEC 공통/5-화면공통 §8 「알림」)
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { api, ApiError, type NoticeResponse } from './api.js';
 import { use말, use언어 } from './i18n.js';
@@ -133,8 +134,11 @@ function 한줄({ 줄, 바꿈 }: { 줄: 줄타입; 바꿈: 서비스바꿈 }) {
   return 줄.도는중 ? <도는줄그림 줄={줄} 바꿈={바꿈} /> : <끝난줄그림 줄={줄} on읽음={읽음으로적는다} 바꿈={바꿈} />;
 }
 
-/** `줄숨김` — 대시보드처럼 여러 서비스를 함께 보는 자리는 줄을 숨기고 버튼만 둔다. `서비스바꿈` — 사이드바 서비스를 바꾸는 길 */
-export function Notice({ 줄숨김, 서비스바꿈 }: { 줄숨김: boolean; 서비스바꿈: 서비스바꿈 }) {
+/**
+ * `줄숨김` — 대시보드처럼 여러 서비스를 함께 보는 자리는 줄을 숨기고 버튼만 둔다. `서비스바꿈` — 사이드바 서비스를 바꾸는 길.
+ * `버튼자리` — 휴대폰은 「알림」 버튼이 아래 탭의 한 칸이다. 줄 · 서랍과 열림 상태를 나눠 쓰려고 버튼만 그 자리로 옮겨 그린다
+ */
+export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김: boolean; 서비스바꿈: 서비스바꿈; 버튼자리?: HTMLElement | null }) {
   const t = use말();
   const 언어 = use언어();
   const { 답, 막힘 } = use알림받기();
@@ -171,6 +175,19 @@ export function Notice({ 줄숨김, 서비스바꿈 }: { 줄숨김: boolean; 서
     버튼.current?.focus();
   };
 
+  const 알림버튼 = (
+    <button ref={버튼} className="nt-btn" aria-expanded={열림} aria-controls="nt-drawer" onClick={() => set열림(!열림)}>
+      <아이콘 이름="bell" />
+      {t('알림')}
+      {/* 숫자가 늘 때 한 번 커졌다 돌아온다 — key 가 바뀌면 다시 그려져 움직임이 한 번 돈다 (DESIGN.md 원칙 4) */}
+      {안읽음 === 0 ? null : (
+        <span key={안읽음} className="nt-badge" aria-label={t('안 읽은 알림 {수}건', { 수: 안읽음 })}>
+          {안읽음 > 99 ? '99+' : 안읽음}
+        </span>
+      )}
+    </button>
+  );
+
   return (
     <>
       <div className="nt-top">
@@ -188,16 +205,8 @@ export function Notice({ 줄숨김, 서비스바꿈 }: { 줄숨김: boolean; 서
             )}
           </div>
         )}
-        <button ref={버튼} className="nt-btn" aria-expanded={열림} aria-controls="nt-drawer" onClick={() => set열림(!열림)}>
-          <아이콘 이름="bell" />
-          {t('알림')}
-          {/* 숫자가 늘 때 한 번 커졌다 돌아온다 — key 가 바뀌면 다시 그려져 움직임이 한 번 돈다 (DESIGN.md 원칙 4) */}
-          {안읽음 === 0 ? null : (
-            <span key={안읽음} className="nt-badge" aria-label={t('안 읽은 알림 {수}건', { 수: 안읽음 })}>
-              {안읽음 > 99 ? '99+' : 안읽음}
-            </span>
-          )}
-        </button>
+        {/* 자리가 아직 안 붙었으면(첫 그림) 다음 그림에 붙는다 — 그 한 번은 버튼이 없다 */}
+        {버튼자리 === undefined ? 알림버튼 : 버튼자리 === null ? null : createPortal(알림버튼, 버튼자리)}
       </div>
       {!열림 || 답 === null ? null : <NoticeDrawer recent={답.recent} 읽음={읽음} 지금={지금} onClose={닫는다} on읽음={읽음으로적는다} 서비스바꿈={서비스바꿈} />}
     </>

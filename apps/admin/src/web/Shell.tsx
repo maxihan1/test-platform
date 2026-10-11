@@ -15,6 +15,9 @@ import {
 import { use말, type 언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
 import { Notice } from './Notice.js';
+import { use휴대폰 } from './phone.js';
+import { PhoneShell } from './PhoneShell.js';
+import { 서비스고르개, 언어고르개 } from './ShellPickers.js';
 
 interface Props {
   user: User;
@@ -48,6 +51,16 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
   // 접은 것은 사람이 되돌릴 수 있는 상태라 저장해 둔다. 새로고침마다 다시 접게 하면 그 기능이 짐이 된다
   const [접음, set접음] = useState(사이드바접었나);
 
+  // 휴대폰은 사이드바 대신 위 줄 · 아래 탭이다 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」). 훅은 모두 위에서 부른 뒤 가른다
+  const 휴대폰 = use휴대폰();
+  if (휴대폰) {
+    return (
+      <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 사유={사유}>
+        {children}
+      </PhoneShell>
+    );
+  }
+
   return (
     <div className={접음 ? 'wrap folded' : 'wrap'}>
       {/* 짙은 세로 막대 하나가 「어느 서비스를 · 어디를 · 누가」 셋을 다 들고 있다.
@@ -77,27 +90,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
                 「이게 뭘 뜻하는지 모르겠다」였다 — 같은 실수를 고르개에서 되풀이하지 않는다 */}
             <span className="side-cap">{t('서비스§고르개')}</span>
             <div className="side-svc">
-              {service === null ? (
-                <span className="side-svc-name">{t('서비스 없음')}</span>
-              ) : (
-                <>
-                  <select
-                    className="side-pick"
-                    value={service.prefix}
-                    onChange={(e) => {
-                      고른서비스를적는다(e.target.value);
-                      onService(e.target.value);
-                    }}
-                    aria-label={t('서비스 고르기')}
-                  >
-                    {user.services.map((it) => (
-                      <option key={it.prefix} value={it.prefix}>
-                        {it.name}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
+              <서비스고르개 user={user} service={service} onService={onService} />
             </div>
           </div>
         )}
@@ -148,13 +141,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
         {/* 접어도 지우지 않는다 — 폭만 줄고 글자가 숨는다. 위 자리 목록과 같은 이유다 (SPEC §8) */}
         <div className="side-lang">
-          <label className="side-lang-label" htmlFor="side-lang">
-            {t('언어')}
-          </label>
-          <select id="side-lang" value={언어} onChange={(e) => on언어(e.target.value === 'en' ? 'en' : 'ko')}>
-            <option value="ko">한국어</option>
-            <option value="en">English</option>
-          </select>
+          <언어고르개 언어={언어} on언어={on언어} />
         </div>
 
         <div className="side-who">
