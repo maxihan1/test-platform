@@ -5,6 +5,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import { dirname, resolve, sep } from 'node:path';
 import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
+import { stripVTControlCharacters } from 'node:util';
 
 import type { ExecuteRequest, ExecuteResponse, ItemStatus, StepProgress } from '@platform/kit';
 
@@ -37,7 +38,7 @@ export interface Running {
 // 물어보는 그 순간에 경과를 재야 받는 쪽 시계와의 차가 오차로 남지 않는다 (SPEC §5.2)
 export function 진행을_모은다(entry: Running, stdout: Readable): void {
   const collector = createProgressCollector();
-  stdout.on('data', (chunk: Buffer) => {
+  stdout.on('data', (chunk: Buffer | string) => {
     for (const step of collector.push(chunk.toString())) {
       entry.progress = { step, 시작한때: Date.now() };
     }
@@ -83,17 +84,20 @@ export function resolveSpecPath(root: string, filePath: string): string | null {
 
 // 앞을 그냥 잘라 내면 남은 글의 첫 줄이 원문 중간 줄(Received: …)이 되는데, admin 요약 자리는 그 첫 줄을 사유로 쓴다
 // (insights.ts 한줄로자른다). 줄 중간을 자르면 가리기가 못 알아보는 비밀값 조각도 남는다 — 그래서 첫 줄을 지키고 뒤는 줄 경계에서 자른다
+// Playwright 는 오류 글에 색 코드를 섞는데(「\u001b[31m…」) admin 요약은 첫 줄을 그대로 쓰니 여기서 걷는다
 export function tail(text: string): string {
-  const trimmed = text.trim();
+  const trimmed = stripVTControlCharacters(text).trim();
   if (trimmed.length <= 2000) return trimmed;
   const 줄끝 = trimmed.indexOf('\n');
-  // 1000자 자리가 이모지 한가운데면 짝 없는 반쪽이 남는다. run_item.error 는 jsonb 라 그 반쪽을 받지 않는다
-  const 첫줄 = trimmed.slice(0, Math.min(줄끝 === -1 ? trimmed.length : 줄끝, 1000)).replace(/\p{Cs}/gu, '');
+  // 1000자 넘는 첫 줄은 자르지 않고 통째로 뺀다. 어디를 잘라도 그 자리에 걸친 비밀값이 조각으로 남고,
+  // 줄 가운데를 안 자르니 이모지 반쪽(jsonb 가 받지 않는다)도 생기지 않는다
+  const 첫줄 = 줄끝 === -1 || 줄끝 > 1000 ? '' : trimmed.slice(0, 줄끝);
   // 한 글자 더 앞에서 떠야 창이 마침 줄 첫머리에서 시작할 때 그 줄을 버리지 않는다.
   // 창에 줄바꿈이 없으면 창 전체가 한 줄의 조각이라 통째로 버린다
   const 창 = trimmed.slice(-(2000 - 첫줄.length - 2));
   const 경계 = 창.indexOf('\n');
-  return 경계 === -1 ? `${첫줄}\n…` : `${첫줄}\n…\n${창.slice(경계 + 1)}`;
+  const 뒤 = 경계 === -1 ? '' : 창.slice(경계 + 1);
+  return [첫줄, '…', 뒤].filter((줄) => 줄 !== '').join('\n');
 }
 
 // 타임아웃으로 프로세스를 죽이면 결과 줄이 잘려 있을 수 있다. 그건 러너 고장이 아니라 중단의 흔적이다
@@ -154,12 +158,15 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   const entry: Running = { child, killedBy: null };
   running.set(req.historyId, entry);
 
+  // 조각마다 따로 풀면 경계에 걸린 한글 한 글자가 � 둘이 된다. 결과 줄의 절차 제목 · 검증 문장도 같은 길로 온다 (scenario.ts 와 같다)
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
   진행을_모은다(entry, child.stdout);
 
   let stdout = '';
   let stderr = '';
-  child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
-  child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+  child.stdout.on('data', (chunk: string) => { stdout += chunk; });
+  child.stderr.on('data', (chunk: string) => { stderr += chunk; });
 
   const timer = setTimeout(() => {
     entry.killedBy = 'TIMEOUT';

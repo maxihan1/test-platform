@@ -74,6 +74,10 @@ describe('tail', () => {
     expect(tail('  짧은 오류\n둘째 줄  ')).toBe('짧은 오류\n둘째 줄');
   });
 
+  it('색 코드를 걷는다 — admin 요약은 첫 줄을 그대로 사유로 쓴다', () => {
+    expect(tail('\u001b[31mSyntaxError: x\u001b[39m\n다음')).toBe('SyntaxError: x\n다음');
+  });
+
   it('2000자를 넘어도 첫 줄은 원문 첫 줄이다 — 요약 자리가 그 줄을 사유로 쓴다', () => {
     const 자른것 = tail(원문);
     expect(자른것.length).toBeLessThanOrEqual(2000);
@@ -88,10 +92,11 @@ describe('tail', () => {
     for (const 줄 of 뒤) expect(원문줄.has(줄)).toBe(true);
   });
 
-  it('첫 줄이 아주 길면 1000자까지만 남기고 전체 상한을 지킨다', () => {
-    const 자른것 = tail(`${'a'.repeat(5000)}\n${'b'.repeat(50)}`);
+  it('첫 줄이 1000자를 넘으면 자르지 않고 통째로 뺀다 — 1000자 자리에 걸친 비밀값 조각이 남지 않는다', () => {
+    const 자른것 = tail(`${'x'.repeat(995)}"pa55word-secret"\n${'c'.repeat(50)}\n${'d'.repeat(1500)}`);
+    expect(자른것.split('\n')[0]).toBe('…');
+    expect(자른것).not.toContain('pa55');
     expect(자른것.length).toBeLessThanOrEqual(2000);
-    expect(자른것.split('\n')[0]).toBe('a'.repeat(1000));
   });
 
   it('끝부분이 줄바꿈 없는 긴 한 줄이면 조각을 남기지 않고 버린다', () => {
@@ -102,10 +107,8 @@ describe('tail', () => {
     expect(tail(`E\n${'z'.repeat(100)}\n${'y'.repeat(1996)}`)).toBe(`E\n…\n${'y'.repeat(1996)}`);
   });
 
-  it('1000자 자리가 이모지를 가르면 짝 없는 반쪽을 남기지 않는다 — jsonb 가 받지 않는다', () => {
-    const 자른것 = tail(`${'a'.repeat(999)}😀${'b'.repeat(500)}\n${'c'.repeat(600)}`);
-    expect(자른것.split('\n')[0]).toBe('a'.repeat(999));
-    expect(/\p{Cs}/u.test(자른것)).toBe(false);
+  it('1000자 자리에 이모지가 있어도 짝 없는 반쪽을 남기지 않는다 — jsonb 가 받지 않는다', () => {
+    expect(/\p{Cs}/u.test(tail(`${'a'.repeat(999)}😀${'b'.repeat(500)}\n${'c'.repeat(600)}`))).toBe(false);
   });
 });
 
@@ -216,5 +219,24 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
       else process.env.PLATFORM_ARTIFACTS_DIR = 원래;
       rmSync(임시, { recursive: true, force: true });
     }
+  });
+});
+
+describe('execute 는 자식 출력을 UTF-8 로 이어 읽는다', () => {
+  const 요청: ExecuteRequest = {
+    runId: 5, historyId: 9, tcId: 'DEMO-001', platform: 'desktop', filePath: 'a.spec.ts',
+    baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+  };
+
+  it('한글 한 글자가 stderr 두 조각에 걸쳐도 깨지지 않는다', async () => {
+    스크립트.지금 = String.raw`printf '\352\260' >&2; sleep 0.2; printf '\200 실패\n' >&2; exit 1`;
+
+    expect((await execute(요청, 'a.spec.ts')).error?.message).toBe('가 실패');
+  });
+
+  it('결과 줄의 한글이 stdout 두 조각에 걸쳐도 깨지지 않는다', async () => {
+    스크립트.지금 = String.raw`printf '@@RESULT@@{"status":"FAIL","durationMs":1,"steps":[],"error":{"message":"\352\260'; sleep 0.2; printf '\200"}}\n'`;
+
+    expect((await execute(요청, 'a.spec.ts')).error?.message).toBe('가');
   });
 });

@@ -3,7 +3,7 @@
 
 import { readFileSync } from 'node:fs';
 
-import type { Reporter, TestCase, TestResult } from '@playwright/test/reporter';
+import type { Reporter, TestCase, TestError, TestResult } from '@playwright/test/reporter';
 
 import type { ExecuteResponse, ItemStatus, StepResult } from '../types.js';
 
@@ -83,6 +83,13 @@ class PlatformReporter implements Reporter {
   // 그냥 흘러가던 출력까지 전부 여기를 거친다. 버리면 러너가 오류 문장으로 쓰는 stdout 꼬리가 빈다
   onStdOut(chunk: string | Buffer): void {
     process.stdout.write(chunk);
+  }
+
+  // 케이스 파일을 못 읽은 오류(문법 오류 · import 실패)는 여기로만 온다. 버리면 stdout · stderr 가 둘 다 비어
+  // 사유 없는 실패가 된다. 테스트가 안 돌아 결과 줄이 없으니 러너는 stderr 를 사유로 싣는다 (도메인/러너 §5.2)
+  onError(error: TestError): void {
+    const 문장 = error.message ?? error.stack ?? error.value;
+    if (문장 !== undefined) process.stderr.write(`${문장}\n`);
   }
 
   printsToStdio(): boolean {

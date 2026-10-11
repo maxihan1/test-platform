@@ -42,3 +42,34 @@ describe('리포터가 워커 출력을 넘겨받는다', () => {
     expect(쓰기.mock.calls.map(([조각]) => String(조각))).toEqual([문법오류, String(스택)]);
   });
 });
+
+describe('리포터가 케이스 파일을 못 읽은 오류를 넘겨받는다', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('onError 로 온 오류 문장을 stderr 로 흘린다 — 러너가 그것을 실패 사유로 싣는다', () => {
+    const 쓰기 = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    const 문법오류 = 'SyntaxError: /tests/demo/DEMO-001.spec.ts: Unexpected token (3:12)\n\n> 3 |   const a = ;';
+
+    new PlatformReporter().onError({ message: 문법오류 });
+
+    expect(쓰기).toHaveBeenCalledWith(`${문법오류}\n`);
+  });
+
+  it('문장이 없는 오류는 값을 글자로 흘린다', () => {
+    const 쓰기 = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    new PlatformReporter().onError({ value: 'boom' });
+
+    expect(쓰기).toHaveBeenCalledWith('boom\n');
+  });
+
+  it('문장 · 스택 · 값이 다 없으면 아무것도 흘리지 않는다 — 「undefined」가 사유가 되지 않게', () => {
+    const 쓰기 = vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+
+    new PlatformReporter().onError({});
+
+    expect(쓰기).not.toHaveBeenCalled();
+  });
+});
