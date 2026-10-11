@@ -49,6 +49,16 @@ export function 비밀글자들(명세: 시험명세): string[] {
 // 긴 것부터 바꿔야 짧은 비밀이 긴 비밀의 일부일 때 조각이 남지 않는다
 export const 긴것부터 = (비밀: string[]): string[] => [...비밀].sort((a, b) => b.length - a.length);
 
+const 객체 = (v: unknown): Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+
+/** 실행 기록 한 줄(run_item)의 비밀 글자. 실행 조회 응답 · 증적 · 견주기가 같은 목록으로 가린다 (공통/2 §4.1) */
+export function 항목비밀(row: { params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown }): string[] {
+  return 긴것부터(
+    비밀글자들({ paramSchema: row.param_schema, expectedSchema: row.expected_schema, params: 객체(row.params), expected: 객체(row.expected) }),
+  );
+}
+
 export function 가린다(값: unknown, 비밀: string[]): unknown {
   if (typeof 값 === 'string') return 비밀.reduce((글, s) => 글.replaceAll(s, 가림), 값);
   if (Array.isArray(값)) return 값.map((v) => 가린다(v, 비밀));

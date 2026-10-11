@@ -11,6 +11,7 @@ import type { ItemStatus, Platform, StepResult } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 가린값들 } from '../web/mask.js';
+import { 가린다, 항목비밀 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
 import { 종류조건 } from './runKind.js';
@@ -95,12 +96,17 @@ interface RawItem {
   started_at: Date;
   finished_at: Date | null;
   unconfirmed: string | null;
+  expected: Record<string, unknown>;
+  expected_schema: Record<string, unknown>;
 }
 
 const ITEM_COLUMNS =
-  'history_id, tc_id, tc_name, platform, attempt, params, param_schema, status, duration_ms, error, started_at, finished_at, unconfirmed';
+  'history_id, tc_id, tc_name, platform, attempt, params, param_schema, status, duration_ms, error, started_at, finished_at, unconfirmed, expected, expected_schema';
 
-function toItem(row: RawItem): RunItemSummary {
+
+// 키로 가린 칸 밖에도 같은 값이 되비친다 — 확인의 기대 · 실제 값, 절차 오류 · httpTrace, 항목 오류 (공통/2 §4.1).
+// 시나리오 실행 결과(scenario/runRoutes.ts)와 같은 규칙으로 글자째 가린다. 오류가 없는 줄은 목록을 만들지 않는다
+function toItem(row: RawItem, 비밀?: string[]): RunItemSummary {
   return {
     historyId: Number(row.history_id),
     tcId: row.tc_id,
@@ -111,7 +117,7 @@ function toItem(row: RawItem): RunItemSummary {
     paramSchema: row.param_schema,
     status: row.status,
     durationMs: row.duration_ms,
-    error: row.error,
+    error: row.error === null ? null : (가린다(row.error, 비밀 ?? 항목비밀(row)) as RawItem['error']),
     startedAt: row.started_at.toISOString(),
     finishedAt: iso(row.finished_at),
     unconfirmed: row.unconfirmed,
@@ -161,7 +167,7 @@ export async function findRun(
 
   return {
     ...toRun(row),
-    items: items.rows.map(toItem),
+    items: items.rows.map((r) => toItem(r)),
     evidence: evidence.rows.map((e) => ({
       id: Number(e.id),
       format: e.format,
@@ -186,25 +192,24 @@ interface RawStep {
 }
 
 // 저장할 때 StepResult를 컬럼으로 흩었으므로 읽을 때 같은 모양으로 되돌린다 (SPEC §5.1)
-function toStep(row: RawStep): StepResult {
+function toStep(row: RawStep, 비밀: string[]): StepResult {
   return {
     seq: row.seq,
     title: row.title,
     status: row.status,
     durationMs: row.duration_ms ?? 0,
-    assertions: row.assertions,
+    assertions: 가린다(row.assertions, 비밀) as StepResult['assertions'],
     ...(row.line === null ? {} : { line: row.line }),
     ...(row.screenshot_path === null ? {} : { screenshotPath: row.screenshot_path }),
-    ...(row.http_trace === null ? {} : { httpTrace: row.http_trace }),
-    ...(row.error === null ? {} : { error: row.error }),
+    ...(row.http_trace === null ? {} : { httpTrace: 가린다(row.http_trace, 비밀) as StepResult['httpTrace'] }),
+    ...(row.error === null ? {} : { error: 가린다(row.error, 비밀) as StepResult['error'] }),
   };
 }
 
 export async function findItem(runId: number, historyId: number): Promise<RunItemDetail | null> {
   const pool = await db();
-  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[]; expected: Record<string, unknown>; expected_schema: Record<string, unknown> }>(
-    `SELECT i.${ITEM_COLUMNS.split(', ').join(', i.')}, i.run_id, r.title AS run_title, i.precondition, i.expected,
-            i.expected_schema
+  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[] }>(
+    `SELECT i.${ITEM_COLUMNS.split(', ').join(', i.')}, i.run_id, r.title AS run_title, i.precondition
        FROM run_item i JOIN test_run r ON r.run_id = i.run_id
       WHERE i.run_id = $1 AND i.history_id = $2`,
     [runId, historyId],
@@ -218,13 +223,14 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
     [historyId],
   );
 
+  const 비밀 = 항목비밀(row);
   return {
-    ...toItem(row),
+    ...toItem(row, 비밀),
     runId: Number(row.run_id),
     runTitle: row.run_title,
     precondition: row.precondition,
     expected: 가린값들(row.expected, row.expected_schema),
     expectedSchema: row.expected_schema,
-    steps: steps.rows.map(toStep),
+    steps: steps.rows.map((s) => toStep(s, 비밀)),
   };
 }

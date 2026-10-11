@@ -3,6 +3,7 @@
 
 import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
+import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { 판정접기식 } from './dashboardSql.js';
 
 export type 변화 = '새로깨짐' | '계속깨짐' | '고쳐짐' | '그대로';
@@ -73,7 +74,7 @@ const 대표문장길이 = 120;
 // 사유를 모르는 것을 지어내지 않는다.
 // actual·expected 는 붙이지 않는다. 그 값이 비밀값일 수 있고, 붙이면 같은 고장이 값마다 갈라진다
 const 대표문장뽑기 = `
-  SELECT i.history_id, i.tc_id, i.tc_name, i.platform,
+  SELECT i.history_id, i.tc_id, i.tc_name, i.platform, i.params, i.expected, i.param_schema, i.expected_schema,
          COALESCE(
            (SELECT a.value->>'statement'
             FROM run_item_step s
@@ -92,6 +93,10 @@ interface 사유행 {
   tc_id: string;
   tc_name: string;
   platform: string;
+  params: unknown;
+  expected: unknown;
+  param_schema: unknown;
+  expected_schema: unknown;
   대표문장: string | null;
 }
 
@@ -115,6 +120,13 @@ export function 한줄로자른다(문장: string): string {
   return 첫줄.length > 대표문장길이 ? `${첫줄.slice(0, 대표문장길이)}…` : 첫줄;
 }
 
+/**
+ * 첫 줄에도 비밀값이 되비칠 수 있다(「pa55word 로 로그인하지 못했다」). 자르기 전에 가려야 잘린 자리에 조각이 남지 않는다.
+ * 견주기 덩어리와 대시보드 신규 실패 사유가 같이 쓴다 — 같은 문장이 두 화면에서 다르게 보이지 않게 (공통/2 §4.1)
+ */
+export const 가려서자른다 = (문장: string, 항목: Parameters<typeof 항목비밀>[0]): string =>
+  한줄로자른다(가린다(문장, 항목비밀(항목)) as string);
+
 /** 이번 실행의 실패 항목을 대표 문장이 같은 것끼리 묶는다 */
 async function 사유로묶는다(pool: Pool, runId: number): Promise<실패덩어리[]> {
   const { rows } = await pool.query<사유행>(대표문장뽑기, [runId]);
@@ -124,7 +136,7 @@ async function 사유로묶는다(pool: Pool, runId: number): Promise<실패덩�
   const 덩어리들 = new Map<string, 실패덩어리>();
   for (const row of rows) {
     if (row.대표문장 === null) continue;
-    const 문장 = 한줄로자른다(row.대표문장);
+    const 문장 = 가려서자른다(row.대표문장, row);
     if (문장 === '') continue;
     const 덩어리 = 덩어리들.get(문장) ?? { 대표문장: 문장, 건수: 0, 항목들: [] };
     덩어리.건수 += 1;

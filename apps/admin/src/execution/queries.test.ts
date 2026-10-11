@@ -240,4 +240,47 @@ describe.skipIf(연결 === undefined)('실행 조회', () => {
       await pool.query('DELETE FROM test_run WHERE run_id = $1', [runId]);
     }
   });
+
+  it('findRun · findItem — 확인 · 절차 기록 · 오류에 되비친 비밀값도 ******** 이고 DB 는 평문이다 (WEB-F3-13)', async () => {
+    const runId = await 실행하나('XBQ 되비친 비밀값 실행');
+    const row = await pool.query<{ history_id: string }>(
+      `INSERT INTO run_item (run_id, tc_id, platform, tc_name, precondition, params, expected, status, duration_ms, finished_at,
+                             file_path, param_schema, expected_schema, timeout_ms, error)
+       VALUES ($1, 'XBQ-003', 'desktop', '되비친 비밀값 케이스', '[]', '{"아이디":"tester","password":"pa55word"}',
+               '{"apiKey":"k3y-777"}', 'FAIL', 100, now(), 'demo/XBQ-003.spec.ts',
+               '{"type":"object","properties":{"아이디":{"type":"string"},"password":{"type":"string","secret":true}}}',
+               '{"type":"object","properties":{"apiKey":{"type":"string","secret":true}}}', 300000,
+               '{"message":"pa55word 로 로그인하지 못했다","stack":"at login(pa55word)"}')
+       RETURNING history_id`,
+      [runId],
+    );
+    const historyId = Number(row.rows[0]!.history_id);
+    await pool.query(
+      `INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, http_trace, error)
+       VALUES ($1, 1, '로그인한다', 'FAIL', 10, $2, $3, $4)`,
+      [
+        historyId,
+        JSON.stringify([{ statement: '키가 맞다', status: 'FAIL', expected: 'k3y-777', actual: 'pa55word' }]),
+        JSON.stringify({ request: { body: { id: 'tester', password: 'pa55word' } }, response: { token: 'k3y-777' } }),
+        JSON.stringify({ message: 'expected pa55word', stack: 'k3y-777' }),
+      ],
+    );
+    try {
+      expect((await findRun(runId))?.items[0]?.error).toEqual({ message: '******** 로 로그인하지 못했다', stack: 'at login(********)' });
+      const item = await findItem(runId, historyId);
+      expect(item?.error?.message).toBe('******** 로 로그인하지 못했다');
+      expect(item?.steps[0]).toMatchObject({
+        title: '로그인한다',
+        assertions: [{ statement: '키가 맞다', expected: '********', actual: '********' }],
+        httpTrace: { request: { body: { id: 'tester', password: '********' } }, response: { token: '********' } },
+        error: { message: 'expected ********', stack: '********' },
+      });
+      const 원문 = await pool.query<{ http_trace: unknown }>('SELECT http_trace FROM run_item_step WHERE history_id = $1', [historyId]);
+      expect(JSON.stringify(원문.rows[0]?.http_trace)).toContain('pa55word');
+    } finally {
+      await pool.query('DELETE FROM run_item_step WHERE history_id = $1', [historyId]);
+      await pool.query('DELETE FROM run_item WHERE run_id = $1', [runId]);
+      await pool.query('DELETE FROM test_run WHERE run_id = $1', [runId]);
+    }
+  });
 });

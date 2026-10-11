@@ -14,7 +14,7 @@ import {
   type 접은줄,
 } from './dashboardShape.js';
 import { 접은줄SQL, 앞판정SQL, 실행중SQL, 커버리지SQL } from './dashboardSql.js';
-import { db, 한줄로자른다 } from './insights.js';
+import { db, 가려서자른다 } from './insights.js';
 
 /** 부르는 쪽이 400 INVALID_REQUEST 로 바꾼다 */
 export class 틀린시간대 extends Error {
@@ -125,7 +125,8 @@ interface 줄행 {
   platform: 'desktop' | 'mobile';
   verdict: 접은줄['verdict'];
   unconfirmed: boolean;
-  reason: string | null;
+  // 사유를 가릴 비밀 목록을 그 항목의 박제값으로 만든다 (공통/2 §4.1)
+  reason: { text: string | null; params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown } | null;
 }
 
 async function 실행중읽기(pool: Pool, ids: number[]): Promise<실행중[]> {
@@ -198,7 +199,7 @@ async function 줄읽기(pool: Pool, ids: number[], tz: string, 오늘: string):
     platform: r.platform,
     verdict: r.verdict,
     unconfirmed: r.unconfirmed,
-    reason: r.reason === null ? null : 한줄로자른다(r.reason) || null,
+    reason: r.reason === null || r.reason.text === null ? null : 가려서자른다(r.reason.text, r.reason) || null,
   }));
 }
 

@@ -27,14 +27,15 @@ export const 접은줄SQL = `
          ${판정접기식} AS verdict,
          bool_or(i.unconfirmed IS NOT NULL) AS unconfirmed,
          CASE WHEN bool_or(i.status = 'FAIL') AND t.day >= $4::text THEN (
-           SELECT COALESCE(
+           SELECT jsonb_build_object('text', COALESCE(
                     (SELECT a.value->>'statement'
                      FROM run_item_step s
                      CROSS JOIN LATERAL jsonb_array_elements(s.assertions) WITH ORDINALITY AS a(value, ord)
                      WHERE s.history_id = f.history_id AND a.value->>'status' = 'FAIL'
                      ORDER BY s.seq, a.ord
                      LIMIT 1),
-                    f.error->>'message')
+                    f.error->>'message'),
+                    'params', f.params, 'expected', f.expected, 'param_schema', f.param_schema, 'expected_schema', f.expected_schema)
            FROM run_item f
            WHERE f.run_id = t.run_id AND f.tc_id = i.tc_id AND f.platform = i.platform
              AND f.status = 'FAIL'

@@ -5,6 +5,7 @@ import type { ItemStatus, Platform } from '@platform/kit';
 
 import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
+import { 가린다, 항목비밀 } from '../execution/trial.js';
 
 export interface EvidenceField {
   label: string;
@@ -194,13 +195,13 @@ function toAssertion(a: RawAssertion): EvidenceAssertion {
   };
 }
 
-function toStep(row: RawStep): EvidenceStep {
+function toStep(row: RawStep, 비밀: string[]): EvidenceStep {
   return {
     seq: row.seq,
     title: row.title,
     status: row.status,
     durationMs: row.duration_ms,
-    assertions: row.assertions.map(toAssertion),
+    assertions: 가린다(row.assertions.map(toAssertion), 비밀) as EvidenceAssertion[],
     screenshotPath: row.screenshot_path,
   };
 }
@@ -274,6 +275,8 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
       // 못 돈 항목을 'NA' 로 그대로 찍으면 「돌았는데 판정이 없다」로 읽혀 문서에서 사라진다.
       // 40건 중 12건 돌고 멈춘 실행은 「12건 돌았다」가 아니라 「28건은 이래서 못 돌았다」여야 한다 (SPEC §8.4)
       const 못돈사유 = 미실행사유를찾는다(row, run.status);
+      // 키로 가린 칸 밖에도 비밀값이 되비친다 — 확인의 기대 · 실제 값과 판정 못 낸 사유. 실행 조회 응답(execution/queries.ts)과 같은 규칙이다 (공통/2 §4.1)
+      const 비밀 = 항목비밀(row);
 
       return {
         tcId: row.tc_id,
@@ -283,12 +286,12 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
         status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
         // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
         durationMs: 못돈사유 === null ? row.duration_ms : null,
-        notRunReason: 못돈사유 ?? 판정못낸사유(row),
+        notRunReason: 못돈사유 ?? (가린다(판정못낸사유(row), 비밀) as string | null),
         unconfirmed: row.unconfirmed,
         precondition: row.precondition,
         params: toFields(row.params, row.param_schema),
         expected: toFields(row.expected, row.expected_schema),
-        steps: steps.rows.filter((s) => s.history_id === row.history_id).map(toStep),
+        steps: steps.rows.filter((s) => s.history_id === row.history_id).map((s) => toStep(s, 비밀)),
       };
     }),
   };
