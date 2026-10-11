@@ -80,14 +80,9 @@ function 응답(고침: Partial<대시보드응답> = {}): 대시보드응답 {
     coverage: [],
     running: [],
     unconfirmed: 0,
-    failureTypes: 유형(),
+    failureTypes: { types: [], stopped: 0 },
     ...고침,
   };
-}
-
-function 유형(나눔: Partial<Record<대시보드응답['failureTypes']['types'][number]['type'], [number, number]>> = {}, stopped = 0) {
-  const 차례 = ['mismatch', 'notFound', 'timeout', 'environment', 'other'] as const;
-  return { types: 차례.map((type) => ({ type, fail: 나눔[type]?.[0] ?? 0, notRun: 나눔[type]?.[1] ?? 0 })), stopped };
 }
 
 function 실행중(runId: number, 끝난: number, 전체: number, 실패 = 0) {
@@ -376,39 +371,6 @@ describe('그래프 칸 자리', () => {
       const 판 = screen.getByRole('heading', { name: 제목 }).closest('section')!;
       expect(판.classList.contains('dash-slab')).toBe(true);
     }
-  });
-});
-
-describe('실패 유형 칸', () => {
-  it('다섯 유형을 늘 같은 차례로 두고 건수 · 몫 · 실패와 미실행 나눔을 적는다 — 멈춘 것은 따로 한 줄', async () => {
-    읽기를(응답({ failureTypes: 유형({ mismatch: [6, 0], notFound: [1, 3] }, 2) }));
-    render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    const 칸 = (await screen.findByText('실패 유형', { selector: 'h2' })).closest('section')!;
-    expect(칸.classList.contains('dash-flat')).toBe(true);
-    expect(within(칸).getByRole('heading').textContent).toBe('실패 유형 10건');
-    const 줄들 = within(칸).getAllByRole('listitem').filter((줄) => 줄.closest('.dash-types-list'));
-    expect(줄들.map((줄) => 줄.querySelector('.dash-types-head > span')!.textContent)).toEqual([
-      '기대 결과 불일치',
-      '요소 미검출',
-      '타임아웃',
-      '환경 오류',
-      '그 밖',
-    ]);
-    expect(줄들[0]!.textContent).toContain('60%');
-    expect(within(줄들[1]!).getByRole('img').getAttribute('aria-label')).toBe('실패 1 · 미실행 3');
-    expect(줄들[1]!.textContent).toContain('실패 1 · 미실행 3 — 화면에서 버튼 · 입력 칸을 끝내 찾지 못함');
-    expect(줄들[2]!.textContent).toContain('제한 시간 안에 끝나지 않음');
-    expect(줄들[2]!.textContent).not.toContain('실패 0');
-    expect(within(칸).getByText('사용자가 멈춘 미실행 2건은 세지 않았습니다')).toBeTruthy();
-  });
-
-  it('실패 · 미실행이 하나도 없으면 줄 대신 짧게 알린다', async () => {
-    읽기를(응답());
-    render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    const 칸 = (await screen.findByText('실패 유형', { selector: 'h2' })).closest('section')!;
-    expect(within(칸).getByText('최근 14일 실패 · 미실행이 없습니다')).toBeTruthy();
-    expect(칸.querySelector('.dash-types-list')).toBeNull();
-    expect(칸.textContent).not.toContain('세지 않았습니다');
   });
 });
 

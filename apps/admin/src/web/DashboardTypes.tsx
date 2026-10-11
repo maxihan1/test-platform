@@ -38,11 +38,14 @@ export function 실패유형칸({ 값 }: { 값: 자료 }) {
         <span className="dash-axis">{t('최근 {일}일 실패 · 미실행의 원인', { 일: 값.window.days })}</span>
       </div>
 
+      {/* 멈춘 미실행뿐이면 「없습니다」를 띄우지 않는다 — 통과율 칸에는 그 미실행이 보인다 */}
       {전체 === 0 ? (
-        <p className="dash-calm good">
-          <span aria-hidden="true">✓</span>
-          <span>{t('최근 {일}일 실패 · 미실행이 없습니다', { 일: 값.window.days })}</span>
-        </p>
+        stopped > 0 ? null : (
+          <p className="dash-calm good">
+            <span aria-hidden="true">✓</span>
+            <span>{t('최근 {일}일 실패 · 미실행이 없습니다', { 일: 값.window.days })}</span>
+          </p>
+        )
       ) : (
         <>
           {/* 판정 색 그대로 — 미실행을 실패 색으로 칠하면 러너 고장이 케이스 실패로 읽힌다 (리포팅 §8.5) */}
