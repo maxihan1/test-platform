@@ -1,14 +1,18 @@
-// E2E 시나리오 조립 화면 「단계 추가」 탭 속 — 기능 테스트 스크립트 팔레트 · 다른 단계 넷 · 케이스 바꾸기 모드 (도메인/시나리오 §8.11)
+// E2E 시나리오 조립 화면 「단계 추가」 탭 속 — 기능 테스트 스크립트 팔레트(기능 묶음 · 정상 먼저 · 요구 줄) · 다른 단계 넷 · 케이스 바꾸기 모드 (도메인/시나리오 §8.11)
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { ScenarioPart } from '@platform/kit';
 
 import { api, type CaseRow, type Platform } from './api.js';
+import { 요구줄 } from './CaseListContext.js';
 import { use말, use언어 } from './i18n.js';
 import { 팔레트차례 } from './scenarioView.js';
 import { Failed, Loading, message, PLATFORM_LABEL } from './ui.js';
 
 export type 다른단계 = Exclude<ScenarioPart, { kind: 'case' }>;
+
+// 묶음 이름이 빈 글자일 때와 묶음 없음(null)을 가르려고 JSON 으로 잇는다
+const 열쇠 = (칸: 'group' | 'rest', feature: string | null) => JSON.stringify([칸, feature]);
 
 // ponytail: 20쪽(1000건) 상한. 넘는 서비스가 생기면 서버 찾기로 바꾼다
 const 쪽상한 = 20;
@@ -50,7 +54,13 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
   const [읽음, set읽음] = useState<{ 목록: CaseRow[]; 잘림: boolean } | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   const [찾기, set찾기] = useState('');
-  const [입력값펼침, set입력값펼침] = useState(false);
+  const [펼친, set펼친] = useState<ReadonlySet<string>>(new Set());
+  const 뒤집기 = (키: string) =>
+    set펼친((전) => {
+      const 다음 = new Set(전);
+      if (!다음.delete(키)) 다음.add(키);
+      return 다음;
+    });
 
   useEffect(() => {
     let 끊김 = false;
@@ -70,6 +80,19 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
     };
   }, [서비스, 언어]);
 
+  const 차례 = 읽음 === null ? null : 팔레트차례(읽음.목록, 디바이스);
+  const PRD씀 = 차례?.PRD씀 ?? false;
+  const 소문자 = 찾기.trim().toLowerCase();
+  const 찾는중 = 소문자 !== '';
+  const 걸린 = (c: CaseRow) =>
+    !찾는중 || [c.tcId, c.name, ...(c.reqs ?? []).flatMap((r) => [r.reqId, r.text ?? ''])].join(' ').toLowerCase().includes(소문자);
+  const 묶음들 = (차례?.묶음들 ?? [])
+    .map((g) => ({ ...g, 흐름: g.흐름.filter(걸린), 입력값: g.입력값.filter(걸린) }))
+    .filter((g) => !찾는중 || g.흐름.length + g.입력값.length > 0);
+  // 찾는 동안은 접힌 것도 편다 — 안 펴면 걸린 케이스가 접힌 묶음 안에 숨는다. PRD 를 안 쓰는 서비스는 지금 모양 그대로 둔다
+  const 다폄 = 찾는중 && PRD씀;
+  const 펴졌나 = (칸: 'group' | 'rest', feature: string | null) => 다폄 || 펼친.has(열쇠(칸, feature));
+
   const 줄 = (c: CaseRow) => (
     <li key={c.tcId} className="scn-pal-row">
       <span className="scn-pal-id">{c.tcId}</span>
@@ -78,14 +101,22 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
       <button type="button" className="btn ghost" onClick={() => on케이스(c.tcId)}>
         {t('{번호} 더하기', { 번호: c.tcId })}
       </button>
+      {/* 번호에 고리를 달지 않는다 — 누르면 저장 안 한 조립을 두고 「PRD 관리」로 떠난다 */}
+      {PRD씀 ? <요구줄 row={c} 요구보나={false} 요구쓰나 /> : null}
     </li>
   );
 
-  const 차례 = 읽음 === null ? null : 팔레트차례(읽음.목록, 디바이스);
-  const 소문자 = 찾기.trim().toLowerCase();
-  const 걸린 = (c: CaseRow) => 소문자 === '' || `${c.tcId} ${c.name}`.toLowerCase().includes(소문자);
-  const 흐름 = 차례?.흐름.filter(걸린) ?? [];
-  const 입력값 = 차례?.입력값.filter(걸린) ?? [];
+  const 접는단추 = (칸: 'group' | 'rest', feature: string | null, 글: ReactNode) => (
+    <button
+      type="button"
+      className="scn-pal-fold"
+      aria-expanded={펴졌나(칸, feature)}
+      disabled={다폄}
+      onClick={() => 뒤집기(열쇠(칸, feature))}
+    >
+      {글}
+    </button>
+  );
 
   return (
     <div className="scn-palette">
@@ -126,25 +157,54 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
               {t('{디바이스}에서 돌지 않는 케이스 {수}건은 뺐습니다', { 디바이스: t(PLATFORM_LABEL[디바이스]), 수: 차례.뺀수 })}
             </p>
           )}
-          <section className="scn-pal-group">
-            <h3 className="scn-set-sub">{t('업무 흐름 케이스')}</h3>
-            <p className="scn-set-note">{t('상태 전이 사용 또는 기법 표시 없음')}</p>
-            <ul className="scn-pal-list">{흐름.map(줄)}</ul>
-          </section>
-          <section className="scn-pal-group">
-            <h3 className="scn-set-sub">
-              <button
-                type="button"
-                className="scn-pal-fold"
-                aria-expanded={입력값펼침}
-                onClick={() => set입력값펼침((앞) => !앞)}
-              >
-                {t('입력값 검증 케이스 {수}', { 수: 입력값.length })}
-              </button>
-            </h3>
-            <p className="scn-set-note">{t('경계값 · 동등 분할 · 결정 테이블만 사용')}</p>
-            {!입력값펼침 ? null : <ul className="scn-pal-list">{입력값.map(줄)}</ul>}
-          </section>
+          {PRD씀 ? (
+            묶음들.length === 0 ? (
+              <p className="scn-set-note">{t('「{친글자}」에 맞는 케이스가 없습니다', { 친글자: 찾기.trim() })}</p>
+            ) : (
+              묶음들.map((g) => (
+                <section key={열쇠('group', g.feature)} className="scn-pal-group scn-pal-feature">
+                  <h3 className="scn-set-sub">
+                    {접는단추(
+                      'group',
+                      g.feature,
+                      <>
+                        {g.feature ?? t('기능 묶음 없음')}
+                        <span className="scn-pal-count">
+                          {t('정상 {정상} · 경계 · 예외 {나머지}', { 정상: g.흐름.length, 나머지: g.입력값.length })}
+                        </span>
+                      </>,
+                    )}
+                  </h3>
+                  {!펴졌나('group', g.feature) ? null : (
+                    <>
+                      <ul className="scn-pal-list">{g.흐름.map(줄)}</ul>
+                      {g.입력값.length === 0 ? null : (
+                        <div className="scn-pal-sub">
+                          {접는단추('rest', g.feature, t('경계 · 예외 케이스 {수}', { 수: g.입력값.length }))}
+                          {!펴졌나('rest', g.feature) ? null : <ul className="scn-pal-list">{g.입력값.map(줄)}</ul>}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </section>
+              ))
+            )
+          ) : (
+            <>
+              <section className="scn-pal-group">
+                <h3 className="scn-set-sub">{t('업무 흐름 케이스')}</h3>
+                <p className="scn-set-note">{t('상태 전이 사용 또는 기법 표시 없음')}</p>
+                <ul className="scn-pal-list">{(묶음들[0]?.흐름 ?? []).map(줄)}</ul>
+              </section>
+              <section className="scn-pal-group">
+                <h3 className="scn-set-sub">
+                  {접는단추('rest', null, t('입력값 검증 케이스 {수}', { 수: 묶음들[0]?.입력값.length ?? 0 }))}
+                </h3>
+                <p className="scn-set-note">{t('경계값 · 동등 분할 · 결정 테이블만 사용')}</p>
+                {!펴졌나('rest', null) ? null : <ul className="scn-pal-list">{(묶음들[0]?.입력값 ?? []).map(줄)}</ul>}
+              </section>
+            </>
+          )}
         </>
       )}
     </div>

@@ -142,6 +142,101 @@ describe('ScenarioPalette 목록', () => {
   });
 });
 
+describe('ScenarioPalette 맥락', () => {
+  type 축 = '정상' | '경계' | '예외';
+  const 요구 = (feature: string | null, ...목록: [string, string | null, 축][]): Partial<CaseRow> => ({
+    feature,
+    reqs: 목록.map(([reqId, text, axis]) => ({ reqId, text, axis })),
+  });
+  const PRD케이스들 = () => [
+    케이스('ZSP-001', { name: '가입 성공', ...요구('회원가입', ['ZSP-REQ-001', '이메일로 가입한다', '정상'], ['ZSP-REQ-002', '닉네임을 받는다', '정상']) }),
+    케이스('ZSP-002', { name: '비밀번호 길이', ...요구('회원가입', ['ZSP-REQ-003', '비밀번호는 8자 이상이다', '경계']) }),
+    케이스('ZSP-003', { name: '담기', ...요구('장바구니', ['ZSP-REQ-010', '수량을 골라 담는다', '정상']) }),
+    케이스('ZSP-004', { name: '배너 닫기' }),
+  ];
+  const 묶음단추 = (이름: RegExp) => screen.getByRole('button', { name: 이름 });
+
+  it('기능 묶음은 받은 차례대로 접힌 채 이름과 정상 · 경계 · 예외 건수만 보이고, 묶음 없음은 맨 뒤다', async () => {
+    쪽들(PRD케이스들());
+    그리기();
+    await screen.findByRole('button', { name: /회원가입/ });
+
+    const 머리들 = [...document.querySelectorAll('.scn-pal-feature > h3 .scn-pal-fold')].map((b) => b.textContent);
+    expect(머리들).toEqual(['회원가입정상 1 · 경계 · 예외 1', '장바구니정상 1 · 경계 · 예외 0', '기능 묶음 없음정상 1 · 경계 · 예외 0']);
+    expect(묶음단추(/회원가입/).getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('button', { name: 'ZSP-001 더하기' })).toBeNull();
+    expect(screen.queryByText('업무 흐름 케이스')).toBeNull();
+  });
+
+  it('묶음을 펴면 정상 케이스가 보이고 경계 · 예외는 한 번 더 눌러야 보인다', async () => {
+    쪽들(PRD케이스들());
+    그리기();
+    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
+
+    expect(screen.getByRole('button', { name: 'ZSP-001 더하기' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'ZSP-002 더하기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'ZSP-003 더하기' })).toBeNull();
+
+    const 경계 = screen.getByRole('button', { name: '경계 · 예외 케이스 1' });
+    expect(경계.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(경계);
+    expect(screen.getByRole('button', { name: 'ZSP-002 더하기' })).toBeTruthy();
+  });
+
+  it('줄 아래 요구 줄 — 첫 요구 번호 · 문장 · 외 N건이고 번호에 고리가 없다. 요구가 없으면 없다고 적는다', async () => {
+    쪽들(PRD케이스들());
+    그리기();
+    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
+    fireEvent.click(묶음단추(/기능 묶음 없음/));
+
+    const 가입 = screen.getByRole('button', { name: 'ZSP-001 더하기' }).closest('li')!;
+    expect(가입.querySelector('.case-req-id')?.textContent).toBe('ZSP-REQ-001');
+    expect(가입.querySelector('.case-req-text')?.textContent).toBe('이메일로 가입한다');
+    expect(가입.querySelector('.case-req-more')?.textContent).toBe('외 1건');
+    expect(가입.querySelector('a')).toBeNull();
+
+    const 배너 = screen.getByRole('button', { name: 'ZSP-004 더하기' }).closest('li')!;
+    expect(배너.querySelector('.case-req')?.textContent).toBe('연결된 요구 없음');
+  });
+
+  it('찾기는 요구 번호 · 요구 문장에도 맞고, 찾는 동안은 걸린 묶음과 경계 · 예외를 펴 둔 채 못 접는다', async () => {
+    쪽들(PRD케이스들());
+    그리기();
+    await screen.findByRole('button', { name: /회원가입/ });
+    const 칸 = screen.getByLabelText('케이스 찾기');
+
+    fireEvent.change(칸, { target: { value: '8자' } });
+    expect(screen.getByRole('button', { name: 'ZSP-002 더하기' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'ZSP-001 더하기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /장바구니/ })).toBeNull();
+    const 머리 = 묶음단추(/회원가입/);
+    expect(머리.getAttribute('aria-expanded')).toBe('true');
+    expect((머리 as HTMLButtonElement).disabled).toBe(true);
+    expect(머리.textContent).toContain('정상 0 · 경계 · 예외 1');
+
+    fireEvent.change(칸, { target: { value: 'zsp-req-010' } });
+    expect(screen.getByRole('button', { name: 'ZSP-003 더하기' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /회원가입/ })).toBeNull();
+
+    fireEvent.change(칸, { target: { value: '없는말' } });
+    expect(screen.getByText('「없는말」에 맞는 케이스가 없습니다')).toBeTruthy();
+
+    fireEvent.change(칸, { target: { value: '' } });
+    expect(묶음단추(/회원가입/).getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('요구가 붙은 케이스가 없는 서비스는 묶음 머리와 요구 줄 없이 두 덩어리 그대로다', async () => {
+    쪽들([케이스('ZSP-001'), 케이스('ZSP-002', { techniques: ['경계값 분석'] })]);
+    그리기();
+    await screen.findByRole('button', { name: 'ZSP-001 더하기' });
+
+    expect(screen.queryByText('기능 묶음 없음')).toBeNull();
+    expect(document.querySelector('.case-req')).toBeNull();
+    fireEvent.change(screen.getByLabelText('케이스 찾기'), { target: { value: 'ZSP-002' } });
+    expect(screen.getByRole('button', { name: /입력값 검증 케이스 1/ }).getAttribute('aria-expanded')).toBe('false');
+  });
+});
+
 describe('ScenarioPalette 더하기', () => {
   it('번호 더하기 버튼은 그 tcId 로 on케이스를 부른다', async () => {
     쪽들([케이스('ZSP-001'), 케이스('ZSP-002')]);

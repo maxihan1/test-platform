@@ -98,20 +98,61 @@ describe('팔레트차례', () => {
   });
   const [경계, 동등, 결정, 상태] = TECHNIQUES;
 
-  it('상태 전이 · 기법 없음 · 빈 기법은 흐름, 나머지는 입력값. 차례를 지킨다', () => {
+  const 요구 = (feature: string | null, ...축: ('정상' | '경계' | '예외')[]): Partial<CaseRow> => ({
+    feature,
+    reqs: 축.map((axis, i) => ({ reqId: `X-REQ-00${i + 1}`, text: '문장', axis })),
+  });
+  const 번호 = (cs: CaseRow[]) => cs.map((c) => c.tcId);
+
+  it('요구가 없으면 묶음 하나 — 상태 전이 · 기법 없음 · 빈 기법은 흐름, 나머지는 입력값. 차례를 지킨다', () => {
     const r = 팔레트차례(
       [줄('A', ['desktop']), 줄('B', ['desktop'], [경계]), 줄('C', ['desktop'], []), 줄('D', ['desktop'], [동등, 결정]), 줄('E', ['desktop'], [경계, 상태])],
       'desktop',
     );
-    expect(r.흐름.map((c) => c.tcId)).toEqual(['A', 'C', 'E']);
-    expect(r.입력값.map((c) => c.tcId)).toEqual(['B', 'D']);
+    expect(r.PRD씀).toBe(false);
+    expect(r.묶음들).toHaveLength(1);
+    expect(r.묶음들[0]?.feature).toBeNull();
+    expect(번호(r.묶음들[0]?.흐름 ?? [])).toEqual(['A', 'C', 'E']);
+    expect(번호(r.묶음들[0]?.입력값 ?? [])).toEqual(['B', 'D']);
     expect(r.뺀수).toBe(0);
   });
 
   it('디바이스에 없는 케이스는 빼고 수만 센다', () => {
     const r = 팔레트차례([줄('A', ['desktop']), 줄('B', ['mobile']), 줄('C', ['desktop', 'mobile'])], 'mobile');
-    expect(r.흐름.map((c) => c.tcId)).toEqual(['B', 'C']);
+    expect(번호(r.묶음들[0]?.흐름 ?? [])).toEqual(['B', 'C']);
     expect(r.뺀수).toBe(1);
+  });
+
+  it('요구가 붙으면 기법이 아니라 종류로 가른다 — 정상 요구를 하나라도 덮으면 흐름', () => {
+    const r = 팔레트차례(
+      [
+        { ...줄('A', ['desktop'], [경계]), ...요구('가입', '정상', '경계') },
+        { ...줄('B', ['desktop'], [상태]), ...요구('가입', '예외') },
+        { ...줄('C', ['desktop'], [경계]), ...요구('가입', '경계') },
+      ],
+      'desktop',
+    );
+    expect(r.PRD씀).toBe(true);
+    expect(번호(r.묶음들[0]?.흐름 ?? [])).toEqual(['A']);
+    expect(번호(r.묶음들[0]?.입력값 ?? [])).toEqual(['B', 'C']);
+  });
+
+  it('기능 묶음은 처음 나온 차례대로 나누고, 요구 없는 케이스는 묶음 없음에서 기법으로 가른다', () => {
+    const r = 팔레트차례(
+      [
+        { ...줄('A', ['desktop']), ...요구('가입', '경계') },
+        { ...줄('B', ['desktop']), ...요구('장바구니', '정상') },
+        { ...줄('C', ['desktop']), ...요구('가입', '정상') },
+        줄('D', ['desktop'], [경계]),
+        줄('E', ['desktop']),
+      ],
+      'desktop',
+    );
+    expect(r.묶음들.map((g) => [g.feature, 번호(g.흐름), 번호(g.입력값)])).toEqual([
+      ['가입', ['C'], ['A']],
+      ['장바구니', ['B'], []],
+      [null, ['E'], ['D']],
+    ]);
   });
 });
 
