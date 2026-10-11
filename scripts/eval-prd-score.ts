@@ -12,15 +12,15 @@ export interface 정답 {
   필수: Set<string>;
 }
 
-/** 정답지 기획서의 `| REQ-… |` 줄. 측정표 §1 의 grep(`^| REQ-` · `필수 |$`)과 같은 셈이라 손으로 센 분모와 어긋나지 않는다 */
+/** 정답지 기획서의 `| REQ-… |` 줄 — 측정표 §1 의 grep(`^| REQ-` · `필수 |$`)과 같은 줄을 센다. 끝 칸이 「필수」면 필수 */
 export function 정답읽기(기획서: string): 정답 {
   const 전체 = new Set<string>();
   const 필수 = new Set<string>();
   for (const 줄 of 기획서.split(/\r?\n/)) {
-    if (!줄.startsWith('| REQ-')) continue;
-    const 번호 = (줄.split('|')[1] ?? '').trim();
-    전체.add(번호);
-    if (줄.endsWith('필수 |')) 필수.add(번호);
+    const 칸 = 줄.trim().split('|').map((c) => c.trim());
+    if (!/^REQ-/.test(칸[1] ?? '') || !줄.trimStart().startsWith('|')) continue;
+    전체.add(칸[1] ?? '');
+    if (칸.at(-2) === '필수') 필수.add(칸[1] ?? '');
   }
   return { 전체, 필수 };
 }
@@ -37,26 +37,16 @@ export function 대응읽기(글: string): 대응줄[] {
     .filter((줄) => 줄.문장.trim() !== '');
 }
 
-/** 번호표 JSON(PRD 번호 → 정답지 번호들). 모양이 틀리면 던진다 — 빈 표로 견주면 칸 겹침이 조용히 「없음」이 된다 */
-export function 번호표읽기(글: string): Map<string, string[]> {
-  const 값: unknown = JSON.parse(글);
-  if (typeof 값 !== 'object' || 값 === null || Array.isArray(값)) throw new Error('번호표는 { "MKT-REQ-001": ["REQ-COM-001"] } 꼴이어야 한다');
-  const 표 = new Map<string, string[]>();
-  for (const [번호, 원본] of Object.entries(값)) {
-    if (!Array.isArray(원본) || !원본.every((x): x is string => typeof x === 'string')) throw new Error(`번호표 ${번호} 의 값이 글자 배열이 아니다`);
-    표.set(번호, 원본);
-  }
-  return 표;
-}
-
 // 빈칸 · 문장부호 · 기호를 지운 글자만 견준다 — 근거는 원문 그대로라지만 줄바꿈 · 따옴표 · 가운뎃점은 옮기며 바뀐다
 const 맨글자 = (글: string) => 글.replace(/[\s\p{P}\p{S}]/gu, '');
-// 짧은 조각(「8자」)은 아무 문장에나 들어가 엉뚱한 번호를 준다
-const 최소글자 = 8;
-function 같은문장(가: string, 나: string): boolean {
-  const [짧은, 긴] = 가.length <= 나.length ? [가, 나] : [나, 가];
-  return 짧은.length >= 최소글자 && 긴.includes(짧은);
+// 근거가 짧은 조각(「8자」)이면 아무 문장에나 들어가 엉뚱한 번호를 받는다. 대응 문장은 사람이 쓴 한 문장이라 짧아도 된다
+const 근거최소 = 8;
+const 대응최소 = 4;
+function 같은문장(근거: string, 대응: string): boolean {
+  return (근거.length >= 근거최소 && 대응.includes(근거)) || (대응.length >= 대응최소 && 근거.includes(대응));
 }
+// 규칙 하나인 항목이 정답 번호 셋 이상에 닿으면 근거가 문단을 통째로 옮겼을 수 있다 — 포착률이 부푼 만큼 숫자로 보인다
+const 넓은닿음 = 3;
 
 export interface 채점 {
   항목: number;
@@ -68,6 +58,8 @@ export interface 채점 {
   지어낸번호: string[];
   /** 어느 정답지 번호에도 안 닿는 PRD 번호 — 화면만 근거거나 대응표에 없는 문장 */
   안닿는항목: string[];
+  /** 정답 번호 셋 이상에 닿는 PRD 번호 — 포착률이 부풀었을 수 있다 */
+  넓은항목: string[];
   /** PRD 번호 → 정답지 번호들. case-consistency 의 세 번째 조각 */
   번호표: Map<string, string[]>;
 }
@@ -97,6 +89,7 @@ export function 채점하기(항목들: PrdItem[], 정답: 정답, 대응: 대�
   let 케이스포착: Set<string> | null = null;
   if (표 !== undefined) {
     케이스포착 = new Set();
+    // 측정표 정의(만들어진 케이스가 가리키는 번호)대로 보류 줄도 센다 — 2026-10-05 4차 171/172 와 같은 셈.
     // 오류 추정 줄은 원장이 「덮음」으로 세지만(#200 남긴 것) 기획서 요구를 확인하지 않는다 — 포착률이 부풀지 않게 뺀다
     for (const 줄 of 표읽기(표, '요구사항')) {
       const 출처 = 줄['출처'] ?? '';
@@ -114,6 +107,7 @@ export function 채점하기(항목들: PrdItem[], 정답: 정답, 대응: 대�
     케이스포착,
     지어낸번호: [...지어낸].sort(),
     안닿는항목,
+    넓은항목: [...번호표].filter(([, 원본]) => 원본.length >= 넓은닿음).map(([번호]) => 번호),
     번호표,
   };
 }
@@ -137,10 +131,12 @@ export function 채점줄(c: 채점, 정답: 정답): string[] {
       ...(c.케이스포착 === null ? [] : [포착('케이스 포착', c.케이스포착)]),
       `지어낸 원본 번호 ${String(c.지어낸번호.length)}`,
       `원본에 안 닿는 항목 ${String(c.안닿는항목.length)}`,
+      `정답 셋 이상에 닿는 항목 ${String(c.넓은항목.length)}`,
     ].join(' | '),
     `PRD 가 놓친 요구: ${목록(놓침(c.prd포착))}`,
   ];
   if (c.케이스포착 !== null) 줄들.push(`케이스가 놓친 요구: ${목록(놓침(c.케이스포착))}`);
   if (c.지어낸번호.length > 0) 줄들.push(`지어낸 원본 번호: ${목록(c.지어낸번호)}`);
+  if (c.넓은항목.length > 0) 줄들.push(`정답 셋 이상에 닿는 항목: ${목록(c.넓은항목)}`);
   return 줄들;
 }

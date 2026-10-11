@@ -7,8 +7,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { 견주기, 견줌줄, 실행요약 } from './authoring-consistency.js';
-import { 번호표읽기 } from './eval-prd-score.js';
+import { 견주기, 견줌줄, 번호표읽기, 실행요약 } from './authoring-consistency.js';
 
 const 사용법 = '견줄 케이스 폴더를 둘 이상 주세요 — 예: npx tsx scripts/case-consistency.ts /abs/run1/tests/mkt,/abs/run1/MKT.md /abs/run2/tests/mkt';
 function 멈추기(글: string): never {
@@ -18,6 +17,9 @@ function 멈추기(글: string): never {
 
 const 인자들 = process.argv.slice(2);
 if (인자들.length < 2) 멈추기(사용법);
+// 한쪽만 정답지 번호로 바꾸면 번호가 하나도 안 겹쳐 0% 처럼 보인다
+const 번호표수 = 인자들.filter((인자) => 인자.split(',').length === 3).length;
+if (번호표수 !== 0 && 번호표수 !== 인자들.length) 멈추기(`번호표는 견주는 실행 모두에 주거나 모두 빼야 합니다 — ${String(인자들.length)}개 중 ${String(번호표수)}개에만 있습니다`);
 const 실행들 = 인자들.map((인자) => {
   const 조각 = 인자.split(',');
   if (조각.length > 3) 멈추기(`폴더 · 표 · 번호표까지만 쉼표로 잇습니다 — ${인자}\n${사용법}`);

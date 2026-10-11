@@ -19,6 +19,19 @@ export interface 실행 {
   제외셈: Map<string, number> | null;
 }
 
+/** 번호표 JSON(원장 번호 → 정답지 번호들, eval-prd.ts 가 쓴다). 모양이 틀리거나 비면 던진다 — 빈 표로 견주면 칸 겹침이 조용히 「없음」이 된다 */
+export function 번호표읽기(글: string): Map<string, string[]> {
+  const 값: unknown = JSON.parse(글);
+  if (typeof 값 !== 'object' || 값 === null || Array.isArray(값)) throw new Error('번호표는 { "MKT-REQ-001": ["REQ-COM-001"] } 꼴이어야 한다');
+  const 표 = new Map<string, string[]>();
+  for (const [번호, 원본] of Object.entries(값)) {
+    if (!Array.isArray(원본) || !원본.every((x): x is string => typeof x === 'string')) throw new Error(`번호표 ${번호} 의 값이 글자 배열이 아니다`);
+    표.set(번호, 원본);
+  }
+  if (표.size === 0) throw new Error('번호표가 비었다 — 정답지 번호에 닿는 PRD 항목이 없다');
+  return 표;
+}
+
 /** 축 → 갈래. 이 밖의 축은 칸이 아니다 */
 const 갈래 = new Map([
   ['UI', 'UI'],

@@ -32,12 +32,24 @@ if (기획서경로 === undefined || prd경로 === undefined || 위치.length > 
 const 정답 = 정답읽기(읽기(기획서경로));
 if (정답.전체.size === 0) 멈추기(`정답지에 「| REQ-」 줄이 없습니다 — ${기획서경로}`);
 
-const 원본: unknown = JSON.parse(읽기(prd경로));
-const 항목들 = Array.isArray(원본) ? 원본 : (원본 as { items?: unknown } | null)?.items;
-// 모양만 본다 — 항목 안을 다 검사하지 않는다. 서버가 저장할 때 이미 검사했다
-if (!Array.isArray(항목들) || !항목들.every((x) => typeof x === 'object' && x !== null && 'reqId' in x && 'basis' in x)) {
-  멈추기(`PRD 항목 배열이 아닙니다 — ${prd경로}`);
+let 원본: unknown;
+try {
+  원본 = JSON.parse(읽기(prd경로));
+} catch (e) {
+  // psql 이 빈 결과(접두사 틀림)나 안내 줄을 내면 여기서 걸린다
+  멈추기(`PRD 파일이 JSON 이 아닙니다 — ${prd경로} — ${e instanceof Error ? e.message : String(e)}`);
 }
+const 항목들 = Array.isArray(원본) ? 원본 : (원본 as { items?: unknown } | null)?.items;
+// 채점이 읽는 칸만 본다 — 손으로 저장한 파일도 받으므로 서버 검사에 기대지 않는다
+const 항목꼴 = (x: unknown) => {
+  const 항목 = x as Partial<PrdItem> | null;
+  return (
+    typeof 항목?.reqId === 'string' &&
+    Array.isArray(항목.basis) &&
+    항목.basis.every((b) => typeof b?.quote === 'string' && (b.ref === undefined || typeof b.ref === 'string'))
+  );
+};
+if (!Array.isArray(항목들) || !항목들.every(항목꼴)) 멈추기(`PRD 항목 배열이 아닙니다 — ${prd경로}`);
 
 const 채점 = 채점하기(
   항목들 as PrdItem[],
@@ -47,6 +59,8 @@ const 채점 = 채점하기(
 );
 for (const 줄 of 채점줄(채점, 정답)) console.log(줄);
 if (선택.번호표 !== undefined) {
+  // 빈 번호표는 칸 겹침을 조용히 「없음」으로 만든다 — case-consistency 도 거절한다
+  if (채점.번호표.size === 0) 멈추기('정답지 번호에 닿는 PRD 항목이 없어 번호표를 쓰지 않았습니다');
   writeFileSync(선택.번호표, `${JSON.stringify(Object.fromEntries(채점.번호표), null, 2)}\n`);
   console.log(`번호표 ${String(채점.번호표.size)}줄 → ${선택.번호표}`);
 }
