@@ -4318,6 +4318,37 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   content: '▾ ';
 }
 
+/* 찾는 동안은 다 펴 두고 못 접는다 */
+.scn-pal-fold[aria-disabled='true'] {
+  cursor: default;
+}
+
+.scn-pal-count {
+  margin-left: 8px;
+  font-weight: 400;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.scn-pal-feature > .scn-pal-list,
+.scn-pal-sub {
+  margin-left: 14px;
+}
+
+.scn-pal-sub {
+  margin-top: 6px;
+}
+
+.scn-pal-sub > .scn-pal-fold {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.scn-pal-row .case-req {
+  flex-basis: 100%;
+  margin-top: 0;
+}
+
 .scn-pal-list {
   margin: 0;
   padding: 0;

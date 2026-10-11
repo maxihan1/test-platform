@@ -144,6 +144,8 @@ export const 시나리오말: Record<string, string> = {
   '상태 전이 사용 또는 기법 표시 없음': 'Uses state transition or has no technique label',
   '입력값 검증 케이스 {수}': 'Input validation cases {수}',
   '경계값 · 동등 분할 · 결정 테이블만 사용': 'Only boundary value, equivalence partitioning or decision table',
+  '정상 {정상} · 경계 · 예외 {나머지}': 'Normal {정상} · boundary · exception {나머지}',
+  '경계 · 예외 케이스 {수}': 'Boundary · exception cases {수}',
   '{번호} 더하기': 'Add {번호}',
   '{디바이스}에서 돌지 않는 케이스 {수}건은 뺐습니다': '{수} cases that do not run on {디바이스} are left out',
   '이 서비스에는 단계로 쓸 기능 테스트 스크립트가 없습니다': 'This service has no functional test script to use as a step',

@@ -79,36 +79,44 @@ export function 묶음머리줄({
 }
 
 /**
+ * 요구 줄 — 첫 요구 번호 · 요구 문장 · 외 N건. E2E 단계 추가 탭도 같은 줄을 쓴다 (도메인/시나리오 §8.11).
+ * 요구보나가 거짓이면 번호가 고리 없는 글자다
+ */
+export function 요구줄({ row, 요구보나, 요구쓰나 }: { row: CaseRow; 요구보나: boolean; 요구쓰나: boolean }) {
+  const t = use말();
+  const reqs = row.reqs ?? [];
+  const 첫 = reqs[0];
+  const 더 = new Set(reqs.map((r) => r.reqId)).size - 1;
+  // PRD 를 안 쓰는 서비스는 줄마다 「없음」을 달지 않는다 — 줄 하나만 버린다
+  if (첫 === undefined) return 요구쓰나 ? <span className="case-req none">{t('연결된 요구 없음')}</span> : null;
+  return (
+    <span className="case-req">
+      {첫.text === null || !요구보나 ? (
+        <span className="case-req-id">{첫.reqId}</span>
+      ) : (
+        <a className="case-req-id" href={PRD항목주소(첫.reqId)} title={t('PRD 관리에서 보기')}>
+          {첫.reqId}
+        </a>
+      )}
+      <span className="case-req-text" title={첫.text ?? undefined}>
+        {첫.text ?? t('PRD 에 없는 번호예요')}
+      </span>
+      {더 <= 0 ? null : <span className="case-req-more">{t('외 {건수}건', { 건수: 더 })}</span>}
+    </span>
+  );
+}
+
+/**
  * 케이스명 아래 맥락 두 줄 — 요구 줄과 작은 줄.
  * 작은 줄은 덩어리마다 통째로 넘어간다. 가운뎃점으로 잇지 않는다 — 다음 줄이 점으로 시작했다 (진행판 WEB-F2-14)
  */
 export function 케이스맥락({ row, 요구보나, 요구쓰나 }: { row: CaseRow; 요구보나: boolean; 요구쓰나: boolean }) {
   const t = use말();
-  const reqs = row.reqs ?? [];
-  const 첫 = reqs[0];
-  const 더 = new Set(reqs.map((r) => r.reqId)).size - 1;
   // UI 목록은 전부 UI 라 종류를 안 적는다
-  const 축들 = [...new Set(reqs.map((r) => r.axis))].filter((a): a is Exclude<케이스축, 'UI'> => a !== 'UI');
+  const 축들 = [...new Set((row.reqs ?? []).map((r) => r.axis))].filter((a): a is Exclude<케이스축, 'UI'> => a !== 'UI');
   return (
     <>
-      {첫 === undefined ? (
-        // PRD 를 안 쓰는 서비스는 줄마다 「없음」을 달지 않는다 — 줄 하나만 버린다
-        요구쓰나 ? <span className="case-req none">{t('연결된 요구 없음')}</span> : null
-      ) : (
-        <span className="case-req">
-          {첫.text === null || !요구보나 ? (
-            <span className="case-req-id">{첫.reqId}</span>
-          ) : (
-            <a className="case-req-id" href={PRD항목주소(첫.reqId)} title={t('PRD 관리에서 보기')}>
-              {첫.reqId}
-            </a>
-          )}
-          <span className="case-req-text" title={첫.text ?? undefined}>
-            {첫.text ?? t('PRD 에 없는 번호예요')}
-          </span>
-          {더 <= 0 ? null : <span className="case-req-more">{t('외 {건수}건', { 건수: 더 })}</span>}
-        </span>
-      )}
+      <요구줄 row={row} 요구보나={요구보나} 요구쓰나={요구쓰나} />
       <small className="case-meta">
         {축들.map((a) => (
           <span className="axis-tag" key={a}>
