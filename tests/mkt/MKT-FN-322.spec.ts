@@ -1,0 +1,23 @@
+import { defineCase, test, verify } from '@platform/kit';
+
+
+
+export const spec = defineCase({
+  tcId: 'MKT-FN-322',
+  name: '주소 검색어 없이 부르면 400 으로 응답한다',
+  techniques: ['동등 분할'],
+  precondition: ['로그인하지 않은 요청이다'],
+  params: null,
+  expected: null,
+});
+
+test(spec, async ({ request }) => {
+  await test.step('로그인하지 않은 요청인지 확인한다', async () => {
+    await verify('로그인한 회원이 없다', ((await (await request.get('/api/session')).json()) as { user: unknown }).user, null, { blocker: true });
+  });
+
+  await test.step('q 없이 GET /api/address 를 부른다', async () => {
+    const 응답 = await request.get('/api/address');
+    await verify('주소 검색어 없이 부르면 400 으로 응답한다', 응답.status(), 400);
+  });
+});

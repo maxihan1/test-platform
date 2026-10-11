@@ -1,0 +1,48 @@
+import { defineCase, test, verify } from '@platform/kit';
+
+import { 새회원으로로그인, 탈퇴 } from './helpers/account.helper.js';
+import type { 회원정보 } from './helpers/account.helper.js';
+import { 방해막기 } from './helpers/quiet.helper.js';
+import { 회원정보수정화면 } from './pages/my-profile.page.js';
+
+export const spec = defineCase({
+  tcId: 'MKT-FN-394',
+  name: '회원정보 이름 칸에 10자를 넣으면 10자가 다 들어간다',
+  precondition: ['새로 가입한 회원이 회원정보 수정에서 비밀번호 확인을 마쳤다'],
+  params: null,
+  expected: null,
+  techniques: ['경계값 분석'],
+});
+
+test(spec, async ({ page }) => {
+  let 정보!: 회원정보;
+  const 프로필 = new 회원정보수정화면(page);
+
+  try {
+    await test.step('임시 회원으로 가입해 로그인한다', async () => {
+      await 방해막기(page);
+      정보 = await 새회원으로로그인(page.request);
+    });
+
+    await test.step('회원정보 수정에서 비밀번호를 맞게 확인한다', async () => {
+      await 프로필.열기();
+      await 프로필.비밀번호확인하기(정보.password);
+    });
+
+    await test.step('정보 수정 칸이 열렸는지 확인한다', async () => {
+      await verify('회원정보 수정 정보 칸이 열려 있다', await 프로필.이름.isEditable(), true, { blocker: true });
+    });
+
+    await test.step('이름 칸에 10자를 넣는다', async () => {
+      await 프로필.이름.fill('가나다라마바사아자차');
+      await verify('회원정보 이름 칸에 10자를 넣으면 10자가 다 들어간다', (await 프로필.이름.inputValue()).length, 10);
+    });
+
+    await test.step('이름 칸에 11자를 넣는다', async () => {
+      await 프로필.이름.fill('가나다라마바사아자차카');
+      await verify('회원정보 이름 칸에 11자를 넣으면 10자까지만 들어간다', (await 프로필.이름.inputValue()).length, 10);
+    });
+  } finally {
+    await 탈퇴(page.request);
+  }
+});
