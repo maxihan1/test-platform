@@ -260,14 +260,13 @@ export async function 자료한건(요청: number, 자료번호: number): Promis
  *
  * **한 문장 UPDATE 가 판정이다** — 자료가 0 이거나 이미 선 행이면 아무것도 안 바뀌고 false 다.
  * 읽고 나서 고치면 그 사이에 맥이 집거나 자료가 빠질 수 있다.
- * 화면만(대조 + 시작 주소)은 읽을 기획서 없이 그 화면을 훑으므로 자료 0 이어도 선다 (§3.6 「★ 역방향」).
+ * 화면만(대조 + 자료 0)은 읽을 기획서 없이 그 화면을 훑으므로 선다 — 시작 주소가 없어도 크롤러가 대상 서버 주소에서 시작한다 (§3.6 「★ 역방향」 · 2026-10-11 PRD-F6-03).
  */
 export async function 제출(요청: number): Promise<boolean> {
   const r = await (await db()).query(
     `UPDATE authoring_request SET status = 'PENDING'
       WHERE id = $1 AND status = 'DRAFT' AND discarded_at IS NULL
-        AND (EXISTS (SELECT 1 FROM authoring_asset WHERE request_id = $1)
-             OR (compare AND start_url IS NOT NULL))`,
+        AND (EXISTS (SELECT 1 FROM authoring_asset WHERE request_id = $1) OR compare)`,
     [요청],
   );
   return r.rowCount === 1;

@@ -18,6 +18,7 @@ import { 머지집기칸 } from './held-routes.js';
 import { 집기대상 } from './reverse.js';
 import { 진척검사 } from './stop.js';
 import { 사용량통로 } from './usage.js';
+import { 기획서밖화면세우기 } from './uncovered.js';
 import { 번호 } from './params.js';
 import { 사진뿌리, 서비스번호 } from './routes.js';
 import {
@@ -267,7 +268,8 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     const error = req.body?.error;
     // 입력 옮기기와 끝내기를 뿌리 잠금 안의 한 UPDATE 로 — 사이에 들어온 PUT 을 덮거나, 옮기다 실패해 DONE 만 남지 않게.
     // 고치기 반영의 저장값 지우기도 같은 트랜잭션 — 지우다 실패하면 DONE 도 안 남아 에이전트가 다시 알린다
-    const 바뀌었나 = await 뿌리잠그고((await 뿌리(행.id)) ?? 행.id, async (손) => {
+    const 뿌리번호 = (await 뿌리(행.id)) ?? 행.id;
+    const 바뀌었나 = await 뿌리잠그고(뿌리번호, async (손) => {
       const 됨 = await 끝내기(
         행.id,
         {
@@ -284,6 +286,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
       );
       if (됨 && status === 'DONE' && 행.kind === 'MERGE') {
         await 반영뒤저장값(손, 행, 결과칸.pulled);
+        await 기획서밖화면세우기(손, 뿌리번호);
       }
       return 됨;
     });
