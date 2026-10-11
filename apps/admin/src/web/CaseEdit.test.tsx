@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // 케이스 상세의 「코드 기본값 바꾸기 요청」 (도메인/카탈로그 §8.1 · 도메인/작성 §3.6 「★ 케이스 고치기」).
-// 화면은 값과 동작만 보낸다 — 바꾼 칸만, 확정은 미확정일 때만, 삭제는 두 번 눌러야 간다
+// 화면은 값과 동작만 보낸다 — 바꾼 칸만, 삭제는 두 번 눌러야 간다. 미확정이어도 확정 고르개는 없다
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -104,45 +104,17 @@ describe('코드 기본값 바꾸기 요청', () => {
     expect(자리().getByText(/주문 상태 — 반영되면 이 저장값은 지워집니다/)).toBeTruthy();
   });
 
-  it('확정 고르개는 미확정 케이스에만 있고, 곁에 사유와 지금 기대값을 보인다', async () => {
-    const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 42 });
-    const { unmount } = render(<코드기본값고치기 row={케이스()} service="XEW" />);
-    expect(screen.queryByRole('checkbox')).toBeNull();
-    unmount();
-
-    render(<코드기본값고치기 row={케이스({ unconfirmed: '기획서에 결과 문구가 없다' })} service="XEW" />);
-    expect(자리().getByText(/기획서에 결과 문구가 없다/)).toBeTruthy();
-    expect(자리().getByText(/주문 상태 결제 완료/)).toBeTruthy();
-
-    fireEvent.click(자리().getByRole('checkbox', { name: /확정/ }));
-    fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
-    await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', confirm: true }]));
-  });
-
-  it('표준 기획서가 정한 미확정에는 확정 고르개 대신 「PRD 관리」 안내만 있다', async () => {
+  it('미확정 케이스에도 확정 고르개가 없다. 확정은 「PRD 관리」에서 한다', async () => {
     const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 45 });
     render(<코드기본값고치기 row={케이스({ unconfirmed: '확인 필요 — XEW-REQ-003 · XEW-REQ-007' })} service="XEW" />);
 
     expect(screen.queryByRole('checkbox')).toBeNull();
-    expect(자리().getByText('「PRD 관리」에서 확정합니다')).toBeTruthy();
-    expect(자리().getByText(/확인 필요 — XEW-REQ-003 · XEW-REQ-007/)).toBeTruthy();
+    expect(자리().queryByText(/XEW-REQ-003/)).toBeNull();
     expect(자리().getByRole('button', { name: '요청 보내기' }).hasAttribute('disabled')).toBe(true);
 
     fireEvent.change(자리().getByLabelText(/상품 수/), { target: { value: '3' } });
     fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
     await waitFor(() => expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', expected: { count: 3 } }]));
-  });
-
-  it('기대값과 확정을 한 요청에 같이 싣는다', async () => {
-    const 보냄 = vi.spyOn(api, 'createAuthoringEdit').mockResolvedValue({ id: 44 });
-    render(<코드기본값고치기 row={케이스({ unconfirmed: '문구가 기획서에 없다' })} service="XEW" />);
-
-    fireEvent.change(자리().getByLabelText(/상품 수/), { target: { value: '3' } });
-    fireEvent.click(자리().getByRole('checkbox', { name: /확정/ }));
-    fireEvent.click(자리().getByRole('button', { name: '요청 보내기' }));
-    await waitFor(() =>
-      expect(보냄).toHaveBeenCalledWith('XEW', [{ tcId: 'XEW-001', expected: { count: 3 }, confirm: true }]),
-    );
   });
 
   it('비활성 케이스 상세에는 고치기 자리가 없다. 서버가 늘 거절한다', () => {

@@ -79,18 +79,12 @@ describe.skipIf(연결 === undefined)('케이스 고치기 통로', () => {
               ($1, 'dev', 'https://dev.xeb.test', 'tester', '')`,
       [서비스, 비밀번호],
     );
-    for (const [tcId, 미확정] of [
-      ['XEB-001', null],
-      ['XEB-002', '화면에서 읽은 값'],
-      ['XEB-003', null],
-      ['XEBO-001', null],
-    ] as const) {
+    for (const tcId of 케이스번호들) {
       await p.query(
-        `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, unconfirmed)
-         VALUES ($1, 'XEB 고치기', '["desktop"]', '[]', 'xeb/a.spec.ts', '{"type":"object","properties":{}}', $2, $3)
-         ON CONFLICT (tc_id) DO UPDATE SET expected_schema = EXCLUDED.expected_schema, unconfirmed = EXCLUDED.unconfirmed,
-                                           is_active = true`,
-        [tcId, JSON.stringify(기대칸), 미확정],
+        `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema)
+         VALUES ($1, 'XEB 고치기', '["desktop"]', '[]', 'xeb/a.spec.ts', '{"type":"object","properties":{}}', $2)
+         ON CONFLICT (tc_id) DO UPDATE SET expected_schema = EXCLUDED.expected_schema, is_active = true`,
+        [tcId, JSON.stringify(기대칸)],
       );
     }
     process.env.AUTHORING_AGENT_USER = 맥;
@@ -125,7 +119,7 @@ describe.skipIf(연결 === undefined)('케이스 고치기 통로', () => {
     it('201 — EDIT · PENDING · 원본 없음 · params.edits · 요청한 사람', async () => {
       const edits = [
         { tcId: 'XEB-001', expected: { title: '주문 완료' } },
-        { tcId: 'XEB-002', confirm: true },
+        { tcId: 'XEB-002', expected: { total: 1 } },
         { tcId: 'XEB-003', delete: true },
       ];
       const id = await 세운번호({ edits });
@@ -139,6 +133,11 @@ describe.skipIf(연결 === undefined)('케이스 고치기 통로', () => {
       const res = await 고치기({ edits: [{ tcId: 'XEBO-001', delete: true }] });
       expect(res.statusCode).toBe(400);
       expect(res.json()).toEqual({ error: 'BAD_EDIT', detail: 'XEBO-001' });
+    });
+
+    it('confirm 이 오면 400 BAD_EDIT · 그 tcId — 「확정」은 케이스 고치기에서 빠졌다', async () => {
+      const res = await 고치기({ edits: [{ tcId: 'XEB-002', confirm: true }] });
+      expect([res.statusCode, res.json()]).toEqual([400, { error: 'BAD_EDIT', detail: 'XEB-002' }]);
     });
 
     it('본문 모양이 틀리면 400 BAD_EDIT · 빈 detail', async () => {

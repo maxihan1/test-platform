@@ -28,7 +28,6 @@ export const spec = defineCase({
   name: '쿠폰 두 장을 겹쳐 쓰면 최종 금액이 기준대로 나온다',
   platforms: ['desktop'],
   held: '판정 불가 — 쿠폰 중복 적용 시 최종 금액 기준이 기획서에 없다',
-  unconfirmed: '화면 기준 — 작성 요청 7',
   precondition: ['쿠폰 두 장이 있다'],
   params: z.object({
     coupon: z.string().describe('쿠폰 코드'),
@@ -72,9 +71,8 @@ describe('값적기 — 채운 칸에 .default(리터럴) 을 적고 held 를 �
     const 파일 = join(임시, 'XHA-001.spec.ts');
     writeFileSync(파일, 글);
     process.env.PLATFORM_SCAN = '1';
-    const 모듈 = (await import(pathToFileURL(파일).href)) as { spec: Parameters<typeof checkSpec>[1] & { unconfirmed?: string } };
+    const 모듈 = (await import(pathToFileURL(파일).href)) as { spec: Parameters<typeof checkSpec>[1] };
     expect(모듈.spec.held).toBeUndefined();
-    expect(모듈.spec.unconfirmed).toBe('화면 기준 — 작성 요청 7');
     const { propLines } = checkSource('XHA-001.spec.ts', 글);
     expect(checkSpec('XHA-001.spec.ts', 모듈.spec, propLines, { noHeld: true })).toEqual([]);
     expect(모듈.spec.paramSchema).toMatchObject({
@@ -95,10 +93,9 @@ describe('값적기 — 채운 칸에 .default(리터럴) 을 적고 held 를 �
     expect(적음(원문)).toContain(".describe('메모').optional().default('메모값')");
   });
 
-  it('비밀값 칸과 unconfirmed 는 그대로 둔다', () => {
+  it('비밀값 칸은 그대로 둔다', () => {
     const 글 = 적음(원문);
     expect(글).toContain(".optional().meta({ secret: true }),");
-    expect(글).toContain("unconfirmed: '화면 기준 — 작성 요청 7',");
     expect(글).not.toContain('held:');
   });
 

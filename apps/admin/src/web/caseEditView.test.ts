@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 고칠것검사 } from '../authoring/edit.js';
 import { api, ApiError, type CaseRow } from './api.js';
-import { 고치기오류문장, 고칠칸들, 기대값한줄, 바꾼값, 저장값지울칸 } from './caseEditView.js';
+import { 고치기오류문장, 고칠칸들, 바꾼값, 저장값지울칸 } from './caseEditView.js';
 import { initialText } from './schema.js';
 
 const 기대스키마 = {
@@ -50,7 +50,7 @@ describe('코드 기본값을 바꿀 수 있는 칸', () => {
   it('보이는 칸은 서버 검사가 받는 칸과 같다. 화면만 넓으면 보내고 나서야 거절된다', () => {
     const properties = (기대스키마 as { properties: Record<string, { default: unknown }> }).properties;
     const 판 = {
-      케이스들: new Map([['XEW-001', { tcId: 'XEW-001', active: true, unconfirmed: null, expectedSchema: 기대스키마 }]]),
+      케이스들: new Map([['XEW-001', { tcId: 'XEW-001', active: true, expectedSchema: 기대스키마 }]]),
       접두사: 'XEW',
       비밀번호들: [],
     };
@@ -103,19 +103,6 @@ describe('반영되면 지워지는 저장값', () => {
   it('저장값이 없으면 아무것도 안 낸다', () => {
     const 행 = 케이스();
     expect(저장값지울칸(행, 고칠칸들(행.expectedSchema), ['state'])).toEqual([]);
-  });
-});
-
-describe('지금 기대값 한 줄', () => {
-  it('코드 기본값을 라벨과 같이 적고 비밀값은 가린다', () => {
-    const 줄 = 기대값한줄(기대스키마, 'ko');
-    expect(줄).toContain('주문 상태 결제 완료');
-    expect(줄).toContain('배너 보임 예');
-    expect(줄).not.toContain('pw');
-  });
-
-  it('기대값 칸이 없으면 없다고 적는다', () => {
-    expect(기대값한줄({ type: 'object', properties: {} } as unknown as CaseRow['expectedSchema'], 'ko')).toBe('기대결과 없음');
   });
 });
 
