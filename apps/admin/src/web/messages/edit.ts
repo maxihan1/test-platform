@@ -33,7 +33,7 @@ export const 고치기말: Record<string, string> = {
   '고치는 중': 'Changing',
   '다시 적용': 'Re-apply',
   '고치는 중에 멈췄습니다': 'Stopped while changing',
-  '케이스를 고쳐 PR 로 올렸습니다': 'Changed the cases and opened a PR',
+  '스크립트를 고쳐 PR 을 만들었습니다': 'Changed the scripts and created a PR',
   '고칠 내용': 'Changes',
   삭제: 'Delete',
   확정: 'Confirm',
@@ -49,7 +49,7 @@ export const 고치기말: Record<string, string> = {
   '반영이 실패했습니다. 다른 PR 과 충돌했으면 지금 main 위에서 같은 내용으로 다시 고친 뒤 반영하세요.':
     'The merge failed. If it conflicted with another PR, re-apply the same changes on the current main, then merge.',
   // 고치기 에이전트의 단계 글 (authoringStatus.ts 단계글)
-  '케이스를 고치는 중': 'Changing cases',
+  '스크립트를 고치는 중': 'Changing scripts',
   '검사하는 중': 'Checking',
   '케이스를 고쳐 PR 로 올리는 중입니다. 이 페이지를 닫아도 됩니다.': 'Changing the cases and opening a PR. You can close this page.',
   '테스트가 반영됐습니다. 케이스 목록에서 「다시 스캔」을 누르면 바뀐 것이 보입니다.':

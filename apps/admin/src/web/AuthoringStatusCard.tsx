@@ -28,26 +28,26 @@ function 막대({ 이름, 비율, 흐림 = false }: { 이름: string; 비율: nu
 }
 
 /**
- * 기획서 요구 셈 한 줄. 넷(덮음 · 제외 · 빠짐)이 합쳐 전부라는 것이 보이게 제외 · 빠짐은 0 이어도 남긴다.
+ * PRD 요구사항 집계 한 줄. 넷(작성 · 제외 · 누락)이 합쳐 전부라는 것이 보이게 제외 · 누락은 0 이어도 남긴다.
  * 판정이 아니라 잉크로만 적는다 (DESIGN.md 원칙 1)
  */
 function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t: ReturnType<typeof use말>): string {
-  if ('none' in c) return t('셈 없음 — {까닭}', { 까닭: c.none });
+  if ('none' in c) return t('집계 없음 — {까닭}', { 까닭: c.none });
   const 제외 = Object.values(c.excluded).reduce((합, 수) => 합 + 수, 0);
   const 원장밖 = c.unread?.length ?? 0;
   // 보류는 DONE 때만 센다 — 중단된 실행의 null 은 「모름」이 아니라 「안 셈」이라 빼 둔다
-  const 보류 = c.held === null ? (상태 === 'DONE' ? t('보류 모름') : null) : c.held > 0 ? t('보류로만 {수}', { 수: c.held }) : null;
+  const 보류 = c.held === null ? (상태 === 'DONE' ? t('보류 여부 확인 불가') : null) : c.held > 0 ? t('보류 스크립트로만 {수}', { 수: c.held }) : null;
   const 칸 = [
     c.total > 0
-      ? t('{총}개 → 케이스로 덮음 {덮음} ({퍼센트}%)', { 총: c.total, 덮음: c.cased, 퍼센트: Math.round((c.cased / c.total) * 100) })
-      : t('{총}개 → 케이스로 덮음 {덮음}', { 총: c.total, 덮음: c.cased }),
+      ? t('{총}건 중 스크립트 작성 {덮음}건 ({퍼센트}%)', { 총: c.total, 덮음: c.cased, 퍼센트: Math.round((c.cased / c.total) * 100) })
+      : t('{총}건 중 스크립트 작성 {덮음}건', { 총: c.total, 덮음: c.cased }),
     // 갈래 수는 이 칸 전 실행에 없다 — 0 으로 채우면 「그 갈래로 덮은 요구 0개」로 읽힌다
     c.casedFn === undefined ? null : t('기능 테스트 {수}', { 수: c.casedFn }),
     c.casedUi === undefined ? null : t('UI 테스트 {수}', { 수: c.casedUi }),
     보류,
-    c.later.length > 0 ? t('제외 {수} (다음 요청 {다음})', { 수: 제외, 다음: c.later.length }) : t('제외 {수}', { 수: 제외 }),
-    t('빠짐 {수}', { 수: c.missing.length }),
-    원장밖 > 0 ? t('원장 밖 자료 {수}', { 수: 원장밖 }) : null,
+    c.later.length > 0 ? t('제외 {수} (다음 작성 {다음})', { 수: 제외, 다음: c.later.length }) : t('제외 {수}', { 수: 제외 }),
+    t('누락 {수}', { 수: c.missing.length }),
+    원장밖 > 0 ? t('PRD 밖 자료 {수}', { 수: 원장밖 }) : null,
   ];
   return 칸.filter((x): x is string => x !== null).join(' · ');
 }
@@ -188,11 +188,11 @@ export function AuthoringStatusCard({
       {p === null || 자리 === null ? null : (
         <div className="status-facts">
           <div>
-            <span className="status-label">{t('만든 케이스 파일')}</span>
+            <span className="status-label">{t('작성한 스크립트 파일')}</span>
             <b>{t('{수}개', { 수: p.caseFiles })}</b>
           </div>
           <div>
-            <span className="status-label">{t('훑은 화면')}</span>
+            <span className="status-label">{t('탐색한 화면')}</span>
             <b>{p.screens === undefined ? '—' : t('{수}장', { 수: p.screens })}</b>
           </div>
           <div>
@@ -206,7 +206,7 @@ export function AuthoringStatusCard({
       {/* 숫자 칸 조건과 따로 — 진척 기록이 없는 끝난 실행에도 셈은 있다 */}
       {셈 === null ? null : (
         <div className="status-row">
-          <span className="status-label">{t('기획서 요구')}</span>
+          <span className="status-label">{t('PRD 요구사항')}</span>
           <span className="status-sub">{커버리지글(셈, 요청.status, t)}</span>
         </div>
       )}

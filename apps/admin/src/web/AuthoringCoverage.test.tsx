@@ -65,9 +65,9 @@ function 줄(덮을것: Partial<AuthoringRow>): AuthoringRow {
 }
 
 function 셈줄(): HTMLElement {
-  const 라벨 = screen.getByText('기획서 요구');
+  const 라벨 = screen.getByText('PRD 요구사항');
   const 줄 = 라벨.closest('.status-row');
-  if (!(줄 instanceof HTMLElement)) throw new Error('기획서 요구 줄이 status-row 안에 없다');
+  if (!(줄 instanceof HTMLElement)) throw new Error('PRD 요구사항 줄이 status-row 안에 없다');
   return 줄;
 }
 
@@ -78,34 +78,34 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-describe('Status 카드 — 기획서 요구 셈 한 줄', () => {
-  it('셈이 있으면 요구 수 · 케이스로 덮은 수와 % · 보류로만 · 제외(다음 요청) · 빠짐을 한 줄에 적는다', () => {
+describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
+  it('집계가 있으면 요구 수 · 스크립트를 작성한 수와 % · 보류 스크립트로만 · 제외(다음 작성) · 누락을 한 줄에 적는다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: 예시셈 })} 지금={지금} />);
-    expect(셈줄().textContent).toBe('기획서 요구172개 → 케이스로 덮음 48 (28%) · 보류로만 3 · 제외 124 (다음 요청 100) · 빠짐 0');
+    expect(셈줄().textContent).toBe('PRD 요구사항172건 중 스크립트 작성 48건 (28%) · 보류 스크립트로만 3 · 제외 124 (다음 작성 100) · 누락 0');
   });
 
-  it('보류를 모르면 끝난 실행에서만 보류 모름이라고 적는다 — 보류는 끝났을 때만 센다', () => {
+  it('보류를 모르면 끝난 실행에서만 보류 여부 확인 불가라고 적는다 — 보류는 끝났을 때만 센다', () => {
     const 셈 = { ...예시셈, held: null };
     render(<AuthoringStatusCard 요청={줄({ coverage: 셈 })} 지금={지금} />);
-    expect(셈줄().textContent).toContain('보류 모름');
+    expect(셈줄().textContent).toContain('보류 여부 확인 불가');
     cleanup();
     render(<AuthoringStatusCard 요청={줄({ status: 'STOPPED', stopReason: 'REJECTED', coverage: 셈 })} 지금={지금} />);
     expect(셈줄().textContent).not.toContain('보류');
   });
 
-  it('갈래 수가 있으면 케이스로 덮음 뒤에 기능 · UI 테스트로 덮은 수를 붙인다', () => {
+  it('갈래 수가 있으면 스크립트 작성 뒤에 기능 · UI 테스트로 덮은 수를 붙인다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, casedFn: 40, casedUi: 12 } })} 지금={지금} />);
     expect(셈줄().textContent).toBe(
-      '기획서 요구172개 → 케이스로 덮음 48 (28%) · 기능 테스트 40 · UI 테스트 12 · 보류로만 3 · 제외 124 (다음 요청 100) · 빠짐 0',
+      'PRD 요구사항172건 중 스크립트 작성 48건 (28%) · 기능 테스트 40 · UI 테스트 12 · 보류 스크립트로만 3 · 제외 124 (다음 작성 100) · 누락 0',
     );
   });
 
-  it('보류로만 덮은 것이 0 이면 그 칸을 뺀다', () => {
+  it('보류 스크립트로만 쓴 것이 0 이면 그 칸을 뺀다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, held: 0 } })} 지금={지금} />);
     expect(셈줄().textContent).not.toContain('보류');
   });
 
-  it('다음 요청이 없으면 괄호를 빼고, 원장 밖 자료가 있으면 끝에 적는다', () => {
+  it('다음 작성이 없으면 괄호를 빼고, PRD 밖 자료가 있으면 끝에 적는다', () => {
     render(
       <AuthoringStatusCard
         요청={줄({ coverage: { ...예시셈, held: 0, later: [], unread: ['화면설계.pdf'] } })}
@@ -113,8 +113,8 @@ describe('Status 카드 — 기획서 요구 셈 한 줄', () => {
       />,
     );
     const 글 = 셈줄().textContent ?? '';
-    expect(글).not.toContain('(다음 요청');
-    expect(글).toContain('제외 124 · 빠짐 0 · 원장 밖 자료 1');
+    expect(글).not.toContain('(다음 작성');
+    expect(글).toContain('제외 124 · 누락 0 · PRD 밖 자료 1');
   });
 
   it('제외가 0 이어도 제외 칸을 남긴다 — 넷이 합쳐 전부라는 것이 보여야 한다', () => {
@@ -124,7 +124,7 @@ describe('Status 카드 — 기획서 요구 셈 한 줄', () => {
         지금={지금}
       />,
     );
-    expect(셈줄().textContent).toBe('기획서 요구3개 → 케이스로 덮음 1 (33%) · 제외 0 · 빠짐 2');
+    expect(셈줄().textContent).toBe('PRD 요구사항3건 중 스크립트 작성 1건 (33%) · 제외 0 · 누락 2');
   });
 
   it('요구가 0 개면 % 를 뺀다', () => {
@@ -135,36 +135,36 @@ describe('Status 카드 — 기획서 요구 셈 한 줄', () => {
       />,
     );
     const 글 = 셈줄().textContent ?? '';
-    expect(글).toContain('0개 → 케이스로 덮음 0');
+    expect(글).toContain('0건 중 스크립트 작성 0건');
     expect(글).not.toContain('%');
   });
 
-  it('원장을 못 만들었으면 셈 없음과 까닭을 적는다', () => {
+  it('원장을 못 만들었으면 집계 없음과 까닭을 적는다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { none: 'PDF 라 글자를 못 뽑았다' } })} 지금={지금} />);
-    expect(셈줄().textContent).toBe('기획서 요구셈 없음 — PDF 라 글자를 못 뽑았다');
+    expect(셈줄().textContent).toBe('PRD 요구사항집계 없음 — PDF 라 글자를 못 뽑았다');
   });
 
   it('셈이 없는 요청(이 칸 전의 실행)에는 줄이 없다', () => {
     render(<AuthoringStatusCard 요청={줄({})} 지금={지금} />);
-    expect(screen.queryByText('기획서 요구')).toBeNull();
+    expect(screen.queryByText('PRD 요구사항')).toBeNull();
     cleanup();
     render(<AuthoringStatusCard 요청={줄({ coverage: null })} 지금={지금} />);
-    expect(screen.queryByText('기획서 요구')).toBeNull();
+    expect(screen.queryByText('PRD 요구사항')).toBeNull();
   });
 
   it('진척 기록이 없어도 줄은 보인다 — 숫자 칸과 따로다', () => {
     render(<AuthoringStatusCard 요청={줄({ progress: null, coverage: 예시셈 })} 지금={지금} />);
-    expect(screen.queryByText('만든 케이스 파일')).toBeNull();
-    expect(셈줄().textContent).toContain('172개 → 케이스로 덮음 48 (28%)');
+    expect(screen.queryByText('작성한 스크립트 파일')).toBeNull();
+    expect(셈줄().textContent).toContain('172건 중 스크립트 작성 48건 (28%)');
   });
 
   it('셈을 따로 넘기면 요청의 셈 대신 그것을 쓴다 — null 을 넘기면 줄이 없다', () => {
     const 따로 = { ...예시셈, total: 50, cased: 50, excluded: {}, later: [] };
     render(<AuthoringStatusCard 요청={줄({ coverage: 예시셈 })} 커버리지={따로} 지금={지금} />);
-    expect(셈줄().textContent).toContain('50개 → 케이스로 덮음 50 (100%)');
+    expect(셈줄().textContent).toContain('50건 중 스크립트 작성 50건 (100%)');
     cleanup();
     render(<AuthoringStatusCard 요청={줄({ coverage: 예시셈 })} 커버리지={null} 지금={지금} />);
-    expect(screen.queryByText('기획서 요구')).toBeNull();
+    expect(screen.queryByText('PRD 요구사항')).toBeNull();
   });
 
   it('영어 화면에서는 라벨과 칸이 영어다', () => {
@@ -173,7 +173,7 @@ describe('Status 카드 — 기획서 요구 셈 한 줄', () => {
         <AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, unread: ['a.pdf'] } })} 지금={지금} />
       </언어함>,
     );
-    const 라벨 = screen.getByText('Spec requirements');
+    const 라벨 = screen.getByText('PRD requirements');
     const 글 = 라벨.closest('.status-row')?.textContent ?? '';
     expect(글).not.toMatch(/[가-힣]/u);
     expect(글).toContain('172');
@@ -205,8 +205,8 @@ describe('상세 — 셈은 머지를 뺀 최신 작성 실행 것이다', () =>
     답들.set(5, 줄({ id: 5, rootId: 5, runs: 기록, coverage: 예시셈 }));
     답들.set(11, 줄({ id: 11, kind: 'MERGE', sourceId: 5, progress: null, rootId: 5, runs: 기록 }));
     render(<AuthoringDetail service="PAY" id={5} 할수={운영} />);
-    await screen.findByText('기획서 요구');
-    expect(셈줄().textContent).toContain('172개 → 케이스로 덮음 48 (28%)');
+    await screen.findByText('PRD 요구사항');
+    expect(셈줄().textContent).toContain('172건 중 스크립트 작성 48건 (28%)');
   });
 
   it('다시 작성한 실행이 있으면 처음 실행이 아니라 그 실행의 셈을 보인다', async () => {
@@ -215,8 +215,8 @@ describe('상세 — 셈은 머지를 뺀 최신 작성 실행 것이다', () =>
     답들.set(9, 줄({ id: 9, kind: 'RERUN', sourceId: 5, rootId: 5, runs: 기록, coverage: 예시셈 }));
     답들.set(11, 줄({ id: 11, kind: 'MERGE', sourceId: 9, progress: null, rootId: 5, runs: 기록 }));
     render(<AuthoringDetail service="PAY" id={5} 할수={운영} />);
-    await screen.findByText('기획서 요구');
-    expect(셈줄().textContent).toContain('172개 → 케이스로 덮음 48 (28%)');
+    await screen.findByText('PRD 요구사항');
+    expect(셈줄().textContent).toContain('172건 중 스크립트 작성 48건 (28%)');
     expect(screen.queryByText(/처음 실행의 옛 셈/)).toBeNull();
   });
 });

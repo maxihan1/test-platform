@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AuthoringProgress, AuthoringRow } from './api.js';
-import { 다시작성원본, 단계자리, 목록글, 시간판, 진척, 짧은수, 활동글 } from './authoringStatus.js';
+import { 다시작성원본, 단계글라벨, 단계자리, 목록글, 시간판, 진척, 짧은수, 활동글 } from './authoringStatus.js';
 
 const 기준 = Date.parse('2026-09-28T13:20:00Z');
 
@@ -112,6 +112,19 @@ describe('시간판', () => {
   });
 });
 
+describe('단계글라벨', () => {
+  it('에이전트가 보내는 옛 단계 글을 화면 글로 옮긴다 — 칸 자리 계산은 원래 글로 한다', () => {
+    expect(단계글라벨('작업방을 만드는 중', 'ko')).toBe('작업 폴더를 만드는 중');
+    expect(단계글라벨('자료를 받는 중', 'ko')).toBe('자료 · PRD 를 읽는 중');
+    expect(단계글라벨('보관한 작업방이 없어 처음부터 하는 중', 'en')).toBe('No saved work folder, starting from scratch');
+    expect(단계자리(줄({ stage: '자료를 받는 중' }))?.지금).toBe(1);
+  });
+
+  it('모르는 글은 그대로 나간다', () => {
+    expect(단계글라벨('새로 생긴 단계', 'ko')).toBe('새로 생긴 단계');
+  });
+});
+
 describe('짧은수', () => {
   it('큰 수는 줄여 쓴다', () => {
     expect(짧은수(1_234_567)).toBe('1.2M');
@@ -137,15 +150,15 @@ describe('목록글', () => {
   it('상태마다 사람이 읽는 한 문장을 낸다', () => {
     expect(목록글(줄({ status: 'PENDING', startedAt: null }), 'ko')).toBe('에이전트 순서를 기다리는 중');
     expect(목록글(줄({ status: 'DRAFT', startedAt: null }), 'ko')).toBe('자료 올리기가 끝나지 않았습니다');
-    expect(목록글(줄({ stage: '케이스를 만드는 중' }), 'ko')).toBe('케이스를 만드는 중');
+    expect(목록글(줄({ stage: '케이스를 만드는 중' }), 'ko')).toBe('스크립트를 만드는 중');
     expect(목록글(줄({ stage: null }), 'ko')).toBe('준비');
   });
 
   it('끝난 것은 결과를 말한다 — 날것 단계 글(끝)을 보이지 않는다', () => {
-    expect(목록글(줄({ status: 'DONE', stage: '끝', progress: 도는진척 }), 'ko')).toBe('케이스 파일 3개를 만들었습니다');
+    expect(목록글(줄({ status: 'DONE', stage: '끝', progress: 도는진척 }), 'ko')).toBe('스크립트 파일 3개를 만들었습니다');
     expect(목록글(줄({ status: 'DONE', stage: '끝' }), 'ko')).toBe('테스트 코드를 PR 로 올렸습니다');
     expect(목록글(줄({ status: 'DONE', kind: 'MERGE', stage: '끝' }), 'ko')).toBe('테스트 반영 완료');
-    expect(목록글(줄({ status: 'STOPPED', stage: '케이스를 만드는 중' }), 'ko')).toBe('케이스 작성 단계에서 멈췄습니다');
+    expect(목록글(줄({ status: 'STOPPED', stage: '케이스를 만드는 중' }), 'ko')).toBe('스크립트 작성 단계에서 멈췄습니다');
     expect(목록글(줄({ status: 'STOPPED', startedAt: null, stage: null }), 'ko')).toBe('시작 전에 멈췄습니다');
     expect(목록글(줄({ status: 'FAILED', error: '자료를 못 받았다\n자세히' }), 'ko')).toBe('자료를 못 받았다');
   });
@@ -175,13 +188,13 @@ describe('다시작성원본', () => {
 describe('케이스 고치기 실행', () => {
   const 고침 = { edits: [{ tcId: 'PAY-001', delete: true }] };
 
-  it('작성 단계 막대를 그리지 않는다. 자료 받기 · 케이스 작성을 안 밟는다', () => {
+  it('작성 단계 막대를 그리지 않는다. 자료 · PRD 읽기 · 스크립트 작성을 안 밟는다', () => {
     expect(단계자리(줄({ kind: 'EDIT', params: 고침, stage: '케이스를 고치는 중' }))).toBeNull();
     expect(단계자리(줄({ kind: 'RERUN', sourceId: 3, params: 고침, status: 'DONE' }))).toBeNull();
   });
 
   it('목록 줄은 고친 결과 · 멈춘 사실을 고치기 말로 적는다', () => {
-    expect(목록글(줄({ kind: 'EDIT', params: 고침, status: 'DONE' }), 'ko')).toBe('케이스를 고쳐 PR 로 올렸습니다');
+    expect(목록글(줄({ kind: 'EDIT', params: 고침, status: 'DONE' }), 'ko')).toBe('스크립트를 고쳐 PR 을 만들었습니다');
     expect(목록글(줄({ kind: 'EDIT', params: 고침, status: 'STOPPED', stopReason: 'AGENT_LOST' }), 'ko')).toBe(
       '고치는 중에 멈췄습니다',
     );
