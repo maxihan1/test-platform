@@ -1,7 +1,6 @@
 // 케이스 고치기(EDIT)의 순수 함수 — 기대값 · 삭제를 main 사본의 글에 적고 PR 본문 줄을 만든다
 import { describe, expect, it } from 'vitest';
 
-import { 속성빼기 } from './authoring-held-apply.js';
 import { type 고칠것, 기대기본값들, 편집PR본문, 편집계산 } from './authoring-edit-apply.js';
 
 const 원본 = `import { defineCase, test, verify } from '@platform/kit';
@@ -51,16 +50,6 @@ function 계산됨(edits: 고칠것[], 표글: typeof 표 | null = 표) {
   if ('사유' in r) throw new Error(r.사유);
   return r;
 }
-
-describe('속성빼기 — defineCase 의 속성 줄 하나를 통째로 뺀다', () => {
-  it('앞 줄바꿈부터 뒤 쉼표까지 빼고 나머지 글자는 그대로다', () => {
-    expect(속성빼기(원본, 'precondition')).toBe(원본.replace("\n  precondition: ['비회원이다'],", ''));
-  });
-
-  it('그 속성이 없으면 원문 그대로다', () => {
-    expect(속성빼기(원본, 'held')).toBe(원본);
-  });
-});
 
 describe('기대기본값들 — PR 본문에 싣는 지금 값', () => {
   it('expected 칸마다 .default 인자의 코드 글자 — 기본값이 없는 칸은 빠진다', () => {

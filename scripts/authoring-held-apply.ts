@@ -94,13 +94,6 @@ function 빼는고침(원문: string, 속: ts.PropertyAssignment): 고침 {
   return { 시작: 속.getFullStart(), 끝: 속.end + (쉼표?.[0].length ?? 0), 글: '' };
 }
 
-/** defineCase 의 속성 줄 하나를 뺀다(보류 `held`). 없으면 원문 그대로 */
-export function 속성빼기(원문: string, 키: string): string {
-  const 명세 = 명세글(읽기(원문));
-  const 속 = 명세 === undefined ? undefined : 속성(명세, 키);
-  return 속 === undefined ? 원문 : 고치기(원문, [빼는고침(원문, 속)]);
-}
-
 /**
  * 채운 칸에 `.default(값)` 을 적고(있으면 그 값을 바꾼다) `held` 속성을 뺀다.
  * 다시 적어도 같은 글이 나온다 — 실패 뒤 다시 누른 반영이 겹쳐 쓰지 않는다
