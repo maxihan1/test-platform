@@ -54,8 +54,6 @@ export interface 역방향올리기 {
   토큰: string;
   /** 자식 uid. 맥이면 null */
   자식: 계정 | null;
-  /** 기획서 없이 시작 주소만 */
-  화면만: boolean;
   /** 사람이 넣은 입력 자료 — 표시할 원본이다 (§3.6 표시) */
   입력자료: 자료[];
 }
@@ -100,7 +98,7 @@ export async function 올리기(
   if (지운줄.length > 0) console.log(`[작성] ${것.id}번 — ${지운줄[0]}`);
   // 역방향이면 이번에 본 화면 기록을 서버 저장본(DB · 저장소 밖)에 올린다 — 다음 작성은 바뀐 화면만 훑는다 (§3.6 「★ 역방향」 · PRD-F6-01).
   // 재사용 수 · 가장 오래된 날은 PR 본문 머리에도 싣는다 — 자식이 옮겨 적기를 빠뜨려도 사람이 본다
-  const 저장 = 역 === undefined ? null : await 저장본올리기({ 주소기지: 역.주소기지, 토큰: 역.토큰, 번호: 것.id }, 자리.자료, 역.화면만, 것.target?.loginPassword);
+  const 저장 = 역 === undefined ? null : await 저장본올리기({ 주소기지: 역.주소기지, 토큰: 역.토큰, 번호: 것.id }, 자리.자료, 것.target?.loginPassword);
   if (저장 !== null && '거절' in 저장) {
     await 손.끝내기(거절(저장.거절));
     return;
