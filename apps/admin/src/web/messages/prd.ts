@@ -4,13 +4,13 @@
 export const 기획서말: Record<string, string> = {
   // 머리와 알림
   '아직 PRD 가 없습니다': 'No PRD yet',
-  '판 {판} · 요구 {건수}건': 'Version {판} · {건수} requirements',
-  '판 이력': 'Version history',
+  '버전 {버전} · 요구 {건수}건': 'Version {버전} · {건수} requirements',
+  '버전 기록': 'Version history',
   '워드로 내려받기': 'Download as Word',
   '추적표 엑셀로 내려받기': 'Download traceability matrix',
   '요구 더하기': 'Add requirement',
   '요구 더하기로 첫 요구를 적습니다': 'Use Add requirement to write the first one',
-  '판 {판}으로 저장했습니다': 'Saved as version {판}',
+  '저장했습니다 (버전 {버전})': 'Saved (version {버전})',
 
   // 할 일 두 칸
   '확인할 요구도 테스트에 반영할 요구도 없습니다': 'Nothing to check and nothing to apply to tests',
@@ -21,7 +21,7 @@ export const 기획서말: Record<string, string> = {
   '확인할 요구가 없습니다': 'Nothing to check',
   '{번호} 고르기': 'Select {번호}',
   '모두 고르기': 'Select all',
-  '확정하면 바로 새 판이 됩니다. PR 은 없습니다': 'Confirming saves a new version right away. No PR.',
+  '확정하면 바로 새 버전으로 저장됩니다. PR 은 없습니다': 'Confirming saves a new version right away. No PR.',
   '고른 {건수}건 확정': 'Confirm {건수} selected',
   '반영 안 됨 {건수}건': '{건수} not in tests',
   '고친 요구가 아직 테스트에 없습니다': 'Edited requirements are not in the tests yet',
@@ -98,16 +98,16 @@ export const 기획서말: Record<string, string> = {
   '글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 근거 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 근거 문장 {근거문장}자':
     'Too long. Limits: feature {묶음} chars · requirement {문장} chars · {근거} sources · document name and source ID {자리} chars · source sentence {근거문장} chars',
 
-  // 판 이력
-  판: 'Version',
-  누가: 'By',
-  언제: 'When',
-  옮기기: 'Import',
-  // 판을 만든 쪽 — 「사람」(People) · 「되돌리기」(Undo) 버튼 글자와 영어가 다르다
-  '사람§판': 'Person',
-  '되돌리기§판': 'Revert',
-  '지금 판': 'Current',
-  '이 판으로 되돌리기': 'Revert to this version',
-  '판 {판}으로 되돌리기 확인': 'Confirm revert to version {판}',
-  '되돌리기도 새 판으로 쌓입니다. 옛 판은 지우지 않습니다': 'A revert is saved as a new version. Old versions stay.',
+  // 버전 기록 — 사람이 보는 말은 「버전」이고 명세 · DB · 에이전트의 내부 용어는 「판」 그대로다 (2026-10-12 사용자)
+  버전: 'Version',
+  '저장한 사람': 'Saved by',
+  '저장 일시': 'Saved at',
+  // 버전을 만든 쪽
+  'AI 작성': 'AI',
+  '직접 수정': 'Edited by hand',
+  복원: 'Restore',
+  '현재 버전': 'Current',
+  '이 버전으로 복원': 'Restore this version',
+  '버전 {버전} 복원 확인': 'Confirm restoring version {버전}',
+  '복원해도 새 버전으로 저장됩니다. 이전 버전은 남아 있습니다': 'A restore is saved as a new version. Earlier versions stay.',
 };

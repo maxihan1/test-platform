@@ -15,7 +15,7 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
   const 목록 = useAsync(() => prdApi.versions(service), [service, 지금판]);
   const [묻는판, set묻는판] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
-  const 출처글: Record<PrdVersionRow['source'], string> = { AGENT: t('옮기기'), PERSON: t('사람§판'), REVERT: t('되돌리기§판') };
+  const 출처글: Record<PrdVersionRow['source'], string> = { AGENT: t('AI 작성'), PERSON: t('직접 수정'), REVERT: t('복원') };
 
   async function 되돌리기(toVersion: number) {
     setBusy(true);
@@ -27,9 +27,9 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
     <section className="screen prd-versions" aria-labelledby="prd-versions-title">
       <div className="toolbar">
         <h2 id="prd-versions-title" className="prd-all-title">
-          {t('판 이력')}
+          {t('버전 기록')}
         </h2>
-        <span className="note">{t('되돌리기도 새 판으로 쌓입니다. 옛 판은 지우지 않습니다')}</span>
+        <span className="note">{t('복원해도 새 버전으로 저장됩니다. 이전 버전은 남아 있습니다')}</span>
       </div>
       {목록.error !== null ? (
         <Failed error={목록.error} />
@@ -40,10 +40,10 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
           <table className="prd-vtable">
             <thead>
               <tr>
-                <th>{t('판')}</th>
-                <th>{t('누가')}</th>
-                <th>{t('언제')}</th>
-                <th aria-label={t('되돌리기§판')} />
+                <th>{t('버전')}</th>
+                <th>{t('저장한 사람')}</th>
+                <th>{t('저장 일시')}</th>
+                <th aria-label={t('복원')} />
               </tr>
             </thead>
             <tbody>
@@ -56,11 +56,11 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
                   <td>{when(v.savedAt, 언어)}</td>
                   <td className="prd-vact">
                     {v.version === 지금판 ? (
-                      <span className="prd-plain">{t('지금 판')}</span>
+                      <span className="prd-plain">{t('현재 버전')}</span>
                     ) : !쓰나 ? null : 묻는판 === v.version ? (
                       <>
                         <button className="btn small" disabled={busy} onClick={() => void 되돌리기(v.version)}>
-                          {t('판 {판}으로 되돌리기 확인', { 판: v.version })}
+                          {t('버전 {버전} 복원 확인', { 버전: v.version })}
                         </button>
                         <button className="btn ghost small" onClick={() => set묻는판(null)}>
                           {t('취소')}
@@ -68,7 +68,7 @@ export function PrdVersions({ service, 지금판, 쓰나, 짓기 }: { service: s
                       </>
                     ) : (
                       <button className="btn ghost small" onClick={() => set묻는판(v.version)}>
-                        {t('이 판으로 되돌리기')}
+                        {t('이 버전으로 복원')}
                       </button>
                     )}
                   </td>
