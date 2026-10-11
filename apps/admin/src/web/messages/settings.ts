@@ -47,8 +47,8 @@ export const 설정말: Record<string, string> = {
   '테스트 저장소': 'Tests repository',
   '기록용으로만 적어 둡니다. 플랫폼이 이 저장소를 받아오지는 않습니다': 'Recorded for reference only. The platform does not fetch it',
   '훑지 않을 경로': 'Paths to skip',
-  '한 줄에 하나씩, / 로 시작하게 적습니다. 화면만 작성은 이 경로와 그 아래 화면을 훑지 않습니다. 비워 두면 모든 화면을 훑습니다':
-    'One per line, starting with /. Screen-only authoring skips these paths and everything under them. Leave it empty to crawl every screen',
+  '한 줄에 하나씩, / 로 시작하게 적습니다. 실제 화면과 대조하는 작성은 이 경로와 그 아래 화면을 훑지 않습니다. 비워 두면 모든 화면을 훑습니다':
+    'One per line, starting with /. Authoring against the live screens skips these paths and everything under them. Leave it empty to crawl every screen',
   'Slack 웹훅': 'Slack webhook',
   '피그마 토큰': 'Figma token',
   '이대로 저장하면 토큰을 지웁니다. 피그마 자료를 못 읽게 됩니다':
