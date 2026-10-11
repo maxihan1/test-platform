@@ -1,6 +1,6 @@
 // 대조 병합이 끝나면 기획서에 없는 화면 작성 요청이 선다 — 끝내기 · 조건 · 한 번만 · 목록 · 상세의 uncoveredOf (SPEC 도메인/작성 §3.6 「기획서에 없는 화면 — 두 번째 작성」)
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { type 판, 판차리기, 셈있음 } from './continue-fixture.js';
 import { 기획서밖화면세우기 } from './uncovered.js';
@@ -48,6 +48,10 @@ describe.skipIf(연결 === undefined)('기획서에 없는 화면 — 두 번째
     판 = await 판차리기('XWZ');
   });
 
+  afterEach(async () => {
+    await q("UPDATE authoring_request SET discarded_at = now() WHERE service_id = $1 AND params ? 'uncoveredOf' AND discarded_at IS NULL", [판.서비스]);
+  });
+
   afterAll(async () => {
     await 판.닫기();
   });
@@ -89,6 +93,21 @@ describe.skipIf(연결 === undefined)('기획서에 없는 화면 — 두 번째
     const { 뿌리, 머지 } = await 원본(칸);
     expect((await 병합끝내기(머지!)).statusCode).toBe(200);
     expect(await 세운것(뿌리)).toEqual([]);
+  });
+
+  it('이미 열린 화면만 요청이 있으면 안 세운다', async () => {
+    const 사람 = await q<{ id: string }>(
+      `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, compare, env)
+       VALUES ($1, 'AUTHOR', '{}', 'xwz', '검사', 'PENDING', true, 'qa') RETURNING id`,
+      [판.서비스],
+    );
+    try {
+      const { 뿌리, 머지 } = await 원본();
+      expect((await 병합끝내기(머지!)).statusCode).toBe(200);
+      expect(await 세운것(뿌리)).toEqual([]);
+    } finally {
+      await q('UPDATE authoring_request SET discarded_at = now() WHERE id = $1', [Number(사람.rows[0]!.id)]);
+    }
   });
 
   it('병합이 실패하면 안 세운다', async () => {

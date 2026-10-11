@@ -167,4 +167,17 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     expect((await 다봄({ seen: [], complete: ['로그아웃', '로그인'] })).json()).toEqual({ deleted: 0 });
     expect(await 찾음()).toEqual([]);
   });
+
+  it('done 에 같은 화면이 두 번 와도 받고, 빈 이름은 옛 이름을 지우지 않는다', async () => {
+    const id = await 요청넣기('RUNNING');
+    const 다봄 = (몸: object) => app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/screens/done`, payload: 몸 });
+    const 찾음 = async () => (await q<{ name: string }>('SELECT name FROM screen_found WHERE service_id = $1', [서비스])).rows;
+
+    const 겹침 = await 다봄({ seen: [{ state: '로그인', url: '/cart', name: '장바구니' }, { state: '로그인', url: '/cart' }], complete: [] });
+    expect(겹침.statusCode).toBe(200);
+    expect(await 찾음()).toEqual([{ name: '장바구니' }]);
+
+    await 다봄({ seen: [{ state: '로그인', url: '/cart' }], complete: [] });
+    expect(await 찾음()).toEqual([{ name: '장바구니' }]);
+  });
 });

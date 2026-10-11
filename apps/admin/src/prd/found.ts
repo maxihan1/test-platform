@@ -3,7 +3,7 @@
 import type { PrdItem } from '@platform/kit';
 
 import { 주소틀 } from '../../../../scripts/authoring-crawl-rules.js';
-import { 사슬식, 최신식 } from '../authoring/history.js';
+import { 열린화면요청 } from '../authoring/uncovered.js';
 import { db } from '../settings/store.js';
 
 export interface 없는화면 {
@@ -45,23 +45,4 @@ export async function 찾은화면셈(서비스: number, items: PrdItem[]): Prom
     foundScreens: 찾음.rowCount ?? 0,
     screensOpen: 열림,
   };
-}
-
-/**
- * 열린 화면만 요청의 뿌리 번호들 — 폐기 안 됨 · 대조 · 입력 자료 없음 · 반영 요청 아님 · 최신 실행이 병합된 반영이 아님.
- * 열린 반영 질의(store.ts `반영세우기`)와 같은 꼴이다
- */
-async function 열린화면요청(서비스: number): Promise<number[]> {
-  const r = await (await db()).query<{ id: string }>(
-    `WITH RECURSIVE ${사슬식("service_id = $1 AND kind = 'AUTHOR' AND compare AND discarded_at IS NULL AND NOT (params ? 'prdApply')")}
-     SELECT r.id FROM authoring_request r
-      WHERE r.id IN (SELECT root_id FROM 사슬)
-        AND NOT EXISTS (SELECT 1 FROM authoring_asset a WHERE a.request_id = r.id AND a.role = 'INPUT')
-        AND NOT EXISTS (SELECT 1 FROM authoring_request m
-                         WHERE m.id = ${최신식('(SELECT id FROM 사슬 WHERE root_id = r.id)')}
-                           AND m.kind = 'MERGE' AND m.status = 'DONE')
-      ORDER BY r.id`,
-    [서비스],
-  );
-  return r.rows.map((x) => Number(x.id));
 }

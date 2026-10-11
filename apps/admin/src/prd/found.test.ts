@@ -31,11 +31,11 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
        SELECT $1, s.state, s.url, s.name FROM unnest($2::text[], $3::text[], $4::text[]) AS s(state, url, name)`,
       [서비스, rows.map((x) => x[0]), rows.map((x) => x[1]), rows.map((x) => x[2])],
     );
-  const 요청 = async (칸: { params?: object; compare?: boolean; discarded?: boolean; 자료?: boolean; 머지?: 'DONE' | 'FAILED' }) => {
+  const 요청 = async (칸: { params?: object; compare?: boolean; discarded?: boolean; 자료?: boolean; 머지?: 'DONE' | 'FAILED'; status?: string }) => {
     const r = await q<{ id: string }>(
       `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status, compare, env, discarded_at)
-       VALUES ($1, 'AUTHOR', $2, 'xpd', '검사', 'DONE', $3, CASE WHEN $3 THEN 'qa' END, $4) RETURNING id`,
-      [서비스, JSON.stringify(칸.params ?? {}), 칸.compare ?? true, 칸.discarded === true ? new Date() : null],
+       VALUES ($1, 'AUTHOR', $2, 'xpd', '검사', $5, $3, CASE WHEN $3 THEN 'qa' END, $4) RETURNING id`,
+      [서비스, JSON.stringify(칸.params ?? {}), 칸.compare ?? true, 칸.discarded === true ? new Date() : null, 칸.status ?? 'DONE'],
     );
     const id = Number(r.rows[0]!.id);
     if (칸.자료 === true) {
@@ -132,8 +132,10 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     ]);
   });
 
-  it('열린 화면만 요청은 폐기 안 됨 · 대조 · 자료 없음 · 반영 아님 · 병합된 반영이 아닌 뿌리만 센다', async () => {
+  it('열린 화면만 요청은 폐기 안 됨 · 대조 · 자료 없음 · 반영 아님 · 초안 · 실패 · 병합된 반영이 아닌 뿌리만 센다', async () => {
     const 열림 = await 요청({});
+    await 요청({ status: 'DRAFT' });
+    await 요청({ status: 'FAILED' });
     const 실패머지 = await 요청({ 머지: 'FAILED' });
     await 요청({ 자료: true });
     await 요청({ discarded: true });

@@ -118,9 +118,13 @@ export async function 다봄(서비스: number, seen: { state: 상태; url: stri
   const 값 = [서비스, complete, seen.map((s) => s.state), seen.map((s) => s.url)];
   return 한묶음(async (손) => {
     await 손.query(
+      // 같은 키가 두 번 오면 ON CONFLICT 가 한 행을 두 번 고치려다 통째로 실패한다 — 하나로 줄인다.
+      // 빈 이름은 옛 이름을 지우지 않는다(이름 없이 보낸 done · 제목 없는 화면)
       `INSERT INTO screen_found (service_id, state, url, name)
-       SELECT $1, s.state, s.url, s.name FROM unnest($2::text[], $3::text[], $4::text[]) AS s(state, url, name)
-       ON CONFLICT (service_id, state, url) DO UPDATE SET name = EXCLUDED.name`,
+       SELECT DISTINCT ON (s.state, s.url) $1::bigint, s.state, s.url, s.name
+         FROM unnest($2::text[], $3::text[], $4::text[]) AS s(state, url, name)
+        ORDER BY s.state, s.url, s.name DESC
+       ON CONFLICT (service_id, state, url) DO UPDATE SET name = COALESCE(NULLIF(EXCLUDED.name, ''), screen_found.name)`,
       [서비스, seen.map((s) => s.state), seen.map((s) => s.url), seen.map((s) => s.name)],
     );
     if (complete.length === 0) return 0;

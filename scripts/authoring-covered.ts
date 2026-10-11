@@ -34,6 +34,9 @@ export function 덮은틀들(입력: 덮은입력): string[] | { 까닭: string 
   };
   const 표글 = 읽기(표);
   if (typeof 표글 !== 'string') return 표글;
+  // 화면 파일 하나를 여러 케이스가 가져온다 — 한 번만 읽는다
+  const 화면들 = new Map<string, string | { 까닭: string }>();
+  const 화면읽기 = (f: string) => 화면들.get(f) ?? 화면들.set(f, 읽기(f)).get(f)!;
   const 지금 = new Set(번호들);
   const 덮는케이스 = new Set(지도줄들(표글, 서비스).filter((x) => 지금.has(x.reqId)).map((x) => x.tcId));
   const 틀들 = new Set<string>();
@@ -47,7 +50,7 @@ export function 덮은틀들(입력: 덮은입력): string[] | { 까닭: string 
       // 화면 조각(components)은 여러 화면에 나와 주소가 없다 — 지도 ② 와 같게 pages 만 본다
       const 경로 = posix.join(posix.dirname(f), 상대);
       if (!상대.startsWith('pages/') || !파일들.has(경로)) continue;
-      const 화면글 = 읽기(경로);
+      const 화면글 = 화면읽기(경로);
       if (typeof 화면글 !== 'string') return 화면글;
       const 주소 = 화면주소(화면글);
       const 틀 = 주소 === null ? null : 주소틀(주소);
