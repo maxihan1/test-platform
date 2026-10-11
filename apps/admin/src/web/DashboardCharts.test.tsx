@@ -142,6 +142,16 @@ describe('일별 테스트 결과', () => {
     expect(판.querySelectorAll('rect.p')).toHaveLength(2);
   });
 
+  it('설정에 갈 수 있는 사람에게는 안내 줄 아래 정기 실행을 켜는 자리로 가는 링크를 단다', async () => {
+    const 적음 = 날들.map((day, i) => ({ day, ...(i >= 12 ? 건(8, 1, 0) : 건(0, 0, 0)) }));
+    읽기를(응답({ daily: 적음 }));
+    const { container } = render(<Dashboard 서비스열기={서비스열기} {...기본재료} 설정갈수있나 />);
+    await screen.findByText('일별 테스트 결과');
+    const 링크 = container.querySelector('.dash-daily .dash-note a');
+    expect(링크?.textContent).toBe('설정에서 정기 실행 켜기');
+    expect(링크?.getAttribute('href')).toBe('#/settings');
+  });
+
   it('실행한 날이 셋 이상이면 안내가 없다', async () => {
     const { container } = await 열기(응답());
     expect(container.querySelector('.dash-daily')!.textContent).not.toContain('정기 실행을 켜 두면');

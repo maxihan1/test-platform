@@ -53,7 +53,7 @@ export function ScheduleFields({
             </select>
           </div>
           <div className="hint">
-            {t('정한 시각부터 1시간 안에 사용 중인 스크립트를 UI · 기능 실행으로 한 번씩 돌리고 Slack 으로 알립니다. 그 사이 서버가 꺼져 있었으면 그날은 건너뜁니다. Android 앱 스크립트는 뺍니다')}
+            {t('정한 시각부터 1시간 안에 사용 중인 스크립트를 UI · 기능 실행으로 한 번씩 돌리고, Slack 웹훅이 있으면 알립니다. 그 사이 서버가 꺼져 있었으면 그날은 건너뜁니다. Android 앱 스크립트는 뺍니다')}
           </div>
         </>
       )}

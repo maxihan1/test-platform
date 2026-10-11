@@ -185,8 +185,8 @@ export const 설정말: Record<string, string> = {
   '매일 돌리기': 'Run daily',
   '시각': 'Time',
   '{시간대} 기준': '{시간대} time',
-  '정한 시각부터 1시간 안에 사용 중인 스크립트를 UI · 기능 실행으로 한 번씩 돌리고 Slack 으로 알립니다. 그 사이 서버가 꺼져 있었으면 그날은 건너뜁니다. Android 앱 스크립트는 뺍니다':
-    'Within an hour of the set time, active scripts run once as a UI run and a functional run, then report to Slack. If the server was down during that hour, the day is skipped. Android app scripts are left out',
+  '정한 시각부터 1시간 안에 사용 중인 스크립트를 UI · 기능 실행으로 한 번씩 돌리고, Slack 웹훅이 있으면 알립니다. 그 사이 서버가 꺼져 있었으면 그날은 건너뜁니다. Android 앱 스크립트는 뺍니다':
+    'Within an hour of the set time, active scripts run once as a UI run and a functional run, reporting to Slack if a webhook is set. If the server was down during that hour, the day is skipped. Android app scripts are left out',
   '마지막 정기 실행': 'Last scheduled run',
   '아직 돈 적 없습니다': 'Has not run yet',
   '정기 실행 시각을 채웁니다': 'Fill in the scheduled run time',

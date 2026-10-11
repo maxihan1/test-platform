@@ -3,6 +3,8 @@
 
 import type { Pool, PoolClient } from 'pg';
 
+import { 종류조건 } from '../execution/runKind.js';
+
 export type 오류코드 =
   | 'PREFIX_TAKEN'
   | 'USERNAME_TAKEN'
@@ -110,7 +112,8 @@ const 서비스들 = `
          to_char(s.schedule_at, 'HH24:MI') AS schedule_at, s.schedule_tz, s.schedule_env, s.schedule_last,
          -- 같은 점검이 만든 UI · 기능 실행이 둘 다 마지막으로 돈 때 뒤에 생긴다 (SPEC 공통/6-인프라 §9.2)
          (SELECT COALESCE(json_agg(r.run_id ORDER BY r.run_id), '[]') FROM test_run r
-           WHERE r.service_id = s.id AND r.triggered_by = '스케줄러' AND r.started_at >= s.schedule_last) AS scheduled_run_ids,
+           WHERE r.service_id = s.id AND r.triggered_by = '스케줄러' AND r.started_at >= s.schedule_last
+             AND ${종류조건('case')}) AS scheduled_run_ids,
          (s.slack_webhook IS NOT NULL AND s.slack_webhook <> '') AS has_slack_webhook,
          (s.figma_token IS NOT NULL AND s.figma_token <> '') AS has_figma_token,
          (SELECT count(*) FROM test_case tc
