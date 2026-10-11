@@ -15,6 +15,7 @@ import { 반영뒤저장값 } from './edit-finish.js';
 import { 보류모양검사, 옮겨올입력 } from './held.js';
 import { 뿌리, 뿌리잠그고 } from './history.js';
 import { 머지집기칸 } from './held-routes.js';
+import { 끝냈다고알림 } from './notify.js';
 import { 집기대상 } from './reverse.js';
 import { 진척검사 } from './stop.js';
 import { 사용량통로 } from './usage.js';
@@ -292,6 +293,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     });
     // 끝난 행에 또 오면 409 다. 안 막으면 판정과 PR 주소가 덮어써진다
     if (!바뀌었나) return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
+    await 끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);
     return { ok: true };
   });
 

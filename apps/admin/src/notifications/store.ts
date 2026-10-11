@@ -3,6 +3,7 @@
 
 import { 사슬식 } from '../authoring/history.js';
 import { 작성예상 } from '../authoring/eta.js';
+import { 작성제목 } from '../authoring/notify.js';
 import { 실행남은시간 } from '../execution/eta.js';
 import { RUN_COLUMNS, toRun, type RawRun } from '../execution/runRow.js';
 import type { RunCounts, RunSummary } from '../execution/runTypes.js';
@@ -119,9 +120,6 @@ async function 작성들(서비스들: 보이는서비스[], 조건: string): Pr
   );
   return r.rows;
 }
-
-// 목록 줄 제목은 상태 문구라 화면 언어를 따라가는 클라이언트 몫이다. 서버는 어떤 요청인지만 말한다
-const 작성제목 = (뿌리종류: string): string => (뿌리종류 === 'EDIT' ? '케이스 고치기' : '테스트 작성');
 
 const 첫줄 = (글: string | null): string | null => (글 === null ? null : (글.split('\n')[0] ?? '').slice(0, 200));
 
