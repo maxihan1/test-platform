@@ -369,7 +369,7 @@ export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
   testsRepo: string;
   /** 플랫폼이 실제로 훑을 폴더. 서비스마다 저장소가 다르다 (SPEC §9.2) */
   testsDir: string;
-  /** 화면만 작성이 크롤에서 뺄 경로 (도메인/인증 §7). 선택으로 둔 것은 hasFigmaToken 과 같은 이유 — 없으면 빈 목록으로 읽는다 */
+  /** 실제 화면과 대조하는 작성(대조 · 화면만)이 크롤에서 뺄 경로 (도메인/인증 §7). 선택으로 둔 것은 hasFigmaToken 과 같은 이유 — 없으면 빈 목록으로 읽는다 */
   crawlExclude?: string[];
   isActive: boolean;
   caseCount: number;

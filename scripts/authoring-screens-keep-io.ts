@@ -1,4 +1,4 @@
-// 화면 기록 저장본 — 자식을 띄우기 전에 서버 저장본을 자료 폴더 kept/ 로 넣고, 올릴 때 이번에 본 화면만 서버에 올린다 (도메인/작성 §3.6 「★ 역방향」 · PRD-F6-01)
+// 화면 기록 저장본 — 자식을 띄우기 전에 서버 저장본을 자료 폴더 kept/ 로 넣고, 올릴 때 이번에 본 화면과 그 화면 연결만 서버에 올린다 (도메인/작성 §3.6 「★ 역방향」 · PRD-F6-01 · F6-02)
 // 에이전트는 서버에서 root 로 돈다 — 자식 uid 가 손댈 수 있는 자료 폴더는 링크 · 큰 파일을 따라가지 않고 읽는다
 import { lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,6 +9,7 @@ import { type 목록칸, type 상태, 날수, 받은저장본, 이번것들 } fr
 
 const 기록상한 = 200_000;
 const 목록상한 = 2_000_000;
+const 연결파일상한 = 20_000_000; // 100장 × 화면마다 연결 1,000개까지(크롤러가 자른다)
 
 /** 그 요청의 통로로 부른다 — 서버가 요청 번호로 서비스를 찾는다 */
 export interface 화면통로 {
@@ -43,6 +44,30 @@ function 새로쓰기(경로: string, 글: string): void {
 }
 
 /**
+ * 크롤러의 화면 연결(`crawl/links.json`) — `상태 틀` → 서버 꼴 연결 목록. 없거나 못 읽으면 빈 것(연결 없이 올린다 — 못 읽음은 줄에 적는다).
+ * 서버 상한(연결 1,000개 · 주소 2,000자 · 이름 500자)에 맞춰 자른다
+ */
+function 연결읽기(크롤: string): { 연결들: Map<string, { toUrl: string; via: string }[]>; 못읽음: boolean } {
+  const 연결들 = new Map<string, { toUrl: string; via: string }[]>();
+  const 원문 = 안전히읽기(크롤, 'links.json', 연결파일상한);
+  let 글: unknown;
+  try {
+    글 = JSON.parse(원문 ?? '[]');
+  } catch {
+    return { 연결들, 못읽음: true };
+  }
+  const 글자 = (x: unknown, 상한: number): x is string => typeof x === 'string' && x.trim() !== '' && x.length <= 상한;
+  for (const 칸 of Array.isArray(글) ? 글 : []) {
+    const x = (typeof 칸 === 'object' && 칸 !== null ? 칸 : {}) as { 상태?: unknown; 틀?: unknown; 연결?: unknown };
+    if ((x.상태 !== '로그아웃' && x.상태 !== '로그인') || typeof x.틀 !== 'string' || !Array.isArray(x.연결)) continue;
+    const 줄들 = (x.연결 as { to?: unknown; via?: unknown }[]).flatMap((l) => (글자(l?.to, 2_000) && 글자(l?.via, 500) ? [{ toUrl: l.to, via: l.via }] : []));
+    연결들.set(`${x.상태} ${x.틀}`, 줄들.slice(0, 1_000));
+  }
+  // 파일이 있는데 못 읽었다(링크 · 너무 큼) — 연결 없이 올리면 그 화면의 서버 연결이 비므로 사람이 알게 한다
+  return { 연결들, 못읽음: 원문 === null && lstatSync(join(크롤, 'links.json'), { throwIfNoEntry: false }) !== undefined };
+}
+
+/**
  * 자식을 띄우기 전 — 서버 저장본을 자료 폴더 `kept/` 로 넣는다. 저장본이 없으면 아무것도 안 한다. 실패해도 작성은 간다(전부 훑을 뿐).
  * `있으면둠` — 이어받기는 크롤러를 다시 안 돌려 목록의 「같음」이 앞 실행의 `kept/` 를 가리킨다. 다시 넣으면 어긋난다 (검사 주의 2)
  */
@@ -68,16 +93,12 @@ export async function 저장본넣기(통로: 화면통로, 자료: string, 있�
 
 /**
  * 올릴 때 — 자료 폴더의 크롤 목록 · 화면 기록으로 이번에 본 화면만 서버에 올린다. 「같음」으로 재사용한 화면은 안 올린다(훑은 날을 그대로 둬야 30일 그물이 돈다).
- * 지우기는 화면만 · 크롤 「다 봄」일 때 실제로 돈 상태만. `list.json` 이 없으면(크롤러를 못 돌렸다) 아무것도 안 한다.
+ * 화면마다 크롤러가 남긴 화면 연결(`links.json`)을 같이 싣는다 — 재사용한 화면의 연결은 서버에 있던 것 그대로다 (PRD-F6-02).
+ * 본 화면은 크롤 목록 전체다(대조는 AI 가 기획서 화면만 훑는다 — 나머지 기록이 지워지지 않게). 지우기는 크롤 「다 봄」일 때 실제로 돈 상태만.
+ * `list.json` 이 없으면(크롤러를 못 돌렸다) 아무것도 안 한다.
  * 올릴 기록에 테스트 계정 비밀번호가 있으면 하나도 안 올리고 거절 까닭을 돌려준다(§3.6 「남는 한계」). 그 밖에는 로그 한 줄이고 실패해도 작성은 간다
  */
-export async function 저장본올리기(
-  통로: 화면통로,
-  자료: string,
-  화면만: boolean,
-  비밀: string | null | undefined,
-  지금 = new Date(),
-): Promise<{ 줄: string } | { 거절: string }> {
+export async function 저장본올리기(통로: 화면통로, 자료: string, 비밀: string | null | undefined, 지금 = new Date()): Promise<{ 줄: string } | { 거절: string }> {
   const 크롤 = join(자료, 'crawl');
   const 화면 = join(자료, 'screens');
   const 목록글 = 폴더인가(크롤) ? 안전히읽기(크롤, 'list.json', 목록상한) : null;
@@ -100,11 +121,13 @@ export async function 저장본올리기(
   const 같은것 = 목록.filter((x) => x.저장본 === '같음');
   const 같음키 = new Set(같은것.map((x) => `${x.상태} ${x.틀}`));
   const 이번 = 이번것들(목록, 기록들, 오늘).filter((x) => !같음키.has(x.키));
-  // 이름 · 틀도 서버에 남고 사람에게 보일 칸이다 — 본문과 같이 본다
-  if (계정섞였나(이번.flatMap((x) => [x.글, x.이름, x.틀]), 비밀)) return { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
-  // 지우기는 화면만 · 크롤이 예외 없이 다 봤을 때, 실제로 돈 상태만 (검사 주의 1 — 상태 파일 없이 로그아웃만 돌면 로그인 기록은 남긴다)
+  const { 연결들, 못읽음 } = 연결읽기(크롤);
+  // 이름 · 틀 · 연결(버튼 · 링크 글자)도 서버에 남고 사람에게 보일 칸이다 — 본문과 같이 본다
+  const 볼글 = 이번.flatMap((x) => [x.글, x.이름, x.틀, ...(연결들.get(x.키) ?? []).flatMap((l) => [l.toUrl, l.via])]);
+  if (계정섞였나(볼글, 비밀)) return { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
+  // 지우기는 크롤이 링크를 따라가 예외 없이 다 봤을 때, 실제로 돈 상태만 (검사 주의 1 — 상태 파일 없이 로그아웃만 돌면 로그인 기록은 남긴다)
   const 돈상태 = Array.isArray(요약.상태들) ? 요약.상태들.filter((x): x is 상태 => x === '로그아웃' || x === '로그인') : [];
-  const 지울상태 = 화면만 && 요약.멈춘까닭 === null && 요약.따라가기 === true && 요약.예외 !== true ? [...new Set(돈상태)] : [];
+  const 지울상태 = 요약.멈춘까닭 === null && 요약.따라가기 === true && 요약.예외 !== true ? [...new Set(돈상태)] : [];
   const 길 = `/authoring/requests/${통로.번호}/screens`;
   try {
     // 재사용 수와 가장 오래된 날은 올리기 전 서버 저장본에서 센다 — 자식이 고칠 수 있는 kept/ 를 믿지 않는다
@@ -114,16 +137,17 @@ export async function 저장본올리기(
     const 오래된 = 재사용.reduce((n, y) => Math.max(n, 날수(y.훑은날, 오늘)), 0);
     let 못올림 = 0;
     for (const x of 이번) {
-      const body = { state: x.상태, url: x.틀, name: x.이름.slice(0, 500), textFp: x.글자지문, structFp: x.지문, record: x.글, crawledAt: 지금.toISOString(), links: [] };
+      const body = { state: x.상태, url: x.틀, name: x.이름.slice(0, 500), textFp: x.글자지문, structFp: x.지문, record: x.글, crawledAt: 지금.toISOString(), links: 연결들.get(x.키) ?? [] };
       if ((await 부른다(통로.주소기지, 통로.토큰, 길, { method: 'PUT', body })).status !== 204) 못올림 += 1;
     }
-    const seen = [...이번, ...같은것].map((x) => ({ state: x.상태, url: x.틀 }));
+    const seen = 목록.map((x) => ({ state: x.상태, url: x.틀 }));
     const 끝 = await 부른다(통로.주소기지, 통로.토큰, `${길}/done`, { method: 'POST', body: { seen, complete: 지울상태 } });
     const 지운수 = 끝.status === 200 ? (끝.몸 as { deleted?: unknown } | null)?.deleted : undefined;
     return {
       줄:
         `화면 기록 저장: 재사용 ${재사용.length}장${재사용.length > 0 ? `(가장 오래된 것 ${오래된}일)` : ''} · 새로 저장 ${이번.length - 못올림}장` +
         (못올림 > 0 ? ` · 못 올림 ${못올림}장` : '') +
+        (못읽음 ? ' · 화면 연결 파일을 못 읽어 연결 없이 올림' : '') +
         (지울상태.length === 0 ? '' : typeof 지운수 === 'number' ? ` · 다 봐서 ${지울상태.join(' · ')} 못 본 화면 ${지운수}장 지움` : ' · 못 본 화면 지우기 실패'),
     };
   } catch (e) {

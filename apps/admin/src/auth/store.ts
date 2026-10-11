@@ -31,7 +31,7 @@ export interface 배정서비스 {
   hasSlackWebhook: boolean;
   /** 케이스 폴더 이름 (SPEC §6 `service.tests_dir`) */
   testsDir: string;
-  /** 화면만 작성이 훑지 않을 경로 (SPEC §6 `service.crawl_exclude`). 작성 에이전트가 건을 가져갈 때마다 읽는다 — 화면은 안 읽는다 (도메인/인증 §7) */
+  /** 역방향 작성(화면만 · 대조)이 훑지 않을 경로 (SPEC §6 `service.crawl_exclude`). 작성 에이전트가 건을 가져갈 때마다 읽는다 — 화면은 안 읽는다 (도메인/인증 §7) */
   crawlExclude: string[];
   /** 이 서비스에서 기능마다 가진 칸. admin 은 저장값과 상관없이 전부 `write` (SPEC §3.5 · §7) */
   permissions: 서비스권한;
