@@ -58,7 +58,8 @@ export function 고른것고치기({ service, 고른, 다되면 }: { service: st
       .finally(() => set보내는중(false));
   }
 
-  const 넘침 = 담은.length > 고치기상한;
+  // 「상한 < 길이」로 쓴다 — `>` 뒤 한글 이름을 문구 검사(messages.test.ts)가 JSX 글로 읽는다
+  const 넘침 = 고치기상한 < 담은.length;
 
   return (
     <>
