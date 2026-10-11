@@ -2,7 +2,7 @@
 // authoring-run.ts 가 300줄을 넘어 뗐다 (2026-09-24)
 
 import { readFileSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 import type { 집은것 } from './authoring-rules.js';
 import {
@@ -24,7 +24,7 @@ import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-stat
 import { 끝검사 } from './authoring-gate3.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 산출물읽기 } from './authoring-upload-reverse.js';
-import { 저장본갈기 } from './authoring-screens-keep-io.js';
+import { 저장본올리기 } from './authoring-screens-keep-io.js';
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, tcId들 } from './authoring-ledger-check.js';
 import { tcId별글, 원장판정 } from './authoring-ledger-verdict.js';
@@ -98,9 +98,14 @@ export async function 올리기(
   const 알림 = 지운말(지운것);
   const 지운줄 = 알림 === null ? [] : [사유거르기(알림, 것.target?.loginPassword)];
   if (지운줄.length > 0) console.log(`[작성] ${것.id}번 — ${지운줄[0]}`);
-  // 역방향이면 이번에 본 화면 기록을 저장본(작업 바탕 · 저장소 밖)에 간다 — 다음 작성은 바뀐 화면만 훑는다 (§3.6 「★ 역방향」).
+  // 역방향이면 이번에 본 화면 기록을 서버 저장본(DB · 저장소 밖)에 올린다 — 다음 작성은 바뀐 화면만 훑는다 (§3.6 「★ 역방향」 · PRD-F6-01).
   // 재사용 수 · 가장 오래된 날은 PR 본문 머리에도 싣는다 — 자식이 옮겨 적기를 빠뜨려도 사람이 본다
-  const 저장줄 = 역 === undefined ? [] : [저장본갈기(dirname(자리.뿌리), 서비스, 자리.자료, 역.화면만)];
+  const 저장 = 역 === undefined ? null : await 저장본올리기({ 주소기지: 역.주소기지, 토큰: 역.토큰, 번호: 것.id }, 자리.자료, 역.화면만, 것.target?.loginPassword);
+  if (저장 !== null && '거절' in 저장) {
+    await 손.끝내기(거절(저장.거절));
+    return;
+  }
+  const 저장줄 = 저장 === null ? [] : [저장.줄];
   if (저장줄.length > 0) console.log(`[작성] ${것.id}번 — ${저장줄[0]}`);
   const 상태 = 트리에서('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall']);
   if (!상태.ok) {

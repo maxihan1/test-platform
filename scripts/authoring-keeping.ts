@@ -135,7 +135,7 @@ export async function 작업방준비(
         return null;
       }
       // 이어받기는 크롤러를 다시 안 돌린다 — 앞 실행의 kept/ 가 있으면 그대로 둔다(목록의 「같음」이 그것을 가리킨다)
-      if (것.target !== undefined) 저장본넣기(판.바탕, 서비스, 자리.자료, true);
+      if (것.target !== undefined) await 저장본넣기({ 주소기지, 토큰, 번호: 것.id }, 자리.자료, true);
       return {
         자리,
         기준: 표시.기준,
@@ -161,7 +161,7 @@ export async function 작업방준비(
   const 옛케이스 = 케이스파일들(join(만든것.자리.트리, 'tests', 케이스폴더));
   // 사본을 만들자마자 쓴다 — 꺼지며 끊긴 건은 finally 가 안 돌아 이것만 남는다
   보관쓰기(만든것.자리, { 서비스, 기준: 메인.sha, 옛케이스: [...옛케이스], 끝: false });
-  if (것.target !== undefined) 저장본넣기(판.바탕, 서비스, 만든것.자리.자료);
+  if (것.target !== undefined) await 저장본넣기({ 주소기지, 토큰, 번호: 것.id }, 만든것.자리.자료);
   return { 자리: 만든것.자리, 기준: 메인.sha, 옛케이스 };
 }
 

@@ -1,7 +1,7 @@
-// 화면 기록 저장본 판정 검사 — 모양 · 이름 · 기록 주소 · 견주기 · 갈기 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04)
+// 화면 기록 저장본 판정 검사 — 모양 · 이름 · 기록 주소 · 견주기 · 서버 저장본 받기 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04 · PRD-F6-01)
 import { describe, expect, it } from 'vitest';
 
-import { type 저장항목, 갈기, 견주기, 기록주소, 이번것들, 저장본모양, 저장이름 } from './authoring-screens-keep.js';
+import { type 저장항목, 견주기, 기록주소, 받은저장본, 이번것들, 저장본모양, 저장이름 } from './authoring-screens-keep.js';
 
 const 항목 = (덧: Partial<저장항목> = {}): 저장항목 => ({
   키: '로그인 /my', 상태: '로그인', 틀: '/my', 주소: 'https://s.test/my', 지문: 'a', 글자지문: 'g', 기록: 'in-0123456789ab.md', 훑은날: '2026-10-01', ...덧,
@@ -80,22 +80,25 @@ describe('이번것들 — 기록 첫 줄 주소와 이름의 상태(out · in)�
   });
 
   it('맞는 것만 저장한다 — 이름이 아니라 주소로', () => {
-    const 목록 = [{ 주소: 'https://s.test/my', 상태: '로그인' as const, 틀: '/my', 지문: 'a', 글자지문: 'g' }];
+    const 목록 = [{ 주소: 'https://s.test/my', 상태: '로그인' as const, 틀: '/my', 지문: 'a', 글자지문: 'g', 이름: '내 정보' }];
     const r = 이번것들(목록, [{ 이름: 'in-007.md', 글: '# https://s.test/my\n본문' }, { 이름: 'extra-1-popup.md', 글: '# https://s.test/popup\n' }, { 이름: 'x.md', 글: '내용' }], '2026-10-04');
-    expect(r).toEqual([{ 키: '로그인 /my', 상태: '로그인', 틀: '/my', 주소: 'https://s.test/my', 지문: 'a', 글자지문: 'g', 기록: 저장이름('로그인', '/my'), 훑은날: '2026-10-04', 원본: 'in-007.md' }]);
+    expect(r).toEqual([{ 키: '로그인 /my', 상태: '로그인', 틀: '/my', 주소: 'https://s.test/my', 지문: 'a', 글자지문: 'g', 기록: 저장이름('로그인', '/my'), 훑은날: '2026-10-04', 원본: 'in-007.md', 이름: '내 정보' }]);
   });
 });
 
-describe('갈기 — 이번에 본 화면만 갈고, 지우기는 다 봤을 때만', () => {
-  const 저장 = { 판: 1 as const, 항목: [항목(), 항목({ 키: '로그인 /a', 틀: '/a' })] };
-
-  it('본 것만 바꾸고 나머지는 남긴다', () => {
-    const r = 갈기(저장, [항목({ 글자지문: '새' })], new Set());
-    expect(r.항목.map((x) => `${x.키} ${x.글자지문}`)).toEqual(['로그인 /my 새', '로그인 /a g']);
+describe('받은저장본 — 서버 화면 기록을 kept/ 저장본으로', () => {
+  const 행 = (덧: Record<string, unknown> = {}) => ({
+    state: '로그인', url: '/board/:n', name: '게시판 글', textFp: 'g', structFp: 'a', record: '# https://s.test/board/7\n본문', crawledAt: '2026-10-01T23:59:00.000Z', ...덧,
   });
 
-  it('지우기는 이번에 돈 상태의 못 본 화면만 — 로그아웃만 돌았으면 로그인 기록은 남긴다 (검사 주의 1)', () => {
-    expect(갈기(저장, [항목()], new Set(['로그인'])).항목.map((x) => x.키)).toEqual(['로그인 /my']);
-    expect(갈기(저장, [], new Set(['로그아웃'])).항목.map((x) => x.키)).toEqual(['로그인 /my', '로그인 /a']);
+  it('url 칸이 같은 틀이고 주소는 기록 첫 줄 · 훑은 날은 날짜만', () => {
+    const r = 받은저장본({ screens: [행()], links: [] });
+    expect(r.저장.항목).toEqual([항목({ 키: '로그인 /board/:n', 틀: '/board/:n', 주소: 'https://s.test/board/7', 기록: 저장이름('로그인', '/board/:n') })]);
+    expect(r.기록들.get(저장이름('로그인', '/board/:n'))).toBe('# https://s.test/board/7\n본문');
+  });
+
+  it('첫 줄이 주소가 아니거나 모양이 틀린 행은 뺀다 · 몸이 틀리면 빈 저장본', () => {
+    expect(받은저장본({ screens: [행({ record: '주소 없음' }), 행({ state: '손님' }), 행({ structFp: 7 }), 행({ url: '/' })] }).저장.항목.map((x) => x.틀)).toEqual(['/']);
+    expect(받은저장본(null).저장).toEqual({ 판: 1, 항목: [] });
   });
 });

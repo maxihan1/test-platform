@@ -1,102 +1,128 @@
-// 화면 기록 저장본 디스크 일 검사 — 넣기 · 갈기 · 링크를 따라가지 않기 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04 검토 BLOCKER 3)
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
+// 화면 기록 저장본 껍데기 검사 — 서버에서 kept/ 로 넣기 · 이번에 본 화면만 올리기 · 다 본 상태 · 비밀번호 · 링크를 따라가지 않기 (도메인/작성 §3.6 「★ 역방향」 · PRD-F6-01)
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 저장본갈기, 저장본넣기, 저장폴더 } from './authoring-screens-keep-io.js';
+import { 저장본넣기, 저장본올리기 } from './authoring-screens-keep-io.js';
+import { 저장이름 } from './authoring-screens-keep.js';
 
-function 판차리기() {
-  const 바탕 = mkdtempSync(join(tmpdir(), 'keep-'));
-  const 자료 = join(바탕, 'author-1', 'assets');
+const 통로 = { 주소기지: 'http://admin:3000', 토큰: 't', 번호: 7 };
+const 지금 = new Date('2026-10-20T03:00:00.000Z');
+type 건것 = { url: string; method: string; body: unknown };
+
+let 폴더 = '';
+let 자료 = '';
+let 건것들: 건것[] = [];
+function 서버(답: (x: 건것) => { status: number; 몸?: unknown }) {
+  vi.stubGlobal('fetch', async (url: string, init: { method?: string; body?: string }) => {
+    const x = { url, method: init.method ?? 'GET', body: init.body === undefined ? undefined : JSON.parse(init.body) };
+    건것들.push(x);
+    const r = 답(x);
+    return new Response(r.status === 204 ? null : JSON.stringify(r.몸 ?? {}), { status: r.status });
+  });
+}
+const 다봄답 = (x: 건것) => (x.method === 'PUT' ? { status: 204 } : { status: 200, 몸: { deleted: 1 } });
+
+beforeEach(() => {
+  폴더 = mkdtempSync(join(tmpdir(), 'keep-'));
+  자료 = join(폴더, 'assets');
   mkdirSync(join(자료, 'crawl'), { recursive: true });
   mkdirSync(join(자료, 'screens'), { recursive: true });
-  const 목록 = [
-    { 주소: 'https://s.test/', 상태: '로그아웃', 틀: '/', 지문: 'a', 글자지문: 'g1', 파일: '로그아웃/001.yml' },
-    { 주소: 'https://s.test/login', 상태: '로그아웃', 틀: '/login', 지문: 'b', 글자지문: 'g2', 파일: '로그아웃/002.yml' },
-  ];
+  건것들 = [];
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  rmSync(폴더, { recursive: true, force: true });
+});
+
+function 크롤쓰기(목록: object[], 요약: object = { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃'], 예외: false }) {
   writeFileSync(join(자료, 'crawl', 'list.json'), JSON.stringify(목록));
-  writeFileSync(join(자료, 'crawl', 'summary.json'), JSON.stringify({ 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃'], 예외: false }));
-  writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
-  writeFileSync(join(자료, 'screens', 'out-002.md'), '# https://s.test/login\n로그인 기록');
-  return { 바탕, 자료 };
+  writeFileSync(join(자료, 'crawl', 'summary.json'), JSON.stringify(요약));
 }
+const 홈 = { 주소: 'https://s.test/', 이름: '홈', 상태: '로그아웃', 틀: '/', 지문: 'aaaaaaaaaaaa', 글자지문: 'bbbbbbbbbbbb' };
+const 로그인화면 = { 주소: 'https://s.test/login', 이름: '로그인', 상태: '로그아웃', 틀: '/login', 지문: 'cccccccccccc', 글자지문: 'dddddddddddd' };
 
-describe('저장본갈기 · 저장본넣기', () => {
-  it('이번에 본 화면을 저장하고, 다음 작성 자료 폴더 kept/ 로 넣는다', () => {
-    const { 바탕, 자료 } = 판차리기();
-    expect(저장본갈기(바탕, 'CDY', 자료, true, '2026-10-04')).toContain('새로 저장 2장');
-    const 다음자료 = join(바탕, 'author-2', 'assets');
-    mkdirSync(다음자료, { recursive: true });
-    expect(저장본넣기(바탕, 'CDY', 다음자료)).toBe(2);
-    const 넣은것 = readdirSync(join(다음자료, 'kept')).sort();
-    expect(넣은것).toHaveLength(3);
-    expect(JSON.parse(readFileSync(join(다음자료, 'kept', 'index.json'), 'utf8')).항목).toHaveLength(2);
+describe('저장본넣기', () => {
+  it('서버 화면 기록을 kept/ 로 넣는다 — 크롤러가 읽는 index.json 과 기록 파일', async () => {
+    서버(() => ({ status: 200, 몸: { screens: [{ state: '로그인', url: '/board/:n', name: '글', textFp: 'g', structFp: 'a', record: '# https://s.test/board/3\n글', crawledAt: '2026-10-01T00:00:00.000Z' }], links: [] } }));
+    expect(await 저장본넣기(통로, 자료)).toBe(1);
+    expect(건것들.map((x) => `${x.method} ${x.url}`)).toEqual(['GET http://admin:3000/api/authoring/requests/7/screens']);
+    const 기록 = 저장이름('로그인', '/board/:n');
+    expect(readdirSync(join(자료, 'kept')).sort()).toEqual([기록, 'index.json'].sort());
+    expect(JSON.parse(readFileSync(join(자료, 'kept', 'index.json'), 'utf8')).항목[0]).toMatchObject({ 틀: '/board/:n', 주소: 'https://s.test/board/3', 훑은날: '2026-10-01' });
   });
 
-  it('자료 폴더의 기록이 링크면 따라가지 않는다 — 트리 밖 파일이 저장본에 안 들어간다', () => {
-    const { 바탕, 자료 } = 판차리기();
-    const 밖 = join(바탕, '비밀.txt');
-    writeFileSync(밖, '# https://s.test/login\n비밀');
-    symlinkSync(밖, join(자료, 'screens', 'link.md'));
-    writeFileSync(join(자료, 'screens', 'out-002.md'), '첫 줄 주소 없음');
-    expect(저장본갈기(바탕, 'CDY', 자료, true, '2026-10-04')).toContain('새로 저장 1장');
-    const 폴더 = 저장폴더(바탕, 'CDY')!;
-    const 글 = readdirSync(폴더).filter((x) => x.endsWith('.md')).map((x) => readFileSync(join(폴더, x), 'utf8')).join('\n');
-    expect(글).not.toContain('비밀');
+  it('이어받기는 있는 kept/ 를 그대로 둔다 · 서버가 실패하면 넣지 않고 작성은 간다', async () => {
+    서버(() => ({ status: 500 }));
+    expect(await 저장본넣기(통로, 자료)).toBe(0);
+    expect(readdirSync(자료)).not.toContain('kept');
+    mkdirSync(join(자료, 'kept'));
+    건것들 = [];
+    expect(await 저장본넣기(통로, 자료, true)).toBe(0);
+    expect(건것들).toEqual([]);
   });
+});
 
-  it('크롤 목록이 없으면 아무것도 안 한다 · 다 보지 않았으면 못 본 화면을 안 지운다', () => {
-    const { 바탕, 자료 } = 판차리기();
-    저장본갈기(바탕, 'CDY', 자료, true, '2026-10-04');
-    writeFileSync(join(자료, 'crawl', 'list.json'), JSON.stringify([{ 주소: 'https://s.test/', 상태: '로그아웃', 틀: '/', 지문: 'a', 글자지문: 'g9' }]));
-    writeFileSync(join(자료, 'crawl', 'summary.json'), JSON.stringify({ 멈춘까닭: '로그아웃 몫 시간', 따라가기: true }));
-    expect(저장본갈기(바탕, 'CDY', 자료, true, '2026-10-05')).toContain('저장본 2장');
-    const 빈자료 = join(바탕, 'author-3', 'assets');
-    mkdirSync(빈자료, { recursive: true });
-    expect(저장본갈기(바탕, 'CDY', 빈자료, true)).toContain('건너뜀');
-  });
-
-  it('「같음」으로 재사용한 화면은 지워지지 않고 훑은 날도 그대로다 — 스킬대로 첫 줄을 이번 주소로 바꿔 복사해도 (검사 BLOCKER 2)', () => {
-    const { 바탕, 자료 } = 판차리기();
-    저장본갈기(바탕, 'CDY', 자료, true, '2026-10-04');
-    const 읽기 = () => JSON.parse(readFileSync(join(저장폴더(바탕, 'CDY')!, 'index.json'), 'utf8')) as { 항목: { 주소: string; 기록: string; 훑은날: string }[] };
-    const 로그인기록 = 읽기().항목.find((x) => x.주소 === 'https://s.test/login')!.기록;
-    writeFileSync(
-      join(자료, 'crawl', 'list.json'),
-      JSON.stringify([
-        { 주소: 'https://s.test/', 상태: '로그아웃', 틀: '/', 지문: 'a', 글자지문: 'g1' },
-        { 주소: 'https://s.test/login', 상태: '로그아웃', 틀: '/login', 지문: 'b', 글자지문: 'g2', 저장본: '같음', 저장기록: 로그인기록 },
-      ]),
-    );
+describe('저장본올리기', () => {
+  it('이번에 본 화면만 올린다 — 같음으로 재사용한 화면은 안 올리고 본 것으로 넘긴다 · 다 본 상태만 지우게 한다', async () => {
+    크롤쓰기([홈, { ...로그인화면, 저장본: '같음', 저장기록: 'out-x.md' }], { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃'], 예외: false });
+    writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
     writeFileSync(join(자료, 'screens', 'out-002.md'), '# https://s.test/login\n재사용해 복사한 기록');
-    const 줄 = 저장본갈기(바탕, 'CDY', 자료, true, '2026-10-20');
-    expect(줄).toContain('재사용 1장(가장 오래된 것 16일)');
-    expect(읽기().항목.find((x) => x.주소 === 'https://s.test/login')!.훑은날).toBe('2026-10-04');
+    mkdirSync(join(자료, 'kept'));
+    const 옛 = { 키: '로그아웃 /login', 상태: '로그아웃', 틀: '/login', 주소: 'https://s.test/login', 지문: 'c', 글자지문: 'd', 기록: 저장이름('로그아웃', '/login'), 훑은날: '2026-10-04' };
+    writeFileSync(join(자료, 'kept', 'index.json'), JSON.stringify({ 판: 1, 항목: [옛] }));
+    서버(다봄답);
+    const r = await 저장본올리기(통로, 자료, true, 'pw-1234', 지금);
+    expect(r).toEqual({ 줄: '화면 기록 저장: 재사용 1장(가장 오래된 것 16일) · 새로 저장 1장 · 다 봐서 로그아웃 못 본 화면 1장 지움' });
+    expect(건것들).toEqual([
+      {
+        url: 'http://admin:3000/api/authoring/requests/7/screens',
+        method: 'PUT',
+        body: { state: '로그아웃', url: '/', name: '홈', textFp: 'bbbbbbbbbbbb', structFp: 'aaaaaaaaaaaa', record: '# https://s.test/\n홈 기록', crawledAt: '2026-10-20T03:00:00.000Z', links: [] },
+      },
+      {
+        url: 'http://admin:3000/api/authoring/requests/7/screens/done',
+        method: 'POST',
+        body: { seen: [{ state: '로그아웃', url: '/' }, { state: '로그아웃', url: '/login' }], complete: ['로그아웃'] },
+      },
+    ]);
   });
 
-  it('로그아웃만 돌았으면 다 봤어도 로그인 기록은 안 지운다 · 크롤 예외면 안 지운다 (검사 주의 1)', () => {
-    const { 바탕, 자료 } = 판차리기();
-    writeFileSync(join(자료, 'crawl', 'list.json'), JSON.stringify([{ 주소: 'https://s.test/my', 상태: '로그인', 틀: '/my', 지문: 'm', 글자지문: 'gm' }]));
-    writeFileSync(join(자료, 'screens', 'in-001.md'), '# https://s.test/my\n내 정보');
-    writeFileSync(join(자료, 'crawl', 'summary.json'), JSON.stringify({ 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃', '로그인'], 예외: false }));
-    저장본갈기(바탕, 'CDY', 자료, true, '2026-10-04');
-    writeFileSync(join(자료, 'crawl', 'list.json'), JSON.stringify([{ 주소: 'https://s.test/', 상태: '로그아웃', 틀: '/', 지문: 'a', 글자지문: 'g1' }]));
-    writeFileSync(join(자료, 'crawl', 'summary.json'), JSON.stringify({ 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃'], 예외: false }));
-    expect(저장본갈기(바탕, 'CDY', 자료, true, '2026-10-05')).toContain('저장본 2장');
-    writeFileSync(join(자료, 'crawl', 'summary.json'), JSON.stringify({ 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃', '로그인'], 예외: true }));
-    expect(저장본갈기(바탕, 'CDY', 자료, true, '2026-10-06')).not.toContain('지움');
+  it('대조 · 크롤이 멈춤 · 예외면 아무것도 안 지우게 한다', async () => {
+    writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
+    서버(다봄답);
+    for (const [화면만, 요약] of [
+      [false, { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃'], 예외: false }],
+      [true, { 멈춘까닭: '로그아웃 몫 시간', 따라가기: true, 상태들: ['로그아웃'] }],
+      [true, { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃', '로그인'], 예외: true }],
+    ] as const) {
+      크롤쓰기([홈], 요약);
+      건것들 = [];
+      expect(await 저장본올리기(통로, 자료, 화면만, null, 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장' });
+      expect(건것들.at(-1)?.body).toMatchObject({ complete: [] });
+    }
   });
 
-  it('저장 폴더가 링크면 쓰지 않는다 · 접두사 꼴이 틀리면 자리가 없다', () => {
-    const { 바탕, 자료 } = 판차리기();
-    const 엉뚱 = join(바탕, '엉뚱');
-    mkdirSync(엉뚱);
-    mkdirSync(join(바탕, 'screens'));
-    symlinkSync(엉뚱, join(바탕, 'screens', 'CDY'));
-    expect(저장본갈기(바탕, 'CDY', 자료, true)).toContain('건너뜀');
-    expect(readdirSync(엉뚱)).toEqual([]);
-    expect(저장폴더(바탕, '../x')).toBeNull();
+  it('올릴 기록에 테스트 계정 비밀번호가 있으면 하나도 안 올리고 거절한다', async () => {
+    크롤쓰기([홈, 로그인화면]);
+    writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
+    writeFileSync(join(자료, 'screens', 'out-002.md'), '# https://s.test/login\n비밀번호 칸에 pw-1234 를 넣었다');
+    서버(다봄답);
+    expect(await 저장본올리기(통로, 자료, true, 'pw-1234', 지금)).toEqual({ 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' });
+    expect(건것들).toEqual([]);
+  });
+
+  it('크롤 목록이 없으면 건너뛴다 · 링크인 기록은 따라가지 않는다 · 서버가 못 받은 화면은 센다', async () => {
+    서버(() => ({ status: 400, 몸: { error: 'BAD_SCREEN' } }));
+    expect(await 저장본올리기(통로, 자료, true, null, 지금)).toEqual({ 줄: '화면 기록 저장: 크롤 목록이 없어 건너뜀' });
+    크롤쓰기([홈, 로그인화면]);
+    const 밖 = join(폴더, '비밀.txt');
+    writeFileSync(밖, '# https://s.test/login\n비밀');
+    symlinkSync(밖, join(자료, 'screens', 'out-002.md'));
+    writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
+    expect(await 저장본올리기(통로, 자료, true, null, 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 0장 · 못 올림 1장 · 못 본 화면 지우기 실패' });
+    expect(JSON.stringify(건것들)).not.toContain('비밀');
   });
 });
