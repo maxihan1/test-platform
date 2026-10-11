@@ -5,6 +5,7 @@ import type { PrdItem } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 맥락짓기 } from '../catalog/context.js';
+import { 종류조건 } from '../execution/runKind.js';
 import { 지금판 } from '../prd/store.js';
 import { db } from './insights.js';
 
@@ -37,7 +38,8 @@ async function 실패케이스들(pool: Pool, runId: number): Promise<string[]> 
 /** 그 실행 서비스의 지도 ① 에서 tcIds 가 덮는 요구. 번호 차례는 지금 판 차례다 */
 async function 요구읽기(pool: Pool, runId: number, tcIds: string[]) {
   const 서비스 = await pool.query<{ service_id: string }>(
-    'SELECT service_id FROM test_run WHERE run_id = $1 AND service_id IS NOT NULL',
+    // 시나리오 실행 번호로 서비스를 읽지 않게 — 다른 단건 실행 조회와 같은 거르기다
+    `SELECT service_id FROM test_run WHERE run_id = $1 AND service_id IS NOT NULL AND ${종류조건('case', '')}`,
     [runId],
   );
   const 서비스번호 = 서비스.rows[0]?.service_id;
