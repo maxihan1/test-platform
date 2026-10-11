@@ -4291,6 +4291,28 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   margin: 12px 0;
 }
 
+/* 다음 단계 추천 — 아래 목록과 같은 줄이고 칸만 바탕을 깔아 가른다 */
+.scn-pal-rec {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--well);
+  border: 1px solid var(--line-2);
+}
+
+.scn-pal-rec > .scn-set-sub {
+  margin: 0;
+}
+
+.scn-pal-goes {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.scn-pal-goes code {
+  color: var(--ink-muted);
+}
+
 .scn-pal-find input {
   display: block;
   width: 100%;

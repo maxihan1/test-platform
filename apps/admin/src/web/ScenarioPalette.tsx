@@ -1,4 +1,4 @@
-// E2E 시나리오 조립 화면 「단계 추가」 탭 속 — 기능 테스트 스크립트 팔레트(기능 묶음 · 정상 먼저 · 요구 줄) · 다른 단계 넷 · 케이스 바꾸기 모드 (도메인/시나리오 §8.11)
+// E2E 시나리오 조립 화면 「단계 추가」 탭 속 — 다음 단계 추천 · 기능 테스트 스크립트 팔레트(기능 묶음 · 정상 먼저 · 요구 줄) · 다른 단계 넷 · 케이스 바꾸기 모드 (도메인/시나리오 §8.11)
 
 import { useEffect, useState, type ReactNode } from 'react';
 import type { ScenarioPart } from '@platform/kit';
@@ -6,7 +6,8 @@ import type { ScenarioPart } from '@platform/kit';
 import { api, type CaseRow, type Platform } from './api.js';
 import { 요구줄 } from './CaseListContext.js';
 import { use말, use언어 } from './i18n.js';
-import { 팔레트차례 } from './scenarioView.js';
+import { scenarioApi, type NextCase } from './scenarioApi.js';
+import { 추천줄들, 팔레트차례 } from './scenarioView.js';
 import { Failed, Loading, message, PLATFORM_LABEL } from './ui.js';
 
 export type 다른단계 = Exclude<ScenarioPart, { kind: 'case' }>;
@@ -52,16 +53,21 @@ interface Props {
   디바이스: Platform;
   /** 케이스 바꾸기로 들어온 단계 번호. null 이면 맨 끝에 더하는 보통 모드 */
   바꿀번호: number | null;
+  /** 추천 기준인 맨 뒤 케이스 단계. 없거나 케이스 바꾸기 중이면 null — 추천 칸을 안 그린다 */
+  뒤: { tcId: string; 번호: number } | null;
   on케이스: (tcId: string) => void;
   on다른단계: (part: 다른단계) => void;
   on바꾸기취소: () => void;
 }
 
-export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케이스, on다른단계, on바꾸기취소 }: Props) {
+export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on케이스, on다른단계, on바꾸기취소 }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [읽음, set읽음] = useState<읽은것 | null>(null);
   const [오류, set오류] = useState<string | null>(null);
+  // 어느 단계 기준 추천인지 같이 쥔다 — 단계를 더한 직후 한 번 그릴 때 앞 기준 추천이 새 머리 아래 보이지 않게
+  const [추천, set추천] = useState<{ 기준: string; items: NextCase[] } | null>(null);
+  const [추천오류, set추천오류] = useState<string | null>(null);
   const [찾기, set찾기] = useState('');
   const [펼친, set펼친] = useState<ReadonlySet<string>>(new Set());
   const 뒤집기 = (키: string) =>
@@ -91,6 +97,26 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
     };
   }, [서비스, 언어]);
 
+  const 뒤번호 = 뒤?.tcId ?? null;
+  useEffect(() => {
+    let 끊김 = false;
+    set추천(null);
+    set추천오류(null);
+    if (뒤번호 === null) return;
+    scenarioApi.nextCases(서비스, 뒤번호).then(
+      (값) => {
+        if (!끊김) set추천({ 기준: 뒤번호, items: 값.items });
+      },
+      (err: unknown) => {
+        if (!끊김) set추천오류(message(err, 언어));
+      },
+    );
+    return () => {
+      // 단계를 잇달아 더하면 앞 단계 기준 추천이 늦게 와서 덮을 수 있다
+      끊김 = true;
+    };
+  }, [서비스, 뒤번호, 언어]);
+
   const PRD씀 = 읽음?.PRD씀 ?? false;
   const 차례 = 읽음 === null ? null : 팔레트차례(읽음.목록, 디바이스, PRD씀);
   const 소문자 = 찾기.trim().toLowerCase();
@@ -104,7 +130,10 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
   const 다폄 = 찾는중 && PRD씀;
   const 펴졌나 = (칸: 'group' | 'rest', feature: string | null) => 다폄 || 펼친.has(열쇠(칸, feature));
 
-  const 줄 = (c: CaseRow) => (
+  const 추천칸 =
+    읽음 === null || 추천 === null || 추천.기준 !== 뒤번호 ? [] : 추천줄들(읽음.목록, 디바이스, PRD씀, 추천.items).filter((x) => 걸린(x.row));
+
+  const 줄 = (c: CaseRow, 이어짐?: string) => (
     <li key={c.tcId} className="scn-pal-row">
       <span className="scn-pal-id">{c.tcId}</span>
       <span className="scn-pal-name">{c.name}</span>
@@ -114,6 +143,11 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
       </button>
       {/* 번호에 고리를 달지 않는다 — 누르면 저장 안 한 조립을 두고 「PRD 관리」로 떠난다 */}
       {PRD씀 ? <요구줄 row={c} 요구보나={false} 요구쓰나 /> : null}
+      {이어짐 === undefined ? null : (
+        <span className="scn-pal-goes">
+          {t('이어지는 화면')} <code>{이어짐}</code>
+        </span>
+      )}
     </li>
   );
 
@@ -159,6 +193,19 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
         <p className="scn-set-note">{t('이 서비스에는 단계로 쓸 기능 테스트 스크립트가 없습니다')}</p>
       ) : (
         <>
+          {추천오류 !== null ? (
+            <Failed error={추천오류} />
+          ) : 뒤 === null || 추천칸.length === 0 ? null : (
+            <section className="scn-pal-rec" aria-label={t('다음 단계 추천')}>
+              <h3 className="scn-set-sub">
+                {t('다음 단계 추천')}
+                <span className="scn-pal-count">
+                  {t('{번호}번 단계가 머무는 화면에서 이어지는 정상 케이스 {수}', { 번호: 뒤.번호, 수: 추천칸.length })}
+                </span>
+              </h3>
+              <ul className="scn-pal-list">{추천칸.map((x) => 줄(x.row, x.screen))}</ul>
+            </section>
+          )}
           <label className="scn-pal-find">
             <span className="scn-set-sub">{t('케이스 찾기')}</span>
             <input type="text" value={찾기} onChange={(e) => set찾기(e.target.value)} />
@@ -191,11 +238,11 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
                   </h3>
                   {!펴졌나('group', g.feature) ? null : (
                     <>
-                      <ul className="scn-pal-list">{g.흐름.map(줄)}</ul>
+                      <ul className="scn-pal-list">{g.흐름.map((c) => 줄(c))}</ul>
                       {g.입력값.length === 0 ? null : (
                         <div className="scn-pal-sub">
                           {접는단추('rest', g.feature, t('경계 · 예외 케이스 {수}', { 수: g.입력값.length }))}
-                          {!펴졌나('rest', g.feature) ? null : <ul className="scn-pal-list">{g.입력값.map(줄)}</ul>}
+                          {!펴졌나('rest', g.feature) ? null : <ul className="scn-pal-list">{g.입력값.map((c) => 줄(c))}</ul>}
                         </div>
                       )}
                     </>
@@ -208,14 +255,14 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
               <section className="scn-pal-group">
                 <h3 className="scn-set-sub">{t('업무 흐름 케이스')}</h3>
                 <p className="scn-set-note">{t('상태 전이 사용 또는 기법 표시 없음')}</p>
-                <ul className="scn-pal-list">{(묶음들[0]?.흐름 ?? []).map(줄)}</ul>
+                <ul className="scn-pal-list">{(묶음들[0]?.흐름 ?? []).map((c) => 줄(c))}</ul>
               </section>
               <section className="scn-pal-group">
                 <h3 className="scn-set-sub">
                   {접는단추('rest', null, t('입력값 검증 케이스 {수}', { 수: 묶음들[0]?.입력값.length ?? 0 }))}
                 </h3>
                 <p className="scn-set-note">{t('경계값 · 동등 분할 · 결정 테이블만 사용')}</p>
-                {!펴졌나('rest', null) ? null : <ul className="scn-pal-list">{(묶음들[0]?.입력값 ?? []).map(줄)}</ul>}
+                {!펴졌나('rest', null) ? null : <ul className="scn-pal-list">{(묶음들[0]?.입력값 ?? []).map((c) => 줄(c))}</ul>}
               </section>
             </>
           )}

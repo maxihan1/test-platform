@@ -116,6 +116,12 @@ interface TrialBody {
   parts: ScenarioPart[];
 }
 
+/** 이어지는 화면은 크롤러 같은 틀(숫자 마디는 `:n`)이다 */
+export interface NextCase {
+  tcId: string;
+  screen: string;
+}
+
 export const scenarioApi = {
   /** `uses` 를 주면 그 케이스를 쓰는 시나리오만. 빈 `uses` 는 서버가 「전부」로 읽어 묻지 않고 빈 목록이다 */
   list: (service: string, uses?: string[]) => {
@@ -139,6 +145,10 @@ export const scenarioApi = {
     call<{ version: number }>(`/scenarios/${id}/restore`, json({ version })),
 
   caseParts: (tcId: string) => call<CasePartMaterial>(`/scenarios/case-parts/${encodeURIComponent(tcId)}`),
+
+  /** 다음 단계 추천 — after 케이스가 머무는 화면에서 이어지는 화면에 닿는 케이스. 정상 쪽 거르기는 부르는 쪽이 한다 */
+  nextCases: (service: string, after: string) =>
+    call<{ items: NextCase[] }>(`/scenarios/next-cases?${new URLSearchParams({ service, after }).toString()}`),
 
   run: (id: number, env: string) => call<{ runId: number }>(`/scenarios/${id}/runs`, json({ env })),
 
