@@ -3,7 +3,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import authoringAgentRoutes from './agentRoutes.js';
-import { 본문, type 알릴것 } from './notify.js';
+import { 본문, 알림이끝나길기다린다, type 알릴것 } from './notify.js';
 import authoringRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -77,8 +77,14 @@ describe.skipIf(연결 === undefined)('끝내기 통로의 Slack 알림', () => 
     return Number((r.rows[0] as { id: string }).id);
   };
   const 웹훅쓰기 = (주소: string | null) => q('UPDATE service SET slack_webhook = $2 WHERE id = $1', [서비스, 주소]);
+  // Slack 은 응답을 붙잡지 않고 뒤에서 나간다 — 보낸 결과를 보는 검사는 그 일이 끝나길 기다린 뒤에 본다
   const 끝내기 = (id: number, 본문: object) =>
     app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/finish`, payload: 본문 });
+  const 끝내고기다리기 = async (id: number, 본문: object) => {
+    const 응답 = await 끝내기(id, 본문);
+    await 알림이끝나길기다린다();
+    return 응답;
+  };
   const 치우기 = async () => {
     await q('DELETE FROM prd_version WHERE service_id = $1', [서비스]);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
@@ -131,7 +137,7 @@ describe.skipIf(연결 === undefined)('끝내기 통로의 Slack 알림', () => 
     );
     const id = await 넣기();
 
-    const 응답 = await 끝내기(id, { status: 'DONE' });
+    const 응답 = await 끝내고기다리기(id, { status: 'DONE' });
 
     expect(응답.statusCode).toBe(200);
     expect(보냄).toHaveBeenCalledTimes(1);
@@ -143,12 +149,29 @@ describe.skipIf(연결 === undefined)('끝내기 통로의 Slack 알림', () => 
     expect(text).toContain(`결과 보기 https://qa.example.com/#/authoring/${id}`);
   });
 
+  it('Slack 이 응답하지 않아도 끝내기는 바로 200 이다', async () => {
+    await 치우기();
+    await 웹훅쓰기(웹훅);
+    let 풀어주기 = (): void => {};
+    보냄.mockReturnValue(new Promise((완료) => { 풀어주기 = () => 완료({ ok: true }); }));
+    const id = await 넣기();
+
+    const 응답 = await 끝내기(id, { status: 'DONE' });
+
+    expect(응답.statusCode).toBe(200);
+    const 행 = await q('SELECT status FROM authoring_request WHERE id = $1', [id]);
+    expect((행.rows[0] as { status: string }).status).toBe('DONE');
+    await vi.waitFor(() => expect(보냄).toHaveBeenCalledTimes(1));
+    풀어주기();
+    await 알림이끝나길기다린다();
+  });
+
   it('웹훅이 없으면 안 보낸다', async () => {
     await 치우기();
     await 웹훅쓰기(null);
     const id = await 넣기();
 
-    expect((await 끝내기(id, { status: 'DONE' })).statusCode).toBe(200);
+    expect((await 끝내고기다리기(id, { status: 'DONE' })).statusCode).toBe(200);
     expect(보냄).not.toHaveBeenCalled();
   });
 
@@ -157,8 +180,8 @@ describe.skipIf(연결 === undefined)('끝내기 통로의 Slack 알림', () => 
     await 웹훅쓰기(웹훅);
     const id = await 넣기();
 
-    expect((await 끝내기(id, { status: 'DONE' })).statusCode).toBe(200);
-    expect((await 끝내기(id, { status: 'DONE' })).statusCode).toBe(409);
+    expect((await 끝내고기다리기(id, { status: 'DONE' })).statusCode).toBe(200);
+    expect((await 끝내고기다리기(id, { status: 'DONE' })).statusCode).toBe(409);
     expect(보냄).toHaveBeenCalledTimes(1);
   });
 
@@ -168,7 +191,7 @@ describe.skipIf(연결 === undefined)('끝내기 통로의 Slack 알림', () => 
     보냄.mockRejectedValue(new Error('network down'));
     const id = await 넣기();
 
-    expect((await 끝내기(id, { status: 'FAILED', error: '러너 오류' })).statusCode).toBe(200);
+    expect((await 끝내고기다리기(id, { status: 'FAILED', error: '러너 오류' })).statusCode).toBe(200);
     const 행 = await q('SELECT status FROM authoring_request WHERE id = $1', [id]);
     expect((행.rows[0] as { status: string }).status).toBe('FAILED');
   });
@@ -177,11 +200,11 @@ describe.skipIf(연결 === undefined)('끝내기 통로의 Slack 알림', () => 
     await 치우기();
     await 웹훅쓰기(웹훅);
     const 사람이 = await 넣기({ 멈춤요청: true });
-    expect((await 끝내기(사람이, { status: 'STOPPED', stopReason: 'USER' })).statusCode).toBe(200);
+    expect((await 끝내고기다리기(사람이, { status: 'STOPPED', stopReason: 'USER' })).statusCode).toBe(200);
     expect(보냄).not.toHaveBeenCalled();
 
     const 시간초과 = await 넣기();
-    expect((await 끝내기(시간초과, { status: 'STOPPED', stopReason: 'TIMEOUT' })).statusCode).toBe(200);
+    expect((await 끝내고기다리기(시간초과, { status: 'STOPPED', stopReason: 'TIMEOUT' })).statusCode).toBe(200);
     expect(보냄).toHaveBeenCalledTimes(1);
     expect((JSON.parse(보냄.mock.calls[0]![1].body) as { text: string }).text).toContain('[중단] XWF 작성 알림 검사용');
   });

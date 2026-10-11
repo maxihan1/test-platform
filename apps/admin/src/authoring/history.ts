@@ -27,6 +27,9 @@ export function 위로식(번호자리: string): string {
     )`;
 }
 
+/** 오류 글은 첫 줄만 200자 — 목록 · 알림 · Slack 이 같은 길이로 자른다. 긴 까닭은 그 실행 상세에서 본다 */
+export const 오류첫줄 = (글: string): string => (글.split('\n')[0] ?? '').slice(0, 200);
+
 export async function 뿌리(id: number): Promise<number | null> {
   const r = await (await db()).query<{ id: string }>(
     `WITH RECURSIVE ${위로식('$1')} SELECT id FROM 위 WHERE source_id IS NULL`,
@@ -88,7 +91,7 @@ export async function 실행들(뿌리번호: number): Promise<실행[]> {
     resumeFrom: x.resume_from === null ? null : Number(x.resume_from),
     status: x.status,
     stopReason: x.stop_reason,
-    error: x.error === null ? null : (x.error.split('\n')[0] ?? '').slice(0, 200),
+    error: x.error === null ? null : 오류첫줄(x.error),
     createdAt: x.created_at.toISOString(),
     startedAt: x.started_at?.toISOString() ?? null,
     finishedAt: x.finished_at?.toISOString() ?? null,

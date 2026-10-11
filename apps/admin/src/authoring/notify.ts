@@ -3,6 +3,7 @@
 import { 걸린시간, 슬랙으로 } from '../execution/notify.js';
 import { 확인필요 } from '../prd/rules.js';
 import { 지금판 } from '../prd/store.js';
+import { 오류첫줄 } from './history.js';
 import { db } from './store.js';
 
 // 목록 줄 제목은 상태 문구라 화면 언어를 따라가는 클라이언트 몫이다. 서버(알림 통로 · Slack)는 어떤 요청인지만 말한다
@@ -83,7 +84,7 @@ export async function 작성끝알림(id: number, 뿌리번호: number): Promise
       caseFiles: typeof 행.progress?.caseFiles === 'number' ? 행.progress.caseFiles : null,
       확인필요: 판 === null ? null : 확인필요(판.items).count,
       ms: 행.ms === null ? null : Number(행.ms),
-      error: 행.error === null ? null : (행.error.split('\n')[0] ?? '').slice(0, 200),
+      error: 행.error === null ? null : 오류첫줄(행.error),
       prUrl: 행.pr_url,
     },
     process.env.PLATFORM_PUBLIC_URL ?? '',
@@ -91,20 +92,30 @@ export async function 작성끝알림(id: number, 뿌리번호: number): Promise
   return 슬랙으로(행.slack_webhook, 글);
 }
 
+const 보내는중 = new Set<Promise<void>>();
+
+/** 뒤에서 나가는 알림이 다 끝나길 기다린다 — 테스트가 보낸 결과를 보기 전에 쓴다 */
+export const 알림이끝나길기다린다 = async (): Promise<void> => {
+  await Promise.all(보내는중);
+};
+
 /**
- * 끝내기 통로가 부른다. 알림이 실패해도 끝내기는 이미 성립했으므로 로그만 남기고 삼킨다 (실행 알림과 같은 규칙).
+ * 끝내기 통로가 부른다. 기다리지 않는다 — Slack 이 느리거나 먹통이어도 에이전트의 끝내기 응답은 안 늦춘다.
+ * 알림이 실패해도 끝내기는 이미 성립했으므로 로그만 남기고 삼킨다 (실행 알림과 같은 규칙).
  * 사람이 멈춘 것(USER)은 화면에서 이미 알고 있어 안 보낸다. 머지는 작성 완료가 아니라 반영이라 안 보낸다
  */
-export async function 끝냈다고알림(
+export function 끝냈다고알림(
   행: { id: number; kind: string },
   뿌리번호: number,
   stopReason: string | undefined,
   log: { error: (글: string) => void },
-): Promise<void> {
+): void {
   if (행.kind === 'MERGE' || stopReason === 'USER') return;
-  try {
-    await 작성끝알림(행.id, 뿌리번호);
-  } catch (err) {
-    log.error(`[authoring] 작성 요청 ${행.id}의 Slack 알림을 보내지 못했다: ${err instanceof Error ? err.message : String(err)}`);
-  }
+  const 일 = 작성끝알림(행.id, 뿌리번호)
+    .then(() => undefined)
+    .catch((err: unknown) => {
+      log.error(`[authoring] 작성 요청 ${행.id}의 Slack 알림을 보내지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+    });
+  보내는중.add(일);
+  void 일.finally(() => 보내는중.delete(일));
 }

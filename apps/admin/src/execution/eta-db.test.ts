@@ -9,17 +9,26 @@ describe.skipIf(연결 === undefined)('실행남은시간', () => {
   let 서비스 = 0;
   const 앞동시 = process.env.EXECUTION_CONCURRENCY;
 
-  async function 실행(status: string): Promise<number> {
+  const 시작 = new Date('2026-10-01T00:00:00Z');
+  const 끝 = new Date('2026-10-01T00:10:00Z');
+
+  async function 실행(status: string, kind = 'FN'): Promise<number> {
+    // 시나리오 실행은 칸 짝 CHECK 때문에 시나리오 버전이 있어야 한다
+    let 시나리오: string | null = null;
+    if (kind === 'SCENARIO') {
+      시나리오 = (await pool.query<{ id: string }>(`INSERT INTO scenario (service_id, name, created_by) VALUES ($1, 'XET 흐름', 'xet') RETURNING id`, [서비스])).rows[0]!.id;
+      await pool.query(`INSERT INTO scenario_version (scenario_id, version, parts, saved_by, saved_by_name) VALUES ($1, 1, '[]', 'xet', '검사')`, [시나리오]);
+    }
     const r = await pool.query<{ run_id: string }>(
-      `INSERT INTO test_run (title, service_name, tests_repo, triggered_by, env, base_url, status, service_id)
-            VALUES ('XET 실행', 'XET', '', 'xet', 'qa', 'https://qa.example.com', $1, $2)
+      `INSERT INTO test_run (title, service_name, tests_repo, triggered_by, env, base_url, status, service_id, kind, started_at, scenario_id, scenario_version)
+            VALUES ('XET 실행', 'XET', '', 'xet', 'qa', 'https://qa.example.com', $1, $2, $3, $4, $5::bigint, CASE WHEN $5::bigint IS NULL THEN NULL ELSE 1 END)
          RETURNING run_id`,
-      [status, 서비스],
+      [status, 서비스, kind, 시작, 시나리오],
     );
     return Number(r.rows[0]!.run_id);
   }
 
-  // 끝난 항목은 durationMs 를 주고, 안 끝난 항목은 비운다. 분전은 시작 시각이다
+  // 끝난 항목은 durationMs 를 주고, 안 끝난 항목은 비운다. 분전은 시작 시각이다. 끝난 시각은 고정이라 남은 시간을 정확히 겨눈다
   async function 항목(runId: number, tcId: string, 칸: { durationMs?: number; 분전?: number } = {}): Promise<void> {
     const 끝남 = 칸.durationMs !== undefined;
     await pool.query(
@@ -27,14 +36,16 @@ describe.skipIf(연결 === undefined)('실행남은시간', () => {
                              precondition, params, expected, param_schema, expected_schema, status,
                              duration_ms, started_at, finished_at)
             VALUES ($1, $2, 'desktop', 1, $2, 'xet.spec.ts', 5000, '[]', '{}', '{}', '{}', '{}', 'NA',
-                    $3, now() - make_interval(mins => $4::int), CASE WHEN $5::boolean THEN now() ELSE NULL END)`,
-      [runId, tcId, 칸.durationMs ?? null, 칸.분전 ?? 0, 끝남],
+                    $3, now() - make_interval(mins => $4::int), CASE WHEN $5::boolean THEN $6::timestamptz ELSE NULL END)`,
+      [runId, tcId, 칸.durationMs ?? null, 칸.분전 ?? 0, 끝남, 끝],
     );
   }
 
   const 치우기 = async () => {
     await pool.query('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = $1)', [서비스]);
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [서비스]);
+    await pool.query('DELETE FROM scenario_version WHERE scenario_id IN (SELECT id FROM scenario WHERE service_id = $1)', [서비스]);
+    await pool.query('DELETE FROM scenario WHERE service_id = $1', [서비스]);
   };
 
   beforeAll(async () => {
@@ -73,8 +84,45 @@ describe.skipIf(연결 === undefined)('실행남은시간', () => {
     await 항목(이번, 'XET-003', { durationMs: 1000 });
     await 항목(이번, 'XET-004', { durationMs: 0 });
 
-    // (400 + 1000) ÷ min(동시 2, 안 끝난 2)
-    expect(await 실행남은시간(이번)).toBe(700);
+    // (400 + 1000) ÷ min(동시 2, 안 끝난 2) — 기준 시각(마지막으로 끝난 항목)에 지금을 맞추면 그대로다
+    expect(await 실행남은시간(이번, 끝)).toBe(700);
+  });
+
+  it('기준 시각은 마지막으로 끝난 항목이고 그 뒤로 흐른 만큼 줄어든다', async () => {
+    const { 실행남은시간 } = await import('./eta.js');
+    await 치우기();
+    await 항목(await 실행('FINISHED'), 'XET-001', { durationMs: 1000, 분전: 100 });
+    await 항목(await 실행('FINISHED'), 'XET-002', { durationMs: 1000, 분전: 100 });
+    await 항목(await 실행('FINISHED'), 'XET-003', { durationMs: 1000, 분전: 100 });
+    const 이번 = await 실행('RUNNING');
+    await 항목(이번, 'XET-001');
+    await 항목(이번, 'XET-002');
+    await 항목(이번, 'XET-003');
+
+    // 3000 ÷ min(동시 2, 안 끝난 3) = 1500. 끝난 항목이 없어 기준은 실행 시작 시각이다
+    expect(await 실행남은시간(이번, 시작)).toBe(1500);
+    expect(await 실행남은시간(이번, new Date(시작.getTime() + 400))).toBe(1100);
+    expect(await 실행남은시간(이번, new Date(시작.getTime() + 60_000))).toBe(0);
+
+    await 항목(이번, 'XET-004', { durationMs: 500 });
+    // 끝난 항목이 생기면 기준이 그 시각으로 옮겨 가 셈을 다시 맞춘다 — 3000 ÷ 2 = 1500 에서 다시 줄어든다
+    expect(await 실행남은시간(이번, new Date(끝.getTime() + 300))).toBe(1200);
+  });
+
+  it('다른 실행이 같이 돌면 칸을 나눠 쓴다 — 시나리오 실행은 세지 않는다', async () => {
+    const { 실행남은시간 } = await import('./eta.js');
+    await 치우기();
+    await 항목(await 실행('FINISHED'), 'XET-001', { durationMs: 1000, 분전: 100 });
+    await 항목(await 실행('FINISHED'), 'XET-002', { durationMs: 1000, 분전: 100 });
+    const 이번 = await 실행('RUNNING');
+    await 항목(이번, 'XET-001');
+    await 항목(이번, 'XET-002');
+    await 실행('RUNNING', 'SCENARIO');
+
+    expect(await 실행남은시간(이번, 시작)).toBe(1000);
+    await 실행('RUNNING', 'UI');
+    // 칸 = max(1, min(2, 2) ÷ 2) = 1
+    expect(await 실행남은시간(이번, 시작)).toBe(2000);
   });
 
   it('지난 기록도 이번에 끝난 항목도 없으면 null 이다', async () => {

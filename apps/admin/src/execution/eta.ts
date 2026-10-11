@@ -1,6 +1,7 @@
 // 도는 실행의 남은 시간을 같은 케이스의 지난 소요 중간값으로 어림한다 (진행 화면 · 알림 통로가 쓴다)
 
 import { limit } from './dispatcher.js';
+import { 종류조건 } from './runKind.js';
 
 /** 짝수 개면 가운데 둘의 평균. 값이 없으면 null */
 export function 중간값(값들: readonly number[]): number | null {
@@ -11,10 +12,10 @@ export function 중간값(값들: readonly number[]): number | null {
 }
 
 /**
- * 안 끝난 항목마다의 예상(지난 기록이 없으면 null)로 남은 시간을 낸다.
+ * 안 끝난 항목마다의 예상(지난 기록이 없으면 null)과 칸 수로 남은 시간을 낸다.
  * 기록 없는 항목은 이번 실행에서 끝난 항목의 평균으로 채우고, 그것도 없으면 null(=계산 중)
  */
-export function 남은시간계산(미완예상: readonly (number | null)[], 끝난평균: number | null, 동시: number): number | null {
+export function 남은시간계산(미완예상: readonly (number | null)[], 끝난평균: number | null, 칸: number): number | null {
   if (미완예상.length === 0) return 0;
   let 합 = 0;
   for (const 예상 of 미완예상) {
@@ -22,7 +23,20 @@ export function 남은시간계산(미완예상: readonly (number | null)[], 끝
     if (값 === null) return null;
     합 += 값;
   }
-  return Math.round(합 / Math.min(Math.max(1, 동시), 미완예상.length));
+  return Math.round(합 / 칸);
+}
+
+/**
+ * 이 실행이 쓸 수 있는 칸 수 — 동시 수와 안 끝난 항목 수 중 작은 쪽을 지금 도는 실행들이 나눠 쓴다. 1 아래로는 안 내린다.
+ * ponytail: 대기줄 순서와 안드로이드 따로 줄(전역 상한 밖)은 안 본다. 칸을 균등하게 나눈다고 어림할 뿐이다
+ */
+export function 칸수(동시: number, 미완수: number, 도는실행수: number): number {
+  return Math.max(1, Math.min(Math.max(1, 동시), 미완수) / Math.max(1, 도는실행수));
+}
+
+/** 셈은 기준 시각 시점의 값이다. 그 뒤로 흐른 만큼 줄여 항목이 끝날 때마다 다시 맞춰지고 그사이에는 준다 */
+export function 줄어든남은시간(셈: number | null, 기준시각: number, 지금: number): number | null {
+  return 셈 === null ? null : Math.max(0, 셈 - (지금 - 기준시각));
 }
 
 // 실행 번호 → 「tc_id|platform」별 지난 중간값. 진행 화면이 2초마다 부르는데 지난 기록은 실행 중에 안 바뀌어 한 번만 읽는다.
@@ -59,25 +73,35 @@ async function 지난기록읽기(runId: number): Promise<Map<string, number>> {
   return 중간;
 }
 
-/** 남은 시간(ms). 어림할 근거가 아직 없으면 null — 화면은 「계산 중」 */
-export async function 실행남은시간(runId: number): Promise<number | null> {
+/**
+ * 남은 시간(ms). 어림할 근거가 아직 없으면 null — 화면은 「계산 중」.
+ * 기준 시각은 이번 실행에서 마지막으로 끝난 항목의 시각(없으면 실행 시작)이고, 지금은 DB 시계다 — 테스트가 지금을 넘길 수 있다
+ */
+export async function 실행남은시간(runId: number, 지금?: Date): Promise<number | null> {
   const { pool } = await import('../db/index.js');
-  const [미완, 평균] = await Promise.all([
+  const [미완, 집계, 도는실행] = await Promise.all([
     pool.query<{ tc_id: string; platform: string }>('SELECT tc_id, platform FROM run_item WHERE run_id = $1 AND finished_at IS NULL', [runId]),
-    pool.query<{ avg: string | null }>(
-      'SELECT avg(duration_ms) AS avg FROM run_item WHERE run_id = $1 AND finished_at IS NOT NULL AND duration_ms > 0',
+    pool.query<{ avg: string | null; last_finished: Date | null; started_at: Date; now: Date }>(
+      `SELECT avg(duration_ms) FILTER (WHERE finished_at IS NOT NULL AND duration_ms > 0) AS avg,
+              max(finished_at) AS last_finished,
+              (SELECT started_at FROM test_run WHERE run_id = $1) AS started_at,
+              now() AS now
+         FROM run_item WHERE run_id = $1`,
       [runId],
     ),
+    pool.query<{ n: number }>(`SELECT count(*)::int AS n FROM test_run WHERE status = 'RUNNING' AND ${종류조건('case', '')}`),
   ]);
   if (미완.rows.length === 0) {
     지난기록.delete(runId);
     return 0;
   }
   const 기록 = await 지난기록읽기(runId);
-  const 끝난평균 = 평균.rows[0]?.avg == null ? null : Number(평균.rows[0].avg);
-  return 남은시간계산(
+  const 줄 = 집계.rows[0]!;
+  const 끝난평균 = 줄.avg == null ? null : Number(줄.avg);
+  const 셈 = 남은시간계산(
     미완.rows.map((r) => 기록.get(키(r.tc_id, r.platform)) ?? null),
     끝난평균,
-    limit(),
+    칸수(limit(), 미완.rows.length, 도는실행.rows[0]!.n),
   );
+  return 줄어든남은시간(셈, (줄.last_finished ?? 줄.started_at).getTime(), (지금 ?? 줄.now).getTime());
 }

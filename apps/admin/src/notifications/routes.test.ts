@@ -22,13 +22,21 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
 
   async function 실행(서비스접두사: string, 칸: { title: string; status?: string; 끝난일전?: number; kind?: string; 항목?: { 끝남: boolean; ms?: number }[] }): Promise<number> {
     const 상태 = 칸.status ?? (칸.끝난일전 === undefined ? 'RUNNING' : 'FINISHED');
+    // 시나리오 실행은 칸 짝 CHECK 때문에 시나리오 버전이 있어야 한다
+    let 시나리오: string | null = null;
+    if (칸.kind === 'SCENARIO') {
+      시나리오 = (await q<{ id: string }>(`INSERT INTO scenario (service_id, name, created_by) VALUES ($1, 'XNT 흐름', 'xnt') RETURNING id`, [서비스[서비스접두사]])).rows[0]!.id;
+      await q(`INSERT INTO scenario_version (scenario_id, version, parts, saved_by, saved_by_name) VALUES ($1, 1, '[]', 'xnt', '검사')`, [시나리오]);
+    }
     const r = await q<{ run_id: string }>(
-      `INSERT INTO test_run (title, service_id, service_name, tests_repo, triggered_by, env, base_url, status, kind, started_at, finished_at)
+      `INSERT INTO test_run (title, service_id, service_name, tests_repo, triggered_by, env, base_url, status, kind, started_at, finished_at,
+                             scenario_id, scenario_version)
        VALUES ($1, $2, $3, '', 'xnt', 'qa', 'https://qa.example.com', $4, $5,
                now() - make_interval(days => COALESCE($6::int, 0), hours => 1),
-               CASE WHEN $6::int IS NULL THEN NULL ELSE now() - make_interval(days => $6::int) END)
+               CASE WHEN $6::int IS NULL THEN NULL ELSE now() - make_interval(days => $6::int) END,
+               $7, CASE WHEN $7::bigint IS NULL THEN NULL ELSE 1 END)
        RETURNING run_id`,
-      [칸.title, 서비스[서비스접두사], 서비스접두사, 상태, 칸.kind ?? 'FN', 칸.끝난일전 ?? null],
+      [칸.title, 서비스[서비스접두사], 서비스접두사, 상태, 칸.kind ?? 'FN', 칸.끝난일전 ?? null, 시나리오],
     );
     const runId = Number(r.rows[0]!.run_id);
     for (const [i, 항목] of (칸.항목 ?? []).entries()) {
@@ -44,17 +52,18 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
 
   async function 작성(
     서비스접두사: string,
-    칸: { status: string; kind?: string; sourceId?: number; 끝난일전?: number; progress?: object; prUrl?: string; error?: string; 폐기?: boolean; stage?: string },
+    칸: { status: string; kind?: string; sourceId?: number; 끝난일전?: number; progress?: object; prUrl?: string; error?: string; 폐기?: boolean; stage?: string; params?: object },
   ): Promise<number> {
     const 끝남 = ['DONE', 'FAILED', 'STOPPED'].includes(칸.status);
     const r = await q<{ id: string }>(
       `INSERT INTO authoring_request (service_id, kind, source_id, requested_by, requested_by_name, status, stage,
-                                      started_at, finished_at, progress, pr_url, error, discarded_at, stop_reason, stopped_by)
+                                      started_at, finished_at, progress, pr_url, error, discarded_at, stop_reason, stopped_by, params)
        VALUES ($1, $2, $3, 'xnt', 'XNT 검사', $4, $5,
                CASE WHEN $4 = 'PENDING' THEN NULL ELSE now() - make_interval(days => COALESCE($6::int, 0), mins => 30) END,
                CASE WHEN $7::boolean THEN now() - make_interval(days => COALESCE($6::int, 0)) ELSE NULL END,
                $8::jsonb, $9, $10, CASE WHEN $11::boolean THEN now() ELSE NULL END,
-               CASE WHEN $4 = 'STOPPED' THEN 'USER' ELSE NULL END, CASE WHEN $4 = 'STOPPED' THEN 'xnt' ELSE NULL END)
+               CASE WHEN $4 = 'STOPPED' THEN 'USER' ELSE NULL END, CASE WHEN $4 = 'STOPPED' THEN 'xnt' ELSE NULL END,
+               COALESCE($12::jsonb, '{}'::jsonb))
        RETURNING id`,
       [
         서비스[서비스접두사],
@@ -68,6 +77,7 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
         칸.prUrl ?? null,
         칸.error ?? null,
         칸.폐기 === true,
+        칸.params === undefined ? null : JSON.stringify(칸.params),
       ],
     );
     return Number(r.rows[0]!.id);
@@ -93,6 +103,8 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
     const ids = 접두사.map((p) => 서비스[p]);
     await q('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [ids]);
     await q('DELETE FROM test_run WHERE service_id = ANY($1)', [ids]);
+    await q('DELETE FROM scenario_version WHERE scenario_id IN (SELECT id FROM scenario WHERE service_id = ANY($1))', [ids]);
+    await q('DELETE FROM scenario WHERE service_id = ANY($1)', [ids]);
     await q('DELETE FROM prd_version WHERE service_id = ANY($1)', [ids]);
     await q('DELETE FROM authoring_request WHERE service_id = ANY($1)', [ids]);
   };
@@ -205,7 +217,10 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
 
     expect(running[0]).toMatchObject({ kind: 'run', total: 3, done: 1, counts: { total: 3, pass: 1, running: 2 } });
     // 지난 기록이 없어 이번에 끝난 평균 1000 으로 둘을 채운다 — (1000 + 1000) ÷ min(동시 2, 안 끝난 2)
-    expect((running[0] as { remainingMs: number | null }).remainingMs).toBe(1000);
+    // 기준 시각(끝난 항목의 시각)이 방금이라 흐른 시간만큼만 줄어든다
+    const 남은 = (running[0] as { remainingMs: number | null }).remainingMs!;
+    expect(남은).toBeLessThanOrEqual(1000);
+    expect(남은).toBeGreaterThan(0);
   });
 
   it('작성 요청 번호는 뿌리이고 같은 뿌리의 여러 실행은 가장 최근 것 하나로 나온다', async () => {
@@ -259,6 +274,41 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
     const { running } = await 알림();
 
     expect(running[0]).toMatchObject({ kind: 'authoring', status: 'RUNNING', stage: 'generate', expected: { ms: 30 * 60_000, samples: 1 } });
+  });
+
+  it('E2E 시나리오 실행은 도는 것에도 최근 것에도 안 담는다 — 항목이 없어 「0 통과」라는 거짓 줄이 된다', async () => {
+    await 치우기();
+    const 케이스 = await 실행('XNT', { title: 'XNT 케이스 실행', kind: 'UI' });
+    await 실행('XNT', { title: 'XNT 시나리오 실행', kind: 'SCENARIO' });
+    const 끝난케이스 = await 실행('XNT', { title: 'XNT 끝난 케이스', kind: 'FN', 끝난일전: 1 });
+    await 실행('XNT', { title: 'XNT 끝난 시나리오', kind: 'SCENARIO', 끝난일전: 1 });
+
+    배정 = { XNT: 모두 };
+    const { running, recent } = await 알림();
+
+    expect(running.map((n) => (n.kind === 'run' ? n.runId : -1))).toEqual([케이스]);
+    expect(recent.map((n) => (n.kind === 'run' ? n.runId : -1))).toEqual([끝난케이스]);
+  });
+
+  it('도는 작성 요청의 fiveSteps 는 지금 실행이 머지 · 고치기 · 고치기 다시 적용이면 false 이고 그때 expected 는 null 이다', async () => {
+    await 치우기();
+    const 작성중 = await 작성('XNT', { status: 'RUNNING' });
+    const 머지원본 = await 작성('XNT', { status: 'DONE', 끝난일전: 3 });
+    await 작성('XNT', { status: 'RUNNING', kind: 'MERGE', sourceId: 머지원본 });
+    const 고치기 = await 작성('XNT', { status: 'RUNNING', kind: 'EDIT', params: { edits: [] } });
+    const 고친뒤 = await 작성('XNT', { status: 'DONE', kind: 'EDIT', params: { edits: [] }, 끝난일전: 2 });
+    await 작성('XNT', { status: 'RUNNING', kind: 'RERUN', sourceId: 고친뒤, params: { edits: [] } });
+    const 다시원본 = await 작성('XNT', { status: 'DONE', 끝난일전: 4 });
+    await 작성('XNT', { status: 'RUNNING', kind: 'RERUN', sourceId: 다시원본 });
+
+    배정 = { XNT: 모두 };
+    const { running } = await 알림();
+    const 칸 = (id: number) => running.find((n) => n.kind === 'authoring' && n.requestId === id) as Extract<NoticeRunning, { kind: 'authoring' }>;
+
+    expect(running).toHaveLength(5);
+    expect(칸(작성중)).toMatchObject({ fiveSteps: true, expected: { ms: 30 * 60_000, samples: 2 } });
+    expect(칸(다시원본)).toMatchObject({ fiveSteps: true, expected: { ms: 30 * 60_000, samples: 2 } });
+    for (const id of [머지원본, 고치기, 고친뒤]) expect(칸(id)).toMatchObject({ fiveSteps: false, expected: null });
   });
 
   it('배정이 없으면 빈 목록이다', async () => {

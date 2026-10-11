@@ -14,14 +14,18 @@ describe.skipIf(연결 === undefined)('작성 예상 시간', () => {
   let 남의서비스 = 0;
 
   // 끝난 요청 하나. 걸린분은 started_at 과 finished_at 의 차이이고, 끝난 시각은 몇 분 전인지로 줄을 세운다
-  async function 행(칸: { 서비스?: number; kind?: string; status?: string; 걸린분?: number; 끝난분전: number }): Promise<number> {
+  async function 행(
+    칸: { 서비스?: number; kind?: string; status?: string; 걸린분?: number; 끝난분전: number; resumeFrom?: number; params?: object; sourceId?: number },
+  ): Promise<number> {
     const { pool } = await import('../db/index.js');
     const r = await pool.query<{ id: string }>(
-      `INSERT INTO authoring_request (service_id, kind, requested_by, requested_by_name, status, started_at, finished_at)
+      `INSERT INTO authoring_request (service_id, kind, requested_by, requested_by_name, status, started_at, finished_at, resume_from, params, source_id, stop_reason, stopped_by)
        VALUES ($1, $2, 'xwe', 'XWE 검사', $3,
-               now() - make_interval(mins => $4::int + $5::int), now() - make_interval(mins => $4::int))
+               now() - make_interval(mins => $4::int + $5::int), now() - make_interval(mins => $4::int),
+               $6, COALESCE($7::jsonb, '{}'::jsonb), $8,
+               CASE WHEN $3 = 'STOPPED' THEN 'USER' ELSE NULL END, CASE WHEN $3 = 'STOPPED' THEN 'xwe' ELSE NULL END)
        RETURNING id`,
-      [칸.서비스 ?? 서비스, 칸.kind ?? 'AUTHOR', 칸.status ?? 'DONE', 칸.끝난분전, 칸.걸린분 ?? 10],
+      [칸.서비스 ?? 서비스, 칸.kind ?? 'AUTHOR', 칸.status ?? 'DONE', 칸.끝난분전, 칸.걸린분 ?? 10, 칸.resumeFrom ?? null, 칸.params === undefined ? null : JSON.stringify(칸.params), 칸.sourceId ?? null],
     );
     return Number(r.rows[0]!.id);
   }
@@ -76,6 +80,33 @@ describe.skipIf(연결 === undefined)('작성 예상 시간', () => {
     await 행({ 서비스: 남의서비스, 걸린분: 500, 끝난분전: 3 });
 
     expect(await 작성예상(서비스)).toEqual({ ms: 4 * 60_000, samples: 5 });
+  });
+
+  it('이어서 작성한 것(resume_from)과 고치기 다시 적용(params.edits)은 표본에서 뺀다', async () => {
+    await 치우기();
+    const 중단 = await 행({ status: 'STOPPED', 걸린분: 1, 끝난분전: 90 });
+    await 행({ kind: 'RERUN', sourceId: 중단, resumeFrom: 중단, 걸린분: 500, 끝난분전: 60 });
+    const 원본 = await 행({ 걸린분: 8, 끝난분전: 50 });
+    await 행({ kind: 'RERUN', sourceId: 원본, params: { edits: [] }, 걸린분: 500, 끝난분전: 40 });
+    await 행({ kind: 'RERUN', sourceId: 원본, 걸린분: 12, 끝난분전: 30 });
+
+    expect(await 작성예상(서비스)).toEqual({ ms: 10 * 60_000, samples: 2 });
+  });
+
+  it('상세의 expected 는 그 행이 머지 · 고치기 · 고치기 다시 적용이면 null 이다', async () => {
+    await 치우기();
+    const 원본 = await 행({ 걸린분: 10, 끝난분전: 50 });
+    const 머지 = await 행({ kind: 'MERGE', sourceId: 원본, 끝난분전: 40 });
+    const 고치기 = await 행({ kind: 'EDIT', params: { edits: [] }, 끝난분전: 30 });
+    const 다시적용 = await 행({ kind: 'RERUN', sourceId: 고치기, params: { edits: [] }, 끝난분전: 20 });
+    const 다시작성 = await 행({ kind: 'RERUN', sourceId: 원본, 끝난분전: 10 });
+
+    const 상세 = async (id: number) => (await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}?service=${접두사}` })).json().expected;
+    expect(await 상세(머지)).toBeNull();
+    expect(await 상세(고치기)).toBeNull();
+    expect(await 상세(다시적용)).toBeNull();
+    expect(await 상세(원본)).toEqual({ ms: 10 * 60_000, samples: 2 });
+    expect(await 상세(다시작성)).toEqual({ ms: 10 * 60_000, samples: 2 });
   });
 
   it('작성 상세 응답에 expected 가 실린다', async () => {

@@ -293,7 +293,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     });
     // 끝난 행에 또 오면 409 다. 안 막으면 판정과 PR 주소가 덮어써진다
     if (!바뀌었나) return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
-    await 끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);
+    끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);
     return { ok: true };
   });
 
