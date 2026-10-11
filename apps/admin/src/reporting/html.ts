@@ -53,8 +53,9 @@ function 케이스로(items: EvidenceItem[]): 케이스[] {
     표.set(item.tcId, c);
   });
 
-  // 화면 카드와 같은 비교다 — 변화가 없으면 화면도 케이스 번호 차례다
-  const 케이스들 = [...표.values()].sort((a, b) => a.tcId.localeCompare(b.tcId));
+  // 화면 카드와 같은 비교다 — 변화가 없으면 화면도 케이스 번호 차례다.
+  // 로캘은 못박는다 — 서버 언어 설정을 따르면 같은 실행의 문서 차례가 서버마다 달라질 수 있다 (SPEC §3.3)
+  const 케이스들 = [...표.values()].sort((a, b) => a.tcId.localeCompare(b.tcId, 'en'));
   케이스들.forEach((c, 차례) => {
     c.차례 = 차례;
     c.칸들.sort(

@@ -9,7 +9,7 @@ import type { EvidenceDocument, EvidenceItem, EvidenceStep } from './collect.js'
 import { renderHtml } from './html.js';
 
 /**
- * html.ts 가 담는 글꼴 원본 넷. 경로가 여기서 갈리면 아래 바이트 수 검사가 먼저 빨개진다.
+ * htmlStyle.ts 가 담는 글꼴 원본 넷. 경로가 여기서 갈리면 아래 바이트 수 검사가 먼저 빨개진다.
  *
  * 본문 둘(400·600)과 등폭 둘(400·500)이다. 등폭은 TC ID·소요시간·응답 코드가 쓴다 (DESIGN.md)
  */

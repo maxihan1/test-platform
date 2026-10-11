@@ -99,7 +99,8 @@ details[open] > .fold-line::before{ transform:rotate(90deg); }
 .tc-id{ font-size:12.5px; font-weight:500; color:var(--ink-muted); }
 .tc-name{ flex:1; }
 .badge{ font-size:12px; font-weight:600; color:var(--ink-muted); border:1px solid var(--rule); border-radius:2px; padding:1px 6px; }
-.verdict{ font-size:12px; font-weight:600; border-radius:2px; padding:1px 7px; }
+/* 「통과」와 「미실행」의 폭을 맞춘다 — 줄 · 머리가 배지로 시작해서 폭이 다르면 바로 뒤 TC ID 가 세로로 안 맞는다 (DESIGN.md 원칙 3) */
+.verdict{ font-size:12px; font-weight:600; border-radius:2px; padding:1px 7px; min-width:52px; text-align:center; }
 .v-pass{ background:var(--pass-bg); color:var(--pass); }
 .v-fail{ background:var(--fail); color:#fff; }
 .v-na{ background:var(--na-bg); color:var(--na); }
