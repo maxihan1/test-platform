@@ -11,6 +11,7 @@ import type { ItemStatus, Platform, StepResult } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 가린값들 } from '../web/mask.js';
+import { 가린다, 긴것부터, 비밀글자들 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
 import { 종류조건 } from './runKind.js';
@@ -95,10 +96,17 @@ interface RawItem {
   started_at: Date;
   finished_at: Date | null;
   unconfirmed: string | null;
+  expected: Record<string, unknown>;
+  expected_schema: Record<string, unknown>;
 }
 
 const ITEM_COLUMNS =
-  'history_id, tc_id, tc_name, platform, attempt, params, param_schema, status, duration_ms, error, started_at, finished_at, unconfirmed';
+  'history_id, tc_id, tc_name, platform, attempt, params, param_schema, status, duration_ms, error, started_at, finished_at, unconfirmed, expected, expected_schema';
+
+// 키로 가린 칸 밖에도 같은 값이 되비친다 — 확인의 기대 · 실제 값, 절차 오류 · httpTrace, 항목 오류 (공통/2 §4.1).
+// 시나리오 실행 결과(scenario/runRoutes.ts)와 같은 규칙으로 글자째 가린다
+const 비밀목록 = (row: RawItem): string[] =>
+  긴것부터(비밀글자들({ paramSchema: row.param_schema, expectedSchema: row.expected_schema, params: row.params, expected: row.expected }));
 
 function toItem(row: RawItem): RunItemSummary {
   return {
@@ -111,7 +119,7 @@ function toItem(row: RawItem): RunItemSummary {
     paramSchema: row.param_schema,
     status: row.status,
     durationMs: row.duration_ms,
-    error: row.error,
+    error: 가린다(row.error, 비밀목록(row)) as RawItem['error'],
     startedAt: row.started_at.toISOString(),
     finishedAt: iso(row.finished_at),
     unconfirmed: row.unconfirmed,
@@ -202,9 +210,8 @@ function toStep(row: RawStep): StepResult {
 
 export async function findItem(runId: number, historyId: number): Promise<RunItemDetail | null> {
   const pool = await db();
-  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[]; expected: Record<string, unknown>; expected_schema: Record<string, unknown> }>(
-    `SELECT i.${ITEM_COLUMNS.split(', ').join(', i.')}, i.run_id, r.title AS run_title, i.precondition, i.expected,
-            i.expected_schema
+  const rows = await pool.query<RawItem & { run_id: string; run_title: string; precondition: string[] }>(
+    `SELECT i.${ITEM_COLUMNS.split(', ').join(', i.')}, i.run_id, r.title AS run_title, i.precondition
        FROM run_item i JOIN test_run r ON r.run_id = i.run_id
       WHERE i.run_id = $1 AND i.history_id = $2`,
     [runId, historyId],
@@ -225,6 +232,6 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
     precondition: row.precondition,
     expected: 가린값들(row.expected, row.expected_schema),
     expectedSchema: row.expected_schema,
-    steps: steps.rows.map(toStep),
+    steps: 가린다(steps.rows.map(toStep), 비밀목록(row)) as StepResult[],
   };
 }
