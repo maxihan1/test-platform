@@ -17,14 +17,23 @@ const 열쇠 = (칸: 'group' | 'rest', feature: string | null) => JSON.stringify
 // ponytail: 20쪽(1000건) 상한. 넘는 서비스가 생기면 서버 찾기로 바꾼다
 const 쪽상한 = 20;
 
-async function 모으기(service: string, 끊겼나: () => boolean): Promise<{ 목록: CaseRow[]; 잘림: boolean }> {
+interface 읽은것 {
+  목록: CaseRow[];
+  잘림: boolean;
+  /** 서비스가 PRD 를 쓰나 — 서버 hasFeatures. 검색 조건 · 쪽을 안 따른다 */
+  PRD씀: boolean;
+}
+
+async function 모으기(service: string, 끊겼나: () => boolean): Promise<읽은것> {
   const 목록: CaseRow[] = [];
+  let PRD씀 = false;
   for (let page = 1; page <= 쪽상한; page += 1) {
     const 쪽 = await api.cases({ service, kind: 'FN', page });
     목록.push(...쪽.items);
-    if (끊겼나() || 쪽.items.length === 0 || 쪽.items.length < 쪽.pageSize) return { 목록, 잘림: false };
+    PRD씀 ||= 쪽.hasFeatures === true;
+    if (끊겼나() || 쪽.items.length === 0 || 쪽.items.length < 쪽.pageSize) return { 목록, 잘림: false, PRD씀 };
   }
-  return { 목록, 잘림: true };
+  return { 목록, 잘림: true, PRD씀 };
 }
 
 const 다른단계들: { 이름: string; 단계: () => 다른단계 }[] = [
@@ -51,7 +60,7 @@ interface Props {
 export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케이스, on다른단계, on바꾸기취소 }: Props) {
   const t = use말();
   const 언어 = use언어();
-  const [읽음, set읽음] = useState<{ 목록: CaseRow[]; 잘림: boolean } | null>(null);
+  const [읽음, set읽음] = useState<읽은것 | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   const [찾기, set찾기] = useState('');
   const [펼친, set펼친] = useState<ReadonlySet<string>>(new Set());
@@ -66,6 +75,8 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
     let 끊김 = false;
     set읽음(null);
     set오류(null);
+    // 묶음 이름으로 펼침을 기억한다 — 다른 서비스의 같은 이름 묶음이 펴진 채 열리지 않게 비운다
+    set펼친(new Set());
     모으기(서비스, () => 끊김).then(
       (값) => {
         if (!끊김) set읽음(값);
@@ -80,8 +91,8 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
     };
   }, [서비스, 언어]);
 
-  const 차례 = 읽음 === null ? null : 팔레트차례(읽음.목록, 디바이스);
-  const PRD씀 = 차례?.PRD씀 ?? false;
+  const PRD씀 = 읽음?.PRD씀 ?? false;
+  const 차례 = 읽음 === null ? null : 팔레트차례(읽음.목록, 디바이스, PRD씀);
   const 소문자 = 찾기.trim().toLowerCase();
   const 찾는중 = 소문자 !== '';
   const 걸린 = (c: CaseRow) =>
@@ -111,8 +122,11 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, on케�
       type="button"
       className="scn-pal-fold"
       aria-expanded={펴졌나(칸, feature)}
-      disabled={다폄}
-      onClick={() => 뒤집기(열쇠(칸, feature))}
+      // disabled 를 쓰지 않는다 — 탭 차례에서 빠져 찾는 동안 묶음 머리와 건수를 키보드로 못 읽는다
+      aria-disabled={다폄 || undefined}
+      onClick={() => {
+        if (!다폄) 뒤집기(열쇠(칸, feature));
+      }}
     >
       {글}
     </button>

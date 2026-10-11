@@ -98,7 +98,7 @@ describe('팔레트차례', () => {
   });
   const [경계, 동등, 결정, 상태] = TECHNIQUES;
 
-  const 요구 = (feature: string | null, ...축: ('정상' | '경계' | '예외')[]): Partial<CaseRow> => ({
+  const 요구 = (feature: string | null, ...축: ('정상' | '경계' | '예외' | 'UI')[]): Partial<CaseRow> => ({
     feature,
     reqs: 축.map((axis, i) => ({ reqId: `X-REQ-00${i + 1}`, text: '문장', axis })),
   });
@@ -108,8 +108,8 @@ describe('팔레트차례', () => {
     const r = 팔레트차례(
       [줄('A', ['desktop']), 줄('B', ['desktop'], [경계]), 줄('C', ['desktop'], []), 줄('D', ['desktop'], [동등, 결정]), 줄('E', ['desktop'], [경계, 상태])],
       'desktop',
+      false,
     );
-    expect(r.PRD씀).toBe(false);
     expect(r.묶음들).toHaveLength(1);
     expect(r.묶음들[0]?.feature).toBeNull();
     expect(번호(r.묶음들[0]?.흐름 ?? [])).toEqual(['A', 'C', 'E']);
@@ -118,23 +118,29 @@ describe('팔레트차례', () => {
   });
 
   it('디바이스에 없는 케이스는 빼고 수만 센다', () => {
-    const r = 팔레트차례([줄('A', ['desktop']), 줄('B', ['mobile']), 줄('C', ['desktop', 'mobile'])], 'mobile');
+    const r = 팔레트차례([줄('A', ['desktop']), 줄('B', ['mobile']), 줄('C', ['desktop', 'mobile'])], 'mobile', false);
     expect(번호(r.묶음들[0]?.흐름 ?? [])).toEqual(['B', 'C']);
     expect(r.뺀수).toBe(1);
   });
 
-  it('요구가 붙으면 기법이 아니라 종류로 가른다 — 정상 요구를 하나라도 덮으면 흐름', () => {
+  it('요구가 붙으면 기법이 아니라 종류로 가른다 — 경계 · 예외 요구만 덮으면 나머지, 그 밖은 흐름', () => {
     const r = 팔레트차례(
       [
         { ...줄('A', ['desktop'], [경계]), ...요구('가입', '정상', '경계') },
         { ...줄('B', ['desktop'], [상태]), ...요구('가입', '예외') },
-        { ...줄('C', ['desktop'], [경계]), ...요구('가입', '경계') },
+        { ...줄('C', ['desktop'], [경계]), ...요구('가입', '경계', '예외') },
+        { ...줄('D', ['desktop'], [경계]), ...요구('가입', 'UI') },
       ],
       'desktop',
+      true,
     );
-    expect(r.PRD씀).toBe(true);
-    expect(번호(r.묶음들[0]?.흐름 ?? [])).toEqual(['A']);
+    expect(번호(r.묶음들[0]?.흐름 ?? [])).toEqual(['A', 'D']);
     expect(번호(r.묶음들[0]?.입력값 ?? [])).toEqual(['B', 'C']);
+  });
+
+  it('PRD 를 안 쓰면 요구가 붙어도 묶음을 안 가르고 기법으로만 가른다', () => {
+    const r = 팔레트차례([{ ...줄('A', ['desktop'], [경계]), ...요구(null, '정상') }, 줄('B', ['desktop'])], 'desktop', false);
+    expect(r.묶음들.map((g) => [g.feature, 번호(g.흐름), 번호(g.입력값)])).toEqual([[null, ['B'], ['A']]]);
   });
 
   it('기능 묶음은 처음 나온 차례대로 나누고, 요구 없는 케이스는 묶음 없음에서 기법으로 가른다', () => {
@@ -147,6 +153,7 @@ describe('팔레트차례', () => {
         줄('E', ['desktop']),
       ],
       'desktop',
+      true,
     );
     expect(r.묶음들.map((g) => [g.feature, 번호(g.흐름), 번호(g.입력값)])).toEqual([
       ['가입', ['C'], ['A']],

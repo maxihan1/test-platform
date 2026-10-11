@@ -29,16 +29,25 @@ const 케이스 = (tcId: string, 덮: Partial<CaseRow> = {}): CaseRow => ({
 function 쪽들(전체: CaseRow[], 크기 = 50) {
   return vi.spyOn(api, 'cases').mockImplementation(async (q) => {
     const 쪽 = q.page ?? 1;
-    return { items: 전체.slice((쪽 - 1) * 크기, 쪽 * 크기), total: 전체.length, page: 쪽, pageSize: 크기 };
+    return {
+      items: 전체.slice((쪽 - 1) * 크기, 쪽 * 크기),
+      total: 전체.length,
+      page: 쪽,
+      pageSize: 크기,
+      hasFeatures: 전체.some((c) => (c.feature ?? null) !== null),
+    };
   });
 }
 
 const 꽉 = (수: number) => Array.from({ length: 수 }, (_, i) => 케이스(`ZSP-${String(i + 1).padStart(4, '0')}`));
 
-function 그리기(옵션: { 디바이스?: Platform; 바꿀번호?: number | null } = {}) {
+function 그리기(옵션: { 디바이스?: Platform; 바꿀번호?: number | null; 서비스?: string } = {}) {
   const 손 = { on케이스: vi.fn(), on다른단계: vi.fn(), on바꾸기취소: vi.fn() };
-  render(<ScenarioPalette 서비스="ZSP" 디바이스={옵션.디바이스 ?? 'desktop'} 바꿀번호={옵션.바꿀번호 ?? null} {...손} />);
-  return 손;
+  const 판 = (서비스: string) => (
+    <ScenarioPalette 서비스={서비스} 디바이스={옵션.디바이스 ?? 'desktop'} 바꿀번호={옵션.바꿀번호 ?? null} {...손} />
+  );
+  const { rerender } = render(판(옵션.서비스 ?? 'ZSP'));
+  return { ...손, 서비스바꾸기: (서비스: string) => rerender(판(서비스)) };
 }
 
 describe('ScenarioPalette 불러오기', () => {
@@ -211,7 +220,10 @@ describe('ScenarioPalette 맥락', () => {
     expect(screen.queryByRole('button', { name: /장바구니/ })).toBeNull();
     const 머리 = 묶음단추(/회원가입/);
     expect(머리.getAttribute('aria-expanded')).toBe('true');
-    expect((머리 as HTMLButtonElement).disabled).toBe(true);
+    expect(머리.getAttribute('aria-disabled')).toBe('true');
+    expect((머리 as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(머리);
+    expect(머리.getAttribute('aria-expanded')).toBe('true');
     expect(머리.textContent).toContain('정상 0 · 경계 · 예외 1');
 
     fireEvent.change(칸, { target: { value: 'zsp-req-010' } });
@@ -223,6 +235,16 @@ describe('ScenarioPalette 맥락', () => {
 
     fireEvent.change(칸, { target: { value: '' } });
     expect(묶음단추(/회원가입/).getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('서비스를 바꾸면 같은 이름 묶음도 접힌 채 연다', async () => {
+    쪽들(PRD케이스들());
+    const 손 = 그리기();
+    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
+    expect(묶음단추(/회원가입/).getAttribute('aria-expanded')).toBe('true');
+
+    손.서비스바꾸기('ZSQ');
+    await waitFor(() => expect(묶음단추(/회원가입/).getAttribute('aria-expanded')).toBe('false'));
   });
 
   it('요구가 붙은 케이스가 없는 서비스는 묶음 머리와 요구 줄 없이 두 덩어리 그대로다', async () => {

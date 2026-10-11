@@ -64,12 +64,12 @@ export function 모킹구간(parts: ScenarioPart[]): string[][] {
 const 상태전이: Technique = '상태 전이';
 
 /**
- * 흐름 칸(정상 쪽)인가. 요구가 붙었으면 종류로 — 정상 요구를 하나라도 덮으면 흐름이다.
- * 요구가 없으면 설계 기법으로 — 상태 전이가 있거나 기법이 없으면 흐름이다 (도메인/시나리오 §8.11)
+ * 흐름 칸(정상 쪽)인가. PRD 를 쓰는 서비스에서 요구가 붙었으면 종류로 — 경계 · 예외 요구만 덮으면 나머지, 그 밖은 흐름이다.
+ * 그 밖에는 설계 기법으로 — 상태 전이가 있거나 기법이 없으면 흐름이다 (도메인/시나리오 §8.11)
  */
-function 흐름인가(c: CaseRow): boolean {
+function 흐름인가(c: CaseRow, PRD씀: boolean): boolean {
   const reqs = c.reqs ?? [];
-  if (reqs.length > 0) return reqs.some((r) => r.axis === '정상');
+  if (PRD씀 && reqs.length > 0) return !reqs.every((r) => r.axis === '경계' || r.axis === '예외');
   const 기법 = c.techniques ?? [];
   return 기법.length === 0 || 기법.some((x) => x === 상태전이);
 }
@@ -82,22 +82,23 @@ export interface 팔레트묶음 {
 
 /**
  * 팔레트 차례. 받은 차례 그대로 기능 묶음마다 흐름 · 입력값 두 칸에 나눈다 — 묶음 차례는 서버가 PRD 차례로 준다(묶음 없음이 맨 뒤).
- * 요구가 붙은 케이스가 하나도 없으면(PRD 를 안 쓰는 서비스) 묶음을 가르지 않고 하나로 둔다
+ * PRD씀은 케이스 목록 응답의 hasFeatures 다 — 케이스 목록과 같은 기준이라 디바이스를 바꿔도 모양이 안 갈린다.
+ * PRD 를 안 쓰면 묶음을 가르지 않고 하나로 둔다
  */
 export function 팔레트차례(
   cases: CaseRow[],
   platform: Platform,
-): { 묶음들: 팔레트묶음[]; PRD씀: boolean; 뺀수: number } {
+  PRD씀: boolean,
+): { 묶음들: 팔레트묶음[]; 뺀수: number } {
   const 도는 = cases.filter((c) => c.platforms.includes(platform));
-  const PRD씀 = 도는.some((c) => (c.reqs ?? []).length > 0);
   const 묶음 = new Map<string | null, 팔레트묶음>();
   for (const c of 도는) {
     const feature = PRD씀 ? (c.feature ?? null) : null;
     const 곳 = 묶음.get(feature) ?? { feature, 흐름: [], 입력값: [] };
     묶음.set(feature, 곳);
-    (흐름인가(c) ? 곳.흐름 : 곳.입력값).push(c);
+    (흐름인가(c, PRD씀) ? 곳.흐름 : 곳.입력값).push(c);
   }
-  return { 묶음들: [...묶음.values()], PRD씀, 뺀수: cases.length - 도는.length };
+  return { 묶음들: [...묶음.values()], 뺀수: cases.length - 도는.length };
 }
 
 /** 비운 칸은 필수여도 키를 뺀다 — 서버는 키가 없는 칸만 저장값으로 채운다 */

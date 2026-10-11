@@ -4319,7 +4319,7 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 }
 
 /* 찾는 동안은 다 펴 두고 못 접는다 */
-.scn-pal-fold:disabled {
+.scn-pal-fold[aria-disabled='true'] {
   cursor: default;
 }
 
