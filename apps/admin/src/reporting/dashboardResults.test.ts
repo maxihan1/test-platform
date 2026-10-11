@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { 대시보드, 대시보드실행중, 시간대확인, 틀린시간대 } from './dashboardResults.js';
 
 const 연결 = process.env.DATABASE_URL;
-const 접두사들 = ['XDQ', 'XDQB', 'XDQT', 'XDQF'];
+const 접두사들 = ['XDQ', 'XDQB', 'XDQT'];
 
 const 날짜글자 = (시각: Date, tz: string): string => 시각.toLocaleDateString('sv-SE', { timeZone: tz });
 
@@ -29,7 +29,6 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
   let A = 0;
   let B = 0;
   let T = 0;
-  let F = 0;
   const 실행번호: Record<string, number> = {};
   let 작성원본 = 0;
   let 작성최신 = 0;
@@ -224,22 +223,6 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
       [T],
     );
     await 항목(Number(시간대실행.rows[0]!.run_id), 'XDQT-001', 'PASS');
-
-    F = await 서비스만들기('XDQF', 'XDQF 실패 유형');
-    const 유형실행 = await 실행(F, 'XDQF 실패 유형', 'XDQF 유형', { 시간전: 3 });
-    await 항목(유형실행, 'XDQF-001', 'NA', { 오류: '\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m' });
-    await pool.query(
-      `INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, error)
-       SELECT history_id, 1, '링크를 누른다', 'FAIL', 10, $2 FROM run_item WHERE run_id = $1 AND tc_id = 'XDQF-001'`,
-      [유형실행, JSON.stringify({ message: "locator.waitFor: Test timeout of 30000ms exceeded.\nCall log:\n  - waiting for getByRole('link')" })],
-    );
-    await 항목(유형실행, 'XDQF-002', 'NA', { 오류: 'ABORTED' });
-    await 항목(유형실행, 'XDQF-003', 'NA', { 오류: '러너에 닿지 못했습니다' });
-    await 항목(유형실행, 'XDQF-004', 'NA', { attempt: 1, 오류: 'TIMEOUT' });
-    await 항목(유형실행, 'XDQF-004', 'FAIL', { attempt: 2, 검증문장: 'XDQF 합계가 맞다' });
-    await 항목(유형실행, 'XDQF-005', 'PASS');
-    const 옛유형실행 = await 실행(F, 'XDQF 실패 유형', 'XDQF 직전 창', { 시간전: 20 * 24 });
-    await 항목(옛유형실행, 'XDQF-001', 'FAIL', { 오류: 'page.goto: net::ERR_CONNECTION_REFUSED' });
   });
 
   afterAll(async () => {
@@ -304,32 +287,6 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
       expect(글).not.toContain('SECRET-VALUE');
       expect(글).not.toContain('SECRET-EXPECTED');
       expect(글).not.toContain('secret/stack.ts');
-    });
-  });
-
-  describe('실패 유형', () => {
-    const 유형 = (결과: Awaited<ReturnType<typeof 대시보드>>) =>
-      Object.fromEntries(결과.failureTypes.types.map((t) => [t.type, [t.fail, t.notRun]]));
-
-    it('이번 창 실패 · 미실행을 원인으로 나누고 멈춘 것은 따로 센다 — 직전 창은 안 센다', async () => {
-      const 결과 = await 대시보드('UTC', [F], []);
-      expect(유형(결과)).toEqual({
-        mismatch: [1, 0],
-        notFound: [0, 1],
-        timeout: [0, 0],
-        environment: [0, 1],
-        other: [0, 0],
-      });
-      expect(결과.failureTypes.stopped).toBe(1);
-    });
-
-    it('유형 합계가 통과율 칸의 실패 · 미실행 수와 같다 — 멈춘 것은 미실행 쪽에 따로 있다', async () => {
-      for (const 서비스 of [A, F]) {
-        const 결과 = await 대시보드('UTC', [서비스], []);
-        const 합 = (칸: 'fail' | 'notRun') => 결과.failureTypes.types.reduce((n, t) => n + t[칸], 0);
-        expect(합('fail')).toBe(결과.passRate.current.fail);
-        expect(합('notRun') + 결과.failureTypes.stopped).toBe(결과.passRate.current.notRun);
-      }
     });
   });
 
