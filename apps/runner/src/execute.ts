@@ -81,9 +81,19 @@ export function resolveSpecPath(root: string, filePath: string): string | null {
   return full;
 }
 
+// 앞을 그냥 잘라 내면 남은 글의 첫 줄이 원문 중간 줄(Received: …)이 되는데, admin 요약 자리는 그 첫 줄을 사유로 쓴다
+// (insights.ts 한줄로자른다). 줄 중간을 자르면 가리기가 못 알아보는 비밀값 조각도 남는다 — 그래서 첫 줄을 지키고 뒤는 줄 경계에서 자른다
 export function tail(text: string): string {
   const trimmed = text.trim();
-  return trimmed.length > 2000 ? trimmed.slice(-2000) : trimmed;
+  if (trimmed.length <= 2000) return trimmed;
+  const 줄끝 = trimmed.indexOf('\n');
+  // 1000자 자리가 이모지 한가운데면 짝 없는 반쪽이 남는다. run_item.error 는 jsonb 라 그 반쪽을 받지 않는다
+  const 첫줄 = trimmed.slice(0, Math.min(줄끝 === -1 ? trimmed.length : 줄끝, 1000)).replace(/\p{Cs}/gu, '');
+  // 한 글자 더 앞에서 떠야 창이 마침 줄 첫머리에서 시작할 때 그 줄을 버리지 않는다.
+  // 창에 줄바꿈이 없으면 창 전체가 한 줄의 조각이라 통째로 버린다
+  const 창 = trimmed.slice(-(2000 - 첫줄.length - 2));
+  const 경계 = 창.indexOf('\n');
+  return 경계 === -1 ? `${첫줄}\n…` : `${첫줄}\n…\n${창.slice(경계 + 1)}`;
 }
 
 // 타임아웃으로 프로세스를 죽이면 결과 줄이 잘려 있을 수 있다. 그건 러너 고장이 아니라 중단의 흔적이다
