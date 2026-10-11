@@ -27,7 +27,7 @@ import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
-import { 덮은화면준비 } from './authoring-covered.js';
+import { 화면지도준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
 import { 반영요청인가, 안옮김뒤, 화면이맞음읽기 } from './authoring-screen-right.js';
 
@@ -217,9 +217,10 @@ async function 사본에서(
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
   const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것) } : undefined });
   if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
-  // 화면만은 PRD 에 이미 있는 화면을 기준 SHA 의 파일로 센다 — 못 세면 기획서 화면을 또 쓰므로 실패다 (§3.6 「기획서에 없는 화면 — 두 번째 작성」)
-  const 덮음 = 화면만인가(것, 자료들) ? 덮은화면준비({ 깃, 기준, 서비스, 폴더: 케이스자리, 번호들: 기획서.앞판.번호들, 자료폴더: 자리.자료 }) : null;
-  if (덮음 !== null && '까닭' in 덮음) return void (await 손.끝내기({ status: 'FAILED', error: `PRD 에 이미 있는 화면을 못 셌다 — ${덮음.까닭}` }));
+  // 역방향은 기준 SHA 의 파일로 화면 ↔ 케이스 지도(바뀐 화면 케이스 — PRD-F6-04)를, 화면만은 PRD 에 이미 있는 화면도 센다. 화면만이 못 세면 기획서 화면을 또 쓰므로 실패, 대조는 바뀐 화면 케이스를 못 볼 뿐이다 (§3.6)
+  const 못셈 = 것.target === undefined ? null : 화면지도준비({ 깃, 기준, 서비스, 폴더: 케이스자리, 번호들: 기획서.앞판.번호들, 자료폴더: 자리.자료, 화면만: 화면만인가(것, 자료들) });
+  if (못셈 !== null && 화면만인가(것, 자료들)) return void (await 손.끝내기({ status: 'FAILED', error: `PRD 에 이미 있는 화면을 못 셌다 — ${못셈.까닭}` }));
+  if (못셈 !== null) console.error(`[작성] ${것.id}번 — 화면 ↔ 케이스 지도를 못 세 바뀐 화면 케이스를 안 본다: ${못셈.까닭}`);
   await 손.단계('케이스를 만드는 중');
   if (박동.멈추라했다()) return void (await 손.끝내기({ status: 'STOPPED', stopReason: 'USER' }));
   // 환경은 **통째로** 준다. 피그마 토큰은 자식에게만, GitHub 자격증명과 에이전트 토큰은 뺀다.
@@ -233,7 +234,7 @@ async function 사본에서(
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
     ...(것.target === undefined ? {} : 대상환경(것.target)),
   };
-  const 역방향 = 것.target === undefined ? undefined : { 화면만: 덮음 !== null, 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
+  const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = 클로드인자(자리.자료, 판.모델);
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
   const 누적 = 진척누적기(0, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });

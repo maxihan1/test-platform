@@ -24,8 +24,8 @@ import { 바뀐파일들, 지운말, 치울새파일들 } from './authoring-stat
 import { 끝검사 } from './authoring-gate3.js';
 import { type 계정, type 사본, 사본환경, 파일거부사유 } from './authoring-copy.js';
 import { 산출물읽기 } from './authoring-upload-reverse.js';
-import { 크롤모두덮음, 저장본올리기 } from './authoring-screens-keep-io.js';
-import { 다덮음사유 } from './authoring-covered.js';
+import { 크롤모두덮음, 크롤목록, 저장본올리기 } from './authoring-screens-keep-io.js';
+import { 기준화면지도, 다덮음사유, 바뀐화면줄 } from './authoring-covered.js';
 import type { 원장 } from './authoring-ledger.js';
 import { type 기준결정, tcId들 } from './authoring-ledger-check.js';
 import { tcId별글, 원장판정 } from './authoring-ledger-verdict.js';
@@ -157,6 +157,10 @@ export async function 올리기(
     return;
   }
   const 읽기 = (f: string) => (모양보기(자리.트리, f).종류 === '파일' ? readFileSync(join(자리.트리, f), 'utf8') : '');
+  // 저장본이 바뀐 화면을 쓰는 기준 케이스와 그중 이번에 고친 것 — 자식 요약이 아니라 에이전트가 기준 SHA 로 센다 (§3.6 「바뀐 화면 — 닿는 케이스만 다시 본다」)
+  const 목록글 = 역 === undefined ? null : 크롤목록(자리.자료);
+  const 화면지도 = 목록글 === null ? null : 기준화면지도({ 깃: (인자) => 트리에서('git', 인자), 기준, 서비스, 폴더: 원장재료.폴더, 번호들: [] });
+  const 바뀐줄 = 목록글 === null || 화면지도 === null || '까닭' in 화면지도 ? null : 바뀐화면줄(목록글, 화면지도.케이스, new Set(전체));
   // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠져도 거절하지 않고 셈과 PR 본문 머리에 남긴다 (§3.6 「★ 원장」, 2026-09-30 게이트 1)
   const 추적 = 트리에서('git', ['ls-files', '-z', '--', `tests/${원장재료.폴더}`]);
   if (!추적.ok) return void (await 손.끝내기(거절(`원장 대조용 케이스 목록을 못 읽었다: ${추적.까닭}`)));
@@ -169,7 +173,7 @@ export async function 올리기(
     표경로: 표,
     표: 읽기(표),
     // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다
-    요약: [원장결과.머리글, ...옮긴줄, ...지운줄, ...저장줄, ...끝검사(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 것.target?.loginPassword)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
+    요약: [원장결과.머리글, ...옮긴줄, ...지운줄, ...저장줄, ...(바뀐줄 === null ? [] : [바뀐줄]), ...끝검사(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 것.target?.loginPassword)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
     단계: 단계표,
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다

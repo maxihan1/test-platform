@@ -1,11 +1,11 @@
-// PRD 에 이미 있는 화면 계산 검사 — 기준 SHA 의 표 · 케이스 · 화면 파일에서 같은 틀을 뽑고, 크롤 목록이 전부 덮음인지 본다 (도메인/작성 §3.6 「기획서에 없는 화면 — 두 번째 작성」)
+// 기준 SHA 의 화면 ↔ 케이스 지도 검사 — 표 · 케이스 · 화면 파일에서 PRD 에 있는 화면과 바뀐 화면 케이스를 뽑고, 크롤 목록이 전부 덮음인지 본다 (도메인/작성 §3.6 「기획서에 없는 화면 — 두 번째 작성」 · 「바뀐 화면 — 닿는 케이스만 다시 본다」)
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { 덮은화면준비, 덮은틀들, 다덮음사유, 모두덮음 } from './authoring-covered.js';
+import { 기준화면지도, 다덮음사유, 모두덮음, 바뀐화면줄, 화면지도준비, 화면케이스지도 } from './authoring-covered.js';
 
 const 표 = (줄들: string[]) =>
   ['# MKT', '', '## 요구사항', '', '| 요구 | 축 | 출처 | tcId |', '|---|---|---|---|', ...줄들].join('\n');
@@ -22,6 +22,10 @@ function 가짜깃(파일들: Record<string, string>, 실패?: string) {
   };
 }
 const 입력 = (깃: ReturnType<typeof 가짜깃>, 번호들: string[]) => ({ 깃, 기준: 'abc123', 서비스: 'MKT', 폴더: 'mkt', 번호들 });
+const 덮은틀들 = (x: ReturnType<typeof 입력>) => {
+  const 지도 = 기준화면지도(x);
+  return '까닭' in 지도 ? 지도 : 지도.덮은틀;
+};
 
 const 기본파일 = {
   'docs/cases/MKT.md': 표(['| 1 | 정상 | MKT-REQ-001 | MKT-FN-001 |', '| 2 | 정상 | MKT-REQ-002 | MKT-FN-002 |']),
@@ -31,7 +35,7 @@ const 기본파일 = {
   'tests/mkt/pages/cart.page.ts': 화면('/cart'),
 };
 
-describe('덮은틀들', () => {
+describe('기준화면지도 — 덮은틀', () => {
   it('지금 판 번호를 덮는 케이스의 pages 화면 주소를 크롤러 같은 틀로 — /board/1 → /board/:n', () => {
     expect(덮은틀들(입력(가짜깃(기본파일), ['MKT-REQ-001']))).toEqual(['/board/:n']);
     expect(덮은틀들(입력(가짜깃(기본파일), ['MKT-REQ-001', 'MKT-REQ-002']))).toEqual(['/board/:n', '/cart']);
@@ -79,21 +83,99 @@ describe('덮은틀들', () => {
   });
 });
 
-describe('덮은화면준비 — 자료 폴더 covered.json', () => {
+describe('기준화면지도 — 케이스 (PRD-F6-04)', () => {
+  it('PRD 와 상관없이 폴더의 케이스마다 가져온 화면 파일과 pages 의 같은 틀을 싣는다 — 표가 없어도', () => {
+    const 파일들 = {
+      'tests/mkt/a.spec.ts': 케이스(
+        'MKT-FN-001',
+        "import { BoardPage } from './pages/board.page.js';",
+        "import { Header } from './components/header.component.js';",
+        "import { 로그인 } from './helpers/session.helper.js';",
+      ),
+      'tests/mkt/pages/board.page.ts': 화면('/board/7'),
+      'tests/mkt/components/header.component.ts': 화면('/header'),
+      'tests/mkt/helpers/session.helper.ts': 화면('/helper'),
+      'tests/mkt/b.spec.ts': 케이스('MKT-UI-001'),
+    };
+    expect(기준화면지도(입력(가짜깃(파일들), []))).toEqual({
+      케이스: [
+        { tcId: 'MKT-FN-001', 파일: 'tests/mkt/a.spec.ts', 화면파일들: ['tests/mkt/pages/board.page.ts', 'tests/mkt/components/header.component.ts'], 틀들: ['/board/:n'] },
+        { tcId: 'MKT-UI-001', 파일: 'tests/mkt/b.spec.ts', 화면파일들: [], 틀들: [] },
+      ],
+      덮은틀: [],
+    });
+  });
+});
+
+describe('화면케이스지도', () => {
+  it('같은 틀 → 그 화면을 쓰는 tcId(정렬). 틀이 없는 케이스는 안 싣는다', () => {
+    expect(
+      화면케이스지도([
+        { tcId: 'MKT-FN-002', 파일: 'x', 화면파일들: [], 틀들: ['/board/:n', '/cart'] },
+        { tcId: 'MKT-FN-001', 파일: 'y', 화면파일들: [], 틀들: ['/cart'] },
+        { tcId: 'MKT-UI-001', 파일: 'z', 화면파일들: [], 틀들: [] },
+      ]),
+    ).toEqual({ '/board/:n': ['MKT-FN-002'], '/cart': ['MKT-FN-001', 'MKT-FN-002'] });
+  });
+});
+
+describe('화면지도준비 — 자료 폴더 screen-cases.json · covered.json', () => {
   let 폴더 = '';
   afterEach(() => rmSync(폴더, { recursive: true, force: true }));
+  const 읽기 = (이름: string): unknown => JSON.parse(readFileSync(join(폴더, 이름), 'utf8'));
 
-  it('같은 틀 목록을 쓰고 파일 자리를 돌려준다', () => {
+  it('화면만이면 둘 다 쓴다 — 덮은 틀은 지금 판 번호를 덮는 케이스만, 화면 지도는 케이스 전부', () => {
     폴더 = mkdtempSync(join(tmpdir(), 'covered-'));
-    const 답 = 덮은화면준비({ ...입력(가짜깃(기본파일), ['MKT-REQ-001']), 자료폴더: 폴더 });
-    expect(답).toEqual({ 파일: join(폴더, 'covered.json') });
-    expect(JSON.parse(readFileSync(join(폴더, 'covered.json'), 'utf8'))).toEqual(['/board/:n']);
+    expect(화면지도준비({ ...입력(가짜깃(기본파일), ['MKT-REQ-001']), 자료폴더: 폴더, 화면만: true })).toBeNull();
+    expect(읽기('covered.json')).toEqual(['/board/:n']);
+    expect(읽기('screen-cases.json')).toEqual({ '/board/:n': ['MKT-FN-001'], '/cart': ['MKT-FN-002'] });
+  });
+
+  it('대조는 화면 지도만 쓴다', () => {
+    폴더 = mkdtempSync(join(tmpdir(), 'covered-'));
+    expect(화면지도준비({ ...입력(가짜깃(기본파일), ['MKT-REQ-001']), 자료폴더: 폴더, 화면만: false })).toBeNull();
+    expect(읽기('screen-cases.json')).toEqual({ '/board/:n': ['MKT-FN-001'], '/cart': ['MKT-FN-002'] });
+    expect(() => 읽기('covered.json')).toThrow();
   });
 
   it('git 이 실패하면 쓰지 않고 까닭을 돌려준다 · 자료 폴더에 못 쓰면 까닭이다', () => {
     폴더 = mkdtempSync(join(tmpdir(), 'covered-'));
-    expect(덮은화면준비({ ...입력(가짜깃(기본파일, 'ls-tree'), ['MKT-REQ-001']), 자료폴더: 폴더 })).toEqual({ 까닭: expect.stringContaining('망가짐') });
-    expect(덮은화면준비({ ...입력(가짜깃(기본파일), ['MKT-REQ-001']), 자료폴더: join(폴더, '없는', '폴더') })).toEqual({ 까닭: expect.stringContaining('covered.json') });
+    expect(화면지도준비({ ...입력(가짜깃(기본파일, 'ls-tree'), ['MKT-REQ-001']), 자료폴더: 폴더, 화면만: true })).toEqual({ 까닭: expect.stringContaining('망가짐') });
+    expect(() => 읽기('screen-cases.json')).toThrow();
+    expect(화면지도준비({ ...입력(가짜깃(기본파일), ['MKT-REQ-001']), 자료폴더: join(폴더, '없는', '폴더'), 화면만: true })).toEqual({ 까닭: expect.stringContaining('screen-cases.json') });
+  });
+});
+
+describe('바뀐화면줄 — PR 머리 (PRD-F6-04)', () => {
+  const 케이스들 = [
+    { tcId: 'MKT-FN-001', 파일: 'tests/mkt/a.spec.ts', 화면파일들: ['tests/mkt/pages/cart.page.ts'], 틀들: ['/cart'] },
+    { tcId: 'MKT-FN-002', 파일: 'tests/mkt/b.spec.ts', 화면파일들: ['tests/mkt/pages/cart.page.ts', 'tests/mkt/components/nav.component.ts'], 틀들: ['/cart'] },
+    { tcId: 'MKT-FN-003', 파일: 'tests/mkt/c.spec.ts', 화면파일들: ['tests/mkt/pages/board.page.ts'], 틀들: ['/board/:n'] },
+    { tcId: 'MKT-FN-004', 파일: 'tests/mkt/d.spec.ts', 화면파일들: ['tests/mkt/pages/home.page.ts'], 틀들: ['/'] },
+  ];
+  const 목록 = JSON.stringify([
+    { 상태: '로그인', 틀: '/cart', 저장본: '바뀜' },
+    { 상태: '로그아웃', 틀: '/cart', 저장본: '바뀜' },
+    { 상태: '로그인', 틀: '/board/:n', 저장본: '바뀜' },
+    { 상태: '로그인', 틀: '/', 저장본: '같음' },
+    { 상태: '로그인', 틀: '/new', 저장본: '새 화면' },
+  ]);
+
+  it('저장본이 바뀐 화면(상태는 안 가른다)을 쓰는 케이스와, 그중 케이스나 화면 파일이 이번에 바뀐 것', () => {
+    expect(바뀐화면줄(목록, 케이스들, new Set(['tests/mkt/components/nav.component.ts', 'tests/mkt/c.spec.ts']))).toBe(
+      '바뀐 화면: 2장 · 그 화면을 쓰는 케이스 3건 · 그중 케이스나 화면 파일을 고친 것 2건 — MKT-FN-002 · MKT-FN-003',
+    );
+  });
+
+  it('하나도 안 고쳤으면 tcId 없이', () => {
+    expect(바뀐화면줄(목록, 케이스들, new Set())).toBe('바뀐 화면: 2장 · 그 화면을 쓰는 케이스 3건 · 그중 케이스나 화면 파일을 고친 것 0건');
+  });
+
+  it('닿는 케이스가 없거나 · 바뀐 화면이 없거나 · 목록을 못 읽으면 null', () => {
+    expect(바뀐화면줄(JSON.stringify([{ 틀: '/x', 저장본: '바뀜' }]), 케이스들, new Set())).toBeNull();
+    expect(바뀐화면줄(JSON.stringify([{ 틀: '/cart', 저장본: '같음' }]), 케이스들, new Set())).toBeNull();
+    expect(바뀐화면줄('깨짐', 케이스들, new Set())).toBeNull();
+    expect(바뀐화면줄('{}', 케이스들, new Set())).toBeNull();
   });
 });
 

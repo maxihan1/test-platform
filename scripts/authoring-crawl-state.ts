@@ -34,6 +34,8 @@ export interface 인자 {
   뺄: string[];
   /** PRD 에 이미 있는 화면의 같은 틀 — 목록 줄에 `덮음: true` 를 단다. 인자가 없으면 null (PRD-F6-03) */
   덮은틀: Set<string> | null;
+  /** 같은 틀 → 그 화면을 쓰는 기존 케이스 — 저장본이 바뀐 줄에 `케이스` 를 단다. 인자가 없으면 null (PRD-F6-04) */
+  케이스지도: Map<string, string[]> | null;
 }
 
 export interface 본화면 extends 목록항목 {
