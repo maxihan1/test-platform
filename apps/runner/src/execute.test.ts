@@ -8,7 +8,7 @@ import { runDir, type ExecuteRequest } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 앱연결을닫는다 } from './appSession.js';
-import { abort, execute, killedResponse, resolveSpecPath, running, statusFromExit } from './execute.js';
+import { abort, execute, killedResponse, resolveSpecPath, running, statusFromExit, tail } from './execute.js';
 import { killTree } from './kill.js';
 
 // playwright 대신 짧은 셸 스크립트를 띄운다. 어느 스크립트인지는 테스트가 정한다
@@ -63,6 +63,35 @@ describe('killedResponse', () => {
 
   it('죽이는 바람에 결과 줄이 잘렸으면 빈 목록으로 접고 예외를 밖으로 내보내지 않는다', () => {
     expect(killedResponse(7, 'ABORTED', 12, '@@RESULT@@{"steps":[').steps).toEqual([]);
+  });
+});
+
+describe('tail', () => {
+  const 첫줄 = 'Error: SyntaxError — 케이스 파일을 읽지 못했다';
+  const 원문 = [첫줄, ...Array.from({ length: 100 }, (_, i) => `    at 줄 ${i} Received: "pa55word-${i}"`)].join('\n');
+
+  it('2000자 이하면 앞뒤 공백만 걷고 그대로 둔다', () => {
+    expect(tail('  짧은 오류\n둘째 줄  ')).toBe('짧은 오류\n둘째 줄');
+  });
+
+  it('2000자를 넘어도 첫 줄은 원문 첫 줄이다 — 요약 자리가 그 줄을 사유로 쓴다', () => {
+    const 자른것 = tail(원문);
+    expect(자른것.length).toBeLessThanOrEqual(2000);
+    expect(자른것.split('\n')[0]).toBe(첫줄);
+    expect(자른것.endsWith('Received: "pa55word-99"')).toBe(true);
+  });
+
+  it('끝부분은 줄 경계에서 자른다 — 비밀값 조각이 한 줄로 남지 않는다', () => {
+    const 원문줄 = new Set(원문.split('\n'));
+    const [, 표시, ...뒤] = tail(원문).split('\n');
+    expect(표시).toBe('…');
+    for (const 줄 of 뒤) expect(원문줄.has(줄)).toBe(true);
+  });
+
+  it('첫 줄이 아주 길면 1000자까지만 남기고 전체 상한을 지킨다', () => {
+    const 자른것 = tail(`${'a'.repeat(5000)}\n${'b'.repeat(50)}`);
+    expect(자른것.length).toBeLessThanOrEqual(2000);
+    expect(자른것.split('\n')[0]).toBe('a'.repeat(1000));
   });
 });
 
