@@ -22,7 +22,7 @@ const 쪽인자 = new Set([
 const 숫자마디 = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24,}|[a-z]{0,3}(?=(?:[-_]?\d){4})[\d_-]+)$/i;
 
 /** 경로 글자 — EUC-KR 처럼 풀 수 없으면 원문 그대로(크롤 전체가 죽지 않게) */
-const 풀기 = (글: string): string => {
+export const 풀기 = (글: string): string => {
   try {
     return decodeURIComponent(글);
   } catch {
@@ -140,6 +140,28 @@ export function 목록고르기(항목들: 목록항목[]): 목록항목[] {
     고른.push(x);
   }
   return 고른;
+}
+
+/**
+ * 화면 연결(본 화면 번호 → 나간 연결)을 목록에 남은 화면으로 모은다 (PRD-F6-02).
+ * 두 상태에 다 있는 틀은 로그인 하나만 남으므로 로그아웃 때 본 연결(홈 → 로그인 · 가입)도 그 화면에 합친다. 목록에 같은 틀이 없으면 버린다
+ */
+export function 연결모으기<T extends Pick<목록항목, '상태' | '틀'>>(
+  본들: readonly T[],
+  연결: ReadonlyMap<number, ReadonlyMap<string, { to: string; via: string }>>,
+  고른: readonly T[],
+): { 상태: T['상태']; 틀: string; 연결: { to: string; via: string }[] }[] {
+  const 자리 = new Map(고른.map((x) => [`${x.상태} ${x.틀}`, x]));
+  const 모은 = new Map<T, Map<string, { to: string; via: string }>>();
+  본들.forEach((본, i) => {
+    const 칸 = 연결.get(i);
+    const 갈곳 = 자리.get(`${본.상태} ${본.틀}`) ?? 자리.get(`로그인 ${본.틀}`);
+    if (칸 === undefined || 갈곳 === undefined) return;
+    const 합 = 모은.get(갈곳) ?? new Map<string, { to: string; via: string }>();
+    for (const [키, 값] of 칸) 합.set(키, 값);
+    모은.set(갈곳, 합);
+  });
+  return 고른.flatMap((x) => (모은.has(x) ? [{ 상태: x.상태, 틀: x.틀, 연결: [...모은.get(x)!.values()] }] : []));
 }
 
 // login 은 머리만 맞으면(`/loginForm`), auth 는 낱말로만(`/authors` 는 아니다)

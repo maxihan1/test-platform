@@ -142,9 +142,9 @@ export async function 누르기(쪽: Page, 순번: number): Promise<boolean> {
 
 /**
  * 누른 뒤 새로 뜬 화면 안 확인 창 — 탈퇴 글이면 안 누르고, 입력칸이 있으면(로그인 창) 안 누르고, 아니면 취소 · 닫기가 아닌 마지막 버튼을 한 번 누른다.
- * 브라우저 확인 창(confirm)은 쪽의 dialog 처리기가 늘 취소한다
+ * 새 창이 떴는데 누를 버튼이 없거나 못 눌렀으면 '남음' — 창이 남았으니 다음 누르기 전에 화면을 다시 연다. 브라우저 확인 창(confirm)은 쪽의 dialog 처리기가 늘 취소한다
  */
-export async function 확인창누르기(쪽: Page, 전창수: number): Promise<'없음' | '탈퇴' | '입력' | '누름'> {
+export async function 확인창누르기(쪽: Page, 전창수: number): Promise<'없음' | '탈퇴' | '입력' | '누름' | '남음'> {
   // 창 안 버튼에 차례 번호를 달아 둔다 — 고른 번호를 그대로 누른다
   const 창 = await 쪽
     .evaluate(
@@ -171,13 +171,13 @@ export async function 확인창누르기(쪽: Page, 전창수: number): Promise<
   if (탈퇴말인가(창.글)) return '탈퇴';
   if (창.칸) return '입력';
   const i = 확인버튼고르기(창.이름들);
-  if (i === null) return '없음';
+  if (i === null) return '남음';
   try {
     await 클릭(쪽, `[data-crawl-dialog-button="${i}"]`);
     await 쪽.waitForLoadState('domcontentloaded', { timeout: 5_000 }).catch(() => undefined);
     await 쪽.waitForLoadState('networkidle', { timeout: 2_000 }).catch(() => undefined);
     return '누름';
   } catch {
-    return '없음';
+    return '남음';
   }
 }

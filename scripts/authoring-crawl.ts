@@ -8,7 +8,7 @@ import { join, relative, resolve, sep } from 'node:path';
 import { chromium } from '@playwright/test';
 
 import { type 본화면, type 상태, type 인자, type 판, 한상태 } from './authoring-crawl-state.js';
-import { 목록고르기, 빼는주소인가, 뺄경로읽기 } from './authoring-crawl-rules.js';
+import { 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기 } from './authoring-crawl-rules.js';
 import { 견주기, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
 
 const 장상한 = 100;
@@ -73,6 +73,14 @@ function 인자읽기(argv: string[]): 인자 {
   };
 }
 
+// 자식이 이 말을 보고 다시 로그인한다(scan-fanout §2) — 크롤러가 이미 다시 로그인했으면 상태 파일이 새것이라 「있음」으로 쓰지 않는다
+const 풀림말 = (판: 판): string =>
+  판.멈춘까닭 === '로그인이 풀림' || 판.멈춘까닭 === '로그아웃 뒤 다시 로그인 못 함'
+    ? '있음 — 다시 로그인해 상태 파일을 새로 만든다'
+    : 판.본.some((x) => x.로그인풀림)
+      ? '있었음 — 크롤러가 다시 로그인했거나 로그인 칸이 있는 화면이다(상태 파일 그대로 쓴다)'
+      : '없음';
+
 function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string[]; 예외: boolean }): void {
   const 고른 = 목록고르기(판.본.filter((x) => !x.로그인풀림)) as 본화면[];
   const 견줌 = a.저장본 === null ? null : 견주기(고른, a.저장본, new Date().toISOString().slice(0, 10));
@@ -88,8 +96,7 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
   writeFileSync(join(a.출력, 'index.json'), JSON.stringify({ 화면: 판.본, 걸러짐 }, null, 1));
   writeFileSync(join(a.출력, 'list.json'), JSON.stringify(목록, null, 1));
   // 화면 연결 — 자식은 읽지 않는다(대화 토큰). 에이전트가 화면 기록을 올릴 때 같이 올린다 (PRD-F6-02)
-  const 고른것 = new Set<본화면>(고른);
-  const 연결들 = 판.본.flatMap((본, i) => (고른것.has(본) && 판.연결.has(i) ? [{ 상태: 본.상태, 틀: 본.틀, 연결: [...판.연결.get(i)!.values()] }] : []));
+  const 연결들 = 연결모으기(판.본, 판.연결, 고른);
   writeFileSync(join(a.출력, 'links.json'), JSON.stringify(연결들));
   const 셈 = (s: string) => 판.본.filter((x) => x.상태 === s).length;
   console.log(
@@ -101,7 +108,7 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
         ? ' · 저장본 없음'
         : ` · 저장본 같음 ${목록.filter((x) => x.저장본 === '같음').length} · 바뀜 ${목록.filter((x) => x.저장본 === '바뀜').length} · 새 화면 ${목록.filter((x) => x.저장본 === '새 화면').length}` +
           ` · 저장본에 있는데 못 본 화면 ${견줌.못본.length}${견줌.가장오래된 === null ? '' : ` · 가장 오래된 것 ${견줌.가장오래된}일`}`) +
-      ` · 로그인 풀림 ${판.본.some((x) => x.로그인풀림) ? '있음 — 다시 로그인해 상태 파일을 새로 만든다' : '없음'}` +
+      ` · 로그인 풀림 ${풀림말(판)}` +
       ` · 멈춘 까닭 ${판.멈춘까닭 ?? '다 봄'} · ${Math.round((Date.now() - 시작) / 1000)}초 · ${relative(process.cwd(), join(a.출력, 'list.json'))}`,
   );
 }

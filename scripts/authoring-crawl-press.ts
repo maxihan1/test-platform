@@ -1,5 +1,5 @@
 // 크롤러가 무엇을 누를지 — 누를 후보 · 탈퇴 흐름 · 로그아웃 · 화면 안 확인 창 버튼 판정. 껍데기(authoring-crawl-page.ts)가 부른다 (도메인/작성 §3.6 「★ 표준 기획서」 「화면 기록과 크롤러」)
-import { 걸러진까닭 } from './authoring-crawl-rules.js';
+import { 걸러진까닭, 풀기 } from './authoring-crawl-rules.js';
 
 export type 누름종류 = '버튼' | '링크';
 
@@ -24,14 +24,6 @@ const 로그아웃말 = /로그아웃|로그오프|log\s?-?out|log\s?-?off|sign\
 // 그누보드 로그아웃은 `/bbs/logout.php` 말고 `/member/out.php` 꼴도 있다
 const 로그아웃파일 = /(?:^|[/_.\-])out\.php$/i;
 const 그만말 = /취소|닫기|아니[오요]|cancel|close|dismiss|^no$|^[×x✕]$/i;
-
-const 풀기 = (글: string): string => {
-  try {
-    return decodeURIComponent(글);
-  } catch {
-    return 글;
-  }
-};
 
 export const 탈퇴말인가 = (글: string): boolean => 탈퇴말.test(글);
 
