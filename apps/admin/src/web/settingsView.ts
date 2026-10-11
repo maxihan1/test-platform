@@ -55,6 +55,8 @@ export function 서비스못보내는이유(
     envs: EnvRow[];
     /** 「훑지 않을 경로」 칸에 적은 그대로. 한 줄에 하나 */
     제외: string;
+    /** 정기 실행 — 꺼져 있으면 null. 새 서비스에는 구획이 없어 안 넘긴다 */
+    정기실행?: { at: string; env: string } | null;
   },
   언어: 언어,
 ): string | null {
@@ -75,7 +77,18 @@ export function 서비스못보내는이유(
   if (까닭 !== undefined) {
     return t(제외사유[까닭], 언어, { 줄: 틀린줄, 글자: 제외경로최대글자, 개수: 제외경로최대개수 });
   }
+  const 정기 = 입력.정기실행;
+  if (정기 !== undefined && 정기 !== null) {
+    if (정기.at === '') return t('정기 실행 시각을 채웁니다', 언어);
+    // 대상 서버 줄의 이름을 고쳤거나 줄을 뺐으면 고른 것이 사라진다 — 서버가 400 을 내기 전에 사람 말로 짚는다
+    if (!입력.envs.some((it) => it.env === 정기.env)) return t('정기 실행의 대상 서버를 대상 서버 목록에서 고릅니다', 언어);
+  }
   return null;
+}
+
+/** 정기 실행을 켤 때 처음 고르는 대상 서버 — demo 가 있으면 그것, 없으면 첫 줄 (도메인/인증 §8.8) */
+export function 처음대상서버(envs: readonly string[]): string {
+  return envs.includes('demo') ? 'demo' : (envs[0] ?? '');
 }
 
 /** 키는 settings/rules.ts 의 `까닭` 이다. 까닭이 늘면 여기서 타입이 깨져 빠뜨리지 않는다 */

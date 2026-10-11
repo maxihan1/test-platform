@@ -81,7 +81,7 @@ function 날짜줄({ 클래스, 날들 }: { 클래스: string; 날들: 날[] }) 
   );
 }
 
-export function 일별막대({ 값 }: { 값: 자료 }) {
+export function 일별막대({ 값, 설정갈수있나 = false }: { 값: 자료; 설정갈수있나?: boolean }) {
   const t = use말();
   const 언어 = use언어();
   const 날들 = 창날들(값, 언어);
@@ -186,7 +186,15 @@ export function 일별막대({ 값 }: { 값: 자료 }) {
           ) : null,
         )}
         {실행한날 < 실행한날기준 ? (
-          <span className="dash-note">{t('하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다')}</span>
+          <span className="dash-note">
+            {t('하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다')}
+            {설정갈수있나 ? (
+              <>
+                <br />
+                <a href="#/settings">{t('설정에서 정기 실행 켜기')}</a>
+              </>
+            ) : null}
+          </span>
         ) : null}
       </div>
       <날짜줄 클래스="dash-days" 날들={날들} />

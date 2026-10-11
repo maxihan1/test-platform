@@ -2612,6 +2612,11 @@ input[type='file']::file-selector-button {
   color: var(--ink-muted);
 }
 
+/* 「마지막 정기 실행」 줄의 실행 번호 링크. 시각 글자와 붙지 않게 띄운다 */
+.sched-run {
+  margin-left: 8px;
+}
+
 /* ── 여러 건 실행 확인 모달 (SPEC §8.10) ───────────────────────────── */
 /* 머리(.mhead)와 바닥(.mfoot)은 고정이고 가운데 목록(.picked)만 스크롤한다 —
    건수가 늘어도 대상 서버 칸과 실행 버튼이 늘 보여야 한다 */

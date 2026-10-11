@@ -183,6 +183,11 @@ describe('대시보드 재료', () => {
     expect(대시보드재료(김, null).케이스갈수있나).toBe(false);
   });
 
+  it('설정 자리는 운영만 간다 — 정기 실행 안내 줄의 링크가 이것을 본다', () => {
+    expect(대시보드재료(사람('admin', [결제]), 'PAY').설정갈수있나).toBe(true);
+    expect(대시보드재료(김, 'PAY').설정갈수있나).toBe(false);
+  });
+
   it('작성 서비스는 작성 칸이 none 이 아닌 배정 서비스만 번호와 이름으로 준다', () => {
     const 작성없음 = { ...회원, permissions: { cases: 'read' as const, runs: 'read' as const, authoring: 'none' as const } };
     expect(대시보드재료(사람('member', [결제, 작성없음, 정산]), 'PAY').작성서비스).toEqual([
