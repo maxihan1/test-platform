@@ -1,0 +1,311 @@
+/* 휴대폰 껍데기 — 위 줄 · 아래 탭 · 실행 기록 하위 줄 · PC 전용 안내 · 붙는 「실패 N건 다시 실행」 · 아래 판 모달
+   (SPEC 공통/5-화면공통 §8 「휴대폰 화면」 · DESIGN.md 「반응형」 · 「모달」). 색은 토큰만 쓴다.
+   PhoneShell 은 창 620px 미만에서만 그려진다(phone.ts) — `.ph` 아래 규칙은 미디어 질의 없이 둔다 */
+
+/* 위 줄 — body 여백 밖까지 채운다. 붙이지 않는다 — 본문을 내리면 알림 줄(.nt-top)이 맨 위에 붙는다 */
+.ph-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: calc(-1 * var(--body-pad-top)) -16px 12px;
+  padding: 10px 16px;
+  background: var(--rail);
+  border-bottom: 1px solid var(--line);
+}
+
+.ph-top .side-pick {
+  flex: 1;
+  min-width: 0;
+}
+
+.ph-top .side-svc-name,
+.ph-gap {
+  flex: 1;
+}
+
+/* 사람 버튼 — 펼침(details)이라 따로 닫는 버튼이 없다. 다시 누르거나 자리를 옮기면 접힌다 */
+.ph-me {
+  position: relative;
+  flex: none;
+}
+
+.ph-me summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ph-me summary::-webkit-details-marker {
+  display: none;
+}
+
+.ph-me summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.ph-me[open] summary {
+  background: var(--rail-active);
+}
+
+.ph-me-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+}
+
+/* 손가락으로 누르는 자리 — 46 인 까닭은 화면공통 §8 「휴대폰 화면」 */
+.ph-me-menu > a,
+.ph-me-menu > .btn {
+  display: flex;
+  align-items: center;
+  min-height: 46px;
+}
+
+.ph-me-menu .side-lang {
+  padding: 8px 0 0;
+  border-top-color: var(--line);
+}
+
+.ph-me-menu .side-lang select {
+  min-height: 46px;
+}
+
+/* 알림 줄은 위에 붙이지 않는다 — PC 는 「알림」 버튼을 남기려고 붙였는데 휴대폰에서는 그 버튼이 아래 탭에 있고,
+   두 줄짜리 알림이 내리는 내내 화면 위 1/6 을 덮었다 (2026-10-12 390 실측) */
+.ph .nt-top {
+  position: static;
+}
+
+/* 알릴 줄이 없으면 버튼은 아래 탭에 가 있어 이 상자가 빈다 — 빈 띠를 남기지 않는다 */
+.ph .nt-top:empty {
+  display: none;
+}
+
+/* 실행 기록 하위(UI · 기능 · E2E). 고른 칩 테두리는 대표색이다 — 「지금 있는 자리」 표시 (화면공통 §8 「대표색」) */
+.ph-sub {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+  overflow-x: auto;
+}
+
+.ph-sub a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 23px;
+  color: var(--ink-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.ph-sub a[aria-current='page'] {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+/* 아래 탭 — 화면 바닥에 붙는다. 칸은 같은 폭, 아이콘 위 · 글자 아래 */
+.ph-tabs {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  display: flex;
+  background: var(--rail);
+  border-top: 1px solid var(--line-2);
+}
+
+.ph-tabs > a,
+.ph-slot {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+}
+
+/* 알림 통로가 막힌 사람 · 서비스가 없는 사람은 Notice 가 버튼을 안 그린다 — 빈 칸이 탭 한 칸을 차지하지 않게 */
+.ph-slot:empty {
+  display: none;
+}
+
+/* 「알림」 탭은 Notice 가 그린 버튼이다(.nt-btn) — 본문 위 버튼 모양을 걷고 탭 모양을 입힌다 */
+.ph-tabs a,
+.ph-tabs .nt-btn {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--ph-tabs);
+  margin: 0;
+  padding: 6px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  text-decoration: none;
+}
+
+.ph-tabs .nt-btn .side-ico {
+  width: 20px;
+  height: 20px;
+}
+
+.ph-tabs a[aria-current='page'],
+.ph-tabs .nt-btn[aria-expanded='true'] {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* 지금 탭은 위쪽 대표색 막대 — 사이드바 지금 자리 막대와 같은 자리다 (화면공통 §8 「대표색」) */
+.ph-tabs a[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: 30%;
+  left: 30%;
+  height: 3px;
+  background: var(--accent);
+}
+
+.ph-tabs a:focus-visible,
+.ph-tabs .nt-btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.ph-tabs .nt-badge {
+  position: absolute;
+  top: 4px;
+  left: calc(50% + 6px);
+}
+
+/* PC 전용 화면 안내 — 본문 가운데 한 장 */
+.pc-only {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 32px 8px;
+  text-align: center;
+}
+
+.pc-only .side-ico {
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  color: var(--ink-faint);
+}
+
+.pc-only h1 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.pc-only p {
+  color: var(--ink-muted);
+}
+
+.pc-only .btn {
+  justify-content: center;
+  min-height: 46px;
+}
+
+/* 실행 창 값 칸을 펴는 버튼은 휴대폰에서만 — PC 에서는 칸을 접지 않는다 (도메인/실행 §8.10) */
+.prow-fold {
+  display: none;
+}
+
+/* 실행 결과의 「실패 N건 다시 실행」. PC 에서는 머리 행동 줄의 버튼 하나다 */
+.rerun-dock {
+  display: contents;
+}
+
+@media (max-width: 620px) {
+  /* 아래 탭 바로 위에 붙는다 — 실패 카드를 내려 읽은 자리에서 바로 누른다 */
+  .rerun-dock {
+    position: fixed;
+    right: 0;
+    bottom: var(--ph-tabs);
+    left: 0;
+    z-index: 25;
+    display: block;
+    padding: 10px 16px;
+    background: var(--bg);
+    border-top: 1px solid var(--line-2);
+  }
+
+  .rerun-dock .btn {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+  }
+
+  /* 머리의 등장 움직임(translateY)이 도는 동안에는 고정 판이 머리를 기준으로 서 위에서 아래로 튄다 — 이 머리만 움직임을 끈다 */
+  .head:has(.rerun-dock) {
+    animation: none;
+  }
+
+  /* 붙은 판 높이(위아래 10 · 버튼 46 · 선 1)만큼 본문 끝을 더 띄운다 — 마지막 통과 줄이 판 밑에 깔리지 않게 */
+  .main:has(.rerun-dock) {
+    padding-bottom: 72px;
+  }
+
+  /* 휴대폰에서 여는 화면의 나머지 누르는 자리 — 알림 서랍 거르기 칩 · 닫기, 항목 상세 버튼, 로그인 · 비밀번호 변경 버튼 (화면공통 §8 「휴대폰 화면」) */
+  .nt-chip,
+  .nt-x,
+  .actions .btn,
+  .login-box .btn {
+    min-height: 46px;
+  }
+
+  .nt-x {
+    min-width: 46px;
+  }
+
+  /* 여러 건 실행 창의 값 칸은 접는다 — `값` 을 누르거나 실행했는데 틀린 칸이 있으면 편다 (도메인/실행 §8.10 예외) */
+  .prow-fold {
+    display: inline-flex;
+    align-items: center;
+    min-height: 46px;
+  }
+
+  .prow:has(.prow-fold) + .prow-edit:not(.open) {
+    display: none;
+  }
+
+  /* 모달은 아래에서 올라오는 판이다. 좌우를 다 채우고 위 모서리만 둥글다 (DESIGN.md 「모달」) */
+  .modal-back {
+    align-items: flex-end;
+    padding: 32px 0 0;
+  }
+
+  .modal,
+  .modal.wide {
+    max-width: none;
+    border-bottom: 0;
+    border-radius: 16px 16px 0 0;
+  }
+}

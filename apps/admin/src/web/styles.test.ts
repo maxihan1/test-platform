@@ -249,12 +249,13 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(좁은화면).toMatch(/\.gutter\s*\{[^}]*grid-row:\s*1\s*\/\s*-1/);
   });
 
-  it('좁은 화면 자리 목록의 손가락 영역이 44px 이상이다', () => {
-    // SPEC §8 — 휴대폰으로 하는 일은 「끝났나 보기」 하나라 그 길목이 44px 을 넘어야 한다.
+  it('휴대폰 아래 탭 · 사람 버튼의 손가락 영역이 44px 이상이다', () => {
+    // SPEC 공통/5 §8 「휴대폰 화면」 — 휴대폰 껍데기의 길목이 44px 을 넘어야 한다.
     // 46 으로 둔다. 브라우저 반올림이 소수점만큼 깎아 목업 실측이 43.9986 이었다
-    const 좁은화면 = /@media \(max-width: 620px\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? '';
-    const 값 = /\.side \.side-nav a\s*\{[^}]*min-height:\s*(\d+)px/.exec(좁은화면)?.[1];
-    expect(Number(값)).toBeGreaterThanOrEqual(44);
+    const 휴대폰 = readFileSync(new URL('./phone.css', import.meta.url), 'utf8');
+    expect(Number(/--ph-tabs:\s*(\d+)px/.exec(css)?.[1])).toBeGreaterThanOrEqual(44);
+    expect(휴대폰, '「알림」 탭이 다른 탭과 같은 높이를 쓰지 않는다').toMatch(/\.ph-tabs \.nt-btn\s*\{[^}]*min-height:\s*var\(--ph-tabs\)/);
+    expect(Number(/\.ph-me summary\s*\{[^}]*height:\s*(\d+)px/.exec(휴대폰)?.[1])).toBeGreaterThanOrEqual(44);
   });
 
   it('판정 도형 색(--pass · --fail · --na)을 글자색으로 쓰지 않는다 — 글자는 밝은 판(-text)이다', () => {
@@ -609,7 +610,8 @@ describe('넓은 상자가 표를 담을 만큼 크다 (DESIGN.md, 2026-09-22)',
 // OS 가 짙은 사이드바 위에 흰 상자를 그렸다. 두 번째라 기계로 옮긴다 (CLAUDE.md §2.5).
 // 밝은 면 위의 select 는 OS 모양이어도 읽히므로 사이드바만 본다
 describe('사이드바의 select 를 OS 가 그리지 않는다 (LEARNINGS 2026-09-21 재발)', () => {
-  const 껍데기 = readFileSync(new URL('./Shell.tsx', import.meta.url), 'utf8');
+  // 사이드바 · 휴대폰 위 줄이 같이 쓰는 고르개 둘은 ShellPickers.tsx 에 산다 (2026-10-12 묶음 5)
+  const 껍데기 = readFileSync(new URL('./ShellPickers.tsx', import.meta.url), 'utf8');
 
   /** 사이드바가 그리는 select 하나하나의 자리 이름(class 나 id)을 모은다 */
   function 고르개이름들(): string[] {

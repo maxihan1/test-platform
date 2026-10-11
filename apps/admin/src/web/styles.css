@@ -139,6 +139,9 @@
   --body-pad-top: 24px;
   --body-pad-bottom: 24px;
 
+  /* 휴대폰 아래 탭 높이(phone.css). 탭과 그 위에 붙는 「실패 N건 다시 실행」이 같이 쓴다 — 따로 적으면 둘이 겹친다 */
+  --ph-tabs: 56px;
+
   /* 표머리와 줄이 **같은 격자 한 벌**을 쓴다 (2026-09-22). 각자 들고 있으면 칸이 통째로 어긋난다 —
      실측으로 「입력값」 머리가 실제 입력칸보다 121px 오른쪽에 있었다.
 
@@ -236,8 +239,7 @@ a {
    목록 길이에 따라 흔들리지 않는다. body 위아래 여백(`--body-pad-top`·`--body-pad-bottom`)을
    그대로 뺀 높이다 — 숫자를 여기 따로 적지 않는다. 그러면 body 여백이 바뀔 때 한쪽만 바뀌어
    사이드바가 창보다 짧거나 길어지는 일이 없다.
-   좁은 화면은 원래대로 페이지 전체가 스크롤한다 — 사이드바가 가로 줄로 접히기 때문이다
-   (아래 620px 미만 규칙이 되돌린다, 2026-09-22) */
+   휴대폰은 이 격자를 쓰지 않는다 — 위 줄 · 아래 탭 껍데기(phone.css)이고 페이지 전체가 스크롤한다 (2026-10-12) */
 .wrap {
   max-width: 1600px;
   margin: 0 auto;
@@ -743,7 +745,7 @@ input[type='file']::file-selector-button {
 
 .chip {
   font-size: 12.5px;
-  /* 누르는 자리는 최소 36px. 44px 은 DESIGN.md 대로 실행 기록 목록과 실행 결과 두 화면에만 건다 */
+  /* 누르는 자리는 최소 36px. 44px 은 DESIGN.md 대로 휴대폰 화면(창 620px 미만)에만 건다 */
   min-height: 36px;
   padding: 8px 13px;
   border: 1px solid var(--line-2);
@@ -1047,7 +1049,7 @@ input[type='file']::file-selector-button {
 }
 
 /* 증적을 받는 유일한 길이다. 인라인 글자로만 두면 누를 자리가 안 보이고 손가락도 못 맞춘다 —
-   좁은 화면에서 이 상자는 살아 있어야 한다 (SPEC §8 「좁은 화면에서 제대로 되는 둘」) */
+   좁은 화면에서 이 상자는 살아 있어야 한다 (SPEC 공통/5 §8 「휴대폰 화면」 — 실행 기록이 이 상자를 연다) */
 .evi-open {
   margin-left: 8px;
   color: var(--link);
@@ -1481,11 +1483,17 @@ input[type='file']::file-selector-button {
     margin-bottom: 18px;
   }
 
+  /* 세로로 쌓이면 flex-basis 가 높이가 된다 — 제목 칸의 기준 폭 240px 이 제목 아래 빈 칸으로 남았다 (2026-10-12 휴대폰 실측) */
+  .head-title {
+    flex: none;
+  }
+
   /* body 아래 여백도 되돌린다 — 페이지 끝에서 손가락이 걸릴 자리가 필요하다.
+     휴대폰은 아래 탭(--ph-tabs)이 바닥에 붙어 있어 마지막 줄이 그 밑에 깔리지 않을 만큼 둔다.
      **값을 따로 적지 않고 토큰을 다시 정의한다** — `.wrap` 이 이 토큰으로 창 높이를 빼므로
      숫자를 두 곳에 두면 한쪽만 바뀌는 날 사이드바가 창보다 길어진다 (`:root` 주석) */
   :root {
-    --body-pad-bottom: 80px;
+    --body-pad-bottom: calc(var(--ph-tabs) + 24px);
   }
 
   /* 집계띠도 되돌린다. 눕힌 것은 PC 에서 세로를 아끼려던 것이고,
@@ -1554,19 +1562,8 @@ input[type='file']::file-selector-button {
     height: 44px;
   }
 
-  /* 244px 사이드바를 그대로 두면 내용 칸이 한 줄에 스무 글자도 못 받는다. 위아래로 쌓는다.
-     사이드바가 가로 줄로 올라가므로 창 높이에 맞추는 것도 여기서 되돌린다 —
-     페이지 전체가 스크롤하던 원래 좁은 화면 동작 그대로다 */
-  .wrap {
-    grid-template-columns: minmax(0, 1fr);
-    height: auto;
-  }
-
-  .side {
-    height: auto;
-    overflow-y: visible;
-  }
-
+  /* 휴대폰 껍데기(phone.css)에는 사이드바가 없다. 창 높이에 맞추는 것을 되돌려 페이지 전체가 스크롤한다 —
+     아래 탭이 바닥에 붙어 있어 본문만 움직인다 */
   .main {
     padding: 16px 0 0;
     height: auto;
@@ -1581,11 +1578,6 @@ input[type='file']::file-selector-button {
 
   .rows-scroll {
     overflow-y: visible;
-  }
-
-  .side .side-nav {
-    flex-direction: row;
-    flex-wrap: wrap;
   }
 
   /* 620px 아래에서는 두 칸이다 — 색 띠 하나와 내용 하나.
@@ -1619,51 +1611,6 @@ input[type='file']::file-selector-button {
     grid-row: 3;
   }
 
-  /* 손가락으로 누르는 영역 최소 44px (SPEC §8). 46 으로 두는 이유는
-     브라우저 반올림이 소수점만큼 깎기 때문이다 — 목업 실측이 43.9986 이었다 */
-  .side .side-nav a {
-    min-height: 46px;
-    display: inline-flex;
-    align-items: center;
-  }
-
-  .side-fold {
-    min-height: 46px;
-    min-width: 46px;
-  }
-
-  /* 좁은 화면에서는 사이드바가 이미 가로 줄로 접혀 있다. 거기서 또 접으면
-     자리 목록이 통째로 사라지고 되돌릴 길이 화살표 하나뿐이 된다 */
-  .wrap.folded {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .wrap.folded .side .side-top,
-  .wrap.folded .side .side-who {
-    display: flex;
-  }
-
-  .folded .side .side-nav a {
-    font-size: 13px;
-    padding: 0 14px;
-  }
-
-  .folded .side .side-nav a.side-sub {
-    font-size: 12.5px;
-    padding: 0 14px;
-  }
-
-  /* 가로 줄에서 「UI 테스트」가 어느 묶음 것인지 보이게 묶음마다 줄을 바꾼다 (PR #132) */
-  .side .side-group {
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: 100%;
-  }
-
-  .wrap.folded .side .side-pw {
-    font-size: 12.5px;
-  }
-
   .tcid {
     grid-column: 2;
     padding: 12px 0 0;
@@ -1683,7 +1630,7 @@ input[type='file']::file-selector-button {
     flex-wrap: wrap;
   }
 
-  /* 손가락으로 누르는 영역 44px 은 이 두 화면에만 건다 (SPEC §8 · DESIGN.md) */
+  /* 손가락으로 누르는 영역 44px — 실행 기록 · 실행 결과 줄 (SPEC 공통/5 §8 「휴대폰 화면」 · DESIGN.md) */
   .right .btn,
   .right a.btn {
     min-height: 44px;
@@ -1727,7 +1674,7 @@ input[type='file']::file-selector-button {
     padding-left: 20px;
   }
 
-  /* 로그인은 관문이다. 여기가 깨지면 좁은 화면 대상 화면 둘에 닿을 수 없다 (SPEC §8) */
+  /* 로그인은 관문이다. 여기가 깨지면 휴대폰 화면에 닿을 수 없다 (SPEC 공통/5 §8 「휴대폰 화면」) */
   .login {
     padding-top: 4vh;
   }
@@ -1741,12 +1688,7 @@ input[type='file']::file-selector-button {
     grid-template-columns: 1fr;
   }
 
-  /* 띠도 관문이다. 이름이 잘리면 어느 서비스를 보는지 알 수 없다 (SPEC §8) */
-  .side-top {
-    flex-wrap: wrap;
-    gap: 6px 10px;
-  }
-
+  /* 휴대폰 위 줄의 서비스 고르개도 관문이다. 이름이 잘리면 어느 서비스를 보는지 알 수 없다 (SPEC §8) */
   .side-pick {
     max-width: 100%;
   }
@@ -6082,7 +6024,7 @@ a.fr-id {
     flex-wrap: wrap;
   }
 
-  /* 손가락으로 누르는 영역 44px — 실행 결과는 휴대폰에서 보는 두 화면 중 하나다 (DESIGN.md 접근성 기준).
+  /* 손가락으로 누르는 영역 44px — 실행 결과는 휴대폰에서 여는 화면이다 (SPEC 공통/5 §8 「휴대폰 화면」 · DESIGN.md 접근성 기준).
      카드 안 「펼치기」(34px) · 「상세」 링크 · 디바이스 칩이 모자랐다 */
   .fc-acts .btn,
   .rr .chip {

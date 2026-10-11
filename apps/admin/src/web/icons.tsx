@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'authoring' | 'scenarios' | 'runs' | 'graph' | 'settings' | 'run' | 'bell';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'authoring' | 'scenarios' | 'runs' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -79,6 +79,20 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
     <>
       <path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z" />
       <path d="M10 20a2 2 0 0 0 4 0" />
+    </>
+  ),
+  // 사람 — 휴대폰 위 줄의 사람 버튼. 버튼이 aria-label 로 이름을 단다
+  person: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </>
+  ),
+  // 모니터 — 휴대폰의 PC 전용 화면 안내. 제목 글이 곁에 선다
+  desktop: (
+    <>
+      <rect x="2" y="4" width="20" height="13" rx="2" />
+      <path d="M8 21h8M12 17v4" />
     </>
   ),
 };
