@@ -136,7 +136,8 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
     it.each([
       'SELECT prefix FROM service LIMIT 1',
       'SELECT is_active FROM service LIMIT 1',
-    ])('「가장 오래된 미확정」만 읽던 칸은 거둔다 — %s', async (sql) => {
+      'SELECT tokens_model FROM authoring_request LIMIT 1',
+    ])('어느 패널도 안 읽는 칸은 거둔다 — %s', async (sql) => {
       await expect(읽기전용.query(sql)).rejects.toThrow(/permission denied/);
     });
 
