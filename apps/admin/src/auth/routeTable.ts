@@ -123,6 +123,10 @@ export const 등급표: Record<string, 표값> = {
   // 표준 기획서 읽기 · 올리기 — 작성 에이전트가 부른다. 라우트가 맥 계정 · 집은 쪽을 다시 본다
   'GET /api/authoring/requests/:id/prd': 작성쓰기,
   'POST /api/authoring/requests/:id/prd': 작성쓰기,
+  // 화면 기록 읽기 · 올리기 — 작성 에이전트가 부른다. 본문을 읽는 사람 통로는 없다 (작성 §7 「표준 기획서 통로」)
+  'GET /api/authoring/requests/:id/screens': 작성쓰기,
+  'PUT /api/authoring/requests/:id/screens': 작성쓰기,
+  'POST /api/authoring/requests/:id/screens/done': 작성쓰기,
 
   // ★ 저장소를 영구히 바꾸는 일 — admin. 작성 쓰기와 같으면 「실행할 수 있는 사람 = 저장소를 고칠 수 있는 사람」이 된다
   'POST /api/authoring/merges': 'admin',
@@ -156,6 +160,9 @@ export const 토큰통로 = new Set([
   'POST /api/authoring/requests/:id/usage',
   'GET /api/authoring/requests/:id/prd',
   'POST /api/authoring/requests/:id/prd',
+  'GET /api/authoring/requests/:id/screens',
+  'PUT /api/authoring/requests/:id/screens',
+  'POST /api/authoring/requests/:id/screens/done',
   'GET /api/authoring/requests',
   'GET /api/authoring/requests/:id',
   'GET /api/authoring/requests/:id/assets/:assetId',

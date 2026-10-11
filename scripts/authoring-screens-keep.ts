@@ -1,4 +1,4 @@
-// 화면 기록 저장본 판정 — 바뀌지 않은 화면은 다시 훑지 않게 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04). 디스크 I/O 는 authoring-screens-keep-io.ts
+// 화면 기록 저장본 판정 — 바뀌지 않은 화면은 다시 훑지 않게 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04). 서버와 주고받기 · 파일 I/O 는 authoring-screens-keep-io.ts
 import { createHash } from 'node:crypto';
 
 export type 상태 = '로그아웃' | '로그인';
@@ -30,6 +30,7 @@ export interface 목록칸 {
   틀: string;
   지문: string;
   글자지문: string;
+  이름?: string;
 }
 
 /** 이 날수를 넘은 기록은 바뀐 것으로 본다 — 지문이 못 잡는 변화(팝업 안 · 오류 문구)를 언젠가는 다시 본다 */
@@ -56,7 +57,7 @@ export function 저장본모양(값: unknown): 저장본 {
   return { 판: 1, 항목 };
 }
 
-/** 저장 폴더 안 기록 이름 — 상태 + 틀로 정해 실행마다 같다. 영문 소문자 · 숫자만 */
+/** 저장본 폴더(`kept/`) 안 기록 이름 — 상태 + 틀로 정해 실행마다 같다. 영문 소문자 · 숫자만 */
 export function 저장이름(상태: 상태, 틀: string): string {
   return `${상태 === '로그인' ? 'in' : 'out'}-${createHash('sha1').update(`${상태} ${틀}`).digest('hex').slice(0, 12)}.md`;
 }
@@ -68,7 +69,7 @@ export function 기록주소(글: string): string | null {
   return m === null ? null : m[1]!;
 }
 
-const 날수 = (앞: string, 뒤: string): number => Math.round((Date.parse(뒤) - Date.parse(앞)) / 86_400_000);
+export const 날수 = (앞: string, 뒤: string): number => Math.round((Date.parse(뒤) - Date.parse(앞)) / 86_400_000);
 
 /** 표시 · 맞추기의 키 — 같은 주소가 두 상태(시작 화면 · 대조의 기획서 화면)로 목록에 있어 상태까지 붙인다 */
 export const 줄키 = (x: { 상태: 상태; 주소: string }): string => `${x.상태} ${x.주소}`;
@@ -110,26 +111,38 @@ export function 견주기(
  * 이번에 쓴 화면 기록을 목록과 맞춰 저장할 항목으로 — 상태는 기록 이름 머리(`out-` · `in-`), 주소는 첫 줄.
  * 목록에 없는 기록(더 갈 곳 `extra-` · 손 목록)은 저장하지 않는다
  */
-export function 이번것들(목록: 목록칸[], 기록들: { 이름: string; 글: string }[], 오늘: string): (저장항목 & { 원본: string })[] {
+export function 이번것들(목록: 목록칸[], 기록들: { 이름: string; 글: string }[], 오늘: string): (저장항목 & { 원본: string; 이름: string; 글: string })[] {
   const 줄로 = new Map(목록.map((x) => [줄키(x), x]));
-  const 고른: (저장항목 & { 원본: string })[] = [];
+  const 고른: (저장항목 & { 원본: string; 이름: string; 글: string })[] = [];
   for (const r of 기록들) {
     const 주소 = 기록주소(r.글);
     const 상태 = r.이름.startsWith('out-') ? '로그아웃' : r.이름.startsWith('in-') ? '로그인' : null;
     const x = 주소 === null || 상태 === null ? undefined : 줄로.get(줄키({ 상태, 주소 }));
     if (x === undefined) continue;
-    고른.push({ 키: `${x.상태} ${x.틀}`, 상태: x.상태, 틀: x.틀, 주소: x.주소, 지문: x.지문, 글자지문: x.글자지문, 기록: 저장이름(x.상태, x.틀), 훑은날: 오늘, 원본: r.이름 });
+    고른.push({
+      키: `${x.상태} ${x.틀}`, 상태: x.상태, 틀: x.틀, 주소: x.주소, 지문: x.지문, 글자지문: x.글자지문, 기록: 저장이름(x.상태, x.틀), 훑은날: 오늘,
+      원본: r.이름, 이름: typeof x.이름 === 'string' ? x.이름 : '', 글: r.글,
+    });
   }
   return 고른;
 }
 
 /**
- * 저장본을 간다 — 이번에 본 화면만 바꾸고 나머지는 남긴다.
- * `지울상태` 는 화면만 · 크롤 「다 봄」일 때 실제로 돈 상태 — 그 상태의 못 본 화면만 지운다(로그아웃만 돌았으면 로그인 기록은 남긴다)
+ * 서버 화면 기록(`GET …/:id/screens` 의 screens)을 자료 폴더 `kept/` 의 저장본으로 — 서버의 url 칸이 같은 틀이다(PRD-F6-01).
+ * 주소는 기록 첫 줄에서 읽고, 첫 줄이 주소가 아니거나 모양이 틀린 행은 뺀다. 기록들은 `kept/` 안 파일 이름 → 글
  */
-export function 갈기(저장: 저장본, 이번: 저장항목[], 지울상태: ReadonlySet<상태>): 저장본 {
-  const 새것 = new Map(이번.map(({ 키, 상태, 틀, 주소, 지문, 글자지문, 기록, 훑은날 }) => [키, { 키, 상태, 틀, 주소, 지문, 글자지문, 기록, 훑은날 }]));
-  const 옛키 = new Set(저장.항목.map((x) => x.키));
-  const 남김 = 저장.항목.filter((x) => 새것.has(x.키) || !지울상태.has(x.상태));
-  return { 판: 1, 항목: [...남김.map((x) => 새것.get(x.키) ?? x), ...[...새것.values()].filter((x) => !옛키.has(x.키))] };
+export function 받은저장본(몸: unknown): { 저장: 저장본; 기록들: Map<string, string> } {
+  const 행들 = typeof 몸 === 'object' && 몸 !== null ? (몸 as { screens?: unknown }).screens : undefined;
+  const 항목: unknown[] = [];
+  const 기록들 = new Map<string, string>();
+  for (const 행 of Array.isArray(행들) ? 행들 : []) {
+    const x = (typeof 행 === 'object' && 행 !== null ? 행 : {}) as Record<string, unknown>;
+    if ((x.state !== '로그아웃' && x.state !== '로그인') || typeof x.url !== 'string' || typeof x.record !== 'string' || typeof x.crawledAt !== 'string') continue;
+    const 주소 = 기록주소(x.record);
+    if (주소 === null) continue;
+    const 기록 = 저장이름(x.state, x.url);
+    항목.push({ 키: `${x.state} ${x.url}`, 상태: x.state, 틀: x.url, 주소, 지문: x.structFp, 글자지문: x.textFp, 기록, 훑은날: x.crawledAt.slice(0, 10) });
+    기록들.set(기록, x.record);
+  }
+  return { 저장: 저장본모양({ 판: 1, 항목 }), 기록들 };
 }
