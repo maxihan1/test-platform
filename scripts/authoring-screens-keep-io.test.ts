@@ -112,6 +112,17 @@ describe('저장본올리기', () => {
     expect(건것들.at(-1)?.body).toEqual({ seen: [{ state: '로그아웃', url: '/' }, { state: '로그아웃', url: '/login' }], complete: ['로그아웃'] });
   });
 
+  it('화면 연결 파일이 있는데 못 읽으면(링크) 연결 없이 올리고 줄에 적는다', async () => {
+    크롤쓰기([홈], { 멈춘까닭: '로그아웃 몫 시간', 따라가기: true, 상태들: ['로그아웃'] });
+    writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
+    const 밖 = join(폴더, 'links.json');
+    writeFileSync(밖, JSON.stringify([{ 상태: '로그아웃', 틀: '/', 연결: [{ to: '/x', via: '링크 「x」' }] }]));
+    symlinkSync(밖, join(자료, 'crawl', 'links.json'));
+    서버(다봄답());
+    expect(await 저장본올리기(통로, 자료, null, 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장 · 화면 연결 파일을 못 읽어 연결 없이 올림' });
+    expect(건것들.find((x) => x.method === 'PUT')?.body).toMatchObject({ links: [] });
+  });
+
   it('크롤이 멈춤 · 예외 · 링크를 안 따라갔으면 아무것도 안 지우게 한다', async () => {
     writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
     서버(다봄답());

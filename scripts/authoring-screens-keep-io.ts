@@ -9,6 +9,7 @@ import { type 목록칸, type 상태, 날수, 받은저장본, 이번것들 } fr
 
 const 기록상한 = 200_000;
 const 목록상한 = 2_000_000;
+const 연결파일상한 = 20_000_000; // 100장 × 화면마다 연결 1,000개까지(크롤러가 자른다)
 
 /** 그 요청의 통로로 부른다 — 서버가 요청 번호로 서비스를 찾는다 */
 export interface 화면통로 {
@@ -43,16 +44,17 @@ function 새로쓰기(경로: string, 글: string): void {
 }
 
 /**
- * 크롤러의 화면 연결(`crawl/links.json`) — `상태 틀` → 서버 꼴 연결 목록. 없거나 틀린 모양이면 빈 것(연결 없이 올린다).
+ * 크롤러의 화면 연결(`crawl/links.json`) — `상태 틀` → 서버 꼴 연결 목록. 없거나 못 읽으면 빈 것(연결 없이 올린다 — 못 읽음은 줄에 적는다).
  * 서버 상한(연결 1,000개 · 주소 2,000자 · 이름 500자)에 맞춰 자른다
  */
-function 연결읽기(크롤: string): Map<string, { toUrl: string; via: string }[]> {
+function 연결읽기(크롤: string): { 연결들: Map<string, { toUrl: string; via: string }[]>; 못읽음: boolean } {
   const 연결들 = new Map<string, { toUrl: string; via: string }[]>();
+  const 원문 = 안전히읽기(크롤, 'links.json', 연결파일상한);
   let 글: unknown;
   try {
-    글 = JSON.parse(안전히읽기(크롤, 'links.json', 목록상한) ?? '[]');
+    글 = JSON.parse(원문 ?? '[]');
   } catch {
-    return 연결들;
+    return { 연결들, 못읽음: true };
   }
   const 글자 = (x: unknown, 상한: number): x is string => typeof x === 'string' && x.trim() !== '' && x.length <= 상한;
   for (const 칸 of Array.isArray(글) ? 글 : []) {
@@ -61,7 +63,8 @@ function 연결읽기(크롤: string): Map<string, { toUrl: string; via: string 
     const 줄들 = (x.연결 as { to?: unknown; via?: unknown }[]).flatMap((l) => (글자(l?.to, 2_000) && 글자(l?.via, 500) ? [{ toUrl: l.to, via: l.via }] : []));
     연결들.set(`${x.상태} ${x.틀}`, 줄들.slice(0, 1_000));
   }
-  return 연결들;
+  // 파일이 있는데 못 읽었다(링크 · 너무 큼) — 연결 없이 올리면 그 화면의 서버 연결이 비므로 사람이 알게 한다
+  return { 연결들, 못읽음: 원문 === null && lstatSync(join(크롤, 'links.json'), { throwIfNoEntry: false }) !== undefined };
 }
 
 /**
@@ -118,7 +121,7 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
   const 같은것 = 목록.filter((x) => x.저장본 === '같음');
   const 같음키 = new Set(같은것.map((x) => `${x.상태} ${x.틀}`));
   const 이번 = 이번것들(목록, 기록들, 오늘).filter((x) => !같음키.has(x.키));
-  const 연결들 = 연결읽기(크롤);
+  const { 연결들, 못읽음 } = 연결읽기(크롤);
   // 이름 · 틀 · 연결(버튼 · 링크 글자)도 서버에 남고 사람에게 보일 칸이다 — 본문과 같이 본다
   const 볼글 = 이번.flatMap((x) => [x.글, x.이름, x.틀, ...(연결들.get(x.키) ?? []).flatMap((l) => [l.toUrl, l.via])]);
   if (계정섞였나(볼글, 비밀)) return { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
@@ -144,6 +147,7 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
       줄:
         `화면 기록 저장: 재사용 ${재사용.length}장${재사용.length > 0 ? `(가장 오래된 것 ${오래된}일)` : ''} · 새로 저장 ${이번.length - 못올림}장` +
         (못올림 > 0 ? ` · 못 올림 ${못올림}장` : '') +
+        (못읽음 ? ' · 화면 연결 파일을 못 읽어 연결 없이 올림' : '') +
         (지울상태.length === 0 ? '' : typeof 지운수 === 'number' ? ` · 다 봐서 ${지울상태.join(' · ')} 못 본 화면 ${지운수}장 지움` : ' · 못 본 화면 지우기 실패'),
     };
   } catch (e) {
