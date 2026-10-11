@@ -103,6 +103,18 @@ export function 덮은틀읽기(글: string): Set<string> | null {
   }
 }
 
+/** 에이전트가 넣은 화면 ↔ 케이스 지도(screen-cases.json — 같은 틀 → tcId 목록)를 읽는다. 모양이 틀리면 null (PRD-F6-04) */
+export function 케이스지도읽기(글: string): Map<string, string[]> | null {
+  try {
+    const 값: unknown = JSON.parse(글);
+    if (typeof 값 !== 'object' || 값 === null || Array.isArray(값)) return null;
+    const 줄들 = Object.entries(값);
+    return 줄들.every(([, v]) => Array.isArray(v) && v.every((x) => typeof x === 'string')) ? new Map(줄들 as [string, string[]][]) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** 목록 줄이 PRD 에 이미 있는 화면인가 — 덮은 틀 집합에 그 틀이 있으면 (상태는 안 가른다). 집합이 없으면 늘 아니다 */
 export function 덮음인가(틀: string, 덮은틀: ReadonlySet<string> | null): boolean {
   return 덮은틀 !== null && 덮은틀.has(틀);

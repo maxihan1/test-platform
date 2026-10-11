@@ -68,10 +68,15 @@ function 연결읽기(크롤: string): { 연결들: Map<string, { toUrl: string;
   return { 연결들, 못읽음: 원문 === null && lstatSync(join(크롤, 'links.json'), { throwIfNoEntry: false }) !== undefined };
 }
 
+/** 자료 폴더의 크롤 목록(list.json) 글. 없거나 링크 · 너무 크면 null */
+export function 크롤목록(자료: string): string | null {
+  const 크롤 = join(자료, 'crawl');
+  return 폴더인가(크롤) ? 안전히읽기(크롤, 'list.json', 목록상한) : null;
+}
+
 /** 자료 폴더의 크롤 목록(list.json)이 전부 PRD 에 이미 있는 화면이면 그 장수, 아니면(목록이 없거나 못 읽거나 덮지 않은 화면이 있다) null (PRD-F6-03) */
 export function 크롤모두덮음(자료: string): number | null {
-  const 크롤 = join(자료, 'crawl');
-  const 글 = 폴더인가(크롤) ? 안전히읽기(크롤, 'list.json', 목록상한) : null;
+  const 글 = 크롤목록(자료);
   return 글 === null ? null : 모두덮음(글);
 }
 

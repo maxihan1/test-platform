@@ -1,5 +1,5 @@
 // 화면 크롤러 — 작성 자식이 로그인 뒤 명령 한 번으로 돌린다. 링크를 따라가고 버튼을 눌러 화면마다 ariaSnapshot · 입력칸 속성 · 화면 연결을 파일로 (도메인/작성 §3.6 「★ 역방향」 · 「★ 표준 기획서」)
-// 실행: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <로그인 상태 파일>] [--login <로그인 스크립트>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]... [--covered <파일>]
+// 실행: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <로그인 상태 파일>] [--login <로그인 스크립트>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]... [--covered <파일>] [--cases <파일>]
 // 여기는 인자 · 결과 파일만. 상태 하나 도는 것은 authoring-crawl-state, 판정은 authoring-crawl-rules · authoring-crawl-press, 쪽 다루기는 authoring-crawl-page. 계정 값은 읽지 않는다 — 로그인은 자식의 스크립트가 한다
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { join, relative, resolve, sep } from 'node:path';
 import { chromium } from '@playwright/test';
 
 import { type 본화면, type 상태, type 인자, type 판, 한상태 } from './authoring-crawl-state.js';
-import { 덮은틀읽기, 덮음인가, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기 } from './authoring-crawl-rules.js';
+import { 덮은틀읽기, 덮음인가, 케이스지도읽기, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기 } from './authoring-crawl-rules.js';
 import { 견주기, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
 
 const 장상한 = 100;
@@ -35,7 +35,7 @@ function 인자읽기(argv: string[]): 인자 {
   }
   const 출력 = 값('--out');
   if (주소들.length === 0 || 출력 === undefined) {
-    그만('쓰임: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <파일>] [--login <스크립트>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]... [--covered <파일>]');
+    그만('쓰임: npx tsx scripts/authoring-crawl.ts <주소>... --out <폴더> [--state <파일>] [--login <스크립트>] [--follow] [--max 100] [--minutes 10] [--exclude <경로>]... [--covered <파일>] [--cases <파일>]');
   }
   // 값이 틀리면 상한 · 마감이 꺼진다 — 거절하고, 상한을 넘는 값은 상한으로 자른다
   const 수 = (이름: string, 기본: number, 상한: number): number => {
@@ -72,11 +72,18 @@ function 인자읽기(argv: string[]): 인자 {
     const 정보 = lstatSync(덮은파일, { throwIfNoEntry: false });
     if (정보?.isFile() === true && 정보.size < 2_000_000) 덮은틀 = 덮은틀읽기(readFileSync(덮은파일, 'utf8'));
   }
+  // 화면 ↔ 케이스 지도(에이전트가 자료 폴더에 넣은 screen-cases.json) — 같은 규칙으로 (PRD-F6-04)
+  const 케이스파일 = 값('--cases');
+  let 케이스지도: Map<string, string[]> | null = null;
+  if (케이스파일 !== undefined) {
+    const 정보 = lstatSync(케이스파일, { throwIfNoEntry: false });
+    if (정보?.isFile() === true && 정보.size < 2_000_000) 케이스지도 = 케이스지도읽기(readFileSync(케이스파일, 'utf8'));
+  }
   // 견주기 전에 뺀다 — 안 그러면 제외를 켠 첫 실행에서 그 경로의 저장 기록이 전부 「저장본에 있는데 못 본 화면」으로 뜬다 (#153)
   if (저장 !== null) 저장 = { ...저장, 항목: 저장.항목.filter((x) => !빼는주소인가(x.주소, 뺄)) };
   return {
     주소들, 출력: resolve(출력), 상태파일, 로그인: 상태파일 === null ? null : 로그인, 따라가기: argv.includes('--follow'),
-    최대: 수('--max', 장상한, 장상한), 분: 수('--minutes', 분상한, 분상한), 저장본: 저장, 뺄, 덮은틀,
+    최대: 수('--max', 장상한, 장상한), 분: 수('--minutes', 분상한, 분상한), 저장본: 저장, 뺄, 덮은틀, 케이스지도,
   };
 }
 
@@ -91,12 +98,18 @@ const 풀림말 = (판: 판): string =>
 function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string[]; 예외: boolean }): void {
   const 고른 = 목록고르기(판.본.filter((x) => !x.로그인풀림)) as 본화면[];
   const 견줌 = a.저장본 === null ? null : 견주기(고른, a.저장본, new Date().toISOString().slice(0, 10));
-  const 목록 = 고른.map((본) => ({
-    주소: 본.주소, 이름: 본.이름, 상태: 본.상태, 파일: 본.파일, 틀: 본.틀, 지문: 본.지문, 글자지문: 본.글자지문,
-    ...(본.짧음 ? { 짧음: true } : {}),
-    ...(덮음인가(본.틀, a.덮은틀) ? { 덮음: true } : {}),
-    ...(견줌?.표시.get(`${본.상태} ${본.주소}`) ?? {}),
-  }));
+  const 목록 = 고른.map((본) => {
+    const 표시 = 견줌?.표시.get(`${본.상태} ${본.주소}`);
+    // 저장본과 달라진 화면만 — 자식이 훑기 뒤 그 케이스를 돌려 본다 (PRD-F6-04)
+    const 케이스 = 표시?.저장본 === '바뀜' ? a.케이스지도?.get(본.틀) : undefined;
+    return {
+      주소: 본.주소, 이름: 본.이름, 상태: 본.상태, 파일: 본.파일, 틀: 본.틀, 지문: 본.지문, 글자지문: 본.글자지문,
+      ...(본.짧음 ? { 짧음: true } : {}),
+      ...(덮음인가(본.틀, a.덮은틀) ? { 덮음: true } : {}),
+      ...(표시 ?? {}),
+      ...(케이스 === undefined ? {} : { 케이스 }),
+    };
+  });
   // 에이전트가 저장본을 갈 때 본다 — 다 봤을 때만 이번에 못 본 화면을 지운다
   writeFileSync(join(a.출력, 'summary.json'), JSON.stringify({ 멈춘까닭: 판.멈춘까닭, 따라가기: a.따라가기, 상태들: 돈.상태들, 예외: 돈.예외 }));
   const 걸러짐 = [...판.걸러짐].map(([주소, v]) => ({ 주소, ...v }));
@@ -116,7 +129,8 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
       (견줌 === null
         ? ' · 저장본 없음'
         : ` · 저장본 같음 ${목록.filter((x) => x.저장본 === '같음').length} · 바뀜 ${목록.filter((x) => x.저장본 === '바뀜').length} · 새 화면 ${목록.filter((x) => x.저장본 === '새 화면').length}` +
-          ` · 저장본에 있는데 못 본 화면 ${견줌.못본.length}${견줌.가장오래된 === null ? '' : ` · 가장 오래된 것 ${견줌.가장오래된}일`}`) +
+          ` · 저장본에 있는데 못 본 화면 ${견줌.못본.length}${견줌.가장오래된 === null ? '' : ` · 가장 오래된 것 ${견줌.가장오래된}일`}` +
+          (a.케이스지도 === null ? '' : ` · 바뀐 화면 중 케이스가 쓰는 것 ${목록.filter((x) => x.케이스 !== undefined).length}장(케이스 ${new Set(목록.flatMap((x) => x.케이스 ?? [])).size}건)`)) +
       ` · 로그인 풀림 ${풀림말(판)}` +
       ` · 멈춘 까닭 ${판.멈춘까닭 ?? '다 봄'} · ${Math.round((Date.now() - 시작) / 1000)}초 · ${relative(process.cwd(), join(a.출력, 'list.json'))}`,
   );
