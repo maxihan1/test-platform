@@ -117,6 +117,7 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
     await q('DELETE FROM user_service WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [[케이스, 데스크톱만]]);
+    await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service WHERE id = $1', [서비스]);
     await app.close();
     for (const res of 매달린것) res.end('{}');
@@ -198,6 +199,24 @@ describe.skipIf(연결 === undefined)('케이스 테스트 실행 통로', () =>
       expect(JSON.stringify(끝)).not.toContain('저장한비번!');
     } finally {
       await q('DELETE FROM case_input WHERE tc_id = $1', [케이스]);
+    }
+  });
+
+  it('그래도 빈 계정 칸은 보낸 주소와 출처가 같은 대상 서버 줄의 계정으로 채우고 결과에는 비밀번호가 없다', async () => {
+    await q(
+      `INSERT INTO service_env (service_id, env, base_url, login_password) VALUES
+         ($1, 'qa', 'https://qa.example.com/app', 'xtr-qa-비번'), ($1, 'stg', 'https://stg.example.com', 'xtr-stg-비번')`,
+      [서비스],
+    );
+    try {
+      const 끝 = await 끝날때까지((await 시작({ ...정상, baseUrl: 'https://qa.example.com/login', params: { loginId: 'u' } })).json<{ trialId: string }>().trialId);
+      expect(받은요청[0]!.params).toEqual({ loginId: 'u', password: 'xtr-qa-비번' });
+      expect(JSON.stringify(끝)).not.toContain('xtr-qa-비번');
+
+      await 끝날때까지((await 시작({ ...정상, baseUrl: 'https://other.example.com', params: { loginId: 'u' } })).json<{ trialId: string }>().trialId);
+      expect(받은요청[1]!.params).toEqual({ loginId: 'u' });
+    } finally {
+      await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     }
   });
 

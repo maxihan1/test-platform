@@ -1,9 +1,10 @@
 // 시나리오 실행을 만든다 — 최신 버전으로 test_run(SCENARIO) 한 행과 부품마다 NA 행을 세우고 러너 요청을 돌려준다 (SPEC 도메인/시나리오 §3.7 · §7)
 
 import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
+import type { 역할계정 } from '@platform/kit/accounts';
 import type { Pool, PoolClient } from 'pg';
 
-import { 저장값을채운다 } from '../execution/savedInput.js';
+import { 대상서버계정, 저장값을채운다 } from '../execution/savedInput.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { 점검 } from './checks.js';
 import { 케이스재료 } from './parts.js';
@@ -135,7 +136,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     const 케이스들 = new Map(케이스.rows.map((r) => [r.tc_id, r]));
 
     // 저장값을 채우면 커진다. 판정은 조립만 쟀으므로 채운 목록을 다시 잰다 (§7). 던지면 아래 catch 가 되돌린다
-    const 채운부품 = await 부품채우기(c, parts, 케이스들);
+    const 채운부품 = await 부품채우기(c, parts, 케이스들, await 대상서버계정(c, Number(행.service_id), env));
     const 크기사유 = 제한시간크기사유(채운부품);
     if (크기사유.length > 0) {
       throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: 저장값을 채운 뒤 ${크기사유.join(' · ')}`);
@@ -195,17 +196,19 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
 type 케이스부품 = Extract<ScenarioPart, { kind: 'case' }>;
 
 /**
- * case 부품의 조립에 없는 칸을 저장값으로 채운다 — 단독 실행과 같은 규칙이다 (시나리오 §3.7 · 실행 §3.2).
- * 값 꽂기 칸은 「입력한 값」이라 저장값으로 안 채운다 — 실제 값은 러너가 꽂고 bound 에 남는다 (게이트 1 ①).
+ * case 부품의 조립에 없는 칸을 저장값으로, 그래도 빈 계정 칸은 그 실행 대상 서버 줄의 계정(`계정들`)으로 채운다 —
+ * 단독 실행과 같은 규칙이다 (시나리오 §3.7 · 실행 §3.2).
+ * 값 꽂기 칸은 「입력한 값」이라 저장값 · 계정으로 안 채운다 — 실제 값은 러너가 꽂고 bound 에 남는다 (게이트 1 ①).
  * 시험 실행도 같은 것을 부른다. 연결은 트랜잭션 것을 받는다 — 쥔 채 pool 에서 또 꺼내면 교착한다
  */
 export async function 부품채우기(
   c: Pick<PoolClient, 'query'>,
   parts: ScenarioPart[],
   케이스들: Map<string, { param_schema: unknown; expected_schema: unknown }>,
+  계정들: readonly 역할계정[] = [],
 ): Promise<ScenarioPart[]> {
   const 케이스부품들 = parts.filter((p): p is 케이스부품 => p.kind === 'case');
-  const 채움 = await 저장값을채운다(c, 케이스부품들, 케이스들);
+  const 채움 = await 저장값을채운다(c, 케이스부품들, 케이스들, 계정들);
   return parts.map((p) => {
     if (p.kind !== 'case') return p;
     const 찬 = 채움[케이스부품들.indexOf(p)]!;

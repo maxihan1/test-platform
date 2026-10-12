@@ -10,6 +10,7 @@ import { findService } from '../catalog/store.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { callScenarioRunner } from '../execution/runner.js';
 import { artifactsDir } from '../execution/routes.js';
+import { 대상서버계정 } from '../execution/savedInput.js';
 import { 가린다, 긴것부터, 비밀글자들, 시나리오시험 } from '../execution/trial.js';
 import { 가린값들 } from '../web/mask.js';
 
@@ -95,8 +96,8 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
     [번호들],
   );
   const 케이스들 = new Map(행.rows.map((r) => [r.tc_id, r]));
-  // 진짜 실행과 같은 채우기다 — 조립에서 비운 비밀번호도 저장값으로 러너에 간다. 채우면 커지므로 다시 잰다 (§7)
-  const 채운부품 = await 부품채우기(pool, 본문.parts, 케이스들);
+  // 진짜 실행과 같은 채우기다 — 조립에서 비운 비밀번호도 저장값 · 그 대상 서버 계정으로 러너에 간다. 채우면 커지므로 다시 잰다 (§7)
+  const 채운부품 = await 부품채우기(pool, 본문.parts, 케이스들, await 대상서버계정(pool, 서비스.id, 본문.env));
   const 크기사유 = 제한시간크기사유(채운부품);
   if (크기사유.length > 0) throw new 시험시작오류('INVALID_REQUEST', `저장값을 채운 뒤 ${크기사유.join(' · ')}`);
   const parts: ScenarioExecuteRequest['parts'] = 채운부품.map((p) =>

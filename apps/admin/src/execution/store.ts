@@ -9,7 +9,7 @@ import type { Pool } from 'pg';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 
 import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
-import { 저장값을채운다 } from './savedInput.js';
+import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
@@ -210,8 +210,10 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     );
     const runId = Number(run.rows[0]!.run_id);
 
-    // 요청에 없는 칸은 케이스 저장값으로 채운다. 채운 값도 run_item 에 박제된다 (도메인/실행 §3.2)
-    const 채운항목 = await 저장값을채운다(client, input.items, cases);
+    // 요청에 없는 칸은 케이스 저장값으로, 그래도 빈 계정 칸은 이 실행 대상 서버 줄의 계정으로 채운다.
+    // 채운 값도 run_item 에 박제된다 — 계정이 나중에 바뀌어도 지난 실행은 그대로다 (도메인/실행 §3.2)
+    const 계정들 = await 대상서버계정(client, Number(found서비스.id), input.env);
+    const 채운항목 = await 저장값을채운다(client, input.items, cases, 계정들);
 
     const items: PendingItem[] = [];
     for (const item of 채운항목) {
