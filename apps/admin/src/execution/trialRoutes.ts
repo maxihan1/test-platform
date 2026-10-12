@@ -1,14 +1,17 @@
 // 케이스 「테스트 실행」 통로 — 실행 기록 없이 내 컴퓨터 러너에 1건을 보내 창을 띄워 돌린다 (도메인/실행 §3.2 · §7)
 
 import type { ExecuteRequest, ExecuteResponse, Platform } from '@platform/kit';
+import { 출처, type 역할계정 } from '@platform/kit/accounts';
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { 대상줄들읽기 } from '../authoring/reverse.js';
 import { caseSchemas } from './paramSets.js';
 import { 폰을놓는다, 폰을바로잡는다 } from './phone.js';
 import { 러너에보낸다, httpTimeoutMs } from './runner.js';
 import { 저장값을채운다 } from './savedInput.js';
+import { prefixOf } from './store.js';
 import { 시작한다, 읽는다, TrialBusyError } from './trial.js';
 import { validate } from './validate.js';
 
@@ -40,17 +43,33 @@ function 웹주소인가(값: string): boolean {
   }
 }
 
+/**
+ * 그 케이스 서비스의 대상 서버 줄 가운데 보낸 주소와 출처가 같은 첫 줄(env 순)의 계정. 없으면 빈 목록 — 안 채운다 (실행 §3.2).
+ * 테스트 실행은 대상 서버 키 없이 주소만 받아서 출처로 줄을 찾는다
+ */
+async function 주소의계정(tcId: string, baseUrl: string): Promise<역할계정[]> {
+  const { pool } = await import('../db/index.js');
+  const r = await pool.query<{ id: string }>('SELECT id FROM service WHERE prefix = $1', [prefixOf(tcId)]);
+  const 서비스 = r.rows[0];
+  const 보낸출처 = 출처(baseUrl);
+  // 깨진 주소끼리(null) 같다고 보지 않는다
+  if (서비스 === undefined || 보낸출처 === null) return [];
+  return (await 대상줄들읽기(Number(서비스.id))).find((줄) => 출처(줄.baseUrl) === 보낸출처)?.계정들 ?? [];
+}
+
 async function 저장값으로채운다(
   tcId: string,
   platform: Platform,
+  baseUrl: string,
   params: Record<string, unknown>,
   expected: Record<string, unknown>,
   schemas: { param_schema: unknown; expected_schema: unknown },
 ): Promise<{ params: Record<string, unknown>; expected: Record<string, unknown> }> {
+  const 계정들 = await 주소의계정(tcId, baseUrl);
   const { pool } = await import('../db/index.js');
   const client = await pool.connect();
   try {
-    const [채움] = await 저장값을채운다(client, [{ tcId, platforms: [platform], params, expected }], new Map([[tcId, schemas]]));
+    const [채움] = await 저장값을채운다(client, [{ tcId, platforms: [platform], params, expected }], new Map([[tcId, schemas]]), 계정들);
     return { params: 채움!.params, expected: 채움!.expected };
   } finally {
     client.release();
@@ -89,8 +108,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `${tcId} 는 ${platform} 환경을 지원하지 않습니다` });
     }
 
-    // 진짜 실행과 같은 길로 요청에 없는 칸을 저장값으로 채운다 — 저장된 비밀번호는 화면이 모른다(「입력됨」)
-    const { params, expected } = await 저장값으로채운다(tcId, platform, parsed.data.params, parsed.data.expected, {
+    // 진짜 실행과 같은 길로 요청에 없는 칸을 저장값 · 대상 서버 계정으로 채운다 — 저장된 비밀번호는 화면이 모른다(「입력됨」)
+    const { params, expected } = await 저장값으로채운다(tcId, platform, baseUrl, parsed.data.params, parsed.data.expected, {
       param_schema: schemas.paramSchema,
       expected_schema: schemas.expectedSchema,
     });

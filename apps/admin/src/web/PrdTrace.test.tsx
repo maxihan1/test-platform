@@ -64,7 +64,7 @@ afterEach(() => {
 const 줄of = (reqId: string) => screen.getByRole('button', { name: new RegExp(reqId) }).closest('.prd-line') as HTMLElement;
 
 describe('PRD 관리 — 요구사항 추적표 칸', () => {
-  it('요구마다 기능 · UI 건수 고리 · 마지막 결과를 달고, 덮는 케이스가 없으면 「안 덮임」이다', async () => {
+  it('요구마다 기능 · UI 건수 고리 · 마지막 결과를 달고, 테스트가 없으면 「미작성」이다', async () => {
     const 부름 = vi.spyOn(api, 'lastByCase').mockResolvedValue({
       items: [
         결과('MKT-FN-001', 'desktop', 'PASS'),
@@ -76,7 +76,7 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     });
     render(<Prd service="MKT" 할수={보는사람} 결과보나 케이스보나 />);
     const 회원가입 = await screen.findByRole('button', { name: /회원가입/ });
-    await vi.waitFor(() => expect(회원가입.textContent).toContain('안 덮임 1건 · 실패 1건'));
+    await vi.waitFor(() => expect(회원가입.textContent).toContain('미작성 1건 · 실패 1건'));
     expect(부름).toHaveBeenCalledOnce();
     fireEvent.click(회원가입);
 
@@ -85,7 +85,7 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     expect(within(아이디).getByRole('link', { name: 'UI 1건' }).getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031');
     // 기기 한쪽만 깨져도 그 케이스는 실패다 — 케이스 목록과 같은 규칙
     expect(within(아이디).getByText('실패 1 / 3').className).toBe('verdict v-fail');
-    expect(within(줄of('MKT-REQ-032')).getByText('안 덮임')).toBeTruthy();
+    expect(within(줄of('MKT-REQ-032')).getByText('미작성')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /로그인/ }));
     expect(within(줄of('MKT-REQ-040')).getByText('통과').className).toBe('verdict v-pass');

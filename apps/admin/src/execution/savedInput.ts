@@ -3,11 +3,13 @@
 import { isDeepStrictEqual } from 'node:util';
 
 import type { JsonSchema } from '@platform/kit';
+import { 계정채우기, type 역할계정 } from '@platform/kit/accounts';
 
 import type { FastifyInstance } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 import { z } from 'zod';
 
+import { 대상줄읽기 } from '../authoring/reverse.js';
 // 화면이 가리는 칸과 서버가 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
 import { 가려야하나, 저장값나누기 } from '../web/mask.js';
 import { caseSchemas } from './paramSets.js';
@@ -142,12 +144,14 @@ function 채운것(schema: unknown, 요청: 값들, 저장: unknown): 값들 {
 
 /**
  * 요청에 없는 칸만 케이스 저장값으로 채운 새 항목 목록. 정기 실행처럼 화면을 안 거치는 실행도 같은 길을 탄다.
- * 시나리오 case 부품도 같은 규칙이라(시나리오 §3.7) 항목 모양을 묶지 않는다
+ * 그래도 빈 계정 칸은 그 실행 대상 서버 줄의 계정(`계정들`)으로 채운다 — 차례는 요청 값 → 저장값 → 계정 (실행 §3.2).
+ * 기대값은 계정으로 안 채운다. 시나리오 case 부품도 같은 규칙이라(시나리오 §3.7) 항목 모양을 묶지 않는다
  */
 export async function 저장값을채운다<T extends { tcId: string; params: 값들; expected: 값들 }>(
   client: Pick<PoolClient, 'query'>,
   items: T[],
   schemas: Map<string, { param_schema: unknown; expected_schema: unknown }>,
+  계정들: readonly 역할계정[] = [],
 ): Promise<T[]> {
   const r = await client.query<{ tc_id: string; params: unknown; expected: unknown }>(
     'SELECT tc_id, params, expected FROM case_input WHERE tc_id = ANY($1::text[])',
@@ -157,13 +161,22 @@ export async function 저장값을채운다<T extends { tcId: string; params: �
   return items.map((item) => {
     const 행 = 저장.get(item.tcId);
     const 명세 = schemas.get(item.tcId);
-    if (행 === undefined || 명세 === undefined) return item;
+    if (명세 === undefined) return item;
+    const params = 행 === undefined ? item.params : 채운것(명세.param_schema, item.params, 행.params);
     return {
       ...item,
-      params: 채운것(명세.param_schema, item.params, 행.params),
-      expected: 채운것(명세.expected_schema, item.expected, 행.expected),
+      params: 계정채우기(칸들(명세.param_schema), params, 계정들),
+      expected: 행 === undefined ? item.expected : 채운것(명세.expected_schema, item.expected, 행.expected),
     };
   });
+}
+
+/**
+ * 그 대상 서버 줄의 계정 — 일반 회원 다음 역할 계정. 줄이 없으면 빈 목록(안 채운다).
+ * 운영 줄도 준다 — 실행은 운영에서도 돈다(작성만 막는다). 트랜잭션 안이면 그 연결을 넘긴다
+ */
+export async function 대상서버계정(q: Pick<PoolClient, 'query'>, 서비스: number, env: string): Promise<역할계정[]> {
+  return (await 대상줄읽기(서비스, env, q))?.계정들 ?? [];
 }
 
 /**

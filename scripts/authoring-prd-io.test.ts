@@ -50,23 +50,30 @@ describe('판받기', () => {
 
   it('기준 판을 같이 받는다 — 반영 계획의 옛 문장이라 같은 손으로 가리고, 지금 판 파일에는 안 싣는다', async () => {
     vi.stubGlobal('fetch', async () => 답(200, { version: 3, items: [있던], base: { version: 2, items: [{ ...있던, text: '비번은 pass1234 이다' }] } }));
-    const r = await 판받기(서버, 'MKT', 7, 자리.자료, 'pass1234');
+    const r = await 판받기(서버, 'MKT', 7, 자리.자료, ['pass1234']);
     expect('기준판' in r && r.기준판).toEqual({ version: 2, items: [{ ...있던, text: '비번은 •••••• 이다' }] });
     expect(JSON.parse(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8'))).not.toHaveProperty('base');
   });
 
   it('역방향 비밀번호는 날 글자와 이스케이프 꼴 둘 다 가려 쓰고, 원장을 만들 앞 판 항목도 가린 것이다', async () => {
     vi.stubGlobal('fetch', async () => 답(200, { version: 1, items: [{ ...있던, text: '비번은 pa"ss1234 이다' }] }));
-    const r = await 판받기(서버, 'MKT', 7, 자리.자료, 'pa"ss1234');
+    const r = await 판받기(서버, 'MKT', 7, 자리.자료, ['pa"ss1234']);
     const 글 = readFileSync(join(자리.자료, 'prd-current.json'), 'utf8');
     expect(글).not.toContain('ss1234');
     expect(글).toContain('••••••');
     expect('앞판' in r && r.앞판.items[0]?.text).not.toContain('ss1234');
   });
 
+  it('역할 계정 비밀번호도 일반 회원과 같이 가려 쓴다', async () => {
+    vi.stubGlobal('fetch', async () => 답(200, { version: 1, items: [{ ...있던, text: '회원 pass1234 · 관리자 admin-pw-77' }] }));
+    const r = await 판받기(서버, 'MKT', 7, 자리.자료, ['admin-pw-77', 'pass1234']);
+    expect('앞판' in r && r.앞판.items[0]?.text).toBe('회원 •••••• · 관리자 ••••••');
+    expect(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8')).not.toContain('admin-pw-77');
+  });
+
   it('비밀번호가 JSON 키와 같아도 글 값만 가려 깨진 JSON 을 만들지 않는다', async () => {
     vi.stubGlobal('fetch', async () => 답(200, { version: 1, items: [{ ...있던, text: '본문 text 칸' }] }));
-    const r = await 판받기(서버, 'MKT', 7, 자리.자료, 'text');
+    const r = await 판받기(서버, 'MKT', 7, 자리.자료, ['text']);
     expect('앞판' in r && r.앞판.items[0]?.text).toBe('본문 •••••• 칸');
     expect(JSON.parse(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8'))).toMatchObject({ version: 1 });
   });
@@ -135,7 +142,7 @@ describe('옮기기올리기', () => {
     const 건것 = vi.fn(async () => 답(200));
     vi.stubGlobal('fetch', 건것);
     결과쓰기({ items: [{ ...있던, reqId: undefined, text: '비번은 pa"ss1234 로 들어간다' }] });
-    expect(await 올리기(원장하나, { 계정: 'pa"ss1234' })).toEqual({ 거절: expect.stringContaining('비밀값') as string, 줄: [] });
+    expect(await 올리기(원장하나, { 계정: ['pa"ss1234'] })).toEqual({ 거절: expect.stringContaining('비밀값') as string, 줄: [] });
     expect(건것).not.toHaveBeenCalled();
   });
 

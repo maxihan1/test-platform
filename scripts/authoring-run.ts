@@ -12,6 +12,7 @@ import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { 결제환경, 크레딧먼저, 크레딧바닥났나, 크레딧키이름 } from './authoring-billing.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처, 화면만인가 } from './authoring-assets.js';
 import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
+import { 계정환경, 비밀번호들 } from './authoring-accounts.js';
 import { 자식환경 } from './authoring-chain.js';
 import { type 계정, 사본환경 } from './authoring-copy.js';
 import { 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
@@ -205,17 +206,17 @@ async function 사본에서(
       return;
     }
   }
-  // 역방향 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호를 먼저 가린다 (§3.6 「★ 역방향」)
-  const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 것.target?.loginPassword);
+  // 대조 · 반영 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호(역할 계정까지)를 먼저 가린다 (§3.6 「★ 역방향」 · 「★ 역할별 계정」)
+  const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 비밀번호들(것));
   if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));
   // 작성은 표준 기획서만 읽는다 — 지금 판으로 원장을 만든다. 못 받으면 원장이 없어 작성하지 않는다 (§3.6 「작성은 표준 기획서만 읽는다」)
-  const 기획서 = await 판받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 것.target?.loginPassword);
+  const 기획서 = await 판받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 비밀번호들(것));
   if ('까닭' in 기획서) return void (await 손.끝내기({ status: 'FAILED', error: 기획서.까닭 }));
   // 이어 작성 · 반영은 옮기지 않는다 — 뿌리가 같은 자료를 이미 옮겼거나 옮길 자료가 없다. 화면만도 옮긴다(항목이 전부 확인 필요)
   const 옮긴다 = 이어작성원본 === null && !반영요청인가(것);
   // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로. 기준 표는 트리가 아니라 기준 SHA 에서. 이어받은 폴더면 앞 결과 파일의 임시 번호를 잇는다
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
-  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것) } : undefined });
+  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것) } : undefined, 등록역할: new Set((것.accounts ?? []).map((a) => a.role)) });
   if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
   // 역방향은 기준 SHA 의 파일로 화면 ↔ 케이스 지도(바뀐 화면 케이스 — PRD-F6-04)를, 화면만은 PRD 에 이미 있는 화면도 센다. 화면만이 못 세면 기획서 화면을 또 쓰므로 실패, 대조는 바뀐 화면 케이스를 못 볼 뿐이다 (§3.6)
   const 화면지도 = 것.target === undefined ? null : 화면지도준비({ 깃, 기준, 서비스, 폴더: 케이스자리, 번호들: 기획서.앞판.번호들, 자료폴더: 자리.자료, 화면만: 화면만인가(것, 자료들) });
@@ -232,12 +233,12 @@ async function 사본에서(
     // 끝의 전체 3회 결과 파일 자리는 에이전트가 정한다 — 맥은 TMPDIR 이 시스템 것이라 거기 쓰면 못 찾는다. 임시는 실행마다 새것이다
     ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }), AUTHORING_GATE3_DIR: 자리.임시,
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
-    ...(것.target === undefined ? {} : 대상환경(것.target)),
+    ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)),
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = 클로드인자(자리.자료, 판.모델);
   // 진척 — 케이스는 자식 시작 뒤 새로 생긴 것만, 화면은 역방향만 센다. limitSec 0 — 전체 상한이 없어 화면이 시간 막대를 안 그린다 (작성 §7)
-  const 누적 = 진척누적기(0, { loginPassword: 것.target?.loginPassword, figmaToken: 것.figmaToken });
+  const 누적 = 진척누적기(0, { 비밀번호들: 비밀번호들(것), figmaToken: 것.figmaToken });
   const 재기 = 진척재기(누적, 자리.트리, 케이스자리, 역방향 === undefined ? undefined : join(자리.자료, 'screens'), 방.옛케이스);
   // API 크레딧 키가 있으면 크레딧으로 먼저 — 시작하자마자 없으면 구독으로 한 번 더 (authoring-billing)
   const { 돌린것, 크레딧으로 } = await 크레딧먼저(process.env[크레딧키이름] || undefined, (키) => 박동.자식동안(재기, (신호) =>
@@ -256,7 +257,7 @@ async function 사본에서(
         return 글 === null ? null : `[작성] ${것.id}번 ${글}`;
       },
     }),
-  ), (까닭) => console.log(`[작성] ${것.id}번 API 크레딧으로 못 띄웠다(${사유거르기(까닭, 것.target?.loginPassword)}) — 구독으로 다시 띄운다`));
+  ), (까닭) => console.log(`[작성] ${것.id}번 API 크레딧으로 못 띄웠다(${사유거르기(까닭, 비밀번호들(것))}) — 구독으로 다시 띄운다`));
   const 단계 = 누적.단계표(); // 거절 · 시간초과 · 멈춤 · 끊김에도 남게 어떤 return · 사용량보고보다 먼저 (AUT-F3-21)
   console.log(`[작성] ${것.id}번 단계 시각\n${단계 || '단계 표지 없음'}`);
   // 에이전트가 거절로 멈추는 중이면 자식을 죽인 것이다 — 서버도 받아 주지 않으니 보고하지 않는다
@@ -273,7 +274,7 @@ async function 사본에서(
   if (안떴다) {
     // 자식 stderr 에 계정 원문이 섞일 수 있다 — 사유는 화면과 서버 기록에 남는다
     const 끝줄 = 돌린것.오류.trim().split('\n').pop() ?? '';
-    await 손.끝내기({ status: 'FAILED', error: 사유거르기(`claude 를 못 띄웠다: ${끝줄}`, 것.target?.loginPassword) });
+    await 손.끝내기({ status: 'FAILED', error: 사유거르기(`claude 를 못 띄웠다: ${끝줄}`, 비밀번호들(것)) });
     return;
   }
   // 멈춤·시간초과·한도는 STOPPED — 다시 하면 이어질 수 있다. 한도는 stream 이 아니라 결과 글과 표준 오류로만 본다. 크레딧이 도중에 떨어진 것도 한도다(이어하기가 바로 구독으로 넘어간다)
@@ -284,13 +285,12 @@ async function 사본에서(
   }
   // 옮긴 표준 기획서는 PR 을 만들기 전에 올리고 표의 임시 번호를 받은 번호로 바꾼다 — 판 · 대조 줄이 PR 본문 머리에 실리고 원장은 올린 판이다.
   // 못 올리면 올리기 거절 — 표가 판에 없는 번호를 가리킨다. 멈춤 · 한도로 끝났으면 위에서 나가 이어하기가 이어 쓴다. 화면이 맞음은 고친 번호만 올린다
-  const 옮김 = !옮긴다 ? await 안옮김뒤({ 주소기지, 토큰 }, 서비스, 것.id, 자리, 기획서.앞판, 원장, { 피그마: 것.figmaToken, 계정: 것.target?.loginPassword }, 케이스자리)
-    : await 옮기기올리기({ 주소기지, 토큰 }, 서비스, 것.id, 자리, 기획서.앞판, 원장.원본원장, { 피그마: 것.figmaToken, 계정: 것.target?.loginPassword }, 원장.기준표, 케이스자리);
+  const 옮김 = !옮긴다 ? await 안옮김뒤({ 주소기지, 토큰 }, 서비스, 것.id, 자리, 기획서.앞판, 원장, { 피그마: 것.figmaToken, 계정: 비밀번호들(것) }, 케이스자리)
+    : await 옮기기올리기({ 주소기지, 토큰 }, 서비스, 것.id, 자리, 기획서.앞판, 원장.원본원장, { 피그마: 것.figmaToken, 계정: 비밀번호들(것) }, 원장.기준표, 케이스자리);
   if ('거절' in 옮김) {
     console.log(`[작성] ${것.id}번 표준 기획서를 못 올려 거절한다\n${옮김.줄.join('\n')}`);
-    return void (await 손.끝내기(거절로(사유거르기(옮김.거절, 것.target?.loginPassword))));
+    return void (await 손.끝내기(거절로(사유거르기(옮김.거절, 비밀번호들(것)))));
   }
-
   // 보류 케이스와 원장 셈은 자식의 말이 아니라 코드에서 계산해 끝내기에 싣는다 — 싣는 손은 올리기가 건다 (작성 §3.6)
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 손,

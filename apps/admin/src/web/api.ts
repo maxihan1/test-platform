@@ -367,17 +367,24 @@ export interface EnvRow {
    */
   loginId?: string | null;
   hasLoginPassword?: boolean;
+  /** 「운영 서버」 체크 — 작성 · 화면 탐색이 안 간다. 설정 화면만 받는다 */
+  isProd?: boolean;
+  /** 일반 회원 밖의 역할 계정. 설정 화면만 받는다 — 비밀번호는 설정됐는지만 온다 */
+  accounts?: { role: string; loginId: string | null; hasLoginPassword: boolean }[];
 }
 
 /**
  * 설정 저장 때 보내는 한 줄. 계정 칸은 **키를 안 보내면 서버가 지금 것을 유지**하고 null·빈 글자면 지운다 (도메인/인증 §7).
- * 비밀번호는 화면이 받은 적이 없으니 새로 넣을 때만 싣는다
+ * 비밀번호는 화면이 받은 적이 없으니 새로 넣을 때만 싣는다. isProd · accounts 도 키가 없으면 서버가 지금 것을 유지한다
  */
 export interface EnvInput {
   env: string;
   baseUrl: string;
   loginId?: string | null;
   loginPassword?: string | null;
+  isProd?: boolean;
+  /** 보내면 그 목록으로 바꾼다. 역할 이름이 같은 줄은 서버가 옛 아이디 · 비밀번호를 같은 규칙으로 이어받는다 */
+  accounts?: { role: string; loginId?: string | null; loginPassword?: string | null }[];
 }
 
 // 맨 위 띠의 서비스 목록이 이것이다. 배정받은 것만 온다 (SPEC §7 · §8)

@@ -138,7 +138,7 @@ describe('표시 자리 — 자식이 적은 자료·문장·노드를 받고 �
 
   it('글모두가 문장까지 본다 — 비밀번호를 문장 칸에 숨겨도 걸린다', () => {
     const 결과 = 차이정리(JSON.stringify([{ ...줄, anchor: `로그인 ${비밀}` }]));
-    expect('diffs' in 결과 && 계정섞였나(글모두(결과.diffs), 비밀)).toBe(true);
+    expect('diffs' in 결과 && 계정섞였나(글모두(결과.diffs), [비밀])).toBe(true);
   });
 
   it('보낼차이는 서버 모양 여덟 칸만 준다', () => {

@@ -54,6 +54,7 @@
    PLATFORM_BASE_URL=<env 주소> npx playwright test <케이스 파일> --project=desktop --workers=1 --reporter=line > /tmp/sr.log 2>&1; echo "EXIT=$?"
    ```
 
+   계정은 환경 변수 `PLATFORM_ACCOUNTS`(운영 아닌 대상 서버 줄의 계정 전부 — 2026-10-12)에 있어 kit 이 `PLATFORM_BASE_URL` 과 출처가 같은 줄로 비밀값 칸을 채운다. 값을 출력 · 인자 · 파일에 쓰지 않는다.
    로그인 같은 앞 단계에서 먼저 멈춰 그 확인까지 못 가면 `tpx-cases` §4 화면 탐침으로 그 화면을 직접 연다.
    그 실행 뒤 배포로 화면이 바뀌었을 수 있다 — 지금 화면을 기준으로 하고 다르면 결과 요약에 적는다
 2. **화면과 어긋난 번호만 결과 파일(`out/prd.json` — 폴더가 없으면 만든다)에 그 번호로 적는다.** 꼴은 `prd.md` §2 그대로다(`items` 만 · 그 번호의 `reqId` 를 단다). `번호들` 밖의 번호 · 새 항목 · `removed` 는 적지 않는다 — 에이전트가 버린다.

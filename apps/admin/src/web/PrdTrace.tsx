@@ -1,9 +1,10 @@
-// 「PRD 관리」 요구 줄의 테스트 쪽 — 줄 끝 추적표 칸(덮는 케이스 수 고리 · 마지막 결과 · 안 덮임)과 편 줄의 「테스트」 · 「설계 미리보기」 구획
+// 「PRD 관리」 요구 줄의 테스트 쪽 — 줄 끝 추적표 칸(연결된 케이스 수 고리 · 마지막 결과 · 보류 · 미작성)과 편 줄의 「테스트」 · 「설계 미리보기」 구획
 // (도메인/작성 §3.6 「메뉴가 곧 요구사항 추적표다」 · 2026-10-11 시안 A). 셈은 prd/trace.ts 가 한다 — 추적표 엑셀과 같은 함수라 화면과 엑셀 숫자가 갈리지 않는다
 
 import { useMemo } from 'react';
 
 import { 설계하기 } from '../../../../scripts/authoring-design.js';
+import type { 줄보류 } from '../prd/heldText.js';
 import { 요구판정, type 추적 } from '../prd/trace.js';
 import { use기법말 } from './CaseDetail.js';
 import { use말 } from './i18n.js';
@@ -14,13 +15,19 @@ const 케이스주소 = (kind: 'fn' | 'ui', reqId: string) => `#/cases/${kind}/r
 const 판정꼴 = { PASS: 'v-pass', FAIL: 'v-fail', NA: 'v-na' } as const;
 
 // 줄 버튼 밖에 둔다 — 버튼 안에는 고리를 넣을 수 없다
-export function 추적칸({ reqId, 추적, 케이스보나 }: { reqId: string; 추적: 추적; 케이스보나: boolean }) {
+export function 추적칸({ reqId, 추적, 보류, 케이스보나 }: { reqId: string; 추적: 추적; 보류: 줄보류 | null; 케이스보나: boolean }) {
   const t = use말();
   const 전체 = 추적.기능.length + 추적.UI.length;
   if (전체 === 0) {
     return (
       <span className="prd-trace">
-        <span className="case-tag prd-uncovered">{t('안 덮임')}</span>
+        <span className="case-tag prd-uncovered">
+          {보류 === null
+            ? t('미작성')
+            : 보류.미등록.length > 0
+              ? t('보류 — {역할} 계정 미등록', { 역할: 보류.미등록.join(' · ') })
+              : t('보류 — {역할} 계정 등록됨 · 이어 작성 전', { 역할: 보류.등록됨.join(' · ') })}
+        </span>
       </span>
     );
   }
@@ -57,7 +64,7 @@ export function 추적칸({ reqId, 추적, 케이스보나 }: { reqId: string; �
   );
 }
 
-/** 편 줄 — 종류 · 기법 숫자. 같은 칸의 설계 미리보기와 견준다. 안 덮인 요구는 줄의 「안 덮임」으로 끝나 구획을 안 그린다 */
+/** 편 줄 — 종류 · 기법 숫자. 같은 칸의 설계 미리보기와 견준다. 테스트가 없는 요구는 줄 끝 글자로 끝나 구획을 안 그린다 */
 export function 테스트구획({ 추적 }: { 추적: 추적 }) {
   const t = use말();
   const 기법말 = use기법말();

@@ -76,7 +76,7 @@
 > 1. 버전 관리 명령과 PR 도구를 부르지 않는다. 커밋 · 올리기는 에이전트가 한다
 > 2. AskUserQuestion 을 부르지 않는다 — 답할 사람이 없다
 > 3. 명령과 도구를 백그라운드로 돌리지 않는다. 전부 끝까지 기다린다
-> 4. 계정 값은 환경 변수와 `params` 비밀값 칸(`.meta({ secret: true })`)으로만 쓴다. 파일 · 명령줄에 값을 적지 않는다
+> 4. 계정 값은 환경 변수와 `params` 비밀값 칸(`.meta({ secret: true })` · 역할 계정은 `account: '<역할>'` 도)으로만 쓴다. 파일 · 명령줄에 값을 적지 않는다 — `PLATFORM_ACCOUNTS` 가 있으면 kit 이 채운다
 > 5. 맡은 tcId 파일 · 맡은 화면의 Page Object · 용어 조각 · `helpers/draft-<slug>.helper.ts` 말고는 고치지 않는다. 다른 `components/*` · `helpers/*` 와 `docs/cases/<접두사>.md` 도 고치지 않는다
 > 6. 관문은 아래 둘만 돈다. 다른 묶음 파일에서 난 오류는 고치지 않고 적어만 온다
 > 7. 위 공용 부품 · 도우미 목록에 있는 일은 그것을 쓴다 — 같은 일을 하는 함수 · locator 를 케이스나 Page Object 에 다시 만들지 않는다.

@@ -5,6 +5,7 @@ import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { 집은것 } from './authoring-rules.js';
+import { 비밀번호들 } from './authoring-accounts.js';
 import {
   PR만들기인자,
   PR찾기인자,
@@ -81,7 +82,9 @@ export async function 올리기(
   const 손 = 보류싣는손(커버리지싣는손(원손, () => 셈), 자리, 원장재료.자식, 원장재료.폴더);
   const 깃 = 사본환경(자리);
   // 거절 까닭은 화면과 이어받는 자식의 프롬프트로 간다 — 자식이 정한 파일 이름에 계정 원문이 섞일 수 있어 모두 거른다
-  const 거절 = (까닭: string) => 거절로(사유거르기(까닭, 것.target?.loginPassword));
+  // 비밀번호는 일반 회원 · 역할 계정 전부다 — 반영 행도 역할 계정을 받는다 (§3.6 「★ 역할별 계정」)
+  const 비밀 = 비밀번호들(것);
+  const 거절 = (까닭: string) => 거절로(사유거르기(까닭, 비밀));
   const 트리에서 = (명령: string, 인자: string[]) => 친다(명령, 인자, 자리.트리, undefined, 120_000, { env: 깃 });
 
   await 손.단계('올리는 중');
@@ -95,11 +98,11 @@ export async function 올리기(
     return;
   }
   const 알림 = 지운말(지운것);
-  const 지운줄 = 알림 === null ? [] : [사유거르기(알림, 것.target?.loginPassword)];
+  const 지운줄 = 알림 === null ? [] : [사유거르기(알림, 비밀)];
   if (지운줄.length > 0) console.log(`[작성] ${것.id}번 — ${지운줄[0]}`);
   // 역방향이면 이번에 본 화면 기록을 서버 저장본(DB · 저장소 밖)에 올린다 — 다음 작성은 바뀐 화면만 훑는다 (§3.6 「★ 역방향」 · PRD-F6-01).
   // 재사용 수 · 가장 오래된 날은 PR 본문 머리에도 싣는다 — 자식이 옮겨 적기를 빠뜨려도 사람이 본다
-  const 저장 = 역 === undefined ? null : await 저장본올리기({ 주소기지: 역.주소기지, 토큰: 역.토큰, 번호: 것.id }, 자리.자료, 것.target?.loginPassword);
+  const 저장 = 역 === undefined ? null : await 저장본올리기({ 주소기지: 역.주소기지, 토큰: 역.토큰, 번호: 것.id }, 자리.자료, 비밀);
   if (저장 !== null && '거절' in 저장) {
     await 손.끝내기(거절(저장.거절));
     return;
@@ -175,7 +178,7 @@ export async function 올리기(
     표경로: 표,
     표: 읽기(표),
     // 결과 요약은 자식이 마지막에 찍는다 (tpx-author 「결과 요약」). 셈은 자식 말이 아니라 에이전트가 센 것을 머리에 둔다
-    요약: [원장결과.머리글, ...옮긴줄, ...지운줄, ...저장줄, ...(바뀐줄 === null ? [] : [사유거르기(바뀐줄, 것.target?.loginPassword)]), ...끝검사(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 것.target?.loginPassword)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
+    요약: [원장결과.머리글, ...옮긴줄, ...지운줄, ...저장줄, ...(바뀐줄 === null ? [] : [사유거르기(바뀐줄, 비밀)]), ...끝검사(자리.임시, 자리.트리, 원장재료.폴더).map((줄) => 사유거르기(줄, 비밀)), '', ...자식출력.trim().split('\n').slice(-40)].join('\n'),
     단계: 단계표,
   });
   // 사유에 토큰을 싣지 않는다 — 사유는 화면과 서버 기록에 남는다
@@ -183,11 +186,11 @@ export async function 올리기(
     await 손.끝내기(거절('올릴 파일이나 PR 본문에 피그마 토큰이 들어 있다 — 올리지 않는다'));
     return;
   }
-  // 역방향 — push 전에 올릴 글 전부(케이스·PR 본문·차이)에서 테스트 계정 비밀번호를 찾는다 (§3.6 「남는 한계」)
-  const 비밀 = 것.target?.loginPassword;
+  // 역방향 — push 전에 올릴 글 전부(케이스·PR 본문·차이)에서 테스트 계정 비밀번호를 찾는다 (§3.6 「남는 한계」).
+  // 반영 행도 계정을 받아 자식이 케이스에 적을 수 있다 — 비밀번호를 받았으면 늘 본다. 차이 파일은 대조만 쓴다 (§3.6 「★ 역할별 계정」)
   let 역결과: { diffs: 차이[]; 표시: 표시준비물 | null; 남길말: string[] } | null = null;
-  if (것.target !== undefined) {
-    const 차이파일 = 산출물읽기(자리, 'diffs.json', 글상한);
+  if (비밀.length > 0) {
+    const 차이파일 = 것.target === undefined ? { 몸: null } : 산출물읽기(자리, 'diffs.json', 글상한);
     if ('사유' in 차이파일) {
       await 손.끝내기(거절(차이파일.사유));
       return;

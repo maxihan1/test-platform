@@ -139,6 +139,14 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
     expect(글).not.toContain('%');
   });
 
+  it('제외에 계정 미등록이 있으면 보류 건수와 다시 작성 안내를 한 줄 더 적는다', () => {
+    render(<AuthoringStatusCard 요청={줄({ coverage: { ...예시셈, excluded: { '계정 미등록': 16 } } })} 지금={지금} />);
+    expect(screen.getByText('보류 16건 — 역할 계정이 등록되지 않았습니다 · 등록하면 이 요구만 다시 작성합니다')).toBeTruthy();
+    cleanup();
+    render(<AuthoringStatusCard 요청={줄({ coverage: 예시셈 })} 지금={지금} />);
+    expect(screen.queryByText(/역할 계정이 등록되지 않았습니다/)).toBeNull();
+  });
+
   it('원장을 못 만들었으면 집계 없음과 까닭을 적는다', () => {
     render(<AuthoringStatusCard 요청={줄({ coverage: { none: 'PDF 라 글자를 못 뽑았다' } })} 지금={지금} />);
     expect(셈줄().textContent).toBe('PRD 요구사항집계 없음 — PDF 라 글자를 못 뽑았다');

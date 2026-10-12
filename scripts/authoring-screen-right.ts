@@ -45,7 +45,7 @@ export async function 안옮김뒤(
   자리: 사본,
   앞: 앞판,
   원장: { 원장: 원장 | { 없음: string }; 기준: 기준결정; 기준표: 기준표 | null; 반영?: 반영입력 },
-  비밀: { 피그마?: string; 계정?: string | null },
+  비밀: { 피그마?: string; 계정?: readonly string[] },
   폴더: string,
 ): Promise<뒤결과> {
   if (원장.반영 === undefined) return { 줄: [], 원장: 원장.원장, 기준: 원장.기준 };

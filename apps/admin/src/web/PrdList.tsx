@@ -4,6 +4,7 @@
 import type { PrdItem } from '@platform/kit';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
+import { 줄보류of, type 줄보류 } from '../prd/heldText.js';
 import { 요구판정, 추적하기, type 결과읽기, type 추적 } from '../prd/trace.js';
 import { use말 } from './i18n.js';
 import type { 판짓기 } from './Prd.js';
@@ -110,7 +111,9 @@ export function PrdList({
           const 확인수 = g.items.filter((x) => x.status === 'NEEDS_CHECK').length;
           const 반영수 = g.items.filter((x) => 반영표.has(x.reqId)).length;
           const 추적들 = g.items.map((x) => 추적of(x.reqId));
-          const 안덮임수 = 추적들.filter((a) => a.기능.length + a.UI.length === 0).length;
+          const 없는줄 = g.items.filter((_, i) => 추적들[i]!.기능.length + 추적들[i]!.UI.length === 0);
+          const 보류수 = 없는줄.filter((x) => 줄보류of(now.held, x.reqId) !== null).length;
+          const 미작성수 = 없는줄.length - 보류수;
           const 실패수 = 추적들.filter((a) => a.결과 !== null && 요구판정(a.결과) === 'FAIL').length;
           return (
             <div className="prd-group" key={g.feature}>
@@ -123,7 +126,8 @@ export function PrdList({
                   {t('{건수}건', { 건수: g.items.length })}
                   {확인수 === 0 ? null : <> · {t('확인 필요 {건수}건', { 건수: 확인수 })}</>}
                   {반영수 === 0 ? null : <> · {t('반영 안 됨 {건수}건', { 건수: 반영수 })}</>}
-                  {안덮임수 === 0 ? null : <> · {t('안 덮임 {건수}건', { 건수: 안덮임수 })}</>}
+                  {보류수 === 0 ? null : <> · {t('보류 {건수}건', { 건수: 보류수 })}</>}
+                  {미작성수 === 0 ? null : <> · {t('미작성 {건수}건', { 건수: 미작성수 })}</>}
                   {실패수 === 0 ? null : <> · <span className="prd-gfail">{t('실패 {건수}건', { 건수: 실패수 })}</span></>}
                 </span>
               </button>
@@ -136,6 +140,7 @@ export function PrdList({
                       여기={x.reqId === 여기}
                       반영={반영표.get(x.reqId)}
                       추적={추적of(x.reqId)}
+                      보류={줄보류of(now.held, x.reqId)}
                       케이스보나={케이스보나}
                       폈나={편줄.has(x.reqId)}
                       on펴기={() => {
@@ -171,6 +176,7 @@ function 요구줄({
   여기 = false,
   반영,
   추적,
+  보류,
   케이스보나,
   폈나,
   on펴기,
@@ -186,6 +192,7 @@ function 요구줄({
   여기?: boolean;
   반영: 반영종류 | undefined;
   추적: 추적;
+  보류: 줄보류 | null;
   케이스보나: boolean;
   폈나: boolean;
   on펴기: () => void;
@@ -222,7 +229,7 @@ function 요구줄({
             ▸
           </span>
         </button>
-        <추적칸 reqId={x.reqId} 추적={추적} 케이스보나={케이스보나} />
+        <추적칸 reqId={x.reqId} 추적={추적} 보류={보류} 케이스보나={케이스보나} />
       </div>
       {!폈나 ? null : 고치나 ? (
         <div className="prd-detail">

@@ -52,6 +52,7 @@ describe('시작주소 — 대상 서버와 출처가 같은 http·https 주소�
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XWV';
 const 비밀 = 'xwv-비밀번호-원문-9f3';
+const 관리자비밀 = 'xwv-관리자-비밀번호-4c1';
 
 describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
   let app: FastifyInstance;
@@ -82,6 +83,16 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
          ($1, 'blank', 'https://blank.xwv.test', '', ''),
          ($1, 'broken', '깨진 주소', 'tester', $2)`,
       [서비스, 비밀],
+    );
+    // 역할 계정은 아이디 · 비밀번호가 둘 다 있는 것만 집기에 실린다. 운영 줄(live)은 계정이 있어도 작성이 안 간다
+    await pool.query(
+      `UPDATE service_env SET role_accounts = $2 WHERE service_id = $1 AND env = 'qa'`,
+      [서비스, JSON.stringify([{ role: '관리자', loginId: 'admin', loginPassword: 관리자비밀 }, { role: '판매자', loginId: 'seller', loginPassword: null }])],
+    );
+    await pool.query(
+      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts)
+       VALUES ($1, 'live', 'https://live.xwv.test', 'tester', $2, true, $3)`,
+      [서비스, 비밀, JSON.stringify([{ role: '관리자', loginId: 'admin', loginPassword: 관리자비밀 }])],
     );
 
     process.env.AUTHORING_AGENT_USER = 부르는이;
@@ -123,7 +134,7 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
       expect(await 한건(res.json<{ id: number }>().id)).toMatchObject({ compare: false, env: null, startUrl: null });
     });
 
-    it.each(['prod', 'idonly', 'pwonly', 'blank', 'none'])('테스트 계정이 없는 줄(%s)은 400 BAD_ENV — 운영 서버로 못 간다', async (env) => {
+    it.each(['prod', 'idonly', 'pwonly', 'blank', 'none', 'live'])('테스트 계정이 없거나 「운영 서버」인 줄(%s)은 400 BAD_ENV — 운영 서버로 못 간다', async (env) => {
       const res = await 만들기({ kind: 'AUTHOR', compare: true, env });
       expect(res.statusCode).toBe(400);
       expect(res.json()).toEqual({ error: 'BAD_ENV' });
@@ -248,9 +259,50 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
       });
     });
 
-    it('정방향 행이면 target 키가 없다', async () => {
+    it('대조 행이면 accounts 에 그 줄의 일반 회원 다음 역할 계정이 실린다 — 아이디 · 비밀번호가 둘 다 있는 것만', async () => {
+      await 하나만세운다({ kind: 'AUTHOR', compare: true, env: 'qa' });
+      expect((await 집기()).json<{ accounts: unknown }>().accounts).toEqual([
+        { env: 'qa', baseUrl: 'https://qa.xwv.test', role: '일반 회원', loginId: 'tester', loginPassword: 비밀 },
+        { env: 'qa', baseUrl: 'https://qa.xwv.test', role: '관리자', loginId: 'admin', loginPassword: 관리자비밀 },
+      ]);
+    });
+
+    it('반영 행(prdApply)이면 「운영 서버」가 아닌 줄의 계정 전부를 env 순으로 싣고 target 은 없다', async () => {
+      const { pool } = await import('../db/index.js');
+      await pool.query(`UPDATE authoring_request SET status = 'FAILED' WHERE service_id = $1 AND status IN ('PENDING', 'RUNNING')`, [서비스]);
+      await pool.query(
+        `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status)
+         VALUES ($1, 'AUTHOR', '{"prdApply":true}', $2, '반영', 'PENDING')`,
+        [서비스, 부르는이],
+      );
+      const r = (await 집기()).json<{ accounts: unknown }>();
+      expect('target' in r).toBe(false);
+      expect(r.accounts).toEqual([
+        { env: 'broken', baseUrl: '깨진 주소', role: '일반 회원', loginId: 'tester', loginPassword: 비밀 },
+        { env: 'qa', baseUrl: 'https://qa.xwv.test', role: '일반 회원', loginId: 'tester', loginPassword: 비밀 },
+        { env: 'qa', baseUrl: 'https://qa.xwv.test', role: '관리자', loginId: 'admin', loginPassword: 관리자비밀 },
+      ]);
+    });
+
+    it('만든 뒤 그 줄을 「운영 서버」로 체크하면 target 계정이 비고 isProd 가 붙으며 accounts 는 없다', async () => {
+      const { pool } = await import('../db/index.js');
+      await 하나만세운다({ kind: 'AUTHOR', compare: true, env: 'qa' });
+      await pool.query(`UPDATE service_env SET is_prod = true WHERE service_id = $1 AND env = 'qa'`, [서비스]);
+      try {
+        const r = (await 집기()).json<{ target: Record<string, unknown>; accounts?: unknown }>();
+        expect(r.target).toMatchObject({ env: 'qa', loginId: null, loginPassword: null, isProd: true });
+        expect('accounts' in r).toBe(false);
+        expect(JSON.stringify(r)).not.toContain(비밀);
+      } finally {
+        await pool.query(`UPDATE service_env SET is_prod = false WHERE service_id = $1 AND env = 'qa'`, [서비스]);
+      }
+    });
+
+    it('정방향 행이면 target · accounts 키가 없다', async () => {
       await 하나만세운다({ kind: 'AUTHOR' });
-      expect(Object.keys((await 집기()).json())).not.toContain('target');
+      const 키들 = Object.keys((await 집기()).json());
+      expect(키들).not.toContain('target');
+      expect(키들).not.toContain('accounts');
     });
 
     it('만든 뒤 대상 서버 줄이 지워지면 target 은 있고 서버·계정 칸이 null 이다', async () => {
@@ -261,13 +313,15 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
       );
       await 하나만세운다({ kind: 'AUTHOR', compare: true, env: 'gone' });
       await pool.query(`DELETE FROM service_env WHERE service_id = $1 AND env = 'gone'`, [서비스]);
-      expect((await 집기()).json<{ target: unknown }>().target).toEqual({
+      const r = (await 집기()).json<{ target: unknown }>();
+      expect(r.target).toEqual({
         env: 'gone',
         baseUrl: null,
         startUrl: null,
         loginId: null,
         loginPassword: null,
       });
+      expect('accounts' in r).toBe(false);
     });
   });
 

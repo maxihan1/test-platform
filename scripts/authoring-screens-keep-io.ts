@@ -111,7 +111,7 @@ export async function 저장본넣기(통로: 화면통로, 자료: string, 있�
  * `list.json` 이 없으면(크롤러를 못 돌렸다) 아무것도 안 한다.
  * 올릴 기록에 테스트 계정 비밀번호가 있으면 하나도 안 올리고 거절 까닭을 돌려준다(§3.6 「남는 한계」). 그 밖에는 로그 한 줄이고 실패해도 작성은 간다
  */
-export async function 저장본올리기(통로: 화면통로, 자료: string, 비밀: string | null | undefined, 지금 = new Date()): Promise<{ 줄: string } | { 거절: string }> {
+export async function 저장본올리기(통로: 화면통로, 자료: string, 비밀: readonly string[], 지금 = new Date()): Promise<{ 줄: string } | { 거절: string }> {
   const 크롤 = join(자료, 'crawl');
   const 화면 = join(자료, 'screens');
   const 목록글 = 폴더인가(크롤) ? 안전히읽기(크롤, 'list.json', 목록상한) : null;

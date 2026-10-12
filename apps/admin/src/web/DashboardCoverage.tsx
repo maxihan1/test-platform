@@ -60,7 +60,7 @@ function 게이지({ 이름, 덮음, 전체 }: { 이름: string; 덮음: number;
           )}
         </span>
       </div>
-      {퍼센트 === null ? null : <p className="dash-gauge-cap">{t('덮은 요구 {덮음} / {전체}', { 덮음, 전체 })}</p>}
+      {퍼센트 === null ? null : <p className="dash-gauge-cap">{t('테스트 있는 요구 {덮음} / {전체}', { 덮음, 전체 })}</p>}
     </div>
   );
 }

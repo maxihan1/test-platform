@@ -9,6 +9,7 @@ import { 요청오류문장 } from './errorText.js';
 import { use말, use언어 } from './i18n.js';
 import type { 판짓기 } from './Prd.js';
 import { prdApi, type PrdNow } from './prdApi.js';
+import { PrdHeldCard } from './PrdHeld.js';
 import { PrdUncovered } from './PrdUncovered.js';
 import { 뒤집은, 반영안됨줄, 확인필요줄, type 반영종류 } from './prdView.js';
 import { message } from './ui.js';
@@ -48,7 +49,8 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
 
   // 찾은 화면이 하나라도 있으면 세 번째 카드는 그린다 — 크롤이 안 돈 서비스(0)만 안 그린다
   const 화면카드 = now.foundScreens > 0;
-  if (기다림.length === 0 && 반영.length === 0 && !화면카드) return <p className="prd-clear">{t('확인할 요구도 테스트에 반영할 요구도 없습니다')}</p>;
+  const 보류카드 = Object.keys(now.held.reqs).length > 0;
+  if (기다림.length === 0 && 반영.length === 0 && !화면카드 && !보류카드) return <p className="prd-clear">{t('확인할 요구도 테스트에 반영할 요구도 없습니다')}</p>;
 
   // 다시 읽은 판에서 이미 확정된 번호는 빼고 보낸다 — 남은 것을 보내면 서버가 BAD_CONFIRM 으로 통째 거절한다
   const 보낼것 = 기다림.filter((x) => 고른.has(x.reqId)).map((x) => x.reqId);
@@ -166,6 +168,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
           </footer>
         ) : null}
       </section>
+      {보류카드 ? <PrdHeldCard service={service} held={now.held} 쓰나={쓰나} /> : null}
       {화면카드 ? <PrdUncovered now={now} /> : null}
     </div>
   );

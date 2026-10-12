@@ -80,6 +80,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
       uncoveredScreens: [],
       foundScreens: 0,
       screensOpen: [],
+      held: { reqs: {}, roles: [], continueFrom: null },
     });
     expect((await app.inject({ method: 'GET', url: '/api/prd' })).json()).toEqual({ error: 'SERVICE_REQUIRED' });
   });
@@ -227,7 +228,7 @@ describe.skipIf(연결 === undefined)('표준 기획서 API', () => {
     };
     const [덮임, 안덮임] = await 읽기('read');
     expect(덮임).toEqual(['XPR-REQ-001', '장바구니', '20개까지 담는다', '확정', 2, 'XPR-FN-001\nXPR-FN-002', 1, 1, 0, 0, '경계값 분석 2', '통과 0 · 실패 1 · 미실행 1']);
-    expect(안덮임!.slice(4, 6)).toEqual([0, '안 덮임']);
+    expect(안덮임!.slice(4, 6)).toEqual([0, '미작성']);
     const [못봄] = await 읽기('none');
     expect(못봄![11]).toBeUndefined();
   });

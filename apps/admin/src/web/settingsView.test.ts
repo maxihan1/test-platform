@@ -190,6 +190,15 @@ describe('서비스를 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살
   it('영어로도 낸다', () => {
     expect(서비스못보내는이유({ ...채운것, 제외: 'daejeon' }, 'en')).toContain('"daejeon"');
   });
+
+  it('역할 계정 이름은 서버 BAD_ROLE 과 같은 규칙으로 먼저 짚는다 — 앞뒤 공백은 봐준다', () => {
+    const 역할 = (...이름들: string[]) => ({ ...채운것, envs: [{ env: 'qa', baseUrl: 'https://qa.pay.test', 역할들: 이름들.map((role) => ({ role })) }] });
+    expect(서비스못보내는이유(역할(' 관리자 ', '판매자'), 'ko')).toBe(null);
+    expect(서비스못보내는이유(역할('가'.repeat(41)), 'ko')).toContain('40자');
+    expect(서비스못보내는이유(역할(...Array.from({ length: 21 }, (_, i) => `역할${String(i)}`)), 'ko')).toContain('20개');
+    expect(서비스못보내는이유(역할('관리자', '관리자 '), 'ko')).toContain('겹칩니다');
+    expect(서비스못보내는이유(역할('일반 회원'), 'en')).toContain('"Regular user"');
+  });
 });
 
 describe('계정을 아직 못 보내는 이유', () => {

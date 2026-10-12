@@ -83,7 +83,8 @@ export async function 표시준비(
   입력자료: 자료[],
   피그마토큰: string | undefined,
   diffs: 차이[],
-  비밀: string | null | undefined,
+  /** 가릴 비밀번호 전부(`비밀번호들`) — 일반 회원 · 역할 계정 */
+  비밀: readonly string[],
 ): Promise<표시준비물 | { 누설: true }> {
   const 계획 = 표시계획(diffs, 입력자료);
   const 준비: 표시준비물 = { 사본들: [], 댓글들: [], 결과들: 계획.못함.map((m) => ({ ...m, 됨: false })) };
@@ -136,7 +137,7 @@ export async function 표시올리기(
   준비: 표시준비물,
   피그마토큰: string | undefined,
   diffs: 차이[],
-  비밀: string | null | undefined,
+  비밀: readonly string[],
 ): Promise<차이[]> {
   const 결과들 = [...준비.결과들];
   for (const 사본 of 준비.사본들) {

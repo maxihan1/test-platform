@@ -6,14 +6,17 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { 남은수, 보류들, 보류모름, 입력검사, 입력넣기, 입력읽기, 입력지우기, tcId인가, type 보류입력 } from './held.js';
 import { 뿌리, 뿌리잠그고, 사슬식, 최신실행 } from './history.js';
 import { 번호 } from './params.js';
-import { 계정있는줄, 대상줄읽기 } from './reverse.js';
+import { type 대상, 계정있는줄, 대상줄읽기, 집기대상 } from './reverse.js';
 import { db, 한건, type 요청 } from './store.js';
 
-/** 반영 때 고를 수 있는 대상 서버 — 테스트 계정이 둘 다 있는 줄만. 운영 줄을 보이면 고른 뒤에야 BAD_ENV 로 막힌다 */
+/**
+ * 반영 때 고를 수 있는 대상 서버 — 테스트 계정이 둘 다 있고 「운영 서버」가 아닌 줄만(계정있는줄 과 같은 판정).
+ * 운영 줄을 보이면 고른 뒤에야 BAD_ENV 로 막힌다
+ */
 async function 계정줄들(서비스: number): Promise<string[]> {
   const r = await (await db()).query<{ env: string }>(
     `SELECT env FROM service_env
-      WHERE service_id = $1 AND COALESCE(login_id, '') <> '' AND COALESCE(login_password, '') <> ''
+      WHERE service_id = $1 AND NOT is_prod AND COALESCE(login_id, '') <> '' AND COALESCE(login_password, '') <> ''
       ORDER BY env`,
     [서비스],
   );
@@ -81,7 +84,7 @@ export async function 머지보류판정(
 export async function 머지집기칸(
   서비스: number,
   머지: 요청,
-): Promise<{ held?: Record<string, unknown>; target?: Record<string, string | null> }> {
+): Promise<{ held?: Record<string, unknown>; target?: Omit<대상, 'startUrl'> }> {
   if (머지.sourceId === null) return {};
   const 입력 = await 입력읽기(머지.sourceId);
   if (Object.keys(입력).length === 0) return {};
@@ -92,11 +95,9 @@ export async function 머지집기칸(
   // 정방향은 머지 요청에 사람이 고른 줄이 머지 행 env 에 있다 (merges 가 적는다)
   const env = 원본?.compare === true ? 원본.env : 머지.env;
   if (env === null) return { held };
-  const 줄 = await 대상줄읽기(서비스, env);
-  return {
-    held,
-    target: { env, baseUrl: 줄?.baseUrl ?? null, loginId: 줄?.loginId ?? null, loginPassword: 줄?.loginPassword ?? null },
-  };
+  // 운영 줄로 체크됐으면 계정이 비어 나간다 — 에이전트가 isProd 로 FAILED 를 낸다
+  const { startUrl: _시작, ...target } = 집기대상(env, await 대상줄읽기(서비스, env), null);
+  return { held, target };
 }
 
 type 판정 = { 행: 요청 } | { code: number; error: string; detail?: string };

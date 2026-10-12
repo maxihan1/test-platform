@@ -21,7 +21,10 @@
 **`••••••` 는 에이전트가 가린 비밀번호다** (2026-09-29) — 기획서 글자본 · 앞 실행이 남긴 파일에서 테스트 계정 비밀번호를 자식을 띄우기 전에 가린다.
 실제 값으로 읽지 않는다 — 로그인 칸에 넣지 않고, 「기획서 비밀번호 ≠ 화면」 같은 차이로 적지 않는다. 계정은 아래 환경 변수로만 쓴다.
 
-- 환경 변수 `TARGET_ENV` · `TARGET_BASE_URL` · `TARGET_START_URL`(없을 수 있다) · `TARGET_LOGIN_ID` · `TARGET_LOGIN_PASSWORD`
+- 환경 변수 `TARGET_ENV` · `TARGET_BASE_URL` · `TARGET_START_URL`(없을 수 있다) · `TARGET_LOGIN_ID` · `TARGET_LOGIN_PASSWORD`(일반 회원)
+- 환경 변수 `PLATFORM_ACCOUNTS` — 그 줄의 계정 전부 JSON `[{ baseUrl, role, loginId, loginPassword }]`(일반 회원 role 은 `일반 회원`, 그다음 관리자 같은 역할 계정. 2026-10-12).
+  `PLATFORM_BASE_URL=$TARGET_BASE_URL npx playwright test …` 로 돌리면 kit 이 케이스의 비밀값 칸을 그 계정으로 채운다 — `PLATFORM_PARAMS` 를 손으로 만들지 않는다.
+  관리자 화면을 직접 열어 볼 때는 아래 §2 로그인 스크립트에서 `JSON.parse(process.env.PLATFORM_ACCOUNTS)` 로 그 역할 줄을 골라 쓴다. **필요한 역할이 없으면 그 요구는 원장 「제외」 `계정 미등록`**(`tpx-cases` `2-requirements.md` §2)
 - 산출물 폴더 — 프롬프트가 준 경로. 없으면 만든다(`mkdir -p`). **저장소 트리 밖이다** — 거기 쓴 것은 커밋되지 않고 에이전트가 읽어 올린다
 
 ## 2. ★ 계정 값을 펼치지 않는다
@@ -163,7 +166,7 @@ process.exit(찾은.length === 0 ? 0 : 1);
 - **표의 미확정 줄은 출처 칸에 표준 기획서 번호(새 항목은 임시 번호) 뒤 `차이 D<번호>` · `화면에만 — <요소>` 를 단다**(`wording.md` 「출처 칸의 상태 표시」) — 안 달면 번호 명령이 정식 줄과 한 케이스로 묶어 정식 확인까지 미확정에 묶인다 (2026-10-04)
 - **`확인 필요` 항목을 덮지 않는 줄에 화면 값을 기대값으로 쓰지 않는다** (R10 예외는 미확정뿐)
 - **이미 있는 케이스(같은 tcId)를 미확정으로 돌리지 않는다** — 그 줄 출처에 `확인 필요` 항목 번호를 새로 붙이지 않는다. 확정 실패를 숨기는 길이다. 차이만 `diffs.json` 에 적고 `tcId` 를 싣는다
-- 케이스의 계정은 `params` 비밀값 칸으로만 받는다(K9). 케이스 파일에 계정 값을 쓰지 않는다
+- 케이스의 계정은 `params` 비밀값 칸으로만 받는다(K9). 역할 계정이면 `.meta({ secret: true, account: '<역할>' })` 로 역할을 단다. 케이스 파일에 계정 값을 쓰지 않는다
 
 ## 5. `diffs.json` — 차이 목록
 

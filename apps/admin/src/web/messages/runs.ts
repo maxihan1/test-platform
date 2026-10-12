@@ -224,7 +224,7 @@ export const 실행말: Record<string, string> = {
 
   // 실패 요구사항 칸 · 카드의 관련 요구사항 · 실패 원인 (도메인/리포팅 「실패 요구사항」)
   '실패 요구사항 {건수}건': 'Failed requirements: {건수}',
-  '실패한 케이스가 덮는 요구입니다': 'Requirements covered by the failed cases',
+  '실패한 케이스와 연결된 요구입니다': 'Requirements linked to the failed cases',
   '실패 케이스 {건수}': 'Failed cases: {건수}',
   '{건수}건 더 보기': 'Show {건수} more',
   '관련 요구사항': 'Related requirements',

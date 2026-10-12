@@ -77,23 +77,28 @@ describe('duplicatesOf', () => {
 });
 
 describe('scan', () => {
+  // 케이스 파일이 1,400개를 넘어 스캔 한 번이 혼자서도 10초쯤 걸린다. 검사마다 다시 훑으면 전체 검사 때 30초 제한을 넘는다(2026-10-12) —
+  // 한 번 훑은 결과를 같이 쓰고, 그 한 번을 치르는 첫 검사만 제한을 늘린다
+  let 한번: ReturnType<typeof scan> | undefined;
+  const 전체스캔 = () => (한번 ??= scan());
+
   // 건수를 손으로 적으면 케이스를 더할 때마다 여기가 따라오지 못하고 조용히 틀려진다.
   // 폴더에 있는 파일 이름이 곧 tcId 목록이다
   it('케이스 파일을 빠짐없이 tcId 순으로 돌려준다', async () => {
-    const { specs, failures, duplicates } = await scan();
+    const { specs, failures, duplicates } = await 전체스캔();
     expect(failures).toEqual([]);
     expect(duplicates).toEqual([]);
     const 파일이름들 = (await caseFiles()).map((f) => basename(f, '.spec.ts')).sort();
     expect(specs.map((s) => s.tcId)).toEqual(파일이름들);
-  });
+  }, 120_000);
 
   it('filePath는 tests 폴더 기준 상대 경로다', async () => {
-    const { specs } = await scan();
+    const { specs } = await 전체스캔();
     expect(specs.find((s) => s.tcId === 'DEMO-001')?.filePath).toBe('demo/DEMO-001.spec.ts');
   });
 
   it('zod 스키마가 JSON Schema로 변환돼 있고 describe가 라벨로 남는다', async () => {
-    const { specs } = await scan();
+    const { specs } = await 전체스캔();
     const four = specs.find((s) => s.tcId === 'DEMO-004');
     const properties = four?.paramSchema.properties as Record<string, { description?: string }>;
     expect(properties.resource.description).toBe('조회할 자원');
@@ -102,20 +107,20 @@ describe('scan', () => {
   // 기대값 칸의 라벨도 케이스가 준다. 이 라벨이 실행 설정 화면의 칸 이름이 되므로
   // 길고 서술적이면 폼이 읽히지 않는다. 다국어 표로도 못 옮긴다 — 케이스 저자의 말이다
   it('기대값 칸의 describe 도 라벨로 남는다', async () => {
-    const { specs } = await scan();
+    const { specs } = await 전체스캔();
     const two = specs.find((s) => s.tcId === 'DEMO-002');
     const properties = two?.expectedSchema.properties as Record<string, { description?: string }>;
     expect(properties.todoCount.description).toBe('기대 할 일 개수');
   });
 
   it('없다고 적은 케이스는 빈 객체 스키마가 된다', async () => {
-    const { specs } = await scan();
+    const { specs } = await 전체스캔();
     const one = specs.find((s) => s.tcId === 'DEMO-001');
     expect(one?.paramSchema).toEqual({ type: 'object', properties: {} });
   });
 
   it('환경 2개를 선언한 케이스는 그대로 실려 온다', async () => {
-    const { specs } = await scan();
+    const { specs } = await 전체스캔();
     expect(specs.find((s) => s.tcId === 'DEMO-008')?.platforms).toEqual(['desktop', 'mobile']);
     expect(specs.find((s) => s.tcId === 'DEMO-010')?.platforms).toEqual(['mobile']);
   });

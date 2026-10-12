@@ -183,7 +183,8 @@ export async function 메모달기(
   바이트: Uint8Array,
   메모들: { anchor: string | null; 글: string }[],
   날짜: string,
-  비밀?: string | null,
+  /** 가릴 비밀번호 전부(`비밀번호들` — 긴 것부터). 역할 계정 비밀번호도 기획서에 적혀 있을 수 있다 */
+  비밀: readonly string[] = [],
 ): Promise<{ 바이트: Uint8Array; 찾음: boolean[]; 글들: string[] } | { 사유: string }> {
   let zip: JSZip;
   try {
@@ -199,11 +200,11 @@ export async function 메모달기(
     합계 += n;
   }
   // 기획서에 적힌 테스트 계정 비밀번호는 문단을 찾기 전에 가린다 — 자식이 가린 글자본에서 베낀 문장과 맞아야 한다 (§3.6 「★ 역방향」)
-  if (비밀) {
+  if (비밀.length > 0) {
     for (const [자리, f] of Object.entries(zip.files)) {
       if (f.dir || !/\.xml$/i.test(자리)) continue;
       const 원 = await f.async('string');
-      const 가림 = 글칸가리기(원, 비밀);
+      const 가림 = 비밀.reduce((xml, 하나) => 글칸가리기(xml, 하나), 원);
       if (가림 !== 원) zip.file(자리, 가림);
     }
   }

@@ -182,8 +182,8 @@ export const 작성말: Record<string, string> = {
     'With a spec, the spec screens are written first and, once merged, the screens it does not cover follow. Without a spec, only screens not yet in the PRD are written',
   '이 서비스에는 대상 서버가 없습니다. 설정 > 서비스에서 먼저 넣으세요':
     'This service has no target servers. Add one in Settings > Services first',
-  '이 대상 서버에는 테스트 계정이 없습니다. 설정 > 서비스에서 테스트 계정을 넣으세요':
-    'This target server has no test account. Add one in Settings > Services',
+  '이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요':
+    'This target server has no test account or is marked as production. Check Settings > Services',
   '시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다':
     'The start URL must be on the same address (domain · port) as the chosen target server',
   '대상 서버 주소에서 시작': 'Starts from the target server address',
@@ -270,6 +270,10 @@ export const 작성말: Record<string, string> = {
   '누락 {수}': 'missing {수}',
   'PRD 밖 자료 {수}': 'files outside the PRD {수}',
   '집계 없음 — {까닭}': 'no tally — {까닭}',
+  // 계정이 없어 보류된 요구 (도메인/작성 §3.6 「★ 역할별 계정」 「작성 결과 카드」)
+  '계정 보류': 'Held for accounts',
+  '보류 {건수}건 — 역할 계정이 등록되지 않았습니다 · 등록하면 이 요구만 다시 작성합니다':
+    '{건수} on hold — role accounts are not registered · once registered, only these requirements are written again',
   // 남은 요구로 이어 작성 (도메인/작성 §3.6 「★ 원장」) — 영어는 follow-up. continue 는 이어서 작성(재개)에만 쓴다
   '남은 요구로 이어 작성': 'Follow up on remaining requirements',
   '남은 요구는 #{번호} 요청이 맡았습니다.': 'Request #{번호} took the remaining requirements.',

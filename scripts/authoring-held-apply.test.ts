@@ -12,7 +12,6 @@ import {
   보류있나,
   반영커밋인가,
   반영푸시인자,
-  비밀칸들,
   새머리판정,
   실패문장들,
   실행입력,
@@ -220,18 +219,25 @@ describe('실패문장들 — 케이스마다 첫 실패 문장', () => {
   });
 });
 
-describe('비밀칸들 · 실행입력 — 비밀값 칸은 대상 서버 줄의 테스트 계정으로 채운다', () => {
-  it('params 의 .meta({ secret: true }) 칸 이름을 읽는다', () => {
-    expect(비밀칸들(원문)).toEqual(['password']);
+describe('실행입력 — 비밀값 칸은 kit 이 그 줄의 역할 계정으로 채운다', () => {
+  const 대상 = { env: 'qa', baseUrl: 'https://qa.test', loginId: 'u1', loginPassword: 'p"w\\1' };
+
+  it('PLATFORM_BASE_URL 과 집기 accounts 를 PLATFORM_ACCOUNTS 로 넘기고 PLATFORM_PARAMS 는 만들지 않는다', () => {
+    const 계정들 = [
+      { env: 'qa', baseUrl: 'https://qa.test', role: '일반 회원', loginId: 'u1', loginPassword: 'p"w\\1' },
+      { env: 'qa', baseUrl: 'https://qa.test', role: '관리자', loginId: 'admin', loginPassword: 'admin-pw-77' },
+    ];
+    const 환경 = 실행입력(대상, 계정들);
+    expect(환경.PLATFORM_BASE_URL).toBe('https://qa.test');
+    expect(환경).not.toHaveProperty('PLATFORM_PARAMS');
+    expect(JSON.parse(환경.PLATFORM_ACCOUNTS ?? '')).toEqual([
+      { baseUrl: 'https://qa.test', role: '일반 회원', loginId: 'u1', loginPassword: 'p"w\\1' },
+      { baseUrl: 'https://qa.test', role: '관리자', loginId: 'admin', loginPassword: 'admin-pw-77' },
+    ]);
   });
 
-  it('아이디 모양 이름은 아이디, 나머지는 비밀번호', () => {
-    const 대상 = { env: 'qa', baseUrl: 'https://qa.test', loginId: 'u1', loginPassword: 'p"w\\1' };
-    const 환경 = 실행입력(대상, ['password', 'loginId', 'userEmail']);
-    expect(환경.PLATFORM_BASE_URL).toBe('https://qa.test');
-    expect(JSON.parse(환경.PLATFORM_PARAMS)).toEqual({
-      params: { password: 'p"w\\1', loginId: 'u1', userEmail: 'u1' },
-      expected: {},
-    });
+  it('계정이 없으면 PLATFORM_ACCOUNTS 키가 없다', () => {
+    expect(실행입력(대상, undefined)).toEqual({ PLATFORM_BASE_URL: 'https://qa.test' });
+    expect(실행입력(대상, [])).toEqual({ PLATFORM_BASE_URL: 'https://qa.test' });
   });
 });

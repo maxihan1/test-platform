@@ -110,6 +110,8 @@ npm run check:tests > /tmp/ct.log 2>&1; echo "EXIT=$?"
 PLAYWRIGHT_JSON_OUTPUT_FILE="$AUTHORING_GATE3_DIR/gate3-final-1.json" npx playwright test tests/<폴더> --project=desktop --workers=1 --repeat-each=3 --reporter=line,json > /tmp/pw.log 2>&1; echo "EXIT=$?"
 ```
 
+**계정 칸은 kit 이 채운다** (2026-10-12) — 환경 변수 `PLATFORM_ACCOUNTS` 가 있으면 playwright 를 대상 서버 주소(`PLATFORM_BASE_URL=<주소>`)로 돌릴 때 kit 이 그 주소와 출처가 같은 줄의 계정으로 비밀값 칸(역할은 `.meta({ account })`)을 채운다. `PLATFORM_PARAMS` 로 계정을 손으로 만들지 않는다. 필요한 역할이 그 목록에 없으면 원장 「제외」 `계정 미등록`(`tpx-cases` `2-requirements.md` §2)
+
 **끝의 전체 3회 — 에이전트가 결과 파일로 확인한다** (2026-10-03 · 도메인/작성 §3.6).
 - 환경 변수 `AUTHORING_GATE3_DIR` 에 `gate3-final-<번호>.json` 으로 남긴다. 에이전트가 하나씩(`--workers=1`) · 파일마다 데스크톱 3회 · 실패 0 · 마지막 수정 뒤 실행인지 보고, 어기면 PR 본문에 ⚠️ 경고를 싣는다
 - **명령 하나는 최대 10분이다.** 케이스가 많아 넘을 것 같으면 파일을 나눠 **하나씩 차례로** 돈다 — 덩어리마다 `-1` · `-2` … 번호를 올리고 모든 파일을 한 번씩 덮는다. `--workers` 를 올리거나 일부만 돌리지 않는다(MKT 11208 이 그래서 케이스끼리 얽힌 실패를 못 봤다)

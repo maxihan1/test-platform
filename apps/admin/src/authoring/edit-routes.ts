@@ -21,9 +21,13 @@ async function 판읽기(서비스: number, 접두사: string, 본문: unknown):
     `SELECT tc_id, is_active, expected_schema FROM test_case WHERE tc_id = ANY($1::text[])`,
     [tcIds],
   );
-  // 빈 비밀번호를 넣으면 빈 글자 기대값이 「비밀번호와 같다」로 막힌다 — 계정 없는 줄은 비교 대상이 아니다
+  // 빈 비밀번호를 넣으면 빈 글자 기대값이 「비밀번호와 같다」로 막힌다 — 계정 없는 줄은 비교 대상이 아니다.
+  // 역할 계정 비밀번호도 같은 비밀값이다 (§3.6 「★ 역할별 계정」)
   const 비번 = await pool.query<{ login_password: string }>(
-    `SELECT login_password FROM service_env WHERE service_id = $1 AND COALESCE(login_password, '') <> ''`,
+    `SELECT login_password FROM service_env WHERE service_id = $1 AND COALESCE(login_password, '') <> ''
+     UNION ALL
+     SELECT a->>'loginPassword' FROM service_env e, jsonb_array_elements(e.role_accounts) a
+      WHERE e.service_id = $1 AND COALESCE(a->>'loginPassword', '') <> ''`,
     [서비스],
   );
   return {

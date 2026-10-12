@@ -70,7 +70,7 @@ describe('진척누적기 — 흐름 줄을 먹여 토큰·마지막 동작을 �
   });
 
   it('lastAction 에 테스트 계정 비밀번호·피그마 토큰 원문을 싣지 않는다', () => {
-    const 누적 = 진척누적기(60, { loginPassword: 'pw-secret-9', figmaToken: 'figd_abcdefgh123' });
+    const 누적 = 진척누적기(60, { 비밀번호들: ['pw-secret-9'], figmaToken: 'figd_abcdefgh123' });
     누적.먹기(턴('a', 1, 1, [{ type: 'text', text: '로그인 pw-secret-9 로 한다' }]));
     expect(누적.스냅샷({ elapsedSec: 0, caseFiles: 0 }).lastAction).not.toContain('pw-secret-9');
     누적.먹기(턴('b', 1, 1, [{ type: 'text', text: '토큰 figd_abcdefgh123 으로 읽는다' }]));
@@ -155,10 +155,16 @@ describe('진척누적기 — 단계 표지', () => {
   });
 
   it('비밀번호가 섞인 단계 이름은 (가림) 으로 짧게 적는다', () => {
-    const 누적 = 진척누적기(60, { loginPassword: 'pw-secret-9' });
+    const 누적 = 진척누적기(60, { 비밀번호들: ['pw-secret-9'] });
     expect(누적.먹기(말('a', '[단계] 로그인 pw-secret-9'))).not.toContain('pw-secret-9');
     expect(누적.단계표()).toContain('| (가림) |');
     expect(누적.단계표()).not.toContain('pw-secret-9');
+  });
+
+  it('역할 계정 비밀번호도 일반 회원과 같이 가린다', () => {
+    const 누적 = 진척누적기(60, { 비밀번호들: ['admin-pw-77', 'pw-secret-9'] });
+    expect(누적.먹기(말('a', '관리자 admin-pw-77 로 들어간다'))).not.toContain('admin-pw-77');
+    expect(누적.스냅샷({ elapsedSec: 0, caseFiles: 0 }).lastAction).not.toContain('admin-pw-77');
   });
 
   it('이름의 | 는 표 칸을 밀지 않게 \\| 로 적는다', () => {

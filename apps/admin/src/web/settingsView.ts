@@ -1,6 +1,7 @@
 // 설정 화면이 하는 판단 (SPEC §8.8). 화면은 그리기만 하고 고를 것은 여기서 정한다
 
 import { 아이디모양 } from '../auth/rules.js';
+import { type 역할까닭, 역할까닭찾기, 역할최대개수, 역할최대글자 } from '../settings/roles.js';
 import { 제외경로정리, 제외경로최대개수, 제외경로최대글자 } from '../settings/rules.js';
 
 import type { EnvRow, SettingsServiceRow, UserRow } from './api.js';
@@ -52,7 +53,8 @@ export function 서비스못보내는이유(
     prefix: string;
     name: string;
     testsDir: string;
-    envs: EnvRow[];
+    /** 역할들은 편집 중인 역할 계정 — 서버가 400 BAD_ROLE 로 막을 이름을 여기서 먼저 짚는다 */
+    envs: (EnvRow & { 역할들?: readonly { role: string }[] })[];
     /** 「훑지 않을 경로」 칸에 적은 그대로. 한 줄에 하나 */
     제외: string;
     /** 정기 실행 — 꺼져 있으면 null. 새 서비스에는 구획이 없어 안 넘긴다 */
@@ -72,6 +74,11 @@ export function 서비스못보내는이유(
   if (입력.envs.some((it) => it.env === '' || it.baseUrl === '')) {
     return t('대상 서버 줄에 빈 칸이 있습니다. 채우거나 그 줄을 뺍니다', 언어);
   }
+  // 서버와 같은 규칙 파일이다 (settings/roles.ts)
+  for (const it of 입력.envs) {
+    const 까닭 = 역할까닭찾기((it.역할들 ?? []).map((r) => r.role));
+    if (까닭 !== null) return t(역할사유[까닭], 언어, { 글자: 역할최대글자, 개수: 역할최대개수 });
+  }
   // 서버와 같은 규칙 파일이다. 여러 줄 중 어느 줄인지 짚어 줘야 칸을 다시 뒤지지 않는다
   const { 틀린줄, 까닭 } = 제외경로풀기(입력.제외);
   if (까닭 !== undefined) {
@@ -90,6 +97,15 @@ export function 서비스못보내는이유(
 export function 처음대상서버(envs: readonly string[]): string {
   return envs.includes('demo') ? 'demo' : (envs[0] ?? '');
 }
+
+/** 키는 settings/roles.ts 의 `역할까닭` 이다. 까닭이 늘면 여기서 타입이 깨져 빠뜨리지 않는다 */
+const 역할사유: Record<역할까닭, string> = {
+  빈칸: '역할 이름을 채웁니다',
+  일반회원: '「일반 회원」은 역할 이름으로 쓸 수 없습니다',
+  길이: '역할 이름은 {글자}자까지 적을 수 있습니다',
+  겹침: '한 대상 서버 줄 안에서 역할 이름이 겹칩니다',
+  개수: '역할 계정은 한 줄에 {개수}개까지 넣을 수 있습니다',
+};
 
 /** 키는 settings/rules.ts 의 `까닭` 이다. 까닭이 늘면 여기서 타입이 깨져 빠뜨리지 않는다 */
 const 제외사유 = {
