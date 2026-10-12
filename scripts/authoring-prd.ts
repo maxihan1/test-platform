@@ -9,6 +9,7 @@ import { type 들어온항목, 번호수, 항목검사 } from '../apps/admin/src
 import { type 설계, 설계하기 } from './authoring-design.js';
 import { 경고줄 } from './authoring-design-check.js';
 import { type 원장, type 원장항목, 가족, 번호찾기 } from './authoring-ledger.js';
+import { 가림표 } from './authoring-reverse.js';
 
 /**
  * 결과 파일의 항목. `임시` 는 번호가 아직 없는 새 항목에 자식이 단 자리 번호(`<접두사>-NEW-001`)다 —
@@ -35,6 +36,24 @@ const 글목록 = <T>(값: unknown, 고르기: (x: unknown) => T | null): T[] =>
 
 /** 임시 번호 꼴. 원장 번호 꼴(`authoring-ledger` 번호찾기)이라 관문 0 · 번호 명령이 그대로 읽는다. 접두사는 SPEC §2 꼴이라 정규식에 그대로 넣는다 */
 export const 임시꼴 = (접두사: string) => new RegExp(`^${접두사}-NEW-(\\d+)$`);
+
+// 값 자리에 한글 · 쉼표 · 쌍반점을 안 받는다 — 「비밀번호: 영문+숫자 8자 이상」 같은 규칙 문장과 `pw=…,id=…` 의 뒤 칸을 지키려고.
+// 영문 낱말 속 pw 는 이름표가 아니다(`UPW:`)
+const 비밀번호꼴 = /((?:비밀\s*번호|패스워드|(?<![A-Za-z])(?:password|passwd|pwd|pw))\s*[:=：]\s*)([^\s,;가-힣ㄱ-ㅎㅏ-ㅣ]{4,})/gi;
+// 값 끝의 닫는 괄호 · 따옴표 · 마침표는 문장의 것이라 남긴다
+const 끝문장부호 = /[)\]}>.'"」』]+$/;
+
+/**
+ * 「비밀번호: 값」 꼴의 값을 가린다 — PDF · 피그마는 먼저가리기가 못 열어 그 안의 비밀번호가 근거 문장으로 올라온다.
+ * 계정에 없는 비밀번호(관리자 · 다른 시스템)는 거절 검사도 모른다.
+ * 영문과 숫자 · 기호가 섞인 값만 가린다 — 「8~16」 같은 범위와 「required」 같은 낱말은 규칙이고, 숫자뿐인 PIN 은 그 둘과 못 가른다
+ */
+export const 비밀번호꼴가리기 = (글: string): string =>
+  글.replace(비밀번호꼴, (전체, 머리: string, 날값: string) => {
+    const 꼬리 = 끝문장부호.exec(날값)?.[0] ?? '';
+    const 값 = 날값.slice(0, 날값.length - 꼬리.length);
+    return 값.length >= 4 && /[A-Za-z]/.test(값) && /[^A-Za-z]/.test(값) ? `${머리}${가림표}${꼬리}` : 전체;
+  });
 
 /**
  * 결과 파일을 읽는다. 지울 번호 · 요구 아님은 틀린 줄만 버린다 — 지울 번호를 버리면 항목이 남는 쪽이라 안전하다.

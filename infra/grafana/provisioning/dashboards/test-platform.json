@@ -48,7 +48,7 @@
     {
       "id": 6,
       "title": "작성에 걸린 시간",
-      "description": "최근 30일(끝난 시각)의 처음 작성 요청. 대기 = 요청을 만든 때부터 에이전트가 집을 때까지(자료 올리기·대기줄 포함), 작업 = 집은 때부터 끝날 때까지. 시간 칸은 성공한 것만, 실패와 중단은 따로 센다. 화면만 훑는 요청도 「화면과 대조」에 든다 (도메인/리포팅 §8.5)",
+      "description": "최근 30일(끝난 시각)의 작성 요청. 재실행(이어하기 · 다시 작성)은 「재실행」 한 줄로 따로 센다. 대기 = 요청을 만든 때부터 에이전트가 집을 때까지(자료 올리기·대기줄 포함), 작업 = 집은 때부터 끝날 때까지. 시간 칸은 성공한 것만, 실패와 중단은 따로 센다. 화면만 훑는 요청도 「화면과 대조」에 든다 (도메인/리포팅 §8.5)",
       "type": "table",
       "datasource": { "type": "postgres", "uid": "platform-postgres" },
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
@@ -59,7 +59,7 @@
           "datasource": { "type": "postgres", "uid": "platform-postgres" },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT s.name AS \"서비스\",\n       CASE WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       count(*) FILTER (WHERE a.status = 'DONE') AS \"성공\",\n       count(*) FILTER (WHERE a.status = 'FAILED') AS \"실패\",\n       count(*) FILTER (WHERE a.status = 'STOPPED') AS \"중단\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.started_at - a.created_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"대기 중간값 (분)\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.finished_at - a.started_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 중간값 (분)\",\n       round((max(extract(epoch FROM a.finished_at - a.started_at)) FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 최대 (분)\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind = 'AUTHOR'\n  AND a.status IN ('DONE', 'FAILED', 'STOPPED')\n  AND a.finished_at >= now() - interval '30 days'\nGROUP BY s.id, s.name, a.compare\nORDER BY s.name, a.compare"
+          "rawSql": "SELECT s.name AS \"서비스\",\n       CASE WHEN a.kind = 'RERUN' THEN '재실행' WHEN a.compare THEN '화면과 대조' ELSE '보통' END AS \"방식\",\n       count(*) FILTER (WHERE a.status = 'DONE') AS \"성공\",\n       count(*) FILTER (WHERE a.status = 'FAILED') AS \"실패\",\n       count(*) FILTER (WHERE a.status = 'STOPPED') AS \"중단\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.started_at - a.created_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"대기 중간값 (분)\",\n       round((percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM a.finished_at - a.started_at)::float8)\n              FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 중간값 (분)\",\n       round((max(extract(epoch FROM a.finished_at - a.started_at)) FILTER (WHERE a.status = 'DONE') / 60)::numeric, 1) AS \"작업 최대 (분)\"\nFROM authoring_request a\nJOIN service s ON s.id = a.service_id\nWHERE a.kind IN ('AUTHOR', 'RERUN')\n  AND a.status IN ('DONE', 'FAILED', 'STOPPED')\n  AND a.finished_at >= now() - interval '30 days'\nGROUP BY s.id, s.name, 2\nORDER BY s.name, 2"
         }
       ]
     },

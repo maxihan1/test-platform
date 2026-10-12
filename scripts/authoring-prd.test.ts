@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { PrdItem } from '@platform/kit/types';
 
 import { 설계하기 } from './authoring-design.js';
-import { type 옮긴것, 대조줄들, 보낼항목, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
+import { type 옮긴것, 대조줄들, 보낼항목, 비밀번호꼴가리기, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
 
 const 근거 = (ref: string, quote = '원문') => ({ from: '기획서.docx', ref, quote });
 const 항목 = (text: string, refs: string[], 더: Partial<PrdItem> = {}) => ({
@@ -250,5 +250,25 @@ describe('새번호맞추기 — 올린 뒤 임시 번호를 서버가 준 번�
     const 끼인 = [있던(1, '아이디는 4자 이상'), 있던(8, '새 규칙 B'), 있던(9, '남이 올린 것'), 있던(10, '새 규칙 A')];
     expect(새번호맞추기(보낸, 끼인)).toEqual(new Map([['MKT-NEW-001', 'MKT-REQ-001'], ['MKT-NEW-002', 'MKT-REQ-010'], ['MKT-NEW-003', 'MKT-REQ-008']]));
     expect(새번호맞추기(보낸, [있던(1, '아이디는 4자 이상'), 있던(8, '새 규칙 A')])).toEqual({ 사유: '새 항목 「새 규칙 B」 을 올린 버전에서 못 찾았다' });
+  });
+});
+
+describe('비밀번호꼴가리기 — PDF · 피그마에서 옮긴 「비밀번호: 값」 (PRD-F9-23)', () => {
+  it('비밀번호 · 패스워드 · password · pw 뒤 : 나 = 다음의 영문과 숫자 · 기호가 섞인 값을 가린다', () => {
+    expect(비밀번호꼴가리기('관리자 비밀번호: Admin!234')).toBe('관리자 비밀번호: ••••••');
+    expect(비밀번호꼴가리기('PW = abcd1234 로 로그인')).toBe('PW = •••••• 로 로그인');
+    expect(비밀번호꼴가리기('Password：Secret#1 · 패스워드=qa-2024')).toBe('Password：•••••• · 패스워드=••••••');
+  });
+
+  it('값 끝의 닫는 괄호 · 마침표와 쉼표 뒤 칸은 문장의 것이라 남긴다', () => {
+    expect(비밀번호꼴가리기('(관리자 비밀번호: Admin!234)')).toBe('(관리자 비밀번호: ••••••)');
+    expect(비밀번호꼴가리기('pw=abcd1234,id=admin')).toBe('pw=••••••,id=admin');
+    expect(비밀번호꼴가리기('비밀번호: Admin!234.')).toBe('비밀번호: ••••••.');
+  });
+
+  it('규칙 문장 · 범위 · 숫자뿐인 값 · 영문 낱말 · 낱말 속 pw · 콜론 없는 문장은 그대로 둔다', () => {
+    for (const 글 of ['비밀번호: 영문+숫자 8자 이상', '비밀번호: 8~16자 영문+숫자', 'PW = 10-20', '패스워드=1234', '비밀번호는 Ab12!34 로 바꾼다', 'password: required', 'pw: a1!', 'UPW: 2024-Q1', '비밀번호(8~16자)', '비밀번호: ••••••']) {
+      expect(비밀번호꼴가리기(글), 글).toBe(글);
+    }
   });
 });

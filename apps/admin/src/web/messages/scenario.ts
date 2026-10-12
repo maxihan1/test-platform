@@ -146,7 +146,7 @@ export const 시나리오말: Record<string, string> = {
   '업무 흐름 케이스': 'Business flow cases',
   '상태 전이 사용 또는 기법 표시 없음': 'Uses state transition or has no technique label',
   '입력값 검증 케이스 {수}': 'Input validation cases {수}',
-  '경계값 · 동등 분할 · 결정 테이블만 사용': 'Only boundary value, equivalence partitioning or decision table',
+  '경계값 · 동등 분할 · 결정 테이블 · 오류 추정만 사용': 'Only boundary value, equivalence partitioning, decision table or error guessing',
   '정상 {정상} · 경계 · 예외 {나머지}': 'Normal {정상} · boundary · exception {나머지}',
   '경계 · 예외 케이스 {수}': 'Boundary · exception cases {수}',
   '{번호} 더하기': 'Add {번호}',

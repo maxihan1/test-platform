@@ -1,7 +1,7 @@
 // 크롤러 누르기 판정 검사 — 누를 후보 · 탈퇴 흐름 · 로그아웃 · 확인 창 버튼 (도메인/작성 §3.6 「★ 표준 기획서」 · PRD-F6-02)
 import { describe, expect, it } from 'vitest';
 
-import { type 후보, 누를까, 누름키, 로그아웃인가, 연결이름, 확인버튼고르기, 탈퇴말인가, 탈퇴주소인가 } from './authoring-crawl-press.js';
+import { type 후보, 누를까, 누름키, 되돌릴수없나, 로그아웃인가, 연결이름, 확인버튼고르기, 탈퇴말인가, 탈퇴주소인가 } from './authoring-crawl-press.js';
 
 const 기준 = 'https://site.test/goods/3';
 const 로그인판 = { 상태: '로그인:일반 회원' as const, 탈퇴흐름: false, 다시로그인: true };
@@ -72,6 +72,15 @@ describe('탈퇴 흐름 — 주소 · 제목 · 이름 · 확인 창 글의 낱�
     expect(탈퇴말인가('회원 해지')).toBe(true);
     expect(탈퇴말인가('구독 해지')).toBe(false);
     expect(탈퇴말인가('주문 취소')).toBe(false);
+  });
+
+  it('낯선 이름의 탈퇴 — 확인 창이 되돌릴 수 없다고 경고하면 안 누른다 (PRD-F9-23)', () => {
+    for (const 글 of ['계정을 정리하면 모든 정보가 삭제되며 복구할 수 없습니다', '되돌릴 수 없습니다. 계속할까요?', '데이터가 영구적으로 삭제됩니다', '탈퇴 후에는 데이터가 모두 사라집니다', 'This cannot be undone.', 'Your data will be permanently removed']) {
+      expect(되돌릴수없나(글), 글).toBe(true);
+    }
+    for (const 글 of ['로그아웃 하시겠습니까?', '장바구니에 담았습니다', 'Your address will be permanently saved to your profile']) {
+      expect(되돌릴수없나(글), 글).toBe(false);
+    }
   });
 });
 

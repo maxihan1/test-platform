@@ -71,6 +71,15 @@ describe('판받기', () => {
     expect(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8')).not.toContain('admin-pw-77');
   });
 
+  it('지금 판 · 기준 판에 남은 「비밀번호: 값」 꼴도 같은 손으로 가린다 — 결과 파일만 가리면 문장 짝짓기가 같은 요구를 새 요구로 본다 (PRD-F9-23)', async () => {
+    const 꼴 = { ...있던, text: '관리자 비밀번호: Admin!234 로 로그인' };
+    vi.stubGlobal('fetch', async () => 답(200, { version: 3, items: [꼴], base: { version: 2, items: [꼴] } }));
+    const r = await 판받기(서버, 'MKT', 7, 자리.자료);
+    expect('앞판' in r && r.앞판.items[0]?.text).toBe('관리자 비밀번호: •••••• 로 로그인');
+    expect('기준판' in r && r.기준판?.items[0]?.text).toBe('관리자 비밀번호: •••••• 로 로그인');
+    expect(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8')).not.toContain('Admin!234');
+  });
+
   it('비밀번호가 JSON 키와 같아도 글 값만 가려 깨진 JSON 을 만들지 않는다', async () => {
     vi.stubGlobal('fetch', async () => 답(200, { version: 1, items: [{ ...있던, text: '본문 text 칸' }] }));
     const r = await 판받기(서버, 'MKT', 7, 자리.자료, ['text']);
@@ -144,6 +153,21 @@ describe('옮기기올리기', () => {
     결과쓰기({ items: [{ ...있던, reqId: undefined, text: '비번은 pa"ss1234 로 들어간다' }] });
     expect(await 올리기(원장하나, { 계정: ['pa"ss1234'] })).toEqual({ 거절: expect.stringContaining('비밀값') as string, 줄: [] });
     expect(건것).not.toHaveBeenCalled();
+  });
+
+  it('PDF · 피그마에서 옮긴 「비밀번호: 값」은 거절하지 않고 가려 올린다 — 계정에 없는 비밀번호라 거절 검사가 모른다 (PRD-F9-23)', async () => {
+    const 새것 = { feature: '관리자', text: '관리자 비밀번호: Admin!234 로 로그인한다', basis: [{ from: '기획서.pdf', ref: 'REQ-2', quote: '관리자 비밀번호: Admin!234' }], status: 'CONFIRMED' };
+    let 몸: { items?: { text?: string; basis?: { quote?: string }[] }[] } = {};
+    vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => {
+      if (init?.method !== 'POST') return 몸.items === undefined ? 답(200, { version: 1, items: [] }) : 답(200, { version: 2, items: [{ ...새것, ...몸.items[0], reqId: 'MKT-REQ-001' }] });
+      몸 = JSON.parse(String(init.body)) as typeof 몸;
+      return 답(200, { version: 2 });
+    });
+    결과쓰기({ items: [새것] });
+    const r = await 올리기(원장하나, { 계정: ['pass1234'] }, { ...앞, 번호들: [] });
+    expect(r).not.toHaveProperty('거절');
+    expect(몸.items?.[0]?.text).toBe('관리자 비밀번호: •••••• 로 로그인한다');
+    expect(몸.items?.[0]?.basis?.[0]?.quote).toBe('관리자 비밀번호: ••••••');
   });
 
   it('지금 판에 합쳐 올리고 저장된 판에서 새 번호를 읽어 표 · 결과 파일의 임시 번호를 바꾸고 원장을 그 판으로 만든다', async () => {

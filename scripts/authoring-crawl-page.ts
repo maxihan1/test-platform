@@ -2,7 +2,7 @@
 // 판정은 authoring-crawl-rules · authoring-crawl-press 의 순수 함수에 있다. 여기는 쪽(Page)만 다룬다
 import type { Page } from '@playwright/test';
 
-import { type 후보, 탈퇴말인가, 확인버튼고르기 } from './authoring-crawl-press.js';
+import { type 후보, 되돌릴수없나, 탈퇴말인가, 확인버튼고르기 } from './authoring-crawl-press.js';
 
 export interface 입력칸 { 종류: string; 이름: string; 라벨: string; 안내: string; 필수: boolean; 읽기전용: boolean; 최대글자: number | null; 최소글자: number | null; 형식: string | null }
 export type 본것 = { 상태코드: number; 최종: string; 제목: string; 구조: string; 비밀번호칸: boolean; 입력칸: 입력칸[]; 링크: { href: string; text: string }[] };
@@ -141,10 +141,10 @@ export async function 누르기(쪽: Page, 순번: number): Promise<boolean> {
 }
 
 /**
- * 누른 뒤 새로 뜬 화면 안 확인 창 — 탈퇴 글이면 안 누르고, 입력칸이 있으면(로그인 창) 안 누르고, 아니면 취소 · 닫기가 아닌 마지막 버튼을 한 번 누른다.
+ * 누른 뒤 새로 뜬 화면 안 확인 창 — 탈퇴 글이나 되돌릴 수 없다는 경고면 안 누르고, 입력칸이 있으면(로그인 창) 안 누르고, 아니면 취소 · 닫기가 아닌 마지막 버튼을 한 번 누른다.
  * 새 창이 떴는데 누를 버튼이 없거나 못 눌렀으면 '남음' — 창이 남았으니 다음 누르기 전에 화면을 다시 연다. 브라우저 확인 창(confirm)은 쪽의 dialog 처리기가 늘 취소한다
  */
-export async function 확인창누르기(쪽: Page, 전창수: number): Promise<'없음' | '탈퇴' | '입력' | '누름' | '남음'> {
+export async function 확인창누르기(쪽: Page, 전창수: number): Promise<'없음' | '탈퇴' | '경고' | '입력' | '누름' | '남음'> {
   // 창 안 버튼에 차례 번호를 달아 둔다 — 고른 번호를 그대로 누른다
   const 창 = await 쪽
     .evaluate(
@@ -169,6 +169,7 @@ export async function 확인창누르기(쪽: Page, 전창수: number): Promise<
     .catch(() => null);
   if (창 === null) return '없음';
   if (탈퇴말인가(창.글)) return '탈퇴';
+  if (되돌릴수없나(창.글)) return '경고';
   if (창.칸) return '입력';
   const i = 확인버튼고르기(창.이름들);
   if (i === null) return '남음';

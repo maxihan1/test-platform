@@ -261,7 +261,7 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
                 <h3 className="scn-set-sub">
                   {접는단추('rest', null, t('입력값 검증 케이스 {수}', { 수: 묶음들[0]?.입력값.length ?? 0 }))}
                 </h3>
-                <p className="scn-set-note">{t('경계값 · 동등 분할 · 결정 테이블만 사용')}</p>
+                <p className="scn-set-note">{t('경계값 · 동등 분할 · 결정 테이블 · 오류 추정만 사용')}</p>
                 {!펴졌나('rest', null) ? null : <ul className="scn-pal-list">{(묶음들[0]?.입력값 ?? []).map((c) => 줄(c))}</ul>}
               </section>
             </>

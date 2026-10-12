@@ -185,6 +185,15 @@ describe.skipIf(연결 === undefined)('Grafana 작성 현황', () => {
       expect(Number(대조!['대기 중간값 (분)'])).toBe(20);
       expect(Number(대조!['작업 중간값 (분)'])).toBe(240);
     });
+
+    it('재실행은 보통 줄에 섞지 않고 따로 한 줄이다 (PRD-F9-23)', async () => {
+      const 재실행 = await 줄('재실행');
+      expect(재실행).toBeDefined();
+      expect(Number(재실행!['성공'])).toBe(1);
+      expect(Number(재실행!['실패'])).toBe(1);
+      expect(Number(재실행!['대기 중간값 (분)'])).toBe(5);
+      expect(Number(재실행!['작업 중간값 (분)'])).toBe(595);
+    });
   });
 
   describe('작성 토큰', () => {

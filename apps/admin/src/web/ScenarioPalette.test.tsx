@@ -132,7 +132,7 @@ describe('ScenarioPalette 목록', () => {
 
     const 머리 = screen.getByRole('button', { name: /입력값 검증 케이스 1/ });
     expect(머리.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.getByText('경계값 · 동등 분할 · 결정 테이블만 사용')).toBeTruthy();
+    expect(screen.getByText('경계값 · 동등 분할 · 결정 테이블 · 오류 추정만 사용')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'ZSP-002 더하기' })).toBeNull();
 
     fireEvent.click(머리);
