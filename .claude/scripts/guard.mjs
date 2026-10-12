@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Claude Code 훅 가드. CLAUDE.md 규칙 중 기계적으로 판정되는 것만 강제한다. 모드는 argv[2]
 import { readFileSync, existsSync, appendFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 
 const mode = process.argv[2];
 
@@ -77,11 +78,70 @@ export function fanoutVerdict(기록, 프롬프트) {
   return { 셈: 이름 };
 }
 
+// 화면 훑기 보조(author-scan)의 브라우저는 서버로 저장 · 변경 요청을 못 보낸다 (PRD-F9-27).
+// R6 MKS 보조가 「임시 저장」을 누르고 장바구니 수량을 10 으로 바꿨다 — 지침 문장만으로는 안 지켜졌다.
+// 버튼 이름으로 고르면 「+」 같은 버튼을 놓치고 옵션 없이 「담기」를 눌러 보는 안내 문구까지 막는다 — 그래서 요청 방식으로 막는다.
+// ponytail: 조회를 POST 로 하는 사이트(GraphQL)는 보조가 그 데이터를 못 본다 — 그런 서버가 오면 읽기 POST 예외를 더한다
+export const 훑기보조 = 'author-scan';
+const 플레이 = /(?:^|\s)(?:npx\s+(?:-\S+\s+)*playwright\s+cli|playwright-cli|\S*\/playwright\s+cli)(?=\s|$)(.*)$/;
+// 브라우저가 서버로 요청을 보내지 않는 명령 — 막기를 걸지 않고 지나간다. 여기 없는 명령은 건다
+const 보기만 = new Set([
+  'close', 'list', 'close-all', 'kill-all', 'delete-data', 'install', 'install-browser', 'snapshot', 'find', 'screenshot', 'pdf',
+  'state-load', 'state-save', 'requests', 'request', 'request-headers', 'request-body', 'response-headers', 'response-body',
+  'console', 'tab-list', 'route-list', 'cookie-list', 'cookie-get', 'localstorage-list', 'localstorage-get',
+  'sessionstorage-list', 'sessionstorage-get', 'generate-locator', 'highlight', 'resize',
+]);
+// 막기를 풀거나 비껴갈 수 있다
+const 못씀 = new Set(['run-code', 'route', 'unroute', 'network-state-set']);
+
+/** 훑기 보조의 명령 판정 — 거절 글, 아니면 막기를 걸 세션 이름들(기본 세션은 '') */
+export function scanVerdict(command) {
+  const 껍데기 = String(command ?? '').replace(/'[^']*'/g, "''").replace(/"[^"]*"/g, '""');
+  const 세션들 = new Set();
+  const 연세션 = new Set();
+  for (const 구간 of 껍데기.split(/;|&&|\|\||\||\n/)) {
+    const m = 플레이.exec(구간);
+    if (!m) continue;
+    let 세션 = '';
+    let 명령 = null;
+    const 낱들 = m[1].trim().split(/\s+/);
+    for (let i = 0; i < 낱들.length; i++) {
+      const 낱 = 낱들[i];
+      const s = /^(?:-s|--session)(?:=(.*))?$/.exec(낱);
+      if (s) 세션 = s[1] ?? 낱들[++i] ?? '';
+      else if (명령 === null && !낱.startsWith('-')) 명령 = 낱;
+    }
+    if (명령 === null) continue;
+    if (못씀.has(명령)) return { 거절: `[차단] 화면 훑기 보조는 \`${명령}\` 을 못 쓴다 — 저장 · 변경 요청 막기를 풀 수 있다 (PRD-F9-27)` };
+    if (명령 === 'open') { 연세션.add(세션); continue; }
+    if (보기만.has(명령)) continue;
+    if (연세션.has(세션)) return { 거절: `[차단] 같은 명령에서 연 세션 ${세션 || '기본'} 을 바로 움직이지 않는다 — 저장 · 변경 막기는 열린 뒤에 건다. open · state-load 까지 한 명령, 이동부터는 다음 명령으로 부른다 (PRD-F9-27)` };
+    세션들.add(세션);
+  }
+  return { 세션들: [...세션들] };
+}
+
+// 세션 브라우저 전체(새 탭 포함)에 건다. 표시를 남겨 같은 브라우저에 두 번 걸지 않는다 — 다시 열면 새 브라우저라 표시도 없다
+const 막기코드 = "async page => { const c = page.context(); if (c.__scanReadOnly) return; c.__scanReadOnly = true; await c.route('**/*', r => ['GET', 'HEAD', 'OPTIONS'].includes(r.request().method()) ? r.fallback() : r.abort('blockedbyclient')); }";
+function 저장막기(세션) {
+  const r = spawnSync('npx', ['playwright', 'cli', ...(세션 ? [`-s=${세션}`] : []), 'run-code', 막기코드], { cwd, encoding: 'utf8', timeout: 30_000 });
+  if (r.error) return r.error.message;
+  return r.status === 0 ? null : `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().slice(0, 300) || `종료 ${String(r.status)}`;
+}
+
 if (mode === 'bash') {
   const cmd = input.command ?? '';
   const 이유 = isBanned(cmd);
   if (이유) {
     block(`[차단] ${이유}은 허용되지 않는다 (CLAUDE.md §5).\n명령: ${cmd}\n\n필요하다면 사용자에게 이유를 설명하고 직접 실행하게 해라.`);
+  }
+  if (ev.agent_type === 훑기보조) {
+    const 판 = scanVerdict(cmd);
+    if (판.거절) block(판.거절);
+    for (const 세션 of 판.세션들) {
+      const 까닭 = 저장막기(세션);
+      if (까닭) block(`[차단] 브라우저 세션 ${세션 || '기본'} 에 저장 · 변경 막기를 못 걸어 움직이지 않는다 — ${까닭} (PRD-F9-27)`);
+    }
   }
   ok();
 }
