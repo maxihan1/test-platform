@@ -66,10 +66,23 @@ async function runOne(runId: number, item: PendingItem): Promise<void> {
 
 // 요청을 받은 쪽은 기다리지 않는다. run_id만 돌려주고 실행은 여기서 계속된다 (SPEC §7)
 export async function dispatch(runId: number, items: PendingItem[]): Promise<void> {
+  // 같은 케이스 항목(반복 회차 · PC · 모바일)은 하나씩 돈다. 나란히 돌면 같은 데이터를 두고 부딪힌다 —
+  // run 20903 에서 재고 1개 상품 · 서버 초기화 케이스가 짝 회차와 같은 시각에 깨졌다 (SPEC 실행 §3.2 · PRD-F9-36).
+  // 케이스마다 앞 항목이 끝나야 다음을 대기줄에 넣으므로 회차는 케이스 순서로 한 바퀴씩 돌고, 다른 케이스는 상한까지 나란히 돈다
+  const 케이스줄 = new Map<string, PendingItem[]>();
+  for (const item of items) {
+    const 줄 = 케이스줄.get(item.tcId);
+    if (줄 === undefined) 케이스줄.set(item.tcId, [item]);
+    else 줄.push(item);
+  }
   // android 는 전역 상한 밖의 디바이스 줄이다. 같은 디바이스에 연결 둘이 겹치면 뒤 연결이 앞을 가로채고,
   // 전역 상한은 컨테이너 러너의 CPU 를 지키는 값이라 그 러너에서 돌지 않는 앱 항목이 자리를 쓸 이유가 없다 (SPEC 실행 §3.2)
   await Promise.all(
-    items.map((item) => (item.platform === 'android' ? 폰차례(() => runOne(runId, item)) : enqueue(() => runOne(runId, item)))),
+    [...케이스줄.values()].map(async (줄) => {
+      for (const item of 줄) {
+        await (item.platform === 'android' ? 폰차례(() => runOne(runId, item)) : enqueue(() => runOne(runId, item)));
+      }
+    }),
   );
   // 멈춘 실행은 ABORTED 로 이미 닫혔다. finishRun 은 RUNNING 만 건드리므로 그대로 둬도 되지만,
   // 표시를 남겨 두면 다음 실행의 같은 번호에서 오판할 수 있어 여기서 치운다
