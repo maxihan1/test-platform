@@ -7,7 +7,7 @@ import { 케이스tcId } from './authoring-held-apply.js';
 import { type 원장항목, 번호찾기 } from './authoring-ledger.js';
 import { 제거함읽기 } from './authoring-ledger-hold.js';
 import { 백틱벗기기, 표몸줄들, 표읽기 } from './authoring-md-table.js';
-import { type 칸재료, type 표줄, 칸번호 } from './authoring-slots.js';
+import { type 칸재료, type 표줄, 오류추정줄인가, 칸번호 } from './authoring-slots.js';
 
 export { 표읽기 };
 
@@ -90,6 +90,15 @@ export function 표번호채우기(표글: string, 기대: Map<number, string>):
 }
 
 /** 「요구사항」 표 줄을 칸 계산 재료로 — 차례는 표읽기 차례다 */
+/**
+ * 요구 줄이 테스트로 덮는 번호. 오류 추정 줄의 첫 번호는 화면을 잡으려고 적은 요구라 그 테스트가 확인하지 않는다 — 뺀다.
+ * 뒤 번호(그 결과를 올린 확인 필요 항목)는 덮는다. 지도 ① 과 원장 대조가 이 함수 하나로 센다 (작성 §3.6 「오류 추정」 · PRD-F9-08)
+ */
+export function 덮는번호들(출처: string): string[] {
+  const 번호들 = 번호찾기(출처).번호들;
+  return 오류추정줄인가(출처) ? 번호들.slice(1) : 번호들;
+}
+
 export function 요구줄들(표글: string): 표줄[] {
   return 표읽기(표글, '요구사항').map((행, 차례) => ({ 차례, 출처: 행['출처'] ?? '', 축: (행['축'] ?? '').trim(), tcId: 백틱벗기기(행['tcId'] ?? '') }));
 }
@@ -140,7 +149,7 @@ export function 원장대조(
     }
     // 종류는 tcId 에서만 읽는다 — 옛 꼴은 기능으로 본다 (작성 §3.6). 축 칸은 자식이 쓴 글이라 믿지 않는다
     const UI줄 = tcId종류(tcId) === 'UI';
-    for (const b of 번호들) {
+    for (const b of 덮는번호들(행['출처'] ?? '')) {
       케이스로.set(b, (케이스로.get(b) ?? new Set<string>()).add(tcId));
       (UI줄 ? UI로 : 기능으로).add(b);
     }
