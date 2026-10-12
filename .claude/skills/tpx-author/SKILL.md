@@ -160,6 +160,7 @@ PLAYWRIGHT_JSON_OUTPUT_FILE="$AUTHORING_GATE3_DIR/gate3-final-1.json" npx playwr
 관문 3 3회 실행: <pw.log 의 마지막 요약 줄 그대로 — 예: 9 passed> · EXIT=<값>[ · 묶음별 <묶음: gate3 결과 파일의 expected/unexpected/flaky> · 끝 뒤 다시 돈 파일 <N건 · 요약 줄>]
 팬아웃: <안 함 / 훑기 묶음 N · 케이스 묶음 N(묶음별 tcId 수) · 물러섬 <없음 / 동시 둘로>>
 관문 4 부수기: <무엇을 바꿨나 · 어느 문장이 빨개졌나>
+관문 4 입력값: <입력값 ① N건 초록 · ② N건 빨강 · 뺀 칸 <이름들 / 없음> / 입력값 칸 없음>
 합친 것: <tcId · 합친 name 한 문장 · 어느 요구 줄들인지>
 판정 불가·보류: <tcId — held 사유 한 줄씩 · 표만은 요구 번호 — 사유>
 오류 추정: <줄 N · 케이스 M건 · 뺀 줄 K(해 볼 수 없음) · 기준 어김(빨간 채로 둠) tcId — 무엇을 어겼나 / 없음>
