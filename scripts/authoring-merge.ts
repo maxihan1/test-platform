@@ -243,6 +243,9 @@ export const 당김인자 = [
   'main',
 ];
 
+/** 맥 체크아웃이 깨끗한가 — 다른 세션이 설치한 스킬 같은 새 파일은 빨리감기가 안 건드리므로 보지 않는다 (PRD-F9-34) */
+export const 상태인자 = ['status', '--porcelain', '--untracked-files=no'];
+
 /**
  * 병합 뒤 맥의 main 체크아웃을 당길지. 당기면 `null`, 건너뛰면 사유.
  *
@@ -264,7 +267,7 @@ export function 당길까(가지: { ok: boolean; 낸것: string }, 상태: { ok:
  */
 function main당기기(뿌리: string, 호스트로: 칠때): boolean {
   const 친다호스트 = (인자: string[]) => 친다('git', 인자, 뿌리, undefined, 120_000, 호스트로);
-  const 사유 = 당길까(친다호스트(['symbolic-ref', '--short', 'HEAD']), 친다호스트(['status', '--porcelain']));
+  const 사유 = 당길까(친다호스트(['symbolic-ref', '--short', 'HEAD']), 친다호스트(상태인자));
   // 병합은 이미 됐다. 실패해도 되돌리지 않고 사람이 볼 수 있게 찍는다 — 안 찍으면 「목록에 안 뜬다」가 조용히 돌아온다
   if (사유 !== null) {
     console.error(`[머지] main 을 안 당겼다: ${사유}. 새 테스트를 보려면 직접 git pull 하라.`);

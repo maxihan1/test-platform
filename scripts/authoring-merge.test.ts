@@ -1,6 +1,10 @@
 // 병합 뒤 상태 판단의 판별식 — 된 병합을 실패로 덮지 않는다
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { 당길까, 당김인자, 머지끝몸, 머지브랜치거부사유, 병합뒤상태, 한번에하나 } from './authoring-merge.js';
+import { 당길까, 당김인자, 머지끝몸, 머지브랜치거부사유, 병합뒤상태, 상태인자, 한번에하나 } from './authoring-merge.js';
 
 describe('머지브랜치거부사유 — 에이전트가 올린 그 PR 만 병합한다', () => {
   it('원본 요청이 올린 author-<번호> 이고 같은 저장소 것이면 통과다', () => {
@@ -121,5 +125,22 @@ describe('당길까 — 병합 뒤 맥의 main 체크아웃을 당길지 (서버
       'origin',
       'main',
     ]);
+  });
+
+  it('추적 안 하는 새 파일만 있으면 당긴다 — 빨리감기는 겹치지 않는 새 파일을 안 건드린다 (PRD-F9-34)', () => {
+    const 자리 = mkdtempSync(join(tmpdir(), 'pull-'));
+    try {
+      const 깃 = (인자: string[]) => execFileSync('git', 인자, { cwd: 자리, encoding: 'utf8' });
+      깃(['init', '-q', '-b', 'main']);
+      writeFileSync(join(자리, 'a.md'), '가');
+      깃(['add', 'a.md']);
+      깃(['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', '처음']);
+      writeFileSync(join(자리, 'skills-lock.json'), '{}');
+      expect(당길까(됨('main\n'), 됨(깃(상태인자)))).toBeNull();
+      writeFileSync(join(자리, 'a.md'), '나');
+      expect(당길까(됨('main\n'), 됨(깃(상태인자)))).toMatch(/고친 파일/);
+    } finally {
+      rmSync(자리, { recursive: true, force: true });
+    }
   });
 });
