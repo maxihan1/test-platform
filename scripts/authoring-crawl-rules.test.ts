@@ -1,7 +1,7 @@
 // 화면 크롤러 판정 검사 — 따라갈 주소 · 같은 틀 · 지문 · 목록 · 로그인 풀림 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04)
 import { describe, expect, it } from 'vitest';
 
-import { 걸러진까닭, 글자지문, 덮은틀읽기, 덮음인가, 케이스지도읽기, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 빼는주소인가, 뺄경로읽기, 연결모으기, 주소고르기, 주소틀, 지문, 틀키 } from './authoring-crawl-rules.js';
+import { 걸러진까닭, 글자지문, 덮은틀읽기, 덮음인가, 케이스지도읽기, 틀닿나, 틀케이스, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 빼는주소인가, 뺄경로읽기, 연결모으기, 주소고르기, 주소틀, 지문, 틀키 } from './authoring-crawl-rules.js';
 
 describe('주소틀 — 화면 파일의 화면 주소를 크롤러 같은 틀로 (PRD-F6-03)', () => {
   it('경로 · 절대 주소 모두 크롤러와 같은 틀이 된다', () => {
@@ -12,6 +12,35 @@ describe('주소틀 — 화면 파일의 화면 주소를 크롤러 같은 틀�
   });
   it('주소로 못 읽으면 null', () => {
     expect(주소틀('http://')).toBeNull();
+  });
+  it('화면 파일의 이름 마디(`:id`)도 크롤러처럼 `:n` 이다 (PRD-F9-04)', () => {
+    expect(주소틀('/board/:id')).toBe('/board/:n');
+    expect(주소틀('/my/orders/:orderId/items')).toBe('/my/orders/:n/items');
+    expect(주소틀('/#/board/:id')).toBe('/#/board/:n');
+  });
+});
+
+describe('틀닿나 · 틀케이스 — 크롤러 같은 틀이 화면 파일 틀에 닿나 (PRD-F9-04)', () => {
+  it('인자 없는 화면 파일 주소는 같은 경로의 인자 붙은 틀도 덮는다 — 인자 있는 주소는 그 값만', () => {
+    expect(틀닿나('/board?category=자유', new Set(['/board']))).toBe(true);
+    expect(틀닿나('/checkout?items=1,2', new Set(['/checkout']))).toBe(true);
+    expect(틀닿나('/#/shop?category=outer', new Set(['/#/shop']))).toBe(true);
+    expect(틀닿나('/bbs/board.php?bo_table=qna', new Set(['/bbs/board.php?bo_table=notice']))).toBe(false);
+    expect(틀닿나('/bbs/board.php?bo_table=notice', new Set(['/bbs/board.php?bo_table=notice']))).toBe(true);
+    expect(틀닿나('/board/:n', new Set(['/board']))).toBe(false);
+  });
+
+  it('구조가 다른 둘째 장은 같은 틀일 때만 닿는다', () => {
+    expect(틀닿나('/board?board_no=:n (구조 다름)', new Set(['/board']))).toBe(false);
+    expect(틀닿나('/board?board_no=:n (구조 다름)', new Set(['/board?board_no=:n (구조 다름)']))).toBe(true);
+  });
+
+  it('틀케이스 — 같은 틀과 인자 뺀 틀의 케이스를 합친다', () => {
+    const 지도 = new Map([['/shop', ['MKT-FN-002']], ['/shop?category=outer', ['MKT-FN-001', 'MKT-FN-002']]]);
+    expect(틀케이스('/shop?category=outer', 지도)).toEqual(['MKT-FN-001', 'MKT-FN-002']);
+    expect(틀케이스('/shop?category=top', 지도)).toEqual(['MKT-FN-002']);
+    expect(틀케이스('/cart', 지도)).toBeUndefined();
+    expect(틀케이스('/cart', null)).toBeUndefined();
   });
 });
 
@@ -29,6 +58,10 @@ describe('덮은틀읽기 · 덮음인가 — 크롤러 --covered 로 목록 줄
     expect(덮음인가(틀키('https://site.test/board/3'), 덮은)).toBe(true);
     expect(덮음인가('/cart', 덮은)).toBe(false);
     expect(덮음인가('/board/:n', null)).toBe(false);
+  });
+
+  it('인자 없는 화면 파일 주소는 인자 붙은 목록 줄도 덮는다 (PRD-F9-04)', () => {
+    expect(덮음인가('/board?category=자유', new Set(['/board']))).toBe(true);
   });
 });
 

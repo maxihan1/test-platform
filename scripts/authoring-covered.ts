@@ -8,7 +8,7 @@ import { join, posix } from 'node:path';
 
 import { 지도줄들 } from '../apps/admin/src/catalog/reqMap.js';
 import { 가져온화면파일, 화면주소 } from '../apps/admin/src/catalog/screenMap.js';
-import { 주소틀 } from './authoring-crawl-rules.js';
+import { 주소틀, 틀닿나 } from './authoring-crawl-rules.js';
 import { 케이스tcId } from './authoring-held-apply.js';
 import { type 깃손, 새로쓰기 } from './authoring-ledger-io.js';
 import { 덮은파일이름, 화면케이스파일이름 } from './authoring-reverse.js';
@@ -128,9 +128,11 @@ export function 바뀐틀들(목록글: string): Set<string> | null {
  * 케이스가 아니라 파일로 센다 — 여러 케이스가 같이 쓰는 화면 파일 하나를 고치면 케이스 수로는 부푼다. 닿는 케이스가 없으면 null
  */
 export function 바뀐화면줄(바뀐틀: ReadonlySet<string>, 케이스: readonly 케이스화면[], 바뀐파일: ReadonlySet<string>): string | null {
-  const 닿는 = 케이스.filter((x) => x.틀들.some((틀) => 바뀐틀.has(틀)));
+  // 크롤 틀(인자 붙은 것)을 화면 파일 틀에 맞춘다 — 크롤러 `덮음인가` 와 같은 규칙 (PRD-F9-04)
+  const 닿는틀 = (x: 케이스화면): string[] => [...바뀐틀].filter((틀) => 틀닿나(틀, new Set(x.틀들)));
+  const 닿는 = 케이스.filter((x) => 닿는틀(x).length > 0);
   if (닿는.length === 0) return null;
-  const 화면수 = new Set(닿는.flatMap((x) => x.틀들.filter((틀) => 바뀐틀.has(틀)))).size;
+  const 화면수 = new Set(닿는.flatMap(닿는틀)).size;
   const 고친 = [...new Set(닿는.flatMap((x) => [x.파일, ...x.화면파일들]))].filter((f) => 바뀐파일.has(f)).sort();
   const 앞 = 고친.slice(0, 5).join(' · ') + (고친.length > 5 ? ' …' : '');
   return `바뀐 화면: ${화면수}장 · 그 화면을 쓰는 케이스 ${닿는.length}건 · 그 케이스 · 화면 파일 가운데 이번에 고친 파일 ${고친.length}개${고친.length > 0 ? ` — ${앞}` : ''}`;

@@ -8,7 +8,7 @@ import { join, relative, resolve, sep } from 'node:path';
 import { chromium } from '@playwright/test';
 
 import { type 본화면, type 상태, type 인자, type 판, 한상태 } from './authoring-crawl-state.js';
-import { 덮은틀읽기, 덮음인가, 케이스지도읽기, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기 } from './authoring-crawl-rules.js';
+import { 덮은틀읽기, 덮음인가, 케이스지도읽기, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기, 틀케이스 } from './authoring-crawl-rules.js';
 import { 견주기, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
 
 const 장상한 = 100;
@@ -101,7 +101,7 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
   const 목록 = 고른.map((본) => {
     const 표시 = 견줌?.표시.get(`${본.상태} ${본.주소}`);
     // 저장본과 달라진 화면만 — 자식이 훑기 뒤 그 케이스를 돌려 본다 (PRD-F6-04)
-    const 케이스 = 표시?.저장본 === '바뀜' ? a.케이스지도?.get(본.틀) : undefined;
+    const 케이스 = 표시?.저장본 === '바뀜' ? 틀케이스(본.틀, a.케이스지도) : undefined;
     return {
       주소: 본.주소, 이름: 본.이름, 상태: 본.상태, 파일: 본.파일, 틀: 본.틀, 지문: 본.지문, 글자지문: 본.글자지문,
       ...(본.짧음 ? { 짧음: true } : {}),

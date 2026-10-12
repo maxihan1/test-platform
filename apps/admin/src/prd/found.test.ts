@@ -92,7 +92,7 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     });
   });
 
-  it('지금 판 번호의 활성 케이스가 가져오는 화면 주소를 같은 틀로 바꿔 덮고, 상태는 안 가른다', async () => {
+  it('지금 판 번호의 활성 케이스가 가져오는 화면 주소를 같은 틀로 바꿔 덮고, 상태는 안 가른다 — `:id` · 인자 꼬리도 (PRD-F9-04)', async () => {
     const 저장 = await app.inject({
       method: 'PUT',
       url: `/api/prd?service=${접두사}`,
@@ -113,18 +113,20 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     );
     await q(
       `INSERT INTO case_screen (tc_id, file, screen_url)
-       VALUES ('XPD-FN-001', 'tests/xpd/pages/board.page.ts', '/board/1'), ('XPD-FN-001', 'tests/xpd/components/nav.component.ts', NULL),
+       VALUES ('XPD-FN-001', 'tests/xpd/pages/board.page.ts', '/board/:id'), ('XPD-FN-001', 'tests/xpd/components/nav.component.ts', NULL),
+              ('XPD-FN-001', 'tests/xpd/pages/board-list.page.ts', '/board'),
               ('XPD-FN-002', 'tests/xpd/pages/hidden.page.ts', '/hidden'), ('XPD-FN-003', 'tests/xpd/pages/other.page.ts', '/other')`,
     );
     await 찾음([
       ['로그아웃', '/board/:n', '게시판'],
       ['로그인', '/board/:n', '게시판'],
+      ['로그인', '/board?category=자유', '자유게시판'],
       ['로그인', '/hidden', '숨은 화면'],
       ['로그인', '/other', '다른 요구'],
       ['로그인', '/cart', '장바구니'],
     ]);
     const 몸 = await 읽기();
-    expect(몸.foundScreens).toBe(5);
+    expect(몸.foundScreens).toBe(6);
     expect(몸.uncoveredScreens).toEqual([
       { state: '로그인', url: '/cart', name: '장바구니' },
       { state: '로그인', url: '/hidden', name: '숨은 화면' },

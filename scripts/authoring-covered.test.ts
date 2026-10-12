@@ -211,6 +211,12 @@ describe('바뀐화면줄 — PR 머리 (PRD-F6-04)', () => {
     expect(바뀐화면줄(바뀐틀들(목록)!, 케이스들, new Set())).toBe('바뀐 화면: 2장 · 그 화면을 쓰는 케이스 3건 · 그 케이스 · 화면 파일 가운데 이번에 고친 파일 0개');
   });
 
+  it('인자 붙은 크롤 틀도 인자 없는 화면 파일 주소의 케이스에 닿는다 (PRD-F9-04)', () => {
+    expect(바뀐화면줄(new Set(['/cart?coupon=x', '/cart?coupon=y']), 케이스들, new Set())).toBe(
+      '바뀐 화면: 2장 · 그 화면을 쓰는 케이스 2건 · 그 케이스 · 화면 파일 가운데 이번에 고친 파일 0개',
+    );
+  });
+
   it('닿는 케이스가 없으면 null', () => {
     expect(바뀐화면줄(new Set(['/x']), 케이스들, new Set())).toBeNull();
     expect(바뀐화면줄(new Set(), 케이스들, new Set())).toBeNull();

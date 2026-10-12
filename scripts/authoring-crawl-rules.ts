@@ -18,8 +18,9 @@ const 쪽인자 = new Set([
   'page', 'p', 'pg', 'pageno', 'sort', 'order', 'orderby', 'sst', 'sod', 'size', 'limit', 'offset', 'per', 'perpage',
   'next', 'returnurl', 'return', 'returnto', 'redirect', 'redirecturl', 'redirect_uri', 'from', 'continue', 'url',
 ]);
-// 번호 마디 — 숫자 · UUID · 긴 16진수, 그리고 영문 세 자 이하 머리에 숫자가 넷 이상인 주문 번호 꼴(`DM20261002-0001`). `privacy-2024` 는 이름이다
-const 숫자마디 = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24,}|[a-z]{0,3}(?=(?:[-_]?\d){4})[\d_-]+)$/i;
+// 번호 마디 — 숫자 · UUID · 긴 16진수, 그리고 영문 세 자 이하 머리에 숫자가 넷 이상인 주문 번호 꼴(`DM20261002-0001`). `privacy-2024` 는 이름이다.
+// 화면 파일의 이름 마디(`/board/:id`)도 번호다 — 크롤러는 진짜 번호만 보므로 `:n` 으로 맞춰야 「PRD 에 없는 화면」이 안 갈린다 (PRD-F9-04)
+const 숫자마디 = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24,}|[a-z]{0,3}(?=(?:[-_]?\d){4})[\d_-]+|:\w+)$/i;
 
 /** 경로 글자 — EUC-KR 처럼 풀 수 없으면 원문 그대로(크롤 전체가 죽지 않게) */
 export const 풀기 = (글: string): string => {
@@ -115,9 +116,28 @@ export function 케이스지도읽기(글: string): Map<string, string[]> | null
   }
 }
 
-/** 목록 줄이 PRD 에 이미 있는 화면인가 — 덮은 틀 집합에 그 틀이 있으면 (상태는 안 가른다). 집합이 없으면 늘 아니다 */
+// 인자 꼬리 — 해시 라우트 안의 인자(`/#/shop?category=outer`)도 같다
+const 인자꼬리 = /\?[^#]*/;
+const 구조다름 = / \(구조 다름\)$/;
+
+/**
+ * 크롤러 같은 틀이 화면 파일 틀들에 닿나 — 같은 틀이거나, 인자 없는 화면 파일 주소(`/shop`)가 같은 경로의 인자 붙은 틀(`/shop?category=outer`)을 덮는다.
+ * 인자 있는 화면 파일 주소(`?bo_table=notice`)는 그 값만 덮는다. 구조가 다른 둘째 장은 같은 틀일 때만 (PRD-F9-04)
+ */
+export function 틀닿나(틀: string, 파일틀: ReadonlySet<string>): boolean {
+  return 파일틀.has(틀) || (!구조다름.test(틀) && 파일틀.has(틀.replace(인자꼬리, '')));
+}
+
+/** 크롤러 같은 틀을 쓰는 케이스 — 화면 파일 틀 → tcId 지도에서 `틀닿나` 와 같은 규칙으로 모은다. 없으면 undefined */
+export function 틀케이스(틀: string, 지도: ReadonlyMap<string, readonly string[]> | null): string[] | undefined {
+  if (지도 === null) return undefined;
+  const 모음 = [...(지도.get(틀) ?? []), ...(구조다름.test(틀) ? [] : (지도.get(틀.replace(인자꼬리, '')) ?? []))];
+  return 모음.length === 0 && !지도.has(틀) ? undefined : [...new Set(모음)].sort();
+}
+
+/** 목록 줄이 PRD 에 이미 있는 화면인가 — 덮은 틀 집합에 `틀닿나` (상태는 안 가른다). 집합이 없으면 늘 아니다 */
 export function 덮음인가(틀: string, 덮은틀: ReadonlySet<string> | null): boolean {
-  return 덮은틀 !== null && 덮은틀.has(틀);
+  return 덮은틀 !== null && 틀닿나(틀, 덮은틀);
 }
 
 /** 같은 틀 둘째 장을 열어 구조를 견줄까 — 인자의 숫자 값으로 화면을 가르는 틀(`?board_no=1` 공지 · `=4` 문의)만. 경로 숫자(글 상세)는 한 장이면 된다 */
