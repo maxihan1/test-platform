@@ -55,12 +55,14 @@ async function 보류기록(serviceId: number): Promise<ExportHeld[]> {
 
 /**
  * 케이스 하나의 마지막 결과 칸. 판정은 추적표 · 목록과 같은 규칙(기기 한쪽만 깨져도 실패)이고 시각은 가장 늦게 끝난 기기 것이다.
- * 더 최근에 끝난 기기 하나만 실으면 PC 실패 · 휴대폰 통과가 엑셀은 통과, 추적표는 실패로 갈린다 (PRD-F9-09). 돈 기기가 없으면 빈칸
+ * 더 최근에 끝난 기기 하나만 실으면 PC 실패 · 휴대폰 통과가 엑셀은 통과, 추적표는 실패로 갈린다 (PRD-F9-09).
+ * 케이스가 지금 지원하는 기기만 본다 — 뺀 기기의 옛 결과는 판정에도 시각에도 안 든다. 돈 기기가 없으면 빈칸
  */
 export function 결과칸(platforms: Platform[], 기기별: LastResult[]): ExportCase['lastResult'] {
-  if (기기별.length === 0) return null;
-  const 늦은 = 기기별.reduce((a, b) => (b.finishedAt > a.finishedAt ? b : a));
-  return { status: 케이스판정(platforms.map((p) => 기기별.find((l) => l.platform === p)?.status)), at: 한국시각(늦은.finishedAt) };
+  const 지원 = 기기별.filter((l) => platforms.includes(l.platform));
+  if (지원.length === 0) return null;
+  const 늦은 = 지원.reduce((a, b) => (b.finishedAt > a.finishedAt ? b : a));
+  return { status: 케이스판정(platforms.map((p) => 지원.find((l) => l.platform === p)?.status)), at: 한국시각(늦은.finishedAt) };
 }
 
 export async function 엑셀자료(입력: 맥락조건 & {

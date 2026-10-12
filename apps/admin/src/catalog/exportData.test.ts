@@ -28,7 +28,10 @@ describe('결과칸', () => {
     expect(결과칸(['desktop', 'mobile'], [결과('desktop', 'PASS', '2026-10-12T01:00:00Z')])?.status).toBe('NA');
   });
 
-  it('돈 기기가 없으면 빈칸이다', () => {
+  it('돈 기기가 없으면 빈칸이다 · 지금 지원하지 않는 기기의 옛 결과는 판정에도 시각에도 안 든다', () => {
     expect(결과칸(['desktop'], [])).toBeNull();
+    expect(결과칸(['desktop'], [결과('mobile', 'FAIL', '2026-10-12T03:00:00Z')])).toBeNull();
+    expect(결과칸(['desktop'], [결과('desktop', 'PASS', '2026-10-12T01:00:00Z'), 결과('mobile', 'FAIL', '2026-10-12T03:00:00Z')]))
+      .toEqual({ status: 'PASS', at: '2026-10-12 10:00' });
   });
 });

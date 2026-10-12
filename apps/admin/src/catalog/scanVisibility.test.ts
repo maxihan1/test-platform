@@ -2,6 +2,10 @@
 // 스캐너 · 저장소 · 지도 채우기(DB 를 쓴다)를 흉내 내서 DB 없이 돈다
 
 import Fastify, { type FastifyInstance } from 'fastify';
+
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { CaseSpec } from '@platform/kit';
@@ -172,17 +176,39 @@ describe('스캔 결과 거르기', () => {
     expect(JSON.stringify(body)).not.toContain('나의 비밀 오류');
   });
 
-  it('테스트 폴더가 아직 없는 서비스는 문제로 안 남긴다 · 뿌리 폴더까지 없으면 그대로 알린다 (PRD-F9-19)', async () => {
+  it('테스트 폴더가 아직 없는 서비스는 문제로 안 남긴다 · 뿌리 폴더까지 없거나 폴더는 있는데 읽다 사라졌으면 알린다 (PRD-F9-19)', async () => {
     부르는이 = 사람('member', { XCD: 'read' });
-    뿌리.길 = process.cwd();
+    const 다시스캔 = async () => (await app.inject({ method: 'POST', url: '/api/catalog/scan?service=XCD' })).json();
+    const 임시 = await mkdtemp(join(tmpdir(), 'xcd-'));
     try {
-      const body = (await app.inject({ method: 'POST', url: '/api/catalog/scan?service=XCD' })).json();
-      expect(body.error).toBeUndefined();
+      뿌리.길 = 임시;
+      expect((await 다시스캔()).error).toBeUndefined();
+      await mkdir(join(임시, 'xcd'));
+      expect((await 다시스캔()).error).toContain('XCD 서비스의 테스트 폴더 xcd을 읽지 못했다');
     } finally {
       뿌리.길 = '/뿌리';
+      await rm(임시, { recursive: true, force: true });
     }
-    const body = (await app.inject({ method: 'POST', url: '/api/catalog/scan?service=XCD' })).json();
-    expect(body.error).toContain('XCD 서비스의 테스트 폴더 xcd을 읽지 못했다');
+    expect((await 다시스캔()).error).toContain('XCD 서비스의 테스트 폴더 xcd을 읽지 못했다');
+  });
+
+  it('?service= 로 「다시 스캔」 하면 그 서비스만 훑는다 · 스캔 시각은 서비스마다 따로다 (PRD-F9-19)', async () => {
+    부르는이 = 사람('admin', {});
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-10-12T00:00:00Z'));
+      await app.inject({ method: 'POST', url: '/api/catalog/scan' });
+      vi.setSystemTime(new Date('2026-10-12T05:00:00Z'));
+      화면지도.차례.length = 0;
+      await app.inject({ method: 'POST', url: '/api/catalog/scan?service=XCC' });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(화면지도.차례).toEqual(['저장 XCC', '화면 XCC']);
+    const 시각 = async (질의: string) => (await app.inject({ method: 'GET', url: `/api/catalog/scan${질의}` })).json().scannedAt;
+    expect(await 시각('?service=XCC')).toBe('2026-10-12T05:00:00.000Z');
+    expect(await 시각('?service=XCA')).toBe('2026-10-12T00:00:00.000Z');
+    expect(await 시각('')).toBe('2026-10-12T00:00:00.000Z');
   });
 
   it('admin 은 배정 없이도 살아 있는 서비스 전부를 본다', async () => {

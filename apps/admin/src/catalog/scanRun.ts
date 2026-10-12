@@ -11,7 +11,7 @@ import type { 사용자 } from '../auth/store.js';
 import { 지도채우기 } from './reqMap.js';
 import { scan, testsRoot, type Duplicate } from './scanner.js';
 import { 화면지도채우기 } from './screenMap.js';
-import { activeServices, save } from './store.js';
+import { activeServices, save, type ServiceRow } from './store.js';
 
 export interface LastScan {
   scannedAt: string;
@@ -24,6 +24,8 @@ export interface LastScan {
 
 // 스캔은 서비스마다 돈다. 결과를 서비스별로 들고 있어야 응답을 부른 사람이 볼 수 있는 서비스 것만 합칠 수 있다 (SPEC §7)
 interface 서비스결과 {
+  /** 이 서비스를 훑은 때 — 한 서비스만 다시 훑으면 다른 서비스는 지난 때 그대로다 */
+  scannedAt: string;
   added: number;
   updated: number;
   deactivated: number;
@@ -42,19 +44,30 @@ let last: 스캔기록 | null = null;
 // 기동 시 스캔이 아직 안 끝났는데 화면이 결과를 물어볼 수 있다. 그때는 이 약속을 기다린다
 let startup: Promise<스캔기록> | null = null;
 
-// 하나만 — 그 서비스만 훑고 나머지 서비스 결과는 지난 스캔 것을 그대로 둔다(병합 뒤 스캔)
-async function runScan(log: FastifyBaseLogger, 하나만?: number): Promise<스캔기록> {
+const 있나 = (길: string): Promise<boolean> => stat(길).then(() => true, () => false);
+
+// 고르기 — 고른 서비스만 훑고 나머지 서비스 결과는 지난 스캔 것을 그대로 둔다(병합 뒤 · 목록의 「다시 스캔」)
+async function runScan(log: FastifyBaseLogger, 고르기?: (s: ServiceRow) => boolean): Promise<스캔기록> {
+  // 기동 스캔이 끝나기 전에 한 서비스 결과를 먼저 적으면 화면이 기동 스캔을 안 기다리고 반쪽 기록을 읽는다
+  if (고르기 !== undefined && startup !== null) await startup;
   const scannedAt = new Date().toISOString();
-  const 서비스별 = new Map<string, 서비스결과>(하나만 === undefined ? [] : (last?.서비스별 ?? []));
+  const 서비스별 = new Map<string, 서비스결과>();
+  // 한 서비스만 훑었으면 끝날 때의 기록에 합친다 — 시작할 때 베껴 두면 그사이 끝난 전체 스캔을 옛 결과로 덮는다
+  const 담기 = (깨짐?: string): 스캔기록 => {
+    if (고르기 === undefined) return { scannedAt, 서비스별, ...(깨짐 === undefined ? {} : { 깨짐 }) };
+    const 합친것 = new Map([...(last?.서비스별 ?? []), ...서비스별]);
+    const 남은깨짐 = 깨짐 ?? last?.깨짐;
+    return { scannedAt: last?.scannedAt ?? scannedAt, 서비스별: 합친것, ...(남은깨짐 === undefined ? {} : { 깨짐: 남은깨짐 }) };
+  };
 
   try {
     // 서비스마다 자기 폴더만 훑는다. 다른 서비스의 폴더는 보지 않는다 (SPEC §9.2).
     // 서비스가 하나도 없으면 훑을 폴더가 없다 — 첫 서비스는 설정에서 만든다 (§8.8)
-    const services = (await activeServices()).filter((s) => 하나만 === undefined || s.id === 하나만);
+    const services = (await activeServices()).filter((s) => 고르기 === undefined || 고르기(s));
     const root = testsRoot();
 
     for (const service of services) {
-      const 결과: 서비스결과 = { added: 0, updated: 0, deactivated: 0, duplicates: [], problems: [] };
+      const 결과: 서비스결과 = { scannedAt, added: 0, updated: 0, deactivated: 0, duplicates: [], problems: [] };
       서비스별.set(service.prefix, 결과);
       const 어디 = (file: string): string => join(service.testsDir, file);
 
@@ -71,12 +84,13 @@ async function runScan(log: FastifyBaseLogger, 하나만?: number): Promise<스�
       // 폴더가 아직 안 채워졌거나 이름이 틀리면 여기서 던진다. 그 서비스만 접고 나머지는 계속 훑는다 —
       // 한 서비스 때문에 다른 서비스의 케이스까지 사라지면 목록이 통째로 거짓말을 한다 (SPEC §3.1)
       let found;
+      const 폴더 = join(root, service.testsDir);
       try {
-        found = await scan(join(root, service.testsDir));
+        found = await scan(폴더);
       } catch (err) {
         // 아직 테스트가 없는 새 서비스는 폴더가 없다 — 문제가 아니고 목록이 「아직 테스트가 없습니다」를 보인다 (PRD-F9-19).
-        // 뿌리까지 없으면 마운트가 빠진 것이라 알린다. 케이스는 어느 쪽이든 지난 스캔 그대로 둔다
-        if ((err as NodeJS.ErrnoException).code === 'ENOENT' && (await stat(root).then(() => true, () => false))) continue;
+        // 뿌리까지 없으면 마운트가 빠진 것이고, 폴더는 있는데 안의 파일이 사라졌으면 읽기 실패라 알린다. 케이스는 어느 쪽이든 지난 스캔 그대로 둔다
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT' && !(await 있나(폴더)) && (await 있나(root))) continue;
         결과.problems.push(
           `${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
         );
@@ -119,12 +133,12 @@ async function runScan(log: FastifyBaseLogger, 하나만?: number): Promise<스�
     const problems = [...서비스별.values()].flatMap((r) => r.problems);
     if ([...서비스별.values()].some((r) => r.duplicates.length > 0)) log.error(`[catalog] 스캔 실패 — ${problems.join(' / ')}`);
     else if (problems.length > 0) log.warn(`[catalog] 스캔 일부 실패 — ${problems.join(' / ')}`);
-    last = { scannedAt, 서비스별 };
+    last = 담기();
     return last;
   } catch (err) {
     // 기동 시 스캔이 깨져도 admin은 떠야 한다. 사유만 마지막 결과에 남긴다 (SPEC §3.1)
     const message = err instanceof Error ? err.message : String(err);
-    last = { scannedAt, 서비스별, 깨짐: message };
+    last = 담기(message);
     log.error(`[catalog] 스캔이 깨졌다: ${message}`);
     return last;
   }
@@ -135,7 +149,7 @@ async function runScan(log: FastifyBaseLogger, 하나만?: number): Promise<스�
  * (작성 §3.6 · PRD-F9-03). 던지지 않는다 — 실패는 스캔 결과의 문제 줄로 남는다
  */
 export function 병합뒤훑기(serviceId: number, log: FastifyBaseLogger): Promise<unknown> {
-  return runScan(log, serviceId);
+  return runScan(log, (s) => s.id === serviceId);
 }
 
 /**
@@ -153,7 +167,8 @@ function 보이는결과(기록: 스캔기록, user: 사용자 | null, service: 
   const duplicates = 고른것.flatMap((r) => r.duplicates);
   const problems = [...(기록.깨짐 === undefined ? [] : [기록.깨짐]), ...고른것.flatMap((r) => r.problems)];
   const error = problems.length > 0 ? problems.join('\n') : undefined;
-  const scannedAt = 기록.scannedAt;
+  // 고른 서비스 가운데 가장 오래전에 훑은 때 — 한 서비스만 다시 훑었다고 다른 서비스까지 새로 훑은 것처럼 보이지 않게
+  const scannedAt = 고른것.reduce((가장, r) => (r.scannedAt < 가장 ? r.scannedAt : 가장), 고른것[0]?.scannedAt ?? 기록.scannedAt);
 
   // 겹친 번호가 하나라도 보이면 옛 모양 그대로 건수 0 과 오류로 알린다 (SPEC §3.1)
   if (duplicates.length > 0) return { scannedAt, added: 0, updated: 0, deactivated: 0, duplicates, error };
@@ -166,9 +181,9 @@ export function 기동훑기(log: FastifyBaseLogger): void {
   startup = runScan(log);
 }
 
-/** 「다시 스캔」 — 전부 훑고 부른 사람이 볼 수 있는 것만 낸다. service 를 주면 그 서비스 것만 */
+/** 「다시 스캔」 — 전부 훑고 부른 사람이 볼 수 있는 것만 낸다. service 를 주면 그 서비스만 훑고 그 결과만 */
 export async function 훑고보기(log: FastifyBaseLogger, user: 사용자 | null, service?: string): Promise<LastScan> {
-  return 보이는결과(await runScan(log), user, service);
+  return 보이는결과(await runScan(log, service === undefined ? undefined : (s) => s.prefix === service), user, service);
 }
 
 /** 마지막 스캔 결과. 기동 스캔이 아직이면 그것을 기다린다 */
