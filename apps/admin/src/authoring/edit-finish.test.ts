@@ -1,10 +1,17 @@
 // 케이스 고치기 집기 · 반영 끝내기의 저장값 지우기 검사 (SPEC 도메인/작성 §3.6 「★ 케이스 고치기」 저장값 · §7 집기 · 끝내기)
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import authoringAgentRoutes from './agentRoutes.js';
 import authoringRoutes from './routes.js';
+
+const 훑기 = vi.hoisted(() => ({ 부름: [] as number[] }));
+vi.mock('../catalog/scanRun.js', () => ({
+  병합뒤훑기: async (서비스: number) => {
+    훑기.부름.push(서비스);
+  },
+}));
 
 const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XEC';
@@ -182,6 +189,16 @@ describe.skipIf(연결 === undefined)('케이스 고치기 — 집기 · 반영 
       const res = await 끝내기(머지, { status: 'FAILED', error: 'CI 실패', result: { pulled: true } });
       expect(res.statusCode, res.body).toBe(200);
       expect(await 저장값들()).toEqual(처음저장값);
+    });
+
+    it('main 을 받아 온 반영이 DONE 이면 그 서비스를 다시 훑는다 · 못 받아 왔거나 실패면 안 훑는다', async () => {
+      훑기.부름.length = 0;
+      await 끝내기(await 도는머지({ kind: 'AUTHOR', spec_text: '기획서' }), { status: 'DONE', result: { pulled: false } });
+      await 끝내기(await 도는머지({ kind: 'AUTHOR', spec_text: '기획서' }), { status: 'FAILED', error: 'CI 실패', result: { pulled: true } });
+      expect(훑기.부름).toEqual([]);
+      const res = await 끝내기(await 도는머지({ kind: 'AUTHOR', spec_text: '기획서' }), { status: 'DONE', result: { pulled: true } });
+      expect(res.statusCode, res.body).toBe(200);
+      expect(훑기.부름).toEqual([서비스]);
     });
 
     it('원본이 작성 요청인 반영은 저장값을 건드리지 않는다', async () => {

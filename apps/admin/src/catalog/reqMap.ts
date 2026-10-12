@@ -5,8 +5,7 @@ import { join, resolve } from 'node:path';
 
 import type { Pool } from 'pg';
 
-import { 요구줄들 } from '../../../../scripts/authoring-ledger-check.js';
-import { 번호찾기 } from '../../../../scripts/authoring-ledger.js';
+import { 덮는번호들, 요구줄들 } from '../../../../scripts/authoring-ledger-check.js';
 import { 계정보류읽기 } from '../../../../scripts/authoring-ledger-hold.js';
 import { TCID } from './rules.js';
 
@@ -32,7 +31,7 @@ export function 지도줄들(표글: string, prefix: string): 지도줄[] {
   for (const 줄 of 요구줄들(표글)) {
     // 「제거함(…)」 · 「—」 · 남의 접두사 · 넷 밖 축은 건너뛴다. 넣으면 축 제약 한 줄에 그 서비스 지도 전체가 안 바뀐다
     if (!TCID.test(줄.tcId) || !줄.tcId.startsWith(`${prefix}-`) || !축들.has(줄.축)) continue;
-    for (const reqId of 번호찾기(줄.출처).번호들) {
+    for (const reqId of 덮는번호들(줄.출처)) {
       const 한줄: 지도줄 = { reqId, tcId: 줄.tcId, axis: 줄.축 as 지도줄['axis'] };
       모음.set(`${reqId} ${한줄.tcId} ${한줄.axis}`, 한줄);
     }

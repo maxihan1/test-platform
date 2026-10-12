@@ -43,7 +43,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   const 실행단추 = useRef<HTMLButtonElement>(null);
 
   const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 검색.기법, 검색.축, 검색.묶음, 검색.요구]);
-  const scan = useAsync(() => api.lastScan(), []);
+  const scan = useAsync(() => api.lastScan(service), [service]);
   const 요구쓰나 = cases.data?.hasFeatures ?? false;
   const 접기 = use묶음접기(cases.data?.groups, 요구쓰나);
   const last = useAsync(() => (결과보나 ? api.lastByCase() : Promise.resolve({ items: [] })), [결과보나]);
@@ -78,7 +78,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
     setScanning(true);
     setNotice(null);
     try {
-      await api.rescan();
+      await api.rescan(service);
       scan.reload();
       cases.reload();
     } catch (err) {
@@ -209,6 +209,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
         <Empty
           형편={{
             scannedAt: scan.data?.scannedAt ?? null,
+            스캔문제: scan.data?.error !== undefined || (scan.data?.duplicates.length ?? 0) > 0,
             전체건수: cases.data.total,
             건조건: 검색.건조건,
             친글자: 검색.q,

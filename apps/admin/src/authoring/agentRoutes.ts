@@ -3,10 +3,8 @@
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { mkdir, readdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
 import { 작성계정인가 } from '../auth/agentToken.js';
+import { 병합뒤훑기 } from '../catalog/scanRun.js';
 import { 자료목록 } from './assetStore.js';
 import { 끝내기겹침맞나, 집기겹침칸 } from './conflict-routes.js';
 import { 커버리지모양검사, 커버리지칸 } from './coverage.js';
@@ -21,13 +19,12 @@ import { 진척검사 } from './stop.js';
 import { 사용량통로 } from './usage.js';
 import { 기획서밖화면세우기 } from './uncovered.js';
 import { 번호 } from './params.js';
-import { 사진뿌리, 서비스번호 } from './routes.js';
+import { 서비스번호 } from './routes.js';
+import { 사진통로 } from './screenshotRoutes.js';
 import {
   끝내기,
   단계올리기,
   병합주소인가,
-  사진자리,
-  사진자리적기,
   서비스저장소,
   집기,
   집기되돌리기,
@@ -35,14 +32,6 @@ import {
   한건,
   type 요청,
 } from './store.js';
-
-// 한 장 상한. 스크린샷 한 장이 이보다 크면 화면 캡처가 아니라 뭔가 잘못 온 것이다.
-// **기존 JSON 통로의 상한이 1MB 다** — 여기만 넓히는 것이므로 화면 한 장에 필요한 만큼만 넓힌다
-const 사진상한 = 4 * 1024 * 1024;
-
-// 한 요청이 올릴 수 있는 장수. 러너 스크린샷과 같은 저장 공간을 쓰므로
-// 안 막으면 채워서 **다른 팀의 실행 증적까지 죽인다** (2026-09-22 보안 검토가 잡았다)
-const 요청당장수 = 200;
 
 /**
  * **맥 전용 계정인가.**
@@ -100,16 +89,8 @@ export async function 집은쪽인가(req: FastifyRequest, reply: FastifyReply):
 }
 
 export default async function authoringAgentRoutes(app: FastifyInstance): Promise<void> {
-  // 사진은 파일이라 JSON 파서가 못 받는다. **새 부품을 넣지 않고** Fastify 가 이미 가진
-  // 본문 파서 등록으로 원시 바이트를 그대로 받는다 — 한 번에 한 장이라 여러 장을 가르는 부품이 필요 없다.
-  // 글자로 바꿔 보내면(base64) 사진이 커질수록 메모리에 통째로 올라간다 (SPEC §7)
-  app.addContentTypeParser(
-    'application/octet-stream',
-    { parseAs: 'buffer', bodyLimit: 사진상한 },
-    (_req, body, done) => {
-      done(null, body);
-    },
-  );
+  // 사진 올리기 통로와 그 본문 파서 (screenshotRoutes.ts)
+  await 사진통로(app);
 
   app.post<{ Querystring: { service?: string } }>(
     '/authoring/requests/claim',
@@ -181,40 +162,6 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
       }
       return { ok: true, stop: 올림.stop };
-    },
-  );
-
-  app.post<{ Querystring: { service?: string; name?: string }; Params: { id: string } }>(
-    '/authoring/requests/:id/screenshots',
-    async (req, reply) => {
-      const 행 = await 집은쪽인가(req, reply);
-      if (행 === null) return reply;
-      if (행.status !== 'RUNNING') {
-        return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
-      }
-
-      const 이름 = req.query.name ?? '';
-      // 파일 이름이 폴더를 거슬러 올라가면 뿌리 밖에 쓴다. 모양을 좁혀 그 틈을 없앤다
-      if (!/^[A-Za-z0-9._-]{1,80}\.png$/.test(이름)) {
-        return reply.code(400).send({ error: 'BAD_NAME', detail: 이름 });
-      }
-      const 몸 = req.body;
-      if (!Buffer.isBuffer(몸) || 몸.length === 0) {
-        return reply.code(400).send({ error: 'EMPTY_BODY' });
-      }
-
-      const 자리 = 사진자리(행.id);
-      const 폴더 = join(사진뿌리(), 자리);
-      await mkdir(폴더, { recursive: true });
-      if ((await readdir(폴더)).length >= 요청당장수) {
-        return reply.code(409).send({ error: 'TOO_MANY_SCREENSHOTS' });
-      }
-      await writeFile(join(폴더, 이름), 몸);
-      // 적는 데 실패하면 파일만 남고 아무도 그 폴더를 못 찾는다. 그 사실을 그 자리에서 알린다
-      if (!(await 사진자리적기(행.id, 자리))) {
-        return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
-      }
-      return { dir: 자리 };
     },
   );
 
@@ -294,6 +241,9 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     // 끝난 행에 또 오면 409 다. 안 막으면 판정과 PR 주소가 덮어써진다
     if (!바뀌었나) return reply.code(409).send({ error: 'NOT_RUNNING', detail: 행.status });
     끝냈다고알림(행, 뿌리번호, 멈춤이유, app.log);
+    // 병합한 테스트가 「PRD 관리」 · 목록에 바로 보이게 그 서비스를 다시 훑는다 (PRD-F9-03). main 을 못 받아 왔으면 훑어도 옛 파일이다.
+    // 기다리지 않는다 — 큰 서비스는 훑기가 에이전트의 30초 제한을 넘겨, 이미 끝난 보고를 다시 보내게 된다
+    if (status === 'DONE' && 행.kind === 'MERGE' && 결과칸.pulled === true) void 병합뒤훑기(행.serviceId, app.log);
     return { ok: true };
   });
 

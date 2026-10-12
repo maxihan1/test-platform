@@ -170,6 +170,11 @@ describe('스캔 결과가 화면 머리에 있다 (SPEC §8.1, 2026-09-22)', ()
     await screen.findByText('ZPK-001');
   }
 
+  it('스캔 결과는 지금 보는 서비스 것만 받는다 (PRD-F9-19)', async () => {
+    await 스캔그리기(스캔);
+    expect(api.lastScan).toHaveBeenCalledWith('ZPK');
+  });
+
   it('스캔 결과가 화면 머리 안에 있고 따로 줄을 만들지 않는다', async () => {
     await 스캔그리기(스캔);
     await waitFor(() => {

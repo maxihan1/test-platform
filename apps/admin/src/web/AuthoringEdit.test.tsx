@@ -155,14 +155,23 @@ describe('케이스 고치기 상세', () => {
     await waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 }));
   });
 
-  it('반영이 끝나면 다시 스캔하라고 안내하고 남은 요구 이어 작성은 없다', async () => {
+  it('반영이 끝나면 케이스 목록에서 볼 수 있다고 안내하고 남은 요구 이어 작성은 없다', async () => {
     const 기록 = [실행({ id: 12, kind: 'MERGE' }), 실행({ id: 7 })];
     답들.set(7, 줄({ runs: 기록 }));
     답들.set(12, 줄({ id: 12, kind: 'MERGE', sourceId: 7, params: {}, runs: 기록, canContinue: false }));
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
-    expect(await screen.findByText(/「다시 스캔」을 누르면 바뀐 것이 보입니다/)).toBeTruthy();
+    expect(await screen.findByText(/케이스 목록에서 바뀐 것을 볼 수 있습니다/)).toBeTruthy();
     expect(screen.queryByText(/남은 요구/)).toBeNull();
+  });
+
+  it('main 을 못 받아 온 반영이면 받아 온 뒤 다시 스캔하라고 안내한다', async () => {
+    const 기록 = [실행({ id: 12, kind: 'MERGE' }), 실행({ id: 7 })];
+    답들.set(7, 줄({ runs: 기록 }));
+    답들.set(12, 줄({ id: 12, kind: 'MERGE', sourceId: 7, params: {}, runs: 기록, canContinue: false, error: 'main 을 못 받아 와 저장값을 안 지웠다' }));
+    render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
+
+    expect(await screen.findByText(/받아 온 뒤 케이스 목록에서 「다시 스캔」을 누르면/)).toBeTruthy();
   });
 
   it('반영이 실패했으면 완료 항목에 다시 적용을 더한다 — 다른 PR 과 충돌한 고치기를 푸는 길이다', async () => {

@@ -94,6 +94,8 @@ export const 케이스말: Record<string, string> = {
   '조건에 맞는 케이스가 없습니다': 'No cases match the filters',
   '「{친글자}」에 맞는 케이스가 없습니다': 'No cases match “{친글자}”',
   '거른 조건을 지우면 전체가 다시 보입니다': 'Clear the filters to see everything again',
+  '아직 테스트가 없습니다': 'No tests yet',
+  '「테스트 작성」에서 처음 작성을 시작합니다': 'Start writing the first tests in “Authoring”',
   '불러왔지만 케이스가 하나도 없습니다': 'Loaded, but there are no cases',
   '테스트 폴더가 비었거나 규칙에 걸려 읽지 못한 파일이 있습니다. 사유는 위 스캔 결과에 있습니다':
     'The tests folder is empty, or some files broke the rules and could not be read. The reason is in the scan result above.',
