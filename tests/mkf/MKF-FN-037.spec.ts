@@ -1,0 +1,39 @@
+import { defineCase, test, verify } from '@platform/kit';
+
+import { 세션아이디 } from './helpers/common-tools.helper.js';
+import { 방해막기 } from './helpers/quiet.helper.js';
+import { 홈화면 } from './pages/home.page.js';
+
+export const spec = defineCase({
+  tcId: 'MKF-FN-037',
+  name: '홈을 다섯 번 열면 추천 상품 순서가 한 번 넘게 바뀐다',
+  precondition: ['비회원이다'],
+  params: null,
+  expected: null,
+});
+
+test(spec, async ({ page }) => {
+  const 홈 = new 홈화면(page);
+  const 본순서: string[] = [];
+
+  await test.step('비회원인지 확인한다', async () => {
+    await verify('로그인한 회원이 없다', await 세션아이디(page), null, { blocker: true });
+  });
+
+  await test.step('홈을 열고 추천 상품이 보이는지 확인한다', async () => {
+    await 방해막기(page);
+    await 홈.열기();
+    await 홈.추천카드들.first().waitFor();
+    await verify('추천 상품이 8개 보인다', await 홈.추천카드들.count(), 8, { blocker: true });
+  });
+
+  await test.step('홈을 다섯 번 새로 연다', async () => {
+    for (let 번째 = 0; 번째 < 5; 번째 += 1) {
+      await 홈.열기();
+      await 홈.추천카드들.first().waitFor();
+      본순서.push((await 홈.카드이름들()).join(', '));
+    }
+    const 바뀐횟수 = 본순서.filter((순서, 번째) => 번째 > 0 && 순서 !== 본순서[번째 - 1]).length;
+    await verify('홈을 다섯 번 열면 추천 상품 순서가 한 번 넘게 바뀐다', 바뀐횟수 > 1, true);
+  });
+});
