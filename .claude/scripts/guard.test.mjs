@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { fanoutVerdict, isBanned } from './guard.mjs';
+import { fanoutVerdict, isBanned, scanVerdict, 막기코드 } from './guard.mjs';
 
 test('진짜 위험한 명령을 막는다', () => {
   for (const cmd of [
@@ -138,4 +138,120 @@ test('훅이 세는 문구가 fanout.md §4 뼈대 첫 줄과 맞는다 — 뼈�
 
 test('거절 글은 남은 묶음을 자식이 직접 쓰라고 알린다', () => {
   assert.match(fanoutVerdict(['a', 'b', 'c', 'd'], 작성프롬프트('e')).거절, /직접 쓴다/);
+});
+
+const 걸세션 = (cmd) => scanVerdict(cmd).세션들;
+
+test('훑기 보조 — 브라우저를 움직이는 명령은 그 세션에 저장 막기를 건다 · 보기만 하는 명령은 안 건다 (PRD-F9-27)', () => {
+  assert.deepEqual(걸세션('npx playwright cli -s=rev-1-0 click e15'), ['rev-1-0']);
+  assert.deepEqual(걸세션('npx playwright cli -s rev-1-0 fill e3 10'), ['rev-1-0']);
+  assert.deepEqual(걸세션('npx playwright cli -s="rev-1-0" click e15'), ['rev-1-0']);
+  assert.deepEqual(걸세션('playwright-cli goto https://x.test/cart'), ['']);
+  assert.deepEqual(걸세션('npx playwright cli -s=a eval "() => [...document.links].map(a => a.href) || []"'), ['a']);
+  for (const cmd of [
+    'npx playwright cli -s=a snapshot',
+    'npx playwright cli -s=a open && npx playwright cli -s=a state-load /tmp/rev-state.json',
+    'npx playwright cli --config cfg.json -s=a snapshot',
+    'npx playwright cli -s=a close',
+    'date +%H:%M',
+  ]) {
+    assert.deepEqual(걸세션(cmd), [], `걸 일이 없다: ${cmd}`);
+  }
+});
+
+test('훑기 보조 — 셸로 감싸거나 이름을 바꿔 불러도 알아본다 · 못 알아보면 막기 없이 움직인다', () => {
+  for (const cmd of [
+    'bash -c "npx playwright cli -s=a click e1"',
+    "sh -c 'npx playwright cli -s=a click e1'",
+    'echo $(npx playwright cli -s=a click e1)',
+    '(npx playwright cli -s=a click e1)',
+    'npx playwright cli -s=b snapshot & npx playwright cli -s=a click e1',
+    'npx playwright@1.56.0 cli -s=a click e1',
+    'npx -p playwright playwright cli -s=a click e1',
+    './node_modules/.bin/playwright cli -s=a click e1',
+  ]) {
+    assert.deepEqual(걸세션(cmd), ['a'], `알아봤어야 한다: ${cmd}`);
+  }
+});
+
+test('훑기 보조 — 막기를 풀 수 있는 명령 · 주소를 단 open · 같은 명령에서 연 세션 움직이기 · 세션 둘은 거절한다', () => {
+  for (const cmd of [
+    'npx playwright cli -s=a run-code "async page => page.unrouteAll()"',
+    'npx playwright cli --config c.json -s=a run-code "async page => 1"',
+    'npx playwright cli -s=a unroute',
+    'npx playwright cli -s=a route "**/*" --status=200',
+    'npx playwright cli -s=a network-state-set online',
+  ]) {
+    assert.match(scanVerdict(cmd).거절 ?? '', /못 쓴다/, `거절했어야 한다: ${cmd}`);
+  }
+  assert.match(scanVerdict('npx playwright cli -s=a open https://x.test/cart').거절 ?? '', /주소 없이/);
+  assert.match(scanVerdict('npx playwright cli -s=a open && npx playwright cli -s=a goto https://x.test/cart').거절 ?? '', /다음 명령/);
+  assert.match(scanVerdict('npx playwright cli -s=a goto /x && npx playwright cli -s=b click e1').거절 ?? '', /세션 하나/);
+  assert.deepEqual(scanVerdict('npx playwright cli -s=a open && npx playwright cli -s=b click e1'), { 세션들: ['b'], 지울: ['a'] });
+  assert.deepEqual(scanVerdict('npx playwright cli kill-all'), { 세션들: [], 지울: ['*'] });
+});
+
+test('막기 코드 — GET 만 지나가고 저장 · 변경 요청과 로그아웃 · 탈퇴 주소는 끊는다 · 가로채기가 걸린 뒤에만 표시를 단다', async () => {
+  const 막기 = new Function(`return ${막기코드}`)();
+  let 손 = null;
+  const 맥락 = { route: async (_무늬, h) => { 손 = h; } };
+  await 막기({ context: () => 맥락 });
+  assert.equal(맥락.__scanReadOnly, true);
+  const 보냄 = (method, url) => {
+    let 결과 = null;
+    손({ request: () => ({ method: () => method, url: () => url }), fallback: () => { 결과 = '통과'; }, abort: () => { 결과 = '끊음'; } });
+    return 결과;
+  };
+  assert.equal(보냄('GET', 'https://x.test/cart'), '통과');
+  assert.equal(보냄('OPTIONS', 'https://x.test/api/cart'), '통과');
+  assert.equal(보냄('POST', 'https://x.test/api/cart'), '끊음');
+  assert.equal(보냄('PATCH', 'https://x.test/api/cart/3'), '끊음');
+  assert.equal(보냄('DELETE', 'https://x.test/api/posts/1'), '끊음');
+  assert.equal(보냄('GET', 'https://x.test/bbs/logout.php'), '끊음');
+  assert.equal(보냄('GET', 'https://x.test/member/out.php'), '끊음');
+  assert.equal(보냄('GET', 'https://x.test/my/withdraw'), '끊음');
+  assert.equal(보냄('GET', 'https://x.test/cart/add?id=3'), '끊음');
+  assert.equal(보냄('GET', 'https://x.test/bbs/delete.php?wr_id=1'), '끊음');
+  assert.equal(보냄('GET', 'https://x.test/bbs/board.php?bo_table=free&w=d&wr_id=1'), '끊음');
+  assert.equal(보냄('GET', 'https://x.test/index.php?act=procMemberLogout'), '끊음');
+  assert.equal(보냄('GET', 'https://x.test/address'), '통과');
+  assert.equal(보냄('GET', 'https://x.test/index.php?act=dispMemberLoginForm'), '통과');
+  assert.equal(보냄('GET', 'https://x.test/bbs/board.php?bo_table=free&wr_id=1'), '통과');
+  assert.equal(보냄('GET', 'https://x.test/api/likes'), '통과');
+
+  const 실패맥락 = { route: async () => { throw new Error('이동 중'); } };
+  await assert.rejects(막기({ context: () => 실패맥락 }));
+  assert.equal(실패맥락.__scanReadOnly, undefined, '못 걸었으면 표시가 없어 다음 명령이 다시 건다');
+});
+
+test('bash 모드 — 훑기 보조만 막기를 걸고, 못 걸면 exit 2 로 멈추고, 건 세션은 다시 묻지 않다가 open 이 표시를 지운다', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync, existsSync, chmodSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const 가드 = new URL('./guard.mjs', import.meta.url).pathname;
+  const 자리 = mkdtempSync(`${tmpdir()}/scan-guard-`);
+  writeFileSync(`${자리}/npx`, '#!/bin/sh\necho "$@" >> "$NPX_LOG"\nexit "$NPX_CODE"\n');
+  chmodSync(`${자리}/npx`, 0o755);
+  const 기록 = `${자리}/npx.log`;
+  const 부른다 = (agent_type, 코드, command = 'npx playwright cli -s=rev-1-0 click e15') => spawnSync('node', [가드, 'bash'], {
+    input: JSON.stringify({ cwd: 자리, ...(agent_type ? { agent_type } : {}), tool_input: { command } }),
+    env: { PATH: `${자리}:${process.env.PATH}`, TMPDIR: 자리, NPX_LOG: 기록, NPX_CODE: String(코드) },
+  });
+  const 물은수 = () => (existsSync(기록) ? readFileSync(기록, 'utf8').split('\n').filter(Boolean).length : 0);
+  assert.equal(부른다(undefined, 0).status, 0);
+  assert.equal(부른다('author-write', 0).status, 0);
+  assert.equal(물은수(), 0, '훑기 보조가 아니면 브라우저를 건드리지 않는다');
+
+  const 못걸음 = 부른다('author-scan', 1);
+  assert.equal(못걸음.status, 2);
+  assert.match(String(못걸음.stderr), /막기를 못 걸어/);
+
+  assert.equal(부른다('author-scan', 0).status, 0);
+  assert.match(readFileSync(기록, 'utf8').split('\n')[1] ?? '', /^playwright cli -s=rev-1-0 run-code async page => .*blockedbyclient/);
+  assert.equal(부른다('author-scan', 1).status, 0, '이미 건 세션은 다시 묻지 않는다');
+  assert.equal(물은수(), 2);
+
+  assert.equal(부른다('author-scan', 0, 'npx playwright cli -s=rev-1-0 open').status, 0);
+  assert.equal(부른다('author-scan', 1).status, 2, '새로 연 세션은 다시 건다');
+  rmSync(자리, { recursive: true, force: true });
 });

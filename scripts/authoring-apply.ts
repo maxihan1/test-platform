@@ -140,9 +140,9 @@ export function 반영계획만들기(
 /** 자식을 띄우지 않고 FAILED 로 끝낼 까닭. 앞 반영이 이미 넣었거나 같은 판을 다시 돌린 것이다. 화면이 맞음은 고칠 번호가 따로 있어 막지 않는다 */
 export function 반영막힘(계획: 반영계획): string | null {
   if (계획.다시씀.length + 계획.새항목.length + 계획.지움.length > 0) return null;
-  if (계획.화면이맞음 === undefined) return '반영할 것이 없다 — 지금 판의 요구가 이미 테스트에 들어갔다. 이 요청은 폐기해도 된다';
+  if (계획.화면이맞음 === undefined) return '반영할 것이 없다 — 지금 버전의 요구가 이미 테스트에 들어갔다. 이 요청은 폐기해도 된다';
   // 누른 뒤 그 요구를 「PRD 관리」에서 지웠다 — 고칠 요구가 없는데 자식을 띄우면 빈 PR 이 선다
-  return 계획.화면이맞음.every((x) => x.번호들.length === 0) ? '화면이 맞음 요구가 지금 판에 없다(누른 뒤 지웠다) — 이 요청은 폐기해도 된다' : null;
+  return 계획.화면이맞음.every((x) => x.번호들.length === 0) ? '화면이 맞음 요구가 지금 버전에 없다(누른 뒤 지웠다) — 이 요청은 폐기해도 된다' : null;
 }
 
 /**
@@ -176,8 +176,8 @@ export function 화면이맞음줄(화면: readonly { runId: number; tcId: strin
 
 /** PR 본문 머리 줄 — 판 견줌과, 자식이 끝낸 뒤에도 남은 지울 케이스 파일. 지우지 않고 보이기만 한다(사람이 병합 전에 본다) */
 export function 반영뒤줄(계획: 반영계획, 트리: string, 폴더: string): string[] {
-  const 앞 = 계획.기준판 === null ? '기준 판 없음' : `판 ${String(계획.기준판)}`;
-  const 머리 = `표준 기획서 반영: ${앞} → 판 ${String(계획.지금판)} · 다시 씀 ${String(계획.다시씀.length)} · 새 항목 ${String(계획.새항목.length)} · 지움 ${String(계획.지움.length)}`;
+  const 앞 = 계획.기준판 === null ? '기준 버전 없음' : `버전 ${String(계획.기준판)}`;
+  const 머리 = `표준 기획서 반영: ${앞} → 버전 ${String(계획.지금판)} · 다시 씀 ${String(계획.다시씀.length)} · 새 항목 ${String(계획.새항목.length)} · 지움 ${String(계획.지움.length)}`;
   try {
     const 있는 = new Set([...케이스파일들(join(트리, 'tests', 폴더))].map((p) => basename(p, '.spec.ts')));
     return [머리, ...경고줄('지운 요구만 덮던 케이스가 남음', 계획.지움.flatMap((x) => x.지울케이스).filter((t) => 있는.has(t)), 10)];

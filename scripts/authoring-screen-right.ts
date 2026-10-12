@@ -65,7 +65,7 @@ export async function 안옮김뒤(
   try {
     // 반영 요청의 통로는 집을 때 읽은 판을 준다 — 서버가 그 뒤 사람이 고친 항목을 남기고 화면이 맞음 번호만 덮는다
     const 판 = await 지금판읽기(서버, 서비스, 번호);
-    if ('까닭' in 판) return 못함(`지금 판을 못 읽었다 (${판.까닭})`);
+    if ('까닭' in 판) return 못함(`지금 버전을 못 읽었다 (${판.까닭})`);
     const 합침 = 화면대로합치기(판.items, 읽음.옮긴, 고친);
     const 답 = await 부른다(서버.주소기지, 서버.토큰, 통로(번호, 서비스), { method: 'POST', body: { baseVersion: 앞.version, items: 보낼항목(합침.items) } });
     const 받음 = 답.몸 as { version?: unknown; error?: unknown; detail?: unknown } | null;
