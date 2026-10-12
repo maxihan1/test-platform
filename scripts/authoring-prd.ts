@@ -202,7 +202,7 @@ export function 판줄들(
 ): string[] {
   const 확인 = 옮긴.items.filter((i) => i.status === 'NEEDS_CHECK').length;
   return [
-    `표준 기획서: 판 ${String(판)} · 이번 자료 항목 ${String(옮긴.items.length)}(확인 필요 ${String(확인)}) · 지움 ${String(합친.지운번호.length)}`,
+    `표준 기획서: 버전 ${String(판)} · 이번 자료 항목 ${String(옮긴.items.length)}(확인 필요 ${String(확인)}) · 지움 ${String(합친.지운번호.length)}`,
     ...경고줄('사람이 고친 항목과 새 문서가 다름', 사람것, 10),
     ...경고줄('번호를 모르는 항목 — 새 항목으로 올림', 합친.모르는번호, 10),
     ...경고줄('표준 기획서 항목을 버림', 옮긴.버림, 10),

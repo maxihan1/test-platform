@@ -74,7 +74,7 @@ describe('안옮김뒤', () => {
   const 결과쓰기 = (몸: unknown) => writeFileSync(join(자리.자료, 'out', 'prd.json'), JSON.stringify(몸));
   const 부르기 = (반영계획 = 계획(), 비밀 = {}) =>
     안옮김뒤(서버, 'X', 7, 자리, { version: 3, 번호들: 판.map((i) => i.reqId), items: 판 }, { 원장, 기준, 기준표: null, 반영: { 계획: 반영계획, 사본: 'apply.json' } }, 비밀, 'x');
-  const 머리 = '표준 기획서 반영: 판 3 → 판 3 · 다시 씀 0 · 새 항목 0 · 지움 0';
+  const 머리 = '표준 기획서 반영: 버전 3 → 버전 3 · 다시 씀 0 · 새 항목 0 · 지움 0';
 
   it('이어 작성은 줄 없이, 반영은 반영 줄만 단다 — 서버를 부르지 않는다', async () => {
     const 건것 = vi.fn(async () => 답(200));
