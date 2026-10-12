@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Claude Code 훅 가드. CLAUDE.md 규칙 중 기계적으로 판정되는 것만 강제한다. 모드는 argv[2]
-import { readFileSync, existsSync, appendFileSync } from 'node:fs';
+import { readFileSync, existsSync, appendFileSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
 
 const mode = process.argv[2];
 
@@ -81,9 +83,14 @@ export function fanoutVerdict(기록, 프롬프트) {
 // 화면 훑기 보조(author-scan)의 브라우저는 서버로 저장 · 변경 요청을 못 보낸다 (PRD-F9-27).
 // R6 MKS 보조가 「임시 저장」을 누르고 장바구니 수량을 10 으로 바꿨다 — 지침 문장만으로는 안 지켜졌다.
 // 버튼 이름으로 고르면 「+」 같은 버튼을 놓치고 옵션 없이 「담기」를 눌러 보는 안내 문구까지 막는다 — 그래서 요청 방식으로 막는다.
+// 로그아웃 · 탈퇴 · GET 으로 담기 · 삭제하는 링크는 방식으로 못 가른다 — 아래 막기코드가 주소 낱말로 끊는다. 하나가 로그아웃하면 같은 상태 파일을 쓴 다른 보조도 풀린다.
 // ponytail: 조회를 POST 로 하는 사이트(GraphQL)는 보조가 그 데이터를 못 본다 — 그런 서버가 오면 읽기 POST 예외를 더한다
+// ponytail: 서비스 워커가 직접 보내는 요청 · 웹소켓 메시지는 가로채기 밖이다 — 그런 사이트가 오면 서비스 워커 막기 · routeWebSocket 을 더한다
 export const 훑기보조 = 'author-scan';
-const 플레이 = /(?:^|\s)(?:npx\s+(?:-\S+\s+)*playwright\s+cli|playwright-cli|\S*\/playwright\s+cli)(?=\s|$)(.*)$/;
+// 셸로 감싼 꼴(`bash -c "…"` · `$(…)` · 괄호)도 보게 따옴표를 걷지 않는다 — 못 알아보면 막기 없이 움직이므로 넓게 잡는다
+const 플레이 = /(?:^|[\s"'`(])(?:npx\s+(?:\S+\s+)*?playwright(?:@\S+)?\s+cli|playwright-cli|\S*\/playwright\s+cli)(?=\s|$)(.*)$/;
+// 값을 따로 받는 전역 옵션 — 그 값을 명령 이름으로 읽지 않게
+const 값옵션 = /^(?:--config|--browser|--device|--profile)$/;
 // 브라우저가 서버로 요청을 보내지 않는 명령 — 막기를 걸지 않고 지나간다. 여기 없는 명령은 건다
 const 보기만 = new Set([
   'close', 'list', 'close-all', 'kill-all', 'delete-data', 'install', 'install-browser', 'snapshot', 'find', 'screenshot', 'pdf',
@@ -94,39 +101,60 @@ const 보기만 = new Set([
 // 막기를 풀거나 비껴갈 수 있다
 const 못씀 = new Set(['run-code', 'route', 'unroute', 'network-state-set']);
 
-/** 훑기 보조의 명령 판정 — 거절 글, 아니면 막기를 걸 세션 이름들(기본 세션은 '') */
+const 거절 = (말) => ({ 거절: `[차단] ${말} (PRD-F9-27)` });
+
+/**
+ * 훑기 보조의 명령 판정 — 거절 글, 아니면 막기를 걸 세션(기본 세션은 '')과 걸었다는 표시를 지울 세션(새로 열거나 닫는다 · '*' 는 전부).
+ * 한 명령에 움직이는 세션은 하나다 — 세션마다 막기를 거는 시간이 쌓여 훅 한도를 넘으면 훅이 막지 못하고 지나간다
+ */
 export function scanVerdict(command) {
-  const 껍데기 = String(command ?? '').replace(/'[^']*'/g, "''").replace(/"[^"]*"/g, '""');
   const 세션들 = new Set();
-  const 연세션 = new Set();
-  for (const 구간 of 껍데기.split(/;|&&|\|\||\||\n/)) {
+  const 지울 = new Set();
+  for (const 구간 of String(command ?? '').split(/;|&&|\|\||\||&|\n/)) {
     const m = 플레이.exec(구간);
     if (!m) continue;
     let 세션 = '';
     let 명령 = null;
-    const 낱들 = m[1].trim().split(/\s+/);
+    const 남은 = [];
+    const 낱들 = m[1].trim().split(/\s+/).map((x) => x.replace(/^["'`(]+|["'`);]+$/g, ''));
     for (let i = 0; i < 낱들.length; i++) {
       const 낱 = 낱들[i];
       const s = /^(?:-s|--session)(?:=(.*))?$/.exec(낱);
-      if (s) 세션 = s[1] ?? 낱들[++i] ?? '';
-      else if (명령 === null && !낱.startsWith('-')) 명령 = 낱;
+      if (s) 세션 = (s[1] ?? 낱들[++i] ?? '').replace(/^["']|["']$/g, '');
+      else if (값옵션.test(낱)) i++;
+      else if (낱.startsWith('-') || 낱 === '') continue;
+      else if (명령 === null) 명령 = 낱;
+      else 남은.push(낱);
     }
     if (명령 === null) continue;
-    if (못씀.has(명령)) return { 거절: `[차단] 화면 훑기 보조는 \`${명령}\` 을 못 쓴다 — 저장 · 변경 요청 막기를 풀 수 있다 (PRD-F9-27)` };
-    if (명령 === 'open') { 연세션.add(세션); continue; }
+    if (못씀.has(명령)) return 거절(`화면 훑기 보조는 \`${명령}\` 을 못 쓴다 — 저장 · 변경 요청 막기를 풀 수 있다`);
+    if (['close-all', 'kill-all'].includes(명령)) { 지울.add('*'); continue; }
+    if (['open', 'close', 'delete-data'].includes(명령)) {
+      if (명령 === 'open' && 남은.length > 0) return 거절('open 은 주소 없이 연다 — 열자마자 화면이 서버로 요청을 보내는데 막기는 열린 뒤에 건다. 주소는 다음 명령 goto 로 연다');
+      지울.add(세션);
+      continue;
+    }
     if (보기만.has(명령)) continue;
-    if (연세션.has(세션)) return { 거절: `[차단] 같은 명령에서 연 세션 ${세션 || '기본'} 을 바로 움직이지 않는다 — 저장 · 변경 막기는 열린 뒤에 건다. open · state-load 까지 한 명령, 이동부터는 다음 명령으로 부른다 (PRD-F9-27)` };
+    if (지울.has(세션)) return 거절(`같은 명령에서 연 세션 ${세션 || '기본'} 을 바로 움직이지 않는다 — 막기는 열린 뒤에 건다. open · state-load 까지 한 명령, 이동부터는 다음 명령으로 부른다`);
     세션들.add(세션);
   }
-  return { 세션들: [...세션들] };
+  if (세션들.size > 1) return 거절('한 명령에 세션 하나만 움직인다 — 세션마다 막기를 거는 시간이 쌓여 훅이 시간을 넘긴다');
+  return { 세션들: [...세션들], 지울: [...지울] };
 }
 
-// 세션 브라우저 전체(새 탭 포함)에 건다. 표시를 남겨 같은 브라우저에 두 번 걸지 않는다 — 다시 열면 새 브라우저라 표시도 없다
-const 막기코드 = "async page => { const c = page.context(); if (c.__scanReadOnly) return; c.__scanReadOnly = true; await c.route('**/*', r => ['GET', 'HEAD', 'OPTIONS'].includes(r.request().method()) ? r.fallback() : r.abort('blockedbyclient')); }";
+// 세션 브라우저 전체(새 탭 포함)에 건다. 브라우저 안 표시는 가로채기가 걸린 뒤에 단다 — 먼저 달면 한 번 실패한 세션이 다음부터 막기 없이 지나간다
+// GET 으로 동작하는 주소는 크롤러(authoring-crawl-rules.ts 위험낱말 · 위험파일 · 동작인자)와 같은 낱말로 끊는다 — 내려받기만 뺐다(훑기에는 해가 없다)
+export const 막기코드 = String.raw`async page => { const c = page.context(); if (c.__scanReadOnly) return; const cut = [/log-?out|log-?off|sign-?out|(?:^|[\/_.\-?&=])(?:out\.php|delete|del|remove|add|cancel|like|toggle|withdraw\w*|unsubscribe|leave|good|nogood|wish|scrap|vote|follow|unregister|secession|deactivate|resign)(?=$|[\/_.\-?&=])/i, /(?:update|delete|insert|good|wish|scrap|vote|proc)[^\/]*\.(?:php|do|jsp|aspx?)$/i, /[?&](?:(?:action|act|cmd|mode|op)=(?!disp|view|list|read|show)|w=d(?:&|$))/i]; await c.route('**/*', r => { const q = r.request(); const u = new URL(q.url()); return ['GET', 'HEAD', 'OPTIONS'].includes(q.method()) && !cut[0].test(u.pathname + u.search) && !cut[1].test(u.pathname) && !cut[2].test(u.search) ? r.fallback() : r.abort('blockedbyclient'); }); c.__scanReadOnly = true; }`;
+// 걸었다는 표시 — 명령마다 브라우저에 다시 묻지 않게(한 번에 1~2초). 그 세션을 열거나 닫는 명령이 지운다
+const 표시자리 = () => `${tmpdir()}/scan-guard`;
+const 표시 = (세션) => `${표시자리()}/${createHash('sha1').update(`${cwd}\n${세션}`).digest('hex')}`;
 function 저장막기(세션) {
+  if (existsSync(표시(세션))) return null;
   const r = spawnSync('npx', ['playwright', 'cli', ...(세션 ? [`-s=${세션}`] : []), 'run-code', 막기코드], { cwd, encoding: 'utf8', timeout: 30_000 });
   if (r.error) return r.error.message;
-  return r.status === 0 ? null : `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().slice(0, 300) || `종료 ${String(r.status)}`;
+  if (r.status !== 0) return `${r.stdout ?? ''}${r.stderr ?? ''}`.trim().slice(0, 300) || `종료 ${String(r.status)}`;
+  try { mkdirSync(표시자리(), { recursive: true }); writeFileSync(표시(세션), ''); } catch { /* 표시를 못 남기면 다음 명령이 다시 묻는다 */ }
+  return null;
 }
 
 if (mode === 'bash') {
@@ -138,6 +166,7 @@ if (mode === 'bash') {
   if (ev.agent_type === 훑기보조) {
     const 판 = scanVerdict(cmd);
     if (판.거절) block(판.거절);
+    for (const 세션 of 판.지울) rmSync(세션 === '*' ? 표시자리() : 표시(세션), { recursive: true, force: true });
     for (const 세션 of 판.세션들) {
       const 까닭 = 저장막기(세션);
       if (까닭) block(`[차단] 브라우저 세션 ${세션 || '기본'} 에 저장 · 변경 막기를 못 걸어 움직이지 않는다 — ${까닭} (PRD-F9-27)`);
