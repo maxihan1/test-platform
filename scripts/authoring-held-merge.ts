@@ -107,7 +107,7 @@ export function 적용(자리: 사본, 쓸: 쓸것): string | null {
  * 3회 실행까지의 환경. 부모 것은 안 싣는다 — 케이스 코드는 자식이 쓴 것이라 에이전트 토큰을 읽게 두지 않는다.
  * 비어 있는 계정 칸은 kit 이 PLATFORM_ACCOUNTS 에서 PLATFORM_BASE_URL 과 출처가 같은 줄로 채운다 (§3.6 「★ 역할별 계정」)
  */
-function 관문환경(자리: 사본, 자식: 계정 | null, 준비: 반영준비): Record<string, string> {
+export function 관문환경(자리: 사본, 자식: 계정 | null, 준비: 반영준비): Record<string, string> {
   const p = process.env;
   const t = 준비.것.target;
   return {
