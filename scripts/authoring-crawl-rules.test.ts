@@ -1,7 +1,7 @@
 // 화면 크롤러 판정 검사 — 따라갈 주소 · 같은 틀 · 지문 · 목록 · 로그인 풀림 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04)
 import { describe, expect, it } from 'vitest';
 
-import { 걸러진까닭, 글자지문, 덮은틀읽기, 덮음인가, 케이스지도읽기, 틀닿나, 틀케이스, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 빼는주소인가, 뺄경로읽기, 연결모으기, 주소고르기, 주소틀, 지문, 틀키 } from './authoring-crawl-rules.js';
+import { 걸러진까닭, 글자지문, 덮은틀읽기, 덮음인가, 케이스지도읽기, 크롤역할들, 틀닿나, 틀케이스, 둘째장볼까, 로그인풀렸나, 목록고르기, 부모키, 빼는주소인가, 뺄경로읽기, 연결모으기, 주소고르기, 주소틀, 지문, 틀키 } from './authoring-crawl-rules.js';
 
 describe('주소틀 — 화면 파일의 화면 주소를 크롤러 같은 틀로 (PRD-F6-03)', () => {
   it('경로 · 절대 주소 모두 크롤러와 같은 틀이 된다', () => {
@@ -210,34 +210,63 @@ describe('글자지문 — 크롤 파일 전체 · 숫자만 0 (2026-10-04 · �
   });
 });
 
-describe('목록고르기 — 두 상태에 다 있으면 로그인 하나, 시작 화면만 둘 다', () => {
-  const 항목 = (상태: '로그아웃' | '로그인', 틀: string, 시작 = false) => ({ 상태, 틀, 주소: `https://site.test${틀}`, 이름: 틀, 파일: `${상태}/${틀}.yml`, 시작 });
+describe('목록고르기 — 로그아웃 · 로그인에 다 있으면 로그인 쪽만, 시작 화면만 둘 다', () => {
+  const 회원 = '로그인:일반 회원' as const;
+  const 관리자 = '로그인:관리자' as const;
+  const 항목 = (상태: '로그아웃' | typeof 회원 | typeof 관리자, 틀: string, 시작 = false) => ({ 상태, 틀, 주소: `https://site.test${틀}`, 이름: 틀, 파일: `x/${틀}.yml`, 시작 });
 
   it('고른다', () => {
-    const 목록 = 목록고르기([항목('로그아웃', '/', true), 항목('로그인', '/', true), 항목('로그아웃', '/login'), 항목('로그아웃', '/about'), 항목('로그인', '/about'), 항목('로그인', '/my')]);
-    expect(목록.map((x) => `${x.상태} ${x.틀}`)).toEqual(['로그아웃 /', '로그인 /', '로그아웃 /login', '로그인 /about', '로그인 /my']);
+    const 목록 = 목록고르기([항목('로그아웃', '/', true), 항목(회원, '/', true), 항목('로그아웃', '/login'), 항목('로그아웃', '/about'), 항목(회원, '/about'), 항목(회원, '/my')]);
+    expect(목록.map((x) => `${x.상태} ${x.틀}`)).toEqual(['로그아웃 /', `${회원} /`, '로그아웃 /login', `${회원} /about`, `${회원} /my`]);
+  });
+
+  it('역할끼리는 안 줄인다 — 관리자에게만 보이는 버튼이 있다 · 로그아웃 쪽은 어느 역할이 봤어도 빠진다 (PRD-F9-30)', () => {
+    const 목록 = 목록고르기([항목('로그아웃', '/board'), 항목(회원, '/board'), 항목(관리자, '/board'), 항목('로그아웃', '/notice'), 항목(관리자, '/notice')]);
+    expect(목록.map((x) => `${x.상태} ${x.틀}`)).toEqual([`${회원} /board`, `${관리자} /board`, `${관리자} /notice`]);
   });
 });
 
 describe('연결모으기 — 화면 연결을 목록에 남은 화면으로 (PRD-F6-02)', () => {
-  it('두 상태에 다 있는 틀은 로그인 하나만 남으므로 로그아웃 때 본 연결도 그 화면에 합친다 — 홈 → 로그인 · 가입', () => {
+  it('로그아웃 · 로그인에 다 있는 틀은 로그인 쪽만 남으므로 로그아웃 때 본 연결도 그 틀의 첫 로그인 화면에 합친다 — 홈 → 로그인 · 가입', () => {
     const 로그아웃홈 = { 상태: '로그아웃' as const, 틀: '/' };
-    const 로그인홈 = { 상태: '로그인' as const, 틀: '/' };
+    const 로그인홈 = { 상태: '로그인:일반 회원' as const, 틀: '/' };
+    const 관리자홈 = { 상태: '로그인:관리자' as const, 틀: '/' };
     const 로그아웃가입 = { 상태: '로그아웃' as const, 틀: '/join' };
     const 연결 = new Map([
       [0, new Map([['/login 링크', { to: '/login', via: '링크 「로그인」' }], ['/cart 링크', { to: '/cart', via: '링크 「장바구니」' }]])],
       [1, new Map([['/cart 링크', { to: '/cart', via: '링크 「장바구니」' }], ['/my 링크', { to: '/my', via: '링크 「내 정보」' }]])],
       [2, new Map([['/ 링크', { to: '/', via: '링크 「홈」' }]])],
+      [3, new Map([['/admin 링크', { to: '/admin', via: '링크 「관리」' }]])],
     ]);
-    expect(연결모으기([로그아웃홈, 로그인홈, 로그아웃가입], 연결, [로그인홈, 로그아웃가입])).toEqual([
-      { 상태: '로그인', 틀: '/', 연결: [{ to: '/login', via: '링크 「로그인」' }, { to: '/cart', via: '링크 「장바구니」' }, { to: '/my', via: '링크 「내 정보」' }] },
+    expect(연결모으기([로그아웃홈, 로그인홈, 로그아웃가입, 관리자홈], 연결, [로그인홈, 관리자홈, 로그아웃가입])).toEqual([
+      { 상태: '로그인:일반 회원', 틀: '/', 연결: [{ to: '/login', via: '링크 「로그인」' }, { to: '/cart', via: '링크 「장바구니」' }, { to: '/my', via: '링크 「내 정보」' }] },
+      { 상태: '로그인:관리자', 틀: '/', 연결: [{ to: '/admin', via: '링크 「관리」' }] },
       { 상태: '로그아웃', 틀: '/join', 연결: [{ to: '/', via: '링크 「홈」' }] },
     ]);
   });
 
   it('목록에 같은 틀이 없는 화면(로그인 풀림으로 빠진 것)의 연결은 버린다', () => {
-    const 풀림 = { 상태: '로그인' as const, 틀: '/my/edit' };
+    const 풀림 = { 상태: '로그인:일반 회원' as const, 틀: '/my/edit' };
     expect(연결모으기([풀림], new Map([[0, new Map([['/ 링크', { to: '/', via: '링크 「홈」' }]])]]), [])).toEqual([]);
+  });
+});
+
+describe('크롤역할들 — 크롤러가 로그인해 훑을 역할 (PRD-F9-30)', () => {
+  const 출처 = 'https://site.test';
+  it('일반 회원부터 · 계정 줄의 역할을 차례로 · 같은 역할은 한 번', () => {
+    const 계정 = JSON.stringify([
+      { baseUrl: 'https://site.test', role: '관리자', loginId: 'a', loginPassword: 'p' },
+      { baseUrl: 'https://site.test/', role: '일반 회원', loginId: 'b', loginPassword: 'q' },
+      { baseUrl: null, role: '판매자', loginId: 'c', loginPassword: 'r' },
+      { baseUrl: 'https://site.test', role: '관리자', loginId: 'd', loginPassword: 's' },
+    ]);
+    expect(크롤역할들(계정, 출처)).toEqual(['일반 회원', '관리자', '판매자']);
+  });
+
+  it('출처가 다른 줄 · 역할이 빈 줄은 뺀다 — 없거나 못 읽으면 일반 회원 하나', () => {
+    expect(크롤역할들(JSON.stringify([{ baseUrl: 'https://other.test', role: '관리자' }, { baseUrl: 'https://site.test', role: ' ' }]), 출처)).toEqual(['일반 회원']);
+    expect(크롤역할들(undefined, 출처)).toEqual(['일반 회원']);
+    expect(크롤역할들('깨짐', 출처)).toEqual(['일반 회원']);
   });
 });
 

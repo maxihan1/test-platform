@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { 모두덮음 } from './authoring-covered.js';
 import { 부른다 } from './authoring-io.js';
 import { 계정섞였나 } from './authoring-reverse.js';
-import { type 목록칸, type 상태, 날수, 받은저장본, 이번것들 } from './authoring-screens-keep.js';
+import { type 목록칸, 날수, 받은저장본, 상태인가, 이번것들 } from './authoring-screens-keep.js';
 
 const 기록상한 = 200_000;
 const 목록상한 = 2_000_000;
@@ -61,7 +61,7 @@ function 연결읽기(크롤: string): { 연결들: Map<string, { toUrl: string;
   const 글자 = (x: unknown, 상한: number): x is string => typeof x === 'string' && x.trim() !== '' && x.length <= 상한;
   for (const 칸 of Array.isArray(글) ? 글 : []) {
     const x = (typeof 칸 === 'object' && 칸 !== null ? 칸 : {}) as { 상태?: unknown; 틀?: unknown; 연결?: unknown };
-    if ((x.상태 !== '로그아웃' && x.상태 !== '로그인') || typeof x.틀 !== 'string' || !Array.isArray(x.연결)) continue;
+    if (!상태인가(x.상태) || typeof x.틀 !== 'string' || !Array.isArray(x.연결)) continue;
     const 줄들 = (x.연결 as { to?: unknown; via?: unknown }[]).flatMap((l) => (글자(l?.to, 2_000) && 글자(l?.via, 500) ? [{ toUrl: l.to, via: l.via }] : []));
     연결들.set(`${x.상태} ${x.틀}`, 줄들.slice(0, 1_000));
   }
@@ -78,7 +78,7 @@ function 본화면읽기(크롤: string): Pick<목록칸, '상태' | '틀' | '�
     const 값 = JSON.parse(안전히읽기(크롤, 'index.json', 본목록상한) ?? 'null') as { 화면?: unknown } | null;
     if (!Array.isArray(값?.화면)) return null;
     return (값.화면 as (Partial<목록칸> & { 로그인풀림?: unknown } | null)[]).flatMap((x) =>
-      (x?.상태 === '로그아웃' || x?.상태 === '로그인') && typeof x.틀 === 'string' && x.로그인풀림 !== true
+      상태인가(x?.상태) && typeof x.틀 === 'string' && x.로그인풀림 !== true
         ? [{ 상태: x.상태, 틀: x.틀, 이름: typeof x.이름 === 'string' ? x.이름 : '' }]
         : [],
     );
@@ -163,7 +163,7 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
   const 볼글 = [...seen.map((x) => x.name), ...이번.flatMap((x) => [x.글, x.이름, x.틀, ...(연결들.get(x.키) ?? []).flatMap((l) => [l.toUrl, l.via])])];
   if (계정섞였나(볼글, 비밀)) return { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
   // 지우기는 크롤이 링크를 따라가 예외 없이 다 봤을 때, 실제로 돈 상태만 (검사 주의 1 — 상태 파일 없이 로그아웃만 돌면 로그인 기록은 남긴다)
-  const 돈상태 = Array.isArray(요약.상태들) ? 요약.상태들.filter((x): x is 상태 => x === '로그아웃' || x === '로그인') : [];
+  const 돈상태 = Array.isArray(요약.상태들) ? 요약.상태들.filter(상태인가) : [];
   const 다봄 = 요약.멈춘까닭 === null && 요약.따라가기 === true && 요약.예외 !== true;
   const 지울상태 = 다봄 && 본화면 !== null ? [...new Set(돈상태)] : [];
   const 길 = `/authoring/requests/${통로.번호}/screens`;

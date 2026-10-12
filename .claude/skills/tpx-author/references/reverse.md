@@ -41,23 +41,29 @@
 // (파일 자리에서 돌리면 @playwright/test 를 못 찾는다 — 표준 입력으로 주면 지금 폴더에서 찾는다)
 import { chromium } from '@playwright/test';
 const 서버 = new URL(process.env.TARGET_BASE_URL);
+// 크롤러가 역할마다 돌린다 — CRAWL_ROLE 의 계정으로 로그인해 CRAWL_STATE 에 쓴다. 없으면 일반 회원 · rev-state.json (PRD-F9-30)
+const 역할 = process.env.CRAWL_ROLE || '일반 회원';
+const 계정 = JSON.parse(process.env.PLATFORM_ACCOUNTS || '[]').find((a) => a.role === 역할)
+  ?? (역할 === '일반 회원' ? { loginId: process.env.TARGET_LOGIN_ID, loginPassword: process.env.TARGET_LOGIN_PASSWORD } : null);
+if (계정 === null) { console.log(`${역할} 계정이 없다`); process.exit(4); }
 const 브라우저 = await chromium.launch();
 const 쪽 = await 브라우저.newPage();
 await 쪽.goto(process.env.TARGET_START_URL || process.env.TARGET_BASE_URL);
 // 로그인 폼이 나올 때까지 이동은 링크·버튼 클릭만 한다
 // ★ 입력 직전 출처 확인 — 다르면 입력하지 않고 멈춘다(SSO·피싱 리다이렉트)
 if (new URL(쪽.url()).origin !== 서버.origin) { console.log('출처가 다르다 — 입력하지 않는다'); process.exit(3); }
-await 쪽.getByLabel(/아이디|ID|이메일/i).fill(process.env.TARGET_LOGIN_ID);
-await 쪽.getByLabel(/비밀번호|password/i).fill(process.env.TARGET_LOGIN_PASSWORD);
+await 쪽.getByLabel(/아이디|ID|이메일/i).fill(계정.loginId);
+await 쪽.getByLabel(/비밀번호|password/i).fill(계정.loginPassword);
 await 쪽.getByRole('button', { name: /로그인|log ?in|sign ?in/i }).click();
 await 쪽.waitForLoadState('networkidle');
-await 쪽.context().storageState({ path: `${process.env.TMPDIR}/rev-state.json` });
+await 쪽.context().storageState({ path: process.env.CRAWL_STATE || `${process.env.TMPDIR}/rev-state.json` });
 await 브라우저.close();
 ```
 
-폼 모양은 화면마다 다르다 — locator 는 고쳐 쓰되 **출처 확인 줄과 `process.env` 읽기는 그대로 둔다.**
-**이 스크립트를 크롤러에 `--login` 으로 넘긴다** (2026-10-11 PRD-F6-02) — 크롤러가 로그아웃을 누른 뒤 다시 돌려 상태 파일을 새로 쓴다. 그래서 상태 파일은 크롤러의 `--state` 와 같은 자리(`$TMPDIR/rev-state.json`)에 쓴다.
-그다음 훑기는 탐침으로 — `npx playwright cli -s=rev open` → `state-load $TMPDIR/rev-state.json` → 시작 주소로 이동.
+폼 모양은 화면마다 다르다 — locator 는 고쳐 쓰되 **출처 확인 줄 · 역할 고르기 · `process.env` 읽기는 그대로 둔다.**
+**이 스크립트를 크롤러에 `--login` 으로 넘긴다** (2026-10-11 PRD-F6-02) — 크롤러가 역할마다(`CRAWL_ROLE`) 돌려 그 역할의 상태 파일(`CRAWL_STATE`)을 만들고, 로그아웃을 누른 뒤에도 다시 돌린다(2026-10-12 PRD-F9-30).
+먼저 환경 변수 없이 한 번 돌려 일반 회원 상태 파일(`$TMPDIR/rev-state.json`)을 만들고 크롤러 `--state` 로 준다. 역할마다의 상태 파일은 크롤 폴더 `states.json`(`{ "로그인:<역할>": <파일> }`)에 있다.
+그다음 훑기는 탐침으로 — `npx playwright cli -s=rev open` → `state-load <그 화면 상태의 상태 파일>` → 시작 주소로 이동.
 
 **출처가 달라 멈췄으면** 그 화면은 훑지 않고 결과 요약에 `로그인 못 함 — 다른 출처(SSO)로 간다 · 이번 판 미지원` 을 적는다.
 
@@ -118,7 +124,7 @@ process.exit(찾은.length === 0 ? 0 : 1);
 | 갈래 | 훑는 것 |
 |---|---|
 | **대조** | 기획서가 말하는 화면 + 그 화면의 **한 칸**. 크롤러는 사이트 전체를 찍는다(2026-10-11 PRD-F6-02) — 그 목록에서 기획서 화면만 고른다(크롤러 명령에 기획서 화면 주소도 넘겨 늘 목록에 있다) |
-| **화면만** | 시작 주소(없으면 대상 서버 주소)에서 링크로 갈 수 있는 **같은 사이트 화면 가운데 `list.json` 에서 `덮음: true` 가 아닌 줄**(PRD 에 이미 있는 화면은 훑지 않는다 — 정본은 작성.md 「기획서에 없는 화면 — 두 번째 작성」)을 로그인 전과 뒤 두 상태로(머리 메뉴 · 하위 메뉴 · 바닥 링크 · 화면 안 링크 — 2026-10-03). 같은 틀은 하나만 연다(판정 정본은 작성.md 「화면 구조는 크롤러가 먼저 뽑는다」 — 크롤러가 이미 골랐다). 목록 만들기 · 차례는 `scan-fanout.md` §2 |
+| **화면만** | 시작 주소(없으면 대상 서버 주소)에서 링크로 갈 수 있는 **같은 사이트 화면 가운데 `list.json` 에서 `덮음: true` 가 아닌 줄**(PRD 에 이미 있는 화면은 훑지 않는다 — 정본은 작성.md 「기획서에 없는 화면 — 두 번째 작성」)을 로그아웃과 로그인 역할마다(머리 메뉴 · 하위 메뉴 · 바닥 링크 · 화면 안 링크 — 2026-10-03 · 역할은 2026-10-12 PRD-F9-30). 같은 틀은 하나만 연다(판정 정본은 작성.md 「화면 구조는 크롤러가 먼저 뽑는다」 — 크롤러가 이미 골랐다). 목록 만들기 · 차례는 `scan-fanout.md` §2 |
 
 **한 칸은 그 화면 안에서 여는 것이다** — 팝업 · 탭 · 펼치기 · 그 흐름의 다음 단계(단계 표시가 있는 폼의 2단계 같은 것).
 **한 칸이 아닌 것** — 머리 메뉴 · 바닥 링크 · 옆 메뉴 · 다른 기능 화면으로 가는 링크 · 404·관리자처럼 기획서가 말하지 않은 화면.

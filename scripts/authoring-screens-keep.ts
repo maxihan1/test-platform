@@ -1,7 +1,9 @@
 // 화면 기록 저장본 판정 — 바뀌지 않은 화면은 다시 훑지 않게 (도메인/작성 §3.6 「★ 역방향」 · 2026-10-04). 서버와 주고받기 · 파일 I/O 는 authoring-screens-keep-io.ts
 import { createHash } from 'node:crypto';
 
-export type 상태 = '로그아웃' | '로그인';
+/** 로그아웃 · 로그인:<역할> — 역할마다 보이는 버튼이 달라 한 칸에 섞지 않는다 (PRD-F9-30). 역할 이름은 대상 서버 줄의 규칙(앞뒤 공백 없음 · 40자 이하)이다 */
+export type 상태 = '로그아웃' | `로그인:${string}`;
+export const 상태인가 = (v: unknown): v is 상태 => v === '로그아웃' || (typeof v === 'string' && /^로그인:\S(?:.{0,38}\S)?$/su.test(v));
 
 export interface 저장항목 {
   /** `<상태> <틀>` — 실행마다 바뀌는 크롤 번호 대신 이것으로 맞춘다 */
@@ -31,6 +33,8 @@ export interface 목록칸 {
   지문: string;
   글자지문: string;
   이름?: string;
+  /** 크롤 파일(`로그인/012.yml`) — 같은 주소를 두 역할로 봤을 때 기록 이름의 번호로 가른다 */
+  파일?: string;
 }
 
 /** 이 날수를 넘은 기록은 바뀐 것으로 본다 — 지문이 못 잡는 변화(팝업 안 · 오류 문구)를 언젠가는 다시 본다 */
@@ -50,7 +54,7 @@ export function 저장본모양(값: unknown): 저장본 {
     if (typeof x !== 'object' || x === null) return false;
     const h = x as Record<string, unknown>;
     return (
-      글(h.키) && (h.상태 === '로그아웃' || h.상태 === '로그인') && 글(h.틀) && 글(h.주소) && 글(h.지문) && 글(h.글자지문) &&
+      글(h.키) && 상태인가(h.상태) && 글(h.틀) && 글(h.주소) && 글(h.지문) && 글(h.글자지문) &&
       typeof h.기록 === 'string' && 기록이름꼴.test(h.기록) && typeof h.훑은날 === 'string' && 날꼴.test(h.훑은날)
     );
   });
@@ -59,7 +63,7 @@ export function 저장본모양(값: unknown): 저장본 {
 
 /** 저장본 폴더(`kept/`) 안 기록 이름 — 상태 + 틀로 정해 실행마다 같다. 영문 소문자 · 숫자만 */
 export function 저장이름(상태: 상태, 틀: string): string {
-  return `${상태 === '로그인' ? 'in' : 'out'}-${createHash('sha1').update(`${상태} ${틀}`).digest('hex').slice(0, 12)}.md`;
+  return `${상태 === '로그아웃' ? 'out' : 'in'}-${createHash('sha1').update(`${상태} ${틀}`).digest('hex').slice(0, 12)}.md`;
 }
 
 /** 기록 첫 줄 `# <크롤 주소>` — 이름이 아니라 이것으로 목록과 맞춘다(이어하기에서 크롤 번호가 바뀌어도 안 섞인다) */
@@ -108,16 +112,19 @@ export function 견주기(
 }
 
 /**
- * 이번에 쓴 화면 기록을 목록과 맞춰 저장할 항목으로 — 상태는 기록 이름 머리(`out-` · `in-`), 주소는 첫 줄.
+ * 이번에 쓴 화면 기록을 목록과 맞춰 저장할 항목으로 — 로그아웃 · 로그인은 기록 이름 머리(`out-` · `in-`), 주소는 첫 줄.
+ * 같은 주소를 두 역할로 봤으면 기록 이름의 크롤 번호(`in-012.md` ↔ `로그인/012.yml`)로 가른다 — 못 가르면 저장하지 않는다.
  * 목록에 없는 기록(더 갈 곳 `extra-` · 손 목록)은 저장하지 않는다
  */
 export function 이번것들(목록: 목록칸[], 기록들: { 이름: string; 글: string }[], 오늘: string): (저장항목 & { 원본: string; 이름: string; 글: string })[] {
-  const 줄로 = new Map(목록.map((x) => [줄키(x), x]));
   const 고른: (저장항목 & { 원본: string; 이름: string; 글: string })[] = [];
   for (const r of 기록들) {
     const 주소 = 기록주소(r.글);
-    const 상태 = r.이름.startsWith('out-') ? '로그아웃' : r.이름.startsWith('in-') ? '로그인' : null;
-    const x = 주소 === null || 상태 === null ? undefined : 줄로.get(줄키({ 상태, 주소 }));
+    const 로그아웃 = r.이름.startsWith('out-') ? true : r.이름.startsWith('in-') ? false : null;
+    if (주소 === null || 로그아웃 === null) continue;
+    const 후보 = 목록.filter((x) => x.주소 === 주소 && (x.상태 === '로그아웃') === 로그아웃);
+    const 번호 = /^(?:in|out)-(\d+)\.md$/.exec(r.이름)?.[1];
+    const x = 후보.length === 1 ? 후보[0] : 후보.find((y) => 번호 !== undefined && y.파일?.split('/').at(-1) === `${번호}.yml`);
     if (x === undefined) continue;
     고른.push({
       키: `${x.상태} ${x.틀}`, 상태: x.상태, 틀: x.틀, 주소: x.주소, 지문: x.지문, 글자지문: x.글자지문, 기록: 저장이름(x.상태, x.틀), 훑은날: 오늘,
@@ -137,7 +144,7 @@ export function 받은저장본(몸: unknown): { 저장: 저장본; 기록들: M
   const 기록들 = new Map<string, string>();
   for (const 행 of Array.isArray(행들) ? 행들 : []) {
     const x = (typeof 행 === 'object' && 행 !== null ? 행 : {}) as Record<string, unknown>;
-    if ((x.state !== '로그아웃' && x.state !== '로그인') || typeof x.url !== 'string' || typeof x.record !== 'string' || typeof x.crawledAt !== 'string') continue;
+    if (!상태인가(x.state) || typeof x.url !== 'string' || typeof x.record !== 'string' || typeof x.crawledAt !== 'string') continue;
     const 주소 = 기록주소(x.record);
     if (주소 === null) continue;
     const 기록 = 저장이름(x.state, x.url);

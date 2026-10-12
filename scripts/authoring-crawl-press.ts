@@ -1,5 +1,6 @@
 // 크롤러가 무엇을 누를지 — 누를 후보 · 탈퇴 흐름 · 로그아웃 · 화면 안 확인 창 버튼 판정. 껍데기(authoring-crawl-page.ts)가 부른다 (도메인/작성 §3.6 「★ 표준 기획서」 「화면 기록과 크롤러」)
 import { 걸러진까닭, 풀기 } from './authoring-crawl-rules.js';
+import type { 상태 } from './authoring-screens-keep.js';
 
 export type 누름종류 = '버튼' | '링크';
 
@@ -54,9 +55,9 @@ export function 로그아웃인가(이름: string, href: string | null, 기준: 
  * 누를까 — 버튼은 위험 이름도 누르고, 링크는 따라가지 않는 것(위험 글자 · 동작 낱말 · `javascript:` · `#`)만 누른다. 따라가는 링크는 이동으로 이미 본다.
  * 탈퇴 흐름 화면에서는 아무것도 안 누른다. 로그아웃은 로그인 판에서 다시 로그인할 수 있을 때만 누른다
  */
-export function 누를까(x: 후보, 상황: { 상태: '로그아웃' | '로그인'; 탈퇴흐름: boolean; 다시로그인: boolean }, 기준: string): boolean {
+export function 누를까(x: 후보, 상황: { 상태: 상태; 탈퇴흐름: boolean; 다시로그인: boolean }, 기준: string): boolean {
   if (상황.탈퇴흐름 || !x.보임 || x.제출막힘) return false;
-  if (로그아웃인가(x.이름, x.href, 기준)) return 상황.상태 === '로그인' && 상황.다시로그인;
+  if (로그아웃인가(x.이름, x.href, 기준)) return 상황.상태 !== '로그아웃' && 상황.다시로그인;
   if (x.종류 === '버튼') return true;
   const h = (x.href ?? '').trim();
   if (h === '' || h === '#' || /^javascript:/i.test(h)) return true;

@@ -50,10 +50,10 @@ const 로그인화면 = { 주소: 'https://s.test/login', 이름: '로그인', �
 
 describe('저장본넣기', () => {
   it('서버 화면 기록을 kept/ 로 넣는다 — 크롤러가 읽는 index.json 과 기록 파일', async () => {
-    서버(() => ({ status: 200, 몸: { screens: [{ state: '로그인', url: '/board/:n', name: '글', textFp: 'g', structFp: 'a', record: '# https://s.test/board/3\n글', crawledAt: '2026-10-01T00:00:00.000Z' }], links: [] } }));
+    서버(() => ({ status: 200, 몸: { screens: [{ state: '로그인:일반 회원', url: '/board/:n', name: '글', textFp: 'g', structFp: 'a', record: '# https://s.test/board/3\n글', crawledAt: '2026-10-01T00:00:00.000Z' }], links: [] } }));
     expect(await 저장본넣기(통로, 자료)).toBe(1);
     expect(건것들.map((x) => `${x.method} ${x.url}`)).toEqual(['GET http://admin:3000/api/authoring/requests/7/screens']);
-    const 기록 = 저장이름('로그인', '/board/:n');
+    const 기록 = 저장이름('로그인:일반 회원', '/board/:n');
     expect(readdirSync(join(자료, 'kept')).sort()).toEqual([기록, 'index.json'].sort());
     expect(JSON.parse(readFileSync(join(자료, 'kept', 'index.json'), 'utf8')).항목[0]).toMatchObject({ 틀: '/board/:n', 주소: 'https://s.test/board/3', 훑은날: '2026-10-01' });
   });
@@ -115,13 +115,14 @@ describe('저장본올리기', () => {
   });
 
   it('목록에서 빠진 화면도 크롤러가 본 것이면 본 것으로 넘긴다 — 로그인 상태로도 본 /login 의 로그아웃 기록이 안 지워진다 (PRD-F9-05)', async () => {
-    const 로그인쪽 = { ...로그인화면, 상태: '로그인' };
-    크롤쓰기([홈, 로그인쪽], { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃', '로그인'], 예외: false }, [
+    const 로그인쪽 = { ...로그인화면, 상태: '로그인:일반 회원' };
+    크롤쓰기([홈, 로그인쪽], { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃', '로그인:일반 회원', '로그인'], 예외: false }, [
       홈,
       로그인화면,
-      { ...홈, 상태: '로그인', 이름: '홈 (로그인)' },
+      { ...홈, 상태: '로그인:일반 회원', 이름: '홈 (로그인)' },
       로그인쪽,
-      { ...홈, 상태: '로그인', 틀: '/my', 이름: '로그인', 로그인풀림: true },
+      { ...홈, 상태: '로그인:일반 회원', 틀: '/my', 이름: '로그인', 로그인풀림: true },
+      { ...홈, 상태: '로그인', 틀: '/옛', 이름: '옛 상태' },
     ]);
     서버(다봄답());
     await 저장본올리기(통로, 자료, [], 지금);
@@ -129,10 +130,10 @@ describe('저장본올리기', () => {
       seen: [
         { state: '로그아웃', url: '/', name: '홈' },
         { state: '로그아웃', url: '/login', name: '로그인' },
-        { state: '로그인', url: '/', name: '홈 (로그인)' },
-        { state: '로그인', url: '/login', name: '로그인' },
+        { state: '로그인:일반 회원', url: '/', name: '홈 (로그인)' },
+        { state: '로그인:일반 회원', url: '/login', name: '로그인' },
       ],
-      complete: ['로그아웃', '로그인'],
+      complete: ['로그아웃', '로그인:일반 회원'],
     });
   });
 
@@ -171,7 +172,7 @@ describe('저장본올리기', () => {
     서버(다봄답());
     for (const 요약 of [
       { 멈춘까닭: '로그아웃 몫 시간', 따라가기: true, 상태들: ['로그아웃'] },
-      { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃', '로그인'], 예외: true },
+      { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃', '로그인:일반 회원'], 예외: true },
       { 멈춘까닭: null, 따라가기: false, 상태들: ['로그아웃'], 예외: false },
     ]) {
       크롤쓰기([홈], 요약);
