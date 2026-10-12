@@ -7,10 +7,11 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 
 import { chromium } from '@playwright/test';
 
-import { type 본화면, type 상태, type 인자, type 판, 로그인돌리기, 한상태 } from './authoring-crawl-state.js';
+import { type 본화면, type 판, 한상태 } from './authoring-crawl-state.js';
+import { type 인자, 로그인돌리기 } from './authoring-crawl-session.js';
 import { 덮은틀읽기, 덮음인가, 케이스지도읽기, 크롤역할들, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기, 틀케이스 } from './authoring-crawl-rules.js';
 import { 기본역할 } from '@platform/kit/accounts';
-import { 견주기, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
+import { 견주기, type 상태, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
 
 const 장상한 = 100;
 const 분상한 = 10;

@@ -4,16 +4,18 @@
 -- migrate:up
 
 -- 대상 서버 — 피처 플래그가 다른 qa 와 운영의 같은 화면이 한 칸에서 서로 덮어쓰지 않게.
--- 옛 줄은 그 서비스의 마지막 대조 요청 서버다(화면 기록은 대조 · 화면만만 쓴다). 대조가 없는 서비스 줄은 어느 서버 것인지 몰라 지운다 — 다음 작성이 다시 훑는다
+-- 옛 줄은 그 서비스가 대조(화면만 포함)에 쓴 대상 서버가 하나뿐일 때 그 서버다(화면 기록은 대조만 쓴다).
+-- 둘 이상이었거나 대조가 없으면 어느 서버 것인지 몰라 지운다 — 짐작해 붙이면 다른 서버 지문을 「같음」으로 재사용한다. 다음 작성이 다시 훑는다
 ALTER TABLE screen_record ADD COLUMN env TEXT;
 ALTER TABLE screen_found ADD COLUMN env TEXT;
 ALTER TABLE screen_link ADD COLUMN env TEXT;
 
 CREATE TEMP TABLE 마지막대조 ON COMMIT DROP AS
-  SELECT DISTINCT ON (service_id) service_id, env
+  SELECT service_id, min(env) AS env
     FROM authoring_request
    WHERE compare AND env IS NOT NULL
-   ORDER BY service_id, id DESC;
+   GROUP BY service_id
+  HAVING count(DISTINCT env) = 1;
 UPDATE screen_record t SET env = m.env FROM 마지막대조 m WHERE m.service_id = t.service_id;
 UPDATE screen_found t SET env = m.env FROM 마지막대조 m WHERE m.service_id = t.service_id;
 UPDATE screen_link t SET env = m.env FROM 마지막대조 m WHERE m.service_id = t.service_id;

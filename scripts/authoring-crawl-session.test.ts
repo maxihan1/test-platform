@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 로그인돌리기 } from './authoring-crawl-state.js';
+import { 로그인돌리기 } from './authoring-crawl-session.js';
 
 let 폴더 = '';
 beforeEach(() => {

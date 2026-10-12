@@ -2,11 +2,8 @@
 // 맞추는 열쇠는 대상 서버 + 상태 + 같은 틀(url 칸)이다 — 번호만 다른 주소를 한 화면으로 봐야 게시판 글처럼 매번 다른 글이 열리는 화면도 다시 안 훑는다.
 // 대상 서버는 요청 행에서 읽는다 — 피처 플래그가 다른 qa 와 운영의 같은 화면이 서로 덮어쓰지 않게 (PRD-F9-29)
 
-import { 역할최대글자 } from '../settings/roles.js';
+import { type 상태, 상태인가 } from '../../../../scripts/authoring-screens-keep.js';
 import { db, 한묶음 } from '../settings/store.js';
-
-/** 로그아웃 · 로그인:<역할> — 역할마다 보이는 버튼이 달라 한 칸에 섞지 않는다 (PRD-F9-30). 역할 이름 규칙은 대상 서버 줄과 같다 */
-type 상태 = '로그아웃' | `로그인:${string}`;
 
 export interface 화면 {
   state: 상태;
@@ -29,12 +26,6 @@ const 틀림 = (detail: string): 오류 => ({ error: 'BAD_SCREEN', detail });
 const 칸들 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : {});
 const 글인가 = (v: unknown, 최대: number, 빈것 = false): v is string =>
   typeof v === 'string' && v.length <= 최대 && (빈것 || v.trim() !== '');
-const 상태인가 = (v: unknown): v is 상태 => {
-  if (v === '로그아웃') return true;
-  if (typeof v !== 'string' || !v.startsWith('로그인:')) return false;
-  const 역할 = v.slice('로그인:'.length);
-  return 역할 !== '' && 역할 === 역할.trim() && 역할.length <= 역할최대글자;
-};
 
 /** PUT 본문 — 화면 하나와 그 화면에서 나간 연결 */
 export function 화면검사(몸: unknown): { 화면: 화면; links: 링크[] } | 오류 {

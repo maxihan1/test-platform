@@ -1,9 +1,9 @@
 // 화면 크롤러의 판정 — 따라갈 주소 · 같은 틀 · 지문 · 목록 · 로그인 풀림. 껍데기(authoring-crawl.ts)는 I/O 만 한다 (도메인/작성 §3.6 「★ 역방향」)
 import { createHash } from 'node:crypto';
 
-import { 기본역할 } from '@platform/kit/accounts';
+import { 기본역할, 출처 as 주소출처 } from '@platform/kit/accounts';
 import { 제외경로정리, 제외되나 } from '../apps/admin/src/settings/rules.js';
-import type { 상태 } from './authoring-screens-keep.js';
+import { type 상태, 상태인가 } from './authoring-screens-keep.js';
 
 const 내려받기 = /\.(pdf|zip|7z|rar|hwpx?|docx?|xlsx?|pptx?|csv|txt|png|jpe?g|gif|svg|webp|ico|mp4|mov|avi|mp3|wav|apk|exe|dmg|msi)$/i;
 // 링크 글자 — 주소가 멀쩡해 보여도 이것이면 상태가 바뀐다(검토 BLOCKER — `/member/out.php` 가 「로그아웃」이었다)
@@ -73,12 +73,12 @@ const 마디정리 = (경로: string): string =>
     .map((m) => (숫자마디.test(m) ? ':n' : m))
     .join('/');
 
-/** 같은 틀이면 같은 키 — 숫자 마디 · 숫자 값 · 쪽 인자만 묶는다 */
+/** 같은 틀이면 같은 키 — 숫자 마디 · 숫자 값 · 쪽 인자만 묶는다. 화면 파일의 이름 값(`?wr_id=:id`)도 숫자 값이다 (PRD-F9-04) */
 export function 틀키(주소: string): string {
   const u = new URL(주소);
   const 인자 = [...u.searchParams]
     .filter(([k]) => !쪽인자.has(k.toLowerCase()))
-    .map(([k, v]) => `${k}=${/^\d+$/.test(v) ? ':n' : v}`)
+    .map(([k, v]) => `${k}=${/^(?:\d+|:\w+)$/.test(v) ? ':n' : v}`)
     .sort();
   const 해시 = 해시라우트(u.hash) ? 마디정리(u.hash) : '';
   return `${마디정리(u.pathname)}${인자.length === 0 ? '' : `?${인자.join('&')}`}${해시}`;
@@ -121,19 +121,24 @@ export function 케이스지도읽기(글: string): Map<string, string[]> | null
 // 인자 꼬리 — 해시 라우트 안의 인자(`/#/shop?category=outer`)도 같다
 const 인자꼬리 = /\?[^#]*/;
 const 구조다름 = / \(구조 다름\)$/;
+// 인자로 화면을 가르는 입구 — 뿌리(`/?page_id=5` 워드프레스)와 스크립트 파일(`/index.php?route=` · `/bbs/board.php?bo_table=`)은 인자 뺀 주소가 덮지 않는다
+const 인자입구 = (경로: string): boolean => /^\/#?!?\/?$/.test(경로) || /\.[a-z0-9]+$/i.test(경로);
 
 /**
  * 크롤러 같은 틀이 화면 파일 틀들에 닿나 — 같은 틀이거나, 인자 없는 화면 파일 주소(`/shop`)가 같은 경로의 인자 붙은 틀(`/shop?category=outer`)을 덮는다.
- * 인자 있는 화면 파일 주소(`?bo_table=notice`)는 그 값만 덮는다. 구조가 다른 둘째 장은 같은 틀일 때만 (PRD-F9-04)
+ * 인자 있는 화면 파일 주소(`?bo_table=notice`)는 그 값만 덮는다. 인자로 화면을 가르는 입구(뿌리 · 스크립트 파일)와 구조가 다른 둘째 장은 같은 틀일 때만 (PRD-F9-04)
  */
 export function 틀닿나(틀: string, 파일틀: ReadonlySet<string>): boolean {
-  return 파일틀.has(틀) || (!구조다름.test(틀) && 파일틀.has(틀.replace(인자꼬리, '')));
+  if (파일틀.has(틀)) return true;
+  const 경로 = 틀.replace(인자꼬리, '');
+  return 경로 !== 틀 && !구조다름.test(틀) && !인자입구(경로) && 파일틀.has(경로);
 }
 
 /** 크롤러 같은 틀을 쓰는 케이스 — 화면 파일 틀 → tcId 지도에서 `틀닿나` 와 같은 규칙으로 모은다. 없으면 undefined */
 export function 틀케이스(틀: string, 지도: ReadonlyMap<string, readonly string[]> | null): string[] | undefined {
   if (지도 === null) return undefined;
-  const 모음 = [...(지도.get(틀) ?? []), ...(구조다름.test(틀) ? [] : (지도.get(틀.replace(인자꼬리, '')) ?? []))];
+  const 경로 = 틀.replace(인자꼬리, '');
+  const 모음 = [...(지도.get(틀) ?? []), ...(경로 !== 틀 && 틀닿나(틀, new Set([경로])) ? (지도.get(경로) ?? []) : [])];
   return 모음.length === 0 && !지도.has(틀) ? undefined : [...new Set(모음)].sort();
 }
 
@@ -231,7 +236,7 @@ export function 연결모으기<T extends Pick<목록항목, '상태' | '틀'>>(
 }
 
 /**
- * 크롤러가 로그인해 훑을 역할 — 에이전트가 넘긴 `PLATFORM_ACCOUNTS` 의 역할(시작 주소와 출처가 같은 줄 · 주소 없는 줄)을 일반 회원부터 차례로.
+ * 크롤러가 로그인해 훑을 역할 — 에이전트가 넘긴 `PLATFORM_ACCOUNTS` 의 역할(시작 주소와 출처가 같은 줄 — kit 이 실행 때 채우는 줄과 같다)을 일반 회원부터 차례로.
  * 계정 값은 안 읽는다. 없거나 못 읽으면 일반 회원 하나 — 로그인 상태 파일(`--state`)이 그 계정이다 (PRD-F9-30)
  */
 export function 크롤역할들(계정글: string | undefined, 출처: string): string[] {
@@ -243,15 +248,9 @@ export function 크롤역할들(계정글: string | undefined, 출처: string): 
   }
   const 역할들 = (Array.isArray(줄들) ? 줄들 : []).flatMap((a: unknown) => {
     const x = (typeof a === 'object' && a !== null ? a : {}) as { role?: unknown; baseUrl?: unknown };
-    if (typeof x.role !== 'string' || x.role.trim() === '') return [];
-    if (typeof x.baseUrl === 'string') {
-      try {
-        if (new URL(x.baseUrl).origin !== 출처) return [];
-      } catch {
-        return [];
-      }
-    }
-    return [x.role.trim()];
+    if (typeof x.role !== 'string' || x.role.trim() === '' || 주소출처(x.baseUrl) !== 출처) return [];
+    // 서버 화면 기록 상태 규칙에 안 맞는 역할은 안 돈다 — 올리면 그 상태 줄이 다 거절되고 done 까지 통째로 400 이 된다
+    return 상태인가(`로그인:${x.role.trim()}`) ? [x.role.trim()] : [];
   });
   return [...new Set([기본역할, ...역할들])];
 }

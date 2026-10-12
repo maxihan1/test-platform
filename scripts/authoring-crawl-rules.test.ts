@@ -17,6 +17,7 @@ describe('주소틀 — 화면 파일의 화면 주소를 크롤러 같은 틀�
     expect(주소틀('/board/:id')).toBe('/board/:n');
     expect(주소틀('/my/orders/:orderId/items')).toBe('/my/orders/:n/items');
     expect(주소틀('/#/board/:id')).toBe('/#/board/:n');
+    expect(주소틀('/bbs/board.php?bo_table=free&wr_id=:id')).toBe(틀키('https://site.test/bbs/board.php?bo_table=free&wr_id=12'));
   });
 });
 
@@ -28,6 +29,14 @@ describe('틀닿나 · 틀케이스 — 크롤러 같은 틀이 화면 파일 �
     expect(틀닿나('/bbs/board.php?bo_table=qna', new Set(['/bbs/board.php?bo_table=notice']))).toBe(false);
     expect(틀닿나('/bbs/board.php?bo_table=notice', new Set(['/bbs/board.php?bo_table=notice']))).toBe(true);
     expect(틀닿나('/board/:n', new Set(['/board']))).toBe(false);
+  });
+
+  it('인자로 화면을 가르는 입구(뿌리 · 스크립트 파일)는 인자 뺀 주소가 덮지 않는다', () => {
+    expect(틀닿나('/?page_id=5', new Set(['/']))).toBe(false);
+    expect(틀닿나('/#/?tab=x', new Set(['/#/']))).toBe(false);
+    expect(틀닿나('/index.php?route=product/category', new Set(['/index.php']))).toBe(false);
+    expect(틀닿나('/bbs/board.php?bo_table=free', new Set(['/bbs/board.php']))).toBe(false);
+    expect(틀닿나('/', new Set(['/']))).toBe(true);
   });
 
   it('구조가 다른 둘째 장은 같은 틀일 때만 닿는다', () => {
@@ -257,14 +266,20 @@ describe('크롤역할들 — 크롤러가 로그인해 훑을 역할 (PRD-F9-30
     const 계정 = JSON.stringify([
       { baseUrl: 'https://site.test', role: '관리자', loginId: 'a', loginPassword: 'p' },
       { baseUrl: 'https://site.test/', role: '일반 회원', loginId: 'b', loginPassword: 'q' },
-      { baseUrl: null, role: '판매자', loginId: 'c', loginPassword: 'r' },
+      { baseUrl: 'https://site.test/shop', role: '판매자', loginId: 'c', loginPassword: 'r' },
       { baseUrl: 'https://site.test', role: '관리자', loginId: 'd', loginPassword: 's' },
     ]);
     expect(크롤역할들(계정, 출처)).toEqual(['일반 회원', '관리자', '판매자']);
   });
 
-  it('출처가 다른 줄 · 역할이 빈 줄은 뺀다 — 없거나 못 읽으면 일반 회원 하나', () => {
-    expect(크롤역할들(JSON.stringify([{ baseUrl: 'https://other.test', role: '관리자' }, { baseUrl: 'https://site.test', role: ' ' }]), 출처)).toEqual(['일반 회원']);
+  it('출처가 다르거나 없는 줄 · 역할이 빈 줄 · 서버 상태 규칙에 안 맞는 역할은 뺀다 — 없거나 못 읽으면 일반 회원 하나', () => {
+    const 줄들 = [
+      { baseUrl: 'https://other.test', role: '관리자' },
+      { baseUrl: null, role: '판매자' },
+      { baseUrl: 'https://site.test', role: ' ' },
+      { baseUrl: 'https://site.test', role: '가'.repeat(41) },
+    ];
+    expect(크롤역할들(JSON.stringify(줄들), 출처)).toEqual(['일반 회원']);
     expect(크롤역할들(undefined, 출처)).toEqual(['일반 회원']);
     expect(크롤역할들('깨짐', 출처)).toEqual(['일반 회원']);
   });
