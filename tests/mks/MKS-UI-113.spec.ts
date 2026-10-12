@@ -1,0 +1,49 @@
+import { defineCase, test, verify } from '@platform/kit';
+import { z } from 'zod';
+
+import { 머리글 } from './components/header.component.js';
+import { API로그인, 계정값 } from './helpers/account.helper.js';
+import { 방해막기 } from './helpers/quiet.helper.js';
+import { 글쓰기화면 } from './pages/board-write.page.js';
+import { 경로, 보이는이름들 } from './helpers/view.helper.js';
+
+export const spec = defineCase({
+  tcId: 'MKS-UI-113',
+  name: '글쓰기 화면에 분류 선택 상자 · 제목 입력칸 · 본문 입력칸 · 「임시 저장」 버튼 · 「등록」 버튼이 보인다',
+  precondition: ['테스트 계정으로 로그인해 있다'],
+  params: z.object({
+    loginId: z.string().describe('회원 아이디').optional().meta({ secret: true }),
+    password: z.string().describe('회원 비밀번호').optional().meta({ secret: true }),
+  }),
+  expected: null,
+});
+
+test(spec, async ({ page, params }) => {
+  const 계정 = 계정값(params);
+  const 쓰기 = new 글쓰기화면(page);
+  const 머리 = new 머리글(page);
+
+  await test.step('테스트 계정으로 로그인한다', async () => {
+    await API로그인(page.request, 계정.loginId, 계정.password);
+  });
+
+  await test.step('글쓰기 화면을 연다', async () => {
+    await 방해막기(page);
+    await 쓰기.열기();
+    await 쓰기.제목칸.waitFor();
+    await 머리.마이페이지.or(머리.로그인).first().waitFor();
+  });
+
+  await test.step('로그인한 글쓰기 화면인지 확인한다', async () => {
+    await verify('머리글에 「로그아웃」 버튼이 보인다', await 머리.로그아웃.isVisible(), true, { blocker: true });
+    await verify('글쓰기 화면이 열려 있다', 경로(page), 글쓰기화면.주소, { blocker: true });
+  });
+
+  await test.step('글쓰기 화면의 입력칸과 버튼을 확인한다', async () => {
+    await verify(
+      '글쓰기 화면에 분류 선택 상자 · 제목 입력칸 · 본문 입력칸 · 「임시 저장」 버튼 · 「등록」 버튼이 보인다',
+      await 보이는이름들({ '분류 선택 상자': 쓰기.분류, '제목 입력칸': 쓰기.제목칸, '본문 입력칸': 쓰기.본문칸, '「임시 저장」 버튼': 쓰기.임시저장, '「등록」 버튼': 쓰기.등록 }),
+      '분류 선택 상자, 제목 입력칸, 본문 입력칸, 「임시 저장」 버튼, 「등록」 버튼',
+    );
+  });
+});

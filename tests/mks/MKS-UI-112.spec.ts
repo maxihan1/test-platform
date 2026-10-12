@@ -1,0 +1,49 @@
+import { defineCase, test, verify } from '@platform/kit';
+import { z } from 'zod';
+
+import { 머리글 } from './components/header.component.js';
+import { API로그인, 계정값 } from './helpers/account.helper.js';
+import { 방해막기 } from './helpers/quiet.helper.js';
+import { 게시글상세화면 } from './pages/board-detail.page.js';
+import { 경로, 보이는이름들 } from './helpers/view.helper.js';
+
+export const spec = defineCase({
+  tcId: 'MKS-UI-112',
+  name: '게시글 상세에 「좋아요」 버튼 · 「링크 복사」 버튼 · 댓글 입력칸이 보인다',
+  precondition: ['테스트 계정으로 로그인해 있다'],
+  params: z.object({
+    loginId: z.string().describe('회원 아이디').optional().meta({ secret: true }),
+    password: z.string().describe('회원 비밀번호').optional().meta({ secret: true }),
+  }),
+  expected: null,
+});
+
+test(spec, async ({ page, params }) => {
+  const 계정 = 계정값(params);
+  const 상세 = new 게시글상세화면(page);
+  const 머리 = new 머리글(page);
+
+  await test.step('테스트 계정으로 로그인한다', async () => {
+    await API로그인(page.request, 계정.loginId, 계정.password);
+  });
+
+  await test.step('게시글 상세를 연다', async () => {
+    await 방해막기(page);
+    await 상세.열기();
+    await 상세.댓글까지그려질때까지();
+    await 머리.마이페이지.or(머리.로그인).first().waitFor();
+  });
+
+  await test.step('로그인한 게시글 상세인지 확인한다', async () => {
+    await verify('머리글에 「로그아웃」 버튼이 보인다', await 머리.로그아웃.isVisible(), true, { blocker: true });
+    await verify('게시글 상세 화면이 열려 있다', 경로(page), 게시글상세화면.주소, { blocker: true });
+  });
+
+  await test.step('게시글 상세의 버튼과 입력칸을 확인한다', async () => {
+    await verify(
+      '게시글 상세에 「좋아요」 버튼 · 「링크 복사」 버튼 · 댓글 입력칸이 보인다',
+      await 보이는이름들({ '「좋아요」 버튼': 상세.좋아요, '「링크 복사」 버튼': 상세.링크복사, '댓글 입력칸': 상세.새댓글입력 }),
+      '「좋아요」 버튼, 「링크 복사」 버튼, 댓글 입력칸',
+    );
+  });
+});
