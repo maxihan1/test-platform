@@ -99,10 +99,10 @@ describe.skipIf(연결 === undefined)('GET /api/scenarios/next-cases', () => {
               ('XNC-FN-004', 'tests/xnc/pages/cart.page.ts', '/cart')`,
     );
     await q(
-      `INSERT INTO screen_link (service_id, state, from_url, to_url, via)
-       VALUES ($1, '로그인', '/product/:n', '/cart', '장바구니 담기'),
-              ($1, '로그아웃', '/product/:n', '/cart', '장바구니'),
-              ($1, '로그인', '/cart', '/order', '주문하기')`,
+      `INSERT INTO screen_link (service_id, env, state, from_url, to_url, via)
+       VALUES ($1, 'qa', '로그인:일반 회원', '/product/:n', '/cart', '장바구니 담기'),
+              ($1, 'qa', '로그아웃', '/product/:n', '/cart', '장바구니'),
+              ($1, 'prod', '로그인:일반 회원', '/cart', '/order', '주문하기')`,
       [서비스],
     );
     app = Fastify();
@@ -116,7 +116,7 @@ describe.skipIf(연결 === undefined)('GET /api/scenarios/next-cases', () => {
     await q('DELETE FROM service WHERE id = $1', [서비스]);
   });
 
-  it('머문 화면에서 이어지는 화면의 활성 케이스만 한 번씩 낸다 — 상태가 다른 같은 연결은 하나다', async () => {
+  it('머문 화면에서 이어지는 화면의 활성 케이스만 한 번씩 낸다 — 상태 · 대상 서버가 다른 같은 연결은 하나다', async () => {
     expect(await 읽기(`service=${접두사}&after=XNC-FN-001`)).toEqual({ status: 200, body: { items: [{ tcId: 'XNC-FN-002', screen: '/cart' }] } });
     expect((await 읽기(`service=${접두사}&after=XNC-FN-002`)).body.items).toEqual([{ tcId: 'XNC-FN-003', screen: '/order' }]);
   });

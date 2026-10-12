@@ -11,6 +11,7 @@ import { 다봄, 다봄검사, 화면검사, 화면넣기, 화면들 } from './s
 import { 기준판, 서비스접두사, 옮기기, 읽은판, 지금판, 판하나 } from './store.js';
 
 type 경로 = { Params: { id: string } };
+const 서버없음 = { error: 'BAD_SCREEN', detail: 'env' } as const;
 
 /** 맥 계정 · 집은 쪽 · 도는 중. 본문보다 먼저 본다 — 끝난 요청에는 본문 모양과 상관없이 409 다 */
 async function 도는집은요청(req: FastifyRequest, reply: FastifyReply): Promise<요청 | null> {
@@ -50,27 +51,30 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     },
   );
 
-  // 화면 기록 — 작업 바탕 디스크 저장본을 대신한다. 본문은 이 통로로만 읽는다(로그인 화면의 이름 · 이메일이 들 수 있다)
+  // 화면 기록 — 작업 바탕 디스크 저장본을 대신한다. 본문은 이 통로로만 읽는다(로그인 화면의 이름 · 이메일이 들 수 있다).
+  // 대상 서버는 요청 행의 것이다 — 대상 서버가 없는 요청(대조가 아니다)은 저장본이 없고 올리지 못한다 (PRD-F9-29)
   app.get<경로>('/authoring/requests/:id/screens', async (req, reply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
-    return 화면들(행.serviceId);
+    return 행.env === null ? { screens: [], links: [] } : 화면들(행.serviceId, 행.env);
   });
 
   app.put<경로 & { Body: unknown }>('/authoring/requests/:id/screens', async (req, reply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
+    if (행.env === null) return reply.code(400).send(서버없음);
     const 읽음 = 화면검사(req.body);
     if ('error' in 읽음) return reply.code(400).send(읽음);
-    await 화면넣기(행.serviceId, 읽음.화면, 읽음.links);
+    await 화면넣기(행.serviceId, 행.env, 읽음.화면, 읽음.links);
     return reply.code(204).send();
   });
 
   app.post<경로 & { Body: unknown }>('/authoring/requests/:id/screens/done', async (req, reply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
+    if (행.env === null) return reply.code(400).send(서버없음);
     const 읽음 = 다봄검사(req.body);
     if ('error' in 읽음) return reply.code(400).send(읽음);
-    return { deleted: await 다봄(행.serviceId, 읽음.seen, 읽음.complete) };
+    return { deleted: await 다봄(행.serviceId, 행.env, 읽음.seen, 읽음.complete) };
   });
 }
