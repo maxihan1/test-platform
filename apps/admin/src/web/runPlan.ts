@@ -8,7 +8,7 @@
  * 숫자를 바꾸려면 SPEC §8.2 를 고친다 — 설정값으로 빼지 않는다.
  * 코드에서는 여기 한 곳에만 적는다 (CLAUDE.md §2.7 ⑤).
  */
-export const 상한 = 1000;
+export const 상한 = 5000;
 
 /** Σ(케이스마다의 디바이스 수) × 반복 횟수 */
 export function 항목수(디바이스수들: number[], 반복: number): number {

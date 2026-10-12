@@ -20,7 +20,7 @@ export function useRunStart() {
   // 걸었다 거절당한 사유. **목록 줄에 적으면 창 뒤에 깔린다** — 창 안에 적는다 (SPEC §8.10)
   const [사유, set사유] = useState<string | undefined>(undefined);
   // 두 번 눌러도 실행이 둘 생기지 않게 막는다. 창은 onRun 을 기다리지 않는다.
-  // useRef 로 두면 바뀌어도 다시 그리지 않아 최대 1000건을 만드는 동안 화면이 침묵한다
+  // useRef 로 두면 바뀌어도 다시 그리지 않아 최대 5000건을 만드는 동안 화면이 침묵한다
   const [거는중, set거는중] = useState(false);
 
   /** 걸었으면 참이다 — 부른 쪽이 창을 닫는다 */

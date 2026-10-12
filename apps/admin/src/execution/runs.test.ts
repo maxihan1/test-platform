@@ -261,12 +261,12 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
       payload: {
         title: 'XBX 상한 초과',
         env: 'qa',
-        repeat: 600,
+        repeat: 2600,
         items: [{ tcId: 'XBX-001', platforms: ['desktop', 'mobile'], params: {}, expected: {} }],
       },
     });
     expect(res.statusCode).toBe(400);
-    expect(res.json()).toMatchObject({ error: 'TOO_MANY_ITEMS', limit: 1000, requested: 1200 });
+    expect(res.json()).toMatchObject({ error: 'TOO_MANY_ITEMS', limit: 5000, requested: 5200 });
   });
 
   it('대상 서버를 안 주면 400이다', async () => {

@@ -253,27 +253,27 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
     expect(row.rows[0]?.attempt).toBe(1);
   });
 
-  it('만들어질 항목이 1000건을 넘으면 상한과 요청 건수를 담아 거절한다', async () => {
+  it('만들어질 항목이 5000건을 넘으면 상한과 요청 건수를 담아 거절한다', async () => {
     await expect(
       createRun({
         title: 'XBS 너무 많음',
         triggeredBy: 'tester',
         env: 'qa',
-        repeat: 501,
+        repeat: 2501,
         items: [{ ...항목, platforms: ['desktop', 'mobile'] }],
       }),
-    ).rejects.toMatchObject({ code: 'TOO_MANY_ITEMS', detail: { limit: 1000, requested: 1002 } });
+    ).rejects.toMatchObject({ code: 'TOO_MANY_ITEMS', detail: { limit: 5000, requested: 5002 } });
   });
 
-  it('딱 1000건은 통과한다', async () => {
+  it('딱 5000건은 통과한다', async () => {
     const run = await createRun({
       title: 'XBS 딱 상한',
       triggeredBy: 'tester',
       env: 'qa',
-      repeat: 500,
+      repeat: 2500,
       items: [{ ...항목, platforms: ['desktop', 'mobile'] }],
     });
-    expect(run.items).toHaveLength(1000);
+    expect(run.items).toHaveLength(5000);
   });
 
   it('멈추면 미완 항목을 NA와 ABORTED로 닫고 묶음을 ABORTED로 바꾼다', async () => {
