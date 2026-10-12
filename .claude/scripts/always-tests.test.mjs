@@ -23,6 +23,7 @@ const 면제 = new Map([
   ['scripts/authoring-prd-io.test.ts', '테스트가 만든 임시 자료 폴더(지금 판 · 결과 파일 · 링크 자리)만 읽고 쓴다 (2026-10-10 PR #198)'],
   ['scripts/authoring-apply.test.ts', '테스트가 만든 임시 자료 폴더(반영 계획 사본)만 읽는다 (2026-10-11 PR #207)'],
   ['scripts/authoring-covered.test.ts', '테스트가 만든 임시 자료 폴더(covered.json)만 읽는다 (2026-10-11 PR #215)'],
+  ['scripts/authoring-crawl-session.test.ts', '테스트가 만든 임시 로그인 스크립트가 쓴 상태 파일만 읽는다 (2026-10-12 PR #257)'],
   ['apps/runner/src/execute.test.ts', '가짜 자식이 임시 폴더에 쓴 환경값만 읽는다 — 저장소 파일이 아니다 (2026-10-07 PR #174)'],
 ]);
 

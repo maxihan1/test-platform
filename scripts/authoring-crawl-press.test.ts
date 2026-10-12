@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { type 후보, 누를까, 누름키, 로그아웃인가, 연결이름, 확인버튼고르기, 탈퇴말인가, 탈퇴주소인가 } from './authoring-crawl-press.js';
 
 const 기준 = 'https://site.test/goods/3';
-const 로그인판 = { 상태: '로그인' as const, 탈퇴흐름: false, 다시로그인: true };
+const 로그인판 = { 상태: '로그인:일반 회원' as const, 탈퇴흐름: false, 다시로그인: true };
 const 버튼 = (이름: string, 더: Partial<후보> = {}): 후보 => ({ 종류: '버튼', 이름, href: null, 보임: true, 머리바닥: false, 제출막힘: false, ...더 });
 const 링크 = (이름: string, href: string, 더: Partial<후보> = {}): 후보 => ({ 종류: '링크', 이름, href, 보임: true, 머리바닥: false, 제출막힘: false, ...더 });
 

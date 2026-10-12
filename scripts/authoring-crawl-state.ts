@@ -1,16 +1,15 @@
-// 크롤러의 상태 하나(로그아웃 · 로그인) — 링크 화면을 먼저 다 보고 남은 시간에 버튼을 누른다. 로그아웃 · 로그인 풀림 뒤 다시 로그인 (도메인/작성 §3.6 「★ 표준 기획서」 「화면 기록과 크롤러」)
-// 껍데기 authoring-crawl.ts 가 부른다. 판정은 authoring-crawl-rules · authoring-crawl-press, 쪽 다루기는 authoring-crawl-page
-import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+// 크롤러의 상태 하나(로그아웃 · 로그인:<역할>) — 링크 화면을 먼저 다 보고 남은 시간에 버튼을 누른다. 로그아웃 · 로그인 풀림 뒤 다시 로그인 (도메인/작성 §3.6 「★ 표준 기획서」 「화면 기록과 크롤러」)
+// 껍데기 authoring-crawl.ts 가 부른다. 판정은 authoring-crawl-rules · authoring-crawl-press, 쪽 다루기는 authoring-crawl-page, 쪽 열기 · 로그인은 authoring-crawl-session
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import type { Browser, BrowserContext, Page } from '@playwright/test';
+import type { Browser } from '@playwright/test';
 
 import { 칸줄, 누르기, 보기, 읽기, 열기, 창수, 확인창누르기, 후보모으기, type 본것 } from './authoring-crawl-page.js';
 import { type 누름종류, 누를까, 누름키, 로그아웃인가, 연결이름, 탈퇴말인가, 탈퇴주소인가 } from './authoring-crawl-press.js';
 import { type 목록항목, 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 부모키, 빼는주소인가, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
-import type { 저장본 } from './authoring-screens-keep.js';
-import { 환경비밀번호들 } from './authoring-accounts.js';
+import { type 인자, 로그인돌리기, 새쪽, 폴더이름 } from './authoring-crawl-session.js';
+import type { 상태 } from './authoring-screens-keep.js';
 
 const 간격 = 1_000; // 운영 서버도 돈다 — 한 장씩, 1초 이상 띄운다
 const 부모상한 = 20; // 숫자가 아닌 상세(슬러그)가 장수를 다 먹지 않게. 그누보드 `/bbs/*.php` 처럼 한 폴더에 화면이 몰린 사이트가 있어 넉넉히
@@ -19,25 +18,6 @@ const 연속오류상한 = 3; // 429 · 5xx · 연결 실패가 이어지면 그
 const 화면누름상한 = 30; // 버튼이 수백 개인 화면 하나가 시간을 다 먹지 않게
 const 다시로그인상한 = 3; // 누를 때마다 로그아웃되는 사이트에서 돌고 돌지 않게
 const 연결상한 = 1_000; // 화면 하나에서 나간 연결 — 서버 상한과 같다(§7 PUT …/screens)
-
-export type 상태 = '로그아웃' | '로그인';
-export interface 인자 {
-  주소들: string[];
-  출력: string;
-  상태파일: string | null;
-  /** 자식의 로그인 스크립트 — 로그아웃 · 로그인 풀림 뒤 이것을 다시 돌려 상태 파일을 새로 만든다 (PRD-F6-02) */
-  로그인: string | null;
-  따라가기: boolean;
-  최대: number;
-  분: number;
-  저장본: 저장본 | null;
-  /** 서비스 설정의 훑지 않을 경로 — 이 아래 주소는 열지 않는다 (#153) */
-  뺄: string[];
-  /** PRD 에 이미 있는 화면의 같은 틀 — 목록 줄에 `덮음: true` 를 단다. 인자가 없으면 null (PRD-F6-03) */
-  덮은틀: Set<string> | null;
-  /** 같은 틀 → 그 화면을 쓰는 기존 케이스 — 저장본이 바뀐 줄에 `케이스` 를 단다. 인자가 없으면 null (PRD-F6-04) */
-  케이스지도: Map<string, string[]> | null;
-}
 
 export interface 본화면 extends 목록항목 {
   최종: string;
@@ -65,36 +45,9 @@ interface 누를일 { 본번: number; 주소: string; 틀: string; 키: string; 
 
 const 쉬기 = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function 새쪽(브라우저: Browser, 상태: 상태, a: 인자): Promise<{ 맥락: BrowserContext; 쪽: Page }> {
-  const 맥락 = await 브라우저.newContext(상태 === '로그인' && a.상태파일 !== null ? { storageState: a.상태파일 } : {});
-  // 그림 · 글꼴 · 영상은 받지 않는다 — 구조만 본다
-  await 맥락.route('**/*', (r) => (['image', 'font', 'media'].includes(r.request().resourceType()) ? r.abort() : r.continue()));
-  const 쪽 = await 맥락.newPage();
-  // 브라우저 확인 창은 늘 취소한다 — 탈퇴 · 삭제의 마지막 확인일 수 있다. 떠나기 확인만 받아 다음 화면으로 간다
-  쪽.on('dialog', (d) => void (d.type() === 'beforeunload' ? d.accept() : d.dismiss()).catch(() => undefined));
-  // 누르기는 한 쪽에서만 — 스크립트가 띄운 새 창은 닫는다
-  맥락.on('page', (p) => void p.close().catch(() => undefined));
-  return { 맥락, 쪽 };
-}
-
-/**
- * 자식의 로그인 스크립트를 다시 돈다 — 계정은 그 안에서 process.env 로 읽고 입력 직전 출처를 본다(tpx-author reverse.md §2).
- * 그 스크립트가 상태 파일을 새로 써야 한다 — 안 바뀌었으면 실패로 본다. 실패하면 까닭(비밀번호는 가림), 되면 null
- */
-function 로그인돌리기(스크립트: string, 상태파일: string): string | null {
-  const 전 = statSync(상태파일, { throwIfNoEntry: false })?.mtimeMs ?? 0;
-  const r = spawnSync(process.execPath, ['--input-type=module'], { input: readFileSync(스크립트), cwd: process.cwd(), env: process.env, timeout: 90_000, encoding: 'utf8' });
-  if (r.status !== 0) {
-    const 비밀 = 환경비밀번호들(process.env); // 역할 계정까지 — 로그인 스크립트는 환경을 통째로 받는다
-    const 끝줄 = `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split('\n').map((x) => x.trim()).filter(Boolean).at(-1) ?? '';
-    return `로그인 스크립트가 실패했다(종료 코드 ${r.status ?? '시간 초과'})${끝줄 === '' ? '' : ` — ${비밀.reduce((글, 하나) => 글.split(하나).join('••••••'), 끝줄).slice(0, 200)}`}`;
-  }
-  if ((statSync(상태파일, { throwIfNoEntry: false })?.mtimeMs ?? 0) <= 전) return '상태 파일이 새로 써지지 않았다 — 로그인 스크립트가 --state 와 같은 파일에 쓰는지 본다';
-  return null;
-}
-
 export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자, 몫: { 장: number; 마감: number }, 판: 판): Promise<void> {
-  let { 맥락, 쪽 } = await 새쪽(브라우저, 상태, a);
+  const 상태파일 = 상태 === '로그아웃' ? undefined : a.역할상태.get(상태);
+  let { 맥락, 쪽 } = await 새쪽(브라우저, 상태파일);
   const 출처 = new URL(a.주소들[0]!).origin;
   const 시작틀 = new Set(a.주소들.map(틀키));
   const 대기: string[] = a.주소들.map((x) => new URL(x).toString());
@@ -108,7 +61,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
   // 탈퇴 낱말로 들어선 화면 — 그 안에서는 아무것도 누르지 않는다
   const 탈퇴틀 = new Set<string>();
   const 다시본 = new Set<string>();
-  mkdirSync(join(a.출력, 상태), { recursive: true });
+  mkdirSync(join(a.출력, 폴더이름(상태)), { recursive: true });
 
   const 이을 = (본번: number, 틀: string, 이름: string, 종류: 누름종류): void => {
     const 나 = 판.본[본번]!;
@@ -120,18 +73,20 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     판.연결.set(본번, 칸);
   };
 
-  // 다시 로그인 — 로그인 판에서만, 스크립트가 있을 때만, 세 번까지. 다 썼으면 로그아웃도 안 누른다(누르면 그 상태 크롤이 거기서 멈춘다)
-  const 로그인남음 = (): boolean => 상태 === '로그인' && a.로그인 !== null && a.상태파일 !== null && 판.다시로그인 < 다시로그인상한;
+  // 다시 로그인 — 로그인 판에서만, 스크립트가 있을 때만, 역할마다 세 번까지. 다 썼으면 로그아웃도 안 누른다(누르면 그 상태 크롤이 거기서 멈춘다)
+  let 이번다시로그인 = 0;
+  const 로그인남음 = (): boolean => 상태파일 !== undefined && a.로그인 !== null && 이번다시로그인 < 다시로그인상한;
   const 다시로그인 = async (): Promise<boolean> => {
     if (!로그인남음()) return false;
+    이번다시로그인++;
     판.다시로그인++;
     await 맥락.close();
-    const 까닭 = 로그인돌리기(a.로그인!, a.상태파일!);
+    const 까닭 = 로그인돌리기(a.로그인!, 상태파일!, 상태.slice('로그인:'.length));
     if (까닭 !== null) {
       console.error(`크롤: 다시 로그인 못 함 — ${까닭}`);
       return false;
     }
-    ({ 맥락, 쪽 } = await 새쪽(브라우저, 상태, a));
+    ({ 맥락, 쪽 } = await 새쪽(브라우저, 상태파일));
     return true;
   };
 
@@ -145,8 +100,8 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     if (앞지문.includes(이지문)) return 'ok'; // 둘째 장이 같은 구조 — 같은 틀이다
     if (앞지문.length === 0 && 부모 !== null) 부모수.set(부모, (부모수.get(부모) ?? 0) + 1);
     const 아이디칸 = 본.입력칸.some((x) => (x.종류 === 'text' || x.종류 === 'email') && !x.읽기전용);
-    const 풀림 = 상태 === '로그인' && 로그인풀렸나({ 요청, 최종: 본.최종, 비밀번호칸: 본.비밀번호칸, 아이디칸 });
-    const 파일 = join(상태, `${String(판.본.length + 1).padStart(3, '0')}.yml`);
+    const 풀림 = 상태 !== '로그아웃' && 로그인풀렸나({ 요청, 최종: 본.최종, 비밀번호칸: 본.비밀번호칸, 아이디칸 });
+    const 파일 = join(폴더이름(상태), `${String(판.본.length + 1).padStart(3, '0')}.yml`);
     const 구조 = 본.구조.length > 구조상한 ? `${본.구조.slice(0, 구조상한)}\n# … 길어서 잘랐다` : 본.구조;
     // 입력칸 속성은 머리에 — 보조는 이 파일만 읽는다
     const 파일글 = [`# ${본.최종}`, ...본.입력칸.map(칸줄), 구조, ''].join('\n');
@@ -200,7 +155,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     판.연속오류 = 열림 === 429 || 열림 >= 500 ? 판.연속오류 + 1 : 0;
     if (틀키(쪽.url()) === 틀키(일.주소)) return '열림';
     // 로그인 화면으로 돌려보내졌다 — 로그아웃인 줄 몰랐던 버튼이 세션을 끝냈다. 다시 로그인해 한 번 더 연다
-    if (상태 === '로그인' && 로그인풀렸나({ 요청: 일.주소, 최종: 쪽.url(), 비밀번호칸: false, 아이디칸: false })) {
+    if (상태 !== '로그아웃' && 로그인풀렸나({ 요청: 일.주소, 최종: 쪽.url(), 비밀번호칸: false, 아이디칸: false })) {
       if (!(await 다시로그인())) {
         판.멈춘까닭 ??= '로그인이 풀림';
         return '그만';

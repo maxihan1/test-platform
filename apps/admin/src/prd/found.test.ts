@@ -25,11 +25,11 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
       foundScreens: number;
       screensOpen: number[];
     };
-  const 찾음 = (rows: [string, string, string][]) =>
+  const 찾음 = (rows: [string, string, string][], env = 'qa') =>
     q(
-      `INSERT INTO screen_found (service_id, state, url, name)
-       SELECT $1, s.state, s.url, s.name FROM unnest($2::text[], $3::text[], $4::text[]) AS s(state, url, name)`,
-      [서비스, rows.map((x) => x[0]), rows.map((x) => x[1]), rows.map((x) => x[2])],
+      `INSERT INTO screen_found (service_id, env, state, url, name)
+       SELECT $1, $5, s.state, s.url, s.name FROM unnest($2::text[], $3::text[], $4::text[]) AS s(state, url, name)`,
+      [서비스, rows.map((x) => x[0]), rows.map((x) => x[1]), rows.map((x) => x[2]), env],
     );
   const 요청 = async (칸: { params?: object; compare?: boolean; discarded?: boolean; 자료?: boolean; 머지?: 'DONE' | 'FAILED'; status?: string }) => {
     const r = await q<{ id: string }>(
@@ -85,14 +85,14 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
 
   it('표준 기획서가 없으면 찾은 화면 전부가 PRD 에 없는 화면이다', async () => {
     expect(await 읽기()).toMatchObject({ version: 0, uncoveredScreens: [], foundScreens: 0, screensOpen: [] });
-    await 찾음([['로그인', '/cart', '장바구니'], ['로그아웃', '/', '홈']]);
+    await 찾음([['로그인:일반 회원', '/cart', '장바구니'], ['로그아웃', '/', '홈']]);
     expect(await 읽기()).toMatchObject({
-      uncoveredScreens: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그인', url: '/cart', name: '장바구니' }],
+      uncoveredScreens: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그인:일반 회원', url: '/cart', name: '장바구니' }],
       foundScreens: 2,
     });
   });
 
-  it('지금 판 번호의 활성 케이스가 가져오는 화면 주소를 같은 틀로 바꿔 덮고, 상태는 안 가른다', async () => {
+  it('지금 판 번호의 활성 케이스가 가져오는 화면 주소를 같은 틀로 바꿔 덮고, 상태는 안 가른다 — `:id` · 인자 꼬리도 (PRD-F9-04)', async () => {
     const 저장 = await app.inject({
       method: 'PUT',
       url: `/api/prd?service=${접두사}`,
@@ -113,23 +113,34 @@ describe.skipIf(연결 === undefined)('PRD 에 없는 화면 셈', () => {
     );
     await q(
       `INSERT INTO case_screen (tc_id, file, screen_url)
-       VALUES ('XPD-FN-001', 'tests/xpd/pages/board.page.ts', '/board/1'), ('XPD-FN-001', 'tests/xpd/components/nav.component.ts', NULL),
+       VALUES ('XPD-FN-001', 'tests/xpd/pages/board.page.ts', '/board/:id'), ('XPD-FN-001', 'tests/xpd/components/nav.component.ts', NULL),
+              ('XPD-FN-001', 'tests/xpd/pages/board-list.page.ts', '/board'),
               ('XPD-FN-002', 'tests/xpd/pages/hidden.page.ts', '/hidden'), ('XPD-FN-003', 'tests/xpd/pages/other.page.ts', '/other')`,
     );
     await 찾음([
       ['로그아웃', '/board/:n', '게시판'],
-      ['로그인', '/board/:n', '게시판'],
-      ['로그인', '/hidden', '숨은 화면'],
-      ['로그인', '/other', '다른 요구'],
-      ['로그인', '/cart', '장바구니'],
+      ['로그인:일반 회원', '/board/:n', '게시판'],
+      ['로그인:일반 회원', '/board?category=자유', '자유게시판'],
+      ['로그인:일반 회원', '/hidden', '숨은 화면'],
+      ['로그인:일반 회원', '/other', '다른 요구'],
+      ['로그인:일반 회원', '/cart', '장바구니'],
     ]);
     const 몸 = await 읽기();
-    expect(몸.foundScreens).toBe(5);
+    expect(몸.foundScreens).toBe(6);
     expect(몸.uncoveredScreens).toEqual([
-      { state: '로그인', url: '/cart', name: '장바구니' },
-      { state: '로그인', url: '/hidden', name: '숨은 화면' },
-      { state: '로그인', url: '/other', name: '다른 요구' },
+      { state: '로그인:일반 회원', url: '/cart', name: '장바구니' },
+      { state: '로그인:일반 회원', url: '/hidden', name: '숨은 화면' },
+      { state: '로그인:일반 회원', url: '/other', name: '다른 요구' },
     ]);
+  });
+
+  it('대상 서버가 달라도 같은 상태 · 틀은 한 줄이다 — 이름은 빈 것보다 있는 것 (PRD-F9-29)', async () => {
+    await 찾음([['로그인:일반 회원', '/cart', '']], 'qa');
+    await 찾음([['로그인:일반 회원', '/cart', '장바구니'], ['로그인:관리자', '/cart', '장바구니']], 'prod');
+    expect(await 읽기()).toMatchObject({
+      uncoveredScreens: [{ state: '로그인:관리자', url: '/cart', name: '장바구니' }, { state: '로그인:일반 회원', url: '/cart', name: '장바구니' }],
+      foundScreens: 2,
+    });
   });
 
   it('열린 화면만 요청은 폐기 안 됨 · 대조 · 자료 없음 · 반영 아님 · 초안 · 실패 · 병합된 반영이 아닌 뿌리만 센다', async () => {

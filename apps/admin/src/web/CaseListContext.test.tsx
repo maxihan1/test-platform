@@ -74,6 +74,24 @@ describe('묶음 머리', () => {
     expect(screen.getByRole('button', { name: /^기능 묶음 없음\s*\d+건/ }).textContent).toContain('PRD 에 연결되지 않은 케이스');
   });
 
+  it('화면 파일 이름이 있으면 주소 · 영문 파일 이름 대신 그 이름을 보인다 (PRD-F9-18)', async () => {
+    const 조각 = 'tests/zcl/components/terms.component.ts';
+    const 이름있는 = { ...비번, screens: [{ file: 화면, url: '/signup', name: '회원가입화면' }, { file: 조각, url: null, name: '약관동의' }] };
+    그리기({
+      받을쪽: {
+        ...쪽,
+        items: [이름있는],
+        total: 1,
+        groups: [{ feature: '회원가입', screen: 화면, screenUrl: '/signup', screenName: '회원가입화면', part: 조각, partName: '약관동의', tcIds: ['ZCL-FN-001'] }],
+      },
+    });
+    expect(await screen.findByRole('button', { name: /^회원가입 화면화면/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^약관동의화면 조각/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '회원가입 › 회원가입 화면 › 약관동의만 보기' })).toBeTruthy();
+    const 칩 = [...(await screen.findByText('ZCL-FN-001')).closest('.row')!.querySelectorAll('.case-screen')];
+    expect(칩.map((el) => [el.textContent, el.getAttribute('title')])).toEqual([['회원가입 화면', '/signup'], ['약관동의', null]]);
+  });
+
   it('머리를 누르면 그 아래 머리 · 줄이 접히고 다시 누르면 편다', async () => {
     그리기();
     const 회원가입 = await screen.findByRole('button', { name: /^회원가입\s*\d+건/ });

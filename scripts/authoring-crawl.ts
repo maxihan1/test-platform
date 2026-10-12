@@ -3,13 +3,15 @@
 // 여기는 인자 · 결과 파일만. 상태 하나 도는 것은 authoring-crawl-state, 판정은 authoring-crawl-rules · authoring-crawl-press, 쪽 다루기는 authoring-crawl-page. 계정 값은 읽지 않는다 — 로그인은 자식의 스크립트가 한다
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 
 import { chromium } from '@playwright/test';
 
-import { type 본화면, type 상태, type 인자, type 판, 한상태 } from './authoring-crawl-state.js';
-import { 덮은틀읽기, 덮음인가, 케이스지도읽기, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기 } from './authoring-crawl-rules.js';
-import { 견주기, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
+import { type 본화면, type 판, 한상태 } from './authoring-crawl-state.js';
+import { type 인자, 로그인돌리기 } from './authoring-crawl-session.js';
+import { 덮은틀읽기, 덮음인가, 케이스지도읽기, 크롤역할들, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기, 틀케이스 } from './authoring-crawl-rules.js';
+import { 기본역할 } from '@platform/kit/accounts';
+import { 견주기, type 상태, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
 
 const 장상한 = 100;
 const 분상한 = 10;
@@ -82,7 +84,7 @@ function 인자읽기(argv: string[]): 인자 {
   // 견주기 전에 뺀다 — 안 그러면 제외를 켠 첫 실행에서 그 경로의 저장 기록이 전부 「저장본에 있는데 못 본 화면」으로 뜬다 (#153)
   if (저장 !== null) 저장 = { ...저장, 항목: 저장.항목.filter((x) => !빼는주소인가(x.주소, 뺄)) };
   return {
-    주소들, 출력: resolve(출력), 상태파일, 로그인: 상태파일 === null ? null : 로그인, 따라가기: argv.includes('--follow'),
+    주소들, 출력: resolve(출력), 상태파일, 역할상태: new Map(), 로그인: 상태파일 === null ? null : 로그인, 따라가기: argv.includes('--follow'),
     최대: 수('--max', 장상한, 장상한), 분: 수('--minutes', 분상한, 분상한), 저장본: 저장, 뺄, 덮은틀, 케이스지도,
   };
 }
@@ -95,13 +97,13 @@ const 풀림말 = (판: 판): string =>
       ? '있었음 — 크롤러가 다시 로그인했거나 로그인 칸이 있는 화면이다(상태 파일 그대로 쓴다)'
       : '없음';
 
-function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string[]; 예외: boolean }): void {
+function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string[]; 예외: boolean; 못돈: string[] }): void {
   const 고른 = 목록고르기(판.본.filter((x) => !x.로그인풀림)) as 본화면[];
   const 견줌 = a.저장본 === null ? null : 견주기(고른, a.저장본, new Date().toISOString().slice(0, 10));
   const 목록 = 고른.map((본) => {
     const 표시 = 견줌?.표시.get(`${본.상태} ${본.주소}`);
     // 저장본과 달라진 화면만 — 자식이 훑기 뒤 그 케이스를 돌려 본다 (PRD-F6-04)
-    const 케이스 = 표시?.저장본 === '바뀜' ? a.케이스지도?.get(본.틀) : undefined;
+    const 케이스 = 표시?.저장본 === '바뀜' ? 틀케이스(본.틀, a.케이스지도) : undefined;
     return {
       주소: 본.주소, 이름: 본.이름, 상태: 본.상태, 파일: 본.파일, 틀: 본.틀, 지문: 본.지문, 글자지문: 본.글자지문,
       ...(본.짧음 ? { 짧음: true } : {}),
@@ -119,9 +121,13 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
   // 화면 연결 — 자식은 읽지 않는다(대화 토큰). 에이전트가 화면 기록을 올릴 때 같이 올린다 (PRD-F6-02)
   const 연결들 = 연결모으기(판.본, 판.연결, 고른);
   writeFileSync(join(a.출력, 'links.json'), JSON.stringify(연결들));
+  // 로그인 상태 → 그 역할의 상태 파일 — 보조가 그 역할 화면을 열 때 이것을 state-load 한다 (PRD-F9-30)
+  writeFileSync(join(a.출력, 'states.json'), JSON.stringify(Object.fromEntries(a.역할상태)));
   const 셈 = (s: string) => 판.본.filter((x) => x.상태 === s).length;
+  const 상태셈 = [...new Set(['로그아웃', ...a.역할상태.keys()])].map((s) => `${s} ${셈(s)}장`).join(' · ');
   console.log(
-    `크롤: 로그아웃 ${셈('로그아웃')}장 · 로그인 ${셈('로그인')}장 · 목록 ${목록.length}장 · 빈 화면 의심 ${목록.filter((x) => x.짧음).length}장` +
+    `크롤: ${상태셈} · 목록 ${목록.length}장 · 빈 화면 의심 ${목록.filter((x) => x.짧음).length}장` +
+      (돈.못돈.length === 0 ? '' : ` · ⚠️ 못 훑은 역할 ${돈.못돈.join(' · ')}`) +
       (a.덮은틀 === null ? '' : ` · PRD 에 있는 화면 ${고른.filter((x) => 덮음인가(x.틀, a.덮은틀)).length}장`) +
       ` · 걸러진 링크 ${걸러짐.length - 뺀수}개 · 뺄 경로 ${a.뺄.length}개(안 연 주소 ${뺀수}개) · 부모 상한으로 안 연 것 ${판.잘림}개` +
       ` · 누를 것 ${판.누를것}개 중 ${판.누름}개 누름 · 화면 연결 ${연결들.reduce((n, x) => n + x.연결.length, 0)}개 · 다시 로그인 ${판.다시로그인}번` +
@@ -143,14 +149,31 @@ async function main(): Promise<void> {
   mkdirSync(a.출력, { recursive: true });
   const 시작 = Date.now();
   const 판: 판 = { 본: [], 연결: new Map(), 걸러짐: new Map(), 잘림: 0, 연속오류: 0, 멈춘까닭: null, 누를것: 0, 누름: 0, 다시로그인: 0 };
-  const 상태들: 상태[] = a.상태파일 === null ? ['로그아웃'] : ['로그아웃', '로그인'];
+  // 역할마다 한 번씩 로그인해 돈다 — 일반 회원은 자식이 만든 상태 파일, 다른 역할은 로그인 스크립트로 옆에 만든다 (PRD-F9-30)
+  const 역할들 = a.상태파일 === null ? [] : 크롤역할들(process.env.PLATFORM_ACCOUNTS, new URL(a.주소들[0]!).origin);
+  const 상태들: 상태[] = ['로그아웃', ...역할들.map((r): 상태 => `로그인:${r}`)];
+  const 역할파일 = (i: number): string => join(dirname(a.상태파일!), `${basename(a.상태파일!, '.json')}-${i}.json`);
   const 브라우저 = await chromium.launch();
-  // 끝까지 돈 상태와 예외 — 에이전트가 저장본에서 못 본 화면을 지울지 이것으로 정한다
-  const 돈 = { 상태들: [] as string[], 예외: false };
+  // 끝까지 돈 상태와 예외 — 에이전트가 저장본에서 못 본 화면을 지울지 이것으로 정한다. 로그인 못 한 역할은 안 돈 것이다
+  const 돈 = { 상태들: [] as string[], 예외: false, 못돈: [] as string[] };
   try {
-    // 장수 · 시간을 상태마다 나눈다 — 로그아웃 크롤이 다 쓰면 로그인 화면을 하나도 못 본다
+    // 장수 · 시간을 상태마다 나눈다 — 로그아웃 크롤이 다 쓰면 로그인 화면을 하나도 못 본다. 앞 상태가 덜 쓴 장수는 뒤로 넘긴다
     for (const [i, 상태] of 상태들.entries()) {
-      const 몫 = { 장: Math.floor(a.최대 / 상태들.length), 마감: 시작 + ((i + 1) * a.분 * 60_000) / 상태들.length };
+      if (상태 !== '로그아웃') {
+        const 역할 = 상태.slice('로그인:'.length);
+        if (역할 === 기본역할) a.역할상태.set(상태, a.상태파일!);
+        else {
+          const 파일 = 역할파일(i);
+          const 까닭 = a.로그인 === null ? '로그인 스크립트(--login)가 없다' : 로그인돌리기(a.로그인, 파일, 역할);
+          if (까닭 !== null) {
+            console.error(`크롤: ${역할} 역할로 로그인 못 해 그 역할은 안 훑는다 — ${까닭}`);
+            돈.못돈.push(역할);
+            continue;
+          }
+          a.역할상태.set(상태, 파일);
+        }
+      }
+      const 몫 = { 장: Math.floor((a.최대 - 판.본.length) / (상태들.length - i)), 마감: 시작 + ((i + 1) * a.분 * 60_000) / 상태들.length };
       판.연속오류 = 0;
       await 한상태(브라우저, 상태, a, 몫, 판);
       돈.상태들.push(상태);

@@ -18,6 +18,8 @@ export interface CaseScreen {
   /** 저장소 뿌리 기준 경로 — `tests/<폴더>/pages/<이름>.page.ts` 또는 `components/<이름>.component.ts` */
   file: string;
   url: string | null;
+  /** 화면 파일 클래스 이름(`게시판목록화면`). 못 읽었으면 null — 목록은 주소 · 파일 이름을 보인다 (PRD-F9-18) */
+  name: string | null;
 }
 
 export interface CaseContext {
@@ -31,14 +33,17 @@ export interface CaseGroup {
   feature: string | null;
   screen: string | null;
   screenUrl: string | null;
+  /** 화면 · 화면 조각 파일의 클래스 이름 — 없으면 null (PRD-F9-18) */
+  screenName: string | null;
   part: string | null;
+  partName: string | null;
   tcIds: string[];
 }
 
 export interface 맥락재료 {
   prd: Pick<PrdItem, 'reqId' | 'feature' | 'text'>[];
   reqs: { reqId: string; tcId: string; axis: 종류 }[];
-  screens: { tcId: string; file: string; url: string | null }[];
+  screens: { tcId: string; file: string; url: string | null; name: string | null }[];
 }
 
 interface 자리 {
@@ -48,7 +53,9 @@ interface 자리 {
   화면차례: string;
   screen: string | null;
   screenUrl: string | null;
+  screenName: string | null;
   part: string | null;
+  partName: string | null;
 }
 
 export type 맥락표 = Map<string, CaseContext & { 자리: 자리 }>;
@@ -79,7 +86,7 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
   const 화면들 = new Map<string, CaseScreen[]>();
   for (const s of 재료.screens) {
     const 줄 = 화면들.get(s.tcId) ?? [];
-    줄.push({ file: s.file, url: s.url });
+    줄.push({ file: s.file, url: s.url, name: s.name });
     화면들.set(s.tcId, 줄);
   }
 
@@ -104,14 +111,16 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
         화면차례: 화면 === null ? '' : 화면순(화면),
         screen: 화면?.file ?? null,
         screenUrl: 화면?.url ?? null,
+        screenName: 화면?.name ?? null,
         part: 조각?.file ?? null,
+        partName: 조각?.name ?? null,
       },
     });
   }
   return 표;
 }
 
-const 빈자리: 자리 = { 차례: Infinity, 화면차례: '', screen: null, screenUrl: null, part: null };
+const 빈자리: 자리 = { 차례: Infinity, 화면차례: '', screen: null, screenUrl: null, screenName: null, part: null, partName: null };
 
 /** 목록 순서 — 기능 묶음(판 차례) → 화면(주소) → 화면 조각 → 번호. 화면 없는 케이스가 그 묶음 맨 앞이다 — 머리 줄 없이 묶음 바로 아래 선다 */
 export function 줄세우기(tcIds: string[], 표: 맥락표): { 차례: string[]; groups: CaseGroup[] } {
@@ -134,7 +143,7 @@ export function 줄세우기(tcIds: string[], 표: 맥락표): { 차례: string[
     const feature = 표.get(id)?.feature ?? null;
     const 끝 = groups.at(-1);
     if (끝 !== undefined && 끝.feature === feature && 끝.screen === 곳.screen && 끝.part === 곳.part) 끝.tcIds.push(id);
-    else groups.push({ feature, screen: 곳.screen, screenUrl: 곳.screenUrl, part: 곳.part, tcIds: [id] });
+    else groups.push({ feature, screen: 곳.screen, screenUrl: 곳.screenUrl, screenName: 곳.screenName, part: 곳.part, partName: 곳.partName, tcIds: [id] });
   }
   return { 차례, groups };
 }
@@ -212,14 +221,14 @@ export async function 맥락읽기(prefix: string): Promise<맥락표> {
       'SELECT rc.req_id, rc.tc_id, rc.axis FROM req_case rc JOIN service s ON s.id = rc.service_id WHERE s.prefix = $1',
       [prefix],
     ),
-    pool.query<{ tc_id: string; file: string; screen_url: string | null }>(
-      'SELECT tc_id, file, screen_url FROM case_screen WHERE tc_id LIKE $1',
+    pool.query<{ tc_id: string; file: string; screen_url: string | null; name: string | null }>(
+      'SELECT tc_id, file, screen_url, name FROM case_screen WHERE tc_id LIKE $1',
       [`${prefix}-%`],
     ),
   ]);
   return 맥락짓기({
     prd: 판.rows[0]?.items ?? [],
     reqs: 요구.rows.map((r) => ({ reqId: r.req_id, tcId: r.tc_id, axis: r.axis })),
-    screens: 화면.rows.map((r) => ({ tcId: r.tc_id, file: r.file, url: r.screen_url })),
+    screens: 화면.rows.map((r) => ({ tcId: r.tc_id, file: r.file, url: r.screen_url, name: r.name })),
   });
 }

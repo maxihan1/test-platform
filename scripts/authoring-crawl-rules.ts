@@ -1,7 +1,9 @@
 // 화면 크롤러의 판정 — 따라갈 주소 · 같은 틀 · 지문 · 목록 · 로그인 풀림. 껍데기(authoring-crawl.ts)는 I/O 만 한다 (도메인/작성 §3.6 「★ 역방향」)
 import { createHash } from 'node:crypto';
 
+import { 기본역할, 출처 as 주소출처 } from '@platform/kit/accounts';
 import { 제외경로정리, 제외되나 } from '../apps/admin/src/settings/rules.js';
+import { type 상태, 상태인가 } from './authoring-screens-keep.js';
 
 const 내려받기 = /\.(pdf|zip|7z|rar|hwpx?|docx?|xlsx?|pptx?|csv|txt|png|jpe?g|gif|svg|webp|ico|mp4|mov|avi|mp3|wav|apk|exe|dmg|msi)$/i;
 // 링크 글자 — 주소가 멀쩡해 보여도 이것이면 상태가 바뀐다(검토 BLOCKER — `/member/out.php` 가 「로그아웃」이었다)
@@ -18,8 +20,9 @@ const 쪽인자 = new Set([
   'page', 'p', 'pg', 'pageno', 'sort', 'order', 'orderby', 'sst', 'sod', 'size', 'limit', 'offset', 'per', 'perpage',
   'next', 'returnurl', 'return', 'returnto', 'redirect', 'redirecturl', 'redirect_uri', 'from', 'continue', 'url',
 ]);
-// 번호 마디 — 숫자 · UUID · 긴 16진수, 그리고 영문 세 자 이하 머리에 숫자가 넷 이상인 주문 번호 꼴(`DM20261002-0001`). `privacy-2024` 는 이름이다
-const 숫자마디 = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24,}|[a-z]{0,3}(?=(?:[-_]?\d){4})[\d_-]+)$/i;
+// 번호 마디 — 숫자 · UUID · 긴 16진수, 그리고 영문 세 자 이하 머리에 숫자가 넷 이상인 주문 번호 꼴(`DM20261002-0001`). `privacy-2024` 는 이름이다.
+// 화면 파일의 이름 마디(`/board/:id`)도 번호다 — 크롤러는 진짜 번호만 보므로 `:n` 으로 맞춰야 「PRD 에 없는 화면」이 안 갈린다 (PRD-F9-04)
+const 숫자마디 = /^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24,}|[a-z]{0,3}(?=(?:[-_]?\d){4})[\d_-]+|:\w+)$/i;
 
 /** 경로 글자 — EUC-KR 처럼 풀 수 없으면 원문 그대로(크롤 전체가 죽지 않게) */
 export const 풀기 = (글: string): string => {
@@ -70,12 +73,12 @@ const 마디정리 = (경로: string): string =>
     .map((m) => (숫자마디.test(m) ? ':n' : m))
     .join('/');
 
-/** 같은 틀이면 같은 키 — 숫자 마디 · 숫자 값 · 쪽 인자만 묶는다 */
+/** 같은 틀이면 같은 키 — 숫자 마디 · 숫자 값 · 쪽 인자만 묶는다. 화면 파일의 이름 값(`?wr_id=:id`)도 숫자 값이다 (PRD-F9-04) */
 export function 틀키(주소: string): string {
   const u = new URL(주소);
   const 인자 = [...u.searchParams]
     .filter(([k]) => !쪽인자.has(k.toLowerCase()))
-    .map(([k, v]) => `${k}=${/^\d+$/.test(v) ? ':n' : v}`)
+    .map(([k, v]) => `${k}=${/^(?:\d+|:\w+)$/.test(v) ? ':n' : v}`)
     .sort();
   const 해시 = 해시라우트(u.hash) ? 마디정리(u.hash) : '';
   return `${마디정리(u.pathname)}${인자.length === 0 ? '' : `?${인자.join('&')}`}${해시}`;
@@ -115,9 +118,33 @@ export function 케이스지도읽기(글: string): Map<string, string[]> | null
   }
 }
 
-/** 목록 줄이 PRD 에 이미 있는 화면인가 — 덮은 틀 집합에 그 틀이 있으면 (상태는 안 가른다). 집합이 없으면 늘 아니다 */
+// 인자 꼬리 — 해시 라우트 안의 인자(`/#/shop?category=outer`)도 같다
+const 인자꼬리 = /\?[^#]*/;
+const 구조다름 = / \(구조 다름\)$/;
+// 인자로 화면을 가르는 입구 — 뿌리(`/?page_id=5` 워드프레스)와 스크립트 파일(`/index.php?route=` · `/bbs/board.php?bo_table=`)은 인자 뺀 주소가 덮지 않는다
+const 인자입구 = (경로: string): boolean => /^\/#?!?\/?$/.test(경로) || /\.[a-z0-9]+$/i.test(경로);
+
+/**
+ * 크롤러 같은 틀이 화면 파일 틀들에 닿나 — 같은 틀이거나, 인자 없는 화면 파일 주소(`/shop`)가 같은 경로의 인자 붙은 틀(`/shop?category=outer`)을 덮는다.
+ * 인자 있는 화면 파일 주소(`?bo_table=notice`)는 그 값만 덮는다. 인자로 화면을 가르는 입구(뿌리 · 스크립트 파일)와 구조가 다른 둘째 장은 같은 틀일 때만 (PRD-F9-04)
+ */
+export function 틀닿나(틀: string, 파일틀: ReadonlySet<string>): boolean {
+  if (파일틀.has(틀)) return true;
+  const 경로 = 틀.replace(인자꼬리, '');
+  return 경로 !== 틀 && !구조다름.test(틀) && !인자입구(경로) && 파일틀.has(경로);
+}
+
+/** 크롤러 같은 틀을 쓰는 케이스 — 화면 파일 틀 → tcId 지도에서 `틀닿나` 와 같은 규칙으로 모은다. 없으면 undefined */
+export function 틀케이스(틀: string, 지도: ReadonlyMap<string, readonly string[]> | null): string[] | undefined {
+  if (지도 === null) return undefined;
+  const 경로 = 틀.replace(인자꼬리, '');
+  const 모음 = [...(지도.get(틀) ?? []), ...(경로 !== 틀 && 틀닿나(틀, new Set([경로])) ? (지도.get(경로) ?? []) : [])];
+  return 모음.length === 0 && !지도.has(틀) ? undefined : [...new Set(모음)].sort();
+}
+
+/** 목록 줄이 PRD 에 이미 있는 화면인가 — 덮은 틀 집합에 `틀닿나` (상태는 안 가른다). 집합이 없으면 늘 아니다 */
 export function 덮음인가(틀: string, 덮은틀: ReadonlySet<string> | null): boolean {
-  return 덮은틀 !== null && 덮은틀.has(틀);
+  return 덮은틀 !== null && 틀닿나(틀, 덮은틀);
 }
 
 /** 같은 틀 둘째 장을 열어 구조를 견줄까 — 인자의 숫자 값으로 화면을 가르는 틀(`?board_no=1` 공지 · `=4` 문의)만. 경로 숫자(글 상세)는 한 장이면 된다 */
@@ -158,7 +185,7 @@ export function 글자지문(파일글: string): string {
 }
 
 export interface 목록항목 {
-  상태: '로그아웃' | '로그인';
+  상태: 상태;
   틀: string;
   주소: string;
   이름: string;
@@ -166,9 +193,12 @@ export interface 목록항목 {
   시작: boolean;
 }
 
-/** 훑을 목록 — 두 상태에 다 있는 틀은 로그인 하나, 시작 화면만 둘 다 (§3.6 「기획서가 없을 때」) */
+/**
+ * 훑을 목록 — 로그아웃과 로그인에 다 있는 틀은 로그인 쪽만, 시작 화면만 둘 다 (§3.6 「기획서가 없을 때」).
+ * 역할끼리는 안 줄인다 — 같은 화면도 관리자에게만 「삭제」가 보인다 (PRD-F9-30)
+ */
 export function 목록고르기(항목들: 목록항목[]): 목록항목[] {
-  const 로그인틀 = new Set(항목들.filter((x) => x.상태 === '로그인').map((x) => x.틀));
+  const 로그인틀 = new Set(항목들.filter((x) => x.상태 !== '로그아웃').map((x) => x.틀));
   const 본 = new Set<string>();
   const 고른: 목록항목[] = [];
   for (const x of 항목들) {
@@ -183,7 +213,7 @@ export function 목록고르기(항목들: 목록항목[]): 목록항목[] {
 
 /**
  * 화면 연결(본 화면 번호 → 나간 연결)을 목록에 남은 화면으로 모은다 (PRD-F6-02).
- * 두 상태에 다 있는 틀은 로그인 하나만 남으므로 로그아웃 때 본 연결(홈 → 로그인 · 가입)도 그 화면에 합친다. 목록에 같은 틀이 없으면 버린다
+ * 로그아웃과 로그인에 다 있는 틀은 로그인 쪽만 남으므로 로그아웃 때 본 연결(홈 → 로그인 · 가입)도 그 틀의 첫 로그인 화면에 합친다. 목록에 같은 틀이 없으면 버린다
  */
 export function 연결모으기<T extends Pick<목록항목, '상태' | '틀'>>(
   본들: readonly T[],
@@ -191,16 +221,38 @@ export function 연결모으기<T extends Pick<목록항목, '상태' | '틀'>>(
   고른: readonly T[],
 ): { 상태: T['상태']; 틀: string; 연결: { to: string; via: string }[] }[] {
   const 자리 = new Map(고른.map((x) => [`${x.상태} ${x.틀}`, x]));
+  const 로그인자리 = new Map<string, T>();
+  for (const x of 고른) if (x.상태 !== '로그아웃' && !로그인자리.has(x.틀)) 로그인자리.set(x.틀, x);
   const 모은 = new Map<T, Map<string, { to: string; via: string }>>();
   본들.forEach((본, i) => {
     const 칸 = 연결.get(i);
-    const 갈곳 = 자리.get(`${본.상태} ${본.틀}`) ?? 자리.get(`로그인 ${본.틀}`);
+    const 갈곳 = 자리.get(`${본.상태} ${본.틀}`) ?? 로그인자리.get(본.틀);
     if (칸 === undefined || 갈곳 === undefined) return;
     const 합 = 모은.get(갈곳) ?? new Map<string, { to: string; via: string }>();
     for (const [키, 값] of 칸) 합.set(키, 값);
     모은.set(갈곳, 합);
   });
   return 고른.flatMap((x) => (모은.has(x) ? [{ 상태: x.상태, 틀: x.틀, 연결: [...모은.get(x)!.values()] }] : []));
+}
+
+/**
+ * 크롤러가 로그인해 훑을 역할 — 에이전트가 넘긴 `PLATFORM_ACCOUNTS` 의 역할(시작 주소와 출처가 같은 줄 — kit 이 실행 때 채우는 줄과 같다)을 일반 회원부터 차례로.
+ * 계정 값은 안 읽는다. 없거나 못 읽으면 일반 회원 하나 — 로그인 상태 파일(`--state`)이 그 계정이다 (PRD-F9-30)
+ */
+export function 크롤역할들(계정글: string | undefined, 출처: string): string[] {
+  let 줄들: unknown = [];
+  try {
+    줄들 = JSON.parse(계정글 === undefined || 계정글.trim() === '' ? '[]' : 계정글);
+  } catch {
+    줄들 = [];
+  }
+  const 역할들 = (Array.isArray(줄들) ? 줄들 : []).flatMap((a: unknown) => {
+    const x = (typeof a === 'object' && a !== null ? a : {}) as { role?: unknown; baseUrl?: unknown };
+    if (typeof x.role !== 'string' || x.role.trim() === '' || 주소출처(x.baseUrl) !== 출처) return [];
+    // 서버 화면 기록 상태 규칙에 안 맞는 역할은 안 돈다 — 올리면 그 상태 줄이 다 거절되고 done 까지 통째로 400 이 된다
+    return 상태인가(`로그인:${x.role.trim()}`) ? [x.role.trim()] : [];
+  });
+  return [...new Set([기본역할, ...역할들])];
 }
 
 // login 은 머리만 맞으면(`/loginForm`), auth 는 낱말로만(`/authors` 는 아니다)

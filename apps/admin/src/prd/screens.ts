@@ -1,10 +1,9 @@
 // 화면 기록 저장본 — 작성 에이전트가 훑은 화면마다의 기록과 화면 연결을 DB 에 둔다 (도메인/작성 §3.6 「바뀐 화면만 다시 훑는다」 · §7 「표준 기획서 통로」)
-// 맞추는 열쇠는 상태 + 같은 틀(url 칸)이다 — 번호만 다른 주소를 한 화면으로 봐야 게시판 글처럼 매번 다른 글이 열리는 화면도 다시 안 훑는다
+// 맞추는 열쇠는 대상 서버 + 상태 + 같은 틀(url 칸)이다 — 번호만 다른 주소를 한 화면으로 봐야 게시판 글처럼 매번 다른 글이 열리는 화면도 다시 안 훑는다.
+// 대상 서버는 요청 행에서 읽는다 — 피처 플래그가 다른 qa 와 운영의 같은 화면이 서로 덮어쓰지 않게 (PRD-F9-29)
 
+import { type 상태, 상태인가 } from '../../../../scripts/authoring-screens-keep.js';
 import { db, 한묶음 } from '../settings/store.js';
-
-const 상태들 = ['로그아웃', '로그인'] as const;
-type 상태 = (typeof 상태들)[number];
 
 export interface 화면 {
   state: 상태;
@@ -27,7 +26,6 @@ const 틀림 = (detail: string): 오류 => ({ error: 'BAD_SCREEN', detail });
 const 칸들 = (v: unknown): Record<string, unknown> => (typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : {});
 const 글인가 = (v: unknown, 최대: number, 빈것 = false): v is string =>
   typeof v === 'string' && v.length <= 최대 && (빈것 || v.trim() !== '');
-const 상태인가 = (v: unknown): v is 상태 => 상태들.includes(v as 상태);
 
 /** PUT 본문 — 화면 하나와 그 화면에서 나간 연결 */
 export function 화면검사(몸: unknown): { 화면: 화면; links: 링크[] } | 오류 {
@@ -66,17 +64,17 @@ export function 다봄검사(몸: unknown): { seen: { state: 상태; url: string
   return { seen, complete: [...new Set(b.complete)] };
 }
 
-/** 그 서비스의 화면 기록 전부와 화면 연결 — 에이전트가 자식 앞 `kept/` 를 만든다 */
-export async function 화면들(서비스: number): Promise<{ screens: 화면[]; links: ({ state: 상태; fromUrl: string } & 링크)[] }> {
+/** 그 서비스 · 대상 서버의 화면 기록 전부와 화면 연결 — 에이전트가 자식 앞 `kept/` 를 만든다 */
+export async function 화면들(서비스: number, env: string): Promise<{ screens: 화면[]; links: ({ state: 상태; fromUrl: string } & 링크)[] }> {
   const p = await db();
   const [s, l] = await Promise.all([
     p.query<{ state: 상태; url: string; name: string; text_fp: string; struct_fp: string; record: string; crawled_at: Date }>(
-      'SELECT state, url, name, text_fp, struct_fp, record, crawled_at FROM screen_record WHERE service_id = $1 ORDER BY state, url',
-      [서비스],
+      'SELECT state, url, name, text_fp, struct_fp, record, crawled_at FROM screen_record WHERE service_id = $1 AND env = $2 ORDER BY state, url',
+      [서비스, env],
     ),
     p.query<{ state: 상태; from_url: string; to_url: string; via: string }>(
-      'SELECT state, from_url, to_url, via FROM screen_link WHERE service_id = $1 ORDER BY state, from_url, to_url, via',
-      [서비스],
+      'SELECT state, from_url, to_url, via FROM screen_link WHERE service_id = $1 AND env = $2 ORDER BY state, from_url, to_url, via',
+      [서비스, env],
     ),
   ]);
   return {
@@ -87,59 +85,59 @@ export async function 화면들(서비스: number): Promise<{ screens: 화면[];
   };
 }
 
-/** 같은 키(상태 + 같은 틀)는 바꾸고, 그 화면에서 나간 연결은 보낸 것으로 갈아 끼운다 */
-export async function 화면넣기(서비스: number, x: 화면, links: 링크[]): Promise<void> {
+/** 같은 키(대상 서버 + 상태 + 같은 틀)는 바꾸고, 그 화면에서 나간 연결은 보낸 것으로 갈아 끼운다 */
+export async function 화면넣기(서비스: number, env: string, x: 화면, links: 링크[]): Promise<void> {
   await 한묶음(async (손) => {
     await 손.query(
-      `INSERT INTO screen_record (service_id, state, url, name, text_fp, struct_fp, record, crawled_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (service_id, state, url) DO UPDATE
+      `INSERT INTO screen_record (service_id, env, state, url, name, text_fp, struct_fp, record, crawled_at)
+            VALUES ($1, $9, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (service_id, env, state, url) DO UPDATE
          SET name = EXCLUDED.name, text_fp = EXCLUDED.text_fp, struct_fp = EXCLUDED.struct_fp,
              record = EXCLUDED.record, crawled_at = EXCLUDED.crawled_at`,
-      [서비스, x.state, x.url, x.name, x.textFp, x.structFp, x.record, x.crawledAt],
+      [서비스, x.state, x.url, x.name, x.textFp, x.structFp, x.record, x.crawledAt, env],
     );
-    await 손.query('DELETE FROM screen_link WHERE service_id = $1 AND state = $2 AND from_url = $3', [서비스, x.state, x.url]);
+    await 손.query('DELETE FROM screen_link WHERE service_id = $1 AND env = $4 AND state = $2 AND from_url = $3', [서비스, x.state, x.url, env]);
     await 손.query(
-      `INSERT INTO screen_link (service_id, state, from_url, to_url, via)
-       SELECT $1, $2, $3, t, v FROM unnest($4::text[], $5::text[]) AS l(t, v)
+      `INSERT INTO screen_link (service_id, env, state, from_url, to_url, via)
+       SELECT $1, $6, $2, $3, t, v FROM unnest($4::text[], $5::text[]) AS l(t, v)
        ON CONFLICT DO NOTHING`,
-      [서비스, x.state, x.url, links.map((l) => l.toUrl), links.map((l) => l.via)],
+      [서비스, x.state, x.url, links.map((l) => l.toUrl), links.map((l) => l.via), env],
     );
   });
 }
 
 /**
  * 본 화면을 찾은 화면(screen_found)에 넣고(같은 키는 이름만 바꾼다), 다 본 상태에서 이번에 못 본 화면의 기록 ·
- * 연결 · 찾은 화면을 지운다 — 지운 화면 기록 수.
+ * 연결 · 찾은 화면을 지운다 — 지운 화면 기록 수. 넣기도 지우기도 그 대상 서버 몫만이다.
  * 로그인 없이 돈 날은 로그아웃만 다 본 상태라 로그인 기록이 남는다 (§3.6 「바뀐 화면만 다시 훑는다」).
  * 찾은 화면 넣기는 다 본 상태가 비어도 한다 — 비면 지우기만 안 한다
  */
-export async function 다봄(서비스: number, seen: { state: 상태; url: string; name: string }[], complete: 상태[]): Promise<number> {
-  const 값 = [서비스, complete, seen.map((s) => s.state), seen.map((s) => s.url)];
+export async function 다봄(서비스: number, env: string, seen: { state: 상태; url: string; name: string }[], complete: 상태[]): Promise<number> {
+  const 값 = [서비스, complete, seen.map((s) => s.state), seen.map((s) => s.url), env];
   return 한묶음(async (손) => {
     await 손.query(
       // 같은 키가 두 번 오면 ON CONFLICT 가 한 행을 두 번 고치려다 통째로 실패한다 — 하나로 줄인다.
       // 빈 이름은 옛 이름을 지우지 않는다(이름 없이 보낸 done · 제목 없는 화면)
-      `INSERT INTO screen_found (service_id, state, url, name)
-       SELECT DISTINCT ON (s.state, s.url) $1::bigint, s.state, s.url, s.name
+      `INSERT INTO screen_found (service_id, env, state, url, name)
+       SELECT DISTINCT ON (s.state, s.url) $1::bigint, $5, s.state, s.url, s.name
          FROM unnest($2::text[], $3::text[], $4::text[]) AS s(state, url, name)
         ORDER BY s.state, s.url, s.name DESC
-       ON CONFLICT (service_id, state, url) DO UPDATE SET name = COALESCE(NULLIF(EXCLUDED.name, ''), screen_found.name)`,
-      [서비스, seen.map((s) => s.state), seen.map((s) => s.url), seen.map((s) => s.name)],
+       ON CONFLICT (service_id, env, state, url) DO UPDATE SET name = COALESCE(NULLIF(EXCLUDED.name, ''), screen_found.name)`,
+      [서비스, seen.map((s) => s.state), seen.map((s) => s.url), seen.map((s) => s.name), env],
     );
     if (complete.length === 0) return 0;
     await 손.query(
-      `DELETE FROM screen_found f WHERE f.service_id = $1 AND f.state = ANY($2::text[])
+      `DELETE FROM screen_found f WHERE f.service_id = $1 AND f.env = $5 AND f.state = ANY($2::text[])
           AND NOT EXISTS (SELECT 1 FROM unnest($3::text[], $4::text[]) AS s(state, url) WHERE s.state = f.state AND s.url = f.url)`,
       값,
     );
     await 손.query(
-      `DELETE FROM screen_link l WHERE l.service_id = $1 AND l.state = ANY($2::text[])
+      `DELETE FROM screen_link l WHERE l.service_id = $1 AND l.env = $5 AND l.state = ANY($2::text[])
           AND NOT EXISTS (SELECT 1 FROM unnest($3::text[], $4::text[]) AS s(state, url) WHERE s.state = l.state AND s.url = l.from_url)`,
       값,
     );
     const r = await 손.query(
-      `DELETE FROM screen_record r WHERE r.service_id = $1 AND r.state = ANY($2::text[])
+      `DELETE FROM screen_record r WHERE r.service_id = $1 AND r.env = $5 AND r.state = ANY($2::text[])
           AND NOT EXISTS (SELECT 1 FROM unnest($3::text[], $4::text[]) AS s(state, url) WHERE s.state = r.state AND s.url = r.url)`,
       값,
     );

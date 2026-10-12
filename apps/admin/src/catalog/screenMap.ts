@@ -11,6 +11,8 @@ export interface 화면줄 {
   tcId: string;
   file: string;
   screenUrl: string | null;
+  /** 화면 파일 클래스 이름(`게시판목록화면`) — 목록이 주소 · 영문 파일 이름 대신 보인다 (PRD-F9-18) */
+  name: string | null;
 }
 
 // helpers/ 는 넣지 않는다 — 로그인 · 계정 · 데이터 도구는 거의 모든 케이스가 써서, 넣으면 「모든 케이스가 그 화면에 닿는다」가 된다 (작성 §3.6 「지도」).
@@ -58,19 +60,29 @@ export function 화면주소(화면글: string): string | null {
   return null;
 }
 
-/** 읽어 낸 케이스마다 가져온 화면 파일과 그 주소를 잇는다. `file` 은 저장소 뿌리 기준(`tests/<폴더>/pages/<이름>.page.ts`)이다 */
+/** 화면 파일이 내보내는 첫 클래스 이름 — 작성 규칙이 한글 이름(`게시판목록화면` · `머리글`)으로 짓는다. 없으면 모른다 */
+export function 화면이름(화면글: string): string | null {
+  const sf = ts.createSourceFile('screen.page.ts', 화면글, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
+  for (const stmt of sf.statements) {
+    if (ts.isClassDeclaration(stmt) && stmt.name !== undefined && (ts.getCombinedModifierFlags(stmt) & ts.ModifierFlags.Export) !== 0) return stmt.name.text;
+  }
+  return null;
+}
+
+/** 읽어 낸 케이스마다 가져온 화면 파일과 그 주소 · 이름을 잇는다. `file` 은 저장소 뿌리 기준(`tests/<폴더>/pages/<이름>.page.ts`)이다 */
 export async function 화면지도줄들(root: string, specs: CaseSpec[]): Promise<화면줄[]> {
-  const 주소들 = new Map<string, string | null>();
+  const 파일들 = new Map<string, { screenUrl: string | null; name: string | null }>();
   const 줄들: 화면줄[] = [];
   for (const spec of specs) {
     const 자리 = posix.dirname(spec.filePath.split(sep).join('/'));
     for (const 상대 of 가져온화면파일(await readFile(join(root, spec.filePath), 'utf8'))) {
       const 경로 = posix.join(자리, 상대);
-      // 화면 조각은 여러 화면에 나오므로 주소가 없다 — 값을 적어 둬도 넣지 않는다 (공통/4-데이터모델 case_screen)
-      if (!주소들.has(경로)) {
-        주소들.set(경로, 상대.startsWith('pages/') ? 화면주소(await readFile(join(root, 경로), 'utf8')) : null);
+      if (!파일들.has(경로)) {
+        const 글 = await readFile(join(root, 경로), 'utf8');
+        // 화면 조각은 여러 화면에 나오므로 주소가 없다 — 값을 적어 둬도 넣지 않는다 (공통/4-데이터모델 case_screen)
+        파일들.set(경로, { screenUrl: 상대.startsWith('pages/') ? 화면주소(글) : null, name: 화면이름(글) });
       }
-      줄들.push({ tcId: spec.tcId, file: `tests/${경로}`, screenUrl: 주소들.get(경로) ?? null });
+      줄들.push({ tcId: spec.tcId, file: `tests/${경로}`, ...파일들.get(경로)! });
     }
   }
   return 줄들;
@@ -106,9 +118,9 @@ export async function 화면지도채우기(
       specs.map((s) => s.tcId),
     ]);
     await client.query(
-      `INSERT INTO case_screen (tc_id, file, screen_url)
-       SELECT * FROM unnest($1::text[], $2::text[], $3::text[])`,
-      [줄들.map((x) => x.tcId), 줄들.map((x) => x.file), 줄들.map((x) => x.screenUrl)],
+      `INSERT INTO case_screen (tc_id, file, screen_url, name)
+       SELECT * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[])`,
+      [줄들.map((x) => x.tcId), 줄들.map((x) => x.file), 줄들.map((x) => x.screenUrl), 줄들.map((x) => x.name)],
     );
     await client.query('COMMIT');
     return 줄들.length;
