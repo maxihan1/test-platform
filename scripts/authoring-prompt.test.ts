@@ -64,6 +64,14 @@ describe('줄프롬프트 — 원장 절 (도메인/작성 §3.6 「★ 원장�
   });
 });
 
+describe('줄프롬프트 — 진행 글 언어 (PRD-F9-15)', () => {
+  it('모든 요청의 공통 절에 진행 글은 한국어 해요체라고 싣는다 — 기획서 절보다 앞', () => {
+    const 글 = 줄프롬프트({ id: 1, kind: 'AUTHOR', specText: '본문' }, 'MKT', []);
+    expect(글.indexOf('한국어 해요체')).toBeGreaterThan(-1);
+    expect(글.indexOf('한국어 해요체')).toBeLessThan(글.indexOf('--- 기획서 ---'));
+  });
+});
+
 describe('줄프롬프트 — 진행 메모 (도메인/작성 §7 「이어하기」 · 2026-10-04)', () => {
   const 것 = { id: 1, kind: 'AUTHOR' as const, specText: '본문' };
   const 메모 = '/w/author-1/assets/resume-memo.md';
