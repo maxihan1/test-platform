@@ -1,7 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 
 export class 내주문상세화면 {
-  static readonly 주소 = '/my/orders/DM20261010-0001';
+  static readonly 주소 = '/my/orders/:id';
 
   readonly 제목: Locator;
   readonly 상품목록제목: Locator;

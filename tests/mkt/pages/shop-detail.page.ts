@@ -1,5 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 
+import { 머리글 } from '../components/header.component.js';
+
 export class 상품상세화면 {
   static readonly 주소 = '/shop/1';
 
@@ -79,6 +81,7 @@ export class 상품상세화면 {
 
   async 화면기다리기(): Promise<void> {
     await this.큰이미지버튼.waitFor();
+    await new 머리글(this.page).그려질때까지();
   }
 
   async 불러오기끝나기를기다리기(): Promise<void> {

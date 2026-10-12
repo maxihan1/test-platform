@@ -36,7 +36,7 @@ test(spec, async ({ page }) => {
       await 내주문.열기();
       const 번호 = (await 내주문.주문번호링크들.first().innerText()).trim();
       await 내주문.주문번호링크들.first().click();
-      await 상세.제목.waitFor();
+      await 상세.그려질때까지();
       await verify('주문번호를 누르면 주문 상세 /my/orders/{id} 화면으로 간다', [new URL(page.url()).pathname, await 상세.주문번호표시(번호).isVisible()], [`/my/orders/${번호}`, true]);
     });
   } finally {

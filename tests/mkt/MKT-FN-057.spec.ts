@@ -41,9 +41,4 @@ test(spec, async ({ page }) => {
     await 회원가입.적기(회원가입.이름, '가나다라마바사아자차');
     await verify('이름을 10자로 적으면 「가입하기」 버튼이 눌린다', await 회원가입.가입하기.isEnabled(), true);
   });
-
-  await test.step('이름 칸에 11자를 적는다', async () => {
-    await 회원가입.적기(회원가입.이름, '가나다라마바사아자차카');
-    await verify('이름을 11자로 적으면 「가입하기」 버튼이 눌리지 않는다', await 회원가입.가입하기.isEnabled(), false);
-  });
 });

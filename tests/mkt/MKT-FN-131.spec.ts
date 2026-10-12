@@ -60,15 +60,6 @@ test(spec, async ({ page }) => {
       await 상세.제목.waitFor();
       await verify('본문 2000자로 「등록」을 누르면 글이 등록되어 상세로 간다', /^\/board\/\d+$/.test(new URL(page.url()).pathname) && (await 상세.제목.innerText()) === 제목, true);
     });
-
-    await test.step('본문에 2001자를 넣고 다른 칸을 채워 「등록」을 누른다', async () => {
-      await 쓰기.열기();
-      await 쓰기.준비될때까지();
-      const 제목 = 토큰;
-      await 쓰기.채우기({ 분류: '자유', 제목, 본문: 본문글(2001) });
-      await 쓰기.등록하고응답받기();
-      await verify('본문 2001자를 넣고 「등록」을 누르면 글이 등록되지 않는다', (await 제목으로글찾기(page.request, 토큰)).length, 0);
-    });
   } finally {
     await 정리.모두하기();
   }

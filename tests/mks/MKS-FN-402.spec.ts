@@ -31,6 +31,7 @@ test(spec, async ({ page, params }) => {
     await 방해막기(page);
     await 로그인.열기();
     await 로그인.제목.waitFor();
+    await 머리.그려질때까지();
     await verify('로그인 화면이 열려 있다', 경로(page), 로그인화면.주소, { blocker: true });
   });
 
@@ -38,6 +39,7 @@ test(spec, async ({ page, params }) => {
     await 로그인.아이디와비밀번호적기(계정.loginId, 계정.password);
     await 로그인.로그인.click();
     await 머리.로그인.waitFor({ state: 'detached' });
+    await 머리.그려질때까지();
     await verify('맞는 아이디와 비밀번호로 로그인하면 머리글에 「로그아웃」 버튼이 보인다', await 머리.로그아웃.isVisible(), true);
   });
 });

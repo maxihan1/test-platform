@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 계정값, 로그인한아이디, 테스트계정으로로그인 } from './helpers/account.helper.js';
+import { 상태별주문번호 } from './helpers/order.helper.js';
 import { 방해막기 } from './helpers/quiet.helper.js';
 import { 내주문상세화면 } from './pages/my-order-detail.page.js';
 import { 경로 } from './helpers/view.helper.js';
@@ -29,10 +30,11 @@ test(spec, async ({ page, params }) => {
     await verify('테스트 계정으로 로그인해 있다', await 로그인한아이디(page.request), 계정값(params).loginId, { blocker: true });
   });
 
-  await test.step('결제완료 주문 「DM20261010-0001」의 상세를 연다', async () => {
-    await 상세.열기('DM20261010-0001');
-    await 상세.주문번호표시('DM20261010-0001').waitFor();
-    await verify('주문 상세 화면이 열려 있다', 경로(page), '/my/orders/DM20261010-0001', { blocker: true });
+  await test.step('결제완료 주문의 상세를 연다', async () => {
+    const 주문번호 = await 상태별주문번호(page.request, '결제완료');
+    await 상세.열기(주문번호);
+    await 상세.주문번호표시(주문번호).waitFor();
+    await verify('주문 상세 화면이 열려 있다', 경로(page), `/my/orders/${주문번호}`, { blocker: true });
     await verify('결제완료 주문의 상세를 열면 「주문 취소」 버튼이 보인다', await 상세.주문취소.isVisible(), true);
   });
 });

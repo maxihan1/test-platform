@@ -35,7 +35,7 @@ test(spec, async ({ page, params }) => {
     await 내주문.열기();
     const 번호 = ((await 내주문.줄글들())[0] ?? [])[1] ?? '';
     await 내주문.줄들.first().click();
-    await 상세.제목.waitFor();
+    await 상세.그려질때까지();
     await verify('주문 내역에서 주문을 누르면 그 주문 상세로 간다', 번호 !== '' && (await 상세.주문번호표시(번호).isVisible()), true);
   });
 });

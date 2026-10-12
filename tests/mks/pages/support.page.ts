@@ -17,6 +17,11 @@ export class 고객센터화면 {
 
   async 열기(): Promise<void> {
     await this.page.goto(고객센터화면.주소);
+    await this.그려질때까지();
+  }
+
+  async 그려질때까지(): Promise<void> {
+    await this.page.getByRole('tabpanel').getByRole('listitem').first().or(this.검색없음문구).first().waitFor();
   }
 
   탭(이름: string): Locator {

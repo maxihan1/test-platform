@@ -46,4 +46,8 @@ export class 머리글 {
   하위메뉴항목(이름: string): Locator {
     return this.하위메뉴.getByRole('menuitem', { name: 이름 });
   }
+
+  async 그려질때까지(): Promise<void> {
+    await this.로고.waitFor();
+  }
 }

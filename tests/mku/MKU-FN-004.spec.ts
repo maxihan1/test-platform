@@ -22,6 +22,7 @@ test(spec, async ({ page }) => {
   });
 
   await test.step('머리글 메뉴가 보이는지 확인한다', async () => {
+    await 머리.커뮤니티.waitFor();
     await verify('머리글 「커뮤니티」 메뉴가 보인다', await 머리.커뮤니티.isVisible(), true, { blocker: true });
   });
 

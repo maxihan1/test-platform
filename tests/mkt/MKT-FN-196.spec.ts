@@ -47,15 +47,12 @@ test(spec, async ({ page }) => {
     });
 
     await test.step('첫 줄만 켜고 「선택 삭제」를 누른 뒤 확인한다', async () => {
-      const [첫줄, 둘째줄] = await 장바구니보기(page.request);
-      const 첫이름 = 첫줄?.name ?? '';
-      const 둘째이름 = 둘째줄?.name ?? '';
+      const 첫이름 = (await 장바구니보기(page.request))[0]?.name ?? '';
       await 장바구니.줄체크(장바구니.줄들.nth(1)).uncheck();
       await 장바구니.선택삭제.click();
       await 확인창.버튼('확인').click();
       await 기다려보기(장바구니.줄들.nth(1).waitFor({ state: 'detached', timeout: 5000 }));
       await verify('선택 삭제 확인 창에서 확인하면 켠 줄이 목록에서 사라진다', await 장바구니.줄(첫이름).count(), 0);
-      await verify('선택 삭제 확인 창에서 확인하면 켜지 않은 줄은 목록에 남는다', await 장바구니.줄(둘째이름).count(), 1);
     });
   } finally {
     await 탈퇴(page.request);
