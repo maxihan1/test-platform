@@ -21,12 +21,14 @@ function 명세(tcId: string, filePath: string): CaseSpec {
 }
 
 const 화면지도 = vi.hoisted(() => ({ 차례: [] as string[], 부름: [] as unknown[][], 깨짐: false }));
+const 뿌리 = vi.hoisted(() => ({ 길: '/뿌리' }));
 
 vi.mock('./store.js', () => ({
   activeServices: async () => [
     { id: 1, prefix: 'XCA', name: '가', testsDir: 'xca' },
     { id: 2, prefix: 'XCB', name: '나', testsDir: 'xcb' },
     { id: 3, prefix: 'XCC', name: '다', testsDir: 'xcc' },
+    { id: 4, prefix: 'XCD', name: '라', testsDir: 'xcd' },
   ],
   save: async (specs: CaseSpec[], _deactivate: boolean, prefix: string) => {
     화면지도.차례.push(`저장 ${prefix}`);
@@ -48,8 +50,9 @@ vi.mock('./screenMap.js', () => ({
 }));
 
 vi.mock('./scanner.js', () => ({
-  testsRoot: () => '/뿌리',
+  testsRoot: () => 뿌리.길,
   scan: async (dir: string) => {
+    if (dir.endsWith('xcd')) throw Object.assign(new Error(`ENOENT: no such file or directory, scandir '${dir}'`), { code: 'ENOENT' });
     if (dir.endsWith('xca')) return { specs: [명세('XCA-001', 'a.spec.ts')], failures: [], duplicates: [] };
     if (dir.endsWith('xcb')) {
       return {
@@ -153,6 +156,33 @@ describe('스캔 결과 거르기', () => {
     const body = (await app.inject({ method: 'GET', url: '/api/catalog/scan' })).json();
     expect(body.duplicates).toHaveLength(1);
     expect(body.error).toContain('XCB');
+  });
+
+  it.each(['POST', 'GET'] as const)('%s — ?service= 를 주면 그 서비스 것만 낸다 · 다른 서비스의 겹친 번호 · 오류가 안 섞인다 (PRD-F9-19)', async (method) => {
+    부르는이 = 사람('member', { XCA: 'read', XCB: 'read' });
+    const body = (await app.inject({ method, url: '/api/catalog/scan?service=XCA' })).json();
+    expect(body).toMatchObject({ added: 1, duplicates: [] });
+    expect(body.error).toBeUndefined();
+  });
+
+  it('?service= 로 골라도 케이스 read 가 아닌 서비스 것은 안 보인다', async () => {
+    부르는이 = 사람('member', { XCA: 'read', XCB: 'none' });
+    const body = (await app.inject({ method: 'GET', url: '/api/catalog/scan?service=XCB' })).json();
+    expect(body.duplicates).toEqual([]);
+    expect(JSON.stringify(body)).not.toContain('나의 비밀 오류');
+  });
+
+  it('테스트 폴더가 아직 없는 서비스는 문제로 안 남긴다 · 뿌리 폴더까지 없으면 그대로 알린다 (PRD-F9-19)', async () => {
+    부르는이 = 사람('member', { XCD: 'read' });
+    뿌리.길 = process.cwd();
+    try {
+      const body = (await app.inject({ method: 'POST', url: '/api/catalog/scan?service=XCD' })).json();
+      expect(body.error).toBeUndefined();
+    } finally {
+      뿌리.길 = '/뿌리';
+    }
+    const body = (await app.inject({ method: 'POST', url: '/api/catalog/scan?service=XCD' })).json();
+    expect(body.error).toContain('XCD 서비스의 테스트 폴더 xcd을 읽지 못했다');
   });
 
   it('admin 은 배정 없이도 살아 있는 서비스 전부를 본다', async () => {

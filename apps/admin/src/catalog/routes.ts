@@ -44,9 +44,10 @@ const 모르는기법 = (값: string | undefined) => ({ error: 'BAD_TECHNIQUE', 
 export default async function catalogRoutes(app: FastifyInstance): Promise<void> {
   기동훑기(app.log);
 
-  app.post('/catalog/scan', async (req) => 훑고보기(app.log, req.user));
+  // `?service=` — 목록 화면이 지금 보는 서비스. 비면 볼 수 있는 서비스 전부다 (카탈로그 §7 · PRD-F9-19)
+  app.post<{ Querystring: { service?: string } }>('/catalog/scan', async (req) => 훑고보기(app.log, req.user, req.query.service || undefined));
 
-  app.get('/catalog/scan', async (req) => 마지막보기(req.user));
+  app.get<{ Querystring: { service?: string } }>('/catalog/scan', async (req) => 마지막보기(req.user, req.query.service || undefined));
 
   app.get<{
     Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string } & 맥락글;

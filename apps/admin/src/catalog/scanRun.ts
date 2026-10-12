@@ -3,6 +3,7 @@
 
 import type { FastifyBaseLogger } from 'fastify';
 
+import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
@@ -73,6 +74,9 @@ async function runScan(log: FastifyBaseLogger, 하나만?: number): Promise<스�
       try {
         found = await scan(join(root, service.testsDir));
       } catch (err) {
+        // 아직 테스트가 없는 새 서비스는 폴더가 없다 — 문제가 아니고 목록이 「아직 테스트가 없습니다」를 보인다 (PRD-F9-19).
+        // 뿌리까지 없으면 마운트가 빠진 것이라 알린다. 케이스는 어느 쪽이든 지난 스캔 그대로 둔다
+        if ((err as NodeJS.ErrnoException).code === 'ENOENT' && (await stat(root).then(() => true, () => false))) continue;
         결과.problems.push(
           `${service.prefix} 서비스의 테스트 폴더 ${service.testsDir}을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`,
         );
@@ -139,10 +143,13 @@ export function 병합뒤훑기(serviceId: number, log: FastifyBaseLogger): Prom
  * 배정 없이 스캔하는 admin 이 결과를 못 보면 설치 직후 첫 스캔이 빈칸이 된다.
  * 사람이 없으면(문 없이 띄운 자리) 아무 서비스도 안 보인다. 모르면 막는다
  */
-function 보이는결과(기록: 스캔기록, user: 사용자 | null): LastScan {
+function 보이는결과(기록: 스캔기록, user: 사용자 | null, service: string | undefined): LastScan {
   const 보이는곳 =
     user?.role === 'admin' ? null : new Set(칸되는서비스(user?.services ?? [], 'cases', 'read'));
-  const 고른것 = [...기록.서비스별].filter(([prefix]) => 보이는곳 === null || 보이는곳.has(prefix)).map(([, r]) => r);
+  // `?service=` 는 목록 화면이 지금 보는 서비스다 — 다른 서비스의 경고가 섞이지 않게 거기서 한 번 더 좁힌다 (PRD-F9-19)
+  const 고른것 = [...기록.서비스별]
+    .filter(([prefix]) => (보이는곳 === null || 보이는곳.has(prefix)) && (service === undefined || prefix === service))
+    .map(([, r]) => r);
   const duplicates = 고른것.flatMap((r) => r.duplicates);
   const problems = [...(기록.깨짐 === undefined ? [] : [기록.깨짐]), ...고른것.flatMap((r) => r.problems)];
   const error = problems.length > 0 ? problems.join('\n') : undefined;
@@ -159,13 +166,13 @@ export function 기동훑기(log: FastifyBaseLogger): void {
   startup = runScan(log);
 }
 
-/** 「다시 스캔」 — 전부 훑고 부른 사람이 볼 수 있는 것만 낸다 */
-export async function 훑고보기(log: FastifyBaseLogger, user: 사용자 | null): Promise<LastScan> {
-  return 보이는결과(await runScan(log), user);
+/** 「다시 스캔」 — 전부 훑고 부른 사람이 볼 수 있는 것만 낸다. service 를 주면 그 서비스 것만 */
+export async function 훑고보기(log: FastifyBaseLogger, user: 사용자 | null, service?: string): Promise<LastScan> {
+  return 보이는결과(await runScan(log), user, service);
 }
 
 /** 마지막 스캔 결과. 기동 스캔이 아직이면 그것을 기다린다 */
-export async function 마지막보기(user: 사용자 | null): Promise<LastScan | null> {
+export async function 마지막보기(user: 사용자 | null, service?: string): Promise<LastScan | null> {
   const 기록 = last ?? (startup === null ? null : await startup);
-  return 기록 === null ? null : 보이는결과(기록, user);
+  return 기록 === null ? null : 보이는결과(기록, user, service);
 }

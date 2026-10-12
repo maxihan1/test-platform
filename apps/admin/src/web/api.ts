@@ -889,9 +889,10 @@ export const api = {
 
   caseOf: (tcId: string) => call<CaseRow>(`/catalog/cases/${encodeURIComponent(tcId)}`),
 
-  lastScan: () => call<LastScan | null>('/catalog/scan'),
+  // 지금 보는 서비스 것만 받는다 — 다른 서비스의 경고가 목록에 섞이지 않게 (도메인/카탈로그 §7)
+  lastScan: (service: string) => call<LastScan | null>(`/catalog/scan?service=${encodeURIComponent(service)}`),
 
-  rescan: () => call<LastScan>('/catalog/scan', { method: 'POST' }),
+  rescan: (service: string) => call<LastScan>(`/catalog/scan?service=${encodeURIComponent(service)}`, { method: 'POST' }),
 
   source: (tcId: string, line: number) =>
     call<SourceExcerpt>(`/cases/${encodeURIComponent(tcId)}/source?line=${line}`),
