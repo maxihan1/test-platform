@@ -89,7 +89,7 @@ describe('판받기', () => {
 
   it('못 받으면 까닭을 돌려준다 — 작성은 표준 기획서만 읽어 부르는 쪽이 실패로 끝낸다. 거절은 던진다', async () => {
     vi.stubGlobal('fetch', async () => 답(500));
-    expect(await 판받기(서버, 'MKT', 7, 자리.자료)).toEqual({ 까닭: '표준 기획서 지금 판을 못 읽었다 (500)' });
+    expect(await 판받기(서버, 'MKT', 7, 자리.자료)).toEqual({ 까닭: '표준 기획서 지금 버전을 못 읽었다 (500)' });
     vi.stubGlobal('fetch', async () => 답(403));
     await expect(판받기(서버, 'MKT', 7, 자리.자료)).rejects.toThrow(/403/);
   });
@@ -190,7 +190,7 @@ describe('옮기기올리기', () => {
     결과쓰기({ items: [] });
     vi.stubGlobal('fetch', async () => 답(500));
     expect(await 올리기({ 없음: '글자본이 있는 자료가 없다' })).toEqual({
-      거절: '표준 기획서를 못 올렸다 — 지금 판을 못 읽었다 (500)',
+      거절: '표준 기획서를 못 올렸다 — 지금 버전을 못 읽었다 (500)',
       줄: ['⚠️ 옮기기 대조 없음 — 글자본이 있는 자료가 없다'],
     });
     vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) =>
@@ -201,6 +201,6 @@ describe('옮기기올리기', () => {
     expect(await 올리기({ 없음: '글자본이 있는 자료가 없다' })).toMatchObject({ 거절: expect.stringContaining('다시 못 읽어 새 번호를 모른다') as string });
     결과쓰기({ items: [{ ...있던, reqId: 'MKT-NEW-001', text: '새 규칙' }] });
     vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => (init?.method === 'POST' ? 답(200, { version: 2 }) : 답(200, { version: 1, items: [] })));
-    expect(await 올리기({ 없음: '글자본이 있는 자료가 없다' })).toMatchObject({ 거절: expect.stringContaining('올린 판에서 못 찾았다') as string });
+    expect(await 올리기({ 없음: '글자본이 있는 자료가 없다' })).toMatchObject({ 거절: expect.stringContaining('올린 버전에서 못 찾았다') as string });
   });
 });

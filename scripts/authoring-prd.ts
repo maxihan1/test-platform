@@ -267,7 +267,7 @@ export function 새번호맞추기(보낸: readonly 옮긴항목[], 저장: read
   for (const i of 보낸) {
     if (i.reqId !== undefined) continue;
     const 받은 = 후보.find((c) => !쓴.has(c.reqId) && 같다(c, i));
-    if (받은 === undefined) return { 사유: `새 항목 「${i.text.slice(0, 30)}」 을 올린 판에서 못 찾았다` };
+    if (받은 === undefined) return { 사유: `새 항목 「${i.text.slice(0, 30)}」 을 올린 버전에서 못 찾았다` };
     쓴.add(받은.reqId);
     if (i.임시 !== undefined) 맞춤.set(i.임시, 받은.reqId);
   }

@@ -70,7 +70,7 @@ export async function 판받기(
 ): Promise<{ 입력: 표준기획서입력; 앞판: 앞판; 기준판: 판 | null } | { 까닭: string }> {
   try {
     const 판 = await 지금판읽기(서버, 서비스, 번호);
-    if ('까닭' in 판) return { 까닭: `표준 기획서 지금 판을 못 읽었다 (${판.까닭})` };
+    if ('까닭' in 판) return { 까닭: `표준 기획서 지금 버전을 못 읽었다 (${판.까닭})` };
     const 지금판 = join(자료폴더, 'prd-current.json');
     // 글 값만 가린다 — JSON 글을 통째로 가리면 비밀번호가 키 · 숫자와 같을 때(「text」 · 「1234」) 깨진 JSON 이 돼 작성이 멈춘다
     const 가리기 = (_k: string, v: unknown) => (typeof v === 'string' ? 비밀가리기(v, 비밀) : v);
@@ -85,7 +85,7 @@ export async function 판받기(
       기준판: 판.base === null ? null : (JSON.parse(JSON.stringify(판.base, 가리기)) as 판),
     };
   } catch (err) {
-    return { 까닭: `표준 기획서 지금 판을 못 읽었다: ${거절말고(err)}` };
+    return { 까닭: `표준 기획서 지금 버전을 못 읽었다: ${거절말고(err)}` };
   }
 }
 
@@ -171,7 +171,7 @@ export async function 옮기기올리기(
     // 사람이 고친 항목을 옛 판으로 덮어 지우지 않게. 서버는 보내지 않은 번호를 지운다(§7 에이전트 `POST …/:id/prd`).
     // 기준 판은 자식 앞 판이다 — 그 사이 사람이 지운 번호를 서버가 되살리지 않고 「사람이 고친 항목」으로 돌려준다
     const 판 = await 지금판읽기(서버, 서비스, 번호);
-    if ('까닭' in 판) return 못함(`지금 판을 못 읽었다 (${판.까닭})`);
+    if ('까닭' in 판) return 못함(`지금 버전을 못 읽었다 (${판.까닭})`);
     const 합친 = 판합치기(판.items, 옮긴, new Set(앞.번호들));
     const 답 = await 부른다(서버.주소기지, 서버.토큰, 통로(번호, 서비스), { method: 'POST', body: { baseVersion: 앞.version, items: 보낼항목(합친.items) } });
     const 받음 = 답.몸 as { version?: unknown; keptByPerson?: unknown; error?: unknown; detail?: unknown } | null;
@@ -181,7 +181,7 @@ export async function 옮기기올리기(
     }
     // 새 번호는 저장된 판에서 문장으로 짝지어 읽는다(응답에는 번호가 없다 — 계약 변경 없이)
     const 저장 = await 지금판읽기(서버, 서비스, 번호);
-    if ('까닭' in 저장) return 못함(`올린 판(${String(받음.version)})을 다시 못 읽어 새 번호를 모른다 (${저장.까닭})`);
+    if ('까닭' in 저장) return 못함(`올린 버전(${String(받음.version)})을 다시 못 읽어 새 번호를 모른다 (${저장.까닭})`);
     const 맞춤 = 새번호맞추기(합친.items, 저장.items);
     if ('사유' in 맞춤) return 못함(맞춤.사유);
     // 표와 결과 파일의 임시 번호를 바꿔 적는다 — 이어하기가 이 파일을 다시 올려도 같은 번호를 가리키게.
