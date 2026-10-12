@@ -170,7 +170,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
       요청.prUrl === null ? (
         <>
           <p>{t('올라간 PR 이 없습니다. 아래 만든 것을 확인하세요.')}</p>
-          <div className="btns">{폐기버튼}</div>
+          {폐기버튼 === null ? null : <div className="btns">{폐기버튼}</div>}
         </>
       ) : (
         <ol>
