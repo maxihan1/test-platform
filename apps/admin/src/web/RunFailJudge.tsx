@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { api, ApiError, type FailureCase, type FailureJudgment } from './api.js';
-import { 요청오류문장 } from './errorText.js';
+import { api, type FailureCase, type FailureJudgment } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { prdApi } from './prdApi.js';
 import { 케이스서비스, type 판정 } from './role.js';
@@ -23,7 +22,9 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
   const 서비스 = 케이스서비스(c.tcId);
   const [직접, set직접] = useState<FailureJudgment>(null);
   const [바쁨, set바쁨] = useState(false);
-  const [오류, set오류] = useState<{ 글: string; 요청들: number[] } | null>(null);
+  const [오류, set오류] = useState<string | null>(null);
+  // 앞 반영이 병합 · 폐기되기를 기다리는 요청에 담겼으면 그 앞 요청 번호들 (PRD-F9-20)
+  const [앞요청, set앞요청] = useState<number[]>([]);
   // 방금 누른 것은 서버 값이 올 때까지 바로 보이고, 카드 재료를 다시 읽어 새 값이 오면 그것이 이긴다
   useEffect(() => set직접(null), [c.judgment]);
   const 지금 = 직접 ?? c.judgment;
@@ -40,16 +41,15 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
       set직접(await 일());
       on남김();
     } catch (err) {
-      // 열린 반영이 있으면 서버가 그 요청 번호들을 준다 — 글자로 오면 「12,15」다 (PrdTodo 와 같다)
-      const 열린 = err instanceof ApiError && err.code === 'APPLY_OPEN' ? err.message.split(',').map(Number).filter(Number.isSafeInteger) : [];
-      set오류({ 글: 열린.length > 0 ? 요청오류문장('APPLY_OPEN', 언어) : message(err, 언어), 요청들: 열린 });
+      set오류(message(err, 언어));
     }
     set바쁨(false);
   }
 
   const 화면이맞음 = () =>
     누름(async () => {
-      const { id } = await prdApi.apply(서비스 ?? '', { screenRight: { runId, tcId: c.tcId } });
+      const { id, waitsFor } = await prdApi.apply(서비스 ?? '', { screenRight: { runId, tcId: c.tcId } });
+      set앞요청(waitsFor);
       return { kind: 'SCREEN', requestId: id, byName: '', at: new Date().toISOString() };
     });
   const 버그 = () =>
@@ -83,15 +83,20 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
           {t('버그')}
         </button>
       )}
-      {오류 === null ? null : (
-        <span className="note" role="alert">
-          {오류.글}
-          {오류.요청들.map((번호) => (
+      {앞요청.length === 0 ? null : (
+        <span className="note">
+          {t('앞 반영 요청이 병합되거나 폐기되면 시작합니다')}
+          {앞요청.map((번호) => (
             <a key={번호} href={`#/authoring/${String(번호)}`}>
               {' '}
               {t('#{번호} 요청 보기', { 번호 })}
             </a>
           ))}
+        </span>
+      )}
+      {오류 === null ? null : (
+        <span className="note" role="alert">
+          {오류}
         </span>
       )}
     </div>

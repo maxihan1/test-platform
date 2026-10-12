@@ -2,21 +2,12 @@
 
 import type { PoolClient } from 'pg';
 
+import { 사슬식, 최신식 } from './chainSql.js';
 import { db, 빚기, 칸들, type 상태, type 요청, type 행 } from './store.js';
 import { 밖화면뿌리 } from './params.js';
 
-/**
- * 뿌리들 → 그 뿌리의 모든 실행 행(`사슬(id, root_id)`). `WITH RECURSIVE` 안에 넣는다.
- * 새 데이터는 RERUN 의 원본이 늘 뿌리지만 2026-09-23 전 행에는 RERUN→RERUN 이 있고 머지는 실행 행을 가리킨다 —
- * 한 단계가 아니라 끝까지 따라 내려간다 (2026-09-29 계획 검토). 행마다 원본은 하나라 두 번 닿지 않는다
- */
-export function 사슬식(뿌리조건: string): string {
-  return `사슬(id, root_id) AS (
-      SELECT id, id FROM authoring_request WHERE ${뿌리조건}
-      UNION ALL
-      SELECT a.id, 사슬.root_id FROM authoring_request a JOIN 사슬 ON a.source_id = 사슬.id WHERE a.kind <> 'AUTHOR'
-    )`;
-}
+// 사슬 · 최신 SQL 은 chainSql.ts 로 옮겼다(집기가 가져오기 고리 없이 쓰게). 부르는 쪽 import 는 그대로 둔다
+export { 사슬식, 최신식 };
 
 /** 실행 번호 → 뿌리 번호(`위`). 원본을 거슬러 원본 없는 행(AUTHOR · EDIT)까지 — `WITH RECURSIVE` 안에 넣는다 */
 export function 위로식(번호자리: string): string {
@@ -119,10 +110,6 @@ export async function 도는실행있나(뿌리번호: number): Promise<boolean>
   );
   return (r.rowCount ?? 0) > 0;
 }
-
-/** 실패한 머지는 「최신」에서 뺀다 — 빼지 않으면 CI 가 빨갛게 끝난 머지 뒤에 다시 반영할 길이 없다 (2026-09-29 검사) */
-export const 최신식 = (사슬이름: string) =>
-  `(SELECT max(s.id) FROM ${사슬이름} s JOIN authoring_request x ON x.id = s.id WHERE NOT (x.kind = 'MERGE' AND x.status = 'FAILED'))`;
 
 /** 그 뿌리의 가장 최근 실행 번호 — 실패한 머지는 건너뛴다 */
 export async function 최신실행(뿌리번호: number): Promise<number> {

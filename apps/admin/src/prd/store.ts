@@ -3,9 +3,7 @@
 import type { Platform, PrdItem } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
 
-import { 사슬식, 최신식 } from '../authoring/history.js';
-import { 반영안됨, 사람판, 옮기기판, 판같나, 확정판, type 들어온항목, type 앞판, type 판짓기오류 } from './rules.js';
-import type { 화면이맞음 } from './screenRight.js';
+import { 사람판, 옮기기판, 판같나, 확정판, type 들어온항목, type 앞판, type 판짓기오류 } from './rules.js';
 import type { 덮는케이스 } from './trace.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
@@ -98,7 +96,7 @@ export async function 판하나(서비스: number, version: number): Promise<{ v
  * 서비스마다 저장을 한 줄로 세운다. 판 번호를 읽고 넣는 사이에 다른 저장이 끼면 둘이 같은 번호를 노린다 —
  * PK (service_id, version) 가 마지막 그물이다. 트랜잭션 잠금이라 끝나면 저절로 풀린다
  */
-async function 잠그고<T>(서비스: number, 일: (손: PoolClient) => Promise<T>): Promise<T> {
+export async function 잠그고<T>(서비스: number, 일: (손: PoolClient) => Promise<T>): Promise<T> {
   const 손 = await (await db()).connect();
   try {
     await 손.query('BEGIN');
@@ -246,41 +244,4 @@ export async function 기준판(서비스: number): Promise<{ version: number; i
   );
   const 행 = r.rows[0];
   return 행?.version == null || 행.items === null ? null : { version: 행.version, items: 행.items };
-}
-
-/**
- * 「바뀐 요구 N건 테스트에 반영」 — 자료 없는 작성 요청 하나를 곧장 줄에 세운다. 반영 안 됨이 0 이면 세우지 않는다.
- * 열린 반영(폐기 안 됨 · 최신 실행이 병합된 반영이 아님)이 있으면 APPLY_OPEN — 두 번 누르면 같은 판을 고치는 PR 이 둘 선다.
- * 확인과 넣기를 서비스 잠금 안에서 한다(열린 케이스 고치기 EDIT_OPEN 과 같은 꼴).
- * 「화면이 맞음」(`화면`)이면 반영 안 됨이 0 이어도 세운다 — 고칠 번호가 따로 있다 (§7 apply 「본문 screenRight」)
- */
-export async function 반영세우기(
-  서비스: number,
-  사람: 저장하는사람,
-  화면?: 화면이맞음,
-): Promise<{ id: number } | { error: 'NOTHING_TO_APPLY' } | { error: 'APPLY_OPEN'; detail: number[] }> {
-  if (화면 === undefined) {
-    const [지금, 기준] = await Promise.all([지금판(서비스), 기준판(서비스)]);
-    const 차이 = 반영안됨(기준?.items ?? null, 지금?.items ?? []);
-    if (차이.changed.length + 차이.added.length + 차이.removed.length === 0) return { error: 'NOTHING_TO_APPLY' };
-  }
-  return 잠그고(서비스, async (손) => {
-    const 열린 = await 손.query<{ id: string }>(
-      `WITH RECURSIVE ${사슬식("service_id = $1 AND kind = 'AUTHOR' AND params->>'prdApply' = 'true' AND discarded_at IS NULL")}
-       SELECT r.id FROM authoring_request r
-        WHERE r.id IN (SELECT root_id FROM 사슬)
-          AND NOT EXISTS (SELECT 1 FROM authoring_request m
-                           WHERE m.id = ${최신식('(SELECT id FROM 사슬 WHERE root_id = r.id)')}
-                             AND m.kind = 'MERGE' AND m.status = 'DONE')
-        ORDER BY r.id`,
-      [서비스],
-    );
-    if (열린.rows.length > 0) return { error: 'APPLY_OPEN' as const, detail: 열린.rows.map((x) => Number(x.id)) };
-    const r = await 손.query<{ id: string }>(
-      `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status)
-       VALUES ($1, 'AUTHOR', $4, $2, $3, 'PENDING') RETURNING id`,
-      [서비스, 사람.username, 사람.displayName, JSON.stringify({ prdApply: true, ...(화면 === undefined ? {} : { screenRight: 화면 }) })],
-    );
-    return { id: Number(r.rows[0]!.id) };
-  });
 }

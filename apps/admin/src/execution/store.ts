@@ -37,7 +37,7 @@ export class RunInputError extends Error {
 
 // 한 번에 만들어질 실행 항목의 상한. 설정값으로 빼지 않는다 — 설정이 늘면 「어느 값이었더라」가 는다.
 // 숫자를 바꾸려면 SPEC §8.2 를 먼저 고친다
-export const MAX_ITEMS = 1000;
+export const MAX_ITEMS = 5000;
 
 export interface RunItemInput {
   tcId: string;

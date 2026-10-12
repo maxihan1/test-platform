@@ -35,11 +35,14 @@ export interface 반영계획 {
   /** 덮는 케이스가 없는 번호 — 새로 더했거나, 바뀌었는데 표가 아직 안 덮었다. 설계 목록 그대로 새로 쓴다 */
   새항목: string[];
   지움: { 번호: string; 지울케이스: string[]; 남길케이스: string[] }[];
-  /** 「화면이 맞음」 요청이면 — 그 실행 · 케이스와 화면 기준으로 고칠 수 있는 번호(지금 판 문장 · 덮던 케이스). 자식이 화면과 어긋난 번호만 고친다 */
-  화면이맞음?: { runId: number; tcId: string; env: string; 번호들: { 번호: string; 문장: string; 케이스: { tcId: string; 축: 축 }[] }[] };
+  /**
+   * 「화면이 맞음」 요청이면 누른 건마다 — 그 실행 · 케이스와 화면 기준으로 고칠 수 있는 번호(지금 판 문장 · 덮던 케이스). 자식이 화면과 어긋난 번호만 고친다.
+   * 2026-10-13 PRD-F9-20 부터 목록이다 — 대기 중인 반영에 여러 건이 더해진다
+   */
+  화면이맞음?: { runId: number; tcId: string; env: string; 번호들: { 번호: string; 문장: string; 케이스: { tcId: string; 축: 축 }[] }[] }[];
 }
 
-/** 요청 params.screenRight — 서버가 반영 통로에서 채웠다. env 는 그 실행의 대상 서버 (작성 §7 apply 「본문 screenRight」) */
+/** 요청 params.screenRight 목록의 한 칸 — 서버가 반영 통로에서 채웠다. env 는 그 실행의 대상 서버 (작성 §7 apply 「본문 screenRight」) */
 export interface 화면이맞음요청 {
   runId: number;
   tcId: string;
@@ -57,11 +60,20 @@ export function 반영요청인가(것: { params?: unknown }): boolean {
   return (것.params as { prdApply?: unknown } | undefined)?.prdApply === true;
 }
 
-/** 「화면이 맞음」 요청이면 그 칸. 재실행 · 이어서 작성 행에는 서버가 원본 것을 물려 둔다. 모양이 틀리면 없는 것으로 본다 */
-export function 화면이맞음읽기(것: { params?: unknown }): 화면이맞음요청 | null | undefined {
+/**
+ * 「화면이 맞음」 요청이면 그 목록. 재실행 · 이어서 작성 행에는 서버가 원본 것을 물려 둔다.
+ * 옛 행(2026-10-13 PRD-F9-20 전)은 한 건(객체)이라 목록 하나로 읽는다. 한 칸이라도 모양이 틀리거나 비었으면 null
+ */
+export function 화면이맞음읽기(것: { params?: unknown }): 화면이맞음요청[] | null | undefined {
   const s = (것.params as { screenRight?: unknown } | undefined)?.screenRight;
   if (s === undefined) return undefined;
   // 칸이 있는데 모양이 틀리면 null — 보통 반영으로 조용히 돌면 사람의 판정을 버리고 엉뚱한 까닭으로 실패한다
+  const 칸들 = (Array.isArray(s) ? s : [s]).map(한칸읽기);
+  return 칸들.length === 0 || 칸들.some((x) => x === null) ? null : (칸들 as 화면이맞음요청[]);
+}
+
+/** 누른 사람 · 때(byName · at)는 판정 카드 것이라 버린다 */
+function 한칸읽기(s: unknown): 화면이맞음요청 | null {
   if (typeof s !== 'object' || s === null) return null;
   const { runId, tcId, env, reqIds } = s as Record<string, unknown>;
   if (typeof runId !== 'number' || typeof tcId !== 'string' || typeof env !== 'string' || !Array.isArray(reqIds)) return null;
@@ -92,7 +104,7 @@ export function 반영계획만들기(
   기준: { version: number; items: readonly PrdItem[] } | null,
   표글: string,
   접두사: string,
-  화면?: 화면이맞음요청,
+  화면?: readonly 화면이맞음요청[],
 ): 반영계획 {
   const 차이 = 반영안됨(기준 === null ? null : [...기준.items], [...지금.items]);
   const 지도 = 지도줄들(표글, 접두사);
@@ -120,7 +132,7 @@ export function 반영계획만들기(
     }),
     // 집을 때 읽은 판에 없는 번호는 뺀다 — 그 사이 사람이 지웠다
     ...(화면 === undefined ? {} : {
-      화면이맞음: { runId: 화면.runId, tcId: 화면.tcId, env: 화면.env, 번호들: 화면.reqIds.filter((번호) => 새글.has(번호)).map((번호) => ({ 번호, 문장: 새글.get(번호)!, 케이스: 덮던(번호) })) },
+      화면이맞음: 화면.map((x) => ({ runId: x.runId, tcId: x.tcId, env: x.env, 번호들: x.reqIds.filter((번호) => 새글.has(번호)).map((번호) => ({ 번호, 문장: 새글.get(번호)!, 케이스: 덮던(번호) })) })),
     }),
   };
 }
@@ -130,7 +142,7 @@ export function 반영막힘(계획: 반영계획): string | null {
   if (계획.다시씀.length + 계획.새항목.length + 계획.지움.length > 0) return null;
   if (계획.화면이맞음 === undefined) return '반영할 것이 없다 — 지금 판의 요구가 이미 테스트에 들어갔다. 이 요청은 폐기해도 된다';
   // 누른 뒤 그 요구를 「PRD 관리」에서 지웠다 — 고칠 요구가 없는데 자식을 띄우면 빈 PR 이 선다
-  return 계획.화면이맞음.번호들.length === 0 ? '화면이 맞음 요구가 지금 판에 없다(누른 뒤 지웠다) — 이 요청은 폐기해도 된다' : null;
+  return 계획.화면이맞음.every((x) => x.번호들.length === 0) ? '화면이 맞음 요구가 지금 판에 없다(누른 뒤 지웠다) — 이 요청은 폐기해도 된다' : null;
 }
 
 /**
@@ -146,9 +158,9 @@ export function 반영절(입력: 반영입력, 서버들: readonly { env: strin
     '--- 반영 ---',
     `이 요청은 「PRD 관리」에서 고친 요구만 테스트에 반영한다 — 다시 씀 ${String(계획.다시씀.length)} · 새 항목 ${String(계획.새항목.length)} · 지움 ${String(계획.지움.length)}. 자료(기획서)는 없다.`,
     `맡을 번호 · 덮던 케이스 · 다시 쓸 종류 · 지울 케이스: ${입력.사본}`,
-    ...(화면 === undefined ? [] : [
-      `화면이 맞음: 실행 RUN ${String(화면.runId)} 에서 실패한 ${화면.tcId} 를 사람이 「화면이 맞음」으로 판정했다 — 대상 서버 ${화면.env} 에서 다시 돌려 보고 번호 ${화면.번호들.map((x) => x.번호).join(' · ') || '없음'} 가운데 화면과 어긋난 요구만 고친다(apply.json 의 화면이맞음). 결과 파일: ${join(자료폴더, 'out', 'prd.json')} · 원장 다시 만들기: \`npm run prd:ledger -- ${자료폴더}\``,
-      ...(서버들.some((s) => s.env === 화면.env) ? [] : [`⚠️ 위 대상 서버 목록에 ${화면.env} 가 없다 — 서비스 설정에서 그 줄이 빠졌다. 다시 돌려 볼 수 없으니 요구는 고치지 말고 결과 요약에 그 사실을 적어라.`]),
+    ...(화면 ?? []).flatMap((x) => [
+      `화면이 맞음: 실행 RUN ${String(x.runId)} 에서 실패한 ${x.tcId} 를 사람이 「화면이 맞음」으로 판정했다 — 대상 서버 ${x.env} 에서 다시 돌려 보고 번호 ${x.번호들.map((n) => n.번호).join(' · ') || '없음'} 가운데 화면과 어긋난 요구만 고친다(apply.json 의 화면이맞음). 결과 파일: ${join(자료폴더, 'out', 'prd.json')} · 원장 다시 만들기: \`npm run prd:ledger -- ${자료폴더}\``,
+      ...(서버들.some((s) => s.env === x.env) ? [] : [`⚠️ 위 대상 서버 목록에 ${x.env} 가 없다 — 서비스 설정에서 그 줄이 빠졌다. 다시 돌려 볼 수 없으니 그 건의 요구는 고치지 말고 결과 요약에 그 사실을 적어라.`]),
     ]),
     // 반영 · 화면이 맞음도 관문 3 의 로그인이 돌게 계정을 받는다 — 값은 환경 변수로만 (§3.6 「★ 역할별 계정」)
     '계정(운영 아닌 대상 서버 줄마다 일반 회원과 역할 계정)은 환경 변수 PLATFORM_ACCOUNTS(JSON)에 있다. playwright 를 PLATFORM_BASE_URL=<그 줄 주소> 로 돌리면 kit 이 비밀값 칸을 채운다 — PLATFORM_PARAMS 를 손으로 만들지 말고 값을 출력 · 인자 · 파일에 쓰지 마라.',
@@ -157,8 +169,9 @@ export function 반영절(입력: 반영입력, 서버들: readonly { env: strin
 }
 
 /** PR 본문 머리의 화면이 맞음 줄. 고친 번호가 없으면 요구는 맞고 케이스만 고친 PR 이다 */
-export function 화면이맞음줄(화면: { runId: number; tcId: string }, 고친: readonly string[]): string {
-  return `화면이 맞음: RUN ${String(화면.runId)} · ${화면.tcId} · 고친 요구 ${고친.length === 0 ? '없음 — 케이스만' : 고친.join(' · ')}`;
+export function 화면이맞음줄(화면: readonly { runId: number; tcId: string }[], 고친: readonly string[]): string {
+  const 건들 = 화면.map((x) => `RUN ${String(x.runId)} · ${x.tcId}`).join(', ');
+  return `화면이 맞음: ${건들} · 고친 요구 ${고친.length === 0 ? '없음 — 케이스만' : 고친.join(' · ')}`;
 }
 
 /** PR 본문 머리 줄 — 판 견줌과, 자식이 끝낸 뒤에도 남은 지울 케이스 파일. 지우지 않고 보이기만 한다(사람이 병합 전에 본다) */

@@ -54,9 +54,10 @@ describe('안옮김뒤', () => {
   const 답 = (status: number, 몸: unknown = {}) => new Response(JSON.stringify(몸), { status });
   const 원장 = { 없음: '그대로' };
   const 기준 = { 사람이뺌: new Set<string>(), 다음요청: new Set<string>(), 칸재료: null };
-  const 계획 = (화면 = true): 반영계획 => ({
+  const 첫칸 = { runId: 42, tcId: 'X-FN-001', env: 'qa', 번호들: [{ 번호: 'X-REQ-001', 문장: '비밀번호는 8자 이상이어야 한다', 케이스: [] }] };
+  const 계획 = (화면 = true, 더 = [] as typeof 첫칸[]): 반영계획 => ({
     기준판: 3, 지금판: 3, 다시씀: [], 새항목: [], 지움: [],
-    ...(화면 ? { 화면이맞음: { runId: 42, tcId: 'X-FN-001', env: 'qa', 번호들: [{ 번호: 'X-REQ-001', 문장: '비밀번호는 8자 이상이어야 한다', 케이스: [] }] } } : {}),
+    ...(화면 ? { 화면이맞음: [첫칸, ...더] } : {}),
   });
   let 폴더 = '';
   let 자리: 사본;
@@ -115,6 +116,26 @@ describe('안옮김뒤', () => {
       ['X-REQ-002', '약관에 동의한다', undefined],
       ['X-REQ-003', '가입하면 환영 문구가 보인다', undefined],
     ]);
+  });
+
+  it('화면이 맞음이 여러 건이면 건마다의 번호를 모두 맡아 올리고 머리 줄에 실행 · 케이스를 다 적는다 (PRD-F9-20)', async () => {
+    let 몸: { items?: { reqId: string; text: string }[] } = {};
+    vi.stubGlobal('fetch', async (_url: string, init?: RequestInit) => {
+      if (init?.method !== 'POST') return 답(200, { version: 3, items: 판 });
+      몸 = JSON.parse(String(init.body)) as typeof 몸;
+      return 답(200, { version: 4, keptByPerson: [] });
+    });
+    결과쓰기({
+      items: [
+        { reqId: 'X-REQ-001', feature: '회원가입', text: '비밀번호는 10자 이상이어야 한다', basis: 화면근거, status: 'CONFIRMED' },
+        { reqId: 'X-REQ-002', feature: '회원가입', text: '약관 두 개에 동의한다', basis: 화면근거, status: 'CONFIRMED' },
+      ],
+    });
+    const 둘째 = { runId: 43, tcId: 'X-FN-002', env: 'qa', 번호들: [{ 번호: 'X-REQ-002', 문장: '약관에 동의한다', 케이스: [] }] };
+    const r = await 부르기(계획(true, [둘째]));
+    if ('거절' in r) throw new Error(r.거절);
+    expect(몸.items?.map((i) => i.text).slice(0, 2)).toEqual(['비밀번호는 10자 이상이어야 한다', '약관 두 개에 동의한다']);
+    expect(r.줄).toEqual([머리, '화면이 맞음: RUN 42 · X-FN-001, RUN 43 · X-FN-002 · 고친 요구 X-REQ-001 · X-REQ-002']);
   });
 
   it('자식이 본 판(가린 글)과 견준다 — 비밀번호가 든 요구를 안 고쳤으면 올리지 않는다', async () => {

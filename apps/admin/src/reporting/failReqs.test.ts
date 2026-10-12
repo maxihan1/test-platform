@@ -219,6 +219,29 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
     expect(카드들.find((c) => c.tcId === 'XDB-002')!.judgment?.kind).toBe('BUG');
   });
 
+  it('화면이 맞음 목록에 더해진 케이스마다 판정이 서고 누른 사람 · 때는 그 칸 것이다 (PRD-F9-20)', async () => {
+    const r = await pool.query<{ id: string }>(
+      `INSERT INTO authoring_request (service_id, kind, params, requested_by, requested_by_name, status)
+       VALUES ($1, 'AUTHOR', $2, '처음', '처음', 'PENDING') RETURNING id`,
+      [
+        서비스,
+        JSON.stringify({
+          prdApply: true,
+          screenRight: [
+            { runId: 끝남, tcId: 'XDB-001', env: 'qa', reqIds: ['XDB-R1'], byName: '처음', at: '2026-10-13T01:00:00.000Z' },
+            { runId: 끝남, tcId: 'XDB-002', env: 'qa', reqIds: ['XDB-R1'], byName: '둘째', at: '2026-10-13T02:00:00.000Z' },
+          ],
+        }),
+      ],
+    );
+
+    const res = await 라우트앱.inject({ method: 'GET', url: `/api/runs/${String(끝남)}/failures?page=1` });
+
+    const 카드들 = res.json().items as { tcId: string; judgment: { kind: string; byName: string; at: string; requestId?: number } | null }[];
+    expect(카드들.find((c) => c.tcId === 'XDB-002')!.judgment).toEqual({ kind: 'SCREEN', requestId: Number(r.rows[0]!.id), byName: '둘째', at: '2026-10-13T02:00:00.000Z' });
+    expect(카드들.find((c) => c.tcId === 'XDB-001')!.judgment).toMatchObject({ kind: 'SCREEN', byName: '처음' });
+  });
+
   it('실패 항목이 없는 케이스는 400 NOT_FAILED 다', async () => {
     const res = await 버그(라우트앱, 끝남, { tcId: 'XDB-003' });
 

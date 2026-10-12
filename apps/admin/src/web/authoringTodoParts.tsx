@@ -32,7 +32,7 @@ export function 확인글(
   t: (키: string, 값?: Record<string, string | number>) => string,
 ): string {
   if (열린 === 'discard') {
-    if (고치기) return t('목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.');
+    if (고치기 || (요청.status === 'DONE' && 요청.prUrl !== null)) return t('목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.');
     return 요청.status === 'STOPPED'
       ? t('목록에서 사라집니다. 보관한 작업물도 지웁니다. 통계와 토큰 기록은 남습니다.')
       : t('목록에서 사라집니다. 통계와 토큰 기록은 남습니다.');

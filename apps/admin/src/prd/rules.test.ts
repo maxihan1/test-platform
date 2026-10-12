@@ -184,6 +184,11 @@ describe('옮기기판', () => {
     expect(화면번호들({ prdApply: true, screenRight: { runId: 1, tcId: 'MKT-FN-001', env: 'qa', reqIds: ['MKT-REQ-001', 2] } })).toEqual(new Set(['MKT-REQ-001']));
     expect(화면번호들({ prdApply: true })).toEqual(new Set());
   });
+
+  it('screenRight 가 목록이면 모든 칸의 번호를 합친다 (PRD-F9-20)', () => {
+    const 칸 = (reqIds: unknown[]) => ({ runId: 1, tcId: 'MKT-FN-001', env: 'qa', reqIds, byName: '검사', at: '2026-10-13T00:00:00.000Z' });
+    expect(화면번호들({ prdApply: true, screenRight: [칸(['MKT-REQ-001', 2]), 칸(['MKT-REQ-003', 'MKT-REQ-001'])] })).toEqual(new Set(['MKT-REQ-001', 'MKT-REQ-003']));
+  });
 });
 
 describe('반영안됨 · 확인필요', () => {

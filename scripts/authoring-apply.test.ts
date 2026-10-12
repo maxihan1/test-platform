@@ -87,9 +87,9 @@ describe('반영계획만들기', () => {
   });
 
   it('화면이 맞음 번호를 지금 판 문장 · 덮던 케이스와 같이 싣고, 반영할 것이 없어도 막지 않는다 — 읽은 판에 없는 번호는 뺀다', () => {
-    const 화면 = { runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-002', 'X-REQ-003', 'X-REQ-009'] };
+    const 화면 = [{ runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-002', 'X-REQ-003', 'X-REQ-009'] }];
     const r = 반영계획만들기(기준, 기준, main표, 'X', 화면);
-    expect(r.화면이맞음).toEqual({
+    expect(r.화면이맞음).toEqual([{
       runId: 42,
       tcId: 'X-FN-007',
       env: 'qa',
@@ -97,29 +97,49 @@ describe('반영계획만들기', () => {
         { 번호: 'X-REQ-002', 문장: '약관에 동의한다', 케이스: [{ tcId: 'X-FN-004', 축: '정상' }, { tcId: 'X-FN-007', 축: '정상' }] },
         { 번호: 'X-REQ-003', 문장: '가입하면 환영 문구가 보인다', 케이스: [{ tcId: 'X-FN-007', 축: '정상' }, { tcId: 'X-UI-003', 축: 'UI' }] },
       ],
-    });
+    }]);
     expect([r.다시씀, r.새항목, r.지움]).toEqual([[], [], []]);
     expect(반영막힘(r)).toBeNull();
   });
 
   it('화면이 맞음 번호가 읽은 판에 하나도 없고 반영할 것도 없으면 막는다 — 할 일 없는 자식을 띄우지 않는다', () => {
-    const r = 반영계획만들기(기준, 기준, main표, 'X', { runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-009'] });
+    const r = 반영계획만들기(기준, 기준, main표, 'X', [{ runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-009'] }]);
     expect(반영막힘(r)).toMatch(/지금 판에 없다/);
+  });
+
+  it('화면이 맞음 여러 건 가운데 하나라도 고칠 번호가 있으면 막지 않는다 (PRD-F9-20)', () => {
+    const 둘 = [
+      { runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-009'] },
+      { runId: 43, tcId: 'X-FN-004', env: 'stage', reqIds: ['X-REQ-002'] },
+    ];
+    const r = 반영계획만들기(기준, 기준, main표, 'X', 둘);
+    expect(r.화면이맞음?.map((x) => [x.runId, x.env, x.번호들.map((n) => n.번호)])).toEqual([[42, 'qa', []], [43, 'stage', ['X-REQ-002']]]);
+    expect(반영막힘(r)).toBeNull();
   });
 });
 
 describe('화면이맞음읽기', () => {
-  it('params.screenRight 가 꼴에 맞을 때만 — 재실행 행도 서버가 물려 둔 칸을 읽는다', () => {
+  it('params.screenRight 가 꼴에 맞을 때만 — 재실행 행도 서버가 물려 둔 칸을 읽는다. 옛 한 건 꼴도 목록으로', () => {
     const 칸 = { runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-002', 3] };
-    expect(화면이맞음읽기({ params: { prdApply: true, screenRight: 칸 } })).toEqual({ ...칸, reqIds: ['X-REQ-002'] });
+    expect(화면이맞음읽기({ params: { prdApply: true, screenRight: 칸 } })).toEqual([{ ...칸, reqIds: ['X-REQ-002'] }]);
     expect(화면이맞음읽기({ params: { prdApply: true } })).toBeUndefined();
     expect(화면이맞음읽기({ params: { screenRight: { ...칸, runId: '42' } } })).toBeNull();
     expect(화면이맞음읽기({})).toBeUndefined();
   });
+
+  it('목록이면 칸마다 읽고 누른 사람 · 때는 버린다. 한 칸이라도 틀리거나 비었으면 null (PRD-F9-20)', () => {
+    const 칸 = { runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-002'], byName: '검사', at: '2026-10-13T00:00:00.000Z' };
+    expect(화면이맞음읽기({ params: { screenRight: [칸, { ...칸, runId: 43 }] } })).toEqual([
+      { runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-002'] },
+      { runId: 43, tcId: 'X-FN-007', env: 'qa', reqIds: ['X-REQ-002'] },
+    ]);
+    expect(화면이맞음읽기({ params: { screenRight: [칸, { ...칸, env: 1 }] } })).toBeNull();
+    expect(화면이맞음읽기({ params: { screenRight: [] } })).toBeNull();
+  });
 });
 
 describe('반영절 · 화면이맞음줄', () => {
-  const 계획 = { 기준판: 1, 지금판: 1, 다시씀: [], 새항목: [], 지움: [], 화면이맞음: { runId: 42, tcId: 'X-FN-007', env: 'qa', 번호들: [{ 번호: 'X-REQ-002', 문장: '약관에 동의한다', 케이스: [] }] } };
+  const 계획 = { 기준판: 1, 지금판: 1, 다시씀: [], 새항목: [], 지움: [], 화면이맞음: [{ runId: 42, tcId: 'X-FN-007', env: 'qa', 번호들: [{ 번호: 'X-REQ-002', 문장: '약관에 동의한다', 케이스: [] }] }] };
 
   it('화면이 맞음 줄에 실행 · 케이스 · 번호 · 결과 파일 · 원장 명령을 싣고, 대상 서버 목록에 그 env 가 없으면 알린다', () => {
     const 줄 = 반영절({ 계획, 사본: '/w/자료/apply.json' }, [{ env: 'qa' }]).join('\n');
@@ -132,14 +152,24 @@ describe('반영절 · 화면이맞음줄', () => {
     expect(반영절({ 계획: { ...계획, 화면이맞음: undefined }, 사본: '/w/자료/apply.json' }).join('\n')).not.toContain('화면이 맞음');
   });
 
+  it('화면이 맞음이 여러 건이면 건마다 한 줄 · 없는 서버는 그 서버만 알린다 (PRD-F9-20)', () => {
+    const 둘 = { ...계획, 화면이맞음: [...계획.화면이맞음, { runId: 43, tcId: 'X-FN-008', env: 'stage', 번호들: [] }] };
+    const 줄 = 반영절({ 계획: 둘, 사본: '/w/자료/apply.json' }, [{ env: 'qa' }]).join('\n');
+    expect(줄).toContain('실행 RUN 42 에서 실패한 X-FN-007');
+    expect(줄).toContain('실행 RUN 43 에서 실패한 X-FN-008');
+    expect(줄).toContain('⚠️ 위 대상 서버 목록에 stage 가 없다');
+    expect(줄).not.toContain('목록에 qa 가 없다');
+  });
+
   it('반영 · 화면이 맞음 둘 다 계정이 PLATFORM_ACCOUNTS 에 있다고 알린다 — 값은 싣지 않는다', () => {
     expect(반영절({ 계획, 사본: '/w/자료/apply.json' }, [{ env: 'qa' }]).join('\n')).toContain('PLATFORM_ACCOUNTS');
     expect(반영절({ 계획: { ...계획, 화면이맞음: undefined }, 사본: '/w/자료/apply.json' }).join('\n')).toContain('PLATFORM_ACCOUNTS');
   });
 
   it('PR 머리 줄 — 고친 번호가 없으면 케이스만 고친 것이다', () => {
-    expect(화면이맞음줄({ runId: 42, tcId: 'X-FN-007' }, ['X-REQ-002', 'X-REQ-003'])).toBe('화면이 맞음: RUN 42 · X-FN-007 · 고친 요구 X-REQ-002 · X-REQ-003');
-    expect(화면이맞음줄({ runId: 42, tcId: 'X-FN-007' }, [])).toBe('화면이 맞음: RUN 42 · X-FN-007 · 고친 요구 없음 — 케이스만');
+    expect(화면이맞음줄([{ runId: 42, tcId: 'X-FN-007' }], ['X-REQ-002', 'X-REQ-003'])).toBe('화면이 맞음: RUN 42 · X-FN-007 · 고친 요구 X-REQ-002 · X-REQ-003');
+    expect(화면이맞음줄([{ runId: 42, tcId: 'X-FN-007' }], [])).toBe('화면이 맞음: RUN 42 · X-FN-007 · 고친 요구 없음 — 케이스만');
+    expect(화면이맞음줄([{ runId: 42, tcId: 'X-FN-007' }, { runId: 43, tcId: 'X-FN-008' }], [])).toBe('화면이 맞음: RUN 42 · X-FN-007, RUN 43 · X-FN-008 · 고친 요구 없음 — 케이스만');
   });
 });
 
@@ -219,12 +249,12 @@ describe('원장과남은번호 — 반영 요청', () => {
   it('화면이 맞음이면 반영할 것이 없어도 막지 않고 그 칸을 사본에 싣는다', () => {
     const 폴더 = mkdtempSync(join(tmpdir(), 'apply-io-'));
     try {
-      const 화면이맞음 = { runId: 42, tcId: 'X-FN-001', env: 'qa', reqIds: ['X-REQ-001'] };
+      const 화면이맞음 = [{ runId: 42, tcId: 'X-FN-001', env: 'qa', reqIds: ['X-REQ-001'] }];
       const r = 원장과남은번호({ 계획: [], 자료폴더: 폴더, 깃: 깃(false), 기준: 'abc', 서비스: 'X', 폴더: 'x', 이어작성원본: null, 지금: 기준판.items, 옮긴다: false, 반영: { 지금판: 1, 기준판, 화면이맞음 } });
       if ('막힘' in r) throw new Error(r.막힘);
-      expect(JSON.parse(readFileSync(join(폴더, 'apply.json'), 'utf8')).화면이맞음).toEqual({
+      expect(JSON.parse(readFileSync(join(폴더, 'apply.json'), 'utf8')).화면이맞음).toEqual([{
         runId: 42, tcId: 'X-FN-001', env: 'qa', 번호들: [{ 번호: 'X-REQ-001', 문장: '비밀번호는 8자 이상이어야 한다', 케이스: [{ tcId: 'X-FN-001', 축: '정상' }] }],
-      });
+      }]);
     } finally {
       rmSync(폴더, { recursive: true, force: true });
     }

@@ -7,13 +7,20 @@ import { TCID } from '../catalog/rules.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 지금판 } from './store.js';
 
-/** 작성 요청 params.screenRight — env 는 그 실행의 대상 서버, reqIds 는 그 케이스가 덮는 번호 가운데 지금 판에 있는 것(판 차례) */
+/** 작성 요청 params.screenRight 목록의 한 칸 — env 는 그 실행의 대상 서버, reqIds 는 그 케이스가 덮는 번호 가운데 지금 판에 있는 것(판 차례) */
 export interface 화면이맞음 {
   runId: number;
   tcId: string;
   env: string;
   reqIds: string[];
 }
+
+/**
+ * params.screenRight 를 목록(jsonb 배열)으로 읽는 SQL — 2026-10-13 PRD-F9-20 부터 목록이고, 그 전 행은 한 건(객체)이다.
+ * 반영에 더하기 · 실패 카드 판정이 같은 식을 쓴다
+ */
+export const 화면목록식 = (params: string) =>
+  `CASE jsonb_typeof(${params}->'screenRight') WHEN 'array' THEN ${params}->'screenRight' WHEN 'object' THEN jsonb_build_array(${params}->'screenRight') ELSE '[]'::jsonb END`;
 
 // 빈 본문 · {} 는 보통 반영이다 — 「PRD 관리」 버튼이 json({}) 를 보낸다
 const 본문꼴 = z.union([

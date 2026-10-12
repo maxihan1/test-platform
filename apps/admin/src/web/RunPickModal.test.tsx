@@ -171,10 +171,10 @@ describe('RunPickModal', () => {
   it('상한을 넘으면 실행이 막히고 이유가 화면 줄로 뜬다', () => {
     그리기();
 
-    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '400' } });
+    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '2000' } });
 
     expect(실행버튼().hasAttribute('disabled')).toBe(true);
-    expect(줄().textContent).toContain('1000건까지');
+    expect(줄().textContent).toContain('5000건까지');
     // 말풍선이 아니라 화면 줄이어야 한다 (DESIGN.md 접근성 기준)
     expect(실행버튼().hasAttribute('title')).toBe(false);
   });
@@ -190,10 +190,10 @@ describe('RunPickModal', () => {
     // 옛 사유가 덮으면 버튼이 왜 안 눌리는지 읽을 자리가 사라진다 (DESIGN.md 접근성 기준)
     그리기(undefined, '그 케이스를 찾지 못했습니다');
 
-    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '400' } });
+    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '2000' } });
 
     expect(실행버튼().hasAttribute('disabled')).toBe(true);
-    expect(줄().textContent).toContain('1000건까지');
+    expect(줄().textContent).toContain('5000건까지');
   });
   it('뒷막을 눌러도 안 닫히고 취소는 닫는다 — 고친 값을 잃지 않게', () => {
     const { onClose } = 그리기();

@@ -355,11 +355,13 @@ describe.skipIf(연결 === undefined)('케이스 고치기 통로', () => {
       }
     });
 
-    it('끝난 작성 요청은 여전히 폐기 못 한다 — DONE 폐기는 고치기 실행만', async () => {
+    it('병합 전 끝난 작성 요청도 폐기된다 — 같은 기획서로 두 번 작성한 쪽이 「반영 대기」로 남지 않게 (PRD-F9-16)', async () => {
       const id = await 행넣기({ kind: 'AUTHOR', status: 'PENDING' });
       await 바꾸기(id, 끝난);
-      expect((await 상세(id)).canDiscard).toBe(false);
-      expect((await 부르기(`/api/authoring/requests/${String(id)}/discard`)).json()).toEqual({ error: 'NOT_DISCARDABLE' });
+      expect((await 상세(id)).canDiscard).toBe(true);
+      const res = await 부르기(`/api/authoring/requests/${String(id)}/discard`);
+      expect([res.statusCode, res.json()]).toEqual([200, { ok: true }]);
+      expect((await 읽기(id)).discarded_at).not.toBeNull();
     });
   });
 });
