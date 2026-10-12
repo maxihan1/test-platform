@@ -3,7 +3,6 @@
 import type { PoolClient } from 'pg';
 
 import { type 셈칸, 커버리지칸 } from './coverage.js';
-import { 열린반영식 } from './history.js';
 import { db, 빚기, 칸들, type 요청, type 행 } from './store.js';
 
 /**
@@ -17,6 +16,8 @@ import { db, 빚기, 칸들, type 요청, type 행 } from './store.js';
  */
 export async function 집기(서비스: number, 집는이: string): Promise<요청 | null> {
   const pool = await db();
+  // 부를 때 가져온다 — store.ts 가 이 파일을 다시 내보내 맨 위에서 가져오면 history → store 고리가 덜 읽힌 store 를 본다
+  const { 열린반영식 } = await import('./history.js');
   const r = await pool.query<행>(
     // 읽은 판 — 작성 · 재실행 · 반영 요청 실행만 적는다. 케이스 고치기(그 다시 적용은 params.edits)와 머지는 표준 기획서를 안 읽는다.
     // 표준 기획서가 없으면 비운다 (도메인/작성 §7 「표준 기획서 통로」)
