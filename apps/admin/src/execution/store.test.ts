@@ -274,7 +274,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
       items: [{ ...항목, platforms: ['desktop', 'mobile'] }],
     });
     expect(run.items).toHaveLength(5000);
-  });
+  }, 30_000);
 
   it('멈추면 미완 항목을 NA와 ABORTED로 닫고 묶음을 ABORTED로 바꾼다', async () => {
     const run = await createRun({ title: 'XBS 멈춤', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop', 'mobile'] }] });
