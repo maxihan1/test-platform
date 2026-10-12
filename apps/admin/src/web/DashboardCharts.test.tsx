@@ -223,7 +223,7 @@ describe('요구사항 커버리지', () => {
     const 게이지들 = [...container.querySelectorAll('.dash-cov .dash-gauge-one')];
     expect(게이지들.map((g) => g.querySelector('.dash-gauge-kind')!.textContent)).toEqual(['기능 테스트', 'UI 테스트']);
     expect(게이지들.map((g) => g.querySelector('.dash-gauge-num')!.textContent)).toEqual(['80%', '25%']);
-    expect(게이지들.map((g) => g.querySelector('.dash-gauge-cap')!.textContent)).toEqual(['덮은 요구 32 / 40', '덮은 요구 10 / 40']);
+    expect(게이지들.map((g) => g.querySelector('.dash-gauge-cap')!.textContent)).toEqual(['테스트 있는 요구 32 / 40', '테스트 있는 요구 10 / 40']);
     expect(게이지들[0]!.querySelectorAll('.dash-gauge path.dash-gauge-v').length).toBeGreaterThan(0);
   });
 
@@ -259,7 +259,7 @@ describe('요구사항 커버리지', () => {
     const { container } = await 열기(옛);
     const 줄 = container.querySelectorAll('.dash-cov-row')[1]!;
     expect([...줄.querySelectorAll('.dash-cov-pair')].map((짝) => 짝.textContent)).toEqual(['전체8%']);
-    expect(container.querySelector('.dash-gauge-cap')!.textContent).toBe('덮은 요구 32 / 40');
+    expect(container.querySelector('.dash-gauge-cap')!.textContent).toBe('테스트 있는 요구 32 / 40');
     expect(container.querySelector('.dash-gauge-note')!.textContent).toBe(
       '기능 · UI 를 나누기 전에 작성한 서비스 1개는 게이지에 넣지 않았습니다',
     );
@@ -323,7 +323,7 @@ describe('요구사항 커버리지', () => {
   it('요구가 하나도 없으면 게이지 가운데는 대시다', async () => {
     const { container } = await 열기(응답({ coverage: [] }));
     expect(container.querySelector('.dash-gauge-num')!.textContent).toBe('—');
-    expect(container.querySelector('.dash-cov')!.textContent).not.toContain('덮은 요구');
+    expect(container.querySelector('.dash-cov')!.textContent).not.toContain('테스트 있는 요구');
   });
 });
 

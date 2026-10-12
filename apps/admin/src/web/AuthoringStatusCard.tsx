@@ -1,5 +1,6 @@
 // 작성 요청 한 건의 Status 카드 — 단계 막대 · 진척 · 시간 막대 · 숫자 칸 · 방금 한 일. 상세 페이지와 시작 모달이 같이 쓴다 (DESIGN.md 「작성 상태」)
 
+import { 계정미등록종류 } from '../prd/heldText.js';
 import type { AuthoringCoverage, AuthoringRow } from './api.js';
 import { 단계글라벨, 단계라벨, 단계이름들, 단계자리, 시간판, 진척, 진척이찼나, 짧은수, 활동글 } from './authoringStatus.js';
 import { 줄보임, 중단이유라벨, 칩글 as 칩글자, type 보임 } from './authoringView.js';
@@ -66,6 +67,7 @@ export function AuthoringStatusCard({
   const t = use말();
   const 언어 = use언어();
   const 셈 = 커버리지 === undefined ? (요청.coverage ?? null) : 커버리지;
+  const 계정보류 = 셈 === null || 'none' in 셈 ? 0 : (셈.excluded[계정미등록종류] ?? 0);
   const 보 = 줄보임(요청, 지금);
   const 자리 = 단계자리(요청);
   const 시간 = 시간판(요청, 지금);
@@ -208,6 +210,13 @@ export function AuthoringStatusCard({
         <div className="status-row">
           <span className="status-label">{t('PRD 요구사항')}</span>
           <span className="status-sub">{커버리지글(셈, 요청.status, t)}</span>
+        </div>
+      )}
+
+      {계정보류 === 0 ? null : (
+        <div className="status-row">
+          <span className="status-label">{t('계정 보류')}</span>
+          <span className="status-sub">{t('보류 {건수}건 — 역할 계정이 등록되지 않았습니다 · 등록하면 이 요구만 다시 작성합니다', { 건수: 계정보류 })}</span>
         </div>
       )}
 

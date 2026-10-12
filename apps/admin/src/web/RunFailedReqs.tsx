@@ -35,7 +35,7 @@ export function RunFailedReqs({ 요구들, 권한 }: { 요구들: 실패요구[]
       <h2 id="fr-title" className="fc-title">
         {앞}
         <span className="fc-count">{요구들.length}</span>
-        {뒤} <small className="fr-hint">{t('실패한 케이스가 덮는 요구입니다')}</small>
+        {뒤} <small className="fr-hint">{t('실패한 케이스와 연결된 요구입니다')}</small>
       </h2>
       <ul className="fr-list">
         {보일것.map((요구) => (

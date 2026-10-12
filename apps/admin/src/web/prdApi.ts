@@ -5,6 +5,13 @@ import type { PrdItem } from '@platform/kit';
 import type { 덮는케이스 } from '../prd/trace.js';
 import { call, json, 파일받기 } from './api.js';
 
+/** 계정이 없어 테스트를 못 쓴 요구 — 번호 → 역할들. registered 는 그 역할 계정을 이미 넣었나. continueFrom 은 「남은 요구로 이어 작성」이 이어 갈 뿌리(없으면 null) */
+export interface PrdHeld {
+  reqs: Record<string, string[]>;
+  roles: { role: string; count: number; registered: boolean }[];
+  continueFrom: number | null;
+}
+
 export interface PrdNow {
   /** 0 이면 아직 표준 기획서가 없다 */
   version: number;
@@ -18,6 +25,7 @@ export interface PrdNow {
   foundScreens: number;
   /** 열린 화면만 요청 번호들 — 카드 아래 「#N 요청 보기」 고리 */
   screensOpen: number[];
+  held: PrdHeld;
 }
 
 export interface PrdVersionRow {

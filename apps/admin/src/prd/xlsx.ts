@@ -8,6 +8,7 @@ import type { PrdItem } from '@platform/kit';
 
 import { 제어빼기 } from '../../../../scripts/authoring-docx.js';
 import { 비밀번호가리기 } from './docx.js';
+import { 줄보류of, type 보류모양 } from './heldText.js';
 import { 추적하기, type 결과읽기, type 덮는케이스 } from './trace.js';
 
 export interface 추적표자료 {
@@ -16,12 +17,20 @@ export interface 추적표자료 {
   items: PrdItem[];
   cases: Record<string, 덮는케이스[]>;
   결과: 결과읽기 | null;
+  /** 계정이 없어 테스트를 못 쓴 요구 — 테스트 없는 줄의 TC ID 칸이 「미작성」 대신 이유를 적는다 */
+  held?: 보류모양;
 }
 
 const 머리 = ['요구 번호', '기능 묶음', '요구 문장', '상태', '케이스 수', 'TC ID', '정상', '경계', '예외', 'UI', '설계 기법', '마지막 결과'];
 const 너비 = [14, 16, 48, 10, 9, 18, 7, 7, 7, 7, 26, 26];
-// 안 덮인 줄 — 거르지 않아도 눈에 띄게. 워드의 확인 필요 바탕(docx.ts 확인바탕)과 같은 색이다
+// 테스트 없는 줄 — 거르지 않아도 눈에 띄게. 워드의 확인 필요 바탕(docx.ts 확인바탕)과 같은 색이다
 const 안덮임바탕 = 'FFFFF1E4';
+
+function 보류글(held: 보류모양 | undefined, reqId: string): string {
+  const 보류 = held === undefined ? null : 줄보류of(held, reqId);
+  if (보류 === null) return '미작성';
+  return 보류.미등록.length > 0 ? `보류 — ${보류.미등록.join(' · ')} 계정 미등록` : `보류 — ${보류.등록됨.join(' · ')} 계정 등록됨 · 이어 작성 전`;
+}
 
 /** 워드와 같이 테스트 계정 비밀번호를 가린다 — 요구 문장 · 기능 묶음이 밖으로 나간다 (§3.6 「워드로 내려받기」) */
 export async function 추적표만들기(자료: 추적표자료, 비밀번호들: string[]): Promise<Buffer> {
@@ -44,7 +53,7 @@ export async function 추적표만들기(자료: 추적표자료, 비밀번호�
       가림(x.text),
       x.status === 'NEEDS_CHECK' ? '확인 필요' : '확정',
       번호들.length,
-      덮나 ? 번호들.join('\n') : '안 덮임',
+      덮나 ? 번호들.join('\n') : 보류글(자료.held, x.reqId),
       추적.종류.정상,
       추적.종류.경계,
       추적.종류.예외,

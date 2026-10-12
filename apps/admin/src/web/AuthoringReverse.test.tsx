@@ -171,7 +171,7 @@ describe('새 요청 — 실제 화면과 대조', () => {
     대조를켠다();
     시작주소를적는다('https://example.com/');
     fireEvent.click(보내기());
-    expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없습니다. 설정 > 서비스에서 테스트 계정을 넣으세요')).toBeTruthy();
+    expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요')).toBeTruthy();
   });
 
   it('시작 주소가 서버와 다르면 서버 거절을 사람 말로 보인다', async () => {

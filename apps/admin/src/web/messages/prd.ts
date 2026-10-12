@@ -65,9 +65,21 @@ export const 기획서말: Record<string, string> = {
   고치기: 'Edit',
   '이 요구만 확정': 'Confirm this one',
 
-  // 추적표 칸 — 요구마다 덮는 케이스 · 마지막 결과 (도메인/작성 §3.6 「메뉴가 곧 요구사항 추적표다」)
-  '안 덮임': 'Not covered',
-  '안 덮임 {건수}건': '{건수} not covered',
+  // 보류 카드 — 계정이 없어 테스트를 못 쓴 요구 (도메인/작성 §3.6 「★ 역할별 계정」)
+  '보류 {건수}건 — {역할} 계정이 등록되지 않았습니다': '{건수} on hold — no {역할} account registered',
+  '보류 {건수}건 — {역할} 계정을 등록했습니다': '{건수} on hold — {역할} account registered',
+  '등록하면 이 요구만 다시 작성합니다': 'Once registered, only these requirements are written again',
+  '이어 작성하면 이 요구만 다시 작성합니다': 'Resuming writes only these requirements again',
+  '설정에서 계정 등록': 'Register accounts in Settings',
+  '이어 작성할 작성 요청이 없습니다': 'No authoring request to resume from',
+  '계정을 등록한 뒤에 이어 작성할 수 있습니다': 'Register the account first, then resume',
+
+  // 추적표 칸 — 요구마다 연결된 케이스 · 마지막 결과 (도메인/작성 §3.6 「메뉴가 곧 요구사항 추적표다」)
+  미작성: 'Not written',
+  '보류 — {역할} 계정 미등록': 'On hold — no {역할} account',
+  '보류 — {역할} 계정 등록됨 · 이어 작성 전': 'On hold — {역할} account added, not resumed yet',
+  '보류 {건수}건': '{건수} on hold',
+  '미작성 {건수}건': '{건수} not written',
   '실패 {건수}건': '{건수} failing',
   '기능 {건수}건': '{건수} functional',
   'UI {건수}건': '{건수} UI',

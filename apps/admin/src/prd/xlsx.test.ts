@@ -1,4 +1,4 @@
-// 요구사항 추적표 엑셀(prd/xlsx.ts)의 칸 · 안 덮임 바탕색 · 비밀번호 가림 · 실행 read 없을 때 빈 결과 칸을 본다
+// 요구사항 추적표 엑셀(prd/xlsx.ts)의 칸 · 미작성 바탕색 · 비밀번호 가림 · 실행 read 없을 때 빈 결과 칸을 본다
 import ExcelJS from 'exceljs';
 import type { Platform, PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
@@ -59,12 +59,19 @@ describe('추적표만들기', () => {
     ]);
   });
 
-  it('안 덮인 요구는 「안 덮임」에 바탕색을 칠하고 결과 칸을 비운다', async () => {
+  it('테스트 없는 요구는 「미작성」에 바탕색을 칠하고 결과 칸을 비운다', async () => {
     const { sheet, 줄 } = await 읽기(await 추적표만들기(자료(() => undefined), []));
-    expect(줄(3).slice(0, 10)).toEqual(['MKT-REQ-003', '회원가입', '약관에 동의해야 가입된다', '확인 필요', 0, '안 덮임', 0, 0, 0, 0]);
+    expect(줄(3).slice(0, 10)).toEqual(['MKT-REQ-003', '회원가입', '약관에 동의해야 가입된다', '확인 필요', 0, '미작성', 0, 0, 0, 0]);
     expect(줄(3).length).toBe(10);
     expect(sheet.getRow(3).getCell(12).fill).toMatchObject({ fgColor: { argb: 'FFFFF1E4' } });
     expect(sheet.getRow(2).getCell(1).fill).not.toHaveProperty('fgColor');
+  });
+
+  it('계정이 없어 보류된 요구는 TC ID 칸에 이유를 적는다 — 계정을 넣었으면 이어 작성 전이라고 적는다', async () => {
+    const 보류 = { reqs: { 'MKT-REQ-003': ['관리자', '판매자'] }, roles: [{ role: '관리자', registered: false }, { role: '판매자', registered: true }] };
+    const 칸 = async (held: typeof 보류) => (await 읽기(await 추적표만들기({ ...자료(null), held }, []))).줄(3)[5];
+    expect(await 칸(보류)).toBe('보류 — 관리자 계정 미등록');
+    expect(await 칸({ ...보류, roles: 보류.roles.map((r) => ({ ...r, registered: true })) })).toBe('보류 — 관리자 · 판매자 계정 등록됨 · 이어 작성 전');
   });
 
   it('실행 보기 권한이 없으면 마지막 결과 칸이 빈다', async () => {
