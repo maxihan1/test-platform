@@ -16,7 +16,8 @@ export async function 늦추기(route: Route, 뽑기: () => number = Math.random
 }
 
 // 브라우저 쪽에서 늦추므로 데모가 아닌 회사 서버에서도 된다. 실행 화면의 실행은 이 값을 안 넘겨 그대로다
-// 창 묶음(context)에 건다 — 케이스가 새 탭을 열어도 늦춰지고, 케이스의 page.route 모킹이 먼저 받는다
+// 창 묶음(context)에 건다 — 케이스가 새 탭을 열어도 늦춰지고, 케이스의 page.route 모킹이 먼저 받는다.
+// 케이스가 browser.newContext() 로 따로 만든 창 묶음은 안 늦춘다. 가로채기를 켜면 브라우저 캐시가 꺼진다 — 3회 실행에서만 켜는 까닭이다
 export async function 느린망(page: Page): Promise<void> {
   if (process.env.PLATFORM_SLOW_API !== '1') return;
   await page.context().route('**/*', (route) => 늦추기(route));

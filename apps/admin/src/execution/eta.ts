@@ -35,6 +35,16 @@ export function 칸수(동시: number, 미완케이스수: number, 도는실행�
   return Math.max(1, Math.min(Math.max(1, 동시), 미완케이스수) / Math.max(1, 도는실행수));
 }
 
+/**
+ * 한 케이스의 안 끝난 항목 합 가운데 가장 긴 것 — 같은 케이스 항목은 하나씩 돌아(dispatcher · PRD-F9-36) 칸을 나눠 써도 이보다 빨리 못 끝난다.
+ * 예상이 빈 항목은 끝난 평균으로 채운다. 그것도 없으면 0 으로 센다 — 그때 남은시간계산이 이미 null 이다
+ */
+export function 가장긴케이스(미완: readonly { tcId: string; 예상: number | null }[], 끝난평균: number | null): number {
+  const 합 = new Map<string, number>();
+  for (const { tcId, 예상 } of 미완) 합.set(tcId, (합.get(tcId) ?? 0) + (예상 ?? 끝난평균 ?? 0));
+  return Math.max(0, ...합.values());
+}
+
 /** 셈은 기준 시각 시점의 값이다. 그 뒤로 흐른 만큼 줄여 항목이 끝날 때마다 다시 맞춰지고 그사이에는 준다 */
 export function 줄어든남은시간(셈: number | null, 기준시각: number, 지금: number): number | null {
   return 셈 === null ? null : Math.max(0, 셈 - (지금 - 기준시각));
@@ -99,10 +109,12 @@ export async function 실행남은시간(runId: number, 지금?: Date): Promise<
   const 기록 = await 지난기록읽기(runId);
   const 줄 = 집계.rows[0]!;
   const 끝난평균 = 줄.avg == null ? null : Number(줄.avg);
-  const 셈 = 남은시간계산(
-    미완.rows.map((r) => 기록.get(키(r.tc_id, r.platform)) ?? null),
+  const 미완예상 = 미완.rows.map((r) => ({ tcId: r.tc_id, 예상: 기록.get(키(r.tc_id, r.platform)) ?? null }));
+  const 나눈셈 = 남은시간계산(
+    미완예상.map((m) => m.예상),
     끝난평균,
     칸수(limit(), new Set(미완.rows.map((r) => r.tc_id)).size, 도는실행.rows[0]!.n),
   );
+  const 셈 = 나눈셈 === null ? null : Math.max(나눈셈, 가장긴케이스(미완예상, 끝난평균));
   return 줄어든남은시간(셈, (줄.last_finished ?? 줄.started_at).getTime(), (지금 ?? 줄.now).getTime());
 }
