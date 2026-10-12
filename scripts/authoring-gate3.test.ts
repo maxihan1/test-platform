@@ -1,7 +1,7 @@
 // 끝의 전체 3회 결과 파일 판정 검사 — Playwright json 리포터 모양(최상위 suites[].file · specs[].tests[].projectName)
 import { describe, expect, it } from 'vitest';
 
-import { 끝전체3회경고, 남은임시도우미 } from './authoring-gate3.js';
+import { 끝전체3회경고, 남은임시도우미, 살필케이스 } from './authoring-gate3.js';
 
 describe('남은 임시 도우미 (작성 §3.6 팬아웃 · 2026-10-04)', () => {
   it('공용으로 옮기지 않은 draft 파일이 남으면 경고한다', () => {
@@ -106,5 +106,38 @@ describe('끝의 전체 3회 경고 (작성 §3.6 · 2026-10-03)', () => {
     expect(끝전체3회경고([결과({ 'mkt/A.spec.ts': 셋 })], { 'mkt/A.spec.ts': Date.parse(시작) + 60_000 })).toMatch(
       /마지막 실행 뒤에 고친 파일 1개/,
     );
+  });
+
+  it('볼 케이스가 없으면(표만 고친 작성) 결과 파일이 없어도 경고하지 않는다', () => {
+    expect(끝전체3회경고([], {})).toBeNull();
+  });
+});
+
+describe('살필케이스 — 이번 작성이 바꾼 케이스 · 부품에 닿는 케이스만 (PRD-F9-13)', () => {
+  const 파일 = (경로: string, 때: number, ...가져옴: string[]) => ({ 경로, 때, 글: 가져옴.map((p) => `import { x } from '${p}';`).join('\n') });
+  const 폴더 = [
+    파일('mkt/MKT-FN-001.spec.ts', 1, './pages/signup.page.js'),
+    파일('mkt/MKT-FN-002.spec.ts', 2, './pages/cart.page.js'),
+    파일('mkt/MKT-UI-003.spec.ts', 3, './pages/home.page.js'),
+    파일('mkt/pages/signup.page.ts', 10, '../components/header.component.js'),
+    파일('mkt/pages/cart.page.ts', 4),
+    파일('mkt/pages/home.page.ts', 5, '../components/header.component.js'),
+    파일('mkt/components/header.component.ts', 6),
+  ];
+
+  it('바꾼 케이스 파일과 바꾼 Page Object 를 쓰는 케이스만 — 시각은 닿는 파일 가운데 가장 늦은 것', () => {
+    expect(살필케이스(폴더, new Set(['mkt/MKT-FN-002.spec.ts', 'mkt/pages/signup.page.ts']))).toEqual({
+      'mkt/MKT-FN-001.spec.ts': 10,
+      'mkt/MKT-FN-002.spec.ts': 4,
+    });
+  });
+
+  it('Page Object 를 거쳐 쓰는 Component 를 고쳤으면 그 Page Object 를 쓰는 케이스 전부', () => {
+    expect(Object.keys(살필케이스(폴더, new Set(['mkt/components/header.component.ts'])))).toEqual(['mkt/MKT-FN-001.spec.ts', 'mkt/MKT-UI-003.spec.ts']);
+  });
+
+  it('첫 작성은 다 바뀐 것이라 폴더 전체 · 아무것도 안 바꿨으면 빈 목록', () => {
+    expect(Object.keys(살필케이스(폴더, new Set(폴더.map((f) => f.경로))))).toHaveLength(3);
+    expect(살필케이스(폴더, new Set(['MKT.md']))).toEqual({});
   });
 });
