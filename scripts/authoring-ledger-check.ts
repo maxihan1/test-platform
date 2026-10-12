@@ -5,10 +5,14 @@
 import { tcId종류 } from '../apps/admin/src/catalog/rules.js';
 import { 케이스tcId } from './authoring-held-apply.js';
 import { type 원장항목, 번호찾기 } from './authoring-ledger.js';
+import { 제거함읽기 } from './authoring-ledger-hold.js';
+import { 백틱벗기기, 표몸줄들, 표읽기 } from './authoring-md-table.js';
 import { type 칸재료, type 표줄, 칸번호 } from './authoring-slots.js';
 
-/** 제외 종류 — 닫힌 다섯. **목록의 정본은 여기다** — 명세 · 스킬은 이 목록을 가리킨다 */
-export const 제외종류 = ['다음 요청', '되돌릴 수 없음', '자료 없음', '요구 아님', '사람이 뺌'] as const;
+export { 표읽기 };
+
+/** 제외 종류 — 닫힌 여섯. **목록의 정본은 여기다** — 명세 · 스킬은 이 목록을 가리킨다 */
+export const 제외종류 = ['다음 요청', '되돌릴 수 없음', '자료 없음', '요구 아님', '사람이 뺌', '계정 미등록'] as const;
 export type 제외종류 = (typeof 제외종류)[number];
 
 /** 출처 칸 하나에 몰아 적을 수 있는 번호 수 — 한 줄에 원장을 통째로 적어 대조를 통과하지 못하게 */
@@ -31,6 +35,8 @@ export interface 대조결과 {
   덮음: Map<string, Set<string>>;
   /** 원장 번호 → 제외 종류. 케이스로 덮인 번호는 뺀다 — `셈.제외` 와 같은 거름이라야 번호 목록이 종류별 수와 맞는다 */
   제외번호: Map<string, 제외종류>;
+  /** 제외 `계정 미등록` 번호 → 역할 이름(케이스로 덮인 번호는 뺐다). 스캔이 req_hold 를 채우는 것과 같은 읽기다 */
+  계정보류: Map<string, string>;
   /** UI 케이스로만 덮인 원장 번호(원장 순서) — R19 를 사람이 PR 에서 보게 하는 보고용이다. 빠짐으로 세지 않는다 */
   UI만: string[];
   /** 그 갈래 케이스가 하나라도 덮은 원장 번호 수. 두 갈래가 같이 덮은 번호는 둘 다에 든다 — 대시보드가 갈래를 따로 본다 (작성 §3.6 「셈을 남긴다」) */
@@ -44,6 +50,8 @@ export interface 대조결과 {
 export interface 기준결정 {
   사람이뺌: Set<string>;
   다음요청: Set<string>;
+  /** 표에 「제거함(…)」으로 있던 요구 번호 — 사람이 반영 때 뺀 보류. 에이전트는 이 번호의 줄만 인정한다 (2026-10-12) */
+  제거함?: Set<string>;
   칸재료: 칸재료 | null;
 }
 
@@ -54,47 +62,6 @@ export interface 기준결정 {
 export function tcId들(글들: string[]): Set<string> {
   return new Set(글들.map(케이스tcId).filter((t): t is string => t !== null));
 }
-
-/** 마크다운 표 한 줄을 칸으로. `\|` 는 칸 가름이 아니다 */
-function 칸들(줄: string): string[] {
-  return 줄
-    .trim()
-    .replace(/^\||\|$/g, '')
-    .split(/(?<!\\)\|/)
-    .map((c) => c.trim());
-}
-
-/** 절 아래 표의 몸 줄마다 글 안 줄 차례 · 머리 칸 · 칸. 읽기와 번호 채우기가 같은 줄을 같은 차례로 보게 한 곳에 둔다 */
-function 표몸줄들(줄들: string[], 제목: string): { 줄: number; 머리: string[]; 칸: string[] }[] {
-  const 시작 = 줄들.findIndex((l) => new RegExp(`^##\\s+${제목}\\s*$`).test(l.trim()));
-  if (시작 < 0) return [];
-  const 몸: { 줄: number; 머리: string[]; 칸: string[] }[] = [];
-  let 머리: string[] | null = null;
-  for (let i = 시작 + 1; i < 줄들.length; i++) {
-    const l = 줄들[i] ?? '';
-    if (/^#{1,2}\s/.test(l)) break;
-    if (!l.trim().startsWith('|')) {
-      // 표가 끝났다 — 다음 표는 머리 줄부터 다시 읽는다
-      머리 = null;
-      continue;
-    }
-    const 칸 = 칸들(l);
-    if (머리 === null) {
-      머리 = 칸;
-      continue;
-    }
-    if (칸.every((c) => /^:?-+:?$/.test(c))) continue;
-    몸.push({ 줄: i, 머리, 칸 });
-  }
-  return 몸;
-}
-
-/** `## <제목>` 절 아래 표를 전부(### 소제목으로 나눠도) 머리 칸 이름으로 읽는다. 다음 `#`·`##` 에서 멈춘다. 절이 없으면 빈 배열 */
-export function 표읽기(글: string, 제목: string): Record<string, string>[] {
-  return 표몸줄들(글.split(/\r?\n/), 제목).map(({ 머리, 칸 }) => Object.fromEntries(머리.map((h, i) => [h, 칸[i] ?? ''])));
-}
-
-const 백틱벗기기 = (글: string) => 글.trim().replace(/^`(.*)`$/, '$1').trim();
 
 /**
  * 「요구사항」 표에서 `기대`(차례 → tcId)가 있는 줄의 tcId 칸만 고쳐 쓴다 — 번호 명령(`npm run ledger:number`)이 부른다.
@@ -137,11 +104,12 @@ export function 원장대조(
   표글: string,
   // 에이전트 — 참이면 「사람이 뺌」을 형식 오류로 친다. 단 사람이뺌(기준(main) 표에 이미 있던 번호)의 줄은 인정한다 — 사람의 결정이다 (2026-09-30 게이트 1)
   // 다음요청 — 기준 표에 있던 「다음 요청」 번호. 칸재료 — 주면(에이전트) 요구 줄 tcId 를 칸 번호와 견준다 (2026-10-04 게이트 1)
-  선택: { 있는케이스?: Set<string>; 에이전트: boolean; 사람이뺌?: Set<string>; 다음요청?: Set<string>; 칸재료?: 칸재료 | null },
+  선택: { 있는케이스?: Set<string>; 에이전트: boolean; 사람이뺌?: Set<string>; 다음요청?: Set<string>; 제거함?: Set<string>; 칸재료?: 칸재료 | null },
 ): 대조결과 {
   const 형식오류: string[] = [];
   const 케이스로 = new Map<string, Set<string>>();
   const 제외로 = new Map<string, 제외종류>();
+  const 역할로 = new Map<string, string>();
   const 표번호 = new Set<string>();
   const 기능으로 = new Set<string>();
   const UI로 = new Set<string>();
@@ -151,6 +119,16 @@ export function 원장대조(
     번호들.forEach((b) => 표번호.add(b));
     if (번호들.length > 출처상한) {
       형식오류.push(`요구 줄 출처 칸에 번호가 ${String(번호들.length)}개다 — ${String(출처상한)}개까지`);
+      continue;
+    }
+    // 사람이 반영 때 뺀 보류 — 빠짐으로 안 센다. 역할이 적혔으면 계정 미등록, 없으면(판정 불가) 사람이 뺌. 에이전트는 기준 표에 있던 번호만 인정한다 (작성 §3.6 「★ 역할별 계정」)
+    const 제거 = 제거함읽기(행);
+    if (제거 !== null) {
+      for (const b of 번호들) {
+        if (선택.에이전트 && !(선택.제거함?.has(b) ?? false)) continue;
+        제외로.set(b, 제거.역할 === null ? '사람이 뺌' : '계정 미등록');
+        if (제거.역할 !== null) 역할로.set(b, 제거.역할);
+      }
       continue;
     }
     // 백틱을 벗긴다 — 번호 명령 · 칸 대조와 같은 글로 본다(사람 표는 tcId 를 백틱으로 감싼다)
@@ -200,6 +178,7 @@ export function 원장대조(
       continue;
     }
     제외로.set(번호들[0] ?? '', 종류 as 제외종류);
+    if (종류 === '계정 미등록') 역할로.set(번호들[0] ?? '', (행['사유'] ?? '').trim());
   }
 
   const 원장번호 = new Set(원장.map((h) => h.번호));
@@ -208,6 +187,7 @@ export function 원장대조(
   const 제외번호 = new Map([...제외로].filter(([b]) => 원장번호.has(b) && !케이스로.has(b)));
   const 제외셈: Partial<Record<제외종류, number>> = {};
   for (const 종류 of 제외번호.values()) 제외셈[종류] = (제외셈[종류] ?? 0) + 1;
+  const 계정보류 = new Map([...제외번호].filter(([, 종류]) => 종류 === '계정 미등록').map(([b]): [string, string] => [b, 역할로.get(b) ?? '']));
   const 칸어긋남: string[] = [];
   let 칸알림: string[] = [];
   if (선택.에이전트 && 선택.칸재료 != null) {
@@ -237,6 +217,7 @@ export function 원장대조(
     },
     덮음,
     제외번호,
+    계정보류,
     UI만: 원장.map((h) => h.번호).filter((b) => 케이스로.has(b) && !기능으로.has(b)),
     갈래: { 기능: 원장.filter((h) => 기능으로.has(h.번호)).length, UI: 원장.filter((h) => UI로.has(h.번호)).length },
     칸어긋남,

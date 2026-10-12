@@ -141,6 +141,12 @@ describe('표준원장사본 — 표준 기획서 항목이 원장이고 기준 
     expect([...r.기준.다음요청]).toEqual(['X-REQ-003']);
   });
 
+  it('기준 표의 제거함 번호를 사본에 싣는다 — 자식의 check:ledger --agent 가 같은 번호를 인정한다', () => {
+    const 기준표 = 표([줄('X-REQ-001 · 보류 — 관리자 계정 비밀번호', '제거함(X-FN-001)')], []);
+    const r = 표준원장사본([항목(1), 항목(2)], undefined, 'X', { 표글: 기준표, 있는케이스: new Set() });
+    expect((JSON.parse(r.글) as { 제거함: string[] }).제거함).toEqual(['X-REQ-001']);
+  });
+
   it('기준 표를 못 읽었으면(null) 칸 재료가 null 이다 · 항목이 없으면 원장 없음이다', () => {
     const r = 표준원장사본([항목(1)], undefined, 'X', null);
     expect((JSON.parse(r.글) as { 칸재료?: unknown }).칸재료).toBe(null);
@@ -193,6 +199,20 @@ describe('원장과남은번호 — 자식 전 원장 준비 전부', () => {
       expect(r.원본원장).toEqual({ 없음: '옮기지 않는 요청이다' });
       expect(JSON.parse(readFileSync(join(폴더, 'ledger-base.json'), 'utf8'))).toMatchObject({ 접두사: 'X', 기준표: { 있는케이스: ['X-001'] } });
       expect(r.입력).toEqual({ 사본: join(폴더, 'ledger.json'), 요약: '요구 4 · 번호 가족 X-REQ 4' });
+    } finally {
+      rmSync(폴더, { recursive: true, force: true });
+    }
+  });
+
+  it('계정 미등록 번호는 그 역할 계정을 넣었을 때만 남은 번호에 든다 — 넣은 역할이 없으면 남은 것이 없어 막는다', () => {
+    const { 폴더, 지금 } = 차리기(3);
+    const 계정표 = 표([줄('X-REQ-001', 'X-001')], ['| X-REQ-002 | 계정 미등록 | 관리자 |', '| X-REQ-003 | 계정 미등록 | 판매자 |']);
+    const 부름 = (등록역할?: Set<string>) =>
+      원장과남은번호({ 계획: [], 자료폴더: 폴더, 깃: 깃(false, 계정표), 기준: 'abc', 서비스: 'X', 폴더: 'x', 이어작성원본: 5873, 지금, 옮긴다: false, 등록역할 });
+    try {
+      expect(부름()).toEqual({ 막힘: expect.stringContaining('남은 요구가 없다') });
+      const r = 부름(new Set(['관리자']));
+      expect('막힘' in r ? null : r.이어작성?.남은).toEqual(['X-REQ-002']);
     } finally {
       rmSync(폴더, { recursive: true, force: true });
     }
