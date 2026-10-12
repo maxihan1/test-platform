@@ -63,6 +63,7 @@ vi.mock('./scanner.js', () => ({
 }));
 
 const { default: catalogRoutes } = await import('./routes.js');
+const { 병합뒤훑기 } = await import('./scanRun.js');
 
 function 사람(role: 사용자['role'], 칸들: Record<string, 'none' | 'read' | 'write'>): 사용자 {
   return {
@@ -141,6 +142,17 @@ describe('스캔 결과 거르기', () => {
     expect(화면지도.차례).toEqual(['저장 XCA', '화면 XCA', '저장 XCC', '화면 XCC']);
     expect(화면지도.부름[0]).toEqual([1, 'XCA', '/뿌리', [expect.objectContaining({ tcId: 'XCA-001' })], true]);
     expect(body.error).toContain('XCA 서비스의 화면 파일로 지도를 채우지 못했다: 화면 파일 깨짐');
+  });
+
+  it('병합 뒤 훑기는 그 서비스만 다시 훑고 나머지 서비스 결과는 지난 스캔 것을 둔다 (PRD-F9-03)', async () => {
+    부르는이 = 사람('admin', {});
+    await app.inject({ method: 'POST', url: '/api/catalog/scan' });
+    화면지도.차례.length = 0;
+    await 병합뒤훑기(3, app.log);
+    expect(화면지도.차례).toEqual(['저장 XCC', '화면 XCC']);
+    const body = (await app.inject({ method: 'GET', url: '/api/catalog/scan' })).json();
+    expect(body.duplicates).toHaveLength(1);
+    expect(body.error).toContain('XCB');
   });
 
   it('admin 은 배정 없이도 살아 있는 서비스 전부를 본다', async () => {

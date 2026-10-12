@@ -155,13 +155,13 @@ describe('케이스 고치기 상세', () => {
     await waitFor(() => expect(다시).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 }));
   });
 
-  it('반영이 끝나면 다시 스캔하라고 안내하고 남은 요구 이어 작성은 없다', async () => {
+  it('반영이 끝나면 케이스 목록에서 볼 수 있다고 안내하고 남은 요구 이어 작성은 없다', async () => {
     const 기록 = [실행({ id: 12, kind: 'MERGE' }), 실행({ id: 7 })];
     답들.set(7, 줄({ runs: 기록 }));
     답들.set(12, 줄({ id: 12, kind: 'MERGE', sourceId: 7, params: {}, runs: 기록, canContinue: false }));
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
-    expect(await screen.findByText(/「다시 스캔」을 누르면 바뀐 것이 보입니다/)).toBeTruthy();
+    expect(await screen.findByText(/케이스 목록에서 바뀐 것을 볼 수 있습니다/)).toBeTruthy();
     expect(screen.queryByText(/남은 요구/)).toBeNull();
   });
 
