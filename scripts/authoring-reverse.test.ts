@@ -133,29 +133,36 @@ describe('차이정리 — 자식이 쓴 차이 파일을 좁혀 받는다', () 
 
 describe('계정섞였나 — 올리는 글에 비밀번호 원문이 있나', () => {
   it('어느 글에든 있으면 참', () => {
-    expect(계정섞였나(['케이스 본문', `로그인 ${비밀}`], 비밀)).toBe(true);
+    expect(계정섞였나(['케이스 본문', `로그인 ${비밀}`], [비밀])).toBe(true);
+  });
+
+  it('목록의 어느 비밀번호든 있으면 참 — 역할 계정 비밀번호도 본다', () => {
+    expect(계정섞였나(['관리자 Adm-pw-77 로'], [비밀, 'Adm-pw-77'])).toBe(true);
   });
 
   it('없으면 거짓 · 비밀번호가 비었으면 거짓', () => {
-    expect(계정섞였나(['케이스 본문'], 비밀)).toBe(false);
-    expect(계정섞였나(['아무 글'], '')).toBe(false);
-    expect(계정섞였나(['아무 글'], null)).toBe(false);
+    expect(계정섞였나(['케이스 본문'], [비밀])).toBe(false);
+    expect(계정섞였나(['아무 글'], [''])).toBe(false);
+    expect(계정섞였나(['아무 글'], [])).toBe(false);
   });
 });
 
 describe('비밀가리기 — 받은 자료·남은 파일에서 비밀번호를 가림표로 바꾼다', () => {
   it('원문을 전부 가림표로 바꾼다', () => {
-    expect(비밀가리기('아이디 qa · 비밀번호 Pw9!x · 다시 Pw9!x', 'Pw9!x')).toBe(`아이디 qa · 비밀번호 ${가림표} · 다시 ${가림표}`);
+    expect(비밀가리기('아이디 qa · 비밀번호 Pw9!x · 다시 Pw9!x', ['Pw9!x'])).toBe(`아이디 qa · 비밀번호 ${가림표} · 다시 ${가림표}`);
+  });
+  it('목록의 비밀번호를 전부 가린다 — 일반 회원 · 역할 계정', () => {
+    expect(비밀가리기('회원 Pw9!x · 관리자 Adm-pw-77', ['Adm-pw-77', 'Pw9!x'])).toBe(`회원 ${가림표} · 관리자 ${가림표}`);
   });
   it('JSON 에 이스케이프돼 적힌 꼴도 가린다', () => {
-    expect(비밀가리기('{"doc":"Ab\\"c9x"}', 'Ab"c9x')).toBe(`{"doc":"${가림표}"}`);
+    expect(비밀가리기('{"doc":"Ab\\"c9x"}', ['Ab"c9x'])).toBe(`{"doc":"${가림표}"}`);
   });
   it('비밀이 없거나 비었으면 그대로다', () => {
-    expect(비밀가리기('Pw9!x', undefined)).toBe('Pw9!x');
-    expect(비밀가리기('Pw9!x', '')).toBe('Pw9!x');
+    expect(비밀가리기('Pw9!x', [])).toBe('Pw9!x');
+    expect(비밀가리기('Pw9!x', [''])).toBe('Pw9!x');
   });
   it('가린 글에는 원문이 남지 않는다', () => {
-    expect(계정섞였나([비밀가리기('xxPw9!xPw9!xx', 'Pw9!x')], 'Pw9!x')).toBe(false);
+    expect(계정섞였나([비밀가리기('xxPw9!xPw9!xx', ['Pw9!x'])], ['Pw9!x'])).toBe(false);
   });
 });
 
@@ -190,24 +197,29 @@ describe('올리기전검사 — 올리기 전에 모은 글 전부를 본다', 
   it('케이스 · PR 본문 · 차이 파일 중 하나라도 비밀번호가 있으면 사유 — 값은 싣지 않는다', () => {
     for (const 자리 of ['케이스', 'PR본문', '차이'] as const) {
       const 글들 = { 케이스: ['a'], PR본문: 'b', 차이: 'c', [자리]: 자리 === '케이스' ? [비밀] : 비밀 };
-      const 사유 = 올리기전검사(글들, 비밀);
+      const 사유 = 올리기전검사(글들, [비밀]);
       expect(사유, 자리).toContain('비밀번호');
       expect(사유).not.toContain(비밀);
     }
   });
 
   it('깨끗하면 null', () => {
-    expect(올리기전검사({ 케이스: ['a'], PR본문: 'b', 차이: null }, 비밀)).toBeNull();
+    expect(올리기전검사({ 케이스: ['a'], PR본문: 'b', 차이: null }, [비밀])).toBeNull();
+  });
+
+  it('역할 계정 비밀번호만 든 케이스도 막는다', () => {
+    expect(올리기전검사({ 케이스: ['관리자 Adm-pw-77'], PR본문: 'b', 차이: null }, ['Adm-pw-77', 비밀])).toContain('비밀번호');
   });
 });
 
 describe('사유거르기 — 실패 사유에 원문이 섞이면 고정 글로 바꾼다', () => {
   it('섞였으면 고정 글', () => {
-    expect(사유거르기(`claude 를 못 띄웠다: ${비밀}`, 비밀)).not.toContain(비밀);
+    expect(사유거르기(`claude 를 못 띄웠다: ${비밀}`, [비밀])).not.toContain(비밀);
+    expect(사유거르기('관리자 Adm-pw-77 로 실패', ['Adm-pw-77', 비밀])).not.toContain('Adm-pw-77');
   });
 
   it('안 섞였으면 그대로', () => {
-    expect(사유거르기('push 가 실패했다', 비밀)).toBe('push 가 실패했다');
+    expect(사유거르기('push 가 실패했다', [비밀])).toBe('push 가 실패했다');
   });
 });
 
@@ -259,9 +271,9 @@ describe('차이정리 뒤 검사 — 따옴표·역슬래시가 든 비밀번�
   it('JSON 이스케이프로 날 글자에서는 안 보여도 푼 값에서는 보인다', () => {
     const 비밀따옴 = 'ab"cd\\ef';
     const 날글 = JSON.stringify([{ no: 'D1', kind: 'DIFFERENT', doc: `비밀 ${비밀따옴}` }]);
-    expect(계정섞였나([날글], 비밀따옴)).toBe(false);
+    expect(계정섞였나([날글], [비밀따옴])).toBe(false);
     const 정리 = 차이정리(날글);
-    expect('diffs' in 정리 && 계정섞였나(글모두(정리.diffs), 비밀따옴)).toBe(true);
+    expect('diffs' in 정리 && 계정섞였나(글모두(정리.diffs), [비밀따옴])).toBe(true);
   });
 });
 
@@ -280,6 +292,21 @@ describe('줄프롬프트 역방향 절 — 계정 값 없이 자리만 준다',
     expect(글).toContain('작성 요청 9');
     expect(글).not.toContain('Qa-pw-7731');
     expect(글).not.toContain('tester');
+  });
+
+  it('역할 계정은 PLATFORM_ACCOUNTS 로 받고 없으면 계정 미등록으로 적으라고 알린다 — 역할 계정 값은 싣지 않는다', () => {
+    const 것 = {
+      id: 9,
+      kind: 'AUTHOR' as const,
+      target: { env: 'qa', baseUrl: 'https://qa.x.com', startUrl: null, loginId: 'tester', loginPassword: 'Qa-pw-7731' },
+      accounts: [{ env: 'qa', baseUrl: 'https://qa.x.com', role: '관리자', loginId: 'admin01', loginPassword: 'Adm-pw-77' }],
+    };
+    const 글 = 줄프롬프트(것, 'PAY', [], undefined, { 화면만: false, 산출물폴더: '/w/9/자료/out' });
+    expect(글).toContain('PLATFORM_ACCOUNTS');
+    expect(글).toContain("account: '<역할>'");
+    expect(글).toContain('계정 미등록');
+    expect(글).not.toContain('Adm-pw-77');
+    expect(글).not.toContain('admin01');
   });
 
   it('재실행 · 이어받기도 역방향 절의 요청 번호는 뿌리(맨 처음) 번호다 (§7 「실행 기록」)', () => {

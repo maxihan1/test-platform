@@ -86,6 +86,8 @@ export function 역방향절(입력: { 화면만: boolean; 산출물폴더: stri
     '- 절차는 tpx-author 스킬의 references/reverse.md 를 Read 로 열어 그대로 따라라.',
     '- 대상 서버·시작 주소·테스트 계정은 환경 변수 TARGET_ENV · TARGET_BASE_URL · TARGET_START_URL(없을 수 있다) · TARGET_LOGIN_ID · TARGET_LOGIN_PASSWORD 에 있다.',
     '- 계정 값을 글·명령 인자·출력에 펼치지 마라. 스크립트 안에서 process.env 로 읽어라.',
+    // 역할 계정 — 자식이 PLATFORM_PARAMS 를 손으로 만들지 않게 kit 이 채운다 (§3.6 「★ 역할별 계정」)
+    "- 역할 계정(관리자 등)은 환경 변수 PLATFORM_ACCOUNTS(JSON)에 있고 playwright 를 PLATFORM_BASE_URL 로 돌리면 kit 이 비밀값 칸을 채운다. 케이스는 `.meta({ secret: true, account: '<역할>' })` 로 역할을 단다. 필요한 역할 계정이 없으면 보류 케이스를 쓰지 말고 요구사항 표 「제외」에 `계정 미등록`(사유 칸 = 역할 이름)으로 적는다. 값을 출력 · 인자 · 파일에 쓰지 않는다.",
     `- 산출물 폴더는 \`${입력.산출물폴더}\` 다. 차이 목록은 diffs.json 으로 거기에 써라.`,
     // 산출물 폴더 옆이다 — 그 폴더의 파일은 에이전트가 읽어 올리므로 화면 기록을 섞지 않는다
     `- 본 화면은 \`${join(dirname(입력.산출물폴더), 'screens')}\` 에 화면마다 파일로 적고 대화에는 한 줄만 남겨라.`,
@@ -191,10 +193,12 @@ export function 차이정리(글: string | null): { diffs: 차이[] } | { 사유
   return { diffs };
 }
 
-/** 글 어디에든 비밀번호 원문이 있나. 짧은 비밀번호는 집을 때 이미 걸렀다(`대상점검`) */
-export function 계정섞였나(글들: string[], 비밀: string | null | undefined): boolean {
-  if (비밀 === null || 비밀 === undefined || 비밀 === '') return false;
-  return 글들.some((글) => 글.includes(비밀));
+/**
+ * 글 어디에든 비밀번호 원문이 있나. 짧은 비밀번호는 집을 때 이미 걸렀다(`대상점검` · `계정점검`).
+ * 목록은 `비밀번호들`(authoring-accounts)로 만든다 — 일반 회원 하나만 넘기면 역할 계정 비밀번호가 그대로 나간다
+ */
+export function 계정섞였나(글들: readonly string[], 비밀들: readonly string[]): boolean {
+  return 비밀들.some((비밀) => 비밀 !== '' && 글들.some((글) => 글.includes(비밀)));
 }
 
 /** 가린 비밀번호 자리. 글자본과 워드 사본이 같은 표시를 써야 자식이 베낀 문장으로 원본 문단을 찾는다 */
@@ -202,12 +206,14 @@ export const 가림표 = '••••••';
 
 /**
  * 비밀번호 원문을 가림표로 바꾼다 — 자식이 읽기 전에 기획서·앞 실행이 남긴 파일에서 먼저 가린다 (§3.6 「★ 역방향」).
- * JSON 에 이스케이프돼 적힌 꼴(따옴표·역슬래시)도 같이 — diffs.json 이 그렇게 적는다
+ * JSON 에 이스케이프돼 적힌 꼴(따옴표·역슬래시)도 같이 — diffs.json 이 그렇게 적는다. 목록 차례대로 가린다 — `비밀번호들` 이 긴 것부터 준다
  */
-export function 비밀가리기(글: string, 비밀: string | null | undefined): string {
-  if (비밀 === null || 비밀 === undefined || 비밀 === '') return 글;
-  const 이스케이프 = JSON.stringify(비밀).slice(1, -1);
-  return 글.split(비밀).join(가림표).split(이스케이프).join(가림표);
+export function 비밀가리기(글: string, 비밀들: readonly string[]): string {
+  return 비밀들.reduce((acc, 비밀) => {
+    if (비밀 === '') return acc;
+    const 이스케이프 = JSON.stringify(비밀).slice(1, -1);
+    return acc.split(비밀).join(가림표).split(이스케이프).join(가림표);
+  }, 글);
 }
 
 /**
@@ -217,21 +223,21 @@ export function 비밀가리기(글: string, 비밀: string | null | undefined):
 export function 가림표케이스(파일들: { 경로: string; 글: string }[]): string | null {
   const 남은 = 파일들.filter((f) => /\.(spec|page|component|helper)\.ts$/.test(f.경로) && f.글.includes(가림표)).map((f) => f.경로);
   if (남은.length === 0) return null;
-  return `케이스 · 안내도 파일에 가린 비밀번호 표시(${가림표})가 남았다 — 계정은 process.env.TARGET_LOGIN_PASSWORD(비밀값 자리)로 바꿔라: ${남은.join(' · ')}`;
+  return `케이스 · 안내도 파일에 가린 비밀번호 표시(${가림표})가 남았다 — 계정은 params 비밀값 칸(실행 때 채운다)이나 process.env.TARGET_LOGIN_PASSWORD 로 바꿔라: ${남은.join(' · ')}`;
 }
 
 /** push 전에 올릴 글 전부를 본다 (§3.6 「남는 한계」 — 올릴 파일 · result(diffs) · 케이스 diff · PR 본문) */
 export function 올리기전검사(
   글들: { 케이스: string[]; PR본문: string; 차이: string | null },
-  비밀: string | null | undefined,
+  비밀들: readonly string[],
 ): string | null {
   const 모두 = [...글들.케이스, 글들.PR본문, 글들.차이 ?? ''];
-  return 계정섞였나(모두, 비밀) ? '올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' : null;
+  return 계정섞였나(모두, 비밀들) ? '올릴 것에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' : null;
 }
 
 /** 실패 사유가 화면·서버 기록으로 나가기 전에 거른다. 자식 stderr 나 도구 오류에 원문이 섞일 수 있다 */
-export function 사유거르기(글: string, 비밀: string | null | undefined): string {
-  return 계정섞였나([글], 비밀) ? '실패 사유에 테스트 계정 비밀번호가 섞여 있어 가렸다 — 에이전트 기록을 봐라' : 글;
+export function 사유거르기(글: string, 비밀들: readonly string[]): string {
+  return 계정섞였나([글], 비밀들) ? '실패 사유에 테스트 계정 비밀번호가 섞여 있어 가렸다 — 에이전트 기록을 봐라' : 글;
 }
 
 /**

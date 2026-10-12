@@ -10,6 +10,7 @@ import { 칸줄, 누르기, 보기, 읽기, 열기, 창수, 확인창누르기, 
 import { type 누름종류, 누를까, 누름키, 로그아웃인가, 연결이름, 탈퇴말인가, 탈퇴주소인가 } from './authoring-crawl-press.js';
 import { type 목록항목, 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 부모키, 빼는주소인가, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
 import type { 저장본 } from './authoring-screens-keep.js';
+import { 환경비밀번호들 } from './authoring-accounts.js';
 
 const 간격 = 1_000; // 운영 서버도 돈다 — 한 장씩, 1초 이상 띄운다
 const 부모상한 = 20; // 숫자가 아닌 상세(슬러그)가 장수를 다 먹지 않게. 그누보드 `/bbs/*.php` 처럼 한 폴더에 화면이 몰린 사이트가 있어 넉넉히
@@ -84,9 +85,9 @@ function 로그인돌리기(스크립트: string, 상태파일: string): string 
   const 전 = statSync(상태파일, { throwIfNoEntry: false })?.mtimeMs ?? 0;
   const r = spawnSync(process.execPath, ['--input-type=module'], { input: readFileSync(스크립트), cwd: process.cwd(), env: process.env, timeout: 90_000, encoding: 'utf8' });
   if (r.status !== 0) {
-    const 비밀 = process.env.TARGET_LOGIN_PASSWORD;
+    const 비밀 = 환경비밀번호들(process.env); // 역할 계정까지 — 로그인 스크립트는 환경을 통째로 받는다
     const 끝줄 = `${r.stderr ?? ''}\n${r.stdout ?? ''}`.split('\n').map((x) => x.trim()).filter(Boolean).at(-1) ?? '';
-    return `로그인 스크립트가 실패했다(종료 코드 ${r.status ?? '시간 초과'})${끝줄 === '' ? '' : ` — ${(비밀 ? 끝줄.split(비밀).join('••••••') : 끝줄).slice(0, 200)}`}`;
+    return `로그인 스크립트가 실패했다(종료 코드 ${r.status ?? '시간 초과'})${끝줄 === '' ? '' : ` — ${비밀.reduce((글, 하나) => 글.split(하나).join('••••••'), 끝줄).slice(0, 200)}`}`;
   }
   if ((statSync(상태파일, { throwIfNoEntry: false })?.mtimeMs ?? 0) <= 전) return '상태 파일이 새로 써지지 않았다 — 로그인 스크립트가 --state 와 같은 파일에 쓰는지 본다';
   return null;

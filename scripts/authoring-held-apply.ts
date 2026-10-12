@@ -4,6 +4,7 @@
 import ts from 'typescript';
 
 import { 올릴브랜치 } from './authoring-chain.js';
+import { type 계정줄, 계정환경 } from './authoring-accounts.js';
 import type { 대상 } from './authoring-reverse.js';
 
 export interface 보류입력 {
@@ -136,28 +137,12 @@ export function 케이스tcId(글: string): string | null {
   return 값 !== undefined && ts.isStringLiteralLike(값) ? 값.text : null;
 }
 
-/** params 칸 가운데 `.meta({ secret: true })` 가 붙은 것 — 화면이 안 받고 반영 때 테스트 계정으로 채운다 */
-export function 비밀칸들(글: string): string[] {
-  const 명세 = 명세글(읽기(글));
-  const 묶음 = 명세 === undefined ? undefined : 칸묶음(명세, 'params');
-  return (묶음?.properties ?? []).flatMap((p) => {
-    if (!ts.isPropertyAssignment(p)) return [];
-    const 메타 = 사슬에서(p.initializer, 'meta')?.arguments[0];
-    const 비밀 = 메타 !== undefined && ts.isObjectLiteralExpression(메타) ? 속성(메타, 'secret')?.initializer : undefined;
-    const 키 = 이름(p);
-    return 비밀?.kind === ts.SyntaxKind.TrueKeyword && 키 !== undefined ? [키] : [];
-  });
-}
-
 /**
- * 3회 실행의 환경 — 러너와 같은 이름(PLATFORM_PARAMS · PLATFORM_BASE_URL)으로 넘긴다. 채운 값은 이미 코드의 기본값이라 비밀값만 싣는다.
- * ponytail: 칸 이름으로 아이디·비밀번호를 가른다. 대상 서버 줄에 계정이 하나라 그 밖의 비밀값은 받을 길이 없다(명세 「남는 한계」)
+ * 3회 실행의 환경 — 러너와 같은 이름(PLATFORM_BASE_URL)에 집기 `accounts` 를 PLATFORM_ACCOUNTS 로 얹는다.
+ * 채운 값은 이미 코드의 기본값이고, 비어 있는 계정 칸은 kit 이 그 줄의 역할 계정으로 채운다 (도메인/작성 §3.6 「★ 역할별 계정」)
  */
-export function 실행입력(t: 대상, 비밀칸: string[]): { PLATFORM_BASE_URL: string; PLATFORM_PARAMS: string } {
-  const params = Object.fromEntries(
-    비밀칸.map((키) => [키, /id$|user|email|account/i.test(키) && !/pass|pw/i.test(키) ? (t.loginId ?? '') : (t.loginPassword ?? '')]),
-  );
-  return { PLATFORM_BASE_URL: t.baseUrl ?? '', PLATFORM_PARAMS: JSON.stringify({ params, expected: {} }) };
+export function 실행입력(t: 대상, 계정들: readonly 계정줄[] | undefined): { PLATFORM_BASE_URL: string; PLATFORM_ACCOUNTS?: string } {
+  return { PLATFORM_BASE_URL: t.baseUrl ?? '', ...계정환경(계정들) };
 }
 
 /** 요구사항 표 줄에서 제거한 tcId 칸만 「제거함(<tcId>)」으로. 본문 글과 비슷한 번호는 안 건드린다 */

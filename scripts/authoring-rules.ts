@@ -4,6 +4,7 @@
 import { type 권한설정, type 자료, 셸허용됐나 } from './authoring-assets.js';
 import { 크레딧키검사, 크레딧키이름 } from './authoring-billing.js';
 import { type 모델, 모델인자 } from './authoring-model.js';
+import type { 계정줄 } from './authoring-accounts.js';
 import { type 대상 } from './authoring-reverse.js';
 
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
@@ -145,6 +146,11 @@ export interface 집은것 {
   figmaToken?: string;
   /** 대조 행이면 온다 — 대상 서버와 테스트 계정 (도메인/작성 §7). 피그마 토큰과 같은 규칙: 자식 환경에만 */
   target?: 대상;
+  /**
+   * 역할별 계정 — 대조 행 · 값을 채운 보류가 있는 머지 · 반영 행(화면이 맞음 포함)에만 온다 (도메인/작성 §7 · §3.6 「★ 역할별 계정」).
+   * **이것이 있다고 대조가 아니다** — 역방향은 `target` 으로만 가른다. 자식 · 3회 실행 환경에만 넘기고 비밀번호는 모두 가린다
+   */
+  accounts?: 계정줄[];
   /** 이어서 작성이면 이어받은 중단 요청 (도메인/작성 §7 「이어하기」). 그 행의 보관 폴더를 넘겨받는다 */
   resumeFrom?: number | null;
   /** 남은 요구로 이어 작성한 원본 뿌리 (도메인/작성 §3.6 「★ 원장」). 작성 요청에만 온다 — 재실행 · 이어서 작성은 원본 상세에서 읽는다 */

@@ -12,6 +12,7 @@ import { 모양보기, 사본만들기, 사본치우기, 자식거두기, 트리
 import { type 보고손, 돌린다, 쉬기, 친다 } from './authoring-io.js';
 import { 도는번호 } from './authoring-keeping.js';
 import { 계정섞였나, 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
+import { 계정점검, 비밀번호들 } from './authoring-accounts.js';
 import { type 겹침판, 겹침쓸것, 결정들, 본문처리줄, 자식커밋찾기 } from './authoring-conflicts-io.js';
 import { main합치기 } from './authoring-main-merge.js';
 import type { 모델 } from './authoring-model.js';
@@ -23,7 +24,6 @@ import {
   반영표시,
   반영푸시인자,
   보류남음,
-  비밀칸들,
   새머리판정,
   실패문장들,
   실행입력,
@@ -64,7 +64,7 @@ export function 계산(
   트리: string,
   서비스: string,
   held: Record<string, 보류입력>,
-  비밀: string | null | undefined,
+  비밀: readonly string[],
 ): 쓸것 | { 사유: string } {
   const 모두 = 케이스들(트리);
   const 쓰기 = new Map<string, string>();
@@ -103,8 +103,11 @@ export function 적용(자리: 사본, 쓸: 쓸것): string | null {
   return null;
 }
 
-/** 3회 실행까지의 환경. 부모 것은 안 싣는다 — 케이스 코드는 자식이 쓴 것이라 에이전트 토큰을 읽게 두지 않는다 */
-function 관문환경(자리: 사본, 자식: 계정 | null, 비밀칸: string[], 준비: 반영준비): Record<string, string> {
+/**
+ * 3회 실행까지의 환경. 부모 것은 안 싣는다 — 케이스 코드는 자식이 쓴 것이라 에이전트 토큰을 읽게 두지 않는다.
+ * 비어 있는 계정 칸은 kit 이 PLATFORM_ACCOUNTS 에서 PLATFORM_BASE_URL 과 출처가 같은 줄로 채운다 (§3.6 「★ 역할별 계정」)
+ */
+function 관문환경(자리: 사본, 자식: 계정 | null, 준비: 반영준비): Record<string, string> {
   const p = process.env;
   const t = 준비.것.target;
   return {
@@ -113,7 +116,7 @@ function 관문환경(자리: 사본, 자식: 계정 | null, 비밀칸: string[]
     HOME: 자식 === null ? (p.HOME ?? 자리.집) : 자리.집,
     TMPDIR: 자식 === null ? (p.TMPDIR ?? '/tmp') : 자리.임시,
     ...(p.PLAYWRIGHT_BROWSERS_PATH ? { PLAYWRIGHT_BROWSERS_PATH: p.PLAYWRIGHT_BROWSERS_PATH } : {}),
-    ...(t === undefined ? {} : { ...대상환경(t), ...실행입력(t, 비밀칸) }),
+    ...(t === undefined ? {} : { ...대상환경(t), ...실행입력(t, 준비.것.accounts) }),
   };
 }
 
@@ -131,10 +134,10 @@ export async function 반영작업방(
 ): Promise<{ 자리: 사본; 처리줄: string | null } | null> {
   const 받은보류 = 준비.것.held;
   const held = 보류있나(받은보류) ? 받은보류 : null;
-  const 비밀 = 준비.것.target?.loginPassword;
+  const 비밀 = 비밀번호들(준비.것);
   const 실패 = async (까닭: string) => (await 손.끝내기({ status: 'FAILED', error: 사유거르기(까닭, 비밀) }), null);
   const 채움 = held !== null && Object.values(held).some((입력) => 입력.removed !== true);
-  const 대상사유 = 채움 ? (준비.것.target === undefined ? '반영할 대상 서버가 없다' : 대상점검(준비.것.target)) : null;
+  const 대상사유 = 채움 ? (준비.것.target === undefined ? '반영할 대상 서버가 없다' : (대상점검(준비.것.target) ?? 계정점검(준비.것.accounts))) : null;
   if (대상사유 !== null) return 실패(대상사유);
 
   await 손.단계(held !== null ? '보류 값을 적는 중' : '겹친 케이스를 고른 대로 바꾸는 중');
@@ -198,7 +201,7 @@ async function 보류관문(
   준비: 반영준비,
   자리: 사본,
   held: Record<string, 보류입력>,
-  비밀: string | null | undefined,
+  비밀: readonly string[],
 ): Promise<쓸것 | { 사유: string }> {
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
   const 쓸 = 계산(자리.트리, 준비.서비스, held, 비밀);
@@ -207,7 +210,7 @@ async function 보류관문(
   if (먼저 !== null) return { 사유: 먼저 };
 
   const 채운파일 = [...쓸.쓰기.keys()].filter((f) => f.endsWith('.spec.ts'));
-  const 환경 = 관문환경(자리, 준비.자식, [...new Set(채운파일.flatMap((f) => 비밀칸들(쓸.쓰기.get(f) ?? '')))], 준비);
+  const 환경 = 관문환경(자리, 준비.자식, 준비);
   const 관문들: [string, string[], string, number][] = [
     ['npm', ['run', 'typecheck'], '타입 검사', 600_000],
     ['npm', ['run', 'check:tests', '--', '--no-held'], '케이스 규칙 검사', 600_000],

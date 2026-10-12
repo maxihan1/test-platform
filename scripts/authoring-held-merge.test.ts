@@ -40,12 +40,17 @@ function 트리(이름: string): string {
 
 describe('계산 — 적을 글에 테스트 계정 비밀번호가 있으면 올리지 않는다', () => {
   it('넣은 값에 비밀번호 원문이 있으면 까닭만 내고 값은 싣지 않는다', () => {
-    const r = 계산(트리('a'), 'XHM', { 'XHM-001': { params: { coupon: 'x-pw-secret-1-x' } } }, 'pw-secret-1');
+    const r = 계산(트리('a'), 'XHM', { 'XHM-001': { params: { coupon: 'x-pw-secret-1-x' } } }, ['pw-secret-1']);
+    expect(r).toEqual({ 사유: '넣은 값에 테스트 계정 비밀번호가 들어 있어 올리지 않았다' });
+  });
+
+  it('역할 계정 비밀번호도 같이 본다', () => {
+    const r = 계산(트리('a2'), 'XHM', { 'XHM-001': { params: { coupon: 'admin-pw-77' } } }, ['admin-pw-77', 'pw-secret-1']);
     expect(r).toEqual({ 사유: '넣은 값에 테스트 계정 비밀번호가 들어 있어 올리지 않았다' });
   });
 
   it('비밀번호가 없으면 적을 글을 낸다', () => {
-    const r = 계산(트리('b'), 'XHM', { 'XHM-001': { params: { coupon: 'WELCOME' } } }, 'pw-secret-1');
+    const r = 계산(트리('b'), 'XHM', { 'XHM-001': { params: { coupon: 'WELCOME' } } }, ['pw-secret-1']);
     expect('쓰기' in r && [...r.쓰기.keys()]).toEqual(['tests/xhm/coupon.spec.ts']);
   });
 });

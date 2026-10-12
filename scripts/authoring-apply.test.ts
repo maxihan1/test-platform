@@ -132,6 +132,11 @@ describe('반영절 · 화면이맞음줄', () => {
     expect(반영절({ 계획: { ...계획, 화면이맞음: undefined }, 사본: '/w/자료/apply.json' }).join('\n')).not.toContain('화면이 맞음');
   });
 
+  it('반영 · 화면이 맞음 둘 다 계정이 PLATFORM_ACCOUNTS 에 있다고 알린다 — 값은 싣지 않는다', () => {
+    expect(반영절({ 계획, 사본: '/w/자료/apply.json' }, [{ env: 'qa' }]).join('\n')).toContain('PLATFORM_ACCOUNTS');
+    expect(반영절({ 계획: { ...계획, 화면이맞음: undefined }, 사본: '/w/자료/apply.json' }).join('\n')).toContain('PLATFORM_ACCOUNTS');
+  });
+
   it('PR 머리 줄 — 고친 번호가 없으면 케이스만 고친 것이다', () => {
     expect(화면이맞음줄({ runId: 42, tcId: 'X-FN-007' }, ['X-REQ-002', 'X-REQ-003'])).toBe('화면이 맞음: RUN 42 · X-FN-007 · 고친 요구 X-REQ-002 · X-REQ-003');
     expect(화면이맞음줄({ runId: 42, tcId: 'X-FN-007' }, [])).toBe('화면이 맞음: RUN 42 · X-FN-007 · 고친 요구 없음 — 케이스만');

@@ -211,13 +211,21 @@ describe('메모달기 — 비밀번호를 받으면 사본에서 먼저 가린�
     return z.generateAsync({ type: 'uint8array' });
   }
   it('올릴 글 어디에도 원문이 없고, 가린 문장을 anchor 로 줘도 메모가 붙는다', async () => {
-    const 결과 = await 메모달기(await 비번워드(), [{ anchor: '테스트 계정 비밀번호는 •••••• 이다', 글: '[D1] x' }], 날짜, 'Pw9!x');
+    const 결과 = await 메모달기(await 비번워드(), [{ anchor: '테스트 계정 비밀번호는 •••••• 이다', 글: '[D1] x' }], 날짜, ['Pw9!x']);
     if ('사유' in 결과) throw new Error(결과.사유);
     expect(결과.찾음).toEqual([true]);
     expect(결과.글들.some((g) => g.includes('Pw9!x'))).toBe(false);
     const z = await JSZip.loadAsync(결과.바이트);
     expect(await z.file('word/header1.xml')?.async('string')).toContain('머리 ••••••');
     expect(await z.file('word/document.xml')?.async('string')).toContain('w:rsidR="00001234"');
+  });
+  it('역할 계정 비밀번호까지 목록 전부를 가린다', async () => {
+    const z = await JSZip.loadAsync(await 비번워드());
+    z.file('word/footer1.xml', `<?xml version="1.0" encoding="UTF-8"?><w:ftr ${W}><w:p><w:r><w:t>관리자 Adm1n-pw</w:t></w:r></w:p></w:ftr>`);
+    const 결과 = await 메모달기(await z.generateAsync({ type: 'uint8array' }), [{ anchor: '이다', 글: 'x' }], 날짜, ['Adm1n-pw', 'Pw9!x']);
+    if ('사유' in 결과) throw new Error(결과.사유);
+    expect(결과.글들.some((g) => g.includes('Pw9!x') || g.includes('Adm1n-pw'))).toBe(false);
+    expect(await (await JSZip.loadAsync(결과.바이트)).file('word/footer1.xml')?.async('string')).toContain('관리자 ••••••');
   });
   it('비밀번호를 안 주면 예전처럼 원문이 글들에 남는다 — 누설 검사가 잡는다', async () => {
     const 결과 = await 메모달기(await 비번워드(), [{ anchor: '이다', 글: 'x' }], 날짜);

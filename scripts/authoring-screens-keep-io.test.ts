@@ -84,7 +84,7 @@ describe('저장본올리기', () => {
     const 고친것 = { 키: '로그아웃 /login', 상태: '로그아웃', 틀: '/login', 주소: 'https://s.test/login', 지문: 'c', 글자지문: 'd', 기록: 저장이름('로그아웃', '/login'), 훑은날: '2026-10-20' };
     writeFileSync(join(자료, 'kept', 'index.json'), JSON.stringify({ 판: 1, 항목: [고친것] }));
     서버(다봄답([서버기록('로그아웃', '/login', 'https://s.test/login', '2026-10-04T09:00:00.000Z'), 서버기록('로그아웃', '/old', 'https://s.test/old', '2026-09-01T00:00:00.000Z')]));
-    const r = await 저장본올리기(통로, 자료, 'pw-1234', 지금);
+    const r = await 저장본올리기(통로, 자료, ['pw-1234'], 지금);
     expect(r).toEqual({ 줄: '화면 기록 저장: 재사용 1장(가장 오래된 것 16일) · 새로 저장 1장 · 다 봐서 로그아웃 못 본 화면 1장 지움' });
     expect(건것들).toEqual([
       { url: 'http://admin:3000/api/authoring/requests/7/screens', method: 'GET', body: undefined },
@@ -107,7 +107,7 @@ describe('저장본올리기', () => {
     크롤쓰기([홈, 로그인화면]);
     writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
     서버(다봄답());
-    expect(await 저장본올리기(통로, 자료, null, 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장 · 다 봐서 로그아웃 못 본 화면 1장 지움' });
+    expect(await 저장본올리기(통로, 자료, [], 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장 · 다 봐서 로그아웃 못 본 화면 1장 지움' });
     expect(건것들.filter((x) => x.method === 'PUT').map((x) => (x.body as { url: string }).url)).toEqual(['/']);
     expect(건것들.at(-1)?.body).toEqual({ seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그아웃', url: '/login', name: '로그인' }], complete: ['로그아웃'] });
   });
@@ -115,11 +115,11 @@ describe('저장본올리기', () => {
   it('찾은 화면 이름(seen)은 500자로 자르고 · 이름이 없으면 빈 글이다 · 이름에 비밀번호가 있으면 하나도 안 올린다', async () => {
     크롤쓰기([{ ...홈, 이름: '가'.repeat(600) }, { ...로그인화면, 이름: undefined }]);
     서버(다봄답());
-    await 저장본올리기(통로, 자료, null, 지금);
+    await 저장본올리기(통로, 자료, [], 지금);
     expect((건것들.at(-1)?.body as { seen: { name: string }[] }).seen.map((x) => x.name.length)).toEqual([500, 0]);
     건것들 = [];
     크롤쓰기([{ ...홈, 이름: '비번 s3cr3t-pw 화면' }]);
-    expect(await 저장본올리기(통로, 자료, 's3cr3t-pw', 지금)).toEqual({ 거절: expect.stringContaining('비밀번호') });
+    expect(await 저장본올리기(통로, 자료, ['admin-pw-77', 's3cr3t-pw'], 지금)).toEqual({ 거절: expect.stringContaining('비밀번호') });
     expect(건것들).toEqual([]);
   });
 
@@ -130,7 +130,7 @@ describe('저장본올리기', () => {
     writeFileSync(밖, JSON.stringify([{ 상태: '로그아웃', 틀: '/', 연결: [{ to: '/x', via: '링크 「x」' }] }]));
     symlinkSync(밖, join(자료, 'crawl', 'links.json'));
     서버(다봄답());
-    expect(await 저장본올리기(통로, 자료, null, 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장 · 화면 연결 파일을 못 읽어 연결 없이 올림' });
+    expect(await 저장본올리기(통로, 자료, [], 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장 · 화면 연결 파일을 못 읽어 연결 없이 올림' });
     expect(건것들.find((x) => x.method === 'PUT')?.body).toMatchObject({ links: [] });
   });
 
@@ -144,7 +144,7 @@ describe('저장본올리기', () => {
     ]) {
       크롤쓰기([홈], 요약);
       건것들 = [];
-      expect(await 저장본올리기(통로, 자료, null, 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장' });
+      expect(await 저장본올리기(통로, 자료, [], 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장' });
       expect(건것들.at(-1)?.body).toMatchObject({ complete: [] });
     }
   });
@@ -155,28 +155,28 @@ describe('저장본올리기', () => {
     서버(다봄답());
     const 거절 = { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
     크롤쓰기([홈, { ...로그인화면, 이름: '로그인 — pw-1234' }]);
-    expect(await 저장본올리기(통로, 자료, 'pw-1234', 지금)).toEqual(거절);
+    expect(await 저장본올리기(통로, 자료, ['pw-1234'], 지금)).toEqual(거절);
     크롤쓰기([홈, 로그인화면]);
     writeFileSync(join(자료, 'crawl', 'links.json'), JSON.stringify([{ 상태: '로그아웃', 틀: '/', 연결: [{ to: '/x', via: '버튼 「pw-1234」' }] }]));
-    expect(await 저장본올리기(통로, 자료, 'pw-1234', 지금)).toEqual(거절);
+    expect(await 저장본올리기(통로, 자료, ['pw-1234'], 지금)).toEqual(거절);
     writeFileSync(join(자료, 'crawl', 'links.json'), '[]');
     writeFileSync(join(자료, 'screens', 'out-002.md'), '# https://s.test/login\n비밀번호 칸에 pw-1234 를 넣었다');
-    expect(await 저장본올리기(통로, 자료, 'pw-1234', 지금)).toEqual(거절);
+    expect(await 저장본올리기(통로, 자료, ['pw-1234'], 지금)).toEqual(거절);
     expect(건것들).toEqual([]);
   });
 
   it('크롤 목록이 없으면 건너뛴다 · 링크인 기록은 따라가지 않는다 · 서버가 못 받은 화면은 센다', async () => {
     서버((x) => (x.method === 'GET' ? { status: 200, 몸: { screens: [] } } : { status: 400, 몸: { error: 'BAD_SCREEN' } }));
-    expect(await 저장본올리기(통로, 자료, null, 지금)).toEqual({ 줄: '화면 기록 저장: 크롤 목록이 없어 건너뜀' });
+    expect(await 저장본올리기(통로, 자료, [], 지금)).toEqual({ 줄: '화면 기록 저장: 크롤 목록이 없어 건너뜀' });
     크롤쓰기([홈, 로그인화면]);
     const 밖 = join(폴더, '비밀.txt');
     writeFileSync(밖, '# https://s.test/login\n비밀');
     symlinkSync(밖, join(자료, 'screens', 'out-002.md'));
     writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
-    expect(await 저장본올리기(통로, 자료, null, 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 0장 · 못 올림 1장 · 못 본 화면 지우기 실패' });
+    expect(await 저장본올리기(통로, 자료, [], 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 0장 · 못 올림 1장 · 못 본 화면 지우기 실패' });
     expect(JSON.stringify(건것들)).not.toContain('비밀');
     서버(() => ({ status: 500 }));
-    expect(await 저장본올리기(통로, 자료, null, 지금)).toEqual({ 줄: '화면 기록 저장: 실패 — 저장본을 못 읽었다(서버 500)' });
+    expect(await 저장본올리기(통로, 자료, [], 지금)).toEqual({ 줄: '화면 기록 저장: 실패 — 저장본을 못 읽었다(서버 500)' });
   });
 });
 

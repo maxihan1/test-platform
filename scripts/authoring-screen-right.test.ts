@@ -133,6 +133,8 @@ describe('안옮김뒤', () => {
     결과쓰기({ items: [{ reqId: 'X-REQ-001', feature: '회원가입', text: '비밀번호는 10자 이상이어야 한다', basis: 화면근거, status: 'CONFIRMED' }] });
     expect(await 부르기()).toEqual({ 거절: '표준 기획서를 못 올렸다 — 400 BAD_PRD 0.text', 줄: [머리] });
     결과쓰기({ items: [{ reqId: 'X-REQ-001', feature: '회원가입', text: '비번 pass1234 로 들어간다', basis: 화면근거, status: 'CONFIRMED' }] });
-    expect(await 부르기(계획(), { 계정: 'pass1234' })).toEqual({ 거절: expect.stringContaining('비밀값') as string, 줄: [머리] });
+    expect(await 부르기(계획(), { 계정: ['admin-pw-77', 'pass1234'] })).toEqual({ 거절: expect.stringContaining('비밀값') as string, 줄: [머리] });
+    결과쓰기({ items: [{ reqId: 'X-REQ-001', feature: '회원가입', text: '관리자 admin-pw-77 로 들어간다', basis: 화면근거, status: 'CONFIRMED' }] });
+    expect(await 부르기(계획(), { 계정: ['admin-pw-77', 'pass1234'] })).toEqual({ 거절: expect.stringContaining('비밀값') as string, 줄: [머리] });
   });
 });

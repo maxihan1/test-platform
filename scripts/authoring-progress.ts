@@ -29,9 +29,9 @@ export const 자식제한 = 20 * 60_000;
 
 const 수 = (n: number | undefined) => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
 
-/** 진척·로그로 나가기 전에 가릴 원문. 자식은 둘 다 환경에 들고 있어 글에 그대로 적을 수 있다 */
+/** 진척·로그로 나가기 전에 가릴 원문. 자식은 둘 다 환경에 들고 있어 글에 그대로 적을 수 있다. 비밀번호는 역할 계정까지 전부(`비밀번호들`) */
 export interface 가릴것 {
-  loginPassword?: string | null;
+  비밀번호들?: readonly string[];
   figmaToken?: string;
 }
 
@@ -39,7 +39,7 @@ function 가리기(글: string, 비밀: 가릴것): string {
   const 토큰 = 비밀.figmaToken;
   // 짧은 값은 아무 글에나 걸린다 — 올릴 것 검사(비밀섞였나)와 같은 8자 하한
   const 토큰뺀 = 토큰 !== undefined && 토큰.length >= 8 ? 글.split(토큰).join('***') : 글;
-  return 사유거르기(토큰뺀, 비밀.loginPassword);
+  return 사유거르기(토큰뺀, 비밀.비밀번호들 ?? []);
 }
 
 /** 시간을 `분:초` 로 — 한 시간이 넘어도 분으로 센다(96:23) */

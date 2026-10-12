@@ -17,7 +17,7 @@ const utf8 = new TextDecoder('utf-8', { fatal: true });
  * 파일 하나를 가려 다시 쓴다. 에이전트는 root 라 앞 자식이 남긴 것을 조심한다 —
  * 링크 · 하드링크 · 울타리 밖 실제 경로는 건너뛴다(`모양보기`·`파일거부사유` 와 같은 관례). UTF-8 이 아니면 부수지 않게 건너뛴다
  */
-function 파일가리기(자리: string, 울타리: string, 비밀: string): number {
+function 파일가리기(자리: string, 울타리: string, 비밀: readonly string[]): number {
   const 것 = lstatSync(자리, { throwIfNoEntry: false });
   if (것 === undefined || !것.isFile() || 것.nlink !== 1 || 것.size > 파일상한) return 0;
   if (!realpathSync(자리).startsWith(울타리 + sep)) return 0;
@@ -36,7 +36,7 @@ function 파일가리기(자리: string, 울타리: string, 비밀: string): num
 }
 
 /** 폴더를 걸으며 가린다. 폴더 링크는 따라가지 않는다 — 앞 자식이 남긴 링크가 울타리 밖을 가리킬 수 있다 */
-function 폴더가리기(자리: string, 울타리: string, 비밀: string): number {
+function 폴더가리기(자리: string, 울타리: string, 비밀: readonly string[]): number {
   const 것 = lstatSync(자리, { throwIfNoEntry: false });
   if (것 === undefined || 것.isSymbolicLink()) return 0;
   if (!것.isDirectory()) return 파일가리기(자리, 울타리, 비밀);
@@ -44,7 +44,7 @@ function 폴더가리기(자리: string, 울타리: string, 비밀: string): num
 }
 
 /**
- * 역방향이면 자식을 띄우기 전에 부른다 — 글자로 바꾼 워드 사본을 지우고, 자료 폴더 전체와 트리에서 앞 실행이 바꾼
+ * 비밀번호를 받은 요청(대조 · 반영)이면 자식을 띄우기 전에 부른다 — 글자로 바꾼 워드 사본을 지우고, 자료 폴더 전체와 트리에서 앞 실행이 바꾼
  * 케이스 · 요구사항 표, 본문에서 비밀번호를 가린다. 이어받은 실행이면 앞 실행이 남긴 파일도 여기서 가려진다 (2026-09-29 사용자 게이트 1).
  * 로그에는 값 없이 수만 찍는다. 못 가리면 `사유` — 부르는 쪽이 자식을 띄우지 않고 FAILED 로 닫는다(가리지 않은 채 띄우지 않는다)
  */
@@ -53,9 +53,10 @@ export function 먼저가리기(
   계획: 읽을자료[],
   자리: 사본,
   본문: string | null,
-  비밀: string | null | undefined,
+  /** 가릴 비밀번호 전부 — `비밀번호들`(일반 회원 · 역할 계정). 비었으면 아무것도 안 한다 */
+  비밀: readonly string[],
 ): { 본문: string | null } | { 사유: string } {
-  if (!비밀) return { 본문 };
+  if (비밀.length === 0) return { 본문 };
   try {
     return { 본문: 가리기(번호, 계획, 자리, 본문, 비밀) };
   } catch (err) {
@@ -64,7 +65,7 @@ export function 먼저가리기(
   }
 }
 
-function 가리기(번호: number, 계획: 읽을자료[], 자리: 사본, 본문: string | null, 비밀: string): string | null {
+function 가리기(번호: number, 계획: 읽을자료[], 자리: 사본, 본문: string | null, 비밀: readonly string[]): string | null {
   for (const 원본 of 지울원본(계획)) rmSync(원본, { force: true });
   let 수 = 폴더가리기(자리.자료, realpathSync(자리.자료), 비밀);
   // 트리는 앞 실행이 바꾼 것만 — 커밋된 파일을 다시 쓰면 PR 에 관계없는 수정이 섞인다 (2026-09-29 검사)

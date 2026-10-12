@@ -150,6 +150,8 @@ export function 반영절(입력: 반영입력, 서버들: readonly { env: strin
       `화면이 맞음: 실행 RUN ${String(화면.runId)} 에서 실패한 ${화면.tcId} 를 사람이 「화면이 맞음」으로 판정했다 — 대상 서버 ${화면.env} 에서 다시 돌려 보고 번호 ${화면.번호들.map((x) => x.번호).join(' · ') || '없음'} 가운데 화면과 어긋난 요구만 고친다(apply.json 의 화면이맞음). 결과 파일: ${join(자료폴더, 'out', 'prd.json')} · 원장 다시 만들기: \`npm run prd:ledger -- ${자료폴더}\``,
       ...(서버들.some((s) => s.env === 화면.env) ? [] : [`⚠️ 위 대상 서버 목록에 ${화면.env} 가 없다 — 서비스 설정에서 그 줄이 빠졌다. 다시 돌려 볼 수 없으니 요구는 고치지 말고 결과 요약에 그 사실을 적어라.`]),
     ]),
+    // 반영 · 화면이 맞음도 관문 3 의 로그인이 돌게 계정을 받는다 — 값은 환경 변수로만 (§3.6 「★ 역할별 계정」)
+    '계정(운영 아닌 대상 서버 줄마다 일반 회원과 역할 계정)은 환경 변수 PLATFORM_ACCOUNTS(JSON)에 있다. playwright 를 PLATFORM_BASE_URL=<그 줄 주소> 로 돌리면 kit 이 비밀값 칸을 채운다 — PLATFORM_PARAMS 를 손으로 만들지 말고 값을 출력 · 인자 · 파일에 쓰지 마라.',
     '`.claude/skills/tpx-author/references/apply.md` 를 먼저 읽고 따라라. 맡은 번호가 아닌 표 줄과 케이스는 손대지 마라.',
   ];
 }
