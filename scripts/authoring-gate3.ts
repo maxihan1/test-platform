@@ -110,7 +110,7 @@ interface 묶음글 {
   suites?: 묶음글[];
 }
 interface 결과글 {
-  config?: { workers?: unknown };
+  config?: { workers?: unknown; metadata?: { slowApi?: unknown } };
   stats?: { startTime?: unknown };
   suites?: 묶음글[];
 }
@@ -124,7 +124,7 @@ interface 결과글 {
  *   그 파일과 그것이 쓰는 Page Object 의 가장 늦은 수정 시각. `specs[].file` 은 kit 런타임 파일이라 쓰지 않는다(2026-10-03 실측)
  *
  * **파일마다 그 파일이 든 가장 늦게 시작한 결과로 본다** — 고친 파일만 뒤에 다시 돌리는 절차(SKILL 관문 3)를 그대로 받아들이려고.
- * 그 결과에서 데스크톱 3회 · 실패 0 · 고친 뒤에 시작했는지를 본다. 케이스 하나 = 테스트 하나(`catalog/rules.ts`) · 보류의 skipped 도 센다.
+ * 그 결과에서 데스크톱 3회 · 실패 0 · 고친 뒤에 시작했는지 · 느린 망(`PLATFORM_SLOW_API=1` — `playwright.config.ts` 의 metadata)으로 돌았는지를 본다. 케이스 하나 = 테스트 하나(`catalog/rules.ts`) · 보류의 skipped 도 센다.
  * 결과 파일은 자식이 쓴다 — 고의로 꾸미면 못 잡는다. 품질 사고를 막는 장치이지 보안 장치가 아니다.
  */
 export function 끝전체3회경고(결과들: string[], 케이스수정: Record<string, number>): string | null {
@@ -144,9 +144,10 @@ export function 끝전체3회경고(결과들: string[], 케이스수정: Record
   if (동시 !== undefined) 까닭들.push(`동시 ${String(동시)}개로 돌렸다`);
 
   // 파일 → 결과마다 (시작 시각, 데스크톱 상태들). 하위 묶음(describe)은 위 파일 이름을 물려받는다
-  const 파일결과 = new Map<string, { 시작: number; 상태들: unknown[] }[]>();
+  const 파일결과 = new Map<string, { 시작: number; 느림: boolean; 상태들: unknown[] }[]>();
   읽은것.forEach((r) => {
     const 시작 = Date.parse(String(r.stats?.startTime));
+    const 느림 = r.config?.metadata?.slowApi === true;
     const 모으기 = (묶음: 묶음글, 파일: string, 상태들: unknown[]) => {
       for (const spec of 묶음.specs ?? []) for (const t of spec.tests ?? []) if (t.projectName === 'desktop') 상태들.push(t.status);
       for (const 안 of 묶음.suites ?? []) 모으기(안, 파일, 상태들);
@@ -155,7 +156,7 @@ export function 끝전체3회경고(결과들: string[], 케이스수정: Record
       if (typeof 묶음.file !== 'string') continue;
       const 상태들: unknown[] = [];
       모으기(묶음, 묶음.file, 상태들);
-      if (상태들.length > 0) 파일결과.set(묶음.file, [...(파일결과.get(묶음.file) ?? []), { 시작, 상태들 }]);
+      if (상태들.length > 0) 파일결과.set(묶음.file, [...(파일결과.get(묶음.file) ?? []), { 시작, 느림, 상태들 }]);
     }
   });
 
@@ -163,6 +164,7 @@ export function 끝전체3회경고(결과들: string[], 케이스수정: Record
   let 어긋난 = 0;
   let 실패 = 0;
   let 낡은 = 0;
+  let 빠른 = 0;
   for (const [파일, 수정] of Object.entries(케이스수정)) {
     const 후보 = 파일결과.get(파일);
     if (후보 === undefined) {
@@ -173,11 +175,13 @@ export function 끝전체3회경고(결과들: string[], 케이스수정: Record
     if (마지막.상태들.length !== 3) 어긋난 += 1;
     실패 += 마지막.상태들.filter((s) => s === 'unexpected').length;
     if (!Number.isFinite(마지막.시작) || 마지막.시작 < 수정) 낡은 += 1;
+    if (!마지막.느림) 빠른 += 1;
   }
   if (빠진 > 0) 까닭들.push(`빠진 파일 ${빠진}개`);
   if (어긋난 > 0) 까닭들.push(`3회가 아닌 파일 ${어긋난}개`);
   if (실패 > 0) 까닭들.push(`실패 ${실패}회`);
   if (낡은 > 0) 까닭들.push(`마지막 실행 뒤에 고친 파일 ${낡은}개`);
+  if (빠른 > 0) 까닭들.push(`느린 망 없이 돈 파일 ${빠른}개`);
 
   return 까닭들.length === 0 ? null : 경고(까닭들.join(' · '));
 }

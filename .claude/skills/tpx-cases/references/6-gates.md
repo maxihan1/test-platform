@@ -74,10 +74,11 @@ R7 이 준비 스텝을, **R14 가 그 안의 판정을**, **R16 이 그것을 �
 > 「결과 FAIL」과 「전제 실행 중단」으로 갈려 읽는 사람이 헷갈린다 — 그때는 `결과` 쪽을 고친다
 
 ```bash
-npx playwright test tests/<폴더> --project=desktop --repeat-each=3 --reporter=line > /tmp/pw.log 2>&1; echo "EXIT=$?"
+PLATFORM_SLOW_API=1 npx playwright test tests/<폴더> --project=desktop --repeat-each=3 --reporter=line > /tmp/pw.log 2>&1; echo "EXIT=$?"
 ```
 
 **관문 3 — 3회 연속 초록.** 2/3 면 초록이 아니라 **불안정**이고 대개 대기 누락이다.
+**느린 망으로 돈다** (2026-10-13 PRD-F9-35) — `PLATFORM_SLOW_API=1` 이면 kit 이 화면이 부르는 API 응답을 0.1~1.5초씩 늦춘다(케이스의 모킹 응답은 그대로). 데모는 응답이 빨라 기다림이 빠져도 초록이라, 여기서 빨개지면 `5-stable.md` 대로 기다림을 고친다.
 `mobile` 을 선언한 케이스가 있으면 `--project=mobile` 도 한 번 더.
 **작성 에이전트가 팬아웃했으면 분담이 다르다** — `tpx-author` `references/fanout.md` §5(서브에이전트가 자기 파일 3회 · 자식은 끝의 3회(이번 작성이 닿은 케이스) 한 번 · 2026-10-03 · 2026-10-13). 사람 세션은 이 절 그대로다.
 **held 케이스는 kit 이 건너뛴다** — 요약 줄에 `N skipped` 로 잡히고 관문을 막지 않는다. 값이 들어간 뒤 3회 실행은 반영 때 에이전트가 한다.

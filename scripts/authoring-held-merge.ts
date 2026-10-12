@@ -117,6 +117,8 @@ function 관문환경(자리: 사본, 자식: 계정 | null, 준비: 반영준�
     TMPDIR: 자식 === null ? (p.TMPDIR ?? '/tmp') : 자리.임시,
     ...(p.PLAYWRIGHT_BROWSERS_PATH ? { PLAYWRIGHT_BROWSERS_PATH: p.PLAYWRIGHT_BROWSERS_PATH } : {}),
     ...(t === undefined ? {} : { ...대상환경(t), ...실행입력(t, 준비.것.accounts) }),
+    // 3회 실행은 화면의 API 응답을 늦춘 채 돈다 — 기다림이 빠진 케이스를 병합 전에 잡는다 (§3.6 「느린 망」 · PRD-F9-35)
+    PLATFORM_SLOW_API: '1',
   };
 }
 

@@ -92,9 +92,9 @@
 >
 > **관문** — 파이프로 넘기지 않는다.
 > `npm run typecheck > <자리>/tc-<묶음>.log 2>&1; echo "EXIT=$?"` · `npm run check:tests > <자리>/ct-<묶음>.log 2>&1; echo "EXIT=$?"`
-> `PLATFORM_ARTIFACTS_DIR=<자리>/pw-<묶음> PLAYWRIGHT_JSON_OUTPUT_FILE=<자리>/gate3-<묶음>.json npx playwright test <맡은 파일들> --project=desktop --repeat-each=3 --reporter=line,json > <자리>/pw-<묶음>.log 2>&1; echo "EXIT=$?"`
-> 환경 변수 둘은 한 줄 안에 그대로 둔다 — 따로 치면 결과 파일이 안 생긴다. 자식이 그 파일로 숫자를 센다. 마지막 3회는 **고칠 것이 다 끝난 판으로** 돈다
-> (사람 세션은 이 줄에서 `PLAYWRIGHT_JSON_OUTPUT_FILE=…` · `--repeat-each=3` · `,json` 을 빼고 1회 돈다 — 맨 위 「단 §5」)
+> `PLATFORM_SLOW_API=1 PLATFORM_ARTIFACTS_DIR=<자리>/pw-<묶음> PLAYWRIGHT_JSON_OUTPUT_FILE=<자리>/gate3-<묶음>.json npx playwright test <맡은 파일들> --project=desktop --repeat-each=3 --reporter=line,json > <자리>/pw-<묶음>.log 2>&1; echo "EXIT=$?"`
+> 환경 변수 셋은 한 줄 안에 그대로 둔다 — 따로 치면 결과 파일이 안 생기고 느린 망(화면의 API 응답을 0.1~1.5초 늦춤)이 안 걸린다. 자식이 그 파일로 숫자를 센다. 마지막 3회는 **고칠 것이 다 끝난 판으로** 돈다
+> (사람 세션은 이 줄에서 `PLATFORM_SLOW_API=1` · `PLAYWRIGHT_JSON_OUTPUT_FILE=…` · `--repeat-each=3` · `,json` 을 빼고 1회 돈다 — 맨 위 「단 §5」)
 >
 > **돌려줄 것**(짧게) — 만든 파일 · 관문 결과(`EXIT` 와 요약 줄 · 결과 파일 경로) · 3회에서 빨간 케이스와 첫 실패 문장(held 를 달지 않는다) · held 로 둔 케이스와 사유 · 표에서 고칠 것 · 막힌 것 ·
 > **필요한 도우미**(draft 에 만든 것 — `이름 · 하는 일 · 쓰는 tcId`) ·

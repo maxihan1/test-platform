@@ -17,6 +17,7 @@ import { recordHttpTrace } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
 import { STEP_ATTACHMENT } from './protocol.js';
 import { registerScenarioCase, type ScenarioCaseRunner } from './scenario.js';
+import { 느린망 } from './slowApi.js';
 import { step, StopTest } from './step.js';
 
 // 브라우저 케이스에는 page, android 앱 케이스에는 driver 만 있다. 없는 쪽을 꺼내면 던진다
@@ -250,6 +251,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
 
   base(spec.name, async ({ page, request }, testInfo) => {
     const inputs = prepare(testInfo);
+    await 느린망(page);
     await execute(testInfo, request, { page }, (seq) => capture(page, seq), inputs);
   });
 }
