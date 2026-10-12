@@ -53,6 +53,8 @@ export const 고치기말: Record<string, string> = {
   '검사하는 중': 'Checking',
   '케이스를 고쳐 PR 로 올리는 중입니다. 이 페이지를 닫아도 됩니다.': 'Changing the cases and opening a PR. You can close this page.',
   '테스트가 반영됐습니다. 케이스 목록에서 바뀐 것을 볼 수 있습니다.': 'The tests were merged. The changes are in the case list.',
+  '테스트가 반영됐습니다. 서버가 main 을 아직 못 받아 왔습니다. 받아 온 뒤 케이스 목록에서 「다시 스캔」을 누르면 바뀐 것이 보입니다.':
+    'The tests were merged, but the server has not pulled main yet. Pull it, then press “Rescan” on the case list to see the changes.',
   '고친 테스트 코드 검토': 'Review the changed test code',
   '초안 PR로 올라갔습니다. 바뀐 줄을 읽어 보고 이상하면 폐기하세요.': 'A draft PR is open. Read the changed lines and discard it if something is wrong.',
   '고친 테스트 코드 보기 (PR)': 'View the changed test code (PR)',
