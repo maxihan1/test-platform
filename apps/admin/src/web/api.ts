@@ -67,6 +67,8 @@ export interface CaseScreen {
   /** `tests/<폴더>/pages/<이름>.page.ts` 또는 `components/<이름>.component.ts` */
   file: string;
   url: string | null;
+  /** 화면 파일 클래스 이름(`게시판목록화면`). 못 읽었으면 null (PRD-F9-18) */
+  name?: string | null;
 }
 
 /** 목록이 접는 자리 하나. 쪽이 아니라 조건에 맞은 전부의 번호를 든다 — 묶음 머리 건수가 쪽마다 안 바뀌게 */
@@ -74,7 +76,10 @@ export interface CaseGroup {
   feature: string | null;
   screen: string | null;
   screenUrl: string | null;
+  /** 화면 · 화면 조각 파일의 클래스 이름 — 없으면 null (PRD-F9-18) */
+  screenName?: string | null;
   part: string | null;
+  partName?: string | null;
   tcIds: string[];
 }
 

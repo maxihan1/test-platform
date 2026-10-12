@@ -11,8 +11,11 @@ export interface 묶음머리 {
   열쇠: string;
   /** 1단은 기능 묶음 이름(없으면 null), 2 · 3단은 화면 파일 경로 */
   값: string | null;
-  /** 그 묶음 화면의 주소(2 · 3단) — 없으면 파일 이름을 보인다 */
+  /** 그 묶음 화면의 주소(2 · 3단) — 이름이 없으면 이것, 이것도 없으면 파일 이름을 보인다 */
   주소: string | null;
+  /** 그 묶음 화면 · 화면 조각 파일의 클래스 이름(2 · 3단) — 있으면 주소 · 파일 이름 대신 보인다 (PRD-F9-18) */
+  화면이름: string | null;
+  조각이름: string | null;
   tcIds: string[];
   /** 이 묶음의 앞 케이스가 앞 쪽에 있다 */
   이어짐: boolean;
@@ -92,6 +95,8 @@ export function 줄과머리(
       열쇠: 키,
       값,
       주소: 단 === 1 ? null : g.screenUrl,
+      화면이름: 단 === 1 ? null : (g.screenName ?? null),
+      조각이름: 단 === 3 ? (g.partName ?? null) : null,
       tcIds: ids,
       이어짐: ids[0] !== undefined && !이쪽번호.has(ids[0]),
       조건,

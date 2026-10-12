@@ -23,12 +23,12 @@ const 표 = 맥락짓기({
     { reqId: 'XCL-REQ-001', tcId: 'XCL-FN-005', axis: '정상' },
   ],
   screens: [
-    { tcId: 'XCL-FN-003', file: 조각('terms'), url: null },
-    { tcId: 'XCL-FN-003', file: 화면('signup'), url: '/signup' },
-    { tcId: 'XCL-FN-005', file: 화면('signup'), url: '/signup' },
-    { tcId: 'XCL-FN-001', file: 화면('signup'), url: '/signup' },
-    { tcId: 'XCL-FN-001', file: 화면('login'), url: '/login' },
-    { tcId: 'XCL-FN-006', file: 화면('orders'), url: null },
+    { tcId: 'XCL-FN-003', file: 조각('terms'), url: null, name: '약관동의' },
+    { tcId: 'XCL-FN-003', file: 화면('signup'), url: '/signup', name: '회원가입화면' },
+    { tcId: 'XCL-FN-005', file: 화면('signup'), url: '/signup', name: '회원가입화면' },
+    { tcId: 'XCL-FN-001', file: 화면('signup'), url: '/signup', name: '회원가입화면' },
+    { tcId: 'XCL-FN-001', file: 화면('login'), url: '/login', name: '로그인화면' },
+    { tcId: 'XCL-FN-006', file: 화면('orders'), url: null, name: null },
   ],
 });
 
@@ -46,8 +46,8 @@ describe('맥락짓기', () => {
 
   it('화면은 파일 이름 차례로 다 싣고 · 지도에 없는 케이스는 빈 맥락이다', () => {
     expect(맥락(표, 'XCL-FN-001').screens).toEqual([
-      { file: 화면('login'), url: '/login' },
-      { file: 화면('signup'), url: '/signup' },
+      { file: 화면('login'), url: '/login', name: '로그인화면' },
+      { file: 화면('signup'), url: '/signup', name: '회원가입화면' },
     ]);
     expect(맥락(표, 'XCL-FN-099')).toEqual({ feature: null, reqs: [], screens: [] });
   });
@@ -64,12 +64,12 @@ describe('줄세우기', () => {
 
   it('같은 자리끼리 한 묶음 — 여러 화면이면 파일 이름이 앞선 화면에 · 쪽이 아니라 받은 전부를 묶는다', () => {
     expect(줄세우기(전부, 표).groups).toEqual([
-      { feature: '회원가입', screen: 화면('signup'), screenUrl: '/signup', part: null, tcIds: ['XCL-FN-005'] },
-      { feature: '회원가입', screen: 화면('signup'), screenUrl: '/signup', part: 조각('terms'), tcIds: ['XCL-FN-003'] },
-      { feature: '로그인', screen: null, screenUrl: null, part: null, tcIds: ['XCL-FN-002'] },
-      { feature: '로그인', screen: 화면('login'), screenUrl: '/login', part: null, tcIds: ['XCL-FN-001'] },
-      { feature: null, screen: null, screenUrl: null, part: null, tcIds: ['XCL-FN-004', 'XCL-FN-099'] },
-      { feature: null, screen: 화면('orders'), screenUrl: null, part: null, tcIds: ['XCL-FN-006'] },
+      { feature: '회원가입', screen: 화면('signup'), screenUrl: '/signup', screenName: '회원가입화면', part: null, partName: null, tcIds: ['XCL-FN-005'] },
+      { feature: '회원가입', screen: 화면('signup'), screenUrl: '/signup', screenName: '회원가입화면', part: 조각('terms'), partName: '약관동의', tcIds: ['XCL-FN-003'] },
+      { feature: '로그인', screen: null, screenUrl: null, screenName: null, part: null, partName: null, tcIds: ['XCL-FN-002'] },
+      { feature: '로그인', screen: 화면('login'), screenUrl: '/login', screenName: '로그인화면', part: null, partName: null, tcIds: ['XCL-FN-001'] },
+      { feature: null, screen: null, screenUrl: null, screenName: null, part: null, partName: null, tcIds: ['XCL-FN-004', 'XCL-FN-099'] },
+      { feature: null, screen: 화면('orders'), screenUrl: null, screenName: null, part: null, partName: null, tcIds: ['XCL-FN-006'] },
     ]);
   });
 
@@ -81,8 +81,8 @@ describe('줄세우기', () => {
         { reqId: 'XCL-REQ-001', tcId: 'XCL-FN-011', axis: '정상' },
       ],
       screens: [
-        { tcId: 'XCL-FN-010', file: 화면('signup-done'), url: '/signup/done' },
-        { tcId: 'XCL-FN-011', file: 화면('signup'), url: '/signup' },
+        { tcId: 'XCL-FN-010', file: 화면('signup-done'), url: '/signup/done', name: null },
+        { tcId: 'XCL-FN-011', file: 화면('signup'), url: '/signup', name: null },
       ],
     });
     expect(줄세우기(['XCL-FN-010', 'XCL-FN-011'], 둘).차례).toEqual(['XCL-FN-011', 'XCL-FN-010']);
