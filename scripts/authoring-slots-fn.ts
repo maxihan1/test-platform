@@ -4,18 +4,21 @@
 export interface 원장자리 {
   번호: string;
   설계?: { 경계: readonly unknown[]; 예외: readonly unknown[] };
+  확인필요?: true;
 }
 
 export type 기능축 = '정상' | '경계' | '예외';
 
 /**
- * 세 칸씩 잡아 세 자리 안이면 (i−1)×3 + 축이다(i 는 같은 번호가 두 번 나와도 첫 자리).
+ * 세 칸씩 잡아 세 자리 안이면 (i−1)×3 + 축이다(i 는 같은 번호가 두 번 나와도 첫 자리). 어느 쪽인지는 칸재료가 원장 사본을 처음 만들 때 정한다(`셋씩`).
  * 넘으면 정상 하나 + 설계 목록에 있는 경계 · 예외만 잡는다. 칸 차례로 매기면 칸 하나만 달라도 뒤 번호가 다 밀린다(R1 ↔ R2 같은 번호 같은 요구 169 중 2 · PRD-F9-11).
  * 원장 뒤에 항목이 붙어도 앞 요구의 자리는 그대로다. 앞 요구의 설계가 바뀌면 뒤 자리가 밀리지만 이미 쓴 케이스는 물려받기로 번호를 지킨다
  */
-export function 기능자리들(원장: readonly 원장자리[]): { 자리: Map<string, Partial<Record<기능축, number>>>; 끝: number } {
+export function 기능자리들(
+  원장: readonly 원장자리[],
+  셋씩 = 원장.length * 3 <= 999,
+): { 자리: Map<string, Partial<Record<기능축, number>>>; 끝: number } {
   const 자리 = new Map<string, Partial<Record<기능축, number>>>();
-  const 셋씩 = 원장.length * 3 <= 999;
   let 끝 = 0;
   원장.forEach((h, i) => {
     if (자리.has(h.번호)) return;
