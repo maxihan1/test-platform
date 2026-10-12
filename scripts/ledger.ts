@@ -110,7 +110,7 @@ if (명령 === '뽑기') {
   }
   const 표글 = readFileSync(표파일, 'utf8');
   const 앞줄 = 요구줄들(표글);
-  const 칸 = 칸번호(읽은.원장.항목.map((h) => h.번호), 앞줄, 읽은.칸재료);
+  const 칸 = 칸번호(읽은.원장.항목, 앞줄, 읽은.칸재료);
   const 새글 = 표번호채우기(표글, 칸.기대);
   if (새글 !== 표글) writeFileSync(표파일, 새글);
   const 바뀜 = 앞줄.filter((줄) => 칸.기대.has(줄.차례) && 칸.기대.get(줄.차례) !== 줄.tcId).length;

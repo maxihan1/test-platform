@@ -202,7 +202,7 @@ export function 원장대조(
   let 칸알림: string[] = [];
   if (선택.에이전트 && 선택.칸재료 != null) {
     const 줄들 = 요구줄들(표글);
-    const 칸 = 칸번호(원장.map((h) => h.번호), 줄들, 선택.칸재료);
+    const 칸 = 칸번호(원장, 줄들, 선택.칸재료);
     칸어긋남.push(...칸.어긋남);
     for (const 줄 of 줄들) {
       const 기대 = 칸.기대.get(줄.차례);

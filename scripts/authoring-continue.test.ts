@@ -167,7 +167,7 @@ describe('기준결정만들기 — 기준 표의 「제거함」 번호는 쓰�
     const 기준 = 기준결정만들기({ 표글: 기준표, 있는케이스: new Set(), 접두사: 'X' }, ['REQ-A-1', 'REQ-A-2', 'REQ-A-3']);
     expect(기준.칸재료?.쓰인).toEqual(['X-FN-004']);
     if (기준.칸재료 === null) return;
-    const r = 칸번호(['REQ-A-1', 'REQ-A-2', 'REQ-A-3'], [{ 차례: 0, 출처: 'a REQ-A-2', 축: '정상', tcId: '' }], 기준.칸재료);
+    const r = 칸번호([{ 번호: 'REQ-A-1' }, { 번호: 'REQ-A-2' }, { 번호: 'REQ-A-3' }], [{ 차례: 0, 출처: 'a REQ-A-2', 축: '정상', tcId: '' }], 기준.칸재료);
     expect(r.기대.get(0)).toBe('X-FN-010');
   });
 });

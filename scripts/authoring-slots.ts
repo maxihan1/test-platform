@@ -67,7 +67,6 @@ function 오류추정항목(출처: string): string {
 export function 줄상태(출처: string): 상태 {
   return 상태표시.find(([식]) => 식.test(출처))?.[1] ?? '정식';
 }
-const 기능축차례: Record<축, number> = { UI: 0, 정상: 1, 경계: 2, 예외: 3 };
 
 // 문단 모드 번호는 글 속 자리일 뿐이라 개정판에서 엉뚱한 문단이 물려받는다 — 번호 모드 요구만 물려받는다
 const 문단번호 = /^P\d*-\d+$/;
@@ -138,6 +137,11 @@ function 덩이로묶기(줄들: 표줄[], 원장번호들: string[], 어긋남:
     const 요구 = 앞?.요구 ?? 번호들[0] ?? `#${줄.차례}`;
     const 갈래: 갈래 = 축 === 'UI' ? 'UI' : 'FN';
     const 상태 = 줄상태(줄.출처);
+    // 정식 줄에 요구가 둘이면 AI 가 케이스를 묶은 것이다 — R1 이 543줄 중 355줄에 앞 요구 번호를 붙여 케이스가 176 · 482 로 갈렸다(PRD-F9-10).
+    // 미확정 · 오류 추정 줄은 요구와 그 줄이 덮는 확인 필요 항목을 같이 단다(wording.md 「출처 칸의 상태 표시」)
+    const 원장것 = [...new Set(번호들.filter((번호) => 원장차례.has(번호)))];
+    if (상태 === '정식' && 원장것.length > 1)
+      어긋남.push(`요구 줄 ${줄.차례 + 1} 출처에 요구 번호가 둘 이상이다(${원장것.join(' · ')}) — 정식 줄은 요구 하나만 적고 번호마다 줄을 나눈다`);
     const 항목 = 상태 === '오류추정' ? 오류추정항목(줄.출처) : '';
     const 칸열쇠 = `${요구}|${갈래}|${축}|${상태}${상태 === '오류추정' ? `:${항목}` : ''}`;
     const 칸 = 칸들.get(칸열쇠) ?? { 요구, 원장차례: 앞?.원장차례, 갈래, 축, 상태, 항목, 줄들: [] };
@@ -206,14 +210,43 @@ export function 칸재료만들기(
   };
 }
 
+/** 원장 항목 가운데 번호 매기기가 보는 것 — 설계(경계 · 예외 근거)는 요구 문장에서 코드가 뽑아 실행마다 같다 */
+export interface 원장자리 {
+  번호: string;
+  설계?: { 경계: readonly unknown[]; 예외: readonly unknown[] };
+}
+
+type 기능축 = Exclude<축, 'UI'>;
+
+/**
+ * 기능 고정 자리 — 원장 차례대로 요구마다 정상 · 경계 · 예외 자리. 세 칸씩 잡아 세 자리 안이면 (i−1)×3 + 축이고,
+ * 넘으면 정상 하나 + 설계 목록에 있는 경계 · 예외만 잡는다. 칸 차례로 매기면 칸 하나만 달라도 뒤 번호가 다 밀린다(R1 ↔ R2 같은 번호 같은 요구 169 중 2 · PRD-F9-11).
+ * 원장 뒤에 항목이 붙어도 앞 요구의 자리는 그대로다
+ */
+function 기능자리들(원장: readonly 원장자리[]): { 자리: Map<string, Partial<Record<기능축, number>>>; 끝: number } {
+  const 자리 = new Map<string, Partial<Record<기능축, number>>>();
+  const 셋씩 = 원장.length * 3 <= 999;
+  let 끝 = 0;
+  for (const h of 원장) {
+    if (자리.has(h.번호)) continue;
+    const 칸: Partial<Record<기능축, number>> = {};
+    for (const 축 of ['정상', '경계', '예외'] as const) {
+      if (셋씩 || 축 === '정상' || (h.설계?.[축].length ?? 0) > 0) 칸[축] = ++끝;
+    }
+    자리.set(h.번호, 칸);
+  }
+  return { 자리, 끝 };
+}
+
 /** 줄마다 가져야 할 tcId. 판정은 칸 차례로 해서 줄 배열 순서가 결과를 바꾸지 않는다 */
-export function 칸번호(원장번호들: string[], 줄들: 표줄[], 재료: 칸재료): 칸결과 {
+export function 칸번호(원장: readonly 원장자리[], 줄들: 표줄[], 재료: 칸재료): 칸결과 {
   const 어긋남: string[] = [];
   const 알림: string[] = [];
   const { 접두사 } = 재료;
-  const n = 원장번호들.length;
+  const n = 원장.length;
+  const 기능 = 기능자리들(원장);
   // 고정 범위 끝 — 이 번호까지는 원장 차례로 정해진 자리다. 세 자리를 넘으면 고정을 접고 칸 차례로 잇는다
-  const 끝: Record<갈래, number> = { UI: n, FN: 3 * n };
+  const 끝: Record<갈래, number> = { UI: n, FN: 기능.끝 };
   for (const 갈래 of ['UI', 'FN'] as const) {
     if (끝[갈래] <= 999) continue;
     끝[갈래] = 0;
@@ -222,7 +255,7 @@ export function 칸번호(원장번호들: string[], 줄들: 표줄[], 재료: �
   const 기준 = new Set(재료.기준줄);
   const 덩이들 = 덩이로묶기(
     줄들.filter((줄) => !제거한줄(줄) && !기준.has(기준줄열쇠(줄))),
-    원장번호들,
+    원장.map((h) => h.번호),
     어긋남,
   );
   // 옛 꼴 P-004 와 P-FN-004 는 한 번호 — 같은 숫자를 두 번 쓰면 실행 이력이 섞인다
@@ -248,9 +281,9 @@ export function 칸번호(원장번호들: string[], 줄들: 표줄[], 재료: �
   }
   for (const d of 덩이들) {
     if (번호.has(d) || d.상태 !== '정식' || d.번째 !== 0 || d.원장차례 === undefined || 끝[d.갈래] === 0) continue;
-    const i = d.원장차례;
-    const 고정 =
-      d.갈래 === 'UI' ? `${접두사}-UI-${세자리(i)}` : `${접두사}-FN-${세자리((i - 1) * 3 + 기능축차례[d.축])}`;
+    const 자리 = d.갈래 === 'UI' ? d.원장차례 : d.축 === 'UI' ? undefined : 기능.자리.get(d.요구)?.[d.축];
+    if (자리 === undefined) continue;
+    const 고정 = `${접두사}-${d.갈래}-${세자리(자리)}`;
     if (!잡힌.has(번호열쇠(고정))) 정하기(d, 고정);
   }
   // 지금 표에 이미 매긴 뒤 번호는 둔다 — 앞 차례에 칸이 생길 때마다 다시 매기면 이미 쓴 케이스 파일과 어긋난다
