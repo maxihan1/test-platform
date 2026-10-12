@@ -1,5 +1,6 @@
 import { defineCase, test, verify } from '@platform/kit';
 
+import { 머리글 } from './components/header.component.js';
 import { 새회원으로로그인, 탈퇴 } from './helpers/account.helper.js';
 import { 세션사용자 } from './helpers/shop-tools.helper.js';
 import { 방해막기 } from './helpers/quiet.helper.js';
@@ -38,6 +39,7 @@ test(spec, async ({ page }) => {
     await test.step('1:1 문의 화면을 연다', async () => {
       await 문의.열기();
       await 문의.제목.waitFor();
+      await new 머리글(page).그려질때까지();
       await verify('1:1 문의 내용 칸 아래에 「0/1000」이 보인다', [await 문의.글자수.innerText(), await 문의.글자수표시가아래인가()], ['0/1000', true]);
     });
   } finally {
