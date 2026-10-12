@@ -5,6 +5,7 @@
 import { TCID, tcId종류, 번호열쇠 } from '../apps/admin/src/catalog/rules.js';
 import { 번호열머리 } from './authoring-conflicts-apply.js';
 import { 번호찾기 } from './authoring-ledger.js';
+import { type 원장자리, 기능자리들 } from './authoring-slots-fn.js';
 
 /** 한 케이스(덩이)에 줄 몇 개까지 — R5 의 확인 10문장과 같은 값 */
 export const 칸줄상한 = 10;
@@ -208,34 +209,6 @@ export function 칸재료만들기(
     ...(Object.keys(옛칸).length > 0 ? { 옛칸 } : {}),
     쓰인: [...new Set(쓰인)].sort(),
   };
-}
-
-/** 원장 항목 가운데 번호 매기기가 보는 것 — 설계(경계 · 예외 근거)는 요구 문장에서 코드가 뽑아 실행마다 같다 */
-export interface 원장자리 {
-  번호: string;
-  설계?: { 경계: readonly unknown[]; 예외: readonly unknown[] };
-}
-
-type 기능축 = Exclude<축, 'UI'>;
-
-/**
- * 기능 고정 자리 — 원장 차례대로 요구마다 정상 · 경계 · 예외 자리. 세 칸씩 잡아 세 자리 안이면 (i−1)×3 + 축이고,
- * 넘으면 정상 하나 + 설계 목록에 있는 경계 · 예외만 잡는다. 칸 차례로 매기면 칸 하나만 달라도 뒤 번호가 다 밀린다(R1 ↔ R2 같은 번호 같은 요구 169 중 2 · PRD-F9-11).
- * 원장 뒤에 항목이 붙어도 앞 요구의 자리는 그대로다
- */
-function 기능자리들(원장: readonly 원장자리[]): { 자리: Map<string, Partial<Record<기능축, number>>>; 끝: number } {
-  const 자리 = new Map<string, Partial<Record<기능축, number>>>();
-  const 셋씩 = 원장.length * 3 <= 999;
-  let 끝 = 0;
-  for (const h of 원장) {
-    if (자리.has(h.번호)) continue;
-    const 칸: Partial<Record<기능축, number>> = {};
-    for (const 축 of ['정상', '경계', '예외'] as const) {
-      if (셋씩 || 축 === '정상' || (h.설계?.[축].length ?? 0) > 0) 칸[축] = ++끝;
-    }
-    자리.set(h.번호, 칸);
-  }
-  return { 자리, 끝 };
 }
 
 /** 줄마다 가져야 할 tcId. 판정은 칸 차례로 해서 줄 배열 순서가 결과를 바꾸지 않는다 */

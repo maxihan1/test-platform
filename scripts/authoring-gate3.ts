@@ -79,23 +79,26 @@ export function 끝검사(결과폴더: string, 트리: string, 폴더: string, 
  */
 export function 살필케이스(파일들: (파일글 & { 때: number })[], 바뀐: ReadonlySet<string>): Record<string, number> {
   const 표 = new Map(파일들.map((f) => [f.경로, f]));
-  const 메모 = new Map<string, Set<string>>();
-  const 닿음 = (경로: string, 본: Set<string>): Set<string> => {
-    const f = 표.get(경로);
-    if (f === undefined || 본.has(경로)) return new Set();
-    const 있던 = 메모.get(경로);
-    if (있던 !== undefined) return 있던;
-    본.add(경로);
-    const 가져옴 = [...f.글.matchAll(/from\s+['"](\.{1,2}\/[^'"]+)['"]/g)].map((m) => normalize(join(dirname(경로), m[1]!)).replace(/\.js$/, ''));
-    const 값 = new Set([경로, ...가져옴.flatMap((p) => [...닿음(p.endsWith('.ts') ? p : `${p}.ts`, 본)])]);
-    메모.set(경로, 값);
-    return 값;
+  // 케이스마다 새로 따라간다 — 나눠 쓰는 메모는 import 가 돌면 덜 찬 집합을 남긴다(code-review).
+  // 폴더 밖 파일(tests/<다른 폴더>)도 담는다 — 글을 못 읽어 그 너머는 못 따라가도 그 파일이 바뀌었으면 케이스를 본다
+  const 닿음 = (시작: string): string[] => {
+    const 본 = new Set<string>();
+    const 갈곳 = [시작];
+    for (let 경로 = 갈곳.pop(); 경로 !== undefined; 경로 = 갈곳.pop()) {
+      if (본.has(경로)) continue;
+      본.add(경로);
+      for (const m of 표.get(경로)?.글.matchAll(/from\s+['"](\.{1,2}\/[^'"]+)['"]/g) ?? []) {
+        const p = normalize(join(dirname(경로), m[1]!)).replace(/\.js$/, '');
+        갈곳.push(p.endsWith('.ts') ? p : `${p}.ts`);
+      }
+    }
+    return [...본];
   };
   return Object.fromEntries(
     파일들
       .filter((f) => f.경로.endsWith('.spec.ts'))
       .flatMap((f) => {
-        const 닿은 = [...닿음(f.경로, new Set())];
+        const 닿은 = 닿음(f.경로);
         return 닿은.some((p) => 바뀐.has(p)) ? [[f.경로, Math.max(...닿은.map((p) => 표.get(p)?.때 ?? 0))] as const] : [];
       }),
   );

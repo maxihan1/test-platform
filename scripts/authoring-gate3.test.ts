@@ -136,6 +136,22 @@ describe('살필케이스 — 이번 작성이 바꾼 케이스 · 부품에 닿
     expect(Object.keys(살필케이스(폴더, new Set(['mkt/components/header.component.ts'])))).toEqual(['mkt/MKT-FN-001.spec.ts', 'mkt/MKT-UI-003.spec.ts']);
   });
 
+  it('Page Object 끼리 서로 가져다 써도(돌아도) 케이스마다 끝까지 따라간다 · 폴더 밖 바뀐 도우미도 잡는다', () => {
+    const 돌기 = [
+      파일('mkt/MKT-FN-001.spec.ts', 1, './pages/b.page.js'),
+      파일('mkt/MKT-FN-002.spec.ts', 1, './pages/a.page.js'),
+      파일('mkt/pages/a.page.ts', 1, './b.page.js'),
+      파일('mkt/pages/b.page.ts', 1, './a.page.js', '../components/header.component.js'),
+      파일('mkt/components/header.component.ts', 7),
+      파일('mkt/MKT-FN-003.spec.ts', 1, '../shared/login.helper.js'),
+    ];
+    expect(살필케이스(돌기, new Set(['mkt/components/header.component.ts', 'shared/login.helper.ts']))).toEqual({
+      'mkt/MKT-FN-001.spec.ts': 7,
+      'mkt/MKT-FN-002.spec.ts': 7,
+      'mkt/MKT-FN-003.spec.ts': 1,
+    });
+  });
+
   it('첫 작성은 다 바뀐 것이라 폴더 전체 · 아무것도 안 바꿨으면 빈 목록', () => {
     expect(Object.keys(살필케이스(폴더, new Set(폴더.map((f) => f.경로))))).toHaveLength(3);
     expect(살필케이스(폴더, new Set(['MKT.md']))).toEqual({});
