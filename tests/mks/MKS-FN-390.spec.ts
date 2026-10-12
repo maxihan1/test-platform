@@ -2,13 +2,14 @@ import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
 
 import { 계정값, 로그인한아이디, 테스트계정으로로그인 } from './helpers/account.helper.js';
+import { 석달넘은주문번호 } from './helpers/order.helper.js';
 import { 방해막기 } from './helpers/quiet.helper.js';
 import { 내주문내역화면 } from './pages/my-orders.page.js';
 import { 경로 } from './helpers/view.helper.js';
 
 export const spec = defineCase({
   tcId: 'MKS-FN-390',
-  name: '「전체」를 누르면 3개월보다 오래된 주문 「DM20260614-0003」이 보인다',
+  name: '「전체」를 누르면 3개월보다 오래된 주문이 보인다',
   precondition: ['테스트 계정으로 로그인해 있다'],
   params: z.object({
     loginId: z.string().describe('회원 아이디').optional().meta({ secret: true }),
@@ -39,8 +40,9 @@ test(spec, async ({ page, params }) => {
   });
 
   await test.step('주문 내역에서 조회 기간 「전체」를 누른다', async () => {
+    const 오래된주문 = await 석달넘은주문번호(page.request);
     await 주문내역.기간버튼('전체').click();
-    await 주문내역.줄들.nth(2).waitFor();
-    await verify('「전체」를 누르면 3개월보다 오래된 주문 「DM20260614-0003」이 보인다', await 주문내역.주문줄('DM20260614-0003').isVisible(), true);
+    await 주문내역.표.or(주문내역.빈안내).waitFor();
+    await verify('「전체」를 누르면 3개월보다 오래된 주문이 보인다', await 주문내역.주문줄(오래된주문).isVisible(), true);
   });
 });
