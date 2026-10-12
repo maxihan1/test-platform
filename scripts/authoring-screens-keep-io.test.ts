@@ -39,9 +39,11 @@ afterEach(() => {
   rmSync(폴더, { recursive: true, force: true });
 });
 
-function 크롤쓰기(목록: object[], 요약: object = { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃'], 예외: false }) {
+// 본 화면(index.json 의 화면)은 크롤러가 목록을 추리기 전 전부다 — 따로 안 주면 목록 그대로
+function 크롤쓰기(목록: object[], 요약: object = { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃'], 예외: false }, 본: object[] = 목록) {
   writeFileSync(join(자료, 'crawl', 'list.json'), JSON.stringify(목록));
   writeFileSync(join(자료, 'crawl', 'summary.json'), JSON.stringify(요약));
+  writeFileSync(join(자료, 'crawl', 'index.json'), JSON.stringify({ 화면: 본, 걸러짐: [] }));
 }
 const 홈 = { 주소: 'https://s.test/', 이름: '홈', 상태: '로그아웃', 틀: '/', 지문: 'aaaaaaaaaaaa', 글자지문: 'bbbbbbbbbbbb' };
 const 로그인화면 = { 주소: 'https://s.test/login', 이름: '로그인', 상태: '로그아웃', 틀: '/login', 지문: 'cccccccccccc', 글자지문: 'dddddddddddd' };
@@ -110,6 +112,36 @@ describe('저장본올리기', () => {
     expect(await 저장본올리기(통로, 자료, [], 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 1장 · 다 봐서 로그아웃 못 본 화면 1장 지움' });
     expect(건것들.filter((x) => x.method === 'PUT').map((x) => (x.body as { url: string }).url)).toEqual(['/']);
     expect(건것들.at(-1)?.body).toEqual({ seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그아웃', url: '/login', name: '로그인' }], complete: ['로그아웃'] });
+  });
+
+  it('목록에서 빠진 화면도 크롤러가 본 것이면 본 것으로 넘긴다 — 로그인 상태로도 본 /login 의 로그아웃 기록이 안 지워진다 (PRD-F9-05)', async () => {
+    const 로그인쪽 = { ...로그인화면, 상태: '로그인' };
+    크롤쓰기([홈, 로그인쪽], { 멈춘까닭: null, 따라가기: true, 상태들: ['로그아웃', '로그인'], 예외: false }, [
+      홈,
+      로그인화면,
+      { ...홈, 상태: '로그인', 이름: '홈 (로그인)' },
+      로그인쪽,
+      { ...홈, 상태: '로그인', 틀: '/my', 이름: '로그인', 로그인풀림: true },
+    ]);
+    서버(다봄답());
+    await 저장본올리기(통로, 자료, [], 지금);
+    expect(건것들.at(-1)?.body).toEqual({
+      seen: [
+        { state: '로그아웃', url: '/', name: '홈' },
+        { state: '로그아웃', url: '/login', name: '로그인' },
+        { state: '로그인', url: '/', name: '홈 (로그인)' },
+        { state: '로그인', url: '/login', name: '로그인' },
+      ],
+      complete: ['로그아웃', '로그인'],
+    });
+  });
+
+  it('본 화면 목록(index.json)을 못 읽으면 목록만 넘기고 아무것도 안 지운다 (PRD-F9-05)', async () => {
+    크롤쓰기([홈]);
+    writeFileSync(join(자료, 'crawl', 'index.json'), '깨짐');
+    서버(다봄답());
+    expect(await 저장본올리기(통로, 자료, [], 지금)).toEqual({ 줄: '화면 기록 저장: 재사용 0장 · 새로 저장 0장 · 본 화면 목록(index.json)을 못 읽어 못 본 화면은 안 지움' });
+    expect(건것들.at(-1)?.body).toEqual({ seen: [{ state: '로그아웃', url: '/', name: '홈' }], complete: [] });
   });
 
   it('찾은 화면 이름(seen)은 500자로 자르고 · 이름이 없으면 빈 글이다 · 이름에 비밀번호가 있으면 하나도 안 올린다', async () => {

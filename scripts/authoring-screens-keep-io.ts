@@ -10,6 +10,7 @@ import { type 목록칸, type 상태, 날수, 받은저장본, 이번것들 } fr
 
 const 기록상한 = 200_000;
 const 목록상한 = 2_000_000;
+const 본목록상한 = 20_000_000; // index.json — 100장마다 입력칸 · 걸러진 링크까지 든다
 const 연결파일상한 = 20_000_000; // 100장 × 화면마다 연결 1,000개까지(크롤러가 자른다)
 
 /** 그 요청의 통로로 부른다 — 서버가 요청 번호로 서비스를 찾는다 */
@@ -68,6 +69,24 @@ function 연결읽기(크롤: string): { 연결들: Map<string, { toUrl: string;
   return { 연결들, 못읽음: 원문 === null && lstatSync(join(크롤, 'links.json'), { throwIfNoEntry: false }) !== undefined };
 }
 
+/**
+ * 크롤러가 목록을 추리기 전 본 화면 전부(`index.json` 의 `화면` — 상태 · 틀 · 이름). 로그인이 풀려 로그인 화면을 본 줄은 뺀다(목록과 같다).
+ * 없거나 못 읽으면 null — 그때는 무엇을 봤는지 몰라 지우지 않는다 (PRD-F9-05)
+ */
+function 본화면읽기(크롤: string): Pick<목록칸, '상태' | '틀' | '이름'>[] | null {
+  try {
+    const 값 = JSON.parse(안전히읽기(크롤, 'index.json', 본목록상한) ?? 'null') as { 화면?: unknown } | null;
+    if (!Array.isArray(값?.화면)) return null;
+    return (값.화면 as (Partial<목록칸> & { 로그인풀림?: unknown } | null)[]).flatMap((x) =>
+      (x?.상태 === '로그아웃' || x?.상태 === '로그인') && typeof x.틀 === 'string' && x.로그인풀림 !== true
+        ? [{ 상태: x.상태, 틀: x.틀, 이름: typeof x.이름 === 'string' ? x.이름 : '' }]
+        : [],
+    );
+  } catch {
+    return null;
+  }
+}
+
 /** 자료 폴더의 크롤 목록(list.json) 글. 없거나 링크 · 너무 크면 null */
 export function 크롤목록(자료: string): string | null {
   const 크롤 = join(자료, 'crawl');
@@ -107,7 +126,7 @@ export async function 저장본넣기(통로: 화면통로, 자료: string, 있�
 /**
  * 올릴 때 — 자료 폴더의 크롤 목록 · 화면 기록으로 이번에 본 화면만 서버에 올린다. 「같음」으로 재사용한 화면은 안 올린다(훑은 날을 그대로 둬야 30일 그물이 돈다).
  * 화면마다 크롤러가 남긴 화면 연결(`links.json`)을 같이 싣는다 — 재사용한 화면의 연결은 서버에 있던 것 그대로다 (PRD-F6-02).
- * 본 화면은 크롤 목록 전체다(대조는 AI 가 기획서 화면만 훑는다 — 나머지 기록이 지워지지 않게). 지우기는 크롤 「다 봄」일 때 실제로 돈 상태만.
+ * 본 화면은 크롤러가 목록을 추리기 전 본 화면 전체다(대조는 AI 가 기획서 화면만 훑는다 — 나머지 기록이 지워지지 않게 · PRD-F9-05). 지우기는 크롤 「다 봄」일 때 실제로 돈 상태만.
  * `list.json` 이 없으면(크롤러를 못 돌렸다) 아무것도 안 한다.
  * 올릴 기록에 테스트 계정 비밀번호가 있으면 하나도 안 올리고 거절 까닭을 돌려준다(§3.6 「남는 한계」). 그 밖에는 로그 한 줄이고 실패해도 작성은 간다
  */
@@ -135,12 +154,18 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
   const 같음키 = new Set(같은것.map((x) => `${x.상태} ${x.틀}`));
   const 이번 = 이번것들(목록, 기록들, 오늘).filter((x) => !같음키.has(x.키));
   const { 연결들, 못읽음 } = 연결읽기(크롤);
-  // 이름 · 틀 · 연결(버튼 · 링크 글자)도 서버에 남고 사람에게 보일 칸이다 — 본문과 같이 본다. 찾은 화면 이름(seen)은 목록 전체가 나간다
-  const 볼글 = [...목록.map((x) => x.이름 ?? ''), ...이번.flatMap((x) => [x.글, x.이름, x.틀, ...(연결들.get(x.키) ?? []).flatMap((l) => [l.toUrl, l.via])])];
+  // 본 화면은 목록을 추리기 전 전부다 — 목록만 보내면 두 상태에 다 있어 로그인 쪽만 남은 틀의 로그아웃 기록을 서버가 지운다 (PRD-F9-05)
+  const 본화면 = 본화면읽기(크롤);
+  const seen = [
+    ...new Map([...(본화면 ?? []), ...목록].map((x) => [`${x.상태} ${x.틀}`, { state: x.상태, url: x.틀, name: (x.이름 ?? '').slice(0, 500) }])).values(),
+  ];
+  // 이름 · 틀 · 연결(버튼 · 링크 글자)도 서버에 남고 사람에게 보일 칸이다 — 본문과 같이 본다. 찾은 화면 이름(seen)은 본 화면 전체가 나간다
+  const 볼글 = [...seen.map((x) => x.name), ...이번.flatMap((x) => [x.글, x.이름, x.틀, ...(연결들.get(x.키) ?? []).flatMap((l) => [l.toUrl, l.via])])];
   if (계정섞였나(볼글, 비밀)) return { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
   // 지우기는 크롤이 링크를 따라가 예외 없이 다 봤을 때, 실제로 돈 상태만 (검사 주의 1 — 상태 파일 없이 로그아웃만 돌면 로그인 기록은 남긴다)
   const 돈상태 = Array.isArray(요약.상태들) ? 요약.상태들.filter((x): x is 상태 => x === '로그아웃' || x === '로그인') : [];
-  const 지울상태 = 요약.멈춘까닭 === null && 요약.따라가기 === true && 요약.예외 !== true ? [...new Set(돈상태)] : [];
+  const 다봄 = 요약.멈춘까닭 === null && 요약.따라가기 === true && 요약.예외 !== true;
+  const 지울상태 = 다봄 && 본화면 !== null ? [...new Set(돈상태)] : [];
   const 길 = `/authoring/requests/${통로.번호}/screens`;
   try {
     // 재사용 수와 가장 오래된 날은 올리기 전 서버 저장본에서 센다 — 자식이 고칠 수 있는 kept/ 를 믿지 않는다
@@ -153,7 +178,6 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
       const body = { state: x.상태, url: x.틀, name: x.이름.slice(0, 500), textFp: x.글자지문, structFp: x.지문, record: x.글, crawledAt: 지금.toISOString(), links: 연결들.get(x.키) ?? [] };
       if ((await 부른다(통로.주소기지, 통로.토큰, 길, { method: 'PUT', body })).status !== 204) 못올림 += 1;
     }
-    const seen = 목록.map((x) => ({ state: x.상태, url: x.틀, name: (x.이름 ?? '').slice(0, 500) }));
     const 끝 = await 부른다(통로.주소기지, 통로.토큰, `${길}/done`, { method: 'POST', body: { seen, complete: 지울상태 } });
     const 지운수 = 끝.status === 200 ? (끝.몸 as { deleted?: unknown } | null)?.deleted : undefined;
     return {
@@ -161,6 +185,7 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
         `화면 기록 저장: 재사용 ${재사용.length}장${재사용.length > 0 ? `(가장 오래된 것 ${오래된}일)` : ''} · 새로 저장 ${이번.length - 못올림}장` +
         (못올림 > 0 ? ` · 못 올림 ${못올림}장` : '') +
         (못읽음 ? ' · 화면 연결 파일을 못 읽어 연결 없이 올림' : '') +
+        (다봄 && 본화면 === null ? ' · 본 화면 목록(index.json)을 못 읽어 못 본 화면은 안 지움' : '') +
         (지울상태.length === 0 ? '' : typeof 지운수 === 'number' ? ` · 다 봐서 ${지울상태.join(' · ')} 못 본 화면 ${지운수}장 지움` : ' · 못 본 화면 지우기 실패'),
     };
   } catch (e) {
