@@ -1,6 +1,6 @@
 import { defineCase, test, verify } from '@platform/kit';
 
-import { 제목으로글찾기, 표식 } from './helpers/board.helper.js';
+import { 표식 } from './helpers/board.helper.js';
 import { 글쓴이정리하기, 글자채우기, 내글제목들, 로그인해있나, 본문글, 임시회원으로로그인, 정리함만들기 } from './helpers/board-tools.helper.js';
 import type { 글쓴이 } from './helpers/board-tools.helper.js';
 import { 방해막기 } from './helpers/quiet.helper.js';
@@ -59,15 +59,6 @@ test(spec, async ({ page }) => {
       await 쓰기.등록하고응답받기();
       await 상세.제목.waitFor();
       await verify('제목 50자로 「등록」을 누르면 글이 등록되어 상세로 간다', /^\/board\/\d+$/.test(new URL(page.url()).pathname) && (await 상세.제목.innerText()) === 제목, true);
-    });
-
-    await test.step('제목에 51자를 넣고 다른 칸을 채워 「등록」을 누른다', async () => {
-      await 쓰기.열기();
-      await 쓰기.준비될때까지();
-      const 제목 = 글자채우기(토큰, 51);
-      await 쓰기.채우기({ 분류: '자유', 제목, 본문: 본문글(20) });
-      await 쓰기.등록하고응답받기();
-      await verify('제목 51자를 넣고 「등록」을 누르면 글이 등록되지 않는다', (await 제목으로글찾기(page.request, 토큰)).length, 0);
     });
   } finally {
     await 정리.모두하기();

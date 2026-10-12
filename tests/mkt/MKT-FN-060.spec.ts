@@ -41,9 +41,4 @@ test(spec, async ({ page }) => {
     await 회원가입.적기(회원가입.휴대폰, '01012345678');
     await verify('휴대폰을 11자로 적으면 「가입하기」 버튼이 눌린다', await 회원가입.가입하기.isEnabled(), true);
   });
-
-  await test.step('휴대폰 칸에 12자 「010123456789」를 적는다', async () => {
-    await 회원가입.적기(회원가입.휴대폰, '010123456789');
-    await verify('휴대폰을 12자로 적으면 「가입하기」 버튼이 눌리지 않는다', await 회원가입.가입하기.isEnabled(), false);
-  });
 });

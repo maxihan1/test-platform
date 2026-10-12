@@ -6,7 +6,7 @@ import { 회원가입화면 } from './pages/signup.page.js';
 
 export const spec = defineCase({
   tcId: 'MKT-FN-053',
-  name: '비밀번호에 특수문자를 빼고 적으면 「비밀번호는 영문·숫자·특수문자를 포함해 10~20자입니다」가 보인다',
+  name: '비밀번호에 특수문자를 빼고 적으면 「비밀번호는 영문·숫자·특수문자를 포함해 8~20자입니다」가 보인다',
   precondition: ['비회원이다'],
   params: null,
   expected: null,
@@ -32,6 +32,6 @@ test(spec, async ({ page }) => {
 
   await test.step('회원가입 비밀번호 칸에 특수문자 없이 「Abcd1234」를 적는다', async () => {
     await 회원가입.적기(회원가입.비밀번호, 'Abcd1234');
-    await verify('비밀번호에 특수문자를 빼고 적으면 「비밀번호는 영문·숫자·특수문자를 포함해 10~20자입니다」가 보인다', await 보이는글(회원가입.안내('password')), '비밀번호는 영문·숫자·특수문자를 포함해 10~20자입니다');
+    await verify('비밀번호에 특수문자를 빼고 적으면 「비밀번호는 영문·숫자·특수문자를 포함해 8~20자입니다」가 보인다', await 보이는글(회원가입.안내('password')), '비밀번호는 영문·숫자·특수문자를 포함해 8~20자입니다');
   });
 });

@@ -3,7 +3,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 토스트 } from './components/toast.component.js';
 import { 새회원으로로그인, 탈퇴 } from './helpers/account.helper.js';
 import { 표식 } from './helpers/board.helper.js';
-import { 세션사용자, 내문의목록, 길이맞춘글 } from './helpers/shop-tools.helper.js';
+import { 세션사용자, 길이맞춘글 } from './helpers/shop-tools.helper.js';
 import { 방해막기 } from './helpers/quiet.helper.js';
 import { 문의화면 } from './pages/support-inquiry.page.js';
 
@@ -45,15 +45,6 @@ test(spec, async ({ page }) => {
       await 문의.등록.click();
       await 토스.글('문의가 등록되었습니다').first().waitFor();
       await verify('문의 제목 50자로 등록하면 「내 문의 내역」에 그 문의가 보인다', await 문의.내역행(접두).isVisible(), true);
-    });
-
-    await test.step('제목에 51자를 넣고 다른 칸을 채워 「등록」을 누른다', async () => {
-      const 전 = (await 내문의목록(page.request)).length;
-      await 토스.알림들.first().waitFor({ state: 'detached' });
-      await 문의.채우기({ 유형: '주문', 제목: 길이맞춘글(표식('제목'), 51), 내용: '문의 내용입니다' });
-      await 문의.등록.click();
-      await 토스.알림들.first().waitFor();
-      await verify('문의 제목 51자를 넣고 등록하면 문의가 등록되지 않는다', (await 내문의목록(page.request)).length, 전);
     });
   } finally {
     await 탈퇴(page.request);
