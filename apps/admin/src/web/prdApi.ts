@@ -54,5 +54,5 @@ export const prdApi = {
   rtmExport: (service: string) => 파일받기(`/prd/export${꼬리(service)}&format=xlsx`),
   /** 「바뀐 요구 N건 테스트에 반영」 — 작성 요청 하나를 세운다. 실패 카드의 「화면이 맞음」은 screenRight 를 실어 같은 통로를 쓴다. 그 PR 이 병합돼야 반영 안 됨이 준다 */
   apply: (service: string, body: { screenRight?: { runId: number; tcId: string } } = {}) =>
-    call<{ id: number }>(`/prd/apply${꼬리(service)}`, json(body)),
+    call<{ id: number; waitsFor: number[] }>(`/prd/apply${꼬리(service)}`, json(body)),
 };

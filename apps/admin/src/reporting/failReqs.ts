@@ -6,6 +6,7 @@ import type { Pool } from 'pg';
 
 import { 맥락짓기 } from '../catalog/context.js';
 import { 종류조건 } from '../execution/runKind.js';
+import { 화면목록식 } from '../prd/screenRight.js';
 import { 지금판 } from '../prd/store.js';
 import { db } from './insights.js';
 
@@ -111,20 +112,21 @@ export async function 판정들(runId: number, tcIds: string[]): Promise<Map<str
       'SELECT tc_id, marked_by_name, marked_at FROM run_case_bug WHERE run_id = $1 AND tc_id = ANY($2)',
       [runId, tcIds],
     ),
-    // 재실행(RERUN)도 원본의 screenRight 를 물려받으므로 같은 판정이다
-    pool.query<{ id: string; tc_id: string; requested_by_name: string; created_at: Date }>(
-      `SELECT DISTINCT ON (params->'screenRight'->>'tcId')
-              id, params->'screenRight'->>'tcId' AS tc_id, requested_by_name, created_at
-         FROM authoring_request
-        WHERE discarded_at IS NULL AND kind IN ('AUTHOR', 'RERUN')
-          AND params->'screenRight'->>'runId' = $1 AND params->'screenRight'->>'tcId' = ANY($2)
-        ORDER BY params->'screenRight'->>'tcId', created_at DESC, id DESC`,
+    // 재실행(RERUN)도 원본의 screenRight 를 물려받으므로 같은 판정이다. 대기 반영에 더한 칸은 누른 사람 · 때를 칸에 따로 단다 (PRD-F9-20)
+    pool.query<{ id: string; tc_id: string; by_name: string; at: Date }>(
+      `SELECT DISTINCT ON (칸->>'tcId')
+              r.id, 칸->>'tcId' AS tc_id, COALESCE(칸->>'byName', r.requested_by_name) AS by_name,
+              COALESCE((칸->>'at')::timestamptz, r.created_at) AS at
+         FROM authoring_request r CROSS JOIN LATERAL jsonb_array_elements(${화면목록식('r.params')}) 칸
+        WHERE r.discarded_at IS NULL AND r.kind IN ('AUTHOR', 'RERUN')
+          AND 칸->>'runId' = $1 AND 칸->>'tcId' = ANY($2)
+        ORDER BY 칸->>'tcId', COALESCE((칸->>'at')::timestamptz, r.created_at) DESC, r.created_at DESC, r.id DESC`,
       [String(runId), tcIds],
     ),
   ]);
   for (const r of 버그.rows) 결과.set(r.tc_id, { kind: 'BUG', byName: r.marked_by_name, at: r.marked_at.toISOString() });
   for (const r of 화면.rows) {
-    결과.set(r.tc_id, { kind: 'SCREEN', requestId: Number(r.id), byName: r.requested_by_name, at: r.created_at.toISOString() });
+    결과.set(r.tc_id, { kind: 'SCREEN', requestId: Number(r.id), byName: r.by_name, at: r.at.toISOString() });
   }
   return 결과;
 }

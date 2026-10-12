@@ -13,11 +13,11 @@ import { 워드만들기 } from './docx.js';
 import { 찾은화면셈 } from './found.js';
 import { 보류읽기 } from './held.js';
 import { 반영안됨, 본문상한, 확인필요, 항목검사 } from './rules.js';
+import { 반영세우기 } from './apply.js';
 import { 반영본문, 화면이맞음채우기, type 화면이맞음 } from './screenRight.js';
 import {
   기준판,
   되돌리기,
-  반영세우기,
   사람저장,
   일괄확정,
   지금판,

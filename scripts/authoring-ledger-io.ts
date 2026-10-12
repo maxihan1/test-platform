@@ -197,7 +197,7 @@ export function 원장과남은번호(입력: {
   /** 이번 집기 accounts 의 역할 이름 — 이 역할의 「계정 미등록」 번호가 남은 번호에 든다 */
   등록역할?: Set<string>;
   /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight */
-  반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청 | null };
+  반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청[] | null };
 }):
   | { 원장: 원장 | { 없음: string }; 입력: 원장입력; 기준: 기준결정; 기준표: 기준표 | null; 원본원장: 원장 | { 없음: string }; 원본입력: 원장입력; 이어작성?: 이어작성입력; 반영?: 반영입력 }
   | { 막힘: string } {

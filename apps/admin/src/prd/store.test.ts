@@ -100,16 +100,16 @@ describe.skipIf(연결 === undefined)('표준 기획서 저장소', () => {
 
   it('기준 판은 가장 최근에 병합된 반영이 병합한 작성 실행이 읽은 판이다. 없으면 전부 반영 안 됨', async () => {
     const s = await 저장소();
-    expect(await s.반영세우기(서비스, 사람)).toEqual({ error: 'NOTHING_TO_APPLY' });
+    expect(await (await import('./apply.js')).반영세우기(서비스, 사람)).toEqual({ error: 'NOTHING_TO_APPLY' });
     await s.사람저장(서비스, 접두사, 0, [새것('20개까지')], 사람);
     expect(await s.기준판(서비스)).toBeNull();
     const 뿌리 = await 요청넣기('AUTHOR', { status: 'DONE', prd: 1 });
     await 요청넣기('MERGE', { source: 뿌리, status: 'DONE' });
     expect(await s.기준판(서비스)).toMatchObject({ version: 1, items: [{ reqId: 'XPS-REQ-001' }] });
-    expect(await s.반영세우기(서비스, 사람)).toEqual({ error: 'NOTHING_TO_APPLY' });
+    expect(await (await import('./apply.js')).반영세우기(서비스, 사람)).toEqual({ error: 'NOTHING_TO_APPLY' });
 
     await s.사람저장(서비스, 접두사, 1, [{ ...새것('30개까지'), reqId: 'XPS-REQ-001' }], 사람);
-    const 세움 = await s.반영세우기(서비스, 사람);
+    const 세움 = await (await import('./apply.js')).반영세우기(서비스, 사람);
     expect(세움).toHaveProperty('id');
     const 행 = await q<{ kind: string; status: string; params: object; source_id: string | null }>(
       'SELECT kind, status, params, source_id FROM authoring_request WHERE id = $1',

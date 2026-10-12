@@ -112,7 +112,7 @@ describe('실패 원인 줄 — 누르기', () => {
   });
 
   it('「화면이 맞음」은 서비스 접두사와 실행 · 케이스를 실어 반영 통로를 부른다', async () => {
-    const 반영 = vi.spyOn(prdApi, 'apply').mockResolvedValue({ id: 88 });
+    const 반영 = vi.spyOn(prdApi, 'apply').mockResolvedValue({ id: 88, waitsFor: [] });
     열기(null);
 
     fireEvent.click(await screen.findByRole('button', { name: '화면이 맞음' }));
@@ -123,7 +123,7 @@ describe('실패 원인 줄 — 누르기', () => {
   });
 
   it('누른 뒤 카드 재료를 다시 읽어 서버 값으로 맞춘다', async () => {
-    vi.spyOn(prdApi, 'apply').mockResolvedValue({ id: 88 });
+    vi.spyOn(prdApi, 'apply').mockResolvedValue({ id: 88, waitsFor: [] });
     const 부름 = 열기(null).부름;
     부름.mockResolvedValue(
       쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)], { reqs: 요구, judgment: { kind: 'SCREEN', requestId: 88, byName: '이순신', at: '2026-10-11T02:00:00.000Z' } })]),
@@ -135,17 +135,15 @@ describe('실패 원인 줄 — 누르기', () => {
     expect(부름.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('열린 반영이 있으면 안내 글과 그 요청 고리를 보이고 버튼은 그대로다', async () => {
-    vi.spyOn(prdApi, 'apply').mockRejectedValue(new ApiError(409, 'APPLY_OPEN', '6101,6102'));
+  it('앞 반영을 기다리는 요청에 담기면 언제 시작하는지와 앞 요청 고리를 보인다 (PRD-F9-20)', async () => {
+    vi.spyOn(prdApi, 'apply').mockResolvedValue({ id: 6103, waitsFor: [6101] });
     열기(null);
 
     fireEvent.click(await screen.findByRole('button', { name: '화면이 맞음' }));
 
-    const 알림 = await screen.findByRole('alert');
-    expect(알림.textContent).toContain('이미 열린 반영 요청이 있습니다');
+    await screen.findByRole('link', { name: '작성 요청 #6103' });
+    expect(screen.getByText(/앞 반영 요청이 병합되거나 폐기되면 시작합니다/)).toBeDefined();
     expect(screen.getByRole('link', { name: '#6101 요청 보기' }).getAttribute('href')).toBe('#/authoring/6101');
-    expect(screen.getByRole('link', { name: '#6102 요청 보기' })).toBeDefined();
-    expect(버튼('화면이 맞음')).not.toBeNull();
   });
 
   it('그 밖의 오류는 서버 코드를 사람 말로 보인다', async () => {

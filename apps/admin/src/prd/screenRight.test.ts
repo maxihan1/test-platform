@@ -138,21 +138,56 @@ describe.skipIf(연결 === undefined)('화면이 맞음 반영 통로', () => {
     expect((await q('SELECT 1 FROM authoring_request WHERE service_id = $1 AND kind = $2 AND status = $3', [서비스, 'AUTHOR', 'PENDING'])).rowCount).toBe(0);
   });
 
-  it('반영 안 됨이 0 이어도 세우고 params 에 env · 판 차례 번호를 싣는다. 열린 반영이 있으면 APPLY_OPEN', async () => {
+  it('반영 안 됨이 0 이어도 세우고 params.screenRight 목록에 env · 판 차례 번호 · 누른 사람을 싣는다', async () => {
     const 보통 = await 부르기('POST', '/prd/apply', {});
     expect([보통.statusCode, 보통.json()]).toEqual([409, { error: 'NOTHING_TO_APPLY' }]);
     const runId = await 실행넣기('ABORTED', 'FAIL');
     const r = await 화면이맞음(runId);
     expect(r.statusCode).toBe(201);
-    const id = (r.json() as { id: number }).id;
+    const { id, waitsFor } = r.json() as { id: number; waitsFor: number[] };
+    expect(waitsFor).toEqual([]);
     const 행 = await q<{ kind: string; status: string; params: object }>('SELECT kind, status, params FROM authoring_request WHERE id = $1', [id]);
     expect(행.rows[0]).toEqual({
       kind: 'AUTHOR',
       status: 'PENDING',
-      params: { prdApply: true, screenRight: { runId, tcId: 'XPF-FN-001', env: 'qa', reqIds: ['XPF-REQ-001', 'XPF-REQ-002'] } },
+      params: { prdApply: true, screenRight: [{ runId, tcId: 'XPF-FN-001', env: 'qa', reqIds: ['XPF-REQ-001', 'XPF-REQ-002'], byName: '검사', at: expect.any(String) }] },
     });
-    const 또 = await 화면이맞음(runId);
-    expect([또.statusCode, 또.json()]).toEqual([409, { error: 'APPLY_OPEN', detail: [id] }]);
+  });
+
+  it('여러 번 눌러도 막지 않는다 — 대기 중인 반영에 더하고, 집힌 뒤에는 앞 반영을 기다리는 요청을 세운다 (PRD-F9-20)', async () => {
+    const 가 = await 실행넣기('FINISHED', 'FAIL');
+    const 나 = await 실행넣기('FINISHED', 'FAIL');
+    const 첫 = (await 화면이맞음(가)).json() as { id: number; waitsFor: number[] };
+    expect((await 화면이맞음(나)).json()).toEqual({ id: 첫.id, waitsFor: [] });
+    expect((await 화면이맞음(나)).json()).toEqual({ id: 첫.id, waitsFor: [] });
+    const 목록 = async (id: number) =>
+      ((await q<{ params: { screenRight: { runId: number }[] } }>('SELECT params FROM authoring_request WHERE id = $1', [id])).rows[0]!.params.screenRight).map((x) => x.runId);
+    expect(await 목록(첫.id)).toEqual([가, 나]);
+
+    await q(`UPDATE authoring_request SET status = 'RUNNING' WHERE id = $1`, [첫.id]);
+    const 다 = await 실행넣기('FINISHED', 'FAIL');
+    const 둘째 = (await 화면이맞음(다)).json() as { id: number; waitsFor: number[] };
+    expect(둘째.id).not.toBe(첫.id);
+    expect(둘째.waitsFor).toEqual([첫.id]);
+    expect(await 목록(둘째.id)).toEqual([다]);
+    const 라 = await 실행넣기('FINISHED', 'FAIL');
+    expect((await 화면이맞음(라)).json()).toEqual({ id: 둘째.id, waitsFor: [첫.id] });
+  });
+
+  it('기다리는 반영은 앞 반영이 병합 · 폐기될 때까지 에이전트가 안 집는다 — 다른 작성 요청은 집는다', async () => {
+    const { 집기 } = await import('../authoring/agentStore.js');
+    const 첫 = (await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json() as { id: number };
+    await q(`UPDATE authoring_request SET status = 'DONE' WHERE id = $1`, [첫.id]);
+    const 둘째 = (await 화면이맞음(await 실행넣기('FINISHED', 'FAIL'))).json() as { id: number; waitsFor: number[] };
+    expect(둘째.waitsFor).toEqual([첫.id]);
+    const 보통 = await q<{ id: string }>(
+      `INSERT INTO authoring_request (service_id, kind, requested_by, requested_by_name, status) VALUES ($1, 'AUTHOR', 'xpf', '검사', 'PENDING') RETURNING id`,
+      [서비스],
+    );
+    expect((await 집기(서비스, 'xpf-agent'))?.id).toBe(Number(보통.rows[0]!.id));
+    expect(await 집기(서비스, 'xpf-agent')).toBeNull();
+    await q(`UPDATE authoring_request SET discarded_at = now() WHERE id = $1`, [첫.id]);
+    expect((await 집기(서비스, 'xpf-agent'))?.id).toBe(둘째.id);
   });
 
   it('작성 요청 통로로 screenRight 를 실으면 400, 재실행은 원본의 screenRight 를 물려받는다', async () => {

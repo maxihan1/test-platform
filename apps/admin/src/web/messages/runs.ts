@@ -234,4 +234,5 @@ export const 실행말: Record<string, string> = {
   '화면이 맞음으로 바꾸기': 'Change to screen is right',
   '버그': 'Bug',
   '작성 요청 #{번호}': 'Authoring request #{번호}',
+  '앞 반영 요청이 병합되거나 폐기되면 시작합니다': 'Starts once the earlier apply request is merged or discarded',
 };

@@ -124,6 +124,18 @@ export async function 도는실행있나(뿌리번호: number): Promise<boolean>
 export const 최신식 = (사슬이름: string) =>
   `(SELECT max(s.id) FROM ${사슬이름} s JOIN authoring_request x ON x.id = s.id WHERE NOT (x.kind = 'MERGE' AND x.status = 'FAILED'))`;
 
+/**
+ * 서비스의 열린 반영 뿌리(`열린반영(root_id, latest)`) — 폐기 안 됨 · 최신 실행이 병합된 반영이 아님 (도메인/작성 §7 apply).
+ * 반영 통로(APPLY_OPEN · 화면이 맞음 더하기)와 집기(앞 반영 기다리기)가 같은 뜻을 쓴다. `WITH RECURSIVE` 안에 넣고 `사슬` 도 같이 생긴다
+ */
+export const 열린반영식 = (서비스자리: string) => `${사슬식(`service_id = ${서비스자리} AND kind = 'AUTHOR' AND params->>'prdApply' = 'true' AND discarded_at IS NULL`)},
+    열린반영(root_id, latest) AS (
+      SELECT 뿌리.root_id, 뿌리.latest
+        FROM (SELECT DISTINCT 사슬.root_id, ${최신식('(SELECT 안.id FROM 사슬 안 WHERE 안.root_id = 사슬.root_id)')} AS latest FROM 사슬) 뿌리
+        JOIN authoring_request m ON m.id = 뿌리.latest
+       WHERE NOT (m.kind = 'MERGE' AND m.status = 'DONE')
+    )`;
+
 /** 그 뿌리의 가장 최근 실행 번호 — 실패한 머지는 건너뛴다 */
 export async function 최신실행(뿌리번호: number): Promise<number> {
   const r = await (await db()).query<{ id: string }>(`WITH RECURSIVE ${사슬식('id = $1')} SELECT ${최신식('사슬')} AS id`, [
