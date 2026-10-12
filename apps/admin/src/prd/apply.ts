@@ -2,7 +2,7 @@
 
 import type { PoolClient } from 'pg';
 
-import { 열린반영식 } from '../authoring/history.js';
+import { 열린반영식 } from '../authoring/chainSql.js';
 import { 반영안됨 } from './rules.js';
 import { 화면목록식, type 화면이맞음 } from './screenRight.js';
 import { 기준판, 잠그고, 지금판, type 저장하는사람 } from './store.js';
@@ -37,11 +37,20 @@ export async function 반영세우기(서비스: number, 사람: 저장하는사
       if (열린.length > 0) return { error: 'APPLY_OPEN' as const, detail: 열린.map((x) => x.뿌리) };
       return { id: await 넣기(손, 서비스, 사람, {}), waitsFor: [] };
     }
+    const 앞 = (뿌리: number) => 열린.filter((x) => x.뿌리 < 뿌리).map((x) => x.뿌리);
+    // 같은 실행 · 케이스가 열린 반영 어디에든 이미 있으면 새로 세우지 않는다 — 다른 탭에서 또 누르면 같은 요구를 고치는 PR 이 둘 선다
+    const 있던 = await 손.query<{ root_id: string; id: string }>(
+      `WITH RECURSIVE ${열린반영식('$1')}
+       SELECT s.root_id, a.id FROM 사슬 s JOIN 열린반영 o ON o.root_id = s.root_id JOIN authoring_request a ON a.id = s.id
+        WHERE ${화면목록식('a.params')} @> $2::jsonb ORDER BY a.id DESC LIMIT 1`,
+      [서비스, JSON.stringify([{ runId: 화면.runId, tcId: 화면.tcId }])],
+    );
+    const 그것 = 있던.rows[0];
+    if (그것 !== undefined) return { id: Number(그것.id), waitsFor: 앞(Number(그것.root_id)) };
     const 칸: 화면칸 = { ...화면, byName: 사람.displayName, at: new Date().toISOString() };
-    const 대기 = 열린.find((x) => x.status === 'PENDING');
-    if (대기 !== undefined && (await 더하기(손, 대기.최신, 칸))) {
-      return { id: 대기.최신, waitsFor: 열린.filter((x) => x.뿌리 < 대기.뿌리).map((x) => x.뿌리) };
-    }
+    // 더하는 곳은 아직 안 집힌 뿌리 요청뿐이다 — 재실행 행에 더하면 다음 재실행이 뿌리 것을 물려받아 잃고, 병합(MERGE) 행은 목록을 안 읽는다
+    const 대기 = 열린.find((x) => x.최신 === x.뿌리 && x.status === 'PENDING');
+    if (대기 !== undefined && (await 더하기(손, 대기.뿌리, 칸))) return { id: 대기.뿌리, waitsFor: 앞(대기.뿌리) };
     return { id: await 넣기(손, 서비스, 사람, { screenRight: [칸] }), waitsFor: 열린.map((x) => x.뿌리) };
   });
 }
@@ -55,14 +64,12 @@ async function 넣기(손: PoolClient, 서비스: number, 사람: 저장하는�
   return Number(r.rows[0]!.id);
 }
 
-/** 아직 안 집힌 반영 실행의 목록에 더한다. 같은 실행 · 케이스는 한 번만. 그 사이 에이전트가 집었으면 false — 새로 세운다 */
+/** 아직 안 집힌 반영 요청의 목록에 더한다. 그 사이 에이전트가 집었으면 false — 새로 세운다 */
 async function 더하기(손: PoolClient, id: number, 칸: 화면칸): Promise<boolean> {
-  const 목록 = 화면목록식('params');
   const r = await 손.query(
-    `UPDATE authoring_request
-        SET params = jsonb_set(params, '{screenRight}', ${목록} || CASE WHEN ${목록} @> $3::jsonb THEN '[]'::jsonb ELSE $2::jsonb END)
+    `UPDATE authoring_request SET params = jsonb_set(params, '{screenRight}', ${화면목록식('params')} || $2::jsonb)
       WHERE id = $1 AND status = 'PENDING'`,
-    [id, JSON.stringify([칸]), JSON.stringify([{ runId: 칸.runId, tcId: 칸.tcId }])],
+    [id, JSON.stringify([칸])],
   );
   return r.rowCount === 1;
 }

@@ -93,10 +93,14 @@ function 내용같나(a: 들어온항목 | PrdItem, b: PrdItem): boolean {
   return a.status === b.status && 요구같나(a, b);
 }
 
-/** 작성 요청 params 의 「화면이 맞음」 번호(screenRight.reqIds). 화면이 맞음 요청이 아니면 빈 묶음 */
+/**
+ * 작성 요청 params 의 「화면이 맞음」 번호(screenRight 칸마다의 reqIds 를 합친 것). 화면이 맞음 요청이 아니면 빈 묶음.
+ * 2026-10-13 PRD-F9-20 부터 목록이고 그 전 행은 한 칸 객체다
+ */
 export function 화면번호들(params: Record<string, unknown>): Set<string> {
-  const 번호들 = (params.screenRight as { reqIds?: unknown } | undefined)?.reqIds;
-  return new Set(Array.isArray(번호들) ? 번호들.filter((x): x is string => typeof x === 'string') : []);
+  const s = params.screenRight;
+  const 칸들 = (Array.isArray(s) ? s : s === undefined ? [] : [s]) as { reqIds?: unknown }[];
+  return new Set(칸들.flatMap((칸) => (Array.isArray(칸?.reqIds) ? 칸.reqIds.filter((x): x is string => typeof x === 'string') : [])));
 }
 
 /** 판 통째가 같은가 — 같으면 새 판을 안 만든다(옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게) */
