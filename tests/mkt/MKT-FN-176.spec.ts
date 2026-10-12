@@ -36,7 +36,7 @@ test(spec, async ({ page }) => {
     await verify('상품 상세 화면에 상품 이름 제목이 보인다', await 상세.제목.isVisible(), true, { blocker: true });
   });
 
-  await test.step('상품 상세 /shop/1 을 연다', async () => {
+  await test.step('상품 상세 수량 칸의 처음 값을 확인한다', async () => {
     await verify('상품 상세 수량 칸은 처음에 1이다', await 상세.수량값(), '1');
   });
 

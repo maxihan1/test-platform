@@ -3,7 +3,7 @@ import type { Locator, Page } from '@playwright/test';
 import { 머리글 } from '../components/header.component.js';
 
 export class 상품상세화면 {
-  static readonly 주소 = '/shop/1';
+  static readonly 주소 = '/shop/:id';
 
   readonly 제목: Locator;
   readonly 큰이미지버튼: Locator;
@@ -75,7 +75,7 @@ export class 상품상세화면 {
     this.불러오는중 = page.locator('.detail-loading');
   }
 
-  async 열기(번호 = 1): Promise<void> {
+  async 열기(번호: number): Promise<void> {
     await this.page.goto(`/shop/${String(번호)}`);
   }
 
