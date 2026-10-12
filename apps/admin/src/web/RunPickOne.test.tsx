@@ -53,26 +53,26 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('');
   });
 
-  it('만들어질 항목이 1000건을 넘으면 실행 버튼이 죽고 지금 건수를 함께 적는다', async () => {
+  it('만들어질 항목이 5000건을 넘으면 실행 버튼이 죽고 지금 건수를 함께 적는다', async () => {
     const { onRun } = await 그린다();
     서버고르기();
 
-    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '1001' } });
+    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '5001' } });
 
     expect(실행버튼().disabled).toBe(true);
-    expect(줄().textContent).toBe('한 번에 1000건까지 만들 수 있습니다 (지금 1001건)');
+    expect(줄().textContent).toBe('한 번에 5000건까지 만들 수 있습니다 (지금 5001건)');
     fireEvent.click(실행버튼());
     expect(onRun).not.toHaveBeenCalled();
   });
 
-  it('딱 1000건은 막지 않는다', async () => {
+  it('딱 5000건은 막지 않는다', async () => {
     const { onRun } = await 그린다();
     서버고르기();
 
-    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '1000' } });
+    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '5000' } });
 
     expect(실행버튼().disabled).toBe(false);
-    expect(줄().textContent).toBe('실행 항목이 1000건 생깁니다');
+    expect(줄().textContent).toBe('실행 항목이 5000건 생깁니다');
     fireEvent.click(실행버튼());
     expect(onRun).toHaveBeenCalledTimes(1);
   });

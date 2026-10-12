@@ -107,7 +107,7 @@ describe('몇건', () => {
   });
 
   it('상한을 넘으면 넘었다고 판정한다', () => {
-    const 많이 = Array.from({ length: 501 }, (_, i) => 케이스(`ZZP-9${String(i).padStart(3, '0')}`, ['desktop', 'mobile']));
+    const 많이 = Array.from({ length: 2501 }, (_, i) => 케이스(`ZZP-9${String(i).padStart(3, '0')}`, ['desktop', 'mobile']));
     expect(넘었나(몇건(많이, 1))).toBe(true);
     expect(넘었나(몇건([PC만, 둘다], 1))).toBe(false);
   });
