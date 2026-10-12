@@ -311,12 +311,12 @@ describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () 
 // 케이스 읽기면 스캔을 못 건다. 버튼을 두면 누르는 순간 403 이다 (화면공통 §8)
 describe('빈 목록의 스캔 버튼', () => {
   it('스캔 길을 안 주면 버튼이 없다', () => {
-    render(<Empty 형편={{ scannedAt: null, 전체건수: 0, 건조건: false, 친글자: '' }} onClear={vi.fn()} />);
+    render(<Empty 형편={{ scannedAt: null, 스캔문제: false, 전체건수: 0, 건조건: false, 친글자: '' }} onClear={vi.fn()} />);
     expect(screen.queryByRole('button')).toBeNull();
   });
 
   it('조건 초기화는 스캔 길과 상관없이 선다', () => {
-    render(<Empty 형편={{ scannedAt: '2026-09-21T00:00:00.000Z', 전체건수: 3, 건조건: true, 친글자: 'x' }} onClear={vi.fn()} />);
+    render(<Empty 형편={{ scannedAt: '2026-09-21T00:00:00.000Z', 스캔문제: false, 전체건수: 3, 건조건: true, 친글자: 'x' }} onClear={vi.fn()} />);
     expect(screen.getByRole('button', { name: '조건 초기화' })).toBeTruthy();
   });
 });
