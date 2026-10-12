@@ -36,19 +36,37 @@ export async function 보류줄들(서비스: number, 손?: Pool | PoolClient): 
 }
 
 /**
- * 아이디 · 비밀번호가 둘 다 있는 역할 — 「운영 서버」가 아닌 줄 하나라도에 있으면 된다.
- * 일반 회원은 옛 칸(login_id · login_password), 그 밖은 role_accounts 원소. 비밀번호 원문은 읽지 않는다
+ * 대상 서버 줄(env)마다 아이디 · 비밀번호가 둘 다 있는 역할 — 「운영 서버」 줄은 뺀다.
+ * 일반 회원은 옛 칸(login_id · login_password), 그 밖은 role_accounts 원소. 비밀번호 원문은 읽지 않는다.
+ * 이어 작성은 뿌리의 대상 서버 줄 계정만 받으므로 줄마다 나눠 둔다 — 서비스 어디에나 있으면 등록으로 보면 버튼은 열리는데 에이전트가 남은 번호를 못 센다
  */
-export async function 등록역할들(서비스: number, 손?: Pool | PoolClient): Promise<Set<string>> {
-  const r = await (손 ?? (await db())).query<{ role: string }>(
-    `SELECT $2::text AS role
+export async function 등록역할표(서비스: number, 손?: Pool | PoolClient): Promise<Map<string, Set<string>>> {
+  const r = await (손 ?? (await db())).query<{ env: string; role: string }>(
+    `SELECT env, $2::text AS role
        FROM service_env
       WHERE service_id = $1 AND NOT is_prod AND COALESCE(login_id, '') <> '' AND COALESCE(login_password, '') <> ''
       UNION
-     SELECT btrim(a->>'role')
+     SELECT e.env, btrim(a->>'role')
        FROM service_env e, jsonb_array_elements(e.role_accounts) a
       WHERE e.service_id = $1 AND NOT e.is_prod AND COALESCE(a->>'loginId', '') <> '' AND COALESCE(a->>'loginPassword', '') <> ''`,
     [서비스, 기본역할],
   );
-  return new Set(r.rows.map((x) => x.role));
+  const 표 = new Map<string, Set<string>>();
+  for (const { env, role } of r.rows) 표.set(env, (표.get(env) ?? new Set<string>()).add(role));
+  return 표;
+}
+
+/** 「운영 서버」가 아닌 줄 하나라도에 계정이 있는 역할 — 「PRD 관리」 줄 글(「계정 등록됨」)이 쓴다 */
+export const 어디든등록 = (표: Map<string, Set<string>>): Set<string> => new Set([...표.values()].flatMap((s) => [...s]));
+
+/** 이어 작성 판정 재료 — 「PRD 관리」가 뿌리 여럿을 볼 때 한 번만 읽어 넘긴다 */
+export interface 보류재료 {
+  보류: 보류줄[];
+  표: Map<string, Set<string>>;
+}
+
+/** 그 대상 서버 줄에 계정을 넣은 역할의 보류 번호가 있나. 줄이 없으면(정방향 뿌리) 없다 — 자식이 계정을 못 받는다 */
+export function 줄에등록된보류있나(재료: 보류재료, env: string | null): boolean {
+  const 역할 = env === null ? undefined : 재료.표.get(env);
+  return 역할 !== undefined && 재료.보류.some((x) => 역할.has(x.role));
 }

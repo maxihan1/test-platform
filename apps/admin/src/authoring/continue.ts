@@ -6,7 +6,7 @@ import type { PoolClient } from 'pg';
 
 import { rm } from 'node:fs/promises';
 
-import { 등록역할들, 보류줄들 } from '../prd/heldQuery.js';
+import { type 보류재료, 등록역할표, 보류줄들, 줄에등록된보류있나 } from '../prd/heldQuery.js';
 import { 이어작성준비, 제출, 초안지우기 } from './assetStore.js';
 import { 자료파일복사, 자료폴더 } from './assets.js';
 import { 행커버리지 } from './coverage.js';
@@ -26,7 +26,7 @@ export interface 이어작성상태 {
   남음: 남은요구;
   /** 원본에 사람이 넣은 자료가 있나 — 본문만 있는 옛 행 · 화면만은 원장을 못 만들어 이어 작성할 번호가 없다 */
   입력있음: boolean;
-  /** 셈이 「남은 것 없음」이어도 계정을 넣은 역할의 보류 요구가 있나 — 그 번호는 이어 작성이 맡는다 (§3.6 「★ 역할별 계정」 「이어 작성」) */
+  /** 셈이 「남은 것 없음」이어도 뿌리의 대상 서버 줄에 계정을 넣은 역할의 보류 요구가 있나 — 그 번호는 이어 작성이 맡는다 (§3.6 「★ 역할별 계정」 「이어 작성」) */
   보류등록: boolean;
   /** 폐기 안 된 이어 작성 요청 번호 — 한 원본에 하나뿐이다(유일 색인) */
   이은것: number | null;
@@ -43,7 +43,7 @@ function 남은것(result: unknown): 남은요구 {
  * 뿌리 번호로 읽는다. 어느 실행 번호로 상세를 읽어도 같은 값이 나와야 한다 — 화면은 최신 실행 상세로 버튼을 그린다.
  * **한 문장으로 묻는다** — 통로는 뿌리 잠금을 쥔 연결(`손`)로 부른다. 잠금 안에서 풀 연결을 또 잡지 않게
  */
-export async function 이어작성상태읽기(뿌리번호: number, 손?: PoolClient): Promise<이어작성상태> {
+export async function 이어작성상태읽기(뿌리번호: number, 손?: PoolClient, 미리?: 보류재료): Promise<이어작성상태> {
   const r = await (손 ?? (await db())).query<{
     kind: string;
     status: string;
@@ -51,13 +51,15 @@ export async function 이어작성상태읽기(뿌리번호: number, 손?: PoolC
     입력: boolean;
     이은것: string | null;
     서비스: string;
+    대조env: string | null;
   }>(
     // 최신은 실패한 머지를 뺀다(`최신식`). 셈은 반영된 그 실행(머지의 원본) 것이다 — 머지 행에는 셈이 없다 (LEARNINGS 2026-09-30)
     `WITH RECURSIVE ${사슬식('id = $1')}
      SELECT l.kind, l.status, s.result AS "반영결과",
             EXISTS (SELECT 1 FROM authoring_asset WHERE request_id = $1 AND role = 'INPUT') AS "입력",
             (SELECT id FROM authoring_request WHERE continue_from = $1 AND discarded_at IS NULL) AS "이은것",
-            l.service_id AS "서비스"
+            l.service_id AS "서비스",
+            (SELECT env FROM authoring_request WHERE id = $1 AND compare) AS "대조env"
        FROM authoring_request l LEFT JOIN authoring_request s ON s.id = l.source_id
       WHERE l.id = ${최신식('사슬')}`,
     [뿌리번호],
@@ -69,16 +71,15 @@ export async function 이어작성상태읽기(뿌리번호: number, 손?: PoolC
     병합됨,
     남음,
     입력있음: 줄?.입력 === true,
-    보류등록: 병합됨 && 남음 === '없음' && (await 계정등록보류있나(Number(줄.서비스), 손)),
+    // 에이전트는 뿌리의 대상 서버 줄 계정만 받는다 — 그 줄에 계정이 있는 역할만 센다(2026-10-12 코드 검토)
+    보류등록: 병합됨 && 남음 === '없음' && 줄에등록된보류있나(미리 ?? (await 보류재료읽기(Number(줄.서비스), 손)), 줄.대조env),
     이은것: 줄?.이은것 == null ? null : Number(줄.이은것),
   };
 }
 
-async function 계정등록보류있나(서비스: number, 손?: PoolClient): Promise<boolean> {
+export async function 보류재료읽기(서비스: number, 손?: PoolClient): Promise<보류재료> {
   const 보류 = await 보류줄들(서비스, 손);
-  if (보류.length === 0) return false;
-  const 등록 = await 등록역할들(서비스, 손);
-  return 보류.some((x) => 등록.has(x.role));
+  return { 보류, 표: 보류.length === 0 ? new Map() : await 등록역할표(서비스, 손) };
 }
 
 /** 이어 작성을 막는 까닭. 없으면 null — 통로의 409 와 상세의 canContinue 가 같은 판정을 쓴다 */

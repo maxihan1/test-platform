@@ -112,6 +112,25 @@ describe.skipIf(연결 === undefined)('PRD 보류 칸', () => {
     expect((await 판.상세(뿌리)).canContinue).toBe(true);
   });
 
+  it('계정을 넣은 줄이 뿌리의 대상 서버 줄이 아니면 이어 작성이 안 열린다 — 에이전트는 뿌리 줄 계정만 받는다', async () => {
+    await 계정넣기([]);
+    await q(
+      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, role_accounts)
+       VALUES ($1, 'dev', 'https://dev.xhc.test', 'u', 'pw-dev-4410', $2)`,
+      [판.서비스, JSON.stringify([{ role: '관리자', loginId: 'admin', loginPassword: 관리자비밀번호 }])],
+    );
+    try {
+      const { 뿌리 } = await 판.원본({ coverage: 다덮은셈, compare: true });
+      await 보류넣기([['XHC-REQ-001', '관리자']]);
+      const 응답 = await 보류읽기(판.서비스);
+      expect(응답.roles).toEqual([{ role: '관리자', count: 1, registered: true }]);
+      expect(응답.continueFrom).toBe(null);
+      expect((await 판.상세(뿌리)).canContinue).toBe(false);
+    } finally {
+      await q(`DELETE FROM service_env WHERE service_id = $1 AND env = 'dev'`, [판.서비스]);
+    }
+  });
+
   it('응답에 비밀번호 원문이 없다', async () => {
     await 보류넣기([['XHC-REQ-001', '관리자'], ['XHC-REQ-003', '일반 회원']]);
     const r = await app.inject({ method: 'GET', url: '/api/prd?service=XHC' });
