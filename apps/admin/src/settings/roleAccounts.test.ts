@@ -117,6 +117,11 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 역할 계정 · 운
     expect((await 줄들()).map((e) => [e.env, e.isProd])).toEqual([['live', false], ['qa', true], ['stg', false]]);
   });
 
+  it('isProd 없이 새로 더한 줄은 이름이 prod · production · 운영 이면 운영으로 시작한다', async () => {
+    expect((await 고친다([{ env: 'prod', baseUrl: 'https://prod.xra.test' }, { env: '운영', baseUrl: 'https://op.xra.test' }, { env: 'dev', baseUrl: 'https://dev.xra.test' }])).statusCode).toBe(200);
+    expect(Object.fromEntries((await 줄들()).map((e) => [e.env, e.isProd]))).toEqual({ dev: false, prod: true, 운영: true });
+  });
+
   it('이름이 같은 역할은 비밀번호를 이어받고 null · 공백뿐이면 지운다', async () => {
     await 고친다([{ env: 'qa', baseUrl: 'https://qa.xra.test', accounts: [{ role: '관리자', loginId: 'admin2' }] }]);
     expect((await 저장된것('qa'))?.role_accounts).toEqual([{ role: '관리자', loginId: 'admin2', loginPassword: 관리자비번 }]);

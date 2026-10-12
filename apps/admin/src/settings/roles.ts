@@ -3,6 +3,9 @@
 
 import { 기본역할 } from '@platform/kit/accounts';
 
+/** 이름만으로 운영 줄로 보는 규칙 — 마이그레이션 20261012000003 과 같다. 새 줄의 「운영 서버」 처음 값이다. 잘못 켜지면 작성이 BAD_ENV 로 멈출 뿐이다 */
+export const 운영이름인가 = (env: string): boolean => ['prod', 'production'].includes(env.trim().toLowerCase()) || env.trim() === '운영';
+
 export const 역할최대글자 = 40;
 export const 역할최대개수 = 20;
 

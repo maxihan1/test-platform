@@ -16,6 +16,8 @@ export interface 대상 {
   startUrl?: string | null;
   loginId?: string | null;
   loginPassword?: string | null;
+  /** 「운영 서버」로 체크된 줄 — 서버가 계정을 비워 보낸다 (도메인/작성 §7 claim) */
+  isProd?: boolean;
 }
 
 /**
@@ -40,6 +42,8 @@ function 주소(글: unknown): URL | null {
  */
 export function 대상점검(t: 대상 | undefined): string | null {
   if (t === undefined) return null;
+  // 계정이 빠졌다고 적으면 사람이 운영 줄에 계정을 다시 넣는다 — 까닭을 먼저 말한다
+  if (t.isProd === true) return `대상 서버 「${t.env}」 가 「운영 서버」로 체크돼 작성이 가지 않는다 — 다른 대상 서버로 새 요청을 넣어라`;
   const 서버 = 주소(t.baseUrl);
   if (서버 === null) return `대상 서버 「${t.env}」 줄이 없어졌거나 주소가 http·https 가 아니다 — 설정을 확인하고 새 요청으로 넣어라`;
   if ((t.loginId ?? '') === '' || (t.loginPassword ?? '') === '') {

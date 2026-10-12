@@ -5,6 +5,8 @@ import type { 역할계정 } from '@platform/kit/accounts';
 
 import type { PoolClient } from 'pg';
 
+import { 운영이름인가 } from './roles.js';
+
 // 응답 한 줄. 비밀번호는 되돌려 보여주지 않는다 — 웹훅·피그마 토큰과 같은 규칙 (SPEC 도메인/인증 §7)
 export interface 대상서버 {
   env: string;
@@ -83,8 +85,8 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
         baseUrl,
         계정칸(loginId, 전?.login_id ?? null),
         계정칸(loginPassword, 전?.login_password ?? null),
-        // 운영 표시를 잃으면 크롤러가 운영으로 간다 — 키가 없으면 옛 값 그대로다
-        isProd ?? 전?.is_prod ?? false,
+        // 운영 표시를 잃으면 크롤러가 운영으로 간다 — 키가 없으면 옛 값 그대로, 새 줄이면 마이그레이션과 같은 이름 규칙이다
+        isProd ?? 전?.is_prod ?? 운영이름인가(env),
         JSON.stringify(역할계정이어받기(accounts, 역할계정읽기(전?.role_accounts))),
       ],
     );

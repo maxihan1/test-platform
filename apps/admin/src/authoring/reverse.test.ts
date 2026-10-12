@@ -284,6 +284,20 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
       ]);
     });
 
+    it('만든 뒤 그 줄을 「운영 서버」로 체크하면 target 계정이 비고 isProd 가 붙으며 accounts 는 없다', async () => {
+      const { pool } = await import('../db/index.js');
+      await 하나만세운다({ kind: 'AUTHOR', compare: true, env: 'qa' });
+      await pool.query(`UPDATE service_env SET is_prod = true WHERE service_id = $1 AND env = 'qa'`, [서비스]);
+      try {
+        const r = (await 집기()).json<{ target: Record<string, unknown>; accounts?: unknown }>();
+        expect(r.target).toMatchObject({ env: 'qa', loginId: null, loginPassword: null, isProd: true });
+        expect('accounts' in r).toBe(false);
+        expect(JSON.stringify(r)).not.toContain(비밀);
+      } finally {
+        await pool.query(`UPDATE service_env SET is_prod = false WHERE service_id = $1 AND env = 'qa'`, [서비스]);
+      }
+    });
+
     it('정방향 행이면 target · accounts 키가 없다', async () => {
       await 하나만세운다({ kind: 'AUTHOR' });
       const 키들 = Object.keys((await 집기()).json());

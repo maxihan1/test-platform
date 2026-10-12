@@ -1,6 +1,8 @@
 // 설정 화면의 대상 서버 편집기 (SPEC §8.8 · §6 service_env)
 // 여러 줄이다 — 환경변수 한 줄로는 서비스가 셋만 되어도 안 들어간다
 
+import { 운영이름인가 } from '../settings/roles.js';
+
 import type { EnvInput, EnvRow } from './api.js';
 import { use말 } from './i18n.js';
 import { 비밀번호칸, 역할계정칸들, 역할보낼모양, 역할줄로, type 역할줄 } from './SettingsEnvAccounts.js';
@@ -50,7 +52,7 @@ export const 보낼모양 = (줄들: 줄[]): EnvInput[] =>
       ...(loginId !== undefined ? { loginId } : 새줄 ? { loginId: null } : {}),
       ...(새값 !== null ? { loginPassword: 새값 } : 비밀번호지움 === true || 새줄 ? { loginPassword: null } : {}),
       // 운영 표시 · 역할 목록도 같은 까닭으로 새 줄은 명시한다. 받은 것은 되돌려 보낸다 — 역할 비밀번호는 서버가 이름으로 이어받는다
-      ...(isProd !== undefined ? { isProd } : 새줄 ? { isProd: false } : {}),
+      ...(isProd !== undefined ? { isProd } : 새줄 ? { isProd: 운영이름인가(env) } : {}),
       ...(새줄 || accounts !== undefined || 역할들.length > 0 ? { accounts: 역할들.map(역할보낼모양) } : {}),
     };
   });
@@ -100,7 +102,7 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
             <label className="check-inline">
               <input
                 type="checkbox"
-                checked={it.isProd === true}
+                checked={it.isProd ?? 운영이름인가(it.env)}
                 aria-label={t('대상 서버 {번호} 운영 서버', { 번호: i + 1 })}
                 onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, isProd: e.target.checked } : v)))}
               />
@@ -117,7 +119,7 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
         <button
           className="btn ghost"
           onClick={() =>
-            onChange([...envs, { env: '', baseUrl: '', key: 새줄키(), 원래키: null, 새비밀번호: '', isProd: false, 역할들: [] }])
+            onChange([...envs, { env: '', baseUrl: '', key: 새줄키(), 원래키: null, 새비밀번호: '', 역할들: [] }])
           }
         >
           {t('줄 더하기')}

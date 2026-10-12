@@ -87,6 +87,28 @@ export interface 대상 {
   startUrl: string | null;
   loginId: string | null;
   loginPassword: string | null;
+  /** 「운영 서버」로 체크된 줄 — 그때 계정 칸은 비어 온다. 에이전트가 이 까닭으로 FAILED 를 낸다 (§7 claim) */
+  isProd?: true;
+}
+
+/**
+ * 계정이 서버를 떠나는 자리(집기)는 운영 줄 계정을 안 싣는다. 요청을 만든 뒤 「운영 서버」로 체크해도 여기서 막힌다 —
+ * 만들 때 · 재실행 · 이어 작성의 BAD_ENV 만으로는 이미 선 요청을 못 막는다 (§3.6 「★ 역할별 계정」 「운영 서버」)
+ */
+export const 작성에실을줄 = (줄: 대상줄 | null): 대상줄 | null =>
+  줄 === null || !줄.isProd ? 줄 : { ...줄, loginId: null, loginPassword: null, 계정들: [] };
+
+/** 집기 응답 target 한 벌 — 운영 줄이면 계정이 비고 isProd 가 붙는다 */
+export function 집기대상(env: string, 원줄: 대상줄 | null, startUrl: string | null): 대상 {
+  const 줄 = 작성에실을줄(원줄);
+  return {
+    env,
+    baseUrl: 줄?.baseUrl ?? null,
+    startUrl,
+    loginId: 줄?.loginId ?? null,
+    loginPassword: 줄?.loginPassword ?? null,
+    ...(원줄?.isProd === true ? { isProd: true as const } : {}),
+  };
 }
 
 /** 집기 응답 accounts 한 줄 (§7 claim) */
@@ -122,13 +144,11 @@ export async function 집기대상칸(
   행: { compare: boolean; env: string | null; startUrl: string | null; params: Record<string, unknown> },
   머지env: string | null | undefined,
 ): Promise<{ target?: 대상; accounts?: 집기계정[] }> {
-  const 대조 = 행.compare && 행.env !== null;
-  const 줄 = 대조 && 행.env !== null ? await 대상줄읽기(서비스, 행.env) : null;
-  const target: 대상 | undefined =
-    대조 && 행.env !== null
-      ? { env: 행.env, baseUrl: 줄?.baseUrl ?? null, startUrl: 행.startUrl, loginId: 줄?.loginId ?? null, loginPassword: 줄?.loginPassword ?? null }
-      : undefined;
-  const 머지줄 = !대조 && typeof 머지env === 'string' ? await 대상줄읽기(서비스, 머지env) : null;
+  const 대조env = 행.compare ? 행.env : null;
+  const 원줄 = 대조env !== null ? await 대상줄읽기(서비스, 대조env) : null;
+  const target = 대조env !== null ? 집기대상(대조env, 원줄, 행.startUrl) : undefined;
+  const 줄 = 작성에실을줄(원줄);
+  const 머지줄 = 대조env === null && typeof 머지env === 'string' ? 작성에실을줄(await 대상줄읽기(서비스, 머지env)) : null;
   const 줄들 =
     행.params.prdApply === true
       ? (await 대상줄들읽기(서비스)).filter((z) => !z.isProd)

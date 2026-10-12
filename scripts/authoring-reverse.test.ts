@@ -44,6 +44,10 @@ describe('대상점검 — 집을 때 다시 대조한다', () => {
     expect(대상점검({ ...정상, baseUrl: '깨진 주소' })).toContain('대상 서버');
   });
 
+  it('「운영 서버」로 체크된 줄이면 계정이 빠졌다가 아니라 운영 서버라고 말한다', () => {
+    expect(대상점검({ ...정상, loginId: null, loginPassword: null, isProd: true })).toContain('운영 서버');
+  });
+
   it('테스트 계정이 빠졌으면 사유', () => {
     for (const 빠짐 of [{ loginId: null }, { loginId: '' }, { loginPassword: null }, { loginPassword: '' }]) {
       expect(대상점검({ ...정상, ...빠짐 })).toContain('테스트 계정');

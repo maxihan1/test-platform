@@ -100,6 +100,19 @@ describe('대상 서버 줄의 역할 계정 · 운영 서버 (도메인/인증 
     expect(await 저장한본문()).toMatchObject({ isProd: true });
   });
 
+  it('새 줄 이름이 prod 면 「운영 서버」가 미리 켜지고 그대로 보낸다 — 끌 수 있다', async () => {
+    render(<ServicePanel row={서비스} onDone={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: '줄 더하기' }));
+    fireEvent.change(screen.getByLabelText('대상 서버 2 키'), { target: { value: 'prod' } });
+    fireEvent.change(screen.getByLabelText('대상 서버 2 주소'), { target: { value: 'https://prod.example.com' } });
+    expect((screen.getByLabelText('대상 서버 2 운영 서버') as HTMLInputElement).checked).toBe(true);
+
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(고침).toHaveBeenCalledTimes(1));
+    expect(고침.mock.calls[0]?.[1]?.envs?.[1]).toMatchObject({ env: 'prod', isProd: true });
+  });
+
   it('역할 비밀번호 칸은 가린 입력이고 자동완성을 받지 않는다', () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 역할 1 비밀번호 넣기' }));
