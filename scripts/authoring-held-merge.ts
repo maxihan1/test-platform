@@ -137,8 +137,10 @@ export async function 반영작업방(
   const 비밀 = 비밀번호들(준비.것);
   const 실패 = async (까닭: string) => (await 손.끝내기({ status: 'FAILED', error: 사유거르기(까닭, 비밀) }), null);
   const 채움 = held !== null && Object.values(held).some((입력) => 입력.removed !== true);
-  const 대상사유 = 채움 ? (준비.것.target === undefined ? '반영할 대상 서버가 없다' : (대상점검(준비.것.target) ?? 계정점검(준비.것.accounts))) : null;
+  const 대상사유 = 채움 ? (준비.것.target === undefined ? '반영할 대상 서버가 없다' : 대상점검(준비.것.target)) : null;
   if (대상사유 !== null) return 실패(대상사유);
+  const 뺀계정 = 채움 ? 계정점검(준비.것.accounts) : null;
+  if (뺀계정 !== null) console.log(`[머지] ${준비.것.id}번 ${뺀계정}`);
 
   await 손.단계(held !== null ? '보류 값을 적는 중' : '겹친 케이스를 고른 대로 바꾸는 중');
   // 훑기가 도는 반영의 작업방을 지우지 않게 — 3회 실행은 한 시간 훑기 간격에 걸칠 수 있다

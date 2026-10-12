@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { 계정채우기, 계정칸, 기본역할 } from './accounts.js';
+import { 계정채우기, 계정칸, 기본역할, 출처 } from './accounts.js';
 
 const 계정들 = [
   { role: 기본역할, loginId: 'user01', loginPassword: 'member-pw' },
@@ -25,6 +25,21 @@ describe('계정칸', () => {
     expect(계정칸('loginId', {})).toBeNull();
     expect(계정칸('loginId', undefined)).toBeNull();
     expect(계정칸('apiToken', { secret: true })).toBeNull();
+  });
+
+  it('꼬리표 없는 칸은 로그인 칸 이름 그대로일 때만 채운다 — 새 비밀번호 · 계좌 번호는 아니다', () => {
+    expect(계정칸('newPassword', { secret: true })).toBeNull();
+    expect(계정칸('confirmPassword', { secret: true })).toBeNull();
+    expect(계정칸('accountNumber', { secret: true })).toBeNull();
+    expect(계정칸('email', { secret: true })).toEqual({ role: '일반 회원', 칸: 'loginId' });
+  });
+});
+
+describe('출처', () => {
+  it('경로 · 쿼리를 떼고 scheme · host · port 만 본다', () => {
+    expect(출처('https://qa.demo:8443/login?x=1')).toBe('https://qa.demo:8443');
+    expect(출처('주소 아님')).toBeNull();
+    expect(출처(undefined)).toBeNull();
   });
 });
 

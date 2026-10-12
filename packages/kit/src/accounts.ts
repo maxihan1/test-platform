@@ -21,16 +21,32 @@ export interface 계정자리 {
   칸: 'loginId' | 'loginPassword';
 }
 
+// 꼬리표가 없는 칸은 로그인 칸 이름 그대로일 때만 일반 회원 계정이다 — 「포함」으로 보면 newPassword · accountNumber 같은 칸까지 계정 값이 들어간다
+const 일반아이디 = /^(loginId|id|userId|username|email|loginEmail)$/i;
+const 일반비밀번호 = /^(password|pw|passwd|loginPassword)$/i;
+
 /**
  * 비밀값 칸이면 역할과 아이디 · 비밀번호 가운데 어느 칸인지. 계정 칸이 아니면 null.
- * ponytail: 칸 이름으로 가른다 — 이름이 둘 다 아닌 비밀값(토큰 같은)은 계정으로 안 채운다. 틀리면 케이스가 「비어 있다」로 드러낸다
+ * `account` 꼬리표가 있으면 케이스가 계정 칸이라고 밝힌 것이라 이름에 pass · pw 가 들면 비밀번호, 아니면 아이디다.
+ * 꼬리표가 없으면 로그인 칸 이름(위 둘)만 일반 회원 계정이다. 그 밖 비밀값 칸(토큰 · 새 비밀번호 같은)은 안 채운다
  */
 export function 계정칸(이름: string, 꼬리표: 칸꼬리표 | undefined): 계정자리 | null {
   if (꼬리표?.secret !== true) return null;
-  const 칸 = /pass|pw/i.test(이름) ? 'loginPassword' : /id$|user|email|account|login/i.test(이름) ? 'loginId' : null;
-  if (칸 === null) return null;
-  const role = typeof 꼬리표.account === 'string' && 꼬리표.account.trim() !== '' ? 꼬리표.account.trim() : 기본역할;
-  return { role, 칸 };
+  if (typeof 꼬리표.account === 'string' && 꼬리표.account.trim() !== '') {
+    return { role: 꼬리표.account.trim(), 칸: /pass|pw/i.test(이름) ? 'loginPassword' : 'loginId' };
+  }
+  const 칸 = 일반비밀번호.test(이름) ? 'loginPassword' : 일반아이디.test(이름) ? 'loginId' : null;
+  return 칸 === null ? null : { role: 기본역할, 칸 };
+}
+
+/** 주소의 출처(scheme + host + port). 주소가 아니면 null — 계정 줄을 실행 주소와 맞출 때 서버와 kit 이 이것 하나를 쓴다 */
+export function 출처(주소: unknown): string | null {
+  if (typeof 주소 !== 'string') return null;
+  try {
+    return new URL(주소).origin;
+  } catch {
+    return null;
+  }
 }
 
 /**

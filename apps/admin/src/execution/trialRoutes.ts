@@ -1,7 +1,7 @@
 // 케이스 「테스트 실행」 통로 — 실행 기록 없이 내 컴퓨터 러너에 1건을 보내 창을 띄워 돌린다 (도메인/실행 §3.2 · §7)
 
 import type { ExecuteRequest, ExecuteResponse, Platform } from '@platform/kit';
-import type { 역할계정 } from '@platform/kit/accounts';
+import { 출처, type 역할계정 } from '@platform/kit/accounts';
 
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -42,14 +42,6 @@ function 웹주소인가(값: string): boolean {
     return false;
   }
 }
-
-const 출처 = (주소: string): string | null => {
-  try {
-    return new URL(주소).origin;
-  } catch {
-    return null;
-  }
-};
 
 /**
  * 그 케이스 서비스의 대상 서버 줄 가운데 보낸 주소와 출처가 같은 첫 줄(env 순)의 계정. 없으면 빈 목록 — 안 채운다 (실행 §3.2).

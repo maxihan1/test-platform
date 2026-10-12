@@ -39,11 +39,17 @@ describe('환경비밀번호들 — 자식 쪽은 받은 환경 변수로 같은
   });
 });
 
-describe('계정점검 — 역할 계정 비밀번호도 짧으면 FAILED', () => {
-  it('비밀최소보다 짧은 줄이 있으면 서버 줄 · 역할 이름을 넣은 사유 — 값은 싣지 않는다', () => {
-    const 사유 = 계정점검([회원, { ...관리자, loginPassword: 'abc' }]);
-    expect(사유).toBe('대상 서버 「qa」 의 「관리자」 테스트 계정 비밀번호가 4자보다 짧아 올리는 글에 새는지 검사할 수 없다 — 더 긴 비밀번호로 바꿔라');
-    expect(사유).not.toContain('abc');
+describe('계정점검 — 역할 계정 비밀번호가 짧으면 그 계정만 빼고 알린다', () => {
+  it('비밀최소보다 짧은 줄이 있으면 서버 줄 · 역할 이름을 넣은 알림 — 값은 싣지 않는다', () => {
+    const 알림 = 계정점검([회원, { ...관리자, loginPassword: 'abc' }]);
+    expect(알림).toBe('테스트 계정 「qa」 의 「관리자」 은 비밀번호가 4자보다 짧아 올리는 글에 새는지 검사할 수 없어 넘기지 않았다 — 그 계정을 쓰는 케이스는 비밀값이 빈다');
+    expect(알림).not.toContain('abc');
+  });
+
+  it('짧은 계정은 PLATFORM_ACCOUNTS 에 안 실린다 — 자식이 못 받으니 샐 것도 없다', () => {
+    const 넘긴것 = JSON.parse(계정환경([회원, { ...관리자, loginPassword: 'abc' }]).PLATFORM_ACCOUNTS ?? '') as { role: string }[];
+    expect(넘긴것.map((a) => a.role)).toEqual(['일반 회원']);
+    expect(계정환경([{ ...관리자, loginPassword: 'abc' }])).toEqual({});
   });
 
   it('모두 길거나 계정이 없으면 null', () => {

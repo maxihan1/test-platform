@@ -12,7 +12,7 @@ import { type 모델, 한도걸렸나 } from './authoring-model.js';
 import { 결제환경, 크레딧먼저, 크레딧바닥났나, 크레딧키이름 } from './authoring-billing.js';
 import { type 자료, 돌릴수있나, 못읽는자료, 입력만, 자료계획, 자료출처, 화면만인가 } from './authoring-assets.js';
 import { 대상점검, 대상환경, 사유거르기 } from './authoring-reverse.js';
-import { 계정점검, 계정환경, 비밀번호들 } from './authoring-accounts.js';
+import { 계정환경, 비밀번호들 } from './authoring-accounts.js';
 import { 자식환경 } from './authoring-chain.js';
 import { type 계정, 사본환경 } from './authoring-copy.js';
 import { 사본치우기, 자식거두기, 자식빈환경 } from './authoring-child.js';
@@ -105,7 +105,7 @@ async function 한건(
   // 케이스 고치기는 자식 없이 main 사본에서 고친다 (§3.6 「★ 케이스 고치기」)
   if (고치기실행인가(것)) return 편집처리(손, 것, 서비스, 판, 판.계정?.자식[자리번호] ?? null, 설정.폴더.폴더);
   // 역방향 — 집을 때 다시 대조한다. 만든 뒤 설정이 바뀌었을 수 있다 (도메인/작성 §7 집기 ★)
-  const 대상사유 = 대상점검(것.target) ?? 계정점검(것.accounts);
+  const 대상사유 = 대상점검(것.target);
   if (대상사유 !== null) {
     await 손.끝내기({ status: 'FAILED', error: 대상사유 });
     return;
@@ -233,7 +233,7 @@ async function 사본에서(
     // 끝의 전체 3회 결과 파일 자리는 에이전트가 정한다 — 맥은 TMPDIR 이 시스템 것이라 거기 쓰면 못 찾는다. 임시는 실행마다 새것이다
     ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }), AUTHORING_GATE3_DIR: 자리.임시,
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
-    ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts),
+    ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)),
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = 클로드인자(자리.자료, 판.모델);

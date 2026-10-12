@@ -3,7 +3,7 @@
 
 import type { z } from 'zod';
 
-import { 계정채우기, type 역할계정, type 칸꼬리표 } from '../accounts.js';
+import { 계정채우기, 출처, type 역할계정, type 칸꼬리표 } from '../accounts.js';
 import { schemasOf, type CaseHandle, type CaseSchema } from './defineCase.js';
 
 export interface RawInputs {
@@ -11,15 +11,6 @@ export interface RawInputs {
   expected: unknown;
   /** 작성 · 반영 때 에이전트가 넘긴 계정 가운데 실행 주소와 출처가 같은 줄 — 비어 있는 계정 칸을 채운다 (도메인/작성 §3.6 「★ 역할별 계정」) */
   accounts?: 역할계정[];
-}
-
-function originOf(url: unknown): string | null {
-  if (typeof url !== 'string') return null;
-  try {
-    return new URL(url).origin;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -39,12 +30,12 @@ export function injectedAccounts(env: NodeJS.ProcessEnv = process.env): 역할�
   }
   if (!Array.isArray(parsed)) throw new Error('PLATFORM_ACCOUNTS가 배열이 아니다');
 
-  const origin = originOf(env.PLATFORM_BASE_URL);
+  const origin = 출처(env.PLATFORM_BASE_URL);
   if (origin === null) return [];
   return parsed.flatMap((row: unknown, i): 역할계정[] => {
     const a = (typeof row === 'object' && row !== null ? row : {}) as Record<string, unknown>;
     if (typeof a.role !== 'string') throw new Error(`PLATFORM_ACCOUNTS ${String(i + 1)}번째 줄에 역할(role)이 없다`);
-    if (originOf(a.baseUrl) !== origin) return [];
+    if (출처(a.baseUrl) !== origin) return [];
     const text = (v: unknown) => (typeof v === 'string' ? v : null);
     return [{ role: a.role, loginId: text(a.loginId), loginPassword: text(a.loginPassword) }];
   });
