@@ -6,7 +6,7 @@ import { 회원가입화면 } from './pages/signup.page.js';
 
 export const spec = defineCase({
   tcId: 'MKT-FN-348',
-  name: '휴대폰을 9자로 적으면 「휴대폰 번호는 숫자 10~11자입니다」가 보인다',
+  name: '휴대폰을 9자로 적으면 「휴대폰 번호는 숫자만 10~11자로 입력해 주세요」가 보인다',
   precondition: ['비회원이다'],
   params: null,
   expected: null,
@@ -32,7 +32,7 @@ test(spec, async ({ page }) => {
 
   await test.step('회원가입 휴대폰 칸에 9자를 적는다', async () => {
     await 회원가입.적기(회원가입.휴대폰, '010123456');
-    await verify('휴대폰을 9자로 적으면 「휴대폰 번호는 숫자 10~11자입니다」가 보인다', await 보이는글(회원가입.안내('phone')), '휴대폰 번호는 숫자 10~11자입니다');
+    await verify('휴대폰을 9자로 적으면 「휴대폰 번호는 숫자만 10~11자로 입력해 주세요」가 보인다', await 보이는글(회원가입.안내('phone')), '휴대폰 번호는 숫자만 10~11자로 입력해 주세요');
   });
 
   await test.step('회원가입 휴대폰 칸에 10자를 적는다', async () => {
@@ -47,6 +47,6 @@ test(spec, async ({ page }) => {
 
   await test.step('회원가입 휴대폰 칸에 12자를 넣는다', async () => {
     await 회원가입.적기(회원가입.휴대폰, '010123456789');
-    await verify('휴대폰 칸에 12자를 넣으면 「휴대폰 번호는 숫자 10~11자입니다」가 보이지 않는다', await 보이는글(회원가입.안내('phone')), '');
+    await verify('휴대폰 칸에 12자를 넣으면 「휴대폰 번호는 숫자만 10~11자로 입력해 주세요」가 보이지 않는다', await 보이는글(회원가입.안내('phone')), '');
   });
 });
