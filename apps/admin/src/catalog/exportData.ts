@@ -6,6 +6,7 @@ import type { Platform, Technique } from '@platform/kit';
 import { 보류들, type 보류입력 } from '../authoring/held.js';
 import { 사슬식 } from '../authoring/history.js';
 import { lastByCase, type LastResult } from '../execution/history.js';
+import { 케이스판정 } from '../prd/trace.js';
 import type { 맥락조건 } from './context.js';
 import type { ExportCase, ExportHeld, ExportInput } from './export.js';
 import { listCases } from './store.js';
@@ -52,8 +53,14 @@ async function 보류기록(serviceId: number): Promise<ExportHeld[]> {
   );
 }
 
-function 결과칸(l: LastResult | undefined): ExportCase['lastResult'] {
-  return l === undefined ? null : { status: l.status, at: 한국시각(l.finishedAt) };
+/**
+ * 케이스 하나의 마지막 결과 칸. 판정은 추적표 · 목록과 같은 규칙(기기 한쪽만 깨져도 실패)이고 시각은 가장 늦게 끝난 기기 것이다.
+ * 더 최근에 끝난 기기 하나만 실으면 PC 실패 · 휴대폰 통과가 엑셀은 통과, 추적표는 실패로 갈린다 (PRD-F9-09). 돈 기기가 없으면 빈칸
+ */
+export function 결과칸(platforms: Platform[], 기기별: LastResult[]): ExportCase['lastResult'] {
+  if (기기별.length === 0) return null;
+  const 늦은 = 기기별.reduce((a, b) => (b.finishedAt > a.finishedAt ? b : a));
+  return { status: 케이스판정(platforms.map((p) => 기기별.find((l) => l.platform === p)?.status)), at: 한국시각(늦은.finishedAt) };
 }
 
 export async function 엑셀자료(입력: 맥락조건 & {
@@ -83,13 +90,10 @@ export async function 엑셀자료(입력: 맥락조건 & {
     pageSize: null,
   });
 
-  // 기기가 둘이면 더 최근에 끝난 쪽 하나를 싣는다 — 칸이 하나다
-  const 마지막 = new Map<string, LastResult>();
+  // 기기가 둘이어도 칸이 하나다 — 기기별 결과를 모아 결과칸 이 한 판정으로 접는다
+  const 마지막 = new Map<string, LastResult[]>();
   if (입력.canSeeRuns) {
-    for (const l of await lastByCase([입력.service])) {
-      const 이미 = 마지막.get(l.tcId);
-      if (이미 === undefined || l.finishedAt > 이미.finishedAt) 마지막.set(l.tcId, l);
-    }
+    for (const l of await lastByCase([입력.service])) 마지막.set(l.tcId, [...(마지막.get(l.tcId) ?? []), l]);
   }
 
   const held = 입력.canSeeAuthoring ? await 보류기록(입력.serviceId) : null;
@@ -109,7 +113,7 @@ export async function 엑셀자료(입력: 맥락조건 & {
       paramSchema: c.paramSchema,
       expectedSchema: c.expectedSchema,
       unconfirmed: c.unconfirmed,
-      lastResult: 결과칸(마지막.get(c.tcId)),
+      lastResult: 결과칸(c.platforms, 마지막.get(c.tcId) ?? []),
       filledBy: 채운이.get(c.tcId) ?? null,
       techniques: c.techniques,
       feature: c.feature,
