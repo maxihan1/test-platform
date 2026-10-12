@@ -77,6 +77,16 @@ describe.skipIf(연결 === undefined)('보류 상세 · 머지 · 집기', () =>
               ($1, 'dev', 'https://dev.xwlm.test', 'tester', NULL)`,
       [서비스],
     );
+    // 계정이 다 있어도 「운영 서버」 줄은 머지 대상으로 못 고른다. stg 의 역할 계정은 집기 accounts 에 실린다
+    await p.query(
+      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod)
+       VALUES ($1, 'live', 'https://live.xwlm.test', 'tester', 'pw-xwlm', true)`,
+      [서비스],
+    );
+    await p.query(`UPDATE service_env SET role_accounts = $2 WHERE service_id = $1 AND env = 'stg'`, [
+      서비스,
+      JSON.stringify([{ role: '관리자', loginId: 'admin', loginPassword: 'pw-xwlm-admin' }]),
+    ]);
     process.env.AUTHORING_AGENT_USER = 맥;
     app = Fastify();
     app.decorateRequest('user', null);
@@ -129,7 +139,7 @@ describe.skipIf(연결 === undefined)('보류 상세 · 머지 · 집기', () =>
       expect((await 부르기('GET', `/api/authoring/requests/${읽은}`)).json()).toMatchObject({ heldUnknown: false });
     });
 
-    it('정방향 보류면 mergeEnvs 에 테스트 계정 있는 줄 이름만 · 대조와 보류 없는 것에는 없다', async () => {
+    it('정방향 보류면 mergeEnvs 에 테스트 계정 있고 운영 서버가 아닌 줄 이름만 · 대조와 보류 없는 것에는 없다', async () => {
       const 정 = await 넣기({ status: 'DONE', held: [쿠폰] });
       expect((await 부르기('GET', `/api/authoring/requests/${정}`)).json().mergeEnvs).toEqual(['stg']);
       const 대조 = await 넣기({ status: 'DONE', held: [쿠폰], env: 'stg' });
@@ -171,6 +181,7 @@ describe.skipIf(연결 === undefined)('보류 상세 · 머지 · 집기', () =>
       expect((await 머지({ sourceId: id })).json()).toMatchObject({ error: 'BAD_ENV' });
       expect((await 머지({ sourceId: id, env: 'prod' })).json()).toMatchObject({ error: 'BAD_ENV' });
       expect((await 머지({ sourceId: id, env: 'nope' })).json()).toMatchObject({ error: 'BAD_ENV' });
+      expect((await 머지({ sourceId: id, env: 'live' })).json()).toMatchObject({ error: 'BAD_ENV' });
       expect((await 머지({ sourceId: id, env: 'stg' })).statusCode).toBe(201);
     });
 
@@ -215,6 +226,10 @@ describe.skipIf(연결 === undefined)('보류 상세 · 머지 · 집기', () =>
       const r = await 집기();
       expect(r.held).toEqual({ 'XWLM-001': { params: { wait: 3 }, expected: { total: 1 } } });
       expect(r.target).toEqual({ env: 'stg', baseUrl: 'https://stg.xwlm.test', loginId: 'tester', loginPassword: 'pw-xwlm' });
+      expect(r.accounts).toEqual([
+        { env: 'stg', baseUrl: 'https://stg.xwlm.test', role: '일반 회원', loginId: 'tester', loginPassword: 'pw-xwlm' },
+        { env: 'stg', baseUrl: 'https://stg.xwlm.test', role: '관리자', loginId: 'admin', loginPassword: 'pw-xwlm-admin' },
+      ]);
     });
 
     it('대조 원본이라도 제거만 했으면 target 을 안 싣는다 — 돌릴 케이스가 없다', async () => {
@@ -223,6 +238,7 @@ describe.skipIf(연결 === undefined)('보류 상세 · 머지 · 집기', () =>
       const r = await 집기();
       expect(r.held).toEqual({ 'XWLM-002': { removed: true } });
       expect('target' in r).toBe(false);
+      expect('accounts' in r).toBe(false);
     });
 
     it('입력이 없으면 두 키 자체가 없다', async () => {
@@ -232,6 +248,7 @@ describe.skipIf(연결 === undefined)('보류 상세 · 머지 · 집기', () =>
       expect(r.kind).toBe('MERGE');
       expect('held' in r).toBe(false);
       expect('target' in r).toBe(false);
+      expect('accounts' in r).toBe(false);
     });
   });
 });

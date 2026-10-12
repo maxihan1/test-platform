@@ -9,11 +9,14 @@ import { 번호 } from './params.js';
 import { 계정있는줄, 대상줄읽기 } from './reverse.js';
 import { db, 한건, type 요청 } from './store.js';
 
-/** 반영 때 고를 수 있는 대상 서버 — 테스트 계정이 둘 다 있는 줄만. 운영 줄을 보이면 고른 뒤에야 BAD_ENV 로 막힌다 */
+/**
+ * 반영 때 고를 수 있는 대상 서버 — 테스트 계정이 둘 다 있고 「운영 서버」가 아닌 줄만(계정있는줄 과 같은 판정).
+ * 운영 줄을 보이면 고른 뒤에야 BAD_ENV 로 막힌다
+ */
 async function 계정줄들(서비스: number): Promise<string[]> {
   const r = await (await db()).query<{ env: string }>(
     `SELECT env FROM service_env
-      WHERE service_id = $1 AND COALESCE(login_id, '') <> '' AND COALESCE(login_password, '') <> ''
+      WHERE service_id = $1 AND NOT is_prod AND COALESCE(login_id, '') <> '' AND COALESCE(login_password, '') <> ''
       ORDER BY env`,
     [서비스],
   );

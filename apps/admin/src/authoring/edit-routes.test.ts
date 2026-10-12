@@ -14,6 +14,7 @@ const 연결 = process.env.DATABASE_URL;
 const 접두사 = 'XEB';
 const 틀 = '/api/authoring/edits';
 const 비밀번호 = 'pw-xeb-7731';
+const 관리자비밀번호 = 'pw-xeb-관리자-5520';
 const 사람 = 'xeb-writer';
 const 맥 = 'xeb-맥';
 const 케이스번호들 = ['XEB-001', 'XEB-002', 'XEB-003', 'XEBO-001'];
@@ -79,6 +80,10 @@ describe.skipIf(연결 === undefined)('케이스 고치기 통로', () => {
               ($1, 'dev', 'https://dev.xeb.test', 'tester', '')`,
       [서비스, 비밀번호],
     );
+    await p.query(`UPDATE service_env SET role_accounts = $2 WHERE service_id = $1 AND env = 'dev'`, [
+      서비스,
+      JSON.stringify([{ role: '관리자', loginId: 'admin', loginPassword: 관리자비밀번호 }, { role: '판매자', loginId: 'seller', loginPassword: '' }]),
+    ]);
     for (const tcId of 케이스번호들) {
       await p.query(
         `INSERT INTO test_case (tc_id, name, platforms, precondition, file_path, param_schema, expected_schema)
@@ -150,7 +155,12 @@ describe.skipIf(연결 === undefined)('케이스 고치기 통로', () => {
       expect([res.statusCode, res.json()]).toEqual([400, { error: 'BAD_EDIT', detail: 'XEB-001.title' }]);
     });
 
-    it('빈 비밀번호 줄은 빈 글자를 막는 근거가 아니다', async () => {
+    it('역할 계정 비밀번호와 같아도 400 · <tcId>.<칸> — 같은 비밀값이다', async () => {
+      const res = await 고치기({ edits: [{ tcId: 'XEB-001', expected: { title: 관리자비밀번호 } }] });
+      expect([res.statusCode, res.json()]).toEqual([400, { error: 'BAD_EDIT', detail: 'XEB-001.title' }]);
+    });
+
+    it('빈 비밀번호 줄은 빈 글자를 막는 근거가 아니다 — 역할 계정의 빈 비밀번호도', async () => {
       await 세운번호({ edits: [{ tcId: 'XEB-001', expected: { title: '' } }] });
     });
 

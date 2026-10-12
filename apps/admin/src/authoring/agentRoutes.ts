@@ -16,7 +16,7 @@ import { 보류모양검사, 옮겨올입력 } from './held.js';
 import { 뿌리, 뿌리잠그고 } from './history.js';
 import { 머지집기칸 } from './held-routes.js';
 import { 끝냈다고알림 } from './notify.js';
-import { 집기대상 } from './reverse.js';
+import { 집기대상칸 } from './reverse.js';
 import { 진척검사 } from './stop.js';
 import { 사용량통로 } from './usage.js';
 import { 기획서밖화면세우기 } from './uncovered.js';
@@ -132,10 +132,10 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
         const 읽을자료 =
           집은것.kind === 'RERUN' && 집은것.sourceId !== null ? await 자료목록(집은것.sourceId) : assets;
         const 토큰 = 읽을자료.some((a) => a.kind === 'FIGMA') ? await 피그마토큰(서비스) : null;
-        // 테스트 계정도 같은 길이다 — 대조 행에만 싣고, 에이전트는 자식 환경에만 넘긴다 (§3.6 「로그인」)
-        const target = await 집기대상(서비스, 집은것);
-        // 머지는 대조 칸이 없어 위 target 이 늘 없다. 보류 입력이 있으면 3회 실행할 대상을 여기서 싣는다 (§3.6 「★ 보류 케이스」)
+        // 머지는 대조 칸이 없어 아래 target 이 늘 없다. 보류 입력이 있으면 3회 실행할 대상을 여기서 싣는다 (§3.6 「★ 보류 케이스」)
         const 보류칸 = 집은것.kind === 'MERGE' ? await 머지집기칸(서비스, 집은것) : {};
+        // 테스트 계정도 같은 길이다 — 대조 target · 역할별 계정 accounts 만 싣고, 에이전트는 자식 환경에만 넘긴다 (§3.6 「로그인」 · 「★ 역할별 계정」)
+        const 대상칸 = await 집기대상칸(서비스, 집은것, 보류칸.target?.env);
         // 고치기 실행은 자식 없이 이 목록만으로 고친다 — 키가 있는 것이 곧 고치기 실행이라는 신호다 (§3.6 「★ 케이스 고치기」)
         // 고치기 행이나 그 다시 적용만 — params.edits 가 실린 작성 행은 서버 검사를 안 거친 고침이라 경로를 안 바꾼다
         const 고치기 = 집은것.kind === 'EDIT' || (집은것.kind === 'RERUN' && 집은것.sourceId !== null && (await 한건(집은것.sourceId))?.kind === 'EDIT');
@@ -144,7 +144,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
           ...집은것,
           assets,
           ...(토큰 === null ? {} : { figmaToken: 토큰 }),
-          ...(target === undefined ? {} : { target }),
+          ...대상칸,
           ...보류칸,
           ...(await 집기겹침칸(집은것)),
           ...(edits === null ? {} : { edits }),
