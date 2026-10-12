@@ -173,6 +173,7 @@ export const 작성말: Record<string, string> = {
     'What was made in {분} min is kept so you can continue writing later.',
   '아직 시작 전이라 바로 취소됩니다.': 'It has not started yet, so it is cancelled right away.',
   '목록에서 사라집니다. 통계와 토큰 기록은 남습니다.': 'It disappears from the list. Stats and token records stay.',
+  '반영하지 않을 테스트면 폐기합니다. 올라간 PR 은 GitHub 에서 닫습니다.': 'Discard it if you will not merge these tests. Close the PR on GitHub yourself.',
 
   // 역방향 — 기획서와 실제 화면을 대조한다 (도메인/작성 §3.6 「★ 역방향」)
   '실제 화면과 대조': 'Compare with the live screen',

@@ -95,11 +95,12 @@ async function 버리기(id: number): Promise<boolean> {
     `WITH RECURSIVE ${위로식('$1')}, ${사슬식('id = (SELECT id FROM 위 WHERE source_id IS NULL)')}
      UPDATE authoring_request SET discarded_at = now()
       WHERE id IN (SELECT id FROM 사슬) AND discarded_at IS NULL
-        -- 고치기 실행은 병합 전 DONE 도 — 못 버리면 그 tcId 가 계속 EDIT_OPEN 에 걸린다 (§3.6 「★ 케이스 고치기」)
+        -- 병합 전 DONE 도 — 못 버리면 고치기는 그 tcId 가 계속 EDIT_OPEN 에, 작성은 「반영 대기」로 남는다 (PRD-F9-16).
+        -- 병합된 반영(MERGE DONE)이 최신이면 안 된다 — 이미 main 에 들어갔다
         AND EXISTS (SELECT 1 FROM authoring_request 누른것
                      WHERE 누른것.id = $1 AND 누른것.discarded_at IS NULL
                        AND (누른것.status IN ('FAILED', 'STOPPED', 'DRAFT')
-                            OR (누른것.status = 'DONE' AND ${고치기실행식('누른것')})))
+                            OR (누른것.status = 'DONE' AND 누른것.kind <> 'MERGE')))
         -- 누른 것이 최신 실행이고 도는 실행이 없을 때만 — 옛 번호로 누르면 방금 선 실행 · 끝난 머지까지 버린다 (2026-09-29 검사)
         AND $1::bigint = ${최신식('사슬')}
         AND NOT EXISTS (SELECT 1 FROM 사슬 s JOIN authoring_request x ON x.id = s.id WHERE x.status IN ('PENDING', 'RUNNING'))`,
@@ -156,7 +157,7 @@ export async function 상세읽기(req: FastifyRequest, id: number) {
       됨 &&
       행.kind !== 'MERGE' &&
       (행.status === 'PENDING' || (행.status === 'RUNNING' && (stale === true || (!고치기 && 도는중)))),
-    canDiscard: 버릴수 && (['FAILED', 'STOPPED', 'DRAFT'].includes(행.status) || (행.status === 'DONE' && 고치기)),
+    canDiscard: 버릴수 && (['FAILED', 'STOPPED', 'DRAFT'].includes(행.status) || (행.status === 'DONE' && 행.kind !== 'MERGE')),
     // 이어서 작성은 재실행과 같은 규칙 — 요청한 사람만이 아니라 작성 권한이면 누구나 (§7 「이어하기」)
     canResume: resumable,
     // 화면이 「10월 5일까지」를 그린다 — 보관일을 화면에 또 적지 않게 여기서 날짜로 준다

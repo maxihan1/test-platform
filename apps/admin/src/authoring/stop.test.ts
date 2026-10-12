@@ -171,13 +171,16 @@ describe.skipIf(연결 === undefined)('중단 · 폐기 · 진척 통로', () =>
     expect((await 버리기(id)).statusCode).toBe(200);
   });
 
-  it('폐기는 FAILED·STOPPED·DRAFT 만 · 두 번은 409', async () => {
+  it('폐기는 FAILED·STOPPED·DRAFT · 병합 안 된 DONE · 병합된 반영과 도는 것은 409 · 두 번은 409', async () => {
     사람으로(사람1);
-    for (const status of ['FAILED', 'DRAFT']) {
+    for (const status of ['FAILED', 'DRAFT', 'DONE']) {
       expect((await 버리기(await 넣기({ status }))).json()).toEqual({ ok: true });
     }
-    for (const status of ['DONE', 'RUNNING', 'PENDING']) {
-      expect((await 버리기(await 넣기({ status }))).json()).toEqual({ error: 'NOT_DISCARDABLE' });
+    const 다시 = await 넣기({ kind: 'RERUN', status: 'DONE' });
+    expect((await 버리기(다시)).json()).toEqual({ ok: true });
+    expect((await 읽기(Number((await 읽기(다시)).source_id))).discarded_at).not.toBeNull();
+    for (const 칸 of [{ status: 'RUNNING' }, { status: 'PENDING' }, { kind: 'MERGE', status: 'DONE' }]) {
+      expect((await 버리기(await 넣기(칸))).json()).toEqual({ error: 'NOT_DISCARDABLE' });
     }
     const 실패 = await 넣기({ status: 'FAILED' });
     await 버리기(실패);

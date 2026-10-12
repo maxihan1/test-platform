@@ -232,6 +232,16 @@ describe('작성 진척 · 중단 · 폐기', () => {
     await vi.waitFor(() => expect(멈춤).toHaveBeenCalledWith('PAY', 7));
   });
 
+  it('병합 안 한 끝난 작성은 다음 단계 끝에 폐기가 있고, 누르면 PR 을 GitHub 에서 닫으라고 한 번 더 묻는다 (PRD-F9-16)', async () => {
+    답 = 줄({ canDiscard: true });
+    render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
+    fireEvent.click(await screen.findByRole('button', { name: '폐기' }));
+    expect(screen.getByRole('dialog').textContent).toContain('GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.');
+    expect(폐기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getAllByRole('button', { name: '폐기' }).at(-1)!);
+    await vi.waitFor(() => expect(폐기).toHaveBeenCalledWith('PAY', 7));
+  });
+
   it('canStop 이 아니면 중단 버튼이 없다 — 요청한 사람도 admin 도 아니면 서버가 false 를 준다', async () => {
     답 = 줄({ status: 'RUNNING', prUrl: null, finishedAt: null, progress: 도는진척, canStop: false, canDiscard: false });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
