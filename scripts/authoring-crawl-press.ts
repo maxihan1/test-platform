@@ -28,6 +28,12 @@ const 그만말 = /취소|닫기|아니[오요]|cancel|close|dismiss|^no$|^[×x�
 
 export const 탈퇴말인가 = (글: string): boolean => 탈퇴말.test(글);
 
+// 낯선 이름의 탈퇴도 화면 안 확인 창은 대개 이렇게 경고한다 — 낱말 목록만으로는 그 이름을 다 모른다 (PRD-F9-23)
+const 되돌릴수없음 = /복구(?:할|가)?\s*수\s*없|복구되지\s*않|되돌릴\s*수\s*없|영구(?:적으로|히)?\s*(?:삭제|사라|지워)|cannot\s+be\s+(?:undone|recovered|restored)|permanently|irreversibl/i;
+
+/** 확인 창 글이 되돌릴 수 없다고 경고하나 — 그러면 마지막 버튼을 누르지 않는다. 삭제 확인 창도 걸리지만 지운 뒤 화면은 대개 원래 목록이다 */
+export const 되돌릴수없나 = (글: string): boolean => 되돌릴수없음.test(글);
+
 /** 주소가 탈퇴 흐름인가 — 경로 · 인자 · 해시 라우트의 낱말(`/my/withdraw` · `member_leave.php` · `/탈퇴`) */
 export function 탈퇴주소인가(주소: string, 기준?: string): boolean {
   try {
