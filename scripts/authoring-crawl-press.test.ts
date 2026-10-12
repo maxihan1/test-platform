@@ -75,11 +75,12 @@ describe('탈퇴 흐름 — 주소 · 제목 · 이름 · 확인 창 글의 낱�
   });
 
   it('낯선 이름의 탈퇴 — 확인 창이 되돌릴 수 없다고 경고하면 안 누른다 (PRD-F9-23)', () => {
-    for (const 글 of ['계정을 정리하면 모든 정보가 삭제되며 복구할 수 없습니다', '되돌릴 수 없습니다. 계속할까요?', '데이터가 영구적으로 삭제됩니다', 'This cannot be undone.', 'Your data will be permanently removed']) {
+    for (const 글 of ['계정을 정리하면 모든 정보가 삭제되며 복구할 수 없습니다', '되돌릴 수 없습니다. 계속할까요?', '데이터가 영구적으로 삭제됩니다', '탈퇴 후에는 데이터가 모두 사라집니다', 'This cannot be undone.', 'Your data will be permanently removed']) {
       expect(되돌릴수없나(글), 글).toBe(true);
     }
-    expect(되돌릴수없나('로그아웃 하시겠습니까?')).toBe(false);
-    expect(되돌릴수없나('장바구니에 담았습니다')).toBe(false);
+    for (const 글 of ['로그아웃 하시겠습니까?', '장바구니에 담았습니다', 'Your address will be permanently saved to your profile']) {
+      expect(되돌릴수없나(글), 글).toBe(false);
+    }
   });
 });
 

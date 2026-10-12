@@ -49,18 +49,20 @@ export const 통로 = (번호: number, 서비스: string) => `/authoring/request
 type 판 = { version: number; items: PrdItem[] };
 
 /**
- * 결과 파일을 「비밀번호: 값」 꼴을 가리며 읽는다. 글 값만 가린다(키는 그대로).
- * 올린 판이 가린 문장이라 앞 결과도 가려 읽어야 문장으로 번호를 물려받는다
+ * 「비밀번호: 값」 꼴을 가리며 읽는다. 글 값만 가린다(키는 그대로).
+ * 결과 파일 · 지금 판 · 앞 결과를 모두 이 손으로 읽는다 — 한쪽만 가리면 문장으로 짝짓는 판 합치기 · 번호 물려받기가 같은 요구를 새 요구로 본다
  */
-const 가려읽기 = (글: string): unknown => JSON.parse(글, (_k, v: unknown) => (typeof v === 'string' ? 비밀번호꼴가리기(v) : v));
+const 꼴리바이버 = (_k: string, v: unknown): unknown => (typeof v === 'string' ? 비밀번호꼴가리기(v) : v);
+const 가려읽기 = (글: string): unknown => JSON.parse(글, 꼴리바이버);
+const 꼴가린 = <T>(값: T): T => JSON.parse(JSON.stringify(값), 꼴리바이버) as T;
 
 /** 지금 판과 기준 판(「반영 안 됨」의 기준 — 반영 요청이 쓴다). 기준 판 모양이 틀리면 없는 것으로 본다 */
 export async function 지금판읽기(서버: 서버, 서비스: string, 번호: number): Promise<(판 & { base: 판 | null }) | { 까닭: string }> {
   const 답 = await 부른다(서버.주소기지, 서버.토큰, 통로(번호, 서비스));
   const 몸 = 답.몸 as { version?: unknown; items?: unknown; base?: { version?: unknown; items?: unknown } | null } | null;
   if (답.status !== 200 || typeof 몸?.version !== 'number' || !Array.isArray(몸.items)) return { 까닭: String(답.status) };
-  const base = typeof 몸.base?.version === 'number' && Array.isArray(몸.base.items) ? { version: 몸.base.version, items: 몸.base.items as PrdItem[] } : null;
-  return { version: 몸.version, items: 몸.items as PrdItem[], base };
+  const base = typeof 몸.base?.version === 'number' && Array.isArray(몸.base.items) ? { version: 몸.base.version, items: 꼴가린(몸.base.items as PrdItem[]) } : null;
+  return { version: 몸.version, items: 꼴가린(몸.items as PrdItem[]), base };
 }
 
 /**

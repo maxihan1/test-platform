@@ -71,6 +71,15 @@ describe('판받기', () => {
     expect(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8')).not.toContain('admin-pw-77');
   });
 
+  it('지금 판 · 기준 판에 남은 「비밀번호: 값」 꼴도 같은 손으로 가린다 — 결과 파일만 가리면 문장 짝짓기가 같은 요구를 새 요구로 본다 (PRD-F9-23)', async () => {
+    const 꼴 = { ...있던, text: '관리자 비밀번호: Admin!234 로 로그인' };
+    vi.stubGlobal('fetch', async () => 답(200, { version: 3, items: [꼴], base: { version: 2, items: [꼴] } }));
+    const r = await 판받기(서버, 'MKT', 7, 자리.자료);
+    expect('앞판' in r && r.앞판.items[0]?.text).toBe('관리자 비밀번호: •••••• 로 로그인');
+    expect('기준판' in r && r.기준판?.items[0]?.text).toBe('관리자 비밀번호: •••••• 로 로그인');
+    expect(readFileSync(join(자리.자료, 'prd-current.json'), 'utf8')).not.toContain('Admin!234');
+  });
+
   it('비밀번호가 JSON 키와 같아도 글 값만 가려 깨진 JSON 을 만들지 않는다', async () => {
     vi.stubGlobal('fetch', async () => 답(200, { version: 1, items: [{ ...있던, text: '본문 text 칸' }] }));
     const r = await 판받기(서버, 'MKT', 7, 자리.자료, ['text']);
