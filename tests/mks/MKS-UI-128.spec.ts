@@ -26,6 +26,7 @@ test(spec, async ({ page }) => {
     await 방해막기(page);
     await 홈.열기();
     await 홈.글링크들.first().waitFor();
+    await 머리.그려질때까지();
     await verify(
       '비회원 홈 머리글에 「로그인」 링크와 「회원가입」 링크가 보인다',
       await 보이는이름들({ 로그인: 머리.로그인, 회원가입: 머리.회원가입 }),

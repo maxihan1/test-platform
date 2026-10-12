@@ -21,7 +21,9 @@ test(spec, async ({ page }) => {
 
   await test.step('홈을 연다', async () => {
     await 방해막기(page, { 공지팝업: false });
+    const 설정 = page.waitForResponse((응답) => new URL(응답.url()).pathname === '/api/settings');
     await 홈.열기();
+    await 설정;
     await 홈.글링크들.first().waitFor();
     await verify('홈에 「공지사항」 팝업이 보인다', await 홈.공지창.isVisible(), true);
   });

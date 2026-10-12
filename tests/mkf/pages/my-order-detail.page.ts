@@ -56,6 +56,10 @@ export class 내주문상세화면 {
 
   async 열기(주문번호: string): Promise<void> {
     await this.page.goto(`/my/orders/${encodeURIComponent(주문번호)}`);
-    await this.제목.waitFor();
+    await this.그려질때까지();
+  }
+
+  async 그려질때까지(): Promise<void> {
+    await this.상품목록제목.or(this.주문내역으로).first().waitFor();
   }
 }
