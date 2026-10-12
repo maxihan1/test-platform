@@ -49,6 +49,8 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 - **`/tpx` 와 다른 체인 스킬 호출**
 - **Bash 의 `run_in_background`** — 모든 명령은 앞에서 끝까지 기다린다. **Agent 도구도 같다** — 서브에이전트는 앞에서 띄우고 끝날 때까지 기다린다
 - **AskUserQuestion** — 답할 사람이 없다. 사람은 PR 본문에서 표를 본다
+- **다른 서비스의 테스트 폴더 읽기 · 베끼기** — 프롬프트의 테스트 폴더 말고 `tests/<다른 폴더>` 의 Page Object · 부품 · 도우미를 열거나 복사해 출발하지 않는다.
+  같은 앱처럼 보여도 고객사 서비스끼리는 다른 제품이라 틀린 부품이 섞인다(R8 MKF 가 `tests/mku` 를 복사했다 · PRD-F9-32). 부품은 이번 서비스 화면에서 새로 만든다. 본보기 `tests/demo` · `tests/todo` 는 읽어도 된다
 - **작업 폴더 밖 파일 수정** — 바꾸는 것은 `tests/<폴더>/*.spec.ts` · `tests/<폴더>/pages/*.page.ts` · `tests/<폴더>/components/*.component.ts` · `tests/<폴더>/helpers/*.helper.ts` 와 `docs/cases/<접두사>.md` 뿐이다.
   표준 기획서 절이 있으면 자료 폴더의 결과 파일(`out/prd.json`)과 원장 사본(`npm run prd:ledger` 가 쓰는 `ledger.json`)도 바뀐다 — 저장소 밖이라 커밋되지 않는다.
   다른 파일이 바뀌면 에이전트 스크립트가 push 를 거부한다. `tests/` · `docs/` 밖에 **새로** 만든 파일(실행 로그 등)은 에이전트가 지우고 올린다 —
