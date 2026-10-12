@@ -187,7 +187,7 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
     expect(고침.mock.calls[0]?.[1]?.envs?.[0]).toMatchObject({ loginPassword: null });
   });
 
-  it('새로 더한 줄은 빈 계정 칸을 null 로 보낸다 — 같은 이름의 옛 계정이 되살아나지 않게', async () => {
+  it('새로 더한 줄은 빈 계정 칸을 null · 운영 표시 false · 역할 목록 [] 로 보낸다 — 같은 이름의 옛 계정이 되살아나지 않게', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={계정있음} onDone={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '대상 서버 1 빼기' }));
@@ -202,6 +202,8 @@ describe('대상 서버 줄의 테스트 계정 (도메인/인증 §8.8)', () =>
       baseUrl: 'https://qa.example.com',
       loginId: null,
       loginPassword: null,
+      isProd: false,
+      accounts: [],
     });
   });
 

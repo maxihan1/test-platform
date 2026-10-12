@@ -9,6 +9,7 @@ import { 아이디모양 } from '../auth/rules.js';
 import { 시간대확인, 틀린시간대 } from '../reporting/dashboardResults.js';
 import { 정수 } from '../routeParams.js';
 
+import { 역할까닭찾기 } from './roles.js';
 import { 제외경로정리 } from './rules.js';
 import { db, 서비스고치기, 서비스만들기, 서비스목록, 설정오류, 정기실행재료 } from './store.js';
 import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수락, 비밀번호다시만들기 } from './users.js';
@@ -17,13 +18,26 @@ import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수
 // scripts/add-service.ts 가 이것을 가져다 쓴다 — 같은 모양을 두 번 적지 않는다
 export const 접두사모양 = /^[A-Z][A-Z0-9]{0,11}$/;
 
-// 테스트 계정은 역방향에서만 쓴다. 키가 없으면 기존 값을 유지하고 null·빈 글자면 지운다 (SPEC 도메인/인증 §7 「envs[] 한 줄」)
+// 테스트 계정 칸은 키가 없으면 기존 값을 유지하고 null·빈 글자면 지운다. 역할 계정 · 운영 서버 표시도 키가 없으면 유지한다
+// (SPEC 도메인/인증 §7 「envs[] 한 줄」). 역할 이름 규칙은 스키마 밖 roles.ts 에서 본다 — 어기면 400 BAD_ROLE 이다
+const 역할계정 = z.object({
+  role: z.string(),
+  loginId: z.string().nullable().optional(),
+  loginPassword: z.string().nullable().optional(),
+});
+
 const 대상서버 = z.object({
   env: z.string().min(1),
   baseUrl: z.string().min(1),
   loginId: z.string().nullable().optional(),
   loginPassword: z.string().nullable().optional(),
+  isProd: z.boolean().optional(),
+  accounts: z.array(역할계정).optional(),
 });
+
+// 한 줄이라도 어긋나면 저장 전체를 막는다. 어느 줄인지는 싣지 않는다 — 화면이 보내기 전에 같은 규칙으로 짚는다
+const 역할틀림 = (envs: { accounts?: { role: string }[] }[] | undefined): boolean =>
+  (envs ?? []).some((e) => e.accounts !== undefined && 역할까닭찾기(e.accounts.map((a) => a.role)) !== null);
 
 // 저장은 정리한 값이다. 틀린 줄은 다른 틀린 칸과 같은 400 INVALID_REQUEST 의 detail 로 돌려준다 (SPEC 도메인/인증 §7 계약 변경 블록)
 const 훑지않을경로 = z.array(z.string()).transform((줄들, ctx) => {
@@ -138,6 +152,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     if (!접두사모양.test(parsed.data.prefix)) {
       return reply.code(400).send({ error: 'PREFIX_SHAPE', detail: parsed.data.prefix });
     }
+    if (역할틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_ROLE' });
     return reply.code(201).send({ id: await 서비스만들기(parsed.data) });
   });
 
@@ -152,6 +167,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       if (!parsed.success) {
         return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
       }
+      if (역할틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_ROLE' });
       const id = 정수(req.params.id);
       if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
       const 틀린칸 = await 정기실행틀린칸(id, parsed.data);

@@ -5,6 +5,8 @@ import type { Pool, PoolClient } from 'pg';
 
 import { 종류조건 } from '../execution/runKind.js';
 
+import { type 대상서버, type 대상서버입력, 대상서버넣기, 대상서버칸식 } from './envs.js';
+
 export type 오류코드 =
   | 'PREFIX_TAKEN'
   | 'USERNAME_TAKEN'
@@ -18,22 +20,6 @@ export class 설정오류 extends Error {
   constructor(readonly code: 오류코드) {
     super(code);
   }
-}
-
-// 응답 한 줄. 비밀번호는 되돌려 보여주지 않는다 — 웹훅·피그마 토큰과 같은 규칙 (SPEC 도메인/인증 §7)
-export interface 대상서버 {
-  env: string;
-  baseUrl: string;
-  loginId: string | null;
-  hasLoginPassword: boolean;
-}
-
-// 입력 한 줄. 계정 칸 규칙은 routes.ts 의 스키마 옆에 적었다
-export interface 대상서버입력 {
-  env: string;
-  baseUrl: string;
-  loginId?: string | null;
-  loginPassword?: string | null;
 }
 
 // 정기 실행 설정 한 벌. 시각은 시간대 안의 HH:MM 이다 (SPEC 공통/6-인프라 §9.2 · 도메인/인증 §7)
@@ -82,30 +68,6 @@ export async function 한묶음<T>(일: (client: PoolClient) => Promise<T>): Pro
   }
 }
 
-function 계정칸(보낸것: string | null | undefined, 옛것: string | null): string | null {
-  if (보낸것 === undefined) return 옛것;
-  return 보낸것 === null || 보낸것.trim() === '' ? null : 보낸것;
-}
-
-async function 대상서버넣기(client: PoolClient, serviceId: number, envs: 대상서버입력[]): Promise<void> {
-  // 지우고 다시 넣으므로 계정을 먼저 읽어 둔다. 화면은 비밀번호를 받은 적이 없어 되돌려 보낼 수 없다.
-  // 같은 client 로 읽는다 — 서비스고치기가 서비스 행을 먼저 잠가 같은 서비스의 저장이 겹치지 않는다
-  const 옛것 = await client.query<{ env: string; login_id: string | null; login_password: string | null }>(
-    'SELECT env, login_id, login_password FROM service_env WHERE service_id = $1',
-    [serviceId],
-  );
-  const 옛계정 = new Map(옛것.rows.map((r) => [r.env, r]));
-  await client.query('DELETE FROM service_env WHERE service_id = $1', [serviceId]);
-  for (const { env, baseUrl, loginId, loginPassword } of envs) {
-    // 이름이 같은 줄만 이어받는다. 이름을 바꾸면 새 줄이라 계정을 다시 넣는다 (SPEC 도메인/인증 §7)
-    const 전 = 옛계정.get(env);
-    await client.query(
-      'INSERT INTO service_env (service_id, env, base_url, login_id, login_password) VALUES ($1, $2, $3, $4, $5)',
-      [serviceId, env, baseUrl, 계정칸(loginId, 전?.login_id ?? null), 계정칸(loginPassword, 전?.login_password ?? null)],
-    );
-  }
-}
-
 // 케이스 수는 test_case 에 서비스 칸이 없어 접두사로 센다. 그 표에는 서비스 칸이 없고 앞으로도 없다 (SPEC §6)
 const 서비스들 = `
   SELECT s.id, s.prefix, s.name, s.color, s.tests_repo, s.tests_dir, s.is_active, s.crawl_exclude,
@@ -118,13 +80,7 @@ const 서비스들 = `
          (s.figma_token IS NOT NULL AND s.figma_token <> '') AS has_figma_token,
          (SELECT count(*) FROM test_case tc
            WHERE tc.tc_id LIKE s.prefix || '-%' AND tc.is_active) AS case_count,
-         COALESCE(
-           json_agg(json_build_object('env', e.env, 'baseUrl', e.base_url, 'loginId', e.login_id,
-                                      'hasLoginPassword', e.login_password IS NOT NULL AND e.login_password <> '')
-                    ORDER BY e.env)
-             FILTER (WHERE e.env IS NOT NULL),
-           '[]'
-         ) AS envs
+         COALESCE(json_agg(${대상서버칸식} ORDER BY e.env) FILTER (WHERE e.env IS NOT NULL), '[]') AS envs
     FROM service s
     LEFT JOIN service_env e ON e.service_id = s.id
    GROUP BY s.id
