@@ -76,11 +76,13 @@ export function 과금위험(env: Record<string, string | undefined>, 설정들:
  * 프롬프트는 stdin 으로 넘긴다. 셸 따옴표 문제도 같이 사라진다.
  *
  * `--add-dir` 로 자료를 받아 둔 임시 폴더를 연다. 작업 폴더 밖이라 안 열면 자식이 자료를 못 읽는다.
+ * `더열폴더` 는 자식의 임시 자리(`TMPDIR` · `AUTHORING_GATE3_DIR`)다 — 팬아웃 보조가 거기 둔 맡은 줄 · 결과 파일을 못 읽어
+ * R1 에서 셋이 다시 떴다(PRD-F9-14).
  * **`--add-dir` 도 가변 인자다** — 그래서 `--disallowedTools` 앞에 두고, 마지막은 여전히 `--disallowedTools` 다.
  * `Bash(git:*)`·`Bash(gh:*)` 처럼 **이름으로 막는 것은 실수 방지일 뿐**이다 — `/usr/bin/git`·`sh -c` 로 비껴간다.
  * 막는 것은 자격증명을 뺀 환경이다 (`authoring-chain` 의 `자식환경`).
  */
-export function 클로드인자(폴더: string, 모델: 모델): string[] {
+export function 클로드인자(폴더: string, 모델: 모델, ...더열폴더: string[]): string[] {
   const 막을것 = ['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)'];
   // stream-json 은 턴마다 사용량을 내서 시간초과로 끊겨도 센다 (작성 §7 「토큰 사용량」). -p 와 쓰려면 --verbose 가 필수다
   return [
@@ -93,6 +95,7 @@ export function 클로드인자(폴더: string, 모델: 모델): string[] {
     'acceptEdits',
     '--add-dir',
     폴더,
+    ...더열폴더,
     '--disallowedTools',
     ...막을것,
   ];

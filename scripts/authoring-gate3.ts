@@ -13,9 +13,10 @@ const 깊이상한 = 20;
  * 작성 요약 머리에 싣는 줄 — 끝의 전체 3회 경고(있으면)와 품질 숫자. 자식이 끝난 뒤 root 가 읽는다.
  * 자식이 둔 링크 · 하드링크로 남의 파일을 읽지 않게 일반 파일 · nlink 1 · 폴더 안만 본다(산출물읽기와 같은 검사).
  * `결과폴더` 는 자식의 `AUTHORING_GATE3_DIR` — 실행마다 새로 만드는 임시라 앞 실행 파일이 남지 않는다.
+ * `바뀐` 은 커밋한 뒤 기준과의 차이(저장소 기준 경로) — 그 파일에 닿는 케이스만 3회를 본다(살필케이스).
  * 부르는 쪽은 예외를 잡아 「끝 검사를 못 했다」로 적는다 — 이 검사로 올리기가 죽으면 안 된다
  */
-export function 끝검사줄들(결과폴더: string, 트리: string, 폴더: string): string[] {
+export function 끝검사줄들(결과폴더: string, 트리: string, 폴더: string, 바뀐: readonly string[]): string[] {
   const 안전한글 = (파일: string, 자리: string, 상한: number): string | null => {
     const 정보 = lstatSync(파일, { throwIfNoEntry: false });
     if (정보 === undefined || !정보.isFile() || 정보.nlink !== 1 || 정보.size > 상한) return null;
@@ -50,7 +51,8 @@ export function 끝검사줄들(결과폴더: string, 트리: string, 폴더: st
     }
   };
   훑기(join(테스트, 폴더), 0);
-  const 경고 = 끝전체3회경고(결과들, 케이스수정(파일들));
+  const 바뀐테스트 = new Set([...바뀐].filter((p) => p.startsWith('tests/')).map((p) => p.slice('tests/'.length)));
+  const 경고 = 끝전체3회경고(결과들, 살필케이스(파일들, 바뀐테스트));
   const 임시 = 남은임시도우미(파일들.map((f) => f.경로));
   return [...(경고 === null ? [] : [경고]), ...(임시 === null ? [] : [임시]), 품질줄(품질숫자(파일들))];
 }
@@ -62,29 +64,44 @@ export function 남은임시도우미(경로들: string[]): string | null {
 }
 
 /** 올리기가 부르는 문 — 끝 검사가 예외를 던져도 올리기는 간다. 경고만 하고 막지 않는 장치다 (작성 §3.6) */
-export function 끝검사(결과폴더: string, 트리: string, 폴더: string): string[] {
+export function 끝검사(결과폴더: string, 트리: string, 폴더: string, 바뀐: readonly string[]): string[] {
   try {
-    return 끝검사줄들(결과폴더, 트리, 폴더);
+    return 끝검사줄들(결과폴더, 트리, 폴더, 바뀐);
   } catch (e) {
     return [`⚠️ 끝 검사를 못 했다 — ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`];
   }
 }
 
-/** 케이스 파일마다, 그 파일과 그것이 가져다 쓰는 Page Object · Component 가운데 가장 늦은 수정 시각 */
-function 케이스수정(파일들: (파일글 & { 때: number })[]): Record<string, number> {
+/**
+ * 끝의 3회로 볼 케이스 파일마다, 그 파일과 그것이 가져다 쓰는 Page Object · Component · 도우미 가운데 가장 늦은 수정 시각.
+ * 이번 작성이 바꾼 파일(`바뀐` — 기준과의 차이, testDir 기준 경로)에 닿는 케이스만 본다. 안 건드린 케이스는 앞 작성에서 3회를 통과했다 —
+ * 반영 · 화면이 맞음 · 바뀐 화면 고치기가 케이스 1~4건을 고치고 폴더 전체 472 파일을 돌아 15~17분을 썼다(PRD-F9-13). 첫 작성은 다 바뀐 것이라 전체다
+ */
+export function 살필케이스(파일들: (파일글 & { 때: number })[], 바뀐: ReadonlySet<string>): Record<string, number> {
   const 표 = new Map(파일들.map((f) => [f.경로, f]));
-  const 메모 = new Map<string, number>();
-  const 늦은 = (경로: string, 본: Set<string>): number => {
-    const f = 표.get(경로);
-    if (f === undefined || 본.has(경로)) return 0;
-    if (메모.has(경로)) return 메모.get(경로)!;
-    본.add(경로);
-    const 가져옴 = [...f.글.matchAll(/from\s+['"](\.{1,2}\/[^'"]+)['"]/g)].map((m) => normalize(join(dirname(경로), m[1]!)).replace(/\.js$/, ''));
-    const 값 = Math.max(f.때, ...가져옴.map((p) => 늦은(p.endsWith('.ts') ? p : `${p}.ts`, 본)));
-    메모.set(경로, 값);
-    return 값;
+  // 케이스마다 새로 따라간다 — 나눠 쓰는 메모는 import 가 돌면 덜 찬 집합을 남긴다(code-review).
+  // 폴더 밖 파일(tests/<다른 폴더>)도 담는다 — 글을 못 읽어 그 너머는 못 따라가도 그 파일이 바뀌었으면 케이스를 본다
+  const 닿음 = (시작: string): string[] => {
+    const 본 = new Set<string>();
+    const 갈곳 = [시작];
+    for (let 경로 = 갈곳.pop(); 경로 !== undefined; 경로 = 갈곳.pop()) {
+      if (본.has(경로)) continue;
+      본.add(경로);
+      for (const m of 표.get(경로)?.글.matchAll(/from\s+['"](\.{1,2}\/[^'"]+)['"]/g) ?? []) {
+        const p = normalize(join(dirname(경로), m[1]!)).replace(/\.js$/, '');
+        갈곳.push(p.endsWith('.ts') ? p : `${p}.ts`);
+      }
+    }
+    return [...본];
   };
-  return Object.fromEntries(파일들.filter((f) => f.경로.endsWith('.spec.ts')).map((f) => [f.경로, 늦은(f.경로, new Set())]));
+  return Object.fromEntries(
+    파일들
+      .filter((f) => f.경로.endsWith('.spec.ts'))
+      .flatMap((f) => {
+        const 닿은 = 닿음(f.경로);
+        return 닿은.some((p) => 바뀐.has(p)) ? [[f.경로, Math.max(...닿은.map((p) => 표.get(p)?.때 ?? 0))] as const] : [];
+      }),
+  );
 }
 
 interface 묶음글 {
@@ -103,7 +120,7 @@ interface 결과글 {
  * 올리기는 막지 않는다(막으면 다 만든 케이스를 통째로 못 쓴다 · 2026-10-03 게이트 0). 사람이 반영 전에 본다.
  *
  * - `결과들` — 덩어리마다 json 글 하나. 자식 명령 하나가 최대 10분이라 하나씩 차례로 나눠 돌 수 있다
- * - `케이스수정` — 폴더의 케이스 파일(testDir 기준 `mkt/MKT-UI-001.spec.ts` — 결과의 최상위 `suites[].file` 과 같은 꼴)마다
+ * - `케이스수정` — 이번 작성이 닿은 케이스 파일(testDir 기준 `mkt/MKT-UI-001.spec.ts` — 결과의 최상위 `suites[].file` 과 같은 꼴 · 살필케이스)마다
  *   그 파일과 그것이 쓰는 Page Object 의 가장 늦은 수정 시각. `specs[].file` 은 kit 런타임 파일이라 쓰지 않는다(2026-10-03 실측)
  *
  * **파일마다 그 파일이 든 가장 늦게 시작한 결과로 본다** — 고친 파일만 뒤에 다시 돌리는 절차(SKILL 관문 3)를 그대로 받아들이려고.
@@ -112,6 +129,8 @@ interface 결과글 {
  */
 export function 끝전체3회경고(결과들: string[], 케이스수정: Record<string, number>): string | null {
   const 경고 = (까닭: string) => `⚠️ 끝의 전체 3회가 규칙대로 돌지 않았다 — ${까닭}`;
+  // 바꾼 케이스 · 부품이 없으면(표만 고친 작성) 돌릴 것이 없다
+  if (Object.keys(케이스수정).length === 0) return null;
   if (결과들.length === 0) return 경고('결과 파일이 없다');
   let 읽은것: 결과글[];
   try {

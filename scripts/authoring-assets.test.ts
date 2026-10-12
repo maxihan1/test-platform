@@ -199,6 +199,12 @@ describe('클로드인자 — 자료 폴더를 읽게 연다', () => {
     expect(인자[인자.indexOf('--add-dir') + 1]).toBe('/t');
   });
 
+  it('임시 자리도 같이 연다 — 팬아웃 보조가 맡은 줄 · 결과 파일을 읽는다(PRD-F9-14) · 마지막은 여전히 --disallowedTools 도구 이름', () => {
+    const 인자 = 클로드인자('/t', 기본모델, '/임시');
+    expect(인자.slice(인자.indexOf('--add-dir') + 1, 인자.indexOf('--disallowedTools'))).toEqual(['/t', '/임시']);
+    expect(인자.slice(인자.indexOf('--disallowedTools') + 1)).toEqual(['AskUserQuestion', 'Bash(git:*)', 'Bash(gh:*)']);
+  });
+
   it('--bare 는 없다', () => {
     expect(클로드인자('/t', 기본모델)).not.toContain('--bare');
   });
