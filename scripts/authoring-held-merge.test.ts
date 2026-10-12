@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
 import type { 사본 } from './authoring-copy.js';
-import { 계산, 적용 } from './authoring-held-merge.js';
+import { 계산, 관문환경, 적용 } from './authoring-held-merge.js';
 
 const 케이스 = `import { defineCase, test, verify } from '@platform/kit';
 import { z } from 'zod';
@@ -66,5 +66,13 @@ describe('적용 — 지울 파일도 모양을 본다', () => {
     const 거부 = 적용({ 트리 } as 사본, { 쓰기: new Map(), 지우기: ['tests/xhm/a.spec.ts'] });
     expect(거부).toMatch(/작업 트리 밖/);
     expect(existsSync(join(밖, 'a.spec.ts'))).toBe(true);
+  });
+});
+
+describe('관문환경 — 보류 머지의 3회는 느린 망으로 돈다 (PRD-F9-35)', () => {
+  it('PLATFORM_SLOW_API 를 1 로 싣는다', () => {
+    const 자리 = { 집: '/집', 임시: '/임시' } as unknown as 사본;
+    const 준비 = { 것: {} } as unknown as Parameters<typeof 관문환경>[2];
+    expect(관문환경(자리, null, 준비).PLATFORM_SLOW_API).toBe('1');
   });
 });

@@ -109,6 +109,49 @@ function 보류(): { 풀기: () => void; 약속: Promise<void> } {
   return { 풀기, 약속 };
 }
 
+describe('dispatch 의 같은 케이스 줄 (PRD-F9-36)', () => {
+  afterEach(() => {
+    vi.mocked(callRunner).mockReset();
+  });
+
+  it('같은 케이스 회차는 앞 회차가 끝난 뒤 시작하고, 그동안 다른 케이스가 빈 자리를 쓴다', async () => {
+    const 첫회차 = 보류();
+    const 시작: number[] = [];
+    vi.mocked(callRunner).mockImplementation(async (_runId, item) => {
+      시작.push(item.historyId);
+      if (item.historyId === 1) await 첫회차.약속;
+      return 결과(item.historyId);
+    });
+
+    const 같은케이스 = (historyId: number, tcId: string): PendingItem => ({ ...항목(historyId, 'desktop'), tcId });
+    const 끝 = dispatch(9004, [같은케이스(1, 'XDP-A'), 같은케이스(2, 'XDP-A'), 같은케이스(3, 'XDP-B'), 같은케이스(4, 'XDP-B')]);
+    await 잠깐();
+    expect(시작).toEqual([1, 3, 4]);
+
+    첫회차.풀기();
+    await 끝;
+    expect(시작).toEqual([1, 3, 4, 2]);
+  });
+
+  it('같은 케이스의 PC · 모바일도 하나씩 돈다', async () => {
+    const 첫째 = 보류();
+    const 시작: number[] = [];
+    vi.mocked(callRunner).mockImplementation(async (_runId, item) => {
+      시작.push(item.historyId);
+      if (item.historyId === 1) await 첫째.약속;
+      return 결과(item.historyId);
+    });
+
+    const 끝 = dispatch(9005, [{ ...항목(1, 'desktop'), tcId: 'XDP-C' }, { ...항목(2, 'mobile'), tcId: 'XDP-C' }]);
+    await 잠깐();
+    expect(시작).toEqual([1]);
+
+    첫째.풀기();
+    await 끝;
+    expect(시작).toEqual([1, 2]);
+  });
+});
+
 describe('dispatch 의 디바이스 줄', () => {
   afterEach(() => {
     vi.mocked(callRunner).mockReset();

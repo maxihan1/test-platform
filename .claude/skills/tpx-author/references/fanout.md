@@ -92,9 +92,9 @@
 >
 > **관문** — 파이프로 넘기지 않는다.
 > `npm run typecheck > <자리>/tc-<묶음>.log 2>&1; echo "EXIT=$?"` · `npm run check:tests > <자리>/ct-<묶음>.log 2>&1; echo "EXIT=$?"`
-> `PLATFORM_ARTIFACTS_DIR=<자리>/pw-<묶음> PLAYWRIGHT_JSON_OUTPUT_FILE=<자리>/gate3-<묶음>.json npx playwright test <맡은 파일들> --project=desktop --repeat-each=3 --reporter=line,json > <자리>/pw-<묶음>.log 2>&1; echo "EXIT=$?"`
-> 환경 변수 둘은 한 줄 안에 그대로 둔다 — 따로 치면 결과 파일이 안 생긴다. 자식이 그 파일로 숫자를 센다. 마지막 3회는 **고칠 것이 다 끝난 판으로** 돈다
-> (사람 세션은 이 줄에서 `PLAYWRIGHT_JSON_OUTPUT_FILE=…` · `--repeat-each=3` · `,json` 을 빼고 1회 돈다 — 맨 위 「단 §5」)
+> `PLATFORM_SLOW_API=1 PLATFORM_ARTIFACTS_DIR=<자리>/pw-<묶음> PLAYWRIGHT_JSON_OUTPUT_FILE=<자리>/gate3-<묶음>.json npx playwright test <맡은 파일들> --project=desktop --repeat-each=3 --reporter=line,json > <자리>/pw-<묶음>.log 2>&1; echo "EXIT=$?"`
+> 환경 변수 셋은 한 줄 안에 그대로 둔다 — 따로 치면 결과 파일이 안 생기고 느린 망(화면의 API 응답을 0.1~1.5초 늦춤)이 안 걸린다. 자식이 그 파일로 숫자를 센다. 마지막 3회는 **고칠 것이 다 끝난 판으로** 돈다
+> (사람 세션은 이 줄에서 `PLATFORM_SLOW_API=1` · `PLAYWRIGHT_JSON_OUTPUT_FILE=…` · `--repeat-each=3` · `,json` 을 빼고 1회 돈다 — 맨 위 「단 §5」)
 >
 > **돌려줄 것**(짧게) — 만든 파일 · 관문 결과(`EXIT` 와 요약 줄 · 결과 파일 경로) · 3회에서 빨간 케이스와 첫 실패 문장(held 를 달지 않는다) · held 로 둔 케이스와 사유 · 표에서 고칠 것 · 막힌 것 ·
 > **필요한 도우미**(draft 에 만든 것 — `이름 · 하는 일 · 쓰는 tcId`) ·
@@ -116,8 +116,8 @@
 2026-10-13 PRD-F9-13 부터 끝의 3회는 이번 작성이 닿은 케이스만이다 — 얽힘은 처음 작성의 폴더 전체 3회와 정기 실행이 본다.
 
 - **숫자는 결과 파일에서 센다** — `gate3-*.json` 의 `stats`(`expected` · `unexpected` · `flaky` · `skipped` — `expected` 는 케이스 수 × 3 이다)를 묶음마다 읽어 결과 요약 `관문 3` 줄에 싣는다. 서브에이전트가 말로 돌려준 숫자를 옮기지 않는다 — 그것이 사람이 누르는 병합의 근거다
-- **서브에이전트 3회에서 빨간 케이스** — held 를 달기 전에 자식이 합친 뒤 그 파일만 혼자 3회 다시 돈다. 묶음 넷이 같은 계정 · 서버를 동시에 써서 난 빨강일 수 있다. 혼자서도 같은 이유로 3회 빨강일 때만 held(`tpx-cases` §6 종료 조건). 화면이 오류 추정 기준을 어겨 빨간 것은 held 없이 둔다(같은 곳 4)
-- **결과 파일이 없거나 못 읽으면** 그 묶음 파일을 자식이 3회 다시 돌린다
+- **서브에이전트 3회에서 빨간 케이스** — held 를 달기 전에 자식이 합친 뒤 그 파일만 혼자 3회 다시 돈다 — 느린 망(`PLATFORM_SLOW_API=1`)으로. 빼면 기다림이 빠져 빨갛던 케이스가 초록이 된다. 묶음 넷이 같은 계정 · 서버를 동시에 써서 난 빨강일 수 있다. 혼자서도 같은 이유로 3회 빨강일 때만 held(`tpx-cases` §6 종료 조건). 화면이 오류 추정 기준을 어겨 빨간 것은 held 없이 둔다(같은 곳 4)
+- **결과 파일이 없거나 못 읽으면** 그 묶음 파일을 자식이 3회(느린 망으로) 다시 돌린다
 
 **단계 표지** — 서브에이전트를 띄우기 직전에 `[단계] 팬아웃 시작 — 묶음 <N>`, 모두 돌아온 직후 `[단계] 팬아웃 뒤 합치기` 를 말한다(`SKILL.md` 「단계 표지」).
 위 프롬프트 뼈대에는 표지를 넣지 않는다 — 시각은 자식 줄로만 잰다.

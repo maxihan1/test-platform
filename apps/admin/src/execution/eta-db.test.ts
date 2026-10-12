@@ -29,15 +29,15 @@ describe.skipIf(연결 === undefined)('실행남은시간', () => {
   }
 
   // 끝난 항목은 durationMs 를 주고, 안 끝난 항목은 비운다. 분전은 시작 시각이다. 끝난 시각은 고정이라 남은 시간을 정확히 겨눈다
-  async function 항목(runId: number, tcId: string, 칸: { durationMs?: number; 분전?: number } = {}): Promise<void> {
+  async function 항목(runId: number, tcId: string, 칸: { durationMs?: number; 분전?: number; 회차?: number } = {}): Promise<void> {
     const 끝남 = 칸.durationMs !== undefined;
     await pool.query(
       `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms,
                              precondition, params, expected, param_schema, expected_schema, status,
                              duration_ms, started_at, finished_at)
-            VALUES ($1, $2, 'desktop', 1, $2, 'xet.spec.ts', 5000, '[]', '{}', '{}', '{}', '{}', 'NA',
+            VALUES ($1, $2, 'desktop', $7, $2, 'xet.spec.ts', 5000, '[]', '{}', '{}', '{}', '{}', 'NA',
                     $3, now() - make_interval(mins => $4::int), CASE WHEN $5::boolean THEN $6::timestamptz ELSE NULL END)`,
-      [runId, tcId, 칸.durationMs ?? null, 칸.분전 ?? 0, 끝남, 끝],
+      [runId, tcId, 칸.durationMs ?? null, 칸.분전 ?? 0, 끝남, 끝, 칸.회차 ?? 1],
     );
   }
 
@@ -81,11 +81,13 @@ describe.skipIf(연결 === undefined)('실행남은시간', () => {
     const 이번 = await 실행('RUNNING');
     await 항목(이번, 'XET-001');
     await 항목(이번, 'XET-002');
+    await 항목(이번, 'XET-005');
     await 항목(이번, 'XET-003', { durationMs: 1000 });
     await 항목(이번, 'XET-004', { durationMs: 0 });
 
-    // (400 + 1000) ÷ min(동시 2, 안 끝난 2) — 기준 시각(마지막으로 끝난 항목)에 지금을 맞추면 그대로다
-    expect(await 실행남은시간(이번, 끝)).toBe(700);
+    // (400 + 1000 + 1000) ÷ min(동시 2, 안 끝난 케이스 3) = 1200 — 가장 긴 케이스(1000)보다 길어 나눈 값이 그대로다.
+    // 기준 시각(마지막으로 끝난 항목)에 지금을 맞추면 그대로다
+    expect(await 실행남은시간(이번, 끝)).toBe(1200);
   });
 
   it('기준 시각은 마지막으로 끝난 항목이고 그 뒤로 흐른 만큼 줄어든다', async () => {
@@ -107,6 +109,17 @@ describe.skipIf(연결 === undefined)('실행남은시간', () => {
     await 항목(이번, 'XET-004', { durationMs: 500 });
     // 끝난 항목이 생기면 기준이 그 시각으로 옮겨 가 셈을 다시 맞춘다 — 3000 ÷ 2 = 1500 에서 다시 줄어든다
     expect(await 실행남은시간(이번, new Date(끝.getTime() + 300))).toBe(1200);
+  });
+
+  it('같은 케이스 회차는 하나씩 돌아 한 칸으로 센다 (PRD-F9-36)', async () => {
+    const { 실행남은시간 } = await import('./eta.js');
+    await 치우기();
+    await 항목(await 실행('FINISHED'), 'XET-001', { durationMs: 1000, 분전: 100 });
+    const 이번 = await 실행('RUNNING');
+    for (const 회차 of [1, 2, 3]) await 항목(이번, 'XET-001', { 회차 });
+
+    // 3000 ÷ min(동시 2, 안 끝난 케이스 1) — 안 끝난 항목 수(3)로 나누면 반으로 어림한다
+    expect(await 실행남은시간(이번, 시작)).toBe(3000);
   });
 
   it('다른 실행이 같이 돌면 칸을 나눠 쓴다 — 시나리오 실행은 세지 않는다', async () => {

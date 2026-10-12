@@ -14,6 +14,8 @@ export default defineConfig({
   // 켜려면 SPEC §5.2 의 그 문장을 먼저 고친다
   retries: 0,
   reporter: 'line',
+  // 결과 json 의 config.metadata 에 실린다. 작성 에이전트가 끝 3회를 느린 망으로 돌렸는지 이것으로 본다 (도메인/작성 §3.6 「느린 망」)
+  metadata: { slowApi: process.env.PLATFORM_SLOW_API === '1' },
   // 러너가 실행마다 PLATFORM_BASE_URL 로 넘긴다. 한 번 정하는 설정이 아니라 실행마다 바뀌는 값이다 (§5.2)
   // 내 컴퓨터 러너(npm run runner:local)만 창을 띄운다. 컨테이너 러너는 이 값이 없어 그대로 headless 다
   use: { baseURL: process.env.PLATFORM_BASE_URL, ...(process.env.PLATFORM_HEADED === '1' ? { headless: false } : {}) },
