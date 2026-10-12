@@ -10,7 +10,7 @@ import { PRD항목주소 } from './route.js';
 import { PLATFORM_LABEL } from './ui.js';
 
 /** 화면 파일 클래스 이름을 읽기 좋게 — `게시판목록화면` → `게시판목록 화면` (PRD-F9-18) */
-export const 화면이름글 = (이름: string): string => 이름.replace(/(\S)화면$/, '$1 화면');
+export const 화면이름글 = (이름: string): string => 이름.replace(/(?<=\S)(?=화면$)/, ' ');
 
 const 화면글 = (머리: 묶음머리, file: string) => (머리.화면이름 === null ? (머리.주소 ?? 파일이름(file)) : 화면이름글(머리.화면이름));
 const 조각글 = (머리: 묶음머리, file: string) => (머리.조각이름 === null ? 파일이름(file) : 화면이름글(머리.조각이름));
