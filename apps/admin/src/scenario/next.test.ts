@@ -17,12 +17,8 @@ describe('다음케이스들', () => {
     { tcId: 'MKT-UI-001', url: '/cart' },
     { tcId: 'MKT-FN-050', url: '/mypage' },
   ];
-  const 연결들 = [
-    { from: '/product/:n', to: '/cart' },
-    { from: '/product/:n', to: '/order' },
-    { from: '/product/:n', to: '/product/:n' },
-    { from: '/cart', to: '/mypage' },
-  ];
+  const 줄 = (from: string, to: string, via = `버튼 「${to}」`, state = '로그인:일반 회원') => ({ state, from, to, via });
+  const 연결들 = [줄('/product/:n', '/cart'), 줄('/product/:n', '/order'), 줄('/product/:n', '/product/:n'), 줄('/cart', '/mypage')];
 
   it('머문 화면을 같은 틀로 바꿔 나간 연결을 찾고, 도착 화면에 닿는 케이스를 받은 차례로 낸다', () => {
     expect(다음케이스들('MKT-FN-021', 화면들, 연결들)).toEqual([
@@ -40,9 +36,30 @@ describe('다음케이스들', () => {
   });
 
   it('앞 케이스가 여러 화면을 쓰면 그 화면끼리의 연결은 다음 화면이 아니다', () => {
-    expect(다음케이스들('MKT-FN-030', 화면들, [...연결들, { from: '/cart', to: '/order' }, { from: '/order', to: '/cart' }])).toEqual([
+    expect(다음케이스들('MKT-FN-030', 화면들, [...연결들, 줄('/cart', '/order'), 줄('/order', '/cart')])).toEqual([
       { tcId: 'MKT-FN-050', screen: '/mypage' },
     ]);
+  });
+
+  it('같은 상태 화면 절반 넘게에 같은 글자로 있는 링크(머리 · 바닥 메뉴)는 뺀다 — 그 화면에만 있는 버튼은 남고, 글자 속 숫자는 안 가른다 (PRD-F9-21)', () => {
+    const 머리 = ['/product/:n', '/cart', '/order', '/mypage', '/'].flatMap((from) => [
+      줄(from, '/cart', `링크 「🛒${from.length} 장바구니」`),
+      줄(from, '/mypage', '링크 「마이페이지」'),
+    ]);
+    expect(다음케이스들('MKT-FN-021', 화면들, [...머리, 줄('/product/:n', '/cart', '버튼 「장바구니 담기」')])).toEqual([
+      { tcId: 'MKT-FN-022', screen: '/cart' },
+      { tcId: 'MKT-FN-023', screen: '/cart' },
+      { tcId: 'MKT-FN-030', screen: '/cart' },
+    ]);
+    expect(다음케이스들('MKT-FN-021', 화면들, 머리)).toEqual([]);
+    // 상태마다 따로 센다 — 로그아웃 화면은 하나뿐이라 그 링크는 머리 메뉴로 보지 않는다
+    expect(다음케이스들('MKT-FN-021', 화면들, [...머리, 줄('/product/:n', '/mypage', '링크 「마이페이지」', '로그아웃')])).toEqual([{ tcId: 'MKT-FN-050', screen: '/mypage' }]);
+  });
+
+  it('화면 파일 주소의 `:id` · 인자 꼬리도 크롤러 같은 틀에 맞춘다 (PRD-F9-04)', () => {
+    const 파일들 = [{ tcId: 'MKT-FN-061', url: '/board/:id' }, { tcId: 'MKT-FN-062', url: '/board' }];
+    expect(다음케이스들('MKT-FN-061', 파일들, [줄('/board/:n', '/board?category=자유', '링크 「목록」')])).toEqual([{ tcId: 'MKT-FN-062', screen: '/board' }]);
+    expect(다음케이스들('MKT-FN-062', 파일들, [줄('/board?category=자유', '/board/:n', '링크 「첫 글」')])).toEqual([{ tcId: 'MKT-FN-061', screen: '/board/:n' }]);
   });
 
   it('앞 케이스의 화면 주소가 없거나 나간 연결이 없으면 빈 목록이다', () => {
