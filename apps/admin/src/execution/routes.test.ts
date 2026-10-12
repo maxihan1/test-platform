@@ -3,9 +3,16 @@
 
 import { Pool } from 'pg';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import executionRoutes from './routes.js';
+
+// 라우트 등록이 띄우는 재기동 복구가 이 파일이 만든 RUNNING 실행까지 닫아, 진행 조회의 남은 시간이 그 경주에 따라 null · 0 으로 갈렸다(4번 중 3번 실패).
+// 복구는 store.test.ts · kind.test.ts 가 본다
+vi.mock('./store.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./store.js')>()),
+  recoverRunning: vi.fn(async () => 0),
+}));
 
 const 연결 = process.env.DATABASE_URL;
 
