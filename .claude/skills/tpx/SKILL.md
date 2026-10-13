@@ -81,7 +81,7 @@ description: 테스트 자동화 플랫폼의 모든 코드 작업 진입점. �
 5. **병합이 `MERGED` 로 확인되고 루트의 pull 이 성공한 뒤에만** 작업 폴더와 브랜치를 지운다. 사용자가 손으로 병합했어도 같은 순서다. pull 이 실패하면 아무것도 지우지 않고 보고한다
    1. `ExitWorktree` 를 `keep` 으로 불러 지우지 않고 루트로 나온다 — **작업 폴더 안에서는 루트의 main 을 갱신할 수 없다**(하네스가 `git -C <루트>` 를 거부한다)
    2. 루트에서 `git pull --ff-only origin main`
-   3. 성공한 뒤에 `git worktree remove .claude/worktrees/<이름>` → `git branch -d <브랜치>` → `git ls-remote --heads origin <브랜치>` 에 남았으면 `git push origin --delete <브랜치>`.
+   3. 성공한 뒤에 `git worktree remove <작업 폴더 경로>`(폴더 이름은 브랜치 이름과 다르다 — `git worktree list` 로 읽는다) → `git branch -d <브랜치>` → `git ls-remote --heads origin <브랜치>` 에 남았으면 `git push origin --delete <브랜치>`.
       `--force` · `-D` 는 쓰지 않는다 — 변경이 남았거나 병합 안 된 커밋이 있으면 git 이 거부하니 지우지 말고 보고한다
 6. pull 이 성공했으면 진행판 게시 — 루트에서 `npm run progress` → `Artifact` 로 `file_path: <루트>/build/progress.html`,
    `url: https://claude.ai/artifact/LN2fiNzKQcyB3aym6rzQY3`. **`url` 을 빼지 않는다** — 빼면 새 주소가 생겨 사용자가 보던 진행판이 멈춘다
