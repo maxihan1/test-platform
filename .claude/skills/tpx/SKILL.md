@@ -77,8 +77,11 @@ description: 테스트 자동화 플랫폼의 모든 코드 작업 진입점. �
 3. `gh pr ready <번호>` → `gh pr edit <번호> --title "<[작업중] 을 뗀 제목>" --body "<최종 본문 — 한 일 · 확인 방법 · 검사 결과 한 줄>"`
 4. `gh pr view <번호> --json headRefOid -q .headRefOid` 로 헤드를 읽고 `gh pr merge <번호> --merge --delete-branch --match-head-commit <헤드>` →
    `gh pr view <번호> --json state -q .state` 가 `MERGED` 인지 본다. 사람 PR 은 CI 잡이 건너뛰기라 기다릴 것이 없다
-5. 작업 폴더에서 나온다(`ExitWorktree` 지우기) → 루트에서 `git pull --ff-only origin main` → `git worktree prune` → 브랜치가 남았으면 `git branch -d <브랜치>`.
-   **나오기 전에는 main 을 갱신할 수 없다**(다른 작업 폴더에 체크아웃된 브랜치라 git 이 거부한다). `-D` 는 쓰지 않는다
+5. **병합이 `MERGED` 로 확인되고 루트의 pull 이 성공한 뒤에만** 작업 폴더와 브랜치를 지운다. 사용자가 손으로 병합했어도 같은 순서다. pull 이 실패하면 아무것도 지우지 않고 보고한다
+   1. `ExitWorktree` 를 `keep` 으로 불러 지우지 않고 루트로 나온다 — **작업 폴더 안에서는 루트의 main 을 갱신할 수 없다**(하네스가 `git -C <루트>` 를 거부한다)
+   2. 루트에서 `git pull --ff-only origin main`
+   3. 성공한 뒤에 `git worktree remove <작업 폴더 경로>`(폴더 이름은 브랜치 이름과 다르다 — `git worktree list` 로 읽는다) → `git branch -d <브랜치>` → `git ls-remote --heads origin <브랜치>` 에 남았으면 `git push origin --delete <브랜치>`.
+      `--force` · `-D` 는 쓰지 않는다 — 변경이 남았거나 병합 안 된 커밋이 있으면 git 이 거부하니 지우지 말고 보고한다
 6. pull 이 성공했으면 진행판 게시 — 루트에서 `npm run progress` → `Artifact` 로 `file_path: <루트>/build/progress.html`,
    `url: https://claude.ai/artifact/LN2fiNzKQcyB3aym6rzQY3`. **`url` 을 빼지 않는다** — 빼면 새 주소가 생겨 사용자가 보던 진행판이 멈춘다
 7. 이어 달리기 — 2 · 4 · 5 · 6 이 모두 성공했으면 루트에서 진행판 `## PRD` · `## UI` 중 이번 줄이 든 영역의 **이번 줄 아래** 체크 안 된 첫 번호를 읽는다
