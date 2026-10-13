@@ -192,8 +192,9 @@ test('훑기 보조 — 막기를 풀 수 있는 명령 · 주소를 단 open ·
   assert.deepEqual(scanVerdict('npx playwright cli kill-all'), { 세션들: [], 지울: ['*'] });
 });
 
-test('막기 코드 — GET 만 지나가고 저장 · 변경 요청과 로그아웃 · 탈퇴 주소는 끊는다 · 가로채기가 걸린 뒤에만 표시를 단다', async () => {
-  const 막기 = new Function(`return ${막기코드}`)();
+test('막기 코드 — GET 만 지나가고 저장 · 변경 요청과 로그아웃 · 탈퇴 주소는 끊는다 · 가로채기가 걸린 뒤에만 표시를 단다 · run-code 처럼 URL 전역이 없는 vm 에서 돈다', async () => {
+  assert.equal(vm.runInNewContext('typeof URL'), 'undefined');
+  const 막기 = vm.runInNewContext(`(${막기코드})`);
   let 손 = null;
   const 맥락 = { route: async (_무늬, h) => { 손 = h; } };
   await 막기({ context: () => 맥락 });
@@ -219,30 +220,15 @@ test('막기 코드 — GET 만 지나가고 저장 · 변경 요청과 로그�
   assert.equal(보냄('GET', 'https://x.test/index.php?act=dispMemberLoginForm'), '통과');
   assert.equal(보냄('GET', 'https://x.test/bbs/board.php?bo_table=free&wr_id=1'), '통과');
   assert.equal(보냄('GET', 'https://x.test/api/likes'), '통과');
+  assert.equal(보냄('GET', 'http://localhost:3002'), '통과');
+  assert.equal(보냄('GET', 'http://localhost:3002/shop'), '통과');
+  assert.equal(보냄('GET', 'http://u:p@x.test:8080/logout'), '끊음');
+  assert.equal(보냄('GET', 'blob:http://x.test/6f1c'), '통과');
+  assert.equal(보냄('GET', 'ftp://x.test/logout'), '끊음');
 
   const 실패맥락 = { route: async () => { throw new Error('이동 중'); } };
   await assert.rejects(막기({ context: () => 실패맥락 }));
   assert.equal(실패맥락.__scanReadOnly, undefined, '못 걸었으면 표시가 없어 다음 명령이 다시 건다');
-});
-
-test('막기 코드 — run-code 는 URL 전역이 없는 vm 격리 환경에서 돌린다 · 거기서도 요청을 가른다', async () => {
-  assert.equal(vm.runInNewContext('typeof URL'), 'undefined');
-  const 막기 = vm.runInNewContext(`(${막기코드})`);
-  let 손 = null;
-  const 맥락 = { route: async (_무늬, h) => { 손 = h; } };
-  await 막기({ context: () => 맥락 });
-  const 보냄 = (method, url) => {
-    let 결과 = null;
-    손({ request: () => ({ method: () => method, url: () => url }), fallback: () => { 결과 = '통과'; }, abort: () => { 결과 = '끊음'; } });
-    return 결과;
-  };
-  assert.equal(보냄('GET', 'http://localhost:3002/shop'), '통과');
-  assert.equal(보냄('GET', 'http://localhost:3002/'), '통과');
-  assert.equal(보냄('GET', 'http://localhost:3002/bbs/board.php?bo_table=free&wr_id=1'), '통과');
-  assert.equal(보냄('GET', 'http://localhost:3002/logout'), '끊음');
-  assert.equal(보냄('GET', 'http://localhost:3002/cart/add?id=3'), '끊음');
-  assert.equal(보냄('GET', 'http://localhost:3002/index.php?act=procMemberLogout'), '끊음');
-  assert.equal(보냄('POST', 'http://localhost:3002/shop'), '끊음');
 });
 
 test('bash 모드 — 훑기 보조만 막기를 걸고, 못 걸면 exit 2 로 멈추고, 건 세션은 다시 묻지 않다가 open 이 표시를 지운다', async () => {
