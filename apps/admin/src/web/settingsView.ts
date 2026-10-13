@@ -55,7 +55,7 @@ export function 서비스못보내는이유(
     testsDir: string;
     /** 역할들은 편집 중인 역할 계정 — 서버가 400 BAD_ROLE 로 막을 이름을 여기서 먼저 짚는다 */
     envs: (EnvRow & { 역할들?: readonly { role: string }[] })[];
-    /** 「훑지 않을 경로」 칸에 적은 그대로. 한 줄에 하나 */
+    /** 「탐색 제외 경로」 칸에 적은 그대로. 한 줄에 하나 */
     제외: string;
     /** 정기 실행 — 꺼져 있으면 null. 새 서비스에는 구획이 없어 안 넘긴다 */
     정기실행?: { at: string; env: string } | null;
@@ -64,15 +64,15 @@ export function 서비스못보내는이유(
 ): string | null {
   // 고칠 때 접두사 칸은 잠겨 있다. 그것을 두고 「채우세요」라고 하면 할 수 없는 일을 시키는 것이다
   if (입력.새것) {
-    if (입력.prefix === '') return t('접두사를 채웁니다', 언어);
+    if (입력.prefix === '') return t('접두사를 입력해 주세요', 언어);
     const 모양 = 접두사사유(입력.prefix, 언어);
     if (모양 !== null) return 모양;
   }
-  if (입력.name === '') return t('이름을 채웁니다', 언어);
-  if (입력.testsDir === '') return t('테스트 폴더를 채웁니다', 언어);
+  if (입력.name === '') return t('이름을 입력해 주세요', 언어);
+  if (입력.testsDir === '') return t('테스트 폴더를 입력해 주세요', 언어);
   // 없는 것은 괜찮다. 나중에 더하면 된다 — 적다 만 줄만 막는다
   if (입력.envs.some((it) => it.env === '' || it.baseUrl === '')) {
-    return t('대상 서버 줄에 빈 칸이 있습니다. 채우거나 그 줄을 뺍니다', 언어);
+    return t('대상 서버에 비어 있는 항목이 있습니다. 입력하거나 해당 서버를 삭제해 주세요', 언어);
   }
   // 서버와 같은 규칙 파일이다 (settings/roles.ts)
   for (const it of 입력.envs) {
@@ -86,7 +86,7 @@ export function 서비스못보내는이유(
   }
   const 정기 = 입력.정기실행;
   if (정기 !== undefined && 정기 !== null) {
-    if (정기.at === '') return t('정기 실행 시각을 채웁니다', 언어);
+    if (정기.at === '') return t('정기 실행 시각을 입력해 주세요', 언어);
     // 대상 서버 줄의 이름을 고쳤거나 줄을 뺐으면 고른 것이 사라진다 — 서버가 400 을 내기 전에 사람 말로 짚는다
     if (!입력.envs.some((it) => it.env === 정기.env)) return t('정기 실행의 대상 서버를 대상 서버 목록에서 고릅니다', 언어);
   }
@@ -100,7 +100,7 @@ export function 처음대상서버(envs: readonly string[]): string {
 
 /** 키는 settings/roles.ts 의 `역할까닭` 이다. 까닭이 늘면 여기서 타입이 깨져 빠뜨리지 않는다 */
 const 역할사유: Record<역할까닭, string> = {
-  빈칸: '역할 이름을 채웁니다',
+  빈칸: '역할 이름을 입력해 주세요',
   일반회원: '「일반 회원」은 역할 이름으로 쓸 수 없습니다',
   길이: '역할 이름은 {글자}자까지 적을 수 있습니다',
   겹침: '한 대상 서버 줄 안에서 역할 이름이 겹칩니다',
@@ -130,11 +130,11 @@ export function 계정못보내는이유(
   입력: { username: string; displayName: string; 새것: boolean },
   언어: 언어,
 ): string | null {
-  if (입력.username === '') return t('아이디를 채웁니다', 언어);
+  if (입력.username === '') return t('아이디를 입력해 주세요', 언어);
   // 서버와 같은 규칙·같은 문장이다. 보낸 뒤 400 을 받고서야 알면 칸을 다시 찾아야 한다.
   // 고칠 때는 아이디 칸이 잠겨 있다 — 규칙 전에 만든 아이디로 저장을 막으면 할 수 없는 일을 시킨다
   if (입력.새것 && !아이디모양.test(입력.username)) return 요청오류문장('USERNAME_SHAPE', 언어);
-  if (입력.displayName === '') return t('이름을 채웁니다', 언어);
+  if (입력.displayName === '') return t('이름을 입력해 주세요', 언어);
   return null;
 }
 
@@ -142,12 +142,12 @@ export function 계정못보내는이유(
  * Slack 웹훅 칸에 무엇을 적나 (SPEC §8.8).
  *
  * **주소를 되돌려 보여주지 않는다.** 비밀값이라 응답에도 안 담겨 오고(§7),
- * 화면은 설정됐는지만 안다. 그래서 고치는 길이 「바꾸기」가 아니라 「다시 넣기」다.
+ * 화면은 설정됐는지만 안다. 그래서 고치는 길이 「변경」이다 — 값이 없을 때는 `+` 기호 하나만 둔다.
  */
 export function 웹훅칸(hasSlackWebhook: boolean, 언어: 언어): { 글: string; 버튼: string } {
   return hasSlackWebhook
-    ? { 글: t('설정됨', 언어), 버튼: t('다시 넣기', 언어) }
-    : { 글: t('없음', 언어), 버튼: t('넣기', 언어) };
+    ? { 글: t('설정됨', 언어), 버튼: t('변경', 언어) }
+    : { 글: t('없음', 언어), 버튼: '+' };
 }
 
 /** 피그마 토큰 발급 안내의 링크. 토큰은 Figma 계정 설정의 Security 탭에서 만든다 (도메인/인증 §8.8) */

@@ -174,7 +174,7 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="ZST" />);
     await screen.findByRole('heading', { name: /ZST 서비스/ });
 
-    fireEvent.click(screen.getAllByRole('button', { name: '넣기' })[0]!);
+    fireEvent.click(screen.getByRole('button', { name: 'Slack 웹훅 추가' }));
     fireEvent.change(screen.getByLabelText('Slack 웹훅'), { target: { value: 'https://hooks.slack.com/x' } });
     목록.mockResolvedValue({ items: [{ ...서비스, hasSlackWebhook: true }] });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));

@@ -39,7 +39,7 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
       <div className="screen">
         <div className="empty">
           {t('설정은 운영 계정만 볼 수 있습니다')}
-          <small>{t('필요하면 운영 계정인 사람에게 올려 달라고 합니다')}</small>
+          <small>{t('권한이 필요하면 운영 계정 사용자에게 요청해 주세요')}</small>
         </div>
       </div>
     );

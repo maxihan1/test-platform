@@ -93,11 +93,11 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
               onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, baseUrl: e.target.value } : v)))}
             />
             <button
-              className="btn ghost"
-              aria-label={t('대상 서버 {번호} 빼기', { 번호: i + 1 })}
+              className="btn ghost icon"
+              aria-label={t('대상 서버 {번호} 삭제', { 번호: i + 1 })}
               onClick={() => onChange(envs.filter((_, k) => k !== i))}
             >
-              {t('빼기')}
+              −
             </button>
             <label className="check-inline">
               <input
@@ -122,12 +122,12 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
             onChange([...envs, { env: '', baseUrl: '', key: 새줄키(), 원래키: null, 새비밀번호: '', 역할들: [] }])
           }
         >
-          {t('줄 더하기')}
+          {t('+ 대상 서버 추가')}
         </button>
         {envs.length === 0 ? (
-          <div className="hint">{t('하나도 없으면 실행할 때 고를 서버가 없어 실행할 수 없습니다')}</div>
+          <div className="hint">{t('등록된 서버가 없으면 테스트를 실행할 수 없습니다')}</div>
         ) : (
-          <div className="hint">{t('테스트 계정은 실행 · 테스트 작성이 로그인할 때 씁니다. 운영 서버는 체크해 두면 작성 · 화면 탐색이 가지 않습니다')}</div>
+          <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 운영 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
         )}
       </div>
     </div>
@@ -157,13 +157,14 @@ function 계정칸({ 줄: it, 번호, 고친다 }: { 줄: 줄; 번호: number; �
         고친다={고친다}
         라벨={{
           칸: t('대상 서버 {번호} 테스트 비밀번호', { 번호 }),
-          넣기: t('대상 서버 {번호} 비밀번호 넣기', { 번호 }),
-          지우기: t('대상 서버 {번호} 비밀번호 지우기', { 번호 }),
-          그대로: t('대상 서버 {번호} 비밀번호 그대로 두기', { 번호 }),
+          추가: t('대상 서버 {번호} 비밀번호 추가', { 번호 }),
+          변경: t('대상 서버 {번호} 비밀번호 변경', { 번호 }),
+          삭제: t('대상 서버 {번호} 비밀번호 삭제', { 번호 }),
+          취소: t('대상 서버 {번호} 비밀번호 변경 취소', { 번호 }),
         }}
       />
       {이름바꿈(it) ? (
-        <div className="hint">{t('키 이름을 바꾸면 이 줄의 비밀번호가 비워집니다. 저장한 뒤 다시 넣어 주세요')}</div>
+        <div className="hint">{t('키 이름을 바꾸면 이 서버의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요')}</div>
       ) : null}
     </div>
   );

@@ -15,7 +15,7 @@ export const 설정말: Record<string, string> = {
   '설정': 'Settings',
   '운영 계정만 볼 수 있는 화면입니다': 'Admins only',
   '설정은 운영 계정만 볼 수 있습니다': 'Only admins can open Settings',
-  '필요하면 운영 계정인 사람에게 올려 달라고 합니다': 'Ask an admin to raise your role if you need it',
+  '권한이 필요하면 운영 계정 사용자에게 요청해 주세요': 'Ask an admin user for access if you need it',
 
   // 구획 머리와 목록 줄
   '서비스': 'Services',
@@ -25,6 +25,8 @@ export const 설정말: Record<string, string> = {
   '편집': 'Edit',
   '저장': 'Save',
   '비활성': 'Inactive',
+  '비활성화': 'Deactivate',
+  '다시 활성화': 'Reactivate',
   '비활성으로 내리기': 'Deactivate',
   '다시 활성으로': 'Reactivate',
   '아직 서비스가 없습니다': 'No services yet',
@@ -34,30 +36,35 @@ export const 설정말: Record<string, string> = {
   // 서비스 편집기
   '서비스 추가': 'Add service',
   '접두사': 'Prefix',
-  '만들 때만 정합니다. 케이스 번호(PAY-001)에 들어가므로 나중에 바꿀 수 없습니다':
+  '생성할 때만 정할 수 있습니다. 케이스 번호(PAY-001)에 사용되므로 나중에 바꿀 수 없습니다':
     'Set once at creation. It is baked into case IDs like PAY-001, so it cannot change later',
-  '만든 뒤에는 바꿀 수 없습니다. 케이스 번호에 이미 들어가 있습니다':
+  '생성 후에는 바꿀 수 없습니다. 케이스 번호에 이미 사용 중입니다':
     'Cannot be changed after creation. It is already baked into the case IDs',
   '대문자로 시작하는 영문·숫자 12자 이내로 적습니다. 예: PAY · MEM2':
     'Up to 12 letters and digits, starting with a capital. e.g. PAY · MEM2',
   '이름': 'Name',
   '결제 서비스': 'Payments',
   '테스트 폴더': 'Tests folder',
-  '플랫폼이 실제로 훑을 폴더입니다': 'The folder the platform actually scans',
+  '플랫폼이 테스트 스크립트를 읽어 오는 폴더입니다': 'The folder the platform reads test scripts from',
   '테스트 저장소': 'Tests repository',
-  '기록용으로만 적어 둡니다. 플랫폼이 이 저장소를 받아오지는 않습니다': 'Recorded for reference only. The platform does not fetch it',
-  '훑지 않을 경로': 'Paths to skip',
-  '한 줄에 하나씩, / 로 시작하게 적습니다. 실제 화면과 대조하는 작성은 이 경로와 그 아래 화면을 훑지 않습니다. 비워 두면 모든 화면을 훑습니다':
-    'One per line, starting with /. Authoring against the live screens skips these paths and everything under them. Leave it empty to crawl every screen',
+  '기록용 항목입니다. 플랫폼이 이 저장소를 내려받지는 않습니다': 'For reference only. The platform does not download it',
+  '탐색 제외 경로': 'Excluded paths',
+  '한 줄에 하나씩 /로 시작하게 적습니다. 실제 화면과 대조해 테스트를 만들 때 이 경로와 하위 화면은 탐색하지 않습니다. 비워 두면 모든 화면을 탐색합니다':
+    'One per line, starting with /. When building tests against the live screens, these paths and everything under them are not explored. Leave it empty to explore every screen',
   'Slack 웹훅': 'Slack webhook',
   '피그마 토큰': 'Figma token',
-  '이대로 저장하면 토큰을 지웁니다. 피그마 자료를 못 읽게 됩니다':
-    'Saving now removes the token. Figma attachments can no longer be read',
-  'Figma → Settings → Security → Personal access tokens 에서 만듭니다. 권한은 File content 읽기만, 만료일을 정합니다':
+  '이대로 저장하면 토큰이 삭제되어 피그마 자료를 읽을 수 없게 됩니다':
+    'Saving now deletes the token, so Figma attachments can no longer be read',
+  'Figma의 Settings → Security → Personal access tokens에서 발급합니다. 권한은 File content 읽기 전용으로 하고 만료일을 지정합니다':
     'Create one in Figma → Settings → Security → Personal access tokens. Scope: File content read-only, with an expiry date',
   'Figma 설정 열기': 'Open Figma settings',
   '설정됨': 'Configured',
-  '다시 넣기': 'Replace',
+  '변경': 'Change',
+  '변경 취소': 'Cancel change',
+  '{이름} 추가': 'Add {이름}',
+  '{이름} 변경': 'Change {이름}',
+  '{이름} 삭제': 'Delete {이름}',
+  '{이름} 변경 취소': 'Cancel changing {이름}',
   '테스트 아이디': 'Test login ID',
   '테스트 비밀번호': 'Test password',
   '대상 서버 {번호} 테스트 아이디': 'Target server {번호} test login ID',
@@ -65,56 +72,56 @@ export const 설정말: Record<string, string> = {
   '비밀번호 없음': 'No password',
   '비밀번호 설정됨': 'Password set',
   '일반 회원': 'Regular user',
-  '지우기': 'Remove',
-  '대상 서버 {번호} 비밀번호 넣기': 'Enter target server {번호} password',
-  '대상 서버 {번호} 비밀번호 지우기': 'Remove target server {번호} password',
-  '대상 서버 {번호} 비밀번호 그대로 두기': 'Keep target server {번호} password',
-  '테스트 계정은 실행 · 테스트 작성이 로그인할 때 씁니다. 운영 서버는 체크해 두면 작성 · 화면 탐색이 가지 않습니다':
-    'Test accounts are used to sign in when running and authoring tests. Check Production server to keep authoring and screen crawling away from it',
+  '대상 서버 {번호} 비밀번호 추가': 'Add target server {번호} password',
+  '대상 서버 {번호} 비밀번호 변경': 'Change target server {번호} password',
+  '대상 서버 {번호} 비밀번호 삭제': 'Delete target server {번호} password',
+  '대상 서버 {번호} 비밀번호 변경 취소': 'Cancel changing target server {번호} password',
+  '테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 운영 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다':
+    'Test accounts are used to sign in when running and authoring tests. Checking Production server excludes it from test authoring and screen exploration',
   '운영 서버': 'Production server',
   '대상 서버 {번호} 운영 서버': 'Target server {번호} is production',
   '역할 이름': 'Role name',
-  '역할 더하기': 'Add role',
-  '대상 서버 {번호} 역할 더하기': 'Add a role to target server {번호}',
+  '+ 역할 추가': '+ Add role',
+  '대상 서버 {번호} 역할 추가': 'Add a role to target server {번호}',
   '대상 서버 {번호} 역할 {순번} 이름': 'Target server {번호} role {순번} name',
   '대상 서버 {번호} 역할 {순번} 아이디': 'Target server {번호} role {순번} login ID',
   '대상 서버 {번호} 역할 {순번} 비밀번호': 'Target server {번호} role {순번} password',
-  '대상 서버 {번호} 역할 {순번} 비밀번호 넣기': 'Enter target server {번호} role {순번} password',
-  '대상 서버 {번호} 역할 {순번} 비밀번호 지우기': 'Remove target server {번호} role {순번} password',
-  '대상 서버 {번호} 역할 {순번} 비밀번호 그대로 두기': 'Keep target server {번호} role {순번} password',
-  '대상 서버 {번호} 역할 {순번} 빼기': 'Remove target server {번호} role {순번}',
-  '역할 이름을 바꾸면 이 역할의 비밀번호가 비워집니다. 저장한 뒤 다시 넣어 주세요': 'Renaming the role clears its password. Enter it again after saving',
-  '키 이름을 바꾸면 이 줄의 비밀번호가 비워집니다. 저장한 뒤 다시 넣어 주세요': 'Renaming the key clears this row\'s password. Enter it again after saving',
+  '대상 서버 {번호} 역할 {순번} 비밀번호 추가': 'Add target server {번호} role {순번} password',
+  '대상 서버 {번호} 역할 {순번} 비밀번호 변경': 'Change target server {번호} role {순번} password',
+  '대상 서버 {번호} 역할 {순번} 비밀번호 삭제': 'Delete target server {번호} role {순번} password',
+  '대상 서버 {번호} 역할 {순번} 비밀번호 변경 취소': 'Cancel changing target server {번호} role {순번} password',
+  '대상 서버 {번호} 역할 {순번} 삭제': 'Delete target server {번호} role {순번}',
+  '역할 이름을 바꾸면 이 역할의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요': 'Renaming the role resets its password. Enter it again after saving',
+  '키 이름을 바꾸면 이 서버의 비밀번호가 초기화됩니다. 저장한 뒤 다시 입력해 주세요': 'Renaming the key resets this server\'s password. Enter it again after saving',
   '없음': 'None',
-  '넣기': 'Add',
-  '그대로 두기': 'Keep current',
-  '이대로 저장하면 알림을 끕니다. 그대로 두려면 「그대로 두기」를 누릅니다':
-    'Saving like this turns notifications off. Press Keep current to leave it as is',
-  '비밀값이라 한 번 넣으면 다시 보여 주지 않습니다': 'It is a secret, so it is never shown back once saved',
+  '이대로 저장하면 알림이 꺼집니다. 유지하려면 「변경 취소」를 누릅니다':
+    'Saving like this turns notifications off. Press Cancel change to keep them on',
+  '보안을 위해 저장한 값은 다시 표시하지 않습니다': 'For security, a saved value is never shown again',
 
   // 대상 서버 편집기
   '대상 서버': 'Target servers',
   '대상 서버 목록': 'Target server list',
   '대상 서버 {번호} 키': 'Target server {번호} key',
   '대상 서버 {번호} 주소': 'Target server {번호} URL',
-  '대상 서버 {번호} 빼기': 'Remove target server {번호}',
+  '대상 서버 {번호} 삭제': 'Delete target server {번호}',
+  '+ 대상 서버 추가': '+ Add target server',
   '빼기': 'Remove',
-  '줄 더하기': 'Add row',
-  '하나도 없으면 실행할 때 고를 서버가 없어 실행할 수 없습니다':
-    'With none set there is nothing to pick when running, so runs cannot start',
+  '등록된 서버가 없으면 테스트를 실행할 수 없습니다': 'Tests cannot run until a server is registered',
 
   // 못 보내는 이유 (§8.2 — 버튼은 살려 두고 사유를 말한다)
-  '접두사를 채웁니다': 'Fill in the prefix',
-  '이름을 채웁니다': 'Fill in the name',
-  '테스트 폴더를 채웁니다': 'Fill in the tests folder',
-  '대상 서버 줄에 빈 칸이 있습니다. 채우거나 그 줄을 뺍니다':
-    'A target server row has an empty field. Fill it in or remove the row',
+  '접두사를 입력해 주세요': 'Enter the prefix',
+  '이름을 입력해 주세요': 'Enter the name',
+  '테스트 폴더를 입력해 주세요': 'Enter the tests folder',
+  '대상 서버에 비어 있는 항목이 있습니다. 입력하거나 해당 서버를 삭제해 주세요':
+    'A target server has an empty field. Fill it in or delete that server',
   '「{줄}」 — / 로 시작하고 글자·숫자·. _ ~ % - 만 쓸 수 있습니다':
     '"{줄}" must start with / and use only letters, digits and . _ ~ % -',
   '경로는 {글자}자까지 적을 수 있습니다': 'A path can be up to {글자} characters long',
   '경로는 {개수}개까지 적을 수 있습니다': 'You can enter up to {개수} paths',
   '아이디를 채웁니다': 'Fill in the ID',
-  '역할 이름을 채웁니다': 'Fill in the role name',
+  '이름을 채웁니다': 'Fill in the name',
+  '아이디를 입력해 주세요': 'Enter the ID',
+  '역할 이름을 입력해 주세요': 'Enter the role name',
   '「일반 회원」은 역할 이름으로 쓸 수 없습니다': '"Regular user" cannot be used as a role name',
   '역할 이름은 {글자}자까지 적을 수 있습니다': 'A role name can be up to {글자} characters long',
   '한 대상 서버 줄 안에서 역할 이름이 겹칩니다': 'Role names repeat within one target server row',
@@ -186,30 +193,30 @@ export const 설정말: Record<string, string> = {
   '새 서비스': 'New service',
   '저장했습니다': 'Saved',
   '기본 정보': 'Basics',
-  '케이스 번호 · 사이드바 맨 위 서비스 고르개 · 스크립트를 읽어 올 폴더에 쓰입니다':
-    'Used for case IDs, the service picker at the top of the sidebar and the folder scripts are read from',
-  '실행할 때 「대상 서버」에서 고르는 목록입니다. 하나도 없으면 실행할 수 없습니다':
-    'The list you pick from under Target server when running. With none, nothing can run',
+  '케이스 번호, 서비스 선택 목록, 스크립트 폴더에 사용되는 정보입니다':
+    'Used for case IDs, the service picker and the scripts folder',
+  '테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다':
+    'The servers tests run against. Register at least one to run',
   '실행 알림': 'Run notifications',
-  '실행할 때 「끝나면 Slack 으로 알리기」를 켜면 이 채널로 결과를 보냅니다':
+  '실행할 때 「끝나면 Slack으로 알리기」를 켜면 이 채널로 결과를 보냅니다':
     'Results go to this channel when Notify Slack when done is on for a run',
-  '기획서 · 피그마로 테스트 스크립트를 만들 때만 씁니다. 실행에는 영향이 없습니다':
+  '기획서와 피그마로 테스트 스크립트를 만들 때만 사용합니다. 실행에는 영향을 주지 않습니다':
     'Only used when building test scripts from specs and Figma. Runs are not affected',
-  '서비스 끄기': 'Turn off service',
-  '끄면 사이드바의 서비스 고르개에서 빠집니다. 실행 기록과 스크립트는 남습니다':
-    'Once off, it leaves the service picker in the sidebar. Run history and scripts stay',
+  '서비스 비활성화': 'Deactivate service',
+  '비활성화하면 서비스 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다':
+    'Once deactivated, it disappears from the service picker. Run history and scripts are kept',
 
   // 정기 실행 구획 (§8.8 · 공통/6-인프라 §9.2)
   '정기 실행': 'Scheduled runs',
-  '매일 정한 시각에 이 서비스의 스크립트를 한 번 돌립니다. 대시보드의 통과율 · 일별 결과가 여기서 쌓입니다':
-    'Runs this service\'s scripts once a day at the set time. The dashboard pass rate and daily results build up from here',
+  '매일 정한 시각에 이 서비스의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행을 바탕으로 집계됩니다':
+    'Runs this service\'s scripts automatically once a day at the set time. The dashboard pass rate and daily results are based on these runs',
   '매일 돌리기': 'Run daily',
   '시각': 'Time',
   '{시간대} 기준': '{시간대} time',
-  '정한 시각부터 1시간 안에 사용 중인 스크립트를 UI · 기능 실행으로 한 번씩 돌리고, Slack 웹훅이 있으면 알립니다. 그 사이 서버가 꺼져 있었으면 그날은 건너뜁니다. Android 앱 스크립트는 뺍니다':
-    'Within an hour of the set time, active scripts run once as a UI run and a functional run, reporting to Slack if a webhook is set. If the server was down during that hour, the day is skipped. Android app scripts are left out',
+  '정한 시각부터 1시간 안에 사용 중인 스크립트를 UI·기능 테스트로 한 번씩 실행하고, Slack 웹훅이 있으면 결과를 알립니다. 그 시간에 서버가 꺼져 있으면 그날은 건너뜁니다':
+    'Within an hour of the set time, active scripts run once as a UI test and a functional test, and results go to Slack if a webhook is set. If the server is down during that hour, the day is skipped',
   '마지막 정기 실행': 'Last scheduled run',
-  '아직 돈 적 없습니다': 'Has not run yet',
-  '정기 실행 시각을 채웁니다': 'Fill in the scheduled run time',
+  '아직 실행한 적이 없습니다': 'Has not run yet',
+  '정기 실행 시각을 입력해 주세요': 'Enter the scheduled run time',
   '정기 실행의 대상 서버를 대상 서버 목록에서 고릅니다': 'Pick the scheduled run target server from the target server list',
 };
