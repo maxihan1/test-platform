@@ -88,10 +88,11 @@ describe('서비스 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
     expect(document.querySelector('[style*="--svc"]')).toBeNull();
   });
 
-  it('접두사 표시(`DEMO-`)도 없다. 무엇을 뜻하는지 화면만 봐서는 몰랐다', () => {
+  it('`DEMO-` 꼴의 접두사 표시는 없다. 헤더 칩은 접두사 글자 하나만 보인다 (2026-10-13)', () => {
     띄운다(결제);
     expect(document.querySelector('.side-svc-id')).toBeNull();
     expect(document.body.textContent).not.toContain('ZSH-');
+    expect(document.querySelector('.hd-svc-code')?.textContent).toBe('ZSH');
   });
 
   it('구분은 이름이 한다. 색을 걷어도 어느 서비스인지 읽힌다', () => {

@@ -95,6 +95,7 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
             <button
               className="btn ghost icon"
               aria-label={t('대상 서버 {번호} 삭제', { 번호: i + 1 })}
+              title={t('대상 서버 {번호} 삭제', { 번호: i + 1 })}
               onClick={() => onChange(envs.filter((_, k) => k !== i))}
             >
               −

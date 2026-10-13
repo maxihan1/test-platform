@@ -76,12 +76,13 @@ export function 비밀번호칸<T extends 비밀번호상태>({
         <button
           className={있다 ? 'btn ghost' : 'btn ghost icon'}
           aria-label={있다 ? 라벨.변경 : 라벨.추가}
+          title={있다 ? undefined : 라벨.추가}
           onClick={() => 고친다({ ...값, 새비밀번호: '', 비밀번호지움: false })}
         >
           {있다 ? t('변경') : '+'}
         </button>
         {있다 ? (
-          <button className="btn ghost icon" aria-label={라벨.삭제} onClick={() => 고친다({ ...값, 비밀번호지움: true })}>
+          <button className="btn ghost icon" aria-label={라벨.삭제} title={라벨.삭제} onClick={() => 고친다({ ...값, 비밀번호지움: true })}>
             −
           </button>
         ) : null}
@@ -147,6 +148,7 @@ export function 역할계정칸들({ 역할들, 번호, 고친다 }: { 역할들
             <button
               className="btn ghost icon"
               aria-label={t('대상 서버 {번호} 역할 {순번} 삭제', 자리)}
+              title={t('대상 서버 {번호} 역할 {순번} 삭제', 자리)}
               onClick={() => 고친다(역할들.filter((_, i) => i !== k))}
             >
               −

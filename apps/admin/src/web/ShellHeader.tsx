@@ -63,11 +63,19 @@ function 계정메뉴({ user, onLogout }: { user: User; onLogout: () => void }) 
   const t = use말();
   const [열림, set열림] = useState(false);
   const 상자 = useRef<HTMLDivElement>(null);
+  const 버튼 = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!열림) return;
     const 닫기 = (e: Event) => {
-      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !상자.current?.contains(e.target as Node)) set열림(false);
+      if (e instanceof KeyboardEvent) {
+        if (e.key !== 'Escape') return;
+        set열림(false);
+        // 메뉴 안에 있던 포커스가 사라지는 메뉴와 같이 없어지지 않게 이름 버튼으로 돌려 보낸다
+        버튼.current?.focus();
+      } else if (!상자.current?.contains(e.target as Node)) {
+        set열림(false);
+      }
     };
     document.addEventListener('pointerdown', 닫기);
     document.addEventListener('keydown', 닫기);
@@ -79,7 +87,7 @@ function 계정메뉴({ user, onLogout }: { user: User; onLogout: () => void }) 
 
   return (
     <div className="hd-me" ref={상자}>
-      <button type="button" className="hd-me-btn" aria-expanded={열림} aria-controls="hd-me-menu" onClick={() => set열림(!열림)}>
+      <button type="button" ref={버튼} className="hd-me-btn" aria-expanded={열림} aria-controls="hd-me-menu" onClick={() => set열림(!열림)}>
         <span className="hd-me-av" aria-hidden="true">
           {Array.from(user.displayName)[0] ?? ''}
         </span>
@@ -93,7 +101,14 @@ function 계정메뉴({ user, onLogout }: { user: User; onLogout: () => void }) 
           <a href="#/password" onClick={() => set열림(false)}>
             {t('비밀번호 변경')}
           </a>
-          <button type="button" onClick={onLogout}>
+          <button
+            type="button"
+            onClick={() => {
+              // 로그아웃이 실패해도 메뉴가 본문 버튼을 가린 채 남지 않게 먼저 닫는다
+              set열림(false);
+              onLogout();
+            }}
+          >
             {t('로그아웃')}
           </button>
         </div>
