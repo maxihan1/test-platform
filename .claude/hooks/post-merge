@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# git pull 로 main 이 바뀌면 graphify 지도를 코드 기준으로 갱신한다 (백그라운드).
+# 지도가 없는 곳(작업용 worktree 등)이나 main 이 아닌 브랜치에서는 아무것도 하지 않는다.
+# 갱신이 실패해도 pull 을 막지 않도록 항상 0 으로 끝낸다. 로그는 graphify-out/.update.log 에 남는다.
+
+[ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" = "main" ] || exit 0
+[ -f graphify-out/graph.json ] || exit 0
+command -v graphify >/dev/null 2>&1 || exit 0
+
+# 백그라운드로 띄워서 pull 이 갱신을 기다리지 않게 한다.
+nohup graphify update . >graphify-out/.update.log 2>&1 &
+exit 0
