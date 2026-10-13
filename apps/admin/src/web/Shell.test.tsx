@@ -40,7 +40,13 @@ const 사람: User = {
   services: [결제, 정산],
 };
 
-function 띄운다(service: ServiceRow, 언어: 언어 = 'ko', on언어: (고른: 언어) => void = () => {}, current = '#/cases') {
+function 띄운다(
+  service: ServiceRow,
+  언어: 언어 = 'ko',
+  on언어: (고른: 언어) => void = () => {},
+  current = '#/cases',
+  onLogout: () => void = () => {},
+) {
   vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
   return render(
     <언어함 value={언어}>
@@ -50,7 +56,7 @@ function 띄운다(service: ServiceRow, 언어: 언어 = 'ko', on언어: (고른
         onService={() => {}}
         언어={언어}
         on언어={on언어}
-        onLogout={() => {}}
+        onLogout={onLogout}
         current={current}
       >
         <div>본문</div>
@@ -70,7 +76,7 @@ describe('서비스 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
     띄운다(결제);
     expect(색표시()).toBeNull();
     expect(document.querySelector('.side-dot')).toBeNull();
-    const 띠 = document.querySelector('.side-top') as HTMLElement | null;
+    const 띠 = document.querySelector('.hd-svc') as HTMLElement | null;
     expect(띠).not.toBeNull();
     expect(띠!.style.background).toBe('');
     expect(띠!.style.getPropertyValue('--svc')).toBe('');
@@ -90,25 +96,44 @@ describe('서비스 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
 
   it('구분은 이름이 한다. 색을 걷어도 어느 서비스인지 읽힌다', () => {
     띄운다(결제);
-    expect(screen.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: '서비스 선택' })).toBeTruthy();
     expect(screen.getByText('결제 서비스')).toBeTruthy();
   });
 });
 
 describe('세로 껍데기 (SPEC §8)', () => {
-  it('사이드바 하나가 서비스 고르개 · 자리 전부 · 로그인한 사람을 다 들고 있다', () => {
+  it('맨 위 헤더가 서비스 선택 · 알림 · 언어 · 계정을, 사이드바가 자리 전부를 들고 있다', () => {
     띄운다(결제);
+    const 헤더 = document.querySelector('header.hd') as HTMLElement | null;
+    expect(헤더).not.toBeNull();
+    const 위 = within(헤더!);
+    expect(위.getByRole('combobox', { name: '서비스 선택' })).toBeTruthy();
+    expect(위.getByLabelText('언어')).toBeTruthy();
+    expect(위.getByRole('button', { name: 사람.displayName })).toBeTruthy();
+    expect(위.getByRole('button', { name: /알림/ })).toBeTruthy();
+
     const 사이드 = document.querySelector('.side') as HTMLElement | null;
     expect(사이드).not.toBeNull();
     const 안 = within(사이드!);
-    expect(안.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
-    // 자리 목록만 센다 — 사이드바에는 `비밀번호 변경` 링크도 있다 (2026-09-28)
+    // 헤더가 사이드바보다 먼저 온다 — 키보드 탭 순서도 위에서 아래다
+    expect(헤더!.compareDocumentPosition(사이드!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // 하위 메뉴도 링크다 (PR #132)
     const 자리들 = 자리목록(사람, 결제.prefix, 'ko');
     expect(within(안.getByRole('navigation')).getAllByRole('link')).toHaveLength(
       자리들.length + 자리들.reduce((합, 자리) => 합 + (자리.하위?.length ?? 0), 0),
     );
-    expect(안.getByText(사람.displayName)).toBeTruthy();
+    // 앞 판이 사이드바 바닥에 두던 것은 이제 사이드바에 없다
+    expect(안.queryByText(사람.displayName)).toBeNull();
+    expect(안.queryByLabelText('언어')).toBeNull();
+    expect(안.queryByRole('combobox')).toBeNull();
+  });
+
+  it('헤더 왼쪽에 QA Hub 로고가 있고 집으로 가는 링크다', () => {
+    띄운다(결제);
+    const 로고 = screen.getByRole('link', { name: 'QA Hub 홈' });
+    expect(로고.textContent).toBe('QA Hub');
+    expect(로고.closest('header.hd')).not.toBeNull();
+    expect(로고.getAttribute('href')).toMatch(/^#\//);
   });
 
   it('푸터가 제품과 지금 서비스를 적는다', () => {
@@ -215,9 +240,9 @@ describe('껍데기는 제목을 지어내지 않는다 (2026-09-22)', () => {
 // 고르개 하나가 화면 글자 전부를 바꾼다 (SPEC §8 「다국어」).
 // 「고르개가 있다」만 보면 눌러도 아무 일이 없는 상태가 통과한다 — 바뀌는 것까지 본다
 describe('언어 고르개 (SPEC §8 다국어)', () => {
-  it('사이드바에 언어 고르개가 있다', () => {
+  it('헤더에 언어 고르개가 있다', () => {
     띄운다(결제);
-    expect(screen.getByLabelText('언어')).toBeTruthy();
+    expect(within(document.querySelector('header.hd') as HTMLElement).getByLabelText('언어')).toBeTruthy();
   });
 
   it('English 를 고르면 그 사실이 위로 올라간다', () => {
@@ -233,17 +258,40 @@ describe('언어 고르개 (SPEC §8 다국어)', () => {
     expect(screen.getByRole('navigation').textContent).not.toContain('실행 기록');
   });
 
-  it('이름 곁에 비밀번호 변경이 있다 — 변경 강제가 아니어도 본인이 바꾼다', () => {
+  it('이름을 누르면 비밀번호 변경이 나온다 — 변경 강제가 아니어도 본인이 바꾼다', () => {
     띄운다(결제);
+    expect(screen.queryByRole('link', { name: '비밀번호 변경' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 사람.displayName }));
     expect(screen.getByRole('link', { name: '비밀번호 변경' }).getAttribute('href')).toBe('#/password');
   });
 
-  it('접어도 비밀번호 변경에 키보드로 닿는다 — 접으면 숨는 사람 칸 밖에 둔다', () => {
+  it('이름을 누르면 로그아웃이 나오고 누르면 위로 올라간다', () => {
+    const 로그아웃 = vi.fn();
+    띄운다(결제, 'ko', () => {}, '#/cases', 로그아웃);
+    fireEvent.click(screen.getByRole('button', { name: 사람.displayName }));
+    fireEvent.click(screen.getByRole('button', { name: '로그아웃' }));
+    expect(로그아웃).toHaveBeenCalledTimes(1);
+  });
+
+  it('메뉴는 Esc 와 바깥 누르기로 닫힌다 — 안 닫히면 본문 버튼을 가린 채 남는다', () => {
+    띄운다(결제);
+    const 이름 = screen.getByRole('button', { name: 사람.displayName });
+    fireEvent.click(이름);
+    expect(이름.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('link', { name: '비밀번호 변경' })).toBeNull();
+    expect(이름.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(이름);
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole('link', { name: '비밀번호 변경' })).toBeNull();
+  });
+
+  it('접어도 헤더의 계정 메뉴에 키보드로 닿는다 — 사이드바와 상관없는 자리다', () => {
     사이드바접음을적는다(true);
-    const { container } = 띄운다(결제);
-    const 링크 = screen.getByRole('link', { name: '비밀번호 변경' });
-    expect(링크.closest('.side-who')).toBeNull();
-    expect(container.querySelector('.side')?.contains(링크)).toBe(true);
+    띄운다(결제);
+    fireEvent.click(screen.getByRole('button', { name: 사람.displayName }));
+    expect(screen.getByRole('link', { name: '비밀번호 변경' })).toBeTruthy();
     사이드바접음을적는다(false);
   });
 
@@ -264,15 +312,14 @@ describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)',
     expect(링크.getAttribute('aria-current')).toBe('page');
   });
 
-  it('대시보드에서는 서비스 고르개와 알림 줄이 없고 「알림」 버튼만 남는다. 여러 서비스를 함께 보는 화면이라서다', () => {
+  it('대시보드에서도 서비스 선택 칸이 남는다. 알림 줄은 없고 「알림」 버튼만 있다 (2026-10-13 시안 A)', () => {
     const { container } = 띄운다(결제, 'ko', () => {}, '#/dashboard');
-    expect(screen.queryByRole('combobox', { name: '서비스 고르기' })).toBeNull();
-    expect(container.querySelector('.side-top')).toBeNull();
+    expect(screen.getByRole('combobox', { name: '서비스 선택' })).toBeTruthy();
     expect(container.querySelector('.nt-lines')).toBeNull();
     expect(screen.getByRole('button', { name: /알림/ })).toBeTruthy();
   });
 
-  it('탭 제목과 바닥 글에도 숨긴 「고른 서비스」 이름이 안 남는다 — 대시보드는 서비스 하나가 아니다', () => {
+  it('탭 제목과 바닥 글에는 서비스 이름이 안 걸린다 — 선택 칸은 있어도 대시보드는 서비스 하나가 아니다', () => {
     const { container } = 띄운다(결제, 'ko', () => {}, '#/dashboard');
     expect(document.title).toBe('테스트 플랫폼');
     expect(container.querySelector('.foot')!.textContent).toBe('테스트 플랫폼');
@@ -286,7 +333,7 @@ describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)',
 
   it('다른 자리에서는 고르개가 그대로 있다', () => {
     띄운다(결제, 'ko', () => {}, '#/cases');
-    expect(screen.getByRole('combobox', { name: '서비스 고르기' })).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: '서비스 선택' })).toBeTruthy();
     expect(api.notifications).toHaveBeenCalled();
   });
 

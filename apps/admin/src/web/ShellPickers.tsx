@@ -16,7 +16,7 @@ export function 서비스고르개({ user, service, onService }: { user: User; s
         고른서비스를적는다(e.target.value);
         onService(e.target.value);
       }}
-      aria-label={t('서비스 고르기')}
+      aria-label={t('서비스 선택')}
     >
       {user.services.map((it) => (
         <option key={it.prefix} value={it.prefix}>

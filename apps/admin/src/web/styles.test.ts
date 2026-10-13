@@ -402,6 +402,7 @@ describe('서비스 색이 되살아나지 않는다 (SPEC §8, 2026-09-22)', ()
 
 // 「예쁘게」는 잴 수 없다. 숫자로 적어야 검사가 붙는다 (계획 게이트 1 주의 7)
 describe('서비스 고르개 (SPEC §8, 2026-09-22)', () => {
+  // 기본 규칙은 손가락 기준(휴대폰 위 줄이 쓴다). PC 헤더는 사용자가 작게 해 달라고 해서 header.css 가 32px 로 덮는다 (2026-10-13)
   it('누르는 영역이 44px 기준을 넘는다. 브라우저 반올림 때문에 46 으로 건다', () => {
     const 규칙 = css.slice(css.indexOf('.side-pick {'));
     const 높이 = /min-height:\s*(\d+)px/.exec(규칙);
@@ -415,10 +416,6 @@ describe('서비스 고르개 (SPEC §8, 2026-09-22)', () => {
 
   it('눌린 칩의 포커스 테두리가 칩 밖에 선다. 안쪽이면 잉크 바탕에 잉크 선이라 안 보인다', () => {
     expect(규칙(".chip[aria-pressed='true']:focus-visible")).toMatch(/outline-offset:\s*2px/);
-  });
-
-  it('무엇을 고르는 자리인지 적는 라벨 규칙이 있다', () => {
-    expect(css).toContain('.side-cap');
   });
 });
 

@@ -40,6 +40,7 @@ import { Loading } from './ui.js';
 import './styles.css';
 import './authoringStatus.css';
 import './noticeBar.css';
+import './header.css';
 import './noticeDrawer.css';
 import './phone.css';
 import './prd.css';
