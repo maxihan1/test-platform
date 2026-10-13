@@ -178,7 +178,7 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
   const 알림버튼 = (
     <button ref={버튼} className="nt-btn" aria-expanded={열림} aria-controls="nt-drawer" onClick={() => set열림(!열림)}>
       <아이콘 이름="bell" />
-      {t('알림')}
+      <span className="nt-btn-text">{t('알림')}</span>
       {/* 숫자가 늘 때 한 번 커졌다 돌아온다 — key 가 바뀌면 다시 그려져 움직임이 한 번 돈다 (DESIGN.md 원칙 4) */}
       {안읽음 === 0 ? null : (
         <span key={안읽음} className="nt-badge" aria-label={t('안 읽은 알림 {수}건', { 수: 안읽음 })}>

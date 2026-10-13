@@ -1,4 +1,4 @@
-// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · 정기 실행 · 실행 알림 · 테스트 작성 · 서비스 끄기 구획
+// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · 정기 실행 · 실행 알림 · 테스트 작성 · 서비스 비활성화 구획
 // 지우지 않는다 — 비활성으로 내릴 뿐이다. 지우면 그 서비스로 돌린 과거 증적이 흔들린다
 
 import { useState, type ReactNode } from 'react';
@@ -109,7 +109,7 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
         )}
       </h2>
 
-      <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호 · 사이드바 맨 위 서비스 고르개 · 스크립트를 읽어 올 폴더에 쓰입니다')}>
+      <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호, 서비스 선택 목록, 스크립트 폴더에 사용되는 정보입니다')}>
         <div className="field">
           <label htmlFor="sf-prefix">{t('접두사')}</label>
           <div>
@@ -123,8 +123,8 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
             />
             <div className="hint">
               {새것
-                ? t('만들 때만 정합니다. 케이스 번호(PAY-001)에 들어가므로 나중에 바꿀 수 없습니다')
-                : t('만든 뒤에는 바꿀 수 없습니다. 케이스 번호에 이미 들어가 있습니다')}
+                ? t('생성할 때만 정할 수 있습니다. 케이스 번호(PAY-001)에 사용되므로 나중에 바꿀 수 없습니다')
+                : t('생성 후에는 바꿀 수 없습니다. 케이스 번호에 이미 사용 중입니다')}
             </div>
             {접두사틀림 === null ? null : <div className="err">{접두사틀림}</div>}
           </div>
@@ -151,7 +151,7 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
               onChange={(e) => setTestsDir(e.target.value)}
               placeholder="pay"
             />
-            <div className="hint">{t('플랫폼이 실제로 훑을 폴더입니다')}</div>
+            <div className="hint">{t('플랫폼이 테스트 스크립트를 읽어 오는 폴더입니다')}</div>
           </div>
         </div>
 
@@ -165,18 +165,18 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
               onChange={(e) => setTestsRepo(e.target.value)}
               placeholder="https://github.com/..."
             />
-            <div className="hint">{t('기록용으로만 적어 둡니다. 플랫폼이 이 저장소를 받아오지는 않습니다')}</div>
+            <div className="hint">{t('기록용 항목입니다. 플랫폼이 이 저장소를 내려받지는 않습니다')}</div>
           </div>
         </div>
       </구획>
 
-      <구획 제목={t('대상 서버')} 쓰임={t('실행할 때 「대상 서버」에서 고르는 목록입니다. 하나도 없으면 실행할 수 없습니다')}>
+      <구획 제목={t('대상 서버')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
         <EnvEditor envs={envs} onChange={setEnvs} />
       </구획>
 
       {/* 새 서비스에는 없다 — 케이스가 없는 서비스라 돌릴 것이 없다 (도메인/인증 §8.8) */}
       {새것 ? null : (
-        <구획 제목={t('정기 실행')} 쓰임={t('매일 정한 시각에 이 서비스의 스크립트를 한 번 돌립니다. 대시보드의 통과율 · 일별 결과가 여기서 쌓입니다')}>
+        <구획 제목={t('정기 실행')} 쓰임={t('매일 정한 시각에 이 서비스의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행을 바탕으로 집계됩니다')}>
           <ScheduleFields
             값={schedule}
             저장된={row.schedule ?? null}
@@ -187,19 +187,19 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
         </구획>
       )}
 
-      <구획 제목={t('실행 알림')} 쓰임={t('실행할 때 「끝나면 Slack 으로 알리기」를 켜면 이 채널로 결과를 보냅니다')}>
+      <구획 제목={t('실행 알림')} 쓰임={t('실행할 때 「끝나면 Slack으로 알리기」를 켜면 이 채널로 결과를 보냅니다')}>
         <비밀칸 id="sf-hook" 이름={t('Slack 웹훅')} 설정됨={row?.hasSlackWebhook ?? false} 새것={새것}
           값={webhook} 바꾼다={setWebhook} placeholder="https://hooks.slack.com/..."
-          비울때={t('이대로 저장하면 알림을 끕니다. 그대로 두려면 「그대로 두기」를 누릅니다')} />
+          비울때={t('이대로 저장하면 알림이 꺼집니다. 유지하려면 「변경 취소」를 누릅니다')} />
       </구획>
 
-      <구획 제목={t('테스트 작성')} 쓰임={t('기획서 · 피그마로 테스트 스크립트를 만들 때만 씁니다. 실행에는 영향이 없습니다')}>
+      <구획 제목={t('테스트 작성')} 쓰임={t('기획서와 피그마로 테스트 스크립트를 만들 때만 사용합니다. 실행에는 영향을 주지 않습니다')}>
         {/* 규칙은 웹훅과 같다. 발급 안내를 옆에 둔다 — 어디서 만드는지 모르면 칸이 비어 남는다 (도메인/인증 §8.8) */}
         <비밀칸 id="sf-figma" 이름={t('피그마 토큰')} 설정됨={row?.hasFigmaToken ?? false} 새것={새것}
           값={figma} 바꾼다={setFigma} placeholder="figd_..."
-          비울때={t('이대로 저장하면 토큰을 지웁니다. 피그마 자료를 못 읽게 됩니다')}>
+          비울때={t('이대로 저장하면 토큰이 삭제되어 피그마 자료를 읽을 수 없게 됩니다')}>
           <div className="hint">
-            {t('Figma → Settings → Security → Personal access tokens 에서 만듭니다. 권한은 File content 읽기만, 만료일을 정합니다')}{' '}
+            {t('Figma의 Settings → Security → Personal access tokens에서 발급합니다. 권한은 File content 읽기 전용으로 하고 만료일을 지정합니다')}{' '}
             <a href={피그마설정주소} target="_blank" rel="noopener noreferrer">
               {t('Figma 설정 열기')} ↗
             </a>
@@ -220,10 +220,10 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
 
       {/* 저장과 다른 일이라 따로 둔다 — 적다 만 칸은 저장하지 않고 상태만 뒤집는다 */}
       {새것 ? null : (
-        <구획 제목={t('서비스 끄기')} 쓰임={t('끄면 사이드바의 서비스 고르개에서 빠집니다. 실행 기록과 스크립트는 남습니다')} 경고>
+        <구획 제목={t('서비스 비활성화')} 쓰임={t('비활성화하면 서비스 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다')} 경고>
           <div>
             <button className="btn ghost" disabled={보내는중} onClick={() => void 활성을뒤집는다()}>
-              {row.isActive ? t('비활성으로 내리기') : t('다시 활성으로')}
+              {row.isActive ? t('비활성화') : t('다시 활성화')}
             </button>
           </div>
         </구획>
@@ -245,7 +245,7 @@ function 구획({ 제목, 쓰임, 경고 = false, children }: { 제목: string; 
   );
 }
 
-/** 비밀값 칸 — 웹훅과 피그마 토큰이 같이 쓴다. 값을 되돌려 안 보여서 고치는 길이 「다시 넣기」다 (§8.8) */
+/** 비밀값 칸 — 웹훅과 피그마 토큰이 같이 쓴다. 값을 되돌려 안 보여서 고치는 길이 「변경」이다 (§8.8) */
 function 비밀칸(p: {
   id: string; 이름: string; 설정됨: boolean; 새것: boolean; placeholder: string; 비울때: string;
   값: string | null; 바꾼다: (값: string | null) => void; children?: ReactNode;
@@ -259,7 +259,21 @@ function 비밀칸(p: {
         {p.값 === null ? (
           <div className="set-hook">
             <span>{칸.글}</span>
-            <button className="btn ghost" onClick={() => p.바꾼다('')}>{칸.버튼}</button>
+            {/* 값이 없을 때는 `+` 기호 하나, 있을 때는 글자 「변경」과 `−` — 있는데 `+` 를 또 보이면 헷갈린다. 기호만 보이는 버튼의 이름은 aria-label 이 맡는다 */}
+            <button
+              className={p.설정됨 ? 'btn ghost' : 'btn ghost icon'}
+              aria-label={p.설정됨 ? t('{이름} 변경', { 이름: p.이름 }) : t('{이름} 추가', { 이름: p.이름 })}
+              title={p.설정됨 ? undefined : t('{이름} 추가', { 이름: p.이름 })}
+              onClick={() => p.바꾼다('')}
+            >
+              {칸.버튼}
+            </button>
+            {p.설정됨 ? (
+              // 지우는 길도 빈 칸을 저장하는 것이다 — 서버가 「빈 글자 = 지움」으로 받는다. 저장 전에 「변경 취소」로 물릴 수 있다
+              <button className="btn ghost icon" aria-label={t('{이름} 삭제', { 이름: p.이름 })} title={t('{이름} 삭제', { 이름: p.이름 })} onClick={() => p.바꾼다('')}>
+                −
+              </button>
+            ) : null}
           </div>
         ) : (
           <div className="set-hook">
@@ -267,12 +281,14 @@ function 비밀칸(p: {
               onChange={(e) => p.바꾼다(e.target.value)} />
             {/* 되돌아갈 길이 없으면, 마음을 바꿔 그냥 저장했을 때 빈 글자가 가서 값이 지워진다 */}
             {p.새것 ? null : (
-              <button className="btn ghost" onClick={() => p.바꾼다(null)}>{t('그대로 두기')}</button>
+              <button className="btn ghost" aria-label={t('{이름} 변경 취소', { 이름: p.이름 })} onClick={() => p.바꾼다(null)}>
+                {t('변경 취소')}
+              </button>
             )}
           </div>
         )}
         <div className="hint">
-          {p.값 === '' && !p.새것 ? p.비울때 : t('비밀값이라 한 번 넣으면 다시 보여 주지 않습니다')}
+          {p.값 === '' && !p.새것 ? p.비울때 : t('보안을 위해 저장한 값은 다시 표시하지 않습니다')}
         </div>
         {p.children}
       </div>

@@ -94,10 +94,10 @@ describe('휴대폰 껍데기', () => {
 
   it('대시보드에서는 서비스 고르개를 숨긴다 — PC 사이드바와 같다', () => {
     띄운다('#/dashboard');
-    expect(screen.queryByLabelText('서비스 고르기')).toBeNull();
+    expect(screen.queryByLabelText('서비스 선택')).toBeNull();
     cleanup();
     띄운다('#/runs/fn');
-    expect(screen.getByLabelText('서비스 고르기')).toBeTruthy();
+    expect(screen.getByLabelText('서비스 선택')).toBeTruthy();
   });
 
   it('사람 버튼 안에 언어 · 비밀번호 변경 · 로그아웃이 있다', () => {

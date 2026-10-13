@@ -75,11 +75,11 @@ describe('서비스 색의 명암비 (DESIGN.md)', () => {
 
 describe('Slack 웹훅 칸 (SPEC §8.8)', () => {
   it('설정돼 있으면 주소 대신 설정됨만 보여준다. 비밀값이라 되돌려 보여주지 않는다', () => {
-    expect(웹훅칸(true, 'ko')).toMatchObject({ 글: '설정됨', 버튼: '다시 넣기' });
+    expect(웹훅칸(true, 'ko')).toMatchObject({ 글: '설정됨', 버튼: '변경' });
   });
 
   it('없으면 넣으라고 말한다', () => {
-    expect(웹훅칸(false, 'ko')).toMatchObject({ 글: '없음', 버튼: '넣기' });
+    expect(웹훅칸(false, 'ko')).toMatchObject({ 글: '없음', 버튼: '+' });
   });
 
   it('둘 다 주소를 담지 않는다', () => {
@@ -172,7 +172,7 @@ describe('서비스를 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살
     expect(서비스못보내는이유({ ...채운것 }, 'ko')).toBe(null);
   });
 
-  it('훑지 않을 경로는 빈 줄 · 앞뒤 공백 · 끝의 / 를 봐준다', () => {
+  it('탐색 제외 경로는 빈 줄 · 앞뒤 공백 · 끝의 / 를 봐준다', () => {
     expect(서비스못보내는이유({ ...채운것, 제외: '/daejeon/\n\n  /gyeongnam  ' }, 'ko')).toBe(null);
   });
 

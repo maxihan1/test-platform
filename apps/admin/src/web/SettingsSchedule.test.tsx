@@ -121,10 +121,10 @@ describe('서비스 설정 「정기 실행」 구획 (도메인/인증 §8.8 ·
     expect(screen.getByRole('link', { name: '#20902' }).getAttribute('href')).toBe('#/runs/20902');
   });
 
-  it('돈 적이 없으면 그렇게 적는다', () => {
+  it('실행한 적이 없으면 그렇게 적는다', () => {
     render(<ServicePanel row={꺼진서비스} onDone={() => {}} />);
 
-    expect(정기구획().textContent).toContain('아직 돈 적 없습니다');
+    expect(정기구획().textContent).toContain('아직 실행한 적이 없습니다');
   });
 
   it('새 서비스에는 구획이 없다 — 돌릴 케이스가 없다', () => {

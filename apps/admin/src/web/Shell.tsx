@@ -17,7 +17,7 @@ import { 아이콘 } from './icons.js';
 import { Notice } from './Notice.js';
 import { use휴대폰 } from './phone.js';
 import { PhoneShell } from './PhoneShell.js';
-import { 서비스고르개, 언어고르개 } from './ShellPickers.js';
+import { ShellHeader } from './ShellHeader.js';
 
 interface Props {
   user: User;
@@ -50,6 +50,8 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
   // 접은 것은 사람이 되돌릴 수 있는 상태라 저장해 둔다. 새로고침마다 다시 접게 하면 그 기능이 짐이 된다
   const [접음, set접음] = useState(사이드바접었나);
+  // 「알림」 버튼은 맨 위 헤더에 선다. 줄과 서랍은 본문 쪽에 두고 버튼만 이 자리로 옮겨 그린다 (Notice 의 `버튼자리`)
+  const [알림자리, set알림자리] = useState<HTMLElement | null>(null);
 
   // 휴대폰은 사이드바 대신 위 줄 · 아래 탭이다 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」). 훅은 모두 위에서 부른 뒤 가른다
   const 휴대폰 = use휴대폰();
@@ -63,7 +65,8 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
   return (
     <div className={접음 ? 'wrap folded' : 'wrap'}>
-      {/* 짙은 세로 막대 하나가 「어느 서비스를 · 어디를 · 누가」 셋을 다 들고 있다.
+      <ShellHeader user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} 알림자리={set알림자리} />
+      {/* 「어느 서비스를 · 누가」는 맨 위 헤더가, 「어디를」은 짙은 세로 막대의 자리 목록이 든다 (2026-10-13 시안 A).
           2026-09-21 ② 에 옛 이름(`.band`·`.nav`·`.notice`·`.svc-dot`)을 걷어냈다.
           PR① 이 남겨 둔 것은 그 이름으로 단언하는 검사가 있었기 때문이고, 그 검사를 같이 고쳤다 */}
       <aside className="side">
@@ -81,20 +84,6 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         >
           {접음 ? '»' : '«'}
         </button>
-        {/* 서비스 색은 2026-09-22 에 걷었다 (SPEC §8). 이름과 저장소 주소로 구분한다 —
-            「이 파란 네모가 뭘 뜻하는지 모르겠다」가 걷은 이유다 */}
-        {/* 대시보드는 여러 서비스를 함께 본다. 고르개가 있으면 「이 서비스만」으로 읽힌다 (화면공통 §8) */}
-        {대시보드인가 ? null : (
-          <div className="side-top">
-            {/* 무엇을 고르는 자리인지 **글자로 적는다.** 파란 네모를 걷은 이유가 바로
-                「이게 뭘 뜻하는지 모르겠다」였다 — 같은 실수를 고르개에서 되풀이하지 않는다 */}
-            <span className="side-cap">{t('서비스§고르개')}</span>
-            <div className="side-svc">
-              <서비스고르개 user={user} service={service} onService={onService} />
-            </div>
-          </div>
-        )}
-
         <nav className="side-nav">
           {자리목록(user, service?.prefix ?? null, 언어).map((자리) =>
             자리.바깥 === true ? (
@@ -135,26 +124,6 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
             ),
           )}
         </nav>
-
-        {/* 사람과 로그아웃을 바닥으로 민다. 자주 누르는 것이 아니라 늘 보여야 하는 것이다 */}
-        <div className="side-gap" />
-
-        {/* 접어도 지우지 않는다 — 폭만 줄고 글자가 숨는다. 위 자리 목록과 같은 이유다 (SPEC §8) */}
-        <div className="side-lang">
-          <언어고르개 언어={언어} on언어={on언어} />
-        </div>
-
-        <div className="side-who">
-          <span className="side-who-name">{user.displayName}</span>
-          <button className="side-out" onClick={onLogout}>
-            {t('로그아웃')}
-          </button>
-        </div>
-        {/* 이름 바로 아래에 두되 사람 칸 밖이다 — 접으면 사람 칸이 통째로 숨어 키보드가 못 닿는다.
-            자리 목록처럼 글자만 눌러 탭 순서에 남긴다 (도메인/인증 §8.6) */}
-        <a className="side-pw" href="#/password">
-          {t('비밀번호 변경')}
-        </a>
       </aside>
 
       <div className="main">
@@ -162,6 +131,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
         {service === null ? null : (
           <Notice
             줄숨김={대시보드인가}
+            버튼자리={알림자리}
             서비스바꿈={(접두사) => {
               // 서비스 고르개와 같은 길이다 — 고른 서비스를 적어 두고 화면이 읽는 서비스를 바꾼다
               고른서비스를적는다(접두사);
