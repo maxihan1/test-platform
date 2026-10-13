@@ -147,7 +147,7 @@ describe('route', () => {
     expect(돌아갈자리('', 대시보드없음, 'PAY')).toBe('#/cases');
   });
 
-  it('집은 남은 자리 중 맨 위다. 대시보드 → 케이스 → 작성 → 실행 기록 순이다', () => {
+  it('집은 사이드바 순서와 따로 간다. 대시보드 → 케이스 → 작성 → 실행 기록 순이다', () => {
     expect(집(다봄, 'PAY')).toBe('#/dashboard');
     expect(집(케이스없음, 'PAY')).toBe('#/dashboard');
     expect(집(실행만, 'PAY')).toBe('#/dashboard');

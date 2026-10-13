@@ -68,17 +68,17 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
   const 목록: 자리[] = [];
   // 맨 위다. 고른 서비스가 아니라 배정 서비스 전체의 실행 칸을 본다 (route.ts 의 `대시보드보나`)
   if (대시보드보나(user)) 목록.push({ 이름: t('대시보드', 언어), 해시: '#/dashboard', 아이콘: 'dashboard' });
-  if (기능보나(user, prefix, 'cases')) {
-    const 이름 = t('테스트 스크립트', 언어);
-    목록.push({ 이름, 해시: '#/cases', 아이콘: 'cases', 하위: 종류하위(이름, '#/cases', 언어) });
-  }
   if (기능보나(user, prefix, 'authoring')) {
     // 작성은 표준 기획서를 읽어 테스트를 만든다 — 흐름 차례대로 그 위에 둔다 (화면공통 §8)
     목록.push({ 이름: t('PRD 관리', 언어), 해시: '#/prd', 아이콘: 'prd' });
     목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring', 아이콘: 'authoring' });
   }
+  if (기능보나(user, prefix, 'cases')) {
+    const 이름 = t('테스트 스크립트', 언어);
+    목록.push({ 이름, 해시: '#/cases', 아이콘: 'cases', 하위: 종류하위(이름, '#/cases', 언어) });
+  }
   if (기능보나(user, prefix, 'runs')) {
-    // 만드는 일(케이스 → 작성 → 시나리오) 끝, 보는 일 앞이다 (화면공통 §8). 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7)
+    // 만드는 일(작성 → 케이스 → 시나리오) 끝, 보는 일 앞이다 (화면공통 §8). 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7)
     목록.push({ 이름: t('E2E 시나리오', 언어), 해시: '#/scenarios', 아이콘: 'scenarios' });
     const 이름 = t('실행 기록', 언어);
     목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: 종류하위(이름, '#/runs', 언어) });
