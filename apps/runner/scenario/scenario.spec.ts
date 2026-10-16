@@ -10,11 +10,12 @@ import { 감싸기걸기 } from './window.js';
 import { 뒷정리줄, 부품줄 } from './wire.js';
 
 const 목록 = JSON.parse(process.env.PLATFORM_SCENARIO ?? '[]') as ScenarioExecuteRequest['parts'];
+const 삭제코드 = JSON.parse(process.env.PLATFORM_DELETE_STATUSES ?? '[]') as NonNullable<ScenarioExecuteRequest['deleteStatuses']>;
 
 // 부품마다 새 창을 직접 연다 — page · request fixture 는 테스트 하나에 하나뿐이다 (SPEC 도메인/시나리오 §3.7 결정 3)
 test('E2E 시나리오', async ({ browser }, testInfo) => {
   const baseUrl = process.env.PLATFORM_BASE_URL ?? '';
-  const 이음 = 새이음(목록, baseUrl);
+  const 이음 = 새이음(목록, baseUrl, 삭제코드);
   const 적힌한도: unknown = testInfo.config.metadata['partTimeoutMs'];
   const partTimeoutMs = typeof 적힌한도 === 'number' ? 적힌한도 : 30_000;
   const 감싸기 = 감싸기걸기(browser, request, 이음, {

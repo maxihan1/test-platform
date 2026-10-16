@@ -35,6 +35,19 @@ describe('같은사이트인가', () => {
 describe('지도줄들', () => {
   const 기준 = 'https://qa.example.com';
 
+  it('마지막 2xx 코드만 성공 코드로 남긴다 — 4xx · 5xx · 응답 없음은 안 남긴다', () => {
+    const 줄들 = 지도줄들(
+      [
+        { method: 'DELETE', url: 'https://qa.example.com/api/me', resourceType: 'api', status: 200 },
+        { method: 'DELETE', url: 'https://qa.example.com/api/me', resourceType: 'api', status: 204 },
+        { method: 'DELETE', url: 'https://qa.example.com/api/me', resourceType: 'api', status: 404 },
+        { method: 'DELETE', url: 'https://qa.example.com/api/cart/1', resourceType: 'api', status: null },
+      ],
+      기준,
+    );
+    expect(줄들.map((x) => [x.path, x.okStatus])).toEqual([['/api/me', 204], ['/api/cart/:n', undefined]]);
+  });
+
   it('같은 사이트 API 만, (방식, 호스트, 틀)마다 한 줄에 부른 단계를 모은다', () => {
     const 줄들 = 지도줄들(
       [

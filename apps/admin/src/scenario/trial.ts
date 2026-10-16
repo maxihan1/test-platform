@@ -12,6 +12,7 @@ import { callScenarioRunner } from '../execution/runner.js';
 import { artifactsDir } from '../execution/routes.js';
 import { 대상서버계정 } from '../execution/savedInput.js';
 import { 가린다, 긴것부터, 비밀글자들, 시나리오시험 } from '../execution/trial.js';
+import { 삭제코드를읽는다 } from '../prd/apiMap.js';
 import { 가린값들 } from '../web/mask.js';
 
 import { type 케이스부품재료, 케이스재료 } from './parts.js';
@@ -103,6 +104,7 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
   const parts: ScenarioExecuteRequest['parts'] = 채운부품.map((p) =>
     p.kind === 'case' ? { ...p, filePath: 케이스들.get(p.tcId)?.file_path } : p,
   );
+  const deleteStatuses = await 삭제코드를읽는다(서비스.id);
 
   // 조립 본문이 아니라 채운 값으로 모은다 — 저장값에서 온 비밀번호는 본문에 없다
   const 비밀 = 채운부품.flatMap((p) => {
@@ -129,6 +131,7 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
           baseUrl,
           parts,
           timeoutMs: 시나리오제한시간(본문.parts),
+          deleteStatuses,
         });
         console.info(`[scenario-trial] 끝 ${id} · ${사람.username} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
         return 꽂은값가리기(응답, 본문.parts, 부품재료, 비밀);

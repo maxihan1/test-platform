@@ -220,6 +220,10 @@ describe('POST /execute-scenario — 입구 검사', () => {
       parts: [{ kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body: '가'.repeat(45_000) }],
     }],
     ['제한 시간이 60분을 넘는다', { timeoutMs: 3_600_001 }],
+    ['미룬 삭제 코드가 성공 코드가 아니다 — 404 를 흉내 내면 정리 함수가 실패를 삼킨다', { deleteStatuses: [{ host: 'qa.example.com', path: '/api/me', status: 404 }] }],
+    ['미룬 삭제 코드가 1000줄을 넘는다 — 환경변수 하나로 넘긴다', {
+      deleteStatuses: Array.from({ length: 1001 }, (_, i) => ({ host: 'qa.example.com', path: `/api/x${i}`, status: 204 })),
+    }],
     ['이어 주기 종류를 모른다', { parts: [이어주는케이스([{ kind: 'teleport', method: 'GET', urlPattern: '**/a' }])] }],
     ['바꿔 보내기 경로가 // 로 시작한다 — 대상 주소 밖으로 샌다', { parts: [이어주는케이스([
       { kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PUT', path: '//evil.example/x', value: 앞응답 } },

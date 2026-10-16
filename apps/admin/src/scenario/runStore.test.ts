@@ -51,6 +51,7 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
     await q('DELETE FROM scenario_version WHERE scenario_id IN (SELECT id FROM scenario WHERE service_id = $1)', [서비스]);
     await q('DELETE FROM scenario WHERE service_id = $1', [서비스]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM service_api WHERE service_id = $1', [서비스]);
   };
 
   const 실행수 = async () => Number((await q<{ n: string }>('SELECT count(*) AS n FROM test_run WHERE service_id = $1', [서비스])).rows[0]!.n);
@@ -135,6 +136,8 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
       { kind: 'wait', ms: 10 },
     ];
     await 고치기(id, { name: 'XSE 주문 흐름', platform: 'mobile', parts: 부품, baseVersion: 1 }, 사람);
+    // 서비스 지도가 본 DELETE 성공 코드가 요청에 실린다 — 미룬 삭제가 그 코드로 답한다 (§3.7 결정 12)
+    await q(`INSERT INTO service_api (service_id, method, host, path, ok_status) VALUES ($1, 'DELETE', 'xse.example', '/api/me', 204)`, [서비스]);
 
     const { runId, 요청 } = await 실행만들기(id, 'qa', 사람);
 
@@ -221,6 +224,7 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
       baseUrl: 'http://xse.example',
       parts: [{ ...부품[0], filePath: 'xse/a.spec.ts' }, 부품[1], 부품[2]],
       timeoutMs: 330010,
+      deleteStatuses: [{ host: 'xse.example', path: '/api/me', status: 204 }],
     });
     expect(요청.parts[1]).not.toHaveProperty('filePath');
   });

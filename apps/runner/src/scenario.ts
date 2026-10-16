@@ -20,6 +20,7 @@ export function scenarioEnv(req: ScenarioExecuteRequest): Record<string, string>
     PLATFORM_SCENARIO_MODE: '1',
     PLATFORM_SCENARIO: JSON.stringify(req.parts),
     PLATFORM_BASE_URL: req.baseUrl,
+    PLATFORM_DELETE_STATUSES: JSON.stringify(req.deleteStatuses ?? []),
     PLATFORM_RUN_ID: 시험 ? 'trial' : String(req.runId),
     PLATFORM_HISTORY_ID: 시험 ? (req.trialId ?? '') : 'scenario',
   };

@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 import type { APIRequest, APIRequestContext, APIResponse, Browser, BrowserContext, Route } from '@playwright/test';
 
-import { 가르기, 빈응답, 요청주소, 적기, type CasePart, type 미룬삭제, type 받은응답, type 부품상태, type 상태, type 이음 } from './links.js';
+import { 가르기, 미룬응답, 요청주소, 적기, type CasePart, type 미룬삭제, type 받은응답, type 부품상태, type 상태, type 이음 } from './links.js';
 import { 남김, 합친상태, type RouteHandler, type 창 } from './parts.js';
 import { 꺼냄 } from './wire.js';
 
@@ -73,7 +73,7 @@ function 감싼도구(api: APIRequestContext, 이음값: 이음, 묶음: 도구�
           const state = await 묶음.상태읽기().catch(() => 부품.찍은상태 ?? 빈상태);
           const headers = { ...묶음.만들때.headers, ...(options?.headers as Record<string, string> | undefined) };
           이음값.미룸.push({ fromSeq: 부품.seq, url, headers, state, httpCredentials: 묶음.만들때.httpCredentials });
-          return 가짜응답(빈응답, url);
+          return 가짜응답(미룬응답(이음값, url), url);
         }
         const 응답 = (가름.kind === 'send' && 가름.url !== undefined
           ? await target.fetch(가름.url, { ...options, params: undefined, method: 가름.method })

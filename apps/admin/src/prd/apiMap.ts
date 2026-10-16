@@ -1,6 +1,7 @@
 // 서비스 지도 — 대상 서비스가 부르는 같은 사이트 API 와 그 API 를 거친 케이스 · 화면 (도메인/작성 §3.6 「서비스 지도」)
 // 케이스 줄은 trace 적재(execution/traceIngest.ts)가, 화면 줄은 화면 기록 통로(prd/screens.ts)가 채운다. 관찰한 API 는 기대값의 근거가 아니다 — 대기 조건 · 실패 가르기 · 지도에만 쓴다
 
+import type { ScenarioDeleteStatus } from '@platform/kit';
 import type { PoolClient } from 'pg';
 
 import { db } from '../settings/store.js';
@@ -54,12 +55,15 @@ export function 같은사이트인가(host: string, 기준주소: string): boole
   }
 }
 
-/** 브라우저 쪽 API(fetch · xhr)와 테스트 코드의 요청 도구(api)만, 같은 사이트만, (방식, 호스트, 틀)마다 한 줄 · 부른 단계를 모아 */
+/** 그 API 의 마지막 2xx 코드. E2E 미룬 삭제가 그 코드로 답한다 (도메인/시나리오 §3.7 결정 12). 4xx · 5xx 는 흉내 내면 안 돼서 안 남긴다 */
+type 성공코드 = { okStatus?: number };
+
+/** 브라우저 쪽 API(fetch · xhr)와 테스트 코드의 요청 도구(api)만, 같은 사이트만, (방식, 호스트, 틀)마다 한 줄 · 부른 단계 · 마지막 성공 코드를 모아 */
 export function 지도줄들(
-  줄들: readonly { method: string; url: string; resourceType?: string; seq?: number | null }[],
+  줄들: readonly { method: string; url: string; resourceType?: string; seq?: number | null; status?: number | null }[],
   기준주소: string,
-): (API줄 & { steps: number[] })[] {
-  const 모음 = new Map<string, API줄 & { steps: Set<number> }>();
+): (API줄 & 성공코드 & { steps: number[] })[] {
+  const 모음 = new Map<string, API줄 & 성공코드 & { steps: Set<number> }>();
   for (const 줄 of 줄들) {
     if (줄.resourceType !== undefined && !['fetch', 'xhr', 'api'].includes(줄.resourceType)) continue;
     const 틀 = API틀(줄.url);
@@ -69,22 +73,23 @@ export function 지도줄들(
     const 칸 = 모음.get(키) ?? (모음.size < 지도상한 ? { method, ...틀, steps: new Set<number>() } : undefined);
     if (칸 === undefined) continue;
     if (typeof 줄.seq === 'number') 칸.steps.add(줄.seq);
+    if (typeof 줄.status === 'number' && 줄.status >= 200 && 줄.status <= 299) 칸.okStatus = 줄.status;
     모음.set(키, 칸);
   }
   return [...모음.values()].map((x) => ({ ...x, steps: [...x.steps].sort((a, b) => a - b) }));
 }
 
-// 넣은 API 의 번호. 같은 키는 마지막 본 때만 바꾼다
-async function API넣기(손: PoolClient, 서비스: number, 줄들: readonly API줄[]): Promise<Map<string, number>> {
+// 넣은 API 의 번호. 같은 키는 마지막 본 때와 성공 코드만 바꾼다 — 성공 코드가 없는 줄(화면 줄 · 실패만 본 줄)은 앞 코드를 둔다
+async function API넣기(손: PoolClient, 서비스: number, 줄들: readonly (API줄 & 성공코드)[]): Promise<Map<string, number>> {
   if (줄들.length === 0) return new Map();
   const r = await 손.query<{ id: string; method: string; host: string; path: string }>(
-    `INSERT INTO service_api (service_id, method, host, path)
-     SELECT DISTINCT $1::bigint, x.method, x.host, x.path FROM json_to_recordset($2) AS x(method text, host text, path text)
+    `INSERT INTO service_api (service_id, method, host, path, ok_status)
+     SELECT DISTINCT $1::bigint, x.method, x.host, x.path, x.ok FROM json_to_recordset($2) AS x(method text, host text, path text, ok int)
       -- 늘 같은 차례로 잠근다 — 화면 기록 통로와 trace 적재가 같은 API 둘을 반대 차례로 넣다 서로 기다리지 않게
       ORDER BY 2, 3, 4
-     ON CONFLICT (service_id, method, host, path) DO UPDATE SET last_seen = now()
+     ON CONFLICT (service_id, method, host, path) DO UPDATE SET last_seen = now(), ok_status = COALESCE(EXCLUDED.ok_status, service_api.ok_status)
      RETURNING id, method, host, path`,
-    [서비스, JSON.stringify(줄들.map(({ method, host, path }) => ({ method, host, path })))],
+    [서비스, JSON.stringify(줄들.map(({ method, host, path, okStatus }) => ({ method, host, path, ok: okStatus ?? null })))],
   );
   return new Map(r.rows.map((x) => [`${x.method} ${x.host}${x.path}`, Number(x.id)]));
 }
@@ -93,7 +98,7 @@ async function API넣기(손: PoolClient, 서비스: number, 줄들: readonly AP
  * 케이스 줄 — 그 케이스의 더 새 실행을 이미 풀었으면 낡은 것이라 안 넣는다(새 실행이 API 를 하나도 안 불러 줄이 없어도 — 푼 상태 줄로 본다).
  * 더 옛 실행 줄은 지우고, 같은 실행(기기 · 회차가 다른 항목)은 합친다. 같은 항목을 다시 풀어도 줄이 안 는다
  */
-export async function 케이스지도를넣는다(손: PoolClient, 서비스: number, tcId: string, runId: number, 줄들: readonly (API줄 & { steps: number[] })[]): Promise<void> {
+export async function 케이스지도를넣는다(손: PoolClient, 서비스: number, tcId: string, runId: number, 줄들: readonly (API줄 & 성공코드 & { steps: number[] })[]): Promise<void> {
   const 새것 = await 손.query(
     `SELECT 1 FROM run_item i JOIN run_trace t ON t.history_id = i.history_id
       WHERE i.tc_id = $1 AND i.run_id > $2 AND t.status = 'DONE' LIMIT 1`,
@@ -154,4 +159,16 @@ export async function 지도를읽는다(서비스: number): Promise<{ apis: 지
       method: x.method, host: x.host, path: x.path, firstSeen: x.first_seen.toISOString(), lastSeen: x.last_seen.toISOString(), cases: x.cases, screens: x.screens,
     })),
   };
+}
+
+/** 그 서비스에서 성공 코드를 본 DELETE — 시나리오 실행 요청에 실어 러너가 미룬 삭제에 그 코드로 답한다 (도메인/시나리오 §3.7 결정 12) */
+export async function 삭제코드를읽는다(서비스: number): Promise<ScenarioDeleteStatus[]> {
+  const p = await db();
+  const r = await p.query<{ host: string; path: string; ok_status: number }>(
+    `SELECT host, path, ok_status FROM service_api
+      WHERE service_id = $1 AND method = 'DELETE' AND ok_status IS NOT NULL
+      ORDER BY last_seen DESC LIMIT 1000`,
+    [서비스],
+  );
+  return r.rows.map((x) => ({ host: x.host, path: x.path, status: x.ok_status }));
 }
