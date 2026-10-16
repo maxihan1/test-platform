@@ -128,6 +128,18 @@ describe.skipIf(연결 === undefined)('서비스 지도 DB', () => {
     expect(await 케이스줄('XAM-FN-001')).toEqual([{ path: '/orders/:n', run: 앞, steps: [1] }]);
     const 셈 = await pool.query<{ n: string }>('SELECT count(*) AS n FROM service_api WHERE service_id = $1', [서비스]);
     expect(Number(셈.rows[0]!.n)).toBe(1);
+    // 카탈로그에 활성으로 없는 케이스(지웠거나 번호를 바꾼 것)의 줄은 지도 읽기에 안 실린다
+    const { 지도를읽는다 } = await import('./apiMap.js');
+    expect((await 지도를읽는다(서비스)).apis[0]!.cases).toEqual([]);
+  });
+
+  it('더 새 실행이 API 를 하나도 안 불렀어도 늦게 푼 옛 실행이 옛 줄을 되살리지 않는다', async () => {
+    const [앞, 뒤] = 실행;
+    const 옛것 = await 항목(앞!, 'XAM-FN-003');
+    const 새것 = await 항목(뒤!, 'XAM-FN-003');
+    await 푼다(뒤!, 새것, []);
+    await 푼다(앞!, 옛것, ['https://qa.example.com/api/old']);
+    expect(await 케이스줄('XAM-FN-003')).toEqual([]);
   });
 
   it('더 새 실행이 그 케이스 줄을 갈아 끼우고, 늦게 푼 옛 실행은 무시한다 · 같은 실행의 다른 기기는 합친다', async () => {

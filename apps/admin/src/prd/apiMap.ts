@@ -80,6 +80,8 @@ async function API넣기(손: PoolClient, 서비스: number, 줄들: readonly AP
   const r = await 손.query<{ id: string; method: string; host: string; path: string }>(
     `INSERT INTO service_api (service_id, method, host, path)
      SELECT DISTINCT $1::bigint, x.method, x.host, x.path FROM json_to_recordset($2) AS x(method text, host text, path text)
+      -- 늘 같은 차례로 잠근다 — 화면 기록 통로와 trace 적재가 같은 API 둘을 반대 차례로 넣다 서로 기다리지 않게
+      ORDER BY 2, 3, 4
      ON CONFLICT (service_id, method, host, path) DO UPDATE SET last_seen = now()
      RETURNING id, method, host, path`,
     [서비스, JSON.stringify(줄들.map(({ method, host, path }) => ({ method, host, path })))],
@@ -88,13 +90,17 @@ async function API넣기(손: PoolClient, 서비스: number, 줄들: readonly AP
 }
 
 /**
- * 케이스 줄 — 그 케이스의 더 새 실행 줄이 있으면 낡은 것이라 안 넣는다. 더 옛 실행 줄은 지우고, 같은 실행(기기 · 회차가 다른 항목)은 합친다.
- * 같은 항목을 다시 풀어도 줄이 안 는다
+ * 케이스 줄 — 그 케이스의 더 새 실행을 이미 풀었으면 낡은 것이라 안 넣는다(새 실행이 API 를 하나도 안 불러 줄이 없어도 — 푼 상태 줄로 본다).
+ * 더 옛 실행 줄은 지우고, 같은 실행(기기 · 회차가 다른 항목)은 합친다. 같은 항목을 다시 풀어도 줄이 안 는다
  */
 export async function 케이스지도를넣는다(손: PoolClient, 서비스: number, tcId: string, runId: number, 줄들: readonly (API줄 & { steps: number[] })[]): Promise<void> {
-  const 새것 = await 손.query('SELECT 1 FROM service_api_use WHERE tc_id = $1 AND run_id > $2 LIMIT 1', [tcId, runId]);
+  const 새것 = await 손.query(
+    `SELECT 1 FROM run_item i JOIN run_trace t ON t.history_id = i.history_id
+      WHERE i.tc_id = $1 AND i.run_id > $2 AND t.status = 'DONE' LIMIT 1`,
+    [tcId, runId],
+  );
   if (새것.rowCount !== 0) return;
-  await 손.query('DELETE FROM service_api_use WHERE tc_id = $1 AND run_id < $2', [tcId, runId]);
+  await 손.query('DELETE FROM service_api_use WHERE service_id = $1 AND tc_id = $2 AND run_id < $3', [서비스, tcId, runId]);
   const 번호들 = await API넣기(손, 서비스, 줄들);
   const 쓴것 = 줄들.map((x) => ({ api: 번호들.get(`${x.method} ${x.host}${x.path}`), steps: x.steps }));
   await 손.query(
@@ -125,7 +131,7 @@ export interface 지도API extends API줄 {
   screens: { env: string; state: string; url: string }[];
 }
 
-/** 그 서비스의 지도 — 호스트 · 틀 · 방식 차례. 케이스 줄이 빈 API 가 「케이스가 안 거친 API」다 */
+/** 그 서비스의 지도 — 호스트 · 틀 · 방식 차례. 케이스 줄이 빈 API 가 「케이스가 안 거친 API」다. 지웠거나 번호를 바꾼 케이스(카탈로그에 활성으로 없는 것)의 줄은 안 싣는다 */
 export async function 지도를읽는다(서비스: number): Promise<{ apis: 지도API[] }> {
   const p = await db();
   const r = await p.query<{
@@ -136,7 +142,9 @@ export async function 지도를읽는다(서비스: number): Promise<{ apis: 지
             COALESCE(jsonb_agg(jsonb_build_object('tcId', u.tc_id, 'steps', to_jsonb(u.steps)) ORDER BY u.tc_id) FILTER (WHERE u.tc_id IS NOT NULL), '[]') AS cases,
             COALESCE(jsonb_agg(jsonb_build_object('env', u.env, 'state', u.state, 'url', u.screen_url) ORDER BY u.env, u.state, u.screen_url)
                        FILTER (WHERE u.tc_id IS NULL AND u.id IS NOT NULL), '[]') AS screens
-       FROM service_api a LEFT JOIN service_api_use u ON u.api_id = a.id
+       FROM service_api a
+       LEFT JOIN service_api_use u ON u.api_id = a.id
+             AND (u.tc_id IS NULL OR EXISTS (SELECT 1 FROM test_case c WHERE c.tc_id = u.tc_id AND c.is_active))
       WHERE a.service_id = $1
       GROUP BY a.id ORDER BY a.host, a.path, a.method`,
     [서비스],

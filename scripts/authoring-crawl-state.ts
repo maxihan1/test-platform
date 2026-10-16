@@ -8,7 +8,7 @@ import type { Browser } from '@playwright/test';
 import { 칸줄, 누르기, 보기, 읽기, 열기, 창수, 확인창누르기, 후보모으기, type 본것 } from './authoring-crawl-page.js';
 import { type 누름종류, 누를까, 누름키, 로그아웃인가, 연결이름, 탈퇴말인가, 탈퇴주소인가 } from './authoring-crawl-press.js';
 import { type 목록항목, 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 부모키, 빼는주소인가, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
-import { type 들은API, type 인자, API듣기, API상한, 로그인돌리기, 새쪽, 폴더이름 } from './authoring-crawl-session.js';
+import { type 들은API, type 인자, API더하기, API듣기, 로그인돌리기, 새쪽, 폴더이름 } from './authoring-crawl-session.js';
 import type { 상태 } from './authoring-screens-keep.js';
 
 const 간격 = 1_000; // 운영 서버도 돈다 — 한 장씩, 1초 이상 띄운다
@@ -95,14 +95,19 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     return true;
   };
 
-  /** 지금 쪽에 열린 화면을 남긴다 — 둘째 장이 같은 구조면 안 남긴다. 로그인이 풀렸으면 '풀림' */
+  /** 지금 쪽에 열린 화면을 남긴다 — 둘째 장이 같은 구조면 안 남긴다(들은 API 는 앞 장 몫에 더한다). 로그인이 풀렸으면 '풀림' */
   const 남기기 = async (요청: string, 틀: string, 본: 본것): Promise<'풀림' | 'ok'> => {
     const 앞지문 = 틀들.get(틀) ?? [];
     const 부모 = 부모키(요청);
     몫.장--;
     const 이지문 = 지문(본.구조);
     틀들.set(틀, [...앞지문, 이지문]);
-    if (앞지문.includes(이지문)) return 'ok'; // 둘째 장이 같은 구조 — 같은 틀이다
+    if (앞지문.includes(이지문)) {
+      // 둘째 장이 같은 구조 — 같은 틀이다. 그 장이 부른 API 는 앞 장 몫이다
+      const 앞번 = 판.본.findIndex((x) => x.상태 === 상태 && x.틀 === 틀);
+      if (앞번 >= 0) API더하기(판.API, 앞번, 들은);
+      return 'ok';
+    }
     if (앞지문.length === 0 && 부모 !== null) 부모수.set(부모, (부모수.get(부모) ?? 0) + 1);
     const 아이디칸 = 본.입력칸.some((x) => (x.종류 === 'text' || x.종류 === 'email') && !x.읽기전용);
     const 풀림 = 상태 !== '로그아웃' && 로그인풀렸나({ 요청, 최종: 본.최종, 비밀번호칸: 본.비밀번호칸, 아이디칸 });
@@ -196,12 +201,12 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     if (전창 === null) return 'ok';
     판.누름++;
     const 창 = 일.탈퇴 ? '탈퇴' : await 확인창누르기(쪽, 전창);
-    const 누른화면 = 판.API.get(일.본번) ?? new Map();
-    for (const [키, 값] of 들은) if (누른화면.size < API상한) 누른화면.set(키, 값);
-    판.API.set(일.본번, 누른화면);
     const 뒤 = 쪽.url();
     그대로 = 뒤 === 일.주소 && 창 === '없음';
     await 쉬기(간격); // 누르기도 서버를 두드린다 — 한 번에 1초 이상 띄운다
+    // 기다린 뒤에 더한다 — 늦게 나가는 요청(입력 멈춤 뒤 저장)까지. 누른 화면 몫이고, 이 누르기로 간 화면에는 안 넣는다
+    API더하기(판.API, 일.본번, 들은);
+    들은.clear();
     if (new URL(뒤).origin === 출처 && !빼는주소인가(뒤, a.뺄)) {
       const 뒤틀 = 틀키(뒤);
       // 제 화면에 머문 누르기(화면 안 창 · 펼치기)는 연결도 탈퇴 표시도 아니다 — 그 화면의 남은 누르기가 막힌다

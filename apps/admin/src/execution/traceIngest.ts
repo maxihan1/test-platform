@@ -107,8 +107,17 @@ async function 기록을넣는다(pool: Pool, historyId: number, 풀림: 풀린t
          FROM json_to_recordset($2) AS x(ord int, seq int, "atMs" int, level text, text text, url text)`,
       [historyId, JSON.stringify(차례붙임(풀림.console))],
     );
-    // 서비스 지도도 같은 묶음 안에서 — 기록과 지도가 어긋나지 않게 (도메인/작성 §3.6 「서비스 지도」)
-    if (지도 !== null) await 케이스지도를넣는다(client, 지도.serviceId, 지도.tcId, 지도.runId, 지도줄들(풀림.network, 지도.baseUrl));
+    // 서비스 지도도 같은 묶음 안에서 — 다만 지도는 힌트라 지도가 깨져도 세 기록은 남긴다(되돌림 자리로 지도만 버린다) (도메인/작성 §3.6 「서비스 지도」)
+    if (지도 !== null) {
+      await client.query('SAVEPOINT api_map');
+      try {
+        await 케이스지도를넣는다(client, 지도.serviceId, 지도.tcId, 지도.runId, 지도줄들(풀림.network, 지도.baseUrl));
+        await client.query('RELEASE SAVEPOINT api_map');
+      } catch (err) {
+        await client.query('ROLLBACK TO SAVEPOINT api_map');
+        console.error(`[execution] 항목 ${historyId} 의 서비스 지도를 못 채웠다(trace 기록은 남긴다): ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
     await client.query(
       `INSERT INTO run_trace (history_id, status, reason) VALUES ($1, 'DONE', NULL)
        ON CONFLICT (history_id) DO UPDATE SET status = 'DONE', reason = NULL, loaded_at = now()`,

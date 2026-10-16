@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type 들은API, API듣기, 로그인돌리기, 새쪽 } from './authoring-crawl-session.js';
+import { type 들은API, API더하기, API듣기, API상한, 로그인돌리기, 새쪽 } from './authoring-crawl-session.js';
 
 let 폴더 = '';
 beforeEach(() => {
@@ -41,6 +41,17 @@ describe('로그인돌리기', () => {
     expect(로그인돌리기(스크립트('void writeFileSync;'), join(폴더, 's.json'), '일반 회원')).toBe(
       '상태 파일이 새로 써지지 않았다 — 로그인 스크립트가 CRAWL_STATE 파일에 쓰는지 본다',
     );
+  });
+});
+
+describe('API더하기', () => {
+  it('그 화면 몫에 합치고 같은 줄은 하나 · 화면 하나에 상한까지', () => {
+    const 몫 = new Map<number, 들은API>();
+    API더하기(몫, 0, new Map([['GET a', { method: 'GET', url: 'a' }]]));
+    API더하기(몫, 0, new Map([['GET a', { method: 'GET', url: 'a' }], ['POST b', { method: 'POST', url: 'b' }]]));
+    expect([...몫.get(0)!.keys()]).toEqual(['GET a', 'POST b']);
+    API더하기(몫, 1, new Map(Array.from({ length: API상한 + 3 }, (_, i): [string, { method: string; url: string }] => [`GET ${i}`, { method: 'GET', url: String(i) }])));
+    expect(몫.get(1)!.size).toBe(API상한);
   });
 });
 

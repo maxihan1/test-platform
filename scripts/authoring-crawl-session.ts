@@ -48,6 +48,13 @@ export function API듣기(쪽: Page, 들은: 들은API): void {
     들은.set(`${r.method()} ${u.toString()}`, { method: r.method(), url: u.toString() });
   });
 }
+/** 들은 API 를 그 화면(본 화면 번호) 몫에 더한다 — 화면 하나에 상한까지 */
+export function API더하기(몫: Map<number, 들은API>, 본번: number, 들은: 들은API): void {
+  const 칸 = 몫.get(본번) ?? new Map();
+  for (const [키, 값] of 들은) if (칸.size < API상한) 칸.set(키, 값);
+  몫.set(본번, 칸);
+}
+
 /** 쪽 하나 — 상태 파일이 없으면 로그아웃이다 */
 export async function 새쪽(브라우저: Browser, 상태파일: string | undefined): Promise<{ 맥락: BrowserContext; 쪽: Page }> {
   const 맥락 = await 브라우저.newContext(상태파일 === undefined ? {} : { storageState: 상태파일 });
