@@ -1,5 +1,5 @@
-// 화면이 맞음 자식 뒤 검사 — 결과 파일에서 그 번호만 골라 합치기 · 고친 번호가 없으면 안 올림 · 못 올리면 거절 · PR 머리 줄
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+// 화면이 맞음 자식 뒤 검사 — 결과 파일에서 그 번호만 골라 합치기 · 고친 번호가 없으면 안 올림 · 못 올리면 거절 · PR 머리 줄 · 자식 앞 실패 trace 받기
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { 반영계획 } from './authoring-apply.js';
 import type { 사본 } from './authoring-copy.js';
 import { 옮긴것읽기, type 옮긴것 } from './authoring-prd.js';
-import { 안옮김뒤, 화면대로합치기 } from './authoring-screen-right.js';
+import { 실패trace받기, 안옮김뒤, 화면대로합치기 } from './authoring-screen-right.js';
 
 const 항목 = (reqId: string, text: string, 덧: Partial<PrdItem> = {}): PrdItem => ({
   reqId, feature: '회원가입', text, basis: [{ from: '기획서.docx', quote: text }], status: 'CONFIRMED', ...덧,
@@ -157,5 +157,44 @@ describe('안옮김뒤', () => {
     expect(await 부르기(계획(), { 계정: ['admin-pw-77', 'pass1234'] })).toEqual({ 거절: expect.stringContaining('비밀값') as string, 줄: [머리] });
     결과쓰기({ items: [{ reqId: 'X-REQ-001', feature: '회원가입', text: '관리자 admin-pw-77 로 들어간다', basis: 화면근거, status: 'CONFIRMED' }] });
     expect(await 부르기(계획(), { 계정: ['admin-pw-77', 'pass1234'] })).toEqual({ 거절: expect.stringContaining('비밀값') as string, 줄: [머리] });
+  });
+});
+
+describe('실패trace받기', () => {
+  let 자료 = '';
+  beforeEach(() => {
+    자료 = mkdtempSync(join(tmpdir(), 'sr-trace-'));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    rmSync(자료, { recursive: true, force: true });
+  });
+
+  const 것 = {
+    id: 7,
+    params: { prdApply: true, screenRight: [{ runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: [] }, { runId: 43, tcId: 'X-FN-008', env: 'qa', reqIds: [] }] },
+  };
+
+  it('건마다 그 요청 통로로 받아 traces/RUN<번호>-<케이스>.zip 에 두고, 못 받은 건은 로그만 남기고 넘어간다', async () => {
+    const 부른주소: string[] = [];
+    vi.stubGlobal('fetch', async (url: string) => {
+      부른주소.push(url);
+      return url.includes('runId=42') ? new Response(Buffer.from('zip 42'), { status: 200 }) : new Response('{"error":"NO_TRACE"}', { status: 404 });
+    });
+    const 로그 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    expect(await 실패trace받기({ 주소기지: 'http://s', 토큰: 't' }, 것, 자료)).toBe(1);
+    expect(부른주소).toEqual(['http://s/api/authoring/requests/7/trace?runId=42&tcId=X-FN-007', 'http://s/api/authoring/requests/7/trace?runId=43&tcId=X-FN-008']);
+    expect(readFileSync(join(자료, 'traces', 'RUN42-X-FN-007.zip'), 'utf8')).toBe('zip 42');
+    expect(existsSync(join(자료, 'traces', 'RUN43-X-FN-008.zip'))).toBe(false);
+    expect(로그).toHaveBeenCalledWith(expect.stringContaining('RUN 43 X-FN-008 의 실패 trace 를 못 받았다: 서버 404'));
+  });
+
+  it('화면이 맞음 요청이 아니면 부르지 않는다', async () => {
+    const 건것 = vi.fn();
+    vi.stubGlobal('fetch', 건것);
+    expect(await 실패trace받기({ 주소기지: 'http://s', 토큰: 't' }, { id: 1, params: {} }, 자료)).toBe(0);
+    expect(건것).not.toHaveBeenCalled();
   });
 });

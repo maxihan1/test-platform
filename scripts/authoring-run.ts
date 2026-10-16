@@ -30,7 +30,7 @@ import { 먼저가리기 } from './authoring-masking.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
 import { 화면지도준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
-import { 반영요청인가, 안옮김뒤, 화면이맞음읽기 } from './authoring-screen-right.js';
+import { 반영요청인가, 실패trace받기, 안옮김뒤, 화면이맞음읽기 } from './authoring-screen-right.js';
 
 /** 켤 때 정해 두고 모든 건이 같이 쓰는 것 */
 export interface 판 {
@@ -209,8 +209,8 @@ async function 사본에서(
   // 대조 · 반영 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호(역할 계정까지)를 먼저 가린다 (§3.6 「★ 역방향」 · 「★ 역할별 계정」)
   const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 비밀번호들(것));
   if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));
-  // 작성은 표준 기획서만 읽는다 — 지금 판으로 원장을 만든다. 못 받으면 원장이 없어 작성하지 않는다 (§3.6 「작성은 표준 기획서만 읽는다」)
-  const 기획서 = await 판받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 비밀번호들(것));
+  // 작성은 표준 기획서만 읽는다 — 지금 판으로 원장을 만든다. 못 받으면 원장이 없어 작성하지 않는다 (§3.6 「작성은 표준 기획서만 읽는다」). 화면이 맞음 건의 실패 trace 도 같이 받는다(못 받아도 간다)
+  const [기획서] = await Promise.all([판받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 비밀번호들(것)), 실패trace받기({ 주소기지, 토큰 }, 것, 자리.자료)]);
   if ('까닭' in 기획서) return void (await 손.끝내기({ status: 'FAILED', error: 기획서.까닭 }));
   // 이어 작성 · 반영은 옮기지 않는다 — 뿌리가 같은 자료를 이미 옮겼거나 옮길 자료가 없다. 화면만도 옮긴다(항목이 전부 확인 필요)
   const 옮긴다 = 이어작성원본 === null && !반영요청인가(것);
