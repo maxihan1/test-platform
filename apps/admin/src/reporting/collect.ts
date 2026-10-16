@@ -6,6 +6,8 @@ import type { ItemStatus, Platform } from '@platform/kit';
 import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
+import { 색코드 } from './failureType.js';
+import { 한줄로자른다 } from './insights.js';
 
 export interface EvidenceField {
   label: string;
@@ -123,6 +125,7 @@ interface RawStep {
   duration_ms: number | null;
   assertions: RawAssertion[];
   screenshot_path: string | null;
+  error: unknown;
 }
 
 /** 박제 이전 행의 빈 칸. 지어내지 말고 모른다고 적는다 (SPEC §6) */
@@ -157,6 +160,10 @@ function 가려야하나(key: string, prop: Record<string, unknown>): boolean {
   return SECRET_NAMES.some((word) => lower.includes(word));
 }
 
+// 화면(web/mask.ts 보일값)과 같은 규칙이다. String() 은 객체를 [object Object], 배열을 쉼표 이음으로 뭉갠다
+export const 값글자 = (value: unknown): string =>
+  typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
+
 // 라벨·마스킹을 여기서 끝낸다. 렌더러가 원본 JSON 에 닿으면 형식이 늘 때마다 마스킹이 새는 자리가 는다
 export function toFields(json: unknown, schema: unknown): EvidenceField[] {
   const values = isPlainObject(json) ? json : {};
@@ -182,7 +189,7 @@ export function toFields(json: unknown, schema: unknown): EvidenceField[] {
     return {
       // 화면(web/schema.ts)과 같은 규약이다. 갈라지면 폼은 '아이디'인데 증적은 'username' 으로 찍힌다
       label: typeof description === 'string' && description !== '' ? description : key,
-      value: 가려야하나(key, prop) ? 가림 : String(value),
+      value: 가려야하나(key, prop) ? 가림 : 값글자(value),
     };
   });
 }
@@ -190,8 +197,8 @@ export function toFields(json: unknown, schema: unknown): EvidenceField[] {
 function toAssertion(a: RawAssertion): EvidenceAssertion {
   return {
     statement: a.statement,
-    expected: String(a.expected),
-    actual: String(a.actual),
+    expected: 값글자(a.expected),
+    actual: 값글자(a.actual),
     status: a.status,
     blocker: a.blocker === true,
   };
@@ -223,13 +230,29 @@ function 미실행사유를찾는다(row: RawItem, 실행상태: RunStatus): str
   return null;
 }
 
+// 없으면 지어내지 않는다. 빈 문장을 배지 옆에 붙이면 사유를 적은 척만 하게 된다
+const 오류글 = (error: unknown): string =>
+  isPlainObject(error) && typeof error.message === 'string' ? error.message : '';
+
 // 위 함수가 null 을 준 NA — 돌긴 돌았는데 판정을 못 낸 항목이다. 판정과 소요시간은 그대로 두고
 // 사유만 채운다. 사유 없이 미실행으로 두면 러너 고장과 사람이 멈춘 것을 구분할 수 없다 (SPEC §8.3)
-function 판정못낸사유(row: RawItem): string | null {
-  if (row.status !== 'NA' || !isPlainObject(row.error)) return null;
-  const message = row.error.message;
-  // 없으면 지어내지 않는다. 빈 문장을 배지 옆에 붙이면 사유를 적은 척만 하게 된다
-  return typeof message === 'string' && message !== '' ? message : null;
+// 확인 문장 없이 예외로 깨진 FAIL 도 사유가 없으면 왜 깨졌는지 문서에 없다. 원문은 스택 · 경로가 섞여 첫 줄만 싣는다 (리포팅 §8.4)
+export function 판정못낸사유(
+  row: Pick<RawItem, 'status' | 'error'>,
+  절차들: Pick<RawStep, 'assertions' | 'error'>[],
+  비밀: string[],
+): string | null {
+  if (row.status === 'NA') {
+    const 원문 = 오류글(row.error);
+    return 원문 === '' ? null : (가린다(원문, 비밀) as string);
+  }
+  if (row.status !== 'FAIL' || 절차들.some((s) => s.assertions.some((a) => a.status === 'FAIL'))) return null;
+  // 항목 오류가 먼저다 — 견주기 대표 문장(insights.ts)과 같은 차례
+  const 원문 = [row.error, ...절차들.map((s) => s.error)].map(오류글).find((m) => m !== '');
+  if (원문 === undefined) return null;
+  // 자르기 전에 가린다. 잘린 자리에 비밀 조각이 남는다
+  const 사유 = 한줄로자른다(가린다(원문.replace(색코드, ''), 비밀) as string);
+  return 사유 === '' ? null : 사유;
 }
 
 export async function collectRun(runId: number): Promise<EvidenceDocument | null> {
@@ -251,7 +274,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
   );
 
   const steps = await pool.query<RawStep>(
-    `SELECT s.history_id, s.seq, s.title, s.status, s.duration_ms, s.assertions, s.screenshot_path
+    `SELECT s.history_id, s.seq, s.title, s.status, s.duration_ms, s.assertions, s.screenshot_path, s.error
        FROM run_item_step s JOIN run_item i ON i.history_id = s.history_id
       WHERE i.run_id = $1 ORDER BY s.seq`,
     [runId],
@@ -279,6 +302,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
       const 못돈사유 = 미실행사유를찾는다(row, run.status);
       // 키로 가린 칸 밖에도 비밀값이 되비친다 — 확인의 기대 · 실제 값과 판정 못 낸 사유. 실행 조회 응답(execution/queries.ts)과 같은 규칙이다 (공통/2 §4.1)
       const 비밀 = 항목비밀(row);
+      const 절차들 = steps.rows.filter((s) => s.history_id === row.history_id);
 
       return {
         tcId: row.tc_id,
@@ -288,12 +312,12 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
         status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
         // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
         durationMs: 못돈사유 === null ? row.duration_ms : null,
-        notRunReason: 못돈사유 ?? (가린다(판정못낸사유(row), 비밀) as string | null),
+        notRunReason: 못돈사유 ?? 판정못낸사유(row, 절차들, 비밀),
         unconfirmed: row.unconfirmed,
         precondition: row.precondition,
         params: toFields(row.params, row.param_schema),
         expected: toFields(row.expected, row.expected_schema),
-        steps: steps.rows.filter((s) => s.history_id === row.history_id).map((s) => toStep(s, 비밀)),
+        steps: 절차들.map((s) => toStep(s, 비밀)),
       };
     }),
   };
