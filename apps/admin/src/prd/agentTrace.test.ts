@@ -24,15 +24,15 @@ describe.skipIf(연결 === undefined)('화면이 맞음 건의 실패 trace 통�
     return pool.query<T & Record<string, unknown>>(sql, 값);
   };
 
-  const 항목 = async (runId: number, tcId: string, status: string) =>
+  const 항목 = async (runId: number, tcId: string, status: string, attempt = 1) =>
     Number(
       (
         await q<{ history_id: string }>(
           `INSERT INTO run_item (run_id, tc_id, platform, tc_name, file_path, timeout_ms, precondition, params, expected,
-                                 param_schema, expected_schema, status, duration_ms, finished_at)
-                VALUES ($1, $2, 'desktop', $2, 'xtf.spec.ts', 5000, '[]', '{}', '{}', '{}', '{}', $3, 10, now())
+                                 param_schema, expected_schema, status, duration_ms, finished_at, attempt)
+                VALUES ($1, $2, 'desktop', $2, 'xtf.spec.ts', 5000, '[]', '{}', '{}', '{}', '{}', $3, 10, now(), $4)
              RETURNING history_id`,
-          [runId, tcId, status],
+          [runId, tcId, status, attempt],
         )
       ).rows[0]!.history_id,
     );
@@ -114,8 +114,8 @@ describe.skipIf(연결 === undefined)('화면이 맞음 건의 실패 trace 통�
   it('실린 짝이면 실패 항목의 zip 을 준다 — 통과 항목 · zip 없는 실패 항목은 건너뛴다', async () => {
     const 통과 = await 항목(실행.XTF, 'XTF-FN-001', 'PASS');
     await zip을둔다(실행.XTF, 통과, '통과');
-    await 항목(실행.XTF, 'XTF-FN-001', 'FAIL');
-    const 실패 = await 항목(실행.XTF, 'XTF-FN-001', 'FAIL');
+    await 항목(실행.XTF, 'XTF-FN-001', 'FAIL', 2);
+    const 실패 = await 항목(실행.XTF, 'XTF-FN-001', 'FAIL', 3);
     await zip을둔다(실행.XTF, 실패, '실패 zip');
     const id = await 요청넣기([{ runId: 실행.XTF, tcId: 'XTF-FN-001' }]);
 
