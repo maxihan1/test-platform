@@ -29,11 +29,11 @@ function 그린다() {
 }
 
 describe('서비스 설정은 구획마다 「어디에 쓰이나」를 단다 (도메인/인증 §8.8 · 2026-10-09 시안 A)', () => {
-  it('구획마다 — 기본 정보 · 대상 서버 · 정기 실행 · 실행 알림 · 테스트 작성 · 서비스 비활성화 — 제목과 쓰임 한 줄을 갖는다', () => {
+  it('구획마다 — 기본 정보 · 대상 서버 · 화면 크기 · 정기 실행 · 실행 알림 · 테스트 작성 · 서비스 비활성화 — 제목과 쓰임 한 줄을 갖는다', () => {
     그린다();
 
     const 구획들 = [...document.querySelectorAll('.set-card')].map((el) => el.querySelector('h3')?.textContent);
-    expect(구획들).toEqual(['기본 정보', '대상 서버', '정기 실행', '실행 알림', '테스트 작성', '서비스 비활성화']);
+    expect(구획들).toEqual(['기본 정보', '대상 서버', '화면 크기', '정기 실행', '실행 알림', '테스트 작성', '서비스 비활성화']);
     for (const 구획 of document.querySelectorAll('.set-card')) {
       expect(구획.querySelector('.set-card-h p')?.textContent?.length ?? 0).toBeGreaterThan(10);
     }

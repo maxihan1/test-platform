@@ -1,4 +1,4 @@
-// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · 정기 실행 · 실행 알림 · 테스트 작성 · 서비스 비활성화 구획
+// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · 화면 크기 · 정기 실행 · 실행 알림 · 테스트 작성 · 서비스 비활성화 구획
 // 지우지 않는다 — 비활성으로 내릴 뿐이다. 지우면 그 서비스로 돌린 과거 증적이 흔들린다
 
 import { useState, type ReactNode } from 'react';
@@ -17,6 +17,7 @@ import {
 import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
 import { ScheduleFields } from './SettingsSchedule.js';
+import { ViewportSection } from './SettingsViewport.js';
 import { message } from './ui.js';
 
 /**
@@ -173,6 +174,12 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
       <구획 제목={t('대상 서버')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
         <EnvEditor envs={envs} onChange={setEnvs} />
       </구획>
+
+      {새것 ? null : (
+        <구획 제목={t('화면 크기')} 쓰임={t('테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지 모바일도 같이 만들지 이 판정으로 정합니다')}>
+          <ViewportSection serviceId={row.id} envs={row.envs} />
+        </구획>
+      )}
 
       {/* 새 서비스에는 없다 — 케이스가 없는 서비스라 돌릴 것이 없다 (도메인/인증 §8.8) */}
       {새것 ? null : (

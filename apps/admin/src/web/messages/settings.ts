@@ -219,4 +219,29 @@ export const 설정말: Record<string, string> = {
   '아직 실행한 적이 없습니다': 'Has not run yet',
   '정기 실행 시각을 입력해 주세요': 'Enter the scheduled run time',
   '정기 실행의 대상 서버를 대상 서버 목록에서 고릅니다': 'Pick the scheduled run target server from the target server list',
+
+  // 화면 크기 구획 (§8.8 · PRD-F10-08)
+  '화면 크기': 'Screen size',
+  '테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지 모바일도 같이 만들지 이 판정으로 정합니다':
+    'What test authoring saw when it opened each page on desktop and mobile. This decides whether new cases cover desktop only or mobile too',
+  '판정 시각': 'Checked at',
+  '반응형': 'Responsive',
+  '적응형': 'Adaptive',
+  'PC 전용': 'Desktop only',
+  '아직 판정 안 함': 'Not checked yet',
+  '화면별 차이': 'Differences by page',
+  '불러오는 중': 'Loading',
+  '테스트 작성 때 화면을 탐색하면 정해집니다. 대상 서버 주소를 바꾸면 다음 탐색까지 비워 둡니다':
+    'Set when test authoring explores the pages. Changing the server address clears it until the next exploration',
+  'PC 와 모바일이 다른 화면이 없습니다': 'No page differs between desktop and mobile',
+  '{서버} 화면': '{서버} pages',
+  '달라진 점': 'What differs',
+  '한쪽에만 있는 버튼 · 링크': 'Buttons and links on one side only',
+  '모바일은 다른 주소 {주소}': 'Mobile goes to {주소}',
+  '옆으로 밀어야 보임': 'Needs sideways scrolling',
+  '모바일에서 PC 화면이 작게 보임': 'Shows the desktop page shrunk on mobile',
+  '배치가 다름': 'Different layout',
+  'PC 에만': 'Desktop only:',
+  '모바일에만': 'Mobile only:',
+  '나머지 {건수}장은 PC 와 모바일이 같습니다': 'The other {건수} pages are the same on desktop and mobile',
 };
