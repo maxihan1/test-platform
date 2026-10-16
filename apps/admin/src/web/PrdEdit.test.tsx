@@ -14,7 +14,7 @@ const { 지금, 저장, 판들, 되돌림 } = vi.hoisted(() => ({
   되돌림: vi.fn((_s: string, _base: number, _to: number) => Promise.resolve({ version: 13 })),
 }));
 
-vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, save: 저장, versions: 판들, revert: 되돌림 } }));
+vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, save: 저장, versions: 판들, revert: 되돌림, apis: () => Promise.resolve({ apis: [] }) } }));
 
 const 쓰는사람: 판정 = () => true;
 

@@ -16,7 +16,7 @@ const { 지금, 확정, 워드, 반영 } = vi.hoisted(() => ({
   반영: vi.fn((_s: string) => Promise.resolve({ id: 6120 })),
 }));
 
-vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, confirm: 확정, wordExport: 워드, apply: 반영 } }));
+vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, confirm: 확정, wordExport: 워드, apply: 반영, apis: () => Promise.resolve({ apis: [] }) } }));
 
 const 쓰는사람: 판정 = () => true;
 const 보는사람: 판정 = () => false;
