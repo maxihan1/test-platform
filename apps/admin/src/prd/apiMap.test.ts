@@ -1,0 +1,60 @@
+// 서비스 지도 순수 함수 — 주소 틀 · 같은 사이트 · 지도 줄 모으기
+import { describe, expect, it } from 'vitest';
+
+import { API틀, 같은사이트인가, 지도상한, 지도줄들 } from './apiMap.js';
+
+describe('API틀', () => {
+  it('숫자 칸은 :n, uuid · 긴 16진 칸은 :id, 물음표 · # 뒤는 뺀다', () => {
+    expect(API틀('https://api.example.com/api/orders/123/items?page=2#x')).toEqual({ host: 'api.example.com', path: '/api/orders/:n/items' });
+    expect(API틀('https://a.example.com/u/0f8fad5b-d9cb-469f-a165-70867728950e')).toEqual({ host: 'a.example.com', path: '/u/:id' });
+    expect(API틀('https://a.example.com/reset/a1b2c3d4e5f60718293a')).toEqual({ host: 'a.example.com', path: '/reset/:id' });
+  });
+
+  it('짧은 16진 · 글자 칸은 그대로, 포트는 호스트에 남는다', () => {
+    expect(API틀('http://LOCALHOST:3001/api/cafe/v2')).toEqual({ host: 'localhost:3001', path: '/api/cafe/v2' });
+    expect(API틀('http://localhost:3001')).toEqual({ host: 'localhost:3001', path: '/' });
+  });
+
+  it('http(s) 가 아니거나 주소가 아니면 null', () => {
+    expect(API틀('data:text/plain,x')).toBeNull();
+    expect(API틀('아님')).toBeNull();
+  });
+});
+
+describe('같은사이트인가', () => {
+  it('하위 도메인 · 포트는 안 보고 끝 두 칸(co.kr 꼴은 세 칸)을 본다', () => {
+    expect(같은사이트인가('api.example.com', 'https://www.example.com/')).toBe(true);
+    expect(같은사이트인가('localhost:3001', 'http://localhost:3000')).toBe(true);
+    expect(같은사이트인가('api.shop.co.kr', 'https://www.shop.co.kr')).toBe(true);
+    expect(같은사이트인가('other.co.kr', 'https://www.shop.co.kr')).toBe(false);
+    expect(같은사이트인가('www.google-analytics.com', 'https://www.example.com')).toBe(false);
+    expect(같은사이트인가('127.0.0.1:8080', 'http://localhost:3000')).toBe(false);
+  });
+});
+
+describe('지도줄들', () => {
+  const 기준 = 'https://qa.example.com';
+
+  it('같은 사이트 API 만, (방식, 호스트, 틀)마다 한 줄에 부른 단계를 모은다', () => {
+    const 줄들 = 지도줄들(
+      [
+        { method: 'get', url: 'https://api.example.com/orders/1', resourceType: 'fetch', seq: 2 },
+        { method: 'GET', url: 'https://api.example.com/orders/2?x=1', resourceType: 'xhr', seq: 1 },
+        { method: 'GET', url: 'https://api.example.com/orders/3', resourceType: 'fetch', seq: null },
+        { method: 'POST', url: 'https://qa.example.com/login', resourceType: 'api', seq: null },
+        { method: 'GET', url: 'https://qa.example.com/', resourceType: 'document', seq: 1 },
+        { method: 'GET', url: 'https://ads.other.net/pixel', resourceType: 'fetch', seq: 1 },
+      ],
+      기준,
+    );
+    expect(줄들).toEqual([
+      { method: 'GET', host: 'api.example.com', path: '/orders/:n', steps: [1, 2] },
+      { method: 'POST', host: 'qa.example.com', path: '/login', steps: [] },
+    ]);
+  });
+
+  it('종류 칸이 없는 줄(크롤러가 들은 API)은 거르지 않는다 · 상한을 넘는 새 API 는 버린다', () => {
+    const 많음 = Array.from({ length: 지도상한 + 5 }, (_, i) => ({ method: 'GET', url: `https://qa.example.com/api/x${i}` }));
+    expect(지도줄들(많음, 기준)).toHaveLength(지도상한);
+  });
+});
