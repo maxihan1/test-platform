@@ -8,6 +8,7 @@ import { api, ApiError } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { prdApi } from './prdApi.js';
+import { 안거친API카드 } from './PrdApis.js';
 import { PrdList } from './PrdList.js';
 import { PrdTodo } from './PrdTodo.js';
 import { PrdVersions } from './PrdVersions.js';
@@ -35,6 +36,8 @@ export function Prd({
   const t = use말();
   const 언어 = use언어();
   const 판 = useAsync(() => prdApi.now(service), [service]);
+  // 지도는 힌트다 — 못 받으면 API 칸만 빠지고 메뉴는 그대로 쓴다
+  const 지도 = useAsync(() => prdApi.apis(service), [service]);
   const [알림, set알림] = useState<{ ok: boolean; 글: string } | null>(null);
   const [이력, set이력] = useState(false);
   const [더하기, set더하기] = useState(false);
@@ -116,6 +119,7 @@ export function Prd({
       )}
       {/* 못 읽은 것을 「실패 없음」으로 보이면 안 된다 — 결과 칸이 왜 비었는지 적는다 */}
       {last.error === null ? null : <p className="prd-note bad">{t('마지막 결과를 못 읽었습니다 — {까닭}', { 까닭: last.error })}</p>}
+      {지도.error === null ? null : <p className="prd-note bad">{t('서비스 지도를 못 읽었습니다 — {까닭}', { 까닭: 지도.error })}</p>}
       {이력 ? <PrdVersions service={service} 지금판={now.version} 쓰나={쓰나} 짓기={짓기} /> : null}
       {now.version === 0 && !더하기 ? (
         <div className="screen">
@@ -127,6 +131,7 @@ export function Prd({
       ) : (
         <>
           {now.version === 0 ? null : <PrdTodo service={service} now={now} 쓰나={쓰나} 짓기={짓기} />}
+          {now.version === 0 || 지도.data === null ? null : <안거친API카드 apis={지도.data.apis} />}
           <PrdList
             service={service}
             now={now}
@@ -137,6 +142,7 @@ export function Prd({
             여기={여기}
             결과={결과}
             케이스보나={케이스보나}
+            apis={지도.data?.apis ?? null}
           />
         </>
       )}

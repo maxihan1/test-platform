@@ -3,9 +3,10 @@
 
 import { useState } from 'react';
 
-import { api, type RunItemDetail } from './api.js';
+import { api, type RunItemPage } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Step } from './ItemSteps.js';
+import { ItemTraceSection } from './ItemTrace.js';
 import { fieldsOf, type Field } from './mask.js';
 import { 케이스서비스 } from './role.js';
 import type { 판정하기 } from './runJudge.js';
@@ -16,7 +17,7 @@ import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.j
 export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; historyId: number; 판정하기: 판정하기 }) {
   const t말 = use말();
   const 언어 = use언어();
-  const detail = useAsync<RunItemDetail>(() => api.item(runId, historyId), [runId, historyId]);
+  const detail = useAsync<RunItemPage>(() => api.item(runId, historyId), [runId, historyId]);
   const item = detail.data;
   const [다시, set다시] = useState(false);
 
@@ -75,6 +76,8 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
           item.steps.map((step) => <Step key={step.seq} step={step} tcId={item.tcId} runId={item.runId} historyId={item.historyId} />)
         )}
       </div>
+
+      <ItemTraceSection trace={item.trace} />
 
       <div className="actions">
         <span className="note">{t말('이 화면의 구성이 증적 문서에 그대로 출력됩니다.')}</span>

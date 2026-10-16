@@ -44,6 +44,7 @@ import './header.css';
 import './noticeDrawer.css';
 import './phone.css';
 import './prd.css';
+import './itemTrace.css';
 
 function Screen({
   hash,

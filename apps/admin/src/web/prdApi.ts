@@ -2,6 +2,7 @@
 
 import type { PrdItem } from '@platform/kit';
 
+import type { 지도API } from '../prd/apiMap.js';
 import type { 덮는케이스 } from '../prd/trace.js';
 import { call, json, 파일받기 } from './api.js';
 
@@ -42,6 +43,8 @@ const 꼬리 = (service: string) => `?service=${encodeURIComponent(service)}`;
 
 export const prdApi = {
   now: (service: string) => call<PrdNow>(`/prd${꼬리(service)}`),
+  /** 서비스 지도 — API 마다 거친 케이스 · 화면. 요구사항은 now 의 cases 로 잇는다 */
+  apis: (service: string) => call<{ apis: 지도API[] }>(`/prd/apis${꼬리(service)}`),
   versions: (service: string) => call<PrdVersionRow[]>(`/prd/versions${꼬리(service)}`),
   save: (service: string, baseVersion: number, items: PrdItemDraft[]) =>
     call<{ version: number }>(`/prd${꼬리(service)}`, { ...json({ baseVersion, items }), method: 'PUT' }),

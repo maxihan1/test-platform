@@ -13,7 +13,7 @@ const { 지금 } = vi.hoisted(() => ({
   지금: vi.fn((_s: string): Promise<PrdNow> => Promise.reject(new Error('판을 정하지 않았다'))),
 }));
 
-vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금 } }));
+vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, apis: () => Promise.resolve({ apis: [] }) } }));
 
 const 쓰는사람: 판정 = () => true;
 const 보는사람: 판정 = () => false;

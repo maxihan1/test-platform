@@ -14,7 +14,7 @@ const { 지금, 엑셀 } = vi.hoisted(() => ({
   엑셀: vi.fn((_s: string): Promise<{ 파일: Blob; 머리: string | null }> => Promise.reject(new Error('엑셀을 정하지 않았다'))),
 }));
 
-vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, rtmExport: 엑셀 } }));
+vi.mock('./prdApi.js', () => ({ prdApi: { now: 지금, rtmExport: 엑셀, apis: () => Promise.resolve({ apis: [] }) } }));
 
 const 보는사람: 판정 = () => false;
 

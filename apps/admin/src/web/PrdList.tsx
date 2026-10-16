@@ -9,6 +9,8 @@ import { 요구판정, 추적하기, type 결과읽기, type 추적 } from '../p
 import { use말 } from './i18n.js';
 import type { 판짓기 } from './Prd.js';
 import { prdApi, type PrdItemDraft, type PrdNow } from './prdApi.js';
+import type { 지도API } from '../prd/apiMap.js';
+import { 거치는API, 요구가거치는, type 거치는줄 } from './PrdApis.js';
 import { PrdItemForm, 빈요구 } from './PrdItemForm.js';
 import { use나이글, use반영종류글 } from './PrdTodo.js';
 import { 설계미리보기, 추적칸, 테스트구획 } from './PrdTrace.js';
@@ -24,6 +26,7 @@ export function PrdList({
   여기,
   결과,
   케이스보나,
+  apis,
 }: {
   service: string;
   now: PrdNow;
@@ -34,6 +37,8 @@ export function PrdList({
   /** 실행 read 가 없거나 아직 못 받았으면 null — 마지막 결과를 안 그린다 */
   결과: 결과읽기 | null;
   케이스보나: boolean;
+  /** 서비스 지도. 못 받았으면 null — 편 줄의 「거치는 API」를 안 그린다 */
+  apis: 지도API[] | null;
   /** 케이스 목록에서 누른 요구 번호 — 그 묶음과 줄을 편 채로 열고 그 줄로 간다 */
   여기?: string;
 }) {
@@ -140,6 +145,7 @@ export function PrdList({
                       여기={x.reqId === 여기}
                       반영={반영표.get(x.reqId)}
                       추적={추적of(x.reqId)}
+                      거치는={apis === null || !편줄.has(x.reqId) ? [] : 요구가거치는(now.cases[x.reqId] ?? [], apis)}
                       보류={줄보류of(now.held, x.reqId)}
                       케이스보나={케이스보나}
                       폈나={편줄.has(x.reqId)}
@@ -176,6 +182,7 @@ function 요구줄({
   여기 = false,
   반영,
   추적,
+  거치는,
   보류,
   케이스보나,
   폈나,
@@ -192,6 +199,7 @@ function 요구줄({
   여기?: boolean;
   반영: 반영종류 | undefined;
   추적: 추적;
+  거치는: 거치는줄[];
   보류: 줄보류 | null;
   케이스보나: boolean;
   폈나: boolean;
@@ -244,6 +252,7 @@ function 요구줄({
       ) : (
         <div className="prd-detail">
           <테스트구획 추적={추적} />
+          <거치는API 줄들={거치는} />
           <section>
             <h3>{t('근거')}</h3>
             <dl className="prd-basis">

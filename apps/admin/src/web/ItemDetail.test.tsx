@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { api, type RunItemDetail } from './api.js';
+import { api, type RunItemPage } from './api.js';
 import { ItemDetail } from './ItemDetail.js';
 import type { 판정하기 } from './runJudge.js';
 import { 사람 } from './runPick.fixture.js';
@@ -16,7 +16,8 @@ afterEach(() => {
 const RUN_ID = 3301;
 const HISTORY_ID = 7701;
 
-const 항목: RunItemDetail = {
+const 항목: RunItemPage = {
+  trace: null,
   runId: RUN_ID,
   runTitle: '결제 회귀',
   historyId: HISTORY_ID,
@@ -51,12 +52,18 @@ const 항목: RunItemDetail = {
   ],
 };
 
-function 그린다(바꿀것: Partial<RunItemDetail> = {}, 판정: 판정하기 = () => () => true) {
+function 그린다(바꿀것: Partial<RunItemPage> = {}, 판정: 판정하기 = () => () => true) {
   vi.spyOn(api, 'item').mockResolvedValue({ ...항목, ...바꿀것 });
   return render(<ItemDetail runId={RUN_ID} historyId={HISTORY_ID} 판정하기={판정} />);
 }
 
 describe('항목 상세 (SPEC §8.4)', () => {
+  it('시험 절차 아래에 네트워크 · 조작 · 콘솔 구획을 둔다 — trace 가 없으면 까닭을 보인다', async () => {
+    그린다({ trace: { status: 'NONE', reason: null, network: [], actions: [], console: [] } });
+    expect(await screen.findByText('네트워크 · 조작 · 콘솔')).toBeTruthy();
+    expect(screen.getByText('trace 없음')).toBeTruthy();
+  });
+
   it('코드 뷰는 접힌 채로 나오고 펼치기 전에는 소스를 읽지 않는다', async () => {
     const 소스 = vi.spyOn(api, 'source').mockResolvedValue({ lines: [], focus: 19 });
     그린다();
@@ -102,7 +109,7 @@ describe('항목 상세 (SPEC §8.4)', () => {
 });
 
 describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
-  const 값있는항목: Partial<RunItemDetail> = {
+  const 값있는항목: Partial<RunItemPage> = {
     params: { userId: 'u-지난', password: '********' },
     paramSchema: {
       type: 'object',
