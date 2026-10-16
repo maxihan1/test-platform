@@ -15,7 +15,7 @@ import type { 기준결정 } from './authoring-ledger-check.js';
 import { type 기준표, 기준결정만들기, 옛표줄들, 표번호바꾸기 } from './authoring-ledger-io.js';
 import { type 옮긴것, 대조줄들, 보낼항목, 비밀번호꼴가리기, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
 import { 계정섞였나, 글모두, 비밀가리기 } from './authoring-reverse.js';
-import { 크롤모두덮음 } from './authoring-screens-keep-io.js';
+import { 지도받기, 크롤모두덮음 } from './authoring-screens-keep-io.js';
 import { 산출물읽기 } from './authoring-upload-reverse.js';
 
 export type 서버 = { 주소기지: string; 토큰: string };
@@ -77,7 +77,8 @@ export async function 판받기(
   비밀: readonly string[] = [],
 ): Promise<{ 입력: 표준기획서입력; 앞판: 앞판; 기준판: 판 | null } | { 까닭: string }> {
   try {
-    const 판 = await 지금판읽기(서버, 서비스, 번호);
+    // 서비스 지도도 같이 받는다 — 자식이 기다릴 API 를 고르는 힌트라 못 받아도 작성은 간다 (§3.6 「서비스 지도」)
+    const [판] = await Promise.all([지금판읽기(서버, 서비스, 번호), 지도받기({ ...서버, 번호 }, 자료폴더)]);
     if ('까닭' in 판) return { 까닭: `표준 기획서 지금 버전을 못 읽었다 (${판.까닭})` };
     const 지금판 = join(자료폴더, 'prd-current.json');
     // 글 값만 가린다 — JSON 글을 통째로 가리면 비밀번호가 키 · 숫자와 같을 때(「text」 · 「1234」) 깨진 JSON 이 돼 작성이 멈춘다

@@ -8,7 +8,7 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { chromium } from '@playwright/test';
 
 import { type 본화면, type 판, 한상태 } from './authoring-crawl-state.js';
-import { type 인자, 로그인돌리기 } from './authoring-crawl-session.js';
+import { type 인자, API상한, 로그인돌리기 } from './authoring-crawl-session.js';
 import { 덮은틀읽기, 덮음인가, 케이스지도읽기, 크롤역할들, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기, 틀케이스 } from './authoring-crawl-rules.js';
 import { 기본역할 } from '@platform/kit/accounts';
 import { 견주기, type 상태, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
@@ -121,6 +121,8 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
   // 화면 연결 — 자식은 읽지 않는다(대화 토큰). 에이전트가 화면 기록을 올릴 때 같이 올린다 (PRD-F6-02)
   const 연결들 = 연결모으기(판.본, 판.연결, 고른);
   writeFileSync(join(a.출력, 'links.json'), JSON.stringify(연결들));
+  // 화면마다 들은 API — 연결과 같이 에이전트가 화면 기록을 올릴 때 싣는다. 서버가 같은 사이트만 지도에 넣는다 (PRD-F10-05)
+  writeFileSync(join(a.출력, 'apis.json'), JSON.stringify(연결모으기(판.본, 판.API, 고른).map((x) => ({ 상태: x.상태, 틀: x.틀, api: x.연결.slice(0, API상한) }))));
   // 로그인 상태 → 그 역할의 상태 파일 — 보조가 그 역할 화면을 열 때 이것을 state-load 한다 (PRD-F9-30)
   writeFileSync(join(a.출력, 'states.json'), JSON.stringify(Object.fromEntries(a.역할상태)));
   const 셈 = (s: string) => 판.본.filter((x) => x.상태 === s).length;
@@ -148,7 +150,7 @@ async function main(): Promise<void> {
   if (a.출력 === process.cwd() || a.출력.startsWith(process.cwd() + sep)) 그만(`--out 이 작업 트리 안이다 — 트리 밖 폴더를 준다: ${a.출력}`);
   mkdirSync(a.출력, { recursive: true });
   const 시작 = Date.now();
-  const 판: 판 = { 본: [], 연결: new Map(), 걸러짐: new Map(), 잘림: 0, 연속오류: 0, 멈춘까닭: null, 누를것: 0, 누름: 0, 다시로그인: 0 };
+  const 판: 판 = { 본: [], 연결: new Map(), API: new Map(), 걸러짐: new Map(), 잘림: 0, 연속오류: 0, 멈춘까닭: null, 누를것: 0, 누름: 0, 다시로그인: 0 };
   // 역할마다 한 번씩 로그인해 돈다 — 일반 회원은 자식이 만든 상태 파일, 다른 역할은 로그인 스크립트로 옆에 만든다 (PRD-F9-30)
   const 역할들 = a.상태파일 === null ? [] : 크롤역할들(process.env.PLATFORM_ACCOUNTS, new URL(a.주소들[0]!).origin);
   const 상태들: 상태[] = ['로그아웃', ...역할들.map((r): 상태 => `로그인:${r}`)];

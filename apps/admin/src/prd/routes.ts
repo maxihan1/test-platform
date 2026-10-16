@@ -9,6 +9,7 @@ import { 번호 } from '../authoring/params.js';
 import { 서비스번호 } from '../authoring/routes.js';
 import { 한국시각 } from '../catalog/exportData.js';
 import { lastByCase } from '../execution/history.js';
+import { 지도를읽는다 } from './apiMap.js';
 import { 워드만들기 } from './docx.js';
 import { 찾은화면셈 } from './found.js';
 import { 보류읽기 } from './held.js';
@@ -64,6 +65,13 @@ export default async function prdRoutes(app: FastifyInstance): Promise<void> {
       ...(await 찾은화면셈(서비스, items)),
       held,
     };
+  });
+
+  // 서비스 지도 — API 마다 거친 케이스 · 화면. 요구사항은 GET /prd 의 cases(지도 ①)로 잇는다 (§3.6 「서비스 지도」)
+  app.get<질의>('/prd/apis', async (req, reply) => {
+    const 서비스 = await 서비스번호(req, reply);
+    if (서비스 === null) return reply;
+    return 지도를읽는다(서비스);
   });
 
   app.get<질의>('/prd/versions', async (req, reply) => {

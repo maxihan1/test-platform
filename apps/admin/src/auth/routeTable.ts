@@ -119,6 +119,7 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/prd/versions': 작성읽기,
   'GET /api/prd/versions/:version': 작성읽기,
   'GET /api/prd/export': 작성읽기,
+  'GET /api/prd/apis': 작성읽기,
   'PUT /api/prd': 작성쓰기,
   'POST /api/prd/confirm': 작성쓰기,
   'POST /api/prd/revert': 작성쓰기,
@@ -132,6 +133,8 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/authoring/requests/:id/screens/done': 작성쓰기,
   // 화면이 맞음 건의 실패 trace 받기 — 작성 에이전트가 부른다. 라우트가 그 요청에 실린 실행 · 케이스인지 다시 본다 (작성 §3.6 「관문이 빨개지면」)
   'GET /api/authoring/requests/:id/trace': 작성쓰기,
+  // 서비스 지도 읽기 — 작성 에이전트가 부른다. 자식이 기다릴 API 를 고른다 (작성 §3.6 「서비스 지도」)
+  'GET /api/authoring/requests/:id/apis': 작성쓰기,
 
   // ★ 저장소를 영구히 바꾸는 일 — admin. 작성 쓰기와 같으면 「실행할 수 있는 사람 = 저장소를 고칠 수 있는 사람」이 된다
   'POST /api/authoring/merges': 'admin',
@@ -169,6 +172,7 @@ export const 토큰통로 = new Set([
   'PUT /api/authoring/requests/:id/screens',
   'POST /api/authoring/requests/:id/screens/done',
   'GET /api/authoring/requests/:id/trace',
+  'GET /api/authoring/requests/:id/apis',
   'GET /api/authoring/requests',
   'GET /api/authoring/requests/:id',
   'GET /api/authoring/requests/:id/assets/:assetId',

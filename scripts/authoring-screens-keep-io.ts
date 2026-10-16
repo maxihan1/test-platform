@@ -69,6 +69,26 @@ function 연결읽기(크롤: string): { 연결들: Map<string, { toUrl: string;
   return { 연결들, 못읽음: 원문 === null && lstatSync(join(크롤, 'links.json'), { throwIfNoEntry: false }) !== undefined };
 }
 
+/** 크롤러가 화면마다 들은 API(`crawl/apis.json`) — `상태 틀` → 서버 꼴 목록. 없거나 못 읽으면 빈 것(API 없이 올린다). 서버 상한(200개 · 주소 2,000자)에 맞춰 자른다 (PRD-F10-05) */
+function API읽기(크롤: string): Map<string, { method: string; url: string }[]> {
+  const 들은 = new Map<string, { method: string; url: string }[]>();
+  let 글: unknown;
+  try {
+    글 = JSON.parse(안전히읽기(크롤, 'apis.json', 연결파일상한) ?? '[]');
+  } catch {
+    return 들은;
+  }
+  for (const 칸 of Array.isArray(글) ? 글 : []) {
+    const x = (typeof 칸 === 'object' && 칸 !== null ? 칸 : {}) as { 상태?: unknown; 틀?: unknown; api?: unknown };
+    if (!상태인가(x.상태) || typeof x.틀 !== 'string' || !Array.isArray(x.api)) continue;
+    const 줄들 = (x.api as { method?: unknown; url?: unknown }[]).flatMap((a) =>
+      typeof a?.method === 'string' && /^[A-Za-z]{1,10}$/.test(a.method) && typeof a.url === 'string' && a.url.length <= 2_000 ? [{ method: a.method, url: a.url }] : [],
+    );
+    들은.set(`${x.상태} ${x.틀}`, 줄들.slice(0, 200));
+  }
+  return 들은;
+}
+
 /**
  * 크롤러가 목록을 추리기 전 본 화면 전부(`index.json` 의 `화면` — 상태 · 틀 · 이름). 로그인이 풀려 로그인 화면을 본 줄은 뺀다(목록과 같다).
  * 없거나 못 읽으면 null — 그때는 무엇을 봤는지 몰라 지우지 않는다 (PRD-F9-05)
@@ -154,13 +174,17 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
   const 같음키 = new Set(같은것.map((x) => `${x.상태} ${x.틀}`));
   const 이번 = 이번것들(목록, 기록들, 오늘).filter((x) => !같음키.has(x.키));
   const { 연결들, 못읽음 } = 연결읽기(크롤);
+  const 들은 = API읽기(크롤);
   // 본 화면은 목록을 추리기 전 전부다 — 목록만 보내면 두 상태에 다 있어 로그인 쪽만 남은 틀의 로그아웃 기록을 서버가 지운다 (PRD-F9-05)
   const 본화면 = 본화면읽기(크롤);
   const seen = [
     ...new Map([...(본화면 ?? []), ...목록].map((x) => [`${x.상태} ${x.틀}`, { state: x.상태, url: x.틀, name: (x.이름 ?? '').slice(0, 500) }])).values(),
   ];
   // 이름 · 틀 · 연결(버튼 · 링크 글자)도 서버에 남고 사람에게 보일 칸이다 — 본문과 같이 본다. 찾은 화면 이름(seen)은 본 화면 전체가 나간다
-  const 볼글 = [...seen.map((x) => x.name), ...이번.flatMap((x) => [x.글, x.이름, x.틀, ...(연결들.get(x.키) ?? []).flatMap((l) => [l.toUrl, l.via])])];
+  const 볼글 = [
+    ...seen.map((x) => x.name),
+    ...이번.flatMap((x) => [x.글, x.이름, x.틀, ...(연결들.get(x.키) ?? []).flatMap((l) => [l.toUrl, l.via]), ...(들은.get(x.키) ?? []).map((a) => a.url)]),
+  ];
   if (계정섞였나(볼글, 비밀)) return { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
   // 지우기는 크롤이 링크를 따라가 예외 없이 다 봤을 때, 실제로 돈 상태만 (검사 주의 1 — 상태 파일 없이 로그아웃만 돌면 로그인 기록은 남긴다)
   const 돈상태 = Array.isArray(요약.상태들) ? 요약.상태들.filter(상태인가) : [];
@@ -175,7 +199,7 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
     const 오래된 = 재사용.reduce((n, y) => Math.max(n, 날수(y.훑은날, 오늘)), 0);
     let 못올림 = 0;
     for (const x of 이번) {
-      const body = { state: x.상태, url: x.틀, name: x.이름.slice(0, 500), textFp: x.글자지문, structFp: x.지문, record: x.글, crawledAt: 지금.toISOString(), links: 연결들.get(x.키) ?? [] };
+      const body = { state: x.상태, url: x.틀, name: x.이름.slice(0, 500), textFp: x.글자지문, structFp: x.지문, record: x.글, crawledAt: 지금.toISOString(), links: 연결들.get(x.키) ?? [], apis: 들은.get(x.키) ?? [] };
       if ((await 부른다(통로.주소기지, 통로.토큰, 길, { method: 'PUT', body })).status !== 204) 못올림 += 1;
     }
     const 끝 = await 부른다(통로.주소기지, 통로.토큰, `${길}/done`, { method: 'POST', body: { seen, complete: 지울상태 } });
@@ -190,5 +214,32 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
     };
   } catch (e) {
     return { 줄: `화면 기록 저장: 실패 — ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+/** 서비스 지도를 받아 둘 자리 — 자식이 조작 뒤 기다릴 API 를 고를 때 읽는다 (tpx-cases 4-selector.md 「서비스 지도」) */
+export const 지도자리 = (자료: string): string => join(자료, 'api-map.txt');
+
+/**
+ * 자식을 띄우기 전 — 그 서비스의 지도(같은 사이트 API 와 거친 케이스 · 화면)를 자료 폴더 `api-map.txt` 로 받는다. 한 줄에 API 하나다.
+ * 지도가 비었거나 못 받으면 파일을 안 만든다 — 작성은 그대로 간다(지도는 대기 조건의 힌트일 뿐이다). 받은 줄 수를 돌려준다 (PRD-F10-05)
+ */
+export async function 지도받기(통로: 화면통로, 자료: string): Promise<number> {
+  try {
+    const 답 = await 부른다(통로.주소기지, 통로.토큰, `/authoring/requests/${통로.번호}/apis`);
+    const apis = (답.몸 as { apis?: unknown } | null)?.apis;
+    if (답.status !== 200 || !Array.isArray(apis) || apis.length === 0) return 0;
+    const 줄들 = (apis as { method?: unknown; host?: unknown; path?: unknown; cases?: { tcId?: unknown }[]; screens?: { state?: unknown; url?: unknown }[] }[])
+      .slice(0, 500)
+      .map((a) => {
+        const 케이스 = (a.cases ?? []).map((c) => String(c.tcId));
+        const 화면 = (a.screens ?? []).map((x) => `${String(x.state)} ${String(x.url)}`);
+        return `${String(a.method)} ${String(a.host)}${String(a.path)}${케이스.length === 0 ? '' : ` · 케이스 ${케이스.join(' ')}`}${화면.length === 0 ? '' : ` · 화면 ${화면.join(' | ')}`}`;
+      });
+    새로쓰기(지도자리(자료), `${줄들.join('\n')}\n`);
+    return 줄들.length;
+  } catch (e) {
+    console.error(`[작성] ${통로.번호}번 — 서비스 지도를 못 받았다(작성은 간다): ${e instanceof Error ? e.message : String(e)}`);
+    return 0;
   }
 }

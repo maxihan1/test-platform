@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 
 import type { Pool } from 'pg';
 
+import { 케이스지도를넣는다, 지도줄들 } from '../prd/apiMap.js';
 import { 가려야하나 } from '../web/mask.js';
 import { 가린다, 항목비밀 } from './trial.js';
 import { trace를푼다, type 풀린trace } from './traceParse.js';
@@ -78,7 +79,10 @@ async function 상태를남긴다(pool: Pool, historyId: number, status: 상태,
 
 const 차례붙임 = <T>(줄: T[]): (T & { ord: number })[] => 줄.map((l, i) => ({ ...l, ord: i + 1 }));
 
-async function 기록을넣는다(pool: Pool, historyId: number, 풀림: 풀린trace): Promise<void> {
+// 지도를 채울 자리 — 서비스 · 케이스 · 실행 · 그날 친 주소(같은 사이트를 가른다). 서비스 통합 전 실행은 서비스가 없어 안 채운다
+interface 지도자리 { serviceId: number; tcId: string; runId: number; baseUrl: string }
+
+async function 기록을넣는다(pool: Pool, historyId: number, 풀림: 풀린trace, 지도: 지도자리 | null): Promise<void> {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -103,6 +107,17 @@ async function 기록을넣는다(pool: Pool, historyId: number, 풀림: 풀린t
          FROM json_to_recordset($2) AS x(ord int, seq int, "atMs" int, level text, text text, url text)`,
       [historyId, JSON.stringify(차례붙임(풀림.console))],
     );
+    // 서비스 지도도 같은 묶음 안에서 — 다만 지도는 힌트라 지도가 깨져도 세 기록은 남긴다(되돌림 자리로 지도만 버린다) (도메인/작성 §3.6 「서비스 지도」)
+    if (지도 !== null) {
+      await client.query('SAVEPOINT api_map');
+      try {
+        await 케이스지도를넣는다(client, 지도.serviceId, 지도.tcId, 지도.runId, 지도줄들(풀림.network, 지도.baseUrl));
+        await client.query('RELEASE SAVEPOINT api_map');
+      } catch (err) {
+        await client.query('ROLLBACK TO SAVEPOINT api_map');
+        console.error(`[execution] 항목 ${historyId} 의 서비스 지도를 못 채웠다(trace 기록은 남긴다): ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
     await client.query(
       `INSERT INTO run_trace (history_id, status, reason) VALUES ($1, 'DONE', NULL)
        ON CONFLICT (history_id) DO UPDATE SET status = 'DONE', reason = NULL, loaded_at = now()`,
@@ -119,6 +134,9 @@ async function 기록을넣는다(pool: Pool, historyId: number, 풀림: 풀린t
 
 interface 항목행 {
   run_id: string;
+  tc_id: string;
+  service_id: string | null;
+  base_url: string;
   status: string;
   platform: string;
   params: unknown;
@@ -132,8 +150,8 @@ interface 항목행 {
 export async function trace를적재한다(historyId: number): Promise<상태 | null> {
   const pool = await db();
   const r = await pool.query<항목행>(
-    `SELECT run_id, status, platform, params, expected, param_schema, expected_schema, error
-       FROM run_item WHERE history_id = $1 AND finished_at IS NOT NULL`,
+    `SELECT i.run_id, i.tc_id, r.service_id, r.base_url, i.status, i.platform, i.params, i.expected, i.param_schema, i.expected_schema, i.error
+       FROM run_item i JOIN test_run r ON r.run_id = i.run_id WHERE i.history_id = $1 AND i.finished_at IS NOT NULL`,
     [historyId],
   );
   const row = r.rows[0];
@@ -162,7 +180,8 @@ export async function trace를적재한다(historyId: number): Promise<상태 | 
   const 통과 = row.status === 'PASS';
   try {
     const 풀림 = await trace를푼다(zip, { 본문: !통과 });
-    await 기록을넣는다(pool, historyId, trace가린다(풀림, 항목비밀(row)));
+    const 지도 = row.service_id === null ? null : { serviceId: Number(row.service_id), tcId: row.tc_id, runId: Number(row.run_id), baseUrl: row.base_url };
+    await 기록을넣는다(pool, historyId, trace가린다(풀림, 항목비밀(row)), 지도);
   } catch (err) {
     // zip 은 남긴다 — 사람이 서버에서 직접 열어 볼 수 있다
     await 상태를남긴다(pool, historyId, 'FAILED', `trace 를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`);
