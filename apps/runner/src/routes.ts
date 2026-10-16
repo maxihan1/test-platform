@@ -169,7 +169,7 @@ export function registerRoutes(app: FastifyInstance): void {
       parts.push({ ...part, filePath: specPath });
     }
     if (Buffer.byteLength(JSON.stringify(parts)) > 목록상한) {
-      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `조립 목록이 ${목록상한}바이트를 넘는다` });
+      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: `단계 목록이 ${목록상한}바이트를 넘는다` });
     }
 
     try {
