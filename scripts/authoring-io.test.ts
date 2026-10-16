@@ -13,6 +13,7 @@ import {
   닫으며,
   부른다,
   친다,
+  커밋받기,
   판정기만들기,
   한번더건다,
 } from './authoring-io.js';
@@ -297,5 +298,13 @@ describe('거절된보고대신 — 끝났다는 보고가 400 이면 실패로 
   it('400 이 아니면 바꾸지 않는다 — 409 는 이미 끝난 행이다', () => {
     expect(거절된보고대신(409, { error: 'NOT_RUNNING' }, { status: 'DONE' })).toBeNull();
     expect(거절된보고대신(200, { ok: true }, { status: 'DONE' })).toBeNull();
+  });
+});
+
+describe('커밋받기 — SHA 꼴만 받는다', () => {
+  it('빈 값 · 옵션 꼴은 git 을 부르지 않고 거절한다', () => {
+    const 없는곳 = join(tmpdir(), 'no-such-repo-커밋받기');
+    expect(커밋받기(없는곳, '', 'PR 머리')).toEqual({ 까닭: 'PR 머리 이 커밋 SHA 꼴이 아니다 ()' });
+    expect(커밋받기(없는곳, '--upload-pack=x', 'PR 머리')).toEqual({ 까닭: 'PR 머리 이 커밋 SHA 꼴이 아니다 (--upload-pack=x)' });
   });
 });
