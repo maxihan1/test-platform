@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { api, type CaseRow, type RunItemDetail } from './api.js';
+import { api, type CaseRow, type RunItemPage } from './api.js';
 import { CaseDetail } from './CaseDetail.js';
 
 afterEach(() => {
@@ -52,7 +52,8 @@ const 이력 = {
   pageSize: 20,
 };
 
-const 항목: RunItemDetail = {
+const 항목: RunItemPage = {
+  trace: null,
   historyId: 5,
   runId: 2,
   tcId: 'ZZD-001',
@@ -70,7 +71,7 @@ const 항목: RunItemDetail = {
   filePath: 'tests/ZZD-001.spec.ts',
   errorMessage: null,
   steps: [{ seq: 1, title: '결제 화면을 연다', status: 'PASS', durationMs: 400, assertions: [], line: null, screenshotPath: null }],
-} as unknown as RunItemDetail;
+} as unknown as RunItemPage;
 
 function 통로를막는다() {
   const 이력스파이 = vi.spyOn(api, 'caseHistory').mockResolvedValue(이력);

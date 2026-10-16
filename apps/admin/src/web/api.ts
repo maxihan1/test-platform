@@ -5,6 +5,7 @@ import type { ItemStatus, JsonSchema, Platform, RunningStep, StepResult } from '
 import type { Technique } from '@platform/kit/types';
 
 import type { 고칠것 } from '../authoring/edit.js';
+import type { 네트워크줄, 조작줄, 콘솔줄 } from '../execution/traceParse.js';
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 
 import type { 권한칸, 등급 } from './role.js';
@@ -286,6 +287,20 @@ export interface RunItemDetail extends RunItemSummary {
   // params·paramSchema 는 RunItemSummary 에 있다 — 목록도 같은 값을 쓴다
   expectedSchema: JsonSchema;
   steps: StepResult[];
+}
+
+/** 정식 실행 항목의 네트워크 · 조작 · 콘솔 (도메인/실행 §3.2 「trace」). 서버가 넣을 때 가린 값이다 */
+export interface ItemTrace {
+  status: 'DONE' | 'NONE' | 'FAILED';
+  reason: string | null;
+  network: 네트워크줄[];
+  actions: Omit<조작줄, 'secretField'>[];
+  console: 콘솔줄[];
+}
+
+/** 항목 상세 통로만 trace 를 싣는다 — 실패 카드의 item 은 없다. null 이면 아직 안 풀었거나 이 기능 전 항목 */
+export interface RunItemPage extends RunItemDetail {
+  trace: ItemTrace | null;
 }
 
 /** 실패 카드의 디바이스 칸 하나 (SPEC §7 `GET /api/runs/:runId/failures`). change 는 새로깨짐 · 계속깨짐 만 오고 그 밖은 null */
@@ -946,7 +961,7 @@ export const api = {
   /** 만든 문서를 받는 주소. 받기는 보기만 등급도 할 수 있다 (SPEC §3.5) */
   evidenceUrl: (id: number) => `/api/evidence/${id}`,
 
-  item: (runId: number, historyId: number) => call<RunItemDetail>(`/runs/${runId}/items/${historyId}`),
+  item: (runId: number, historyId: number) => call<RunItemPage>(`/runs/${runId}/items/${historyId}`),
 
   /** 끝난 실행의 확정 실패를 케이스 카드로 쪽 단위로 준다. 디바이스 거르기는 서버가 한다 (SPEC §7) */
   failures: (runId: number, page: number, platform?: Platform) =>

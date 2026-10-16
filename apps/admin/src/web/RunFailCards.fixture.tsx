@@ -11,6 +11,7 @@ import {
   type Paged,
   type Platform,
   type RunItemDetail,
+  type RunItemPage,
   type RunItemSummary,
   type StepResult,
 } from './api.js';
@@ -40,8 +41,9 @@ export const 기본단계 = (실제값: unknown = '없음'): StepResult[] => [
   ]),
 ];
 
-export function 상세(historyId: number, platform: Platform, 덮을것: Partial<RunItemDetail> = {}): RunItemDetail {
+export function 상세(historyId: number, platform: Platform, 덮을것: Partial<RunItemDetail> = {}): RunItemPage {
   return {
+    trace: null,
     historyId,
     runId: RUN_ID,
     runTitle: '결제 회귀',

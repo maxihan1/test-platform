@@ -1,0 +1,151 @@
+/* 항목 상세 「네트워크 · 조작 · 콘솔」 (ItemTrace.tsx · 2026-10-16 시안 A) — 개발자 도구 탭 꼴. 실패 줄은 실패 바탕으로 칠한다 */
+
+.trace-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 2px;
+  border-bottom: 1px solid var(--line-2);
+}
+.trace-tab {
+  font: inherit;
+  font-size: 13px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-muted);
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.trace-tab[aria-selected='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+.trace-tab:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+.trace-n {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-left: 5px;
+}
+.trace-n.bad {
+  color: var(--fail-text);
+  margin-left: 3px;
+}
+.trace-only {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  padding: 6px 4px;
+}
+
+/* 표만 옆으로 민다 — 긴 주소가 화면을 넓히지 않게 */
+.trace-pane {
+  overflow-x: auto;
+}
+.trace-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.trace-table th {
+  text-align: left;
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.trace-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.trace-table tr.bad td {
+  background: var(--fail-soft);
+}
+.trace-table tr.bad .trace-status {
+  color: var(--fail-text);
+}
+.trace-m {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.trace-dim {
+  color: var(--ink-faint);
+}
+.trace-url {
+  overflow-wrap: anywhere;
+}
+.trace-note {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+.trace-open {
+  font: inherit;
+  color: var(--link);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.trace-open:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.trace-body {
+  margin: 0;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink-muted);
+  background: var(--well);
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+}
+.trace-lvl {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  border-radius: 3px;
+  padding: 0 5px;
+  background: var(--na-soft);
+  color: var(--na-text);
+}
+.trace-lvl.error,
+.trace-lvl.pageerror {
+  background: var(--fail-soft);
+  color: var(--fail-text);
+}
+
+.trace-empty {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  border: 1px dashed var(--line-2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.trace-tag {
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  white-space: nowrap;
+  border-radius: 3px;
+  padding: 1px 6px;
+  background: var(--na-soft);
+  color: var(--na-text);
+}

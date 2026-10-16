@@ -10,6 +10,7 @@ import { 케이스지도를넣는다, 지도줄들 } from '../prd/apiMap.js';
 import { 가려야하나 } from '../web/mask.js';
 import { 가린다, 항목비밀 } from './trial.js';
 import { trace를푼다, type 풀린trace } from './traceParse.js';
+import { trace없는까닭 } from './traceReason.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -159,7 +160,7 @@ export async function trace를적재한다(historyId: number): Promise<상태 | 
   const 끊김 = typeof row.error?.message === 'string' && ['TIMEOUT', 'ABORTED'].includes(row.error.message);
 
   if (row.platform === 'android') {
-    await 상태를남긴다(pool, historyId, 'NONE', 'Android 앱 실행은 trace 가 없다');
+    await 상태를남긴다(pool, historyId, 'NONE', trace없는까닭.앱);
     return 'NONE';
   }
   const 경로 = trace경로(Number(row.run_id), historyId);
@@ -169,9 +170,7 @@ export async function trace를적재한다(historyId: number): Promise<상태 | 
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
     // 러너가 자식을 끊으면 리포터가 옮길 틈이 없다. 그 밖은 다른 기계의 러너(공유 폴더 없음)이거나 리포터가 옮기다 실패한 것이다 (실행 §3.2 「trace」)
-    const 사유 = 끊김
-      ? '러너가 실행을 끊어(제한 시간 · 멈춤) trace 가 남지 않았다'
-      : '러너가 trace 파일을 남기지 않았다 — 다른 기계의 러너이거나 옮기다 실패했다';
+    const 사유 = 끊김 ? trace없는까닭.끊김 : trace없는까닭.파일없음;
     await 상태를남긴다(pool, historyId, 'NONE', 사유);
     return 'NONE';
   }

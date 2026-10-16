@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 
-import { api, type ItemStatus, type Platform, type RunItemDetail, type RunItemSummary } from './api.js';
+import { api, type ItemStatus, type Platform, type RunItemDetail, type RunItemPage, type RunItemSummary } from './api.js';
 import { groupByCase } from './group.js';
 import { 결과줄 } from './RunResultRow.js';
 
@@ -109,8 +109,9 @@ describe('결과줄 (SPEC §8.3)', () => {
   });
 
   describe('펼치기 (SPEC §8.3 통과 · 미실행 줄)', () => {
-    function 상세(요약: RunItemSummary, 덮을것: Partial<RunItemDetail> = {}): RunItemDetail {
+    function 상세(요약: RunItemSummary, 덮을것: Partial<RunItemDetail> = {}): RunItemPage {
       return {
+        trace: null,
         ...요약,
         runId: 7,
         runTitle: '결제 회귀',
