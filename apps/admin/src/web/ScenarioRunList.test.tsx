@@ -110,7 +110,7 @@ describe('ScenarioRunList 머리 · 표머리', () => {
   it('표머리가 셋이다', async () => {
     await 그리기();
     const 이름들 = screen.getAllByRole('columnheader').map((el) => el.textContent);
-    expect(이름들).toEqual(['RUN', '시나리오 이름 · 버전', '단계 · 멈춘 단계']);
+    expect(이름들).toEqual(['RUN', '시나리오 이름 · 버전', '판정']);
   });
 });
 
@@ -123,6 +123,7 @@ describe('ScenarioRunList 줄', () => {
     const 첫 = 줄들[0] as HTMLElement;
     expect(첫.querySelector('.tcid')?.textContent).toBe('RUN 11');
     expect(첫.querySelector('.title')?.textContent).toContain('ZSL 시나리오 11 v3');
+    expect(첫.querySelector('.title small')?.textContent).toContain('대상 서버 qa');
     expect(첫.querySelector('.title small')?.textContent).toContain('실행자 김검사');
     expect(첫.querySelector('.title small')?.textContent).toContain('완료');
     expect(within(첫).getByText('단계 5개')).toBeTruthy();
@@ -141,6 +142,30 @@ describe('ScenarioRunList 줄', () => {
     const 행 = container.querySelector('.row') as HTMLElement;
     expect(within(행).queryByText('모두 통과')).toBeNull();
     expect(행.querySelector('.title small')?.textContent).toContain('진행 중');
+    expect(행.querySelector('.right .verdict')?.textContent).toContain('실행 중');
+    expect(행.querySelector('.v-pass, .v-fail, .v-na')).toBeNull();
+  });
+
+  it('실패와 판정 없음은 멈춘 단계가 같아도 판정 칩으로 갈린다', async () => {
+    const { container } = await 그리기({
+      ...한쪽,
+      items: [줄(21, { verdict: 'FAIL', stoppedAt: 3 }), 줄(22, { verdict: 'NA', stoppedAt: 3, env: 'stage' })],
+    });
+    await screen.findByText(/ZSL 시나리오 22/);
+
+    const [실패, 없음] = Array.from(container.querySelectorAll('.row')) as HTMLElement[];
+    expect(within(실패 as HTMLElement).getByText('3번에서 멈춤')).toBeTruthy();
+    expect(within(없음 as HTMLElement).getByText('3번에서 멈춤')).toBeTruthy();
+    expect(실패?.querySelector('.v-fail')?.textContent).toBe('실패');
+    expect(없음?.querySelector('.v-na')?.textContent).toBe('미실행');
+    expect(없음?.querySelector('.title small')?.textContent).toContain('대상 서버 stage');
+  });
+
+  it('통과 줄은 통과 칩이다', async () => {
+    const { container } = await 그리기();
+    await screen.findByText(/ZSL 시나리오 11/);
+
+    expect(container.querySelector('.row .v-pass')?.textContent).toBe('통과');
   });
 
   it('미확정이면 판정과 상관없이 「미확정」 꼬리표를 단다', async () => {
