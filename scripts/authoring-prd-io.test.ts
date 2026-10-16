@@ -35,11 +35,11 @@ const 결과쓰기 = (몸: unknown) => {
 const 올리기 = (원본: 원장 | { 없음: string } = 원장하나, 비밀 = {}, 앞판: typeof 앞 = 앞) => 옮기기올리기(서버, 'MKT', 7, 자리, 앞판, 원본, 비밀, null, 'mkt');
 
 describe('판받기', () => {
-  it('지금 판을 자료 폴더에 두고 프롬프트 재료와 앞 판을 돌려준다', async () => {
+  it('지금 판을 자료 폴더에 두고 프롬프트 재료와 앞 판을 돌려준다 · 서비스 지도도 같이 받는다', async () => {
     const 건것: string[] = [];
     vi.stubGlobal('fetch', async (url: string) => (건것.push(url), 답(200, { version: 2, items: [있던] })));
     const r = await 판받기(서버, 'MKT', 7, 자리.자료);
-    expect(건것).toEqual(['http://admin:3000/api/authoring/requests/7/prd?service=MKT']);
+    expect(건것.sort()).toEqual(['http://admin:3000/api/authoring/requests/7/apis', 'http://admin:3000/api/authoring/requests/7/prd?service=MKT']);
     expect(r).toEqual({
       입력: { 지금판: join(자리.자료, 'prd-current.json'), 결과: join(자리.자료, 'out', 'prd.json'), 판: 2, 항목수: 1 },
       앞판: { version: 2, 번호들: ['MKT-REQ-001'], items: [있던] },

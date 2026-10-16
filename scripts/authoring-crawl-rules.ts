@@ -215,20 +215,20 @@ export function 목록고르기(항목들: 목록항목[]): 목록항목[] {
  * 화면 연결(본 화면 번호 → 나간 연결)을 목록에 남은 화면으로 모은다 (PRD-F6-02).
  * 로그아웃과 로그인에 다 있는 틀은 로그인 쪽만 남으므로 로그아웃 때 본 연결(홈 → 로그인 · 가입)도 그 틀의 첫 로그인 화면에 합친다. 목록에 같은 틀이 없으면 버린다
  */
-export function 연결모으기<T extends Pick<목록항목, '상태' | '틀'>>(
+export function 연결모으기<T extends Pick<목록항목, '상태' | '틀'>, V = { to: string; via: string }>(
   본들: readonly T[],
-  연결: ReadonlyMap<number, ReadonlyMap<string, { to: string; via: string }>>,
+  연결: ReadonlyMap<number, ReadonlyMap<string, V>>,
   고른: readonly T[],
-): { 상태: T['상태']; 틀: string; 연결: { to: string; via: string }[] }[] {
+): { 상태: T['상태']; 틀: string; 연결: V[] }[] {
   const 자리 = new Map(고른.map((x) => [`${x.상태} ${x.틀}`, x]));
   const 로그인자리 = new Map<string, T>();
   for (const x of 고른) if (x.상태 !== '로그아웃' && !로그인자리.has(x.틀)) 로그인자리.set(x.틀, x);
-  const 모은 = new Map<T, Map<string, { to: string; via: string }>>();
+  const 모은 = new Map<T, Map<string, V>>();
   본들.forEach((본, i) => {
     const 칸 = 연결.get(i);
     const 갈곳 = 자리.get(`${본.상태} ${본.틀}`) ?? 로그인자리.get(본.틀);
     if (칸 === undefined || 갈곳 === undefined) return;
-    const 합 = 모은.get(갈곳) ?? new Map<string, { to: string; via: string }>();
+    const 합 = 모은.get(갈곳) ?? new Map<string, V>();
     for (const [키, 값] of 칸) 합.set(키, 값);
     모은.set(갈곳, 합);
   });

@@ -4,6 +4,7 @@
 
 import { type 상태, 상태인가 } from '../../../../scripts/authoring-screens-keep.js';
 import { db, 한묶음 } from '../settings/store.js';
+import { type API줄, 지도상한, 지도줄들, 화면지도를넣는다 } from './apiMap.js';
 
 export interface 화면 {
   state: 상태;
@@ -15,6 +16,7 @@ export interface 화면 {
   crawledAt: string;
 }
 type 링크 = { toUrl: string; via: string };
+type 들은API = { method: string; url: string };
 type 오류 = { error: 'BAD_SCREEN'; detail: string };
 
 // 기록 200KB 는 디스크 저장본 때의 상한 그대로다. 본 화면 목록은 크롤 100장 상한보다 넉넉히
@@ -27,8 +29,8 @@ const 칸들 = (v: unknown): Record<string, unknown> => (typeof v === 'object' &
 const 글인가 = (v: unknown, 최대: number, 빈것 = false): v is string =>
   typeof v === 'string' && v.length <= 최대 && (빈것 || v.trim() !== '');
 
-/** PUT 본문 — 화면 하나와 그 화면에서 나간 연결 */
-export function 화면검사(몸: unknown): { 화면: 화면; links: 링크[] } | 오류 {
+/** PUT 본문 — 화면 하나와 그 화면에서 나간 연결 · 그 화면에서 들은 API(크롤러) */
+export function 화면검사(몸: unknown): { 화면: 화면; links: 링크[]; apis: 들은API[] } | 오류 {
   const b = 칸들(몸);
   if (!상태인가(b.state)) return 틀림('state');
   if (!글인가(b.url, 상한.url)) return 틀림('url');
@@ -46,7 +48,16 @@ export function 화면검사(몸: unknown): { 화면: 화면; links: 링크[] } 
     if (!글인가(x.via, 상한.via)) return 틀림(`links.${i}.via`);
     links.push({ toUrl: x.toUrl, via: x.via });
   }
-  return { 화면: { state: b.state, url: b.url, name: b.name, textFp: b.textFp, structFp: b.structFp, record: b.record, crawledAt: b.crawledAt }, links };
+  const 들음 = b.apis ?? [];
+  if (!Array.isArray(들음) || 들음.length > 지도상한) return 틀림('apis');
+  const apis: 들은API[] = [];
+  for (const [i, a] of 들음.entries()) {
+    const x = 칸들(a);
+    if (typeof x.method !== 'string' || !/^[A-Za-z]{1,10}$/.test(x.method)) return 틀림(`apis.${i}.method`);
+    if (!글인가(x.url, 상한.url)) return 틀림(`apis.${i}.url`);
+    apis.push({ method: x.method, url: x.url });
+  }
+  return { 화면: { state: b.state, url: b.url, name: b.name, textFp: b.textFp, structFp: b.structFp, record: b.record, crawledAt: b.crawledAt }, links, apis };
 }
 
 /** done 본문 — 이번에 본 화면(재사용 포함)과 다 본 상태. 다 본 상태가 비면 아무것도 안 지운다. name 은 찾은 화면 이름이다 */
@@ -85,8 +96,11 @@ export async function 화면들(서비스: number, env: string): Promise<{ scree
   };
 }
 
-/** 같은 키(대상 서버 + 상태 + 같은 틀)는 바꾸고, 그 화면에서 나간 연결은 보낸 것으로 갈아 끼운다 */
-export async function 화면넣기(서비스: number, env: string, x: 화면, links: 링크[]): Promise<void> {
+/**
+ * 같은 키(대상 서버 + 상태 + 같은 틀)는 바꾸고, 그 화면에서 나간 연결 · 들은 API 는 보낸 것으로 갈아 끼운다.
+ * API 는 그 대상 서버 주소와 같은 사이트만 지도에 든다 — 자식이 보낸 목록을 그대로 믿지 않는다 (도메인/작성 §3.6 「서비스 지도」)
+ */
+export async function 화면넣기(서비스: number, env: string, x: 화면, links: 링크[], apis: 들은API[] = []): Promise<void> {
   await 한묶음(async (손) => {
     await 손.query(
       `INSERT INTO screen_record (service_id, env, state, url, name, text_fp, struct_fp, record, crawled_at)
@@ -103,6 +117,9 @@ export async function 화면넣기(서비스: number, env: string, x: 화면, li
        ON CONFLICT DO NOTHING`,
       [서비스, x.state, x.url, links.map((l) => l.toUrl), links.map((l) => l.via), env],
     );
+    const 기준 = await 손.query<{ base_url: string }>('SELECT base_url FROM service_env WHERE service_id = $1 AND env = $2', [서비스, env]);
+    const 줄들: API줄[] = 기준.rows[0] === undefined ? [] : 지도줄들(apis, 기준.rows[0].base_url);
+    await 화면지도를넣는다(손, 서비스, { env, state: x.state, url: x.url }, 줄들);
   });
 }
 
