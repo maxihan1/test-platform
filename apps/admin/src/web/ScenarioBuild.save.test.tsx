@@ -7,30 +7,10 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { ApiError } from './api.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi } from './scenarioApi.js';
-import { 서비스, 케이스단계, 상세, 기존그리기, 이름칸, 바꾸기, 감싸개, 해시가 } from './ScenarioBuild.fixture.js';
+import { 서비스, 케이스단계, 상세, 재료, 기존그리기, 이름칸, 바꾸기, 감싸개, 해시가, 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
 
-// 새 시나리오는 단계를 넣는 길이 다음 할 일에서 생긴다. 그때까지 저장 흐름은 처음 한 번 단계를 심어 본다
-const 심기 = vi.hoisted(() => ({ 단계들: null as ScenarioPart[] | null, 재료: [] as string[] }));
-vi.mock('./useScenarioDraft.js', async (원래) => {
-  const 본 = await 원래<typeof import('./useScenarioDraft.js')>();
-  const { useEffect } = await import('react');
-  return {
-    ...본,
-    useScenarioDraft: (...인자: Parameters<typeof 본.useScenarioDraft>) => {
-      const 초안 = 본.useScenarioDraft(...인자);
-      useEffect(() => {
-        if (심기.단계들 !== null) 초안.단계들바꾸기(심기.단계들);
-        심기.재료.forEach((n) => 초안.재료더하기(n));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
-      return 초안;
-    },
-  };
-});
 
 afterEach(() => {
-  심기.단계들 = null;
-  심기.재료 = [];
   떠나기막기(null);
   cleanup();
   vi.restoreAllMocks();
@@ -77,12 +57,14 @@ describe('ScenarioBuild 저장 전 확인', () => {
 
 describe('ScenarioBuild 저장', () => {
   it('새 것은 처음 받은 띠 접두사로 만들고 새 주소로 옮긴다. 상자는 안 뜬다', async () => {
-    심기.단계들 = [케이스단계('ZSB-001')];
+    케이스목록막기('ZSB-001');
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
     const create = vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 55, version: 1 });
     await 해시가('#/scenarios/new');
     const { rerender } = render(<감싸개 id={null} 도착="#/scenarios/55" />);
     // 띠를 바꿔도 접두사는 처음 것이다
     rerender(<감싸개 id={null} 띠={서비스('ZSC')} 도착="#/scenarios/55" />);
+    await 케이스더하기('ZSB-001');
     바꾸기('  새 흐름  ');
     expect(screen.getByText('저장 안 된 변경 있음')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장' }));

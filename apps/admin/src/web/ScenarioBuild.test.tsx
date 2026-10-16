@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 // E2E 시나리오 조립 화면 ① 검사 — 새 시나리오 · 기존 시나리오 불러오기 (도메인/시나리오 §8.11)
 
-import type { ScenarioPart } from '@platform/kit';
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -10,30 +9,10 @@ import { 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
 import { when } from './ui.js';
-import { 서비스, 사람, 상세, 재료, 기존그리기, 새로그리기, 이름칸, 바꾸기 } from './ScenarioBuild.fixture.js';
+import { 서비스, 사람, 상세, 재료, 기존그리기, 새로그리기, 이름칸, 바꾸기, 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
 
-// 새 시나리오는 단계를 넣는 길이 다음 할 일에서 생긴다. 그때까지 저장 흐름은 처음 한 번 단계를 심어 본다
-const 심기 = vi.hoisted(() => ({ 단계들: null as ScenarioPart[] | null, 재료: [] as string[] }));
-vi.mock('./useScenarioDraft.js', async (원래) => {
-  const 본 = await 원래<typeof import('./useScenarioDraft.js')>();
-  const { useEffect } = await import('react');
-  return {
-    ...본,
-    useScenarioDraft: (...인자: Parameters<typeof 본.useScenarioDraft>) => {
-      const 초안 = 본.useScenarioDraft(...인자);
-      useEffect(() => {
-        if (심기.단계들 !== null) 초안.단계들바꾸기(심기.단계들);
-        심기.재료.forEach((n) => 초안.재료더하기(n));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
-      return 초안;
-    },
-  };
-});
 
 afterEach(() => {
-  심기.단계들 = null;
-  심기.재료 = [];
   떠나기막기(null);
   cleanup();
   vi.restoreAllMocks();
@@ -118,7 +97,7 @@ describe('ScenarioBuild 기존 시나리오 불러오기', () => {
   });
 
   it('재료더하기가 404 면 오류 줄 없이 재료 없음으로 둔다', async () => {
-    심기.재료 = ['ZSB-404'];
+    케이스목록막기('ZSB-404');
     vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세());
     const caseParts = vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => {
       if (tcId === 'ZSB-404') throw new ApiError(404, 'CASE_NOT_FOUND', 'gone');
@@ -126,18 +105,21 @@ describe('ScenarioBuild 기존 시나리오 불러오기', () => {
     });
     render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />);
     await screen.findByLabelText('시나리오 이름');
+    await 케이스더하기('ZSB-404');
     await waitFor(() => expect(caseParts).toHaveBeenCalledWith('ZSB-404'));
     expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('재료더하기가 500 이면 오류 문장을 상태 줄에 싣는다', async () => {
-    심기.재료 = ['ZSB-500'];
+    케이스목록막기('ZSB-500');
     vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세());
     vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => {
       if (tcId === 'ZSB-500') throw new ApiError(500, 'INTERNAL', '재료를 못 읽었습니다');
       return 재료(tcId);
     });
     render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람()} />);
+    await screen.findByLabelText('시나리오 이름');
+    await 케이스더하기('ZSB-500');
 
     expect((await screen.findByRole('status')).textContent).toBe('재료를 못 읽었습니다');
   });

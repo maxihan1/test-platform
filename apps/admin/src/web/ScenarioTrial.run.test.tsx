@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 // E2E 시나리오 시험 실행 검사 ② — 시작 · 2초 묻기 · 이어 묻기 · 열쇠 옮기기 (도메인/시나리오 §8.11)
 
-import type { ScenarioPart } from '@platform/kit';
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -9,29 +8,11 @@ import { ApiError } from './api.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
-import { 서비스, 사람, 케이스단계, 단계셋, 상세, 재료, 실패결과, 통과결과, 기존그리기, 흘리기, 서버고르기, 시험누르기, 탭 } from './ScenarioTrial.fixture.js';
+import { 서비스, 사람, 단계셋, 상세, 재료, 실패결과, 통과결과, 기존그리기, 흘리기, 서버고르기, 시험누르기, 탭 } from './ScenarioTrial.fixture.js';
+import { 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
 
-const 심기 = vi.hoisted(() => ({ 단계들: null as ScenarioPart[] | null, 재료: [] as string[] }));
-vi.mock('./useScenarioDraft.js', async (원래) => {
-  const 본 = await 원래<typeof import('./useScenarioDraft.js')>();
-  const { useEffect } = await import('react');
-  return {
-    ...본,
-    useScenarioDraft: (...인자: Parameters<typeof 본.useScenarioDraft>) => {
-      const 초안 = 본.useScenarioDraft(...인자);
-      useEffect(() => {
-        if (심기.단계들 !== null) 초안.단계들바꾸기(심기.단계들);
-        심기.재료.forEach((n) => 초안.재료더하기(n));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
-      return 초안;
-    },
-  };
-});
 
 afterEach(() => {
-  심기.단계들 = null;
-  심기.재료 = [];
   떠나기막기(null);
   cleanup();
   vi.useRealTimers();
@@ -95,13 +76,13 @@ describe('시험 실행 돌리기', () => {
   });
 
   it('새 시나리오를 저장하면 new 열쇠의 시험 번호가 새 번호 열쇠로 옮겨진다', async () => {
-    심기.단계들 = [케이스단계('ZSB-001')];
-    심기.재료 = ['ZSB-001'];
+    케이스목록막기('ZSB-001');
     vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
     vi.spyOn(scenarioApi, 'startTrial').mockResolvedValue({ trialId: 't-n' });
     vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING' });
     vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 55, version: 1 });
     render(<ScenarioBuild id={null} 띠서비스={서비스('ZSB')} user={사람()} />);
+    await 케이스더하기('ZSB-001');
     await waitFor(() => expect(screen.getByText('저장 안 된 변경 있음')).toBeTruthy());
     vi.useFakeTimers();
     fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '새 흐름' } });
@@ -160,14 +141,14 @@ describe('시험 실행 돌리기', () => {
   });
 
   it('시작 응답이 늦는 사이 새 시나리오가 저장돼도 응답의 번호는 새 번호 열쇠에 적힌다', async () => {
-    심기.단계들 = [케이스단계('ZSB-001')];
-    심기.재료 = ['ZSB-001'];
+    케이스목록막기('ZSB-001');
     vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
     let 응답하기: (값: { trialId: string }) => void = () => {};
     vi.spyOn(scenarioApi, 'startTrial').mockReturnValue(new Promise((끝) => (응답하기 = 끝)));
     vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'RUNNING' });
     vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 55, version: 1 });
     render(<ScenarioBuild id={null} 띠서비스={서비스('ZSB')} user={사람()} />);
+    await 케이스더하기('ZSB-001');
     await waitFor(() => expect(screen.getByText('저장 안 된 변경 있음')).toBeTruthy());
     fireEvent.change(screen.getByLabelText('시나리오 이름'), { target: { value: '새 흐름' } });
     서버고르기('stg');
