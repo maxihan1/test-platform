@@ -69,9 +69,9 @@ describe('API듣기', () => {
       );
       await 쪽.goto('https://s.test/');
       await expect.poll(() => 들은.size).toBe(2);
-      expect([...들은.values()]).toEqual([
-        { method: 'GET', url: 'https://s.test/api/goods/3' },
+      expect([...들은.values()].sort((a, b) => a.url.localeCompare(b.url))).toEqual([
         { method: 'POST', url: 'https://s.test/api/cart' },
+        { method: 'GET', url: 'https://s.test/api/goods/3' },
       ]);
     } finally {
       await 브라우저.close();
