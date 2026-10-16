@@ -179,6 +179,8 @@ export type NoticeRunning =
       startedAt: string;
       remainingMs: number | null;
     })
+  /** 도는 E2E 시나리오 실행 — 결과가 끝에 한꺼번에 와서 진척 · 남은 시간이 없다 */
+  | (NoticeService & { kind: 'scenario'; runId: number; title: string; parts: number; startedAt: string })
   | (NoticeService & {
       kind: 'authoring';
       requestId: number;

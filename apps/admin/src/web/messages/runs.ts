@@ -180,6 +180,8 @@ export const 실행말: Record<string, string> = {
 
   // 진행·완료 모달 (§8.9)
   'RUN {번호} 이 진행 중입니다': 'RUN {번호} is running',
+  'E2E RUN {번호} 이 진행 중입니다': 'E2E RUN {번호} is running',
+  '{수}단계': '{수} steps',
   'RUN {번호} 이 끝났습니다': 'RUN {번호} finished',
   'RUN {번호} 이 멈췄습니다': 'RUN {번호} was stopped',
   '{끝난} / {전체} 완료': '{끝난} / {전체} done',

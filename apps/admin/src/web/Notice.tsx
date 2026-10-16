@@ -11,13 +11,13 @@ import { 읽음들, 읽음바뀜, 읽음으로적는다, 읽음정리 } from './
 import { 끝난글, 보일줄들, 안읽은수, 읽음열쇠, type 끝난줄, type 도는줄, type 줄 as 줄타입 } from './noticeView.js';
 
 /**
- * 도는 것이 있으면 3초, 없으면 20초마다 묻는다. 서비스 고르개와 상관없이 볼 수 있는 서비스 전체를 받는다.
+ * 도는 것이 있으면 3초, 없으면 20초마다 묻는다. E2E 실행만 돌면 20초다 — 도중 진척이 없어 자주 물어도 바뀌는 것이 없다. 서비스 고르개와 상관없이 볼 수 있는 서비스 전체를 받는다.
  * 실행 칸을 볼 수 있는 서비스가 하나도 없으면 서버가 403 을 준다 — 오류를 띄우지 않고 `막힘` 으로 알려 다시 묻지도 않는다
  */
 function use알림받기(): { 답: NoticeResponse | null; 막힘: boolean } {
   const [답, set답] = useState<NoticeResponse | null>(null);
   const [막힘, set막힘] = useState(false);
-  const 도는중 = 답 !== null && 답.running.length > 0;
+  const 도는중 = 답 !== null && 답.running.some((n) => n.kind !== 'scenario');
 
   useEffect(() => {
     if (막힘) return;

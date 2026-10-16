@@ -15,7 +15,7 @@ import { 상태라벨, 실행자이름 } from './runState.js';
 import { scenarioApi, type ScenarioRunList as 목록답, type ScenarioRunRow } from './scenarioApi.js';
 import { E2E띠색, 멈춘단계글자 } from './scenarioResultView.js';
 import { 칸띠 } from './Summary.js';
-import { Failed, Loading, seconds, useAsync, when } from './ui.js';
+import { Failed, Loading, seconds, useAsync, Verdict, when } from './ui.js';
 
 export function ScenarioRunList({ service, 할수 }: { service: string; 할수: 판정 }) {
   const t = use말();
@@ -168,7 +168,7 @@ function 실행표머리() {
       <span aria-hidden="true" />
       <span role="columnheader">RUN</span>
       <span role="columnheader">{t('시나리오 이름 · 버전')}</span>
-      <span role="columnheader">{t('단계 · 멈춘 단계')}</span>
+      <span role="columnheader">{t('판정')}</span>
       <span aria-hidden="true" />
     </div>
   );
@@ -213,12 +213,15 @@ function 실행줄({ run, on열기 }: { run: ScenarioRunRow; on열기: (runId: n
       <div className="title">
         {run.title} v{run.version}
         <small>
-          {when(run.startedAt, 언어)} · {t('실행자 {이름}', { 이름: 실행자이름(run, 언어) })} ·{' '}
-          {상태라벨(run.status, 언어)}
+          {when(run.startedAt, 언어)} · {t('대상 서버 {서버}', { 서버: run.env })} ·{' '}
+          {t('실행자 {이름}', { 이름: 실행자이름(run, 언어) })} · {상태라벨(run.status, 언어)}
         </small>
       </div>
       <div className="right runright">
+        {/* 띠 색만으로는 실패와 판정 없음이 안 갈린다 — 판정은 글자가 말한다 (실행 §8.7) */}
         <div className="verdict">
+          {/* 같은 줄 부제의 상태 글자와 같은 말을 쓴다 — 한 줄에 「진행 중」 · 「실행 중」이 같이 서면 다른 상태로 읽힌다 */}
+          {run.status === 'RUNNING' || run.verdict === null ? <div>{t('진행 중')}</div> : <Verdict status={run.verdict} />}
           <div>{t('단계 {수}개', { 수: run.partCount })}</div>
           {멈춤 === '' ? null : <div className="unconf-line">{멈춤}</div>}
           {run.unconfirmed ? <span className="case-tag">{t('미확정')}</span> : null}

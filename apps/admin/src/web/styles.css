@@ -3393,6 +3393,13 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   align-self: flex-start;
 }
 
+/* 판정 칸 감싸개도 이름이 verdict 라 위 세로 쌓기 규칙이 칩에도 걸린다 — 칩은 칩 모양으로 되돌린다 */
+.runright .verdict > .verdict {
+  display: inline-block;
+  align-self: flex-start;
+  min-width: 42px;
+}
+
 /* E2E 시나리오 목록 (도메인/시나리오 §8.11). 결과 칸의 칩은 판정이 아니라서 왼쪽 끝에 붙고 색이 없다 */
 .scenario-result {
   display: flex;
