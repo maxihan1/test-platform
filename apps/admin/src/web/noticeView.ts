@@ -21,16 +21,20 @@ type 알림재료 = NoticeRunning | NoticeRecent;
 
 /** 읽음 목록의 열쇠이자 줄의 key. `noticeRead.ts` 가 이 꼴을 그대로 저장한다 */
 export function 읽음열쇠(n: 알림재료): string {
-  return n.kind === 'run' ? `run:${String(n.runId)}` : `authoring:${String(n.requestId)}`;
+  return n.kind === 'authoring' ? `authoring:${String(n.requestId)}` : `run:${String(n.runId)}`;
 }
 
 function 번호(n: 알림재료): number {
-  return n.kind === 'run' ? n.runId : n.requestId;
+  return n.kind === 'authoring' ? n.requestId : n.runId;
 }
 
+// E2E 실행도 같은 주소다 — 실행 결과 화면이 시나리오 실행이면 E2E 결과로 갈라 그린다
 function 열기주소(n: 알림재료): string {
-  return n.kind === 'run' ? `#/runs/${String(n.runId)}` : `#/authoring/${String(n.requestId)}`;
+  return n.kind === 'authoring' ? `#/authoring/${String(n.requestId)}` : `#/runs/${String(n.runId)}`;
 }
+
+// 도는 것의 차례 — 케이스 실행 → E2E 실행 → 작성 (E2E 도 실행이라 실행 무리에 선다)
+const 도는차례: Record<NoticeRunning['kind'], number> = { run: 0, scenario: 1, authoring: 2 };
 
 export interface 막대칸 {
   통과: number;
@@ -124,8 +128,17 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
   return { ...작성, 모양: 'halt', 머리: t('작성 요청 #{번호} 이 멈췄습니다', 언어, 값), 집계: [], 확인필요: 0 };
 }
 
+const 지난 = (startedAt: string, 지금: number) => Math.max(0, 지금 - Date.parse(startedAt));
+const 지난글 = (ms: number, 언어: 언어) => t('{지난} 지남', 언어, { 지난: 시간글자(ms, 언어) });
+
 export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언어): 도는줄 {
-  const 바탕 = { 도는중: true as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 접두사: n.prefix, 종류: n.kind, 열기: 열기주소(n) };
+  const 종류: 도는줄['종류'] = n.kind === 'authoring' ? 'authoring' : 'run';
+  const 바탕 = { 도는중: true as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 접두사: n.prefix, 종류, 열기: 열기주소(n) };
+
+  if (n.kind === 'scenario') {
+    const 앞 = [t('E2E RUN {번호} 이 진행 중입니다', 언어, { 번호: n.runId }), t('{수}단계', 언어, { 수: n.parts }), 지난글(지난(n.startedAt, 지금), 언어)];
+    return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: null };
+  }
 
   if (n.kind === 'run') {
     const { counts } = n;
@@ -148,7 +161,7 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
     return { ...바탕, 앞글: t('작성 요청 #{번호} 이 순서를 기다리고 있습니다', 언어, 값), 막대: null, 뒷글: null };
   }
   // 알림 통로는 진척을 안 싣는다 — 단계 칸은 에이전트가 올린 글로만 센다
-  const 지난ms = Math.max(0, 지금 - Date.parse(n.startedAt));
+  const 지난ms = 지난(n.startedAt, 지금);
   // 반영 · 고치기는 다섯 단계를 안 밟는다 — 단계 글이 있으면 그 글만, 없으면 아무것도 안 붙인다
   let 단계: string | null = null;
   if (n.stage !== null && (!n.fiveSteps || !아는단계글(n.stage))) {
@@ -158,16 +171,16 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
     const 칸 = 단계칸(n.stage, false);
     단계 = t('{번호} / {전체} 단계 {이름}', 언어, { 번호: 칸 + 1, 전체: 단계이름들.length, 이름: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
   }
-  const 앞 = [t('작성 요청 #{번호} 이 진행 중입니다', 언어, 값), ...(단계 === null ? [] : [단계]), t('{지난} 지남', 언어, { 지난: 시간글자(지난ms, 언어) })];
+  const 앞 = [t('작성 요청 #{번호} 이 진행 중입니다', 언어, 값), ...(단계 === null ? [] : [단계]), 지난글(지난ms, 언어)];
   return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: 작성남은글(지난ms, 지금, n.expected, 언어) };
 }
 
 /**
- * 본문 위에 그릴 줄. 도는 것 먼저(실행 → 작성, 각각 새것 먼저), 그다음 아직 안 읽은 끝난 것 새것 먼저.
+ * 본문 위에 그릴 줄. 도는 것 먼저(실행 → E2E → 작성, 각각 새것 먼저), 그다음 아직 안 읽은 끝난 것 새것 먼저.
  * 줄이 `줄최대` 를 넘으면 마지막 자리를 「외 N건」에 내주고 `넘친수` 가 그 N 이다
  */
 export function 보일줄들(답: NoticeResponse, 읽음: ReadonlySet<string>, 지금: number, 언어: 언어): { 줄들: 줄[]; 넘친수: number } {
-  const 도는것 = [...답.running].sort((a, b) => (a.kind === b.kind ? 번호(b) - 번호(a) : a.kind === 'run' ? -1 : 1));
+  const 도는것 = [...답.running].sort((a, b) => 도는차례[a.kind] - 도는차례[b.kind] || 번호(b) - 번호(a));
   const 끝난것 = 답.recent
     .filter((n) => !읽음.has(읽음열쇠(n)) && 지금 - Date.parse(n.finishedAt) < 끝난소식유효)
     .sort((a, b) => Date.parse(b.finishedAt) - Date.parse(a.finishedAt));
