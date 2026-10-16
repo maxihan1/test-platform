@@ -30,6 +30,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
   let 데스크톱: number;
   let 모바일: number;
   let 기본값실행: number;
+  let 예외실행: number;
 
   async function 지운다(): Promise<void> {
     // 자식부터 지운다. run_item_step 은 CASCADE 지만 run_item 은 실행을 참조한다
@@ -265,6 +266,33 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
                   "password":{"type":"string","description":"비밀번호","default":"hunter2","secret":true}}}',
                '{}', 'PASS', 300, now())`,
       [기본값실행],
+    );
+
+    // 확인 문장 없이 예외로 깨진 실패. 객체 · 배열 값이 [object Object] · 쉼표 이음으로 뭉개지던 자리도 같이 본다
+    const 예외 = await pool.query<{ run_id: string }>(
+      `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, base_url,
+                             service_id, service_name, tests_repo, started_at)
+       VALUES ('XDC 예외 실패', 'tester', '홍길동', 'FINISHED', 'qa', 'https://qa.example.com',
+               (SELECT id FROM service WHERE prefix = 'XDC'), 'XDC 결제 서비스',
+               'https://github.com/example/xdc-tests', '2026-09-19T05:00:00Z')
+       RETURNING run_id`,
+    );
+    예외실행 = Number(예외.rows[0]!.run_id);
+    const 예외항목 = await pool.query<{ history_id: string }>(
+      `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms,
+                             precondition, params, expected, param_schema, expected_schema,
+                             status, duration_ms, finished_at)
+       VALUES ($1, 'XDC-801', 'desktop', 1, '카드를 고른다', 'demo/XDC-801.spec.ts', 300000, '[]',
+               '{"card":{"no":"4111"},"tags":["a","b"]}', '{}', '{}', '{}', 'FAIL', 700, now())
+       RETURNING history_id`,
+      [예외실행],
+    );
+    await pool.query(
+      `INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, error)
+       VALUES ($1, 1, '카드 목록을 연다', 'FAIL', 650,
+               '[{"statement":"목록이 온다","status":"PASS","actual":["a","b"],"expected":{"n":2}}]',
+               '{"message":"locator.click: Timeout 5000ms exceeded.\\nCall log:"}')`,
+      [Number(예외항목.rows[0]!.history_id)],
     );
   });
 
@@ -513,6 +541,13 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
       { label: '아이디', value: 'other' },
       { label: 'legacy', value: 'x' },
     ]);
+  });
+
+  it('객체 · 배열 값은 JSON 한 줄로, 확인 문장 없이 깨진 실패는 절차 오류의 첫 줄을 사유로 담는다', async () => {
+    const 항목 = (await collectRun(예외실행))!.items[0]!;
+    expect(항목.params.map((f) => f.value)).toEqual(['{"no":"4111"}', '["a","b"]']);
+    expect(항목.steps[0]!.assertions[0]).toMatchObject({ actual: '["a","b"]', expected: '{"n":2}' });
+    expect(항목.notRunReason).toBe('locator.click: Timeout 5000ms exceeded.');
   });
 
   it('같은 실행을 두 번 뽑으면 글자 하나 다르지 않다', async () => {
