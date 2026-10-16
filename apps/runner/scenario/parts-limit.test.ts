@@ -44,7 +44,7 @@ describe('부품 시험 한도', () => {
     await 돌림;
 
     expect(줄).toHaveLength(1);
-    expect(줄[0]).toMatchObject({ seq: 1, status: 'FAIL', error: { message: '부품 제한 시간 1000ms 를 넘었다' } });
+    expect(줄[0]).toMatchObject({ seq: 1, status: 'FAIL', error: { message: '단계 제한 시간 1000ms 를 넘었다' } });
     expect(줄[0]!.steps.map((s) => s.title)).toEqual(['기다림']);
     expect(받은[1]!.부품?.찍은상태).toEqual({ cookies: [쿠키('찍음')], origins: [] });
     expect(받은).toHaveLength(2);
@@ -62,7 +62,7 @@ describe('부품 시험 한도', () => {
     await vi.advanceTimersByTimeAsync(6000);
     await 돌림;
 
-    expect(줄).toEqual([expect.objectContaining({ status: 'FAIL', steps: [], error: { message: '부품 제한 시간 1000ms 를 넘었다' } })]);
+    expect(줄).toEqual([expect.objectContaining({ status: 'FAIL', steps: [], error: { message: '단계 제한 시간 1000ms 를 넘었다' } })]);
   });
 
   it('한도 0 은 한도 없음이다 — 루트 설정 timeout 0(무제한)에 모든 부품이 0ms 에 죽지 않게', async () => {
@@ -96,7 +96,7 @@ describe('예외로 끝난 부품 · 창 닫기', () => {
       창마다: (n, 부품) => (n !== 1 ? {} : {
         runCase: vi.fn(async () => {
           부품!.걸림.add(0);
-          부품!.오류 ??= '1번 부품에 맞는 응답이 없다';
+          부품!.오류 ??= '1번 단계에 맞는 응답이 없다';
           throw new Error('파일이 XRS-001 을 등록하지 않았다');
         }),
       }),
@@ -106,7 +106,7 @@ describe('예외로 끝난 부품 · 창 닫기', () => {
 
     expect(줄[0]).toMatchObject({
       status: 'FAIL',
-      error: { message: '1번 부품에 맞는 응답이 없다 · 파일이 XRS-001 을 등록하지 않았다\n안 걸린 이어 주기 — 요청 막기 DELETE **/api/cart' },
+      error: { message: '1번 단계에 맞는 응답이 없다 · 파일이 XRS-001 을 등록하지 않았다\n적용되지 않은 값 연결 — 요청 차단 DELETE **/api/cart' },
     });
   });
 
@@ -198,7 +198,7 @@ describe('기다림에 상한 (2026-10-06 게이트 2)', () => {
     await vi.advanceTimersByTimeAsync(11_000);
     await 돌림;
 
-    expect(줄).toEqual([expect.objectContaining({ status: 'FAIL', error: { message: '부품 제한 시간 1000ms 를 넘었다' } })]);
+    expect(줄).toEqual([expect.objectContaining({ status: 'FAIL', error: { message: '단계 제한 시간 1000ms 를 넘었다' } })]);
     expect(받은[1]!.창.close).toHaveBeenCalled();
   });
 });

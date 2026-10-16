@@ -166,7 +166,7 @@ describe('새이음 · 적기', () => {
       throw new Error('Target closed');
     });
 
-    await expect(이음.응답.get('1 POST **/api/posts')).resolves.toBe('1번 부품 응답 본문을 못 읽었다');
+    await expect(이음.응답.get('1 POST **/api/posts')).resolves.toBe('1번 단계 응답 본문을 못 읽었다');
   });
 });
 
@@ -196,8 +196,8 @@ describe('꽂기', () => {
     const 값없음 = 판([꽂기링크]);
     적기(값없음.이음, 1, 'POST', 'https://x.com/api/posts', async () => json({ data: {} }));
 
-    await expect(꽂기(응답없음.이음, part, 응답없음.부품)).resolves.toEqual({ 오류: '1번 부품에 맞는 응답이 없다' });
-    await expect(꽂기(값없음.이음, part, 값없음.부품)).resolves.toEqual({ 오류: '1번 부품 응답에 data.id 가 없다' });
+    await expect(꽂기(응답없음.이음, part, 응답없음.부품)).resolves.toEqual({ 오류: '1번 단계에 맞는 응답이 없다' });
+    await expect(꽂기(값없음.이음, part, 값없음.부품)).resolves.toEqual({ 오류: '1번 단계 응답에 data.id 가 없다' });
   });
 });
 
@@ -206,11 +206,11 @@ describe('안걸린', () => {
     const 부품 = 새부품(2, [돌려주기, 막기, 바꿔보내기, 꽂기링크]);
     부품.걸림.add(0);
 
-    expect(안걸린(부품)).toBe('안 걸린 이어 주기 — 요청 막기 DELETE **/api/cart · 바꿔 보내기 POST **/api/posts');
+    expect(안걸린(부품)).toBe('적용되지 않은 값 연결 — 요청 차단 DELETE **/api/cart · 수정 요청으로 변경 POST **/api/posts');
   });
 
   it('앞 응답 돌려주기도 이름으로 적는다', () => {
-    expect(안걸린(새부품(2, [돌려주기]))).toBe('안 걸린 이어 주기 — 앞 응답 돌려주기 GET **/api/posts');
+    expect(안걸린(새부품(2, [돌려주기]))).toBe('적용되지 않은 값 연결 — 이전 응답 재사용 GET **/api/posts');
   });
 
   it('다 걸렸거나 걸 것이 없으면 없다', () => {

@@ -20,7 +20,7 @@ export function 시나리오분배(runId: number, 요청: ScenarioExecuteRequest
   });
 }
 
-const 빠진부품 = '러너가 이 부품 결과를 돌려주지 않았다';
+const 빠진부품 = '러너가 이 단계 결과를 돌려주지 않았다';
 
 // 규칙의 정본은 도메인/시나리오 §7 「실행 결과를 적는 규칙」. false 면 결과를 적지 못했다(늦게 왔거나 저장이 깨졌다)
 export async function 결과저장(runId: number, 응답: ScenarioExecuteResponse): Promise<boolean> {

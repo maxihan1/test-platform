@@ -214,7 +214,7 @@ describe.skipIf(연결 === undefined)('시나리오 실행 저장값 채우기',
 
     expect(잡은).toBeInstanceOf(시나리오실행오류);
     expect((잡은 as 시나리오실행오류).code).toBe('NOT_RUNNABLE');
-    expect((잡은 as 시나리오실행오류).message).toMatch(/^실행할 수 없는 시나리오다: 저장값을 채운 뒤 부품 목록이 \d+바이트로 100000바이트를 넘는다$/);
+    expect((잡은 as 시나리오실행오류).message).toMatch(/^실행할 수 없는 시나리오다: 저장값을 채운 뒤 단계 목록이 \d+바이트로 100000바이트를 넘는다$/);
     expect(await 수('SELECT count(*) AS n FROM test_run WHERE service_id = $1')).toBe(실행전);
     expect(
       await 수('SELECT count(*) AS n FROM scenario_run_part p JOIN test_run r ON r.run_id = p.run_id WHERE r.service_id = $1'),

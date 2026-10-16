@@ -58,9 +58,9 @@ describe('가르기 — 준비 구간의 이어 주기', () => {
     const { 이음, 부품 } = 판([돌려주기]);
 
     await expect(가르기(이음, 부품, 'browser', 'GET', 'https://x.com/api/posts')).resolves.toEqual({
-      kind: 'fail', message: '1번 부품에 맞는 응답이 없다',
+      kind: 'fail', message: '1번 단계에 맞는 응답이 없다',
     });
-    expect(부품.오류).toBe('1번 부품에 맞는 응답이 없다');
+    expect(부품.오류).toBe('1번 단계에 맞는 응답이 없다');
   });
 
   it('적어 둔 자리가 못 읽은 사유면 그 사유로 fail', async () => {
@@ -70,7 +70,7 @@ describe('가르기 — 준비 구간의 이어 주기', () => {
     });
 
     await expect(가르기(이음, 부품, 'api', 'GET', 'https://x.com/api/posts')).resolves.toEqual({
-      kind: 'fail', message: '1번 부품 응답 본문을 못 읽었다',
+      kind: 'fail', message: '1번 단계 응답 본문을 못 읽었다',
     });
   });
 
@@ -89,7 +89,7 @@ describe('가르기 — 준비 구간의 이어 주기', () => {
     적기(이음, 1, 'POST', 'https://x.com/api/posts', async () => json({ data: {} }));
 
     await expect(가르기(이음, 부품, 'browser', 'POST', 'https://x.com/api/posts')).resolves.toEqual({
-      kind: 'fail', message: '1번 부품 응답에 data.id 가 없다',
+      kind: 'fail', message: '1번 단계 응답에 data.id 가 없다',
     });
   });
 
@@ -97,7 +97,7 @@ describe('가르기 — 준비 구간의 이어 주기', () => {
     const { 이음, 부품 } = 판([바꿔보내기]);
 
     await expect(가르기(이음, 부품, 'browser', 'POST', 'https://x.com/api/posts')).resolves.toEqual({
-      kind: 'fail', message: '1번 부품에 맞는 응답이 없다',
+      kind: 'fail', message: '1번 단계에 맞는 응답이 없다',
     });
   });
 
@@ -108,7 +108,7 @@ describe('가르기 — 준비 구간의 이어 주기', () => {
     await 가르기(이음, 부품, 'browser', 'GET', 'https://x.com/api/posts');
     await 가르기(이음, 부품, 'browser', 'POST', 'https://x.com/api/posts');
 
-    expect(부품.오류).toBe('1번 부품에 맞는 응답이 없다');
+    expect(부품.오류).toBe('1번 단계에 맞는 응답이 없다');
   });
 
   it('첫 판정이 선 뒤에는 셋 다 안 건다', async () => {
@@ -230,7 +230,7 @@ describe('가르기 — 검사 반영 (2026-10-06 게이트 2)', () => {
     이음.응답.set('1 POST **/api/posts', Promise.resolve(json({ data: { id: '..' } })));
 
     await expect(가르기(이음, 부품, 'api', 'POST', 'https://x.com/api/posts')).resolves.toEqual({
-      kind: 'fail', message: '1번 부품 응답의 data.id 값 「..」 은 주소에 넣을 수 없다',
+      kind: 'fail', message: '1번 단계 응답의 data.id 값 「..」 은 주소에 넣을 수 없다',
     });
   });
 
@@ -239,7 +239,7 @@ describe('가르기 — 검사 반영 (2026-10-06 게이트 2)', () => {
     이음.응답.set('1 POST **/api/posts', Promise.resolve(json({ data: { id: '' } })));
 
     await expect(가르기(이음, 부품, 'api', 'POST', 'https://x.com/api/posts')).resolves.toEqual({
-      kind: 'fail', message: '1번 부품 응답의 data.id 값 「」 은 주소에 넣을 수 없다',
+      kind: 'fail', message: '1번 단계 응답의 data.id 값 「」 은 주소에 넣을 수 없다',
     });
   });
 

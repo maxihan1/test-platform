@@ -52,12 +52,12 @@ describe('단계 줄', () => {
   });
 
   it('판정 없음 단계는 받은 사유 글자를 보이고 안 돈 단계는 실행 안 됨만', async () => {
-    const 멈춤 = 부품(5, { status: 'NA', error: { message: '러너가 이 부품 결과를 돌려주지 않았다' } });
+    const 멈춤 = 부품(5, { status: 'NA', error: { message: '러너가 이 단계 결과를 돌려주지 않았다' } });
     연다(결과({ parts: [멈춤, 안돈] }));
     await screen.findByText('단계별 결과');
     const 멈춘줄 = 줄('XSX-005');
     expect(within(멈춘줄).getByText('실행이 멈춘 사유')).toBeTruthy();
-    expect(within(멈춘줄).getByText('러너가 이 부품 결과를 돌려주지 않았다').className).not.toContain('scn-error');
+    expect(within(멈춘줄).getByText('러너가 이 단계 결과를 돌려주지 않았다').className).not.toContain('scn-error');
     const api = screen.getByText('API 호출').closest('.scn-part') as HTMLElement;
     expect(within(api).getByText('– 실행 안 됨')).toBeTruthy();
     expect(api.textContent).not.toContain('NOT_RUN');
