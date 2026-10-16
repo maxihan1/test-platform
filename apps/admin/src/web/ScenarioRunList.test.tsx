@@ -142,7 +142,7 @@ describe('ScenarioRunList 줄', () => {
     const 행 = container.querySelector('.row') as HTMLElement;
     expect(within(행).queryByText('모두 통과')).toBeNull();
     expect(행.querySelector('.title small')?.textContent).toContain('진행 중');
-    expect(행.querySelector('.right .verdict')?.textContent).toContain('실행 중');
+    expect(행.querySelector('.right .verdict')?.firstElementChild?.textContent).toBe('진행 중');
     expect(행.querySelector('.v-pass, .v-fail, .v-na')).toBeNull();
   });
 

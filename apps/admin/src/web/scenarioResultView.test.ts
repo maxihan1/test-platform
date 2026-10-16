@@ -68,6 +68,10 @@ describe('멈춘단계글자 · E2E띠색', () => {
     expect(멈춘단계글자(줄({ stoppedAt: 3 }), 'en')).toBe('Stopped at step 3');
   });
 
+  it('단계 기록 없이 끝나 판정이 미실행이면 「모두 통과」를 쓰지 않는다', () => {
+    expect(멈춘단계글자(줄({ status: 'ABORTED', verdict: 'NA' }), 'ko')).toBe('');
+  });
+
   it('E2E띠색 다섯', () => {
     expect(E2E띠색(줄({ status: 'RUNNING', verdict: null }))).toBe('var(--line-2)');
     expect(E2E띠색(줄({}))).toBe('var(--pass)');

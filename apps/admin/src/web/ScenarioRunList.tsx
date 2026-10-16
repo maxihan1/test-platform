@@ -220,7 +220,8 @@ function 실행줄({ run, on열기 }: { run: ScenarioRunRow; on열기: (runId: n
       <div className="right runright">
         {/* 띠 색만으로는 실패와 판정 없음이 안 갈린다 — 판정은 글자가 말한다 (실행 §8.7) */}
         <div className="verdict">
-          {run.verdict === null ? <div>{t('실행 중')}</div> : <Verdict status={run.verdict} />}
+          {/* 같은 줄 부제의 상태 글자와 같은 말을 쓴다 — 한 줄에 「진행 중」 · 「실행 중」이 같이 서면 다른 상태로 읽힌다 */}
+          {run.status === 'RUNNING' || run.verdict === null ? <div>{t('진행 중')}</div> : <Verdict status={run.verdict} />}
           <div>{t('단계 {수}개', { 수: run.partCount })}</div>
           {멈춤 === '' ? null : <div className="unconf-line">{멈춤}</div>}
           {run.unconfirmed ? <span className="case-tag">{t('미확정')}</span> : null}
