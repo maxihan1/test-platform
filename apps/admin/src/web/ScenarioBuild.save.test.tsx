@@ -5,10 +5,20 @@ import type { ScenarioPart } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ApiError } from './api.js';
-import { 떠나기막기 } from './leaveGuard.js';
+import { useHash, 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi } from './scenarioApi.js';
-import { 서비스, 케이스단계, 상세, 재료, 기존그리기, 이름칸, 바꾸기, 감싸개, 해시가, 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
+import { ScenarioBuild } from './ScenarioBuild.js';
+import { 서비스, 사람, 케이스단계, 상세, 재료, 기존그리기, 이름칸, 바꾸기, 감싸개, 해시가, 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
 
+
+function 주소따라() {
+  const 번호 = /^#\/scenarios\/(\d+)$/.exec(useHash())?.[1];
+  return 번호 === undefined ? (
+    <ScenarioBuild key="new" id={null} 띠서비스={서비스('ZSB')} user={사람()} />
+  ) : (
+    <ScenarioBuild key={번호} id={Number(번호)} 띠서비스={서비스('ZSB')} user={사람()} />
+  );
+}
 
 afterEach(() => {
   떠나기막기(null);
@@ -78,6 +88,26 @@ describe('ScenarioBuild 저장', () => {
       platform: 'desktop',
       parts: [케이스단계('ZSB-001')],
     });
+  });
+
+  it('새 것을 처음 저장해 화면이 새 번호로 바뀌어도 고르던 단계가 그대로다', async () => {
+    케이스목록막기('ZSB-001', 'ZSB-002');
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
+    vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 55, version: 1 });
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(
+      상세({ id: 55, name: '새 흐름', version: 1, parts: [케이스단계('ZSB-001'), 케이스단계('ZSB-002')] }),
+    );
+    await 해시가('#/scenarios/new');
+    render(<주소따라 />);
+    await 케이스더하기('ZSB-001');
+    await 케이스더하기('ZSB-002');
+    바꾸기('새 흐름');
+    expect(screen.getByRole('tab', { name: '2번 설정' }).getAttribute('aria-selected')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    expect(await screen.findByText('SC-55')).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('tab', { name: '2번 설정' }).getAttribute('aria-selected')).toBe('true'));
   });
 
   it('기존 것은 baseVersion 을 실어 고치고 성공 문장을 보인다', async () => {

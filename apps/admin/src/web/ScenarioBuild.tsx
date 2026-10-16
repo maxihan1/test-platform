@@ -20,6 +20,8 @@ import { useScenarioDraft } from './useScenarioDraft.js';
 import { 시험열쇠, 시험열쇠옮기기, useScenarioTrial } from './useScenarioTrial.js';
 
 export type { 조립탭 };
+// 새 것을 처음 저장하면 주소가 바뀌어 화면을 새로 그린다. 고르던 단계를 넘겨 1번으로 바뀌지 않게 한다
+let 넘길고른번호: number | null | undefined;
 
 export function ScenarioBuild({
   id,
@@ -61,7 +63,8 @@ export function ScenarioBuild({
     // 불러온 시나리오는 첫 단계를 열어 두어 설정 탭이 바로 보이게 한다. 한 번만 — 나중에 고른 카드를 뺀 뒤 되돌리지 않는다
     if (id === null || !초안.불러옴 || 처음고름.current) return;
     처음고름.current = true;
-    if (초안.단계들.length > 0) set고른번호(1);
+    set고른번호(넘길고른번호 !== undefined ? 넘길고른번호 : 초안.단계들.length > 0 ? 1 : null);
+    넘길고른번호 = undefined;
   }, [id, 초안.불러옴, 초안.단계들.length]);
 
   useEffect(() => {
@@ -82,6 +85,7 @@ export function ScenarioBuild({
     if (id === null) {
       // 자기 이동에 떠나기 상자를 띄우지 않는다
       시험열쇠옮기기(시험열쇠(null), 시험열쇠(결과.id));
+      넘길고른번호 = 고른번호;
       떠나기막기(null);
       window.location.hash = `#/scenarios/${결과.id}`;
       return;
