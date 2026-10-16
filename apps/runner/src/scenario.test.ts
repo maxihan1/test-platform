@@ -1,7 +1,7 @@
 // 러너 시나리오 결과 조립 검사 — 결과 줄 읽기 · 뒷정리 줄 읽기 · 빈 순번 채우기 · 스크린샷 폴더 환경변수 (SPEC 도메인/러너 §5.2 · 도메인/시나리오 §3.7 결정 9)
 
 import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioPartResult } from '@platform/kit';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { finishScenario, parseCleanup, parseParts, scenarioEnv } from './scenario.js';
 
@@ -154,5 +154,28 @@ describe('scenarioEnv', () => {
     const 코드 = [{ host: 'qa.example.com', path: '/api/me', status: 204 }];
     expect(JSON.parse(scenarioEnv({ ...기본, deleteStatuses: 코드 }).PLATFORM_DELETE_STATUSES!)).toEqual(코드);
     expect(JSON.parse(scenarioEnv(기본).PLATFORM_DELETE_STATUSES!)).toEqual([]);
+  });
+
+  describe('천천히', () => {
+    const 시험 = { ...기본, runId: null, trialId: '5f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b' };
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('창을 띄우는 러너의 시험 실행은 동작마다 늦춘다', () => {
+      vi.stubEnv('PLATFORM_HEADED', '1');
+      expect(scenarioEnv(시험).PLATFORM_SLOW_MO).toBe('1000');
+    });
+
+    it('창을 띄우는 러너라도 진짜 실행은 늦추지 않는다', () => {
+      vi.stubEnv('PLATFORM_HEADED', '1');
+      expect(scenarioEnv(기본)).not.toHaveProperty('PLATFORM_SLOW_MO');
+    });
+
+    it('창이 없는 러너의 시험 실행은 늦추지 않는다 — 볼 사람이 없다', () => {
+      vi.stubEnv('PLATFORM_HEADED', '');
+      expect(scenarioEnv(시험)).not.toHaveProperty('PLATFORM_SLOW_MO');
+    });
   });
 });

@@ -167,9 +167,22 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
   }
 }
 
+// E2E 시험 실행은 내 컴퓨터 러너가 켜져 있으면 거기서 창을 띄워 돈다. 꺼져 있어도 시험이 막히면 안 돼서
+// 못 닿으면 조용히 서버 러너로 돌린다 — 실패를 삼키는 것이 아니라 고르는 것이다 (도메인/시나리오 §7 「시험 실행 규칙」)
+export async function 켜진내컴퓨터러너(): Promise<string | undefined> {
+  const 주소 = process.env.LOCAL_RUNNER_URL;
+  if (!주소) return undefined;
+  try {
+    const res = await fetch(`${주소}/health`, { signal: AbortSignal.timeout(2000) });
+    return res.ok ? 주소 : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // 시나리오 한 판을 러너에 맡긴다 (도메인/러너 「시나리오 실행」). 케이스 호출과 같은 문장으로 접는다 (도메인/시나리오 §7).
 // 거절·끊김이면 부품을 비워 돌려준다 — 부품마다 NA 를 채우는 것은 짝 없는 행을 닫는 저장 쪽 규칙이 한다
-export async function callScenarioRunner(요청: ScenarioExecuteRequest): Promise<ScenarioExecuteResponse> {
+export async function callScenarioRunner(요청: ScenarioExecuteRequest, 주소: string = runnerUrl()): Promise<ScenarioExecuteResponse> {
   const startedAt = Date.now();
   const 접는다 = (message: string, stack?: string): ScenarioExecuteResponse => ({
     status: 'NA',
@@ -178,7 +191,7 @@ export async function callScenarioRunner(요청: ScenarioExecuteRequest): Promis
     error: { message, stack },
   });
   try {
-    const res = await 러너에보낸다('/execute-scenario', 요청, httpTimeoutMs(요청.timeoutMs));
+    const res = await 러너에보낸다('/execute-scenario', 요청, httpTimeoutMs(요청.timeoutMs), 주소);
     if (res.status < 200 || res.status >= 300) return 접는다(거절사유(res.status, res.json));
     return res.json as ScenarioExecuteResponse;
   } catch (err) {
