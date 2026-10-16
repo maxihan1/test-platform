@@ -18,12 +18,12 @@ export function 떠나기로했다(): void {
 // 원래 칸으로 돌아갈 수 있다 — 가리지 않고 지금 칸을 이전 주소로 덮으면 같은 주소 칸이 둘이 돼 뒤로 가기를 두 번 눌러야 했다
 function 칸번호(): number | null {
   const s: unknown = window.history.state;
-  return typeof s === 'object' && s !== null && '칸' in s && typeof s.칸 === 'number' ? s.칸 : null;
+  return typeof s === 'object' && s !== null && 'navIndex' in s && typeof s.navIndex === 'number' ? s.navIndex : null;
 }
 
-function 칸적기(번호: number, 주소?: string): void {
+function 칸적기(번호: number): void {
   const s: unknown = window.history.state;
-  window.history.replaceState({ ...(typeof s === 'object' && s !== null ? s : {}), 칸: 번호 }, '', 주소);
+  window.history.replaceState({ ...(typeof s === 'object' && s !== null ? s : {}), navIndex: 번호 }, '');
 }
 
 export function useHash(): string {
