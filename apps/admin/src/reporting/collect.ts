@@ -250,7 +250,7 @@ export function 돈항목사유(
     return 원문 === '' ? null : (가린다(원문, 비밀) as string);
   }
   if (row.status !== 'FAIL' || 절차들.some((s) => s.assertions.some((a) => a.status === 'FAIL'))) return null;
-  // 항목 오류가 먼저다 — 견주기 대표 문장(insights.ts)과 같은 차례
+  // 항목 오류가 먼저다. 절차 오류로 넘어가는 것은 증적만이다 — 화면 실패 카드 · 견주기는 항목 오류만 본다 (리포팅 §8.4)
   // 색 코드를 지우고 앞뒤를 걷어야 「\u001b[2m\n Error…」처럼 빈 첫 줄로 시작하는 원문도 사유가 남는다
   const 원문 = [row.error, ...절차들.map((s) => s.error)]
     .map((e) => 오류글(e).replace(색코드, '').trim())
