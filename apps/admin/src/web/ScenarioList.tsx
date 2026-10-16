@@ -7,6 +7,7 @@ import { Fragment, useState } from 'react';
 import type { EnvRow } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { Modal } from './Modal.js';
 import type { 판정 } from './role.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
 import { Failed, Loading, message, useAsync, Verdict, when } from './ui.js';
@@ -21,6 +22,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
   // 안내는 한 번에 한 줄 아래에만 둔다 — 앞 줄의 안내를 남기면 어느 줄 이야기인지 흐려진다
   const [안내, set안내] = useState<{ id: number; 글: string } | null>(null);
   const [돌리는중, set돌리는중] = useState<number | null>(null);
+  const [치울것, set치울것] = useState<ScenarioRow | null>(null);
   const list = useAsync(() => scenarioApi.list(service), [service]);
 
   if (list.error !== null) return <Failed error={list.error} />;
@@ -94,7 +96,13 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
               <표머리 />
               {list.data.items.map((it) => (
                 <Fragment key={it.id}>
-                  <시나리오줄 줄={it} 쓰나={쓰나} 돌리는중={돌리는중 === it.id} on실행={() => void 실행(it.id)} />
+                  <시나리오줄
+                    줄={it}
+                    쓰나={쓰나}
+                    돌리는중={돌리는중 === it.id}
+                    on실행={() => void 실행(it.id)}
+                    on치우기={() => set치울것(it)}
+                  />
                   {안내?.id !== it.id ? null : (
                     <div className="err scenario-note" role="status">
                       {안내.글}
@@ -106,7 +114,67 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
           )}
         </div>
       </div>
+
+      {치울것 === null ? null : (
+        <치우기확인
+          줄={치울것}
+          onClose={() => set치울것(null)}
+          on치움={() => {
+            if (안내?.id === 치울것.id) set안내(null);
+            set치울것(null);
+            void list.reload();
+          }}
+        />
+      )}
     </>
+  );
+}
+
+// 되살리는 통로가 없어 누르기 전에 한 번 묻는다 (DESIGN.md 「모달」 ①)
+function 치우기확인({ 줄, onClose, on치움 }: { 줄: ScenarioRow; onClose: () => void; on치움: () => void }) {
+  const t = use말();
+  const 언어 = use언어();
+  const [치우는중, set치우는중] = useState(false);
+  const [오류, set오류] = useState<string | null>(null);
+  return (
+    <Modal
+      제목={t('SC-{번호} 을 목록에서 치울까요?', { 번호: 줄.id })}
+      onClose={onClose}
+      버튼={
+        <>
+          <button type="button" className="btn ghost" onClick={onClose}>
+            {t('취소')}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={치우는중}
+            onClick={() => {
+              set치우는중(true);
+              set오류(null);
+              void scenarioApi
+                .archive(줄.id)
+                .then(on치움)
+                .catch((err: unknown) => {
+                  set오류(message(err, 언어));
+                  set치우는중(false);
+                });
+            }}
+          >
+            {치우는중 ? t('치우는 중') : t('치우기')}
+          </button>
+        </>
+      }
+    >
+      <p>
+        {줄.name}
+        <br />
+        {t('지난 실행 기록과 증적은 그대로 남습니다.')}
+        <br />
+        {t('치운 시나리오는 다시 꺼낼 수 없습니다.')}
+      </p>
+      {오류 === null ? null : <p className="err">{오류}</p>}
+    </Modal>
   );
 }
 
@@ -138,11 +206,13 @@ function 시나리오줄({
   쓰나,
   돌리는중,
   on실행,
+  on치우기,
 }: {
   줄: ScenarioRow;
   쓰나: boolean;
   돌리는중: boolean;
   on실행: () => void;
+  on치우기: () => void;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -174,6 +244,12 @@ function 시나리오줄({
         {!쓰나 || !줄.runnable || !줄.isActive ? null : (
           <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on실행}>
             {t('실행')}
+          </button>
+        )}
+        {/* 실행 불가 줄도 치운다 — 못 도는 시나리오가 가장 먼저 치울 거리다 */}
+        {!쓰나 || !줄.isActive ? null : (
+          <button type="button" className="btn small ghost" onClick={on치우기}>
+            {t('치우기')}
           </button>
         )}
       </div>
