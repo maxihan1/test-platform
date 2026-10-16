@@ -58,9 +58,10 @@ function 기록({ trace }: { trace: ItemTrace }) {
     actions: trace.actions.filter(실패조작).length,
     console: trace.console.filter(실패콘솔).length,
   };
-  const [탭, set탭] = useState<탭>('network');
-  // 실패가 하나라도 있으면 실패만 보이며 연다 — 통과 항목은 전부 보인다
-  const [실패만, set실패만] = useState(실패수.network + 실패수.actions + 실패수.console > 0);
+  // 실패가 있으면 실패가 든 첫 탭을 「실패만」으로 연다 — 콘솔에만 오류가 있는데 빈 네트워크 표로 열면 「아무 일 없음」으로 읽힌다
+  const 첫실패 = (['network', 'actions', 'console'] as const).find((x) => 실패수[x] > 0);
+  const [탭, set탭] = useState<탭>(첫실패 ?? 'network');
+  const [실패만, set실패만] = useState(첫실패 !== undefined);
 
   const 탭들: { id: 탭; 이름: string; 수: number; 실패: string | null }[] = [
     { id: 'network', 이름: t('네트워크'), 수: trace.network.length, 실패: 실패수.network === 0 ? null : t('실패 {건수}', { 건수: 실패수.network }) },
@@ -84,7 +85,8 @@ function 기록({ trace }: { trace: ItemTrace }) {
       </div>
       <div className="trace-pane" role="tabpanel">
         {탭 === 'network' ? (
-          <네트워크표 줄들={실패만 ? trace.network.filter(실패요청) : trace.network} />
+          // 편 줄은 거른 목록의 차례로 적는다 — 거르기가 바뀌면 새로 그려 엉뚱한 줄이 펴지지 않게
+          <네트워크표 key={String(실패만)} 줄들={실패만 ? trace.network.filter(실패요청) : trace.network} />
         ) : 탭 === 'actions' ? (
           <조작표 줄들={실패만 ? trace.actions.filter(실패조작) : trace.actions} />
         ) : (

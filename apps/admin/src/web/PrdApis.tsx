@@ -1,7 +1,9 @@
 // 「PRD 관리」의 서비스 지도 — 편 요구 줄의 「거치는 API」와 할 일 칸 아래 「케이스가 안 거친 API」 카드 (도메인/작성 §3.6 「서비스 지도」 · 2026-10-16 시안)
 // 요구 → API 는 지도 ①(GET /prd 의 cases)과 지도 API 의 케이스 줄을 tcId 로 잇는다. 관찰한 API 라 기대값의 근거가 아니다
 
-import type { 지도API } from '../prd/apiMap.js';
+import type { ReactNode } from 'react';
+
+import type { API줄 as 주소, 지도API } from '../prd/apiMap.js';
 import type { 덮는케이스 } from '../prd/trace.js';
 import { use말, use언어 } from './i18n.js';
 import { when } from './ui.js';
@@ -20,6 +22,20 @@ export function 요구가거치는(덮는: 덮는케이스[], apis: 지도API[])
     const via = a.cases.filter((c) => 케이스.has(c.tcId));
     return via.length === 0 ? [] : [{ method: a.method, host: a.host, path: a.path, via }];
   });
+}
+
+// 한 줄 — 방식 · 주소, 뒤 칸(부른 곳 · 본 화면)은 자리마다 다르다
+function API줄({ a, children }: { a: 주소; children: ReactNode }) {
+  return (
+    <li>
+      <span className="prd-api-m">{a.method}</span>
+      <span className="prd-id">
+        {a.host}
+        {a.path}
+      </span>
+      {children}
+    </li>
+  );
 }
 
 function 부른곳({ via }: { via: 거치는줄['via'] }) {
@@ -42,14 +58,9 @@ export function 거치는API({ 줄들 }: { 줄들: 거치는줄[] }) {
       <h3>{t('거치는 API {건수}개', { 건수: 줄들.length })}</h3>
       <ul className="prd-apis">
         {줄들.map((a) => (
-          <li key={`${a.method} ${a.host}${a.path}`}>
-            <span className="prd-api-m">{a.method}</span>
-            <span className="prd-id">
-              {a.host}
-              {a.path}
-            </span>
+          <API줄 key={`${a.method} ${a.host}${a.path}`} a={a}>
             <부른곳 via={a.via} />
-          </li>
+          </API줄>
         ))}
       </ul>
     </section>
@@ -73,18 +84,13 @@ export function 안거친API카드({ apis }: { apis: 지도API[] }) {
       ) : (
         <ul className="prd-apis">
           {안거친.map((a) => (
-            <li key={`${a.method} ${a.host}${a.path}`}>
-              <span className="prd-api-m">{a.method}</span>
-              <span className="prd-id">
-                {a.host}
-                {a.path}
-              </span>
+            <API줄 key={`${a.method} ${a.host}${a.path}`} a={a}>
               <span className="prd-api-via">
                 {a.screens[0] === undefined
                   ? t('마지막 {때}', { 때: when(a.lastSeen, 언어) })
                   : t('화면 {주소} 에서 봤습니다 · 마지막 {때}', { 주소: a.screens[0].url, 때: when(a.lastSeen, 언어) })}
               </span>
-            </li>
+            </API줄>
           ))}
         </ul>
       )}

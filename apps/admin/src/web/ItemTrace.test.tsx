@@ -58,6 +58,19 @@ describe('항목 상세 네트워크 · 조작 · 콘솔', () => {
     expect(screen.queryByText('http://demo.market/login')).toBeNull();
   });
 
+  it('실패가 콘솔에만 있으면 콘솔 탭으로 연다', () => {
+    render(<ItemTraceSection trace={{ ...실패기록, network: [요청({})], actions: [] }} />);
+    expect(탭(/콘솔/).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByText('Failed to load resource: 500')).toBeTruthy();
+  });
+
+  it('「실패만」을 껐다 켜도 펴 둔 본문이 다른 줄로 옮겨 가지 않는다', () => {
+    render(<ItemTraceSection trace={{ ...실패기록, network: [요청({ requestBody: 'q=1' }), ...실패기록.network.slice(1)] }} />);
+    fireEvent.click(screen.getByRole('checkbox', { name: /실패만/ }));
+    expect(screen.queryByText(/q=1/)).toBeNull();
+    expect(screen.getByText(/"password"/)).toBeTruthy();
+  });
+
   it('「실패만」을 끄면 준비 · 정리 줄까지 전부 보인다', () => {
     render(<ItemTraceSection trace={실패기록} />);
     fireEvent.click(screen.getByRole('checkbox', { name: /실패만/ }));

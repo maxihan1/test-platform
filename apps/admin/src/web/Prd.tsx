@@ -131,7 +131,7 @@ export function Prd({
       ) : (
         <>
           {now.version === 0 ? null : <PrdTodo service={service} now={now} 쓰나={쓰나} 짓기={짓기} />}
-          {지도.data === null ? null : <안거친API카드 apis={지도.data.apis} />}
+          {now.version === 0 || 지도.data === null ? null : <안거친API카드 apis={지도.data.apis} />}
           <PrdList
             service={service}
             now={now}

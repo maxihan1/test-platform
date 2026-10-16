@@ -145,7 +145,7 @@ export function PrdList({
                       여기={x.reqId === 여기}
                       반영={반영표.get(x.reqId)}
                       추적={추적of(x.reqId)}
-                      거치는={apis === null ? [] : 요구가거치는(now.cases[x.reqId] ?? [], apis)}
+                      거치는={apis === null || !편줄.has(x.reqId) ? [] : 요구가거치는(now.cases[x.reqId] ?? [], apis)}
                       보류={줄보류of(now.held, x.reqId)}
                       케이스보나={케이스보나}
                       폈나={편줄.has(x.reqId)}
