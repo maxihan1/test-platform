@@ -147,6 +147,7 @@ describe('반영절 · 화면이맞음줄', () => {
     expect(줄).toContain('번호 X-REQ-002');
     expect(줄).toContain('결과 파일: /w/자료/out/prd.json');
     expect(줄).toContain('npm run prd:ledger -- /w/자료');
+    expect(줄).toContain('/w/자료/traces/RUN42-X-FN-007.txt');
     expect(줄).not.toContain('⚠️');
     expect(반영절({ 계획, 사본: '/w/자료/apply.json' }, [{ env: 'stage' }]).join('\n')).toContain('⚠️ 위 대상 서버 목록에 qa 가 없다');
     expect(반영절({ 계획: { ...계획, 화면이맞음: undefined }, 사본: '/w/자료/apply.json' }).join('\n')).not.toContain('화면이 맞음');
