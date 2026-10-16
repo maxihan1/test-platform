@@ -1,9 +1,11 @@
 // 설정의 「화면 크기」 구획 — 대상 서버마다 크롤러가 정한 판정과 화면별 PC · 모바일 차이 (도메인/인증 §8.8 · PRD-F10-08 시안 B)
 // 읽기만 한다. 고치는 칸인 「대상 서버」 와 섞으면 판정도 저장되는 값처럼 보여 구획을 따로 둔다
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
-import { api, type EnvRow, type ViewportKind, type ViewportScreens } from './api.js';
+import { type 서비스판정, 판정이름 } from '../../../../scripts/authoring-crawl-viewport.js';
+
+import { api, type EnvRow, type ViewportScreens } from './api.js';
 import { 짧은시각 } from './dashboardView.js';
 import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
@@ -15,23 +17,24 @@ export function ViewportSection({ serviceId, envs }: { serviceId: number; envs: 
   const [연것, set연것] = useState<string | null>(null);
   const [결과, set결과] = useState<ViewportScreens | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  // 서버를 번갈아 누르면 늦게 온 앞 응답이 뒤 서버 표에 덮인다 — 마지막으로 연 것만 받는다 (PRD-F10-08 코드 검토)
+  const 마지막 = useRef<string | null>(null);
 
   async function 연다(env: string) {
-    if (연것 === env) {
-      set연것(null);
-      return;
-    }
-    set연것(env);
+    const 닫기 = 연것 === env;
+    마지막.current = 닫기 ? null : env;
+    set연것(마지막.current);
     set결과(null);
     setErr(null);
+    if (닫기) return;
     try {
-      set결과(await api.settingsViewport(serviceId, env));
+      const 받음 = await api.settingsViewport(serviceId, env);
+      if (마지막.current === env) set결과(받음);
     } catch (e) {
-      setErr(message(e, 언어));
+      if (마지막.current === env) setErr(message(e, 언어));
     }
   }
 
-  const 이름: Record<ViewportKind, string> = { responsive: t('반응형'), adaptive: t('적응형'), 'desktop-only': t('PC 전용') };
   return (
     <div className="vp">
       <table className="dash-table">
@@ -44,36 +47,15 @@ export function ViewportSection({ serviceId, envs }: { serviceId: number; envs: 
           </tr>
         </thead>
         <tbody>
-          {envs.map((e) => {
-            const 판정 = e.viewportKind ?? null;
-            const 시각 = e.viewportJudgedAt ?? null;
-            return (
-            <tr key={e.env}>
-              <td>{e.env}</td>
-              <td>
-                {판정 === null ? (
-                  <span className="vp-kind none">{t('아직 판정 안 함')}</span>
-                ) : (
-                  <span className={`vp-kind ${판정}`}>{이름[판정]}</span>
-                )}
-              </td>
-              <td className="dash-when">{시각 === null ? '—' : 짧은시각(시각, 언어)}</td>
-              <td>
-                {판정 === null ? null : (
-                  <button className="btn ghost" aria-pressed={연것 === e.env} onClick={() => void 연다(e.env)}>
-                    {t('화면별 차이')}
-                  </button>
-                )}
-              </td>
-            </tr>
-            );
-          })}
+          {envs.map((e) => (
+            <판정줄 key={e.env} env={e.env} 판정={e.viewportKind ?? null} 시각={e.viewportJudgedAt ?? null} 열림={연것 === e.env} 연다={연다} />
+          ))}
         </tbody>
       </table>
       {연것 === null ? null : err !== null ? (
         <div className="err">{err}</div>
       ) : 결과 === null ? (
-        <div className="hint">{t('불러오는 중')}</div>
+        <div className="hint">{t('불러오는 중입니다')}</div>
       ) : (
         <화면차이표 env={연것} 결과={결과} />
       )}
@@ -82,9 +64,49 @@ export function ViewportSection({ serviceId, envs }: { serviceId: number; envs: 
   );
 }
 
+/** 판정 이름은 크롤 요약 줄과 같은 표(`판정이름`)를 쓴다 — 같은 판정이 두 곳에서 다른 말로 뜨지 않게 */
+function 판정줄({ env, 판정, 시각, 열림, 연다 }: {
+  env: string;
+  판정: 서비스판정 | null;
+  시각: string | null;
+  열림: boolean;
+  연다: (env: string) => Promise<void>;
+}) {
+  const t = use말();
+  const 언어 = use언어();
+  return (
+    <tr>
+      <td>{env}</td>
+      <td>
+        {판정 === null ? (
+          <span className="vp-kind none">{t('아직 판정 안 함')}</span>
+        ) : (
+          <span className={`vp-kind ${판정}`}>{t(판정이름[판정])}</span>
+        )}
+      </td>
+      <td className="dash-when">{시각 === null ? '—' : 짧은시각(시각, 언어)}</td>
+      <td>
+        {판정 === null ? null : (
+          <button className="btn ghost" aria-pressed={열림} onClick={() => void 연다(env)}>
+            {t('화면별 차이')}
+          </button>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 function 화면차이표({ env, 결과 }: { env: string; 결과: ViewportScreens }) {
   const t = use말();
-  if (결과.items.length === 0) return <div className="hint">{t('PC 와 모바일이 다른 화면이 없습니다')}</div>;
+  const 같음 = 결과.same === 0 ? null : <div className="hint">{t('나머지 {건수}장은 PC 와 모바일이 같습니다', { 건수: 결과.same })}</div>;
+  if (결과.items.length === 0) {
+    return (
+      <div className="vp-screens">
+        <div className="hint">{t('PC 와 모바일이 다른 화면이 없습니다')}</div>
+        {같음}
+      </div>
+    );
+  }
   return (
     <div className="vp-screens">
       <table className="dash-table">
@@ -118,7 +140,10 @@ function 화면차이표({ env, 결과 }: { env: string; 결과: ViewportScreens
           ))}
         </tbody>
       </table>
-      {결과.same === 0 ? null : <div className="hint">{t('나머지 {건수}장은 PC 와 모바일이 같습니다', { 건수: 결과.same })}</div>}
+      {결과.differ > 결과.items.length ? (
+        <div className="hint">{t('다른 화면 {전체}장 가운데 앞 {건수}장만 보입니다', { 전체: 결과.differ, 건수: 결과.items.length })}</div>
+      ) : null}
+      {같음}
     </div>
   );
 }

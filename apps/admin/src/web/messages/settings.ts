@@ -230,7 +230,6 @@ export const 설정말: Record<string, string> = {
   'PC 전용': 'Desktop only',
   '아직 판정 안 함': 'Not checked yet',
   '화면별 차이': 'Differences by page',
-  '불러오는 중': 'Loading',
   '테스트 작성 때 화면을 탐색하면 정해집니다. 대상 서버 주소를 바꾸면 다음 탐색까지 비워 둡니다':
     'Set when test authoring explores the pages. Changing the server address clears it until the next exploration',
   'PC 와 모바일이 다른 화면이 없습니다': 'No page differs between desktop and mobile',
@@ -241,7 +240,8 @@ export const 설정말: Record<string, string> = {
   '옆으로 밀어야 보임': 'Needs sideways scrolling',
   '모바일에서 PC 화면이 작게 보임': 'Shows the desktop page shrunk on mobile',
   '배치가 다름': 'Different layout',
-  'PC 에만': 'Desktop only:',
-  '모바일에만': 'Mobile only:',
+  'PC 에만': 'Only on desktop:',
+  '모바일에만': 'Only on mobile:',
   '나머지 {건수}장은 PC 와 모바일이 같습니다': 'The other {건수} pages are the same on desktop and mobile',
+  '다른 화면 {전체}장 가운데 앞 {건수}장만 보입니다': 'Showing the first {건수} of {전체} pages that differ',
 };

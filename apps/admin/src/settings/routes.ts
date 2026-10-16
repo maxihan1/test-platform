@@ -183,7 +183,8 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     const id = 정수(req.params.id);
     const env = req.query.env;
     if (id === null || env === undefined || env === '') return reply.code(400).send({ error: 'INVALID_REQUEST' });
-    return 화면크기목록(id, env);
+    const 결과 = await 화면크기목록(id, env);
+    return 결과 ?? reply.code(404).send({ error: 'NOT_FOUND' });
   });
 
   app.get('/settings/users', async () => ({ items: await 계정목록() }));

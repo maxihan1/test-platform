@@ -101,6 +101,10 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
         전?.base_url === baseUrl ? 전.viewport_judged_at : null,
       ],
     );
+    // 화면별 차이도 옛 서버 것이다 — 남기면 새 판정 옆에 옛 서버 화면이 섞여 보인다 (PRD-F10-08 코드 검토)
+    if (전 !== undefined && 전.base_url !== baseUrl) {
+      await client.query('UPDATE screen_found SET viewport = NULL WHERE service_id = $1 AND env = $2', [serviceId, env]);
+    }
   }
 }
 

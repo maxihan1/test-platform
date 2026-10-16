@@ -73,11 +73,37 @@ describe.skipIf(연결 === undefined)('설정의 화면 크기 판정 읽기', (
   it('화면별 차이는 그 대상 서버의 다른 화면만 주고, 같은 화면은 수만 주고, 모바일로 못 연 화면은 뺀다', async () => {
     const res = await app.inject({ method: 'GET', url: `/api/settings/services/${String(번호)}/viewport?env=qa` });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ items: [{ state: '로그아웃', url: '/goods', name: '상품 목록', viewport: 다름 }], same: 1 });
+    expect(res.json()).toEqual({ items: [{ state: '로그아웃', url: '/goods', name: '상품 목록', viewport: 다름 }], differ: 1, same: 1 });
   });
 
-  it('대상 서버를 안 주면 400 이다', async () => {
-    const res = await app.inject({ method: 'GET', url: `/api/settings/services/${String(번호)}/viewport` });
-    expect(res.statusCode).toBe(400);
+  it('다른 화면은 200장까지만 주고 전체 수는 differ 로 알린다', async () => {
+    await (await pool()).query(
+      `INSERT INTO screen_found (service_id, env, state, url, name, viewport)
+       SELECT $1, 'live', '로그아웃', '/goods/' || n, '', $2 FROM generate_series(1, 200) AS n`,
+      [번호, JSON.stringify(다름)],
+    );
+    const res = await app.inject({ method: 'GET', url: `/api/settings/services/${String(번호)}/viewport?env=live` });
+    const 몸 = res.json<{ items: unknown[]; differ: number; same: number }>();
+    expect([몸.items.length, 몸.differ, 몸.same]).toEqual([200, 201, 0]);
+  });
+
+  it('대상 서버를 안 주면 400, 없는 대상 서버면 404 다', async () => {
+    const 없음 = await app.inject({ method: 'GET', url: `/api/settings/services/${String(번호)}/viewport` });
+    const 틀림 = await app.inject({ method: 'GET', url: `/api/settings/services/${String(번호)}/viewport?env=qaa` });
+    expect([없음.statusCode, 틀림.statusCode]).toEqual([400, 404]);
+  });
+
+  it('대상 서버 주소를 바꾸면 판정과 함께 화면별 차이도 비운다 — 옛 서버 화면이 새 판정 옆에 안 섞이게', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/settings/services/${String(번호)}`,
+      payload: { envs: [{ env: 'qa', baseUrl: 'https://qa2.xvp.test' }, { env: 'live', baseUrl: 'https://xvp.test' }] },
+    });
+    expect(res.statusCode).toBe(200);
+    const r = await (await pool()).query<{ env: string; n: number }>(
+      'SELECT env, count(*)::int AS n FROM screen_found WHERE service_id = $1 AND viewport IS NOT NULL GROUP BY env ORDER BY env',
+      [번호],
+    );
+    expect(r.rows).toEqual([{ env: 'live', n: 201 }]);
   });
 });
