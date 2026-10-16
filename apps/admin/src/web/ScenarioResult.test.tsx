@@ -2,7 +2,8 @@
 // E2E 실행 결과 화면 검사 ① — 머리 · 정보 칸 · 도는 중 (도메인/시나리오 §8.11 · 실행 §8.7)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { api } from './api.js';
 import { scenarioApi } from './scenarioApi.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { 부품, 로그인, 안돈, 결과, 연다 } from './ScenarioResult.fixture.js';
@@ -28,11 +29,34 @@ describe('머리', () => {
     expect(screen.queryByRole('link', { name: '← 실행 기록 › E2E' })).toBeNull();
   });
 
-  it('실패는 판정 배지 · 증적 버튼은 없다', async () => {
+  it('실패는 판정 배지 · 끝난 실행은 형식마다 증적 만들기 버튼', async () => {
     연다(결과());
     await screen.findByText('단계별 결과');
     expect(document.querySelector('.head .verdict')?.textContent).toBe('실패');
-    expect(screen.queryByText('E2E 증적 받기')).toBeNull();
+    for (const 글 of ['PDF 만들기', '엑셀 만들기', 'HTML 만들기']) expect(screen.getByRole('button', { name: 글 })).toBeTruthy();
+  });
+
+  it('누르면 그 실행 번호로 증적을 만들고, 만든 문서는 목록에 열기 고리로 쌓인다', async () => {
+    const 만들기 = vi.spyOn(api, 'makeEvidence').mockResolvedValue({
+      id: 5, format: 'PDF', status: 'PENDING', filePath: null, error: null, generatedAt: '2026-10-16T06:00:00.000Z',
+    });
+    연다(결과({ evidence: [{ id: 4, format: 'PDF', status: 'READY', filePath: '/x.pdf', error: null, generatedAt: '2026-10-16T05:00:00.000Z' }] }));
+    fireEvent.click(await screen.findByRole('button', { name: 'PDF 다시 만들기' }));
+    expect(만들기).toHaveBeenCalledWith(77, 'PDF');
+    expect(screen.getByRole('link', { name: '열기 ↗' }).getAttribute('href')).toBe('/api/evidence/4');
+  });
+
+  it('도는 중이면 버튼 대신 안내 한 줄', async () => {
+    연다(결과({ status: 'RUNNING', finishedAt: null }));
+    expect(await screen.findByText('실행이 끝나면 증적 문서를 만들 수 있습니다')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'PDF 만들기' })).toBeNull();
+  });
+
+  it('권한이 없으면 만들기 버튼이 없다', async () => {
+    vi.spyOn(scenarioApi, 'result').mockResolvedValue(결과());
+    render(<ScenarioResult runId={77} 판정하기={() => () => false} />);
+    await screen.findByText('단계별 결과');
+    expect(screen.queryByRole('button', { name: 'PDF 만들기' })).toBeNull();
   });
 
   it('통과인데 미확정이 섞이면 통과 배지에 미확정 꼬리표만 곁들인다', async () => {
@@ -122,7 +146,7 @@ describe('도는 중', () => {
       .spyOn(scenarioApi, 'result')
       .mockResolvedValueOnce(결과({ status: 'RUNNING', finishedAt: null, parts: [안돈] }))
       .mockResolvedValue(결과());
-    render(<ScenarioResult runId={77} />);
+    render(<ScenarioResult runId={77} 판정하기={() => () => true} />);
     await act(async () => {});
     expect(screen.getByRole('status').textContent).toBe('실행 중입니다. 끝나면 결과가 채워집니다');
     expect(document.querySelector('.head .verdict')).toBeNull();

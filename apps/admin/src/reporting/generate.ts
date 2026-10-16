@@ -7,10 +7,13 @@ import { join, resolve } from 'node:path';
 import { chromium } from '@playwright/test';
 
 import { enqueue } from '../execution/dispatcher.js';
-import { collectRun, type EvidenceDocument } from './collect.js';
+import { collectRun, type EvidenceStep } from './collect.js';
+import { collectScenario } from './collectScenario.js';
+import { E2E요약 } from './e2eSummary.js';
 import { renderHtml } from './html.js';
+import { renderScenarioHtml } from './htmlScenario.js';
 import { fail, findDocument, finish, type EvidenceFormat } from './store.js';
-import { renderXlsx } from './xlsx.js';
+import { renderScenarioXlsx, renderXlsx } from './xlsx.js';
 
 /** 확장자와 Content-Type을 한 표에 둔다. 두 곳으로 갈리면 html 파일이 application/pdf로 나간다 */
 export const 형식표: Record<EvidenceFormat, { ext: string; mime: string }> = {
@@ -51,20 +54,10 @@ async function 심는다(경로: string): Promise<string | null> {
 
 // 원본 모델은 그대로 둔다 — 엑셀은 같은 모델의 경로 글자를 그대로 써야 한다 (SPEC §8.4 「스크린샷은 경로만」).
 // 같은 파일이면 base64 도 같으므로 재현 불변식은 그대로다 (SPEC §3.3)
-async function 스크린샷을심는다(doc: EvidenceDocument): Promise<EvidenceDocument> {
-  const items = await Promise.all(
-    doc.items.map(async (item) => ({
-      ...item,
-      steps: await Promise.all(
-        item.steps.map(async (s) => ({
-          ...s,
-          screenshotPath: s.screenshotPath === null ? null : await 심는다(s.screenshotPath),
-        })),
-      ),
-    })),
+async function 심은절차들(steps: EvidenceStep[]): Promise<EvidenceStep[]> {
+  return Promise.all(
+    steps.map(async (s) => ({ ...s, screenshotPath: s.screenshotPath === null ? null : await 심는다(s.screenshotPath) })),
   );
-
-  return { ...doc, items };
 }
 
 // HTML 을 그대로 찍는다 — 별도 PDF 레이아웃을 두면 화면과 문서가 갈린다 (SPEC §8.4).
@@ -94,19 +87,38 @@ export async function generate(id: number, runId: number, format: EvidenceFormat
     const 행 = await findDocument(id);
     if (행 === null) throw new Error(`증적 문서 ${String(id)} 행이 사라졌다`);
 
-    const doc = await collectRun(runId);
-    if (doc === null) throw new Error(`실행 ${String(runId)}을 찾지 못했다`);
-
     const 폴더 = join(artifactsDir(), 'evidence', String(runId));
     await mkdir(폴더, { recursive: true });
     const 파일경로 = join(폴더, `${String(id)}.${형식표[format].ext}`);
-    // 엑셀만 HTML 을 거치지 않는다. 같은 모델을 표로 따로 편다 (SPEC §8.4)
-    if (format === 'XLSX') await writeFile(파일경로, await renderXlsx(doc, { generatedAt: 행.generatedAt }));
-    else {
-      const html = renderHtml(await 스크린샷을심는다(doc), { generatedAt: 행.generatedAt, format });
-      if (format === 'HTML') await writeFile(파일경로, html, 'utf8');
-      else await 찍는다(html, 파일경로);
+    const generatedAt = 행.generatedAt;
+
+    let 엑셀: () => Promise<Buffer>;
+    let html: () => Promise<string>;
+    const doc = await collectRun(runId);
+    if (doc !== null) {
+      엑셀 = () => renderXlsx(doc, { generatedAt });
+      // E2E 요약은 다른 실행을 읽는다 — 문서를 만드는 지금 읽어 굳힌다. 엑셀에는 안 넣는다 (도메인/리포팅 §8.4)
+      html = async () => {
+        const items = await Promise.all(doc.items.map(async (item) => ({ ...item, steps: await 심은절차들(item.steps) })));
+        return renderHtml({ ...doc, items }, { generatedAt, format: format === 'PDF' ? 'PDF' : 'HTML', e2e: await E2E요약(runId) });
+      };
+    } else {
+      // 케이스 실행이 아니면 시나리오 실행이다 — 라우트가 둘 밖의 번호는 이미 404 로 막았다
+      const e2e = await collectScenario(runId);
+      if (e2e === null) throw new Error(`실행 ${String(runId)}을 찾지 못했다`);
+      엑셀 = () => renderScenarioXlsx(e2e, { generatedAt });
+      html = async () => {
+        const parts = await Promise.all(
+          e2e.parts.map(async (d) => (d.item === null ? d : { ...d, item: { ...d.item, steps: await 심은절차들(d.item.steps) } })),
+        );
+        return renderScenarioHtml({ ...e2e, parts }, { generatedAt });
+      };
     }
+
+    // 엑셀만 HTML 을 거치지 않는다. 같은 모델을 표로 따로 편다 (SPEC §8.4)
+    if (format === 'XLSX') await writeFile(파일경로, await 엑셀());
+    else if (format === 'HTML') await writeFile(파일경로, await html(), 'utf8');
+    else await 찍는다(await html(), 파일경로);
 
     await finish(id, 파일경로);
   } catch (err) {

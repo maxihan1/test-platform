@@ -293,6 +293,6 @@ function 케이스결과({
 
 export function RunResult(props: Parameters<typeof 케이스결과>[0]) {
   const [시나리오, set시나리오] = useState<number | null>(null); // 시나리오 실행 번호는 404 SCENARIO_RUN 으로 알려 준다 — 갈래를 바깥에 둬 훅 순서를 지킨다
-  if (시나리오 === props.runId) return <ScenarioResult runId={props.runId} 상자안={props.상자안} />;
+  if (시나리오 === props.runId) return <ScenarioResult runId={props.runId} 판정하기={props.판정하기} 상자안={props.상자안} />;
   return <케이스결과 {...props} on시나리오={() => set시나리오(props.runId)} />;
 }

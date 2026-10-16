@@ -68,7 +68,7 @@ describe('시나리오 실행 번호면 E2E 결과 화면으로 갈아탄다', (
   const 시나리오답 = {
     scenarioId: 12, version: 3, status: 'FINISHED', platform: 'desktop' as const, title: '결제 시나리오',
     env: 'qa', baseUrl: 'https://qa.example.com', triggeredBy: 'kim', triggeredByName: '김철수',
-    startedAt: '2026-09-15T17:13:00.000Z', finishedAt: '2026-09-15T17:25:00.000Z', parts: [],
+    startedAt: '2026-09-15T17:13:00.000Z', finishedAt: '2026-09-15T17:25:00.000Z', parts: [], evidence: [],
   };
 
   it.each([false, true])('상자안=%s', async (상자안) => {

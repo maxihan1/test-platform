@@ -153,7 +153,17 @@ export async function findRun(
     [runId],
   );
 
-  // 증적 표는 리포팅 소유지만 읽기는 여기서 한다. §3.3 이 막은 것은 그쪽의 write 다
+  return {
+    ...toRun(row),
+    items: items.rows.map((r) => toItem(r)),
+    evidence: await 증적목록(runId),
+  };
+}
+
+// 증적 표는 리포팅 소유지만 읽기는 여기서 한다. §3.3 이 막은 것은 그쪽의 write 다.
+// 시나리오 결과 응답(scenario/runRoutes.ts)도 같은 모양을 실어 화면이 증적 칸 하나로 둘 다 그린다 (도메인/시나리오 §7)
+export async function 증적목록(runId: number): Promise<EvidenceSummary[]> {
+  const pool = await db();
   const evidence = await pool.query<{
     id: string;
     format: string;
@@ -164,19 +174,14 @@ export async function findRun(
   }>('SELECT id, format, status, file_path, error, generated_at FROM evidence_document WHERE run_id = $1 ORDER BY id', [
     runId,
   ]);
-
-  return {
-    ...toRun(row),
-    items: items.rows.map((r) => toItem(r)),
-    evidence: evidence.rows.map((e) => ({
-      id: Number(e.id),
-      format: e.format,
-      status: e.status,
-      filePath: e.file_path,
-      error: e.error,
-      generatedAt: e.generated_at.toISOString(),
-    })),
-  };
+  return evidence.rows.map((e) => ({
+    id: Number(e.id),
+    format: e.format,
+    status: e.status,
+    filePath: e.file_path,
+    error: e.error,
+    generatedAt: e.generated_at.toISOString(),
+  }));
 }
 
 interface RawStep {
