@@ -52,7 +52,7 @@ describe('점검', () => {
     expect(점검(parts, 재료)).toEqual({ checks: [], needsCheck: false, runnable: true });
   });
 
-  it('제한 시간 합이 60분을 넘거나 부품 목록이 크기 상한을 넘으면 실행 불가다 — checks 는 그대로다', () => {
+  it('제한 시간 합이 60분을 넘거나 단계 목록이 크기 상한을 넘으면 실행 불가다 — checks 는 그대로다', () => {
     const 길다: ScenarioPart[] = Array.from({ length: 13 }, () => 케이스('SHOP-001'));
     expect(점검(길다, 재료)).toEqual({ checks: [], needsCheck: false, runnable: false });
     const 크다: ScenarioPart[] = [

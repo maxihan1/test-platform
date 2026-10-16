@@ -200,7 +200,7 @@ describe.skipIf(연결 === undefined)('시나리오 실행 저장값 채우기',
     expect((await 부품행들(runId)).map((r) => r.unconfirmed)).toEqual([null, '확인 필요 — XSF-REQ-001', null]);
   });
 
-  it('채운 뒤 부품 목록이 100000바이트를 넘으면 NOT_RUNNABLE 이고 실행 · 부품 행이 안 남는다', async () => {
+  it('채운 뒤 단계 목록이 100000바이트를 넘으면 NOT_RUNNABLE 이고 실행 · 부품 행이 안 남는다', async () => {
     const id = await 시나리오([케이스('XSF-003')]);
     const 실행전 = await 수('SELECT count(*) AS n FROM test_run WHERE service_id = $1');
     const 부품전 = await 수(

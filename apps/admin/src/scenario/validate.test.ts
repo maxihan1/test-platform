@@ -131,7 +131,7 @@ describe('제한 시간 바닥 · API 몫 · 크기 상한', () => {
     expect(검사([...케이스들(12), api])).toEqual([expect.stringMatching(/3630000ms/)]);
   });
 
-  it('부품 목록 JSON 이 100000 바이트를 넘으면 거절한다', () => {
+  it('단계 목록 JSON 이 100000 바이트를 넘으면 거절한다', () => {
     const 모킹 = (body: string): ScenarioPart[] => [
       { kind: 'mock', urlPattern: '**/a', status: 200, contentType: 'text/plain', body },
     ];
