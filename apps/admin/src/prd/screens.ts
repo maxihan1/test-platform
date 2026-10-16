@@ -2,6 +2,7 @@
 // 맞추는 열쇠는 대상 서버 + 상태 + 같은 틀(url 칸)이다 — 번호만 다른 주소를 한 화면으로 봐야 게시판 글처럼 매번 다른 글이 열리는 화면도 다시 안 훑는다.
 // 대상 서버는 요청 행에서 읽는다 — 피처 플래그가 다른 qa 와 운영의 같은 화면이 서로 덮어쓰지 않게 (PRD-F9-29)
 
+import { type 서비스판정, type 화면차이, 서비스가르기, 차이모양 } from '../../../../scripts/authoring-crawl-viewport.js';
 import { type 상태, 상태인가 } from '../../../../scripts/authoring-screens-keep.js';
 import { db, 한묶음 } from '../settings/store.js';
 import { type API줄, 지도상한, 지도줄들, 화면지도를넣는다 } from './apiMap.js';
@@ -18,6 +19,7 @@ export interface 화면 {
 type 링크 = { toUrl: string; via: string };
 type 들은API = { method: string; url: string };
 type 오류 = { error: 'BAD_SCREEN'; detail: string };
+type 본화면 = { state: 상태; url: string; name: string; viewport: 화면차이 | null };
 
 // 기록 200KB 는 디스크 저장본 때의 상한 그대로다. 본 화면 목록은 크롤 100장 상한보다 넉넉히
 const 상한 = { url: 2_000, name: 500, record: 200_000, links: 1_000, via: 500, seen: 5_000 } as const;
@@ -60,17 +62,19 @@ export function 화면검사(몸: unknown): { 화면: 화면; links: 링크[]; a
   return { 화면: { state: b.state, url: b.url, name: b.name, textFp: b.textFp, structFp: b.structFp, record: b.record, crawledAt: b.crawledAt }, links, apis };
 }
 
-/** done 본문 — 이번에 본 화면(재사용 포함)과 다 본 상태. 다 본 상태가 비면 아무것도 안 지운다. name 은 찾은 화면 이름이다 */
-export function 다봄검사(몸: unknown): { seen: { state: 상태; url: string; name: string }[]; complete: 상태[] } | 오류 {
+/** done 본문 — 이번에 본 화면(재사용 포함)과 다 본 상태. 다 본 상태가 비면 아무것도 안 지운다. name 은 찾은 화면 이름, viewport 는 PC · 모바일 차이다(PRD-F10-07) */
+export function 다봄검사(몸: unknown): { seen: 본화면[]; complete: 상태[] } | 오류 {
   const b = 칸들(몸);
   if (!Array.isArray(b.complete) || !b.complete.every(상태인가)) return 틀림('complete');
   if (!Array.isArray(b.seen) || b.seen.length > 상한.seen) return 틀림('seen');
-  const seen: { state: 상태; url: string; name: string }[] = [];
+  const seen: 본화면[] = [];
   for (const [i, s] of b.seen.entries()) {
     const x = 칸들(s);
     if (!상태인가(x.state) || !글인가(x.url, 상한.url)) return 틀림(`seen.${i}`);
     if (x.name !== undefined && !글인가(x.name, 상한.name, true)) return 틀림(`seen.${i}`);
-    seen.push({ state: x.state, url: x.url, name: typeof x.name === 'string' ? x.name : '' });
+    const viewport = x.viewport === undefined || x.viewport === null ? null : 차이모양(x.viewport);
+    if (viewport === null && x.viewport !== undefined && x.viewport !== null) return 틀림(`seen.${i}.viewport`);
+    seen.push({ state: x.state, url: x.url, name: typeof x.name === 'string' ? x.name : '', viewport });
   }
   return { seen, complete: [...new Set(b.complete)] };
 }
@@ -124,25 +128,32 @@ export async function 화면넣기(서비스: number, env: string, x: 화면, li
 }
 
 /**
- * 본 화면을 찾은 화면(screen_found)에 넣고(같은 키는 이름만 바꾼다), 다 본 상태에서 이번에 못 본 화면의 기록 ·
- * 연결 · 찾은 화면을 지운다 — 지운 화면 기록 수. 넣기도 지우기도 그 대상 서버 몫만이다.
+ * 본 화면을 찾은 화면(screen_found)에 넣고(같은 키는 이름 · 차이만 바꾼다), 다 본 상태에서 이번에 못 본 화면의 기록 ·
+ * 연결 · 찾은 화면을 지운다 — 지운 화면 기록 수와 서비스 판정. 넣기도 지우기도 그 대상 서버 몫만이다.
  * 로그인 없이 돈 날은 로그아웃만 다 본 상태라 로그인 기록이 남는다 (§3.6 「바뀐 화면만 다시 훑는다」).
- * 찾은 화면 넣기는 다 본 상태가 비어도 한다 — 비면 지우기만 안 한다
+ * 찾은 화면 넣기는 다 본 상태가 비어도 한다 — 비면 지우기만 안 한다.
+ * 서비스 판정은 이번에 보낸 차이로 서버가 다시 가른다 — 자식이 적은 판정을 안 믿는다. 다 본 상태가 있을 때만 남긴다 — 도중에 멈춘 크롤의 몇 장으로
+ * 다 본 판정을 덮지 않게(못 본 화면 지우기와 같은 문턱). 차이가 하나도 없으면(옛 크롤러 · 모바일 못 엶) 옛 판정을 둔다 (PRD-F10-07)
  */
-export async function 다봄(서비스: number, env: string, seen: { state: 상태; url: string; name: string }[], complete: 상태[]): Promise<number> {
+export async function 다봄(서비스: number, env: string, seen: 본화면[], complete: 상태[]): Promise<{ deleted: number; viewport: 서비스판정 | null }> {
   const 값 = [서비스, complete, seen.map((s) => s.state), seen.map((s) => s.url), env];
+  const 판정 = complete.length === 0 ? null : 서비스가르기(seen.flatMap((s) => (s.viewport === null ? [] : [s.viewport])));
   return 한묶음(async (손) => {
     await 손.query(
-      // 같은 키가 두 번 오면 ON CONFLICT 가 한 행을 두 번 고치려다 통째로 실패한다 — 하나로 줄인다.
-      // 빈 이름은 옛 이름을 지우지 않는다(이름 없이 보낸 done · 제목 없는 화면)
-      `INSERT INTO screen_found (service_id, env, state, url, name)
-       SELECT DISTINCT ON (s.state, s.url) $1::bigint, $5, s.state, s.url, s.name
-         FROM unnest($2::text[], $3::text[], $4::text[]) AS s(state, url, name)
-        ORDER BY s.state, s.url, s.name DESC
-       ON CONFLICT (service_id, env, state, url) DO UPDATE SET name = COALESCE(NULLIF(EXCLUDED.name, ''), screen_found.name)`,
-      [서비스, seen.map((s) => s.state), seen.map((s) => s.url), seen.map((s) => s.name), env],
+      // 같은 키가 두 번 오면 ON CONFLICT 가 한 행을 두 번 고치려다 통째로 실패한다 — 하나로 줄인다. 이름은 있는 쪽, 차이도 있는 쪽을 고른다.
+      // 빈 이름 · 빈 차이는 옛 값을 지우지 않는다(이름 없이 보낸 done · 제목 없는 화면 · 이번에 모바일로 못 연 화면)
+      `INSERT INTO screen_found (service_id, env, state, url, name, viewport)
+       SELECT $1::bigint, $5, s.state, s.url, max(s.name), ((array_agg(s.viewport) FILTER (WHERE s.viewport IS NOT NULL))[1])::jsonb
+         FROM unnest($2::text[], $3::text[], $4::text[], $6::text[]) AS s(state, url, name, viewport)
+        GROUP BY s.state, s.url
+       ON CONFLICT (service_id, env, state, url) DO UPDATE
+         SET name = COALESCE(NULLIF(EXCLUDED.name, ''), screen_found.name), viewport = COALESCE(EXCLUDED.viewport, screen_found.viewport)`,
+      [서비스, seen.map((s) => s.state), seen.map((s) => s.url), seen.map((s) => s.name), env, seen.map((s) => (s.viewport === null ? null : JSON.stringify(s.viewport)))],
     );
-    if (complete.length === 0) return 0;
+    if (판정 !== null) {
+      await 손.query('UPDATE service_env SET viewport_kind = $3, viewport_judged_at = now() WHERE service_id = $1 AND env = $2', [서비스, env, 판정]);
+    }
+    if (complete.length === 0) return { deleted: 0, viewport: 판정 };
     await 손.query(
       `DELETE FROM screen_found f WHERE f.service_id = $1 AND f.env = $5 AND f.state = ANY($2::text[])
           AND NOT EXISTS (SELECT 1 FROM unnest($3::text[], $4::text[]) AS s(state, url) WHERE s.state = f.state AND s.url = f.url)`,
@@ -158,6 +169,6 @@ export async function 다봄(서비스: number, env: string, seen: { state: 상�
           AND NOT EXISTS (SELECT 1 FROM unnest($3::text[], $4::text[]) AS s(state, url) WHERE s.state = r.state AND s.url = r.url)`,
       값,
     );
-    return r.rowCount ?? 0;
+    return { deleted: r.rowCount ?? 0, viewport: 판정 };
   });
 }

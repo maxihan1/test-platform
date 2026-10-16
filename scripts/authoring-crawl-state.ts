@@ -5,10 +5,10 @@ import { join } from 'node:path';
 
 import type { Browser } from '@playwright/test';
 
-import { 칸줄, 누르기, 보기, 읽기, 열기, 창수, 확인창누르기, 후보모으기, type 본것 } from './authoring-crawl-page.js';
+import { 칸줄, 누르기, 모바일견주기, 보기, 읽기, 열기, 창수, 확인창누르기, 후보모으기, type 본것 } from './authoring-crawl-page.js';
 import { type 누름종류, 누를까, 누름키, 로그아웃인가, 연결이름, 탈퇴말인가, 탈퇴주소인가 } from './authoring-crawl-press.js';
-import { type 목록항목, 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 부모키, 빼는주소인가, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
-import { type 들은API, type 인자, API더하기, API듣기, 로그인돌리기, 새쪽, 폴더이름 } from './authoring-crawl-session.js';
+import { 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 부모키, 빼는주소인가, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
+import { type 들은API, type 인자, type 연결, type 판, API더하기, API듣기, 로그인돌리기, 새쪽, 폴더이름 } from './authoring-crawl-session.js';
 import type { 상태 } from './authoring-screens-keep.js';
 
 const 간격 = 1_000; // 운영 서버도 돈다 — 한 장씩, 1초 이상 띄운다
@@ -19,30 +19,6 @@ const 화면누름상한 = 30; // 버튼이 수백 개인 화면 하나가 시�
 const 다시로그인상한 = 3; // 누를 때마다 로그아웃되는 사이트에서 돌고 돌지 않게
 const 연결상한 = 1_000; // 화면 하나에서 나간 연결 — 서버 상한과 같다(§7 PUT …/screens)
 
-export interface 본화면 extends 목록항목 {
-  최종: string;
-  지문: string;
-  글자지문: string;
-  짧음: boolean;
-  로그인풀림: boolean;
-  입력칸: 본것['입력칸'];
-  링크수: number;
-}
-export interface 연결 { to: string; via: string }
-export interface 판 {
-  본: 본화면[];
-  /** 본 화면 번호 → 나간 연결(키 `to via`) */
-  연결: Map<number, Map<string, 연결>>;
-  /** 본 화면 번호 → 그 화면을 열 때와 그 화면에서 누를 때 들은 API (PRD-F10-05) */
-  API: Map<number, 들은API>;
-  걸러짐: Map<string, { 글자: string; 까닭: string }>;
-  잘림: number;
-  연속오류: number;
-  멈춘까닭: string | null;
-  누를것: number;
-  누름: number;
-  다시로그인: number;
-}
 interface 누를일 { 본번: number; 주소: string; 틀: string; 키: string; 이름: string; 종류: 누름종류; 로그아웃: boolean; 탈퇴: boolean }
 
 const 쉬기 = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -50,6 +26,7 @@ const 쉬기 = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자, 몫: { 장: number; 마감: number }, 판: 판): Promise<void> {
   const 상태파일 = 상태 === '로그아웃' ? undefined : a.역할상태.get(상태);
   let { 맥락, 쪽 } = await 새쪽(브라우저, 상태파일);
+  let 모바일 = await 새쪽(브라우저, 상태파일, true); // 화면 크기 판정 — 같은 로그인 상태로 (PRD-F10-07)
   const 들은: 들은API = new Map();
   API듣기(쪽, 들은);
   const 출처 = new URL(a.주소들[0]!).origin;
@@ -85,12 +62,14 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     이번다시로그인++;
     판.다시로그인++;
     await 맥락.close();
+    await 모바일.맥락.close();
     const 까닭 = 로그인돌리기(a.로그인!, 상태파일!, 상태.slice('로그인:'.length));
     if (까닭 !== null) {
       console.error(`크롤: 다시 로그인 못 함 — ${까닭}`);
       return false;
     }
     ({ 맥락, 쪽 } = await 새쪽(브라우저, 상태파일));
+    모바일 = await 새쪽(브라우저, 상태파일, true);
     API듣기(쪽, 들은);
     return true;
   };
@@ -276,7 +255,15 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
       판.연속오류 = 본.상태코드 === 429 || 본.상태코드 >= 500 ? 판.연속오류 + 1 : 0;
       // 다른 주소에서 뺄 경로로 넘겨졌으면(리다이렉트) 그 화면도 남기지 않는다
       if (빼는주소인가(본.최종, a.뺄)) continue;
-      if ((await 남기기(주소, 틀, 본)) === 'ok') continue;
+      const 앞수 = 판.본.length;
+      if ((await 남기기(주소, 틀, 본)) === 'ok') {
+        // 링크로 연 새 화면만 모바일로도 연다 — 못 열면 null(판정에서 빠진다). 누른 뒤 열린 화면은 안 연다(모바일 칸이 없다)
+        if (판.본.length > 앞수) {
+          판.본.at(-1)!.모바일 = await 모바일견주기(모바일.쪽, 주소, 본);
+          await 쉬기(간격);
+        }
+        continue;
+      }
       // 로그인이 풀렸다 — 다시 로그인해 그 화면을 한 번 더 연다. 다시 연 화면도 풀림이면 그 화면만 빼고 간다(로그인 칸이 있는 화면이다)
       if (!다시본.has(주소) && (await 다시로그인())) {
         다시본.add(주소);
@@ -294,6 +281,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     }
   } finally {
     await 맥락.close();
+    await 모바일.맥락.close();
   }
 }
 

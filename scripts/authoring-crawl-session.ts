@@ -3,9 +3,12 @@
 import { spawnSync } from 'node:child_process';
 import { readFileSync, statSync } from 'node:fs';
 
-import type { Browser, BrowserContext, Page } from '@playwright/test';
+import { type Browser, type BrowserContext, type Page, devices } from '@playwright/test';
 
 import { 환경비밀번호들 } from './authoring-accounts.js';
+import type { 본것 } from './authoring-crawl-page.js';
+import type { 목록항목 } from './authoring-crawl-rules.js';
+import type { 화면차이 } from './authoring-crawl-viewport.js';
 import type { 상태, 저장본 } from './authoring-screens-keep.js';
 
 export interface 인자 {
@@ -29,6 +32,33 @@ export interface 인자 {
   케이스지도: Map<string, string[]> | null;
 }
 
+/** 본 화면 — 크롤러가 화면마다 남기는 것 (authoring-crawl-state.ts 가 300줄을 넘어 여기로 옮겼다) */
+export interface 본화면 extends 목록항목 {
+  최종: string;
+  지문: string;
+  글자지문: string;
+  짧음: boolean;
+  로그인풀림: boolean;
+  입력칸: 본것['입력칸'];
+  링크수: number;
+  /** 모바일로 견준 차이 — 링크로 연 화면만. 못 열었으면 null (PRD-F10-07) */
+  모바일?: 화면차이 | null;
+}
+export interface 연결 { to: string; via: string }
+export interface 판 {
+  본: 본화면[];
+  /** 본 화면 번호 → 나간 연결(키 `to via`) */
+  연결: Map<number, Map<string, 연결>>;
+  /** 본 화면 번호 → 그 화면을 열 때와 그 화면에서 누를 때 들은 API (PRD-F10-05) */
+  API: Map<number, 들은API>;
+  걸러짐: Map<string, { 글자: string; 까닭: string }>;
+  잘림: number;
+  연속오류: number;
+  멈춘까닭: string | null;
+  누를것: number;
+  누름: number;
+  다시로그인: number;
+}
 /** 크롤 파일 폴더 — 역할끼리는 `로그인/` 하나를 같이 쓴다(크롤 번호가 상태를 넘어 하나씩 늘어 안 겹친다) */
 export const 폴더이름 = (상태: 상태): string => (상태 === '로그아웃' ? '로그아웃' : '로그인');
 
@@ -55,9 +85,12 @@ export function API더하기(몫: Map<number, 들은API>, 본번: number, 들은
   몫.set(본번, 칸);
 }
 
-/** 쪽 하나 — 상태 파일이 없으면 로그아웃이다 */
-export async function 새쪽(브라우저: Browser, 상태파일: string | undefined): Promise<{ 맥락: BrowserContext; 쪽: Page }> {
-  const 맥락 = await 브라우저.newContext(상태파일 === undefined ? {} : { storageState: 상태파일 });
+// 실행의 mobile 프로젝트(playwright.config.ts)와 같은 기기 — 크롤러는 chromium 이라 화면 크기 · 터치 · UA 만 흉내 낸다 (PRD-F10-07)
+const { defaultBrowserType: _, ...아이폰 } = devices['iPhone 14'];
+
+/** 쪽 하나 — 상태 파일이 없으면 로그아웃이다. 모바일이면 실행 모바일과 같은 기기 크기 · UA 로 연다 */
+export async function 새쪽(브라우저: Browser, 상태파일: string | undefined, 모바일 = false): Promise<{ 맥락: BrowserContext; 쪽: Page }> {
+  const 맥락 = await 브라우저.newContext({ ...(모바일 ? 아이폰 : {}), ...(상태파일 === undefined ? {} : { storageState: 상태파일 }) });
   // 그림 · 글꼴 · 영상은 받지 않는다 — 구조만 본다
   await 맥락.route('**/*', (r) => (['image', 'font', 'media'].includes(r.request().resourceType()) ? r.abort() : r.continue()));
   const 쪽 = await 맥락.newPage();
