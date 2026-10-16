@@ -16,7 +16,11 @@ const scenarioConfig = resolve(appRoot, 'apps/runner/scenario/playwright.config.
 // 스크린샷 폴더를 kit 을 안 고치고 가른다 — 실제 실행 runs/<runId>/scenario/, 시험 실행 runs/trial/<trialId>/ (SPEC 도메인/러너 §5.2)
 export function scenarioEnv(req: ScenarioExecuteRequest): Record<string, string> {
   const 시험 = req.runId === null;
+  // 창을 띄운 시험 실행만 사람이 눈으로 따라간다. 동작마다 1초 쉬게 한다 (SPEC 도메인/시나리오 §7 「시험 실행 규칙」)
+  const 천천히 = 시험 && process.env.PLATFORM_HEADED === '1';
   return {
+    // 늘 적는다 — 러너를 켠 셸에 이 값이 있으면 자식이 물려받아 진짜 실행까지 늦춘다
+    PLATFORM_SLOW_MO: 천천히 ? '1000' : '',
     PLATFORM_SCENARIO_MODE: '1',
     PLATFORM_SCENARIO: JSON.stringify(req.parts),
     PLATFORM_BASE_URL: req.baseUrl,

@@ -8,6 +8,9 @@ const artifactsDir = process.env.PLATFORM_ARTIFACTS_DIR ?? './artifacts';
 const outputDir = `${artifactsDir}/playwright/${process.env.PLATFORM_OUTPUT_ID ?? 'local'}`;
 // 러너가 정식 실행에만 켠다. 단계 스크린샷이 이미 있어 화면 녹화 · 소스는 뺀다 (도메인/실행 §3.2 「trace」)
 const trace = process.env.PLATFORM_TRACE === '1' ? { trace: { mode: 'on', snapshots: true, screenshots: false, sources: false } as const } : {};
+// 러너가 창을 띄운 E2E 시험 실행에만 준다. 사람이 눈으로 따라가게 동작마다 쉰다 (도메인/시나리오 §7 「시험 실행 규칙」)
+const slowMoMs = Number(process.env.PLATFORM_SLOW_MO);
+const slowMo = slowMoMs > 0 ? { launchOptions: { slowMo: slowMoMs } } : {};
 
 export default defineConfig({
   testDir: testsDir,
@@ -23,7 +26,7 @@ export default defineConfig({
   metadata: { slowApi: process.env.PLATFORM_SLOW_API === '1' },
   // 러너가 실행마다 PLATFORM_BASE_URL 로 넘긴다. 한 번 정하는 설정이 아니라 실행마다 바뀌는 값이다 (§5.2)
   // 내 컴퓨터 러너(npm run runner:local)만 창을 띄운다. 컨테이너 러너는 이 값이 없어 그대로 headless 다
-  use: { baseURL: process.env.PLATFORM_BASE_URL, ...(process.env.PLATFORM_HEADED === '1' ? { headless: false } : {}), ...trace },
+  use: { baseURL: process.env.PLATFORM_BASE_URL, ...(process.env.PLATFORM_HEADED === '1' ? { headless: false } : {}), ...slowMo, ...trace },
   projects: [
     // 이름이 Platform 타입 값과 철자까지 같아야 한다. 러너가 그대로 --project 인자로 넘긴다
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
