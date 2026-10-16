@@ -42,7 +42,7 @@ export function 멈출수있나(status: string, 할수: 판정): boolean {
 /** 서버가 사람의 중단을 이 값으로 저장한다 (`store.ts` 의 `CLOSE_UNFINISHED`) */
 const 사람이멈춤 = 'ABORTED';
 /** 러너가 케이스 제한 시간에 끊은 항목을 이 값으로 돌려준다 (`runner/src/execute.ts` 의 `killedResponse`) */
-const 시간초과 = 'TIMEOUT';
+export const 시간초과 = 'TIMEOUT';
 
 /**
  * 돌지 못한 항목 옆에 적을 사유 (SPEC §8.3).

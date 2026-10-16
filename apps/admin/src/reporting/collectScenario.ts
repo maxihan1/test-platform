@@ -82,7 +82,7 @@ function 케이스항목(runId: number, p: ScenarioRunPart, platform: Platform, 
     attempt: 1,
     status: 안돌았다 ? 'NOT_RUN' : p.status,
     durationMs: 안돌았다 ? null : p.durationMs,
-    notRunReason: 판정못냄 && p.error !== null ? 멈춘사유글자(p.error.message, 'ko') : null,
+    notRunReason: 판정못냄 ? 멈춘사유글자(p.error?.message ?? '', 'ko') : null,
     unconfirmed: p.unconfirmed,
     precondition: p.precondition,
     // 결과 화면처럼 꽂은 값을 입력 칸에 겹쳐 보인다. 가리기는 서버 응답이 이미 했고 toFields 가 한 번 더 한다

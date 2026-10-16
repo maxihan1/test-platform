@@ -121,7 +121,7 @@ export function ScenarioResultPart({
         <세부 라벨={t('실행이 멈춘 사유')}>{멈춘사유글자(part.error.message, 언어)}</세부>
       )}
       {part.status !== 'FAIL' || part.error === null || part.error.message === '' ? null : (
-        <pre className="scn-error">{part.error.message}</pre>
+        <pre className="scn-error">{멈춘사유글자(part.error.message, 언어)}</pre>
       )}
 
       {part.steps.length === 0 ? null : (

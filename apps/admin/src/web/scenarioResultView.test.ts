@@ -86,6 +86,7 @@ describe('멈춘사유글자', () => {
   it('러너 · 서버 상태 코드는 사람 말로, 그 밖의 문장은 그대로', () => {
     expect(멈춘사유글자('TIMEOUT', 'ko')).toBe('제한 시간 초과');
     expect(멈춘사유글자('ABORTED', 'ko')).toBe('서버 재시작으로 멈춤');
+    expect(멈춘사유글자('TIMEOUT', 'en')).toBe('Timed out');
     expect(멈춘사유글자('ABORTED', 'en')).toBe('Stopped by a server restart');
     expect(멈춘사유글자('러너가 이 단계 결과를 돌려주지 않았다', 'ko')).toBe('러너가 이 단계 결과를 돌려주지 않았다');
   });
