@@ -1,10 +1,12 @@
 // 시나리오 실행을 러너에 맡기고 결과를 부품·절차에 적어 실행을 닫는다 (SPEC 도메인/시나리오 §7 「실행 결과를 적는 규칙」)
 
-import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
+import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPart, ScenarioPartResult } from '@platform/kit';
 import type { Pool, PoolClient } from 'pg';
 
 import { enqueue } from '../execution/dispatcher.js';
 import { callScenarioRunner } from '../execution/runner.js';
+
+import { type 부품기록, 부품비밀, 실패부품trace, 시나리오trace경로 } from './runTrace.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -35,8 +37,22 @@ export async function 결과저장(runId: number, 응답: ScenarioExecuteRespons
   }
 }
 
+// 꽂은 값(bound)은 응답에서야 안다. 결과 조회(runRoutes.ts)와 같은 비밀 목록으로 가린 뒤 넣는다 — DB 에는 가린 값만 들어간다
+async function 실패기록(pool: Pool, runId: number, 응답: ScenarioExecuteResponse): Promise<Map<number, 부품기록>> {
+  const 재료 = await pool.query<{ seq: number; part: ScenarioPart; param_schema: unknown; expected_schema: unknown }>(
+    'SELECT seq, part, param_schema, expected_schema FROM scenario_run_part WHERE run_id = $1',
+    [runId],
+  );
+  const 꽂은값 = new Map(응답.parts.map((p) => [p.seq, p.bound ?? {}]));
+  const 비밀 = 부품비밀(재료.rows.map((r) => ({ ...r, bound: 꽂은값.get(r.seq) ?? {} })));
+  return 실패부품trace(시나리오trace경로({ runId }), 응답, 비밀);
+}
+
 async function 적는다(runId: number, 응답: ScenarioExecuteResponse): Promise<boolean> {
-  const c = await (await db()).connect();
+  const pool = await db();
+  // 트랜잭션 밖에서 푼다 — zip 을 푸는 동안 실행 행을 잡고 있지 않게
+  const 기록들 = await 실패기록(pool, runId, 응답);
+  const c = await pool.connect();
   try {
     await c.query('BEGIN');
     // 실행 행을 먼저 RUNNING 조건으로 닫는다. 재기동 복구가 ABORTED 로 닫은 실행을 늦은 결과가 덮지 않게 한다
@@ -72,7 +88,7 @@ async function 적는다(runId: number, 응답: ScenarioExecuteResponse): Promis
         );
         continue;
       }
-      await 부품적기(c, 행.id, 결과);
+      await 부품적기(c, 행.id, 결과, 기록들.get(행.seq) ?? null);
     }
 
     // 뒷정리는 실행 한 벌로 온다. 러너가 그 부품 결과를 안 줬어도 이미 보낸 삭제는 그 행에 남아야 한다 (§7)
@@ -101,10 +117,10 @@ async function 적는다(runId: number, 응답: ScenarioExecuteResponse): Promis
   }
 }
 
-async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartResult): Promise<void> {
+async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartResult, 기록: 부품기록 | null): Promise<void> {
   await c.query(
     `UPDATE scenario_run_part SET status = $2, duration_ms = $3, error = $4, mocks = $5, skipped_steps = $6, bound = $7,
-                                  finished_at = now()
+                                  trace = $8, finished_at = now()
       WHERE id = $1`,
     [
       partId,
@@ -114,6 +130,7 @@ async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartR
       JSON.stringify(결과.mocks),
       JSON.stringify(결과.steps.filter((s) => s.skipped === true).map((s) => s.title)),
       JSON.stringify(결과.bound ?? {}),
+      기록 === null ? null : JSON.stringify(기록),
     ],
   );
   // execution/store.ts 의 run_item_step 넣기와 같은 모양이다. 건너뜀 칸이 하나 더 있다

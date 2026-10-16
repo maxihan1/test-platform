@@ -1,18 +1,18 @@
 // E2E 시나리오 시험 실행의 상태 — 시작 · 2초마다 묻기 · sessionStorage 에 시험 번호 두기 · 화면을 다시 열면 이어 묻기
 
-import type { ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
+import type { ScenarioPart } from '@platform/kit';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ApiError, type Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
-import { scenarioApi } from './scenarioApi.js';
+import { scenarioApi, type TrialResult } from './scenarioApi.js';
 import { message } from './ui.js';
 
 export interface 시험상태 {
   단계: 'idle' | 'running' | 'done' | 'failed';
   trialId: string | null;
   env: string;
-  결과: ScenarioExecuteResponse | null;
+  결과: TrialResult | null;
   오류문장: string | null;
 }
 

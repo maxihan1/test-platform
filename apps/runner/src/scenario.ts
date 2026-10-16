@@ -2,14 +2,15 @@
 // 진행 알림과 중단 통로는 없다 — 둘 다 historyId 로 지목하는데 시나리오에는 그것이 없다. 그래서 running 지도에 안 올린다
 
 import { spawn } from 'node:child_process';
-import { resolve } from 'node:path';
+import { copyFile, mkdir, readdir, rename, unlink } from 'node:fs/promises';
+import { basename, dirname, resolve } from 'node:path';
 
 import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
 import { SCENARIO_CLEANUP_MARKER, SCENARIO_PART_MARKER } from '@platform/kit/scenario';
 
 import { appRoot, tail } from './execute.js';
 import { killTree } from './kill.js';
-import { 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
+import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
 
 const scenarioConfig = resolve(appRoot, 'apps/runner/scenario/playwright.config.ts');
 
@@ -27,7 +28,37 @@ export function scenarioEnv(req: ScenarioExecuteRequest): Record<string, string>
     PLATFORM_DELETE_STATUSES: JSON.stringify(req.deleteStatuses ?? []),
     PLATFORM_RUN_ID: 시험 ? 'trial' : String(req.runId),
     PLATFORM_HISTORY_ID: 시험 ? (req.trialId ?? '') : 'scenario',
+    // 실패한 부품의 네트워크 · 조작 · 콘솔을 admin 이 푼다. 시험 실행도 켠다 — 결과 화면이 같은 자리에 보인다 (도메인/시나리오 §7 「실패 기록」)
+    PLATFORM_TRACE: '1',
   };
+}
+
+/** 사진 옆 자리 — admin 이 여기서 푼다. 실제 실행 runs/<runId>/scenario/, 시험 실행 runs/trial/<trialId>/ */
+export function scenarioTraceDest(req: Pick<ScenarioExecuteRequest, 'runId' | 'trialId'>): string {
+  const 자리 = req.runId === null ? ['trial', req.trialId ?? ''] : [String(req.runId), 'scenario'];
+  return resolve(산출물폴더(), 'runs', ...자리, 'trace.zip');
+}
+
+// 케이스는 kit 리포터가 옮기지만 시나리오 리포터는 kit 값을 못 불러온다(reporter.ts 머리). 테스트가 하나라 출력 폴더에 zip 도 하나다.
+// 못 옮겨도 판정은 그대로다 — admin 이 「기록 없음」으로 보인다
+export async function trace를옮긴다(출력: string, req: ScenarioExecuteRequest): Promise<void> {
+  const 폴더 = resolve(산출물폴더(), 'playwright', 출력);
+  const 이름 = (await readdir(폴더, { recursive: true }).catch(() => [] as string[])).find((n) => basename(n) === 'trace.zip');
+  if (이름 === undefined) return;
+  const 갈곳 = scenarioTraceDest(req);
+  try {
+    await mkdir(dirname(갈곳), { recursive: true });
+    try {
+      await rename(resolve(폴더, 이름), 갈곳);
+    } catch (err) {
+      // 출력 폴더와 runs 폴더가 다른 디스크면 옮기기가 안 된다. 그때만 복사한다
+      if ((err as NodeJS.ErrnoException).code !== 'EXDEV') throw err;
+      await copyFile(resolve(폴더, 이름), 갈곳);
+      await unlink(resolve(폴더, 이름));
+    }
+  } catch (err) {
+    console.warn(`[runner] 시나리오 trace 를 옮기지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  }
 }
 
 // 줄 맨 앞의 표시자만 읽는다. kit 이 흘리는 진행 줄(@@PROGRESS@@)은 historyId 가 숫자가 아니라 여기서 버린다.
@@ -148,6 +179,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
     child.on('error', fail);
     child.on('close', done);
   }).finally(() => clearTimeout(timer));
+  await trace를옮긴다(출력, req);
   await 출력폴더를지운다(출력);
 
   // 부품 줄이 다 PASS 인데 자식이 0 아닌 코드로 끝났다 — 뒷정리에서 났다. 판정은 부품 줄이 정본이라 남기기만 한다

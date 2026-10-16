@@ -120,4 +120,31 @@ describe('단계 줄', () => {
     expect(고리[0]?.getAttribute('target')).toBe('_blank');
     expect(고리[0]?.getAttribute('rel')).toBe('noreferrer');
   });
+
+  it('실패 단계에 화면 오류 한 줄과 네트워크 · 조작 · 콘솔 — 오류가 든 콘솔 탭이 「실패만」으로 열린다', async () => {
+    const trace = {
+      status: 'DONE' as const,
+      reason: null,
+      network: [{ seq: 5, atMs: 10, method: 'GET', url: '/api/cart', status: 200, resourceType: 'fetch', durationMs: 3, failure: null, requestBody: null, responseBody: null }],
+      actions: [{ seq: 5, atMs: 12, title: 'Click', target: 'getByRole(\'button\')', value: null, durationMs: 4, error: null }],
+      console: [{
+        seq: 5, atMs: 20, level: 'pageerror', url: null,
+        text: "TypeError: Cannot read properties of null (reading 'innerHTML')\n    at busy (http://localhost:4100/js/common.js:71:9)",
+      }],
+    };
+    연다(결과({ parts: [{ ...결제, trace }, 부품(4, { trace: null })] }));
+    await screen.findByText('단계별 결과');
+    const 결제줄 = 줄('XSX-003');
+    expect(within(결제줄).getByText('화면 오류')).toBeTruthy();
+    expect(within(결제줄).getByText("Cannot read properties of null (reading 'innerHTML') at busy (common.js:71)")).toBeTruthy();
+    expect(within(결제줄).getByRole('tab', { name: /콘솔/ }).getAttribute('aria-selected')).toBe('true');
+    expect(within(줄('XSX-004')).queryByText('네트워크 · 조작 · 콘솔')).toBeNull();
+  });
+
+  it('기록이 없는 실패 단계는 칸 없이 사유만', async () => {
+    연다(결과({ parts: [{ ...결제, trace: { status: 'NONE', reason: null, network: [], actions: [], console: [] } }] }));
+    await screen.findByText('단계별 결과');
+    expect(within(줄('XSX-003')).queryByText('화면 오류')).toBeNull();
+    expect(within(줄('XSX-003')).getByText('trace 없음')).toBeTruthy();
+  });
 });

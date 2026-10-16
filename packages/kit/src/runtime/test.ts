@@ -132,6 +132,8 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       capture: (s) => capture(page, s),
       emit: async (result) => {
         steps.push(result);
+        // trace 를 단계로 가르는 경계다. 한 zip 에 부품이 다 섞여 이것 없이는 admin 이 실패 부품 몫을 못 뗀다 (도메인/시나리오 §7 「실패 기록」)
+        if (process.env.PLATFORM_TRACE === '1') await emit(base.info(), result);
       },
     };
 

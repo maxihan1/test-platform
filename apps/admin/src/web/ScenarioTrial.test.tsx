@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
 // E2E 시나리오 시험 실행 검사 ① — 시작 전 막기 · 결과 탭 · 왼쪽 요약 (도메인/시나리오 §8.11)
 
-import type { ScenarioExecuteResponse } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { 떠나기막기 } from './leaveGuard.js';
-import { scenarioApi } from './scenarioApi.js';
+import { scenarioApi, type TrialResult } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
 import { 서비스, 사람, 케이스단계, 단계셋, 실패결과, 통과결과, 기존그리기, 서버고르기, 탭 } from './ScenarioTrial.fixture.js';
 
@@ -94,7 +93,7 @@ describe('시험 실행 시작 전 막기', () => {
 });
 
 describe('시험 결과 탭 · 왼쪽 요약', () => {
-  async function 끝낸것(결과: ScenarioExecuteResponse) {
+  async function 끝낸것(결과: TrialResult) {
     sessionStorage.setItem('scn-trial:12', JSON.stringify({ trialId: 't-1', env: 'stg' }));
     vi.spyOn(scenarioApi, 'trial').mockResolvedValue({ status: 'FINISHED', result: 결과 });
     const 것 = await 기존그리기();
@@ -123,6 +122,18 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     fireEvent.click(screen.getByRole('button', { name: '자세히' }));
 
     expect(탭(container)).toBe('trial');
+  });
+
+  it('실패한 단계 아래에 화면 오류 한 줄과 네트워크 · 조작 · 콘솔', async () => {
+    const console = [{ seq: 5, atMs: 1, level: 'pageerror', url: null, text: 'TypeError: 터짐\n    at busy (http://x/js/common.js:71:9)' }];
+    const [첫, 둘, 셋] = 실패결과.parts;
+    await 끝낸것({ ...실패결과, parts: [첫!, { ...둘!, trace: { status: 'DONE', reason: null, network: [], actions: [], console } }, 셋!] });
+    fireEvent.click(screen.getByRole('button', { name: '자세히' }));
+
+    const 줄들 = within(document.getElementById('scn-tabpanel')!).getAllByRole('listitem');
+    expect(within(줄들[1]!).getByText('터짐 at busy (common.js:71)')).toBeTruthy();
+    expect(within(줄들[1]!).getByText('네트워크 · 조작 · 콘솔')).toBeTruthy();
+    expect(within(줄들[0]!).queryByText('네트워크 · 조작 · 콘솔')).toBeNull();
   });
 
   it('시험 결과 줄에 케이스는 번호와 이름이 붙고 다른 단계는 요약이 붙는다', async () => {

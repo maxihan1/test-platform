@@ -1,10 +1,11 @@
 // E2E 시나리오 시험 실행의 화면 조각 — 머리의 대상 서버 · 버튼, 왼쪽 요약, 오른쪽 시험 결과 탭 (도메인/시나리오 §8.11)
 
-import type { ScenarioExecuteResponse, ScenarioPart, ScenarioPartResult } from '@platform/kit';
+import type { ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
 
 import type { EnvRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
-import { scenarioApi } from './scenarioApi.js';
+import { scenarioApi, type TrialResult } from './scenarioApi.js';
+import { PartTrace } from './ScenarioResultPart.js';
 import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 가리킴빈곳, 종류글, 카드요약, type 재료들 } from './scenarioView.js';
 import { seconds, Verdict } from './ui.js';
@@ -123,7 +124,7 @@ function TrialRow({
   재료,
   trialId,
 }: {
-  part: ScenarioPartResult;
+  part: TrialResult['parts'][number];
   단계: ScenarioPart | undefined;
   재료: 재료들;
   trialId: string | null;
@@ -163,6 +164,7 @@ function TrialRow({
         </span>
       </div>
       {part.status !== 'FAIL' || 사유 === '' ? null : <pre className="scn-error">{사유}</pre>}
+      {part.status !== 'FAIL' || part.trace === undefined ? null : <PartTrace trace={part.trace} />}
       {part.status !== 'NA' || 안돌았다 || 사유 === '' ? null : (
         <div className="scn-detail">
           <span className="scn-k">{t('실행이 멈춘 사유')}</span>
