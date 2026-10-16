@@ -1,7 +1,6 @@
 // 병합 직전에 PR 의 바뀐 파일을 어떻게 읽고 언제 병합을 막는지 정하는 순수 함수 검사
 import { describe, expect, it, vi } from 'vitest';
 
-import { 올린파일인자 } from './authoring-chain.js';
 import { 병합직전막힘 } from './authoring-merge-files.js';
 
 describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
@@ -22,17 +21,6 @@ describe('병합 직전 막힘 — 앞 단계가 먼저 걸린다', () => {
     expect(병합직전막힘({ ...통과, 목록, 테스트만 })).toBeNull();
     expect(목록).toHaveBeenCalledWith(sha, 머리sha);
     expect(테스트만).toHaveBeenCalledWith(['tests/a/A-001.spec.ts'], sha);
-  });
-
-  it('diff 는 이름 바꾼 파일의 옛 경로도 내고 머리 커밋을 집는다', () => {
-    expect(올린파일인자(sha, 머리sha)).toEqual([
-      '-c',
-      'core.quotePath=false',
-      'diff',
-      '--name-only',
-      '--no-renames',
-      `${sha}...${머리sha}`,
-    ]);
   });
 
   it('3000 개가 넘어도 다 판정한다 — 파일 API 상한이 없어졌다', () => {

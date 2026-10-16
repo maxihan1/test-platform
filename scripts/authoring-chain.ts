@@ -187,8 +187,9 @@ export function 푸시거부사유(테스트만인가: boolean, 바뀐파일: st
  * 맥이 커밋한 **뒤에** 다시 본다. push 는 `HEAD` 라 `status` 로 본 것 말고 **자식이 몰래 만든 커밋**까지 올라간다.
  * 그래서 진짜 main SHA 와의 차이 전체를 판정하고, 커밋이 맥의 것 하나가 아니면 거부한다.
  */
+// 바꿔치기 기록(refs/replace)을 끈다 — 맥에서는 자식이 저장소 .git 에 써서 diff 가 다른 커밋을 보게 할 수 있다
 export function 올린파일인자(기준: string, 머리 = 'HEAD'): string[] {
-  return ['-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', `${기준}...${머리}`];
+  return ['--no-replace-objects', '-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', `${기준}...${머리}`];
 }
 export function 커밋수인자(기준: string): string[] {
   return ['rev-list', '--count', `${기준}..HEAD`];

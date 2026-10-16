@@ -222,8 +222,9 @@ export function 진짜main받기(cwd: string, 선택: 칠때 = {}): { sha: strin
   return 커밋받기(cwd, 물음.sha, 'main', 선택);
 }
 
-/** 커밋이 로컬에 없으면 받아 둔다 */
+/** 커밋이 로컬에 없으면 받아 둔다. SHA 꼴만 받는다 — 빈 값이나 `-` 로 시작하는 값이 git 인자로 읽히지 않게 */
 export function 커밋받기(cwd: string, sha: string, 이름: string, 선택: 칠때 = {}): { sha: string } | { 까닭: string } {
+  if (!/^[0-9a-f]{40}$/.test(sha)) return { 까닭: `${이름} 이 커밋 SHA 꼴이 아니다 (${sha})` };
   if (친다('git', ['cat-file', '-e', `${sha}^{commit}`], cwd).ok) return { sha };
   // 서버 저장소에 쓰므로 호스트 계정으로 받는다 — root 로 받으면 사람이 git pull 을 못 한다
   const 받기 = 친다('git', ['fetch', 'origin', sha], cwd, undefined, 120_000, 선택);

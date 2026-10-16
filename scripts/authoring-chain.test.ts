@@ -199,7 +199,16 @@ describe('커밋 뒤 판정 — 자식이 몰래 커밋한 것까지 본다', ()
 
   it('차이는 이름 바꾸기를 풀어 진짜 main SHA 부터 HEAD 까지 전부 본다', () => {
     const 기준 = 'b'.repeat(40);
-    expect(올린파일인자(기준)).toEqual(['-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', `${기준}...HEAD`]);
+    expect(올린파일인자(기준)).toEqual([
+      '--no-replace-objects',
+      '-c',
+      'core.quotePath=false',
+      'diff',
+      '--name-only',
+      '--no-renames',
+      `${기준}...HEAD`,
+    ]);
+    expect(올린파일인자(기준, 'c'.repeat(40)).at(-1)).toBe(`${기준}...${'c'.repeat(40)}`);
     expect(커밋수인자(기준)).toEqual(['rev-list', '--count', `${기준}..HEAD`]);
   });
 });

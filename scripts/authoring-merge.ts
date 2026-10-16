@@ -188,7 +188,8 @@ export async function 머지처리(
   // 케이스만 바꾼 PR 인지 병합 직전에 다시 본다. 판정 규칙은 켤 때 고정한 cases-only.mjs 이고
   // 기준은 GitHub 이 지금 말하는 main 이다 — 로컬 origin/main 은 자식이 옮겨 놓았을 수 있다
   const 메인 = await 한번에하나(async () => 진짜main받기(뿌리, 호스트로));
-  const 머리 = await 한번에하나(async () => 커밋받기(뿌리, pr.headRefOid, 'PR 머리', 호스트로));
+  // main 을 못 받았으면 머리를 받지 않는다 — 동기 fetch 가 생존 신호를 쓸데없이 막는다
+  const 머리 = '까닭' in 메인 ? 메인 : await 한번에하나(async () => 커밋받기(뿌리, pr.headRefOid, 'PR 머리', 호스트로));
   const 막힘 = 병합직전막힘({
     메인,
     머리,
