@@ -135,6 +135,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     사진뿌리 = await mkdtemp(join(tmpdir(), 'xst-art-'));
     process.env.PLATFORM_TESTS_DIR = 뿌리;
     process.env.PLATFORM_ARTIFACTS_DIR = 사진뿌리;
+    vi.stubEnv('LOCAL_RUNNER_URL', '');
     await mkdir(join(뿌리, 'xst'));
     await writeFile(join(뿌리, 'xst', 'a.spec.ts'), 소스);
 
@@ -182,6 +183,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
 
   afterAll(async () => {
     await 러너.close();
+    vi.unstubAllEnvs();
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await q('DELETE FROM case_input WHERE tc_id = ANY($1)', [번호들]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);

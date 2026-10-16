@@ -8,7 +8,7 @@ import type { Pool } from 'pg';
 
 import { findService } from '../catalog/store.js';
 import { enqueue } from '../execution/dispatcher.js';
-import { callScenarioRunner } from '../execution/runner.js';
+import { callScenarioRunner, 켜진내컴퓨터러너 } from '../execution/runner.js';
 import { artifactsDir } from '../execution/routes.js';
 import { 대상서버계정 } from '../execution/savedInput.js';
 import { 가린다, 긴것부터, 비밀글자들, 시나리오시험 } from '../execution/trial.js';
@@ -123,6 +123,7 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
         const 시작 = Date.now();
         // 줄 한 자리를 최대 60분 쥔다. 누가 쥐었는지 운영자가 로그로 알 수 있게 한다
         console.info(`[scenario-trial] 시작 ${id} · ${사람.username} · ${본문.service}`);
+        const 내러너 = await 켜진내컴퓨터러너();
         const 응답 = await callScenarioRunner({
           runId: null,
           trialId: id,
@@ -132,8 +133,8 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
           timeoutMs: 시나리오제한시간(본문.parts),
           // 줄에서 기다리는 사이 trace 적재가 코드를 바꿀 수 있어 돌기 직전에 읽는다
           deleteStatuses: await 삭제코드를읽는다(서비스.id),
-        });
-        console.info(`[scenario-trial] 끝 ${id} · ${사람.username} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
+        }, 내러너);
+        console.info(`[scenario-trial] 끝 ${id} · ${내러너 === undefined ? '서버 러너' : '내 컴퓨터 러너'} · ${사람.username} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
         return 꽂은값가리기(응답, 본문.parts, 부품재료, 비밀);
       }),
     비밀,
