@@ -144,6 +144,20 @@ describe('케이스 포착 — 요구사항 표 출처 칸', () => {
     expect([...(채점.케이스포착 ?? [])].sort()).toEqual(['REQ-MEM-001', 'REQ-MEM-003']);
   });
 
+  it('버튼 반응 줄은 첫 번호(화면을 잡는 요구)만 빼고 뒤 번호는 센다', () => {
+    const 버튼표 = ['## 요구사항', '', '| 요구 | 축 | 출처 | tcId |', '|---|---|---|---|', '| 1 | UI | MKT-REQ-001 · MKT-REQ-005 · 버튼 반응 — 가입 | MKT-UI-004 |'].join('\n');
+    const r = 채점하기(
+      [
+        항목('MKT-REQ-001', [{ from: '기획서', ref: 'REQ-MEM-001', quote: 'a' }]),
+        항목('MKT-REQ-005', [{ from: '기획서', ref: 'REQ-MEM-002', quote: 'b' }]),
+      ],
+      정답,
+      [],
+      버튼표,
+    );
+    expect([...(r.케이스포착 ?? [])]).toEqual(['REQ-MEM-002']);
+  });
+
   it('오류 추정 줄만 덮은 요구는 케이스 포착이 아니다 — PRD 포착에는 남는다', () => {
     expect(채점.케이스포착?.has('REQ-MEM-002')).toBe(false);
     expect(채점.prd포착.has('REQ-MEM-002')).toBe(true);

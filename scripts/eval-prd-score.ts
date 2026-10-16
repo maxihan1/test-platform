@@ -3,7 +3,7 @@
 
 import type { PrdItem } from '@platform/kit/types';
 
-import { 표읽기 } from './authoring-ledger-check.js';
+import { 덮는번호들, 표읽기 } from './authoring-ledger-check.js';
 import { 번호찾기 } from './authoring-ledger.js';
 import { 오류추정줄인가 } from './authoring-slots.js';
 
@@ -94,7 +94,8 @@ export function 채점하기(항목들: PrdItem[], 정답: 정답, 대응: 대�
     for (const 줄 of 표읽기(표, '요구사항')) {
       const 출처 = 줄['출처'] ?? '';
       if (오류추정줄인가(출처)) continue;
-      for (const 번호 of 번호찾기(출처).번호들) {
+      // 버튼 반응 줄은 첫 번호만 화면을 잡는 요구다 — 뒤 번호(반응을 적은 요구)는 그 케이스가 확인한다
+      for (const 번호 of 덮는번호들(출처)) {
         // 옛 표는 출처가 원본 번호 그대로다
         for (const 원본 of 번호표.get(번호) ?? (정답.전체.has(번호) ? [번호] : [])) 케이스포착.add(원본);
       }
