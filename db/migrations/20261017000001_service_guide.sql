@@ -7,7 +7,7 @@
 -- 판에서 빼도 지우지 않는다 — 옛 판 기록이 그 파일을 가리킨다
 CREATE TABLE service_guide_file (
   id               BIGSERIAL   PRIMARY KEY,
-  service_id       BIGINT      NOT NULL REFERENCES service(id) ON DELETE CASCADE,
+  service_id       BIGINT      NOT NULL REFERENCES service(id),
   name             TEXT        NOT NULL,
   size             BIGINT      NOT NULL CHECK (size >= 0),
   uploaded_by      TEXT        NOT NULL,
@@ -18,7 +18,7 @@ CREATE INDEX service_guide_file_service ON service_guide_file (service_id);
 
 -- 가이드. 서비스마다 한 벌이고 바꿀 때마다(글 저장 · 파일 더하기 · 빼기) 한 행이다. 고치지 않는다 (prd_version 본보기)
 CREATE TABLE service_guide_version (
-  service_id    BIGINT      NOT NULL REFERENCES service(id) ON DELETE CASCADE,
+  service_id    BIGINT      NOT NULL REFERENCES service(id),
   version       INTEGER     NOT NULL CHECK (version >= 1),
   intro         TEXT        NOT NULL DEFAULT '',     -- 서비스 소개
   policy        TEXT        NOT NULL DEFAULT '',     -- 정책
