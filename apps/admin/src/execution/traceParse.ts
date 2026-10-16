@@ -1,6 +1,6 @@
 // trace.zip 을 풀어 네트워크 · 조작 · 콘솔 줄로 바꾸는 순수 파서. 가리기 · 저장은 traceIngest.ts 가 한다 (SPEC 도메인/실행 §3.2 「trace」)
 // 형식은 Playwright 가 공개로 약속한 것이 아니다 — 올렸을 때 조용히 비지 않게 traceContract.test.ts 가 진짜 zip 으로 지킨다.
-// 서버 적재와 작성 중 실패 요약(⑩-4)이 같이 쓴다. 이름에 trace.ts 를 안 쓴다 — prd/trace.ts 는 요구사항 추적표다
+// 서버 적재와 작성 중 실패 요약(scripts/authoring-trace.ts)이 같이 쓴다. 이름에 trace.ts 를 안 쓴다 — prd/trace.ts 는 요구사항 추적표다
 
 import JSZip from 'jszip';
 
@@ -35,6 +35,15 @@ export interface 콘솔줄 {
   level: string;
   text: string;
   url: string | null;
+}
+
+/** kit 이 단계마다 남긴 결과(platform-step 첨부). 실패 판정(verify)은 예외가 아니라 여기에만 남는다 — 작성 중 실패 요약이 「값 다름」을 이것으로 가른다 */
+export interface 단계줄 {
+  seq: number;
+  title: string;
+  status: string;
+  error: string | null;
+  failed: { statement: string; expected: unknown; actual: unknown }[];
 }
 
 export interface 풀린trace {
@@ -84,27 +93,13 @@ export async function trace를푼다(zip: Buffer, 설정: { 본문: boolean }): 
   const 시작 = 수(테스트줄.find((l) => l.type === 'context-options')?.monotonicTime) ?? 0;
   const 상대 = (t: number): number => Math.round(t - 시작);
 
-  // 테스트 쪽 호출. callId → before 줄 · after 줄
-  const 앞 = new Map<string, 줄>();
-  const 뒤 = new Map<string, 줄>();
-  for (const l of 테스트줄) {
-    const id = 글(l.callId);
-    if (id === null) continue;
-    if (l.type === 'before') 앞.set(id, l);
-    if (l.type === 'after') 뒤.set(id, l);
-  }
+  const { 앞, 뒤 } = 호출들(테스트줄);
 
   // 단계 경계: platform-step 첨부를 단 때. 그 전에 일어난 일은 그 단계 것이다
-  const 경계: { at: number; seq: number }[] = [];
-  for (const [id, after] of 뒤) {
-    const 첨부 = Array.isArray(after.attachments) ? after.attachments.map(객체) : [];
-    const 파일 = 글(첨부.find((a) => a.name === 'platform-step')?.file);
-    const at = 수(앞.get(id)?.startTime);
-    if (파일 === null || at === null) continue;
-    const seq = 수(줄들((await 읽기(파일)) ?? '')[0]?.seq);
-    if (seq !== null) 경계.push({ at, seq });
-  }
-  경계.sort((a, b) => a.at - b.at);
+  const 경계 = (await 단계첨부들(앞, 뒤, 읽기)).flatMap(({ at, 내용 }) => {
+    const seq = 수(내용.seq);
+    return seq === null ? [] : [{ at, seq }];
+  });
   // 첫 단계는 준비(Before Hooks)가 끝난 뒤 시작한다. 준비 중 일(로그인 fixture 의 API 등)과 마지막 단계 뒤 정리는 단계 밖이다
   const 준비끝 = Math.max(
     -Infinity,
@@ -195,6 +190,55 @@ export async function trace를푼다(zip: Buffer, 설정: { 본문: boolean }): 
 
   const 차례 = <T extends { atMs: number }>(a: T, b: T): number => a.atMs - b.atMs;
   return { network: network.sort(차례), actions: actions.sort(차례), console: 콘솔.sort(차례) };
+}
+
+/** trace.zip 의 단계 결과(platform-step 첨부)를 단계 차례대로. 첨부가 없으면 빈 목록 */
+export async function 단계를읽는다(zip: Buffer): Promise<단계줄[]> {
+  const 묶음 = await JSZip.loadAsync(zip);
+  const 읽기 = async (이름: string): Promise<string | null> => (await 묶음.file(이름)?.async('string')) ?? null;
+  const { 앞, 뒤 } = 호출들(줄들((await 읽기('test.trace')) ?? ''));
+  return (await 단계첨부들(앞, 뒤, 읽기)).flatMap(({ 내용 }): 단계줄[] => {
+    const seq = 수(내용.seq);
+    if (seq === null) return [];
+    const 판정 = Array.isArray(내용.assertions) ? 내용.assertions.map(객체) : [];
+    const 오류 = 글(객체(내용.error).message);
+    return [
+      {
+        seq,
+        title: 글(내용.title) ?? '',
+        status: 글(내용.status) ?? '',
+        error: 오류 === null ? null : 색뺀다(오류),
+        failed: 판정.filter((a) => a.status === 'FAIL').map((a) => ({ statement: 글(a.statement) ?? '', expected: a.expected, actual: a.actual })),
+      },
+    ];
+  });
+}
+
+// 테스트 쪽 호출. callId → before 줄 · after 줄
+function 호출들(테스트줄: 줄[]): { 앞: Map<string, 줄>; 뒤: Map<string, 줄> } {
+  const 앞 = new Map<string, 줄>();
+  const 뒤 = new Map<string, 줄>();
+  for (const l of 테스트줄) {
+    const id = 글(l.callId);
+    if (id === null) continue;
+    if (l.type === 'before') 앞.set(id, l);
+    if (l.type === 'after') 뒤.set(id, l);
+  }
+  return { 앞, 뒤 };
+}
+
+// platform-step 첨부를 단 시각과 그 내용(StepResult 한 줄), 시각 차례
+async function 단계첨부들(앞: Map<string, 줄>, 뒤: Map<string, 줄>, 읽기: (이름: string) => Promise<string | null>): Promise<{ at: number; 내용: 줄 }[]> {
+  const 결과: { at: number; 내용: 줄 }[] = [];
+  for (const [id, after] of 뒤) {
+    const 첨부 = Array.isArray(after.attachments) ? after.attachments.map(객체) : [];
+    const 파일 = 글(첨부.find((a) => a.name === 'platform-step')?.file);
+    const at = 수(앞.get(id)?.startTime);
+    if (파일 === null || at === null) continue;
+    const 내용 = 줄들((await 읽기(파일)) ?? '')[0];
+    if (내용 !== undefined) 결과.push({ at, 내용 });
+  }
+  return 결과.sort((a, b) => a.at - b.at);
 }
 
 // 문맥 trace 의 로그가 「locator resolved to <input … type="password" …>」 이면 그 조작은 비밀번호 칸이다.

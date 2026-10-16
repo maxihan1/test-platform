@@ -3,7 +3,7 @@
 import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 
-import { trace를푼다 } from './traceParse.js';
+import { trace를푼다, 단계를읽는다 } from './traceParse.js';
 
 const j = (...줄: unknown[]): string => 줄.map((l) => JSON.stringify(l)).join('\n');
 
@@ -110,5 +110,31 @@ describe('trace를푼다', () => {
 
   it('test.trace 가 없는 zip 도 던지지 않고 빈 기록을 준다', async () => {
     expect(await trace를푼다(await zip({ 'x.txt': '' }), { 본문: false })).toEqual({ network: [], actions: [], console: [] });
+  });
+});
+
+describe('단계를읽는다', () => {
+  it('단계 첨부를 차례대로 · 실패한 판정과 오류(색 뺌)를 싣는다', async () => {
+    const 단계들 = await 단계를읽는다(
+      await zip({
+        ...기본,
+        'attachments/s1': JSON.stringify({ seq: 1, title: '연다', status: 'PASS', assertions: [{ statement: 'a', status: 'PASS', actual: 1, expected: 1 }] }),
+        'attachments/s2': JSON.stringify({
+          seq: 2,
+          title: '누른다',
+          status: 'FAIL',
+          error: { message: '\u001b[31m시간 초과\u001b[39m' },
+          assertions: [{ statement: '합계', status: 'FAIL', actual: 900, expected: 1000 }],
+        }),
+      }),
+    );
+    expect(단계들).toEqual([
+      { seq: 1, title: '연다', status: 'PASS', error: null, failed: [] },
+      { seq: 2, title: '누른다', status: 'FAIL', error: '시간 초과', failed: [{ statement: '합계', expected: 1000, actual: 900 }] },
+    ]);
+  });
+
+  it('첨부가 없으면 빈 목록이다', async () => {
+    expect(await 단계를읽는다(await zip({ 'x.txt': '' }))).toEqual([]);
   });
 });
