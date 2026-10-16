@@ -25,6 +25,9 @@ const 면제 = new Map([
   ['scripts/authoring-covered.test.ts', '테스트가 만든 임시 자료 폴더(covered.json)만 읽는다 (2026-10-11 PR #215)'],
   ['scripts/authoring-crawl-session.test.ts', '테스트가 만든 임시 로그인 스크립트가 쓴 상태 파일만 읽는다 (2026-10-12 PR #257)'],
   ['apps/runner/src/execute.test.ts', '가짜 자식이 임시 폴더에 쓴 환경값만 읽는다 — 저장소 파일이 아니다 (2026-10-07 PR #174)'],
+  ['apps/admin/src/execution/traceContract.test.ts', '테스트가 돌린 Playwright 가 임시 산출 폴더에 남긴 trace.zip 만 읽는다 (2026-10-16 PR #273)'],
+  ['packages/kit/src/runtime/reporter.test.ts', '리포터가 임시 산출 폴더로 옮긴 trace.zip 만 읽는다 (2026-10-16 PR #273)'],
+  ['scripts/authoring-screen-right.test.ts', '테스트가 만든 임시 자료 폴더에 받은 trace.zip 만 읽는다 (2026-10-16 PR #275)'],
 ]);
 
 function 테스트파일들(폴더) {
