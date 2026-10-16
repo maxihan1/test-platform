@@ -28,7 +28,10 @@ test(spec, async ({ page }) => {
     await 나타날때불투명도기록(page, '.modal-backdrop');
     await 홈.열기();
     await 홈.공지창.waitFor();
-    await page.waitForTimeout(800);
+    await page.waitForFunction(() => {
+      const 배경 = document.querySelector('.modal-backdrop');
+      return 배경 !== null && getComputedStyle(배경).opacity === '1';
+    });
     const 전환시간 = await 공지.배경.evaluate((el) => getComputedStyle(el).transitionDuration);
     await verify(
       '공지 팝업은 0.3초 동안 서서히 나타난다',

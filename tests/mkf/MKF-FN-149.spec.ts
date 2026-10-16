@@ -34,11 +34,12 @@ test(spec, async ({ page }) => {
   });
 
   await test.step('상품 상세를 열고 15초를 기다린다', async () => {
+    await page.clock.install();
     await 상세.열기(많은.id);
     await 상세.화면기다리기();
     await 상세.보고있어요.waitFor();
     await 상세.보고있는수갱신기록하기();
-    await page.waitForTimeout(15500);
+    await page.clock.runFor(15500);
     const 간격들 = await 상세.보고있는수갱신간격들();
     await verify('보고 있는 사람 수는 5초마다 새로 바뀐다', 간격들.length >= 2 && 간격들.every((간격) => 간격 >= 4000 && 간격 <= 6000), true);
   });

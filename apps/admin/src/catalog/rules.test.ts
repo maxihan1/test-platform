@@ -103,6 +103,35 @@ describe('checkSource', () => {
     expect(rules(정상.replace('await verify(', 'await expect('))).toContain('K7');
   });
 
+  it('K15 — waitForTimeout 과 networkidle 을 그 줄로 잡는다', () => {
+    const 글 = 정상.replace(
+      "    await verify('제목이 보인다', true, true);",
+      "    await page.waitForTimeout(500);\n    await page.waitForLoadState('networkidle');\n    await verify('제목이 보인다', true, true);",
+    );
+    const found = checkSource('x.spec.ts', 글).violations;
+    expect(found.map((x) => [x.rule, x.line])).toEqual([
+      ['K15', 15],
+      ['K15', 16],
+    ]);
+  });
+
+  it('K15 — goto 의 waitUntil 에 적은 networkidle 도 잡는다', () => {
+    expect(rules(정상.replace("todomvc');", "todomvc', { waitUntil: 'networkidle' });"))).toEqual(['K15']);
+  });
+
+  it('K15 — 대괄호로 부르거나 꺼내 쓴 waitForTimeout 도 잡는다', () => {
+    expect(rules(정상.replace("todomvc');", "todomvc');\n    await page['waitForTimeout'](500);"))).toEqual(['K15']);
+    expect(rules(정상.replace("todomvc');", "todomvc');\n    const { waitForTimeout: 쉬기 } = page;"))).toEqual(['K15']);
+  });
+
+  it('K15 — route 안 응답 지연 setTimeout 과 시계 앞당기기는 안 잡는다', () => {
+    const 글 = 정상.replace(
+      "    await verify('제목이 보인다', true, true);",
+      "    await page.route('**/api/**', async (r) => { await new Promise((f) => setTimeout(f, 300)); await r.continue(); });\n    await page.clock.runFor(2000);\n    await verify('제목이 보인다', true, true);",
+    );
+    expect(rules(글)).toEqual([]);
+  });
+
   it('K12 — 한 케이스 안에서 절차 제목이 겹치면 둘째 절차를 가리킨다', () => {
     const 겹침 = 정상.replace(
       '  });\n});',

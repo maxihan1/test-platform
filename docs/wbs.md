@@ -262,7 +262,9 @@
 
 ### ⑩-2 작성 개선 — 조건 대기 · Phase 2
 **무엇** 고정 대기(`waitForTimeout`) 21건과 `networkidle` 5건을 조건 대기로 고친 뒤 K 규칙으로 막는다
-- [ ] `PRD-F10-02` 26건 고침 · `DEMO-007` 은 시간 제한 없는 `waitFor()` · K 규칙(케이스 · pages · helpers) 켬 · R13 보강(`waitForResponse` 를 조작 전에 · 타이머는 `page.clock`)
+- [x] `PRD-F10-02` 26건 고침 · `DEMO-007` 은 시간 제한 없는 `waitFor()` · K 규칙(케이스 · pages · helpers) 켬 · R13 보강(`waitForResponse` 를 조작 전에 · 타이머는 `page.clock`)
+  - 근거 PR #272 · 2026-10-16
+  - 머리글 높이 3건(MKU-FN-020 · MKT-FN-020 · MKF-FN-014)은 고치기 전에도 「80px 에서 48px」 값이 달라 빨갛다 — 기대값은 안 건드렸다
 
 ### ⑩-3 작성 개선 — trace 모으기 · Phase 2
 **무엇** 정식 실행의 trace.zip 을 풀어 네트워크 · 조작 · 콘솔을 DB 에 넣는다. 출력 폴더를 실행마다 갈라 동시 실행이 서로 지우는 잠복 버그도 고친다

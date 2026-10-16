@@ -184,7 +184,7 @@ export class 게시판목록화면 {
   }
 
   async 머리글높이(): Promise<number | undefined> {
-    await this.page.waitForTimeout(400);
+    await this.머리글안쪽.evaluate((요소) => Promise.allSettled(요소.getAnimations().map((움직임) => 움직임.finished)));
     return (await this.머리글안쪽.boundingBox())?.height;
   }
 }

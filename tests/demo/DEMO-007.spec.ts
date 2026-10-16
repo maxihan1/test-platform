@@ -15,7 +15,7 @@ test(spec, async ({ page }) => {
   });
 
   await test.step('응답이 오지 않는 동안 기다린다', async () => {
-    await page.waitForTimeout(60_000);
+    await page.getByText('응답이 왔다').waitFor({ timeout: 0 });
     await verify('기다림이 끝났다', true, true);
   });
 });

@@ -43,6 +43,18 @@ describe('checkNonCase', () => {
     expect(found.map((x) => [x.rule, x.what])).toEqual([['K7', '케이스가 아닌 파일에서 test.step 을 부른다']]);
   });
 
+  it('Page Object · 도우미의 waitForTimeout · networkidle 도 K15 다', () => {
+    const 글 = 깨끗한글.replace(
+      "await this.page.goto('https://example.com/login');",
+      "await this.page.waitForTimeout(400);\n    await this.page.waitForLoadState('networkidle');",
+    );
+    const found = checkNonCase('mkt/pages/login.page.ts', 글);
+    expect(found.map((x) => [x.rule, x.line])).toEqual([
+      ['K15', 7],
+      ['K15', 8],
+    ]);
+  });
+
   it('verify 를 부르면 K7 이다', () => {
     const 글 = 깨끗한글.replace("await this.page.goto('https://example.com/login');", "verify('제목이 맞다', a, b);");
     const found = checkNonCase('mkt/pages/login.page.ts', 글);

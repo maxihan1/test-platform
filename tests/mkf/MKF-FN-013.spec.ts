@@ -3,7 +3,7 @@ import { defineCase, test, verify } from '@platform/kit';
 import { 바닥글 } from './components/footer.component.js';
 import { 머리글 } from './components/header.component.js';
 import { 화면오른쪽아래에있나 } from './helpers/board-tools.helper.js';
-import { 세션아이디 } from './helpers/common-tools.helper.js';
+import { 세션아이디, 스크롤멈출때까지기다리기 } from './helpers/common-tools.helper.js';
 import { 방해막기 } from './helpers/quiet.helper.js';
 import { 게시판목록화면 } from './pages/board-list.page.js';
 
@@ -45,7 +45,7 @@ test(spec, async ({ page }) => {
   await test.step('「맨 위로」 버튼을 누른다', async () => {
     await 맨위로.click();
     await 맨위로.waitFor({ state: 'hidden' });
-    await page.waitForTimeout(600);
+    await 스크롤멈출때까지기다리기(page);
     await verify('「맨 위로」를 누르면 화면이 맨 위로 올라간다', await 목록.내린만큼(), 0);
   });
 });

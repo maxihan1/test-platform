@@ -5,12 +5,12 @@ import ts from 'typescript';
 
 import type { CaseSpec, JsonSchema } from '@platform/kit';
 
-import { k7, K7_WHY } from './pageObject.js';
+import { k7, K7_WHY, k15, K15_WHY } from './pageObject.js';
 import { caseSteps, isTestStep } from './steps.js';
 import { badTechniques } from './techniques.js';
 import { badTag } from './tags.js';
 
-export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K12' | 'K13' | 'K14';
+export type RuleId = 'K1' | 'K2' | 'K3' | 'K4' | 'K5' | 'K6' | 'K7' | 'K8' | 'K9' | 'K10' | 'K12' | 'K13' | 'K14' | 'K15';
 
 export interface Violation {
   file: string;
@@ -40,6 +40,7 @@ const WHY: Record<RuleId, string> = {
   K12: '시나리오가 절차를 제목으로 건너뛰므로 하나를 풀면 둘이 건너뛰어진다',
   K13: '보류 케이스가 값 없이 main 에 들어가면 아무것도 안 지키는 초록이 된다',
   K14: '「설계 기법」으로 못 거르는 케이스가 생기고 엑셀 열이 틀린다. UI 케이스에 붙으면 「기능 테스트에만」이 깨진다',
+  K15: K15_WHY,
 };
 
 // check.ts 통과 줄이 이 목록에서 범위를 만든다. 손으로 적은 숫자는 규칙이 늘 때 조용히 틀린다
@@ -79,7 +80,7 @@ export function checkSource(file: string, text: string): SourceResult {
 
   const propLines = new Map<string, number>();
 
-  const violations: Violation[] = k7(file, sf);
+  const violations: Violation[] = [...k7(file, sf), ...k15(file, sf)];
 
   let declared = 0;
   let literal: ts.ObjectLiteralExpression | undefined;
