@@ -29,6 +29,14 @@ export type NoticeRunning =
       remainingMs: number | null;
     })
   | (NoticeService & {
+      // E2E 시나리오 실행 — 러너가 끝에 결과를 한꺼번에 돌려줘 도중 진척 · 남은 시간이 없다
+      kind: 'scenario';
+      runId: number;
+      title: string;
+      parts: number;
+      startedAt: string;
+    })
+  | (NoticeService & {
       kind: 'authoring';
       requestId: number;
       title: string;
@@ -94,6 +102,19 @@ async function 실행들(서비스들: 보이는서비스[], 조건: string): Pr
   return r.rows;
 }
 
+// 도는 E2E 실행 — 부품 행은 실행을 만들 때 한꺼번에 박혀 단계 수가 곧 부품 행 수다
+async function 도는시나리오들(서비스들: 보이는서비스[]) {
+  const r = await (await db()).query<{ run_id: string; title: string; service_id: string; started_at: Date; parts: string }>(
+    `SELECT r.run_id, r.title, r.service_id, r.started_at,
+            (SELECT count(*) FROM scenario_run_part p WHERE p.run_id = r.run_id) AS parts
+       FROM test_run r
+      WHERE r.service_id = ANY($1) AND r.status = 'RUNNING' AND ${종류조건('scenario')}
+      ORDER BY r.run_id DESC`,
+    [서비스들.map((s) => s.id)],
+  );
+  return r.rows;
+}
+
 interface 작성행 {
   root_id: string;
   root_kind: string;
@@ -146,11 +167,12 @@ export async function 알림(
 ): Promise<{ running: NoticeRunning[]; recent: NoticeRecent[] }> {
   const 서비스맵 = new Map([...실행서비스, ...작성서비스].map((s) => [s.id, s]));
   const 비었다 = <T>(목록: 보이는서비스[], 읽기: () => Promise<T[]>) => (목록.length === 0 ? Promise.resolve([] as T[]) : 읽기());
-  // 시나리오 실행은 항목이 없어 줄의 숫자가 늘 0 이다 — 알림에서 뺀다 (공통/4-데이터모델 「실행 종류」)
+  // 시나리오 실행은 항목이 없어 집계가 늘 0 이다 — 케이스 실행 칸에서 빼고, 도는 것만 따로 담는다 (공통/5-화면공통 §8 「알림」)
   const 케이스실행 = 종류조건('case');
 
-  const [도는실행, 끝난실행, 작성줄] = await Promise.all([
+  const [도는실행, 도는시나리오, 끝난실행, 작성줄] = await Promise.all([
     비었다(실행서비스, () => 실행들(실행서비스, `r.service_id = ANY($1) AND r.status = 'RUNNING' AND ${케이스실행}`)),
+    비었다(실행서비스, () => 도는시나리오들(실행서비스)),
     비었다(실행서비스, () =>
       실행들(
         실행서비스,
@@ -191,6 +213,14 @@ export async function 알림(
         remainingMs: 남은[i]!,
       };
     }),
+    ...도는시나리오.map((줄): NoticeRunning => ({
+      ...서비스칸(서비스맵, Number(줄.service_id)),
+      kind: 'scenario',
+      runId: Number(줄.run_id),
+      title: 줄.title,
+      parts: Number(줄.parts),
+      startedAt: 줄.started_at.toISOString(),
+    })),
     ...도는작성.map((줄): NoticeRunning => {
       const 서비스 = Number(줄.service_id);
       const 다섯 = 다섯단계(줄);

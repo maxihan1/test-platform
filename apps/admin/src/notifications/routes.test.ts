@@ -102,6 +102,7 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
   const 치우기 = async () => {
     const ids = 접두사.map((p) => 서비스[p]);
     await q('DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [ids]);
+    await q('DELETE FROM scenario_run_part WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id = ANY($1))', [ids]);
     await q('DELETE FROM test_run WHERE service_id = ANY($1)', [ids]);
     await q('DELETE FROM scenario_version WHERE scenario_id IN (SELECT id FROM scenario WHERE service_id = ANY($1))', [ids]);
     await q('DELETE FROM scenario WHERE service_id = ANY($1)', [ids]);
@@ -276,18 +277,33 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
     expect(running[0]).toMatchObject({ kind: 'authoring', status: 'RUNNING', stage: 'generate', expected: { ms: 30 * 60_000, samples: 1 } });
   });
 
-  it('E2E 시나리오 실행은 도는 것에도 최근 것에도 안 담는다 — 항목이 없어 「0 통과」라는 거짓 줄이 된다', async () => {
+  it('도는 E2E 시나리오 실행은 단계 수와 함께 따로 담고 끝난 것은 안 담는다 — 끝난 것은 항목이 없어 「0 통과」라는 거짓 줄이 된다', async () => {
     await 치우기();
     const 케이스 = await 실행('XNT', { title: 'XNT 케이스 실행', kind: 'UI' });
-    await 실행('XNT', { title: 'XNT 시나리오 실행', kind: 'SCENARIO' });
+    const 시나리오 = await 실행('XNT', { title: 'XNT 시나리오 실행', kind: 'SCENARIO' });
+    for (const seq of [1, 2]) {
+      await q(`INSERT INTO scenario_run_part (run_id, seq, kind, part, status) VALUES ($1, $2, 'wait', '{}', 'NA')`, [시나리오, seq]);
+    }
     const 끝난케이스 = await 실행('XNT', { title: 'XNT 끝난 케이스', kind: 'FN', 끝난일전: 1 });
     await 실행('XNT', { title: 'XNT 끝난 시나리오', kind: 'SCENARIO', 끝난일전: 1 });
 
     배정 = { XNT: 모두 };
     const { running, recent } = await 알림();
 
-    expect(running.map((n) => (n.kind === 'run' ? n.runId : -1))).toEqual([케이스]);
+    expect(running.map((n) => n.kind)).toEqual(['run', 'scenario']);
+    expect(running[0]).toMatchObject({ kind: 'run', runId: 케이스 });
+    expect(running[1]).toMatchObject({ kind: 'scenario', runId: 시나리오, title: 'XNT 시나리오 실행', parts: 2, prefix: 'XNT' });
     expect(recent.map((n) => (n.kind === 'run' ? n.runId : -1))).toEqual([끝난케이스]);
+  });
+
+  it('도는 E2E 실행도 실행 칸이 read 인 서비스만 담는다', async () => {
+    await 치우기();
+    await 실행('XNT', { title: 'XNT 시나리오 실행', kind: 'SCENARIO' });
+
+    배정 = { XNT: { cases: 'write', runs: 'none', authoring: 'write' } };
+    const { running } = await 알림();
+
+    expect(running).toEqual([]);
   });
 
   it('도는 작성 요청의 fiveSteps 는 지금 실행이 머지 · 고치기 · 고치기 다시 적용이면 false 이고 그때 expected 는 null 이다', async () => {

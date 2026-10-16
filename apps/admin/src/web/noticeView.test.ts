@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { 끝난글, 끝난줄만들기, 도는줄만들기, 보일줄들, 상대시각, 서랍목록, 안읽은수, 읽음열쇠, 줄최대, type 끝난줄, type 도는줄 } from './noticeView.js';
-import { 끝난실행, 끝난작성, 도는실행, 도는작성, 전에 } from './notice.fixture.js';
+import { 끝난실행, 끝난작성, 도는E2E, 도는실행, 도는작성, 전에 } from './notice.fixture.js';
 
 const 지금 = Date.now();
 const 없음 = new Set<string>();
@@ -18,6 +18,15 @@ describe('도는 줄', () => {
   it('막대 색만으로 판정을 말하지 않는다 — 실패가 없으면 실패 글을 안 붙인다', () => {
     const 줄 = 도는줄만들기(도는실행(2114, { counts: { total: 40, pass: 12, fail: 0, na: 0, running: 28 } }), 지금, 'ko');
     expect(줄.앞글).toBe('RUN 2114 이 진행 중입니다 · 12/40');
+  });
+
+  it('E2E 실행은 단계 수와 지난 시간만 낸다 — 도중 진척을 몰라 막대도 남은 시간도 없다', () => {
+    const 줄 = 도는줄만들기(도는E2E(2115), 지금, 'ko');
+    expect(줄.앞글).toBe('E2E RUN 2115 이 진행 중입니다 · 5단계 · 3분 지남');
+    expect(줄.막대).toBeNull();
+    expect(줄.뒷글).toBeNull();
+    expect(줄.열기).toBe('#/runs/2115');
+    expect(줄.종류).toBe('run');
   });
 
   it('작성은 몇 단계인지 · 지난 시간을 낸다. 평소 시간을 모르면 남은 시간 글이 없다', () => {
@@ -113,6 +122,11 @@ describe('보일 줄 고르기', () => {
       'ko',
     );
     expect(섞임.줄들.map((줄) => 줄.열쇠)).toEqual(['run:5', 'authoring:2', 'run:1']);
+  });
+
+  it('E2E 실행은 케이스 실행 다음, 작성 앞에 선다', () => {
+    const { 줄들 } = 보일줄들({ running: [도는작성(3), 도는E2E(7), 도는실행(5)], recent: [] }, 없음, 지금, 'ko');
+    expect(줄들.map((줄) => (줄 as 도는줄).앞글.split(' · ')[0])).toEqual(['RUN 5 이 진행 중입니다', 'E2E RUN 7 이 진행 중입니다', '작성 요청 #3 이 진행 중입니다']);
   });
 
   it('이미 읽은 것과 끝난 지 2시간이 지난 것은 줄로 안 알린다', () => {

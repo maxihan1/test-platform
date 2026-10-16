@@ -22,6 +22,10 @@ export function 도는실행(runId: number, 덮을것: Partial<Extract<NoticeRun
   };
 }
 
+export function 도는E2E(runId: number, 덮을것: Partial<Extract<NoticeRunning, { kind: 'scenario' }>> = {}): NoticeRunning {
+  return { ...서비스, kind: 'scenario', runId, title: '장바구니 결제', parts: 5, startedAt: 전에(3), ...덮을것 };
+}
+
 export function 도는작성(requestId: number, 덮을것: Partial<Extract<NoticeRunning, { kind: 'authoring' }>> = {}): NoticeRunning {
   return {
     ...서비스,

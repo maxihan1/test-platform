@@ -21,16 +21,20 @@ type 알림재료 = NoticeRunning | NoticeRecent;
 
 /** 읽음 목록의 열쇠이자 줄의 key. `noticeRead.ts` 가 이 꼴을 그대로 저장한다 */
 export function 읽음열쇠(n: 알림재료): string {
-  return n.kind === 'run' ? `run:${String(n.runId)}` : `authoring:${String(n.requestId)}`;
+  return n.kind === 'authoring' ? `authoring:${String(n.requestId)}` : `run:${String(n.runId)}`;
 }
 
 function 번호(n: 알림재료): number {
-  return n.kind === 'run' ? n.runId : n.requestId;
+  return n.kind === 'authoring' ? n.requestId : n.runId;
 }
 
+// E2E 실행도 같은 주소다 — 실행 결과 화면이 시나리오 실행이면 E2E 결과로 갈라 그린다
 function 열기주소(n: 알림재료): string {
-  return n.kind === 'run' ? `#/runs/${String(n.runId)}` : `#/authoring/${String(n.requestId)}`;
+  return n.kind === 'authoring' ? `#/authoring/${String(n.requestId)}` : `#/runs/${String(n.runId)}`;
 }
+
+// 도는 것의 차례 — 케이스 실행 → E2E 실행 → 작성 (E2E 도 실행이라 실행 무리에 선다)
+const 도는차례: Record<NoticeRunning['kind'], number> = { run: 0, scenario: 1, authoring: 2 };
 
 export interface 막대칸 {
   통과: number;
@@ -125,7 +129,14 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
 }
 
 export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언어): 도는줄 {
-  const 바탕 = { 도는중: true as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 접두사: n.prefix, 종류: n.kind, 열기: 열기주소(n) };
+  const 종류: 도는줄['종류'] = n.kind === 'authoring' ? 'authoring' : 'run';
+  const 바탕 = { 도는중: true as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 접두사: n.prefix, 종류, 열기: 열기주소(n) };
+
+  if (n.kind === 'scenario') {
+    const 지난ms = Math.max(0, 지금 - Date.parse(n.startedAt));
+    const 앞 = [t('E2E RUN {번호} 이 진행 중입니다', 언어, { 번호: n.runId }), t('{수}단계', 언어, { 수: n.parts }), t('{지난} 지남', 언어, { 지난: 시간글자(지난ms, 언어) })];
+    return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: null };
+  }
 
   if (n.kind === 'run') {
     const { counts } = n;
@@ -163,11 +174,11 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
 }
 
 /**
- * 본문 위에 그릴 줄. 도는 것 먼저(실행 → 작성, 각각 새것 먼저), 그다음 아직 안 읽은 끝난 것 새것 먼저.
+ * 본문 위에 그릴 줄. 도는 것 먼저(실행 → E2E → 작성, 각각 새것 먼저), 그다음 아직 안 읽은 끝난 것 새것 먼저.
  * 줄이 `줄최대` 를 넘으면 마지막 자리를 「외 N건」에 내주고 `넘친수` 가 그 N 이다
  */
 export function 보일줄들(답: NoticeResponse, 읽음: ReadonlySet<string>, 지금: number, 언어: 언어): { 줄들: 줄[]; 넘친수: number } {
-  const 도는것 = [...답.running].sort((a, b) => (a.kind === b.kind ? 번호(b) - 번호(a) : a.kind === 'run' ? -1 : 1));
+  const 도는것 = [...답.running].sort((a, b) => 도는차례[a.kind] - 도는차례[b.kind] || 번호(b) - 번호(a));
   const 끝난것 = 답.recent
     .filter((n) => !읽음.has(읽음열쇠(n)) && 지금 - Date.parse(n.finishedAt) < 끝난소식유효)
     .sort((a, b) => Date.parse(b.finishedAt) - Date.parse(a.finishedAt));
