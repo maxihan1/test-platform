@@ -113,6 +113,12 @@ npm run check:tests > /tmp/ct.log 2>&1; echo "EXIT=$?"
 PLATFORM_SLOW_API=1 PLAYWRIGHT_JSON_OUTPUT_FILE="$AUTHORING_GATE3_DIR/gate3-final-1.json" npx playwright test tests/<폴더> --project=desktop --workers=1 --repeat-each=3 --reporter=line,json > /tmp/pw.log 2>&1; echo "EXIT=$?"
 ```
 
+**크롤러 판정이 반응형 · 적응형이면 끝의 3회도 모바일을 같이 돈다**(`tpx-cases` `two-kinds.md` 「화면 크기 판정」 · 2026-10-16 PRD-F10-07) — 위 데스크톱 줄은 그대로 두고(에이전트가 그 파일로 하나씩 · 3회를 본다) 모바일을 같은 줄에서 나란히 띄운다. 산출물 폴더를 가르지 않으면 서로 지운다.
+```bash
+(PLATFORM_OUTPUT_ID=final-m PLATFORM_SLOW_API=1 PLAYWRIGHT_JSON_OUTPUT_FILE="$AUTHORING_GATE3_DIR/gate3-final-1-mobile.json" npx playwright test <이번 케이스들> --project=mobile --workers=1 --repeat-each=3 --reporter=line,json > /tmp/pw-m.log 2>&1; echo "MOBILE_EXIT=$?") & PLATFORM_OUTPUT_ID=final-d PLATFORM_SLOW_API=1 PLAYWRIGHT_JSON_OUTPUT_FILE="$AUTHORING_GATE3_DIR/gate3-final-1.json" npx playwright test <이번 케이스들> --project=desktop --workers=1 --repeat-each=3 --reporter=line,json > /tmp/pw.log 2>&1; echo "EXIT=$?"; wait
+```
+에이전트의 확인은 데스크톱만 센다 — 모바일 빨강은 자식이 `MOBILE_EXIT` 와 그 결과 파일로 보고 고치거나 결과 요약에 적는다
+
 **계정 칸은 kit 이 채운다** (2026-10-12) — 환경 변수 `PLATFORM_ACCOUNTS` 가 있으면 playwright 를 대상 서버 주소(`PLATFORM_BASE_URL=<주소>`)로 돌릴 때 kit 이 그 주소와 출처가 같은 줄의 계정으로 비밀값 칸(역할은 `.meta({ account })`)을 채운다. `PLATFORM_PARAMS` 로 계정을 손으로 만들지 않는다. 필요한 역할이 그 목록에 없으면 원장 「제외」 `계정 미등록`(`tpx-cases` `2-requirements.md` §2)
 
 **끝의 전체 3회 — 에이전트가 결과 파일로 확인한다** (2026-10-03 · 도메인/작성 §3.6).
