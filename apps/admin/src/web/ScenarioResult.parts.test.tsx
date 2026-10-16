@@ -64,6 +64,15 @@ describe('단계 줄', () => {
     expect(within(api).queryByText('실행이 멈춘 사유')).toBeNull();
   });
 
+  it('러너 · 서버 상태 코드는 멈춘 사유에 사람 말로 보인다', async () => {
+    연다(결과({ parts: [부품(5, { status: 'NA', error: { message: 'TIMEOUT' } }), 부품(6, { status: 'NA', error: { message: 'ABORTED' } })] }));
+    await screen.findByText('단계별 결과');
+    expect(within(줄('XSX-005')).getByText('제한 시간 초과')).toBeTruthy();
+    expect(within(줄('XSX-006')).getByText('서버 재시작으로 멈춤')).toBeTruthy();
+    expect(줄('XSX-005').textContent).not.toContain('TIMEOUT');
+    expect(줄('XSX-006').textContent).not.toContain('ABORTED');
+  });
+
   it('입력값은 비밀을 가린다', async () => {
     연다(결과());
     await screen.findByText('단계별 결과');

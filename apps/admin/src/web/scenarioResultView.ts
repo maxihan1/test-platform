@@ -4,6 +4,7 @@ import type { ScenarioLink } from '@platform/kit';
 
 import type { ItemStatus } from './api.js';
 import { t, type 언어 } from './i18n.js';
+import { 시간초과 } from './runState.js';
 import type { ScenarioRunPart, ScenarioRunRow } from './scenarioApi.js';
 
 /** 도는 동안 부품은 전부 NA 라 부품만 보면 틀리게 나온다. 판정은 끝난 뒤에만 낸다 */
@@ -45,6 +46,18 @@ export function 값연결글(link: ScenarioLink, bound: Record<string, unknown>,
     종류: t('수정 요청으로 변경', 언어),
     글: `${link.method} ${link.urlPattern} → ${link.to.method} ${link.to.path}`,
   };
+}
+
+/**
+ * 단계 · 시험 결과의 멈춘 사유에 오는 상태 코드를 사람 말로 (§8.11 「화면 글자」).
+ * `TIMEOUT` 은 러너가 시나리오 제한 시간에 끊은 것, `ABORTED` 는 서버 재시작 복구(`recoverRunning`)가 남은 단계를 닫은 것이다 —
+ * E2E 에는 멈춤 버튼이 없어 사람이 멈춘 갈래가 없다. 그 밖은 서버 · 러너가 쓴 문장이라 그대로 둔다.
+ * `ABORTED` 를 케이스 쪽(`runState.ts` · `reporting/collect.ts`)과 다르게 적는 까닭이 이것이다 — 케이스는 사람의 멈춤과 재기동을 못 가른다
+ */
+export function 멈춘사유글자(message: string, 언어: 언어): string {
+  if (message === 시간초과) return t('제한 시간 초과', 언어);
+  if (message === 'ABORTED') return t('서버 재시작으로 멈춤', 언어);
+  return message;
 }
 
 export function 멈춘단계글자(줄: ScenarioRunRow, 언어: 언어): string {
