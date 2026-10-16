@@ -172,3 +172,40 @@ export async function 다봄(서비스: number, env: string, seen: 본화면[], 
     return { deleted: r.rowCount ?? 0, viewport: 판정 };
   });
 }
+
+/**
+ * PC 와 모바일이 하나라도 달랐나 — `화면차이` 칸을 SQL 로 본다. 거르기를 DB 에 두는 까닭은 적응형 · PC 전용 서비스는 거의 모든 화면이
+ * 다르다고 나와서다 — JS 에서 거르면 수천 줄을 다 읽는다. 칸이 늘면 여기와 `판정줄` 셈을 같이 본다
+ */
+const 다름식 = `(f.viewport ? '모바일주소' OR (f.viewport->>'넘침')::boolean OR NOT (f.viewport->>'선언')::boolean
+  OR NOT (f.viewport->>'구조같음')::boolean OR jsonb_array_length(f.viewport->'PC만') > 0 OR jsonb_array_length(f.viewport->'모바일만') > 0)`;
+
+/** 한 번에 보내는 다른 화면 수 — 표가 사람이 훑을 만큼만. 넘으면 differ 로 전체 수를 알린다 */
+export const 차이목록상한 = 200;
+
+/**
+ * 설정 「화면 크기」 구획의 화면별 차이 — 그 대상 서버의 찾은 화면 가운데 차이를 가진 것(PRD-F10-08).
+ * 차이가 없는 화면(viewport NULL — 공통/4-데이터모델 「화면 크기 판정 칸」)은 둘 다에서 뺀다. 대상 서버 줄이 없으면 null
+ */
+export async function 화면크기목록(
+  서비스: number,
+  env: string,
+): Promise<{ items: { state: 상태; url: string; name: string; viewport: 화면차이 }[]; differ: number; same: number } | null> {
+  const pool = await db();
+  const [줄, 셈, 목록] = await Promise.all([
+    pool.query('SELECT 1 FROM service_env WHERE service_id = $1 AND env = $2', [서비스, env]),
+    pool.query<{ differ: number; same: number }>(
+      `SELECT count(*) FILTER (WHERE ${다름식})::int AS differ, count(*) FILTER (WHERE NOT ${다름식})::int AS same
+         FROM screen_found f WHERE f.service_id = $1 AND f.env = $2 AND f.viewport IS NOT NULL`,
+      [서비스, env],
+    ),
+    pool.query<{ state: 상태; url: string; name: string; viewport: 화면차이 }>(
+      `SELECT f.state, f.url, f.name, f.viewport FROM screen_found f
+        WHERE f.service_id = $1 AND f.env = $2 AND f.viewport IS NOT NULL AND ${다름식}
+        ORDER BY f.state COLLATE "C", f.url COLLATE "C" LIMIT $3`,
+      [서비스, env, 차이목록상한],
+    ),
+  ]);
+  if (줄.rowCount === 0) return null;
+  return { items: 목록.rows, differ: 셈.rows[0]?.differ ?? 0, same: 셈.rows[0]?.same ?? 0 };
+}

@@ -7,6 +7,7 @@ import type { Technique } from '@platform/kit/types';
 import type { 고칠것 } from '../authoring/edit.js';
 import type { 네트워크줄, 조작줄, 콘솔줄 } from '../execution/traceParse.js';
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
+import type { 서비스판정, 화면차이 } from '../../../../scripts/authoring-crawl-viewport.js';
 
 import type { 권한칸, 등급 } from './role.js';
 
@@ -393,6 +394,16 @@ export interface EnvRow {
   isProd?: boolean;
   /** 일반 회원 밖의 역할 계정. 설정 화면만 받는다 — 비밀번호는 설정됐는지만 온다 */
   accounts?: { role: string; loginId: string | null; hasLoginPassword: boolean }[];
+  /** 크롤러가 정한 화면 크기 판정과 그 시각. 훑기 전 · 주소를 바꾼 줄은 null 이다. 설정 화면만 받는다 (PRD-F10-08) */
+  viewportKind?: 서비스판정 | null;
+  viewportJudgedAt?: string | null;
+}
+
+/** 설정 「화면 크기」 의 화면별 차이 — PC 와 모바일이 다른 화면만 앞 200장까지 오고 전체 수(differ) · 같은 화면 수(same)는 따로 온다 (도메인/인증 §7) */
+export interface ViewportScreens {
+  items: { state: string; url: string; name: string; viewport: 화면차이 }[];
+  differ: number;
+  same: number;
 }
 
 /**
@@ -1138,6 +1149,9 @@ export const api = {
       schedule?: ScheduleSetting | null;
     },
   ) => call<{ ok: true }>(`/settings/services/${id}`, { ...json(body), method: 'PATCH' }),
+
+  settingsViewport: (id: number, env: string) =>
+    call<ViewportScreens>(`/settings/services/${id}/viewport?env=${encodeURIComponent(env)}`),
 
   settingsUsers: () => call<{ items: UserRow[] }>('/settings/users'),
 
