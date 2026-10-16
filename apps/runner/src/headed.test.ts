@@ -51,6 +51,14 @@ describe('PLATFORM_SLOW_MO', () => {
     expect((await 시나리오설정읽기()).metadata?.partTimeoutMs).toBe(150_000);
   });
 
+  it('0 이나 숫자가 아닌 값은 늦추지도 한도를 늘리지도 않는다', async () => {
+    for (const 값 of ['0', '1s']) {
+      vi.stubEnv('PLATFORM_SLOW_MO', 값);
+      expect((await 설정읽기()).use).not.toHaveProperty('launchOptions');
+      expect((await 시나리오설정읽기()).metadata?.partTimeoutMs).toBe(30_000);
+    }
+  });
+
   it('늦추지 않으면 시나리오 부품 한도는 단독 실행과 같다', async () => {
     vi.stubEnv('PLATFORM_SLOW_MO', '');
     expect((await 시나리오설정읽기()).metadata?.partTimeoutMs).toBe(30_000);

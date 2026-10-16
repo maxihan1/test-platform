@@ -170,12 +170,12 @@ describe('scenarioEnv', () => {
 
     it('창을 띄우는 러너라도 진짜 실행은 늦추지 않는다', () => {
       vi.stubEnv('PLATFORM_HEADED', '1');
-      expect(scenarioEnv(기본)).not.toHaveProperty('PLATFORM_SLOW_MO');
+      expect(scenarioEnv(기본).PLATFORM_SLOW_MO).toBe('');
     });
 
     it('창이 없는 러너의 시험 실행은 늦추지 않는다 — 볼 사람이 없다', () => {
       vi.stubEnv('PLATFORM_HEADED', '');
-      expect(scenarioEnv(시험)).not.toHaveProperty('PLATFORM_SLOW_MO');
+      expect(scenarioEnv(시험).PLATFORM_SLOW_MO).toBe('');
     });
   });
 });

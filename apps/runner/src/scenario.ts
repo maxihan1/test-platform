@@ -19,7 +19,8 @@ export function scenarioEnv(req: ScenarioExecuteRequest): Record<string, string>
   // 창을 띄운 시험 실행만 사람이 눈으로 따라간다. 동작마다 1초 쉬게 한다 (SPEC 도메인/시나리오 §7 「시험 실행 규칙」)
   const 천천히 = 시험 && process.env.PLATFORM_HEADED === '1';
   return {
-    ...(천천히 ? { PLATFORM_SLOW_MO: '1000' } : {}),
+    // 늘 적는다 — 러너를 켠 셸에 이 값이 있으면 자식이 물려받아 진짜 실행까지 늦춘다
+    PLATFORM_SLOW_MO: 천천히 ? '1000' : '',
     PLATFORM_SCENARIO_MODE: '1',
     PLATFORM_SCENARIO: JSON.stringify(req.parts),
     PLATFORM_BASE_URL: req.baseUrl,

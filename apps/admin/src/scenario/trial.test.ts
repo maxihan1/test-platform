@@ -94,7 +94,6 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     tests: process.env.PLATFORM_TESTS_DIR,
     artifacts: process.env.PLATFORM_ARTIFACTS_DIR,
     runner: process.env.RUNNER_URL,
-    local: process.env.LOCAL_RUNNER_URL,
   };
   const 번호들 = ['XST-001', 'XST-UI-001'];
   const 사람 = { username: 'xst-a', displayName: 'XST 검사 사람' };
@@ -136,7 +135,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     사진뿌리 = await mkdtemp(join(tmpdir(), 'xst-art-'));
     process.env.PLATFORM_TESTS_DIR = 뿌리;
     process.env.PLATFORM_ARTIFACTS_DIR = 사진뿌리;
-    delete process.env.LOCAL_RUNNER_URL;
+    vi.stubEnv('LOCAL_RUNNER_URL', '');
     await mkdir(join(뿌리, 'xst'));
     await writeFile(join(뿌리, 'xst', 'a.spec.ts'), 소스);
 
@@ -184,6 +183,7 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
 
   afterAll(async () => {
     await 러너.close();
+    vi.unstubAllEnvs();
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await q('DELETE FROM case_input WHERE tc_id = ANY($1)', [번호들]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);
@@ -194,7 +194,6 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
       ['PLATFORM_TESTS_DIR', 원래.tests],
       ['PLATFORM_ARTIFACTS_DIR', 원래.artifacts],
       ['RUNNER_URL', 원래.runner],
-      ['LOCAL_RUNNER_URL', 원래.local],
     ] as const) {
       if (값 === undefined) delete process.env[키];
       else process.env[키] = 값;
@@ -235,45 +234,6 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     expect(결과).not.toContain('xst-secret-77');
     expect(결과).toContain('********');
     expect(시나리오시험.서비스('xst-a', trialId)).toBe('XST');
-  });
-
-  describe('내 컴퓨터 러너', () => {
-    let 내러너: FastifyInstance;
-    let 내러너가받음 = false;
-
-    beforeAll(async () => {
-      내러너 = Fastify();
-      내러너.get('/health', async () => ({ ok: true }));
-      내러너.post('/execute-scenario', async () => {
-        내러너가받음 = true;
-        return { status: 'PASS', durationMs: 1, parts: [] };
-      });
-      await 내러너.listen({ port: 0, host: '127.0.0.1' });
-    });
-
-    beforeEach(() => {
-      내러너가받음 = false;
-    });
-
-    afterAll(async () => {
-      await 내러너.close();
-      delete process.env.LOCAL_RUNNER_URL;
-    });
-
-    it('켜져 있으면 시험 실행을 그 러너로 보낸다 — 창을 띄워 사람이 본다', async () => {
-      const addr = 내러너.server.address();
-      process.env.LOCAL_RUNNER_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}`;
-      await 끝까지(본문());
-      expect(내러너가받음).toBe(true);
-      expect(받은요청).toBeNull();
-    });
-
-    it('꺼져 있으면 지금처럼 서버 러너로 보낸다', async () => {
-      process.env.LOCAL_RUNNER_URL = 'http://127.0.0.1:1';
-      await 끝까지(본문());
-      expect(내러너가받음).toBe(false);
-      expect(받은요청).not.toBeNull();
-    });
   });
 
   it('조립에 없는 비밀번호를 저장값으로 채워 러너에 보내고 결과에서는 가린다', async () => {

@@ -23,7 +23,7 @@ export default defineConfig({
   timeout: 0,
   // 케이스 부품 하나는 단독 실행과 같은 시험 한도로 돈다. 루트에 timeout 을 넣는 날 둘이 갈리지 않게 거기서 읽는다 — 없으면 Playwright 기본 30초 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
   // 천천히 도는 시험은 다섯 배로 늘린다 — 늦춘 시간이 한도를 먹어 멀쩡한 부품이 끊긴다. 끄면 틀린 건너뛰기가 빨강 대신 전체 제한 시간에 걸린다
-  metadata: { partTimeoutMs: (root.timeout ?? 30_000) * (process.env.PLATFORM_SLOW_MO ? 5 : 1) },
+  metadata: { partTimeoutMs: (root.timeout ?? 30_000) * (Number(process.env.PLATFORM_SLOW_MO) > 0 ? 5 : 1) },
   reporter: [[resolve(here, 'reporter.ts')]],
   // 루트 use 를 그대로 받는다 — 회사 서버의 기본 인증 · 사설 인증서 · 창 띄우기가 단독 실행과 같아야 한다
   use: { ...root.use, baseURL: process.env.PLATFORM_BASE_URL },

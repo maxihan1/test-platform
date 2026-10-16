@@ -9,7 +9,8 @@ const outputDir = `${artifactsDir}/playwright/${process.env.PLATFORM_OUTPUT_ID ?
 // 러너가 정식 실행에만 켠다. 단계 스크린샷이 이미 있어 화면 녹화 · 소스는 뺀다 (도메인/실행 §3.2 「trace」)
 const trace = process.env.PLATFORM_TRACE === '1' ? { trace: { mode: 'on', snapshots: true, screenshots: false, sources: false } as const } : {};
 // 러너가 창을 띄운 E2E 시험 실행에만 준다. 사람이 눈으로 따라가게 동작마다 쉰다 (도메인/시나리오 §7 「시험 실행 규칙」)
-const slowMo = process.env.PLATFORM_SLOW_MO ? { launchOptions: { slowMo: Number(process.env.PLATFORM_SLOW_MO) } } : {};
+const slowMoMs = Number(process.env.PLATFORM_SLOW_MO);
+const slowMo = slowMoMs > 0 ? { launchOptions: { slowMo: slowMoMs } } : {};
 
 export default defineConfig({
   testDir: testsDir,

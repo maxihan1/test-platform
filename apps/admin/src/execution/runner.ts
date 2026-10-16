@@ -171,7 +171,8 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
 // 못 닿으면 조용히 서버 러너로 돌린다 — 실패를 삼키는 것이 아니라 고르는 것이다 (도메인/시나리오 §7 「시험 실행 규칙」)
 export async function 켜진내컴퓨터러너(): Promise<string | undefined> {
   const 주소 = process.env.LOCAL_RUNNER_URL;
-  if (!주소) return undefined;
+  // 서버 러너와 같은 주소면 창이 안 뜬다 — 로그가 「내 컴퓨터 러너」라고 거짓말하지 않게 서버 러너로 친다
+  if (!주소 || 주소 === runnerUrl()) return undefined;
   try {
     const res = await fetch(`${주소}/health`, { signal: AbortSignal.timeout(2000) });
     return res.ok ? 주소 : undefined;
