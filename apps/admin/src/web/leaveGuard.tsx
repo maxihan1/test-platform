@@ -26,6 +26,7 @@ function 칸적기(번호: number): void {
   window.history.replaceState({ ...(typeof s === 'object' && s !== null ? s : {}), navIndex: 번호 }, '');
 }
 
+// ponytail: 앱 뿌리(main.tsx) 한 곳에서만 부른다. 둘이 걸리면 막힐 때 둘 다 물러나 두 칸을 간다 — 더 필요해지면 듣는 쪽을 모듈 하나로 모은다
 export function useHash(): string {
   const [hash, setHash] = useState(window.location.hash);
   const 이전 = useRef(window.location.hash);
