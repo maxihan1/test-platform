@@ -27,6 +27,8 @@ export interface EvidenceStep {
   durationMs: number | null;
   assertions: EvidenceAssertion[];
   screenshotPath: string | null;
+  /** E2E 시나리오에서 사람이 체크를 풀어 건너뛴 「만들기」 절차. 판정 대신 「건너뜀」으로 적는다 (도메인/리포팅 §8.4) */
+  skipped?: true;
 }
 
 export interface EvidenceItem {
@@ -156,7 +158,7 @@ function 가려야하나(key: string, prop: Record<string, unknown>): boolean {
 }
 
 // 라벨·마스킹을 여기서 끝낸다. 렌더러가 원본 JSON 에 닿으면 형식이 늘 때마다 마스킹이 새는 자리가 는다
-function toFields(json: unknown, schema: unknown): EvidenceField[] {
+export function toFields(json: unknown, schema: unknown): EvidenceField[] {
   const values = isPlainObject(json) ? json : {};
   const properties =
     isPlainObject(schema) && isPlainObject(schema.properties) ? schema.properties : {};

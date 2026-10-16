@@ -127,6 +127,10 @@ details[open] > .fold-line::before{ transform:rotate(90deg); }
 .exp,.act{ width:132px; flex:none; color:var(--ink-muted); font-size:12.5px; }
 .blocker{ font-size:12px; font-weight:600; color:var(--fail); }
 .shot{ display:block; max-width:120mm; margin:6px 0 8px 26px; border:1px solid var(--rule); }
+/* E2E 증적의 단계 — 판정이 아니라 차례라 테두리에 판정 색을 안 쓴다. 모킹 구간은 왼쪽 굵은 중립 선이다 (도메인/시나리오 §8.11) */
+.stage{ border:1px solid var(--rule); border-radius:4px; padding:10px 14px; margin-bottom:10px; }
+.stage.mocked{ border-left:3px solid var(--ink-faint); }
+.note{ margin-top:4px; font-size:12.5px; color:var(--ink-muted); }
 @media print{
   body{ background:#fff; }
   .doc{ width:auto; margin:0; padding:0; background:#fff; }

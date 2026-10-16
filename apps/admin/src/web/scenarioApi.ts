@@ -5,6 +5,7 @@ import type { ScenarioCleanup, ScenarioExecuteResponse, ScenarioPart } from '@pl
 import {
   call,
   json,
+  type EvidenceRow,
   type ItemStatus,
   type JsonSchema,
   type Paged,
@@ -94,6 +95,8 @@ export interface ScenarioRunResult {
   startedAt: string;
   finishedAt: string | null;
   parts: ScenarioRunPart[];
+  /** 만든 증적 문서 — 케이스 결과 응답과 같은 모양이라 증적 칸(EvidenceSection.tsx)을 그대로 쓴다 (도메인/시나리오 §7) */
+  evidence: EvidenceRow[];
 }
 
 export type TrialState = { status: 'RUNNING' } | { status: 'FINISHED'; result: ScenarioExecuteResponse };

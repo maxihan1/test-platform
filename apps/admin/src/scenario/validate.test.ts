@@ -48,7 +48,7 @@ describe('조립 검사', () => {
   });
 
   it('UI 테스트는 재료를 보기 전에 거절한다 — E2E 부품은 기능 테스트만이다', () => {
-    expect(검사([케이스('SHOP-UI-001')])).toEqual(['1번 부품: SHOP-UI-001 는 UI 테스트라 E2E 부품이 될 수 없다']);
+    expect(검사([케이스('SHOP-UI-001')])).toEqual(['1번 단계: SHOP-UI-001 는 UI 테스트라 E2E 단계가 될 수 없다']);
   });
 
   it('없는 케이스와 비활성 케이스는 거절한다', () => {
@@ -232,7 +232,7 @@ describe('이어 주기 조립 (도메인/시나리오 §3.7 결정 12 · §7)',
       케이스('SHOP-001'),
       { kind: 'case', tcId: 'SHOP-001', params: {}, expected: {}, skipSteps, carryOver: false, links },
     ];
-    const 사유 = ['2번 부품: 넘겨받기를 끈 부품에는 건너뛰기와 이어 주기를 걸 수 없다'];
+    const 사유 = ['2번 단계: 로그인 이어받기를 끈 단계에는 준비 건너뛰기와 값 연결을 걸 수 없다'];
     const 막기: ScenarioLink = { kind: 'block', method: 'DELETE', urlPattern: '**/a' };
     expect(검사(끈(['상품을 담는다'], []))).toEqual(사유);
     expect(검사(끈([], [막기]))).toEqual(사유);
@@ -253,7 +253,7 @@ describe('이어 주기 조립 (도메인/시나리오 §3.7 결정 12 · §7)',
     for (const n of [1, 2, 4, 5, 99]) {
       for (const link of 셋(n)) {
         expect(검사(앞뒤(link)), JSON.stringify(link)).toEqual([
-          `4번 부품: 이어 주기가 가리키는 ${n}번 부품은 자기보다 앞의 케이스 부품이 아니다`,
+          `4번 단계: 값 연결이 가리키는 ${n}번 단계는 자기보다 앞의 케이스 단계가 아니다`,
         ]);
       }
     }
@@ -261,10 +261,10 @@ describe('이어 주기 조립 (도메인/시나리오 §3.7 결정 12 · §7)',
 
   it('값 꽂기 칸이 그 케이스 입력값에 없거나 한 칸에 꽂기가 둘이면 거절한다', () => {
     const 꽂기 = (param: string): ScenarioLink => ({ kind: 'bind', param, value: 값(1) });
-    expect(검사(뒤에('SHOP-002', [꽂기('userId')]))).toEqual(['2번 부품: 「userId」 는 SHOP-002 의 입력값 칸이 아니다']);
-    expect(검사(뒤에('SHOP-001', [꽂기('todoId')]))).toEqual(['2번 부품: 「todoId」 는 SHOP-001 의 입력값 칸이 아니다']);
+    expect(검사(뒤에('SHOP-002', [꽂기('userId')]))).toEqual(['2번 단계: 「userId」 는 SHOP-002 의 입력값 칸이 아니다']);
+    expect(검사(뒤에('SHOP-001', [꽂기('todoId')]))).toEqual(['2번 단계: 「todoId」 는 SHOP-001 의 입력값 칸이 아니다']);
     expect(검사(뒤에('SHOP-002', [꽂기('todoId'), 꽂기('todoId'), 꽂기('todoId')]))).toEqual([
-      '2번 부품: 「todoId」 칸에 값 꽂기가 둘 이상이다',
+      '2번 단계: 「todoId」 칸에 값 주입이 둘 이상이다',
     ]);
     expect(검사(뒤에('SHOP-002', [꽂기('todoId'), 꽂기('title')]))).toEqual([]);
   });
@@ -274,11 +274,11 @@ describe('이어 주기 조립 (도메인/시나리오 §3.7 결정 12 · §7)',
       뒤에('SHOP-002', [{ kind: 'rewrite', method: 'POST', urlPattern: '**/a', to: { method: 'PATCH', path, value: 값(1) } }]);
     for (const path of ['api/{}', 'https://evil.test/{}', '//evil.test/{}', '/\\evil.test/{}', '/\t/{}', '/a/{}\n', '/a/{}\x7f']) {
       expect(검사(바꿔(path)), JSON.stringify(path)).toEqual([
-        '2번 부품: 바꿔 보내기 경로는 / 로 시작하고 // 로 시작하지 않으며 \\ 와 제어문자가 없어야 한다',
+        '2번 단계: 수정 요청 경로는 / 로 시작하고 // 로 시작하지 않으며 \\ 와 제어문자가 없어야 한다',
       ]);
     }
     for (const path of ['/a', '/a/{}/{}']) {
-      expect(검사(바꿔(path)), path).toEqual(['2번 부품: 바꿔 보내기 경로에 {} 자리가 꼭 하나 있어야 한다']);
+      expect(검사(바꿔(path)), path).toEqual(['2번 단계: 수정 요청 경로에 {} 자리가 꼭 하나 있어야 한다']);
     }
     expect(검사(바꿔('/api/todos/{}?q=1'))).toEqual([]);
   });

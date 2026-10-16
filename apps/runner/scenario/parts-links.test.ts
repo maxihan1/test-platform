@@ -75,7 +75,7 @@ describe('runParts — 새 창 · 시험 한도 · 이어 주기 · 뒷정리 (S
         창마다: (n, 부품) => (n !== 1 ? {} : {
           runCase: vi.fn(async (_part, seq: number) => {
             부품!.걸림.add(0);
-            부품!.오류 ??= '1번 부품에 맞는 응답이 없다';
+            부품!.오류 ??= '1번 단계에 맞는 응답이 없다';
             return { seq, steps: [], failed: false };
           }),
         }),
@@ -83,7 +83,7 @@ describe('runParts — 새 창 · 시험 한도 · 이어 주기 · 뒷정리 (S
 
       await runParts(parts, deps);
 
-      expect(줄[0]).toMatchObject({ status: 'FAIL', error: { message: '1번 부품에 맞는 응답이 없다\n안 걸린 이어 주기 — 요청 막기 DELETE **/api/cart' } });
+      expect(줄[0]).toMatchObject({ status: 'FAIL', error: { message: '1번 단계에 맞는 응답이 없다\n적용되지 않은 값 연결 — 요청 차단 DELETE **/api/cart' } });
     });
 
     it('케이스 오류도 있으면 이음 오류 뒤에 잇는다', async () => {
@@ -92,7 +92,7 @@ describe('runParts — 새 창 · 시험 한도 · 이어 주기 · 뒷정리 (S
         창마다: (n, 부품) => (n !== 1 ? {} : {
           runCase: vi.fn(async (_part, seq: number) => {
             부품!.걸림.add(0);
-            부품!.오류 ??= '1번 부품 응답에 id 가 없다';
+            부품!.오류 ??= '1번 단계 응답에 id 가 없다';
             return { seq, steps: [], failed: true, error: { message: 'net::ERR_FAILED' } };
           }),
         }),
@@ -100,7 +100,7 @@ describe('runParts — 새 창 · 시험 한도 · 이어 주기 · 뒷정리 (S
 
       await runParts(parts, deps);
 
-      expect(줄[0]!.error?.message).toBe('1번 부품 응답에 id 가 없다 · net::ERR_FAILED');
+      expect(줄[0]!.error?.message).toBe('1번 단계 응답에 id 가 없다 · net::ERR_FAILED');
     });
 
     it('이음 오류 없이 실패해도 안 걸린 이어 주기를 덧붙인다 · 통과면 안 붙인다', async () => {
@@ -112,7 +112,7 @@ describe('runParts — 새 창 · 시험 한도 · 이어 주기 · 뒷정리 (S
       const 나 = 창들(실패);
       await runParts(실패, 나.deps);
 
-      expect(가.줄[0]!.error?.message).toBe('화면이 안 떴다\n안 걸린 이어 주기 — 요청 막기 DELETE **/api/cart');
+      expect(가.줄[0]!.error?.message).toBe('화면이 안 떴다\n적용되지 않은 값 연결 — 요청 차단 DELETE **/api/cart');
       expect(나.줄[0]).toMatchObject({ status: 'PASS' });
       expect(나.줄[0]!.error).toBeUndefined();
     });
@@ -138,7 +138,7 @@ describe('runParts — 새 창 · 시험 한도 · 이어 주기 · 뒷정리 (S
       await runParts(parts, deps);
 
       expect(받은).toHaveLength(2);
-      expect(줄.map((r) => [r.seq, r.status, r.error?.message])).toEqual([[1, 'PASS', undefined], [2, 'FAIL', '1번 부품에 맞는 응답이 없다']]);
+      expect(줄.map((r) => [r.seq, r.status, r.error?.message])).toEqual([[1, 'PASS', undefined], [2, 'FAIL', '1번 단계에 맞는 응답이 없다']]);
     });
   });
 

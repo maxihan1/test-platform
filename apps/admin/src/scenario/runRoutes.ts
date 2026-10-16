@@ -4,10 +4,11 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { ItemStatus, Platform, ScenarioCleanup, ScenarioPart, StepResult } from '@platform/kit';
+import type { ItemStatus, JsonSchema, Platform, ScenarioCleanup, ScenarioPart, StepResult } from '@platform/kit';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
+import { 증적목록 } from '../execution/queries.js';
 import { artifactsDir, 시나리오실행인가 } from '../execution/routes.js';
 import { 가린다, 긴것부터, 비밀글자들 } from '../execution/trial.js';
 import { 정수 } from '../routeParams.js';
@@ -41,8 +42,9 @@ interface 부품행 {
   skipped_steps: string[];
   mocks: string[];
   error: { message: string; stack?: string } | null;
-  param_schema: unknown;
-  expected_schema: unknown;
+  // case 부품만 찬다 — 표의 CHECK 가 막는다
+  param_schema: JsonSchema | null;
+  expected_schema: JsonSchema | null;
   precondition: string[];
   unconfirmed: string | null;
   bound: Record<string, unknown>;
@@ -84,8 +86,9 @@ async function db() {
   return pool;
 }
 
-// kind 가 UI · FN 인 번호는 없는 것으로 본다 (§7)
-async function 결과(runId: number) {
+// kind 가 UI · FN 인 번호는 없는 것으로 본다 (§7). E2E 증적(reporting/collectScenario.ts)도 이 값을 그대로 그린다 —
+// 가린 글자가 화면과 서류에서 갈리지 않게 한 자리에서 읽는다
+export async function 시나리오결과(runId: number) {
   const pool = await db();
   const 머리 = await pool.query<{
     scenario_id: string;
@@ -175,6 +178,8 @@ async function 결과(runId: number) {
     triggeredByName: 행.triggered_by_name,
     startedAt: 행.started_at.toISOString(),
     finishedAt: 행.finished_at?.toISOString() ?? null,
+    // 케이스 결과 응답(GET /api/runs/:runId)과 같은 모양이다 — 화면이 증적 칸 하나로 둘 다 그린다 (§7)
+    evidence: await 증적목록(runId),
   };
 }
 
@@ -204,7 +209,7 @@ export default async function scenarioRunRoutes(app: FastifyInstance): Promise<v
   app.get<{ Params: { runId: string } }>('/runs/:runId/scenario', async (req, reply) => {
     const runId = 정수(req.params.runId);
     if (runId === null) return 잘못(reply, req.params.runId);
-    const 본것 = await 결과(runId);
+    const 본것 = await 시나리오결과(runId);
     if (본것 === null) return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
     return 본것;
   });
