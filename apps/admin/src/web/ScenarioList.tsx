@@ -4,7 +4,7 @@
 
 import { Fragment, useState } from 'react';
 
-import type { EnvRow } from './api.js';
+import { ApiError, type EnvRow } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -23,10 +23,13 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
   const [안내, set안내] = useState<{ id: number; 글: string } | null>(null);
   const [돌리는중, set돌리는중] = useState<number | null>(null);
   const [치울것, set치울것] = useState<ScenarioRow | null>(null);
+  // 치운 줄은 다시 받지 않고 화면에서 뺀다 — 다시 받기가 실패하면 목록 전체가 오류 화면으로 바뀐다
+  const [치운, set치운] = useState<number[]>([]);
   const list = useAsync(() => scenarioApi.list(service), [service]);
 
   if (list.error !== null) return <Failed error={list.error} />;
   if (list.data === null) return <Loading />;
+  const 줄들 = list.data.items.filter((it) => !치운.includes(it.id));
 
   const 새시나리오 = 쓰나 ? (
     <a className="btn" href="#/scenarios/new">
@@ -61,7 +64,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
       />
 
       <div className="screen list-screen">
-        {!쓰나 || list.data.items.length === 0 ? null : (
+        {!쓰나 || 줄들.length === 0 ? null : (
           <div className="toolbar">
             {envs.length === 0 ? (
               <span className="err">{t('이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
@@ -85,7 +88,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
         )}
 
         <div className="rows-scroll">
-          {list.data.items.length === 0 ? (
+          {줄들.length === 0 ? (
             <div className="empty">
               {t('아직 만든 시나리오가 없습니다')}
               <small>{t('기능 테스트 스크립트를 단계로 이어 붙여 만듭니다')}</small>
@@ -94,7 +97,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
           ) : (
             <>
               <표머리 />
-              {list.data.items.map((it) => (
+              {줄들.map((it) => (
                 <Fragment key={it.id}>
                   <시나리오줄
                     줄={it}
@@ -121,8 +124,8 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
           onClose={() => set치울것(null)}
           on치움={() => {
             if (안내?.id === 치울것.id) set안내(null);
+            set치운((앞) => [...앞, 치울것.id]);
             set치울것(null);
-            void list.reload();
           }}
         />
       )}
@@ -136,13 +139,18 @@ function 치우기확인({ 줄, onClose, on치움 }: { 줄: ScenarioRow; onClose
   const 언어 = use언어();
   const [치우는중, set치우는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  // 요청이 나간 뒤에는 닫지 못하게 한다 — 닫혀도 요청은 끝까지 가서 「취소」가 거짓말이 된다
+  const 닫기 = () => {
+    if (!치우는중) onClose();
+  };
   return (
     <Modal
-      제목={t('SC-{번호} 을 목록에서 치울까요?', { 번호: 줄.id })}
-      onClose={onClose}
+      제목={t('SC-{번호} 시나리오를 목록에서 치울까요?', { 번호: 줄.id })}
+      onClose={닫기}
+      바깥눌러닫기={!치우는중}
       버튼={
         <>
-          <button type="button" className="btn ghost" onClick={onClose}>
+          <button type="button" className="btn ghost" disabled={치우는중} onClick={닫기}>
             {t('취소')}
           </button>
           <button
@@ -156,6 +164,11 @@ function 치우기확인({ 줄, onClose, on치움 }: { 줄: ScenarioRow; onClose
                 .archive(줄.id)
                 .then(on치움)
                 .catch((err: unknown) => {
+                  // 이미 없는 시나리오면 목록에서 빼는 것이 맞다 — 남겨 두면 눌러도 같은 오류만 되풀이된다
+                  if (err instanceof ApiError && err.status === 404) {
+                    on치움();
+                    return;
+                  }
                   set오류(message(err, 언어));
                   set치우는중(false);
                 });
@@ -248,7 +261,7 @@ function 시나리오줄({
         )}
         {/* 실행 불가 줄도 치운다 — 못 도는 시나리오가 가장 먼저 치울 거리다 */}
         {!쓰나 || !줄.isActive ? null : (
-          <button type="button" className="btn small ghost" onClick={on치우기}>
+          <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on치우기}>
             {t('치우기')}
           </button>
         )}

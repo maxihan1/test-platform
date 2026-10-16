@@ -64,7 +64,7 @@ describe('ScenarioList 치우기', () => {
 
     fireEvent.click(within(행(container, 1)).getByRole('button', { name: '치우기' }));
 
-    const 상자 = screen.getByRole('dialog', { name: 'SC-2 을 목록에서 치울까요?' });
+    const 상자 = screen.getByRole('dialog', { name: 'SC-2 시나리오를 목록에서 치울까요?' });
     expect(상자.textContent).toContain('ZSM 시나리오 2');
     expect(상자.textContent).toContain('지난 실행 기록과 증적은 그대로 남습니다.');
     expect(상자.textContent).toContain('치운 시나리오는 다시 꺼낼 수 없습니다.');
@@ -76,31 +76,55 @@ describe('ScenarioList 치우기', () => {
     expect(치움).not.toHaveBeenCalled();
   });
 
-  it('상자에서 치우기를 누르면 서버를 부르고 목록을 다시 받아 그 줄이 사라진다', async () => {
+  it('상자에서 치우기를 누르면 서버를 부르고 다시 받지 않고 그 줄을 뺀다', async () => {
     const 치움 = vi.spyOn(scenarioApi, 'archive').mockResolvedValue(undefined);
     const { container, 목록 } = await 그리기([줄(1), 줄(2)]);
-    목록.mockResolvedValue({ items: [줄(1)] });
 
     fireEvent.click(within(행(container, 1)).getByRole('button', { name: '치우기' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '치우기' }));
 
     await waitFor(() => expect(screen.queryByText(/ZSM 시나리오 2/)).toBeNull());
     expect(치움).toHaveBeenCalledWith(2);
-    expect(목록).toHaveBeenCalledTimes(2);
+    expect(목록).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).toBeNull();
+    expect(행(container, 0).textContent).toContain('ZSM 시나리오 1');
   });
 
-  it('서버가 거절하면 상자 안에 그 문장을 보이고 줄은 그대로다', async () => {
-    vi.spyOn(scenarioApi, 'archive').mockRejectedValue(new ApiError(404, 'SCENARIO_NOT_FOUND', ''));
-    const { container, 목록 } = await 그리기([줄(1)]);
+  it('요청이 도는 동안은 취소 · Escape 로 닫히지 않는다', async () => {
+    vi.spyOn(scenarioApi, 'archive').mockReturnValue(new Promise<void>(() => {}));
+    const { container } = await 그리기([줄(1)]);
 
     fireEvent.click(within(행(container, 0)).getByRole('button', { name: '치우기' }));
     const 상자 = screen.getByRole('dialog');
     fireEvent.click(within(상자).getByRole('button', { name: '치우기' }));
 
-    expect(await within(상자).findByText('그 시나리오를 찾지 못했습니다')).toBeTruthy();
+    expect((within(상자).getByRole('button', { name: '취소' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((within(상자).getByRole('button', { name: '치우는 중' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByRole('dialog')).toBe(상자);
+  });
+
+  it('이미 없는 시나리오(404)면 오류 대신 그 줄을 뺀다', async () => {
+    vi.spyOn(scenarioApi, 'archive').mockRejectedValue(new ApiError(404, 'SCENARIO_NOT_FOUND', ''));
+    const { container } = await 그리기([줄(1), 줄(2)]);
+
+    fireEvent.click(within(행(container, 0)).getByRole('button', { name: '치우기' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '치우기' }));
+
+    await waitFor(() => expect(screen.queryByText(/ZSM 시나리오 1/)).toBeNull());
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('그 밖의 거절은 상자 안에 그 문장을 보이고 줄은 그대로다', async () => {
+    vi.spyOn(scenarioApi, 'archive').mockRejectedValue(new ApiError(500, 'INTERNAL', 'boom'));
+    const { container } = await 그리기([줄(1)]);
+
+    fireEvent.click(within(행(container, 0)).getByRole('button', { name: '치우기' }));
+    const 상자 = screen.getByRole('dialog');
+    fireEvent.click(within(상자).getByRole('button', { name: '치우기' }));
+
+    expect(await within(상자).findByText('boom')).toBeTruthy();
     expect((within(상자).getByRole('button', { name: '치우기' }) as HTMLButtonElement).disabled).toBe(false);
-    expect(목록).toHaveBeenCalledTimes(1);
     expect(행(container, 0).textContent).toContain('ZSM 시나리오 1');
   });
 });

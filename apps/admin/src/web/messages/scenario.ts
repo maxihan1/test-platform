@@ -31,7 +31,7 @@ export const 시나리오말: Record<string, string> = {
   '아직 만든 시나리오가 없습니다': 'No scenarios yet',
   '치우기': 'Archive',
   '치우는 중': 'Archiving',
-  'SC-{번호} 을 목록에서 치울까요?': 'Archive SC-{번호}?',
+  'SC-{번호} 시나리오를 목록에서 치울까요?': 'Archive scenario SC-{번호}?',
   '지난 실행 기록과 증적은 그대로 남습니다.': 'Past runs and evidence stay as they are.',
   '치운 시나리오는 다시 꺼낼 수 없습니다.': 'An archived scenario cannot be brought back.',
   '기능 테스트 스크립트를 단계로 이어 붙여 만듭니다': 'Build one by chaining functional test scripts as steps',
