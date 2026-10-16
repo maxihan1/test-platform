@@ -37,7 +37,11 @@ describe('화면 기록 본문 검사', () => {
 
   it('seen 의 이름은 없어도 빈 글자도 된다', () => {
     expect(다봄검사({ seen: [{ state: '로그인:일반 회원', url: '/a' }, { state: '로그인:일반 회원', url: '/b', name: '' }, { state: '로그아웃', url: '/c', name: '홈' }], complete: [] })).toEqual({
-      seen: [{ state: '로그인:일반 회원', url: '/a', name: '' }, { state: '로그인:일반 회원', url: '/b', name: '' }, { state: '로그아웃', url: '/c', name: '홈' }],
+      seen: [
+        { state: '로그인:일반 회원', url: '/a', name: '', viewport: null },
+        { state: '로그인:일반 회원', url: '/b', name: '', viewport: null },
+        { state: '로그아웃', url: '/c', name: '홈', viewport: null },
+      ],
       complete: [],
     });
   });
