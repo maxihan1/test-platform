@@ -8,7 +8,7 @@ import type { Browser } from '@playwright/test';
 import { 칸줄, 누르기, 보기, 읽기, 열기, 창수, 확인창누르기, 후보모으기, type 본것 } from './authoring-crawl-page.js';
 import { type 누름종류, 누를까, 누름키, 로그아웃인가, 연결이름, 탈퇴말인가, 탈퇴주소인가 } from './authoring-crawl-press.js';
 import { type 목록항목, 걸러진까닭, 글자지문, 둘째장볼까, 로그인풀렸나, 부모키, 빼는주소인가, 주소고르기, 지문, 틀키 } from './authoring-crawl-rules.js';
-import { type 인자, 로그인돌리기, 새쪽, 폴더이름 } from './authoring-crawl-session.js';
+import { type 들은API, type 인자, API듣기, API상한, 로그인돌리기, 새쪽, 폴더이름 } from './authoring-crawl-session.js';
 import type { 상태 } from './authoring-screens-keep.js';
 
 const 간격 = 1_000; // 운영 서버도 돈다 — 한 장씩, 1초 이상 띄운다
@@ -33,6 +33,8 @@ export interface 판 {
   본: 본화면[];
   /** 본 화면 번호 → 나간 연결(키 `to via`) */
   연결: Map<number, Map<string, 연결>>;
+  /** 본 화면 번호 → 그 화면을 열 때와 그 화면에서 누를 때 들은 API (PRD-F10-05) */
+  API: Map<number, 들은API>;
   걸러짐: Map<string, { 글자: string; 까닭: string }>;
   잘림: number;
   연속오류: number;
@@ -48,6 +50,8 @@ const 쉬기 = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자, 몫: { 장: number; 마감: number }, 판: 판): Promise<void> {
   const 상태파일 = 상태 === '로그아웃' ? undefined : a.역할상태.get(상태);
   let { 맥락, 쪽 } = await 새쪽(브라우저, 상태파일);
+  const 들은: 들은API = new Map();
+  API듣기(쪽, 들은);
   const 출처 = new URL(a.주소들[0]!).origin;
   const 시작틀 = new Set(a.주소들.map(틀키));
   const 대기: string[] = a.주소들.map((x) => new URL(x).toString());
@@ -87,6 +91,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
       return false;
     }
     ({ 맥락, 쪽 } = await 새쪽(브라우저, 상태파일));
+    API듣기(쪽, 들은);
     return true;
   };
 
@@ -107,6 +112,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     const 파일글 = [`# ${본.최종}`, ...본.입력칸.map(칸줄), 구조, ''].join('\n');
     writeFileSync(join(a.출력, 파일), 파일글);
     const 본번 = 판.본.length;
+    판.API.set(본번, new Map(들은));
     판.본.push({
       상태, 틀: 앞지문.length === 0 ? 틀 : `${틀} (구조 다름)`, 주소: 요청, 최종: 본.최종, 이름: 본.제목, 파일, 시작: 시작틀.has(틀),
       지문: 이지문, 글자지문: 글자지문(파일글), 짧음: 본.구조.length < 200, 로그인풀림: 풀림, 입력칸: 본.입력칸, 링크수: 본.링크.length,
@@ -170,6 +176,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     const 상황 = { 상태, 탈퇴흐름: 탈퇴틀.has(일.틀), 다시로그인: 로그인남음() };
     const 제틀 = 틀키(일.주소);
     const 눌러보기 = async (): Promise<number | null> => {
+      들은.clear(); // 이제부터 들은 것은 이 누르기가 부른 API 다 — 누른 화면 몫이다
       const 전창 = await 창수(쪽);
       const i = (await 후보모으기(쪽).catch(() => [])).findIndex((x) => 누름키(x, 일.틀) === 일.키 && 누를까(x, 상황, 쪽.url()));
       return i >= 0 && (await 누르기(쪽, i)) ? 전창 : null;
@@ -189,6 +196,9 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
     if (전창 === null) return 'ok';
     판.누름++;
     const 창 = 일.탈퇴 ? '탈퇴' : await 확인창누르기(쪽, 전창);
+    const 누른화면 = 판.API.get(일.본번) ?? new Map();
+    for (const [키, 값] of 들은) if (누른화면.size < API상한) 누른화면.set(키, 값);
+    판.API.set(일.본번, 누른화면);
     const 뒤 = 쪽.url();
     그대로 = 뒤 === 일.주소 && 창 === '없음';
     await 쉬기(간격); // 누르기도 서버를 두드린다 — 한 번에 1초 이상 띄운다
@@ -250,6 +260,7 @@ export async function 한상태(브라우저: Browser, 상태: 상태, a: 인자
 
       연주소.add(주소);
       그대로 = false;
+      들은.clear();
       const 본 = await 보기(쪽, 주소);
       await 쉬기(간격);
       if (본 === '건너뜀') continue;

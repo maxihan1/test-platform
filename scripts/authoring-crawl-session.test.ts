@@ -1,11 +1,12 @@
-// 크롤러가 자식의 로그인 스크립트를 역할마다 돌리기 — CRAWL_ROLE · CRAWL_STATE 넘기기 · 실패 까닭 (도메인/작성 §3.6 「화면 기록과 크롤러」 · PRD-F9-30)
+// 크롤러가 자식의 로그인 스크립트를 역할마다 돌리기 — CRAWL_ROLE · CRAWL_STATE 넘기기 · 실패 까닭 (도메인/작성 §3.6 「화면 기록과 크롤러」 · PRD-F9-30) · 화면이 부른 API 듣기 (PRD-F10-05)
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { chromium } from '@playwright/test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 로그인돌리기 } from './authoring-crawl-session.js';
+import { type 들은API, API듣기, 로그인돌리기, 새쪽 } from './authoring-crawl-session.js';
 
 let 폴더 = '';
 beforeEach(() => {
@@ -40,5 +41,29 @@ describe('로그인돌리기', () => {
     expect(로그인돌리기(스크립트('void writeFileSync;'), join(폴더, 's.json'), '일반 회원')).toBe(
       '상태 파일이 새로 써지지 않았다 — 로그인 스크립트가 CRAWL_STATE 파일에 쓰는지 본다',
     );
+  });
+});
+
+describe('API듣기', () => {
+  it('화면이 부른 fetch · xhr 만 물음표 뒤를 빼고 듣는다 — 문서 · 그림은 안 듣는다', async () => {
+    const 브라우저 = await chromium.launch();
+    try {
+      const { 맥락, 쪽 } = await 새쪽(브라우저, undefined);
+      const 들은: 들은API = new Map();
+      API듣기(쪽, 들은);
+      await 맥락.route('https://s.test/**', (r) =>
+        r.request().resourceType() === 'document'
+          ? r.fulfill({ contentType: 'text/html', body: `<img src="/a.png"><script>fetch('/api/goods/3?token=t0k');const x=new XMLHttpRequest();x.open('POST','/api/cart');x.send()</script>` })
+          : r.fulfill({ contentType: 'application/json', body: '{}' }),
+      );
+      await 쪽.goto('https://s.test/');
+      await expect.poll(() => 들은.size).toBe(2);
+      expect([...들은.values()]).toEqual([
+        { method: 'GET', url: 'https://s.test/api/goods/3' },
+        { method: 'POST', url: 'https://s.test/api/cart' },
+      ]);
+    } finally {
+      await 브라우저.close();
+    }
   });
 });

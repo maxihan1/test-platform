@@ -32,6 +32,22 @@ export interface 인자 {
 /** 크롤 파일 폴더 — 역할끼리는 `로그인/` 하나를 같이 쓴다(크롤 번호가 상태를 넘어 하나씩 늘어 안 겹친다) */
 export const 폴더이름 = (상태: 상태): string => (상태 === '로그아웃' ? '로그아웃' : '로그인');
 
+/** 들은 API — `방식 주소` → 그 줄. 화면을 열거나 누르기 전에 비운다 */
+export type 들은API = Map<string, { method: string; url: string }>;
+export const API상한 = 200; // 화면 하나에서 — 서버 상한과 같다(§7 PUT …/screens)
+
+/**
+ * 화면이 부른 API(fetch · xhr)를 듣는다 — 물음표 · # 뒤는 뺀다(토큰 · 검색어). 같은 사이트인지 · 상한은 서버가 다시 거른다 (도메인/작성 §3.6 「서비스 지도」 · PRD-F10-05)
+ */
+export function API듣기(쪽: Page, 들은: 들은API): void {
+  쪽.on('request', (r) => {
+    if (!['fetch', 'xhr'].includes(r.resourceType()) || 들은.size >= API상한) return;
+    const u = new URL(r.url());
+    u.search = '';
+    u.hash = '';
+    들은.set(`${r.method()} ${u.toString()}`, { method: r.method(), url: u.toString() });
+  });
+}
 /** 쪽 하나 — 상태 파일이 없으면 로그아웃이다 */
 export async function 새쪽(브라우저: Browser, 상태파일: string | undefined): Promise<{ 맥락: BrowserContext; 쪽: Page }> {
   const 맥락 = await 브라우저.newContext(상태파일 === undefined ? {} : { storageState: 상태파일 });

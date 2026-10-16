@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { 저장본넣기, 저장본올리기, 크롤모두덮음 } from './authoring-screens-keep-io.js';
+import { 저장본넣기, 저장본올리기, 지도받기, 지도자리, 크롤모두덮음 } from './authoring-screens-keep-io.js';
 import { 저장이름 } from './authoring-screens-keep.js';
 
 const 통로 = { 주소기지: 'http://admin:3000', 토큰: 't', 번호: 7 };
@@ -94,7 +94,7 @@ describe('저장본올리기', () => {
         url: 'http://admin:3000/api/authoring/requests/7/screens',
         method: 'PUT',
         body: { state: '로그아웃', url: '/', name: '홈', textFp: 'bbbbbbbbbbbb', structFp: 'aaaaaaaaaaaa', record: '# https://s.test/\n홈 기록', crawledAt: '2026-10-20T03:00:00.000Z',
-          links: [{ toUrl: '/login', via: '링크 「로그인」' }, { toUrl: '/cart', via: '버튼 「담기」' }],
+          links: [{ toUrl: '/login', via: '링크 「로그인」' }, { toUrl: '/cart', via: '버튼 「담기」' }], apis: [],
         },
       },
       {
@@ -198,6 +198,23 @@ describe('저장본올리기', () => {
     expect(건것들).toEqual([]);
   });
 
+  it('크롤러가 화면마다 들은 API(apis.json)를 그 화면 PUT 에 싣는다 · 꼴이 틀린 줄은 버린다 · 주소에 비밀번호가 있으면 하나도 안 올린다 (PRD-F10-05)', async () => {
+    크롤쓰기([홈]);
+    writeFileSync(join(자료, 'screens', 'out-001.md'), '# https://s.test/\n홈 기록');
+    writeFileSync(
+      join(자료, 'crawl', 'apis.json'),
+      JSON.stringify([{ 상태: '로그아웃', 틀: '/', api: [{ method: 'GET', url: 'https://s.test/api/goods' }, { method: 'GET /x', url: 'https://s.test/a' }, { url: 'https://s.test/b' }] }]),
+    );
+    서버(다봄답());
+    await 저장본올리기(통로, 자료, ['pw-1234'], 지금);
+    expect(건것들.find((x) => x.method === 'PUT')!.body).toMatchObject({ url: '/', apis: [{ method: 'GET', url: 'https://s.test/api/goods' }] });
+
+    건것들 = [];
+    writeFileSync(join(자료, 'crawl', 'apis.json'), JSON.stringify([{ 상태: '로그아웃', 틀: '/', api: [{ method: 'GET', url: 'https://s.test/u/pw-1234' }] }]));
+    expect(await 저장본올리기(통로, 자료, ['pw-1234'], 지금)).toEqual({ 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' });
+    expect(건것들).toEqual([]);
+  });
+
   it('크롤 목록이 없으면 건너뛴다 · 링크인 기록은 따라가지 않는다 · 서버가 못 받은 화면은 센다', async () => {
     서버((x) => (x.method === 'GET' ? { status: 200, 몸: { screens: [] } } : { status: 400, 몸: { error: 'BAD_SCREEN' } }));
     expect(await 저장본올리기(통로, 자료, [], 지금)).toEqual({ 줄: '화면 기록 저장: 크롤 목록이 없어 건너뜀' });
@@ -227,5 +244,24 @@ describe('크롤모두덮음 — 올리기가 「PRD 에 없는 화면 0」을 �
     writeFileSync(join(폴더, '밖.json'), JSON.stringify([{ 덮음: true }]));
     symlinkSync(join(폴더, '밖.json'), join(자료, 'crawl', 'list.json'));
     expect(크롤모두덮음(자료)).toBeNull();
+  });
+});
+
+describe('지도받기 — 자식 앞에 서비스 지도를 api-map.txt 로 (PRD-F10-05)', () => {
+  it('API 하나를 한 줄로 거친 케이스 · 화면과 함께 쓴다 · 지도가 비었거나 서버가 실패하면 파일을 안 만든다', async () => {
+    서버(() => ({
+      status: 200,
+      몸: { apis: [{ method: 'GET', host: 's.test', path: '/api/goods/:n', cases: [{ tcId: 'MKT-FN-001', steps: [1] }], screens: [{ env: 'qa', state: '로그아웃', url: '/goods/:n' }] }, { method: 'POST', host: 's.test', path: '/api/cart', cases: [], screens: [] }] },
+    }));
+    expect(await 지도받기(통로, 자료)).toBe(2);
+    expect(건것들.map((x) => x.url)).toEqual(['http://admin:3000/api/authoring/requests/7/apis']);
+    expect(readFileSync(지도자리(자료), 'utf8')).toBe('GET s.test/api/goods/:n · 케이스 MKT-FN-001 · 화면 로그아웃 /goods/:n\nPOST s.test/api/cart\n');
+
+    rmSync(지도자리(자료));
+    서버(() => ({ status: 200, 몸: { apis: [] } }));
+    expect(await 지도받기(통로, 자료)).toBe(0);
+    서버(() => ({ status: 500 }));
+    expect(await 지도받기(통로, 자료)).toBe(0);
+    expect(readdirSync(자료)).not.toContain('api-map.txt');
   });
 });
