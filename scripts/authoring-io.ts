@@ -219,11 +219,15 @@ export function 진짜main묻기(cwd: string): { sha: string } | { 까닭: strin
 export function 진짜main받기(cwd: string, 선택: 칠때 = {}): { sha: string } | { 까닭: string } {
   const 물음 = 진짜main묻기(cwd);
   if ('까닭' in 물음) return 물음;
-  const { sha } = 물음;
+  return 커밋받기(cwd, 물음.sha, 'main', 선택);
+}
+
+/** 커밋이 로컬에 없으면 받아 둔다 */
+export function 커밋받기(cwd: string, sha: string, 이름: string, 선택: 칠때 = {}): { sha: string } | { 까닭: string } {
   if (친다('git', ['cat-file', '-e', `${sha}^{commit}`], cwd).ok) return { sha };
   // 서버 저장소에 쓰므로 호스트 계정으로 받는다 — root 로 받으면 사람이 git pull 을 못 한다
   const 받기 = 친다('git', ['fetch', 'origin', sha], cwd, undefined, 120_000, 선택);
-  return 받기.ok ? { sha } : { 까닭: `main(${sha}) 을 못 받았다: ${받기.까닭}` };
+  return 받기.ok ? { sha } : { 까닭: `${이름}(${sha}) 을 못 받았다: ${받기.까닭}` };
 }
 
 export type 판정기 = (파일들: string[], 기준: string, cwd: string, env?: Record<string, string>) => boolean;
