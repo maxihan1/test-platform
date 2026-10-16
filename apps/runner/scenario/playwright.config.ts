@@ -14,7 +14,8 @@ export default defineConfig({
   testDir: here,
   // 기본 무늬는 *.test.ts 도 잡는다. 같은 폴더의 vitest 검사를 Playwright 가 집어 가면 안 된다
   testMatch: 'scenario.spec.ts',
-  outputDir: `${artifactsDir}/playwright`,
+  // 러너가 실행마다 이름을 준다 — 나란히 도는 실행이 서로의 출력 폴더를 지우지 않게 (도메인/러너 §5.2)
+  outputDir: `${artifactsDir}/playwright/${process.env.PLATFORM_OUTPUT_ID ?? 'local'}`,
   workers: 1,
   // 자동 재시도를 쓰지 않는다. 켜려면 SPEC 도메인/러너 §5.2 의 그 문장을 먼저 고친다
   retries: 0,

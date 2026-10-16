@@ -44,7 +44,7 @@ export interface StepResult {
 }
 
 export interface ExecuteRequest {
-  runId: number;                // 스크린샷 경로 artifacts/runs/{runId}/{historyId}/ 를 만들 때만 쓴다
+  runId: number;                // 스크린샷 · trace 경로 artifacts/runs/{runId}/{historyId}/ 를 만들 때와 trace 를 켤지(0 이면 끔) 정할 때만 쓴다
   historyId: number;
   tcId: TcId;
   platform: Platform;           // Playwright project 이름과 일치시킨다
