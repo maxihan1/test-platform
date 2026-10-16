@@ -122,10 +122,6 @@ describe.skipIf(연결 === undefined)('test_run 의 kind 거르기', () => {
     await app.register(reportingRoutes, { prefix: '/api' });
     await app.ready();
     try {
-      const 증적 = await app.inject({ method: 'POST', url: `/api/runs/${S}/evidence`, payload: { format: 'HTML' } });
-      expect(증적.statusCode).toBe(404);
-      expect(증적.json().error).toBe('RUN_NOT_FOUND');
-
       const 견주기 = await app.inject({ method: 'GET', url: `/api/runs/${S}/insights` });
       expect(견주기.statusCode).toBe(404);
       expect(견주기.json().error).toBe('RUN_NOT_FOUND');

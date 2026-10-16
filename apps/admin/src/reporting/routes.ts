@@ -26,12 +26,14 @@ const 카드디바이스 = z.enum(['desktop', 'mobile', 'android']).optional();
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (store.ts와 같은 방식)
 // 있는지와 어떤 상태인지를 한 번에 묻는다. 둘로 나누면 같은 행을 두 번 왕복한다
-async function 실행상태(runId: number): Promise<string | null> {
+async function 실행상태(runId: number, 시나리오도 = false): Promise<string | null> {
   const { pool } = await import('../db/index.js');
-  // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
-  const rows = await pool.query<{ status: string }>(`SELECT status FROM test_run WHERE run_id = $1 AND ${종류조건('case', '')}`, [
-    runId,
-  ]);
+  // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10).
+  // 증적 만들기만 예외다 — 시나리오 실행이면 E2E 증적을 만든다 (도메인/리포팅 §8.4 「E2E 시나리오 증적」)
+  const rows = await pool.query<{ status: string }>(
+    `SELECT status FROM test_run WHERE run_id = $1${시나리오도 ? '' : ` AND ${종류조건('case', '')}`}`,
+    [runId],
+  );
   return rows.rows[0]?.status ?? null;
 }
 
@@ -62,7 +64,7 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     const runId = 정수(req.params.runId);
     if (runId === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.runId });
     // claim 앞에서 막는다. 없는 실행을 그냥 넘기면 외래키 위반이 500으로 새어 나간다
-    const 상태 = await 실행상태(runId);
+    const 상태 = await 실행상태(runId, true);
     if (상태 === null) {
       return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
     }

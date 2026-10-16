@@ -69,13 +69,13 @@ export function 결과(덮: Partial<ScenarioRunResult> = {}): ScenarioRunResult 
     scenarioId: 12, version: 3, status: 'FINISHED', platform: 'desktop', title: '결제 시나리오',
     env: 'qa', baseUrl: 'https://qa.example.com', triggeredBy: 'kim', triggeredByName: '김검사',
     startedAt: '2026-10-06T00:00:00.000Z', finishedAt: '2026-10-06T00:00:12.000Z',
-    parts: [로그인, 모킹켜기, 결제, 안돈], ...덮,
+    parts: [로그인, 모킹켜기, 결제, 안돈], evidence: [], ...덮,
   };
 }
 
 export function 연다(답: ScenarioRunResult, 상자안 = false) {
   const 부름 = vi.spyOn(scenarioApi, 'result').mockResolvedValue(답);
-  render(<ScenarioResult runId={77} 상자안={상자안} />);
+  render(<ScenarioResult runId={77} 판정하기={() => () => true} 상자안={상자안} />);
   return 부름;
 }
 

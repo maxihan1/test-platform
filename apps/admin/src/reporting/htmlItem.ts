@@ -57,7 +57,8 @@ function 스텝(s: EvidenceStep): string[] {
 
   return [
     `    <div class="step">`,
-    `      <div class="step-head"><span class="seq">${s.seq}.</span><span class="step-title">${안전(s.title)}</span>${판정(s.status)}${소요(s.durationMs)}</div>`,
+    // 건너뛴 「만들기」 절차는 판정 없이 PASS 로 적힌다. 「통과」로 찍으면 준비까지 한 것으로 읽힌다 (도메인/리포팅 §8.4)
+    `      <div class="step-head"><span class="seq">${s.seq}.</span><span class="step-title">${안전(s.title)}</span>${s.skipped === true ? '<span class="badge">건너뜀</span>' : `${판정(s.status)}${소요(s.durationMs)}`}</div>`,
     ...줄들,
     `    </div>`,
   ];

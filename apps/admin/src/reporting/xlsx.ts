@@ -6,6 +6,7 @@
 import ExcelJS from 'exceljs';
 
 import type { EvidenceAssertion, EvidenceDocument, EvidenceField, EvidenceItem, EvidenceStep } from './collect.js';
+import type { E2E단계, E2E증적 } from './collectScenario.js';
 
 export interface RenderOptions {
   /** 렌더 입력으로 받는다 — 함수 안에서 new Date() 를 부르면 재현성이 깨진다 (SPEC §3.3) */
@@ -87,7 +88,8 @@ function 케이스칸(item: EvidenceItem): 칸값[] {
 }
 
 function 절차칸(s: EvidenceStep): 칸값[] {
-  return [s.seq, s.title, 판정글자[s.status], s.durationMs];
+  // 건너뛴 「만들기」 절차는 PASS 로 적혀 있다. 「통과」로 쓰면 준비까지 한 것으로 읽힌다 (E2E 증적)
+  return [s.seq, s.title, s.skipped === true ? '건너뜀' : 판정글자[s.status], s.durationMs];
 }
 
 function 검증칸(a: EvidenceAssertion, s: EvidenceStep): 칸값[] {
@@ -123,5 +125,59 @@ export async function renderXlsx(doc: EvidenceDocument, options: RenderOptions):
   for (const item of doc.items) sheet.addRows(항목행들(doc, item).map((행) => [...행, doc.header.kind]));
 
   // exceljs 는 자기 모듈 안에 Buffer 를 따로 선언해 둔다. 노드 Buffer 로 맞춰 내보낸다
+  return Buffer.from(await workbook.xlsx.writeBuffer());
+}
+
+// 단계 칸 — 차례 · 종류 · 붙는 표시를 한 칸에 줄로 적는다. 값 연결 · 모킹을 빼면 꾸민 응답으로 통과한 것이 진짜로 읽힌다 (도메인/리포팅 §8.4)
+function 단계글(d: E2E단계): string {
+  return [
+    [`${d.seq}단계`, d.종류, ...(d.모킹구간.length > 0 ? ['모킹 구간'] : []), ...(d.단독실행 ? ['단독 실행'] : [])].join(' · '),
+    ...(d.모킹구간.length > 0 && !d.모킹안탐 ? [`모킹이 적용된 상태로 실행했습니다 — ${d.모킹구간.join(', ')}`] : []),
+    ...(d.모킹안탐 ? ['이 단계의 API 호출은 모킹되지 않습니다'] : []),
+    ...d.건너뜀,
+    ...d.값연결.map((v) => `${v.종류} · ${v.글}`),
+  ].join('\n');
+}
+
+// 절차가 없는 단계(모킹 · API · 대기 · 안 돈 케이스)도 한 행을 남긴다 — 행이 없으면 그 단계가 표에서 사라진다
+function 한행(판: EvidenceDocument, d: E2E단계, platform: E2E증적['platform']): 칸값[] {
+  const 판정 = d.적용됨 ? '적용됨' : d.안돌았다 ? '실행 안 됨' : 판정글자[d.status];
+  const 케이스 = d.item === null ? [null, d.요약] : [d.item.tcId, d.item.tcName];
+  return [
+    ...실행칸(판),
+    ...케이스,
+    디바이스[platform],
+    d.item === null ? null : 1,
+    판정,
+    d.안돌았다 ? null : d.durationMs,
+    d.사유 ?? d.item?.notRunReason ?? null,
+    d.item?.unconfirmed ?? null,
+    ...빈항목뒤,
+    ...빈절차,
+    ...빈검증,
+  ];
+}
+
+/** 케이스칸 중 판정 · 사유 · 미확정 뒤의 셋(사전조건 · 입력값 · 기대값) */
+const 빈항목뒤: 칸값[] = [null, null, null];
+
+/** E2E 증적 엑셀 — 「한 행 = 한 검증 문장」에 단계 칸이 앞에 하나 더 붙는다 (도메인/리포팅 §8.4) */
+export async function renderScenarioXlsx(doc: E2E증적, options: RenderOptions): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.created = new Date(options.generatedAt);
+  workbook.modified = workbook.created;
+
+  const sheet = workbook.addWorksheet('E2E 증적');
+  sheet.views = [{ state: 'frozen', ySplit: 1 }];
+  sheet.addRow(['단계', ...머리행]);
+  // 실행 칸 여섯은 케이스 증적과 같은 함수가 채운다 — 항목은 단계마다 따로 넘긴다
+  const 판: EvidenceDocument = { runId: doc.runId, header: doc.header, items: [] };
+  for (const d of doc.parts) {
+    const 행들 = d.item !== null && !d.안돌았다 ? 항목행들(판, d.item) : [한행(판, d, doc.platform)];
+    sheet.addRows(행들.map((행) => [단계글(d), ...행, doc.header.kind]));
+  }
+  // 판정에는 안 든다 — 마지막 단계 뒤에 한 줄씩 (도메인/시나리오 §3.7 결정 12)
+  for (const 글 of doc.정리) sheet.addRow([글, ...실행칸(판)]);
+
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }

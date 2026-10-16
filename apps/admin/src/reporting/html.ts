@@ -1,7 +1,8 @@
 // 표시용 모델을 증거 카드형(C 양식) A4 문서로 그린다. 이 HTML 이 곧 PDF 의 원본이다 (도메인/리포팅 §8.4)
 // 가공하지 않는다 — 라벨·마스킹·빈 값은 collect.ts 가 이미 끝냈다. 여기서 또 하면 마스킹이 새는 자리가 둘이 된다
 
-import type { EvidenceDocument, EvidenceItem } from './collect.js';
+import type { EvidenceDocument, EvidenceHeader, EvidenceItem } from './collect.js';
+import type { E2E요약줄 } from './e2eSummary.js';
 import { 디바이스순서, 케이스로묶는다 } from './failuresShape.js';
 import { 디바이스, 본문, 안전, 판정, 판정글자, 항목줄 } from './htmlItem.js';
 import { 증적스타일 } from './htmlStyle.js';
@@ -12,6 +13,11 @@ export interface RenderOptions {
   generatedAt: string;
   /** 접힌 줄을 HTML 은 그 자리에서 펼치고(details) PDF 는 부록으로 건다 — 닫힌 details 는 인쇄되지 않는다 */
   format: 'HTML' | 'PDF';
+  /**
+   * 차례 5 「E2E 요약」 — 그 서비스의 시나리오마다 마지막 실행. 만드는 시점에 읽어 넘긴다(generate.ts).
+   * 비면(시나리오가 없거나 안 넘기면) 절을 그리지 않는다 (도메인/리포팅 §8.4)
+   */
+  e2e?: E2E요약줄[];
 }
 
 /** 번호는 doc.items 안 자리다 — 부록 고리 이름(`i-번호`)이라 같은 모델이면 같은 글자가 나온다 (SPEC §3.3) */
@@ -176,22 +182,26 @@ function 요약(items: EvidenceItem[]): string[] {
   ];
 }
 
-export function renderHtml(doc: EvidenceDocument, options: RenderOptions): string {
-  const h = doc.header;
-  const 실패들: 케이스[] = [];
-  const 줄들: 케이스[] = [];
-  for (const c of 케이스로(doc.items)) (c.펼침.length > 0 ? 실패들 : 줄들).push(c);
-
+// 시각은 머리말의 실행 시각과 같은 꼴(ISO)로 적는다 — 같은 문서 안에서 두 꼴이 섞이지 않게
+function E2E요약절(줄들: E2E요약줄[]): string[] {
+  if (줄들.length === 0) return [];
   return [
-    `<!doctype html>`,
-    `<html lang="ko">`,
-    `<head>`,
-    `<meta charset="utf-8">`,
-    `<title>${안전(h.serviceName)} 증적 문서 — RUN ${doc.runId}</title>`,
-    `<style>${증적스타일}</style>`,
-    `</head>`,
-    `<body>`,
-    `<div class="doc">`,
+    `<h2 class="sec">E2E 요약</h2>`,
+    `<p class="axis">이 요약은 문서를 만든 때 기준이다</p>`,
+    ...줄들.map((z) => {
+      const 이름 = `<span class="tc-id">SC-${z.scenarioId}</span><span class="tc-name">${안전(z.name)}</span>`;
+      if (z.startedAt === null || z.verdict === null) return `<div class="fold fold-line">${이름}<span class="devs">실행 이력 없음</span></div>`;
+      const 멈춘곳 = z.stoppedAt === null ? '모두 통과' : `${z.stoppedAt}번에서 멈춤`;
+      const 미확정 = z.unconfirmed ? `<span class="badge">미확정</span>` : '';
+      return `<div class="fold fold-line">${판정(z.verdict)}${이름}<span class="devs">${안전(z.startedAt)} · ${멈춘곳}</span>${미확정}</div>`;
+    }),
+    `<p class="axis">케이스 판정은 위 카드와 줄이 정본이다</p>`,
+  ];
+}
+
+/** 문서 맨 앞 — 서비스 이름 · 저장소 주소 · 실행에 박제된 값들. E2E 증적(htmlScenario.ts)도 같은 머리를 쓴다 (도메인/리포팅 §8.4 「증적 문서 머리말」) */
+export function 머리말(h: EvidenceHeader, generatedAt: string): string[] {
+  return [
     `<header class="doc-head">`,
     `  <div class="service">${안전(h.serviceName)}</div>`,
     `  <div class="repo">${안전(h.testsRepo)}</div>`,
@@ -202,9 +212,39 @@ export function renderHtml(doc: EvidenceDocument, options: RenderOptions): strin
     `    <dt>실행자</dt><dd>${안전(h.triggeredByName)}</dd>`,
     `    <dt>대상 서버</dt><dd>${안전(h.env)}</dd>`,
     `    <dt>대상 주소</dt><dd>${안전(h.baseUrl)}</dd>`,
-    `    <dt>만든 시각</dt><dd>${안전(options.generatedAt)}</dd>`,
+    `    <dt>만든 시각</dt><dd>${안전(generatedAt)}</dd>`,
     `  </dl>`,
     `</header>`,
+  ];
+}
+
+/** 문서 껍데기 — 제목 · 글꼴 · 종이. 케이스 증적과 E2E 증적이 같은 판을 쓴다 */
+export function 문서판(제목: string, 몸: string[]): string {
+  return [
+    `<!doctype html>`,
+    `<html lang="ko">`,
+    `<head>`,
+    `<meta charset="utf-8">`,
+    `<title>${안전(제목)}</title>`,
+    `<style>${증적스타일}</style>`,
+    `</head>`,
+    `<body>`,
+    `<div class="doc">`,
+    ...몸,
+    `</div>`,
+    `</body>`,
+    `</html>`,
+  ].join('\n');
+}
+
+export function renderHtml(doc: EvidenceDocument, options: RenderOptions): string {
+  const h = doc.header;
+  const 실패들: 케이스[] = [];
+  const 줄들: 케이스[] = [];
+  for (const c of 케이스로(doc.items)) (c.펼침.length > 0 ? 실패들 : 줄들).push(c);
+
+  return 문서판(`${h.serviceName} 증적 문서 — RUN ${doc.runId}`, [
+    ...머리말(h, options.generatedAt),
     ...요약(doc.items),
     `<h2 class="sec">실패 케이스 ${실패들.length}건</h2>`,
     ...(실패들.length === 0 ? [`<p class="none">실패한 케이스가 없습니다</p>`] : 실패들.flatMap((c) => 카드(c, options.format))),
@@ -215,9 +255,7 @@ export function renderHtml(doc: EvidenceDocument, options: RenderOptions): strin
           `<h2 class="sec">통과 · 미실행 케이스 ${줄들.length}건</h2>`,
           ...줄들.flatMap((c) => 접힌줄(options.format, 줄글(c), `c-${c.차례}`, () => c.칸들.flatMap((k) => 펼친항목(k)))),
         ]),
+    ...E2E요약절(options.e2e ?? []),
     ...(options.format === 'PDF' ? 부록([...실패들, ...줄들]) : []),
-    `</div>`,
-    `</body>`,
-    `</html>`,
-  ].join('\n');
+  ]);
 }
