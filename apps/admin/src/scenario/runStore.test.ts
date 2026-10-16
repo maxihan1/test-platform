@@ -263,6 +263,18 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
     expect(밖.message).not.toContain('밖.spec.ts');
   });
 
+  it('저장 뒤 건너뛸 수 없게 된 절차 제목은 러너 요청과 박제에서 빠진다', async () => {
+    const id = await 버전바로넣기([
+      { kind: 'case', tcId: 'XSE-001', params: {}, expected: {}, skipSteps: ['상품을 담는다', '장바구니에 한 건이다', '사라진 절차'] },
+    ]);
+
+    const { runId, 요청 } = await 실행만들기(id, 'qa', 사람);
+
+    expect(요청.parts[0]).toMatchObject({ skipSteps: ['상품을 담는다'] });
+    const 박제 = (await q<{ part: ScenarioPart }>('SELECT part FROM scenario_run_part WHERE run_id = $1', [runId])).rows[0]!;
+    expect(박제.part).toMatchObject({ skipSteps: ['상품을 담는다'] });
+  });
+
   const 세부품 = async (): Promise<number> => {
     const { id } = await 만들기(
       서비스,
