@@ -105,7 +105,12 @@ export async function trace를푼다(zip: Buffer, 설정: { 본문: boolean }): 
     if (seq !== null) 경계.push({ at, seq });
   }
   경계.sort((a, b) => a.at - b.at);
-  const 단계 = (t: number): number | null => 경계.find((b) => b.at >= t)?.seq ?? null;
+  // 첫 단계는 준비(Before Hooks)가 끝난 뒤 시작한다. 준비 중 일(로그인 fixture 의 API 등)과 마지막 단계 뒤 정리는 단계 밖이다
+  const 준비끝 = Math.max(
+    -Infinity,
+    ...[...앞].filter(([, l]) => l.method === 'hook' && l.title === 'Before Hooks').map(([id]) => 수(뒤.get(id)?.endTime) ?? -Infinity),
+  );
+  const 단계 = (t: number): number | null => (t < 준비끝 ? null : (경계.find((b) => b.at >= t)?.seq ?? null));
 
   // 준비 · 정리(fixture · hook) 안의 호출은 케이스의 조작이 아니다
   const 준비안 = (l: 줄): boolean => {
@@ -134,7 +139,8 @@ export async function trace를푼다(zip: Buffer, 설정: { 본문: boolean }): 
       atMs: 상대(at),
       title,
       target: 글(params.locator) ?? 글(params.url) ?? 글(l.subtitle),
-      value: 글(params.value),
+      // fill 은 value, 한 글자씩(pressSequentially · type)은 text 에 싣는다
+      value: 글(params.value) ?? 글(params.text),
       secretField: 비밀칸.has(id),
       durationMs: 끝 === null ? null : Math.round(끝 - at),
       error: 오류 === null ? null : 색뺀다(오류),

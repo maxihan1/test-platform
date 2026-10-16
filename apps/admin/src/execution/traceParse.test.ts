@@ -29,7 +29,9 @@ async function zip(파일: Record<string, string>): Promise<Buffer> {
 // 단계 1 은 시각 200 에, 단계 2 는 시각 400 에 첨부를 단다
 const 테스트 = j(
   { type: 'context-options', monotonicTime: 100 },
-  { type: 'before', callId: 'fixture@1', method: 'fixture', class: 'Test', startTime: 101 },
+  { type: 'before', callId: 'hook@0', method: 'hook', class: 'Test', title: 'Before Hooks', startTime: 100 },
+  { type: 'before', callId: 'fixture@1', parentId: 'hook@0', method: 'fixture', class: 'Test', startTime: 101 },
+  { type: 'after', callId: 'hook@0', endTime: 140 },
   { type: 'before', callId: 'pw:api@2', parentId: 'fixture@1', method: 'pw:api', class: 'Test', title: 'Create page', startTime: 102 },
   { type: 'before', callId: 'pw:api@3', method: 'pw:api', class: 'Test', title: 'Navigate', params: { url: 'http://a/' }, startTime: 150 },
   { type: 'after', callId: 'pw:api@3', endTime: 160 },
@@ -58,11 +60,12 @@ describe('trace를푼다', () => {
     ]);
   });
 
-  it('잘 온 이미지 · 글꼴은 버리고 API · 이동 · 실패(4xx · 5xx · 끊김)는 남긴다', async () => {
+  it('잘 온 이미지 · 글꼴은 버리고 API · 이동 · 실패(4xx · 5xx · 끊김)는 남긴다 — 준비 중 · 정리 줄은 단계 밖이다', async () => {
     const 풀림 = await trace를푼다(
       await zip({
         ...기본,
         '1-trace.network': j(
+          자원(120, 'fetch', 'http://a/준비', 200),
           자원(150, 'document', 'http://a/', 200),
           자원(160, 'image', 'http://a/ok.png', 200),
           자원(170, 'image', 'http://a/없음.png', 404),
@@ -76,6 +79,7 @@ describe('trace를푼다', () => {
     );
 
     expect(풀림.network.map((n) => [n.seq, n.url, n.status, n.failure])).toEqual([
+      [null, 'http://a/준비', 200, null],
       [1, 'http://a/', 200, null],
       [1, 'http://a/없음.png', 404, null],
       [1, 'http://a/x.js', null, 'net::ERR_FAILED'],

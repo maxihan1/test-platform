@@ -51,14 +51,19 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   // 재기동으로 분배기가 사라지면 그 항목들은 영원히 끝나지 않아 FINISHED 조건이 결코 만족되지 않는다.
   // 뜨는 김에 한 번 닫는다. 실패해도 admin 은 떠야 하므로 사유만 남긴다 (SPEC §3.2)
   void recoverRunning()
-    .then(async (n) => {
+    .then((n) => {
       if (n > 0) app.log.warn(`[execution] 재기동 전에 돌던 실행 ${n}건을 중단으로 닫았다`);
-      // 항목을 닫은 뒤에 — 풀기는 닫힌 항목만 집는다. 꺼지기 전에 못 푼 trace 를 다시 줄에 넣는다 (SPEC 실행 §3.2 「trace」)
-      const 밀린 = await 밀린trace를푼다();
-      if (밀린 > 0) app.log.warn(`[execution] 재기동 전에 못 푼 trace ${밀린}건을 다시 푼다`);
     })
     .catch((err: unknown) => {
       app.log.error(`[execution] 재기동 복구가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
+    })
+    // 항목을 닫은 뒤에 — 풀기는 닫힌 항목만 집는다. 꺼지기 전에 못 푼 trace 를 다시 줄에 넣는다 (SPEC 실행 §3.2 「trace」)
+    .then(() => 밀린trace를푼다())
+    .then((n) => {
+      if (n > 0) app.log.warn(`[execution] 재기동 전에 못 푼 trace ${n}건을 다시 푼다`);
+    })
+    .catch((err: unknown) => {
+      app.log.error(`[execution] 못 푼 trace 를 다시 찾다가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
     });
 
   app.post('/runs', async (req, reply) => {

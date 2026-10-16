@@ -157,8 +157,12 @@ describe.skipIf(연결 === undefined)('trace 적재', () => {
     const 없음 = await 항목('XTC-005', 'PASS');
     const 깨짐 = await 항목('XTC-006', 'PASS');
     const 깨진경로 = await zip을둔다(깨짐, Buffer.from('zip 아님'));
+    const 끊김 = await 항목('XTC-009', 'NA');
+    await pool.query(`UPDATE run_item SET error = '{"message":"TIMEOUT"}' WHERE history_id = $1`, [끊김]);
 
-    for (const h of [앱, 없음, 깨짐]) await trace를적재한다(h);
+    for (const h of [앱, 없음, 깨짐, 끊김]) await trace를적재한다(h);
+
+    expect((await 상태(끊김))!.reason).toContain('러너가 실행을 끊어');
 
     expect(await 상태(앱)).toEqual({ status: 'NONE', reason: 'Android 앱 실행은 trace 가 없다' });
     expect((await 상태(없음))!.status).toBe('NONE');

@@ -1,7 +1,7 @@
 // 항목이 닫힌 뒤 trace.zip 을 풀어 가린 네트워크 · 조작 · 콘솔을 DB 에 넣는다 (SPEC 도메인/실행 §3.2 「trace」)
 // 실행을 늦추지 않게 따로, 메모리를 아끼게 한 번에 하나씩 푼다. 다 풀면 통과 항목 zip 은 지우고 실패 항목 zip 은 에이전트 참고용으로 둔다
 
-import { readdir, readFile, unlink } from 'node:fs/promises';
+import { access, readdir, readFile, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import type { Pool } from 'pg';
@@ -18,22 +18,29 @@ async function db(): Promise<Pool> {
 const 가림 = '********';
 const 본문상한 = 2000;
 
-// kit 의 runDir 과 같은 자리다 — 리포터가 이 자리에 옮긴다. traceIngest.test.ts 가 같은지 지킨다
+// kit 의 runDir 과 같은 자리다 — 리포터가 이 자리에 옮긴다. kit 의 값을 import 하면 @playwright/test 가 서버에 딸려 와
+// 한 벌 더 두고 traceIngest.test.ts 가 같은지 지킨다
+const 실행폴더 = (): string => resolve(process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts'), 'runs');
+
 export function trace경로(runId: number, historyId: number): string {
-  const root = process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts');
-  return resolve(root, 'runs', String(runId), String(historyId), 'trace.zip');
+  return resolve(실행폴더(), String(runId), String(historyId), 'trace.zip');
 }
 
-// 비밀 칸 이름(password · token …)에 붙은 값. 주소 물음표 뒤 · 폼 본문 · JSON 본문 · 콘솔 글이 다 이 둘 중 하나다.
-// 이름 판정은 화면 가림과 같은 함수다 (공통/2 §4.1)
-const 이름값 = /([A-Za-z_][\w.-]*)=([^&\s"']*)/g;
+// 비밀 칸 이름에 붙은 값. 주소 물음표 뒤 · 폼 본문 · JSON 본문 · 콘솔 글이 다 이 둘 중 하나다. 이름에 대괄호(user[password])도 온다.
+// 이름 판정은 화면 가림과 같은 함수에, 네트워크에만 나오는 이름(인증 머리 · 세션 · 쿠키 · api_key)을 더한다 (공통/2 §4.1)
+const 이름값 = /([A-Za-z_][\w.\-[\]]*)=([^&\s"']*)/g;
 const 제이슨값 = /"([^"\\]+)"(\s*:\s*)("(?:[^"\\]|\\.)*"|[^,}\]\s]+)/g;
 
-/** 실행 값 목록(항목비밀)을 먼저, 그다음 비밀 칸 이름에 붙은 값을 가린다 */
+const 네트워크비밀 = /authori[sz]ation|session|cookie|api[_-]?key|access[_-]?key|private[_-]?key/i;
+const 인증값 = /\b(Bearer|Basic)\s+[\w.~+/-]+=*/g;
+const 비밀이름 = (이름: string): boolean => 가려야하나(이름, {}) || 네트워크비밀.test(이름);
+
+/** 실행 값 목록(항목비밀)을 먼저, 그다음 비밀 칸 이름에 붙은 값 · 인증 머리 꼴 값을 가린다 */
 export function 글가린다(글: string, 비밀: string[]): string {
   return (가린다(글, 비밀) as string)
-    .replace(이름값, (원래, 이름: string) => (가려야하나(이름, {}) ? `${이름}=${가림}` : 원래))
-    .replace(제이슨값, (원래, 이름: string, 사이: string) => (가려야하나(이름, {}) ? `"${이름}"${사이}"${가림}"` : 원래));
+    .replace(이름값, (원래, 이름: string) => (비밀이름(이름) ? `${이름}=${가림}` : 원래))
+    .replace(제이슨값, (원래, 이름: string, 사이: string) => (비밀이름(이름) ? `"${이름}"${사이}"${가림}"` : 원래))
+    .replace(인증값, (_원래, 꼴: string) => `${꼴} ${가림}`);
 }
 
 // 가린 뒤에 자른다 — 먼저 자르면 잘린 자리에 걸친 비밀값 조각이 가림 무늬에 안 걸린다
@@ -50,9 +57,9 @@ export function trace가린다(풀림: 풀린trace, 비밀: string[]): 풀린tra
       responseBody: 본문(n.responseBody, 비밀),
     })),
     actions: 풀림.actions.map((a) => {
-      // Playwright 는 넣은 값을 이름에도 붙인다(「Fill "…"」). 값을 가린 대로 이름도 바꾼다
+      // Playwright 는 넣은 값을 이름의 따옴표 안에도 붙인다(「Fill "…"」 · 「Type "…"」). 그 자리만 바꾼다 — 짧은 값을 통째로 바꾸면 locator 글자까지 깨진다
       const 값 = a.value === null ? null : a.secretField ? 가림 : 글가린다(a.value, 비밀);
-      const 이름 = a.value !== null && a.value !== '' && 값 !== null ? a.title.replaceAll(a.value, 값) : a.title;
+      const 이름 = a.value !== null && 값 !== null ? a.title.replace(`"${a.value}"`, `"${값}"`) : a.title;
       return { ...a, title: 글가린다(이름, 비밀), target: 있으면(a.target, 비밀), value: 값, error: 있으면(a.error, 비밀) };
     }),
     console: 풀림.console.map((c) => ({ ...c, text: 글가린다(c.text, 비밀), url: 있으면(c.url, 비밀) })),
@@ -118,18 +125,20 @@ interface 항목행 {
   expected: unknown;
   param_schema: unknown;
   expected_schema: unknown;
+  error: { message?: unknown } | null;
 }
 
 /** 닫힌 항목 하나의 trace 를 푼다. 닫히지 않았거나 없는 항목이면 null */
 export async function trace를적재한다(historyId: number): Promise<상태 | null> {
   const pool = await db();
   const r = await pool.query<항목행>(
-    `SELECT run_id, status, platform, params, expected, param_schema, expected_schema
+    `SELECT run_id, status, platform, params, expected, param_schema, expected_schema, error
        FROM run_item WHERE history_id = $1 AND finished_at IS NOT NULL`,
     [historyId],
   );
   const row = r.rows[0];
   if (row === undefined) return null;
+  const 끊김 = typeof row.error?.message === 'string' && ['TIMEOUT', 'ABORTED'].includes(row.error.message);
 
   if (row.platform === 'android') {
     await 상태를남긴다(pool, historyId, 'NONE', 'Android 앱 실행은 trace 가 없다');
@@ -141,8 +150,11 @@ export async function trace를적재한다(historyId: number): Promise<상태 | 
     zip = await readFile(경로);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-    // 다른 기계의 러너는 공유 폴더가 없다. 리포터가 옮기다 실패했어도 여기로 온다 (실행 §3.2 「trace」)
-    await 상태를남긴다(pool, historyId, 'NONE', '러너가 trace 파일을 남기지 않았다 — 다른 기계의 러너이거나 옮기다 실패했다');
+    // 러너가 자식을 끊으면 리포터가 옮길 틈이 없다. 그 밖은 다른 기계의 러너(공유 폴더 없음)이거나 리포터가 옮기다 실패한 것이다 (실행 §3.2 「trace」)
+    const 사유 = 끊김
+      ? '러너가 실행을 끊어(제한 시간 · 멈춤) trace 가 남지 않았다'
+      : '러너가 trace 파일을 남기지 않았다 — 다른 기계의 러너이거나 옮기다 실패했다';
+    await 상태를남긴다(pool, historyId, 'NONE', 사유);
     return 'NONE';
   }
 
@@ -183,7 +195,7 @@ export function trace적재를맡긴다(historyId: number): Promise<void> {
  * 통과 zip 은 풀자마자 지우고 실패 zip 은 상태 줄이 있으니, 상태 줄 없는 zip 이 곧 못 푼 것이다
  */
 export async function 밀린trace를푼다(): Promise<number> {
-  const root = resolve(process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts'), 'runs');
+  const root = 실행폴더();
   const 숫자 = /^[1-9]\d*$/;
   const 후보: number[] = [];
   // 시나리오(scenario) · 시험 실행(trial) 폴더는 숫자가 아니라 건너뛴다
@@ -191,7 +203,7 @@ export async function 밀린trace를푼다(): Promise<number> {
     if (!숫자.test(run)) continue;
     for (const history of await readdir(resolve(root, run)).catch(() => [] as string[])) {
       if (!숫자.test(history)) continue;
-      const 있나 = await readFile(trace경로(Number(run), Number(history))).then(() => true, () => false);
+      const 있나 = await access(trace경로(Number(run), Number(history))).then(() => true, () => false);
       if (있나) 후보.push(Number(history));
     }
   }
@@ -224,14 +236,14 @@ export async function trace기록을읽는다(historyId: number): Promise<trace�
   if (머리 === undefined) return null;
   const 읽기 = async (표: string, 칸: string): Promise<Record<string, unknown>[]> =>
     (await pool.query(`SELECT ${칸} FROM ${표} WHERE history_id = $1 ORDER BY ord`, [historyId])).rows;
-  return {
-    ...머리,
-    network: await 읽기(
+  const [network, actions, console] = await Promise.all([
+    읽기(
       'run_network',
       `seq, at_ms AS "atMs", method, url, status, resource_type AS "resourceType", duration_ms AS "durationMs", failure,
        request_body AS "requestBody", response_body AS "responseBody"`,
     ),
-    actions: await 읽기('run_action', 'seq, at_ms AS "atMs", title, target, value, duration_ms AS "durationMs", error'),
-    console: await 읽기('run_console', 'seq, at_ms AS "atMs", level, text, url'),
-  };
+    읽기('run_action', 'seq, at_ms AS "atMs", title, target, value, duration_ms AS "durationMs", error'),
+    읽기('run_console', 'seq, at_ms AS "atMs", level, text, url'),
+  ]);
+  return { ...머리, network, actions, console };
 }

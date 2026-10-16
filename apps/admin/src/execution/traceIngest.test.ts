@@ -24,6 +24,13 @@ describe('글가린다', () => {
     expect(글가린다('userPassword=abc&page=2', [])).toBe(`userPassword=${별}&page=2`);
   });
 
+  it('네트워크에만 나오는 이름(api_key · 인증 머리 · 세션)과 대괄호 이름 · Bearer 꼴도 가린다', () => {
+    expect(글가린다('http://a/?api_key=XYZ&q=1', [])).toBe(`http://a/?api_key=${별}&q=1`);
+    expect(글가린다('user[password]=x&page=2', [])).toBe(`user[password]=${별}&page=2`);
+    expect(글가린다('{"authorization":"Bearer abc","sessionId":"s1"}', [])).toBe(`{"authorization":"${별}","sessionId":"${별}"}`);
+    expect(글가린다('보냄 Bearer eyJ.abc-1= 끝', [])).toBe(`보냄 Bearer ${별} 끝`);
+  });
+
   it('JSON 본문의 비밀 칸 이름 값을 가린다 — 글 · 숫자 둘 다', () => {
     expect(글가린다('{"accessToken":"s3cret","ok":true,"pw": 1234}', [])).toBe(`{"accessToken":"${별}","ok":true,"pw": "${별}"}`);
   });
@@ -41,6 +48,7 @@ describe('trace가린다', () => {
       { seq: 2, atMs: 5, title: 'Fill "pa55word"', target: "getByLabel('비밀번호')", value: 'pa55word', secretField: true, durationMs: 1, error: null },
       { seq: 2, atMs: 6, title: 'Fill "몰래값"', target: "getByLabel('메모')", value: '몰래값', secretField: false, durationMs: 1, error: null },
       { seq: 2, atMs: 7, title: 'Fill "안녕"', target: "getByLabel('이름')", value: '안녕', secretField: false, durationMs: 1, error: null },
+      { seq: 2, atMs: 8, title: 'Type "1"', target: "getByLabel('PIN 1')", value: '1', secretField: true, durationMs: 1, error: null },
     ],
     console: [{ seq: 2, atMs: 8, level: 'error', text: '로그인 실패 token=abc', url: null }],
   };
@@ -55,11 +63,12 @@ describe('trace가린다', () => {
     expect(n!.responseBody).toBe('{"error":"pa55word 틀림"}');
   });
 
-  it('조작 — 비밀번호 칸 값은 무엇이든 가리고, 값 목록의 값도 가리고, 이름에 붙은 값도 같이 바꾼다', () => {
-    expect(가림.actions.map((a) => [a.title, a.value])).toEqual([
-      [`Fill "${별}"`, 별],
-      [`Fill "${별}"`, 별],
-      ['Fill "안녕"', '안녕'],
+  it('조작 — 비밀번호 칸 값은 무엇이든 가리고, 값 목록의 값도 가리고, 이름의 따옴표 안 값만 같이 바꾼다', () => {
+    expect(가림.actions.map((a) => [a.title, a.value, a.target])).toEqual([
+      [`Fill "${별}"`, 별, "getByLabel('비밀번호')"],
+      [`Fill "${별}"`, 별, "getByLabel('메모')"],
+      ['Fill "안녕"', '안녕', "getByLabel('이름')"],
+      [`Type "${별}"`, 별, "getByLabel('PIN 1')"],
     ]);
   });
 
