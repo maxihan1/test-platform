@@ -3,7 +3,7 @@
 
 import { useRef, useState } from 'react';
 
-import { type 서비스판정, 판정이름 } from '../../../../scripts/authoring-crawl-viewport.js';
+import type { 서비스판정 } from '../../../../scripts/authoring-crawl-viewport.js';
 
 import { api, type EnvRow, type ViewportScreens } from './api.js';
 import { 짧은시각 } from './dashboardView.js';
@@ -64,7 +64,6 @@ export function ViewportSection({ serviceId, envs }: { serviceId: number; envs: 
   );
 }
 
-/** 판정 이름은 크롤 요약 줄과 같은 표(`판정이름`)를 쓴다 — 같은 판정이 두 곳에서 다른 말로 뜨지 않게 */
 function 판정줄({ env, 판정, 시각, 열림, 연다 }: {
   env: string;
   판정: 서비스판정 | null;
@@ -74,6 +73,8 @@ function 판정줄({ env, 판정, 시각, 열림, 연다 }: {
 }) {
   const t = use말();
   const 언어 = use언어();
+  // 크롤 요약 줄의 `판정이름` 과 같은 말이다. 영어 표 검사가 화면 파일 속 한글을 키로 읽어 여기 다시 적는다 — 종류가 늘면 Record 가 타입 검사로 잡는다
+  const 이름: Record<서비스판정, string> = { responsive: t('반응형'), adaptive: t('적응형'), 'desktop-only': t('PC 전용') };
   return (
     <tr>
       <td>{env}</td>
@@ -81,7 +82,7 @@ function 판정줄({ env, 판정, 시각, 열림, 연다 }: {
         {판정 === null ? (
           <span className="vp-kind none">{t('아직 판정 안 함')}</span>
         ) : (
-          <span className={`vp-kind ${판정}`}>{t(판정이름[판정])}</span>
+          <span className={`vp-kind ${판정}`}>{이름[판정]}</span>
         )}
       </td>
       <td className="dash-when">{시각 === null ? '—' : 짧은시각(시각, 언어)}</td>
