@@ -154,7 +154,7 @@ export function 걸린칩들({
   const t = use말();
   const 요구풀기 = () => {
     // 주소에 요구 번호가 남으면 새로 고침이 조건을 되살린다. 주소만 바꾸고 목록은 그대로 둔다 — replaceState 는 hashchange 를 안 낸다
-    if (/\/req\//.test(window.location.hash)) history.replaceState(null, '', `#/cases/${kind === 'UI' ? 'ui' : 'fn'}`);
+    if (/\/req\//.test(window.location.hash)) history.replaceState(history.state, '', `#/cases/${kind === 'UI' ? 'ui' : 'fn'}`);
     검색.요구지우기();
   };
   return (
