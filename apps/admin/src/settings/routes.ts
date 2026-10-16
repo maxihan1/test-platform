@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { 에이전트토큰만들기, 에이전트토큰지우기 } from '../auth/agentToken.js';
 import { 아이디모양 } from '../auth/rules.js';
+import { 화면크기목록 } from '../prd/screens.js';
 import { 시간대확인, 틀린시간대 } from '../reporting/dashboardResults.js';
 import { 정수 } from '../routeParams.js';
 
@@ -176,6 +177,14 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       return { ok: true };
     },
   );
+
+  // 화면 크기 판정의 화면별 차이 — 펼칠 때만 읽는다. 찾은 화면이 수천 장일 수 있어 서비스 목록에 안 싣는다 (PRD-F10-08)
+  app.get<{ Params: { id: string }; Querystring: { env?: string } }>('/settings/services/:id/viewport', async (req, reply) => {
+    const id = 정수(req.params.id);
+    const env = req.query.env;
+    if (id === null || env === undefined || env === '') return reply.code(400).send({ error: 'INVALID_REQUEST' });
+    return 화면크기목록(id, env);
+  });
 
   app.get('/settings/users', async () => ({ items: await 계정목록() }));
 

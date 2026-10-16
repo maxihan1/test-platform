@@ -5,6 +5,8 @@ import type { 역할계정 } from '@platform/kit/accounts';
 
 import type { PoolClient } from 'pg';
 
+import type { 서비스판정 } from '../../../../scripts/authoring-crawl-viewport.js';
+
 import { 운영이름인가 } from './roles.js';
 
 // 응답 한 줄. 비밀번호는 되돌려 보여주지 않는다 — 웹훅·피그마 토큰과 같은 규칙 (SPEC 도메인/인증 §7)
@@ -16,6 +18,9 @@ export interface 대상서버 {
   isProd: boolean;
   /** 일반 회원 밖의 역할 계정 */
   accounts: { role: string; loginId: string | null; hasLoginPassword: boolean }[];
+  /** 크롤러가 정한 화면 크기 판정과 그 시각. 훑기 전 · 주소를 바꾼 줄은 null 이다 (PRD-F10-08) */
+  viewportKind: 서비스판정 | null;
+  viewportJudgedAt: string | null;
 }
 
 export interface 역할계정입력 {
@@ -107,6 +112,7 @@ export const 대상서버칸식 = `json_build_object(
   'env', e.env, 'baseUrl', e.base_url, 'loginId', e.login_id,
   'hasLoginPassword', e.login_password IS NOT NULL AND e.login_password <> '',
   'isProd', e.is_prod,
+  'viewportKind', e.viewport_kind, 'viewportJudgedAt', e.viewport_judged_at,
   'accounts', (SELECT COALESCE(json_agg(json_build_object(
                   'role', a.v->>'role', 'loginId', a.v->>'loginId',
                   'hasLoginPassword', COALESCE(a.v->>'loginPassword', '') <> '') ORDER BY a.n), '[]')

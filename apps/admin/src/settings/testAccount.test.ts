@@ -80,8 +80,8 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 테스트 계정', (
   it('계정을 넣은 줄은 아이디와 비밀번호 설정 여부만 주고, 계정 없는 줄은 비어 있다', async () => {
     expect(await 줄들()).toEqual([
       // isProd 없이 새로 더한 prod 줄은 이름 규칙으로 운영이다 (도메인/인증 §7 「envs[] 한 줄」 isProd)
-      { env: 'prod', baseUrl: 'https://example.com', loginId: null, hasLoginPassword: false, isProd: true, accounts: [] },
-      { env: 'qa', baseUrl: 'https://qa.example.com', loginId: 'tester', hasLoginPassword: true, isProd: false, accounts: [] },
+      { env: 'prod', baseUrl: 'https://example.com', loginId: null, hasLoginPassword: false, isProd: true, accounts: [], viewportKind: null, viewportJudgedAt: null },
+      { env: 'qa', baseUrl: 'https://qa.example.com', loginId: 'tester', hasLoginPassword: true, isProd: false, accounts: [], viewportKind: null, viewportJudgedAt: null },
     ]);
     expect(await 저장된것('qa')).toEqual({ login_id: 'tester', login_password: 원문 });
   });

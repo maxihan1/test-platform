@@ -172,3 +172,25 @@ export async function 다봄(서비스: number, env: string, seen: 본화면[], 
     return { deleted: r.rowCount ?? 0, viewport: 판정 };
   });
 }
+
+/** PC 와 모바일이 하나라도 달랐나 — 설정 화면은 다른 화면만 펼치고 같은 화면은 수만 보인다 */
+export const 차이있나 = (v: 화면차이): boolean =>
+  v.모바일주소 !== undefined || v.넘침 || !v.선언 || !v.구조같음 || v.PC만.length > 0 || v.모바일만.length > 0;
+
+/**
+ * 설정 「화면 크기」 구획의 화면별 차이 — 그 대상 서버의 찾은 화면 가운데 차이를 가진 것(PRD-F10-08).
+ * 모바일로 못 연 화면(viewport NULL)은 판정에 안 들어가서 셈에서도 뺀다
+ */
+export async function 화면크기목록(
+  서비스: number,
+  env: string,
+): Promise<{ items: { state: 상태; url: string; name: string; viewport: 화면차이 }[]; same: number }> {
+  const r = await (await db()).query<{ state: 상태; url: string; name: string; viewport: 화면차이 }>(
+    `SELECT state, url, name, viewport FROM screen_found
+      WHERE service_id = $1 AND env = $2 AND viewport IS NOT NULL
+      ORDER BY state COLLATE "C", url COLLATE "C"`,
+    [서비스, env],
+  );
+  const items = r.rows.filter((x) => 차이있나(x.viewport));
+  return { items, same: r.rows.length - items.length };
+}
