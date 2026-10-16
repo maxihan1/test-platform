@@ -98,6 +98,6 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     if (행.env === null) return reply.code(400).send(서버없음);
     const 읽음 = 다봄검사(req.body);
     if ('error' in 읽음) return reply.code(400).send(읽음);
-    return { deleted: await 다봄(행.serviceId, 행.env, 읽음.seen, 읽음.complete) };
+    return 다봄(행.serviceId, 행.env, 읽음.seen, 읽음.complete);
   });
 }

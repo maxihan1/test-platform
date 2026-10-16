@@ -3,9 +3,15 @@
 import type { Page } from '@playwright/test';
 
 import { type 후보, 되돌릴수없나, 탈퇴말인가, 확인버튼고르기 } from './authoring-crawl-press.js';
+import { 지문, 틀키 } from './authoring-crawl-rules.js';
+import { type 화면본, type 화면차이, 화면견주기 } from './authoring-crawl-viewport.js';
 
 export interface 입력칸 { 종류: string; 이름: string; 라벨: string; 안내: string; 필수: boolean; 읽기전용: boolean; 최대글자: number | null; 최소글자: number | null; 형식: string | null }
-export type 본것 = { 상태코드: number; 최종: string; 제목: string; 구조: string; 비밀번호칸: boolean; 입력칸: 입력칸[]; 링크: { href: string; text: string }[] };
+export type 본것 = {
+  상태코드: number; 최종: string; 제목: string; 구조: string; 비밀번호칸: boolean; 입력칸: 입력칸[]; 링크: { href: string; text: string }[];
+  /** 화면 크기 판정 재료 — 크롤 파일에는 안 쓴다(PC 기록 · 글자 지문이 그대로라야 저장본 재사용이 안 흔들린다 · PRD-F10-07) */
+  크기: Omit<화면본, '최종' | '지문'>;
+};
 
 /** 지금 열린 화면을 읽는다 — 다른 출처면 '건너뜀' */
 export async function 읽기(쪽: Page, 상태코드: number, 출처: string): Promise<본것 | '건너뜀'> {
@@ -42,7 +48,35 @@ export async function 읽기(쪽: Page, 상태코드: number, 출처: string): P
         .slice(0, 60),
     })),
   );
-  return { 상태코드, 최종, 제목: await 쪽.title(), 구조, 비밀번호칸: 입력칸.some((x) => x.종류 === 'password'), 입력칸, 링크 };
+  // 쪽 안에서 도는 함수라 이름 붙은 도우미를 두지 않는다(아래 후보모으기와 같은 까닭)
+  const 크기 = await 쪽.evaluate((고르개) => ({
+    // 화면 폭과 견준다 — 선언이 없으면 모바일 브라우저가 980px 로 그려 놓고 줄여 보여 창 폭(innerWidth)으로는 안 넘친다
+    넘침: document.documentElement.scrollWidth > screen.width + 1,
+    선언: /width\s*=\s*device-width/i.test(document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? ''),
+    조작: [...document.querySelectorAll(고르개)]
+      .filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden')
+      .map((el) => [(el as HTMLElement).innerText, el.getAttribute('aria-label'), el.getAttribute('title'), (el as HTMLInputElement).value].find((x) => typeof x === 'string' && x.trim() !== '')?.trim().replace(/\s+/g, ' ').slice(0, 60) ?? '')
+      .filter((x) => x !== ''),
+  }), 고르개);
+  return { 상태코드, 최종, 제목: await 쪽.title(), 구조, 비밀번호칸: 입력칸.some((x) => x.종류 === 'password'), 입력칸, 링크, 크기 };
+}
+
+const 크기본 = (본: 본것): 화면본 => ({ 최종: 본.최종, 지문: 지문(본.구조), ...본.크기 });
+
+/**
+ * 모바일 쪽으로 같은 주소를 열어 PC 로 본 것과 견준다 — 다른 출처로 갔으면 그 쪽은 읽지 않고 주소만(적응형 m. 사이트). 못 열었으면 null(그 화면은 판정에서 빠진다).
+ * 링크로 연 화면만 연다 — 누른 뒤에 열린 화면은 주소를 다시 열면 동작(담기 · 지우기)이 또 돌 수 있다 (PRD-F10-07)
+ */
+export async function 모바일견주기(쪽: Page, 주소: string, pc: 본것): Promise<화면차이 | null> {
+  const 열림 = await 열기(쪽, 주소);
+  if (typeof 열림 !== 'number') return null;
+  try {
+    const 본 = await 읽기(쪽, 열림, new URL(주소).origin);
+    const 모 = 본 === '건너뜀' ? { 최종: 쪽.url(), 넘침: false, 선언: true, 지문: '', 조작: [] } : 크기본(본);
+    return 화면견주기(크기본(pc), 모, 틀키);
+  } catch {
+    return null;
+  }
 }
 
 /** 주소로 연다 — 연결 실패 · 시간 초과는 '실패'(연속 오류로 센다) */

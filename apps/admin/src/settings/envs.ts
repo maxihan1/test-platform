@@ -66,19 +66,22 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
   // 같은 client 로 읽는다 — 서비스고치기가 서비스 행을 먼저 잠가 같은 서비스의 저장이 겹치지 않는다
   const 옛것 = await client.query<{
     env: string;
+    base_url: string;
     login_id: string | null;
     login_password: string | null;
     is_prod: boolean;
     role_accounts: unknown;
-  }>('SELECT env, login_id, login_password, is_prod, role_accounts FROM service_env WHERE service_id = $1', [serviceId]);
+    viewport_kind: string | null;
+    viewport_judged_at: Date | null;
+  }>('SELECT env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at FROM service_env WHERE service_id = $1', [serviceId]);
   const 옛계정 = new Map(옛것.rows.map((r) => [r.env, r]));
   await client.query('DELETE FROM service_env WHERE service_id = $1', [serviceId]);
   for (const { env, baseUrl, loginId, loginPassword, isProd, accounts } of envs) {
     // 이름이 같은 줄만 이어받는다. 이름을 바꾸면 새 줄이라 계정을 다시 넣는다 (SPEC 도메인/인증 §7)
     const 전 = 옛계정.get(env);
     await client.query(
-      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         serviceId,
         env,
@@ -88,6 +91,9 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
         // 운영 표시를 잃으면 크롤러가 운영으로 간다 — 키가 없으면 옛 값 그대로, 새 줄이면 마이그레이션과 같은 이름 규칙이다
         isProd ?? 전?.is_prod ?? 운영이름인가(env),
         JSON.stringify(역할계정이어받기(accounts, 역할계정읽기(전?.role_accounts))),
+        // 화면 크기 판정은 크롤러가 정한다 — 설정 저장으로 잃지 않는다. 주소를 바꾸면 다른 서버라 다음 크롤까지 비운다 (PRD-F10-07)
+        전?.base_url === baseUrl ? 전.viewport_kind : null,
+        전?.base_url === baseUrl ? 전.viewport_judged_at : null,
       ],
     );
   }

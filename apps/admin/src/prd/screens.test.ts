@@ -66,6 +66,7 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     await q('DELETE FROM screen_link WHERE service_id = $1', [서비스]);
     await q('DELETE FROM screen_record WHERE service_id = $1', [서비스]);
     await q('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
+    await q('DELETE FROM service_env WHERE service_id = $1', [서비스]);
   };
   const 올리기 = (id: number, 몸: object) => app.inject({ method: 'PUT', url: `/api/authoring/requests/${id}/screens`, payload: 몸 });
   const 차례 = <T extends { state: string }>(xs: T[]) => [...xs].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
@@ -140,8 +141,8 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     }
     const 다봄 = (몸: object) => app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/screens/done`, payload: 몸 });
     const 본것 = [{ state: '로그아웃', url: '/' }];
-    expect((await 다봄({ seen: 본것, complete: [] })).json()).toEqual({ deleted: 0 });
-    expect((await 다봄({ seen: 본것, complete: ['로그아웃'] })).json()).toEqual({ deleted: 1 });
+    expect((await 다봄({ seen: 본것, complete: [] })).json()).toEqual({ deleted: 0, viewport: null });
+    expect((await 다봄({ seen: 본것, complete: ['로그아웃'] })).json()).toEqual({ deleted: 1, viewport: null });
     const 남은것 = await 읽기(id);
     const 키들 = (xs: object[]) => xs.map((x) => Object.values(x).slice(0, 2).join(' ')).sort();
     expect(키들(남은것.screens)).toEqual(['로그아웃 /', '로그인:일반 회원 /', '로그인:일반 회원 /mypage']);
@@ -154,7 +155,7 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     const 찾음 = async () =>
       (await q<{ state: string; url: string; name: string }>('SELECT state, url, name FROM screen_found WHERE service_id = $1 ORDER BY state COLLATE "C", url COLLATE "C"', [서비스])).rows;
 
-    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그인:일반 회원', url: '/', name: '홈' }, { state: '로그인:일반 회원', url: '/old' }], complete: [] })).json()).toEqual({ deleted: 0 });
+    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그인:일반 회원', url: '/', name: '홈' }, { state: '로그인:일반 회원', url: '/old' }], complete: [] })).json()).toEqual({ deleted: 0, viewport: null });
     expect(await 찾음()).toEqual([
       { state: '로그아웃', url: '/', name: '홈' },
       { state: '로그인:일반 회원', url: '/', name: '홈' },
@@ -165,15 +166,15 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     expect((await 찾음()).map((x) => x.name)).toEqual(['홈', '메인', '']);
 
     await 올리기(id, 화면('로그인:일반 회원', '/old'));
-    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그인:일반 회원', url: '/', name: '메인' }], complete: ['로그인:일반 회원'] })).json()).toEqual({ deleted: 1 });
+    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그인:일반 회원', url: '/', name: '메인' }], complete: ['로그인:일반 회원'] })).json()).toEqual({ deleted: 1, viewport: null });
     expect(await 찾음()).toEqual([
       { state: '로그아웃', url: '/', name: '홈' },
       { state: '로그인:일반 회원', url: '/', name: '메인' },
     ]);
 
-    expect((await 다봄({ seen: [], complete: [] })).json()).toEqual({ deleted: 0 });
+    expect((await 다봄({ seen: [], complete: [] })).json()).toEqual({ deleted: 0, viewport: null });
     expect(await 찾음()).toHaveLength(2);
-    expect((await 다봄({ seen: [], complete: ['로그아웃', '로그인:일반 회원'] })).json()).toEqual({ deleted: 0 });
+    expect((await 다봄({ seen: [], complete: ['로그아웃', '로그인:일반 회원'] })).json()).toEqual({ deleted: 0, viewport: null });
     expect(await 찾음()).toEqual([]);
   });
 
@@ -187,7 +188,7 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
 
     const 다봄 = (id: number, 몸: object) => app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/screens/done`, payload: 몸 });
     await 다봄(qa, { seen: [{ state: '로그인:일반 회원', url: '/cart', name: '장바구니' }], complete: [] });
-    expect((await 다봄(운영, { seen: [], complete: ['로그인:일반 회원'] })).json()).toEqual({ deleted: 1 });
+    expect((await 다봄(운영, { seen: [], complete: ['로그인:일반 회원'] })).json()).toEqual({ deleted: 1, viewport: null });
     expect(await 읽기(qa)).toEqual({ screens: [화면('로그인:일반 회원', '/cart')], links: [{ state: '로그인:일반 회원', fromUrl: '/cart', toUrl: '/', via: '홈' }] });
     expect((await q('SELECT env FROM screen_found WHERE service_id = $1', [서비스])).rows).toEqual([{ env: 'qa' }]);
 
@@ -197,6 +198,30 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     expect([r.statusCode, r.json()]).toEqual([400, { error: 'BAD_SCREEN', detail: 'env' }]);
     const d = await 다봄(서버없음, { seen: [], complete: [] });
     expect([d.statusCode, d.json()]).toEqual([400, { error: 'BAD_SCREEN', detail: 'env' }]);
+  });
+
+  it('done 의 화면 크기 차이를 찾은 화면에 남기고 서버가 서비스 판정을 다시 가른다 — 차이 없이 오면 옛 값 그대로 · 틀린 차이는 400 (PRD-F10-07)', async () => {
+    await q("INSERT INTO service_env (service_id, env, base_url) VALUES ($1, 'qa', 'https://x.test')", [서비스]);
+    const id = await 요청넣기('RUNNING');
+    const 다봄 = (몸: object) => app.inject({ method: 'POST', url: `/api/authoring/requests/${id}/screens/done`, payload: 몸 });
+    const 판정 = async () => (await q<{ viewport_kind: string | null; 시각: boolean }>('SELECT viewport_kind, viewport_judged_at IS NOT NULL AS 시각 FROM service_env WHERE service_id = $1', [서비스])).rows;
+    const 차이 = async () => (await q<{ url: string; viewport: unknown }>('SELECT url, viewport FROM screen_found WHERE service_id = $1 ORDER BY url COLLATE "C"', [서비스])).rows;
+    const 같음 = { 넘침: false, 선언: true, 구조같음: true, PC만: [], 모바일만: [] };
+    const 메뉴 = { ...같음, 구조같음: false, PC만: ['고객센터'], 모바일만: ['메뉴 열기'] };
+
+    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈', viewport: 같음 }, { state: '로그아웃', url: '/cart', name: '장바구니', viewport: 메뉴 }], complete: [] })).json()).toEqual({ deleted: 0, viewport: 'responsive' });
+    expect(await 판정()).toEqual([{ viewport_kind: 'responsive', 시각: true }]);
+    expect(await 차이()).toEqual([{ url: '/', viewport: 같음 }, { url: '/cart', viewport: 메뉴 }]);
+
+    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/cart', name: '장바구니' }], complete: [] })).json()).toEqual({ deleted: 0, viewport: null });
+    expect(await 판정()).toEqual([{ viewport_kind: 'responsive', 시각: true }]);
+    expect((await 차이())[1]).toEqual({ url: '/cart', viewport: 메뉴 });
+
+    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈', viewport: { ...같음, 모바일주소: 'https://m.x.test/' } }], complete: [] })).json()).toEqual({ deleted: 0, viewport: 'adaptive' });
+    expect(await 판정()).toEqual([{ viewport_kind: 'adaptive', 시각: true }]);
+
+    const 틀림 = await 다봄({ seen: [{ state: '로그아웃', url: '/', viewport: { ...같음, 넘침: 'yes' } }], complete: [] });
+    expect([틀림.statusCode, 틀림.json()]).toEqual([400, { error: 'BAD_SCREEN', detail: 'seen.0.viewport' }]);
   });
 
   it('done 에 같은 화면이 두 번 와도 받고, 빈 이름은 옛 이름을 지우지 않는다', async () => {
