@@ -6,6 +6,7 @@ import { notifyRun } from './notify.js';
 import { 폰차례 } from './phone.js';
 import { callRunner } from './runner.js';
 import { finishItem, finishRun, type PendingItem } from './store.js';
+import { trace적재를맡긴다 } from './traceIngest.js';
 
 const 대기줄: (() => Promise<void>)[] = [];
 let 도는중 = 0;
@@ -57,6 +58,8 @@ async function runOne(runId: number, item: PendingItem): Promise<void> {
   const result = await callRunner(runId, item);
   try {
     await finishItem(item.historyId, result);
+    // 기다리지 않는다 — 풀기는 실행을 늦추지 않게 따로 한 줄로 돈다 (SPEC 실행 §3.2 「trace」)
+    void trace적재를맡긴다(item.historyId);
   } catch (err) {
     // 결과를 못 적었다고 나머지 항목까지 버리지 않는다. 그 행은 finished_at이 빈 채로 남아 미완임이 드러난다
     const reason = err instanceof Error ? err.message : String(err);

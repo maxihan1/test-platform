@@ -19,6 +19,7 @@ import { 저장값통로 } from './savedInput.js';
 import { findItem, findRun, listRuns, serviceExists } from './queries.js';
 import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
+import { trace기록을읽는다, 밀린trace를푼다 } from './traceIngest.js';
 import { 목록종류읽기 } from './runKind.js';
 import { runBody, 실행위치를본다 } from './location.js';
 
@@ -50,8 +51,11 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
   // 재기동으로 분배기가 사라지면 그 항목들은 영원히 끝나지 않아 FINISHED 조건이 결코 만족되지 않는다.
   // 뜨는 김에 한 번 닫는다. 실패해도 admin 은 떠야 하므로 사유만 남긴다 (SPEC §3.2)
   void recoverRunning()
-    .then((n) => {
+    .then(async (n) => {
       if (n > 0) app.log.warn(`[execution] 재기동 전에 돌던 실행 ${n}건을 중단으로 닫았다`);
+      // 항목을 닫은 뒤에 — 풀기는 닫힌 항목만 집는다. 꺼지기 전에 못 푼 trace 를 다시 줄에 넣는다 (SPEC 실행 §3.2 「trace」)
+      const 밀린 = await 밀린trace를푼다();
+      if (밀린 > 0) app.log.warn(`[execution] 재기동 전에 못 푼 trace ${밀린}건을 다시 푼다`);
     })
     .catch((err: unknown) => {
       app.log.error(`[execution] 재기동 복구가 깨졌다: ${err instanceof Error ? err.message : String(err)}`);
@@ -210,7 +214,8 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
 
     const found = await findItem(runId, historyId);
     if (found === null) return reply.code(404).send({ error: 'RUN_ITEM_NOT_FOUND', detail: req.params.historyId });
-    return found;
+    // 실패 카드도 findItem 을 쓴다. 세 기록은 상세에만 싣는다 — 가림은 넣을 때 이미 했다
+    return { ...found, trace: await trace기록을읽는다(historyId) };
   });
 
   app.get<{ Params: { tcId: string }; Querystring: { platform?: string; page?: string } }>(
