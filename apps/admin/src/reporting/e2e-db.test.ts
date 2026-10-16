@@ -152,10 +152,12 @@ describe.skipIf(연결 === undefined)('E2E 증적 · E2E 요약', () => {
     ]);
   });
 
-  it('도는 시나리오 실행은 409 이고, 견주기는 시나리오 실행에 그대로 404 다', async () => {
+  it('도는 시나리오 실행은 409 이고, 견주기 · 실패 카드는 시나리오 실행에 그대로 404 다', async () => {
     const 도는중 = await app.inject({ method: 'POST', url: `/api/runs/${도는실행}/evidence`, payload: { format: 'PDF' } });
     expect(도는중.statusCode).toBe(409);
     const 견주기 = await app.inject({ method: 'GET', url: `/api/runs/${끝난실행}/insights` });
     expect(견주기.statusCode).toBe(404);
+    const 실패카드 = await app.inject({ method: 'GET', url: `/api/runs/${끝난실행}/failures?page=1` });
+    expect(실패카드.statusCode).toBe(404);
   });
 });

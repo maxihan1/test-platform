@@ -3,6 +3,7 @@
 
 import type { ItemStatus } from '@platform/kit';
 
+import { 종류조건 } from '../execution/runKind.js';
 import { 미확정SQL, 접은판정SQL } from '../scenario/verdict.js';
 
 export interface E2E요약줄 {
@@ -35,7 +36,7 @@ export async function E2E요약(runId: number): Promise<E2E요약줄[]> {
           WHERE t.kind = 'SCENARIO' AND t.scenario_id = s.id AND t.status <> 'RUNNING'
           ORDER BY t.run_id DESC LIMIT 1) r ON true
        LEFT JOIN scenario_run_part p ON p.run_id = r.run_id
-      WHERE s.is_active AND s.service_id = (SELECT service_id FROM test_run WHERE run_id = $1)
+      WHERE s.is_active AND s.service_id = (SELECT service_id FROM test_run WHERE run_id = $1 AND ${종류조건('case', '')})
       GROUP BY s.id, s.name, r.run_id, r.started_at
       ORDER BY s.id`,
     [runId],

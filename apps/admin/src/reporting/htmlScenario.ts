@@ -44,7 +44,7 @@ function 단계(d: E2E단계): string[] {
     d.모킹안탐 ? 칩('모킹되지 않음') : '',
     d.단독실행 ? 칩('단독 실행') : '',
   ].join('');
-  const 사유 = d.사유 ?? d.item?.notRunReason ?? null;
+  const 사유 = d.사유;
 
   return [
     `<section class="${d.모킹구간.length === 0 ? 'stage' : 'stage mocked'}">`,

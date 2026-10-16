@@ -150,7 +150,7 @@ function 한행(판: EvidenceDocument, d: E2E단계, platform: E2E증적['platfo
     d.item === null ? null : 1,
     판정,
     d.안돌았다 ? null : d.durationMs,
-    d.사유 ?? d.item?.notRunReason ?? null,
+    d.사유,
     d.item?.unconfirmed ?? null,
     ...빈항목뒤,
     ...빈절차,
@@ -177,7 +177,9 @@ export async function renderScenarioXlsx(doc: E2E증적, options: RenderOptions)
     sheet.addRows(행들.map((행) => [단계글(d), ...행, doc.header.kind]));
   }
   // 판정에는 안 든다 — 마지막 단계 뒤에 한 줄씩 (도메인/시나리오 §3.7 결정 12)
-  for (const 글 of doc.정리) sheet.addRow([글, ...실행칸(판)]);
+  // 칸 수를 머리행에 맞춘다 — 종류로 거르면 정리 행이 사라지고, 칸 위치로 읽는 시트가 깨진다
+  const 빈칸 = Array<null>(머리행.length - 실행칸(판).length - 1).fill(null);
+  for (const 글 of doc.정리) sheet.addRow([글, ...실행칸(판), ...빈칸, doc.header.kind]);
 
   return Buffer.from(await workbook.xlsx.writeBuffer());
 }

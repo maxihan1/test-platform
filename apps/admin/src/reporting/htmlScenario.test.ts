@@ -148,6 +148,18 @@ describe('E2E 증적 HTML', () => {
   });
 });
 
+describe('E2E 증적 모델', () => {
+  it('사진 경로는 실행 번호와 절차 순번으로 다시 세운다 — 숫자 비밀이 번호와 겹쳐 가려져도 사진이 빠지지 않는다', () => {
+    const 가린 = { ...결과, parts: [부품(1, { steps: [{ seq: 5, title: '찍기', status: 'FAIL', durationMs: 1, assertions: [], screenshotPath: 'artifacts/runs/4********/scenario/5.png' }] })] };
+    expect(E2E모양(41234, 가린, { serviceName: '', testsRepo: '' }).parts[0]?.item?.steps[0]?.screenshotPath).toBe('artifacts/runs/41234/scenario/5.png');
+  });
+
+  it('케이스 단계가 실패하면 그 사유를 적는다 — 결과 화면이 보이는 문장이다', () => {
+    const 실패 = { ...결과, parts: [부품(1, { status: 'FAIL', error: { message: '제한 시간 30초를 넘겼다' } })] };
+    expect(E2E모양(1, 실패, { serviceName: '', testsRepo: '' }).parts[0]?.사유).toBe('제한 시간 30초를 넘겼다');
+  });
+});
+
 describe('E2E 증적 엑셀', () => {
   it('단계 칸이 앞에 붙고 건너뛴 절차 · 안 돈 단계 · 정리가 행으로 남는다', async () => {
     const 책 = new ExcelJS.Workbook();
@@ -163,6 +175,7 @@ describe('E2E 증적 엑셀', () => {
     expect(본문.some((r) => r[칸('절차명')] === '로그인' && r[칸('절차판정')] === '건너뜀')).toBe(true);
     expect(본문.some((r) => String(r[1]).startsWith('4단계') && r[칸('판정')] === '실행 안 됨')).toBe(true);
     expect(String(본문.at(-1)?.[1])).toBe('정리 · 마지막에 실행 DELETE /api/orders/812 → 204 (3번이 미룸)');
+    expect(본문.at(-1)?.[칸('종류')]).toBe('E2E 시나리오');
   });
 });
 
@@ -181,8 +194,10 @@ describe('케이스 증적의 E2E 요약', () => {
         { scenarioId: 12, name: '결제 흐름', startedAt: '2026-10-16T05:20:00.000Z', verdict: 'FAIL', stoppedAt: 3, unconfirmed: true },
         { scenarioId: 13, name: '가입', startedAt: '2026-10-15T01:00:00.000Z', verdict: 'PASS', stoppedAt: null, unconfirmed: false },
         { scenarioId: 14, name: '탈퇴', startedAt: null, verdict: null, stoppedAt: null, unconfirmed: false },
+        { scenarioId: 15, name: '단계 없이 멈춤', startedAt: '2026-10-14T01:00:00.000Z', verdict: 'NA', stoppedAt: null, unconfirmed: false },
       ],
     });
+    expect(글).not.toMatch(/SC-15.*모두 통과/);
     expect(글).toContain('E2E 요약');
     expect(글).toContain('이 요약은 문서를 만든 때 기준이다');
     expect(글).toContain('2026-10-16T05:20:00.000Z · 3번에서 멈춤');

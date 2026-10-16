@@ -30,7 +30,7 @@ export interface E2E단계 {
   item: EvidenceItem | null;
   건너뜀: string[];
   값연결: { 종류: string; 글: string }[];
-  /** 케이스가 아닌 단계가 실패하거나 판정을 못 낸 사유 */
+  /** 단계가 실패하거나 판정을 못 낸 사유 — 안 돈 단계는 비운다 */
   사유: string | null;
 }
 
@@ -52,7 +52,7 @@ type 결과 = Omit<ScenarioRunResult, 'evidence'>;
 
 const 기록없음 = '기록 없음';
 
-function 절차(s: ScenarioRunPart['steps'][number]): EvidenceStep {
+function 절차(runId: number, s: ScenarioRunPart['steps'][number]): EvidenceStep {
   return {
     seq: s.seq,
     title: s.title,
@@ -65,13 +65,14 @@ function 절차(s: ScenarioRunPart['steps'][number]): EvidenceStep {
       status: a.status,
       blocker: a.blocker === true,
     })),
-    // 사진은 경로만 옮긴다. 심는 것은 generate.ts 가 케이스 증적과 같은 검사를 거쳐 한다
-    screenshotPath: s.screenshotPath ?? null,
+    // 경로는 실행 번호와 절차 순번으로 다시 세운다 — 결과 응답은 비밀 글자를 통째로 가려서 숫자 비밀(1234)이 번호(41234)와 겹치면
+    // 경로까지 가려진다. 사진 통로(runRoutes.ts)와 같은 자리다. 심는 것은 generate.ts 가 케이스 증적과 같은 검사를 거쳐 한다
+    screenshotPath: s.screenshotPath === undefined ? null : `artifacts/runs/${runId}/scenario/${s.seq}.png`,
     ...(s.skipped === true ? { skipped: true as const } : {}),
   };
 }
 
-function 케이스항목(p: ScenarioRunPart, platform: Platform, 안돌았다: boolean): EvidenceItem | null {
+function 케이스항목(runId: number, p: ScenarioRunPart, platform: Platform, 안돌았다: boolean): EvidenceItem | null {
   if (p.part.kind !== 'case') return null;
   const 판정못냄 = p.status === 'NA' && !안돌았다 && p.error !== null && p.error.message !== '';
   return {
@@ -87,11 +88,11 @@ function 케이스항목(p: ScenarioRunPart, platform: Platform, 안돌았다: b
     // 결과 화면처럼 꽂은 값을 입력 칸에 겹쳐 보인다. 가리기는 서버 응답이 이미 했고 toFields 가 한 번 더 한다
     params: toFields({ ...p.part.params, ...p.bound }, p.paramSchema),
     expected: toFields(p.part.expected, p.expectedSchema),
-    steps: p.steps.map(절차),
+    steps: p.steps.map((s) => 절차(runId, s)),
   };
 }
 
-function 단계(p: ScenarioRunPart, 결과: 결과): E2E단계 {
+function 단계(runId: number, p: ScenarioRunPart, 결과: 결과): E2E단계 {
   const 안돌았다 = p.status === 'NA' && p.error?.message === 'NOT_RUN';
   const 케이스 = p.part.kind === 'case' ? p.part : null;
   const 모킹구간 = p.kind === 'mock' ? [] : p.mocks;
@@ -107,7 +108,7 @@ function 단계(p: ScenarioRunPart, 결과: 결과): E2E단계 {
     모킹구간,
     모킹안탐: 모킹구간.length > 0 && p.kind === 'api',
     단독실행: 케이스?.carryOver === false,
-    item: 케이스항목(p, 결과.platform, 안돌았다),
+    item: 케이스항목(runId, p, 결과.platform, 안돌았다),
     건너뜀: p.skippedSteps.map((제목) => {
       const 번호 = 건너뜀번호(결과.parts, p.seq, 제목);
       return 번호 === null
@@ -115,10 +116,8 @@ function 단계(p: ScenarioRunPart, 결과: 결과): E2E단계 {
         : t('준비 「{제목}」 — {번호}번에서 이미 실행', 'ko', { 제목, 번호 });
     }),
     값연결: (케이스?.links ?? []).map((link) => 값연결글(link, p.bound, 'ko')),
-    사유:
-      케이스 === null && !안돌았다 && p.status !== 'PASS' && p.error !== null && p.error.message !== ''
-        ? p.error.message
-        : null,
+    // 결과 화면이 보이는 문장이다 — 케이스 단계가 실패해도 적는다. 원문 스택은 안 싣는다
+    사유: !안돌았다 && p.status !== 'PASS' && p.error !== null && p.error.message !== '' ? p.error.message : null,
   };
 }
 
@@ -142,7 +141,7 @@ export function E2E모양(runId: number, 결과: 결과, 머리: { serviceName: 
     platform: 결과.platform,
     verdict: 접은판정(결과.parts, 결과.status),
     unconfirmed: 미확정있나(결과.parts),
-    parts: 결과.parts.map((p) => 단계(p, 결과)),
+    parts: 결과.parts.map((p) => 단계(runId, p, 결과)),
     정리: 결과.parts.flatMap((p) =>
       p.cleanup.map((c) =>
         c.error === undefined
@@ -159,7 +158,7 @@ export async function collectScenario(runId: number): Promise<E2E증적 | null> 
   if (결과 === null) return null;
   const { pool } = await import('../db/index.js');
   const 머리 = await pool.query<{ service_name: string; tests_repo: string }>(
-    'SELECT service_name, tests_repo FROM test_run WHERE run_id = $1',
+    "SELECT service_name, tests_repo FROM test_run WHERE run_id = $1 AND kind = 'SCENARIO'",
     [runId],
   );
   const 행 = 머리.rows[0];

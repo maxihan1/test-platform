@@ -31,7 +31,7 @@ async function 실행상태(runId: number, 시나리오도 = false): Promise<str
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10).
   // 증적 만들기만 예외다 — 시나리오 실행이면 E2E 증적을 만든다 (도메인/리포팅 §8.4 「E2E 시나리오 증적」)
   const rows = await pool.query<{ status: string }>(
-    `SELECT status FROM test_run WHERE run_id = $1${시나리오도 ? '' : ` AND ${종류조건('case', '')}`}`,
+    `SELECT status FROM test_run WHERE run_id = $1 AND (${종류조건('case', '')}${시나리오도 ? ` OR kind = 'SCENARIO'` : ''})`,
     [runId],
   );
   return rows.rows[0]?.status ?? null;

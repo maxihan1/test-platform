@@ -191,9 +191,10 @@ function E2E요약절(줄들: E2E요약줄[]): string[] {
     ...줄들.map((z) => {
       const 이름 = `<span class="tc-id">SC-${z.scenarioId}</span><span class="tc-name">${안전(z.name)}</span>`;
       if (z.startedAt === null || z.verdict === null) return `<div class="fold fold-line">${이름}<span class="devs">실행 이력 없음</span></div>`;
-      const 멈춘곳 = z.stoppedAt === null ? '모두 통과' : `${z.stoppedAt}번에서 멈춤`;
+      // 단계 행 없이 멈춘 실행은 판정 없음인데 멈춘 단계도 없다 — 「모두 통과」는 통과에만 붙인다
+      const 멈춘곳 = z.stoppedAt !== null ? ` · ${z.stoppedAt}번에서 멈춤` : z.verdict === 'PASS' ? ' · 모두 통과' : '';
       const 미확정 = z.unconfirmed ? `<span class="badge">미확정</span>` : '';
-      return `<div class="fold fold-line">${판정(z.verdict)}${이름}<span class="devs">${안전(z.startedAt)} · ${멈춘곳}</span>${미확정}</div>`;
+      return `<div class="fold fold-line">${판정(z.verdict)}${이름}<span class="devs">${안전(z.startedAt)}${멈춘곳}</span>${미확정}</div>`;
     }),
     `<p class="axis">케이스 판정은 위 카드와 줄이 정본이다</p>`,
   ];
