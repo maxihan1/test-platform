@@ -84,8 +84,8 @@ const 뺄조작 = new Set(['Screenshot']);
  * trace.zip 한 개를 푼다. `본문` 이 거짓이면 요청 · 응답 본문을 안 읽는다 — 통과 항목은 본문을 안 남긴다.
  * 시각(atMs)은 테스트가 시작한 때부터 잰 밀리초다. 단계 번호(seq)는 kit 이 단계마다 남기는 `platform-step` 첨부로 붙인다
  */
-export async function trace를푼다(zip: Buffer, 설정: { 본문: boolean }): Promise<풀린trace> {
-  const 묶음 = await JSZip.loadAsync(zip);
+export async function trace를푼다(zip: Buffer | JSZip, 설정: { 본문: boolean }): Promise<풀린trace> {
+  const 묶음 = await 연다(zip);
   const 읽기 = async (이름: string): Promise<string | null> => (await 묶음.file(이름)?.async('string')) ?? null;
   const 이름들 = Object.keys(묶음.files);
 
@@ -193,8 +193,8 @@ export async function trace를푼다(zip: Buffer, 설정: { 본문: boolean }): 
 }
 
 /** trace.zip 의 단계 결과(platform-step 첨부)를 단계 차례대로. 첨부가 없으면 빈 목록 */
-export async function 단계를읽는다(zip: Buffer): Promise<단계줄[]> {
-  const 묶음 = await JSZip.loadAsync(zip);
+export async function 단계를읽는다(zip: Buffer | JSZip): Promise<단계줄[]> {
+  const 묶음 = await 연다(zip);
   const 읽기 = async (이름: string): Promise<string | null> => (await 묶음.file(이름)?.async('string')) ?? null;
   const { 앞, 뒤 } = 호출들(줄들((await 읽기('test.trace')) ?? ''));
   return (await 단계첨부들(앞, 뒤, 읽기)).flatMap(({ 내용 }): 단계줄[] => {
@@ -213,6 +213,9 @@ export async function 단계를읽는다(zip: Buffer): Promise<단계줄[]> {
     ];
   });
 }
+
+// 이미 연 묶음을 넘기면 다시 안 푼다 — 실패 요약이 조작 · 단계를 같이 읽는다
+const 연다 = async (zip: Buffer | JSZip): Promise<JSZip> => (zip instanceof JSZip ? zip : JSZip.loadAsync(zip));
 
 // 테스트 쪽 호출. callId → before 줄 · after 줄
 function 호출들(테스트줄: 줄[]): { 앞: Map<string, 줄>; 뒤: Map<string, 줄> } {

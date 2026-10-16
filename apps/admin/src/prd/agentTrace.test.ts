@@ -1,16 +1,35 @@
-// 화면이 맞음 건의 실패 trace 받기 — 실린 짝만 · 남의 서비스 실행 거절 · zip 없음 사유 (도메인/작성 §7 「표준 기획서 통로」)
+// 화면이 맞음 건의 실패 trace 받기 — 가린 요약 · 실린 짝만 · 남의 서비스 실행 거절 · zip 없음 사유 (도메인/작성 §7 「표준 기획서 통로」)
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import Fastify, { type FastifyInstance } from 'fastify';
+import JSZip from 'jszip';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import prdAgentRoutes from './agentRoutes.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 에이전트 = 'xtf-agent';
+const 비밀스키마 = JSON.stringify({ type: 'object', properties: { password: { type: 'string', secret: true } } });
+
+// 단계 1 의 판정 하나가 틀렸다. 실제값에 그 실행의 비밀 칸 값이 들었다
+async function 가짜zip(실제: string): Promise<Buffer> {
+  const 묶음 = new JSZip();
+  묶음.file(
+    'test.trace',
+    [
+      { type: 'context-options', monotonicTime: 0 },
+      { type: 'before', callId: 'test.attach@1', method: 'test.attach', class: 'Test', startTime: 10 },
+      { type: 'after', callId: 'test.attach@1', attachments: [{ name: 'platform-step', file: 'attachments/s1' }] },
+    ]
+      .map((l) => JSON.stringify(l))
+      .join('\n'),
+  );
+  묶음.file('attachments/s1', JSON.stringify({ seq: 1, title: '본다', status: 'FAIL', assertions: [{ statement: '이름', status: 'FAIL', expected: 'a', actual: 실제 }] }));
+  return 묶음.generateAsync({ type: 'nodebuffer' });
+}
 
 describe.skipIf(연결 === undefined)('화면이 맞음 건의 실패 trace 통로', () => {
   let app: FastifyInstance;
@@ -30,14 +49,14 @@ describe.skipIf(연결 === undefined)('화면이 맞음 건의 실패 trace 통�
         await q<{ history_id: string }>(
           `INSERT INTO run_item (run_id, tc_id, platform, tc_name, file_path, timeout_ms, precondition, params, expected,
                                  param_schema, expected_schema, status, duration_ms, finished_at, attempt)
-                VALUES ($1, $2, 'desktop', $2, 'xtf.spec.ts', 5000, '[]', '{}', '{}', '{}', '{}', $3, 10, now(), $4)
+                VALUES ($1, $2, 'desktop', $2, 'xtf.spec.ts', 5000, '[]', '{"password":"xtf-비번"}', '{}', $5, '{}', $3, 10, now(), $4)
              RETURNING history_id`,
-          [runId, tcId, status, attempt],
+          [runId, tcId, status, attempt, 비밀스키마],
         )
       ).rows[0]!.history_id,
     );
 
-  const zip을둔다 = async (runId: number, historyId: number, 내용: string) => {
+  const zip을둔다 = async (runId: number, historyId: number, 내용: Buffer | string) => {
     const { trace경로 } = await import('../execution/traceIngest.js');
     const 경로 = trace경로(runId, historyId);
     mkdirSync(dirname(경로), { recursive: true });
@@ -111,16 +130,26 @@ describe.skipIf(연결 === undefined)('화면이 맞음 건의 실패 trace 통�
     rmSync(임시, { recursive: true, force: true });
   });
 
-  it('실린 짝이면 실패 항목의 zip 을 준다 — 통과 항목 · zip 없는 실패 항목은 건너뛴다', async () => {
+  it('실린 짝이면 실패 항목의 trace 를 가린 요약 줄로 준다 — 통과 항목 · zip 없는 실패 항목은 건너뛰고 zip 은 주지 않는다', async () => {
     const 통과 = await 항목(실행.XTF, 'XTF-FN-001', 'PASS');
-    await zip을둔다(실행.XTF, 통과, '통과');
+    await zip을둔다(실행.XTF, 통과, await 가짜zip('통과'));
     await 항목(실행.XTF, 'XTF-FN-001', 'FAIL', 2);
     const 실패 = await 항목(실행.XTF, 'XTF-FN-001', 'FAIL', 3);
-    await zip을둔다(실행.XTF, 실패, '실패 zip');
+    await zip을둔다(실행.XTF, 실패, await 가짜zip('보인 값 xtf-비번'));
     const id = await 요청넣기([{ runId: 실행.XTF, tcId: 'XTF-FN-001' }]);
 
     const r = await 받기(id, 실행.XTF, 'XTF-FN-001');
-    expect([r.statusCode, r.headers['content-type'], r.body]).toEqual([200, 'application/zip', '실패 zip']);
+    expect(r.statusCode).toBe(200);
+    expect(r.json()).toEqual({ summary: ['가름: 값 다름 — 「이름」 기대 "a" · 실제 "보인 값 ********"', '단계 1 「본다」'] });
+  });
+
+  it('zip 을 못 읽으면 사유를 싣는다', async () => {
+    const 실패 = await 항목(실행.XTF, 'XTF-FN-004', 'FAIL');
+    await zip을둔다(실행.XTF, 실패, 'zip 이 아니다');
+    const id = await 요청넣기([{ runId: 실행.XTF, tcId: 'XTF-FN-004' }]);
+
+    const r = await 받기(id, 실행.XTF, 'XTF-FN-004');
+    expect([r.statusCode, r.json().error, r.json().detail]).toEqual([404, 'NO_TRACE', expect.stringContaining('trace 를 읽지 못했다')]);
   });
 
   it('요청에 실리지 않은 짝은 같은 서비스라도 404 다', async () => {

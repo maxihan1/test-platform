@@ -93,21 +93,20 @@ function 내용같나(a: 들어온항목 | PrdItem, b: PrdItem): boolean {
   return a.status === b.status && 요구같나(a, b);
 }
 
-/**
- * 작성 요청 params 의 「화면이 맞음」 번호(screenRight 칸마다의 reqIds 를 합친 것). 화면이 맞음 요청이 아니면 빈 묶음.
- * 2026-10-13 PRD-F9-20 부터 목록이고 그 전 행은 한 칸 객체다
- */
-export function 화면번호들(params: Record<string, unknown>): Set<string> {
+// params.screenRight 의 칸들 — 2026-10-13 PRD-F9-20 부터 목록이고 그 전 행은 한 칸 객체다
+function 화면칸들(params: Record<string, unknown>): { reqIds?: unknown; runId?: unknown; tcId?: unknown }[] {
   const s = params.screenRight;
-  const 칸들 = (Array.isArray(s) ? s : s === undefined ? [] : [s]) as { reqIds?: unknown }[];
-  return new Set(칸들.flatMap((칸) => (Array.isArray(칸?.reqIds) ? 칸.reqIds.filter((x): x is string => typeof x === 'string') : [])));
+  return (Array.isArray(s) ? s : s === undefined ? [] : [s]) as { reqIds?: unknown; runId?: unknown; tcId?: unknown }[];
+}
+
+/** 작성 요청 params 의 「화면이 맞음」 번호(screenRight 칸마다의 reqIds 를 합친 것). 화면이 맞음 요청이 아니면 빈 묶음 */
+export function 화면번호들(params: Record<string, unknown>): Set<string> {
+  return new Set(화면칸들(params).flatMap((칸) => (Array.isArray(칸?.reqIds) ? 칸.reqIds.filter((x): x is string => typeof x === 'string') : [])));
 }
 
 /** 그 요청의 「화면이 맞음」 칸에 실린 실행 · 케이스인가 — 에이전트가 받을 수 있는 실패 trace 는 이 짝뿐이다 */
 export function 화면이맞음건인가(params: Record<string, unknown>, runId: number, tcId: string): boolean {
-  const s = params.screenRight;
-  const 칸들 = (Array.isArray(s) ? s : s === undefined ? [] : [s]) as { runId?: unknown; tcId?: unknown }[];
-  return 칸들.some((칸) => 칸?.runId === runId && 칸?.tcId === tcId);
+  return 화면칸들(params).some((칸) => 칸?.runId === runId && 칸?.tcId === tcId);
 }
 
 /** 판 통째가 같은가 — 같으면 새 판을 안 만든다(옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게) */

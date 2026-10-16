@@ -161,6 +161,7 @@ describe('안옮김뒤', () => {
 });
 
 describe('실패trace받기', () => {
+  const 답 = (status: number, 몸: unknown) => new Response(JSON.stringify(몸), { status });
   let 자료 = '';
   beforeEach(() => {
     자료 = mkdtempSync(join(tmpdir(), 'sr-trace-'));
@@ -176,19 +177,19 @@ describe('실패trace받기', () => {
     params: { prdApply: true, screenRight: [{ runId: 42, tcId: 'X-FN-007', env: 'qa', reqIds: [] }, { runId: 43, tcId: 'X-FN-008', env: 'qa', reqIds: [] }] },
   };
 
-  it('건마다 그 요청 통로로 받아 traces/RUN<번호>-<케이스>.zip 에 두고, 못 받은 건은 로그만 남기고 넘어간다', async () => {
+  it('건마다 그 요청 통로로 가린 요약을 받아 traces/RUN<번호>-<케이스>.txt 에 두고, 못 받은 건은 로그만 남기고 넘어간다', async () => {
     const 부른주소: string[] = [];
     vi.stubGlobal('fetch', async (url: string) => {
       부른주소.push(url);
-      return url.includes('runId=42') ? new Response(Buffer.from('zip 42'), { status: 200 }) : new Response('{"error":"NO_TRACE"}', { status: 404 });
+      return url.includes('runId=42') ? 답(200, { summary: ['가름: 깨짐 — 요소를 못 찾음', '단계 2 「누른다」'] }) : 답(404, { error: 'NO_TRACE', detail: '러너가 다른 기계' });
     });
     const 로그 = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     expect(await 실패trace받기({ 주소기지: 'http://s', 토큰: 't' }, 것, 자료)).toBe(1);
     expect(부른주소).toEqual(['http://s/api/authoring/requests/7/trace?runId=42&tcId=X-FN-007', 'http://s/api/authoring/requests/7/trace?runId=43&tcId=X-FN-008']);
-    expect(readFileSync(join(자료, 'traces', 'RUN42-X-FN-007.zip'), 'utf8')).toBe('zip 42');
-    expect(existsSync(join(자료, 'traces', 'RUN43-X-FN-008.zip'))).toBe(false);
-    expect(로그).toHaveBeenCalledWith(expect.stringContaining('RUN 43 X-FN-008 의 실패 trace 를 못 받았다: 서버 404'));
+    expect(readFileSync(join(자료, 'traces', 'RUN42-X-FN-007.txt'), 'utf8')).toBe('가름: 깨짐 — 요소를 못 찾음\n단계 2 「누른다」\n');
+    expect(existsSync(join(자료, 'traces', 'RUN43-X-FN-008.txt'))).toBe(false);
+    expect(로그).toHaveBeenCalledWith(expect.stringContaining('RUN 43 X-FN-008 의 실패 trace 를 못 받았다: 서버 404 NO_TRACE 러너가 다른 기계'));
   });
 
   it('화면이 맞음 요청이 아니면 부르지 않는다', async () => {

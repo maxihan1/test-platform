@@ -7,7 +7,9 @@ import { z } from 'zod';
 
 import { TCID } from '../catalog/rules.js';
 import { 종류조건 } from '../execution/runKind.js';
+import { 항목비밀 } from '../execution/trial.js';
 import { trace경로 } from '../execution/traceIngest.js';
+import { 요약줄들 } from '../execution/traceSummary.js';
 import { 지금판 } from './store.js';
 
 /** 작성 요청 params.screenRight 목록의 한 칸 — env 는 그 실행의 대상 서버, reqIds 는 그 케이스가 덮는 번호 가운데 지금 판에 있는 것(판 차례) */
@@ -70,23 +72,31 @@ export async function 화면이맞음채우기(서비스: number, runId: number,
 }
 
 /**
- * 그 실행에서 그 케이스가 실패한 항목의 trace.zip — 회차 · 기기마다 항목이 여럿이면 zip 이 남은 첫 항목. 실패 zip 은 적재 뒤에도 서버에 남는다 (실행 §3.2 「trace」).
+ * 그 실행에서 그 케이스가 실패한 항목의 trace 를 가린 요약 몇 줄로 — 회차 · 기기마다 항목이 여럿이면 zip 이 남은 첫 항목. 실패 zip 은 적재 뒤에도 서버에 남는다 (실행 §3.2 「trace」).
+ * zip 을 그대로 주지 않는다 — 자식이 셸로 여는 자료 폴더에 놓이고, 그 실행의 비밀 칸 값(항목비밀)은 서버만 안다. 가림은 서버 적재와 같다.
  * 없으면 적재 상태 줄의 사유(다른 기계의 러너 · 끊긴 실행)를 싣는다
  */
-export async function 실패trace(서비스: number, runId: number, tcId: string): Promise<{ zip: Buffer } | { error: 'NO_TRACE'; detail: string }> {
+export async function 실패요약(서비스: number, runId: number, tcId: string): Promise<{ summary: string[] } | { error: 'NO_TRACE'; detail: string }> {
   const { pool } = await import('../db/index.js');
-  const 항목 = await pool.query<{ history_id: string; reason: string | null }>(
-    `SELECT i.history_id, t.reason
+  const 항목 = await pool.query<{ history_id: string; reason: string | null; params: unknown; expected: unknown; param_schema: unknown; expected_schema: unknown }>(
+    `SELECT i.history_id, t.reason, i.params, i.expected, i.param_schema, i.expected_schema
        FROM run_item i JOIN test_run r ON r.run_id = i.run_id LEFT JOIN run_trace t ON t.history_id = i.history_id
       WHERE i.run_id = $1 AND i.tc_id = $2 AND i.status = 'FAIL' AND r.service_id = $3
       ORDER BY i.history_id`,
     [runId, tcId, 서비스],
   );
   for (const 행 of 항목.rows) {
+    let zip: Buffer;
     try {
-      return { zip: await readFile(trace경로(runId, Number(행.history_id))) };
+      zip = await readFile(trace경로(runId, Number(행.history_id)));
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+      continue;
+    }
+    try {
+      return { summary: await 요약줄들(zip, 항목비밀(행)) };
+    } catch (err) {
+      return { error: 'NO_TRACE', detail: `trace 를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}` };
     }
   }
   const 사유 = 항목.rows.find((x) => x.reason !== null)?.reason;
