@@ -1,4 +1,4 @@
-// 케이스 파일과 tests/ 아래 케이스가 아닌 .ts 파일(Page Object · 도우미)이 같이 지는 K7 을 검사한다
+// 케이스 파일과 tests/ 아래 케이스가 아닌 .ts 파일(Page Object · 도우미)이 같이 지는 K7 · K15 를 검사한다
 
 import { readdir } from 'node:fs/promises';
 import { join, posix, sep } from 'node:path';
@@ -32,6 +32,28 @@ export function k7(file: string, sf: ts.SourceFile): Violation[] {
       });
     }
     node.getChildren(sf).forEach(visit);
+  };
+  visit(sf);
+  return out;
+}
+
+export const K15_WHY = '정해 둔 시간은 느린 망에서는 모자라 흔들리고 빠른 망에서는 시간만 버린다';
+
+// 케이스와 Page Object · 도우미가 이 한 벌을 같이 쓴다. setTimeout 은 막지 않는다 — route 안 응답 지연과 데드라인이 쓴다
+const 고정대기 = { 부름: 'waitForTimeout', 상태: 'networkidle' };
+
+export function k15(file: string, sf: ts.SourceFile): Violation[] {
+  const out: Violation[] = [];
+  const at = (node: ts.Node, what: string): void => {
+    out.push({ file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, rule: 'K15', what, why: K15_WHY });
+  };
+  const visit = (node: ts.Node): void => {
+    if (ts.isPropertyAccessExpression(node) && node.name.text === 고정대기.부름) {
+      at(node.name, `${고정대기.부름} 으로 정해 둔 시간만큼 기다린다`);
+    } else if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && node.text === 고정대기.상태) {
+      at(node, `'${고정대기.상태}' 를 기다린다`);
+    }
+    ts.forEachChild(node, visit);
   };
   visit(sf);
   return out;
@@ -131,7 +153,7 @@ export function checkNonCase(file: string, text: string): Violation[] {
     return [{ file, line: 1, rule: 'K7', what: 'tests 아래 JS 파일이다', why: '타입 검사와 이 검사를 피한 채 import 로 불린다' }];
   }
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  return [...k7(file, sf), ...stepOrVerify(file, sf), ...importRule(file, sf)].sort((a, b) => a.line - b.line);
+  return [...k7(file, sf), ...k15(file, sf), ...stepOrVerify(file, sf), ...importRule(file, sf)].sort((a, b) => a.line - b.line);
 }
 
 // JS 파일도 모은다 — checkNonCase 가 그 자체로 위반으로 찍는다. 이름 꼴은 cases-only 가 따로 본다. 여기서 꼴로 거르면 꼴이 어긋난 파일이 K7 을 아예 안 받는다
