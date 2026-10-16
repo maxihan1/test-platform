@@ -44,7 +44,7 @@ export type 가름 =
 
 // 막은 요청 · 미룬 삭제에 주는 응답 — 케이스 코드는 서버가 받은 줄 안다 (SPEC 도메인/시나리오 §3.7 결정 12)
 export const 빈응답: 받은응답 = { status: 200, contentType: 'application/json', body: '{}' };
-const 이름 = { reuse: '앞 응답 돌려주기', block: '요청 막기', rewrite: '바꿔 보내기' } as const;
+const 이름 = { reuse: '이전 응답 재사용', block: '요청 차단', rewrite: '수정 요청으로 변경' } as const;
 
 // Playwright 1.63 globToRegexPattern 을 옮겼다 — 무늬 맞추기 공개 함수가 없다 (SPEC 도메인/시나리오 §3.7 결정 12 「요청 고르기」)
 const escapedChars = new Set(['$', '^', '+', '.', '*', '(', ')', '|', '\\', '?', '{', '}', '[', ']']);
@@ -166,21 +166,21 @@ export function 적기(이음: 이음, seq: number, method: string, url: string,
   for (const g of 이음.가리킴) {
     const key = 열쇠(g);
     if (g.fromSeq !== seq || g.method !== method.toUpperCase() || 이음.응답.has(key) || !무늬맞음(g.urlPattern, url, 이음.baseUrl)) continue;
-    읽기 ??= (async () => 본문())().catch(() => `${seq}번 부품 응답 본문을 못 읽었다`);
+    읽기 ??= (async () => 본문())().catch(() => `${seq}번 단계 응답 본문을 못 읽었다`);
     이음.응답.set(key, 읽기);
   }
 }
 
 // 적어 둔 앞 응답. 없거나 못 읽었으면 그 사유 글자다
 async function 응답찾기(이음: 이음, ref: { fromSeq: number; method: string; urlPattern: string }): Promise<받은응답 | string> {
-  return (await 이음.응답.get(열쇠(ref))) ?? `${ref.fromSeq}번 부품에 맞는 응답이 없다`;
+  return (await 이음.응답.get(열쇠(ref))) ?? `${ref.fromSeq}번 단계에 맞는 응답이 없다`;
 }
 
 async function 값찾기(이음: 이음, ref: ScenarioResponseRef): Promise<{ ok: true; value: unknown } | { 사유: string }> {
   const 응답 = await 응답찾기(이음, ref);
   if (typeof 응답 === 'string') return { 사유: 응답 };
   const 값 = 값꺼냄(응답.body, ref.jsonPath);
-  return 값.ok ? 값 : { 사유: `${ref.fromSeq}번 부품 응답에 ${ref.jsonPath} 가 없다` };
+  return 값.ok ? 값 : { 사유: `${ref.fromSeq}번 단계 응답에 ${ref.jsonPath} 가 없다` };
 }
 
 async function 걸기(이음: 이음, link: Extract<ScenarioLink, { kind: 'reuse' | 'block' | 'rewrite' }>): Promise<가름> {
@@ -195,7 +195,7 @@ async function 걸기(이음: 이음, link: Extract<ScenarioLink, { kind: 'reuse
   const 글자 = String(값.value);
   // 빈 글자는 모음 주소(/api/todos/)로 간다 — 입구가 {} 를 꼭 하나로 막은 까닭과 같다
   if (글자 === '' || 글자 === '.' || 글자 === '..') {
-    return { kind: 'fail', message: `${link.to.value.fromSeq}번 부품 응답의 ${link.to.value.jsonPath} 값 「${글자}」 은 주소에 넣을 수 없다` };
+    return { kind: 'fail', message: `${link.to.value.fromSeq}번 단계 응답의 ${link.to.value.jsonPath} 값 「${글자}」 은 주소에 넣을 수 없다` };
   }
   const url = 주소(이음.baseUrl, link.to.path.replace('{}', encodeURIComponent(글자)));
   return { kind: 'send', method: link.to.method, url };
@@ -250,5 +250,5 @@ export function 안걸린(부품: 부품상태): string | undefined {
   const 줄 = 부품.links.flatMap((link, i) =>
     link.kind === 'bind' || 부품.걸림.has(i) ? [] : [`${이름[link.kind]} ${link.method} ${link.urlPattern}`],
   );
-  return 줄.length === 0 ? undefined : `안 걸린 이어 주기 — ${줄.join(' · ')}`;
+  return 줄.length === 0 ? undefined : `적용되지 않은 값 연결 — ${줄.join(' · ')}`;
 }

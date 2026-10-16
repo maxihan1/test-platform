@@ -154,7 +154,7 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
             }
             if (넘었다) {
               status = 'FAIL';
-              error = { message: `부품 제한 시간 ${deps.partTimeoutMs}ms 를 넘었다` };
+              error = { message: `단계 제한 시간 ${deps.partTimeoutMs}ms 를 넘었다` };
             }
             break;
           }

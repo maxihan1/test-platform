@@ -98,7 +98,7 @@ export function 제한시간크기사유(parts: ScenarioPart[]): string[] {
   const 합 = 부품시간합(parts);
   if (합 > 제한시간상한) 사유.push(`제한 시간 합이 ${합}ms 로 ${제한시간상한}ms 를 넘는다`);
   const 크기 = Buffer.byteLength(JSON.stringify(parts));
-  if (크기 > 크기상한) 사유.push(`부품 목록이 ${크기}바이트로 ${크기상한}바이트를 넘는다`);
+  if (크기 > 크기상한) 사유.push(`단계 목록이 ${크기}바이트로 ${크기상한}바이트를 넘는다`);
   return 사유;
 }
 
@@ -113,12 +113,12 @@ function 바른경로(path: string): boolean {
 
 /** 거절 사유를 사람 말로 모은다. 비면 통과다. 되돌리기는 이것을 안 건다 (§7 restore) */
 export function 조립검사(parts: ScenarioPart[], platform: Platform, service: string, 재료: 카탈로그): string[] {
-  if (parts.length === 0) return ['부품이 하나도 없다'];
+  if (parts.length === 0) return ['단계가 하나도 없다'];
 
   const 오류: string[] = [];
   const 켜진모킹 = new Set<string>();
   parts.forEach((p, i) => {
-    const 자리 = `${i + 1}번 부품`;
+    const 자리 = `${i + 1}번 단계`;
     if (p.kind === 'case') {
       // 접두사부터 본다 — 남의 서비스 케이스가 있는지 없는지가 오류 문장으로 새지 않게
       if (!p.tcId.startsWith(`${service}-`)) {
@@ -127,7 +127,7 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
       }
       // 재료가 UI 를 빼 두므로 먼저 본다 — 아니면 「없거나 비활성」으로 잘못 말한다 (도메인/작성 §3.6 「★ 테스트 두 갈래」)
       if (tcId종류(p.tcId) === 'UI') {
-        오류.push(`${자리}: ${p.tcId} 는 UI 테스트라 E2E 부품이 될 수 없다`);
+        오류.push(`${자리}: ${p.tcId} 는 UI 테스트라 E2E 단계가 될 수 없다`);
         return;
       }
       const 케이스 = 재료.get(p.tcId);
@@ -144,7 +144,7 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
       // 이어 주기 (§3.7 결정 12)
       const links = p.links ?? [];
       if (p.carryOver === false && (p.skipSteps.length > 0 || links.length > 0)) {
-        오류.push(`${자리}: 넘겨받기를 끈 부품에는 건너뛰기와 이어 주기를 걸 수 없다`);
+        오류.push(`${자리}: 로그인 이어받기를 끈 단계에는 준비 건너뛰기와 값 연결을 걸 수 없다`);
       }
       const 꽂은칸 = new Set<string>();
       const 겹친칸 = new Set<string>();
@@ -153,19 +153,19 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
           이음.kind === 'reuse' ? 이음.fromSeq : 이음.kind === 'rewrite' ? 이음.to.value.fromSeq : 이음.kind === 'bind' ? 이음.value.fromSeq : null;
         // 앞 케이스 부품만 받은 응답이 있다 — api · mock · 뒤 부품을 가리키면 러너가 꺼낼 값이 없다
         if (가리킴 !== null && !(가리킴 <= i && parts[가리킴 - 1]?.kind === 'case')) {
-          오류.push(`${자리}: 이어 주기가 가리키는 ${가리킴}번 부품은 자기보다 앞의 케이스 부품이 아니다`);
+          오류.push(`${자리}: 값 연결이 가리키는 ${가리킴}번 단계는 자기보다 앞의 케이스 단계가 아니다`);
         }
         if (이음.kind === 'rewrite') {
-          if (!바른경로(이음.to.path)) 오류.push(`${자리}: 바꿔 보내기 경로는 ${경로규칙}`);
+          if (!바른경로(이음.to.path)) 오류.push(`${자리}: 수정 요청 경로는 ${경로규칙}`);
           // 러너 입구와 같은 문장이다 (apps/runner/src/routes.ts scenarioLink)
-          if (이음.to.path.split('{}').length !== 2) 오류.push(`${자리}: 바꿔 보내기 경로에 {} 자리가 꼭 하나 있어야 한다`);
+          if (이음.to.path.split('{}').length !== 2) 오류.push(`${자리}: 수정 요청 경로에 {} 자리가 꼭 하나 있어야 한다`);
         } else if (이음.kind === 'bind') {
           if (!케이스.params.includes(이음.param)) 오류.push(`${자리}: 「${이음.param}」 는 ${p.tcId} 의 입력값 칸이 아니다`);
           else if (꽂은칸.has(이음.param)) 겹친칸.add(이음.param);
           꽂은칸.add(이음.param);
         }
       }
-      for (const 칸 of 겹친칸) 오류.push(`${자리}: 「${칸}」 칸에 값 꽂기가 둘 이상이다`);
+      for (const 칸 of 겹친칸) 오류.push(`${자리}: 「${칸}」 칸에 값 주입이 둘 이상이다`);
     } else if (p.kind === 'api') {
       if (!바른경로(p.path)) 오류.push(`${자리}: API 경로는 ${경로규칙}`);
     } else if (p.kind === 'mock') {

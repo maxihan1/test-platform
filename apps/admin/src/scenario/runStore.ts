@@ -155,7 +155,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
       const 케 = p.kind === 'case' ? 케이스들.get(p.tcId) : undefined;
       if (p.kind === 'case' && 케 === undefined) {
         // 판정과 이 SELECT 사이에 카탈로그 행이 사라진 경우다. 스냅샷 없이 줄을 세우면 CHECK 가 막는다
-        throw new 시나리오실행오류('NOT_RUNNABLE', `${i + 1}번 부품: ${p.tcId} 는 없거나 비활성인 케이스다`);
+        throw new 시나리오실행오류('NOT_RUNNABLE', `${i + 1}번 단계: ${p.tcId} 는 없거나 비활성인 케이스다`);
       }
       await c.query(
         `INSERT INTO scenario_run_part (run_id, seq, kind, tc_id, tc_name, part, file_path, param_schema, expected_schema,
@@ -227,7 +227,7 @@ async function 실행가능확인(parts: ScenarioPart[], 번호들: string[], pr
       .filter((ch) => ch.reason === 'CASE_INACTIVE')
       .map((ch) => {
         const p = parts[ch.seq - 1];
-        return `${ch.seq}번 부품: ${p?.kind === 'case' ? p.tcId : ''} 는 없거나 비활성인 케이스다`;
+        return `${ch.seq}번 단계: ${p?.kind === 'case' ? p.tcId : ''} 는 없거나 비활성인 케이스다`;
       }),
     ...제한시간크기사유(parts),
   ];

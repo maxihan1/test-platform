@@ -390,8 +390,8 @@ describe.skipIf(연결 === undefined)('시나리오 실행 만들기', () => {
     const 행들 = await 부품행(runId);
     expect(행들.map((r) => [r.seq, r.status, r.error])).toEqual([
       [1, 'PASS', null],
-      [2, 'NA', { message: '러너가 이 부품 결과를 돌려주지 않았다' }],
-      [3, 'NA', { message: '러너가 이 부품 결과를 돌려주지 않았다' }],
+      [2, 'NA', { message: '러너가 이 단계 결과를 돌려주지 않았다' }],
+      [3, 'NA', { message: '러너가 이 단계 결과를 돌려주지 않았다' }],
     ]);
     expect(행들.every((r) => r.finished_at !== null)).toBe(true);
     expect((await 실행상태(runId)).status).toBe('FINISHED');

@@ -270,11 +270,11 @@ describe.skipIf(연결 === undefined)('시험 실행 시작', () => {
     expect(JSON.stringify(결과)).not.toContain('xst-bound-99');
   });
 
-  it('저장값을 채운 뒤 부품 목록이 100000바이트를 넘으면 INVALID_REQUEST 다', async () => {
+  it('저장값을 채운 뒤 단계 목록이 100000바이트를 넘으면 INVALID_REQUEST 다', async () => {
     await 저장값({ 아이디: 'x'.repeat(100001) });
     await expect(시험시작(사람, 본문({ parts: [케이스('XST-001', { params: {} })] }))).rejects.toMatchObject({
       code: 'INVALID_REQUEST',
-      message: expect.stringContaining('저장값을 채운 뒤 부품 목록이'),
+      message: expect.stringContaining('저장값을 채운 뒤 단계 목록이'),
     });
     expect(받은요청).toBeNull();
   });
