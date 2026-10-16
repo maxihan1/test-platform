@@ -31,14 +31,15 @@ npx playwright cli -s=probe close
 | 누르기 · 채우기 · 이동 | `--raw click e8` · `--raw fill e8 '<값>'` | 명령마다 붙는 화면 상태 · 생성 코드 · 스냅샷 링크가 빠진다 |
 | 요소 주소 받기 | `--raw generate-locator e8` | Playwright 생성기가 testid 부터 고른다 — 스냅샷에는 `data-testid` 가 안 보인다. 아래 testid · `nth()` 규칙은 그대로 |
 | 폼 하나만 읽기 | `snapshot e34` · `snapshot --depth=4` | 화면 전체를 다시 찍지 않는다 |
-| 이름 여럿 찾기 | `find --regex "가입\|취소\|확인"` | 한 번에 찾는다 |
+| 이름 여럿 찾기 | `find --regex` — 아래 명령 | 한 번에 찾는다 |
 | 조작이 부른 API | `requests` → `--raw response-body <번호>` · `--raw request-body <번호>` | 무엇을 기다릴지(R13) · 모킹 응답 모양(§5)을 짐작하지 않는다. `request <번호>` 는 헤더까지 다 뱉는다. **본 응답 값은 기대값의 근거가 아니다**(R10) |
 | 화면 오류 | `console error` | JS 오류가 나면 케이스보다 화면 버그를 먼저 의심한다 |
 
-입력 칸 속성은 `eval` 한 번으로 다 읽는다 — 스냅샷 글로 필수 · 글자 수를 짐작하지 않는다.
+입력 칸 속성은 `eval` 한 번으로 다 읽는다 — 스냅샷 글로 필수 · 글자 수를 짐작하지 않는다. 한도가 없으면 `null` 이다(크롤러 `# 입력칸:` 줄과 같은 뜻).
 
 ```bash
-npx playwright cli -s=probe --raw eval "JSON.stringify([...document.querySelectorAll('input,textarea,select')].map(e => ({ 이름: (e.labels?.[0]?.innerText || e.placeholder || e.name || '').trim(), type: e.type, 최대: e.maxLength, 최소: e.minLength, 필수: e.required, 형식: e.pattern })))"
+npx playwright cli -s=probe find --regex "가입|취소|확인"
+npx playwright cli -s=probe --raw eval "JSON.stringify([...document.querySelectorAll('input,textarea,select')].map(e => ({ 이름: (e.labels?.[0]?.innerText || e.placeholder || e.name || '').trim(), type: e.type, 최대: e.maxLength > 0 ? e.maxLength : null, 최소: e.minLength > 0 ? e.minLength : null, 필수: e.required, 형식: e.pattern || null })))"
 ```
 
 ### ★ 입력 칸 한도 — 막는지 재고 쓴다 (2026-10-16)
@@ -47,8 +48,8 @@ npx playwright cli -s=probe --raw eval "JSON.stringify([...document.querySelecto
 2026-10-12 MKT 8건은 재지 않고 「한도 + 1 → 오류 문구」로 써서 늘 실패했다(PRD-F9-12).
 
 1. 넣는 값은 그 경계 줄의 시험 값 그대로다. 칸이 걸러 내는 글자(숫자 칸에 영문)를 섞지 않는다
-2. **Page Object 가 그 칸에 쓰는 방법으로** 넣는다 — `fill` 이면 `--raw fill e8 '<값>'`, `pressSequentially` 면 `--raw fill e8 ''` → `--raw click e8` → `--raw type '<값>'`.
-   둘은 결과가 다르다(2026-10-16 실측 — `maxlength` 11 에 숫자만 남기는 칸에 `010-12ab-5678` 을 넣으면 `fill` 7자 · 한 글자씩 9자)
+2. **그 칸에 쓸 입력 방법으로** 넣는다(Page Object 도 그 방법으로 쓴다 — 이미 있으면 그 메서드의 방법) — `fill` 이면 `--raw fill e8 '<값>'`, `pressSequentially` 면 `--raw fill e8 ''` → `--raw click e8` → `--raw type '<값>'`.
+   걸러지는 글자가 섞인 값(형식 케이스)은 방법에 따라 남는 길이가 갈린다(2026-10-16 실측 — `maxlength` 11 에 숫자만 남기는 칸에 `010-12ab-5678` 을 넣으면 `fill` 7자 · 한 글자씩 9자. MKT-061 · MKU-063 꼴)
 3. `--raw eval "el => el.value.length" e8` 로 읽는다
 
 | 남은 길이 | 케이스 꼴 |
@@ -58,8 +59,8 @@ npx playwright cli -s=probe --raw eval "JSON.stringify([...document.querySelecto
 | 그 밖 | 칸이 받는 글자로 다시 넣는다. 그래도 다르면 「표에서 고칠 것」으로 돌려준다 |
 
 - 잰 길이는 **케이스 꼴을 고르는 데만** 쓴다. 기대값의 한도 숫자는 기획서에서 온다(R10) — 기획서에 숫자가 없으면 「화면에만 있는 입력 규칙」(아래 예외 ②)이다
-- 결과는 용어 사전 그 칸 줄 끝에 ` — 한도 20 · 막음(fill)` 꼴로 남긴다. 해시가 같은 다음 실행은 다시 재지 않는다
-- 역방향 화면 기록의 「입력 칸 한도」 표(크롤러가 읽은 `maxlength`)는 출발점이다 — JS 로 자르는 칸은 거기 없어서 표에 없어도 잰다
+- **화면 해시가 같아도 다시 잰다** — 해시(아래 「용어 사전」)는 스냅샷으로 내는데 스냅샷에 `maxlength` · JS 자르기가 안 보여 한도가 바뀌어도 해시가 그대로다. 칸 하나에 명령 셋이다
+- 역방향 화면 기록의 「입력 칸 한도」 표(크롤러가 읽은 `maxlength`)는 출발점이다 — JS 로 자르는 칸 · 직접 연 팝업의 칸은 거기 없을 수 있어서 표에 없어도 잰다
 
 ### 메뉴로 닿지 않는 화면 — 딥 링크·메일 링크
 
@@ -79,7 +80,7 @@ npx playwright cli -s=probe --raw eval "JSON.stringify([...document.querySelecto
 
 ### ★ CLI 가 뱉는 코드를 그대로 베끼지 않는다
 
-`--raw` 없이 부르면 명령마다 「Ran Playwright code」로 **방금 실행한 Playwright 코드**를 같이 뱉는다. `--raw` 로 부를 때는 `generate-locator <ref> --raw` 가 같은 생성기로 주소 하나만 준다.
+`--raw` 없이 부르면 명령마다 「Ran Playwright code」로 **방금 실행한 Playwright 코드**를 같이 뱉는다. `--raw` 로 부를 때는 `--raw generate-locator <ref>` 가 같은 생성기로 주소 하나만 준다.
 `getByRole` 이 많아 아래 우선순위의 둘째와 맞는다 — 이 도구를 쓰는 가장 큰 값이다. 그 요소에 뜻 있는 testid 가 있으면 그쪽으로 바꾼다.
 
 **그런데 같은 것이 둘이면 `.nth(1)` 을 뱉는다** (2026-09-22 실측 — 같은 이름의 할 일 둘에서
