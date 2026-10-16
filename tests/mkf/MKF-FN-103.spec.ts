@@ -2,6 +2,7 @@ import { defineCase, test, verify } from '@platform/kit';
 
 import { 글쓴이정리하기, 글있나, 글하나쓰기, 댓글목록, 임시회원으로로그인, 정리함만들기 } from './helpers/board-tools.helper.js';
 import type { 글쓴이 } from './helpers/board-tools.helper.js';
+import { 보낸요청끝날때까지 } from './helpers/common-tools.helper.js';
 import { 방해막기 } from './helpers/quiet.helper.js';
 import { 게시글상세화면 } from './pages/board-detail.page.js';
 
@@ -37,9 +38,10 @@ test(spec, async ({ page }) => {
       await 상세.열기(글번호);
       await 상세.댓글까지그려질때까지();
       await 상세.새댓글입력.fill(내용);
-      await 상세.새댓글등록.dblclick();
-      await 상세.댓글(내용).first().waitFor();
-      await page.waitForTimeout(500);
+      await 보낸요청끝날때까지(page, 'POST', /^\/api\/posts\/\d+\/comments$/, async () => {
+        await 상세.새댓글등록.dblclick();
+        await 상세.댓글(내용).first().waitFor();
+      });
       const 같은댓글 = (await 댓글목록(page.request, 글번호)).filter((댓글) => 댓글.content === 내용);
       await verify('댓글 「등록」을 빠르게 두 번 누르면 댓글이 하나만 생긴다', 같은댓글.length, 1);
     });

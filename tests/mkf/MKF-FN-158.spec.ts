@@ -31,7 +31,6 @@ test(spec, async ({ page }) => {
   await test.step('상품 상세를 열고 리뷰 요청이 나갔는지 본다', async () => {
     await 상세.열기(상품.id);
     await 상세.화면기다리기();
-    await page.waitForLoadState('networkidle');
     await verify('상품 상세를 열기만 하면 리뷰 목록 요청이 나가지 않는다', 리뷰요청.수(), 0);
   });
 

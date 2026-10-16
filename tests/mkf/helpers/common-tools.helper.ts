@@ -1,4 +1,4 @@
-import type { APIRequestContext, Locator, Page, Route } from '@playwright/test';
+import type { APIRequestContext, Locator, Page, Request, Response, Route } from '@playwright/test';
 
 import { 홈화면 } from '../pages/home.page.js';
 import { 탈퇴, type 회원정보 } from './account.helper.js';
@@ -141,7 +141,7 @@ export async function 홈열고장바구니기다리기(page: Page): Promise<voi
   const 응답 = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/cart' && r.request().method() === 'GET');
   await page.goto('/');
   await 응답;
-  await page.waitForLoadState('networkidle');
+  await page.locator('#site-header .cart-count').filter({ hasText: /\d/ }).waitFor({ state: 'attached' });
 }
 
 export async function 장바구니에상품담기(api: APIRequestContext, 개수: number): Promise<number> {
@@ -189,6 +189,20 @@ export interface 가입자 {
 export async function 가입자정리하기(api: APIRequestContext, 사람: 가입자): Promise<void> {
   const 응답 = await api.post('/api/auth/login', { data: { loginId: 사람.loginId, password: 사람.password, remember: false } });
   if (응답.ok()) await 탈퇴(api);
+}
+
+export async function 보낸요청끝날때까지(page: Page, 방식: string, 경로: RegExp, 조작: () => Promise<void>): Promise<void> {
+  const 응답들: Promise<Response | null>[] = [];
+  const 듣기 = (요청: Request): void => {
+    if (요청.method() === 방식 && 경로.test(new URL(요청.url()).pathname)) 응답들.push(요청.response());
+  };
+  page.on('request', 듣기);
+  try {
+    await 조작();
+  } finally {
+    page.off('request', 듣기);
+  }
+  await Promise.all(응답들);
 }
 
 export async function 스크롤멈출때까지기다리기(page: Page): Promise<void> {

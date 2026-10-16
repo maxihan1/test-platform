@@ -37,7 +37,7 @@ test(spec, async ({ page }) => {
   await test.step('「동의」를 누른 뒤 홈을 새로 고친다', async () => {
     await page.reload();
     await 홈.제목.waitFor();
-    await page.waitForLoadState('networkidle');
+    await page.locator('dm-chat').waitFor({ state: 'attached' });
     await verify('「동의」를 누른 브라우저에서 홈을 새로 고치면 쿠키 안내 띠가 보이지 않는다', await 쿠키.띠.isVisible(), false);
   });
 });

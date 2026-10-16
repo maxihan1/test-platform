@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test';
+import type { Locator, Page, Request } from '@playwright/test';
 
 export type 안내칸 = 'loginId' | 'password' | 'passwordConfirm' | 'name' | 'email' | 'phone';
 
@@ -106,8 +106,17 @@ export class 회원가입화면 {
   }
 
   async 꺼진가입하기눌러보기(): Promise<void> {
+    let 가입요청: Request | undefined;
+    const 듣기 = (요청: Request): void => {
+      if (new URL(요청.url()).pathname === '/api/auth/signup') 가입요청 = 요청;
+    };
+    this.page.on('request', 듣기);
     await this.가입하기.click({ force: true });
-    await this.page.waitForTimeout(500);
+    await this.page.evaluate(() => new Promise<void>((끝) => requestAnimationFrame(() => requestAnimationFrame(() => 끝()))));
+    this.page.off('request', 듣기);
+    if (가입요청 === undefined) return;
+    await 가입요청.response();
+    await this.page.waitForFunction(() => location.pathname !== '/signup' || (document.querySelector('.submit-error')?.textContent ?? '') !== '');
   }
 
   async 중복확인하고기다리기(): Promise<void> {

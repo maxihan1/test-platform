@@ -24,6 +24,7 @@ test(spec, async ({ page }) => {
 
   await test.step('게시판 목록 화면이 열렸는지 확인한다', async () => {
     await 방해막기(page);
+    await page.clock.install();
     await 목록.열기();
     await 목록.그려질때까지();
     await verify('게시판 목록 화면이 열려 있다', await 목록.제목.isVisible(), true, { blocker: true });
@@ -37,7 +38,7 @@ test(spec, async ({ page }) => {
   });
 
   await test.step('토스트가 뜬 뒤 3초를 기다린다', async () => {
-    await page.waitForTimeout(3000);
+    await page.clock.runFor(3000);
     await 알림.알림들.first().waitFor({ state: 'detached', timeout: 1500 });
     await verify('토스트는 3초가 지나면 사라진다', await 알림.알림들.first().isVisible(), false);
   });
