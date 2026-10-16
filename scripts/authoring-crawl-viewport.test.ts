@@ -18,6 +18,11 @@ describe('화면견주기', () => {
     });
   });
 
+  it('물음표 뒤 값(세션 · 난수)만 다르면 같은 주소다 — 한 화면 때문에 서비스가 적응형이 되지 않게 · 해시 라우트는 남긴다', () => {
+    expect(화면견주기(본({ 최종: 'https://s.test/search?sid=a1b2' }), 본({ 최종: 'https://s.test/search?sid=c3d4' }), 틀키).모바일주소).toBeUndefined();
+    expect(화면견주기(본({ 최종: 'https://s.test/#/goods/1?t=1' }), 본({ 최종: 'https://s.test/#/m/goods/1' }), 틀키).모바일주소).toBe('https://s.test/#/m/goods/1');
+  });
+
   it('다른 틀이면 모바일 주소를 물음표 뒤를 빼고 남기고, 다른 출처면 이름은 안 견준다', () => {
     expect(화면견주기(본(), 본({ 최종: 'https://s.test/m/goods/1?token=t0k' }), 틀키).모바일주소).toBe('https://s.test/m/goods/1');
     expect(화면견주기(본(), 본({ 최종: 'https://m.s.test/goods/1', 지문: 'aaa', 조작: [] }), 틀키)).toEqual({ ...같음, 모바일주소: 'https://m.s.test/goods/1', 구조같음: false });
@@ -45,7 +50,7 @@ describe('차이모양', () => {
     expect(차이모양({ ...같음, 모바일만: ['가'.repeat(80)] })).toEqual({ ...같음, 모바일만: ['가'.repeat(60)] });
     expect(차이모양({ ...같음, 넘침: 'yes' })).toBeNull();
     expect(차이모양({ ...같음, 모바일주소: 'javascript:alert(1)' })).toBeNull();
-    expect(차이모양({ ...같음, PC만: Array.from({ length: 31 }, () => 'x') })).toBeNull();
+    expect(차이모양({ ...같음, PC만: Array.from({ length: 31 }, (_, i) => `x${i}`) })?.PC만).toHaveLength(30);
     expect(차이모양(null)).toBeNull();
   });
 });
@@ -59,6 +64,9 @@ const 쪽들: Record<string, string> = {
   // 적응형 — 모바일 UA 를 /m/ 화면으로 보낸다(라우트가 준 3xx 의 다음 주소는 라우트를 안 거쳐 스크립트로 보낸다)
   '/goods': `${머리}<script>if (/iPhone/.test(navigator.userAgent)) location.replace('/m/goods')</script><a href="/">홈</a>`,
   '/m/goods': `${머리}<a href="/">홈</a>`,
+  // 모바일 쪽 세션만 풀렸다 — 로그인 화면으로 돌려보낸다
+  '/mypage': `${머리}<script>if (/iPhone/.test(navigator.userAgent)) location.replace('/login')</script><a href="/">홈</a>`,
+  '/login': `${머리}<form><input name="id"><input type="password" name="pw"><button>로그인</button></form>`,
 };
 
 describe('모바일견주기 — 고정 HTML', () => {
@@ -104,6 +112,10 @@ describe('모바일견주기 — 고정 HTML', () => {
 
   it('다른 주소 — 모바일 UA 를 다른 주소로 보내면 그 주소를 남긴다', async () => {
     expect((await 열어견주기('/goods')).차이).toMatchObject({ 모바일주소: 'https://v.test/m/goods' });
+  });
+
+  it('모바일로 다시 연 화면이 로그인 화면으로 돌려보내졌으면 다른 주소가 아니라 못 연 것이다(null)', async () => {
+    expect((await 열어견주기('/mypage')).차이).toBeNull();
   });
 
   it('넘침 — viewport 선언이 없고 폭이 고정된 화면은 넘침 · 선언 없음이다', async () => {

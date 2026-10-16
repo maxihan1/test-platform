@@ -132,19 +132,20 @@ export async function 화면넣기(서비스: number, env: string, x: 화면, li
  * 연결 · 찾은 화면을 지운다 — 지운 화면 기록 수와 서비스 판정. 넣기도 지우기도 그 대상 서버 몫만이다.
  * 로그인 없이 돈 날은 로그아웃만 다 본 상태라 로그인 기록이 남는다 (§3.6 「바뀐 화면만 다시 훑는다」).
  * 찾은 화면 넣기는 다 본 상태가 비어도 한다 — 비면 지우기만 안 한다.
- * 서비스 판정은 이번에 보낸 차이로 서버가 다시 가른다 — 자식이 적은 판정을 안 믿는다. 차이가 하나도 없으면(옛 크롤러 · 모바일 못 엶) 옛 판정을 둔다 (PRD-F10-07)
+ * 서비스 판정은 이번에 보낸 차이로 서버가 다시 가른다 — 자식이 적은 판정을 안 믿는다. 다 본 상태가 있을 때만 남긴다 — 도중에 멈춘 크롤의 몇 장으로
+ * 다 본 판정을 덮지 않게(못 본 화면 지우기와 같은 문턱). 차이가 하나도 없으면(옛 크롤러 · 모바일 못 엶) 옛 판정을 둔다 (PRD-F10-07)
  */
 export async function 다봄(서비스: number, env: string, seen: 본화면[], complete: 상태[]): Promise<{ deleted: number; viewport: 서비스판정 | null }> {
   const 값 = [서비스, complete, seen.map((s) => s.state), seen.map((s) => s.url), env];
-  const 판정 = 서비스가르기(seen.flatMap((s) => (s.viewport === null ? [] : [s.viewport])));
+  const 판정 = complete.length === 0 ? null : 서비스가르기(seen.flatMap((s) => (s.viewport === null ? [] : [s.viewport])));
   return 한묶음(async (손) => {
     await 손.query(
-      // 같은 키가 두 번 오면 ON CONFLICT 가 한 행을 두 번 고치려다 통째로 실패한다 — 하나로 줄인다.
+      // 같은 키가 두 번 오면 ON CONFLICT 가 한 행을 두 번 고치려다 통째로 실패한다 — 하나로 줄인다. 이름은 있는 쪽, 차이도 있는 쪽을 고른다.
       // 빈 이름 · 빈 차이는 옛 값을 지우지 않는다(이름 없이 보낸 done · 제목 없는 화면 · 이번에 모바일로 못 연 화면)
       `INSERT INTO screen_found (service_id, env, state, url, name, viewport)
-       SELECT DISTINCT ON (s.state, s.url) $1::bigint, $5, s.state, s.url, s.name, s.viewport::jsonb
+       SELECT $1::bigint, $5, s.state, s.url, max(s.name), ((array_agg(s.viewport) FILTER (WHERE s.viewport IS NOT NULL))[1])::jsonb
          FROM unnest($2::text[], $3::text[], $4::text[], $6::text[]) AS s(state, url, name, viewport)
-        ORDER BY s.state, s.url, s.name DESC
+        GROUP BY s.state, s.url
        ON CONFLICT (service_id, env, state, url) DO UPDATE
          SET name = COALESCE(NULLIF(EXCLUDED.name, ''), screen_found.name), viewport = COALESCE(EXCLUDED.viewport, screen_found.viewport)`,
       [서비스, seen.map((s) => s.state), seen.map((s) => s.url), seen.map((s) => s.name), env, seen.map((s) => (s.viewport === null ? null : JSON.stringify(s.viewport)))],

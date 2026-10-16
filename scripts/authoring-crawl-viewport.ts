@@ -31,18 +31,21 @@ export const 판정이름: Record<서비스판정, string> = { responsive: '반�
 export const 이름상한 = 30; // 한쪽에만 있는 이름 — 화면 하나에서. 메뉴 전체가 갈리는 사이트도 줄 하나가 크지 않게
 const 이름길이 = 60;
 
+const 해시라우트 = (해시: string): boolean => 해시.startsWith('#/') || 해시.startsWith('#!');
+/** 물음표 뒤(세션 · 난수 · 토큰)는 뺀다. # 뒤는 해시 라우트(`#/m/goods`)일 때만 남긴다 — 그 화면을 가르는 주소다 */
 const 주소만 = (주소: string): string => {
   const u = new URL(주소);
-  return `${u.origin}${u.pathname}`;
+  return `${u.origin}${u.pathname}${해시라우트(u.hash) ? u.hash : ''}`;
 };
 
 /**
  * PC 와 모바일로 연 같은 화면을 견준다. `틀` 은 크롤러의 같은 틀 판정(`틀키`)이다 — 번호만 다른 주소는 다른 주소가 아니다.
+ * 물음표 뒤는 빼고 견준다 — 열 때마다 바뀌는 세션 · 난수 값 화면 하나가 서비스 전체를 적응형으로 만들지 않게(2026-10-16 코드 검토)
  * 다른 출처(m.example.com)로 갔으면 그 쪽은 안 읽어 넘침 · 선언 · 이름 칸이 비어 온다
  */
 export function 화면견주기(pc: 화면본, 모바일: 화면본, 틀: (주소: string) => string): 화면차이 {
   const 다른출처 = new URL(pc.최종).origin !== new URL(모바일.최종).origin;
-  const 다른주소 = 다른출처 || 틀(pc.최종) !== 틀(모바일.최종);
+  const 다른주소 = 다른출처 || 틀(주소만(pc.최종)) !== 틀(주소만(모바일.최종));
   const 한쪽만 = (가: string[], 나: string[]): string[] => {
     if (다른출처) return []; // 다른 출처 쪽은 안 읽었다 — PC 이름 전부가 「PC 에만」으로 뜨지 않게
     const 저쪽 = new Set(나);
@@ -69,12 +72,12 @@ export function 서비스가르기(차이들: readonly 화면차이[]): 서비�
   return 'responsive';
 }
 
-/** 파일 · 통로로 받은 차이를 믿기 전에 모양을 본다 — 틀리면 null. 이름은 상한 · 길이로 자른다 */
+/** 파일 · 통로로 받은 차이를 믿기 전에 모양을 본다 — 틀리면 null. 이름은 30개 · 60자로 자른다(넘쳤다고 done 전체를 거절하지 않게) */
 export function 차이모양(값: unknown): 화면차이 | null {
   if (typeof 값 !== 'object' || 값 === null || Array.isArray(값)) return null;
   const v = 값 as Record<string, unknown>;
   const 이름들 = (x: unknown): string[] | null =>
-    Array.isArray(x) && x.length <= 이름상한 && x.every((y) => typeof y === 'string') ? (x as string[]).map((y) => y.slice(0, 이름길이)) : null;
+    Array.isArray(x) && x.every((y) => typeof y === 'string') ? (x as string[]).slice(0, 이름상한).map((y) => y.slice(0, 이름길이)) : null;
   const PC만 = 이름들(v.PC만);
   const 모바일만 = 이름들(v.모바일만);
   if (typeof v.넘침 !== 'boolean' || typeof v.선언 !== 'boolean' || typeof v.구조같음 !== 'boolean' || PC만 === null || 모바일만 === null) return null;

@@ -213,7 +213,9 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     const 같음 = { 넘침: false, 선언: true, 구조같음: true, PC만: [], 모바일만: [] };
     const 메뉴 = { ...같음, 구조같음: false, PC만: ['고객센터'], 모바일만: ['메뉴 열기'] };
 
-    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈', viewport: 같음 }, { state: '로그아웃', url: '/cart', name: '장바구니', viewport: 메뉴 }], complete: [] })).json()).toEqual({ deleted: 0, viewport: 'responsive' });
+    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈', viewport: { ...같음, 선언: false } }], complete: [] })).json()).toEqual({ deleted: 0, viewport: null });
+    expect(await 판정()).toEqual([{ viewport_kind: null, 시각: false }]);
+    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈', viewport: 같음 }, { state: '로그아웃', url: '/cart', name: '장바구니', viewport: 메뉴 }], complete: ['로그아웃'] })).json()).toEqual({ deleted: 0, viewport: 'responsive' });
     expect(await 판정()).toEqual([{ viewport_kind: 'responsive', 시각: true }]);
     expect(await 차이()).toEqual([{ url: '/', viewport: 같음 }, { url: '/cart', viewport: 메뉴 }]);
 
@@ -221,8 +223,10 @@ describe.skipIf(연결 === undefined)('화면 기록 에이전트 통로', () =>
     expect(await 판정()).toEqual([{ viewport_kind: 'responsive', 시각: true }]);
     expect((await 차이())[1]).toEqual({ url: '/cart', viewport: 메뉴 });
 
-    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈', viewport: { ...같음, 모바일주소: 'https://m.x.test/' } }], complete: [] })).json()).toEqual({ deleted: 0, viewport: 'adaptive' });
+    const 적응 = { ...같음, 모바일주소: 'https://m.x.test/' };
+    expect((await 다봄({ seen: [{ state: '로그아웃', url: '/', name: '홈' }, { state: '로그아웃', url: '/', name: '', viewport: 적응 }], complete: ['로그아웃'] })).json()).toEqual({ deleted: 0, viewport: 'adaptive' });
     expect(await 판정()).toEqual([{ viewport_kind: 'adaptive', 시각: true }]);
+    expect(await 차이()).toEqual([{ url: '/', viewport: 적응 }]);
 
     const 틀림 = await 다봄({ seen: [{ state: '로그아웃', url: '/', viewport: { ...같음, 넘침: 'yes' } }], complete: [] });
     expect([틀림.statusCode, 틀림.json()]).toEqual([400, { error: 'BAD_SCREEN', detail: 'seen.0.viewport' }]);

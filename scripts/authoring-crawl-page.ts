@@ -3,7 +3,7 @@
 import type { Page } from '@playwright/test';
 
 import { type 후보, 되돌릴수없나, 탈퇴말인가, 확인버튼고르기 } from './authoring-crawl-press.js';
-import { 지문, 틀키 } from './authoring-crawl-rules.js';
+import { 로그인풀렸나, 지문, 틀키 } from './authoring-crawl-rules.js';
 import { type 화면본, type 화면차이, 화면견주기 } from './authoring-crawl-viewport.js';
 
 export interface 입력칸 { 종류: string; 이름: string; 라벨: string; 안내: string; 필수: boolean; 읽기전용: boolean; 최대글자: number | null; 최소글자: number | null; 형식: string | null }
@@ -65,16 +65,21 @@ const 크기본 = (본: 본것): 화면본 => ({ 최종: 본.최종, 지문: 지
 
 /**
  * 모바일 쪽으로 같은 주소를 열어 PC 로 본 것과 견준다 — 다른 출처로 갔으면 그 쪽은 읽지 않고 주소만(적응형 m. 사이트). 못 열었으면 null(그 화면은 판정에서 빠진다).
- * 링크로 연 화면만 연다 — 누른 뒤에 열린 화면은 주소를 다시 열면 동작(담기 · 지우기)이 또 돌 수 있다 (PRD-F10-07)
+ * 링크로 연 화면만 연다 — 누른 뒤에 열린 화면은 주소를 다시 열면 동작(담기 · 지우기)이 또 돌 수 있다 (PRD-F10-07).
+ * 로그인 화면으로 돌려보내졌으면(모바일 쪽 세션만 풀렸다) 다른 주소가 아니라 못 연 것이다 — 그 한 화면이 서비스를 적응형으로 만들지 않게
  */
 export async function 모바일견주기(쪽: Page, 주소: string, pc: 본것): Promise<화면차이 | null> {
   const 열림 = await 열기(쪽, 주소);
   if (typeof 열림 !== 'number') return null;
   try {
     const 본 = await 읽기(쪽, 열림, new URL(주소).origin);
-    const 모 = 본 === '건너뜀' ? { 최종: 쪽.url(), 넘침: false, 선언: true, 지문: '', 조작: [] } : 크기본(본);
-    return 화면견주기(크기본(pc), 모, 틀키);
-  } catch {
+    if (본 === '건너뜀') return 화면견주기(크기본(pc), { 최종: 쪽.url(), 넘침: false, 선언: true, 지문: '', 조작: [] }, 틀키);
+    const 아이디칸 = 본.입력칸.some((x) => (x.종류 === 'text' || x.종류 === 'email') && !x.읽기전용);
+    if (로그인풀렸나({ 요청: 주소, 최종: 본.최종, 비밀번호칸: 본.비밀번호칸, 아이디칸 })) return null;
+    return 화면견주기(크기본(pc), 크기본(본), 틀키);
+  } catch (e) {
+    // 못 연 화면으로 센다(요약 「못 연 화면 N장」) — 까닭은 남긴다. 읽기가 고장 나 전부 null 이 되면 여기서 보인다
+    console.error(`크롤: 모바일로 못 읽음 — ${주소}: ${e instanceof Error ? e.message.split('\n')[0] : String(e)}`);
     return null;
   }
 }
