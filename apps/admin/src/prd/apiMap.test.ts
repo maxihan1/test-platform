@@ -1,6 +1,8 @@
 // 서비스 지도 순수 함수 — 주소 틀 · 같은 사이트 · 지도 줄 모으기
 import { describe, expect, it } from 'vitest';
 
+import { 주소틀 as 러너주소틀 } from '@platform/runner/scenario/links.js';
+
 import { API틀, 같은사이트인가, 지도상한, 지도줄들 } from './apiMap.js';
 
 describe('API틀', () => {
@@ -32,6 +34,21 @@ describe('같은사이트인가', () => {
   });
 });
 
+describe('러너 주소틀과 같은 규칙', () => {
+  // 러너 고정 spec 이 미룬 삭제 코드를 찾을 때 쓰는 한 벌 — 갈리면 배운 코드를 못 찾고 204 로만 답한다 (도메인/러너 §5.2)
+  it.each([
+    'https://API.example.com:8443/orders/123/items?page=2#x',
+    'https://a.example.com/u/0f8fad5b-d9cb-469f-a165-70867728950e',
+    'https://a.example.com/reset/a1b2c3d4e5f60718293a',
+    'https://a.example.com/reset/a1b2c3',
+    'http://demo:3002/api/me',
+    'http://demo:3002',
+  ])('%s', (url) => {
+    const 틀 = API틀(url)!;
+    expect(러너주소틀(url)).toBe(틀.host + 틀.path);
+  });
+});
+
 describe('지도줄들', () => {
   const 기준 = 'https://qa.example.com';
 
@@ -42,10 +59,12 @@ describe('지도줄들', () => {
         { method: 'DELETE', url: 'https://qa.example.com/api/me', resourceType: 'api', status: 204 },
         { method: 'DELETE', url: 'https://qa.example.com/api/me', resourceType: 'api', status: 404 },
         { method: 'DELETE', url: 'https://qa.example.com/api/cart/1', resourceType: 'api', status: null },
+        // 브라우저 쪽은 케이스가 route 로 꾸민 응답일 수 있어 안 배운다
+        { method: 'DELETE', url: 'https://qa.example.com/api/likes/1', resourceType: 'fetch', status: 200 },
       ],
       기준,
     );
-    expect(줄들.map((x) => [x.path, x.okStatus])).toEqual([['/api/me', 204], ['/api/cart/:n', undefined]]);
+    expect(줄들.map((x) => [x.path, x.okStatus])).toEqual([['/api/me', 204], ['/api/cart/:n', undefined], ['/api/likes/:n', undefined]]);
   });
 
   it('같은 사이트 API 만, (방식, 호스트, 틀)마다 한 줄에 부른 단계를 모은다', () => {

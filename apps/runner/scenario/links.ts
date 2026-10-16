@@ -49,9 +49,15 @@ export const 빈응답: 받은응답 = { status: 200, contentType: 'application/
 // admin 의 API틀(prd/apiMap.ts)과 같은 규칙이다 — 고정 spec 은 admin 을 못 부른다. 둘이 갈리면 본 코드를 못 찾고 204 로 답할 뿐이다
 const 숫자칸 = /^\d+$/;
 const 묶을칸 = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{16,})$/i;
-function 주소틀(url: string): string {
-  const u = new URL(url);
-  return u.host.toLowerCase() + u.pathname.split('/').map((칸) => (숫자칸.test(칸) ? ':n' : 묶을칸.test(칸) ? ':id' : 칸)).join('/');
+export function 주소틀(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    // 기준 주소 없는 연결의 상대 주소 — 못 맞추니 기본값으로 답한다
+    return null;
+  }
+  return u.host.toLowerCase() + (u.pathname.split('/').map((칸) => (숫자칸.test(칸) ? ':n' : 묶을칸.test(칸) ? ':id' : 칸)).join('/') || '/');
 }
 
 /**
@@ -59,7 +65,8 @@ function 주소틀(url: string): string {
  * 케이스 정리 함수가 제품의 진짜 코드만 받기도 한다(데모마켓 탈퇴는 204 만) (SPEC 도메인/시나리오 §3.7 결정 12)
  */
 export function 미룬응답(이음값: 이음, url: string): 받은응답 {
-  const status = 이음값.삭제코드.get(주소틀(url)) ?? 204;
+  const 틀 = 주소틀(url);
+  const status = (틀 === null ? undefined : 이음값.삭제코드.get(틀)) ?? 204;
   return status === 204 ? { status, contentType: '', body: '' } : { ...빈응답, status };
 }
 const 이름 = { reuse: '이전 응답 재사용', block: '요청 차단', rewrite: '수정 요청으로 변경' } as const;

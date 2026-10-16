@@ -236,6 +236,8 @@ describe('미룬응답', () => {
     expect(미룬응답(새이음([], BASE), 'https://x.com/api/me')).toEqual(본문없음);
     expect(미룬응답(새이음([], BASE, 코드), 'https://other.com/api/me')).toEqual(본문없음);
     expect(미룬응답(새이음([], BASE, 코드), 'https://x.com/api/cart/all')).toEqual(본문없음);
+    // 기준 주소 없는 연결의 상대 주소는 못 맞춘다 — 던지지 않고 기본값이다
+    expect(미룬응답(새이음([], BASE, 코드), '/api/me')).toEqual(본문없음);
   });
 
   it('정식 실행에서 본 코드로 답한다 — 숫자 · uuid · 긴 16진 칸은 묶고 물음표 뒤 · 호스트 대소문자는 안 본다', () => {

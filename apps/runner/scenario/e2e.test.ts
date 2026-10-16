@@ -148,6 +148,20 @@ describe('시나리오 실측 (브라우저)', () => {
       await 서버.닫기();
     }
   }, 90_000);
+
+  it('미룬 삭제는 요청의 deleteStatuses 코드로 답하고, 없으면 204 다 — 204 만 받는 정리 함수가 지나간다', async () => {
+    const 서버 = await 서버열기();
+    try {
+      const 기본 = await executeScenario(요청([케이스('XSF-008')], 서버.url));
+      expect(기본.parts.map((p) => [p.seq, p.status, p.error?.message])).toEqual([[1, 'PASS', undefined]]);
+
+      const 배운코드 = [{ host: new URL(서버.url).host, path: '/api/posts/:n', status: 200 }];
+      const 배움 = await executeScenario({ ...요청([케이스('XSF-008')], 서버.url), deleteStatuses: 배운코드 });
+      expect(배움.parts[0]).toMatchObject({ status: 'FAIL', error: { message: expect.stringContaining('글 지우기 실패: 200') as unknown } });
+    } finally {
+      await 서버.닫기();
+    }
+  }, 90_000);
 });
 
 describe('무늬 맞추기 대조 (브라우저)', () => {

@@ -73,7 +73,8 @@ export function 지도줄들(
     const 칸 = 모음.get(키) ?? (모음.size < 지도상한 ? { method, ...틀, steps: new Set<number>() } : undefined);
     if (칸 === undefined) continue;
     if (typeof 줄.seq === 'number') 칸.steps.add(줄.seq);
-    if (typeof 줄.status === 'number' && 줄.status >= 200 && 줄.status <= 299) 칸.okStatus = 줄.status;
+    // 테스트 코드의 요청 도구(api)만 배운다 — 브라우저 쪽은 케이스가 route 로 꾸민 응답일 수 있고, 미룬 삭제도 요청 도구 쪽뿐이다
+    if (줄.resourceType === 'api' && typeof 줄.status === 'number' && 줄.status >= 200 && 줄.status <= 299) 칸.okStatus = 줄.status;
     모음.set(키, 칸);
   }
   return [...모음.values()].map((x) => ({ ...x, steps: [...x.steps].sort((a, b) => a - b) }));
@@ -161,12 +162,16 @@ export async function 지도를읽는다(서비스: number): Promise<{ apis: 지
   };
 }
 
-/** 그 서비스에서 성공 코드를 본 DELETE — 시나리오 실행 요청에 실어 러너가 미룬 삭제에 그 코드로 답한다 (도메인/시나리오 §3.7 결정 12) */
-export async function 삭제코드를읽는다(서비스: number): Promise<ScenarioDeleteStatus[]> {
-  const p = await db();
+/**
+ * 그 서비스에서 성공 코드를 본 DELETE — 시나리오 실행 요청에 실어 러너가 미룬 삭제에 그 코드로 답한다 (도메인/시나리오 §3.7 결정 12).
+ * 러너 입구 상한(호스트 255자 · 주소 2000자 · 1000줄)을 넘는 줄은 뺀다 — 한 줄 때문에 그 서비스의 시나리오가 다 400 이 되지 않게.
+ * 트랜잭션을 쥔 채 부르면 그 손을 넘긴다 — pool 에서 또 꺼내면 교착한다
+ */
+export async function 삭제코드를읽는다(서비스: number, 손?: Pick<PoolClient, 'query'>): Promise<ScenarioDeleteStatus[]> {
+  const p = 손 ?? (await db());
   const r = await p.query<{ host: string; path: string; ok_status: number }>(
     `SELECT host, path, ok_status FROM service_api
-      WHERE service_id = $1 AND method = 'DELETE' AND ok_status IS NOT NULL
+      WHERE service_id = $1 AND method = 'DELETE' AND ok_status IS NOT NULL AND length(host) <= 255 AND length(path) <= 2000
       ORDER BY last_seen DESC LIMIT 1000`,
     [서비스],
   );

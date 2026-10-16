@@ -30,9 +30,11 @@ async function 가짜zip(주소들: 요청[]): Promise<Buffer> {
     j(
       ...주소들.map((x) => {
         const { url, method, status } = typeof x === 'string' ? { url: x, method: 'GET', status: 200 } : x;
+        // 문자열은 브라우저 fetch, 객체는 테스트 코드의 요청 도구 줄이다 — trace 는 요청 도구 줄에 _resourceType 을 안 단다
+        const 종류 = typeof x === 'string' ? { _resourceType: 'fetch' } : {};
         return {
           type: 'resource-snapshot',
-          snapshot: { _monotonicTime: 20, _resourceType: 'fetch', time: 3, request: { method, url }, response: { status, content: {} } },
+          snapshot: { _monotonicTime: 20, ...종류, time: 3, request: { method, url }, response: { status, content: {} } },
         };
       }),
     ),

@@ -104,7 +104,6 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
   const parts: ScenarioExecuteRequest['parts'] = 채운부품.map((p) =>
     p.kind === 'case' ? { ...p, filePath: 케이스들.get(p.tcId)?.file_path } : p,
   );
-  const deleteStatuses = await 삭제코드를읽는다(서비스.id);
 
   // 조립 본문이 아니라 채운 값으로 모은다 — 저장값에서 온 비밀번호는 본문에 없다
   const 비밀 = 채운부품.flatMap((p) => {
@@ -131,7 +130,8 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
           baseUrl,
           parts,
           timeoutMs: 시나리오제한시간(본문.parts),
-          deleteStatuses,
+          // 줄에서 기다리는 사이 trace 적재가 코드를 바꿀 수 있어 돌기 직전에 읽는다
+          deleteStatuses: await 삭제코드를읽는다(서비스.id),
         });
         console.info(`[scenario-trial] 끝 ${id} · ${사람.username} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
         return 꽂은값가리기(응답, 본문.parts, 부품재료, 비밀);
