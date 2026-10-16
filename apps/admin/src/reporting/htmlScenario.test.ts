@@ -151,7 +151,7 @@ describe('E2E 증적 HTML', () => {
 describe('E2E 증적 엑셀', () => {
   it('단계 칸이 앞에 붙고 건너뛴 절차 · 안 돈 단계 · 정리가 행으로 남는다', async () => {
     const 책 = new ExcelJS.Workbook();
-    await 책.xlsx.load(await renderScenarioXlsx(모양, { generatedAt: '2026-10-16T06:00:00.000Z' }));
+    await 책.xlsx.load(new Uint8Array(await renderScenarioXlsx(모양, { generatedAt: '2026-10-16T06:00:00.000Z' })).buffer);
     const 행들 = (책.getWorksheet('E2E 증적')?.getSheetValues() ?? []).filter(Array.isArray) as unknown[][];
     const 머리 = 행들[0]!;
     expect(머리[1]).toBe('단계');
