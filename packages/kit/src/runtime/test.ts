@@ -137,6 +137,11 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       },
     };
 
+    // 부품이 시작하는 경계 — 앞 순번을 단다. 그 전의 일(API 부품 호출 · 앞 부품의 늦은 오류)이 이 부품 첫 단계로 섞이지 않게
+    if (process.env.PLATFORM_TRACE === '1') {
+      await base.info().attach(STEP_ATTACHMENT, { body: JSON.stringify({ seq }), contentType: 'application/json' });
+    }
+
     let error: { message: string; stack?: string } | undefined;
     try {
       // 조립할 때 서버가 막지만, 조립 뒤에 케이스가 디바이스를 뺄 수 있다. 틀린 조립은 언제나 빨강이다 (2026-09-28 사용자)

@@ -28,6 +28,14 @@ export interface 부품기록 {
   console: 콘솔줄[];
 }
 
+/** 값 꽂기로 넣은 값(bound) 중 비밀 칸 값. 숫자 비밀(pin: 1234)도 글자로 실린다 */
+export function 꽂은값비밀(bound: Record<string, unknown>, paramSchema: unknown): string[] {
+  const 가린꽂은값 = 가린값들(bound, paramSchema);
+  return Object.entries(bound).flatMap(([k, v]) =>
+    가린꽂은값[k] !== v && (typeof v === 'string' || typeof v === 'number') && v !== '' ? [String(v)] : [],
+  );
+}
+
 interface 부품재료 {
   part: ScenarioPart;
   param_schema: unknown;
@@ -38,10 +46,7 @@ interface 부품재료 {
 /** 부품들의 비밀 글자 — 결과 조회(runRoutes.ts)와 trace 적재가 같은 목록으로 가린다. 숫자 비밀(pin: 1234)도 글자로 실린다 */
 export function 부품비밀(부품: 부품재료[]): string[] {
   return 부품.flatMap((p) => {
-    const 가린꽂은값 = 가린값들(p.bound, p.param_schema);
-    const 꽂은비밀 = Object.entries(p.bound).flatMap(([k, v]) =>
-      가린꽂은값[k] !== v && (typeof v === 'string' || typeof v === 'number') && v !== '' ? [String(v)] : [],
-    );
+    const 꽂은비밀 = 꽂은값비밀(p.bound, p.param_schema);
     if (p.part.kind !== 'case') return 꽂은비밀;
     const 명세 = { paramSchema: p.param_schema, expectedSchema: p.expected_schema, params: p.part.params, expected: p.part.expected };
     return [...비밀글자들(명세), ...꽂은비밀];
@@ -52,41 +57,55 @@ const 없음 = (status: 'NONE' | 'FAILED', reason: string): 부품기록 => ({ s
 
 /**
  * 실패한 case 부품의 seq → 기록. 던지지 않는다 — 기록 때문에 결과를 못 적으면 안 된다.
- * 다 풀면 zip 을 지운다. 케이스와 달리 원본을 읽을 에이전트 통로가 없다. 못 읽은 zip 은 사람이 서버에서 열어 보게 둔다
+ * zip 은 안 지운다 — 결과를 다 적은 뒤 부르는 쪽이 `trace를지운다` 로 지운다. 못 읽은 zip 은 사람이 서버에서 열어 보게 둔다
  */
-export async function 실패부품trace(경로: string, 결과: Pick<ScenarioExecuteResponse, 'parts'>, 비밀: string[]): Promise<Map<number, 부품기록>> {
+export async function 실패부품trace(
+  경로: string,
+  결과: Pick<ScenarioExecuteResponse, 'parts' | 'error'>,
+  비밀: string[],
+): Promise<Map<number, 부품기록>> {
   // 절차가 없는 부품(API · 모킹 · 디바이스 미선언)은 가를 단계 번호가 없다 — 사유는 부품 error 가 이미 말한다
   const 실패 = 결과.parts.filter((p) => p.status === 'FAIL' && p.steps.length > 0);
+  if (실패.length === 0) return new Map();
   const 모두 = (기록: 부품기록) => new Map(실패.map((p) => [p.seq, 기록]));
+  const 못읽음 = (err: unknown) => 모두(없음('FAILED', `trace 를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`));
   let zip: Buffer;
   try {
     zip = await readFile(경로);
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return 모두(없음('NONE', trace없는까닭.파일없음));
-    return 모두(없음('FAILED', `trace 를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`));
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') return 못읽음(err);
+    // 러너가 제한 시간에 자식을 끊으면 Playwright 가 zip 을 못 쓴다 — 케이스와 같은 사유로 가른다
+    return 모두(없음('NONE', 결과.error?.message === 'TIMEOUT' ? trace없는까닭.끊김 : trace없는까닭.파일없음));
   }
-  const 기록들 = new Map<number, 부품기록>();
-  if (실패.length > 0) {
-    try {
-      const 풀림 = trace가린다(await trace를푼다(zip, { 본문: true }), 긴것부터(비밀));
-      for (const p of 실패) {
+  try {
+    const 풀림 = trace가린다(await trace를푼다(zip, { 본문: true }), 긴것부터(비밀));
+    return new Map(
+      실패.map((p) => {
         const 단계들 = new Set(p.steps.map((s) => s.seq));
         const 그부품 = (x: { seq: number | null }) => x.seq !== null && 단계들.has(x.seq);
-        기록들.set(p.seq, {
-          status: 'DONE',
-          reason: null,
-          network: 풀림.network.filter(그부품),
-          // 비밀번호 칸 표시는 가리는 데만 쓴다. 케이스 항목 상세(run_action)도 안 싣는다
-          actions: 풀림.actions.filter(그부품).map(({ secretField: _, ...a }) => a),
-          console: 풀림.console.filter(그부품),
-        });
-      }
-    } catch (err) {
-      return 모두(없음('FAILED', `trace 를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`));
-    }
+        return [
+          p.seq,
+          {
+            status: 'DONE',
+            reason: null,
+            network: 풀림.network.filter(그부품),
+            // 비밀번호 칸 표시는 가리는 데만 쓴다. 케이스 항목 상세(run_action)도 안 싣는다
+            actions: 풀림.actions.filter(그부품).map(({ secretField: _, ...a }) => a),
+            console: 풀림.console.filter(그부품),
+          },
+        ];
+      }),
+    );
+  } catch (err) {
+    return 못읽음(err);
   }
+}
+
+/** 다 푼 zip 을 지운다. 케이스와 달리 원본을 읽을 에이전트 통로가 없다. 못 읽은 zip(FAILED)은 남긴다 */
+export async function trace를지운다(경로: string, 기록들: Map<number, 부품기록>): Promise<void> {
+  if ([...기록들.values()].some((r) => r.status === 'FAILED')) return;
   await unlink(경로).catch((err: unknown) => {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return;
     console.warn(`[scenario] trace 를 지우지 못했다 ${경로}: ${err instanceof Error ? err.message : String(err)}`);
   });
-  return 기록들;
 }

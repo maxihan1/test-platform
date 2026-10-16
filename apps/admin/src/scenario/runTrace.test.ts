@@ -8,7 +8,7 @@ import type { ScenarioPartResult } from '@platform/kit';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { trace없는까닭 } from '../execution/traceReason.js';
-import { 부품비밀, 실패부품trace } from './runTrace.js';
+import { 부품비밀, 실패부품trace, trace를지운다 } from './runTrace.js';
 
 const 부품 = (seq: number, status: ScenarioPartResult['status'], 단계: number[] = []): ScenarioPartResult => ({
   seq, status, durationMs: 1, mocks: [],
@@ -31,7 +31,7 @@ describe('실패부품trace', () => {
     expect(기록.get(3)).toEqual({ status: 'NONE', reason: trace없는까닭.파일없음, network: [], actions: [], console: [] });
   });
 
-  it('깨진 zip 은 FAILED 로 두고 지우지 않는다 — 사람이 서버에서 열어 본다', async () => {
+  it('깨진 zip 은 FAILED 다', async () => {
     const 경로 = join(폴더, 'trace.zip');
     writeFileSync(경로, 'zip 아님');
 
@@ -42,12 +42,32 @@ describe('실패부품trace', () => {
     expect(existsSync(경로)).toBe(true);
   });
 
-  it('실패 부품이 없으면 풀지 않고 zip 만 지운다', async () => {
+  it('제한 시간에 끊긴 실행은 「끊김」 사유다', async () => {
+    const 기록 = await 실패부품trace(join(폴더, 'trace.zip'), { parts: [부품(1, 'FAIL', [1])], error: { message: 'TIMEOUT' } }, []);
+
+    expect(기록.get(1)?.reason).toBe(trace없는까닭.끊김);
+  });
+
+  it('실패 부품이 없으면 zip 을 읽지 않는다', async () => {
     const 경로 = join(폴더, 'trace.zip');
     writeFileSync(경로, 'zip 아님');
 
     expect((await 실패부품trace(경로, { parts: [부품(1, 'PASS', [1])] }, [])).size).toBe(0);
+    expect(existsSync(경로)).toBe(true);
+  });
+});
+
+describe('trace를지운다', () => {
+  it('못 읽은 기록이 있으면 남기고 그 밖은 지운다', async () => {
+    const 경로 = join(폴더, 'trace.zip');
+    writeFileSync(경로, 'zip');
+    const 실패 = { status: 'FAILED' as const, reason: 'x', network: [], actions: [], console: [] };
+
+    await trace를지운다(경로, new Map([[1, 실패]]));
+    expect(existsSync(경로)).toBe(true);
+    await trace를지운다(경로, new Map());
     expect(existsSync(경로)).toBe(false);
+    await trace를지운다(경로, new Map());
   });
 });
 

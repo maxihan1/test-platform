@@ -17,7 +17,7 @@ import { 가린값들 } from '../web/mask.js';
 
 import { type 케이스부품재료, 케이스재료 } from './parts.js';
 import { 부품채우기 } from './runStore.js';
-import { 실패부품trace, 시나리오trace경로 } from './runTrace.js';
+import { 꽂은값비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
 import { 시나리오제한시간, 제한시간크기사유, 조립검사 } from './validate.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
@@ -136,8 +136,14 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
           deleteStatuses: await 삭제코드를읽는다(서비스.id),
         }, 내러너);
         console.info(`[scenario-trial] 끝 ${id} · ${내러너 === undefined ? '서버 러너' : '내 컴퓨터 러너'} · ${사람.username} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
-        // 기록은 DB 없이 결과에 싣는다. 꽂은 값의 비밀은 아래 꽂은값가리기가 기록까지 글자째 가린다 (§7 「실패 기록」)
-        const 기록들 = await 실패부품trace(시나리오trace경로({ trialId: id }), 응답, 비밀);
+        // 기록은 DB 없이 결과에 싣는다. 꽂은 값의 비밀도 자르기 전에 넣는다 — 본문을 2000자로 자른 뒤에 가리면 경계에 걸친 조각이 남는다 (§7 「실패 기록」)
+        const 꽂은 = 응답.parts.flatMap((r) => {
+          const p = 본문.parts[r.seq - 1];
+          return 꽂은값비밀(r.bound ?? {}, p?.kind === 'case' ? 부품재료.get(p.tcId)?.paramSchema : undefined);
+        });
+        const 경로 = 시나리오trace경로({ trialId: id });
+        const 기록들 = await 실패부품trace(경로, 응답, [...비밀, ...꽂은]);
+        await trace를지운다(경로, 기록들);
         const 실은 = { ...응답, parts: 응답.parts.map((p) => { const 기록 = 기록들.get(p.seq); return 기록 === undefined ? p : { ...p, trace: 기록 }; }) };
         return 꽂은값가리기(실은, 본문.parts, 부품재료, 비밀);
       }),

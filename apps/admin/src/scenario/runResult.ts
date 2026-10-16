@@ -6,7 +6,7 @@ import type { Pool, PoolClient } from 'pg';
 import { enqueue } from '../execution/dispatcher.js';
 import { callScenarioRunner } from '../execution/runner.js';
 
-import { type 부품기록, 부품비밀, 실패부품trace, 시나리오trace경로 } from './runTrace.js';
+import { type 부품기록, 부품비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -38,11 +38,18 @@ export async function 결과저장(runId: number, 응답: ScenarioExecuteRespons
 }
 
 // 꽂은 값(bound)은 응답에서야 안다. 결과 조회(runRoutes.ts)와 같은 비밀 목록으로 가린 뒤 넣는다 — DB 에는 가린 값만 들어간다
+// 기록은 덤이다 — 비밀 목록을 못 읽어도 결과는 적는다
 async function 실패기록(pool: Pool, runId: number, 응답: ScenarioExecuteResponse): Promise<Map<number, 부품기록>> {
-  const 재료 = await pool.query<{ seq: number; part: ScenarioPart; param_schema: unknown; expected_schema: unknown }>(
-    'SELECT seq, part, param_schema, expected_schema FROM scenario_run_part WHERE run_id = $1',
-    [runId],
-  );
+  let 재료;
+  try {
+    재료 = await pool.query<{ seq: number; part: ScenarioPart; param_schema: unknown; expected_schema: unknown }>(
+      'SELECT seq, part, param_schema, expected_schema FROM scenario_run_part WHERE run_id = $1',
+      [runId],
+    );
+  } catch (err) {
+    console.error(`[scenario] 실행 ${runId} 의 실패 기록을 만들 재료를 못 읽었다(결과는 적는다)`, err);
+    return new Map();
+  }
   const 꽂은값 = new Map(응답.parts.map((p) => [p.seq, p.bound ?? {}]));
   const 비밀 = 부품비밀(재료.rows.map((r) => ({ ...r, bound: 꽂은값.get(r.seq) ?? {} })));
   return 실패부품trace(시나리오trace경로({ runId }), 응답, 비밀);
@@ -108,6 +115,8 @@ async function 적는다(runId: number, 응답: ScenarioExecuteResponse): Promis
     }
 
     await c.query('COMMIT');
+    // 적은 뒤에만 지운다. 늦게 와 버린 결과 · 되돌린 저장이면 zip 이 남아 사람이 열어 볼 수 있다
+    await trace를지운다(시나리오trace경로({ runId }), 기록들);
     return true;
   } catch (err) {
     await c.query('ROLLBACK');
