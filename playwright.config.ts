@@ -3,10 +3,15 @@ import { defineConfig, devices } from '@playwright/test';
 // /tests는 컨테이너에 읽기 전용으로 마운트되므로 산출물은 반드시 그 밖에 쌓아야 한다 (SPEC §9)
 const testsDir = process.env.PLATFORM_TESTS_DIR ?? './tests';
 const artifactsDir = process.env.PLATFORM_ARTIFACTS_DIR ?? './artifacts';
+// Playwright 는 시작할 때 출력 폴더를 통째로 지운다. 실행이 나란히 돌면 남의 trace 를 지우므로 러너가 실행마다 이름을 주고
+// 끝나면 지운다. 워커도 이 파일을 다시 읽지만 환경값을 물려받아 같은 폴더를 본다. 사람이 직접 돌리면 예전처럼 한 폴더다 (도메인/러너 §5.2)
+const outputDir = `${artifactsDir}/playwright/${process.env.PLATFORM_OUTPUT_ID ?? 'local'}`;
+// 러너가 정식 실행에만 켠다. 단계 스크린샷이 이미 있어 화면 녹화 · 소스는 뺀다 (도메인/실행 §3.2 「trace」)
+const trace = process.env.PLATFORM_TRACE === '1' ? { trace: { mode: 'on', snapshots: true, screenshots: false, sources: false } as const } : {};
 
 export default defineConfig({
   testDir: testsDir,
-  outputDir: `${artifactsDir}/playwright`,
+  outputDir,
   // 케이스 1건 = Playwright 프로세스 1개. 동시 실행은 Execution의 동시성(2)으로만 제어한다 (SPEC §5.2)
   workers: 1,
   // 자동 재시도를 쓰지 않는다. 실패를 가려서 초록불을 만드는 것과, 불안정한지 보려고 일부러
@@ -18,7 +23,7 @@ export default defineConfig({
   metadata: { slowApi: process.env.PLATFORM_SLOW_API === '1' },
   // 러너가 실행마다 PLATFORM_BASE_URL 로 넘긴다. 한 번 정하는 설정이 아니라 실행마다 바뀌는 값이다 (§5.2)
   // 내 컴퓨터 러너(npm run runner:local)만 창을 띄운다. 컨테이너 러너는 이 값이 없어 그대로 headless 다
-  use: { baseURL: process.env.PLATFORM_BASE_URL, ...(process.env.PLATFORM_HEADED === '1' ? { headless: false } : {}) },
+  use: { baseURL: process.env.PLATFORM_BASE_URL, ...(process.env.PLATFORM_HEADED === '1' ? { headless: false } : {}), ...trace },
   projects: [
     // 이름이 Platform 타입 값과 철자까지 같아야 한다. 러너가 그대로 --project 인자로 넘긴다
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },

@@ -11,6 +11,7 @@ import type { ExecuteRequest, ExecuteResponse, ItemStatus, StepProgress } from '
 
 import { 앱연결을닫는다 } from './appSession.js';
 import { killTree } from './kill.js';
+import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
 import { createProgressCollector } from './progress.js';
 import { parseResult, type RunnerResult } from './result.js';
 
@@ -128,8 +129,14 @@ export function killedResponse(
   };
 }
 
+// trace 는 정식 실행에서만 켠다. 테스트 실행(runId 0)은 기록이 없고, 앱 실행은 브라우저가 없다 (SPEC 도메인/실행 §3.2 「trace」)
+export function traceEnv(req: Pick<ExecuteRequest, 'runId' | 'platform'>): '0' | '1' {
+  return req.runId > 0 && req.platform !== 'android' ? '1' : '0';
+}
+
 export async function execute(req: ExecuteRequest, specPath: string): Promise<ExecuteResponse> {
   const startedAt = Date.now();
+  const 출력 = 출력폴더이름(req.historyId);
 
   const child = spawn(
     'npx',
@@ -146,7 +153,9 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         PLATFORM_RUN_ID: String(req.runId),
         PLATFORM_HISTORY_ID: String(req.historyId),
         // 상대 경로(runner:local 의 ./artifacts)면 러너와 자식(cwd: appRoot)이 서로 다른 폴더를 본다. 러너 cwd 기준으로 못 박아 넘긴다
-        PLATFORM_ARTIFACTS_DIR: resolve(process.env.PLATFORM_ARTIFACTS_DIR ?? 'artifacts'),
+        PLATFORM_ARTIFACTS_DIR: 산출물폴더(),
+        PLATFORM_OUTPUT_ID: 출력,
+        PLATFORM_TRACE: traceEnv(req),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       // 타임아웃 때 브라우저까지 한 번에 끊으려면 자식이 자기 프로세스 그룹의 장이어야 한다 (kill.ts)
@@ -181,6 +190,7 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
     clearTimeout(timer);
     running.delete(req.historyId);
   });
+  await 출력폴더를지운다(출력);
 
   // killedBy 와 상관없이 닫는다 — 정상 종료라도 kit 의 닫기가 실패했으면 번호 파일이 남는다.
   // 답하기 전에 끝내야 admin 이 답을 받았을 때 팜의 디바이스가 이미 풀려 있다

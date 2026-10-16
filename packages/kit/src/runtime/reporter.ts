@@ -1,7 +1,8 @@
 // 커스텀 리포터. 절차 결과를 모아 ExecuteResponse 한 줄로 stdout에 흘린다 (SPEC §5.2)
 // 테스트가 끝날 때마다 바로 내보내고 아무것도 들고 있지 않는다. 러너는 이 줄만 읽는다
 
-import { readFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, renameSync, unlinkSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 
 import type { Reporter, TestCase, TestError, TestResult } from '@playwright/test/reporter';
 
@@ -14,6 +15,37 @@ export const RESULT_MARKER = '@@RESULT@@';
 export const STEP_ATTACHMENT = 'platform-step';
 // 진행 표시자(PROGRESS_MARKER)는 **여기 두지 않는다.** onStdOut 이 거르지 않아 쓸 일이 없고,
 // 상수가 서 있으면 「골라 쓰는 자리가 있나 보다」로 읽혀 아래 주석이 막으려는 실수를 유도한다
+
+// artifacts.ts 의 runDir 과 같은 자리여야 한다 — 서버가 이 자리에서 푼다. 상대 import 를 못 써서 한 벌 더 두고
+// reporter.test.ts 가 runDir 과 같은지 지킨다 (SPEC 도메인/러너 §5.2 「trace」)
+export function traceDest(runId: string, historyId: string): string {
+  const root = process.env.PLATFORM_ARTIFACTS_DIR ?? resolve(process.cwd(), 'artifacts');
+  return resolve(root, 'runs', runId, historyId, 'trace.zip');
+}
+
+// 출력 폴더는 러너가 실행이 끝나면 지운다. 그 전에 스크린샷 옆으로 옮긴다.
+// 테스트 실행(runId 0)은 실행 기록이 없어 둘 곳이 없다. 못 옮겨도 판정은 그대로 두고 사유만 알린다
+export function moveTrace(result: TestResult): void {
+  const runId = process.env.PLATFORM_RUN_ID;
+  const historyId = process.env.PLATFORM_HISTORY_ID;
+  if (runId === undefined || runId === '0' || historyId === undefined) return;
+  const from = result.attachments.find((a) => a.name === 'trace')?.path;
+  if (from === undefined) return;
+  const to = traceDest(runId, historyId);
+  try {
+    mkdirSync(dirname(to), { recursive: true });
+    try {
+      renameSync(from, to);
+    } catch (err) {
+      // 출력 폴더와 runs 폴더가 다른 디스크면 옮기기가 안 된다. 그때만 복사한다
+      if ((err as NodeJS.ErrnoException).code !== 'EXDEV') throw err;
+      copyFileSync(from, to);
+      unlinkSync(from);
+    }
+  } catch (err) {
+    process.stderr.write(`[kit] trace 를 옮기지 못했다: ${err instanceof Error ? err.message : String(err)}\n`);
+  }
+}
 
 function collectSteps(result: TestResult): StepResult[] {
   const steps: StepResult[] = [];
@@ -62,6 +94,8 @@ function errorOf(
 
 class PlatformReporter implements Reporter {
   onTestEnd(test: TestCase, result: TestResult): void {
+    // 결과 줄보다 먼저 — 러너가 줄을 받고 서버가 항목을 닫으면 곧바로 이 파일을 찾는다
+    moveTrace(result);
     const steps = collectSteps(result);
     const status = statusOf(result, steps);
     const error = errorOf(result, steps, status, skipReason(test, result));

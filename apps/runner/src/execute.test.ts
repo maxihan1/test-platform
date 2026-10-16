@@ -1,6 +1,6 @@
 // 러너 실행 로직의 단위 테스트. 판정 규칙과 경로 검증은 자식 프로세스 없이 확인할 수 있어야 한다
 
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -8,7 +8,7 @@ import { runDir, type ExecuteRequest } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { 앱연결을닫는다 } from './appSession.js';
-import { abort, execute, killedResponse, resolveSpecPath, running, statusFromExit, tail } from './execute.js';
+import { abort, execute, killedResponse, resolveSpecPath, running, statusFromExit, tail, traceEnv } from './execute.js';
 import { killTree } from './kill.js';
 
 // playwright 대신 짧은 셸 스크립트를 띄운다. 어느 스크립트인지는 테스트가 정한다
@@ -36,6 +36,18 @@ describe('statusFromExit', () => {
 
   it('타임아웃으로 죽인 경우는 판정 불가라 NA다', () => {
     expect(statusFromExit(null, true)).toBe('NA');
+  });
+});
+
+describe('traceEnv', () => {
+  it('정식 실행의 브라우저 항목만 trace 를 켠다', () => {
+    expect(traceEnv({ runId: 5, platform: 'desktop' })).toBe('1');
+    expect(traceEnv({ runId: 5, platform: 'mobile' })).toBe('1');
+  });
+
+  it('테스트 실행(runId 0)과 앱 실행은 끈다', () => {
+    expect(traceEnv({ runId: 0, platform: 'desktop' })).toBe('0');
+    expect(traceEnv({ runId: 5, platform: 'android' })).toBe('0');
   });
 });
 
@@ -214,6 +226,28 @@ describe('execute 가 끝난 뒤 앱 연결을 닫는다', () => {
       const 자식값 = readFileSync(기록, 'utf8');
       expect(자식값).toBe(resolve('./artifacts'));
       expect(runDir('5', '8').startsWith(`${자식값}/`)).toBe(true);
+    } finally {
+      if (원래 === undefined) delete process.env.PLATFORM_ARTIFACTS_DIR;
+      else process.env.PLATFORM_ARTIFACTS_DIR = 원래;
+      rmSync(임시, { recursive: true, force: true });
+    }
+  });
+
+  it('자식에게 실행마다 다른 출력 폴더 이름과 trace 켜기를 넘기고, 끝나면 그 폴더를 지운다', async () => {
+    const 임시 = mkdtempSync(join(tmpdir(), 'exec-out-'));
+    const 원래 = process.env.PLATFORM_ARTIFACTS_DIR;
+    process.env.PLATFORM_ARTIFACTS_DIR = 임시;
+    스크립트.지금 = `mkdir -p "$PLATFORM_ARTIFACTS_DIR/playwright/$PLATFORM_OUTPUT_ID" && printf '%s %s' "$PLATFORM_OUTPUT_ID" "$PLATFORM_TRACE" > '${join(임시, 'env.txt')}'`;
+    try {
+      await execute(요청('desktop'), 'a.spec.ts');
+      const [첫이름, 켜기] = readFileSync(join(임시, 'env.txt'), 'utf8').split(' ');
+      await execute(요청('desktop'), 'a.spec.ts');
+      const [둘째이름] = readFileSync(join(임시, 'env.txt'), 'utf8').split(' ');
+
+      expect(첫이름).toMatch(/^8-/);
+      expect(둘째이름).not.toBe(첫이름);
+      expect(켜기).toBe('1');
+      expect(existsSync(join(임시, 'playwright', 첫이름!))).toBe(false);
     } finally {
       if (원래 === undefined) delete process.env.PLATFORM_ARTIFACTS_DIR;
       else process.env.PLATFORM_ARTIFACTS_DIR = 원래;

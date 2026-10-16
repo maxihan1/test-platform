@@ -9,6 +9,7 @@ import { SCENARIO_CLEANUP_MARKER, SCENARIO_PART_MARKER } from '@platform/kit/sce
 
 import { appRoot, tail } from './execute.js';
 import { killTree } from './kill.js';
+import { 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
 
 const scenarioConfig = resolve(appRoot, 'apps/runner/scenario/playwright.config.ts');
 
@@ -109,13 +110,14 @@ export function finishScenario(
 // parts 의 case 부품 filePath 는 라우트가 절대 경로로 풀어 넘긴다 — 자식의 작업 폴더가 다르다
 export async function executeScenario(req: ScenarioExecuteRequest): Promise<ScenarioExecuteResponse> {
   const startedAt = Date.now();
+  const 출력 = 출력폴더이름(req.runId ?? 'trial');
 
   const child = spawn(
     'npx',
     ['playwright', 'test', '--config', scenarioConfig, '--project', req.platform],
     {
       cwd: appRoot,
-      env: { ...process.env, ...scenarioEnv(req) },
+      env: { ...process.env, ...scenarioEnv(req), PLATFORM_OUTPUT_ID: 출력 },
       stdio: ['ignore', 'pipe', 'pipe'],
       // 제한 시간에 브라우저까지 한 번에 끊으려면 자식이 자기 프로세스 그룹의 장이어야 한다 (kill.ts)
       detached: true,
@@ -141,6 +143,7 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
     child.on('error', fail);
     child.on('close', done);
   }).finally(() => clearTimeout(timer));
+  await 출력폴더를지운다(출력);
 
   // 부품 줄이 다 PASS 인데 자식이 0 아닌 코드로 끝났다 — 뒷정리에서 났다. 판정은 부품 줄이 정본이라 남기기만 한다
   if (!killed && code !== 0) console.warn(`[runner] 시나리오 자식이 ${String(code)} 로 끝났다: ${tail(stderr)}`);
