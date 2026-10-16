@@ -151,7 +151,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
   // 한도에 걸린 부품이 늦게 만든 것은 받자마자 닫는다
   const 늦은것 = async (닫기: () => Promise<void>): Promise<never> => {
     await 닫기().catch(남김('한도에 걸린 부품이 늦게 만든 창 · 연결을 못 닫았다'));
-    throw new Error('부품 제한 시간이 지난 부품이 창 · 연결을 새로 만들려 했다');
+    throw new Error('단계 제한 시간이 지난 단계가 창 · 연결을 새로 만들려 했다');
   };
 
   // Browser.newPage 도 안에서 this.newContext 를 부른다 — 이것 하나로 둘 다 잡힌다. 로그인 상태는 안 옮긴다 — 다른 계정으로 들어가려고 여는 창이다
@@ -207,7 +207,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
         // API 부품은 감싸지 않은 창의 request — 진짜 서버에 상태를 심는 뒷문이라 모킹 · 이어 주기를 안 거친다 (SPEC 도메인/시나리오 §3.7 결정 6)
         fetch: (url, options) => 창request.fetch(url, options),
         async runCase(part: CasePart, seq, phase, params) {
-          if (이번 === undefined || 부품요청 === undefined) throw new Error('부품 없이 연 창에서 케이스를 돌리려 했다');
+          if (이번 === undefined || 부품요청 === undefined) throw new Error('단계 없이 연 창에서 케이스를 돌리려 했다');
           // 같은 케이스를 두 번 쓰면 두 번째 import 는 캐시다. 등록부가 안 지우므로 그대로 꺼내진다
           await import(pathToFileURL(part.filePath ?? '').href);
           const run = 꺼냄(part.tcId);
