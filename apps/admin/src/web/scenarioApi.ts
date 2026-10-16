@@ -147,6 +147,9 @@ export const scenarioApi = {
   restore: (id: number, version: number) =>
     call<{ version: number }>(`/scenarios/${id}/restore`, json({ version })),
 
+  /** 목록에서 치운다. 지우지 않는다 — 지난 실행이 가리킨다. 되살리는 통로는 없다 */
+  archive: (id: number) => call<void>(`/scenarios/${id}/archive`, { method: 'POST' }),
+
   caseParts: (tcId: string) => call<CasePartMaterial>(`/scenarios/case-parts/${encodeURIComponent(tcId)}`),
 
   /** 다음 단계 추천 — after 케이스가 머무는 화면에서 이어지는 화면에 닿는 케이스. 정상 쪽 거르기는 부르는 쪽이 한다 */
