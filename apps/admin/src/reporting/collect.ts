@@ -160,9 +160,12 @@ function 가려야하나(key: string, prop: Record<string, unknown>): boolean {
   return SECRET_NAMES.some((word) => lower.includes(word));
 }
 
-// 화면(web/mask.ts 보일값)과 같은 규칙이다. String() 은 객체를 [object Object], 배열을 쉼표 이음으로 뭉갠다
+// 객체 · 배열은 화면(web/mask.ts 보일값)처럼 JSON 한 줄이다. String() 은 [object Object] · 쉼표 이음으로 뭉갠다.
+// 안쪽 비밀값 이름 칸도 가린다 — 키 가리기(가려야하나)는 맨 위 칸만 보고, 전에는 [object Object] 가 우연히 감췄다
 export const 값글자 = (value: unknown): string =>
-  typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
+  typeof value === 'object' && value !== null
+    ? JSON.stringify(value, (k, v: unknown) => (k !== '' && 가려야하나(k, {}) ? 가림 : v))
+    : String(value);
 
 // 라벨·마스킹을 여기서 끝낸다. 렌더러가 원본 JSON 에 닿으면 형식이 늘 때마다 마스킹이 새는 자리가 는다
 export function toFields(json: unknown, schema: unknown): EvidenceField[] {
@@ -237,7 +240,7 @@ const 오류글 = (error: unknown): string =>
 // 위 함수가 null 을 준 NA — 돌긴 돌았는데 판정을 못 낸 항목이다. 판정과 소요시간은 그대로 두고
 // 사유만 채운다. 사유 없이 미실행으로 두면 러너 고장과 사람이 멈춘 것을 구분할 수 없다 (SPEC §8.3)
 // 확인 문장 없이 예외로 깨진 FAIL 도 사유가 없으면 왜 깨졌는지 문서에 없다. 원문은 스택 · 경로가 섞여 첫 줄만 싣는다 (리포팅 §8.4)
-export function 판정못낸사유(
+export function 돈항목사유(
   row: Pick<RawItem, 'status' | 'error'>,
   절차들: Pick<RawStep, 'assertions' | 'error'>[],
   비밀: string[],
@@ -248,11 +251,12 @@ export function 판정못낸사유(
   }
   if (row.status !== 'FAIL' || 절차들.some((s) => s.assertions.some((a) => a.status === 'FAIL'))) return null;
   // 항목 오류가 먼저다 — 견주기 대표 문장(insights.ts)과 같은 차례
-  const 원문 = [row.error, ...절차들.map((s) => s.error)].map(오류글).find((m) => m !== '');
-  if (원문 === undefined) return null;
+  // 색 코드를 지우고 앞뒤를 걷어야 「\u001b[2m\n Error…」처럼 빈 첫 줄로 시작하는 원문도 사유가 남는다
+  const 원문 = [row.error, ...절차들.map((s) => s.error)]
+    .map((e) => 오류글(e).replace(색코드, '').trim())
+    .find((m) => m !== '');
   // 자르기 전에 가린다. 잘린 자리에 비밀 조각이 남는다
-  const 사유 = 한줄로자른다(가린다(원문.replace(색코드, ''), 비밀) as string);
-  return 사유 === '' ? null : 사유;
+  return 원문 === undefined ? null : 한줄로자른다(가린다(원문, 비밀) as string);
 }
 
 export async function collectRun(runId: number): Promise<EvidenceDocument | null> {
@@ -312,7 +316,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
         status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
         // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
         durationMs: 못돈사유 === null ? row.duration_ms : null,
-        notRunReason: 못돈사유 ?? 판정못낸사유(row, 절차들, 비밀),
+        notRunReason: 못돈사유 ?? 돈항목사유(row, 절차들, 비밀),
         unconfirmed: row.unconfirmed,
         precondition: row.precondition,
         params: toFields(row.params, row.param_schema),
