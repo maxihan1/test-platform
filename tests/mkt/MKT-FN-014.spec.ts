@@ -29,6 +29,7 @@ test(spec, async ({ page }) => {
 
   await test.step('게시판 목록에서 한 글자로 검색해 토스트를 띄운다', async () => {
     await 목록.검색어.fill('가');
+    await page.clock.pauseAt(await page.evaluate(() => Date.now()));
     await 목록.검색.click();
     await 알림.알림들.first().waitFor();
     await page.clock.runFor(2000);

@@ -119,6 +119,11 @@ describe('checkSource', () => {
     expect(rules(정상.replace("todomvc');", "todomvc', { waitUntil: 'networkidle' });"))).toEqual(['K15']);
   });
 
+  it('K15 — 대괄호로 부르거나 꺼내 쓴 waitForTimeout 도 잡는다', () => {
+    expect(rules(정상.replace("todomvc');", "todomvc');\n    await page['waitForTimeout'](500);"))).toEqual(['K15']);
+    expect(rules(정상.replace("todomvc');", "todomvc');\n    const { waitForTimeout: 쉬기 } = page;"))).toEqual(['K15']);
+  });
+
   it('K15 — route 안 응답 지연 setTimeout 과 시계 앞당기기는 안 잡는다', () => {
     const 글 = 정상.replace(
       "    await verify('제목이 보인다', true, true);",

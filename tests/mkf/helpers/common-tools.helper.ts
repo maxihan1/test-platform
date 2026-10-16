@@ -1,4 +1,4 @@
-import type { APIRequestContext, Locator, Page, Request, Response, Route } from '@playwright/test';
+import type { APIRequestContext, APIResponse, Locator, Page, Route } from '@playwright/test';
 
 import { 홈화면 } from '../pages/home.page.js';
 import { 탈퇴, type 회원정보 } from './account.helper.js';
@@ -192,17 +192,21 @@ export async function 가입자정리하기(api: APIRequestContext, 사람: 가�
 }
 
 export async function 보낸요청끝날때까지(page: Page, 방식: string, 경로: RegExp, 조작: () => Promise<void>): Promise<void> {
-  const 응답들: Promise<Response | null>[] = [];
-  const 듣기 = (요청: Request): void => {
-    if (요청.method() === 방식 && 경로.test(new URL(요청.url()).pathname)) 응답들.push(요청.response());
+  const 서버응답들: Promise<APIResponse>[] = [];
+  const 고르기 = (주소: URL): boolean => 경로.test(주소.pathname);
+  const 받기 = async (route: Route): Promise<void> => {
+    if (route.request().method() !== 방식) return route.fallback();
+    const 서버응답 = route.fetch();
+    서버응답들.push(서버응답);
+    await route.fulfill({ response: await 서버응답 }).catch(() => undefined);
   };
-  page.on('request', 듣기);
+  await page.route(고르기, 받기);
   try {
     await 조작();
   } finally {
-    page.off('request', 듣기);
+    await page.unroute(고르기, 받기);
   }
-  await Promise.all(응답들);
+  await Promise.all(서버응답들);
 }
 
 export async function 스크롤멈출때까지기다리기(page: Page): Promise<void> {

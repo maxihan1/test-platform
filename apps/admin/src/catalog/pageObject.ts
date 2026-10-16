@@ -39,8 +39,9 @@ export function k7(file: string, sf: ts.SourceFile): Violation[] {
 
 export const K15_WHY = '정해 둔 시간은 느린 망에서는 모자라 흔들리고 빠른 망에서는 시간만 버린다';
 
-// 케이스와 Page Object · 도우미가 이 한 벌을 같이 쓴다. setTimeout 은 막지 않는다 — route 안 응답 지연과 데드라인이 쓴다
-const 고정대기 = { 부름: 'waitForTimeout', 상태: 'networkidle' };
+// 케이스와 Page Object · 도우미가 이 한 벌을 같이 쓴다. setTimeout 은 막지 않는다 — route 안 응답 지연과 데드라인이 쓴다.
+// 이름(`.waitForTimeout` · `{ waitForTimeout }`)으로도 글자(`page['waitForTimeout']` · `'networkidle'`)로도 잡는다
+const 고정대기 = ['waitForTimeout', 'networkidle'];
 
 export function k15(file: string, sf: ts.SourceFile): Violation[] {
   const out: Violation[] = [];
@@ -48,10 +49,8 @@ export function k15(file: string, sf: ts.SourceFile): Violation[] {
     out.push({ file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, rule: 'K15', what, why: K15_WHY });
   };
   const visit = (node: ts.Node): void => {
-    if (ts.isPropertyAccessExpression(node) && node.name.text === 고정대기.부름) {
-      at(node.name, `${고정대기.부름} 으로 정해 둔 시간만큼 기다린다`);
-    } else if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && node.text === 고정대기.상태) {
-      at(node, `'${고정대기.상태}' 를 기다린다`);
+    if ((ts.isIdentifier(node) || ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && 고정대기.includes(node.text)) {
+      at(node, `${node.text} 로 기다린다`);
     }
     ts.forEachChild(node, visit);
   };
