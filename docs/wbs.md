@@ -256,7 +256,9 @@
 
 ### ⑩-1 작성 개선 — 탐침 · 최대 입력 칸 · Phase 2
 **무엇** 2026-10-16 계획(탐침 · 조건 대기 · trace · 지도 · PC/모바일)의 첫 PR. 탐침이 `playwright-cli` 의 정확도 · 시간 · 토큰에 득이 되는 기능을 쓰고, 글자 수 경계 칸은 막는지 재고 쓴다
-- [ ] `PRD-F10-01` 탐침 지침(`--raw` · `generate-locator` · `eval` 묶음 · `requests`/`response-body` · `snapshot <ref>` · `find --regex`) · 최대 입력 칸을 케이스와 같은 입력 방법으로 한도 + 1 넣어 재기 · 화면 기록 「입력 칸 한도」 표 · MKT-FN-207 위험 보고
+- [x] `PRD-F10-01` 탐침 지침(`--raw` · `generate-locator` · `eval` 묶음 · `requests`/`response-body` · `snapshot <ref>` · `find --regex`) · 최대 입력 칸을 케이스와 같은 입력 방법으로 한도 + 1 넣어 재기 · 화면 기록 「입력 칸 한도」 표 · MKT-FN-207 위험 보고
+  - 근거 PR #271 · 2026-10-16
+  - 크롤러는 이미 칸 한도를 읽고 있었다(`# 입력칸:` 줄) — 코드는 안 바꾸고 화면 기록 · 탐침 지침만. 한도는 화면 해시와 상관없이 늘 잰다(해시가 `maxlength` 를 못 봄). 관문 0 뒤 한도 막음은 보류
 
 ### ⑩-2 작성 개선 — 조건 대기 · Phase 2
 **무엇** 고정 대기(`waitForTimeout`) 21건과 `networkidle` 5건을 조건 대기로 고친 뒤 K 규칙으로 막는다
