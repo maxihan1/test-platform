@@ -5,6 +5,7 @@ import type { ScenarioExecuteResponse, ScenarioPart, ScenarioPartResult } from '
 import type { EnvRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi } from './scenarioApi.js';
+import { 멈춘사유글자 } from './scenarioResultView.js';
 import { 가리킴빈곳, 종류글, 카드요약, type 재료들 } from './scenarioView.js';
 import { seconds, Verdict } from './ui.js';
 import type { 시험상태 } from './useScenarioTrial.js';
@@ -75,7 +76,7 @@ export function TrialSummary({ 시험, on자세히 }: { 시험: 시험상태; on
       ? t('{번호}번에서 멈춤', { 번호: 실패.seq })
       : 결과.status === 'PASS'
         ? t('모두 통과')
-        : (결과.error?.message ?? '');
+        : 멈춘사유글자(결과.error?.message ?? '', 언어);
   return (
     <div className="scn-trial-sum">
       <p>{t('시험 실행 · {서버} · {초}', { 서버: 시험.env, 초: seconds(결과.durationMs, 언어) })}</p>
@@ -89,6 +90,7 @@ export function TrialSummary({ 시험, on자세히 }: { 시험: 시험상태; on
 
 export function TrialTab({ 시험, 단계들, 재료 }: { 시험: 시험상태; 단계들: ScenarioPart[]; 재료: 재료들 }) {
   const t = use말();
+  const 언어 = use언어();
   const 결과 = 시험.결과;
   return (
     <div className="scn-trial">
@@ -103,7 +105,7 @@ export function TrialTab({ 시험, 단계들, 재료 }: { 시험: 시험상태; 
         <p className="scn-trial-intro">{t('아직 시험 실행을 하지 않았습니다')}</p>
       ) : (
         <>
-          {결과.error === undefined ? null : <p className={오류칠(결과.status)}>{결과.error.message}</p>}
+          {결과.error === undefined ? null : <p className={오류칠(결과.status)}>{멈춘사유글자(결과.error.message, 언어)}</p>}
           <ol className="scn-steps">
             {결과.parts.map((p) => (
               <TrialRow key={p.seq} part={p} 단계={단계들[p.seq - 1]} 재료={재료} trialId={시험.trialId} />
@@ -140,7 +142,7 @@ function TrialRow({
     );
   const 안돌았다 = part.status === 'NA' && part.error?.message === 'NOT_RUN';
   const 적용됨 = (종류 === 'mock' || 종류 === 'unmock') && part.status === 'PASS';
-  const 사유 = part.error?.message ?? '';
+  const 사유 = 멈춘사유글자(part.error?.message ?? '', 언어);
   // 사진은 실패한 절차의 순번으로 저장된다. 부품 번호와 다르다
   const 실패절차 = part.steps.find((s) => s.status === 'FAIL');
   return (

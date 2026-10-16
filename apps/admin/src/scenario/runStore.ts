@@ -9,7 +9,7 @@ import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { 점검 } from './checks.js';
 import { 케이스재료 } from './parts.js';
 import type { 저장하는사람 } from './store.js';
-import { 시나리오제한시간, 제한시간크기사유 } from './validate.js';
+import { 시나리오제한시간, 제한시간크기사유, type 카탈로그 } from './validate.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
 async function db(): Promise<Pool> {
@@ -55,6 +55,7 @@ interface 케이스행 {
 interface 판정 {
   version: number;
   거절: 시나리오실행오류 | null;
+  카탈로그: 카탈로그;
 }
 
 type 실행 = { runId: number; 요청: ScenarioExecuteRequest };
@@ -83,7 +84,8 @@ async function 미리판정(id: number): Promise<판정 | undefined> {
   const 행 = r.rows[0];
   if (행 === undefined) return undefined;
   const 번호들 = 행.parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
-  return { version: 행.version, 거절: await 실행가능확인(행.parts, 번호들, 행.prefix) };
+  const { 카탈로그 } = await 케이스재료(번호들, 행.prefix);
+  return { version: 행.version, 거절: 실행가능확인(행.parts, 카탈로그), 카탈로그 };
 }
 
 // 판정한 버전이 잠근 뒤의 최신과 다르면 null — 부른 쪽이 다시 판정한다
@@ -124,7 +126,12 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     }
     if (판정.거절 !== null) throw 판정.거절;
 
-    const parts = 행.parts;
+    // 저장 뒤 케이스가 바뀌어 건너뛸 수 없게 된 제목은 뺀다. 러너는 받은 제목이면 확인 절차도 건너뛴다 (결정 8)
+    const parts = 행.parts.map((p) =>
+      p.kind === 'case'
+        ? { ...p, skipSteps: p.skipSteps.filter((t) => 판정.카탈로그.get(p.tcId)?.skippable.includes(t) === true) }
+        : p,
+    );
     const 번호들 = parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
 
     // 스냅샷은 카탈로그 캐시에서 SQL 로 읽는다 — createRun 과 같은 까닭. 재료는 판정에만 쓴다
@@ -218,9 +225,8 @@ export async function 부품채우기(
 }
 
 // 목록·상세의 runnable 과 같은 판정을 본다 (게이트 1). 뿌리 밖 경로도 재료에서 빠져 CASE_INACTIVE 가 된다
-async function 실행가능확인(parts: ScenarioPart[], 번호들: string[], prefix: string): Promise<시나리오실행오류 | null> {
-  const 재료 = await 케이스재료(번호들, prefix);
-  const 결과 = 점검(parts, 재료.카탈로그);
+function 실행가능확인(parts: ScenarioPart[], 재료: 카탈로그): 시나리오실행오류 | null {
+  const 결과 = 점검(parts, 재료);
   if (결과.runnable) return null;
   const 사유 = [
     ...결과.checks

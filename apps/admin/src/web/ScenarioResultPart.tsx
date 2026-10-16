@@ -5,7 +5,7 @@ import { useState, type ReactNode } from 'react';
 import { use말, use언어 } from './i18n.js';
 import { 가린값들, 한줄로 } from './mask.js';
 import { scenarioApi, type ScenarioRunPart } from './scenarioApi.js';
-import { 값연결글, 건너뜀번호 } from './scenarioResultView.js';
+import { 값연결글, 건너뜀번호, 멈춘사유글자 } from './scenarioResultView.js';
 import { 카드요약, 종류글 } from './scenarioView.js';
 import { seconds, Verdict } from './ui.js';
 
@@ -118,10 +118,10 @@ export function ScenarioResultPart({
       )}
       {part.unconfirmed === null ? null : <세부 라벨={t('미확정')}>{part.unconfirmed}</세부>}
       {part.status !== 'NA' || 안돌았다 || part.error === null || part.error.message === '' ? null : (
-        <세부 라벨={t('실행이 멈춘 사유')}>{part.error.message}</세부>
+        <세부 라벨={t('실행이 멈춘 사유')}>{멈춘사유글자(part.error.message, 언어)}</세부>
       )}
       {part.status !== 'FAIL' || part.error === null || part.error.message === '' ? null : (
-        <pre className="scn-error">{part.error.message}</pre>
+        <pre className="scn-error">{멈춘사유글자(part.error.message, 언어)}</pre>
       )}
 
       {part.steps.length === 0 ? null : (

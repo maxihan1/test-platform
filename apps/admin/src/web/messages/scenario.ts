@@ -47,6 +47,7 @@ export const 시나리오말: Record<string, string> = {
   '대기§단계': 'Wait',
   '적용됨': 'Applied',
   '– 실행 안 됨': '– Not run',
+  '서버 재시작으로 멈춤': 'Stopped by a server restart',
   '단독 실행': 'Run alone',
   '모킹이 적용된 상태로 실행했습니다 — {무늬}': 'Ran with mocks on — {무늬}',
   '건너뜀': 'Skipped',

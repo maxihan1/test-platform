@@ -236,6 +236,21 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     const 칸 = within(screen.getByRole('tabpanel'));
     expect(칸.getByText('실행이 멈춘 사유')).toBeTruthy();
     expect(칸.getByText('러너가 멈췄습니다')).toBeTruthy();
-    expect(칸.getByText('TIMEOUT')).toBeTruthy();
+    expect(칸.getByText('제한 시간 초과')).toBeTruthy();
+  });
+
+  it('러너 상태 코드는 요약 · 맨 위 줄 · 단계 줄 모두 사람 말로 보인다', async () => {
+    await 끝낸것({
+      status: 'NA',
+      durationMs: 900,
+      parts: [{ seq: 1, status: 'NA', durationMs: 0, steps: [], mocks: [], error: { message: 'TIMEOUT' } }],
+      error: { message: 'TIMEOUT' },
+    });
+    expect(screen.getByText('제한 시간 초과').className).toBe('scn-trial-na');
+    fireEvent.click(screen.getByRole('button', { name: '자세히' }));
+
+    const 칸 = screen.getByRole('tabpanel');
+    expect(within(칸).getAllByText('제한 시간 초과')).toHaveLength(2);
+    expect(칸.textContent).not.toContain('TIMEOUT');
   });
 });

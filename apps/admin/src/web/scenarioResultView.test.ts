@@ -2,7 +2,7 @@ import type { ScenarioLink } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
 import type { ScenarioRunPart, ScenarioRunRow } from './scenarioApi.js';
-import { E2E띠색, 값연결글, 건너뜀번호, 멈춘단계글자, 미확정있나, 접은판정 } from './scenarioResultView.js';
+import { E2E띠색, 값연결글, 건너뜀번호, 멈춘단계글자, 멈춘사유글자, 미확정있나, 접은판정 } from './scenarioResultView.js';
 
 describe('접은판정', () => {
   it('도는 중이면 부품이 NA 여도 null', () => {
@@ -79,5 +79,15 @@ describe('멈춘단계글자 · E2E띠색', () => {
     expect(E2E띠색(줄({ verdict: 'FAIL' }))).toBe('var(--fail)');
     expect(E2E띠색(줄({ verdict: 'NA' }))).toBe('var(--na)');
     expect(E2E띠색(줄({ verdict: null }))).toBe('var(--line-2)');
+  });
+});
+
+describe('멈춘사유글자', () => {
+  it('러너 · 서버 상태 코드는 사람 말로, 그 밖의 문장은 그대로', () => {
+    expect(멈춘사유글자('TIMEOUT', 'ko')).toBe('제한 시간 초과');
+    expect(멈춘사유글자('ABORTED', 'ko')).toBe('서버 재시작으로 멈춤');
+    expect(멈춘사유글자('TIMEOUT', 'en')).toBe('Timed out');
+    expect(멈춘사유글자('ABORTED', 'en')).toBe('Stopped by a server restart');
+    expect(멈춘사유글자('러너가 이 단계 결과를 돌려주지 않았다', 'ko')).toBe('러너가 이 단계 결과를 돌려주지 않았다');
   });
 });
