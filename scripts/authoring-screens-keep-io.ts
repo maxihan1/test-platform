@@ -4,6 +4,7 @@ import { lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, 
 import { join } from 'node:path';
 
 import { 모두덮음 } from './authoring-covered.js';
+import { type 서비스판정, type 화면차이, 차이모양, 판정이름 } from './authoring-crawl-viewport.js';
 import { 부른다 } from './authoring-io.js';
 import { 계정섞였나 } from './authoring-reverse.js';
 import { type 목록칸, 날수, 받은저장본, 상태인가, 이번것들 } from './authoring-screens-keep.js';
@@ -93,13 +94,13 @@ function API읽기(크롤: string): Map<string, { method: string; url: string }[
  * 크롤러가 목록을 추리기 전 본 화면 전부(`index.json` 의 `화면` — 상태 · 틀 · 이름). 로그인이 풀려 로그인 화면을 본 줄은 뺀다(목록과 같다).
  * 없거나 못 읽으면 null — 그때는 무엇을 봤는지 몰라 지우지 않는다 (PRD-F9-05)
  */
-function 본화면읽기(크롤: string): Pick<목록칸, '상태' | '틀' | '이름'>[] | null {
+function 본화면읽기(크롤: string): (Pick<목록칸, '상태' | '틀' | '이름'> & { 모바일: 화면차이 | null })[] | null {
   try {
     const 값 = JSON.parse(안전히읽기(크롤, 'index.json', 본목록상한) ?? 'null') as { 화면?: unknown } | null;
     if (!Array.isArray(값?.화면)) return null;
-    return (값.화면 as (Partial<목록칸> & { 로그인풀림?: unknown } | null)[]).flatMap((x) =>
+    return (값.화면 as (Partial<목록칸> & { 로그인풀림?: unknown; 모바일?: unknown } | null)[]).flatMap((x) =>
       상태인가(x?.상태) && typeof x.틀 === 'string' && x.로그인풀림 !== true
-        ? [{ 상태: x.상태, 틀: x.틀, 이름: typeof x.이름 === 'string' ? x.이름 : '' }]
+        ? [{ 상태: x.상태, 틀: x.틀, 이름: typeof x.이름 === 'string' ? x.이름 : '', 모바일: 차이모양(x.모바일) }]
         : [],
     );
   } catch {
@@ -177,12 +178,19 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
   const 들은 = API읽기(크롤);
   // 본 화면은 목록을 추리기 전 전부다 — 목록만 보내면 두 상태에 다 있어 로그인 쪽만 남은 틀의 로그아웃 기록을 서버가 지운다 (PRD-F9-05)
   const 본화면 = 본화면읽기(크롤);
+  // 화면 크기 차이는 목록이 아니라 본 화면에만 있다 — 서버가 이것으로 서비스 판정을 다시 가른다 (PRD-F10-07)
+  const 차이 = new Map((본화면 ?? []).flatMap((x) => (x.모바일 === null ? [] : [[`${x.상태} ${x.틀}`, x.모바일] as const])));
   const seen = [
-    ...new Map([...(본화면 ?? []), ...목록].map((x) => [`${x.상태} ${x.틀}`, { state: x.상태, url: x.틀, name: (x.이름 ?? '').slice(0, 500) }])).values(),
+    ...new Map(
+      [...(본화면 ?? []), ...목록].map((x) => {
+        const viewport = 차이.get(`${x.상태} ${x.틀}`);
+        return [`${x.상태} ${x.틀}`, { state: x.상태, url: x.틀, name: (x.이름 ?? '').slice(0, 500), ...(viewport === undefined ? {} : { viewport }) }];
+      }),
+    ).values(),
   ];
   // 이름 · 틀 · 연결(버튼 · 링크 글자)도 서버에 남고 사람에게 보일 칸이다 — 본문과 같이 본다. 찾은 화면 이름(seen)은 본 화면 전체가 나간다
   const 볼글 = [
-    ...seen.map((x) => x.name),
+    ...seen.flatMap((x) => [x.name, ...(x.viewport === undefined ? [] : [x.viewport.모바일주소 ?? '', ...x.viewport.PC만, ...x.viewport.모바일만])]),
     ...이번.flatMap((x) => [x.글, x.이름, x.틀, ...(연결들.get(x.키) ?? []).flatMap((l) => [l.toUrl, l.via]), ...(들은.get(x.키) ?? []).map((a) => a.url)]),
   ];
   if (계정섞였나(볼글, 비밀)) return { 거절: '올릴 화면 기록에 테스트 계정 비밀번호가 들어 있다 — 올리지 않는다' };
@@ -204,13 +212,15 @@ export async function 저장본올리기(통로: 화면통로, 자료: string, �
     }
     const 끝 = await 부른다(통로.주소기지, 통로.토큰, `${길}/done`, { method: 'POST', body: { seen, complete: 지울상태 } });
     const 지운수 = 끝.status === 200 ? (끝.몸 as { deleted?: unknown } | null)?.deleted : undefined;
+    const 판정 = 끝.status === 200 ? (끝.몸 as { viewport?: unknown } | null)?.viewport : undefined;
     return {
       줄:
         `화면 기록 저장: 재사용 ${재사용.length}장${재사용.length > 0 ? `(가장 오래된 것 ${오래된}일)` : ''} · 새로 저장 ${이번.length - 못올림}장` +
         (못올림 > 0 ? ` · 못 올림 ${못올림}장` : '') +
         (못읽음 ? ' · 화면 연결 파일을 못 읽어 연결 없이 올림' : '') +
         (다봄 && 본화면 === null ? ' · 본 화면 목록(index.json)을 못 읽어 못 본 화면은 안 지움' : '') +
-        (지울상태.length === 0 ? '' : typeof 지운수 === 'number' ? ` · 다 봐서 ${지울상태.join(' · ')} 못 본 화면 ${지운수}장 지움` : ' · 못 본 화면 지우기 실패'),
+        (지울상태.length === 0 ? '' : typeof 지운수 === 'number' ? ` · 다 봐서 ${지울상태.join(' · ')} 못 본 화면 ${지운수}장 지움` : ' · 못 본 화면 지우기 실패') +
+        (typeof 판정 === 'string' && 판정 in 판정이름 ? ` · 화면 크기 판정 ${판정이름[판정 as 서비스판정]}` : ''),
     };
   } catch (e) {
     return { 줄: `화면 기록 저장: 실패 — ${e instanceof Error ? e.message : String(e)}` };

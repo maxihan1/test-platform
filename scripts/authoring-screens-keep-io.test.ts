@@ -137,6 +137,17 @@ describe('저장본올리기', () => {
     });
   });
 
+  it('본 화면의 화면 크기 차이를 seen 에 싣고 서버가 다시 가른 판정을 줄에 적는다 — 틀린 차이는 안 싣고 · 차이 속 이름도 비밀번호를 본다 (PRD-F10-07)', async () => {
+    const 차이 = { 넘침: false, 선언: true, 구조같음: false, PC만: ['고객센터'], 모바일만: ['메뉴 열기'] };
+    크롤쓰기([홈, 로그인화면], undefined, [{ ...홈, 모바일: 차이 }, { ...로그인화면, 모바일: { 넘침: 'yes' } }]);
+    서버((x) => (x.method === 'POST' ? { status: 200, 몸: { deleted: 0, viewport: 'responsive' } } : 다봄답()(x)));
+    expect(await 저장본올리기(통로, 자료, [], 지금)).toEqual({ 줄: expect.stringContaining(' · 화면 크기 판정 반응형') });
+    expect(건것들.at(-1)?.body).toEqual({ seen: [{ state: '로그아웃', url: '/', name: '홈', viewport: 차이 }, { state: '로그아웃', url: '/login', name: '로그인' }], complete: ['로그아웃'] });
+    건것들 = [];
+    크롤쓰기([홈], undefined, [{ ...홈, 모바일: { ...차이, PC만: ['s3cr3t-pw 님'] } }]);
+    expect(await 저장본올리기(통로, 자료, ['s3cr3t-pw'], 지금)).toEqual({ 거절: expect.stringContaining('비밀번호') });
+  });
+
   it('본 화면 목록(index.json)을 못 읽으면 목록만 넘기고 아무것도 안 지운다 (PRD-F9-05)', async () => {
     크롤쓰기([홈]);
     writeFileSync(join(자료, 'crawl', 'index.json'), '깨짐');

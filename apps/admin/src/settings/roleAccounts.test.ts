@@ -133,6 +133,20 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 역할 계정 · 운
     expect((await 저장된것('qa'))?.role_accounts).toEqual([{ role: '관리자', loginId: null, loginPassword: null }]);
   });
 
+  it('화면 크기 판정은 설정 저장에 안 지워지고, 주소를 바꾼 줄은 다음 크롤까지 비운다 (PRD-F10-07)', async () => {
+    const p = await pool();
+    await p.query("UPDATE service_env SET viewport_kind = 'responsive', viewport_judged_at = '2026-10-16T00:00:00Z' WHERE service_id = $1", [번호]);
+    await 고친다([{ env: 'qa', baseUrl: 'https://qa.xra.test' }, { env: 'live', baseUrl: 'https://new.xra.test' }]);
+    const r = await p.query<{ env: string; viewport_kind: string | null; viewport_judged_at: Date | null }>(
+      'SELECT env, viewport_kind, viewport_judged_at FROM service_env WHERE service_id = $1 ORDER BY env',
+      [번호],
+    );
+    expect(r.rows).toEqual([
+      { env: 'live', viewport_kind: null, viewport_judged_at: null },
+      { env: 'qa', viewport_kind: 'responsive', viewport_judged_at: new Date('2026-10-16T00:00:00Z') },
+    ]);
+  });
+
   it('다른 env 이름의 줄 · 다른 역할 이름은 이어받지 않는다', async () => {
     await 고친다([{ env: 'qa2', baseUrl: 'https://qa.xra.test', accounts: [{ role: '관리자' }] }]);
     expect((await 저장된것('qa2'))?.role_accounts).toEqual([{ role: '관리자', loginId: null, loginPassword: null }]);

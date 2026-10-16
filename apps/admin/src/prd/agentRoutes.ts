@@ -92,12 +92,13 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     return 지도를읽는다(행.serviceId);
   });
 
-  app.post<경로 & { Body: unknown }>('/authoring/requests/:id/screens/done', async (req, reply) => {
+  // seen 5,000개에 화면 크기 차이(화면 하나 최대 13KB)까지 실려 기본 1MiB 를 넘을 수 있다 (PRD-F10-07)
+  app.post<경로 & { Body: unknown }>('/authoring/requests/:id/screens/done', { bodyLimit: 본문상한 }, async (req, reply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
     if (행.env === null) return reply.code(400).send(서버없음);
     const 읽음 = 다봄검사(req.body);
     if ('error' in 읽음) return reply.code(400).send(읽음);
-    return { deleted: await 다봄(행.serviceId, 행.env, 읽음.seen, 읽음.complete) };
+    return 다봄(행.serviceId, 행.env, 읽음.seen, 읽음.complete);
   });
 }

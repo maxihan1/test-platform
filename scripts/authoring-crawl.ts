@@ -7,9 +7,10 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 
 import { chromium } from '@playwright/test';
 
-import { type 본화면, type 판, 한상태 } from './authoring-crawl-state.js';
-import { type 인자, API상한, 로그인돌리기 } from './authoring-crawl-session.js';
+import { 한상태 } from './authoring-crawl-state.js';
+import { type 본화면, type 인자, type 판, API상한, 로그인돌리기 } from './authoring-crawl-session.js';
 import { 덮은틀읽기, 덮음인가, 케이스지도읽기, 크롤역할들, 목록고르기, 빼는주소인가, 뺄경로읽기, 연결모으기, 틀케이스 } from './authoring-crawl-rules.js';
+import { 판정줄 } from './authoring-crawl-viewport.js';
 import { 기본역할 } from '@platform/kit/accounts';
 import { 견주기, type 상태, 저장본모양, type 저장본 } from './authoring-screens-keep.js';
 
@@ -123,6 +124,11 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
   writeFileSync(join(a.출력, 'links.json'), JSON.stringify(연결들));
   // 화면마다 들은 API — 연결과 같이 에이전트가 화면 기록을 올릴 때 싣는다. 서버가 같은 사이트만 지도에 넣는다 (PRD-F10-05)
   writeFileSync(join(a.출력, 'apis.json'), JSON.stringify(연결모으기(판.본, 판.API, 고른).map((x) => ({ 상태: x.상태, 틀: x.틀, api: x.연결.slice(0, API상한) }))));
+  // 화면 크기 — 모바일로 연 화면 가운데 PC 와 이름 · 주소가 갈린 것만. 자식이 반응형 케이스의 모바일 길을 여기서 본다(tpx-cases two-kinds.md 「화면 크기 판정」 · PRD-F10-07)
+  const 견준 = 판.본.filter((x) => !x.로그인풀림 && x.모바일 !== undefined);
+  const 차이들 = 견준.flatMap((x) => (x.모바일 ? [x.모바일] : []));
+  const 갈린 = 견준.flatMap((x) => (x.모바일 && (x.모바일.모바일주소 !== undefined || x.모바일.PC만.length + x.모바일.모바일만.length > 0) ? [{ 상태: x.상태, 틀: x.틀, 주소: x.주소, ...x.모바일 }] : []));
+  writeFileSync(join(a.출력, 'viewport.json'), JSON.stringify(갈린, null, 1));
   // 로그인 상태 → 그 역할의 상태 파일 — 보조가 그 역할 화면을 열 때 이것을 state-load 한다 (PRD-F9-30)
   writeFileSync(join(a.출력, 'states.json'), JSON.stringify(Object.fromEntries(a.역할상태)));
   const 셈 = (s: string) => 판.본.filter((x) => x.상태 === s).length;
@@ -139,6 +145,7 @@ function 남기기(a: 인자, 판: 판, 시작: number, 돈: { 상태들: string
         : ` · 저장본 같음 ${목록.filter((x) => x.저장본 === '같음').length} · 바뀜 ${목록.filter((x) => x.저장본 === '바뀜').length} · 새 화면 ${목록.filter((x) => x.저장본 === '새 화면').length}` +
           ` · 저장본에 있는데 못 본 화면 ${견줌.못본.length}${견줌.가장오래된 === null ? '' : ` · 가장 오래된 것 ${견줌.가장오래된}일`}` +
           (a.케이스지도 === null ? '' : ` · 바뀐 화면 중 케이스가 쓰는 것 ${목록.filter((x) => x.케이스 !== undefined).length}장(케이스 ${new Set(목록.flatMap((x) => x.케이스 ?? [])).size}건)`)) +
+      ` · ${판정줄(차이들, 견준.length - 차이들.length)}` +
       ` · 로그인 풀림 ${풀림말(판)}` +
       ` · 멈춘 까닭 ${판.멈춘까닭 ?? '다 봄'} · ${Math.round((Date.now() - 시작) / 1000)}초 · ${relative(process.cwd(), join(a.출력, 'list.json'))}`,
   );
