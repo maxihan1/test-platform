@@ -6,7 +6,7 @@ import type { ItemStatus, Platform } from '@platform/kit';
 import { 시나리오결과 } from '../scenario/runRoutes.js';
 import { t } from '../web/i18n.js';
 import type { ScenarioRunPart, ScenarioRunResult } from '../web/scenarioApi.js';
-import { 값연결글, 건너뜀번호, 미확정있나, 접은판정 } from '../web/scenarioResultView.js';
+import { 값연결글, 건너뜀번호, 멈춘사유글자, 미확정있나, 접은판정 } from '../web/scenarioResultView.js';
 import { 카드요약, 종류글 } from '../web/scenarioView.js';
 import { toFields, type EvidenceHeader, type EvidenceItem, type EvidenceStep } from './collect.js';
 
@@ -82,7 +82,7 @@ function 케이스항목(runId: number, p: ScenarioRunPart, platform: Platform, 
     attempt: 1,
     status: 안돌았다 ? 'NOT_RUN' : p.status,
     durationMs: 안돌았다 ? null : p.durationMs,
-    notRunReason: 판정못냄 ? (p.error?.message ?? null) : null,
+    notRunReason: 판정못냄 && p.error !== null ? 멈춘사유글자(p.error.message, 'ko') : null,
     unconfirmed: p.unconfirmed,
     precondition: p.precondition,
     // 결과 화면처럼 꽂은 값을 입력 칸에 겹쳐 보인다. 가리기는 서버 응답이 이미 했고 toFields 가 한 번 더 한다
@@ -117,7 +117,7 @@ function 단계(runId: number, p: ScenarioRunPart, 결과: 결과): E2E단계 {
     }),
     값연결: (케이스?.links ?? []).map((link) => 값연결글(link, p.bound, 'ko')),
     // 결과 화면이 보이는 문장이다 — 케이스 단계가 실패해도 적는다. 원문 스택은 안 싣는다
-    사유: !안돌았다 && p.status !== 'PASS' && p.error !== null && p.error.message !== '' ? p.error.message : null,
+    사유: !안돌았다 && p.status !== 'PASS' && p.error !== null && p.error.message !== '' ? 멈춘사유글자(p.error.message, 'ko') : null,
   };
 }
 

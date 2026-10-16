@@ -158,6 +158,14 @@ describe('E2E 증적 모델', () => {
     const 실패 = { ...결과, parts: [부품(1, { status: 'FAIL', error: { message: '제한 시간 30초를 넘겼다' } })] };
     expect(E2E모양(1, 실패, { serviceName: '', testsRepo: '' }).parts[0]?.사유).toBe('제한 시간 30초를 넘겼다');
   });
+
+  it('러너 · 서버 상태 코드는 결과 화면과 같은 사람 말로 적는다', () => {
+    const 멈춤 = { ...결과, parts: [부품(1, { status: 'NA', error: { message: 'TIMEOUT' } }), 부품(2, { status: 'NA', error: { message: 'ABORTED' } })] };
+    const [첫, 둘] = E2E모양(1, 멈춤, { serviceName: '', testsRepo: '' }).parts;
+    expect(첫?.사유).toBe('제한 시간 초과');
+    expect(첫?.item?.notRunReason).toBe('제한 시간 초과');
+    expect(둘?.사유).toBe('서버 재시작으로 멈춤');
+  });
 });
 
 describe('E2E 증적 엑셀', () => {

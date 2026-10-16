@@ -47,6 +47,17 @@ export function 값연결글(link: ScenarioLink, bound: Record<string, unknown>,
   };
 }
 
+/**
+ * 단계 · 시험 결과의 멈춘 사유에 오는 상태 코드를 사람 말로 (§8.11 「화면 글자」).
+ * `TIMEOUT` 은 러너가 시나리오 제한 시간에 끊은 것, `ABORTED` 는 서버 재시작 복구(`recoverRunning`)가 남은 단계를 닫은 것이다 —
+ * E2E 에는 멈춤 버튼이 없어 사람이 멈춘 갈래가 없다. 그 밖은 서버 · 러너가 쓴 문장이라 그대로 둔다
+ */
+export function 멈춘사유글자(message: string, 언어: 언어): string {
+  if (message === 'TIMEOUT') return t('제한 시간 초과', 언어);
+  if (message === 'ABORTED') return t('서버 재시작으로 멈춤', 언어);
+  return message;
+}
+
 export function 멈춘단계글자(줄: ScenarioRunRow, 언어: 언어): string {
   if (줄.status === 'RUNNING') return '';
   if (줄.stoppedAt !== null) return t('{번호}번에서 멈춤', 언어, { 번호: 줄.stoppedAt });
