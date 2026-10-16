@@ -1,13 +1,15 @@
-// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 (도메인/작성 §7 「표준 기획서 통로」)
+// 작성 에이전트가 부르는 표준 기획서 통로 — 그 요청 서비스의 지금 판 · 기준 판 읽기 · 옮기기 결과 올리기 · 화면 기록 읽기 · 올리기 · 화면이 맞음 건의 실패 trace (도메인/작성 §7 「표준 기획서 통로」)
 // 서비스 경계는 문이 요청 번호로 봤다. 여기서는 맥 계정 · 집은 쪽 · 도는 중인지를 본다(authoring/agentRoutes.ts 와 같은 문턱)
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 집은쪽인가 } from '../authoring/agentRoutes.js';
 import type { 요청 } from '../authoring/store.js';
+import { TCID } from '../catalog/rules.js';
 import { 누가, 판번호, 틀린판번호 } from './routes.js';
-import { 본문상한, 항목검사, 화면번호들 } from './rules.js';
+import { 본문상한, 항목검사, 화면번호들, 화면이맞음건인가 } from './rules.js';
 import { 다봄, 다봄검사, 화면검사, 화면넣기, 화면들 } from './screens.js';
+import { 실패trace } from './screenRight.js';
 import { 기준판, 서비스접두사, 옮기기, 읽은판, 지금판, 판하나 } from './store.js';
 
 type 경로 = { Params: { id: string } };
@@ -67,6 +69,21 @@ export default async function prdAgentRoutes(app: FastifyInstance): Promise<void
     if ('error' in 읽음) return reply.code(400).send(읽음);
     await 화면넣기(행.serviceId, 행.env, 읽음.화면, 읽음.links);
     return reply.code(204).send();
+  });
+
+  // 「화면이 맞음」 요청의 실패 trace — 그 요청에 실린 실행 · 케이스 것만 준다. 가리지 않은 zip 이다:
+  // 작성 컨테이너는 이미 계정 비밀번호를 가졌고, 자식은 요약 스크립트가 가린 줄만 읽는다 (작성 §7 「표준 기획서 통로」 · §3.6 「관문이 빨개지면」)
+  app.get<경로 & { Querystring: { runId?: string; tcId?: string } }>('/authoring/requests/:id/trace', async (req, reply) => {
+    const 행 = await 도는집은요청(req, reply);
+    if (행 === null) return reply;
+    const runId = Number(req.query.runId);
+    const tcId = req.query.tcId ?? '';
+    if (!Number.isSafeInteger(runId) || runId <= 0 || !TCID.test(tcId)) return reply.code(400).send({ error: 'INVALID_REQUEST' });
+    // 실린 짝이 아니면 없는 것과 같다 — 번호로 다른 실행의 기록을 떠보지 못하게
+    if (!화면이맞음건인가(행.params, runId, tcId)) return reply.code(404).send({ error: 'NO_TRACE', detail: '이 요청의 화면이 맞음 건이 아니다' });
+    const 결과 = await 실패trace(행.serviceId, runId, tcId);
+    if ('error' in 결과) return reply.code(404).send(결과);
+    return reply.type('application/zip').send(결과.zip);
   });
 
   app.post<경로 & { Body: unknown }>('/authoring/requests/:id/screens/done', async (req, reply) => {

@@ -103,6 +103,13 @@ export function 화면번호들(params: Record<string, unknown>): Set<string> {
   return new Set(칸들.flatMap((칸) => (Array.isArray(칸?.reqIds) ? 칸.reqIds.filter((x): x is string => typeof x === 'string') : [])));
 }
 
+/** 그 요청의 「화면이 맞음」 칸에 실린 실행 · 케이스인가 — 에이전트가 받을 수 있는 실패 trace 는 이 짝뿐이다 */
+export function 화면이맞음건인가(params: Record<string, unknown>, runId: number, tcId: string): boolean {
+  const s = params.screenRight;
+  const 칸들 = (Array.isArray(s) ? s : s === undefined ? [] : [s]) as { runId?: unknown; tcId?: unknown }[];
+  return 칸들.some((칸) => 칸?.runId === runId && 칸?.tcId === tcId);
+}
+
 /** 판 통째가 같은가 — 같으면 새 판을 안 만든다(옮기기를 다시 돌릴 때마다 같은 판이 쌓이지 않게) */
 export function 판같나(a: PrdItem[], b: PrdItem[]): boolean {
   return (

@@ -1,10 +1,13 @@
 // 「화면이 맞음」 반영 본문을 읽고 실행 · 지도로 params.screenRight 를 채운다 (도메인/작성 §7 apply 「본문 screenRight」 · §3.6 「화면이 맞음」)
 // 리포팅은 작성 요청을 직접 쓰지 않는다 — 실패 카드 버튼이 이 반영 통로를 부르고, 실행 표는 여기서 읽기만 한다 (도메인/리포팅 「실패 요구사항」)
 
+import { readFile } from 'node:fs/promises';
+
 import { z } from 'zod';
 
 import { TCID } from '../catalog/rules.js';
 import { 종류조건 } from '../execution/runKind.js';
+import { trace경로 } from '../execution/traceIngest.js';
 import { 지금판 } from './store.js';
 
 /** 작성 요청 params.screenRight 목록의 한 칸 — env 는 그 실행의 대상 서버, reqIds 는 그 케이스가 덮는 번호 가운데 지금 판에 있는 것(판 차례) */
@@ -64,4 +67,28 @@ export async function 화면이맞음채우기(서비스: number, runId: number,
   const reqIds = (판?.items ?? []).map((x) => x.reqId).filter((번호) => 덮는.has(번호));
   if (reqIds.length === 0) return { code: 409, error: 'NO_PRD_REQ' };
   return { runId, tcId, env: 행.env, reqIds };
+}
+
+/**
+ * 그 실행에서 그 케이스가 실패한 항목의 trace.zip — 회차 · 기기마다 항목이 여럿이면 zip 이 남은 첫 항목. 실패 zip 은 적재 뒤에도 서버에 남는다 (실행 §3.2 「trace」).
+ * 없으면 적재 상태 줄의 사유(다른 기계의 러너 · 끊긴 실행)를 싣는다
+ */
+export async function 실패trace(서비스: number, runId: number, tcId: string): Promise<{ zip: Buffer } | { error: 'NO_TRACE'; detail: string }> {
+  const { pool } = await import('../db/index.js');
+  const 항목 = await pool.query<{ history_id: string; reason: string | null }>(
+    `SELECT i.history_id, t.reason
+       FROM run_item i JOIN test_run r ON r.run_id = i.run_id LEFT JOIN run_trace t ON t.history_id = i.history_id
+      WHERE i.run_id = $1 AND i.tc_id = $2 AND i.status = 'FAIL' AND r.service_id = $3
+      ORDER BY i.history_id`,
+    [runId, tcId, 서비스],
+  );
+  for (const 행 of 항목.rows) {
+    try {
+      return { zip: await readFile(trace경로(runId, Number(행.history_id))) };
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+    }
+  }
+  const 사유 = 항목.rows.find((x) => x.reason !== null)?.reason;
+  return { error: 'NO_TRACE', detail: 사유 ?? (항목.rows.length === 0 ? '그 실행에 이 케이스의 실패 항목이 없다' : 'trace 파일이 없다') };
 }
