@@ -3,9 +3,9 @@
 
 import type { PrdItem } from '@platform/kit/types';
 
-import { 표읽기 } from './authoring-ledger-check.js';
+import { 덮는번호들, 표읽기 } from './authoring-ledger-check.js';
 import { 번호찾기 } from './authoring-ledger.js';
-import { 화면잡이줄인가 } from './authoring-slots.js';
+import { 오류추정줄인가 } from './authoring-slots.js';
 
 export interface 정답 {
   전체: Set<string>;
@@ -90,11 +90,12 @@ export function 채점하기(항목들: PrdItem[], 정답: 정답, 대응: 대�
   if (표 !== undefined) {
     케이스포착 = new Set();
     // 측정표 정의(만들어진 케이스가 가리키는 번호)대로 보류 줄도 센다 — 2026-10-05 4차 171/172 와 같은 셈.
-    // 오류 추정 · 버튼 반응 줄은 기획서 요구를 확인하지 않는다 — 포착률이 부풀지 않게 통째로 뺀다(원장 · 지도는 첫 번호만 뺀다 — PRD-F9-08)
+    // 오류 추정 줄은 기획서 요구를 확인하지 않는다 — 포착률이 부풀지 않게 통째로 뺀다(원장 · 지도는 첫 번호만 뺀다 — PRD-F9-08)
     for (const 줄 of 표읽기(표, '요구사항')) {
       const 출처 = 줄['출처'] ?? '';
-      if (화면잡이줄인가(출처)) continue;
-      for (const 번호 of 번호찾기(출처).번호들) {
+      if (오류추정줄인가(출처)) continue;
+      // 버튼 반응 줄은 첫 번호만 화면을 잡는 요구다 — 뒤 번호(반응을 적은 요구)는 그 케이스가 확인한다
+      for (const 번호 of 덮는번호들(출처)) {
         // 옛 표는 출처가 원본 번호 그대로다
         for (const 원본 of 번호표.get(번호) ?? (정답.전체.has(번호) ? [번호] : [])) 케이스포착.add(원본);
       }
