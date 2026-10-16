@@ -3,7 +3,7 @@
 import type { ScenarioPart } from '@platform/kit';
 import { vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { type ServiceRow, type User } from './api.js';
+import { api, type CaseRow, type ServiceRow, type User } from './api.js';
 import { useHash } from './leaveGuard.js';
 import { scenarioApi, type CasePartMaterial, type ScenarioDetail } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
@@ -59,6 +59,31 @@ export const 재료 = (tcId: string): CasePartMaterial => ({
   unconfirmed: null,
 });
 
+const 케이스줄 = (tcId: string): CaseRow => ({
+  tcId,
+  name: `${tcId} 케이스`,
+  platforms: ['desktop', 'mobile'],
+  precondition: [],
+  filePath: `${tcId}.spec.ts`,
+  paramSchema: { type: 'object', properties: {} },
+  expectedSchema: { type: 'object', properties: {} },
+  isActive: true,
+  scannedAt: '2026-10-06T00:00:00.000Z',
+  techniques: [],
+});
+
+/** 단계 추가 탭 팔레트가 받는 케이스 목록과 다음 단계 추천 */
+export function 케이스목록막기(...tcIds: string[]) {
+  vi.spyOn(api, 'cases').mockResolvedValue({ items: tcIds.map(케이스줄), total: tcIds.length, page: 1, pageSize: 50 });
+  vi.spyOn(scenarioApi, 'nextCases').mockResolvedValue({ items: [] });
+}
+
+/** 사람처럼 단계 추가 탭의 팔레트에서 케이스를 끝에 더한다 */
+export async function 케이스더하기(tcId: string) {
+  // 이미 골라진 것처럼 보여도 누른다 — 불러온 뒤 1번 설정 탭이 늦게 열리면 그쪽으로 넘어간다
+  fireEvent.click(screen.getByRole('tab', { name: '단계 추가' }));
+  fireEvent.click(await screen.findByRole('button', { name: `${tcId} 더하기` }));
+}
 
 export async function 기존그리기(
   덮: Partial<ScenarioDetail> = {},

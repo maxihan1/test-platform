@@ -34,6 +34,7 @@ async function 옮긴다(해시: string) {
 }
 
 const 화면해시 = () => screen.getByTestId('hash').textContent;
+const 기다린다 = () => new Promise((끝) => setTimeout(끝, 30));
 
 beforeEach(async () => {
   if (window.location.hash === '#/a') return;
@@ -75,6 +76,40 @@ describe('useHash', () => {
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
     expect(막는쪽).toHaveBeenCalledTimes(1);
+    expect(화면해시()).toBe('#/a');
+  });
+
+  it('주소 이동이 막힌 뒤 뒤로 가기 한 번이면 다시 막는 쪽이 이전 주소를 받는다', async () => {
+    const 막는쪽 = vi.fn();
+    render(<보는것 />);
+    await 옮긴다('#/p');
+    떠나기막기(막는쪽);
+    await 옮긴다('#/b');
+    await 기다린다();
+    await act(async () => {
+      window.history.back();
+      await 기다린다();
+    });
+    expect(막는쪽).toHaveBeenLastCalledWith('#/a');
+    expect(화면해시()).toBe('#/p');
+  });
+
+  it('뒤로 가기가 막히면 그 칸을 덮지 않고 원래 칸으로 돌아온다', async () => {
+    const 막는쪽 = vi.fn();
+    render(<보는것 />);
+    await 옮긴다('#/p');
+    떠나기막기(막는쪽);
+    await act(async () => {
+      window.history.back();
+      await 기다린다();
+    });
+    expect(막는쪽).toHaveBeenCalledExactlyOnceWith('#/a');
+    expect(window.location.hash).toBe('#/p');
+    떠나기막기(null);
+    await act(async () => {
+      window.history.back();
+      await 기다린다();
+    });
     expect(화면해시()).toBe('#/a');
   });
 

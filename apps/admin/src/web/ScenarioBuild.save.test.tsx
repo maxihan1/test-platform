@@ -5,32 +5,22 @@ import type { ScenarioPart } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ApiError } from './api.js';
-import { 떠나기막기 } from './leaveGuard.js';
+import { useHash, 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi } from './scenarioApi.js';
-import { 서비스, 케이스단계, 상세, 기존그리기, 이름칸, 바꾸기, 감싸개, 해시가 } from './ScenarioBuild.fixture.js';
+import { ScenarioBuild } from './ScenarioBuild.js';
+import { 서비스, 사람, 케이스단계, 상세, 재료, 기존그리기, 이름칸, 바꾸기, 감싸개, 해시가, 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
 
-// 새 시나리오는 단계를 넣는 길이 다음 할 일에서 생긴다. 그때까지 저장 흐름은 처음 한 번 단계를 심어 본다
-const 심기 = vi.hoisted(() => ({ 단계들: null as ScenarioPart[] | null, 재료: [] as string[] }));
-vi.mock('./useScenarioDraft.js', async (원래) => {
-  const 본 = await 원래<typeof import('./useScenarioDraft.js')>();
-  const { useEffect } = await import('react');
-  return {
-    ...본,
-    useScenarioDraft: (...인자: Parameters<typeof 본.useScenarioDraft>) => {
-      const 초안 = 본.useScenarioDraft(...인자);
-      useEffect(() => {
-        if (심기.단계들 !== null) 초안.단계들바꾸기(심기.단계들);
-        심기.재료.forEach((n) => 초안.재료더하기(n));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
-      return 초안;
-    },
-  };
-});
+
+function 주소따라() {
+  const 번호 = /^#\/scenarios\/(\d+)$/.exec(useHash())?.[1];
+  return 번호 === undefined ? (
+    <ScenarioBuild key="new" id={null} 띠서비스={서비스('ZSB')} user={사람()} />
+  ) : (
+    <ScenarioBuild key={번호} id={Number(번호)} 띠서비스={서비스('ZSB')} user={사람()} />
+  );
+}
 
 afterEach(() => {
-  심기.단계들 = null;
-  심기.재료 = [];
   떠나기막기(null);
   cleanup();
   vi.restoreAllMocks();
@@ -77,12 +67,14 @@ describe('ScenarioBuild 저장 전 확인', () => {
 
 describe('ScenarioBuild 저장', () => {
   it('새 것은 처음 받은 띠 접두사로 만들고 새 주소로 옮긴다. 상자는 안 뜬다', async () => {
-    심기.단계들 = [케이스단계('ZSB-001')];
+    케이스목록막기('ZSB-001');
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
     const create = vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 55, version: 1 });
     await 해시가('#/scenarios/new');
     const { rerender } = render(<감싸개 id={null} 도착="#/scenarios/55" />);
     // 띠를 바꿔도 접두사는 처음 것이다
     rerender(<감싸개 id={null} 띠={서비스('ZSC')} 도착="#/scenarios/55" />);
+    await 케이스더하기('ZSB-001');
     바꾸기('  새 흐름  ');
     expect(screen.getByText('저장 안 된 변경 있음')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
@@ -96,6 +88,26 @@ describe('ScenarioBuild 저장', () => {
       platform: 'desktop',
       parts: [케이스단계('ZSB-001')],
     });
+  });
+
+  it('새 것을 처음 저장해 화면이 새 번호로 바뀌어도 고르던 단계가 그대로다', async () => {
+    케이스목록막기('ZSB-001', 'ZSB-002');
+    vi.spyOn(scenarioApi, 'caseParts').mockImplementation(async (tcId) => 재료(tcId));
+    vi.spyOn(scenarioApi, 'create').mockResolvedValue({ id: 55, version: 1 });
+    vi.spyOn(scenarioApi, 'detail').mockResolvedValue(
+      상세({ id: 55, name: '새 흐름', version: 1, parts: [케이스단계('ZSB-001'), 케이스단계('ZSB-002')] }),
+    );
+    await 해시가('#/scenarios/new');
+    render(<주소따라 />);
+    await 케이스더하기('ZSB-001');
+    await 케이스더하기('ZSB-002');
+    바꾸기('새 흐름');
+    expect(screen.getByRole('tab', { name: '2번 설정' }).getAttribute('aria-selected')).toBe('true');
+
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    expect(await screen.findByText('SC-55')).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('tab', { name: '2번 설정' }).getAttribute('aria-selected')).toBe('true'));
   });
 
   it('기존 것은 baseVersion 을 실어 고치고 성공 문장을 보인다', async () => {
