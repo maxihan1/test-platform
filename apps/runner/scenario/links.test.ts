@@ -3,7 +3,7 @@
 import type { ScenarioExecuteRequest, ScenarioLink, ScenarioResponseRef } from '@platform/kit';
 import { describe, expect, it, vi } from 'vitest';
 
-import { 값꺼냄, 꽂기, 무늬맞음, 새부품, 새이음, 안걸린, 요청주소, 적기, type 받은응답 } from './links.js';
+import { 값꺼냄, 꽂기, 무늬맞음, 미룬응답, 새부품, 새이음, 안걸린, 요청주소, 적기, type 받은응답 } from './links.js';
 
 type Part = ScenarioExecuteRequest['parts'][number];
 type CasePart = Extract<Part, { kind: 'case' }>;
@@ -220,5 +220,31 @@ describe('안걸린', () => {
     expect(안걸린(다걸림)).toBeUndefined();
     expect(안걸린(새부품(2, [꽂기링크]))).toBeUndefined();
     expect(안걸린(새부품(2, undefined))).toBeUndefined();
+  });
+});
+
+describe('미룬응답', () => {
+  const 코드 = [
+    { host: 'x.com', path: '/api/me', status: 204 },
+    { host: 'x.com', path: '/api/cart/:n', status: 200 },
+    { host: 'x.com', path: '/api/files/:id', status: 202 },
+  ];
+  const 본문없음 = { status: 204, contentType: '', body: '' };
+  const 빈객체 = (status: number): 받은응답 => ({ status, contentType: 'application/json', body: '{}' });
+
+  it('본 적 없는 삭제에는 204 · 본문 없음으로 답한다 — 삭제 API 가 가장 흔히 주는 코드다', () => {
+    expect(미룬응답(새이음([], BASE), 'https://x.com/api/me')).toEqual(본문없음);
+    expect(미룬응답(새이음([], BASE, 코드), 'https://other.com/api/me')).toEqual(본문없음);
+    expect(미룬응답(새이음([], BASE, 코드), 'https://x.com/api/cart/all')).toEqual(본문없음);
+    // 기준 주소 없는 연결의 상대 주소는 못 맞춘다 — 던지지 않고 기본값이다
+    expect(미룬응답(새이음([], BASE, 코드), '/api/me')).toEqual(본문없음);
+  });
+
+  it('정식 실행에서 본 코드로 답한다 — 숫자 · uuid · 긴 16진 칸은 묶고 물음표 뒤 · 호스트 대소문자는 안 본다', () => {
+    const 이음 = 새이음([], BASE, 코드);
+    expect(미룬응답(이음, 'https://x.com/api/me')).toEqual(본문없음);
+    expect(미룬응답(이음, 'https://X.com/api/cart/57?force=1')).toEqual(빈객체(200));
+    expect(미룬응답(이음, 'https://x.com/api/files/0f8fad5b-d9cb-469f-a165-70867728950e')).toEqual(빈객체(202));
+    expect(미룬응답(이음, 'https://x.com/api/files/a1b2c3d4e5f60718293a')).toEqual(빈객체(202));
   });
 });

@@ -111,6 +111,13 @@ export interface ScenarioExecuteRequest {          // POST /execute-scenario (�
   baseUrl: string;
   parts: Array<ScenarioPart & { filePath?: string }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다
   timeoutMs: number;
+  deleteStatuses?: ScenarioDeleteStatus[];         // 미룬 삭제에 줄 응답 코드. 없는 주소는 204 (도메인/시나리오 §3.7 결정 12)
+}
+
+export interface ScenarioDeleteStatus {            // 정식 실행에서 본 그 서비스의 DELETE 성공 코드 — 서비스 지도 service_api.ok_status
+  host: string;                                    // 포트까지
+  path: string;                                    // 주소 틀 — 숫자 칸 :n · uuid · 긴 16진 칸 :id
+  status: number;                                  // 200 ~ 299
 }
 
 export interface ScenarioPartResult {

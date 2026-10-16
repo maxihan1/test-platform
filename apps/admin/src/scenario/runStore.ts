@@ -5,6 +5,7 @@ import type { 역할계정 } from '@platform/kit/accounts';
 import type { Pool, PoolClient } from 'pg';
 
 import { 대상서버계정, 저장값을채운다 } from '../execution/savedInput.js';
+import { 삭제코드를읽는다 } from '../prd/apiMap.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { 점검 } from './checks.js';
 import { 케이스재료 } from './parts.js';
@@ -187,10 +188,12 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
       요청부품.push(케 === undefined ? p : { ...p, filePath: 케.file_path });
     }
 
+    // 확정 전에 쥔 손으로 읽는다 — 확정 뒤에 던지면 RUNNING 실행이 러너 없이 남는다
+    const deleteStatuses = await 삭제코드를읽는다(Number(행.service_id), c);
     await c.query('COMMIT');
     return {
       runId,
-      요청: { runId, platform: 행.platform, baseUrl, parts: 요청부품, timeoutMs: 시나리오제한시간(parts) },
+      요청: { runId, platform: 행.platform, baseUrl, parts: 요청부품, timeoutMs: 시나리오제한시간(parts), deleteStatuses },
     };
   } catch (err) {
     await c.query('ROLLBACK');

@@ -149,4 +149,10 @@ describe('scenarioEnv', () => {
   it('조립 목록을 그대로 넘긴다', () => {
     expect(JSON.parse(scenarioEnv(기본).PLATFORM_SCENARIO!)).toEqual(기본.parts);
   });
+
+  it('미룬 삭제 코드를 넘기고, 없으면 빈 목록이다', () => {
+    const 코드 = [{ host: 'qa.example.com', path: '/api/me', status: 204 }];
+    expect(JSON.parse(scenarioEnv({ ...기본, deleteStatuses: 코드 }).PLATFORM_DELETE_STATUSES!)).toEqual(코드);
+    expect(JSON.parse(scenarioEnv(기본).PLATFORM_DELETE_STATUSES!)).toEqual([]);
+  });
 });

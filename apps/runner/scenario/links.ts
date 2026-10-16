@@ -3,7 +3,7 @@
 // kit 은 타입만 가져온다 — 값으로 부르면 케이스의 require 와 섞여 러너 이미지에서 죽는다 (parts.ts 머리 · 2026-09-28 이미지 실측)
 import type { APIRequest, BrowserContext } from '@playwright/test';
 import type { ScenarioPhase } from '@platform/kit/scenario';
-import type { ScenarioExecuteRequest, ScenarioLink, ScenarioMethod, ScenarioResponseRef } from '@platform/kit';
+import type { ScenarioDeleteStatus, ScenarioExecuteRequest, ScenarioLink, ScenarioMethod, ScenarioResponseRef } from '@platform/kit';
 
 export type CasePart = Extract<ScenarioExecuteRequest['parts'][number], { kind: 'case' }>;
 
@@ -34,16 +34,41 @@ export interface 이음 {
   미룸: 미룬삭제[];
   얼림: boolean;                                  // 뒷정리 보내기 직전 true — 그 뒤 삭제는 안 미룬다 (SPEC 도메인/러너 §5.2 「미룬 삭제」)
   모킹: Map<string, 받은응답>;                     // API 쪽 모킹. parts.ts 가 mock · unmock 때 고친다
+  삭제코드: Map<string, number>;                   // 열쇠 `${host}${주소 틀}` — 정식 실행에서 본 DELETE 성공 코드
 }
 
 export type 가름 =
   | { kind: 'send'; method?: string; url?: string }       // method · url 이 있으면 바꿔 보내기
   | { kind: 'fulfill'; 응답: 받은응답 }
-  | { kind: 'defer' }                                      // 부른 쪽이 상태와 함께 이음.미룸 에 넣고 200 {} 를 준다
+  | { kind: 'defer' }                                      // 부른 쪽이 상태와 함께 이음.미룸 에 넣고 미룬응답 을 준다
   | { kind: 'fail'; message: string };                     // 가르기가 부품.오류 ??= message 도 한다
 
-// 막은 요청 · 미룬 삭제에 주는 응답 — 케이스 코드는 서버가 받은 줄 안다 (SPEC 도메인/시나리오 §3.7 결정 12)
+// 막은 요청에 주는 응답 — 케이스 코드는 서버가 받은 줄 안다 (SPEC 도메인/시나리오 §3.7 결정 12)
 export const 빈응답: 받은응답 = { status: 200, contentType: 'application/json', body: '{}' };
+
+// admin 의 API틀(prd/apiMap.ts)과 같은 규칙이다 — 고정 spec 은 admin 을 못 부른다. 둘이 갈리면 본 코드를 못 찾고 204 로 답할 뿐이다
+const 숫자칸 = /^\d+$/;
+const 묶을칸 = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{16,})$/i;
+export function 주소틀(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    // 기준 주소 없는 연결의 상대 주소 — 못 맞추니 기본값으로 답한다
+    return null;
+  }
+  return u.host.toLowerCase() + (u.pathname.split('/').map((칸) => (숫자칸.test(칸) ? ':n' : 묶을칸.test(칸) ? ':id' : 칸)).join('/') || '/');
+}
+
+/**
+ * 미룬 삭제에 주는 응답 — 정식 실행에서 그 주소가 준 성공 코드다. 본 적 없으면 204 · 본문 없음.
+ * 케이스 정리 함수가 제품의 진짜 코드만 받기도 한다(데모마켓 탈퇴는 204 만) (SPEC 도메인/시나리오 §3.7 결정 12)
+ */
+export function 미룬응답(이음값: 이음, url: string): 받은응답 {
+  const 틀 = 주소틀(url);
+  const status = (틀 === null ? undefined : 이음값.삭제코드.get(틀)) ?? 204;
+  return status === 204 ? { status, contentType: '', body: '' } : { ...빈응답, status };
+}
 const 이름 = { reuse: '이전 응답 재사용', block: '요청 차단', rewrite: '수정 요청으로 변경' } as const;
 
 // Playwright 1.63 globToRegexPattern 을 옮겼다 — 무늬 맞추기 공개 함수가 없다 (SPEC 도메인/시나리오 §3.7 결정 12 「요청 고르기」)
@@ -148,7 +173,7 @@ export function 새부품(seq: number, links: readonly ScenarioLink[] | undefine
   return { seq, links: links ?? [], phase: { started: false, inStep: 0, judged: false }, 걸림: new Set() };
 }
 
-export function 새이음(parts: ScenarioExecuteRequest['parts'], baseUrl: string): 이음 {
+export function 새이음(parts: ScenarioExecuteRequest['parts'], baseUrl: string, 삭제코드: readonly ScenarioDeleteStatus[] = []): 이음 {
   const 가리킴 = new Map<string, 이음['가리킴'][number]>();
   for (const part of parts) {
     if (part.kind !== 'case') continue;
@@ -157,7 +182,10 @@ export function 새이음(parts: ScenarioExecuteRequest['parts'], baseUrl: strin
       if (ref !== undefined) 가리킴.set(열쇠(ref), { fromSeq: ref.fromSeq, method: ref.method, urlPattern: ref.urlPattern });
     }
   }
-  return { baseUrl, 가리킴: [...가리킴.values()], 응답: new Map(), 미룸: [], 얼림: false, 모킹: new Map() };
+  return {
+    baseUrl, 가리킴: [...가리킴.values()], 응답: new Map(), 미룸: [], 얼림: false, 모킹: new Map(),
+    삭제코드: new Map(삭제코드.map((d) => [d.host.toLowerCase() + d.path, d.status])),
+  };
 }
 
 // 자리는 응답이 오는 순간 동기로 잡는다 — 본문을 다 읽고 잡으면 거의 같이 온 둘째가 첫째를 덮는다 (SPEC 도메인/러너 §5.2 「이어 주기를 건다」)

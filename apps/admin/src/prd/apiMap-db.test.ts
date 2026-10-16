@@ -13,7 +13,8 @@ const 연결 = process.env.DATABASE_URL;
 const j = (...줄: unknown[]): string => 줄.map((l) => JSON.stringify(l)).join('\n');
 
 // 단계 1 에서 부른 API 들. 단계 경계는 시각 100
-async function 가짜zip(주소들: string[]): Promise<Buffer> {
+type 요청 = string | { url: string; method: string; status: number };
+async function 가짜zip(주소들: 요청[]): Promise<Buffer> {
   const 묶음 = new JSZip();
   묶음.file(
     'test.trace',
@@ -27,10 +28,15 @@ async function 가짜zip(주소들: string[]): Promise<Buffer> {
   묶음.file(
     '1-trace.network',
     j(
-      ...주소들.map((url) => ({
-        type: 'resource-snapshot',
-        snapshot: { _monotonicTime: 20, _resourceType: 'fetch', time: 3, request: { method: 'GET', url }, response: { status: 200, content: {} } },
-      })),
+      ...주소들.map((x) => {
+        const { url, method, status } = typeof x === 'string' ? { url: x, method: 'GET', status: 200 } : x;
+        // 문자열은 브라우저 fetch, 객체는 테스트 코드의 요청 도구 줄이다 — trace 는 요청 도구 줄에 _resourceType 을 안 단다
+        const 종류 = typeof x === 'string' ? { _resourceType: 'fetch' } : {};
+        return {
+          type: 'resource-snapshot',
+          snapshot: { _monotonicTime: 20, ...종류, time: 3, request: { method, url }, response: { status, content: {} } },
+        };
+      }),
     ),
   );
   return 묶음.generateAsync({ type: 'nodebuffer' });
@@ -56,7 +62,7 @@ describe.skipIf(연결 === undefined)('서비스 지도 DB', () => {
     return Number(r.rows[0]!.history_id);
   }
 
-  async function 푼다(run: number, historyId: number, 주소들: string[]): Promise<void> {
+  async function 푼다(run: number, historyId: number, 주소들: 요청[]): Promise<void> {
     const { trace경로, trace를적재한다 } = await import('../execution/traceIngest.js');
     const 경로 = trace경로(run, historyId);
     mkdirSync(dirname(경로), { recursive: true });
@@ -161,6 +167,22 @@ describe.skipIf(연결 === undefined)('서비스 지도 DB', () => {
     const { 지도를읽는다 } = await import('./apiMap.js');
     const 옛API = (await 지도를읽는다(서비스)).apis.find((a) => a.path === '/api/old');
     expect(옛API).toMatchObject({ method: 'GET', host: 'qa.example.com', cases: [], screens: [] });
+  });
+
+  it('DELETE 의 마지막 성공 코드를 남기고 4xx 와 성공 코드 없는 줄은 앞 코드를 두며, 시나리오 실행 요청용으로 성공 코드를 본 DELETE 만 읽는다', async () => {
+    const [앞, 뒤] = 실행;
+    const 삭제 = (url: string, status: number) => ({ url, method: 'DELETE', status });
+    await 푼다(앞!, await 항목(앞!, 'XAM-FN-004'), [삭제('https://qa.example.com/api/me', 204), 삭제('https://qa.example.com/api/me', 404), 삭제('https://qa.example.com/api/cart/7', 500)]);
+    await 푼다(뒤!, await 항목(뒤!, 'XAM-FN-005'), [삭제('https://qa.example.com/api/cart/9', 200), 삭제('https://qa.example.com/api/me', 401), 'https://qa.example.com/api/me']);
+
+    const { 삭제코드를읽는다 } = await import('./apiMap.js');
+    expect((await 삭제코드를읽는다(서비스)).sort((a, b) => a.path.localeCompare(b.path))).toEqual([
+      { host: 'qa.example.com', path: '/api/cart/:n', status: 200 },
+      { host: 'qa.example.com', path: '/api/me', status: 204 },
+    ]);
+    // 4xx 만 본 줄 · GET 줄은 코드를 안 싣는다
+    await 푼다(뒤!, await 항목(뒤!, 'XAM-FN-006'), [삭제('https://qa.example.com/api/posts/3', 404)]);
+    expect((await 삭제코드를읽는다(서비스)).map((x) => x.path)).not.toContain('/api/posts/:n');
   });
 
   it('화면 기록 통로는 그 대상 서버와 같은 사이트 API 만 화면 줄로 넣고, 다시 올리면 갈아 끼우고, 화면 기록이 지워지면 같이 지운다', async () => {

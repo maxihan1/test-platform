@@ -114,6 +114,11 @@ const scenarioRequest = z
     parts: z.array(scenarioPart).min(1),
     // 시나리오 제한 시간은 60분을 넘지 않는다 (SPEC 도메인/시나리오 §3.7 「동시성 · 시간」)
     timeoutMs: z.number().int().positive().max(3_600_000),
+    // 서비스 지도가 본 DELETE 마다 한 줄이다. 자식 환경변수로 가므로 줄 수를 막는다 — 1000줄이면 약 60KB
+    deleteStatuses: z
+      .array(z.object({ host: z.string().max(255), path: z.string().max(2000), status: z.number().int().min(200).max(299) }))
+      .max(1000)
+      .optional(),
   })
   .refine((r) => r.runId !== null || r.trialId !== undefined, '시험 실행에는 trialId 가 있어야 한다');
 
