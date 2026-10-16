@@ -98,6 +98,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
    케이스는 UI Test 와 Functional Test 두 갈래다(R17). 예외 · 경계는 근거 넷에 적힌 것만 만들고(R18) 설계 목록의 칸은 빼지 않는다(2단계). 동작 요구는 Functional 케이스로 덮는다(R19).
    UI Test · Functional Test 둘 다 Page Object 를 쓴다(`two-kinds.md` 「Page Object」).
    §4 에서 기획서에 없는 화면 입력 규칙을 보면 표에 미확정 줄을 더해 케이스로 쓴다(`two-kinds.md` 「화면에만 있는 입력 규칙」) — **이어 작성은 더하지 않고 결과 요약에 적는다**(`references/prd.md` §5).
+   §4 에서 기획서가 다루는 화면마다 누를 수 있는 것을 눌러 보고 버튼 반응 줄을 더해 화면마다 UI 케이스 하나로 쓴다(`two-kinds.md` 「버튼 반응 케이스」) — 이어 작성은 기획서가 적은 반응 줄만 더한다.
    표준 기획서 절이 있으면 같은 규칙과 화면 오류 문구를 결과 파일에 `확인 필요` 항목으로 먼저 더하고 원장 사본을 다시 만든 뒤, 그 줄의 출처 칸에 새 항목의 임시 번호를 적는다(`references/prd.md` §4 · §5)
    **화면 묶음이 둘 이상이고 케이스가 8건 이상이면** 이 스킬의 `references/fanout.md` 대로 서브에이전트에게 나눠 맡긴다 (2026-09-30)
 5. **§6 관문** — `references/6-gates.md`. 원장 대조(관문 0) · 형식 · 표 대조 · 3회 실행 · 일부러 부수기.
