@@ -128,13 +128,15 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
   return { ...작성, 모양: 'halt', 머리: t('작성 요청 #{번호} 이 멈췄습니다', 언어, 값), 집계: [], 확인필요: 0 };
 }
 
+const 지난 = (startedAt: string, 지금: number) => Math.max(0, 지금 - Date.parse(startedAt));
+const 지난글 = (ms: number, 언어: 언어) => t('{지난} 지남', 언어, { 지난: 시간글자(ms, 언어) });
+
 export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언어): 도는줄 {
   const 종류: 도는줄['종류'] = n.kind === 'authoring' ? 'authoring' : 'run';
   const 바탕 = { 도는중: true as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 접두사: n.prefix, 종류, 열기: 열기주소(n) };
 
   if (n.kind === 'scenario') {
-    const 지난ms = Math.max(0, 지금 - Date.parse(n.startedAt));
-    const 앞 = [t('E2E RUN {번호} 이 진행 중입니다', 언어, { 번호: n.runId }), t('{수}단계', 언어, { 수: n.parts }), t('{지난} 지남', 언어, { 지난: 시간글자(지난ms, 언어) })];
+    const 앞 = [t('E2E RUN {번호} 이 진행 중입니다', 언어, { 번호: n.runId }), t('{수}단계', 언어, { 수: n.parts }), 지난글(지난(n.startedAt, 지금), 언어)];
     return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: null };
   }
 
@@ -159,7 +161,7 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
     return { ...바탕, 앞글: t('작성 요청 #{번호} 이 순서를 기다리고 있습니다', 언어, 값), 막대: null, 뒷글: null };
   }
   // 알림 통로는 진척을 안 싣는다 — 단계 칸은 에이전트가 올린 글로만 센다
-  const 지난ms = Math.max(0, 지금 - Date.parse(n.startedAt));
+  const 지난ms = 지난(n.startedAt, 지금);
   // 반영 · 고치기는 다섯 단계를 안 밟는다 — 단계 글이 있으면 그 글만, 없으면 아무것도 안 붙인다
   let 단계: string | null = null;
   if (n.stage !== null && (!n.fiveSteps || !아는단계글(n.stage))) {
@@ -169,7 +171,7 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
     const 칸 = 단계칸(n.stage, false);
     단계 = t('{번호} / {전체} 단계 {이름}', 언어, { 번호: 칸 + 1, 전체: 단계이름들.length, 이름: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
   }
-  const 앞 = [t('작성 요청 #{번호} 이 진행 중입니다', 언어, 값), ...(단계 === null ? [] : [단계]), t('{지난} 지남', 언어, { 지난: 시간글자(지난ms, 언어) })];
+  const 앞 = [t('작성 요청 #{번호} 이 진행 중입니다', 언어, 값), ...(단계 === null ? [] : [단계]), 지난글(지난ms, 언어)];
   return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: 작성남은글(지난ms, 지금, n.expected, 언어) };
 }
 

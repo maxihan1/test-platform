@@ -7,7 +7,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { api, ApiError, type NoticeResponse } from './api.js';
 import { 언어함 } from './i18n.js';
 import { Notice } from './Notice.js';
-import { 끝난실행, 끝난작성, 도는실행, 도는작성, 전에 } from './notice.fixture.js';
+import { 끝난실행, 끝난작성, 도는E2E, 도는실행, 도는작성, 전에 } from './notice.fixture.js';
 import { 읽음들 } from './noticeRead.js';
 
 beforeEach(() => {
@@ -268,5 +268,22 @@ describe('받아 오기', () => {
       vi.advanceTimersByTime(11_000);
     });
     expect(부름.mock.calls.length).toBeGreaterThan(비운뒤);
+  });
+
+  it('E2E 실행만 돌면 20초마다 묻는다 — 도중 진척이 없어 자주 물어도 바뀌는 것이 없다', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const 부름 = vi.spyOn(api, 'notifications').mockResolvedValue({ running: [도는E2E(7)], recent: [] });
+    render(
+      <언어함 value="ko">
+        <Notice 줄숨김={false} 서비스바꿈={서비스바꿈} />
+      </언어함>,
+    );
+    await act(async () => {});
+    const 처음 = 부름.mock.calls.length;
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(부름.mock.calls.length).toBe(처음);
+    expect(screen.getByText(/E2E RUN 7 이 진행 중입니다/)).toBeTruthy();
   });
 });
