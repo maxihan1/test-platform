@@ -1,12 +1,13 @@
 // E2E 시나리오 화면이 서버를 부르는 호출 모음. 응답 모양은 admin 의 scenario/ · execution/ 통로가 내보내는 것을 그대로 옮겼다
 
-import type { ScenarioCleanup, ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
+import type { ScenarioCleanup, ScenarioExecuteResponse, ScenarioPart, ScenarioPartResult } from '@platform/kit';
 
 import {
   call,
   json,
   type EvidenceRow,
   type ItemStatus,
+  type ItemTrace,
   type JsonSchema,
   type Paged,
   type Platform,
@@ -80,6 +81,8 @@ export interface ScenarioRunPart {
   cleanup: Omit<ScenarioCleanup, 'fromSeq'>[];
   steps: StepResult[];
   error: { message: string; stack?: string } | null;
+  /** 실패한 case 부품만 찬다 — 서버가 넣을 때 가린 네트워크 · 조작 · 콘솔 (도메인/시나리오 §7 「실패 기록」) */
+  trace: ItemTrace | null;
 }
 
 export interface ScenarioRunResult {
@@ -99,7 +102,10 @@ export interface ScenarioRunResult {
   evidence: EvidenceRow[];
 }
 
-export type TrialState = { status: 'RUNNING' } | { status: 'FINISHED'; result: ScenarioExecuteResponse };
+/** 시험 실행 결과 — 실패한 case 부품에만 trace 가 붙는다 */
+export type TrialResult = Omit<ScenarioExecuteResponse, 'parts'> & { parts: (ScenarioPartResult & { trace?: ItemTrace })[] };
+
+export type TrialState = { status: 'RUNNING' } | { status: 'FINISHED'; result: TrialResult };
 
 export type ScenarioRunRow = Omit<RunSummary, 'counts'> & {
   scenarioId: number;
