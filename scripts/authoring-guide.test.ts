@@ -43,6 +43,8 @@ describe('가이드읽기', () => {
     expect(가이드읽기({ ...판, intro: null })).toBeNull();
     expect(가이드읽기({ ...판, files: [{ id: '1', name: 'a.md', section: 'intro' }] })).toBeNull();
     expect(가이드읽기(null)).toBeNull();
+    expect(가이드읽기({ ...판, files: [{ id: 1, name: 'a.md', section: 'policy ' }] })).toBeNull();
+    expect(가이드읽기({ ...판, files: [{ id: 1, name: 'a.md', section: 'toString' }] })).toBeNull();
   });
 });
 
