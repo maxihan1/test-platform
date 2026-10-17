@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { 합칠까, main합치기 } from './authoring-main-merge.js';
+import { 배운것합치기, 합칠까, main합치기 } from './authoring-main-merge.js';
 import type { 부품합치기, 세판 } from './authoring-po-merge.js';
 
 // GIT_* 를 전부 뺀다 — pre-push 훅 안에서는 git 이 GIT_DIR 을 넣어 두어 이 저장소에 커밋한다 (HOOKS.md)
@@ -106,6 +106,42 @@ describe('main합치기 — 가이드 요약 충돌 (PRD-F11-04)', () => {
     const { 트리, 깃, mainSha } = 갈라(3, 3);
     expect(await main합치기({ ...판값, 트리, 깃, mainSha })).toEqual({ 합침: true });
     expect(readFileSync(join(트리, 'docs/cases/PAY.guide.md'), 'utf8')).toContain('main 에 먼저 들어간 요약');
+  });
+});
+
+describe('main합치기 — 「배운 것」 두 쪽 줄 (PRD-F11-05)', () => {
+  const 요약 = (판: number, 본문: string, 배운: string[]) =>
+    [`<!-- guide-version: ${String(판)} -->`, '# PAY 서비스 가이드 요약', '', '## 서비스', 본문, '', '## 배운 것', ...배운, ''].join('\n');
+  const 앞줄 = '- RUN 10 · PAY-001 — 결제 버튼은 약관 체크 뒤에 켜진다';
+
+  it('판이 높은 쪽 본문을 남기고 진 쪽에만 있는 줄을 구획 끝에 더한다', async () => {
+    const { 트리, 깃, mainSha } = 갈라놓기(
+      (t) => 쓰기(t, 'docs/cases/PAY.guide.md', 요약(3, '요청 본문', [앞줄, '- RUN 12 · PAY-002 — 요청이 배운 것'])),
+      (t) => 쓰기(t, 'docs/cases/PAY.guide.md', 요약(2, 'main 본문', [앞줄, '- RUN 11 · PAY-003 — main 이 배운 것'])),
+      (t) => {
+        쓰기(t, 'tests/pay/PAY-001.spec.ts', 케이스('PAY-001', '첫 케이스'));
+        쓰기(t, 'docs/cases/PAY.md', 표('바탕', [줄(1, 'PAY-001')]));
+        쓰기(t, 'docs/cases/PAY.guide.md', 요약(2, '바탕 본문', [앞줄]));
+      },
+    );
+    expect(await main합치기({ ...판값, 트리, 깃, mainSha })).toEqual({ 합침: true });
+    expect(readFileSync(join(트리, 'docs/cases/PAY.guide.md'), 'utf8')).toBe(
+      요약(3, '요청 본문', [앞줄, '- RUN 12 · PAY-002 — 요청이 배운 것', '- RUN 11 · PAY-003 — main 이 배운 것']),
+    );
+  });
+});
+
+describe('배운것합치기', () => {
+  it('이긴 쪽에 구획이 없으면 끝에 구획을 만든다 · 더할 줄이 없으면 그대로다', () => {
+    const 이긴 = '<!-- guide-version: 4 -->\n# PAY 서비스 가이드 요약\n\n## 서비스\n본문\n';
+    expect(배운것합치기(이긴, '## 배운 것\n- RUN 1 · PAY-001 — 기다린다\n')).toBe(`${이긴}\n## 배운 것\n- RUN 1 · PAY-001 — 기다린다\n`);
+    expect(배운것합치기(이긴, '## 배운 것\n')).toBe(이긴);
+  });
+
+  it('같은 RUN · tcId 는 까닭이 달라도 한 줄만 남긴다 · 다른 구획의 같은 줄과는 견주지 않는다', () => {
+    const 이긴 = '## 서비스\n- RUN 2 · PAY-002 — 본문에 우연히 같은 줄\n\n## 배운 것\n- RUN 1 · PAY-001 — 요청이 적은 까닭\n';
+    const 진 = '## 배운 것\n- RUN 1 · PAY-001 — main 이 적은 까닭\n- RUN 2 · PAY-002 — 본문에 우연히 같은 줄\n- RUN 2 · PAY-002 — 본문에 우연히 같은 줄\n';
+    expect(배운것합치기(이긴, 진)).toBe(`${이긴}- RUN 2 · PAY-002 — 본문에 우연히 같은 줄\n`);
   });
 });
 

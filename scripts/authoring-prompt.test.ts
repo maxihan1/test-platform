@@ -146,7 +146,10 @@ describe('줄프롬프트 — 서비스 가이드 절 (§3.6 「★ 서비스 �
     expect(글).toContain('기대값의 근거가 아니다');
   });
 
-  it('가이드가 없으면 절이 없다', () => {
-    expect(줄프롬프트(것, 'MKT', [])).not.toContain('--- 서비스 가이드 ---');
+  it('판이 0 이어도 요약 자리를 알린다 — 「배운 것」은 가이드가 없어도 쌓인다 (PRD-F11-05)', () => {
+    const 글 = 줄프롬프트(것, 'MKT', [], undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, { 판: 0, 글: '/w/자료/guide/guide.md' });
+    expect(글).toContain('서비스 가이드가 없다(판 0).');
+    expect(글).not.toContain('/w/자료/guide/guide.md');
+    expect(글).toContain('`docs/cases/MKT.guide.md`');
   });
 });
