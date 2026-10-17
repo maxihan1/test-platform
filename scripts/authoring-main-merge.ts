@@ -32,6 +32,32 @@ export function 합칠까(main바뀐것: string[], 표경로: string, 폴더: st
   return main바뀐것.some((f) => f === 표경로 || f === 요약경로(표경로) || f.startsWith(`tests/${폴더}/`));
 }
 
+const 배운구획 = '## 배운 것';
+
+/** 「배운 것」 구획의 시작 줄 · 끝(다음 구획 또는 글 끝) — 없으면 null */
+function 배운자리(줄들: string[]): { 시작: number; 끝: number } | null {
+  const 시작 = 줄들.findIndex((l) => l.trim() === 배운구획);
+  if (시작 < 0) return null;
+  const 끝 = 줄들.findIndex((l, i) => i > 시작 && l.startsWith('## '));
+  return { 시작, 끝: 끝 < 0 ? 줄들.length : 끝 };
+}
+
+/** 이긴 쪽 요약에 진 쪽에만 있는 「배운 것」 줄을 구획 끝에 더한다 (§3.6 「★ 서비스 가이드」 「배운 것」) */
+export function 배운것합치기(이긴: string, 진: string): string {
+  const 이긴줄 = 이긴.replace(/\n+$/, '').split('\n');
+  const 진줄 = 진.split('\n');
+  const 진자리 = 배운자리(진줄);
+  const 있는 = new Set(이긴줄);
+  const 더할 = 진자리 === null ? [] : 진줄.slice(진자리.시작 + 1, 진자리.끝).filter((l) => l.startsWith('- ') && !있는.has(l));
+  if (더할.length === 0) return 이긴;
+  const 자리 = 배운자리(이긴줄);
+  if (자리 === null) return [...이긴줄, '', 배운구획, ...더할, ''].join('\n');
+  let 넣을곳 = 자리.끝;
+  while (넣을곳 > 자리.시작 + 1 && 이긴줄[넣을곳 - 1]?.trim() === '') 넣을곳 -= 1;
+  이긴줄.splice(넣을곳, 0, ...더할);
+  return `${이긴줄.join('\n')}\n`;
+}
+
 /**
  * 트리 안의 보통 파일인가 — 링크면 따라가지 않는다. 에이전트는 root 로 돌고 트리는 자식이 쓴 브랜치다.
  * 링크 표를 따라가 읽고 쓰면 링크가 가리키는 서버 파일을 바꾼다 (보안 검토 2026-10-01)
@@ -113,11 +139,15 @@ export async function main합치기(판: 합칠판): Promise<{ 합침: boolean }
     const 남의것 = 충돌.filter((f) => f !== 표경로 && f !== 요약 && !부품겹침.includes(f));
     if (남의것.length > 0) return 되돌리기(`main 과 같은 파일을 고쳐 합치지 못했다 — ${남의것.join(' · ')}. 다시 작성한다`);
     if (충돌.includes(요약)) {
-      // 같은 가이드를 둘이 요약했다 — 판이 높은 쪽(같으면 먼저 들어간 main)을 남긴다. 요약 때문에 케이스를 다시 쓰지 않는다
-      // ponytail: 한쪽 「배운 것」 줄은 버려진다. PRD-F11-05 가 쌓기 시작해 줄이 사라지면 두 쪽 줄을 합친다
-      const 요약판 = (r: string) => Number(/^<!-- guide-version: (\d+) -->/.exec(깃(['show', `${r}:${요약}`]).낸것)?.[1] ?? -1);
-      const 쪽 = 요약판('HEAD') > 요약판(mainSha) ? '--ours' : '--theirs';
-      if (!깃(['checkout', 쪽, '--', 요약]).ok || !깃(['add', '--', 요약]).ok) return 되돌리기(`가이드 요약을 합치지 못했다 — ${요약}. 다시 작성한다`);
+      // 같은 가이드를 둘이 요약했다 — 판이 높은 쪽(같으면 먼저 들어간 main) 본문을 남긴다. 요약 때문에 케이스를 다시 쓰지 않는다
+      // 「배운 것」은 두 요청이 각자 쌓은 줄이라 진 쪽 줄도 살린다 (PRD-F11-05)
+      const 요청글 = 깃(['show', `HEAD:${요약}`]).낸것;
+      const main글 = 깃(['show', `${mainSha}:${요약}`]).낸것;
+      const 판 = (글: string) => Number(/^<!-- guide-version: (\d+) -->/.exec(글)?.[1] ?? -1);
+      const 남길 = 판(요청글) > 판(main글) ? 배운것합치기(요청글, main글) : 배운것합치기(main글, 요청글);
+      if (!안전한파일(트리, 요약)) return 되돌리기(`가이드 요약이 보통 파일이 아니다 — ${요약}. 다시 작성한다`);
+      writeFileSync(join(트리, 요약), 남길);
+      if (!깃(['add', '--', 요약]).ok) return 되돌리기(`가이드 요약을 합치지 못했다 — ${요약}. 다시 작성한다`);
     }
     if (충돌.includes(표경로)) {
       // 바탕(1번 자리)이 없으면 양쪽이 표를 처음 만든 것이다 — 덩이로 풀면 표 둘이 통째로 섞인다
