@@ -24,9 +24,12 @@ export interface 합칠판 {
   부품합치기: 부품합치기;
 }
 
-/** main 이 갈라진 뒤 이 서비스의 표나 테스트 폴더를 바꿨나 — 다른 서비스 반영으로 main 이 움직일 때마다 합치면 반영마다 CI 를 한 번 더 돈다 */
+/** 가이드 요약 `docs/cases/<접두사>.guide.md` — 표 옆에 둔다 (§3.6 「★ 서비스 가이드」) */
+const 요약경로 = (표경로: string) => 표경로.replace(/\.md$/, '.guide.md');
+
+/** main 이 갈라진 뒤 이 서비스의 표 · 가이드 요약 · 테스트 폴더를 바꿨나 — 다른 서비스 반영으로 main 이 움직일 때마다 합치면 반영마다 CI 를 한 번 더 돈다 */
 export function 합칠까(main바뀐것: string[], 표경로: string, 폴더: string): boolean {
-  return main바뀐것.some((f) => f === 표경로 || f.startsWith(`tests/${폴더}/`));
+  return main바뀐것.some((f) => f === 표경로 || f === 요약경로(표경로) || f.startsWith(`tests/${폴더}/`));
 }
 
 /**
@@ -106,8 +109,16 @@ export async function main합치기(판: 합칠판): Promise<{ 합침: boolean }
   if (!합침.ok) {
     const 충돌 = 깃(['diff', '--name-only', '-z', '--diff-filter=U']).낸것.split('\0').filter((f) => f !== '');
     if (충돌.length === 0) return 되돌리기(`main 을 합치지 못했다: ${합침.까닭 ?? ''}`);
-    const 남의것 = 충돌.filter((f) => f !== 표경로 && !부품겹침.includes(f));
+    const 요약 = 요약경로(표경로);
+    const 남의것 = 충돌.filter((f) => f !== 표경로 && f !== 요약 && !부품겹침.includes(f));
     if (남의것.length > 0) return 되돌리기(`main 과 같은 파일을 고쳐 합치지 못했다 — ${남의것.join(' · ')}. 다시 작성한다`);
+    if (충돌.includes(요약)) {
+      // 같은 가이드를 둘이 요약했다 — 판이 높은 쪽(같으면 먼저 들어간 main)을 남긴다. 요약 때문에 케이스를 다시 쓰지 않는다
+      // ponytail: 한쪽 「배운 것」 줄은 버려진다. PRD-F11-05 가 쌓기 시작해 줄이 사라지면 두 쪽 줄을 합친다
+      const 요약판 = (r: string) => Number(/^<!-- guide-version: (\d+) -->/.exec(깃(['show', `${r}:${요약}`]).낸것)?.[1] ?? -1);
+      const 쪽 = 요약판('HEAD') > 요약판(mainSha) ? '--ours' : '--theirs';
+      if (!깃(['checkout', 쪽, '--', 요약]).ok || !깃(['add', '--', 요약]).ok) return 되돌리기(`가이드 요약을 합치지 못했다 — ${요약}. 다시 작성한다`);
+    }
     if (충돌.includes(표경로)) {
       // 바탕(1번 자리)이 없으면 양쪽이 표를 처음 만든 것이다 — 덩이로 풀면 표 둘이 통째로 섞인다
       if (!깃(['ls-files', '-u', '--', 표경로]).낸것.split('\n').some((l) => /\s1\t/.test(l))) {

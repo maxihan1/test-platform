@@ -27,6 +27,7 @@ import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } 
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
+import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
 import { 화면지도준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
@@ -177,6 +178,9 @@ async function 사본에서(
     await 손.끝내기({ status: 'FAILED', error: 못읽음 });
     return;
   }
+  // 믿을 수 없는 파일을 여는 것이라 root 가 아니라 자리 uid 로, 토큰 없는 환경으로 연다 — 작성 자료와 서비스 가이드 첨부가 같이 쓴다
+  const 바꾸기: 바꾸기 = (변환, 폴더) =>
+    친다(변환.명령, 변환.인자, 폴더, undefined, 120_000, 자식 === null ? {} : { ...자식, env: 자식빈환경({ HOME: 자리.집, TMPDIR: 자리.임시 }) });
   if (계획.some((c) => c.kind === 'FILE')) await 손.단계('자료를 받는 중');
   for (const c of 계획) {
     if (c.kind !== 'FILE') continue;
@@ -192,20 +196,14 @@ async function 사본에서(
     // 바이트 그대로 쓴다. 글자로 읽으면 PDF·워드가 깨진다. 자식이 읽도록 0644 — 폴더가 자식 것이라 남은 못 본다
     writeFileSync(c.받을자리, 답.몸, { mode: 0o644 });
     if (c.변환 === null) continue;
-    // 믿을 수 없는 파일을 여는 것이라 root 가 아니라 자리 uid 로, 토큰 없는 환경으로 연다
-    const 바꾼것 = 친다(
-      c.변환.명령,
-      c.변환.인자,
-      자리.자료,
-      undefined,
-      120_000,
-      자식 === null ? {} : { ...자식, env: 자식빈환경({ HOME: 자리.집, TMPDIR: 자리.임시 }) },
-    );
+    const 바꾼것 = 바꾸기(c.변환, 자리.자료);
     if (!바꾼것.ok) {
       await 손.끝내기({ status: 'FAILED', error: `자료 「${c.name}」 을 글자로 못 바꿨다: ${바꾼것.까닭}` });
       return;
     }
   }
+  // 서비스 가이드는 먼저가리기 앞에 받는다 — 자료 폴더째 가려 guide/ 의 계정 비밀번호도 가려진다. 못 받아도 간다 (§3.6 「★ 서비스 가이드」)
+  const 가이드판 = await 가이드받기({ 주소기지, 토큰 }, 서비스, 것.id, 자리.자료, 바꾸기, 자식);
   // 대조 · 반영 — 자식을 띄우기 전에 기획서·앞 실행이 남긴 파일·본문에서 비밀번호(역할 계정까지)를 먼저 가린다 (§3.6 「★ 역방향」 · 「★ 역할별 계정」)
   const 가림 = 먼저가리기(것.id, 계획, 자리, 본문, 비밀번호들(것));
   if ('사유' in 가림) return void (await 손.끝내기({ status: 'FAILED', error: 가림.사유 }));
@@ -244,7 +242,7 @@ async function 사본에서(
   const { 돌린것, 크레딧으로 } = await 크레딧먼저(process.env[크레딧키이름] || undefined, (키) => 박동.자식동안(재기, (신호) =>
     돌린다(자식 === null ? 'claude' : 'sh', 자식 === null ? 인자 : ['-c', 'umask 077 && exec claude "$@"', 'sh', ...인자], {
       cwd: 자리.트리,
-      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 옮긴다 ? { ...기획서.입력, 원본: 원장.원본입력, 자료폴더: 자리.자료 } : undefined, 원장.반영),
+      input: 줄프롬프트({ ...것, specText: 가림.본문 }, 서비스, 계획, { 폴더: 케이스자리, 서버들: 설정.서버들 }, 역방향, 방.이어하기, 원장.입력, 원장.이어작성, join(자리.자료, 'resume-memo.md'), 옮긴다 ? { ...기획서.입력, 원본: 원장.원본입력, 자료폴더: 자리.자료 } : undefined, 원장.반영, 가이드판 === 0 ? undefined : { 판: 가이드판, 글: join(가이드폴더(자리.자료), 'guide.md') }),
       env: 결제환경(환경, 키),
       uid: 자식?.uid,
       gid: 자식?.gid,

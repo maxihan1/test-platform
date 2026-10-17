@@ -17,7 +17,7 @@ const utf8 = new TextDecoder('utf-8', { fatal: true });
  * 파일 하나를 가려 다시 쓴다. 에이전트는 root 라 앞 자식이 남긴 것을 조심한다 —
  * 링크 · 하드링크 · 울타리 밖 실제 경로는 건너뛴다(`모양보기`·`파일거부사유` 와 같은 관례). UTF-8 이 아니면 부수지 않게 건너뛴다
  */
-function 파일가리기(자리: string, 울타리: string, 비밀: readonly string[]): number {
+export function 파일가리기(자리: string, 울타리: string, 가리기: (글: string) => string): number {
   const 것 = lstatSync(자리, { throwIfNoEntry: false });
   if (것 === undefined || !것.isFile() || 것.nlink !== 1 || 것.size > 파일상한) return 0;
   if (!realpathSync(자리).startsWith(울타리 + sep)) return 0;
@@ -29,7 +29,7 @@ function 파일가리기(자리: string, 울타리: string, 비밀: readonly str
   } catch {
     return 0;
   }
-  const 가림 = 비밀가리기(글, 비밀);
+  const 가림 = 가리기(글);
   if (가림 === 글) return 0;
   writeFileSync(자리, 가림);
   return 1;
@@ -39,7 +39,7 @@ function 파일가리기(자리: string, 울타리: string, 비밀: readonly str
 function 폴더가리기(자리: string, 울타리: string, 비밀: readonly string[]): number {
   const 것 = lstatSync(자리, { throwIfNoEntry: false });
   if (것 === undefined || 것.isSymbolicLink()) return 0;
-  if (!것.isDirectory()) return 파일가리기(자리, 울타리, 비밀);
+  if (!것.isDirectory()) return 파일가리기(자리, 울타리, (글) => 비밀가리기(글, 비밀));
   return readdirSync(자리).reduce((n, 이름) => n + 폴더가리기(join(자리, 이름), 울타리, 비밀), 0);
 }
 
@@ -74,7 +74,7 @@ function 가리기(번호: number, 계획: 읽을자료[], 자리: 사본, 본�
   });
   if (!상태.ok) throw new Error(`바뀐 파일을 못 읽었다: ${상태.까닭}`);
   const 트리울타리 = realpathSync(자리.트리);
-  for (const f of 가릴트리파일(바뀐파일들(상태.낸것))) 수 += 파일가리기(join(자리.트리, f), 트리울타리, 비밀);
+  for (const f of 가릴트리파일(바뀐파일들(상태.낸것))) 수 += 파일가리기(join(자리.트리, f), 트리울타리, (글) => 비밀가리기(글, 비밀));
   if (수 > 0) console.log(`[작성] ${번호}번 — 비밀번호를 가린 파일 ${수}개`);
   return 본문 === null ? null : 비밀가리기(본문, 비밀);
 }

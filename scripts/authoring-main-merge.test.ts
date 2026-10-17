@@ -76,6 +76,37 @@ describe('합칠까', () => {
     expect(합칠까(['tests/pay/PAY-040.spec.ts'], 'docs/cases/PAY.md', 'pay')).toBe(true);
     expect(합칠까(['tests/mkt/MKT-001.spec.ts', 'docs/cases/MKT.md', 'apps/admin/src/x.ts'], 'docs/cases/PAY.md', 'pay')).toBe(false);
   });
+
+  it('main 이 이 서비스의 가이드 요약만 바꿔도 합친다 (PRD-F11-04)', () => {
+    expect(합칠까(['docs/cases/PAY.guide.md'], 'docs/cases/PAY.md', 'pay')).toBe(true);
+    expect(합칠까(['docs/cases/MKT.guide.md'], 'docs/cases/PAY.md', 'pay')).toBe(false);
+  });
+});
+
+describe('main합치기 — 가이드 요약 충돌 (PRD-F11-04)', () => {
+  const 요약 = (판: number, 글: string) => `<!-- guide-version: ${String(판)} -->\n# PAY 서비스 가이드 요약\n\n${글}\n`;
+  const 갈라 = (요청판: number, main판: number) =>
+    갈라놓기(
+      (t) => 쓰기(t, 'docs/cases/PAY.guide.md', 요약(요청판, '요청이 쓴 요약')),
+      (t) => 쓰기(t, 'docs/cases/PAY.guide.md', 요약(main판, 'main 에 먼저 들어간 요약')),
+      (t) => {
+        쓰기(t, 'tests/pay/PAY-001.spec.ts', 케이스('PAY-001', '첫 케이스'));
+        쓰기(t, 'docs/cases/PAY.md', 표('바탕', [줄(1, 'PAY-001')]));
+        쓰기(t, 'docs/cases/PAY.guide.md', 요약(1, '바탕 요약'));
+      },
+    );
+
+  it('판이 높은 쪽 요약을 남기고 다시 작성하지 않는다', async () => {
+    const { 트리, 깃, mainSha } = 갈라(3, 2);
+    expect(await main합치기({ ...판값, 트리, 깃, mainSha })).toEqual({ 합침: true });
+    expect(readFileSync(join(트리, 'docs/cases/PAY.guide.md'), 'utf8')).toContain('요청이 쓴 요약');
+  });
+
+  it('판이 같으면 main 쪽을 남긴다', async () => {
+    const { 트리, 깃, mainSha } = 갈라(3, 3);
+    expect(await main합치기({ ...판값, 트리, 깃, mainSha })).toEqual({ 합침: true });
+    expect(readFileSync(join(트리, 'docs/cases/PAY.guide.md'), 'utf8')).toContain('main 에 먼저 들어간 요약');
+  });
 });
 
 describe('main 합치기', () => {
