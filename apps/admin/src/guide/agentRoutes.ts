@@ -3,11 +3,10 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { readFile } from 'node:fs/promises';
-
 import { 번호 } from '../authoring/params.js';
 import { 도는집은요청 } from '../prd/agentRoutes.js';
-import { 가이드파일자리, 내려받기 } from './routes.js';
+import { 내려받기 } from '../authoring/assets.js';
+import { 가이드파일읽기 } from './routes.js';
 import { 지금가이드 } from './store.js';
 
 export default async function guideAgentRoutes(app: FastifyInstance): Promise<void> {
@@ -32,6 +31,7 @@ export default async function guideAgentRoutes(app: FastifyInstance): Promise<vo
     const 번 = 번호(req.params.fileId);
     const 파일 = (await 지금가이드(행.serviceId)).files.find((f) => f.id === 번);
     if (파일 === undefined) return reply.code(404).send({ error: 'NOT_FOUND' });
-    return 내려받기(reply, 파일.name, await readFile(가이드파일자리(행.serviceId, 파일)));
+    const 몸 = await 가이드파일읽기(행.serviceId, 파일);
+    return 몸 === null ? reply.code(404).send({ error: 'NOT_FOUND' }) : 내려받기(reply, 파일.name, 몸);
   });
 }

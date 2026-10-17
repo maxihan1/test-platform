@@ -96,11 +96,11 @@ export async function 판하나(서비스: number, version: number): Promise<{ v
  * 서비스마다 저장을 한 줄로 세운다. 판 번호를 읽고 넣는 사이에 다른 저장이 끼면 둘이 같은 번호를 노린다 —
  * PK (service_id, version) 가 마지막 그물이다. 트랜잭션 잠금이라 끝나면 저절로 풀린다
  */
-export async function 잠그고<T>(서비스: number, 일: (손: PoolClient) => Promise<T>): Promise<T> {
+export async function 잠그고<T>(서비스: number, 일: (손: PoolClient) => Promise<T>, 열쇠: 'prd' | 'guide' = 'prd'): Promise<T> {
   const 손 = await (await db()).connect();
   try {
     await 손.query('BEGIN');
-    await 손.query(`SELECT pg_advisory_xact_lock(hashtext('prd'), ($1::bigint % 2147483647)::int)`, [서비스]);
+    await 손.query(`SELECT pg_advisory_xact_lock(hashtext($2), ($1::bigint % 2147483647)::int)`, [서비스, 열쇠]);
     const 결과 = await 일(손);
     await 손.query('COMMIT');
     return 결과;

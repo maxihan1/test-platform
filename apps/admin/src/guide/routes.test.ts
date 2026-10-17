@@ -207,6 +207,12 @@ describe.skipIf(연결 === undefined)('서비스 가이드 API', () => {
     }
   });
 
+  it('행은 있는데 디스크에 파일이 없으면 500 이 아니라 404', async () => {
+    const { fileId } = (await 올리기('section=intro&baseVersion=0&name=a.md', 'A')).json<{ fileId: number }>();
+    await rm(join(뿌리, 'service-guide', String(서비스), `${String(fileId)}.md`));
+    for (const 끝 of ['', '/text', '/pdf']) expect((await 부르기('GET', `/guide/files/${String(fileId)}${끝}`)).statusCode).toBe(404);
+  });
+
   describe('에이전트 통로', () => {
     const 요청넣기 = async (status: string) => {
       const r = await q<{ id: string }>(

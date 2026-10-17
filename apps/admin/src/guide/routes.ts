@@ -6,10 +6,10 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
-import { 디스크이름, 머리글이름, 받는확장자, 이름인가, 파일상한 } from '../authoring/assets.js';
+import { 내려받기, 디스크이름, 머리글이름, 받는확장자, 이름인가, 파일상한 } from '../authoring/assets.js';
 import { 번호, 사진뿌리, 서비스번호 } from '../authoring/routes.js';
-import { 누가 } from '../prd/routes.js';
-import { 구획인가, 글검사, 판번호 } from './rules.js';
+import { 누가, 판번호 } from '../prd/routes.js';
+import { 구획인가, 글검사, 글자판번호 } from './rules.js';
 import { 글저장, 기록, 지금가이드, 파일더하기, 파일빼기, 파일한건, 판가이드 } from './store.js';
 import { PDF인가, 글자뽑기 } from './text.js';
 
@@ -20,16 +20,15 @@ type 파일경로 = 질의 & { Params: { fileId: string } };
 export const 가이드파일자리 = (서비스: number, 파일: { id: number; name: string }) =>
   join(사진뿌리(), 'service-guide', String(서비스), 디스크이름(파일.id, 파일.name));
 
-const 틀린칸 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'BAD_GUIDE', detail });
-
-/** 내려받기 머리글은 §7 「자료」 그대로다 — 브라우저가 열지 못하게 준다 */
-export function 내려받기(reply: FastifyReply, 이름: string, 몸: Buffer) {
-  return reply
-    .header('content-type', 'application/octet-stream')
-    .header('content-disposition', `attachment; filename*=UTF-8''${머리글이름(이름)}`)
-    .header('x-content-type-options', 'nosniff')
-    .send(몸);
+/** 디스크의 첨부. 행은 있는데 파일이 없으면(볼륨을 옮기다 빠뜨렸다) null — 라우트가 404 로 보낸다 */
+export async function 가이드파일읽기(서비스: number, 파일: { id: number; name: string }): Promise<Buffer | null> {
+  return readFile(가이드파일자리(서비스, 파일)).catch((e: NodeJS.ErrnoException) => {
+    if (e.code === 'ENOENT') return null;
+    throw e;
+  });
 }
+
+const 틀린칸 = (reply: FastifyReply, detail: string) => reply.code(400).send({ error: 'BAD_GUIDE', detail });
 
 function 보내기(reply: FastifyReply, 결과: { error: string } | object, 성공코드 = 200) {
   if (!('error' in 결과)) return reply.code(성공코드).send(결과);
@@ -57,7 +56,7 @@ export default async function guideRoutes(app: FastifyInstance): Promise<void> {
   app.get<질의 & { Params: { version: string } }>('/guide/versions/:version', async (req, reply) => {
     const 서비스 = await 서비스번호(req, reply);
     if (서비스 === null) return reply;
-    const version = 판번호(req.params.version, 1);
+    const version = 글자판번호(req.params.version, 1);
     if (version === null) return 틀린칸(reply, 'version');
     return (await 판가이드(서비스, version)) ?? reply.code(404).send({ error: 'NOT_FOUND' });
   });
@@ -77,7 +76,7 @@ export default async function guideRoutes(app: FastifyInstance): Promise<void> {
     if (서비스 === null) return reply;
     const { section, name: 이름 } = req.query;
     if (!구획인가(section)) return 틀린칸(reply, 'section');
-    const baseVersion = 판번호(req.query.baseVersion);
+    const baseVersion = 글자판번호(req.query.baseVersion);
     if (baseVersion === null) return 틀린칸(reply, 'baseVersion');
     // ?name= 이 두 번 오면 배열로 온다
     if (typeof 이름 !== 'string' || !이름인가(이름)) return reply.code(400).send({ error: 'BAD_NAME' });
@@ -94,7 +93,7 @@ export default async function guideRoutes(app: FastifyInstance): Promise<void> {
     if (서비스 === null) return reply;
     const 파일 = 번호(req.params.fileId);
     if (파일 === null) return reply.code(404).send({ error: 'NOT_FOUND' });
-    const baseVersion = 판번호(req.query.baseVersion);
+    const baseVersion = 글자판번호(req.query.baseVersion);
     if (baseVersion === null) return 틀린칸(reply, 'baseVersion');
     return 보내기(reply, await 파일빼기(서비스, baseVersion, 파일, 누가(req)));
   });
@@ -109,7 +108,12 @@ export default async function guideRoutes(app: FastifyInstance): Promise<void> {
       await reply.code(404).send({ error: 'NOT_FOUND' });
       return null;
     }
-    return { 파일, 몸: await readFile(가이드파일자리(서비스, 파일)) };
+    const 몸 = await 가이드파일읽기(서비스, 파일);
+    if (몸 === null) {
+      await reply.code(404).send({ error: 'NOT_FOUND' });
+      return null;
+    }
+    return { 파일, 몸 };
   }
 
   app.get<파일경로>('/guide/files/:fileId', async (req, reply) => {

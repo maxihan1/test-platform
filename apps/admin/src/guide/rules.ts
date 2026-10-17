@@ -15,10 +15,11 @@ export const 구획인가 = (값: unknown): 값 is GuideSection => 구획들.inc
 export type 글셋 = Record<GuideSection, string>;
 export type 판파일 = { id: number; section: GuideSection };
 
-/** 판 번호 칸. 질의 글자로도 숫자로도 온다 — 0 은 「아직 가이드가 없다」 */
-export function 판번호(값: unknown, 최소 = 0): number | null {
-  const n = typeof 값 === 'number' ? 값 : typeof 값 === 'string' && /^\d{1,10}$/.test(값) ? Number(값) : NaN;
-  return Number.isSafeInteger(n) && n >= 최소 ? n : null;
+/** 질의 · 경로 글자의 판 번호. 0 은 「아직 가이드가 없다」. JSON 본문의 판 번호는 표준 기획서와 같이 숫자만 받는다(prd/routes.ts `판번호`) */
+export function 글자판번호(값: unknown, 최소 = 0): number | null {
+  if (typeof 값 !== 'string' || !/^\d{1,10}$/.test(값)) return null;
+  const n = Number(값);
+  return n >= 최소 ? n : null;
 }
 
 /** 글 저장 본문의 글 셋. 틀리면 그 칸 이름 */

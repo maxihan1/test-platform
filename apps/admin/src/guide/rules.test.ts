@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
 
-import { 글검사, 글상한, 변경기록, 판번호 } from './rules.js';
+import { 글검사, 글상한, 글자판번호, 변경기록 } from './rules.js';
 
 const md5 = (s: string) => createHash('md5').update(s).digest('hex');
 const 판 = (version: number, 글: [string, string, string], files: { id: number; section: 'intro' | 'policy' | 'rules' }[]) => ({
@@ -15,12 +15,12 @@ const 판 = (version: number, 글: [string, string, string], files: { id: number
   savedByName: '검사',
 });
 
-describe('판번호', () => {
-  it('숫자 · 숫자 글자를 받고 음수 · 소수 · 1e3 · 빈 값은 거른다', () => {
-    expect(판번호(0)).toBe(0);
-    expect(판번호('3')).toBe(3);
-    expect(판번호('0', 1)).toBeNull();
-    for (const 틀림 of [-1, 1.5, '1e3', '', '-1', undefined, null]) expect(판번호(틀림)).toBeNull();
+describe('글자판번호', () => {
+  it('숫자 글자만 받고 음수 · 소수 · 1e3 · 빈 값 · 숫자 값은 거른다', () => {
+    expect(글자판번호('0')).toBe(0);
+    expect(글자판번호('3')).toBe(3);
+    expect(글자판번호('0', 1)).toBeNull();
+    for (const 틀림 of ['-1', '1.5', '1e3', '', 3, undefined, null]) expect(글자판번호(틀림)).toBeNull();
   });
 });
 

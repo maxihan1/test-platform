@@ -6,7 +6,7 @@ import type { Pool, PoolClient } from 'pg';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
-import type { 저장하는사람 } from '../prd/store.js';
+import { 잠그고 as 표준잠그고, type 저장하는사람 } from '../prd/store.js';
 import { 변경기록, 지금판파일상한, 통틀어파일상한, type 글셋, type 판파일 } from './rules.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
@@ -121,22 +121,8 @@ export async function 파일한건(서비스: number, 파일: number): Promise<{
   return r.rows[0] === undefined ? null : { id: Number(r.rows[0].id), name: r.rows[0].name };
 }
 
-/** 서비스마다 고치기를 한 줄로 세운다 — 표준 기획서 저장과 같은 까닭(prd/store.ts `잠그고`). 잠금 열쇠는 'guide' 로 가른다 */
-async function 잠그고<T>(서비스: number, 일: (손: PoolClient) => Promise<T>): Promise<T> {
-  const 손 = await (await db()).connect();
-  try {
-    await 손.query('BEGIN');
-    await 손.query(`SELECT pg_advisory_xact_lock(hashtext('guide'), ($1::bigint % 2147483647)::int)`, [서비스]);
-    const 결과 = await 일(손);
-    await 손.query('COMMIT');
-    return 결과;
-  } catch (err) {
-    await 손.query('ROLLBACK');
-    throw err;
-  } finally {
-    손.release();
-  }
-}
+// 서비스마다 고치기를 한 줄로 세운다 — 표준 기획서 저장과 같은 까닭이고 잠금 열쇠만 가른다
+const 잠그고 = <T>(서비스: number, 일: (손: PoolClient) => Promise<T>) => 표준잠그고(서비스, 일, 'guide');
 
 async function 판넣기(손: PoolClient, 서비스: number, 앞: 판행 | null, 글: 글셋, files: 판파일[], 사람: 저장하는사람): Promise<number> {
   const version = (앞?.version ?? 0) + 1;

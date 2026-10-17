@@ -3,6 +3,7 @@
 import JSZip from 'jszip';
 
 import { extname } from 'node:path';
+import type { Readable } from 'node:stream';
 
 // 압축을 푼 본문 상한. 압축 폭탄으로 서버 메모리가 넘치지 않게 (§3.6 「열기」)
 export const 풀기상한 = 20 * 1024 * 1024;
@@ -15,28 +16,51 @@ const 풀기 = (글: string) =>
     십육 !== undefined ? 번호글자(Number.parseInt(십육, 16)) : 십 !== undefined ? 번호글자(Number(십)) : (엔티티[(이름 ?? '').toLowerCase()] ?? ''),
   );
 
-/** document.xml 의 문단마다 w:t 글자를 이어 붙이고 문단끼리는 줄바꿈으로 잇는다 */
+/**
+ * document.xml 의 w:t 글자를 문단마다 한 줄로 잇는다. w:tab 은 탭, w:br · w:cr 은 줄바꿈, 빈 문단(<w:p/>)은 빈 줄이다.
+ * **정규식으로 문단을 잡지 않고 indexOf 로 한 번 훑는다** — 닫히지 않은 `<w:p ` 가 수백만 개인 본문에서
+ * 게으른 정규식은 제곱 시간이 걸려 요청 하나가 서버를 멈춘다(2026-10-17 검토 실측 — 480KB 에 7초)
+ */
 export function 문단글자(xml: string): string {
-  const 문단들 = xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
-  return 문단들.map((p) => [...p.matchAll(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g)].map((m) => 풀기(m[1] ?? '')).join('')).join('\n');
+  const 글: string[] = [];
+  let 글자안 = false;
+  let i = 0;
+  while (i < xml.length) {
+    const 열림 = xml.indexOf('<', i);
+    if (글자안) 글.push(풀기(xml.slice(i, 열림 < 0 ? xml.length : 열림)));
+    if (열림 < 0) break;
+    const 닫힘 = xml.indexOf('>', 열림);
+    if (닫힘 < 0) break;
+    const 태그 = xml.slice(열림 + 1, 닫힘);
+    const 이름 = /^\/?w:[a-zA-Z]+/.exec(태그)?.[0];
+    const 홀로 = 태그.endsWith('/');
+    if (이름 === 'w:t') 글자안 = !홀로;
+    else if (이름 === '/w:t') 글자안 = false;
+    else if (이름 === 'w:tab') 글.push('\t');
+    else if (이름 === 'w:br' || 이름 === 'w:cr') 글.push('\n');
+    else if (이름 === '/w:p' || (이름 === 'w:p' && 홀로)) 글.push('\n');
+    i = 닫힘 + 1;
+  }
+  return 글.join('').replace(/\n$/, '');
 }
 
-/** 압축 목록이 적은 크기를 먼저 보고, 풀면서도 센다 — 목록 숫자는 파일을 만든 쪽이 마음대로 적을 수 있다 */
+/** 풀면서 센다. 압축 목록이 적은 크기는 먼저 보지만 만든 쪽이 마음대로 적을 수 있어(없을 수도 있다) 흐름에서 센 값이 마지막 그물이다 */
 async function 본문풀기(몸: Buffer): Promise<string | null> {
   const zip = await JSZip.loadAsync(몸).catch(() => null);
   const 본문 = zip?.file('word/document.xml');
   if (!본문) return null;
   // 크기는 JSZip 이 공개 타입에 안 싣는다. 압축 목록 값이다
-  const 적은크기 = (본문 as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize ?? 0;
-  if (적은크기 > 풀기상한) return null;
+  const 적은크기 = (본문 as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
+  if (적은크기 !== undefined && 적은크기 > 풀기상한) return null;
   return new Promise((resolve) => {
     const 조각: Buffer[] = [];
     let 합 = 0;
-    const 흐름 = 본문.nodeStream('nodebuffer');
+    const 흐름 = 본문.nodeStream('nodebuffer') as Readable;
     흐름.on('data', (c: Buffer) => {
       합 += c.length;
       if (합 > 풀기상한) {
-        흐름.pause();
+        조각.length = 0;
+        흐름.destroy();
         resolve(null);
         return;
       }

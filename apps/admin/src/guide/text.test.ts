@@ -44,6 +44,22 @@ describe('문단글자', () => {
   it('범위 밖 문자 번호는 던지지 않고 비운다', () => {
     expect(문단글자('<w:p><w:t>a&#99999999;b</w:t></w:p>')).toBe('ab');
   });
+
+  it('탭 · 줄바꿈을 살리고 빈 문단은 빈 줄, 글상자 안 문단 뒤 글자도 잃지 않는다', () => {
+    const xml =
+      '<w:p><w:r><w:t>주문번호</w:t><w:tab/><w:t>qa-로 시작</w:t><w:br/><w:t>둘째 줄</w:t></w:r></w:p>' +
+      '<w:p w:rsidR="00AB"/>' +
+      '<w:p><w:r><w:t>앞</w:t></w:r><w:r><w:txbxContent><w:p><w:r><w:t>상자</w:t></w:r></w:p></w:txbxContent></w:r><w:r><w:t>뒤</w:t></w:r></w:p>' +
+      '<w:p><w:r><w:t/></w:r></w:p>';
+    expect(문단글자(xml)).toBe('주문번호\tqa-로 시작\n둘째 줄\n\n앞상자\n뒤\n');
+  });
+
+  it('닫히지 않은 여는 태그가 수백만 개여도 한 번만 훑는다', () => {
+    const 시작 = Date.now();
+    expect(문단글자('<w:p >'.repeat(2_000_000))).toBe('');
+    expect(문단글자('<'.repeat(5_000_000))).toBe('');
+    expect(Date.now() - 시작).toBeLessThan(3000);
+  });
 });
 
 describe('PDF인가', () => {

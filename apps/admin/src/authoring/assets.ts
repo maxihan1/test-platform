@@ -68,6 +68,18 @@ export function 머리글이름(이름: string): string {
   );
 }
 
+/**
+ * ★ 브라우저가 열지 못하게 준다. 확장자로 text/html 을 짐작하게 두면
+ * 올린 파일이 admin 과 같은 출처에서 열려 로그인 세션으로 스크립트가 돈다. 서비스 가이드 첨부도 이것으로 준다
+ */
+export function 내려받기(reply: FastifyReply, 이름: string, 몸: Buffer) {
+  return reply
+    .header('content-type', 'application/octet-stream')
+    .header('content-disposition', `attachment; filename*=UTF-8''${머리글이름(이름)}`)
+    .header('x-content-type-options', 'nosniff')
+    .send(몸);
+}
+
 /** 요청한 사람의 DRAFT 행인가. 아니면 응답을 보내고 null */
 async function 내준비행(req: FastifyRequest, reply: FastifyReply): Promise<요청 | null> {
   const id = 번호((req.params as { id?: string }).id);
@@ -212,14 +224,7 @@ export default async function authoringAssetRoutes(app: FastifyInstance): Promis
       // 피그마 자료는 파일이 없다. 주소는 상세 응답에 이미 있다
       if (자료 === null || 자료.kind !== 'FILE') return reply.code(404).send({ error: 'NOT_FOUND' });
 
-      const 몸 = await readFile(join(자료폴더(id), 디스크이름(자료.id, 자료.name)));
-      // ★ 브라우저가 열지 못하게 준다. 확장자로 text/html 을 짐작하게 두면
-      // 올린 파일이 admin 과 같은 출처에서 열려 로그인 세션으로 스크립트가 돈다
-      return reply
-        .header('content-type', 'application/octet-stream')
-        .header('content-disposition', `attachment; filename*=UTF-8''${머리글이름(자료.name)}`)
-        .header('x-content-type-options', 'nosniff')
-        .send(몸);
+      return 내려받기(reply, 자료.name, await readFile(join(자료폴더(id), 디스크이름(자료.id, 자료.name))));
     },
   );
 }
