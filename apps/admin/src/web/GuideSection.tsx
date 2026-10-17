@@ -5,15 +5,14 @@ import { useRef, useState } from 'react';
 
 import type { GuideFile, GuideSection as 구획 } from '@platform/kit';
 
+// 고르개와 보내기 전 거르기(Guide.tsx 의 거절사유)가 같은 목록을 본다 — 자료 올리기와 같은 규칙 (도메인/작성 §7 「자료」)
+import { 받는종류 } from './AuthoringNew.js';
 import { guideApi } from './guideApi.js';
 import { use말, use언어 } from './i18n.js';
 import { message, when } from './ui.js';
 
 export const 구획들: 구획[] = ['intro', 'policy', 'rules'];
 export const 구획이름: Record<구획, string> = { intro: '서비스 소개', policy: '정책', rules: '프로젝트 규칙' };
-
-// 서버의 받는 종류와 같다. 값의 정본은 도메인/작성 §7 「자료」 표다
-const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
 
 const 확장자 = (이름: string) => 이름.slice(이름.lastIndexOf('.') + 1).toLowerCase();
 

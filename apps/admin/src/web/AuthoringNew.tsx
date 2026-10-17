@@ -14,7 +14,7 @@ import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
 
 // 서버의 받는 종류와 같다. 값의 정본은 도메인/작성 §7 「자료」 표다
-const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
+export const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
 // 정본: 도메인/작성 §7 「자료」 — 서버 assets.ts 의 파일상한과 같은 값
 const 파일상한 = 20 * 1024 * 1024;
 // 정본: 도메인/작성 §7 「자료」 — 파일과 피그마를 합친 수. 서버 assetStore.ts 의 자료상한과 같은 값
