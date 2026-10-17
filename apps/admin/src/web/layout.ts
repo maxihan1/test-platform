@@ -70,7 +70,10 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
   if (대시보드보나(user)) 목록.push({ 이름: t('대시보드', 언어), 해시: '#/dashboard', 아이콘: 'dashboard' });
   if (기능보나(user, prefix, 'authoring')) {
     // 작성은 표준 기획서를 읽어 테스트를 만든다 — 흐름 차례대로 그 위에 둔다 (화면공통 §8)
-    목록.push({ 이름: t('PRD 관리', 언어), 해시: '#/prd', 아이콘: 'prd' });
+    // 하위 둘 — 요구사항(표준 기획서) · 서비스 가이드 (화면공통 §8 「자리 목록」 · PRD-F11-03)
+    const 이름 = t('PRD 관리', 언어);
+    const 하위 = (글: string, 해시: string): 하위자리 => ({ 이름: t(글, 언어), 해시, 라벨: `${이름} · ${t(글, 언어)}` });
+    목록.push({ 이름, 해시: '#/prd', 아이콘: 'prd', 하위: [하위('요구사항', '#/prd'), 하위('서비스 가이드', '#/prd/guide')] });
     목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring', 아이콘: 'authoring' });
   }
   if (기능보나(user, prefix, 'cases')) {
@@ -107,6 +110,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
   if (name === 'run' || name === 'item') return '#/runs';
   if (name === 'authoring' || name === 'authoringItem') return '#/authoring';
   if (name === 'prd') return '#/prd';
+  if (name === 'prdGuide') return '#/prd/guide';
   if (name === 'scenarios' || name === 'scenarioNew' || name === 'scenario') return '#/scenarios';
   if (name === 'settings') return '#/settings';
   // 비밀번호 변경은 자리 목록에 없다. 집을 돌려주면 케이스에 밑줄이 가서 딴 화면처럼 보인다

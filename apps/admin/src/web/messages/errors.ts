@@ -111,6 +111,12 @@ export const 오류영어: Record<string, string> = {
     'Someone else changed the PRD first. The latest version is loaded. Check it and try again',
   '요구 번호가 999 까지 찼습니다. 더 넣으려면 운영자와 정합니다':
     'Requirement IDs are used up to 999. Talk to an admin before adding more',
+  '다른 사람이 먼저 가이드를 바꿨습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다':
+    'Someone else changed the guide first. The latest version is loaded. Check it and try again',
+  '첨부 파일 수가 상한에 닿았습니다. 지금 버전은 20개, 서비스 전체는 뺀 것까지 200개입니다':
+    'Attachment limit reached: 20 in the current version, 200 per service including removed ones',
+  '글이 너무 깁니다. 구획마다 20,000자까지입니다': 'Too long. Each section takes up to 20,000 characters',
+  '글자를 뽑을 수 없는 파일입니다. 파일 이름을 눌러 내려받습니다': 'This file has no readable text. Click the file name to download it',
   '테스트에 반영할 바뀐 요구가 없습니다': 'No changed requirements to apply to tests',
   '이미 열린 반영 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤 다시 누릅니다':
     'An apply request is already open. Merge or discard it, then try again',
