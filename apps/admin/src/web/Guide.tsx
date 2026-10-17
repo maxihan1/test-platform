@@ -1,0 +1,121 @@
+// 「PRD 관리 › 서비스 가이드」 화면 — 서비스 소개 · 정책 · 프로젝트 규칙을 글로 쓰고 문서로 첨부한다 (도메인/작성 §3.6 「★ 서비스 가이드」 · 2026-10-17 시안 A)
+// 글 저장 · 파일 더하기 · 빼기가 각각 한 판이다. 고치던 글은 파일을 더하고 빼도 남는다 — 판이 바뀌어도 저장은 새 판 위에 한다
+
+import { useState } from 'react';
+
+import type { GuideFile, GuideSection as 구획 } from '@platform/kit';
+
+import { ApiError } from './api.js';
+import { 거절사유 } from './AuthoringNew.js';
+import { guideApi, type 가이드글 } from './guideApi.js';
+import { GuideSection, 구획들 } from './GuideSection.js';
+import { GuideVersions } from './GuideVersions.js';
+import { Head } from './Head.js';
+import { use말, use언어 } from './i18n.js';
+import { useBeforeUnload } from './leaveGuard.js';
+import type { 판정 } from './role.js';
+import { Failed, Loading, message, useAsync } from './ui.js';
+
+export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) {
+  const t = use말();
+  const 언어 = use언어();
+  const 판 = useAsync(() => guideApi.now(service), [service]);
+  // null 이면 고치지 않았다 — 지금 판 글을 그대로 보인다
+  const [초안, set초안] = useState<가이드글 | null>(null);
+  const [알림, set알림] = useState<{ ok: boolean; 글: string } | null>(null);
+  const [기록, set기록] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const 바뀜 = 판.data !== null && 초안 !== null && 구획들.some((s) => 초안[s] !== 판.data![s]);
+  useBeforeUnload(바뀜);
+
+  if (판.error !== null) return <Failed error={판.error} />;
+  if (판.data === null) return <Loading />;
+  const now = 판.data;
+  // 보기는 작성 read, 고치기는 작성 write (도메인/인증 §7). 서버가 다시 막는다
+  const 쓰나 = 할수('작성요청');
+  const 글 = 초안 ?? now;
+
+  /** 새 판을 짓는다. 지금 판 번호를 넘겨 보낸다 — 그 사이 다른 저장이 있었으면 서버가 GUIDE_STALE 로 막는다 */
+  async function 짓기(일: (baseVersion: number) => Promise<{ version: number }>): Promise<boolean> {
+    setBusy(true);
+    set알림(null);
+    try {
+      const { version } = await 일(now.version);
+      set알림({ ok: true, 글: t('저장했습니다 (버전 {버전})', { 버전: version }) });
+      await 판.reload();
+      return true;
+    } catch (err) {
+      set알림({ ok: false, 글: message(err, 언어) });
+      // 다른 사람이 먼저 저장했다 — 지금 판을 다시 읽어야 다시 보낼 수 있다. 고치던 글은 남는다
+      if (err instanceof ApiError && err.code === 'GUIDE_STALE') await 판.reload();
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function 저장() {
+    if (await 짓기((base) => guideApi.save(service, base, { intro: 글.intro, policy: 글.policy, rules: 글.rules }))) set초안(null);
+  }
+
+  function 더하기(section: 구획, file: File) {
+    // 서버가 거절할 파일은 보내기 전에 거른다 — 자료 올리기와 같은 규칙 (도메인/작성 §7 「자료」)
+    const 사유 = 거절사유(file);
+    if (사유 !== null) return set알림({ ok: false, 글: t(사유) });
+    void 짓기((base) => guideApi.addFile(service, section, base, file));
+  }
+
+  const 빼기 = (file: GuideFile) => void 짓기((base) => guideApi.removeFile(service, file.id, base));
+
+  return (
+    <>
+      <Head
+        제목={t('서비스 가이드')}
+        부제={
+          <>
+            {t('작성 에이전트가 테스트를 만들기 전에 읽습니다')} ·{' '}
+            {now.version === 0 ? t('아직 가이드가 없습니다') : t('버전 {버전} · 첨부 {건수}건', { 버전: now.version, 건수: now.files.length })}
+          </>
+        }
+        행동={
+          <>
+            {now.version === 0 ? null : (
+              <button className="btn ghost" aria-expanded={기록} onClick={() => set기록(!기록)}>
+                {t('변경 기록')}
+              </button>
+            )}
+            {쓰나 ? (
+              <button className="btn" disabled={!바뀜 || busy} onClick={() => void 저장()}>
+                {t('저장')}
+              </button>
+            ) : null}
+          </>
+        }
+      />
+      {알림 === null ? null : (
+        <p role="status" className={알림.ok ? 'prd-note' : 'prd-note bad'}>
+          {알림.글}
+        </p>
+      )}
+      <p className="prd-note">{t('기대값은 요구사항(표준 기획서)에서만 옵니다. 가이드는 서비스를 이해하고 테스트를 돌리는 데만 씁니다')}</p>
+      {기록 ? <GuideVersions service={service} 지금판={now.version} /> : null}
+      {구획들.map((s) => (
+        <GuideSection
+          key={s}
+          service={service}
+          section={s}
+          글={글[s]}
+          files={now.files.filter((f) => f.section === s)}
+          busy={busy}
+          {...(쓰나
+            ? {
+                on글: (값: string) => set초안({ intro: 글.intro, policy: 글.policy, rules: 글.rules, [s]: 값 }),
+                on더하기: (file: File) => 더하기(s, file),
+                on빼기: 빼기,
+              }
+            : {})}
+        />
+      ))}
+    </>
+  );
+}

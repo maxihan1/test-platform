@@ -98,6 +98,14 @@ describe('자리 목록', () => {
     expect(지금자리('prd', '#/cases')).toBe('#/prd');
   });
 
+  it('PRD 관리 하위는 요구사항 · 서비스 가이드 둘이고 가이드 화면에서는 가이드에 밑줄이 간다', () => {
+    expect(자리목록(김, 'MEM', 'ko').find((자리) => 자리.해시 === '#/prd')?.하위).toEqual([
+      { 이름: '요구사항', 해시: '#/prd', 라벨: 'PRD 관리 · 요구사항' },
+      { 이름: '서비스 가이드', 해시: '#/prd/guide', 라벨: 'PRD 관리 · 서비스 가이드' },
+    ]);
+    expect(지금자리('prdGuide', '#/cases')).toBe('#/prd/guide');
+  });
+
   it('실행 결과와 항목 상세도 같은 규칙이다', () => {
     expect(지금자리('run', '#/cases')).toBe('#/runs');
     expect(지금자리('item', '#/cases')).toBe('#/runs');

@@ -24,6 +24,7 @@ import {
 } from './layout.js';
 import { Login } from './Login.js';
 import { PasswordChange } from './PasswordChange.js';
+import { Guide } from './Guide.js';
 import { Prd } from './Prd.js';
 import { 기능보나, 판정을만든다 } from './role.js';
 import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
@@ -44,6 +45,7 @@ import './header.css';
 import './noticeDrawer.css';
 import './phone.css';
 import './prd.css';
+import './guide.css';
 import './itemTrace.css';
 
 function Screen({
@@ -99,6 +101,9 @@ function Screen({
           케이스보나={기능보나(user, service?.prefix ?? null, 'cases')}
         />
       );
+    case 'prdGuide':
+      // 서비스마다 새로 그린다 — 앞 서비스에서 고치던 글이 남으면 다른 서비스의 가이드에 저장된다
+      return <Guide key={prefix} service={prefix} 할수={할수} />;
     case 'authoring':
       return <Authoring service={prefix} envs={service?.envs ?? []} 할수={할수} />;
     case 'authoringItem':

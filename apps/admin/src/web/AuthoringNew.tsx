@@ -14,7 +14,7 @@ import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
 
 // 서버의 받는 종류와 같다. 값의 정본은 도메인/작성 §7 「자료」 표다
-const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
+export const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
 // 정본: 도메인/작성 §7 「자료」 — 서버 assets.ts 의 파일상한과 같은 값
 const 파일상한 = 20 * 1024 * 1024;
 // 정본: 도메인/작성 §7 「자료」 — 파일과 피그마를 합친 수. 서버 assetStore.ts 의 자료상한과 같은 값
@@ -24,7 +24,7 @@ const 자료상한 = 20;
  * 서버가 거절할 파일을 보내기 전에 거른다. 거절 이유(말 키)를 돌려준다.
  * 보낸 뒤에 걸리면 이미 만든 요청이 「준비 중」으로 남고 되살릴 길이 없다 (§7 「자료」)
  */
-function 거절사유(파일: File): string | null {
+export function 거절사유(파일: File): string | null {
   const 점 = 파일.name.lastIndexOf('.');
   // 점이 맨 앞뿐인 이름(`.md`)은 서버의 extname 이 확장자 없음으로 읽는다. 여기서도 같게 본다
   if (점 <= 0 || !받는종류.split(',').includes(파일.name.slice(점).toLowerCase())) {

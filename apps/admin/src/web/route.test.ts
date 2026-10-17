@@ -102,6 +102,7 @@ describe('route', () => {
     expect(route('#/prd/MKT-REQ-003')).toEqual({ name: 'prd', reqId: 'MKT-REQ-003' });
     expect(route('#/prd/1')).toEqual({ name: 'unknown', hash: '#/prd/1' });
     expect(route('#/prd/MKT-003')).toEqual({ name: 'unknown', hash: '#/prd/MKT-003' });
+    expect(route('#/prd/guide')).toEqual({ name: 'prdGuide' });
   });
 
   it('케이스 목록 — 「PRD 관리」에서 넘어온 요구 번호로 거른다 · 옛 표 번호도 받는다', () => {
@@ -177,6 +178,8 @@ describe('route', () => {
     expect(갈자리('#/authoring', 실행만, 'PAY')).toBe('#/dashboard');
     expect(갈자리('#/prd', 실행만, 'PAY')).toBe('#/dashboard');
     expect(갈자리('#/prd', 작성만, 'PAY')).toBe('#/prd');
+    expect(갈자리('#/prd/guide', 실행만, 'PAY')).toBe('#/dashboard');
+    expect(갈자리('#/prd/guide', 작성만, 'PAY')).toBe('#/prd/guide');
     expect(갈자리('#/runs', 사람([서비스('PAY', { cases: 'read', runs: 'none', authoring: 'none' })]), 'PAY')).toBe('#/cases');
   });
 
