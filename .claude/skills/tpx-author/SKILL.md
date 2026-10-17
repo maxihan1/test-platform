@@ -33,6 +33,8 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
   출처 칸에는 표준 기획서 번호(새 항목은 임시 번호)를 적는다(`references/prd.md` §5 · 2026-10-10 PRD-F3-02). 항목이 없으면 `원장 없음 — <까닭>` 한 줄이다
 - **표준 기획서 절**(`--- 표준 기획서 ---`) — 있으면 **`references/prd.md` 를 Read 로 열고 그대로 따른다.**
   지금 판 파일 · 결과를 쓸 곳 · 원본 원장 · 원장 다시 만들기 명령이 있다. 자료를 표준 기획서 항목으로 옮겨 결과 파일에 쓰고 원장 사본을 다시 만든다 — 대조 · 올리기 · 임시 번호 바꿔 적기는 에이전트가 한다 (2026-10-10)
+- **서비스 가이드 절**(`--- 서비스 가이드 ---`) — 있으면 **`references/guide.md` 를 Read 로 열고 그대로 따른다.**
+  사람이 적은 서비스 사정이다. 요약 `docs/cases/<접두사>.guide.md` 의 판이 같으면 요약만 읽고, 다르면 원본을 읽고 요약을 새로 쓴다. **기대값의 근거가 아니다** (2026-10-17)
 
 ## 선행 읽기
 
@@ -51,7 +53,7 @@ description: 작성 에이전트(scripts/authoring-agent.ts — 서버 author �
 - **AskUserQuestion** — 답할 사람이 없다. 사람은 PR 본문에서 표를 본다
 - **다른 서비스의 테스트 폴더 읽기 · 베끼기** — 프롬프트의 테스트 폴더 말고 `tests/<다른 폴더>` 의 Page Object · 부품 · 도우미를 열거나 복사해 출발하지 않는다.
   같은 앱처럼 보여도 고객사 서비스끼리는 다른 제품이라 틀린 부품이 섞인다(R8 MKF 가 `tests/mku` 를 복사했다 · PRD-F9-32). 부품은 이번 서비스 화면에서 새로 만든다. 본보기 `tests/demo` · `tests/todo` 는 읽어도 된다
-- **작업 폴더 밖 파일 수정** — 바꾸는 것은 `tests/<폴더>/*.spec.ts` · `tests/<폴더>/pages/*.page.ts` · `tests/<폴더>/components/*.component.ts` · `tests/<폴더>/helpers/*.helper.ts` 와 `docs/cases/<접두사>.md` 뿐이다.
+- **작업 폴더 밖 파일 수정** — 바꾸는 것은 `tests/<폴더>/*.spec.ts` · `tests/<폴더>/pages/*.page.ts` · `tests/<폴더>/components/*.component.ts` · `tests/<폴더>/helpers/*.helper.ts` 와 `docs/cases/<접두사>.md` · 가이드 요약 `docs/cases/<접두사>.guide.md` 뿐이다.
   표준 기획서 절이 있으면 자료 폴더의 결과 파일(`out/prd.json`)과 원장 사본(`npm run prd:ledger` 가 쓰는 `ledger.json`)도 바뀐다 — 저장소 밖이라 커밋되지 않는다.
   다른 파일이 바뀌면 에이전트 스크립트가 push 를 거부한다. `tests/` · `docs/` 밖에 **새로** 만든 파일(실행 로그 등)은 에이전트가 지우고 올린다 —
   필요한 출력은 `$TMPDIR` 에 둔다 (2026-10-03, 11203 이 `$로그` 파일 하나로 멈췄다)
