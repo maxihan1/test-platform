@@ -17,7 +17,7 @@ type 경로 = { Params: { id: string } };
 const 서버없음 = { error: 'BAD_SCREEN', detail: 'env' } as const;
 
 /** 맥 계정 · 집은 쪽 · 도는 중. 본문보다 먼저 본다 — 끝난 요청에는 본문 모양과 상관없이 409 다 */
-async function 도는집은요청(req: FastifyRequest, reply: FastifyReply): Promise<요청 | null> {
+export async function 도는집은요청(req: FastifyRequest, reply: FastifyReply): Promise<요청 | null> {
   const 행 = await 집은쪽인가(req, reply);
   if (행 === null) return null;
   if (행.status === 'RUNNING') return 행;

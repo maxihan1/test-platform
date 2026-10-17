@@ -61,6 +61,7 @@ describe('라우트표', () => {
       'authoring',
       'catalog',
       'execution',
+      'guide',
       'notifications',
       'prd',
       'reporting',

@@ -23,6 +23,8 @@ import { 정기실행켜기 } from './execution/scheduled.js';
 import trialRoutes from './execution/trialRoutes.js';
 import grafanaProxy from './grafana/proxy.js';
 import notificationRoutes from './notifications/routes.js';
+import guideAgentRoutes from './guide/agentRoutes.js';
+import guideRoutes from './guide/routes.js';
 import prdAgentRoutes from './prd/agentRoutes.js';
 import prdRoutes from './prd/routes.js';
 import reportingRoutes from './reporting/routes.js';
@@ -54,6 +56,8 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(notificationRoutes, { prefix: '/api' });
   app.register(prdRoutes, { prefix: '/api' });
   app.register(prdAgentRoutes, { prefix: '/api' });
+  app.register(guideRoutes, { prefix: '/api' });
+  app.register(guideAgentRoutes, { prefix: '/api' });
   app.register(trialRoutes, { prefix: '/api' });
   app.register(reportingRoutes, { prefix: '/api' });
   app.register(scenarioRoutes, { prefix: '/api' });
