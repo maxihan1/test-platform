@@ -164,3 +164,36 @@ export interface PrdItem {
   checkSince?: string;                             // 확인 필요가 된 때(ISO). 확인 필요인 동안 물려받고 확정이면 키가 없다
   byPerson?: true;                                 // 사람이 마지막으로 고친 항목 — 옮기기가 덮지 않는다
 }
+
+// 서비스 가이드 — 서버 · 화면 · 작성 에이전트가 같은 모양을 쓴다. 무엇이고 왜인지는 SPEC 도메인/작성 §3.6 「★ 서비스 가이드」
+export type GuideSection = 'intro' | 'policy' | 'rules';   // 서비스 소개 · 정책 · 프로젝트 규칙
+
+export interface GuideFile {
+  id: number;
+  name: string;                 // 사람이 준 파일 이름
+  size: number;                 // 바이트
+  section: GuideSection;
+  uploadedAt: string;           // ISO
+  uploadedByName: string;
+}
+
+export interface ServiceGuide {
+  version: number;              // 0 이면 가이드가 아직 없다
+  intro: string;
+  policy: string;
+  rules: string;
+  files: GuideFile[];           // 올린 차례
+  savedAt: string | null;       // 판 0 이면 null
+  savedByName: string | null;
+}
+
+export interface GuideVersionRow {
+  version: number;
+  savedAt: string;
+  savedByName: string;
+  changed: {
+    sections: GuideSection[];                               // 글이 바뀐 구획
+    added: { name: string; section: GuideSection }[];       // 더한 파일
+    removed: { name: string; section: GuideSection }[];     // 뺀 파일
+  };
+}

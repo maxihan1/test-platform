@@ -135,6 +135,19 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/authoring/requests/:id/trace': 작성쓰기,
   // 서비스 지도 읽기 — 작성 에이전트가 부른다. 자식이 기다릴 API 를 고른다 (작성 §3.6 「서비스 지도」)
   'GET /api/authoring/requests/:id/apis': 작성쓰기,
+  // 서비스 가이드 — 주소에 authoring 이 없지만 작성 기능이다. 보기는 작성 read, 고치기는 작성 write (작성 §7 「서비스 가이드 통로」)
+  'GET /api/guide': 작성읽기,
+  'GET /api/guide/versions': 작성읽기,
+  'GET /api/guide/versions/:version': 작성읽기,
+  'GET /api/guide/files/:fileId': 작성읽기,
+  'GET /api/guide/files/:fileId/text': 작성읽기,
+  'GET /api/guide/files/:fileId/pdf': 작성읽기,
+  'PUT /api/guide': 작성쓰기,
+  'POST /api/guide/files': 작성쓰기,
+  'DELETE /api/guide/files/:fileId': 작성쓰기,
+  // 서비스 가이드 받기 — 작성 에이전트가 부른다. 다른 에이전트 통로와 같은 무게다
+  'GET /api/authoring/requests/:id/guide': 작성쓰기,
+  'GET /api/authoring/requests/:id/guide/files/:fileId': 작성쓰기,
 
   // ★ 저장소를 영구히 바꾸는 일 — admin. 작성 쓰기와 같으면 「실행할 수 있는 사람 = 저장소를 고칠 수 있는 사람」이 된다
   'POST /api/authoring/merges': 'admin',
@@ -174,6 +187,8 @@ export const 토큰통로 = new Set([
   'POST /api/authoring/requests/:id/screens/done',
   'GET /api/authoring/requests/:id/trace',
   'GET /api/authoring/requests/:id/apis',
+  'GET /api/authoring/requests/:id/guide',
+  'GET /api/authoring/requests/:id/guide/files/:fileId',
   'GET /api/authoring/requests',
   'GET /api/authoring/requests/:id',
   'GET /api/authoring/requests/:id/assets/:assetId',
