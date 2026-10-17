@@ -140,6 +140,23 @@ describe.skipIf(연결 === undefined)('서비스 가이드 API', () => {
     expect(await readdir(join(뿌리, 'service-guide', String(서비스)))).toHaveLength(20);
   });
 
+  it('디스크에 쓴 뒤 판 행이 실패하면 되돌리고 쓴 파일을 지운다', async () => {
+    await q(`CREATE OR REPLACE FUNCTION xgd_막기() RETURNS trigger AS $$ BEGIN RAISE EXCEPTION 'xgd 검사'; END $$ LANGUAGE plpgsql`);
+    await q(`CREATE TRIGGER xgd_막기 BEFORE INSERT ON service_guide_version FOR EACH ROW WHEN (NEW.service_id = ${String(서비스)}) EXECUTE FUNCTION xgd_막기()`);
+    try {
+      expect((await 올리기('section=intro&baseVersion=0&name=a.md', 'A')).statusCode).toBe(500);
+    } finally {
+      await q('DROP TRIGGER IF EXISTS xgd_막기 ON service_guide_version');
+      await q('DROP FUNCTION IF EXISTS xgd_막기()');
+    }
+    expect(await readdir(join(뿌리, 'service-guide', String(서비스)))).toEqual([]);
+    expect((await q<{ n: number }>('SELECT count(*)::int AS n FROM service_guide_file WHERE service_id = $1', [서비스])).rows[0]!.n).toBe(0);
+  });
+
+  it('INTEGER 를 넘는 판 번호는 없는 판이라 404', async () => {
+    expect((await 부르기('GET', '/guide/versions/9999999999')).statusCode).toBe(404);
+  });
+
   it('통틀어 200개를 올렸으면 뺀 것도 세어 409 GUIDE_FULL', async () => {
     await q(
       `INSERT INTO service_guide_file (service_id, name, size, uploaded_by, uploaded_by_name)

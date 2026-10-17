@@ -76,6 +76,8 @@ export async function 지금가이드(서비스: number): Promise<ServiceGuide> 
 }
 
 export async function 판가이드(서비스: number, version: number): Promise<ServiceGuide | null> {
+  // version 칸은 INTEGER 다. 넘는 번호를 그대로 넘기면 DB 가 범위 오류로 500 을 낸다 — 없는 판이다
+  if (version > 2_147_483_647) return null;
   const 손 = await db();
   const r = await 손.query<판행>(
     'SELECT version, intro, policy, rules, files, saved_by_name, saved_at FROM service_guide_version WHERE service_id = $1 AND version = $2',
