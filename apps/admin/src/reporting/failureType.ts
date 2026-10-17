@@ -18,7 +18,7 @@ export interface 원인재료 {
 }
 
 // Playwright 는 오류 글에 색 코드를 섞는다(「\u001b[31mTest timeout…」) — 지우지 않으면 글 맞추기가 빗나간다
-const 색코드 = /\u001b\[[0-9;]*m/g;
+export const 색코드 = /\u001b\[[0-9;]*m/g;
 // net::ERR_ABORTED 는 앱이 스스로 이동을 끊은 것이라 뺀다
 const 연결끊김 = /net::ERR_(?!ABORTED)|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|socket hang up|fetch failed/;
 const 요소대기 = /waiting for (locator|getBy|selector)|element\(s\) not found|no such element|could not be located/i;

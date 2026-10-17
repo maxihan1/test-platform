@@ -8,7 +8,7 @@ import { t } from '../web/i18n.js';
 import type { ScenarioRunPart, ScenarioRunResult } from '../web/scenarioApi.js';
 import { 값연결글, 건너뜀번호, 멈춘사유글자, 미확정있나, 접은판정 } from '../web/scenarioResultView.js';
 import { 카드요약, 종류글 } from '../web/scenarioView.js';
-import { toFields, type EvidenceHeader, type EvidenceItem, type EvidenceStep } from './collect.js';
+import { toFields, 값글자, type EvidenceHeader, type EvidenceItem, type EvidenceStep } from './collect.js';
 
 export interface E2E단계 {
   seq: number;
@@ -60,8 +60,8 @@ function 절차(runId: number, s: ScenarioRunPart['steps'][number]): EvidenceSte
     durationMs: s.durationMs,
     assertions: s.assertions.map((a) => ({
       statement: a.statement,
-      expected: String(a.expected),
-      actual: String(a.actual),
+      expected: 값글자(a.expected),
+      actual: 값글자(a.actual),
       status: a.status,
       blocker: a.blocker === true,
     })),
