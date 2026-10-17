@@ -3,7 +3,7 @@
 import { lstat, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
+import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { findService } from '../catalog/store.js';
@@ -11,12 +11,13 @@ import { enqueue } from '../execution/dispatcher.js';
 import { callScenarioRunner, 켜진내컴퓨터러너 } from '../execution/runner.js';
 import { artifactsDir } from '../execution/routes.js';
 import { 대상서버계정 } from '../execution/savedInput.js';
-import { 가린다, 긴것부터, 비밀글자들, 시나리오시험 } from '../execution/trial.js';
+import { 가린다, 긴것부터, 비밀글자들, 시나리오시험, type 시나리오시험결과 } from '../execution/trial.js';
 import { 삭제코드를읽는다 } from '../prd/apiMap.js';
 import { 가린값들 } from '../web/mask.js';
 
 import { type 케이스부품재료, 케이스재료 } from './parts.js';
 import { 부품채우기 } from './runStore.js';
+import { 꽂은값비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
 import { 시나리오제한시간, 제한시간크기사유, 조립검사 } from './validate.js';
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. CI 는 DB 없이 돌아야 하므로 쓸 때 가져온다
@@ -135,7 +136,16 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
           deleteStatuses: await 삭제코드를읽는다(서비스.id),
         }, 내러너);
         console.info(`[scenario-trial] 끝 ${id} · ${내러너 === undefined ? '서버 러너' : '내 컴퓨터 러너'} · ${사람.username} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
-        return 꽂은값가리기(응답, 본문.parts, 부품재료, 비밀);
+        // 기록은 DB 없이 결과에 싣는다. 꽂은 값의 비밀도 자르기 전에 넣는다 — 본문을 2000자로 자른 뒤에 가리면 경계에 걸친 조각이 남는다 (§7 「실패 기록」)
+        const 꽂은 = 응답.parts.flatMap((r) => {
+          const p = 본문.parts[r.seq - 1];
+          return 꽂은값비밀(r.bound ?? {}, p?.kind === 'case' ? 부품재료.get(p.tcId)?.paramSchema : undefined);
+        });
+        const 경로 = 시나리오trace경로({ trialId: id });
+        const 기록들 = await 실패부품trace(경로, 응답, [...비밀, ...꽂은]);
+        await trace를지운다(경로, 기록들);
+        const 실은 = { ...응답, parts: 응답.parts.map((p) => { const 기록 = 기록들.get(p.seq); return 기록 === undefined ? p : { ...p, trace: 기록 }; }) };
+        return 꽂은값가리기(실은, 본문.parts, 부품재료, 비밀);
       }),
     비밀,
   );
@@ -152,11 +162,11 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
  * 키로 먼저 가린다. 글자 바꾸기만으로는 숫자 비밀(pin: 1234)이 bound 에 남는다
  */
 function 꽂은값가리기(
-  응답: ScenarioExecuteResponse,
+  응답: 시나리오시험결과,
   조립: ScenarioPart[],
   재료: Map<string, 케이스부품재료>,
   비밀: string[],
-): ScenarioExecuteResponse {
+): 시나리오시험결과 {
   const 꽂은비밀: string[] = [];
   const 부품들 = 응답.parts.map((r) => {
     if (r.bound === undefined) return r;
@@ -169,5 +179,5 @@ function 꽂은값가리기(
     return { ...r, bound };
   });
   // 채운 비밀과 한 줄로 세워야 짧은 비밀이 긴 비밀을 먼저 쪼개지 않는다
-  return 가린다({ ...응답, parts: 부품들 }, 긴것부터([...비밀, ...꽂은비밀])) as ScenarioExecuteResponse;
+  return 가린다({ ...응답, parts: 부품들 }, 긴것부터([...비밀, ...꽂은비밀])) as 시나리오시험결과;
 }

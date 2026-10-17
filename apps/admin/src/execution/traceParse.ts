@@ -79,6 +79,11 @@ const API종류 = new Set(['fetch', 'xhr', 'api']);
 const 글본문 = /json|text|xml|javascript|x-www-form-urlencoded/i;
 // 케이스가 남기는 증적 사진이다. 사람의 조작이 아니다
 const 뺄조작 = new Set(['Screenshot']);
+// E2E 러너가 부품마다 부르는 창 열기 · 닫기 · 모킹 응답이다. 케이스의 조작이 아니다 — 부른 자리(첫 stack 칸)로 가른다 (도메인/시나리오 §7 「실패 기록」)
+const 러너가부름 = (l: 줄): boolean => {
+  const 첫칸 = Array.isArray(l.stack) ? 객체(l.stack[0]) : {};
+  return (글(첫칸.file) ?? '').replaceAll('\\', '/').includes('/apps/runner/scenario/');
+};
 
 /**
  * trace.zip 한 개를 푼다. `본문` 이 거짓이면 요청 · 응답 본문을 안 읽는다 — 통과 항목은 본문을 안 남긴다.
@@ -121,7 +126,7 @@ export async function trace를푼다(zip: Buffer | JSZip, 설정: { 본문: bool
 
   const actions: 조작줄[] = [];
   for (const [id, l] of 앞) {
-    if (l.class !== 'Test' || (l.method !== 'pw:api' && l.method !== 'expect') || 준비안(l)) continue;
+    if (l.class !== 'Test' || (l.method !== 'pw:api' && l.method !== 'expect') || 준비안(l) || 러너가부름(l)) continue;
     const title = 글(l.title) ?? '';
     if (뺄조작.has(title)) continue;
     const at = 수(l.startTime) ?? 시작;

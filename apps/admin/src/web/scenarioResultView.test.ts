@@ -2,7 +2,7 @@ import type { ScenarioLink } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
 import type { ScenarioRunPart, ScenarioRunRow } from './scenarioApi.js';
-import { E2E띠색, 값연결글, 건너뜀번호, 멈춘단계글자, 멈춘사유글자, 미확정있나, 접은판정 } from './scenarioResultView.js';
+import { E2E띠색, 값연결글, 건너뜀번호, 멈춘단계글자, 멈춘사유글자, 미확정있나, 접은판정, 화면오류한줄 } from './scenarioResultView.js';
 
 describe('접은판정', () => {
   it('도는 중이면 부품이 NA 여도 null', () => {
@@ -89,5 +89,21 @@ describe('멈춘사유글자', () => {
     expect(멈춘사유글자('TIMEOUT', 'en')).toBe('Timed out');
     expect(멈춘사유글자('ABORTED', 'en')).toBe('Stopped by a server restart');
     expect(멈춘사유글자('러너가 이 단계 결과를 돌려주지 않았다', 'ko')).toBe('러너가 이 단계 결과를 돌려주지 않았다');
+  });
+});
+
+describe('화면오류한줄', () => {
+  it('오류 문장과 처음 부른 자리만 남긴다 — SC-1618 의 원인 한 줄', () => {
+    const stack = [
+      "TypeError: Cannot read properties of null (reading 'innerHTML')",
+      '    at busy (http://localhost:4100/js/common.js:71:9)',
+      '    at HTMLButtonElement.<anonymous> (http://localhost:4100/js/cart.js:40:5)',
+    ].join('\n');
+    expect(화면오류한줄(stack)).toBe("Cannot read properties of null (reading 'innerHTML') at busy (common.js:71)");
+  });
+
+  it('이름 없는 자리 · 자리 없는 오류', () => {
+    expect(화면오류한줄('Error: 터짐\n    at http://x/a.js:3:1')).toBe('터짐 at a.js:3');
+    expect(화면오류한줄('그냥 던진 글')).toBe('그냥 던진 글');
   });
 });

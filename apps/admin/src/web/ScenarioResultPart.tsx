@@ -2,10 +2,12 @@
 
 import { useState, type ReactNode } from 'react';
 
+import type { ItemTrace } from './api.js';
 import { use말, use언어 } from './i18n.js';
+import { ItemTraceSection } from './ItemTrace.js';
 import { 가린값들, 한줄로 } from './mask.js';
 import { scenarioApi, type ScenarioRunPart } from './scenarioApi.js';
-import { 값연결글, 건너뜀번호, 멈춘사유글자 } from './scenarioResultView.js';
+import { 값연결글, 건너뜀번호, 멈춘사유글자, 화면오류한줄 } from './scenarioResultView.js';
 import { 카드요약, 종류글 } from './scenarioView.js';
 import { seconds, Verdict } from './ui.js';
 
@@ -15,6 +17,24 @@ function 세부({ 라벨, children }: { 라벨: string; children: ReactNode }) {
       <span className="scn-k">{라벨}</span>
       <div className="scn-v">{children}</div>
     </div>
+  );
+}
+
+/** 실패한 부품의 기록 — 잡히지 않은 화면 오류는 따로 한 줄로 올린다. 탭을 안 눌러도 원인이 보이게 (도메인/시나리오 §8.11) */
+export function PartTrace({ trace }: { trace: ItemTrace }) {
+  const t = use말();
+  const 화면오류 = trace.console.filter((c) => c.level === 'pageerror');
+  return (
+    <>
+      {화면오류.length === 0 ? null : (
+        <세부 라벨={t('화면 오류')}>
+          {화면오류.map((c, i) => (
+            <div key={i}>{화면오류한줄(c.text)}</div>
+          ))}
+        </세부>
+      )}
+      <ItemTraceSection trace={trace} />
+    </>
   );
 }
 
@@ -123,6 +143,7 @@ export function ScenarioResultPart({
       {part.status !== 'FAIL' || part.error === null || part.error.message === '' ? null : (
         <pre className="scn-error">{멈춘사유글자(part.error.message, 언어)}</pre>
       )}
+      {part.status !== 'FAIL' || part.trace === null ? null : <PartTrace trace={part.trace} />}
 
       {part.steps.length === 0 ? null : (
         <>

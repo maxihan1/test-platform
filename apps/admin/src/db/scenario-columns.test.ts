@@ -47,6 +47,7 @@ const 정본: Record<string, 칸[]> = {
     ['unconfirmed', 'text', 'YES', false],
     ['bound', 'jsonb', 'NO', true],
     ['cleanup', 'jsonb', 'NO', true],
+    ['trace', 'jsonb', 'YES', false],
   ],
   scenario_run_step: [
     ['id', 'bigint', 'NO', true],

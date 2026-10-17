@@ -60,6 +60,7 @@ export const 시나리오말: Record<string, string> = {
   '절차 {수}': 'Case steps ({수})',
   '실행 중입니다. 끝나면 결과가 채워집니다': 'Running. Results fill in when it finishes',
   '실패 화면 보기': 'View failure screen',
+  '화면 오류': 'Page error',
   '← 목록': '← List',
   '시나리오 이름': 'Scenario name',
   'v{버전} · {이름} 저장 · {시각}': 'v{버전} · saved by {이름} · {시각}',

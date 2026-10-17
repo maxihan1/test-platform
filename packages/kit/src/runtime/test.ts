@@ -132,8 +132,15 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       capture: (s) => capture(page, s),
       emit: async (result) => {
         steps.push(result);
+        // trace 를 단계로 가르는 경계다. 한 zip 에 부품이 다 섞여 이것 없이는 admin 이 실패 부품 몫을 못 뗀다 (도메인/시나리오 §7 「실패 기록」)
+        if (process.env.PLATFORM_TRACE === '1') await emit(base.info(), result);
       },
     };
+
+    // 부품이 시작하는 경계 — 앞 순번을 단다. 그 전의 일(API 부품 호출 · 앞 부품의 늦은 오류)이 이 부품 첫 단계로 섞이지 않게
+    if (process.env.PLATFORM_TRACE === '1') {
+      await base.info().attach(STEP_ATTACHMENT, { body: JSON.stringify({ seq }), contentType: 'application/json' });
+    }
 
     let error: { message: string; stack?: string } | undefined;
     try {

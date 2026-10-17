@@ -26,6 +26,7 @@ export function 부품(seq: number, 덮: Partial<ScenarioRunPart>): ScenarioRunP
     cleanup: [],
     steps: [],
     error: null,
+    trace: null,
     ...덮,
   };
 }

@@ -10,12 +10,13 @@ import { z } from 'zod';
 
 import { 증적목록 } from '../execution/queries.js';
 import { artifactsDir, 시나리오실행인가 } from '../execution/routes.js';
-import { 가린다, 긴것부터, 비밀글자들 } from '../execution/trial.js';
+import { 가린다, 긴것부터 } from '../execution/trial.js';
 import { 정수 } from '../routeParams.js';
 import { 가린값들 } from '../web/mask.js';
 
 import { 시나리오분배 } from './runResult.js';
 import { 실행만들기, 시나리오실행오류 } from './runStore.js';
+import { type 부품기록, 부품비밀 } from './runTrace.js';
 
 // 대상 서버 키. 주소는 요청이 싣지 않는다 — runStore 가 그 서비스의 service_env 에서 찾는다
 const 실행본문 = z.object({ env: z.string().min(1) });
@@ -49,6 +50,8 @@ interface 부품행 {
   unconfirmed: string | null;
   bound: Record<string, unknown>;
   cleanup: Omit<ScenarioCleanup, 'fromSeq'>[];
+  // 실패한 case 부품만 찬다 (도메인/시나리오 §7 「실패 기록」)
+  trace: 부품기록 | null;
 }
 
 interface 절차행 {
@@ -115,7 +118,7 @@ export async function 시나리오결과(runId: number) {
 
   const 부품 = await pool.query<부품행>(
     `SELECT id, seq, kind, tc_id, tc_name, part, status, duration_ms, skipped_steps, mocks, error,
-            param_schema, expected_schema, precondition, unconfirmed, bound, cleanup
+            param_schema, expected_schema, precondition, unconfirmed, bound, cleanup, trace
        FROM scenario_run_part WHERE run_id = $1 ORDER BY seq`,
     [runId],
   );
@@ -127,17 +130,8 @@ export async function 시나리오결과(runId: number) {
     [runId],
   );
 
-  // 키로 가린 칸 밖에도 같은 값이 실린다 — 절차 기록의 요청 본문 · 오류 문장 · 뒷정리 주소. 시험 실행(scenario/trial.ts)과 같은 규칙으로 모아 글자째 가린다
-  const 비밀 = 부품.rows.flatMap((p) => {
-    const 가린꽂은값 = 가린값들(p.bound, p.param_schema);
-    // 숫자 비밀(pin: 1234)도 글자로 실린다
-    const 꽂은비밀 = Object.entries(p.bound).flatMap(([k, v]) =>
-      가린꽂은값[k] !== v && (typeof v === 'string' || typeof v === 'number') && v !== '' ? [String(v)] : [],
-    );
-    if (p.part.kind !== 'case') return 꽂은비밀;
-    const 명세 = { paramSchema: p.param_schema, expectedSchema: p.expected_schema, params: p.part.params, expected: p.part.expected };
-    return [...비밀글자들(명세), ...꽂은비밀];
-  });
+  // 키로 가린 칸 밖에도 같은 값이 실린다 — 절차 기록의 요청 본문 · 오류 문장 · 뒷정리 주소 · 실패 기록. 시험 실행(scenario/trial.ts)과 같은 규칙으로 모아 글자째 가린다
+  const 비밀 = 부품비밀(부품.rows);
 
   const 본것 = {
     scenarioId: Number(행.scenario_id),
@@ -166,6 +160,7 @@ export async function 시나리오결과(runId: number) {
       cleanup: p.cleanup,
       steps: 절차.rows.filter((s) => s.part_id === p.id).map(절차로),
       error: p.error,
+      trace: p.trace,
     })),
   };
   // 머리 칸은 비밀이 아니다. 글자째 가리기에 넣으면 숫자 비밀(2026)이 시각 · 주소의 글자까지 지운다

@@ -28,6 +28,7 @@ function 부품(seq: number, 덮: Partial<ScenarioRunPart>): ScenarioRunPart {
     cleanup: [],
     steps: [],
     error: null,
+    trace: null,
     ...덮,
   };
 }

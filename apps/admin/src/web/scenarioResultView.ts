@@ -75,3 +75,16 @@ export function E2E띠색(줄: ScenarioRunRow): string {
   if (줄.verdict === 'NA') return 'var(--na)';
   return 'var(--line-2)';
 }
+
+/**
+ * 잡히지 않은 오류(pageerror)의 stack 을 한 줄로 — 오류 문장과 처음 부른 자리(파일 이름:줄)만.
+ * 실패 자리에서 원인을 바로 읽게 한다. 전체 stack 은 아래 콘솔 탭에 그대로 있다
+ */
+export function 화면오류한줄(stack: string): string {
+  const 줄들 = stack.split('\n').map((l) => l.trim()).filter((l) => l !== '');
+  const 머리 = (줄들[0] ?? '').replace(/^\w*Error: /, '');
+  const 자리 = 줄들.find((l) => l.startsWith('at '))?.match(/^at (?:(\S+) )?\(?(?:.*\/)?([^/\s()]+?):(\d+)(?::\d+)?\)?$/);
+  if (자리 === null || 자리 === undefined) return 머리;
+  const [, 함수, 파일, 번호] = 자리;
+  return 함수 === undefined ? `${머리} at ${파일}:${번호}` : `${머리} at ${함수} (${파일}:${번호})`;
+}

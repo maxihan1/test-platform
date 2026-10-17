@@ -1,9 +1,13 @@
 // 러너 시나리오 결과 조립 검사 — 결과 줄 읽기 · 뒷정리 줄 읽기 · 빈 순번 채우기 · 스크린샷 폴더 환경변수 (SPEC 도메인/러너 §5.2 · 도메인/시나리오 §3.7 결정 9)
 
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioPartResult } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { finishScenario, parseCleanup, parseParts, scenarioEnv } from './scenario.js';
+import { finishScenario, parseCleanup, parseParts, scenarioEnv, trace를옮긴다 } from './scenario.js';
 
 const 줄 = (p: Partial<ScenarioPartResult> & { seq: number }): ScenarioPartResult => ({
   status: 'PASS', durationMs: 1, steps: [], mocks: [], ...p,
@@ -177,5 +181,49 @@ describe('scenarioEnv', () => {
       vi.stubEnv('PLATFORM_HEADED', '');
       expect(scenarioEnv(시험).PLATFORM_SLOW_MO).toBe('');
     });
+  });
+
+  it('진짜 실행 · 시험 실행 다 trace 를 켠다', () => {
+    expect(scenarioEnv(기본).PLATFORM_TRACE).toBe('1');
+    expect(scenarioEnv({ ...기본, runId: null, trialId: 'x' }).PLATFORM_TRACE).toBe('1');
+  });
+});
+
+describe('trace를옮긴다', () => {
+  let 뿌리 = '';
+  const trialId = '5f0c1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b';
+  const 기본: ScenarioExecuteRequest = { runId: 42, platform: 'desktop', baseUrl: 'https://x', parts: [], timeoutMs: 1 };
+
+  const 출력에둔다 = (출력: string) => {
+    const 폴더 = join(뿌리, 'playwright', 출력, 'scenario-E2E-시나리오-desktop');
+    mkdirSync(폴더, { recursive: true });
+    writeFileSync(join(폴더, 'trace.zip'), 'zip');
+  };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    rmSync(뿌리, { recursive: true, force: true });
+  });
+
+  it('진짜 실행은 runs/<runId>/scenario/ 로, 시험 실행은 runs/trial/<trialId>/ 로 옮긴다', async () => {
+    뿌리 = mkdtempSync(join(tmpdir(), 'scenario-trace-'));
+    vi.stubEnv('PLATFORM_ARTIFACTS_DIR', 뿌리);
+    출력에둔다('a');
+    출력에둔다('b');
+
+    await trace를옮긴다('a', 기본);
+    await trace를옮긴다('b', { ...기본, runId: null, trialId });
+
+    expect(readFileSync(join(뿌리, 'runs', '42', 'scenario', 'trace.zip'), 'utf8')).toBe('zip');
+    expect(readFileSync(join(뿌리, 'runs', 'trial', trialId, 'trace.zip'), 'utf8')).toBe('zip');
+  });
+
+  it('출력 폴더에 trace 가 없으면 아무것도 안 만든다', async () => {
+    뿌리 = mkdtempSync(join(tmpdir(), 'scenario-trace-'));
+    vi.stubEnv('PLATFORM_ARTIFACTS_DIR', 뿌리);
+
+    await trace를옮긴다('없음', 기본);
+
+    expect(existsSync(join(뿌리, 'runs'))).toBe(false);
   });
 });
