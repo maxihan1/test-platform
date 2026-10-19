@@ -78,7 +78,7 @@ describe('ScenarioBuild 단계 추가 탭', () => {
     막기();
     render(<ScenarioBuild id={null} 띠서비스={서비스} user={사람} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-002 더하기' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-002 추가' }));
 
     await waitFor(() => expect(카드이름들()).toEqual(['ZSB-002 ZSB-002 케이스']));
     expect(탭('1번 설정').getAttribute('aria-selected')).toBe('true');
@@ -89,7 +89,7 @@ describe('ScenarioBuild 단계 추가 탭', () => {
     막기();
     render(<ScenarioBuild id={null} 띠서비스={서비스} user={사람} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-001 더하기' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-001 추가' }));
     fireEvent.click(탭('단계 추가'));
     fireEvent.click(await screen.findByRole('button', { name: '대기' }));
 
@@ -104,7 +104,7 @@ describe('ScenarioBuild 팔레트 유지', () => {
     render(<ScenarioBuild id={null} 띠서비스={서비스} user={사람} />);
     const 찾기칸 = (await screen.findByLabelText('케이스 찾기')) as HTMLInputElement;
     fireEvent.change(찾기칸, { target: { value: '002' } });
-    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-002 더하기' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-002 추가' }));
     await waitFor(() => expect(탭('1번 설정').getAttribute('aria-selected')).toBe('true'));
 
     fireEvent.click(탭('단계 추가'));
@@ -138,10 +138,10 @@ describe('ScenarioBuild 팔레트 유지', () => {
   it('단계 추가 탭이 아닐 때 팔레트는 가려져 있다', async () => {
     막기();
     render(<ScenarioBuild id={null} 띠서비스={서비스} user={사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-001 더하기' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-001 추가' }));
     await waitFor(() => expect(탭('1번 설정').getAttribute('aria-selected')).toBe('true'));
 
-    expect(screen.queryByRole('button', { name: 'ZSB-002 더하기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'ZSB-002 추가' })).toBeNull();
   });
 });
 
@@ -173,12 +173,12 @@ describe('ScenarioBuild 케이스 바꾸기', () => {
 
     expect(탭('단계 추가').getAttribute('aria-selected')).toBe('true');
     await screen.findByText('1번 단계를 바꿀 케이스를 고릅니다');
-    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-002 더하기' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'ZSB-002 추가' }));
 
     await waitFor(() => expect(탭('1번 설정').getAttribute('aria-selected')).toBe('true'));
     expect(카드이름들()).toEqual(['ZSB-002 ZSB-002 케이스', 'ZSB-001 ZSB-001 케이스']);
     const 요약 = document.querySelector('.scn-card-sum')?.textContent;
-    expect(요약).toContain('준비 전부 실행');
+    expect(요약).toContain('사전 단계 전부 실행');
     expect(요약).toContain('저장값 사용');
     fireEvent.click(탭('단계 추가'));
     expect(screen.queryByText(/번 단계를 바꿀 케이스를 고릅니다/)).toBeNull();
@@ -268,7 +268,7 @@ describe('ScenarioBuild 빈 칸이 남은 단계', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '모킹 끄기' }));
 
-    expect(((await screen.findByLabelText('끌 모킹')) as HTMLSelectElement).value).toBe('**/api/**');
+    expect(((await screen.findByLabelText('해제할 모킹')) as HTMLSelectElement).value).toBe('**/api/**');
   });
 
   it('무늬가 빈 모킹 끄기가 있으면 서버를 안 부르고 그 단계 번호로 막는다', async () => {

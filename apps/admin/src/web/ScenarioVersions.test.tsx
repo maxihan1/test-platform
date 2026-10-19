@@ -103,7 +103,7 @@ async function 이력열기(runs: 'read' | 'write' = 'write', 덮: Partial<Scena
   const 버전읽기 = vi.spyOn(scenarioApi, 'version').mockResolvedValue(옛본문);
   const 것 = render(<ScenarioBuild id={12} 띠서비스={서비스('ZSB')} user={사람(runs)} />);
   await screen.findByLabelText('시나리오 이름');
-  if (runs === 'write') fireEvent.click(screen.getByRole('button', { name: '변경 이력' }));
+  if (runs === 'write') fireEvent.click(screen.getByRole('tab', { name: '변경 이력' }));
   else fireEvent.click(screen.getByRole('tab', { name: '변경 이력' }));
   return { ...것, 재료읽기, 버전읽기 };
 }
@@ -208,7 +208,7 @@ describe('이 버전으로 되돌리기', () => {
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
     fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 되돌리기' }));
 
-    expect(await screen.findByText('목록에서 치운 시나리오라 고치거나 실행할 수 없습니다')).toBeTruthy();
+    expect(await screen.findByText('삭제한 시나리오라 고치거나 실행할 수 없습니다')).toBeTruthy();
     expect(screen.queryByText(/내용으로 되돌렸습니다/)).toBeNull();
   });
 

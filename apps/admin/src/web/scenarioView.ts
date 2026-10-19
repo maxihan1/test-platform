@@ -32,7 +32,7 @@ export function 카드요약(part: ScenarioPart, 재료: CasePartMaterial | null
   const 건너뜀 = part.skipSteps.length;
   const 입력 = Object.keys(part.params).length + Object.keys(part.expected).length;
   const 조각 = [
-    건너뜀 === 0 ? t('준비 전부 실행', 언어) : t('준비 {수}개 건너뜀', 언어, { 수: 건너뜀 }),
+    건너뜀 === 0 ? t('사전 단계 전부 실행', 언어) : t('사전 단계 {수}개 건너뜀', 언어, { 수: 건너뜀 }),
     입력 === 0 ? t('저장값 사용', 언어) : t('입력값 {수}칸 직접 입력', 언어, { 수: 입력 }),
   ];
   if (part.links !== undefined && part.links.length > 0) 조각.push(t('값 연결 {수}개', 언어, { 수: part.links.length }));

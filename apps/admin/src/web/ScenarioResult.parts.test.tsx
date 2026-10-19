@@ -86,7 +86,7 @@ describe('단계 줄', () => {
     연다(결과());
     await screen.findByText('단계별 결과');
     const 결제줄 = 줄('XSX-003');
-    expect(within(결제줄).getByText('준비 「로그인」 — 1번에서 이미 실행')).toBeTruthy();
+    expect(within(결제줄).getByText('사전 단계 「로그인」 — 1번에서 이미 실행')).toBeTruthy();
     expect(within(결제줄).getByText('값 주입')).toBeTruthy();
     expect(within(결제줄).getByText(/orderId ← .* = 812/)).toBeTruthy();
     expect(within(결제줄).getByText('마지막에 실행 DELETE /api/orders/812 → 204')).toBeTruthy();

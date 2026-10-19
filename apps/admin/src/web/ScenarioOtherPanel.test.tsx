@@ -147,7 +147,7 @@ describe('ScenarioOtherPanel 모킹 끄기', () => {
   it('선택지는 앞에서 켠 무늬뿐이고 고르면 단계가 바뀐다', () => {
     const on바꿈 = 그리기(끄기('**/b'), { 번호: 3, 단계들: [모킹('**/a'), 모킹('**/b'), 끄기('**/b')] });
     expect(screen.getByText('모킹 끄기')).toBeTruthy();
-    const 고르개 = screen.getByLabelText('끌 모킹') as HTMLSelectElement;
+    const 고르개 = screen.getByLabelText('해제할 모킹') as HTMLSelectElement;
     expect([...고르개.options].map((o) => o.value)).toEqual(['**/a', '**/b']);
     expect(screen.queryByText('앞에서 켜지 않은 모킹입니다')).toBeNull();
 
@@ -162,7 +162,7 @@ describe('ScenarioOtherPanel 모킹 끄기', () => {
 
   it('지금 값이 앞에 없으면 그 값도 선택지에 남기고 문장을 보인다', () => {
     그리기(끄기('**/z'), { 번호: 2, 단계들: [모킹('**/a'), 끄기('**/z')] });
-    const 고르개 = screen.getByLabelText('끌 모킹') as HTMLSelectElement;
+    const 고르개 = screen.getByLabelText('해제할 모킹') as HTMLSelectElement;
     expect([...고르개.options].map((o) => o.value)).toEqual(['**/a', '**/z']);
     expect(고르개.value).toBe('**/z');
     expect(screen.getByText('앞에서 켜지 않은 모킹입니다')).toBeTruthy();
@@ -204,7 +204,7 @@ describe('ScenarioOtherPanel 권한', () => {
     }
     cleanup();
     그리기(끄기('**/a'), { 쓰나: false, 단계들: [모킹('**/a'), 끄기('**/a')], 번호: 2 });
-    expect((screen.getByLabelText('끌 모킹') as HTMLSelectElement).disabled).toBe(true);
+    expect((screen.getByLabelText('해제할 모킹') as HTMLSelectElement).disabled).toBe(true);
     cleanup();
     그리기(대기(1000), { 쓰나: false });
     expect((screen.getByLabelText('기다릴 시간(초)') as HTMLInputElement).disabled).toBe(true);

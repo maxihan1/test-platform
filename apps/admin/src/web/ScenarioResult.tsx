@@ -5,10 +5,12 @@ import { useEffect } from 'react';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 주소조건 } from './leaveGuard.js';
 import type { 판정하기 } from './runJudge.js';
 import { 케이스서비스 } from './role.js';
 import { 실행자이름 } from './runState.js';
 import { scenarioApi } from './scenarioApi.js';
+import { FailGuide, RerunButton, useRerun, 멈춘단계, type 들어온곳 } from './ScenarioResultNext.js';
 import { ScenarioResultPart } from './ScenarioResultPart.js';
 import { 미확정있나, 접은판정 } from './scenarioResultView.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, when } from './ui.js';
@@ -34,16 +36,20 @@ export function ScenarioResult({ runId, 판정하기, 상자안 = false }: { run
   // 케이스 단계가 없으면 null 로 넘겨 운영 계정 말고는 버튼이 안 선다.
   // 이른 반환 위에서 부른다 — 훅 차례가 데이터를 받기 전과 같아야 한다
   const 첫케이스 = data?.parts.find((p) => p.tcId !== null)?.tcId ?? null;
-  const 증적칸 = use증적(
-    data === null ? null : { runId, status: data.status, evidence: data.evidence },
-    판정하기(첫케이스 === null ? null : 케이스서비스(첫케이스)),
-    reload,
-  );
+  const 할수 = 판정하기(첫케이스 === null ? null : 케이스서비스(첫케이스));
+  const 증적칸 = use증적(data === null ? null : { runId, status: data.status, evidence: data.evidence }, 할수, reload);
+  // 상자 안(실행 기록 › E2E)은 돌아갈 곳이 상자를 닫는 것이라 주소를 안 본다
+  const 어디서 = 상자안 ? null : 들어온곳읽기();
+  const 다시실행 = useRerun(data?.scenarioId ?? 0, data?.env ?? '', 어디서);
 
   if (res.error !== null) return <Failed error={res.error} />;
   if (data === null) return <Loading />;
 
   const 판정 = 접은판정(data.parts, data.status);
+  const 쓰나 = 할수('실행');
+  const 멈춘 = 판정 === null || 판정 === 'PASS' ? null : 멈춘단계(data.parts);
+  // 실패면 안내 줄이 다시 실행을 같이 든다. 머리에 또 두면 같은 단추가 둘이다
+  const 머리다시 = 쓰나 && 판정 !== null && 멈춘 === null ? <RerunButton 다시실행={다시실행} env={data.env} /> : null;
   const 미확정 = 미확정있나(data.parts);
   // 도는 중에도 미확정 단계가 이미 있으면 알린다 — 판정 칩만 끝난 뒤에 붙는다 (§8.11)
   const 꼬리표 = 미확정 ? <span className="case-tag">{t('미확정')}</span> : null;
@@ -80,13 +86,20 @@ export function ScenarioResult({ runId, 판정하기, 상자안 = false }: { run
             <b>{data.title}</b> · {부제}
           </div>
           {칩}
+          {머리다시}
           <증적만들기버튼들 칸={증적칸} />
           <증적알림과목록 칸={증적칸} 한줄로 />
         </div>
       ) : (
         <>
           <div className="scn-back">
-            <a href="#/runs/e2e">{t('← 실행 기록 › E2E')}</a>
+            {어디서 === 'scenarios' ? (
+              <a href="#/scenarios">{t('← E2E 시나리오')}</a>
+            ) : 어디서 === 'scenario' ? (
+              <a href={`#/scenarios/${data.scenarioId}`}>{t('← SC-{번호} 시나리오', { 번호: data.scenarioId })}</a>
+            ) : (
+              <a href="#/runs/e2e">{t('← 실행 기록 › E2E')}</a>
+            )}
           </div>
           <Head
             제목={data.title}
@@ -94,6 +107,7 @@ export function ScenarioResult({ runId, 판정하기, 상자안 = false }: { run
             행동={
               <>
                 {칩}
+                {머리다시}
                 <증적만들기버튼들 칸={증적칸} />
               </>
             }
@@ -105,6 +119,14 @@ export function ScenarioResult({ runId, 판정하기, 상자안 = false }: { run
         {!running ? null : (
           <p className="scn-running" role="status">
             {t('실행 중입니다. 끝나면 결과가 채워집니다')}
+          </p>
+        )}
+        {멈춘 === null ? null : (
+          <FailGuide scenarioId={data.scenarioId} part={멈춘} 쓰나={쓰나} 다시실행={다시실행} env={data.env} />
+        )}
+        {다시실행.오류 === null ? null : (
+          <p className="err" role="alert">
+            {다시실행.오류}
           </p>
         )}
         {상자안 ? null : <증적알림과목록 칸={증적칸} />}
@@ -125,4 +147,9 @@ export function ScenarioResult({ runId, 판정하기, 상자안 = false }: { run
       </div>
     </>
   );
+}
+
+function 들어온곳읽기(): 들어온곳 {
+  const 값 = 주소조건().get('from');
+  return 값 === 'scenarios' || 값 === 'scenario' ? 값 : null;
 }

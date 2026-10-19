@@ -82,7 +82,7 @@ export function 케이스목록막기(...tcIds: string[]) {
 export async function 케이스더하기(tcId: string) {
   // 이미 골라진 것처럼 보여도 누른다 — 불러온 뒤 1번 설정 탭이 늦게 열리면 그쪽으로 넘어간다
   fireEvent.click(screen.getByRole('tab', { name: '단계 추가' }));
-  fireEvent.click(await screen.findByRole('button', { name: `${tcId} 더하기` }));
+  fireEvent.click(await screen.findByRole('button', { name: `${tcId} 추가` }));
 }
 
 export async function 기존그리기(

@@ -104,7 +104,7 @@ export const 오류영어: Record<string, string> = {
 
   // E2E 시나리오
   '그 시나리오를 찾지 못했습니다': 'We could not find that scenario',
-  '목록에서 치운 시나리오라 고치거나 실행할 수 없습니다': 'This scenario was archived, so it cannot be edited or run',
+  '삭제한 시나리오라 고치거나 실행할 수 없습니다': 'This scenario was archived, so it cannot be edited or run',
   '지금은 실행할 수 없는 시나리오입니다': 'This scenario cannot run right now',
   '다른 사람이 먼저 저장했습니다. 새로 고침하면 지금 고친 내용이 사라집니다':
     'Someone else saved first. Reloading will discard your current edits',

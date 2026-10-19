@@ -8,7 +8,7 @@ import type { ServiceRow, User } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
-import { 떠나기막기, 떠나기상자 } from './leaveGuard.js';
+import { 떠나기막기, 떠나기상자, 주소조건 } from './leaveGuard.js';
 import { Loading, Failed, PLATFORMS, PLATFORM_LABEL, when } from './ui.js';
 import { 판정을만든다 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
@@ -17,6 +17,7 @@ import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
 import { 시험막는글, TrialControls, TrialSummary, TrialTab } from './ScenarioTrial.js';
 import { 끄기기본, 빈칸있는단계, 케이스바꾸기 } from './scenarioView.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
+import { useScenarioRun, 넘겨받은실행글 } from './useScenarioRun.js';
 import { 시험열쇠, 시험열쇠옮기기, useScenarioTrial } from './useScenarioTrial.js';
 
 export type { 조립탭 };
@@ -42,7 +43,7 @@ export function ScenarioBuild({
   // 아직 안 골랐으면 이 서비스에서 마지막에 고른 서버를 쓴다(공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」). 서비스는 불러온 뒤에야 알아 상태로 두지 않는다
   // null 은 아직 안 골랐다. 빈 칸을 고른 것과 가른다 — 빈 칸을 골랐는데 마지막 서버가 되살아나면 안 된다
   const [고른서버, set서버] = useState<string | null>(null);
-  const [시험글, set시험글] = useState<string | null>(null);
+  const [시험글, set시험글] = useState(넘겨받은실행글);
   // 새 시나리오는 단계를 넣는 일이 먼저라 추가 탭부터 연다
   const [탭, set탭] = useState<조립탭>(id === null ? 'add' : 'settings');
   const [고른번호, set고른번호] = useState<number | null>(null);
@@ -53,6 +54,15 @@ export function ScenarioBuild({
   // 지금 열린 패널에 잘못 적은 칸이 있는 단계 번호. 패널이 내려가면 칸 글자도 사라지고 초안은 옛 값 그대로라 하나면 된다
   const [칸오류번호, set칸오류번호] = useState<number | null>(null);
   const 막나 = 쓰나 && 초안.바뀜;
+  const 정식 = useScenarioRun({
+    id,
+    on글: set시험글,
+    on새주소: (새번호) => {
+      시험열쇠옮기기(시험열쇠(null), 시험열쇠(새번호));
+      넘길고른번호 = 고른번호;
+    },
+  });
+  const 실행중 = 정식.실행중;
   const 보낼곳 = id === null && !판정('실행');
 
   useEffect(() => {
@@ -64,7 +74,10 @@ export function ScenarioBuild({
     // 불러온 시나리오는 첫 단계를 열어 두어 설정 탭이 바로 보이게 한다. 한 번만 — 나중에 고른 카드를 뺀 뒤 되돌리지 않는다
     if (id === null || !초안.불러옴 || 처음고름.current) return;
     처음고름.current = true;
-    set고른번호(넘길고른번호 !== undefined ? 넘길고른번호 : 초안.단계들.length > 0 ? 1 : null);
+    // 실패 결과의 「N번 단계 수정」은 그 단계를 열어 달라고 주소에 싣는다
+    const 주소단계 = Number(주소조건().get('step'));
+    const 열단계 = Number.isInteger(주소단계) && 주소단계 >= 1 && 주소단계 <= 초안.단계들.length ? 주소단계 : null;
+    set고른번호(열단계 ?? (넘길고른번호 !== undefined ? 넘길고른번호 : 초안.단계들.length > 0 ? 1 : null));
     넘길고른번호 = undefined;
   }, [id, 초안.불러옴, 초안.단계들.length]);
 
@@ -191,14 +204,14 @@ export function ScenarioBuild({
           on시작={시험누름}
         />
       )}
-      {!쓰나 || id === null ? null : (
-        <button type="button" className="btn ghost" onClick={() => 탭옮김('history')}>
-          {t('변경 이력')}
+      {!쓰나 ? null : (
+        <button type="button" className="btn ghost" disabled={초안.저장하는중 || 실행중} onClick={() => void 저장누름()}>
+          {초안.저장하는중 && !실행중 ? t('저장하는 중') : t('저장')}
         </button>
       )}
       {!쓰나 ? null : (
-        <button type="button" className="btn" disabled={초안.저장하는중} onClick={() => void 저장누름()}>
-          {초안.저장하는중 ? t('저장하는 중') : t('저장')}
+        <button type="button" className="btn" disabled={초안.저장하는중 || 실행중} onClick={() => void 정식.실행(서버, 초안.바뀜, 칸오류번호 ?? 빈칸있는단계(초안.단계들), () => 초안.저장(칸오류번호 ?? 빈칸있는단계(초안.단계들)))}>
+          {실행중 ? t('실행 요청 중') : id === null || 초안.바뀜 ? t('저장하고 실행') : t('실행')}
         </button>
       )}
     </>
@@ -223,7 +236,7 @@ export function ScenarioBuild({
           </p>
         )}
         {판정('실행') ? null : <p className="scn-note">{t('실행 권한이 있어야 고치고 돌릴 수 있습니다')}</p>}
-        {초안.살아있나 ? null : <p className="scn-note">{t('목록에서 치운 시나리오라 보기만 할 수 있습니다')}</p>}
+        {초안.살아있나 ? null : <p className="scn-note">{t('삭제한 시나리오라 보기만 할 수 있습니다')}</p>}
         {띠서비스 === null || 띠서비스.prefix === 초안.서비스 ? null : (
           <p className="scn-note">{t('{서비스} 서비스의 시나리오입니다', { 서비스: 서비스이름 })}</p>
         )}

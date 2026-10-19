@@ -131,7 +131,7 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
 
   it.each([
     ['SCENARIO_NOT_FOUND', '그 시나리오를 찾지 못했습니다'],
-    ['SCENARIO_ARCHIVED', '목록에서 치운 시나리오라 고치거나 실행할 수 없습니다'],
+    ['SCENARIO_ARCHIVED', '삭제한 시나리오라 고치거나 실행할 수 없습니다'],
     ['SCENARIO_NOT_RUNNABLE', '지금은 실행할 수 없는 시나리오입니다'],
     ['STALE_VERSION', '다른 사람이 먼저 저장했습니다. 새로 고침하면 지금 고친 내용이 사라집니다'],
   ])('시나리오의 %s 도 사람 말로 적고 영어로 옮긴다', (code, 문장) => {

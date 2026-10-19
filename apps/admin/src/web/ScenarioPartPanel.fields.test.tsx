@@ -127,7 +127,7 @@ describe('ScenarioPartPanel 재료 없음 · 읽기 전용', () => {
     const { on케이스바꾸기 } = 그리기(단계('ZSB-001'), null);
 
     expect(screen.getByText('케이스를 찾지 못했습니다')).toBeTruthy();
-    expect(screen.getByText('다른 케이스로 바꾸면 이 단계의 준비 · 입력값 설정은 처음부터 다시 합니다')).toBeTruthy();
+    expect(screen.getByText('다른 케이스로 바꾸면 이 단계의 사전 단계 · 입력값 설정은 처음부터 다시 합니다')).toBeTruthy();
     expect(screen.queryByRole('switch')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '케이스 바꾸기' }));
     expect(on케이스바꾸기).toHaveBeenCalledTimes(1);
