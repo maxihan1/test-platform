@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { type 돌린기록, 기록남기며비우기, 끝검사줄들, 끝돌려보기경고, 남은임시도우미, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
+import { type 돌린기록, 기록남기며비우기, 끝검사줄들, 끝돌려보기경고, 앱케이스나누기, 남은임시도우미, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
 
 describe('남은 임시 도우미 (작성 §3.6 팬아웃 · 2026-10-04)', () => {
   it('공용으로 옮기지 않은 draft 파일이 남으면 경고한다', () => {
@@ -199,6 +199,15 @@ describe('끝검사줄들 — 앱 케이스는 폰이 없어 돌지 않았다고
 
     expect(줄들[0]).toBe('⚠️ 폰이 없어 돌려 보지 않은 앱 케이스 1개 — mda/MDA-FN-002.spec.ts');
     expect(줄들.some((줄) => 줄.includes('규칙대로 돌지 않았다'))).toBe(false);
+  });
+
+  it('앱케이스나누기 — 여러 줄 · 끝 쉼표 꼴도 앱 케이스로 빼고, 볼 케이스가 아닌 앱 케이스는 건드리지 않는다', () => {
+    const 파일들 = [
+      { 경로: 'mda/A.spec.ts', 글: "defineCase({ tcId: 'MDA-FN-004', platforms: [\n    'android',\n  ] })" },
+      { 경로: 'mda/B.spec.ts', 글: 웹케이스 },
+      { 경로: 'mda/C.spec.ts', 글: 앱케이스 },
+    ];
+    expect(앱케이스나누기(파일들, { 'mda/A.spec.ts': 1, 'mda/B.spec.ts': 2 })).toEqual({ 앱: ['mda/A.spec.ts'], 나머지: { 'mda/B.spec.ts': 2 } });
   });
 
   it('앱 케이스만 바꿨으면 돌려 본 기록이 없어도 앱 경고 하나만 낸다', () => {

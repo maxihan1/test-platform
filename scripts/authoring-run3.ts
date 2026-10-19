@@ -7,7 +7,7 @@ import { closeSync, openSync, readdirSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { type 돌린판, 돌린기록들, 케이스파일읽기, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
+import { type 돌린판, 돌린기록들, 앱케이스나누기, 케이스파일읽기, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
 import { 바뀐파일들 } from './authoring-status.js';
 import { 친다 } from './authoring-io.js';
 
@@ -152,7 +152,10 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     바뀐 = new Set(목록.filter((p) => p.startsWith('tests/')).map((p) => p.slice('tests/'.length)));
   } else 바뀐 = new Set(맡은 as string[]);
   // 맡은 파일 · 이번에 바뀐 파일에 닿는 케이스와, 그 케이스 · 부품 가운데 가장 늦은 수정 시각
-  const 대상 = Object.fromEntries(Object.entries(살필케이스(케이스들, 바뀐)).filter(([f]) => 모드 === '마지막' || 바뀐.has(f)));
+  // 앱 케이스는 PC 프로젝트에서 건너뛰기만 해 3번 다 초록으로 찍힌다 — 고르지 않고 안 돌린다고 알린다 (작성 §3.6 「앱 화면」)
+  const { 앱, 나머지: 웹케이스 } = 앱케이스나누기(케이스들, 살필케이스(케이스들, 바뀐));
+  if (앱.length > 0) console.log(`[돌려 보기] 앱 케이스 ${앱.length}건은 폰이 없어 안 돌린다 — ${앱.join(' · ')}`);
+  const 대상 = Object.fromEntries(Object.entries(웹케이스).filter(([f]) => 모드 === '마지막' || 바뀐.has(f)));
   if (Object.keys(대상).length === 0) {
     console.log('[돌려 보기] 돌릴 케이스가 없다');
     return 0;

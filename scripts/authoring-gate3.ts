@@ -94,11 +94,9 @@ export function 케이스파일읽기(트리: string, 폴더: string): (파일�
 export function 끝검사줄들(결과폴더: string, 트리: string, 폴더: string, 바뀐: readonly string[]): string[] {
   const 파일들 = 케이스파일읽기(트리, 폴더);
   const 바뀐테스트 = new Set([...바뀐].filter((p) => p.startsWith('tests/')).map((p) => p.slice('tests/'.length)));
-  const 볼것 = 살필케이스(파일들, 바뀐테스트);
-  const 앱 = 파일들.filter((f) => f.경로 in 볼것 && 앱케이스꼴.test(f.글)).map((f) => f.경로);
-  for (const 경로 of 앱) delete 볼것[경로];
+  const { 앱, 나머지 } = 앱케이스나누기(파일들, 살필케이스(파일들, 바뀐테스트));
   const 앱경고 = 앱.length === 0 ? null : `⚠️ 폰이 없어 돌려 보지 않은 앱 케이스 ${앱.length}개 — ${앱.join(' · ')}`;
-  const 경고 = 끝돌려보기경고(돌린기록들(결과폴더), 볼것);
+  const 경고 = 끝돌려보기경고(돌린기록들(결과폴더), 나머지);
   const 임시 = 남은임시도우미(파일들.map((f) => f.경로));
   return [...[앱경고, 경고, 임시].filter((줄) => 줄 !== null), 품질줄(품질숫자(파일들))];
 }
@@ -107,7 +105,13 @@ export function 끝검사줄들(결과폴더: string, 트리: string, 폴더: st
  * 앱 케이스 선언. 작성 컨테이너에는 폰이 없어 PC 프로젝트에서 「선언하지 않은 환경」으로 건너뛰는데,
  * 그 건너뜀에도 보류처럼 skip 표시가 붙어 3번 다 초록으로 세졌다 — 따로 빼서 안 돌았다고 적는다 (작성 §3.6 「앱 화면」 · APP-F1-09)
  */
-const 앱케이스꼴 = /platforms:\s*\[\s*['"]android['"]\s*\]/;
+const 앱케이스꼴 = /platforms:\s*\[\s*['"`]android['"`]\s*,?\s*\]/;
+
+/** 볼 케이스에서 앱 케이스를 뺀다 — 돌려 보기 명령과 끝 검사가 같이 써야 한쪽은 「다 돌았다」, 한쪽은 「안 돌림」으로 엇갈리지 않는다 */
+export function 앱케이스나누기(파일들: 파일글[], 볼것: Record<string, number>): { 앱: string[]; 나머지: Record<string, number> } {
+  const 앱 = 파일들.filter((f) => f.경로 in 볼것 && 앱케이스꼴.test(f.글)).map((f) => f.경로);
+  return { 앱, 나머지: Object.fromEntries(Object.entries(볼것).filter(([f]) => !앱.includes(f))) };
+}
 
 /** 보조가 모자란 도우미를 적어 둔 `helpers/draft-<묶음>.helper.ts` 가 남았나 — 자식이 합칠 때 공용으로 옮기고 지운다 (작성 §3.6 팬아웃, 2026-10-04). 옛 자리 `components/draft-*` 도 잡는다 — 진행 중인 작업이 거기 쓸 수 있다 */
 export function 남은임시도우미(경로들: string[]): string | null {
