@@ -30,6 +30,7 @@ const 면제 = new Map([
   ['scripts/authoring-screen-right.test.ts', '테스트가 만든 임시 자료 폴더에 받은 trace.zip 만 읽는다 (2026-10-16 PR #275)'],
   ['apps/runner/src/scenario.test.ts', '테스트가 만든 임시 산출 폴더에 옮긴 trace.zip 만 읽는다 (2026-10-17 PR #296 — PR #300 에서 더함)'],
   ['scripts/authoring-guide.test.ts', '테스트가 만든 임시 자료 폴더에 받은 서비스 가이드만 읽는다 (2026-10-17 PR #300)'],
+  ['scripts/authoring-gate3.test.ts', '테스트가 만든 임시 폴더에 옮겨 둔 돌려 본 기록 · 보조 보고만 읽는다 (2026-10-19 PR #304)'],
 ]);
 
 function 테스트파일들(폴더) {

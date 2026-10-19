@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import type { 집은것 } from './authoring-rules.js';
 import { type 계정, type 사본, 남은사본, 사본자리 } from './authoring-copy.js';
 import { 사본만들기, 사본치우기, 새집 } from './authoring-child.js';
+import { 기록남기며비우기 } from './authoring-gate3.js';
 import { 저장본넣기 } from './authoring-screens-keep-io.js';
 import { type 보고손, 멈춤, 부른다, 진짜main묻기, 친다 } from './authoring-io.js';
 import { 케이스파일들 } from './authoring-progress.js';
@@ -127,7 +128,8 @@ export async function 작업방준비(
       const 표시 = 폴더들.get(고른)!;
       // 넘겨받는 동안 훑기가 보면 도는 건이다 — 끝을 먼저 내린다
       보관쓰기(자리, { ...표시, 끝: false });
-      새집(자리);
+      // 돌려 본 기록 · 서브에이전트 보고는 남긴다 — 다시 시작한 자식이 안 고친 · 3회 다 초록인 케이스를 다시 돌리지 않게 (§7 「이어하기」 · 2026-10-19)
+      기록남기며비우기(자리.임시, () => 새집(자리));
       const 못함 = 명령들(넘겨받기명령(자리, 표시.기준, 자식), 자리);
       if (못함 !== null) {
         사본치우기(자리);

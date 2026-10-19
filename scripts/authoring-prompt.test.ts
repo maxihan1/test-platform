@@ -83,11 +83,12 @@ describe('줄프롬프트 — 진행 메모 (도메인/작성 §7 「이어하�
     expect(글).toContain('SKILL.md');
   });
 
-  it('이어받은 실행이면 거절 까닭 다음에 메모를 읽고, 관문은 전부 다시 돈다고 이어하기 절에 싣는다', () => {
+  it('이어받은 실행이면 거절 까닭 다음에 메모를 읽고, 관문 0 · 1 · 2 · 4 는 다시 돌고 3회 실행은 기록으로 이어 간다고 싣는다 (2026-10-19)', () => {
     const 글 = 줄프롬프트(것, 'MKT', [], undefined, undefined, { 번호: 7, 이유: 'LIMIT', 까닭: null }, undefined, undefined, 메모);
     const 절 = 글.slice(글.indexOf('--- 이어하기 ---'));
     expect(절).toContain(메모);
-    expect(절).toMatch(/관문.*다시/);
+    expect(절).toMatch(/관문 0 · 1 · 2 · 4 는 .*다시/);
+    expect(절).toMatch(/3회 실행은 .*기록으로 이어/);
   });
 
   it('메모 경로가 없으면 메모 줄이 없다', () => {
