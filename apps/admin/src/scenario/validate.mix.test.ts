@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { 섞였나, 쓰는접두사 } from './mixed.js';
 import { type 카탈로그, 부품들모양, 조립검사 } from './validate.js';
 
-const 칸 = { platforms: ['desktop'], isActive: true, skippable: [], titles: [], params: [] };
+const 칸 = { platforms: ['desktop' as const], isActive: true, skippable: [] as string[], titles: [] as string[], params: [] as string[] };
 const 재료: 카탈로그 = new Map([
   ['SHOP-001', 칸],
   ['ADM-001', 칸],
