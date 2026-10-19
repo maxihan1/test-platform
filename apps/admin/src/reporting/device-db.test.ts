@@ -22,8 +22,8 @@ describe.skipIf(연결 === undefined)('증적의 기기 정보', () => {
   async function 항목(tcId: string, platform: string): Promise<number> {
     const row = await pool.query<{ history_id: string }>(
       `INSERT INTO run_item (run_id, tc_id, platform, attempt, tc_name, file_path, timeout_ms,
-                             precondition, params, expected, param_schema, expected_schema)
-       VALUES ($1, $2, $3, 1, $2, 'xdm/a.spec.ts', 300000, '[]', '{}', '{}', '{}', '{}')
+                             precondition, params, expected, param_schema, expected_schema, status)
+       VALUES ($1, $2, $3, 1, $2, 'xdm/a.spec.ts', 300000, '[]', '{}', '{}', '{}', '{}', 'NA')
        RETURNING history_id`,
       [실행, tcId, platform],
     );
