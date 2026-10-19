@@ -1,4 +1,4 @@
-// 빠른 검사 명령 — 빠진 요구 · 타입 · 케이스 형식 · 케이스와 요구 목록 맞춰 보기 · 비밀번호 노출 점검을 한 번에 돌리고 틀린 것만 찍는다 (SPEC 도메인/작성 §3.6 「빠른 검사 명령」)
+// 빠른 검사 명령 — 빠진 요구 · 타입 · 케이스 형식 · 케이스와 요구 목록 맞춰 보기 · 확인 하나에 값 하나 · 비밀번호 노출 점검을 한 번에 돌리고 틀린 것만 찍는다 (SPEC 도메인/작성 §3.6 「빠른 검사 명령」)
 // 자식이 검사 명령을 하나씩 부르고 긴 로그를 읽고, 맞춰 보기는 417건을 눈으로 하던 일이다. 비밀번호 점검은 문서의 프로그램을 매번 베껴 만들었다
 // 실행: npm run authoring:check -- 마지막 <원장 사본> <접두사> <폴더> [더 볼 경로…] | 보조 <케이스 파일…> | 비밀번호 <경로…>
 
@@ -14,6 +14,7 @@ import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 import { 글모두 } from './authoring-reverse.js';
 import { 바뀐것 } from './authoring-run3.js';
+import { 묶었나 } from './authoring-one-value.js';
 import { 백틱벗기기, 표읽기 } from './authoring-md-table.js';
 
 export interface 케이스문장 {
@@ -22,6 +23,8 @@ export interface 케이스문장 {
   전제: string[];
   절차: string[];
   판정: string[];
+  /** 실제 값을 배열 · 객체로 묶어 견주는 verify 의 문장 */
+  묶은판정: string[];
 }
 
 const 글자 = (n: ts.Node | undefined): string | null => (n !== undefined && ts.isStringLiteralLike(n) ? n.text : null);
@@ -35,12 +38,16 @@ export function 케이스문장읽기(글: string): 케이스문장 | null {
   const 전제식 = 속성(명세, 'precondition')?.initializer;
   const 절차: string[] = [];
   const 판정: string[] = [];
+  const 묶은판정: string[] = [];
   const 훑기 = (n: ts.Node): void => {
     if (ts.isCallExpression(n)) {
       const 부름 = n.expression;
       const 첫 = 글자(n.arguments[0]);
       if (첫 !== null && ts.isPropertyAccessExpression(부름) && 부름.name.text === 'step' && 부름.expression.getText(sf) === 'test') 절차.push(첫);
-      if (첫 !== null && ts.isIdentifier(부름) && 부름.text === 'verify') 판정.push(첫);
+      if (첫 !== null && ts.isIdentifier(부름) && 부름.text === 'verify') {
+        판정.push(첫);
+        if (n.arguments[1] !== undefined && 묶었나(n.arguments[1])) 묶은판정.push(첫);
+      }
     }
     ts.forEachChild(n, 훑기);
   };
@@ -51,7 +58,14 @@ export function 케이스문장읽기(글: string): 케이스문장 | null {
     전제: 전제식 !== undefined && ts.isArrayLiteralExpression(전제식) ? 전제식.elements.flatMap((e) => 글자(e) ?? []) : [],
     절차,
     판정,
+    묶은판정,
   };
+}
+
+/** 확인 하나에 값 하나(`tpx-cases` `references/5-writing.md` 「확인 하나에 값 하나」) — `볼` 이 있으면 그 tcId 만 본다 */
+export function 묶은확인들(케이스들: readonly 케이스문장[], 볼?: ReadonlySet<string>): string[] {
+  const 볼것 = 케이스들.filter((c) => 볼 === undefined || 볼.has(c.tcId));
+  return 볼것.flatMap((c) => c.묶은판정.map((문장) => `${c.tcId} 「${문장}」 — 값을 배열 · 객체로 묶어 견준다. 값마다 verify 를 따로 쓴다`));
 }
 
 const 칸 = (행: Record<string, string>, 이름: string) => (행[이름] ?? '').replace(/\\\|/g, '|').trim();
@@ -217,6 +231,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
       const 어긋남 =
         표 === null ? ['케이스 파일에서 tcId 를 못 읽었다 — defineCase 의 tcId 를 글자로 적는다'] : !existsSync(join(트리, 표)) ? [`목록 ${표} 이 없다`] : 맞춰보기(readFileSync(join(트리, 표), 'utf8'), 케이스문장들(트리, 폴더, 문장들), new Set(문장들.map((c) => c.tcId)));
       결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남 });
+      const 묶음 = 묶은확인들(문장들);
+      결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
     }
   } else if (모드 === '마지막' && 나머지.length >= 3) {
     const [원장, 접두사, 폴더, ...더] = 나머지 as [string, string, string, ...string[]];
@@ -239,6 +255,8 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     const 볼 = 바뀐 === null || '까닭' in 바뀐 ? undefined : new Set(바뀐.filter((f) => f.startsWith(`tests/${폴더}/`) && f.endsWith('.spec.ts')).flatMap((f) => (existsSync(join(트리, f)) ? (케이스문장읽기(readFileSync(join(트리, f), 'utf8'))?.tcId ?? []) : [])));
     const 어긋남 = existsSync(join(트리, 표)) ? 맞춰보기(readFileSync(join(트리, 표), 'utf8'), 문장들, 볼) : [`목록 ${표} 이 없다`];
     결과들.push({ 이름: '케이스와 요구 목록 맞춰 보기', ok: 어긋남.length === 0, 줄들: 어긋남, 머리: 볼 === undefined ? undefined : `이번에 바뀐 케이스 ${볼.size}건만 봤다` });
+    const 묶음 = 묶은확인들(문장들, 볼);
+    결과들.push({ 이름: '확인 하나에 값 하나', ok: 묶음.length === 0, 줄들: 묶음 });
     const 가이드 = join('docs', 'cases', `${접두사}.guide.md`);
     결과들.push(비밀검사([`tests/${폴더}`, 표, ...(existsSync(join(트리, 가이드)) ? [가이드] : []), ...더]));
   } else {
