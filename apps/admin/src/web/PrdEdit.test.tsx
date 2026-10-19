@@ -250,6 +250,17 @@ describe('PRD 관리 — 버전 기록', () => {
     expect(within(줄들[0]!).getByText('확정으로 바뀜')).toBeTruthy();
   });
 
+  it('글과 상태를 한 번에 고친 요구는 상태도 같이 적는다', async () => {
+    한판.mockImplementation((_s, version) =>
+      Promise.resolve({ version, items: [version === 11 ? 아이디칸 : { ...아이디칸, text: '고친 문장', status: 'CONFIRMED' as const }] }),
+    );
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: '버전 기록' }));
+    const 줄들 = (await screen.findAllByRole('row')).slice(1);
+    fireEvent.click(await within(줄들[0]!).findByRole('button', { name: '바뀜 1건' }));
+    expect(within(줄들[0]!).getByRole('listitem').textContent).toContain('고친 문장 · 확정으로 바뀜');
+  });
+
   it('최근 열 개 밖의 버전은 누를 때만 읽는다', async () => {
     판들.mockResolvedValue(
       Array.from({ length: 12 }, (_, i): PrdVersionRow => ({ version: 12 - i, source: 'PERSON', savedByName: '한지수', savedAt: '2026-10-09T08:42:00.000Z' })),

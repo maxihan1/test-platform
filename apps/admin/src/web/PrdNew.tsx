@@ -18,6 +18,7 @@ export function PrdNew({ service, now, 짓기, on닫기 }: { service: string; no
     <div className="prd-new prd-new-top" ref={칸}>
       <h3>{t('새 요구')}</h3>
       <PrdItemForm
+        새요구
         처음={빈요구()}
         기능들={[...new Set(now.items.map((x) => x.feature))]}
         on저장={async (x, 실패) => {

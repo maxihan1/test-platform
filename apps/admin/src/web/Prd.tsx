@@ -106,7 +106,7 @@ export function Prd({
               </a>
             ) : null}
             {쓰나 ? (
-              <button className="btn ghost" onClick={() => set더하기(true)} disabled={더하기}>
+              <button className="btn ghost" onClick={() => { set메뉴(false); set더하기(true); }} disabled={더하기}>
                 {t('요구 더하기')}
               </button>
             ) : null}
@@ -128,7 +128,7 @@ export function Prd({
                     </span>
                   ) : null}
                 </span>
-                <button className="btn ghost" aria-expanded={이력} onClick={() => set이력(!이력)}>
+                <button className="btn ghost" aria-expanded={이력} onClick={() => { set메뉴(false); set이력(!이력); }}>
                   {t('버전 기록')}
                 </button>
               </>

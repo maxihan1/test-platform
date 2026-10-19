@@ -104,6 +104,17 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     await vi.waitFor(() => expect(within(아이디).getByText('실패 1 / 3').getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031?last=FAIL'));
   });
 
+  it('기능 · UI 양쪽에 실패가 있으면 UI 쪽 고리를 하나 더 단다', async () => {
+    vi.spyOn(api, 'lastByCase').mockResolvedValue({
+      items: [결과('MKT-FN-001', 'desktop', 'FAIL'), 결과('MKT-FN-002', 'desktop', 'PASS'), 결과('MKT-UI-001', 'desktop', 'FAIL')],
+    });
+    render(<Prd service="MKT" 할수={보는사람} 결과보나 케이스보나 />);
+    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
+    const 아이디 = 줄of('MKT-REQ-031');
+    await vi.waitFor(() => expect(within(아이디).getByText('실패 2 / 3').getAttribute('href')).toBe('#/cases/fn/req/MKT-REQ-031?last=FAIL'));
+    expect(within(아이디).getByText('UI 실패 1건 보기').getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031?last=FAIL');
+  });
+
   it('케이스 read 가 없으면 실패 숫자도 고리가 아니다', async () => {
     vi.spyOn(api, 'lastByCase').mockResolvedValue({ items: [결과('MKT-FN-001', 'desktop', 'FAIL')] });
     render(<Prd service="MKT" 할수={보는사람} 결과보나 />);

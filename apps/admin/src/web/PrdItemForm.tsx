@@ -21,12 +21,15 @@ function 다듬기(x: PrdItemDraft): PrdItemDraft {
 
 export function PrdItemForm({
   열쇠,
+  새요구 = false,
   처음,
   기능들,
   on저장,
   on취소,
   on지우기,
 }: {
+  /** 새 요구 칸이다 — 근거 칸이 없고 저장할 때 「직접 작성」 근거를 단다. 고치는 줄이면 기존 근거를 그대로 보낸다 */
+  새요구?: boolean;
   /** 고치는 줄의 요구 번호. 줄 접기 · 다른 줄 고치기는 이 칸에만 묻는다 — 새 요구 칸은 없다 */
   열쇠?: string;
   처음: PrdItemDraft;
@@ -45,8 +48,7 @@ export function PrdItemForm({
   const [저장오류, set저장오류] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [지우기확인, set지우기확인] = useState(false);
-  // 고치는 줄에는 지우기가 있고 새 요구에는 없다
-  const 새것 = on지우기 === undefined;
+  const 새것 = 새요구;
   const 첫칸 = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (새것) 첫칸.current?.focus();

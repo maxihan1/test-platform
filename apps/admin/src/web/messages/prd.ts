@@ -49,6 +49,7 @@ export const 기획서말: Record<string, string> = {
   '#{번호} 요청이 이 화면들을 작성하는 중입니다': 'Request #{번호} is writing these screens',
   '기획서 없이 「실제 화면과 대조」로 보내면 이 화면만 작성합니다':
     'Send a request with Compare with the live screen and no spec, and only these screens are written',
+  'UI 실패 {건수}건 보기': 'View {건수} failing UI cases',
   '이 화면들 테스트 작성': 'Author tests for these screens',
   '{역할} 로그인': 'Signed in as {역할}',
 
@@ -110,7 +111,7 @@ export const 기획서말: Record<string, string> = {
   '원본 문장': 'Source sentence',
   '근거 더하기': 'Add source',
   '근거는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 고치기에서 더할 수 있습니다':
-    'The source is set to “Direct entry” automatically. After saving, add more from Edit on the requirement',
+    'The source is set to “직접 작성” (direct entry) automatically. After saving, add more from Edit on the requirement',
   '이 요구 지우기': 'Delete this requirement',
   // 「지우기 확인」은 입력값 지우기(Confirm clear)에 이미 쓰인다 — 여기는 요구를 지운다
   '지우기 확인§요구': 'Confirm delete',

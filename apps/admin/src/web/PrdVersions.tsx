@@ -13,7 +13,8 @@ import { 판차이, type 차이줄 } from './prdView.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
 /** 이 화면을 연 동안 읽은 버전. 옛 버전은 고치지 않으니 다시 읽지 않는다 */
-type 읽은판 = Map<number, Promise<PrdItem[]>>;
+// 키는 서비스와 버전이다 — 열어 둔 채 서비스를 바꿔도 남의 서비스 판을 돌려주지 않게
+type 읽은판 = Map<string, Promise<PrdItem[]>>;
 
 /** 한 줄이 최근 몇 개까지 열자마자 계산하나 — 그 밖은 누를 때 읽는다(버전마다 요구 전체를 읽어야 해서) */
 const 바로계산 = 10;
@@ -44,6 +45,8 @@ function 차이줄글({ 줄 }: { 줄: 차이줄 }) {
               <del>{줄.앞.text}</del> → {줄.뒤.text}
             </>
           )}
+          {/* 글과 상태를 한 번에 고쳤으면 상태도 같이 적는다 — 줄에는 확정 꼬리표가 없어 여기서만 보인다 */}
+          {줄.앞.status === 줄.뒤.status ? null : <> · {상태}</>}
         </span>
       ) : (
         <span className="prd-diff-text">{(줄.뒤 ?? 줄.앞)?.text}</span>
@@ -58,12 +61,13 @@ function 바뀐것({ service, 판, 앞판, 읽은, 바로 }: { service: string; 
   const [읽음, set읽음] = useState(바로);
   const [폄, set폄] = useState(false);
   const 읽기 = (v: number) => {
-    const 있던 = 읽은.get(v);
+    const 열쇠 = `${service}\n${String(v)}`;
+    const 있던 = 읽은.get(열쇠);
     if (있던 !== undefined) return 있던;
     const 새 = prdApi.version(service, v).then((x) => x.items);
     // 실패한 읽기는 남기지 않는다 — 다시 누르면 다시 읽는다
-    새.catch(() => 읽은.delete(v));
-    읽은.set(v, 새);
+    새.catch(() => 읽은.delete(열쇠));
+    읽은.set(열쇠, 새);
     return 새;
   };
   const 차이 = useAsync(() => (!읽음 || 앞판 === null ? Promise.resolve(null) : Promise.all([읽기(앞판), 읽기(판)]).then(([앞, 뒤]) => 판차이(앞, 뒤))), [service, 판, 앞판, 읽음]);
