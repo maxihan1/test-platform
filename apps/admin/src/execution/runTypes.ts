@@ -2,6 +2,7 @@
 
 import type { ItemStatus, Platform, StepResult } from '@platform/kit';
 
+import type { 항목실패 } from '../reporting/itemFailure.js';
 import type { RunKind } from './runKind.js';
 
 export interface RunCounts {
@@ -62,4 +63,6 @@ export interface RunItemDetail extends RunItemSummary {
   // params·paramSchema 는 RunItemSummary 에 있다 — 목록도 같은 값을 쓴다 (§8.3)
   expectedSchema: Record<string, unknown>;
   steps: StepResult[];
+  /** 실패 · 미실행 항목이 왜 통과하지 못했나 — 통과 · 안 끝남 · 멈춰 닫힌 미실행은 null (도메인/실행 §7 항목 상세) */
+  failure: 항목실패 | null;
 }

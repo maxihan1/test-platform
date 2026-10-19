@@ -5,6 +5,7 @@ import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { 판정접기식 } from './dashboardSql.js';
+import { 원인을가른다, 실패유형들, 색코드, type 실패유형 } from './failureType.js';
 
 export type 변화 = '새로깨짐' | '계속깨짐' | '고쳐짐' | '그대로';
 
@@ -17,6 +18,8 @@ export interface 비교 {
   케이스들: { tcId: string; tcName: string; platform: string; 판정: 변화 }[];
   /** 이번 실행의 실패를 같은 사유끼리 묶은 것. 견줄 앞 실행이 없어도 낸다 */
   실패덩어리들: 실패덩어리[];
+  /** 실패 케이스를 유형으로 묶은 것 — 결과 화면 「실패 유형」 칩 줄. 있는 유형만 화면 차례로 */
+  실패유형들: { type: 실패유형; count: number; tcIds: string[] }[];
 }
 
 export interface 실패덩어리 {
@@ -116,7 +119,13 @@ interface 사유행 {
  * 원문은 항목 상세가 그대로 갖고 있다. 여기서 자르는 것은 **요약 자리에 원문을 두지 않는 것**이다.
  */
 export function 한줄로자른다(문장: string): string {
-  const 첫줄 = (문장.split('\n')[0] ?? '').trim();
+  // Playwright 원문은 색 코드와 빈 첫 줄로 시작하기도 한다(「\u001b[2m\n Error…」) — 그대로 첫 줄을 고르면 빈 사유나 색 코드가 나온다
+  const 첫줄 =
+    문장
+      .replace(색코드, '')
+      .split('\n')
+      .map((줄) => 줄.trim())
+      .find((줄) => 줄 !== '') ?? '';
   return 첫줄.length > 대표문장길이 ? `${첫줄.slice(0, 대표문장길이)}…` : 첫줄;
 }
 
@@ -155,6 +164,46 @@ async function 사유로묶는다(pool: Pool, runId: number): Promise<실패덩�
   );
 }
 
+// 케이스 하나는 한 유형에만 든다 — 디바이스 차례로 첫 실패 디바이스의 처음 실패한 회차다(실패 카드 머리와 같은 항목, failuresShape.ts)
+// 재료는 대시보드 원인식(dashboardSql.ts)과 같다. 절차 오류는 첫 것만 본다
+const 유형재료뽑기 = `
+  SELECT DISTINCT ON (i.tc_id) i.tc_id,
+         EXISTS (
+           SELECT 1 FROM run_item_step s CROSS JOIN LATERAL jsonb_array_elements(s.assertions) AS a(value)
+           WHERE s.history_id = i.history_id AND a.value->>'status' = 'FAIL') AS assert_failed,
+         COALESCE(i.error->>'message', '') AS item_message,
+         COALESCE(
+           (SELECT s.error->>'message' FROM run_item_step s
+            WHERE s.history_id = i.history_id AND s.error IS NOT NULL
+            ORDER BY s.seq
+            LIMIT 1), '') AS step_message
+  FROM run_item i
+  WHERE i.run_id = $1 AND i.status = 'FAIL'
+  ORDER BY i.tc_id, array_position(ARRAY['desktop', 'mobile', 'android']::text[], i.platform::text), i.attempt, i.history_id`;
+
+async function 유형으로묶는다(pool: Pool, runId: number): Promise<비교['실패유형들']> {
+  const { rows } = await pool.query<{ tc_id: string; assert_failed: boolean; item_message: string; step_message: string }>(
+    유형재료뽑기,
+    [runId],
+  );
+  const 묶음 = new Map<실패유형, string[]>();
+  for (const row of rows) {
+    // FAIL 만 고르므로 멈춤(stopped)은 안 나온다
+    const 원인 = 원인을가른다({
+      status: 'FAIL',
+      assertFailed: row.assert_failed,
+      itemMessage: row.item_message,
+      stepMessage: row.step_message,
+    });
+    if (원인 === 'stopped') continue;
+    묶음.set(원인, [...(묶음.get(원인) ?? []), row.tc_id]);
+  }
+  return 실패유형들.flatMap((type) => {
+    const tcIds = 묶음.get(type);
+    return tcIds === undefined ? [] : [{ type, count: tcIds.length, tcIds }];
+  });
+}
+
 /** 같은 서비스·같은 대상 서버의 바로 앞 실행을 찾아 케이스마다 무엇이 달라졌는지 낸다 */
 export async function compareWithPrevious(runId: number): Promise<비교> {
   const pool = await db();
@@ -167,7 +216,7 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
   const 현재 = 이번.rows[0];
   if (현재 === undefined) throw new Error(`실행 ${runId}을 찾을 수 없다`);
 
-  const 실패덩어리들 = await 사유로묶는다(pool, runId);
+  const [실패덩어리들, 실패유형별] = await Promise.all([사유로묶는다(pool, runId), 유형으로묶는다(pool, runId)]);
 
   // service_id 가 없는 옛 행은 견줄 짝을 특정할 수 없다. = 가 아무것도 안 물어 previous 는 null 로 떨어진다
   //
@@ -187,7 +236,9 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
     [현재.service_id, 현재.env, 현재.started_at, 현재.kind],
   );
   const 직전 = 앞.rows[0];
-  if (직전 === undefined) return { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들 };
+  if (직전 === undefined) {
+    return { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들, 실패유형들: 실패유형별 };
+  }
 
   const [이번접힘, 앞접힘] = await Promise.all([
     pool.query<접힌행>(접기, [runId]),
@@ -219,5 +270,6 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
     빠진건수,
     케이스들,
     실패덩어리들,
+    실패유형들: 실패유형별,
   };
 }

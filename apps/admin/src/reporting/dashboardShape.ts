@@ -1,7 +1,7 @@
 // 앱 대시보드 숫자(통과율 · 일별 · 서비스별 · 신규 실패 · 히트맵)를 접은 줄에서 만드는 순수 함수
 
 import { 히트맵을만든다, type 히트맵줄 } from './dashboardHeat.js';
-import { 유형을센다, type 원인, type 유형셈 } from './failureType.js';
+import { 유형을센다, type 원인, type 유형셈, type 실패유형 } from './failureType.js';
 import { 판정표, type 변화 as 판정변화 } from './insights.js';
 
 export { 히트맵케이스수, type 히트맵줄 } from './dashboardHeat.js';
@@ -82,6 +82,8 @@ export interface 신규실패칸 {
   platform: 'desktop' | 'mobile';
   finishedAt: string;
   reason: string | null;
+  /** 실패 줄이라 멈춤(stopped)은 안 나온다. 원인 재료가 없으면 그 밖 — 대시보드 「실패 유형」과 같은 함수 */
+  type: 실패유형;
 }
 
 export interface 집계 {
@@ -266,8 +268,9 @@ function 신규실패를뽑는다(
   for (const 줄 of 후보) {
     if (본것.has(케이스키(줄))) continue;
     본것.add(케이스키(줄));
-    const { runId, serviceId, serviceName, env, kind, tcId, tcName, platform, finishedAt, reason } = 줄;
-    결과.push({ runId, serviceId, serviceName, env, kind, tcId, tcName, platform, finishedAt, reason });
+    const { runId, serviceId, serviceName, env, kind, tcId, tcName, platform, finishedAt, reason, cause } = 줄;
+    const type = cause === null || cause === 'stopped' ? 'other' : cause;
+    결과.push({ runId, serviceId, serviceName, env, kind, tcId, tcName, platform, finishedAt, reason, type });
   }
   return 결과;
 }

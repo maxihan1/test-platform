@@ -208,6 +208,16 @@ describe('신규 실패', () => {
     expect(결과.신규실패.map((n) => n.tcId).sort()).toEqual(['MKT-001', 'MKT-002']);
   });
 
+  it('신규 실패 줄은 원인 유형을 싣고, 원인 재료가 없으면 그 밖이다', () => {
+    const a = 줄({ runId: 10, tcId: 'MKT-001', verdict: 'FAIL', cause: 'notFound' });
+    const b = 줄({ runId: 10, tcId: 'MKT-002', verdict: 'FAIL', cause: null });
+    const 결과 = 대시보드집계([a, b], new Map([[10, [앞('MKT-001', 'PASS'), 앞('MKT-002', 'PASS')]]]), 오늘);
+    expect(결과.신규실패.map((n) => [n.tcId, n.type]).sort()).toEqual([
+      ['MKT-001', 'notFound'],
+      ['MKT-002', 'other'],
+    ]);
+  });
+
   it('앞 실행에 없던 케이스는 견주지 않는다', () => {
     const 결과 = 대시보드집계(
       [줄({ runId: 10, tcId: 'MKT-009', verdict: 'FAIL' })],
