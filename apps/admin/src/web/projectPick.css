@@ -1,0 +1,121 @@
+/* 로그인 직후 프로젝트 고르기 (SPEC 공통/5-화면공통 §8 「프로젝트 고르기」 · 2026-10-19 시안 A). 색은 토큰만 쓴다 */
+
+.pp {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - var(--body-pad-top) - var(--body-pad-bottom));
+  background: var(--bg);
+}
+
+.pp-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--head);
+  border-bottom: 1px solid var(--line);
+}
+
+.pp-logo {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.pp-gap {
+  flex: 1;
+}
+
+.pp-user {
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+.pp-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 16px;
+}
+
+.pp-h {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.pp-sub {
+  margin: 0 0 20px;
+  color: var(--ink-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.pp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.pp-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pp-card:hover {
+  border-color: var(--line-2);
+}
+
+.pp-card:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* 마지막에 연 프로젝트 — 지금 고른 것이 아니라 다시 열릴 곳이라 대표색 테두리만 쓴다 */
+.pp-card.is-last {
+  border-color: var(--accent);
+}
+
+.pp-card-h {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pp-card-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.pp-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--rail-active);
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.pp-apps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ink-muted);
+  font-size: 13px;
+}

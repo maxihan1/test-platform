@@ -21,12 +21,12 @@ afterEach(() => {
 
 // 버튼은 띠에서 고른 서비스가 아니라 **그 실행의 서비스** 칸을 본다.
 // 띠가 회원(실행 읽기)인 채로 결제 실행 주소를 열면 결제 칸으로 가른다 (화면공통 §8)
-describe('실행 결과의 권한은 그 실행의 서비스로', () => {
+describe('실행 결과의 권한은 그 실행의 애플리케이션으로', () => {
   const 김: User = {
     username: 'kim', displayName: '김철수', role: 'member', dashboard: 'read', mustChangePassword: false,
     services: [
-      { id: 1, prefix: 'PAY', name: '결제', color: '#000000', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'write', authoring: 'none' } },
-      { id: 2, prefix: 'MEM', name: '회원', color: '#000000', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'read', authoring: 'none' } },
+      { id: 1, prefix: 'PAY', name: '결제', color: '#000000', projectId: 1, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'write', authoring: 'none' } },
+      { id: 2, prefix: 'MEM', name: '회원', color: '#000000', projectId: 1, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'read', authoring: 'none' } },
     ],
   };
 
@@ -43,18 +43,18 @@ describe('실행 결과의 권한은 그 실행의 서비스로', () => {
     render(<RunResult runId={RUN_ID} 판정하기={(접두사) => 판정을만든다(김, 접두사)} 칸안 />);
   }
 
-  it('실행 쓰기인 서비스의 실행이면 중단 버튼이 선다', async () => {
+  it('실행 쓰기인 애플리케이션의 실행이면 중단 버튼이 선다', async () => {
     연다('PAY-001', 'RUNNING');
     expect(await screen.findByText('실행 중단')).toBeTruthy();
   });
 
-  it('실행 읽기인 서비스의 실행이면 중단 버튼이 없다', async () => {
+  it('실행 읽기인 애플리케이션의 실행이면 중단 버튼이 없다', async () => {
     연다('MEM-001', 'RUNNING');
     await screen.findAllByText(/대상 서버/);
     expect(screen.queryByText('실행 중단')).toBeNull();
   });
 
-  it('증적 만들기도 그 실행의 서비스로 가른다', async () => {
+  it('증적 만들기도 그 실행의 애플리케이션으로 가른다', async () => {
     연다('PAY-001', 'FINISHED');
     expect(await screen.findByText('PDF 만들기')).toBeTruthy();
     cleanup();

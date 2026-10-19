@@ -197,7 +197,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         {/* 고른 뒤 「어디로 쏘는지」를 확인할 자리가 있어야 한다 (SPEC §8.2) */}
         {주소 === null ? null : <span className="addr">{주소}</span>}
         {service !== null && service.envs.length === 0 ? (
-          <span className="err">{t('이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
+          <span className="err">{t('이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
         ) : null}
       </div>
       <RunLocation android={android} />

@@ -177,7 +177,7 @@ describe('실행 멈추기', () => {
   });
 });
 
-describe('목록 두 곳은 보고 있는 서비스를 서버에 보낸다', () => {
+describe('목록 두 곳은 보고 있는 애플리케이션을 서버에 보낸다', () => {
   it('케이스 목록에 service 가 실린다', async () => {
     답 = { status: 200, body: { items: [], total: 0, totalIsExact: true, sort: 'tcId', page: 1, pageSize: 50 } };
     await api.cases({ service: 'PAY', q: '장바구니', page: 2 });
@@ -212,7 +212,7 @@ describe('작성 대기줄 (SPEC §7 · 도메인/작성 §7)', () => {
     expect(String(부름[0]?.url)).toContain('service=PAY');
   });
 
-  it('작성 요청을 넣을 때도 service 가 실린다. 어느 서비스의 줄인지는 주소가 말한다', async () => {
+  it('작성 요청을 넣을 때도 service 가 실린다. 어느 애플리케이션의 줄인지는 주소가 말한다', async () => {
     답 = { status: 201, body: { id: 7 } };
     await api.createAuthoringRequest('PAY', { kind: 'AUTHOR', figma: [] });
     expect(String(부름[0]?.url)).toContain('service=PAY');
@@ -275,10 +275,11 @@ describe('작성 대기줄 (SPEC §7 · 도메인/작성 §7)', () => {
   });
 });
 
-describe('서비스 설정의 피그마 토큰 (도메인/인증 §8.8)', () => {
-  it('서비스를 만들 때 피그마 토큰을 싣는다', async () => {
+describe('애플리케이션 설정의 피그마 토큰 (도메인/인증 §8.8)', () => {
+  it('애플리케이션을 만들 때 피그마 토큰을 싣는다', async () => {
     답 = { status: 201, body: { id: 1 } };
     await api.createService({
+      projectId: 1,
       prefix: 'PAY',
       name: '결제',
       color: '#2F6F8F',
@@ -291,7 +292,7 @@ describe('서비스 설정의 피그마 토큰 (도메인/인증 §8.8)', () => 
     expect(본문.figmaToken).toBe('figd_abc');
   });
 
-  it('서비스를 고칠 때도 피그마 토큰을 싣는다', async () => {
+  it('애플리케이션을 고칠 때도 피그마 토큰을 싣는다', async () => {
     답 = { status: 200, body: { ok: true } };
     await api.updateService(1, { figmaToken: 'figd_new' });
     const 본문 = JSON.parse(String(부름[0]?.init?.body)) as Record<string, unknown>;
@@ -313,7 +314,7 @@ describe('앱 대시보드 (도메인/리포팅 §7 · §8.12)', () => {
     expect(부름[0]?.url).toBe('/api/dashboard?tz=Asia%2FSeoul&only=running');
   });
 
-  it('서비스 번호와 기간을 고르면 service · days 를 붙이고, 안 고르면 안 붙인다', async () => {
+  it('애플리케이션 번호와 기간을 고르면 service · days 를 붙이고, 안 고르면 안 붙인다', async () => {
     답 = { status: 200, body: {} };
     await api.dashboard('Asia/Seoul', undefined, { service: 3, days: 7 });
     expect(부름[0]?.url).toBe('/api/dashboard?tz=Asia%2FSeoul&service=3&days=7');

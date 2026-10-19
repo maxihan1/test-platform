@@ -71,6 +71,12 @@
   border-radius: 4px;
 }
 
+.hd-chev {
+  flex: none;
+  margin: 0 -8px;
+  color: var(--ink-faint);
+}
+
 .hd-svc:hover {
   border-color: var(--ink-faint);
 }
@@ -113,6 +119,7 @@
 
 .hd-svc .side-svc-name {
   padding-right: 12px;
+  white-space: nowrap;
   font-size: 12px;
   font-weight: 400;
 }

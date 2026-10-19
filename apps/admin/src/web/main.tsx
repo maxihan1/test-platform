@@ -16,6 +16,8 @@ import {
   고른서비스,
   대시보드재료,
   배정서비스접두사,
+  배정프로젝트들,
+  프로젝트물을까,
   고른서비스를읽는다,
   고른서비스를적는다,
   고른언어를읽는다,
@@ -25,6 +27,7 @@ import {
 import { Login } from './Login.js';
 import { PasswordChange } from './PasswordChange.js';
 import { PasswordNotice } from './PasswordNotice.js';
+import { ProjectPick } from './ProjectPick.js';
 import { Guide } from './Guide.js';
 import { Prd } from './Prd.js';
 import { 기능보나, 판정을만든다 } from './role.js';
@@ -43,6 +46,7 @@ import './styles.css';
 import './authoringStatus.css';
 import './noticeBar.css';
 import './header.css';
+import './projectPick.css';
 import './noticeDrawer.css';
 import './phone.css';
 import './prd.css';
@@ -165,6 +169,8 @@ type 상태 = { 어디: '묻는중' } | { 어디: '밖' } | { 어디: '안'; use
 function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) => void }) {
   const hash = useHash();
   const [상태, set상태] = useState<상태>({ 어디: '묻는중' });
+  // 로그인한 직후에만 프로젝트를 먼저 묻는다. 새로고침이나 끊겼다 돌아온 로그인은 보던 프로젝트 그대로다
+  const [프로젝트묻기, set프로젝트묻기] = useState(false);
   const [prefix, setPrefix] = useState<string | null>(() => 고른서비스를읽는다());
   // 스스로 비밀번호를 바꾼 뒤 돌아갈 자리. 들어가는 화면들은 기억하지 않는다 — 거기로 돌아가면 쓸 데가 없다
   const 직전 = useRef('');
@@ -238,7 +244,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
           // 세션이 끊겨 여기로 온 사람은 원래 가려던 화면으로 돌려보낸다 (SPEC §8.6).
           // 기억해 둔 자리도 권한 판정을 탄다 — 그사이 칸이 none 이 됐을 수 있다
           const 고른 = 고른서비스(prefix, user.services)?.prefix ?? null;
-          window.location.hash = 돌아갈자리(돌아갈자리를꺼낸다() ?? window.location.hash, user, 고른);
+          const 돌아감 = 돌아갈자리를꺼낸다();
+          set프로젝트묻기(프로젝트물을까(돌아감, user.services));
+          window.location.hash = 돌아갈자리(돌아감 ?? window.location.hash, user, 고른);
         }}
       />
     );
@@ -249,6 +257,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       // 로그인 화면으로 가는 길을 저장 안 한 조립이 막으면 안 된다
       떠나기막기(null);
       set상태({ 어디: '밖' });
+      set프로젝트묻기(false);
       // 알림이 뜬 채 나가면 줄이 사라져 끄는 길(onGone)이 안 불린다. 남겨 두면 다음 로그인에 옛 알림이 뜬다
       set비밀번호바꿈(false);
       window.location.hash = '#/login';
@@ -266,6 +275,22 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // 변경 강제 중이면 이 화면만 — 사이드바·서비스 고르개가 없다. 서버도 다른 API 를 403 으로 막는다
   if (상태.user.mustChangePassword) {
     return <PasswordChange 강제 onDone={(user) => 비밀번호바뀜(user, true)} onLogout={나간다} />;
+  }
+
+  if (프로젝트묻기 && 배정프로젝트들(상태.user.services).length > 1) {
+    return (
+      <ProjectPick
+        user={상태.user}
+        // 한 번도 안 열어 본 브라우저는 마지막이 없다 — 첫 애플리케이션으로 열려도 「마지막에 연」 표시는 달지 않는다
+        마지막={상태.user.services.find((it) => it.prefix === prefix) ?? null}
+        onPick={(접두사) => {
+          고른서비스를적는다(접두사);
+          setPrefix(접두사);
+          set프로젝트묻기(false);
+        }}
+        onLogout={나간다}
+      />
+    );
   }
 
   return (

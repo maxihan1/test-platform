@@ -75,7 +75,7 @@ describe('케이스 목록 — 이 결과 엑셀로', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: '이 결과 엑셀로 (6건)' }));
 
-    expect((await screen.findByRole('alert')).textContent).toBe('이 서비스에서 케이스 읽기 권한이 없습니다');
+    expect((await screen.findByRole('alert')).textContent).toBe('이 애플리케이션에서 케이스 읽기 권한이 없습니다');
     expect(누름).not.toHaveBeenCalled();
   });
 });

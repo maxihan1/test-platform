@@ -129,7 +129,7 @@ describe('묶음 머리', () => {
     expect(마지막조건(스파이)).toMatchObject({ feature: '' });
   });
 
-  it('「기능 묶음 없음」만 걸러도 PRD 를 쓰는 서비스면 묶음 머리 · 모두 접기 · 「연결된 요구 없음」이 남는다', async () => {
+  it('「기능 묶음 없음」만 걸러도 PRD 를 쓰는 애플리케이션면 묶음 머리 · 모두 접기 · 「연결된 요구 없음」이 남는다', async () => {
     const 없는것 = 케이스('ZCL-FN-008');
     그리기({ 받을쪽: { items: [없는것], total: 1, page: 1, pageSize: 50, hasFeatures: true, groups: [{ feature: null, screen: null, screenUrl: null, part: null, tcIds: ['ZCL-FN-008'] }] } });
     await screen.findByText('ZCL-FN-008');
@@ -138,7 +138,7 @@ describe('묶음 머리', () => {
     expect(screen.getByText('연결된 요구 없음')).toBeTruthy();
   });
 
-  it('PRD 를 안 쓰는 서비스는 머리도 「연결된 요구 없음」도 없다', async () => {
+  it('PRD 를 안 쓰는 애플리케이션은 머리도 「연결된 요구 없음」도 없다', async () => {
     그리기({ 받을쪽: { items: [케이스('ZCL-FN-009')], total: 1, page: 1, pageSize: 50, groups: [{ feature: null, screen: null, screenUrl: null, part: null, tcIds: ['ZCL-FN-009'] }] } });
     await screen.findByText('ZCL-FN-009');
     expect(document.querySelector('.grp')).toBeNull();

@@ -29,7 +29,7 @@ function 계정(username: string, 덧: Partial<UserRow> = {}): UserRow {
     role: 'member',
     dashboard: 'read',
     isActive: true,
-    services: [],
+    projects: [],
     hasAgentToken: false,
     isAuthoringAgent: false,
     ...덧,
@@ -38,7 +38,7 @@ function 계정(username: string, 덧: Partial<UserRow> = {}): UserRow {
 
 function 그리기(rows: UserRow[], onDone: () => void = () => {}) {
   const 결과 = render(
-    <UserSection rows={rows} services={[]} me="kim" onDone={onDone} onSelf={() => {}} />,
+    <UserSection rows={rows} projects={[]} me="kim" onDone={onDone} onSelf={() => {}} />,
   );
   fireEvent.click(screen.getAllByText('편집').at(-1)!);
   return 결과;
@@ -91,7 +91,7 @@ describe('에이전트 토큰', () => {
     rerender(
       <UserSection
         rows={[계정('agent', { isAuthoringAgent: true, hasAgentToken: true })]}
-        services={[]}
+        projects={[]}
         me="kim"
         onDone={onDone}
         onSelf={() => {}}

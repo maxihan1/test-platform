@@ -73,7 +73,7 @@ export function Login({
         <h1 className="login-greet">{t('로그인')}</h1>
         {/* 빈 상자 하나만 두면 무엇을 하는 화면인지 안 읽힌다. 짙은 바탕 위 밝은 상자로
             들어가는 자리임을 분명히 한다 (docs/design-mockup.html) */}
-        <p className="login-sub">{t('아이디와 비밀번호를 넣으면 맡은 서비스가 열립니다.')}</p>
+        <p className="login-sub">{t('아이디와 비밀번호를 넣으면 맡은 애플리케이션이 열립니다.')}</p>
 
         <div className="field">
           <label htmlFor="login-id">{t('아이디')}</label>

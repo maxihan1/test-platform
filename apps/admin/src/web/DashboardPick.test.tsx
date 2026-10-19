@@ -76,29 +76,29 @@ afterEach(() => {
   window.location.hash = '';
 });
 
-describe('서비스 · 기간 고르기', () => {
-  it('열 때는 전체 서비스 · 14일이고 조건 없이 읽는다', async () => {
+describe('애플리케이션 · 기간 고르기', () => {
+  it('열 때는 전체 애플리케이션 · 14일이고 조건 없이 읽는다', async () => {
     const 읽기 = vi.spyOn(api, 'dashboard').mockResolvedValue(응답() as never);
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    await screen.findByText(/서비스 2개 · 최근 14일/);
+    await screen.findByText(/애플리케이션 2개 · 최근 14일/);
     expect(읽기).toHaveBeenCalledWith(시간대, undefined, {});
-    expect((screen.getByRole('combobox', { name: '서비스' }) as HTMLSelectElement).value).toBe('');
+    expect((screen.getByRole('combobox', { name: '애플리케이션' }) as HTMLSelectElement).value).toBe('');
     expect((screen.getByRole('combobox', { name: '기간' }) as HTMLSelectElement).value).toBe('14');
     expect(window.location.hash).not.toContain('service=');
   });
 
-  it('서비스를 고르면 그 번호로 다시 읽고 주소에 남기며 부제에 서비스 이름이 뜬다', async () => {
+  it('애플리케이션을 고르면 그 번호로 다시 읽고 주소에 남기며 부제에 애플리케이션 이름이 뜬다', async () => {
     const 읽기 = vi
       .spyOn(api, 'dashboard')
       .mockImplementation(((_tz: string, _only?: string, 조건?: { service?: number; days?: number }) =>
         Promise.resolve(조건?.service === 2 ? 응답({ byService: [] }) : 응답())) as typeof api.dashboard);
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    await screen.findByText(/서비스 2개/);
-    fireEvent.change(screen.getByRole('combobox', { name: '서비스' }), { target: { value: '2' } });
+    await screen.findByText(/애플리케이션 2개/);
+    fireEvent.change(screen.getByRole('combobox', { name: '애플리케이션' }), { target: { value: '2' } });
     expect(await screen.findByText(/ZDA 회원 · 최근 14일/)).toBeTruthy();
     expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, { service: 2 });
     expect(window.location.hash).toBe('#/dashboard?service=2');
-    expect((screen.getByRole('combobox', { name: '서비스' }) as HTMLSelectElement).value).toBe('2');
+    expect((screen.getByRole('combobox', { name: '애플리케이션' }) as HTMLSelectElement).value).toBe('2');
   });
 
   it('기간을 고르면 그 길이로 읽고 글자의 날 수도 따라간다 — 기본값 14 는 주소에서 빠진다', async () => {
@@ -109,7 +109,7 @@ describe('서비스 · 기간 고르기', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await screen.findByText(/최근 14일 · /);
     fireEvent.change(screen.getByRole('combobox', { name: '기간' }), { target: { value: '7' } });
-    expect(await screen.findByText(/서비스 2개 · 최근 7일/)).toBeTruthy();
+    expect(await screen.findByText(/애플리케이션 2개 · 최근 7일/)).toBeTruthy();
     expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, { days: 7 });
     expect(window.location.hash).toBe('#/dashboard?days=7');
     expect(screen.getByText('직전 7일 실행 없음')).toBeTruthy();
@@ -131,12 +131,12 @@ describe('서비스 · 기간 고르기', () => {
     expect(조건을주소로({ 서비스: null, 일: 14 })).toEqual({});
   });
 
-  it('볼 수 있는 목록에 없는 서비스 번호가 주소에 있으면 전체로 돌려 다시 읽는다', async () => {
+  it('볼 수 있는 목록에 없는 애플리케이션 번호가 주소에 있으면 전체로 돌려 다시 읽는다', async () => {
     window.location.hash = '#/dashboard?service=99';
     const 읽기 = vi.spyOn(api, 'dashboard').mockResolvedValue(응답() as never);
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await waitFor(() => expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, {}));
-    await screen.findByText(/서비스 2개 · 최근 14일/);
+    await screen.findByText(/애플리케이션 2개 · 최근 14일/);
     expect(window.location.hash).toBe('#/dashboard');
   });
 
@@ -167,7 +167,7 @@ describe('통과율 비교 글', () => {
 });
 
 describe('칸에서 내려가기', () => {
-  it('신규 실패의 케이스 이름은 그 실행의 실패 카드까지 가는 주소이고, 누르면 그 서비스를 고른다', async () => {
+  it('신규 실패의 케이스 이름은 그 실행의 실패 카드까지 가는 주소이고, 누르면 그 애플리케이션을 고른다', async () => {
     vi.spyOn(api, 'dashboard').mockResolvedValue(응답() as never);
     const 서비스열기 = vi.fn();
     render(<Dashboard 서비스열기={서비스열기} {...기본재료} />);
@@ -206,11 +206,11 @@ describe('칸에서 내려가기', () => {
     expect(within(칸).queryByRole('link', { name: '타임아웃' })).toBeNull();
   });
 
-  it('서비스별 품질의 서비스 이름은 그 서비스의 실행 기록이고 누르면 그 서비스를 고른다', async () => {
+  it('애플리케이션별 품질의 애플리케이션 이름은 그 애플리케이션의 실행 기록이고 누르면 그 애플리케이션을 고른다', async () => {
     vi.spyOn(api, 'dashboard').mockResolvedValue(응답({}, 30) as never);
     const 서비스열기 = vi.fn();
     render(<Dashboard 서비스열기={서비스열기} {...기본재료} />);
-    const 칸 = (await screen.findByText('서비스별 품질')).closest('section')!;
+    const 칸 = (await screen.findByText('애플리케이션별 품질')).closest('section')!;
     const 링크 = within(칸).getByRole('link', { name: 'ZDA 결제' });
     expect(링크.getAttribute('href')).toBe('#/runs/fn?days=30');
     fireEvent.click(링크);
@@ -228,7 +228,7 @@ describe('칸에서 내려가기', () => {
     expect(container.querySelector('.dash-daily svg')!.getAttribute('role')).toBe('group');
   });
 
-  it('히트맵의 케이스는 서비스를 알 때만 링크이다 — 서비스를 고르면 케이스 상세로 가고 그 서비스를 고른다', async () => {
+  it('히트맵의 케이스는 애플리케이션을 알 때만 링크이다 — 애플리케이션을 고르면 케이스 상세로 가고 그 애플리케이션을 고른다', async () => {
     const 서비스열기 = vi.fn();
     vi.spyOn(api, 'dashboard').mockResolvedValue(응답() as never);
     const { container, unmount } = render(<Dashboard 서비스열기={서비스열기} {...기본재료} />);

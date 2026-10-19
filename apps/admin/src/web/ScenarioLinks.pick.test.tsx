@@ -89,13 +89,13 @@ describe('ScenarioLinks 요청 고르기', () => {
   it('그 단계가 부른 API 기록이 없으면 고르개 대신 직접 적으라는 글이 나온다', () => {
     그리기([{ kind: 'bind', param: 'orderId', value: { ...참조, urlPattern: '' } }], [줄('DELETE', '/api/cart', ['ZSB-002'])]);
     expect(screen.queryByLabelText('요청 고르기')).toBeNull();
-    expect(screen.getByText('서비스 지도에 이 단계가 부른 API 기록이 없습니다. 직접 적습니다')).toBeTruthy();
+    expect(screen.getByText('애플리케이션 지도에 이 단계가 부른 API 기록이 없습니다. 직접 적습니다')).toBeTruthy();
   });
 
   it('지도가 없으면(null) 고르개도 글도 없이 손 칸만 둔다', () => {
     그리기([{ kind: 'bind', param: 'orderId', value: { ...참조, urlPattern: '' } }], null);
     expect(screen.queryByLabelText('요청 고르기')).toBeNull();
-    expect(screen.queryByText(/서비스 지도에/)).toBeNull();
+    expect(screen.queryByText(/애플리케이션 지도에/)).toBeNull();
     expect(screen.getByLabelText('URL 패턴')).toBeTruthy();
   });
 
@@ -116,7 +116,7 @@ function 지도보기({ 서비스 }: { 서비스: string }) {
 }
 
 describe('useServiceApis', () => {
-  it('서비스 지도를 한 번만 받는다', async () => {
+  it('애플리케이션 지도를 한 번만 받는다', async () => {
     const 호출 = vi.spyOn(prdApi, 'apis').mockResolvedValue({ apis: 지도 });
     const { rerender } = render(<지도보기 서비스="ZSB" />);
     await waitFor(() => expect(screen.getByTestId('결과').textContent).toBe('4'));

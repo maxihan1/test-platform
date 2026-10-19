@@ -59,7 +59,7 @@ describe('알림 줄', () => {
     expect(screen.getByText('남은 시간 계산 중')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: '열기' }).map((a) => a.getAttribute('href'))).toEqual(['#/runs/2113', '#/authoring/5']);
     expect(screen.getByText(/#5 작성 요청이 진행 중입니다 · 3 \/ 6 단계 케이스 작성/)).toBeTruthy();
-    expect(screen.getAllByText('결제 서비스')).toHaveLength(2);
+    expect(screen.getAllByText('결제 애플리케이션')).toHaveLength(2);
   });
 
   it('지금 결과를 보고 있는 실행의 도는 줄은 빼고, 보는 곳을 옮기면 다시 나타난다', async () => {
@@ -150,7 +150,7 @@ describe('알림 서랍', () => {
     expect(제목들).toEqual(['RUN 1 실행이 끝났습니다', '#2 작성 요청이 끝났습니다', '#3 작성 요청이 실패했습니다']);
     expect(서랍.getByText('PRD 확인 필요 2건')).toBeTruthy();
     expect(서랍.getByRole('link', { name: 'PRD 관리에서 확인' }).getAttribute('href')).toBe('#/prd');
-    expect(서랍.getByText('볼 수 있는 서비스 전체 · 최근 7일')).toBeTruthy();
+    expect(서랍.getByText('볼 수 있는 애플리케이션 전체 · 최근 7일')).toBeTruthy();
   });
 
   it('거르기 칩이 종류와 안 읽음으로 거른다', async () => {
@@ -185,10 +185,10 @@ describe('알림 서랍', () => {
   });
 });
 
-describe('다른 서비스의 작성 · PRD 고리', () => {
-  const 다른서비스 = { serviceId: 2, prefix: 'ORD', serviceName: '주문 서비스' };
+describe('다른 애플리케이션의 작성 · PRD 고리', () => {
+  const 다른서비스 = { serviceId: 2, prefix: 'ORD', serviceName: '주문 애플리케이션' };
 
-  it('도는 작성의 열기를 누르면 먼저 그 알림의 서비스로 바꾼다. 실행의 열기는 서비스를 안 바꾼다', async () => {
+  it('도는 작성의 열기를 누르면 먼저 그 알림의 애플리케이션으로 바꾼다. 실행의 열기는 애플리케이션을 안 바꾼다', async () => {
     띄운다({ running: [도는작성(5, 다른서비스), 도는실행(6, 다른서비스)], recent: [] });
     const 열기들 = await screen.findAllByRole('link', { name: '열기' });
     fireEvent.click(열기들[0]!);
@@ -197,7 +197,7 @@ describe('다른 서비스의 작성 · PRD 고리', () => {
     expect(서비스바꿈).toHaveBeenCalledExactlyOnceWith('ORD');
   });
 
-  it('끝난 줄의 작성 결과 · PRD 관리를 누르면 그 서비스로 바꾸고, 결과 보기는 안 바꾼다', async () => {
+  it('끝난 줄의 작성 결과 · PRD 관리를 누르면 그 애플리케이션으로 바꾸고, 결과 보기는 안 바꾼다', async () => {
     띄운다({
       running: [],
       recent: [끝난작성(9, { ...다른서비스, prdNeedsCheck: 3 }), 끝난작성(10, { ...다른서비스, prdNeedsCheck: 3, finishedAt: 전에(1) }), 끝난실행(7, {}, 다른서비스)],
@@ -209,7 +209,7 @@ describe('다른 서비스의 작성 · PRD 고리', () => {
     expect(서비스바꿈.mock.calls).toEqual([['ORD'], ['ORD']]);
   });
 
-  it('서랍의 작성 줄과 PRD 관리에서 확인 링크도 그 서비스로 바꾼 뒤 간다', async () => {
+  it('서랍의 작성 줄과 PRD 관리에서 확인 링크도 그 애플리케이션으로 바꾼 뒤 간다', async () => {
     띄운다({ running: [], recent: [끝난작성(2, { ...다른서비스, prdNeedsCheck: 2 })] });
     await screen.findByLabelText('안 읽은 알림 1건');
     fireEvent.click(버튼());
@@ -218,7 +218,7 @@ describe('다른 서비스의 작성 · PRD 고리', () => {
     expect(서비스바꿈).toHaveBeenCalledExactlyOnceWith('ORD');
   });
 
-  it('서랍의 실행 줄은 서비스를 안 바꾼다', async () => {
+  it('서랍의 실행 줄은 애플리케이션을 안 바꾼다', async () => {
     띄운다({ running: [], recent: [끝난실행(1, {}, 다른서비스)] });
     await screen.findByLabelText('안 읽은 알림 1건');
     fireEvent.click(버튼());
@@ -238,7 +238,7 @@ describe('읽음 목록 정리', () => {
 });
 
 describe('받아 오기', () => {
-  it('서버가 403 을 주면(실행 칸을 볼 수 있는 서비스가 없다) 버튼도 줄도 안 그리고 다시 묻지도 않는다', async () => {
+  it('서버가 403 을 주면(실행 칸을 볼 수 있는 애플리케이션이 없다) 버튼도 줄도 안 그리고 다시 묻지도 않는다', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const 부름 = vi.spyOn(api, 'notifications').mockRejectedValue(new ApiError(403, 'FORBIDDEN', '권한이 없습니다'));
     render(

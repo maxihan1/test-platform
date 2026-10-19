@@ -3,9 +3,9 @@
 
 export const 대시보드말: Record<string, string> = {
   // 머리와 읽기
-  '서비스 {수}개 · 최근 {일}일 · {날짜} 기준': '{수} services · last {일} days · as of {날짜}',
+  '애플리케이션 {수}개 · 최근 {일}일 · {날짜} 기준': '{수} applications · last {일} days · as of {날짜}',
   '{이름} · 최근 {일}일 · {날짜} 기준': '{이름} · last {일} days · as of {날짜}',
-  '전체 서비스': 'All services',
+  '전체 애플리케이션': 'All applications',
   '최근 {일}일': 'Last {일} days',
   '이 브라우저의 시간대 「{시간대}」를 서버가 알아보지 못해 현황을 불러오지 못했습니다':
     'The server does not recognize this browser’s time zone “{시간대}”, so the overview could not be loaded',
@@ -34,7 +34,7 @@ export const 대시보드말: Record<string, string> = {
   '최근 {일}일 실행 없음': 'No runs in the last {일} days',
 
   // 서비스별 품질
-  '서비스별 품질': 'Quality by service',
+  '애플리케이션별 품질': 'Quality by application',
   '직전 {일}일 대비': 'vs previous {일} days',
   '최근 실행, 맨 앞이 최신': 'Recent runs, newest first',
   '직전 실행과 견줌': 'Against previous run',
@@ -80,8 +80,8 @@ export const 대시보드말: Record<string, string> = {
   '테스트 있는 요구 {덮음} / {전체}': 'Requirements with tests: {덮음} / {전체}',
   기능: 'Functional',
   전체: 'All',
-  '기능 · UI 를 나누기 전에 작성한 서비스 {수}개는 게이지에 넣지 않았습니다':
-    '{수} services authored before the functional / UI split are left out of the gauges',
+  '기능 · UI 를 나누기 전에 작성한 애플리케이션 {수}개는 게이지에 넣지 않았습니다':
+    '{수} applications authored before the functional / UI split are left out of the gauges',
   '{날짜} · 요청 #{번호}': '{날짜} · request #{번호}',
   '테스트 없는 요구 {수}건 보기': 'View {수} requirements without tests',
   '작성 기록이 없습니다': 'No authoring run yet',

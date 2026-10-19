@@ -112,7 +112,7 @@ export function NoticeDrawer({ recent, 읽음, 지금, onClose, on읽음, 서비
         </ul>
       )}
 
-      <p className="nt-foot">{t('볼 수 있는 서비스 전체 · 최근 7일')}</p>
+      <p className="nt-foot">{t('볼 수 있는 애플리케이션 전체 · 최근 7일')}</p>
     </aside>
   );
 }

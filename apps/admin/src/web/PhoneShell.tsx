@@ -9,7 +9,7 @@ import { 아이콘 } from './icons.js';
 import { 고른서비스를적는다, 자리목록, type 빈띠, type 자리 } from './layout.js';
 import { Notice } from './Notice.js';
 import { 휴대폰자리인가 } from './phone.js';
-import { 서비스고르개, 언어고르개 } from './ShellPickers.js';
+import { 서비스고르개, 언어고르개, 프로젝트고르개 } from './ShellPickers.js';
 
 interface Props {
   user: User;
@@ -71,7 +71,14 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
     <div className="ph">
       <header className="ph-top">
         {/* 대시보드는 여러 서비스를 함께 본다 — PC 사이드바처럼 고르개를 숨긴다 (화면공통 §8 「껍데기」) */}
-        {대시보드인가 ? <span className="ph-gap" /> : <서비스고르개 user={user} service={service} onService={onService} />}
+        {대시보드인가 ? (
+          <span className="ph-gap" />
+        ) : (
+          <>
+            <프로젝트고르개 user={user} service={service} onService={onService} />
+            <서비스고르개 user={user} service={service} onService={onService} />
+          </>
+        )}
         {/* 자리를 옮기면 접힌 채로 다시 그린다 — 비밀번호 변경을 누르고 와도 메뉴가 펼쳐진 채 남지 않는다 */}
         <details key={current} ref={메뉴} className="ph-me">
           <summary aria-label={t('내 메뉴')}>

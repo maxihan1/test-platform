@@ -66,7 +66,7 @@ function 움직임줄이기() {
 
 const 서비스열기 = vi.fn();
 
-/** 작성 칸이 read 이상인 배정 서비스 — 커버리지 줄은 이 목록으로 만든다 */
+/** 작성 칸이 read 이상인 배정 애플리케이션 — 커버리지 줄은 이 목록으로 만든다 */
 const 기본재료 = {
   케이스갈수있나: true,
   설정갈수있나: false,
@@ -218,7 +218,7 @@ describe('요구사항 커버리지', () => {
     expect(container.querySelector('.dash-cov .dash-ttl')!.textContent).toContain('마지막 작성 기준');
   });
 
-  it('기능 · UI 게이지 둘이 서비스를 합친 퍼센트와 덮은 요구 N / M 을 따로 보인다', async () => {
+  it('기능 · UI 게이지 둘이 애플리케이션을 합친 퍼센트와 덮은 요구 N / M 을 따로 보인다', async () => {
     const { container } = await 열기(응답());
     const 게이지들 = [...container.querySelectorAll('.dash-cov .dash-gauge-one')];
     expect(게이지들.map((g) => g.querySelector('.dash-gauge-kind')!.textContent)).toEqual(['기능 테스트', 'UI 테스트']);
@@ -237,7 +237,7 @@ describe('요구사항 커버리지', () => {
     expect(container.querySelector('.dash-gauge-num')!.textContent).toBe('99%');
   });
 
-  it('서비스 줄에 이름 · 마지막 작성 날짜 링크 · 기능 · UI 막대와 퍼센트가 있다', async () => {
+  it('애플리케이션 줄에 이름 · 마지막 작성 날짜 링크 · 기능 · UI 막대와 퍼센트가 있다', async () => {
     const { container } = await 열기(응답());
     const 줄 = container.querySelectorAll('.dash-cov-row')[0]!;
     expect(줄.textContent).toContain('ZDA 결제');
@@ -262,23 +262,23 @@ describe('요구사항 커버리지', () => {
     expect([...줄.querySelectorAll('.dash-cov-pair')].map((짝) => 짝.textContent)).toEqual(['전체8%']);
     expect(container.querySelector('.dash-gauge-cap')!.textContent).toBe('테스트 있는 요구 32 / 40');
     expect(container.querySelector('.dash-gauge-note')!.textContent).toBe(
-      '기능 · UI 를 나누기 전에 작성한 서비스 1개는 게이지에 넣지 않았습니다',
+      '기능 · UI 를 나누기 전에 작성한 애플리케이션 1개는 게이지에 넣지 않았습니다',
     );
   });
 
-  it('모든 서비스가 갈래를 셌으면 까닭 줄이 없다', async () => {
+  it('모든 애플리케이션이 갈래를 셌으면 까닭 줄이 없다', async () => {
     const { container } = await 열기(응답());
     expect(container.querySelector('.dash-gauge-note')).toBeNull();
   });
 
-  it('요청 링크를 누르면 그 서비스로 바꾼다 — 작성 상세는 고른 서비스로 요청을 열고 대시보드에는 고르개가 없다', async () => {
+  it('요청 링크를 누르면 그 애플리케이션으로 바꾼다 — 작성 상세는 고른 애플리케이션으로 요청을 열고 대시보드에는 고르개가 없다', async () => {
     const { container } = await 열기(응답());
     서비스열기.mockClear();
     within(container.querySelectorAll('.dash-cov-row')[0] as HTMLElement).getByRole('link').click();
     expect(서비스열기).toHaveBeenCalledWith(1);
   });
 
-  it('가운데 버튼으로 열어도 그 서비스로 바꾼다 — 새 탭은 저장된 고른 서비스를 읽는다', async () => {
+  it('가운데 버튼으로 열어도 그 애플리케이션으로 바꾼다 — 새 탭은 저장된 고른 애플리케이션을 읽는다', async () => {
     const { container } = await 열기(응답());
     서비스열기.mockClear();
     const 링크 = within(container.querySelectorAll('.dash-cov-row')[0] as HTMLElement).getByRole('link');
@@ -286,7 +286,7 @@ describe('요구사항 커버리지', () => {
     expect(서비스열기).toHaveBeenCalledWith(1);
   });
 
-  it('오른쪽 단추(링크 주소 복사 메뉴)로는 서비스를 바꾸지 않는다 — 대시보드엔 고르개가 없어 바뀐 줄 모른다', async () => {
+  it('오른쪽 단추(링크 주소 복사 메뉴)로는 애플리케이션을 바꾸지 않는다 — 대시보드엔 고르개가 없어 바뀐 줄 모른다', async () => {
     const { container } = await 열기(응답());
     서비스열기.mockClear();
     const 링크 = within(container.querySelectorAll('.dash-cov-row')[0] as HTMLElement).getByRole('link');
@@ -294,7 +294,7 @@ describe('요구사항 커버리지', () => {
     expect(서비스열기).not.toHaveBeenCalled();
   });
 
-  it('작성 칸이 none 인 서비스는 줄이 없다 — 「작성 기록이 없습니다」는 작성을 볼 수 있는 서비스에만 뜬다', async () => {
+  it('작성 칸이 none 인 애플리케이션은 줄이 없다 — 「작성 기록이 없습니다」는 작성을 볼 수 있는 애플리케이션에만 뜬다', async () => {
     읽기를(응답());
     const { container } = render(
       <Dashboard 서비스열기={서비스열기} {...기본재료} 작성서비스={기본재료.작성서비스.slice(0, 2)} />,
@@ -313,7 +313,7 @@ describe('요구사항 커버리지', () => {
     expect([...줄.querySelectorAll('.num')].map((n) => n.textContent)).toEqual(['—', '—']);
   });
 
-  it('작성 기록이 없는 서비스는 한 줄로 알린다', async () => {
+  it('작성 기록이 없는 애플리케이션은 한 줄로 알린다', async () => {
     const { container } = await 열기(응답());
     const 줄 = container.querySelectorAll('.dash-cov-row')[2]!;
     expect(줄.textContent).toContain('ZDA 배송');

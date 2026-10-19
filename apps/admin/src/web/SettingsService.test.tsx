@@ -16,8 +16,8 @@ afterEach(() => {
 const 서비스: SettingsServiceRow = {
   id: 1,
   prefix: 'ZSS',
-  name: '설정 서비스',
-  color: '#3A5FCD',
+  name: '설정 애플리케이션',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
   hasSlackWebhook: false,
   testsRepo: 'https://github.com/example/tests',
@@ -26,16 +26,21 @@ const 서비스: SettingsServiceRow = {
   caseCount: 3,
 };
 
+const 프로젝트들 = [
+  { id: 1, name: '데모마켓' },
+  { id: 2, name: '사내 포털' },
+];
+
 function 그린다() {
   render(<ServicePanel row={서비스} onDone={() => {}} />);
 }
 
-describe('서비스 설정은 구획마다 「어디에 쓰이나」를 단다 (도메인/인증 §8.8 · 2026-10-09 시안 A)', () => {
-  it('구획마다 — 기본 정보 · 대상 서버 · 정기 실행 · 실행 알림 · 테스트 작성 · 화면 크기 · 서비스 비활성화 — 제목과 쓰임 한 줄을 갖는다', () => {
+describe('애플리케이션 설정은 구획마다 「어디에 쓰이나」를 단다 (도메인/인증 §8.8 · 2026-10-09 시안 A)', () => {
+  it('구획마다 — 기본 정보 · 대상 서버 · 정기 실행 · 실행 알림 · 테스트 작성 · 화면 크기 · 애플리케이션 비활성화 — 제목과 쓰임 한 줄을 갖는다', () => {
     그린다();
 
     const 구획들 = [...document.querySelectorAll('.set-card')].map((el) => el.querySelector('h3')?.textContent);
-    expect(구획들).toEqual(['기본 정보', '대상 서버', '정기 실행', '실행 알림', '테스트 작성', '화면 크기', '서비스 비활성화']);
+    expect(구획들).toEqual(['기본 정보', '대상 서버', '정기 실행', '실행 알림', '테스트 작성', '화면 크기', '애플리케이션 비활성화']);
     for (const 구획 of document.querySelectorAll('.set-card')) {
       expect(구획.querySelector('.set-card-h p')?.textContent?.length ?? 0).toBeGreaterThan(10);
     }
@@ -51,21 +56,21 @@ describe('서비스 설정은 구획마다 「어디에 쓰이나」를 단다 (
     expect(구획('대상 서버')?.querySelector('[role="group"]')).not.toBeNull();
   });
 
-  it('새 서비스에는 서비스 비활성화 구획이 없다 — 끌 것이 아직 없다', () => {
+  it('새 애플리케이션에는 애플리케이션 비활성화 구획이 없다 — 끌 것이 아직 없다', () => {
     render(<ServicePanel onDone={() => {}} />);
 
-    expect(screen.getByText('새 서비스')).toBeTruthy();
-    expect(screen.queryByText('서비스 비활성화')).toBeNull();
+    expect(screen.getByText('새 애플리케이션')).toBeTruthy();
+    expect(screen.queryByText('애플리케이션 비활성화')).toBeNull();
   });
 
-  it('비활성화는 저장과 따로 서비스 비활성화 구획에서 한다', async () => {
+  it('비활성화는 저장과 따로 애플리케이션 비활성화 구획에서 한다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     const onDone = vi.fn();
     render(<ServicePanel row={서비스} onDone={onDone} />);
 
     fireEvent.click(screen.getByRole('button', { name: '비활성화' }));
     expect(고침).not.toHaveBeenCalled();
-    expect(screen.getByText(/서비스 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다/)).toBeTruthy();
+    expect(screen.getByText(/애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '비활성화한다' }));
 
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { isActive: false }));
@@ -125,17 +130,50 @@ describe('서비스 설정은 구획마다 「어디에 쓰이나」를 단다 (
     expect(screen.queryByText('저장했습니다')).toBeNull();
   });
 
-  it('새 서비스를 만들면 그 접두사를 넘긴다 — 틀이 그 서비스로 옮겨 간다', async () => {
-    vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
+  it('새 애플리케이션을 만들면 그 접두사를 넘긴다 — 틀이 그 애플리케이션으로 옮겨 간다', async () => {
+    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
     const onDone = vi.fn();
-    render(<ServicePanel onDone={onDone} />);
+    render(<ServicePanel projects={프로젝트들} onDone={onDone} />);
 
     fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
     fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
     fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
-    fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
+    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
 
     await waitFor(() => expect(onDone).toHaveBeenCalledWith('NEW'));
+    expect(만듦.mock.calls[0]?.[0]).toMatchObject({ projectId: 1 });
+  });
+
+  it('새 애플리케이션은 맨 위 헤더에서 보던 프로젝트를 미리 고르고, 다른 프로젝트로 바꿔 보낼 수 있다', async () => {
+    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
+    render(<ServicePanel projects={프로젝트들} 기본프로젝트={2} onDone={() => {}} />);
+
+    expect((screen.getByLabelText('프로젝트') as HTMLSelectElement).value).toBe('2');
+    fireEvent.change(screen.getByLabelText('프로젝트'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
+    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
+    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
+
+    await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
+    expect(만듦.mock.calls[0]?.[0]).toMatchObject({ projectId: 1 });
+  });
+
+  it('프로젝트가 하나도 없으면 만들지 못하고 이유를 말한다 — 프로젝트부터 만든다', () => {
+    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
+    render(<ServicePanel projects={[]} onDone={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
+
+    expect(만듦).not.toHaveBeenCalled();
+    expect(document.querySelector('.set-why')?.textContent).toBe('프로젝트를 골라 주세요');
+  });
+
+  it('고칠 때는 프로젝트를 고르지 않고 지금 프로젝트로 가는 링크만 보인다 — 옮기는 일은 프로젝트 화면이 한다', () => {
+    render(<ServicePanel row={서비스} projects={프로젝트들} onDone={() => {}} />);
+
+    expect(screen.queryByLabelText('프로젝트')).toBeNull();
+    expect(screen.getByRole('link', { name: '데모마켓' }).getAttribute('href')).toBe('#/settings/project-1');
   });
 });
 
@@ -183,7 +221,7 @@ describe('피그마 토큰 칸 (도메인/인증 §8.8)', () => {
     expect(고침.mock.calls[0]?.[1]).not.toHaveProperty('figmaToken');
   });
 
-  it('저장된 서비스는 값 대신 「설정됨 · 변경」을 보인다', () => {
+  it('저장된 애플리케이션은 값 대신 「설정됨 · 변경」을 보인다', () => {
     render(<ServicePanel row={{ ...서비스, hasFigmaToken: true }} onDone={() => {}} />);
 
     const 칸 = 피그마칸();
@@ -311,15 +349,15 @@ describe('탐색 제외 경로 칸 (도메인/인증 §8.8 · 2026-10-04)', () =
     expect(고침).not.toHaveBeenCalled();
   });
 
-  it('새 서비스를 만들 때도 crawlExclude 를 보낸다', async () => {
+  it('새 애플리케이션을 만들 때도 crawlExclude 를 보낸다', async () => {
     const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 2 });
-    render(<ServicePanel onDone={() => {}} />);
+    render(<ServicePanel projects={프로젝트들} onDone={() => {}} />);
 
     fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'CDY' } });
     fireEvent.change(screen.getByLabelText('이름'), { target: { value: '청도' } });
     fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'cdy' } });
     fireEvent.change(screen.getByLabelText('탐색 제외 경로'), { target: { value: '/daejeon' } });
-    fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
+    fireEvent.click(screen.getByRole('button', { name: '애플리케이션 추가' }));
 
     await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
     expect(만듦.mock.calls[0]?.[0]).toMatchObject({ crawlExclude: ['/daejeon'] });
@@ -338,7 +376,7 @@ async function 옮긴다(해시: string) {
   });
 }
 
-describe('적다 만 서비스 칸 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」 · 점검 14.1)', () => {
+describe('적다 만 애플리케이션 칸 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」 · 점검 14.1)', () => {
   it('고친 칸이 있으면 다른 주소로 가기 전에 묻고, 머무르면 칸이 그대로다', async () => {
     window.history.replaceState(null, '', '#/settings/ZSS');
     render(

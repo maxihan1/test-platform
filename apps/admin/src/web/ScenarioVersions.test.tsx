@@ -14,8 +14,8 @@ import { when } from './ui.js';
 const 서비스 = (prefix: string, runs: 'read' | 'write' = 'write'): ServiceRow => ({
   id: 1,
   prefix,
-  name: `${prefix} 서비스`,
-  color: '#000',
+  name: `${prefix} 애플리케이션`,
+  color: '#000', projectId: 1, projectName: '데모마켓',
   envs: [],
   hasSlackWebhook: false,
   permissions: { cases: 'read', runs, authoring: 'read' },

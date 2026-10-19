@@ -52,7 +52,7 @@ export function 요청고르개({ 아이디, tcId, 지도, 방법, 무늬, 잠�
   if (지도 === null || 지도 === undefined || tcId === undefined) return null;
   const 목록 = 부른요청들(지도, tcId);
   if (목록.length === 0) {
-    return <p className="hint">{t('서비스 지도에 이 단계가 부른 API 기록이 없습니다. 직접 적습니다')}</p>;
+    return <p className="hint">{t('애플리케이션 지도에 이 단계가 부른 API 기록이 없습니다. 직접 적습니다')}</p>;
   }
   const 고른 = 목록.findIndex((r) => r.method === 방법 && r.urlPattern === 무늬);
   return (

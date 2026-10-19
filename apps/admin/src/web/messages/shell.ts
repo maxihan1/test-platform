@@ -20,8 +20,13 @@ export const 껍데기말: Record<string, string> = {
   '가입 신청 {수}건': '{수} sign-up requests',
   '사이드바 펴기': 'Expand sidebar',
   '사이드바 접기': 'Collapse sidebar',
-  '서비스 선택': 'Choose service',
-  '서비스 없음': 'No service',
+  '애플리케이션 선택': 'Choose application',
+  '프로젝트 선택': 'Choose project',
+  '프로젝트를 고르세요': 'Choose a project',
+  '고른 프로젝트의 애플리케이션만 보입니다. 맨 위 헤더에서 언제든 바꿀 수 있습니다.':
+    'Only the applications in the chosen project are shown. You can change it any time in the header.',
+  '마지막에 연 프로젝트': 'Last opened project',
+  '애플리케이션 없음': 'No application',
   // 맨 위 헤더 (ShellHeader.tsx)
   '테스트 플랫폼 홈': 'Test Platform home',
   언어: 'Language',
@@ -32,9 +37,9 @@ export const 껍데기말: Record<string, string> = {
   // 기능 칸이 넷 다 none 인 사람 (화면공통 §8)
   '권한을 받지 않았습니다. 운영자에게 요청하세요': 'You have no permissions yet. Ask an admin.',
   // 배정이 없는 사람
-  '아직 배정받은 서비스가 없습니다': 'No service assigned yet',
-  '설정에서 자기 자신을 서비스에 배정하세요': 'Assign yourself to a service in Settings',
-  '운영 계정에게 서비스 배정을 요청하세요': 'Ask an admin to assign you a service',
+  '아직 배정받은 애플리케이션이 없습니다': 'No application assigned yet',
+  '설정에서 자기 자신을 프로젝트에 배정하세요': 'Assign yourself to a project in Settings',
+  '운영 계정에게 프로젝트 배정을 요청하세요': 'Ask an admin to assign you a project',
 
   // 휴대폰 껍데기 · PC 전용 안내 (PhoneShell.tsx · 화면공통 §8 「휴대폰 화면」)
   '내 메뉴': 'My menu',
@@ -70,7 +75,7 @@ export const 껍데기말: Record<string, string> = {
   '외 {수}건 — 알림 열기': '{수} more — open notifications',
   '모두 읽음으로': 'Mark all read',
   '안 읽음 {수}': 'Unread {수}',
-  '볼 수 있는 서비스 전체 · 최근 7일': 'All services you can see · last 7 days',
+  '볼 수 있는 애플리케이션 전체 · 최근 7일': 'All applications you can see · last 7 days',
   '최근 7일 동안 끝난 실행과 작성이 없습니다': 'No runs or authoring finished in the last 7 days',
   '해당하는 알림이 없습니다': 'No matching notifications',
   방금: 'Just now',

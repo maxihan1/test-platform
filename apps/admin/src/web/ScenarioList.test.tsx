@@ -15,7 +15,7 @@ const 서버들: EnvRow[] = [
   { env: 'qa', baseUrl: 'https://qa.example.com' },
   { env: 'stg', baseUrl: 'https://stg.example.com' },
 ];
-const 서버없음글자 = '이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다';
+const 서버없음글자 = '이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다';
 const 서버고르기글자 = '대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.';
 
 afterEach(() => {
@@ -176,7 +176,7 @@ describe('ScenarioList 줄', () => {
 });
 
 describe('ScenarioList 실행', () => {
-  it('이 서비스에서 마지막에 고른 대상 서버로 열린다 — 기본값이 아니라 사람이 고른 값이다 (공통/5-화면공통 §8)', async () => {
+  it('이 애플리케이션에서 마지막에 고른 대상 서버로 열린다 — 기본값이 아니라 사람이 고른 값이다 (공통/5-화면공통 §8)', async () => {
     await 그리기([줄(1)]);
     await screen.findByText(/ZSM 시나리오 1/);
     fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'stg' } });
