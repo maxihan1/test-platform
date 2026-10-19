@@ -198,11 +198,11 @@ describe('칸에서 내려가기', () => {
     expect(within(칸).queryByText(/더 있습니다/)).toBeNull();
   });
 
-  it('실패 유형 이름은 건수가 있는 줄만 실패한 실행 목록 링크이고 7일 창은 14일 목록으로 간다', async () => {
+  it('실패 유형 이름은 건수가 있는 줄만 실패한 실행 목록 링크이고 7일 창은 7일 목록으로 간다', async () => {
     vi.spyOn(api, 'dashboard').mockResolvedValue(응답({}, 7) as never);
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     const 칸 = (await screen.findByText('실패 유형')).closest('section')!;
-    expect(within(칸).getByRole('link', { name: '기대 결과 불일치' }).getAttribute('href')).toBe('#/runs/fn?state=failed&days=14');
+    expect(within(칸).getByRole('link', { name: '기대 결과 불일치' }).getAttribute('href')).toBe('#/runs/fn?state=failed&days=7');
     expect(within(칸).queryByRole('link', { name: '타임아웃' })).toBeNull();
   });
 
@@ -248,7 +248,7 @@ describe('칸에서 내려가기', () => {
   });
 
   it('실행 목록 주소는 목록이 아는 기간(14 · 30)으로 맞춘다', () => {
-    expect(실행목록주소(7)).toBe('#/runs/fn?days=14');
+    expect(실행목록주소(7)).toBe('#/runs/fn?days=7');
     expect(실행목록주소(14, { state: 'failed' })).toBe('#/runs/fn?state=failed&days=14');
     expect(실행목록주소(30)).toBe('#/runs/fn?days=30');
   });

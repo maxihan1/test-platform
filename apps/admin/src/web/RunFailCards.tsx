@@ -55,19 +55,17 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
   const 머리 = useRef<HTMLHeadingElement>(null);
   const 넘김 = useRef(false);
 
-  // 펼칠 카드가 1쪽에 없으면 그 쪽으로 간다 — 한 번만. 못 찾으면 1쪽에 그대로 둔다
+  // 펼칠 카드가 1쪽에 없으면 그 쪽으로 간다 — 이 실행을 연 처음 한 번만. 디바이스 칩을 바꿔 부른 사람의 쪽 넘김을 되돌리지 않는다. 못 찾으면 1쪽에 그대로 둔다
+  const 이동했나 = useRef(false);
   useEffect(() => {
-    if (열카드 === undefined) return;
-    let 살아있다 = true;
+    if (열카드 === undefined || 이동했나.current) return;
+    이동했나.current = true;
     카드찾기(runId, 열카드, platform === 'ALL' ? undefined : platform).then(
       (찾음) => {
-        if (살아있다 && 찾음 !== null) set쪽상태({ 거르개: platform, 쪽: 찾음.쪽 });
+        if (찾음 !== null) set쪽상태({ 거르개: platform, 쪽: 찾음.쪽 });
       },
       (err: unknown) => console.error('[run] finding the card to open failed; staying on page 1', err),
     );
-    return () => {
-      살아있다 = false;
-    };
   }, [runId, 열카드, platform]);
 
   // 쪽을 넘기면 키보드 사용자가 새 목록의 처음으로 돌아가야 한다

@@ -36,6 +36,8 @@ function use실패카드(runId: number, tcId: string, 찾을까: boolean) {
   const [카드, set카드] = useState<FailureCase | null>(null);
   const [다시, set다시] = useState(0);
   useEffect(() => {
+    // 앞 항목의 카드가 새 항목 곁에 남으면 판정이 엉뚱한 케이스에 붙는다
+    set카드(null);
     if (!찾을까) return;
     let 살아있다 = true;
     카드찾기(runId, tcId).then(

@@ -187,12 +187,14 @@ function 실패한케이스들(items: RunItemSummary[]): { tcId: string; tcName:
     .filter((묶음) =>
       Object.values(묶음.byPlatform).some((칸) => 칸 !== undefined && 칸.length > 0 && 회차요약(칸).status === 'FAIL'),
     )
-    .map((묶음) => ({
-      tcId: 묶음.tcId,
-      tcName: 묶음.tcName,
-      // 누르면 깨진 회차의 상세로 간다 (점검 5.3)
-      historyId: Object.values(묶음.byPlatform).flat().filter((it): it is RunItemSummary => it !== undefined).find((it) => it.status === 'FAIL')!.historyId,
-    }));
+    .flatMap((묶음) => {
+      // 누르면 깨진 회차의 상세로 간다 (점검 5.3). 가장 먼저 돌린 깨진 회차다
+      const 깨진 = Object.values(묶음.byPlatform)
+        .flat()
+        .filter((it): it is RunItemSummary => it !== undefined && it.status === 'FAIL')
+        .sort((a, b) => a.historyId - b.historyId)[0];
+      return 깨진 === undefined ? [] : [{ tcId: 묶음.tcId, tcName: 묶음.tcName, historyId: 깨진.historyId }];
+    });
 }
 
 function 완료내용({ data, onClose }: { data: RunDetail; onClose: () => void }) {

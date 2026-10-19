@@ -20,7 +20,7 @@ export function 주소에서조건(): 대시보드조건 {
   const 주소 = 주소조건();
   const 서비스글 = 주소.get('service');
   return {
-    서비스: 서비스글 !== null && /^\d{1,10}$/.test(서비스글) ? Number(서비스글) : null,
+    서비스: 서비스글 !== null && /^[1-9]\d{0,9}$/.test(서비스글) ? Number(서비스글) : null,
     일: 기간들.find((일) => String(일) === 주소.get('days')) ?? 기본기간,
   };
 }
@@ -107,6 +107,6 @@ export interface 이동재료 {
 export const 이동속성 = (이동?: 이동재료) =>
   이동 === undefined || 이동.서비스번호 === null ? {} : 서비스를열며(이동.서비스열기, 이동.서비스번호);
 
-/** 실행 기록 목록으로 가는 주소. 목록이 아는 기간은 14 · 30 이라 7일 창은 14일로 간다 */
+/** 실행 기록 목록으로 가는 주소. 목록도 7 · 14 · 30일을 알아서 창 길이를 그대로 싣는다 */
 export const 실행목록주소 = (일: number, 조건: Record<string, string> = {}): string =>
-  `#/runs/fn?${new URLSearchParams({ ...조건, days: 일 > 14 ? '30' : '14' }).toString()}`;
+  `#/runs/fn?${new URLSearchParams({ ...조건, days: String(일) }).toString()}`;
