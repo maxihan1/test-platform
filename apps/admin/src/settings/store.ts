@@ -145,7 +145,11 @@ export interface 서비스입력 {
   crawlExclude?: string[];
 }
 
-export async function 서비스만들기(입력: 서비스입력): Promise<number> {
+/**
+ * @param 만든이 요청한 운영 계정의 아이디. 있으면 그 서비스에 세 칸 쓰기로 배정한다 — 안 하면 방금 만든 서비스가
+ *   그 사람의 서비스 고르개에 안 떠서 설정에서 자기를 따로 배정해야 했다 (도메인/인증 §3.5 「서비스 배정은 권한의 한 부분이다」)
+ */
+export async function 서비스만들기(입력: 서비스입력, 만든이?: string): Promise<number> {
   return 한묶음(async (client) => {
     const rows = await client.query<{ id: string }>(
       `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, slack_webhook, figma_token, crawl_exclude)
@@ -168,6 +172,14 @@ export async function 서비스만들기(입력: 서비스입력): Promise<numbe
     if (id === undefined) throw new 설정오류('PREFIX_TAKEN');
 
     await 대상서버넣기(client, id, 입력.envs);
+    if (만든이 !== undefined) {
+      await client.query(
+        `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
+              SELECT username, $2, 'write', 'write', 'write' FROM app_user WHERE username = $1
+         ON CONFLICT DO NOTHING`,
+        [만든이, id],
+      );
+    }
     return id;
   });
 }

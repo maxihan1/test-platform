@@ -156,7 +156,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       return reply.code(400).send({ error: 'PREFIX_SHAPE', detail: parsed.data.prefix });
     }
     if (역할틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_ROLE' });
-    return reply.code(201).send({ id: await 서비스만들기(parsed.data) });
+    return reply.code(201).send({ id: await 서비스만들기(parsed.data, req.user?.username) });
   });
 
   app.patch<{ Params: { id: string }; Body: { prefix?: unknown } }>(
