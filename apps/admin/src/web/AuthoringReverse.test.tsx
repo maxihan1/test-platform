@@ -52,8 +52,8 @@ afterEach(() => {
   cleanup();
 });
 
-function 폼(envs: EnvRow[] = 서버들) {
-  return render(<AuthoringNew service="PAY" envs={envs} on넣었다={() => {}} />);
+function 폼(envs: EnvRow[] = 서버들, 운영자 = true) {
+  return render(<AuthoringNew service="PAY" envs={envs} 운영자={운영자} on넣었다={() => {}} />);
 }
 
 function 대조를켠다() {
@@ -174,6 +174,18 @@ describe('새 요청 — 실제 화면과 대조', () => {
     expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요')).toBeTruthy();
   });
 
+  it('설정 메뉴가 없는 사람에게는 설정 대신 운영자에게 요청하라고 한다 (⑫ 점검 11.3)', async () => {
+    만들기답 = Promise.reject(new ApiError(400, 'BAD_ENV', ''));
+    폼(서버들, false);
+    대조를켠다();
+    fireEvent.click(보내기());
+    expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 운영자에게 확인을 요청하세요')).toBeTruthy();
+    cleanup();
+    폼([], false);
+    대조를켠다();
+    expect(screen.getByText('이 서비스에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요')).toBeTruthy();
+  });
+
   it('시작 주소가 서버와 다르면 서버 거절을 사람 말로 보인다', async () => {
     만들기답 = Promise.reject(new ApiError(400, 'BAD_START_URL', ''));
     폼();
@@ -260,8 +272,8 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
       }),
     );
     const 산출물 = screen.getByRole('list', { name: '산출물' });
-    expect(산출물.textContent).toContain('표시 사본 — 기획서.docx');
-    expect(산출물.textContent).toContain('역기획서');
+    expect(산출물.textContent).toContain('차이를 표시한 기획서 — 기획서.docx');
+    expect(산출물.textContent).toContain('화면에서 읽은 기획서');
     const 입력 = screen.getByRole('list', { name: '입력 자료' });
     expect(입력.textContent).toBe('기획서.docx');
   });

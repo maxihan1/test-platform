@@ -3,7 +3,8 @@
 
 import { useCallback, useEffect } from 'react';
 
-import { api, type AuthoringAsset, type AuthoringRow } from './api.js';
+import { api, type AuthoringRow } from './api.js';
+import { 산출물설명, 자료고리 } from './AuthoringAssetParts.js';
 import { 고칠내용 } from './AuthoringEditParts.js';
 import { AuthoringConflicts } from './AuthoringConflicts.js';
 import { AuthoringHeld } from './AuthoringHeld.js';
@@ -11,47 +12,29 @@ import { AuthoringMergeFailed } from './AuthoringMergeFailed.js';
 import { AuthoringRuns } from './AuthoringRuns.js';
 import { AuthoringStatusCard } from './AuthoringStatusCard.js';
 import { AuthoringTodo } from './AuthoringTodo.js';
-import { 고칠것목록, 끝났나, 종류라벨, 차이목록, 차이종류라벨 } from './authoringView.js';
+import { 고칠것목록, 끝났나, 요청제목, 자료요약, 종류라벨, 차이목록, 차이종류라벨 } from './authoringView.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import type { 판정 } from './role.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
-/** 파일은 내려받기, 피그마는 저장된(정규화한) 주소로 연다 */
-function 자료고리({ 요청, 자료, 글 }: { 요청: number; 자료: AuthoringAsset; 글: string }) {
-  if (자료.kind === 'FIGMA') {
-    return (
-      <a href={자료.figmaUrl ?? 자료.name} target="_blank" rel="noopener noreferrer">
-        {글}
-      </a>
-    );
-  }
-  // 서버가 attachment 로 준다. download 는 같은 뜻을 브라우저에 한 번 더 말한다
-  return (
-    <a href={api.authoringAssetUrl(요청, 자료.id)} download>
-      {글}
-    </a>
-  );
-}
-
-/**
- * 산출물이 무엇인지. 표시 사본은 어느 입력의 사본인지까지 — 입력이 여럿이면 이름 없이는 못 가린다.
- * 재실행의 입력은 원본 요청에 있어 이 목록에서 못 찾는다 — 그때는 원본 요청을 가리킨다
- */
-function 산출물설명(
-  a: AuthoringAsset,
-  자료들: AuthoringAsset[],
-  원본요청: number | null,
-  t: (키: string, 값?: Record<string, string | number>) => string,
-): string {
-  if (a.role === 'REVERSE_SPEC') return t('역기획서');
-  const 원본 = 자료들.find((x) => x.id === a.sourceAssetId);
-  const 이름 =
-    원본?.name ?? (원본요청 === null ? t('기록 없음') : t('원본 요청 #{번호}의 자료', { 번호: 원본요청 }));
-  return `${t('표시 사본')} — ${이름}`;
-}
-
-export function AuthoringDetail({ service, id, 할수 }: { service: string; id: number; 할수: 판정 }) {
+export function AuthoringDetail({
+  service,
+  id,
+  할수,
+  서비스번호,
+  배정번호들 = [],
+  on서비스번호,
+}: {
+  service: string;
+  id: number;
+  할수: 판정;
+  /** 띠에서 고른 서비스의 번호 — 요청의 서비스와 다르면 띠를 그 서비스로 옮긴다 (점검 12.14) */
+  서비스번호?: number;
+  /** 띠를 옮길 수 있는(배정된) 서비스 번호들. 배정 밖 서비스의 요청은 옮기지 못해 그대로 그린다 */
+  배정번호들?: number[];
+  on서비스번호?: (serviceId: number) => void;
+}) {
   const t = use말();
   const 언어 = use언어();
 
@@ -91,6 +74,15 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
     if (뿌리번호 !== undefined && 뿌리번호 !== id) window.location.hash = `#/authoring/${String(뿌리번호)}`;
   }, [뿌리번호, id]);
 
+  // 다른 서비스의 요청을 고리로 열면(알림 · 대시보드) 띠를 그 서비스로 옮긴다 — 앞 판은 띠의 서비스 이름 · 권한으로 카드와 버튼을 그렸다 (점검 12.14)
+  const 요청서비스 = 뿌리?.id === id ? 뿌리.serviceId : undefined;
+  // 배정 밖이면 띠가 안 옮겨 가 「불러오는 중」에서 멈춘다 — 그때는 옮기지 않고 그린다(코드 검토)
+  const 다른서비스 =
+    요청서비스 !== undefined && 서비스번호 !== undefined && 요청서비스 !== 서비스번호 && 배정번호들.includes(요청서비스);
+  useEffect(() => {
+    if (다른서비스 && on서비스번호 !== undefined) on서비스번호(요청서비스);
+  }, [다른서비스, 요청서비스, on서비스번호]);
+
   // 에이전트가 뒤에서 이어 간다. 끝날 때까지만 다시 묻고 끝나면 멈춘다 (RunResult 와 같은 모양)
   useEffect(() => {
     if (!도는중) return;
@@ -103,6 +95,8 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
   if (작성것.error !== null) return <Failed error={작성것.error} />;
   // 번호가 바뀐 직후에는 옛 실행 답이 남아 있다 — 그 버튼을 누르면 엉뚱한 행이 멈추거나 폐기된다 (2026-09-29 검사)
   if (뿌리 === null || data === null || 작성 === null || data.id !== 버튼번호 || 작성.id !== 작성번호) return <Loading />;
+  // 띠가 옮겨 가는 동안 옛 서비스 이름 · 권한으로 그리지 않는다
+  if (다른서비스) return <Loading />;
 
   // 입력과 산출물을 가른다. role 이 없으면 입력이다 — 이 칸을 모르는 옛 응답도 그대로 그린다.
   // 입력은 뿌리(맨 처음 요청)에, 산출물은 그것을 만든 실행에 붙는다
@@ -146,15 +140,30 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
 
   return (
     <>
-      {/* 상세의 제목은 **그 대상 자체**다 — 실행 결과가 `RUN 2113` 을 쓰는 것과 같은 모양.
+      {/* 상세의 제목은 **그 대상 자체**다 — 목록 줄과 같은 넣은 자료 이름. 번호만으로는 무엇을 요청했는지 몰랐다 (점검 12.16).
           자리 이름(`테스트 작성`)을 또 쓰면 어느 요청을 보고 있는지가 안 보인다 */}
-      <Head 제목={`#${String(뿌리.id)}`} 부제={부제} />
+      <Head
+        제목={요청제목(자료요약(입력), { compare: data.compare, rootKind: 뿌리.kind }, 언어)}
+        부제={
+          <>
+            #{String(뿌리.id)} · {부제}
+          </>
+        }
+      />
 
       <div className="screen authoring-page">
         <div className="authoring-cols">
           <div className="authoring-col">
             {/* 셈은 차이 표처럼 머지를 뺀 최신 작성 실행 것이다 — 머지 행에는 셈이 없다 */}
-            <AuthoringStatusCard 요청={data} 커버리지={작성.coverage ?? null} 지금={Date.now()} service={service} />
+            <AuthoringStatusCard
+              요청={data}
+              커버리지={작성.coverage ?? null}
+              지금={Date.now()}
+              service={service}
+              최신={뿌리.runs?.[0]}
+              뿌리종류={뿌리.kind}
+              운영자={할수('설정')}
+            />
             {고치기 ? <고칠내용 목록={고칠것목록(뿌리.params) ?? []} /> : null}
 
             {차이들 === null ? null : (
@@ -224,8 +233,6 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
                 <dd>{data.requestedByName}</dd>
                 <dt>{t('요청한 시각')}</dt>
                 <dd>{when(data.createdAt, 언어)}</dd>
-                <dt>{t('작성 에이전트')}</dt>
-                <dd>{data.claimedBy ?? t('아직 배정 전')}</dd>
                 {/* 역방향 (도메인/작성 §3.6 「★ 역방향」). 계정은 이 응답에 없다 — 집기 응답에만 있다 */}
                 {data.compare === true ? (
                   <>
@@ -276,7 +283,7 @@ export function AuthoringDetail({ service, id, 할수 }: { service: string; id: 
         <AuthoringConflicts service={service} 요청번호={data.id} conflicts={data.conflicts ?? []} 편집={할수('작성요청')} reload={reload} />
         {/* 보류는 최신 끝난 실행에 붙는다 — 서버가 그 행에만 입력을 받는다 (도메인/작성 §7) */}
         <AuthoringHeld service={service} 요청번호={data.id} held={data.held ?? []} 편집={할수('작성요청')} reload={reload} />
-        <AuthoringRuns runs={뿌리.runs ?? []} 뿌리종류={뿌리.kind} />
+        <AuthoringRuns runs={뿌리.runs ?? []} 뿌리종류={뿌리.kind} 운영자={할수('설정')} />
       </div>
     </>
   );

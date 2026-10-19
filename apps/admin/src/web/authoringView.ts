@@ -1,8 +1,9 @@
 // 작성 요청 한 줄을 화면이 어떻게 보여 줄지 정한다 (도메인/작성 §3.6). 판단만 여기, 그림은 Authoring.tsx
 
+import type { 반영 } from '../authoring/applyTodo.js';
 import { 고치기실행인가 as 서버판정, 행의고칠것, type 기대값 } from '../authoring/edit.js';
 
-import type { AuthoringRow } from './api.js';
+import type { AuthoringRow, AuthoringTodoCount } from './api.js';
 import { t, type 언어 } from './i18n.js';
 
 /**
@@ -38,7 +39,7 @@ export const 멈춘듯기준 = 30 * 60 * 1000;
  * **없는 이유를 적어 두지 않는다** — 틀린 이유가 적힌 방어는 다음 세션이 그걸 근거로
  * 다른 곳에도 같은 가지를 판다.
  */
-export function 줄보임(행: AuthoringRow, 지금: number): 보임 {
+export function 줄보임(행: Omit<AuthoringRow, 'assets'>, 지금: number): 보임 {
   if (행.status === 'DONE') return 'done';
   if (행.status === 'FAILED') return 'failed';
   if (행.status === 'STOPPED') return 'stopped';
@@ -76,11 +77,55 @@ export function 고치기실행인가(행: Pick<AuthoringRow, 'params'>): boolea
   return 서버판정({ params: 행.params });
 }
 
-/** 상태 칩 · 목록 줄 끝의 글자. 머지 · 고치기가 도는 것을 「작성 중」이라 하면 거짓말이다 */
-export function 칩글(행: AuthoringRow, 보: 보임, 언어: 언어): string {
+// 반영 판정은 서버 목록 todo.apply 와 같은 함수다 — 두 벌이면 목록 칩과 상세 칩이 갈린다. 상세는 뿌리의 최신 실행(runs[0])을 넘긴다
+export { 반영할일 } from '../authoring/applyTodo.js';
+
+/**
+ * 상태 칩 · 목록 줄 끝의 글자. 머지 · 고치기가 도는 것을 「작성 중」이라 하면 거짓말이다.
+ * 반영 전 · 반영 실패를 「완료」 · 「실패」로 부르면 사람 손이 남은 것이 안 보인다 (2026-10-19 ⑫ · 점검 11.2 · N2)
+ */
+export function 칩글(행: Omit<AuthoringRow, 'assets'>, 보: 보임, 언어: 언어, 반영?: 반영): string {
+  if (반영 === 'FAILED') return t('반영 실패', 언어);
+  if (반영 === 'WAITING') return t('반영 대기', 언어);
   if (보 === 'running' && 행.kind === 'MERGE') return t('반영 중', 언어);
   if (보 === 'running' && 고치기실행인가(행)) return t('고치는 중', 언어);
+  if (보 === 'done' && 행.kind === 'MERGE') return t('반영 완료', 언어);
   return 보임라벨(보, 언어);
+}
+
+/** 보임에 반영을 얹은 판정 색 — 반영 실패는 실패 색, 반영 대기는 판정이 아니다 */
+export function 반영보임(보: 보임, 반영: 반영 | undefined): 보임 | 'waiting' {
+  if (반영 === 'FAILED') return 'failed';
+  if (반영 === 'WAITING') return 'waiting';
+  return 보;
+}
+
+/** 목록 · 상세 머리의 제목 — 넣은 자료 이름(점검 11.1). 자료가 없으면 무엇을 하는 요청인지 */
+export function 요청제목(
+  자료: { first: string; more: number } | null | undefined,
+  행: Pick<AuthoringRow, 'compare'> & { rootKind?: AuthoringRow['kind'] },
+  언어: 언어,
+): string {
+  if (자료 != null) return 자료.more > 0 ? t('{이름} 외 {수}개', 언어, { 이름: 자료.first, 수: 자료.more }) : 자료.first;
+  if (행.rootKind === 'EDIT') return t('케이스 고치기', 언어);
+  if (행.compare === true) return t('화면만 — 기획서 없이 대조', 언어);
+  return t('자료 없음', 언어);
+}
+
+/** 상세의 입력 자료 목록을 목록 줄과 같은 모양으로 — 처음 넣은 것(자리 순)과 나머지 수 */
+export function 자료요약(입력: { name: string; position?: number }[]): { first: string; more: number } | null {
+  const 첫 = [...입력].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))[0];
+  return 첫 === undefined ? null : { first: 첫.name, more: 입력.length - 1 };
+}
+
+/** 할 일 칩 글자들 — 값 필요 N · 겹침 N · 반영 대기 · 반영 실패 (도메인/작성 §7 목록 todo) */
+export function 할일칩들(todo: AuthoringTodoCount, 언어: 언어): { 글: string; 실패: boolean }[] {
+  return [
+    todo.apply === 'FAILED' ? { 글: t('반영 실패', 언어), 실패: true } : null,
+    todo.heldOpen > 0 ? { 글: t('값 필요 {수}', 언어, { 수: todo.heldOpen }), 실패: false } : null,
+    todo.conflictsOpen > 0 ? { 글: t('겹침 {수}', 언어, { 수: todo.conflictsOpen }), 실패: false } : null,
+    todo.apply === 'WAITING' ? { 글: t('반영 대기', 언어), 실패: false } : null,
+  ].filter((x): x is { 글: string; 실패: boolean } => x !== null);
 }
 
 /** 보임을 사람 말로 (`runState.ts` 의 `상태라벨` 과 같은 모양) */

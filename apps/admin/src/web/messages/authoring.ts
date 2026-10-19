@@ -41,7 +41,6 @@ export const 작성말: Record<string, string> = {
   // 상세
   '지금 하는 일': 'Now doing',
   '요청한 사람': 'Requested by',
-  '작성 에이전트': 'Agent',
   '요청한 시각': 'Requested at',
   번호: 'No.',
   '요청 정보': 'Request',
@@ -67,7 +66,6 @@ export const 작성말: Record<string, string> = {
   '저장 · PR 생성': 'Save · create PR',
   '에이전트 순서를 기다리는 중': 'Waiting for an agent',
   '자료 올리기가 끝나지 않았습니다': 'File upload did not finish',
-  '{번호} / {전체} 단계 · {퍼센트}%': 'Step {번호} / {전체} · {퍼센트}%',
   시간: 'Time',
   '{시간} 걸림 (시작 {시작})': 'took {시간} (started {시작})',
   '{지난} 지남 / 한도 {한도}': '{지난} elapsed / limit {한도}',
@@ -78,9 +76,6 @@ export const 작성말: Record<string, string> = {
   '늦어도 {시각} 완료': 'done by {시각} at the latest',
   '작성한 스크립트 파일': 'Scripts written',
   '탐색한 화면': 'Screens explored',
-  '토큰 (캐시 읽기 포함 · 지금까지)': 'Tokens incl. cache reads (so far)',
-  '토큰 (캐시 읽기 포함)': 'Tokens incl. cache reads',
-  '마지막 활동': 'Last activity',
   // 에이전트가 올리는 단계 글을 화면에 보일 글로 옮긴 것 (authoringStatus.ts 의 화면글). 에이전트 글의 정본은 scripts/authoring-*.ts 의 손.단계('…')
   '작업 폴더를 만드는 중': 'Preparing the work folder',
   '자료 · PRD 를 읽는 중': 'Reading inputs · PRD',
@@ -93,7 +88,6 @@ export const 작성말: Record<string, string> = {
   '원본에 차이를 표시하는 중': 'Marking differences on the original',
 
   // 목록 한 줄 — 날것 단계 글 대신 (authoringStatus.ts 의 목록글)
-  '진행 상황': 'Progress',
   '{단계} 단계에서 멈췄습니다': 'Stopped at {단계}',
   '테스트 반영 완료': 'Tests merged',
   '시작 전에 멈췄습니다': 'Stopped before it started',
@@ -124,10 +118,6 @@ export const 작성말: Record<string, string> = {
   '반영하는 중': 'Merging…',
   '반영은 운영 권한이 있는 사람만 할 수 있습니다.': 'Someone with admin rights merges it.',
   '같은 자료로 다시 작성': 'Write again with the same inputs',
-  '아직 배정 전': 'Not assigned yet',
-  '{번호}단계 진행 중 · {퍼센트}%': 'Step {번호} in progress · {퍼센트}%',
-  '{번호}단계에서 멈춤 · {퍼센트}%': 'Stopped at step {번호} · {퍼센트}%',
-  '다시 작성은 실행 권한이 있는 사람만 할 수 있습니다.': 'Someone with run rights can write it again.',
   '원인을 먼저 고친 뒤 누르세요. 넣었던 자료 그대로 같은 요청에서 처음부터 다시 돌립니다.':
     'Fix the cause first. This runs the same request again from the start with the same inputs.',
   '대상 서버와 시작 주소도 원본 그대로 씁니다.': 'It uses the same target server and start URL as the original.',
@@ -153,7 +143,6 @@ export const 작성말: Record<string, string> = {
   '{분}분': '{분} min',
   '{수}장': '{수}',
   '{수}개': '{수}',
-  '{시간} 전': '{시간} ago',
   시스템: 'System',
   '사용자가 멈춤': 'Stopped by user',
   '시간초과': 'Timed out',
@@ -193,8 +182,6 @@ export const 작성말: Record<string, string> = {
   '원본 요청 #{번호}의 자료': 'Input of the original request #{번호}',
   '입력 자료': 'Inputs',
   산출물: 'Outputs',
-  '표시 사본': 'Marked copy',
-  역기획서: 'Reverse spec',
   '기획서와 화면의 차이': 'Differences between spec and screen',
   종류: 'Kind',
   자리: 'Where',
@@ -218,11 +205,6 @@ export const 작성말: Record<string, string> = {
   시작: 'Started',
   결과: 'Result',
   테스트: 'Tests',
-  입력: 'Input',
-  출력: 'Output',
-  '캐시 읽기': 'Cache read',
-  '캐시 쓰기': 'Cache write',
-  '끊겨 하한': 'cut off, lower bound',
   // 보류 케이스 (도메인/작성 §3.6 「★ 보류 케이스」 · 시안 A)
   '보류 케이스': 'Held cases',
   '{수}건 · 값을 넣거나 제거하세요': '{수} · fill in values or remove',

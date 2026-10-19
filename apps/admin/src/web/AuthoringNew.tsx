@@ -48,19 +48,26 @@ const 작성오류: Record<string, string> = {
   TOO_MANY_ASSETS: '한 요청에 넣을 수 있는 자료 개수를 넘었습니다',
   NO_ASSETS: '자료가 하나도 없습니다. 파일이나 피그마 주소를 넣으세요',
   NOT_REQUESTER: '요청한 사람만 자료를 올릴 수 있습니다',
-  // 역방향 (도메인/작성 §7 AUTHOR 역방향). 화면은 계정 없는 줄을 미리 거르지 않는다 — 서버 거절을 풀어 준다
-  BAD_ENV: '이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요',
+  // 역방향 (도메인/작성 §7 AUTHOR 역방향). 화면은 계정 없는 줄을 미리 거르지 않는다 — 서버 거절을 풀어 준다.
+  // 설정 메뉴가 없는 사람에게 「설정 > 서비스」는 따라갈 수 없는 길이다 — 아래 `운영자작성오류` 가 덮는다 (점검 11.3)
+  BAD_ENV: '이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 운영자에게 확인을 요청하세요',
   BAD_START_URL: '시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다',
+};
+const 운영자작성오류: Record<string, string> = {
+  BAD_ENV: '이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요',
 };
 
 export function AuthoringNew({
   service,
   envs = [],
+  운영자 = false,
   on넣었다,
 }: {
   service: string;
   /** 띠의 서비스가 가진 대상 서버. 계정 여부는 모른다 — `/auth/me` 에는 안 온다 (도메인/인증 §7) */
   envs?: EnvRow[];
+  /** 설정 메뉴를 볼 수 있는 사람(admin). 아니면 「운영자에게 요청하세요」로 안내한다 */
+  운영자?: boolean;
   /** 줄에 세운 요청 번호. 목록이 시작 모달을 연다 */
   on넣었다: (id: number) => void;
 }) {
@@ -98,7 +105,7 @@ export function AuthoringNew({
 
   function 사유(err: unknown): string {
     if (err instanceof ApiError && err.status === 413) return t('파일 크기가 한 파일 상한을 넘었습니다');
-    const 말 = err instanceof ApiError ? 작성오류[err.code] : undefined;
+    const 말 = err instanceof ApiError ? ((운영자 ? 운영자작성오류[err.code] : undefined) ?? 작성오류[err.code]) : undefined;
     return 말 === undefined ? message(err, 언어) : t(말);
   }
 
@@ -128,7 +135,17 @@ export function AuthoringNew({
       await api.submitAuthoringRequest(service, id);
     } catch (err) {
       const 어디 = 지금 === null ? 사유(err) : `${지금.name} — ${사유(err)}`;
-      set오류(`${t('이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요')} (${어디})`);
+      // 자료를 못 올린 요청은 치운다 — 남겨 두면 목록에 「자료 올리는 중」으로 영영 남는다 (점검 11.6).
+      // 줄에 세우기(지금 === null)에서 난 실패는 치우지 않는다 — 응답만 끊기고 서버는 세웠을 수 있다(코드 검토).
+      // 치우기도 실패하면 그 줄을 손으로 폐기하라고 덧붙인다 — 삼키면 왜 줄이 남았는지 모른다
+      const 치움 =
+        지금 === null
+          ? ''
+          : await api.discardAuthoring(service, id).then(
+              () => '',
+              () => ` ${t('목록에 남은 그 줄은 폐기하세요')}`,
+            );
+      set오류(`${t('이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요')} (${어디})${치움}`);
       set보내는중(false);
       return;
     }
@@ -174,7 +191,11 @@ export function AuthoringNew({
           {t('실제 화면과 대조')}
         </label>
         {대조 && envs.length === 0 ? (
-          <span className="error-text">{t('이 서비스에는 대상 서버가 없습니다. 설정 > 서비스에서 먼저 넣으세요')}</span>
+          <span className="error-text">
+            {운영자
+              ? t('이 서비스에는 대상 서버가 없습니다. 설정 > 서비스에서 먼저 넣으세요')
+              : t('이 서비스에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요')}
+          </span>
         ) : null}
         {대조 && envs.length > 0 ? (
           <>

@@ -1,11 +1,10 @@
 // 작성 요청의 실행 기록 표 — 번호는 하나, 이어서 작성 · 다시 작성은 차로 쌓인다 (도메인/작성 §7 「실행 기록」 · 시안 A)
 
 import type { AuthoringRun } from './api.js';
+import { 실패글 } from './authoringFailText.js';
 import { 보임라벨, 중단이유라벨, type 보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
 import { when } from './ui.js';
-
-const 수 = new Intl.NumberFormat('en-US');
 
 /**
  * 이 실행이 어떻게 섰나 — 목록 줄도 최신 실행의 방식을 이것으로 적는다.
@@ -32,7 +31,7 @@ function 상태보임(status: AuthoringRun['status']): 보임 {
   return 'failed';
 }
 
-export function AuthoringRuns({ runs, 뿌리종류 }: { runs: AuthoringRun[]; 뿌리종류?: AuthoringRun['kind'] }) {
+export function AuthoringRuns({ runs, 뿌리종류, 운영자 = false }: { runs: AuthoringRun[]; 뿌리종류?: AuthoringRun['kind']; 운영자?: boolean }) {
   const t = use말();
   const 언어 = use언어();
   // 한 번만 돈 요청은 기록이 곧 상태 카드다 — 같은 것을 두 번 그리지 않는다
@@ -44,14 +43,8 @@ export function AuthoringRuns({ runs, 뿌리종류 }: { runs: AuthoringRun[]; �
     if (r.status === 'RUNNING' && 뿌리종류 === 'EDIT') return t('고치는 중');
     const 이름 = 보임라벨(상태보임(r.status), 언어);
     if (r.status === 'STOPPED') return `${이름} — ${중단이유라벨(r.stopReason, 언어)}`;
-    if (r.status === 'FAILED' && r.error !== null) return `${이름} — ${r.error}`;
+    if (r.status === 'FAILED' && r.error !== null) return `${이름} — ${실패글(r.error, 언어, 운영자).글}`;
     return 이름;
-  };
-  // 끊겨 센 토큰은 하한값이다 — 입력 칸에 한 번만 적는다
-  const 토큰 = (r: AuthoringRun, 칸: 'input' | 'output' | 'cacheRead' | 'cacheWrite'): string => {
-    if (r.tokens === null) return '—';
-    const 값 = 수.format(r.tokens[칸]);
-    return 칸 === 'input' && r.tokens.partial ? `${값} (${t('끊겨 하한')})` : 값;
   };
 
   return (
@@ -59,7 +52,8 @@ export function AuthoringRuns({ runs, 뿌리종류 }: { runs: AuthoringRun[]; �
       <h3>
         {t('실행 기록')} · {t('{차}차', { 차: runs.length })}
       </h3>
-      {/* 좁은 화면에서 아홉 칸이 쪼개지지 않게 표만 옆으로 구른다 (DESIGN.md 「반응형」) */}
+      {/* 좁은 화면에서 칸이 쪼개지지 않게 표만 옆으로 구른다 (DESIGN.md 「반응형」).
+          토큰 네 칸은 사람이 할 일과 상관없어 뺐다 — Grafana 「작성 토큰」이 본다 (점검 12.9) */}
       <div className="authoring-diffs-wrap">
         <table className="dhist" aria-label={t('실행 기록')}>
           <thead>
@@ -69,10 +63,6 @@ export function AuthoringRuns({ runs, 뿌리종류 }: { runs: AuthoringRun[]; �
               <th>{t('시작')}</th>
               <th>{t('결과')}</th>
               <th>{t('테스트')}</th>
-              <th>{t('입력')}</th>
-              <th>{t('출력')}</th>
-              <th>{t('캐시 읽기')}</th>
-              <th>{t('캐시 쓰기')}</th>
             </tr>
           </thead>
           <tbody>
@@ -83,10 +73,6 @@ export function AuthoringRuns({ runs, 뿌리종류 }: { runs: AuthoringRun[]; �
                 <td>{when(r.startedAt ?? r.createdAt, 언어)}</td>
                 <td>{결과(r)}</td>
                 <td className="mono">{r.caseFiles === null ? '—' : String(r.caseFiles)}</td>
-                <td className="mono">{토큰(r, 'input')}</td>
-                <td className="mono">{토큰(r, 'output')}</td>
-                <td className="mono">{토큰(r, 'cacheRead')}</td>
-                <td className="mono">{토큰(r, 'cacheWrite')}</td>
               </tr>
             ))}
           </tbody>

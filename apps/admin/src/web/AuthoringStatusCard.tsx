@@ -2,13 +2,14 @@
 
 import { 계정미등록종류 } from '../prd/heldText.js';
 import type { AuthoringCoverage, AuthoringRow } from './api.js';
-import { 단계글라벨, 단계라벨, 단계이름들, 단계자리, 시간판, 진척, 진척이찼나, 짧은수, 활동글 } from './authoringStatus.js';
-import { 줄보임, 중단이유라벨, 칩글 as 칩글자, type 보임 } from './authoringView.js';
+import { 실패글 } from './authoringFailText.js';
+import { 단계글라벨, 단계라벨, 단계이름들, 단계자리, 시간판, 진척이찼나 } from './authoringStatus.js';
+import { 반영보임, 반영할일, 줄보임, 중단이유라벨, 칩글 as 칩글자, type 보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
 import { 시각글자 as 시각, 시간글자, 작성남은글 } from './remainText.js';
 
 /** 칩 모양. 색은 판정(완료·실패·응답 없음)에만 — 나머지는 잉크다 (DESIGN.md 원칙 1) */
-function 칩모양(보: 보임): string {
+function 칩모양(보: 보임 | 'waiting'): string {
   if (보 === 'done') return 'status-chip done';
   if (보 === 'failed' || 보 === 'stalled') return 'status-chip fail';
   if (보 === 'stopped' || 보 === 'draft') return 'status-chip quiet';
@@ -51,32 +52,41 @@ function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t
 
 /**
  * `커버리지` 를 넘기면 `요청` 의 셈 대신 그것을 쓴다 — 상세는 머지를 뺀 최신 작성 실행의 셈을 넘긴다.
- * 머지 행에는 셈이 없어 반영 뒤 줄이 사라진다 (2026-09-30 계획 검토 BLOCKER 1)
+ * 머지 행에는 셈이 없어 반영 뒤 줄이 사라진다 (2026-09-30 계획 검토 BLOCKER 1).
+ * `최신` 은 뿌리의 최신 실행(실패한 반영 포함) — 칩과 반영 칸은 그것으로 정한다. 목록이 같은 규칙으로 「반영 실패」를 단다 (점검 N2)
  */
 export function AuthoringStatusCard({
   요청,
   지금,
   service,
   커버리지,
+  최신,
+  뿌리종류,
+  운영자 = false,
 }: {
   요청: AuthoringRow;
   지금: number;
   service?: string;
   커버리지?: AuthoringCoverage | null;
+  최신?: Pick<AuthoringRow, 'kind' | 'status'>;
+  뿌리종류?: AuthoringRow['kind'];
+  운영자?: boolean;
 }) {
   const t = use말();
   const 언어 = use언어();
   const 셈 = 커버리지 === undefined ? (요청.coverage ?? null) : 커버리지;
   const 계정보류 = 셈 === null || 'none' in 셈 ? 0 : (셈.excluded[계정미등록종류] ?? 0);
   const 보 = 줄보임(요청, 지금);
-  const 자리 = 단계자리(요청);
+  const 반영 = 반영할일(최신 ?? 요청);
+  const 자리 = 단계자리(요청, { 뿌리종류, 최신 });
   const 시간 = 시간판(요청, 지금);
   // 도는 동안만, 평소 걸린 시간을 서버가 줬을 때만 (도메인/작성 §7). 끝난 요청은 「걸림」 한 줄로 충분하다
   const 남은글 = 요청.status === 'RUNNING' ? 작성남은글(시간.걸린ms ?? 0, 지금, 요청.expected, 언어) : null;
   const p = 진척이찼나(요청.progress) ? 요청.progress : null;
   const 도는중 = 요청.status === 'RUNNING';
   // 머지 · 고치기도 같은 상태 칩을 쓰되 「작성 중」은 거짓말이다 — 반영하는 중 · 고치는 중이다
-  const 칩글 = 칩글자(요청, 보, 언어);
+  const 칩글 = 칩글자(요청, 보, 언어, 반영);
+  const 실패 = 요청.error === null ? null : 실패글(요청.error, 언어, 운영자);
 
   const 입력 = (요청.assets ?? []).filter((a) => (a.role ?? 'INPUT') === 'INPUT');
   const 파일수 = 입력.filter((a) => a.kind !== 'FIGMA').length;
@@ -88,16 +98,11 @@ export function AuthoringStatusCard({
     요청.compare === true ? t('화면과 대조') : null,
   ].filter((x): x is string => x !== null && x !== undefined);
 
-  const 초전 =
-    p?.lastActionAt === undefined || p.lastAction === undefined
-      ? null
-      : Math.max(0, Math.round((지금 - Date.parse(p.lastActionAt)) / 1000));
-
   return (
     <div className="status-card">
       <div className="status-top">
         <span className="status-sum">{요약.join(' · ')}</span>
-        <span className={칩모양(보)}>
+        <span className={칩모양(반영보임(보, 반영))}>
           <span className="dot" aria-hidden="true" />
           {칩글}
         </span>
@@ -121,28 +126,15 @@ export function AuthoringStatusCard({
         </ol>
       )}
 
-      {자리 === null ? null : (
+      {/* 단계 막대가 지금 칸을 보인다 — 「3단계 진행 중 · 40%」를 또 적으면 같은 말이 둘이다 (점검 12.16) */}
+      {요청.status === 'PENDING' || 요청.status === 'DRAFT' ? (
         <div className="status-row">
           <span className="status-label">{t('진척')}</span>
-          {요청.status === 'PENDING' || 요청.status === 'DRAFT' ? (
-            <span className="status-sub">
-              {요청.status === 'PENDING' ? t('에이전트 순서를 기다리는 중') : t('자료 올리기가 끝나지 않았습니다')}
-            </span>
-          ) : (
-            <div className="status-v">
-              <막대 이름={t('진척')} 비율={진척(자리).비율} />
-              <span className="status-sub">
-                {자리.지금 === null
-                  ? t('{번호} / {전체} 단계 · {퍼센트}%', { 번호: 진척(자리).번호, 전체: 단계이름들.length, 퍼센트: Math.round(진척(자리).비율 * 100) })
-                  : t(자리.멈춤 === null ? '{번호}단계 진행 중 · {퍼센트}%' : '{번호}단계에서 멈춤 · {퍼센트}%', {
-                      번호: 진척(자리).번호,
-                      퍼센트: Math.round(진척(자리).비율 * 100),
-                    })}
-              </span>
-            </div>
-          )}
+          <span className="status-sub">
+            {요청.status === 'PENDING' ? t('에이전트 순서를 기다리는 중') : t('자료 올리기가 끝나지 않았습니다')}
+          </span>
         </div>
-      )}
+      ) : null}
 
       {시간.시작 === null ? null : (
         <div className="status-row">
@@ -183,8 +175,17 @@ export function AuthoringStatusCard({
       ) : null}
 
       {/* 중단도 까닭 글이 있으면 보인다 — 올리기 거절은 무엇을 고칠지가 거기 있다. 회색 중단이라도 까닭은 늘 보인다 (작성 §7) */}
-      {(요청.status === 'FAILED' || 요청.status === 'STOPPED') && 요청.error !== null ? (
-        <div className={요청.status === 'STOPPED' ? 'status-reason stopped' : 'status-reason'}>{요청.error}</div>
+      {/* 에이전트 글은 개발자 반말이라 사람 말로 옮기고 원문은 접어 둔다 (점검 12.7) */}
+      {(요청.status === 'FAILED' || 요청.status === 'STOPPED') && 실패 !== null ? (
+        <div className={요청.status === 'STOPPED' ? 'status-reason stopped' : 'status-reason'}>
+          {실패.글}
+          {실패.원문 === null ? null : (
+            <details className="status-raw">
+              <summary>{t('원문 보기')}</summary>
+              <pre className="mono">{실패.원문}</pre>
+            </details>
+          )}
+        </div>
       ) : null}
 
       {p === null || 자리 === null ? null : (
@@ -197,11 +198,7 @@ export function AuthoringStatusCard({
             <span className="status-label">{t('탐색한 화면')}</span>
             <b>{p.screens === undefined ? '—' : t('{수}장', { 수: p.screens })}</b>
           </div>
-          <div>
-            {/* 캐시 읽기를 넣은 값이라 Grafana 「작성 토큰」(입력+출력)보다 수십 배 크다 — 라벨로 드러낸다 */}
-            <span className="status-label">{도는중 ? t('토큰 (캐시 읽기 포함 · 지금까지)') : t('토큰 (캐시 읽기 포함)')}</span>
-            <b>{짧은수(p.tokens)}</b>
-          </div>
+          {/* 토큰 수는 사람이 할 일과 상관없어 뺐다 — Grafana 「작성 토큰」이 본다 (점검 12.9) */}
         </div>
       )}
 
@@ -220,19 +217,12 @@ export function AuthoringStatusCard({
         </div>
       )}
 
-      {도는중 ? (
-        초전 !== null && p !== null && p.childRunning ? (
-          <div className="status-now">
-            <span className="status-label">{t('마지막 활동')}</span>
-            <span className="one-line">{활동글(p.lastAction ?? '')}</span>
-            <span className="ago">{t('{시간} 전', { 시간: 시간글자(초전 * 1000, 언어) })}</span>
-          </div>
-        ) : 요청.stage === null ? null : (
-          <div className="status-now">
-            <span className="status-label">{t('지금 하는 일')}</span>
-            <span className="one-line">{단계글라벨(요청.stage, 언어)}</span>
-          </div>
-        )
+      {/* 에이전트 기록 줄(마지막 활동)은 개발자 말이라 뺐다 — 지금 하는 일만 적는다 (점검 12.8) */}
+      {도는중 && 요청.stage !== null ? (
+        <div className="status-now">
+          <span className="status-label">{t('지금 하는 일')}</span>
+          <span className="one-line">{단계글라벨(요청.stage, 언어)}</span>
+        </div>
       ) : null}
     </div>
   );

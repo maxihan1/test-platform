@@ -198,14 +198,15 @@ const 도는진척 = {
 };
 
 describe('작성 진척 · 중단 · 폐기', () => {
-  it('도는 중이면 Status 카드가 진척 · 숫자 칸 · 방금 한 일을 보인다', async () => {
+  it('도는 중이면 Status 카드가 숫자 칸과 지금 하는 일을 보인다 — 토큰 · 에이전트 기록 줄 · 에이전트 아이디는 없다 (⑫ 점검 12.8 · 12.9 · 12.16)', async () => {
     답 = 줄({ status: 'RUNNING', stage: '케이스를 만드는 중', prUrl: null, finishedAt: null, progress: 도는진척, canStop: true });
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-    expect(await screen.findByText('3단계 진행 중 · 40%')).toBeTruthy();
-    expect(screen.getByText('4장')).toBeTruthy();
+    expect(await screen.findByText('4장')).toBeTruthy();
     expect(screen.getByText('3개')).toBeTruthy();
-    expect(screen.getByText('1.2M')).toBeTruthy();
-    expect(screen.getByText('케이스 파일을 쓰는 중')).toBeTruthy();
+    expect(screen.getByText('스크립트를 만드는 중')).toBeTruthy();
+    expect(screen.queryByText('1.2M')).toBeNull();
+    expect(screen.queryByText('케이스 파일을 쓰는 중')).toBeNull();
+    expect(screen.queryByText('작성 에이전트')).toBeNull();
   });
 
   it('진척이 없으면 자식 전이다 — 올리는 중이라고 하지 않는다', async () => {
@@ -387,17 +388,17 @@ describe('작성 진척 · 중단 · 폐기', () => {
       await vi.waitFor(() => expect(window.location.hash).toBe('#/authoring/5'));
     });
 
-    it('뿌리 쪽은 제목이 뿌리 번호이고, 상태 카드 · 다음 단계는 최신 실행 것이다', async () => {
+    it('뿌리 쪽은 부제가 뿌리 번호이고, 상태 카드 · 다음 단계는 최신 실행 것이다', async () => {
       const 기록 = [실행({ id: 9, kind: 'RERUN', resumeFrom: 8, status: 'RUNNING', finishedAt: null }), 실행({ id: 5 })];
       답들.set(5, 줄({ id: 5, status: 'FAILED', prUrl: null, error: '옛 실패', rootId: 5, runs: 기록 }));
       답들.set(9, 줄({ id: 9, kind: 'RERUN', sourceId: 5, status: 'RUNNING', prUrl: null, finishedAt: null, canStop: true, rootId: 5, runs: 기록 }));
       render(<AuthoringDetail service="PAY" id={5} 할수={실행까지} />);
       expect(await screen.findByRole('button', { name: '작성 중단' })).toBeTruthy();
-      expect(screen.getByText('#5')).toBeTruthy();
+      expect(screen.getByText(/^#5 · /)).toBeTruthy();
       expect(window.location.hash).toBe('');
     });
 
-    it('실행 기록 표는 차마다 한 줄 — 방식 · 결과 · 테스트 · 토큰 입력 · 출력 · 캐시 읽기 · 캐시 쓰기', async () => {
+    it('실행 기록 표는 차마다 한 줄 — 방식 · 시작 · 결과 · 테스트. 토큰 칸은 없다 (⑫ 점검 12.9)', async () => {
       답 = 줄({
         id: 5,
         status: 'FAILED',
@@ -416,13 +417,11 @@ describe('작성 진척 · 중단 · 폐기', () => {
       const 표 = await screen.findByRole('table', { name: '실행 기록' });
       const 줄들 = Array.from(표.querySelectorAll('tbody tr')).map((r) => Array.from(r.querySelectorAll('td')).map((c) => c.textContent));
       expect(줄들).toHaveLength(3);
-      expect(줄들[0]).toEqual(['3차', '이어서', expect.any(String), '완료', '29', '96', '29,405', '4,042,515', '1,200']);
+      expect(줄들[0]).toEqual(['3차', '이어서', expect.any(String), '완료', '29']);
       expect(줄들[1]!.slice(0, 2)).toEqual(['2차', '처음부터']);
       expect(줄들[1]![3]).toBe('중단 — 사용자가 멈춤');
-      expect(줄들[1]!.slice(5)).toEqual(['—', '—', '—', '—']);
       expect(줄들[2]!.slice(0, 2)).toEqual(['1차', '처음']);
       expect(줄들[2]![3]).toBe('실패 — 비밀번호가 들어 있다');
-      expect(줄들[2]![5]).toBe('178 (끊겨 하한)');
     });
 
     it('머지가 실패했으면 끝난 작성 실행을 보여 반영 버튼이 다시 나온다 — 차이 · 산출물도 그 실행 것이다', async () => {
@@ -445,7 +444,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
   it('보기 등급에게는 다시 작성 버튼 대신 누가 하는지 알린다', async () => {
     답 = 줄({ status: 'FAILED', prUrl: null, error: '실패함' });
     render(<AuthoringDetail service="PAY" id={7} 할수={보기만} />);
-    expect(await screen.findByText('다시 작성은 실행 권한이 있는 사람만 할 수 있습니다.')).toBeTruthy();
+    expect(await screen.findByText('다시 작성은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.')).toBeTruthy();
   });
 
   it('화면과 대조한 요청도 같은 자료로 다시 작성하고, 대상 서버·시작 주소도 그대로라고 알린다', async () => {
@@ -481,7 +480,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     expect(await screen.findByText('원본 요청 #3의 입력을 그대로 씁니다')).toBeTruthy();
     expect(screen.queryByText('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')).toBeNull();
-    expect(screen.getByText('표시 사본 — 원본 요청 #3의 자료')).toBeTruthy();
+    expect(screen.getByText('차이를 표시한 기획서 — 원본 요청 #3의 자료')).toBeTruthy();
   });
 
   it('폐기는 한 번 더 묻고, 성공하면 목록으로 간다', async () => {

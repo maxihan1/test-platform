@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AuthoringProgress, AuthoringRow } from './api.js';
-import { 다시작성원본, 단계글라벨, 단계자리, 목록글, 시간판, 진척, 짧은수, 활동글 } from './authoringStatus.js';
+import { 다시작성원본, 단계글라벨, 단계자리, 목록글, 시간판 } from './authoringStatus.js';
 
 const 기준 = Date.parse('2026-09-28T13:20:00Z');
 
@@ -31,7 +31,7 @@ describe('단계자리', () => {
     expect(단계자리(줄({ status: 'PENDING', startedAt: null }))).toEqual({ 끝난: 0, 지금: null, 멈춤: null });
   });
 
-  it('에이전트가 올리는 단계 글을 다섯 칸의 자리로 바꾼다', () => {
+  it('에이전트가 올리는 단계 글을 작성 칸의 자리로 바꾼다', () => {
     expect(단계자리(줄({ stage: '작업방을 만드는 중' }))?.지금).toBe(0);
     expect(단계자리(줄({ stage: '자료를 받는 중' }))?.지금).toBe(1);
     expect(단계자리(줄({ stage: '케이스를 만드는 중' }))?.지금).toBe(2);
@@ -44,8 +44,15 @@ describe('단계자리', () => {
     expect(단계자리(줄({ stage: null }))?.지금).toBe(0);
   });
 
-  it('완료면 다섯 칸이 다 끝났다', () => {
-    expect(단계자리(줄({ status: 'DONE', stage: '끝' }))).toEqual({ 끝난: 5, 지금: null, 멈춤: null });
+  it('작성이 끝나면 반영 칸이 지금 칸이다 — PR 을 만들었다고 다 끝난 것이 아니다', () => {
+    expect(단계자리(줄({ status: 'DONE', stage: '끝' }))).toEqual({ 끝난: 4, 지금: 4, 멈춤: null });
+  });
+
+  it('반영 칸은 뿌리의 최신 실행으로 정한다 — 도는 반영 · 실패한 반영 · 병합된 반영', () => {
+    const 작성끝 = 줄({ status: 'DONE', stage: '끝' });
+    expect(단계자리(줄({ kind: 'MERGE', stage: 'CI 기다리는 중' }))).toEqual({ 끝난: 4, 지금: 4, 멈춤: null });
+    expect(단계자리(작성끝, { 최신: { kind: 'MERGE', status: 'FAILED' } })).toEqual({ 끝난: 4, 지금: 4, 멈춤: 'failed' });
+    expect(단계자리(줄({ kind: 'MERGE', status: 'DONE' }))).toEqual({ 끝난: 6, 지금: null, 멈춤: null });
   });
 
   it('중단·실패는 멈춘 자리를 남긴다', () => {
@@ -57,23 +64,8 @@ describe('단계자리', () => {
     expect(단계자리(줄({ status: 'STOPPED', startedAt: null, stage: null }))).toEqual({ 끝난: 0, 지금: null, 멈춤: 'stopped' });
   });
 
-  it('머지 요청은 단계 막대가 없다', () => {
-    expect(단계자리(줄({ kind: 'MERGE', stage: 'CI 기다리는 중' }))).toBeNull();
-  });
-});
-
-describe('진척', () => {
-  it('도는 중이면 번호는 지금 단계, 비율은 끝낸 단계다', () => {
-    expect(진척({ 끝난: 2, 지금: 2, 멈춤: null })).toEqual({ 번호: 3, 비율: 0.4 });
-  });
-
-  it('완료는 5/5, 대기는 0/5', () => {
-    expect(진척({ 끝난: 5, 지금: null, 멈춤: null })).toEqual({ 번호: 5, 비율: 1 });
-    expect(진척({ 끝난: 0, 지금: null, 멈춤: null })).toEqual({ 번호: 0, 비율: 0 });
-  });
-
-  it('멈춘 것은 끝낸 단계만큼만 채운다', () => {
-    expect(진척({ 끝난: 2, 지금: 2, 멈춤: 'stopped' })).toEqual({ 번호: 3, 비율: 0.4 });
+  it('케이스 고치기는 단계 막대가 없다 — 반영 행이어도 뿌리가 고치기면', () => {
+    expect(단계자리(줄({ kind: 'MERGE', stage: 'CI 기다리는 중' }), { 뿌리종류: 'EDIT' })).toBeNull();
   });
 });
 
@@ -122,21 +114,6 @@ describe('단계글라벨', () => {
 
   it('모르는 글은 그대로 나간다', () => {
     expect(단계글라벨('새로 생긴 단계', 'ko')).toBe('새로 생긴 단계');
-  });
-});
-
-describe('짧은수', () => {
-  it('큰 수는 줄여 쓴다', () => {
-    expect(짧은수(1_234_567)).toBe('1.2M');
-    expect(짧은수(124)).toBe('124');
-  });
-});
-
-describe('활동글', () => {
-  it('도구 · 말 표지를 뗀다', () => {
-    expect(활동글('· Bash')).toBe('Bash');
-    expect(활동글('» 둘 다 고쳤다')).toBe('둘 다 고쳤다');
-    expect(활동글('화면 캡처')).toBe('화면 캡처');
   });
 });
 
