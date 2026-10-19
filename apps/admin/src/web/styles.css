@@ -6088,6 +6088,26 @@ details.raw {
 }
 
 .rs-k.n {
+button.rs-stat {
+  cursor: pointer;
+  color: var(--ink);
+}
+
+button.rs-stat:disabled {
+  cursor: default;
+  color: var(--ink-muted);
+}
+
+button.rs-stat[aria-pressed='true'] {
+  background: var(--rail-active);
+  border-color: var(--ink-faint);
+}
+
+button.rs-stat:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
   color: var(--na-text);
 }
 
@@ -6138,6 +6158,17 @@ details.raw {
 
 .rr-main {
   display: flex;
+/* 글자처럼 보이는 단추 — 직전 대비 줄의 「목록 보기」 */
+.linklike {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
   flex-direction: column;
   gap: 24px;
   min-width: 0;

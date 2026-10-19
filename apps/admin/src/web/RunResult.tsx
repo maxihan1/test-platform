@@ -32,8 +32,11 @@ function 케이스결과({
   칸안 = false,
   on새실행,
   on시나리오,
+  열카드,
 }: {
   on시나리오?: () => void;
+  /** 이 케이스의 실패 카드를 펼친 채 연다 — 대시보드 · 항목 상세에서 곧장 내려온 주소(`&tc=`) */
+  열카드?: string;
   runId: number;
   판정하기: 판정하기;
   /**
@@ -287,6 +290,7 @@ function 케이스결과({
           on디바이스={choose(setDevice)}
           page={page}
           on쪽={setPage}
+          열카드={열카드}
         />
       )}
 

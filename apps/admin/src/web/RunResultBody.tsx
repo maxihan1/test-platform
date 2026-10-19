@@ -1,6 +1,6 @@
 // 끝난 실행의 결과 본문 — 요약 띠 → 실패 카드 → 통과 · 미실행 줄. 늘 한 단이다 (도메인/실행 §8.3)
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 
 import type { api, ItemStatus, Platform, RunInsights as 비교 } from './api.js';
 import { 갈라낸다 } from './group.js';
@@ -9,8 +9,10 @@ import { RunFailCards } from './RunFailCards.js';
 import { 실패케이스들 } from './RerunFailed.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 결과줄 } from './RunResultRow.js';
-import { RunSummary } from './RunSummary.js';
+import { RunSummary, type 변화칸 } from './RunSummary.js';
 import { PLATFORM_LABEL, 실행디바이스들 } from './ui.js';
+import { use다시돌린결과 } from './useRerunResults.js';
+import { 케이스서비스 } from './role.js';
 
 type 실행 = Awaited<ReturnType<typeof api.run>>;
 
@@ -74,11 +76,16 @@ interface Props {
   on디바이스: (값: Platform | 'ALL') => void;
   page: number;
   on쪽: (쪽: number) => void;
+  /** 대시보드 · 항목 상세에서 곧장 내려온 케이스 — 그 실패 카드를 펼친 채 연다 (`&tc=`) */
+  열카드?: string;
 }
 
 export function 끝난결과(props: Props) {
-  const { data, insights, 판정하기, 견줌오류, 칸안, 판정, on판정, device, on디바이스, page, on쪽 } = props;
+  const { data, insights, 판정하기, 견줌오류, 칸안, 판정, on판정, device, on디바이스, page, on쪽, 열카드 } = props;
   const t = use말();
+  const [변화, set변화] = useState<변화칸 | null>(null);
+  // 「실패 다시 실행」으로 다시 돌린 결과를 원래 카드에 잇는다 — 실패가 있고 끝난 실행일 때만 찾는다 (점검 2.17)
+  const 다시돌림 = use다시돌린결과(data.runId, 케이스서비스(data.items[0]?.tcId ?? ''), data.counts.fail > 0);
   const 통과제목 = useRef<HTMLHeadingElement>(null);
   const 권한 = 실행판정(판정하기, data);
   const 디바이스들 = 실행디바이스들(data.items);
@@ -93,7 +100,16 @@ export function 끝난결과(props: Props) {
 
   const 본문 = (
     <>
-      <RunSummary counts={data.counts} 실패케이스수={실패케이스들(data.items).length} insights={insights} 판정={판정} on판정={on판정} />
+      <RunSummary
+        counts={data.counts}
+        실패케이스수={실패케이스들(data.items).length}
+        insights={insights}
+        판정={판정}
+        on판정={on판정}
+        변화={변화}
+        on변화={set변화}
+        항목들={data.items}
+      />
       {견줌오류 === null ? null : (
         <p className="hint">
           {t('직전 실행과 비교하지 못했습니다')} {견줌오류}
@@ -127,7 +143,7 @@ export function 끝난결과(props: Props) {
         ) : (
           <section className="rr-sec">
             {/* 칩이나 실행이 바뀌면 새로 그린다 — 앞 거르개 · 앞 실행의 쪽 번호가 남으면 안 된다 */}
-            <RunFailCards key={`${String(data.runId)}-${device}`} runId={data.runId} env={data.env} items={data.items} platform={device} 권한={권한} 유형들={insights?.실패유형들} />
+            <RunFailCards key={`${String(data.runId)}-${device}`} runId={data.runId} env={data.env} items={data.items} platform={device} 권한={권한} 유형들={insights?.실패유형들} 변화={변화} 열카드={열카드} 다시돌림={다시돌림} />
           </section>
         )}
 

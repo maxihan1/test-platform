@@ -17,7 +17,7 @@ import { Failed, Loading, useAsync } from './ui.js';
 
 const 상태들 = ['running', 'failed'] as const;
 const 방식들 = ['manual', 'scheduled', 'rerun'] as const;
-const 기간들 = [14, 30] as const;
+const 기간들 = [7, 14, 30] as const;
 
 function 고른값<T extends string>(글: string | null, 값들: readonly T[]): T | undefined {
   return 값들.find((값) => 값 === 글);
@@ -39,6 +39,9 @@ export function RunList({ service, envs, 할수, kind }: { service: string; envs
   const [days, setDays] = useState<number | undefined>(() => 기간들.find((일) => String(일) === 처음.get('days')));
   // 사람이 고른 실행. 없으면 결과 칸은 맨 위 줄을 보인다 — 좁은 창에서는 고르기 전까지 목록만 보인다
   const [고른, set고른] = useState(() => 번호(처음.get('run')));
+  // 주소로 곧장 내려온 케이스(`&tc=`) — 처음 연 그 실행에서만 그 실패 카드를 펼친다
+  const 처음실행 = 번호(처음.get('run'));
+  const 열카드 = 처음.get('tc') ?? undefined;
   // 서비스를 바꾸면 건 조건 · 고른 실행을 버린다 — 남기면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
   const [본서비스, set본서비스] = useState(service);
   if (본서비스 !== service) {
@@ -164,6 +167,7 @@ export function RunList({ service, envs, 할수, kind }: { service: string; envs
             <label className="run-filter">
               <span className="filter-label">{t('기간')}</span>
               <select value={days ?? ''} onChange={(e) => 거르기(() => setDays(기간들.find((일) => String(일) === e.target.value)))}>
+                <option value="7">{t('최근 7일')}</option>
                 <option value="14">{t('최근 14일')}</option>
                 <option value="30">{t('최근 30일')}</option>
                 <option value="">{t('전체')}</option>
@@ -228,6 +232,7 @@ export function RunList({ service, envs, 할수, kind }: { service: string; envs
               key={보는실행}
               runId={보는실행}
               판정하기={() => 할수}
+              열카드={보는실행 === 처음실행 ? 열카드 : undefined}
               칸안
               on새실행={(runId) => {
                 set고른(runId);

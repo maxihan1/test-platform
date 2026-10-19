@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { api, type FailureCase, type RunItemDetail, type RunItemSummary } from './api.js';
 import { use증적, 증적만들기버튼들, 증적알림과목록 } from './EvidenceSection.js';
+import { 카드찾기 } from './failureFind.js';
 import { use말 } from './i18n.js';
 import { 관련요구줄 } from './RunFailedReqs.js';
 import { RunFailJudge } from './RunFailJudge.js';
@@ -31,19 +32,6 @@ export function 실패길(항목들: RunItemSummary[]): RunItemSummary[] {
     });
 }
 
-/**
- * 실패 카드 한 장을 찾는다. 카드 통로에 케이스 조건이 없어 쪽을 넘기며 찾는다 —
- * ponytail: 실패가 수백 건이면 요청이 쪽 수만큼 늘어난다. 느려지면 통로에 tcId 조건을 연다
- */
-async function 카드찾기(runId: number, tcId: string): Promise<FailureCase | null> {
-  for (let 쪽 = 1; ; 쪽 += 1) {
-    const 응답 = await api.failures(runId, 쪽);
-    const 찾음 = 응답.items.find((c) => c.tcId === tcId);
-    if (찾음 !== undefined) return 찾음;
-    if (쪽 * 응답.pageSize >= 응답.total) return null;
-  }
-}
-
 function use실패카드(runId: number, tcId: string, 찾을까: boolean) {
   const [카드, set카드] = useState<FailureCase | null>(null);
   const [다시, set다시] = useState(0);
@@ -52,7 +40,7 @@ function use실패카드(runId: number, tcId: string, 찾을까: boolean) {
     let 살아있다 = true;
     카드찾기(runId, tcId).then(
       (찾음) => {
-        if (살아있다) set카드(찾음);
+        if (살아있다) set카드(찾음?.카드 ?? null);
       },
       (err: unknown) => {
         // 판정은 덤이다 — 못 찾아도 항목 상세는 선다. 원인은 콘솔에 남긴다

@@ -2,10 +2,10 @@
 // 결과 화면 요약 띠 검사 — 통과율 도넛 · 실패 수 · 판정별 보기 · 직전 실행 대비 (도메인/실행 §8.3)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
-import type { ItemStatus, RunCounts, RunInsights } from './api.js';
-import { RunSummary } from './RunSummary.js';
+import { api, type ItemStatus, type RunCounts, type RunInsights, type RunItemSummary } from './api.js';
+import { RunSummary, type 변화칸 } from './RunSummary.js';
 
 afterEach(cleanup);
 
@@ -37,8 +37,9 @@ function 그린다(
   판정: ItemStatus | 'ALL' = 'ALL',
   on판정: (v: ItemStatus | 'ALL') => void = () => undefined,
   실패케이스수 = counts.fail,
+  거르개: { 변화?: 변화칸 | null; on변화?: (v: 변화칸 | null) => void; 항목들?: RunItemSummary[] } = {},
 ) {
-  return render(<RunSummary counts={counts} 실패케이스수={실패케이스수} insights={insights} 판정={판정} on판정={on판정} />);
+  return render(<RunSummary counts={counts} 실패케이스수={실패케이스수} insights={insights} 판정={판정} on판정={on판정} {...거르개} />);
 }
 
 describe('요약 띠 — 통과율과 숫자', () => {
@@ -114,7 +115,7 @@ describe('요약 띠 — 판정별 보기', () => {
 });
 
 describe('요약 띠 — 직전 실행 대비', () => {
-  it('직전 실행 번호와 신규 실패 · 연속 실패 · 해결 수를 보이고 누르는 칸이 아니다', () => {
+  it('직전 실행 번호와 신규 실패 · 연속 실패 · 해결 수를 보인다', () => {
     그린다(집계(47, 3, 0), 견줌());
     const 고리 = screen.getByRole('link', { name: 'RUN 1038' });
     expect(고리.getAttribute('href')).toBe('#/runs/1038');
@@ -124,7 +125,34 @@ describe('요약 띠 — 직전 실행 대비', () => {
     expect(수('신규 실패')).toBe('2');
     expect(수('연속 실패')).toBe('1');
     expect(수('해결')).toBe('3');
-    expect(screen.getAllByRole('button')).toHaveLength(4);
+  });
+
+  it('신규 실패를 누르면 그 변화로 거르고 한 번 더 누르면 푼다 (점검 2.20)', () => {
+    const on변화 = vi.fn();
+    그린다(집계(47, 3, 0), 견줌(), 'ALL', undefined, undefined, { 변화: null, on변화 });
+    fireEvent.click(screen.getByRole('button', { name: /^신규 실패/ }));
+    expect(on변화).toHaveBeenLastCalledWith('새로깨짐');
+    cleanup();
+    그린다(집계(47, 3, 0), 견줌(), 'ALL', undefined, undefined, { 변화: '새로깨짐', on변화 });
+    expect(screen.getByRole('button', { name: /^신규 실패/ }).getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: /^신규 실패/ }));
+    expect(on변화).toHaveBeenLastCalledWith(null);
+  });
+
+  it('수가 0 이거나 거르는 길이 없으면 신규 · 연속 칸은 눌리지 않는다', () => {
+    그린다(집계(47, 3, 0), 견줌({ 케이스들: [] }), 'ALL', undefined, undefined, { on변화: vi.fn() });
+    expect((screen.getByRole('button', { name: /^신규 실패/ }) as HTMLButtonElement).disabled).toBe(true);
+    cleanup();
+    그린다(집계(47, 3, 0), 견줌());
+    expect((screen.getByRole('button', { name: /^신규 실패/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('해결을 누르면 아래 해결 목록이 펴진다', () => {
+    const { container } = 그린다(집계(47, 3, 0), 견줌());
+    const 접이 = container.querySelector('details.rr-fold') as HTMLDetailsElement;
+    expect(접이.open).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: /^해결/ }));
+    expect(접이.open).toBe(true);
   });
 
   it('직전 대비 수는 케이스 수다 — 한 케이스가 디바이스 둘에서 새로 깨져도 1이다', () => {
@@ -137,7 +165,27 @@ describe('요약 띠 — 직전 실행 대비', () => {
   it('주소가 바뀌었으면 한 줄로 알리고 빠진 케이스가 있으면 건수를 적는다', () => {
     그린다(집계(47, 3, 0), 견줌({ 주소바뀜: true, 빠진건수: 3 }));
     expect(screen.getByText('직전 실행은 다른 주소에서 실행됐습니다')).toBeTruthy();
-    expect(screen.getByText('직전 실행에 있었으나 이번에 실행되지 않은 케이스 3건')).toBeTruthy();
+    expect(screen.getByText(/직전 실행에 있었으나 이번에 실행되지 않은 케이스 3건/)).toBeTruthy();
+  });
+
+  it('빠진 케이스는 눌렀을 때 직전 실행과 맞대 이름을 목록으로 보인다 (점검 2.20)', async () => {
+    const 줄 = (historyId: number, tcId: string): RunItemSummary => ({
+      historyId, tcId, tcName: `${tcId} 이름`, platform: 'desktop', attempt: 1, params: {}, paramSchema: {}, status: 'PASS',
+      durationMs: 1, error: null, startedAt: '2026-10-01T00:00:00Z', finishedAt: '2026-10-01T00:00:01Z',
+    });
+    const 직전 = vi.spyOn(api, 'run').mockResolvedValue({
+      runId: 1038, title: '앞', triggeredBy: 'u', triggeredByName: null, env: 'qa', baseUrl: '', serviceName: 'ZRS', status: 'FINISHED',
+      startedAt: '2026-10-01T00:00:00Z', finishedAt: '2026-10-01T00:01:00Z', counts: { total: 3, pass: 3, fail: 0, na: 0, running: 0 },
+      items: [줄(1, 'ZRS-001'), 줄(2, 'ZRS-002'), 줄(3, 'ZRS-003')], evidence: [],
+    });
+    그린다(집계(2, 0, 0), 견줌({ 빠진건수: 1 }), 'ALL', undefined, undefined, { 항목들: [줄(11, 'ZRS-001'), 줄(12, 'ZRS-002')] });
+    expect(직전).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /이번에 실행되지 않은 케이스 1건/ }));
+
+    await waitFor(() => expect(screen.getByText('ZRS-003 이름', { exact: false })).toBeTruthy());
+    expect(직전).toHaveBeenCalledWith(1038);
+    expect(screen.queryByText('ZRS-001 이름', { exact: false })).toBeNull();
   });
 
   it('주소가 같고 빠진 것이 없으면 그 두 줄이 없다', () => {
