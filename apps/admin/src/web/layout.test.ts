@@ -6,7 +6,7 @@ import { 고른서비스, 대시보드재료, 배정서비스접두사, 배정�
 const 결제: ServiceRow = {
   id: 1,
   prefix: 'PAY',
-  name: '결제 서비스',
+  name: '결제 애플리케이션',
   color: '#667788',
   projectId: 10,
   projectName: '데모마켓',
@@ -17,7 +17,7 @@ const 결제: ServiceRow = {
 const 회원: ServiceRow = {
   id: 2,
   prefix: 'MEM',
-  name: '회원 서비스',
+  name: '회원 애플리케이션',
   color: '#556677',
   projectId: 10,
   projectName: '데모마켓',
@@ -27,7 +27,7 @@ const 회원: ServiceRow = {
 };
 
 // 케이스는 못 보고 작성·실행만 본다
-const 정산: ServiceRow = { ...회원, id: 3, prefix: 'SET', name: '정산 서비스', projectId: 20, projectName: '사내 포털', permissions: { cases: 'none', runs: 'read', authoring: 'write' } };
+const 정산: ServiceRow = { ...회원, id: 3, prefix: 'SET', name: '정산 애플리케이션', projectId: 20, projectName: '사내 포털', permissions: { cases: 'none', runs: 'read', authoring: 'write' } };
 
 function 사람(role: User['role'], services: ServiceRow[], dashboard: User['dashboard'] = 'read'): User {
   return { username: 'kim', displayName: '김철수', role, dashboard, mustChangePassword: false, services };
@@ -70,11 +70,11 @@ describe('로그인 직후 프로젝트 묻기', () => {
 });
 
 describe('탭 제목', () => {
-  it('브라우저 탭에도 서비스 이름이 들어간다. 탭이 여럿일 때는 탭 글자만 보인다', () => {
-    expect(탭제목(결제, 'ko')).toBe('결제 서비스 · 테스트 플랫폼');
+  it('브라우저 탭에도 애플리케이션 이름이 들어간다. 탭이 여럿일 때는 탭 글자만 보인다', () => {
+    expect(탭제목(결제, 'ko')).toBe('결제 애플리케이션 · 테스트 플랫폼');
   });
 
-  it('고른 서비스가 없으면 제품 이름만 쓴다', () => {
+  it('고른 애플리케이션이 없으면 제품 이름만 쓴다', () => {
     expect(탭제목(null, 'ko')).toBe('테스트 플랫폼');
   });
 });
@@ -91,7 +91,7 @@ describe('자리 목록', () => {
     expect(이름들(김, 'MEM')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '그래프(Grafana)']);
   });
 
-  it('고른 서비스에서 none 인 기능은 자리가 없다. 서비스를 바꾸면 자리도 바뀐다', () => {
+  it('고른 애플리케이션에서 none 인 기능은 자리가 없다. 애플리케이션을 바꾸면 자리도 바뀐다', () => {
     expect(이름들(김, 'SET')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', 'E2E 시나리오', '실행 기록', '그래프(Grafana)']);
     const 작성없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'read', authoring: 'none' } }]);
     expect(이름들(작성없음, 'MEM')).toEqual(['대시보드', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '그래프(Grafana)']);
@@ -103,20 +103,20 @@ describe('자리 목록', () => {
     expect(이름들(실행없음, 'MEM')).toEqual(['PRD 관리', '테스트 작성', '테스트 스크립트', '그래프(Grafana)']);
   });
 
-  it('그래프는 사람의 대시보드 칸을 본다. 서비스와 상관없다', () => {
+  it('그래프는 사람의 대시보드 칸을 본다. 애플리케이션과 상관없다', () => {
     const 대시보드없음 = 사람('member', [결제], 'none');
     expect(이름들(대시보드없음, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록']);
   });
 
   // 대시보드는 배정 서비스 전체의 실행 칸을 본다 — 고른 서비스가 아니다 (화면공통 §8 · 도메인/리포팅 §8.12)
-  it('대시보드는 실행 read 서비스가 하나라도 있으면 맨 위에 뜬다. 고른 서비스가 달라도 같다', () => {
+  it('대시보드는 실행 read 애플리케이션이 하나라도 있으면 맨 위에 뜬다. 고른 애플리케이션이 달라도 같다', () => {
     const 실행없는쪽 = { ...회원, permissions: { cases: 'read' as const, runs: 'none' as const, authoring: 'none' as const } };
     const 사람둘 = 사람('member', [실행없는쪽, 결제]);
     expect(자리목록(사람둘, 'MEM', 'ko')[0]).toMatchObject({ 이름: '대시보드', 해시: '#/dashboard', 아이콘: 'dashboard' });
     expect(이름들(사람둘, 'MEM')).toEqual(['대시보드', '테스트 스크립트', '그래프(Grafana)']);
   });
 
-  it('실행 read 서비스가 없으면 대시보드 자리가 없다', () => {
+  it('실행 read 애플리케이션이 없으면 대시보드 자리가 없다', () => {
     const 실행없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'none', authoring: 'read' } }]);
     expect(이름들(실행없음, 'MEM')).not.toContain('대시보드');
   });
@@ -135,10 +135,10 @@ describe('자리 목록', () => {
     expect(지금자리('prd', '#/cases')).toBe('#/prd');
   });
 
-  it('PRD 관리 하위는 요구사항 · 서비스 가이드 둘이고 가이드 화면에서는 가이드에 밑줄이 간다', () => {
+  it('PRD 관리 하위는 요구사항 · 애플리케이션 가이드 둘이고 가이드 화면에서는 가이드에 밑줄이 간다', () => {
     expect(자리목록(김, 'MEM', 'ko').find((자리) => 자리.해시 === '#/prd')?.하위).toEqual([
       { 이름: '요구사항', 해시: '#/prd', 라벨: 'PRD 관리 · 요구사항' },
-      { 이름: '서비스 가이드', 해시: '#/prd/guide', 라벨: 'PRD 관리 · 서비스 가이드' },
+      { 이름: '애플리케이션 가이드', 해시: '#/prd/guide', 라벨: 'PRD 관리 · 애플리케이션 가이드' },
     ]);
     expect(지금자리('prdGuide', '#/cases')).toBe('#/prd/guide');
   });
@@ -210,8 +210,8 @@ describe('자리 목록', () => {
   });
 });
 
-describe('번호로 배정 서비스 찾기', () => {
-  it('대시보드가 넘긴 서비스 번호로 그 배정 서비스의 접두사를 낸다', () => {
+describe('번호로 배정 애플리케이션 찾기', () => {
+  it('대시보드가 넘긴 애플리케이션 번호로 그 배정 애플리케이션의 접두사를 낸다', () => {
     expect(배정서비스접두사(2, [결제, 회원])).toBe('MEM');
   });
 
@@ -221,7 +221,7 @@ describe('번호로 배정 서비스 찾기', () => {
 });
 
 describe('대시보드 재료', () => {
-  it('케이스 자리가 있나는 고른 서비스의 케이스 칸을 본다 — 없으면 빈 안내판의 단추가 곧바로 되돌려진다', () => {
+  it('케이스 자리가 있나는 고른 애플리케이션의 케이스 칸을 본다 — 없으면 빈 안내판의 단추가 곧바로 되돌려진다', () => {
     const 실행만 = 사람('member', [{ ...회원, permissions: { cases: 'none', runs: 'read', authoring: 'none' } }]);
     expect(대시보드재료(실행만, 'MEM').케이스갈수있나).toBe(false);
     expect(대시보드재료(김, 'PAY').케이스갈수있나).toBe(true);
@@ -233,16 +233,16 @@ describe('대시보드 재료', () => {
     expect(대시보드재료(김, 'PAY').설정갈수있나).toBe(false);
   });
 
-  it('작성 서비스는 작성 칸이 none 이 아닌 배정 서비스만 번호와 이름으로 준다', () => {
+  it('작성 애플리케이션은 작성 칸이 none 이 아닌 배정 애플리케이션만 번호와 이름으로 준다', () => {
     const 작성없음 = { ...회원, permissions: { cases: 'read' as const, runs: 'read' as const, authoring: 'none' as const } };
     expect(대시보드재료(사람('member', [결제, 작성없음, 정산]), 'PAY').작성서비스).toEqual([
-      { id: 1, name: '결제 서비스' },
-      { id: 3, name: '정산 서비스' },
+      { id: 1, name: '결제 애플리케이션' },
+      { id: 3, name: '정산 애플리케이션' },
     ]);
   });
 });
 
-describe('고른 서비스', () => {
+describe('고른 애플리케이션', () => {
   it('저장된 접두사가 배정 목록에 있으면 그것을 연다', () => {
     expect(고른서비스('MEM', [결제, 회원])?.prefix).toBe('MEM');
   });
@@ -251,7 +251,7 @@ describe('고른 서비스', () => {
     expect(고른서비스(null, [결제, 회원])?.prefix).toBe('PAY');
   });
 
-  it('배정이 빠진 서비스가 저장돼 있으면 남의 것을 열지 않고 첫 번째로 돌아간다', () => {
+  it('배정이 빠진 애플리케이션이 저장돼 있으면 남의 것을 열지 않고 첫 번째로 돌아간다', () => {
     expect(고른서비스('PAY', [회원])?.prefix).toBe('MEM');
   });
 
@@ -260,10 +260,10 @@ describe('고른 서비스', () => {
   });
 });
 
-describe('배정받은 서비스가 없을 때', () => {
+describe('배정받은 애플리케이션이 없을 때', () => {
   it('운영 계정은 스스로 풀 수 있다고 알려준다', () => {
     const 사유 = 빈띠사유(사람('admin', []), null, 'ko');
-    expect(사유?.무엇).toBe('아직 배정받은 서비스가 없습니다');
+    expect(사유?.무엇).toBe('아직 배정받은 애플리케이션이 없습니다');
     expect(사유?.다음).toContain('설정');
   });
 
@@ -294,16 +294,16 @@ describe('배정받은 서비스가 없을 때', () => {
     expect(빈띠사유(사람('member', []), null, 'ko', '#/settings')?.다음).toContain('요청');
   });
 
-  it('넷 다 none 이면 권한이 없다고 먼저 알린다. 서비스 0건 안내보다 앞선다', () => {
+  it('넷 다 none 이면 권한이 없다고 먼저 알린다. 애플리케이션 0건 안내보다 앞선다', () => {
     const 사유 = 빈띠사유(사람('member', [], 'none'), null, 'ko');
     expect(사유?.무엇).toBe('권한을 받지 않았습니다. 운영자에게 요청하세요');
   });
 
-  it('대시보드만 있어도 권한 없음이 아니다. 서비스 0건 안내가 뜬다', () => {
-    expect(빈띠사유(사람('member', [], 'read'), null, 'ko')?.무엇).toBe('아직 배정받은 서비스가 없습니다');
+  it('대시보드만 있어도 권한 없음이 아니다. 애플리케이션 0건 안내가 뜬다', () => {
+    expect(빈띠사유(사람('member', [], 'read'), null, 'ko')?.무엇).toBe('아직 배정받은 애플리케이션이 없습니다');
   });
 
   it('자리를 안 주면 지금까지처럼 군다', () => {
-    expect(빈띠사유(사람('admin', []), null, 'ko')?.무엇).toBe('아직 배정받은 서비스가 없습니다');
+    expect(빈띠사유(사람('admin', []), null, 'ko')?.무엇).toBe('아직 배정받은 애플리케이션이 없습니다');
   });
 });

@@ -48,7 +48,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('PRD 관리 — 서비스 지도', () => {
+describe('PRD 관리 — 애플리케이션 지도', () => {
   it('요구 줄을 펴면 그 요구의 케이스가 부른 API 와 단계만 보인다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /로그인/ }));
@@ -70,7 +70,7 @@ describe('PRD 관리 — 서비스 지도', () => {
   it('케이스가 안 부른 API 를 카드에 모으고 본 화면을 단다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
     const 카드 = await screen.findByRole('region', { name: '케이스가 안 거친 API 2개' });
-    expect(within(카드).getByText('이 서비스에서 본 API 4개 중 아직 어떤 케이스도 부르지 않은 API 입니다')).toBeTruthy();
+    expect(within(카드).getByText('이 애플리케이션에서 본 API 4개 중 아직 어떤 케이스도 부르지 않은 API 입니다')).toBeTruthy();
     // 접혀 있다가 펴면 나온다 — 수십 개가 요구 목록을 밀어내지 않게 (점검 8.6)
     expect(within(카드).queryByText(/화면 \/login\/forgot 에서 봤습니다/)).toBeNull();
     fireEvent.click(within(카드).getByRole('button', { name: '펴기' }));
@@ -94,7 +94,7 @@ describe('PRD 관리 — 서비스 지도', () => {
   it('지도를 못 읽어도 메뉴는 그대로 쓰고 까닭을 한 줄로 보인다', async () => {
     지도.mockRejectedValue(new Error('서버가 답하지 않습니다'));
     render(<Prd service="MKT" 할수={보는사람} />);
-    expect(await screen.findByText(/서비스 지도를 못 읽었습니다/)).toBeTruthy();
+    expect(await screen.findByText(/애플리케이션 지도를 못 읽었습니다/)).toBeTruthy();
     expect(screen.getByText('버전 12 · 요구 4건')).toBeTruthy();
   });
 });

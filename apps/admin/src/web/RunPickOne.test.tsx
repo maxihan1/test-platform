@@ -38,7 +38,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
     expect(onRun.mock.calls[0]?.[0].env).toBe('stage');
   });
 
-  it('여는 쪽이 준 초기서버가 이 서비스에 있으면 그 서버가 골라진 채로 열린다', async () => {
+  it('여는 쪽이 준 초기서버가 이 애플리케이션에 있으면 그 서버가 골라진 채로 열린다', async () => {
     const { onRun } = await 그린다(케이스, 사람, { 초기서버: 'stage' });
 
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('stage');
@@ -47,7 +47,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
     expect(onRun.mock.calls[0]?.[0].env).toBe('stage');
   });
 
-  it('초기서버가 이 서비스에 없는 이름이면 고르지 않은 채로 연다', async () => {
+  it('초기서버가 이 애플리케이션에 없는 이름이면 고르지 않은 채로 연다', async () => {
     await 그린다(케이스, 사람, { 초기서버: 'prod' });
 
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('');

@@ -182,7 +182,7 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
       ) : 읽음 === null || 차례 === null ? (
         <Loading />
       ) : 읽음.목록.length === 0 ? (
-        <p className="scn-set-note">{t('이 서비스에는 단계로 쓸 기능 테스트 스크립트가 없습니다')}</p>
+        <p className="scn-set-note">{t('이 애플리케이션에는 단계로 쓸 기능 테스트 스크립트가 없습니다')}</p>
       ) : (
         <>
           {추천오류 !== null ? (

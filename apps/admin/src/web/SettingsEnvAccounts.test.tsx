@@ -15,7 +15,7 @@ afterEach(() => {
 const 서비스: SettingsServiceRow = {
   id: 1,
   prefix: 'ZSA',
-  name: '역할 계정 서비스',
+  name: '역할 계정 애플리케이션',
   color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [
     {
@@ -157,7 +157,7 @@ describe('역할 이름 제안 (점검 14.2)', () => {
     vi.spyOn(prdApi, 'now').mockResolvedValue({ held: { reqs: {}, roles: roles.map((r) => ({ ...r, count: 1 })), continueFrom: null } } as unknown as PrdNow);
   const 제안들 = () => [...document.querySelectorAll('datalist option')].map((o) => o.getAttribute('value'));
 
-  it('그 서비스의 PRD 역할을 제안하고 안내 한 줄에는 계정이 아직 없는 역할만 적는다', async () => {
+  it('그 애플리케이션의 PRD 역할을 제안하고 안내 한 줄에는 계정이 아직 없는 역할만 적는다', async () => {
     const 읽음 = 받음([
       { role: '판매자', registered: true },
       { role: '관리자', registered: false },
@@ -171,7 +171,7 @@ describe('역할 이름 제안 (점검 14.2)', () => {
     expect(document.getElementById(칸.getAttribute('list') ?? '')?.tagName).toBe('DATALIST');
   });
 
-  it('같은 서비스의 다른 대상 서버 줄에 이미 쓴 역할 이름도 제안한다', async () => {
+  it('같은 애플리케이션의 다른 대상 서버 줄에 이미 쓴 역할 이름도 제안한다', async () => {
     받음([]);
     render(<ServicePanel row={서비스} onDone={() => {}} />);
     fireEvent.click(screen.getByRole('button', { name: '+ 대상 서버 추가' }));
@@ -205,7 +205,7 @@ describe('역할 이름 제안 (점검 14.2)', () => {
     expect((screen.getByLabelText('대상 서버 1 역할 1 이름') as HTMLInputElement).value).toBe('손님');
   });
 
-  it('새 서비스는 PRD 를 읽지 않는다', () => {
+  it('새 애플리케이션은 PRD 를 읽지 않는다', () => {
     const 읽음 = 받음([]);
     render(<ServicePanel onDone={() => {}} />);
 

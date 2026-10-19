@@ -18,7 +18,7 @@ afterEach(() => {
 const 서비스: SettingsServiceRow = {
   id: 1,
   prefix: 'ZSP',
-  name: 'ZSP 서비스',
+  name: 'ZSP 애플리케이션',
   color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   testsRepo: 'https://zsp.example.com',
   testsDir: 'zsp',

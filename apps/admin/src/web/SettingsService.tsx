@@ -30,19 +30,9 @@ import { message } from './ui.js';
  * @param onDone 저장했다. 접두사를 넘긴다 — 새로 만들었으면 그 서비스로 옮겨 간다
  * @param 저장했다 방금 저장해 새로 읽은 칸이다. 저장 단추 곁에 「저장했습니다」를 보인다
  */
-export function ServicePanel({
-  row,
-  projects = [],
-  기본프로젝트,
-  onDone,
-  저장했다 = false,
-}: {
-  row?: SettingsServiceRow;
-  projects?: SettingsProject[];
-  기본프로젝트?: number | undefined;
-  onDone: (접두사: string) => void;
-  저장했다?: boolean;
-}) {
+type Props = { row?: SettingsServiceRow; projects?: SettingsProject[]; 기본프로젝트?: number | undefined; onDone: (접두사: string) => void; 저장했다?: boolean };
+
+export function ServicePanel({ row, projects = [], 기본프로젝트, onDone, 저장했다 = false }: Props) {
   const t = use말();
   // 아래 판단 넷은 순수 모듈에 있어 훅을 못 쓴다. 언어를 여기서 꺼내 넘긴다
   const 언어 = use언어();
@@ -126,7 +116,7 @@ export function ServicePanel({
     <div className="set-panel">
       <h2 className="set-panel-h">
         {새것 ? (
-          t('새 서비스')
+          t('새 애플리케이션')
         ) : (
           <>
             {row.name}
@@ -137,7 +127,7 @@ export function ServicePanel({
         )}
       </h2>
 
-      <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호, 서비스 선택 목록, 스크립트 폴더에 사용되는 정보입니다')}>
+      <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호, 애플리케이션 선택 목록, 스크립트 폴더에 사용되는 정보입니다')}>
         <프로젝트칸
           새것={새것}
           projects={projects}
@@ -172,7 +162,7 @@ export function ServicePanel({
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={t('결제 서비스')}
+            placeholder={t('결제 페이지')}
           />
         </div>
 
@@ -211,7 +201,7 @@ export function ServicePanel({
 
       {/* 새 서비스에는 없다 — 케이스가 없는 서비스라 돌릴 것이 없다 (도메인/인증 §8.8) */}
       {새것 ? null : (
-        <구획 제목={t('정기 실행')} 쓰임={t('매일 정한 시각에 이 서비스의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행을 바탕으로 집계됩니다')}>
+        <구획 제목={t('정기 실행')} 쓰임={t('매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행을 바탕으로 집계됩니다')}>
           <ScheduleFields
             값={schedule}
             저장된={row.schedule ?? null}
@@ -249,7 +239,7 @@ export function ServicePanel({
         {저장했다 ? <span className="hint set-saved" role="status">{t('저장했습니다')}</span> : null}
         {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
         <button className="btn" disabled={보내는중} onClick={() => void 보낸다()}>
-          {새것 ? t('서비스 추가') : t('저장')}
+          {새것 ? t('애플리케이션 추가') : t('저장')}
         </button>
       </div>
       {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}
@@ -262,11 +252,11 @@ export function ServicePanel({
 
       {/* 저장과 다른 일이라 따로 둔다 — 적다 만 칸은 저장하지 않고 상태만 뒤집는다 */}
       {새것 ? null : (
-        <구획 제목={t('서비스 비활성화')} 쓰임={t('비활성화하면 서비스 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다')} 경고>
+        <구획 제목={t('애플리케이션 비활성화')} 쓰임={t('비활성화하면 애플리케이션 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다')} 경고>
           {비활성확인 && row.isActive ? (
             // 결과를 먼저 말하고 확정은 글자가 다른 따로 된 버튼으로 둔다 — SettingsPending.tsx 의 거절 확인과 같은 모양
             <div className="set-warn">
-              {t('서비스 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다')}{' '}
+              {t('애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다')}{' '}
               <button className="btn ghost set-warn" disabled={보내는중} onClick={() => void 활성을뒤집는다()}>
                 {t('비활성화한다')}
               </button>{' '}

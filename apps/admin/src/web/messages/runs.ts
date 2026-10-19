@@ -62,7 +62,7 @@ export const 실행말: Record<string, string> = {
   '조건 지우기': 'Clear filters',
   '조건에 맞는 실행이 없습니다': 'No runs match the filters',
   '검색어나 상태를 바꿔 보세요': 'Try a different search or status',
-  '이 서비스에서 아직 실행한 기록이 없습니다': 'No runs yet in this service',
+  '이 애플리케이션에서 아직 실행한 기록이 없습니다': 'No runs yet in this application',
   '케이스를 골라 실행하면 여기에 쌓입니다': 'Pick cases and run them — they show up here',
   '케이스 목록으로': 'Go to case list',
   '실행 횟수': 'Runs',
@@ -108,8 +108,8 @@ export const 실행말: Record<string, string> = {
   '묶음 이름': 'Set name',
   '{이름}으로 저장했습니다.': 'Saved as {이름}.',
   '입력값이 명세와 맞지 않습니다.': 'Inputs do not match the schema.',
-  '이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다':
-    'This service has no target servers. Add one in Settings before running',
+  '이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다':
+    'This application has no target servers. Add one in Settings before running',
   '한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)': 'Up to {상한} items per run ({지금} right now)',
   '케이스 {케이스} × 디바이스 {디바이스} × 반복 {반복} = {건수}번': '{케이스} cases × {디바이스} devices × {반복} repeats = {건수} runs',
   '케이스 {케이스} (디바이스 합계 {합}) × 반복 {반복} = {건수}번': '{케이스} cases ({합} devices in total) × {반복} repeats = {건수} runs',

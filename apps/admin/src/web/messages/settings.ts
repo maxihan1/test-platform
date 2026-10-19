@@ -3,7 +3,7 @@
 export const 설정말: Record<string, string> = {
   // 로그인 화면 (§8.6)
   '테스트 플랫폼': 'Test Platform',
-  '아이디와 비밀번호를 넣으면 맡은 서비스가 열립니다.': 'Sign in to open the services assigned to you.',
+  '아이디와 비밀번호를 넣으면 맡은 애플리케이션이 열립니다.': 'Sign in to open the applications assigned to you.',
   '아이디': 'ID',
   '비밀번호': 'Password',
   '로그인': 'Sign in',
@@ -17,7 +17,7 @@ export const 설정말: Record<string, string> = {
   '권한이 필요하면 운영 계정 사용자에게 요청해 주세요': 'Ask an admin user for access if you need it',
 
   // 구획 머리와 목록 줄
-  '서비스': 'Services',
+  '애플리케이션': 'Applications',
   '계정': 'Accounts',
   '더하기': 'Add',
   '닫기': 'Close',
@@ -28,12 +28,12 @@ export const 설정말: Record<string, string> = {
   '다시 활성화': 'Reactivate',
   '비활성으로 내리기': 'Deactivate',
   '다시 활성으로': 'Reactivate',
-  '아직 서비스가 없습니다': 'No services yet',
+  '아직 애플리케이션이 없습니다': 'No applications yet',
   '케이스 {건수}건': '{건수} cases',
   '배정 없음': 'Unassigned',
 
   // 서비스 편집기
-  '서비스 추가': 'Add service',
+  '애플리케이션 추가': 'Add application',
   '접두사': 'Prefix',
   '생성할 때만 정할 수 있습니다. 케이스 번호(PAY-001)에 사용되므로 나중에 바꿀 수 없습니다':
     'Set once at creation. It is baked into case IDs like PAY-001, so it cannot change later',
@@ -42,7 +42,7 @@ export const 설정말: Record<string, string> = {
   '대문자로 시작하는 영문·숫자 12자 이내로 적습니다. 예: PAY · MEM2':
     'Up to 12 letters and digits, starting with a capital. e.g. PAY · MEM2',
   '이름': 'Name',
-  '결제 서비스': 'Payments',
+  '결제 페이지': 'Payments',
   '테스트 폴더': 'Tests folder',
   '테스트 저장소': 'Tests repository',
   '작성 요청이 올린 PR 이 이 저장소 것인지 확인하는 데 씁니다. 비워 두면 작성한 케이스를 반영할 수 없습니다':
@@ -199,7 +199,7 @@ export const 설정말: Record<string, string> = {
   '맥 에이전트를 처음 켤 때 한 번 붙여넣습니다': 'Paste it once when you first start the Mac agent',
   // 설정 안 메뉴와 서비스 구획 (2026-10-09 UI 개편 묶음 4 시안 A)
   '설정 메뉴': 'Settings menu',
-  '+ 서비스 추가': '+ Add service',
+  '+ 애플리케이션 추가': '+ Add application',
   '프로젝트': 'Projects',
   '프로젝트§칸': 'Project',
   '아직 프로젝트가 없습니다': 'No projects yet',
@@ -214,18 +214,17 @@ export const 설정말: Record<string, string> = {
   '애플리케이션 옮기기': 'Move applications',
   '옮기면 그 애플리케이션은 옮겨 간 프로젝트의 권한을 따릅니다. 모두 옮기면 빈 프로젝트는 저절로 사라집니다':
     'A moved application follows the permissions of the project it moves to. A project left empty disappears on its own',
-  '아직 애플리케이션이 없습니다': 'No applications yet',
   '옮길 프로젝트': 'Move to project',
   '다른 프로젝트로 옮기려면 프로젝트 화면에서 합니다': 'To move it to another project, use the project screen',
   '프로젝트를 골라 주세요': 'Choose a project',
   '사람': 'People',
   '기다리는 가입 신청이 없습니다': 'No sign-up requests waiting',
-  '그런 서비스가 없습니다': 'No such service',
-  '새 서비스': 'New service',
+  '그런 애플리케이션이 없습니다': 'No such application',
+  '새 애플리케이션': 'New application',
   '저장했습니다': 'Saved',
   '기본 정보': 'Basics',
-  '케이스 번호, 서비스 선택 목록, 스크립트 폴더에 사용되는 정보입니다':
-    'Used for case IDs, the service picker and the scripts folder',
+  '케이스 번호, 애플리케이션 선택 목록, 스크립트 폴더에 사용되는 정보입니다':
+    'Used for case IDs, the application picker and the scripts folder',
   '테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다':
     'The servers tests run against. Register at least one to run',
   '실행 알림': 'Run notifications',
@@ -233,17 +232,17 @@ export const 설정말: Record<string, string> = {
     'Results go to this channel when Notify Slack when done is on for a run',
   '기획서와 피그마로 테스트 스크립트를 만들 때만 사용합니다. 실행에는 영향을 주지 않습니다':
     'Only used when building test scripts from specs and Figma. Runs are not affected',
-  '서비스 비활성화': 'Deactivate service',
+  '애플리케이션 비활성화': 'Deactivate application',
   '비활성화한다': 'Deactivate now',
-  '서비스 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다':
-    'It disappears from the service picker. Run history and cases are kept',
-  '비활성화하면 서비스 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다':
-    'Once deactivated, it disappears from the service picker. Run history and scripts are kept',
+  '애플리케이션 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다':
+    'It disappears from the application picker. Run history and cases are kept',
+  '비활성화하면 애플리케이션 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다':
+    'Once deactivated, it disappears from the application picker. Run history and scripts are kept',
 
   // 정기 실행 구획 (§8.8 · 공통/6-인프라 §9.2)
   '정기 실행': 'Scheduled runs',
-  '매일 정한 시각에 이 서비스의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행을 바탕으로 집계됩니다':
-    'Runs this service\'s scripts automatically once a day at the set time. The dashboard pass rate and daily results are based on these runs',
+  '매일 정한 시각에 이 애플리케이션의 스크립트를 자동으로 한 번 실행합니다. 대시보드의 통과율과 일별 결과는 이 실행을 바탕으로 집계됩니다':
+    'Runs this application\'s scripts automatically once a day at the set time. The dashboard pass rate and daily results are based on these runs',
   '매일 돌리기': 'Run daily',
   '시각': 'Time',
   '{시간대} 기준': '{시간대} time',

@@ -143,7 +143,7 @@ export function Prd({
       )}
       {/* 못 읽은 것을 「실패 없음」으로 보이면 안 된다 — 결과 칸이 왜 비었는지 적는다 */}
       {last.error === null ? null : <p className="prd-note bad">{t('마지막 결과를 못 읽었습니다 — {까닭}', { 까닭: last.error })}</p>}
-      {지도.error === null ? null : <p className="prd-note bad">{t('서비스 지도를 못 읽었습니다 — {까닭}', { 까닭: 지도.error })}</p>}
+      {지도.error === null ? null : <p className="prd-note bad">{t('애플리케이션 지도를 못 읽었습니다 — {까닭}', { 까닭: 지도.error })}</p>}
       {이력 ? <PrdVersions service={service} 지금판={now.version} 쓰나={쓰나} 짓기={짓기} /> : null}
       {더하기 ? <PrdNew service={service} now={now} 짓기={짓기} on닫기={() => set더하기(false)} /> : null}
       {now.version === 0 && !더하기 ? (

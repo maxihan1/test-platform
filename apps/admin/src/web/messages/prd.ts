@@ -149,12 +149,12 @@ export const 기획서말: Record<string, string> = {
   '기능 묶음 {앞} → {뒤}': 'Feature {앞} → {뒤}',
 
   // 서비스 지도 (PrdApis.tsx · 도메인/작성 §3.6 「서비스 지도」)
-  '서비스 지도를 못 읽었습니다 — {까닭}': 'Could not read the service map — {까닭}',
+  '애플리케이션 지도를 못 읽었습니다 — {까닭}': 'Could not read the application map — {까닭}',
   '거치는 API {건수}개': 'APIs used: {건수}',
   '{케이스} {단계}단계': '{케이스} step {단계}',
   펴기: 'Expand',
   '케이스가 안 거친 API {건수}개': 'APIs no case calls: {건수}',
-  '이 서비스에서 본 API {전체}개 중 아직 어떤 케이스도 부르지 않은 API 입니다': 'Of the {전체} APIs seen in this service, no case calls these yet',
+  '이 애플리케이션에서 본 API {전체}개 중 아직 어떤 케이스도 부르지 않은 API 입니다': 'Of the {전체} APIs seen in this application, no case calls these yet',
   '본 API 를 모두 케이스가 거칩니다': 'A case calls every API seen',
   '마지막 {때}': 'Last seen {때}',
   '화면 {주소} 에서 봤습니다 · 마지막 {때}': 'Seen on {주소} · last {때}',

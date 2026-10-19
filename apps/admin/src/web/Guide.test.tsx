@@ -37,10 +37,10 @@ const 파일 = (id: number, name: string, section: ServiceGuide['files'][number]
 
 const 가이드 = (덮어쓰기: Partial<ServiceGuide> = {}): ServiceGuide => ({
   version: 3,
-  intro: '중고 물품을 사고파는 웹 서비스입니다',
+  intro: '중고 물품을 사고파는 웹 애플리케이션입니다',
   policy: '',
   rules: '테스트로 만든 주문 이름은 qa- 로 시작합니다',
-  files: [파일(11, '운영 정책.docx', 'policy'), 파일(12, '서비스 소개서.pdf', 'intro'), 파일(14, '옛 약관.doc', 'policy')],
+  files: [파일(11, '운영 정책.docx', 'policy'), 파일(12, '애플리케이션 소개서.pdf', 'intro'), 파일(14, '옛 약관.doc', 'policy')],
   savedAt: '2026-10-15T01:00:00.000Z',
   savedByName: '김QA',
   ...덮어쓰기,
@@ -62,7 +62,7 @@ const 정책칸 = () => screen.getByRole('textbox', { name: '정책' }) as HTMLT
 // 저장 단추는 맨 위와 글 칸 아래 둘이다 — 같은 일을 한다
 const 저장버튼 = () => screen.getAllByRole('button', { name: '저장' })[0] as HTMLButtonElement;
 
-describe('서비스 가이드 — 시안 A', () => {
+describe('애플리케이션 가이드 — 시안 A', () => {
   it('가이드가 없으면 그렇다고 말하고 버전 기록은 없다', async () => {
     지금.mockResolvedValue(가이드({ version: 0, intro: '', policy: '', rules: '', files: [], savedAt: null, savedByName: null }));
     render(<Guide service="MKT" 할수={쓰는사람} />);
@@ -76,9 +76,9 @@ describe('서비스 가이드 — 시안 A', () => {
     expect(await screen.findByText(/버전 3 · 첨부 3건/)).toBeTruthy();
     const 정책 = screen.getByRole('region', { name: '정책' });
     expect(within(정책).getByText('운영 정책.docx')).toBeTruthy();
-    expect(within(정책).queryByText('서비스 소개서.pdf')).toBeNull();
+    expect(within(정책).queryByText('애플리케이션 소개서.pdf')).toBeNull();
     expect(within(정책).getAllByText(/86KB/)).toHaveLength(2);
-    expect((screen.getByRole('textbox', { name: '서비스 소개' }) as HTMLTextAreaElement).value).toBe('중고 물품을 사고파는 웹 서비스입니다');
+    expect((screen.getByRole('textbox', { name: '애플리케이션 소개' }) as HTMLTextAreaElement).value).toBe('중고 물품을 사고파는 웹 애플리케이션입니다');
   });
 
   it('글을 고치면 저장이 켜지고 지금 버전 위에 세 구획 글을 보낸 뒤 다시 읽는다', async () => {
@@ -89,7 +89,7 @@ describe('서비스 가이드 — 시안 A', () => {
     fireEvent.click(저장버튼());
     await vi.waitFor(() =>
       expect(저장).toHaveBeenCalledWith('MKT', 3, {
-        intro: '중고 물품을 사고파는 웹 서비스입니다',
+        intro: '중고 물품을 사고파는 웹 애플리케이션입니다',
         policy: '결제는 테스트 카드만 씁니다',
         rules: '테스트로 만든 주문 이름은 qa- 로 시작합니다',
       }),
@@ -173,7 +173,7 @@ describe('서비스 가이드 — 시안 A', () => {
     expect(글자).toHaveBeenCalledWith('MKT', 11);
     expect(within(정책).getByRole('link', { name: '옛 약관.doc' }).getAttribute('href')).toBe('/api/guide/files/14?service=MKT');
 
-    const PDF = within(screen.getByRole('region', { name: '서비스 소개' })).getByRole('link', { name: '열기' });
+    const PDF = within(screen.getByRole('region', { name: '애플리케이션 소개' })).getByRole('link', { name: '열기' });
     expect(PDF.getAttribute('href')).toBe('/api/guide/files/12/pdf?service=MKT');
     expect(PDF.getAttribute('target')).toBe('_blank');
   });
@@ -217,8 +217,8 @@ describe('서비스 가이드 — 시안 A', () => {
   });
 });
 
-describe('서비스 가이드 — 쓰던 글을 두고 떠나기 (점검 9.1)', () => {
-  it('글을 고친 채 서비스를 바꾸려 하면 묻고, 떠나기를 눌러야 바꾼다', async () => {
+describe('애플리케이션 가이드 — 쓰던 글을 두고 떠나기 (점검 9.1)', () => {
+  it('글을 고친 채 애플리케이션을 바꾸려 하면 묻고, 떠나기를 눌러야 바꾼다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
     fireEvent.change(정책칸(), { target: { value: '쓰다 만 글' } });

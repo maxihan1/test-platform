@@ -84,7 +84,7 @@ describe('ScenarioPalette 불러오기', () => {
     쪽들([]);
     그리기();
 
-    await screen.findByText('이 서비스에는 단계로 쓸 기능 테스트 스크립트가 없습니다');
+    await screen.findByText('이 애플리케이션에는 단계로 쓸 기능 테스트 스크립트가 없습니다');
   });
 
   it('불러오다 실패하면 오류 글을 보이고 찾기 칸은 없다', async () => {
@@ -237,7 +237,7 @@ describe('ScenarioPalette 맥락', () => {
     expect(묶음단추(/회원가입/).getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('서비스를 바꾸면 같은 이름 묶음도 접힌 채 연다', async () => {
+  it('애플리케이션을 바꾸면 같은 이름 묶음도 접힌 채 연다', async () => {
     쪽들(PRD케이스들());
     const 손 = 그리기();
     fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
@@ -247,7 +247,7 @@ describe('ScenarioPalette 맥락', () => {
     await waitFor(() => expect(묶음단추(/회원가입/).getAttribute('aria-expanded')).toBe('false'));
   });
 
-  it('요구가 붙은 케이스가 없는 서비스는 묶음 머리와 요구 줄 없이 두 덩어리 그대로다', async () => {
+  it('요구가 붙은 케이스가 없는 애플리케이션은 묶음 머리와 요구 줄 없이 두 덩어리 그대로다', async () => {
     쪽들([케이스('ZSP-001'), 케이스('ZSP-002', { techniques: ['경계값 분석'] })]);
     그리기();
     await screen.findByRole('button', { name: 'ZSP-001 추가' });
@@ -271,7 +271,7 @@ describe('ScenarioPalette 더하기', () => {
   it('다른 단계 넷은 정해 둔 기본값으로 on다른단계를 부른다', async () => {
     쪽들([]);
     const 손 = 그리기();
-    await screen.findByText('이 서비스에는 단계로 쓸 기능 테스트 스크립트가 없습니다');
+    await screen.findByText('이 애플리케이션에는 단계로 쓸 기능 테스트 스크립트가 없습니다');
 
     fireEvent.click(screen.getByRole('button', { name: 'API 호출' }));
     fireEvent.click(screen.getByRole('button', { name: '모킹 켜기' }));

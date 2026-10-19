@@ -168,7 +168,7 @@ export function Dashboard({
     값 === null
       ? undefined
       : 고른서비스 === undefined
-        ? t('서비스 {수}개 · 최근 {일}일 · {날짜} 기준', {
+        ? t('애플리케이션 {수}개 · 최근 {일}일 · {날짜} 기준', {
             수: 값.services.length,
             일: 값.window.days,
             날짜: 날짜글자(값.window.today),

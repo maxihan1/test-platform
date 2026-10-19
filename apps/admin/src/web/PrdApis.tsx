@@ -82,7 +82,7 @@ export function 안거친API카드({ apis }: { apis: 지도API[] }) {
     <section className="prd-card prd-untested" aria-labelledby="prd-untested-title">
       <header>
         <h2 id="prd-untested-title">{t('케이스가 안 거친 API {건수}개', { 건수: 안거친.length })}</h2>
-        <small>{t('이 서비스에서 본 API {전체}개 중 아직 어떤 케이스도 부르지 않은 API 입니다', { 전체: apis.length })}</small>
+        <small>{t('이 애플리케이션에서 본 API {전체}개 중 아직 어떤 케이스도 부르지 않은 API 입니다', { 전체: apis.length })}</small>
         {안거친.length === 0 ? null : (
           <button type="button" className="btn ghost small" aria-expanded={폈나} onClick={() => set폈나(!폈나)}>
             {폈나 ? t('접기') : t('펴기')}

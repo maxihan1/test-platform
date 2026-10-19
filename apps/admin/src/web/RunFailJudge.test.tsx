@@ -133,7 +133,7 @@ describe('판정 줄 — 누르기', () => {
     expect(버튼('화면이 맞음으로 바꾸기')).not.toBeNull();
   });
 
-  it('「화면이 맞음」은 서비스 접두사와 실행 · 케이스를 실어 반영 통로를 부른다', async () => {
+  it('「화면이 맞음」은 애플리케이션 접두사와 실행 · 케이스를 실어 반영 통로를 부른다', async () => {
     const 반영 = vi.spyOn(prdApi, 'apply').mockResolvedValue({ id: 88, waitsFor: [] });
     열기(null);
 

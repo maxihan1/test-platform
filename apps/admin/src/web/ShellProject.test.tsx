@@ -17,7 +17,7 @@ afterEach(() => {
 const 결제: ServiceRow = {
   id: 1,
   prefix: 'ZSH',
-  name: '결제 서비스',
+  name: '결제 애플리케이션',
   color: '#3A5FCD',
   projectId: 1,
   projectName: '데모마켓',
@@ -25,7 +25,7 @@ const 결제: ServiceRow = {
   hasSlackWebhook: false,
   permissions: { cases: 'write', runs: 'write', authoring: 'write' },
 };
-const 정산: ServiceRow = { ...결제, id: 2, prefix: 'ZSI', name: '정산 서비스' };
+const 정산: ServiceRow = { ...결제, id: 2, prefix: 'ZSI', name: '정산 애플리케이션' };
 const 포털: ServiceRow = { ...결제, id: 3, prefix: 'ZSJ', name: '직원 포털', projectId: 2, projectName: '사내 포털' };
 const 포털어드민: ServiceRow = { ...포털, id: 4, prefix: 'ZSK', name: '관리자 콘솔' };
 
@@ -50,13 +50,13 @@ describe('프로젝트 고르개', () => {
     expect([...고르개.options].map((it) => it.textContent)).toEqual(['데모마켓', '사내 포털']);
     const 띠 = [...document.querySelectorAll('.hd-svc')];
     expect(띠[0]?.contains(고르개)).toBe(true);
-    expect(띠[1]?.contains(screen.getByRole('combobox', { name: '서비스 선택' }))).toBe(true);
+    expect(띠[1]?.contains(screen.getByRole('combobox', { name: '애플리케이션 선택' }))).toBe(true);
   });
 
   it('애플리케이션 고르개에는 고른 프로젝트의 애플리케이션만 뜬다', () => {
     띄운다(포털, [결제, 정산, 포털, 포털어드민]);
 
-    const 앱들 = screen.getByRole('combobox', { name: '서비스 선택' }) as HTMLSelectElement;
+    const 앱들 = screen.getByRole('combobox', { name: '애플리케이션 선택' }) as HTMLSelectElement;
     expect([...앱들.options].map((it) => it.textContent)).toEqual(['직원 포털', '관리자 콘솔']);
   });
 

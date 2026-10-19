@@ -3,11 +3,11 @@
 
 export const 오류영어: Record<string, string> = {
   // 배정과 세션
-  '이 서비스에 배정받지 않았습니다. 운영 계정인 사람에게 배정을 요청합니다':
-    'You are not assigned to this service. Ask an admin to assign you.',
+  '이 애플리케이션에 배정받지 않았습니다. 운영 계정인 사람에게 배정을 요청합니다':
+    'You are not assigned to this application. Ask an admin to assign you.',
   '로그인이 풀렸습니다. 다시 로그인합니다': 'Your session ended. Please sign in again.',
-  '어느 서비스인지 고르지 않았습니다. 맨 위 띠에서 서비스를 고릅니다':
-    'No service selected. Choose one in the sidebar.',
+  '어느 애플리케이션인지 고르지 않았습니다. 맨 위 띠에서 애플리케이션을 고릅니다':
+    'No application selected. Choose one in the sidebar.',
 
   // 못 찾은 것들
   '그 실행을 찾지 못했습니다. 주소가 틀렸거나 지워진 기록입니다':
@@ -28,15 +28,15 @@ export const 오류영어: Record<string, string> = {
   // 실행
   '아직 진행 중인 실행입니다. 끝난 뒤에 증적 문서를 만듭니다':
     'This run is still going. Generate evidence after it finishes.',
-  '한 실행에는 한 서비스의 케이스만 담을 수 있습니다': 'A run holds cases from one service only',
+  '한 실행에는 한 애플리케이션의 케이스만 담을 수 있습니다': 'A run holds cases from one application only',
   '이 실행으로는 실패 다시 실행을 걸 수 없습니다': 'This run cannot start a failure rerun',
   'UI 테스트와 기능 테스트는 따로 실행합니다. 한쪽만 골라 주세요': 'Run UI tests and functional tests separately. Pick one kind',
-  '그 대상 서버가 이 서비스에 없습니다. 설정에서 먼저 넣습니다':
-    'That target server is not in this service. Add it in Settings first.',
+  '그 대상 서버가 이 애플리케이션에 없습니다. 설정에서 먼저 넣습니다':
+    'That target server is not in this application. Add it in Settings first.',
   '한 번에 만들 수 있는 항목 수를 넘었습니다': 'Too many items for one run',
 
   // 설정
-  '그 접두사는 이미 다른 서비스가 쓰고 있습니다': 'Another service already uses that prefix',
+  '그 접두사는 이미 다른 애플리케이션이 쓰고 있습니다': 'Another application already uses that prefix',
   '접두사 형식이 맞지 않습니다. 대문자로 시작하는 영문·숫자 12자 이내여야 합니다':
     'Bad prefix. Start with a capital letter, letters and digits, 12 characters or fewer.',
   '접두사는 만든 뒤에 바꿀 수 없습니다. 케이스 번호에 이미 들어가 있습니다':
@@ -60,12 +60,12 @@ export const 오류영어: Record<string, string> = {
   // 등급과 마지막 폴백
   '이 일을 할 수 있는 등급이 아닙니다': 'Your role cannot do this',
   '이 일에는 「{등급}」 등급이 필요합니다': 'This needs the {등급} role',
-  '이 서비스에서 케이스 읽기 권한이 없습니다': 'You do not have read access to cases in this service',
-  '이 서비스에서 케이스 쓰기 권한이 없습니다': 'You do not have write access to cases in this service',
-  '이 서비스에서 실행 읽기 권한이 없습니다': 'You do not have read access to runs in this service',
-  '이 서비스에서 실행 쓰기 권한이 없습니다': 'You do not have write access to runs in this service',
-  '이 서비스에서 작성 읽기 권한이 없습니다': 'You do not have read access to authoring in this service',
-  '이 서비스에서 작성 쓰기 권한이 없습니다': 'You do not have write access to authoring in this service',
+  '이 애플리케이션에서 케이스 읽기 권한이 없습니다': 'You do not have read access to cases in this application',
+  '이 애플리케이션에서 케이스 쓰기 권한이 없습니다': 'You do not have write access to cases in this application',
+  '이 애플리케이션에서 실행 읽기 권한이 없습니다': 'You do not have read access to runs in this application',
+  '이 애플리케이션에서 실행 쓰기 권한이 없습니다': 'You do not have write access to runs in this application',
+  '이 애플리케이션에서 작성 읽기 권한이 없습니다': 'You do not have read access to authoring in this application',
+  '이 애플리케이션에서 작성 쓰기 권한이 없습니다': 'You do not have write access to authoring in this application',
   '요청이 실패했습니다 ({코드})': 'Request failed ({코드})',
 
   // 증적 문서 버튼 — 문서 **내용**은 한국어 고정이고 이건 버튼 글자다
@@ -114,8 +114,8 @@ export const 오류영어: Record<string, string> = {
     'Requirement IDs are used up to 999. Talk to an admin before adding more',
   '다른 사람이 먼저 가이드를 바꿨습니다. 최신 버전을 불러왔으니 확인하고 다시 합니다':
     'Someone else changed the guide first. The latest version is loaded. Check it and try again',
-  '첨부 파일 수가 상한에 닿았습니다. 지금 버전은 20개, 서비스 전체는 뺀 것까지 200개입니다':
-    'Attachment limit reached: 20 in the current version, 200 per service including removed ones',
+  '첨부 파일 수가 상한에 닿았습니다. 지금 버전은 20개, 애플리케이션 전체는 뺀 것까지 200개입니다':
+    'Attachment limit reached: 20 in the current version, 200 per application including removed ones',
   '글이 너무 깁니다. 구획마다 20,000자까지입니다': 'Too long. Each section takes up to 20,000 characters',
   '글자를 뽑을 수 없는 파일입니다. 파일 이름을 눌러 내려받습니다': 'This file has no readable text. Click the file name to download it',
   '테스트에 반영할 바뀐 요구가 없습니다': 'No changed requirements to apply to tests',

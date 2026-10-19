@@ -123,7 +123,7 @@ describe('UserSection', () => {
     expect(screen.getByText('비밀번호 재발급')).toBeTruthy();
   });
 
-  it('계정 더하기도 + 아이콘 버튼이다 (2026-09-22, 서비스 더하기와 같은 규칙)', () => {
+  it('계정 더하기도 + 아이콘 버튼이다 (2026-09-22, 애플리케이션 더하기와 같은 규칙)', () => {
     그리기();
 
     const 버튼 = screen.getByLabelText('더하기');

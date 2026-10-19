@@ -37,11 +37,11 @@ export const 작성말: Record<string, string> = {
   '자료가 하나도 없습니다. 파일이나 피그마 주소를 넣으세요': 'No attachments. Add a file or a Figma link',
   '요청한 사람만 자료를 올릴 수 있습니다': 'Only the requester can upload attachments',
   // 피그마를 미리 열어 보기 (도메인/작성 §7 「자료」 「미리 열어 보기」)
-  '이 서비스에는 피그마 토큰이 없어 피그마 주소를 받을 수 없습니다.': 'This service has no Figma token, so Figma links cannot be accepted.',
-  '설정 > 서비스에서 피그마 토큰을 넣으세요': 'Add a Figma token in Settings > Services',
+  '이 애플리케이션에는 피그마 토큰이 없어 피그마 주소를 받을 수 없습니다.': 'This application has no Figma token, so Figma links cannot be accepted.',
+  '설정 > 애플리케이션에서 피그마 토큰을 넣으세요': 'Add a Figma token in Settings > Applications',
   '운영자에게 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an operator to add a Figma token',
-  '피그마가 이 서비스의 토큰을 받아 주지 않습니다. 토큰이 틀렸거나 만료됐거나 읽기 권한이 모자랍니다.': 'Figma does not accept this service’s token. It is wrong, has expired, or lacks read permission.',
-  '설정 > 서비스에서 새 피그마 토큰을 넣으세요': 'Add a new Figma token in Settings > Services',
+  '피그마가 이 애플리케이션의 토큰을 받아 주지 않습니다. 토큰이 틀렸거나 만료됐거나 읽기 권한이 모자랍니다.': 'Figma does not accept this application’s token. It is wrong, has expired, or lacks read permission.',
+  '설정 > 애플리케이션에서 새 피그마 토큰을 넣으세요': 'Add a new Figma token in Settings > Applications',
   '운영자에게 새 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an operator to add a new Figma token',
   '피그마 파일을 열지 못했습니다. 파일이 없거나 이 토큰으로 볼 권한이 없습니다 ({주소})':
     'Could not open the Figma file. It does not exist or this token cannot view it ({주소})',
@@ -174,10 +174,10 @@ export const 작성말: Record<string, string> = {
   '시작 주소': 'Start URL',
   '기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다':
     'With a spec, the spec screens are written first and, once applied, the screens it does not cover follow. Without a spec, only screens not yet in the PRD are written',
-  '이 서비스에는 대상 서버가 없습니다. 설정 > 서비스에서 먼저 넣으세요':
-    'This service has no target servers. Add one in Settings > Services first',
-  '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요':
-    'This target server has no test account or is marked as production. Check Settings > Services',
+  '이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요':
+    'This application has no target servers. Add one in Settings > Applications first',
+  '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요':
+    'This target server has no test account or is marked as production. Check Settings > Applications',
   '시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다':
     'The start URL must be on the same address (domain · port) as the chosen target server',
   '대상 서버 주소에서 시작': 'Starts from the target server address',
@@ -220,8 +220,8 @@ export const 작성말: Record<string, string> = {
     'Applying writes your values into the cases, runs each filled case 3 times, and applies only if all pass.',
   '반영이 대기 중이거나 진행 중이라 지금은 값을 바꿀 수 없습니다': 'A merge is queued or running, so values cannot be changed now',
   '넣은 값이 이 케이스의 칸과 맞지 않습니다': 'The values do not match this case’s fields',
-  '테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.':
-    'No target server has a test account. Add one in Settings > Services.',
+  '테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 애플리케이션에서 넣으세요.':
+    'No target server has a test account. Add one in Settings > Applications.',
   // PRD 요구사항 집계 (도메인/작성 §3.6 「★ 원장」) — Status 카드 한 줄
   'PRD 요구사항': 'PRD requirements',
   '제외 {수} (다음 작성 {다음})': 'excluded {수} (next authoring {다음})',

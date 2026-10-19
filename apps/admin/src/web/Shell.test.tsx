@@ -22,14 +22,14 @@ afterEach(() => {
 const 결제: ServiceRow = {
   id: 1,
   prefix: 'ZSH',
-  name: '결제 서비스',
+  name: '결제 애플리케이션',
   color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [],
   hasSlackWebhook: false,
   permissions: { cases: 'write', runs: 'write', authoring: 'write' },
 };
 
-const 정산: ServiceRow = { ...결제, id: 2, prefix: 'ZSI', name: '정산 서비스', color: '#7A2E5E' };
+const 정산: ServiceRow = { ...결제, id: 2, prefix: 'ZSI', name: '정산 애플리케이션', color: '#7A2E5E' };
 
 const 사람: User = {
   username: 'zsh1',
@@ -69,10 +69,10 @@ function 색표시() {
   return document.querySelector('[data-service-color]');
 }
 
-describe('서비스 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
+describe('애플리케이션 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
   // 세 번 옮겨도 「이 네모가 뭘 뜻하는지」가 안 풀려서 걷었다.
   // 「네모가 없다」만 보면 서비스 구분이 통째로 사라진 상태도 통과한다 — 이름이 남았는지 같이 본다
-  it('사이드바 어디에도 서비스 색이 없다', () => {
+  it('사이드바 어디에도 애플리케이션 색이 없다', () => {
     띄운다(결제);
     expect(색표시()).toBeNull();
     expect(document.querySelector('.side-dot')).toBeNull();
@@ -82,7 +82,7 @@ describe('서비스 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
     expect(띠!.style.getPropertyValue('--svc')).toBe('');
   });
 
-  it('서비스를 바꿔도 색이 생기지 않는다', () => {
+  it('애플리케이션을 바꿔도 색이 생기지 않는다', () => {
     띄운다(정산);
     expect(색표시()).toBeNull();
     expect(document.querySelector('[style*="--svc"]')).toBeNull();
@@ -95,20 +95,20 @@ describe('서비스 색을 걷었다 (SPEC §8, 2026-09-22)', () => {
     expect(document.querySelector('.hd-svc-code')?.textContent).toBe('ZSH');
   });
 
-  it('구분은 이름이 한다. 색을 걷어도 어느 서비스인지 읽힌다', () => {
+  it('구분은 이름이 한다. 색을 걷어도 어느 애플리케이션인지 읽힌다', () => {
     띄운다(결제);
-    expect(screen.getByRole('combobox', { name: '서비스 선택' })).toBeTruthy();
-    expect(screen.getByText('결제 서비스')).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: '애플리케이션 선택' })).toBeTruthy();
+    expect(screen.getByText('결제 애플리케이션')).toBeTruthy();
   });
 });
 
 describe('세로 껍데기 (SPEC §8)', () => {
-  it('맨 위 헤더가 서비스 선택 · 알림 · 언어 · 계정을, 사이드바가 자리 전부를 들고 있다', () => {
+  it('맨 위 헤더가 애플리케이션 선택 · 알림 · 언어 · 계정을, 사이드바가 자리 전부를 들고 있다', () => {
     띄운다(결제);
     const 헤더 = document.querySelector('header.hd') as HTMLElement | null;
     expect(헤더).not.toBeNull();
     const 위 = within(헤더!);
-    expect(위.getByRole('combobox', { name: '서비스 선택' })).toBeTruthy();
+    expect(위.getByRole('combobox', { name: '애플리케이션 선택' })).toBeTruthy();
     expect(위.getByLabelText('언어')).toBeTruthy();
     expect(위.getByRole('button', { name: 사람.displayName })).toBeTruthy();
     expect(위.getByRole('button', { name: /알림/ })).toBeTruthy();
@@ -137,7 +137,7 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(로고.getAttribute('href')).toMatch(/^#\//);
   });
 
-  it('푸터가 제품과 지금 서비스를 적는다', () => {
+  it('푸터가 제품과 지금 애플리케이션을 적는다', () => {
     띄운다(결제);
     const 푸터 = document.querySelector('.foot');
     expect(푸터).not.toBeNull();
@@ -313,28 +313,28 @@ describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)',
     expect(링크.getAttribute('aria-current')).toBe('page');
   });
 
-  it('대시보드에서도 서비스 선택 칸이 남는다. 알림 줄은 없고 「알림」 버튼만 있다 (2026-10-13 시안 A)', () => {
+  it('대시보드에서도 애플리케이션 선택 칸이 남는다. 알림 줄은 없고 「알림」 버튼만 있다 (2026-10-13 시안 A)', () => {
     const { container } = 띄운다(결제, 'ko', () => {}, '#/dashboard');
-    expect(screen.getByRole('combobox', { name: '서비스 선택' })).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: '애플리케이션 선택' })).toBeTruthy();
     expect(container.querySelector('.nt-lines')).toBeNull();
     expect(screen.getByRole('button', { name: /알림/ })).toBeTruthy();
   });
 
-  it('탭 제목과 바닥 글에는 서비스 이름이 안 걸린다 — 선택 칸은 있어도 대시보드는 서비스 하나가 아니다', () => {
+  it('탭 제목과 바닥 글에는 애플리케이션 이름이 안 걸린다 — 선택 칸은 있어도 대시보드는 애플리케이션 하나가 아니다', () => {
     const { container } = 띄운다(결제, 'ko', () => {}, '#/dashboard');
     expect(document.title).toBe('테스트 플랫폼');
     expect(container.querySelector('.foot')!.textContent).toBe('테스트 플랫폼');
   });
 
-  it('다른 자리에서는 탭 제목과 바닥 글에 서비스 이름이 있다', () => {
+  it('다른 자리에서는 탭 제목과 바닥 글에 애플리케이션 이름이 있다', () => {
     const { container } = 띄운다(결제, 'ko', () => {}, '#/cases');
-    expect(document.title).toBe('결제 서비스 · 테스트 플랫폼');
-    expect(container.querySelector('.foot')!.textContent).toBe('결제 서비스 · 테스트 플랫폼');
+    expect(document.title).toBe('결제 애플리케이션 · 테스트 플랫폼');
+    expect(container.querySelector('.foot')!.textContent).toBe('결제 애플리케이션 · 테스트 플랫폼');
   });
 
   it('다른 자리에서는 고르개가 그대로 있다', () => {
     띄운다(결제, 'ko', () => {}, '#/cases');
-    expect(screen.getByRole('combobox', { name: '서비스 선택' })).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: '애플리케이션 선택' })).toBeTruthy();
     expect(api.notifications).toHaveBeenCalled();
   });
 

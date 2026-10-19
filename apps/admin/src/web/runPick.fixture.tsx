@@ -21,7 +21,7 @@ export const 케이스: CaseRow = {
 export const 서비스: ServiceRow = {
   id: 1,
   prefix: 'ZRS',
-  name: '실행 서비스',
+  name: '실행 애플리케이션',
   color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [
     { env: 'qa', baseUrl: 'https://qa.example.com' },

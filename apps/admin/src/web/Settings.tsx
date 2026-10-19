@@ -129,7 +129,7 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
             // 만든 서비스로 옮긴다. 새 서비스 칸에 남으면 같은 것을 또 만들려 한다
             <ServicePanel key="new" projects={프로젝트들} 기본프로젝트={서비스들.find((it) => it.prefix === 헤더서비스)?.projectId} onDone={(접두사) => void 서비스다시(접두사, true)} />
           ) : 서비스 === undefined ? (
-            <div className="empty">{t('그런 서비스가 없습니다')}</div>
+            <div className="empty">{t('그런 애플리케이션이 없습니다')}</div>
           ) : (
             // 서비스마다 · 저장할 때마다 새로 그린다 — 앞 서비스에서 적다 만 글자가 다른 서비스 칸에 남으면 남의 서비스에 저장된다
             <ServicePanel
@@ -178,8 +178,8 @@ function 설정메뉴({
       <a href="#/settings/project-new" className="set-nav-add" {...자리('project-new')}>
         {t('+ 프로젝트 추가')}
       </a>
-      <h2>{t('서비스')}</h2>
-      {서비스들.length === 0 ? <p className="hint">{t('아직 서비스가 없습니다')}</p> : null}
+      <h2>{t('애플리케이션')}</h2>
+      {서비스들.length === 0 ? <p className="hint">{t('아직 애플리케이션이 없습니다')}</p> : null}
       {서비스들.map((it) => (
         <a key={it.id} href={`#/settings/${encodeURIComponent(it.prefix)}`} {...자리(it.prefix)}>
           <span className="set-nav-name">{it.name}</span>
@@ -188,7 +188,7 @@ function 설정메뉴({
         </a>
       ))}
       <a href="#/settings/new" className="set-nav-add" {...자리('new')}>
-        {t('+ 서비스 추가')}
+        {t('+ 애플리케이션 추가')}
       </a>
       <h2>{t('사람')}</h2>
       <a href="#/settings/users" {...자리('users')}>

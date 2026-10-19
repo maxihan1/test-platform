@@ -181,7 +181,7 @@ describe('다음 단계의 보류 진척과 반영', () => {
     const 채운토스트 = { ...토스트, input: { params: { waitSec: 5 }, expected: { shownSec: 3 }, by: 'maxi', at: '2026-09-29T05:10:00.000Z' } };
     render(<AuthoringTodo service="MKT" 요청={줄({ held: [채운토스트], heldOpen: 0, mergeEnvs: [] })} 할수={운영} 차이수={0} reload={reload} />);
     expect(screen.queryByLabelText('대상 서버')).toBeNull();
-    expect(screen.getByText('테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.')).toBeTruthy();
+    expect(screen.getByText('테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 애플리케이션에서 넣으세요.')).toBeTruthy();
     expect((screen.getByRole('button', { name: '테스트 반영하기' }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/3번 돌려/)).toBeTruthy();
   });

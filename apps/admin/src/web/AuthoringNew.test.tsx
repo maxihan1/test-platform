@@ -221,10 +221,10 @@ describe('새 작성 요청 — 자료 목록', () => {
 });
 
 describe('피그마를 미리 막는다 (점검 11.5)', () => {
-  it('서비스에 피그마 토큰이 없으면 칸을 잠그고 운영자에게는 설정 길을 안내한다', () => {
+  it('애플리케이션에 피그마 토큰이 없으면 칸을 잠그고 운영자에게는 설정 길을 안내한다', () => {
     render(<AuthoringNew service="PAY" 운영자 피그마토큰={false} on넣었다={() => {}} />);
     expect(screen.getByLabelText('피그마 주소')).toHaveProperty('disabled', true);
-    expect(screen.getByText(/피그마 토큰이 없어 피그마 주소를 받을 수 없습니다\. 설정 > 서비스에서 피그마 토큰을 넣으세요/)).toBeTruthy();
+    expect(screen.getByText(/피그마 토큰이 없어 피그마 주소를 받을 수 없습니다\. 설정 > 애플리케이션에서 피그마 토큰을 넣으세요/)).toBeTruthy();
   });
 
   it('운영자가 아니면 운영자에게 요청하라고 안내한다', () => {
@@ -276,6 +276,6 @@ describe('피그마를 미리 막는다 (점검 11.5)', () => {
     피그마를적는다('https://www.figma.com/design/A/');
     fireEvent.click(보내기());
 
-    await screen.findByText(/설정 > 서비스에서 새 피그마 토큰을 넣으세요/);
+    await screen.findByText(/설정 > 애플리케이션에서 새 피그마 토큰을 넣으세요/);
   });
 });

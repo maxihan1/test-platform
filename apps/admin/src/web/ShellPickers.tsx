@@ -37,7 +37,7 @@ export function 프로젝트고르개({ user, service, onService }: { user: User
 /** 애플리케이션 고르개 — 고른 프로젝트 안의 것만 뜬다. 고른 애플리케이션을 브라우저에 적어 두고 화면이 읽는 애플리케이션을 바꾼다 */
 export function 서비스고르개({ user, service, onService }: { user: User; service: ServiceRow | null; onService: (prefix: string) => void }) {
   const t = use말();
-  if (service === null) return <span className="side-svc-name">{t('서비스 없음')}</span>;
+  if (service === null) return <span className="side-svc-name">{t('애플리케이션 없음')}</span>;
   return (
     <select
       className="side-pick"
@@ -46,7 +46,7 @@ export function 서비스고르개({ user, service, onService }: { user: User; s
         고른서비스를적는다(e.target.value);
         onService(e.target.value);
       }}
-      aria-label={t('서비스 선택')}
+      aria-label={t('애플리케이션 선택')}
     >
       {프로젝트서비스들(service.projectId, user.services).map((it) => (
         <option key={it.prefix} value={it.prefix}>

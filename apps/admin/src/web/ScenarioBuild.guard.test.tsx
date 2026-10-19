@@ -14,7 +14,7 @@ afterEach(() => {
   window.location.hash = '';
 });
 
-describe('ScenarioBuild 권한 · 치운 것 · 서비스', () => {
+describe('ScenarioBuild 권한 · 치운 것 · 애플리케이션', () => {
   it('쓰기 권한이 없으면 저장 · 변경 이력이 없고 안내가 뜨고 이름은 읽기 전용이다', async () => {
     await 기존그리기({}, 사람('read'));
 
@@ -41,9 +41,9 @@ describe('ScenarioBuild 권한 · 치운 것 · 서비스', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('띠 서비스가 시나리오의 서비스와 다르면 안내 줄이 뜬다', async () => {
+  it('띠 애플리케이션이 시나리오의 애플리케이션과 다르면 안내 줄이 뜬다', async () => {
     await 기존그리기({}, 사람(), 서비스('ZSC'));
-    expect(screen.getByText('ZSB 서비스 서비스의 시나리오입니다')).toBeTruthy();
+    expect(screen.getByText('ZSB 애플리케이션 애플리케이션의 시나리오입니다')).toBeTruthy();
   });
 });
 

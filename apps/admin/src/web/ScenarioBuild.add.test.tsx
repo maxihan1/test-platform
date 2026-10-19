@@ -17,7 +17,7 @@ afterEach(() => {
 const 서비스: ServiceRow = {
   id: 1,
   prefix: 'ZSB',
-  name: 'ZSB 서비스',
+  name: 'ZSB 애플리케이션',
   color: '#000', projectId: 1, projectName: '데모마켓',
   envs: [],
   hasSlackWebhook: false,

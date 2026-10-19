@@ -25,7 +25,7 @@ function 줄(runId: number, 덮: Partial<ScenarioRunRow> = {}): ScenarioRunRow {
     triggeredByName: '김검사',
     env: 'qa',
     baseUrl: 'https://qa.example.com',
-    serviceName: 'ZSL 서비스',
+    serviceName: 'ZSL 애플리케이션',
     status: 'FINISHED',
     kind: 'SCENARIO',
     startedAt: '2026-10-06T00:00:00.000Z',
@@ -70,7 +70,7 @@ async function 그리기(답: 목록답 = 한쪽) {
 }
 
 describe('ScenarioRunList 호출 · 거르개', () => {
-  it('서비스와 1쪽으로 부른다', async () => {
+  it('애플리케이션과 1쪽으로 부른다', async () => {
     const { 스파이 } = await 그리기();
     expect(스파이).toHaveBeenCalledWith('ZSL', 1, {});
   });
@@ -222,7 +222,7 @@ describe('ScenarioRunList 집계 띠', () => {
 
   it('아무것도 안 돌렸으면 띠가 없다', async () => {
     const { container } = await 그리기(빈쪽(빈집계));
-    await screen.findByText(/이 서비스에서 아직 돌린 E2E 시나리오가 없습니다/);
+    await screen.findByText(/이 애플리케이션에서 아직 돌린 E2E 시나리오가 없습니다/);
 
     expect(container.querySelector('.stats')).toBeNull();
   });
@@ -232,7 +232,7 @@ describe('ScenarioRunList 빈 목록', () => {
   it('조건이 없으면 시나리오 목록으로 이끈다', async () => {
     await 그리기(빈쪽(빈집계));
 
-    expect(await screen.findByText(/이 서비스에서 아직 돌린 E2E 시나리오가 없습니다/)).toBeTruthy();
+    expect(await screen.findByText(/이 애플리케이션에서 아직 돌린 E2E 시나리오가 없습니다/)).toBeTruthy();
     expect(screen.getByRole('link', { name: '시나리오 목록으로' }).getAttribute('href')).toBe('#/scenarios');
   });
 

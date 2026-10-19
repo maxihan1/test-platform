@@ -50,7 +50,7 @@ describe('route', () => {
     expect(route('#/cases/DEMO-003/run')).toEqual({ name: 'setup', tcId: 'DEMO-003' });
   });
 
-  it('설정 안에서 고른 것이 주소에 남는다 — 새로고침에 첫 서비스로 튀지 않게 (도메인/인증 §8.8)', () => {
+  it('설정 안에서 고른 것이 주소에 남는다 — 새로고침에 첫 애플리케이션으로 튀지 않게 (도메인/인증 §8.8)', () => {
     expect(route('#/settings')).toEqual({ name: 'settings' });
     expect(route('#/settings/PAY')).toEqual({ name: 'settings', 자리: 'PAY' });
     expect(route('#/settings/users')).toEqual({ name: 'settings', 자리: 'users' });
@@ -163,7 +163,7 @@ describe('route', () => {
     expect(집(작성만, 'PAY')).toBe('#/authoring');
   });
 
-  it('대시보드 자리는 고른 서비스가 아니라 배정 서비스 전체의 실행 칸을 본다', () => {
+  it('대시보드 자리는 고른 애플리케이션이 아니라 배정 애플리케이션 전체의 실행 칸을 본다', () => {
     const 둘 = 사람([
       서비스('AAA', { cases: 'read', runs: 'none', authoring: 'none' }),
       서비스('BBB', { cases: 'read', runs: 'read', authoring: 'none' }),
@@ -197,7 +197,7 @@ describe('route', () => {
     expect(갈자리('#/scenarios', 실행만, 'PAY')).toBe('#/scenarios');
   });
 
-  it('한 건 주소는 띠의 서비스로 가르지 않는다. 그 건의 서비스는 화면이 안다', () => {
+  it('한 건 주소는 띠의 애플리케이션으로 가르지 않는다. 그 건의 애플리케이션은 화면이 안다', () => {
     const 둘 = 사람([
       서비스('AAA', { cases: 'read', runs: 'none', authoring: 'none' }),
       서비스('BBB', { cases: 'read', runs: 'read', authoring: 'read' }),

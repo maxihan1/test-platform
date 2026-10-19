@@ -240,7 +240,7 @@ describe('스캔 결과가 화면 머리에 있다 (SPEC §8.1, 2026-09-22)', ()
     await screen.findByText('ZPK-001');
   }
 
-  it('스캔 결과는 지금 보는 서비스 것만 받는다 (PRD-F9-19)', async () => {
+  it('스캔 결과는 지금 보는 애플리케이션 것만 받는다 (PRD-F9-19)', async () => {
     await 스캔그리기(스캔);
     expect(api.lastScan).toHaveBeenCalledWith('ZPK');
   });
@@ -400,7 +400,7 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
     expect(모달.getAttribute('aria-label')).toBe('실행할 케이스 2건');
   });
 
-  it('서비스를 바꾸면 고른 것도 버린다', async () => {
+  it('애플리케이션을 바꾸면 고른 것도 버린다', async () => {
     const { rerender } = await 그리기();
     fireEvent.click(고르기칸()[0]!);
     expect(실행버튼().textContent).toBe('선택한 1건 실행');
@@ -570,7 +570,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
   it('한 번 거절당해도 실행을 다시 누를 수 있다', async () => {
     const 걸기 = vi
       .spyOn(api, 'createRun')
-      .mockRejectedValueOnce(new ApiError(400, 'ENV_NOT_FOUND', 'ZPK 서비스에 qa 대상 서버가 없다'))
+      .mockRejectedValueOnce(new ApiError(400, 'ENV_NOT_FOUND', 'ZPK 애플리케이션에 qa 대상 서버가 없다'))
       .mockResolvedValue({ runId: 9 });
     await 모달까지();
 
@@ -696,7 +696,7 @@ describe('CaseList 상세 칸에서 고친 값', () => {
     expect(걸기.mock.calls[0]![0].items[0]!.params).toEqual({ currency: 'USD' });
   });
 
-  it('서비스를 바꾸면 칸이 닫히고 고친 값도 버린다', async () => {
+  it('애플리케이션을 바꾸면 칸이 닫히고 고친 값도 버린다', async () => {
     const { rerender } = await 값을고치고();
 
     rerender(<CaseList kind="FN" service="ZQQ" 할수={전부된다} 결과보나 />);
