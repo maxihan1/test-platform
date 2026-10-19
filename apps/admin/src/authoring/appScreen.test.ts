@@ -1,0 +1,105 @@
+// 앱 화면 통로의 중계: 러너에 앱 파일 경로를 싣고, 읽지 못한 까닭을 던지지 않고 돌려주는지 본다. 네트워크는 fetch 가짜로 막는다
+
+import { describe, expect, it, vi } from 'vitest';
+
+import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
+
+import { 앱파일고르기, 앱화면읽기 } from './appScreen.js';
+
+const 답 = (몸: unknown, status = 200) => vi.fn(async () => new Response(JSON.stringify(몸), { status })) as unknown as typeof fetch;
+
+describe('앱파일고르기', () => {
+  const 줄들 = [
+    { env: 'dev', appPath: null, isProd: false },
+    { env: 'qa', appPath: '/apk/qa.apk', isProd: false },
+    { env: 'stg', appPath: '/apk/stg.apk', isProd: false },
+  ];
+
+  it('요청에 대상 서버가 있으면 그 줄의 경로다 — 다른 줄에 경로가 있어도 따지지 않는다', () => {
+    expect(앱파일고르기(줄들, 'stg')).toBe('/apk/stg.apk');
+    expect(앱파일고르기(줄들, 'dev')).toBeNull();
+  });
+
+  it('대상 서버가 없으면 경로가 있는 첫 줄(env 순)이다', () => {
+    expect(앱파일고르기(줄들, null)).toBe('/apk/qa.apk');
+  });
+
+  it('「운영 서버」 줄은 경로가 있어도 건너뛴다 — 대상 서버를 짚어도, 안 짚어도', () => {
+    const 운영뿐 = [
+      { env: 'dev', appPath: null, isProd: false },
+      { env: 'prod', appPath: '/apk/prod.apk', isProd: true },
+    ];
+
+    expect(앱파일고르기(운영뿐, null)).toBeNull();
+    expect(앱파일고르기(운영뿐, 'prod')).toBeNull();
+  });
+
+  it('경로가 하나도 없으면 null — 앱이 없는 서비스', () => {
+    expect(앱파일고르기([{ env: 'dev', appPath: null, isProd: false }], null)).toBeNull();
+    expect(앱파일고르기([], 'dev')).toBeNull();
+  });
+});
+
+describe('앱화면읽기', () => {
+  it('앱 파일 경로가 없으면 러너를 부르지 않고 까닭도 없이 비운다 — 앱이 없는 서비스', async () => {
+    const 부르기 = 답({});
+
+    expect(await 앱화면읽기(null, 'http://m:4001', 부르기)).toEqual({ screen: null, reason: null });
+    expect(부르기).not.toHaveBeenCalled();
+  });
+
+  it('러너가 꺼져 있으면 까닭을 적는다', async () => {
+    expect(await 앱화면읽기('/apk/a.apk', undefined, 답({}))).toEqual({
+      screen: null,
+      reason: '내 컴퓨터 러너(LOCAL_RUNNER_URL)가 꺼져 있다',
+    });
+  });
+
+  it('admin 의 폰 잠금이 잡혀 있으면 러너를 부르지 않고 바쁘다고 한다 — 끝나면 잠금을 놓는다', async () => {
+    const 부르기 = 답({ screen: '화면' });
+    expect(폰을바로잡는다()).toBe(true);
+
+    expect(await 앱화면읽기('/a.apk', 'http://m:4001', 부르기)).toEqual({ screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' });
+    expect(부르기).not.toHaveBeenCalled();
+    폰을놓는다();
+
+    await 앱화면읽기('/a.apk', 'http://m:4001', 부르기);
+    expect(폰을바로잡는다()).toBe(true);
+    폰을놓는다();
+  });
+
+  it('러너 /app-screen 에 앱 파일 경로를 싣고 화면 글을 돌려준다', async () => {
+    const 부르기 = 답({ screen: '화면 1080x2400 · 요소 1개' });
+
+    const 결과 = await 앱화면읽기('/apk/a.apk', 'http://m:4001', 부르기);
+
+    expect(결과).toEqual({ screen: '화면 1080x2400 · 요소 1개', reason: null });
+    const [url, init] = (부르기 as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('http://m:4001/app-screen');
+    expect(JSON.parse(init.body as string)).toEqual({ app: '/apk/a.apk' });
+  });
+
+  it('러너가 폰이 바쁘다고(409) 하면 그 말로 적는다', async () => {
+    expect(await 앱화면읽기('/a.apk', 'http://m:4001', 답({ error: 'RUNNER_BUSY' }, 409))).toEqual({
+      screen: null,
+      reason: '폰이 다른 실행에 쓰이는 중이다',
+    });
+  });
+
+  it('러너 오류는 detail 을 200자까지 싣는다', async () => {
+    const 결과 = await 앱화면읽기('/a.apk', 'http://m:4001', 답({ error: 'RUNNER_ERROR', detail: 'x'.repeat(500) }, 500));
+
+    expect(결과.screen).toBeNull();
+    expect(결과.reason).toBe(`러너가 화면을 못 읽었다: ${'x'.repeat(200)}…`);
+  });
+
+  it('러너에 못 닿으면 던지지 않고 까닭만 돌려준다 — 주소는 싣지 않는다', async () => {
+    const 부르기 = vi.fn(async () => {
+      throw new TypeError('fetch failed http://secret-host:4001');
+    }) as unknown as typeof fetch;
+
+    const 결과 = await 앱화면읽기('/a.apk', 'http://secret-host:4001', 부르기);
+
+    expect(결과).toEqual({ screen: null, reason: '러너에 닿지 못했다: TypeError' });
+  });
+});

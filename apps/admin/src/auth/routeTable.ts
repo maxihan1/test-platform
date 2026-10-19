@@ -148,6 +148,8 @@ export const 등급표: Record<string, 표값> = {
   // 서비스 가이드 받기 — 작성 에이전트가 부른다. 다른 에이전트 통로와 같은 무게다
   'GET /api/authoring/requests/:id/guide': 작성쓰기,
   'GET /api/authoring/requests/:id/guide/files/:fileId': 작성쓰기,
+  // 앱 첫 화면 받기 — 작성 에이전트가 AI 를 띄우기 전에 부른다. 폰 옆 러너를 대신 부르는 중계다
+  'GET /api/authoring/requests/:id/app-screen': 작성쓰기,
 
   // ★ 저장소를 영구히 바꾸는 일 — admin. 작성 쓰기와 같으면 「실행할 수 있는 사람 = 저장소를 고칠 수 있는 사람」이 된다
   'POST /api/authoring/merges': 'admin',
@@ -189,6 +191,7 @@ export const 토큰통로 = new Set([
   'GET /api/authoring/requests/:id/apis',
   'GET /api/authoring/requests/:id/guide',
   'GET /api/authoring/requests/:id/guide/files/:fileId',
+  'GET /api/authoring/requests/:id/app-screen',
   'GET /api/authoring/requests',
   'GET /api/authoring/requests/:id',
   'GET /api/authoring/requests/:id/assets/:assetId',
