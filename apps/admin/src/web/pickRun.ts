@@ -1,7 +1,6 @@
 // 목록에서 고른 케이스를 실행 요청 항목으로 바꾸는 계산 (SPEC §8.2). 화면 조각은 없다
 
-import type { CaseRow, ItemStatus, RunRequestItem } from './api.js';
-import { type LastMap, 마지막결과로거른다 } from './catalogView.js';
+import type { CaseRow, RunRequestItem } from './api.js';
 import { 항목수 } from './runPlan.js';
 import type { Field } from './schema.js';
 
@@ -29,23 +28,13 @@ export type 글자표 = Record<
  * 목록은 화면이 이미 서버 조건으로 좁혀 놓은 것이라 여기서 다시 좁히지 않는다.
  * 비활성은 고른 것에 섞여 있어도 뺀다 — 스캔이 코드에서 지웠다고 판정한 케이스다 (SPEC §3.1).
  *
- * **결과 칩과 검색 조건은 「전체」일 때만 건다.** 체크박스를 누른 것은 사람이 이름을 대고
- * 지목한 것이고, 칩은 「무엇을 볼까」이지 「무엇을 돌릴까」가 아니다 —
+ * **검색 조건(마지막 결과 칩 포함)은 「전체」일 때만 건다** — 서버가 이미 걸러 준 목록이다. 체크박스를 누른 것은
+ * 사람이 이름을 대고 지목한 것이고, 칩은 「무엇을 볼까」이지 「무엇을 돌릴까」가 아니다 —
  * 2건을 골라 두고 칩을 「실패」로 바꾸면 버튼은 「고른 2건」인데 1건만 걸리던 자리다.
  */
-export function 담을것(
-  목록: CaseRow[],
-  고른: ReadonlyMap<string, CaseRow>,
-  결과칩: ItemStatus | 'ALL',
-  마지막: LastMap,
-): CaseRow[] {
+export function 담을것(목록: CaseRow[], 고른: ReadonlyMap<string, CaseRow>): CaseRow[] {
   // 고른 줄을 통째로 들고 왔다. 목록에서 다시 찾지 않으므로 검색 조건 밖의 것도 안 빠진다
-  if (고른.size > 0) return [...고른.values()].filter((c) => c.isActive);
-  return 마지막결과로거른다(
-    목록.filter((c) => c.isActive),
-    마지막,
-    결과칩,
-  );
+  return (고른.size > 0 ? [...고른.values()] : 목록).filter((c) => c.isActive);
 }
 
 /**

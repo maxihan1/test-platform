@@ -9,19 +9,24 @@ export const 케이스말: Record<string, string> = {
   '모두 {건수}건': '{건수} in total',
   '스캔하는 중': 'Scanning…',
   '다시 스캔': 'Rescan',
-  '전체 실행': 'Run all',
   '선택한 {건수}건 실행': 'Run {건수} selected',
+  '조건에 맞는 {건수}건 실행': 'Run {건수} matching',
+  '{번호} / {전체}쪽': 'Page {번호} of {전체}',
+  '상세 닫기': 'Close details',
+  'RUN {번호} · {때}': 'RUN {번호} · {때}',
+  '이 값으로 실행': 'Run with these values',
+  '모두에게 저장': 'Save for everyone',
+  '최근 실행 {건수}번': 'Last {건수} runs',
+  '이력을 불러오지 못했습니다': 'Could not load the history',
+  '{회수}번 · 실패 {실패} · 통과 {통과}': '{회수} attempts · {실패} failed · {통과} passed',
   '이 결과 엑셀로 ({건수}건)': 'Export these to Excel ({건수})',
   '만드는 중…': 'Building…',
-  '마지막 실행 기준': 'as of last run',
-  '실행한 적 없음': 'never run',
   '케이스 목록을 모으는 중입니다. 다 모을 때까지 실행 버튼을 누를 수 없습니다':
     'Collecting the case list. Run stays disabled until it finishes.',
 
   // 스캔 결과 줄
   '아직 스캔 기록이 없습니다.': 'No scan yet.',
-  '마지막 스캔 {때} · 추가 {추가} · 갱신 {갱신} · 비활성 {비활성}':
-    'Last scan {때} · added {추가} · updated {갱신} · deactivated {비활성}',
+  '마지막 스캔 {때}': 'Last scan {때}',
   '{아이디} 중복 — {파일1}, {파일2}': '{아이디} appears in both {파일1} and {파일2}.',
 
   // 검색 칸과 조건 칩
@@ -72,11 +77,9 @@ export const 케이스말: Record<string, string> = {
 
   // 케이스 한 줄
   '{아이디} {이름} 고르기': 'Select {아이디} {이름}',
-  '지원 디바이스 {목록}': 'Runs on {목록}',
   '실행 이력 없음': 'No runs yet',
   '상세': 'Details',
   '실행': 'Run',
-  '{개수}개 더': '{개수} more',
 
   // 쪽 넘기기
   '이전': 'Previous',
@@ -84,9 +87,6 @@ export const 케이스말: Record<string, string> = {
   '{번호}쪽': 'Page {번호}',
 
   // 빈 목록 세 갈래
-  '이 쪽에는 {결과}인 케이스가 없습니다': 'No {결과} cases on this page',
-  '다음 쪽에 있을 수 있습니다. 나머지 조건은 서버가 전체에서 거릅니다':
-    'They may be on another page. The other filters are applied across all cases on the server.',
   '아직 케이스를 불러오지 않았습니다': 'No cases loaded yet',
   '테스트 코드를 훑어 실행할 수 있는 케이스 목록을 만듭니다. 목록은 코드를 기준으로 그때마다 새로 만듭니다':
     'Scanning the test code builds the list of runnable cases. The code is the source of truth, so the list is rebuilt every time.',
@@ -106,19 +106,17 @@ export const 케이스말: Record<string, string> = {
   '이 쪽 전체 선택': 'Select all on this page',
   '기대결과': 'Expected',
   '시험 절차': 'Test steps',
-  '{실행이름}에서 가져옴': 'from {실행이름}',
   '아직 돌린 적이 없습니다. 한 번 돌리면 절차가 여기에 남습니다':
     'Never run. Run it once and the steps will show up here.',
   '절차를 불러오지 못했습니다': 'Could not load the steps',
   '절차를 불러오는 중입니다': 'Loading the steps…',
   '실행 이력': 'Run history',
-  '최근 {건수}건': 'last {건수}',
   '아직 기록이 없습니다': 'No history yet',
 
   // 입력 칸 (Form)
   '이 케이스에는 입력값이 없습니다.': 'This case declares no inputs.',
   '입력됨': 'Saved',
-  '선택': 'Optional',
+  '비워도 됨': 'Optional',
   '고르지 않음': 'Not selected',
   '예': 'Yes',
   '아니오': 'No',

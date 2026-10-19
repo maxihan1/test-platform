@@ -1,40 +1,30 @@
-// 케이스 상세 상자 (SPEC §8.1, 2026-09-21 ② · 2026-09-22 에 펼침에서 상자로 · 2026-09-22 ② 입력값 직접 입력)
+// 케이스 상세 칸 — 목록 오른쪽에 열린다 (도메인/카탈로그 §8.1 「상세 칸」, 2026-10-19 ⑫ 시안 A)
 //
-// **펼침을 그만둔 이유** — 줄 아래로 늘어나면 시선이 그대로라 눌러도 열렸다는 느낌이 없고,
-// 긴 목록에서는 펴진 자리가 화면 밖으로 밀린다. 사람이 눌러서 여는 상자라
-// 「가로막는 상자」가 아니다 (DESIGN.md 「모달」).
+// **상자를 그만두고 칸으로 바꿨다.** 상자는 열 때마다 목록을 가려 여러 케이스를 훑기 어려웠고,
+// 길어서 절차 · 값 · 이력을 오가려면 상자 안에서 한참 내려가야 했다(점검 7.12). 실행 기록 A안과 같은 짜임이다.
 //
-// §8.1 의 「케이스마다 이력을 따로 부르지 않는다」는 **목록**을 두고 한 말이다.
-// 여기는 사람이 한 줄을 열었을 때 한 번 부르므로 그 규칙의 예외다 — 목록이 부르는 것이 아니다.
-// **한 번 받은 것은 닫았다 열어도 다시 안 받는다.** 받아 둔 것은 목록(`CaseList`)이 들고 있어서
-// 상자를 닫아도 남는다 — 상자가 들면 닫는 순간 같이 사라진다.
+// 「케이스마다 이력을 따로 부르지 않는다」(§8.1)는 목록 몫이다 — 여기는 사람이 한 줄을 열 때 부르고, 받은 것(`상세기억`)은 목록이 든다.
 //
-// **입력값은 읽기만 하던 표에서 줄과 같은 편집 칸(`Form`)으로 바꿨다 (2026-09-22 ②).**
-// 줄에 넷까지만 보이고 「N개 더」를 누르면 여기가 열리는데, 읽기 전용 표만 있으면
-// 넘친 값은 보이기만 하고 고칠 곳이 없었다. 줄이 쓰는 것과 같은 `채운글자`·`글자`·`on값` 을
-// 그대로 받아써서 두 자리가 늘 같은 값을 보여준다.
+// **입력 칸은 줄에서 여기로 옮겼다.** 값을 고치고 「이 값으로 실행」하거나 「모두에게 저장」한다.
+// 저장은 팀 모두와 정기 실행이 쓰는 값을 바꾸므로 누르기 전에 그 사실을 적는다 — 앞 판은 줄의 「저장」 뒤에 4초만 떴다(점검 7.6)
 
 import { useEffect, useState } from 'react';
 
-import type { Technique } from '@platform/kit/types';
+import type { Platform, Technique } from '@platform/kit/types';
 
-import { api, type CaseRow, type HistoryRow, type LastResult, type RunItemDetail } from './api.js';
+import { api, type CaseRow, type HistoryRow } from './api.js';
 import { 코드기본값고치기 } from './CaseEdit.js';
-import { 오류없음, 채운글자, type 줄글자 } from './CaseRowParams.js';
+import { 오류없음, 채운글자, type 줄글자 } from './caseValues.js';
+import { keyOf, type LastMap } from './catalogView.js';
+import { 이력열쇠, 실행마다묶기, 처음디바이스, type 상세기억 } from './caseDetailView.js';
+import { 실행이력칸 } from './CaseHistory.js';
+import { 실패이유 } from './FailureWhy.js';
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
-import { Modal } from './Modal.js';
 import { PRD항목주소 } from './route.js';
-import { schemaToFields } from './schema.js';
-import { PLATFORM_LABEL, seconds, Verdict, when } from './ui.js';
-
-interface 받은것 {
-  이력: HistoryRow[] | null;
-  절차: RunItemDetail | null;
-}
-
-// 이력이 null 이면 아직 안 받은 것이다. 둘을 한 번에 set 하므로 이 하나로 「받는 중」이 갈린다
-const 아직 = (): 받은것 => ({ 이력: null, 절차: null });
+import { 값저장, 고쳤나 } from './SavedInputBar.js';
+import { schemaToFields, toValues } from './schema.js';
+import { PLATFORM_LABEL, seconds, STATUS_LABEL, Verdict, when } from './ui.js';
 
 /**
  * 기법 이름을 화면 글자로. 값은 kit 식별자라 그대로 두고 글자만 영어 표가 맡는다 (도메인/카탈로그 §3.1).
@@ -64,64 +54,97 @@ export function 기법태그들({ 기법들 }: { 기법들: Technique[] }) {
 
 export function CaseDetail({
   row,
-  폈나,
   마지막,
+  기억,
   글자,
   고칠서비스,
   요구보나 = false,
+  저장된다 = false,
+  on실행,
   onClose,
   on값,
+  on저장됨,
 }: {
   row: CaseRow;
-  폈나: boolean;
-  /** 작성 보기 권한 — 있으면 요구 번호가 「PRD 관리」 고리다 */
-  요구보나?: boolean;
-  /** 마지막 결과. 있으면 그 실행의 절차를 가져온다. 없으면 절차를 아예 안 부른다 */
-  마지막: LastResult | undefined;
-  /** 줄에서 고쳐 넣은 값. 줄과 같은 표를 본다 (SPEC §8.1) */
+  마지막: LastMap;
+  기억: 상세기억;
+  /** 고쳐 넣은 값. 실행 창과 같은 표를 본다 (SPEC §8.1) */
   글자?: 줄글자;
   /** 작성 쓰기일 때만 온다. 있으면 「코드 기본값 바꾸기 요청」 자리를 둔다 (도메인/카탈로그 §8.1) */
   고칠서비스?: string;
+  /** 작성 보기 권한 — 있으면 요구 번호가 「PRD 관리」 고리다 */
+  요구보나?: boolean;
+  /** 케이스 쓰기인가. 아니면 고쳐도 「모두에게 저장」이 없다 (화면공통 §8) */
+  저장된다?: boolean;
+  /** 실행 쓰기일 때만 온다 — 고친 값을 실은 실행 창을 연다 */
+  on실행?: (row: CaseRow) => void;
   onClose: () => void;
   on값: (어디: 'params' | 'expected', key: string, value: string) => void;
+  on저장됨: () => void;
 }) {
   const t = use말();
   const 언어 = use언어();
-  const [받은, set받은] = useState<받은것>(아직);
+  // 사람이 고르기 전에는 처음디바이스 — 마지막 결과가 칸보다 늦게 와도 따라간다
+  const [골랐다, set고른기기] = useState<Platform | null>(null);
+  const 고른기기 = 골랐다 ?? 처음디바이스(row, 마지막);
+  const [, set받음] = useState(0); // 받아 온 뒤 다시 그리는 신호 — 값은 기억이 든다
+  const 결과 = 고른기기 === null ? undefined : 마지막[keyOf(row.tcId, 고른기기)];
+  const 열쇠 = 이력열쇠(row, 마지막);
+  const 이력 = 기억.이력.get(열쇠);
+  const 절차 = 결과 === undefined ? undefined : 기억.절차.get(결과.historyId);
 
-  // 펼쳤을 때 한 번만 받는다. 접어도 버리지 않으므로 다시 펴도 왕복이 늘지 않는다
   useEffect(() => {
-    if (!폈나 || 받은.이력 !== null) return;
     let 살아있나 = true;
-
-    void (async () => {
-      const 이력 = await api.caseHistory(row.tcId).catch(() => ({ items: [] as HistoryRow[] }));
-      // 절차는 마지막 결과가 있을 때만 있다. 하나가 실패해도 나머지는 그린다
-      const 절차 =
-        마지막 === undefined ? null : await api.item(마지막.runId, 마지막.historyId).catch(() => null);
-      if (!살아있나) return;
-      set받은({ 이력: 이력.items, 절차 });
-    })();
-
+    const 받을것: Promise<unknown>[] = [];
+    if (!기억.이력.has(열쇠)) {
+      // 실패는 null 로 남겨 「불러오지 못했다」고 적는다 — 빈 목록으로 삼키면 「기록이 없다」로 읽힌다
+      받을것.push(
+        api
+          .caseHistory(row.tcId)
+          .then((r): HistoryRow[] | null => r.items, () => null)
+          .then((r) => 기억.이력.set(열쇠, r)),
+      );
+    }
+    // 절차는 그 디바이스의 마지막 결과가 있을 때만 있다. 하나가 실패해도 나머지는 그린다
+    if (결과 !== undefined && !기억.절차.has(결과.historyId)) {
+      받을것.push(
+        api
+          .item(결과.runId, 결과.historyId)
+          .catch(() => null)
+          .then((r) => 기억.절차.set(결과.historyId, r)),
+      );
+    }
+    if (받을것.length > 0) void Promise.all(받을것).then(() => 살아있나 && set받음((n) => n + 1));
     return () => {
       살아있나 = false;
     };
-  }, [폈나, row.tcId, 마지막, 받은.이력]);
-
-  if (!폈나) return null;
+  }, [row.tcId, 열쇠, 결과, 기억]);
 
   const 입력값 = schemaToFields(row.paramSchema, row.savedInput?.params, row.savedInput?.savedSecrets.params);
   const 기대결과 = schemaToFields(row.expectedSchema, row.savedInput?.expected, row.savedInput?.savedSecrets.expected);
   const 기법들 = row.techniques ?? [];
+  const 돈기기 = row.platforms.filter((p) => 마지막[keyOf(row.tcId, p)] !== undefined);
+  const 묶음 = 이력 == null ? 이력 : 실행마다묶기(이력);
 
   return (
-    <Modal
-      제목={`${row.tcId} ${row.name}`}
-      onClose={onClose}
-      넓게
-      버튼={<button className="btn" onClick={onClose}>{t('닫기')}</button>}
-    >
-    <div className="detail">
+    <aside className="screen case-pane" id="case-pane" aria-labelledby="case-pane-title">
+      <div className="case-pane-head">
+        <div>
+          <div className="tcid">{row.tcId}</div>
+          <h2 id="case-pane-title">{row.name}</h2>
+        </div>
+        <button type="button" className="btn ghost icon" aria-label={t('상세 닫기')} onClick={onClose}>
+          ✕
+        </button>
+      </div>
+
+      {/* 왜 미확정인지가 목록과 상세 어디에도 없었다(점검 7.4). 줄에는 배지만, 사유는 여기 맨 위다 */}
+      {typeof row.unconfirmed === 'string' ? (
+        <p className="case-unconfirmed">
+          <b>{t('미확정')}</b> {row.unconfirmed}
+        </p>
+      ) : null}
+
       {/* 줄에는 첫 요구만 — 덮는 요구 전부는 여기서 본다 (도메인/카탈로그 §8.1 「맥락」) */}
       {(row.reqs ?? []).length === 0 ? null : (
         <div className="dsec">
@@ -155,96 +178,123 @@ export function CaseDetail({
         </div>
       )}
 
-      {입력값.length === 0 && 기대결과.length === 0 ? null : (
-        <div className="dsec dcols">
-          {입력값.length === 0 ? null : (
-            <div>
-              <div className="dlabel">{t('입력값')}</div>
-              <Form
-                idPrefix={`detail-${row.tcId}-p`}
-                fields={입력값}
-                text={채운글자(입력값, 글자?.params)}
-                errors={오류없음}
-                onChange={(key, value) => { on값('params', key, value); }}
-              />
-            </div>
-          )}
-          {기대결과.length === 0 ? null : (
-            <div>
-              <div className="dlabel">{t('기대결과')}</div>
-              <Form
-                idPrefix={`detail-${row.tcId}-e`}
-                fields={기대결과}
-                text={채운글자(기대결과, 글자?.expected)}
-                errors={오류없음}
-                onChange={(key, value) => { on값('expected', key, value); }}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="dsec">
         <div className="dlabel">
           {t('시험 절차')}
-          {받은.절차 === null ? null : (
-            <span className="dfrom">{t('{실행이름}에서 가져옴', { 실행이름: 받은.절차.runTitle })}</span>
+          {결과 === undefined ? null : (
+            <span className="dfrom">{t('RUN {번호} · {때}', { 번호: 결과.runId, 때: when(결과.finishedAt, 언어) })}</span>
           )}
         </div>
-        {마지막 === undefined ? (
+        {/* 디바이스마다 절차가 다르다 — 첫 디바이스 것만 보이면 모바일만 깨진 케이스가 통과로 읽혔다(점검 7.7) */}
+        {돈기기.length < 2 ? null : (
+          <div className="case-devs" role="group" aria-label={t('디바이스')}>
+            {돈기기.map((p) => {
+              const 판정 = 마지막[keyOf(row.tcId, p)]!.status;
+              return (
+                <button
+                  type="button"
+                  key={p}
+                  className={판정 === 'FAIL' ? 'chip chip-fail' : 'chip'}
+                  aria-pressed={고른기기 === p}
+                  onClick={() => set고른기기(p)}
+                >
+                  {t(PLATFORM_LABEL[p])} {t(STATUS_LABEL[판정])}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {결과 === undefined ? (
           <p className="hint">{t('아직 돌린 적이 없습니다. 한 번 돌리면 절차가 여기에 남습니다')}</p>
-        ) : 받은.이력 !== null && 받은.절차 === null ? (
-          <p className="hint">{t('절차를 불러오지 못했습니다')}</p>
-        ) : 받은.절차 === null ? (
+        ) : 절차 === undefined ? (
           <p className="hint">{t('절차를 불러오는 중입니다')}</p>
+        ) : 절차 === null ? (
+          <p className="hint">{t('절차를 불러오지 못했습니다')}</p>
         ) : (
           <ol className="dsteps">
-            {받은.절차.steps.map((단계) => (
-              <li key={단계.seq}>
+            {절차.steps.map((단계) => (
+              <li key={단계.seq} className={단계.status === 'FAIL' ? 'dstep-fail' : undefined}>
                 <span className="n mono">{단계.seq}</span>
                 <span className="t">{단계.title}</span>
                 <Verdict status={단계.status} />
                 <span className="d mono">{seconds(단계.durationMs, 언어)}</span>
+                {/* 응답에 사유와 실패 화면이 다 있는데 안 그렸다(점검 7.9). 원문은 항목 상세에서 본다 */}
+                {단계.status !== 'FAIL' ? null : (
+                  <span className="dstep-why">
+                    <실패이유 failure={절차.failure} />
+                    {단계.screenshotPath == null ? null : (
+                      <a href={api.screenshot(절차.runId, 절차.historyId, 단계.seq)} target="_blank" rel="noreferrer">
+                        {t('실패 화면 보기')}
+                      </a>
+                    )}
+                  </span>
+                )}
               </li>
             ))}
           </ol>
         )}
       </div>
 
-      <div className="dsec">
-        <div className="dlabel">
-          {t('실행 이력')}
-          <span className="dfrom">{t('최근 {건수}건', { 건수: 받은.이력?.length ?? 0 })}</span>
+      {입력값.length === 0 && 기대결과.length === 0 ? null : (
+        <div className="dsec">
+          {입력값.length === 0 ? null : (
+            <>
+              <div className="dlabel">{t('입력값')}</div>
+              <Form
+                idPrefix={`detail-${row.tcId}-p`}
+                fields={입력값}
+                text={채운글자(입력값, 글자?.params)}
+                errors={오류없음}
+                onChange={(key, value) => on값('params', key, value)}
+              />
+            </>
+          )}
+          {기대결과.length === 0 ? null : (
+            <>
+              <div className="dlabel">{t('기대결과')}</div>
+              <Form
+                idPrefix={`detail-${row.tcId}-e`}
+                fields={기대결과}
+                text={채운글자(기대결과, 글자?.expected)}
+                errors={오류없음}
+                onChange={(key, value) => on값('expected', key, value)}
+              />
+            </>
+          )}
         </div>
-        {받은.이력 === null ? (
-          <p className="hint">{t('불러오는 중입니다')}</p>
-        ) : 받은.이력.length === 0 ? (
-          <p className="hint">{t('아직 기록이 없습니다')}</p>
-        ) : (
-          <table className="dhist">
-            <tbody>
-              {받은.이력.map((줄) => (
-                <tr key={줄.historyId}>
-                  <td>
-                    <a href={`#/runs/${줄.runId}/items/${줄.historyId}`}>{줄.runTitle}</a>
-                  </td>
-                  <td>{t(PLATFORM_LABEL[줄.platform])}</td>
-                  <td>
-                    <Verdict status={줄.status} />
-                  </td>
-                  <td className="mono">{seconds(줄.durationMs, 언어)}</td>
-                  <td className="mono">{when(줄.finishedAt, 언어)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      )}
+      {/* 상세에서 값을 고칠 수 있는데 단추는 「닫기」뿐이었다(점검 7.10) */}
+      <div className="case-pane-act">
+        {입력값.length === 0 && 기대결과.length === 0 ? null : (
+          <값저장
+            tcId={row.tcId}
+            값={{
+              params: toValues(입력값, 채운글자(입력값, 글자?.params)),
+              expected: toValues(기대결과, 채운글자(기대결과, 글자?.expected)),
+            }}
+            고침={고쳤나(입력값, 글자?.params) || 고쳤나(기대결과, 글자?.expected)}
+            saved={row.savedInput}
+            된다={저장된다}
+            on저장됨={on저장됨}
+          />
+        )}
+        {on실행 === undefined || !row.isActive ? null : (
+          <button type="button" className="btn" onClick={() => on실행(row)}>
+            {입력값.length === 0 && 기대결과.length === 0 ? t('실행') : t('이 값으로 실행')}
+          </button>
         )}
       </div>
 
-      {/* 맨 아래에 둔다 — 위의 기대결과 칸은 이번 실행 값이고 여기는 저장소의 코드다. 붙어 있으면 둘이 한 칸으로 읽힌다 */}
+      <실행이력칸 묶음={묶음} />
+
+      {/* 맨 아래에 접어 둔다 — 위의 기대결과 칸은 이번 실행 값이고 여기는 저장소의 코드다. 펴 두면 기대결과 칸이 두 벌로 보였다(점검 7.11) */}
       {/* 비활성 케이스는 서버가 늘 거절한다(BAD_EDIT) — 목록 확인 상자도 같은 까닭으로 뺀다 */}
-      {고칠서비스 === undefined || !row.isActive ? null : <코드기본값고치기 row={row} service={고칠서비스} />}
-    </div>
-    </Modal>
+      {고칠서비스 === undefined || !row.isActive ? null : (
+        <details className="case-edit-fold">
+          <summary>{t('코드 기본값 바꾸기 요청')}</summary>
+          <코드기본값고치기 row={row} service={고칠서비스} />
+        </details>
+      )}
+    </aside>
   );
 }

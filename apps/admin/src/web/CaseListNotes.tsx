@@ -93,12 +93,8 @@ export function ScanInfo({ scan, error }: { scan: LastScan | null; error: string
   return (
     <>
       <span className="scan-text">
-        {t('마지막 스캔 {때} · 추가 {추가} · 갱신 {갱신} · 비활성 {비활성}', {
-          때: when(scan.scannedAt, 언어),
-          추가: scan.added,
-          갱신: scan.updated,
-          비활성: scan.deactivated,
-        })}
+        {/* 추가 · 갱신 · 비활성 수는 뺐다 — 스캔한 사람만 읽는 숫자라 목록을 보는 사람에게는 소음이었다(점검 7.12). 겹친 번호 · 오류는 고칠 일이라 남긴다 */}
+        {t('마지막 스캔 {때}', { 때: when(scan.scannedAt, 언어) })}
       </span>
       {scan.duplicates.length === 0 ? null : (
         <span className="scan-error">

@@ -4,8 +4,8 @@
 export const 고치기말: Record<string, string> = {
   // 케이스 상세 (CaseEdit.tsx)
   '코드 기본값 바꾸기 요청': 'Request a code default change',
-  '테스트 코드에 적힌 기대결과입니다. 바꾼 칸만 PR 로 올라가고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다':
-    'These are the expected results written in the test code. Only the fields you change go into the PR; once merged they become the defaults for the next runs',
+  '테스트 코드에 적힌 기대결과입니다. 바꾼 칸만 작성 요청으로 보내고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다':
+    'These are the expected results written in the test code. Only the fields you change go into the authoring request; once applied they become the defaults for the next runs',
   '코드에서 바꿀 수 있는 기대결과 칸이 없습니다': 'This case has no expected result that can be changed in code',
   '{칸들} — 반영되면 이 저장값은 지워집니다': '{칸들} — the saved value will be removed once merged',
   '요청을 보냈습니다.': 'Request sent.',

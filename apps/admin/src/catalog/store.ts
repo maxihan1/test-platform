@@ -2,10 +2,11 @@
 
 import type { Pool } from 'pg';
 
-import type { CaseSpec, Platform, Technique } from '@platform/kit';
+import type { CaseSpec, ItemStatus, Platform, Technique } from '@platform/kit';
 
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { 맥락, 맥락거르기, 맥락읽기, 요구로찾기, 줄세우기, type CaseContext, type CaseGroup, type 맥락조건 } from './context.js';
+import type { 판정함수 } from './last.js';
 // 화면이 가리는 칸과 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
 import { 저장값나누기 } from '../web/mask.js';
 
@@ -137,6 +138,15 @@ export interface CaseQuery extends 맥락조건 {
   kind?: 'UI' | 'FN';
   // 설계 기법. none 은 기법이 안 적힌 것 전부다 (카탈로그 §7 `?technique=` · §8.1)
   technique?: Technique | 'none';
+  // 마지막 결과 (카탈로그 §7 `?last=`). 없으면 (실행, read) 가 없는 것이다 — 거르지도 세지도 않는다
+  마지막?: { 판정: 판정함수; last?: ItemStatus };
+}
+
+export interface LastCounts {
+  total: number;
+  pass: number;
+  fail: number;
+  na: number;
 }
 
 export interface CaseList {
@@ -155,6 +165,8 @@ export interface CaseList {
   groups: CaseGroup[];
   // 서비스가 PRD 를 쓰나(기능 묶음이 붙은 케이스가 하나라도 있나). 검색 조건을 안 따른다 — 「기능 묶음 없음」만 보기에서도 묶음 머리가 서야 한다
   hasFeatures: boolean;
+  // last 를 뺀 조건에 맞은 전부를 센다 — 칩을 걸어도 그대로라 칩마다 몇 건인지 보인다 (카탈로그 §7). 판정이 없으면 null
+  lastCounts: LastCounts | null;
 }
 
 export async function listCases(query: CaseQuery): Promise<CaseList> {
@@ -174,8 +186,8 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     ),
   ]);
   // 순서가 기능 묶음 차례라 SQL 이 쪽을 못 자른다. 조건에 맞는 번호만 먼저 받고, 묶어 줄 세운 뒤 그 쪽 줄만 다시 읽는다
-  const 맞은번호 = await pool.query<{ tc_id: string }>(
-    `SELECT tc_id
+  const 맞은번호 = await pool.query<{ tc_id: string; platforms: Platform[] }>(
+    `SELECT tc_id, platforms
        FROM test_case
       WHERE tc_id LIKE $1
         -- 찾기는 요구 번호 · 요구 문장에도 맞는다. 그 판단은 표준 기획서를 읽은 쪽(요구로찾기)이 하고 번호만 넘긴다
@@ -196,7 +208,13 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
       query.q === '' ? [] : 요구로찾기(표, query.q),
     ],
   );
-  const { 차례, groups } = 줄세우기(맥락거르기(맞은번호.rows.map((r) => r.tc_id), 표, query), 표);
+  const 기기 = new Map(맞은번호.rows.map((r) => [r.tc_id, r.platforms]));
+  const 맞은 = 맥락거르기(맞은번호.rows.map((r) => r.tc_id), 표, query);
+  const 마지막 = query.마지막;
+  const 판정 = 마지막 === undefined ? null : new Map(맞은.map((id) => [id, 마지막.판정(id, 기기.get(id) ?? [])]));
+  const 셈 = (s: ItemStatus) => [...(판정?.values() ?? [])].filter((x) => x === s).length;
+  const lastCounts = 판정 === null ? null : { total: 맞은.length, pass: 셈('PASS'), fail: 셈('FAIL'), na: 셈('NA') };
+  const { 차례, groups } = 줄세우기(마지막?.last === undefined ? 맞은 : 맞은.filter((id) => 판정?.get(id) === 마지막.last), 표);
   const 이쪽 = query.pageSize === null ? 차례 : 차례.slice((query.page - 1) * query.pageSize, query.page * query.pageSize);
   const 읽은 = 이쪽.length === 0 ? [] : (await pool.query<RawRow>(`SELECT ${COLUMNS} FROM ${FROM} WHERE tc_id = ANY($1::text[])`, [이쪽])).rows;
   const 행 = new Map(읽은.map((r) => [r.tc_id, r]));
@@ -213,6 +231,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     unconfirmed: { count: Number(요약.rows[0]?.count ?? 0) },
     groups,
     hasFeatures: [...표.values()].some((x) => x.feature !== null),
+    lastCounts,
   };
 }
 

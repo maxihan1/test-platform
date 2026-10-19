@@ -1,11 +1,9 @@
 // @vitest-environment jsdom
 // 케이스 줄 검사 (SPEC §8.1, 2026-09-21).
 //
-// 읽기만 하던 값 칩이 **고칠 수 있는 칸**이 됐다 (2026-09-21 ②). 그러면서 둘이 같이 걸린다 —
-// ① 「JSON 원문을 목록에 노출하지 않는다」를 어기지 않았나 ② 비밀값이 평문으로 새지 않나.
-// 둘 다 안 보면 값을 고치게 하려다 가려야 할 것까지 보여준 상태가 통과한다.
-//
-// 칸 자체의 규칙(상한 넷 · autoComplete)은 CaseRowParams.test.tsx 가 본다. 여기는 줄과의 접합이다.
+// 2026-10-19 ⑫ 시안 A 에서 줄의 입력 칸 · 「상세」 버튼 · 「지원 디바이스」 글이 없어졌다.
+// 값은 오른쪽 상세 칸(CaseDetail)에서 고친다. 줄은 이름 버튼 하나로 그 칸을 연다.
+// 입력 칸의 규칙(상한 · 비밀값)은 Form.test.tsx · CaseDetail.test.tsx 가 본다. 여기는 줄이 값 칸을 더는 안 가졌다는 것까지 본다.
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -34,102 +32,110 @@ function 케이스(paramSchema: JsonSchema): CaseRow {
   };
 }
 
-function 그린다(paramSchema: JsonSchema, on값 = vi.fn(), on더보기 = vi.fn()) {
+const 값있는스키마 = {
+  type: 'object',
+  properties: { currency: { type: 'string', description: '통화', default: 'KRW' } },
+} as unknown as JsonSchema;
+
+function 그린다(paramSchema: JsonSchema, 덮을것: Partial<React.ComponentProps<typeof 케이스줄>> = {}) {
+  const on열기 = vi.fn();
   return {
-    on값,
-    on더보기,
-    ...render(
-      <케이스줄
-        row={케이스(paramSchema)}
-        마지막={{}}
-        고름={false}
-        뒤집기={() => {}}
-        on값={on값}
-        on더보기={on더보기}
-      />,
-    ),
+    on열기,
+    ...render(<케이스줄 row={케이스(paramSchema)} 마지막={{}} 고름={false} 뒤집기={() => {}} on열기={on열기} {...덮을것} />),
   };
 }
 
-describe('케이스 줄의 값 칸', () => {
-  it('선언된 입력값이 라벨 붙은 입력칸으로 줄에 바로 나온다', () => {
-    그린다({
-      type: 'object',
-      properties: {
-        amount: { type: 'number', description: '결제 금액', default: 10000 },
-        currency: { type: 'string', description: '통화', default: 'KRW' },
-      },
-    } as unknown as JsonSchema);
-
-    expect((screen.getByLabelText(/결제 금액/) as HTMLInputElement).value).toBe('10000');
-    expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('KRW');
-  });
-
-  it('값을 고치면 어느 케이스의 어느 칸인지까지 올려 보낸다', () => {
-    const { on값 } = 그린다({
-      type: 'object',
-      properties: { currency: { type: 'string', description: '통화', default: 'KRW' } },
-    } as unknown as JsonSchema);
-
-    fireEvent.change(screen.getByLabelText(/통화/), { target: { value: 'USD' } });
-
-    expect(on값).toHaveBeenCalledWith('ZZC-001', 'params', 'currency', 'USD');
-  });
-
-  it('비밀값은 가려서 입력받고 줄에 평문으로 안 나온다', () => {
-    // 가리는 기준은 mask.ts 와 같다. 여기서 한 벌을 더 만들면 두 기준이 갈린다 (SPEC §4.1)
-    그린다({
-      type: 'object',
-      properties: { password: { type: 'string', description: '비밀번호', default: 'hunter2' } },
-    } as unknown as JsonSchema);
-
-    expect(screen.queryByText('hunter2')).toBeNull();
-    expect(screen.getByLabelText(/비밀번호/).getAttribute('type')).toBe('password');
-  });
-
-  it('입력값을 선언하지 않은 케이스는 칸 자리를 아예 안 만든다', () => {
-    const { container } = 그린다({} as unknown as JsonSchema);
-    expect(container.querySelector('.pcell')).toBeNull();
-  });
-
-  it('객체 기본값은 줄에 펴지 않고 상세로 넘긴다', () => {
-    // Form 은 객체 기본값을 JSON.stringify 로 편다. 목록에 원문을 내는 것은 금지다 (DESIGN.md 「금지」)
+describe('케이스 줄 — 입력 칸은 상세 칸으로 옮겼다 (⑫ 시안 A)', () => {
+  it('입력값을 선언한 케이스여도 줄에는 입력 칸 · 비밀값 칸이 없다', () => {
     const { container } = 그린다({
       type: 'object',
-      properties: { options: { type: 'object', description: '옵션', default: { retry: 2 } } },
-    } as unknown as JsonSchema);
-
-    expect(container.querySelector('.pcell')).toBeTruthy();
-    expect(screen.queryByLabelText(/옵션/)).toBeNull();
-    expect(screen.queryByText(/retry/)).toBeNull();
-    expect(screen.queryByText('[object Object]')).toBeNull();
-    expect(screen.getByRole('button', { name: /1개 더/ })).toBeTruthy();
-  });
-
-  it('배열 기본값도 줄에 펴지 않는다', () => {
-    그린다({
-      type: 'object',
-      properties: { tags: { type: 'array', description: '꼬리표', default: ['smoke', 'pay'] } },
-    } as unknown as JsonSchema);
-
-    expect(screen.queryByLabelText(/꼬리표/)).toBeNull();
-    expect(screen.queryByText(/smoke/)).toBeNull();
-  });
-
-  it('상세로 넘긴 칸을 보러 가면 그 케이스 번호를 들고 간다', () => {
-    const { on더보기 } = 그린다({
-      type: 'object',
       properties: {
-        a: { type: 'string', description: '하나', default: '1' },
-        b: { type: 'string', description: '둘', default: '2' },
-        c: { type: 'string', description: '셋', default: '3' },
-        d: { type: 'string', description: '넷', default: '4' },
-        e: { type: 'string', description: '다섯', default: '5' },
+        currency: { type: 'string', description: '통화', default: 'KRW' },
+        password: { type: 'string', description: '비밀번호', default: 'hunter2' },
       },
     } as unknown as JsonSchema);
 
-    fireEvent.click(screen.getByRole('button', { name: /1개 더/ }));
-    expect(on더보기).toHaveBeenCalledWith('ZZC-001');
+    expect(container.querySelector('input:not([type="checkbox"])')).toBeNull();
+    expect(container.querySelector('.pcell, .params')).toBeNull();
+    expect(screen.queryByLabelText(/통화/)).toBeNull();
+    expect(screen.queryByText('hunter2')).toBeNull();
+    expect(screen.queryByRole('button', { name: /1개 더/ })).toBeNull();
+  });
+
+  it('줄에 「상세」 버튼이 따로 없다 — 케이스 이름이 그 버튼이다', () => {
+    그린다(값있는스키마);
+
+    expect(screen.queryByRole('button', { name: '상세' })).toBeNull();
+    expect(screen.getByRole('button', { name: '값 칸 케이스' })).toBeTruthy();
+  });
+});
+
+describe('케이스 줄의 이름 버튼 (점검 7.12)', () => {
+  it('이름을 누르면 케이스 번호를 들고 on열기 를 부른다', () => {
+    const { on열기 } = 그린다(값있는스키마);
+
+    fireEvent.click(screen.getByRole('button', { name: '값 칸 케이스' }));
+
+    expect(on열기).toHaveBeenCalledWith('ZZC-001');
+  });
+
+  it('버튼 id 는 case-open-<tcId> 이다 — 상세 칸을 닫으면 포커스가 여기로 돌아온다', () => {
+    그린다(값있는스키마);
+
+    expect(screen.getByRole('button', { name: '값 칸 케이스' }).id).toBe('case-open-ZZC-001');
+  });
+
+  it('열림이 아니면 aria-expanded=false, 열림이면 true 이고 줄에 row-open 이 붙는다', () => {
+    const { container, rerender } = render(
+      <케이스줄 row={케이스(값있는스키마)} 마지막={{}} 고름={false} 뒤집기={() => {}} on열기={vi.fn()} />,
+    );
+    expect(screen.getByRole('button', { name: '값 칸 케이스' }).getAttribute('aria-expanded')).toBe('false');
+    expect(container.querySelector('.row-open')).toBeNull();
+
+    rerender(<케이스줄 row={케이스(값있는스키마)} 마지막={{}} 고름={false} 뒤집기={() => {}} 열림 on열기={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: '값 칸 케이스' }).getAttribute('aria-expanded')).toBe('true');
+    expect(container.querySelector('.row-open')).not.toBeNull();
+  });
+
+  it('줄 고름 칸은 이름으로 케이스를 가리키고 누르면 뒤집기 를 부른다', () => {
+    const 뒤집기 = vi.fn();
+    그린다(값있는스키마, { 뒤집기 });
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'ZZC-001 값 칸 케이스 고르기' }));
+
+    expect(뒤집기).toHaveBeenCalledTimes(1);
+  });
+
+  it('실행 길(on실행)이 있으면 아이콘 버튼이 그 한 건으로 부른다. 없으면 버튼도 없다', () => {
+    const on실행 = vi.fn();
+    const { unmount } = 그린다(값있는스키마, { on실행 });
+
+    fireEvent.click(screen.getByRole('button', { name: 'ZZC-001 실행' }));
+    expect(on실행).toHaveBeenCalledTimes(1);
+    expect((on실행.mock.calls[0]![0] as CaseRow).tcId).toBe('ZZC-001');
+
+    unmount();
+    그린다(값있는스키마);
+    expect(screen.queryByRole('button', { name: 'ZZC-001 실행' })).toBeNull();
+  });
+
+  it('미확정 배지에 사유가 말풍선(title)으로 붙는다. 확정 케이스에는 배지가 없다', () => {
+    const { container, unmount } = 그린다(값있는스키마, { row: { ...케이스(값있는스키마), unconfirmed: '확인 필요 — MKT-REQ-003' } });
+
+    const 배지 = container.querySelector('.case-tag');
+    expect(배지?.textContent).toBe('미확정');
+    expect(배지?.getAttribute('title')).toBe('확인 필요 — MKT-REQ-003');
+
+    unmount();
+    const 확정 = 그린다(값있는스키마);
+    expect(확정.container.querySelector('.case-tag')).toBeNull();
+  });
+
+  it('줄 아래 작은 줄에 「지원 디바이스」 글을 안 적는다', () => {
+    const { container } = 그린다(값있는스키마, { row: { ...케이스(값있는스키마), platforms: ['desktop', 'mobile'] } });
+
+    expect(container.textContent).not.toContain('지원 디바이스');
   });
 });
 
@@ -155,8 +161,7 @@ describe('케이스 줄의 판정 흐름', () => {
         마지막={마지막 as unknown as Parameters<typeof 케이스줄>[0]['마지막']}
         고름={false}
         뒤집기={() => {}}
-        on값={vi.fn()}
-        on더보기={vi.fn()}
+        on열기={vi.fn()}
       />,
     );
 
@@ -177,11 +182,11 @@ describe('아직 안 돌린 케이스 (SPEC §8.1)', () => {
 
 // 칸 이름이 없으면 각 칸이 무엇인지 화면만 봐서는 모른다 (SPEC §8.1, 2026-09-22).
 // 「표머리가 있다」만 보면 입력 칸이 여전히 케이스명 안에 있는 상태도 통과한다 — 둘을 같이 본다
-describe('표머리와 입력 칸 (SPEC §8.1)', () => {
+describe('표머리 (SPEC §8.1)', () => {
   it('칸 이름이 차례로 글로 선다', () => {
     const { container } = render(<표머리 />);
     const 이름들 = [...container.querySelectorAll('.rowhead .colname')].map((el) => el.textContent);
-    expect(이름들).toEqual(['TC ID', '케이스명', '입력값', '마지막 결과']);
+    expect(이름들).toEqual(['TC ID', '케이스명', '마지막 결과']);
   });
 
   // 표 부모 없는 row 는 행 이름을 내용으로 계산해 「이 쪽 전체 선택」을 두 번 읽었다 (진행판 WEB-F2-15)
@@ -213,20 +218,6 @@ describe('표머리와 입력 칸 (SPEC §8.1)', () => {
     const { container } = render(<표머리 />);
     expect(container.querySelector('.pick-all')).toBeNull();
   });
-
-  it('입력 칸이 케이스명 칸 안에 있지 않다', () => {
-    const { container } = 그린다({
-      type: 'object',
-      properties: { userId: { type: 'string', description: '아이디', default: 'zz' } },
-    });
-
-    const 이름칸 = container.querySelector('.title');
-    const 입력칸 = container.querySelector('.params');
-    expect(이름칸).not.toBeNull();
-    expect(입력칸).not.toBeNull();
-    expect(이름칸!.contains(입력칸!)).toBe(false);
-    expect(입력칸!.querySelector('input')).not.toBeNull();
-  });
 });
 
 describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () => {
@@ -237,8 +228,7 @@ describe('설계 기법 (도메인/카탈로그 §8.1 「설계 기법」)', () 
         마지막={{}}
         고름={false}
         뒤집기={() => {}}
-        on값={vi.fn()}
-        on더보기={vi.fn()}
+        on열기={vi.fn()}
       />,
     );
 

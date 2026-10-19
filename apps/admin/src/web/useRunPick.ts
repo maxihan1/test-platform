@@ -5,8 +5,7 @@
 
 import { useState } from 'react';
 
-import { api, type CaseQuery, type CaseRow, type ItemStatus, type ServiceRow, type User } from './api.js';
-import type { LastMap } from './catalogView.js';
+import { api, type CaseQuery, type CaseRow, type ServiceRow, type User } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 다음이있나 } from './paging.js';
 import { 담을것 } from './pickRun.js';
@@ -49,12 +48,10 @@ function 빠진안내(
 export function useRunPick(옵션: {
   service: string;
   조건: CaseQuery;
-  결과: ItemStatus | 'ALL';
-  마지막: LastMap;
   /** 목록 화면의 안내 줄. 모달을 열기 전 단계의 말은 여기로 나간다 */
   알림: (글: string | null) => void;
 }) {
-  const { service, 조건, 결과, 마지막, 알림 } = 옵션;
+  const { service, 조건, 알림 } = 옵션;
   const t = use말();
   const 언어 = use언어();
   const [고른, set고른] = useState<ReadonlyMap<string, CaseRow>>(new Map());
@@ -96,7 +93,7 @@ export function useRunPick(옵션: {
     try {
       // 고른 것이 있으면 손에 이미 다 있다. 실체를 찾으러 쪽을 되돌 이유가 없다
       const { 모은, 잘렸나 } = 고른.size > 0 ? { 모은: [], 잘렸나: false } : await 쪽모으기();
-      const 담을 = 담을것(모은, 고른, 결과, 마지막);
+      const 담을 = 담을것(모은, 고른);
       if (담을.length === 0) {
         // 빈 모달을 열지 않는다. 열어 봐야 실행이 서버에서 400 으로 되돌아온다
         알림(t('실행할 케이스가 없습니다. 고른 것이 전부 비활성이거나 걸러졌습니다'));

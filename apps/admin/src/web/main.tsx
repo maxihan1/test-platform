@@ -48,6 +48,7 @@ import './prd.css';
 import './guide.css';
 import './itemTrace.css';
 import './runList.css';
+import './caseList.css';
 
 function Screen({
   hash,

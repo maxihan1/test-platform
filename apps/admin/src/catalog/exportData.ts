@@ -1,14 +1,15 @@
 // 케이스 엑셀에 실을 자료를 모은다 — 케이스 · 마지막 결과 · 보류 처리 기록 (카탈로그 §7 GET /api/catalog/export)
 // 권한 판단은 부르는 쪽(routes.ts)이 끝내고 여기는 그 결과만 받는다
 
-import type { Platform, Technique } from '@platform/kit';
+import type { ItemStatus, Platform, Technique } from '@platform/kit';
 
 import { 보류들, type 보류입력 } from '../authoring/held.js';
 import { 사슬식 } from '../authoring/history.js';
-import { lastByCase, type LastResult } from '../execution/history.js';
+import type { LastResult } from '../execution/history.js';
 import { 케이스판정 } from '../prd/trace.js';
 import type { 맥락조건 } from './context.js';
 import type { ExportCase, ExportHeld, ExportInput } from './export.js';
+import { 기기별결과, 판정으로 } from './last.js';
 import { listCases } from './store.js';
 
 /** 표에 적는 시각 — 서버가 어느 시간대에 떠 있든 한국 시각으로 적는다. sv-SE 가 `YYYY-MM-DD HH:mm:ss` 모양을 준다 */
@@ -73,9 +74,13 @@ export async function 엑셀자료(입력: 맥락조건 & {
   activeOnly: boolean;
   kind?: 'UI' | 'FN';
   technique?: Technique | 'none';
+  // 목록 칩과 같은 마지막 결과 — 실행 칸이 없으면 무시한다(목록과 같다)
+  last?: ItemStatus;
   canSeeRuns: boolean;
   canSeeAuthoring: boolean;
 }): Promise<ExportInput> {
+  // 기기가 둘이어도 칸이 하나다 — 기기별 결과를 모아 결과칸 이 한 판정으로 접는다
+  const 마지막 = 입력.canSeeRuns ? await 기기별결과(입력.service) : new Map<string, LastResult[]>();
   const 목록 = await listCases({
     feature: 입력.feature,
     screen: 입력.screen,
@@ -88,15 +93,10 @@ export async function 엑셀자료(입력: 맥락조건 & {
     activeOnly: 입력.activeOnly,
     kind: 입력.kind,
     technique: 입력.technique,
+    마지막: 입력.canSeeRuns ? { 판정: 판정으로(마지막), last: 입력.last } : undefined,
     page: 1,
     pageSize: null,
   });
-
-  // 기기가 둘이어도 칸이 하나다 — 기기별 결과를 모아 결과칸 이 한 판정으로 접는다
-  const 마지막 = new Map<string, LastResult[]>();
-  if (입력.canSeeRuns) {
-    for (const l of await lastByCase([입력.service])) 마지막.set(l.tcId, [...(마지막.get(l.tcId) ?? []), l]);
-  }
 
   const held = 입력.canSeeAuthoring ? await 보류기록(입력.serviceId) : null;
   // 반영된 뿌리에서 사람이 값을 넣은 케이스. 뿌리가 여럿이면 뒤의 것(최근 뿌리)이 이긴다

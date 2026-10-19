@@ -7,7 +7,6 @@ import type { 묶음자리, 묶음조건 } from './CaseListFilter.js';
 import { 파일이름, type 묶음머리 } from './caseGroups.js';
 import { use말 } from './i18n.js';
 import { PRD항목주소 } from './route.js';
-import { PLATFORM_LABEL } from './ui.js';
 
 /** 화면 파일 클래스 이름을 읽기 좋게 — `게시판목록화면` → `게시판목록 화면` (PRD-F9-18) */
 export const 화면이름글 = (이름: string): string => 이름.replace(/(?<=\S)(?=화면$)/, ' ');
@@ -137,7 +136,7 @@ export function 케이스맥락({ row, 요구보나, 요구쓰나 }: { row: Case
             {t('설계 기법')} <기법태그들 기법들={row.techniques} />
           </span>
         ) : null}
-        <span>{t('지원 디바이스 {목록}', { 목록: row.platforms.map((p) => t(PLATFORM_LABEL[p])).join(', ') })}</span>
+        {/* 지원 디바이스는 안 적는다 — 마지막 결과 칸이 디바이스마다 이름을 달아 한 줄에 두 번 나왔다(점검 7.12) */}
       </small>
     </>
   );

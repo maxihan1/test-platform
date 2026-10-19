@@ -106,6 +106,8 @@ export interface CasePage extends Paged<CaseRow> {
   groups?: CaseGroup[];
   /** 서비스가 PRD 를 쓰나 — 검색 조건을 안 따른다. 「기능 묶음 없음」만 보기에서도 묶음 머리를 세운다 */
   hasFeatures?: boolean;
+  /** 마지막 결과 칩의 건수 — last 를 뺀 조건에 맞은 전부다. 실행 read 가 없으면 null (도메인/카탈로그 §7) */
+  lastCounts?: { total: number; pass: number; fail: number; na: number } | null;
 }
 
 export interface LastScan {
@@ -910,6 +912,8 @@ export interface CaseQuery {
   part?: string;
   axis?: 케이스축;
   req?: string;
+  /** 마지막 결과. 서버가 전체에서 거른다 (도메인/카탈로그 §7 `?last=`) */
+  last?: ItemStatus;
 }
 
 // 목록과 엑셀이 같은 조건을 쓴다 — 두 벌이면 버튼 건수와 받은 파일 건수가 갈린다
@@ -926,6 +930,7 @@ function 케이스조건(query: CaseQuery): URLSearchParams {
     const 값 = query[칸];
     if (값 !== undefined) params.set(칸, 값);
   }
+  if (query.last !== undefined) params.set('last', query.last.toLowerCase());
   return params;
 }
 

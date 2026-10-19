@@ -177,15 +177,47 @@ describe('줄 아래 맥락', () => {
     expect(within(요구줄).getByText('ZCL-REQ-003')).toBeTruthy();
   });
 
-  it('상세에서는 덮는 요구 전부를 본다', async () => {
+  it('상세 칸에서는 덮는 요구 전부를 본다 — 줄의 이름 버튼을 누르면 오른쪽 칸이 열린다', async () => {
     그리기();
     const 비번줄 = await 줄('ZCL-FN-001');
     vi.spyOn(api, 'caseHistory').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
     vi.spyOn(api, 'item').mockRejectedValue(new Error('절차 없음'));
-    fireEvent.click(within(비번줄).getByRole('button', { name: '상세' }));
-    const 상자 = await screen.findByRole('dialog');
-    expect(within(상자).getByRole('link', { name: 'ZCL-REQ-004' })).toBeTruthy();
-    expect(within(상자).getByText(/비밀번호에 숫자를 섞는다/)).toBeTruthy();
+    fireEvent.click(within(비번줄).getByRole('button', { name: 'ZCL-FN-001 케이스' }));
+    const 칸 = await screen.findByRole('complementary');
+    expect(칸.id).toBe('case-pane');
+    expect(within(칸).getByRole('link', { name: 'ZCL-REQ-004' })).toBeTruthy();
+    expect(within(칸).getByText(/비밀번호에 숫자를 섞는다/)).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('줄 아래 작은 줄에 「지원 디바이스」 글이 없다', async () => {
+    그리기();
+    const 비번줄 = await 줄('ZCL-FN-001');
+    expect(비번줄.querySelector('.case-meta')?.textContent).not.toContain('지원 디바이스');
+  });
+});
+
+describe('마지막 결과 칩과 묶음 머리', () => {
+  it('칩을 걸면 서버가 거른 번호표대로 머리 건수가 선다 — 화면이 보이는 줄로 다시 세지 않는다', async () => {
+    const 전체쪽: CasePage = { ...쪽, lastCounts: { total: 3, pass: 2, fail: 1, na: 0 } };
+    const 실패만: CasePage = {
+      ...전체쪽,
+      items: [비번],
+      total: 1,
+      groups: [{ feature: '회원가입', screen: 화면, screenUrl: '/signup', part: null, tcIds: ['ZCL-FN-001'] }],
+    };
+    vi.spyOn(api, 'lastScan').mockResolvedValue(null);
+    vi.spyOn(api, 'lastByCase').mockResolvedValue({ items: [] });
+    const 스파이 = vi.spyOn(api, 'cases').mockImplementation((q) => Promise.resolve(q.last === 'FAIL' ? 실패만 : 전체쪽));
+    render(<CaseList kind="FN" service="ZCL" 할수={전부된다} 결과보나 요구보나 />);
+    await screen.findByText('ZCL-FN-003');
+
+    fireEvent.click(screen.getByRole('button', { name: /^실패 \d+$/ }));
+
+    expect(await screen.findByRole('button', { name: /^회원가입\s*\d+건/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^회원가입\s*\d+건/ }).textContent).toContain('1건');
+    expect(screen.queryByText('ZCL-FN-002')).toBeNull();
+    expect(마지막조건(스파이)).toMatchObject({ last: 'FAIL' });
   });
 });
 

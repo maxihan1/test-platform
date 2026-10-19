@@ -1,0 +1,165 @@
+/* 케이스 목록 ⑫ 시안 A — 왼쪽 목록 + 오른쪽 상세 칸 (도메인/카탈로그 §8.1 「상세 칸」). 색은 토큰만 쓴다 */
+
+/* `.main` 이 남는 높이를 이 칸에 다 주고, 두 단이 저마다 스크롤한다 — 목록을 내려도 상세 칸이 안 밀린다 */
+.cases-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.cases-split.has-pane {
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 460px);
+}
+
+.cases-split > .list-screen {
+  min-width: 0;
+}
+
+.case-pane {
+  min-width: 0;
+  min-height: 0;
+  margin-bottom: 0;
+  overflow-y: auto;
+  padding: 16px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.case-pane .dsec {
+  margin-bottom: 0;
+}
+
+.case-pane-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.case-pane-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.case-pane-head .tcid {
+  padding: 0;
+}
+
+.case-pane-head h2 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+/* 미확정 사유 — 판정 색이 아니다. 할 일을 알리는 배지(`.case-tag`)와 같은 무게로 테두리만 준다 */
+.case-unconfirmed {
+  font-size: 13px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-2);
+  background: var(--well);
+  color: var(--ink-muted);
+}
+
+.case-unconfirmed b {
+  color: var(--ink);
+  margin-right: 6px;
+}
+
+.case-devs {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.case-devs > .chip + .chip {
+  margin-left: -1px;
+}
+
+/* 실패한 절차 아래 사유 한 줄 · 실패 화면 고리 — 줄을 하나 더 내려 쓴다 */
+.dsteps li.dstep-fail {
+  flex-wrap: wrap;
+}
+
+.dstep-why {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding-left: 30px;
+  font-size: 12.5px;
+}
+
+.case-pane-act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dhist-n {
+  white-space: nowrap;
+}
+
+/* 접어 둔 「코드 기본값 바꾸기 요청」. 펴 두면 위 기대결과 칸과 두 벌로 보였다(점검 7.11) */
+.case-edit-fold > summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+.case-edit-fold[open] > summary {
+  margin-bottom: 10px;
+}
+
+/* 줄의 케이스명 — 누르면 상세 칸이 열린다. 단추이지만 글자로 읽혀야 목록이 단추 더미로 안 보인다 */
+.case-open {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.case-open:hover {
+  text-decoration: underline;
+}
+
+.case-open:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* 지금 상세 칸에 연 줄. 판정 색이 아니라 「지금 고른 것」의 대표색이다 (DESIGN.md 원칙 1 · 실행 기록 고른 줄과 같다) */
+.row.pickable.row-open {
+  background: var(--rail-active);
+  box-shadow: inset -3px 0 0 var(--accent);
+}
+
+/* 마지막 결과 칩의 건수. 실패가 있으면 수만 판정 글자색 — 칩 바탕은 고른 것 표시라 칠하지 않는다 */
+.chip .chip-n {
+  margin-left: 2px;
+  font-weight: 600;
+}
+
+.chip.chip-fail .chip-n {
+  color: var(--fail-text);
+}
+
+/* 창이 좁으면 한 단으로 접는다 — 칸이 열리면 상세가 목록 자리를 덮고 ✕ 로 목록에 돌아온다 */
+@media (max-width: 1100px) {
+  .cases-split.has-pane {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cases-split.has-pane > .list-screen {
+    display: none;
+  }
+}
