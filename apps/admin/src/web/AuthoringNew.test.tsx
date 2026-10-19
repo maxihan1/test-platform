@@ -219,3 +219,53 @@ describe('새 작성 요청 — 자료 목록', () => {
     expect(보내기()).toHaveProperty('disabled', false);
   });
 });
+
+describe('피그마를 미리 막는다 (점검 11.5)', () => {
+  it('서비스에 피그마 토큰이 없으면 칸을 잠그고 운영자에게는 설정 길을 안내한다', () => {
+    render(<AuthoringNew service="PAY" 운영자 피그마토큰={false} on넣었다={() => {}} />);
+    expect(screen.getByLabelText('피그마 주소')).toHaveProperty('disabled', true);
+    expect(screen.getByText(/피그마 토큰이 없어 피그마 주소를 받을 수 없습니다\. 설정 > 서비스에서 피그마 토큰을 넣으세요/)).toBeTruthy();
+  });
+
+  it('운영자가 아니면 운영자에게 요청하라고 안내한다', () => {
+    render(<AuthoringNew service="PAY" 피그마토큰={false} on넣었다={() => {}} />);
+    expect(screen.getByText(/운영자에게 피그마 토큰을 넣어 달라고 요청하세요/)).toBeTruthy();
+  });
+
+  it('토큰이 없어도 파일만 올리는 요청은 보낸다 — 피그마 칸은 싣지 않는다', async () => {
+    render(<AuthoringNew service="PAY" 피그마토큰={false} on넣었다={() => {}} />);
+    파일을고른다('기획서.pdf');
+    fireEvent.click(보내기());
+    await waitFor(() => expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '세우기']));
+    expect(부름[0]?.값).toMatchObject({ body: { figma: [] } });
+  });
+
+  it('토큰이 있으면 칸이 열려 있고 안내가 없다', () => {
+    render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
+    expect(screen.getByLabelText('피그마 주소')).toHaveProperty('disabled', false);
+    expect(screen.queryByText(/피그마 토큰/)).toBeNull();
+  });
+
+  it.each([
+    ['NO_TOKEN', /토큰이 없어 피그마 주소를 받을 수 없습니다/],
+    ['TOKEN', /토큰이 틀렸거나 만료됐습니다\. 운영자에게 새 피그마 토큰을 넣어 달라고 요청하세요/],
+    ['FILE:https://www.figma.com/design/A/', /파일이 없거나 이 토큰으로 볼 권한이 없습니다 \(https:\/\/www\.figma\.com\/design\/A\/\)/],
+  ])('서버가 %s 로 거절하면 사람 말로 알리고 줄에 안 세운다', async (까닭, 문구) => {
+    만들기답 = Promise.reject(new ApiError(400, 'FIGMA_DENIED', 까닭));
+    render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
+    피그마를적는다('https://www.figma.com/design/A/');
+    fireEvent.click(보내기());
+
+    await screen.findByText(문구);
+    expect(부름.map((b) => b.무엇)).toEqual(['만들기']);
+  });
+
+  it('토큰이 틀린 까닭도 운영자에게는 설정 길을 안내한다', async () => {
+    만들기답 = Promise.reject(new ApiError(400, 'FIGMA_DENIED', 'TOKEN'));
+    render(<AuthoringNew service="PAY" 운영자 on넣었다={() => {}} />);
+    피그마를적는다('https://www.figma.com/design/A/');
+    fireEvent.click(보내기());
+
+    await screen.findByText(/설정 > 서비스에서 새 피그마 토큰을 넣으세요/);
+  });
+});
