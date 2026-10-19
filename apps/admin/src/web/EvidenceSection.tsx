@@ -9,7 +9,7 @@ import { use말, use언어 } from './i18n.js';
 import { 받는법, 증적버튼들, type 증적버튼모양 } from './evidence.js';
 import type { 판정 } from './role.js';
 import { message, when } from './ui.js';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /** `api.run()` 이 주는 모양 중 이 칸이 쓰는 부분만 */
 type 실행상세 = Pick<RunSummary, 'runId' | 'status'> & { evidence: EvidenceRow[] };
@@ -29,6 +29,16 @@ export interface 증적칸 {
   누르기: (버튼: 증적버튼모양) => void;
 }
 
+/** 만든 문서를 열지 않고 바로 내려받는다. 새 창을 열지 않아 팝업 차단에 걸리지 않는다 */
+function 바로받는다(문서번호: number): void {
+  const 고리 = document.createElement('a');
+  고리.href = api.evidenceUrl(문서번호);
+  고리.download = '';
+  document.body.appendChild(고리);
+  고리.click();
+  고리.remove();
+}
+
 /**
  * 증적 칸의 상태와 판단을 한 자리에 모은다.
  *
@@ -39,6 +49,8 @@ export function use증적(data: 실행상세 | null, 할수: 판정, reload: () 
   const 언어 = use언어();
   const [만드는중, set만드는중] = useState<string[]>([]);
   const [증적오류, set증적오류] = useState<Record<string, string>>({});
+  // 방금 누른 형식과 그때 서버가 준 문서 번호. 그 문서가 READY 가 되면 목록 줄을 한 번 더 누르지 않아도 받아진다 (점검 2.18)
+  const [받을것, set받을것] = useState<Record<string, number>>({});
 
   // **이른 반환 위에서 불린다.** 화면이 아직 데이터를 못 받았을 때도 훅 차례가 같아야 한다 —
   // `Loading` 뒤에서 부르면 React 가 훅 규칙 위반으로 던지고 화면이 통째로 빈다
@@ -56,11 +68,23 @@ export function use증적(data: 실행상세 | null, 할수: 판정, reload: () 
     return 사유 === undefined || 사유 === null ? [] : [{ format: 버튼.format, 라벨: 버튼.라벨, 사유 }];
   });
 
-  // 만든 것은 최근 것이 위로. 파일 이름에 (1)·(2)가 붙으면 어느 것이 최신인지 알 수 없다 (SPEC §8.4)
+  // 만든 것은 최근 것이 위로. 파일 이름에 (1)·(2)가 붙으면 어느 것이 최신인지 알 수 없다 (SPEC §8.4).
+  // 같은 실행의 증적은 언제 뽑아도 같은 문서라 형식마다 가장 새 한 줄만 둔다 — 누를 때마다 줄이 쌓였다 (점검 2.18)
   const 만든것 = 문서들
     .filter((it) => it.status === 'READY')
     .slice()
-    .reverse();
+    .reverse()
+    .filter((it, 자리, 전부) => 전부.findIndex((앞) => 앞.format.toUpperCase() === it.format.toUpperCase()) === 자리);
+
+  useEffect(() => {
+    const 끝난것 = Object.entries(받을것).flatMap(([형식, 번호]) => {
+      const 행 = 문서들.find((it) => it.id === 번호);
+      return 행 === undefined || 행.status === 'PENDING' ? [] : [{ 형식, 행 }];
+    });
+    if (끝난것.length === 0) return;
+    for (const { 행 } of 끝난것) if (행.status === 'READY') 바로받는다(행.id);
+    set받을것((전) => Object.fromEntries(Object.entries(전).filter(([형식]) => !끝난것.some((끝) => 끝.형식 === 형식))));
+  }, [문서들, 받을것]);
 
   function 누르기(버튼: 증적버튼모양): void {
     if (data === null) return;
@@ -69,7 +93,10 @@ export function use증적(data: 실행상세 | null, 할수: 판정, reload: () 
     set증적오류(({ [버튼.format]: _앞선것, ...나머지 }) => 나머지);
     void api
       .makeEvidence(data.runId, 버튼.format)
-      .then(() => reload())
+      .then((행) => {
+        set받을것((전) => ({ ...전, [버튼.format]: 행.id }));
+        reload();
+      })
       .catch((err: unknown) => set증적오류((전) => ({ ...전, [버튼.format]: message(err, 언어) })))
       .finally(() => set만드는중((전) => 전.filter((it) => it !== 버튼.format)));
   }

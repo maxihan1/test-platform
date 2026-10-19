@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow, User } from './api.js';
 import type { 권한칸 } from './role.js';
-import { route, 갈자리, 돌아갈자리, 집 } from './route.js';
+import { route, 갈자리, 돌아갈자리, 실행기록주소, 집 } from './route.js';
 
 function 서비스(prefix: string, permissions: 권한칸): ServiceRow {
   return { id: 1, prefix, name: prefix, color: '#000000', envs: [], hasSlackWebhook: false, permissions };
@@ -220,5 +220,10 @@ describe('route', () => {
     expect(돌아갈자리('#/login', 케이스없음, 'PAY')).toBe('#/dashboard');
     expect(돌아갈자리('#/login', 작성만, 'PAY')).toBe('#/authoring');
     expect(돌아갈자리('', 실행만, 'PAY')).toBe('#/dashboard');
+  });
+
+  it('실행 기록 주소는 카드열기를 켜야 케이스를 단다', () => {
+    expect(실행기록주소('MKT-FN-014', 130)).toBe('#/runs/fn?run=130');
+    expect(실행기록주소('MKT-UI-003', 130, true)).toBe('#/runs/ui?run=130&tc=MKT-UI-003');
   });
 });

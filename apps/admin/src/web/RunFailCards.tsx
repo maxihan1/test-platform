@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { api, type FailureCase, type Platform, type RunItemSummary, type 실패유형, type 실패유형묶음 } from './api.js';
 import { 실패유형이름 } from './DashboardTypes.js';
+import { 카드찾기 } from './failureFind.js';
 import { 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
 import { ItemExpand } from './ItemExpand.js';
@@ -12,7 +13,9 @@ import { RunFailJudge } from './RunFailJudge.js';
 import { 관련요구줄 } from './RunFailedReqs.js';
 import { 실패이유 } from './FailureWhy.js';
 import { 같은실패끼리, RunFailDevice, 변화글 } from './RunFailDevice.js';
+import { 다시돌림꼬리표, 판정꼬리표 } from './RunFailCardTags.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, 디바이스순서 } from './ui.js';
+import type { 다시돌린결과 } from './useRerunResults.js';
 
 interface Props {
   runId: number;
@@ -24,6 +27,12 @@ interface Props {
   권한?: 판정;
   /** insights 의 실패유형들 — 카드 위 「실패 유형」 칩 줄. 못 받았으면 줄을 안 그린다 */
   유형들?: 실패유형묶음[];
+  /** 요약 띠 직전 대비의 「신규 실패」 · 「연속 실패」를 눌러 건 거르개. 받은 쪽 안에서만 거른다 */
+  변화?: '새로깨짐' | '계속깨짐' | null;
+  /** 이 케이스를 펼친 채 연다 — 대시보드 · 항목 상세에서 원인까지 곧장 내려온 주소(`&tc=`)다. 다른 쪽에 있으면 그 쪽으로 간다 */
+  열카드?: string;
+  /** 「실패 다시 실행」으로 다시 돌린 결과 — 케이스마다 가장 새 것 */
+  다시돌림?: ReadonlyMap<string, 다시돌린결과>;
 }
 
 const 권한없음: 판정 = () => false;
@@ -35,15 +44,29 @@ export function RunFailCards(props: Props) {
   return <카드목록 {...props} />;
 }
 
-function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유형들 = [] }: Props) {
+function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유형들 = [], 변화 = null, 열카드, 다시돌림 }: Props) {
   const t = use말();
   const [쪽상태, set쪽상태] = useState({ 거르개: platform, 쪽: 1 });
   const [고른유형, set고른유형] = useState<실패유형 | null>(null);
+  const [안본것만, set안본것만] = useState(false);
   // 디바이스 거르개가 바뀌면 1쪽부터 — 앞 쪽 번호로 새 거르개를 부르면 쪽 수가 틀린다
   const 쪽 = 쪽상태.거르개 === platform ? 쪽상태.쪽 : 1;
   const 응답 = useAsync(() => api.failures(runId, 쪽, platform === 'ALL' ? undefined : platform), [runId, 쪽, platform]);
   const 머리 = useRef<HTMLHeadingElement>(null);
   const 넘김 = useRef(false);
+
+  // 펼칠 카드가 1쪽에 없으면 그 쪽으로 간다 — 이 실행을 연 처음 한 번만. 디바이스 칩을 바꿔 부른 사람의 쪽 넘김을 되돌리지 않는다. 못 찾으면 1쪽에 그대로 둔다
+  const 이동했나 = useRef(false);
+  useEffect(() => {
+    if (열카드 === undefined || 이동했나.current) return;
+    이동했나.current = true;
+    카드찾기(runId, 열카드, platform === 'ALL' ? undefined : platform).then(
+      (찾음) => {
+        if (찾음 !== null) set쪽상태({ 거르개: platform, 쪽: 찾음.쪽 });
+      },
+      (err: unknown) => console.error('[run] finding the card to open failed; staying on page 1', err),
+    );
+  }, [runId, 열카드, platform]);
 
   // 쪽을 넘기면 키보드 사용자가 새 목록의 처음으로 돌아가야 한다
   useEffect(() => {
@@ -66,7 +89,15 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
   const 더있나 = 쪽 * 응답.data.pageSize < 응답.data.total;
   // ponytail: 유형 거르기는 받은 쪽 안에서만 한다 — 실패 카드 통로에 유형 조건이 없어서다(계약 밖). 쪽이 여럿이면 아래 한 줄이 전체 수를 알린다
   const 유형칸 = platform === 'ALL' ? (유형들.find((u) => u.type === 고른유형) ?? null) : null;
-  const 보일카드 = 유형칸 === null ? 응답.data.items : 응답.data.items.filter((c) => 유형칸.tcIds.includes(c.tcId));
+  const 보일카드 = 응답.data.items.filter(
+    (c) =>
+      (유형칸 === null || 유형칸.tcIds.includes(c.tcId)) &&
+      (변화 === null || c.devices.some((d) => d.change === 변화)) &&
+      (!안본것만 || c.judgment === null),
+  );
+  const 안본수 = 응답.data.items.filter((c) => c.judgment === null).length;
+  // 변화 · 판정 거르개는 이 쪽 안에서만 거른다 — 카드 통로에 그 조건이 없다(계약 밖). 유형은 전체 수를 알아 따로 안내한다
+  const 이쪽만거름 = (변화 !== null || 안본것만) && (쪽 > 1 || 더있나);
 
   return (
     <section className="fc-list">
@@ -88,6 +119,13 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
           ))}
         </div>
       )}
+      {/* 판정한 카드와 아직 안 본 카드를 가른다 — 판정은 카드 맨 아래라 접힌 줄만 봐서는 몰랐다 (점검 2.24) */}
+      <div className="chip-group fc-types" role="group" aria-label={t('판정 여부')}>
+        <button type="button" className="chip" aria-pressed={안본것만} onClick={() => set안본것만(!안본것만)}>
+          {t('판정 안 한 카드')} <b className="num">{안본수}</b>
+        </button>
+      </div>
+      {!이쪽만거름 ? null : <p className="hint">{t('거른 결과는 이 쪽 카드 안에서만 보입니다 — 다른 쪽도 확인하세요')}</p>}
       {유형칸 === null || 보일카드.length === 유형칸.count ? null : (
         <p className="hint">{t('이 쪽에 {보인}건 · 이 유형 전체 {전체}건 — 나머지는 다른 쪽에 있습니다', { 보인: 보일카드.length, 전체: 유형칸.count })}</p>
       )}
@@ -96,7 +134,18 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
         유형칸 === null ? <p className="empty">{t('실패한 케이스가 없습니다')}</p> : null
       ) : (
         보일카드.map((c) => (
-          <카드 key={c.tcId} c={c} runId={runId} env={env} items={items} platform={platform} 권한={권한} on남김={다시읽기} />
+          <카드
+            key={c.tcId}
+            c={c}
+            runId={runId}
+            env={env}
+            items={items}
+            platform={platform}
+            권한={권한}
+            on남김={다시읽기}
+            열기={c.tcId === 열카드}
+            다시돌림={다시돌림?.get(c.tcId)}
+          />
         ))
       )}
 
@@ -123,6 +172,8 @@ function 카드({
   platform,
   권한,
   on남김,
+  열기,
+  다시돌림,
 }: {
   c: FailureCase;
   runId: number;
@@ -131,8 +182,17 @@ function 카드({
   platform: Platform | 'ALL';
   권한: 판정;
   on남김: () => void;
+  열기: boolean;
+  다시돌림: 다시돌린결과 | undefined;
 }) {
   const t = use말();
+  const 접이 = useRef<HTMLDetailsElement>(null);
+  // 펼친 채 열라고 온 카드는 한 번만 펴서 화면에 맞춘다. 그 뒤의 접고 펴기는 브라우저 몫이다
+  useEffect(() => {
+    if (!열기 || 접이.current === null) return;
+    접이.current.open = true;
+    접이.current.scrollIntoView?.({ block: 'start' });
+  }, [열기]);
   const 깨진 = new Set(c.devices.map((d) => d.platform));
   // 디바이스를 거른 동안에는 그 디바이스만 낸다. 깨진 디바이스는 서버가 카드에 안 실었어도 접힌 줄에 넣지 않는다 —
   // 실패가 「통과 · 미실행」 줄처럼 접혀 보이면 안 된다
@@ -152,7 +212,7 @@ function 카드({
   // 접고 펴는 것은 브라우저가 한다 — 화면이 상태를 들지 않는다. 쪽을 넘기면 다른 카드라 다시 접혀 선다 (실행 §8.3 「실패 카드는 접어 둔다」)
   return (
     <article className="fc-card">
-      <details className="fc-fold">
+      <details className="fc-fold" ref={접이}>
         <summary className="fc-sum">
           <div className="fc-head">
             <Verdict status="FAIL" />
@@ -160,6 +220,8 @@ function 카드({
             {/* 카드 하나의 유형은 디바이스 차례로 첫 깨진 디바이스의 처음 실패한 회차 것이다 — 서버가 그 차례로 싣는다 (실행 §8.3) */}
             <실패이유 failure={머리이유} />
             {머리변화 === null ? null : <span className="fc-tag">{머리변화}</span>}
+            <판정꼬리표 judgment={c.judgment} />
+            <다시돌림꼬리표 tcId={c.tcId} 결과={다시돌림} />
           </div>
           <h3 className="fc-name-h">{c.tcName}</h3>
           {미확정사유 === null ? null : (

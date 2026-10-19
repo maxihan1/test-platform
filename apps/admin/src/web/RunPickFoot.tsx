@@ -1,4 +1,4 @@
-// 실행 창 바닥 칸 — 반복 횟수 · 끝나면 Slack 으로 알리기 (도메인/실행 §8.2 · §8.10) · 고친 채 닫을 때 묻는 버튼 줄
+// 실행 창 바닥 칸 — 반복 횟수 · 끝나면 Slack 으로 알리기 · 건수 풀이 · 시험해 보기와 실행 버튼 (도메인/실행 §8.2 · §8.10) · 고친 채 닫을 때 묻는 버튼 줄
 // RunPickModal 이 300줄을 넘어 떼어 냈다 (2026-10-12 휴대폰 값 접기)
 
 import { useState } from 'react';
@@ -53,8 +53,11 @@ export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSla
     <div className="mfoot">
       <label htmlFor="pick-repeat">{t('반복')}</label>
       {/* 새로 쓴 테스트가 매번 같은 결과를 내는지 여러 번 돌려 본다 (SPEC §3.2 · §5.2) */}
+      {/* 숫자 칸이어도 상태는 글자 그대로다. 비웠다가 다시 치는 중의 빈 값이 1 로 되돌아가면 지울 수가 없다 */}
       <input
-        type="text"
+        type="number"
+        min={1}
+        step={1}
         id="pick-repeat"
         value={repeat}
         onChange={(e) => on반복(e.target.value)}
@@ -72,5 +75,53 @@ export function 반복과알림({ repeat, on반복, slack칸, notifySlack, onSla
         </label>
       )}
     </div>
+  );
+}
+
+/** 창 바닥 줄의 「실행 항목이 N건 생깁니다」. 곱셈 꼴로 풀어 어디서 나온 수인지 보인다 (도메인/실행 §8.2) */
+export function 건수풀이(
+  t: (키: string, 값?: Record<string, string | number>) => string,
+  재료: { 케이스: number; 디바이스: number | null; 디바이스합: number },
+  반복: number,
+  건수: number,
+): string {
+  return 재료.디바이스 === null
+    ? t('케이스 {케이스} (디바이스 합계 {합}) × 반복 {반복} = {건수}번', { 케이스: 재료.케이스, 합: 재료.디바이스합, 반복, 건수 })
+    : t('케이스 {케이스} × 디바이스 {디바이스} × 반복 {반복} = {건수}번', { 케이스: 재료.케이스, 디바이스: 재료.디바이스, 반복, 건수 });
+}
+
+/**
+ * 시험해 보기와 실행. 버튼 아래에 기록이 남는지를 화면 글자로 적는다 — 말풍선(title)만으로는 누르기 전에 못 읽는다.
+ * 설명은 버튼 밖에 둔다. 안에 넣으면 버튼 이름이 길어져 다른 자리가 이름으로 못 찾는다
+ */
+export function 실행버튼들({
+  on시험,
+  on실행,
+  실행막힘,
+  거는중,
+}: {
+  on시험: () => void;
+  on실행: () => void;
+  실행막힘: boolean;
+  거는중: boolean;
+}) {
+  const t = use말();
+  return (
+    <>
+      <span className="foot-act">
+        <button className="btn ghost" onClick={on시험}>
+          {t('▶ 시험해 보기')}
+        </button>
+        <span className="hint">{t('기록·증적이 남지 않습니다')}</span>
+      </span>
+      {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
+      {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
+      <span className="foot-act">
+        <button className="btn" onClick={on실행} disabled={실행막힘 || 거는중}>
+          {거는중 ? t('실행을 시작하는 중') : t('실행')}
+        </button>
+        <span className="hint">{t('기록이 남습니다')}</span>
+      </span>
+    </>
   );
 }

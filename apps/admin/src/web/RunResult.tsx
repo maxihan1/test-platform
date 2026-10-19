@@ -14,7 +14,7 @@ import { 시간글자, 실행남은글 } from './remainText.js';
 import { RunAbortModal } from './RunAbortModal.js';
 import { RunProgressModal } from './RunProgressModal.js';
 import { 실패다시실행 } from './RerunFailed.js';
-import { PAGE_SIZE, 끝난결과, 디바이스칩, 쪽넘김 } from './RunResultBody.js';
+import { PAGE_SIZE, 끝난결과, 디바이스칩, 실패먼저, 쪽넘김 } from './RunResultBody.js';
 import { 결과줄 } from './RunResultRow.js';
 import { 시작방식글 } from './RunListRow.js';
 import { ScenarioResult } from './ScenarioResult.js';
@@ -32,8 +32,11 @@ function 케이스결과({
   칸안 = false,
   on새실행,
   on시나리오,
+  열카드,
 }: {
   on시나리오?: () => void;
+  /** 이 케이스의 실패 카드를 펼친 채 연다 — 대시보드 · 항목 상세에서 곧장 내려온 주소(`&tc=`) */
+  열카드?: string;
   runId: number;
   판정하기: 판정하기;
   /**
@@ -106,7 +109,7 @@ function 케이스결과({
   if (run.error !== null) return <Failed error={run.error} />;
   if (data === null) return <Loading />;
 
-  const groups = filterGroups(groupByCase(data.items), status, device);
+  const groups = 실패먼저(filterGroups(groupByCase(data.items), status, device));
   const totalPages = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));
   const shownPage = Math.min(page, totalPages);
   const shown = groups.slice((shownPage - 1) * PAGE_SIZE, shownPage * PAGE_SIZE);
@@ -201,7 +204,7 @@ function 케이스결과({
           )}
             <증적만들기버튼들 칸={증적칸} />
             {running ? null : (
-              <실패다시실행 runId={data.runId} items={data.items} env={data.env} 된다={실행판정(판정하기, data)('실행')} on걸었다={on새실행} />
+              <실패다시실행 runId={data.runId} items={data.items} env={data.env} 시작={data.startedAt} 된다={실행판정(판정하기, data)('실행')} on걸었다={on새실행} />
             )}
           </div>
   );
@@ -271,6 +274,9 @@ function 케이스결과({
             <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={choose(setDevice)} />
           </div>
 
+          {/* 깨진 줄은 위로 올라와 있다. 카드는 끝나야 생기니 이유는 줄을 펼쳐 본다 (점검 2.21) */}
+          {fail === 0 ? null : <p className="hint">{t('도는 중에는 실패 카드가 없습니다 — 깨진 줄을 펼치면 이유를 볼 수 있습니다')}</p>}
+
           {/* 결과 칸에서는 이 자리만 스크롤한다 — 위 필터·증적 버튼은 고정이다 (2026-09-22 ②) */}
           {칸안 ? <div className="rows-scroll">{결과목록}</div> : 결과목록}
         </div>
@@ -287,6 +293,7 @@ function 케이스결과({
           on디바이스={choose(setDevice)}
           page={page}
           on쪽={setPage}
+          열카드={열카드}
         />
       )}
 

@@ -325,6 +325,55 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     expect(res.json().running).toEqual([]);
   });
 
+  it('GET /api/dashboard — service · days 가 틀리면 400 이고 받은 값을 돌려준다', async () => {
+    지금사람 = 사람(실행만);
+    for (const [쿼리, 받은값] of [
+      ['service=abc', 'abc'],
+      ['service=0', '0'],
+      ['service=', ''],
+      ['service=1&service=2', '1,2'],
+      ['days=10', '10'],
+      ['days=', ''],
+      ['days=7&days=14', '7,14'],
+    ] as const) {
+      for (const 더 of ['', '&only=running']) {
+        const res = await app.inject({ method: 'GET', url: `/api/dashboard?tz=Asia%2FSeoul&${쿼리}${더}` });
+        expect(res.statusCode, 쿼리 + 더).toBe(400);
+        expect(res.json(), 쿼리 + 더).toEqual({ error: 'INVALID_REQUEST', detail: 받은값 });
+      }
+    }
+  });
+
+  it('GET /api/dashboard — days 로 창 길이를 바꾸고, 안 보내면 14 이다', async () => {
+    지금사람 = 사람(실행만);
+    for (const [쿼리, 길이] of [['', 14], ['&days=7', 7], ['&days=14', 14], ['&days=30', 30]] as const) {
+      const res = await app.inject({ method: 'GET', url: `/api/dashboard?tz=Asia%2FSeoul${쿼리}` });
+      expect(res.statusCode, 쿼리).toBe(200);
+      expect(res.json().window.days, 쿼리).toBe(길이);
+      expect(res.json().daily, 쿼리).toHaveLength(길이);
+    }
+  });
+
+  it('GET /api/dashboard — service 로 좁혀도 services 는 볼 수 있는 전부이고, 남의 번호는 빈 데이터를 낸다', async () => {
+    지금사람 = 사람(실행만);
+    const 내것 = await app.inject({ method: 'GET', url: `/api/dashboard?tz=Asia%2FSeoul&service=${String(대시보드서비스)}` });
+    expect(내것.statusCode).toBe(200);
+    expect(내것.json().services).toEqual([{ id: 대시보드서비스, name: 'XDR 대시보드' }]);
+    expect(내것.json().running.map((r: { runId: number }) => r.runId)).toEqual([도는실행]);
+
+    const 남의 = await app.inject({ method: 'GET', url: `/api/dashboard?tz=Asia%2FSeoul&service=${String(대시보드서비스 + 999_999)}` });
+    expect(남의.statusCode).toBe(200);
+    expect(남의.json().running).toEqual([]);
+    expect(남의.json().byService).toEqual([]);
+    expect(남의.json().coverage).toEqual([]);
+
+    const 남의실행중 = await app.inject({
+      method: 'GET',
+      url: `/api/dashboard?tz=Asia%2FSeoul&only=running&service=${String(대시보드서비스 + 999_999)}`,
+    });
+    expect(남의실행중.json()).toEqual({ running: [] });
+  });
+
   it('GET /api/dashboard?only=running — running 한 칸만 낸다', async () => {
     지금사람 = 사람(실행만);
     const res = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul&only=running' });

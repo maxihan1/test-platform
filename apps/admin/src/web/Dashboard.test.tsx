@@ -135,7 +135,7 @@ describe('머리와 읽기', () => {
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('품질 현황');
     expect(await screen.findByText(/서비스 2개 · 최근 14일/)).toBeTruthy();
     expect(읽기).toHaveBeenCalledTimes(1);
-    expect(읽기).toHaveBeenCalledWith(시간대);
+    expect(읽기).toHaveBeenCalledWith(시간대, undefined, {});
   });
 
   it('읽는 동안 불러오는 중을 보인다 — 머리는 먼저 선다', async () => {
@@ -177,7 +177,8 @@ describe('실행 중 줄', () => {
     expect(await screen.findByText('실행 중 1건')).toBeTruthy();
     const 링크 = screen.getByRole('link', { name: /RUN 12/ });
     expect(링크.getAttribute('href')).toBe('#/runs/12');
-    expect(링크.textContent).toContain('ZDA 결제 · ZDA 점검 12');
+    expect(링크.textContent).toContain('ZDA 점검 12');
+    expect(링크.textContent).toContain('ZDA 결제 · RUN 12');
     expect(링크.textContent).toContain('3 / 8건');
     expect(링크.textContent).toContain('실패 1');
     expect(screen.getByText('실행 중 1건').querySelector('.pulse')).not.toBeNull();
@@ -200,9 +201,9 @@ describe('신규 실패 표', () => {
     const 줄들 = within(칸).getAllByRole('row');
     const 첫줄 = 줄들[1]!;
     expect(within(첫줄).getByText('ZDA-001')).toBeTruthy();
-    expect(within(첫줄).getByText('ZDA 결제')).toBeTruthy();
+    expect(within(첫줄).getByText('ZDA 결제 · qa')).toBeTruthy();
     const 이름 = within(첫줄).getByRole('link', { name: '카드로 결제한다' });
-    expect(이름.getAttribute('href')).toBe('#/runs/7');
+    expect(이름.getAttribute('href')).toBe('#/runs/fn?run=7&tc=ZDA-001');
     expect(이름.classList.contains('ink')).toBe(true);
     expect(within(첫줄).getByText('모바일')).toBeTruthy();
     expect(within(첫줄).getByText('RUN 7')).toBeTruthy();
@@ -344,7 +345,7 @@ describe('비어 있을 때', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     expect(await screen.findByText('아직 실행한 테스트가 없습니다')).toBeTruthy();
     expect(screen.getByText(/정기 실행/)).toBeTruthy();
-    expect(screen.getByRole('link', { name: '테스트 스크립트로 가기' }).getAttribute('href')).toBe('#/cases');
+    expect(screen.getByRole('link', { name: '케이스 보기' }).getAttribute('href')).toBe('#/cases');
     for (const 제목 of ['신규 실패', '통과율', '서비스별 품질', '일별 테스트 결과', '실패 히트맵', '요구사항 커버리지']) {
       expect(screen.queryByRole('heading', { name: 제목 })).toBeNull();
     }
@@ -352,11 +353,11 @@ describe('비어 있을 때', () => {
 });
 
 describe('케이스 자리가 없는 사람', () => {
-  it('빈 안내판에 「테스트 스크립트로 가기」 단추를 두지 않는다 — 눌러도 갈 자리가 없어 곧바로 되돌려졌다', async () => {
+  it('빈 안내판에 「케이스 보기」 단추를 두지 않는다 — 눌러도 갈 자리가 없어 곧바로 되돌려졌다', async () => {
     읽기를(응답({ passRate: { current: 건(0, 0, 0), previous: 건(0, 0, 0) }, newFailures: [], byService: [], unconfirmed: 0 }));
     render(<Dashboard 서비스열기={() => {}} {...기본재료} 케이스갈수있나={false} />);
     expect(await screen.findByText('아직 실행한 테스트가 없습니다')).toBeTruthy();
-    expect(screen.queryByRole('link', { name: '테스트 스크립트로 가기' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '케이스 보기' })).toBeNull();
   });
 });
 
@@ -403,7 +404,7 @@ describe('새로 고침', () => {
     expect(읽기).toHaveBeenCalledTimes(1);
     await 흘린다(15_000);
     expect(읽기).toHaveBeenCalledTimes(2);
-    expect(읽기).toHaveBeenLastCalledWith(시간대, 'running');
+    expect(읽기).toHaveBeenLastCalledWith(시간대, 'running', {});
     expect(screen.getByRole('link', { name: /RUN 12/ }).textContent).toContain('5 / 8건');
   });
 
@@ -423,7 +424,7 @@ describe('새로 고침', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await 흘린다(0);
     await 흘린다(15_000);
-    expect(읽기.mock.calls.map((인자) => 인자.length)).toEqual([1, 2, 1]);
+    expect(읽기.mock.calls.map((인자) => 인자[1] ?? 'all')).toEqual(['all', 'running', 'all']);
   });
 
   it('집계를 다시 받다 실패해도 다음 주기에 다시 받는다 — 도는 실행이 다 끝난 뒤라 타이머가 꺼져도 「끝났다」 신호를 잃지 않는다', async () => {
@@ -441,9 +442,9 @@ describe('새로 고침', () => {
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await 흘린다(0);
     await 흘린다(15_000);
-    expect(읽기.mock.calls.map((인자) => 인자.length)).toEqual([1, 2, 1]);
+    expect(읽기.mock.calls.map((인자) => 인자[1] ?? 'all')).toEqual(['all', 'running', 'all']);
     await 흘린다(15_000);
-    expect(읽기.mock.calls.map((인자) => 인자.length)).toEqual([1, 2, 1, 1]);
+    expect(읽기.mock.calls.map((인자) => 인자[1] ?? 'all')).toEqual(['all', 'running', 'all', 'all']);
     await 흘린다(0);
     expect(document.querySelector('.dash-big')!.textContent).toBe('95%');
     await 흘린다(30_000);

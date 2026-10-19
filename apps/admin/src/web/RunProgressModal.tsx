@@ -182,15 +182,22 @@ function 진행내용({ data, 진행목록, 남은ms }: { data: RunDetail; 진�
  * 접는 규칙은 목록과 같은 `회차요약()` 이다 — SPEC §8.3 이 「케이스 1건 = 1행」으로 정했고
  * 바로 아래 결과 목록이 이미 그 규칙으로 그린다. **한 화면이 같은 것을 두 단위로 말하면 안 된다.**
  */
-function 실패한케이스들(items: RunItemSummary[]): { tcId: string; tcName: string }[] {
+function 실패한케이스들(items: RunItemSummary[]): { tcId: string; tcName: string; historyId: number }[] {
   return groupByCase(items)
     .filter((묶음) =>
       Object.values(묶음.byPlatform).some((칸) => 칸 !== undefined && 칸.length > 0 && 회차요약(칸).status === 'FAIL'),
     )
-    .map((묶음) => ({ tcId: 묶음.tcId, tcName: 묶음.tcName }));
+    .flatMap((묶음) => {
+      // 누르면 깨진 회차의 상세로 간다 (점검 5.3). 가장 먼저 돌린 깨진 회차다
+      const 깨진 = Object.values(묶음.byPlatform)
+        .flat()
+        .filter((it): it is RunItemSummary => it !== undefined && it.status === 'FAIL')
+        .sort((a, b) => a.historyId - b.historyId)[0];
+      return 깨진 === undefined ? [] : [{ tcId: 묶음.tcId, tcName: 묶음.tcName, historyId: 깨진.historyId }];
+    });
 }
 
-function 완료내용({ data }: { data: RunDetail }) {
+function 완료내용({ data, onClose }: { data: RunDetail; onClose: () => void }) {
   const t말 = use말();
   const 언어 = use언어();
   const 칸들 = 막대칸들({ 통과: data.counts.pass, 실패: data.counts.fail, 미실행: data.counts.na, 남은것: 0 }, 언어).filter(
@@ -209,9 +216,12 @@ function 완료내용({ data }: { data: RunDetail }) {
         <div>
           {/* 숫자만 보여주면 사람이 결국 목록을 뒤져야 한다 (SPEC §8.9) */}
           <div className="sec-h">{t말('실패한 케이스')}</div>
+          {/* 눌러도 아무 일 없던 줄이다 — 그 케이스의 깨진 항목 상세로 간다. 상자는 닫아 「봤다」로 적는다 */}
           {실패목록.slice(0, 실패목록최대).map((것) => (
             <div className="pre" key={것.tcId}>
-              {것.tcId} {것.tcName}
+              <a href={`#/runs/${String(data.runId)}/items/${String(것.historyId)}`} onClick={onClose}>
+                {것.tcId} {것.tcName}
+              </a>
             </div>
           ))}
           {실패목록.length <= 실패목록최대 ? null : (
@@ -260,7 +270,7 @@ export function RunProgressModal({
         </button>
       }
     >
-      {도는가 ? <진행내용 data={data} 진행목록={진행목록} 남은ms={남은ms} /> : <완료내용 data={data} />}
+      {도는가 ? <진행내용 data={data} 진행목록={진행목록} 남은ms={남은ms} /> : <완료내용 data={data} onClose={onClose} />}
     </Modal>
   );
 }

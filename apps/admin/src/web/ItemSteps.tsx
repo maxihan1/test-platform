@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { api, type StepResult } from './api.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { 원문보기 } from './FailureWhy.js';
-import { useAsync, Verdict } from './ui.js';
+import { seconds, useAsync, Verdict } from './ui.js';
 
 export const MARK = { PASS: '✓', FAIL: '✗', NA: '–' } as const;
 
@@ -51,7 +51,7 @@ export function Step({ step, tcId, runId, historyId, 코드 = true, 화면 = tru
       <div className="step-h">
         <span className="step-n">{step.seq}</span>
         <span className="step-t">{step.title}</span>
-        <span className="dur">{step.durationMs}ms</span>
+        <span className="dur">{seconds(step.durationMs, 언어)}</span>
         <Verdict status={step.status} />
       </div>
 

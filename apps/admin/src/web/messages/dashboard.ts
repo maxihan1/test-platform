@@ -5,6 +5,9 @@ export const 대시보드말: Record<string, string> = {
   // 머리와 읽기
   '품질 현황': 'Quality overview',
   '서비스 {수}개 · 최근 {일}일 · {날짜} 기준': '{수} services · last {일} days · as of {날짜}',
+  '{이름} · 최근 {일}일 · {날짜} 기준': '{이름} · last {일} days · as of {날짜}',
+  '전체 서비스': 'All services',
+  '최근 {일}일': 'Last {일} days',
   '이 브라우저의 시간대 「{시간대}」를 서버가 알아보지 못해 현황을 불러오지 못했습니다':
     'The server does not recognize this browser’s time zone “{시간대}”, so the overview could not be loaded',
 
@@ -17,6 +20,8 @@ export const 대시보드말: Record<string, string> = {
   '신규 실패': 'New failures',
   '최근 {일}일, 같은 서버의 직전 실행과 견줌': 'Last {일} days, compared with the previous run on the same server',
   '새 실패가 없습니다': 'No new failures',
+  '{수}건 더 있습니다': '{수} more',
+  '실행 기록에서 보기': 'View in run history',
   '견줄 앞 실행이 없습니다': 'No earlier run to compare with',
 
   // 통과율
@@ -79,6 +84,7 @@ export const 대시보드말: Record<string, string> = {
   '기능 · UI 를 나누기 전에 작성한 서비스 {수}개는 게이지에 넣지 않았습니다':
     '{수} services authored before the functional / UI split are left out of the gauges',
   '{날짜} · 요청 #{번호}': '{날짜} · request #{번호}',
+  '테스트 없는 요구 {수}건 보기': 'View {수} requirements without tests',
   '작성 기록이 없습니다': 'No authoring run yet',
 
   // 실패 유형
@@ -94,7 +100,7 @@ export const 대시보드말: Record<string, string> = {
   '화면에서 버튼 · 입력 칸을 끝내 찾지 못함': 'A button or input never appeared on the screen',
   '제한 시간 안에 끝나지 않음': 'Did not finish within the time limit',
   '대상 서버 · 러너에 닿지 못하거나 러너가 거절함': 'Could not reach the target server or runner, or the runner refused',
-  '스크립트 오류 등 위 넷이 아닌 것': 'Script errors and anything not in the four above',
+  '위 넷에 들지 않는 그 밖의 오류': 'Any other error not in the four above',
   '실행이 멈춰 돌지 못한 {수}건은 세지 않았습니다': '{수} tests that did not run because the run was stopped are not counted',
 
   // 실행 0
@@ -102,7 +108,7 @@ export const 대시보드말: Record<string, string> = {
   '테스트 스크립트를 실행하면 여기에 통과율 · 신규 실패 · 일별 결과가 쌓입니다': 'Run test scripts and the pass rate, new failures and daily results build up here',
   '하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다': 'Turn on a daily scheduled run and results build up into a trend',
   '설정에서 정기 실행 켜기': 'Turn on scheduled runs in Settings',
-  '테스트 스크립트로 가기': 'Go to test scripts',
+  '케이스 보기': 'View cases',
 
   // 실패 이유 읽기 (2026-10-19 ⑫-3 · 도메인/실행 §8.3)
   '테스트와 실패 유형': 'Test and failure type',

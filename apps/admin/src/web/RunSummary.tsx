@@ -1,9 +1,12 @@
 // 결과 화면 맨 위 요약 띠 — 통과율 도넛 · 실패 수 · 판정별 보기 · 직전 실행 대비 (도메인/실행 §8.3)
 
-import type { ItemStatus, RunCounts, RunInsights } from './api.js';
+import { useState } from 'react';
+
+import type { ItemStatus, RunCounts, RunInsights, RunItemSummary } from './api.js';
 import { 도넛조각 } from './dashboardView.js';
 import { use말, use언어 } from './i18n.js';
 import { 해결목록 } from './RunInsights.js';
+import { 빠진목록 } from './RunMissing.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
 // 큰 숫자는 케이스 수로 맞춘다 — 「실패 N건」 · 실패 카드 수 · 「실패 N건 다시 실행」과 같은 단위다. 디바이스로 갈라 세면 한 화면에 단위가 셋이 됐다 (점검 2.15)
@@ -14,12 +17,17 @@ const 칸수 = (insights: RunInsights, 판정: '새로깨짐' | '계속깨짐' |
  * 그리기만 한다. 견줌 자료는 부르는 쪽이 들고 온다 — null 이면 아직 못 받았거나 견줄 앞이 없는 것이라 대비 칸을 통째로 뺀다.
  * 통과율은 미확정까지 모든 항목을 센다. 미확정은 「그중 N건」 한 줄로만 알린다 (§3.2).
  */
+export type 변화칸 = '새로깨짐' | '계속깨짐';
+
 export function RunSummary({
   counts,
   실패케이스수,
   insights,
   판정,
   on판정,
+  변화 = null,
+  on변화,
+  항목들 = [],
 }: {
   counts: RunCounts;
   /** 한 번이라도 실패한 케이스 수 — 디바이스 · 회차를 접는다 */
@@ -27,8 +35,14 @@ export function RunSummary({
   insights: RunInsights | null;
   판정: ItemStatus | 'ALL';
   on판정: (v: ItemStatus | 'ALL') => void;
+  /** 직전 대비 칸을 눌러 건 거르개 — 「신규 실패」 · 「연속 실패」가 실패 카드를 그 변화만 남긴다 (점검 2.20) */
+  변화?: 변화칸 | null;
+  on변화?: (v: 변화칸 | null) => void;
+  /** 이번 실행의 항목 — 「이번에 실행되지 않은 케이스」 목록이 직전 실행과 맞대 본다 */
+  항목들?: RunItemSummary[];
 }) {
   const t = use말();
+  const [해결열림, set해결열림] = useState(false);
   const 언어 = use언어();
   const 전체 = counts.pass + counts.fail + counts.na;
   const 조각들 = 도넛조각({ pass: counts.pass, fail: counts.fail, notRun: counts.na });
@@ -129,30 +143,45 @@ export function RunSummary({
               {직전뒤}
             </span>
             <div className="rs-stats">
-              <div className="rs-stat">
+              {/* 숫자를 누르면 그 케이스로 간다 — 눌러도 아무 일 없던 숫자였다 (점검 2.20). 신규 · 연속은 실패 카드를 거르고 해결은 아래 목록을 편다 */}
+              <button
+                type="button"
+                className="rs-stat"
+                aria-pressed={변화 === '새로깨짐'}
+                disabled={칸수(insights, '새로깨짐') === 0 || on변화 === undefined}
+                onClick={() => on변화?.(변화 === '새로깨짐' ? null : '새로깨짐')}
+              >
                 <span className="rs-k f">{t('신규 실패')}</span>
                 <span className="rs-n num">{칸수(insights, '새로깨짐')}</span>
-              </div>
-              <div className="rs-stat">
+              </button>
+              <button
+                type="button"
+                className="rs-stat"
+                aria-pressed={변화 === '계속깨짐'}
+                disabled={칸수(insights, '계속깨짐') === 0 || on변화 === undefined}
+                onClick={() => on변화?.(변화 === '계속깨짐' ? null : '계속깨짐')}
+              >
                 <span className="rs-k">{t('연속 실패')}</span>
                 <span className="rs-n num">{칸수(insights, '계속깨짐')}</span>
-              </div>
-              <div className="rs-stat">
+              </button>
+              <button
+                type="button"
+                className="rs-stat"
+                aria-pressed={해결열림}
+                disabled={칸수(insights, '고쳐짐') === 0}
+                onClick={() => set해결열림(!해결열림)}
+              >
                 <span className="rs-k p">{t('해결')}</span>
                 <span className="rs-n num">{칸수(insights, '고쳐짐')}</span>
-              </div>
+              </button>
             </div>
             {/* 주소를 바꿨다는 사실은 접거나 숨기지 않는다 — 다른 서버에서 돈 결과를 같은 조건으로 읽게 된다 (SPEC §6) */}
             {!insights.주소바뀜 ? null : (
               <span className="rs-note na">{t('직전 실행은 다른 주소에서 실행됐습니다')}</span>
             )}
-            {insights.빠진건수 === 0 ? null : (
-              <span className="rs-note">
-                {t('직전 실행에 있었으나 이번에 실행되지 않은 케이스 {건수}건', { 건수: insights.빠진건수 })}
-              </span>
-            )}
+            {insights.빠진건수 === 0 ? null : <빠진목록 앞={앞.runId} 이번={항목들} 건수={insights.빠진건수} />}
             {/* 무엇이 고쳐졌는지는 수 아래 접어 둔다 — 앞 판은 옆 칸에 따로 섰다 (2026-10-19 ⑫) */}
-            <해결목록 insights={insights} />
+            <해결목록 insights={insights} 열림={해결열림} on토글={set해결열림} />
           </div>
         )}
       </div>

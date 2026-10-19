@@ -3,7 +3,7 @@
 import { vi } from 'vitest';
 import { act, render } from '@testing-library/react';
 
-import { api, type CaseRow, type ServiceRow, type User } from './api.js';
+import { api, type CaseRow, type ParamSetRow, type ServiceRow, type User } from './api.js';
 import { RunPickModal } from './RunPickModal.js';
 
 export const 케이스: CaseRow = {
@@ -60,13 +60,17 @@ export const 저장값케이스: CaseRow = {
   savedInput: { params: { userId: 'user1' }, expected: {}, savedSecrets: { params: ['password'], expected: [] }, savedBy: '맥시', savedAt: '2026-09-29T05:02:00.000Z' },
 };
 
-export async function 그린다(row: CaseRow = 케이스, 누구: User = 사람, 덮어쓸: { 초기서버?: string } = {}) {
+/** 입력값 칸은 있고 저장값은 없는 케이스 */
+export const 값케이스: CaseRow = { ...케이스, paramSchema: 저장값케이스.paramSchema };
+
+export async function 그린다(row: CaseRow = 케이스, 누구: User = 사람, 덮어쓸: { 초기서버?: string; 묶음?: ParamSetRow[] } = {}) {
   // 앞 검사가 고른 대상 서버가 브라우저에 남아 다음 창을 미리 고르지 않게 한다
   localStorage.clear();
-  vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+  const { 묶음 = [], ...속성 } = 덮어쓸;
+  vi.spyOn(api, 'paramSets').mockResolvedValue({ items: 묶음 });
   const onRun = vi.fn();
   const on다시읽기 = vi.fn();
-  render(<RunPickModal 케이스들={[row]} service={서비스} user={누구} onRun={onRun} on다시읽기={on다시읽기} onClose={vi.fn()} {...덮어쓸} />);
+  render(<RunPickModal 케이스들={[row]} service={서비스} user={누구} onRun={onRun} on다시읽기={on다시읽기} onClose={vi.fn()} {...속성} />);
   await act(async () => {});
   return { onRun, on다시읽기 };
 }

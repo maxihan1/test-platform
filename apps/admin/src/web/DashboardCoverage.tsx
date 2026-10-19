@@ -2,6 +2,7 @@
 
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { use올라가기 } from './dashboardView.js';
+import { 서비스를열며 } from './DashboardPick.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 
 type 자료 = 대시보드응답;
@@ -115,18 +116,17 @@ export function 요구커버리지({
           <div key={서비스.id} className="dash-cov-row">
             <span className="dash-cov-name">
               <span>{서비스.이름}</span>
-              {/* 작성 상세는 고른 서비스로 요청을 연다. 대시보드엔 고르개가 없어 누를 때 그 서비스로 바꾼다 */}
-              {/* 가운데 버튼 · 새 탭은 click 이 아니라 auxclick 이다. 새 탭은 저장된 고른 서비스를 읽으므로 그 전에 바꿔 둔다 */}
-              <a
-                href={`#/authoring/${String(줄.requestId)}`}
-                onClick={() => 서비스열기(줄.serviceId)}
-                onAuxClick={(e) => {
-                  // 가운데 버튼(새 탭)만 — 오른쪽 단추는 주소 복사 메뉴라 서비스를 바꾸면 사람이 모르게 바뀐다
-                  if (e.button === 1) 서비스열기(줄.serviceId);
-                }}
-              >
-                {t('{날짜} · 요청 #{번호}', { 날짜: 짧은날짜(줄.finishedAt, 언어), 번호: 줄.requestId })}
-              </a>
+              {/* 「PRD 관리」는 고른 서비스 것만 보여 누를 때 그 서비스로 바꾼다. 수는 게이지 「테스트 있는 요구」의 나머지다 */}
+              {줄.total > 줄.cased ? (
+                <a
+                  className="dash-link"
+                  href="#/prd"
+                  title={t('{날짜} · 요청 #{번호}', { 날짜: 짧은날짜(줄.finishedAt, 언어), 번호: 줄.requestId })}
+                  {...서비스를열며(서비스열기, 줄.serviceId)}
+                >
+                  {t('테스트 없는 요구 {수}건 보기', { 수: 줄.total - 줄.cased })}
+                </a>
+              ) : null}
             </span>
             <span className="dash-cov-pairs">
               {(갈래있나(줄) ? 갈래들 : 전체만).map((갈래) => {

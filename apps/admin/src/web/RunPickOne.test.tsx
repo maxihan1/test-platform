@@ -72,7 +72,7 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
     fireEvent.change(screen.getByLabelText('반복'), { target: { value: '5000' } });
 
     expect(실행버튼().disabled).toBe(false);
-    expect(줄().textContent).toBe('실행 항목이 5000건 생깁니다');
+    expect(줄().textContent).toBe('케이스 1 × 디바이스 1 × 반복 5000 = 5000번');
     fireEvent.click(실행버튼());
     expect(onRun).toHaveBeenCalledTimes(1);
   });
@@ -136,7 +136,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     const { onRun } = await 그린다({ ...케이스, platforms: ['android'] });
     서버고르기();
 
-    expect(screen.getByText('실행 위치')).toBeTruthy();
+    expect(screen.getByText('실행 위치 · 로컬')).toBeTruthy();
     fireEvent.click(실행버튼());
 
     expect(onRun.mock.calls[0]?.[0].location).toBe('local');
@@ -148,7 +148,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
 
     fireEvent.click(실행버튼());
 
-    expect(screen.queryByText('실행 위치')).toBeNull();
+    expect(screen.queryByText(/실행 위치/)).toBeNull();
     expect(onRun.mock.calls[0]?.[0].location).toBeUndefined();
   });
 });
@@ -173,7 +173,7 @@ describe('한 건 창 — 고친 칸 검사', () => {
     서버고르기();
 
     fireEvent.change(screen.getByLabelText('개수'), { target: { value: 'abc' } });
-    fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '▶ 시험해 보기' }));
 
     expect(시작).not.toHaveBeenCalled();
     expect(줄().textContent).toBe('입력값이 명세와 맞지 않습니다.');

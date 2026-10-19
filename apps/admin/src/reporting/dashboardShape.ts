@@ -6,7 +6,9 @@ import { 판정표, type 변화 as 판정변화 } from './insights.js';
 
 export { 히트맵케이스수, type 히트맵줄 } from './dashboardHeat.js';
 
+/** 창 길이 기본값. 부르는 쪽이 `days` 로 7 · 14 · 30 중 고르면 `허용날수` 안에서 바뀐다 */
 export const 창날수 = 14;
+export const 허용날수: readonly number[] = [7, 14, 30];
 /** 커버리지 추이를 보는 날 수. 질의(할 일 4)가 쓰고 여기서는 값만 둔다 */
 export const 커버리지날수 = 30;
 export const 신규실패상한 = 10;
@@ -116,9 +118,15 @@ function 더한다(셈값: 셈, verdict: 접힌판정): void {
   else 셈값.미실행 += 1;
 }
 
-export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number, 앞판정[]>, 오늘: string, 서비스들: { id: number; name: string }[] = []): 집계 {
-  const 이번시작 = 날짜더하기(오늘, -(창날수 - 1));
-  const 직전시작 = 날짜더하기(오늘, -(창날수 * 2 - 1));
+export function 대시보드집계(
+  줄들: 접은줄[],
+  앞판정들: Map<number, 앞판정[]>,
+  오늘: string,
+  서비스들: { id: number; name: string }[] = [],
+  날수: number = 창날수,
+): 집계 {
+  const 이번시작 = 날짜더하기(오늘, -(날수 - 1));
+  const 직전시작 = 날짜더하기(오늘, -(날수 * 2 - 1));
   // 'YYYY-MM-DD' 는 글자 순서가 곧 날짜 순서다
   const 이번창 = (day: string): boolean => day >= 이번시작 && day <= 오늘;
   const 직전창 = (day: string): boolean => day >= 직전시작 && day < 이번시작;
@@ -127,7 +135,7 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
   const 직전 = 빈셈();
   let 미확정건수 = 0;
   const 일별 = new Map<string, 일별칸>();
-  for (let i = 0; i < 창날수; i += 1) {
+  for (let i = 0; i < 날수; i += 1) {
     const day = 날짜더하기(이번시작, i);
     일별.set(day, { day, ...빈셈() });
   }
@@ -187,7 +195,7 @@ export function 대시보드집계(줄들: 접은줄[], 앞판정들: Map<number
     일별: [...일별.values()],
     서비스별,
     신규실패: 신규전부.slice(0, 신규실패상한),
-    히트맵: 히트맵을만든다(줄들, Array.from({ length: 창날수 }, (_, i) => 날짜더하기(이번시작, i)), 이번창),
+    히트맵: 히트맵을만든다(줄들, Array.from({ length: 날수 }, (_, i) => 날짜더하기(이번시작, i)), 이번창),
     실패유형: 유형을센다(줄들.filter((줄) => 이번창(줄.day))),
   };
 }

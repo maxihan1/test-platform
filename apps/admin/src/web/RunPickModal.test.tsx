@@ -165,7 +165,29 @@ describe('RunPickModal', () => {
   it('실행 항목 수는 디바이스 수가 다른 케이스들에서도 합이다', () => {
     // 둘짜리 하나 + 하나짜리 하나 = 3건. 곱셈이면 2나 4가 나온다
     그리기();
-    expect(줄().textContent).toContain('실행 항목이 3건 생깁니다');
+    expect(줄().textContent).toBe('케이스 2 (디바이스 합계 3) × 반복 1 = 3번');
+  });
+
+  it('디바이스 수가 모두 같으면 케이스 × 디바이스 × 반복 곱셈으로 풀어 쓴다', () => {
+    그리기([값있는케이스, 케이스('ZPM-003', ['desktop'], 빈스키마)]);
+    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '3' } });
+    expect(줄().textContent).toBe('케이스 2 × 디바이스 1 × 반복 3 = 6번');
+  });
+
+  it('반복 칸은 1 이상 정수를 받는 숫자 칸이다', () => {
+    그리기();
+    const 칸 = screen.getByLabelText('반복') as HTMLInputElement;
+    expect(칸.type).toBe('number');
+    expect(칸.min).toBe('1');
+  });
+
+  it('소수를 적어도 화면 건수와 보내는 반복이 같은 정수다', () => {
+    const { onRun } = 그리기([값있는케이스]);
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
+    fireEvent.change(screen.getByLabelText('반복'), { target: { value: '2.7' } });
+    expect(줄().textContent).toBe('케이스 1 × 디바이스 1 × 반복 2 = 2번');
+    fireEvent.click(실행버튼());
+    expect(onRun.mock.calls[0]?.[0].repeat).toBe(2);
   });
 
   it('상한을 넘으면 실행이 막히고 이유가 화면 줄로 뜬다', () => {
@@ -214,7 +236,7 @@ describe('RunPickModal', () => {
 
 // 여러 건 「테스트 실행」 — 기록 없이 내 컴퓨터 러너로 한 건씩 차례로 (2026-09-30)
 describe('RunPickModal 테스트 실행', () => {
-  const 테스트버튼 = () => screen.getByRole('button', { name: '▶ 테스트 실행' });
+  const 테스트버튼 = () => screen.getByRole('button', { name: '▶ 시험해 보기' });
   const 주소칸 = () => screen.getByLabelText('열 주소') as HTMLInputElement;
 
   function 서버모킹() {
@@ -282,5 +304,27 @@ describe('RunPickModal 테스트 실행', () => {
   it('기록에 남지 않는다는 안내가 보인다', () => {
     그리기();
     expect(screen.getByText('실행 기록에 남지 않습니다 · 24시간 뒤 사라집니다')).toBeTruthy();
+  });
+
+  it('열 주소 칸은 접힌 「고급」 안에 있고 처음엔 접혀 있다', () => {
+    그리기();
+    const 고급 = 주소칸().closest('details')!;
+    expect(고급.open).toBe(false);
+    expect(고급.querySelector('summary')?.textContent).toBe('고급 · 시험해 보기 설정');
+  });
+
+  it('주소가 틀려 막히면 접힌 칸이 저절로 펴져 사유가 보인다', () => {
+    서버모킹();
+    그리기();
+    fireEvent.change(주소칸(), { target: { value: 'file:///etc/passwd' } });
+    fireEvent.click(테스트버튼());
+    expect(주소칸().closest('details')!.open).toBe(true);
+  });
+
+  it('시험해 보기에는 기록 · 증적이 남지 않는다고, 실행 곁에는 기록이 남는다고 화면 글자로 적는다', () => {
+    그리기();
+    expect(screen.getByText('기록·증적이 남지 않습니다')).toBeTruthy();
+    expect(screen.getByText('기록이 남습니다')).toBeTruthy();
+    expect(테스트버튼().hasAttribute('title')).toBe(false);
   });
 });

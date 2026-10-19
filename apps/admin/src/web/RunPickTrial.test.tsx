@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 실행 창의 「▶ 테스트 실행」 조각 — 열 주소 기본값 · 결과 배지 · 한 건 창의 절차 목록 (도메인/실행 §8.10)
+// 실행 창의 「▶ 시험해 보기」 조각 — 열 주소 기본값 · 결과 배지 · 한 건 창의 절차 목록 (도메인/실행 §8.10)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -62,7 +62,7 @@ describe('한 건 창의 테스트 실행', () => {
     await 그린다();
 
     fireEvent.change(screen.getByLabelText('열 주소'), { target: { value: 'http://localhost:3002' } });
-    fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '▶ 시험해 보기' }));
 
     await waitFor(() => expect(document.querySelector('.trial-steps')).not.toBeNull(), { timeout: 5000 });
     expect(screen.getByText('로그인한다')).toBeTruthy();
@@ -76,7 +76,7 @@ describe('한 건 창의 테스트 실행', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
     fireEvent.click(screen.getByRole('checkbox', { name: '모바일' }));
-    fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '▶ 시험해 보기' }));
 
     expect(시작).not.toHaveBeenCalled();
     expect(screen.getByRole('status').textContent).toBe('실행할 디바이스를 하나 이상 고르세요.');
@@ -89,7 +89,7 @@ describe('한 건 창의 테스트 실행', () => {
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'PC' }));
     fireEvent.change(screen.getByLabelText('열 주소'), { target: { value: 'http://localhost:3002' } });
-    fireEvent.click(screen.getByRole('button', { name: '▶ 테스트 실행' }));
+    fireEvent.click(screen.getByRole('button', { name: '▶ 시험해 보기' }));
 
     await waitFor(() => expect(시작).toHaveBeenCalledTimes(1));
     expect(시작.mock.calls[0]?.[1]).toMatchObject({ platform: 'mobile' });

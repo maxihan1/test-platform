@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type CaseRow, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
-import { 실패다시실행, 실패케이스들 } from './RerunFailed.js';
+import { 실패다시실행, 실패디바이스, 실패케이스들 } from './RerunFailed.js';
 import { 사람 } from './runPick.fixture.js';
 
 afterEach(() => {
@@ -61,6 +61,21 @@ describe('실패케이스들', () => {
 
   it('실패가 없으면 빈 목록이다', () => {
     expect(실패케이스들([항목('ZRS-001', 'PASS'), 항목('ZRS-002', 'NA')])).toEqual([]);
+  });
+});
+
+describe('실패디바이스', () => {
+  it('케이스마다 실패한 디바이스만, 중복 없이 모은다', () => {
+    const items = [
+      항목('ZRS-001', 'PASS', 'desktop'),
+      항목('ZRS-001', 'FAIL', 'mobile'),
+      항목('ZRS-001', 'FAIL', 'mobile'),
+      항목('ZRS-002', 'FAIL', 'desktop'),
+      항목('ZRS-002', 'FAIL', 'mobile'),
+      항목('ZRS-003', 'NA', 'desktop'),
+    ];
+
+    expect(실패디바이스(items)).toEqual({ 'ZRS-001': ['mobile'], 'ZRS-002': ['desktop', 'mobile'] });
   });
 });
 
@@ -125,5 +140,38 @@ describe('실패다시실행', () => {
     fireEvent.click(screen.getByRole('button', { name: '취소' }));
 
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('통과한 디바이스는 담지 않는다 — 걸면 실패한 디바이스만 보낸다 (도메인/실행 §8.3 · 점검 2.16)', async () => {
+    vi.spyOn(api, 'caseOf').mockImplementation((tcId) => Promise.resolve({ ...케이스(tcId), platforms: ['desktop', 'mobile'] }));
+    vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 20915 });
+    const 일부만 = [항목('ZRS-001', 'PASS', 'desktop'), 항목('ZRS-001', 'FAIL', 'mobile'), 항목('ZRS-002', 'FAIL', 'desktop'), 항목('ZRS-002', 'FAIL', 'mobile')];
+    render(<실패다시실행 runId={20914} items={일부만} env="stage" 된다 on걸었다={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
+    await screen.findByRole('dialog');
+
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+
+    await waitFor(() => expect(만들기).toHaveBeenCalled());
+    expect(만들기.mock.calls[0]?.[0].items.map((it) => [it.tcId, it.platforms])).toEqual([
+      ['ZRS-001', ['mobile']],
+      ['ZRS-002', ['desktop', 'mobile']],
+    ]);
+  });
+
+  it('그 실행이 시작된 뒤 저장값이 바뀐 케이스는 창 위에 알린다', async () => {
+    const 저장 = (savedAt: string) => ({ params: {}, expected: {}, savedSecrets: { params: [], expected: [] }, savedBy: 'kim', savedAt });
+    vi.spyOn(api, 'caseOf').mockImplementation((tcId) =>
+      Promise.resolve({ ...케이스(tcId), savedInput: 저장(tcId === 'ZRS-001' ? '2026-09-22T00:00:00.000Z' : '2026-09-20T00:00:00.000Z') }),
+    );
+    vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    render(<실패다시실행 runId={20914} items={실패둘} env="qa" 시작="2026-09-21T00:00:00.000Z" 된다 />);
+
+    fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
+
+    expect(await screen.findByText('실행 뒤에 저장값이 바뀐 케이스 ZRS-001 — 실패 때와 다른 값으로 돕니다')).toBeTruthy();
   });
 });

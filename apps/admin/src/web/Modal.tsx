@@ -18,6 +18,9 @@ interface Props {
   바깥눌러닫기?: boolean;
 }
 
+/** 열려 있는 상자들, 나중에 열린 것이 뒤. Esc 한 번이 겹친 상자를 한꺼번에 닫지 않게 맨 위만 반응하려고 둔다 */
+const 열린상자들: symbol[] = [];
+
 /** 포커스를 가둘 때 훑을 것들 */
 const 포커스가능 = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
@@ -25,12 +28,16 @@ export function Modal({ 제목, onClose, children, 버튼, 넓게 = false, 바�
   const 상자 = useRef<HTMLDivElement>(null);
   // 닫으면 열기 전 있던 자리로 돌려준다 (DESIGN.md)
   const 열기전 = useRef<Element | null>(null);
+  const 나 = useRef(Symbol('modal'));
 
   useEffect(() => {
     열기전.current = document.activeElement;
     상자.current?.querySelector<HTMLElement>(포커스가능)?.focus();
+    const 내표 = 나.current;
+    열린상자들.push(내표);
 
     return () => {
+      열린상자들.splice(열린상자들.indexOf(내표), 1);
       if (열기전.current instanceof HTMLElement) 열기전.current.focus();
     };
   }, []);
@@ -39,7 +46,7 @@ export function Modal({ 제목, onClose, children, 버튼, 넓게 = false, 바�
     function 눌림(e: KeyboardEvent) {
       // 닫는 길 셋 중 하나 (DESIGN.md)
       if (e.key === 'Escape') {
-        onClose();
+        if (열린상자들[열린상자들.length - 1] === 나.current) onClose();
         return;
       }
       if (e.key !== 'Tab') return;

@@ -1,4 +1,4 @@
-// 실행 창의 「테스트 실행」 조각 — 열 주소 칸과 케이스 줄마다 붙는 결과 배지 (도메인/실행 §8.10)
+// 실행 창의 「시험해 보기」 조각 — 열 주소 칸과 케이스 줄마다 붙는 결과 배지 (도메인/실행 §8.10)
 // 한 건 · 여러 건이 같은 큐(useTrialQueue)로 돈다. 한 건짜리 화면의 따로 된 조각(TestRun)은 2026-10-09 에 합쳤다
 
 import { useEffect, useState } from 'react';
@@ -21,7 +21,7 @@ export function 열주소기본값(주소: string | null): string {
 }
 
 /**
- * 실행 창의 「▶ 테스트 실행」 상태와 동작을 한 벌로 든다. 열 주소는 대상 서버 주소가 기본이고 사람이 고치면 그 값이다.
+ * 실행 창의 「▶ 시험해 보기」 상태와 동작을 한 벌로 든다. 열 주소는 대상 서버 주소가 기본이고 사람이 고치면 그 값이다.
  * `알림` 은 창의 한 줄이다 — 도는 중에 또 누른 말은 큐가 끝나면 걷는다. 안 걷으면 건수 안내를 계속 가린다
  */
 export function use여러건시험(옵션: {
@@ -62,7 +62,10 @@ export function use여러건시험(옵션: {
   };
 }
 
-/** 브라우저를 여는 주소. 대상 서버 주소가 기본이고 사람이 고칠 수 있다. 기록에 안 남는다는 말이 늘 붙는다 */
+/**
+ * 브라우저를 여는 주소. 대상 서버 주소가 기본이고 사람이 고칠 수 있다. 기록에 안 남는다는 말이 늘 붙는다.
+ * 개발자가 아니면 건드릴 일이 없는 칸이라 접어 둔다 — 주소가 틀려 시험이 막히면(오류) 저절로 펴서 사유를 보인다
+ */
 export function 열주소칸({
   값,
   오류,
@@ -73,14 +76,22 @@ export function 열주소칸({
   onChange: (값: string) => void;
 }) {
   const t = use말();
+  const [열림, set열림] = useState(false);
+  // 오류가 걷혀도(고치는 중) 닫지 않는다. 치는 도중 칸이 접히면 못 친다
+  useEffect(() => {
+    if (오류) set열림(true);
+  }, [오류]);
 
   return (
-    <div className="mhead trialurl">
-      <label htmlFor="pick-trial-url">{t('열 주소')}</label>
-      <input id="pick-trial-url" type="text" value={값} onChange={(e) => onChange(e.target.value)} />
-      <span className="hint">{t('실행 기록에 남지 않습니다 · 24시간 뒤 사라집니다')}</span>
-      {오류 ? <span className="err">{t('열 주소는 http:// 또는 https:// 로 시작해야 합니다')}</span> : null}
-    </div>
+    <details className="trial-adv" open={열림} onToggle={(e) => set열림(e.currentTarget.open)}>
+      <summary>{t('고급 · 시험해 보기 설정')}</summary>
+      <div className="mhead trialurl">
+        <label htmlFor="pick-trial-url">{t('열 주소')}</label>
+        <input id="pick-trial-url" type="text" value={값} onChange={(e) => onChange(e.target.value)} />
+        <span className="hint">{t('실행 기록에 남지 않습니다 · 24시간 뒤 사라집니다')}</span>
+        {오류 ? <span className="err">{t('열 주소는 http:// 또는 https:// 로 시작해야 합니다')}</span> : null}
+      </div>
+    </details>
   );
 }
 

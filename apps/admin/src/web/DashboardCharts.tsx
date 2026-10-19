@@ -1,9 +1,10 @@
-// 앱 대시보드의 그래프 — 일별 누적 막대 · 실패 히트맵 · 통과율 선(요구사항 커버리지 게이지는 DashboardCoverage). SVG 를 직접 그린다 (DESIGN.md 「대시보드」)
+// 앱 대시보드의 그래프 — 일별 누적 막대 · 통과율 선(실패 히트맵은 DashboardHeat · 요구사항 커버리지 게이지는 DashboardCoverage). SVG 를 직접 그린다 (DESIGN.md 「대시보드」)
 // 날짜 · 요일 · 숫자 글자는 SVG 가 아니라 HTML 이다 — 캔버스에서 계산 값이 든 SVG `<text>` 가 안 그려졌다
 
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { 정기실행켜는곳 } from './DashboardTables.js';
 import { 날짜글자 } from './dashboardView.js';
+import { 실행목록주소, 이동속성, type 이동재료 } from './DashboardPick.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 
 type 자료 = 대시보드응답;
@@ -29,7 +30,7 @@ interface 날 {
 }
 
 /** 서버가 14칸을 주지만 비어 와도 칸을 지킨다 — 오늘에서 거슬러 센다. 날 글자는 서버가 이미 사용자 시간대로 자른 것이라 UTC 로만 셈한다 */
-function 창날들(값: 자료, 언어: 언어): 날[] {
+export function 창날들(값: 자료, 언어: 언어): 날[] {
   const [연, 월, 일] = 값.window.today.split('-').map(Number);
   const 끝 = Date.UTC(연!, 월! - 1, 일!);
   const 요일식 = new Intl.DateTimeFormat(언어 === 'en' ? 'en-US' : 'ko-KR', { weekday: 'short', timeZone: 'UTC' });
@@ -54,7 +55,7 @@ function 눈금단위(최대: number): number {
   }
 }
 
-function 범례({ 항목들 }: { 항목들: [string, string][] }) {
+export function 범례({ 항목들 }: { 항목들: [string, string][] }) {
   return (
     <ul className="dash-key">
       {항목들.map(([클래스, 글]) => (
@@ -67,7 +68,7 @@ function 범례({ 항목들 }: { 항목들: [string, string][] }) {
   );
 }
 
-function 날짜줄({ 클래스, 날들 }: { 클래스: string; 날들: 날[] }) {
+export function 날짜줄({ 클래스, 날들 }: { 클래스: string; 날들: 날[] }) {
   return (
     // 날짜 숫자만 이어 읽히면 맥락이 없다. 같은 말은 그림 요약 이름이 한다
     <div className={클래스} aria-hidden="true">
@@ -82,7 +83,7 @@ function 날짜줄({ 클래스, 날들 }: { 클래스: string; 날들: 날[] }) 
   );
 }
 
-export function 일별막대({ 값, 설정갈수있나 = false }: { 값: 자료; 설정갈수있나?: boolean }) {
+export function 일별막대({ 값, 설정갈수있나 = false, 이동 }: { 값: 자료; 설정갈수있나?: boolean; 이동?: 이동재료 }) {
   const t = use말();
   const 언어 = use언어();
   const 날들 = 창날들(값, 언어);
@@ -124,7 +125,8 @@ export function 일별막대({ 값, 설정갈수있나 = false }: { 값: 자료;
         <svg
           viewBox={`0 0 ${칸폭 * 날들.length} ${높이}`}
           preserveAspectRatio="none"
-          role="img"
+          // 막대가 링크라 img 로 두면 안의 링크가 보조 기술에 안 보인다
+          role="group"
           aria-label={그림이름}
         >
           {날들.map((날, 칸) =>
@@ -161,10 +163,26 @@ export function 일별막대({ 값, 설정갈수있나 = false }: { 값: 자료;
                     미실행: 날.건수.notRun,
                     실패: 날.건수.fail,
                   });
-            return (
-              <g key={날.day} className="dash-day">
+            const 막대 = (
+              <>
                 <title>{이름}</title>
                 {마디들}
+              </>
+            );
+            return (
+              <g key={날.day} className="dash-day">
+                {/* 실행한 날만 누른다. 날짜로 거르는 조건은 실행 기록에 없어 창 길이(7 · 14 · 30일)로, 실패가 있으면 실패한 실행으로 보낸다 */}
+                {합(날.건수) === 0 ? (
+                  막대
+                ) : (
+                  <a
+                    href={실행목록주소(값.window.days, 날.건수.fail > 0 ? { state: 'failed' } : {})}
+                    aria-label={이름}
+                    {...이동속성(이동)}
+                  >
+                    {막대}
+                  </a>
+                )}
               </g>
             );
           })}
@@ -194,63 +212,6 @@ export function 일별막대({ 값, 설정갈수있나 = false }: { 값: 자료;
         ) : null}
       </div>
       <날짜줄 클래스="dash-days" 날들={날들} />
-    </>
-  );
-}
-
-export function 실패히트맵({ 값 }: { 값: 자료 }) {
-  const t = use말();
-  const 언어 = use언어();
-  const 날들 = 창날들(값, 언어);
-  const 비었다 = 값.heatmap.length === 0;
-  const 줄들 = 비었다 ? [{ tcId: '', tcName: '', cells: 날들.map(() => 0 as const) }] : 값.heatmap;
-  const 칸이름 = (실패: 0 | 1 | 2, 날짜: string): string =>
-    실패 === 0
-      ? t('{날짜} 실패 없음', { 날짜 })
-      : 실패 === 1
-        ? t('{날짜} 실패 1회', { 날짜 })
-        : t('{날짜} 실패 2회 이상', { 날짜 });
-
-  return (
-    <>
-      <범례
-        항목들={[
-          ['h0', '0'],
-          ['h1', '1'],
-          ['h2', t('2 이상')],
-        ]}
-      />
-      <div className="dash-heat-scroll">
-        <div
-          role="img"
-          className="dash-heat-grid"
-          aria-label={
-            비었다
-              ? t('최근 {일}일 실패한 케이스가 없습니다', { 일: 값.window.days })
-              : t('최근 {일}일 실패가 많은 케이스 {수}개의 날짜별 실패 횟수. 가장 많은 것은 {TC}', {
-                  일: 값.window.days,
-                  수: 값.heatmap.length,
-                  TC: 값.heatmap[0]!.tcId,
-                })
-          }
-        >
-          {줄들.map((줄) => (
-            <div key={줄.tcId} className="dash-heat-row">
-              <span className="dash-heat-head">
-                <span className="mono">{줄.tcId}</span>
-                <span className="dash-heat-name" title={줄.tcName}>
-                  {줄.tcName}
-                </span>
-              </span>
-              {줄.cells.map((실패, 칸) => (
-                <i key={날들[칸]?.day ?? 칸} className={`h${실패}`} title={`${줄.tcId} ${칸이름(실패, 날들[칸]?.날짜 ?? '')}`.trim()} />
-              ))}
-            </div>
-          ))}
-          <날짜줄 클래스="dash-heat-days" 날들={날들} />
-        </div>
-      </div>
-      {비었다 ? <p className="dash-calm">{t('최근 {일}일 실패한 케이스가 없습니다', { 일: 값.window.days })}</p> : null}
     </>
   );
 }

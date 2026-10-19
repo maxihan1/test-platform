@@ -185,10 +185,10 @@ async function 커버리지읽기(pool: Pool, ids: number[]): Promise<커버리�
   );
 }
 
-async function 줄읽기(pool: Pool, ids: number[], tz: string, 오늘: string): Promise<접은줄[]> {
+async function 줄읽기(pool: Pool, ids: number[], tz: string, 오늘: string, 날수: number): Promise<접은줄[]> {
   if (ids.length === 0) return [];
-  const 하한 = 날짜더하기(오늘, -(창날수 * 2 - 1));
-  const 이번시작 = 날짜더하기(오늘, -(창날수 - 1));
+  const 하한 = 날짜더하기(오늘, -(날수 * 2 - 1));
+  const 이번시작 = 날짜더하기(오늘, -(날수 - 1));
   const { rows } = await pool.query<줄행>(접은줄SQL, [ids, tz, 하한, 이번시작]);
   return rows.map((r) => ({
     runId: Number(r.run_id),
@@ -226,44 +226,61 @@ async function 앞판정읽기(pool: Pool, runIds: number[]): Promise<Map<number
   return 결과;
 }
 
+// 고른 서비스가 볼 수 있는 목록에 없으면 빈 목록이 된다 — 남의 서비스 번호를 줘도 아무것도 안 읽힌다
+const 좁힌다 = (ids: number[], 서비스: number | undefined): number[] => (서비스 === undefined ? ids : ids.filter((id) => id === 서비스));
+
 /** 화면이 15초마다 부르는 가벼운 쪽 — 집계는 안 돌고 실행 중 줄만 읽는다. tz 는 안 쓰지만 같은 통로라 틀린 이름은 똑같이 거절한다 */
-export async function 대시보드실행중(tz: string, 실행서비스ids: number[]): Promise<{ running: 실행중[] }> {
+export async function 대시보드실행중(tz: string, 실행서비스ids: number[], 서비스?: number): Promise<{ running: 실행중[] }> {
   const pool = await db();
   await 시간대확인(pool, tz);
-  return { running: await 실행중읽기(pool, 실행서비스ids) };
+  return { running: await 실행중읽기(pool, 좁힌다(실행서비스ids, 서비스)) };
 }
 
 /**
  * 앱 대시보드 숫자 한 번에. `실행서비스ids` 는 실행 read 인 배정 서비스, `작성서비스ids` 는 작성 read 인 배정 서비스다.
  * tz 는 pg_timezone_names 에 있는 이름만 받는다 — 아니면 `틀린시간대` 를 던진다
  */
-export async function 대시보드(tz: string, 실행서비스ids: number[], 작성서비스ids: number[]): Promise<대시보드응답> {
+export async function 대시보드(
+  tz: string,
+  볼수있는실행ids: number[],
+  볼수있는작성ids: number[],
+  { 서비스: 고른서비스, 날수 = 창날수 }: { 서비스?: number; 날수?: number } = {},
+): Promise<대시보드응답> {
+  const 실행서비스ids = 좁힌다(볼수있는실행ids, 고른서비스);
+  const 작성서비스ids = 좁힌다(볼수있는작성ids, 고른서비스);
   const pool = await db();
   await 시간대확인(pool, tz);
 
   const 오늘 = (
     await pool.query<{ today: string }>(`SELECT to_char((now() AT TIME ZONE $1::text)::date, 'YYYY-MM-DD') AS today`, [tz])
   ).rows[0]!.today;
-  const 줄들 = await 줄읽기(pool, 실행서비스ids, tz, 오늘);
-  const 이번시작 = 날짜더하기(오늘, -(창날수 - 1));
+  const 줄들 = await 줄읽기(pool, 실행서비스ids, tz, 오늘, 날수);
+  const 이번시작 = 날짜더하기(오늘, -(날수 - 1));
   const [앞판정들, running, coverage, 서비스] = await Promise.all([
     앞판정읽기(pool, [...new Set(줄들.filter((줄) => 줄.day >= 이번시작 && 줄.day <= 오늘).map((줄) => 줄.runId))]),
     실행중읽기(pool, 실행서비스ids),
     커버리지읽기(pool, 작성서비스ids),
+    // 고르개의 재료라 고른 서비스로 좁히지 않는다 — 좁히면 다른 서비스로 바꿀 길이 사라진다
     pool.query<{ id: string; name: string }>('SELECT id, name FROM service WHERE id = ANY($1::bigint[]) ORDER BY id', [
-      실행서비스ids,
+      볼수있는실행ids,
     ]),
   ]);
 
   const 서비스목록 = 서비스.rows.map((r) => ({ id: Number(r.id), name: r.name }));
-  const 집계 = 대시보드집계(줄들, 앞판정들, 오늘, 서비스목록);
+  const 집계 = 대시보드집계(
+    줄들,
+    앞판정들,
+    오늘,
+    서비스목록.filter((s) => 실행서비스ids.includes(s.id)),
+    날수,
+  );
   return {
     window: {
       tz,
       today: 오늘,
-      days: 창날수,
+      days: 날수,
       from: 이번시작,
-      previousFrom: 날짜더하기(오늘, -(창날수 * 2 - 1)),
+      previousFrom: 날짜더하기(오늘, -(날수 * 2 - 1)),
     },
     services: 서비스목록,
     passRate: { current: 건수로(집계.이번), previous: 건수로(집계.직전) },

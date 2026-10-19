@@ -182,7 +182,7 @@ describe('RunWindow', () => {
 
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'u2' } });
 
-    expect(screen.getByRole('status').textContent).toBe('실행 항목이 1건 생깁니다');
+    expect(screen.getByRole('status').textContent).toBe('케이스 1 × 디바이스 1 × 반복 1 = 1번');
   });
 
   it('그 서비스의 실행 칸이 쓰기가 아니면 실행 버튼 없이 사유만 보인다 — 옛 주소는 아무나 칠 수 있다', async () => {
@@ -192,7 +192,7 @@ describe('RunWindow', () => {
 
     expect(await screen.findByText('실행 권한이 있어야 고치고 돌릴 수 있습니다')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '▶ 테스트 실행' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '▶ 시험해 보기' })).toBeNull();
   });
 
   it('걸린 뒤에는 on걸림 을 부르고 onClose 는 안 부른다 — 옛 주소에서 닫힘이 실행 결과 대신 목록으로 보냈다', async () => {

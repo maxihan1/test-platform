@@ -16,7 +16,7 @@ export function 해결들(견줌: 비교 | null) {
  * 앞 실행이 깨졌던 것이 전부 「고쳐짐」으로 보인다.
  * 접고 펴는 것은 브라우저가 하는 일이라 화면이 상태를 따로 들지 않는다 (§8.3)
  */
-export function 해결목록({ insights }: { insights: 비교 | null }) {
+export function 해결목록({ insights, 열림, on토글 }: { insights: 비교 | null; 열림?: boolean; on토글?: (열림: boolean) => void }) {
   const t = use말();
   const 해결 = 해결들(insights);
   if (해결.length === 0) return null;
@@ -24,7 +24,7 @@ export function 해결목록({ insights }: { insights: 비교 | null }) {
   const 케이스수 = new Set(해결.map((c) => c.tcId)).size;
 
   return (
-    <details className="rr-fold">
+    <details className="rr-fold" {...(열림 === undefined ? {} : { open: 열림, onToggle: (e: React.SyntheticEvent<HTMLDetailsElement>) => on토글?.(e.currentTarget.open) })}>
       <summary>{t('해결 {건수}', { 건수: 케이스수 })}</summary>
       {해결.map((c) => (
         <div className="rr-fixed" key={`${c.tcId}\u0000${c.platform}`}>

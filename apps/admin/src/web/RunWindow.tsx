@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { api, ApiError, type CaseRow, type ServiceRow, type User } from './api.js';
+import { api, ApiError, type CaseRow, type Platform, type ServiceRow, type User } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type 글자표, 지난값글자 } from './pickRun.js';
@@ -21,6 +21,15 @@ interface 연것 {
   user: User;
   service: ServiceRow | null;
   초기글자: 글자표;
+  /** 기준시각 뒤에 저장값이 바뀐 케이스 */
+  바뀐저장값: string[];
+}
+
+/** 케이스가 선언한 디바이스 가운데 `돌릴` 것만 남긴다. 겹치는 게 없으면 선언 그대로 둔다 — 빈 디바이스로 걸 수는 없다 */
+function 디바이스칸(c: CaseRow, 돌릴?: Platform[]): CaseRow {
+  if (돌릴 === undefined) return c;
+  const 겹침 = c.platforms.filter((p) => 돌릴.includes(p));
+  return 겹침.length === 0 ? c : { ...c, platforms: 겹침 };
 }
 
 /**
@@ -30,6 +39,8 @@ interface 연것 {
  * @param on걸림 걸고 나서. 없으면 onClose 다 — 옛 주소 화면은 닫힘이 목록으로 보내므로 따로 받는다(안 그러면 실행 결과 대신 목록이 뜬다)
  * @param rerunOf 「실패 N건 다시 실행」의 원래 실행. 실으면 서버가 시작 방식을 「실패 다시」로 남긴다 (도메인/실행 §7)
  * @param on걸었다 useRunStart 의 그것 — 실행 기록 결과 칸에서 열었으면 주소를 옮기지 않고 새 실행을 고른다
+ * @param 디바이스 케이스마다 돌릴 디바이스. 있으면 그 케이스가 선언한 것 가운데 이것만 담는다 — 실패 다시 실행이 실패한 디바이스만 돌리게
+ * @param 기준시각 이 시각 뒤에 저장값이 바뀐 케이스를 창 위에 알린다 — 원래 실행과 다른 값으로 돌 수 있어서다
  */
 export function RunWindow({
   tcIds,
@@ -38,6 +49,8 @@ export function RunWindow({
   onClose,
   on걸림 = onClose,
   rerunOf,
+  디바이스,
+  기준시각,
   on걸었다,
 }: {
   tcIds: string[];
@@ -46,6 +59,8 @@ export function RunWindow({
   onClose: () => void;
   on걸림?: () => void;
   rerunOf?: number;
+  디바이스?: Record<string, Platform[]>;
+  기준시각?: string;
   on걸었다?: (runId: number) => void;
 }) {
   const t = use말();
@@ -71,9 +86,19 @@ export function RunWindow({
         expected: 지난값글자(schemaToFields(c.expectedSchema, c.savedInput?.expected, c.savedInput?.savedSecrets.expected), 값.expected),
       };
     }
+    const 기준 = 기준시각 === undefined ? null : new Date(기준시각).getTime();
     return {
       // 비활성은 스캔이 코드에서 지웠다고 본 케이스라 서버가 400 을 낸다. 빼고 그 사실을 창에 적는다
-      케이스들: 읽은.filter((c) => c.isActive),
+      케이스들: 읽은.filter((c) => c.isActive).map((c) => 디바이스칸(c, 디바이스?.[c.tcId])),
+      바뀐저장값:
+        기준 === null
+          ? []
+          : 읽은
+              .filter((c) => {
+                const 저장 = c.savedInput?.savedAt;
+                return c.isActive && 저장 !== undefined && new Date(저장).getTime() > 기준;
+              })
+              .map((c) => c.tcId),
       빠진: [...읽은.filter((c) => !c.isActive).map((c) => c.tcId), ...없는],
       user,
       service: user.services.find((it) => it.prefix === 접두사) ?? null,
@@ -110,6 +135,13 @@ export function RunWindow({
     );
   }
 
+  const 안내들 = [
+    읽기오류,
+    연.빠진.length === 0 ? undefined : t('비활성이거나 없어 뺀 케이스 {목록}', { 목록: 연.빠진.join(', ') }),
+    연.바뀐저장값.length === 0 ? undefined : t('실행 뒤에 저장값이 바뀐 케이스 {목록} — 실패 때와 다른 값으로 돕니다', { 목록: 연.바뀐저장값.join(', ') }),
+  ].filter((글): 글 is string => 글 !== undefined);
+  const 안내글 = 안내들.length === 0 ? undefined : 안내들.join(' · ');
+
   return (
     <RunPickModal
       케이스들={케이스들}
@@ -118,7 +150,7 @@ export function RunWindow({
       service={연.service}
       user={연.user}
       사유={걸기.사유}
-      안내={읽기오류 ?? (연.빠진.length === 0 ? undefined : t('비활성이거나 없어 뺀 케이스 {목록}', { 목록: 연.빠진.join(', ') }))}
+      안내={안내글}
       거는중={걸기.거는중}
       onClose={onClose}
       on값고침={걸기.사유지우기}

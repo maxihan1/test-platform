@@ -96,6 +96,16 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     expect(screen.queryByText(/외 .*건/)).toBeNull();
   });
 
+  it('완료 창의 실패 케이스를 누르면 깨진 회차의 항목 상세로 가고 상자를 닫는다 (점검 5.3)', () => {
+    const onClose = vi.fn();
+    render(<RunProgressModal data={반복실행} 진행목록={[]} onClose={onClose} />);
+
+    const 고리 = screen.getByRole('link', { name: /케이스 100/ });
+    expect(고리.getAttribute('href')).toBe('#/runs/7/items/101');
+    fireEvent.click(고리);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('항목이 하나도 없으면 진행 막대를 그리지 않는다', () => {
     const 빈실행 = 실행('RUNNING', [], { total: 0, pass: 0, fail: 0, na: 0, running: 0 });
     const { container } = render(<RunProgressModal data={빈실행} 진행목록={[]} onClose={() => {}} />);

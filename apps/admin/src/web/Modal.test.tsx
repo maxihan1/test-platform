@@ -158,4 +158,24 @@ describe('Modal', () => {
     fireEvent.click(screen.getByText('취소'));
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('상자가 겹쳐 있으면 Escape 한 번에 맨 위 상자 하나만 닫힌다', () => {
+    const 아래닫기 = vi.fn();
+    const 위닫기 = vi.fn();
+    render(
+      <>
+        <Modal 제목="아래 창" onClose={아래닫기} 버튼={<button type="button">아래 확인</button>}>
+          <p>아래</p>
+        </Modal>
+        <Modal 제목="위 창" onClose={위닫기} 버튼={<button type="button">위 확인</button>}>
+          <p>위</p>
+        </Modal>
+      </>,
+    );
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(위닫기).toHaveBeenCalledTimes(1);
+    expect(아래닫기).not.toHaveBeenCalled();
+  });
 });
