@@ -117,6 +117,16 @@ describe('앱화면을읽는다', () => {
     expect((fetchMock.mock.calls.at(-1) as [string, RequestInit])[1].method).toBe('DELETE');
   });
 
+  it('Appium 이 화면 글을 안 주면 던지고 연결은 닫는다', async () => {
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(열림답()).mockResolvedValueOnce(답({ value: null }));
+    fetchMock.mockResolvedValue(new Response(null, { status: 200 }));
+
+    await expect(앱화면을읽는다({})).rejects.toThrow('화면 글을 주지 않았다');
+
+    expect((fetchMock.mock.calls.at(-1) as [string, RequestInit])[1].method).toBe('DELETE');
+  });
+
   it('연결 주소나 앱 파일이 없으면 Appium 을 부르기 전에 던진다', async () => {
     delete process.env.PLATFORM_APP;
     await expect(앱화면을읽는다({})).rejects.toThrow('PLATFORM_APP 이 필요하다');
@@ -138,6 +148,15 @@ describe('POST /app-screen', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json().screen).toContain('화면 1080x2400');
+  });
+
+  it('본문 없이 불러도 환경값으로 읽는다 — 두 칸 다 선택이다', async () => {
+    const app = Fastify();
+    registerRoutes(app);
+
+    const res = await app.inject({ method: 'POST', url: '/app-screen' });
+
+    expect(res.statusCode).toBe(200);
   });
 
   it('app 에 주소(://)를 주면 400 이다 — 러너 PC 가 아무 apk 나 내려받게 하지 않는다', async () => {

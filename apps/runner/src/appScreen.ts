@@ -112,12 +112,14 @@ export async function 앱화면을읽는다(req: 앱화면요청, env: NodeJS.Pr
     연결번호 = 열림?.sessionId;
     if (연결번호 === undefined) throw new Error('Appium 이 연결 번호를 주지 않았다');
     const xml = await 부른다(`${base}/session/${encodeURIComponent(연결번호)}/source`, { headers }, 읽기_제한_ms);
-    return 화면을줄인다(String(xml));
+    if (typeof xml !== 'string') throw new Error('Appium 이 화면 글을 주지 않았다');
+    return 화면을줄인다(xml);
   } finally {
     try {
       // 안 닫으면 팜의 폰이 기본 60초 붙들린다. 닫기가 실패해도 읽은 결과는 살린다
       if (연결번호 !== undefined) {
-        await fetch(`${base}/session/${encodeURIComponent(연결번호)}`, { method: 'DELETE', headers, signal: AbortSignal.timeout(닫기_제한_ms) });
+        const 닫음 = await fetch(`${base}/session/${encodeURIComponent(연결번호)}`, { method: 'DELETE', headers, signal: AbortSignal.timeout(닫기_제한_ms) });
+        if (!닫음.ok) console.error(`[runner] 앱 화면을 읽은 연결을 닫지 못했다: HTTP ${닫음.status}`);
       }
     } catch (err) {
       console.error(`[runner] 앱 화면을 읽은 연결을 닫지 못했다: ${err instanceof Error ? err.message : String(err)}`);
