@@ -34,7 +34,8 @@ export function 결과줄({
   const 칸들 = columns
     .map((platform) => group.byPlatform[platform])
     .filter((칸): 칸 is RunItemSummary[] => 칸 !== undefined && 칸.length > 0);
-  const 첫항목 = 칸들[0]?.[0];
+  // 「상세」는 깨진 회차로 간다 — 늘 첫 디바이스의 첫 회차로 가면 반복 실행에서 통과한 회차를 보게 된다 (점검 3.4)
+  const 첫항목 = 칸들.flat().find((i) => i.status === 'FAIL') ?? 칸들[0]?.[0];
   const 입력줄 = 첫항목 === undefined ? '' : 한줄로(첫항목.params, 첫항목.paramSchema, 언어);
   // 사유 없이 미실행으로 두면 러너 고장과 구분되지 않는다 (SPEC §8.3)
   const 사유 = 칸사유(칸들.flat(), 언어);
@@ -133,7 +134,7 @@ function Verdicts({ 칸, runId }: { 칸: RunItemSummary[]; runId: number }) {
   }
 
   const 요약 = 회차요약(칸);
-  const 처음 = 칸[0]!;
+  const 처음 = 칸.find((i) => i.status === 'FAIL') ?? 칸[0]!;
 
   return (
     <>

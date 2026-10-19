@@ -66,6 +66,19 @@ describe('결과줄 (SPEC §8.3)', () => {
     expect(screen.queryByText('2/3 통과')).not.toBeNull();
   });
 
+  it('「상세」와 판정 고리는 통과한 첫 회차가 아니라 깨진 회차로 간다 (점검 3.4)', () => {
+    그린다([
+      항목(1, 'desktop', 'PASS', 1),
+      항목(2, 'desktop', 'FAIL', 2),
+      항목(3, 'mobile', 'PASS', 1),
+    ]);
+
+    expect(screen.getByRole('link', { name: '상세' }).getAttribute('href')).toBe('#/runs/7/items/2');
+    const 고리들 = screen.getAllByRole('link').map((a) => a.getAttribute('href'));
+    expect(고리들).toContain('#/runs/7/items/2');
+    expect(고리들).toContain('#/runs/7/items/3');
+  });
+
   it('다섯 중 셋만 통과한 칸은 통과 색으로 칠하지 않는다', () => {
     const { container } = 그린다([
       항목(1, 'desktop', 'PASS', 1),

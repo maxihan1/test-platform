@@ -289,6 +289,7 @@ export const 실행말: Record<string, string> = {
   '실패 {전체}건 중 {번째}번째': 'Failure {번째} of {전체}',
   '다음 실패 →': 'Next failure →',
   '목록 보기': 'Show list',
+  '도는 중에는 실패 카드가 없습니다 — 깨진 줄을 펼치면 이유를 볼 수 있습니다': 'Failure cards appear once the run ends — expand a failed row to see why',
   '최근 7일': 'Last 7 days',
   '판정 여부': 'Verdict status',
   '판정 안 한 카드': 'Cards without a verdict',

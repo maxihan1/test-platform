@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 
 import type { api, ItemStatus, Platform, RunInsights as 비교 } from './api.js';
-import { 갈라낸다 } from './group.js';
+import { 갈라낸다, type CaseGroup } from './group.js';
 import { use말 } from './i18n.js';
 import { RunFailCards } from './RunFailCards.js';
 import { 실패케이스들 } from './RerunFailed.js';
@@ -17,6 +17,16 @@ import { 케이스서비스 } from './role.js';
 type 실행 = Awaited<ReturnType<typeof api.run>>;
 
 export const PAGE_SIZE = 20;
+
+/**
+ * 도는 중에는 실패 카드가 없다(통로가 끝나기 전에는 409) — 대신 이미 깨진 줄을 맨 위로 올려 펼쳐 이유를 보게 한다 (점검 2.21).
+ * 같은 쪽 안에서 차례는 그대로다
+ */
+export function 실패먼저(묶음들: CaseGroup[]): CaseGroup[] {
+  const 깨졌나 = (묶음: CaseGroup) =>
+    Object.values(묶음.byPlatform).some((칸) => 칸?.some((it) => it.status === 'FAIL') === true);
+  return [...묶음들.filter(깨졌나), ...묶음들.filter((묶음) => !깨졌나(묶음))];
+}
 
 export function 디바이스칩({
   디바이스들,
