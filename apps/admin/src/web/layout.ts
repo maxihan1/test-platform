@@ -47,7 +47,7 @@ function 종류하위(묶음: string, 바탕: '#/cases' | '#/runs', 언어: 언�
 }
 
 /** 탭이 여럿일 때는 탭 글자만 보인다. 어느 서비스를 보고 있는지가 거기 있어야 한다 (SPEC §8) */
-export function 탭제목(service: ServiceRow | null, 언어: 언어): string {
+export function 탭제목(service: ServiceRow | null): string {
   return service === null ? 제품이름 : `${service.name} · ${제품이름}`;
 }
 

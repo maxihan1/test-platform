@@ -141,7 +141,7 @@ describe('세로 껍데기 (SPEC §8)', () => {
     띄운다(결제);
     const 푸터 = document.querySelector('.foot');
     expect(푸터).not.toBeNull();
-    expect(푸터!.textContent).toContain(탭제목(결제, 'ko'));
+    expect(푸터!.textContent).toContain(탭제목(결제));
   });
 });
 
