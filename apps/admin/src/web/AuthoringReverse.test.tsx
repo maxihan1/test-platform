@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // 역방향 작성 화면 검사 — 새 요청의 대조 칸 · 상세의 대조 설정 · 산출물 · 차이 목록 (도메인/작성 §3.6 「★ 역방향」 · §7)
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError, type AuthoringRow, type EnvRow } from './api.js';
@@ -278,7 +278,7 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
     expect(입력.textContent).toBe('기획서.docx');
   });
 
-  it('차이 목록은 번호 · 종류 · 자리 · 기획서 · 화면 · 케이스를 보이고 표시 실패는 이유를 붙인다', async () => {
+  it('차이 목록은 종류 · 자리 · 기획서 · 화면 · 케이스 다섯 칸만 보이고 번호와 표시 칸은 없다', async () => {
     await 상세를연다(
       줄({
         compare: true,
@@ -295,11 +295,27 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
     );
     const 표 = screen.getByRole('table', { name: '기획서와 화면의 차이' });
     const 글 = 표.textContent ?? '';
-    for (const 조각 of ['D1', '기획서와 다름', '기획서.docx · 3쪽', '저장', '확인', 'PAY-012', '표시함']) expect(글).toContain(조각);
+    expect(within(표).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['종류', '자리', '기획서', '화면', '케이스']);
+    for (const 조각 of ['기획서와 다름', '기획서.docx · 3쪽', '저장', '확인', 'PAY-012']) expect(글).toContain(조각);
     expect(글).toContain('화면에만 있음');
-    expect(글).toContain('표시 못 함 — 피그마 토큰에 댓글 권한이 없습니다');
     expect(글).toContain('문서에만 있음');
-    expect(글).toContain('표시 못 함 — 이유 기록 없음');
+    for (const 뺀것 of ['D1', 'D2', 'D3', '표시함', '표시 못 함', '피그마 토큰에 댓글 권한이 없습니다']) expect(글).not.toContain(뺀것);
+  });
+
+  it('차이 표의 케이스는 반영 전에는 글자이고 반영이 끝나야 케이스 상세 고리다', async () => {
+    const 차이 = { diffs: [{ no: 'D1', kind: 'DIFFERENT', where: 'x', doc: 'a', screen: 'b', tcId: 'PAY-012', marked: true }] };
+    await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, result: 차이 }));
+    expect(screen.getByText('PAY-012').closest('a')).toBeNull();
+    cleanup();
+    const 때 = new Date().toISOString();
+    const 반영 = { id: 7, kind: 'MERGE' as const, resumeFrom: null, status: 'DONE' as const, stopReason: null, error: null, createdAt: 때, startedAt: 때, finishedAt: 때, caseFiles: null, tokens: null, prUrl: null };
+    await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, result: 차이, runs: [반영] }));
+    expect(screen.getByRole('link', { name: 'PAY-012' }).getAttribute('href')).toBe('#/cases/fn?case=PAY-012');
+  });
+
+  it('차이 표 아래에 PRD 관리에서 확인 필요 보기 고리가 있다', async () => {
+    await 상세를연다(줄({ compare: true, env: 'qa', startUrl: null, result: { diffs: [{ no: 'D1', kind: 'DIFFERENT', where: 'x', doc: 'a', screen: 'b', marked: false }] } }));
+    expect(screen.getByRole('link', { name: 'PRD 관리에서 확인 필요 보기' }).getAttribute('href')).toBe('#/prd');
   });
 
   it('차이 목록 줄에 판정 색을 입히지 않는다 — 차이는 판정이 아니다', async () => {
@@ -321,7 +337,7 @@ describe('상세 — 대조 설정 · 산출물 · 차이 목록', () => {
     );
     const 표 = screen.getByRole('table', { name: '기획서와 화면의 차이' });
     expect(표.querySelectorAll('tbody tr')).toHaveLength(2);
-    expect(표.textContent).toContain('D9');
+    expect(표.querySelectorAll('tbody tr')[1]?.textContent).toContain('알 수 없는 종류');
   });
 
   it('차이 목록이 배열이 아니면 표를 그리지 않는다', async () => {

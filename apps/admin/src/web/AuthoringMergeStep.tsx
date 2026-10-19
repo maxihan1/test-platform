@@ -51,6 +51,7 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
       ) : null}
       {반영권한 ? (
         <button
+          id="merge-button"
           className="btn"
           type="button"
           // 막는 것은 서버다(HELD_OPEN · HELD_UNKNOWN · CONFLICT_OPEN · BAD_ENV) — 여기서 막는 것은 누르기 전에 까닭을 보이려는 편의다
@@ -62,12 +63,12 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
       ) : (
         <span className="hint">{t('반영은 운영 권한이 있는 사람만 할 수 있습니다.')}</span>
       )}
-      {모름 ? <p className="held-why">{t('보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.')}</p> : null}
-      {남은 > 0 ? <p className="held-why">{t('보류 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.', { 수: 남은 })}</p> : null}
+      {모름 ? <p className="held-why">{t('입력이 필요한 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.')}</p> : null}
+      {남은 > 0 ? <p className="held-why">{t('입력이 필요한 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.', { 수: 남은 })}</p> : null}
       {겹침 > 0 ? (
         <p className="held-why">
-          {t('겹치는 케이스 {수}건을 아직 고르지 않아 반영할 수 없습니다.', { 수: 겹침 })}{' '}
-          <a href="#conflicts" onClick={(e) => { e.preventDefault(); const 칸 = document.getElementById('conflicts'); 칸?.scrollIntoView(); 칸?.focus(); }}>{t('겹친 케이스로 가기')}</a>
+          {t('중복 케이스 {수}건을 아직 선택하지 않아 반영할 수 없습니다.', { 수: 겹침 })}{' '}
+          <a href="#conflicts" onClick={(e) => { e.preventDefault(); const 칸 = document.getElementById('conflicts'); 칸?.scrollIntoView(); 칸?.focus(); }}>{t('중복 케이스로 가기')}</a>
         </p>
       ) : null}
       {서버없음 ? <p className="held-why">{t('테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.')}</p> : null}

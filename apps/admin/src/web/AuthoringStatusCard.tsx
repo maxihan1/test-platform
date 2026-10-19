@@ -1,11 +1,11 @@
 // 작성 요청 한 건의 Status 카드 — 단계 막대 · 진척 · 시간 막대 · 숫자 칸 · 방금 한 일. 상세 페이지와 시작 모달이 같이 쓴다 (DESIGN.md 「작성 상태」)
 
-import { 계정미등록종류 } from '../prd/heldText.js';
 import type { AuthoringCoverage, AuthoringRow } from './api.js';
 import { 실패글 } from './authoringFailText.js';
 import { 단계글라벨, 단계라벨, 단계이름들, 단계자리, 시간판, 진척이찼나 } from './authoringStatus.js';
 import { 반영보임, 반영할일, 줄보임, 중단이유라벨, 칩글 as 칩글자, type 보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
+import { PRD항목주소 } from './route.js';
 import { 시각글자 as 시각, 시간글자, 작성남은글 } from './remainText.js';
 
 /** 칩 모양. 색은 판정(완료·실패·응답 없음)에만 — 나머지는 잉크다 (DESIGN.md 원칙 1) */
@@ -26,29 +26,35 @@ function 막대({ 이름, 비율, 흐림 = false }: { 이름: string; 비율: nu
 }
 
 /**
- * PRD 요구사항 집계 한 줄. 넷(작성 · 제외 · 누락)이 합쳐 전부라는 것이 보이게 제외 · 누락은 0 이어도 남긴다.
+ * PRD 요구사항 집계. 셋(만듦 · 제외 · 빠짐)이 합쳐 전부라는 것이 보이게 제외 · 빠짐은 0 이어도 남긴다.
+ * 갈래 수는 둘째 줄로 뗀다 — 한 줄에 이으면 「기능 247 · UI 152」가 만든 수(368)를 넘어 틀린 셈으로 읽혔다 (점검 N16).
  * 판정이 아니라 잉크로만 적는다 (DESIGN.md 원칙 1)
  */
-function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t: ReturnType<typeof use말>): string {
-  if ('none' in c) return t('집계 없음 — {까닭}', { 까닭: c.none });
+function 커버리지글(c: AuthoringCoverage, 상태: AuthoringRow['status'], t: ReturnType<typeof use말>): { 셈: string; 갈래: string | null } {
+  if ('none' in c) return { 셈: t('집계 없음 — {까닭}', { 까닭: c.none }), 갈래: null };
   const 제외 = Object.values(c.excluded).reduce((합, 수) => 합 + 수, 0);
   const 원장밖 = c.unread?.length ?? 0;
   // 보류는 DONE 때만 센다 — 중단된 실행의 null 은 「모름」이 아니라 「안 셈」이라 빼 둔다
-  const 보류 = c.held === null ? (상태 === 'DONE' ? t('보류 여부 확인 불가') : null) : c.held > 0 ? t('보류 스크립트로만 {수}', { 수: c.held }) : null;
+  const 보류 = c.held === null ? (상태 === 'DONE' ? t('입력 필요 여부 확인 불가') : null) : c.held > 0 ? t('입력이 필요한 케이스로만 {수}', { 수: c.held }) : null;
   const 칸 = [
     c.total > 0
-      ? t('{총}건 중 스크립트 작성 {덮음}건 ({퍼센트}%)', { 총: c.total, 덮음: c.cased, 퍼센트: Math.round((c.cased / c.total) * 100) })
-      : t('{총}건 중 스크립트 작성 {덮음}건', { 총: c.total, 덮음: c.cased }),
-    // 갈래 수는 이 칸 전 실행에 없다 — 0 으로 채우면 「그 갈래로 덮은 요구 0개」로 읽힌다
-    c.casedFn === undefined ? null : t('기능 테스트 {수}', { 수: c.casedFn }),
-    c.casedUi === undefined ? null : t('UI 테스트 {수}', { 수: c.casedUi }),
+      ? t('요구 {총}개 중 케이스로 만듦 {덮음}개 ({퍼센트}%)', { 총: c.total, 덮음: c.cased, 퍼센트: Math.round((c.cased / c.total) * 100) })
+      : t('요구 {총}개 중 케이스로 만듦 {덮음}개', { 총: c.total, 덮음: c.cased }),
     보류,
     c.later.length > 0 ? t('제외 {수} (다음 작성 {다음})', { 수: 제외, 다음: c.later.length }) : t('제외 {수}', { 수: 제외 }),
-    t('누락 {수}', { 수: c.missing.length }),
+    t('빠짐 {수}', { 수: c.missing.length }),
     원장밖 > 0 ? t('PRD 밖 자료 {수}', { 수: 원장밖 }) : null,
   ];
-  return 칸.filter((x): x is string => x !== null).join(' · ');
+  // 갈래 수는 이 칸 전 실행에 없다 — 0 으로 채우면 「그 갈래로 덮은 요구 0개」로 읽힌다
+  const 갈래 =
+    c.casedFn === undefined || c.casedUi === undefined
+      ? null
+      : t('만든 {덮음}개 중 기능 테스트가 덮은 것 {기능} · UI 테스트가 덮은 것 {UI} — 둘 다 덮은 요구는 양쪽에 셉니다', { 덮음: c.cased, 기능: c.casedFn, UI: c.casedUi });
+  return { 셈: 칸.filter((x): x is string => x !== null).join(' · '), 갈래 };
 }
+
+/** 빠진 요구 번호 — 수만 보이면 무엇이 빠졌는지 찾으러 가야 했다 (점검 12.10). 길어지면 앞의 열 개만 */
+const 빠짐보임 = 10;
 
 /**
  * `커버리지` 를 넘기면 `요청` 의 셈 대신 그것을 쓴다 — 상세는 머지를 뺀 최신 작성 실행의 셈을 넘긴다.
@@ -75,7 +81,8 @@ export function AuthoringStatusCard({
   const t = use말();
   const 언어 = use언어();
   const 셈 = 커버리지 === undefined ? (요청.coverage ?? null) : 커버리지;
-  const 계정보류 = 셈 === null || 'none' in 셈 ? 0 : (셈.excluded[계정미등록종류] ?? 0);
+  const 셈글 = 셈 === null ? null : 커버리지글(셈, 요청.status, t);
+  const 빠진 = 셈 === null || 'none' in 셈 ? [] : 셈.missing;
   const 보 = 줄보임(요청, 지금);
   const 반영 = 반영할일(최신 ?? 요청);
   const 자리 = 단계자리(요청, { 뿌리종류, 최신 });
@@ -202,18 +209,32 @@ export function AuthoringStatusCard({
         </div>
       )}
 
-      {/* 숫자 칸 조건과 따로 — 진척 기록이 없는 끝난 실행에도 셈은 있다 */}
-      {셈 === null ? null : (
+      {/* 숫자 칸 조건과 따로 — 진척 기록이 없는 끝난 실행에도 셈은 있다.
+          계정이 없어 못 쓴 요구는 역할 이름 · 넣을 곳과 함께 「다음 단계」가 말한다 (점검 12.4) */}
+      {셈글 === null ? null : (
         <div className="status-row">
           <span className="status-label">{t('PRD 요구사항')}</span>
-          <span className="status-sub">{커버리지글(셈, 요청.status, t)}</span>
-        </div>
-      )}
-
-      {계정보류 === 0 ? null : (
-        <div className="status-row">
-          <span className="status-label">{t('계정 보류')}</span>
-          <span className="status-sub">{t('보류 {건수}건 — 역할 계정이 등록되지 않았습니다 · 등록하면 이 요구만 다시 작성합니다', { 건수: 계정보류 })}</span>
+          <span className="status-sub">
+            {셈글.셈}
+            {셈글.갈래 === null ? null : (
+              <>
+                <br />
+                <span className="hint">{셈글.갈래}</span>
+              </>
+            )}
+            {빠진.length === 0 ? null : (
+              <>
+                <br />
+                <span className="hint">{t('빠진 요구')}</span>{' '}
+                {빠진.slice(0, 빠짐보임).map((r) => (
+                  <a key={r} className="mono made-req" href={PRD항목주소(r)}>
+                    {r}
+                  </a>
+                ))}
+                {빠진.length - 빠짐보임 > 0 ? <span className="hint">{t('외 {수}개', { 수: 빠진.length - 빠짐보임 })}</span> : null}
+              </>
+            )}
+          </span>
         </div>
       )}
 

@@ -122,8 +122,8 @@ export function 자료요약(입력: { name: string; position?: number }[]): { f
 export function 할일칩들(todo: AuthoringTodoCount, 언어: 언어): { 글: string; 실패: boolean }[] {
   return [
     todo.apply === 'FAILED' ? { 글: t('반영 실패', 언어), 실패: true } : null,
-    todo.heldOpen > 0 ? { 글: t('값 필요 {수}', 언어, { 수: todo.heldOpen }), 실패: false } : null,
-    todo.conflictsOpen > 0 ? { 글: t('겹침 {수}', 언어, { 수: todo.conflictsOpen }), 실패: false } : null,
+    todo.heldOpen > 0 ? { 글: t('입력 필요 {수}', 언어, { 수: todo.heldOpen }), 실패: false } : null,
+    todo.conflictsOpen > 0 ? { 글: t('중복 {수}', 언어, { 수: todo.conflictsOpen }), 실패: false } : null,
     todo.apply === 'WAITING' ? { 글: t('반영 대기', 언어), 실패: false } : null,
   ].filter((x): x is { 글: string; 실패: boolean } => x !== null);
 }

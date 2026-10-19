@@ -119,15 +119,18 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
     ['남은 것이 없는 셈', { ...셈, excluded: { '요구 아님': 124 }, missing: [], later: [] }, '이어 작성할 요구가 없습니다. 모두 케이스로 만들었거나 제외했습니다.'],
     ['원장 없는 셈', { none: 'PDF 뿐' }, 'PRD 요구사항을 세지 못해 이어 작성할 수 없습니다.'],
   ];
-  it.each(못누름)('못 누르면(%s) 왜인지 말한다', (_, 커버리지, 글) => {
+  it.each(못누름)('못 누르면(%s) 이어 작성 줄도 까닭 줄도 안 그린다', (_, 커버리지, 글) => {
     카드(줄({ canContinue: false }), 커버리지);
     expect(screen.queryByRole('button', { name: '남은 요구로 이어 작성' })).toBeNull();
-    expect(screen.getByText(글)).toBeTruthy();
+    expect(screen.queryByText('남은 요구로 이어 작성')).toBeNull();
+    expect(screen.queryByText(글)).toBeNull();
+    expect(screen.getByText('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')).toBeTruthy();
   });
 
-  it('셈에 남은 것이 있는데 서버가 막으면(입력 자료 없는 옛 요청) 일반 까닭을 말한다', () => {
+  it('셈에 남은 것이 있는데 서버가 막으면(입력 자료 없는 옛 요청) 이어 작성 줄도 일반 까닭도 안 그린다', () => {
     카드(줄({ canContinue: false }));
-    expect(screen.getByText('이 요청은 이어 작성할 수 없습니다.')).toBeTruthy();
+    expect(screen.queryByText('이 요청은 이어 작성할 수 없습니다.')).toBeNull();
+    expect(screen.queryByText('남은 요구로 이어 작성')).toBeNull();
     expect(screen.queryByRole('button', { name: '남은 요구로 이어 작성' })).toBeNull();
   });
 

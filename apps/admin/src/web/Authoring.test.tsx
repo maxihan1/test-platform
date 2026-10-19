@@ -155,7 +155,7 @@ describe('작성 목록 줄 제목과 할 일 (⑫ 점검 11.1 · 11.2 · N2)', 
   it('사람 손이 남은 줄은 초록 완료 대신 할 일 칩을 단다', async () => {
     줄들.push(줄({ id: 7001, rootId: 7001, status: 'DONE', todo: { heldOpen: 3, conflictsOpen: 0, apply: 'WAITING' } }));
     render(<Authoring service="PAY" 할수={() => true} />);
-    expect(await screen.findByText('값 필요 3')).toBeTruthy();
+    expect(await screen.findByText('입력 필요 3')).toBeTruthy();
     expect(screen.getByText('반영 대기')).toBeTruthy();
     expect(screen.queryByText('완료')).toBeNull();
   });
@@ -164,7 +164,7 @@ describe('작성 목록 줄 제목과 할 일 (⑫ 점검 11.1 · 11.2 · N2)', 
     줄들.push(줄({ id: 5880, rootId: 5873, kind: 'MERGE', status: 'FAILED', todo: { heldOpen: 0, conflictsOpen: 2, apply: 'FAILED' } }));
     render(<Authoring service="PAY" 할수={() => true} />);
     expect((await screen.findByText('반영 실패')).className).toContain('fail');
-    expect(screen.getByText('겹침 2')).toBeTruthy();
+    expect(screen.getByText('중복 2')).toBeTruthy();
   });
 
   it('반영까지 끝난 줄만 「반영 완료」다', async () => {

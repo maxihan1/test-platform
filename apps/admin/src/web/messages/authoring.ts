@@ -110,8 +110,6 @@ export const 작성말: Record<string, string> = {
     'It was opened as a draft PR. Read it and leave a comment on the PR if something looks wrong.',
   '만든 테스트 코드 보기 (PR)': 'View the test code (PR)',
   '기획서와 다른 곳 {수}건 확인': 'Check {수} differences from the spec',
-  '화면에서 본 값으로 만든 케이스라 미확정 표시가 붙었습니다. 기획자에게 어느 쪽이 맞는지 물어보세요.':
-    'These cases use values seen on screen, so they are marked unconfirmed. Ask the planner which side is right.',
   '표시한 기획서 내려받기': 'Download the marked spec',
   '테스트 반영하기': 'Merge the tests',
   '검토가 끝나면 PR을 합쳐 케이스 목록에 올립니다.': 'After review, merge the PR to add the cases to the list.',
@@ -162,8 +160,6 @@ export const 작성말: Record<string, string> = {
     'What was made in {분} min is kept so you can continue writing later.',
   '아직 시작 전이라 바로 취소됩니다.': 'It has not started yet, so it is cancelled right away.',
   '목록에서 사라집니다. 통계와 토큰 기록은 남습니다.': 'It disappears from the list. Stats and token records stay.',
-  '반영하지 않을 테스트면 폐기합니다. 올라간 PR 은 GitHub 에서 닫습니다.': 'Discard it if you will not merge these tests. Close the PR on GitHub yourself.',
-
   // 역방향 — 기획서와 실제 화면을 대조한다 (도메인/작성 §3.6 「★ 역방향」)
   '실제 화면과 대조': 'Compare with the live screen',
   '화면과 대조': 'Screen compare',
@@ -188,9 +184,6 @@ export const 작성말: Record<string, string> = {
   기획서: 'Spec',
   화면: 'Screen',
   케이스: 'Case',
-  표시함: 'Marked',
-  '표시 못 함': 'Not marked',
-  '이유 기록 없음': 'No reason recorded',
   '기획서와 다름': 'Differs from spec',
   '화면에만 있음': 'Only on screen',
   '문서에만 있음': 'Only in spec',
@@ -206,20 +199,7 @@ export const 작성말: Record<string, string> = {
   결과: 'Result',
   테스트: 'Tests',
   // 보류 케이스 (도메인/작성 §3.6 「★ 보류 케이스」 · 시안 A)
-  '보류 케이스': 'Held cases',
-  '{수}건 · 값을 넣거나 제거하세요': '{수} · fill in values or remove',
-  '판정 불가는 기획서에 판정 기준이 없는 케이스, 보류는 전제를 만들 수 없는 케이스입니다. 넣은 값은 테스트의 기본값이 되고, 실행할 때 바꿀 수 있습니다.':
-    'Undecidable means the spec had no pass criterion; on hold means the precondition could not be built. Values you enter become the test defaults and can be changed at run time.',
-  '무엇을 확인하나': 'What it checks',
-  '왜 보류됐나': 'Why it is held',
-  '판정 불가': 'Undecidable',
-  보류: 'On hold',
-  '값 필요': 'Needs values',
-  '값 채움': 'Filled',
-  제거함: 'Removed',
-  '값 넣기': 'Fill in',
   접기: 'Collapse',
-  제거: 'Remove',
   되돌리기: 'Undo',
   '넣을 값': 'Input',
   '기대 결과': 'Expected',
@@ -228,45 +208,25 @@ export const 작성말: Record<string, string> = {
   '숫자를 넣으세요': 'Enter a number',
   저장했습니다: 'Saved',
   '칸을 벗어나면 바로 저장됩니다': 'Saved as soon as you leave the field',
-  '보류 케이스 {전체}건 중 {처리}건 처리': '{처리} of {전체} held cases handled',
-  '값 채움 {채움} · 제거 {제거}': 'filled {채움} · removed {제거}',
-  '보류 케이스로 가기': 'Go to held cases',
-  '보류 케이스 {수}건이 남아 있어 아직 반영할 수 없습니다.': '{수} held cases remain, so this cannot be merged yet.',
   '반영하면 넣은 값을 테스트 코드에 적고, 값을 채운 케이스를 3번 돌려 모두 통과해야 합칩니다.':
     'Merging writes your values into the test code, runs each filled case 3 times, and merges only if all pass.',
-  '보류 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요': 'Held cases remain, so this cannot be merged yet. Try refreshing.',
   '반영이 대기 중이거나 진행 중이라 지금은 값을 바꿀 수 없습니다': 'A merge is queued or running, so values cannot be changed now',
   '넣은 값이 이 케이스의 칸과 맞지 않습니다': 'The values do not match this case’s fields',
-  '보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.': 'Could not read the held cases. Run it again with the same materials.',
   '테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.':
     'No target server has a test account. Add one in Settings > Services.',
   // PRD 요구사항 집계 (도메인/작성 §3.6 「★ 원장」) — Status 카드 한 줄
   'PRD 요구사항': 'PRD requirements',
-  '{총}건 중 스크립트 작성 {덮음}건 ({퍼센트}%)': '{덮음} of {총} have scripts ({퍼센트}%)',
-  '{총}건 중 스크립트 작성 {덮음}건': '{덮음} of {총} have scripts',
-  '기능 테스트 {수}': 'functional tests {수}',
-  'UI 테스트 {수}': 'UI tests {수}',
-  '보류 스크립트로만 {수}': 'held scripts only {수}',
-  '보류 여부 확인 불가': 'held status unknown',
   '제외 {수} (다음 작성 {다음})': 'excluded {수} (next authoring {다음})',
   '제외 {수}': 'excluded {수}',
-  '누락 {수}': 'missing {수}',
   'PRD 밖 자료 {수}': 'files outside the PRD {수}',
   '집계 없음 — {까닭}': 'no tally — {까닭}',
   // 계정이 없어 보류된 요구 (도메인/작성 §3.6 「★ 역할별 계정」 「작성 결과 카드」)
-  '계정 보류': 'Held for accounts',
-  '보류 {건수}건 — 역할 계정이 등록되지 않았습니다 · 등록하면 이 요구만 다시 작성합니다':
-    '{건수} on hold — role accounts are not registered · once registered, only these requirements are written again',
   // 남은 요구로 이어 작성 (도메인/작성 §3.6 「★ 원장」) — 영어는 follow-up. continue 는 이어서 작성(재개)에만 쓴다
   '남은 요구로 이어 작성': 'Follow up on remaining requirements',
   '남은 요구는 #{번호} 요청이 맡았습니다.': 'Request #{번호} took the remaining requirements.',
   '#{번호} 요청 보기': 'View request #{번호}',
   '#{번호}의 남은 요구': 'Follow-up of #{번호}',
   '#{번호} 다음 · 기획서에 없는 화면': 'After #{번호} · screens not in the spec',
-  'PRD 요구사항을 세지 못해 이어 작성할 수 없습니다.': 'The PRD requirements could not be counted, so there is no follow-up.',
-  '이어 작성할 요구가 없습니다. 모두 케이스로 만들었거나 제외했습니다.':
-    'Nothing left to follow up. Every requirement became a test case or was excluded.',
-  '이 요청은 이어 작성할 수 없습니다.': 'This request cannot be followed up.',
   '반영한 실행 기준으로 다음 요청 {다음}개 · 빠짐 {빠짐}개가 남았습니다.':
     'As of the merged run, {다음} left for the next request · {빠짐} missing.',
   '이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 에이전트가 시작할 때 다시 셉니다.':
@@ -275,25 +235,9 @@ export const 작성말: Record<string, string> = {
   'GitHub 에서 이미 병합했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.':
     'Even if the PR was merged on GitHub, merge here to follow up on the remaining requirements.',
   // 반영 때 겹침 (도메인/작성 §3.6 「★ 반영 때 겹침 검사」)
-  '겹친 케이스': 'Overlapping cases',
-  '{수}건 · 아직 고르지 않은 것 {남은}건': '{수} cases · {남은} not decided yet',
-  '모두 남긴다': 'Keep all',
-  '먼저 반영된 케이스와 번호 · 요구 번호 · 이름이 겹칩니다. 케이스마다 남길지 뺄지 고른 뒤에 반영할 수 있습니다.':
-    'These overlap an already merged case by ID, requirement number or name. Decide keep or drop for each case, then merge.',
-  '무엇이 겹쳤나': 'What overlaps',
-  '겹친 main 케이스': 'Overlapping case on main',
-  '고른 것': 'Decision',
-  '아직 안 고름': 'Not decided',
-  남긴다: 'Keep',
-  뺀다: 'Drop',
-  '번호 겹침': 'Same ID',
-  '요구 번호 겹침': 'Same requirement',
-  '이름 겹침': 'Same name',
   '번호가 겹쳐 반영할 때 새 번호를 받습니다': 'The ID overlaps, so it gets a new ID when merged',
-  '겹치는 케이스 {수}건을 아직 고르지 않아 반영할 수 없습니다.': '{수} overlapping cases are not decided yet, so you cannot merge.',
   '반영하지 못했습니다': 'The merge did not go through',
   '같은 자료로 다시 작성하면 새 main 위에서 처음부터 다시 만듭니다. 지금까지의 실행은 실행 기록에 남습니다.':
     'Writing again from the same material rebuilds on the latest main. Earlier runs stay in the run history.',
   '반영 실패 까닭이 기록되지 않았습니다': 'No reason was recorded for the failed merge',
-  '겹친 케이스로 가기': 'Go to overlapping cases',
 };
