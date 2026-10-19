@@ -2,8 +2,7 @@
 // 여기에 넣은 키는 화면 어딘가가 실제로 써야 한다 — messages.test.ts 가 양방향으로 센다
 
 export const 껍데기말: Record<string, string> = {
-  // 제품과 자리 목록
-  '테스트 플랫폼': 'Test Platform',
+  // 자리 목록
   대시보드: 'Dashboard',
   // 영어는 못 박는다 (화면공통 §8 「자리 목록」)
   'PRD 관리': 'PRD',
@@ -28,7 +27,7 @@ export const 껍데기말: Record<string, string> = {
   '마지막에 연 프로젝트': 'Last opened project',
   '애플리케이션 없음': 'No application',
   // 맨 위 헤더 (ShellHeader.tsx)
-  '테스트 플랫폼 홈': 'Test Platform home',
+  'QA Hub 홈': 'QA Hub home',
   언어: 'Language',
   로그아웃: 'Sign out',
   // 언어 이름은 그 언어로 적는 것이 관례다. 영어로 봐도 「한국어」여야 고를 수 있다

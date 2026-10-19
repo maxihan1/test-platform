@@ -21,15 +21,28 @@
   padding: 0 16px;
   background: var(--rail);
   color: var(--ink);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   letter-spacing: -0.01em;
   text-decoration: none;
   white-space: nowrap;
 }
 
+.hd-logo b {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* 펼친 칸에서는 크게. 접은 칸(44px)은 여백 8px 둘을 빼면 28px 이 다 들어가는 크기라 그대로 둔다 */
 .hd-logo-mark {
   flex: none;
+  width: 32px;
+  height: 32px;
+}
+
+.wrap.folded .hd-logo-mark {
+  width: 28px;
+  height: 28px;
 }
 
 .hd-logo:focus-visible {
