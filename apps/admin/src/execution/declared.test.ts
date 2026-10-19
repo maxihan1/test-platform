@@ -53,7 +53,7 @@ describe.skipIf(연결 === undefined)('정식 실행 선언 대조', () => {
 
   it('선언 밖 디바이스가 있으면 실행을 만들기 전에 INVALID_REQUEST 로 거절한다', async () => {
     const err = await createRun({
-      title: 'XBP 선언 밖 디바이스',
+      origin: 'MANUAL',
       triggeredBy: 'tester',
       env: 'qa',
       items: [{ tcId: 'XBP-001', platforms: ['desktop'], params: {}, expected: {} }],

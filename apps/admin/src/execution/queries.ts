@@ -11,13 +11,14 @@ import type { ItemStatus, Platform, StepResult } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { 항목실패를가른다 } from '../reporting/itemFailure.js';
+import { 직전대비수 } from '../reporting/runChange.js';
 import { 가린값들 } from '../web/mask.js';
 import { 가린다, 항목비밀 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
 
 import { 종류조건 } from './runKind.js';
 import { RUN_COLUMNS, toRun, to시나리오줄, type RawRun } from './runRow.js';
-import type { RunItemDetail, RunItemSummary, RunSummary } from './runTypes.js';
+import type { RunItemDetail, RunItemSummary, RunListRow, RunSummary } from './runTypes.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -40,7 +41,7 @@ export async function listRuns(
   page: number,
   pageSize: number,
   거르개?: 실행거르개 & { kind?: 'case' | 'ui' | 'fn' },
-): Promise<실행목록<RunSummary>>;
+): Promise<실행목록<RunListRow>>;
 export async function listRuns(
   service: string,
   page: number,
@@ -52,13 +53,13 @@ export async function listRuns(
   page: number,
   pageSize: number,
   거르개: 실행거르개,
-): Promise<실행목록<RunSummary> | 실행목록<시나리오실행줄>>;
+): Promise<실행목록<RunListRow> | 실행목록<시나리오실행줄>>;
 export async function listRuns(
   service: string,
   page: number,
   pageSize: number,
   거르개: 실행거르개 = {},
-): Promise<실행목록<RunSummary> | 실행목록<시나리오실행줄>> {
+): Promise<실행목록<RunListRow> | 실행목록<시나리오실행줄>> {
   const pool = await db();
   const 시나리오 = 거르개.kind === 'scenario';
   const 조건 = 거르는조건(거르개, 4);
@@ -80,7 +81,10 @@ export async function listRuns(
   );
 
   const 머리 = { total: rows.rows[0]?.grand_total ?? 0, page, pageSize, summary: await runSummary(service, 거르개) };
-  return 시나리오 ? { items: rows.rows.map(to시나리오줄), ...머리 } : { items: rows.rows.map(toRun), ...머리 };
+  if (시나리오) return { items: rows.rows.map(to시나리오줄), ...머리 };
+  // 시나리오는 견주기가 없어 change 를 싣지 않는다
+  const 대비 = await 직전대비수(rows.rows.map((r) => Number(r.run_id)));
+  return { items: rows.rows.map((r) => ({ ...toRun(r), change: 대비.get(Number(r.run_id)) ?? null })), ...머리 };
 }
 
 interface RawItem {

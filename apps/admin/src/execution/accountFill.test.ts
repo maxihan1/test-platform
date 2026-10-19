@@ -77,7 +77,7 @@ describe.skipIf(연결 === undefined)('실행 때 계정 채우기', () => {
   beforeEach(치우기);
 
   const 실행 = (env: string, params: Record<string, unknown> = {}) =>
-    createRun({ title: 'XAF 실행', triggeredBy: 'xaf', env, items: [{ tcId: 케이스, platforms: ['desktop'], params, expected: {} }] });
+    createRun({ origin: 'MANUAL', triggeredBy: 'xaf', env, items: [{ tcId: 케이스, platforms: ['desktop'], params, expected: {} }] });
   const 항목값 = async (runId: number) =>
     (await q('SELECT params, expected FROM run_item WHERE run_id = $1', [runId])).rows[0] as {
       params: Record<string, unknown>;

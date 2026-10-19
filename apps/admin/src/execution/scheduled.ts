@@ -27,7 +27,7 @@ export interface 만든정기실행 {
 const 이름 = { UI: 'UI 테스트', FN: '기능 테스트' } as const;
 
 /** 서비스 하나의 활성 케이스를 UI · 기능 실행 둘로 만들고 분배를 건다. 실패는 던지지 않고 로그에 남긴다 — 다른 종류 · 다른 서비스는 돈다 */
-export async function 정기실행을만든다(prefix: string, env: string, 날짜: string, 로그: 로그): Promise<만든정기실행> {
+export async function 정기실행을만든다(prefix: string, env: string, 로그: 로그): Promise<만든정기실행> {
   const 목록 = await listCases({ service: prefix, q: '', activeOnly: true, page: 1, pageSize: MAX_ITEMS });
   if (목록.items.length === 0) {
     로그.error(`[schedule] ${prefix} 서비스에 활성 케이스가 없다. 스캔이 돌았는지 확인해라`);
@@ -57,7 +57,7 @@ export async function 정기실행을만든다(prefix: string, env: string, 날�
   for (const 묶음 of 종류별로나눈다(items)) {
     try {
       const { runId, items: 보낼것 } = await createRun({
-        title: `정기 실행 ${날짜} · ${이름[묶음.kind]}`,
+        origin: 'SCHEDULED',
         // 사람이 아니므로 사람 이름을 받지 않는다. 이름 칸도 박는다 — 비우면 「실행자 미상」으로 읽힌다 (SPEC §8.6)
         triggeredBy: '스케줄러',
         triggeredByName: '스케줄러',
@@ -109,9 +109,9 @@ export async function 돌때가된서비스(
 
 /** 1분마다 부른다. 만들다 실패해도 그날은 다시 안 돈다 — 1분마다 같은 실패를 되풀이하지 않는다 (§9.2) */
 export async function 정기실행점검(로그: 로그): Promise<void> {
-  for (const { prefix, env, 날짜 } of await 돌때가된서비스()) {
+  for (const { prefix, env } of await 돌때가된서비스()) {
     try {
-      const { 끝 } = await 정기실행을만든다(prefix, env, 날짜, 로그);
+      const { 끝 } = await 정기실행을만든다(prefix, env, 로그);
       void 끝.catch((err: unknown) => 로그.error(`[schedule] ${prefix} 분배가 깨졌다: ${err instanceof Error ? err.message : String(err)}`));
     } catch (err) {
       로그.error(`[schedule] ${prefix} 정기 실행을 못 만들었다: ${err instanceof Error ? err.message : String(err)}`);

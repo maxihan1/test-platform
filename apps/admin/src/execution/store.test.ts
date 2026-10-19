@@ -31,8 +31,8 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   let pool: Pool;
 
   async function 치운다(): Promise<void> {
-    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBS%')");
-    await pool.query("DELETE FROM test_run WHERE title LIKE 'XBS%'");
+    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBS'))");
+    await pool.query("DELETE FROM test_run WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBS')");
   }
 
   beforeAll(async () => {
@@ -69,7 +69,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   };
 
   it('platforms 길이만큼 run_item을 만든다', async () => {
-    const run = await createRun({ title: 'XBS 두 환경', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: [...항목.platforms] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: [...항목.platforms] }] });
     expect(run.items).toHaveLength(2);
     expect(run.items.map((i) => i.platform).sort()).toEqual(['desktop', 'mobile']);
 
@@ -78,7 +78,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('생성 직후에는 판정이 NA이고 끝난 시각이 비어 있다', async () => {
-    const run = await createRun({ title: 'XBS 생성 직후', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     const row = await pool.query<{ status: string; finished_at: Date | null; duration_ms: number | null }>(
       'SELECT status, finished_at, duration_ms FROM run_item WHERE run_id = $1',
       [run.runId],
@@ -87,13 +87,13 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('실행 묶음은 RUNNING으로 시작한다', async () => {
-    const run = await createRun({ title: 'XBS 시작', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     const row = await pool.query<{ status: string }>('SELECT status FROM test_run WHERE run_id = $1', [run.runId]);
     expect(row.rows[0]?.status).toBe('RUNNING');
   });
 
   it('케이스명과 사전조건을 스냅샷으로 복사해 나중에 이름이 바뀌어도 그대로다', async () => {
-    const run = await createRun({ title: 'XBS 스냅샷', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     await pool.query('UPDATE test_case SET name = $1 WHERE tc_id = $2', ['이름이 바뀐 케이스', 'XBS-001']);
 
     const row = await pool.query<{ tc_name: string; precondition: string[]; params: unknown; expected: unknown }>(
@@ -110,7 +110,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
 
   it('러너에 넘길 파일 경로와 제한 시간을 같이 돌려준다', async () => {
     const run = await createRun({
-      title: 'XBS 제한 시간',
+      origin: 'MANUAL',
       triggeredBy: 'tester',
       env: 'qa',
       items: [{ ...항목, platforms: ['desktop'], timeoutMs: 5000 }],
@@ -119,20 +119,20 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('제한 시간을 안 주면 5분이 기본이다', async () => {
-    const run = await createRun({ title: 'XBS 기본 제한', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     expect(run.items[0]?.timeoutMs).toBe(300_000);
   });
 
   it('카탈로그에 없는 케이스는 그 tcId를 사유에 담아 거절한다', async () => {
     await expect(
-      createRun({ title: 'XBS 없는 케이스', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, tcId: 'XBS-404', platforms: ['desktop'] }] }),
+      createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, tcId: 'XBS-404', platforms: ['desktop'] }] }),
     ).rejects.toThrow('XBS-404');
   });
 
   it('같은 케이스와 환경을 두 번 넣으면 거절한다', async () => {
     await expect(
       createRun({
-        title: 'XBS 중복',
+        origin: 'MANUAL',
         triggeredBy: 'tester',
         env: 'qa',
         items: [
@@ -144,11 +144,11 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('빈 목록은 거절한다', async () => {
-    await expect(createRun({ title: 'XBS 빈 목록', triggeredBy: 'tester', env: 'qa', items: [] })).rejects.toThrow();
+    await expect(createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [] })).rejects.toThrow();
   });
 
   it('서비스 이름과 저장소와 대상 주소를 실행에 박제한다', async () => {
-    const run = await createRun({ title: 'XBS 박제', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
 
     const row = await pool.query<{ env: string; service_name: string; tests_repo: string; base_url: string; service_id: string }>(
       'SELECT env, service_name, tests_repo, base_url, service_id FROM test_run WHERE run_id = $1',
@@ -165,7 +165,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
 
   it('라벨과 제한 시간과 파일 경로를 항목에 박제한다', async () => {
     const run = await createRun({
-      title: 'XBS 항목 박제',
+      origin: 'MANUAL',
       triggeredBy: 'tester',
       env: 'qa',
       items: [{ ...항목, platforms: ['desktop'], timeoutMs: 7000 }],
@@ -181,14 +181,14 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('러너에 넘길 항목에 대상 주소가 실려 있다', async () => {
-    const run = await createRun({ title: 'XBS 주소', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     expect(run.items[0]?.baseUrl).toBe('https://qa.example.com');
   });
 
   it('접두사가 섞이면 MIXED_SERVICE로 거절한다', async () => {
     await expect(
       createRun({
-        title: 'XBS 섞임',
+        origin: 'MANUAL',
         triggeredBy: 'tester',
         env: 'qa',
         items: [
@@ -202,7 +202,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   it('UI 테스트와 기능 테스트가 섞이면 MIXED_KIND로 거절한다 (PR #131)', async () => {
     await expect(
       createRun({
-        title: 'XBS 종류 섞임',
+        origin: 'MANUAL',
         triggeredBy: 'tester',
         env: 'qa',
         items: [
@@ -214,7 +214,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('기능 케이스 실행은 종류 FN 으로 남는다 (PR #131)', async () => {
-    const run = await createRun({ title: 'XBS 종류', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     const { pool } = await import('../db/index.js');
     const row = await pool.query('SELECT kind FROM test_run WHERE run_id = $1', [run.runId]);
     expect(row.rows[0]?.kind).toBe('FN');
@@ -222,13 +222,13 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
 
   it('그 서비스에 없는 대상 서버는 ENV_NOT_FOUND로 거절한다', async () => {
     await expect(
-      createRun({ title: 'XBS 없는 환경', triggeredBy: 'tester', env: '없는환경', items: [{ ...항목, platforms: ['desktop'] }] }),
+      createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: '없는환경', items: [{ ...항목, platforms: ['desktop'] }] }),
     ).rejects.toMatchObject({ code: 'ENV_NOT_FOUND' });
   });
 
   it('반복 횟수만큼 항목을 만들고 회차를 1부터 기록한다', async () => {
     const run = await createRun({
-      title: 'XBS 반복',
+      origin: 'MANUAL',
       triggeredBy: 'tester',
       env: 'qa',
       repeat: 3,
@@ -246,7 +246,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('반복을 안 주면 회차는 1이고 항목도 하나다', async () => {
-    const run = await createRun({ title: 'XBS 반복 없음', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     expect(run.items).toHaveLength(1);
 
     const row = await pool.query<{ attempt: number }>('SELECT attempt FROM run_item WHERE run_id = $1', [run.runId]);
@@ -256,7 +256,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   it('만들어질 항목이 5000건을 넘으면 상한과 요청 건수를 담아 거절한다', async () => {
     await expect(
       createRun({
-        title: 'XBS 너무 많음',
+        origin: 'MANUAL',
         triggeredBy: 'tester',
         env: 'qa',
         repeat: 2501,
@@ -267,7 +267,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
 
   it('딱 5000건은 통과한다', async () => {
     const run = await createRun({
-      title: 'XBS 딱 상한',
+      origin: 'MANUAL',
       triggeredBy: 'tester',
       env: 'qa',
       repeat: 2500,
@@ -277,7 +277,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   }, 30_000);
 
   it('멈추면 미완 항목을 NA와 ABORTED로 닫고 묶음을 ABORTED로 바꾼다', async () => {
-    const run = await createRun({ title: 'XBS 멈춤', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop', 'mobile'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop', 'mobile'] }] });
 
     const result = await abortRun(run.runId);
     expect(result).toEqual({ aborted: 2 });
@@ -297,7 +297,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('이미 끝난 판정은 멈춤이 덮어쓰지 않는다', async () => {
-    const run = await createRun({ title: 'XBS 겹침', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop', 'mobile'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop', 'mobile'] }] });
     const historyId = run.items[0]!.historyId;
     await finishItem(historyId, { ...결과, historyId, status: 'PASS' });
 
@@ -309,7 +309,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('멈춘 뒤 늦게 온 러너 응답이 이미 닫힌 항목을 덮어쓰지 않는다', async () => {
-    const run = await createRun({ title: 'XBS 늦은 응답', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     const historyId = run.items[0]!.historyId;
 
     // 사람이 멈춘 직후다. 그 항목의 러너 호출은 이미 나가 있어서 응답이 뒤늦게 도착한다
@@ -329,13 +329,13 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('이미 멈춘 실행을 또 멈추면 null이다', async () => {
-    const run = await createRun({ title: 'XBS 두 번 멈춤', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     await abortRun(run.runId);
     expect(await abortRun(run.runId)).toBeNull();
   });
 
   it('재기동 복구가 도는 중이던 실행을 닫는다', async () => {
-    const run = await createRun({ title: 'XBS 재기동', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
 
     expect(await recoverRunning()).toBeGreaterThanOrEqual(1);
 
@@ -350,7 +350,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
 
   it('등록되지 않은 접두사는 SERVICE_FORBIDDEN으로 거절한다', async () => {
     await expect(
-      createRun({ title: 'XBS 없는 서비스', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, tcId: 'XBR-001', platforms: ['desktop'] }] }),
+      createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, tcId: 'XBR-001', platforms: ['desktop'] }] }),
     ).rejects.toMatchObject({ code: 'SERVICE_FORBIDDEN' });
   });
 
@@ -379,7 +379,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   };
 
   it('결과를 받으면 판정·소요시간·끝난 시각을 채운다', async () => {
-    const run = await createRun({ title: 'XBS 결과', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     const historyId = run.items[0]!.historyId;
     await finishItem(historyId, { ...결과, historyId });
 
@@ -393,7 +393,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('절차와 검증 문장을 그대로 저장한다', async () => {
-    const run = await createRun({ title: 'XBS 절차', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     const historyId = run.items[0]!.historyId;
     await finishItem(historyId, { ...결과, historyId });
 
@@ -410,7 +410,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('러너가 죽은 항목은 NA와 사유로 남는다', async () => {
-    const run = await createRun({ title: 'XBS 고장', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: ['desktop'] }] });
     const historyId = run.items[0]!.historyId;
     await finishItem(historyId, { historyId, status: 'NA', durationMs: 30, steps: [], error: { message: 'TIMEOUT' } });
 
@@ -423,7 +423,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('항목이 하나라도 안 끝났으면 실행 묶음은 FINISHED가 되지 않는다', async () => {
-    const run = await createRun({ title: 'XBS 미완', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: [...항목.platforms] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: [...항목.platforms] }] });
     await finishItem(run.items[0]!.historyId, { ...결과, historyId: run.items[0]!.historyId });
     await finishRun(run.runId);
 
@@ -432,7 +432,7 @@ describe.skipIf(연결 === undefined)('실행 저장', () => {
   });
 
   it('항목이 전부 끝나면 FINISHED가 된다', async () => {
-    const run = await createRun({ title: 'XBS 완료', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: [...항목.platforms] }] });
+    const run = await createRun({ origin: 'MANUAL', triggeredBy: 'tester', env: 'qa', items: [{ ...항목, platforms: [...항목.platforms] }] });
     for (const item of run.items) await finishItem(item.historyId, { ...결과, historyId: item.historyId });
     await finishRun(run.runId);
 

@@ -236,7 +236,7 @@ describe.skipIf(연결 === undefined)('케이스 저장 입력값', () => {
 
   const 실행 = (params: Record<string, unknown>, expected: Record<string, unknown> = {}) =>
     createRun({
-      title: 'XSI 실행',
+      origin: 'MANUAL',
       triggeredBy: 'xsi',
       env: 'qa',
       items: [{ tcId: 케이스, platforms: ['desktop'], params, expected }],
