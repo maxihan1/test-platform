@@ -115,7 +115,7 @@ export function 끝검사(결과폴더: string, 트리: string, 폴더: string, 
 }
 
 /**
- * 끝의 3회로 볼 케이스 파일마다, 그 파일과 그것이 가져다 쓰는 Page Object · Component · 도우미 가운데 가장 늦은 수정 시각.
+ * 마지막 전체 돌려 보기로 볼 케이스 파일마다, 그 파일과 그것이 가져다 쓰는 Page Object · Component · 도우미 가운데 가장 늦은 수정 시각.
  * 이번 작성이 바꾼 파일(`바뀐` — 기준과의 차이, testDir 기준 경로)에 닿는 케이스만 본다. 안 건드린 케이스는 앞 작성에서 3회를 통과했다 —
  * 반영 · 화면이 맞음 · 바뀐 화면 고치기가 케이스 1~4건을 고치고 폴더 전체 472 파일을 돌아 15~17분을 썼다(PRD-F9-13). 첫 작성은 다 바뀐 것이라 전체다
  */
@@ -146,10 +146,24 @@ export function 살필케이스(파일들: (파일글 & { 때: number })[], 바�
   );
 }
 
+interface 표시글 {
+  type?: unknown;
+}
 interface 시험글 {
   projectName?: unknown;
   status?: unknown;
-  results?: { duration?: unknown; error?: { message?: unknown } }[];
+  annotations?: 표시글[];
+  results?: { duration?: unknown; error?: { message?: unknown }; annotations?: 표시글[] }[];
+}
+
+/**
+ * 끝까지 돈 회차인가. 전체 시간 상한(`--global-timeout`)에 걸려 못 돈 회차도 `skipped` 로 적힌다(회차 기록 0개, 또는 표시 없는 1개 — 2026-10-19 실측).
+ * 보류(held)의 `skipped` 는 kit 이 `test.skip` 으로 달아 `skip` 표시가 붙는다 — 그것만 돈 것으로 센다
+ */
+function 돌았나(t: 시험글): boolean {
+  const 회차들 = t.results ?? [];
+  if (회차들.length === 0) return false;
+  return t.status !== 'skipped' || [...(t.annotations ?? []), ...회차들.flatMap((r) => r.annotations ?? [])].some((a) => a.type === 'skip');
 }
 interface 묶음글 {
   file?: unknown;
@@ -175,13 +189,18 @@ export interface 돌린판 {
   오류: string | null;
 }
 
-/** 기록들을 `파일\0기기` 마다 돌린 판으로 모은다. 하위 묶음(describe)은 위 파일 이름을 물려받는다. 못 읽으면 null */
-export function 판들읽기(기록들: 돌린기록[]): { 판들: Map<string, 돌린판[]>; 동시: unknown } | null {
-  let 읽은것: (결과글 & { 이름: string })[];
-  try {
-    읽은것 = 기록들.map((r) => ({ ...(JSON.parse(r.글) as 결과글), 이름: r.이름 }));
-  } catch {
-    return null;
+/**
+ * 기록들을 `파일\0기기` 마다 돌린 판으로 모은다. 하위 묶음(describe)은 위 파일 이름을 물려받는다. 끝까지 못 돈 회차는 뺀다(돌았나).
+ * 못 읽는 기록이 있으면 null — `깨진것빼기` 면 그 기록만 빼고 본다(돌려 보기 명령은 그 파일을 다시 돌리면 된다)
+ */
+export function 판들읽기(기록들: 돌린기록[], 깨진것빼기 = false): { 판들: Map<string, 돌린판[]>; 동시: unknown } | null {
+  const 읽은것: (결과글 & { 이름: string })[] = [];
+  for (const r of 기록들) {
+    try {
+      읽은것.push({ ...(JSON.parse(r.글) as 결과글), 이름: r.이름 });
+    } catch {
+      if (!깨진것빼기) return null;
+    }
   }
   const 판들 = new Map<string, 돌린판[]>();
   for (const r of 읽은것) {
@@ -195,7 +214,7 @@ export function 판들읽기(기록들: 돌린기록[]): { 판들: Map<string, �
       if (typeof 묶음.file !== 'string') continue;
       const 이번 = new Map<string, 돌린판>();
       모으기(묶음, (t) => {
-        if (typeof t.projectName !== 'string') return;
+        if (typeof t.projectName !== 'string' || !돌았나(t)) return;
         const 판 = 이번.get(t.projectName) ?? { ...머리, 상태들: [], 시간들: [], 오류: null };
         판.상태들.push(t.status);
         for (const 회 of t.results ?? []) if (typeof 회.duration === 'number') 판.시간들.push(회.duration);
@@ -206,7 +225,7 @@ export function 판들읽기(기록들: 돌린기록[]): { 판들: Map<string, �
       for (const [기기, 판] of 이번) 판들.set(`${묶음.file}\0${기기}`, [...(판들.get(`${묶음.file}\0${기기}`) ?? []), 판]);
     }
   }
-  // 보조 AI 기록은 PC · 휴대폰을 한 번에 돌려 동시 둘이다 — 마지막 전체 돌려 보기 기록만 하나씩인지 본다
+  // 마지막 전체 돌려 보기 기록만 하나씩인지 본다 — 보조 AI 는 넷이 나란히 도는 것이 처음부터 정해진 분담이고, 사람이 직접 돌린 묶음 기록은 둘일 수 있다
   return { 판들, 동시: 읽은것.filter((r) => 끝기록꼴.test(r.이름)).map((r) => r.config?.workers).find((w) => w !== 1) };
 }
 
@@ -223,17 +242,28 @@ export interface 파일상태 {
   새것: boolean;
   /** 마지막 수정 뒤 · 응답 늦추기로 3번 다 초록(보류의 skipped 포함)인 기록이 있다 — 보조 AI 기록이든 마지막 기록이든 */
   셋: boolean;
+  /** 마지막 수정 뒤 · 응답 늦추기로 3번 돌린 기록이 있다(빨강이어도) — 보조 AI 기록이든 마지막 기록이든 */
+  세번돌림: boolean;
+  /** 위와 같되 마지막 전체 돌려 보기 기록에서 */
+  끝세번돌림: boolean;
   /** 마지막 수정 뒤 마지막 전체 돌려 보기 기록 가운데 가장 늦은 것 */
   끝판: 돌린판 | null;
 }
 
+/**
+ * 「3번」은 한 기록 안 상태 수로 센다 — 케이스 파일 하나에 테스트는 하나라서(`catalog/rules.ts` · `npm run check:tests` 가 막는다) `--repeat-each=3` 이면 셋이다.
+ * 돌려 보기 명령과 에이전트 판정이 이 함수 하나를 같이 쓴다
+ */
 export function 파일상태보기(판들: readonly 돌린판[] | undefined, 수정: number): 파일상태 {
   const 새것들 = (판들 ?? []).filter((p) => Number.isFinite(p.시작) && p.시작 >= 수정);
+  const 세번들 = 새것들.filter((p) => p.느림 && p.상태들.length >= 3);
   const 끝들 = 새것들.filter((p) => p.끝);
   return {
     있음: (판들 ?? []).length > 0,
     새것: 새것들.length > 0,
-    셋: 새것들.some((p) => p.느림 && p.상태들.length >= 3 && !p.상태들.includes('unexpected')),
+    셋: 세번들.some((p) => !p.상태들.includes('unexpected')),
+    세번돌림: 세번들.length > 0,
+    끝세번돌림: 세번들.some((p) => p.끝),
     끝판: 끝들.length === 0 ? null : 끝들.reduce((a, b) => (b.시작 > a.시작 ? b : a)),
   };
 }

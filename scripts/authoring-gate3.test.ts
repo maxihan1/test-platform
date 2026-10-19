@@ -36,9 +36,17 @@ const 결과 = (파일들: Record<string, string[]>, 덧: { workers?: number; st
     stats: { startTime: 덧.startTime ?? 시작 },
     suites: Object.entries(파일들).map(([file, 상태들]) => ({
       file,
-      specs: 상태들.map((status) => ({ file: '../packages/kit/src/runtime/test.ts', tests: [{ projectName: 'desktop', status }] })),
+      specs: 상태들.map((status) => ({ file: '../packages/kit/src/runtime/test.ts', tests: [시험(status)] })),
     })),
   });
+
+/** 끝까지 돈 회차 — 보류의 skipped 는 kit 의 test.skip 이 skip 표시를 단다 */
+const 시험 = (status: string, projectName = 'desktop') => ({
+  projectName,
+  status,
+  results: [{ duration: 1000 }],
+  ...(status === 'skipped' ? { annotations: [{ type: 'skip' }] } : {}),
+});
 
 let 번호 = 0;
 const 끝 = (글: string): 돌린기록 => ({ 이름: `gate3-final-${++번호}.json`, 글 });
@@ -129,7 +137,7 @@ describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-19 사�
     const 휴대폰만 = JSON.stringify({
       config: { workers: 1 },
       stats: { startTime: 시작 },
-      suites: [{ file: 'mkt/A.spec.ts', specs: [0, 1, 2].map(() => ({ tests: [{ projectName: 'mobile', status: 'expected' }] })) }],
+      suites: [{ file: 'mkt/A.spec.ts', specs: [0, 1, 2].map(() => ({ tests: [시험('expected', 'mobile')] })) }],
     });
     expect(끝돌려보기경고([끝(휴대폰만)], 수정('mkt/A.spec.ts', 'mkt/B.spec.ts'))).toMatch(/돌려 보지 않은 파일 2개/);
   });
@@ -138,7 +146,7 @@ describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-19 사�
     const 글 = JSON.stringify({
       config: { workers: 1, metadata: { slowApi: true } },
       stats: { startTime: 시작 },
-      suites: [{ file: 'mkt/A.spec.ts', suites: [{ specs: [0, 1, 2].map(() => ({ tests: [{ projectName: 'desktop', status: 'expected' }] })) }] }],
+      suites: [{ file: 'mkt/A.spec.ts', suites: [{ specs: [0, 1, 2].map(() => ({ tests: [시험('expected')] })) }] }],
     });
     expect(끝돌려보기경고([끝(글)], 수정('mkt/A.spec.ts'))).toBeNull();
   });
@@ -147,6 +155,25 @@ describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-19 사�
     expect(끝돌려보기경고([끝(결과({ 'mkt/A.spec.ts': 셋 }))], { 'mkt/A.spec.ts': Date.parse(시작) + 60_000 })).toMatch(
       /마지막으로 돌린 뒤에 고친 파일 1개/,
     );
+  });
+
+  it('전체 시간 상한에 잘려 못 돈 회차(표시 없는 skipped)는 세지 않는다 — 보류의 skipped 와 가른다 (2026-10-19 실측)', () => {
+    const 글 = JSON.stringify({
+      config: { workers: 1, metadata: { slowApi: true } },
+      stats: { startTime: 시작 },
+      suites: [
+        {
+          file: 'mkt/A.spec.ts',
+          specs: [
+            { tests: [시험('expected')] },
+            { tests: [{ projectName: 'desktop', status: 'skipped', results: [] }] },
+            { tests: [{ projectName: 'desktop', status: 'skipped', results: [{ duration: 0 }] }] },
+          ],
+        },
+      ],
+    });
+    expect(판들읽기([끝(글)])?.판들.get('mkt/A.spec.ts\0desktop')?.[0]?.상태들).toEqual(['expected']);
+    expect(끝돌려보기경고([끝(글)], 수정('mkt/A.spec.ts'))).toMatch(/3번 다 초록인 기록이 없는 파일 1개/);
   });
 
   it('볼 케이스가 없으면(표만 고친 작성) 기록이 없어도 경고하지 않는다', () => {
