@@ -14,7 +14,6 @@ export const 껍데기말: Record<string, string> = {
   // 사이드바 하위 메뉴 · 목록 부제 (PR #132) — errors.ts 의 MIXED_KIND 문장과 같은 말을 쓴다
   'UI 테스트': 'UI tests',
   '기능 테스트': 'Functional tests',
-  그래프: 'Charts',
   설정: 'Settings',
 
   // 사이드바

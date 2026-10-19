@@ -86,7 +86,7 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
     const 이름 = t('실행 기록', 언어);
     목록.push({ 이름, 해시: '#/runs', 아이콘: 'runs', 하위: 종류하위(이름, '#/runs', 언어) });
   }
-  if (user.dashboard === 'read') 목록.push({ 이름: t('그래프', 언어), 해시: 그래프주소, 아이콘: 'graph', 바깥: true });
+  if (user.dashboard === 'read') 목록.push({ 이름: t('그래프(Grafana)', 언어), 해시: 그래프주소, 아이콘: 'graph', 바깥: true });
   if (할수있나(user, prefix, '설정')) 목록.push({ 이름: t('설정', 언어), 해시: '#/settings', 아이콘: 'settings' });
   return 목록;
 }
