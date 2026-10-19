@@ -28,13 +28,15 @@ describe.skipIf(연결 === undefined)('save', () => {
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: 연결 });
-    await pool.query("DELETE FROM case_input WHERE tc_id = 'ZZA-001'");
+    await pool.query("DELETE FROM case_input WHERE tc_id IN ('ZZA-001', 'ZZA-002')");
     await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZA%'");
+    await pool.query("DELETE FROM app_user WHERE username = 'zzasaver'");
   });
 
   afterAll(async () => {
-    await pool.query("DELETE FROM case_input WHERE tc_id = 'ZZA-001'");
+    await pool.query("DELETE FROM case_input WHERE tc_id IN ('ZZA-001', 'ZZA-002')");
     await pool.query("DELETE FROM test_case WHERE tc_id LIKE 'ZZA%'");
+    await pool.query("DELETE FROM app_user WHERE username = 'zzasaver'");
     await pool.end();
     const { pool: shared } = await import('../db/index.js');
     await shared.end();
@@ -168,6 +170,22 @@ describe.skipIf(연결 === undefined)('save', () => {
       const list = await listCases({ ...조건, q: '아무것도 안 맞는 검색어', platform: 'mobile' });
       expect(list.items).toHaveLength(0);
       expect(list.unconfirmed.count).toBe(2);
+    });
+
+    it('저장한 사람은 아이디가 아니라 계정 이름으로 싣는다 — 계정이 없으면 아이디 그대로', async () => {
+      await save([spec('ZZA-001'), spec('ZZA-002')], false, 'ZZA');
+      await pool.query(
+        `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password)
+              VALUES ('zzasaver', '맥시', 'x', 'member', 'read', true, false)`,
+      );
+      await pool.query(
+        `INSERT INTO case_input (tc_id, params, expected, saved_by, saved_at)
+         VALUES ('ZZA-001', '{}', '{}', 'zzasaver', now()), ('ZZA-002', '{}', '{}', 'zzagone', now())`,
+      );
+      expect((await findCase('ZZA-001'))?.savedInput?.savedBy).toBe('맥시');
+      expect((await findCase('ZZA-002'))?.savedInput?.savedBy).toBe('zzagone');
+      await pool.query("DELETE FROM case_input WHERE tc_id IN ('ZZA-001', 'ZZA-002')");
+      await pool.query("DELETE FROM app_user WHERE username = 'zzasaver'");
     });
 
     it('미확정이 없으면 요약은 0 이다', async () => {

@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { Pool, PoolClient } from 'pg';
 
 import { 가져갈결정, 겹침들, 겹침모양검사, 결정인가, 남은겹침수, type 겹침, type 겹침입력 } from './conflicts.js';
+import { 입력자이름으로 } from './byName.js';
 import { tcId인가 } from './held.js';
 import { 뿌리, 뿌리잠그고, 사슬식, 최신식 } from './history.js';
 import { 번호 } from './params.js';
@@ -36,7 +37,8 @@ export async function 겹침상세(id: number): Promise<{ conflicts: (겹침 & {
   const 목록 = await 최근겹침(풀, id);
   if (목록.length === 0) return { conflicts: [], conflictsOpen: 0 };
   const 입력 = await 결정읽기(풀, id);
-  return { conflicts: 목록.map((c) => ({ ...c, input: 입력[c.tcId] ?? null })), conflictsOpen: 남은겹침수(목록, 입력) };
+  const 이름붙은 = await 입력자이름으로(목록.map((c) => 입력[c.tcId] ?? null));
+  return { conflicts: 목록.map((c, i) => ({ ...c, input: 이름붙은[i] ?? null })), conflictsOpen: 남은겹침수(목록, 입력) };
 }
 
 /**

@@ -111,7 +111,9 @@ function toCase(row: RawRow): CaseRow {
 
 const COLUMNS = 'tc_id, name, platforms, precondition, file_path, param_schema, expected_schema, is_active, scanned_at, '
   + `${미확정사유SQL('test_case')} AS unconfirmed, techniques, `
-  + 'ci.params AS saved_params, ci.expected AS saved_expected, ci.saved_by, ci.saved_at';
+  // 사람 눈에는 아이디(maxi)보다 이름(맥시)이다. 계정이 지워졌으면 적힌 아이디를 그대로 둔다
+  + 'ci.params AS saved_params, ci.expected AS saved_expected, '
+  + 'COALESCE((SELECT u.display_name FROM app_user u WHERE u.username = ci.saved_by), ci.saved_by) AS saved_by, ci.saved_at';
 
 // USING 이라 tc_id 가 한 칸으로 합쳐져 WHERE·ORDER BY 의 tc_id 가 모호하지 않다
 const FROM = 'test_case LEFT JOIN case_input ci USING (tc_id)';

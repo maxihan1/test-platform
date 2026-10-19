@@ -4,6 +4,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 
 import { 남은수, 보류들, 보류모름, 입력검사, 입력넣기, 입력읽기, 입력지우기, tcId인가, type 보류입력 } from './held.js';
+import { 입력자이름으로 } from './byName.js';
 import { 뿌리, 뿌리잠그고, 사슬식, 최신실행 } from './history.js';
 import { 번호 } from './params.js';
 import { type 대상, 계정있는줄, 대상줄읽기, 집기대상 } from './reverse.js';
@@ -34,8 +35,10 @@ export async function 보류상세(행: { id: number; serviceId: number; compare
   const heldUnknown = 보류모름(행.result);
   if (보류.length === 0) return { held: [], heldOpen: 0, heldUnknown };
   const 입력 = await 입력읽기(행.id);
+  // 화면에는 아이디 대신 이름이 간다 — 남은 수 셈은 저장된 입력으로 한다
+  const 이름붙은 = await 입력자이름으로(보류.map((h) => 입력[h.tcId] ?? null));
   return {
-    held: 보류.map((h) => ({ ...h, input: 입력[h.tcId] ?? null })),
+    held: 보류.map((h, i) => ({ ...h, input: 이름붙은[i] ?? null })),
     heldOpen: 남은수(보류, 입력),
     heldUnknown,
     ...(행.compare ? {} : { mergeEnvs: await 계정줄들(행.serviceId) }),
