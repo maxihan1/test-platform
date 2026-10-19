@@ -117,9 +117,9 @@ describe('항목 상세 네트워크 · 조작 · 콘솔', () => {
     [trace없는까닭.파일없음, '다른 컴퓨터의 러너에서 돌았거나 기록 파일을 옮기다 실패해 기록이 없습니다'],
     [trace없는까닭.앱, 'Android 앱 실행은 기록을 남기지 않습니다'],
     ['처음 보는 사유', '처음 보는 사유'],
-  ])('trace 없음 — 사유 「%s」', (reason, 글) => {
+  ])('기록 없음 — 사유 「%s」', (reason, 글) => {
     render(<ItemTraceSection trace={{ status: 'NONE', reason, network: [], actions: [], console: [] }} />);
-    expect(screen.getByText('trace 없음')).toBeTruthy();
+    expect(screen.getByText('기록 없음')).toBeTruthy();
     expect(screen.getByText(글)).toBeTruthy();
     expect(screen.queryByRole('tablist')).toBeNull();
   });

@@ -38,6 +38,7 @@ function 응답(고침: Partial<대시보드응답> = {}): 대시보드응답 {
         platform: 'mobile',
         finishedAt: '2026-10-07T05:10:00.000Z',
         reason: '결제 완료 문구가 보이지 않는다',
+        type: 'mismatch',
       },
       {
         runId: 6,
@@ -50,6 +51,7 @@ function 응답(고침: Partial<대시보드응답> = {}): 대시보드응답 {
         platform: 'desktop',
         finishedAt: '2026-10-06T05:10:00.000Z',
         reason: null,
+        type: 'other',
       },
     ],
     byService: [
@@ -191,7 +193,7 @@ describe('실행 중 줄', () => {
 });
 
 describe('신규 실패 표', () => {
-  it('서비스 · TC ID · 케이스 이름 링크 · 디바이스 · 언제 · 사유가 한 줄에 있다', async () => {
+  it('서비스 · TC ID · 케이스 이름 링크 · 디바이스 · 언제 · 실패 유형이 한 줄에 있다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     const 칸 = (await screen.findByText('신규 실패')).closest('section')!;
@@ -204,9 +206,10 @@ describe('신규 실패 표', () => {
     expect(이름.classList.contains('ink')).toBe(true);
     expect(within(첫줄).getByText('모바일')).toBeTruthy();
     expect(within(첫줄).getByText('RUN 7')).toBeTruthy();
-    expect(within(첫줄).getByText('결제 완료 문구가 보이지 않는다')).toBeTruthy();
+    expect(within(첫줄).getByText('기대 결과 불일치').getAttribute('title')).toBe('결제 완료 문구가 보이지 않는다');
+    expect(within(첫줄).queryByText('결제 완료 문구가 보이지 않는다')).toBeNull();
     expect(within(줄들[2]!).getByText('PC')).toBeTruthy();
-    expect(within(줄들[2]!).getByText('사유 없음')).toBeTruthy();
+    expect(within(줄들[2]!).getByText('그 밖')).toBeTruthy();
   });
 
   it('머리의 건수는 서비스별로 센 전체와 보이는 줄 가운데 큰 쪽이다', async () => {

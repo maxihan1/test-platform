@@ -1,4 +1,4 @@
-// 결과 화면 옆 칸 — 실행 정보 · 같은 사유로 실패 · 해결 · 증적 문서. 상자 안에서는 접힌 줄 하나 (도메인/실행 §8.3)
+// 결과 화면 옆 칸 — 실행 정보 · 해결 · 증적 문서. 상자 안에서는 접힌 줄 하나 (도메인/실행 §8.3)
 
 import { api, type RunInsights as 비교 } from './api.js';
 import { type 증적칸, 증적알림과목록 } from './EvidenceSection.js';
@@ -29,18 +29,17 @@ export function RunSide({ data, insights, 견줌오류, 증적칸, 상자안 }: 
       </p>
     );
 
-  // 상자 안: 정보는 부제가 맡고 증적은 머리 줄에 붙는다. 남는 것은 사유 묶음과 해결뿐이라 접힌 줄 하나로 둔다.
+  // 상자 안: 정보는 부제가 맡고 증적은 머리 줄에 붙는다. 남는 것은 해결뿐이라 접힌 줄 하나로 둔다.
   // 접기 껍데기를 「있나 없나」 바깥에 두면 첫 실행에 내용 없는 줄이 남는다 (공통/7-데모와-완료 §7)
   if (상자안) {
-    const 묶음수 = insights?.실패덩어리들.length ?? 0;
     const 해결수 = 해결들(insights).length;
-    if (묶음수 === 0 && 해결수 === 0 && 오류줄 === null) return null;
+    if (해결수 === 0 && 오류줄 === null) return null;
     return (
       <aside className="rr-side">
         {오류줄}
-        {묶음수 === 0 && 해결수 === 0 ? null : (
+        {해결수 === 0 ? null : (
           <details className="rr-fold">
-            <summary>{t('같은 사유로 실패 {묶음}묶음 · 해결 {건수}', { 묶음: 묶음수, 건수: 해결수 })}</summary>
+            <summary>{t('해결 {건수}', { 건수: 해결수 })}</summary>
             <RunInsights insights={insights} />
           </details>
         )}

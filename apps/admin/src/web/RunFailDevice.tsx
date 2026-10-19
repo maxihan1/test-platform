@@ -1,6 +1,7 @@
 // 실패 카드 안의 디바이스 칸 — 머리(변화 · 회차 · 소요 · 흐름 막대)와 사전조건 · 입력 · 절차 본문 (실행 §8.3)
 
-import { api, type FailureDevice, type RunItemDetail, type RunItemSummary } from './api.js';
+import { api, type FailureDevice, type RunItemDetail, type RunItemSummary, type 항목실패 } from './api.js';
+import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
 import { 증거본문 } from './ItemExpand.js';
@@ -11,15 +12,17 @@ import { 판정흐름, 흐름칸수 } from './Summary.js';
 const 오류길이 = 120;
 
 /**
- * 확인 문장 없이 깨진 항목만 오류의 첫 줄을 낸다.
+ * 오류 원문의 첫 줄 — 「원문 보기」 안에만 둔다. 이유는 서버가 준 사람 말 한 줄(`failure`)이 맡는다 (실행 §8.3 · 2026-10-19 ⑫).
  * 원문 전체는 상세에만 둔다 — 스택 · 주소에 비밀값이 섞일 수 있다 (실행 §8.3 「원문 오류는 목록에 쓰지 않는다」)
  */
 function 오류줄(item: RunItemDetail): string | null {
-  if (item.steps.some((step) => step.assertions.some((a) => a.status === 'FAIL'))) return null;
   const 첫줄 = (item.error?.message.split('\n')[0] ?? '').trim();
   if (첫줄 === '') return null;
   return 첫줄.length > 오류길이 ? `${첫줄.slice(0, 오류길이)}…` : 첫줄;
 }
+
+const 같은이유 = (a: 항목실패 | null | undefined, b: 항목실패 | null | undefined): boolean =>
+  a?.type === b?.type && a?.reason === b?.reason;
 
 /**
  * 같은 절차의 같은 확인이 같은 실제 값으로 깨진 디바이스를 한 칸으로 묶는다.
@@ -31,6 +34,7 @@ export function 같은실패끼리(devices: FailureDevice[]): FailureDevice[][] 
     const 서명 = JSON.stringify([
       d.item.params,
       d.item.steps.map((s) => [s.title, s.status, s.assertions.map((a) => [a.statement, a.status, a.expected, a.actual])]),
+      d.item.failure ?? null,
       오류줄(d.item),
     ]);
     묶음.set(서명, [...(묶음.get(서명) ?? []), d]);
@@ -38,7 +42,18 @@ export function 같은실패끼리(devices: FailureDevice[]): FailureDevice[][] 
   return [...묶음.values()];
 }
 
-export function RunFailDevice({ devices, env, items }: { devices: FailureDevice[]; env: string; items: RunItemSummary[] }) {
+/** @param 머리이유 카드 머리에 적은 이유 — 같은 이유는 디바이스 줄에 또 적지 않는다 */
+export function RunFailDevice({
+  devices,
+  env,
+  items,
+  머리이유,
+}: {
+  devices: FailureDevice[];
+  env: string;
+  items: RunItemSummary[];
+  머리이유: 항목실패 | null | undefined;
+}) {
   const t = use말();
   const 언어 = use언어();
   const 대표 = devices[0]!.item;
@@ -70,6 +85,7 @@ export function RunFailDevice({ devices, env, items }: { devices: FailureDevice[
               <span>{t('{회수}회 중 {실패}회 실패', { 회수: d.attempts, 실패: d.failedAttempts })}</span>
             ) : null}
             <span>{소요글(d)}</span>
+            {같은이유(d.item.failure, 머리이유) ? null : <실패이유 failure={d.item.failure} />}
             <span className="fc-flow">
               <판정흐름 recent={d.recent} 앞말={t('{서버} 서버 · 이 실행까지', { 서버: env })} />
             </span>
@@ -80,12 +96,7 @@ export function RunFailDevice({ devices, env, items }: { devices: FailureDevice[
         );
       })}
 
-      {오류 === null ? null : (
-        <div className="fc-err">
-          <span className="fc-k">{t('실행이 멈춘 사유')}</span>
-          {오류}
-        </div>
-      )}
+      <원문보기 글={오류} />
 
       <증거본문 item={대표} 화면숨김={묶임} />
 

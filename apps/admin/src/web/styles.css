@@ -1194,7 +1194,8 @@ input[type='file']::file-selector-button {
 
 .assert {
   display: grid;
-  grid-template-columns: 18px 1fr auto auto;
+  /* 기대 · 실제 값이 길면 문장 칸이 한 글자 폭으로 접혔다 — 문장 칸에 바닥 폭을 두고 값 칸은 줄어들며 줄을 바꾼다 (점검 2.7) */
+  grid-template-columns: 18px minmax(min(12em, 100%), 1fr) minmax(0, auto) minmax(0, auto);
   gap: 0 12px;
   align-items: baseline;
   font-size: 13px;
@@ -1216,6 +1217,8 @@ input[type='file']::file-selector-button {
   font-size: 12.5px;
   color: var(--ink-muted);
   min-width: 76px;
+  max-width: 24em;
+  overflow-wrap: anywhere;
   text-align: right;
 }
 
@@ -5760,6 +5763,27 @@ a.fr-id {
   padding: 1px 6px;
   /* 연속 실패는 잉크 보조 — 요약 띠의 대비 칸(`.rs-k`)과 같은 색이다 (DESIGN 「실행 결과」 변화 글자) */
   color: var(--ink-muted);
+}
+
+/* 실패 이유 한 줄 — 유형 칩 + 사람 말. 칩은 판정이 아니라 분류라 중립 테두리다 (FailureWhy.tsx) */
+.fail-why {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.fail-why .fail-reason {
+  overflow-wrap: anywhere;
+}
+
+details.raw {
+  margin-top: 6px;
+}
+
+.fc-types {
+  margin: 4px 0 12px;
 }
 
 /* 신규 실패만 실패 글자 색이다. 테두리는 그대로 두어 연속 실패와 같은 틀에서 색 하나로 갈린다 (DESIGN.md 실행 결과) */

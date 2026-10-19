@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { api, type StepResult } from './api.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
+import { 원문보기 } from './FailureWhy.js';
 import { useAsync, Verdict } from './ui.js';
 
 export const MARK = { PASS: '✓', FAIL: '✗', NA: '–' } as const;
@@ -64,7 +65,7 @@ export function Step({ step, tcId, runId, historyId, 코드 = true, 화면 = tru
               {assertion.statement}
               {/* 이 문장이 뒤 절차를 멈추게 했다. 뒤가 왜 없는지 설명이 필요하다 (SPEC §8.4) */}
               {assertion.blocker === true && assertion.status === 'FAIL' ? (
-                <span className="blocker">{t말('실행 중단§막음')}</span>
+                <span className="blocker">{t말('뒤 절차 멈춤')}</span>
               ) : null}
             </span>
             <span className="exp">{t말('기대 {값}', { 값: show(assertion.expected, 언어) })}</span>
@@ -136,9 +137,13 @@ function CodeView({ tcId, line }: { tcId: string; line: number }) {
     <details className="code" onToggle={(e) => setOpened(e.currentTarget.open)}>
       <summary>{t말('실패 지점 코드')}</summary>
       {source.error !== null ? (
-        <p className="hint" style={{ color: 'var(--fail-text)' }}>
-          {source.error}
-        </p>
+        // 원문은 「ENOENT: no such file …」 같은 개발자 말이다 — 사람 말 한 줄을 먼저 두고 원문은 접는다 (점검 N3)
+        <>
+          <p className="hint" style={{ color: 'var(--fail-text)' }}>
+            {t말('코드를 불러오지 못했습니다')}
+          </p>
+          <원문보기 글={source.error} />
+        </>
       ) : source.data === null ? (
         <p className="hint">{t말('불러오는 중입니다.')}</p>
       ) : (

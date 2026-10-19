@@ -4,6 +4,7 @@ import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 
 import { 흐름글자, 짧은시각, 증감, 통과율 } from './dashboardView.js';
 import { use말, use언어 } from './i18n.js';
+import { 실패유형이름 } from './DashboardTypes.js';
 import { 아이콘 } from './icons.js';
 import { PLATFORM_LABEL } from './ui.js';
 
@@ -53,7 +54,7 @@ export function 신규실패표({ 값 }: { 값: 자료 }) {
             <thead>
               <tr>
                 <th scope="col">TC</th>
-                <th scope="col">{t('테스트와 실패 사유')}</th>
+                <th scope="col">{t('테스트와 실패 유형')}</th>
                 <th scope="col">{t('디바이스')}</th>
                 <th scope="col" className="r">
                   {t('실행')}
@@ -73,7 +74,10 @@ export function 신규실패표({ 값 }: { 값: 자료 }) {
                     <a className="ink" href={`#/runs/${실패.runId}`} title={실패.tcName}>
                       {실패.tcName}
                     </a>
-                    <span className="dash-reason">{실패.reason ?? t('사유 없음')}</span>
+                    {/* 사유 칸은 유형이다 — 확인 문장 글자는 실행 결과의 카드가 보인다 (실행 §8.3 「실패 유형으로 묶는다」) */}
+                    <span className="dash-reason" title={실패.reason ?? undefined}>
+                      {t(실패유형이름[실패.type])}
+                    </span>
                   </td>
                   <td>{t(PLATFORM_LABEL[실패.platform])}</td>
                   <td className="r">

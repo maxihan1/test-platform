@@ -131,28 +131,29 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 옆 칸', () =
     await waitFor(() => expect(실패부름).toHaveBeenLastCalledWith(RUN_ID, 1, 'mobile'));
   });
 
-  it('옆 칸에 실행 정보 · 같은 사유로 실패 · 해결 · 증적 문서가 선다', async () => {
+  it('옆 칸에 실행 정보 · 해결 · 증적 문서가 서고 같은 사유 칸은 없다', async () => {
     연다(섞인항목, 견줌, false, [증적('PDF', 'READY')]);
     const 옆 = await waitFor(() => {
       const 칸 = document.querySelector('.rr-side');
-      expect(칸?.textContent).toContain('가입 완료 안내가 안 보인다');
+      expect(칸?.textContent).toContain('이름-ZRR-009');
       return 칸!;
     });
 
     const 글 = 옆.textContent ?? '';
     for (const 조각 of [
       '실행 정보', '결제', '기능 테스트', 'qa', 'https://qa-pay.example.com', '김철수', 'PC, 모바일', 'RUN 2110',
-      '같은 사유로 실패', '실패 항목 2건', '해결', '이름-ZRR-009', '증적 문서', '만듦',
+      '해결', '이름-ZRR-009', '증적 문서', '만듦',
     ]) {
       expect(글, 조각).toContain(조각);
     }
+    expect(글).not.toContain('같은 사유로 실패');
   });
 
-  it('견줄 앞이 없으면 비교 기준 · 해결 칸은 없고 같은 사유 칸만 선다', async () => {
+  it('견줄 앞이 없으면 비교 기준 · 해결 칸은 없다', async () => {
     연다(섞인항목, { ...첫실행, 실패덩어리들: 견줌.실패덩어리들 });
     const 옆 = await waitFor(() => {
       const 칸 = document.querySelector('.rr-side');
-      expect(칸?.textContent).toContain('같은 사유로 실패');
+      expect(칸?.textContent).toContain('실행 정보');
       return 칸!;
     });
 
@@ -171,7 +172,7 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 옆 칸', () =
 
     expect(document.querySelectorAll('.rr-side details')).toHaveLength(1);
     expect(접기.hasAttribute('open')).toBe(false);
-    expect(접기.querySelector('summary')?.textContent).toBe('같은 사유로 실패 1묶음 · 해결 1');
+    expect(접기.querySelector('summary')?.textContent).toBe('해결 1');
     expect(document.querySelector('.rr-side dl')).toBeNull();
     expect(앞선가(document.querySelector('.rs'), document.querySelector('.rr-side'))).toBe(true);
     expect(document.querySelector('.rows-scroll .rr-side')).not.toBeNull();

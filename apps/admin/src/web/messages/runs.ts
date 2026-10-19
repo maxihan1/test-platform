@@ -140,9 +140,6 @@ export const 실행말: Record<string, string> = {
   '계속깨짐': 'Still failing',
   '고쳐짐': 'Fixed',
   '그대로': 'Unchanged',
-  '같은 사유로 실패': 'Failed for the same reason',
-  '실패 항목 {건수}건': '{건수} failed items',
-  '같은 사유로 실패 {묶음}묶음 · 해결 {건수}': 'Failed for the same reason: {묶음} groups · Fixed {건수}',
   '실행 정보': 'Run info',
   '테스트 유형': 'Test type',
   '시작 시각': 'Started at',
@@ -151,11 +148,9 @@ export const 실행말: Record<string, string> = {
   '통과 · 미실행': 'Passed · not run',
 
   // 결과 화면 요약 띠 (§8.3)
-  '실패 {수}건': '{수} failed',
   '항목 {전체}건 중 {통과}건 통과': '{통과} of {전체} items passed',
   '항목 없음': 'No items',
   '판정별 보기 · 항목 수': 'View by verdict · items',
-  '직전 실행 RUN {번호} 대비': 'Against previous run RUN {번호}',
   '통과 · 미실행으로 건너뛰기': 'Skip to passed · not run',
   '연속 실패': 'Still failing',
   '해결': 'Fixed',
@@ -231,7 +226,6 @@ export const 실행말: Record<string, string> = {
   '{건수}건 더 보기': 'Show {건수} more',
   '관련 요구사항': 'Related requirements',
   'PRD 에 없는 번호': 'Not in the PRD',
-  '실패 원인': 'Cause',
   '화면이 맞음': 'Screen is right',
   '화면이 맞음으로 바꾸기': 'Change to screen is right',
   '버그': 'Bug',
@@ -257,11 +251,9 @@ export const 실행말: Record<string, string> = {
   '보일 줄이 없습니다': 'Nothing to show',
   '아직 없음': 'Not yet',
   '읽기 실패': 'Read failed',
-  'trace 없음': 'No trace',
   '기록이 없습니다': 'Nothing was recorded',
   '기록을 아직 정리하지 않았거나 이 기능 전에 돈 항목입니다 — 방금 끝난 실행이면 잠시 뒤 새로 고쳐 주세요':
     'Not processed yet, or this item ran before recording existed — if the run just ended, refresh in a moment',
-  '기록 파일을 읽지 못했습니다 — 서버 로그를 확인해 주세요': 'Could not read the trace file — check the server log',
   'Android 앱 실행은 기록을 남기지 않습니다': 'Android app runs are not recorded',
   '러너가 실행을 끊어(제한 시간 · 멈춤) 기록이 남지 않았습니다': 'The runner cut the run short (time limit · stop), so nothing was recorded',
   '다른 컴퓨터의 러너에서 돌았거나 기록 파일을 옮기다 실패해 기록이 없습니다':
@@ -270,4 +262,26 @@ export const 실행말: Record<string, string> = {
   // 실행 창을 고친 채 닫을 때 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   '고친 값이 사라집니다': 'Your changes will be lost',
   '계속 고치기': 'Keep editing',
+
+  // 실패 이유 읽기 (2026-10-19 ⑫-3 · 도메인/실행 §8.3)
+  '원문 보기': 'Show raw',
+  '실패 이유': 'Why it failed',
+  '뒤 절차 멈춤': 'Later steps halted',
+  '코드를 불러오지 못했습니다': 'Could not load the code',
+  '오류': 'Error',
+  '경고': 'Warning',
+  '기록': 'Log',
+  '안내': 'Info',
+  '디버그': 'Debug',
+  '잡히지 않은 오류': 'Uncaught error',
+  '기록 파일을 읽지 못했습니다 — 관리자에게 알려 주세요': 'Could not read the trace file — tell your administrator',
+  '기록 없음': 'No trace',
+  '이 쪽에 {보인}건 · 이 유형 전체 {전체}건': '{보인} on this page · {전체} of this type in total',
+  '화면이 맞다고 판정할까요?': 'Mark the screen as correct?',
+  '버그로 판정할까요?': 'Mark as a bug?',
+  '{번호} 가 덮는 요구를 지금 화면에 맞게 고치는 작성 요청을 바로 만듭니다.': 'This immediately creates an authoring request that updates the requirements {번호} covers to match the current screen.',
+  '{번호} 의 실패를 제품 버그로 남깁니다. 나중에 「화면이 맞음」으로 바꿀 수 있습니다.': 'Records the failure of {번호} as a product bug. You can change it to “Screen is correct” later.',
+  '해결 {건수}': 'Fixed {건수}',
+  '실패 케이스 {수}건': '{수} failed cases',
+  '직전 실행 RUN {번호} 대비 · 케이스 수': 'Against previous run RUN {번호} · cases',
 };
