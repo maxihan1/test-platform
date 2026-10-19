@@ -85,17 +85,18 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
       ['xfu1-pending', await 해시('기다려요')],
     );
     await pool.query(
-      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
-            VALUES ($1, $2, 'write', 'read', 'none'), ($1, $3, 'read', 'none', 'none')
-       ON CONFLICT (username, service_id) DO UPDATE
+      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring)
+            SELECT $1, project_id, 'write', 'read', 'none' FROM service WHERE id = $2
+            UNION ALL SELECT $1, project_id, 'read', 'none', 'none' FROM service WHERE id = $3
+       ON CONFLICT (username, project_id) DO UPDATE
          SET perm_cases = EXCLUDED.perm_cases, perm_runs = EXCLUDED.perm_runs, perm_authoring = EXCLUDED.perm_authoring`,
       ['xfu1-live', 서비스id, 웹훅없는서비스id],
     );
     // 관리자는 저장된 칸이 낮아도 전부 쓰기로 받아야 한다 — 일부러 읽기만 저장해 둔다
     await pool.query(
-      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
-            VALUES ($1, $2, 'read', 'none', 'none')
-       ON CONFLICT (username, service_id) DO UPDATE
+      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring)
+            SELECT $1, project_id, 'read', 'none', 'none' FROM service WHERE id = $2
+       ON CONFLICT (username, project_id) DO UPDATE
          SET perm_cases = 'read', perm_runs = 'none', perm_authoring = 'none'`,
       ['xfu1-admin', 서비스id],
     );
@@ -103,7 +104,7 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
 
   afterAll(async () => {
     const { pool } = await import('../db/index.js');
-    await pool.query(`DELETE FROM user_service WHERE username LIKE 'xfu1%'`);
+    await pool.query(`DELETE FROM user_project WHERE username LIKE 'xfu1%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xfu1%'`);
     await pool.query(`DELETE FROM service_env WHERE service_id IN ($1, $2)`, [서비스id, 웹훅없는서비스id]);
     await pool.query(`DELETE FROM service WHERE prefix LIKE 'XFS1%'`);
@@ -115,6 +116,25 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     expect(user?.displayName).toBe('김확인');
     expect(user?.role).toBe('member');
     expect(user?.services.map((s) => s.prefix)).toEqual(['XFS1', 'XFS1B']);
+  });
+
+  it('권한은 프로젝트에 붙어 있어 그 프로젝트의 애플리케이션 줄마다 같은 값이 채워진다 — 새 애플리케이션도 바로 열린다 (SPEC 도메인/인증 §3.5)', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, project_id)
+            SELECT 'XFS1C', '같은 프로젝트', '#667788', '', 'xfs1c', project_id FROM service WHERE id = $1`,
+      [서비스id],
+    );
+    try {
+      const user = await 확인(await 가짜요청('xfu1-live'));
+      expect(user?.services.map((s) => [s.prefix, s.permissions])).toEqual([
+        ['XFS1', { cases: 'write', runs: 'read', authoring: 'none' }],
+        ['XFS1B', { cases: 'read', runs: 'none', authoring: 'none' }],
+        ['XFS1C', { cases: 'write', runs: 'read', authoring: 'none' }],
+      ]);
+    } finally {
+      await pool.query(`DELETE FROM service WHERE prefix = 'XFS1C'`);
+    }
   });
 
   it('배정받은 서비스마다 대상 서버 목록이 온다. 실행 설정이 읽을 통로가 여기뿐이다 (SPEC §8.2 · §7)', async () => {

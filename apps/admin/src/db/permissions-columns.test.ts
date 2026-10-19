@@ -21,11 +21,11 @@ const 옮기기 = (() => {
 })();
 
 describe.skipIf(연결 === undefined)('권한 칸', () => {
-  let 서비스: number[] = [];
+  let 프로젝트: number[] = [];
 
   const 치우기 = async (): Promise<void> => {
     const { pool } = await import('../db/index.js');
-    await pool.query(`DELETE FROM user_service WHERE username LIKE 'xfu8%'`);
+    await pool.query(`DELETE FROM user_project WHERE username LIKE 'xfu8%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xfu8%'`);
     await pool.query(`DELETE FROM service WHERE prefix LIKE 'XFS8%'`);
   };
@@ -33,14 +33,14 @@ describe.skipIf(연결 === undefined)('권한 칸', () => {
   beforeAll(async () => {
     await 치우기();
     const { pool } = await import('../db/index.js');
-    서비스 = [];
+    프로젝트 = [];
     for (const 끝 of ['A', 'B']) {
-      const r = await pool.query<{ id: string }>(
+      const r = await pool.query<{ project_id: string }>(
         `INSERT INTO service (prefix, name, color, tests_repo, tests_dir)
-         VALUES ($1, $2, '#3A5FCD', '', $3) RETURNING id`,
+         VALUES ($1, $2, '#3A5FCD', '', $3) RETURNING project_id`,
         [`${접두사}${끝}`, `${접두사}${끝} 권한 칸 검사용`, `${접두사}${끝}`.toLowerCase()],
       );
-      서비스.push(Number(r.rows[0]!.id));
+      프로젝트.push(Number(r.rows[0]!.project_id));
     }
   });
 
@@ -171,28 +171,28 @@ describe.skipIf(연결 === undefined)('권한 칸', () => {
       await 계정넣기(`${계정}s`);
       await expect(
         pool.query(
-          `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
+          `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring)
            VALUES ($1, $2, 'none', 'none', 'none')`,
-          [`${계정}s`, 서비스[0]],
+          [`${계정}s`, 프로젝트[0]],
         ),
-      ).rejects.toThrow('user_service_perm_check');
+      ).rejects.toThrow('user_project_perm_check');
     });
 
     it('권한 칸을 안 준 배정도 셋 다 none 이라 못 들어간다', async () => {
       const { pool } = await import('../db/index.js');
       await 계정넣기(`${계정}d`);
       await expect(
-        pool.query(`INSERT INTO user_service (username, service_id) VALUES ($1, $2)`, [`${계정}d`, 서비스[1]]),
-      ).rejects.toThrow('user_service_perm_check');
+        pool.query(`INSERT INTO user_project (username, project_id) VALUES ($1, $2)`, [`${계정}d`, 프로젝트[1]]),
+      ).rejects.toThrow('user_project_perm_check');
     });
 
     it('한 칸이라도 있으면 들어간다', async () => {
       const { pool } = await import('../db/index.js');
       await 계정넣기(`${계정}k`);
       await expect(
-        pool.query(`INSERT INTO user_service (username, service_id, perm_runs) VALUES ($1, $2, 'write')`, [
+        pool.query(`INSERT INTO user_project (username, project_id, perm_runs) VALUES ($1, $2, 'write')`, [
           `${계정}k`,
-          서비스[0],
+          프로젝트[0],
         ]),
       ).resolves.toBeDefined();
     });

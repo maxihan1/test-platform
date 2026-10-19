@@ -35,7 +35,7 @@ export function UserSection({
   const [토큰, set토큰] = useState<발급토큰 | null>(null);
 
   // 내가 배정받은 서비스가 없으면 그것부터 알린다. 첫 운영자가 이 화면에 오는 가장 흔한 이유다
-  const 내배정없음 = rows.find((it) => it.username === me)?.services.length === 0;
+  const 내배정없음 = rows.find((it) => it.username === me)?.services?.length === 0;
 
   return (
     <section className="sec">

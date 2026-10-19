@@ -51,9 +51,9 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
     );
     for (const [prefix, 칸] of Object.entries(배정)) {
       await pool.query(
-        `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
-              VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (username, service_id) DO UPDATE
+        `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring)
+              SELECT $1, project_id, $3, $4, $5 FROM service WHERE id = $2
+         ON CONFLICT (username, project_id) DO UPDATE
            SET perm_cases = EXCLUDED.perm_cases, perm_runs = EXCLUDED.perm_runs, perm_authoring = EXCLUDED.perm_authoring`,
         [username, 서비스id[prefix], 칸.cases, 칸.runs, 칸.authoring],
       );
@@ -185,7 +185,7 @@ describe.skipIf(연결 === undefined)('인증 미들웨어', () => {
 
   afterAll(async () => {
     const { pool } = await import('../db/index.js');
-    await pool.query(`DELETE FROM user_service WHERE username LIKE 'xfu3%'`);
+    await pool.query(`DELETE FROM user_project WHERE username LIKE 'xfu3%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xfu3%'`);
     // 자기가 만든 자원만 지운다. 실행 행이 서비스를 가리키므로 서비스보다 먼저 지워야
     // 외래키가 막지 않는다 — 순서를 뒤집으면 service 삭제가 조용히 실패한다
@@ -824,9 +824,9 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
         [username, await 해시('열려라참깨')],
       );
       await q(
-        `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
-              VALUES ($1, $2, 'read', $3, 'none')
-         ON CONFLICT (username, service_id) DO UPDATE SET perm_runs = EXCLUDED.perm_runs`,
+        `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring)
+              SELECT $1, project_id, 'read', $3, 'none' FROM service WHERE id = $2
+         ON CONFLICT (username, project_id) DO UPDATE SET perm_runs = EXCLUDED.perm_runs`,
         [username, 서비스id.XSA, runs],
       );
     }
@@ -860,7 +860,7 @@ describe.skipIf(연결 === undefined)('시나리오 문', () => {
 
   afterAll(async () => {
     await app.close();
-    await q('DELETE FROM user_service WHERE username = ANY($1)', [계정들]);
+    await q('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     for (const id of Object.values(서비스id)) {
       await q('DELETE FROM test_run WHERE service_id = $1', [id]);

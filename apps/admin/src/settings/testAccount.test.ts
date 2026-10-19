@@ -17,7 +17,7 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 테스트 계정', (
 
   async function 치운다(): Promise<void> {
     const { pool } = await import('../db/index.js');
-    await pool.query(`DELETE FROM user_service WHERE username LIKE 'xfu7%'`);
+    await pool.query(`DELETE FROM user_project WHERE username LIKE 'xfu7%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xfu7%'`);
     await pool.query(`DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix LIKE 'XFS7%')`);
     await pool.query(`DELETE FROM service WHERE prefix LIKE 'XFS7%'`);
@@ -102,7 +102,7 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 테스트 계정', (
         displayName: 'xfu7 님',
         role: 'member',
         dashboard: 'read',
-        services: [{ prefix: 'XFS7A', permissions: { cases: 'read', runs: 'none', authoring: 'none' } }],
+        projects: [{ projectId: await 검사프로젝트(), permissions: { cases: 'read', runs: 'none', authoring: 'none' } }],
       },
     });
     expect(만듦.statusCode).toBe(201);

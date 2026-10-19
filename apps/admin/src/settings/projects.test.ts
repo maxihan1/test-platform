@@ -47,7 +47,7 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
 
   afterAll(async () => {
     const p = await pool();
-    await p.query('DELETE FROM user_service WHERE username = $1', [계정]);
+    await p.query('DELETE FROM user_project WHERE username = $1', [계정]);
     await p.query('DELETE FROM app_user WHERE username = $1', [계정]);
     await p.query('DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix = $1)', [접두사]);
     await p.query('DELETE FROM service WHERE prefix = $1', [접두사]);
@@ -147,12 +147,28 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
       [계정],
     );
     await p.query(
-      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'read', 'read', 'none')`,
+      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) SELECT $1, project_id, 'read', 'read', 'none' FROM service WHERE id = $2`,
       [계정, 서비스번호],
     );
     const 줄 = (await 서비스목록()).find((s) => s.id === 서비스번호)!;
     const 찾은것 = await 사용자와해시(계정);
     expect(찾은것?.user.services).toHaveLength(1);
     expect(찾은것?.user.services[0]).toMatchObject({ id: 서비스번호, projectId: 줄.projectId, projectName: 줄.projectName });
+  });
+
+  it('애플리케이션을 옮기면 옮겨 간 프로젝트의 권한을 따르고, 비게 된 프로젝트의 권한 줄은 같이 지워진다', async () => {
+    const p = await pool();
+    const 옮길곳 = (await 프로젝트만들기('XPQ 권한 따라가기')).json<{ id: number }>().id;
+    await p.query(
+      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'write', 'none', 'read')`,
+      [계정, 옮길곳],
+    );
+    expect((await 사용자와해시(계정))?.user.services[0]?.permissions).toEqual({ cases: 'read', runs: 'read', authoring: 'none' });
+
+    const 옮김 = await app.inject({ method: 'PATCH', url: `/api/settings/services/${String(서비스번호)}`, payload: { projectId: 옮길곳 } });
+    expect(옮김.statusCode).toBe(200);
+    expect((await 사용자와해시(계정))?.user.services[0]?.permissions).toEqual({ cases: 'write', runs: 'none', authoring: 'read' });
+    const 남은줄 = await p.query('SELECT project_id FROM user_project WHERE username = $1', [계정]);
+    expect(남은줄.rows.map((r) => Number(r.project_id))).toEqual([옮길곳]);
   });
 });

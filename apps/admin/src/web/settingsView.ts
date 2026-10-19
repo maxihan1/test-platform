@@ -181,7 +181,8 @@ export function 계정요약(row: UserRow, services: SettingsServiceRow[]): 계�
   if (row.role === 'admin') return { 운영: true };
   return {
     운영: false,
-    서비스: row.services.map((it) => ({
+    // 서버가 projects 로 바뀌었다 — 화면은 PRJ-F1-03 이 고친다. 그 전까지 목록이 터지지 않게 빈 줄로 둔다
+    서비스: (row.services ?? []).map((it) => ({
       // 내려 둔 서비스는 목록에 안 올 수 있다. 배정이 남아 있다는 것은 접두사로라도 보여준다
       이름: services.find((s) => s.prefix === it.prefix)?.name ?? it.prefix,
       칸들: 기능순서.map((f): [기능, 칸] => [f, it.permissions[f]]),
