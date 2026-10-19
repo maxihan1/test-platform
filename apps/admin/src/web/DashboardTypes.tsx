@@ -7,7 +7,8 @@ import { use말 } from './i18n.js';
 
 type 자료 = 대시보드응답;
 
-const 이름: Record<실패유형, string> = {
+/** 유형 이름 글자의 정본 — 결과 화면의 유형 칩 · 칩 줄도 이것을 쓴다 (도메인/실행 §8.3 「실패 유형으로 묶는다」) */
+export const 실패유형이름: Record<실패유형, string> = {
   mismatch: '기대 결과 불일치',
   notFound: '요소 미검출',
   timeout: '타임아웃',
@@ -66,7 +67,7 @@ export function 실패유형칸({ 값 }: { 값: 자료 }) {
               return (
                 <li key={유형.type}>
                   <span className="dash-types-head">
-                    <span>{t(이름[유형.type])}</span>
+                    <span>{t(실패유형이름[유형.type])}</span>
                     <span>
                       <b className="num">{수}</b> <span className="dash-axis">{Math.round((수 / 전체) * 100)}%</span>
                     </span>

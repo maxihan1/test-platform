@@ -61,7 +61,27 @@ describe('항목 상세 (SPEC §8.4)', () => {
   it('시험 절차 아래에 네트워크 · 조작 · 콘솔 구획을 둔다 — trace 가 없으면 까닭을 보인다', async () => {
     그린다({ trace: { status: 'NONE', reason: null, network: [], actions: [], console: [] } });
     expect(await screen.findByText('네트워크 · 조작 · 콘솔')).toBeTruthy();
-    expect(screen.getByText('trace 없음')).toBeTruthy();
+    expect(screen.getByText('기록 없음')).toBeTruthy();
+  });
+
+  it('멈춰 닫힌 미실행은 서버가 이유를 안 줘도 「사용자가 멈춤」을 적는다', async () => {
+    그린다({ status: 'NA', error: { message: 'ABORTED' }, failure: null });
+    expect(await screen.findByText('실패 이유')).toBeTruthy();
+    expect(screen.getByText('사용자가 멈춤')).toBeTruthy();
+  });
+
+  it('실패 이유는 유형과 한 줄이 위에 서고 러너 원문 · 스택은 접힌 「원문 보기」 안에 있다', async () => {
+    그린다({
+      status: 'NA',
+      error: { message: 'Test timeout of 30000ms exceeded.', stack: 'at demo/a.spec.ts:12:7' },
+      failure: { type: 'notFound', reason: 'Test timeout of 30000ms exceeded.' },
+    });
+    expect(await screen.findByText('실패 이유')).toBeTruthy();
+    expect(screen.getByText('요소 미검출')).toBeTruthy();
+    expect(screen.queryByText('실행이 멈춘 사유')).toBeNull();
+    const 원문 = screen.getByText('원문 보기').closest('details') as HTMLDetailsElement;
+    expect(원문.open).toBe(false);
+    expect(원문.textContent).toContain('at demo/a.spec.ts:12:7');
   });
 
   it('코드 뷰는 접힌 채로 나오고 펼치기 전에는 소스를 읽지 않는다', async () => {

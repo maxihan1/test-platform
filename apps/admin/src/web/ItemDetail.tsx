@@ -4,11 +4,13 @@
 import { useState } from 'react';
 
 import { api, type RunItemPage } from './api.js';
+import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { Step } from './ItemSteps.js';
 import { ItemTraceSection } from './ItemTrace.js';
 import { fieldsOf, type Field } from './mask.js';
 import { 케이스서비스 } from './role.js';
+import { 미실행사유 } from './runState.js';
 import type { 판정하기 } from './runJudge.js';
 import { RunWindow } from './RunWindow.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
@@ -45,10 +47,14 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
         <Verdict status={item.status} big />
       </div>
 
-      {item.error === null ? null : (
+      {/* 「실행이 멈춘 사유」는 실행 전체가 멈춘 것처럼 읽혔다. 이유는 유형과 한 줄, 러너 원문(최대 2천 자)은 접는다 (점검 3.1 · 3.6) */}
+      {item.error === null && (item.failure ?? null) === null ? null : (
         <div className="sec">
-          <div className="sec-h">{t말('실행이 멈춘 사유')}</div>
-          <div className="scan-error">{item.error.message}</div>
+          <div className="sec-h">{t말('실패 이유')}</div>
+          <실패이유 failure={item.failure} />
+          {/* 멈춰 닫힌 미실행은 서버가 이유를 안 준다 — 미실행 사유(「사용자가 멈춤」 따위)를 적는다 */}
+          {(item.failure ?? null) !== null || item.status !== 'NA' ? null : <p>{미실행사유(item.error, 언어)}</p>}
+          <원문보기 글={item.error === null ? null : [item.error.message, item.error.stack].filter(Boolean).join('\n\n')} />
         </div>
       )}
 

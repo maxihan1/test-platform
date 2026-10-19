@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import type { ItemStatus, RunItemSummary, 항목진행 } from './api.js';
+import { api, type ItemStatus, type RunItemPage, type RunItemSummary, type 항목진행 } from './api.js';
 import type { RunDetail } from './runProgress.js';
 import { RunProgressModal } from './RunProgressModal.js';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const 분 = (n: number) => `2026-09-21T00:${String(n).padStart(2, '0')}:00.000Z`;
 
@@ -104,6 +107,19 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={() => {}} />);
 
     expect(screen.queryByText(/케이스 13/)).not.toBeNull();
+  });
+
+  it('방금 끝난 실패 옆에는 영어 예외 대신 서버가 준 유형과 한 줄을 적는다', async () => {
+    const 상세 = vi
+      .spyOn(api, 'item')
+      .mockResolvedValue({ failure: { type: 'mismatch', reason: '로그인 뒤 이름이 보인다' } } as unknown as RunItemPage);
+    const 실패만 = 실행('RUNNING', [항목(301, 분(1), 'FAIL'), 항목(302, null, 'PASS')], { total: 2, pass: 0, fail: 1, na: 0, running: 1 });
+    render(<RunProgressModal data={실패만} 진행목록={[]} onClose={() => {}} />);
+
+    await waitFor(() => expect(screen.queryByText('로그인 뒤 이름이 보인다')).not.toBeNull());
+    expect(screen.getByText('기대 결과 불일치')).toBeTruthy();
+    expect(본문()).not.toContain('기대값 200, 실제 500');
+    expect(상세).toHaveBeenCalledWith(7, 301);
   });
 
   it('도는 중이면 끝난 수와 전체 수를 함께 적는다', () => {

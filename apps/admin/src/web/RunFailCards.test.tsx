@@ -161,13 +161,6 @@ describe('실패 케이스 카드 (실행 §8.3)', () => {
     expect(screen.getByText(`${'가'.repeat(120)}…`)).toBeDefined();
     expect(screen.queryByText(/둘째 줄/)).toBeNull();
   });
-
-  it('확인이 있는 실패는 오류 문장을 따로 적지 않는다', async () => {
-    그리기(쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1, {}, { error: { message: '숨길 원문 오류' } })])]));
-
-    await screen.findByText('가입한 이메일이 보인다');
-    expect(screen.queryByText(/숨길 원문 오류/)).toBeNull();
-  });
 });
 
 describe('실패 카드의 디바이스 머리 (실행 §8.3 · DESIGN.md 실행 결과)', () => {

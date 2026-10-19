@@ -1,7 +1,10 @@
 // 실행 하나를 「도는 중」과 「끝났다」 두 모습으로 그리는 모달 (SPEC §8.9 · DESIGN.md 모달)
 // 모달을 둘로 나누면 같은 화면이 두 번 가로막는다. 그래서 상자는 하나이고 상태가 내용을 고른다
 
-import type { RunItemSummary, 항목진행 } from './api.js';
+import { useEffect, useState } from 'react';
+
+import { api, type RunItemSummary, type 항목실패, type 항목진행 } from './api.js';
+import { 실패이유 } from './FailureWhy.js';
 import { groupByCase, 회차요약 } from './group.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -24,17 +27,55 @@ function 막대칸들(막대: 진행막대, 언어: 언어) {
   ];
 }
 
+// 2초마다 다시 그려도 끝난 항목의 이유는 안 바뀐다 — 한 번 물은 것은 다시 묻지 않는다
+const 이유기억 = new Map<string, Promise<항목실패 | null>>();
+
+function 이유읽기(runId: number, historyId: number): Promise<항목실패 | null> {
+  const 키 = `${String(runId)}:${String(historyId)}`;
+  let 약속 = 이유기억.get(키);
+  if (약속 === undefined) {
+    // ponytail: 화면을 오래 켜 두면 쌓인다 — 넘치면 통째로 비운다. 진행 응답에 이유가 실리면 이 기억을 걷는다
+    if (이유기억.size > 500) 이유기억.clear();
+    // 못 읽으면 줄만 비운다. 기억에서 빼야 다음 그림에서 다시 묻는다
+    약속 = api.item(runId, historyId).then(
+      (상세) => 상세.failure ?? null,
+      () => {
+        이유기억.delete(키);
+        return null;
+      },
+    );
+    이유기억.set(키, 약속);
+  }
+  return 약속;
+}
+
 /**
- * 방금 끝난 항목 옆에 적을 사유 한 줄.
- *
- * **미실행과 실패를 같은 길로 보내지 않는다.** 러너는 실패에도 `error` 를 채우는데
- * 그것을 `미실행사유()` 에 넘기면 영문 예외가 「러너에 닿지 못했습니다」로 바뀐다 —
- * 그냥 깨진 테스트가 러너 장애로 보인다 (`runState.ts` 의 `칸사유` 주석과 같은 자리).
+ * 방금 끝난 실패 · 미실행 항목의 유형과 한 줄. 앞 판은 러너의 영어 예외 첫 줄을 그대로 적었다 (점검 5.2).
+ * 이유는 항목 상세와 같은 서버 값이다 — 화면이 원문을 다듬어 따로 짓지 않는다
  */
-function 사유한줄(item: RunItemSummary, 언어: 언어): string | null {
-  if (item.status === 'NA') return 미실행사유(item.error, 언어);
-  // 스택은 상세 화면이 갖는다. 모달은 480px 이라 첫 줄만 들어간다
-  return item.error === null ? null : (item.error.message.split('\n')[0] ?? null);
+function 끝난이유({ runId, item }: { runId: number; item: RunItemSummary }) {
+  const 언어 = use언어();
+  const [이유, set이유] = useState<항목실패 | null>(null);
+  useEffect(() => {
+    if (item.status === 'PASS') return;
+    let 살아있음 = true;
+    void 이유읽기(runId, item.historyId).then((값) => {
+      if (살아있음) set이유(값);
+    });
+    return () => {
+      살아있음 = false;
+    };
+  }, [runId, item.historyId, item.status]);
+  // 멈춰 닫힌 미실행(ABORTED)은 서버가 이유를 안 준다 — 앞 판처럼 미실행 사유(「사용자가 멈춤」)를 적는다
+  if (이유 === null) {
+    const 사유 = item.status === 'NA' ? 미실행사유(item.error, 언어) : null;
+    return 사유 === null ? null : <div className="hint">{사유}</div>;
+  }
+  return (
+    <div className="hint">
+      <실패이유 failure={이유} />
+    </div>
+  );
 }
 
 function 판정칸들({ 칸들 }: { 칸들: ReturnType<typeof 막대칸들> }) {
@@ -119,15 +160,12 @@ function 진행내용({ data, 진행목록, 남은ms }: { data: RunDetail; 진�
       {방금끝난것.length === 0 ? null : (
         <div>
           <div className="sec-h">{t말('방금 끝난 것')}</div>
-          {방금끝난것.map((item) => {
-            const 사유 = 사유한줄(item, 언어);
-            return (
-              <div className="pre" key={item.historyId}>
-                {item.tcId} {item.tcName} · {STATUS_LABEL[item.status]}
-                {사유 === null ? null : <div className="hint">{사유}</div>}
-              </div>
-            );
-          })}
+          {방금끝난것.map((item) => (
+            <div className="pre" key={item.historyId}>
+              {item.tcId} {item.tcName} · {STATUS_LABEL[item.status]}
+              <끝난이유 runId={data.runId} item={item} />
+            </div>
+          ))}
         </div>
       )}
     </>

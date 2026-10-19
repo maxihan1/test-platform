@@ -36,8 +36,9 @@ function 그린다(
   insights: RunInsights | null = null,
   판정: ItemStatus | 'ALL' = 'ALL',
   on판정: (v: ItemStatus | 'ALL') => void = () => undefined,
+  실패케이스수 = counts.fail,
 ) {
-  return render(<RunSummary counts={counts} insights={insights} 판정={판정} on판정={on판정} />);
+  return render(<RunSummary counts={counts} 실패케이스수={실패케이스수} insights={insights} 판정={판정} on판정={on판정} />);
 }
 
 describe('요약 띠 — 통과율과 숫자', () => {
@@ -67,16 +68,16 @@ describe('요약 띠 — 통과율과 숫자', () => {
     expect(screen.queryByText('항목 없음')).toBeNull();
   });
 
-  it('「실패 N건」과 「항목 N건 중 M건 통과」를 적는다', () => {
-    const { container } = 그린다(집계(47, 3, 0));
-    expect(screen.getByText('실패 3건')).toBeTruthy();
+  it('「실패 케이스 N건」은 케이스 수이고 「항목 N건 중 M건 통과」는 항목 수다', () => {
+    const { container } = 그린다(집계(47, 3, 0), null, 'ALL', () => undefined, 2);
+    expect(screen.getByText('실패 케이스 2건')).toBeTruthy();
     expect(container.querySelector('.v-fail')).not.toBeNull();
     expect(screen.getByText('항목 50건 중 47건 통과')).toBeTruthy();
   });
 
   it('실패가 0건이면 실패 색을 안 쓴다', () => {
     const { container } = 그린다(집계(10, 0, 0));
-    expect(screen.getByText('실패 0건')).toBeTruthy();
+    expect(screen.getByText('실패 케이스 0건')).toBeTruthy();
     expect(container.querySelector('.v-fail')).toBeNull();
   });
 
@@ -115,13 +116,20 @@ describe('요약 띠 — 판정별 보기', () => {
 describe('요약 띠 — 직전 실행 대비', () => {
   it('직전 실행 번호와 신규 실패 · 연속 실패 · 해결 수를 보이고 누르는 칸이 아니다', () => {
     그린다(집계(47, 3, 0), 견줌());
-    expect(screen.getByText('직전 실행 RUN 1038 대비')).toBeTruthy();
+    expect(screen.getByText('직전 실행 RUN 1038 대비 · 케이스 수')).toBeTruthy();
     const 수 = (이름: string) =>
       within(screen.getByText(이름).closest('.rs-stat') as HTMLElement).getByText(/^\d+$/).textContent;
     expect(수('신규 실패')).toBe('2');
     expect(수('연속 실패')).toBe('1');
     expect(수('해결')).toBe('3');
     expect(screen.getAllByRole('button')).toHaveLength(4);
+  });
+
+  it('직전 대비 수는 케이스 수다 — 한 케이스가 디바이스 둘에서 새로 깨져도 1이다', () => {
+    const 둘 = (['desktop', 'mobile'] as const).map((platform) => ({ tcId: 'ZRS-1', tcName: '케이스', platform, 판정: '새로깨짐' as const }));
+    그린다(집계(47, 3, 0), 견줌({ 케이스들: 둘 }));
+    const 수 = within(screen.getByText('신규 실패').closest('.rs-stat') as HTMLElement).getByText(/^\d+$/).textContent;
+    expect(수).toBe('1');
   });
 
   it('주소가 바뀌었으면 한 줄로 알리고 빠진 케이스가 있으면 건수를 적는다', () => {

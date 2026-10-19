@@ -1,4 +1,5 @@
-// 결과 화면 옆 칸의 「같은 사유로 실패」 · 「해결」 (SPEC §7 `/runs/:runId/insights` · 도메인/실행 §8.3)
+// 결과 화면 옆 칸의 「해결」 (SPEC §7 `/runs/:runId/insights` · 도메인/실행 §8.3)
+// 「같은 사유로 실패」는 2026-10-19 ⑫ 에 실패 카드 위 「실패 유형」 칩 줄(RunFailCards.tsx)로 갔다
 
 import type { RunInsights as 비교 } from './api.js';
 import { use말 } from './i18n.js';
@@ -21,25 +22,6 @@ export function RunInsights({ insights }: { insights: 비교 | null }) {
 
   return (
     <>
-      {insights.실패덩어리들.length === 0 ? null : (
-        <section className="rr-flat">
-          <h2 className="rr-h">{t('같은 사유로 실패')}</h2>
-          {insights.실패덩어리들.map((덩어리) => (
-            <div className="rr-cause" key={덩어리.대표문장}>
-              {/* 「케이스 N건」이 아니다. 세는 단위는 실행 항목이라 5회 중 3회 실패가 3 으로 온다 */}
-              <span className="rr-cause-head">
-                <span>{덩어리.대표문장}</span>
-                <span className="rr-cause-n">{t('실패 항목 {건수}건', { 건수: 덩어리.건수 })}</span>
-              </span>
-              {/* 케이스 이름은 요약 띠와 실패 카드에 이미 있다. 같은 (TC ID, 디바이스)는 회차 때문에 여럿이어도 한 번만 */}
-              <span className="rr-cause-list mono">
-                {[...new Set(덩어리.항목들.map((it) => `${it.tcId} ${PLATFORM_LABEL[it.platform]}`))].join(' · ')}
-              </span>
-            </div>
-          ))}
-        </section>
-      )}
-
       {해결.length === 0 ? null : (
         <section className="rr-flat">
           <h2 className="rr-h">{t('해결')}</h2>

@@ -8,6 +8,7 @@ import { 갈라낸다 } from './group.js';
 import { use말 } from './i18n.js';
 import { RunFailCards } from './RunFailCards.js';
 import { RunFailedReqs } from './RunFailedReqs.js';
+import { 실패케이스들 } from './RerunFailed.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { RunSide } from './RunSide.js';
 import { 결과줄 } from './RunResultRow.js';
@@ -96,7 +97,7 @@ export function 끝난결과(props: Props) {
 
   const 본문 = (
     <>
-      <RunSummary counts={data.counts} insights={insights} 판정={판정} on판정={on판정} />
+      <RunSummary counts={data.counts} 실패케이스수={실패케이스들(data.items).length} insights={insights} 판정={판정} on판정={on판정} />
       <RunFailedReqs 요구들={insights?.실패요구들 ?? []} 권한={권한} />
       {상자안 ? <RunSide data={data} insights={insights} 견줌오류={견줌오류} 증적칸={증적칸} 상자안 /> : null}
 
@@ -126,7 +127,7 @@ export function 끝난결과(props: Props) {
           ) : (
             <section className="rr-sec">
               {/* 칩이나 실행이 바뀌면 새로 그린다 — 앞 거르개 · 앞 실행의 쪽 번호가 남으면 안 된다 */}
-              <RunFailCards key={`${String(data.runId)}-${device}`} runId={data.runId} env={data.env} items={data.items} platform={device} 권한={권한} />
+              <RunFailCards key={`${String(data.runId)}-${device}`} runId={data.runId} env={data.env} items={data.items} platform={device} 권한={권한} 유형들={insights?.실패유형들} />
             </section>
           )}
 

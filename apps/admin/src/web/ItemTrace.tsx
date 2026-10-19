@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { trace없는까닭 } from '../execution/traceReason.js';
 import type { ItemTrace } from './api.js';
+import { 원문보기 } from './FailureWhy.js';
 import { use말 } from './i18n.js';
 
 type 탭 = 'network' | 'actions' | 'console';
@@ -14,6 +15,16 @@ const 실패요청 = (n: 네트워크) => n.failure !== null || (n.status !== nu
 const 실패조작 = (a: ItemTrace['actions'][number]) => a.error !== null;
 // 잡히지 않은 오류는 pageerror 로 온다 (traceParse.ts)
 const 실패콘솔 = (c: ItemTrace['console'][number]) => c.level === 'error' || c.level === 'pageerror';
+
+// 브라우저 콘솔의 수준 글자(pageerror 등)는 개발자 말이다. 모르는 수준은 원문 그대로 둔다
+const 수준이름: Record<string, string> = {
+  error: '오류',
+  pageerror: '잡히지 않은 오류',
+  warning: '경고',
+  log: '기록',
+  info: '안내',
+  debug: '디버그',
+};
 
 const 밀리초 = (ms: number | null) => (ms === null ? '—' : `${ms.toLocaleString()}ms`);
 
@@ -33,8 +44,8 @@ function 없음({ trace }: { trace: ItemTrace | null }) {
     trace === null
       ? [t('아직 없음'), t('기록을 아직 정리하지 않았거나 이 기능 전에 돈 항목입니다 — 방금 끝난 실행이면 잠시 뒤 새로 고쳐 주세요')]
       : trace.status === 'FAILED'
-        ? [t('읽기 실패'), t('기록 파일을 읽지 못했습니다 — 서버 로그를 확인해 주세요')]
-        : [t('trace 없음'), 없는까닭글(trace.reason, t)];
+        ? [t('읽기 실패'), t('기록 파일을 읽지 못했습니다 — 관리자에게 알려 주세요')]
+        : [t('기록 없음'), 없는까닭글(trace.reason, t)];
   return (
     <div className="trace-empty">
       <span className="trace-tag">{꼬리표}</span>
@@ -191,7 +202,8 @@ function 조작표({ 줄들 }: { 줄들: ItemTrace['actions'] }) {
             <단계칸 seq={a.seq} />
             <td>
               {a.title}
-              {a.error === null ? null : <div className="trace-note">{a.error}</div>}
+              {/* 오류는 러너 원문이다 — 줄에서는 실패 색으로 알리고 글은 접는다 (점검 N4) */}
+              <원문보기 글={a.error} />
             </td>
             <td className="trace-m trace-url">{a.target ?? '—'}</td>
             <td className="trace-m">{밀리초(a.durationMs)}</td>
@@ -219,7 +231,7 @@ function 콘솔표({ 줄들 }: { 줄들: ItemTrace['console'] }) {
           <tr key={i} className={실패콘솔(c) ? 'bad' : undefined}>
             <단계칸 seq={c.seq} />
             <td>
-              <span className={`trace-lvl ${c.level}`}>{c.level}</span>
+              <span className={`trace-lvl ${c.level}`}>{t(수준이름[c.level] ?? c.level)}</span>
             </td>
             <td className="trace-url">
               {c.text}

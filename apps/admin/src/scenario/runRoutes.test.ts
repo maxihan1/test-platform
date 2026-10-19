@@ -244,6 +244,7 @@ describe.skipIf(연결 === undefined)('시나리오 실행 통로', () => {
       ],
       error: null,
       trace: null,
+      failure: null,
     });
     expect((몸.parts[0]!.steps as unknown[]).length).toBe(2);
   });

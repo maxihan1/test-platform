@@ -93,6 +93,7 @@ export interface 대시보드응답 {
     platform: 'desktop' | 'mobile';
     finishedAt: string;
     reason: string | null;
+    type: 실패유형;
   }[];
   byService: {
     serviceId: number;

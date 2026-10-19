@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 
 import type { ItemTrace } from './api.js';
 import { use말, use언어 } from './i18n.js';
+import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { ItemTraceSection } from './ItemTrace.js';
 import { 가린값들, 한줄로 } from './mask.js';
 import { scenarioApi, type ScenarioRunPart } from './scenarioApi.js';
@@ -59,6 +60,9 @@ export function ScenarioResultPart({
   const 케이스 = part.part.kind === 'case' ? part.part : null;
   const 적용됨 = (part.kind === 'mock' || part.kind === 'unmock') && part.status === 'PASS';
   const 안돌았다 = part.status === 'NA' && part.error?.message === 'NOT_RUN';
+  const 이유 = part.failure ?? null;
+  // 절차 목록은 실패한 단계에서만 처음부터 열린다 — 미실행 단계는 접힌 목록에 이유를 숨기지 않고 위에 둔다
+  const 실패절차 = 이유 === null || part.status !== 'FAIL' ? undefined : part.steps.find((s) => s.status === 'FAIL');
   const 모킹구간 = part.mocks.length > 0 && part.kind !== 'mock';
   const 모킹안탐 = 모킹구간 && part.kind === 'api';
   const 입력 = 케이스 === null ? '' : 한줄로({ ...케이스.params, ...part.bound }, part.paramSchema, 언어);
@@ -137,11 +141,18 @@ export function ScenarioResultPart({
         </세부>
       )}
       {part.unconfirmed === null ? null : <세부 라벨={t('미확정')}>{part.unconfirmed}</세부>}
-      {part.status !== 'NA' || 안돌았다 || part.error === null || part.error.message === '' ? null : (
+      {/* 이유는 서버가 준 유형과 한 줄이다. 절차 목록에 실패 절차가 있으면 그 줄에 서고, 없으면 여기 선다 (점검 N15) */}
+      {이유 === null || 실패절차 !== undefined ? null : (
+        <세부 라벨={t('실패 이유')}>
+          <실패이유 failure={이유} />
+        </세부>
+      )}
+      {이유 !== null || part.status !== 'NA' || 안돌았다 || part.error === null || part.error.message === '' ? null : (
         <세부 라벨={t('실행이 멈춘 사유')}>{멈춘사유글자(part.error.message, 언어)}</세부>
       )}
-      {part.status !== 'FAIL' || part.error === null || part.error.message === '' ? null : (
-        <pre className="scn-error">{멈춘사유글자(part.error.message, 언어)}</pre>
+      {/* 실패 단계는 이유가 없어도(옛 서버 응답) 원문을 접어 둔다. 미실행은 이유가 없으면 위 「실행이 멈춘 사유」 한 줄이 맡는다 */}
+      {안돌았다 || part.error === null || (part.status !== 'FAIL' && 이유 === null) ? null : (
+        <원문보기 글={멈춘사유글자(part.error.message, 언어)} />
       )}
       {part.status !== 'FAIL' || part.trace === null ? null : <PartTrace trace={part.trace} />}
 
@@ -161,6 +172,7 @@ export function ScenarioResultPart({
                       {t('실패 화면 보기')}
                     </a>
                   )}
+                  {s !== 실패절차 ? null : <실패이유 failure={이유} />}
                 </li>
               ))}
             </ul>

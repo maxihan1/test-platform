@@ -16,8 +16,6 @@ export const 대시보드말: Record<string, string> = {
   // 신규 실패
   '신규 실패': 'New failures',
   '최근 {일}일, 같은 서버의 직전 실행과 견줌': 'Last {일} days, compared with the previous run on the same server',
-  '테스트와 실패 사유': 'Test and failure reason',
-  '사유 없음': 'No reason recorded',
   '새 실패가 없습니다': 'No new failures',
   '견줄 앞 실행이 없습니다': 'No earlier run to compare with',
 
@@ -105,4 +103,7 @@ export const 대시보드말: Record<string, string> = {
   '하루 한 번 정기 실행을 켜 두면 결과가 날마다 쌓여 추이가 보입니다': 'Turn on a daily scheduled run and results build up into a trend',
   '설정에서 정기 실행 켜기': 'Turn on scheduled runs in Settings',
   '테스트 스크립트로 가기': 'Go to test scripts',
+
+  // 실패 이유 읽기 (2026-10-19 ⑫-3 · 도메인/실행 §8.3)
+  '테스트와 실패 유형': 'Test and failure type',
 };

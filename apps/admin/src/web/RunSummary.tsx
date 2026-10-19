@@ -5,8 +5,9 @@ import { 도넛조각 } from './dashboardView.js';
 import { use말, use언어 } from './i18n.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
+// 큰 숫자는 케이스 수로 맞춘다 — 「실패 N건」 · 실패 카드 수 · 「실패 N건 다시 실행」과 같은 단위다. 디바이스로 갈라 세면 한 화면에 단위가 셋이 됐다 (점검 2.15)
 const 칸수 = (insights: RunInsights, 판정: '새로깨짐' | '계속깨짐' | '고쳐짐'): number =>
-  insights.케이스들.filter((c) => c.판정 === 판정).length;
+  new Set(insights.케이스들.filter((c) => c.판정 === 판정).map((c) => c.tcId)).size;
 
 /**
  * 그리기만 한다. 견줌 자료는 부르는 쪽이 들고 온다 — null 이면 아직 못 받았거나 견줄 앞이 없는 것이라 대비 칸을 통째로 뺀다.
@@ -14,11 +15,14 @@ const 칸수 = (insights: RunInsights, 판정: '새로깨짐' | '계속깨짐' |
  */
 export function RunSummary({
   counts,
+  실패케이스수,
   insights,
   판정,
   on판정,
 }: {
   counts: RunCounts;
+  /** 한 번이라도 실패한 케이스 수 — 디바이스 · 회차를 접는다 */
+  실패케이스수: number;
   insights: RunInsights | null;
   판정: ItemStatus | 'ALL';
   on판정: (v: ItemStatus | 'ALL') => void;
@@ -81,10 +85,10 @@ export function RunSummary({
             </div>
           </div>
           <div className="rs-lines">
-            {counts.fail > 0 ? (
-              <span className="verdict v-fail rs-fails">{t('실패 {수}건', { 수: counts.fail })}</span>
+            {실패케이스수 > 0 ? (
+              <span className="verdict v-fail rs-fails">{t('실패 케이스 {수}건', { 수: 실패케이스수 })}</span>
             ) : (
-              <span className="rs-fails none">{t('실패 {수}건', { 수: 0 })}</span>
+              <span className="rs-fails none">{t('실패 케이스 {수}건', { 수: 0 })}</span>
             )}
             <span className="rs-of">
               {전체 === 0
@@ -115,7 +119,7 @@ export function RunSummary({
 
         {insights === null || 앞 === null ? null : (
           <div className="rs-diff">
-            <span className="rs-axis">{t('직전 실행 RUN {번호} 대비', { 번호: 앞.runId })}</span>
+            <span className="rs-axis">{t('직전 실행 RUN {번호} 대비 · 케이스 수', { 번호: 앞.runId })}</span>
             <div className="rs-stats">
               <div className="rs-stat">
                 <span className="rs-k f">{t('신규 실패')}</span>

@@ -10,6 +10,7 @@ import type { ItemStatus, Platform, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
+import { 항목실패를가른다 } from '../reporting/itemFailure.js';
 import { 가린값들 } from '../web/mask.js';
 import { 가린다, 항목비밀 } from './trial.js';
 import { runSummary, 거르는조건, 시나리오칸, type 시나리오실행줄, type 실행거르개, type 실행집계 } from './runSummary.js';
@@ -229,6 +230,7 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
   );
 
   const 비밀 = 항목비밀(row);
+  const 절차들 = steps.rows.map((s) => toStep(s, 비밀));
   return {
     ...toItem(row, 비밀),
     runId: Number(row.run_id),
@@ -236,6 +238,11 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
     precondition: row.precondition,
     expected: 가린값들(row.expected, row.expected_schema),
     expectedSchema: row.expected_schema,
-    steps: steps.rows.map((s) => toStep(s, 비밀)),
+    steps: 절차들,
+    // 절차는 이미 가렸다. 항목 오류는 원문이라 한 줄을 고를 때 가린다
+    failure: 항목실패를가른다(
+      { status: row.status, finished: row.finished_at !== null, error: row.error, steps: 절차들 },
+      (글) => 가린다(글, 비밀) as string,
+    ),
   };
 }

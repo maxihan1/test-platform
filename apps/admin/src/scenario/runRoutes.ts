@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { 증적목록 } from '../execution/queries.js';
 import { artifactsDir, 시나리오실행인가 } from '../execution/routes.js';
 import { 가린다, 긴것부터 } from '../execution/trial.js';
+import { 항목실패를가른다 } from '../reporting/itemFailure.js';
 import { 정수 } from '../routeParams.js';
 import { 가린값들 } from '../web/mask.js';
 
@@ -52,6 +53,7 @@ interface 부품행 {
   cleanup: Omit<ScenarioCleanup, 'fromSeq'>[];
   // 실패한 case 부품만 찬다 (도메인/시나리오 §7 「실패 기록」)
   trace: 부품기록 | null;
+  finished_at: Date | null;
 }
 
 interface 절차행 {
@@ -118,7 +120,7 @@ export async function 시나리오결과(runId: number) {
 
   const 부품 = await pool.query<부품행>(
     `SELECT id, seq, kind, tc_id, tc_name, part, status, duration_ms, skipped_steps, mocks, error,
-            param_schema, expected_schema, precondition, unconfirmed, bound, cleanup, trace
+            param_schema, expected_schema, precondition, unconfirmed, bound, cleanup, trace, finished_at
        FROM scenario_run_part WHERE run_id = $1 ORDER BY seq`,
     [runId],
   );
@@ -138,7 +140,9 @@ export async function 시나리오결과(runId: number) {
     version: 행.scenario_version,
     status: 행.status,
     platform: 행.platform,
-    parts: 부품.rows.map((p) => ({
+    parts: 부품.rows.map((p) => {
+      const 부품절차 = 절차.rows.filter((s) => s.part_id === p.id).map(절차로);
+      return {
       seq: p.seq,
       kind: p.kind,
       tcId: p.tc_id,
@@ -158,10 +162,20 @@ export async function 시나리오결과(runId: number) {
       unconfirmed: p.unconfirmed,
       bound: 가린값들(p.bound, p.param_schema),
       cleanup: p.cleanup,
-      steps: 절차.rows.filter((s) => s.part_id === p.id).map(절차로),
+      steps: 부품절차,
       error: p.error,
       trace: p.trace,
-    })),
+      failure: 항목실패를가른다(
+        {
+          status: p.status,
+          finished: p.finished_at !== null,
+          error: p.error,
+          steps: 부품절차,
+        },
+        (글) => 가린다(글, 긴것부터(비밀)) as string,
+      ),
+      };
+    }),
   };
   // 머리 칸은 비밀이 아니다. 글자째 가리기에 넣으면 숫자 비밀(2026)이 시각 · 주소의 글자까지 지운다
   return {

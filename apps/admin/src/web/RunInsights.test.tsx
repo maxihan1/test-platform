@@ -97,40 +97,11 @@ function 그리기(값: 비교값) {
   return render(<RunInsights insights={값} />);
 }
 
-describe('같은 사유로 실패 (SPEC §7 · §8.3 옆 칸)', () => {
-  it('견줄 앞 실행이 없어도 같은 사유 묶음은 그린다', () => {
-    그리기(비교({ previous: null, 실패덩어리들: [덩어리('연결 시간 초과', [61])] }));
-
-    expect(screen.getByText(/연결 시간 초과/)).toBeDefined();
-    expect(screen.getByText('같은 사유로 실패')).toBeDefined();
-  });
-
-  it('묶음이 몇 건인지를 글자로 적고 케이스 수로 속이지 않는다', () => {
-    그리기(비교({ previous: null, 실패덩어리들: [덩어리('기대값 200, 실제 500', [71, 72, 73])] }));
-
-    expect(screen.getByText(/실패 항목 3건/)).toBeDefined();
-    expect(screen.queryByText(/케이스 3건/)).toBeNull();
-  });
-
-  it('묶음마다 어느 케이스가 어느 디바이스에서 깨졌는지 한 줄로 이어 적는다', () => {
-    그리기(비교({ 실패덩어리들: [덩어리('연결 시간 초과', [61, 62])] }));
-
-    expect(screen.getByText('ZZI-0007 PC')).toBeDefined();
-  });
-
-  it('항목은 케이스 이름 없이 TC ID 와 디바이스만, 같은 것은 한 번씩 적는다', () => {
-    const 묶음 = 덩어리('연결 시간 초과', [61, 62]);
-    묶음.항목들.push({ historyId: 63, tcId: 'ZZI-0008', tcName: '결제', platform: 'mobile' as Platform });
-    그리기(비교({ 실패덩어리들: [묶음] }));
-
-    expect(screen.queryByText(/장바구니 담기/)).toBeNull();
-    expect(screen.getByText('ZZI-0007 PC · ZZI-0008 모바일')).toBeDefined();
-  });
-
-  it('묶음이 없으면 칸 제목도 없다', () => {
-    그리기(비교());
-
+describe('같은 사유로 실패는 옆 칸에 없다 (2026-10-19 ⑫)', () => {
+  it('실패덩어리들이 와도 칸을 그리지 않는다 — 실패 카드 위 「실패 유형」 칩 줄로 갔다', () => {
+    render(<RunInsights insights={{ previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들: [덩어리('결제 완료 안내가 보인다', [1, 2])] }} />);
     expect(screen.queryByText('같은 사유로 실패')).toBeNull();
+    expect(screen.queryByText('결제 완료 안내가 보인다')).toBeNull();
   });
 });
 

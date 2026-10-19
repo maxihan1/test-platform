@@ -1,9 +1,11 @@
-// 실패 카드 맨 아래 「실패 원인」 줄 — 「화면이 맞음」 · 「버그」 버튼과 누른 뒤의 판정 한 줄 (도메인/리포팅 「실패 요구사항」)
+// 실패 카드 맨 아래 「판정」 줄 — 「화면이 맞음」 · 「버그」 버튼과 누른 뒤의 판정 한 줄 (도메인/리포팅 「실패 요구사항」)
+// 이름이 「실패 원인」이던 앞 판은 원인을 적는 칸처럼 읽혔다(점검 2.12). 「화면이 맞음」은 AI 작성 요청을 바로 만들고 「버그」는 기록이 남아 한 번 더 묻는다(점검 2.10 · 2.11)
 
 import { useEffect, useState } from 'react';
 
 import { api, type FailureCase, type FailureJudgment } from './api.js';
 import { use말, use언어 } from './i18n.js';
+import { Modal } from './Modal.js';
 import { prdApi } from './prdApi.js';
 import { 케이스서비스, type 판정 } from './role.js';
 import { message, when } from './ui.js';
@@ -23,6 +25,7 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
   const [직접, set직접] = useState<FailureJudgment>(null);
   const [바쁨, set바쁨] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
+  const [묻는중, set묻는중] = useState<'SCREEN' | 'BUG' | null>(null);
   // 앞 반영이 병합 · 폐기되기를 기다리는 요청에 담겼으면 그 앞 요청 번호들 (PRD-F9-20)
   const [앞요청, set앞요청] = useState<number[]>([]);
   // 방금 누른 것은 서버 값이 올 때까지 바로 보이고, 카드 재료를 다시 읽어 새 값이 오면 그것이 이긴다
@@ -35,6 +38,7 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
   if (!화면맞음가능 && !버그가능 && 지금 === null) return null;
 
   async function 누름(일: () => Promise<FailureJudgment>) {
+    set묻는중(null);
     set바쁨(true);
     set오류(null);
     try {
@@ -60,7 +64,7 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
 
   return (
     <div className="fc-cause">
-      <span className="fc-cause-label">{t('실패 원인')}</span>
+      <span className="fc-cause-label">{t('판정')}</span>
       {지금 === null ? null : (
         <p className="fc-judged">
           {지금.kind === 'SCREEN' ? (
@@ -74,14 +78,36 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
         </p>
       )}
       {!화면맞음가능 ? null : (
-        <button type="button" className="btn small" disabled={바쁨} onClick={() => void 화면이맞음()}>
+        <button type="button" className="btn small" disabled={바쁨} onClick={() => set묻는중('SCREEN')}>
           {지금?.kind === 'BUG' ? t('화면이 맞음으로 바꾸기') : t('화면이 맞음')}
         </button>
       )}
       {!버그가능 ? null : (
-        <button type="button" className="btn small ghost" disabled={바쁨} onClick={() => void 버그()}>
+        <button type="button" className="btn small ghost" disabled={바쁨} onClick={() => set묻는중('BUG')}>
           {t('버그')}
         </button>
+      )}
+      {묻는중 === null ? null : (
+        <Modal
+          제목={묻는중 === 'SCREEN' ? t('화면이 맞다고 판정할까요?') : t('버그로 판정할까요?')}
+          onClose={() => set묻는중(null)}
+          버튼={
+            <>
+              <button type="button" className="btn ghost" onClick={() => set묻는중(null)}>
+                {t('아니오')}
+              </button>
+              <button type="button" className="btn" disabled={바쁨} onClick={() => void (묻는중 === 'SCREEN' ? 화면이맞음() : 버그())}>
+                {묻는중 === 'SCREEN' ? t('화면이 맞음') : t('버그')}
+              </button>
+            </>
+          }
+        >
+          <p>
+            {묻는중 === 'SCREEN'
+              ? t('{번호} 가 덮는 요구를 지금 화면에 맞게 고치는 작성 요청을 바로 만듭니다.', { 번호: c.tcId })
+              : t('{번호} 의 실패를 제품 버그로 남깁니다. 나중에 「화면이 맞음」으로 바꿀 수 있습니다.', { 번호: c.tcId })}
+          </p>
+        </Modal>
       )}
       {앞요청.length === 0 ? null : (
         <span className="note">

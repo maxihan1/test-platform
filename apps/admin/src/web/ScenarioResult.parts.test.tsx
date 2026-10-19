@@ -111,6 +111,16 @@ describe('단계 줄', () => {
     expect(within(줄('XSX-003')).getByText('결제 버튼 누르기')).toBeTruthy();
   });
 
+  it('실패 단계는 실패한 절차 줄에 유형과 한 줄을 적고 오류 원문은 접는다 (점검 N15)', async () => {
+    연다(결과({ parts: [{ ...결제, failure: { type: 'mismatch', reason: '결제 완료 문구가 보인다' } }] }));
+    await screen.findByText('단계별 결과');
+    const 결제줄 = 줄('XSX-003');
+    const 칩 = within(결제줄).getByText('기대 결과 불일치');
+    expect(칩.closest('.scn-proc')).not.toBeNull();
+    expect(within(결제줄).getByText('결제 완료 문구가 보인다')).toBeTruthy();
+    expect((within(결제줄).getByText('원문 보기').closest('details') as HTMLDetailsElement).open).toBe(false);
+  });
+
   it('실패 절차에만 실패 화면 고리 — 시나리오 전체 순번으로 간다', async () => {
     연다(결과());
     await screen.findByText('단계별 결과');
@@ -145,6 +155,6 @@ describe('단계 줄', () => {
     연다(결과({ parts: [{ ...결제, trace: { status: 'NONE', reason: null, network: [], actions: [], console: [] } }] }));
     await screen.findByText('단계별 결과');
     expect(within(줄('XSX-003')).queryByText('화면 오류')).toBeNull();
-    expect(within(줄('XSX-003')).getByText('trace 없음')).toBeTruthy();
+    expect(within(줄('XSX-003')).getByText('기록 없음')).toBeTruthy();
   });
 });

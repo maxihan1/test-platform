@@ -14,6 +14,7 @@ import {
   type RunItemPage,
   type RunItemSummary,
   type StepResult,
+  type 실패유형묶음,
 } from './api.js';
 import { RunFailCards } from './RunFailCards.js';
 import type { 판정 } from './role.js';
@@ -110,8 +111,9 @@ export function 그리기(
   items: RunItemSummary[] = [줄(1, 'ZZI-0001', 'desktop', 'FAIL')],
   platform: Platform | 'ALL' = 'ALL',
   권한: 판정 = () => true,
+  유형들: 실패유형묶음[] = [],
 ) {
   const 부름 = vi.spyOn(api, 'failures').mockResolvedValue(응답);
-  const 결과 = render(<RunFailCards runId={RUN_ID} env="qa" items={items} platform={platform} 권한={권한} />);
+  const 결과 = render(<RunFailCards runId={RUN_ID} env="qa" items={items} platform={platform} 권한={권한} 유형들={유형들} />);
   return { 부름, ...결과 };
 }

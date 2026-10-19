@@ -225,7 +225,14 @@ describe.skipIf(연결 === undefined)('직전 실행과 견주기', () => {
   it('앞 실행이 없으면 previous 가 null 이고 견줄 칸도 비어 있다', async () => {
     const 결과 = await compareWithPrevious(앞실행);
 
-    expect(결과).toEqual({ previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들: [] });
+    expect(결과).toEqual({
+      previous: null,
+      주소바뀜: false,
+      빠진건수: 0,
+      케이스들: [],
+      실패덩어리들: [],
+      실패유형들: [{ type: 'other', count: 4, tcIds: ['XDG-002', 'XDG-003', 'XDG-004', 'XDG-005'] }],
+    });
   });
 
   it('같은 서비스라도 대상 서버가 다르면 직전 실행이 아니다', async () => {
