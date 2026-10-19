@@ -334,7 +334,7 @@ describe('실행 이력은 실행 하나에 한 줄이다 (점검 N7)', () => {
     await waitFor(() => expect(screen.getByText('ZZD-001 실행 7')).toBeTruthy());
     expect(container.querySelectorAll('.dhist tr')).toHaveLength(2);
     expect(screen.getByText('3번 · 실패 1 · 통과 2')).toBeTruthy();
-    expect(screen.getByText('실행 2번')).toBeTruthy();
+    expect(screen.getByText('최근 실행 2번')).toBeTruthy();
     expect(screen.getByText('ZZD-001 실행 7').getAttribute('href')).toBe('#/runs/7/items/9');
   });
 
@@ -403,7 +403,7 @@ describe('값 저장 — 누르기 전에 누구에게 닿는지 적는다 (점�
 
     그린다({ 글자: 고친글자, 저장된다: true });
 
-    expect(screen.getByText('팀 모두와 정기 실행이 이 값을 씁니다')).toBeTruthy();
+    expect(screen.getByText('팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
     expect(screen.getByRole('button', { name: '모두에게 저장' })).toBeTruthy();
   });
 

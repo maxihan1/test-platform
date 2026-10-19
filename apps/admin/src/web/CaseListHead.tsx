@@ -1,7 +1,8 @@
-// 케이스 목록 표머리 — 칸 이름과 「이 쪽 전체 선택」. CaseListParts 가 300줄을 넘어 뗐다 (2026-10-05 · PR #159)
+// 케이스 목록 표머리 — 칸 이름과 「이 쪽 전체 선택」 · 아래 쪽 넘기기. CaseListParts 가 300줄을 넘어 뗐다 (2026-10-05 · PR #159)
 
 import { useId } from 'react';
 
+import type { CasePage } from './api.js';
 import { use말 } from './i18n.js';
 
 /**
@@ -22,7 +23,7 @@ export function 표머리({ 고름상태, on모두고르기 }: { 고름상태?: 
   return (
     <div className="rowhead">
       <span aria-hidden="true" />
-      {/* 이 쪽에 보이는 케이스를 한 번에 고르고 푼다. 「전체 실행」은 이미 모든 쪽이라 여기는 보이는 쪽만이다 (2026-09-30) */}
+      {/* 이 쪽에 보이는 케이스를 한 번에 고르고 푼다. 「조건에 맞는 N건 실행」은 이미 모든 쪽이라 여기는 보이는 쪽만이다 (2026-09-30) */}
       {고름상태 === undefined || on모두고르기 === undefined ? (
         <span aria-hidden="true" />
       ) : (
@@ -50,6 +51,26 @@ export function 표머리({ 고름상태, on모두고르기 }: { 고름상태?: 
       <span className="colname">TC ID</span>
       <span className="colname">{t('케이스명')}</span>
       <span className="colname">{t('마지막 결과')}</span>
+    </div>
+  );
+}
+
+/** 목록 아래 쪽 넘기기. 전체 쪽 수는 안내다 — 다음 쪽이 있는지는 응답이 정한다(paging.ts). 근사치면 안 적는다 */
+export function 쪽넘기기({ page, 더있나, 받은, setPage }: { page: number; 더있나: boolean; 받은: CasePage | null; setPage: (f: (n: number) => number) => void }) {
+  const t = use말();
+  return (
+    <div className="pager">
+      <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
+        {t('이전')}
+      </button>
+      <span>
+        {받은?.totalIsExact === true && 받은.pageSize !== null
+          ? t('{번호} / {전체}쪽', { 번호: page, 전체: Math.max(1, Math.ceil(받은.total / 받은.pageSize)) })
+          : t('{번호}쪽', { 번호: page })}
+      </span>
+      <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
+        {t('다음')}
+      </button>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CaseRow, HistoryRow, LastResult } from './api.js';
-import { 빈기억, 실행마다묶기, 처음디바이스 } from './caseDetailView.js';
+import { 빈기억, 실행마다묶기, 이력열쇠, 처음디바이스 } from './caseDetailView.js';
 import { keyOf, type LastMap } from './catalogView.js';
 
 const 케이스 = { tcId: 'ZZV-001', platforms: ['desktop', 'mobile'] } as unknown as CaseRow;
@@ -85,5 +85,18 @@ describe('빈기억', () => {
     const a = 빈기억();
     a.이력.set('x', []);
     expect(빈기억().이력.size).toBe(0);
+  });
+});
+
+describe('이력열쇠 — 새 실행이 끝나면 이력을 다시 받는다', () => {
+  it('어느 디바이스든 마지막 항목이 바뀌면 열쇠가 바뀐다', () => {
+    const 전: LastMap = { [keyOf('ZZV-001', 'desktop')]: 결과('desktop', 'PASS') };
+    const 뒤: LastMap = { ...전, [keyOf('ZZV-001', 'mobile')]: { ...결과('mobile', 'FAIL'), historyId: 9 } };
+    expect(이력열쇠(케이스, 전)).toBe('ZZV-001:1');
+    expect(이력열쇠(케이스, 뒤)).toBe('ZZV-001:9');
+  });
+
+  it('한 번도 안 돌았으면 0 이다', () => {
+    expect(이력열쇠(케이스, {})).toBe('ZZV-001:0');
   });
 });

@@ -14,7 +14,7 @@ import { use엑셀받기 } from './CaseExport.js';
 import { use검색조건 } from './CaseListFilter.js';
 import { 걸린칩들, 묶음머리줄 } from './CaseListContext.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
-import { 표머리 } from './CaseListHead.js';
+import { 쪽넘기기, 표머리 } from './CaseListHead.js';
 import { 기법고르개, 조건칩들, 종류칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
 import { use묶음접기, 번호들, 줄과머리 } from './caseGroups.js';
 import { Head } from './Head.js';
@@ -58,6 +58,9 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
 
   // 서비스를 바꾸면 첫 페이지로 돌아간다. 3페이지에서 케이스가 적은 서비스로 옮기면
   // 빈 목록에 '3 / 1' 이 뜨고 사람은 목록이 비었다고 생각한다
+  // 실행 read 가 없으면 서버가 last 를 무시하고 칩도 안 그린다 — 주소에 남은 조건이 보이지 않는 거르기로 남지 않게 푼다
+  if (!결과보나 && 결과 !== 'ALL') 검색.on결과('ALL');
+
   if (본서비스 !== service) {
     set본서비스(service);
     검색.찾기비우기();
@@ -249,22 +252,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
       )}
       </div>
 
-      {page === 1 && !더있나 ? null : (
-        <div className="pager">
-          <button onClick={() => 검색.setPage((n) => n - 1)} disabled={page <= 1}>
-            {t('이전')}
-          </button>
-          {/* 전체 쪽 수는 안내다 — 다음 쪽이 있는지는 응답이 정한다(paging.ts). 근사치면 안 적는다 */}
-          <span>
-            {cases.data?.totalIsExact === true && cases.data.pageSize !== null
-              ? t('{번호} / {전체}쪽', { 번호: page, 전체: Math.max(1, Math.ceil(cases.data.total / cases.data.pageSize)) })
-              : t('{번호}쪽', { 번호: page })}
-          </span>
-          <button onClick={() => 검색.setPage((n) => n + 1)} disabled={!더있나}>
-            {t('다음')}
-          </button>
-        </div>
-      )}
+      {page === 1 && !더있나 ? null : <쪽넘기기 page={page} 더있나={더있나} 받은={cases.data} setPage={검색.setPage} />}
 
       {뽑기.담은것 === null ? null : (
         <RunPickModal

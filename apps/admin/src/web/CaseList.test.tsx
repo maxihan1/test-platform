@@ -889,7 +889,7 @@ describe('CaseList 상세 칸에서 저장값 저장', () => {
     await screen.findByText('ZPK-001 케이스');
     fireEvent.click(이름버튼());
     fireEvent.change(await screen.findByLabelText(/통화/), { target: { value: 'USD' } });
-    expect(screen.getByText('팀 모두와 정기 실행이 이 값을 씁니다')).toBeTruthy();
+    expect(screen.getByText('팀 모두와 정기 실행에 쓰입니다')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: '모두에게 저장' }));
     await waitFor(() => expect(저장).toHaveBeenCalledWith('ZPK-001', { params: { currency: 'USD' }, expected: {} }));

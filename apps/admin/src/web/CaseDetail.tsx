@@ -3,8 +3,7 @@
 // **상자를 그만두고 칸으로 바꿨다.** 상자는 열 때마다 목록을 가려 여러 케이스를 훑기 어려웠고,
 // 길어서 절차 · 값 · 이력을 오가려면 상자 안에서 한참 내려가야 했다(점검 7.12). 실행 기록 A안과 같은 짜임이다.
 //
-// 「케이스마다 이력을 따로 부르지 않는다」(§8.1)는 목록 몫이다 — 여기는 사람이 한 줄을 열 때 부른다.
-// 한 번 받은 것은 다시 안 받는다. 받아 둔 것(`상세기억`)은 목록이 들어 칸을 닫아도 남는다.
+// 「케이스마다 이력을 따로 부르지 않는다」(§8.1)는 목록 몫이다 — 여기는 사람이 한 줄을 열 때 부르고, 받은 것(`상세기억`)은 목록이 든다.
 //
 // **입력 칸은 줄에서 여기로 옮겼다.** 값을 고치고 「이 값으로 실행」하거나 「모두에게 저장」한다.
 // 저장은 팀 모두와 정기 실행이 쓰는 값을 바꾸므로 누르기 전에 그 사실을 적는다 — 앞 판은 줄의 「저장」 뒤에 4초만 떴다(점검 7.6)
@@ -17,7 +16,7 @@ import { api, type CaseRow, type HistoryRow } from './api.js';
 import { 코드기본값고치기 } from './CaseEdit.js';
 import { 오류없음, 채운글자, type 줄글자 } from './caseValues.js';
 import { keyOf, type LastMap } from './catalogView.js';
-import { 실행마다묶기, 처음디바이스, type 상세기억 } from './caseDetailView.js';
+import { 이력열쇠, 실행마다묶기, 처음디바이스, type 상세기억 } from './caseDetailView.js';
 import { 실행이력칸 } from './CaseHistory.js';
 import { 실패이유 } from './FailureWhy.js';
 import { Form } from './Form.js';
@@ -88,21 +87,22 @@ export function CaseDetail({
   // 사람이 고르기 전에는 처음디바이스 — 마지막 결과가 칸보다 늦게 와도 따라간다
   const [골랐다, set고른기기] = useState<Platform | null>(null);
   const 고른기기 = 골랐다 ?? 처음디바이스(row, 마지막);
-  // 받아 온 뒤 다시 그리게 하는 신호다. 값은 기억이 든다
-  const [, set받음] = useState(0);
+  const [, set받음] = useState(0); // 받아 온 뒤 다시 그리는 신호 — 값은 기억이 든다
   const 결과 = 고른기기 === null ? undefined : 마지막[keyOf(row.tcId, 고른기기)];
-  const 이력 = 기억.이력.get(row.tcId);
+  const 열쇠 = 이력열쇠(row, 마지막);
+  const 이력 = 기억.이력.get(열쇠);
   const 절차 = 결과 === undefined ? undefined : 기억.절차.get(결과.historyId);
 
   useEffect(() => {
     let 살아있나 = true;
     const 받을것: Promise<unknown>[] = [];
-    if (!기억.이력.has(row.tcId)) {
+    if (!기억.이력.has(열쇠)) {
+      // 실패는 null 로 남겨 「불러오지 못했다」고 적는다 — 빈 목록으로 삼키면 「기록이 없다」로 읽힌다
       받을것.push(
         api
           .caseHistory(row.tcId)
-          .catch(() => ({ items: [] as HistoryRow[] }))
-          .then((r) => 기억.이력.set(row.tcId, r.items)),
+          .then((r): HistoryRow[] | null => r.items, () => null)
+          .then((r) => 기억.이력.set(열쇠, r)),
       );
     }
     // 절차는 그 디바이스의 마지막 결과가 있을 때만 있다. 하나가 실패해도 나머지는 그린다
@@ -118,13 +118,13 @@ export function CaseDetail({
     return () => {
       살아있나 = false;
     };
-  }, [row.tcId, 결과, 기억]);
+  }, [row.tcId, 열쇠, 결과, 기억]);
 
   const 입력값 = schemaToFields(row.paramSchema, row.savedInput?.params, row.savedInput?.savedSecrets.params);
   const 기대결과 = schemaToFields(row.expectedSchema, row.savedInput?.expected, row.savedInput?.savedSecrets.expected);
   const 기법들 = row.techniques ?? [];
   const 돈기기 = row.platforms.filter((p) => 마지막[keyOf(row.tcId, p)] !== undefined);
-  const 묶음 = 이력 === undefined ? null : 실행마다묶기(이력);
+  const 묶음 = 이력 == null ? 이력 : 실행마다묶기(이력);
 
   return (
     <aside className="screen case-pane" id="case-pane" aria-labelledby="case-pane-title">

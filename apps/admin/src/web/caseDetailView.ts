@@ -5,13 +5,22 @@ import type { Platform } from '@platform/kit/types';
 import type { CaseRow, HistoryRow, RunItemDetail } from './api.js';
 import { keyOf, type LastMap } from './catalogView.js';
 
-/** 칸이 받아 온 것. 목록이 들고 있어 칸을 닫아도 남는다 — 이력은 케이스마다, 절차는 실행 항목마다 */
+/**
+ * 칸이 받아 온 것. 목록이 들고 있어 칸을 닫아도 남는다 — 이력은 (케이스, 마지막 항목)마다, 절차는 실행 항목마다.
+ * 이력 열쇠에 마지막 항목 번호를 넣는다 — 새 실행이 끝나면 열쇠가 바뀌어 다시 받는다. null 은 받기에 실패한 것이다
+ */
 export interface 상세기억 {
-  이력: Map<string, HistoryRow[]>;
+  이력: Map<string, HistoryRow[] | null>;
   절차: Map<number, RunItemDetail | null>;
 }
 
 export const 빈기억 = (): 상세기억 => ({ 이력: new Map(), 절차: new Map() });
+
+/** 이력 열쇠 — 케이스와 디바이스들 가운데 가장 늦은 마지막 항목 번호 */
+export function 이력열쇠(row: CaseRow, 마지막: LastMap): string {
+  const 늦은 = Math.max(0, ...row.platforms.map((p) => 마지막[keyOf(row.tcId, p)]?.historyId ?? 0));
+  return `${row.tcId}:${String(늦은)}`;
+}
 
 /** 처음 보일 디바이스 — 깨진 것이 있으면 그것. 모바일만 깨졌는데 통과한 PC 절차를 보이던 자리다(점검 7.7) */
 export function 처음디바이스(row: CaseRow, 마지막: LastMap): Platform | null {

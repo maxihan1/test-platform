@@ -71,7 +71,7 @@ export function 값저장({
     <div className="saved-row">
       {버튼 ? (
         <>
-          <span className="hint">{t('팀 모두와 정기 실행이 이 값을 씁니다')}</span>
+          <span className="hint">{t('팀 모두와 정기 실행에 쓰입니다')}</span>
           <button type="button" className="btn ghost" onClick={() => void 저장()} disabled={busy}>
             {t('모두에게 저장')}
           </button>
