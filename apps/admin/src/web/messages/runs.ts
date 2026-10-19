@@ -203,7 +203,6 @@ export const 실행말: Record<string, string> = {
   '러너에 닿지 못했습니다': 'Could not reach the runner',
 
   // 항목 상세 (§8.4)
-  '이력 {번호}': 'History {번호}',
   '실행이 멈춘 사유': 'Why the run stopped',
   '입력 없음': 'No input',
   '기대결과 없음': 'No expected result',
@@ -282,4 +281,9 @@ export const 실행말: Record<string, string> = {
   '해결 {건수}': 'Fixed {건수}',
   '실패 케이스 {수}건': '{수} failed cases',
   '직전 실행 {실행} 대비 · 케이스 수': 'Against previous run {실행} · cases',
+  '{번째}/{전체}회차': 'Attempt {번째} of {전체}',
+  '실패 항목 이동': 'Move between failures',
+  '← 이전 실패': '← Previous failure',
+  '실패 {전체}건 중 {번째}번째': 'Failure {번째} of {전체}',
+  '다음 실패 →': 'Next failure →',
 };

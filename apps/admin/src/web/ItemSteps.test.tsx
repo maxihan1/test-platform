@@ -40,6 +40,12 @@ describe('절차 부품 (항목 상세 · 실패 카드 공용)', () => {
     expect(screen.getByText('기대 3600')).toBeTruthy();
   });
 
+  it('절차 소요는 다른 화면처럼 초로 적는다', () => {
+    그린다();
+    expect(screen.getByText('0.09초')).toBeTruthy();
+    expect(screen.queryByText('88ms')).toBeNull();
+  });
+
   it('실패 확인에만 assert bad 를, blocker 인 실패에 「뒤 절차 멈춤」을 붙인다', () => {
     const { container } = 그린다();
     expect(container.querySelectorAll('.assert.bad')).toHaveLength(1);

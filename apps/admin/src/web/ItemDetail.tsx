@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { api, type RunItemPage } from './api.js';
 import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
+import { 항목실행줄 } from './ItemRunContext.js';
 import { Step } from './ItemSteps.js';
 import { ItemTraceSection } from './ItemTrace.js';
 import { fieldsOf, type Field } from './mask.js';
@@ -38,7 +39,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
       <div className="bar">
         <div>
           <div className="case-tc">
-            {item.tcId} · {t말('이력 {번호}', { 번호: item.historyId })} · {PLATFORM_LABEL[item.platform]}
+            {item.tcId} · {PLATFORM_LABEL[item.platform]}
           </div>
           <div className="case-name">{item.tcName}</div>
           <div className="runmeta">
@@ -47,6 +48,9 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
         </div>
         <Verdict status={item.status} big />
       </div>
+
+      {/* 회차 · 이전/다음 실패 · 증적 · 관련 요구 · 판정 — 같은 실행의 다른 실패로 가는 길과 판정 자리가 항목 상세에도 있어야 한다 (점검 3.2 · 3.4) */}
+      <항목실행줄 item={item} 판정하기={판정하기} />
 
       {/* 「실행이 멈춘 사유」는 실행 전체가 멈춘 것처럼 읽혔다. 이유는 유형과 한 줄, 러너 원문(최대 2천 자)은 접는다 (점검 3.1 · 3.6) */}
       {item.error === null && (item.failure ?? null) === null ? null : (
