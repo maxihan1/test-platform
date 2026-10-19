@@ -1,7 +1,7 @@
 // 실행 한 부를 읽어 증적 문서가 쓸 표시용 모델로 바꾼다 (SPEC §3.3)
 // test_case 는 한 줄도 읽지 않는다. 카탈로그를 섞으면 케이스를 고친 날 과거 증적이 같이 흔들린다
 
-import type { ItemStatus, Platform } from '@platform/kit';
+import type { DeviceInfo, ItemStatus, Platform } from '@platform/kit';
 
 import type { Pool } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
@@ -37,6 +37,8 @@ export interface EvidenceItem {
   tcId: string;
   tcName: string;
   platform: Platform;
+  /** 앱 항목을 돌린 폰 · 앱 판을 한 줄로(기기글). 브라우저 항목과 연결이 안 열린 앱 항목은 null (APP-F1-05) */
+  device?: string | null;
   attempt: number;
   /** 'NOT_RUN' 은 돌지 못한 항목이다. finished_at 이 빈 행이 여기로 온다 */
   status: ItemStatus | 'NOT_RUN';
@@ -63,6 +65,8 @@ export interface EvidenceHeader {
   triggeredByName: string;
   env: string;
   baseUrl: string;
+  /** 이 실행의 앱 항목이 쓴 폰 · 앱 판(겹침 없이). 비면 머리에 「기기」 줄을 안 그린다 — 브라우저 실행 · E2E 증적 (APP-F1-05) */
+  devices?: string[];
 }
 
 export interface EvidenceDocument {
@@ -107,6 +111,7 @@ interface RawItem {
   expected: unknown;
   param_schema: unknown;
   expected_schema: unknown;
+  device: DeviceInfo | null;
 }
 
 interface RawAssertion {
@@ -130,6 +135,11 @@ interface RawStep {
 
 /** 박제 이전 행의 빈 칸. 지어내지 말고 모른다고 적는다 (SPEC §6) */
 const 기록없음 = '기록 없음';
+
+/** 폰 · 앱 판 한 줄. 못 읽은 칸은 그렇다고 적는다 — 빈칸이면 「없는 판」으로 읽힌다 (도메인/리포팅 §8.4 · APP-F1-05) */
+export function 기기글(d: DeviceInfo): string {
+  return `${d.model ?? '모델 모름'} · Android ${d.osVersion ?? '판 모름'} · 앱 ${d.appVersion ?? '판 모름'}`;
+}
 /** 비밀값은 화면과 문서에서만 가린다. DB 에는 평문 그대로다 (SPEC §4.1) */
 const 가림 = '********';
 
@@ -272,7 +282,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
 
   const items = await pool.query<RawItem>(
     `SELECT history_id, tc_id, tc_name, platform, attempt, status, duration_ms, finished_at, error,
-            unconfirmed, precondition, params, expected, param_schema, expected_schema
+            unconfirmed, precondition, params, expected, param_schema, expected_schema, device
        FROM run_item WHERE run_id = $1 ORDER BY history_id`,
     [runId],
   );
@@ -283,6 +293,8 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
       WHERE i.run_id = $1 ORDER BY s.seq`,
     [runId],
   );
+
+  const 기기들 = items.rows.map((row) => (row.device === null ? null : 기기글(row.device)));
 
   return {
     runId: Number(run.run_id),
@@ -299,8 +311,9 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
           : run.triggered_by_name,
       env: run.env === '' ? 기록없음 : run.env,
       baseUrl: run.base_url === '' ? 기록없음 : run.base_url,
+      devices: [...new Set(기기들.filter((d) => d !== null))],
     },
-    items: items.rows.map((row) => {
+    items: items.rows.map((row, i) => {
       // 못 돈 항목을 'NA' 로 그대로 찍으면 「돌았는데 판정이 없다」로 읽혀 문서에서 사라진다.
       // 40건 중 12건 돌고 멈춘 실행은 「12건 돌았다」가 아니라 「28건은 이래서 못 돌았다」여야 한다 (SPEC §8.4)
       const 못돈사유 = 미실행사유를찾는다(row, run.status);
@@ -312,6 +325,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
         tcId: row.tc_id,
         tcName: row.tc_name,
         platform: row.platform,
+        device: 기기들[i] ?? null,
         attempt: row.attempt,
         status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
         // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다

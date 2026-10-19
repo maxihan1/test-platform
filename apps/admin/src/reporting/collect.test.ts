@@ -303,7 +303,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
     await 공용.end();
   });
 
-  it('머리말 여덟 칸을 실행 스냅샷에서 그대로 가져온다 — 종류는 사람 말로', async () => {
+  it('머리말 여덟 칸을 실행 스냅샷에서 그대로 가져온다 — 종류는 사람 말로 · 앱 항목이 없으면 기기는 빈 목록', async () => {
     const 문서 = await collectRun(실행);
     expect(문서).not.toBeNull();
     expect(문서!.runId).toBe(실행);
@@ -316,6 +316,7 @@ describe.skipIf(연결 === undefined)('증적 자료 수집', () => {
       triggeredByName: '홍길동',
       env: 'qa',
       baseUrl: 'https://qa.example.com',
+      devices: [],
     });
   });
 

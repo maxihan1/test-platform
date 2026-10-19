@@ -3,6 +3,9 @@
 // 절차 결과 한 건을 리포터에 넘길 때 쓰는 첨부 이름
 export const STEP_ATTACHMENT = 'platform-step';
 
+// 앱 항목의 기기 정보(DeviceInfo)를 리포터에 넘길 때 쓰는 첨부 이름
+export const DEVICE_ATTACHMENT = 'platform-device';
+
 // 러너가 stdout에서 결과 줄을 찾을 때 쓰는 표시자
 export const RESULT_MARKER = '@@RESULT@@';
 

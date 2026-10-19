@@ -69,3 +69,16 @@ describe('execute 가 자식에게 넘기는 앱 파일', () => {
     expect(받은앱()).toBe('/runner/env.apk');
   });
 });
+
+describe('execute 가 결과 줄의 기기 정보를 응답에 넘긴다 (APP-F1-05)', () => {
+  it('device 를 그대로 싣는다', async () => {
+    const 기기 = { model: 'SM-G996N', osVersion: '14', appVersion: '1.4.2' };
+    const 줄 = `@@RESULT@@${JSON.stringify({ status: 'PASS', durationMs: 5, steps: [], device: 기기 })}`;
+    스크립트.지금 = `printf '%s\\n' '${줄}'`;
+    const 응답 = await execute(
+      { runId: 5, historyId: 10, tcId: 'AND-001', platform: 'android', filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000 },
+      'a.spec.ts',
+    );
+    expect(응답.device).toEqual(기기);
+  });
+});
