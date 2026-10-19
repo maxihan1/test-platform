@@ -74,12 +74,14 @@ export async function 계정목록(): Promise<계정행[]> {
 async function 배정바꾸기(client: PoolClient, username: string, 줄들: 배정줄[]): Promise<void> {
   await client.query('DELETE FROM user_project WHERE username = $1', [username]);
   for (const { projectId, permissions: p } of 줄들) {
-    await client.query(
+    const 넣음 = await client.query(
       `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring)
             SELECT $1, id, $3, $4, $5 FROM project WHERE id = $2
        ON CONFLICT DO NOTHING`,
       [username, projectId, p.cases, p.runs, p.authoring],
     );
+    // 없는 프로젝트를 조용히 건너뛰면 권한이 안 들어간 채 저장된 것으로 보인다. 애플리케이션 쪽 통로와 같은 코드로 막는다
+    if (넣음.rowCount === 0) throw new 설정오류('PROJECT_NOT_FOUND');
   }
 }
 

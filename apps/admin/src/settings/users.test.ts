@@ -191,6 +191,16 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
     expect(await 계정('xfu9-old-shape')).toBeUndefined();
   });
 
+  it('없는 프로젝트 번호의 줄은 400 PROJECT_NOT_FOUND 이고 아무것도 저장하지 않는다', async () => {
+    const 없는줄 = { projectId: 999999999, permissions: { cases: 'read', runs: 'none', authoring: 'none' } };
+    const 만듦 = await 계정만들기('xfu9-ghost', 'member', [없는줄]);
+    expect([만듦.statusCode, 만듦.json()]).toEqual([400, { error: 'PROJECT_NOT_FOUND' }]);
+    expect(await 계정('xfu9-ghost')).toBeUndefined();
+    const 고침 = await app.inject({ method: 'PATCH', url: '/api/settings/users/xfu9-perm', payload: { projects: [읽기('XFS9A'), 없는줄] } });
+    expect([고침.statusCode, 고침.json()]).toEqual([400, { error: 'PROJECT_NOT_FOUND' }]);
+    expect((await 계정('xfu9-perm'))?.projects).toHaveLength(1);
+  });
+
   it('등급은 member 와 admin 뿐이다 — viewer 는 400', async () => {
     expect((await 계정만들기('xfu9-old', 'viewer')).statusCode).toBe(400);
     const 고침 = await app.inject({
