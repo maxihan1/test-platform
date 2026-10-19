@@ -61,6 +61,7 @@ describe.skipIf(연결 === undefined)('android 거르기 · hasApp', () => {
   });
 
   it('hasApp 은 종류를 따른다 — 앱 케이스가 UI 뿐이면 기능 목록에서는 거짓이다', async () => {
+    await q("DELETE FROM test_case WHERE tc_id = 'XPL-002'");
     await save([spec('XPL-001', ['desktop']), spec('XPL-UI-001', ['android'])], false, 'XPL');
     expect([(await 목록({ kind: 'UI' })).hasApp, (await 목록({ kind: 'FN' })).hasApp]).toEqual([true, false]);
   });
