@@ -73,6 +73,8 @@ const scenarioPart = z.discriminatedUnion('kind', [
     carryOver: z.boolean().optional(),
     links: z.array(scenarioLink).optional(),
     filePath: z.string().min(1),
+    // 시작 애플리케이션이 아닌 단계가 돌 주소. 없으면 요청 전체 baseUrl (SPEC 도메인/시나리오 §3.7 결정 13)
+    baseUrl: z.string().url().optional(),
   }),
   z.object({
     kind: z.literal('api'),
@@ -80,6 +82,7 @@ const scenarioPart = z.discriminatedUnion('kind', [
     path: 대상경로,
     body: z.unknown().optional(),
     expectStatus: z.number().int(),
+    baseUrl: z.string().url().optional(),
   }),
   z.object({
     kind: z.literal('mock'),

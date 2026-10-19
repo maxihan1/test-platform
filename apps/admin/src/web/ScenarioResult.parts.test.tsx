@@ -27,6 +27,25 @@ describe('단계 줄', () => {
     expect(api.querySelector('.verdict')).toBeNull();
   });
 
+  it('애플리케이션을 섞은 실행은 단계 머리에 이름표를, 줄 안에 돈 주소를 적는다 — 한 애플리케이션만 쓴 실행에는 안 단다', async () => {
+    연다(결과({
+      parts: [
+        부품(1, { service: 'XSX', baseUrl: 'https://shop.example.com' }),
+        부품(2, { service: 'XSA', baseUrl: 'https://adm.example.com' }),
+      ],
+    }));
+    await screen.findByText('단계별 결과');
+    expect(within(줄('XSX-002')).getByText('XSA').className).toContain('scn-app-tag');
+    expect(within(줄('XSX-002')).getByText('https://adm.example.com')).toBeTruthy();
+    expect(within(줄('XSX-001')).getByText('XSX').className).toContain('scn-app-tag');
+    cleanup();
+
+    연다(결과({ parts: [부품(1, { service: 'XSX', baseUrl: 'https://qa.example.com' }), 부품(2, { service: 'XSX', baseUrl: 'https://qa.example.com' })] }));
+    await screen.findByText('단계별 결과');
+    expect(document.querySelector('.scn-app-tag')).toBeNull();
+    expect(screen.queryByText('돈 주소')).toBeNull();
+  });
+
   it('모킹 구간 안 줄에 안내 문장', async () => {
     연다(결과());
     await screen.findByText('단계별 결과');

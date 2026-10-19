@@ -4,10 +4,11 @@ import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioPart } from '@pla
 import type { 역할계정 } from '@platform/kit/accounts';
 import type { Pool, PoolClient } from 'pg';
 
-import { 대상서버계정, 저장값을채운다 } from '../execution/savedInput.js';
-import { 삭제코드를읽는다 } from '../prd/apiMap.js';
+import { 저장값을채운다 } from '../execution/savedInput.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
+import { 같은프로젝트접두사, 계정없음, 단계주소, 삭제코드합치기, 쓰는앱읽기 } from './apps.js';
 import { 점검 } from './checks.js';
+import { 케이스접두사, 쓰는접두사 } from './mixed.js';
 import { 케이스재료 } from './parts.js';
 import type { 저장하는사람 } from './store.js';
 import { 시나리오제한시간, 제한시간크기사유, type 카탈로그 } from './validate.js';
@@ -55,6 +56,7 @@ interface 케이스행 {
 
 interface 판정 {
   version: number;
+  허용: string[];
   거절: 시나리오실행오류 | null;
   카탈로그: 카탈로그;
 }
@@ -85,8 +87,10 @@ async function 미리판정(id: number): Promise<판정 | undefined> {
   const 행 = r.rows[0];
   if (행 === undefined) return undefined;
   const 번호들 = 행.parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
-  const { 카탈로그 } = await 케이스재료(번호들, 행.prefix);
-  return { version: 행.version, 거절: 실행가능확인(행.parts, 카탈로그), 카탈로그 };
+  // 시작 애플리케이션과 같은 프로젝트의 케이스까지 읽는다 (§3.7 결정 13)
+  const 허용 = await 같은프로젝트접두사(행.prefix);
+  const { 카탈로그 } = await 케이스재료(번호들, 허용);
+  return { version: 행.version, 허용, 거절: 실행가능확인(행.parts, 카탈로그), 카탈로그 };
 }
 
 // 판정한 버전이 잠근 뒤의 최신과 다르면 null — 부른 쪽이 다시 판정한다
@@ -111,21 +115,23 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     if (!행.is_active) throw new 시나리오실행오류('ARCHIVED', '치운 시나리오는 실행할 수 없다');
     if (!행.service_active) throw new 시나리오실행오류('SERVICE_INACTIVE', `모르는 서비스다: ${행.prefix}`);
 
-    // 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (execution/store.ts createRun 과 같다)
-    const 대상 = await c.query<{ base_url: string }>(
-      'SELECT base_url FROM service_env WHERE service_id = $1 AND env = $2',
-      [행.service_id, env],
-    );
-    const baseUrl = 대상.rows[0]?.base_url;
-    if (baseUrl === undefined) {
-      throw new 시나리오실행오류('ENV_NOT_FOUND', `${행.prefix} 서비스에 ${env} 대상 서버가 없다`);
-    }
+    // 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (execution/store.ts createRun 과 같다).
+    // 섞인 애플리케이션마다 같은 이름의 줄을 찾고 하나라도 없으면 거절한다 (§3.7 결정 13)
+    const 쓰는 = 쓰는접두사(행.parts, 행.prefix);
+    const { 앱들, 없음 } = await 쓰는앱읽기(쓰는, env, c);
+    if (없음 !== null) throw new 시나리오실행오류('ENV_NOT_FOUND', `${없음} 서비스에 ${env} 대상 서버가 없다`);
+    const baseUrl = 앱들.get(행.prefix)!.baseUrl;
 
     if (판정 === undefined || 판정.version !== 행.version) {
       await c.query('ROLLBACK');
       return null;
     }
     if (판정.거절 !== null) throw 판정.거절;
+    // 저장 뒤 애플리케이션을 다른 프로젝트로 옮겼으면 API 단계는 케이스처럼 비활성으로 드러나지 않는다 — 여기서 막는다
+    const 밖 = 쓰는.filter((a) => !판정.허용.includes(a));
+    if (밖.length > 0) {
+      throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: ${밖.join(' · ')} 는 ${행.prefix} 서비스와 같은 프로젝트가 아니다`);
+    }
 
     // 저장 뒤 케이스가 바뀌어 건너뛸 수 없게 된 제목은 뺀다. 러너는 받은 제목이면 확인 절차도 건너뛴다 (결정 8)
     const parts = 행.parts.map((p) =>
@@ -144,7 +150,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     const 케이스들 = new Map(케이스.rows.map((r) => [r.tc_id, r]));
 
     // 저장값을 채우면 커진다. 판정은 조립만 쟀으므로 채운 목록을 다시 잰다 (§7). 던지면 아래 catch 가 되돌린다
-    const 채운부품 = await 부품채우기(c, parts, 케이스들, await 대상서버계정(c, Number(행.service_id), env));
+    const 채운부품 = await 부품채우기(c, parts, 케이스들, (tcId) => 앱들.get(케이스접두사(tcId))?.계정들 ?? 계정없음);
     const 크기사유 = 제한시간크기사유(채운부품);
     if (크기사유.length > 0) {
       throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: 저장값을 채운 뒤 ${크기사유.join(' · ')}`);
@@ -165,6 +171,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
         // 판정과 이 SELECT 사이에 카탈로그 행이 사라진 경우다. 스냅샷 없이 줄을 세우면 CHECK 가 막는다
         throw new 시나리오실행오류('NOT_RUNNABLE', `${i + 1}번 단계: ${p.tcId} 는 없거나 비활성인 케이스다`);
       }
+      const 주소 = 단계주소(p, 행.prefix, 앱들);
       await c.query(
         `INSERT INTO scenario_run_part (run_id, seq, kind, tc_id, tc_name, part, file_path, param_schema, expected_schema,
                                         timeout_ms, precondition, unconfirmed, status)
@@ -175,7 +182,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
           p.kind,
           케?.tc_id ?? null,
           케?.name ?? null,
-          JSON.stringify(p),
+          JSON.stringify({ ...p, ...주소 }),
           케?.file_path ?? null,
           케 === undefined ? null : JSON.stringify(케.param_schema),
           케 === undefined ? null : JSON.stringify(케.expected_schema),
@@ -185,11 +192,12 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
           케?.unconfirmed ?? null,
         ],
       );
-      요청부품.push(케 === undefined ? p : { ...p, filePath: 케.file_path });
+      요청부품.push(케 === undefined ? { ...p, ...주소 } : { ...p, ...주소, filePath: 케.file_path });
     }
 
     // 확정 전에 쥔 손으로 읽는다 — 확정 뒤에 던지면 RUNNING 실행이 러너 없이 남는다
-    const deleteStatuses = await 삭제코드를읽는다(Number(행.service_id), c);
+    // 섞인 애플리케이션 모두의 지도에서 읽는다. 호스트로 맞추므로 합쳐도 겹치지 않는다
+    const deleteStatuses = await 삭제코드합치기(앱들, c);
     await c.query('COMMIT');
     return {
       runId,
@@ -215,16 +223,37 @@ export async function 부품채우기(
   c: Pick<PoolClient, 'query'>,
   parts: ScenarioPart[],
   케이스들: Map<string, { param_schema: unknown; expected_schema: unknown }>,
-  계정들: readonly 역할계정[] = [],
+  계정들: readonly 역할계정[] | ((tcId: string) => readonly 역할계정[]) = [],
 ): Promise<ScenarioPart[]> {
   const 케이스부품들 = parts.filter((p): p is 케이스부품 => p.kind === 'case');
-  const 채움 = await 저장값을채운다(c, 케이스부품들, 케이스들, 계정들);
+  const 채움 = await 계정별로채운다(c, 케이스부품들, 케이스들, 계정들);
   return parts.map((p) => {
     if (p.kind !== 'case') return p;
     const 찬 = 채움[케이스부품들.indexOf(p)]!;
     const 꽂을칸 = new Set((p.links ?? []).flatMap((l) => (l.kind === 'bind' && !Object.hasOwn(p.params, l.param) ? [l.param] : [])));
     return { ...찬, params: Object.fromEntries(Object.entries(찬.params).filter(([k]) => !꽂을칸.has(k))) };
   });
+}
+
+// 애플리케이션마다 그 대상 서버 줄의 계정이 다르다 (결정 13). 같은 계정 목록을 쓰는 부품끼리 묶어 채우고 원래 차례로 돌려놓는다
+async function 계정별로채운다(
+  c: Pick<PoolClient, 'query'>,
+  부품들: 케이스부품[],
+  케이스들: Map<string, { param_schema: unknown; expected_schema: unknown }>,
+  계정들: readonly 역할계정[] | ((tcId: string) => readonly 역할계정[]),
+): Promise<케이스부품[]> {
+  if (typeof 계정들 !== 'function') return 저장값을채운다(c, 부품들, 케이스들, 계정들);
+  const 묶음 = new Map<readonly 역할계정[], number[]>();
+  부품들.forEach((p, i) => {
+    const 계정 = 계정들(p.tcId);
+    묶음.set(계정, [...(묶음.get(계정) ?? []), i]);
+  });
+  const 결과 = [...부품들];
+  for (const [계정, 자리들] of 묶음) {
+    const 채운 = await 저장값을채운다(c, 자리들.map((i) => 부품들[i]!), 케이스들, 계정);
+    자리들.forEach((자리, k) => { 결과[자리] = 채운[k]!; });
+  }
+  return 결과;
 }
 
 // 목록·상세의 runnable 과 같은 판정을 본다 (게이트 1). 뿌리 밖 경로도 재료에서 빠져 CASE_INACTIVE 가 된다

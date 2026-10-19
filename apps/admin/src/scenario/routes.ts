@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { findService } from '../catalog/store.js';
 import { 정수 } from '../routeParams.js';
 
+import { 같은프로젝트접두사 } from './apps.js';
 import { 점검 } from './checks.js';
 import { 다음케이스읽기 } from './next.js';
 import { 케이스재료 } from './parts.js';
@@ -42,8 +43,10 @@ async function 고칠수없음(reply: FastifyReply, 지금: { id: number; isActi
 
 // 만들기·고치기는 조립 규칙을 전부 건다. 되돌리기는 안 건다 — 옛 조합의 복사본이라 막으면 영영 못 되돌린다
 async function 조립오류(parts: ScenarioPart[], platform: 'desktop' | 'mobile', service: string): Promise<string[]> {
-  const { 카탈로그 } = await 케이스재료(케이스번호들(parts), service);
-  return 조립검사(parts, platform, service, 카탈로그);
+  // 시작 애플리케이션과 같은 프로젝트의 애플리케이션 케이스를 섞을 수 있다 (§3.7 결정 13)
+  const 허용 = await 같은프로젝트접두사(service);
+  const { 카탈로그 } = await 케이스재료(케이스번호들(parts), 허용);
+  return 조립검사(parts, platform, service, 카탈로그, 허용);
 }
 
 export default async function scenarioRoutes(app: FastifyInstance): Promise<void> {
@@ -59,7 +62,7 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     const 쓰는것 = new Set([req.query.uses ?? ''].flat().join(',').split(',').map((t) => t.trim()).filter((t) => t !== ''));
     const 줄들 = 쓰는것.size === 0 ? 전부 : 전부.filter((s) => s.parts.some((p) => p.kind === 'case' && 쓰는것.has(p.tcId)));
     // 한 요청 안에서 케이스마다 한 번만 읽는다. 시나리오들이 같은 케이스를 여러 번 쓴다
-    const { 카탈로그 } = await 케이스재료(줄들.flatMap((s) => 케이스번호들(s.parts)), prefix);
+    const { 카탈로그 } = await 케이스재료(줄들.flatMap((s) => 케이스번호들(s.parts)), await 같은프로젝트접두사(prefix));
     return {
       items: 줄들.map(({ parts, lastRun, ...줄 }) => {
         const { needsCheck, runnable } = 점검(parts, 카탈로그);
@@ -104,7 +107,7 @@ export default async function scenarioRoutes(app: FastifyInstance): Promise<void
     if (id === null) return 잘못(reply, req.params.id);
     const 본것 = await 상세(id);
     if (본것 === null) return 없음(reply, req.params.id);
-    const { 카탈로그 } = await 케이스재료(케이스번호들(본것.parts), 본것.service);
+    const { 카탈로그 } = await 케이스재료(케이스번호들(본것.parts), await 같은프로젝트접두사(본것.service));
     return { ...본것, checks: 점검(본것.parts, 카탈로그).checks };
   });
 

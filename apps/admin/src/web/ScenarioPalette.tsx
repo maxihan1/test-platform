@@ -7,7 +7,7 @@ import { api, type CaseRow, type Platform } from './api.js';
 import { 요구줄 } from './CaseListContext.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type NextCase } from './scenarioApi.js';
-import { 추천줄들, 팔레트차례 } from './scenarioView.js';
+import { 추천줄들, 케이스접두사, 팔레트차례, type 앱줄 } from './scenarioView.js';
 import { Failed, Loading, message, PLATFORM_LABEL } from './ui.js';
 
 export type 다른단계 = Exclude<ScenarioPart, { kind: 'case' }>;
@@ -49,7 +49,10 @@ const 다른단계들: { 이름: string; 단계: () => 다른단계 }[] = [
 ];
 
 interface Props {
+  /** 시나리오 서비스 — 처음 열면 이 칩이 골라져 있다 */
   서비스: string;
+  /** 같은 프로젝트의 애플리케이션 (도메인/시나리오 §8.11). 하나뿐이면 칩 줄을 안 그린다 */
+  앱들?: readonly 앱줄[];
   디바이스: Platform;
   /** 케이스 바꾸기로 들어온 단계 번호. null 이면 맨 끝에 더하는 보통 모드 */
   바꿀번호: number | null;
@@ -60,9 +63,16 @@ interface Props {
   on바꾸기취소: () => void;
 }
 
-export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on케이스, on다른단계, on바꾸기취소 }: Props) {
+export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀번호, 뒤, on케이스, on다른단계, on바꾸기취소 }: Props) {
   const t = use말();
   const 언어 = use언어();
+  // 한 번에 한 애플리케이션의 케이스만 목록에 뜬다. 시나리오 서비스가 바뀌면 그 서비스로 돌아간다
+  const [고른앱, set고른앱] = useState(서비스);
+  const [앞서비스, set앞서비스] = useState(서비스);
+  if (앞서비스 !== 서비스) {
+    set앞서비스(서비스);
+    set고른앱(서비스);
+  }
   const [읽음, set읽음] = useState<읽은것 | null>(null);
   const [오류, set오류] = useState<string | null>(null);
   // 어느 단계 기준 추천인지 같이 쥔다 — 단계를 더한 직후 한 번 그릴 때 앞 기준 추천이 새 머리 아래 보이지 않게
@@ -83,7 +93,7 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
     set오류(null);
     // 묶음 이름으로 펼침을 기억한다 — 다른 서비스의 같은 이름 묶음이 펴진 채 열리지 않게 비운다
     set펼친(new Set());
-    모으기(서비스, () => 끊김).then(
+    모으기(고른앱, () => 끊김).then(
       (값) => {
         if (!끊김) set읽음(값);
       },
@@ -95,15 +105,16 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
       // 서비스가 바뀌거나 탭을 떠난 뒤 늦게 온 쪽이 다른 목록을 덮지 않게 한다
       끊김 = true;
     };
-  }, [서비스, 언어]);
+  }, [고른앱, 언어]);
 
-  const 뒤번호 = 뒤?.tcId ?? null;
+  // 추천의 재료(화면 연결)는 애플리케이션 하나 안의 것이다 — 맨 뒤 케이스와 같은 애플리케이션 칩일 때만 뜬다
+  const 뒤번호 = 뒤 !== null && 케이스접두사(뒤.tcId) === 고른앱 ? 뒤.tcId : null;
   useEffect(() => {
     let 끊김 = false;
     set추천(null);
     set추천오류(null);
     if (뒤번호 === null) return;
-    scenarioApi.nextCases(서비스, 뒤번호).then(
+    scenarioApi.nextCases(고른앱, 뒤번호).then(
       (값) => {
         if (!끊김) set추천({ 기준: 뒤번호, items: 값.items });
       },
@@ -115,7 +126,7 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
       // 단계를 잇달아 더하면 앞 단계 기준 추천이 늦게 와서 덮을 수 있다
       끊김 = true;
     };
-  }, [서비스, 뒤번호, 언어]);
+  }, [고른앱, 뒤번호, 언어]);
 
   const PRD씀 = 읽음?.PRD씀 ?? false;
   const 차례 = 읽음 === null ? null : 팔레트차례(읽음.목록, 디바이스, PRD씀);
@@ -177,6 +188,22 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
         </div>
       )}
 
+      {앱들.length < 2 ? null : (
+        <div className="scn-pal-apps" role="group" aria-label={t('애플리케이션')}>
+          {앱들.map((a) => (
+            <button
+              key={a.prefix}
+              type="button"
+              className={a.prefix === 고른앱 ? 'scn-app-pick on' : 'scn-app-pick'}
+              aria-pressed={a.prefix === 고른앱}
+              onClick={() => set고른앱(a.prefix)}
+            >
+              {a.prefix} {a.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {오류 !== null ? (
         <Failed error={오류} />
       ) : 읽음 === null || 차례 === null ? (
@@ -187,7 +214,7 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
         <>
           {추천오류 !== null ? (
             <Failed error={추천오류} />
-          ) : 뒤 === null || 추천칸.length === 0 ? null : (
+          ) : 뒤 === null || 뒤번호 === null || 추천칸.length === 0 ? null : (
             <section className="scn-pal-rec" aria-label={t('다음 단계 추천')}>
               <h3 className="scn-set-sub">
                 {t('다음 단계 추천')}

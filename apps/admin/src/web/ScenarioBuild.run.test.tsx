@@ -7,7 +7,7 @@ import { ApiError, type User } from './api.js';
 import { 떠나기막기 } from './leaveGuard.js';
 import { scenarioApi } from './scenarioApi.js';
 import { ScenarioBuild } from './ScenarioBuild.js';
-import { 서비스, 사람, 재료, 기존그리기, 바꾸기, 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
+import { 서비스, 사람, 재료, 기존그리기, 바꾸기, 케이스단계, 케이스목록막기, 케이스더하기 } from './ScenarioBuild.fixture.js';
 
 const 서버있는사람 = (): User => {
   const 기본 = 사람();
@@ -63,6 +63,45 @@ describe('ScenarioBuild 정식 실행', () => {
     await 기존그리기({}, 서버있는사람());
     const run = vi.spyOn(scenarioApi, 'run');
     fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    expect((await screen.findByRole('alert')).textContent).toBe('실행할 대상 서버를 먼저 고릅니다');
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('애플리케이션을 섞은 시나리오는 든 애플리케이션 모두에 있는 서버 이름만 고를 수 있고, 없는 이름은 사유와 함께 막힌다 (결정 13)', async () => {
+    const 기본 = 사람();
+    const 섞인사람: User = {
+      ...기본,
+      services: [
+        { ...기본.services[0]!, envs: [{ env: 'qa', baseUrl: 'https://qa.zsb' }, { env: 'stg', baseUrl: 'https://stg.zsb' }] },
+        { ...기본.services[1]!, envs: [{ env: 'stg', baseUrl: 'https://stg.zsc' }] },
+      ],
+    };
+    await 기존그리기({ parts: [케이스단계('ZSB-001'), 케이스단계('ZSC-001')] }, 섞인사람);
+    const run = vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 503 });
+
+    expect((screen.getByRole('option', { name: 'qa · ZSC에 없음' }) as HTMLOptionElement).disabled).toBe(true);
+    // 단계가 섞이기 전에 골랐던 서버는 막힌 이름이 되면 고른 것으로 치지 않는다
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'stg' } });
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+
+    await waitFor(() => expect(run).toHaveBeenCalledWith(12, 'stg'));
+  });
+
+  it('이미 고른 서버가 섞인 단계 때문에 막히면 고르지 않은 것으로 돌아가 고르라는 문장이 뜬다', async () => {
+    window.localStorage.setItem('대상서버:ZSB', 'qa');
+    const 기본 = 사람();
+    const 섞인사람: User = {
+      ...기본,
+      services: [
+        { ...기본.services[0]!, envs: [{ env: 'qa', baseUrl: 'https://qa.zsb' }] },
+        { ...기본.services[1]!, envs: [{ env: 'stg', baseUrl: 'https://stg.zsc' }] },
+      ],
+    };
+    await 기존그리기({ parts: [케이스단계('ZSB-001'), 케이스단계('ZSC-001')] }, 섞인사람);
+    const run = vi.spyOn(scenarioApi, 'run');
+
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+
     expect((await screen.findByRole('alert')).textContent).toBe('실행할 대상 서버를 먼저 고릅니다');
     expect(run).not.toHaveBeenCalled();
   });

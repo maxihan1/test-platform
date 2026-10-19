@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 import type { APIRequest, APIRequestContext, APIResponse, Browser, BrowserContext, Route } from '@playwright/test';
 
-import { 가르기, 미룬응답, 요청주소, 적기, type CasePart, type 미룬삭제, type 받은응답, type 부품상태, type 상태, type 이음 } from './links.js';
+import { 가르기, 미룬응답, 요청주소, 적기, 주소의, type CasePart, type 미룬삭제, type 받은응답, type 부품상태, type 상태, type 이음 } from './links.js';
 import { 남김, 합친상태, type RouteHandler, type 창 } from './parts.js';
 import { 꺼냄 } from './wire.js';
 
@@ -137,6 +137,13 @@ export function 만들때값(options: 연결옵션, 설정: 감싸기설정): �
   };
 }
 
+// 창 · 연결의 기본 주소는 Playwright 가 프로젝트 설정(시작 애플리케이션)으로 채운다. 다른 애플리케이션 단계면 그 단계 주소를 먼저 준다.
+// 케이스가 직접 만드는 창 · 연결도 같다 — 안 그러면 다른 애플리케이션 단계의 상대 주소가 시작 애플리케이션으로 간다 (SPEC 도메인/시나리오 §3.7 결정 13)
+export function 주소채움<T extends object | undefined>(options: T, 이음값: 이음, 부품: 부품상태 | undefined): T {
+  const 주소 = 부품 === undefined ? undefined : 이음값.부품주소.get(부품.seq);
+  return 주소 === undefined || (options as { baseURL?: string } | undefined)?.baseURL !== undefined ? options : ({ ...options, baseURL: 주소 } as T);
+}
+
 // 시나리오 동안 브라우저의 창 만들기와 @playwright/test 의 연결 만들기를 감싼다. 케이스가 require 로 불러도 같은 객체다 (2026-10-06 이미지 탐침)
 export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이음값: 이음, 설정: 감싸기설정) {
   const 원래창 = browser.newContext.bind(browser);
@@ -145,7 +152,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
   let 걸린: ReadonlyMap<string, RouteHandler> = new Map();
 
   const 묶음 = (부품: 부품상태 | undefined, 상태읽기: () => Promise<상태>, options?: 연결옵션): 도구묶음 => ({
-    부품, 상태읽기, 기준: options?.baseURL ?? 설정.baseUrl, 만들때: 만들때값(options, 설정),
+    부품, 상태읽기, 기준: options?.baseURL ?? (부품 === undefined ? 설정.baseUrl : 주소의(이음값, 부품.seq)), 만들때: 만들때값(options, 설정),
   });
 
   // 한도에 걸린 부품이 늦게 만든 것은 받자마자 닫는다
@@ -156,7 +163,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
 
   // Browser.newPage 도 안에서 this.newContext 를 부른다 — 이것 하나로 둘 다 잡힌다. 로그인 상태는 안 옮긴다 — 다른 계정으로 들어가려고 여는 창이다
   browser.newContext = async (options) => {
-    const c = await 원래창(options);
+    const c = await 원래창(주소채움(options, 이음값, 지금?.부품));
     const 부품 = 지금;
     if (부품 === undefined) return c;
     if (부품.닫힘) return 늦은것(() => c.close());
@@ -170,7 +177,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
   };
 
   요청도구.newContext = async (options) => {
-    const r = await 원래요청(options);
+    const r = await 원래요청(주소채움(options, 이음값, 지금?.부품));
     const 부품 = 지금;
     if (부품 === undefined) return r;
     if (부품.닫힘) return 늦은것(() => r.dispose());
@@ -182,10 +189,11 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
     async newWindow(state: 상태 | undefined, mocks: ReadonlyMap<string, RouteHandler>, 부품?: 부품상태): Promise<창> {
       걸린 = mocks;
       // 디바이스(화면 크기 · 사용자 에이전트) · baseURL 은 Playwright 가 프로젝트 use 로 채운다 (playwright/lib/index.js runBeforeCreateBrowserContext)
-      const context = await 원래창(state === undefined ? {} : { storageState: state });
+      const 열기옵션 = 주소채움(state === undefined ? {} : { storageState: state }, 이음값, 부품);
+      const context = await 원래창(열기옵션);
       const 창request = context.request;
       const 이번: 지금부품 | undefined = 부품 === undefined ? undefined : { 부품, 직접만든: [], 닫힘: false };
-      const 부품요청 = 부품 === undefined ? undefined : await 원래요청(state === undefined ? {} : { storageState: state });
+      const 부품요청 = 부품 === undefined ? undefined : await 원래요청(열기옵션);
       if (부품 !== undefined) {
         // 창을 만든 뒤 request 를 바꿔 끼우면 그 뒤 newPage 의 page.request 도 감싼 것이다 — Page 생성자가 창의 request 를 그대로 받는다
         (context as { request: APIRequestContext }).request = 감싼도구(창request, 이음값, 묶음(부품, () => context.storageState()));

@@ -80,6 +80,12 @@ export const 시나리오말: Record<string, string> = {
   '시나리오 단계': 'Scenario steps',
   '단계 추가 · 설정': 'Add and set up steps',
   '단계 순서': 'Step order',
+  '여기서 애플리케이션이 바뀝니다': 'Application changes here',
+  '돈 주소': 'Ran against',
+  '부를 애플리케이션': 'Application to call',
+  '{서버} · {앱}에 없음': '{서버} · not set up for {앱}',
+  '시작 애플리케이션 밖의 단계가 섞인 시나리오는 / 로 시작하는 URL 패턴을 쓸 수 없습니다. **/ 로 시작하거나 주소 전체를 적습니다':
+    'In a scenario with steps from other applications, a URL pattern cannot start with /. Start it with **/ or write the full address',
   '단계를 누르면 설정이 열립니다': 'Select a step to open its settings',
   '+ 단계 추가': '+ Add step',
   '{번호}번 위로': 'Move step {번호} up',

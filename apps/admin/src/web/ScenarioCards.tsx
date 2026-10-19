@@ -1,12 +1,12 @@
 // E2E 시나리오 조립 화면 왼쪽의 단계 카드 목록 — 한 줄 요약 · 칩 · 모킹 구간 · 위로 · 아래로 · 빼기 (도메인/시나리오 §8.11)
 
 import type { ScenarioPart } from '@platform/kit';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import type { Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { 모킹구간, 빼기, 순서바꾸기, 카드요약, 종류글, type 재료들 } from './scenarioView.js';
+import { 단계앱, 섞였나, 모킹구간, 빼기, 순서바꾸기, 카드요약, 종류글, type 앱줄, type 재료들 } from './scenarioView.js';
 import type { 조립탭 } from './ScenarioTabs.js';
 import { PLATFORM_LABEL } from './ui.js';
 
@@ -25,6 +25,8 @@ export function ScenarioCards({
   단계들바꾸기,
   재료,
   디바이스,
+  시작 = '',
+  앱들 = [],
   쓰나,
   고른번호,
   on고르기,
@@ -35,6 +37,9 @@ export function ScenarioCards({
   단계들바꾸기: (다음: ScenarioPart[]) => void;
   재료: 재료들;
   디바이스: Platform;
+  /** 시나리오 서비스(시작 애플리케이션)와 같은 프로젝트의 애플리케이션. 시작 애플리케이션 밖의 단계가 있을 때만 이름표 · 구분선이 선다 */
+  시작?: string;
+  앱들?: readonly 앱줄[];
   쓰나: boolean;
   고른번호: number | null;
   on고르기: (번호: number | null) => void;
@@ -47,6 +52,8 @@ export function ScenarioCards({
   // 버튼이 새 자리에 다시 그려진 뒤에야 포커스를 줄 수 있어 다음 그리기에서 처리한다
   const 포커스 = useRef<{ 번호: number; 동작: 동작 } | null>(null);
   const 구간 = 모킹구간(단계들);
+  const 섞임 = 섞였나(단계들, 시작);
+  let 직전앱: string | null = null;
   // ✕ 한 번에 설정까지 사라지면 되돌릴 길이 「저장하지 않고 떠나기」뿐이라 한 번 묻는다 (점검 10.7)
   const [뺄번호, set뺄번호] = useState<number | null>(null);
 
@@ -97,6 +104,10 @@ export function ScenarioCards({
         <ol className="scn-cards">
           {단계들.map((part, i) => {
             const 번호 = i + 1;
+            const 앱 = 단계앱(part, 시작);
+            const 앱줄값 = 앱 === null ? undefined : 앱들.find((a) => a.prefix === 앱);
+            const 바뀜 = 섞임 && 앱 !== null && 직전앱 !== null && 앱 !== 직전앱;
+            if (앱 !== null) 직전앱 = 앱;
             const 재료값 = part.kind === 'case' ? 재료.get(part.tcId) : undefined;
             const 모킹안 = (구간[i]?.length ?? 0) > 0;
             const 이름 =
@@ -105,7 +116,13 @@ export function ScenarioCards({
               part.kind !== 'case' ? '' : 재료값 === null ? t('케이스를 찾지 못했습니다') : 카드요약(part, 재료값, 언어);
             const 클래스 = ['scn-card', 번호 === 고른번호 ? 'selected' : '', 모킹안 ? 'mocked' : ''].filter(Boolean).join(' ');
             return (
-              <li key={번호} className={클래스}>
+              <Fragment key={번호}>
+              {!바뀜 ? null : (
+                <li className="scn-card-swap" role="separator">
+                  {t('여기서 애플리케이션이 바뀝니다')}
+                </li>
+              )}
+              <li className={클래스}>
                 <button
                   type="button"
                   className="scn-card-pick"
@@ -123,6 +140,11 @@ export function ScenarioCards({
                   {요약 === '' ? null : <span className="scn-card-sum">{요약}</span>}
                 </button>
                 <span className="scn-card-chips">
+                  {!섞임 || 앱 === null ? null : (
+                    <span className="scn-app-tag">
+                      {앱} {앱줄값?.name ?? ''}
+                    </span>
+                  )}
                   {part.kind === 'case' ? 칩들(part, 재료값, 디바이스, t) : null}
                   {part.kind === 'api' && 모킹안 ? <span className="tech-tag">{t('모킹되지 않음')}</span> : null}
                 </span>
@@ -144,6 +166,7 @@ export function ScenarioCards({
                   </span>
                 )}
               </li>
+              </Fragment>
             );
           })}
         </ol>

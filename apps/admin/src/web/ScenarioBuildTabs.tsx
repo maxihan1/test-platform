@@ -11,7 +11,7 @@ import { ScenarioPartPanel } from './ScenarioPartPanel.js';
 import type { 조립탭 } from './ScenarioTabs.js';
 import { ScenarioVersions } from './ScenarioVersions.js';
 import { useServiceApis } from './useServiceApis.js';
-import { 뒤케이스 } from './scenarioView.js';
+import { 뒤케이스, 단계앱, type 앱줄 } from './scenarioView.js';
 import type { useScenarioDraft } from './useScenarioDraft.js';
 
 interface Props {
@@ -19,6 +19,8 @@ interface Props {
   탭: 조립탭;
   쓰나: boolean;
   초안: ReturnType<typeof useScenarioDraft>;
+  /** 시나리오 서비스와 같은 프로젝트의 애플리케이션 (도메인/시나리오 §8.11) */
+  앱들: readonly 앱줄[];
   고른번호: number | null;
   바꿀번호: number | null;
   on케이스: (tcId: string) => void;
@@ -32,19 +34,21 @@ interface Props {
 }
 
 export function ScenarioBuildTabs(props: Props) {
-  const { 탭, 쓰나, 초안, 바꿀번호, on케이스, on다른단계, on바꾸기취소 } = props;
+  const { 탭, 쓰나, 초안, 앱들, 고른번호, 바꿀번호, on케이스, on다른단계, on바꾸기취소 } = props;
   // 팔레트는 단계 추가 탭을 한 번 연 뒤로는 그려 두고 가리기만 한다. 내리면 단계를 넣을 때마다 케이스 목록을 처음부터 다시 받고
   // 찾기 글자가 지워진다. 한 번도 안 열었으면 안 그린다 — 설정만 보는 사람이 목록을 20쪽씩 받을 까닭이 없다
   const [열었나, set열었나] = useState(탭 === 'add');
   if (탭 === 'add' && !열었나) set열었나(true);
-  // 설정 탭을 처음 열 때 한 번만 받는다. 설정 탭을 오가도 다시 받지 않는다
-  const 지도 = useServiceApis(초안.서비스, 탭 === 'settings');
+  // 설정 탭을 처음 열 때 한 번만 받는다. 설정 탭을 오가도 다시 받지 않는다. 다른 애플리케이션 단계는 그 애플리케이션의 지도다
+  const 고른 = 고른번호 === null ? undefined : 초안.단계들[고른번호 - 1];
+  const 지도 = useServiceApis((고른 === undefined ? null : 단계앱(고른, 초안.서비스)) ?? 초안.서비스, 탭 === 'settings');
   return (
     <>
       {!쓰나 || !열었나 ? null : (
         <div hidden={탭 !== 'add'}>
           <ScenarioPalette
             서비스={초안.서비스}
+            앱들={앱들}
             디바이스={초안.디바이스}
             바꿀번호={바꿀번호}
             // 중간 단계를 바꾸는 중에는 맨 뒤 기준 추천이 안 맞는다
@@ -66,6 +70,7 @@ function TabBody({
   탭,
   쓰나,
   초안,
+  앱들,
   고른번호,
   on케이스바꾸기,
   on바꿈,
@@ -95,6 +100,8 @@ function TabBody({
         번호={고른번호}
         단계={고른단계}
         단계들={초안.단계들}
+        앱들={앱들}
+        시작={초안.서비스}
         쓰나={쓰나}
         on바꿈={on바꿈}
         on칸오류={on칸오류}
