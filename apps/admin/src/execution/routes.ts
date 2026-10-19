@@ -21,6 +21,7 @@ import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } f
 import { validate } from './validate.js';
 import { trace기록을읽는다, 밀린trace를푼다 } from './traceIngest.js';
 import { 목록종류읽기 } from './runKind.js';
+import { 시작방식거르개 } from './runOrigin.js';
 import { runBody, 실행위치를본다 } from './location.js';
 
 const PAGE_SIZE = 50;
@@ -84,6 +85,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     try {
       const { runId, items } = await createRun({
         ...실행본문,
+        origin: 'MANUAL',
         triggeredBy: 사람?.username ?? '알 수 없음',
         triggeredByName: 사람?.displayName,
       });
@@ -168,7 +170,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     };
   });
 
-  app.get<{ Querystring: { service?: string; page?: string; q?: string; state?: string; env?: string; kind?: string } }>(
+  app.get<{ Querystring: { service?: string; page?: string; q?: string; state?: string; env?: string; kind?: string; origin?: string; days?: string } }>(
     '/runs',
     async (req, reply) => {
       // 한 번에 한 서비스만 본다. 섞이면 목록이 남의 실행으로 채워진다 (SPEC §8 · §8.7)
@@ -183,6 +185,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
         ...(req.query.q === undefined ? {} : { q: req.query.q }),
         ...(state === undefined ? {} : { state }),
         ...(req.query.env === undefined ? {} : { env: req.query.env }),
+        ...시작방식거르개(req.query.origin, req.query.days),
         // 모르는 kind 는 state 처럼 조용히 case 로 본다 (SPEC 시나리오 §7 「실행 목록의 E2E 탭」)
         kind: 목록종류읽기(req.query.kind),
       });

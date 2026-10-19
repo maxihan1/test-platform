@@ -24,8 +24,8 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
   let pool: Pool;
 
   async function 치운다(): Promise<void> {
-    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBU%')");
-    await pool.query("DELETE FROM test_run WHERE title LIKE 'XBU%'");
+    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBU'))");
+    await pool.query("DELETE FROM test_run WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBU')");
     await pool.query("DELETE FROM req_case WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBU')");
     await pool.query("DELETE FROM prd_version WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBU')");
   }
@@ -52,9 +52,9 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
     await 판을올린다(1, [항목('XBU-REQ-001', 'NEEDS_CHECK'), 항목('XBU-REQ-002', 'NEEDS_CHECK'), 항목('XBU-REQ-003', 'CONFIRMED')]);
   }
 
-  async function 실행(title: string, items: { tcId: string; platforms: ('desktop' | 'mobile')[] }[]): Promise<number> {
+  async function 실행(items: { tcId: string; platforms: ('desktop' | 'mobile')[] }[]): Promise<number> {
     const run = await createRun({
-      title,
+      origin: 'MANUAL',
       triggeredBy: 'tester',
       env: 'qa',
       notifySlack: true,
@@ -103,7 +103,7 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
   });
 
   it('실행을 만들 때 케이스의 미확정 사유를 항목에 박제하고, 요구가 나중에 확정돼도 그대로 둔다', async () => {
-    const runId = await 실행('XBU 박제', [
+    const runId = await 실행([
       { tcId: 'XBU-001', platforms: ['desktop'] },
       { tcId: 'XBU-002', platforms: ['desktop'] },
     ]);
@@ -120,13 +120,13 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
   });
 
   it('표준 기획서가 덮는 케이스는 확인 필요 요구 번호를 박제하고, 사람이 확정하면 다음 실행부터 확정이다', async () => {
-    const 앞 = await 실행('XBU 기획서 박제 앞', [
+    const 앞 = await 실행([
       { tcId: 'XBU-001', platforms: ['desktop'] },
       { tcId: 'XBU-002', platforms: ['desktop'] },
       { tcId: 'XBU-003', platforms: ['desktop'] },
     ]);
     await 판을올린다(2, [항목('XBU-REQ-001', 'CONFIRMED', true), 항목('XBU-REQ-002', 'NEEDS_CHECK'), 항목('XBU-REQ-003', 'CONFIRMED')]);
-    const 뒤 = await 실행('XBU 기획서 박제 뒤', [
+    const 뒤 = await 실행([
       { tcId: 'XBU-002', platforms: ['desktop'] },
       { tcId: 'XBU-003', platforms: ['desktop'] },
     ]);
@@ -148,7 +148,7 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
   });
 
   it('counts 의 통과·실패·미실행은 미확정까지 모두 세고, counts.unconfirmed 는 그중 미확정 항목 수(진행 중 포함) 하나다', async () => {
-    const runId = await 실행('XBU 집계', [
+    const runId = await 실행([
       { tcId: 'XBU-001', platforms: ['desktop', 'mobile'] },
       { tcId: 'XBU-002', platforms: ['desktop', 'mobile'] },
       { tcId: 'XBU-003', platforms: ['desktop'] },
@@ -165,13 +165,13 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
   });
 
   it('실패가 미확정뿐인 실행도 실패 거르개와 실패 집계에 들고, 미확정만 돌린 실행도 모두 통과로 센다', async () => {
-    const 미확정실패 = await 실행('XBU 실패가 미확정뿐', [
+    const 미확정실패 = await 실행([
       { tcId: 'XBU-001', platforms: ['desktop'] },
       { tcId: 'XBU-002', platforms: ['desktop'] },
     ]);
     await 끝낸다(미확정실패, 'XBU-001', 'desktop', 'PASS');
     await 끝낸다(미확정실패, 'XBU-002', 'desktop', 'FAIL');
-    const 미확정만 = await 실행('XBU 미확정만', [{ tcId: 'XBU-002', platforms: ['desktop'] }]);
+    const 미확정만 = await 실행([{ tcId: 'XBU-002', platforms: ['desktop'] }]);
     await 끝낸다(미확정만, 'XBU-002', 'desktop', 'PASS');
 
     expect((await listRuns('XBU', 1, 50, { state: 'failed' })).items.map((r) => r.runId)).toEqual([미확정실패]);
@@ -180,7 +180,7 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
   });
 
   it('항목 목록과 항목 상세에 박제된 미확정 사유를 싣는다', async () => {
-    const runId = await 실행('XBU 항목', [
+    const runId = await 실행([
       { tcId: 'XBU-001', platforms: ['desktop'] },
       { tcId: 'XBU-002', platforms: ['desktop'] },
     ]);
@@ -194,7 +194,7 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
   });
 
   it('Slack 알림이 미확정도 그대로 세고 머리에 미확정 변형 없이 그중 미확정 N건과 목록 꼬리만 단다', async () => {
-    const runId = await 실행('XBU 알림', [
+    const runId = await 실행([
       { tcId: 'XBU-001', platforms: ['desktop'] },
       { tcId: 'XBU-002', platforms: ['desktop', 'mobile'] },
     ]);
@@ -215,7 +215,7 @@ describe.skipIf(연결 === undefined)('미확정 항목', () => {
     }
 
     const 줄 = 보낸것[0]!.split('\n');
-    expect(줄[0]).toBe(`[실패] XBU 서비스 · RUN ${String(runId)} · XBU 알림`);
+    expect(줄[0]).toBe(`[실패] XBU 서비스 · RUN ${String(runId)} · XBU-001 외 1건`);
     expect(줄[1]).toMatch(/^통과 1 · 실패 1 · 미실행 1 · 그중 미확정 2건 · /);
     expect(줄).toContain('  XBU-002  미확정 케이스  (미확정)');
   });

@@ -127,6 +127,8 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
   });
 
   it("android 케이스에 location 'farm' 으로 실행하면 409 FARM_OFF 이고 test_run 이 안 생긴다", async () => {
+    const 세기 = "SELECT count(*)::int AS n FROM test_run WHERE service_id = (SELECT id FROM service WHERE prefix = 'XBR')";
+    const 앞 = (await pool.query<{ n: number }>(세기)).rows[0]!.n;
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
@@ -139,8 +141,7 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
     });
     expect(res.statusCode).toBe(409);
     expect(res.json().error).toBe('FARM_OFF');
-    const rows = await pool.query("SELECT 1 FROM test_run WHERE title = 'XBR 진행 위치 거절'");
-    expect(rows.rowCount).toBe(0);
+    expect((await pool.query<{ n: number }>(세기)).rows[0]!.n).toBe(앞);
   });
 });
 

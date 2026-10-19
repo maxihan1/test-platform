@@ -7,6 +7,7 @@ import { 미확정SQL, 접은판정SQL } from '../scenario/verdict.js';
 
 import type { RunSummary } from './runTypes.js';
 import { 종류조건, type 목록종류 } from './runKind.js';
+import type { 시작방식 } from './runOrigin.js';
 
 async function db(): Promise<Pool> {
   const { pool } = await import('../db/index.js');
@@ -23,6 +24,9 @@ export interface 실행거르개 {
   q?: string;
   state?: 'running' | 'failed';
   env?: string;
+  origin?: 시작방식;
+  /** 시작이 최근 N일 안인 실행 */
+  days?: number;
   /** 실행 기록의 탭. 없으면 case (SPEC 실행 §7 · 시나리오 §7 「실행 목록의 E2E 탭」) */
   kind?: 목록종류;
 }
@@ -48,7 +52,10 @@ export function 거르는조건(거르개: 실행거르개, 시작번호: number
   let n = 시작번호;
 
   if (거르개.q !== undefined && 거르개.q !== '') {
-    where.push(`r.title ILIKE $${String(n)}`);
+    // 제목이 「… 외 23건」이면 둘째 케이스로 못 찾는다 — 실행에 든 케이스 번호 · 그때 박제한 이름에도 맞춘다 (SPEC 실행 §7)
+    where.push(
+      `(r.title ILIKE $${String(n)} OR EXISTS (SELECT 1 FROM run_item x WHERE x.run_id = r.run_id AND (x.tc_id ILIKE $${String(n)} OR x.tc_name ILIKE $${String(n)})))`,
+    );
     // ILIKE 특수문자를 값으로 다룬다. 사람이 친 % 가 전체 일치로 바뀌지 않게 한다
     값.push(`%${거르개.q.replace(/[%_\\]/g, (c) => `\\${c}`)}%`);
     n += 1;
@@ -56,6 +63,16 @@ export function 거르는조건(거르개: 실행거르개, 시작번호: number
   if (거르개.env !== undefined && 거르개.env !== '') {
     where.push(`r.env = $${String(n)}`);
     값.push(거르개.env);
+    n += 1;
+  }
+  if (거르개.origin !== undefined) {
+    where.push(`r.origin = $${String(n)}`);
+    값.push(거르개.origin);
+    n += 1;
+  }
+  if (거르개.days !== undefined) {
+    where.push(`r.started_at >= now() - make_interval(days => $${String(n)}::int)`);
+    값.push(거르개.days);
   }
   // 도는 것은 칸으로 갈리지만 실패 섞임은 집계로 갈린다. 그래서 둘이 다른 절에 붙는다.
   // 실패는 미확정 항목도 센다 — 미확정은 꼬리표일 뿐 판정은 같다 (SPEC 실행 §3.2)

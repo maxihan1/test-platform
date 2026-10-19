@@ -11,6 +11,7 @@ import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
+import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
 const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
@@ -25,7 +26,8 @@ export class RunInputError extends Error {
       | 'MIXED_KIND'
       | 'ENV_NOT_FOUND'
       | 'SERVICE_FORBIDDEN'
-      | 'TOO_MANY_ITEMS',
+      | 'TOO_MANY_ITEMS'
+      | 'BAD_RERUN',
     message: string,
     // TOO_MANY_ITEMS 는 응답에 상한과 요청 건수를 같이 싣는다 (SPEC §8.2)
     readonly detail: { limit: number; requested: number } | undefined = undefined,
@@ -48,7 +50,10 @@ export interface RunItemInput {
 }
 
 export interface CreateRunInput {
-  title: string;
+  // 제목은 받지 않는다 — 시작 방식과 담긴 케이스로 서버가 짓는다 (SPEC 실행 §7 「자동 제목」)
+  origin: 'MANUAL' | 'SCHEDULED';
+  // 「실패 N건 다시 실행」이 싣는 원래 실행. 있으면 시작 방식이 RERUN 이다
+  rerunOf?: number;
   // 로그인한 사람의 아이디. 요청 본문이 아니라 문(auth/gate.ts)이 실어 준 값에서 온다 (SPEC §3.5)
   triggeredBy: string;
   // 실행 당시의 사람 이름을 박제한다. 계정 이름이 바뀌거나 지워져도 과거 증적은 흔들리지 않는다.
@@ -115,7 +120,6 @@ const INSERT_ITEM = `
 
 export async function createRun(input: CreateRunInput): Promise<{ runId: number; items: PendingItem[] }> {
   if (input.items.length === 0) throw new RunInputError('INVALID_REQUEST', '실행할 케이스가 하나도 없다');
-  if (input.title.trim() === '') throw new RunInputError('INVALID_REQUEST', '실행 제목이 비어 있다');
 
   // 같은 실행 안에서 케이스×환경은 한 행뿐이다(run_item의 UNIQUE). 조용히 버리면 뒤에 넣은 입력값이 사라진다
   const seen = new Set<string>();
@@ -190,12 +194,26 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     const 밖 = 선언밖디바이스(input.items, cases);
     if (밖) throw new RunInputError('INVALID_REQUEST', `${밖.tcId} 는 ${PLATFORM_LABEL[밖.platform]} 환경을 선언하지 않았다`);
 
+    const tcIds = [...cases.keys()].sort();
+    const origin = input.rerunOf === undefined ? input.origin : 'RERUN';
+    if (input.rerunOf !== undefined) {
+      const 사유 = await 다시실행사유(client, input.rerunOf, { serviceId: found서비스.id, kind, tcIds });
+      if (사유 !== null) throw new RunInputError('BAD_RERUN', 사유);
+    }
+    const title = await 제목을짓는다(client, {
+      origin,
+      ...(input.rerunOf === undefined ? {} : { rerunOf: input.rerunOf }),
+      prefix,
+      kind,
+      케이스들: tcIds.map((tcId) => ({ tcId, name: cases.get(tcId)!.name })),
+    });
+
     // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)
     const run = await client.query<{ run_id: string }>(
-      `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo, base_url, notify_slack, kind)
-       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10) RETURNING run_id`,
+      `INSERT INTO test_run (title, triggered_by, triggered_by_name, status, env, service_id, service_name, tests_repo, base_url, notify_slack, kind, origin, rerun_of)
+       VALUES ($1, $2, $3, 'RUNNING', $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING run_id`,
       [
-        input.title,
+        title,
         input.triggeredBy,
         // NULL 이면 「실행자 미상 (인증 도입 이전)」으로 읽힌다. 모르는 것은 모른다고 적는다 (SPEC §8.6)
         input.triggeredByName ?? null,
@@ -206,6 +224,8 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
         found서비스.base_url,
         input.notifySlack ?? false,
         kind,
+        origin,
+        input.rerunOf ?? null,
       ],
     );
     const runId = Number(run.rows[0]!.run_id);

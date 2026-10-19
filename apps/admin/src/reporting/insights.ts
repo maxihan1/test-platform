@@ -36,7 +36,7 @@ export async function db(): Promise<Pool> {
 
 type 접힌판정 = 'PASS' | 'FAIL' | 'NA';
 
-interface 접힌행 {
+export interface 접힌행 {
   tc_id: string;
   tc_name: string;
   platform: string;
@@ -66,6 +66,27 @@ export const 판정표: Record<접힌판정, Record<접힌판정, 변화>> = {
 };
 
 const 키 = (row: 접힌행): string => `${row.tc_id}\u0000${row.platform}`;
+
+/**
+ * 앞 실행과 이번 실행의 접은 판정을 맞춰 (케이스, 디바이스)마다 무엇이 달라졌는지 낸다.
+ * 결과 화면 견주기와 실행 목록 줄의 직전 대비 수(reporting/runChange.ts)가 같이 쓴다 — 두 화면의 수가 갈라지지 않게
+ */
+export function 케이스판정들(앞접힘: 접힌행[], 이번접힘: 접힌행[]): Pick<비교, '케이스들' | '빠진건수'> {
+  const 이번칸 = new Map(이번접힘.map((row) => [키(row), row]));
+  const 케이스들: 비교['케이스들'] = [];
+  let 빠진건수 = 0;
+  // 앞 실행에 없던 케이스는 어느 칸에도 넣지 않는다. 새 케이스를 「고쳐짐」으로 세면 거짓이다 —
+  // 그래서 이번 것이 아니라 앞 것을 훑는다
+  for (const 앞행 of 앞접힘) {
+    const 이번행 = 이번칸.get(키(앞행));
+    if (이번행 === undefined) {
+      빠진건수 += 1;
+      continue;
+    }
+    케이스들.push({ tcId: 이번행.tc_id, tcName: 이번행.tc_name, platform: 이번행.platform, 판정: 판정표[앞행.status][이번행.status] });
+  }
+  return { 케이스들, 빠진건수 };
+}
 
 /**
  * 대표 문장 한 줄의 상한. 검증 문장은 사람이 쓴 짧은 한국어라 여기 안 걸리고,
@@ -245,25 +266,7 @@ export async function compareWithPrevious(runId: number): Promise<비교> {
     pool.query<접힌행>(접기, [runId]),
     pool.query<접힌행>(접기, [Number(직전.run_id)]),
   ]);
-  const 이번칸 = new Map(이번접힘.rows.map((row) => [키(row), row]));
-
-  const 케이스들: 비교['케이스들'] = [];
-  let 빠진건수 = 0;
-  for (const 앞행 of 앞접힘.rows) {
-    const 이번행 = 이번칸.get(키(앞행));
-    if (이번행 === undefined) {
-      빠진건수 += 1;
-      continue;
-    }
-    케이스들.push({
-      tcId: 이번행.tc_id,
-      tcName: 이번행.tc_name,
-      platform: 이번행.platform,
-      판정: 판정표[앞행.status][이번행.status],
-    });
-  }
-  // 앞 실행에 없던 케이스는 어느 칸에도 넣지 않는다. 새 케이스를 「고쳐짐」으로 세면 거짓이다 —
-  // 그래서 이번 것이 아니라 앞 것을 훑는다
+  const { 케이스들, 빠진건수 } = 케이스판정들(앞접힘.rows, 이번접힘.rows);
 
   return {
     previous: { runId: Number(직전.run_id), startedAt: 직전.started_at.toISOString() },

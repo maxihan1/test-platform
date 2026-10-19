@@ -1,18 +1,22 @@
 // 실행 묶음 한 줄 — 칸 목록과 응답 모양으로 옮기기. queries.ts 가 300줄을 넘어 떼어 냈다 (SPEC 도메인/실행 §7)
 
-import type { ItemStatus } from '@platform/kit';
+import type { ItemStatus, Platform } from '@platform/kit';
 
 import type { RunKind } from './runKind.js';
+import type { 시작방식 } from './runOrigin.js';
 import type { 시나리오실행줄 } from './runSummary.js';
 import type { RunSummary } from './runTypes.js';
 
 const iso = (v: Date | null): string | null => (v === null ? null : v.toISOString());
+const 디바이스차례: Platform[] = ['desktop', 'mobile', 'android'];
 
 // 실행 묶음 한 줄에 판정 개수까지 붙인다. 없으면 목록 화면이 실행마다 항목을 또 불러야 한다.
 // 통과·실패·미실행은 미확정 여부와 상관없이 모든 항목을 센다. 미확정은 「그중 N건」 하나로만 따로 센다 (SPEC 실행 §3.2)
 export const RUN_COLUMNS = `
   r.run_id, r.title, r.triggered_by, r.triggered_by_name, r.env, r.base_url, r.service_name,
-  r.status, r.started_at, r.finished_at, r.kind,
+  r.status, r.started_at, r.finished_at, r.kind, r.origin, r.rerun_of,
+  -- 디바이스 차례는 화면 차례(desktop → mobile → android)다. 시나리오 실행은 항목이 없어 빈 배열이다
+  COALESCE(array_agg(DISTINCT i.platform::text) FILTER (WHERE i.history_id IS NOT NULL), '{}') AS platforms,
   count(i.history_id)::int AS total,
   count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'PASS')::int AS pass,
   count(i.history_id) FILTER (WHERE i.finished_at IS NOT NULL AND i.status = 'FAIL')::int AS fail,
@@ -30,6 +34,9 @@ export interface RawRun {
   service_name: string;
   status: string;
   kind: RunKind;
+  origin: 시작방식;
+  rerun_of: string | null;
+  platforms: string[];
   started_at: Date;
   finished_at: Date | null;
   total: number;
@@ -52,6 +59,9 @@ export function toRun(row: RawRun): RunSummary {
     serviceName: row.service_name,
     status: row.status,
     kind: row.kind,
+    origin: row.origin,
+    rerunOf: row.rerun_of === null ? null : Number(row.rerun_of),
+    platforms: 디바이스차례.filter((p) => row.platforms.includes(p)),
     startedAt: row.started_at.toISOString(),
     finishedAt: iso(row.finished_at),
     counts: {

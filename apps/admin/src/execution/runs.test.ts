@@ -40,10 +40,11 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   let pool: Pool;
   let 받은요청: ExecuteRequest[] = [];
   let 실행칸: 칸 = 'write';
+  let 두환경실행 = 0;
 
   async function 치운다(): Promise<void> {
-    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE title LIKE 'XBX%')");
-    await pool.query("DELETE FROM test_run WHERE title LIKE 'XBX%'");
+    await pool.query("DELETE FROM run_item WHERE run_id IN (SELECT run_id FROM test_run WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBX'))");
+    await pool.query("DELETE FROM test_run WHERE service_id IN (SELECT id FROM service WHERE prefix = 'XBX')");
   }
 
   // 디스패처는 뒤에서 돈다. POST가 돌려준 runId로 끝날 때까지 지켜본다
@@ -170,6 +171,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
 
     const runId = res.json().runId;
     expect(typeof runId).toBe('number');
+    두환경실행 = runId;
 
     const 끝난것 = await 끝날때까지(runId);
     expect(끝난것.counts).toEqual({ total: 2, pass: 0, fail: 1, na: 1, running: 0, unconfirmed: 0 });
@@ -294,13 +296,15 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('제목이 없으면 400이다', async () => {
+  it('실어 보낸 제목은 버리고 서버가 짓는다 — 시작 방식은 직접 실행이다', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/runs',
       payload: { title: '', env: 'qa', items: [{ tcId: 'XBX-001', platforms: ['desktop'], params: {}, expected: {} }] },
     });
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).toBe(200);
+    const run = await 끝날때까지(res.json().runId);
+    expect([run.title, run.origin, run.rerunOf]).toEqual(['기능 전체 1건', 'MANUAL', null]);
   });
 
   it('GET /api/runs — 실행 목록이 최근 순으로 나온다', async () => {
@@ -318,7 +322,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
     const body = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
     expect(body.items.length).toBeGreaterThan(0);
     for (const run of body.items) {
-      expect(run.title.startsWith('XBX')).toBe(true);
+      expect(run.serviceName).toBe('XBX 서비스');
       // 실행 기록 목록은 대상 서버를 시각 옆에 적는다 (SPEC §8.7)
       expect(run.env).toBe('qa');
     }
@@ -404,13 +408,11 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   });
 
   it('GET /api/runs/:runId/items/:historyId — 절차와 검증 문장이 온다', async () => {
-    const 실행 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
-    const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'XBX 두 환경 실행');
-    const run = (await app.inject({ method: 'GET', url: `/api/runs/${우리것.runId}` })).json();
+    const run = (await app.inject({ method: 'GET', url: `/api/runs/${두환경실행}` })).json();
     const 실패한것 = run.items.find((i: { platform: string }) => i.platform === 'desktop');
 
     const body = (
-      await app.inject({ method: 'GET', url: `/api/runs/${우리것.runId}/items/${실패한것.historyId}` })
+      await app.inject({ method: 'GET', url: `/api/runs/${두환경실행}/items/${실패한것.historyId}` })
     ).json();
     expect(body.precondition).toEqual(['로그인 화면에 접근할 수 있다']);
     expect(body.steps[0].assertions[0].statement).toBe('토큰이 발급된다');
@@ -418,9 +420,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
   });
 
   it('모바일 항목은 러너가 준 NA와 사유를 그대로 갖고 있다', async () => {
-    const 실행 = (await app.inject({ method: 'GET', url: '/api/runs?service=XBX' })).json();
-    const 우리것 = 실행.items.find((r: { title: string }) => r.title === 'XBX 두 환경 실행');
-    const run = (await app.inject({ method: 'GET', url: `/api/runs/${우리것.runId}` })).json();
+    const run = (await app.inject({ method: 'GET', url: `/api/runs/${두환경실행}` })).json();
     const 모바일 = run.items.find((i: { platform: string }) => i.platform === 'mobile');
     expect(모바일.status).toBe('NA');
     expect(모바일.error.message).toBe('TIMEOUT');

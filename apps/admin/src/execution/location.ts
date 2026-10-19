@@ -7,7 +7,9 @@ export const DEFAULT_TIMEOUT_MS = 300_000;
 
 // routes.ts 가 300줄을 넘지 않게 여기로 뺐다
 export const runBody = z.object({
-  title: z.string().min(1),
+  // title 은 받지 않는다 — 서버가 짓는다. 옛 화면이 실어 보내면 zod 가 버린다(400 이 아니다 — 배포 틈에 실행이 막히지 않게, SPEC 실행 §7)
+  // 「실패 N건 다시 실행」이 싣는 원래 실행 번호
+  rerunOf: z.number().int().positive().optional(),
   // 실행자는 여기 없다. 로그인한 사람에게서 온다 — 보내는 쪽이 정할 수 있으면 아무 이름이나
   // 적을 수 있어 증적이 증적이 아니게 된다 (SPEC §3.5). 본문에 실려 와도 zod가 버린다
   // 대상 서버 키. 기본값을 두지 않는다 — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §6).

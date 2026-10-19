@@ -4,6 +4,7 @@ import type { ItemStatus, Platform, StepResult } from '@platform/kit';
 
 import type { 항목실패 } from '../reporting/itemFailure.js';
 import type { RunKind } from './runKind.js';
+import type { 시작방식 } from './runOrigin.js';
 
 export interface RunCounts {
   total: number;
@@ -29,10 +30,18 @@ export interface RunSummary {
   status: string;
   // 실행 하나에 한 종류다 — UI · FN · SCENARIO (SPEC 공통/4-데이터모델 「실행 종류」)
   kind: RunKind;
+  origin: 시작방식;
+  /** RERUN 이 다시 돌린 원래 실행. RERUN 인데 원래 실행이 지워졌으면 null (공통/4-데이터모델 「실행 시작 방식」) */
+  rerunOf: number | null;
+  /** 그 실행에 든 디바이스, desktop → mobile → android 차례 */
+  platforms: Platform[];
   startedAt: string;
   finishedAt: string | null;
   counts: RunCounts;
 }
+
+/** 실행 목록 줄 — 직전 실행 대비 케이스 수. 견줄 앞이 없거나 이번 실행이 도는 중이면 null (SPEC 실행 §7 `GET /api/runs`) */
+export type RunListRow = RunSummary & { change: { newFail: number; stillFail: number } | null };
 
 export interface RunItemSummary {
   historyId: number;

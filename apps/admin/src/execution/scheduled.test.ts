@@ -40,9 +40,9 @@ describe.skipIf(연결 === undefined)('정기 실행 — 돌 때가 된 서비�
     expect(await 집는다('2030-01-01T02:59:00Z')).toEqual([]);
   });
 
-  it('정한 시각부터 1시간 안이면 집고 그 시간대의 날짜와 대상 서버를 준다', async () => {
+  it('정한 시각부터 1시간 안이면 집고 대상 서버를 준다', async () => {
     await 서비스({ at: '03:00' });
-    expect(await 집는다('2030-01-01T03:00:00Z')).toEqual([{ prefix: 접두사, env: 'demo', 날짜: '2030-01-01' }]);
+    expect(await 집는다('2030-01-01T03:00:00Z')).toEqual([{ prefix: 접두사, env: 'demo' }]);
   });
 
   it('같은 날에는 한 번만 집는다', async () => {
@@ -65,7 +65,7 @@ describe.skipIf(연결 === undefined)('정기 실행 — 돌 때가 된 서비�
   it('시각과 날짜는 저장한 시간대로 읽는다', async () => {
     await 서비스({ at: '03:00', tz: 'Asia/Seoul', last: '2030-01-01T18:30:00Z' });
     // UTC 01-02 18:00 은 서울 01-03 03:00 이다. 마지막으로 돈 때(서울 01-02 03:30)와 날이 다르다
-    expect(await 집는다('2030-01-02T18:00:00Z')).toEqual([{ prefix: 접두사, env: 'demo', 날짜: '2030-01-03' }]);
+    expect(await 집는다('2030-01-02T18:00:00Z')).toEqual([{ prefix: 접두사, env: 'demo' }]);
   });
 
   it('창은 자정을 넘지 않는다', async () => {
