@@ -16,6 +16,10 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
   beforeAll(async () => {
     app = Fastify();
     세션등록(app, 열쇠);
+    app.addHook('onRequest', async (req) => {
+      const 만든이 = req.headers['x-test-user'];
+      if (typeof 만든이 === 'string') req.user = { username: 만든이, displayName: 만든이, role: 'admin', dashboard: 'read', mustChangePassword: false, services: [] };
+    });
     // 등급을 막는 것은 미들웨어다. 여기서는 설정 API 자체만 본다
     await app.register(settingsRoutes, { prefix: '/api' });
     await app.register(authRoutes, { prefix: '/api' });
@@ -33,10 +37,11 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
     await app.close();
   });
 
-  async function 서비스만들기(prefix: string, 더할것: Record<string, unknown> = {}) {
+  async function 서비스만들기(prefix: string, 더할것: Record<string, unknown> = {}, 만든이?: string) {
     return app.inject({
       method: 'POST',
       url: '/api/settings/services',
+      ...(만든이 === undefined ? {} : { headers: { 'x-test-user': 만든이 } }),
       payload: {
         prefix,
         name: `${prefix} 서비스`,
@@ -58,6 +63,29 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
     const res = await 서비스만들기('XFS4A');
     expect(res.statusCode).toBe(201);
     expect(typeof res.json<{ id: number }>().id).toBe('number');
+  });
+
+  it('서비스를 만든 운영 계정은 그 서비스에 세 칸 쓰기로 배정된다', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password)
+            VALUES ('xfu4maker', '만든이', 'x', 'admin', 'read', true, false)`,
+    );
+    expect((await 서비스만들기('XFS4M', {}, 'xfu4maker')).statusCode).toBe(201);
+    const 줄 = await pool.query(
+      `SELECT us.perm_cases, us.perm_runs, us.perm_authoring FROM user_service us
+         JOIN service s ON s.id = us.service_id WHERE s.prefix = 'XFS4M' AND us.username = 'xfu4maker'`,
+    );
+    expect(줄.rows).toEqual([{ perm_cases: 'write', perm_runs: 'write', perm_authoring: 'write' }]);
+  });
+
+  it('만든 사람을 모르는 요청은 아무도 배정하지 않는다', async () => {
+    const { pool } = await import('../db/index.js');
+    await 서비스만들기('XFS4N');
+    const 줄 = await pool.query(
+      `SELECT 1 FROM user_service us JOIN service s ON s.id = us.service_id WHERE s.prefix = 'XFS4N'`,
+    );
+    expect(줄.rowCount).toBe(0);
   });
 
   it('목록에 대상 서버와 케이스 수가 함께 실린다', async () => {

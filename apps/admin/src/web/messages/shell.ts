@@ -14,16 +14,16 @@ export const 껍데기말: Record<string, string> = {
   // 사이드바 하위 메뉴 · 목록 부제 (PR #132) — errors.ts 의 MIXED_KIND 문장과 같은 말을 쓴다
   'UI 테스트': 'UI tests',
   '기능 테스트': 'Functional tests',
-  그래프: 'Charts',
   설정: 'Settings',
 
   // 사이드바
+  '가입 신청 {수}건': '{수} sign-up requests',
   '사이드바 펴기': 'Expand sidebar',
   '사이드바 접기': 'Collapse sidebar',
   '서비스 선택': 'Choose service',
   '서비스 없음': 'No service',
   // 맨 위 헤더 (ShellHeader.tsx)
-  'QA Hub 홈': 'QA Hub home',
+  '테스트 플랫폼 홈': 'Test Platform home',
   언어: 'Language',
   로그아웃: 'Sign out',
   // 언어 이름은 그 언어로 적는 것이 관례다. 영어로 봐도 「한국어」여야 고를 수 있다
@@ -86,5 +86,6 @@ export const 껍데기말: Record<string, string> = {
   'Android 앱': 'Android app',
   '불러오는 중입니다.': 'Loading…',
   '없는 주소입니다.': 'Page not found.',
-  '케이스 목록으로': 'Go to case list',
+  // 케이스 권한이 없는 사람도 닿는 자리(route.ts `집`)로 보낸다
+  처음으로: 'Home',
 };

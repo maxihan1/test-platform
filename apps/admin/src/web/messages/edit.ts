@@ -4,8 +4,8 @@
 export const 고치기말: Record<string, string> = {
   // 케이스 상세 (CaseEdit.tsx)
   '코드 기본값 바꾸기 요청': 'Request a code default change',
-  '테스트 코드에 적힌 기대결과입니다. 바꾼 칸만 작성 요청으로 보내고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다':
-    'These are the expected results written in the test code. Only the fields you change go into the authoring request; once applied they become the defaults for the next runs',
+  '케이스에 적힌 기대결과입니다. 바꾼 칸만 작성 요청으로 보내고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다':
+    'These are the expected results written in the case. Only the fields you change go into the authoring request; once applied they become the defaults for the next runs',
   '코드에서 바꿀 수 있는 기대결과 칸이 없습니다': 'This case has no expected result that can be changed in code',
   '{칸들} — 반영되면 이 저장값은 지워집니다': '{칸들} — the saved value will be removed once merged',
   '요청을 보냈습니다.': 'Request sent.',
@@ -33,7 +33,7 @@ export const 고치기말: Record<string, string> = {
   '고치는 중': 'Changing',
   '다시 적용': 'Re-apply',
   '고치는 중에 멈췄습니다': 'Stopped while changing',
-  '스크립트를 고쳐 PR 을 만들었습니다': 'Changed the scripts and created a PR',
+  '케이스를 고쳐 PR 을 만들었습니다': 'Changed the cases and created a PR',
   '고칠 내용': 'Changes',
   삭제: 'Delete',
   확정: 'Confirm',
@@ -41,25 +41,25 @@ export const 고치기말: Record<string, string> = {
   '바뀌기 전 값은 PR 본문에 있습니다.': 'The previous values are in the PR description.',
   '목록에서 사라집니다. GitHub 의 PR 은 남으니 GitHub 에서 닫으세요.':
     'It disappears from the list. The PR stays open on GitHub — close it there.',
-  '에이전트 소식이 한동안 없습니다. 검사가 길어지는 중일 수도 있습니다. 멈춘 것 같으면 작성 중단을 누른 뒤 다시 적용하세요':
-    'No word from the agent for a while. The checks may just be slow. If it looks stuck, stop it, then re-apply',
-  '에이전트 순서를 기다리는 중입니다. 이 페이지를 닫아도 됩니다.': 'Waiting for the agent. You can close this page.',
-  '테스트를 반영하는 중입니다. CI 를 기다려 합치므로 몇 분 걸립니다. 이 페이지를 닫아도 됩니다.':
-    'Merging the tests. It waits for CI, so it takes a few minutes. You can close this page.',
-  '반영이 실패했습니다. 다른 PR 과 충돌했으면 지금 main 위에서 같은 내용으로 다시 고친 뒤 반영하세요.':
-    'The merge failed. If it conflicted with another PR, re-apply the same changes on the current main, then merge.',
+  '작성 소식이 한동안 없습니다. 검사가 길어지는 중일 수도 있습니다. 멈춘 것 같으면 작성 중단을 누른 뒤 다시 적용하세요':
+    'No word from authoring for a while. The checks may just be slow. If it looks stuck, stop it, then re-apply',
+  '작성 순서를 기다리는 중입니다. 이 페이지를 닫아도 됩니다.': 'Waiting for its authoring turn. You can close this page.',
+  '테스트를 반영하는 중입니다. 검사가 끝나길 기다려 반영하므로 몇 분 걸립니다. 이 페이지를 닫아도 됩니다.':
+    'Merging the tests. It waits for the checks to finish, so it takes a few minutes. You can close this page.',
+  '반영이 실패했습니다. 다른 변경과 부딪혔으면 지금까지 반영된 케이스를 기준으로 같은 내용으로 다시 고친 뒤 반영하세요.':
+    'The merge failed. If it clashed with another change, re-apply the same changes on the cases applied so far, then apply.',
   // 고치기 에이전트의 단계 글 (authoringStatus.ts 단계글)
-  '스크립트를 고치는 중': 'Changing scripts',
+  '케이스를 고치는 중': 'Changing cases',
   '검사하는 중': 'Checking',
   '케이스를 고쳐 PR 로 올리는 중입니다. 이 페이지를 닫아도 됩니다.': 'Changing the cases and opening a PR. You can close this page.',
   '테스트가 반영됐습니다. 케이스 목록에서 바뀐 것을 볼 수 있습니다.': 'The tests were merged. The changes are in the case list.',
-  '테스트가 반영됐습니다. 서버가 main 을 아직 못 받아 왔습니다. 받아 온 뒤 케이스 목록에서 「다시 스캔」을 누르면 바뀐 것이 보입니다.':
-    'The tests were merged, but the server has not pulled main yet. Pull it, then press “Rescan” on the case list to see the changes.',
-  '고친 테스트 코드 검토': 'Review the changed test code',
-  '초안 PR로 올라갔습니다. 바뀐 줄을 읽어 보고 이상하면 폐기하세요.': 'A draft PR is open. Read the changed lines and discard it if something is wrong.',
-  '고친 테스트 코드 보기 (PR)': 'View the changed test code (PR)',
-  '지금 main 위에서 같은 내용으로 다시 고칩니다. 지금까지의 실행은 실행 기록에 남습니다.':
-    'Applies the same changes again on top of the current main. Earlier runs stay in the run history.',
+  '테스트가 반영됐습니다. 서버가 반영된 케이스를 아직 못 받아 왔습니다. 받아 온 뒤 케이스 목록에서 「다시 스캔」을 누르면 바뀐 것이 보입니다.':
+    'The tests were merged, but the server has not received the applied cases yet. Once it has, press “Rescan” on the case list to see the changes.',
+  '고친 케이스 검토': 'Review the changed cases',
+  '검토용 PR 로 올라갔습니다. 바뀐 줄을 읽어 보고 이상하면 폐기하세요.': 'A PR is open for review. Read the changed lines and discard it if something is wrong.',
+  '고친 케이스 보기 (PR)': 'View the changed cases (PR)',
+  '지금까지 반영된 케이스를 기준으로 같은 내용으로 다시 고칩니다. 지금까지의 실행은 실행 기록에 남습니다.':
+    'Applies the same changes again on top of the cases applied so far. Earlier runs stay in the run history.',
   '다시 적용은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.': 'Only people with authoring write access can re-apply.',
   '한동안 소식이 없는 고치기를 멈춥니다. 멈춘 뒤 다시 적용할 수 있습니다.': 'Stops the change that has been quiet for a while. You can re-apply it afterwards.',
 };

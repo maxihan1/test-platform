@@ -31,11 +31,11 @@ function 그린다() {
 }
 
 describe('서비스 설정은 구획마다 「어디에 쓰이나」를 단다 (도메인/인증 §8.8 · 2026-10-09 시안 A)', () => {
-  it('구획마다 — 기본 정보 · 대상 서버 · 화면 크기 · 정기 실행 · 실행 알림 · 테스트 작성 · 서비스 비활성화 — 제목과 쓰임 한 줄을 갖는다', () => {
+  it('구획마다 — 기본 정보 · 대상 서버 · 정기 실행 · 실행 알림 · 테스트 작성 · 화면 크기 · 서비스 비활성화 — 제목과 쓰임 한 줄을 갖는다', () => {
     그린다();
 
     const 구획들 = [...document.querySelectorAll('.set-card')].map((el) => el.querySelector('h3')?.textContent);
-    expect(구획들).toEqual(['기본 정보', '대상 서버', '화면 크기', '정기 실행', '실행 알림', '테스트 작성', '서비스 비활성화']);
+    expect(구획들).toEqual(['기본 정보', '대상 서버', '정기 실행', '실행 알림', '테스트 작성', '화면 크기', '서비스 비활성화']);
     for (const 구획 of document.querySelectorAll('.set-card')) {
       expect(구획.querySelector('.set-card-h p')?.textContent?.length ?? 0).toBeGreaterThan(10);
     }
@@ -64,9 +64,65 @@ describe('서비스 설정은 구획마다 「어디에 쓰이나」를 단다 (
     render(<ServicePanel row={서비스} onDone={onDone} />);
 
     fireEvent.click(screen.getByRole('button', { name: '비활성화' }));
+    expect(고침).not.toHaveBeenCalled();
+    expect(screen.getByText(/서비스 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '비활성화한다' }));
 
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { isActive: false }));
     expect(onDone).toHaveBeenCalledWith('ZSS');
+  });
+
+  it('비활성화 확인에서 그만두면 아무것도 보내지 않고 단추로 돌아온다', () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServicePanel row={서비스} onDone={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '비활성화' }));
+    fireEvent.click(screen.getByRole('button', { name: '그만두기' }));
+
+    expect(고침).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '비활성화' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '비활성화한다' })).toBeNull();
+  });
+
+  it('다시 활성화는 확인 없이 바로 보낸다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServicePanel row={{ ...서비스, isActive: false }} onDone={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '다시 활성화' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { isActive: true }));
+  });
+
+  it('테스트 저장소 칸은 받은 값을 보이고 고친 값을 보낸다', async () => {
+    const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    render(<ServicePanel row={서비스} onDone={() => {}} />);
+
+    const 칸 = screen.getByLabelText('테스트 저장소') as HTMLInputElement;
+    expect(칸.value).toBe('https://github.com/example/tests');
+    fireEvent.change(칸, { target: { value: 'https://github.com/example/other' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, expect.objectContaining({ testsRepo: 'https://github.com/example/other' })));
+  });
+
+  it('대상 서버 구획 맨 위에 칸 이름을 한 번만 단다', () => {
+    render(<ServicePanel row={{ ...서비스, envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }, { env: 'stg', baseUrl: 'https://stg.example.com' }] }} onDone={() => {}} />);
+
+    const 머리 = document.querySelectorAll('.set-env-head');
+    expect(머리).toHaveLength(1);
+    expect(머리[0]?.textContent).toBe('이름주소');
+  });
+
+  it('저장했다고 받으면 저장 단추 줄 안에 「저장했습니다」를 보인다', () => {
+    render(<ServicePanel row={서비스} 저장했다 onDone={() => {}} />);
+
+    expect(document.querySelector('.set-foot')?.querySelector('[role="status"]')?.textContent).toBe('저장했습니다');
+  });
+
+  it('저장하기 전에는 「저장했습니다」가 없다', () => {
+    render(<ServicePanel row={서비스} onDone={() => {}} />);
+
+    expect(screen.queryByText('저장했습니다')).toBeNull();
   });
 
   it('새 서비스를 만들면 그 접두사를 넘긴다 — 틀이 그 서비스로 옮겨 간다', async () => {

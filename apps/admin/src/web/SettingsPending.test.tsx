@@ -67,13 +67,13 @@ describe('승인 대기 묶음', () => {
     expect(screen.queryByText('김운영')).toBeNull();
   });
 
-  it('수락하면 권한 고르개가 열리고 처음 값은 대시보드 읽기 · 서비스 없음이다', () => {
+  it('수락하면 권한 고르개가 열리고 처음 값은 그래프(Grafana) 읽기 · 서비스 없음이다', () => {
     묶음();
     fireEvent.click(screen.getByRole('button', { name: '수락' }));
 
     const 서비스칸 = screen.getByRole('checkbox', { name: /ZSP 서비스/ }) as HTMLInputElement;
     expect(서비스칸.checked).toBe(false);
-    const 대시보드 = within(screen.getByRole('group', { name: '대시보드' }));
+    const 대시보드 = within(screen.getByRole('group', { name: '그래프(Grafana)' }));
     expect(대시보드.getByRole('button', { name: '읽기' }).getAttribute('aria-pressed')).toBe('true');
   });
 

@@ -121,7 +121,7 @@ describe('중복 케이스 표', () => {
     const 셋째 = { ...번호겹침, tcId: 'PAY-050' };
     render(<AuthoringConflicts service="PAY" 요청번호={7} conflicts={[번호겹침, 셋째]} 편집 reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: '모두 유지' }));
-    expect(await screen.findByText(/겹침 목록에 없는 케이스/)).toBeTruthy();
+    expect(await screen.findByText(/중복 목록에 없는 케이스/)).toBeTruthy();
     expect(넣기).toHaveBeenCalledTimes(1);
     expect(reload).toHaveBeenCalled();
   });
@@ -207,7 +207,7 @@ const 실패반영: AuthoringRun = {
 describe('반영 실패 안내', () => {
   it('겹침으로 실패했으면 사람 말과 중복 케이스 고르기만 보이고 원문은 접는다', () => {
     render(<AuthoringMergeFailed service="PAY" 실행={실패반영} 원본={7} 권한 반영권한 운영자={false} 겹침수={2} reload={reload} />);
-    expect(screen.getByText('이미 있는 케이스와 겹치는 케이스가 2건입니다. 아래 표에서 고른 뒤 다시 반영하세요')).toBeTruthy();
+    expect(screen.getByText('이미 있는 케이스와 중복되는 케이스가 2건입니다. 아래 표에서 고른 뒤 다시 반영하세요')).toBeTruthy();
     expect(screen.getByText('원문 보기')).toBeTruthy();
     expect(screen.getByRole('button', { name: '중복 케이스 고르기' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
@@ -257,7 +257,7 @@ describe('반영 실패 안내', () => {
 
   it('권한이 없으면 까닭만 보이고 버튼은 없다', () => {
     render(<AuthoringMergeFailed service="PAY" 실행={실패반영} 원본={7} 권한={false} 반영권한={false} 운영자={false} 겹침수={2} reload={reload} />);
-    expect(screen.getByText('이미 있는 케이스와 겹치는 케이스가 2건입니다. 아래 표에서 고른 뒤 다시 반영하세요')).toBeTruthy();
+    expect(screen.getByText('이미 있는 케이스와 중복되는 케이스가 2건입니다. 아래 표에서 고른 뒤 다시 반영하세요')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
     expect(screen.queryByRole('button', { name: '다시 반영' })).toBeNull();
   });

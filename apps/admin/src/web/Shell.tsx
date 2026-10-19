@@ -18,6 +18,7 @@ import { Notice } from './Notice.js';
 import { use휴대폰 } from './phone.js';
 import { PhoneShell } from './PhoneShell.js';
 import { ShellHeader } from './ShellHeader.js';
+import { use가입대기수 } from './useSignupWaiting.js';
 
 interface Props {
   user: User;
@@ -55,6 +56,8 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
   // 휴대폰은 사이드바 대신 위 줄 · 아래 탭이다 (SPEC 공통/5-화면공통 §8 「휴대폰 화면」). 훅은 모두 위에서 부른 뒤 가른다
   const 휴대폰 = use휴대폰();
+  // 가입 신청은 운영 계정이 설정에서 수락한다. 사이드바가 없는 휴대폰에서는 읽지 않는다
+  const 가입대기 = use가입대기수(user.role === 'admin' && !휴대폰, current);
   if (휴대폰) {
     return (
       <PhoneShell user={user} service={service} onService={onService} 언어={언어} on언어={on언어} onLogout={onLogout} current={current} 사유={사유}>
@@ -95,6 +98,11 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
               <a key={자리.해시} href={자리.해시} {...(current === 자리.해시 ? { 'aria-current': 'page' as const } : {})}>
                 <아이콘 이름={자리.아이콘} />
                 {자리.이름}
+                {자리.해시 === '#/settings' && 가입대기 > 0 ? (
+                  <span className="side-badge" aria-label={t('가입 신청 {수}건', { 수: 가입대기 })}>
+                    {가입대기}
+                  </span>
+                ) : null}
               </a>
             ) : (
               // 하위는 늘 펼쳐 둔다. 하위가 지금 자리면 묶음은 펼친 표시(data-open)만 — 밑줄이 둘이 되지 않게 (화면공통 §8 · PR #132)

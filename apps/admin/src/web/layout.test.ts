@@ -46,24 +46,24 @@ describe('자리 목록', () => {
   const 이름들 = (user: User, prefix: string | null) => 자리목록(user, prefix, 'ko').map((자리) => 자리.이름);
 
   it('설정은 운영 계정에게만 뜬다. 흐리게가 아니라 아예 없다', () => {
-    expect(이름들(운영, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '그래프', '설정']);
+    expect(이름들(운영, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '그래프(Grafana)', '설정']);
   });
 
   it('운영이 아닌 사람에게 설정 자리는 없다', () => {
-    expect(이름들(김, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '그래프']);
-    expect(이름들(김, 'MEM')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '그래프']);
+    expect(이름들(김, 'PAY')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '그래프(Grafana)']);
+    expect(이름들(김, 'MEM')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '그래프(Grafana)']);
   });
 
   it('고른 서비스에서 none 인 기능은 자리가 없다. 서비스를 바꾸면 자리도 바뀐다', () => {
-    expect(이름들(김, 'SET')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', 'E2E 시나리오', '실행 기록', '그래프']);
+    expect(이름들(김, 'SET')).toEqual(['대시보드', 'PRD 관리', '테스트 작성', 'E2E 시나리오', '실행 기록', '그래프(Grafana)']);
     const 작성없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'read', authoring: 'none' } }]);
-    expect(이름들(작성없음, 'MEM')).toEqual(['대시보드', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '그래프']);
+    expect(이름들(작성없음, 'MEM')).toEqual(['대시보드', '테스트 스크립트', 'E2E 시나리오', '실행 기록', '그래프(Grafana)']);
   });
 
   // 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7) — 실행이 none 이면 만드는 곳도 돌린 기록도 없다
   it('E2E 시나리오 자리는 실행 칸을 본다', () => {
     const 실행없음 = 사람('member', [{ ...회원, permissions: { cases: 'read', runs: 'none', authoring: 'read' } }]);
-    expect(이름들(실행없음, 'MEM')).toEqual(['PRD 관리', '테스트 작성', '테스트 스크립트', '그래프']);
+    expect(이름들(실행없음, 'MEM')).toEqual(['PRD 관리', '테스트 작성', '테스트 스크립트', '그래프(Grafana)']);
   });
 
   it('그래프는 사람의 대시보드 칸을 본다. 서비스와 상관없다', () => {
@@ -76,7 +76,7 @@ describe('자리 목록', () => {
     const 실행없는쪽 = { ...회원, permissions: { cases: 'read' as const, runs: 'none' as const, authoring: 'none' as const } };
     const 사람둘 = 사람('member', [실행없는쪽, 결제]);
     expect(자리목록(사람둘, 'MEM', 'ko')[0]).toMatchObject({ 이름: '대시보드', 해시: '#/dashboard', 아이콘: 'dashboard' });
-    expect(이름들(사람둘, 'MEM')).toEqual(['대시보드', '테스트 스크립트', '그래프']);
+    expect(이름들(사람둘, 'MEM')).toEqual(['대시보드', '테스트 스크립트', '그래프(Grafana)']);
   });
 
   it('실행 read 서비스가 없으면 대시보드 자리가 없다', () => {
@@ -154,12 +154,12 @@ describe('자리 목록', () => {
   });
 
   it('그래프는 Grafana 라 바깥으로 나간다', () => {
-    const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프');
+    const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프(Grafana)');
     expect(그래프?.바깥).toBe(true);
   });
 
   it('Grafana 는 같은 서버의 /grafana/ 다 — admin 이 로그인을 보고 대신 연다 (도메인/인증 §7)', () => {
-    const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프');
+    const 그래프 = 자리목록(김, 'MEM', 'ko').find((자리) => 자리.이름 === '그래프(Grafana)');
     expect(그래프?.해시).toBe('/grafana/');
   });
 

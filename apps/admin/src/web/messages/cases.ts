@@ -2,9 +2,8 @@
 
 export const 케이스말: Record<string, string> = {
   // 화면 머리와 집계 띠
-  // 자리 이름과 화면 제목을 가른다 (SPEC §8, 2026-09-22) — 같은 말을 두 번 하고 있었다
+  // 자리 이름과 화면 제목이 같은 말이다 (2026-10-19)
   '테스트 스크립트': 'Test scripts',
-  '테스트 스크립트 목록': 'Test script list',
   '불러오는 중입니다': 'Loading…',
   '모두 {건수}건': '{건수} in total',
   '스캔하는 중': 'Scanning…',
@@ -88,8 +87,8 @@ export const 케이스말: Record<string, string> = {
 
   // 빈 목록 세 갈래
   '아직 케이스를 불러오지 않았습니다': 'No cases loaded yet',
-  '테스트 코드를 훑어 실행할 수 있는 케이스 목록을 만듭니다. 목록은 코드를 기준으로 그때마다 새로 만듭니다':
-    'Scanning the test code builds the list of runnable cases. The code is the source of truth, so the list is rebuilt every time.',
+  '케이스 파일을 훑어 실행할 수 있는 케이스 목록을 만듭니다. 목록은 코드를 기준으로 그때마다 새로 만듭니다':
+    'Scanning the case files builds the list of runnable cases. The code is the source of truth, so the list is rebuilt every time.',
   '케이스 불러오기': 'Load cases',
   '조건에 맞는 케이스가 없습니다': 'No cases match the filters',
   '「{친글자}」에 맞는 케이스가 없습니다': 'No cases match “{친글자}”',

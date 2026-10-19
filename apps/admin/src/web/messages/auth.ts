@@ -30,6 +30,7 @@ export const 계정말: Record<string, string> = {
   '새 비밀번호': 'New password',
   '새 비밀번호 확인': 'Confirm new password',
   '비밀번호 바꾸기': 'Update password',
+  '비밀번호를 바꿨습니다': 'Password updated',
   '바꾸는 중': 'Changing',
   '현재 비밀번호를 채웁니다': 'Fill in the current password',
   '현재 비밀번호가 맞지 않습니다': 'The current password is incorrect',

@@ -207,7 +207,7 @@ describe('ScenarioRunList 집계 띠', () => {
 
     const 칸들 = [...container.querySelectorAll('.stat')];
     expect(칸들.map((칸) => 칸.querySelector('.k')?.textContent)).toEqual([
-      '실행 횟수', '성공', '실패', '평균 소요',
+      '실행 횟수', '통과', '실패', '평균 소요',
     ]);
     expect(칸들.map((칸) => 칸.className)).toEqual(['stat', 'stat p', 'stat f', 'stat']);
   });

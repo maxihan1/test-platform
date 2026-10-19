@@ -171,6 +171,13 @@ describe.skipIf(연결 === undefined)('케이스 저장 입력값', () => {
     expect(await 저장행()).toEqual([{ params: { loginId: 'b' }, expected: { homePath: '/home' }, saved_by: 'xsi-writer' }]);
   });
 
+  it('응답의 저장한 사람은 아이디가 아니라 계정 이름이다 — 저장은 아이디로 한다', async () => {
+    await q("UPDATE app_user SET display_name = '맥시' WHERE username = 'xsi-writer'");
+    const res = await 저장({ params: { loginId: 'c' }, expected: {} });
+    expect(res.json<{ savedBy: string }>().savedBy).toBe('맥시');
+    expect((await 저장행())[0]?.saved_by).toBe('xsi-writer');
+  });
+
   it('코드 기본값과 같은 칸은 저장하지 않는다', async () => {
     await 저장({ params: { loginId: 'u', count: 1, password: '' }, expected: { homePath: '/', flag: false } });
     expect(await 저장행()).toEqual([{ params: { loginId: 'u' }, expected: { flag: false }, saved_by: 'xsi-writer' }]);

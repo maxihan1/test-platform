@@ -186,7 +186,7 @@ function 집계({ 것 }: { 것: 목록답['summary'] }) {
     <칸띠
       칸들={[
         { 라벨: t('실행 횟수'), 값: String(것.runs) },
-        { 라벨: t('성공'), 값: String(것.allPass), 판정: 'PASS', 부제: 몫(것.allPass) },
+        { 라벨: t('통과§집계'), 값: String(것.allPass), 판정: 'PASS', 부제: 몫(것.allPass) },
         { 라벨: t('실패§실행'), 값: String(것.hasFail), 판정: 'FAIL', 부제: 몫(것.hasFail) },
         {
           라벨: t('평균 소요'),

@@ -43,7 +43,7 @@ describe('작성 Status 카드', () => {
     render(<AuthoringStatusCard 요청={줄({})} 지금={지금} />);
     expect(screen.getByText('작성 중')).toBeTruthy();
     const 단계 = screen.getByRole('list', { name: '단계' });
-    expect(within(단계).getByText('스크립트 작성').closest('li')?.getAttribute('aria-current')).toBe('step');
+    expect(within(단계).getByText('케이스 작성').closest('li')?.getAttribute('aria-current')).toBe('step');
     expect(screen.queryByText(/단계 진행 중/)).toBeNull();
     expect(screen.getByText(/12분 지남 \/ 한도 60분/)).toBeTruthy();
     expect(screen.getByText(/늦어도/)).toBeTruthy();
@@ -51,13 +51,13 @@ describe('작성 Status 카드', () => {
     expect(screen.getByText('9장')).toBeTruthy();
     expect(screen.queryByText('1.2M')).toBeNull();
     expect(screen.queryByText('화면 캡처')).toBeNull();
-    expect(screen.getByText('스크립트를 만드는 중')).toBeTruthy();
+    expect(screen.getByText('케이스를 만드는 중')).toBeTruthy();
   });
 
   it('대기 중이면 에이전트를 기다린다고 말하고 시간 줄이 없다', () => {
     render(<AuthoringStatusCard 요청={줄({ status: 'PENDING', stage: null, startedAt: null, progress: null })} 지금={지금} />);
     expect(screen.getByText('대기 중')).toBeTruthy();
-    expect(screen.getByText('에이전트 순서를 기다리는 중')).toBeTruthy();
+    expect(screen.getByText('작성 순서를 기다리는 중')).toBeTruthy();
     expect(screen.queryByRole('progressbar', { name: '시간' })).toBeNull();
   });
 

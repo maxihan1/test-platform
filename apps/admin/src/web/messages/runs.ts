@@ -34,7 +34,7 @@ export const 실행말: Record<string, string> = {
   '실패 {수}': '{수} failed',
   '미실행 {수}': '{수} not run',
   '전체': 'All',
-  '성공': 'All passed',
+  '통과§집계': 'All passed',
   '실패§실행': 'Has failures',
   '판정': 'Verdict',
   '디바이스': 'Device',
@@ -202,7 +202,10 @@ export const 실행말: Record<string, string> = {
   // 돌지 못한 항목의 사유 (§8.3)
   '사용자가 멈춤': 'Stopped by user',
   '제한 시간 초과': 'Timed out',
-  '러너에 닿지 못했습니다': 'Could not reach the runner',
+  '테스트 실행기에 닿지 못했습니다': 'Could not reach the test runner',
+  // 서버가 저장해 둔 옛 낱말(러너)을 화면 낱말로 바꾸는 runState.ts 의 짝이다
+  러너: 'runner',
+  '테스트 실행기': 'test runner',
 
   // 항목 상세 (§8.4)
   '실행이 멈춘 사유': 'Why the run stopped',
@@ -229,7 +232,7 @@ export const 실행말: Record<string, string> = {
   '화면이 맞음으로 바꾸기': 'Change to screen is right',
   '버그': 'Bug',
   '작성 요청 #{번호}': 'Authoring request #{번호}',
-  '앞 반영 요청이 병합되거나 폐기되면 시작합니다': 'Starts once the earlier apply request is merged or discarded',
+  '앞 요청이 반영되거나 폐기되면 시작합니다': 'Starts once the earlier request is applied or discarded',
   // 항목 상세 「네트워크 · 조작 · 콘솔」 (ItemTrace.tsx · 도메인/실행 §3.2 「trace」)
   '네트워크 · 조작 · 콘솔': 'Network · Actions · Console',
   '기록 종류': 'Record kind',
@@ -254,8 +257,8 @@ export const 실행말: Record<string, string> = {
   '기록을 아직 정리하지 않았거나 이 기능 전에 돈 항목입니다 — 방금 끝난 실행이면 잠시 뒤 새로 고쳐 주세요':
     'Not processed yet, or this item ran before recording existed — if the run just ended, refresh in a moment',
   'Android 앱 실행은 기록을 남기지 않습니다': 'Android app runs are not recorded',
-  '러너가 실행을 끊어(제한 시간 · 멈춤) 기록이 남지 않았습니다': 'The runner cut the run short (time limit · stop), so nothing was recorded',
-  '다른 컴퓨터의 러너에서 돌았거나 기록 파일을 옮기다 실패해 기록이 없습니다':
+  '테스트 실행기가 실행을 끊어(제한 시간 · 멈춤) 기록이 남지 않았습니다': 'The test runner cut the run short (time limit · stop), so nothing was recorded',
+  '다른 컴퓨터의 테스트 실행기에서 돌았거나 기록 파일을 옮기다 실패해 기록이 없습니다':
     'Ran on a runner on another computer, or moving the trace file failed, so nothing was recorded',
 
   // 실행 창을 고친 채 닫을 때 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)

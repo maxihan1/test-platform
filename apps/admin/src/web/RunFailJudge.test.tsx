@@ -164,7 +164,7 @@ describe('판정 줄 — 누르기', () => {
     await 누르고확인('화면이 맞음');
 
     await screen.findByRole('link', { name: '작성 요청 #6103' });
-    expect(screen.getByText(/앞 반영 요청이 병합되거나 폐기되면 시작합니다/)).toBeDefined();
+    expect(screen.getByText(/앞 요청이 반영되거나 폐기되면 시작합니다/)).toBeDefined();
     expect(screen.getByRole('link', { name: '#6101 요청 보기' }).getAttribute('href')).toBe('#/authoring/6101');
   });
 

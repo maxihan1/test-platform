@@ -14,8 +14,10 @@ interface Props {
   강제: boolean;
   /** 바꾼 뒤 다시 읽은 나. 변경 강제가 풀렸는지는 서버 답으로만 안다 */
   onDone: (user: User) => void;
-  /** 변경 강제일 때만 쓴다 — 스스로 바꿀 때는 사이드바에 로그아웃이 있다 */
+  /** 변경 강제일 때만 쓴다 — 스스로 바꿀 때는 계정 메뉴에 로그아웃이 있다 */
   onLogout?: () => void;
+  /** 스스로 바꿀 때만 쓴다. 그 사람의 집으로 돌아간다 — 직전 자리가 아니다 */
+  onCancel?: () => void;
 }
 
 // 서버가 400 으로 거절한 까닭을 어느 칸 아래에 붙일지
@@ -25,7 +27,7 @@ const 서버사유: Record<string, [칸, string]> = {
   PASSWORD_SHORT: ['next', '비밀번호는 8자 이상이어야 합니다'],
 };
 
-export function PasswordChange({ 강제, onDone, onLogout }: Props) {
+export function PasswordChange({ 강제, onDone, onLogout, onCancel }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [값, set값] = useState<Record<칸, string>>({ current: '', next: '', confirm: '' });
@@ -110,7 +112,11 @@ export function PasswordChange({ 강제, onDone, onLogout }: Props) {
           <button className="btn ghost" type="button" onClick={onLogout}>
             {t('로그아웃')}
           </button>
-        ) : null}
+        ) : onCancel === undefined ? null : (
+          <button className="btn ghost" type="button" onClick={onCancel}>
+            {t('취소')}
+          </button>
+        )}
       </form>
     </div>
   );

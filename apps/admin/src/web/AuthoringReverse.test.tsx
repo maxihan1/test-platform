@@ -109,7 +109,7 @@ describe('새 요청 — 실제 화면과 대조', () => {
   it('대조 칸 설명이 기획서 화면을 먼저 쓰고 없는 화면이 이어진다고 알린다', () => {
     폼();
     대조를켠다();
-    expect(screen.getByText(/기획서가 있으면 기획서 화면을 먼저 작성하고, 병합되면 기획서에 없는 화면을 이어서 작성합니다/)).toBeTruthy();
+    expect(screen.getByText(/기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다/)).toBeTruthy();
   });
 
   it('대상 서버를 바꿔 고르면 그 서버로 보낸다', async () => {
@@ -171,7 +171,7 @@ describe('새 요청 — 실제 화면과 대조', () => {
     대조를켠다();
     시작주소를적는다('https://example.com/');
     fireEvent.click(보내기());
-    expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요')).toBeTruthy();
+    expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요')).toBeTruthy();
   });
 
   it('설정 메뉴가 없는 사람에게는 설정 대신 운영자에게 요청하라고 한다 (⑫ 점검 11.3)', async () => {
@@ -179,7 +179,7 @@ describe('새 요청 — 실제 화면과 대조', () => {
     폼(서버들, false);
     대조를켠다();
     fireEvent.click(보내기());
-    expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 운영자에게 확인을 요청하세요')).toBeTruthy();
+    expect(await screen.findByText('이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 운영자에게 확인을 요청하세요')).toBeTruthy();
     cleanup();
     폼([], false);
     대조를켠다();

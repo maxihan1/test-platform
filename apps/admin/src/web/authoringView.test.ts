@@ -74,8 +74,8 @@ describe('중단 이유를 사람 말로', () => {
     expect(중단이유라벨('USER', 'ko')).toBe('사용자가 멈춤');
     expect(중단이유라벨('TIMEOUT', 'ko')).toBe('시간초과');
     expect(중단이유라벨('LIMIT', 'ko')).toBe('구독 한도');
-    expect(중단이유라벨('AGENT_RESTART', 'ko')).toBe('에이전트 재시작');
-    expect(중단이유라벨('AGENT_LOST', 'ko')).toBe('에이전트 응답 없음');
+    expect(중단이유라벨('AGENT_RESTART', 'ko')).toBe('작성 재시작');
+    expect(중단이유라벨('AGENT_LOST', 'ko')).toBe('작성 응답 없음');
     expect(중단이유라벨('CRASH', 'ko')).toBe('작성 중 끊김');
     expect(중단이유라벨('REJECTED', 'ko')).toBe('올리기 거절');
   });

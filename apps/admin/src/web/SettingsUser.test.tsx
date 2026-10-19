@@ -143,12 +143,12 @@ describe('UserSection', () => {
 });
 
 describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', () => {
-  it('새 계정은 배정 없이 시작하고 대시보드는 읽기다', () => {
+  it('새 계정은 배정 없이 시작하고 그래프(Grafana)는 읽기다', () => {
     새계정열기();
     expect((서비스칸(/결제 서비스/) as HTMLInputElement).checked).toBe(false);
     expect((서비스칸(/회원 서비스/) as HTMLInputElement).checked).toBe(false);
     expect(칸묶음('결제 서비스 케이스')).toBeNull();
-    expect(눌림('대시보드')).toBe('읽기');
+    expect(눌림('그래프(Grafana)')).toBe('읽기');
   });
 
   it('서비스를 켜면 세 칸이 읽기로 열리고 끄면 사라진다', () => {
@@ -162,13 +162,13 @@ describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', (
     expect(칸묶음('결제 서비스 케이스')).toBeNull();
   });
 
-  it('운영을 켜면 권한 칸과 대시보드를 숨기고 서비스 켜기만 남긴다', () => {
+  it('운영을 켜면 권한 칸과 그래프(Grafana)를 숨기고 서비스 켜기만 남긴다', () => {
     새계정열기();
     fireEvent.click(서비스칸(/결제 서비스/));
     fireEvent.click(screen.getByRole('checkbox', { name: /^운영/ }));
 
     expect(칸묶음('결제 서비스 케이스')).toBeNull();
-    expect(칸묶음('대시보드')).toBeNull();
+    expect(칸묶음('그래프(Grafana)')).toBeNull();
     expect(서비스칸(/결제 서비스/)).toBeTruthy();
     expect(screen.getByText('운영 계정은 배정된 서비스에서 모든 기능을 씁니다. 켜 둘 서비스만 고르세요.')).toBeTruthy();
   });
@@ -194,10 +194,63 @@ describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', (
     expect((screen.getByText('계정 추가') as HTMLButtonElement).disabled).toBe(true);
   });
 
-  it('대시보드에는 쓰기가 없다', () => {
+  it('그래프(Grafana)에는 쓰기가 없다', () => {
     새계정열기();
-    const 버튼들 = within(칸묶음('대시보드')!).getAllByRole('button').map((b) => b.textContent);
+    const 버튼들 = within(칸묶음('그래프(Grafana)')!).getAllByRole('button').map((b) => b.textContent);
     expect(버튼들).toEqual(['안 씀', '읽기']);
+  });
+
+  it('서비스를 켜면 권한 묶음 단추가 서고 처음 세 칸(읽기)과 맞는 「읽기 전용」이 눌려 있다', () => {
+    새계정열기();
+    expect(칸묶음('결제 서비스 권한 묶음')).toBeNull();
+    fireEvent.click(서비스칸(/결제 서비스/));
+
+    expect(within(칸묶음('결제 서비스 권한 묶음')!).getAllByRole('button').map((b) => b.textContent)).toEqual(['읽기 전용', '작성자', '실행자']);
+    expect(눌림('결제 서비스 권한 묶음')).toBe('읽기 전용');
+  });
+
+  it.each([
+    ['작성자', { 케이스: '읽기', 실행: '읽기', 작성: '쓰기' }],
+    ['실행자', { 케이스: '읽기', 실행: '쓰기', 작성: '읽기' }],
+    ['읽기 전용', { 케이스: '읽기', 실행: '읽기', 작성: '읽기' }],
+  ])('「%s」 묶음을 누르면 세 칸이 한 번에 바뀌고 그 묶음이 눌린다', (묶음, 칸들) => {
+    새계정열기();
+    fireEvent.click(서비스칸(/결제 서비스/));
+    고른다('결제 서비스 작성', '안 씀');
+    고른다('결제 서비스 권한 묶음', 묶음);
+
+    expect(눌림('결제 서비스 케이스')).toBe(칸들.케이스);
+    expect(눌림('결제 서비스 실행')).toBe(칸들.실행);
+    expect(눌림('결제 서비스 작성')).toBe(칸들.작성);
+    expect(눌림('결제 서비스 권한 묶음')).toBe(묶음);
+  });
+
+  it('칸을 하나 고쳐 어느 묶음과도 안 맞으면 묶음 단추가 모두 풀린다 — 칸을 하나씩 고르는 길은 그대로다', () => {
+    새계정열기();
+    fireEvent.click(서비스칸(/결제 서비스/));
+    고른다('결제 서비스 권한 묶음', '작성자');
+    고른다('결제 서비스 케이스', '쓰기');
+
+    expect(눌림('결제 서비스 권한 묶음')).toBeUndefined();
+    expect(눌림('결제 서비스 케이스')).toBe('쓰기');
+  });
+
+  it('묶음은 그 서비스 칸만 바꾼다', () => {
+    새계정열기();
+    fireEvent.click(서비스칸(/결제 서비스/));
+    fireEvent.click(서비스칸(/회원 서비스/));
+    고른다('결제 서비스 권한 묶음', '실행자');
+
+    expect(눌림('결제 서비스 실행')).toBe('쓰기');
+    expect(눌림('회원 서비스 실행')).toBe('읽기');
+  });
+
+  it('운영을 켜면 권한 묶음도 숨긴다', () => {
+    새계정열기();
+    fireEvent.click(서비스칸(/결제 서비스/));
+    fireEvent.click(screen.getByRole('checkbox', { name: /^운영/ }));
+
+    expect(칸묶음('결제 서비스 권한 묶음')).toBeNull();
   });
 
   it('저장하면 서비스마다 칸 묶음과 대시보드를 보낸다', () => {
@@ -207,7 +260,7 @@ describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', (
     fireEvent.change(screen.getByLabelText('이름'), { target: { value: '최민수' } });
     fireEvent.click(서비스칸(/결제 서비스/));
     고른다('결제 서비스 실행', '쓰기');
-    고른다('대시보드', '안 씀');
+    고른다('그래프(Grafana)', '안 씀');
     fireEvent.click(screen.getByText('계정 추가'));
 
     expect(만들기).toHaveBeenCalledWith({

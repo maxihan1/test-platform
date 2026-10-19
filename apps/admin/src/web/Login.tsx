@@ -1,10 +1,11 @@
-// 로그인 화면 (SPEC §8.6). 아이디 칸, 비밀번호 칸, 로그인 버튼, 그 아래 회원가입 링크. 그 밖에 아무것도 없다
+// 로그인 화면 (SPEC §8.6). 아이디 칸, 비밀번호 칸, 로그인 버튼, 그 아래 회원가입 링크, 언어 고르개. 그 밖에 아무것도 없다
 // 가입은 승인 대기 계정만 만든다 — 문을 여는 판단은 여전히 운영자가 설정 화면에서 한다 (§8.8)
 
 import { useState } from 'react';
 
 import { api, ApiError, type User } from './api.js';
-import { use말, use언어 } from './i18n.js';
+import { use말, use언어, type 언어 } from './i18n.js';
+import { 언어고르개 } from './ShellPickers.js';
 import { message } from './ui.js';
 
 /**
@@ -18,10 +19,13 @@ function 그래프로돌아갈곳(search: string): string | null {
 
 export function Login({
   onLogin,
+  on언어,
   // 검사가 진짜 페이지 이동 대신 끼운다. jsdom 의 location.assign 은 바꿔 끼울 수 없다
   떠난다 = (주소: string) => window.location.assign(주소),
 }: {
   onLogin: (user: User) => void;
+  /** 로그인 전에도 언어를 고른다. 들고 있는 것은 `main.tsx` 다 */
+  on언어: (고른: 언어) => void;
   떠난다?: (주소: string) => void;
 }) {
   const t = use말();
@@ -66,7 +70,7 @@ export function Login({
     <div className="login">
       <form className="login-box" onSubmit={(e) => void submit(e)}>
         <div className="login-title">{t('테스트 플랫폼')}</div>
-        <h1 className="login-greet">{t('다시 오셨군요')}</h1>
+        <h1 className="login-greet">{t('로그인')}</h1>
         {/* 빈 상자 하나만 두면 무엇을 하는 화면인지 안 읽힌다. 짙은 바탕 위 밝은 상자로
             들어가는 자리임을 분명히 한다 (docs/design-mockup.html) */}
         <p className="login-sub">{t('아이디와 비밀번호를 넣으면 맡은 서비스가 열립니다.')}</p>
@@ -109,6 +113,9 @@ export function Login({
           {busy ? t('확인하는 중') : t('로그인')}
         </button>
         <a href="#/signup">{t('회원가입')}</a>
+        <div className="side-lang login-lang">
+          <언어고르개 언어={언어} on언어={on언어} />
+        </div>
       </form>
     </div>
   );

@@ -6,8 +6,8 @@
 // 그래서 여기서는 「띠에 색이 없다」와 「표시에 색이 있다」를 둘 다 본다.
 // 한쪽만 보면 색을 아무 데도 안 칠한 상태가 통과한다.
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, type ServiceRow, type User } from './api.js';
 import { 언어함, type 언어 } from './i18n.js';
@@ -129,10 +129,10 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(안.queryByRole('combobox')).toBeNull();
   });
 
-  it('헤더 왼쪽에 QA Hub 로고가 있고 집으로 가는 링크다', () => {
+  it('헤더 왼쪽에 제품 이름 로고가 있고 집으로 가는 링크다', () => {
     띄운다(결제);
-    const 로고 = screen.getByRole('link', { name: 'QA Hub 홈' });
-    expect(로고.textContent).toBe('QA Hub');
+    const 로고 = screen.getByRole('link', { name: '테스트 플랫폼 홈' });
+    expect(로고.textContent).toBe('테스트 플랫폼');
     expect(로고.closest('header.hd')).not.toBeNull();
     expect(로고.getAttribute('href')).toMatch(/^#\//);
   });
@@ -344,3 +344,77 @@ describe('대시보드 자리 (화면공통 §8 · 도메인/리포팅 §8.12)',
   });
 });
 
+
+describe('설정 곁 가입 신청 수 (점검 14.5)', () => {
+  const 대기 = (이름: string, 승인: boolean) => ({
+    username: 이름,
+    displayName: 이름,
+    role: 'member' as const,
+    dashboard: 'none' as const,
+    isActive: true,
+    isApproved: 승인,
+    services: [],
+  });
+
+  function 껍데기(user: User, current = '#/cases') {
+    return (
+      <언어함 value="ko">
+        <Shell user={user} service={결제} onService={() => {}} 언어="ko" on언어={() => {}} onLogout={() => {}} current={current}>
+          <div>본문</div>
+        </Shell>
+      </언어함>
+    );
+  }
+
+  beforeEach(() => {
+    vi.spyOn(api, 'notifications').mockResolvedValue({ running: [], recent: [] });
+  });
+
+  it('운영 계정이고 기다리는 신청이 둘이면 설정 곁에 2 가 뜬다', async () => {
+    const 읽기 = vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [대기('a', true), 대기('b', false), 대기('c', false)] });
+    render(껍데기(사람));
+
+    const 수 = await screen.findByLabelText('가입 신청 2건');
+    expect(수.textContent).toBe('2');
+    expect(수.closest('a')?.getAttribute('href')).toBe('#/settings');
+    expect(읽기).toHaveBeenCalledTimes(1);
+  });
+
+  it('기다리는 신청이 없으면 수를 안 그린다', async () => {
+    const 읽기 = vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [대기('a', true)] });
+    render(껍데기(사람));
+
+    await waitFor(() => expect(읽기).toHaveBeenCalled());
+    expect(document.querySelector('.side-badge')).toBeNull();
+  });
+
+  it('운영 계정이 아니면 읽지도 않는다', () => {
+    const 읽기 = vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [대기('b', false)] });
+    render(껍데기({ ...사람, role: 'member' }));
+
+    expect(읽기).not.toHaveBeenCalled();
+    expect(document.querySelector('.side-badge')).toBeNull();
+  });
+
+  it('읽지 못하면 조용히 안 보인다', async () => {
+    const 읽기 = vi.spyOn(api, 'settingsUsers').mockRejectedValue(new Error('끊김'));
+    render(껍데기(사람));
+
+    await waitFor(() => expect(읽기).toHaveBeenCalled());
+    expect(document.querySelector('.side-badge')).toBeNull();
+  });
+
+  it('자리가 바뀌면 다시 읽는다 — 설정에서 수락하고 나오면 줄어든다', async () => {
+    const 읽기 = vi
+      .spyOn(api, 'settingsUsers')
+      .mockResolvedValueOnce({ items: [대기('b', false)] })
+      .mockResolvedValueOnce({ items: [] });
+    const { rerender } = render(껍데기(사람, '#/settings'));
+    expect((await screen.findByLabelText('가입 신청 1건')).textContent).toBe('1');
+
+    rerender(껍데기(사람, '#/cases'));
+
+    await waitFor(() => expect(document.querySelector('.side-badge')).toBeNull());
+    expect(읽기).toHaveBeenCalledTimes(2);
+  });
+});

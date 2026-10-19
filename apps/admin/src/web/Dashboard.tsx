@@ -181,7 +181,7 @@ export function Dashboard({
 
   return (
     <>
-      <Head 제목={t('품질 현황')} 부제={부제} 행동={<고르개 조건={조건} 서비스들={서비스들} on바뀜={set조건} />} />
+      <Head 제목={t('대시보드')} 부제={부제} 행동={<고르개 조건={조건} 서비스들={서비스들} on바뀜={set조건} />} />
       {읽음.종류 === 'loading' ? (
         <div className="screen">
           <Loading />

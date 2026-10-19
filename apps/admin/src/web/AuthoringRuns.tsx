@@ -15,7 +15,7 @@ export function 방식(
   t: (키: string) => string,
   뿌리종류?: AuthoringRun['kind'],
 ): string {
-  if (실행.kind === 'MERGE') return t('머지');
+  if (실행.kind === 'MERGE') return t('반영');
   if (실행.kind === 'EDIT') return t('케이스 고치기');
   if (실행.kind === 'AUTHOR') return t('처음');
   if (뿌리종류 === 'EDIT') return t('다시 적용');

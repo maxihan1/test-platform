@@ -31,7 +31,7 @@ export function AgentTokenBox({ 것, onClose }: { 것: 발급토큰; onClose: ()
       </div>
       <code>{것.token}</code>
       <div className="hint">
-        {t('맥 에이전트 첫 실행에서 한 번 붙여넣습니다. 방법은 docs/SETUP.md 8절')}{' '}
+        {t('맥 에이전트를 처음 켤 때 한 번 붙여넣습니다')}{' '}
         <b>{t('닫으면 다시 볼 수 없습니다')}</b>
       </div>
       <button className="btn ghost" onClick={onClose}>

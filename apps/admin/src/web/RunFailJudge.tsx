@@ -111,7 +111,7 @@ export function RunFailJudge({ c, runId, 권한, on남김 }: Props) {
       )}
       {앞요청.length === 0 ? null : (
         <span className="note">
-          {t('앞 반영 요청이 병합되거나 폐기되면 시작합니다')}
+          {t('앞 요청이 반영되거나 폐기되면 시작합니다')}
           {앞요청.map((번호) => (
             <a key={번호} href={`#/authoring/${String(번호)}`}>
               {' '}

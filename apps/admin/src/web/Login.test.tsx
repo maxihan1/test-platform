@@ -5,10 +5,12 @@
 // **틀렸을 때 어느 쪽이 틀렸는지 말하지 않는다.** 「아이디가 없습니다」라고 적으면
 // 아이디가 있는지를 바깥에서 하나씩 캐낼 수 있다. 서버도 같은 이유로 401 하나만 준다.
 
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, ApiError, type User } from './api.js';
+import { 언어함, type 언어 } from './i18n.js';
 import { Login } from './Login.js';
 
 afterEach(() => {
@@ -17,7 +19,7 @@ afterEach(() => {
 });
 
 function 그리기() {
-  return render(<Login onLogin={() => undefined} />);
+  return render(<Login onLogin={() => undefined} on언어={() => undefined} />);
 }
 
 async function 틀리게친다(status: number, code = 'UNAUTHORIZED') {
@@ -36,6 +38,13 @@ describe('로그인 화면', () => {
     expect(screen.getByText('테스트 플랫폼')).toBeTruthy();
     // 들어가는 자리임을 분명히 한다. 빈 상자 하나만 두면 무엇을 하는 화면인지 안 읽힌다
     expect(screen.getByText(/맡은 서비스가 열립니다/)).toBeTruthy();
+  });
+
+  it('머리 글자는 「로그인」 하나다 — 맞이 인사 대신 이 화면이 무엇인지 적는다', () => {
+    그리기();
+
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('로그인');
+    expect(screen.queryByText('다시 오셨군요')).toBeNull();
   });
 
   it('비밀번호 칸은 가려서 입력받는다', () => {
@@ -86,6 +95,26 @@ describe('로그인 화면', () => {
   });
 });
 
+describe('로그인 전 언어 고르기', () => {
+  function 언어를들고() {
+    const [언어값, set언어] = useState<언어>('ko');
+    return (
+      <언어함 value={언어값}>
+        <Login onLogin={() => undefined} on언어={set언어} />
+      </언어함>
+    );
+  }
+
+  it('English 를 고르면 이 화면 글자가 영어로 바뀐다', () => {
+    render(<언어를들고 />);
+
+    fireEvent.change(screen.getByLabelText('언어'), { target: { value: 'en' } });
+
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Sign in');
+    expect(screen.getByRole('link', { name: 'Sign up' })).toBeTruthy();
+  });
+});
+
 describe('Grafana 에서 쫓겨 온 사람 (도메인/인증 §7 「Grafana 통로」)', () => {
   const 나: User = {
     username: 'kim',
@@ -105,7 +134,7 @@ describe('Grafana 에서 쫓겨 온 사람 (도메인/인증 §7 「Grafana 통�
     vi.spyOn(api, 'login').mockResolvedValue({ user: 누구 });
     const onLogin = vi.fn();
     const 떠난다 = vi.fn();
-    render(<Login onLogin={onLogin} 떠난다={떠난다} />);
+    render(<Login onLogin={onLogin} on언어={() => undefined} 떠난다={떠난다} />);
     fireEvent.submit(screen.getByRole('button', { name: '로그인' }));
     await waitFor(() => expect(onLogin.mock.calls.length + 떠난다.mock.calls.length).toBe(1));
     return { onLogin, 떠난다 };

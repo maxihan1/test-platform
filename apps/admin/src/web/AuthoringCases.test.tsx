@@ -127,13 +127,13 @@ describe('다음 단계의 만든 케이스 확인', () => {
     expect(screen.getByText('만든 케이스 2건 확인')).toBeTruthy();
     expect(screen.getByRole('button', { name: '만든 케이스 보기' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'PR 열기' }).getAttribute('href')).toBe('https://github.com/x/y/pull/3');
-    expect(screen.queryByText('만든 테스트 코드 검토')).toBeNull();
+    expect(screen.queryByText('만든 케이스 검토')).toBeNull();
   });
 
-  it('목록을 남기지 않은 옛 요청은 예전 만든 테스트 코드 검토를 낸다', () => {
+  it('목록을 남기지 않은 옛 요청은 예전 만든 케이스 검토를 낸다', () => {
     render(<AuthoringTodo service="PAY" 요청={줄({})} 할수={운영} 차이수={0} reload={reload} />);
-    expect(screen.getByText('만든 테스트 코드 검토')).toBeTruthy();
-    expect(screen.getByRole('link', { name: '만든 테스트 코드 보기 (PR)' }).getAttribute('href')).toBe('https://github.com/x/y/pull/3');
+    expect(screen.getByText('만든 케이스 검토')).toBeTruthy();
+    expect(screen.getByRole('link', { name: '만든 케이스 보기 (PR)' }).getAttribute('href')).toBe('https://github.com/x/y/pull/3');
     expect(screen.queryByRole('button', { name: '만든 케이스 보기' })).toBeNull();
   });
 
