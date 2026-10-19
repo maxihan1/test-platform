@@ -59,10 +59,10 @@ export function PrdItemForm({
   const 틀림말: Record<틀린칸, string> = {
     feature: t('기능 묶음을 적습니다'),
     text: t('요구 문장을 적습니다'),
-    basis: t('근거를 하나 이상 적습니다'),
-    from: t('근거마다 자료 이름을 적습니다'),
-    quote: t('근거마다 원본 문장을 적습니다'),
-    long: t('글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 근거 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 근거 문장 {근거문장}자', {
+    basis: t('출처를 하나 이상 적습니다'),
+    from: t('출처마다 자료 이름을 적습니다'),
+    quote: t('출처마다 원본 문장을 적습니다'),
+    long: t('글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 출처 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 출처 문장 {근거문장}자', {
       묶음: 상한.기능묶음,
       문장: 상한.요구문장,
       근거: 상한.근거,
@@ -108,10 +108,10 @@ export function PrdItemForm({
       </div>
       <p className="hint prd-form-hint">{t('규칙 하나만 적습니다. 숫자 · 조건 낱말(이상 · 미만 · 까지)은 원문 그대로 둡니다')}</p>
       {새것 ? (
-        <p className="hint prd-form-hint">{t('근거는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 고치기에서 더할 수 있습니다')}</p>
+        <p className="hint prd-form-hint">{t('출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 고치기에서 더할 수 있습니다')}</p>
       ) : (
         <fieldset className="prd-basis-edit">
-          <legend>{t('근거')}</legend>
+          <legend>{t('출처')}</legend>
           {x.basis.map((b, i) => (
             <div className="prd-basis-row" key={i}>
               <input type="text" aria-label={t('자료 이름')} placeholder={t('자료 이름')} value={b.from} onChange={(e) => 근거고침(i, 'from', e.target.value)} />
@@ -124,7 +124,7 @@ export function PrdItemForm({
           ))}
           {x.basis.length >= 상한.근거 ? null : (
             <button type="button" className="btn ghost small" onClick={() => setX({ ...x, basis: [...x.basis, 빈근거()] })}>
-              {t('근거 더하기')}
+              {t('출처 더하기')}
             </button>
           )}
         </fieldset>

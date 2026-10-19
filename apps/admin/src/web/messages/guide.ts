@@ -20,11 +20,12 @@ export const 가이드말: Record<string, string> = {
   '문서에 없는 것만 적습니다': 'Write only what the documents leave out',
   '적은 글이 없습니다': 'Nothing written',
   열기: 'Open',
-  '{이름} 빼기': 'Remove {이름}',
-  '파일 더하기': 'Add file',
-  '{구획}에 파일 더하기': 'Add a file to {구획}',
-  '빼기 확인': 'Confirm remove',
-  '{이름} 빼기 확인': 'Confirm removing {이름}',
+  '{이름} 제거': 'Remove {이름}',
+  제거: 'Remove',
+  '파일 첨부': 'Attach file',
+  '{구획}에 파일 첨부': 'Attach a file to {구획}',
+  '제거 확인': 'Confirm remove',
+  '{이름} 제거 확인': 'Confirm removing {이름}',
   '저장하지 않은 변경이 있습니다': 'You have unsaved changes',
 
   // 버전 기록 — 「버전 기록」 글자는 PRD 표(messages/prd.ts)에 있다

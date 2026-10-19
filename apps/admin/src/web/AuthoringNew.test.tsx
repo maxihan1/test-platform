@@ -47,12 +47,12 @@ afterEach(() => {
 });
 
 function 파일을고른다(...이름들: string[]) {
-  const 칸 = screen.getByLabelText('기획서 파일');
+  const 칸 = screen.getByLabelText('PRD');
   fireEvent.change(칸, { target: { files: 이름들.map((이름) => new File(['x'], 이름)) } });
 }
 
 function 이파일들을고른다(...파일들: File[]) {
-  fireEvent.change(screen.getByLabelText('기획서 파일'), { target: { files: 파일들 } });
+  fireEvent.change(screen.getByLabelText('PRD'), { target: { files: 파일들 } });
 }
 
 function 크기를단파일(이름: string, 크기: number): File {
@@ -99,12 +99,12 @@ describe('새 작성 요청 — 자료 목록', () => {
   it('보내고 나면 파일 칸을 새로 그린다. 같은 파일을 다시 골라도 바뀜이 난다', async () => {
     let 넣었다 = 0;
     render(<AuthoringNew service="PAY" on넣었다={() => (넣었다 += 1)} />);
-    const 전 = screen.getByLabelText('기획서 파일');
+    const 전 = screen.getByLabelText('PRD');
     파일을고른다('기획서.pdf');
     fireEvent.click(보내기());
 
     await waitFor(() => expect(넣었다).toBe(1));
-    expect(screen.getByLabelText('기획서 파일')).not.toBe(전);
+    expect(screen.getByLabelText('PRD')).not.toBe(전);
   });
 
   it('파일도 피그마 주소도 없으면 버튼이 꺼져 있다', () => {
@@ -174,7 +174,7 @@ describe('새 작성 요청 — 자료 목록', () => {
 
   it('받는 종류만 고를 수 있게 파일 칸이 여럿 고르기와 종류 제한을 단다', () => {
     render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
-    const 칸 = screen.getByLabelText('기획서 파일');
+    const 칸 = screen.getByLabelText('PRD');
     expect(칸.getAttribute('accept')).toBe('.pdf,.docx,.doc,.md,.txt');
     expect(칸.hasAttribute('multiple')).toBe(true);
   });

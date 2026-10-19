@@ -112,23 +112,23 @@ export function GuideSection({
                   {on빼기 === undefined ? null : 뺄파일 === file.id ? (
                     <>
                       <button
-                        className="btn small set-warn"
+                        className="btn ghost small set-warn"
                         disabled={busy}
-                        aria-label={t('{이름} 빼기 확인', { 이름: file.name })}
+                        aria-label={t('{이름} 제거 확인', { 이름: file.name })}
                         onClick={() => {
                           set뺄파일(null);
                           on빼기(file);
                         }}
                       >
-                        {t('빼기 확인')}
+                        {t('제거 확인')}
                       </button>
                       <button className="btn ghost small" onClick={() => set뺄파일(null)}>
                         {t('취소')}
                       </button>
                     </>
                   ) : (
-                    <button className="btn ghost small" disabled={busy} aria-label={t('{이름} 빼기', { 이름: file.name })} onClick={() => set뺄파일(file.id)}>
-                      {t('빼기')}
+                    <button className="btn ghost small" disabled={busy} aria-label={t('{이름} 제거', { 이름: file.name })} onClick={() => set뺄파일(file.id)}>
+                      {t('제거')}
                     </button>
                   )}
                 </div>
@@ -147,14 +147,14 @@ export function GuideSection({
       {on더하기 === undefined ? null : (
         <div>
           <button className="btn ghost small" disabled={busy} onClick={() => 고르개.current?.click()}>
-            {t('파일 더하기')}
+            {t('파일 첨부')}
           </button>
           <input
             ref={고르개}
             type="file"
             hidden
             accept={받는종류}
-            aria-label={t('{구획}에 파일 더하기', { 구획: 제목 })}
+            aria-label={t('{구획}에 파일 첨부', { 구획: 제목 })}
             onChange={(e) => {
               const file = e.target.files?.[0];
               e.target.value = '';

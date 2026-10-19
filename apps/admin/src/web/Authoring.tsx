@@ -103,7 +103,7 @@ export function Authoring({ service, envs = [], 피그마토큰 = true, 할수 }
   const t = use말();
   // 쪽은 주소에 남는다 — 상세에 갔다 뒤로 와도 그 쪽이다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
-  // 「손이 필요한 것」만 — 입력 필요 · 중복 · 반영 대기 · 반영 실패가 남은 요청 (점검 11.2 · 도메인/작성 §7 ?todo=1)
+  // 「조치 필요」만 — 입력 필요 · 중복 · 반영 대기 · 반영 실패가 남은 요청 (점검 11.2 · 도메인/작성 §7 ?todo=1)
   const [할일만, set할일만] = useState(() => 주소조건().get('todo') === '1');
   use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(page === 1 ? {} : { page: String(page) }) });
   // 「PRD 관리」의 「이 화면들 테스트 작성」이 `?compare=1` 로 연다 — 아래 use주소조건이 조건을 정리하기 전에 한 번만 읽는다
@@ -153,19 +153,19 @@ export function Authoring({ service, envs = [], 피그마토큰 = true, 할수 }
 
         <div className="toolbar">
           <span className="filter-group">
-            <span className="filter-label">{t('표시')}</span>
+            <span className="filter-label">{t('필터')}</span>
             <button className="chip" type="button" aria-pressed={!할일만} onClick={() => 거르기(false)}>
               {t('전체')}
             </button>
             <button className="chip" type="button" aria-pressed={할일만} onClick={() => 거르기(true)}>
-              {t('손이 필요한 것')}
+              {t('조치 필요')}
             </button>
           </span>
         </div>
 
         <div className="rows-scroll">
           {줄들.data.items.length === 0 && 할일만 ? (
-            <div className="empty">{t('사람 손이 필요한 요청이 없습니다')}</div>
+            <div className="empty">{t('조치가 필요한 요청이 없습니다')}</div>
           ) : 줄들.data.items.length === 0 ? (
             <div className="empty">
               {t('아직 작성을 요청한 기록이 없습니다')}

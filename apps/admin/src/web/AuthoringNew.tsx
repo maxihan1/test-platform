@@ -191,7 +191,7 @@ export function AuthoringNew({
       }}
     >
       <label className="authoring-field">
-        <span>{t('기획서 파일')}</span>
+        <span>{t('PRD')}</span>
         <input
           key={칸번호}
           type="file"
