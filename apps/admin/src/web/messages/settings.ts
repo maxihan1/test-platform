@@ -215,6 +215,12 @@ export const 설정말: Record<string, string> = {
   '옮기면 그 애플리케이션은 옮겨 간 프로젝트의 권한을 따릅니다. 모두 옮기면 빈 프로젝트는 저절로 사라집니다':
     'A moved application follows the permissions of the project it moves to. A project left empty disappears on its own',
   '옮길 프로젝트': 'Move to project',
+  '케이스가 뒤에서 부른 서버에 이름을 붙이면 케이스 목록에 이름표가 붙습니다. 같은 이름을 여러 주소에 써도 됩니다':
+    'Name the servers your cases call behind the scenes and the case list shows those names as tags. You can use one name for several addresses',
+  '케이스를 실행하면 부른 서버가 여기 뜹니다': 'Servers called by your cases show up here after you run them',
+  '케이스 {수}개': '{수} cases',
+  '이름 없음': 'No name',
+  '{호스트} 이름': 'Name for {호스트}',
   '다른 프로젝트로 옮기려면 프로젝트 화면에서 합니다': 'To move it to another project, use the project screen',
   '프로젝트를 골라 주세요': 'Choose a project',
   '사람': 'People',

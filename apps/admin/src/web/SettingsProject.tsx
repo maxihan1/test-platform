@@ -1,4 +1,4 @@
-// 설정 화면의 프로젝트 하나 (SPEC 도메인/인증 §8.8). 새 프로젝트 만들기 · 이름 바꾸기 · 안에 든 애플리케이션 옮기기
+// 설정 화면의 프로젝트 하나 (SPEC 도메인/인증 §8.8). 새 프로젝트 만들기 · 이름 바꾸기 · 안에 든 애플리케이션 옮기기 · API 서버 이름
 // 지우는 통로는 없다 — 애플리케이션을 모두 옮겨 비면 서버가 알아서 지운다
 
 import { useState } from 'react';
@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { api, type SettingsProject, type SettingsServiceRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 오류문장 } from './SettingsService.js';
+import { ApiServers } from './SettingsApiServers.js';
 import { 구획 } from './SettingsServiceParts.js';
 
 /**
@@ -114,6 +115,8 @@ export function ProjectPanel({
           ))}
         </구획>
       )}
+
+      {새것 ? null : <ApiServers key={row.id} 프로젝트={row.id} />}
     </div>
   );
 }
