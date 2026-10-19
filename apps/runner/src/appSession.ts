@@ -8,6 +8,19 @@ import { APPIUM_SESSION_FILE, runDir } from '@platform/kit';
 // admin 이 러너를 기다리는 유예가 30초다. 그 안에 답해야 부분 결과가 남는다
 const 닫기_제한_ms = 10_000;
 
+// fetch 는 주소 안 계정을 거절한다. 계정은 머리로 옮겨 보내고 주소에서는 뺀다 (앱 화면 읽기도 같이 쓴다)
+export function appium주소(raw: string): { base: string; headers: Record<string, string> } {
+  const url = new URL(raw);
+  const headers: Record<string, string> = {};
+  if (url.username !== '') {
+    const 계정 = `${decodeURIComponent(url.username)}:${decodeURIComponent(url.password)}`;
+    headers.Authorization = `Basic ${Buffer.from(계정).toString('base64')}`;
+  }
+  url.username = '';
+  url.password = '';
+  return { base: url.toString().replace(/\/+$/, ''), headers };
+}
+
 // 자식이 죽었든 정상 종료했든 kit 이 못 닫았으면 번호 파일이 남아 있다. 팜의 디바이스를 붙들고 있는 연결이라 반드시 닫는다
 export async function 앱연결을닫는다(runId: number, historyId: number): Promise<void> {
   // 경로를 여기서 따로 계산하면 kit 이 적은 곳과 어긋나도 아무것도 못 닫고 조용히 넘어간다. kit 의 것을 그대로 쓴다
@@ -26,16 +39,7 @@ export async function 앱연결을닫는다(runId: number, historyId: number): P
   if (sessionId === '' || raw === undefined || raw === '') return;
 
   try {
-    const url = new URL(raw);
-    // fetch 는 주소 안 계정을 거절한다. 머리로 옮겨 보낸다
-    const headers: Record<string, string> = {};
-    if (url.username !== '') {
-      const 계정 = `${decodeURIComponent(url.username)}:${decodeURIComponent(url.password)}`;
-      headers.Authorization = `Basic ${Buffer.from(계정).toString('base64')}`;
-    }
-    url.username = '';
-    url.password = '';
-    const base = url.toString().replace(/\/+$/, '');
+    const { base, headers } = appium주소(raw);
     const res = await fetch(`${base}/session/${encodeURIComponent(sessionId)}`, {
       method: 'DELETE',
       headers,

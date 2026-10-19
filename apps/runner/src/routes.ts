@@ -8,12 +8,16 @@ import type { ScenarioLink, ScenarioPart, ScenarioResponseRef } from '@platform/
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { 앱화면을읽는다, 화면을읽는중인가 } from './appScreen.js';
 import { abort, execute, resolveSpecPath, running, testsDir } from './execute.js';
 import { executeScenario } from './scenario.js';
 
 const require = createRequire(import.meta.url);
 // 이미지 태그와 라이브러리 버전이 어긋나면 브라우저를 못 찾는다. /health가 그 확인 창구다 (SPEC §9)
 const { version: playwrightVersion } = require('@playwright/test/package.json') as { version: string };
+
+// admin 설정과 같은 까닭으로 주소는 받지 않는다 — Appium 이 내려받아 폰에 깐다 (러너 §5.2 「대상 서버마다 다른 앱 파일」)
+const 앱파일경로 = z.string().min(1).refine((v) => !v.includes('://'), 'app 은 파일 경로여야 한다');
 
 const executeRequest = z.object({
   runId: z.number(),
@@ -25,9 +29,10 @@ const executeRequest = z.object({
   params: z.record(z.string(), z.unknown()),
   expected: z.record(z.string(), z.unknown()),
   timeoutMs: z.number().int().positive().default(300_000),
-  // admin 설정과 같은 까닭으로 주소는 받지 않는다 — Appium 이 내려받아 폰에 깐다 (러너 §5.2 「대상 서버마다 다른 앱 파일」)
-  app: z.string().min(1).refine((v) => !v.includes('://'), 'app 은 파일 경로여야 한다').optional(),
+  app: 앱파일경로.optional(),
 });
+
+const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional() });
 
 // `//host` 는 / 로 시작해도 다른 호스트로 풀린다. 대상 주소 밖으로 못 나가게 여기서 막는다
 const 대상경로 = z.string().startsWith('/').refine((p) => !p.startsWith('//'), '경로가 // 로 시작한다');
@@ -147,6 +152,23 @@ export function registerRoutes(app: FastifyInstance): void {
       return await execute(req, specPath);
     } catch (err) {
       // 자식 프로세스를 띄우지도 못한 경우다. 케이스 실패가 아니라 러너 고장이므로 500이다 (SPEC §5.2)
+      const detail = err instanceof Error ? err.message : String(err);
+      return reply.code(500).send({ error: 'RUNNER_ERROR', detail });
+    }
+  });
+
+  // 작성 AI 가 앱 케이스를 쓰려고 폰 화면을 읽는다. 돌고 있는 항목이 있으면 폰을 가로채니 막는다 (SPEC 도메인/러너 §5.2 「앱 화면 읽기」)
+  app.post('/app-screen', async (request, reply) => {
+    const parsed = appScreenRequest.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
+    }
+    if (running.size > 0 || 화면을읽는중인가()) {
+      return reply.code(409).send({ error: 'DEVICE_BUSY', detail: '이 러너가 이미 실행이나 화면 읽기를 하고 있다' });
+    }
+    try {
+      return { screen: await 앱화면을읽는다(parsed.data) };
+    } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
       return reply.code(500).send({ error: 'RUNNER_ERROR', detail });
     }
