@@ -129,10 +129,10 @@ describe('세로 껍데기 (SPEC §8)', () => {
     expect(안.queryByRole('combobox')).toBeNull();
   });
 
-  it('헤더 왼쪽에 QA Hub 로고가 있고 집으로 가는 링크다', () => {
+  it('헤더 왼쪽에 제품 이름 로고가 있고 집으로 가는 링크다', () => {
     띄운다(결제);
-    const 로고 = screen.getByRole('link', { name: 'QA Hub 홈' });
-    expect(로고.textContent).toBe('QA Hub');
+    const 로고 = screen.getByRole('link', { name: '테스트 플랫폼 홈' });
+    expect(로고.textContent).toBe('테스트 플랫폼');
     expect(로고.closest('header.hd')).not.toBeNull();
     expect(로고.getAttribute('href')).toMatch(/^#\//);
   });

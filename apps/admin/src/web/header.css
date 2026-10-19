@@ -28,11 +28,6 @@
   white-space: nowrap;
 }
 
-.hd-logo b {
-  color: var(--accent);
-  font-weight: 600;
-}
-
 .hd-logo-mark {
   flex: none;
 }
