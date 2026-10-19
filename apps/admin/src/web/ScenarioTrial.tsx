@@ -2,7 +2,6 @@
 
 import type { ScenarioExecuteResponse, ScenarioPart } from '@platform/kit';
 
-import type { EnvRow } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { scenarioApi, type TrialResult } from './scenarioApi.js';
 import { PartTrace } from './ScenarioResultPart.js';
@@ -32,7 +31,8 @@ export function TrialControls({
   도는중,
   on시작,
 }: {
-  서버들: EnvRow[];
+  /** 없는곳이 있으면 그 이름은 못 고른다 — 든 애플리케이션 가운데 그 이름의 대상 서버가 없는 곳 (도메인/시나리오 §3.7 결정 13) */
+  서버들: { env: string; 없는곳?: string[] }[];
   서버: string;
   on서버: (env: string) => void;
   도는중: boolean;
@@ -44,8 +44,8 @@ export function TrialControls({
       <select aria-label={t('대상 서버')} value={서버} onChange={(e) => on서버(e.target.value)}>
         <option value="">{t('선택하세요')}</option>
         {서버들.map((s) => (
-          <option key={s.env} value={s.env}>
-            {s.env}
+          <option key={s.env} value={s.env} disabled={(s.없는곳?.length ?? 0) > 0}>
+            {(s.없는곳?.length ?? 0) === 0 ? s.env : t('{서버} · {앱}에 없음', { 서버: s.env, 앱: s.없는곳!.join(', ') })}
           </option>
         ))}
       </select>

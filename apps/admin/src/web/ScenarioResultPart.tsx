@@ -63,6 +63,8 @@ export function ScenarioResultPart({
   const 이유 = part.failure ?? null;
   // 절차 목록은 실패한 단계에서만 처음부터 열린다 — 미실행 단계는 접힌 목록에 이유를 숨기지 않고 위에 둔다
   const 실패절차 = 이유 === null || part.status !== 'FAIL' ? undefined : part.steps.find((s) => s.status === 'FAIL');
+  // 한 애플리케이션만 쓴 실행에는 이름표를 안 단다 (§8.11)
+  const 섞임 = new Set(parts.flatMap((p) => (p.service == null ? [] : [p.service]))).size > 1;
   const 모킹구간 = part.mocks.length > 0 && part.kind !== 'mock';
   const 모킹안탐 = 모킹구간 && part.kind === 'api';
   const 입력 = 케이스 === null ? '' : 한줄로({ ...케이스.params, ...part.bound }, part.paramSchema, 언어);
@@ -80,6 +82,7 @@ export function ScenarioResultPart({
         <span className="scn-seq">{part.seq}</span>
         <span className="tech-tag">{t(종류글[part.kind])}</span>
         <span className="scn-name">{이름}</span>
+        {!섞임 || part.service == null ? null : <span className="scn-app-tag">{part.service}</span>}
         {part.unconfirmed === null ? null : <span className="case-tag">{t('미확정')}</span>}
         {모킹안탐 ? <span className="tech-tag">{t('모킹되지 않음')}</span> : null}
         {케이스 !== null && 케이스.carryOver === false ? <span className="tech-tag">{t('단독 실행')}</span> : null}
@@ -101,6 +104,7 @@ export function ScenarioResultPart({
         </p>
       )}
 
+      {!섞임 || part.baseUrl == null ? null : <세부 라벨={t('돈 주소')}>{part.baseUrl}</세부>}
       {입력 === '' ? null : <세부 라벨={t('입력값')}>{입력}</세부>}
       {part.skippedSteps.length === 0 ? null : (
         <세부 라벨={t('건너뜀')}>

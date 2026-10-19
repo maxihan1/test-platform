@@ -5,7 +5,7 @@ import type { ScenarioPart } from '@platform/kit';
 
 import { use말 } from './i18n.js';
 import { MockBody, UnmockBody, WaitBody, 글칸, use칸오류, 바른경로, 정수, 칸, 코드문장, type 몸Props } from './ScenarioOtherParts.js';
-import { 모킹구간 } from './scenarioView.js';
+import { 모킹구간, 섞였나, type 앱줄 } from './scenarioView.js';
 
 type 다른단계 = Exclude<ScenarioPart, { kind: 'case' }>;
 type ApiPart = Extract<ScenarioPart, { kind: 'api' }>;
@@ -14,6 +14,9 @@ interface Props {
   번호: number;
   단계: 다른단계;
   단계들: ScenarioPart[];
+  /** 시나리오 서비스와 같은 프로젝트의 애플리케이션과 시나리오 서비스(시작 애플리케이션). 없으면 하나뿐인 것으로 본다 */
+  앱들?: readonly 앱줄[];
+  시작?: string;
   쓰나: boolean;
   on바꿈: (새단계: 다른단계) => void;
   on칸오류?: (번호: number, 있나: boolean) => void;
@@ -26,7 +29,7 @@ export function ScenarioOtherPanel(props: Props) {
   return <PanelBody key={`${props.번호}-${props.단계.kind}`} {...props} />;
 }
 
-function PanelBody({ 번호, 단계, 단계들, 쓰나, on바꿈, on칸오류 }: Props) {
+function PanelBody({ 번호, 단계, 단계들, 앱들 = [], 시작 = '', 쓰나, on바꿈, on칸오류 }: Props) {
   const t = use말();
   const 이름 = {
     api: 'API 호출',
@@ -43,9 +46,9 @@ function PanelBody({ 번호, 단계, 단계들, 쓰나, on바꿈, on칸오류 }:
     <div className="scn-set">
       <h3 className="scn-set-title">{t(이름)}</h3>
       {단계.kind === 'api' ? (
-        <ApiBody {...{ 아이디, 잠금, 단계, on바꿈, on오류 }} 모킹중={(모킹구간(단계들)[번호 - 1] ?? []).length > 0} />
+        <ApiBody {...{ 아이디, 잠금, 단계, on바꿈, on오류, 앱들, 시작 }} 모킹중={(모킹구간(단계들)[번호 - 1] ?? []).length > 0} />
       ) : 단계.kind === 'mock' ? (
-        <MockBody {...{ 아이디, 잠금, 단계, on바꿈, on오류 }} />
+        <MockBody {...{ 아이디, 잠금, 단계, on바꿈, on오류 }} 섞임={섞였나(단계들, 시작)} />
       ) : 단계.kind === 'unmock' ? (
         <UnmockBody {...{ 아이디, 잠금, 단계, on바꿈 }} 앞={모킹구간(단계들)[번호 - 1] ?? []} />
       ) : (
@@ -57,7 +60,7 @@ function PanelBody({ 번호, 단계, 단계들, 쓰나, on바꿈, on칸오류 }:
 
 const 경로문장 = '경로는 / 로 시작하고 // 로 시작하지 않아야 합니다';
 
-function ApiBody({ 아이디, 잠금, 단계, on바꿈, on오류, 모킹중 }: 몸Props<ApiPart> & { 모킹중: boolean }) {
+function ApiBody({ 아이디, 잠금, 단계, on바꿈, on오류, 모킹중, 앱들, 시작 }: 몸Props<ApiPart> & { 모킹중: boolean; 앱들: readonly 앱줄[]; 시작: string }) {
   const t = use말();
   const [경로, set경로] = useState(단계.path);
   const [본문, set본문] = useState(단계.body === undefined ? '' : JSON.stringify(단계.body, null, 2));
@@ -67,8 +70,8 @@ function ApiBody({ 아이디, 잠금, 단계, on바꿈, on오류, 모킹중 }: �
 
   // 본문 키는 비우면 빠진다. 값이 undefined 인 키를 남기면 서버 검사가 다르게 본다
   function 본문넣기(글: string) {
-    const { kind, method, path, expectStatus } = 단계;
-    const 기본: ApiPart = { kind, method, path, expectStatus };
+    const { kind, method, path, expectStatus, service } = 단계;
+    const 기본: ApiPart = { kind, method, path, expectStatus, ...(service === undefined ? {} : { service }) };
     const 읽음 = 글.trim() === '' ? undefined : 읽기(글);
     if (읽음 === undefined) on바꿈(기본);
     else if (읽음.ok) on바꿈({ ...기본, body: 읽음.값 });
@@ -77,6 +80,28 @@ function ApiBody({ 아이디, 잠금, 단계, on바꿈, on오류, 모킹중 }: �
   return (
     <>
       {!모킹중 ? null : <p className="scn-set-note">{t('이 단계의 API 호출은 모킹되지 않습니다')}</p>}
+      {앱들.length < 2 ? null : (
+        <칸 아이디={`${아이디}-app`} 라벨="부를 애플리케이션" 문장={null}>
+          {(속성) => (
+            <select
+              {...속성}
+              value={단계.service ?? 시작}
+              disabled={잠금}
+              onChange={(e) => {
+                // 시작 애플리케이션을 고르면 칸을 뺀다 — 고르지 않은 것과 같은 뜻이다
+                const { service: _앞, ...나머지 } = 단계;
+                on바꿈(e.target.value === 시작 ? 나머지 : { ...나머지, service: e.target.value });
+              }}
+            >
+              {앱들.map((a) => (
+                <option key={a.prefix} value={a.prefix}>
+                  {a.prefix} {a.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </칸>
+      )}
       <칸 아이디={`${아이디}-method`} 라벨="메서드" 문장={null}>
         {(속성) => (
           <select

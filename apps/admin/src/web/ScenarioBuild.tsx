@@ -15,7 +15,7 @@ import { ScenarioCards } from './ScenarioCards.js';
 import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
 import { ScenarioTabs, type 조립탭 } from './ScenarioTabs.js';
 import { 시험막는글, TrialControls, TrialSummary, TrialTab } from './ScenarioTrial.js';
-import { 끄기기본, 빈칸있는단계, 케이스바꾸기 } from './scenarioView.js';
+import { 끄기기본, 빈칸있는단계, 서버선택지, 케이스바꾸기 } from './scenarioView.js';
 import { useScenarioDraft } from './useScenarioDraft.js';
 import { useScenarioRun, 넘겨받은실행글 } from './useScenarioRun.js';
 import { 시험열쇠, 시험열쇠옮기기, useScenarioTrial } from './useScenarioTrial.js';
@@ -85,8 +85,12 @@ export function ScenarioBuild({
   if (보낼곳) return null;
   if (초안.오류 !== null) return <Failed error={초안.오류} />;
   if (!초안.불러옴) return <Loading />;
-  const 서버들 = user.services.find((s) => s.prefix === 초안.서비스)?.envs ?? [];
-  const 서버 = 고른서버 ?? 마지막서버(초안.서비스, 서버들);
+  // 같은 프로젝트의 애플리케이션을 섞을 수 있다. 서버 이름은 든 애플리케이션 모두에 있는 것만 고른 것으로 친다 (도메인/시나리오 §8.11)
+  const 앱들 = user.services.filter((s) => s.projectId === user.services.find((x) => x.prefix === 초안.서비스)?.projectId);
+  const 서버들 = 서버선택지(앱들, 초안.서비스, 초안.단계들);
+  const 가능 = 서버들.filter((s) => s.없는곳.length === 0);
+  const 서버후보 = 고른서버 ?? 마지막서버(초안.서비스, 가능);
+  const 서버 = 가능.some((s) => s.env === 서버후보) ? 서버후보 : '';
 
   async function 저장누름() {
     set저장글(null);
@@ -248,6 +252,8 @@ export function ScenarioBuild({
               단계들바꾸기={초안.단계들바꾸기}
               재료={초안.재료}
               디바이스={초안.디바이스}
+              시작={초안.서비스}
+              앱들={앱들}
               쓰나={쓰나}
               고른번호={고른번호}
               on고르기={카드고름}
@@ -262,6 +268,7 @@ export function ScenarioBuild({
                 탭={탭}
                 쓰나={쓰나}
                 초안={초안}
+                앱들={앱들}
                 고른번호={고른번호}
                 바꿀번호={바꿀번호}
                 on케이스={케이스골랐다}

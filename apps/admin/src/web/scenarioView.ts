@@ -39,11 +39,51 @@ export function 카드요약(part: ScenarioPart, 재료: CasePartMaterial | null
   return 조각.join(' · ');
 }
 
-/** 「N번에서 이미 실행」 칩 — 앞 case 단계 중 그 제목의 절차를 가진 첫 번호 */
+/** 케이스 번호 앞 글자 — 단계가 어느 애플리케이션 것인지는 이것으로 읽는다 (도메인/시나리오 §3.7 결정 13) */
+export const 케이스접두사 = (tcId: string): string => tcId.slice(0, Math.max(tcId.indexOf('-'), 0));
+
+/** 단계의 애플리케이션 접두사. 케이스는 번호 앞 글자, API 호출은 service 나 시작 애플리케이션, 그 밖은 null */
+export function 단계앱(part: ScenarioPart, 시작: string): string | null {
+  if (part.kind === 'case') return 케이스접두사(part.tcId);
+  return part.kind === 'api' ? (part.service ?? 시작) : null;
+}
+
+/** 시작 애플리케이션 밖의 단계가 있나 — 이름표 · 구분선 · 대상 서버 거르기 · 모킹 무늬 제한이 이것을 본다 */
+export const 섞였나 = (parts: ScenarioPart[], 시작: string): boolean =>
+  parts.some((p) => {
+    const 앱 = 단계앱(p, 시작);
+    return 앱 !== null && 앱 !== 시작;
+  });
+
+/** 같은 프로젝트의 애플리케이션 한 줄 — 로그인 응답의 서비스 줄에서 이만 뽑아 쓴다 */
+export interface 앱줄 {
+  prefix: string;
+  name: string;
+  color: string;
+  envs: readonly { env: string }[];
+}
+
+/**
+ * 대상 서버 선택지 — 시작 애플리케이션의 서버 이름마다, 단계가 쓰는 다른 애플리케이션 가운데 그 이름이 없는 곳의 접두사.
+ * 비어 있지 않으면 그 이름은 못 고른다 (도메인/시나리오 §3.7 결정 13)
+ */
+export function 서버선택지(앱들: readonly 앱줄[], 시작: string, parts: ScenarioPart[]): { env: string; 없는곳: string[] }[] {
+  const 든 = new Set(parts.map((p) => 단계앱(p, 시작)));
+  const 다른앱 = 앱들.filter((a) => a.prefix !== 시작 && 든.has(a.prefix));
+  return (앱들.find((a) => a.prefix === 시작)?.envs ?? []).map(({ env }) => ({
+    env,
+    없는곳: 다른앱.filter((a) => !a.envs.some((e) => e.env === env)).map((a) => a.prefix),
+  }));
+}
+
+/** 「N번에서 이미 실행」 칩 — 앞 case 단계 중 그 제목의 절차를 가진 첫 번호. 다른 애플리케이션 것은 안 센다 — 출처가 달라 로그인이 안 넘어간다 */
 export function 이미실행(parts: ScenarioPart[], 재료: 재료들, seq: number, 제목: string): number | null {
+  const 이 = parts[seq - 1];
+  const 이앱 = 이?.kind === 'case' ? 케이스접두사(이.tcId) : null;
   for (let i = 0; i < seq - 1 && i < parts.length; i += 1) {
     const p = parts[i];
     if (p?.kind !== 'case') continue;
+    if (이앱 !== null && 케이스접두사(p.tcId) !== 이앱) continue;
     if (재료.get(p.tcId)?.steps.some((s) => s.title === 제목)) return i + 1;
   }
   return null;

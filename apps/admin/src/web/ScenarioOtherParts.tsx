@@ -104,15 +104,19 @@ export function 글칸({
 
 export const 코드문장 = '응답 코드는 100부터 599까지입니다';
 
-export function MockBody({ 아이디, 잠금, 단계, on바꿈, on오류 }: 몸Props<MockPart>) {
+// 짧은 무늬는 걸린 창의 주소로 풀려 어느 애플리케이션을 가리키는지 모호하다 (도메인/시나리오 §3.7 결정 13)
+export const 짧은무늬문장 = '시작 애플리케이션 밖의 단계가 섞인 시나리오는 / 로 시작하는 URL 패턴을 쓸 수 없습니다. **/ 로 시작하거나 주소 전체를 적습니다';
+
+export function MockBody({ 아이디, 잠금, 단계, on바꿈, on오류, 섞임 = false }: 몸Props<MockPart> & { 섞임?: boolean }) {
   const [무늬, set무늬] = useState(단계.urlPattern);
   const [코드, set코드] = useState(String(단계.status));
-  use칸오류(on오류, 정수(코드, 100, 599) === null);
+  const 짧음 = 섞임 && 무늬.startsWith('/');
+  use칸오류(on오류, 정수(코드, 100, 599) === null || 짧음);
   const [형식, set형식] = useState(단계.contentType);
   const [본문, set본문] = useState(단계.body);
   return (
     <>
-      <칸 아이디={`${아이디}-url`} 라벨="URL 패턴" 문장={무늬 === '' ? 'URL 패턴을 적어야 합니다' : null}>
+      <칸 아이디={`${아이디}-url`} 라벨="URL 패턴" 문장={무늬 === '' ? 'URL 패턴을 적어야 합니다' : 짧음 ? 짧은무늬문장 : null}>
         {(속성) => (
           <글칸
             {...속성}
