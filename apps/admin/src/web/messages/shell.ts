@@ -38,8 +38,8 @@ export const 껍데기말: Record<string, string> = {
   '권한을 받지 않았습니다. 운영자에게 요청하세요': 'You have no permissions yet. Ask an admin.',
   // 배정이 없는 사람
   '아직 배정받은 애플리케이션이 없습니다': 'No application assigned yet',
-  '설정에서 자기 자신을 애플리케이션에 배정하세요': 'Assign yourself to an application in Settings',
-  '운영 계정에게 애플리케이션 배정을 요청하세요': 'Ask an admin to assign you an application',
+  '설정에서 자기 자신을 프로젝트에 배정하세요': 'Assign yourself to a project in Settings',
+  '운영 계정에게 프로젝트 배정을 요청하세요': 'Ask an admin to assign you a project',
 
   // 휴대폰 껍데기 · PC 전용 안내 (PhoneShell.tsx · 화면공통 §8 「휴대폰 화면」)
   '내 메뉴': 'My menu',

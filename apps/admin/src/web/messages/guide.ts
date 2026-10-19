@@ -16,7 +16,7 @@ export const 가이드말: Record<string, string> = {
   // 구획
   '애플리케이션 소개': 'About the application',
   정책: 'Policies',
-  '작업 규칙': 'Project rules',
+  '작업 규칙': 'Working rules',
   '문서에 없는 것만 적습니다': 'Write only what the documents leave out',
   '적은 글이 없습니다': 'Nothing written',
   열기: 'Open',
