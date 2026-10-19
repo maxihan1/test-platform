@@ -24,7 +24,7 @@ BEGIN
 END $$;
 
 -- 프로젝트를 안 주고 만들면 같은 이름의 프로젝트를 만들어 붙인다 — 만드는 쪽(설정 · 검사 fixture)이 프로젝트를 몰라도 된다.
--- 같은 접두사가 이미 있으면 그 프로젝트를 쓴다. ON CONFLICT 로 끝나는 INSERT 도 이 트리거를 먼저 지나 빈 프로젝트가 쌓인다
+-- 같은 접두사가 이미 있으면 그 프로젝트를 쓴다. ON CONFLICT 로 끝나는 INSERT 도 이 트리거를 먼저 지나서, 안 그러면 빈 프로젝트가 쌓인다
 CREATE FUNCTION service_default_project() RETURNS trigger AS $$
 BEGIN
   IF NEW.project_id IS NULL THEN
