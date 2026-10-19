@@ -1,4 +1,4 @@
-// 케이스 목록의 검색 조건 상태 — 찾기 · 디바이스 · 표시 · 마지막 결과 · 설계 기법 · 종류 · 묶음 · 요구 번호 · 쪽 (SPEC §8.1 「검색 조건」 표가 정본)
+// 케이스 목록의 검색 조건 상태 — 찾기 · 디바이스 · 표시 · 마지막 결과 · 설계 기법 · 종류 · API 서버 · 묶음 · 요구 번호 · 쪽 (SPEC §8.1 「검색 조건」 표가 정본)
 // CaseList 가 300줄에 닿아 상태만 떼어 냈다. 고른 것 · 고친 값 · 그리는 일은 CaseList 에 남는다
 // 조건은 주소에 남는다 — 상세 · 실행 결과에 갔다 뒤로 와도 그대로다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
 
@@ -54,6 +54,8 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
   const [기법, set기법] = useState<기법고름>(() => (kind === 'FN' ? 고른값(처음.get('tech'), 기법고름들, 'ALL') : 'ALL'));
   // 종류 칩은 기능 목록에만 있다 — UI 목록은 전부 UI 라 거를 것이 없다
   const [축, set축] = useState<케이스축 | 'ALL'>(() => (kind === 'FN' ? 고른값(처음.get('axis'), 케이스축들.filter((it) => it !== 'UI'), 'ALL') : 'ALL'));
+  // API 서버 이름은 프로젝트 것이라 서비스를 바꾸면 비운다. 이름이 사라졌으면 서버가 빈 목록을 내고 걸린 칩의 ✕ 로 푼다 (도메인/카탈로그 §8.1 「API 서버」)
+  const [서버, set서버] = useState<string | null>(처음.get('api') || null);
   const [묶음, set묶음] = useState(주소묶음(처음));
   const [요구, set요구] = useState<string | null>(처음요구 ?? null);
   // 오른쪽 상세 칸에 연 케이스. 조건이 아니라 「보고 있는 것」이라 조건을 지워도 그대로 둔다 (⑫ 시안 A)
@@ -69,6 +71,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     ...(결과 === 'ALL' ? {} : { last: 결과 }),
     ...(기법 === 'ALL' ? {} : { tech: 기법 }),
     ...(축 === 'ALL' ? {} : { axis: 축 }),
+    ...(서버 === null ? {} : { api: 서버 }),
     ...(묶음 === null ? {} : { g: 묶음.feature, gn: 묶음.이름, ...(묶음.screen === undefined ? {} : { gs: 묶음.screen }), ...(묶음.part === undefined ? {} : { gp: 묶음.part }) }),
     ...(열린 === null ? {} : { case: 열린 }),
   });
@@ -82,6 +85,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     ...(활성만 ? {} : { active: false }),
     ...(기법 === 'ALL' ? {} : { technique: 기법 }),
     ...(축 === 'ALL' ? {} : { axis: 축 }),
+    ...(서버 === null ? {} : { apiServer: 서버 }),
     ...(묶음 === null ? {} : { feature: 묶음.feature, ...(묶음.screen === undefined ? {} : { screen: 묶음.screen }), ...(묶음.part === undefined ? {} : { part: 묶음.part }) }),
     ...(요구 === null ? {} : { req: 요구 }),
     ...(결과 === 'ALL' ? {} : { last: 결과 }),
@@ -106,17 +110,19 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     결과,
     기법,
     축,
+    서버,
     묶음,
     요구,
     열린,
     set열린,
     조건,
-    건조건: q !== '' || 디바이스 !== 'ALL' || !활성만 || 결과 !== 'ALL' || 기법 !== 'ALL' || 축 !== 'ALL' || 묶음 !== null || 요구 !== null,
+    건조건: q !== '' || 디바이스 !== 'ALL' || !활성만 || 결과 !== 'ALL' || 기법 !== 'ALL' || 축 !== 'ALL' || 서버 !== null || 묶음 !== null || 요구 !== null,
     on디바이스: 바꾸면첫쪽(set디바이스),
     on활성만: 바꾸면첫쪽(set활성만),
     on결과: 바꾸면첫쪽(set결과),
     on기법: 바꾸면첫쪽(set기법),
     on축: 바꾸면첫쪽(set축),
+    on서버: 바꾸면첫쪽(set서버),
     on묶음: 바꾸면첫쪽(set묶음),
     요구지우기: () => 바꾸면첫쪽(set요구)(null),
     search(term: string) {
@@ -129,6 +135,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
       set열린(null);
       setQ('');
       setTyped('');
+      set서버(null);
       set묶음(null);
       set요구(null);
     },
@@ -140,6 +147,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
       set결과('ALL');
       set기법('ALL');
       set축('ALL');
+      set서버(null);
       set묶음(null);
       set요구(null);
       setPage(1);

@@ -12,7 +12,7 @@ import { CaseDetail } from './CaseDetail.js';
 import { 빈기억 } from './caseDetailView.js';
 import { use엑셀받기 } from './CaseExport.js';
 import { use검색조건 } from './CaseListFilter.js';
-import { 걸린칩들, 묶음머리줄 } from './CaseListContext.js';
+import { 걸린칩들, 묶음머리줄, 서버칩들 } from './CaseListContext.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
 import { 쪽넘기기, 표머리 } from './CaseListHead.js';
 import { 기법고르개, 조건칩들, 종류칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
@@ -44,7 +44,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   // 고치기 요청 상자를 닫으면 그 상자를 연 버튼이 고른 것과 같이 사라진다 — 포커스는 주 행동으로 보낸다
   const 실행단추 = useRef<HTMLButtonElement>(null);
 
-  const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 결과, 검색.기법, 검색.축, 검색.묶음, 검색.요구]);
+  const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 결과, 검색.기법, 검색.축, 검색.서버, 검색.묶음, 검색.요구]);
   const scan = useAsync(() => api.lastScan(service), [service]);
   const 요구쓰나 = cases.data?.hasFeatures ?? false;
   const 접기 = use묶음접기(cases.data?.groups, 요구쓰나);
@@ -186,7 +186,8 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
         {/* 디바이스 · 표시 칩처럼 고른 것은 그대로 둔다 — 다른 쪽에서 고른 것을 말없이 버리지 않는다 (도메인/카탈로그 §8.1 「설계 기법」) */}
         {kind !== 'FN' ? null : <종류칩들 축={검색.축} on축={검색.on축} />}
         {kind !== 'FN' ? null : <기법고르개 기법={검색.기법} on기법={검색.on기법} />}
-        <걸린칩들 검색={검색} />
+        <서버칩들 서버={검색.서버} 목록={cases.data?.apiServers ?? []} on서버={검색.on서버} />
+        <걸린칩들 검색={검색} 서버목록={cases.data === null ? undefined : (cases.data.apiServers ?? [])} />
         {엑셀.버튼}
       </div>
       {엑셀.알림}

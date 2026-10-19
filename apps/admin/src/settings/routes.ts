@@ -10,6 +10,7 @@ import { 화면크기목록 } from '../prd/screens.js';
 import { 시간대확인, 틀린시간대 } from '../reporting/dashboardResults.js';
 import { 정수 } from '../routeParams.js';
 
+import { API서버라우트 } from './apiServerRoutes.js';
 import { 역할까닭찾기 } from './roles.js';
 import { 프로젝트만들기, 프로젝트목록, 프로젝트이름고치기 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
@@ -177,6 +178,8 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     await 프로젝트이름고치기(id, parsed.data.name);
     return { ok: true };
   });
+
+  API서버라우트(app);
 
   app.get('/settings/services', async () => ({ items: await 서비스목록() }));
 

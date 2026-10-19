@@ -53,6 +53,8 @@ export interface CaseRow {
   feature?: string | null;
   reqs?: CaseReq[];
   screens?: CaseScreen[];
+  /** 케이스를 실행해서 부른 호스트에 붙은 API 서버 이름 — 목록 응답에만 온다. 없으면 [] (도메인/카탈로그 §8.1 「API 서버」) */
+  apiServers?: string[];
 }
 
 /** 지도 ① 의 축 칸 — 서버 `catalog/context.ts` 와 같은 넷. 값 목록은 주소에서 읽은 조건을 거를 때 쓴다 */
@@ -110,6 +112,8 @@ export interface CasePage extends Paged<CaseRow> {
   hasApp?: boolean;
   /** 마지막 결과 칩의 건수 — last 를 뺀 조건에 맞은 전부다. 실행 read 가 없으면 null (도메인/카탈로그 §7) */
   lastCounts?: { total: number; pass: number; fail: number; na: number } | null;
+  /** API 서버 칩 — 이름마다 하나, 건수는 apiServer 를 뺀 조건에 맞은 케이스 수. 이름이 없으면 [] 라 칩 줄을 안 그린다 (도메인/카탈로그 §7) */
+  apiServers?: { name: string; count: number }[];
 }
 
 export interface LastScan {
@@ -771,6 +775,13 @@ export interface SettingsProject {
   name: string;
 }
 
+/** 설정 › 프로젝트 › API 서버 한 줄 — 케이스가 부른 호스트와 붙은 이름 (도메인/인증 §7 `…/api-servers`) */
+export interface SettingsApiServer {
+  host: string;
+  name: string | null;
+  cases: number;
+}
+
 export interface UserRow {
   username: string;
   displayName: string;
@@ -956,6 +967,8 @@ export interface CaseQuery {
   part?: string;
   axis?: 케이스축;
   req?: string;
+  /** API 서버 이름. 그 이름이 붙은 호스트를 실행해서 부른 케이스만 (도메인/카탈로그 §7 `?apiServer=`) */
+  apiServer?: string;
   /** 마지막 결과. 서버가 전체에서 거른다 (도메인/카탈로그 §7 `?last=`) */
   last?: ItemStatus;
 }
@@ -970,7 +983,7 @@ function 케이스조건(query: CaseQuery): URLSearchParams {
   if (query.technique !== undefined) params.set('technique', query.technique);
   // feature 는 빈 글자도 보낸다 — 「기능 묶음 없음」이다
   if (query.feature !== undefined) params.set('feature', query.feature);
-  for (const 칸 of ['screen', 'part', 'axis', 'req'] as const) {
+  for (const 칸 of ['screen', 'part', 'axis', 'req', 'apiServer'] as const) {
     const 값 = query[칸];
     if (값 !== undefined) params.set(칸, 값);
   }
@@ -1211,6 +1224,12 @@ export const api = {
 
   renameProject: (id: number, name: string) =>
     call<{ ok: true }>(`/settings/projects/${id}`, { ...json({ name }), method: 'PATCH' }),
+
+  projectApiServers: (id: number) => call<{ items: SettingsApiServer[] }>(`/settings/projects/${id}/api-servers`),
+
+  /** 준 호스트의 이름만 갈아 끼운다. 빈 이름은 지우기다 */
+  saveProjectApiServers: (id: number, items: { host: string; name: string }[]) =>
+    call<{ ok: true }>(`/settings/projects/${id}/api-servers`, { ...json({ items }), method: 'PUT' }),
 
   settingsServices: () => call<{ items: SettingsServiceRow[] }>('/settings/services'),
 

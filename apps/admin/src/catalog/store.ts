@@ -5,7 +5,7 @@ import type { Pool } from 'pg';
 import type { CaseSpec, ItemStatus, Platform, Technique } from '@platform/kit';
 
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
-import { 맥락, 맥락거르기, 맥락읽기, 요구로찾기, 줄세우기, type CaseContext, type CaseGroup, type 맥락조건 } from './context.js';
+import { API서버세기, 맥락, 맥락거르기, 맥락읽기, 요구로찾기, 줄세우기, type CaseContext, type CaseGroup, type 맥락조건 } from './context.js';
 import type { 판정함수 } from './last.js';
 // 화면이 가리는 칸과 응답에서 빼는 칸이 같아야 한다. 판단을 둘로 두면 한쪽만 고쳐진다
 import { 저장값나누기 } from '../web/mask.js';
@@ -171,6 +171,8 @@ export interface CaseList {
   hasApp: boolean;
   // last 를 뺀 조건에 맞은 전부를 센다 — 칩을 걸어도 그대로라 칩마다 몇 건인지 보인다 (카탈로그 §7). 판정이 없으면 null
   lastCounts: LastCounts | null;
+  // 서비스의 케이스가 부른 호스트에 붙은 이름마다 하나 — apiServer 를 뺀 조건에 맞은 케이스 수(칩 건수). 이름이 없으면 [] (카탈로그 §7 · §8.1 「API 서버」)
+  apiServers: { name: string; count: number }[];
 }
 
 export async function listCases(query: CaseQuery): Promise<CaseList> {
@@ -220,12 +222,17 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     ],
   );
   const 기기 = new Map(맞은번호.rows.map((r) => [r.tc_id, r.platforms]));
-  const 맞은 = 맥락거르기(맞은번호.rows.map((r) => r.tc_id), 표, query);
+  // 서버 칩 건수는 apiServer 만 뺀 조건에 맞은 케이스를 센다 — 칩을 걸어도 칩마다 몇 건인지 그대로 보이게
+  const 서버뺀 = 맥락거르기(맞은번호.rows.map((r) => r.tc_id), 표, { ...query, apiServer: undefined });
+  const 맞은 = query.apiServer === undefined ? 서버뺀 : 맥락거르기(서버뺀, 표, { apiServer: query.apiServer });
   const 마지막 = query.마지막;
-  const 판정 = 마지막 === undefined ? null : new Map(맞은.map((id) => [id, 마지막.판정(id, 기기.get(id) ?? [])]));
-  const 셈 = (s: ItemStatus) => [...(판정?.values() ?? [])].filter((x) => x === s).length;
+  const 판정 = 마지막 === undefined ? null : new Map(서버뺀.map((id) => [id, 마지막.판정(id, 기기.get(id) ?? [])]));
+  const 셈 = (s: ItemStatus) => 맞은.filter((id) => 판정?.get(id) === s).length;
   const lastCounts = 판정 === null ? null : { total: 맞은.length, pass: 셈('PASS'), fail: 셈('FAIL'), na: 셈('NA') };
-  const { 차례, groups } = 줄세우기(마지막?.last === undefined ? 맞은 : 맞은.filter((id) => 판정?.get(id) === 마지막.last), 표);
+  const 마지막맞나 = (id: string) => 마지막?.last === undefined || 판정?.get(id) === 마지막.last;
+  const { 차례, groups } = 줄세우기(맞은.filter(마지막맞나), 표);
+  // 칩 이름은 글자 · 디바이스 · 종류 · 활성 여부 · 기법에 드는 케이스가 부른 것만 — 숨긴 비활성 케이스의 이름이 0건 칩으로 남지 않게. 맥락 조건(묶음 · 요구)으로 0건이 된 이름은 남긴다
+  const 이름들 = [...new Set(맞은번호.rows.flatMap((r) => 표.get(r.tc_id)?.apiServers ?? []))].sort((a, b) => a.localeCompare(b));
   const 이쪽 = query.pageSize === null ? 차례 : 차례.slice((query.page - 1) * query.pageSize, query.page * query.pageSize);
   const 읽은 = 이쪽.length === 0 ? [] : (await pool.query<RawRow>(`SELECT ${COLUMNS} FROM ${FROM} WHERE tc_id = ANY($1::text[])`, [이쪽])).rows;
   const 행 = new Map(읽은.map((r) => [r.tc_id, r]));
@@ -244,6 +251,7 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
     hasFeatures: [...표.values()].some((x) => x.feature !== null),
     hasApp: 앱.rows[0]?.has === true,
     lastCounts,
+    apiServers: API서버세기(서버뺀.filter(마지막맞나), 표, 이름들),
   };
 }
 
