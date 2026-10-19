@@ -260,6 +260,16 @@ describe('피그마를 미리 막는다 (점검 11.5)', () => {
     expect(부름.map((b) => b.무엇)).toEqual(['만들기']);
   });
 
+  it('까닭 없이 FIGMA_DENIED 만 오면 빈 주소를 단 문장을 짓지 않는다', async () => {
+    만들기답 = Promise.reject(new ApiError(400, 'FIGMA_DENIED', ''));
+    render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
+    피그마를적는다('https://www.figma.com/design/A/');
+    fireEvent.click(보내기());
+
+    await waitFor(() => expect(document.querySelector('.error-text')).not.toBeNull());
+    expect(screen.queryByText(/피그마 파일을 열지 못했습니다/)).toBeNull();
+  });
+
   it('토큰이 틀린 까닭도 운영자에게는 설정 길을 안내한다', async () => {
     만들기답 = Promise.reject(new ApiError(400, 'FIGMA_DENIED', 'TOKEN'));
     render(<AuthoringNew service="PAY" 운영자 on넣었다={() => {}} />);

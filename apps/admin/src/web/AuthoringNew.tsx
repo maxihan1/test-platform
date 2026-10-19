@@ -126,7 +126,10 @@ export function AuthoringNew({
 
   function 사유(err: unknown): string {
     if (err instanceof ApiError && err.status === 413) return t('파일 크기가 한 파일 상한을 넘었습니다');
-    if (err instanceof ApiError && err.code === 'FIGMA_DENIED') return 피그마거절말(err.message, 운영자, t);
+    // 까닭이 세 꼴이 아니면(프록시가 본문을 지운 경우 등) 빈 주소를 단 파일 문장을 지어내지 않고 공통 번역으로 넘긴다
+    if (err instanceof ApiError && err.code === 'FIGMA_DENIED' && /^(NO_TOKEN|TOKEN|FILE:.+)$/.test(err.message)) {
+      return 피그마거절말(err.message, 운영자, t);
+    }
     const 말 = err instanceof ApiError ? ((운영자 ? 운영자작성오류[err.code] : undefined) ?? 작성오류[err.code]) : undefined;
     return 말 === undefined ? message(err, 언어) : t(말);
   }

@@ -50,6 +50,11 @@ describe('피그마막힘판정', () => {
     expect(await 피그마막힘판정([하나], 'figd_bad')).toBe('TOKEN');
   });
 
+  it('403 「Invalid scope(s)」도 TOKEN — 읽기 범위가 모자란 토큰은 토큰을 바꿔야 풀린다', async () => {
+    피그마가(답(403, { status: 403, err: 'Invalid scope(s): file_content:read' }));
+    expect(await 피그마막힘판정([하나], 'figd_bad')).toBe('TOKEN');
+  });
+
   it('401 도 TOKEN', async () => {
     피그마가(답(401));
     expect(await 피그마막힘판정([하나], 'figd_bad')).toBe('TOKEN');

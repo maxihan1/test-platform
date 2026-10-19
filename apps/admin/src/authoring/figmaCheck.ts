@@ -44,7 +44,8 @@ async function 열어보기(키: string, 토큰: string): Promise<열림> {
   if (res.status === 404) return 'FILE';
   if (res.status !== 403) return 'UNKNOWN';
   const 본문 = (await res.json().catch(() => null)) as { err?: unknown } | null;
-  return typeof 본문?.err === 'string' && /token/i.test(본문.err) ? 'TOKEN' : 'FILE';
+  // 읽기 범위(scope)가 모자란 토큰의 403(「Invalid scope(s)」)도 토큰을 바꿔야 풀린다 — 파일 문제로 알리면 엉뚱한 곳을 본다
+  return typeof 본문?.err === 'string' && /token|scope/i.test(본문.err) ? 'TOKEN' : 'FILE';
 }
 
 /**
