@@ -164,6 +164,11 @@ describe('결과 줄의 기기 정보 (APP-F1-05)', () => {
     expect(끝줄([{ name: DEVICE_ATTACHMENT, contentType: 'application/json', body }]).device).toEqual(기기);
   });
 
+  it('기기 첨부가 깨졌으면 device 만 빼고 결과 줄은 낸다', () => {
+    vi.spyOn(process.stderr, 'write').mockReturnValue(true);
+    expect('device' in 끝줄([{ name: DEVICE_ATTACHMENT, contentType: 'application/json', body: Buffer.from('{깨짐') }])).toBe(false);
+  });
+
   it('없으면 device 칸이 없다 — 브라우저 항목', () => {
     expect('device' in 끝줄([])).toBe(false);
   });

@@ -68,7 +68,14 @@ function attachmentText(a: TestResult['attachments'][number]): string | undefine
 function deviceOf(result: TestResult): DeviceInfo | undefined {
   const a = result.attachments.find((x) => x.name === DEVICE_ATTACHMENT);
   const raw = a === undefined ? undefined : attachmentText(a);
-  return raw === undefined ? undefined : (JSON.parse(raw) as DeviceInfo);
+  if (raw === undefined) return undefined;
+  // 곁들이는 값이다 — 깨졌다고 결과 줄(절차 · 판정)까지 잃으면 안 된다
+  try {
+    return JSON.parse(raw) as DeviceInfo;
+  } catch (err) {
+    process.stderr.write(`[kit] 기기 정보를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}\n`);
+    return undefined;
+  }
 }
 
 function statusOf(result: TestResult, steps: StepResult[]): ItemStatus {

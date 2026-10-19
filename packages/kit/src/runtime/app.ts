@@ -87,15 +87,19 @@ const 글자 = (v: unknown): string | null => (typeof v === 'string' && v !== ''
  */
 export async function readDevice(driver: AppDriver): Promise<DeviceInfo> {
   const caps = driver.capabilities as Record<string, unknown>;
+  // 드라이버 판에 따라 이름 앞에 appium: 이 붙어 오기도 한다
+  const 칸 = (이름: string): string | null => 글자(caps[이름]) ?? 글자(caps[`appium:${이름}`]);
+  const pkg = 칸('appPackage');
+  // 앱 이름이 응답에 없으면 묻지 않는다 — 앞에 뜬 앱(런처 · 권한 창)에 물으면 남의 판이 증적에 박힌다
+  if (pkg === null) return { model: 칸('deviceModel'), osVersion: 칸('platformVersion'), appVersion: null };
   let appVersion: string | null = null;
   try {
-    const pkg = 글자(caps.appPackage) ?? (await driver.getCurrentPackage());
     const out = await driver.execute('mobile: shell', { command: 'dumpsys', args: ['package', pkg] });
     appVersion = /versionName=(\S+)/.exec(String(out))?.[1] ?? null;
   } catch (err) {
     console.error(`[kit] 앱 판을 읽지 못했다 — Appium 을 --allow-insecure=uiautomator2:adb_shell 로 켜야 한다: ${err instanceof Error ? err.message : String(err)}`);
   }
-  return { model: 글자(caps.deviceModel), osVersion: 글자(caps.platformVersion), appVersion };
+  return { model: 칸('deviceModel'), osVersion: 칸('platformVersion'), appVersion };
 }
 
 export function captureApp(driver: AppDriver, seq: number): Promise<string | undefined> {

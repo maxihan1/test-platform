@@ -318,7 +318,8 @@ export async function finishItem(historyId: number, result: ExecuteResponse): Pr
         result.status,
         result.durationMs,
         result.error === undefined ? null : JSON.stringify(result.error),
-        result.device === undefined ? null : JSON.stringify(result.device),
+        // 객체가 아니면 칸 제약에 걸려 판정 · 절차까지 되돌려진다 — 곁들이는 값만 버린다
+        typeof result.device === 'object' && result.device !== null && !Array.isArray(result.device) ? JSON.stringify(result.device) : null,
       ],
     );
     if (closed.rowCount === 0) {
