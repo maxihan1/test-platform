@@ -164,6 +164,13 @@ describe('Grafana 는 로그인 뒤에 있다', () => {
     }
   });
 
+  // 데이터 연결 부품마다 프로세스가 하나씩 떠 메모리를 잡는다. postgres 까지 끄면 대시보드가 빈다 (2026-10-19)
+  it('안 쓰는 데이터 연결 부품을 끄되 postgres 는 남긴다', () => {
+    const 끈것 = /^ {6}GF_PLUGINS_DISABLE_PLUGINS:\s*"([^"]*)"/m.exec(grafana)?.[1]?.split(',') ?? [];
+    expect(끈것).toContain('prometheus');
+    expect(끈것.filter((id) => id.includes('postgres'))).toEqual([]);
+  });
+
   it('옛 포트 설정(GRAFANA_PORT · VITE_GRAFANA_PORT)이 어디에도 없다', () => {
     const env예시 = readFileSync(resolve(process.cwd(), '.env.example'), 'utf8');
     for (const 글 of [compose, dockerfile, env예시]) {
@@ -185,5 +192,32 @@ describe('내 컴퓨터 러너(테스트 실행)', () => {
 
   it('.env.example 에 LOCAL_RUNNER_URL 이 있다', () => {
     expect(readFileSync(resolve(process.cwd(), '.env.example'), 'utf8')).toMatch(/^LOCAL_RUNNER_URL=/m);
+  });
+});
+
+// npx tsx 는 진짜 node 앞에 npm · sh · tsx 프로세스를 더 띄워 상자마다 40MB 쯤 잡는다.
+// node 를 바로 띄우면 PID 1 이 되어 종료 신호를 무시하고 강제 종료되므로 init 이 있어야 한다 (SPEC 공통/6 §9, 2026-10-19)
+describe('상자는 node 를 바로 띄운다', () => {
+  const 시작줄 = (경로: string) =>
+    readFileSync(resolve(process.cwd(), 경로), 'utf8')
+      .split('\n')
+      .filter((줄) => /^(CMD|exec) /.test(줄));
+
+  it('admin · runner · author 시작 줄이 npx 를 거치지 않는다', () => {
+    expect(시작줄('apps/admin/Dockerfile')).toEqual(['CMD ["node", "--import", "tsx", "apps/admin/src/app.ts"]']);
+    expect(시작줄('apps/runner/Dockerfile')).toEqual(['CMD ["node", "--import", "tsx", "apps/runner/src/server.ts"]']);
+    expect(시작줄('apps/authoring/start.sh')).toEqual(['exec node --import tsx scripts/authoring-agent.ts']);
+  });
+
+  // npx 가 붙여 주던 자리다. 빠지면 자식 세션이 tsc · playwright 를 이름만으로 못 찾는다
+  it('author 는 부품 명령 자리를 PATH 에 붙이고 시작한다', () => {
+    expect(readFileSync(resolve(process.cwd(), 'apps/authoring/start.sh'), 'utf8')).toMatch(
+      /^export PATH="\/repo\/node_modules\/\.bin:\$PATH"\nexec node /m,
+    );
+  });
+
+  it('admin · runner 에 init 이 붙는다', () => {
+    expect(서비스블록('admin')).toMatch(/^ {4}init:\s*true/m);
+    expect(서비스블록('runner')).toMatch(/^ {4}init:\s*true/m);
   });
 });

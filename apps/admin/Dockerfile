@@ -31,4 +31,5 @@ COPY scripts ./scripts
 RUN npx vite build --config apps/admin/src/web/vite.config.ts
 
 EXPOSE 3000
-CMD ["npx", "tsx", "apps/admin/src/app.ts"]
+# npx 를 거치면 npm · sh · tsx 프로세스가 앞에 더 떠 메모리를 잡는다. 종료 신호는 compose 의 init 이 넘긴다 (SPEC 공통/6 §9)
+CMD ["node", "--import", "tsx", "apps/admin/src/app.ts"]

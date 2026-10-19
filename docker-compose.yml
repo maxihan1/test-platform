@@ -44,6 +44,8 @@ services:
       context: .
       dockerfile: apps/admin/Dockerfile
     restart: unless-stopped
+    # node 를 바로 띄우면(npx 없이) PID 1 이 되어 종료 신호를 무시하고 stop 이 10초 뒤 강제로 끈다. init 이 넘겨주고 고아를 거둔다 (SPEC 공통/6 §9)
+    init: true
     ports:
       - "${ADMIN_PORT:-3000}:3000"
     depends_on:
@@ -92,6 +94,7 @@ services:
       context: .
       dockerfile: apps/runner/Dockerfile
     restart: unless-stopped
+    init: true                 # admin 과 같다
     # 바깥 포트를 열지 않는다. admin이 컨테이너 네트워크 안에서만 부른다.
     # 러너에는 로그인이 없어 포트가 열려 있으면 인증을 건너뛰는 뒷길이 된다 (SPEC §3.5 · §9).
     # 손으로 볼 때는 docker compose exec runner wget -qO- localhost:4000/health
@@ -153,7 +156,7 @@ services:
     shm_size: 2g              # Chromium 이 /dev/shm 을 넉넉히 쓴다
 
   grafana:
-    image: grafana/grafana:13.2.2   # 실측한 판으로 고정 — 올릴 때는 auth proxy 확인을 다시 돈다 (SPEC 공통/6 §9.1)
+    image: grafana/grafana:13.2.2   # 실측한 판으로 고정 — 올릴 때는 auth proxy 확인 · 끈 데이터 연결 부품 목록을 다시 본다 (SPEC 공통/6 §9.1)
     restart: unless-stopped
     # 바깥 포트를 열지 않는다 (2026-09-28). admin 이 /grafana/ 로 대신 열고 로그인한 사람 이름을 헤더로 넘긴다.
     # Grafana 는 그 헤더를 믿으므로 admin 말고는 닿으면 안 된다 — 러너와 같은 망에 두지 않는다 (도메인/인증 §7 「Grafana 통로」)
@@ -175,6 +178,9 @@ services:
       # %(protocol)s 는 compose 변수가 아니라 Grafana 가 채우는 자리다. $ 가 없어 compose 가 건드리지 않는다
       GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # 데이터 연결 부품은 하나에 프로세스 하나(30MB 쯤)를 띄운다. 쓰는 건 postgres 하나라 나머지를 끈다.
+      # 판을 올리면 이미지의 /usr/share/grafana/data/plugins-bundled 목록을 다시 본다 — 새 부품은 켜진 채로 뜬다
+      GF_PLUGINS_DISABLE_PLUGINS: "elasticsearch,grafana-pyroscope-datasource,influxdb,jaeger,loki,mssql,mysql,opentsdb,prometheus,stackdriver,tempo,zipkin"
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro   # WS-D가 채운다
     networks: [dashboard]     # admin · postgres 하고만

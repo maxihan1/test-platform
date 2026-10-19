@@ -628,7 +628,7 @@ DATABASE_URL=postgres://platform:platform@127.0.0.1:5433/tp_<이름> npx vitest 
 
 ```bash
 docker build -f apps/runner/Dockerfile -t tp-runner-check .
-docker run --rm --name tp-runner-check -p 127.0.0.1:4099:4000 \
+docker run --rm --init --name tp-runner-check -p 127.0.0.1:4099:4000 \
   -v "$PWD/apps/runner/scenario/fixtures:/tests:ro" -e PLATFORM_TESTS_DIR=/tests tp-runner-check     # 다른 창에서 둔다
 npx tsx apps/runner/scenario/e2e-server.ts 4098 127.0.0.1                                             # 또 다른 창 — 받은 요청을 한 줄씩 찍는다
 curl -s -X POST -H 'content-type: application/json' --data @<요청.json> http://127.0.0.1:4099/execute-scenario
