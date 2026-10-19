@@ -201,9 +201,10 @@ export function 보일줄들(
   언어: 언어,
   보는실행: number | null = null,
 ): { 줄들: 줄[]; 넘친수: number } {
-  // 결과 화면 머리에 같은 진행이 있어 보고 있는 실행의 도는 줄은 겹친다. 끝난 줄은 소식이라 남긴다
+  // 결과 화면 머리에 같은 진행이 있어 보고 있는 실행의 도는 줄은 겹친다. 끝난 줄은 소식이라 남긴다.
+  // E2E 결과 머리에는 진행 글이 없어 E2E 줄은 남긴다
   const 도는것 = 답.running
-    .filter((n) => n.kind === 'authoring' || n.runId !== 보는실행)
+    .filter((n) => n.kind !== 'run' || n.runId !== 보는실행)
     .sort((a, b) => 도는차례[a.kind] - 도는차례[b.kind] || 번호(b) - 번호(a));
   const 끝난것 = 답.recent
     .filter((n) => !읽음.has(읽음열쇠(n)) && 지금 - Date.parse(n.finishedAt) < 끝난소식유효)
@@ -212,16 +213,6 @@ export function 보일줄들(
   const 전부: 줄[] = [...도는것.map((n) => 도는줄만들기(n, 지금, 언어)), ...끝난것.map((n) => 끝난줄만들기(n, 언어))];
   if (전부.length <= 줄최대) return { 줄들: 전부, 넘친수: 0 };
   return { 줄들: 전부.slice(0, 줄최대 - 1), 넘친수: 전부.length - (줄최대 - 1) };
-}
-
-/**
- * 지금 결과를 보고 있는 실행 번호 — `#/runs/<번호>` 와 실행 기록의 `#/runs/ui?run=<번호>` 만.
- * 항목 상세(`#/runs/<번호>/items/…`)는 진행 머리가 없는 화면이라 보는 것으로 치지 않는다
- */
-export function 보는실행번호(해시: string): number | null {
-  const 맞음 = /^#\/runs\/(?:(\d{1,10})(?:\?.*)?|[a-z0-9]+\?(?:.*&)?run=(\d{1,10})(?:&.*)?)$/.exec(해시);
-  const 글 = 맞음?.[1] ?? 맞음?.[2];
-  return 글 === undefined ? null : Number(글);
 }
 
 /** 「알림」 버튼의 배지 수 — 서랍에 있는(7일) 것 가운데 이 브라우저가 아직 안 읽은 것 */

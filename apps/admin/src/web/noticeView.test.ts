@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { 끝난글, 끝난줄만들기, 도는줄만들기, 보는실행번호, 보일줄들, 상대시각, 서랍목록, 안읽은수, 읽음열쇠, 줄최대, type 끝난줄, type 도는줄 } from './noticeView.js';
+import { 끝난글, 끝난줄만들기, 도는줄만들기, 보일줄들, 상대시각, 서랍목록, 안읽은수, 읽음열쇠, 줄최대, type 끝난줄, type 도는줄 } from './noticeView.js';
 import { 끝난실행, 끝난작성, 도는E2E, 도는실행, 도는작성, 전에 } from './notice.fixture.js';
 
 const 지금 = Date.now();
@@ -148,16 +148,8 @@ describe('보일 줄 고르기', () => {
   it('보고 있는 실행의 도는 줄만 뺀다 — 끝난 줄과 다른 실행 · 작성은 그대로다', () => {
     const 답 = { running: [도는실행(5), 도는E2E(7), 도는작성(5)], recent: [끝난실행(5)] };
     expect(보일줄들(답, 없음, 지금, 'ko', 5).줄들.map((줄) => 줄.열쇠)).toEqual(['run:7', 'authoring:5', 'run:5']);
-    expect(보일줄들(답, 없음, 지금, 'ko', 7).줄들.map((줄) => 줄.열쇠)).toEqual(['run:5', 'authoring:5', 'run:5']);
-  });
-
-  it('보는 실행 번호는 실행 결과 주소와 실행 기록의 고른 실행에서 읽는다', () => {
-    expect(보는실행번호('#/runs/2113')).toBe(2113);
-    expect(보는실행번호('#/runs/ui?run=2113&state=FAIL')).toBe(2113);
-    expect(보는실행번호('#/runs/fn?state=FAIL&run=7')).toBe(7);
-    expect(보는실행번호('#/runs/ui')).toBeNull();
-    expect(보는실행번호('#/runs/123/items/161')).toBeNull();
-    expect(보는실행번호('#/cases/ui?run=5')).toBeNull();
+    // E2E 결과 머리에는 진행 글이 없어 E2E 줄은 보고 있어도 남는다
+    expect(보일줄들(답, 없음, 지금, 'ko', 7).줄들.map((줄) => 줄.열쇠)).toContain('run:7');
   });
 
   it('알릴 것이 없으면 줄이 없다', () => {

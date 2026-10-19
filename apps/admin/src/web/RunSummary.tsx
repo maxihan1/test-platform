@@ -34,6 +34,8 @@ export function RunSummary({
   const 조각들 = 도넛조각({ pass: counts.pass, fail: counts.fail, notRun: counts.na });
   const 미확정 = 그중미확정글(counts, 언어);
   const 앞 = insights?.previous ?? null;
+  // 번호 자리만 고리로 만든다. 영어 표에서도 번호 자리가 어디든 맞도록 글을 만든 뒤 그 자리에서 가른다
+  const [직전앞, 직전뒤] = t('직전 실행 {실행} 대비 · 케이스 수', { 실행: '\u0000' }).split('\u0000');
 
   const 칸들 = [
     { 값: 'ALL', 종류: 'a', 이름: t('전체'), 수: 전체 },
@@ -120,7 +122,12 @@ export function RunSummary({
 
         {insights === null || 앞 === null ? null : (
           <div className="rs-diff">
-            <span className="rs-axis">{t('직전 실행 RUN {번호} 대비 · 케이스 수', { 번호: 앞.runId })}</span>
+            {/* 견준 실행으로 바로 간다 — 앞 판은 옆 칸 「비교 기준」이 이 고리를 들었다 */}
+            <span className="rs-axis">
+              {직전앞}
+              <a href={`#/runs/${String(앞.runId)}`}>RUN {앞.runId}</a>
+              {직전뒤}
+            </span>
             <div className="rs-stats">
               <div className="rs-stat">
                 <span className="rs-k f">{t('신규 실패')}</span>

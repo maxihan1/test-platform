@@ -5,7 +5,7 @@ import type { RunInsights as 비교 } from './api.js';
 import { use말 } from './i18n.js';
 import { PLATFORM_LABEL } from './ui.js';
 
-/** 직전 실행에서 깨졌다가 이번에 통과한 (케이스, 디바이스). 요약 띠의 「해결」 수와 같은 값이다 */
+/** 직전 실행에서 깨졌다가 이번에 통과한 (케이스, 디바이스). 줄마다 디바이스를 적는다 — 수는 케이스로 센다(아래) */
 export function 해결들(견줌: 비교 | null) {
   return 견줌 === null ? [] : 견줌.케이스들.filter((c) => c.판정 === '고쳐짐');
 }
@@ -20,10 +20,12 @@ export function 해결목록({ insights }: { insights: 비교 | null }) {
   const t = use말();
   const 해결 = 해결들(insights);
   if (해결.length === 0) return null;
+  // 바로 위 요약 띠의 「해결」 수와 같은 단위 — 케이스 수다 (§8.3 「큰 숫자는 케이스 수다」 · 점검 2.15)
+  const 케이스수 = new Set(해결.map((c) => c.tcId)).size;
 
   return (
     <details className="rr-fold">
-      <summary>{t('해결 {건수}', { 건수: 해결.length })}</summary>
+      <summary>{t('해결 {건수}', { 건수: 케이스수 })}</summary>
       {해결.map((c) => (
         <div className="rr-fixed" key={`${c.tcId}\u0000${c.platform}`}>
           <span className="mono">{c.tcId}</span> {c.tcName} · {PLATFORM_LABEL[c.platform]}

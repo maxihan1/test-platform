@@ -8,7 +8,8 @@ import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
 import { NoticeDrawer } from './NoticeDrawer.js';
 import { 읽음들, 읽음바뀜, 읽음으로적는다, 읽음정리 } from './noticeRead.js';
-import { 끝난글, 보는실행번호, 보일줄들, 안읽은수, 읽음열쇠, type 끝난줄, type 도는줄, type 줄 as 줄타입 } from './noticeView.js';
+import { 끝난글, 보일줄들, 안읽은수, 읽음열쇠, type 끝난줄, type 도는줄, type 줄 as 줄타입 } from './noticeView.js';
+import { use보는실행 } from './viewedRun.js';
 
 /**
  * 도는 것이 있으면 3초, 없으면 20초마다 묻는다. E2E 실행만 돌면 20초다 — 도중 진척이 없어 자주 물어도 바뀌는 것이 없다. 서비스 고르개와 상관없이 볼 수 있는 서비스 전체를 받는다.
@@ -144,7 +145,8 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
   const { 답, 막힘 } = use알림받기();
   const [읽음, set읽음] = useState(읽음들);
   const [열림, set열림] = useState(false);
-  const [보는실행, set보는실행] = useState(() => 보는실행번호(window.location.hash));
+  // 결과 화면이 지금 그리는 실행 — 그 실행의 도는 줄을 줄에서 뺀다 (점검 2.23)
+  const 보는실행 = use보는실행();
   const 버튼 = useRef<HTMLButtonElement>(null);
 
   // 같은 탭의 실행 결과 화면이 읽음으로 적어도(`runState.ts`), 다른 탭에서 적어도 바로 따라온다
@@ -156,13 +158,6 @@ export function Notice({ 줄숨김, 서비스바꿈, 버튼자리 }: { 줄숨김
       window.removeEventListener(읽음바뀜, 다시읽는다);
       window.removeEventListener('storage', 다시읽는다);
     };
-  }, []);
-
-  // 결과 화면을 열고 닫을 때마다 보고 있는 실행이 바뀐다 — 그 실행의 도는 줄을 줄에서 뺀다
-  useEffect(() => {
-    const 다시읽는다 = () => set보는실행(보는실행번호(window.location.hash));
-    window.addEventListener('hashchange', 다시읽는다);
-    return () => window.removeEventListener('hashchange', 다시읽는다);
   }, []);
 
   // 서버 목록(7일)에 없는 열쇠는 지운다 — 읽음 목록이 끝없이 커지지 않게

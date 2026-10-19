@@ -126,6 +126,13 @@ describe('해결 (SPEC §8.3 요약 띠 직전 대비 안)', () => {
     expect(screen.queryByText(/로그인/)).toBeNull();
   });
 
+  it('접힌 줄의 수는 케이스 수다 — 두 디바이스가 고쳐진 케이스 하나는 「해결 1」', () => {
+    그리기(비교({ 케이스들: [견줌('ZZI-0003', '주소 검색', '고쳐짐'), { ...견줌('ZZI-0003', '주소 검색', '고쳐짐'), platform: 'mobile' }] }));
+
+    expect(screen.getByText('해결 1')).toBeDefined();
+    expect(screen.getAllByText(/주소 검색/)).toHaveLength(2);
+  });
+
   it('고쳐진 것이 없으면 접힌 줄도 없다', () => {
     그리기(비교({ 케이스들: [견줌('ZZI-0004', '로그인', '그대로')] }));
 

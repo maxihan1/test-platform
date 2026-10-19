@@ -6,6 +6,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 
 import { api } from './api.js';
 import { RunResult } from './RunResult.js';
+import { use보는실행 } from './viewedRun.js';
 import { RUN_ID, 그리기, 도는중응답, 끝난응답, 상자라벨, 실행, 실행까지, 증적 } from './RunResult.fixture.js';
 
 // globals 가 꺼져 있어 testing-library 가 스스로 cleanup 을 걸지 못한다. 직접 건다.
@@ -196,5 +197,28 @@ describe('결과 칸은 머리를 고정하고 요약 띠부터 스크롤한다 
     const 면 = document.querySelector('.screen');
     expect(면?.classList.contains('pane-results')).toBe(false);
     expect(면?.querySelector('.rows-scroll')).toBeNull();
+  });
+});
+
+describe('보고 있는 실행을 알림 줄에 알린다 (공통/5-화면공통 §8 「알림」 · 점검 2.23)', () => {
+  it('결과를 그리는 동안 그 실행 번호를 알리고 내려가면 지운다', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
+    const 읽은값: (number | null)[] = [];
+    function 엿보기() {
+      읽은값.push(use보는실행());
+      return null;
+    }
+    const { unmount } = render(
+      <>
+        <엿보기 />
+        <RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />
+      </>,
+    );
+    await screen.findByRole('button', { name: /완료 · / });
+    expect(읽은값.at(-1)).toBe(RUN_ID);
+
+    unmount();
+    render(<엿보기 />);
+    expect(읽은값.at(-1)).toBeNull();
   });
 });

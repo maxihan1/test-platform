@@ -9,9 +9,10 @@ import { 언어함 } from './i18n.js';
 import { Notice } from './Notice.js';
 import { 끝난실행, 끝난작성, 도는E2E, 도는실행, 도는작성, 전에 } from './notice.fixture.js';
 import { 읽음들 } from './noticeRead.js';
+import { 보는실행알림 } from './viewedRun.js';
 
 beforeEach(() => {
-  window.location.hash = '';
+  보는실행알림(null);
   localStorage.clear();
   서비스바꿈.mockClear();
 });
@@ -62,15 +63,13 @@ describe('알림 줄', () => {
   });
 
   it('지금 결과를 보고 있는 실행의 도는 줄은 빼고, 보는 곳을 옮기면 다시 나타난다', async () => {
-    window.location.hash = '#/runs/2113';
+    보는실행알림(2113);
     띄운다({ running: [도는실행(2113), 도는실행(2114)], recent: [끝난실행(2113)] });
     expect(await screen.findByText(/^RUN 2114 실행 중/)).toBeTruthy();
     expect(screen.queryByText(/^RUN 2113 실행 중/)).toBeNull();
     expect(screen.getByText(/^RUN 2113 실행이 끝났습니다/)).toBeTruthy();
-    await act(async () => {
-      window.location.hash = '#/runs/ui?run=2114';
-      await new Promise((끝) => setTimeout(끝, 20));
-    });
+    // 실행 기록에서 줄을 바꿔 고르면 주소는 replaceState 로 바뀌어 hashchange 가 안 온다 — 결과 화면이 알린다
+    act(() => 보는실행알림(2114));
     expect(screen.getByText(/^RUN 2113 실행 중/)).toBeTruthy();
     expect(screen.queryByText(/^RUN 2114 실행 중/)).toBeNull();
   });

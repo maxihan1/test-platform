@@ -755,11 +755,6 @@ input[type='file']::file-selector-button {
   font-weight: 600;
 }
 
-/* 고른 칸의 오른쪽 이웃이 밝은 테두리를 잃지 않게 한다 */
-.chip[aria-pressed='true'] + .chip {
-  border-left: 1px solid var(--ink-faint);
-}
-
 .chip:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: -1px;
@@ -6190,13 +6185,6 @@ details.raw {
   flex-direction: column;
   gap: 24px;
   padding-bottom: 8px;
-}
-
-.rr-cols {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
 }
 
 .rr-main {

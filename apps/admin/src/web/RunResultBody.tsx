@@ -102,54 +102,52 @@ export function 끝난결과(props: Props) {
 
       {/* 옆 칸은 2026-10-19 ⑫ 에 걷었다 — 실행 정보는 머리 한 줄, 증적은 머리 단추, 해결은 요약 띠 안이다.
           창이 900px 보다 좁으면 옆 칸이 맨 아래로 내려가 실행 정보가 화면 끝에 묻혔다 (점검 2.2) */}
-      <div className="rr-cols">
-        <div className="rr-main">
-          <div className="toolbar">
-            <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={on디바이스} />
-          </div>
-
-          {/* 카드가 길면 키보드 · 화면 읽기로 통과 줄까지 카드 수만큼 탭해야 한다. 주소가 `#/` 로 가는 앱이라
-              `#id` 링크 대신 버튼으로 포커스를 옮긴다. 보이는 건 포커스가 왔을 때뿐이다 */}
-          {!카드구획 || !줄구획 || data.counts.fail === 0 ? null : (
-            <button
-              type="button"
-              className="btn small ghost skip-link"
-              onClick={() => {
-                통과제목.current?.focus();
-                통과제목.current?.scrollIntoView?.({ block: 'start' });
-              }}
-            >
-              {t('통과 · 미실행으로 건너뛰기')}
-            </button>
-          )}
-
-          {!카드구획 ? null : data.counts.fail === 0 ? (
-            <p className="empty">{t('실패한 케이스가 없습니다')}</p>
-          ) : (
-            <section className="rr-sec">
-              {/* 칩이나 실행이 바뀌면 새로 그린다 — 앞 거르개 · 앞 실행의 쪽 번호가 남으면 안 된다 */}
-              <RunFailCards key={`${String(data.runId)}-${device}`} runId={data.runId} env={data.env} items={data.items} platform={device} 권한={권한} 유형들={insights?.실패유형들} />
-            </section>
-          )}
-
-          {!줄구획 ? null : (
-            <section className="rr-sec rr-rows">
-              <h2 ref={통과제목} tabIndex={-1} className="fc-title">
-                {t('통과 · 미실행')} <span className="rr-n">{줄들.length}</span>
-              </h2>
-              {보이는줄.length === 0 ? (
-                <div className="empty">{t('조건에 맞는 결과가 없습니다')}</div>
-              ) : (
-                보이는줄.map((group) => <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />)
-              )}
-              <쪽넘김 쪽={보는쪽} 전체쪽={전체쪽} on쪽={on쪽} />
-              {카드안항목수 === 0 ? null : (
-                <p className="rr-axis">{t('실패한 케이스 안의 항목 {건수}건은 「전체」에서 카드로 봅니다', { 건수: 카드안항목수 })}</p>
-              )}
-            </section>
-          )}
-
+      <div className="rr-main">
+        <div className="toolbar">
+          <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={on디바이스} />
         </div>
+
+        {/* 카드가 길면 키보드 · 화면 읽기로 통과 줄까지 카드 수만큼 탭해야 한다. 주소가 `#/` 로 가는 앱이라
+            `#id` 링크 대신 버튼으로 포커스를 옮긴다. 보이는 건 포커스가 왔을 때뿐이다 */}
+        {!카드구획 || !줄구획 || data.counts.fail === 0 ? null : (
+          <button
+            type="button"
+            className="btn small ghost skip-link"
+            onClick={() => {
+              통과제목.current?.focus();
+              통과제목.current?.scrollIntoView?.({ block: 'start' });
+            }}
+          >
+            {t('통과 · 미실행으로 건너뛰기')}
+          </button>
+        )}
+
+        {!카드구획 ? null : data.counts.fail === 0 ? (
+          <p className="empty">{t('실패한 케이스가 없습니다')}</p>
+        ) : (
+          <section className="rr-sec">
+            {/* 칩이나 실행이 바뀌면 새로 그린다 — 앞 거르개 · 앞 실행의 쪽 번호가 남으면 안 된다 */}
+            <RunFailCards key={`${String(data.runId)}-${device}`} runId={data.runId} env={data.env} items={data.items} platform={device} 권한={권한} 유형들={insights?.실패유형들} />
+          </section>
+        )}
+
+        {!줄구획 ? null : (
+          <section className="rr-sec rr-rows">
+            <h2 ref={통과제목} tabIndex={-1} className="fc-title">
+              {t('통과 · 미실행')} <span className="rr-n">{줄들.length}</span>
+            </h2>
+            {보이는줄.length === 0 ? (
+              <div className="empty">{t('조건에 맞는 결과가 없습니다')}</div>
+            ) : (
+              보이는줄.map((group) => <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />)
+            )}
+            <쪽넘김 쪽={보는쪽} 전체쪽={전체쪽} on쪽={on쪽} />
+            {카드안항목수 === 0 ? null : (
+              <p className="rr-axis">{t('실패한 케이스 안의 항목 {건수}건은 「전체」에서 카드로 봅니다', { 건수: 카드안항목수 })}</p>
+            )}
+          </section>
+        )}
+
       </div>
     </>
   );

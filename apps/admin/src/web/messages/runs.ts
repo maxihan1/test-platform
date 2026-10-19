@@ -283,5 +283,5 @@ export const 실행말: Record<string, string> = {
   '{번호} 의 실패를 제품 버그로 남깁니다. 나중에 「화면이 맞음」으로 바꿀 수 있습니다.': 'Records the failure of {번호} as a product bug. You can change it to “Screen is correct” later.',
   '해결 {건수}': 'Fixed {건수}',
   '실패 케이스 {수}건': '{수} failed cases',
-  '직전 실행 RUN {번호} 대비 · 케이스 수': 'Against previous run RUN {번호} · cases',
+  '직전 실행 {실행} 대비 · 케이스 수': 'Against previous run {실행} · cases',
 };

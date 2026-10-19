@@ -146,8 +146,8 @@ function 카드({
   // 사유는 실행 때 박제한 값이다 — 케이스 줄과 같은 꼬리 글이다 (도메인/실행 §8.3)
   const 미확정사유 = c.devices.map((d) => d.item.unconfirmed).find((글) => typeof 글 === 'string') ?? null;
   const 머리이유 = c.devices[0]?.item.failure;
-  // 신규 · 연속 실패는 디바이스 차례로 처음 글이 나는 것 하나만 머리에 단다 — 디바이스마다의 글은 펼친 머리에 있다
-  const 머리변화 = c.devices.map((d) => 변화글(d, t)).find((글) => 글 !== null) ?? null;
+  // 접힌 머리에는 연속 실패만 단다(실행 §8.3 표 2번 줄) — 디바이스 차례로 처음 이어진 것 하나. 신규 실패 · 디바이스마다의 글은 펼친 디바이스 머리에 있다
+  const 머리변화 = c.devices.flatMap((d) => (d.change === '계속깨짐' ? [변화글(d, t)] : [])).find((글) => 글 !== null) ?? null;
 
   // 접고 펴는 것은 브라우저가 한다 — 화면이 상태를 들지 않는다. 쪽을 넘기면 다른 카드라 다시 접혀 선다 (실행 §8.3 「실패 카드는 접어 둔다」)
   return (

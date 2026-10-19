@@ -22,6 +22,7 @@ import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는�
 import { Failed, Loading, PLATFORM_LABEL, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
 import { useRunProgress } from './useRunProgress.js';
+import { use보는실행알림 } from './viewedRun.js';
 
 const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 
@@ -144,6 +145,8 @@ function 케이스결과({
             {칸안 ? null : <>RUN {data.runId} · </>}
             {/* 실행 하나에 한 종류다 — 사이드바가 종류를 모르는 화면이라 머리에 적는다 (PR #132) */}
             {종류 === null ? null : <>{종류} · </>}
+            {/* 알림은 서비스 전체에서 오고 결과는 고른 서비스와 상관없이 열린다 — 어느 서비스 실행인지 적는다 */}
+            {data.serviceName} · 
             {when(data.startedAt, 언어)}
             {data.origin === undefined ? null : <> · {t(시작방식글[data.origin])}</>}
             {' · '}
@@ -153,8 +156,8 @@ function 케이스결과({
             {t('실행자 {이름}', { 이름: 실행자이름(data, 언어) })}
             {소요 === null ? null : <> · {소요}</>}
             {디바이스들.length === 0 ? null : <> · {디바이스들.map((p) => PLATFORM_LABEL[p]).join(' · ')}</>}
-            {' · '}
-            {running ? t('진행 중') : 상태라벨(data.status, 언어)}
+            {/* 도는 동안의 상태는 바로 아래 진행 글이 맡는다 — 「진행 중」을 또 적지 않는다 */}
+            {running ? null : <> · {상태라벨(data.status, 언어)}</>}
           </>
   );
 
@@ -326,6 +329,8 @@ function 케이스결과({
 
 export function RunResult(props: Parameters<typeof 케이스결과>[0]) {
   const [시나리오, set시나리오] = useState<number | null>(null); // 시나리오 실행 번호는 404 SCENARIO_RUN 으로 알려 준다 — 갈래를 바깥에 둬 훅 순서를 지킨다
+  // 머리가 진행을 적으니 알림 줄은 이 실행의 도는 줄을 뺀다 (공통/5-화면공통 §8 「알림」)
+  use보는실행알림(props.runId);
   if (시나리오 === props.runId) return <ScenarioResult runId={props.runId} 판정하기={props.판정하기} 상자안={props.칸안} />;
   return <케이스결과 {...props} on시나리오={() => set시나리오(props.runId)} />;
 }
