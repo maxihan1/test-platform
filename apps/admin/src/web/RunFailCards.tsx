@@ -65,7 +65,7 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
   // 정확히 한 쪽 크기일 때 빈 다음 쪽이 열린다
   const 더있나 = 쪽 * 응답.data.pageSize < 응답.data.total;
   // ponytail: 유형 거르기는 받은 쪽 안에서만 한다 — 실패 카드 통로에 유형 조건이 없어서다(계약 밖). 쪽이 여럿이면 아래 한 줄이 전체 수를 알린다
-  const 유형칸 = 유형들.find((u) => u.type === 고른유형) ?? null;
+  const 유형칸 = platform === 'ALL' ? (유형들.find((u) => u.type === 고른유형) ?? null) : null;
   const 보일카드 = 유형칸 === null ? 응답.data.items : 응답.data.items.filter((c) => 유형칸.tcIds.includes(c.tcId));
 
   return (
@@ -75,7 +75,8 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
       </h2>
 
       {/* 같은 유형끼리 훑는다 — 수는 카드(케이스) 수다. 앞 판의 「같은 사유로 실패」는 확인 문장마다 한 덩어리였다 (실행 §8.3 「실패 유형으로 묶는다」) */}
-      {유형들.length === 0 ? null : (
+      {/* 유형은 디바이스 차례로 첫 깨진 디바이스 것이라 디바이스를 거른 동안에는 카드 머리 칩과 어긋난다 — 그때는 줄을 안 그린다 */}
+      {유형들.length === 0 || platform !== 'ALL' ? null : (
         <div className="chip-group fc-types" role="group" aria-label={t('실패 유형')}>
           <button type="button" className="chip" aria-pressed={유형칸 === null} onClick={() => set고른유형(null)}>
             {t('전체')} <b className="num">{유형들.reduce((합, u) => 합 + u.count, 0)}</b>
@@ -88,11 +89,11 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
         </div>
       )}
       {유형칸 === null || 보일카드.length === 유형칸.count ? null : (
-        <p className="hint">{t('이 쪽에 {보인}건 · 이 유형 전체 {전체}건', { 보인: 보일카드.length, 전체: 유형칸.count })}</p>
+        <p className="hint">{t('이 쪽에 {보인}건 · 이 유형 전체 {전체}건 — 나머지는 다른 쪽에 있습니다', { 보인: 보일카드.length, 전체: 유형칸.count })}</p>
       )}
 
       {보일카드.length === 0 ? (
-        <p className="empty">{t('실패한 케이스가 없습니다')}</p>
+        유형칸 === null ? <p className="empty">{t('실패한 케이스가 없습니다')}</p> : null
       ) : (
         보일카드.map((c) => (
           <카드 key={c.tcId} c={c} runId={runId} env={env} items={items} platform={platform} 권한={권한} on남김={다시읽기} />

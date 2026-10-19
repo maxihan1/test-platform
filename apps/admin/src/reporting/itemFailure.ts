@@ -3,7 +3,7 @@
 
 import type { ItemStatus, StepResult } from '@platform/kit';
 
-import { 원인을가른다, type 실패유형 } from './failureType.js';
+import { 원인을가른다, 색코드, type 실패유형 } from './failureType.js';
 import { 한줄로자른다 } from './insights.js';
 
 export interface 항목실패 {
@@ -19,6 +19,8 @@ export const 유형문장: Record<실패유형, string> = {
   environment: '대상 서버나 러너에 닿지 못했습니다',
   other: '원인을 가르지 못했습니다',
 };
+
+const 러너글자 = /^[A-Z][A-Z_]*$/;
 
 export interface 항목재료 {
   status: ItemStatus;
@@ -43,6 +45,8 @@ export function 항목실패를가른다(항목: 항목재료, 가리기: (글: 
   });
   // 앞 부품이 실패해 안 돈 시나리오 부품(NOT_RUN)은 실패 원인이 아니다 (도메인/시나리오 §3.7 결정 9 — 케이스 항목에는 이 글이 없다)
   if (원인 === 'stopped' || 항목.error?.message === 'NOT_RUN') return null;
-  const 한줄 = 한줄로자른다(가리기(실패확인?.statement ?? 항목.error?.message ?? ''));
-  return { type: 원인, reason: 한줄 === '' ? 유형문장[원인] : 한줄 };
+  // 색 코드는 가리기 전에 걷는다 — 숫자 비밀(예: 31)이 색 코드 속 숫자를 덮으면 걷는 무늬가 안 맞는다
+  const 한줄 = 한줄로자른다(가리기((실패확인?.statement ?? 항목.error?.message ?? '').replace(색코드, '')));
+  // 러너가 끊은 자리의 상태 글자(TIMEOUT 따위)는 사람 말이 아니다 — 유형이 말하는 문장으로 바꾼다
+  return { type: 원인, reason: 한줄 === '' || 러너글자.test(한줄) ? 유형문장[원인] : 한줄 };
 }

@@ -13,7 +13,9 @@ import {
   type RunItemDetail,
   type RunItemPage,
   type RunItemSummary,
-  type StepResult, type 실패유형묶음 } from './api.js';
+  type StepResult,
+  type 실패유형묶음,
+} from './api.js';
 import { RunFailCards } from './RunFailCards.js';
 import type { 판정 } from './role.js';
 

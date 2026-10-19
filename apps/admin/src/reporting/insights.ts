@@ -134,7 +134,8 @@ export function 한줄로자른다(문장: string): string {
  * 견주기 덩어리와 대시보드 신규 실패 사유가 같이 쓴다 — 같은 문장이 두 화면에서 다르게 보이지 않게 (공통/2 §4.1)
  */
 export const 가려서자른다 = (문장: string, 항목: Parameters<typeof 항목비밀>[0]): string =>
-  한줄로자른다(가린다(문장, 항목비밀(항목)) as string);
+  // 색 코드를 먼저 걷는다 — 숫자 비밀이 색 코드 속 숫자를 덮으면 걷는 무늬가 안 맞는다
+  한줄로자른다(가린다(문장.replace(색코드, ''), 항목비밀(항목)) as string);
 
 /** 이번 실행의 실패 항목을 대표 문장이 같은 것끼리 묶는다 */
 async function 사유로묶는다(pool: Pool, runId: number): Promise<실패덩어리[]> {

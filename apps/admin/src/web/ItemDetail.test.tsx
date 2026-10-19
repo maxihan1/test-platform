@@ -64,6 +64,12 @@ describe('항목 상세 (SPEC §8.4)', () => {
     expect(screen.getByText('기록 없음')).toBeTruthy();
   });
 
+  it('멈춰 닫힌 미실행은 서버가 이유를 안 줘도 「사용자가 멈춤」을 적는다', async () => {
+    그린다({ status: 'NA', error: { message: 'ABORTED' }, failure: null });
+    expect(await screen.findByText('실패 이유')).toBeTruthy();
+    expect(screen.getByText('사용자가 멈춤')).toBeTruthy();
+  });
+
   it('실패 이유는 유형과 한 줄이 위에 서고 러너 원문 · 스택은 접힌 「원문 보기」 안에 있다', async () => {
     그린다({
       status: 'NA',

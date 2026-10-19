@@ -79,6 +79,36 @@ describe('실패 카드의 실패 이유 · 실패 유형 칩 줄 (실행 §8.3)
     );
 
     fireEvent.click(await screen.findByRole('button', { name: /기대 결과 불일치/ }));
-    expect(screen.getByText('이 쪽에 1건 · 이 유형 전체 4건')).toBeTruthy();
+    expect(screen.getByText('이 쪽에 1건 · 이 유형 전체 4건 — 나머지는 다른 쪽에 있습니다')).toBeTruthy();
+  });
+
+  it('고른 유형이 이 쪽에 없으면 「실패한 케이스가 없습니다」를 내지 않는다', async () => {
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('desktop', 1)])], { total: 6 }),
+      [줄(1, 'ZZI-0001', 'desktop', 'FAIL')],
+      'ALL',
+      () => true,
+      [
+        { type: 'mismatch', count: 1, tcIds: ['ZZI-0001'] },
+        { type: 'timeout', count: 2, tcIds: ['ZZI-0007', 'ZZI-0008'] },
+      ],
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: /타임아웃/ }));
+    expect(screen.getByText('이 쪽에 0건 · 이 유형 전체 2건 — 나머지는 다른 쪽에 있습니다')).toBeTruthy();
+    expect(screen.queryByText('실패한 케이스가 없습니다')).toBeNull();
+  });
+
+  it('디바이스를 거른 동안에는 「실패 유형」 칩 줄이 없다 — 카드 머리 칩과 어긋난다', async () => {
+    그리기(
+      쪽([케이스('ZZI-0001', '회원가입', [장치('mobile', 1)])]),
+      [줄(1, 'ZZI-0001', 'mobile', 'FAIL')],
+      'mobile',
+      () => true,
+      [{ type: 'mismatch', count: 1, tcIds: ['ZZI-0001'] }],
+    );
+
+    await screen.findByText('회원가입');
+    expect(screen.queryByRole('group', { name: '실패 유형' })).toBeNull();
   });
 });

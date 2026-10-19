@@ -53,6 +53,20 @@ describe('항목실패를가른다', () => {
     expect(결과).toEqual({ type: 'timeout', reason: 유형문장.timeout });
   });
 
+  it('러너가 끊은 상태 글자(TIMEOUT)는 유형마다 정한 문장이 된다', () => {
+    expect(항목실패를가른다(재료({ status: 'NA', error: { message: 'TIMEOUT' } }), 그대로)).toEqual({
+      type: 'timeout',
+      reason: 유형문장.timeout,
+    });
+  });
+
+  it('색 코드는 가리기 전에 걷어 숫자 비밀이 색 코드를 덮지 않는다', () => {
+    const 결과 = 항목실패를가른다(재료({ status: 'NA', error: { message: '\u001b[31m주문 31번이 없다\u001b[39m' } }), (글) =>
+      글.replaceAll('31', '**'),
+    );
+    expect(결과?.reason).toBe('주문 **번이 없다');
+  });
+
   it('한 줄은 자르기 전에 가린다', () => {
     const 결과 = 항목실패를가른다(재료({ error: { message: 'pa55word 로 로그인하지 못했다' } }), (글) =>
       글.replaceAll('pa55word', '********'),

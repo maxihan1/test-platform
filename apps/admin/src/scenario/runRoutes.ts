@@ -140,7 +140,9 @@ export async function 시나리오결과(runId: number) {
     version: 행.scenario_version,
     status: 행.status,
     platform: 행.platform,
-    parts: 부품.rows.map((p) => ({
+    parts: 부품.rows.map((p) => {
+      const 부품절차 = 절차.rows.filter((s) => s.part_id === p.id).map(절차로);
+      return {
       seq: p.seq,
       kind: p.kind,
       tcId: p.tc_id,
@@ -160,7 +162,7 @@ export async function 시나리오결과(runId: number) {
       unconfirmed: p.unconfirmed,
       bound: 가린값들(p.bound, p.param_schema),
       cleanup: p.cleanup,
-      steps: 절차.rows.filter((s) => s.part_id === p.id).map(절차로),
+      steps: 부품절차,
       error: p.error,
       trace: p.trace,
       failure: 항목실패를가른다(
@@ -168,11 +170,12 @@ export async function 시나리오결과(runId: number) {
           status: p.status,
           finished: p.finished_at !== null,
           error: p.error,
-          steps: 절차.rows.filter((s) => s.part_id === p.id).map(절차로),
+          steps: 부품절차,
         },
         (글) => 가린다(글, 긴것부터(비밀)) as string,
       ),
-    })),
+      };
+    }),
   };
   // 머리 칸은 비밀이 아니다. 글자째 가리기에 넣으면 숫자 비밀(2026)이 시각 · 주소의 글자까지 지운다
   return {

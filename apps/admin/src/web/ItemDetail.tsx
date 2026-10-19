@@ -10,6 +10,7 @@ import { Step } from './ItemSteps.js';
 import { ItemTraceSection } from './ItemTrace.js';
 import { fieldsOf, type Field } from './mask.js';
 import { 케이스서비스 } from './role.js';
+import { 미실행사유 } from './runState.js';
 import type { 판정하기 } from './runJudge.js';
 import { RunWindow } from './RunWindow.js';
 import { Failed, Loading, PLATFORM_LABEL, useAsync, Verdict, when } from './ui.js';
@@ -51,6 +52,8 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
         <div className="sec">
           <div className="sec-h">{t말('실패 이유')}</div>
           <실패이유 failure={item.failure} />
+          {/* 멈춰 닫힌 미실행은 서버가 이유를 안 준다 — 미실행 사유(「사용자가 멈춤」 따위)를 적는다 */}
+          {(item.failure ?? null) !== null || item.status !== 'NA' ? null : <p>{미실행사유(item.error, 언어)}</p>}
           <원문보기 글={item.error === null ? null : [item.error.message, item.error.stack].filter(Boolean).join('\n\n')} />
         </div>
       )}

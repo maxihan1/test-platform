@@ -10,7 +10,7 @@ import { t, use말, use언어, type 언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type RunDetail, type 진행막대, 진행상황 } from './runProgress.js';
 import { 실행남은글, 시간글자 } from './remainText.js';
-import { 도는중 } from './runState.js';
+import { 도는중, 미실행사유 } from './runState.js';
 import { STATUS_LABEL } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
@@ -34,6 +34,8 @@ function 이유읽기(runId: number, historyId: number): Promise<항목실패 | 
   const 키 = `${String(runId)}:${String(historyId)}`;
   let 약속 = 이유기억.get(키);
   if (약속 === undefined) {
+    // ponytail: 화면을 오래 켜 두면 쌓인다 — 넘치면 통째로 비운다. 진행 응답에 이유가 실리면 이 기억을 걷는다
+    if (이유기억.size > 500) 이유기억.clear();
     // 못 읽으면 줄만 비운다. 기억에서 빼야 다음 그림에서 다시 묻는다
     약속 = api.item(runId, historyId).then(
       (상세) => 상세.failure ?? null,
@@ -52,6 +54,7 @@ function 이유읽기(runId: number, historyId: number): Promise<항목실패 | 
  * 이유는 항목 상세와 같은 서버 값이다 — 화면이 원문을 다듬어 따로 짓지 않는다
  */
 function 끝난이유({ runId, item }: { runId: number; item: RunItemSummary }) {
+  const 언어 = use언어();
   const [이유, set이유] = useState<항목실패 | null>(null);
   useEffect(() => {
     if (item.status === 'PASS') return;
@@ -63,7 +66,11 @@ function 끝난이유({ runId, item }: { runId: number; item: RunItemSummary }) 
       살아있음 = false;
     };
   }, [runId, item.historyId, item.status]);
-  if (이유 === null) return null;
+  // 멈춰 닫힌 미실행(ABORTED)은 서버가 이유를 안 준다 — 앞 판처럼 미실행 사유(「사용자가 멈춤」)를 적는다
+  if (이유 === null) {
+    const 사유 = item.status === 'NA' ? 미실행사유(item.error, 언어) : null;
+    return 사유 === null ? null : <div className="hint">{사유}</div>;
+  }
   return (
     <div className="hint">
       <실패이유 failure={이유} />
