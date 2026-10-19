@@ -59,14 +59,15 @@ afterEach(() => {
 });
 
 const 정책칸 = () => screen.getByRole('textbox', { name: '정책' }) as HTMLTextAreaElement;
-const 저장버튼 = () => screen.getByRole('button', { name: '저장' }) as HTMLButtonElement;
+// 저장 단추는 맨 위와 글 칸 아래 둘이다 — 같은 일을 한다
+const 저장버튼 = () => screen.getAllByRole('button', { name: '저장' })[0] as HTMLButtonElement;
 
 describe('서비스 가이드 — 시안 A', () => {
-  it('가이드가 없으면 그렇다고 말하고 변경 기록은 없다', async () => {
+  it('가이드가 없으면 그렇다고 말하고 버전 기록은 없다', async () => {
     지금.mockResolvedValue(가이드({ version: 0, intro: '', policy: '', rules: '', files: [], savedAt: null, savedByName: null }));
     render(<Guide service="MKT" 할수={쓰는사람} />);
     expect(await screen.findByText(/아직 가이드가 없습니다/)).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '변경 기록' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '버전 기록' })).toBeNull();
     expect(저장버튼().disabled).toBe(true);
   });
 
@@ -125,7 +126,40 @@ describe('서비스 가이드 — 시안 A', () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
     fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 빼기' }));
+    expect(빼기).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 빼기 확인' }));
     await vi.waitFor(() => expect(빼기).toHaveBeenCalledWith('MKT', 11, 3));
+  });
+
+  it('빼기는 한 번 더 묻고, 취소하면 아무것도 보내지 않고 다시 빼기 단추로 돌아간다 (점검 9.2)', async () => {
+    render(<Guide service="MKT" 할수={쓰는사람} />);
+    await screen.findByText(/버전 3/);
+    fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 빼기' }));
+    const 정책 = screen.getByRole('region', { name: '정책' });
+    fireEvent.click(within(정책).getByRole('button', { name: '취소' }));
+    expect(빼기).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '운영 정책.docx 빼기' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '운영 정책.docx 빼기 확인' })).toBeNull();
+  });
+
+  it('글 칸 아래에도 저장 단추가 있어 둘 다 같은 일을 한다 (점검 9.3)', async () => {
+    render(<Guide service="MKT" 할수={쓰는사람} />);
+    await screen.findByText(/버전 3/);
+    const 저장들 = screen.getAllByRole('button', { name: '저장' }) as HTMLButtonElement[];
+    expect(저장들).toHaveLength(2);
+    expect(저장들.every((b) => b.disabled)).toBe(true);
+    fireEvent.change(정책칸(), { target: { value: '고친 정책' } });
+    expect(screen.getByText('저장하지 않은 변경이 있습니다')).toBeTruthy();
+    fireEvent.click((screen.getAllByRole('button', { name: '저장' }) as HTMLButtonElement[])[1]!);
+    await vi.waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
+  });
+
+  it('글이 길어지면 글 칸이 줄 수만큼 커진다', async () => {
+    render(<Guide service="MKT" 할수={쓰는사람} />);
+    await screen.findByText(/버전 3/);
+    expect(정책칸().rows).toBe(4);
+    fireEvent.change(정책칸(), { target: { value: '1\n2\n3\n4\n5\n6' } });
+    expect(정책칸().rows).toBe(7);
   });
 
   it('열기 — 워드는 뽑은 글자를 그 자리에 보이고 PDF 는 새 탭, .doc 은 이름으로 내려받기만 된다', async () => {
@@ -154,7 +188,7 @@ describe('서비스 가이드 — 시안 A', () => {
     expect(screen.getByText('적은 글이 없습니다')).toBeTruthy();
   });
 
-  it('변경 기록은 판마다 바뀐 것을 적고, 누르면 그 판을 읽기 전용으로 본다', async () => {
+  it('버전 기록은 판마다 바뀐 것을 적고, 누르면 그 판을 읽기 전용으로 본다', async () => {
     기록.mockResolvedValue([
       { version: 3, savedAt: '2026-10-15T01:00:00.000Z', savedByName: '김QA', changed: { sections: ['policy'], added: [], removed: [] } },
       {
@@ -167,7 +201,7 @@ describe('서비스 가이드 — 시안 A', () => {
     옛판.mockResolvedValue(가이드({ version: 2, policy: '옛 정책 글', files: [파일(9, '옛 정책.docx', 'policy')] }));
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
-    fireEvent.click(screen.getByRole('button', { name: '변경 기록' }));
+    fireEvent.click(screen.getByRole('button', { name: '버전 기록' }));
     const 표 = await screen.findByRole('table');
     expect(within(표).getByText('글 고침 — 정책')).toBeTruthy();
     expect(within(표).getByText('더함 — 운영 정책.docx · 뺌 — 옛 정책.docx')).toBeTruthy();

@@ -1,4 +1,4 @@
-// 서비스 가이드 변경 기록 — 판마다 누가 · 언제 · 무엇이 바뀌었나, 누르면 그 판을 읽기 전용으로 본다 (도메인/작성 §3.6 「★ 서비스 가이드」 「변경 기록」)
+// 서비스 가이드 버전 기록 — 판마다 누가 · 언제 · 무엇이 바뀌었나, 누르면 그 판을 읽기 전용으로 본다 (도메인/작성 §3.6 「★ 서비스 가이드」 「변경 기록」)
 // 되돌리기는 없다 (2026-10-17 사용자 — 보기만). 판에서 뺀 파일도 지우지 않아 옛 판에서 열린다
 
 import { useState } from 'react';
@@ -32,8 +32,9 @@ export function GuideVersions({ service, 지금판 }: { service: string; 지금�
     <section className="screen prd-versions" aria-labelledby="guide-versions-title">
       <div className="toolbar">
         <h2 id="guide-versions-title" className="prd-all-title">
-          {t('변경 기록')}
+          {t('버전 기록')}
         </h2>
+        <span className="note">{t('옛 버전은 볼 수만 있습니다')}</span>
       </div>
       {목록.error !== null ? (
         <Failed error={목록.error} />

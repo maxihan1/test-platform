@@ -48,6 +48,8 @@ export function GuideSection({
   const 언어 = use언어();
   const 고르개 = useRef<HTMLInputElement>(null);
   const [연, set연] = useState<연글 | null>(null);
+  // 빼도 옛 버전에서 열리지만 되돌리기가 없다 — 눌렀을 때 그 자리에서 한 번 더 묻는다 (점검 9.2)
+  const [뺄파일, set뺄파일] = useState<number | null>(null);
   const 제목 = t(구획이름[section]);
   const 제목id = `guide-${section}`;
 
@@ -77,7 +79,7 @@ export function GuideSection({
         <textarea
           className="guide-input"
           aria-label={제목}
-          rows={3}
+          rows={Math.max(4, 글.split('\n').length + 1)}
           value={글}
           placeholder={t('문서에 없는 것만 적습니다')}
           onChange={(e) => on글(e.target.value)}
@@ -107,8 +109,25 @@ export function GuideSection({
                       {연?.id === file.id ? t('닫기') : t('열기')}
                     </button>
                   )}
-                  {on빼기 === undefined ? null : (
-                    <button className="btn ghost small" disabled={busy} aria-label={t('{이름} 빼기', { 이름: file.name })} onClick={() => on빼기(file)}>
+                  {on빼기 === undefined ? null : 뺄파일 === file.id ? (
+                    <>
+                      <button
+                        className="btn small set-warn"
+                        disabled={busy}
+                        aria-label={t('{이름} 빼기 확인', { 이름: file.name })}
+                        onClick={() => {
+                          set뺄파일(null);
+                          on빼기(file);
+                        }}
+                      >
+                        {t('빼기 확인')}
+                      </button>
+                      <button className="btn ghost small" onClick={() => set뺄파일(null)}>
+                        {t('취소')}
+                      </button>
+                    </>
+                  ) : (
+                    <button className="btn ghost small" disabled={busy} aria-label={t('{이름} 빼기', { 이름: file.name })} onClick={() => set뺄파일(file.id)}>
                       {t('빼기')}
                     </button>
                   )}

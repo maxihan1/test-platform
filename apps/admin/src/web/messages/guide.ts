@@ -7,10 +7,9 @@ export const 가이드말: Record<string, string> = {
   '서비스 가이드': 'Service guide',
 
   // 머리와 알림
-  '작성 에이전트가 테스트를 만들기 전에 읽습니다': 'The authoring agent reads this before writing tests',
+  '테스트를 작성할 때 참고하는 서비스 설명입니다': 'Service description used as a reference when tests are authored',
   '아직 가이드가 없습니다': 'No guide yet',
   '버전 {버전} · 첨부 {건수}건': 'Version {버전} · {건수} attachments',
-  '변경 기록': 'Change history',
   '기대값은 요구사항(표준 기획서)에서만 옵니다. 가이드는 서비스를 이해하고 테스트를 돌리는 데만 씁니다':
     'Expected results come only from the requirements (PRD). The guide only helps understand the service and run tests',
 
@@ -24,8 +23,12 @@ export const 가이드말: Record<string, string> = {
   '{이름} 빼기': 'Remove {이름}',
   '파일 더하기': 'Add file',
   '{구획}에 파일 더하기': 'Add a file to {구획}',
+  '빼기 확인': 'Confirm remove',
+  '{이름} 빼기 확인': 'Confirm removing {이름}',
+  '저장하지 않은 변경이 있습니다': 'You have unsaved changes',
 
-  // 변경 기록
+  // 버전 기록 — 「버전 기록」 글자는 PRD 표(messages/prd.ts)에 있다
+  '옛 버전은 볼 수만 있습니다': 'Earlier versions are view-only',
   '바뀐 것': 'Changes',
   보기: 'View',
   '글 고침 — {구획}': 'Text edited — {구획}',
