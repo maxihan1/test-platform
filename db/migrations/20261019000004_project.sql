@@ -41,8 +41,21 @@ CREATE TRIGGER service_default_project BEFORE INSERT ON service
 
 ALTER TABLE service ALTER COLUMN project_id SET NOT NULL;
 
+-- 서비스 행을 지우는 것은 DB 검사 fixture 뿐이다(제품은 is_active 로 끈다). 남은 애플리케이션이 없는 프로젝트도 같이 지워야
+-- 트리거가 만든 빈 프로젝트가 검사마다 쌓이지 않는다
+CREATE FUNCTION service_drop_empty_project() RETURNS trigger AS $$
+BEGIN
+  DELETE FROM project p WHERE p.id = OLD.project_id AND NOT EXISTS (SELECT 1 FROM service s WHERE s.project_id = p.id);
+  RETURN NULL;
+END $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER service_drop_empty_project AFTER DELETE ON service
+  FOR EACH ROW EXECUTE FUNCTION service_drop_empty_project();
+
 -- migrate:down
 
+DROP TRIGGER IF EXISTS service_drop_empty_project ON service;
+DROP FUNCTION IF EXISTS service_drop_empty_project();
 DROP TRIGGER IF EXISTS service_default_project ON service;
 DROP FUNCTION IF EXISTS service_default_project();
 ALTER TABLE service DROP COLUMN IF EXISTS project_id;
