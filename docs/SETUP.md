@@ -671,9 +671,9 @@ Android 앱을 조작하는 케이스(`platforms: ['android']`)를 **맥에 USB 
 
 **돌리기**
 
-1. **Appium 을 켠다.** 창 하나를 따로 열어 켜 둔다.
+1. **Appium 을 켠다.** 창 하나를 따로 열어 켜 둔다. 뒤의 옵션은 증적에 앱 판(예: 「앱 1.4.2」)을 적으려고 폰에 앱 판을 묻게 허락하는 것이다 — 빼고 켜도 케이스는 돌고 증적의 앱 판만 「판 모름」이 된다.
    ```bash
-   appium
+   appium --allow-insecure=uiautomator2:adb_shell
    ```
 2. **직접 실행** — 저장소 루트에서 친다.
    ```bash

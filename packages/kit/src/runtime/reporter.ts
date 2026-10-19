@@ -6,13 +6,14 @@ import { dirname, resolve } from 'node:path';
 
 import type { Reporter, TestCase, TestError, TestResult } from '@playwright/test/reporter';
 
-import type { ExecuteResponse, ItemStatus, StepResult } from '../types.js';
+import type { DeviceInfo, ExecuteResponse, ItemStatus, StepResult } from '../types.js';
 
 // 이 파일에는 값을 가져오는 상대 import를 두지 않는다. 러너 이미지의 Node 24는 './x.js'를 x.ts로
 // 풀어주지 않아 리포터가 통째로 로드되지 않는다. 타입 import는 지워지므로 괜찮다.
 // protocol.ts와 같은 값이어야 하며 reporter.test.ts가 그것을 지킨다
 export const RESULT_MARKER = '@@RESULT@@';
 export const STEP_ATTACHMENT = 'platform-step';
+export const DEVICE_ATTACHMENT = 'platform-device';
 // 진행 표시자(PROGRESS_MARKER)는 **여기 두지 않는다.** onStdOut 이 거르지 않아 쓸 일이 없고,
 // 상수가 서 있으면 「골라 쓰는 자리가 있나 보다」로 읽혀 아래 주석이 막으려는 실수를 유도한다
 
@@ -51,12 +52,30 @@ function collectSteps(result: TestResult): StepResult[] {
   const steps: StepResult[] = [];
   for (const attachment of result.attachments) {
     if (attachment.name !== STEP_ATTACHMENT) continue;
-    // 첨부는 본문으로 오기도 하고 파일로 떨어지기도 한다. 둘 다 받는다
-    const raw = attachment.body?.toString() ?? (attachment.path === undefined ? undefined : readFileSync(attachment.path, 'utf8'));
+    const raw = attachmentText(attachment);
     if (raw === undefined) continue;
     steps.push(JSON.parse(raw) as StepResult);
   }
   return steps.sort((a, b) => a.seq - b.seq);
+}
+
+// 첨부는 본문으로 오기도 하고 파일로 떨어지기도 한다. 둘 다 받는다
+function attachmentText(a: TestResult['attachments'][number]): string | undefined {
+  return a.body?.toString() ?? (a.path === undefined ? undefined : readFileSync(a.path, 'utf8'));
+}
+
+// 앱 항목에서 연결이 열렸을 때만 있다 (APP-F1-05)
+function deviceOf(result: TestResult): DeviceInfo | undefined {
+  const a = result.attachments.find((x) => x.name === DEVICE_ATTACHMENT);
+  const raw = a === undefined ? undefined : attachmentText(a);
+  if (raw === undefined) return undefined;
+  // 곁들이는 값이다 — 깨졌다고 결과 줄(절차 · 판정)까지 잃으면 안 된다
+  try {
+    return JSON.parse(raw) as DeviceInfo;
+  } catch (err) {
+    process.stderr.write(`[kit] 기기 정보를 읽지 못했다: ${err instanceof Error ? err.message : String(err)}\n`);
+    return undefined;
+  }
 }
 
 function statusOf(result: TestResult, steps: StepResult[]): ItemStatus {
@@ -99,6 +118,7 @@ class PlatformReporter implements Reporter {
     const steps = collectSteps(result);
     const status = statusOf(result, steps);
     const error = errorOf(result, steps, status, skipReason(test, result));
+    const device = deviceOf(result);
 
     const payload: ExecuteResponse = {
       historyId: Number(process.env.PLATFORM_HISTORY_ID ?? 0),
@@ -106,6 +126,7 @@ class PlatformReporter implements Reporter {
       durationMs: result.duration,
       steps,
       ...(error === undefined ? {} : { error }),
+      ...(device === undefined ? {} : { device }),
     };
 
     process.stdout.write(`${RESULT_MARKER}${JSON.stringify(payload)}\n`);

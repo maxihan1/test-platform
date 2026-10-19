@@ -202,6 +202,7 @@ function E2E요약절(줄들: E2E요약줄[]): string[] {
 
 /** 문서 맨 앞 — 서비스 이름 · 저장소 주소 · 실행에 박제된 값들. E2E 증적(htmlScenario.ts)도 같은 머리를 쓴다 (도메인/리포팅 §8.4 「증적 문서 머리말」) */
 export function 머리말(h: EvidenceHeader, generatedAt: string): string[] {
+  const 기기 = h.devices ?? [];
   return [
     `<header class="doc-head">`,
     `  <div class="service">${안전(h.serviceName)}</div>`,
@@ -213,6 +214,8 @@ export function 머리말(h: EvidenceHeader, generatedAt: string): string[] {
     `    <dt>실행자</dt><dd>${안전(h.triggeredByName)}</dd>`,
     `    <dt>대상 서버</dt><dd>${안전(h.env)}</dd>`,
     `    <dt>대상 주소</dt><dd>${안전(h.baseUrl)}</dd>`,
+    // 앱 항목이 있는 실행만 — 브라우저 실행 · E2E 증적에는 줄이 없다 (도메인/리포팅 §8.4 · APP-F1-05)
+    ...(기기.length === 0 ? [] : [`    <dt>기기</dt><dd>${안전(기기.join(' / '))}</dd>`]),
     `    <dt>만든 시각</dt><dd>${안전(generatedAt)}</dd>`,
     `  </dl>`,
     `</header>`,

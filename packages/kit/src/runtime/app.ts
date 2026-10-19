@@ -5,6 +5,8 @@ import { join } from 'node:path';
 
 import type { Browser } from 'webdriverio';
 
+import type { DeviceInfo } from '../types.js';
+
 import { runDir, saveShot } from './artifacts.js';
 import { APPIUM_SESSION_FILE } from './protocol.js';
 
@@ -75,6 +77,29 @@ async function writeSessionFile(sessionId: string): Promise<void> {
 export async function closeApp(driver: AppDriver): Promise<void> {
   await driver.deleteSession();
   await rm(sessionFile(), { force: true });
+}
+
+const 글자 = (v: unknown): string | null => (typeof v === 'string' && v !== '' ? v : null);
+
+/**
+ * 연결이 연 폰 · 앱의 판. 모델 · Android 판은 연결 응답에 오고, 앱 판은 폰에 묻는다.
+ * 앱 판은 Appium 을 adb_shell 허용으로 켜야 읽힌다 — 못 읽으면 그 칸만 비우고 케이스는 그대로 돈다 (도메인/러너 §5.2 · APP-F1-05)
+ */
+export async function readDevice(driver: AppDriver): Promise<DeviceInfo> {
+  const caps = driver.capabilities as Record<string, unknown>;
+  // 드라이버 판에 따라 이름 앞에 appium: 이 붙어 오기도 한다
+  const 칸 = (이름: string): string | null => 글자(caps[이름]) ?? 글자(caps[`appium:${이름}`]);
+  const pkg = 칸('appPackage');
+  // 앱 이름이 응답에 없으면 묻지 않는다 — 앞에 뜬 앱(런처 · 권한 창)에 물으면 남의 판이 증적에 박힌다
+  if (pkg === null) return { model: 칸('deviceModel'), osVersion: 칸('platformVersion'), appVersion: null };
+  let appVersion: string | null = null;
+  try {
+    const out = await driver.execute('mobile: shell', { command: 'dumpsys', args: ['package', pkg] });
+    appVersion = /versionName=(\S+)/.exec(String(out))?.[1] ?? null;
+  } catch (err) {
+    console.error(`[kit] 앱 판을 읽지 못했다 — Appium 을 --allow-insecure=uiautomator2:adb_shell 로 켜야 한다: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  return { model: 칸('deviceModel'), osVersion: 칸('platformVersion'), appVersion };
 }
 
 export function captureApp(driver: AppDriver, seq: number): Promise<string | undefined> {
