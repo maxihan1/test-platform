@@ -266,4 +266,8 @@ export const 실행말: Record<string, string> = {
   '러너가 실행을 끊어(제한 시간 · 멈춤) 기록이 남지 않았습니다': 'The runner cut the run short (time limit · stop), so nothing was recorded',
   '다른 컴퓨터의 러너에서 돌았거나 기록 파일을 옮기다 실패해 기록이 없습니다':
     'Ran on a runner on another computer, or moving the trace file failed, so nothing was recorded',
+
+  // 실행 창을 고친 채 닫을 때 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  '고친 값이 사라집니다': 'Your changes will be lost',
+  '계속 고치기': 'Keep editing',
 };

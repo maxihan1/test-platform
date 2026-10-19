@@ -8,8 +8,9 @@ import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type 글자표, 몇건, 실행항목, 안드로이드있나 } from './pickRun.js';
+import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { RunLocation } from './RunLocation.js';
-import { 반복과알림 } from './RunPickFoot.js';
+import { use닫기묻기, 반복과알림 } from './RunPickFoot.js';
 import { 한건값줄, 한건머리, use한건 } from './RunPickOne.js';
 import { 넘었나, 상한 } from './runPlan.js';
 import { use여러건시험, 열주소칸, 시험배지, 시험절차 } from './RunPickTrial.js';
@@ -64,8 +65,10 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const t = use말();
   const 언어 = use언어();
   // **기본값을 두지 않는다.** 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2).
-  // 여는 쪽이 준 서버(실패 다시 실행 — 그 실행의 서버)는 사람이 이미 고른 값이다
-  const [env, setEnv] = useState(service?.envs.some((it) => it.env === 초기서버) === true ? 초기서버! : '');
+  // 여는 쪽이 준 서버(실패 다시 실행 — 그 실행의 서버)와 이 서비스에서 마지막에 고른 서버는 사람이 이미 고른 값이다
+  const [env, setEnv] = useState(() =>
+    service?.envs.some((it) => it.env === 초기서버) === true ? 초기서버! : service === null ? '' : 마지막서버(service.prefix, service.envs),
+  );
   const [repeat, setRepeat] = useState('1');
   const [notifySlack, setNotifySlack] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -82,6 +85,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   }
 
   const 값 = useRunPickValues(케이스들, 초기글자, 손댐);
+  const 닫기 = use닫기묻기(값.고쳤나, onClose);
   const 한건 = 케이스들.length === 1 ? 케이스들[0]! : null;
   const 하나 = use한건(한건);
   // 한 건이면 사람이 고른 디바이스로 돈다. 여러 건이면 케이스가 선언한 것을 전부 쓴다 (SPEC §8.10)
@@ -153,16 +157,17 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   return (
     <Modal
       제목={t('실행할 케이스 {건수}건', { 건수: 케이스들.length })}
-      onClose={onClose}
+      onClose={닫기.요청}
       넓게
       바깥눌러닫기={false}
       버튼={
+        닫기.묻나 ? 닫기.줄 : (
         <>
           {/* 사유도 건수도 말풍선이 아니라 화면 줄이다. 오류는 실패 글자색(--fail-text)으로 적는다 (DESIGN.md 원칙 1 오류 예외) */}
           <span className="note" role="status" style={빨갛나 ? { color: 'var(--fail-text)' } : undefined}>
             {줄}
           </span>
-          <button className="btn ghost" onClick={onClose}>
+          <button className="btn ghost" onClick={닫기.요청}>
             {t('취소')}
           </button>
           {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
@@ -174,11 +179,12 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
             {거는중 === true ? t('실행을 시작하는 중') : t('실행')}
           </button>
         </>
+        )
       }
     >
       <div className="mhead">
         <label htmlFor="pick-env">{t('대상 서버')}</label>
-        <select id="pick-env" value={env} onChange={(e) => { 손댐(); setEnv(e.target.value); }}>
+        <select id="pick-env" value={env} onChange={(e) => { 손댐(); setEnv(e.target.value); if (service !== null) 고른서버를적는다(service.prefix, e.target.value); }}>
           {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
           <option value="">{t('고르세요')}</option>
           {(service?.envs ?? []).map((it) => (

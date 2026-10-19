@@ -61,6 +61,8 @@ export const 저장값케이스: CaseRow = {
 };
 
 export async function 그린다(row: CaseRow = 케이스, 누구: User = 사람, 덮어쓸: { 초기서버?: string } = {}) {
+  // 앞 검사가 고른 대상 서버가 브라우저에 남아 다음 창을 미리 고르지 않게 한다
+  localStorage.clear();
   vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
   const onRun = vi.fn();
   const on다시읽기 = vi.fn();

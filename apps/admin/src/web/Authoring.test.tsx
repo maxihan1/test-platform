@@ -7,14 +7,17 @@ import { Authoring } from './Authoring.js';
 import { 멈춘듯기준 } from './authoringView.js';
 
 const 줄들: AuthoringRow[] = [];
+const 부른쪽: number[] = [];
 
 vi.mock('./api.js', async () => {
   const 진짜 = await vi.importActual<typeof import('./api.js')>('./api.js');
   return {
     ...진짜,
     api: {
-      authoringRequests: () =>
-        Promise.resolve({ items: 줄들, total: 줄들.length, page: 1, pageSize: 50 }),
+      authoringRequests: (_service: string, page: number) => {
+        부른쪽.push(page);
+        return Promise.resolve({ items: 줄들, total: 줄들.length, page, pageSize: 50 });
+      },
     },
   };
 });
@@ -40,6 +43,8 @@ function 줄(덮을것: Partial<AuthoringRow>): AuthoringRow {
 
 beforeEach(() => {
   줄들.length = 0;
+  부른쪽.length = 0;
+  window.history.replaceState(null, '', '#/authoring');
 });
 
 afterEach(() => {
@@ -120,5 +125,15 @@ describe('작성 권한 칸', () => {
     const 꼬리 = await screen.findByText(/#5901 다음 · 기획서에 없는 화면/);
     expect(꼬리.textContent?.startsWith('#5901 다음 · 기획서에 없는 화면')).toBe(true);
     expect(꼬리.closest('a')).toBe(null);
+  });
+});
+
+describe('작성 목록 쪽은 주소에 남는다 (점검 11.4)', () => {
+  it('주소의 쪽으로 처음부터 부른다 — 상세에 갔다 뒤로 와도 그 쪽이다', async () => {
+    window.history.replaceState(null, '', '#/authoring?page=3');
+    render(<Authoring service="PAY" 할수={() => true} />);
+    await screen.findByText('아직 작성을 요청한 기록이 없습니다');
+    expect(부른쪽[0]).toBe(3);
+    expect(window.location.hash).toBe('#/authoring?page=3');
   });
 });

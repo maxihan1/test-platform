@@ -12,7 +12,7 @@ import { GuideSection, 구획들 } from './GuideSection.js';
 import { GuideVersions } from './GuideVersions.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
-import { useBeforeUnload } from './leaveGuard.js';
+import { 떠나기상자 } from './leaveGuard.js';
 import type { 판정 } from './role.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
 
@@ -26,7 +26,6 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
   const [기록, set기록] = useState(false);
   const [busy, setBusy] = useState(false);
   const 바뀜 = 판.data !== null && 초안 !== null && 구획들.some((s) => 초안[s] !== 판.data![s]);
-  useBeforeUnload(바뀜);
 
   if (판.error !== null) return <Failed error={판.error} />;
   if (판.data === null) return <Loading />;
@@ -99,6 +98,8 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
       )}
       <p className="prd-note">{t('기대값은 요구사항(표준 기획서)에서만 옵니다. 가이드는 서비스를 이해하고 테스트를 돌리는 데만 씁니다')}</p>
       {기록 ? <GuideVersions service={service} 지금판={now.version} /> : null}
+      {/* 메뉴 · 고리 · 서비스 고르개로 떠나도 묻는다 — 앞 판은 창을 닫을 때만 물었다(점검 9.1) */}
+      <떠나기상자 막나={바뀜} 버리기도 />
       {구획들.map((s) => (
         <GuideSection
           key={s}

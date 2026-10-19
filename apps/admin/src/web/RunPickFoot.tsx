@@ -1,7 +1,41 @@
-// 실행 창 바닥 칸 — 반복 횟수 · 끝나면 Slack 으로 알리기 (도메인/실행 §8.2 · §8.10)
+// 실행 창 바닥 칸 — 반복 횟수 · 끝나면 Slack 으로 알리기 (도메인/실행 §8.2 · §8.10) · 고친 채 닫을 때 묻는 버튼 줄
 // RunPickModal 이 300줄을 넘어 떼어 냈다 (2026-10-12 휴대폰 값 접기)
 
+import { useState } from 'react';
+
 import { use말 } from './i18n.js';
+
+/**
+ * 값을 고친 채 Esc · 취소로 닫으려 하면 버튼 줄이 한 번 묻는다. 상자 안에 상자를 겹쳐 열지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」).
+ * 묻는 중의 Esc 는 「계속 고치기」다 — Esc 를 두 번 눌러 고친 값을 잃지 않게
+ */
+export function use닫기묻기(고쳤나: boolean, onClose: () => void) {
+  const [묻나, set묻나] = useState(false);
+  return {
+    묻나,
+    요청: () => (묻나 ? set묻나(false) : 고쳤나 ? set묻나(true) : onClose()),
+    줄: (
+      <닫기묻는줄 on계속={() => set묻나(false)} on닫기={onClose} />
+    ),
+  };
+}
+
+function 닫기묻는줄({ on계속, on닫기 }: { on계속: () => void; on닫기: () => void }) {
+  const t = use말();
+  return (
+    <>
+      <span className="note" role="status" style={{ color: 'var(--fail-text)' }}>
+        {t('고친 값이 사라집니다')}
+      </span>
+      <button className="btn" onClick={on계속}>
+        {t('계속 고치기')}
+      </button>
+      <button className="btn ghost" onClick={on닫기}>
+        {t('닫기')}
+      </button>
+    </>
+  );
+}
 
 interface Props {
   repeat: string;

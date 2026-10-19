@@ -7,9 +7,9 @@ import type { ScenarioPart } from '@platform/kit';
 import type { ServiceRow, User } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
-import { useBeforeUnload, 떠나기로했다, 떠나기막기 } from './leaveGuard.js';
+import { 고른서버를적는다, 마지막서버 } from './layout.js';
+import { 떠나기막기, 떠나기상자 } from './leaveGuard.js';
 import { Loading, Failed, PLATFORMS, PLATFORM_LABEL, when } from './ui.js';
-import { Modal } from './Modal.js';
 import { 판정을만든다 } from './role.js';
 import { ScenarioCards } from './ScenarioCards.js';
 import { ScenarioBuildTabs } from './ScenarioBuildTabs.js';
@@ -38,8 +38,9 @@ export function ScenarioBuild({
   const 판정 = 판정을만든다(user, 초안.서비스);
   const 쓰나 = 판정('실행') && 초안.살아있나;
   const 시험 = useScenarioTrial(시험열쇠(id));
-  // 대상 서버는 기본값을 두지 않는다 — 실수로 운영 서버에 시험 실행을 보내지 않게 사람이 고른다
-  const [서버, set서버] = useState('');
+  // 대상 서버는 기본값을 두지 않는다 — 실수로 운영 서버에 시험 실행을 보내지 않게 사람이 고른다.
+  // 아직 안 골랐으면 이 서비스에서 마지막에 고른 서버를 쓴다(공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」). 서비스는 불러온 뒤에야 알아 상태로 두지 않는다
+  const [고른서버, set서버] = useState('');
   const [시험글, set시험글] = useState<string | null>(null);
   // 새 시나리오는 단계를 넣는 일이 먼저라 추가 탭부터 연다
   const [탭, set탭] = useState<조립탭>(id === null ? 'add' : 'settings');
@@ -47,7 +48,6 @@ export function ScenarioBuild({
   // 케이스 바꾸기를 눌러 추가 탭으로 넘어간 단계 번호. 추가 탭의 바꾸기 모드가 읽는다. 탭이나 카드를 옮기면 풀려 엉뚱한 단계가 바뀌지 않는다
   const [바꿀번호, set바꿀번호] = useState<number | null>(null);
   const 처음고름 = useRef(false);
-  const [떠날곳, set떠날곳] = useState<string | null>(null);
   const [저장글, set저장글] = useState<string | null>(null);
   // 지금 열린 패널에 잘못 적은 칸이 있는 단계 번호. 패널이 내려가면 칸 글자도 사라지고 초안은 옛 값 그대로라 하나면 된다
   const [칸오류번호, set칸오류번호] = useState<number | null>(null);
@@ -67,16 +67,12 @@ export function ScenarioBuild({
     넘길고른번호 = undefined;
   }, [id, 초안.불러옴, 초안.단계들.length]);
 
-  useEffect(() => {
-    if (!막나) return;
-    떠나기막기((갈곳) => set떠날곳(갈곳));
-    return () => 떠나기막기(null);
-  }, [막나]);
-  useBeforeUnload(막나);
 
   if (보낼곳) return null;
   if (초안.오류 !== null) return <Failed error={초안.오류} />;
   if (!초안.불러옴) return <Loading />;
+  const 서버들 = user.services.find((s) => s.prefix === 초안.서비스)?.envs ?? [];
+  const 서버 = 고른서버 !== '' ? 고른서버 : 마지막서버(초안.서비스, 서버들);
 
   async function 저장누름() {
     set저장글(null);
@@ -182,11 +178,12 @@ export function ScenarioBuild({
       </select>
       {!쓰나 ? null : (
         <TrialControls
-          서버들={user.services.find((s) => s.prefix === 초안.서비스)?.envs ?? []}
+          서버들={서버들}
           서버={서버}
           on서버={(값) => {
             // 서버를 고르면 「먼저 고릅니다」 문장은 이미 낡았다
             set서버(값);
+            고른서버를적는다(초안.서비스, 값);
             set시험글(null);
           }}
           도는중={시험.단계 === 'running'}
@@ -270,31 +267,7 @@ export function ScenarioBuild({
         </div>
       </div>
 
-      {떠날곳 === null ? null : (
-        <Modal
-          제목={t('저장 안 된 변경 있음')}
-          onClose={() => set떠날곳(null)}
-          버튼={
-            <>
-              <button type="button" className="btn" onClick={() => set떠날곳(null)}>
-                {t('머무르기')}
-              </button>
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => {
-                  떠나기로했다();
-                  window.location.hash = 떠날곳;
-                }}
-              >
-                {t('저장하지 않고 떠나기')}
-              </button>
-            </>
-          }
-        >
-          {t('이 화면을 떠나면 저장하지 않은 내용이 사라집니다')}
-        </Modal>
-      )}
+      <떠나기상자 막나={막나} />
     </>
   );
 }

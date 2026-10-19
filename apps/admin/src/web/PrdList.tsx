@@ -7,6 +7,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { 줄보류of, type 줄보류 } from '../prd/heldText.js';
 import { 요구판정, 추적하기, type 결과읽기, type 추적 } from '../prd/trace.js';
 import { use말 } from './i18n.js';
+import { use주소조건, 버리기전, 주소조건 } from './leaveGuard.js';
 import type { 판짓기 } from './Prd.js';
 import { prdApi, type PrdItemDraft, type PrdNow } from './prdApi.js';
 import type { 지도API } from '../prd/apiMap.js';
@@ -43,7 +44,9 @@ export function PrdList({
   여기?: string;
 }) {
   const t = use말();
-  const [q, setQ] = useState('');
+  // 찾기 글자는 주소에 남는다 — 케이스 목록에 갔다 뒤로 와도 그대로다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  const [q, setQ] = useState(() => 주소조건().get('q') ?? '');
+  use주소조건(여기 === undefined ? '#/prd' : `#/prd/${여기}`, q === '' ? {} : { q });
   // 판을 받은 뒤에 그려지므로 처음 값에서 바로 찾는다. 지금 판에 없는 번호면 아무것도 안 편다
   const 여기것 = 여기 === undefined ? undefined : now.items.find((x) => x.reqId === 여기);
   const [연묶음, set연묶음] = useState<Set<string>>(() => new Set(여기것 === undefined ? [] : [여기것.feature]));
@@ -150,13 +153,16 @@ export function PrdList({
                       케이스보나={케이스보나}
                       폈나={편줄.has(x.reqId)}
                       on펴기={() => {
-                        // 고치던 줄을 접으면 취소와 같다 — 다시 펼 때 옛 칸이 버려진 글로 열리지 않게
-                        if (편줄.has(x.reqId) && 고치는 === x.reqId) set고치는(null);
-                        set편줄(뒤집은(편줄, x.reqId));
+                        // 고치던 줄을 접으면 취소와 같다 — 다시 펼 때 옛 칸이 버려진 글로 열리지 않게. 쓴 것이 있으면 먼저 묻는다
+                        if (!(편줄.has(x.reqId) && 고치는 === x.reqId)) return set편줄(뒤집은(편줄, x.reqId));
+                        버리기전(() => {
+                          set고치는(null);
+                          set편줄((전) => 뒤집은(전, x.reqId));
+                        });
                       }}
                       쓰나={쓰나}
                       고치나={고치는 === x.reqId}
-                      on고치기={() => set고치는(x.reqId)}
+                      on고치기={() => 버리기전(() => set고치는(x.reqId))}
                       on고치기닫기={() => set고치는(null)}
                       기능들={기능들}
                       on저장={async (새것) => {

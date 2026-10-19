@@ -39,6 +39,13 @@ describe('route', () => {
     expect(route('#/cases/zz')).toMatchObject({ name: 'unknown' });
   });
 
+  it('`?` 뒤의 목록 조건은 화면을 고르지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)', () => {
+    expect(route('#/cases/fn?q=로그인&page=2')).toEqual({ name: 'cases', kind: 'FN' });
+    expect(route('#/cases/ui/req/ZCA-REQ-001?page=3')).toEqual({ name: 'cases', kind: 'UI', req: 'ZCA-REQ-001' });
+    expect(route('#/authoring?page=2')).toEqual({ name: 'authoring' });
+    expect(route('#/prd/ZCA-REQ-001?q=비밀번호')).toEqual({ name: 'prd', reqId: 'ZCA-REQ-001' });
+  });
+
   it('케이스 실행 설정', () => {
     expect(route('#/cases/DEMO-003/run')).toEqual({ name: 'setup', tcId: 'DEMO-003' });
   });

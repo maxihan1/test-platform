@@ -55,8 +55,9 @@ export interface CaseRow {
   screens?: CaseScreen[];
 }
 
-/** 지도 ① 의 축 칸 — 서버 `catalog/context.ts` 와 같은 넷 */
-export type 케이스축 = '정상' | '경계' | '예외' | 'UI';
+/** 지도 ① 의 축 칸 — 서버 `catalog/context.ts` 와 같은 넷. 값 목록은 주소에서 읽은 조건을 거를 때 쓴다 */
+export const 케이스축들 = ['정상', '경계', '예외', 'UI'] as const;
+export type 케이스축 = (typeof 케이스축들)[number];
 
 export interface CaseReq {
   reqId: string;

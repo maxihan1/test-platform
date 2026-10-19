@@ -169,6 +169,32 @@ export function 고른서비스를적는다(prefix: string): void {
   }
 }
 
+/**
+ * 서비스마다 마지막으로 고른 대상 서버 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」).
+ * 시스템이 정한 기본값이 아니라 이 사람이 이 브라우저에서 직접 고른 값이다 — 기본값을 두지 않는 규칙(도메인/실행 §8.2)은 그대로다
+ */
+const 고른서버키 = (prefix: string) => '대상서버:' + prefix;
+
+/** 그 서비스에 아직 있는 서버일 때만 돌려준다. 처음이거나 설정에서 지웠으면 빈 글자 — 고르지 않은 채로 연다 */
+export function 마지막서버(prefix: string, envs: readonly { env: string }[]): string {
+  try {
+    const 값 = localStorage.getItem(고른서버키(prefix));
+    return envs.some((it) => it.env === 값) ? 값! : '';
+  } catch {
+    // 브라우저가 저장을 막아도 화면은 떠야 한다. 고르지 않은 채로 열릴 뿐이다
+    return '';
+  }
+}
+
+export function 고른서버를적는다(prefix: string, env: string): void {
+  if (env === '') return;
+  try {
+    localStorage.setItem(고른서버키(prefix), env);
+  } catch {
+    // 위와 같다
+  }
+}
+
 /** 사이드바를 접어 뒀는지. 새로고침해도 접힌 채로 열린다 */
 const 접은사이드바키 = '사이드바접음';
 

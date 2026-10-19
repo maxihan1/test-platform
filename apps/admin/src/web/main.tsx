@@ -11,7 +11,7 @@ import { CaseList } from './CaseList.js';
 import { Dashboard } from './Dashboard.js';
 import { 언어함, use말, type 언어 } from './i18n.js';
 import { ItemDetail } from './ItemDetail.js';
-import { useHash, 떠나기막기 } from './leaveGuard.js';
+import { useHash, 떠나기막기, 버리기전 } from './leaveGuard.js';
 import {
   고른서비스,
   대시보드재료,
@@ -252,7 +252,14 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     <Shell
       user={상태.user}
       service={열린것}
-      onService={setPrefix}
+      onService={(접두사) => {
+        // 고르개는 고른 서비스를 먼저 적어 둔다. 쓰던 글이 있어 떠나기 상자가 막으면 묻던 서비스가 남아야 새로고침이 그리로 연다
+        if (열린접두사 !== null) 고른서비스를적는다(열린접두사);
+        버리기전(() => {
+          고른서비스를적는다(접두사);
+          setPrefix(접두사);
+        });
+      }}
       언어={언어}
       on언어={on언어}
       onLogout={나간다}

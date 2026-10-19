@@ -7,6 +7,7 @@ import { Fragment, useState } from 'react';
 import { ApiError, type EnvRow } from './api.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { Modal } from './Modal.js';
 import type { 판정 } from './role.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
@@ -18,7 +19,8 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
   const t = use말();
   const 언어 = use언어();
   const 쓰나 = 할수('실행');
-  const [env, setEnv] = useState('');
+  // 이 서비스에서 마지막에 고른 서버로 연다 — 기본값은 없다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  const [env, setEnv] = useState(마지막서버(service, envs));
   // 안내는 한 번에 한 줄 아래에만 둔다 — 앞 줄의 안내를 남기면 어느 줄 이야기인지 흐려진다
   const [안내, set안내] = useState<{ id: number; 글: string } | null>(null);
   const [돌리는중, set돌리는중] = useState<number | null>(null);
@@ -73,7 +75,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
                 <label className="filter-label" htmlFor="sc-env">
                   {t('대상 서버')}
                 </label>
-                <select id="sc-env" value={env} onChange={(e) => setEnv(e.target.value)}>
+                <select id="sc-env" value={env} onChange={(e) => { setEnv(e.target.value); 고른서버를적는다(service, e.target.value); }}>
                   {/* 기본값이 없다. 반드시 고른다 (SPEC §8.2) */}
                   <option value="">{t('선택하세요')}</option>
                   {envs.map((it) => (

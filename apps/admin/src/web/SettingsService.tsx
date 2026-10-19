@@ -5,6 +5,7 @@ import { useState, type ReactNode } from 'react';
 
 import { api, ApiError, type ScheduleSetting, type SettingsServiceRow } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
+import { 떠나기막기, 떠나기상자 } from './leaveGuard.js';
 import {
   안쓰는서비스색,
   서비스못보내는이유,
@@ -43,6 +44,9 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
   const [schedule, setSchedule] = useState<ScheduleSetting | null>(row?.schedule ?? null);
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // 적다 만 것이 있으면 설정 메뉴 · 다른 화면으로 떠나기 전에 묻는다(점검 14.1). 처음 그린 값과 견준다
+  const 지금칸 = JSON.stringify({ prefix, name, testsRepo, testsDir, envs, 제외, webhook, figma, schedule });
+  const [처음칸] = useState(지금칸);
 
   const 접두사틀림 = 접두사사유(prefix, 언어);
   const 못보내는이유 = 서비스못보내는이유({ 새것, prefix, name, testsDir, envs, 제외, 정기실행: 새것 ? undefined : schedule }, 언어);
@@ -72,6 +76,8 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
           ...(정기바뀜 ? { schedule } : {}),
         });
       }
+      // 저장했으니 새 서비스로 옮겨 가는 길을 막지 않는다 — 칸은 새로 읽은 값으로 다시 그려진다
+      떠나기막기(null);
       onDone(prefix);
     } catch (e) {
       setErr(오류문장(e, 언어));
@@ -235,6 +241,7 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
           </div>
         </구획>
       )}
+      <떠나기상자 막나={지금칸 !== 처음칸} />
     </div>
   );
 }
