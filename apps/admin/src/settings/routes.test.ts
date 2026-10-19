@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import authRoutes from '../auth/routes.js';
 import { 세션등록 } from '../auth/session.js';
+import { 검사프로젝트, 검사프로젝트치우기 } from './projectFixture.js';
 import settingsRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -34,6 +35,7 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
       `DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix LIKE 'XFS4%')`,
     );
     await pool.query(`DELETE FROM service WHERE prefix LIKE 'XFS4%'`);
+    await 검사프로젝트치우기();
     await app.close();
   });
 
@@ -46,6 +48,7 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
         prefix,
         name: `${prefix} 서비스`,
         color: '#112233',
+        projectId: await 검사프로젝트(),
         testsRepo: 'https://example.com/x.git',
         testsDir: prefix.toLowerCase(),
         envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],

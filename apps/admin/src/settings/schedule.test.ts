@@ -3,6 +3,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { 검사프로젝트, 검사프로젝트치우기 } from './projectFixture.js';
 import settingsRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -23,6 +24,7 @@ describe.skipIf(연결 === undefined)('설정 API — 정기 실행', () => {
         prefix: 접두사,
         name: `${접두사} 정기 실행 검사용`,
         color: '#112233',
+        projectId: await 검사프로젝트(),
         testsRepo: '',
         testsDir: 'xrp',
         envs: [{ env: 'demo', baseUrl: 'https://demo.example.com' }],
@@ -36,6 +38,7 @@ describe.skipIf(연결 === undefined)('설정 API — 정기 실행', () => {
     await pool.query('DELETE FROM test_run WHERE service_id = $1', [id]);
     await pool.query('DELETE FROM service_env WHERE service_id = $1', [id]);
     await pool.query('DELETE FROM service WHERE id = $1', [id]);
+    await 검사프로젝트치우기();
     await app.close();
   });
 

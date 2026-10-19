@@ -5,6 +5,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { 사용자와해시 } from '../auth/store.js';
+import { 검사프로젝트, 검사프로젝트치우기 } from './projectFixture.js';
 import settingsRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -20,6 +21,7 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 테스트 계정', (
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xfu7%'`);
     await pool.query(`DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix LIKE 'XFS7%')`);
     await pool.query(`DELETE FROM service WHERE prefix LIKE 'XFS7%'`);
+    await 검사프로젝트치우기();
   }
 
   async function 줄들(): Promise<Record<string, unknown>[]> {
@@ -65,6 +67,7 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 테스트 계정', (
         prefix: 'XFS7A',
         name: 'XFS7A 서비스',
         color: '#112233',
+        projectId: await 검사프로젝트(),
         testsRepo: 'https://example.com/x.git',
         testsDir: 'xfs7a',
         envs: [
