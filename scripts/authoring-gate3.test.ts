@@ -1,7 +1,11 @@
 // 돌려 본 결과 기록 판정 검사 — Playwright json 리포터 모양(최상위 suites[].file · specs[].tests[].projectName)
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
-import { type 돌린기록, 끝돌려보기경고, 남은임시도우미, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
+import { type 돌린기록, 기록남기며비우기, 끝돌려보기경고, 남은임시도우미, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
 
 describe('남은 임시 도우미 (작성 §3.6 팬아웃 · 2026-10-04)', () => {
   it('공용으로 옮기지 않은 draft 파일이 남으면 경고한다', () => {
@@ -147,6 +151,32 @@ describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-19 사�
 
   it('볼 케이스가 없으면(표만 고친 작성) 기록이 없어도 경고하지 않는다', () => {
     expect(끝돌려보기경고([], {})).toBeNull();
+  });
+});
+
+describe('기록남기며비우기 — 끊긴 자리부터 다시 시작할 때 (§7 「이어하기」 · 2026-10-19)', () => {
+  it('돌려 본 기록 · 서브에이전트 보고 · 용어 조각만 남기고 나머지는 지운다 — 링크는 따라가지 않는다', () => {
+    const 바깥 = mkdtempSync(join(tmpdir(), 'gate3-바깥-'));
+    const 임시 = mkdtempSync(join(tmpdir(), 'gate3-임시-'));
+    writeFileSync(join(바깥, '남의것.json'), '{"비밀":1}');
+    writeFileSync(join(임시, 'gate3-final-1.json'), '{"끝":1}');
+    writeFileSync(join(임시, 'gate3-part-shop-2.json'), '{"보조":1}');
+    writeFileSync(join(임시, 'summary-shop.md'), '보고');
+    writeFileSync(join(임시, 'secret-scan.mjs'), '앞 자식 캐시');
+    writeFileSync(join(임시, 'gate3-final-1.log'), '긴 로그');
+    mkdirSync(join(임시, 'glossary'));
+    writeFileSync(join(임시, 'glossary', 'shop.md'), '용어');
+    symlinkSync(join(바깥, '남의것.json'), join(임시, 'gate3-final-9.json'));
+
+    const 수 = 기록남기며비우기(임시, () => {
+      rmSync(임시, { recursive: true, force: true });
+      mkdirSync(임시);
+    });
+
+    expect(수).toBe(4);
+    expect(readdirSync(임시).sort()).toEqual(['gate3-final-1.json', 'gate3-part-shop-2.json', 'glossary', 'summary-shop.md']);
+    expect(readFileSync(join(임시, 'glossary', 'shop.md'), 'utf8')).toBe('용어');
+    expect(readFileSync(join(임시, 'gate3-part-shop-2.json'), 'utf8')).toBe('{"보조":1}');
   });
 });
 

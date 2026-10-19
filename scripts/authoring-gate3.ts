@@ -1,6 +1,6 @@
 // 돌려 본 결과 기록을 에이전트가 직접 판정한다 — 자식의 말이 아니라 Playwright json 결과로 (SPEC 도메인/작성 §3.6)
 
-import { lstatSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
+import { lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, normalize, relative } from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 
@@ -40,6 +40,29 @@ export function 돌린기록들(결과폴더: string): 돌린기록[] {
     .filter((이름) => 돌린기록꼴.test(이름))
     .sort()
     .map((이름) => ({ 이름, 글: 안전한글(join(결과폴더, 이름), 결과폴더, 결과상한) ?? '{깨짐' }));
+}
+
+/**
+ * 끊긴 자리부터 다시 시작할 때 임시 자리를 새로 만들면서 앞 실행의 돌려 본 기록과 서브에이전트 보고만 남긴다 (도메인/작성 §7 「이어하기」 · 2026-10-19).
+ * #303 은 보고를 잃고 기록을 못 믿어 서브에이전트 넷을 다시 띄워 80분을 썼다. 그 밖의 임시 파일은 지운다 — 앞 자식이 심은 캐시를 다음 자식이 돌리지 않게.
+ * 일반 파일만 옮긴다(링크 · 하드링크 · 상한 넘는 것은 버린다). 돌려준 값은 옮긴 수
+ */
+export function 기록남기며비우기(임시: string, 비우기: () => void): number {
+  const 남길 = [
+    ...이름들(임시).filter((n) => 돌린기록꼴.test(n) || /^summary-[^/]+\.md$/.test(n)),
+    ...이름들(join(임시, 'glossary'))
+      .filter((n) => n.endsWith('.md'))
+      .map((n) => join('glossary', n)),
+  ].flatMap((상대) => {
+    const 글 = 안전한글(join(임시, 상대), 임시, 결과상한);
+    return 글 === null ? [] : [{ 상대, 글 }];
+  });
+  비우기();
+  for (const { 상대, 글 } of 남길) {
+    mkdirSync(dirname(join(임시, 상대)), { recursive: true, mode: 0o700 });
+    writeFileSync(join(임시, 상대), 글, { mode: 0o600 });
+  }
+  return 남길.length;
 }
 
 /** `tests/<폴더>` 아래 .ts 파일과 수정 시각(testDir 기준 경로). 링크 폴더는 lstat 이라 따라가지 않고 깊이도 묶는다 — 아주 깊은 폴더를 두면 재귀가 죽는다 */
