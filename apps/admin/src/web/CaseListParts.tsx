@@ -15,7 +15,10 @@ import { 판정흐름 } from './Summary.js';
 import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
 const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
-const 디바이스칩: (Platform | 'ALL')[] = ['ALL', 'desktop', 'mobile'];
+// 「Android 앱」은 앱 케이스가 있는 서비스에만 — 웹만 있는 서비스에서는 늘 빈 목록을 내는 칩이다 (도메인/카탈로그 §8.1)
+// 이미 android 를 고른 채(주소) 들어왔으면 앱 케이스가 없어도 세운다 — 고른 것을 감추면 왜 비었는지 모른다
+const 디바이스칩 = (앱있음: boolean, 고른: Platform | 'ALL'): (Platform | 'ALL')[] =>
+  앱있음 || 고른 === 'android' ? ['ALL', 'desktop', 'mobile', 'android'] : ['ALL', 'desktop', 'mobile'];
 // 종류는 기능 목록에만 — UI 는 넷째 종류라 UI 목록 전부다 (도메인/카탈로그 §8.1 「맥락」)
 const 종류칩: (Exclude<케이스축, 'UI'> | 'ALL')[] = ['ALL', '정상', '경계', '예외'];
 // 빈 목록 안내도 같은 말을 쓴다. 두 벌을 두면 칩과 안내가 서로 다른 이름으로 같은 것을 부른다
@@ -71,6 +74,7 @@ export function 찾기폼({
 /** 검색 조건 (SPEC §8.1 표가 정본). 서비스는 조건이 아니라 맨 위 띠의 선택이다 */
 export function 조건칩들({
   디바이스,
+  앱있음,
   활성만,
   결과,
   건수,
@@ -79,6 +83,7 @@ export function 조건칩들({
   on결과,
 }: {
   디바이스: Platform | 'ALL';
+  앱있음: boolean;
   활성만: boolean;
   결과: ItemStatus | 'ALL';
   /** 서버가 last 를 뺀 조건으로 센 수 — 칩을 걸어도 그대로다. 실행 read 가 없으면 null 이고 칩도 안 그린다 (도메인/카탈로그 §7) */
@@ -96,7 +101,7 @@ export function 조건칩들({
     <>
       <span className="filter-group">
         <span className="filter-label">{t('디바이스')}</span>
-        {디바이스칩.map((값) => (
+        {디바이스칩(앱있음, 디바이스).map((값) => (
           <button className="chip" key={값} aria-pressed={디바이스 === 값} onClick={() => on디바이스(값)}>
             {값 === 'ALL' ? t('전체') : t(PLATFORM_LABEL[값])}
           </button>

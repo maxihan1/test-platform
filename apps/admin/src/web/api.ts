@@ -106,6 +106,8 @@ export interface CasePage extends Paged<CaseRow> {
   groups?: CaseGroup[];
   /** 서비스가 PRD 를 쓰나 — 검색 조건을 안 따른다. 「기능 묶음 없음」만 보기에서도 묶음 머리를 세운다 */
   hasFeatures?: boolean;
+  /** 서비스에 살아 있는 앱 케이스가 있나 — 검색 조건을 안 따른다. 있을 때만 「Android 앱」 칩을 세운다 */
+  hasApp?: boolean;
   /** 마지막 결과 칩의 건수 — last 를 뺀 조건에 맞은 전부다. 실행 read 가 없으면 null (도메인/카탈로그 §7) */
   lastCounts?: { total: number; pass: number; fail: number; na: number } | null;
 }

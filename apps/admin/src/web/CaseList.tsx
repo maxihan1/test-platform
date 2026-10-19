@@ -176,6 +176,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
 
         <조건칩들
           디바이스={검색.디바이스}
+          앱있음={cases.data?.hasApp ?? false}
           활성만={검색.활성만}
           결과={결과}
           건수={cases.data?.lastCounts}

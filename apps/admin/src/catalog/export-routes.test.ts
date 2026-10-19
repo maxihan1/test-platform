@@ -221,7 +221,7 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
   it('목록 응답은 그대로다 — 쪽 크기 50 · 같은 모양에 묶음 번호표 · 마지막 결과 셈이 더해졌다', async () => {
     const res = await app.inject({ method: 'GET', url: `/api/catalog/cases?service=${접두사}`, cookies: { platform_session: 출입증.get('xcx-all')! } });
     const body = res.json<Record<string, unknown>>();
-    expect(Object.keys(body).sort()).toEqual(['groups', 'hasFeatures', 'items', 'lastCounts', 'page', 'pageSize', 'sort', 'total', 'totalIsExact', 'unconfirmed']);
+    expect(Object.keys(body).sort()).toEqual(['groups', 'hasApp', 'hasFeatures', 'items', 'lastCounts', 'page', 'pageSize', 'sort', 'total', 'totalIsExact', 'unconfirmed']);
     expect({ ...body, lastCounts: null }).toEqual(
       await listCases({ service: 접두사, q: '', activeOnly: true, page: 1, pageSize: 50 }),
     );
@@ -251,6 +251,13 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
     const 목록 = await 목록받기('xcx-all', '&last=bogus');
     const 엑셀 = await 받기('xcx-all', '&last=bogus');
     expect([목록.statusCode, 목록.json().error, 엑셀.statusCode, 엑셀.json().error]).toEqual([400, 'BAD_LAST', 400, 'BAD_LAST']);
+  });
+
+  it('모르는 디바이스는 목록 · 엑셀 둘 다 400 BAD_PLATFORM · android 는 받는다', async () => {
+    const 목록 = await 목록받기('xcx-all', '&platform=ios');
+    const 엑셀 = await 받기('xcx-all', '&platform=ios');
+    const 앱 = await 목록받기('xcx-all', '&platform=android');
+    expect([목록.statusCode, 목록.json().error, 엑셀.statusCode, 엑셀.json().error, 앱.statusCode]).toEqual([400, 'BAD_PLATFORM', 400, 'BAD_PLATFORM', 200]);
   });
 
   it('남의 서비스 · 케이스 read 없음은 403', async () => {
