@@ -4,10 +4,10 @@ import type { ScenarioMethod, ScenarioResponseRef } from '@platform/kit';
 
 import type { 지도API } from '../prd/apiMap.js';
 import { use말 } from './i18n.js';
-import { 요청고르개 } from './ScenarioLinkPick.js';
+import { 메서드들, 요청고르개 } from './ScenarioLinkPick.js';
 import { 글칸, 칸 } from './ScenarioOtherParts.js';
 
-export const 메서드들: ScenarioMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+export { 메서드들 };
 
 export function 메서드칸<M extends ScenarioMethod>({
   아이디,

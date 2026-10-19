@@ -35,11 +35,11 @@ function 상세(checks: ScenarioDetail['checks']): ScenarioDetail {
 describe('까닭글들', () => {
   it('비활성 케이스는 단계 번호와 케이스 번호, 사라진 사전 단계는 단계 번호로 적는다', () => {
     const 글 = 까닭글들({ runnable: false }, 상세([{ seq: 1, reason: 'CASE_INACTIVE' }, { seq: 2, reason: 'STEP_GONE' }]), 한국어);
-    expect(글).toEqual(['1번 단계 케이스가 비활성입니다 · ZSW-FN-001', '2번 단계에서 건너뛰던 사전 단계가 케이스에서 없어졌습니다']);
+    expect(글).toEqual(['1번 단계 케이스가 비활성입니다 · ZSW-FN-001', '2번 단계에서 건너뛰게 둔 사전 단계를 이제 건너뛸 수 없습니다']);
   });
 
   it('비활성 케이스 없이 실행 불가면 제한 시간 · 크기 까닭이다', () => {
-    expect(까닭글들({ runnable: false }, 상세([]), 한국어)).toEqual(['단계 제한 시간 합이 60분을 넘거나 시나리오가 너무 커서 실행할 수 없습니다']);
+    expect(까닭글들({ runnable: false }, 상세([]), 한국어)).toEqual(['단계 제한 시간 합이 상한을 넘거나 시나리오가 너무 커서 실행할 수 없습니다']);
   });
 
   it('실행할 수 있으면 확인 필요 까닭만 남는다', () => {
@@ -66,7 +66,7 @@ describe('ScenarioList 까닭', () => {
     vi.spyOn(scenarioApi, 'list').mockResolvedValue({ items: [줄(1, { needsCheck: true })] });
     vi.spyOn(scenarioApi, 'detail').mockResolvedValue(상세([{ seq: 2, reason: 'STEP_GONE' }]));
     render(<ScenarioList service="ZSW" envs={서버들} 할수={() => true} />);
-    expect(await screen.findByText('2번 단계에서 건너뛰던 사전 단계가 케이스에서 없어졌습니다')).toBeTruthy();
+    expect(await screen.findByText('2번 단계에서 건너뛰게 둔 사전 단계를 이제 건너뛸 수 없습니다')).toBeTruthy();
     expect(screen.getByRole('button', { name: '실행' })).toBeTruthy();
   });
 });

@@ -210,7 +210,7 @@ export function ScenarioBuild({
         </button>
       )}
       {!쓰나 ? null : (
-        <button type="button" className="btn" disabled={초안.저장하는중 || 실행중} onClick={() => void 정식.실행(서버, 초안.바뀜, () => 초안.저장(칸오류번호 ?? 빈칸있는단계(초안.단계들)))}>
+        <button type="button" className="btn" disabled={초안.저장하는중 || 실행중} onClick={() => void 정식.실행(서버, 초안.바뀜, 칸오류번호 ?? 빈칸있는단계(초안.단계들), () => 초안.저장(칸오류번호 ?? 빈칸있는단계(초안.단계들)))}>
           {실행중 ? t('실행 요청 중') : id === null || 초안.바뀜 ? t('저장하고 실행') : t('실행')}
         </button>
       )}

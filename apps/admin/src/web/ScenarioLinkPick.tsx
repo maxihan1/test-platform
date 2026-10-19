@@ -6,14 +6,17 @@ import type { 지도API } from '../prd/apiMap.js';
 import { use말 } from './i18n.js';
 import { 칸 } from './ScenarioOtherParts.js';
 
-const 메서드들 = new Set<string>(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+// 메서드 칸(ScenarioLinkParts)과 같은 목록 — 지도에서 고를 수 있는 것과 칸이 받는 것이 갈리지 않게 한 곳에 둔다
+export const 메서드들: ScenarioMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+const 고를메서드 = new Set<string>(메서드들);
 
 /**
  * 지도의 주소 틀(`:n` · `:id`)을 러너가 맞추는 glob 으로. 러너가 `*` 는 한 칸(`[^/]*`)으로 맞추고 `**` 로 시작하면 호스트를 가린다
  * (apps/runner/scenario/links.ts `globToRegexPattern`). 호스트가 달라도 맞게 `**` 를 앞에 붙인다
  */
 export function 무늬로(path: string): string {
-  return `**${path.replace(/:(?:n|id)(?=\/|$)/g, '*')}`;
+  // 지도의 주소는 물음표 뒤를 뗐다. 러너 무늬는 끝까지 맞춰야 해서 `?page=1` 이 붙은 요청도 맞게 물음표 꼬리를 열어 둔다
+  return `**${path.replace(/:(?:n|id)(?=\/|$)/g, '*')}{,?*}`;
 }
 
 export interface 고를요청 {
@@ -29,7 +32,7 @@ export function 부른요청들(apis: 지도API[], tcId: string): 고를요청[]
   for (const a of apis) {
     if (!a.cases.some((c) => c.tcId === tcId)) continue;
     const method = a.method.toUpperCase();
-    if (!메서드들.has(method)) continue;
+    if (!고를메서드.has(method)) continue;
     모음.set(`${method} ${a.path}`, { method: method as ScenarioMethod, urlPattern: 무늬로(a.path), path: a.path });
   }
   return [...모음.values()].sort((가, 나) => 가.path.localeCompare(나.path) || 가.method.localeCompare(나.method));

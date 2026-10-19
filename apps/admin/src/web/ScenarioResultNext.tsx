@@ -12,9 +12,13 @@ export type 들어온곳 = 'scenarios' | 'scenario' | null;
 
 export const 결과주소 = (runId: number, 어디서: 들어온곳) => (어디서 === null ? `#/runs/${runId}` : `#/runs/${runId}?from=${어디서}`);
 
-/** 실패한 첫 단계. 판정 없음(NA)만 있는 실행은 판정 없음인 첫 단계에서 멈췄다 — 러너 거절은 전부 NA 라 1번이 나온다 */
+/**
+ * 실패한 첫 단계. 실패가 없으면 그 단계 탓으로 멈춘 판정 없음(NA) 첫 단계 — 러너 거절 · 제한 시간 초과가 그렇다.
+ * 앞 단계 때문에 안 돈 단계(NOT_RUN)와 서버 재시작으로 닫힌 단계(ABORTED)는 고칠 거리가 아니라 고르지 않는다
+ */
 export function 멈춘단계(parts: ScenarioRunPart[]): ScenarioRunPart | null {
-  return parts.find((p) => p.status === 'FAIL') ?? parts.find((p) => p.status === 'NA') ?? null;
+  const 그단계탓 = (p: ScenarioRunPart) => p.status === 'NA' && p.error !== null && p.error.message !== 'NOT_RUN' && p.error.message !== 'ABORTED';
+  return parts.find((p) => p.status === 'FAIL') ?? parts.find(그단계탓) ?? null;
 }
 
 export function useRerun(scenarioId: number, env: string, 어디서: 들어온곳) {

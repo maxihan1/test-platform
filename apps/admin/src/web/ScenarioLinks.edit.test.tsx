@@ -98,12 +98,12 @@ describe('ScenarioLinks 고치기 · 빼기', () => {
     ]);
   });
 
-  it('값 연결 빼기는 그 값 연결만 뺀 배열을 올린다', () => {
+  it('값 연결 삭제는 그 값 연결만 뺀 배열을 올린다', () => {
     const 첫째: ScenarioLink = { kind: 'block', method: 'GET', urlPattern: '/a' };
     const 둘째: ScenarioLink = { kind: 'reuse', method: 'POST', urlPattern: '/b', fromSeq: 1 };
     const { on바꿈 } = 그리기([첫째, 둘째]);
     const 묶음 = screen.getByRole('group', { name: '요청 차단' });
-    fireEvent.click(within(묶음).getByRole('button', { name: '값 연결 빼기' }));
+    fireEvent.click(within(묶음).getByRole('button', { name: '값 연결 삭제' }));
     expect(마지막(on바꿈)).toEqual([둘째]);
   });
 });
@@ -112,7 +112,7 @@ describe('ScenarioLinks 읽기만', () => {
   it('쓰기가 아니면 추가 · 빼기 버튼이 없고 칸이 잠긴다', () => {
     그리기([{ kind: 'bind', param: 'orderId', value: 참조 }], { 쓰나: false });
     expect(screen.queryByRole('button', { name: '+ 값 연결 추가' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '값 연결 빼기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '값 연결 삭제' })).toBeNull();
     const 묶음 = screen.getByRole('group', { name: '값 주입' });
     const 칸들 = [...묶음.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')];
     expect(칸들).toHaveLength(5);

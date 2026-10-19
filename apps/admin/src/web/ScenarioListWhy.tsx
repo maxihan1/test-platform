@@ -8,17 +8,18 @@ type 말 = ReturnType<typeof use말>;
 type RowPart = Pick<ScenarioRow, 'runnable'>;
 type DetailPart = Pick<ScenarioDetail, 'parts' | 'checks'>;
 
-/** 상세 점검 → 사람 말. 비활성 케이스가 없는데 못 돈다면 남는 까닭은 제한 시간 합 · 크기뿐이다 (도메인/시나리오 §7 「실행 요청」) */
+/** 상세 점검 → 사람 말. 비활성 케이스가 없는데 못 돈다면 남는 까닭은 제한 시간 합 · 크기뿐이다 (도메인/시나리오 §7 「실행 요청」).
+ * 상한 숫자는 서버(scenario/validate.ts)만 안다 — 화면이 옮겨 적으면 서버만 바뀌었을 때 틀린 숫자를 말한다 */
 export function 까닭글들(줄: RowPart, 상세: DetailPart, t: 말): string[] {
   const 글들 = 상세.checks.map((c) => {
     const 단계 = 상세.parts[c.seq - 1];
     const tcId = 단계?.kind === 'case' ? 단계.tcId : '';
     return c.reason === 'CASE_INACTIVE'
       ? t('{번호}번 단계 케이스가 비활성입니다 · {tcId}', { 번호: c.seq, tcId })
-      : t('{번호}번 단계에서 건너뛰던 사전 단계가 케이스에서 없어졌습니다', { 번호: c.seq });
+      : t('{번호}번 단계에서 건너뛰게 둔 사전 단계를 이제 건너뛸 수 없습니다', { 번호: c.seq });
   });
   if (!줄.runnable && !상세.checks.some((c) => c.reason === 'CASE_INACTIVE')) {
-    글들.push(t('단계 제한 시간 합이 60분을 넘거나 시나리오가 너무 커서 실행할 수 없습니다'));
+    글들.push(t('단계 제한 시간 합이 상한을 넘거나 시나리오가 너무 커서 실행할 수 없습니다'));
   }
   return 글들;
 }

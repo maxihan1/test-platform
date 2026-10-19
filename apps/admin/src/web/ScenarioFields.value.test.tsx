@@ -71,6 +71,26 @@ describe('ScenarioFields 비워 둔 칸의 실제 값', () => {
     await waitFor(() => expect(글칸('비밀번호 입력').placeholder).toBe('저장값 사용 · ********'));
   });
 
+  it('저장값이 없는 로그인 칸은 대상 서버의 역할 계정을 쓴다고 보이고, 저장값이 있으면 저장값이 먼저다', async () => {
+    vi.spyOn(api, 'caseOf').mockResolvedValue(케이스(저장({ savedSecrets: { params: ['password'], expected: [] } })));
+    그리기(
+      단계('ZSB-001'),
+      재료('ZSB-001', {
+        paramSchema: {
+          type: 'object',
+          properties: {
+            email: { type: 'string', description: '아이디', secret: true },
+            password: { type: 'string', description: '비밀번호', secret: true },
+            adminId: { type: 'string', description: '관리자 아이디', secret: true, account: '관리자' },
+          },
+        },
+      }),
+    );
+    await waitFor(() => expect(글칸('아이디').placeholder).toBe('대상 서버의 일반 회원 계정 사용'));
+    expect(글칸('관리자 아이디').placeholder).toBe('대상 서버의 관리자 계정 사용');
+    expect(글칸('비밀번호').placeholder).toBe('저장값 사용 · ********');
+  });
+
   it('케이스를 못 받으면(404 · 오류) 지금 글 그대로다', async () => {
     const 호출 = vi.spyOn(api, 'caseOf').mockRejectedValue(new Error('not found'));
     그리기(단계('ZSB-001'), 재료('ZSB-001', { paramSchema: 스키마 }));

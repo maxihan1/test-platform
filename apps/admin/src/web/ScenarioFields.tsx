@@ -16,11 +16,15 @@ export function 시작글자(fields: Field[], 값: Record<string, unknown>): Rec
 const 가림글 = '********';
 
 /**
- * 칸을 비워 두면 실행이 쓸 값을 흐린 글로. 저장값이 있으면 저장값, 없으면 코드 기본값, 둘 다 없으면 값 없이 「저장값 사용」.
+ * 칸을 비워 두면 실행이 쓸 값을 흐린 글로. 저장값이 있으면 저장값, 없는 계정 칸은 대상 서버 계정, 그 밖은 코드 기본값, 아무것도 없으면 값 없이 「저장값 사용」.
  * 실제 값은 `schemaToFields(스키마, 저장값, 저장된 비밀)` 가 이미 가려 준 칸(`saved` · `default` · `savedSecret`)에서 읽는다 — 다시 계산하지 않는다
  */
 function 비운글(t: ReturnType<typeof use말>, f: Field, 실제: Field | undefined): string {
   if (실제 === undefined) return t('저장값 사용');
+  // 저장값이 없는 계정 칸은 실행이 고른 대상 서버의 역할 계정으로 채운다 — 코드 기본값보다 먼저다 (도메인/실행 §3.2)
+  if (실제.saved !== true && 실제.savedSecret !== true && 실제.계정 !== undefined) {
+    return t('대상 서버의 {역할} 계정 사용', { 역할: 실제.계정.role });
+  }
   const 있나 = 실제.savedSecret === true || (실제.default !== undefined && 실제.default !== '');
   if (!있나) return t('저장값 사용');
   const 값 = 실제.savedSecret === true || f.secret

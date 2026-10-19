@@ -3,6 +3,8 @@
 
 import { validate } from '../execution/validate.js';
 
+import { 계정칸, type 계정자리 } from '@platform/kit/accounts';
+
 import type { JsonSchema } from './api.js';
 import { 가려야하나 } from './mask.js';
 
@@ -24,6 +26,8 @@ export interface Field {
   codeDefault?: unknown;
   /** 저장된 비밀값이 있다. 값은 서버만 알아서 칸은 비어 있고, 비워 두면 서버가 채운다 */
   savedSecret?: true;
+  /** 저장값이 없으면 실행이 대상 서버의 이 역할 계정으로 채우는 칸 — 서버와 같은 kit 판정이다 */
+  계정?: 계정자리;
 }
 
 interface Prop {
@@ -69,6 +73,7 @@ export function schemaToFields(
     const isRequired = required.includes(key);
     const secret = 가려야하나(key, isPlainObject(raw) ? raw : {});
     const 저장값 = saved[key];
+    const 계정 = 계정칸(key, isPlainObject(raw) ? raw : undefined);
 
     const field: Field = {
       key,
@@ -79,6 +84,7 @@ export function schemaToFields(
       // default가 있으면 값이 이미 정해져 있다. 사람이 비워 두기로 고른 칸이 아니다
       optional: !isRequired && prop.default === undefined,
       secret,
+      ...(계정 === null ? {} : { 계정 }),
       ...(Array.isArray(prop.enum) ? { options: prop.enum.map(String) } : {}),
       ...(prop.default === undefined ? {} : { default: prop.default }),
     };

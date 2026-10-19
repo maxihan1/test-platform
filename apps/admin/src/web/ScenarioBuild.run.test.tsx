@@ -50,6 +50,15 @@ describe('ScenarioBuild 정식 실행', () => {
     expect(update.mock.invocationCallOrder[0]).toBeLessThan(run.mock.invocationCallOrder[0] ?? 0);
   });
 
+  it('빈 칸이 남은 단계가 있으면 실행하지 않고 그 단계 번호를 알린다 — 저장한 그대로여도 그렇다', async () => {
+    await 기존그리기({ parts: [{ kind: 'mock', urlPattern: '', status: 200, contentType: 'application/json', body: '{}' }] }, 서버있는사람());
+    const run = vi.spyOn(scenarioApi, 'run');
+    서버고르기();
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+    expect((await screen.findByRole('alert')).textContent).toBe('1번 단계의 잘못 적은 칸을 고쳐야 실행할 수 있습니다');
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it('서버를 안 고르면 서버를 부르지 않고 고르라는 문장만 뜬다', async () => {
     await 기존그리기({}, 서버있는사람());
     const run = vi.spyOn(scenarioApi, 'run');

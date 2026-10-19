@@ -31,6 +31,12 @@ function 판(links: ScenarioLink[], phase: Partial<{ started: boolean; inStep: n
 }
 
 describe('무늬맞음', () => {
+  it('조립 화면이 서비스 지도에서 만든 무늬(물음표 꼬리 {,?*})는 물음표가 붙든 안 붙든 맞고 한 칸 더 깊은 주소는 안 맞는다', () => {
+    expect(무늬맞음('**/api/items{,?*}', 'https://x.com/api/items', BASE)).toBe(true);
+    expect(무늬맞음('**/api/items{,?*}', 'https://x.com/api/items?page=1', BASE)).toBe(true);
+    expect(무늬맞음('**/api/items{,?*}', 'https://x.com/api/items/5', BASE)).toBe(false);
+    expect(무늬맞음('**/api/orders/*{,?*}', 'https://x.com/api/orders/812?full=1', BASE)).toBe(true);
+  });
   it('** 는 앞을 다 받고 무늬는 주소 끝까지 맞아야 한다', () => {
     expect(무늬맞음('**/api/posts', 'https://x.com/api/posts', BASE)).toBe(true);
     expect(무늬맞음('**/api/posts', 'https://x.com/api/posts/1', BASE)).toBe(false);

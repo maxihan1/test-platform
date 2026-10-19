@@ -17,8 +17,14 @@ afterEach(() => {
 describe('멈춘단계', () => {
   it('실패한 첫 단계, 없으면 판정 없음인 첫 단계, 다 통과면 없다', () => {
     expect(멈춘단계([로그인, 결제, 안돈])?.seq).toBe(3);
-    expect(멈춘단계([로그인, 안돈])?.seq).toBe(4);
+    expect(멈춘단계([로그인, { ...안돈, error: { message: '단계 제한 시간 300000ms 를 넘었다' } }])?.seq).toBe(4);
     expect(멈춘단계([로그인])).toBeNull();
+  });
+
+  it('앞 단계 때문에 안 돈 단계 · 서버 재시작으로 닫힌 단계만 있으면 고칠 단계가 없다', () => {
+    expect(멈춘단계([로그인, 안돈])).toBeNull();
+    expect(멈춘단계([로그인, { ...안돈, error: { message: 'ABORTED' } }])).toBeNull();
+    expect(멈춘단계([로그인, { ...안돈, error: null }])).toBeNull();
   });
 });
 

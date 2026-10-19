@@ -68,7 +68,7 @@ export const 오류말: Record<string, string> = {
 
   // E2E 시나리오 (도메인/시나리오 §7). TRIAL_BUSY · TRIAL_NOT_FOUND 는 시험 실행 화면이 따로 다룬다
   SCENARIO_NOT_FOUND: '그 시나리오를 찾지 못했습니다',
-  SCENARIO_ARCHIVED: '목록에서 치운 시나리오라 고치거나 실행할 수 없습니다',
+  SCENARIO_ARCHIVED: '삭제한 시나리오라 고치거나 실행할 수 없습니다',
   SCENARIO_NOT_RUNNABLE: '지금은 실행할 수 없는 시나리오입니다',
   // 저장할 때 내가 열어 본 뒤 다른 사람이 먼저 저장하면 만난다
   STALE_VERSION: '다른 사람이 먼저 저장했습니다. 새로 고침하면 지금 고친 내용이 사라집니다',

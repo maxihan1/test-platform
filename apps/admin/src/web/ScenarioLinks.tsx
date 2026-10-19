@@ -157,7 +157,7 @@ export function ScenarioLinks({ 번호, 단계, 단계들, 재료, 쓰나, 지�
             ) : null}
             {!쓰나 ? null : (
               <button type="button" className="btn ghost" onClick={() => on바꿈(links.filter((_, j) => j !== i))}>
-                {t('값 연결 빼기')}
+                {t('값 연결 삭제')}
               </button>
             )}
           </fieldset>

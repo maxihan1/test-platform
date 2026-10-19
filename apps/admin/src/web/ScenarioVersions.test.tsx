@@ -208,7 +208,7 @@ describe('이 버전으로 되돌리기', () => {
     fireEvent.click(screen.getByRole('button', { name: 줄글(2, '김철수', 시각2) }));
     fireEvent.click(await screen.findByRole('button', { name: '이 버전으로 되돌리기' }));
 
-    expect(await screen.findByText('목록에서 치운 시나리오라 고치거나 실행할 수 없습니다')).toBeTruthy();
+    expect(await screen.findByText('삭제한 시나리오라 고치거나 실행할 수 없습니다')).toBeTruthy();
     expect(screen.queryByText(/내용으로 되돌렸습니다/)).toBeNull();
   });
 
