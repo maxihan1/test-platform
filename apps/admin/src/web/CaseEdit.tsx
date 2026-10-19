@@ -67,7 +67,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
   return (
     <div className="dsec case-edit" role="group" aria-label={t('코드 기본값 바꾸기 요청')}>
       <div className="dlabel">{t('코드 기본값 바꾸기 요청')}</div>
-      <p className="hint">{t('테스트 코드에 적힌 기대결과입니다. 바꾼 칸만 작성 요청으로 보내고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다')}</p>
+      <p className="hint">{t('케이스에 적힌 기대결과입니다. 바꾼 칸만 작성 요청으로 보내고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다')}</p>
       {칸들.length === 0 ? (
         <p className="hint">{t('코드에서 바꿀 수 있는 기대결과 칸이 없습니다')}</p>
       ) : (

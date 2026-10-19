@@ -98,7 +98,7 @@ export const 대시보드말: Record<string, string> = {
   '확인 문장의 기대값과 실제 값이 다름': 'A check’s expected and actual values differ',
   '화면에서 버튼 · 입력 칸을 끝내 찾지 못함': 'A button or input never appeared on the screen',
   '제한 시간 안에 끝나지 않음': 'Did not finish within the time limit',
-  '대상 서버 · 러너에 닿지 못하거나 러너가 거절함': 'Could not reach the target server or runner, or the runner refused',
+  '대상 서버 · 테스트 실행기에 닿지 못하거나 테스트 실행기가 거절함': 'Could not reach the target server or runner, or the runner refused',
   '위 넷에 들지 않는 그 밖의 오류': 'Any other error not in the four above',
   '실행이 멈춰 돌지 못한 {수}건은 세지 않았습니다': '{수} tests that did not run because the run was stopped are not counted',
 

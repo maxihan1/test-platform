@@ -138,7 +138,7 @@ export function AuthoringStatusCard({
         <div className="status-row">
           <span className="status-label">{t('진척')}</span>
           <span className="status-sub">
-            {요청.status === 'PENDING' ? t('에이전트 순서를 기다리는 중') : t('자료 올리기가 끝나지 않았습니다')}
+            {요청.status === 'PENDING' ? t('작성 순서를 기다리는 중') : t('자료 올리기가 끝나지 않았습니다')}
           </span>
         </div>
       ) : null}
@@ -198,7 +198,7 @@ export function AuthoringStatusCard({
       {p === null || 자리 === null ? null : (
         <div className="status-facts">
           <div>
-            <span className="status-label">{t('작성한 스크립트 파일')}</span>
+            <span className="status-label">{t('작성한 케이스 파일')}</span>
             <b>{t('{수}개', { 수: p.caseFiles })}</b>
           </div>
           <div>

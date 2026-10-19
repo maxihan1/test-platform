@@ -87,8 +87,8 @@ export const 케이스말: Record<string, string> = {
 
   // 빈 목록 세 갈래
   '아직 케이스를 불러오지 않았습니다': 'No cases loaded yet',
-  '테스트 코드를 훑어 실행할 수 있는 케이스 목록을 만듭니다. 목록은 코드를 기준으로 그때마다 새로 만듭니다':
-    'Scanning the test code builds the list of runnable cases. The code is the source of truth, so the list is rebuilt every time.',
+  '케이스 파일을 훑어 실행할 수 있는 케이스 목록을 만듭니다. 목록은 코드를 기준으로 그때마다 새로 만듭니다':
+    'Scanning the case files builds the list of runnable cases. The code is the source of truth, so the list is rebuilt every time.',
   '케이스 불러오기': 'Load cases',
   '조건에 맞는 케이스가 없습니다': 'No cases match the filters',
   '「{친글자}」에 맞는 케이스가 없습니다': 'No cases match “{친글자}”',

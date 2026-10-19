@@ -123,7 +123,7 @@ describe('케이스 고치기 상세', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);
 
     const 할일 = within(await screen.findByRole('region', { name: '다음 단계' }));
-    expect(할일.getByRole('link', { name: '고친 테스트 코드 보기 (PR)' }).getAttribute('href')).toBe('https://github.com/x/y/pull/3');
+    expect(할일.getByRole('link', { name: '고친 케이스 보기 (PR)' }).getAttribute('href')).toBe('https://github.com/x/y/pull/3');
     expect(할일.getByRole('button', { name: '테스트 반영하기' })).toBeTruthy();
     expect(할일.getByRole('button', { name: '폐기' })).toBeTruthy();
   });
@@ -261,7 +261,7 @@ describe('작성 목록의 케이스 고치기 줄', () => {
     render(<Authoring service="PAY" 할수={() => true} />);
 
     expect(await screen.findByText(/2차 · 다시 적용/)).toBeTruthy();
-    expect(screen.getByText(/스크립트를 고쳐 PR 을 만들었습니다/)).toBeTruthy();
+    expect(screen.getByText(/케이스를 고쳐 PR 을 만들었습니다/)).toBeTruthy();
     // 자료가 없는 고치기 줄은 제목이 「케이스 고치기」다
     expect(screen.getAllByRole('link', { name: '케이스 고치기' })).toHaveLength(2);
     expect(screen.getByText('고치는 중')).toBeTruthy();

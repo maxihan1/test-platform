@@ -191,7 +191,7 @@ describe('Status 카드 — PRD 요구사항 집계 한 줄', () => {
 
   it('진척 기록이 없어도 줄은 보인다 — 숫자 칸과 따로다', () => {
     render(<AuthoringStatusCard 요청={줄({ progress: null, coverage: 예시셈 })} 지금={지금} />);
-    expect(screen.queryByText('작성한 스크립트 파일')).toBeNull();
+    expect(screen.queryByText('작성한 케이스 파일')).toBeNull();
     expect(셈줄().textContent).toContain('요구 172개 중 케이스로 만듦 48개 (28%)');
   });
 

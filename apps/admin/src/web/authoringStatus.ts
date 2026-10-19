@@ -9,7 +9,7 @@ import { t, type 언어 } from './i18n.js';
  * 단계 막대의 칸 (말 키). PR 을 만든 뒤에도 사람이 할 일(값 채우기 · 겹침 · 반영)이 남는다 —
  * 앞 판은 PR 칸 다음이 바로 「완료」라 반영 전에 다 끝난 것처럼 보였다 (2026-10-19 ⑫ · 점검 12.1)
  */
-export const 단계이름들 = ['준비', '자료 · PRD 읽기', '스크립트 작성', '저장 · PR 생성', '반영', '케이스 등록'] as const;
+export const 단계이름들 = ['준비', '자료 · PRD 읽기', '케이스 작성', '저장 · PR 생성', '반영', '케이스 등록'] as const;
 const 반영칸 = 4;
 
 export function 단계라벨(이름: (typeof 단계이름들)[number], 언어: 언어): string {
@@ -23,12 +23,11 @@ export function 단계라벨(이름: (typeof 단계이름들)[number], 언어: �
 const 화면글: Record<string, string> = {
   '작업방을 만드는 중': '작업 폴더를 만드는 중',
   '자료를 받는 중': '자료 · PRD 를 읽는 중',
-  '케이스를 만드는 중': '스크립트를 만드는 중',
   '올리는 중': '저장하고 PR 을 만드는 중',
   '역방향 산출물을 올리는 중': '대조 결과를 저장하는 중',
-  '케이스를 고치는 중': '스크립트를 고치는 중',
-  '겹치는 케이스를 보는 중': '겹치는 스크립트를 보는 중',
-  '채운 케이스를 3회 돌리는 중': '채운 스크립트를 3회 돌리는 중',
+  // 에이전트 글이 곧 화면 글이다. 옮길 것은 없지만 영어 표가 이 글을 키로 찾아 글자를 소스에 남긴다
+  '겹치는 케이스를 보는 중': '겹치는 케이스를 보는 중',
+  '채운 케이스를 3회 돌리는 중': '채운 케이스를 3회 돌리는 중',
   '보관한 작업방이 없어 처음부터 하는 중': '보관한 작업 폴더가 없어 처음부터 하는 중',
 };
 
@@ -151,7 +150,7 @@ export function 시간판(행: AuthoringRow, 지금: number): 시간 {
 export function 목록글(행: Omit<AuthoringRow, 'assets'>, 언어: 언어, 운영자 = false): string {
   // 올리는 도중에도, 올리다 멈춰 버려진 뒤에도 DRAFT 다 — 둘 다에 맞는 말을 쓴다
   if (행.status === 'DRAFT') return t('자료 올리기가 끝나지 않았습니다', 언어);
-  if (행.status === 'PENDING') return t('에이전트 순서를 기다리는 중', 언어);
+  if (행.status === 'PENDING') return t('작성 순서를 기다리는 중', 언어);
   if (행.status === 'RUNNING') return 행.stage === null ? t('준비', 언어) : 단계글라벨(행.stage, 언어);
   if (행.status === 'FAILED') return 행.error == null ? t('실패', 언어) : 실패글(행.error, 언어, 운영자).글;
   if (행.status === 'STOPPED') {
@@ -164,10 +163,10 @@ export function 목록글(행: Omit<AuthoringRow, 'assets'>, 언어: 언어, 운
     return t('{단계} 단계에서 멈췄습니다', 언어, { 단계: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
   }
   if (행.kind === 'MERGE') return t('테스트 반영 완료', 언어);
-  if (고치기실행인가(행)) return t('스크립트를 고쳐 PR 을 만들었습니다', 언어);
+  if (고치기실행인가(행)) return t('케이스를 고쳐 PR 을 만들었습니다', 언어);
   return 진척이찼나(행.progress)
-    ? t('스크립트 파일 {수}개를 만들었습니다', 언어, { 수: 행.progress.caseFiles })
-    : t('테스트 코드를 PR 로 올렸습니다', 언어);
+    ? t('케이스 파일 {수}개를 만들었습니다', 언어, { 수: 행.progress.caseFiles })
+    : t('케이스를 PR 로 올렸습니다', 언어);
 }
 
 /**

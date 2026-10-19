@@ -30,8 +30,8 @@ export const 작성할일말: Record<string, string> = {
   '케이스를 만들다 끊겼습니다. 같은 자료로 다시 작성하세요': 'Writing cases was cut off. Write again with the same files',
   '반영하지 못했습니다. 다른 변경과 부딪혔거나 저장소 규칙에 막혔습니다':
     'Could not apply. It conflicted with another change or was blocked by repository rules',
-  '이미 있는 케이스와 겹치는 케이스가 {1}건입니다. 아래 표에서 고른 뒤 다시 반영하세요':
-    '{1} cases overlap existing ones. Choose in the table below, then apply again',
+  '이미 있는 케이스와 중복되는 케이스가 {1}건입니다. 아래 표에서 고른 뒤 다시 반영하세요':
+    '{1} cases duplicate existing ones. Choose in the table below, then apply again',
   '검사 결과를 읽지 못해 반영을 멈췄습니다. 다시 반영하세요': 'Could not read the check results, so applying stopped. Apply again',
   '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 운영자에게 피그마 토큰을 넣어 달라고 요청하세요':
     'No Figma token, so the Figma files could not be read. Ask an operator to add a Figma token',

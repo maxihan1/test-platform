@@ -89,7 +89,7 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
     expect(screen.getByText('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')).toBeTruthy();
     expect(
       screen.getByText(
-        '반영한 실행 기준으로 다음 요청 120개 · 빠짐 3개가 남았습니다. 이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 에이전트가 시작할 때 다시 셉니다.',
+        '반영한 실행 기준으로 다음 요청 120개 · 빠짐 3개가 남았습니다. 이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 셉니다.',
       ),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '남은 요구로 이어 작성' }));
@@ -100,7 +100,7 @@ describe('반영 끝 — 남은 요구로 이어 작성', () => {
   it('셈이 없으면 남은 수 문장을 뺀다', () => {
     카드(줄({}), null);
     expect(screen.queryByText(/반영한 실행 기준으로/)).toBeNull();
-    expect(screen.getByText('이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 에이전트가 시작할 때 다시 셉니다.')).toBeTruthy();
+    expect(screen.getByText('이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 셉니다.')).toBeTruthy();
   });
 
   it('작성 요청 권한이 없으면 버튼 대신 까닭을 말한다', () => {
@@ -155,12 +155,12 @@ describe('끝난 작성 실행 — GitHub 직접 병합 안내', () => {
 
   it('셈에 남은 요구가 있으면 반영을 눌러야 이어 작성할 수 있다고 알린다', () => {
     카드(작성끝());
-    expect(screen.getByText('GitHub 에서 이미 병합했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.')).toBeTruthy();
+    expect(screen.getByText('GitHub 에서 이미 반영했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.')).toBeTruthy();
   });
 
   it('남은 요구가 없으면 안내하지 않는다', () => {
     카드(작성끝(), { ...셈, excluded: { '요구 아님': 124 }, missing: [], later: [] });
-    expect(screen.queryByText(/GitHub 에서 이미 병합했어도/)).toBeNull();
+    expect(screen.queryByText(/GitHub 에서 이미 반영했어도/)).toBeNull();
   });
 });
 

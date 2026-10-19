@@ -63,7 +63,7 @@ export function 끝났나(status: AuthoringRow['status']): boolean {
 
 /** 종류를 사람 말로. 화면은 `AUTHOR` 같은 글자를 보여 주지 않는다 */
 export function 종류라벨(kind: AuthoringRow['kind'], 언어: 언어): string {
-  if (kind === 'MERGE') return t('머지', 언어);
+  if (kind === 'MERGE') return t('반영', 언어);
   if (kind === 'RERUN') return t('재실행', 언어);
   if (kind === 'EDIT') return t('케이스 고치기', 언어);
   return t('작성', 언어);
@@ -149,8 +149,8 @@ export function 중단이유라벨(reason: string | null | undefined, 언어: �
   // 제한 시간 숫자를 박지 않는다 — 에이전트 설정이 바뀌면 글이 거짓말을 한다(분모는 progress.limitSec 이 준다)
   if (reason === 'TIMEOUT') return t('시간초과', 언어);
   if (reason === 'LIMIT') return t('구독 한도', 언어);
-  if (reason === 'AGENT_RESTART') return t('에이전트 재시작', 언어);
-  if (reason === 'AGENT_LOST') return t('에이전트 응답 없음', 언어);
+  if (reason === 'AGENT_RESTART') return t('작성 재시작', 언어);
+  if (reason === 'AGENT_LOST') return t('작성 응답 없음', 언어);
   // 이어서 작성할 수 있어 중단이다 — 실패는 자식을 띄우기 전 문제만 (작성 §7 「이어하기」, 2026-09-28)
   if (reason === 'CRASH') return t('작성 중 끊김', 언어);
   if (reason === 'REJECTED') return t('올리기 거절', 언어);

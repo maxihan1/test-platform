@@ -56,8 +56,8 @@ function 없음({ trace }: { trace: ItemTrace | null }) {
 
 function 없는까닭글(reason: string | null, t: (키: string) => string): string {
   if (reason === trace없는까닭.앱) return t('Android 앱 실행은 기록을 남기지 않습니다');
-  if (reason === trace없는까닭.끊김) return t('러너가 실행을 끊어(제한 시간 · 멈춤) 기록이 남지 않았습니다');
-  if (reason === trace없는까닭.파일없음) return t('다른 컴퓨터의 러너에서 돌았거나 기록 파일을 옮기다 실패해 기록이 없습니다');
+  if (reason === trace없는까닭.끊김) return t('테스트 실행기가 실행을 끊어(제한 시간 · 멈춤) 기록이 남지 않았습니다');
+  if (reason === trace없는까닭.파일없음) return t('다른 컴퓨터의 테스트 실행기에서 돌았거나 기록 파일을 옮기다 실패해 기록이 없습니다');
   // 모르는 사유는 원문 그대로 — 빈 칸보다 낫다
   return reason ?? t('기록이 없습니다');
 }

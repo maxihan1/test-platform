@@ -5,7 +5,6 @@ export const 작성말: Record<string, string> = {
   // 줄의 종류와 상태
   작성: 'Author',
   재실행: 'Rerun',
-  머지: 'Merge',
   '자료 올리는 중': 'Uploading files',
   '대기 중': 'Queued',
   '작성 중': 'Writing',
@@ -62,9 +61,9 @@ export const 작성말: Record<string, string> = {
   단계: 'Steps',
   준비: 'Prepare',
   '자료 · PRD 읽기': 'Read inputs · PRD',
-  '스크립트 작성': 'Write scripts',
+  '케이스 작성': 'Write cases',
   '저장 · PR 생성': 'Save · create PR',
-  '에이전트 순서를 기다리는 중': 'Waiting for an agent',
+  '작성 순서를 기다리는 중': 'Waiting for its authoring turn',
   '자료 올리기가 끝나지 않았습니다': 'File upload did not finish',
   시간: 'Time',
   '{시간} 걸림 (시작 {시작})': 'took {시간} (started {시작})',
@@ -74,16 +73,16 @@ export const 작성말: Record<string, string> = {
   '약 {시간} 남음 · {시각} 종료 예상 · 최근 {수}건 기준': 'About {시간} left · expected to end {시각} · based on the last {수}',
   '시작 {시각}': 'started {시각}',
   '늦어도 {시각} 완료': 'done by {시각} at the latest',
-  '작성한 스크립트 파일': 'Scripts written',
+  '작성한 케이스 파일': 'Case files written',
   '탐색한 화면': 'Screens explored',
   // 에이전트가 올리는 단계 글을 화면에 보일 글로 옮긴 것 (authoringStatus.ts 의 화면글). 에이전트 글의 정본은 scripts/authoring-*.ts 의 손.단계('…')
   '작업 폴더를 만드는 중': 'Preparing the work folder',
   '자료 · PRD 를 읽는 중': 'Reading inputs · PRD',
-  '스크립트를 만드는 중': 'Writing scripts',
+  '케이스를 만드는 중': 'Writing cases',
   '저장하고 PR 을 만드는 중': 'Saving and creating the PR',
   '대조 결과를 저장하는 중': 'Saving comparison results',
-  '겹치는 스크립트를 보는 중': 'Reviewing overlapping scripts',
-  '채운 스크립트를 3회 돌리는 중': 'Running the filled scripts 3 times',
+  '겹치는 케이스를 보는 중': 'Reviewing overlapping cases',
+  '채운 케이스를 3회 돌리는 중': 'Running the filled cases 3 times',
   '보관한 작업 폴더가 없어 처음부터 하는 중': 'No saved work folder, starting from scratch',
   '원본에 차이를 표시하는 중': 'Marking differences on the original',
 
@@ -91,13 +90,13 @@ export const 작성말: Record<string, string> = {
   '{단계} 단계에서 멈췄습니다': 'Stopped at {단계}',
   '테스트 반영 완료': 'Tests merged',
   '시작 전에 멈췄습니다': 'Stopped before it started',
-  '스크립트 파일 {수}개를 만들었습니다': 'Made {수} script files',
-  '테스트 코드를 PR 로 올렸습니다': 'Opened the test code as a PR',
+  '케이스 파일 {수}개를 만들었습니다': 'Made {수} case files',
+  '케이스를 PR 로 올렸습니다': 'Opened the cases as a PR',
 
   // 다음 단계 (2026-09-28 「해야 할 일」에서 바꿨다 — 고르는 상황에 시키는 말투가 안 맞았다)
   '다음 단계': 'Next steps',
-  '에이전트 응답이 끊겼습니다. 작성 중단을 누른 뒤 이어서 작성하세요':
-    'The agent stopped responding. Press Stop writing, then continue writing',
+  '작성 응답이 끊겼습니다. 작성 중단을 누른 뒤 이어서 작성하세요':
+    'Authoring stopped responding. Press Stop writing, then continue writing',
   '지금은 없습니다. 작성이 끝나면 여기에 검토할 것이 생깁니다. 이 페이지를 닫아도 됩니다.':
     'Nothing for now. Things to review appear here when writing ends. You can close this page.',
   '아직 시작 전이라 누르면 바로 취소됩니다.': 'It has not started, so it is cancelled right away.',
@@ -105,14 +104,14 @@ export const 작성말: Record<string, string> = {
     'Stopping takes up to 30 seconds. What was made is kept so you can continue writing.',
   '테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.': 'The tests were merged. The new cases are in the case list.',
   '올라간 PR 이 없습니다. 아래 만든 것을 확인하세요.': 'No PR was opened. Check the outputs below.',
-  '만든 테스트 코드 검토': 'Review the test code',
-  '초안 PR로 올라갔습니다. 읽어 보고 이상하면 PR에 댓글을 남기세요.':
+  '만든 케이스 검토': 'Review the new cases',
+  '검토용 PR 로 올라갔습니다. 읽어 보고 이상하면 PR에 댓글을 남기세요.':
     'It was opened as a draft PR. Read it and leave a comment on the PR if something looks wrong.',
-  '만든 테스트 코드 보기 (PR)': 'View the test code (PR)',
+  '만든 케이스 보기 (PR)': 'View the new cases (PR)',
   '기획서와 다른 곳 {수}건 확인': 'Check {수} differences from the spec',
   '표시한 기획서 내려받기': 'Download the marked spec',
   '테스트 반영하기': 'Merge the tests',
-  '검토가 끝나면 PR을 합쳐 케이스 목록에 올립니다.': 'After review, merge the PR to add the cases to the list.',
+  '검토가 끝나면 PR 을 반영해 케이스 목록에 올립니다.': 'After review, apply the PR to add the cases to the list.',
   '반영하는 중': 'Merging…',
   '반영은 운영 권한이 있는 사람만 할 수 있습니다.': 'Someone with admin rights merges it.',
   '같은 자료로 다시 작성': 'Write again with the same inputs',
@@ -145,8 +144,8 @@ export const 작성말: Record<string, string> = {
   '사용자가 멈춤': 'Stopped by user',
   '시간초과': 'Timed out',
   '구독 한도': 'Subscription limit',
-  '에이전트 재시작': 'Agent restarted',
-  '에이전트 응답 없음': 'Agent not responding',
+  '작성 재시작': 'Authoring restarted',
+  '작성 응답 없음': 'Authoring not responding',
   '작성 중 끊김': 'Cut off while writing',
   '올리기 거절': 'Upload rejected',
   '작성 중단': 'Stop writing',
@@ -164,8 +163,8 @@ export const 작성말: Record<string, string> = {
   '실제 화면과 대조': 'Compare with the live screen',
   '화면과 대조': 'Screen compare',
   '시작 주소': 'Start URL',
-  '기획서가 있으면 기획서 화면을 먼저 작성하고, 병합되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다':
-    'With a spec, the spec screens are written first and, once merged, the screens it does not cover follow. Without a spec, only screens not yet in the PRD are written',
+  '기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다':
+    'With a spec, the spec screens are written first and, once applied, the screens it does not cover follow. Without a spec, only screens not yet in the PRD are written',
   '이 서비스에는 대상 서버가 없습니다. 설정 > 서비스에서 먼저 넣으세요':
     'This service has no target servers. Add one in Settings > Services first',
   '이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요':
@@ -208,8 +207,8 @@ export const 작성말: Record<string, string> = {
   '숫자를 넣으세요': 'Enter a number',
   저장했습니다: 'Saved',
   '칸을 벗어나면 바로 저장됩니다': 'Saved as soon as you leave the field',
-  '반영하면 넣은 값을 테스트 코드에 적고, 값을 채운 케이스를 3번 돌려 모두 통과해야 합칩니다.':
-    'Merging writes your values into the test code, runs each filled case 3 times, and merges only if all pass.',
+  '반영하면 넣은 값을 케이스에 적고, 값을 채운 케이스를 3번 돌려 모두 통과해야 반영합니다.':
+    'Applying writes your values into the cases, runs each filled case 3 times, and applies only if all pass.',
   '반영이 대기 중이거나 진행 중이라 지금은 값을 바꿀 수 없습니다': 'A merge is queued or running, so values cannot be changed now',
   '넣은 값이 이 케이스의 칸과 맞지 않습니다': 'The values do not match this case’s fields',
   '테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.':
@@ -229,15 +228,15 @@ export const 작성말: Record<string, string> = {
   '#{번호} 다음 · 기획서에 없는 화면': 'After #{번호} · screens not in the spec',
   '반영한 실행 기준으로 다음 요청 {다음}개 · 빠짐 {빠짐}개가 남았습니다.':
     'As of the merged run, {다음} left for the next request · {빠짐} missing.',
-  '이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 에이전트가 시작할 때 다시 셉니다.':
-    'They are written as a new request, and you move to its new number. The agent counts the remaining requirements again when it starts.',
+  '이것을 새 요청으로 작성하고 새 번호로 넘어갑니다. 남은 요구는 작성을 시작할 때 다시 셉니다.':
+    'They are written as a new request, and you move to its new number. The remaining requirements are counted again when writing starts.',
   '이어 작성은 작성 요청 권한이 있는 사람만 할 수 있습니다.': 'Only people who can request writing can start a follow-up.',
-  'GitHub 에서 이미 병합했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.':
-    'Even if the PR was merged on GitHub, merge here to follow up on the remaining requirements.',
+  'GitHub 에서 이미 반영했어도 여기서 반영을 눌러야 남은 요구를 이어 작성할 수 있습니다.':
+    'Even if the PR was applied on GitHub, apply here to follow up on the remaining requirements.',
   // 반영 때 겹침 (도메인/작성 §3.6 「★ 반영 때 겹침 검사」)
   '번호가 겹쳐 반영할 때 새 번호를 받습니다': 'The ID overlaps, so it gets a new ID when merged',
   '반영하지 못했습니다': 'The merge did not go through',
-  '같은 자료로 다시 작성하면 새 main 위에서 처음부터 다시 만듭니다. 지금까지의 실행은 실행 기록에 남습니다.':
-    'Writing again from the same material rebuilds on the latest main. Earlier runs stay in the run history.',
+  '같은 자료로 다시 작성하면 지금까지 반영된 케이스를 기준으로 처음부터 다시 만듭니다. 지금까지의 실행은 실행 기록에 남습니다.':
+    'Writing again from the same material rebuilds on the cases applied so far. Earlier runs stay in the run history.',
   '반영 실패 까닭이 기록되지 않았습니다': 'No reason was recorded for the failed merge',
 };

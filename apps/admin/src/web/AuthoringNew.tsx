@@ -225,7 +225,7 @@ export function AuthoringNew({
                 onChange={(e) => set시작주소(e.target.value)}
               />
             </label>
-            <small>{t('기획서가 있으면 기획서 화면을 먼저 작성하고, 병합되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다')}</small>
+            <small>{t('기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다')}</small>
           </>
         ) : null}
       </div>

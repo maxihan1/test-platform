@@ -107,7 +107,7 @@ describe('작성 한 건 상세', () => {
 
   it('완료면 다음 단계에 만든 테스트 코드(PR) 링크가 있다', async () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
-    const 링크 = await screen.findByRole('link', { name: '만든 테스트 코드 보기 (PR)' });
+    const 링크 = await screen.findByRole('link', { name: '만든 케이스 보기 (PR)' });
     expect(링크.getAttribute('href')).toBe('https://github.com/x/y/pull/3');
   });
 
@@ -203,7 +203,7 @@ describe('작성 진척 · 중단 · 폐기', () => {
     render(<AuthoringDetail service="PAY" id={7} 할수={실행까지} />);
     expect(await screen.findByText('4장')).toBeTruthy();
     expect(screen.getByText('3개')).toBeTruthy();
-    expect(screen.getByText('스크립트를 만드는 중')).toBeTruthy();
+    expect(screen.getByText('케이스를 만드는 중')).toBeTruthy();
     expect(screen.queryByText('1.2M')).toBeNull();
     expect(screen.queryByText('케이스 파일을 쓰는 중')).toBeNull();
     expect(screen.queryByText('작성 에이전트')).toBeNull();

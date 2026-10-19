@@ -29,7 +29,7 @@ function 항목(
     paramSchema: { type: 'object', properties: { 비밀번호: { type: 'string', secret: true } } },
     status,
     durationMs: 1200,
-    error: status === 'NA' ? { message: '러너에 닿지 못했습니다' } : null,
+    error: status === 'NA' ? { message: '테스트 실행기에 닿지 못했습니다' } : null,
     startedAt: '2026-09-21T00:00:00.000Z',
     finishedAt: '2026-09-21T00:01:00.000Z',
   };
@@ -118,7 +118,7 @@ describe('결과줄 (SPEC §8.3)', () => {
   it('미실행 항목은 사유를 같이 적는다 — 없으면 러너 고장과 구분되지 않는다', () => {
     그린다([항목(1, 'desktop', 'NA')]);
 
-    expect(screen.queryByText(/러너에 닿지 못했습니다/)).not.toBeNull();
+    expect(screen.queryByText(/테스트 실행기에 닿지 못했습니다/)).not.toBeNull();
   });
 
   describe('펼치기 (SPEC §8.3 통과 · 미실행 줄)', () => {
