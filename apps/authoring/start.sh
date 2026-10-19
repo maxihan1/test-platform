@@ -82,4 +82,5 @@ echo "[작성] Claude CLI $(claude --version 2>/dev/null || echo '없음') — �
 mkdir -p /work
 chmod 755 /work
 cd /repo
-exec npx tsx scripts/authoring-agent.ts
+# npx 를 거치면 npm · sh · tsx 프로세스가 앞에 더 떠 메모리를 잡는다 (SPEC 공통/6 §9)
+exec node --import tsx scripts/authoring-agent.ts

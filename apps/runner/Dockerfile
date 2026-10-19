@@ -20,4 +20,5 @@ COPY packages ./packages
 COPY apps/runner ./apps/runner
 
 EXPOSE 4000
-CMD ["npx", "tsx", "apps/runner/src/server.ts"]
+# npx 를 거치면 npm · sh · tsx 프로세스가 앞에 더 떠 메모리를 잡는다. 종료 신호는 compose 의 init 이 넘긴다 (SPEC 공통/6 §9)
+CMD ["node", "--import", "tsx", "apps/runner/src/server.ts"]
