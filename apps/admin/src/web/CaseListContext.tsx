@@ -136,17 +136,68 @@ export function 케이스맥락({ row, 요구보나, 요구쓰나 }: { row: Case
             {t('설계 기법')} <기법태그들 기법들={row.techniques} />
           </span>
         ) : null}
+        {/* API 서버 이름도 같은 태그다 — 판정 색이 아니라 설명 정보다 (도메인/카탈로그 §8.1 「API 서버」) */}
+        {row.apiServers?.length ? (
+          <span className="tech-line">
+            {t('API 서버')}{' '}
+            {row.apiServers.map((이름) => (
+              <span className="tech-tag" key={이름}>
+                {이름}
+              </span>
+            ))}
+          </span>
+        ) : null}
         {/* 지원 디바이스는 안 적는다 — 마지막 결과 칸이 디바이스마다 이름을 달아 한 줄에 두 번 나왔다(점검 7.12) */}
       </small>
     </>
   );
 }
 
-/** 걸린 묶음 · 요구 번호 — 도구 줄에 칩으로 보이고 ✕ 로 푼다 */
+/** API 서버 — 이름 칩 줄. 이름이 하나도 없으면 안 그린다. 고른 칩을 다시 누르면 전체로 돌아간다 (도메인/카탈로그 §8.1 「API 서버」) */
+export function 서버칩들({
+  서버,
+  목록,
+  on서버,
+}: {
+  서버: string | null;
+  목록: { name: string; count: number }[];
+  on서버: (값: string | null) => void;
+}) {
+  const t = use말();
+  if (목록.length === 0) return null;
+  return (
+    <span className="filter-group">
+      <span className="filter-label">{t('API 서버')}</span>
+      <button className="chip" aria-pressed={서버 === null} onClick={() => on서버(null)}>
+        {t('전체')}
+      </button>
+      {목록.map((x) => (
+        <button className="chip" key={x.name} aria-pressed={서버 === x.name} onClick={() => on서버(서버 === x.name ? null : x.name)}>
+          {x.name} <span className="chip-n">{x.count}</span>
+        </button>
+      ))}
+    </span>
+  );
+}
+
+/**
+ * 걸린 묶음 · 요구 번호 — 도구 줄에 칩으로 보이고 ✕ 로 푼다.
+ * API 서버는 주소에 남은 이름이 칩 줄에 없을 때만(설정에서 이름이 지워졌다) 여기 보인다 — 있는 이름은 칩 줄이 이미 보인다.
+ * 서버목록이 없으면(아직 못 받았다) 판단하지 않는다
+ */
 export function 걸린칩들({
   검색,
+  서버목록,
 }: {
-  검색: { 묶음: 묶음조건 | null; on묶음: (값: 묶음조건 | null) => void; 요구: string | null; 요구지우기: () => void };
+  검색: {
+    묶음: 묶음조건 | null;
+    on묶음: (값: 묶음조건 | null) => void;
+    요구: string | null;
+    요구지우기: () => void;
+    서버: string | null;
+    on서버: (값: string | null) => void;
+  };
+  서버목록?: { name: string }[];
 }) {
   const t = use말();
   // 주소의 요구 번호는 검색 조건 훅이 같이 뺀다(CaseListFilter use주소조건)
@@ -155,6 +206,9 @@ export function 걸린칩들({
     <>
       {검색.묶음 === null ? null : <걸린칩 글={검색.묶음.이름} on풀기={() => 검색.on묶음(null)} />}
       {검색.요구 === null ? null : <걸린칩 글={t('요구 {번호}', { 번호: 검색.요구 })} on풀기={요구풀기} />}
+      {검색.서버 === null || 서버목록 === undefined || 서버목록.some((x) => x.name === 검색.서버) ? null : (
+        <걸린칩 글={t('API 서버 {이름}', { 이름: 검색.서버 })} on풀기={() => 검색.on서버(null)} />
+      )}
     </>
   );
 }

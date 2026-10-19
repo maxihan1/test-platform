@@ -10,7 +10,9 @@ import { 화면크기목록 } from '../prd/screens.js';
 import { 시간대확인, 틀린시간대 } from '../reporting/dashboardResults.js';
 import { 정수 } from '../routeParams.js';
 
+import { API서버라우트 } from './apiServerRoutes.js';
 import { 역할까닭찾기 } from './roles.js';
+import { 프로젝트만들기, 프로젝트목록, 프로젝트이름고치기 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
 import { db, 서비스고치기, 서비스만들기, 서비스목록, 설정오류, 정기실행재료 } from './store.js';
 import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수락, 비밀번호다시만들기 } from './users.js';
@@ -50,10 +52,17 @@ const 훑지않을경로 = z.array(z.string()).transform((줄들, ctx) => {
   return z.NEVER;
 });
 
+// 프로젝트 번호는 꼭 받는다. DB 트리거가 같은 이름 프로젝트를 붙이는 것은 fixture 와 add-service.ts 용 대체다 (도메인/인증 §7)
+// 상한은 routeParams.ts 의 정수()와 같다 — 넘으면 Postgres 범위 초과가 잡히지 않은 500 이 된다
+const 프로젝트번호 = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+
+const 프로젝트이름 = z.object({ name: z.string().trim().min(1) });
+
 const 새서비스 = z.object({
   prefix: z.string(),
   name: z.string().min(1),
   color: z.string().min(1),
+  projectId: 프로젝트번호,
   testsRepo: z.string(),
   testsDir: z.string().min(1),
   envs: z.array(대상서버).default([]),
@@ -72,6 +81,7 @@ const 정기실행 = z.object({
 const 서비스수정 = z.object({
   name: z.string().min(1).optional(),
   color: z.string().min(1).optional(),
+  projectId: 프로젝트번호.optional(),
   testsRepo: z.string().optional(),
   testsDir: z.string().min(1).optional(),
   isActive: z.boolean().optional(),
@@ -86,22 +96,26 @@ const 등급 = z.enum(['member', 'admin']);
 const 권한 = z.enum(['none', 'read', 'write']);
 const 대시보드 = z.enum(['none', 'read']);
 
-// 셋 다 none 인 줄은 받지 않는다 — 배정을 풀려면 줄을 뺀다 (SPEC 도메인/인증 §7 「services[] 한 줄」)
-const 서비스줄 = z.object({
-  prefix: z.string(),
+// 셋 다 none 인 줄은 받지 않는다 — 배정을 풀려면 줄을 뺀다 (SPEC 도메인/인증 §7 「projects[] 한 줄」)
+const 프로젝트줄 = z.object({
+  projectId: 프로젝트번호,
   permissions: z
     .object({ cases: 권한, runs: 권한, authoring: 권한 })
     .refine((p) => p.cases !== 'none' || p.runs !== 'none' || p.authoring !== 'none'),
 });
-// 같은 접두사가 두 번이면 저장이 ON CONFLICT DO NOTHING 으로 뒤엣것을 조용히 버린다. 어느 쪽을 뜻했는지 모르니 받지 않는다
-const 서비스줄들 = z.array(서비스줄).refine((줄들) => new Set(줄들.map((줄) => 줄.prefix)).size === 줄들.length);
+// 같은 프로젝트가 두 번이면 저장이 ON CONFLICT DO NOTHING 으로 뒤엣것을 조용히 버린다. 어느 쪽을 뜻했는지 모르니 받지 않는다
+const 프로젝트줄들 = z.array(프로젝트줄).refine((줄들) => new Set(줄들.map((줄) => 줄.projectId)).size === 줄들.length);
+
+// 옛 services 를 보내면 조용히 무시되어 권한이 안 들어간 채 저장된 것처럼 보인다 — PERMISSIONS_SHAPE 400 으로 돌려준다 (PRJ-F1-02b)
+const 옛배정 = { services: z.never().optional() };
 
 const 새계정 = z.object({
   username: z.string().min(1),
   displayName: z.string().min(1),
   role: 등급,
   dashboard: 대시보드,
-  services: 서비스줄들.default([]),
+  ...옛배정,
+  projects: 프로젝트줄들.default([]),
 });
 
 const 계정수정 = z.object({
@@ -109,20 +123,22 @@ const 계정수정 = z.object({
   role: 등급.optional(),
   dashboard: 대시보드.optional(),
   isActive: z.boolean().optional(),
-  services: 서비스줄들.optional(),
+  ...옛배정,
+  projects: 프로젝트줄들.optional(),
 });
 
-// 서비스 0개 수락도 받는다 — 들어와서 대시보드만 보는 사람이 있다 (계획 2026-09-28 게이트 1)
+// 프로젝트 0개 수락도 받는다 — 들어와서 대시보드만 보는 사람이 있다 (계획 2026-09-28 게이트 1)
 const 수락 = z.object({
   role: 등급.default('member'),
   dashboard: 대시보드,
-  services: 서비스줄들,
+  ...옛배정,
+  projects: 프로젝트줄들,
 });
 
-// 권한 칸(services · dashboard)이 틀린 것은 화면이 따로 알려야 해서 코드를 가른다 (SPEC 도메인/인증 §7).
+// 권한 칸(projects · dashboard)이 틀린 것은 화면이 따로 알려야 해서 코드를 가른다 (SPEC 도메인/인증 §7).
 // 다른 칸도 같이 틀렸으면 권한만 고치라고 알리면 안 되니 전부 권한 칸일 때만이다
 function 계정본문오류(error: z.ZodError): { error: string; detail?: string } {
-  const 권한칸 = error.issues.every((i) => i.path[0] === 'services' || i.path[0] === 'dashboard');
+  const 권한칸 = error.issues.every((i) => i.path[0] === 'projects' || i.path[0] === 'services' || i.path[0] === 'dashboard');
   return 권한칸 ? { error: 'PERMISSIONS_SHAPE' } : { error: 'INVALID_REQUEST', detail: error.message };
 }
 
@@ -145,6 +161,26 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     throw err;
   });
 
+  app.get('/settings/projects', async () => ({ items: await 프로젝트목록() }));
+
+  app.post('/settings/projects', async (req, reply) => {
+    const parsed = 프로젝트이름.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
+    return reply.code(201).send({ id: await 프로젝트만들기(parsed.data.name, req.user?.username) });
+  });
+
+  app.patch<{ Params: { id: string } }>('/settings/projects/:id', async (req, reply) => {
+    const parsed = 프로젝트이름.safeParse(req.body);
+    const id = 정수(req.params.id);
+    if (!parsed.success || id === null) {
+      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.success ? req.params.id : parsed.error.message });
+    }
+    await 프로젝트이름고치기(id, parsed.data.name);
+    return { ok: true };
+  });
+
+  API서버라우트(app);
+
   app.get('/settings/services', async () => ({ items: await 서비스목록() }));
 
   app.post('/settings/services', async (req, reply) => {
@@ -156,7 +192,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       return reply.code(400).send({ error: 'PREFIX_SHAPE', detail: parsed.data.prefix });
     }
     if (역할틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_ROLE' });
-    return reply.code(201).send({ id: await 서비스만들기(parsed.data, req.user?.username) });
+    return reply.code(201).send({ id: await 서비스만들기(parsed.data) });
   });
 
   app.patch<{ Params: { id: string }; Body: { prefix?: unknown } }>(

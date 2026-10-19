@@ -31,13 +31,13 @@ export function 서비스별표({ 값, 서비스열기 }: { 값: 자료; 서비�
   return (
     <section className="dash-flat dash-svc">
       <div className="dash-ttl">
-        <h2>{t('서비스별 품질')}</h2>
+        <h2>{t('애플리케이션별 품질')}</h2>
       </div>
       <div className="dash-scroll">
         <table className="dash-table">
           <thead>
             <tr>
-              <th scope="col">{t('서비스')}</th>
+              <th scope="col">{t('애플리케이션')}</th>
               <th scope="col" className="r">
                 {t('통과율')}
               </th>

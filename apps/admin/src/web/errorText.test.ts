@@ -5,7 +5,7 @@ import { 요청오류문장 } from './errorText.js';
 describe('서버가 준 오류 코드를 사람 말로', () => {
   // 실행 결과 주소는 사람이 메신저에 붙여 나누는 링크다. 배정 안 받은 사람이
   // 그것을 누르면 접두사 글자 하나가 아니라 무슨 일인지와 빠져나갈 길을 봐야 한다
-  it('배정 안 받은 서비스는 무슨 일인지와 빠져나갈 길을 적는다', () => {
+  it('배정 안 받은 애플리케이션은 무슨 일인지와 빠져나갈 길을 적는다', () => {
     const 글 = 요청오류문장('SERVICE_FORBIDDEN', 'ko', 'XFS3B');
     expect(글).toContain('배정');
     expect(글).toContain('운영 계정');
@@ -17,11 +17,11 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
   // 앞선 판에서 검사가 값을 손으로 넣어 통과시키는 바람에,
   // 화면에 「이 일에는 '요청이 실패했다 (403)' 등급이 필요합니다」가 뜨는 것을 못 잡았다
   it('기능 칸이 모자라면 어느 기능의 무슨 칸인지 사람 말로 적는다', () => {
-    expect(요청오류문장('FORBIDDEN', 'ko', 'runs:write')).toBe('이 서비스에서 실행 쓰기 권한이 없습니다');
-    expect(요청오류문장('FORBIDDEN', 'ko', 'cases:write')).toBe('이 서비스에서 케이스 쓰기 권한이 없습니다');
-    expect(요청오류문장('FORBIDDEN', 'ko', 'runs:read')).toBe('이 서비스에서 실행 읽기 권한이 없습니다');
-    expect(요청오류문장('FORBIDDEN', 'ko', 'authoring:write')).toBe('이 서비스에서 작성 쓰기 권한이 없습니다');
-    expect(요청오류문장('FORBIDDEN', 'en', 'runs:write')).not.toContain('서비스');
+    expect(요청오류문장('FORBIDDEN', 'ko', 'runs:write')).toBe('이 애플리케이션에서 실행 쓰기 권한이 없습니다');
+    expect(요청오류문장('FORBIDDEN', 'ko', 'cases:write')).toBe('이 애플리케이션에서 케이스 쓰기 권한이 없습니다');
+    expect(요청오류문장('FORBIDDEN', 'ko', 'runs:read')).toBe('이 애플리케이션에서 실행 읽기 권한이 없습니다');
+    expect(요청오류문장('FORBIDDEN', 'ko', 'authoring:write')).toBe('이 애플리케이션에서 작성 쓰기 권한이 없습니다');
+    expect(요청오류문장('FORBIDDEN', 'en', 'runs:write')).not.toContain('애플리케이션');
   });
 
   it('운영 계정이 필요한 자리는 그렇게 적는다', () => {
@@ -44,7 +44,7 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
   });
 
   it('대조 요청을 다시 작성하다 대상 서버가 어긋나면 코드 대신 사람 말로 적는다', () => {
-    expect(요청오류문장('BAD_ENV', 'ko')).toBe('이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요');
+    expect(요청오류문장('BAD_ENV', 'ko')).toBe('이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요');
     expect(요청오류문장('BAD_START_URL', 'ko')).toBe('시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다');
     expect(요청오류문장('BAD_ENV', 'en')).not.toContain('BAD_ENV');
   });
@@ -78,8 +78,9 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
 
   // 설정 화면이 저장 실패에 쓰던 코드들이 같은 표에 있어야 한 화면에서 말투가 안 갈린다
   it('설정 화면이 쓰던 코드도 같은 표에 있다', () => {
-    expect(요청오류문장('PREFIX_TAKEN', 'ko')).toContain('이미 다른 서비스가');
+    expect(요청오류문장('PREFIX_TAKEN', 'ko')).toContain('이미 다른 애플리케이션이');
     expect(요청오류문장('LAST_ADMIN', 'ko')).toContain('마지막 운영 계정');
+    expect(요청오류문장('PROJECT_NOT_FOUND', 'ko')).toContain('그 프로젝트를 찾지 못했습니다');
   });
 
   // 한국어 문장을 닫는 콜론으로 끝내지 않는다 (전역 규칙).

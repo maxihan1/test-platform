@@ -4,6 +4,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { 검사프로젝트, 검사프로젝트치우기 } from './projectFixture.js';
 import settingsRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -24,6 +25,7 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 역할 계정 · 운
     const p = await pool();
     await p.query('DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix = $1)', [접두사]);
     await p.query('DELETE FROM service WHERE prefix = $1', [접두사]);
+    await 검사프로젝트치우기();
   }
 
   async function 줄들(): Promise<줄응답[]> {
@@ -65,6 +67,7 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 역할 계정 · 운
         prefix: 접두사,
         name: 'XRA 역할 계정',
         color: '#112233',
+        projectId: await 검사프로젝트(),
         testsRepo: 'https://example.com/xra.git',
         testsDir: 'xra',
         envs: [
@@ -174,7 +177,7 @@ describe.skipIf(연결 === undefined)('대상 서버 줄의 역할 계정 · 운
     const res = await app.inject({
       method: 'POST',
       url: '/api/settings/services',
-      payload: { prefix: 접두사, name: 'x', color: '#112233', testsRepo: '', testsDir: 'x', envs: [{ env: 'qa', baseUrl: 'https://q', accounts: [{ role: '일반 회원' }] }] },
+      payload: { prefix: 접두사, name: 'x', color: '#112233', projectId: await 검사프로젝트(), testsRepo: '', testsDir: 'x', envs: [{ env: 'qa', baseUrl: 'https://q', accounts: [{ role: '일반 회원' }] }] },
     });
     expect([res.statusCode, res.json()]).toEqual([400, { error: 'BAD_ROLE' }]);
   });

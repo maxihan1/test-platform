@@ -112,7 +112,7 @@ export function ScenarioRunList({ service, 할수 }: { service: string; 할수: 
           {runs.data.items.length === 0 ? (
             <div className="empty">
               {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다 */}
-              {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 서비스에서 아직 돌린 E2E 시나리오가 없습니다')}
+              {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 애플리케이션에서 아직 돌린 E2E 시나리오가 없습니다')}
               {건조건 ? <small>{t('검색어나 상태를 바꿔 보세요')}</small> : null}
               {건조건 ? (
                 <button

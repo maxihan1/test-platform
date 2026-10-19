@@ -12,7 +12,7 @@ import { use말, use언어 } from './i18n.js';
 import { message, when } from './ui.js';
 
 export const 구획들: 구획[] = ['intro', 'policy', 'rules'];
-export const 구획이름: Record<구획, string> = { intro: '서비스 소개', policy: '정책', rules: '프로젝트 규칙' };
+export const 구획이름: Record<구획, string> = { intro: '애플리케이션 소개', policy: '정책', rules: '작업 규칙' };
 
 const 확장자 = (이름: string) => 이름.slice(이름.lastIndexOf('.') + 1).toLowerCase();
 

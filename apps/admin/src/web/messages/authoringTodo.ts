@@ -18,8 +18,8 @@ export const 작성할일말: Record<string, string> = {
   '다시 작성은 작성 쓰기 권한이 있는 사람만 할 수 있습니다.': 'Only someone with authoring write rights can write it again.',
   '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 운영자에게 확인을 요청하세요':
     'This target server has no test account or is marked as production. Ask an operator to check it',
-  '이 서비스에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요':
-    'This service has no target server. Ask an operator to add one',
+  '이 애플리케이션에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요':
+    'This application has no target server. Ask an operator to add one',
   '목록에 남은 그 줄은 폐기하세요': 'Discard the row left in the list.',
   // 에이전트 실패 글을 옮긴 것 (authoringFailText.ts). 에이전트 글의 정본은 scripts/authoring-*.ts 의 끝내기 error
   '작성 도구가 끝나지 않아 결과를 올리지 않았습니다. 같은 자료로 다시 작성하세요':
@@ -35,18 +35,18 @@ export const 작성할일말: Record<string, string> = {
   '검사 결과를 읽지 못해 반영을 멈췄습니다. 다시 반영하세요': 'Could not read the check results, so applying stopped. Apply again',
   '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 운영자에게 피그마 토큰을 넣어 달라고 요청하세요':
     'No Figma token, so the Figma files could not be read. Ask an operator to add a Figma token',
-  '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 설정 > 서비스에서 피그마 토큰을 넣으세요':
-    'No Figma token, so the Figma files could not be read. Add one in Settings > Services',
+  '피그마 토큰이 없어 피그마 자료를 읽지 못했습니다. 설정 > 애플리케이션에서 피그마 토큰을 넣으세요':
+    'No Figma token, so the Figma files could not be read. Add one in Settings > Applications',
   '대상 서버 「{1}」은 실서비스 서버라 작성하지 않습니다. 다른 대상 서버로 새 요청을 넣으세요':
     'Target server "{1}" is production, so nothing is written. Send a new request with another target server',
   '대상 서버 「{1}」에 테스트 계정이 없습니다. 운영자에게 테스트 계정을 넣어 달라고 요청하세요':
     'Target server "{1}" has no test account. Ask an operator to add one',
-  '대상 서버 「{1}」에 테스트 계정이 없습니다. 설정 > 서비스에서 넣은 뒤 새 요청을 넣으세요':
-    'Target server "{1}" has no test account. Add one in Settings > Services, then send a new request',
+  '대상 서버 「{1}」에 테스트 계정이 없습니다. 설정 > 애플리케이션에서 넣은 뒤 새 요청을 넣으세요':
+    'Target server "{1}" has no test account. Add one in Settings > Applications, then send a new request',
   '대상 서버 「{1}」을 찾을 수 없거나 주소가 맞지 않습니다. 운영자에게 확인을 요청하세요':
     'Target server "{1}" is missing or its address is invalid. Ask an operator to check it',
-  '대상 서버 「{1}」을 찾을 수 없거나 주소가 맞지 않습니다. 설정 > 서비스를 확인한 뒤 새 요청을 넣으세요':
-    'Target server "{1}" is missing or its address is invalid. Check Settings > Services, then send a new request',
+  '대상 서버 「{1}」을 찾을 수 없거나 주소가 맞지 않습니다. 설정 > 애플리케이션을 확인한 뒤 새 요청을 넣으세요':
+    'Target server "{1}" is missing or its address is invalid. Check Settings > Applications, then send a new request',
   '시작 주소가 대상 서버와 다릅니다. 새 요청으로 넣으세요': 'The start address does not match the target server. Send a new request',
   '{1}은 옛 워드(.doc) 파일이라 읽지 못했습니다. .docx 나 PDF 로 저장해 새 요청으로 넣으세요':
     '{1} is an old Word (.doc) file and could not be read. Save it as .docx or PDF and send a new request',
@@ -140,5 +140,5 @@ export const 작성할일말: Record<string, string> = {
   '만든 케이스 {수}건 보기': 'See {수} cases written',
   '반영 때 뺌': 'Dropped when applying',
   '겹친 요구사항': 'Shared requirements',
-  '이 서비스에서 이 계정을 기다리는 요구': 'Requirements in this service waiting for this account',
+  '이 애플리케이션에서 이 계정을 기다리는 요구': 'Requirements in this application waiting for this account',
 };

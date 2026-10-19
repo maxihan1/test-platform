@@ -15,8 +15,8 @@ afterEach(() => {
 const 꺼진서비스: SettingsServiceRow = {
   id: 7,
   prefix: 'ZSC',
-  name: '정기 실행 서비스',
-  color: '#3A5FCD',
+  name: '정기 실행 애플리케이션',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [
     { env: 'qa', baseUrl: 'https://qa.example.com' },
     { env: 'demo', baseUrl: 'https://demo.example.com' },
@@ -38,7 +38,7 @@ const 켜진서비스: SettingsServiceRow = {
 
 const 정기구획 = () => [...document.querySelectorAll('.set-card')].find((el) => el.querySelector('h3')?.textContent === '정기 실행')!;
 
-describe('서비스 설정 「정기 실행」 구획 (도메인/인증 §8.8 · 2026-10-12 시안 A)', () => {
+describe('애플리케이션 설정 「정기 실행」 구획 (도메인/인증 §8.8 · 2026-10-12 시안 A)', () => {
   it('켜면 새벽 3시 · demo 가 처음 값이고 저장하면 이 브라우저의 시간대로 보낸다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={꺼진서비스} onDone={() => {}} />);
@@ -127,7 +127,7 @@ describe('서비스 설정 「정기 실행」 구획 (도메인/인증 §8.8 ·
     expect(정기구획().textContent).toContain('아직 실행한 적이 없습니다');
   });
 
-  it('새 서비스에는 구획이 없다 — 돌릴 케이스가 없다', () => {
+  it('새 애플리케이션에는 구획이 없다 — 돌릴 케이스가 없다', () => {
     render(<ServicePanel onDone={() => {}} />);
 
     expect(screen.queryByText('정기 실행')).toBeNull();

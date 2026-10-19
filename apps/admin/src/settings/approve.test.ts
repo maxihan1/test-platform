@@ -4,18 +4,21 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { 세션등록 } from '../auth/session.js';
+import { 검사프로젝트, 검사프로젝트치우기 } from './projectFixture.js';
 import settingsRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
 
 describe.skipIf(연결 === undefined)('설정 API — 가입 수락·거절', () => {
   let app: FastifyInstance;
+  let 프로젝트 = 0;
 
   beforeAll(async () => {
     app = Fastify();
     세션등록(app, 'xpa-검사용-세션-열쇠-32글자를-넘긴다-넉넉히');
     await app.register(settingsRoutes, { prefix: '/api' });
     await app.ready();
+    프로젝트 = await 검사프로젝트();
     await app.inject({
       method: 'POST',
       url: '/api/settings/services',
@@ -23,6 +26,7 @@ describe.skipIf(연결 === undefined)('설정 API — 가입 수락·거절', ()
         prefix: 'XPA',
         name: 'XPA 서비스',
         color: '#112233',
+        projectId: 프로젝트,
         testsRepo: 'https://example.com/x.git',
         testsDir: 'xpa',
         envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
@@ -32,21 +36,22 @@ describe.skipIf(연결 === undefined)('설정 API — 가입 수락·거절', ()
 
   afterAll(async () => {
     const { pool } = await import('../db/index.js');
-    await pool.query(`DELETE FROM user_service WHERE username LIKE 'xpa%'`);
+    await pool.query(`DELETE FROM user_project WHERE username LIKE 'xpa%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xpa%'`);
     await pool.query(`DELETE FROM app_user WHERE username IN ('Xpa-upper', '.xpa-dot')`);
     await pool.query(`DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix LIKE 'XPA%')`);
     await pool.query(`DELETE FROM service WHERE prefix LIKE 'XPA%'`);
+    await 검사프로젝트치우기();
     await app.close();
   });
 
   type 권한 = 'none' | 'read' | 'write';
-  type 줄 = { prefix: string; permissions: { cases: 권한; runs: 권한; authoring: 권한 } };
+  type 줄 = { projectId: number; permissions: { cases: 권한; runs: 권한; authoring: 권한 } };
 
   async function 계정(username: string) {
     const res = await app.inject({ method: 'GET', url: '/api/settings/users' });
     return res
-      .json<{ items: { username: string; isApproved: boolean; role: string; dashboard: string; services: 줄[] }[] }>()
+      .json<{ items: { username: string; isApproved: boolean; role: string; dashboard: string; projects: 줄[] }[] }>()
       .items.find((u) => u.username === username);
   }
   const 대기넣기 = async (username: string) => {
@@ -60,22 +65,22 @@ describe.skipIf(연결 === undefined)('설정 API — 가입 수락·거절', ()
     app.inject({ method: 'POST', url: `/api/settings/users/${username}/approve`, payload });
   const 거절 = (username: string) => app.inject({ method: 'DELETE', url: `/api/settings/users/${username}` });
 
-  it('수락하면 서비스별 권한·대시보드·등급을 저장하고 승인되며, 두 번째 수락은 409 ALREADY_APPROVED 다', async () => {
+  it('수락하면 프로젝트별 권한·대시보드·등급을 저장하고 승인되며, 두 번째 수락은 409 ALREADY_APPROVED 다', async () => {
     await 대기넣기('xpa-ok');
     expect((await 계정('xpa-ok'))?.isApproved).toBe(false);
-    const 줄들: 줄[] = [{ prefix: 'XPA', permissions: { cases: 'write', runs: 'read', authoring: 'none' } }];
-    expect((await 수락('xpa-ok', { dashboard: 'none', services: 줄들, role: 'admin' })).statusCode).toBe(200);
-    expect(await 계정('xpa-ok')).toMatchObject({ isApproved: true, role: 'admin', dashboard: 'none', services: 줄들 });
+    const 줄들: 줄[] = [{ projectId: 프로젝트, permissions: { cases: 'write', runs: 'read', authoring: 'none' } }];
+    expect((await 수락('xpa-ok', { dashboard: 'none', projects: 줄들, role: 'admin' })).statusCode).toBe(200);
+    expect(await 계정('xpa-ok')).toMatchObject({ isApproved: true, role: 'admin', dashboard: 'none', projects: 줄들 });
 
-    const 다시 = await 수락('xpa-ok', { dashboard: 'read', services: [] });
+    const 다시 = await 수락('xpa-ok', { dashboard: 'read', projects: [] });
     expect(다시.statusCode).toBe(409);
     expect(다시.json()).toEqual({ error: 'ALREADY_APPROVED' });
   });
 
   it('수락에서 셋 다 none 인 줄은 400 PERMISSIONS_SHAPE 이고 승인되지 않는다', async () => {
     await 대기넣기('xpa-bad');
-    const 다없음 = { prefix: 'XPA', permissions: { cases: 'none', runs: 'none', authoring: 'none' } };
-    const res = await 수락('xpa-bad', { dashboard: 'read', services: [다없음] });
+    const 다없음 = { projectId: 프로젝트, permissions: { cases: 'none', runs: 'none', authoring: 'none' } };
+    const res = await 수락('xpa-bad', { dashboard: 'read', projects: [다없음] });
     expect(res.statusCode).toBe(400);
     expect(res.json()).toEqual({ error: 'PERMISSIONS_SHAPE' });
     expect((await 계정('xpa-bad'))?.isApproved).toBe(false);
@@ -106,7 +111,7 @@ describe.skipIf(연결 === undefined)('설정 API — 가입 수락·거절', ()
       const res = await app.inject({
         method: 'POST',
         url: '/api/settings/users',
-        payload: { username, displayName: '모양', role: 'member', dashboard: 'read', services: [] },
+        payload: { username, displayName: '모양', role: 'member', dashboard: 'read', projects: [] },
       });
       expect(res.statusCode, username).toBe(400);
       expect(res.json(), username).toEqual({ error: 'USERNAME_SHAPE' });

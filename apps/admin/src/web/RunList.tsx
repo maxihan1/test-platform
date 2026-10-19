@@ -181,7 +181,7 @@ export function RunList({ service, envs, 할수, kind }: { service: string; envs
             {runs.data.items.length === 0 ? (
               <div className="empty">
                 {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다 (SPEC §8.7) */}
-                {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 서비스에서 아직 실행한 기록이 없습니다')}
+                {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 애플리케이션에서 아직 실행한 기록이 없습니다')}
                 <small>{건조건 ? t('검색어나 거르개를 바꿔 보세요') : t('케이스를 골라 실행하면 여기에 쌓입니다')}</small>
                 {건조건 ? (
                   <button className="btn" style={{ marginTop: '14px' }} onClick={다지우기}>

@@ -19,7 +19,7 @@ const 부품 = [{ kind: 'case' as const, tcId: 'PAY-FN-001', params: {}, expecte
 describe('시나리오 서버 호출 모음', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('목록은 서비스를 싣고 uses 가 있을 때만 쉼표로 이어 붙인다', async () => {
+  it('목록은 애플리케이션을 싣고 uses 가 있을 때만 쉼표로 이어 붙인다', async () => {
     const m = 막는다(200, { items: [] });
     await scenarioApi.list('PAY');
     expect(보낸것(m)).toMatchObject({ 주소: '/api/scenarios?service=PAY', 메서드: 'GET' });

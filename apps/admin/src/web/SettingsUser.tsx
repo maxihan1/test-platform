@@ -1,26 +1,26 @@
-// 설정 화면의 계정 구획 (SPEC §8.8). 아이디·이름·운영·서비스와 권한·대시보드
+// 설정 화면의 계정 구획 (SPEC §8.8). 아이디·이름·운영·프로젝트와 권한·대시보드
 // 비밀번호는 사람이 타이핑하지 않는다 — 시스템이 만들어 한 번만 보여준다
 
 import { useState } from 'react';
 
 import { AgentToken, AgentTokenBox, type 발급토큰 } from './AgentToken.js';
-import { api, type SettingsServiceRow, type UserRow, type 배정 } from './api.js';
+import { api, type UserRow, type 배정 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import type { 등급 } from './role.js';
 import { TempPassword, type 임시 } from './SettingsPassword.js';
 import { PermissionPicker, PermissionSummary, 배정이틀렸나 } from './SettingsPermissions.js';
 import { 오류문장 } from './SettingsService.js';
-import { 계정못보내는이유, 마지막운영계정인가 } from './settingsView.js';
+import { 계정못보내는이유, 마지막운영계정인가, type 프로젝트줄 } from './settingsView.js';
 
 export function UserSection({
   rows: 전체,
-  services,
+  projects,
   me,
   onDone,
   onSelf,
 }: {
   rows: UserRow[];
-  services: SettingsServiceRow[];
+  projects: 프로젝트줄[];
   /** 지금 로그인한 사람의 아이디. 자기 자신을 고치면 띠까지 다시 그려야 한다 */
   me: string;
   onDone: () => void;
@@ -34,8 +34,8 @@ export function UserSection({
   const [임시비밀번호, set임시비밀번호] = useState<임시 | null>(null);
   const [토큰, set토큰] = useState<발급토큰 | null>(null);
 
-  // 내가 배정받은 서비스가 없으면 그것부터 알린다. 첫 운영자가 이 화면에 오는 가장 흔한 이유다
-  const 내배정없음 = rows.find((it) => it.username === me)?.services.length === 0;
+  // 내가 배정받은 프로젝트가 없으면 그것부터 알린다. 첫 운영자가 이 화면에 오는 가장 흔한 이유다
+  const 내배정없음 = rows.find((it) => it.username === me)?.projects?.length === 0;
 
   return (
     <section className="sec">
@@ -51,9 +51,9 @@ export function UserSection({
         </button>
       </div>
 
-      {내배정없음 && services.length > 0 ? (
+      {내배정없음 && projects.length > 0 ? (
         <div className="hint set-todo">
-          {t('아직 자기 자신에게 배정한 서비스가 없습니다. 아래 자기 줄의 「편집」에서 배정합니다')}
+          {t('아직 자기 자신에게 배정한 프로젝트가 없습니다. 아래 자기 줄의 「편집」에서 배정합니다')}
         </div>
       ) : null}
 
@@ -62,7 +62,7 @@ export function UserSection({
 
       {여는것 === 'new' ? (
         <UserForm
-          services={services}
+          projects={projects}
           onCreated={(username, password) => {
             set임시비밀번호({ username, password });
             set여는것(null);
@@ -79,7 +79,7 @@ export function UserSection({
               {it.isActive ? null : <span className="set-off">{t('비활성')}</span>}
             </span>
             <span className="set-sub">{it.username}</span>
-            <PermissionSummary row={it} services={services} />
+            <PermissionSummary row={it} projects={projects} />
             <button
               className="btn ghost"
               onClick={() => set여는것(여는것 === it.username ? null : it.username)}
@@ -92,7 +92,7 @@ export function UserSection({
               row={it}
               rows={rows}
               나다={it.username === me}
-              services={services}
+              projects={projects}
               onDone={() => {
                 set여는것(null);
                 onDone();
@@ -113,7 +113,7 @@ function UserForm({
   row,
   rows = [],
   나다 = false,
-  services,
+  projects,
   onDone,
   onCreated,
   onPassword,
@@ -122,7 +122,7 @@ function UserForm({
   rows?: UserRow[];
   /** 로그인한 사람 자신의 줄인가 */
   나다?: boolean;
-  services: SettingsServiceRow[];
+  projects: 프로젝트줄[];
   onDone?: () => void;
   onCreated?: (username: string, password: string) => void;
   onPassword?: (password: string) => void;
@@ -134,7 +134,7 @@ function UserForm({
   const [username, setUsername] = useState(row?.username ?? '');
   const [displayName, setDisplayName] = useState(row?.displayName ?? '');
   const [role, setRole] = useState<등급>(row?.role ?? 'member');
-  const [배정들, set배정들] = useState<배정[]>(row?.services ?? []);
+  const [배정들, set배정들] = useState<배정[]>(row?.projects ?? []);
   // 새 계정의 대시보드는 읽기로 시작한다 (§8.8)
   const [dashboard, setDashboard] = useState<'none' | 'read'>(row?.dashboard ?? 'read');
   const [보내는중, set보내는중] = useState(false);
@@ -184,7 +184,7 @@ function UserForm({
       </div>
 
       <PermissionPicker
-        services={services}
+        projects={projects}
         role={role}
         onRole={setRole}
         마지막운영={마지막운영}
@@ -256,10 +256,10 @@ function UserForm({
             if (못보내는이유 !== null) return;
             void 한다(async () => {
               if (새것) {
-                const { tempPassword } = await api.createUser({ username, displayName, role, dashboard, services: 배정들 });
+                const { tempPassword } = await api.createUser({ username, displayName, role, dashboard, projects: 배정들 });
                 onCreated?.(username, tempPassword);
               } else {
-                await api.updateUser(row.username, { displayName, role, dashboard, services: 배정들 });
+                await api.updateUser(row.username, { displayName, role, dashboard, projects: 배정들 });
                 onDone?.();
               }
             });

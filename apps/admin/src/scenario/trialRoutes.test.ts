@@ -80,9 +80,9 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
        ON CONFLICT (username) DO UPDATE SET is_active = true, is_approved = true, must_change_password = false`,
       [username, await 해시('열려라참깨')],
     );
-    await q('DELETE FROM user_service WHERE username = $1', [username]);
+    await q('DELETE FROM user_project WHERE username = $1', [username]);
     await q(
-      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'read', 'write', 'none')`,
+      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) SELECT $1, project_id, 'read', 'write', 'none' FROM service WHERE id = $2`,
       [username, 서비스id[prefix]],
     );
     const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username, password: '열려라참깨' } });
@@ -155,7 +155,7 @@ describe.skipIf(연결 === undefined)('시나리오 시험 실행 통로', () =>
     풀어준다();
     await app.close();
     await new Promise((ok) => 러너.close(ok));
-    await q('DELETE FROM user_service WHERE username = ANY($1)', [계정들]);
+    await q('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     await q('DELETE FROM service_env WHERE service_id = $1', [서비스id.XSTR]);
     await q('DELETE FROM test_case WHERE tc_id = ANY($1)', [번호들]);

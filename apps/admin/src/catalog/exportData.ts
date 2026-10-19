@@ -87,6 +87,7 @@ export async function 엑셀자료(입력: 맥락조건 & {
     part: 입력.part,
     axis: 입력.axis,
     req: 입력.req,
+    apiServer: 입력.apiServer,
     service: 입력.service,
     q: 입력.q,
     platform: 입력.platform,

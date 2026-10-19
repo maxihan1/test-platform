@@ -2,7 +2,7 @@
 
 import type { NoticeRecent, NoticeRunning, RunCounts } from './api.js';
 
-const 서비스 = { serviceId: 1, prefix: 'PAY', serviceName: '결제 서비스' };
+const 서비스 = { serviceId: 1, prefix: 'PAY', serviceName: '결제 애플리케이션' };
 
 export const 방금 = () => new Date().toISOString();
 export const 전에 = (분: number) => new Date(Date.now() - 분 * 60_000).toISOString();

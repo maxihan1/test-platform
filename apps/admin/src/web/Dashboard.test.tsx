@@ -10,7 +10,7 @@ import { Dashboard } from './Dashboard.js';
 
 const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-/** main.tsx 가 사람의 권한에서 뽑아 넘기는 재료 — 케이스 자리가 있는 사람 · 작성 칸이 read 이상인 서비스 */
+/** main.tsx 가 사람의 권한에서 뽑아 넘기는 재료 — 케이스 자리가 있는 사람 · 작성 칸이 read 이상인 애플리케이션 */
 const 기본재료 = { 케이스갈수있나: true, 설정갈수있나: false, 작성서비스: [] as { id: number; name: string }[] };
 
 function 건(pass: number, fail: number, notRun: number) {
@@ -133,7 +133,7 @@ describe('머리와 읽기', () => {
     const 읽기 = 읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('대시보드');
-    expect(await screen.findByText(/서비스 2개 · 최근 14일/)).toBeTruthy();
+    expect(await screen.findByText(/애플리케이션 2개 · 최근 14일/)).toBeTruthy();
     expect(읽기).toHaveBeenCalledTimes(1);
     expect(읽기).toHaveBeenCalledWith(시간대, undefined, {});
   });
@@ -171,7 +171,7 @@ describe('실행 중 줄', () => {
     expect(screen.queryByText(/^실행 중 /)).toBeNull();
   });
 
-  it('RUN 번호 · 서비스와 제목 · 끝난 수 / 전체가 보이고 누르면 그 실행으로 간다', async () => {
+  it('RUN 번호 · 애플리케이션과 제목 · 끝난 수 / 전체가 보이고 누르면 그 실행으로 간다', async () => {
     읽기를(응답({ running: [실행중(12, 3, 8, 1)] }));
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     expect(await screen.findByText('실행 중 1건')).toBeTruthy();
@@ -194,7 +194,7 @@ describe('실행 중 줄', () => {
 });
 
 describe('신규 실패 표', () => {
-  it('서비스 · TC ID · 케이스 이름 링크 · 디바이스 · 언제 · 실패 유형이 한 줄에 있다', async () => {
+  it('애플리케이션 · TC ID · 케이스 이름 링크 · 디바이스 · 언제 · 실패 유형이 한 줄에 있다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     const 칸 = (await screen.findByText('신규 실패')).closest('section')!;
@@ -213,7 +213,7 @@ describe('신규 실패 표', () => {
     expect(within(줄들[2]!).getByText('그 밖')).toBeTruthy();
   });
 
-  it('머리의 건수는 서비스별로 센 전체와 보이는 줄 가운데 큰 쪽이다', async () => {
+  it('머리의 건수는 애플리케이션별로 센 전체와 보이는 줄 가운데 큰 쪽이다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     const 제목 = (await screen.findByText('신규 실패')).closest('h2')!;
@@ -295,11 +295,11 @@ describe('통과율 칸', () => {
   });
 });
 
-describe('서비스별 품질 표', () => {
-  it('서비스마다 통과율 · 대비 · 흐름 · 견줌 칩 · 마지막 실행이 한 줄이다', async () => {
+describe('애플리케이션별 품질 표', () => {
+  it('애플리케이션마다 통과율 · 대비 · 흐름 · 견줌 칩 · 마지막 실행이 한 줄이다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    const 칸 = (await screen.findByRole('heading', { name: '서비스별 품질' })).closest('section')!;
+    const 칸 = (await screen.findByRole('heading', { name: '애플리케이션별 품질' })).closest('section')!;
     const 줄들 = within(칸).getAllByRole('row');
     const 결제 = 줄들[1]!;
     expect(within(결제).getByText('ZDA 결제')).toBeTruthy();
@@ -316,7 +316,7 @@ describe('서비스별 품질 표', () => {
   it('흐름 막대는 맨 앞이 최신이다 — 서버는 오래된 것부터 준다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    const 칸 = (await screen.findByRole('heading', { name: '서비스별 품질' })).closest('section')!;
+    const 칸 = (await screen.findByRole('heading', { name: '애플리케이션별 품질' })).closest('section')!;
     expect(within(칸).getByRole('columnheader', { name: '최근 실행, 맨 앞이 최신' })).toBeTruthy();
     const 결제 = within(칸).getAllByRole('row')[1]!;
     const 네모들 = within(결제).getByRole('img', { name: /통과 2/ }).querySelectorAll('i');
@@ -326,7 +326,7 @@ describe('서비스별 품질 표', () => {
   it('마지막 실행에 실패가 있는지를 점이 글로도 말한다', async () => {
     읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    await screen.findByRole('heading', { name: '서비스별 품질' });
+    await screen.findByRole('heading', { name: '애플리케이션별 품질' });
     expect(screen.getByRole('img', { name: '마지막 실행에 실패가 있습니다' })).toBeTruthy();
     expect(screen.getByRole('img', { name: '마지막 실행에 실패가 없습니다' })).toBeTruthy();
   });
@@ -346,7 +346,7 @@ describe('비어 있을 때', () => {
     expect(await screen.findByText('아직 실행한 테스트가 없습니다')).toBeTruthy();
     expect(screen.getByText(/정기 실행/)).toBeTruthy();
     expect(screen.getByRole('link', { name: '케이스 보기' }).getAttribute('href')).toBe('#/cases');
-    for (const 제목 of ['신규 실패', '통과율', '서비스별 품질', '일별 테스트 결과', '실패 히트맵', '요구사항 커버리지']) {
+    for (const 제목 of ['신규 실패', '통과율', '애플리케이션별 품질', '일별 테스트 결과', '실패 히트맵', '요구사항 커버리지']) {
       expect(screen.queryByRole('heading', { name: 제목 })).toBeNull();
     }
   });
@@ -383,7 +383,7 @@ describe('그래프 칸 자리', () => {
     읽기를(응답({ running: [실행중(12, 3, 8)] }));
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
     await screen.findByText('실행 중 1건');
-    const 순서 = ['실행 중 1건', '신규 실패', '통과율', '서비스별 품질', '일별 테스트 결과', '실패 히트맵', '실패 유형', '요구사항 커버리지'];
+    const 순서 = ['실행 중 1건', '신규 실패', '통과율', '애플리케이션별 품질', '일별 테스트 결과', '실패 히트맵', '실패 유형', '요구사항 커버리지'];
     const 위치 = 순서.map((글) => screen.getByText(글, { selector: 'h2, .dash-live-head' }));
     for (let i = 1; i < 위치.length; i += 1) {
       expect(위치[i - 1]!.compareDocumentPosition(위치[i]!) & Node.DOCUMENT_POSITION_FOLLOWING, 순서[i]).toBeTruthy();

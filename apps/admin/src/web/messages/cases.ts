@@ -45,6 +45,8 @@ export const 케이스말: Record<string, string> = {
   '미확정 {건수}건': '{건수} unconfirmed',
   // 설계 기법 — 값은 kit 식별자 그대로 질의에 가고 글자만 여기서 바뀐다 (도메인/카탈로그 §8.1)
   '설계 기법': 'Design technique',
+  'API 서버': 'API server',
+  'API 서버 {이름}': 'API server {이름}',
   '경계값 분석': 'Boundary value analysis',
   '동등 분할': 'Equivalence partitioning',
   '결정 테이블': 'Decision table',

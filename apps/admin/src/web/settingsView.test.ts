@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { SettingsServiceRow, UserRow } from './api.js';
+import type { UserRow } from './api.js';
 import {
   계정못보내는이유,
   계정요약,
@@ -10,10 +10,12 @@ import {
   설정오류문장,
   접두사사유,
   웹훅칸,
+  프로젝트줄들,
+  type 프로젝트줄,
 } from './settingsView.js';
 
 function 계정(username: string, role: 'member' | 'admin', isActive = true): UserRow {
-  return { username, displayName: username, role, dashboard: 'read', isActive, services: [] };
+  return { username, displayName: username, role, dashboard: 'read', isActive, projects: [] };
 }
 
 describe('접두사 (SPEC §2 · §8.8)', () => {
@@ -45,12 +47,12 @@ describe('접두사 (SPEC §2 · §8.8)', () => {
   });
 });
 
-describe('서비스 색의 명암비 (DESIGN.md)', () => {
+describe('애플리케이션 색의 명암비 (DESIGN.md)', () => {
   it('흰 면 기준으로 잰다. 네모와 경계선이 자리 목록 줄 위에 놓인다', () => {
     // 어두울수록 흰 면 위에서 잘 보인다. 2026-09-21 에 띠 바탕에서 이 자리로 옮겼다
   });
 
-  it('DB 의 DEMO 서비스 색이 새 기준은 통과한다', () => {
+  it('DB 의 DEMO 애플리케이션 색이 새 기준은 통과한다', () => {
     // 2026-09-21 — 글자가 아니라 UI 요소라 기준이 4.5 에서 3 으로 내려갔다.
     // 옛 기준으로는 미달이던 색이다. 그 사실을 여기 남겨 둔다
   });
@@ -119,11 +121,12 @@ describe('마지막 운영 계정 (SPEC §7 · §8.8)', () => {
   });
 });
 
-describe('서비스를 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살려 두고 사유를 말한다)', () => {
+describe('애플리케이션을 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살려 두고 사유를 말한다)', () => {
   const 채운것 = {
     새것: true,
+    프로젝트: 1,
     prefix: 'PAY',
-    name: '결제 서비스',
+    name: '결제 애플리케이션',
     testsDir: 'pay',
     envs: [{ env: 'qa', baseUrl: 'https://qa.pay.test' }],
     제외: '',
@@ -131,6 +134,15 @@ describe('서비스를 아직 못 보내는 이유 (SPEC §8.2 — 버튼은 살
 
   it('다 채웠으면 이유가 없다', () => {
     expect(서비스못보내는이유(채운것, 'ko')).toBe(null);
+  });
+
+  it('프로젝트를 안 골랐으면 그것부터 말한다 — 서버가 PROJECT_NOT_FOUND 로 돌려보내기 전에', () => {
+    expect(서비스못보내는이유({ ...채운것, 프로젝트: null }, 'ko')).toBe('프로젝트를 골라 주세요');
+  });
+
+  it('고칠 때는 프로젝트를 묻지 않는다 — 옮기는 일은 프로젝트 화면이 한다', () => {
+    const { 프로젝트: _빼, ...고침 } = 채운것;
+    expect(서비스못보내는이유({ ...고침, 새것: false }, 'ko')).toBe(null);
   });
 
   it('대상 서버가 하나도 없어도 보낼 수 있다. 나중에 더하면 된다', () => {
@@ -250,32 +262,48 @@ describe('서버가 낸 오류를 사람 말로 (SPEC §8.8)', () => {
 });
 
 describe('계정 줄의 권한 요약 (도메인/인증 §8.8)', () => {
-  const 서비스들 = [
-    { prefix: 'PAY', name: '결제 서비스' },
-    { prefix: 'MEM', name: '회원 서비스' },
-  ] as SettingsServiceRow[];
+  const 프로젝트들: 프로젝트줄[] = [
+    { id: 1, name: '데모마켓', 앱수: 2 },
+    { id: 2, name: '사내 포털', 앱수: 1 },
+  ];
 
   it('운영은 칸을 늘어놓지 않고 운영 하나로 적는다', () => {
-    expect(계정요약({ ...계정('kim', 'admin'), services: [] }, 서비스들)).toEqual({ 운영: true });
+    expect(계정요약({ ...계정('kim', 'admin'), projects: [] }, 프로젝트들)).toEqual({ 운영: true });
   });
 
-  it('멤버는 서비스마다 케이스 · 실행 · 작성 순서로 칸을 적고 대시보드를 따로 적는다', () => {
+  it('멤버는 프로젝트마다 케이스 · 실행 · 작성 순서로 칸을 적고 대시보드를 따로 적는다', () => {
     const 이영희: UserRow = {
       ...계정('lee', 'member'),
       dashboard: 'none',
-      services: [{ prefix: 'MEM', permissions: { authoring: 'none', runs: 'write', cases: 'read' } }],
+      projects: [{ projectId: 2, permissions: { authoring: 'none', runs: 'write', cases: 'read' } }],
     };
-    expect(계정요약(이영희, 서비스들)).toEqual({
+    expect(계정요약(이영희, 프로젝트들)).toEqual({
       운영: false,
-      서비스: [{ 이름: '회원 서비스', 칸들: [['cases', 'read'], ['runs', 'write'], ['authoring', 'none']] }],
+      프로젝트: [{ 이름: '사내 포털', 칸들: [['cases', 'read'], ['runs', 'write'], ['authoring', 'none']] }],
       대시보드: 'none',
     });
   });
 
-  it('목록에 없는 서비스는 접두사로 적는다. 지우지 않는다', () => {
-    const 행 = { ...계정('lee', 'member'), services: [{ prefix: 'OLD', permissions: { cases: 'read', runs: 'read', authoring: 'read' } }] } as UserRow;
-    const 요약 = 계정요약(행, 서비스들);
-    expect(요약.운영 === false && 요약.서비스[0]?.이름).toBe('OLD');
+  it('목록에 없는 프로젝트는 번호로 적는다. 지우지 않는다', () => {
+    const 행 = { ...계정('lee', 'member'), projects: [{ projectId: 99, permissions: { cases: 'read', runs: 'read', authoring: 'read' } }] } as UserRow;
+    const 요약 = 계정요약(행, 프로젝트들);
+    expect(요약.운영 === false && 요약.프로젝트[0]?.이름).toBe('#99');
+  });
+
+  it('배정이 없으면 빈 줄이다', () => {
+    const 요약 = 계정요약(계정('lee', 'member'), 프로젝트들);
+    expect(요약.운영 === false && 요약.프로젝트).toEqual([]);
+  });
+});
+
+describe('프로젝트줄들 — 프로젝트마다 그 안의 애플리케이션 수를 센다', () => {
+  it('프로젝트 번호가 같은 애플리케이션만 센다. 빈 프로젝트는 0 이다', () => {
+    const 서비스들 = [{ projectId: 1 }, { projectId: 1 }, { projectId: 2 }] as Parameters<typeof 프로젝트줄들>[1];
+    expect(프로젝트줄들([{ id: 1, name: 'A' }, { id: 2, name: 'B' }, { id: 3, name: 'C' }], 서비스들)).toEqual([
+      { id: 1, name: 'A', 앱수: 2 },
+      { id: 2, name: 'B', 앱수: 1 },
+      { id: 3, name: 'C', 앱수: 0 },
+    ]);
   });
 });
 

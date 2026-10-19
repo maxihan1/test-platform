@@ -154,6 +154,11 @@ export const 등급표: Record<string, 표값> = {
   // ★ 저장소를 영구히 바꾸는 일 — admin. 작성 쓰기와 같으면 「실행할 수 있는 사람 = 저장소를 고칠 수 있는 사람」이 된다
   'POST /api/authoring/merges': 'admin',
 
+  'GET /api/settings/projects': 'admin',
+  'POST /api/settings/projects': 'admin',
+  'PATCH /api/settings/projects/:id': 'admin',
+  'GET /api/settings/projects/:id/api-servers': 'admin',
+  'PUT /api/settings/projects/:id/api-servers': 'admin',
   'GET /api/settings/services': 'admin',
   'POST /api/settings/services': 'admin',
   'PATCH /api/settings/services/:id': 'admin',

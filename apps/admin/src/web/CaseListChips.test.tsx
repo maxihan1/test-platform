@@ -8,7 +8,7 @@ import { 조건칩들 } from './CaseListParts.js';
 
 afterEach(cleanup);
 
-describe('디바이스 칩 — 「Android 앱」은 앱 케이스가 있는 서비스에만 (APP-F1-04)', () => {
+describe('디바이스 칩 — 「Android 앱」은 앱 케이스가 있는 애플리케이션에만 (APP-F1-04)', () => {
   const 칩 = (앱있음: boolean, 디바이스: 'ALL' | 'android' = 'ALL') => {
     render(<조건칩들 디바이스={디바이스} 앱있음={앱있음} 활성만 결과="ALL" 건수={null} on디바이스={vi.fn()} on활성만={vi.fn()} on결과={vi.fn()} />);
     return screen.queryByRole('button', { name: 'Android 앱' });

@@ -36,7 +36,7 @@ function 실행(runId: number, fail: number, 덮어쓸: Partial<RunListRow> = {}
     triggeredByName: '김검사',
     env: 'qa',
     baseUrl: 'https://qa.example.com',
-    serviceName: 'ZRL 서비스',
+    serviceName: 'ZRL 애플리케이션',
     status: 'FINISHED',
     origin: 'MANUAL',
     rerunOf: null,
@@ -175,9 +175,9 @@ describe('RunList 거르개 — 거르는 일은 서버가 한다', () => {
 });
 
 describe('RunList 빈 목록', () => {
-  it('한 번도 안 돌린 사람에게는 서비스를 짚어 말한다', async () => {
+  it('한 번도 안 돌린 사람에게는 애플리케이션을 짚어 말한다', async () => {
     await 그리기(빈쪽);
-    expect(await screen.findByText(/이 서비스에서 아직 실행한 기록이 없습니다/)).toBeTruthy();
+    expect(await screen.findByText(/이 애플리케이션에서 아직 실행한 기록이 없습니다/)).toBeTruthy();
   });
 
   it('거르개에 안 걸린 사람에게는 다른 문장을 준다', async () => {

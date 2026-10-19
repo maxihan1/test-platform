@@ -16,6 +16,9 @@ export interface 배정서비스 {
   prefix: string;
   name: string;
   color: string;
+  /** 속한 프로젝트 (공통/4-데이터모델 「프로젝트 표」). 로그인 뒤 프로젝트 고르기가 배정받은 서비스에서 뽑는다 */
+  projectId: number;
+  projectName: string;
   /**
    * 그 서비스의 대상 서버 목록 (SPEC §6 `service_env`).
    *
@@ -38,7 +41,7 @@ export interface 배정서비스 {
   testsDir: string;
   /** 역방향 작성(화면만 · 대조)이 훑지 않을 경로 (SPEC §6 `service.crawl_exclude`). 작성 에이전트가 건을 가져갈 때마다 읽는다 — 화면은 안 읽는다 (도메인/인증 §7) */
   crawlExclude: string[];
-  /** 이 서비스에서 기능마다 가진 칸. admin 은 저장값과 상관없이 전부 `write` (SPEC §3.5 · §7) */
+  /** 이 서비스가 속한 프로젝트에서 기능마다 가진 칸. admin 은 저장값과 상관없이 전부 `write` (SPEC §3.5 · §7) */
   permissions: 서비스권한;
 }
 
@@ -71,12 +74,14 @@ const 한사람 = `
          COALESCE(
            json_agg(json_build_object(
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
+             'projectId', s.project_id, 'projectName', p.name,
              'envs', COALESCE(e.envs, '[]'::json),
              'testsDir', s.tests_dir,
              'crawlExclude', s.crawl_exclude,
+             -- 권한은 프로젝트에 붙어 있고 그 프로젝트의 애플리케이션 줄마다 같은 값을 채운다 (SPEC 도메인/인증 §3.5).
              -- 칸은 이름을 짚어 담는다. row_to_json 으로 통째로 넣으면 표에 칸이 늘 때 응답이 말없이 불어난다
              'permissions', json_build_object(
-               'cases', us.perm_cases, 'runs', us.perm_runs, 'authoring', us.perm_authoring),
+               'cases', up.perm_cases, 'runs', up.perm_runs, 'authoring', up.perm_authoring),
              -- 주소가 아니라 있는지만 낸다 (SPEC §7)
              'hasSlackWebhook', s.slack_webhook IS NOT NULL AND s.slack_webhook <> '',
              'hasFigmaToken', s.figma_token IS NOT NULL AND s.figma_token <> ''
@@ -84,8 +89,9 @@ const 한사람 = `
            '[]'
          ) AS services
     FROM app_user u
-    LEFT JOIN user_service us ON us.username = u.username
-    LEFT JOIN service s ON s.id = us.service_id AND s.is_active
+    LEFT JOIN user_project up ON up.username = u.username
+    LEFT JOIN service s ON s.project_id = up.project_id AND s.is_active
+    LEFT JOIN project p ON p.id = s.project_id
     LEFT JOIN 서버 e ON e.service_id = s.id
    WHERE u.username = $1 AND u.is_active AND (u.is_approved OR $2)
    GROUP BY u.username, u.display_name, u.role, u.password_hash, u.perm_dashboard, u.must_change_password, u.is_approved`;

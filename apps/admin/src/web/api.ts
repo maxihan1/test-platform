@@ -53,6 +53,8 @@ export interface CaseRow {
   feature?: string | null;
   reqs?: CaseReq[];
   screens?: CaseScreen[];
+  /** 케이스를 실행해서 부른 호스트에 붙은 API 서버 이름 — 목록 응답에만 온다. 없으면 [] (도메인/카탈로그 §8.1 「API 서버」) */
+  apiServers?: string[];
 }
 
 /** 지도 ① 의 축 칸 — 서버 `catalog/context.ts` 와 같은 넷. 값 목록은 주소에서 읽은 조건을 거를 때 쓴다 */
@@ -110,6 +112,8 @@ export interface CasePage extends Paged<CaseRow> {
   hasApp?: boolean;
   /** 마지막 결과 칩의 건수 — last 를 뺀 조건에 맞은 전부다. 실행 read 가 없으면 null (도메인/카탈로그 §7) */
   lastCounts?: { total: number; pass: number; fail: number; na: number } | null;
+  /** API 서버 칩 — 이름마다 하나, 건수는 apiServer 를 뺀 조건에 맞은 케이스 수. 이름이 없으면 [] 라 칩 줄을 안 그린다 (도메인/카탈로그 §7) */
+  apiServers?: { name: string; count: number }[];
 }
 
 export interface LastScan {
@@ -468,6 +472,9 @@ export interface ServiceRow {
   prefix: string;
   name: string;
   color: string;
+  /** 이 애플리케이션이 속한 프로젝트. 로그인 뒤 프로젝트 고르기가 여기서 프로젝트를 뽑는다 (도메인/인증 §7) */
+  projectId: number;
+  projectName: string;
   /** 실행 설정의 대상 서버 드롭다운이 읽는다. 화면이 이 값을 받을 통로가 여기뿐이다 (SPEC §8.2) */
   envs: EnvRow[];
   /** Slack 칸을 그릴지. 주소 자체는 오지 않는다 (SPEC §7) */
@@ -756,10 +763,23 @@ export interface AuthoringAsset {
   sourceAssetId?: number | null;
 }
 
-/** 계정 한 사람이 한 서비스에서 가진 칸 (도메인/인증 §3.5). 셋 다 none 인 줄은 서버가 받지 않는다 */
+/** 계정 한 사람이 한 프로젝트에서 가진 칸 (도메인/인증 §3.5). 셋 다 none 인 줄은 서버가 받지 않는다 */
 export interface 배정 {
-  prefix: string;
+  projectId: number;
   permissions: 권한칸;
+}
+
+/** 설정 화면이 보는 프로젝트 (도메인/인증 §7 `/settings/projects`) */
+export interface SettingsProject {
+  id: number;
+  name: string;
+}
+
+/** 설정 › 프로젝트 › API 서버 한 줄 — 케이스가 부른 호스트와 붙은 이름 (도메인/인증 §7 `…/api-servers`) */
+export interface SettingsApiServer {
+  host: string;
+  name: string | null;
+  cases: number;
 }
 
 export interface UserRow {
@@ -770,8 +790,8 @@ export interface UserRow {
   isActive: boolean;
   // 옛 검사 fixture 가 없이 만든다. 서버는 늘 보낸다 — 없으면 승인된 것으로 읽는다
   isApproved?: boolean;
-  /** 배정 전체. 고칠 때 이 목록이 통째로 바뀐다 (도메인/인증 §7) */
-  services: 배정[];
+  /** 배정 전체. 고칠 때 이 목록이 통째로 바뀐다 (도메인/인증 §7). 옛 검사 fixture 가 없이 만든다 — 없으면 배정 없음으로 읽는다 */
+  projects?: 배정[];
   // 옛 검사 fixture 가 이 둘 없이 UserRow 를 만든다. 서버는 늘 보낸다 — 없으면 false 로 읽는다
   hasAgentToken?: boolean;
   /** 서버 환경변수 AUTHORING_AGENT_USER 가 가리키는 계정만 true. 토큰은 이 계정만 가진다 */
@@ -947,6 +967,8 @@ export interface CaseQuery {
   part?: string;
   axis?: 케이스축;
   req?: string;
+  /** API 서버 이름. 그 이름이 붙은 호스트를 실행해서 부른 케이스만 (도메인/카탈로그 §7 `?apiServer=`) */
+  apiServer?: string;
   /** 마지막 결과. 서버가 전체에서 거른다 (도메인/카탈로그 §7 `?last=`) */
   last?: ItemStatus;
 }
@@ -961,7 +983,7 @@ function 케이스조건(query: CaseQuery): URLSearchParams {
   if (query.technique !== undefined) params.set('technique', query.technique);
   // feature 는 빈 글자도 보낸다 — 「기능 묶음 없음」이다
   if (query.feature !== undefined) params.set('feature', query.feature);
-  for (const 칸 of ['screen', 'part', 'axis', 'req'] as const) {
+  for (const 칸 of ['screen', 'part', 'axis', 'req', 'apiServer'] as const) {
     const 값 = query[칸];
     if (값 !== undefined) params.set(칸, 값);
   }
@@ -1196,12 +1218,26 @@ export const api = {
     }),
 
   // 설정 (SPEC §7 · §8.8). 전부 운영(admin) 등급만 닿는다 — 서버 auth/gate.ts 가 막는다
+  settingsProjects: () => call<{ items: SettingsProject[] }>('/settings/projects'),
+
+  createProject: (name: string) => call<{ id: number }>('/settings/projects', json({ name })),
+
+  renameProject: (id: number, name: string) =>
+    call<{ ok: true }>(`/settings/projects/${id}`, { ...json({ name }), method: 'PATCH' }),
+
+  projectApiServers: (id: number) => call<{ items: SettingsApiServer[] }>(`/settings/projects/${id}/api-servers`),
+
+  /** 준 호스트의 이름만 갈아 끼운다. 빈 이름은 지우기다 */
+  saveProjectApiServers: (id: number, items: { host: string; name: string }[]) =>
+    call<{ ok: true }>(`/settings/projects/${id}/api-servers`, { ...json({ items }), method: 'PUT' }),
+
   settingsServices: () => call<{ items: SettingsServiceRow[] }>('/settings/services'),
 
   createService: (body: {
     prefix: string;
     name: string;
     color: string;
+    projectId: number;
     testsRepo: string;
     testsDir: string;
     envs: EnvInput[];
@@ -1219,6 +1255,8 @@ export const api = {
     body: {
       name?: string;
       color?: string;
+      /** 보내면 그 프로젝트로 옮긴다. 안 보내면 그대로 */
+      projectId?: number;
       testsRepo?: string;
       testsDir?: string;
       isActive?: boolean;
@@ -1245,7 +1283,7 @@ export const api = {
     displayName: string;
     role: 등급;
     dashboard: 'none' | 'read';
-    services: 배정[];
+    projects: 배정[];
   }) =>
     call<{ username: string; tempPassword: string }>('/settings/users', json(body)),
 
@@ -1256,7 +1294,7 @@ export const api = {
       role?: 등급;
       dashboard?: 'none' | 'read';
       isActive?: boolean;
-      services?: 배정[];
+      projects?: 배정[];
     },
   ) =>
     call<{ ok: true }>(`/settings/users/${encodeURIComponent(username)}`, {
@@ -1265,7 +1303,7 @@ export const api = {
     }),
 
   /** 승인 대기 계정을 쓸 수 있게 한다. 권한은 수락하는 운영자가 정한다 (도메인/인증 §3.5) */
-  approveUser: (username: string, body: { role?: 등급; dashboard: 'none' | 'read'; services: 배정[] }) =>
+  approveUser: (username: string, body: { role?: 등급; dashboard: 'none' | 'read'; projects: 배정[] }) =>
     call<{ ok: true }>(`/settings/users/${encodeURIComponent(username)}/approve`, json(body)),
 
   /** 승인 대기 계정만 지운다 — 거절이다. 승인된 계정이면 서버가 409 로 돌려보낸다 */

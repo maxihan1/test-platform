@@ -185,7 +185,7 @@ describe('RunWindow', () => {
     expect(screen.getByRole('status').textContent).toBe('케이스 1 × 디바이스 1 × 반복 1 = 1번');
   });
 
-  it('그 서비스의 실행 칸이 쓰기가 아니면 실행 버튼 없이 사유만 보인다 — 옛 주소는 아무나 칠 수 있다', async () => {
+  it('그 애플리케이션의 실행 칸이 쓰기가 아니면 실행 버튼 없이 사유만 보인다 — 옛 주소는 아무나 칠 수 있다', async () => {
     읽기모킹([케이스('ZRS-001')]);
     vi.spyOn(api, 'me').mockResolvedValue({ user: { ...사람, services: [{ ...사람.services[0]!, permissions: { cases: 'read', runs: 'read', authoring: 'none' } }] } });
     render(<RunWindow tcIds={['ZRS-001']} onClose={vi.fn()} />);

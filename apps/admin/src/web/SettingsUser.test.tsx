@@ -12,8 +12,9 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
-import { api, type SettingsServiceRow, type UserRow } from './api.js';
+import { api, type UserRow } from './api.js';
 import { UserSection } from './SettingsUser.js';
+import type { 프로젝트줄 } from './settingsView.js';
 
 // jsdom 에 없는 함수라 끼워 넣지 않으면 TempPassword 가 TypeError 로 죽는다.
 // 원래 없던 자리이므로 걷을 때는 지운다 — 남기면 다른 검사 파일로 샌다
@@ -31,14 +32,14 @@ afterEach(() => {
 });
 
 const 계정들: UserRow[] = [
-  { username: 'kim', displayName: '김철수', role: 'admin', dashboard: 'read', isActive: true, services: [] },
+  { username: 'kim', displayName: '김철수', role: 'admin', dashboard: 'read', isActive: true, projects: [] },
   {
     username: 'lee',
     displayName: '이영희',
     role: 'member',
     dashboard: 'read',
     isActive: true,
-    services: [{ prefix: 'PAY', permissions: { cases: 'read', runs: 'write', authoring: 'none' } }],
+    projects: [{ projectId: 1, permissions: { cases: 'read', runs: 'write', authoring: 'none' } }],
   },
   {
     username: 'park',
@@ -46,37 +47,25 @@ const 계정들: UserRow[] = [
     role: 'admin',
     dashboard: 'read',
     isActive: true,
-    services: [{ prefix: 'PAY', permissions: { cases: 'write', runs: 'write', authoring: 'none' } }],
+    projects: [{ projectId: 1, permissions: { cases: 'write', runs: 'write', authoring: 'none' } }],
   },
 ];
 
-function 서비스(prefix: string, name: string): SettingsServiceRow {
-  return {
-    id: prefix === 'PAY' ? 1 : 2,
-    prefix,
-    name,
-    color: '#6B7280',
-    testsRepo: '',
-    testsDir: prefix.toLowerCase(),
-    isActive: true,
-    envs: [],
-    hasSlackWebhook: false,
-    caseCount: 0,
-  };
-}
+const 프로젝트들: 프로젝트줄[] = [
+  { id: 1, name: '데모마켓', 앱수: 2 },
+  { id: 2, name: '사내 포털', 앱수: 1 },
+];
 
-const 서비스들 = [서비스('PAY', '결제 서비스'), 서비스('MEM', '회원 서비스')];
-
-function 그리기(rows: UserRow[] = 계정들, services: SettingsServiceRow[] = []) {
-  return render(<UserSection rows={rows} services={services} me="kim" onDone={() => {}} onSelf={() => {}} />);
+function 그리기(rows: UserRow[] = 계정들, projects: 프로젝트줄[] = []) {
+  return render(<UserSection rows={rows} projects={projects} me="kim" onDone={() => {}} onSelf={() => {}} />);
 }
 
 function 새계정열기() {
-  그리기(계정들, 서비스들);
+  그리기(계정들, 프로젝트들);
   fireEvent.click(screen.getByLabelText('더하기'));
 }
 
-const 서비스칸 = (이름: RegExp) => screen.getByRole('checkbox', { name: 이름 });
+const 프로젝트칸 = (이름: RegExp) => screen.getByRole('checkbox', { name: 이름 });
 const 칸묶음 = (이름: string) => screen.queryByRole('group', { name: 이름 });
 function 눌림(묶음: string): string | undefined {
   const 묶 = 칸묶음(묶음);
@@ -134,7 +123,7 @@ describe('UserSection', () => {
     expect(screen.getByText('비밀번호 재발급')).toBeTruthy();
   });
 
-  it('계정 더하기도 + 아이콘 버튼이다 (2026-09-22, 서비스 더하기와 같은 규칙)', () => {
+  it('계정 더하기도 + 아이콘 버튼이다 (2026-09-22, 애플리케이션 더하기와 같은 규칙)', () => {
     그리기();
 
     const 버튼 = screen.getByLabelText('더하기');
@@ -142,42 +131,56 @@ describe('UserSection', () => {
   });
 });
 
-describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', () => {
+describe('프로젝트와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', () => {
   it('새 계정은 배정 없이 시작하고 그래프(Grafana)는 읽기다', () => {
     새계정열기();
-    expect((서비스칸(/결제 서비스/) as HTMLInputElement).checked).toBe(false);
-    expect((서비스칸(/회원 서비스/) as HTMLInputElement).checked).toBe(false);
-    expect(칸묶음('결제 서비스 케이스')).toBeNull();
+    expect((프로젝트칸(/데모마켓/) as HTMLInputElement).checked).toBe(false);
+    expect((프로젝트칸(/사내 포털/) as HTMLInputElement).checked).toBe(false);
+    expect(칸묶음('데모마켓 케이스')).toBeNull();
     expect(눌림('그래프(Grafana)')).toBe('읽기');
   });
 
-  it('서비스를 켜면 세 칸이 읽기로 열리고 끄면 사라진다', () => {
+  it('프로젝트 줄마다 그 안의 애플리케이션 수를 적는다 — 고르면 그 안이 모두 열린다는 뜻을 읽게', () => {
     새계정열기();
-    fireEvent.click(서비스칸(/결제 서비스/));
-    expect(눌림('결제 서비스 케이스')).toBe('읽기');
-    expect(눌림('결제 서비스 실행')).toBe('읽기');
-    expect(눌림('결제 서비스 작성')).toBe('읽기');
 
-    fireEvent.click(서비스칸(/결제 서비스/));
-    expect(칸묶음('결제 서비스 케이스')).toBeNull();
+    expect(프로젝트칸(/데모마켓/).closest('label')?.textContent).toContain('애플리케이션 2개');
+    expect(프로젝트칸(/사내 포털/).closest('label')?.textContent).toContain('애플리케이션 1개');
   });
 
-  it('운영을 켜면 권한 칸과 그래프(Grafana)를 숨기고 서비스 켜기만 남긴다', () => {
+  it('프로젝트가 하나도 없으면 먼저 만들라고 알린다', () => {
+    그리기(계정들, []);
+    fireEvent.click(screen.getByLabelText('더하기'));
+
+    expect(screen.getByText('먼저 프로젝트를 만듭니다')).toBeTruthy();
+  });
+
+  it('프로젝트를 켜면 세 칸이 읽기로 열리고 끄면 사라진다', () => {
     새계정열기();
-    fireEvent.click(서비스칸(/결제 서비스/));
+    fireEvent.click(프로젝트칸(/데모마켓/));
+    expect(눌림('데모마켓 케이스')).toBe('읽기');
+    expect(눌림('데모마켓 실행')).toBe('읽기');
+    expect(눌림('데모마켓 작성')).toBe('읽기');
+
+    fireEvent.click(프로젝트칸(/데모마켓/));
+    expect(칸묶음('데모마켓 케이스')).toBeNull();
+  });
+
+  it('운영을 켜면 권한 칸과 그래프(Grafana)를 숨기고 프로젝트 켜기만 남긴다', () => {
+    새계정열기();
+    fireEvent.click(프로젝트칸(/데모마켓/));
     fireEvent.click(screen.getByRole('checkbox', { name: /^운영/ }));
 
-    expect(칸묶음('결제 서비스 케이스')).toBeNull();
+    expect(칸묶음('데모마켓 케이스')).toBeNull();
     expect(칸묶음('그래프(Grafana)')).toBeNull();
-    expect(서비스칸(/결제 서비스/)).toBeTruthy();
-    expect(screen.getByText('운영 계정은 배정된 서비스에서 모든 기능을 씁니다. 켜 둘 서비스만 고르세요.')).toBeTruthy();
+    expect(프로젝트칸(/데모마켓/)).toBeTruthy();
+    expect(screen.getByText('운영 계정은 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.')).toBeTruthy();
   });
 
   it('실행 쓰기에 케이스 안 씀이면 알리되 저장은 막지 않는다', () => {
     새계정열기();
-    fireEvent.click(서비스칸(/결제 서비스/));
-    고른다('결제 서비스 실행', '쓰기');
-    고른다('결제 서비스 케이스', '안 씀');
+    fireEvent.click(프로젝트칸(/데모마켓/));
+    고른다('데모마켓 실행', '쓰기');
+    고른다('데모마켓 케이스', '안 씀');
 
     expect(screen.getByRole('status').textContent).toContain('이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.');
     expect((screen.getByText('계정 추가') as HTMLButtonElement).disabled).toBe(false);
@@ -185,11 +188,11 @@ describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', (
 
   it('세 칸이 다 안 씀이면 알리고 저장을 막는다', () => {
     새계정열기();
-    fireEvent.click(서비스칸(/결제 서비스/));
-    for (const 기능 of ['케이스', '실행', '작성']) 고른다(`결제 서비스 ${기능}`, '안 씀');
+    fireEvent.click(프로젝트칸(/데모마켓/));
+    for (const 기능 of ['케이스', '실행', '작성']) 고른다(`데모마켓 ${기능}`, '안 씀');
 
     expect(screen.getByRole('status').textContent).toContain(
-      '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.',
+      '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 프로젝트를 끄세요.',
     );
     expect((screen.getByText('계정 추가') as HTMLButtonElement).disabled).toBe(true);
   });
@@ -200,13 +203,13 @@ describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', (
     expect(버튼들).toEqual(['안 씀', '읽기']);
   });
 
-  it('서비스를 켜면 권한 묶음 단추가 서고 처음 세 칸(읽기)과 맞는 「읽기 전용」이 눌려 있다', () => {
+  it('프로젝트를 켜면 권한 묶음 단추가 서고 처음 세 칸(읽기)과 맞는 「읽기 전용」이 눌려 있다', () => {
     새계정열기();
-    expect(칸묶음('결제 서비스 권한 묶음')).toBeNull();
-    fireEvent.click(서비스칸(/결제 서비스/));
+    expect(칸묶음('데모마켓 권한 묶음')).toBeNull();
+    fireEvent.click(프로젝트칸(/데모마켓/));
 
-    expect(within(칸묶음('결제 서비스 권한 묶음')!).getAllByRole('button').map((b) => b.textContent)).toEqual(['읽기 전용', '작성자', '실행자']);
-    expect(눌림('결제 서비스 권한 묶음')).toBe('읽기 전용');
+    expect(within(칸묶음('데모마켓 권한 묶음')!).getAllByRole('button').map((b) => b.textContent)).toEqual(['읽기 전용', '작성자', '실행자']);
+    expect(눌림('데모마켓 권한 묶음')).toBe('읽기 전용');
   });
 
   it.each([
@@ -215,51 +218,51 @@ describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', (
     ['읽기 전용', { 케이스: '읽기', 실행: '읽기', 작성: '읽기' }],
   ])('「%s」 묶음을 누르면 세 칸이 한 번에 바뀌고 그 묶음이 눌린다', (묶음, 칸들) => {
     새계정열기();
-    fireEvent.click(서비스칸(/결제 서비스/));
-    고른다('결제 서비스 작성', '안 씀');
-    고른다('결제 서비스 권한 묶음', 묶음);
+    fireEvent.click(프로젝트칸(/데모마켓/));
+    고른다('데모마켓 작성', '안 씀');
+    고른다('데모마켓 권한 묶음', 묶음);
 
-    expect(눌림('결제 서비스 케이스')).toBe(칸들.케이스);
-    expect(눌림('결제 서비스 실행')).toBe(칸들.실행);
-    expect(눌림('결제 서비스 작성')).toBe(칸들.작성);
-    expect(눌림('결제 서비스 권한 묶음')).toBe(묶음);
+    expect(눌림('데모마켓 케이스')).toBe(칸들.케이스);
+    expect(눌림('데모마켓 실행')).toBe(칸들.실행);
+    expect(눌림('데모마켓 작성')).toBe(칸들.작성);
+    expect(눌림('데모마켓 권한 묶음')).toBe(묶음);
   });
 
   it('칸을 하나 고쳐 어느 묶음과도 안 맞으면 묶음 단추가 모두 풀린다 — 칸을 하나씩 고르는 길은 그대로다', () => {
     새계정열기();
-    fireEvent.click(서비스칸(/결제 서비스/));
-    고른다('결제 서비스 권한 묶음', '작성자');
-    고른다('결제 서비스 케이스', '쓰기');
+    fireEvent.click(프로젝트칸(/데모마켓/));
+    고른다('데모마켓 권한 묶음', '작성자');
+    고른다('데모마켓 케이스', '쓰기');
 
-    expect(눌림('결제 서비스 권한 묶음')).toBeUndefined();
-    expect(눌림('결제 서비스 케이스')).toBe('쓰기');
+    expect(눌림('데모마켓 권한 묶음')).toBeUndefined();
+    expect(눌림('데모마켓 케이스')).toBe('쓰기');
   });
 
-  it('묶음은 그 서비스 칸만 바꾼다', () => {
+  it('묶음은 그 프로젝트 칸만 바꾼다', () => {
     새계정열기();
-    fireEvent.click(서비스칸(/결제 서비스/));
-    fireEvent.click(서비스칸(/회원 서비스/));
-    고른다('결제 서비스 권한 묶음', '실행자');
+    fireEvent.click(프로젝트칸(/데모마켓/));
+    fireEvent.click(프로젝트칸(/사내 포털/));
+    고른다('데모마켓 권한 묶음', '실행자');
 
-    expect(눌림('결제 서비스 실행')).toBe('쓰기');
-    expect(눌림('회원 서비스 실행')).toBe('읽기');
+    expect(눌림('데모마켓 실행')).toBe('쓰기');
+    expect(눌림('사내 포털 실행')).toBe('읽기');
   });
 
   it('운영을 켜면 권한 묶음도 숨긴다', () => {
     새계정열기();
-    fireEvent.click(서비스칸(/결제 서비스/));
+    fireEvent.click(프로젝트칸(/데모마켓/));
     fireEvent.click(screen.getByRole('checkbox', { name: /^운영/ }));
 
-    expect(칸묶음('결제 서비스 권한 묶음')).toBeNull();
+    expect(칸묶음('데모마켓 권한 묶음')).toBeNull();
   });
 
-  it('저장하면 서비스마다 칸 묶음과 대시보드를 보낸다', () => {
+  it('저장하면 프로젝트마다 칸 묶음과 대시보드를 보낸다', () => {
     const 만들기 = vi.spyOn(api, 'createUser').mockResolvedValue({ username: 'choi', tempPassword: 'x' });
     새계정열기();
     fireEvent.change(screen.getByLabelText('아이디'), { target: { value: 'choi' } });
     fireEvent.change(screen.getByLabelText('이름'), { target: { value: '최민수' } });
-    fireEvent.click(서비스칸(/결제 서비스/));
-    고른다('결제 서비스 실행', '쓰기');
+    fireEvent.click(프로젝트칸(/데모마켓/));
+    고른다('데모마켓 실행', '쓰기');
     고른다('그래프(Grafana)', '안 씀');
     fireEvent.click(screen.getByText('계정 추가'));
 
@@ -268,39 +271,39 @@ describe('서비스와 권한 고르개 (도메인/인증 §8.8 · 시안 B)', (
       displayName: '최민수',
       role: 'member',
       dashboard: 'none',
-      services: [{ prefix: 'PAY', permissions: { cases: 'read', runs: 'write', authoring: 'read' } }],
+      projects: [{ projectId: 1, permissions: { cases: 'read', runs: 'write', authoring: 'read' } }],
     });
   });
 
   it('고칠 때도 배정 전체와 대시보드를 보낸다', () => {
     const 고치기 = vi.spyOn(api, 'updateUser').mockResolvedValue({ ok: true });
-    그리기(계정들, 서비스들);
+    그리기(계정들, 프로젝트들);
     fireEvent.click(screen.getAllByText('편집')[1]!);
-    고른다('결제 서비스 작성', '쓰기');
+    고른다('데모마켓 작성', '쓰기');
     fireEvent.click(screen.getByText('저장'));
 
     expect(고치기).toHaveBeenCalledWith('lee', {
       displayName: '이영희',
       role: 'member',
       dashboard: 'read',
-      services: [{ prefix: 'PAY', permissions: { cases: 'read', runs: 'write', authoring: 'write' } }],
+      projects: [{ projectId: 1, permissions: { cases: 'read', runs: 'write', authoring: 'write' } }],
     });
   });
 
-  it('운영을 끄면 저장된 칸이 보이고, 운영일 때 켠 서비스는 읽기로 보인다', () => {
-    그리기(계정들, 서비스들);
+  it('운영을 끄면 저장된 칸이 보이고, 운영일 때 켠 프로젝트는 읽기로 보인다', () => {
+    그리기(계정들, 프로젝트들);
     fireEvent.click(screen.getAllByText('편집')[2]!);
-    expect(칸묶음('결제 서비스 케이스')).toBeNull();
-    fireEvent.click(서비스칸(/회원 서비스/));
+    expect(칸묶음('데모마켓 케이스')).toBeNull();
+    fireEvent.click(프로젝트칸(/사내 포털/));
     fireEvent.click(screen.getByRole('checkbox', { name: /^운영/ }));
 
-    expect(눌림('결제 서비스 케이스')).toBe('쓰기');
-    expect(눌림('결제 서비스 작성')).toBe('안 씀');
-    expect(눌림('회원 서비스 실행')).toBe('읽기');
+    expect(눌림('데모마켓 케이스')).toBe('쓰기');
+    expect(눌림('데모마켓 작성')).toBe('안 씀');
+    expect(눌림('사내 포털 실행')).toBe('읽기');
   });
 
   it('마지막 운영 계정에는 운영 끄기를 내밀지 않는다', () => {
-    그리기([계정들[0]!, 계정들[1]!], 서비스들);
+    그리기([계정들[0]!, 계정들[1]!], 프로젝트들);
     fireEvent.click(screen.getAllByText('편집')[0]!);
 
     expect(screen.queryByRole('checkbox', { name: /^운영/ })).toBeNull();

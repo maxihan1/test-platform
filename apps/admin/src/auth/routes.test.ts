@@ -53,8 +53,8 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
       ['xfu2-long', await 해시('a'.repeat(129))],
     );
     await pool.query(
-      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
-            VALUES ($1, $2, 'write', 'write', 'write') ON CONFLICT DO NOTHING`,
+      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring)
+            SELECT $1, project_id, 'write', 'write', 'write' FROM service WHERE id = $2 ON CONFLICT DO NOTHING`,
       ['xfu2-live', 서비스id],
     );
 
@@ -66,7 +66,7 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
 
   afterAll(async () => {
     const { pool } = await import('../db/index.js');
-    await pool.query(`DELETE FROM user_service WHERE username LIKE 'xfu2%'`);
+    await pool.query(`DELETE FROM user_project WHERE username LIKE 'xfu2%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xfu2%'`);
     await pool.query(`DELETE FROM service WHERE prefix = 'XFS2'`);
     await app.close();

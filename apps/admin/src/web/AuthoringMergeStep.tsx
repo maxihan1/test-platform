@@ -71,7 +71,7 @@ export function 반영단계({ service, 요청, 표, 반영권한, 보내는중,
           <a href="#conflicts" onClick={(e) => { e.preventDefault(); const 칸 = document.getElementById('conflicts'); 칸?.scrollIntoView(); 칸?.focus(); }}>{t('중복 케이스로 가기')}</a>
         </p>
       ) : null}
-      {서버없음 ? <p className="held-why">{t('테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 서비스에서 넣으세요.')}</p> : null}
+      {서버없음 ? <p className="held-why">{t('테스트 계정을 넣은 대상 서버가 없습니다. 설정 > 애플리케이션에서 넣으세요.')}</p> : null}
       {/* 이어 작성은 플랫폼 반영만 인정한다(게이트 0) — GitHub 에서 직접 병합한 요청도 여기서 반영을 눌러야 한다.
           에이전트는 이미 병합된 PR 의 반영을 성공으로 닫는다 (도메인/작성 §3.6 「남은 요구로 이어 작성」) */}
       {남음 !== null && 남음.다음 + 남음.빠짐 > 0 ? (

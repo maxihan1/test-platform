@@ -73,7 +73,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
         {!쓰나 || 줄들.length === 0 ? null : (
           <div className="toolbar">
             {envs.length === 0 ? (
-              <span className="err">{t('이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
+              <span className="err">{t('이 애플리케이션에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다')}</span>
             ) : (
               <>
                 <label className="filter-label" htmlFor="sc-env">

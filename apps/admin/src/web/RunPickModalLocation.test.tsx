@@ -33,7 +33,7 @@ const 서비스: ServiceRow = {
   id: 1,
   prefix: 'ZPM',
   name: '결제',
-  color: '#123456',
+  color: '#123456', projectId: 1, projectName: '데모마켓',
   envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
   hasSlackWebhook: true,
   permissions: { cases: 'write', runs: 'write', authoring: 'write' },

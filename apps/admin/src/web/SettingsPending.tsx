@@ -2,22 +2,23 @@
 
 import { useState } from 'react';
 
-import { api, ApiError, type SettingsServiceRow, type UserRow, type 배정 } from './api.js';
+import { api, ApiError, type UserRow, type 배정 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import type { 등급 } from './role.js';
 import { PermissionPicker, 배정이틀렸나 } from './SettingsPermissions.js';
 import { 오류문장 } from './SettingsService.js';
+import type { 프로젝트줄 } from './settingsView.js';
 
 // 다른 운영자가 같은 신청을 먼저 수락·거절했을 때 서버가 내는 답 (도메인/인증 §7)
 const 먼저처리됨 = new Set(['ALREADY_APPROVED', 'APPROVED_USER', 'NOT_FOUND']);
 
 export function PendingSection({
   rows,
-  services,
+  projects,
   onDone,
 }: {
   rows: UserRow[];
-  services: SettingsServiceRow[];
+  projects: 프로젝트줄[];
   onDone: () => void;
 }) {
   const t = use말();
@@ -91,7 +92,7 @@ export function PendingSection({
             ) : null}
             {열림 === 'approve' ? (
               <ApproveForm
-                services={services}
+                projects={projects}
                 onApprove={(body) => 한다(() => api.approveUser(it.username, body))}
                 onCancel={() => set여는것(null)}
               />
@@ -104,16 +105,16 @@ export function PendingSection({
 }
 
 function ApproveForm({
-  services,
+  projects,
   onApprove,
   onCancel,
 }: {
-  services: SettingsServiceRow[];
-  onApprove: (body: { role: 등급; dashboard: 'none' | 'read'; services: 배정[] }) => Promise<void>;
+  projects: 프로젝트줄[];
+  onApprove: (body: { role: 등급; dashboard: 'none' | 'read'; projects: 배정[] }) => Promise<void>;
   onCancel: () => void;
 }) {
   const t = use말();
-  // 처음은 대시보드 읽기 · 서비스 없음. 서비스를 켜면 세 칸이 읽기로 시작한다 (§3.5 「계정이 생기는 길」)
+  // 처음은 대시보드 읽기 · 프로젝트 없음. 프로젝트를 켜면 세 칸이 읽기로 시작한다 (§3.5 「계정이 생기는 길」)
   const [role, setRole] = useState<등급>('member');
   const [배정들, set배정들] = useState<배정[]>([]);
   const [dashboard, setDashboard] = useState<'none' | 'read'>('read');
@@ -122,7 +123,7 @@ function ApproveForm({
   return (
     <div className="set-form">
       <PermissionPicker
-        services={services}
+        projects={projects}
         role={role}
         onRole={setRole}
         마지막운영={false}
@@ -140,7 +141,7 @@ function ApproveForm({
           disabled={보내는중 || 배정이틀렸나(배정들)}
           onClick={() => {
             set보내는중(true);
-            void onApprove({ role, dashboard, services: 배정들 }).finally(() => set보내는중(false));
+            void onApprove({ role, dashboard, projects: 배정들 }).finally(() => set보내는중(false));
           }}
         >
           {t('수락한다')}

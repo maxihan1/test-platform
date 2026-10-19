@@ -154,7 +154,7 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
   }
 
-  it('그 항목 서비스에서 실행할 수 있으면 버튼이 선다', async () => {
+  it('그 항목 애플리케이션에서 실행할 수 있으면 버튼이 선다', async () => {
     const 물은것: (string | null)[] = [];
     그린다({}, (접두사) => {
       물은것.push(접두사);

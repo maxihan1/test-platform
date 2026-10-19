@@ -12,8 +12,8 @@ import { Shell } from './Shell.js';
 const 결제: ServiceRow = {
   id: 1,
   prefix: 'ZPH',
-  name: '결제 서비스',
-  color: '#3A5FCD',
+  name: '결제 애플리케이션',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [],
   hasSlackWebhook: false,
   permissions: { cases: 'write', runs: 'write', authoring: 'write' },
@@ -92,12 +92,12 @@ describe('휴대폰 껍데기', () => {
     expect(within(탭()).getByRole('link', { name: '실행 기록' }).getAttribute('aria-current')).toBe('page');
   });
 
-  it('대시보드에서는 서비스 고르개를 숨긴다 — PC 사이드바와 같다', () => {
+  it('대시보드에서는 애플리케이션 고르개를 숨긴다 — PC 사이드바와 같다', () => {
     띄운다('#/dashboard');
-    expect(screen.queryByLabelText('서비스 선택')).toBeNull();
+    expect(screen.queryByLabelText('애플리케이션 선택')).toBeNull();
     cleanup();
     띄운다('#/runs/fn');
-    expect(screen.getByLabelText('서비스 선택')).toBeTruthy();
+    expect(screen.getByLabelText('애플리케이션 선택')).toBeTruthy();
   });
 
   it('사람 버튼 안에 언어 · 비밀번호 변경 · 로그아웃이 있다', () => {
@@ -123,7 +123,7 @@ describe('휴대폰 껍데기', () => {
     expect(메뉴.open).toBe(false);
   });
 
-  it('실행 칸이 없는 서비스만 배정됐으면 실행 기록 탭이 없다', () => {
+  it('실행 칸이 없는 애플리케이션만 배정됐으면 실행 기록 탭이 없다', () => {
     // admin 은 모든 칸을 본다 — 칸으로 가르는 사람은 일반 등급이다
     띄운다('#/dashboard', { ...사람, role: 'member', services: [{ ...결제, permissions: { ...결제.permissions, runs: 'none' } }] });
     expect(within(탭()).queryByRole('link', { name: '실행 기록' })).toBeNull();

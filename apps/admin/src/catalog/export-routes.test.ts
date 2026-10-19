@@ -43,9 +43,9 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
        ON CONFLICT (username) DO UPDATE SET is_active = true, is_approved = true, must_change_password = false`,
       [username, await 해시('열려라참깨')],
     );
-    await p.query('DELETE FROM user_service WHERE username = $1', [username]);
+    await p.query('DELETE FROM user_project WHERE username = $1', [username]);
     await p.query(
-      'INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, $3, $4, $5)',
+      'INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) SELECT $1, project_id, $3, $4, $5 FROM service WHERE id = $2',
       [username, 서비스, 권한.cases, 권한.runs, 권한.authoring],
     );
     const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: { username, password: '열려라참깨' } });
@@ -149,7 +149,7 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
     await p.query('DELETE FROM test_run WHERE service_id = $1', [서비스]);
     await p.query(`DELETE FROM test_case WHERE tc_id LIKE 'XCX-%'`);
     await p.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
-    await p.query(`DELETE FROM user_service WHERE username LIKE 'xcx-%'`);
+    await p.query(`DELETE FROM user_project WHERE username LIKE 'xcx-%'`);
     await p.query(`DELETE FROM app_user WHERE username LIKE 'xcx-%'`);
   }
 
@@ -221,7 +221,7 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
   it('목록 응답은 그대로다 — 쪽 크기 50 · 같은 모양에 묶음 번호표 · 마지막 결과 셈이 더해졌다', async () => {
     const res = await app.inject({ method: 'GET', url: `/api/catalog/cases?service=${접두사}`, cookies: { platform_session: 출입증.get('xcx-all')! } });
     const body = res.json<Record<string, unknown>>();
-    expect(Object.keys(body).sort()).toEqual(['groups', 'hasApp', 'hasFeatures', 'items', 'lastCounts', 'page', 'pageSize', 'sort', 'total', 'totalIsExact', 'unconfirmed']);
+    expect(Object.keys(body).sort()).toEqual(['apiServers', 'groups', 'hasApp', 'hasFeatures', 'items', 'lastCounts', 'page', 'pageSize', 'sort', 'total', 'totalIsExact', 'unconfirmed']);
     expect({ ...body, lastCounts: null }).toEqual(
       await listCases({ service: 접두사, q: '', activeOnly: true, page: 1, pageSize: 50 }),
     );

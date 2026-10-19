@@ -15,8 +15,8 @@ afterEach(() => {
 const 서비스: SettingsServiceRow = {
   id: 9,
   prefix: 'ZVP',
-  name: '화면 크기 서비스',
-  color: '#3A5FCD',
+  name: '화면 크기 애플리케이션',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [
     { env: 'live', baseUrl: 'https://example.com', viewportKind: null, viewportJudgedAt: null },
     { env: 'qa', baseUrl: 'https://qa.example.com', viewportKind: 'responsive', viewportJudgedAt: '2026-10-16T10:40:00Z' },
@@ -31,7 +31,7 @@ const 서비스: SettingsServiceRow = {
 
 const 구획 = () => [...document.querySelectorAll<HTMLElement>('.set-card')].find((el) => el.querySelector('h3')?.textContent === '화면 크기')!;
 
-describe('서비스 설정 「화면 크기」 구획 (도메인/인증 §8.8 · PRD-F10-08 시안 B)', () => {
+describe('애플리케이션 설정 「화면 크기」 구획 (도메인/인증 §8.8 · PRD-F10-08 시안 B)', () => {
   it('대상 서버마다 판정을 보이고, 훑기 전 서버는 「아직 판정 안 함」이며 펼칠 단추가 없다', () => {
     render(<ServicePanel row={서비스} onDone={() => {}} />);
     const 줄 = [...within(구획()).getAllByRole('row')].slice(1);
@@ -87,7 +87,7 @@ describe('서비스 설정 「화면 크기」 구획 (도메인/인증 §8.8 ·
     expect(within(구획()).getByText('다른 화면 250장 가운데 앞 1장만 보입니다')).toBeTruthy();
   });
 
-  it('새 서비스에는 구획이 없다 — 아직 훑은 서버가 없다', () => {
+  it('새 애플리케이션에는 구획이 없다 — 아직 훑은 서버가 없다', () => {
     render(<ServicePanel onDone={() => {}} />);
     expect(구획()).toBeUndefined();
   });

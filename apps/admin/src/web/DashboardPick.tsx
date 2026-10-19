@@ -70,11 +70,11 @@ export function 고르개({
     <div className="dash-pick">
       {서비스들.length === 0 ? null : (
         <select
-          aria-label={t('서비스')}
+          aria-label={t('애플리케이션')}
           value={조건.서비스 === null ? '' : String(조건.서비스)}
           onChange={(e) => on바뀜({ ...조건, 서비스: e.target.value === '' ? null : Number(e.target.value) })}
         >
-          <option value="">{t('전체 서비스')}</option>
+          <option value="">{t('전체 애플리케이션')}</option>
           {서비스들.map((서비스) => (
             <option key={서비스.id} value={String(서비스.id)}>
               {서비스.name}
