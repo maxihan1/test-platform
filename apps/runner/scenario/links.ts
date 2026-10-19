@@ -29,6 +29,7 @@ export interface 부품상태 {                        // 케이스 부품 하�
 
 export interface 이음 {
   baseUrl: string;
+  부품주소: Map<number, string>;                   // 부품 번호 → 그 부품이 돌 주소. 시작 애플리케이션이 아닌 단계만 든다 (SPEC 도메인/시나리오 §3.7 결정 13)
   가리킴: Array<{ fromSeq: number; method: ScenarioMethod; urlPattern: string }>;   // 중복 없음
   응답: Map<string, Promise<받은응답 | string>>;   // 열쇠 `${fromSeq} ${method} ${urlPattern}` · string 은 못 읽은 사유
   미룸: 미룬삭제[];
@@ -169,11 +170,20 @@ export function 주소(baseUrl: string, path: string): string {
   return baseUrl.replace(/\/+$/, '') + path;
 }
 
+// 그 부품이 도는 주소 — 자기 주소가 없으면 요청 전체 주소다
+export function 주소의(이음: 이음, seq: number): string {
+  return 이음.부품주소.get(seq) ?? 이음.baseUrl;
+}
+
 export function 새부품(seq: number, links: readonly ScenarioLink[] | undefined): 부품상태 {
   return { seq, links: links ?? [], phase: { started: false, inStep: 0, judged: false }, 걸림: new Set() };
 }
 
 export function 새이음(parts: ScenarioExecuteRequest['parts'], baseUrl: string, 삭제코드: readonly ScenarioDeleteStatus[] = []): 이음 {
+  const 부품주소 = new Map<number, string>();
+  for (const [i, part] of parts.entries()) {
+    if ((part.kind === 'case' || part.kind === 'api') && part.baseUrl !== undefined) 부품주소.set(i + 1, part.baseUrl);
+  }
   const 가리킴 = new Map<string, 이음['가리킴'][number]>();
   for (const part of parts) {
     if (part.kind !== 'case') continue;
@@ -183,7 +193,7 @@ export function 새이음(parts: ScenarioExecuteRequest['parts'], baseUrl: strin
     }
   }
   return {
-    baseUrl, 가리킴: [...가리킴.values()], 응답: new Map(), 미룸: [], 얼림: false, 모킹: new Map(),
+    baseUrl, 부품주소, 가리킴: [...가리킴.values()], 응답: new Map(), 미룸: [], 얼림: false, 모킹: new Map(),
     삭제코드: new Map(삭제코드.map((d) => [d.host.toLowerCase() + d.path, d.status])),
   };
 }
@@ -193,7 +203,7 @@ export function 적기(이음: 이음, seq: number, method: string, url: string,
   let 읽기: Promise<받은응답 | string> | undefined;
   for (const g of 이음.가리킴) {
     const key = 열쇠(g);
-    if (g.fromSeq !== seq || g.method !== method.toUpperCase() || 이음.응답.has(key) || !무늬맞음(g.urlPattern, url, 이음.baseUrl)) continue;
+    if (g.fromSeq !== seq || g.method !== method.toUpperCase() || 이음.응답.has(key) || !무늬맞음(g.urlPattern, url, 주소의(이음, seq))) continue;
     읽기 ??= (async () => 본문())().catch(() => `${seq}번 단계 응답 본문을 못 읽었다`);
     이음.응답.set(key, 읽기);
   }
@@ -211,7 +221,7 @@ async function 값찾기(이음: 이음, ref: ScenarioResponseRef): Promise<{ ok
   return 값.ok ? 값 : { 사유: `${ref.fromSeq}번 단계 응답에 ${ref.jsonPath} 가 없다` };
 }
 
-async function 걸기(이음: 이음, link: Extract<ScenarioLink, { kind: 'reuse' | 'block' | 'rewrite' }>): Promise<가름> {
+async function 걸기(이음: 이음, 부품: 부품상태, link: Extract<ScenarioLink, { kind: 'reuse' | 'block' | 'rewrite' }>): Promise<가름> {
   if (link.kind === 'block') return { kind: 'fulfill', 응답: 빈응답 };
   if (link.kind === 'reuse') {
     const 응답 = await 응답찾기(이음, link);
@@ -225,7 +235,8 @@ async function 걸기(이음: 이음, link: Extract<ScenarioLink, { kind: 'reuse
   if (글자 === '' || 글자 === '.' || 글자 === '..') {
     return { kind: 'fail', message: `${link.to.value.fromSeq}번 단계 응답의 ${link.to.value.jsonPath} 값 「${글자}」 은 주소에 넣을 수 없다` };
   }
-  const url = 주소(이음.baseUrl, link.to.path.replace('{}', encodeURIComponent(글자)));
+  // 바꿔 보내는 곳은 받는 부품의 주소다 — 앞 부품이 다른 애플리케이션이어도 (결정 13)
+  const url = 주소(주소의(이음, 부품.seq), link.to.path.replace('{}', encodeURIComponent(글자)));
   return { kind: 'send', method: link.to.method, url };
 }
 
@@ -242,9 +253,9 @@ async function 가르기만(이음: 이음, 부품: 부품상태 | undefined, �
   if (부품 !== undefined && !부품.phase.judged) {
     for (const [i, link] of 부품.links.entries()) {
       if (link.kind === 'bind' || link.method !== m) continue;
-      if (route무늬 === undefined ? !무늬맞음(link.urlPattern, url, 이음.baseUrl) : link.urlPattern !== route무늬) continue;
+      if (route무늬 === undefined ? !무늬맞음(link.urlPattern, url, 주소의(이음, 부품.seq)) : link.urlPattern !== route무늬) continue;
       부품.걸림.add(i);
-      const 가름 = await 걸기(이음, link);
+      const 가름 = await 걸기(이음, 부품, link);
       if (가름.kind === 'fail') 부품.오류 ??= 가름.message;
       return 가름;
     }

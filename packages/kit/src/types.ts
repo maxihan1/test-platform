@@ -91,7 +91,8 @@ export type ScenarioPart =                         // 부품 목록의 정본은
       carryOver?: boolean;                         // 넘겨받기. 없으면 true. false 면 skipSteps · links 가 비어야 한다 (결정 12)
       links?: ScenarioLink[] }                     // 이어 주기. 비면 없다 (결정 12)
   | { kind: 'api'; method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; path: string;   // '/' 로 시작. baseUrl 기준
-      body?: unknown; expectStatus: number }
+      body?: unknown; expectStatus: number;
+      service?: string }                           // 부를 애플리케이션 접두사. 없으면 시나리오 서비스. 같은 프로젝트만 (결정 13)
   | { kind: 'mock'; urlPattern: string; status: number; contentType: string; body: string }  // urlPattern 은 Playwright glob
   | { kind: 'unmock'; urlPattern: string }         // 같은 글자로 건 mock 을 푼다
   | { kind: 'wait'; ms: number };                  // 60000 까지
@@ -118,7 +119,8 @@ export interface ScenarioExecuteRequest {          // POST /execute-scenario (�
   trialId?: string;                                // 시험 실행일 때만. admin 이 만든 UUID
   platform: BrowserPlatform;
   baseUrl: string;
-  parts: Array<ScenarioPart & { filePath?: string }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다
+  parts: Array<ScenarioPart & { filePath?: string; baseUrl?: string }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다.
+                                                   // baseUrl 은 case · api 부품이 돌 주소 — 시작 애플리케이션이 아닌 단계에만 붙는다. 없으면 위 baseUrl (결정 13)
   timeoutMs: number;
   deleteStatuses?: ScenarioDeleteStatus[];         // 미룬 삭제에 줄 응답 코드. 없는 주소는 204 (도메인/시나리오 §3.7 결정 12)
 }

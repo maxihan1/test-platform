@@ -262,6 +262,8 @@ describe('POST /execute-scenario — 입구 검사', () => {
     ])] }],
     ['앞 응답 돌려주기가 0번 부품을 가리킨다', { parts: [이어주는케이스([{ kind: 'reuse', method: 'GET', urlPattern: '**/a', fromSeq: 0 }])] }],
     ['값 꽂기가 0번 부품을 가리킨다', { parts: [이어주는케이스([{ kind: 'bind', param: 'todoId', value: { ...앞응답, fromSeq: 0 } }])] }],
+    ['케이스 부품의 단계 주소가 주소 꼴이 아니다', { parts: [{ ...케이스('todo/TODO-001.spec.ts'), baseUrl: '주소가 아니다' }] }],
+    ['API 부품의 단계 주소가 주소 꼴이 아니다', { parts: [{ kind: 'api', method: 'GET', path: '/x', expectStatus: 200, baseUrl: '/상대' }] }],
   ])('%s 이면 400 INVALID_REQUEST 다', async (_이름, 칸) => {
     const res = await 보냄(요청(칸));
 
@@ -283,6 +285,18 @@ describe('POST /execute-scenario — 입구 검사', () => {
     expect(res.statusCode).toBe(200);
     expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({
       parts: [expect.objectContaining({ carryOver: false }), expect.objectContaining({ links: 이어주기 })],
+    }));
+  });
+
+  it('단계 주소(baseUrl)를 버리지 않고 실행에 넘긴다 — 애플리케이션을 섞은 시나리오', async () => {
+    const 어드민 = 'https://adm.example.com';
+    const 부품 = [케이스('todo/TODO-001.spec.ts'), { ...케이스('todo/TODO-001.spec.ts'), baseUrl: 어드민 }, { kind: 'api', method: 'GET', path: '/x', expectStatus: 200, baseUrl: 어드민 }];
+
+    const res = await 보냄(요청({ parts: 부품 }));
+
+    expect(res.statusCode).toBe(200);
+    expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({
+      parts: [expect.not.objectContaining({ baseUrl: expect.anything() }), expect.objectContaining({ baseUrl: 어드민 }), expect.objectContaining({ baseUrl: 어드민 })],
     }));
   });
 

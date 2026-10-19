@@ -159,7 +159,7 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
             break;
           }
           case 'api': {
-            const res = await 지금창.fetch(주소(deps.baseUrl, part.path), {
+            const res = await 지금창.fetch(주소(이음.부품주소.get(i + 1) ?? deps.baseUrl, part.path), {
               method: part.method,
               ...(part.body === undefined ? {} : { data: part.body }),
             });
