@@ -93,26 +93,16 @@ describe('서비스 설정은 구획마다 「어디에 쓰이나」를 단다 (
     await waitFor(() => expect(고침).toHaveBeenCalledWith(1, { isActive: true }));
   });
 
-  it('테스트 저장소 칸은 화면에 없고 받은 값은 그대로 되돌려 보낸다', async () => {
+  it('테스트 저장소 칸은 받은 값을 보이고 고친 값을 보낸다', async () => {
     const 고침 = vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
     render(<ServicePanel row={서비스} onDone={() => {}} />);
 
-    expect(screen.queryByLabelText('테스트 저장소')).toBeNull();
+    const 칸 = screen.getByLabelText('테스트 저장소') as HTMLInputElement;
+    expect(칸.value).toBe('https://github.com/example/tests');
+    fireEvent.change(칸, { target: { value: 'https://github.com/example/other' } });
     fireEvent.click(screen.getByRole('button', { name: '저장' }));
 
-    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, expect.objectContaining({ testsRepo: 'https://github.com/example/tests' })));
-  });
-
-  it('새 서비스는 테스트 저장소를 빈 글자로 보낸다', async () => {
-    const 만들기 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
-    render(<ServicePanel onDone={() => {}} />);
-
-    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
-    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
-    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
-    fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
-
-    await waitFor(() => expect(만들기).toHaveBeenCalledWith(expect.objectContaining({ testsRepo: '' })));
+    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, expect.objectContaining({ testsRepo: 'https://github.com/example/other' })));
   });
 
   it('대상 서버 구획 맨 위에 칸 이름을 한 번만 단다', () => {

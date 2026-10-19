@@ -81,7 +81,8 @@ describe('돌지 못한 항목의 사유 (SPEC §8.3)', () => {
 
   it('그 밖의 사유는 서버가 넣은 한국어를 그대로 쓴다', () => {
     // 실측: CLOSE_UNFINISHED 가 '러너에 닿지 못했습니다' 를 한국어로 넣는다
-    expect(미실행사유({ message: '테스트 실행기에 닿지 못했습니다' }, 'ko')).toBe('테스트 실행기에 닿지 못했습니다');
+    expect(미실행사유({ message: '러너에 닿지 못했습니다' }, 'ko')).toBe('테스트 실행기에 닿지 못했습니다');
+    expect(미실행사유({ message: '러너에 닿지 못했습니다' }, 'en')).toBe('Could not reach the test runner');
   });
 
   it('사유가 없으면 줄을 안 그린다', () => {

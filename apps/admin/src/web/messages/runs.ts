@@ -203,6 +203,9 @@ export const 실행말: Record<string, string> = {
   '사용자가 멈춤': 'Stopped by user',
   '제한 시간 초과': 'Timed out',
   '테스트 실행기에 닿지 못했습니다': 'Could not reach the test runner',
+  // 서버가 저장해 둔 옛 낱말(러너)을 화면 낱말로 바꾸는 runState.ts 의 짝이다
+  러너: 'runner',
+  '테스트 실행기': 'test runner',
 
   // 항목 상세 (§8.4)
   '실행이 멈춘 사유': 'Why the run stopped',

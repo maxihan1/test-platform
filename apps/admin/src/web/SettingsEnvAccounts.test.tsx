@@ -157,14 +157,14 @@ describe('역할 이름 제안 (점검 14.2)', () => {
     vi.spyOn(prdApi, 'now').mockResolvedValue({ held: { reqs: {}, roles: roles.map((r) => ({ ...r, count: 1 })), continueFrom: null } } as unknown as PrdNow);
   const 제안들 = () => [...document.querySelectorAll('datalist option')].map((o) => o.getAttribute('value'));
 
-  it('그 서비스의 PRD 가 기다리는 역할을 제안하고 안내 한 줄을 단다 — 등록 안 된 역할이 앞이다', async () => {
+  it('그 서비스의 PRD 역할을 제안하고 안내 한 줄에는 계정이 아직 없는 역할만 적는다', async () => {
     const 읽음 = 받음([
       { role: '판매자', registered: true },
       { role: '관리자', registered: false },
     ]);
     render(<ServicePanel row={서비스} onDone={() => {}} />);
 
-    expect(await screen.findByText('PRD 가 기다리는 역할: 관리자 · 판매자')).toBeTruthy();
+    expect(await screen.findByText('PRD 가 기다리는 역할: 관리자')).toBeTruthy();
     expect(읽음).toHaveBeenCalledWith('ZSA');
     expect(제안들()).toEqual(['관리자', '판매자']);
     const 칸 = screen.getByLabelText('대상 서버 1 역할 1 이름');

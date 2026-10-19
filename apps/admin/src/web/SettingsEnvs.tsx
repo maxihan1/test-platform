@@ -76,16 +76,18 @@ export function EnvEditor({ envs, onChange, 접두사 }: { envs: 줄[]; onChange
   const t = use말();
   // PRD 가 기다리는 역할은 역할 이름 칸의 제안이다. 새 서비스 · 권한 없음 · PRD 없음은 제안이 없을 뿐 오류가 아니라 조용히 비운다 —
   // 제안은 덤이고 직접 쳐서 넣는 길이 그대로 있다 (점검 14.2)
-  const PRD역할 = useAsync<string[]>(
+  const PRD역할들 = useAsync<{ role: string; registered: boolean }[]>(
     () =>
       접두사 === undefined
         ? Promise.resolve([])
         : prdApi
             .now(접두사)
-            .then(({ held }) => [...held.roles.filter((r) => !r.registered), ...held.roles.filter((r) => r.registered)].map((r) => r.role))
+            .then(({ held }) => [...held.roles.filter((r) => !r.registered), ...held.roles.filter((r) => r.registered)])
             .catch(() => []),
     [접두사],
   ).data ?? [];
+  const PRD역할 = PRD역할들.map((r) => r.role);
+  const 기다림 = PRD역할들.filter((r) => !r.registered).map((r) => r.role);
   return (
     <div className="field field-wide">
       <div className="set-envs" role="group" aria-label={t('대상 서버 목록')}>
@@ -148,6 +150,7 @@ export function EnvEditor({ envs, onChange, 접두사 }: { envs: 줄[]; onChange
               제안={{
                 id: `role-opts-${접두사 ?? 'new'}-${String(i + 1)}`,
                 PRD역할,
+                기다림,
                 // 같은 서비스의 다른 대상 서버 줄에 이미 쓴 이름. 한 글자라도 다르면 다른 역할이다
                 다른줄: envs.flatMap((v, k) => (k === i ? [] : v.역할들.map((r) => r.role.trim()))),
               }}

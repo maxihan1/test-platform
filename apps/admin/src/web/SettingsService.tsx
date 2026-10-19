@@ -35,8 +35,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: { row?: Sett
   const 새것 = row === undefined;
   const [prefix, setPrefix] = useState(row?.prefix ?? '');
   const [name, setName] = useState(row?.name ?? '');
-  // 화면에서는 뺐다(점검 14.8). 서버가 이 칸을 요구해서 새 서비스는 빈 글자, 고치기는 받은 값을 되돌려 보낸다
-  const testsRepo = row?.testsRepo ?? '';
+  const [testsRepo, setTestsRepo] = useState(row?.testsRepo ?? '');
   const [testsDir, setTestsDir] = useState(row?.testsDir ?? '');
   const [envs, setEnvs] = useState<줄[]>(() => 줄로(row?.envs ?? []));
   const [제외, set제외] = useState((row?.crawlExclude ?? []).join('\n'));
@@ -48,7 +47,7 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: { row?: Sett
   const [err, setErr] = useState<string | null>(null);
   const [비활성확인, set비활성확인] = useState(false);
   // 적다 만 것이 있으면 설정 메뉴 · 다른 화면으로 떠나기 전에 묻는다(점검 14.1). 처음 그린 값과 견준다
-  const 지금칸 = JSON.stringify({ prefix, name, testsDir, envs, 제외, webhook, figma, schedule });
+  const 지금칸 = JSON.stringify({ prefix, name, testsRepo, testsDir, envs, 제외, webhook, figma, schedule });
   const [처음칸] = useState(지금칸);
   // 저장한 칸. 칸이 새로 읽은 값으로 다시 그려지기 전에도(다시 읽기 실패 포함) 저장한 것을 두고는 묻지 않는다
   const [보낸칸, set보낸칸] = useState<string | null>(null);
@@ -164,6 +163,20 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: { row?: Sett
               placeholder="pay"
             />
             <div className="hint">{t('플랫폼이 테스트 스크립트를 읽어 오는 폴더입니다')}</div>
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="sf-repo">{t('테스트 저장소')}</label>
+          <div>
+            <input
+              id="sf-repo"
+              type="text"
+              value={testsRepo}
+              onChange={(e) => setTestsRepo(e.target.value)}
+              placeholder="https://github.com/..."
+            />
+            <div className="hint">{t('작성 요청이 올린 PR 이 이 저장소 것인지 확인하는 데 씁니다. 비워 두면 작성한 케이스를 반영할 수 없습니다')}</div>
           </div>
         </div>
       </구획>

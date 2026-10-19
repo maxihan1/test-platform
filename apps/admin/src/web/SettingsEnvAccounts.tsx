@@ -119,7 +119,7 @@ export function 역할계정칸들({
   번호: number;
   고친다: (next: 역할줄[]) => void;
   /** 역할 이름 칸에 띄울 제안. 케이스의 `account` 꼬리표와 글자가 한 글자라도 다르면 보류가 안 풀려서 고르게 한다 */
-  제안: { id: string; PRD역할: string[]; 다른줄: string[] };
+  제안: { id: string; PRD역할: string[]; 기다림: string[]; 다른줄: string[] };
 }) {
   const t = use말();
   const 후보 = [...new Set([...제안.PRD역할, ...제안.다른줄])].filter((r) => r !== '');
@@ -175,9 +175,9 @@ export function 역할계정칸들({
           <option key={r} value={r} />
         ))}
       </datalist>
-      {제안.PRD역할.length === 0 ? null : (
+      {제안.기다림.length === 0 ? null : (
         <div className="set-env-login">
-          <div className="hint">{t('PRD 가 기다리는 역할: {역할}', { 역할: 제안.PRD역할.join(' · ') })}</div>
+          <div className="hint">{t('PRD 가 기다리는 역할: {역할}', { 역할: 제안.기다림.join(' · ') })}</div>
         </div>
       )}
       <div className="set-env-login">
