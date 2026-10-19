@@ -82,5 +82,7 @@ echo "[작성] Claude CLI $(claude --version 2>/dev/null || echo '없음') — �
 mkdir -p /work
 chmod 755 /work
 cd /repo
-# npx 를 거치면 npm · sh · tsx 프로세스가 앞에 더 떠 메모리를 잡는다 (SPEC 공통/6 §9)
+# npx 를 거치면 npm · sh · tsx 프로세스가 앞에 더 떠 메모리를 잡는다 (SPEC 공통/6 §9).
+# npx 가 앞에 붙여 주던 부품 명령 자리는 그대로 둔다 — 자식 세션이 PATH 를 물려받아 tsc · playwright 를 이름만으로 부를 수 있었다
+export PATH="/repo/node_modules/.bin:$PATH"
 exec node --import tsx scripts/authoring-agent.ts
