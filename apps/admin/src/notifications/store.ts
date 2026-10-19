@@ -22,6 +22,8 @@ export type NoticeRunning =
       kind: 'run';
       runId: number;
       title: string;
+      env: string;
+      testKind: 'UI' | 'FN' | null;
       total: number;
       done: number;
       counts: RunCounts;
@@ -54,6 +56,8 @@ export type NoticeRecent =
       kind: 'run';
       runId: number;
       title: string;
+      env: string;
+      testKind: 'UI' | 'FN' | null;
       status: RunSummary['status'];
       counts: RunCounts;
       finishedAt: string;
@@ -206,6 +210,8 @@ export async function 알림(
         kind: 'run',
         runId: 실행.runId,
         title: 실행.title,
+        env: 실행.env,
+        testKind: 실행.kind === 'SCENARIO' ? null : 실행.kind,
         total: 실행.counts.total,
         done: 실행.counts.total - 실행.counts.running,
         counts: 실행.counts,
@@ -246,6 +252,8 @@ export async function 알림(
         kind: 'run',
         runId: 실행.runId,
         title: 실행.title,
+        env: 실행.env,
+        testKind: 실행.kind === 'SCENARIO' ? null : 실행.kind,
         status: 실행.status,
         counts: 실행.counts,
         finishedAt: 실행.finishedAt!,

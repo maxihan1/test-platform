@@ -181,6 +181,10 @@ export type NoticeRunning =
       kind: 'run';
       runId: number;
       title: string;
+      /** 대상 서버 이름 */
+      env: string;
+      /** 실행 종류 — UI 테스트 · 기능 테스트 */
+      testKind: 'UI' | 'FN' | null;
       total: number;
       done: number;
       counts: RunCounts;
@@ -202,7 +206,16 @@ export type NoticeRunning =
     });
 
 export type NoticeRecent =
-  | (NoticeService & { kind: 'run'; runId: number; title: string; status: string; counts: RunCounts; finishedAt: string })
+  | (NoticeService & {
+      kind: 'run';
+      runId: number;
+      title: string;
+      env: string;
+      testKind: 'UI' | 'FN' | null;
+      status: string;
+      counts: RunCounts;
+      finishedAt: string;
+    })
   | (NoticeService & {
       kind: 'authoring';
       requestId: number;
@@ -267,17 +280,8 @@ export interface RunInsights {
   빠진건수: number;
   케이스들: { tcId: string; tcName: string; platform: Platform; 판정: 변화 }[];
   실패덩어리들: 실패덩어리[];
-  /** 실패 케이스를 유형으로 묶은 것 — 결과 화면 「실패 유형」 칩 줄. 있는 유형만 화면 차례로. 선택으로 둔 까닭은 실패요구들과 같다 */
+  /** 실패 케이스를 유형으로 묶은 것 — 결과 화면 「실패 유형」 칩 줄. 있는 유형만 화면 차례로. 선택으로 둔 것은 이 칸을 모르는 기존 가짜 응답을 안 고치려고다 */
   실패유형들?: 실패유형묶음[];
-  /** 이 실행에서 실패한 케이스가 덮는 요구 — 지금 판 기준이라 실행 때 박제하지 않는다 (도메인/리포팅 「실패 요구사항」). 선택으로 둔 것은 이 칸을 모르는 기존 가짜 응답을 안 고치려고다 */
-  실패요구들?: 실패요구[];
-}
-
-export interface 실패요구 {
-  reqId: string;
-  /** 표준 기획서 지금 판에 없는 번호면 null */
-  text: string | null;
-  tcIds: string[];
 }
 
 export interface RunItemSummary {
@@ -1016,7 +1020,6 @@ export const api = {
   markBug: (runId: number, tcId: string) => call<{ byName: string; at: string }>(`/runs/${runId}/bugs`, json({ tcId })),
 
   createRun: (body: {
-    title: string;
     /** 대상 서버 키. **기본값을 두지 않는다** — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2) */
     env: string;
     /** 회차 수. 요청 최상위에 하나다 (SPEC §3.2) */

@@ -49,7 +49,7 @@ export const 껍데기말: Record<string, string> = {
   '실행 기록으로': 'Go to run history',
   '대시보드로': 'Go to dashboard',
 
-  // 본문 위 알림 줄과 알림 서랍 (noticeView.ts · Notice.tsx · NoticeDrawer.tsx). 실행 문구는 runs.ts 의 `RUN {번호} 이 …` 를 같이 쓴다
+  // 본문 위 알림 줄과 알림 서랍 (noticeView.ts · Notice.tsx · NoticeDrawer.tsx). 실행 문구는 runs.ts 의 `RUN {번호} 실행 …` 을 같이 쓴다
   '{수} 통과': '{수} passed',
   '{수} 실패': '{수} failed',
   '{수} 미실행': '{수} not run',
@@ -58,13 +58,13 @@ export const 껍데기말: Record<string, string> = {
   '안 읽은 알림 {수}건': '{수} unread',
   열기: 'Open',
   '작성 결과': 'Authoring result',
-  '작성 요청 #{번호} 이 진행 중입니다': 'Authoring request #{번호} is running',
-  '작성 요청 #{번호} 이 순서를 기다리고 있습니다': 'Authoring request #{번호} is waiting its turn',
-  '작성 요청 #{번호} 이 끝났습니다': 'Authoring request #{번호} finished',
-  '작성 요청 #{번호} 이 실패했습니다': 'Authoring request #{번호} failed',
-  '작성 요청 #{번호} 이 멈췄습니다': 'Authoring request #{번호} was stopped',
+  '#{번호} 작성 요청이 진행 중입니다': 'Authoring request #{번호} is running',
+  '#{번호} 작성 요청이 순서를 기다리고 있습니다': 'Authoring request #{번호} is waiting its turn',
+  '#{번호} 작성 요청이 끝났습니다': 'Authoring request #{번호} finished',
+  '#{번호} 작성 요청이 실패했습니다': 'Authoring request #{번호} failed',
+  '#{번호} 작성 요청이 멈췄습니다': 'Authoring request #{번호} was stopped',
   '{번호} / {전체} 단계 {이름}': 'Step {번호} / {전체} {이름}',
-  '스크립트 파일 {수}개': '{수} script files',
+  '케이스 파일 {수}개': '{수} case files',
   'PRD 확인 필요 {수}건': '{수} PRD items to check',
   'PRD 관리에서 확인': 'Check in PRD',
   '외 {수}건 — 알림 열기': '{수} more — open notifications',

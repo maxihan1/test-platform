@@ -40,6 +40,8 @@ const 도는실행: NoticeRunning = {
   serviceName: '결제 서비스',
   runId: 77,
   title: '결제 회귀',
+  env: 'qa',
+  testKind: 'FN',
   total: 4,
   done: 1,
   counts: { total: 4, pass: 1, fail: 0, na: 0, running: 3 },
@@ -54,6 +56,8 @@ const 끝난실행: NoticeRecent = {
   serviceName: '결제 서비스',
   runId: 77,
   title: '결제 회귀',
+  env: 'qa',
+  testKind: 'FN',
   status: 'FINISHED',
   counts: { total: 4, pass: 4, fail: 0, na: 0, running: 0 },
   finishedAt: new Date().toISOString(),
@@ -92,7 +96,7 @@ describe('메뉴 아이콘 (DESIGN.md 원칙 5)', () => {
 describe('실행 중 표시 (DESIGN.md 원칙 4)', () => {
   it('도는 실행이 있으면 알림 줄에 맥박 점이 선다. 점은 꾸밈이라 화면 읽기는 글자만 읽는다', async () => {
     띄운다({ running: [도는실행], recent: [] });
-    const 글 = await screen.findByText(/RUN 77 이 진행 중입니다/);
+    const 글 = await screen.findByText(/RUN 77 실행 중/);
     const 점 = 글.closest('.nt-line')?.querySelector('.pulse');
     expect(점).not.toBeNull();
     expect(점!.getAttribute('aria-hidden')).toBe('true');
@@ -100,7 +104,7 @@ describe('실행 중 표시 (DESIGN.md 원칙 4)', () => {
 
   it('끝난 소식에는 맥박 점이 없다 — 되풀이 움직임은 실제로 도는 동안만이다', async () => {
     띄운다({ running: [], recent: [끝난실행] });
-    const 글 = await screen.findByText(/RUN 77 이 끝났습니다/);
+    const 글 = await screen.findByText(/RUN 77 실행이 끝났습니다/);
     expect(글.closest('.nt-line')?.querySelector('.pulse')).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-// 실패 요구사항 · 카드 판정 · 버그 통로 검사 — 요구 모으기 · reqs · judgment · POST /api/runs/:runId/bugs (도메인/리포팅 「실패 요구사항」)
+// 실패 요구사항 · 카드 판정 · 버그 통로 검사 — reqs · judgment · POST /api/runs/:runId/bugs (도메인/리포팅 「실패 요구사항」)
 // CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다
 
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -153,26 +153,6 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
     await shared.end();
   });
 
-  it('insights 의 실패요구들은 실패 케이스를 요구로 모으고 판 차례 뒤에 판에 없는 번호를 둔다', async () => {
-    const res = await 라우트앱.inject({ method: 'GET', url: `/api/runs/${String(끝남)}/insights` });
-
-    expect(res.statusCode).toBe(200);
-    expect(res.json().실패요구들).toEqual([
-      { reqId: 'XDB-R2', text: '두 번째 요구', tcIds: ['XDB-001', 'XDB-002'] },
-      { reqId: 'XDB-R1', text: '첫 번째 요구', tcIds: ['XDB-001', 'XDB-005'] },
-      { reqId: 'XDB-OLD', text: null, tcIds: ['XDB-002'] },
-    ]);
-  });
-
-  it('통과한 케이스와 지도에 없는 실패 케이스는 요구로 모이지 않고 회차 하나만 실패여도 모인다', async () => {
-    const res = await 라우트앱.inject({ method: 'GET', url: `/api/runs/${String(끝남)}/insights` });
-
-    const tcIds = (res.json().실패요구들 as { tcIds: string[] }[]).flatMap((r) => r.tcIds);
-    expect(tcIds).not.toContain('XDB-003');
-    expect(tcIds).not.toContain('XDB-004');
-    expect(tcIds).toContain('XDB-005');
-  });
-
   it('failures 카드마다 reqs 는 축이 달라도 번호 한 줄이고 judgment 는 비어 있다', async () => {
     const res = await 라우트앱.inject({ method: 'GET', url: `/api/runs/${String(끝남)}/failures?page=1` });
 
@@ -184,6 +164,11 @@ describe.skipIf(연결 === undefined)('실패 요구사항 · 판정', () => {
     expect(카드.judgment).toBeNull();
     const 없음 = (res.json().items as { tcId: string; reqs: unknown[] }[]).find((c) => c.tcId === 'XDB-004')!;
     expect(없음.reqs).toEqual([]);
+    const 옛번호 = (res.json().items as { tcId: string; reqs: unknown[] }[]).find((c) => c.tcId === 'XDB-002')!;
+    expect(옛번호.reqs).toEqual([
+      { reqId: 'XDB-R2', text: '두 번째 요구' },
+      { reqId: 'XDB-OLD', text: null },
+    ]);
   });
 
   it('버그 통로는 서비스 쓰기만 되고 두 번 눌러도 처음 것이 남는다', async () => {

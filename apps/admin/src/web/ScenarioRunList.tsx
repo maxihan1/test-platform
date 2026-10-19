@@ -93,17 +93,19 @@ export function ScenarioRunList({ service, 할수 }: { service: string; 할수: 
             {t('찾기')}
           </button>
           <span className="filter-label">{t('상태')}</span>
-          {상태칩.map((칩) => (
-            <button
-              className="chip"
-              type="button"
-              key={칩.라벨}
-              aria-pressed={state === 칩.값}
-              onClick={() => 상태고르기(칩.값)}
-            >
-              {칩.라벨}
-            </button>
-          ))}
+          <div className="chip-group" role="group" aria-label={t('상태')}>
+            {상태칩.map((칩) => (
+              <button
+                className="chip"
+                type="button"
+                key={칩.라벨}
+                aria-pressed={state === 칩.값}
+                onClick={() => 상태고르기(칩.값)}
+              >
+                {칩.라벨}
+              </button>
+            ))}
+          </div>
         </form>
 
         <div className="rows-scroll">

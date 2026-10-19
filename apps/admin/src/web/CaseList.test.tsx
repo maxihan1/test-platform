@@ -425,8 +425,8 @@ describe('CaseList 여러 건 실행 걸기', () => {
     // 디바이스는 케이스가 선언한 것을 그대로 쓴다. 한 자리에서 고르지 않는다 (SPEC §8.10)
     expect(본문.items.map((it) => it.platforms)).toEqual([['desktop'], ['desktop'], ['desktop', 'mobile']]);
     expect(본문.env).toBe('qa');
-    // 실행 기록 목록이 제목으로 실행을 가린다. 수만 적으면 무엇을 돌렸는지 못 읽는다 (SPEC §8.2)
-    expect(본문.title).toBe('ZPK-001 외 2건 실행');
+    // 제목은 서버가 짓는다 — 화면은 싣지 않는다 (도메인/실행 §7 「자동 제목」)
+    expect(본문).not.toHaveProperty('title');
   });
 
   it('거는 동안 실행이 막히고 그 사실이 버튼 글자로 뜬다', async () => {

@@ -87,12 +87,21 @@ function 오류첫줄(오류: string | null): string | null {
   return 첫줄 === undefined || 첫줄 === '' ? null : 첫줄;
 }
 
+// 제목 · 종류 · 대상 서버 — 도는 줄과 끝난 줄이 같은 말로 어느 실행인지 알린다
+function 실행덧말(n: Extract<NoticeRunning | NoticeRecent, { kind: 'run' }>, 언어: 언어): string[] {
+  return [
+    ...(n.title === '' ? [] : [n.title]),
+    ...(n.testKind === null ? [] : [t(n.testKind === 'UI' ? 'UI 테스트' : '기능 테스트', 언어)]),
+    t('대상 서버 {서버}', 언어, { 서버: n.env }),
+  ];
+}
+
 export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
   const 바탕 = { 도는중: false as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 접두사: n.prefix, 열기: 열기주소(n), 끝난때: n.finishedAt };
 
   if (n.kind === 'run') {
     const { counts } = n;
-    const 집계 = [t('{수} 통과', 언어, { 수: counts.pass })];
+    const 집계 = [...실행덧말(n, 언어), t('{수} 통과', 언어, { 수: counts.pass })];
     if (counts.fail > 0) 집계.push(t('{수} 실패', 언어, { 수: counts.fail }));
     if (counts.na > 0) 집계.push(t('{수} 미실행', 언어, { 수: counts.na }));
     // 미확정은 이미 위 숫자에 센 항목이다 — 「그중 N건」 한 줄만 뒤에 붙인다 (도메인/실행 §3.2)
@@ -103,7 +112,7 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
       ...바탕,
       종류: 'run',
       모양: 멈춤 ? 'halt' : counts.fail > 0 ? 'fail' : 'pass',
-      머리: t(멈춤 ? 'RUN {번호} 이 멈췄습니다' : 'RUN {번호} 이 끝났습니다', 언어, { 번호: n.runId }),
+      머리: t(멈춤 ? 'RUN {번호} 실행이 멈췄습니다' : 'RUN {번호} 실행이 끝났습니다', 언어, { 번호: n.runId }),
       집계,
       확인필요: 0,
       열기라벨: t('결과 보기', 언어),
@@ -116,16 +125,16 @@ export function 끝난줄만들기(n: NoticeRecent, 언어: 언어): 끝난줄 {
     return {
       ...작성,
       모양: 'pass',
-      머리: t('작성 요청 #{번호} 이 끝났습니다', 언어, 값),
-      집계: n.caseFiles === null ? [] : [t('스크립트 파일 {수}개', 언어, { 수: n.caseFiles })],
+      머리: t('#{번호} 작성 요청이 끝났습니다', 언어, 값),
+      집계: n.caseFiles === null ? [] : [t('케이스 파일 {수}개', 언어, { 수: n.caseFiles })],
       확인필요: n.prdNeedsCheck,
     };
   }
   if (n.status === 'FAILED') {
     const 오류 = 오류첫줄(n.error);
-    return { ...작성, 모양: 'fail', 머리: t('작성 요청 #{번호} 이 실패했습니다', 언어, 값), 집계: 오류 === null ? [] : [오류], 확인필요: 0 };
+    return { ...작성, 모양: 'fail', 머리: t('#{번호} 작성 요청이 실패했습니다', 언어, 값), 집계: 오류 === null ? [] : [오류], 확인필요: 0 };
   }
-  return { ...작성, 모양: 'halt', 머리: t('작성 요청 #{번호} 이 멈췄습니다', 언어, 값), 집계: [], 확인필요: 0 };
+  return { ...작성, 모양: 'halt', 머리: t('#{번호} 작성 요청이 멈췄습니다', 언어, 값), 집계: [], 확인필요: 0 };
 }
 
 const 지난 = (startedAt: string, 지금: number) => Math.max(0, 지금 - Date.parse(startedAt));
@@ -136,7 +145,12 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
   const 바탕 = { 도는중: true as const, 열쇠: 읽음열쇠(n), 서비스: n.serviceName, 접두사: n.prefix, 종류, 열기: 열기주소(n) };
 
   if (n.kind === 'scenario') {
-    const 앞 = [t('E2E RUN {번호} 이 진행 중입니다', 언어, { 번호: n.runId }), t('{수}단계', 언어, { 수: n.parts }), 지난글(지난(n.startedAt, 지금), 언어)];
+    const 앞 = [
+      t('E2E RUN {번호} 실행 중', 언어, { 번호: n.runId }),
+      ...(n.title === '' ? [] : [n.title]),
+      t('{수}단계', 언어, { 수: n.parts }),
+      지난글(지난(n.startedAt, 지금), 언어),
+    ];
     return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: null };
   }
 
@@ -146,8 +160,9 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
       ...바탕,
       // 막대는 aria-hidden 이라 색만으로 실패를 말하게 된다 — 실패가 있으면 글에도 적는다 (DESIGN 원칙 1)
       앞글: [
-        t('RUN {번호} 이 진행 중입니다', 언어, { 번호: n.runId }),
-        `${String(n.done)}/${String(n.total)}`,
+        t('RUN {번호} 실행 중', 언어, { 번호: n.runId }),
+        ...실행덧말(n, 언어),
+        t('{끝난} / {전체} 완료', 언어, { 끝난: n.done, 전체: n.total }),
         ...(counts.fail > 0 ? [t('실패 {수}', 언어, { 수: counts.fail })] : []),
       ].join(' · '),
       막대: counts.total === 0 ? null : { 통과: counts.pass, 실패: counts.fail, 미실행: counts.na, 남음: counts.running },
@@ -158,7 +173,7 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
   const 값 = { 번호: n.requestId };
   // 줄에 서기 전이라 단계도 시간도 아직 없다
   if (n.status === 'PENDING' || n.startedAt === null) {
-    return { ...바탕, 앞글: t('작성 요청 #{번호} 이 순서를 기다리고 있습니다', 언어, 값), 막대: null, 뒷글: null };
+    return { ...바탕, 앞글: t('#{번호} 작성 요청이 순서를 기다리고 있습니다', 언어, 값), 막대: null, 뒷글: null };
   }
   // 알림 통로는 진척을 안 싣는다 — 단계 칸은 에이전트가 올린 글로만 센다
   const 지난ms = 지난(n.startedAt, 지금);
@@ -171,7 +186,7 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
     const 칸 = 단계칸(n.stage, false);
     단계 = t('{번호} / {전체} 단계 {이름}', 언어, { 번호: 칸 + 1, 전체: 단계이름들.length, 이름: 단계라벨(단계이름들[칸] ?? '준비', 언어) });
   }
-  const 앞 = [t('작성 요청 #{번호} 이 진행 중입니다', 언어, 값), ...(단계 === null ? [] : [단계]), 지난글(지난ms, 언어)];
+  const 앞 = [t('#{번호} 작성 요청이 진행 중입니다', 언어, 값), ...(단계 === null ? [] : [단계]), 지난글(지난ms, 언어)];
   return { ...바탕, 앞글: 앞.join(' · '), 막대: null, 뒷글: 작성남은글(지난ms, 지금, n.expected, 언어) };
 }
 
@@ -179,8 +194,18 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
  * 본문 위에 그릴 줄. 도는 것 먼저(실행 → E2E → 작성, 각각 새것 먼저), 그다음 아직 안 읽은 끝난 것 새것 먼저.
  * 줄이 `줄최대` 를 넘으면 마지막 자리를 「외 N건」에 내주고 `넘친수` 가 그 N 이다
  */
-export function 보일줄들(답: NoticeResponse, 읽음: ReadonlySet<string>, 지금: number, 언어: 언어): { 줄들: 줄[]; 넘친수: number } {
-  const 도는것 = [...답.running].sort((a, b) => 도는차례[a.kind] - 도는차례[b.kind] || 번호(b) - 번호(a));
+export function 보일줄들(
+  답: NoticeResponse,
+  읽음: ReadonlySet<string>,
+  지금: number,
+  언어: 언어,
+  보는실행: number | null = null,
+): { 줄들: 줄[]; 넘친수: number } {
+  // 결과 화면 머리에 같은 진행이 있어 보고 있는 실행의 도는 줄은 겹친다. 끝난 줄은 소식이라 남긴다.
+  // E2E 결과 머리에는 진행 글이 없어 E2E 줄은 남긴다
+  const 도는것 = 답.running
+    .filter((n) => n.kind !== 'run' || n.runId !== 보는실행)
+    .sort((a, b) => 도는차례[a.kind] - 도는차례[b.kind] || 번호(b) - 번호(a));
   const 끝난것 = 답.recent
     .filter((n) => !읽음.has(읽음열쇠(n)) && 지금 - Date.parse(n.finishedAt) < 끝난소식유효)
     .sort((a, b) => Date.parse(b.finishedAt) - Date.parse(a.finishedAt));

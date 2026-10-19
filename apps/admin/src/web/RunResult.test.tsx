@@ -97,12 +97,14 @@ describe('실행 결과 머리의 종류 (PR #132)', () => {
 });
 
 describe('RunResult 화면 머리 (2026-09-22)', () => {
-  it('RUN 번호가 h1 이고 본문 면 바깥에 선다', async () => {
+  // 큰 제목은 실행 제목이고 번호는 부제 맨 앞에 작게 둔다 (점검 2.22)
+  it('실행 제목이 h1 이고 RUN 번호는 부제에 있으며 본문 면 바깥에 선다', async () => {
     const { container } = 그리기('FINISHED');
     await screen.findByText(/RUN/);
 
     const 머리 = container.querySelector('.head');
-    expect(머리?.querySelector('h1')?.textContent).toContain('RUN');
+    expect(머리?.querySelector('h1')?.textContent).toBe('결제 회귀');
+    expect(머리?.querySelector('.head-meta')?.textContent).toMatch(/^RUN \d+ · /);
     expect(container.querySelector('.screen .head')).toBeNull();
   });
 

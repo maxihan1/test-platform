@@ -1,4 +1,4 @@
-// 실행 창이 케이스 한 건으로 열렸을 때만 붙는 칸 — 사전조건 · 디바이스 · 제목 · 실행자 · 입력값 묶음 · 저장값 (도메인/실행 §8.10)
+// 실행 창이 케이스 한 건으로 열렸을 때만 붙는 칸 — 사전조건 · 디바이스 · 실행자 · 입력값 묶음 · 저장값 (도메인/실행 §8.10)
 // 한 건짜리 실행 설정 화면이 하던 일을 창 안으로 옮겼다. 실행 문은 하나다 (2026-10-09 UI 개편 묶음 4)
 
 import { useRef, useState } from 'react';
@@ -16,26 +16,23 @@ type 값들 = Record<string, unknown>;
  * 한 자리에서 고르게 하면 「그 케이스엔 없는 디바이스」를 고를 수 있게 된다 (§8.10)
  */
 export function use한건(케이스: CaseRow | null) {
-  const t = use말();
   const [디바이스, set디바이스] = useState<Platform[]>(케이스?.platforms ?? []);
-  const [제목, set제목] = useState(케이스 === null ? '' : t('{케이스} 실행', { 케이스: 케이스.tcId }));
-  return { 디바이스, set디바이스, 제목, set제목 };
+  return { 디바이스, set디바이스 };
 }
 
-/** 창 머리 아래 — 사전조건 · 디바이스 · 실행 제목 · 실행자 */
+/**
+ * 창 머리 아래 — 사전조건 · 디바이스 · 실행자.
+ * 실행 제목 칸은 없다 — 서버가 시작 방식과 담긴 케이스로 짓는다 (§8.10 · 2026-10-19 ⑫). 앞 판의 칸은 거의 안 고쳐졌다
+ */
 export function 한건머리({
   케이스,
   디바이스,
   on디바이스,
-  제목,
-  on제목,
   실행자,
 }: {
   케이스: CaseRow;
   디바이스: Platform[];
   on디바이스: (다음: Platform[]) => void;
-  제목: string;
-  on제목: (글: string) => void;
   /** 고칠 수 없는 표시다. 사람이 적게 두면 남의 이름을 적을 수 있다 (SPEC §8.2) */
   실행자: string | null;
 }) {
@@ -70,11 +67,11 @@ export function 한건머리({
           ))}
         </div>
       </div>
-      <div className="mhead">
-        <label htmlFor="pick-title">{t('실행 제목')}</label>
-        <input id="pick-title" type="text" value={제목} onChange={(e) => on제목(e.target.value)} />
-        {실행자 === null ? null : <span className="hint">{t('실행자 {이름}', { 이름: 실행자 })}</span>}
-      </div>
+      {실행자 === null ? null : (
+        <div className="mhead">
+          <span className="hint">{t('실행자 {이름}', { 이름: 실행자 })}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -25,7 +25,7 @@ export function RunAbortModal({
   const [멈춤오류, set멈춤오류] = useState<string | null>(null);
   return (
     <Modal
-      제목={t('RUN {번호} 을 멈출까요?', { 번호: runId })}
+      제목={t('RUN {번호} 실행을 멈출까요?', { 번호: runId })}
       onClose={onClose}
       버튼={
         <>
@@ -51,9 +51,9 @@ export function RunAbortModal({
       }
     >
       <p>
-        {t('아직 시작하지 않은 항목은 대기줄에서 빼고, 이미 돌고 있는 항목은 끊습니다.')}
+        {t('아직 시작 안 한 항목은 빼고 돌고 있는 항목은 끊습니다')}
         <br />
-        {t('되돌릴 수 없습니다.')}
+        {t('되돌릴 수 없습니다')}
       </p>
       {멈춤오류 === null ? null : <p className="err">{멈춤오류}</p>}
     </Modal>

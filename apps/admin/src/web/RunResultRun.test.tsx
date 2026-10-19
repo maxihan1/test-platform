@@ -6,6 +6,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 
 import { api } from './api.js';
 import { RunResult } from './RunResult.js';
+import { use보는실행 } from './viewedRun.js';
 import { RUN_ID, 그리기, 도는중응답, 끝난응답, 상자라벨, 실행, 실행까지, 증적 } from './RunResult.fixture.js';
 
 // globals 가 꺼져 있어 testing-library 가 스스로 cleanup 을 걸지 못한다. 직접 건다.
@@ -18,12 +19,16 @@ afterEach(() => {
 });
 
 describe('실행 진행 상자 (SPEC §8.9)', () => {
-  it('도는 중인 실행을 열면 진행 상자가 떠 있다', async () => {
+  // 2026-10-19 ⑫ — 앞 판은 도는 실행을 열 때마다 상자가 저절로 떠 화면을 가렸다 (점검 5.1 · 2.14)
+  it('도는 중인 실행을 열어도 상자는 뜨지 않고 머리의 진행 글을 누르면 뜬다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 
-    await screen.findByRole('dialog');
-    expect(상자라벨()).toContain('진행 중입니다');
+    const 진행 = await screen.findByRole('button', { name: /완료 · / });
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    fireEvent.click(진행);
+    expect(상자라벨()).toContain('실행 중');
   });
 
   it('이미 끝난 실행을 열면 상자가 뜨지 않는다', async () => {
@@ -31,6 +36,7 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
 
     await screen.findAllByText(/만들기$/);
     expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('button', { name: /완료 · / })).toBeNull();
   });
 
   it('진행 상자를 닫아도 폴링은 계속 돈다', async () => {
@@ -39,6 +45,7 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
     await act(async () => {});
 
+    fireEvent.click(screen.getByRole('button', { name: /완료 · / }));
     fireEvent.click(screen.getByText('닫기'));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(부름).toHaveBeenCalledTimes(1);
@@ -57,6 +64,7 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
     await act(async () => {});
 
+    fireEvent.click(screen.getByRole('button', { name: /완료 · / }));
     fireEvent.click(screen.getByText('닫기'));
     expect(screen.queryByRole('dialog')).toBeNull();
 
@@ -65,6 +73,31 @@ describe('실행 진행 상자 (SPEC §8.9)', () => {
     });
 
     expect(상자라벨()).toContain('끝났습니다');
+  });
+
+  // 결과 칸에서 그 실행을 보고 있으면 「그 실행을 보고 있을 때」다 (도메인/실행 §8.9)
+  it('결과 칸에서 보던 실행이 끝나면 상자를 연 적 없어도 완료 상자가 뜬다', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(api, 'run').mockResolvedValueOnce(도는중응답).mockResolvedValue(끝난응답);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
+    await act(async () => {});
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(상자라벨()).toContain('끝났습니다');
+  });
+
+  it('도는 동안 띠는 남은 것까지 칸을 받는다 — 끝난 것만으로 다 차지 않는다', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
+    await screen.findByRole('button', { name: /완료 · / });
+
+    const 칸들 = [...document.querySelectorAll<HTMLElement>('.stripe i')];
+    expect(칸들).toHaveLength(4);
+    expect(칸들[3]!.style.flex).toContain(String(도는중응답.counts.running));
   });
 });
 
@@ -102,13 +135,14 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
     expect(document.querySelector('.screen .sec:not(.fold)')).toBeNull();
   });
 
-  it('화면 전체에서는 증적 문서가 옆 칸에 선다', async () => {
+  it('화면 전체에서도 증적 문서 줄이 머리에 선다 — 옆 칸은 없다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     그리기('FINISHED', [증적('PDF', 'READY')]);
     await screen.findAllByText(/만들기$/);
 
     expect(document.querySelector('.box-head')).toBeNull();
-    expect(document.querySelector('.rr-side .sec')?.textContent).toMatch(/만듦/);
+    expect(document.querySelector('.head')?.textContent).toMatch(/만듦/);
+    expect(document.querySelector('.rr-side')).toBeNull();
   });
 
   it('직전 실행 대비 수는 접지 않고 요약 띠에 바로 보인다', async () => {
@@ -163,5 +197,28 @@ describe('결과 칸은 머리를 고정하고 요약 띠부터 스크롤한다 
     const 면 = document.querySelector('.screen');
     expect(면?.classList.contains('pane-results')).toBe(false);
     expect(면?.querySelector('.rows-scroll')).toBeNull();
+  });
+});
+
+describe('보고 있는 실행을 알림 줄에 알린다 (공통/5-화면공통 §8 「알림」 · 점검 2.23)', () => {
+  it('결과를 그리는 동안 그 실행 번호를 알리고 내려가면 지운다', async () => {
+    vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
+    const 읽은값: (number | null)[] = [];
+    function 엿보기() {
+      읽은값.push(use보는실행());
+      return null;
+    }
+    const { unmount } = render(
+      <>
+        <엿보기 />
+        <RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />
+      </>,
+    );
+    await screen.findByRole('button', { name: /완료 · / });
+    expect(읽은값.at(-1)).toBe(RUN_ID);
+
+    unmount();
+    render(<엿보기 />);
+    expect(읽은값.at(-1)).toBeNull();
   });
 });

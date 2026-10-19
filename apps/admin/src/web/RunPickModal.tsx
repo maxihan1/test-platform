@@ -26,8 +26,6 @@ export interface 실행요청 {
   /** Android 앱이 하나라도 있을 때만 싣는다. 서버가 없으면 400 이다 */
   location?: 'local';
   items: RunRequestItem[];
-  /** 한 건 창에서 사람이 적은 제목. 여러 건이면 거는 쪽이 지어 붙인다 (pickRun 실행제목) */
-  title?: string;
 }
 
 interface Props {
@@ -153,7 +151,6 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       notifySlack,
       ...(android ? { location: 'local' as const } : {}),
       items: 실행항목(돌릴것, 값.고친값),
-      ...(한건 === null ? {} : { title: 하나.제목.trim() === '' ? t('{케이스} 실행', { 케이스: 한건.tcId }) : 하나.제목.trim() }),
     });
   }
 
@@ -208,8 +205,6 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           케이스={한건}
           디바이스={하나.디바이스}
           on디바이스={(다음) => { 손댐(); 하나.set디바이스(다음); }}
-          제목={하나.제목}
-          on제목={하나.set제목}
           실행자={user?.displayName ?? null}
         />
       )}

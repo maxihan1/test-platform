@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 결과 화면 조립 검사 — 요약 띠 · 카드 · 줄 · 옆 칸 (도메인/실행 §8.3)
+// 결과 화면 조립 검사 — 머리 한 줄 · 요약 띠 · 카드 · 줄 (도메인/실행 §8.3)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 // 끝난 실행은 요약 띠 → 실패 카드 → 통과 · 미실행 줄이고 옆 칸이 따라온다. 미확정 항목은 제 차례에 꼬리표만 단다 (도메인/실행 §8.3, 2026-10-11)
-describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 옆 칸', () => {
+describe('결과 화면 조립 — 머리 한 줄 · 요약 띠 · 카드 · 줄', () => {
   it('요약 띠 → 실패 카드 → 통과 · 미실행 줄 차례이고 미확정 묶음 칸은 없다', async () => {
     연다(섞인항목, 견줌);
     await screen.findByText('이름-ZRR-002');
@@ -131,50 +131,50 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 옆 칸', () =
     await waitFor(() => expect(실패부름).toHaveBeenLastCalledWith(RUN_ID, 1, 'mobile'));
   });
 
-  it('옆 칸에 실행 정보 · 해결 · 증적 문서가 서고 같은 사유 칸은 없다', async () => {
+  it('실행 정보 · 증적 문서는 머리 한 줄에 있고 옆 칸이 없다 (점검 2.2)', async () => {
     연다(섞인항목, 견줌, false, [증적('PDF', 'READY')]);
-    const 옆 = await waitFor(() => {
-      const 칸 = document.querySelector('.rr-side');
-      expect(칸?.textContent).toContain('이름-ZRR-009');
+    const 머리 = await waitFor(() => {
+      const 칸 = document.querySelector('.head');
+      expect(칸?.textContent).toContain('만듦');
       return 칸!;
     });
 
-    const 글 = 옆.textContent ?? '';
-    for (const 조각 of [
-      '실행 정보', '결제', '기능 테스트', 'qa', 'https://qa-pay.example.com', '김철수', 'PC, 모바일', 'RUN 2110',
-      '해결', '이름-ZRR-009', '증적 문서', '만듦',
-    ]) {
+    const 글 = 머리.textContent ?? '';
+    for (const 조각 of [`RUN ${String(RUN_ID)}`, '기능 테스트', '대상 서버 qa', 'https://qa-pay.example.com', '김철수', 'PC · 모바일', '만듦']) {
       expect(글, 조각).toContain(조각);
     }
-    expect(글).not.toContain('같은 사유로 실패');
+    expect(document.querySelector('.rr-side')).toBeNull();
+    expect(screen.queryByText('실행 정보')).toBeNull();
+    expect(screen.queryByText('같은 사유로 실패')).toBeNull();
   });
 
-  it('견줄 앞이 없으면 비교 기준 · 해결 칸은 없다', async () => {
-    연다(섞인항목, { ...첫실행, 실패덩어리들: 견줌.실패덩어리들 });
-    const 옆 = await waitFor(() => {
-      const 칸 = document.querySelector('.rr-side');
-      expect(칸?.textContent).toContain('실행 정보');
-      return 칸!;
-    });
-
-    expect(옆.textContent).toContain('실행 정보');
-    expect(옆.textContent).not.toContain('비교 기준');
-    expect(옆.textContent).not.toContain('해결');
-  });
-
-  it('결과 칸에서는 옆 칸이 접힌 줄 하나이고 실행 정보는 그리지 않는다', async () => {
-    연다(섞인항목, 견줌, true);
+  it('해결 목록은 요약 띠의 직전 대비 안에 접혀 있다', async () => {
+    연다(섞인항목, 견줌);
     const 접기 = await waitFor(() => {
-      const 칸 = document.querySelector('.rr-side details');
+      const 칸 = document.querySelector('.rs details');
       expect(칸).not.toBeNull();
       return 칸!;
     });
 
-    expect(document.querySelectorAll('.rr-side details')).toHaveLength(1);
     expect(접기.hasAttribute('open')).toBe(false);
     expect(접기.querySelector('summary')?.textContent).toBe('해결 1');
-    expect(document.querySelector('.rr-side dl')).toBeNull();
-    expect(앞선가(document.querySelector('.rs'), document.querySelector('.rr-side'))).toBe(true);
-    expect(document.querySelector('.rows-scroll .rr-side')).not.toBeNull();
+    expect(접기.textContent).toContain('이름-ZRR-009');
+  });
+
+  it('견줄 앞이 없으면 해결 줄이 없다', async () => {
+    연다(섞인항목, { ...첫실행, 실패덩어리들: 견줌.실패덩어리들 });
+    await screen.findAllByRole('article');
+
+    expect(document.querySelector('.rs details')).toBeNull();
+    expect(screen.queryByText(/^해결/)).toBeNull();
+  });
+
+  it('결과 칸에서는 머리에 실행 제목과 번호 · 정보 한 줄이 서고 요약 띠부터 스크롤한다', async () => {
+    연다(섞인항목, 견줌, true);
+    const 제목 = await screen.findByRole('heading', { level: 2, name: /RUN/ });
+
+    expect(제목.closest('.box-head')?.querySelector('.head-meta')?.textContent).toContain('대상 서버 qa');
+    expect(document.querySelector('.rows-scroll .rs')).not.toBeNull();
+    expect(document.querySelector('.rr-side')).toBeNull();
   });
 });

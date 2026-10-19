@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { 칸되는서비스, type 기능 } from '../auth/permissions.js';
 import { 정수 } from '../routeParams.js';
 import { 대시보드, 대시보드실행중, 틀린시간대 } from './dashboardResults.js';
-import { 버그남기기, 실패요구들 } from './failReqs.js';
+import { 버그남기기 } from './failReqs.js';
 import { 실패카드 } from './failures.js';
 import { generate, 형식표 } from './generate.js';
 import { compareWithPrevious } from './insights.js';
@@ -112,8 +112,7 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     if ((await 실행상태(runId)) === null) {
       return reply.code(404).send({ error: 'RUN_NOT_FOUND', detail: req.params.runId });
     }
-    // 실패요구들은 비교 함수 바깥에서 붙인다 — 비교는 앞 실행이 없으면 일찍 돌아가고, 요구 모으기는 앞 실행과 상관없다
-    return { ...(await compareWithPrevious(runId)), 실패요구들: await 실패요구들(runId) };
+    return compareWithPrevious(runId);
   });
 
   // 실행 결과 화면의 실패 카드 재료 (도메인/리포팅 §7). insights 처럼 상세 응답과 따로 둔다

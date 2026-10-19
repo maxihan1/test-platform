@@ -134,16 +134,17 @@ describe('실행 요청 (SPEC §7 · §8.2)', () => {
 
   it('대상 서버를 싣는다. 안 실으면 서버가 400 을 낸다', async () => {
     답 = { status: 200, body: { runId: 7 } };
-    await api.createRun({ title: 'DEMO-003 실행', env: 'qa', items: [케이스하나] });
+    await api.createRun({ env: 'qa', items: [케이스하나] });
 
     const 본문 = JSON.parse(String(부름[0]?.init?.body)) as Record<string, unknown>;
     expect(본문.env).toBe('qa');
-    expect(본문.title).toBe('DEMO-003 실행');
+    // 제목은 서버가 짓는다 (도메인/실행 §7 「자동 제목」)
+    expect(본문).not.toHaveProperty('title');
   });
 
   it('반복 횟수와 Slack 알림도 싣는다', async () => {
     답 = { status: 200, body: { runId: 8 } };
-    await api.createRun({ title: 'x', env: 'qa', repeat: 3, notifySlack: true, items: [케이스하나] });
+    await api.createRun({ env: 'qa', repeat: 3, notifySlack: true, items: [케이스하나] });
 
     const 본문 = JSON.parse(String(부름[0]?.init?.body)) as Record<string, unknown>;
     expect(본문.repeat).toBe(3);
@@ -152,7 +153,7 @@ describe('실행 요청 (SPEC §7 · §8.2)', () => {
 
   it('실행자는 싣지 않는다. 로그인한 세션에서 서버가 채운다 (SPEC §3.5)', async () => {
     답 = { status: 200, body: { runId: 9 } };
-    await api.createRun({ title: 'x', env: 'qa', items: [케이스하나] });
+    await api.createRun({ env: 'qa', items: [케이스하나] });
 
     const 본문 = JSON.parse(String(부름[0]?.init?.body)) as Record<string, unknown>;
     expect(본문).not.toHaveProperty('triggeredBy');

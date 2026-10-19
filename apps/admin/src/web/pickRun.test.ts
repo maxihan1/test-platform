@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { CaseRow, LastResult, Platform } from './api.js';
 import { keyOf, type LastMap } from './catalogView.js';
 import { 넘었나 } from './runPlan.js';
-import { 담을것, 몇건, 실행제목, 실행항목, 안드로이드있나, 지난값글자 } from './pickRun.js';
+import { 담을것, 몇건, 실행항목, 안드로이드있나, 지난값글자 } from './pickRun.js';
 import { schemaToFields } from './schema.js';
 
 function 케이스(tcId: string, platforms: Platform[], isActive = true): CaseRow {
@@ -120,18 +120,6 @@ describe('안드로이드있나', () => {
 
   it('브라우저만이면 false 다', () => {
     expect(안드로이드있나([PC만, 둘다])).toBe(false);
-  });
-});
-
-describe('실행제목', () => {
-  const 말 = (키: string, 값: Record<string, string | number> = {}) => 키.replace(/\{(.+?)\}/g, (_, 이름: string) => String(값[이름]));
-
-  it('한 건이면 실행 창의 제목 칸 기본값과 같은 말이다', () => {
-    expect(실행제목(실행항목([PC만], {}), 말)).toBe('ZZP-0001 실행');
-  });
-
-  it('여러 건이면 맨 앞 케이스와 나머지 수를 적는다', () => {
-    expect(실행제목(실행항목([PC만, 둘다, 비활성], {}), 말)).toBe('ZZP-0001 외 2건 실행');
   });
 });
 
