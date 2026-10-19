@@ -29,6 +29,7 @@ export const 오류영어: Record<string, string> = {
   '아직 진행 중인 실행입니다. 끝난 뒤에 증적 문서를 만듭니다':
     'This run is still going. Generate evidence after it finishes.',
   '한 실행에는 한 서비스의 케이스만 담을 수 있습니다': 'A run holds cases from one service only',
+  '이 실행으로는 실패 다시 실행을 걸 수 없습니다': 'This run cannot start a failure rerun',
   'UI 테스트와 기능 테스트는 따로 실행합니다. 한쪽만 골라 주세요': 'Run UI tests and functional tests separately. Pick one kind',
   '그 대상 서버가 이 서비스에 없습니다. 설정에서 먼저 넣습니다':
     'That target server is not in this service. Add it in Settings first.',
