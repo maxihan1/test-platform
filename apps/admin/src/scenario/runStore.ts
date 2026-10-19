@@ -1,13 +1,12 @@
 // 시나리오 실행을 만든다 — 최신 버전으로 test_run(SCENARIO) 한 행과 부품마다 NA 행을 세우고 러너 요청을 돌려준다 (SPEC 도메인/시나리오 §3.7 · §7)
 
-import type { BrowserPlatform, ScenarioDeleteStatus, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
+import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
 import type { 역할계정 } from '@platform/kit/accounts';
 import type { Pool, PoolClient } from 'pg';
 
 import { 저장값을채운다 } from '../execution/savedInput.js';
-import { 삭제코드를읽는다 } from '../prd/apiMap.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
-import { 같은프로젝트접두사, 단계주소, 쓰는앱읽기 } from './apps.js';
+import { 같은프로젝트접두사, 계정없음, 단계주소, 삭제코드합치기, 쓰는앱읽기 } from './apps.js';
 import { 점검 } from './checks.js';
 import { 케이스접두사, 쓰는접두사 } from './mixed.js';
 import { 케이스재료 } from './parts.js';
@@ -151,7 +150,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     const 케이스들 = new Map(케이스.rows.map((r) => [r.tc_id, r]));
 
     // 저장값을 채우면 커진다. 판정은 조립만 쟀으므로 채운 목록을 다시 잰다 (§7). 던지면 아래 catch 가 되돌린다
-    const 채운부품 = await 부품채우기(c, parts, 케이스들, (tcId) => 앱들.get(케이스접두사(tcId))?.계정들 ?? []);
+    const 채운부품 = await 부품채우기(c, parts, 케이스들, (tcId) => 앱들.get(케이스접두사(tcId))?.계정들 ?? 계정없음);
     const 크기사유 = 제한시간크기사유(채운부품);
     if (크기사유.length > 0) {
       throw new 시나리오실행오류('NOT_RUNNABLE', `실행할 수 없는 시나리오다: 저장값을 채운 뒤 ${크기사유.join(' · ')}`);
@@ -197,10 +196,8 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
     }
 
     // 확정 전에 쥔 손으로 읽는다 — 확정 뒤에 던지면 RUNNING 실행이 러너 없이 남는다
-    // 섞인 애플리케이션 모두의 지도에서 읽는다. 호스트로 맞추므로 합쳐도 겹치지 않고, 러너 입구 상한(1000줄)까지만 싣는다
-    const deleteStatuses: ScenarioDeleteStatus[] = [];
-    for (const 앱 of 앱들.values()) deleteStatuses.push(...(await 삭제코드를읽는다(앱.serviceId, c)));
-    deleteStatuses.length = Math.min(deleteStatuses.length, 1000);
+    // 섞인 애플리케이션 모두의 지도에서 읽는다. 호스트로 맞추므로 합쳐도 겹치지 않는다
+    const deleteStatuses = await 삭제코드합치기(앱들, c);
     await c.query('COMMIT');
     return {
       runId,

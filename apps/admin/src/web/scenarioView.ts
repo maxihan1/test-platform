@@ -40,7 +40,7 @@ export function 카드요약(part: ScenarioPart, 재료: CasePartMaterial | null
 }
 
 /** 케이스 번호 앞 글자 — 단계가 어느 애플리케이션 것인지는 이것으로 읽는다 (도메인/시나리오 §3.7 결정 13) */
-export const 케이스접두사 = (tcId: string): string => tcId.slice(0, Math.max(tcId.indexOf('-'), 0));
+export const 케이스접두사 = (tcId: string): string => (tcId.includes('-') ? tcId.slice(0, tcId.indexOf('-')) : tcId);
 
 /** 단계의 애플리케이션 접두사. 케이스는 번호 앞 글자, API 호출은 service 나 시작 애플리케이션, 그 밖은 null */
 export function 단계앱(part: ScenarioPart, 시작: string): string | null {

@@ -1,11 +1,12 @@
 // 시나리오에 섞인 애플리케이션을 DB 에서 읽는다 — 같은 프로젝트의 접두사 · 대상 서버 짝짓기 · 단계별 주소 (SPEC 도메인/시나리오 §3.7 결정 13)
 // 시나리오는 시작 애플리케이션에 속하고, 단계가 어느 애플리케이션 것인지는 케이스 번호 앞 글자로 읽는다
 
-import type { ScenarioPart } from '@platform/kit';
+import type { ScenarioDeleteStatus, ScenarioPart } from '@platform/kit';
 import type { 역할계정 } from '@platform/kit/accounts';
 import type { Pool, PoolClient } from 'pg';
 
 import { 대상서버계정 } from '../execution/savedInput.js';
+import { 삭제코드를읽는다 } from '../prd/apiMap.js';
 
 import { 케이스접두사 } from './mixed.js';
 
@@ -29,6 +30,20 @@ export async function 같은프로젝트접두사(prefix: string, q?: 손): Prom
     [prefix],
   );
   return r.rows.length === 0 ? [prefix] : r.rows.map((x) => x.prefix);
+}
+
+// 계정이 없는 애플리케이션이 부품마다 새 빈 배열을 만들면 채우기 묶음이 부품 수만큼 갈라진다 — 같은 배열을 쓴다
+export const 계정없음: readonly 역할계정[] = [];
+
+/**
+ * 섞인 애플리케이션 모두의 서비스 지도 DELETE 성공 코드. 러너 입구 상한(1000줄)을 애플리케이션 수로 나눠 줄마다 자른다 —
+ * 앞 애플리케이션이 상한을 다 쓰고 뒤 애플리케이션 것이 조용히 빠지지 않게 (SPEC 도메인/시나리오 §3.7 결정 13)
+ */
+export async function 삭제코드합치기(앱들: ReadonlyMap<string, 쓰는앱>, q?: 손): Promise<ScenarioDeleteStatus[]> {
+  const 몫 = Math.floor(1000 / Math.max(앱들.size, 1));
+  const 줄: ScenarioDeleteStatus[] = [];
+  for (const 앱 of 앱들.values()) 줄.push(...(await 삭제코드를읽는다(앱.serviceId, q)).slice(0, 몫));
+  return 줄;
 }
 
 export interface 쓰는앱 {

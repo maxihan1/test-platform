@@ -9,7 +9,7 @@ import type { ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
 import Fastify from 'fastify';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { 같은프로젝트접두사, 쓰는앱읽기 } from './apps.js';
+import { 같은프로젝트접두사, 삭제코드합치기, 쓰는앱읽기 } from './apps.js';
 import { 시나리오결과 } from './runRoutes.js';
 import { 실행만들기, 시나리오실행오류 } from './runStore.js';
 import scenarioRoutes from './routes.js';
@@ -185,6 +185,23 @@ describe.skipIf(연결 === undefined)('애플리케이션을 섞은 시나리오
       [3, 'XSM2', 'http://adm.xsm.example'],
       [4, 'XSM', 'http://shop.xsm.example'],
     ]);
+  });
+
+  it('삭제 성공 코드는 러너 입구 상한(1000줄)을 애플리케이션 수로 나눠 자른다 — 앞 애플리케이션이 뒤 애플리케이션 몫을 먹지 않는다', async () => {
+    await q(
+      `INSERT INTO service_api (service_id, method, host, path, ok_status)
+       SELECT $1, 'DELETE', 'shop.xsm.example', '/api/many/' || g, 204 FROM generate_series(1, 700) g`,
+      [시작()],
+    );
+    await q(`INSERT INTO service_api (service_id, method, host, path, ok_status) VALUES ($1, 'DELETE', 'adm.xsm.example', '/api/one', 200)`, [서비스['XSM2']]);
+    const { 앱들 } = await 쓰는앱읽기(['XSM', 'XSM2'], 'stg');
+
+    const 줄 = await 삭제코드합치기(앱들);
+
+    expect(줄.filter((x) => x.host === 'shop.xsm.example')).toHaveLength(500);
+    expect(줄.filter((x) => x.host === 'adm.xsm.example')).toContainEqual({ host: 'adm.xsm.example', path: '/api/one', status: 200 });
+    expect(줄.length).toBeLessThanOrEqual(1000);
+    await q('DELETE FROM service_api WHERE service_id = ANY($1::bigint[])', [Object.values(서비스)]);
   });
 
   it('섞인 애플리케이션 가운데 하나라도 그 이름의 대상 서버가 없으면 ENV_NOT_FOUND 이고 실행을 안 만든다', async () => {

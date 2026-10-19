@@ -6,7 +6,8 @@ import type { ScenarioPart } from '@platform/kit';
 /** 러너로 보내는 단계와 부품 행 스냅샷에는 시작 애플리케이션이 아닌 단계의 주소가 붙는다 */
 export type 박제부품 = ScenarioPart & { baseUrl?: string };
 
-export const 케이스접두사 = (tcId: string): string => tcId.slice(0, Math.max(tcId.indexOf('-'), 0));
+// '-' 가 없는 번호는 번호 전체를 접두사로 본다 — 빈 접두사가 별개의 애플리케이션처럼 끼지 않게
+export const 케이스접두사 = (tcId: string): string => (tcId.includes('-') ? tcId.slice(0, tcId.indexOf('-')) : tcId);
 
 /** 시나리오가 쓰는 애플리케이션 접두사. 시작 애플리케이션이 맨 앞이고 중복은 없다 */
 export function 쓰는접두사(parts: readonly ScenarioPart[], 시작: string): string[] {
