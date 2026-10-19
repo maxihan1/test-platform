@@ -8,9 +8,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
+import { useHash, 떠나기막기 } from './leaveGuard.js';
 import { Settings } from './Settings.js';
 
 afterEach(() => {
+  떠나기막기(null);
   cleanup();
   vi.restoreAllMocks();
 });
@@ -200,5 +202,31 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
 
     await waitFor(() => expect(window.location.hash).toBe('#/settings/NEW'));
     expect(목록.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+function 주소보기() {
+  return <p data-testid="hash">{useHash()}</p>;
+}
+
+describe('새 서비스를 만든 뒤 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)', () => {
+  it('만든 서비스로 옮겨 가는 길에는 떠나기 상자를 띄우지 않는다', async () => {
+    window.history.replaceState(null, '', '#/settings/new');
+    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
+    render(
+      <>
+        <주소보기 />
+        <Settings user={사람('admin')} onMeChanged={() => undefined} 자리="new" />
+      </>,
+    );
+    fireEvent.change(await screen.findByLabelText('접두사'), { target: { value: 'NEW' } });
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
+    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
+    fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
+
+    await waitFor(() => expect(screen.getByTestId('hash').textContent).toBe('#/settings/NEW'));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

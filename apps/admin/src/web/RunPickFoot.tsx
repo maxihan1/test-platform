@@ -24,7 +24,8 @@ function 닫기묻는줄({ on계속, on닫기 }: { on계속: () => void; on닫�
   const t = use말();
   return (
     <>
-      <span className="note" role="status" style={{ color: 'var(--fail-text)' }}>
+      {/* 오류가 아니라 묻는 글이라 실패 색을 쓰지 않는다 (DESIGN.md 원칙 1) */}
+      <span className="note" role="status">
         {t('고친 값이 사라집니다')}
       </span>
       <button className="btn" onClick={on계속}>

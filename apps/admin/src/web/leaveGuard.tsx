@@ -8,13 +8,21 @@ import { Modal } from './Modal.js';
 import { route } from './route.js';
 
 let 막는쪽: ((갈곳: string) => void) | null = null;
-let 버리기막는쪽: ((이어서: () => void) => void) | null = null;
+interface 막는것 {
+  묻기: (간다: () => void) => void;
+  버리기도: boolean;
+  열쇠?: string;
+}
+// 떠나기상자가 건 것. 한 화면에 여럿 설 수 있다(PRD 새 요구 칸과 줄 고치기 칸) — 맨 나중에 건 것이 묻고, 내려간 것은 제 것만 뺀다
+const 막는것들: 막는것[] = [];
 let 한번통과 = false;
 // 지금 그린 주소. 막혔을 때 되돌아갈 곳이고, 주소고치기가 바꾼 조건도 여기 든다 — 안 그러면 막힌 뒤 조건이 주소에서 빠진다
 let 이전 = window.location.hash;
 
+/** null 이면 다 푼다 — 로그아웃 · 세션 끊김 · 저장 뒤 자기 이동은 무엇도 막으면 안 된다 */
 export function 떠나기막기(쪽: ((갈곳: string) => void) | null): void {
   막는쪽 = 쪽;
+  if (쪽 === null) 막는것들.length = 0;
 }
 
 export function 떠나기로했다(): void {
@@ -22,17 +30,13 @@ export function 떠나기로했다(): void {
 }
 
 /**
- * 주소는 그대로인데 쓴 것이 사라지는 일(서비스 고르개 바꾸기 · PRD 의 다른 줄 고치기)도 묻게 건다.
- * 서비스마다 새로 그려지는 화면(가이드 · PRD)만 건다 — 조립 화면은 띠를 바꿔도 초안이 남는다
+ * 주소는 그대로인데 쓴 것이 사라지는 일 — 서비스 고르개 바꾸기 · PRD 의 줄 접기와 다른 줄 고치기 — 을 하기 전에 부른다.
+ * `버리기도` 를 켠 떠나기상자만 묻는다. 열쇠를 주면 그 열쇠의 상자만 묻는다 — 줄을 접을 때 새 요구 칸에 쓴 글은 사라지지 않는다
  */
-export function 버리기막기(쪽: ((이어서: () => void) => void) | null): void {
-  버리기막는쪽 = 쪽;
-}
-
-/** 쓴 것을 버리는 일을 하기 전에 부른다. 막는 쪽이 없으면 바로 한다 */
-export function 버리기전(이어서: () => void): void {
-  if (버리기막는쪽 === null) 이어서();
-  else 버리기막는쪽(이어서);
+export function 버리기전(이어서: () => void, 열쇠?: string): void {
+  const 걸린 = 막는것들.filter((it) => it.버리기도 && (열쇠 === undefined || it.열쇠 === 열쇠)).at(-1);
+  if (걸린 === undefined) 이어서();
+  else 걸린.묻기(이어서);
 }
 
 /**
@@ -61,15 +65,26 @@ const 조건글 = (주소: string) => (주소.includes('?') ? 주소.slice(주�
 
 /**
  * 목록이 조건을 바꿀 때마다 주소를 고친다. 그사이 다른 화면으로 떠났으면 그 주소를 덮지 않는다.
- * 같은 화면 · 같은 조건이면 그대로 둔다 — `#/cases` 로 들어온 사람의 주소를 `#/cases/fn` 으로 괜히 바꾸지 않는다
+ * 같은 화면 · 같은 조건이면 그대로 둔다 — `#/cases` 로 들어온 사람의 주소를 `#/cases/fn` 으로 괜히 바꾸지 않는다.
+ * 목록이 선 채로 같은 화면의 조건 없는 주소가 오면(메뉴를 다시 누름) 화면이 든 조건으로 되돌린다 — 화면과 주소가 갈리면 새로고침이 조건을 잃는다
  */
 export function use주소조건(경로: string, 조건: Record<string, string>): void {
   const 주소 = 조건붙인주소(경로, 조건);
   useEffect(() => {
-    const 지금 = window.location.hash;
-    if (route(지금).name !== route(경로).name) return;
-    if (JSON.stringify(route(지금)) === JSON.stringify(route(주소)) && 조건글(지금) === 조건글(주소)) return;
-    주소고치기(주소);
+    const 맞춘다 = () => {
+      const 지금 = window.location.hash;
+      if (route(지금).name !== route(경로).name) return;
+      if (JSON.stringify(route(지금)) === JSON.stringify(route(주소)) && 조건글(지금) === 조건글(주소)) return;
+      주소고치기(주소);
+    };
+    맞춘다();
+    // 앱 뿌리의 useHash 보다 먼저 걸려 먼저 듣는다(자식 effect 가 먼저 돈다). 같은 화면이면 그쪽은 같은 주소라 그냥 넘긴다
+    const 들음 = () => {
+      const 지금 = window.location.hash;
+      if (JSON.stringify(route(지금)) === JSON.stringify(route(주소))) 맞춘다();
+    };
+    window.addEventListener('hashchange', 들음);
+    return () => window.removeEventListener('hashchange', 들음);
   }, [주소, 경로]);
 }
 
@@ -96,7 +111,8 @@ export function useHash(): string {
       const 새것 = window.location.hash;
       if (새것 === 이전) return;
       const 온칸 = 칸번호();
-      if (막는쪽 !== null && !한번통과) {
+      const 묻는것 = 막는것들.at(-1);
+      if ((막는쪽 !== null || 묻는것 !== undefined) && !한번통과) {
         if (온칸 === null) {
           // 새 칸이 쌓였다. 그 칸을 이전 주소로 덮고 한 칸 물러난다 — 같은 주소끼리 옮겨 hashchange 가 다시 나지 않는다
           window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search + 이전);
@@ -105,7 +121,12 @@ export function useHash(): string {
           // 옛 칸으로 왔다. 그 칸은 두고 원래 칸으로 되돌아간다 — 돌아올 때의 hashchange 는 위의 같은 주소 검사가 거른다
           window.history.go(지금칸 - 온칸);
         }
-        막는쪽(새것);
+        if (막는쪽 !== null) 막는쪽(새것);
+        else
+          묻는것!.묻기(() => {
+            떠나기로했다();
+            window.location.hash = 새것;
+          });
         return;
       }
       if (온칸 === null) 칸적기(++지금칸);
@@ -136,27 +157,20 @@ export function useBeforeUnload(막나: boolean): void {
  * 저장 안 한 것이 있으면 주소 이동 · 창 닫기를 막고 `저장 안 된 변경 있음` 상자를 띄운다 (DESIGN.md 「모달」 ①).
  * @param 버리기도 주소가 안 바뀌어도 쓴 것이 사라지는 일(버리기전)에도 묻는다 — 서비스마다 새로 그려지는 화면만 켠다
  */
-export function 떠나기상자({ 막나, 버리기도 = false }: { 막나: boolean; 버리기도?: boolean }) {
+export function 떠나기상자({ 막나, 버리기도 = false, 열쇠 }: { 막나: boolean; 버리기도?: boolean; 열쇠?: string }) {
   const t = use말();
   // 함수를 상태로 들면 React 가 갱신 함수로 읽는다 — 한 겹 감싼다
   const [다음, set다음] = useState<{ 간다: () => void } | null>(null);
 
   useEffect(() => {
     if (!막나) return;
-    떠나기막기((갈곳) =>
-      set다음({
-        간다: () => {
-          떠나기로했다();
-          window.location.hash = 갈곳;
-        },
-      }),
-    );
-    if (버리기도) 버리기막기((이어서) => set다음({ 간다: 이어서 }));
+    const 것: 막는것 = { 묻기: (간다) => set다음({ 간다 }), 버리기도, ...(열쇠 === undefined ? {} : { 열쇠 }) };
+    막는것들.push(것);
     return () => {
-      떠나기막기(null);
-      버리기막기(null);
+      const 자리 = 막는것들.indexOf(것);
+      if (자리 !== -1) 막는것들.splice(자리, 1);
     };
-  }, [막나, 버리기도]);
+  }, [막나, 버리기도, 열쇠]);
   useBeforeUnload(막나);
 
   if (다음 === null) return null;

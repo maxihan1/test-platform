@@ -106,3 +106,14 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
     expect(window.location.hash).toBe(`#/cases/fn?${new URLSearchParams({ q: '결제' })}`);
   });
 });
+
+describe('보고 있는 목록의 메뉴를 다시 누르면', () => {
+  it('화면이 든 조건으로 주소를 되돌린다 — 화면과 주소가 갈리지 않는다', async () => {
+    await 그리기('#/cases/fn');
+    fireEvent.click(screen.getByRole('button', { name: '모바일' }));
+    const 도착 = new Promise<void>((끝) => window.addEventListener('hashchange', () => 끝(), { once: true }));
+    window.location.hash = '#/cases/fn';
+    await 도착;
+    expect(window.location.hash).toBe('#/cases/fn?dev=mobile');
+  });
+});

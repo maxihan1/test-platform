@@ -40,7 +40,8 @@ export function ScenarioBuild({
   const 시험 = useScenarioTrial(시험열쇠(id));
   // 대상 서버는 기본값을 두지 않는다 — 실수로 운영 서버에 시험 실행을 보내지 않게 사람이 고른다.
   // 아직 안 골랐으면 이 서비스에서 마지막에 고른 서버를 쓴다(공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」). 서비스는 불러온 뒤에야 알아 상태로 두지 않는다
-  const [고른서버, set서버] = useState('');
+  // null 은 아직 안 골랐다. 빈 칸을 고른 것과 가른다 — 빈 칸을 골랐는데 마지막 서버가 되살아나면 안 된다
+  const [고른서버, set서버] = useState<string | null>(null);
   const [시험글, set시험글] = useState<string | null>(null);
   // 새 시나리오는 단계를 넣는 일이 먼저라 추가 탭부터 연다
   const [탭, set탭] = useState<조립탭>(id === null ? 'add' : 'settings');
@@ -72,7 +73,7 @@ export function ScenarioBuild({
   if (초안.오류 !== null) return <Failed error={초안.오류} />;
   if (!초안.불러옴) return <Loading />;
   const 서버들 = user.services.find((s) => s.prefix === 초안.서비스)?.envs ?? [];
-  const 서버 = 고른서버 !== '' ? 고른서버 : 마지막서버(초안.서비스, 서버들);
+  const 서버 = 고른서버 ?? 마지막서버(초안.서비스, 서버들);
 
   async function 저장누름() {
     set저장글(null);

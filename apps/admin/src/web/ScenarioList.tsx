@@ -20,7 +20,9 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
   const 언어 = use언어();
   const 쓰나 = 할수('실행');
   // 이 서비스에서 마지막에 고른 서버로 연다 — 기본값은 없다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
-  const [env, setEnv] = useState(마지막서버(service, envs));
+  const [env, setEnv] = useState(() => {
+    return 마지막서버(service, envs);
+  });
   // 안내는 한 번에 한 줄 아래에만 둔다 — 앞 줄의 안내를 남기면 어느 줄 이야기인지 흐려진다
   const [안내, set안내] = useState<{ id: number; 글: string } | null>(null);
   const [돌리는중, set돌리는중] = useState<number | null>(null);

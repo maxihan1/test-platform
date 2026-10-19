@@ -311,22 +311,4 @@ describe('적다 만 서비스 칸 (공통/5-화면공통 §8 「화면을 오�
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByTestId('hash').textContent).toBe('#/settings/users');
   });
-
-  it('새 서비스를 만들면 그 서비스로 옮겨 가는 길은 묻지 않는다', async () => {
-    window.history.replaceState(null, '', '#/settings/new');
-    vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
-    render(
-      <>
-        <주소보기 />
-        <ServicePanel onDone={(접두사) => { window.location.hash = `#/settings/${접두사}`; }} />
-      </>,
-    );
-    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
-    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
-    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
-    fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
-
-    await waitFor(() => expect(screen.getByTestId('hash').textContent).toBe('#/settings/NEW'));
-    expect(screen.queryByRole('dialog')).toBeNull();
-  });
 });

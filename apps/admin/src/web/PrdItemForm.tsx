@@ -19,12 +19,15 @@ function 다듬기(x: PrdItemDraft): PrdItemDraft {
 }
 
 export function PrdItemForm({
+  열쇠,
   처음,
   기능들,
   on저장,
   on취소,
   on지우기,
 }: {
+  /** 고치는 줄의 요구 번호. 줄 접기 · 다른 줄 고치기는 이 칸에만 묻는다 — 새 요구 칸은 없다 */
+  열쇠?: string;
   처음: PrdItemDraft;
   /** 지금 판의 기능 묶음 — 고르면 같은 묶음으로 접힌다. 글자가 한 자만 달라도 다른 묶음이 된다 */
   기능들: string[];
@@ -122,7 +125,7 @@ export function PrdItemForm({
         </select>
       </div>
       {틀림 === null ? null : <p className="prd-note bad">{틀림말[틀림]}</p>}
-      <떠나기상자 막나={바뀜} 버리기도 />
+      <떠나기상자 막나={바뀜} 버리기도 {...(열쇠 === undefined ? {} : { 열쇠 })} />
       <div className="prd-form-acts">
         {on지우기 === undefined ? null : 지우기확인 ? (
           <>

@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
 import { Head } from './Head.js';
+import { 떠나기로했다 } from './leaveGuard.js';
 import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
 import { PendingSection } from './SettingsPending.js';
@@ -63,7 +64,11 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
     if (!(await services.reload())) return;
     set판((n) => n + 1);
     set저장한곳(접두사);
-    if (옮기나) window.location.hash = `#/settings/${encodeURIComponent(접두사)}`;
+    if (옮기나) {
+      // 방금 저장한 서비스로 옮기는 자기 이동이다 — 떠나기 상자를 띄우지 않는다
+      떠나기로했다();
+      window.location.hash = `#/settings/${encodeURIComponent(접두사)}`;
+    }
   };
 
   return (

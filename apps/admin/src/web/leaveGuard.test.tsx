@@ -255,3 +255,34 @@ describe('떠나기상자 · 버리기전', () => {
     expect(화면해시()).toBe('#/b');
   });
 });
+
+describe('떠나기상자 여럿', () => {
+  it('하나가 내려가도 남은 상자가 계속 묻는다', async () => {
+    const 첫 = render(<떠나기상자 막나 />);
+    render(
+      <>
+        <보는것 />
+        <떠나기상자 막나 />
+      </>,
+    );
+    첫.unmount();
+    await 옮긴다('#/b');
+    expect(화면해시()).toBe('#/a');
+    expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
+  });
+
+  it('열쇠를 주면 그 열쇠의 상자만 묻는다', () => {
+    const 한다 = vi.fn();
+    render(
+      <>
+        <떠나기상자 막나 버리기도 />
+        <떠나기상자 막나 버리기도 열쇠="R-2" />
+      </>,
+    );
+    버리기전(한다, 'R-1');
+    expect(한다).toHaveBeenCalledOnce();
+    act(() => 버리기전(한다, 'R-2'));
+    expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
+    expect(한다).toHaveBeenCalledOnce();
+  });
+});
