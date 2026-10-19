@@ -36,6 +36,15 @@ export const 작성말: Record<string, string> = {
   '한 요청에 넣을 수 있는 자료 개수를 넘었습니다': 'Too many attachments for one request',
   '자료가 하나도 없습니다. 파일이나 피그마 주소를 넣으세요': 'No attachments. Add a file or a Figma link',
   '요청한 사람만 자료를 올릴 수 있습니다': 'Only the requester can upload attachments',
+  // 피그마를 미리 열어 보기 (도메인/작성 §7 「자료」 「미리 열어 보기」)
+  '이 서비스에는 피그마 토큰이 없어 피그마 주소를 받을 수 없습니다.': 'This service has no Figma token, so Figma links cannot be accepted.',
+  '설정 > 서비스에서 피그마 토큰을 넣으세요': 'Add a Figma token in Settings > Services',
+  '운영자에게 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an operator to add a Figma token',
+  '피그마가 이 서비스의 토큰을 받아 주지 않습니다. 토큰이 틀렸거나 만료됐거나 읽기 권한이 모자랍니다.': 'Figma does not accept this service’s token. It is wrong, has expired, or lacks read permission.',
+  '설정 > 서비스에서 새 피그마 토큰을 넣으세요': 'Add a new Figma token in Settings > Services',
+  '운영자에게 새 피그마 토큰을 넣어 달라고 요청하세요': 'Ask an operator to add a new Figma token',
+  '피그마 파일을 열지 못했습니다. 파일이 없거나 이 토큰으로 볼 권한이 없습니다 ({주소})':
+    'Could not open the Figma file. It does not exist or this token cannot view it ({주소})',
 
   // 상세
   '지금 하는 일': 'Now doing',

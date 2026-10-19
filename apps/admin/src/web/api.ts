@@ -472,6 +472,8 @@ export interface ServiceRow {
   envs: EnvRow[];
   /** Slack 칸을 그릴지. 주소 자체는 오지 않는다 (SPEC §7) */
   hasSlackWebhook: boolean;
+  /** 새 작성 요청 폼의 피그마 칸을 열지. 토큰 자체는 오지 않는다. 선택으로 둔 건 이 칸을 모르는 기존 화면 검사의 가짜 응답 때문이다 — 없으면 잠그지 않는다 (도메인/인증 §7) */
+  hasFigmaToken?: boolean;
   /** 케이스 폴더 이름. 선택으로 둔 건 기존 화면 검사의 가짜 응답이 이 값을 안 담아서다 */
   testsDir?: string;
   /** 이 서비스에서의 기능별 칸. admin 은 서버가 전부 write 로 채운다 (도메인/인증 §3.5) */

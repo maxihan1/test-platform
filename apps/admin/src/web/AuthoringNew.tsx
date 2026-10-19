@@ -57,10 +57,26 @@ const 운영자작성오류: Record<string, string> = {
   BAD_ENV: '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요',
 };
 
+// 피그마 토큰이 없을 때(폼 잠금 안내와 서버 거절 NO_TOKEN) · 피그마가 토큰을 안 받을 때(TOKEN)의 안내.
+// 고칠 곳이 설정이라 설정 메뉴를 볼 수 있는 사람(운영자)과 그 밖이 갈린다. 뒷말이 [운영자, 그 밖] 순이다
+const 토큰없음 = '이 서비스에는 피그마 토큰이 없어 피그마 주소를 받을 수 없습니다.';
+const 토큰안내 = ['설정 > 서비스에서 피그마 토큰을 넣으세요', '운영자에게 피그마 토큰을 넣어 달라고 요청하세요'] as const;
+const 토큰틀림 = '피그마가 이 서비스의 토큰을 받아 주지 않습니다. 토큰이 틀렸거나 만료됐거나 읽기 권한이 모자랍니다.';
+const 토큰다시 = ['설정 > 서비스에서 새 피그마 토큰을 넣으세요', '운영자에게 새 피그마 토큰을 넣어 달라고 요청하세요'] as const;
+
+/** 서버가 피그마를 못 열어 거절한 까닭(`FIGMA_DENIED` 의 detail — 도메인/작성 §7 「자료」 「미리 열어 보기」)을 문장으로 */
+function 피그마거절말(까닭: string, 운영자: boolean, t: ReturnType<typeof use말>): string {
+  const 칸 = 운영자 ? 0 : 1;
+  if (까닭 === 'NO_TOKEN') return `${t(토큰없음)} ${t(토큰안내[칸])}`;
+  if (까닭 === 'TOKEN') return `${t(토큰틀림)} ${t(토큰다시[칸])}`;
+  return t('피그마 파일을 열지 못했습니다. 파일이 없거나 이 토큰으로 볼 권한이 없습니다 ({주소})', { 주소: 까닭.replace(/^FILE:/, '') });
+}
+
 export function AuthoringNew({
   service,
   envs = [],
   운영자 = false,
+  피그마토큰 = true,
   대조처음 = false,
   on넣었다,
 }: {
@@ -69,6 +85,8 @@ export function AuthoringNew({
   envs?: EnvRow[];
   /** 설정 메뉴를 볼 수 있는 사람(admin). 아니면 「운영자에게 요청하세요」로 안내한다 */
   운영자?: boolean;
+  /** 서비스에 피그마 토큰이 있나. 없으면 피그마 칸을 잠근다 — 보내도 서버가 거절한다. 모르면(옛 응답) 잠그지 않는다 (도메인/인증 §7) */
+  피그마토큰?: boolean;
   /** 「실제 화면과 대조」를 켠 채 열린다 — 「PRD 에 없는 화면」에서 넘어올 때 */
   대조처음?: boolean;
   /** 줄에 세운 요청 번호. 목록이 시작 모달을 연다 */
@@ -91,7 +109,7 @@ export function AuthoringNew({
   const 서버 = envs.some((it) => it.env === 고른서버) ? 고른서버 : (envs[0]?.env ?? null);
   const 주소 = 시작주소.trim();
 
-  const 주소들 = 피그마
+  const 주소들 = (피그마토큰 ? 피그마 : '')
     .split('\n')
     .map((줄) => 줄.trim())
     .filter((줄) => 줄 !== '');
@@ -108,6 +126,10 @@ export function AuthoringNew({
 
   function 사유(err: unknown): string {
     if (err instanceof ApiError && err.status === 413) return t('파일 크기가 한 파일 상한을 넘었습니다');
+    // 까닭이 세 꼴이 아니면(프록시가 본문을 지운 경우 등) 빈 주소를 단 파일 문장을 지어내지 않고 공통 번역으로 넘긴다
+    if (err instanceof ApiError && err.code === 'FIGMA_DENIED' && /^(NO_TOKEN|TOKEN|FILE:.+)$/.test(err.message)) {
+      return 피그마거절말(err.message, 운영자, t);
+    }
     const 말 = err instanceof ApiError ? ((운영자 ? 운영자작성오류[err.code] : undefined) ?? 작성오류[err.code]) : undefined;
     return 말 === undefined ? message(err, 언어) : t(말);
   }
@@ -183,11 +205,13 @@ export function AuthoringNew({
         <textarea
           className="mono"
           placeholder={t('한 줄에 하나씩')}
-          value={피그마}
+          value={피그마토큰 ? 피그마 : ''}
           rows={3}
+          disabled={!피그마토큰}
           onChange={(e) => set피그마(e.target.value)}
         />
       </label>
+      {피그마토큰 ? null : <span className="error-text">{피그마거절말('NO_TOKEN', 운영자, t)}</span>}
       <div className="authoring-field authoring-compare">
         <label>
           <input type="checkbox" checked={대조} onChange={(e) => set대조(e.target.checked)} />

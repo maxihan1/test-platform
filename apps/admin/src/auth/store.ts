@@ -29,6 +29,11 @@ export interface 배정서비스 {
    * **주소 자체는 담지 않는다.** 설정됐는지만 준다 — 설정 API 와 같은 규칙이다 (§7).
    */
   hasSlackWebhook: boolean;
+  /**
+   * 피그마 칸을 열지 말지 (새 작성 요청 폼 · 도메인/인증 §7). **토큰 자체는 담지 않는다** — 있는지만 준다.
+   * 화면이 이 값을 받을 통로가 여기뿐이다 — `/api/settings/**` 는 admin 만이라 member 는 설정 목록을 못 읽는다
+   */
+  hasFigmaToken: boolean;
   /** 케이스 폴더 이름 (SPEC §6 `service.tests_dir`) */
   testsDir: string;
   /** 역방향 작성(화면만 · 대조)이 훑지 않을 경로 (SPEC §6 `service.crawl_exclude`). 작성 에이전트가 건을 가져갈 때마다 읽는다 — 화면은 안 읽는다 (도메인/인증 §7) */
@@ -73,7 +78,8 @@ const 한사람 = `
              'permissions', json_build_object(
                'cases', us.perm_cases, 'runs', us.perm_runs, 'authoring', us.perm_authoring),
              -- 주소가 아니라 있는지만 낸다 (SPEC §7)
-             'hasSlackWebhook', s.slack_webhook IS NOT NULL AND s.slack_webhook <> ''
+             'hasSlackWebhook', s.slack_webhook IS NOT NULL AND s.slack_webhook <> '',
+             'hasFigmaToken', s.figma_token IS NOT NULL AND s.figma_token <> ''
            ) ORDER BY s.prefix) FILTER (WHERE s.id IS NOT NULL),
            '[]'
          ) AS services

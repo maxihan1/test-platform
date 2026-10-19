@@ -99,7 +99,7 @@ function 작성줄({ 것, 지금, 운영자 }: { 것: AuthoringListRow; 지금: 
   );
 }
 
-export function Authoring({ service, envs = [], 할수 }: { service: string; envs?: EnvRow[]; 할수: 판정 }) {
+export function Authoring({ service, envs = [], 피그마토큰 = true, 할수 }: { service: string; envs?: EnvRow[]; 피그마토큰?: boolean; 할수: 판정 }) {
   const t = use말();
   // 쪽은 주소에 남는다 — 상세에 갔다 뒤로 와도 그 쪽이다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
@@ -145,7 +145,7 @@ export function Authoring({ service, envs = [], 할수 }: { service: string; env
 
       <div className="screen list-screen">
         {!할수('작성요청') ? null : (
-          <AuthoringNew service={service} envs={envs} 운영자={할수('설정')} 대조처음={대조처음} on넣었다={(id) => {
+          <AuthoringNew service={service} envs={envs} 운영자={할수('설정')} 피그마토큰={피그마토큰} 대조처음={대조처음} on넣었다={(id) => {
               줄들.reload();
               set방금(id);
             }} />

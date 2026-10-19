@@ -13,6 +13,7 @@ import { 다섯단계인가, 작성예상 } from './eta.js';
 import { 행케이스 } from './cases.js';
 import { 행커버리지 } from './coverage.js';
 import { 피그마주소정규화 } from './figma.js';
+import { 피그마막힘 } from './figmaCheck.js';
 import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
@@ -135,6 +136,9 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         }
         const 대조 = await 역방향칸판정(req.body, 서비스);
         if ('error' in 대조) return reply.code(400).send({ error: 대조.error });
+        // 줄에 선 뒤 몇십 분 기다리다 실패하지 않게 여기서 연다 — 거절하면 DRAFT 도 안 남는다 (§7 「자료」 「미리 열어 보기」)
+        const 막힘 = await 피그마막힘(서비스, 피그마);
+        if (막힘 !== null) return reply.code(400).send({ error: 'FIGMA_DENIED', detail: 막힘 });
         const id = await 준비세우기({
           서비스,
           누가,
