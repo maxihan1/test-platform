@@ -237,6 +237,8 @@ describe('서비스 가이드 — 쓰던 글을 두고 떠나기 (점검 9.1)', 
     fireEvent.change(정책칸(), { target: { value: '저장할 글' } });
     fireEvent.click(저장버튼());
     await vi.waitFor(() => expect(정책칸().value).not.toBe('저장할 글'));
+    // 떠나기 막이를 푸는 effect 가 아직 안 돌았을 수 있다 — 부하가 크면 이 순간에 걸린다
+    await act(async () => undefined);
     const 바꾼다 = vi.fn();
     버리기전(바꾼다);
     expect(바꾼다).toHaveBeenCalledOnce();
