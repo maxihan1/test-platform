@@ -80,10 +80,13 @@ export async function listRuns(
     [pageSize, (page - 1) * pageSize, service, ...조건.값],
   );
 
-  const 머리 = { total: rows.rows[0]?.grand_total ?? 0, page, pageSize, summary: await runSummary(service, 거르개) };
-  if (시나리오) return { items: rows.rows.map(to시나리오줄), ...머리 };
   // 시나리오는 견주기가 없어 change 를 싣지 않는다
-  const 대비 = await 직전대비수(rows.rows.map((r) => Number(r.run_id)));
+  const [summary, 대비] = await Promise.all([
+    runSummary(service, 거르개),
+    시나리오 ? new Map<number, never>() : 직전대비수(rows.rows.map((r) => Number(r.run_id))),
+  ]);
+  const 머리 = { total: rows.rows[0]?.grand_total ?? 0, page, pageSize, summary };
+  if (시나리오) return { items: rows.rows.map(to시나리오줄), ...머리 };
   return { items: rows.rows.map((r) => ({ ...toRun(r), change: 대비.get(Number(r.run_id)) ?? null })), ...머리 };
 }
 

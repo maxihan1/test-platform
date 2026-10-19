@@ -31,6 +31,22 @@ export function 자동제목(재료: 제목재료): string {
   return 재료.origin === 'SCHEDULED' ? `정기 · ${몸}` : 몸;
 }
 
+/** 그 종류의 활성 케이스를 전부 담았고 꺼진 케이스가 섞이지 않았으면 「전체」다 */
+export async function 제목을짓는다(
+  client: Pick<PoolClient, 'query'>,
+  재료: Omit<제목재료, '전체'> & { prefix: string },
+): Promise<string> {
+  const r = await client.query<{ 빠진: number; 꺼진: number }>(
+    `SELECT count(*) FILTER (WHERE is_active AND NOT (tc_id = ANY($3::text[])))::int AS "빠진",
+            count(*) FILTER (WHERE NOT is_active AND tc_id = ANY($3::text[]))::int AS "꺼진"
+       FROM test_case
+      WHERE tc_id LIKE $1 AND (tc_id ~ '-UI-[0-9]{3}$') = $2`,
+    [`${재료.prefix}-%`, 재료.kind === 'UI', 재료.케이스들.map((c) => c.tcId)],
+  );
+  const { prefix: _prefix, ...나머지 } = 재료;
+  return 자동제목({ ...나머지, 전체: r.rows[0]!.빠진 === 0 && r.rows[0]!.꺼진 === 0 });
+}
+
 /**
  * 「실패 N건 다시」가 사실일 때만 실행을 만든다 — 제목이 박제되므로 틀린 제목이 남지 않게 만들기 전에 거절한다.
  * 실패 케이스 가운데 몇 건을 빼고 거는 것은 된다
@@ -40,16 +56,18 @@ export async function 다시실행사유(
   rerunOf: number,
   이번: { serviceId: string; kind: 케이스종류; tcIds: string[] },
 ): Promise<string | null> {
-  const r = await client.query<{ service_id: string | null; kind: string; status: string; failed: string[] }>(
-    `SELECT service_id, kind, status,
+  // 다른 서비스의 실행은 없는 것과 같은 말로 거절한다 — 볼 권한 없는 서비스의 실행 번호가 있는지 새지 않게.
+  // 만들기까지 원래 실행이 지워지지 않게 잡아 둔다 — 지워지면 rerun_of 외래 키가 500 으로 깨진다
+  const r = await client.query<{ kind: string; status: string; failed: string[] }>(
+    `SELECT kind, status,
             ARRAY(SELECT DISTINCT tc_id FROM run_item WHERE run_id = $1 AND status = 'FAIL' AND finished_at IS NOT NULL) AS failed
-       FROM test_run WHERE run_id = $1`,
-    [rerunOf],
+       FROM test_run WHERE run_id = $1 AND service_id = $2
+        FOR SHARE`,
+    [rerunOf, 이번.serviceId],
   );
   const 원래 = r.rows[0];
-  if (원래 === undefined) return `실행 ${String(rerunOf)}이 없다`;
+  if (원래 === undefined) return `이 서비스에 실행 ${String(rerunOf)}이 없다`;
   if (원래.kind === 'SCENARIO') return `실행 ${String(rerunOf)}은 시나리오 실행이다`;
-  if (원래.service_id !== 이번.serviceId) return `실행 ${String(rerunOf)}은 다른 서비스의 실행이다`;
   if (원래.kind !== 이번.kind) return `실행 ${String(rerunOf)}은 다른 종류의 실행이다`;
   if (원래.status === 'RUNNING') return `실행 ${String(rerunOf)}은 아직 도는 중이다`;
   const 실패 = new Set(원래.failed);

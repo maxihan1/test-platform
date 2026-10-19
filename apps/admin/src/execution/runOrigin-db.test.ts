@@ -8,7 +8,7 @@ import { createRun, RunInputError } from './store.js';
 
 const 연결 = process.env.DATABASE_URL;
 const 서비스번호 = "(SELECT id FROM service WHERE prefix = 'XBO')";
-const 케이스들 = ['XBO-001', 'XBO-002', 'XBO-003', 'XBO-UI-001'];
+const 케이스들 = ['XBO-001', 'XBO-002', 'XBO-003', 'XBO-004', 'XBO-UI-001'];
 
 describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
   let pool: Pool;
@@ -68,6 +68,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
         [tcId, `${tcId} 이름`, `xbo/${tcId}.spec.ts`],
       );
     }
+    await pool.query("UPDATE test_case SET is_active = false WHERE tc_id = 'XBO-004'");
   });
 
   afterAll(async () => {
@@ -81,6 +82,7 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     expect(await 줄(await 건다(['XBO-003', 'XBO-001', 'XBO-002']))).toEqual(['기능 전체 3건', 'MANUAL', null]);
     expect(await 줄(await 건다(['XBO-002']))).toEqual(['XBO-002 XBO-002 이름', 'MANUAL', null]);
     expect(await 줄(await 건다(['XBO-003', 'XBO-002']))).toEqual(['XBO-002 외 1건', 'MANUAL', null]);
+    expect(await 줄(await 건다(['XBO-001', 'XBO-002', 'XBO-003', 'XBO-004']))).toEqual(['XBO-001 외 3건', 'MANUAL', null]);
     expect(await 줄(await 건다(['XBO-UI-001'], { origin: 'SCHEDULED' }))).toEqual(['정기 · UI 전체 1건', 'SCHEDULED', null]);
   });
 
@@ -98,6 +100,14 @@ describe.skipIf(연결 === undefined)('실행 시작 방식', () => {
     expect(await 거절(건다(['XBO-UI-001'], { rerunOf: 원래 }))).toBe('BAD_RERUN');
     expect(await 거절(건다(['XBO-001'], { rerunOf: 도는것 }))).toBe('BAD_RERUN');
     expect(await 거절(건다(['XBO-001'], { rerunOf: 999_999_999 }))).toBe('BAD_RERUN');
+    const 남의것 = await pool.query<{ run_id: string }>(
+      `INSERT INTO test_run (title, triggered_by, env, status, service_id, service_name, tests_repo, base_url, kind, finished_at)
+       VALUES ('XBO 남의 실행', 'xbo', 'qa', 'FINISHED', NULL, '', '', '', 'FN', now()) RETURNING run_id`,
+    );
+    const 남의번호 = Number(남의것.rows[0]!.run_id);
+    const 말 = await 건다(['XBO-001'], { rerunOf: 남의번호 }).catch((e: unknown) => (e as Error).message);
+    await pool.query('DELETE FROM test_run WHERE run_id = $1', [남의번호]);
+    expect(말).toBe(`이 서비스에 실행 ${String(남의번호)}이 없다`);
     expect((await pool.query(`SELECT count(*)::int AS n FROM test_run WHERE service_id = ${서비스번호}`)).rows[0]).toEqual(앞수.rows[0]);
 
     const 다시 = await 건다(['XBO-002', 'XBO-001'], { rerunOf: 원래 });

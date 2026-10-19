@@ -11,7 +11,7 @@ import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
 import { 실행종류 } from './runKind.js';
-import { 다시실행사유, 자동제목 } from './runOrigin.js';
+import { 다시실행사유, 제목을짓는다 } from './runOrigin.js';
 
 // 사람이 읽을 자리에서는 PC·모바일로 쓴다. desktop·mobile은 코드와 러너 사이에서만 쓰는 이름이다
 const PLATFORM_LABEL: Record<Platform, string> = { desktop: 'PC', mobile: '모바일', android: 'Android 앱' };
@@ -200,17 +200,12 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
       const 사유 = await 다시실행사유(client, input.rerunOf, { serviceId: found서비스.id, kind, tcIds });
       if (사유 !== null) throw new RunInputError('BAD_RERUN', 사유);
     }
-    const 빠진 = await client.query<{ n: number }>(
-      `SELECT count(*)::int AS n FROM test_case
-        WHERE tc_id LIKE $1 AND is_active AND (tc_id ~ '-UI-[0-9]{3}$') = $2 AND NOT (tc_id = ANY($3::text[]))`,
-      [`${prefix}-%`, kind === 'UI', tcIds],
-    );
-    const title = 자동제목({
+    const title = await 제목을짓는다(client, {
       origin,
       ...(input.rerunOf === undefined ? {} : { rerunOf: input.rerunOf }),
+      prefix,
       kind,
       케이스들: tcIds.map((tcId) => ({ tcId, name: cases.get(tcId)!.name })),
-      전체: 빠진.rows[0]!.n === 0,
     });
 
     // 서비스 이름·저장소·대상 주소는 실행 하나에 하나뿐인 사실이라 test_run에 박제한다 (SPEC §6)

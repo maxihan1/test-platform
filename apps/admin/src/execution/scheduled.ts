@@ -88,9 +88,9 @@ export async function 돌때가된서비스(
   // 검사만 넘긴다. 검사는 트랜잭션 연결도 넘겨 되돌린다 — 그 DB 의 다른 서비스 「마지막으로 돈 때」를 덮지 않게
   지금: Date | null = null,
   db?: Pick<PoolClient, 'query'>,
-): Promise<{ prefix: string; env: string; 날짜: string }[]> {
+): Promise<{ prefix: string; env: string }[]> {
   const 손 = db ?? (await import('../db/index.js')).pool;
-  const r = await 손.query<{ prefix: string; env: string; 날짜: string }>(
+  const r = await 손.query<{ prefix: string; env: string }>(
     `WITH 기준 AS (SELECT COALESCE($1::timestamptz, now()) AS t)
      UPDATE service
         SET schedule_last = 기준.t
@@ -101,7 +101,7 @@ export async function 돌때가된서비스(
         AND (기준.t AT TIME ZONE schedule_tz)::time - schedule_at <  interval '1 hour'
         AND (schedule_last IS NULL
              OR (schedule_last AT TIME ZONE schedule_tz)::date < (기준.t AT TIME ZONE schedule_tz)::date)
-      RETURNING prefix, schedule_env AS env, to_char(기준.t AT TIME ZONE schedule_tz, 'YYYY-MM-DD') AS "날짜"`,
+      RETURNING prefix, schedule_env AS env`,
     [지금],
   );
   return r.rows;
