@@ -3,6 +3,7 @@
 
 import type { FastifyInstance } from 'fastify';
 
+import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 import { 켜진내컴퓨터러너 } from '../execution/runner.js';
 import { 도는집은요청 } from '../prd/agentRoutes.js';
 
@@ -19,11 +20,13 @@ const 짧게 = (글: string): string => (글.length > 까닭_상한 ? `${글.sli
 
 /**
  * 러너에 화면을 부탁한다. 읽지 못하면 까닭을 돌려줄 뿐 던지지 않는다 — 작성은 화면 없이도 간다.
- * 앱 파일 경로가 없으면 앱이 없는 서비스다 — 까닭도 없이 비운다
+ * 앱 파일 경로가 없으면 앱이 없는 서비스다 — 까닭도 없이 비운다.
+ * admin 의 폰 잠금(정식 실행의 디바이스 줄)을 쥐고 읽는다 — 안 쥐면 도는 android 실행의 연결을 가로챈다. 기다리지 않고 바쁘면 까닭만 돌려준다
  */
 export async function 앱화면읽기(appPath: string | null, 러너: string | undefined, 부르기: typeof fetch = fetch): Promise<앱화면답> {
   if (appPath === null) return { screen: null, reason: null };
   if (러너 === undefined) return { screen: null, reason: '내 컴퓨터 러너(LOCAL_RUNNER_URL)가 꺼져 있다' };
+  if (!폰을바로잡는다()) return { screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' };
   try {
     const res = await 부르기(`${러너}/app-screen`, {
       method: 'POST',
@@ -38,12 +41,14 @@ export async function 앱화면읽기(appPath: string | null, 러너: string | u
     return { screen: null, reason: `러너가 화면을 못 읽었다: ${짧게(말)}` };
   } catch (err) {
     return { screen: null, reason: `러너에 닿지 못했다: ${짧게(err instanceof Error ? err.name : '알 수 없는 오류')}` };
+  } finally {
+    폰을놓는다();
   }
 }
 
-/** 요청에 대상 서버가 있으면 그 줄의 앱 파일 경로, 없으면 앱 파일 경로가 있는 첫 줄(env 순) */
-export function 앱파일고르기(줄들: { env: string; appPath: string | null }[], env: string | null): string | null {
-  const 줄 = env === null ? 줄들.find((j) => j.appPath !== null) : 줄들.find((j) => j.env === env);
+/** 요청에 대상 서버가 있으면 그 줄의 앱 파일 경로, 없으면 앱 파일 경로가 있는 첫 줄(env 순). 「운영 서버」 줄은 어느 쪽이든 건너뛴다 (§3.6 「★ 역할별 계정」 「운영 서버」) */
+export function 앱파일고르기(줄들: { env: string; appPath: string | null; isProd: boolean }[], env: string | null): string | null {
+  const 줄 = 줄들.filter((j) => !j.isProd).find((j) => (env === null ? j.appPath !== null : j.env === env));
   return 줄?.appPath ?? null;
 }
 

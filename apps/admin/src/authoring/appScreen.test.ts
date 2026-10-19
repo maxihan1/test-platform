@@ -2,15 +2,17 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
+
 import { 앱파일고르기, 앱화면읽기 } from './appScreen.js';
 
 const 답 = (몸: unknown, status = 200) => vi.fn(async () => new Response(JSON.stringify(몸), { status })) as unknown as typeof fetch;
 
 describe('앱파일고르기', () => {
   const 줄들 = [
-    { env: 'dev', appPath: null },
-    { env: 'qa', appPath: '/apk/qa.apk' },
-    { env: 'stg', appPath: '/apk/stg.apk' },
+    { env: 'dev', appPath: null, isProd: false },
+    { env: 'qa', appPath: '/apk/qa.apk', isProd: false },
+    { env: 'stg', appPath: '/apk/stg.apk', isProd: false },
   ];
 
   it('요청에 대상 서버가 있으면 그 줄의 경로다 — 다른 줄에 경로가 있어도 따지지 않는다', () => {
@@ -22,8 +24,18 @@ describe('앱파일고르기', () => {
     expect(앱파일고르기(줄들, null)).toBe('/apk/qa.apk');
   });
 
+  it('「운영 서버」 줄은 경로가 있어도 건너뛴다 — 대상 서버를 짚어도, 안 짚어도', () => {
+    const 운영뿐 = [
+      { env: 'dev', appPath: null, isProd: false },
+      { env: 'prod', appPath: '/apk/prod.apk', isProd: true },
+    ];
+
+    expect(앱파일고르기(운영뿐, null)).toBeNull();
+    expect(앱파일고르기(운영뿐, 'prod')).toBeNull();
+  });
+
   it('경로가 하나도 없으면 null — 앱이 없는 서비스', () => {
-    expect(앱파일고르기([{ env: 'dev', appPath: null }], null)).toBeNull();
+    expect(앱파일고르기([{ env: 'dev', appPath: null, isProd: false }], null)).toBeNull();
     expect(앱파일고르기([], 'dev')).toBeNull();
   });
 });
@@ -41,6 +53,19 @@ describe('앱화면읽기', () => {
       screen: null,
       reason: '내 컴퓨터 러너(LOCAL_RUNNER_URL)가 꺼져 있다',
     });
+  });
+
+  it('admin 의 폰 잠금이 잡혀 있으면 러너를 부르지 않고 바쁘다고 한다 — 끝나면 잠금을 놓는다', async () => {
+    const 부르기 = 답({ screen: '화면' });
+    expect(폰을바로잡는다()).toBe(true);
+
+    expect(await 앱화면읽기('/a.apk', 'http://m:4001', 부르기)).toEqual({ screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' });
+    expect(부르기).not.toHaveBeenCalled();
+    폰을놓는다();
+
+    await 앱화면읽기('/a.apk', 'http://m:4001', 부르기);
+    expect(폰을바로잡는다()).toBe(true);
+    폰을놓는다();
   });
 
   it('러너 /app-screen 에 앱 파일 경로를 싣고 화면 글을 돌려준다', async () => {
