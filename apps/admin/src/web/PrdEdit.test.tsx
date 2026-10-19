@@ -186,6 +186,8 @@ describe('PRD 관리 — 고치기', () => {
     expect((screen.getByLabelText('요구 문장') as HTMLTextAreaElement).value).toBe('고치던 글');
     // 다시 저장을 시작하면 지난 실패 글은 지워진다
     저장.mockResolvedValueOnce({ version: 14 });
+    // 판을 다시 읽는 동안은 저장 단추가 잠겨 있다
+    await vi.waitFor(() => expect((within(칸).getByRole('button', { name: '저장' }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(within(칸).getByRole('button', { name: '저장' }));
     await vi.waitFor(() => expect(within(칸).queryByRole('alert')).toBeNull());
   });
