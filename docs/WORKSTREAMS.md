@@ -12,7 +12,7 @@
 | **WS-C** | 러너 + 테스트 킷 | `apps/runner/**`, `packages/kit/src/runtime/**`, `tests/**` | kit 타입 |
 | **WS-D** | 리포팅 | `apps/admin/src/reporting/**`, `infra/grafana/**` | DB 스키마 |
 | **WS-E** | 화면 | `apps/admin/src/web/**` | Admin API 계약 |
-| **WS-F** | 인증 | `apps/admin/src/auth/**`, `apps/admin/src/settings/**`, `scripts/**`(아래 `authoring-*` 빼고) | DB 스키마 (`app_user`·`service`·`service_env`·`user_service`) |
+| **WS-F** | 인증 | `apps/admin/src/auth/**`, `apps/admin/src/settings/**`, `scripts/**`(아래 `authoring-*` 빼고) | DB 스키마 (`app_user`·`service`·`service_env`·`user_project`) |
 | **WS-시나리오** | E2E 시나리오 | `apps/admin/src/scenario/**` · `docs/spec/도메인/시나리오.md` (러너 고정 파일은 `apps/runner/**` 라 WS-C) | kit 타입(시나리오) · 러너 계약 |
 | **WS-작성** | 작성 | `apps/admin/src/authoring/**` · `apps/admin/src/prd/**`(표준 기획서) · `apps/authoring/**` · `scripts/authoring-*.ts` · `docs/spec/도메인/작성.md` | DB 스키마 (`authoring_request` 등) |
 
