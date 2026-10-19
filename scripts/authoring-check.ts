@@ -76,7 +76,13 @@ export function 맞춰보기(표글: string, 케이스들: readonly 케이스문
     if (줄.결과 !== '' && !c.판정.includes(줄.결과)) 틀림.push(`${머리} 결과 「${줄.결과}」 — verify 문장에 없다`);
     if (몇줄.get(줄.tcId) === 1 && 줄.결과 !== '' && c.name !== 줄.결과) 틀림.push(`${머리} name 「${c.name ?? '(글자 아님)'}」 — 결과와 다르다`);
   }
-  // 결과 문장 · 합친 이름이 겹치면 실행 목록과 증적에 같은 줄이 둘씩 뜬다
+  // 결과 문장 · 합친 이름이 겹치면 실행 목록과 증적에 같은 줄이 둘씩 뜬다 — 합친 케이스 안의 두 줄끼리도
+  const 안겹침 = new Map<string, number>();
+  for (const 줄 of 줄들) if (줄.결과 !== '' && 케이스.has(줄.tcId)) 안겹침.set(`${줄.tcId}\0${줄.결과}`, (안겹침.get(`${줄.tcId}\0${줄.결과}`) ?? 0) + 1);
+  for (const [열쇠, 수] of 안겹침) {
+    const [tcId, 문장] = 열쇠.split('\0') as [string, string];
+    if (수 >= 2 && (볼 === undefined || 볼.has(tcId))) 틀림.push(`같은 케이스 안에서 결과 문장이 겹친다 「${문장}」 — ${tcId} ${수}줄`);
+  }
   const 문장주인 = new Map<string, Set<string>>();
   const 더하기 = (문장: string, tcId: string) => 문장주인.set(문장, new Set([...(문장주인.get(문장) ?? []), tcId]));
   for (const 줄 of 줄들) if (줄.결과 !== '' && 케이스.has(줄.tcId)) 더하기(줄.결과, 줄.tcId);
@@ -152,7 +158,7 @@ function 돌린다(트리: string, 명령: string, 인자: string[], 로그: str
 /** 걸러 낸 줄이 없는데 실패면(시간 초과 · 메모리 부족 · 명령 없음) 끝 몇 줄을 보인다 — 「어긋남 0줄」만 남으면 왜 빨간지 모른다 */
 const 줄또는끝 = (r: { ok: boolean; 줄들: string[] }, 거른: string[]) => (r.ok ? [] : 거른.length > 0 ? 거른 : r.줄들.slice(-5));
 
-type 결과 = { 이름: string; ok: boolean; 줄들: string[]; 머리?: string };
+type 결과 = { 이름: string; ok: boolean; 줄들: string[]; 머리?: string; 건너뜀?: boolean };
 
 /** 맡은 파일만 타입 검사하는 임시 tsconfig — 저장소 전체는 한 번에 1.2GB 라 서브에이전트 넷이 겹치면 Docker 상자(4.8GB)를 다 쓴다. 100건이면 약 320MB(2026-10-19 실측).
  * 맡은 파일이 가져다 쓰는 것만 따라간다 — 남의 케이스는 안 본다. Page Object 는 주인이 하나고 더하기만 해서(`fanout.md` §3) 남의 케이스가 깨질 일이 없고, 저장소 전체는 자식이 합친 뒤 한 번 본다 */
@@ -216,12 +222,15 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     const [원장, 접두사, 폴더, ...더] = 나머지 as [string, string, string, ...string[]];
     const 표 = join('docs', 'cases', `${접두사}.md`);
     // 서로 기대지 않아 나란히 돈다 — 자식 혼자 도는 자리라 타입 검사 1.2GB · 형식 검사 0.4GB 가 겹쳐도 된다
+    // 원장이 없는 작성은 관문 0 을 건너뛴다 — 통과가 아니라 「건너뜀」으로 적는다(6-gates.md 관문 0)
+    const 원장없음 = { ok: true, 줄들: ['원장 없음 — 대조를 건너뛴다'] };
     const [원장검사, tsc, 형식] = await Promise.all([
-      돌린다(트리, 'npm', ['run', '-s', 'check:ledger', '--', 원장, 표, '--tests', `tests/${폴더}`, '--agent'], 로그('ledger')),
+      원장 === '없음' ? Promise.resolve(원장없음) : 돌린다(트리, 'npm', ['run', '-s', 'check:ledger', '--', 원장, 표, '--tests', `tests/${폴더}`, '--agent'], 로그('ledger')),
       돌린다(트리, 'npx', ['tsc', '--noEmit'], 로그('tsc')),
       돌린다(트리, 'npm', ['run', '-s', 'check:tests'], 로그('tests')),
     ]);
-    결과들.push({ 이름: '빠진 요구 검사', ok: 원장검사.ok, 줄들: 줄또는끝(원장검사, 원장검사.줄들.filter((l) => !l.startsWith('원장:'))), 머리: 원장검사.줄들.find((l) => l.startsWith('원장:')) });
+    const 원장머리 = 원장검사.줄들.find((l) => l.startsWith('원장:') || l.startsWith('원장 없음'));
+    결과들.push({ 이름: '빠진 요구 검사', ok: 원장검사.ok, 줄들: 줄또는끝(원장검사, 원장검사.줄들.filter((l) => l !== 원장머리)), 머리: 원장머리, 건너뜀: 원장머리?.startsWith('원장 없음') });
     결과들.push({ 이름: '타입 검사', ok: tsc.ok, 줄들: 줄또는끝(tsc, tsc.줄들.filter((l) => /error TS/.test(l))) });
     결과들.push({ 이름: '케이스 형식 검사', ok: 형식.ok, 줄들: 줄또는끝(형식, 형식.줄들.filter((l) => / — \[K\d+\] /.test(l))) });
     // 에이전트가 기준 SHA 를 주면 이번 작성이 바꾼 케이스만 본다 — 앞 작성의 케이스가 이 규칙에 걸려도 이번 요청 밖이라 고치지 않는다(첫 작성은 다 새것이라 전체다)
@@ -233,11 +242,11 @@ export async function 실행(인자: string[], 트리 = process.cwd(), env: Node
     const 가이드 = join('docs', 'cases', `${접두사}.guide.md`);
     결과들.push(비밀검사([`tests/${폴더}`, 표, ...(existsSync(join(트리, 가이드)) ? [가이드] : []), ...더]));
   } else {
-    console.error('쓰는 법: npm run authoring:check -- 마지막 <원장 사본> <접두사> <폴더> [더 볼 경로…] | 보조 <케이스 · 화면 파일…> | 비밀번호 <경로…>');
+    console.error('쓰는 법: npm run authoring:check -- 마지막 <원장 사본 | 없음> <접두사> <폴더> [더 볼 경로…] | 보조 <케이스 · 화면 파일…> | 비밀번호 <경로…>');
     return 2;
   }
 
-  console.log(`[빠른 검사] ${결과들.map((r) => `${r.이름} ${r.ok ? '통과' : `어긋남 ${r.줄들.length}줄`}`).join(' · ')}`);
+  console.log(`[빠른 검사] ${결과들.map((r) => `${r.이름} ${r.건너뜀 ? '건너뜀' : r.ok ? '통과' : `어긋남 ${r.줄들.length}줄`}`).join(' · ')}`);
   for (const r of 결과들) if (r.머리) console.log(`${r.이름}: ${r.머리}`);
   for (const r of 결과들.filter((x) => !x.ok)) console.log([`${r.이름}:`, ...줄이기(r.줄들).map((l) => `  ${l}`)].join('\n'));
   console.log(`긴 로그는 ${자리}/check-*.log`);
