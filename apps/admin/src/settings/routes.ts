@@ -10,7 +10,7 @@ import { 화면크기목록 } from '../prd/screens.js';
 import { 시간대확인, 틀린시간대 } from '../reporting/dashboardResults.js';
 import { 정수 } from '../routeParams.js';
 
-import { API서버이름저장, API서버목록 } from './apiServers.js';
+import { API서버라우트 } from './apiServerRoutes.js';
 import { 역할까닭찾기 } from './roles.js';
 import { 프로젝트만들기, 프로젝트목록, 프로젝트이름고치기 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
@@ -57,11 +57,6 @@ const 훑지않을경로 = z.array(z.string()).transform((줄들, ctx) => {
 const 프로젝트번호 = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 
 const 프로젝트이름 = z.object({ name: z.string().trim().min(1) });
-
-// 호스트는 서비스 지도(apiMap.ts API틀)가 소문자로 남기므로 같은 꼴로 받는다. 빈 이름은 이름 지우기다 (SPEC 도메인/인증 §7 `…/api-servers`)
-const API서버이름들 = z.object({
-  items: z.array(z.object({ host: z.string().trim().toLowerCase().min(1).max(255), name: z.string().trim().max(20) })).max(500),
-});
 
 const 새서비스 = z.object({
   prefix: z.string(),
@@ -184,21 +179,7 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     return { ok: true };
   });
 
-  app.get<{ Params: { id: string } }>('/settings/projects/:id/api-servers', async (req, reply) => {
-    const id = 정수(req.params.id);
-    if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
-    return { items: await API서버목록(id) };
-  });
-
-  app.put<{ Params: { id: string } }>('/settings/projects/:id/api-servers', async (req, reply) => {
-    const parsed = API서버이름들.safeParse(req.body);
-    const id = 정수(req.params.id);
-    if (!parsed.success || id === null) {
-      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.success ? req.params.id : parsed.error.message });
-    }
-    await API서버이름저장(id, parsed.data.items);
-    return { ok: true };
-  });
+  API서버라우트(app);
 
   app.get('/settings/services', async () => ({ items: await 서비스목록() }));
 

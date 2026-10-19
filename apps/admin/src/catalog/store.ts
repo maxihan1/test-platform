@@ -231,7 +231,8 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
   const lastCounts = 판정 === null ? null : { total: 맞은.length, pass: 셈('PASS'), fail: 셈('FAIL'), na: 셈('NA') };
   const 마지막맞나 = (id: string) => 마지막?.last === undefined || 판정?.get(id) === 마지막.last;
   const { 차례, groups } = 줄세우기(맞은.filter(마지막맞나), 표);
-  const 이름들 = [...new Set([...표.values()].flatMap((x) => x.apiServers))].sort((a, b) => a.localeCompare(b));
+  // 칩 이름은 글자 · 디바이스 · 종류 · 활성 여부 · 기법에 드는 케이스가 부른 것만 — 숨긴 비활성 케이스의 이름이 0건 칩으로 남지 않게. 맥락 조건(묶음 · 요구)으로 0건이 된 이름은 남긴다
+  const 이름들 = [...new Set(맞은번호.rows.flatMap((r) => 표.get(r.tc_id)?.apiServers ?? []))].sort((a, b) => a.localeCompare(b));
   const 이쪽 = query.pageSize === null ? 차례 : 차례.slice((query.page - 1) * query.pageSize, query.page * query.pageSize);
   const 읽은 = 이쪽.length === 0 ? [] : (await pool.query<RawRow>(`SELECT ${COLUMNS} FROM ${FROM} WHERE tc_id = ANY($1::text[])`, [이쪽])).rows;
   const 행 = new Map(읽은.map((r) => [r.tc_id, r]));

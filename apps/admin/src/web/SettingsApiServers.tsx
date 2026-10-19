@@ -27,8 +27,9 @@ export function ApiServers({ 프로젝트 }: { 프로젝트: number }) {
     setErr(null);
     try {
       await api.saveProjectApiServers(프로젝트, 바뀐.map((r) => ({ host: r.host, name: 고침[r.host]!.trim() })));
-      set고침({});
+      // 다시 읽은 뒤에 비운다 — 먼저 비우면 도착 전까지 칸이 옛 이름으로 돌아가 저장이 실패한 것처럼 보인다
       await 목록.reload();
+      set고침({});
     } catch (e) {
       setErr(오류문장(e, 언어));
     } finally {
@@ -57,7 +58,10 @@ export function ApiServers({ 프로젝트 }: { 프로젝트: number }) {
                 value={값(r.host, r.name)}
                 placeholder={t('이름 없음')}
                 aria-label={t('{호스트} 이름', { 호스트: r.host })}
-                onChange={(e) => set고침((전) => ({ ...전, [r.host]: e.target.value }))}
+                onChange={(e) => {
+                  setErr(null);
+                  set고침((전) => ({ ...전, [r.host]: e.target.value }));
+                }}
               />
             </div>
           ))}

@@ -71,6 +71,8 @@ describe.skipIf(연결 === undefined)('API 서버 이름', () => {
     await 부른다(프론트, 'POST', 'auth.xav.test', '/login', ['XAV-FN-001', 'XAV-FN-002']);
     await 부른다(프론트, 'POST', 'pay.xav.test', '/pay', ['XAV-FN-001', 'XAV-FN-004']);
     await 부른다(프론트, 'GET', 'cdn.xav.test', '/img', ['XAV-FN-003']);
+    // 꺼진 케이스만 부르는 서버
+    await 부른다(프론트, 'GET', 'old.xav.test', '/old', ['XAV-FN-004']);
     // 백오피스도 같은 인증 서버를 부른다 — 이름은 프로젝트 것이라 거기에도 붙는다
     await 부른다(백오피스, 'POST', 'auth.xav.test', '/login', ['XAVB-FN-001']);
     // 크롤러가 본 호출은 케이스가 부른 것이 아니다
@@ -117,7 +119,7 @@ describe.skipIf(연결 === undefined)('API 서버 이름', () => {
   });
 
   it('틀린 모양은 400 이다 — 이름 21자 · 호스트 비어 있음 · items 없음', async () => {
-    for (const 나쁜 of [[{ host: 'auth.xav.test', name: '가'.repeat(21) }], [{ host: '  ', name: '인증' }]]) {
+    for (const 나쁜 of [[{ host: 'auth.xav.test', name: '가'.repeat(21) }], [{ host: '  ', name: '인증' }], [{ host: 'a b/c', name: '인증' }]]) {
       const res = await 쓰기(프로젝트[0]!, 나쁜);
       expect(res.statusCode, JSON.stringify(나쁜)).toBe(400);
       expect(res.json<{ error: string }>().error).toBe('INVALID_REQUEST');
@@ -187,5 +189,14 @@ describe.skipIf(연결 === undefined)('API 서버 이름', () => {
 
     await 쓰기(프로젝트[0]!, [{ host: 'gone.xav.test', name: '옛서버' }]);
     expect(await 읽기(프로젝트[0]!)).toContainEqual({ host: 'gone.xav.test', name: '옛서버', cases: 0 });
+  });
+
+  it('꺼진 케이스만 부르는 서버의 이름은 활성만 볼 때 칩에 안 뜨고 전체를 볼 때 뜬다 — 설정 목록에도 이름이 없으면 안 뜬다', async () => {
+    expect((await 읽기(프로젝트[0]!)).map((x) => x.host)).not.toContain('old.xav.test');
+    await 쓰기(프로젝트[0]!, [{ host: 'old.xav.test', name: '옛서버' }]);
+    const 활성 = await listCases({ service: 'XAV', q: '', activeOnly: true, page: 1, pageSize: 50 });
+    const 전체 = await listCases({ service: 'XAV', q: '', activeOnly: false, page: 1, pageSize: 50 });
+    expect(활성.apiServers.map((x) => x.name)).not.toContain('옛서버');
+    expect(전체.apiServers).toContainEqual({ name: '옛서버', count: 1 });
   });
 });

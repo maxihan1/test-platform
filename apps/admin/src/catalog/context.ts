@@ -186,7 +186,9 @@ export function 맥락거르기(tcIds: string[], 표: 맥락표, 조건: 맥락�
 
 /** 이름마다 맞은 케이스 수 — 칩 건수다. 조건에서 apiServer 를 뺀 맞은 번호를 넘긴다. 지금 조건에서 0건인 이름도 낸다(걸린 칩을 풀 길이 있어야 한다) */
 export function API서버세기(맞은: string[], 표: 맥락표, 이름들: string[]): { name: string; count: number }[] {
-  return 이름들.map((name) => ({ name, count: 맞은.filter((id) => 표.get(id)?.apiServers.includes(name) === true).length }));
+  const 셈 = new Map(이름들.map((name) => [name, 0]));
+  for (const id of 맞은) for (const name of 표.get(id)?.apiServers ?? []) 셈.set(name, (셈.get(name) ?? 0) + 1);
+  return 이름들.map((name) => ({ name, count: 셈.get(name) ?? 0 }));
 }
 
 /** 찾기 칸이 요구 번호 · 요구 문장에도 맞는 케이스 — 이름 · 번호 맞추기는 SQL 이 한다 */
