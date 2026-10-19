@@ -3,7 +3,7 @@
 
 import type { FastifyInstance } from 'fastify';
 
-import { TECHNIQUES, type Technique } from '@platform/kit/types';
+import { type Platform, TECHNIQUES, type Technique } from '@platform/kit/types';
 
 import { 칸되는서비스 } from '../auth/permissions.js';
 import { 맥락조건읽기, 모르는종류, type 맥락글 } from './context.js';
@@ -42,6 +42,15 @@ export function 기법읽기(값: string | undefined): Technique | 'none' | unde
 
 const 모르는기법 = (값: string | undefined) => ({ error: 'BAD_TECHNIQUE', detail: `설계 기법 목록에 없는 값입니다 — ${String(값)}` });
 
+// 기법과 같은 까닭으로 모르는 값은 null — 예전에는 조용히 빼서 `?platform=android` 가 웹 케이스까지 냈다 (카탈로그 §7 · APP-F1-04)
+const 디바이스들: readonly Platform[] = ['desktop', 'mobile', 'android'];
+export function 디바이스읽기(값: string | undefined): Platform | undefined | null {
+  if (값 === undefined || 값 === '') return undefined;
+  return 디바이스들.find((p) => p === 값) ?? null;
+}
+
+const 모르는디바이스 = (값: string | undefined) => ({ error: 'BAD_PLATFORM', detail: `디바이스는 desktop · mobile · android 중 하나입니다 — ${String(값)}` });
+
 export default async function catalogRoutes(app: FastifyInstance): Promise<void> {
   기동훑기(app.log);
 
@@ -69,15 +78,16 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
       if (맥락 === null) return reply.code(400).send(모르는종류(req.query.axis));
       const last = 마지막읽기(req.query.last);
       if (last === null) return reply.code(400).send(모르는마지막(req.query.last));
+      const platform = 디바이스읽기(req.query.platform);
+      if (platform === null) return reply.code(400).send(모르는디바이스(req.query.platform));
 
       // 판정은 (실행, read) 몫이다 — 없으면 last 를 무시하고 셈도 안 낸다. 엑셀이 그 칸을 비우는 것과 같은 까닭 (카탈로그 §7)
       const 결과본다 = 칸되는서비스(req.user?.services ?? [], 'runs', 'read').includes(service);
-      const platform = req.query.platform;
       return listCases({
         ...맥락,
         service,
         q: req.query.q ?? '',
-        platform: platform === 'desktop' || platform === 'mobile' ? platform : undefined,
+        platform,
         activeOnly: req.query.active !== 'false',
         kind: 종류읽기(req.query.kind),
         technique,
@@ -101,17 +111,18 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
       if (맥락 === null) return reply.code(400).send(모르는종류(req.query.axis));
       const last = 마지막읽기(req.query.last);
       if (last === null) return reply.code(400).send(모르는마지막(req.query.last));
+      const platform = 디바이스읽기(req.query.platform);
+      if (platform === null) return reply.code(400).send(모르는디바이스(req.query.platform));
 
       // 문은 (케이스, read) 만 봤다. 실행·작성 기록은 그 칸이 따로 있어야 싣는다 — 케이스 read 만으로 새면 안 된다 (카탈로그 §7)
       const 되나 = (기능: 'runs' | 'authoring'): boolean =>
         칸되는서비스(req.user?.services ?? [], 기능, 'read').includes(service);
-      const platform = req.query.platform;
       const 자료 = await 엑셀자료({
         ...맥락,
         service,
         serviceId: 서비스.id,
         q: req.query.q ?? '',
-        platform: platform === 'desktop' || platform === 'mobile' ? platform : undefined,
+        platform,
         activeOnly: req.query.active !== 'false',
         kind: 종류읽기(req.query.kind),
         technique,

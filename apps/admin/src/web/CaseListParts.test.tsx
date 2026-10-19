@@ -13,7 +13,7 @@ import { TECHNIQUES, type Technique } from '@platform/kit/types';
 import type { CaseRow, JsonSchema } from './api.js';
 import { Empty } from './CaseListNotes.js';
 import { 표머리 } from './CaseListHead.js';
-import { 기법고르개, 케이스줄 } from './CaseListParts.js';
+import { 기법고르개, 조건칩들, 케이스줄 } from './CaseListParts.js';
 import { 말 } from './messages.js';
 
 afterEach(cleanup);
@@ -308,5 +308,22 @@ describe('빈 목록의 스캔 버튼', () => {
   it('조건 초기화는 스캔 길과 상관없이 선다', () => {
     render(<Empty 형편={{ scannedAt: '2026-09-21T00:00:00.000Z', 스캔문제: false, 전체건수: 3, 건조건: true, 친글자: 'x' }} onClear={vi.fn()} />);
     expect(screen.getByRole('button', { name: '조건 초기화' })).toBeTruthy();
+  });
+});
+
+describe('디바이스 칩 — 「Android 앱」은 앱 케이스가 있는 서비스에만 (APP-F1-04)', () => {
+  const 칩 = (앱있음: boolean, 디바이스: 'ALL' | 'android' = 'ALL') => {
+    render(<조건칩들 디바이스={디바이스} 앱있음={앱있음} 활성만 결과="ALL" 건수={null} on디바이스={vi.fn()} on활성만={vi.fn()} on결과={vi.fn()} />);
+    return screen.queryByRole('button', { name: 'Android 앱' });
+  };
+
+  it('앱 케이스가 없으면 칩이 없고, 있으면 선다', () => {
+    expect(칩(false)).toBeNull();
+    cleanup();
+    expect(칩(true)).toBeTruthy();
+  });
+
+  it('주소로 android 를 고른 채 들어오면 앱 케이스가 없어도 칩이 눌린 채 선다 — 고른 것을 감추지 않는다', () => {
+    expect(칩(false, 'android')?.getAttribute('aria-pressed')).toBe('true');
   });
 });

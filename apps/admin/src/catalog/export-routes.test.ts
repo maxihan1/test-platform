@@ -253,6 +253,13 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
     expect([목록.statusCode, 목록.json().error, 엑셀.statusCode, 엑셀.json().error]).toEqual([400, 'BAD_LAST', 400, 'BAD_LAST']);
   });
 
+  it('모르는 디바이스는 목록 · 엑셀 둘 다 400 BAD_PLATFORM · android 는 받는다', async () => {
+    const 목록 = await 목록받기('xcx-all', '&platform=ios');
+    const 엑셀 = await 받기('xcx-all', '&platform=ios');
+    const 앱 = await 목록받기('xcx-all', '&platform=android');
+    expect([목록.statusCode, 목록.json().error, 엑셀.statusCode, 엑셀.json().error, 앱.statusCode]).toEqual([400, 'BAD_PLATFORM', 400, 'BAD_PLATFORM', 200]);
+  });
+
   it('남의 서비스 · 케이스 read 없음은 403', async () => {
     const 남 = await app.inject({ method: 'GET', url: '/api/catalog/export?service=XCXO', cookies: { platform_session: 출입증.get('xcx-all')! } });
     expect(남.statusCode).toBe(403);
