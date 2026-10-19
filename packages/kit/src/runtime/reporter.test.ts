@@ -8,8 +8,9 @@ import type { TestCase, TestResult } from '@playwright/test/reporter';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runDir } from './artifacts.js';
-import { PROGRESS_MARKER, RESULT_MARKER, STEP_ATTACHMENT } from './protocol.js';
+import { DEVICE_ATTACHMENT, PROGRESS_MARKER, RESULT_MARKER, STEP_ATTACHMENT } from './protocol.js';
 import PlatformReporter, {
+  DEVICE_ATTACHMENT as REPORTER_DEVICE,
   moveTrace,
   RESULT_MARKER as REPORTER_MARKER,
   STEP_ATTACHMENT as REPORTER_ATTACHMENT,
@@ -20,6 +21,7 @@ describe('리포터가 들고 있는 표시자', () => {
   it('protocol.ts의 값과 같다', () => {
     expect(REPORTER_MARKER).toBe(RESULT_MARKER);
     expect(REPORTER_ATTACHMENT).toBe(STEP_ATTACHMENT);
+    expect(REPORTER_DEVICE).toBe(DEVICE_ATTACHMENT);
   });
 });
 
@@ -140,5 +142,29 @@ describe('리포터가 trace 를 스크린샷 옆으로 옮긴다', () => {
     const 줄 = String(쓰기.mock.calls.at(-1)?.[0]);
     expect(줄.startsWith(RESULT_MARKER)).toBe(true);
     expect(JSON.parse(줄.slice(RESULT_MARKER.length))).toMatchObject({ historyId: 77, status: 'PASS' });
+  });
+});
+
+describe('결과 줄의 기기 정보 (APP-F1-05)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const 끝줄 = (attachments: TestResult['attachments']) => {
+    const 쓰기 = vi.spyOn(process.stdout, 'write').mockReturnValue(true);
+    const result = { status: 'passed', duration: 3, attachments, annotations: [], errors: [], steps: [] } as unknown as TestResult;
+    new PlatformReporter().onTestEnd({ annotations: [] } as unknown as TestCase, result);
+    const 줄 = String(쓰기.mock.calls.at(-1)?.[0]);
+    return JSON.parse(줄.slice(RESULT_MARKER.length)) as Record<string, unknown>;
+  };
+
+  it('기기 첨부가 있으면 device 로 싣는다', () => {
+    const 기기 = { model: 'SM-G996N', osVersion: '14', appVersion: null };
+    const body = Buffer.from(JSON.stringify(기기));
+    expect(끝줄([{ name: DEVICE_ATTACHMENT, contentType: 'application/json', body }]).device).toEqual(기기);
+  });
+
+  it('없으면 device 칸이 없다 — 브라우저 항목', () => {
+    expect('device' in 끝줄([])).toBe(false);
   });
 });

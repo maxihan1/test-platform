@@ -62,6 +62,14 @@ export interface ExecuteResponse {
   durationMs: number;
   steps: StepResult[];
   error?: { message: string; stack?: string };
+  device?: DeviceInfo;          // android 만. Appium 연결이 열렸을 때 싣는다 (도메인/리포팅 §8.4 「증적 문서 머리말」 · APP-F1-05)
+}
+
+// 앱 항목을 돌린 폰과 앱의 판. 못 읽은 칸은 null 이다 — 지어내지 않는다
+export interface DeviceInfo {
+  model: string | null;         // 기기 모델 (예: SM-G996N)
+  osVersion: string | null;     // Android 판 (예: 14)
+  appVersion: string | null;    // 앱 versionName. Appium 을 adb_shell 허용으로 켰을 때만 읽힌다
 }
 
 // kit이 절차를 시작할 때 stdout으로 흘리는 것. 아직 흐른 시간이 없어 칸을 만들지 않는다

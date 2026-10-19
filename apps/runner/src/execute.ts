@@ -210,6 +210,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
       durationMs: parsed.durationMs,
       steps: parsed.steps,
       ...(parsed.error === undefined ? {} : { error: parsed.error }),
+      // 앱 항목의 폰 · 앱 판. 증적 머리에 싣는다 (도메인/리포팅 §8.4 · APP-F1-05)
+      ...(parsed.device === undefined ? {} : { device: parsed.device }),
     };
   }
 

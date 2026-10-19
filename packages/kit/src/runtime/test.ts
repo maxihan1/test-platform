@@ -9,13 +9,13 @@ import {
 } from '@playwright/test';
 
 import type { StepResult } from '../types.js';
-import { captureApp, closeApp, openApp, type AppDriver } from './app.js';
+import { captureApp, closeApp, openApp, readDevice, type AppDriver } from './app.js';
 import { saveShot } from './artifacts.js';
 import { runScope, type RunScope } from './context.js';
 import type { CaseHandle } from './defineCase.js';
 import { recordHttpTrace } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
-import { STEP_ATTACHMENT } from './protocol.js';
+import { DEVICE_ATTACHMENT, STEP_ATTACHMENT } from './protocol.js';
 import { registerScenarioCase, type ScenarioCaseRunner } from './scenario.js';
 import { 느린망 } from './slowApi.js';
 import { step, StopTest } from './step.js';
@@ -183,7 +183,18 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
         appSession: async ({}, use, testInfo) => {
           // 여는 중인 약속을 쥐어야 한다. 새 폰은 첫 연결에 도우미 앱을 깔아 오래 걸려, 열리는 도중 제한 시간이 오면 Appium 이 뒤늦게 세션을 만든다
           let opening: Promise<AppDriver> | undefined;
-          await use({ open: () => (opening ??= openApp(process.env)) });
+          // 기기 정보는 연 직후 한 번 남긴다 — 리포터가 결과 줄 device 로 싣는다 (도메인/리포팅 §8.4 · APP-F1-05)
+          const 열고남긴다 = async (): Promise<AppDriver> => {
+            const driver = await openApp(process.env);
+            // 여기서 던지면 열린 연결을 아무도 못 닫는다(opening 이 실패로 끝난다). 남기지 못한 것만 알린다
+            try {
+              await testInfo.attach(DEVICE_ATTACHMENT, { body: JSON.stringify(await readDevice(driver)), contentType: 'application/json' });
+            } catch (err) {
+              console.error(`[kit] 기기 정보를 남기지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+            }
+            return driver;
+          };
+          await use({ open: () => (opening ??= 열고남긴다()) });
           if (opening === undefined) return;
           let driver: AppDriver;
           try {
