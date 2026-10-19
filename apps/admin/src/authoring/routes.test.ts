@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 자료목록, 제출, 준비세우기 } from './assetStore.js';
 import authoringAgentRoutes from './agentRoutes.js';
@@ -50,6 +50,9 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
     };
     서비스 = await 만들기(접두사);
     남의서비스 = await 만들기(`${접두사}X`);
+    // 피그마 주소를 싣는 요청은 서버가 파일을 열어 본다 — 토큰이 있는 서비스(XWAR)와 없는 서비스(XWARX)를 둔다
+    await pool.query('UPDATE service SET figma_token = $2 WHERE id = $1', [서비스, 'figd_xwar-토큰']);
+    await pool.query("UPDATE service SET figma_token = '' WHERE id = $1", [남의서비스]);
     await pool.query('DELETE FROM authoring_request WHERE service_id = ANY($1)', [
       [서비스, 남의서비스],
     ]);
@@ -113,7 +116,10 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
   });
 
   describe('작성 요청은 DRAFT 로 서고 피그마 주소를 정규화한다 (2026-09-23)', () => {
+    afterEach(() => vi.unstubAllGlobals());
+
     it('「Copy link」 주소 그대로 넣으면 201 · DRAFT · 꼬리를 버린 주소가 저장된다', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
       const res = await app.inject({
         method: 'POST',
         url: `/api/authoring/requests?service=${접두사}`,
@@ -169,6 +175,60 @@ describe.skipIf(연결 === undefined)('작성 통로', () => {
       });
       expect(res.statusCode).toBe(200);
       expect(res.json().items.every((r: { status: string }) => r.status === 'DRAFT')).toBe(true);
+    });
+  });
+
+  describe('안 열리는 피그마 요청은 줄에 세우기 전에 거절한다 — 거절하면 DRAFT 도 안 남는다', () => {
+    const 주소 = 'https://www.figma.com/design/AbC123/?node-id=1-2';
+    afterEach(() => vi.unstubAllGlobals());
+
+    const 만들기 = (서비스접두사: string) =>
+      app.inject({
+        method: 'POST',
+        url: `/api/authoring/requests?service=${서비스접두사}`,
+        payload: { kind: 'AUTHOR', figma: [주소] },
+      });
+    const 열린수 = async (서비스번호: number) => {
+      const { pool } = await import('../db/index.js');
+      const r = await pool.query<{ n: string }>('SELECT count(*) AS n FROM authoring_request WHERE service_id = $1', [서비스번호]);
+      return Number(r.rows[0]!.n);
+    };
+
+    it('토큰이 없는 서비스는 피그마를 열어 보지도 않고 NO_TOKEN', async () => {
+      const 가짜 = vi.fn();
+      vi.stubGlobal('fetch', 가짜);
+      const 전 = await 열린수(남의서비스);
+      const res = await 만들기(`${접두사}X`);
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'FIGMA_DENIED', detail: 'NO_TOKEN' });
+      expect(가짜).not.toHaveBeenCalled();
+      expect(await 열린수(남의서비스)).toBe(전);
+    });
+
+    it('피그마가 토큰을 안 받으면 TOKEN', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('{"status":403,"err":"Invalid token"}', { status: 403 })));
+      const 전 = await 열린수(서비스);
+      const res = await 만들기(접두사);
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'FIGMA_DENIED', detail: 'TOKEN' });
+      expect(await 열린수(서비스)).toBe(전);
+    });
+
+    it('그 파일을 못 열면 FILE 과 정규화한 주소', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('{"status":404,"err":"Not found"}', { status: 404 })));
+      const res = await 만들기(접두사);
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'FIGMA_DENIED', detail: `FILE:${주소}` });
+    });
+
+    it('피그마가 답을 못 주면(5xx) 막지 않는다 — 201', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 503 })));
+      expect((await 만들기(접두사)).statusCode).toBe(201);
+    });
+
+    it('피그마 주소가 없으면 토큰이 없어도 만들어진다 — 파일만 올리는 요청', async () => {
+      const res = await app.inject({ method: 'POST', url: `/api/authoring/requests?service=${접두사}X`, payload: { kind: 'AUTHOR', figma: [] } });
+      expect(res.statusCode).toBe(201);
     });
   });
 

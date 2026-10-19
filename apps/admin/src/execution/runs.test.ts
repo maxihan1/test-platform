@@ -131,6 +131,7 @@ describe.skipIf(연결 === undefined)('실행 API', () => {
             color: '#3A5FCD',
             envs: [],
             hasSlackWebhook: false,
+            hasFigmaToken: false,
             testsDir: 'xbx',
             crawlExclude: [],
             permissions: { cases: 'write', runs: 실행칸, authoring: 'write' },

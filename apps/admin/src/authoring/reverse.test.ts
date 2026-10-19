@@ -1,7 +1,7 @@
 // 역방향 작성 요청 검사 — 시작 주소 · 만들기 · 줄 세우기 · 목록/상세 칸 · 집기 target · diffs (SPEC 도메인/작성 §3.6 「★ 역방향」 · §7)
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import authoringAgentRoutes from './agentRoutes.js';
 import assetRoutes from './assets.js';
@@ -72,6 +72,8 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
       [접두사, `${접두사} 역방향 검사용`],
     );
     서비스 = Number(r.rows[0]!.id);
+    // 피그마 주소를 싣는 요청은 서버가 파일을 열어 본다 (도메인/작성 §7 「자료」) — 토큰이 있어야 거기까지 간다
+    await pool.query('UPDATE service SET figma_token = $2 WHERE id = $1', [서비스, 'figd_xwv-토큰']);
     await pool.query('DELETE FROM authoring_request WHERE service_id = $1', [서비스]);
     await pool.query('DELETE FROM service_env WHERE service_id = $1', [서비스]);
     await pool.query(
@@ -218,7 +220,9 @@ describe.skipIf(연결 === undefined)('역방향 작성 요청', () => {
     });
 
     it('상세에 역방향 칸이 있고 자료마다 role·sourceAssetId 가 있다 — 계정은 없다', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
       const id = (await 만들기({ kind: 'AUTHOR', compare: true, env: 'qa', figma: ['https://www.figma.com/design/AbC123/'] })).json<{ id: number }>().id;
+      vi.unstubAllGlobals();
       const res = await app.inject({ method: 'GET', url: `/api/authoring/requests/${id}` });
       expect(res.json()).toMatchObject({
         compare: true,

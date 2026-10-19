@@ -55,6 +55,8 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
       서비스id,
       'https://hooks.slack.test/xfs1',
     ]);
+    await pool.query('UPDATE service SET figma_token = $2 WHERE id = $1', [서비스id, 'figd_xfs1-토큰']);
+    await pool.query("UPDATE service SET figma_token = '' WHERE id = $1", [웹훅없는서비스id]);
 
     await pool.query(
       `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, must_change_password, is_approved)
@@ -133,6 +135,13 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     const user = await 확인(await 가짜요청('xfu1-live'));
     expect(user?.services.find((s) => s.prefix === 'XFS1')?.hasSlackWebhook).toBe(true);
     expect(user?.services.find((s) => s.prefix === 'XFS1B')?.hasSlackWebhook).toBe(false);
+  });
+
+  it('피그마 토큰이 있는지만 알려준다 — 빈 글자는 없는 것이고 값은 어디에도 없다 (SPEC §7)', async () => {
+    const user = await 확인(await 가짜요청('xfu1-live'));
+    expect(user?.services.find((s) => s.prefix === 'XFS1')?.hasFigmaToken).toBe(true);
+    expect(user?.services.find((s) => s.prefix === 'XFS1B')?.hasFigmaToken).toBe(false);
+    expect(JSON.stringify(user)).not.toContain('figd_xfs1');
   });
 
   it('웹훅 주소 자체는 응답 어디에도 없다 (SPEC §7)', async () => {
