@@ -5,7 +5,7 @@ import { 피그마토큰 } from './store.js';
 /**
  * 거절 까닭. `FIGMA_DENIED` 의 detail 로 그대로 나간다.
  * - `NO_TOKEN` 서비스에 피그마 토큰이 없다
- * - `TOKEN` 피그마가 토큰을 받아 주지 않는다(틀렸거나 만료)
+ * - `TOKEN` 피그마가 토큰을 받아 주지 않는다(틀렸거나 만료됐거나 읽기 범위가 모자란 토큰)
  * - `FILE:<주소>` 토큰은 맞는데 그 파일을 못 연다(없거나 이 토큰으로 볼 권한이 없다)
  */
 export type 피그마막힘 = 'NO_TOKEN' | 'TOKEN' | `FILE:${string}`;

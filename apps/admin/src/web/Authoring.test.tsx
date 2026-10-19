@@ -95,6 +95,13 @@ describe('작성 줄 목록', () => {
 });
 
 // 작성 읽기면 새 작성 자리가 아예 없다 (화면공통 §8)
+describe('피그마 칸 잠금이 새 요청 폼까지 넘어간다', () => {
+  it('피그마토큰={false} 면 피그마 칸이 잠긴다', async () => {
+    render(<Authoring service="PAY" 피그마토큰={false} 할수={() => true} />);
+    expect((await screen.findByLabelText('피그마 주소')) as HTMLTextAreaElement).toHaveProperty('disabled', true);
+  });
+});
+
 describe('작성 권한 칸', () => {
   it('작성 쓰기면 새 작성 폼이 선다', async () => {
     render(<Authoring service="PAY" 할수={() => true} />);

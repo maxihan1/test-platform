@@ -254,8 +254,8 @@ export function 병합주소인가(주소: unknown, 저장소: string): boolean 
 /**
  * 그 서비스의 피그마 토큰. 없으면 null.
  *
- * **집기 라우트만 부른다.** 비밀값이라 설정 API 는 있는지만 알려 주고 값은 안 준다 (도메인/인증 §8.8).
- * 이 값이 서버 밖으로 나가는 길은 맥의 집기 응답 하나뿐이다.
+ * **집기 라우트와 요청 만들기의 미리 열어 보기(`figmaCheck.ts`)만 부른다.** 비밀값이라 설정 API 는 있는지만 알려 주고 값은 안 준다 (도메인/인증 §8.8).
+ * 이 값이 서버 밖으로 나가는 길은 둘이다 — 맥의 집기 응답, 그리고 `api.figma.com` 으로 보내는 열어 보기 요청(도메인/작성 §7 「자료」).
  */
 export async function 피그마토큰(서비스: number): Promise<string | null> {
   const pool = await db();
