@@ -41,8 +41,10 @@ export const UI케이스인가 = (tcId: string): boolean => /-UI-\d{3}$/.test(tc
  * 실행 기록에서 그 실행을 고른 주소 (도메인/실행 §8.7 「A안」).
  * `카드열기` 를 켜면 그 케이스의 실패 카드가 펼쳐진 채 열린다 — 대시보드 · 항목 상세에서 원인까지 곧장 내려가려고 (도메인/실행 §8.3)
  */
-export const 실행기록주소 = (tcId: string, runId: number, 카드열기 = false) =>
-  `#/runs/${UI케이스인가(tcId) ? 'ui' : 'fn'}?run=${String(runId)}${카드열기 ? `&tc=${encodeURIComponent(tcId)}` : ''}`;
+export function 실행기록주소(tcId: string, runId: number, 카드열기 = false): string {
+  const 주소 = `#/runs/${UI케이스인가(tcId) ? 'ui' : 'fn'}?run=${String(runId)}`;
+  return 카드열기 ? `${주소}&tc=${encodeURIComponent(tcId)}` : 주소;
+}
 
 /** 케이스 목록에서 그 케이스 상세를 편 주소 (CaseListFilter 의 `case` 조건) */
 export const 케이스주소 = (tcId: string) => `#/cases/${UI케이스인가(tcId) ? 'ui' : 'fn'}?case=${encodeURIComponent(tcId)}`;

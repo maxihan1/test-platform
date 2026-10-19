@@ -39,6 +39,7 @@ describe('use다시돌린결과', () => {
   it('이 실행을 다시 돌린 실행만 읽고 케이스마다 가장 새 결과를 잇는다', async () => {
     vi.spyOn(api, 'runs').mockResolvedValue({
       items: [줄(133, 100), 줄(132, 100), 줄(131, 77), 줄(130, 100, 'RUNNING')], total: 4, page: 1, pageSize: 20,
+      summary: { runs: 4, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 },
     });
     vi.spyOn(api, 'run').mockImplementation((id) =>
       Promise.resolve(id === 133 ? 실행(133, [항목('ZRS-001', 'PASS', 1)]) : 실행(132, [항목('ZRS-001', 'FAIL', 2), 항목('ZRS-002', 'FAIL', 3)])),
