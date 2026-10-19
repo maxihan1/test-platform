@@ -156,6 +156,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         PLATFORM_ARTIFACTS_DIR: 산출물폴더(),
         PLATFORM_OUTPUT_ID: 출력,
         PLATFORM_TRACE: traceEnv(req),
+        // 대상 서버마다 apk 가 다르다. 요청이 실으면 러너를 켤 때 준 값보다 앞선다 (러너 §5.2 「앱 실행」 · APP-F1-03)
+        ...(req.app !== undefined && { PLATFORM_APP: req.app }),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       // 타임아웃 때 브라우저까지 한 번에 끊으려면 자식이 자기 프로세스 그룹의 장이어야 한다 (kill.ts)

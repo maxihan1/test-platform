@@ -40,11 +40,13 @@ export interface 대상줄 {
   isProd: boolean;
   /** 일반 회원(위 두 칸) 다음 역할 계정. 실행 채우기와 집기 accounts 가 이 차례로 읽는다 */
   계정들: 역할계정[];
+  /** Android 앱 파일 경로(러너 컴퓨터 기준). 테스트 실행이 이 줄을 주소로 찾아 러너에 싣는다 (APP-F1-03) */
+  appPath: string | null;
 }
 
 type 묻기 = Pick<PoolClient, 'query'>;
-type 줄행 = { env: string; base_url: string; login_id: string | null; login_password: string | null; is_prod: boolean; role_accounts: unknown };
-const 줄칸 = 'env, base_url, login_id, login_password, is_prod, role_accounts';
+type 줄행 = { env: string; base_url: string; login_id: string | null; login_password: string | null; is_prod: boolean; role_accounts: unknown; app_path: string | null };
+const 줄칸 = 'env, base_url, login_id, login_password, is_prod, role_accounts, app_path';
 
 const 줄로 = (행: 줄행): 대상줄 => ({
   env: 행.env,
@@ -53,6 +55,7 @@ const 줄로 = (행: 줄행): 대상줄 => ({
   loginPassword: 행.login_password,
   isProd: 행.is_prod,
   계정들: [{ role: 기본역할, loginId: 행.login_id, loginPassword: 행.login_password }, ...역할계정읽기(행.role_accounts)],
+  appPath: 행.app_path,
 });
 
 // 풀은 쓸 때 가져온다 — DATABASE_URL 없이 도는 검사가 이 파일의 순수 함수를 import 한다

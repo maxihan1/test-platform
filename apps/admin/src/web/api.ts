@@ -435,6 +435,8 @@ export interface EnvRow {
   /** 크롤러가 정한 화면 크기 판정과 그 시각. 훑기 전 · 주소를 바꾼 줄은 null 이다. 설정 화면만 받는다 (PRD-F10-08) */
   viewportKind?: 서비스판정 | null;
   viewportJudgedAt?: string | null;
+  /** Android 앱 파일 경로(러너가 도는 PC 기준). null 이면 러너 환경값 PLATFORM_APP. 설정 화면만 받는다 (APP-F1-03) */
+  appPath?: string | null;
 }
 
 /** 설정 「화면 크기」 의 화면별 차이 — PC 와 모바일이 다른 화면만 앞 200장까지 오고 전체 수(differ) · 같은 화면 수(same)는 따로 온다 (도메인/인증 §7) */
@@ -456,6 +458,8 @@ export interface EnvInput {
   isProd?: boolean;
   /** 보내면 그 목록으로 바꾼다. 역할 이름이 같은 줄은 서버가 옛 아이디 · 비밀번호를 같은 규칙으로 이어받는다 */
   accounts?: { role: string; loginId?: string | null; loginPassword?: string | null }[];
+  /** 계정 칸과 같다 — 키가 없으면 지금 것을 유지하고 null · 빈 글자면 지운다 */
+  appPath?: string | null;
 }
 
 // 맨 위 띠의 서비스 목록이 이것이다. 배정받은 것만 온다 (SPEC §7 · §8)

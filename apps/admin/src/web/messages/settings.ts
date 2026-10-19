@@ -80,6 +80,10 @@ export const 설정말: Record<string, string> = {
     'Test accounts are used to sign in when running and authoring tests. Checking Production server excludes it from test authoring and screen exploration',
   '운영 서버': 'Production server',
   '대상 서버 {번호} 운영 서버': 'Target server {번호} is production',
+  '대상 서버 {번호} 앱 파일 경로': 'Target server {번호} app file path',
+  '앱 파일 경로 (Android 앱만)': 'App file path (Android apps only)',
+  '앱 파일 경로는 Android 앱 케이스를 돌릴 때 설치할 apk 입니다. 러너가 도는 PC 의 경로이고 비우면 러너를 켤 때 준 PLATFORM_APP 을 씁니다':
+    'The app file path is the apk installed when Android app cases run. It is a path on the PC the runner runs on. Leave it empty to use PLATFORM_APP given when the runner started',
   '역할 이름': 'Role name',
   '+ 역할 추가': '+ Add role',
   '대상 서버 {번호} 역할 추가': 'Add a role to target server {번호}',

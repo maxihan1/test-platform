@@ -25,6 +25,7 @@ const executeRequest = z.object({
   params: z.record(z.string(), z.unknown()),
   expected: z.record(z.string(), z.unknown()),
   timeoutMs: z.number().int().positive().default(300_000),
+  app: z.string().min(1).optional(),
 });
 
 // `//host` 는 / 로 시작해도 다른 호스트로 풀린다. 대상 주소 밖으로 못 나가게 여기서 막는다

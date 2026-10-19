@@ -34,6 +34,8 @@ const 대상서버 = z.object({
   loginPassword: z.string().nullable().optional(),
   isProd: z.boolean().optional(),
   accounts: z.array(역할계정).optional(),
+  // 러너 컴퓨터의 apk 경로라 모양을 따지지 않는다 — Appium 이 못 찾으면 그 실행이 실패 사유로 말한다 (APP-F1-03)
+  appPath: z.string().max(1000).nullable().optional(),
 });
 
 // 한 줄이라도 어긋나면 저장 전체를 막는다. 어느 줄인지는 싣지 않는다 — 화면이 보내기 전에 같은 규칙으로 짚는다
