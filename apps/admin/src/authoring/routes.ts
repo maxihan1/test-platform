@@ -202,7 +202,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
     },
   );
 
-  app.get<{ Querystring: { service?: string; status?: string; discarded?: string; page?: string } }>(
+  app.get<{ Querystring: { service?: string; status?: string; discarded?: string; todo?: string; page?: string } }>(
     '/authoring/requests',
     async (req, reply) => {
       const 서비스 = await 서비스번호(req, reply);
@@ -219,6 +219,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         서비스,
         상태,
         폐기: req.query.discarded === '1',
+        할일만: req.query.todo === '1',
         쪽: Math.max(1, Number(req.query.page ?? 1) || 1),
       });
     },

@@ -5,6 +5,7 @@ import type { PoolClient } from 'pg';
 import { 사슬식, 최신식 } from './chainSql.js';
 import { db, 빚기, 칸들, type 상태, type 요청, type 행 } from './store.js';
 import { 밖화면뿌리 } from './params.js';
+import { 남은손들, 반영할일, 자료이름들, 할일남았나, 할일없음, type 자료이름, type 할일 } from './listTodo.js';
 
 // 사슬 · 최신 SQL 은 chainSql.ts 로 옮겼다(집기가 가져오기 고리 없이 쓰게). 부르는 쪽 import 는 그대로 둔다
 export { 사슬식, 최신식 };
@@ -142,7 +143,15 @@ export async function 뿌리잠그고<T>(뿌리번호: number, 일: (손: PoolCl
 }
 
 // rootKind — 줄의 kind 는 최신 실행 것이라 반영 · 다시 적용 뒤에는 뿌리가 작성인지 고치기인지 안 보인다 (§7 목록)
-export type 요약 = Omit<요청, 'specText'> & { rootId: number; runCount: number; rootKind: 요청['kind']; uncoveredOf: number | null };
+// assets · todo — 목록 줄 제목과 할 일 칩 (2026-10-19 ⑫ · 점검 11.1 · 11.2)
+export type 요약 = Omit<요청, 'specText'> & {
+  rootId: number;
+  runCount: number;
+  rootKind: 요청['kind'];
+  uncoveredOf: number | null;
+  assets: 자료이름 | null;
+  todo: 할일;
+};
 
 const 요약칸들 = 칸들
   .replace('spec_text, ', '')
@@ -159,6 +168,8 @@ export async function 한쪽(입력: {
   상태?: 상태;
   // 참이면 폐기한 것만, 아니면 폐기한 것을 뺀다
   폐기?: boolean;
+  // 참이면 todo 가 하나라도 남은 뿌리만
+  할일만?: boolean;
   쪽: number;
   크기?: number;
 }): Promise<{ items: 요약[]; total: number; page: number; pageSize: number }> {
@@ -181,17 +192,33 @@ export async function 한쪽(입력: {
        ORDER BY 사슬.root_id, a.id DESC
     )`;
 
-  const 셈 = await pool.query<{ n: string }>(`${최신} SELECT count(*) AS n FROM 최신 WHERE ${조건}`, 값들);
-  // **건너뛸 개수를 질의문 글자에 끼워 넣지 않는다.** 지금은 숫자로 걸러지므로 주입은 아니지만,
-  // 다음 사람이 여기에 문자열을 하나 더 얹으면 그때는 진짜 주입이 된다 (2026-09-22 보안 검토)
-  const r = await pool.query<Omit<행, 'spec_text'> & { root_id: string; run_count: string; root_continue_from: string | null; root_kind: 요청['kind']; root_uncovered_of: unknown }>(
-    `${최신} SELECT * FROM 최신 WHERE ${조건}
-      ORDER BY id DESC
-      LIMIT $${값들.length + 1} OFFSET $${값들.length + 2}`,
-    [...값들, 크기, (쪽 - 1) * 크기],
-  );
+  type 줄 = Omit<행, 'spec_text'> & { root_id: string; run_count: string; root_continue_from: string | null; root_kind: 요청['kind']; root_uncovered_of: unknown };
+  let 줄들: 줄[];
+  let 전체: number;
+  let 덧: Awaited<ReturnType<typeof 덧칸>>;
+  if (입력.할일만 === true) {
+    // ponytail: todo 는 보류 칸 모양까지 봐야 해서 SQL 로 못 거른다 — 서비스의 뿌리를 다 읽어 JS 로 거른 뒤 자른다. 뿌리가 수천을 넘으면 칸을 따로 둔다
+    const 모두 = await pool.query<줄>(`${최신} SELECT * FROM 최신 WHERE ${조건} ORDER BY id DESC`, 값들);
+    덧 = await 덧칸(모두.rows);
+    const 남은 = 모두.rows.filter((x) => 할일남았나(덧.todo(x)));
+    전체 = 남은.length;
+    줄들 = 남은.slice((쪽 - 1) * 크기, 쪽 * 크기);
+  } else {
+    const 셈 = await pool.query<{ n: string }>(`${최신} SELECT count(*) AS n FROM 최신 WHERE ${조건}`, 값들);
+    전체 = Number(셈.rows[0]!.n);
+    // **건너뛸 개수를 질의문 글자에 끼워 넣지 않는다.** 지금은 숫자로 걸러지므로 주입은 아니지만,
+    // 다음 사람이 여기에 문자열을 하나 더 얹으면 그때는 진짜 주입이 된다 (2026-09-22 보안 검토)
+    const r = await pool.query<줄>(
+      `${최신} SELECT * FROM 최신 WHERE ${조건}
+        ORDER BY id DESC
+        LIMIT $${값들.length + 1} OFFSET $${값들.length + 2}`,
+      [...값들, 크기, (쪽 - 1) * 크기],
+    );
+    줄들 = r.rows;
+    덧 = await 덧칸(줄들);
+  }
   return {
-    items: r.rows.map((x) => {
+    items: 줄들.map((x) => {
       const { specText: _본문, ...나머지 } = 빚기({ ...x, spec_text: null });
       // 이어 작성은 뿌리(AUTHOR)에만 붙는다 — 줄의 다른 칸은 최신 실행 것이지만 이 칸은 뿌리 것을 싣는다
       const continueFrom = x.root_continue_from === null ? null : Number(x.root_continue_from);
@@ -202,10 +229,26 @@ export async function 한쪽(입력: {
         runCount: Number(x.run_count),
         rootKind: x.root_kind,
         uncoveredOf: 밖화면뿌리(x.root_uncovered_of),
+        assets: 덧.자료.get(Number(x.root_id)) ?? null,
+        todo: 덧.todo(x),
       };
     }),
-    total: Number(셈.rows[0]!.n),
+    total: 전체,
     page: 쪽,
     pageSize: 크기,
+  };
+}
+
+/** 줄들의 자료 이름과 할 일 — 폐기한 뿌리는 할 일이 없다 */
+async function 덧칸(줄들: { root_id: string; kind: 요청['kind']; status: 상태; discarded_at: Date | null }[]): Promise<{
+  자료: Map<number, 자료이름>;
+  todo: (x: { root_id: string; kind: 요청['kind']; status: 상태; discarded_at: Date | null }) => 할일;
+}> {
+  const 뿌리들 = 줄들.map((x) => Number(x.root_id));
+  const [자료, 손] = await Promise.all([자료이름들(뿌리들), 남은손들(뿌리들.filter((_, i) => 줄들[i]!.discarded_at === null))]);
+  return {
+    자료,
+    todo: (x) =>
+      x.discarded_at !== null ? 할일없음 : { ...(손.get(Number(x.root_id)) ?? 할일없음), apply: 반영할일(x) },
   };
 }
