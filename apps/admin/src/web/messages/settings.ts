@@ -46,8 +46,6 @@ export const 설정말: Record<string, string> = {
   '결제 서비스': 'Payments',
   '테스트 폴더': 'Tests folder',
   '플랫폼이 테스트 스크립트를 읽어 오는 폴더입니다': 'The folder the platform reads test scripts from',
-  '테스트 저장소': 'Tests repository',
-  '기록용 항목입니다. 플랫폼이 이 저장소를 내려받지는 않습니다': 'For reference only. The platform does not download it',
   '탐색 제외 경로': 'Excluded paths',
   '한 줄에 하나씩 /로 시작하게 적습니다. 실제 화면과 대조해 테스트를 만들 때 이 경로와 하위 화면은 탐색하지 않습니다. 비워 두면 모든 화면을 탐색합니다':
     'One per line, starting with /. When building tests against the live screens, these paths and everything under them are not explored. Leave it empty to explore every screen',
@@ -76,10 +74,10 @@ export const 설정말: Record<string, string> = {
   '대상 서버 {번호} 비밀번호 변경': 'Change target server {번호} password',
   '대상 서버 {번호} 비밀번호 삭제': 'Delete target server {번호} password',
   '대상 서버 {번호} 비밀번호 변경 취소': 'Cancel changing target server {번호} password',
-  '테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 운영 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다':
-    'Test accounts are used to sign in when running and authoring tests. Checking Production server excludes it from test authoring and screen exploration',
-  '운영 서버': 'Production server',
-  '대상 서버 {번호} 운영 서버': 'Target server {번호} is production',
+  '테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다':
+    'Test accounts are used to sign in when running and authoring tests. Checking Live service server excludes it from test authoring and screen exploration',
+  '실서비스 서버': 'Live service server',
+  '대상 서버 {번호} 실서비스 서버': 'Target server {번호} is a live service server',
   '대상 서버 {번호} 앱 파일 경로': 'Target server {번호} app file path',
   '앱 파일 경로 (Android 앱만)': 'App file path (Android apps only)',
   '앱 파일 경로는 Android 앱 케이스를 돌릴 때 설치할 apk 입니다. 러너가 도는 PC 의 경로이고 비우면 러너를 켤 때 준 PLATFORM_APP 을 씁니다':
@@ -109,6 +107,8 @@ export const 설정말: Record<string, string> = {
   '대상 서버 {번호} 주소': 'Target server {번호} URL',
   '대상 서버 {번호} 삭제': 'Delete target server {번호}',
   '+ 대상 서버 추가': '+ Add target server',
+  '주소': 'URL',
+  'PRD 가 기다리는 역할: {역할}': 'Roles the PRD is waiting for: {역할}',
   '빼기': 'Remove',
   '등록된 서버가 없으면 테스트를 실행할 수 없습니다': 'Tests cannot run until a server is registered',
 
@@ -149,6 +149,11 @@ export const 설정말: Record<string, string> = {
   '실행§권한': 'Runs',
   '작성': 'Authoring',
   '대시보드': 'Dashboard',
+  '그래프(Grafana)': 'Graphs (Grafana)',
+  '권한 묶음': 'Preset',
+  '읽기 전용': 'Read only',
+  '작성자': 'Author',
+  '실행자': 'Runner',
   '안 씀': 'Off',
   '읽기': 'Read',
   '쓰기': 'Write',
@@ -156,12 +161,13 @@ export const 설정말: Record<string, string> = {
   '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.':
     'All three set to Off cannot be saved. To unassign, turn the service off.',
   '먼저 서비스를 만듭니다': 'Create a service first',
-  '배정받지 않은 서비스는 그 사람의 띠에 뜨지 않습니다': 'Services not assigned do not show up in their bar',
+  '배정받지 않은 서비스는 그 사람의 서비스 선택 목록에 뜨지 않습니다': 'Services not assigned do not show up in their service picker',
   '비밀번호는 시스템이 만듭니다. 만든 직후': 'The system generates the password. It is shown',
   '한 번만': 'only once',
   '보여 줍니다': 'right after the account is created',
   '비밀번호 재발급': 'Reissue password',
-  '자기 비밀번호는 사이드바의 「비밀번호 변경」에서 바꿉니다': 'Change your own password with "Change password" in the sidebar',
+  '자기 비밀번호는 맨 위 오른쪽 이름을 눌러 나오는 「비밀번호 변경」에서 바꿉니다':
+    'Change your own password with "Change password" in the menu under your name at the top right',
   '한 번 더 누르면 지금 비밀번호가 무효가 됩니다': 'Press once more and the current password stops working',
 
   // 임시 비밀번호 상자 — `<b>` 와 `<code>` 가 사이에 끼어 조각으로 나뉜다
@@ -186,8 +192,7 @@ export const 설정말: Record<string, string> = {
   '취소한다': 'Revoke now',
   '그만두기': 'Never mind',
   '의 에이전트 토큰입니다. 선택해 복사하세요': "'s agent token. Select it to copy",
-  '맥 에이전트 첫 실행에서 한 번 붙여넣습니다. 방법은 docs/SETUP.md 8절':
-    'Paste it once on the Mac agent first run. See docs/SETUP.md section 8',
+  '맥 에이전트를 처음 켤 때 한 번 붙여넣습니다': 'Paste it once when you first start the Mac agent',
   // 설정 안 메뉴와 서비스 구획 (2026-10-09 UI 개편 묶음 4 시안 A)
   '설정 메뉴': 'Settings menu',
   '+ 서비스 추가': '+ Add service',
@@ -207,6 +212,9 @@ export const 설정말: Record<string, string> = {
   '기획서와 피그마로 테스트 스크립트를 만들 때만 사용합니다. 실행에는 영향을 주지 않습니다':
     'Only used when building test scripts from specs and Figma. Runs are not affected',
   '서비스 비활성화': 'Deactivate service',
+  '비활성화한다': 'Deactivate now',
+  '서비스 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다':
+    'It disappears from the service picker. Run history and cases are kept',
   '비활성화하면 서비스 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다':
     'Once deactivated, it disappears from the service picker. Run history and scripts are kept',
 

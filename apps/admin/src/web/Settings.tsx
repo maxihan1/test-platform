@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
 import { Head } from './Head.js';
+import { 고른서비스를읽는다 } from './layout.js';
 import { 떠나기로했다 } from './leaveGuard.js';
 import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
@@ -54,7 +55,10 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
 
   const 서비스들 = services.data.items;
   // 접두사는 늘 대문자다. 손으로 친 소문자 주소도 그 서비스를 연다 — 메뉴 낱말(users · pending · new)만 그대로 둔다
-  const 고른 = 자리 === undefined ? (서비스들[0]?.prefix ?? 'new') : 메뉴낱말.has(자리) ? 자리 : 자리.toUpperCase();
+  // 주소에 자리가 없으면 맨 위에서 고른 서비스로 연다. 그 서비스가 목록에 없으면 첫 서비스다 (점검 N13)
+  const 헤더서비스 = 서비스들.find((it) => it.prefix === 고른서비스를읽는다())?.prefix;
+  const 고른 =
+    자리 === undefined ? (헤더서비스 ?? 서비스들[0]?.prefix ?? 'new') : 메뉴낱말.has(자리) ? 자리 : 자리.toUpperCase();
   const 서비스 = 서비스들.find((it) => it.prefix === 고른);
   const 대기수 = users.data.items.filter((it) => it.isApproved === false).length;
   // 서비스는 자기 것인지 가리지 않고 늘 다시 읽는다 — 이름·색·대상 서버·웹훅이 전부 /auth/me 에 실려 띠와 실행 창으로 간다.
@@ -93,10 +97,12 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
             <div className="empty">{t('그런 서비스가 없습니다')}</div>
           ) : (
             // 서비스마다 · 저장할 때마다 새로 그린다 — 앞 서비스에서 적다 만 글자가 다른 서비스 칸에 남으면 남의 서비스에 저장된다
-            <>
-              {저장한곳 === 서비스.prefix ? <p className="hint set-saved" role="status">{t('저장했습니다')}</p> : null}
-              <ServicePanel key={`${서비스.id}-${판}`} row={서비스} onDone={(접두사) => void 서비스다시(접두사, false)} />
-            </>
+            <ServicePanel
+              key={`${서비스.id}-${판}`}
+              row={서비스}
+              저장했다={저장한곳 === 서비스.prefix}
+              onDone={(접두사) => void 서비스다시(접두사, false)}
+            />
           )}
         </div>
       </div>

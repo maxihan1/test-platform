@@ -109,8 +109,20 @@ export function 비밀번호칸<T extends 비밀번호상태>({
 }
 
 /** 한 대상 서버 줄의 역할 계정들과 「역할 추가」. 역할 이름은 케이스의 `account` 꼬리표와 글자로 잇는다 (작성 §3.6) */
-export function 역할계정칸들({ 역할들, 번호, 고친다 }: { 역할들: 역할줄[]; 번호: number; 고친다: (next: 역할줄[]) => void }) {
+export function 역할계정칸들({
+  역할들,
+  번호,
+  고친다,
+  제안,
+}: {
+  역할들: 역할줄[];
+  번호: number;
+  고친다: (next: 역할줄[]) => void;
+  /** 역할 이름 칸에 띄울 제안. 케이스의 `account` 꼬리표와 글자가 한 글자라도 다르면 보류가 안 풀려서 고르게 한다 */
+  제안: { id: string; PRD역할: string[]; 다른줄: string[] };
+}) {
   const t = use말();
+  const 후보 = [...new Set([...제안.PRD역할, ...제안.다른줄])].filter((r) => r !== '');
   const 바꾼다 = (k: number, next: 역할줄) => 고친다(역할들.map((r, i) => (i === k ? next : r)));
   return (
     <>
@@ -123,6 +135,7 @@ export function 역할계정칸들({ 역할들, 번호, 고친다 }: { 역할들
               autoComplete="off"
               value={r.role}
               placeholder={t('역할 이름')}
+              list={제안.id}
               aria-label={t('대상 서버 {번호} 역할 {순번} 이름', 자리)}
               onChange={(e) => 바꾼다(k, { ...r, role: e.target.value })}
             />
@@ -157,6 +170,16 @@ export function 역할계정칸들({ 역할들, 번호, 고친다 }: { 역할들
           </div>
         );
       })}
+      <datalist id={제안.id}>
+        {후보.map((r) => (
+          <option key={r} value={r} />
+        ))}
+      </datalist>
+      {제안.PRD역할.length === 0 ? null : (
+        <div className="set-env-login">
+          <div className="hint">{t('PRD 가 기다리는 역할: {역할}', { 역할: 제안.PRD역할.join(' · ') })}</div>
+        </div>
+      )}
       <div className="set-env-login">
         <button
           className="btn ghost"

@@ -5,7 +5,9 @@ import { 운영이름인가 } from '../settings/roles.js';
 
 import type { EnvInput, EnvRow } from './api.js';
 import { use말 } from './i18n.js';
+import { prdApi } from './prdApi.js';
 import { 비밀번호칸, 역할계정칸들, 역할보낼모양, 역할줄로, type 역할줄 } from './SettingsEnvAccounts.js';
+import { useAsync } from './ui.js';
 
 /**
  * 편집 중인 대상 서버 한 줄.
@@ -70,11 +72,30 @@ const 이름바꿈 = (it: 줄): boolean => {
 
 /** 대상 서버는 여러 줄이다. 환경변수 한 줄로는 서비스가 셋만 되어도 안 들어간다 (SPEC §8.8) */
 /** 「대상 서버」 구획 안에 선다 — 구획 제목이 칸 이름을 이미 말해 라벨 열 없이 한 줄을 다 쓴다 (도메인/인증 §8.8) */
-export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: 줄[]) => void }) {
+export function EnvEditor({ envs, onChange, 접두사 }: { envs: 줄[]; onChange: (next: 줄[]) => void; 접두사?: string }) {
   const t = use말();
+  // PRD 가 기다리는 역할은 역할 이름 칸의 제안이다. 새 서비스 · 권한 없음 · PRD 없음은 제안이 없을 뿐 오류가 아니라 조용히 비운다 —
+  // 제안은 덤이고 직접 쳐서 넣는 길이 그대로 있다 (점검 14.2)
+  const PRD역할 = useAsync<string[]>(
+    () =>
+      접두사 === undefined
+        ? Promise.resolve([])
+        : prdApi
+            .now(접두사)
+            .then(({ held }) => [...held.roles.filter((r) => !r.registered), ...held.roles.filter((r) => r.registered)].map((r) => r.role))
+            .catch(() => []),
+    [접두사],
+  ).data ?? [];
   return (
     <div className="field field-wide">
       <div className="set-envs" role="group" aria-label={t('대상 서버 목록')}>
+        {envs.length === 0 ? null : (
+          // 칸 이름은 맨 위 한 번만 쓴다. 줄마다 쓰면 줄이 길어진다 (점검 14.8)
+          <div className="set-env set-env-head" aria-hidden="true">
+            <span>{t('이름')}</span>
+            <span>{t('주소')}</span>
+          </div>
+        )}
         {envs.map((it, i) => (
           // 줄을 빼면 뒤 줄이 DOM 을 물려받는다. 값은 state 가 쥐고 있어 안 틀리지만
           // 한글을 조합하는 중에 빼면 조합하던 글자가 엉뚱한 줄에 남는다
@@ -105,10 +126,10 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
               <input
                 type="checkbox"
                 checked={it.isProd ?? 운영이름인가(it.env)}
-                aria-label={t('대상 서버 {번호} 운영 서버', { 번호: i + 1 })}
+                aria-label={t('대상 서버 {번호} 실서비스 서버', { 번호: i + 1 })}
                 onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, isProd: e.target.checked } : v)))}
               />
-              {t('운영 서버')}
+              {t('실서비스 서버')}
             </label>
             <div className="set-env-login">
               <input
@@ -124,6 +145,12 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
             <역할계정칸들
               역할들={it.역할들}
               번호={i + 1}
+              제안={{
+                id: `role-opts-${접두사 ?? 'new'}-${String(i + 1)}`,
+                PRD역할,
+                // 같은 서비스의 다른 대상 서버 줄에 이미 쓴 이름. 한 글자라도 다르면 다른 역할이다
+                다른줄: envs.flatMap((v, k) => (k === i ? [] : v.역할들.map((r) => r.role.trim()))),
+              }}
               고친다={(역할들) => onChange(envs.map((v, k) => (k === i ? { ...v, 역할들 } : v)))}
             />
           </div>
@@ -140,7 +167,7 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
           <div className="hint">{t('등록된 서버가 없으면 테스트를 실행할 수 없습니다')}</div>
         ) : (
           <>
-            <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 운영 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
+            <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
             <div className="hint">{t('앱 파일 경로는 Android 앱 케이스를 돌릴 때 설치할 apk 입니다. 러너가 도는 PC 의 경로이고 비우면 러너를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
           </>
         )}
@@ -151,7 +178,7 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
 
 /**
  * 한 줄의 일반 회원 계정 — 케이스의 `account` 꼬리표가 없는 칸이 이것을 쓴다 (작성 §3.6 「★ 역할별 계정」).
- * 아이디·비밀번호가 둘 다 있고 운영 서버가 아닌 줄만 작성(역방향 · 반영)이 고를 수 있다.
+ * 아이디·비밀번호가 둘 다 있고 실서비스 서버가 아닌 줄만 작성(역방향 · 반영)이 고를 수 있다.
  * **자동완성을 끈다** — 브라우저가 이 관리 화면의 로그인 비밀번호를 채워 넣으면 플랫폼 계정이 테스트 계정으로 저장된다
  */
 function 계정칸({ 줄: it, 번호, 고친다 }: { 줄: 줄; 번호: number; 고친다: (next: 줄) => void }) {

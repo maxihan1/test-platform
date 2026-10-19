@@ -1,7 +1,7 @@
-// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · 화면 크기 · 정기 실행 · 실행 알림 · 테스트 작성 · 서비스 비활성화 구획
+// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · 정기 실행 · 실행 알림 · 테스트 작성 · 화면 크기 · 서비스 비활성화 구획
 // 지우지 않는다 — 비활성으로 내릴 뿐이다. 지우면 그 서비스로 돌린 과거 증적이 흔들린다
 
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 
 import { api, ApiError, type ScheduleSetting, type SettingsServiceRow } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
@@ -11,13 +11,13 @@ import {
   서비스못보내는이유,
   설정오류문장,
   접두사사유,
-  웹훅칸,
   제외경로값,
   피그마설정주소,
 } from './settingsView.js';
 import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
 import { ScheduleFields } from './SettingsSchedule.js';
+import { 구획, 비밀칸 } from './SettingsServiceParts.js';
 import { ViewportSection } from './SettingsViewport.js';
 import { message } from './ui.js';
 
@@ -26,15 +26,17 @@ import { message } from './ui.js';
  * 앞 판은 목록 줄을 펴면 칸 열 개가 한 줄로 이어져 무슨 설정인지 안 읽혔다(2026-10-07 사용자)
  *
  * @param onDone 저장했다. 접두사를 넘긴다 — 새로 만들었으면 그 서비스로 옮겨 간다
+ * @param 저장했다 방금 저장해 새로 읽은 칸이다. 저장 단추 곁에 「저장했습니다」를 보인다
  */
-export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone: (접두사: string) => void }) {
+export function ServicePanel({ row, onDone, 저장했다 = false }: { row?: SettingsServiceRow; onDone: (접두사: string) => void; 저장했다?: boolean }) {
   const t = use말();
   // 아래 판단 넷은 순수 모듈에 있어 훅을 못 쓴다. 언어를 여기서 꺼내 넘긴다
   const 언어 = use언어();
   const 새것 = row === undefined;
   const [prefix, setPrefix] = useState(row?.prefix ?? '');
   const [name, setName] = useState(row?.name ?? '');
-  const [testsRepo, setTestsRepo] = useState(row?.testsRepo ?? '');
+  // 화면에서는 뺐다(점검 14.8). 서버가 이 칸을 요구해서 새 서비스는 빈 글자, 고치기는 받은 값을 되돌려 보낸다
+  const testsRepo = row?.testsRepo ?? '';
   const [testsDir, setTestsDir] = useState(row?.testsDir ?? '');
   const [envs, setEnvs] = useState<줄[]>(() => 줄로(row?.envs ?? []));
   const [제외, set제외] = useState((row?.crawlExclude ?? []).join('\n'));
@@ -44,8 +46,9 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
   const [schedule, setSchedule] = useState<ScheduleSetting | null>(row?.schedule ?? null);
   const [보내는중, set보내는중] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [비활성확인, set비활성확인] = useState(false);
   // 적다 만 것이 있으면 설정 메뉴 · 다른 화면으로 떠나기 전에 묻는다(점검 14.1). 처음 그린 값과 견준다
-  const 지금칸 = JSON.stringify({ prefix, name, testsRepo, testsDir, envs, 제외, webhook, figma, schedule });
+  const 지금칸 = JSON.stringify({ prefix, name, testsDir, envs, 제외, webhook, figma, schedule });
   const [처음칸] = useState(지금칸);
   // 저장한 칸. 칸이 새로 읽은 값으로 다시 그려지기 전에도(다시 읽기 실패 포함) 저장한 것을 두고는 묻지 않는다
   const [보낸칸, set보낸칸] = useState<string | null>(null);
@@ -87,9 +90,10 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
     }
   }
 
-  /** 활성 여부만 뒤집는다. 적다 만 것은 저장하지 않으므로 그 사실을 먼저 알린다 */
+  /** 활성 여부만 뒤집는다. 내릴 때는 확인을 한 번 거친다 */
   async function 활성을뒤집는다() {
     if (row === undefined) return;
+    set비활성확인(false);
     set보내는중(true);
     setErr(null);
     try {
@@ -162,31 +166,11 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
             <div className="hint">{t('플랫폼이 테스트 스크립트를 읽어 오는 폴더입니다')}</div>
           </div>
         </div>
-
-        <div className="field">
-          <label htmlFor="sf-repo">{t('테스트 저장소')}</label>
-          <div>
-            <input
-              id="sf-repo"
-              type="text"
-              value={testsRepo}
-              onChange={(e) => setTestsRepo(e.target.value)}
-              placeholder="https://github.com/..."
-            />
-            <div className="hint">{t('기록용 항목입니다. 플랫폼이 이 저장소를 내려받지는 않습니다')}</div>
-          </div>
-        </div>
       </구획>
 
       <구획 제목={t('대상 서버')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
-        <EnvEditor envs={envs} onChange={setEnvs} />
+        <EnvEditor envs={envs} onChange={setEnvs} 접두사={row?.prefix} />
       </구획>
-
-      {새것 ? null : (
-        <구획 제목={t('화면 크기')} 쓰임={t('테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지 모바일도 같이 만들지 이 판정으로 정합니다')}>
-          <ViewportSection serviceId={row.id} envs={row.envs} />
-        </구획>
-      )}
 
       {/* 새 서비스에는 없다 — 케이스가 없는 서비스라 돌릴 것이 없다 (도메인/인증 §8.8) */}
       {새것 ? null : (
@@ -225,6 +209,7 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
       {err === null ? null : <div className="err">{err}</div>}
 
       <div className="set-foot">
+        {저장했다 ? <span className="hint set-saved" role="status">{t('저장했습니다')}</span> : null}
         {/* 버튼은 살아 있고 왜 안 되는지를 아래에 말한다 (SPEC §8.2 · DESIGN.md) */}
         <button className="btn" disabled={보내는중} onClick={() => void 보낸다()}>
           {새것 ? t('서비스 추가') : t('저장')}
@@ -232,81 +217,40 @@ export function ServicePanel({ row, onDone }: { row?: SettingsServiceRow; onDone
       </div>
       {못보내는이유 === null ? null : <div className="hint set-why">{못보내는이유}</div>}
 
+      {새것 ? null : (
+        <구획 제목={t('화면 크기')} 쓰임={t('테스트 작성이 화면을 PC 와 모바일로 열어 본 결과입니다. 새 케이스를 PC 로만 만들지 모바일도 같이 만들지 이 판정으로 정합니다')}>
+          <ViewportSection serviceId={row.id} envs={row.envs} />
+        </구획>
+      )}
+
       {/* 저장과 다른 일이라 따로 둔다 — 적다 만 칸은 저장하지 않고 상태만 뒤집는다 */}
       {새것 ? null : (
         <구획 제목={t('서비스 비활성화')} 쓰임={t('비활성화하면 서비스 선택 목록에서 사라집니다. 실행 기록과 스크립트는 그대로 보관됩니다')} 경고>
-          <div>
-            <button className="btn ghost" disabled={보내는중} onClick={() => void 활성을뒤집는다()}>
-              {row.isActive ? t('비활성화') : t('다시 활성화')}
-            </button>
-          </div>
+          {비활성확인 && row.isActive ? (
+            // 결과를 먼저 말하고 확정은 글자가 다른 따로 된 버튼으로 둔다 — SettingsPending.tsx 의 거절 확인과 같은 모양
+            <div className="set-warn">
+              {t('서비스 선택 목록에서 사라집니다. 실행 기록과 케이스는 그대로 보관됩니다')}{' '}
+              <button className="btn ghost set-warn" disabled={보내는중} onClick={() => void 활성을뒤집는다()}>
+                {t('비활성화한다')}
+              </button>{' '}
+              <button className="btn ghost" disabled={보내는중} onClick={() => set비활성확인(false)}>
+                {t('그만두기')}
+              </button>
+            </div>
+          ) : (
+            <div>
+              <button
+                className="btn ghost"
+                disabled={보내는중}
+                onClick={() => (row.isActive ? set비활성확인(true) : void 활성을뒤집는다())}
+              >
+                {row.isActive ? t('비활성화') : t('다시 활성화')}
+              </button>
+            </div>
+          )}
         </구획>
       )}
       <떠나기상자 막나={지금칸 !== 처음칸 && 지금칸 !== 보낸칸} />
-    </div>
-  );
-}
-
-/** 설정 구획 하나 — 제목과 「어디에 쓰이나」 한 줄. 무슨 설정인지 칸 이름만으로는 안 읽혔다 (2026-10-07 사용자) */
-function 구획({ 제목, 쓰임, 경고 = false, children }: { 제목: string; 쓰임: string; 경고?: boolean; children: ReactNode }) {
-  return (
-    <section className={경고 ? 'set-card warn' : 'set-card'}>
-      <div className="set-card-h">
-        <h3>{제목}</h3>
-        <p>{쓰임}</p>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-/** 비밀값 칸 — 웹훅과 피그마 토큰이 같이 쓴다. 값을 되돌려 안 보여서 고치는 길이 「변경」이다 (§8.8) */
-function 비밀칸(p: {
-  id: string; 이름: string; 설정됨: boolean; 새것: boolean; placeholder: string; 비울때: string;
-  값: string | null; 바꾼다: (값: string | null) => void; children?: ReactNode;
-}) {
-  const t = use말();
-  const 칸 = 웹훅칸(p.설정됨, use언어());
-  return (
-    <div className="field">
-      <label htmlFor={p.id}>{p.이름}</label>
-      <div>
-        {p.값 === null ? (
-          <div className="set-hook">
-            <span>{칸.글}</span>
-            {/* 값이 없을 때는 `+` 기호 하나, 있을 때는 글자 「변경」과 `−` — 있는데 `+` 를 또 보이면 헷갈린다. 기호만 보이는 버튼의 이름은 aria-label 이 맡는다 */}
-            <button
-              className={p.설정됨 ? 'btn ghost' : 'btn ghost icon'}
-              aria-label={p.설정됨 ? t('{이름} 변경', { 이름: p.이름 }) : t('{이름} 추가', { 이름: p.이름 })}
-              title={p.설정됨 ? undefined : t('{이름} 추가', { 이름: p.이름 })}
-              onClick={() => p.바꾼다('')}
-            >
-              {칸.버튼}
-            </button>
-            {p.설정됨 ? (
-              // 지우는 길도 빈 칸을 저장하는 것이다 — 서버가 「빈 글자 = 지움」으로 받는다. 저장 전에 「변경 취소」로 물릴 수 있다
-              <button className="btn ghost icon" aria-label={t('{이름} 삭제', { 이름: p.이름 })} title={t('{이름} 삭제', { 이름: p.이름 })} onClick={() => p.바꾼다('')}>
-                −
-              </button>
-            ) : null}
-          </div>
-        ) : (
-          <div className="set-hook">
-            <input id={p.id} type="password" value={p.값} placeholder={p.placeholder}
-              onChange={(e) => p.바꾼다(e.target.value)} />
-            {/* 되돌아갈 길이 없으면, 마음을 바꿔 그냥 저장했을 때 빈 글자가 가서 값이 지워진다 */}
-            {p.새것 ? null : (
-              <button className="btn ghost" aria-label={t('{이름} 변경 취소', { 이름: p.이름 })} onClick={() => p.바꾼다(null)}>
-                {t('변경 취소')}
-              </button>
-            )}
-          </div>
-        )}
-        <div className="hint">
-          {p.값 === '' && !p.새것 ? p.비울때 : t('보안을 위해 저장한 값은 다시 표시하지 않습니다')}
-        </div>
-        {p.children}
-      </div>
     </div>
   );
 }

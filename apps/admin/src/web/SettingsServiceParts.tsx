@@ -1,0 +1,70 @@
+// 설정 > 서비스 화면의 구획 틀과 비밀값 칸 (SettingsService.tsx 가 300줄에 닿지 않게 뗐다)
+
+import type { ReactNode } from 'react';
+
+import { use말, use언어 } from './i18n.js';
+import { 웹훅칸 } from './settingsView.js';
+
+/** 설정 구획 하나 — 제목과 「어디에 쓰이나」 한 줄. 무슨 설정인지 칸 이름만으로는 안 읽혔다 (2026-10-07 사용자) */
+export function 구획({ 제목, 쓰임, 경고 = false, children }: { 제목: string; 쓰임: string; 경고?: boolean; children: ReactNode }) {
+  return (
+    <section className={경고 ? 'set-card warn' : 'set-card'}>
+      <div className="set-card-h">
+        <h3>{제목}</h3>
+        <p>{쓰임}</p>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** 비밀값 칸 — 웹훅과 피그마 토큰이 같이 쓴다. 값을 되돌려 안 보여서 고치는 길이 「변경」이다 (§8.8) */
+export function 비밀칸(p: {
+  id: string; 이름: string; 설정됨: boolean; 새것: boolean; placeholder: string; 비울때: string;
+  값: string | null; 바꾼다: (값: string | null) => void; children?: ReactNode;
+}) {
+  const t = use말();
+  const 칸 = 웹훅칸(p.설정됨, use언어());
+  return (
+    <div className="field">
+      <label htmlFor={p.id}>{p.이름}</label>
+      <div>
+        {p.값 === null ? (
+          <div className="set-hook">
+            <span>{칸.글}</span>
+            {/* 값이 없을 때는 `+` 기호 하나, 있을 때는 글자 「변경」과 `−` — 있는데 `+` 를 또 보이면 헷갈린다. 기호만 보이는 버튼의 이름은 aria-label 이 맡는다 */}
+            <button
+              className={p.설정됨 ? 'btn ghost' : 'btn ghost icon'}
+              aria-label={p.설정됨 ? t('{이름} 변경', { 이름: p.이름 }) : t('{이름} 추가', { 이름: p.이름 })}
+              title={p.설정됨 ? undefined : t('{이름} 추가', { 이름: p.이름 })}
+              onClick={() => p.바꾼다('')}
+            >
+              {칸.버튼}
+            </button>
+            {p.설정됨 ? (
+              // 지우는 길도 빈 칸을 저장하는 것이다 — 서버가 「빈 글자 = 지움」으로 받는다. 저장 전에 「변경 취소」로 물릴 수 있다
+              <button className="btn ghost icon" aria-label={t('{이름} 삭제', { 이름: p.이름 })} title={t('{이름} 삭제', { 이름: p.이름 })} onClick={() => p.바꾼다('')}>
+                −
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <div className="set-hook">
+            <input id={p.id} type="password" value={p.값} placeholder={p.placeholder}
+              onChange={(e) => p.바꾼다(e.target.value)} />
+            {/* 되돌아갈 길이 없으면, 마음을 바꿔 그냥 저장했을 때 빈 글자가 가서 값이 지워진다 */}
+            {p.새것 ? null : (
+              <button className="btn ghost" aria-label={t('{이름} 변경 취소', { 이름: p.이름 })} onClick={() => p.바꾼다(null)}>
+                {t('변경 취소')}
+              </button>
+            )}
+          </div>
+        )}
+        <div className="hint">
+          {p.값 === '' && !p.새것 ? p.비울때 : t('보안을 위해 저장한 값은 다시 표시하지 않습니다')}
+        </div>
+        {p.children}
+      </div>
+    </div>
+  );
+}

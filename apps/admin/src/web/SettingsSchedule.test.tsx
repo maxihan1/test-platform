@@ -117,8 +117,8 @@ describe('서비스 설정 「정기 실행」 구획 (도메인/인증 §8.8 ·
   it('마지막 정기 실행의 실행마다 결과로 가는 링크를 단다', () => {
     render(<ServicePanel row={켜진서비스} onDone={() => {}} />);
 
-    expect(screen.getByRole('link', { name: '#20901' }).getAttribute('href')).toBe('#/runs/20901');
-    expect(screen.getByRole('link', { name: '#20902' }).getAttribute('href')).toBe('#/runs/20902');
+    expect(screen.getByRole('link', { name: 'RUN 20901' }).getAttribute('href')).toBe('#/runs/20901');
+    expect(screen.getByRole('link', { name: 'RUN 20902' }).getAttribute('href')).toBe('#/runs/20902');
   });
 
   it('실행한 적이 없으면 그렇게 적는다', () => {

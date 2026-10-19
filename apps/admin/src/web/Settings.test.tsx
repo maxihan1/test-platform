@@ -8,11 +8,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
+import { 고른서비스를적는다 } from './layout.js';
 import { useHash, 떠나기막기 } from './leaveGuard.js';
 import { Settings } from './Settings.js';
 
 afterEach(() => {
   떠나기막기(null);
+  localStorage.clear();
   cleanup();
   vi.restoreAllMocks();
 });
@@ -152,6 +154,35 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     expect(await screen.findByText('새 서비스')).toBeTruthy();
     expect(screen.getByRole('link', { name: '+ 서비스 추가' }).getAttribute('aria-current')).toBe('page');
     expect((screen.getByLabelText('접두사') as HTMLInputElement).disabled).toBe(false);
+  });
+
+  it('주소에 자리가 없으면 맨 위에서 고른 서비스로 열고 메뉴 표시도 맞는다 — 목록 앞이 아니라도', async () => {
+    고른서비스를적는다('ZSU');
+    펼친다();
+
+    expect(await screen.findByRole('heading', { name: /ZSU 서비스/ })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /ZSU 서비스/ }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: /ZST 서비스/ }).getAttribute('aria-current')).toBeNull();
+  });
+
+  it('맨 위에서 고른 서비스가 설정 목록에 없으면 첫 서비스로 연다', async () => {
+    고른서비스를적는다('GONE');
+    펼친다();
+
+    expect(await screen.findByRole('heading', { name: /ZST 서비스/ })).toBeTruthy();
+  });
+
+  it('「저장했습니다」는 저장 단추 줄 안에 선다', async () => {
+    vi.spyOn(api, 'updateService').mockResolvedValue({ ok: true });
+    const 목록 = vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="ZST" />);
+    await screen.findByRole('heading', { name: /ZST 서비스/ });
+    목록.mockResolvedValue({ items: [서비스] });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    const 알림 = await screen.findByText('저장했습니다');
+    expect(알림.closest('.set-foot')).not.toBeNull();
   });
 
   it('손으로 친 소문자 접두사도 그 서비스를 연다 — 접두사는 늘 대문자다', async () => {

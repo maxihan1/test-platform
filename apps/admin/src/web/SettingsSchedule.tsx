@@ -66,7 +66,7 @@ export function ScheduleFields({
             {짧은시각(마지막.at, 언어)}
             {마지막.runIds.map((runId) => (
               <a key={runId} className="sched-run" href={`#/runs/${String(runId)}`}>
-                #{runId}
+                RUN {runId}
               </a>
             ))}
           </span>

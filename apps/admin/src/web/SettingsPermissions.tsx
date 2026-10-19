@@ -1,4 +1,4 @@
-// 계정 편집기의 운영 · 서비스와 권한 · 대시보드 고르개와 목록 줄의 권한 요약 (도메인/인증 §8.8, 시안 B)
+// 계정 편집기의 운영 · 서비스와 권한 · 그래프(Grafana) 고르개와 목록 줄의 권한 요약 (도메인/인증 §8.8, 시안 B)
 
 import type { SettingsServiceRow, UserRow, 배정 } from './api.js';
 import { use말 } from './i18n.js';
@@ -10,6 +10,12 @@ const 기능이름: Record<기능, string> = { cases: '케이스', runs: '실행
 const 칸이름: Record<칸, string> = { none: '안 씀', read: '읽기', write: '쓰기' };
 // 켜자마자 쓰기를 주면 사람이 모르고 넘긴다. 처음은 읽기다 (§8.8)
 const 처음칸 = { cases: 'read', runs: 'read', authoring: 'read' } as const;
+// 칸 셋을 하나씩 고르는 길은 그대로 두고, 자주 쓰는 조합을 한 번에 고르는 단추다 (점검 14.6)
+const 권한묶음: { 이름: string; 칸들: Record<기능, 칸> }[] = [
+  { 이름: '읽기 전용', 칸들: { cases: 'read', runs: 'read', authoring: 'read' } },
+  { 이름: '작성자', 칸들: { cases: 'read', runs: 'read', authoring: 'write' } },
+  { 이름: '실행자', 칸들: { cases: 'read', runs: 'write', authoring: 'read' } },
+];
 
 function 칸고르개<T extends 칸>({ 이름, 값, 값들, on }: { 이름: string; 값: T; 값들: T[]; on: (v: T) => void }) {
   const t = use말();
@@ -48,6 +54,10 @@ export function PermissionPicker({
   const 운영 = role === 'admin';
   // 내려 둔 서비스는 고를 자리에서 뺀다. 이미 받은 배정은 배정들에 남아 저장 때 그대로 간다
   const 보일것 = services.filter((s) => s.isActive);
+
+  function 묶음고르기(prefix: string, 칸들: Record<기능, 칸>) {
+    on배정들(배정들.map((it) => (it.prefix === prefix ? { ...it, permissions: { ...it.permissions, ...칸들 } } : it)));
+  }
 
   function 칸바꾸기(prefix: string, f: 기능, v: 칸) {
     on배정들(배정들.map((it) => (it.prefix === prefix ? { ...it, permissions: { ...it.permissions, [f]: v } } : it)));
@@ -99,9 +109,25 @@ export function PermissionPicker({
                   />
                   {s.name} <span className="set-sub">{s.prefix}-</span>
                 </label>
-                {내것 === undefined || 운영
-                  ? null
-                  : 기능순서.map((f) => (
+                {내것 === undefined || 운영 ? null : (
+                  <>
+                    <div className="set-perm-row">
+                      <span className="set-sub">{t('권한 묶음')}</span>
+                      <div className="set-seg" role="group" aria-label={`${s.name} ${t('권한 묶음')}`}>
+                        {권한묶음.map((묶음) => (
+                          <button
+                            key={묶음.이름}
+                            type="button"
+                            className="chip"
+                            aria-pressed={기능순서.every((f) => 내것.permissions[f] === 묶음.칸들[f])}
+                            onClick={() => 묶음고르기(s.prefix, 묶음.칸들)}
+                          >
+                            {t(묶음.이름)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {기능순서.map((f) => (
                       <div key={f} className="set-perm-row">
                         <span className="set-sub">{t(기능이름[f])}</span>
                         <칸고르개
@@ -112,6 +138,8 @@ export function PermissionPicker({
                         />
                       </div>
                     ))}
+                  </>
+                )}
                 {/* allOff 는 운영이어도 서버가 거절한다. 칸이 숨어 있어도 이유는 보여야 한다 */}
                 {경고 === 'allOff' ? (
                   <div className="hint set-perm-warn" role="status">
@@ -125,14 +153,14 @@ export function PermissionPicker({
               </div>
             );
           })}
-          <div className="hint">{t('배정받지 않은 서비스는 그 사람의 띠에 뜨지 않습니다')}</div>
+          <div className="hint">{t('배정받지 않은 서비스는 그 사람의 서비스 선택 목록에 뜨지 않습니다')}</div>
         </div>
       </div>
 
       {운영 ? null : (
         <div className="field">
-          <span className="field-label">{t('대시보드')}</span>
-          <칸고르개 이름={t('대시보드')} 값={dashboard} 값들={['none', 'read']} on={onDashboard} />
+          <span className="field-label">{t('그래프(Grafana)')}</span>
+          <칸고르개 이름={t('그래프(Grafana)')} 값={dashboard} 값들={['none', 'read']} on={onDashboard} />
         </div>
       )}
     </>
@@ -163,7 +191,7 @@ export function PermissionSummary({ row, services }: { row: UserRow; services: S
       ))}
       <div className="set-sum-line">
         <span className={`set-perm-chip is-${요약.대시보드}`}>
-          {t('대시보드')} {t(칸이름[요약.대시보드])}
+          {t('그래프(Grafana)')} {t(칸이름[요약.대시보드])}
         </span>
       </div>
     </div>
