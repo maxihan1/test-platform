@@ -15,7 +15,8 @@ describe('줄프롬프트 — 원장 절 (도메인/작성 §3.6 「★ 원장�
     expect(글).toContain('--- 원장 ---');
     expect(글).toContain('/w/자료/ledger.json');
     expect(글).toContain('요구 172 · 번호 가족 REQ-COM 14');
-    expect(글).toContain('npm run check:ledger -- /w/자료/ledger.json docs/cases/MKT.md --tests tests/mkt --agent');
+    expect(글).toContain('npm run -s authoring:check -- 마지막 /w/자료/ledger.json MKT mkt');
+    expect(글).toContain('npm run check:ledger -- /w/자료/ledger.json docs/cases/MKT.md --agent');
     expect(글).toMatch(/관문 0/);
   });
 

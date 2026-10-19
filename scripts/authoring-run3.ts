@@ -108,7 +108,7 @@ function 돌리기(트리: string, 결과폴더: string, 이름: string, 파일�
 }
 
 /** 바뀐 파일(저장소 기준 경로) — 기준 SHA 가 있으면 에이전트처럼 기준과의 차이 + 새 파일, 없으면 작업 트리 상태 */
-function 바뀐것(트리: string, 기준: string | undefined): string[] | { 까닭: string } {
+export function 바뀐것(트리: string, 기준: string | undefined): string[] | { 까닭: string } {
   if (기준 === undefined || 기준 === '') {
     const 상태 = 친다('git', ['-c', 'core.quotePath=false', 'status', '--porcelain', '-uall'], 트리);
     return 상태.ok ? 바뀐파일들(상태.낸것) : { 까닭: 상태.까닭 };
