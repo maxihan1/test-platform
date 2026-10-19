@@ -19,7 +19,19 @@ export function 실패케이스들(items: RunItemSummary[]): string[] {
  * 값은 지금의 저장값 · 코드 기본값으로 연다. 그 실행에서 쓴 값으로 한 건을 다시 돌리려면
  * 항목 상세의 「값 바꿔 재실행」이 그 값을 채워 연다 — 목록의 응답에는 기대결과 값이 없어 여러 건을 그 값으로 못 채운다
  */
-export function 실패다시실행({ items, env, 된다 }: { items: RunItemSummary[]; env: string; 된다: boolean }) {
+export function 실패다시실행({
+  runId,
+  items,
+  env,
+  된다,
+  on걸었다,
+}: {
+  runId: number;
+  items: RunItemSummary[];
+  env: string;
+  된다: boolean;
+  on걸었다?: (runId: number) => void;
+}) {
   const t = use말();
   const [열림, set열림] = useState(false);
   const 실패 = 실패케이스들(items);
@@ -33,7 +45,8 @@ export function 실패다시실행({ items, env, 된다 }: { items: RunItemSumma
           {t('실패 {건수}건 다시 실행', { 건수: 실패.length })}
         </button>
       </div>
-      {!열림 ? null : <RunWindow tcIds={실패} 서버={env} onClose={() => set열림(false)} />}
+      {/* 원래 실행 번호를 실어 서버가 「RUN N의 실패 M건 다시」로 제목을 짓게 한다 (도메인/실행 §8.3) */}
+      {!열림 ? null : <RunWindow tcIds={실패} 서버={env} rerunOf={runId} on걸었다={on걸었다} onClose={() => set열림(false)} />}
     </>
   );
 }

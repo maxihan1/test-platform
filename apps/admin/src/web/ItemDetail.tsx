@@ -10,6 +10,7 @@ import { Step } from './ItemSteps.js';
 import { ItemTraceSection } from './ItemTrace.js';
 import { fieldsOf, type Field } from './mask.js';
 import { 케이스서비스 } from './role.js';
+import { 실행기록주소 } from './route.js';
 import { 미실행사유 } from './runState.js';
 import type { 판정하기 } from './runJudge.js';
 import { RunWindow } from './RunWindow.js';
@@ -87,7 +88,8 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
 
       <div className="actions">
         <span className="note">{t말('이 화면의 구성이 증적 문서에 그대로 출력됩니다.')}</span>
-        <a className="btn ghost" href={`#/runs/${item.runId}`}>
+        {/* 실행 기록에서 그 실행을 고른 채 연다 — 결과 화면을 새로 열면 목록으로 돌아갈 길이 없다 (도메인/실행 §8.7 「A안」) */}
+        <a className="btn ghost" href={실행기록주소(item.tcId, item.runId)}>
           {t말('실행 결과')}
         </a>
         {/* 이 항목에서 쓴 값으로 실행 창을 연다. 비밀값 칸은 응답이 가려 주므로 비워서 연다 (도메인/실행 §8.10) */}

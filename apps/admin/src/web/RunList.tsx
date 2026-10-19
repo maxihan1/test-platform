@@ -1,39 +1,45 @@
-// 실행 묶음 목록. 어느 실행의 결과를 볼지 고르는 자리다 (SPEC §8.7 · §7 GET /api/runs)
+// 실행 기록 — 왼쪽 목록 + 오른쪽 결과 칸 (도메인/실행 §8.7 「A안」 · §7 GET /api/runs)
 //
 // **거르는 일은 서버가 한다.** 목록이 쪽으로 나뉘어 오므로 받은 쪽만 거르면 뒤쪽이 조용히 빠진다.
-// 머리의 집계도 서버가 낸다 — 그리고 **거르개를 건 뒤의 집합**을 센다.
-// 보이는 것과 세는 것이 갈리면 사람은 세 줄을 보면서 「42회」를 읽는다.
+// **고른 실행과 거르개는 주소에 남긴다** — 항목 상세에 갔다 돌아오기 · 새로고침 · 뒤로 가기에 풀리지 않는다(점검 2.9).
 
 import { useState } from 'react';
 
-import { api, type Paged, type RunQuery, type RunSummary, type RunTally } from './api.js';
+import { api, type EnvRow, type RunQuery } from './api.js';
 import { Head } from './Head.js';
-import { use말, use언어 } from './i18n.js';
+import { use말 } from './i18n.js';
+import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
 import type { 판정 } from './role.js';
-import { RunResultModal } from './RunResultModal.js';
-import { 상태라벨, 실행자이름 } from './runState.js';
-import { 칸띠 } from './Summary.js';
-import { Failed, Loading, seconds, useAsync, when } from './ui.js';
-import { 그중미확정글 } from './unconfirmed.js';
+import { RunResult } from './RunResult.js';
+import { 실행줄 } from './RunListRow.js';
+import { Failed, Loading, useAsync } from './ui.js';
 
-export function RunList({ service, 할수, kind }: { service: string; 할수: 판정; kind: 'UI' | 'FN' }) {
+const 상태들 = ['running', 'failed'] as const;
+const 방식들 = ['manual', 'scheduled', 'rerun'] as const;
+const 기간들 = [14, 30] as const;
+
+function 고른값<T extends string>(글: string | null, 값들: readonly T[]): T | undefined {
+  return 값들.find((값) => 값 === 글);
+}
+
+function 번호(글: string | null): number | null {
+  return 글 !== null && /^\d{1,10}$/.test(글) ? Number(글) : null;
+}
+
+export function RunList({ service, envs, 할수, kind }: { service: string; envs: EnvRow[]; 할수: 판정; kind: 'UI' | 'FN' }) {
   const t = use말();
-  // 상자로 연 실행. 닫으면 **보던 자리와 검색 조건이 그대로 남는다** — 화면을 갈아타면 잃는 것들이다
-  const [열린실행, set열린실행] = useState<number | null>(null);
-  // 키는 늘 정적 문자열이어야 해서 표를 모듈 밖에 둘 수 없다 — 여기서 만든다
-  const 상태칩: { 라벨: string; 값: RunQuery['state'] }[] = [
-    { 라벨: t('전체'), 값: undefined },
-    { 라벨: t('진행 중'), 값: 'running' },
-    // 실행 단위의 「실패」는 항목 단위의 실패와 다른 말이다 (Has failures ↔ Failed)
-    { 라벨: t('실패§실행'), 값: 'failed' },
-  ];
-  const [page, setPage] = useState(1);
-  const [typed, setTyped] = useState('');
-  const [q, setQ] = useState('');
-  const [state, setState] = useState<RunQuery['state']>(undefined);
-  // 서비스를 바꾸면 첫 페이지로 (CaseList 와 같은 이유). 건 조건도 같이 버린다 —
-  // 남기면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
+  const [처음] = useState(주소조건);
+  const [page, setPage] = useState(() => 번호(처음.get('page')) ?? 1);
+  const [typed, setTyped] = useState(처음.get('q') ?? '');
+  const [q, setQ] = useState(처음.get('q') ?? '');
+  const [state, setState] = useState<RunQuery['state']>(() => 고른값(처음.get('state'), 상태들));
+  const [env, setEnv] = useState(처음.get('env') ?? '');
+  const [origin, setOrigin] = useState<RunQuery['origin']>(() => 고른값(처음.get('origin'), 방식들));
+  const [days, setDays] = useState<number | undefined>(() => 기간들.find((일) => String(일) === 처음.get('days')));
+  // 사람이 고른 실행. 없으면 결과 칸은 맨 위 줄을 보인다 — 좁은 창에서는 고르기 전까지 목록만 보인다
+  const [고른, set고른] = useState(() => 번호(처음.get('run')));
+  // 서비스를 바꾸면 건 조건 · 고른 실행을 버린다 — 남기면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
   const [본서비스, set본서비스] = useState(service);
   if (본서비스 !== service) {
     set본서비스(service);
@@ -41,29 +47,58 @@ export function RunList({ service, 할수, kind }: { service: string; 할수: �
     setTyped('');
     setQ('');
     setState(undefined);
+    setEnv('');
+    setOrigin(undefined);
+    setDays(undefined);
+    set고른(null);
   }
 
-  const 조건: RunQuery = { kind, ...(q === '' ? {} : { q }), ...(state === undefined ? {} : { state }) };
-  const runs = useAsync<Paged<RunSummary> & { summary: RunTally }>(
-    () => api.runs(service, page, 조건),
-    [service, page, q, state],
-  );
+  // 기본값인 조건은 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  use주소조건(`#/runs/${kind === 'UI' ? 'ui' : 'fn'}`, {
+    ...(고른 === null ? {} : { run: String(고른) }),
+    ...(q === '' ? {} : { q }),
+    ...(state === undefined ? {} : { state }),
+    ...(env === '' ? {} : { env }),
+    ...(origin === undefined ? {} : { origin }),
+    ...(days === undefined ? {} : { days: String(days) }),
+    ...(page === 1 ? {} : { page: String(page) }),
+  });
+
+  const 조건: RunQuery = {
+    kind,
+    ...(q === '' ? {} : { q }),
+    ...(state === undefined ? {} : { state }),
+    ...(env === '' ? {} : { env }),
+    ...(origin === undefined ? {} : { origin }),
+    ...(days === undefined ? {} : { days }),
+  };
+  const runs = useAsync(() => api.runs(service, page, 조건), [service, page, q, state, env, origin, days]);
 
   if (runs.error !== null) return <Failed error={runs.error} />;
   if (runs.data === null) return <Loading />;
 
   // 총건수로 페이지 수를 계산하지 않는다 (SPEC §8.7 — §8.1 과 같은 함정이다)
   const 더있나 = 다음이있나(runs.data);
-  const 건조건 = q !== '' || state !== undefined;
+  const 건조건 = q !== '' || state !== undefined || env !== '' || origin !== undefined || days !== undefined;
+  const 보는실행 = 고른 ?? runs.data.items[0]?.runId ?? null;
+  // 거르개를 바꿔도 고른 실행은 그대로 둔다 — 대신 목록에 없는 까닭을 한 줄 적는다
+  const 조건밖 = 고른 !== null && 건조건 && !runs.data.items.some((run) => run.runId === 고른);
 
-  function 찾기(term: string) {
-    setQ(term);
+  // 거르개를 바꾸면 첫 쪽으로 간다
+  function 거르기(바꾸기: () => void) {
+    바꾸기();
     setPage(1);
   }
 
-  function 상태고르기(값: RunQuery['state']) {
-    setState(값);
-    setPage(1);
+  function 다지우기() {
+    setTyped('');
+    거르기(() => {
+      setQ('');
+      setState(undefined);
+      setEnv('');
+      setOrigin(undefined);
+      setDays(undefined);
+    });
   }
 
   return (
@@ -72,192 +107,136 @@ export function RunList({ service, 할수, kind }: { service: string; 할수: �
         제목={t('실행 기록')}
         부제={
           <>
-            {kind === 'UI' ? t('UI 테스트') : t('기능 테스트')} · {t('모두 {건수}건', { 건수: runs.data.total })}
+            {kind === 'UI' ? t('UI 테스트') : t('기능 테스트')} ·{' '}
+            {days === undefined ? t('모두 {건수}건', { 건수: runs.data.total }) : t('최근 {일}일 {건수}건', { 일: days, 건수: runs.data.total })}
           </>
         }
       />
 
-      {/* 아무것도 안 돌린 서비스에 0 넷을 늘어놓지 않는다 */}
-      {runs.data.summary.runs === 0 ? null : <집계 것={runs.data.summary} />}
-
-      <div className="screen list-screen">
-        <form
-          className="toolbar"
-          role="search"
-          onSubmit={(e) => {
-            e.preventDefault();
-            찾기(typed);
-          }}
-        >
-          <input
-            type="text"
-            placeholder={t('실행 제목으로 찾기')}
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-          />
-          <button className="chip" type="submit">
-            {t('찾기')}
-          </button>
-          <span className="filter-label">{t('상태')}</span>
-          {상태칩.map((칩) => (
-            <button
-              className="chip"
-              type="button"
-              key={칩.라벨}
-              aria-pressed={state === 칩.값}
-              onClick={() => 상태고르기(칩.값)}
-            >
-              {칩.라벨}
+      <div className={고른 === null ? 'runs-split' : 'runs-split picked'}>
+        <div className="screen list-screen runs-list">
+          <form
+            className="toolbar"
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              거르기(() => setQ(typed));
+            }}
+          >
+            <input
+              type="text"
+              aria-label={t('케이스 · 제목으로 찾기')}
+              placeholder={t('케이스 번호 · 이름 · 실행 제목')}
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+            />
+            <button className="chip" type="submit">
+              {t('찾기')}
             </button>
-          ))}
-        </form>
+            <label className="run-filter">
+              <span className="filter-label">{t('상태')}</span>
+              <select value={state ?? ''} onChange={(e) => 거르기(() => setState(고른값(e.target.value, 상태들)))}>
+                <option value="">{t('전체')}</option>
+                <option value="failed">{t('실패 있음')}</option>
+                <option value="running">{t('진행 중')}</option>
+              </select>
+            </label>
+            <label className="run-filter">
+              <span className="filter-label">{t('대상 서버')}</span>
+              <select value={env} onChange={(e) => 거르기(() => setEnv(e.target.value))}>
+                <option value="">{t('전체')}</option>
+                {envs.map((it) => (
+                  <option key={it.env} value={it.env}>
+                    {it.env}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="run-filter">
+              <span className="filter-label">{t('시작 방식')}</span>
+              <select value={origin ?? ''} onChange={(e) => 거르기(() => setOrigin(고른값(e.target.value, 방식들)))}>
+                <option value="">{t('전체')}</option>
+                <option value="manual">{t('직접 실행')}</option>
+                <option value="rerun">{t('실패 다시 실행')}</option>
+                <option value="scheduled">{t('정기 실행')}</option>
+              </select>
+            </label>
+            <label className="run-filter">
+              <span className="filter-label">{t('기간')}</span>
+              <select value={days ?? ''} onChange={(e) => 거르기(() => setDays(기간들.find((일) => String(일) === e.target.value)))}>
+                <option value="14">{t('최근 14일')}</option>
+                <option value="30">{t('최근 30일')}</option>
+                <option value="">{t('전체')}</option>
+              </select>
+            </label>
+          </form>
 
-        <div className="rows-scroll">
-        {runs.data.items.length === 0 ? (
-          <div className="empty">
-            {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다.
-                §8.1 이 케이스 목록에서 이미 세 갈래로 가른 그 문제다 (SPEC §8.7) */}
-            {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 서비스에서 아직 실행한 기록이 없습니다')}
-            <small>
-              {건조건 ? t('검색어나 상태를 바꿔 보세요') : t('케이스를 골라 실행하면 여기에 쌓입니다')}
-            </small>
-            {건조건 ? (
-              <button
-                className="btn"
-                style={{ marginTop: '14px' }}
-                onClick={() => {
-                  setTyped('');
-                  찾기('');
-                  상태고르기(undefined);
-                }}
-              >
-                {t('조건 지우기')}
-              </button>
+          {조건밖 ? <p className="runs-out">{t('고른 실행은 지금 조건 밖입니다')}</p> : null}
+
+          <div className="rows-scroll">
+            {runs.data.items.length === 0 ? (
+              <div className="empty">
+                {/* 서비스를 바꿔 들어온 사람과 검색한 사람에게 같은 문장을 쓰면 한쪽에게는 거짓이다 (SPEC §8.7) */}
+                {건조건 ? t('조건에 맞는 실행이 없습니다') : t('이 서비스에서 아직 실행한 기록이 없습니다')}
+                <small>{건조건 ? t('검색어나 거르개를 바꿔 보세요') : t('케이스를 골라 실행하면 여기에 쌓입니다')}</small>
+                {건조건 ? (
+                  <button className="btn" style={{ marginTop: '14px' }} onClick={다지우기}>
+                    {t('조건 지우기')}
+                  </button>
+                ) : (
+                  <a className="btn" style={{ marginTop: '14px' }} href={kind === 'UI' ? '#/cases/ui' : '#/cases/fn'}>
+                    {t('케이스 목록으로')}
+                  </a>
+                )}
+              </div>
             ) : (
-              <a className="btn" style={{ marginTop: '14px' }} href={kind === 'UI' ? '#/cases/ui' : '#/cases/fn'}>
-                {t('케이스 목록으로')}
-              </a>
+              <>
+                {/* 표머리는 좁은 화면에서도 감추지 않는다 — 휴대폰에서 여는 화면이다 (SPEC §8.7 「칸마다 이름을 단다」) */}
+                <div className="rowhead run-rowhead" role="row">
+                  <span aria-hidden="true" />
+                  <span role="columnheader">{t('실행')}</span>
+                  <span role="columnheader">{t('판정')}</span>
+                </div>
+                {runs.data.items.map((run) => (
+                  <실행줄 key={run.runId} run={run} 고름={run.runId === 보는실행} on고르기={set고른} />
+                ))}
+              </>
             )}
           </div>
-        ) : (
-          <>
-            <실행표머리 />
-            {runs.data.items.map((run) => (
-              <실행줄 key={run.runId} run={run} on열기={set열린실행} />
-            ))}
-          </>
+
+          {page === 1 && !더있나 ? null : (
+            <div className="pager">
+              <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
+                {t('이전')}
+              </button>
+              <span>{t('{쪽}쪽', { 쪽: page })}</span>
+              <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
+                {t('다음')}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {보는실행 === null ? null : (
+          <section className="run-pane" aria-label={t('실행 결과')}>
+            {/* 좁은 창에서는 목록과 결과가 한 단으로 접힌다 — 결과에서 목록으로 돌아가는 길이다 */}
+            <button type="button" className="btn small ghost pane-back" onClick={() => set고른(null)}>
+              {t('목록으로')}
+            </button>
+            {/* 목록은 띠에서 고른 서비스의 실행만 싣는다 — 그 실행의 서비스가 곧 띠의 서비스다 */}
+            <RunResult
+              key={보는실행}
+              runId={보는실행}
+              판정하기={() => 할수}
+              칸안
+              on새실행={(runId) => {
+                set고른(runId);
+                runs.reload();
+              }}
+            />
+          </section>
         )}
-        </div>
       </div>
-
-      {page === 1 && !더있나 ? null : (
-        <div className="pager">
-          <button onClick={() => setPage((n) => n - 1)} disabled={page <= 1}>
-            {t('이전')}
-          </button>
-          <span>{t('{쪽}쪽', { 쪽: page })}</span>
-          <button onClick={() => setPage((n) => n + 1)} disabled={!더있나}>
-            {t('다음')}
-          </button>
-        </div>
-      )}
-
-      {열린실행 === null ? null : (
-        <RunResultModal runId={열린실행} 할수={할수} onClose={() => set열린실행(null)} />
-      )}
     </>
-  );
-}
-
-/**
- * 표머리 (SPEC §8.7, 2026-09-22).
- *
- * **좁은 화면에서도 감추지 않는다.** 이 화면은 휴대폰에서 여는 화면이다(공통/5 §8 「휴대폰 화면」) —
- * 감추면 거기서 칸 이름이 통째로 사라진다.
- * 케이스 목록(§8.1)은 휴대폰에서 열지 않아 감춰도 된다. **둘을 같게 만들지 않는다.**
- */
-function 실행표머리() {
-  const t = use말();
-  return (
-    <div className="rowhead runhead" role="row">
-      <span aria-hidden="true" />
-      <span role="columnheader">RUN</span>
-      <span role="columnheader">{t('실행 제목')}</span>
-      <span role="columnheader">{t('판정')}</span>
-      <span aria-hidden="true" />
-    </div>
-  );
-}
-
-/** 머리의 집계 넷. **판정인 칸에만 판정 색이 붙는다** (DESIGN.md 원칙 1) */
-function 집계({ 것 }: { 것: RunTally }) {
-  const t = use말();
-  const 언어 = use언어();
-  const 몫 = (수: number) => (것.runs === 0 ? '' : t('전체의 {몫}%', { 몫: Math.round((수 / 것.runs) * 100) }));
-
-  return (
-    <칸띠
-      칸들={[
-        { 라벨: t('실행 횟수'), 값: String(것.runs) },
-        { 라벨: t('성공'), 값: String(것.allPass), 판정: 'PASS', 부제: 몫(것.allPass) },
-        { 라벨: t('실패§실행'), 값: String(것.hasFail), 판정: 'FAIL', 부제: 몫(것.hasFail) },
-        {
-          라벨: t('평균 소요'),
-          값: seconds(것.avgDurationMs, 언어),
-          // 도는 실행은 끝난 시각이 없어 평균에서 빠진다. 안 적으면 전체의 평균으로 읽힌다
-          부제: t('끝난 {회수}회 기준', { 회수: 것.durationOf }),
-        },
-      ]}
-      비율={[
-        { 판정: 'PASS', 몫: 것.allPass },
-        { 판정: 'FAIL', 몫: 것.hasFail },
-        { 판정: 'NA', 몫: Math.max(0, 것.runs - 것.allPass - 것.hasFail) },
-      ]}
-    />
-  );
-}
-
-function 실행줄({ run, on열기 }: { run: RunSummary; on열기: (runId: number) => void }) {
-  const t = use말();
-  const 언어 = use언어();
-  const 미확정 = 그중미확정글(run.counts, 언어);
-
-  return (
-    <div className="row">
-      {/* 왼쪽 색 띠는 한눈에 훑기 위한 것이고 판정은 아래 숫자와 글자가 말한다 (SPEC §8.7) */}
-      <div className="gutter" style={{ background: run.counts.fail > 0 ? 'var(--fail)' : 'var(--pass)' }} />
-      <div className="tcid">RUN {run.runId}</div>
-      <div className="title">
-        {run.title}
-        <small>
-          {when(run.startedAt, 언어)} · {t('대상 서버 {서버}', { 서버: run.env })} ·{' '}
-          {t('실행자 {이름}', { 이름: 실행자이름(run, 언어) })} · {상태라벨(run.status, 언어)}
-        </small>
-      </div>
-      <div className="right runright">
-        {/* 판정 덩어리는 한 칸이다 — 「그중 미확정」 글자가 숫자 옆에 붙으면 버튼이 아래 줄로 밀려 줄마다 자리가 틀어졌다 (2026-09-30) */}
-        <div className="verdict">
-        <div className="tally">
-          <div>
-            <b style={{ color: 'var(--pass-text)' }}>{run.counts.pass}</b>
-            <span>{t('통과')}</span>
-          </div>
-          <div>
-            <b style={{ color: 'var(--fail-text)' }}>{run.counts.fail}</b>
-            <span>{t('실패')}</span>
-          </div>
-          <div>
-            <b style={{ color: 'var(--na-text)' }}>{run.counts.na}</b>
-            <span>{t('미실행')}</span>
-          </div>
-        </div>
-        {미확정 === '' ? null : <span className="unconf-line">{미확정}</span>}
-        </div>
-        {/* 눌러서 여는 상자다 (SPEC §8.7). 주소는 살아 있고 상자는 길을 하나 더한 것이다 */}
-        <button type="button" className="btn small ghost" aria-haspopup="dialog" onClick={() => on열기(run.runId)}>
-          {t('결과 보기')}
-        </button>
-      </div>
-    </div>
   );
 }

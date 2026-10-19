@@ -86,7 +86,7 @@ describe('케이스 줄의 ▶ 실행', () => {
     fireEvent.change(창.getByLabelText('대상 서버'), { target: { value: 'qa' } });
     fireEvent.click(창.getByRole('button', { name: '실행' }));
 
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/31'));
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=31'));
     expect(걸기.mock.calls[0]?.[0]).toMatchObject({
       env: 'qa',
       title: 'ZPK-001 실행',

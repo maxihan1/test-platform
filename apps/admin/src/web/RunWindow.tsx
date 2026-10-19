@@ -28,6 +28,8 @@ interface 연것 {
  * @param 지난값 그 실행에서 쓴 값. 있으면 칸이 그 값으로 열린다(비밀값 칸은 비운다 — pickRun 지난값글자)
  * @param 서버 미리 고를 대상 서버. 다시 실행은 같은 서버가 자연스럽다
  * @param on걸림 걸고 나서. 없으면 onClose 다 — 옛 주소 화면은 닫힘이 목록으로 보내므로 따로 받는다(안 그러면 실행 결과 대신 목록이 뜬다)
+ * @param rerunOf 「실패 N건 다시 실행」의 원래 실행. 실으면 서버가 시작 방식을 「실패 다시」로 남긴다 (도메인/실행 §7)
+ * @param on걸었다 useRunStart 의 그것 — 실행 기록 결과 칸에서 열었으면 주소를 옮기지 않고 새 실행을 고른다
  */
 export function RunWindow({
   tcIds,
@@ -35,16 +37,20 @@ export function RunWindow({
   서버,
   onClose,
   on걸림 = onClose,
+  rerunOf,
+  on걸었다,
 }: {
   tcIds: string[];
   지난값?: Record<string, { params: 값들; expected: 값들 }>;
   서버?: string;
   onClose: () => void;
   on걸림?: () => void;
+  rerunOf?: number;
+  on걸었다?: (runId: number) => void;
 }) {
   const t = use말();
   const 언어 = use언어();
-  const 걸기 = useRunStart();
+  const 걸기 = useRunStart(on걸었다);
   const [다시, set다시] = useState<CaseRow | null>(null);
   const [읽기오류, set읽기오류] = useState<string | undefined>(undefined);
   const 열기 = useAsync<연것>(async () => {
@@ -117,7 +123,7 @@ export function RunWindow({
         set읽기오류(undefined);
         api.caseOf(tcId).then(set다시, (err: unknown) => set읽기오류(message(err, 언어)));
       }}
-      onRun={(요청) => void 걸기.걸기(요청).then((됨) => { if (됨) on걸림(); })}
+      onRun={(요청) => void 걸기.걸기(rerunOf === undefined ? 요청 : { ...요청, rerunOf }).then((됨) => { if (됨) on걸림(); })}
     />
   );
 }

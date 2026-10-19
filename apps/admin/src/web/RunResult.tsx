@@ -26,20 +26,22 @@ const STATUSES: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 function 케이스결과({
   runId,
   판정하기,
-  상자안 = false,
+  칸안 = false,
+  on새실행,
   on시나리오,
 }: {
   on시나리오?: () => void;
   runId: number;
   판정하기: 판정하기;
   /**
-   * 이 화면이 **상자 안에서** 그려지는가 (SPEC §8.7 「결과 보기는 상자로 연다」).
+   * 이 화면이 **실행 기록의 오른쪽 결과 칸에서** 그려지는가 (도메인/실행 §8.7 「A안」).
    *
-   * 참이면 **진행·완료 상자를 열지 않는다.** 포커스를 가두는 장치가 둘 겹치면
-   * 키보드만 쓰는 사람이 빠져나올 길을 잃는다 (DESIGN.md 「모달」).
-   * 끝났다는 사실은 상자 안의 줄로 적는다.
+   * 참이면 진행·완료 상자를 저절로 열지 않는다 — 목록에서 줄을 고를 때마다 상자가 서면 목록을 가린다.
+   * 끝났다는 사실은 칸 머리의 상태 글자와 맨 위 알림 줄이 맡는다.
    */
-  상자안?: boolean;
+  칸안?: boolean;
+  /** 결과 칸에서 건 「실패 다시」 — 주소를 옮기지 않고 목록이 새 실행을 고른다 */
+  on새실행?: (runId: number) => void;
 }) {
   const t = use말();
   const 언어 = use언어();
@@ -184,12 +186,20 @@ function 케이스결과({
             </button>
           )}
             <증적만들기버튼들 칸={증적칸} />
-            {running || 상자안 ? null : <실패다시실행 items={data.items} env={data.env} 된다={실행판정(판정하기, data)('실행')} />}
+            {running ? null : (
+              <실패다시실행 runId={data.runId} items={data.items} env={data.env} 된다={실행판정(판정하기, data)('실행')} on걸었다={on새실행} />
+            )}
           </div>
   );
 
+  // 결과 칸의 머리 — 고른 줄과 같은 제목을 크게 단다. 스크롤 칸 밖에 둬 「실패 N건 다시 실행」 · 증적이 늘 보인다 (도메인/실행 §8.3)
   const 머리 = (
     <div className="box-head">
+      {칸안 ? (
+        <h2 className="pane-title">
+          {data.title} <span className="pane-run">RUN {data.runId}</span>
+        </h2>
+      ) : null}
       <div className="head-meta">{부제}</div>
       {행동}
       {/* 증적 안내·사유·문서 목록을 **머리 줄 안에서** 한 줄로 그린다 (2026-09-22).
@@ -200,14 +210,12 @@ function 케이스결과({
 
   return (
     <>
-      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8).
-          **상자 안에서는 머리를 만들지 않는다** — 상자 제목이 이미 RUN 번호를 적고 있어
-          같은 말이 두 번 나온다. 부제와 행동은 그대로 살린다 */}
-      {상자안 ? (running ? 머리 : null) : <Head 제목={`RUN ${String(data.runId)}`} 부제={부제} 행동={행동} />}
+      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8). 결과 칸에서는 칸 머리가 그 자리다 */}
+      {칸안 ? 머리 : <Head 제목={`RUN ${String(data.runId)}`} 부제={부제} 행동={행동} />}
 
       {running ? (
-        <div className={상자안 ? 'screen modal-results' : 'screen'}>
-          {상자안 ? null : <증적알림과목록 칸={증적칸} />}
+        <div className={칸안 ? 'screen pane-results' : 'screen'}>
+          {칸안 ? null : <증적알림과목록 칸={증적칸} />}
 
           {pass + fail + na === 0 ? null : (
             <div className="stripe">
@@ -233,8 +241,8 @@ function 케이스결과({
             <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={choose(setDevice)} />
           </div>
 
-          {/* 상자 안에서는 이 자리만 스크롤한다 — 위 필터·증적 버튼은 고정이다 (2026-09-22 ②) */}
-          {상자안 ? <div className="rows-scroll">{결과목록}</div> : 결과목록}
+          {/* 결과 칸에서는 이 자리만 스크롤한다 — 위 필터·증적 버튼은 고정이다 (2026-09-22 ②) */}
+          {칸안 ? <div className="rows-scroll">{결과목록}</div> : 결과목록}
         </div>
       ) : (
         <끝난결과
@@ -243,8 +251,7 @@ function 케이스결과({
           판정하기={판정하기}
           견줌오류={견줌.error}
           증적칸={증적칸}
-          상자안={상자안}
-          상자머리={머리}
+          칸안={칸안}
           판정={status}
           on판정={choose(setStatus)}
           device={device}
@@ -255,8 +262,8 @@ function 케이스결과({
       )}
 
       {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다.
-          **상자 안에서는 열지 않는다** — 가두개가 겹치면 빠져나올 길이 없다 (SPEC §8.7) */}
-      {상자안 || (!진행열림 && !끝났다고알릴까말까) ? null : (
+          **결과 칸에서는 저절로 열지 않는다** — 줄을 고를 때마다 상자가 목록을 가린다 (도메인/실행 §8.7 「A안」) */}
+      {칸안 || (!진행열림 && !끝났다고알릴까말까) ? null : (
         <RunProgressModal
           data={data}
           진행목록={진행목록}
@@ -293,6 +300,6 @@ function 케이스결과({
 
 export function RunResult(props: Parameters<typeof 케이스결과>[0]) {
   const [시나리오, set시나리오] = useState<number | null>(null); // 시나리오 실행 번호는 404 SCENARIO_RUN 으로 알려 준다 — 갈래를 바깥에 둬 훅 순서를 지킨다
-  if (시나리오 === props.runId) return <ScenarioResult runId={props.runId} 판정하기={props.판정하기} 상자안={props.상자안} />;
+  if (시나리오 === props.runId) return <ScenarioResult runId={props.runId} 판정하기={props.판정하기} 상자안={props.칸안} />;
   return <케이스결과 {...props} on시나리오={() => set시나리오(props.runId)} />;
 }

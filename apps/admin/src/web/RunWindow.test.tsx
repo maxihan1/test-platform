@@ -115,7 +115,7 @@ describe('RunWindow', () => {
     expect(screen.queryByRole('button', { name: '실행' })).toBeNull();
   });
 
-  it('걸면 createRun 을 부르고 그 실행 결과로 옮겨 가며 창을 닫는다', async () => {
+  it('걸면 createRun 을 부르고 실행 기록에서 그 실행을 고른 채 옮겨 가며 창을 닫는다', async () => {
     읽기모킹([케이스('ZRS-001')]);
     const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 42 });
     const onClose = vi.fn();
@@ -126,7 +126,7 @@ describe('RunWindow', () => {
     fireEvent.click(실행버튼());
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
-    expect(window.location.hash).toBe('#/runs/42');
+    expect(window.location.hash).toBe('#/runs/fn?run=42');
     expect(만들기).toHaveBeenCalledTimes(1);
     expect(만들기.mock.calls[0]?.[0]).toMatchObject({ env: 'qa', title: 'ZRS-001 실행', items: [{ tcId: 'ZRS-001', platforms: ['desktop'] }] });
   });
@@ -148,7 +148,7 @@ describe('RunWindow', () => {
 
     fireEvent.click(실행버튼());
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
-    expect(window.location.hash).toBe('#/runs/9');
+    expect(window.location.hash).toBe('#/runs/fn?run=9');
   });
 
   it('값을 고치면 아까 거절당한 사유가 걷힌다', async () => {
@@ -188,6 +188,33 @@ describe('RunWindow', () => {
 
     await waitFor(() => expect(on걸림).toHaveBeenCalledTimes(1));
     expect(onClose).not.toHaveBeenCalled();
-    expect(window.location.hash).toBe('#/runs/43');
+    expect(window.location.hash).toBe('#/runs/fn?run=43');
+  });
+
+  it('UI 케이스면 UI 실행 기록으로 간다 — 실행 하나에 한 종류다', async () => {
+    읽기모킹([케이스('ZRS-UI-001')]);
+    vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 44 });
+    render(<RunWindow tcIds={['ZRS-UI-001']} onClose={vi.fn()} />);
+    await screen.findByRole('dialog');
+
+    서버고르기();
+    fireEvent.click(실행버튼());
+
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/ui?run=44'));
+  });
+
+  it('「실패 다시」로 열면 원래 실행 번호를 싣고, on걸었다 가 있으면 주소를 옮기지 않고 새 번호를 넘긴다', async () => {
+    읽기모킹([케이스('ZRS-001')]);
+    const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 45 });
+    const on걸었다 = vi.fn();
+    render(<RunWindow tcIds={['ZRS-001']} rerunOf={20914} on걸었다={on걸었다} onClose={vi.fn()} />);
+    await screen.findByRole('dialog');
+
+    서버고르기();
+    fireEvent.click(실행버튼());
+
+    await waitFor(() => expect(on걸었다).toHaveBeenCalledWith(45));
+    expect(만들기.mock.calls[0]?.[0]).toMatchObject({ rerunOf: 20914 });
+    expect(window.location.hash).toBe('#/cases');
   });
 });

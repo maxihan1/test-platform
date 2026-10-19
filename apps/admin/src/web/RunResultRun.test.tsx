@@ -83,7 +83,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
 
   const 첫실행 = { previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들: [] };
 
-  it('상자 안에서는 증적 문서 정보가 RUN 머리 줄에 있다', async () => {
+  it('결과 칸에서는 증적 문서 정보가 RUN 머리 줄에 있다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     vi.spyOn(api, 'run').mockResolvedValue({
       ...실행,
@@ -91,7 +91,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
       items: [],
       evidence: [증적('PDF', 'READY')],
     });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
     await screen.findAllByText(/만들기$/);
 
     const 머리 = document.querySelector('.box-head');
@@ -130,7 +130,7 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
   it('첫 실행에서는 견줌이 아예 없다 — 빈 접기 줄도 없다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(첫실행);
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
     await screen.findAllByText(/만들기$/);
 
     expect(screen.queryByText(/직전 실행과 비교/)).toBeNull();
@@ -138,29 +138,30 @@ describe('상자 안에서 정보 UI 가 목록 자리를 뺏지 않는다 (SPEC
   });
 });
 
-describe('상자 안에서는 제목 아래 전부가 한 스크롤 칸이다 (SPEC §8.3 · §8.7, 2026-10-08)', () => {
-  it('상자안 이면 머리 · 요약 띠 · 본문이 모두 .rows-scroll 안에 있다', async () => {
+describe('결과 칸은 머리를 고정하고 요약 띠부터 스크롤한다 (도메인/실행 §8.3 · §8.7 「A안」)', () => {
+  it('칸안 이면 머리는 스크롤 칸 밖에, 요약 띠 · 본문은 .rows-scroll 안에 있다', async () => {
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status: 'FINISHED', items: [], evidence: [] });
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안 />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안 />);
 
     await screen.findAllByText(/만들기$/);
 
     const 면 = document.querySelector('.screen');
-    expect(면?.classList.contains('modal-results')).toBe(true);
+    expect(면?.classList.contains('pane-results')).toBe(true);
     expect(면?.children).toHaveLength(1);
     const 스크롤칸 = 면?.firstElementChild;
     expect(스크롤칸?.classList.contains('rows-scroll')).toBe(true);
-    expect(스크롤칸?.querySelector('.box-head')).not.toBeNull();
+    expect(스크롤칸?.querySelector('.box-head')).toBeNull();
+    expect(document.querySelector('.box-head .pane-title')?.textContent).toContain(`RUN ${String(RUN_ID)}`);
     expect(스크롤칸?.querySelector('.rs')).not.toBeNull();
     expect(스크롤칸?.querySelector('.toolbar')).not.toBeNull();
   });
 
-  it('상자안 이 아니면(화면 전체) 스크롤칸을 따로 두지 않는다 — 페이지가 그대로 스크롤한다', async () => {
+  it('칸안 이 아니면(화면 전체) 스크롤칸을 따로 두지 않는다 — 페이지가 그대로 스크롤한다', async () => {
     그리기('FINISHED');
     await screen.findAllByText(/만들기$/);
 
     const 면 = document.querySelector('.screen');
-    expect(면?.classList.contains('modal-results')).toBe(false);
+    expect(면?.classList.contains('pane-results')).toBe(false);
     expect(면?.querySelector('.rows-scroll')).toBeNull();
   });
 });

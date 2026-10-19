@@ -2,7 +2,7 @@
 // 실행 결과 머리의 「실패 N건 다시 실행」 (도메인/실행 §8.3 · §8.10)
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type CaseRow, type ItemStatus, type Platform, type RunItemSummary } from './api.js';
 import { 실패다시실행, 실패케이스들 } from './RerunFailed.js';
@@ -68,19 +68,19 @@ describe('실패다시실행', () => {
   const 실패둘 = [항목('ZRS-001', 'FAIL'), 항목('ZRS-001', 'FAIL', 'mobile'), 항목('ZRS-002', 'FAIL'), 항목('ZRS-003', 'PASS')];
 
   it('버튼 글자에 중복을 뺀 실패 케이스 건수가 든다', () => {
-    render(<실패다시실행 items={실패둘} env="qa" 된다 />);
+    render(<실패다시실행 runId={20914} items={실패둘} env="qa" 된다 />);
 
     expect(screen.getByRole('button', { name: '실패 2건 다시 실행' })).toBeTruthy();
   });
 
   it('실행 권한이 없으면(된다=false) 버튼이 없다', () => {
-    render(<실패다시실행 items={실패둘} env="qa" 된다={false} />);
+    render(<실패다시실행 runId={20914} items={실패둘} env="qa" 된다={false} />);
 
     expect(screen.queryByRole('button')).toBeNull();
   });
 
   it('실패가 하나도 없으면 버튼이 없다', () => {
-    render(<실패다시실행 items={[항목('ZRS-001', 'PASS')]} env="qa" 된다 />);
+    render(<실패다시실행 runId={20914} items={[항목('ZRS-001', 'PASS')]} env="qa" 된다 />);
 
     expect(screen.queryByRole('button')).toBeNull();
   });
@@ -89,7 +89,7 @@ describe('실패다시실행', () => {
     const 읽기 = vi.spyOn(api, 'caseOf').mockImplementation((tcId) => Promise.resolve(케이스(tcId)));
     vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
-    render(<실패다시실행 items={실패둘} env="stage" 된다 />);
+    render(<실패다시실행 runId={20914} items={실패둘} env="stage" 된다 />);
 
     fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
 
@@ -98,11 +98,27 @@ describe('실패다시실행', () => {
     expect((screen.getByLabelText('대상 서버') as HTMLSelectElement).value).toBe('stage');
   });
 
+  it('걸면 원래 실행 번호를 실어 보낸다 — 서버가 「RUN N의 실패 M건 다시」로 제목을 짓는다 (도메인/실행 §7)', async () => {
+    vi.spyOn(api, 'caseOf').mockImplementation((tcId) => Promise.resolve(케이스(tcId)));
+    vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
+    vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
+    const 만들기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 20915 });
+    const on걸었다 = vi.fn();
+    render(<실패다시실행 runId={20914} items={실패둘} env="stage" 된다 on걸었다={on걸었다} />);
+    fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
+    await screen.findByRole('dialog');
+
+    fireEvent.click(screen.getByRole('button', { name: '실행' }));
+
+    await waitFor(() => expect(on걸었다).toHaveBeenCalledWith(20915));
+    expect(만들기.mock.calls[0]?.[0]).toMatchObject({ rerunOf: 20914, env: 'stage' });
+  });
+
   it('창의 취소를 누르면 창이 닫힌다', async () => {
     vi.spyOn(api, 'caseOf').mockImplementation((tcId) => Promise.resolve(케이스(tcId)));
     vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
     vi.spyOn(api, 'paramSets').mockResolvedValue({ items: [] });
-    render(<실패다시실행 items={실패둘} env="qa" 된다 />);
+    render(<실패다시실행 runId={20914} items={실패둘} env="qa" 된다 />);
     fireEvent.click(screen.getByRole('button', { name: '실패 2건 다시 실행' }));
     await screen.findByRole('dialog');
 

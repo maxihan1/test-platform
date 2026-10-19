@@ -1,6 +1,6 @@
 // 끝난 실행의 결과 본문 — 요약 띠 → 실패 카드 → 통과 · 미실행 줄, 옆 칸 (도메인/실행 §8.3)
 
-import { useRef, type ReactNode } from 'react';
+import { useRef } from 'react';
 
 import type { ItemStatus, Platform, RunInsights as 비교 } from './api.js';
 import type { 증적칸 } from './EvidenceSection.js';
@@ -69,9 +69,8 @@ interface Props {
   판정하기: 판정하기;
   견줌오류: string | null;
   증적칸: 증적칸;
-  상자안: boolean;
-  /** 상자 안에서 머리(부제 · 행동 · 증적 한 줄)도 스크롤 칸에 들어간다 — 제목 · 닫기만 고정이다 */
-  상자머리: ReactNode;
+  /** 실행 기록의 결과 칸 안 — 한 단이고 머리 아래 이 칸 하나가 스크롤한다 (도메인/실행 §8.7 「A안」) */
+  칸안: boolean;
   판정: ItemStatus | 'ALL';
   on판정: (값: ItemStatus | 'ALL') => void;
   device: Platform | 'ALL';
@@ -81,7 +80,7 @@ interface Props {
 }
 
 export function 끝난결과(props: Props) {
-  const { data, insights, 판정하기, 견줌오류, 증적칸, 상자안, 상자머리, 판정, on판정, device, on디바이스, page, on쪽 } = props;
+  const { data, insights, 판정하기, 견줌오류, 증적칸, 칸안, 판정, on판정, device, on디바이스, page, on쪽 } = props;
   const t = use말();
   const 통과제목 = useRef<HTMLHeadingElement>(null);
   const 권한 = 실행판정(판정하기, data);
@@ -99,9 +98,9 @@ export function 끝난결과(props: Props) {
     <>
       <RunSummary counts={data.counts} 실패케이스수={실패케이스들(data.items).length} insights={insights} 판정={판정} on판정={on판정} />
       <RunFailedReqs 요구들={insights?.실패요구들 ?? []} 권한={권한} />
-      {상자안 ? <RunSide data={data} insights={insights} 견줌오류={견줌오류} 증적칸={증적칸} 상자안 /> : null}
+      {칸안 ? <RunSide data={data} insights={insights} 견줌오류={견줌오류} 증적칸={증적칸} 상자안 /> : null}
 
-      <div className={상자안 ? 'rr-cols one' : 'rr-cols'}>
+      <div className={칸안 ? 'rr-cols one' : 'rr-cols'}>
         <div className="rr-main">
           <div className="toolbar">
             <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={on디바이스} />
@@ -150,17 +149,14 @@ export function 끝난결과(props: Props) {
 
         </div>
 
-        {상자안 ? null : <RunSide data={data} insights={insights} 견줌오류={견줌오류} 증적칸={증적칸} 상자안={false} />}
+        {칸안 ? null : <RunSide data={data} insights={insights} 견줌오류={견줌오류} 증적칸={증적칸} 상자안={false} />}
       </div>
     </>
   );
 
-  return 상자안 ? (
-    <div className="screen rr modal-results">
-      <div className="rows-scroll rr-scroll">
-        {상자머리}
-        {본문}
-      </div>
+  return 칸안 ? (
+    <div className="screen rr pane-results">
+      <div className="rows-scroll rr-scroll">{본문}</div>
     </div>
   ) : (
     <div className="screen rr">{본문}</div>

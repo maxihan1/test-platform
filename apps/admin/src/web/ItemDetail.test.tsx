@@ -165,6 +165,13 @@ describe('값 바꿔 재실행 (도메인/실행 §8.10)', () => {
     expect(물은것).toContain('ZID');
   });
 
+  it('「실행 결과」는 실행 기록에서 그 실행을 고른 채 연다 — 결과 화면을 새로 열면 목록으로 돌아갈 길이 없다', async () => {
+    그린다({}, () => () => false);
+
+    const 고리 = await screen.findByRole('link', { name: '실행 결과' });
+    expect(고리.getAttribute('href')).toMatch(/^#\/runs\/fn\?run=\d+$/);
+  });
+
   it('실행할 수 없으면 버튼이 없다', async () => {
     그린다({}, () => () => false);
 
