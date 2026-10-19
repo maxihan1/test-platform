@@ -160,11 +160,8 @@ async function 프로젝트확인(client: PoolClient, id: number): Promise<void>
   if (rows.rowCount === 0) throw new 설정오류('PROJECT_NOT_FOUND');
 }
 
-/**
- * @param 만든이 요청한 운영 계정의 아이디. 있으면 그 서비스에 세 칸 쓰기로 배정한다 — 안 하면 방금 만든 서비스가
- *   그 사람의 서비스 고르개에 안 떠서 설정에서 자기를 따로 배정해야 했다 (도메인/인증 §3.5 「서비스 배정은 권한의 한 부분이다」)
- */
-export async function 서비스만들기(입력: 서비스입력, 만든이?: string): Promise<number> {
+// 권한 배정은 프로젝트를 만들 때 한다 (projects.ts). 여기서는 하지 않는다 — 그 프로젝트 권한자에게 새 애플리케이션이 바로 열린다 (도메인/인증 §3.5)
+export async function 서비스만들기(입력: 서비스입력): Promise<number> {
   return 한묶음(async (client) => {
     if (입력.projectId !== undefined) await 프로젝트확인(client, 입력.projectId);
     const rows = await client.query<{ id: string }>(
@@ -189,14 +186,6 @@ export async function 서비스만들기(입력: 서비스입력, 만든이?: st
     if (id === undefined) throw new 설정오류('PREFIX_TAKEN');
 
     await 대상서버넣기(client, id, 입력.envs);
-    if (만든이 !== undefined) {
-      await client.query(
-        `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
-              SELECT username, $2, 'write', 'write', 'write' FROM app_user WHERE username = $1
-         ON CONFLICT DO NOTHING`,
-        [만든이, id],
-      );
-    }
     return id;
   });
 }

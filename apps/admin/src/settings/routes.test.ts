@@ -29,12 +29,13 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
 
   afterAll(async () => {
     const { pool } = await import('../db/index.js');
-    await pool.query(`DELETE FROM user_service WHERE username LIKE 'xfu4%'`);
+    await pool.query(`DELETE FROM user_project WHERE username LIKE 'xfu4%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xfu4%'`);
     await pool.query(
       `DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix LIKE 'XFS4%')`,
     );
     await pool.query(`DELETE FROM service WHERE prefix LIKE 'XFS4%'`);
+    await pool.query(`DELETE FROM project WHERE name LIKE 'XFS4 %'`);
     await 검사프로젝트치우기();
     await app.close();
   });
@@ -68,27 +69,52 @@ describe.skipIf(연결 === undefined)('설정 API', () => {
     expect(typeof res.json<{ id: number }>().id).toBe('number');
   });
 
-  it('서비스를 만든 운영 계정은 그 서비스에 세 칸 쓰기로 배정된다', async () => {
+  async function 프로젝트만들기(이름: string, 만든이?: string): Promise<number> {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/settings/projects',
+      ...(만든이 === undefined ? {} : { headers: { 'x-test-user': 만든이 } }),
+      payload: { name: 이름 },
+    });
+    expect(res.statusCode).toBe(201);
+    return res.json<{ id: number }>().id;
+  }
+
+  const 배정줄 = async (프로젝트: number, 계정: string) => {
+    const { pool } = await import('../db/index.js');
+    const 줄 = await pool.query(
+      `SELECT perm_cases, perm_runs, perm_authoring FROM user_project WHERE project_id = $1 AND username = $2`,
+      [프로젝트, 계정],
+    );
+    return 줄.rows;
+  };
+
+  it('프로젝트를 만든 운영 계정은 그 프로젝트에 세 칸 쓰기로 배정된다', async () => {
     const { pool } = await import('../db/index.js');
     await pool.query(
       `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password)
             VALUES ('xfu4maker', '만든이', 'x', 'admin', 'read', true, false)`,
     );
-    expect((await 서비스만들기('XFS4M', {}, 'xfu4maker')).statusCode).toBe(201);
-    const 줄 = await pool.query(
-      `SELECT us.perm_cases, us.perm_runs, us.perm_authoring FROM user_service us
-         JOIN service s ON s.id = us.service_id WHERE s.prefix = 'XFS4M' AND us.username = 'xfu4maker'`,
-    );
-    expect(줄.rows).toEqual([{ perm_cases: 'write', perm_runs: 'write', perm_authoring: 'write' }]);
+    const 번호 = await 프로젝트만들기('XFS4 만든이 프로젝트', 'xfu4maker');
+    expect(await 배정줄(번호, 'xfu4maker')).toEqual([{ perm_cases: 'write', perm_runs: 'write', perm_authoring: 'write' }]);
   });
 
-  it('만든 사람을 모르는 요청은 아무도 배정하지 않는다', async () => {
+  it('만든 사람을 모르는 요청은 프로젝트를 아무에게도 배정하지 않는다', async () => {
     const { pool } = await import('../db/index.js');
-    await 서비스만들기('XFS4N');
-    const 줄 = await pool.query(
-      `SELECT 1 FROM user_service us JOIN service s ON s.id = us.service_id WHERE s.prefix = 'XFS4N'`,
-    );
+    const 번호 = await 프로젝트만들기('XFS4 익명 프로젝트');
+    const 줄 = await pool.query('SELECT 1 FROM user_project WHERE project_id = $1', [번호]);
     expect(줄.rowCount).toBe(0);
+  });
+
+  it('애플리케이션을 만든다고 만든 계정에게 권한을 더하지 않는다 — 프로젝트 권한자에게만 열린다', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, perm_dashboard, is_approved, must_change_password)
+            VALUES ('xfu4other', '다른이', 'x', 'admin', 'read', true, false)`,
+    );
+    const 번호 = await 프로젝트만들기('XFS4 애플리케이션 프로젝트');
+    expect((await 서비스만들기('XFS4M', { projectId: 번호 }, 'xfu4other')).statusCode).toBe(201);
+    expect(await 배정줄(번호, 'xfu4other')).toEqual([]);
   });
 
   it('목록에 대상 서버와 케이스 수가 함께 실린다', async () => {

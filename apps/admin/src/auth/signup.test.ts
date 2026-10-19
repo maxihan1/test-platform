@@ -24,7 +24,7 @@ describe.skipIf(연결 === undefined)('회원가입', () => {
 
   afterAll(async () => {
     const { pool } = await import('../db/index.js');
-    await pool.query(`DELETE FROM user_service WHERE username LIKE 'xsg%'`);
+    await pool.query(`DELETE FROM user_project WHERE username LIKE 'xsg%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xsg%'`);
     await app.close();
   });
@@ -132,13 +132,13 @@ describe.skipIf(연결 === undefined)('회원가입', () => {
       password: 비번,
       role: 'admin',
       dashboard: 'read',
-      services: [{ prefix: 'XFS2', permissions: { cases: 'write', runs: 'write', authoring: 'write' } }],
+      projects: [{ projectId: 1, permissions: { cases: 'write', runs: 'write', authoring: 'write' } }],
     });
     expect(res.statusCode).toBe(201);
     expect(await 행('xsg-sneak')).toMatchObject({ role: 'member', perm_dashboard: 'none', is_approved: false });
 
     const { pool } = await import('../db/index.js');
-    const 배정 = await pool.query('SELECT 1 FROM user_service WHERE username = $1', ['xsg-sneak']);
+    const 배정 = await pool.query('SELECT 1 FROM user_project WHERE username = $1', ['xsg-sneak']);
     expect(배정.rowCount).toBe(0);
   });
 

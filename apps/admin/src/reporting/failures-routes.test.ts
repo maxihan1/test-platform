@@ -25,7 +25,7 @@ describe.skipIf(연결 === undefined)('실패 카드 통로', () => {
   const 실행: Record<string, number> = {};
 
   async function 치우기(): Promise<void> {
-    await pool.query('DELETE FROM user_service WHERE username = ANY($1)', [계정들]);
+    await pool.query('DELETE FROM user_project WHERE username = ANY($1)', [계정들]);
     await pool.query('DELETE FROM app_user WHERE username = ANY($1)', [계정들]);
     const 서비스들 = (await pool.query<{ id: string }>(`SELECT id FROM service WHERE prefix = 'XFCR'`)).rows.map((r) =>
       Number(r.id),
@@ -66,7 +66,7 @@ describe.skipIf(연결 === undefined)('실패 카드 통로', () => {
       [username, await 해시('열려라참깨')],
     );
     await pool.query(
-      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring) VALUES ($1, $2, 'read', $3, 'none')`,
+      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring) SELECT $1, project_id, 'read', $3, 'none' FROM service WHERE id = $2`,
       [username, 서비스, runs],
     );
   }

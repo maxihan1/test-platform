@@ -33,11 +33,11 @@ if (Number(있는계정.rows[0]?.count ?? 0) === 0 && role !== 'admin') {
 }
 
 try {
-  const 임시비밀번호 = await 계정만들기({ username, displayName, role, dashboard: 'read', services: [] });
+  const 임시비밀번호 = await 계정만들기({ username, displayName, role, dashboard: 'read', projects: [] });
   console.log(`계정을 만들었다. 아이디 ${username} · 이름 ${displayName} · 등급 ${role}`);
   console.log(`비밀번호: ${임시비밀번호}`);
   console.log('이 줄이 비밀번호를 볼 수 있는 유일한 자리다. 잊으면 설정 화면에서 다시 만든다');
-  console.log('배정할 서비스는 설정 화면에서 고른다 — 배정받지 않은 서비스는 띠에 뜨지 않는다');
+  console.log('배정할 프로젝트는 설정 화면에서 고른다 — 배정받지 않은 프로젝트의 애플리케이션은 띠에 뜨지 않는다');
 } catch (err) {
   console.error(err instanceof 설정오류 && err.code === 'USERNAME_TAKEN' ? `아이디 ${username}은 이미 있다` : err);
   process.exit(1);

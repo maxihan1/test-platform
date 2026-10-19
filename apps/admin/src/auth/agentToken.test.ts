@@ -65,9 +65,9 @@ describe.skipIf(연결 === undefined)('작성 에이전트 토큰', () => {
       [username, await 해시('열려라참깨'), role],
     );
     await pool.query(
-      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
-       SELECT $1, id, $3, $4, $5 FROM service WHERE prefix = $2
-       ON CONFLICT (username, service_id) DO UPDATE
+      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring)
+       SELECT $1, project_id, $3, $4, $5 FROM service WHERE prefix = $2
+       ON CONFLICT (username, project_id) DO UPDATE
          SET perm_cases = EXCLUDED.perm_cases, perm_runs = EXCLUDED.perm_runs, perm_authoring = EXCLUDED.perm_authoring`,
       [username, 서비스, ...칸],
     );
@@ -128,7 +128,7 @@ describe.skipIf(연결 === undefined)('작성 에이전트 토큰', () => {
     if (옛이름 === undefined) delete process.env.AUTHORING_AGENT_USER;
     else process.env.AUTHORING_AGENT_USER = 옛이름;
     const { pool } = await import('../db/index.js');
-    await pool.query(`DELETE FROM user_service WHERE username LIKE 'xfu5%'`);
+    await pool.query(`DELETE FROM user_project WHERE username LIKE 'xfu5%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xfu5%'`);
     await pool.query(`DELETE FROM service WHERE prefix = $1`, [서비스]);
     await app.close();

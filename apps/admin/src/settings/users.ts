@@ -9,9 +9,9 @@ import { 무작위비밀번호, 해시 } from '../auth/password.js';
 import type { 대시보드칸, 서비스권한 } from '../auth/permissions.js';
 import { db, 설정오류, 한묶음 } from './store.js';
 
-/** 서비스 한 줄 = 접두사와 그 서비스에서의 권한 셋 (SPEC 도메인/인증 §7 「services[] 한 줄」) */
+/** 프로젝트 한 줄 = 프로젝트 번호와 그 프로젝트에서의 권한 셋 (SPEC 도메인/인증 §7 「projects[] 한 줄」) */
 export interface 배정줄 {
-  prefix: string;
+  projectId: number;
   permissions: 서비스권한;
 }
 
@@ -23,7 +23,7 @@ export interface 계정행 {
   isActive: boolean;
   isApproved: boolean;
   mustChangePassword: boolean;
-  services: 배정줄[];
+  projects: 배정줄[];
   /** 토큰 자체가 아니라 있는지만 (SPEC 도메인/인증 §7) */
   hasAgentToken: boolean;
   /** 화면이 토큰 칸을 그릴 계정인가 — 서버가 정한 작성 에이전트 계정 하나뿐이다 */
@@ -35,13 +35,12 @@ const 계정들 = `
          u.agent_token_hash IS NOT NULL AS has_agent_token,
          COALESCE(
            json_agg(json_build_object(
-             'prefix', s.prefix,
-             'permissions', json_build_object('cases', us.perm_cases, 'runs', us.perm_runs, 'authoring', us.perm_authoring)
-           ) ORDER BY s.prefix) FILTER (WHERE s.prefix IS NOT NULL),
-           '[]') AS services
+             'projectId', up.project_id,
+             'permissions', json_build_object('cases', up.perm_cases, 'runs', up.perm_runs, 'authoring', up.perm_authoring)
+           ) ORDER BY up.project_id) FILTER (WHERE up.project_id IS NOT NULL),
+           '[]') AS projects
     FROM app_user u
-    LEFT JOIN user_service us ON us.username = u.username
-    LEFT JOIN service s ON s.id = us.service_id
+    LEFT JOIN user_project up ON up.username = u.username
    GROUP BY u.username
    ORDER BY u.username`;
 
@@ -56,7 +55,7 @@ export async function 계정목록(): Promise<계정행[]> {
     is_approved: boolean;
     must_change_password: boolean;
     has_agent_token: boolean;
-    services: 배정줄[];
+    projects: 배정줄[];
   }>(계정들);
   return rows.rows.map((r) => ({
     username: r.username,
@@ -66,20 +65,20 @@ export async function 계정목록(): Promise<계정행[]> {
     isActive: r.is_active,
     isApproved: r.is_approved,
     mustChangePassword: r.must_change_password,
-    services: r.services,
+    projects: r.projects,
     hasAgentToken: r.has_agent_token,
     isAuthoringAgent: 작성계정인가(r.username),
   }));
 }
 
 async function 배정바꾸기(client: PoolClient, username: string, 줄들: 배정줄[]): Promise<void> {
-  await client.query('DELETE FROM user_service WHERE username = $1', [username]);
-  for (const { prefix, permissions: p } of 줄들) {
+  await client.query('DELETE FROM user_project WHERE username = $1', [username]);
+  for (const { projectId, permissions: p } of 줄들) {
     await client.query(
-      `INSERT INTO user_service (username, service_id, perm_cases, perm_runs, perm_authoring)
-            SELECT $1, id, $3, $4, $5 FROM service WHERE prefix = $2
+      `INSERT INTO user_project (username, project_id, perm_cases, perm_runs, perm_authoring)
+            SELECT $1, id, $3, $4, $5 FROM project WHERE id = $2
        ON CONFLICT DO NOTHING`,
-      [username, prefix, p.cases, p.runs, p.authoring],
+      [username, projectId, p.cases, p.runs, p.authoring],
     );
   }
 }
@@ -89,7 +88,7 @@ export interface 계정입력 {
   displayName: string;
   role: 계정등급;
   dashboard: 대시보드칸;
-  services: 배정줄[];
+  projects: 배정줄[];
 }
 
 // 비밀번호는 요청에 싣지 않는다. 시스템이 만들어 응답에 한 번만 담고 그 뒤로는 아무 데서도 못 본다 (SPEC §7)
@@ -106,7 +105,7 @@ export async function 계정만들기(입력: 계정입력): Promise<string> {
       [입력.username, 입력.displayName, 해시값, 입력.role, 입력.dashboard],
     );
     if (rows.rowCount === 0) throw new 설정오류('USERNAME_TAKEN');
-    await 배정바꾸기(client, 입력.username, 입력.services);
+    await 배정바꾸기(client, 입력.username, 입력.projects);
   });
 
   return 임시비밀번호;
@@ -117,7 +116,7 @@ export interface 계정수정 {
   role?: 계정등급;
   dashboard?: 대시보드칸;
   isActive?: boolean;
-  services?: 배정줄[];
+  projects?: 배정줄[];
 }
 
 export async function 계정고치기(username: string, 수정: 계정수정): Promise<void> {
@@ -150,14 +149,14 @@ export async function 계정고치기(username: string, 수정: 계정수정): P
         WHERE username = $1`,
       [username, 수정.displayName ?? null, 수정.role ?? null, 수정.isActive ?? null, 수정.dashboard ?? null],
     );
-    if (수정.services !== undefined) await 배정바꾸기(client, username, 수정.services);
+    if (수정.projects !== undefined) await 배정바꾸기(client, username, 수정.projects);
   });
 }
 
 export interface 수락입력 {
   role: 계정등급;
   dashboard: 대시보드칸;
-  services: 배정줄[];
+  projects: 배정줄[];
 }
 
 // 운영자 둘이 동시에 눌러도 한쪽만 이기게 조건을 UPDATE·DELETE 안에 둔다. 못 바꿨으면 다시 읽어 409 와 404 를 가른다
@@ -178,7 +177,7 @@ export async function 계정수락(username: string, 입력: 수락입력): Prom
       [username, 입력.role, 입력.dashboard],
     );
     if (rows.rowCount === 0) await 대기아님(client, username, 'ALREADY_APPROVED');
-    await 배정바꾸기(client, username, 입력.services);
+    await 배정바꾸기(client, username, 입력.projects);
   });
 }
 

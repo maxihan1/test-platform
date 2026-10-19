@@ -1,11 +1,10 @@
-// 설정 API 의 계정 쪽 — 서비스별 권한·대시보드·변경 강제. CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다
+// 설정 API 의 계정 쪽 — 프로젝트별 권한·대시보드·변경 강제. CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import authRoutes from '../auth/routes.js';
 import { 세션등록 } from '../auth/session.js';
-import { 검사프로젝트, 검사프로젝트치우기 } from './projectFixture.js';
 import settingsRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -13,6 +12,7 @@ const 열쇠 = 'xfu9-검사용-세션-열쇠-32글자를-넘긴다';
 
 describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
   let app: FastifyInstance;
+  let 프로젝트: Record<string, number> = {};
 
   beforeAll(async () => {
     app = Fastify();
@@ -21,6 +21,8 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
     await app.register(authRoutes, { prefix: '/api' });
     await app.ready();
     for (const prefix of ['XFS9A', 'XFS9F']) {
+      const 만듦 = await app.inject({ method: 'POST', url: '/api/settings/projects', payload: { name: `${prefix} 프로젝트` } });
+      프로젝트[prefix] = 만듦.json<{ id: number }>().id;
       await app.inject({
         method: 'POST',
         url: '/api/settings/services',
@@ -28,7 +30,7 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
           prefix,
           name: `${prefix} 서비스`,
           color: '#112233',
-          projectId: await 검사프로젝트(),
+          projectId: 프로젝트[prefix],
           testsRepo: 'https://example.com/x.git',
           testsDir: prefix.toLowerCase(),
           envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
@@ -39,18 +41,17 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
 
   afterAll(async () => {
     const { pool } = await import('../db/index.js');
-    await pool.query(`DELETE FROM user_service WHERE username LIKE 'xfu9%'`);
+    await pool.query(`DELETE FROM user_project WHERE username LIKE 'xfu9%'`);
     await pool.query(`DELETE FROM app_user WHERE username LIKE 'xfu9%'`);
     await pool.query(
       `DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix LIKE 'XFS9%')`,
     );
     await pool.query(`DELETE FROM service WHERE prefix LIKE 'XFS9%'`);
-    await 검사프로젝트치우기();
     await app.close();
   });
 
   type 권한 = 'none' | 'read' | 'write';
-  type 줄 = { prefix: string; permissions: { cases: 권한; runs: 권한; authoring: 권한 } };
+  type 줄 = { projectId: number; permissions: { cases: 권한; runs: 권한; authoring: 권한 } };
   interface 계정 {
     username: string;
     displayName: string;
@@ -59,16 +60,16 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
     isActive: boolean;
     isApproved: boolean;
     mustChangePassword: boolean;
-    services: 줄[];
+    projects: 줄[];
   }
 
-  const 읽기 = (prefix: string): 줄 => ({ prefix, permissions: { cases: 'read', runs: 'none', authoring: 'none' } });
+  const 읽기 = (prefix: string): 줄 => ({ projectId: 프로젝트[prefix]!, permissions: { cases: 'read', runs: 'none', authoring: 'none' } });
 
-  async function 계정만들기(username: string, role: string, services: unknown[] = [], dashboard = 'read') {
+  async function 계정만들기(username: string, role: string, projects: unknown[] = [], dashboard = 'read') {
     return app.inject({
       method: 'POST',
       url: '/api/settings/users',
-      payload: { username, displayName: `${username} 님`, role, dashboard, services },
+      payload: { username, displayName: `${username} 님`, role, dashboard, projects },
     });
   }
 
@@ -101,28 +102,28 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
     expect(res.json()).toEqual({ error: 'USERNAME_TAKEN' });
   });
 
-  it('계정 목록은 서비스마다 권한 셋과 대시보드·승인·변경 강제를 싣는다', async () => {
+  it('계정 목록은 프로젝트마다 권한 셋과 대시보드·승인·변경 강제를 싣는다', async () => {
     expect(await 계정('xfu9-viewer')).toMatchObject({
       role: 'member',
       dashboard: 'read',
       isApproved: true,
       mustChangePassword: true,
-      services: [읽기('XFS9A')],
+      projects: [읽기('XFS9A')],
     });
   });
 
-  it('만들 때 서비스마다 다른 권한과 대시보드 none 이 그대로 저장된다', async () => {
+  it('만들 때 프로젝트마다 다른 권한과 대시보드 none 이 그대로 저장된다', async () => {
     const 줄들: 줄[] = [
-      { prefix: 'XFS9A', permissions: { cases: 'write', runs: 'read', authoring: 'none' } },
-      { prefix: 'XFS9F', permissions: { cases: 'none', runs: 'none', authoring: 'write' } },
+      { projectId: 프로젝트['XFS9A']!, permissions: { cases: 'write', runs: 'read', authoring: 'none' } },
+      { projectId: 프로젝트['XFS9F']!, permissions: { cases: 'none', runs: 'none', authoring: 'write' } },
     ];
     expect((await 계정만들기('xfu9-perm', 'member', 줄들, 'none')).statusCode).toBe(201);
-    expect(await 계정('xfu9-perm')).toMatchObject({ dashboard: 'none', services: 줄들 });
+    expect(await 계정('xfu9-perm')).toMatchObject({ dashboard: 'none', projects: 줄들 });
   });
 
   it('권한 칸이 빠지거나 셋 다 none 이거나 대시보드가 write 면 400 PERMISSIONS_SHAPE 다', async () => {
-    const 빠짐 = { prefix: 'XFS9A', permissions: { cases: 'read', runs: 'read' } };
-    const 다없음 = { prefix: 'XFS9A', permissions: { cases: 'none', runs: 'none', authoring: 'none' } };
+    const 빠짐 = { projectId: 프로젝트['XFS9A'], permissions: { cases: 'read', runs: 'read' } };
+    const 다없음 = { projectId: 프로젝트['XFS9A'], permissions: { cases: 'none', runs: 'none', authoring: 'none' } };
     const 만들기들 = [
       await 계정만들기('xfu9-bad1', 'member', [빠짐]),
       await 계정만들기('xfu9-bad2', 'member', [다없음]),
@@ -131,8 +132,8 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
     const 고치기 = (payload: Record<string, unknown>) =>
       app.inject({ method: 'PATCH', url: '/api/settings/users/xfu9-perm', payload });
     const 고치기들 = [
-      await 고치기({ services: [빠짐] }),
-      await 고치기({ services: [다없음] }),
+      await 고치기({ projects: [빠짐] }),
+      await 고치기({ projects: [다없음] }),
       await 고치기({ dashboard: 'write' }),
     ];
 
@@ -143,10 +144,10 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
     expect(await 계정('xfu9-bad1')).toBeUndefined();
   });
 
-  it('같은 서비스 줄이 두 번이면 400 PERMISSIONS_SHAPE 다 — 뒤엣것이 조용히 버려지지 않게', async () => {
-    const 두번 = [읽기('XFS9A'), { prefix: 'XFS9A', permissions: { cases: 'write', runs: 'write', authoring: 'write' } }];
+  it('같은 프로젝트 줄이 두 번이면 400 PERMISSIONS_SHAPE 다 — 뒤엣것이 조용히 버려지지 않게', async () => {
+    const 두번 = [읽기('XFS9A'), { projectId: 프로젝트['XFS9A']!, permissions: { cases: 'write', runs: 'write', authoring: 'write' } }];
     const 만듦 = await 계정만들기('xfu9-dup', 'member', 두번);
-    const 고침 = await app.inject({ method: 'PATCH', url: '/api/settings/users/xfu9-perm', payload: { services: 두번 } });
+    const 고침 = await app.inject({ method: 'PATCH', url: '/api/settings/users/xfu9-perm', payload: { projects: 두번 } });
     for (const res of [만듦, 고침]) {
       expect(res.statusCode).toBe(400);
       expect(res.json()).toEqual({ error: 'PERMISSIONS_SHAPE' });
@@ -158,21 +159,36 @@ describe.skipIf(연결 === undefined)('설정 API — 계정', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/settings/users',
-      payload: { username: '', displayName: 'x', role: 'member', dashboard: 'read', services: [{ prefix: 'XFS9A' }] },
+      payload: { username: '', displayName: 'x', role: 'member', dashboard: 'read', projects: [{ projectId: 프로젝트['XFS9A'] }] },
     });
     expect(res.statusCode).toBe(400);
     expect(res.json<{ error: string }>().error).toBe('INVALID_REQUEST');
   });
 
-  it('services 를 보내면 배정을 통째로 바꾸고 대시보드도 고친다', async () => {
-    const 새줄 = { prefix: 'XFS9F', permissions: { cases: 'read', runs: 'write', authoring: 'read' } } satisfies 줄;
+  it('projects 를 보내면 배정을 통째로 바꾸고 대시보드도 고친다', async () => {
+    const 새줄 = { projectId: 프로젝트['XFS9F']!, permissions: { cases: 'read', runs: 'write', authoring: 'read' } } satisfies 줄;
     const res = await app.inject({
       method: 'PATCH',
       url: '/api/settings/users/xfu9-perm',
-      payload: { services: [새줄], dashboard: 'read' },
+      payload: { projects: [새줄], dashboard: 'read' },
     });
     expect(res.statusCode).toBe(200);
-    expect(await 계정('xfu9-perm')).toMatchObject({ dashboard: 'read', services: [새줄] });
+    expect(await 계정('xfu9-perm')).toMatchObject({ dashboard: 'read', projects: [새줄] });
+  });
+
+  it('옛 services 를 보내면 조용히 무시하지 않고 400 PERMISSIONS_SHAPE 다 — 권한이 안 들어간 채 저장된 것처럼 보이지 않게', async () => {
+    const 옛줄 = [{ prefix: 'XFS9A', permissions: { cases: 'read', runs: 'read', authoring: 'read' } }];
+    const 만듦 = await app.inject({
+      method: 'POST',
+      url: '/api/settings/users',
+      payload: { username: 'xfu9-old-shape', displayName: 'x', role: 'member', dashboard: 'read', services: 옛줄 },
+    });
+    const 고침 = await app.inject({ method: 'PATCH', url: '/api/settings/users/xfu9-perm', payload: { services: 옛줄 } });
+    for (const res of [만듦, 고침]) {
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toEqual({ error: 'PERMISSIONS_SHAPE' });
+    }
+    expect(await 계정('xfu9-old-shape')).toBeUndefined();
   });
 
   it('등급은 member 와 admin 뿐이다 — viewer 는 400', async () => {
