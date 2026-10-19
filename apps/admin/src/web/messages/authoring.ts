@@ -167,7 +167,7 @@ export const 작성말: Record<string, string> = {
     'With a spec, the spec screens are written first and, once applied, the screens it does not cover follow. Without a spec, only screens not yet in the PRD are written',
   '이 서비스에는 대상 서버가 없습니다. 설정 > 서비스에서 먼저 넣으세요':
     'This service has no target servers. Add one in Settings > Services first',
-  '이 대상 서버에는 테스트 계정이 없거나 운영 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요':
+  '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 서비스에서 확인하세요':
     'This target server has no test account or is marked as production. Check Settings > Services',
   '시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다':
     'The start URL must be on the same address (domain · port) as the chosen target server',

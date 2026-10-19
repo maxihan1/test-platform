@@ -3,7 +3,6 @@
 export const 설정말: Record<string, string> = {
   // 로그인 화면 (§8.6)
   '테스트 플랫폼': 'Test Platform',
-  '다시 오셨군요': 'Welcome back',
   '아이디와 비밀번호를 넣으면 맡은 서비스가 열립니다.': 'Sign in to open the services assigned to you.',
   '아이디': 'ID',
   '비밀번호': 'Password',
