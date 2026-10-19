@@ -201,7 +201,7 @@ function 케이스결과({
           )}
             <증적만들기버튼들 칸={증적칸} />
             {running ? null : (
-              <실패다시실행 runId={data.runId} items={data.items} env={data.env} 된다={실행판정(판정하기, data)('실행')} on걸었다={on새실행} />
+              <실패다시실행 runId={data.runId} items={data.items} env={data.env} 시작={data.startedAt} 된다={실행판정(판정하기, data)('실행')} on걸었다={on새실행} />
             )}
           </div>
   );

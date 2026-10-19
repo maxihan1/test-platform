@@ -17,7 +17,10 @@ export const 실행말: Record<string, string> = {
   '미확정': 'Unconfirmed',
 
   // 테스트 실행 (실행 창)
-  '▶ 테스트 실행': '▶ Test run',
+  '▶ 시험해 보기': '▶ Try it',
+  '기록·증적이 남지 않습니다': 'Leaves no record or evidence',
+  '기록이 남습니다': 'Leaves a record',
+  '고급 · 시험해 보기 설정': 'Advanced · try-it settings',
   '열 주소': 'Address to open',
   '대기': 'Waiting',
   '실행 중': 'Running',
@@ -35,10 +38,7 @@ export const 실행말: Record<string, string> = {
   '실패§실행': 'Has failures',
   '판정': 'Verdict',
   '디바이스': 'Device',
-  '실행 위치': 'Run location',
-  '로컬': 'Local',
-  '디바이스 팜': 'Device farm',
-  '준비 중': 'Coming soon',
+  '실행 위치 · 로컬': 'Run location · Local',
   '상태': 'Status',
 
   // 실행 기록 목록 (§8.7)
@@ -81,18 +81,20 @@ export const 실행말: Record<string, string> = {
   '선언된 사전조건이 없습니다.': 'No preconditions declared.',
   '입력값': 'Inputs',
   '기대결과': 'Expected result',
-  '저장된 입력값 세트 불러오기': 'Load a saved input set',
   '대상 서버': 'Target server',
   '선택하세요': 'Select',
   '고르세요': 'Select',
   '실행자': 'Run by',
   '반복': 'Repeat',
   '끝나면 Slack 으로 알리기': 'Notify Slack when done',
-  '이 값을 묶음으로 저장': 'Save these values as a set',
   // 케이스 저장값 — 목록 줄과 한 건 실행 창이 같이 쓴다 (도메인/실행 §8.2)
   '저장값 · {누가} · {언제}': 'Saved · {누가} · {언제}',
-  '다음에도 이 값으로 채우기': 'Prefill these values next time',
-  '코드 기본값으로': 'Back to code defaults',
+  '저장한 값': 'Saved values',
+  '이 값을 저장': 'Save these values',
+  '저장값 지우기': 'Clear saved values',
+  '저장값으로 저장했습니다.': 'Saved as the saved values.',
+  '이름을 비우면 저장값으로 저장합니다. 팀 모두와 정기 실행에 쓰입니다': 'Leave the name empty to save as the saved values, used by the whole team and scheduled runs',
+  '이 이름의 묶음으로 따로 저장합니다': 'Saved separately as a set with this name',
   '지우기 확인': 'Confirm clear',
   '팀 모두와 정기 실행에 쓰입니다': 'Used by the whole team and scheduled runs',
   '실행': 'Run',
@@ -104,13 +106,13 @@ export const 실행말: Record<string, string> = {
   '대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
     'Pick a target server. Evidence records which server was hit.',
   '묶음 이름': 'Set name',
-  '묶음 이름을 적으세요': 'Enter a set name',
   '{이름}으로 저장했습니다.': 'Saved as {이름}.',
   '입력값이 명세와 맞지 않습니다.': 'Inputs do not match the schema.',
   '이 서비스에 등록된 대상 서버가 없습니다. 설정에서 추가해야 실행할 수 있습니다':
     'This service has no target servers. Add one in Settings before running',
   '한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)': 'Up to {상한} items per run ({지금} right now)',
-  '실행 항목이 {건수}건 생깁니다': '{건수} run items will be created',
+  '케이스 {케이스} × 디바이스 {디바이스} × 반복 {반복} = {건수}번': '{케이스} cases × {디바이스} devices × {반복} repeats = {건수} runs',
+  '케이스 {케이스} (디바이스 합계 {합}) × 반복 {반복} = {건수}번': '{케이스} cases ({합} devices in total) × {반복} repeats = {건수} runs',
 
   // 여러 건 실행 모달 (§8.10)
   '실행할 케이스 {건수}건': '{건수} cases to run',
@@ -286,4 +288,5 @@ export const 실행말: Record<string, string> = {
   '← 이전 실패': '← Previous failure',
   '실패 {전체}건 중 {번째}번째': 'Failure {번째} of {전체}',
   '다음 실패 →': 'Next failure →',
+  '실행 뒤에 저장값이 바뀐 케이스 {목록} — 실패 때와 다른 값으로 돕니다': 'Saved values changed after this run for {목록} — the rerun uses different values than the failure did',
 };
