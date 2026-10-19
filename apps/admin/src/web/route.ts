@@ -34,8 +34,14 @@ export type Route =
   | { name: 'item'; runId: number; historyId: number }
   | { name: 'unknown'; hash: string };
 
-/** 실행 기록에서 그 실행을 고른 주소 (도메인/실행 §8.7 「A안」). 종류는 케이스 번호가 말한다 — 서버 catalog/rules `tcId종류` 와 같은 꼴이다 */
-export const 실행기록주소 = (tcId: string, runId: number) => `#/runs/${/-UI-\d{3}$/.test(tcId) ? 'ui' : 'fn'}?run=${String(runId)}`;
+/** 케이스 번호가 말하는 종류 — 서버 catalog/rules `tcId종류` 와 같은 꼴이다 */
+export const UI케이스인가 = (tcId: string): boolean => /-UI-\d{3}$/.test(tcId);
+
+/** 실행 기록에서 그 실행을 고른 주소 (도메인/실행 §8.7 「A안」) */
+export const 실행기록주소 = (tcId: string, runId: number) => `#/runs/${UI케이스인가(tcId) ? 'ui' : 'fn'}?run=${String(runId)}`;
+
+/** 케이스 목록에서 그 케이스 상세를 편 주소 (CaseListFilter 의 `case` 조건) */
+export const 케이스주소 = (tcId: string) => `#/cases/${UI케이스인가(tcId) ? 'ui' : 'fn'}?case=${encodeURIComponent(tcId)}`;
 
 /** 「PRD 관리」의 그 항목 주소. 거기서 묶음을 펴고 그 줄로 간다 (도메인/카탈로그 §8.1 「맥락」) */
 export const PRD항목주소 = (reqId: string) => `#/prd/${encodeURIComponent(reqId)}`;

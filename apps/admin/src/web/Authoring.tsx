@@ -103,7 +103,7 @@ export function Authoring({ service, envs = [], 할수 }: { service: string; env
   const t = use말();
   // 쪽은 주소에 남는다 — 상세에 갔다 뒤로 와도 그 쪽이다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
-  // 「손이 필요한 것」만 — 값 필요 · 겹침 · 반영 대기 · 반영 실패가 남은 요청 (점검 11.2 · 도메인/작성 §7 ?todo=1)
+  // 「손이 필요한 것」만 — 입력 필요 · 중복 · 반영 대기 · 반영 실패가 남은 요청 (점검 11.2 · 도메인/작성 §7 ?todo=1)
   const [할일만, set할일만] = useState(() => 주소조건().get('todo') === '1');
   use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(page === 1 ? {} : { page: String(page) }) });
   // 방금 줄에 세운 요청. 시작 모달이 이것을 보인다 — 닫으면 null

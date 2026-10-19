@@ -1,4 +1,4 @@
-// 작성 상세의 보류 케이스 — 온 폭 표 · 줄 아래 펼쳐 값 넣기 · 다음 단계 진척 (도메인/작성 §3.6 「★ 보류 케이스」 · DESIGN.md 「작성 상태」 시안 A)
+// 작성 상세의 입력이 필요한 케이스(보류) — 다음 단계 안의 표 · 줄 아래 펼쳐 값 넣기 · 진척 (도메인/작성 §3.6 「★ 보류 케이스」 · DESIGN.md 「작성 상태」 시안 A)
 
 import { Fragment, useState } from 'react';
 
@@ -9,8 +9,8 @@ import { message, when } from './ui.js';
 
 // 보류 통로에서만 만나는 서버 코드. 모르면 공통 번역(message)으로 넘긴다 — AuthoringNew 의 작성오류와 같은 모양
 const 보류오류: Record<string, string> = {
-  HELD_OPEN: '보류 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요',
-  HELD_UNKNOWN: '보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.',
+  HELD_OPEN: '입력이 필요한 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요',
+  HELD_UNKNOWN: '입력이 필요한 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.',
   MERGE_ACTIVE: '반영이 대기 중이거나 진행 중이라 지금은 값을 바꿀 수 없습니다',
   BAD_HELD: '넣은 값이 이 케이스의 칸과 맞지 않습니다',
 };
@@ -41,19 +41,16 @@ export function 값을채웠나(held: 보류줄[]): boolean {
   return held.some((h) => h.input !== null && h.input.removed !== true);
 }
 
-/** 다음 단계 카드의 진척 한 칸 */
-export function 보류진척({ 표, held }: { 표: string; held: 보류줄[] }) {
+/** 다음 단계의 입력 칸 — 진척 막대 아래에 표를 바로 편다. 표가 반영 단계 바로 위라 값을 다 넣고 위로 올라가지 않는다 (점검 12.15) */
+export function 보류진척({ 표, held, children }: { 표: string; held: 보류줄[]; children: React.ReactNode }) {
   const t = use말();
   const { 전체, 채움, 제거 } = 보류셈(held);
   return (
-    <일 표={표} 제목={t('보류 케이스 {전체}건 중 {처리}건 처리', { 전체, 처리: 채움 + 제거 })} 설명={t('값 채움 {채움} · 제거 {제거}', { 채움, 제거 })}>
+    <일 표={표} 제목={t('입력이 필요한 케이스 {전체}건 중 {처리}건 완료', { 전체, 처리: 채움 + 제거 })} 설명={t('입력 완료 {채움} · 제외 {제거}', { 채움, 제거 })}>
       <div className="status-bar held-bar" aria-hidden="true">
         <i style={{ width: `${String(Math.round(((채움 + 제거) / 전체) * 100))}%` }} />
       </div>
-      {/* 링크(#held)는 해시 라우터 주소(#/authoring/7)를 덮어 「없는 주소」로 간다 — 주소는 두고 내려가기만 한다 */}
-      <button className="btn ghost" type="button" onClick={() => document.getElementById('held')?.scrollIntoView()}>
-        {t('보류 케이스로 가기')}
-      </button>
+      {children}
     </일>
   );
 }
@@ -163,23 +160,20 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
     보낸다(h.tcId, () => api.putAuthoringHeld(service, 요청번호, h.tcId, 몸), t('저장했습니다'));
   }
 
-  const 상태글: Record<상태, string> = { open: t('값 필요'), filled: t('값 채움'), removed: t('제거함') };
+  const 상태글: Record<상태, string> = { open: t('입력 전'), filled: t('입력 완료'), removed: t('제외함') };
 
   return (
-    <section id="held" className="authoring-panel authoring-held" aria-labelledby="held-title">
-      <h3 id="held-title">
-        {t('보류 케이스')} <span className="hint">{t('{수}건 · 값을 넣거나 제거하세요', { 수: held.length })}</span>
-      </h3>
+    <section id="held" className="authoring-held" aria-label={t('입력이 필요한 케이스')}>
       <p className="hint">
-        {t('판정 불가는 기획서에 판정 기준이 없는 케이스, 보류는 전제를 만들 수 없는 케이스입니다. 넣은 값은 테스트의 기본값이 되고, 실행할 때 바꿀 수 있습니다.')}
+        {t('기대값 없음은 기획서에 판정 기준이 없는 케이스, 테스트 데이터 없음은 사전 조건을 만들 수 없는 케이스입니다. 넣은 값은 테스트의 기본값이 되고, 실행할 때 바꿀 수 있습니다.')}
       </p>
       <div className="authoring-diffs-wrap">
-        <table className="dhist" aria-label={t('보류 케이스')}>
+        <table className="dhist" aria-label={t('입력이 필요한 케이스')}>
           <thead>
             <tr>
               <th>{t('케이스')}</th>
-              <th>{t('무엇을 확인하나')}</th>
-              <th>{t('왜 보류됐나')}</th>
+              <th>{t('확인 내용')}</th>
+              <th>{t('필요한 것')}</th>
               <th>{t('상태')}</th>
               <th />
             </tr>
@@ -195,19 +189,12 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                       <span className="mono">{h.tcId}</span>
                       <br />
                       <span className={h.kind === 'UNDECIDABLE' ? 'held-chip und' : 'held-chip'}>
-                        {h.kind === 'UNDECIDABLE' ? t('판정 불가') : t('보류')}
+                        {h.kind === 'UNDECIDABLE' ? t('기대값 없음') : t('테스트 데이터 없음')}
                       </span>
                     </td>
                     <td className={s === 'removed' ? 'held-rm' : undefined}>
-                      {h.name === undefined ? (
-                        <span className="mono">{h.file}</span>
-                      ) : (
-                        <>
-                          {h.name}
-                          <br />
-                          <span className="mono held-path">{h.file}</span>
-                        </>
-                      )}
+                      {/* 파일 경로는 사람이 할 일과 상관없다 — 이름이 없는 옛 응답에만 쓴다 */}
+                      {h.name ?? <span className="mono">{h.file}</span>}
                     </td>
                     <td>{머리뗀(h.reason)}</td>
                     <td className="held-state">
@@ -229,7 +216,7 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                         <>
                           {h.fields.length === 0 ? null : (
                             <button className="btn ghost" type="button" aria-expanded={펼침} onClick={(e) => 편다(h, e.currentTarget)}>
-                              {펼침 ? t('접기') : t('값 넣기')}
+                              {펼침 ? t('접기') : t('입력')}
                             </button>
                           )}
                           <button
@@ -237,7 +224,7 @@ export function AuthoringHeld({ service, 요청번호, held, 편집, reload }: P
                             type="button"
                             onClick={() => 보낸다(h.tcId, () => api.putAuthoringHeld(service, 요청번호, h.tcId, { removed: true }), null)}
                           >
-                            {t('제거')}
+                            {t('케이스 제외')}
                           </button>
                         </>
                       )}

@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 
-import { api, type AuthoringAsset, type AuthoringCoverage, type AuthoringRow } from './api.js';
-import { 보류오류문장, 보류진척 } from './AuthoringHeld.js';
+import { api, type AuthoringCoverage, type AuthoringMadeCase, type AuthoringRow } from './api.js';
+import { 반영끝, 작성끝단계 } from './AuthoringDoneSteps.js';
+import { 보류오류문장 } from './AuthoringHeld.js';
 import { 고치기할일 } from './AuthoringEditParts.js';
-import { 반영단계 } from './AuthoringMergeStep.js';
 import { 다시작성원본, 시간판 } from './authoringStatus.js';
-import { 남은요구이어작성, 이어서작성, 일, 확인글 } from './authoringTodoParts.js';
+import { 이어서작성, 일, 확인글 } from './authoringTodoParts.js';
 import { 줄보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
@@ -27,10 +27,12 @@ interface Props {
   커버리지?: AuthoringCoverage | null;
   /** 뿌리가 케이스 고치기면 온다 — 최신 실행이 반영 행이어도 고치기의 다음 단계를 낸다 (AuthoringEditParts.tsx) */
   고치기?: { 반영실패: boolean };
+  /** 머지를 뺀 최신 작성 실행이 만든 케이스 — 반영이 끝난 머지 행에는 없다 */
+  만든것?: AuthoringMadeCase[] | null;
   reload: () => void;
 }
 
-export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지 = null, 고치기, reload }: Props) {
+export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지 = null, 고치기, 만든것 = null, reload }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [열린, set열린] = useState<확인>(null);
@@ -42,7 +44,6 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
   const 멈춤요청됨 = 요청.status === 'RUNNING' && 요청.stopRequestedAt != null;
   // 자식이 끝나고 올리는 중이면 서버가 멈춤을 안 받는다. 버튼이 사라진 까닭을 말한다
   const 올리는중 = 요청.status === 'RUNNING' && !멈춤요청됨 && 요청.canStop !== true && 요청.progress?.childRunning === false;
-  const 표시사본 = (요청.assets ?? []).filter((a: AuthoringAsset) => a.role === 'MARKED');
 
   /**
    * 누르면 곧장 서버로 가는 일(반영 · 다시 작성 · 이어서 작성). 새 실행은 같은 번호의 실행 기록에 쌓이므로
@@ -151,65 +152,9 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
       </>
     );
   } else if (요청.status === 'DONE' && 요청.kind === 'MERGE') {
-    본문 = (
-      <>
-        <p>{t('테스트가 반영됐습니다. 케이스 목록에서 새 케이스를 볼 수 있습니다.')}</p>
-        {/* 이 칸을 모르는 옛 응답에는 안 그린다 */}
-        {요청.canContinue === undefined ? null : (
-          <ol>
-            <남은요구이어작성 요청={요청} 셈={커버리지} 권한={할수('작성요청')} 보내는중={보내는중} 새번호로={새번호로} />
-          </ol>
-        )}
-      </>
-    );
+    본문 = <반영끝 {...{ service, 요청, 만든것, 보내는중, 새번호로 }} 운영자={할수('설정')} 셈={커버리지} 권한={할수('작성요청')} />;
   } else if (요청.status === 'DONE') {
-    const held = 요청.held ?? [];
-    let 번호 = 0;
-    const 다음 = () => String(++번호);
-    본문 =
-      요청.prUrl === null ? (
-        <>
-          <p>{t('올라간 PR 이 없습니다. 아래 만든 것을 확인하세요.')}</p>
-          {폐기버튼 === null ? null : <div className="btns">{폐기버튼}</div>}
-        </>
-      ) : (
-        <ol>
-          <일 표={다음()} 제목={t('만든 테스트 코드 검토')} 설명={t('초안 PR로 올라갔습니다. 읽어 보고 이상하면 PR에 댓글을 남기세요.')}>
-            <a className="btn ghost" href={요청.prUrl} target="_blank" rel="noreferrer">
-              {t('만든 테스트 코드 보기 (PR)')}
-            </a>
-          </일>
-          {차이수 === 0 ? null : (
-            <일
-              표={다음()}
-              제목={t('기획서와 다른 곳 {수}건 확인', { 수: 차이수 })}
-              설명={t('화면에서 본 값으로 만든 케이스라 미확정 표시가 붙었습니다. 기획자에게 어느 쪽이 맞는지 물어보세요.')}
-            >
-              {표시사본.map((a) => (
-                <a key={a.id} className="btn ghost" href={api.authoringAssetUrl(요청.id, a.id)} download>
-                  {t('표시한 기획서 내려받기')}
-                </a>
-              ))}
-            </일>
-          )}
-          {held.length === 0 ? null : <보류진척 표={다음()} held={held} />}
-          <반영단계
-            service={service}
-            요청={요청}
-            표={다음()}
-            반영권한={할수('작성머지')}
-            보내는중={보내는중}
-            새줄로={새줄로}
-            커버리지={커버리지}
-          />
-          {/* 같은 기획서로 두 번 작성한 쪽이 「반영 대기」로 남지 않게 (PRD-F9-16) */}
-          {폐기버튼 === null ? null : (
-            <일 표={다음()} 제목={t('폐기')} 설명={t('반영하지 않을 테스트면 폐기합니다. 올라간 PR 은 GitHub 에서 닫습니다.')}>
-              <div className="btns">{폐기버튼}</div>
-            </일>
-          )}
-        </ol>
-      );
+    본문 = <작성끝단계 {...{ service, 요청, 할수, 차이수, 커버리지, 보내는중, 새줄로, 폐기버튼, reload }} />;
   } else {
     // FAILED · STOPPED — 고른다. 중단이면 이어서 작성이 맨 앞이다 (시안 A, 2026-09-28 사용자)
     const 권한 = 할수('작성요청');
@@ -292,6 +237,14 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
               </>
             ) : null}
           </p>
+          {/* 폐기는 PR 을 닫지 않는다(§7 discard) — 닫을 곳을 찾아 헤매지 않게 그 PR 로 바로 보낸다 (점검 12.13) */}
+          {열린 === 'discard' && 요청.prUrl !== null ? (
+            <p>
+              <a href={요청.prUrl} target="_blank" rel="noreferrer">
+                {t('PR 닫으러 가기')}
+              </a>
+            </p>
+          ) : null}
           {오류 === null ? null : <p className="err">{오류}</p>}
         </Modal>
       )}

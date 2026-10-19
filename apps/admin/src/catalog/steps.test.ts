@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { caseSteps } from './steps.js';
+import { caseSteps, 확인문장들 } from './steps.js';
 
 function body(inner: string): string {
   return `import { defineCase, test, verify } from '@platform/kit';
@@ -279,5 +279,21 @@ describe('caseSteps — Page Object', () => {
 
   it('클래스 이름을 다른 것으로 덮으면 믿지 않는다', () => {
     expect(skippable(po(`const 로그인화면 = 도우미;\n    await new 로그인화면(page).열기();`))[0]).toBe(false);
+  });
+});
+
+describe('확인문장들', () => {
+  it('verify 첫 인자 문자열을 소스 차례대로 낸다 — 절차 제목은 안 든다', () => {
+    expect(확인문장들(R16)).toEqual(['한 건이다', '완료된다']);
+  });
+
+  it('문자열이 아닌 첫 인자와 verify 아닌 호출은 건너뛴다', () => {
+    const 소스 = body(`
+  const 문장 = '변수';
+  await verify(문장, 1, 1);
+  await verify(\`템플릿 문장\`, 1, 1);
+  await other('남의 호출', 1, 1);
+`);
+    expect(확인문장들(소스)).toEqual(['템플릿 문장']);
   });
 });

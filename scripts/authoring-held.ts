@@ -83,7 +83,7 @@ export function 스캔풀기(낸것: string): unknown[] | null {
  * 사본 트리의 `tests/<폴더>` 를 스캐너로 읽는다. 케이스 파일은 자식이 쓴 코드라 import 하면 실행된다 —
  * 에이전트 프로세스(토큰을 쥔)가 아니라 **자리 uid · 빈 환경의 하위 프로세스**에서 읽는다
  */
-function 보류읽기(자리: 사본, 자식: 계정 | null, 폴더: string): 보류[] | { 사유: string } {
+function 명세읽기(자리: 사본, 자식: 계정 | null, 폴더: string): unknown[] | { 사유: string } {
   const 스캐너 = join(자리.트리, 'apps', 'admin', 'src', 'catalog', 'scanner.ts');
   const 뿌리 = join(자리.트리, 'tests', 폴더);
   const 코드 = `import(${JSON.stringify(스캐너)}).then(async (m) => { const r = await m.scan(${JSON.stringify(뿌리)}); process.stdout.write(${JSON.stringify(스캔표시)} + JSON.stringify(r.specs)); })`;
@@ -92,7 +92,7 @@ function 보류읽기(자리: 사본, 자식: 계정 | null, 폴더: string): �
   const 명세들 = r.ok ? 스캔풀기(r.낸것) : null;
   // 표준 오류는 싣지 않는다 — 케이스 코드가 찍은 글에 계정 원문이 섞일 수 있다
   if (명세들 === null) return { 사유: `보류 케이스를 못 읽었다 (${r.ok ? '스캔 결과 모양이 틀렸다' : `종료 ${String(r.코드)}`})` };
-  return 보류목록(명세들);
+  return 명세들;
 }
 
 /**
@@ -108,9 +108,24 @@ export function 보류실은몸(몸: Record<string, unknown>, 읽음: 보류[] |
   return 읽음.length === 0 ? 몸 : { ...몸, result: { ...결과, held: 읽음 } };
 }
 
-export function 보류싣는손(손: 보고손, 자리: 사본, 자식: 계정 | null, 폴더: string): 보고손 {
+/**
+ * 읽은 명세를 `명세받기` 로도 넘긴다 — 만든 케이스(result.cases)가 같은 스캔을 다시 돌리지 않고 쓴다.
+ * 못 읽었으면 null 을 넘긴다
+ */
+export function 보류싣는손(
+  손: 보고손,
+  자리: 사본,
+  자식: 계정 | null,
+  폴더: string,
+  명세받기: (명세들: unknown[] | null) => void = () => undefined,
+): 보고손 {
   return {
     ...손,
-    끝내기: (몸) => (몸.status === 'DONE' ? 손.끝내기(보류실은몸(몸, 보류읽기(자리, 자식, 폴더))) : 손.끝내기(몸)),
+    끝내기: (몸) => {
+      if (몸.status !== 'DONE') return 손.끝내기(몸);
+      const 명세들 = 명세읽기(자리, 자식, 폴더);
+      명세받기('사유' in 명세들 ? null : 명세들);
+      return 손.끝내기(보류실은몸(몸, '사유' in 명세들 ? 명세들 : 보류목록(명세들)));
+    },
   };
 }

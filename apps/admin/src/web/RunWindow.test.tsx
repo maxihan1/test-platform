@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { api, type CaseRow } from './api.js';
+import { api, ApiError, type CaseRow } from './api.js';
 import { 사람 } from './runPick.fixture.js';
 import { RunWindow } from './RunWindow.js';
 
@@ -103,8 +103,28 @@ describe('RunWindow', () => {
     render(<RunWindow tcIds={['ZRS-001', 'ZRS-002']} onClose={vi.fn()} />);
 
     expect(await screen.findByRole('dialog', { name: '실행할 케이스 1건' })).toBeTruthy();
-    expect(screen.getByText('비활성이라 뺀 케이스 ZRS-002')).toBeTruthy();
+    expect(screen.getByText('비활성이거나 없어 뺀 케이스 ZRS-002')).toBeTruthy();
     expect(screen.queryByText('ZRS-002 케이스')).toBeNull();
+  });
+
+  it('카탈로그에 없는 케이스(404)는 창을 깨지 않고 비활성처럼 빼고 알린다', async () => {
+    읽기모킹([케이스('ZRS-001')]);
+    vi.spyOn(api, 'caseOf').mockImplementation((tcId) =>
+      tcId === 'ZRS-001' ? Promise.resolve(케이스('ZRS-001')) : Promise.reject(new ApiError(404, 'NOT_FOUND', '없음')),
+    );
+    render(<RunWindow tcIds={['ZRS-001', 'ZRS-009']} onClose={vi.fn()} />);
+
+    expect(await screen.findByRole('dialog', { name: '실행할 케이스 1건' })).toBeTruthy();
+    expect(screen.getByText('비활성이거나 없어 뺀 케이스 ZRS-009')).toBeTruthy();
+  });
+
+  it('404 가 아닌 읽기 오류는 그대로 오류로 보인다', async () => {
+    읽기모킹([]);
+    vi.spyOn(api, 'caseOf').mockRejectedValue(new ApiError(500, 'INTERNAL', '서버 오류'));
+    render(<RunWindow tcIds={['ZRS-001']} onClose={vi.fn()} />);
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: '실행' })).toBeNull());
+    expect(await screen.findByRole('dialog', { name: '실행' })).toBeTruthy();
   });
 
   it('고른 것이 전부 비활성이면 돌릴 것이 없다는 말만 있는 창이 뜬다', async () => {
