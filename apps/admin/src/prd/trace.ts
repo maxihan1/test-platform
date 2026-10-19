@@ -31,6 +31,8 @@ export interface 추적 {
   기법: [Technique, number][];
   /** 실행 보기 권한이 없으면 null */
   결과: 결과셈 | null;
+  /** 실패한 케이스가 어느 갈래에 있나 — 「실패 2 / 5」 고리가 실패 케이스가 있는 목록으로 열린다 */
+  실패갈래: { 기능: number; UI: number };
 }
 
 /**
@@ -56,13 +58,16 @@ export function 추적하기(덮는: 덮는케이스[], 결과: 결과읽기 | n
   const 기법 = TECHNIQUES.map((t): [Technique, number] => [t, 기능.filter((c) => c.techniques.includes(t)).length]).filter(([, n]) => n > 0);
 
   let 셈: 결과셈 | null = null;
+  const 실패갈래 = { 기능: 0, UI: 0 };
   if (결과 !== null) {
     셈 = { 통과: 0, 실패: 0, 미실행: 0 };
     for (const c of 케이스) {
       const 판정 = 케이스판정(c.platforms.map((p) => 결과(c.tcId, p)));
       if (판정 === 'PASS') 셈.통과 += 1;
-      else if (판정 === 'FAIL') 셈.실패 += 1;
-      else 셈.미실행 += 1;
+      else if (판정 === 'FAIL') {
+        셈.실패 += 1;
+        실패갈래[UI번호.test(c.tcId) ? 'UI' : '기능'] += 1;
+      } else 셈.미실행 += 1;
     }
   }
 
@@ -72,6 +77,7 @@ export function 추적하기(덮는: 덮는케이스[], 결과: 결과읽기 | n
     종류,
     기법,
     결과: 셈,
+    실패갈래,
   };
 }
 

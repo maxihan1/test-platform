@@ -61,9 +61,9 @@ describe('PRD 관리 — 보류', () => {
   it('묶음 머리에 보류와 미작성을 따로 센다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
     const 회원가입 = await screen.findByRole('button', { name: /회원가입/ });
-    expect(회원가입.textContent).toContain('2건 · 확인 필요 1건 · 보류 2건');
+    expect(회원가입.textContent).toContain('2건 · 확인 필요 1건 · 모두 보류');
     expect(회원가입.textContent).not.toContain('미작성');
-    expect((await screen.findByRole('button', { name: /로그인/ })).textContent).toContain('미작성 2건');
+    expect((await screen.findByRole('button', { name: /로그인/ })).textContent).toContain('모두 미작성');
   });
 
   it('보류가 없으면 카드를 그리지 않는다', async () => {

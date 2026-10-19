@@ -9,6 +9,7 @@ import { 요청오류문장 } from './errorText.js';
 import { use말, use언어 } from './i18n.js';
 import type { 판짓기 } from './Prd.js';
 import { prdApi, type PrdNow } from './prdApi.js';
+import { 근거목록 } from './PrdBasis.js';
 import { PrdHeldCard } from './PrdHeld.js';
 import { PrdUncovered } from './PrdUncovered.js';
 import { 뒤집은, 반영안됨줄, 확인필요줄, type 반영종류 } from './prdView.js';
@@ -38,6 +39,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
   const 나이글 = use나이글();
   const 종류글 = use반영종류글();
   const [고른, set고른] = useState<Set<string>>(new Set());
+  const [근거펼침, set근거펼침] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [반영결과, set반영결과] = useState<{ 글: string; 번호들: number[] } | null>(null);
   const [세움, set세움] = useState(false);
@@ -106,7 +108,17 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
                 <span className="prd-age">{나이글(x.checkSince)}</span>
                 <small>
                   {x.feature} · {근거자리(x.basis[0])}
+                  {/* 확정하기 전에 근거 문장을 봐야 한다 — 전체 요구에서 줄을 하나씩 펴지 않아도 여기서 본다 (점검 8.2) */}
+                  <button
+                    type="button"
+                    className="btn ghost small prd-basis-toggle"
+                    aria-expanded={근거펼침.has(x.reqId)}
+                    onClick={() => set근거펼침(뒤집은(근거펼침, x.reqId))}
+                  >
+                    {t('근거 {건수}개', { 건수: x.basis.length })}
+                  </button>
                 </small>
+                {근거펼침.has(x.reqId) ? <근거목록 basis={x.basis} /> : null}
               </li>
             ))}
           </ul>
@@ -121,7 +133,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
               />
               {t('모두 고르기')}
             </label>
-            <span className="note">{t('확정하면 바로 새 버전으로 저장됩니다. PR 은 없습니다')}</span>
+            <span className="note">{t('확정하면 바로 새 버전으로 저장됩니다')}</span>
             <button className="btn small" disabled={busy || 보낼것.length === 0} onClick={() => void 확정()}>
               {t('고른 {건수}건 확정', { 건수: 보낼것.length })}
             </button>
@@ -169,7 +181,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
         ) : null}
       </section>
       {보류카드 ? <PrdHeldCard service={service} held={now.held} 쓰나={쓰나} /> : null}
-      {화면카드 ? <PrdUncovered now={now} /> : null}
+      {화면카드 ? <PrdUncovered now={now} 쓰나={쓰나} /> : null}
     </div>
   );
 }

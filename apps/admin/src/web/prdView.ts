@@ -63,3 +63,29 @@ export function 고치기검사(x: PrdItemDraft): 틀린칸 | null {
     x.basis.some((b) => b.from.length > 상한.근거자리 || (b.ref ?? '').length > 상한.근거자리 || b.quote.length > 상한.근거문장);
   return 넘침 ? 'long' : null;
 }
+
+export interface 차이줄 {
+  kind: 'changed' | 'added' | 'removed' | 'state';
+  reqId: string;
+  앞: PrdItem | null;
+  뒤: PrdItem | null;
+}
+
+const 내용같다 = (a: PrdItem, b: PrdItem) => a.feature === b.feature && a.text === b.text && JSON.stringify(a.basis) === JSON.stringify(b.basis);
+
+/**
+ * 버전 기록의 「바뀐 것」 — 앞 버전과 뒤 버전을 견준다. 서버는 이 칸을 저장하지 않아 그때 계산한다.
+ * 바뀜은 반영 안 됨과 같은 뜻(기능 묶음 · 요구 문장 · 근거)이고, 상태만 다르면 따로 센다
+ */
+export function 판차이(앞: PrdItem[], 뒤: PrdItem[]): 차이줄[] {
+  const 옛 = new Map(앞.map((x) => [x.reqId, x]));
+  const 새 = new Set(뒤.map((x) => x.reqId));
+  const 남은 = 뒤.flatMap((x): 차이줄[] => {
+    const 전 = 옛.get(x.reqId);
+    if (전 === undefined) return [{ kind: 'added', reqId: x.reqId, 앞: null, 뒤: x }];
+    if (!내용같다(전, x)) return [{ kind: 'changed', reqId: x.reqId, 앞: 전, 뒤: x }];
+    return 전.status === x.status ? [] : [{ kind: 'state', reqId: x.reqId, 앞: 전, 뒤: x }];
+  });
+  const 지운 = 앞.filter((x) => !새.has(x.reqId)).map((x): 차이줄 => ({ kind: 'removed', reqId: x.reqId, 앞: x, 뒤: null }));
+  return [...남은, ...지운];
+}

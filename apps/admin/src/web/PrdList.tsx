@@ -11,7 +11,6 @@ import type { 판짓기 } from './Prd.js';
 import { prdApi, type PrdItemDraft, type PrdNow } from './prdApi.js';
 import type { 지도API } from '../prd/apiMap.js';
 import { 요구가거치는 } from './PrdApis.js';
-import { PrdItemForm, 빈요구 } from './PrdItemForm.js';
 import { prd줄아이디, 요구줄 } from './PrdRow.js';
 import { PRD항목주소 } from './route.js';
 import { 고친판, 뒤집은, 묶음들, 반영안됨줄 } from './prdView.js';
@@ -21,8 +20,6 @@ export function PrdList({
   now,
   쓰나,
   짓기,
-  더하기,
-  on더하기닫기,
   여기,
   결과,
   케이스보나,
@@ -32,8 +29,6 @@ export function PrdList({
   now: PrdNow;
   쓰나: boolean;
   짓기: 판짓기;
-  더하기: boolean;
-  on더하기닫기: () => void;
   /** 실행 read 가 없거나 아직 못 받았으면 null — 마지막 결과를 안 그린다 */
   결과: 결과읽기 | null;
   케이스보나: boolean;
@@ -75,8 +70,8 @@ export function PrdList({
   const 열렸나 = (feature: string) => 찾는말 !== '' || 연묶음.has(feature);
   const 모두폈나 = 묶음.length > 0 && 묶음.every((g) => 열렸나(g.feature));
 
-  const 저장 = (reqId: string | null, 새것: PrdItemDraft | null) =>
-    짓기((base) => prdApi.save(service, base, 고친판(now.items, reqId, 새것)));
+  const 저장 = (reqId: string, 새것: PrdItemDraft | null, 실패: (글: string) => void) =>
+    짓기((base) => prdApi.save(service, base, 고친판(now.items, reqId, 새것)), 실패);
 
   return (
     <section className="screen prd-all" aria-labelledby="prd-all-title">
@@ -100,21 +95,6 @@ export function PrdList({
           {모두폈나 ? t('모두 접기') : t('모두 펴기')}
         </button>
       </div>
-      {더하기 ? (
-        <div className="prd-new">
-          <h3>{t('새 요구')}</h3>
-          <PrdItemForm
-            처음={빈요구()}
-            기능들={기능들}
-            on저장={async (x) => {
-              const 됐나 = await 저장(null, x);
-              if (됐나) on더하기닫기();
-              return 됐나;
-            }}
-            on취소={on더하기닫기}
-          />
-        </div>
-      ) : null}
       {묶음.length === 0 ? (
         <div className="empty">{찾는말 === '' ? t('아직 요구가 없습니다') : t('찾는 요구가 없습니다')}</div>
       ) : (
@@ -135,11 +115,12 @@ export function PrdList({
                 <b>{g.feature}</b>
                 <span className="prd-gcount">
                   {t('{건수}건', { 건수: g.items.length })}
-                  {확인수 === 0 ? null : <> · {t('확인 필요 {건수}건', { 건수: 확인수 })}</>}
-                  {반영수 === 0 ? null : <> · {t('반영 안 됨 {건수}건', { 건수: 반영수 })}</>}
-                  {보류수 === 0 ? null : <> · {t('보류 {건수}건', { 건수: 보류수 })}</>}
-                  {미작성수 === 0 ? null : <> · {t('미작성 {건수}건', { 건수: 미작성수 })}</>}
-                  {실패수 === 0 ? null : <> · <span className="prd-gfail">{t('실패 {건수}건', { 건수: 실패수 })}</span></>}
+                  {/* 묶음 전체가 같은 꼬리면 같은 숫자가 세 번 나온다 — 「모두 ~」 한 마디로 줄인다 (점검 N9) */}
+                  {확인수 === 0 ? null : <> · {확인수 === g.items.length ? t('모두 확인 필요') : t('확인 필요 {건수}건', { 건수: 확인수 })}</>}
+                  {반영수 === 0 ? null : <> · {반영수 === g.items.length ? t('모두 반영 안 됨') : t('반영 안 됨 {건수}건', { 건수: 반영수 })}</>}
+                  {보류수 === 0 ? null : <> · {보류수 === g.items.length ? t('모두 보류') : t('보류 {건수}건', { 건수: 보류수 })}</>}
+                  {미작성수 === 0 ? null : <> · {미작성수 === g.items.length ? t('모두 미작성') : t('미작성 {건수}건', { 건수: 미작성수 })}</>}
+                  {실패수 === 0 ? null : <> · <span className="prd-gfail">{실패수 === g.items.length ? t('모두 실패') : t('실패 {건수}건', { 건수: 실패수 })}</span></>}
                 </span>
               </button>
               {!열렸나(g.feature)
@@ -168,8 +149,8 @@ export function PrdList({
                       on고치기={() => (고치는 === null ? set고치는(x.reqId) : 버리기전(() => set고치는(x.reqId), 고치는))}
                       on고치기닫기={() => set고치는(null)}
                       기능들={기능들}
-                      on저장={async (새것) => {
-                        const 됐나 = await 저장(x.reqId, 새것);
+                      on저장={async (새것, 실패) => {
+                        const 됐나 = await 저장(x.reqId, 새것, 실패);
                         if (됐나) set고치는(null);
                         return 됐나;
                       }}

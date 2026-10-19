@@ -85,11 +85,31 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     expect(within(아이디).getByRole('link', { name: 'UI 1건' }).getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031');
     // 기기 한쪽만 깨져도 그 케이스는 실패다 — 케이스 목록과 같은 규칙
     expect(within(아이디).getByText('실패 1 / 3').className).toBe('verdict v-fail');
+    // 실패 숫자를 누르면 실패한 케이스만 거른 목록이 열린다 (점검 8.7)
+    expect(within(아이디).getByText('실패 1 / 3').getAttribute('href')).toBe('#/cases/fn/req/MKT-REQ-031?last=FAIL');
     expect(within(줄of('MKT-REQ-032')).getByText('미작성')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /로그인/ }));
     expect(within(줄of('MKT-REQ-040')).getByText('통과').className).toBe('verdict v-pass');
     expect(within(줄of('MKT-REQ-041')).getByText('미실행').className).toBe('verdict v-na');
+  });
+
+  it('실패가 UI 케이스에만 있으면 실패 숫자가 UI 목록으로 연다 (점검 8.7)', async () => {
+    vi.spyOn(api, 'lastByCase').mockResolvedValue({
+      items: [결과('MKT-FN-001', 'desktop', 'PASS'), 결과('MKT-FN-002', 'desktop', 'PASS'), 결과('MKT-UI-001', 'desktop', 'FAIL')],
+    });
+    render(<Prd service="MKT" 할수={보는사람} 결과보나 케이스보나 />);
+    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
+    const 아이디 = 줄of('MKT-REQ-031');
+    await vi.waitFor(() => expect(within(아이디).getByText('실패 1 / 3').getAttribute('href')).toBe('#/cases/ui/req/MKT-REQ-031?last=FAIL'));
+  });
+
+  it('케이스 read 가 없으면 실패 숫자도 고리가 아니다', async () => {
+    vi.spyOn(api, 'lastByCase').mockResolvedValue({ items: [결과('MKT-FN-001', 'desktop', 'FAIL')] });
+    render(<Prd service="MKT" 할수={보는사람} 결과보나 />);
+    fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
+    const 아이디 = 줄of('MKT-REQ-031');
+    await vi.waitFor(() => expect(within(아이디).getByText(/^실패 \d+ \/ 3$/).tagName).toBe('SPAN'));
   });
 
   it('줄을 펴면 종류 · 기법 숫자를 설계 미리보기 앞에 보인다', async () => {
@@ -132,7 +152,8 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
     Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:rtm'), revokeObjectURL: vi.fn() });
     const 누름 = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     render(<Prd service="MKT" 할수={보는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '추적표 엑셀로 내려받기' }));
+    fireEvent.click(await screen.findByRole('button', { name: /^내려받기/ }));
+    fireEvent.click(screen.getByRole('button', { name: '추적표 엑셀로 내려받기' }));
     expect(엑셀).toHaveBeenCalledWith('MKT');
     await vi.waitFor(() => expect(누름).toHaveBeenCalledOnce());
     expect((누름.mock.contexts[0] as HTMLAnchorElement).download).toBe('MKT-RTM-v12-2026-10-11.xlsx');

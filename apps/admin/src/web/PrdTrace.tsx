@@ -49,7 +49,12 @@ export function 추적칸({ reqId, 추적, 보류, 케이스보나 }: { reqId: s
           <span key={g.kind}>{g.글}</span>
         ),
       )}
-      {셈 === null || 판정 === null ? null : (
+      {셈 === null || 판정 === null ? null : 판정 === 'FAIL' && 케이스보나 ? (
+        // 실패한 케이스만 거른 목록으로 간다 (점검 8.7). 두 갈래 모두 실패가 있으면 기능 쪽부터 연다
+        <a className={`verdict ${판정꼴[판정]}`} href={`${케이스주소(추적.실패갈래.기능 > 0 ? 'fn' : 'ui', reqId)}?last=FAIL`}>
+          {t('실패 {건수} / {전체}', { 건수: 셈.실패, 전체 })}
+        </a>
+      ) : (
         <span className={`verdict ${판정꼴[판정]}`}>
           {판정 === 'FAIL'
             ? t('실패 {건수} / {전체}', { 건수: 셈.실패, 전체 })

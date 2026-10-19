@@ -53,17 +53,31 @@ describe('PRD 관리 — 서비스 지도', () => {
     render(<Prd service="MKT" 할수={보는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /로그인/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-040/ }));
-    const 구획 = (await screen.findByRole('heading', { name: '거치는 API 2개' })).closest('section') as HTMLElement;
+    const 구획 = (await screen.findByText('거치는 API 2개')).closest('section') as HTMLElement;
     const 줄들 = within(구획).getAllByRole('listitem').map((x) => x.textContent);
     // 다른 요구의 케이스(MKT-FN-099)는 안 달고, 단계가 없는 줄은 번호만
     expect(줄들).toEqual(['POSTdemo.market/api/auth/loginMKT-FN-012 2단계', 'GETdemo.market/api/meMKT-FN-012']);
+  });
+
+  it('펼친 줄의 거치는 API 는 개발 정보라 접혀 있다 (점검 8.12)', async () => {
+    render(<Prd service="MKT" 할수={보는사람} />);
+    fireEvent.click(await screen.findByRole('button', { name: /로그인/ }));
+    fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-040/ }));
+    const 접기 = (await screen.findByText('거치는 API 2개')).closest('details') as HTMLDetailsElement;
+    expect(접기.open).toBe(false);
   });
 
   it('케이스가 안 부른 API 를 카드에 모으고 본 화면을 단다', async () => {
     render(<Prd service="MKT" 할수={보는사람} />);
     const 카드 = await screen.findByRole('region', { name: '케이스가 안 거친 API 2개' });
     expect(within(카드).getByText('이 서비스에서 본 API 4개 중 아직 어떤 케이스도 부르지 않은 API 입니다')).toBeTruthy();
+    // 접혀 있다가 펴면 나온다 — 수십 개가 요구 목록을 밀어내지 않게 (점검 8.6)
+    expect(within(카드).queryByText(/화면 \/login\/forgot 에서 봤습니다/)).toBeNull();
+    fireEvent.click(within(카드).getByRole('button', { name: '펴기' }));
     expect(within(카드).getByText(/화면 \/login\/forgot 에서 봤습니다/)).toBeTruthy();
+    fireEvent.click(within(카드).getByRole('button', { name: '접기' }));
+    expect(within(카드).queryByText(/화면 \/login\/forgot 에서 봤습니다/)).toBeNull();
+    fireEvent.click(within(카드).getByRole('button', { name: '펴기' }));
     expect(within(카드).queryByText('demo.market/api/auth/login')).toBeNull();
   });
 

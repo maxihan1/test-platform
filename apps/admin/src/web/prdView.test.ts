@@ -1,7 +1,8 @@
 import type { PrdItem } from '@platform/kit';
 import { describe, expect, it } from 'vitest';
 
-import { 고친판, 고치기검사, 묶음들, 반영안됨줄, 확인필요줄 } from './prdView.js';
+import { 직접근거, 로그인역할 } from '../prd/rules.js';
+import { 고친판, 고치기검사, 묶음들, 반영안됨줄, 판차이, 확인필요줄 } from './prdView.js';
 
 const 항목 = (reqId: string, feature: string, 덮을것: Partial<PrdItem> = {}): PrdItem => ({
   reqId,
@@ -62,6 +63,52 @@ describe('보낼 판', () => {
 
   it('번호가 없으면 번호 없이 맨 뒤에 더한다 — 번호는 서버가 매긴다', () => {
     expect(고친판(판, null, 새것)).toEqual([...판, 새것]);
+  });
+});
+
+describe('버전 기록의 바뀐 것', () => {
+  const 앞 = [항목('MKT-REQ-001', '가'), 항목('MKT-REQ-002', '가'), 항목('MKT-REQ-003', '가', { status: 'NEEDS_CHECK' }), 항목('MKT-REQ-004', '가')];
+
+  it('바뀜 · 새 항목 · 상태만 · 지움을 가른다 — 같은 것은 안 센다', () => {
+    const 뒤 = [
+      항목('MKT-REQ-001', '가', { text: '고친 문장' }),
+      항목('MKT-REQ-002', '가'),
+      항목('MKT-REQ-003', '가'),
+      항목('MKT-REQ-005', '나'),
+    ];
+    expect(판차이(앞, 뒤).map((x) => [x.kind, x.reqId])).toEqual([
+      ['changed', 'MKT-REQ-001'],
+      ['state', 'MKT-REQ-003'],
+      ['added', 'MKT-REQ-005'],
+      ['removed', 'MKT-REQ-004'],
+    ]);
+  });
+
+  it('근거만 달라져도 바뀜이다', () => {
+    const 뒤 = [항목('MKT-REQ-001', '가', { basis: [{ from: '화면', quote: '다른 원문' }] })];
+    expect(판차이([앞[0]!], 뒤).map((x) => x.kind)).toEqual(['changed']);
+  });
+
+  it('똑같으면 차이가 없다', () => {
+    expect(판차이(앞, 앞)).toEqual([]);
+  });
+});
+
+describe('직접 쓴 요구의 근거', () => {
+  it('자료 이름은 고정 글자고 원본 문장은 요구 문장이다', () => {
+    expect(직접근거('아이디는 4자 이상')).toEqual([{ from: '직접 작성', quote: '아이디는 4자 이상' }]);
+  });
+
+  it('원본 문장 상한을 넘기지 않아 서버가 길이로 거절하지 않는다', () => {
+    const 근거 = 직접근거('가'.repeat(1000));
+    expect(고치기검사({ feature: '가', text: '가'.repeat(1000), basis: 근거, status: 'CONFIRMED' })).toBeNull();
+  });
+});
+
+describe('화면 기록의 로그인 상태', () => {
+  it('「로그인:역할」에서 역할만 뽑고 그 밖의 상태는 null', () => {
+    expect(로그인역할('로그인:일반 회원')).toBe('일반 회원');
+    expect(로그인역할('로그아웃')).toBeNull();
   });
 });
 
