@@ -23,7 +23,7 @@ describe('단계 애플리케이션 (도메인/시나리오 §3.7 결정 13)', (
 });
 
 describe('대상 서버 선택지', () => {
-  const 앱 = (prefix: string, ...envs: string[]) => ({ prefix, name: prefix, color: '#000', envs: envs.map((env) => ({ env })) });
+  const 앱 = (prefix: string, ...envs: string[]) => ({ prefix, name: prefix, envs: envs.map((env) => ({ env })) });
   const 앱들 = [앱('MKT', 'stg', 'qa', 'prod'), 앱('ADM', 'stg', 'prod'), 앱('PAY', 'stg')];
 
   it('시작 애플리케이션만 쓰면 그 서버 이름이 전부 열려 있다', () => {

@@ -1,7 +1,7 @@
 // E2E 시나리오 조립 화면 왼쪽의 단계 카드 목록 — 한 줄 요약 · 칩 · 모킹 구간 · 위로 · 아래로 · 빼기 (도메인/시나리오 §8.11)
 
 import type { ScenarioPart } from '@platform/kit';
-import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import type { Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
@@ -141,7 +141,7 @@ export function ScenarioCards({
                 </button>
                 <span className="scn-card-chips">
                   {!섞임 || 앱 === null ? null : (
-                    <span className="scn-app-tag" style={{ '--app': 앱줄값?.color ?? 'currentColor' } as CSSProperties}>
+                    <span className="scn-app-tag">
                       {앱} {앱줄값?.name ?? ''}
                     </span>
                   )}

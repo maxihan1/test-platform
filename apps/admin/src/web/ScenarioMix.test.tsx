@@ -18,8 +18,8 @@ afterEach(() => {
 });
 
 const 앱들 = [
-  { prefix: 'MKT', name: '쇼핑몰', color: '#3A5FCD', envs: [{ env: 'stg' }] },
-  { prefix: 'ADM', name: '어드민', color: '#CD8A3A', envs: [{ env: 'stg' }] },
+  { prefix: 'MKT', name: '쇼핑몰', envs: [{ env: 'stg' }] },
+  { prefix: 'ADM', name: '어드민', envs: [{ env: 'stg' }] },
 ];
 const 케이스 = (tcId: string): ScenarioPart => ({ kind: 'case', tcId, params: {}, expected: {}, skipSteps: [] });
 const 행 = (tcId: string): CaseRow => ({

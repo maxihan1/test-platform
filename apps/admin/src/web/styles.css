@@ -75,7 +75,6 @@
   --ink: #f1eee8;
   --ink-muted: #b5afa5;
   --ink-faint: #8f8a81;
-  --app: var(--ink-faint); /* 애플리케이션 이름표 점 색. 화면 코드가 줄마다 서비스 색으로 덮는다 */
 
   /* 왼쪽 메뉴 — 가장 짙은 면 */
   --rail: #0c0b0a;
@@ -3809,7 +3808,7 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   margin-left: 0;
 }
 
-/* 애플리케이션 이름표 — 색은 점으로만 쓴다. 서비스 색을 글자에 쓰면 어두운 바탕에서 안 읽힌다 (도메인/시나리오 §8.11) */
+/* 애플리케이션 이름표 — 서비스 색은 화면에 쓰지 않으므로 글자 칩이다 (도메인/시나리오 §8.11 · 공통/5-화면공통 §8) */
 .scn-app-tag,
 .scn-app-pick {
   display: inline-flex;
@@ -3822,15 +3821,6 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   line-height: 18px;
   padding: 0 8px;
   white-space: nowrap;
-}
-
-.scn-app-tag::before,
-.scn-app-pick::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--app, var(--ink-faint));
 }
 
 .scn-app-tag {

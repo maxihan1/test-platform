@@ -1,6 +1,6 @@
 // E2E 시나리오 조립 화면 「단계 추가」 탭 속 — 다음 단계 추천 · 기능 테스트 스크립트 팔레트(기능 묶음 · 정상 먼저 · 요구 줄) · 다른 단계 넷 · 케이스 바꾸기 모드 (도메인/시나리오 §8.11)
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { ScenarioPart } from '@platform/kit';
 
 import { api, type CaseRow, type Platform } from './api.js';
@@ -196,7 +196,6 @@ export function ScenarioPalette({ 서비스, 앱들 = [], 디바이스, 바꿀�
               type="button"
               className={a.prefix === 고른앱 ? 'scn-app-pick on' : 'scn-app-pick'}
               aria-pressed={a.prefix === 고른앱}
-              style={{ '--app': a.color } as CSSProperties}
               onClick={() => set고른앱(a.prefix)}
             >
               {a.prefix} {a.name}
