@@ -206,7 +206,8 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
       `authoring ${이틀전}`,
       `run ${여섯째날}`,
     ]);
-    expect(recent[0]).toMatchObject({ kind: 'run', status: 'ABORTED' });
+    expect(recent[0]).toMatchObject({ kind: 'run', status: 'ABORTED', env: 'qa', testKind: 'FN' });
+    expect(recent[2]).toMatchObject({ kind: 'run', testKind: 'UI' });
   });
 
   it('도는 실행은 항목 수 · 끝난 수 · 남은 시간을 싣는다', async () => {
@@ -216,7 +217,7 @@ describe.skipIf(연결 === undefined)('알림 통로', () => {
     배정 = { XNT: 모두 };
     const { running } = await 알림();
 
-    expect(running[0]).toMatchObject({ kind: 'run', total: 3, done: 1, counts: { total: 3, pass: 1, running: 2 } });
+    expect(running[0]).toMatchObject({ kind: 'run', env: 'qa', testKind: 'FN', total: 3, done: 1, counts: { total: 3, pass: 1, running: 2 } });
     // 지난 기록이 없어 이번에 끝난 평균 1000 으로 둘을 채운다 — (1000 + 1000) ÷ min(동시 2, 안 끝난 2)
     // 기준 시각(끝난 항목의 시각)이 방금이라 흐른 시간만큼만 줄어든다
     const 남은 = (running[0] as { remainingMs: number | null }).remainingMs!;

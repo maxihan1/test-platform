@@ -11,6 +11,7 @@ import { 끝난실행, 끝난작성, 도는E2E, 도는실행, 도는작성, 전�
 import { 읽음들 } from './noticeRead.js';
 
 beforeEach(() => {
+  window.location.hash = '';
   localStorage.clear();
   서비스바꿈.mockClear();
 });
@@ -53,18 +54,32 @@ describe('「알림」 버튼', () => {
 describe('알림 줄', () => {
   it('도는 실행은 열기 링크와 남은 시간 글을, 도는 작성은 단계를 보인다', async () => {
     띄운다({ running: [도는실행(2113), 도는작성(5)], recent: [] });
-    expect(await screen.findByText('RUN 2113 이 진행 중입니다 · 12/40 · 실패 2')).toBeTruthy();
+    expect(await screen.findByText('RUN 2113 실행 중 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · 12 / 40 완료 · 실패 2')).toBeTruthy();
     expect(screen.getByText('남은 시간 계산 중')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: '열기' }).map((a) => a.getAttribute('href'))).toEqual(['#/runs/2113', '#/authoring/5']);
-    expect(screen.getByText(/작성 요청 #5 이 진행 중입니다 · 3 \/ 5 단계 스크립트 작성/)).toBeTruthy();
+    expect(screen.getByText(/#5 작성 요청이 진행 중입니다 · 3 \/ 5 단계 스크립트 작성/)).toBeTruthy();
     expect(screen.getAllByText('결제 서비스')).toHaveLength(2);
+  });
+
+  it('지금 결과를 보고 있는 실행의 도는 줄은 빼고, 보는 곳을 옮기면 다시 나타난다', async () => {
+    window.location.hash = '#/runs/2113';
+    띄운다({ running: [도는실행(2113), 도는실행(2114)], recent: [끝난실행(2113)] });
+    expect(await screen.findByText(/^RUN 2114 실행 중/)).toBeTruthy();
+    expect(screen.queryByText(/^RUN 2113 실행 중/)).toBeNull();
+    expect(screen.getByText(/^RUN 2113 실행이 끝났습니다/)).toBeTruthy();
+    await act(async () => {
+      window.location.hash = '#/runs/ui?run=2114';
+      await new Promise((끝) => setTimeout(끝, 20));
+    });
+    expect(screen.getByText(/^RUN 2113 실행 중/)).toBeTruthy();
+    expect(screen.queryByText(/^RUN 2114 실행 중/)).toBeNull();
   });
 
   it('끝난 줄의 ×를 누르면 줄이 사라지고 읽음으로 남는다. 배지도 하나 준다', async () => {
     띄운다({ running: [], recent: [끝난실행(7, { pass: 3, fail: 1 }), 끝난실행(8)] });
-    const 글 = await screen.findByText('RUN 7 이 끝났습니다 · 3 통과 · 1 실패');
+    const 글 = await screen.findByText('RUN 7 실행이 끝났습니다 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · 3 통과 · 1 실패');
     fireEvent.click(within(글.closest('.nt-line') as HTMLElement).getByRole('button', { name: '알림 닫기' }));
-    expect(screen.queryByText(/RUN 7 이 끝났습니다/)).toBeNull();
+    expect(screen.queryByText(/RUN 7 실행이 끝났습니다/)).toBeNull();
     expect(읽음들().has('run:7')).toBe(true);
     expect(screen.getByLabelText('안 읽은 알림 1건').textContent).toBe('1');
   });
@@ -77,7 +92,7 @@ describe('알림 줄', () => {
 
   it('작성이 끝났는데 PRD 확인이 남았으면 그 수와 PRD 관리 링크를 같은 줄에 둔다', async () => {
     띄운다({ running: [], recent: [끝난작성(9, { prdNeedsCheck: 3 })] });
-    const 줄 = (await screen.findByText('작성 요청 #9 이 끝났습니다 · 스크립트 파일 12개')).closest('.nt-line') as HTMLElement;
+    const 줄 = (await screen.findByText('#9 작성 요청이 끝났습니다 · 케이스 파일 12개')).closest('.nt-line') as HTMLElement;
     expect(within(줄).getByText(/PRD 확인 필요 3건/)).toBeTruthy();
     expect(within(줄).getByRole('link', { name: 'PRD 관리' }).getAttribute('href')).toBe('#/prd');
     expect(within(줄).getByRole('link', { name: '작성 결과' }).getAttribute('href')).toBe('#/authoring/9');
@@ -86,7 +101,7 @@ describe('알림 줄', () => {
   it('줄이 셋을 넘으면 둘만 보이고 나머지는 「외 N건」으로 서랍을 연다', async () => {
     띄운다({ running: [도는실행(1), 도는실행(2), 도는실행(3)], recent: [끝난실행(4), 끝난실행(5)] });
     fireEvent.click(await screen.findByRole('button', { name: '외 3건 — 알림 열기' }));
-    expect(screen.getAllByText(/이 진행 중입니다/)).toHaveLength(2);
+    expect(screen.getAllByText(/실행 중 ·/)).toHaveLength(2);
     expect(screen.getByRole('complementary', { name: '알림' })).toBeTruthy();
   });
 
@@ -94,7 +109,7 @@ describe('알림 줄', () => {
     const 부름 = 띄운다({ running: [도는실행(1)], recent: [] }, true);
     await act(async () => {});
     expect(부름).toHaveBeenCalled();
-    expect(screen.queryByText(/이 진행 중입니다/)).toBeNull();
+    expect(screen.queryByText(/실행 중 ·/)).toBeNull();
   });
 });
 
@@ -133,7 +148,7 @@ describe('알림 서랍', () => {
   it('최근 7일 것을 새것 먼저 보이고 PRD 확인 필요 칩과 링크를 단다', async () => {
     const 서랍 = within(await 연다());
     const 제목들 = 서랍.getAllByRole('listitem').map((li) => li.querySelector('.nt-item-title')?.textContent);
-    expect(제목들).toEqual(['RUN 1 이 끝났습니다', '작성 요청 #2 이 끝났습니다', '작성 요청 #3 이 실패했습니다']);
+    expect(제목들).toEqual(['RUN 1 실행이 끝났습니다', '#2 작성 요청이 끝났습니다', '#3 작성 요청이 실패했습니다']);
     expect(서랍.getByText('PRD 확인 필요 2건')).toBeTruthy();
     expect(서랍.getByRole('link', { name: 'PRD 관리에서 확인' }).getAttribute('href')).toBe('#/prd');
     expect(서랍.getByText('볼 수 있는 서비스 전체 · 최근 7일')).toBeTruthy();
@@ -284,6 +299,6 @@ describe('받아 오기', () => {
       vi.advanceTimersByTime(10_000);
     });
     expect(부름.mock.calls.length).toBe(처음);
-    expect(screen.getByText(/E2E RUN 7 이 진행 중입니다/)).toBeTruthy();
+    expect(screen.getByText(/E2E RUN 7 실행 중/)).toBeTruthy();
   });
 });

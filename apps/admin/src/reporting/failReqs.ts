@@ -10,13 +10,6 @@ import { 화면목록식 } from '../prd/screenRight.js';
 import { 지금판 } from '../prd/store.js';
 import { db } from './insights.js';
 
-export interface 실패요구 {
-  reqId: string;
-  /** 표준 기획서 지금 판에 없는 번호면 null */
-  text: string | null;
-  tcIds: string[];
-}
-
 export interface 카드요구 {
   reqId: string;
   text: string | null;
@@ -27,16 +20,7 @@ export type 판정 =
   | { kind: 'BUG'; byName: string; at: string }
   | null;
 
-// 회차를 접어도 어느 한 회차라도 FAIL 이면 그 (케이스, 디바이스)는 FAIL 이다 — 접는 규칙(insights 의 판정접기식)과 같은 결과라 접지 않고 묻는다
-async function 실패케이스들(pool: Pool, runId: number): Promise<string[]> {
-  const { rows } = await pool.query<{ tc_id: string }>(
-    `SELECT DISTINCT tc_id FROM run_item WHERE run_id = $1 AND status = 'FAIL' ORDER BY tc_id`,
-    [runId],
-  );
-  return rows.map((r) => r.tc_id);
-}
-
-/** 그 실행 서비스의 지도 ① 에서 tcIds 가 덮는 요구. 번호 차례는 지금 판 차례다 */
+/** 그 실행 서비스의 지도 ① 에서 tcIds 가 덮는 요구 */
 async function 요구읽기(pool: Pool, runId: number, tcIds: string[]) {
   const 서비스 = await pool.query<{ service_id: string }>(
     // 시나리오 실행 번호로 서비스를 읽지 않게 — 다른 단건 실행 조회와 같은 거르기다
@@ -60,7 +44,7 @@ async function 요구읽기(pool: Pool, runId: number, tcIds: string[]) {
   }
   // 맥락짓기는 카탈로그 목록과 같은 차례 · 문장 규칙이다 — 화면 조각은 쓰지 않으므로 비워 넘긴다
   const 표 = 맥락짓기({ prd: 판, reqs: 행들, screens: [] });
-  return { 표, 차례: new Map(판.map((x, i) => [x.reqId, i])) };
+  return { 표 };
 }
 
 /** 케이스가 덮는 요구를 번호 하나에 한 줄로(축이 달라도) 낸다 */
@@ -73,26 +57,6 @@ function 한줄씩(표: Awaited<ReturnType<typeof 요구읽기>>['표'], tcId: s
     줄.push({ reqId: r.reqId, text: r.text });
   }
   return 줄;
-}
-
-/** insights 의 실패요구들 — 이 실행에서 한 번이라도 실패한 케이스를 요구로 모은다. 미확정 실패도 든다 */
-export async function 실패요구들(runId: number): Promise<실패요구[]> {
-  const pool = await db();
-  const tcIds = await 실패케이스들(pool, runId);
-  const { 표, 차례 } = await 요구읽기(pool, runId, tcIds);
-
-  const 모음 = new Map<string, 실패요구>();
-  for (const tcId of tcIds) {
-    for (const r of 한줄씩(표, tcId)) {
-      const 칸 = 모음.get(r.reqId) ?? { reqId: r.reqId, text: r.text, tcIds: [] };
-      칸.tcIds.push(tcId);
-      모음.set(r.reqId, 칸);
-    }
-  }
-  // 판에 없는 번호(옛 표의 원본 번호)는 판 번호 뒤에 번호 차례로 간다
-  return [...모음.values()].sort(
-    (a, b) => (차례.get(a.reqId) ?? Infinity) - (차례.get(b.reqId) ?? Infinity) || a.reqId.localeCompare(b.reqId),
-  );
 }
 
 /** failures 카드의 reqs · judgment 재료 — 쪽에 든 케이스만 묻는다 */
