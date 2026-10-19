@@ -31,6 +31,8 @@ const 면제 = new Map([
   ['apps/runner/src/scenario.test.ts', '테스트가 만든 임시 산출 폴더에 옮긴 trace.zip 만 읽는다 (2026-10-17 PR #296 — PR #300 에서 더함)'],
   ['scripts/authoring-guide.test.ts', '테스트가 만든 임시 자료 폴더에 받은 서비스 가이드만 읽는다 (2026-10-17 PR #300)'],
   ['scripts/authoring-gate3.test.ts', '테스트가 만든 임시 폴더에 옮겨 둔 돌려 본 기록 · 보조 보고만 읽는다 (2026-10-19 PR #304)'],
+  ['scripts/authoring-app-screen.test.ts', '테스트가 만든 임시 자료 폴더에 받은 앱 첫 화면 글만 읽는다 (2026-10-19 PR #326)'],
+  ['apps/runner/src/execute-app.test.ts', '가짜 자식이 임시 폴더에 쓴 앱 파일 값만 읽는다 — 저장소 파일이 아니다 (2026-10-19 PR #326 — PR #321 에서 빠졌다)'],
 ]);
 
 function 테스트파일들(폴더) {

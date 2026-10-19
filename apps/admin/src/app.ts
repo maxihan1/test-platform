@@ -24,6 +24,7 @@ import trialRoutes from './execution/trialRoutes.js';
 import grafanaProxy from './grafana/proxy.js';
 import notificationRoutes from './notifications/routes.js';
 import guideAgentRoutes from './guide/agentRoutes.js';
+import appScreenAgentRoutes from './authoring/appScreen.js';
 import guideRoutes from './guide/routes.js';
 import prdAgentRoutes from './prd/agentRoutes.js';
 import prdRoutes from './prd/routes.js';
@@ -58,6 +59,7 @@ export function buildApp(sessionSecret = process.env.SESSION_SECRET ?? '') {
   app.register(prdAgentRoutes, { prefix: '/api' });
   app.register(guideRoutes, { prefix: '/api' });
   app.register(guideAgentRoutes, { prefix: '/api' });
+  app.register(appScreenAgentRoutes, { prefix: '/api' });
   app.register(trialRoutes, { prefix: '/api' });
   app.register(reportingRoutes, { prefix: '/api' });
   app.register(scenarioRoutes, { prefix: '/api' });
