@@ -224,11 +224,11 @@ function 완료내용({ data }: { data: RunDetail }) {
 }
 
 function 제목(data: RunDetail, 언어: 언어): string {
-  if (도는중(data.status)) return t('RUN {번호} 이 진행 중입니다', 언어, { 번호: data.runId });
+  if (도는중(data.status)) return t('RUN {번호} 실행 중', 언어, { 번호: data.runId });
   // 사람이 끊어서 끝난 것과 끝까지 돌아서 끝난 것은 같은 말로 알리지 않는다 (SPEC §3.2)
   return data.status === 'ABORTED'
-    ? t('RUN {번호} 이 멈췄습니다', 언어, { 번호: data.runId })
-    : t('RUN {번호} 이 끝났습니다', 언어, { 번호: data.runId });
+    ? t('RUN {번호} 실행이 멈췄습니다', 언어, { 번호: data.runId })
+    : t('RUN {번호} 실행이 끝났습니다', 언어, { 번호: data.runId });
 }
 
 export function RunProgressModal({

@@ -89,7 +89,6 @@ export const 실행말: Record<string, string> = {
   '실행자': 'Run by',
   '반복': 'Repeat',
   '끝나면 Slack 으로 알리기': 'Notify Slack when done',
-  '실행 제목': 'Run title',
   '이 값을 묶음으로 저장': 'Save these values as a set',
   // 케이스 저장값 — 목록 줄과 한 건 실행 창이 같이 쓴다 (도메인/실행 §8.2)
   '저장값 · {누가} · {언제}': 'Saved · {누가} · {언제}',
@@ -100,7 +99,6 @@ export const 실행말: Record<string, string> = {
   '안 저장한 값이 있습니다': 'Unsaved changes',
   '실행': 'Run',
   '{케이스} 실행': 'Run {케이스}',
-  '{케이스} 외 {나머지}건 실행': 'Run {케이스} and {나머지} more',
   '실행할 디바이스를 하나 이상 고르세요.': 'Pick at least one device to run.',
   // 실행 창을 여는 다른 자리 — 실행 결과 · 항목 상세 (도메인/실행 §8.10)
   '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
@@ -131,21 +129,19 @@ export const 실행말: Record<string, string> = {
     '{담을수} of the {고른수} picked will run. The rest are inactive and were dropped',
 
   // 실행 결과 (§8.3)
-  '진행 중 {건수}건': '{건수} running',
-  '진행 중 {케이스}': 'Running {케이스}',
   '실행 중단': 'Stop run',
-  '조건에 맞는 결과가 없습니다.': 'No results match the filters.',
-  'RUN {번호} 을 멈출까요?': 'Stop RUN {번호}?',
-  '아직 시작하지 않은 항목은 대기줄에서 빼고, 이미 돌고 있는 항목은 끊습니다.':
-    'Items not started yet leave the queue, and running ones are cut off.',
+  '조건에 맞는 결과가 없습니다': 'No results match the filters',
+  'RUN {번호} 실행을 멈출까요?': 'Stop RUN {번호}?',
+  '아직 시작 안 한 항목은 빼고 돌고 있는 항목은 끊습니다': 'Items not started yet are dropped and running ones are cut off',
+  '되돌릴 수 없습니다': 'This cannot be undone',
   '되돌릴 수 없습니다.': 'This cannot be undone.',
   '아니오': 'No',
   '상세': 'Details',
   '{시간} 평균': '{시간} avg',
   '실행자 미상 (인증 도입 이전)': 'Unknown — before sign-in',
 
-  // 결과 화면 옆 칸 (§8.3 → /runs/:runId/insights)
-  '직전 실행과 비교하지 못했습니다.': 'Could not compare with the previous run.',
+  // 결과 화면 요약 띠의 직전 대비 (§8.3 → /runs/:runId/insights)
+  '직전 실행과 비교하지 못했습니다': 'Could not compare with the previous run',
   '직전 실행은 다른 주소에서 실행됐습니다': 'The previous run used a different URL',
   '직전 실행에 있었으나 이번에 실행되지 않은 케이스 {건수}건': '{건수} cases ran last time but not this time',
   // 변화 낱말은 서버가 준 값이라 코드 곳곳에 글자 그대로 있다 (api.ts · RunSummary · RunFailDevice) — 키가 있어야 한다
@@ -153,11 +149,6 @@ export const 실행말: Record<string, string> = {
   '계속깨짐': 'Still failing',
   '고쳐짐': 'Fixed',
   '그대로': 'Unchanged',
-  '실행 정보': 'Run info',
-  '테스트 유형': 'Test type',
-  '시작 시각': 'Started at',
-  '소요 시간': 'Duration',
-  '비교 기준': 'Compared with',
   '통과 · 미실행': 'Passed · not run',
 
   // 결과 화면 요약 띠 (§8.3)
@@ -187,11 +178,11 @@ export const 실행말: Record<string, string> = {
   '{케이스} 접기': 'Collapse {케이스}',
 
   // 진행·완료 모달 (§8.9)
-  'RUN {번호} 이 진행 중입니다': 'RUN {번호} is running',
-  'E2E RUN {번호} 이 진행 중입니다': 'E2E RUN {번호} is running',
+  'RUN {번호} 실행 중': 'RUN {번호} running',
+  'E2E RUN {번호} 실행 중': 'E2E RUN {번호} running',
   '{수}단계': '{수} steps',
-  'RUN {번호} 이 끝났습니다': 'RUN {번호} finished',
-  'RUN {번호} 이 멈췄습니다': 'RUN {번호} was stopped',
+  'RUN {번호} 실행이 끝났습니다': 'RUN {번호} finished',
+  'RUN {번호} 실행이 멈췄습니다': 'RUN {번호} was stopped',
   '{끝난} / {전체} 완료': '{끝난} / {전체} done',
   // 남은 시간 (remainText.ts) — 실행 진행 상자와 알림 줄이 같이 쓴다
   '남은 시간 계산 중': 'Estimating time left',
@@ -232,11 +223,7 @@ export const 실행말: Record<string, string> = {
   '실패 지점 코드': 'Code at failure',
   '불러오는 중입니다.': 'Loading.',
 
-  // 실패 요구사항 칸 · 카드의 관련 요구사항 · 실패 원인 (도메인/리포팅 「실패 요구사항」)
-  '실패 요구사항 {건수}건': 'Failed requirements: {건수}',
-  '실패한 케이스와 연결된 요구입니다': 'Requirements linked to the failed cases',
-  '실패 케이스 {건수}': 'Failed cases: {건수}',
-  '{건수}건 더 보기': 'Show {건수} more',
+  // 카드의 관련 요구사항 · 실패 원인 (도메인/리포팅 「실패 요구사항」)
   '관련 요구사항': 'Related requirements',
   'PRD 에 없는 번호': 'Not in the PRD',
   '화면이 맞음': 'Screen is right',

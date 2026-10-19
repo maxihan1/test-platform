@@ -1,21 +1,18 @@
-// 끝난 실행의 결과 본문 — 요약 띠 → 실패 카드 → 통과 · 미실행 줄, 옆 칸 (도메인/실행 §8.3)
+// 끝난 실행의 결과 본문 — 요약 띠 → 실패 카드 → 통과 · 미실행 줄. 늘 한 단이다 (도메인/실행 §8.3)
 
 import { useRef } from 'react';
 
-import type { ItemStatus, Platform, RunInsights as 비교 } from './api.js';
-import type { 증적칸 } from './EvidenceSection.js';
+import type { api, ItemStatus, Platform, RunInsights as 비교 } from './api.js';
 import { 갈라낸다 } from './group.js';
 import { use말 } from './i18n.js';
 import { RunFailCards } from './RunFailCards.js';
-import { RunFailedReqs } from './RunFailedReqs.js';
 import { 실패케이스들 } from './RerunFailed.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
-import { RunSide } from './RunSide.js';
 import { 결과줄 } from './RunResultRow.js';
 import { RunSummary } from './RunSummary.js';
 import { PLATFORM_LABEL, 실행디바이스들 } from './ui.js';
 
-type 실행 = Parameters<typeof RunSide>[0]['data'];
+type 실행 = Awaited<ReturnType<typeof api.run>>;
 
 export const PAGE_SIZE = 20;
 
@@ -65,10 +62,10 @@ export function 쪽넘김({ 쪽, 전체쪽, on쪽 }: { 쪽: number; 전체쪽: n
 interface Props {
   data: 실행;
   insights: 비교 | null;
-  /** 실패 요구사항 칸의 고리 · 카드 버튼을 그 실행 서비스의 권한으로 가른다 */
+  /** 카드의 요구 고리 · 판정 버튼을 그 실행 서비스의 권한으로 가른다 */
   판정하기: 판정하기;
+  /** 견주기가 실패했을 때의 문장. 결과는 그대로 서되 조용히 사라지지는 않는다 */
   견줌오류: string | null;
-  증적칸: 증적칸;
   /** 실행 기록의 결과 칸 안 — 한 단이고 머리 아래 이 칸 하나가 스크롤한다 (도메인/실행 §8.7 「A안」) */
   칸안: boolean;
   판정: ItemStatus | 'ALL';
@@ -80,7 +77,7 @@ interface Props {
 }
 
 export function 끝난결과(props: Props) {
-  const { data, insights, 판정하기, 견줌오류, 증적칸, 칸안, 판정, on판정, device, on디바이스, page, on쪽 } = props;
+  const { data, insights, 판정하기, 견줌오류, 칸안, 판정, on판정, device, on디바이스, page, on쪽 } = props;
   const t = use말();
   const 통과제목 = useRef<HTMLHeadingElement>(null);
   const 권한 = 실행판정(판정하기, data);
@@ -97,10 +94,15 @@ export function 끝난결과(props: Props) {
   const 본문 = (
     <>
       <RunSummary counts={data.counts} 실패케이스수={실패케이스들(data.items).length} insights={insights} 판정={판정} on판정={on판정} />
-      <RunFailedReqs 요구들={insights?.실패요구들 ?? []} 권한={권한} />
-      {칸안 ? <RunSide data={data} insights={insights} 견줌오류={견줌오류} 증적칸={증적칸} 상자안 /> : null}
+      {견줌오류 === null ? null : (
+        <p className="hint">
+          {t('직전 실행과 비교하지 못했습니다')} {견줌오류}
+        </p>
+      )}
 
-      <div className={칸안 ? 'rr-cols one' : 'rr-cols'}>
+      {/* 옆 칸은 2026-10-19 ⑫ 에 걷었다 — 실행 정보는 머리 한 줄, 증적은 머리 단추, 해결은 요약 띠 안이다.
+          창이 900px 보다 좁으면 옆 칸이 맨 아래로 내려가 실행 정보가 화면 끝에 묻혔다 (점검 2.2) */}
+      <div className="rr-cols">
         <div className="rr-main">
           <div className="toolbar">
             <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={on디바이스} />
@@ -136,7 +138,7 @@ export function 끝난결과(props: Props) {
                 {t('통과 · 미실행')} <span className="rr-n">{줄들.length}</span>
               </h2>
               {보이는줄.length === 0 ? (
-                <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
+                <div className="empty">{t('조건에 맞는 결과가 없습니다')}</div>
               ) : (
                 보이는줄.map((group) => <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />)
               )}
@@ -148,8 +150,6 @@ export function 끝난결과(props: Props) {
           )}
 
         </div>
-
-        {칸안 ? null : <RunSide data={data} insights={insights} 견줌오류={견줌오류} 증적칸={증적칸} 상자안={false} />}
       </div>
     </>
   );

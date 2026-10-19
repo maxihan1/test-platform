@@ -133,7 +133,12 @@ describe('실패 케이스 카드 (실행 §8.3)', () => {
 
     const 카드들 = await screen.findAllByRole('article');
     const 첫 = within(카드들[0]!);
-    expect(첫.getByText('신규 실패')).toBeDefined();
+    // 카드는 접힌 채로 선다 (실행 §8.3 「실패 카드는 접어 둔다」)
+    expect(카드들.every((카드) => 카드.querySelector('details')?.open === false)).toBe(true);
+    // 접힌 머리에는 디바이스 차례로 처음 난 변화 글 하나만 선다 — 디바이스마다의 글은 펼친 디바이스 머리다
+    expect(within(카드들[0]!.querySelector('summary')!).getByText('신규 실패')).toBeDefined();
+    expect(within(카드들[0]!.querySelector('summary')!).queryByText(/연속 실패/)).toBeNull();
+    expect(within(카드들[0]!.querySelector('.fc-body')!).getByText('신규 실패')).toBeDefined();
     expect(첫.getByText('연속 실패 2회')).toBeDefined();
     expect(첫.getByText('연속 실패 5회 이상')).toBeDefined();
     expect(첫.getByText('5회 중 2회 실패')).toBeDefined();
@@ -176,7 +181,8 @@ describe('실패 카드의 디바이스 머리 (실행 §8.3 · DESIGN.md 실행
       [줄(1, 'ZZI-0001', 'desktop', 'FAIL'), 줄(2, 'ZZI-0001', 'mobile', 'FAIL')],
     );
 
-    expect((await screen.findByText('신규 실패')).className).toContain('fc-new');
+    await screen.findAllByRole('article');
+    expect(within(document.querySelector('.fc-body')!).getByText('신규 실패').className).toContain('fc-new');
     expect(screen.getByText('연속 실패 2회').className).not.toContain('fc-new');
   });
 

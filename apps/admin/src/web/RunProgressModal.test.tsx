@@ -140,7 +140,8 @@ describe('RunProgressModal (SPEC §8.9)', () => {
     render(<RunProgressModal data={도는중실행} 진행목록={[]} onClose={() => {}} />);
 
     expect(screen.queryByText('진행 중')).not.toBeNull();
-    expect(screen.queryByText(/실행 중/)).toBeNull();
+    // 상자 제목 「RUN 7 실행 중」은 실행 하나를 말한다. 항목을 「실행 중: X」로 단정하는 줄은 없다
+    expect(screen.queryByText(/^실행 중/)).toBeNull();
   });
 
   it('도는 중에는 닫는 버튼 하나만 두고 못 누르는 버튼을 놓지 않는다', () => {
@@ -158,7 +159,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
   it('끝나면 같은 컴포넌트가 완료 내용을 그리고 실패한 케이스 이름이 보인다', () => {
     render(<RunProgressModal data={끝난실행} 진행목록={[]} onClose={() => {}} />);
 
-    expect(screen.queryByText(/RUN 7 이 끝났습니다/)).not.toBeNull();
+    expect(screen.queryByText(/RUN 7 실행이 끝났습니다/)).not.toBeNull();
     expect(screen.queryByText(/실패한 케이스/)).not.toBeNull();
     expect(screen.queryByText(/케이스 12/)).not.toBeNull();
     expect(screen.queryByText(/ZZR 진행 확인 · 대상 서버 qa/)).not.toBeNull();
@@ -167,7 +168,7 @@ describe('RunProgressModal (SPEC §8.9)', () => {
   it('사람이 멈춘 실행은 끝났다고 적지 않는다', () => {
     render(<RunProgressModal data={{ ...끝난실행, status: 'ABORTED' }} 진행목록={[]} onClose={() => {}} />);
 
-    expect(screen.queryByText(/RUN 7 이 멈췄습니다/)).not.toBeNull();
+    expect(screen.queryByText(/RUN 7 실행이 멈췄습니다/)).not.toBeNull();
   });
 
   it('판정을 색만으로 전달하지 않는다 — 숫자 칸마다 글자가 있다', () => {

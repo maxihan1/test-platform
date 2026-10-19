@@ -3,6 +3,7 @@
 import type { ItemStatus, RunCounts, RunInsights } from './api.js';
 import { 도넛조각 } from './dashboardView.js';
 import { use말, use언어 } from './i18n.js';
+import { 해결목록 } from './RunInsights.js';
 import { 그중미확정글 } from './unconfirmed.js';
 
 // 큰 숫자는 케이스 수로 맞춘다 — 「실패 N건」 · 실패 카드 수 · 「실패 N건 다시 실행」과 같은 단위다. 디바이스로 갈라 세면 한 화면에 단위가 셋이 됐다 (점검 2.15)
@@ -143,6 +144,8 @@ export function RunSummary({
                 {t('직전 실행에 있었으나 이번에 실행되지 않은 케이스 {건수}건', { 건수: insights.빠진건수 })}
               </span>
             )}
+            {/* 무엇이 고쳐졌는지는 수 아래 접어 둔다 — 앞 판은 옆 칸에 따로 섰다 (2026-10-19 ⑫) */}
+            <해결목록 insights={insights} />
           </div>
         )}
       </div>

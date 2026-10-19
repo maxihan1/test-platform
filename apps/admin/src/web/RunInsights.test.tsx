@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 
 import {
   api,
@@ -13,7 +13,7 @@ import {
   type 변화,
   type 실패덩어리,
 } from './api.js';
-import { RunInsights } from './RunInsights.js';
+import { 해결목록 } from './RunInsights.js';
 import { RunResult } from './RunResult.js';
 import type { 판정 } from './role.js';
 
@@ -94,18 +94,18 @@ function 비교(덮을것: Partial<비교값> = {}): 비교값 {
 }
 
 function 그리기(값: 비교값) {
-  return render(<RunInsights insights={값} />);
+  return render(<해결목록 insights={값} />);
 }
 
-describe('같은 사유로 실패는 옆 칸에 없다 (2026-10-19 ⑫)', () => {
-  it('실패덩어리들이 와도 칸을 그리지 않는다 — 실패 카드 위 「실패 유형」 칩 줄로 갔다', () => {
-    render(<RunInsights insights={{ previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들: [덩어리('결제 완료 안내가 보인다', [1, 2])] }} />);
+describe('같은 사유로 실패는 해결 목록에 없다 (2026-10-19 ⑫)', () => {
+  it('실패덩어리들이 와도 그리지 않는다 — 실패 카드 위 「실패 유형」 칩 줄로 갔다', () => {
+    render(<해결목록 insights={{ previous: null, 주소바뀜: false, 빠진건수: 0, 케이스들: [], 실패덩어리들: [덩어리('결제 완료 안내가 보인다', [1, 2])] }} />);
     expect(screen.queryByText('같은 사유로 실패')).toBeNull();
     expect(screen.queryByText('결제 완료 안내가 보인다')).toBeNull();
   });
 });
 
-describe('해결 (SPEC §8.3 옆 칸)', () => {
+describe('해결 (SPEC §8.3 요약 띠 직전 대비 안)', () => {
   it('직전 실행에서 깨졌다가 이번에 통과한 케이스만 이름으로 적는다', () => {
     그리기(
       비교({
@@ -118,17 +118,18 @@ describe('해결 (SPEC §8.3 옆 칸)', () => {
       }),
     );
 
-    expect(screen.getByText('해결')).toBeDefined();
+    expect(screen.getByText('해결 1')).toBeDefined();
+    expect(document.querySelector('details')?.open).toBe(false);
     expect(screen.getByText(/주소 검색/).textContent).toContain('PC');
     expect(screen.queryByText(/결제 취소 흐름/)).toBeNull();
     expect(screen.queryByText(/쿠폰 적용/)).toBeNull();
     expect(screen.queryByText(/로그인/)).toBeNull();
   });
 
-  it('고쳐진 것이 없으면 칸 제목도 없다', () => {
+  it('고쳐진 것이 없으면 접힌 줄도 없다', () => {
     그리기(비교({ 케이스들: [견줌('ZZI-0004', '로그인', '그대로')] }));
 
-    expect(screen.queryByText('해결')).toBeNull();
+    expect(document.querySelector('details')).toBeNull();
   });
 });
 
@@ -144,19 +145,19 @@ describe('도는 중인 실행 (SPEC §8.3 · §8.9)', () => {
     vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 
-    await screen.findByRole('dialog');
+    await screen.findByText(/0 \/ 2 완료/);
     expect(부름).not.toHaveBeenCalled();
   });
 
-  it('화면 머리에 지금 진행 중인 항목을 적되 단정하지 않는다', async () => {
+  it('머리에 몇 건 끝났고 얼마 남았나를 적고 진행 상자는 누를 때만 뜬다', async () => {
     vi.spyOn(api, 'insights').mockResolvedValue(비교());
     vi.spyOn(api, 'run').mockResolvedValue(도는중응답);
+    vi.spyOn(api, 'progress').mockResolvedValue({ items: [], remainingMs: 8 * 60_000 });
     render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} />);
 
-    // 2026-09-22 에 머리가 본문 밖으로 나가면서 클래스 이름이 head-meta 가 됐다.
-    // 단언하는 것은 그대로다 — 「진행 중」이 화면 머리에 있고 「실행 중」이라 단정하지 않는다
-    const 머리 = await screen.findByText(/진행 중 ZZI-0009/);
-    expect(머리.className).toBe('head-meta');
-    expect(screen.queryByText(/실행 중 ZZI-0009/)).toBeNull();
+    const 진행 = await screen.findByRole('button', { name: /0 \/ 2 완료 · 약 8분 남음/ });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(진행);
+    expect(within(screen.getByRole('dialog')).getByText('ZZI-0009 결제 승인')).toBeDefined();
   });
 });

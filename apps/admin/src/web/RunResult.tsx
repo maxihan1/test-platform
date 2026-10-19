@@ -10,14 +10,16 @@ import { use증적, 증적만들기버튼들, 증적알림과목록 } from './Ev
 import { use말, use언어 } from './i18n.js';
 import { 실행판정, type 판정하기 } from './runJudge.js';
 import { 진행상황 } from './runProgress.js';
+import { 시간글자, 실행남은글 } from './remainText.js';
 import { RunAbortModal } from './RunAbortModal.js';
 import { RunProgressModal } from './RunProgressModal.js';
 import { 실패다시실행 } from './RerunFailed.js';
 import { PAGE_SIZE, 끝난결과, 디바이스칩, 쪽넘김 } from './RunResultBody.js';
 import { 결과줄 } from './RunResultRow.js';
+import { 시작방식글 } from './RunListRow.js';
 import { ScenarioResult } from './ScenarioResult.js';
 import { 끝났다고알릴까, 도는중, 멈출수있나, 본것으로적는다, 상태라벨, 실행자이름 } from './runState.js';
-import { Failed, Loading, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
+import { Failed, Loading, PLATFORM_LABEL, STATUS_LABEL, useAsync, when, 실행디바이스들 } from './ui.js';
 import { 그중미확정글 } from './unconfirmed.js';
 import { useRunProgress } from './useRunProgress.js';
 
@@ -35,9 +37,7 @@ function 케이스결과({
   판정하기: 판정하기;
   /**
    * 이 화면이 **실행 기록의 오른쪽 결과 칸에서** 그려지는가 (도메인/실행 §8.7 「A안」).
-   *
-   * 참이면 진행·완료 상자를 저절로 열지 않는다 — 목록에서 줄을 고를 때마다 상자가 서면 목록을 가린다.
-   * 끝났다는 사실은 칸 머리의 상태 글자와 맨 위 알림 줄이 맡는다.
+   * 참이면 머리를 칸 머리로 그리고 머리 아래 한 칸만 스크롤한다
    */
   칸안?: boolean;
   /** 결과 칸에서 건 「실패 다시」 — 주소를 옮기지 않고 목록이 새 실행을 고른다 */
@@ -52,7 +52,8 @@ function 케이스결과({
   const [멈추는중, set멈추는중] = useState(false);
   const [끝났다고알릴까말까, set알릴까] = useState(false);
   // 「진행 상자를 닫았다」와 「완료를 알았다」는 다른 말이다. 하나로 합치면 도는 중에 상자를 닫은 사람이
-  // 실행이 끝난 것을 영영 못 듣는다 — 맨 위 알림 줄도 `본것들` 을 보므로 그를 못 구한다 (SPEC §8.9)
+  // 실행이 끝난 것을 영영 못 듣는다 — 맨 위 알림 줄도 `본것들` 을 보므로 그를 못 구한다 (SPEC §8.9).
+  // 진행 상자는 머리의 진행 글을 누를 때만 연다 (2026-10-19 ⑫ — 앞 판은 도는 실행을 열 때마다 저절로 떠 화면을 가렸다)
   const [진행열림, set진행열림] = useState(false);
   // 갱신 전 상태를 들고 있어야 「도는 중이던 것이 끝났다」를 알 수 있다.
   // 화면에 안 나오는 값이라 `useRef` 로 둔다 — 그리는 값이면 `useState` 여야 한다 (2026-09-21 사고)
@@ -77,9 +78,6 @@ function 케이스결과({
     if (data === null) return;
     const 전 = 앞선상태.current;
     앞선상태.current = data.status;
-    // 처음 받은 `data` 가 도는 중일 때만 연다. `useState(true)` 로 시작하면 그 값이 `data` 보다 먼저
-    // 정해져 3일 전에 끝난 실행을 열어도 진행 상자가 선다. 한 번 연 실행에서는 다시 열지 않는다
-    if (전 === null && 도는중(data.status)) set진행열림(true);
     if (전 !== null && 끝났다고알릴까({ 전, 후: data.status, runId: data.runId })) set알릴까(true);
   }, [data?.status, data?.runId]);
   const reload = run.reload;
@@ -117,13 +115,22 @@ function 케이스결과({
   const 미확정 = 그중미확정글(data.counts, 언어);
   const 결과목록 =
     shown.length === 0 ? (
-      <div className="empty">{t('조건에 맞는 결과가 없습니다.')}</div>
+      <div className="empty">{t('조건에 맞는 결과가 없습니다')}</div>
     ) : (
       shown.map((group) => <결과줄 key={group.tcId} group={group} columns={columns} runId={data.runId} />)
     );
-  // 모달은 닫으라고 만든 물건이고 실제로 곧장 닫힌다 (`useRunPick.ts` 가 상자 둘을 잇달아 띄운다).
-  // 그때 「무엇이 도는가」가 통째로 사라지지 않게 머리에도 한 줄 둔다 — 모달은 이 줄의 확대판이다
-  const 도는것 = running ? (진행상황(data, 진행목록).지금도는것들[0]?.항목 ?? null) : null;
+  // 몇 건 끝났고 얼마 남았나는 머리에 늘 둔다 — 누르면 진행 상자가 무엇이 도는지까지 편다 (도메인/실행 §8.9 · 점검 2.14).
+  // 앞 판은 이 수가 저절로 뜨는 상자에만 있었고 머리에는 「진행 중 98건」(안 끝난 전부)이 있었다
+  const 진행 = running ? 진행상황(data, 진행목록) : null;
+  const 진행글 =
+    진행 === null
+      ? null
+      : [t('{끝난} / {전체} 완료', { 끝난: 진행.끝난수, 전체: 진행.전체수 }), 실행남은글(남은ms, Date.now(), 언어)].join(' · ');
+  const 종류 = data.kind === 'UI' ? t('UI 테스트') : data.kind === 'FN' ? t('기능 테스트') : null;
+  const 소요 =
+    data.finishedAt === null
+      ? null
+      : 시간글자(Math.max(0, new Date(data.finishedAt).getTime() - new Date(data.startedAt).getTime()), 언어);
   function choose<T>(setter: (value: T) => void) {
     return (value: T) => {
       setter(value);
@@ -131,24 +138,23 @@ function 케이스결과({
     };
   }
 
+  // 실행 정보는 이 한 줄이 전부다 — 앞 판은 같은 값을 옆 칸에 또 적었고 좁은 창에서 그 칸이 맨 아래로 묻혔다 (도메인/실행 §8.3 · 점검 2.2)
   const 부제 = (
           <>
+            {칸안 ? null : <>RUN {data.runId} · </>}
             {/* 실행 하나에 한 종류다 — 사이드바가 종류를 모르는 화면이라 머리에 적는다 (PR #132) */}
-            {data.kind === 'UI' ? <>{t('UI 테스트')} · </> : data.kind === 'FN' ? <>{t('기능 테스트')} · </> : null}
-            {when(data.startedAt, 언어)} · {data.title} · {t('실행자 {이름}', { 이름: 실행자이름(data, 언어) })}
+            {종류 === null ? null : <>{종류} · </>}
+            {when(data.startedAt, 언어)}
+            {data.origin === undefined ? null : <> · {t(시작방식글[data.origin])}</>}
             {' · '}
             {t('대상 서버 {서버}', { 서버: data.env })}
             {data.baseUrl === '' ? '' : ` (${data.baseUrl})`}
             {' · '}
-            {running ? t('진행 중 {건수}건', { 건수: data.counts.running }) : 상태라벨(data.status, 언어)}
-            {/* 「실행 중: X」라고 쓰지 않는다. 항목 둘이 동시에 돌아(EXECUTION_CONCURRENCY 기본 2)
-                여기 뜨는 것은 도는 둘 중 하나다 — 단정하면 없는 확실함을 만든다 (runProgress.ts) */}
-            {도는것 === null ? null : (
-              <>
-                {' · '}
-                {t('진행 중 {케이스}', { 케이스: `${도는것.tcId} ${도는것.tcName}` })}
-              </>
-            )}
+            {t('실행자 {이름}', { 이름: 실행자이름(data, 언어) })}
+            {소요 === null ? null : <> · {소요}</>}
+            {디바이스들.length === 0 ? null : <> · {디바이스들.map((p) => PLATFORM_LABEL[p]).join(' · ')}</>}
+            {' · '}
+            {running ? t('진행 중') : 상태라벨(data.status, 언어)}
           </>
   );
 
@@ -157,6 +163,11 @@ function 케이스결과({
           {/* 끝난 실행의 집계 숫자는 요약 띠가 맡는다 — 같은 숫자를 두 번 두지 않는다 (도메인/실행 §8.3).
               도는 동안에는 요약 띠가 없어 여기 남는다. 판정 숫자를 버튼보다 앞에 둔다 —
               좁은 화면에서 접히면 뒤엣것이 아랫줄로 밀리는데 휴대폰에서 먼저 볼 것은 끝났나다(공통/5 §8 「휴대폰 화면」) */}
+          {진행글 === null ? null : (
+            <button type="button" className="btn ghost run-progress" aria-haspopup="dialog" onClick={() => set진행열림(true)}>
+              {진행글}
+            </button>
+          )}
           {!running ? null : (
             <>
               <div>
@@ -192,52 +203,68 @@ function 케이스결과({
           </div>
   );
 
+  // 증적 안내·사유·문서 목록을 **머리 줄 안에서** 한 줄로 그린다 (2026-09-22).
+  // 블록으로 두면 130px 을 먹어 케이스 목록에 32px 밖에 안 남았다. 2026-10-19 ⑫ 에 옆 칸을 걷어 화면 전체도 여기다
+  const 증적줄 = <증적알림과목록 칸={증적칸} 한줄로 />;
+
   // 결과 칸의 머리 — 고른 줄과 같은 제목을 크게 단다. 스크롤 칸 밖에 둬 「실패 N건 다시 실행」 · 증적이 늘 보인다 (도메인/실행 §8.3)
   const 머리 = (
     <div className="box-head">
-      {칸안 ? (
-        <h2 className="pane-title">
-          {data.title} <span className="pane-run">RUN {data.runId}</span>
-        </h2>
-      ) : null}
+      <h2 className="pane-title">
+        {data.title} <span className="pane-run">RUN {data.runId}</span>
+      </h2>
       <div className="head-meta">{부제}</div>
       {행동}
-      {/* 증적 안내·사유·문서 목록을 **머리 줄 안에서** 한 줄로 그린다 (2026-09-22).
-          블록으로 두면 130px 을 먹어 케이스 목록에 32px 밖에 안 남았다 */}
-      <증적알림과목록 칸={증적칸} 한줄로 />
+      {증적줄}
     </div>
   );
 
   return (
     <>
-      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8). 결과 칸에서는 칸 머리가 그 자리다 */}
-      {칸안 ? 머리 : <Head 제목={`RUN ${String(data.runId)}`} 부제={부제} 행동={행동} />}
+      {/* 제목과 주 행동은 본문 면 바깥에 선다 (SPEC §8). 결과 칸에서는 칸 머리가 그 자리다.
+          큰 제목은 실행 제목이고 번호는 부제 맨 앞에 작게 둔다 (점검 2.22) */}
+      {칸안 ? (
+        머리
+      ) : (
+        <Head
+          제목={data.title}
+          부제={
+            <>
+              {부제}
+              {증적줄}
+            </>
+          }
+          행동={행동}
+        />
+      )}
 
       {running ? (
         <div className={칸안 ? 'screen pane-results' : 'screen'}>
-          {칸안 ? null : <증적알림과목록 칸={증적칸} />}
-
-          {pass + fail + na === 0 ? null : (
+          {/* 남은 것도 칸을 받는다 — 끝난 것만으로 띠를 채우면 12/40 인데 띠가 다 찬 것으로 읽힌다 (점검 2.14) */}
+          {data.counts.total === 0 ? null : (
             <div className="stripe">
               <i style={{ background: 'var(--pass)', flex: pass }} />
               <i style={{ background: 'var(--fail)', flex: fail }} />
               <i style={{ background: 'var(--na)', flex: na }} />
+              <i style={{ background: 'var(--chart-track)', flex: data.counts.running }} />
             </div>
           )}
 
           {/* 도는 동안에는 요약 띠도 카드도 없다 — 판정 칩이 거르개다 (도메인/실행 §8.3) */}
           <div className="toolbar">
             <span className="filter-label">{t('판정')}</span>
-            {STATUSES.map((value) => (
-              <button
-                className="chip"
-                key={value}
-                aria-pressed={status === value}
-                onClick={() => choose(setStatus)(value)}
-              >
-                {value === 'ALL' ? t('전체') : STATUS_LABEL[value]}
-              </button>
-            ))}
+            <div className="chip-group" role="group" aria-label={t('판정')}>
+              {STATUSES.map((value) => (
+                <button
+                  className="chip"
+                  key={value}
+                  aria-pressed={status === value}
+                  onClick={() => choose(setStatus)(value)}
+                >
+                  {value === 'ALL' ? t('전체') : STATUS_LABEL[value]}
+                </button>
+              ))}
+            </div>
             <디바이스칩 디바이스들={디바이스들} device={device} on디바이스={choose(setDevice)} />
           </div>
 
@@ -250,7 +277,6 @@ function 케이스결과({
           insights={견줌.data}
           판정하기={판정하기}
           견줌오류={견줌.error}
-          증적칸={증적칸}
           칸안={칸안}
           판정={status}
           on판정={choose(setStatus)}
@@ -261,9 +287,9 @@ function 케이스결과({
         />
       )}
 
-      {/* 상자는 하나, 여는 이유는 둘이다. 열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다.
-          **결과 칸에서는 저절로 열지 않는다** — 줄을 고를 때마다 상자가 목록을 가린다 (도메인/실행 §8.7 「A안」) */}
-      {칸안 || (!진행열림 && !끝났다고알릴까말까) ? null : (
+      {/* 상자는 하나, 여는 이유는 둘이다 — 머리의 진행 글을 눌렀거나, 보고 있던 실행이 끝났다.
+          열어 둔 채 끝나면 그 한 상자가 내용만 바꾼다 (도메인/실행 §8.9) */}
+      {!진행열림 && !끝났다고알릴까말까 ? null : (
         <RunProgressModal
           data={data}
           진행목록={진행목록}

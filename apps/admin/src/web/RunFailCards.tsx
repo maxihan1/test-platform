@@ -1,4 +1,4 @@
-// 실행 결과 화면의 실패 케이스 카드 목록 — 깨진 디바이스는 모두 펼치고 통과 · 미실행 디바이스는 한 줄로 접는다 (실행 §8.3)
+// 실행 결과 화면의 실패 케이스 카드 목록 — 카드는 접힌 머리 한 줄로 서고, 펴면 깨진 디바이스와 통과 · 미실행 줄이 나온다 (실행 §8.3)
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -11,7 +11,7 @@ import type { 판정 } from './role.js';
 import { RunFailJudge } from './RunFailJudge.js';
 import { 관련요구줄 } from './RunFailedReqs.js';
 import { 실패이유 } from './FailureWhy.js';
-import { 같은실패끼리, RunFailDevice } from './RunFailDevice.js';
+import { 같은실패끼리, RunFailDevice, 변화글 } from './RunFailDevice.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, 디바이스순서 } from './ui.js';
 
 interface Props {
@@ -146,33 +146,43 @@ function 카드({
   // 사유는 실행 때 박제한 값이다 — 케이스 줄과 같은 꼬리 글이다 (도메인/실행 §8.3)
   const 미확정사유 = c.devices.map((d) => d.item.unconfirmed).find((글) => typeof 글 === 'string') ?? null;
   const 머리이유 = c.devices[0]?.item.failure;
+  // 신규 · 연속 실패는 디바이스 차례로 처음 글이 나는 것 하나만 머리에 단다 — 디바이스마다의 글은 펼친 머리에 있다
+  const 머리변화 = c.devices.map((d) => 변화글(d, t)).find((글) => 글 !== null) ?? null;
 
+  // 접고 펴는 것은 브라우저가 한다 — 화면이 상태를 들지 않는다. 쪽을 넘기면 다른 카드라 다시 접혀 선다 (실행 §8.3 「실패 카드는 접어 둔다」)
   return (
     <article className="fc-card">
-      <div className="fc-head">
-        <Verdict status="FAIL" />
-        <span className="mono fc-tc">{c.tcId}</span>
-        {/* 카드 하나의 유형은 디바이스 차례로 첫 깨진 디바이스의 처음 실패한 회차 것이다 — 서버가 그 차례로 싣는다 (실행 §8.3) */}
-        <실패이유 failure={머리이유} />
-      </div>
-      <h3 className="fc-name-h">{c.tcName}</h3>
-      {미확정사유 === null ? null : (
-        <p className="fc-unconf">
-          {t('미확정')} · {미확정사유}
-        </p>
-      )}
+      <details className="fc-fold">
+        <summary className="fc-sum">
+          <div className="fc-head">
+            <Verdict status="FAIL" />
+            <span className="mono fc-tc">{c.tcId}</span>
+            {/* 카드 하나의 유형은 디바이스 차례로 첫 깨진 디바이스의 처음 실패한 회차 것이다 — 서버가 그 차례로 싣는다 (실행 §8.3) */}
+            <실패이유 failure={머리이유} />
+            {머리변화 === null ? null : <span className="fc-tag">{머리변화}</span>}
+          </div>
+          <h3 className="fc-name-h">{c.tcName}</h3>
+          {미확정사유 === null ? null : (
+            <p className="fc-unconf">
+              {t('미확정')} · {미확정사유}
+            </p>
+          )}
+        </summary>
 
-      <관련요구줄 reqs={c.reqs} 권한={권한} />
+        <div className="fc-body">
+          <관련요구줄 reqs={c.reqs} 권한={권한} />
 
-      {같은실패끼리(c.devices).map((묶음) => (
-        <RunFailDevice key={묶음.map((d) => d.platform).join('-')} devices={묶음} env={env} items={items} 머리이유={머리이유} />
-      ))}
+          {같은실패끼리(c.devices).map((묶음) => (
+            <RunFailDevice key={묶음.map((d) => d.platform).join('-')} devices={묶음} env={env} items={items} 머리이유={머리이유} />
+          ))}
 
-      {나머지.map((칸) => (
-        <통과줄 key={칸[0]!.platform} 칸={칸} runId={runId} />
-      ))}
+          {나머지.map((칸) => (
+            <통과줄 key={칸[0]!.platform} 칸={칸} runId={runId} />
+          ))}
 
-      <RunFailJudge c={c} runId={runId} 권한={권한} on남김={on남김} />
+          <RunFailJudge c={c} runId={runId} 권한={권한} on남김={on남김} />
+        </div>
+      </details>
     </article>
   );
 }

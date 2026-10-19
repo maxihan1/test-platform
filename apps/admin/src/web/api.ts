@@ -1020,7 +1020,6 @@ export const api = {
   markBug: (runId: number, tcId: string) => call<{ byName: string; at: string }>(`/runs/${runId}/bugs`, json({ tcId })),
 
   createRun: (body: {
-    title: string;
     /** 대상 서버 키. **기본값을 두지 않는다** — 안 고르면 빈 칸이 아니라 틀린 값이 증적에 남는다 (SPEC §8.2) */
     env: string;
     /** 회차 수. 요청 최상위에 하나다 (SPEC §3.2) */
