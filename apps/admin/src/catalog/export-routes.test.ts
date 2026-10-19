@@ -218,16 +218,39 @@ describe.skipIf(연결 === undefined)('케이스 엑셀 통로', () => {
     expect(행들(await 책((await 받기('xcx-all', '&axis=')).rawPayload), '테스트 케이스')).toHaveLength(건수);
   });
 
-  it('목록 응답은 그대로다 — 쪽 크기 50 · 같은 모양에 묶음 번호표가 더해졌다', async () => {
+  it('목록 응답은 그대로다 — 쪽 크기 50 · 같은 모양에 묶음 번호표 · 마지막 결과 셈이 더해졌다', async () => {
     const res = await app.inject({ method: 'GET', url: `/api/catalog/cases?service=${접두사}`, cookies: { platform_session: 출입증.get('xcx-all')! } });
     const body = res.json<Record<string, unknown>>();
-    expect(Object.keys(body).sort()).toEqual(['groups', 'hasFeatures', 'items', 'page', 'pageSize', 'sort', 'total', 'totalIsExact', 'unconfirmed']);
-    expect(body).toEqual(
+    expect(Object.keys(body).sort()).toEqual(['groups', 'hasFeatures', 'items', 'lastCounts', 'page', 'pageSize', 'sort', 'total', 'totalIsExact', 'unconfirmed']);
+    expect({ ...body, lastCounts: null }).toEqual(
       await listCases({ service: 접두사, q: '', activeOnly: true, page: 1, pageSize: 50 }),
     );
     expect(body.pageSize).toBe(50);
     expect((body.items as unknown[]).length).toBe(50);
     expect(body.total).toBe(건수);
+  });
+
+  const 목록받기 = (누구: string, 쿼리: string) =>
+    app.inject({ method: 'GET', url: `/api/catalog/cases?service=${접두사}${쿼리}`, cookies: { platform_session: 출입증.get(누구)! } });
+
+  it('마지막 결과는 쪽이 아니라 전체에서 거르고, 셈은 last 를 뺀 전부다 · 엑셀도 같이 거른다', async () => {
+    const 목록 = (await 목록받기('xcx-all', '&last=pass')).json<{ items: { tcId: string }[]; total: number; lastCounts: unknown }>();
+    expect(목록.items.map((c) => c.tcId)).toEqual([번호(1)]);
+    expect(목록.total).toBe(1);
+    expect(목록.lastCounts).toEqual({ total: 건수, pass: 1, fail: 0, na: 건수 - 1 });
+    expect(행들(await 책((await 받기('xcx-all', '&last=pass')).rawPayload), '테스트 케이스').map((r) => r[0])).toEqual([번호(1)]);
+  });
+
+  it('실행 read 가 없으면 마지막 결과를 무시하고 셈은 null', async () => {
+    const 목록 = (await 목록받기('xcx-norun', '&last=pass')).json<{ total: number; lastCounts: unknown }>();
+    expect([목록.total, 목록.lastCounts]).toEqual([건수, null]);
+    expect(행들(await 책((await 받기('xcx-norun', '&last=pass')).rawPayload), '테스트 케이스')).toHaveLength(건수);
+  });
+
+  it('모르는 마지막 결과는 목록 · 엑셀 둘 다 400 BAD_LAST', async () => {
+    const 목록 = await 목록받기('xcx-all', '&last=bogus');
+    const 엑셀 = await 받기('xcx-all', '&last=bogus');
+    expect([목록.statusCode, 목록.json().error, 엑셀.statusCode, 엑셀.json().error]).toEqual([400, 'BAD_LAST', 400, 'BAD_LAST']);
   });
 
   it('남의 서비스 · 케이스 read 없음은 403', async () => {

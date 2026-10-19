@@ -9,6 +9,7 @@ import { 칸되는서비스 } from '../auth/permissions.js';
 import { 맥락조건읽기, 모르는종류, type 맥락글 } from './context.js';
 import { renderCatalogXlsx } from './export.js';
 import { 엑셀자료, 한국시각 } from './exportData.js';
+import { 기기별결과, 마지막읽기, 모르는마지막, 판정으로 } from './last.js';
 import { 기동훑기, 마지막보기, 훑고보기 } from './scanRun.js';
 import { readExcerpt } from './source.js';
 import { findCase, findService, listCases } from './store.js';
@@ -50,7 +51,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
   app.get<{ Querystring: { service?: string } }>('/catalog/scan', async (req) => 마지막보기(req.user, req.query.service || undefined));
 
   app.get<{
-    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string } & 맥락글;
+    Querystring: { service?: string; q?: string; platform?: string; active?: string; page?: string; kind?: string; technique?: string; last?: string } & 맥락글;
   }>(
     '/catalog/cases',
     async (req, reply) => {
@@ -66,7 +67,11 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
       if (technique === null) return reply.code(400).send(모르는기법(req.query.technique));
       const 맥락 = 맥락조건읽기(req.query);
       if (맥락 === null) return reply.code(400).send(모르는종류(req.query.axis));
+      const last = 마지막읽기(req.query.last);
+      if (last === null) return reply.code(400).send(모르는마지막(req.query.last));
 
+      // 판정은 (실행, read) 몫이다 — 없으면 last 를 무시하고 셈도 안 낸다. 엑셀이 그 칸을 비우는 것과 같은 까닭 (카탈로그 §7)
+      const 결과본다 = 칸되는서비스(req.user?.services ?? [], 'runs', 'read').includes(service);
       const platform = req.query.platform;
       return listCases({
         ...맥락,
@@ -76,13 +81,14 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         activeOnly: req.query.active !== 'false',
         kind: 종류읽기(req.query.kind),
         technique,
+        마지막: 결과본다 ? { 판정: 판정으로(await 기기별결과(service)), last } : undefined,
         page: Math.max(1, Number(req.query.page ?? 1) || 1),
         pageSize: PAGE_SIZE,
       });
     },
   );
 
-  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string } & 맥락글 }>(
+  app.get<{ Querystring: { service?: string; q?: string; platform?: string; active?: string; kind?: string; technique?: string; last?: string } & 맥락글 }>(
     '/catalog/export',
     async (req, reply) => {
       const service = req.query.service ?? '';
@@ -93,6 +99,8 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
       if (technique === null) return reply.code(400).send(모르는기법(req.query.technique));
       const 맥락 = 맥락조건읽기(req.query);
       if (맥락 === null) return reply.code(400).send(모르는종류(req.query.axis));
+      const last = 마지막읽기(req.query.last);
+      if (last === null) return reply.code(400).send(모르는마지막(req.query.last));
 
       // 문은 (케이스, read) 만 봤다. 실행·작성 기록은 그 칸이 따로 있어야 싣는다 — 케이스 read 만으로 새면 안 된다 (카탈로그 §7)
       const 되나 = (기능: 'runs' | 'authoring'): boolean =>
@@ -107,6 +115,7 @@ export default async function catalogRoutes(app: FastifyInstance): Promise<void>
         activeOnly: req.query.active !== 'false',
         kind: 종류읽기(req.query.kind),
         technique,
+        last,
         canSeeRuns: 되나('runs'),
         canSeeAuthoring: 되나('authoring'),
       });
