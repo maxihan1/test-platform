@@ -12,6 +12,7 @@ export type 오류코드 =
   | 'USERNAME_TAKEN'
   | 'LAST_ADMIN'
   | 'NOT_FOUND'
+  | 'PROJECT_NOT_FOUND'
   | 'ALREADY_APPROVED'
   | 'APPROVED_USER'
   | 'NOT_APPROVED';
@@ -34,6 +35,8 @@ export interface 서비스행 {
   prefix: string;
   name: string;
   color: string;
+  projectId: number;
+  projectName: string;
   testsRepo: string;
   testsDir: string;
   isActive: boolean;
@@ -70,7 +73,7 @@ export async function 한묶음<T>(일: (client: PoolClient) => Promise<T>): Pro
 
 // 케이스 수는 test_case 에 서비스 칸이 없어 접두사로 센다. 그 표에는 서비스 칸이 없고 앞으로도 없다 (SPEC §6)
 const 서비스들 = `
-  SELECT s.id, s.prefix, s.name, s.color, s.tests_repo, s.tests_dir, s.is_active, s.crawl_exclude,
+  SELECT s.id, s.prefix, s.name, s.color, s.project_id, p.name AS project_name, s.tests_repo, s.tests_dir, s.is_active, s.crawl_exclude,
          to_char(s.schedule_at, 'HH24:MI') AS schedule_at, s.schedule_tz, s.schedule_env, s.schedule_last,
          -- 같은 점검이 만든 UI · 기능 실행이 둘 다 마지막으로 돈 때 뒤에 생긴다 (SPEC 공통/6-인프라 §9.2)
          (SELECT COALESCE(json_agg(r.run_id ORDER BY r.run_id), '[]') FROM test_run r
@@ -82,8 +85,9 @@ const 서비스들 = `
            WHERE tc.tc_id LIKE s.prefix || '-%' AND tc.is_active) AS case_count,
          COALESCE(json_agg(${대상서버칸식} ORDER BY e.env) FILTER (WHERE e.env IS NOT NULL), '[]') AS envs
     FROM service s
+    JOIN project p ON p.id = s.project_id
     LEFT JOIN service_env e ON e.service_id = s.id
-   GROUP BY s.id
+   GROUP BY s.id, p.id
    ORDER BY s.prefix`;
 
 interface 서비스원행 {
@@ -91,6 +95,8 @@ interface 서비스원행 {
   prefix: string;
   name: string;
   color: string;
+  project_id: string;
+  project_name: string;
   tests_repo: string;
   tests_dir: string;
   is_active: boolean;
@@ -116,6 +122,8 @@ export async function 서비스목록(): Promise<서비스행[]> {
     prefix: r.prefix,
     name: r.name,
     color: r.color,
+    projectId: Number(r.project_id),
+    projectName: r.project_name,
     testsRepo: r.tests_repo,
     testsDir: r.tests_dir,
     isActive: r.is_active,
@@ -137,6 +145,8 @@ export interface 서비스입력 {
   prefix: string;
   name: string;
   color: string;
+  /** 설정 API 는 꼭 받는다. 빠지면 DB 트리거가 같은 이름 프로젝트를 붙인다 — 첫 서비스를 만드는 scripts/add-service.ts 의 입구다 */
+  projectId?: number;
   testsRepo: string;
   testsDir: string;
   envs: 대상서버입력[];
@@ -145,15 +155,21 @@ export interface 서비스입력 {
   crawlExclude?: string[];
 }
 
+async function 프로젝트확인(client: PoolClient, id: number): Promise<void> {
+  const rows = await client.query('SELECT 1 FROM project WHERE id = $1', [id]);
+  if (rows.rowCount === 0) throw new 설정오류('PROJECT_NOT_FOUND');
+}
+
 /**
  * @param 만든이 요청한 운영 계정의 아이디. 있으면 그 서비스에 세 칸 쓰기로 배정한다 — 안 하면 방금 만든 서비스가
  *   그 사람의 서비스 고르개에 안 떠서 설정에서 자기를 따로 배정해야 했다 (도메인/인증 §3.5 「서비스 배정은 권한의 한 부분이다」)
  */
 export async function 서비스만들기(입력: 서비스입력, 만든이?: string): Promise<number> {
   return 한묶음(async (client) => {
+    if (입력.projectId !== undefined) await 프로젝트확인(client, 입력.projectId);
     const rows = await client.query<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, slack_webhook, figma_token, crawl_exclude)
-            VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''), $8)
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, slack_webhook, figma_token, crawl_exclude, project_id)
+            VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''), $8, $9)
        ON CONFLICT (prefix) DO NOTHING
          RETURNING id`,
       [
@@ -165,6 +181,7 @@ export async function 서비스만들기(입력: 서비스입력, 만든이?: st
         입력.slackWebhook ?? '',
         입력.figmaToken ?? '',
         입력.crawlExclude ?? [],
+        입력.projectId ?? null,
       ],
     );
     const id = rows.rows[0]?.id === undefined ? undefined : Number(rows.rows[0].id);
@@ -187,6 +204,8 @@ export async function 서비스만들기(입력: 서비스입력, 만든이?: st
 export interface 서비스수정 {
   name?: string;
   color?: string;
+  /** 다른 프로젝트로 옮긴다 */
+  projectId?: number;
   testsRepo?: string;
   testsDir?: string;
   isActive?: boolean;
@@ -217,6 +236,7 @@ export async function 정기실행재료(id: number): Promise<{ 키들: string[]
 
 export async function 서비스고치기(id: number, 수정: 서비스수정): Promise<void> {
   await 한묶음(async (client) => {
+    if (수정.projectId !== undefined) await 프로젝트확인(client, 수정.projectId);
     const rows = await client.query(
       `UPDATE service
           SET name       = COALESCE($2, name),
@@ -233,7 +253,8 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
               crawl_exclude = COALESCE($9::text[], crawl_exclude),
               schedule_at  = CASE WHEN $10 THEN $11::time ELSE schedule_at END,
               schedule_tz  = CASE WHEN $10 THEN $12 ELSE schedule_tz END,
-              schedule_env = CASE WHEN $10 THEN $13 ELSE schedule_env END
+              schedule_env = CASE WHEN $10 THEN $13 ELSE schedule_env END,
+              project_id = COALESCE($14, project_id)
         WHERE id = $1`,
       [
         id,
@@ -249,6 +270,7 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
         수정.schedule?.at ?? null,
         수정.schedule?.tz ?? null,
         수정.schedule?.env ?? null,
+        수정.projectId ?? null,
       ],
     );
     if (rows.rowCount === 0) throw new 설정오류('NOT_FOUND');

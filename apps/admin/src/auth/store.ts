@@ -16,6 +16,9 @@ export interface 배정서비스 {
   prefix: string;
   name: string;
   color: string;
+  /** 속한 프로젝트 (공통/4-데이터모델 「프로젝트 표」). 로그인 뒤 프로젝트 고르기가 배정받은 서비스에서 뽑는다 */
+  projectId: number;
+  projectName: string;
   /**
    * 그 서비스의 대상 서버 목록 (SPEC §6 `service_env`).
    *
@@ -71,6 +74,7 @@ const 한사람 = `
          COALESCE(
            json_agg(json_build_object(
              'id', s.id, 'prefix', s.prefix, 'name', s.name, 'color', s.color,
+             'projectId', s.project_id, 'projectName', p.name,
              'envs', COALESCE(e.envs, '[]'::json),
              'testsDir', s.tests_dir,
              'crawlExclude', s.crawl_exclude,
@@ -86,6 +90,7 @@ const 한사람 = `
     FROM app_user u
     LEFT JOIN user_service us ON us.username = u.username
     LEFT JOIN service s ON s.id = us.service_id AND s.is_active
+    LEFT JOIN project p ON p.id = s.project_id
     LEFT JOIN 서버 e ON e.service_id = s.id
    WHERE u.username = $1 AND u.is_active AND (u.is_approved OR $2)
    GROUP BY u.username, u.display_name, u.role, u.password_hash, u.perm_dashboard, u.must_change_password, u.is_approved`;

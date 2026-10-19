@@ -11,6 +11,7 @@ import { 시간대확인, 틀린시간대 } from '../reporting/dashboardResults.
 import { 정수 } from '../routeParams.js';
 
 import { 역할까닭찾기 } from './roles.js';
+import { 프로젝트만들기, 프로젝트목록, 프로젝트이름고치기 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
 import { db, 서비스고치기, 서비스만들기, 서비스목록, 설정오류, 정기실행재료 } from './store.js';
 import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수락, 비밀번호다시만들기 } from './users.js';
@@ -50,10 +51,16 @@ const 훑지않을경로 = z.array(z.string()).transform((줄들, ctx) => {
   return z.NEVER;
 });
 
+// 프로젝트 번호는 꼭 받는다. DB 트리거가 같은 이름 프로젝트를 붙이는 것은 fixture 와 add-service.ts 용 대체다 (도메인/인증 §7)
+const 프로젝트번호 = z.number().int().positive();
+
+const 프로젝트이름 = z.object({ name: z.string().trim().min(1) });
+
 const 새서비스 = z.object({
   prefix: z.string(),
   name: z.string().min(1),
   color: z.string().min(1),
+  projectId: 프로젝트번호,
   testsRepo: z.string(),
   testsDir: z.string().min(1),
   envs: z.array(대상서버).default([]),
@@ -72,6 +79,7 @@ const 정기실행 = z.object({
 const 서비스수정 = z.object({
   name: z.string().min(1).optional(),
   color: z.string().min(1).optional(),
+  projectId: 프로젝트번호.optional(),
   testsRepo: z.string().optional(),
   testsDir: z.string().min(1).optional(),
   isActive: z.boolean().optional(),
@@ -143,6 +151,24 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       return reply.code(코드별상태[err.code] ?? 400).send({ error: err.code });
     }
     throw err;
+  });
+
+  app.get('/settings/projects', async () => ({ items: await 프로젝트목록() }));
+
+  app.post('/settings/projects', async (req, reply) => {
+    const parsed = 프로젝트이름.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
+    return reply.code(201).send({ id: await 프로젝트만들기(parsed.data.name) });
+  });
+
+  app.patch<{ Params: { id: string } }>('/settings/projects/:id', async (req, reply) => {
+    const parsed = 프로젝트이름.safeParse(req.body);
+    const id = 정수(req.params.id);
+    if (!parsed.success || id === null) {
+      return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.success ? req.params.id : parsed.error.message });
+    }
+    await 프로젝트이름고치기(id, parsed.data.name);
+    return { ok: true };
   });
 
   app.get('/settings/services', async () => ({ items: await 서비스목록() }));

@@ -4,6 +4,7 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { 검사프로젝트, 검사프로젝트치우기 } from './projectFixture.js';
 import settingsRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -24,6 +25,7 @@ describe.skipIf(연결 === undefined)('설정의 화면 크기 판정 읽기', (
     await p.query(`DELETE FROM screen_found WHERE service_id IN (${서비스})`, [접두사]);
     await p.query(`DELETE FROM service_env WHERE service_id IN (${서비스})`, [접두사]);
     await p.query('DELETE FROM service WHERE prefix = $1', [접두사]);
+    await 검사프로젝트치우기();
   }
 
   beforeAll(async () => {
@@ -38,6 +40,7 @@ describe.skipIf(연결 === undefined)('설정의 화면 크기 판정 읽기', (
         prefix: 접두사,
         name: '화면 크기',
         color: '#112233',
+        projectId: await 검사프로젝트(),
         testsRepo: '',
         testsDir: 'xvp',
         envs: [{ env: 'qa', baseUrl: 'https://qa.xvp.test' }, { env: 'live', baseUrl: 'https://xvp.test' }],

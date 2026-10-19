@@ -4,6 +4,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { 세션등록 } from '../auth/session.js';
+import { 검사프로젝트, 검사프로젝트치우기 } from './projectFixture.js';
 import settingsRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -23,6 +24,7 @@ describe.skipIf(연결 === undefined)('설정 API — 가입 수락·거절', ()
         prefix: 'XPA',
         name: 'XPA 서비스',
         color: '#112233',
+        projectId: await 검사프로젝트(),
         testsRepo: 'https://example.com/x.git',
         testsDir: 'xpa',
         envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
@@ -37,6 +39,7 @@ describe.skipIf(연결 === undefined)('설정 API — 가입 수락·거절', ()
     await pool.query(`DELETE FROM app_user WHERE username IN ('Xpa-upper', '.xpa-dot')`);
     await pool.query(`DELETE FROM service_env WHERE service_id IN (SELECT id FROM service WHERE prefix LIKE 'XPA%')`);
     await pool.query(`DELETE FROM service WHERE prefix LIKE 'XPA%'`);
+    await 검사프로젝트치우기();
     await app.close();
   });
 
