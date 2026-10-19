@@ -685,7 +685,7 @@ Android 앱을 조작하는 케이스(`platforms: ['android']`)를 **맥에 USB 
    curl -X POST http://127.0.0.1:4001/execute -H 'Content-Type: application/json' -d '{"runId":999,"historyId":1,"tcId":"MDA-FN-001","platform":"android","filePath":"mda/MDA-FN-001.spec.ts","baseUrl":"http://example.invalid","params":{},"expected":{},"timeoutMs":120000}'
    ```
 
-4. **관리 화면에서 실행** — 위 3번처럼 러너를 `PLATFORM_APP` 을 준 채 켜 둔다. 그리고 처음 한 번 아래를 한다.
+4. **관리 화면에서 실행** — 위 3번처럼 러너를 켜 둔다. `PLATFORM_APP` 은 아래 6번처럼 대상 서버 줄에 경로를 적었으면 안 줘도 된다. 그리고 처음 한 번 아래를 한다.
    1. `.env` 에 **두 줄을 한 묶음으로** 적는다. 하나만 적으면 실행은 돌아도 스크린샷이 오류 없이 404 다.
       ```
       LOCAL_RUNNER_URL=http://host.docker.internal:4001

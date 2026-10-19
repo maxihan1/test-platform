@@ -104,7 +104,7 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
         전?.base_url === baseUrl ? 전.viewport_kind : null,
         전?.base_url === baseUrl ? 전.viewport_judged_at : null,
         // 계정 칸과 같은 규칙 — 키가 없으면 옛 값, null · 빈 글자면 지운다. 앞뒤 공백은 경로가 아니라 실수다
-        계정칸(appPath?.trim() ?? appPath, 전?.app_path ?? null),
+        계정칸(typeof appPath === 'string' ? appPath.trim() : appPath, 전?.app_path ?? null),
       ],
     );
     // 화면별 차이도 옛 서버 것이다 — 남기면 새 판정 옆에 옛 서버 화면이 섞여 보인다 (PRD-F10-08 코드 검토)

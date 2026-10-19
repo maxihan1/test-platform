@@ -59,6 +59,11 @@ describe('execute 가 자식에게 넘기는 앱 파일', () => {
     expect(받은앱()).toBe('/apk/qa.apk');
   });
 
+  it('브라우저 항목은 요청이 실어도 덮지 않는다', async () => {
+    await execute({ ...요청('/apk/qa.apk'), platform: 'desktop' }, 'a.spec.ts');
+    expect(받은앱()).toBe('/runner/env.apk');
+  });
+
   it('요청에 없으면 러너를 켤 때 준 PLATFORM_APP 그대로다', async () => {
     await execute(요청(), 'a.spec.ts');
     expect(받은앱()).toBe('/runner/env.apk');

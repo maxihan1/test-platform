@@ -95,6 +95,19 @@ describe('POST /execute', () => {
 
     expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ app: '/apk/qa.apk' }), expect.any(String));
   });
+
+  it('앱 파일이 주소(://)면 400 이다 — Appium 이 내려받아 폰에 깔게 두지 않는다', async () => {
+    const res = await 서버().inject({
+      method: 'POST',
+      url: '/execute',
+      payload: {
+        runId: 1, historyId: 3, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+        baseUrl: 'https://qa.example.com', params: {}, expected: {}, app: 'https://evil.example.com/a.apk',
+      },
+    });
+
+    expect(res.statusCode).toBe(400);
+  });
 });
 
 describe('POST /abort', () => {

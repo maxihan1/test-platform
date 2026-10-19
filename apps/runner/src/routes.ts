@@ -25,7 +25,8 @@ const executeRequest = z.object({
   params: z.record(z.string(), z.unknown()),
   expected: z.record(z.string(), z.unknown()),
   timeoutMs: z.number().int().positive().default(300_000),
-  app: z.string().min(1).optional(),
+  // admin 설정과 같은 까닭으로 주소는 받지 않는다 — Appium 이 내려받아 폰에 깐다 (러너 §5.2 「대상 서버마다 다른 앱 파일」)
+  app: z.string().min(1).refine((v) => !v.includes('://'), 'app 은 파일 경로여야 한다').optional(),
 });
 
 // `//host` 는 / 로 시작해도 다른 호스트로 풀린다. 대상 주소 밖으로 못 나가게 여기서 막는다

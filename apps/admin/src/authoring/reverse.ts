@@ -55,7 +55,8 @@ const 줄로 = (행: 줄행): 대상줄 => ({
   loginPassword: 행.login_password,
   isProd: 행.is_prod,
   계정들: [{ role: 기본역할, loginId: 행.login_id, loginPassword: 행.login_password }, ...역할계정읽기(행.role_accounts)],
-  appPath: 행.app_path,
+  // 손으로 고친 빈 글자도 없음이다 — 그대로 보내면 러너가 400 으로 거절한다
+  appPath: 행.app_path === '' ? null : 행.app_path,
 });
 
 // 풀은 쓸 때 가져온다 — DATABASE_URL 없이 도는 검사가 이 파일의 순수 함수를 import 한다
