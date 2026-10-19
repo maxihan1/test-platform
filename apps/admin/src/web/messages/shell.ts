@@ -17,6 +17,7 @@ export const 껍데기말: Record<string, string> = {
   설정: 'Settings',
 
   // 사이드바
+  '가입 신청 {수}건': '{수} sign-up requests',
   '사이드바 펴기': 'Expand sidebar',
   '사이드바 접기': 'Collapse sidebar',
   '서비스 선택': 'Choose service',

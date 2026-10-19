@@ -2015,6 +2015,27 @@ input[type='file']::file-selector-button {
   border-left-color: var(--accent);
 }
 
+/* 설정 곁의 가입 신청 수. 설정 안 메뉴의 `.set-nav-count` 와 같은 굵기 · 크기다. 접으면 글자는 0 이라 이 수만 아이콘 모서리에 남긴다 */
+.side-badge {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.folded .side .side-nav a {
+  position: relative;
+}
+
+.folded .side .side-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1;
+}
+
 /* 메뉴 아이콘 상자 (DESIGN.md 원칙 5 — 20px · 선 1.8). 글자가 길어도 줄어들지 않는다 */
 .side-ico {
   width: 20px;
@@ -2180,6 +2201,12 @@ input[type='file']::file-selector-button {
   align-items: center;
 }
 
+/* 대상 서버 줄 맨 위의 칸 이름. 줄마다 쓰지 않고 한 번만 둔다 */
+.set-env-head {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
 .set-hook {
   display: flex;
   align-items: center;
@@ -2325,9 +2352,10 @@ input[type='file']::file-selector-button {
   color: var(--ink-muted);
 }
 
-/* 「저장했습니다」 한 줄 — 판정이 아니라 판정 색을 안 쓴다 */
+/* 「저장했습니다」 — 저장 단추 줄 안, 단추 왼쪽에 선다. 판정이 아니라 판정 색을 안 쓴다 */
 .set-saved {
-  margin: 0 0 8px;
+  margin: 0;
+  align-self: center;
 }
 
 /* 구획 제목이 칸 이름을 대신하는 칸 — 라벨 열 없이 한 줄을 다 쓴다 */
