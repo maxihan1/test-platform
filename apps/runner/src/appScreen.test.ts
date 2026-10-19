@@ -166,13 +166,13 @@ describe('POST /app-screen', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('돌고 있는 항목이 있으면 409 DEVICE_BUSY 다 — 폰 연결을 가로채지 않는다', async () => {
+  it('돌고 있는 항목이 있으면 409 RUNNER_BUSY 다 — 폰 연결을 가로채지 않는다', async () => {
     running.set(1, { child: {} as ChildProcess, killedBy: null });
 
     const res = await 보냄({});
 
     expect(res.statusCode).toBe(409);
-    expect(res.json().error).toBe('DEVICE_BUSY');
+    expect(res.json().error).toBe('RUNNER_BUSY');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

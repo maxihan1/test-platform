@@ -164,7 +164,7 @@ export function registerRoutes(app: FastifyInstance): void {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
     if (running.size > 0 || 화면을읽는중인가()) {
-      return reply.code(409).send({ error: 'DEVICE_BUSY', detail: '이 러너가 이미 실행이나 화면 읽기를 하고 있다' });
+      return reply.code(409).send({ error: 'RUNNER_BUSY', detail: '이 러너가 이미 실행이나 화면 읽기를 하고 있다' });
     }
     try {
       return { screen: await 앱화면을읽는다(parsed.data) };
