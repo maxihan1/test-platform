@@ -195,12 +195,12 @@ export async function 한쪽(입력: {
   type 줄 = Omit<행, 'spec_text'> & { root_id: string; run_count: string; root_continue_from: string | null; root_kind: 요청['kind']; root_uncovered_of: unknown };
   let 줄들: 줄[];
   let 전체: number;
-  let 덧: Awaited<ReturnType<typeof 덧칸>>;
+  let 할일들: Awaited<ReturnType<typeof 할일칸>>;
   if (입력.할일만 === true) {
     // ponytail: todo 는 보류 칸 모양까지 봐야 해서 SQL 로 못 거른다 — 서비스의 뿌리를 다 읽어 JS 로 거른 뒤 자른다. 뿌리가 수천을 넘으면 칸을 따로 둔다
     const 모두 = await pool.query<줄>(`${최신} SELECT * FROM 최신 WHERE ${조건} ORDER BY id DESC`, 값들);
-    덧 = await 덧칸(모두.rows);
-    const 남은 = 모두.rows.filter((x) => 할일남았나(덧.todo(x)));
+    할일들 = await 할일칸(모두.rows);
+    const 남은 = 모두.rows.filter((x) => 할일남았나(할일들(x)));
     전체 = 남은.length;
     줄들 = 남은.slice((쪽 - 1) * 크기, 쪽 * 크기);
   } else {
@@ -215,8 +215,9 @@ export async function 한쪽(입력: {
       [...값들, 크기, (쪽 - 1) * 크기],
     );
     줄들 = r.rows;
-    덧 = await 덧칸(줄들);
+    할일들 = await 할일칸(줄들);
   }
+  const 자료 = await 자료이름들(줄들.map((x) => Number(x.root_id)));
   return {
     items: 줄들.map((x) => {
       const { specText: _본문, ...나머지 } = 빚기({ ...x, spec_text: null });
@@ -229,8 +230,8 @@ export async function 한쪽(입력: {
         runCount: Number(x.run_count),
         rootKind: x.root_kind,
         uncoveredOf: 밖화면뿌리(x.root_uncovered_of),
-        assets: 덧.자료.get(Number(x.root_id)) ?? null,
-        todo: 덧.todo(x),
+        assets: 자료.get(Number(x.root_id)) ?? null,
+        todo: 할일들(x),
       };
     }),
     total: 전체,
@@ -239,16 +240,10 @@ export async function 한쪽(입력: {
   };
 }
 
-/** 줄들의 자료 이름과 할 일 — 폐기한 뿌리는 할 일이 없다 */
-async function 덧칸(줄들: { root_id: string; kind: 요청['kind']; status: 상태; discarded_at: Date | null }[]): Promise<{
-  자료: Map<number, 자료이름>;
-  todo: (x: { root_id: string; kind: 요청['kind']; status: 상태; discarded_at: Date | null }) => 할일;
-}> {
-  const 뿌리들 = 줄들.map((x) => Number(x.root_id));
-  const [자료, 손] = await Promise.all([자료이름들(뿌리들), 남은손들(뿌리들.filter((_, i) => 줄들[i]!.discarded_at === null))]);
-  return {
-    자료,
-    todo: (x) =>
-      x.discarded_at !== null ? 할일없음 : { ...(손.get(Number(x.root_id)) ?? 할일없음), apply: 반영할일(x) },
-  };
+type 할일줄 = { root_id: string; kind: 요청['kind']; status: 상태; discarded_at: Date | null };
+
+/** 줄들의 할 일 — 폐기한 뿌리는 할 일이 없다 */
+async function 할일칸(줄들: 할일줄[]): Promise<(x: 할일줄) => 할일> {
+  const 손 = await 남은손들(줄들.filter((x) => x.discarded_at === null).map((x) => Number(x.root_id)));
+  return (x) => (x.discarded_at !== null ? 할일없음 : { ...(손.get(Number(x.root_id)) ?? 할일없음), apply: 반영할일(x) });
 }

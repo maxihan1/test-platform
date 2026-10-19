@@ -1,5 +1,6 @@
 // 작성 요청 한 줄을 화면이 어떻게 보여 줄지 정한다 (도메인/작성 §3.6). 판단만 여기, 그림은 Authoring.tsx
 
+import type { 반영 } from '../authoring/applyTodo.js';
 import { 고치기실행인가 as 서버판정, 행의고칠것, type 기대값 } from '../authoring/edit.js';
 
 import type { AuthoringRow, AuthoringTodoCount } from './api.js';
@@ -76,13 +77,8 @@ export function 고치기실행인가(행: Pick<AuthoringRow, 'params'>): boolea
   return 서버판정({ params: 행.params });
 }
 
-/** 반영에 사람 손이 남았나 — 정본은 서버 `authoring/listTodo.ts` 의 `반영할일`(목록 todo.apply)이고 이것은 그 사본이다. 상세는 뿌리의 최신 실행(runs[0])을 넘긴다 */
-export type 반영 = 'WAITING' | 'FAILED' | null;
-export function 반영할일(최신: Pick<AuthoringRow, 'kind' | 'status'>): 반영 {
-  if (최신.kind !== 'MERGE' && 최신.status === 'DONE') return 'WAITING';
-  if (최신.kind === 'MERGE' && 최신.status === 'FAILED') return 'FAILED';
-  return null;
-}
+// 반영 판정은 서버 목록 todo.apply 와 같은 함수다 — 두 벌이면 목록 칩과 상세 칩이 갈린다. 상세는 뿌리의 최신 실행(runs[0])을 넘긴다
+export { 반영할일 } from '../authoring/applyTodo.js';
 
 /**
  * 상태 칩 · 목록 줄 끝의 글자. 머지 · 고치기가 도는 것을 「작성 중」이라 하면 거짓말이다.

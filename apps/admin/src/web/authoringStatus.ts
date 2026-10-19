@@ -71,7 +71,7 @@ export function 단계칸(stage: string | null, 진척있나: boolean): number {
   return (stage === null ? undefined : 단계글[stage]) ?? (진척있나 ? 2 : 0);
 }
 
-/** 반영처럼 다섯 칸을 안 밟는 요청의 글(`CI 기다리는 중` 같은)은 표에 없다 — 칸 번호로 옮기면 「1 / 5 단계 준비」로 거짓말한다 */
+/** 반영처럼 작성 칸을 안 밟는 요청의 글(`CI 기다리는 중` 같은)은 표에 없다 — 칸 번호로 옮기면 「1 / N 단계 준비」로 거짓말한다 */
 export function 아는단계글(stage: string): boolean {
   return Object.hasOwn(단계글, stage);
 }

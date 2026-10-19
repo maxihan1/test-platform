@@ -23,6 +23,7 @@ export function AuthoringDetail({
   id,
   할수,
   서비스번호,
+  배정번호들 = [],
   on서비스번호,
 }: {
   service: string;
@@ -30,6 +31,8 @@ export function AuthoringDetail({
   할수: 판정;
   /** 띠에서 고른 서비스의 번호 — 요청의 서비스와 다르면 띠를 그 서비스로 옮긴다 (점검 12.14) */
   서비스번호?: number;
+  /** 띠를 옮길 수 있는(배정된) 서비스 번호들. 배정 밖 서비스의 요청은 옮기지 못해 그대로 그린다 */
+  배정번호들?: number[];
   on서비스번호?: (serviceId: number) => void;
 }) {
   const t = use말();
@@ -73,7 +76,9 @@ export function AuthoringDetail({
 
   // 다른 서비스의 요청을 고리로 열면(알림 · 대시보드) 띠를 그 서비스로 옮긴다 — 앞 판은 띠의 서비스 이름 · 권한으로 카드와 버튼을 그렸다 (점검 12.14)
   const 요청서비스 = 뿌리?.id === id ? 뿌리.serviceId : undefined;
-  const 다른서비스 = 요청서비스 !== undefined && 서비스번호 !== undefined && 요청서비스 !== 서비스번호;
+  // 배정 밖이면 띠가 안 옮겨 가 「불러오는 중」에서 멈춘다 — 그때는 옮기지 않고 그린다(코드 검토)
+  const 다른서비스 =
+    요청서비스 !== undefined && 서비스번호 !== undefined && 요청서비스 !== 서비스번호 && 배정번호들.includes(요청서비스);
   useEffect(() => {
     if (다른서비스 && on서비스번호 !== undefined) on서비스번호(요청서비스);
   }, [다른서비스, 요청서비스, on서비스번호]);

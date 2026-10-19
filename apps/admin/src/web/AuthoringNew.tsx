@@ -135,12 +135,16 @@ export function AuthoringNew({
       await api.submitAuthoringRequest(service, id);
     } catch (err) {
       const 어디 = 지금 === null ? 사유(err) : `${지금.name} — ${사유(err)}`;
-      // 못 올린 요청은 치운다 — 남겨 두면 목록에 「자료 올리는 중」으로 영영 남는다 (점검 11.6).
+      // 자료를 못 올린 요청은 치운다 — 남겨 두면 목록에 「자료 올리는 중」으로 영영 남는다 (점검 11.6).
+      // 줄에 세우기(지금 === null)에서 난 실패는 치우지 않는다 — 응답만 끊기고 서버는 세웠을 수 있다(코드 검토).
       // 치우기도 실패하면 그 줄을 손으로 폐기하라고 덧붙인다 — 삼키면 왜 줄이 남았는지 모른다
-      const 치움 = await api.discardAuthoring(service, id).then(
-        () => '',
-        () => ` ${t('목록에 남은 그 줄은 폐기하세요')}`,
-      );
+      const 치움 =
+        지금 === null
+          ? ''
+          : await api.discardAuthoring(service, id).then(
+              () => '',
+              () => ` ${t('목록에 남은 그 줄은 폐기하세요')}`,
+            );
       set오류(`${t('이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요')} (${어디})${치움}`);
       set보내는중(false);
       return;

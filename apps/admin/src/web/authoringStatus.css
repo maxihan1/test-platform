@@ -38,8 +38,8 @@
 .status-chip.quiet { color: var(--ink-muted); }
 .status-chip.quiet .dot { background: var(--ink-faint); }
 
-/* 단계 다섯 칸. 칸 사이 선은 앞 칸이 끝났거나 지금이면 잉크로 잇는다 */
-.status-steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; list-style: none; margin: 0; padding: 0; }
+/* 단계 칸(개수는 authoringStatus.ts 단계이름들). 칸 사이 선은 앞 칸이 끝났거나 지금이면 잉크로 잇는다 */
+.status-steps { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; list-style: none; margin: 0; padding: 0; }
 .status-steps li {
   position: relative;
   display: grid;

@@ -177,7 +177,7 @@ export function 도는줄만들기(n: NoticeRunning, 지금: number, 언어: 언
   }
   // 알림 통로는 진척을 안 싣는다 — 단계 칸은 에이전트가 올린 글로만 센다
   const 지난ms = 지난(n.startedAt, 지금);
-  // 반영 · 고치기는 다섯 단계를 안 밟는다 — 단계 글이 있으면 그 글만, 없으면 아무것도 안 붙인다
+  // 반영 · 고치기는 작성 단계를 안 밟는다 — 단계 글이 있으면 그 글만, 없으면 아무것도 안 붙인다
   let 단계: string | null = null;
   if (n.stage !== null && (!n.fiveSteps || !아는단계글(n.stage))) {
     단계 = 단계글라벨(n.stage, 언어);

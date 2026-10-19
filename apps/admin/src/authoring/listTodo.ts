@@ -1,9 +1,12 @@
 // 작성 목록 줄의 assets(넣은 자료 이름) · todo(사람이 할 일) 를 뿌리 여러 개에 한 번에 계산한다 (도메인/작성 §7 목록 · 2026-10-19 ⑫)
 
+import { 반영할일, type 반영 } from './applyTodo.js';
 import { 겹침들, 남은겹침수, type 겹침입력 } from './conflicts.js';
 import { 보류들, 남은수, type 보류입력 } from './held.js';
 import { 사슬식 } from './chainSql.js';
-import { db, type 상태, type 요청 } from './store.js';
+import { db } from './store.js';
+
+export { 반영할일 };
 
 export interface 자료이름 {
   first: string;
@@ -13,20 +16,13 @@ export interface 자료이름 {
 export interface 할일 {
   heldOpen: number;
   conflictsOpen: number;
-  apply: 'WAITING' | 'FAILED' | null;
+  apply: 반영;
 }
 
 export const 할일없음: 할일 = { heldOpen: 0, conflictsOpen: 0, apply: null };
 
 export function 할일남았나(t: 할일): boolean {
   return t.heldOpen > 0 || t.conflictsOpen > 0 || t.apply !== null;
-}
-
-/** 반영은 뿌리의 최신 실행으로 정한다 — 반영 요청 전 작성 · 고치기가 끝났거나, 반영이 실패했을 때만 사람 손이 남는다 */
-export function 반영할일(최신: { kind: 요청['kind']; status: 상태 }): 할일['apply'] {
-  if (최신.kind !== 'MERGE' && 최신.status === 'DONE') return 'WAITING';
-  if (최신.kind === 'MERGE' && 최신.status === 'FAILED') return 'FAILED';
-  return null;
 }
 
 /** 뿌리마다 입력 자료(INPUT) 가운데 처음 넣은 것의 이름과 나머지 수. 자료가 없는 뿌리(화면만)는 맵에 없다 */

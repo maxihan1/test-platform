@@ -4,6 +4,7 @@
 
 import { 계정말 } from './messages/auth.js';
 import { 작성말 } from './messages/authoring.js';
+import { 작성할일말 } from './messages/authoringTodo.js';
 import { 케이스말 } from './messages/cases.js';
 import { 대시보드말 } from './messages/dashboard.js';
 import { 고치기말 } from './messages/edit.js';
@@ -19,6 +20,7 @@ export const 말: Record<string, string> = {
   ...껍데기말,
   ...케이스말,
   ...작성말,
+  ...작성할일말,
   ...고치기말,
   ...실행말,
   ...설정말,
