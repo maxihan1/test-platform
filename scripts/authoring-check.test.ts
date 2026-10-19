@@ -1,7 +1,7 @@
 // 빠른 검사 명령 검사 — 케이스 문장 읽기 · 케이스와 요구 목록 맞춰 보기 · 비밀번호 자리 (작성 §3.6 「빠른 검사 명령」)
 import { describe, expect, it } from 'vitest';
 
-import { type 케이스문장, 맞춰보기, 비밀자리들, 실행, 케이스문장읽기 } from './authoring-check.js';
+import { type 케이스문장, 맞춰보기, 묶은확인들, 비밀자리들, 실행, 케이스문장읽기 } from './authoring-check.js';
 
 const 케이스글 = `import { defineCase, test, verify } from '@platform/kit';
 export const spec = defineCase({
@@ -29,7 +29,22 @@ describe('케이스문장읽기', () => {
       전제: ['새로 가입한 회원이 있다', '로그인 화면이 열려 있다'],
       절차: ['새 회원을 만든다', '비밀번호를 4번 틀린다'],
       판정: ['4번 틀리면 안내가 보인다'],
+      묶은판정: [],
     });
+  });
+
+  it('실제 값을 배열 · 객체로 묶거나 묶은 배열을 every 로 줄인 verify 를 묶은판정에 넣는다 — 화면에서 읽은 목록 하나는 아니다', () => {
+    const 글 = 케이스글.replace(
+      "await verify('4번 틀리면 안내가 보인다', await page.title(), 'x');",
+      [
+        "await verify('배열', [await a(), b], [true, true]);",
+        "await verify('객체', { 상태: 1, 본문: 2 }, { 상태: 1, 본문: 2 });",
+        "await verify('every', ([a, b]).every(Boolean), true);",
+        "await verify('목록 하나', await page.locator('li').allInnerTexts(), ['가', '나']);",
+        "await verify('조건 하나', 글들.every((g) => g.ok), true);",
+      ].join('\n'),
+    );
+    expect(케이스문장읽기(글)?.묶은판정).toEqual(['배열', '객체', 'every']);
   });
 
   it('defineCase 가 없으면 null', () => {
@@ -39,7 +54,15 @@ describe('케이스문장읽기', () => {
 
 const 머리 = '## 요구사항\n\n| 요구 | 축 | 전제 | 조작 | 결과 | 출처 | tcId | 작성 시점 |\n|---|---|---|---|---|---|---|---|\n';
 const 줄 = (n: number, 전제: string, 조작: string, 결과: string, tcId: string) => `| ${n} | 정상 | ${전제} | ${조작} | ${결과} | R-${n} | ${tcId} | 2026-10-19 |\n`;
-const 케이스 = (덧: Partial<케이스문장> & { tcId: string }): 케이스문장 => ({ name: null, 전제: [], 절차: [], 판정: [], ...덧 });
+const 케이스 = (덧: Partial<케이스문장> & { tcId: string }): 케이스문장 => ({ name: null, 전제: [], 절차: [], 판정: [], 묶은판정: [], ...덧 });
+
+describe('묶은확인들 — 확인 하나에 값 하나', () => {
+  it('묶은 verify 를 tcId 와 문장으로 짚고, 볼 tcId 를 주면 그것만 본다', () => {
+    const 들 = [케이스({ tcId: 'A-FN-001', 묶은판정: ['둘을 본다'] }), 케이스({ tcId: 'A-FN-002', 묶은판정: ['셋을 본다'] })];
+    expect(묶은확인들(들)).toEqual(['A-FN-001 「둘을 본다」 — 값을 배열 · 객체로 묶어 견준다. 값마다 verify 를 따로 쓴다', 'A-FN-002 「셋을 본다」 — 값을 배열 · 객체로 묶어 견준다. 값마다 verify 를 따로 쓴다']);
+    expect(묶은확인들(들, new Set(['A-FN-002']))).toHaveLength(1);
+  });
+});
 
 describe('맞춰보기 — 관문 2 (6-gates.md 「관문 2」)', () => {
   it('전제 · 조작 · 결과가 다 있고 혼자 쓰는 tcId 의 name 이 결과와 같으면 어긋남 없음', () => {
