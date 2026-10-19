@@ -85,5 +85,6 @@ export const 껍데기말: Record<string, string> = {
   'Android 앱': 'Android app',
   '불러오는 중입니다.': 'Loading…',
   '없는 주소입니다.': 'Page not found.',
-  '케이스 목록으로': 'Go to case list',
+  // 케이스 권한이 없는 사람도 닿는 자리(route.ts `집`)로 보낸다
+  처음으로: 'Home',
 };

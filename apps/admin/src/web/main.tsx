@@ -144,7 +144,7 @@ function Screen({
       return (
         <div className="screen">
           <div className="empty">
-            {t('없는 주소입니다.')} <a href="#/cases">{t('케이스 목록으로')}</a>
+            {t('없는 주소입니다.')} <a href={집(user, service?.prefix ?? null)}>{t('처음으로')}</a>
           </div>
         </div>
       );
