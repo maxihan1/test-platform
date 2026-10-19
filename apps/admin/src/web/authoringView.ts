@@ -118,7 +118,7 @@ export function 자료요약(입력: { name: string; position?: number }[]): { f
   return 첫 === undefined ? null : { first: 첫.name, more: 입력.length - 1 };
 }
 
-/** 할 일 칩 글자들 — 값 필요 N · 겹침 N · 반영 대기 · 반영 실패 (도메인/작성 §7 목록 todo) */
+/** 할 일 칩 글자들 — 입력 필요 N · 중복 N · 반영 대기 · 반영 실패 (도메인/작성 §7 목록 todo) */
 export function 할일칩들(todo: AuthoringTodoCount, 언어: 언어): { 글: string; 실패: boolean }[] {
   return [
     todo.apply === 'FAILED' ? { 글: t('반영 실패', 언어), 실패: true } : null,

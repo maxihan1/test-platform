@@ -35,7 +35,8 @@ export function 케이스모양검사(v: unknown): 만든케이스[] | null {
     if (!객체인가(c) || Object.keys(c).some((k) => !케이스키.includes(k))) return null;
     if (typeof c.tcId !== 'string' || !TCID.test(c.tcId) || 본것.has(c.tcId)) return null;
     본것.add(c.tcId);
-    if (!글인가(c.name, 케이스글상한) || !글인가(c.file, 케이스글상한)) return null;
+    // 에이전트는 사본 트리의 tests/ 아래 케이스 파일만 센다 — 그 밖 경로는 옛 · 틀린 에이전트다
+    if (!글인가(c.name, 케이스글상한) || !글인가(c.file, 케이스글상한) || !c.file.startsWith('tests/')) return null;
     if (c.change !== 'NEW' && c.change !== 'CHANGED') return null;
     if (!글목록인가(c.verifies, 확인문장수상한, 케이스글상한)) return null;
     if (!글목록인가(c.reqs, 요구수상한, 요구번호상한) || new Set(c.reqs).size !== c.reqs.length) return null;
@@ -47,10 +48,12 @@ export function 케이스모양검사(v: unknown): 만든케이스[] | null {
  * 끝내기에 cases 가 실려도 되나. 싣지 않았으면 늘 맞다.
  * 작성(AUTHOR) · 재작성(RERUN)의 DONE 만 싣는다 — 케이스 고치기(EDIT · edits 를 가진 RERUN)는 만든 케이스가 아니다
  */
-export function 끝내기케이스맞나(종류: string, status: string, params: unknown, cases: unknown): boolean {
+export function 끝내기케이스맞나(종류: string, status: string, params: unknown, cases: unknown, 접두사?: string): boolean {
   if (cases === undefined) return true;
   if (status !== 'DONE' || (종류 !== 'AUTHOR' && 종류 !== 'RERUN') || 행의고칠것(params) !== null) return false;
-  return 케이스모양검사(cases) !== null;
+  const 목록 = 케이스모양검사(cases);
+  // 남의 서비스 번호가 실리면 상세가 엉뚱한 케이스로 고리를 단다
+  return 목록 !== null && (접두사 === undefined || 목록.every((c) => c.tcId.startsWith(`${접두사}-`)));
 }
 
 /** 상세가 싣는 목록 — 저장된 result 를 읽을 때도 다시 본다. 싣지 않은 옛 행 · 모양이 틀린 행은 null */

@@ -113,8 +113,8 @@ describe('케이스실은몸', () => {
     소리.mockRestore();
   });
 
-  it('바뀐 케이스가 하나도 없으면 싣지 않는다', () => {
-    expect(케이스실은몸(몸, [명세('DEMO-FN-003', 'demo/c.spec.ts')], 재료값)).toBe(몸);
+  it('읽었는데 바뀐 케이스가 하나도 없으면 빈 목록을 싣는다 — 못 읽은 옛 요청(null)과 가른다', () => {
+    expect(케이스실은몸(몸, [명세('DEMO-FN-003', 'demo/c.spec.ts')], 재료값)).toMatchObject({ result: { cases: [] } });
   });
 });
 

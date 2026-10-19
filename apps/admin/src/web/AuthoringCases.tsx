@@ -4,7 +4,18 @@ import type { AuthoringMadeCase } from './api.js';
 import { use말 } from './i18n.js';
 import { PRD항목주소, 케이스주소 } from './route.js';
 
-export function AuthoringCases({ cases, prUrl, 등록됨 }: { cases: AuthoringMadeCase[] | null; prUrl: string | null; 등록됨: boolean }) {
+export function AuthoringCases({
+  cases,
+  prUrl,
+  등록됨,
+  뺀번호 = new Set(),
+}: {
+  cases: AuthoringMadeCase[] | null;
+  prUrl: string | null;
+  등록됨: boolean;
+  /** 반영 전에 사람이 뺀 케이스 — 반영이 파일째 지워 카탈로그에 없다 */
+  뺀번호?: ReadonlySet<string>;
+}) {
   const t = use말();
   // 목록을 싣기 전의 에이전트가 만든 요청 — 없다고 단정하지 않고 PR 로 보낸다
   if (cases === null) {
@@ -42,7 +53,7 @@ export function AuthoringCases({ cases, prUrl, 등록됨 }: { cases: AuthoringMa
               <tr key={c.tcId}>
                 <td>
                   {/* 반영 전에는 카탈로그에 없어 고리가 빈 상세로 간다 */}
-                  {등록됨 ? (
+                  {등록됨 && !뺀번호.has(c.tcId) ? (
                     <a className="mono" href={케이스주소(c.tcId)}>
                       {c.tcId}
                     </a>
@@ -51,9 +62,10 @@ export function AuthoringCases({ cases, prUrl, 등록됨 }: { cases: AuthoringMa
                   )}
                   <br />
                   {c.name}
+                  {뺀번호.has(c.tcId) ? <span className="hint"> · {t('반영 때 뺌')}</span> : null}
                 </td>
                 <td>
-                  <span className={c.change === 'NEW' ? 'status-chip done' : 'status-chip quiet'}>
+                  <span className={c.change === 'NEW' ? 'held-chip' : 'held-chip und'}>
                     {c.change === 'NEW' ? t('새로') : t('바뀜')}
                   </span>
                 </td>

@@ -99,6 +99,13 @@ describe('만든 케이스 표', () => {
     expect(screen.getByRole('link', { name: 'PAY-UI-002' }).getAttribute('href')).toBe('#/cases/ui?case=PAY-UI-002');
   });
 
+  it('반영 전에 사람이 뺀 케이스는 반영 뒤에도 고리가 아니고 반영 때 뺐다고 적는다', () => {
+    render(<AuthoringCases cases={[결제, 버튼]} prUrl={null} 등록됨 뺀번호={new Set(['PAY-UI-002'])} />);
+    expect(screen.getByRole('link', { name: 'PAY-FN-001' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'PAY-UI-002' })).toBeNull();
+    expect(screen.getByText(/반영 때 뺌/)).toBeTruthy();
+  });
+
   it('목록이 null 이고 PR 이 있으면 남기지 않았다는 문장과 PR 고리를 낸다', () => {
     render(<AuthoringCases cases={null} prUrl="https://github.com/x/y/pull/3" 등록됨={false} />);
     expect(screen.getByText(/이 요청은 만든 케이스 목록을 남기지 않았습니다/)).toBeTruthy();
@@ -145,7 +152,7 @@ describe('반영 끝 — 바로 실행', () => {
     expect(screen.getByText('테스트 3건을 케이스 목록에 넣었습니다.')).toBeTruthy();
     expect(screen.getByRole('button', { name: '기능 테스트 2건 바로 실행' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'UI 테스트 1건 바로 실행' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '새 케이스 3건 보기' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '만든 케이스 3건 보기' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: '케이스 목록 열기' })).toBeNull();
   });
 

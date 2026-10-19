@@ -110,6 +110,13 @@ export function AuthoringDetail({
   const 반영실패 = 뿌리.runs?.[0]?.kind === 'MERGE' && 뿌리.runs[0].status === 'FAILED';
   // 반영이 끝나야 케이스가 카탈로그에 있다 — 그 전의 케이스 고리는 빈 상세로 간다
   const 반영됨 = 뿌리.runs?.[0]?.kind === 'MERGE' && 뿌리.runs[0].status === 'DONE';
+  // 반영 전에 사람이 뺀 케이스(입력 단계의 케이스 제외 · 중복의 새 케이스 제외)는 반영이 파일째 지운다 — 수 · 실행 · 고리에서 뺀다.
+  // ponytail: 반영이 병합되면 상세가 중복 결정을 더는 싣지 않아(최근 반영이 실패일 때만) 중복으로 뺀 것은 못 거른다 — 실행 창이 카탈로그에 없는 번호를 빼고 알린다
+  const 뺀번호 = new Set([
+    ...(작성.held ?? []).filter((h) => h.input?.removed === true).map((h) => h.tcId),
+    ...(작성.conflicts ?? []).filter((c) => c.input?.action === 'DROP').map((c) => c.tcId),
+  ]);
+  const 넣은것 = 작성.cases == null ? null : 작성.cases.filter((c) => !뺀번호.has(c.tcId));
   const 부제글 = 고치기
     ? 종류라벨('EDIT', 언어)
     : data.compare === true
@@ -176,6 +183,7 @@ export function AuthoringDetail({
             권한={할수('작성요청')}
             반영권한={할수('작성머지')}
             운영자={할수('설정')}
+            겹침수={data.conflicts?.length ?? 0}
             reload={reload}
           />
         )}
@@ -186,11 +194,11 @@ export function AuthoringDetail({
           차이수={차이들?.length ?? 0}
           커버리지={작성.coverage ?? null}
           고치기={고치기 ? { 반영실패 } : undefined}
-          만든것={작성.cases ?? null}
+          만든것={넣은것}
           reload={reload}
         />
 
-        {고치기 ? null : <AuthoringCases cases={작성.cases ?? null} prUrl={작성.prUrl} 등록됨={반영됨} />}
+        {고치기 ? null : <AuthoringCases cases={작성.cases ?? null} prUrl={작성.prUrl} 등록됨={반영됨} 뺀번호={뺀번호} />}
 
         {차이들 === null ? null : (
           <section id="diffs" className="authoring-panel" aria-labelledby="diffs-title">

@@ -36,6 +36,10 @@ describe('케이스모양검사', () => {
     expect(케이스모양검사(많음)).toBeNull();
   });
 
+  it('tests/ 밖 파일은 거절한다', () => {
+    expect(케이스모양검사([케이스({ file: 'docs/cases/XWC.md' })])).toBeNull();
+  });
+
   it('change 가 NEW · CHANGED 가 아니면 거절한다', () => {
     expect(케이스모양검사([케이스({ change: 'DELETED' })])).toBeNull();
     expect(케이스모양검사([케이스({ change: undefined })])).toBeNull();
@@ -109,5 +113,12 @@ describe('행케이스', () => {
     expect(행케이스(null)).toBeNull();
     expect(행케이스({})).toBeNull();
     expect(행케이스({ cases: [{ tcId: 'x' }] })).toBeNull();
+  });
+});
+
+describe('끝내기케이스맞나 — 서비스 접두사', () => {
+  it('접두사를 주면 그 서비스 번호만 받는다', () => {
+    expect(끝내기케이스맞나('AUTHOR', 'DONE', null, [케이스()], 'XWC')).toBe(true);
+    expect(끝내기케이스맞나('AUTHOR', 'DONE', null, [케이스({ tcId: 'MKT-FN-001' })], 'XWC')).toBe(false);
   });
 });

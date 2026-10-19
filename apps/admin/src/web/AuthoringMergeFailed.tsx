@@ -16,8 +16,9 @@ export type 반영실패까닭 = 'CONFLICT' | 'CHECK' | 'BLIP' | 'CLASH';
 export function 반영실패까닭of(error: string | null): 반영실패까닭 {
   const 첫줄 = (error ?? '').split('\n')[0] ?? '';
   if (/^겹치는 케이스/u.test(첫줄)) return 'CONFLICT';
-  if (/^CI 가 (빨갛다|17분)/u.test(첫줄)) return 'CHECK';
-  if (/^(CI 실행 목록을 못 읽어|CI 를 다시 못 돌렸다|PR 을 못 읽었다|초안을 못 풀었다|작성 에이전트가 꺼져)/u.test(첫줄)) return 'BLIP';
+  if (/^CI 가 빨갛다/u.test(첫줄)) return 'CHECK';
+  // 17분 넘게 안 끝난 CI 는 빨간 것이 아니라 느린 것이다 — 다시 반영하면 된다(코드 검토)
+  if (/^(CI 가 17분|CI 실행 목록을 못 읽어|CI 를 다시 못 돌렸다|PR 을 못 읽었다|초안을 못 풀었다|작성 에이전트가 꺼져)/u.test(첫줄)) return 'BLIP';
   return 'CLASH';
 }
 
@@ -41,10 +42,12 @@ interface Props {
   /** 반영(작성머지) 권한 — 없으면 「다시 반영」이 갈 단추가 없다 */
   반영권한: boolean;
   운영자: boolean;
+  /** 이 작성 실행에 붙은 겹침 수 — 0 이면 고를 표가 없어 다시 작성 쪽으로 보낸다 */
+  겹침수: number;
   reload: () => void;
 }
 
-export function AuthoringMergeFailed({ service, 실행, 원본, 권한, 반영권한, 운영자, reload }: Props) {
+export function AuthoringMergeFailed({ service, 실행, 원본, 권한, 반영권한, 운영자, 겹침수, reload }: Props) {
   const t = use말();
   const 언어 = use언어();
   const [보내는중, set보내는중] = useState(false);
@@ -62,7 +65,9 @@ export function AuthoringMergeFailed({ service, 실행, 원본, 권한, 반영�
       .finally(() => set보내는중(false));
   }
 
-  const 까닭 = 반영실패까닭of(실행.error);
+  const 읽은까닭 = 반영실패까닭of(실행.error);
+  // 겹침 목록이 안 실렸으면(옛 · 거절된 끝내기) 내려갈 표가 없다
+  const 까닭 = 읽은까닭 === 'CONFLICT' && 겹침수 === 0 ? 'CLASH' : 읽은까닭;
   const 글 = 실행.error === null ? null : 실패글(실행.error, 언어, 운영자);
   const 주소 = 까닭 === 'CHECK' ? 검사주소(실행.error) : null;
   const 다시작성단추 =

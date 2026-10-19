@@ -104,7 +104,6 @@ export const 작성할일말: Record<string, string> = {
   'UI 테스트 {수}건 바로 실행': 'Run {수} UI tests now',
   '기능 테스트 {수}건 바로 실행': 'Run {수} functional tests now',
   '케이스 목록 열기': 'Open the case list',
-  '새 케이스 {수}건 보기': 'See {수} new cases',
   '입력이 필요한 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요': 'Some cases still need input, so this cannot be applied yet. Try refreshing',
   '기대값 없음은 기획서에 판정 기준이 없는 케이스, 테스트 데이터 없음은 사전 조건을 만들 수 없는 케이스입니다. 넣은 값은 테스트의 기본값이 되고, 실행할 때 바꿀 수 있습니다.': 'No expected value means the spec gives no pass criterion; no test data means the precondition cannot be set up. Values you enter become the test defaults and can be changed when you run.',
   '입력이 필요한 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.': 'Could not read the cases that need input. Write again with the same files.',
@@ -138,4 +137,8 @@ export const 작성할일말: Record<string, string> = {
   '입력 필요 {수}': '{수} need input',
   '중복 {수}': '{수} duplicates',
   '필요한 것': 'What is needed',
+  '만든 케이스 {수}건 보기': 'See {수} cases written',
+  '반영 때 뺌': 'Dropped when applying',
+  '겹친 요구사항': 'Shared requirements',
+  '이 서비스에서 이 계정을 기다리는 요구': 'Requirements in this service waiting for this account',
 };

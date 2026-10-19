@@ -206,16 +206,29 @@ const 실패반영: AuthoringRun = {
 
 describe('반영 실패 안내', () => {
   it('겹침으로 실패했으면 사람 말과 중복 케이스 고르기만 보이고 원문은 접는다', () => {
-    render(<AuthoringMergeFailed service="PAY" 실행={실패반영} 원본={7} 권한 반영권한 운영자={false} reload={reload} />);
+    render(<AuthoringMergeFailed service="PAY" 실행={실패반영} 원본={7} 권한 반영권한 운영자={false} 겹침수={2} reload={reload} />);
     expect(screen.getByText('이미 있는 케이스와 겹치는 케이스가 2건입니다. 아래 표에서 고른 뒤 다시 반영하세요')).toBeTruthy();
     expect(screen.getByText('원문 보기')).toBeTruthy();
     expect(screen.getByRole('button', { name: '중복 케이스 고르기' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
   });
 
+  it('겹침 글인데 고를 목록이 안 실렸으면 고르기 대신 같은 자료로 다시 작성을 낸다', () => {
+    render(<AuthoringMergeFailed service="PAY" 실행={실패반영} 원본={7} 권한 반영권한 운영자={false} 겹침수={0} reload={reload} />);
+    expect(screen.queryByRole('button', { name: '중복 케이스 고르기' })).toBeNull();
+    expect(screen.getByRole('button', { name: '같은 자료로 다시 작성' })).toBeTruthy();
+  });
+
+  it('17분 넘게 안 끝난 검사는 빨간 것이 아니라 느린 것이라 다시 반영을 권한다', () => {
+    const 실행 = { ...실패반영, error: 'CI 가 17분 안에 초록이 안 됐다 (pending).' };
+    render(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한 운영자={false} 겹침수={0} reload={reload} />);
+    expect(screen.getByRole('button', { name: '다시 반영' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: '검사 결과 보기' })).toBeNull();
+  });
+
   it('검사가 빨개서 실패했으면 검사 결과 고리와 다시 작성을 낸다', async () => {
     const 실행 = { ...실패반영, error: 'CI 가 빨갛다 (failure): https://github.com/o/r/actions/runs/12' };
-    render(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한 운영자={false} reload={reload} />);
+    render(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한 운영자={false} 겹침수={2} reload={reload} />);
     expect(screen.getByRole('link', { name: '검사 결과 보기' }).getAttribute('href')).toBe('https://github.com/o/r/actions/runs/12');
     fireEvent.click(screen.getByRole('button', { name: '같은 자료로 다시 작성' }));
     await vi.waitFor(() => expect(새요청).toHaveBeenCalledWith('PAY', { kind: 'RERUN', sourceId: 7 }));
@@ -224,33 +237,33 @@ describe('반영 실패 안내', () => {
 
   it('잠깐 끊긴 실패면 다시 반영만 권하고, 반영 권한이 없으면 까닭을 적는다', () => {
     const 실행 = { ...실패반영, error: 'CI 실행 목록을 못 읽어 초안을 안 풀었다 — 다시 눌러라' };
-    const { rerender } = render(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한 운영자={false} reload={reload} />);
+    const { rerender } = render(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한 운영자={false} 겹침수={2} reload={reload} />);
     expect(screen.getByRole('button', { name: '다시 반영' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
-    rerender(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한={false} 운영자={false} reload={reload} />);
+    rerender(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한={false} 운영자={false} 겹침수={2} reload={reload} />);
     expect(screen.getByText('반영은 운영 권한이 있는 사람만 할 수 있습니다.')).toBeTruthy();
   });
 
   it('부딪혀 실패했으면 같은 자료로 다시 작성을 낸다', () => {
     const 실행 = { ...실패반영, error: '병합이 안 됐다 (DIRTY): 충돌' };
-    render(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한 운영자={false} reload={reload} />);
+    render(<AuthoringMergeFailed service="PAY" 실행={실행} 원본={7} 권한 반영권한 운영자={false} 겹침수={2} reload={reload} />);
     expect(screen.getByRole('button', { name: '같은 자료로 다시 작성' })).toBeTruthy();
   });
 
   it('반영이 성공했거나 안 했으면 그리지 않는다', () => {
-    const { container } = render(<AuthoringMergeFailed service="PAY" 실행={{ ...실패반영, status: 'DONE' }} 원본={7} 권한 반영권한 운영자={false} reload={reload} />);
+    const { container } = render(<AuthoringMergeFailed service="PAY" 실행={{ ...실패반영, status: 'DONE' }} 원본={7} 권한 반영권한 운영자={false} 겹침수={2} reload={reload} />);
     expect(container.innerHTML).toBe('');
   });
 
   it('권한이 없으면 까닭만 보이고 버튼은 없다', () => {
-    render(<AuthoringMergeFailed service="PAY" 실행={실패반영} 원본={7} 권한={false} 반영권한={false} 운영자={false} reload={reload} />);
+    render(<AuthoringMergeFailed service="PAY" 실행={실패반영} 원본={7} 권한={false} 반영권한={false} 운영자={false} 겹침수={2} reload={reload} />);
     expect(screen.getByText('이미 있는 케이스와 겹치는 케이스가 2건입니다. 아래 표에서 고른 뒤 다시 반영하세요')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '같은 자료로 다시 작성' })).toBeNull();
     expect(screen.queryByRole('button', { name: '다시 반영' })).toBeNull();
   });
 
   it('부딪힌 실패도 권한이 없으면 까닭만 있고 버튼이 하나도 없다', () => {
-    render(<AuthoringMergeFailed service="PAY" 실행={{ ...실패반영, error: '병합이 안 됐다 (DIRTY): 충돌' }} 원본={7} 권한={false} 반영권한={false} 운영자={false} reload={reload} />);
+    render(<AuthoringMergeFailed service="PAY" 실행={{ ...실패반영, error: '병합이 안 됐다 (DIRTY): 충돌' }} 원본={7} 권한={false} 반영권한={false} 운영자={false} 겹침수={2} reload={reload} />);
     expect(screen.getByText('반영하지 못했습니다')).toBeTruthy();
     expect(screen.queryByRole('button')).toBeNull();
   });

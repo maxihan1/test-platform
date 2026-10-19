@@ -174,7 +174,7 @@ export function 반영끝({
           </a>
         ) : (
           <button className="btn ghost" type="button" onClick={내려가기('made-cases')}>
-            {t('새 케이스 {수}건 보기', { 수: 만든것.length })}
+            {t('만든 케이스 {수}건 보기', { 수: 만든것.length })}
           </button>
         )}
       </div>

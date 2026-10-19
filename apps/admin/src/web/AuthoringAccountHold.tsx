@@ -37,6 +37,8 @@ export function 계정없음일({ service, 표, 수, 운영자 }: { service: str
       {지금.error === null ? null : <p className="hint">{지금.error}</p>}
       {번호들.length === 0 ? null : (
         <p className="made-reqs">
+          {/* 수는 이 실행 셈이고 번호는 서비스 지금 값이라 어긋날 수 있다 — 무엇의 번호인지 적는다 (코드 검토) */}
+          <span className="hint">{t('이 서비스에서 이 계정을 기다리는 요구')}</span>{' '}
           {번호들.map((r) => (
             <a key={r} className="mono made-req" href={PRD항목주소(r)}>
               {r}

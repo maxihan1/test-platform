@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { api, type CaseRow, type ServiceRow, type User } from './api.js';
+import { api, ApiError, type CaseRow, type ServiceRow, type User } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import { type 글자표, 지난값글자 } from './pickRun.js';
@@ -55,7 +55,11 @@ export function RunWindow({
   const [읽기오류, set읽기오류] = useState<string | undefined>(undefined);
   const 열기 = useAsync<연것>(async () => {
     // ponytail: 케이스마다 한 번씩 읽는다(같이 보낸다). 실패가 수백 건인 실행이 생기면 목록 통로에 tcId 거르개를 연다
-    const [읽은, { user }] = await Promise.all([Promise.all(tcIds.map((tcId) => api.caseOf(tcId))), api.me()]);
+    // 카탈로그에 없는 번호(404)는 비활성처럼 빼고 알린다 — 작성 반영 때 중복으로 뺀 새 케이스는 파일째 지워져 카탈로그에 안 든다
+    const 읽기 = (tcId: string) => api.caseOf(tcId).catch((err: unknown) => (err instanceof ApiError && err.status === 404 ? tcId : Promise.reject(err)));
+    const [받은, { user }] = await Promise.all([Promise.all(tcIds.map(읽기)), api.me()]);
+    const 읽은 = 받은.filter((c): c is CaseRow => typeof c !== 'string');
+    const 없는 = 받은.filter((c): c is string => typeof c === 'string');
     // 띠가 아니라 tcId 접두사가 서비스를 말한다 — 알림 주소로 와서 띠가 다른 서비스여도 그 실행의 서버를 고른다
     const 접두사 = 케이스서비스(tcIds[0] ?? '');
     const 초기글자: 글자표 = {};
@@ -70,7 +74,7 @@ export function RunWindow({
     return {
       // 비활성은 스캔이 코드에서 지웠다고 본 케이스라 서버가 400 을 낸다. 빼고 그 사실을 창에 적는다
       케이스들: 읽은.filter((c) => c.isActive),
-      빠진: 읽은.filter((c) => !c.isActive).map((c) => c.tcId),
+      빠진: [...읽은.filter((c) => !c.isActive).map((c) => c.tcId), ...없는],
       user,
       service: user.services.find((it) => it.prefix === 접두사) ?? null,
       초기글자,
@@ -114,7 +118,7 @@ export function RunWindow({
       service={연.service}
       user={연.user}
       사유={걸기.사유}
-      안내={읽기오류 ?? (연.빠진.length === 0 ? undefined : t('비활성이라 뺀 케이스 {목록}', { 목록: 연.빠진.join(', ') }))}
+      안내={읽기오류 ?? (연.빠진.length === 0 ? undefined : t('비활성이거나 없어 뺀 케이스 {목록}', { 목록: 연.빠진.join(', ') }))}
       거는중={걸기.거는중}
       onClose={onClose}
       on값고침={걸기.사유지우기}

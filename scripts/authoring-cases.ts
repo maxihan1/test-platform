@@ -99,7 +99,6 @@ export function 케이스실은몸(몸: Record<string, unknown>, 명세들: unkn
     console.error(`[작성] 만든 케이스를 못 만들어 싣지 않는다: ${e instanceof Error ? e.message : String(e)}`);
     return 몸;
   }
-  if (목록.length === 0) return 몸;
   const 결과 = 물건인가(몸.result) ? 몸.result : {};
   return { ...몸, result: { ...결과, cases: 목록 } };
 }
