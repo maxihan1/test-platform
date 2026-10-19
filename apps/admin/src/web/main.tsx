@@ -220,6 +220,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   if (상태.어디 === '밖') {
     return (
       <Login
+        on언어={on언어}
         onLogin={(user) => {
           set상태({ 어디: '안', user });
           // 세션이 끊겨 여기로 온 사람은 원래 가려던 화면으로 돌려보낸다 (SPEC §8.6).
