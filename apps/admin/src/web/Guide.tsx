@@ -69,6 +69,7 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
   return (
     <>
       <Head
+        위치={t('PRD 관리')}
         제목={t('애플리케이션 가이드')}
         부제={
           <>

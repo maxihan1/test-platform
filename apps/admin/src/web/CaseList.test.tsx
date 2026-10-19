@@ -77,12 +77,12 @@ async function 그리기(cases: (page: number) => Promise<CasePage> = 쪽주기)
 }
 
 describe('CaseList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
-  it('고른 종류로 부르고 부제 맨 앞에 종류를 적는다', async () => {
+  it('고른 종류로 부르고 제목에 「테스트 스크립트 › 종류」로 위치를 적는다', async () => {
     const 스파이 = 모킹(쪽주기);
-    const { container } = render(<CaseList kind="UI" service="ZPK" 할수={전부된다} 결과보나 />);
+    render(<CaseList kind="UI" service="ZPK" 할수={전부된다} 결과보나 />);
     await screen.findByText('ZPK-001');
     expect(스파이).toHaveBeenCalledWith(expect.objectContaining({ service: 'ZPK', kind: 'UI' }));
-    expect(container.querySelector('.head')?.textContent).toMatch(/UI 테스트 · /);
+    expect(screen.getByRole('heading', { level: 1, name: '테스트 스크립트 › UI 테스트' })).toBeTruthy();
   });
 });
 
@@ -814,7 +814,7 @@ describe('CaseList 화면 머리 (2026-09-22)', () => {
 
     const 머리 = container.querySelector('.head');
     expect(머리).not.toBeNull();
-    expect(머리?.querySelector('h1')?.textContent).toBe('테스트 스크립트');
+    expect(머리?.querySelector('h1')?.textContent).toBe('테스트 스크립트 › 기능 테스트');
     // 「다시 스캔」과 실행 버튼은 이 화면에서 가장 흔한 다음 행동이라 머리에 선다
     expect(머리?.textContent).toContain('다시 스캔');
     expect(머리?.textContent).toContain('실행');
