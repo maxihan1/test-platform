@@ -132,7 +132,7 @@ describe('머리와 읽기', () => {
   it('열 때 집계를 한 번 읽고 제목과 부제를 그린다', async () => {
     const 읽기 = 읽기를(응답());
     render(<Dashboard 서비스열기={() => {}} {...기본재료} />);
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('품질 현황');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('대시보드');
     expect(await screen.findByText(/서비스 2개 · 최근 14일/)).toBeTruthy();
     expect(읽기).toHaveBeenCalledTimes(1);
     expect(읽기).toHaveBeenCalledWith(시간대, undefined, {});

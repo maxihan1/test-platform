@@ -95,7 +95,7 @@ export function Prd({
   return (
     <>
       <Head
-        제목={t('PRD 관리')}
+        제목={t('요구사항')}
         부제={now.version === 0 ? t('아직 PRD 가 없습니다') : t('버전 {버전} · 요구 {건수}건', { 버전: now.version, 건수: now.items.length })}
         행동={
           <>

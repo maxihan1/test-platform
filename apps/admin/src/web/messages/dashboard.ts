@@ -3,7 +3,6 @@
 
 export const 대시보드말: Record<string, string> = {
   // 머리와 읽기
-  '품질 현황': 'Quality overview',
   '서비스 {수}개 · 최근 {일}일 · {날짜} 기준': '{수} services · last {일} days · as of {날짜}',
   '{이름} · 최근 {일}일 · {날짜} 기준': '{이름} · last {일} days · as of {날짜}',
   '전체 서비스': 'All services',

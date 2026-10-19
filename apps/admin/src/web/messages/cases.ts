@@ -2,9 +2,8 @@
 
 export const 케이스말: Record<string, string> = {
   // 화면 머리와 집계 띠
-  // 자리 이름과 화면 제목을 가른다 (SPEC §8, 2026-09-22) — 같은 말을 두 번 하고 있었다
+  // 자리 이름과 화면 제목이 같은 말이다 (2026-10-19)
   '테스트 스크립트': 'Test scripts',
-  '테스트 스크립트 목록': 'Test script list',
   '불러오는 중입니다': 'Loading…',
   '모두 {건수}건': '{건수} in total',
   '스캔하는 중': 'Scanning…',
