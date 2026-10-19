@@ -209,6 +209,13 @@ describe('상자는 node 를 바로 띄운다', () => {
     expect(시작줄('apps/authoring/start.sh')).toEqual(['exec node --import tsx scripts/authoring-agent.ts']);
   });
 
+  // npx 가 붙여 주던 자리다. 빠지면 자식 세션이 tsc · playwright 를 이름만으로 못 찾는다
+  it('author 는 부품 명령 자리를 PATH 에 붙이고 시작한다', () => {
+    expect(readFileSync(resolve(process.cwd(), 'apps/authoring/start.sh'), 'utf8')).toMatch(
+      /^export PATH="\/repo\/node_modules\/\.bin:\$PATH"\nexec node /m,
+    );
+  });
+
   it('admin · runner 에 init 이 붙는다', () => {
     expect(서비스블록('admin')).toMatch(/^ {4}init:\s*true/m);
     expect(서비스블록('runner')).toMatch(/^ {4}init:\s*true/m);
