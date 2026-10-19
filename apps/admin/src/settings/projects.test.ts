@@ -101,6 +101,8 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
     expect([빠짐.statusCode, 빠짐.json<{ error: string }>().error]).toEqual([400, 'INVALID_REQUEST']);
     const 글자 = await app.inject({ method: 'POST', url: '/api/settings/services', payload: 서비스본문('1') });
     expect(글자.statusCode).toBe(400);
+    const 너무큼 = await app.inject({ method: 'POST', url: '/api/settings/services', payload: 서비스본문(1e30) });
+    expect([너무큼.statusCode, 너무큼.json<{ error: string }>().error]).toEqual([400, 'INVALID_REQUEST']);
     const 없는번호 = await app.inject({ method: 'POST', url: '/api/settings/services', payload: 서비스본문(999999999) });
     expect([없는번호.statusCode, 없는번호.json()]).toEqual([400, { error: 'PROJECT_NOT_FOUND' }]);
     expect((await 서비스목록()).some((s) => s.prefix === 접두사)).toBe(false);
@@ -117,6 +119,13 @@ describe.skipIf(연결 === undefined)('설정 API — 프로젝트', () => {
     const 옮김 = await app.inject({ method: 'PATCH', url: `/api/settings/services/${String(서비스번호)}`, payload: { projectId: 뒤 } });
     expect(옮김.statusCode).toBe(200);
     expect((await 서비스목록()).find((s) => s.id === 서비스번호)).toMatchObject({ projectId: 뒤, projectName: 'XPQ 뒤' });
+    const 프로젝트들 = (await app.inject({ method: 'GET', url: '/api/settings/projects' })).json<{ items: { id: number }[] }>().items.map((p) => p.id);
+    expect(프로젝트들).not.toContain(앞);
+    expect(프로젝트들).toContain(뒤);
+
+    const 같은곳 = await app.inject({ method: 'PATCH', url: `/api/settings/services/${String(서비스번호)}`, payload: { projectId: 뒤 } });
+    expect(같은곳.statusCode).toBe(200);
+    expect((await 서비스목록()).find((s) => s.id === 서비스번호)?.projectId).toBe(뒤);
 
     const 안옮김 = await app.inject({ method: 'PATCH', url: `/api/settings/services/${String(서비스번호)}`, payload: { name: 'XPQS 새 이름' } });
     expect(안옮김.statusCode).toBe(200);

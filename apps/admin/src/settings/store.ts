@@ -237,6 +237,10 @@ export async function 정기실행재료(id: number): Promise<{ 키들: string[]
 export async function 서비스고치기(id: number, 수정: 서비스수정): Promise<void> {
   await 한묶음(async (client) => {
     if (수정.projectId !== undefined) await 프로젝트확인(client, 수정.projectId);
+    const 옛프로젝트 =
+      수정.projectId === undefined
+        ? undefined
+        : (await client.query<{ project_id: string }>('SELECT project_id FROM service WHERE id = $1', [id])).rows[0]?.project_id;
     const rows = await client.query(
       `UPDATE service
           SET name       = COALESCE($2, name),
@@ -274,6 +278,13 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
       ],
     );
     if (rows.rowCount === 0) throw new 설정오류('NOT_FOUND');
+    // 옮겨서 비게 된 프로젝트는 서비스를 지울 때와 같이 지운다 — 처음 옮길 때 서비스마다 같은 이름 프로젝트가 있어 안 지우면 빈 프로젝트가 쌓인다
+    if (옛프로젝트 !== undefined) {
+      await client.query(
+        'DELETE FROM project p WHERE p.id = $1 AND NOT EXISTS (SELECT 1 FROM service s WHERE s.project_id = p.id)',
+        [옛프로젝트],
+      );
+    }
     if (수정.envs !== undefined) await 대상서버넣기(client, id, 수정.envs);
   });
 }

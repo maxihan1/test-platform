@@ -52,7 +52,8 @@ const 훑지않을경로 = z.array(z.string()).transform((줄들, ctx) => {
 });
 
 // 프로젝트 번호는 꼭 받는다. DB 트리거가 같은 이름 프로젝트를 붙이는 것은 fixture 와 add-service.ts 용 대체다 (도메인/인증 §7)
-const 프로젝트번호 = z.number().int().positive();
+// 상한은 routeParams.ts 의 정수()와 같다 — 넘으면 Postgres 범위 초과가 잡히지 않은 500 이 된다
+const 프로젝트번호 = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 
 const 프로젝트이름 = z.object({ name: z.string().trim().min(1) });
 
