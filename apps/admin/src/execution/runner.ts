@@ -145,6 +145,7 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
     params: item.params,
     expected: item.expected,
     timeoutMs: item.timeoutMs,
+    ...(item.app !== undefined && { app: item.app }),
   };
 
   const 주소 = 러너주소(item.platform);

@@ -43,7 +43,7 @@ export const 줄로 = (envs: EnvRow[]): 줄[] =>
  * 키가 없는 칸을 서버가 옛 값으로 되살린다 — 화면은 빈 칸인데 저장은 옛 계정이 된다
  */
 export const 보낼모양 = (줄들: 줄[]): EnvInput[] =>
-  줄들.map(({ env, baseUrl, loginId, 새비밀번호, 원래키, 비밀번호지움, isProd, accounts, 역할들 }) => {
+  줄들.map(({ env, baseUrl, loginId, 새비밀번호, 원래키, 비밀번호지움, isProd, accounts, 역할들, appPath }) => {
     const 새줄 = 원래키 === null;
     const 새값 = 새비밀번호 !== null && 새비밀번호 !== '' ? 새비밀번호 : null;
     return {
@@ -54,6 +54,7 @@ export const 보낼모양 = (줄들: 줄[]): EnvInput[] =>
       // 운영 표시 · 역할 목록도 같은 까닭으로 새 줄은 명시한다. 받은 것은 되돌려 보낸다 — 역할 비밀번호는 서버가 이름으로 이어받는다
       ...(isProd !== undefined ? { isProd } : 새줄 ? { isProd: 운영이름인가(env) } : {}),
       ...(새줄 || accounts !== undefined || 역할들.length > 0 ? { accounts: 역할들.map(역할보낼모양) } : {}),
+      ...(appPath !== undefined ? { appPath } : 새줄 ? { appPath: null } : {}),
     };
   });
 
@@ -109,6 +110,16 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
               />
               {t('운영 서버')}
             </label>
+            <div className="set-env-login">
+              <input
+                type="text"
+                autoComplete="off"
+                value={it.appPath ?? ''}
+                placeholder={t('앱 파일 경로 (Android 앱만)')}
+                aria-label={t('대상 서버 {번호} 앱 파일 경로', { 번호: i + 1 })}
+                onChange={(e) => onChange(envs.map((v, k) => (k === i ? { ...v, appPath: e.target.value } : v)))}
+              />
+            </div>
             <계정칸 줄={it} 번호={i + 1} 고친다={(next) => onChange(envs.map((v, k) => (k === i ? next : v)))} />
             <역할계정칸들
               역할들={it.역할들}
@@ -128,7 +139,10 @@ export function EnvEditor({ envs, onChange }: { envs: 줄[]; onChange: (next: �
         {envs.length === 0 ? (
           <div className="hint">{t('등록된 서버가 없으면 테스트를 실행할 수 없습니다')}</div>
         ) : (
-          <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 운영 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
+          <>
+            <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 운영 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
+            <div className="hint">{t('앱 파일 경로는 Android 앱 케이스를 돌릴 때 설치할 apk 입니다. 러너가 도는 PC 의 경로이고 비우면 러너를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
+          </>
         )}
       </div>
     </div>

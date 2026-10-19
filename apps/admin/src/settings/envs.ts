@@ -21,6 +21,8 @@ export interface 대상서버 {
   /** 크롤러가 정한 화면 크기 판정과 그 시각. 훑기 전 · 주소를 바꾼 줄은 null 이다 (PRD-F10-08) */
   viewportKind: 서비스판정 | null;
   viewportJudgedAt: string | null;
+  /** Android 앱 파일 경로(러너 컴퓨터 기준). null 이면 러너 환경값 PLATFORM_APP 을 쓴다 (APP-F1-03) */
+  appPath: string | null;
 }
 
 export interface 역할계정입력 {
@@ -37,6 +39,7 @@ export interface 대상서버입력 {
   loginPassword?: string | null;
   isProd?: boolean;
   accounts?: 역할계정입력[];
+  appPath?: string | null;
 }
 
 function 계정칸(보낸것: string | null | undefined, 옛것: string | null): string | null {
@@ -78,15 +81,16 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
     role_accounts: unknown;
     viewport_kind: string | null;
     viewport_judged_at: Date | null;
-  }>('SELECT env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at FROM service_env WHERE service_id = $1', [serviceId]);
+    app_path: string | null;
+  }>('SELECT env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path FROM service_env WHERE service_id = $1', [serviceId]);
   const 옛계정 = new Map(옛것.rows.map((r) => [r.env, r]));
   await client.query('DELETE FROM service_env WHERE service_id = $1', [serviceId]);
-  for (const { env, baseUrl, loginId, loginPassword, isProd, accounts } of envs) {
+  for (const { env, baseUrl, loginId, loginPassword, isProd, accounts, appPath } of envs) {
     // 이름이 같은 줄만 이어받는다. 이름을 바꾸면 새 줄이라 계정을 다시 넣는다 (SPEC 도메인/인증 §7)
     const 전 = 옛계정.get(env);
     await client.query(
-      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
       [
         serviceId,
         env,
@@ -99,6 +103,8 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
         // 화면 크기 판정은 크롤러가 정한다 — 설정 저장으로 잃지 않는다. 주소를 바꾸면 다른 서버라 다음 크롤까지 비운다 (PRD-F10-07)
         전?.base_url === baseUrl ? 전.viewport_kind : null,
         전?.base_url === baseUrl ? 전.viewport_judged_at : null,
+        // 계정 칸과 같은 규칙 — 키가 없으면 옛 값, null · 빈 글자면 지운다. 앞뒤 공백은 경로가 아니라 실수다
+        계정칸(typeof appPath === 'string' ? appPath.trim() : appPath, 전?.app_path ?? null),
       ],
     );
     // 화면별 차이도 옛 서버 것이다 — 남기면 새 판정 옆에 옛 서버 화면이 섞여 보인다 (PRD-F10-08 코드 검토)
@@ -117,6 +123,7 @@ export const 대상서버칸식 = `json_build_object(
   'hasLoginPassword', e.login_password IS NOT NULL AND e.login_password <> '',
   'isProd', e.is_prod,
   'viewportKind', e.viewport_kind, 'viewportJudgedAt', e.viewport_judged_at,
+  'appPath', e.app_path,
   'accounts', (SELECT COALESCE(json_agg(json_build_object(
                   'role', a.v->>'role', 'loginId', a.v->>'loginId',
                   'hasLoginPassword', COALESCE(a.v->>'loginPassword', '') <> '') ORDER BY a.n), '[]')

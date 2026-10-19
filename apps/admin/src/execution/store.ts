@@ -79,6 +79,8 @@ export interface PendingItem {
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
   timeoutMs: number;
+  // android 항목만. 그 대상 서버 줄의 앱 파일 경로 — 없으면 러너가 자기 환경값을 쓴다 (러너 §5.2 · APP-F1-03)
+  app?: string;
 }
 
 // tcId 접두사가 곧 서비스다. 요청이 서비스를 따로 싣게 두면 번호와 서비스가 어긋날 수 있다 (SPEC §7)
@@ -91,6 +93,7 @@ interface ServiceRow {
   name: string;
   tests_repo: string;
   base_url: string | null;
+  app_path: string | null;
 }
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (catalog/store.ts와 같은 방식)
@@ -167,7 +170,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
 
     // 서비스와 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (SPEC §6)
     const service = await client.query<ServiceRow>(
-      `SELECT s.id, s.name, s.tests_repo, e.base_url
+      `SELECT s.id, s.name, s.tests_repo, e.base_url, NULLIF(e.app_path, '') AS app_path
          FROM service s
          LEFT JOIN service_env e ON e.service_id = s.id AND e.env = $2
         WHERE s.prefix = $1 AND s.is_active`,
@@ -266,6 +269,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             params: item.params,
             expected: item.expected,
             timeoutMs,
+            ...(platform === 'android' && found서비스.app_path !== null && { app: found서비스.app_path }),
           });
         }
       }
