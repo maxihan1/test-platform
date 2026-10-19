@@ -165,7 +165,7 @@ export interface CaseList {
   groups: CaseGroup[];
   // 서비스가 PRD 를 쓰나(기능 묶음이 붙은 케이스가 하나라도 있나). 검색 조건을 안 따른다 — 「기능 묶음 없음」만 보기에서도 묶음 머리가 서야 한다
   hasFeatures: boolean;
-  // 서비스에 살아 있는 앱 케이스가 있나. 검색 조건을 안 따른다 — 웹만 있는 서비스에는 「Android 앱」 칩을 안 세운다 (카탈로그 §8.1 · APP-F1-04)
+  // 서비스에 앱 케이스가 있나. 글자 · 디바이스 같은 검색 조건은 안 따르고 종류 · 활성 여부만 따른다 — 웹만 있는 서비스에는 「Android 앱」 칩을 안 세운다 (카탈로그 §8.1 · APP-F1-04)
   hasApp: boolean;
   // last 를 뺀 조건에 맞은 전부를 센다 — 칩을 걸어도 그대로라 칩마다 몇 건인지 보인다 (카탈로그 §7). 판정이 없으면 null
   lastCounts: LastCounts | null;
@@ -187,8 +187,11 @@ export async function listCases(query: CaseQuery): Promise<CaseList> {
       [`${query.service}-%`, query.kind ?? null],
     ),
     pool.query<{ has: boolean }>(
-      `SELECT EXISTS (SELECT 1 FROM test_case WHERE tc_id LIKE $1 AND is_active AND platforms @> '["android"]'::jsonb) AS has`,
-      [`${query.service}-%`],
+      // 종류 · 활성 여부는 따른다 — 그 목록에서 늘 빈 목록만 내는 칩도, 꺼진 앱 케이스를 보는데 숨는 칩도 없게
+      `SELECT EXISTS (SELECT 1 FROM test_case
+                       WHERE tc_id LIKE $1 AND (NOT $3::boolean OR is_active) AND platforms @> '["android"]'::jsonb
+                         AND ($2::text IS NULL OR (tc_id ~ '-UI-[0-9]{3}$') = ($2 = 'UI'))) AS has`,
+      [`${query.service}-%`, query.kind ?? null, query.activeOnly],
     ),
   ]);
   // 순서가 기능 묶음 차례라 SQL 이 쪽을 못 자른다. 조건에 맞는 번호만 먼저 받고, 묶어 줄 세운 뒤 그 쪽 줄만 다시 읽는다

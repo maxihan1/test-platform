@@ -16,7 +16,9 @@ import { PLATFORM_LABEL, seconds, STATUS_COLOR, Verdict, when } from './ui.js';
 
 const 결과칩: (ItemStatus | 'ALL')[] = ['ALL', 'PASS', 'FAIL', 'NA'];
 // 「Android 앱」은 앱 케이스가 있는 서비스에만 — 웹만 있는 서비스에서는 늘 빈 목록을 내는 칩이다 (도메인/카탈로그 §8.1)
-const 디바이스칩 = (앱있음: boolean): (Platform | 'ALL')[] => (앱있음 ? ['ALL', 'desktop', 'mobile', 'android'] : ['ALL', 'desktop', 'mobile']);
+// 이미 android 를 고른 채(주소) 들어왔으면 앱 케이스가 없어도 세운다 — 고른 것을 감추면 왜 비었는지 모른다
+const 디바이스칩 = (앱있음: boolean, 고른: Platform | 'ALL'): (Platform | 'ALL')[] =>
+  앱있음 || 고른 === 'android' ? ['ALL', 'desktop', 'mobile', 'android'] : ['ALL', 'desktop', 'mobile'];
 // 종류는 기능 목록에만 — UI 는 넷째 종류라 UI 목록 전부다 (도메인/카탈로그 §8.1 「맥락」)
 const 종류칩: (Exclude<케이스축, 'UI'> | 'ALL')[] = ['ALL', '정상', '경계', '예외'];
 // 빈 목록 안내도 같은 말을 쓴다. 두 벌을 두면 칩과 안내가 서로 다른 이름으로 같은 것을 부른다
@@ -99,7 +101,7 @@ export function 조건칩들({
     <>
       <span className="filter-group">
         <span className="filter-label">{t('디바이스')}</span>
-        {디바이스칩(앱있음 || 디바이스 === 'android').map((값) => (
+        {디바이스칩(앱있음, 디바이스).map((값) => (
           <button className="chip" key={값} aria-pressed={디바이스 === 값} onClick={() => on디바이스(값)}>
             {값 === 'ALL' ? t('전체') : t(PLATFORM_LABEL[값])}
           </button>
