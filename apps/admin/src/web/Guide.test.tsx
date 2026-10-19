@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { GuideVersionRow, ServiceGuide } from '@platform/kit';
 
 import { ApiError } from './api.js';
 import { Guide } from './Guide.js';
+import { 버리기전 } from './leaveGuard.js';
 import type { 판정 } from './role.js';
 
 const { 지금, 저장, 더하기, 빼기, 글자, 기록, 옛판 } = vi.hoisted(() => ({
@@ -179,5 +180,32 @@ describe('서비스 가이드 — 시안 A', () => {
     expect(within(옛).getByRole('link', { name: '옛 정책.docx' })).toBeTruthy();
     expect(within(옛).queryByRole('textbox')).toBeNull();
     expect(within(옛).queryByRole('button', { name: /빼기$/ })).toBeNull();
+  });
+});
+
+describe('서비스 가이드 — 쓰던 글을 두고 떠나기 (점검 9.1)', () => {
+  it('글을 고친 채 서비스를 바꾸려 하면 묻고, 떠나기를 눌러야 바꾼다', async () => {
+    render(<Guide service="MKT" 할수={쓰는사람} />);
+    await screen.findByText(/버전 3/);
+    fireEvent.change(정책칸(), { target: { value: '쓰다 만 글' } });
+    const 바꾼다 = vi.fn();
+    act(() => 버리기전(바꾼다));
+
+    expect(screen.getByRole('dialog', { name: '저장 안 된 변경 있음' })).toBeTruthy();
+    expect(바꾼다).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '저장하지 않고 떠나기' }));
+    expect(바꾼다).toHaveBeenCalledOnce();
+  });
+
+  it('저장한 뒤에는 묻지 않는다', async () => {
+    render(<Guide service="MKT" 할수={쓰는사람} />);
+    await screen.findByText(/버전 3/);
+    fireEvent.change(정책칸(), { target: { value: '저장할 글' } });
+    fireEvent.click(저장버튼());
+    await vi.waitFor(() => expect(정책칸().value).not.toBe('저장할 글'));
+    const 바꾼다 = vi.fn();
+    버리기전(바꾼다);
+    expect(바꾼다).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

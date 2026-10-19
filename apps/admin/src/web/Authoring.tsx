@@ -13,6 +13,7 @@ import { 종류라벨, 줄보임, 칩글, type 보임 } from './authoringView.js
 import { Head } from './Head.js';
 import { 방식 } from './AuthoringRuns.js';
 import { use말, use언어 } from './i18n.js';
+import { use주소조건, 주소조건 } from './leaveGuard.js';
 import { 다음이있나 } from './paging.js';
 import type { 판정 } from './role.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
@@ -83,7 +84,9 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
 
 export function Authoring({ service, envs = [], 할수 }: { service: string; envs?: EnvRow[]; 할수: 판정 }) {
   const t = use말();
-  const [page, setPage] = useState(1);
+  // 쪽은 주소에 남는다 — 상세에 갔다 뒤로 와도 그 쪽이다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
+  use주소조건('#/authoring', page === 1 ? {} : { page: String(page) });
   // 방금 줄에 세운 요청. 시작 모달이 이것을 보인다 — 닫으면 null
   const [방금, set방금] = useState<number | null>(null);
   // 서비스를 바꾸면 첫 쪽으로. 안 그러면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다

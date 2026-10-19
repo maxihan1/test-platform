@@ -22,6 +22,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   window.location.hash = '';
+  localStorage.clear();
 });
 
 function 줄(id: number, 덮: Partial<ScenarioRow> = {}): ScenarioRow {
@@ -175,6 +176,17 @@ describe('ScenarioList 줄', () => {
 });
 
 describe('ScenarioList 실행', () => {
+  it('이 서비스에서 마지막에 고른 대상 서버로 열린다 — 기본값이 아니라 사람이 고른 값이다 (공통/5-화면공통 §8)', async () => {
+    await 그리기([줄(1)]);
+    await screen.findByText(/ZSM 시나리오 1/);
+    fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'stg' } });
+    cleanup();
+
+    await 그리기([줄(1)]);
+    await screen.findByText(/ZSM 시나리오 1/);
+    expect((screen.getByRole('combobox', { name: '대상 서버' }) as HTMLSelectElement).value).toBe('stg');
+  });
+
   it('대상 서버 고르개는 기본값이 없다', async () => {
     await 그리기([줄(1)]);
     await screen.findByText(/ZSM 시나리오 1/);

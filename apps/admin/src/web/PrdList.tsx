@@ -1,20 +1,20 @@
 // 「PRD 관리」 아래쪽의 전체 요구 — 기능 묶음으로 접고, 줄을 펴면 근거 · 설계 미리보기 · 고치기 (도메인/작성 §3.6 「★ 표준 기획서」)
 // 펼친 줄의 테스트 · 설계 미리보기 구획과 줄 끝 추적표 칸은 PrdTrace.tsx 가 그린다
 
-import type { PrdItem } from '@platform/kit';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-import { 줄보류of, type 줄보류 } from '../prd/heldText.js';
-import { 요구판정, 추적하기, type 결과읽기, type 추적 } from '../prd/trace.js';
+import { 줄보류of } from '../prd/heldText.js';
+import { 요구판정, 추적하기, type 결과읽기 } from '../prd/trace.js';
 import { use말 } from './i18n.js';
+import { use주소조건, 버리기전, 주소조건 } from './leaveGuard.js';
 import type { 판짓기 } from './Prd.js';
 import { prdApi, type PrdItemDraft, type PrdNow } from './prdApi.js';
 import type { 지도API } from '../prd/apiMap.js';
-import { 거치는API, 요구가거치는, type 거치는줄 } from './PrdApis.js';
+import { 요구가거치는 } from './PrdApis.js';
 import { PrdItemForm, 빈요구 } from './PrdItemForm.js';
-import { use나이글, use반영종류글 } from './PrdTodo.js';
-import { 설계미리보기, 추적칸, 테스트구획 } from './PrdTrace.js';
-import { 고친판, 뒤집은, 묶음들, 반영안됨줄, type 반영종류 } from './prdView.js';
+import { prd줄아이디, 요구줄 } from './PrdRow.js';
+import { PRD항목주소 } from './route.js';
+import { 고친판, 뒤집은, 묶음들, 반영안됨줄 } from './prdView.js';
 
 export function PrdList({
   service,
@@ -43,7 +43,9 @@ export function PrdList({
   여기?: string;
 }) {
   const t = use말();
-  const [q, setQ] = useState('');
+  // 찾기 글자는 주소에 남는다 — 케이스 목록에 갔다 뒤로 와도 그대로다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  const [q, setQ] = useState(() => 주소조건().get('q') ?? '');
+  use주소조건(여기 === undefined ? '#/prd' : PRD항목주소(여기), q === '' ? {} : { q });
   // 판을 받은 뒤에 그려지므로 처음 값에서 바로 찾는다. 지금 판에 없는 번호면 아무것도 안 편다
   const 여기것 = 여기 === undefined ? undefined : now.items.find((x) => x.reqId === 여기);
   const [연묶음, set연묶음] = useState<Set<string>>(() => new Set(여기것 === undefined ? [] : [여기것.feature]));
@@ -59,7 +61,11 @@ export function PrdList({
   const [고치는, set고치는] = useState<string | null>(null);
 
   const 찾는말 = q.trim().toLowerCase();
-  const 찾은것 = 찾는말 === '' ? now.items : now.items.filter((x) => `${x.reqId} ${x.feature} ${x.text}`.toLowerCase().includes(찾는말));
+  // 고치는 줄은 찾기가 걸러 내지 않는다 — 걸러지면 고치기 칸이 내려가 쓴 글이 묻지 않고 사라진다
+  const 찾은것 = 찾는말 === '' ? now.items : now.items.filter((x) => x.reqId === 고치는 || `${x.reqId} ${x.feature} ${x.text}`.toLowerCase().includes(찾는말));
+  const 고치는묶음 = now.items.find((x) => x.reqId === 고치는)?.feature;
+  // 묶음을 접어 고치는 줄이 가려지면 쓴 것이 사라진다 — 그 줄의 칸에 먼저 묻는다
+  const 접기 = (남길: Set<string>) => (고치는 !== null && 고치는묶음 !== undefined && !남길.has(고치는묶음) ? 버리기전(() => set연묶음(남길), 고치는) : set연묶음(남길));
   const 묶음 = 묶음들(찾은것);
   const 기능들 = [...new Set(now.items.map((x) => x.feature))];
   const 반영표 = new Map(반영안됨줄(now).map((x) => [x.reqId, x.kind]));
@@ -89,7 +95,7 @@ export function PrdList({
         <button
           className="btn ghost small"
           disabled={찾는말 !== '' || 묶음.length === 0}
-          onClick={() => set연묶음(모두폈나 ? new Set() : new Set(묶음.map((g) => g.feature)))}
+          onClick={() => 접기(모두폈나 ? new Set() : new Set(묶음.map((g) => g.feature)))}
         >
           {모두폈나 ? t('모두 접기') : t('모두 펴기')}
         </button>
@@ -122,7 +128,7 @@ export function PrdList({
           const 실패수 = 추적들.filter((a) => a.결과 !== null && 요구판정(a.결과) === 'FAIL').length;
           return (
             <div className="prd-group" key={g.feature}>
-              <button className="prd-ghead" aria-expanded={열렸나(g.feature)} onClick={() => set연묶음(뒤집은(연묶음, g.feature))}>
+              <button className="prd-ghead" aria-expanded={열렸나(g.feature)} onClick={() => 접기(뒤집은(연묶음, g.feature))}>
                 <span className="prd-caret" aria-hidden="true">
                   ▸
                 </span>
@@ -150,13 +156,16 @@ export function PrdList({
                       케이스보나={케이스보나}
                       폈나={편줄.has(x.reqId)}
                       on펴기={() => {
-                        // 고치던 줄을 접으면 취소와 같다 — 다시 펼 때 옛 칸이 버려진 글로 열리지 않게
-                        if (편줄.has(x.reqId) && 고치는 === x.reqId) set고치는(null);
-                        set편줄(뒤집은(편줄, x.reqId));
+                        // 고치던 줄을 접으면 취소와 같다 — 다시 펼 때 옛 칸이 버려진 글로 열리지 않게. 쓴 것이 있으면 먼저 묻는다
+                        if (!(편줄.has(x.reqId) && 고치는 === x.reqId)) return set편줄(뒤집은(편줄, x.reqId));
+                        버리기전(() => {
+                          set고치는(null);
+                          set편줄((전) => 뒤집은(전, x.reqId));
+                        }, x.reqId);
                       }}
                       쓰나={쓰나}
                       고치나={고치는 === x.reqId}
-                      on고치기={() => set고치는(x.reqId)}
+                      on고치기={() => (고치는 === null ? set고치는(x.reqId) : 버리기전(() => set고치는(x.reqId), 고치는))}
                       on고치기닫기={() => set고치는(null)}
                       기능들={기능들}
                       on저장={async (새것) => {
@@ -172,126 +181,5 @@ export function PrdList({
         })
       )}
     </section>
-  );
-}
-
-const prd줄아이디 = (reqId: string) => `prd-item-${reqId}`;
-
-function 요구줄({
-  x,
-  여기 = false,
-  반영,
-  추적,
-  거치는,
-  보류,
-  케이스보나,
-  폈나,
-  on펴기,
-  쓰나,
-  고치나,
-  on고치기,
-  on고치기닫기,
-  기능들,
-  on저장,
-  on확정,
-}: {
-  x: PrdItem;
-  여기?: boolean;
-  반영: 반영종류 | undefined;
-  추적: 추적;
-  거치는: 거치는줄[];
-  보류: 줄보류 | null;
-  케이스보나: boolean;
-  폈나: boolean;
-  on펴기: () => void;
-  쓰나: boolean;
-  고치나: boolean;
-  on고치기: () => void;
-  on고치기닫기: () => void;
-  기능들: string[];
-  on저장: (새것: PrdItemDraft | null) => Promise<boolean>;
-  on확정: () => Promise<boolean>;
-}) {
-  const t = use말();
-  const 나이글 = use나이글();
-  const 종류글 = use반영종류글();
-  const [busy, setBusy] = useState(false);
-  const 나이 = 나이글(x.checkSince);
-
-  return (
-    <div className={여기 ? 'prd-item prd-here' : 'prd-item'} id={prd줄아이디(x.reqId)}>
-      <div className="prd-line">
-        <button className="prd-row" aria-expanded={폈나} onClick={on펴기}>
-          <span className="prd-id">{x.reqId}</span>
-          <span className="prd-text">{x.text}</span>
-          <span className="prd-tags">
-            {x.status === 'NEEDS_CHECK' ? (
-              <span className="case-tag prd-check">{나이 === null ? t('확인 필요') : t('확인 필요 · {나이}', { 나이 })}</span>
-            ) : (
-              <span className="prd-plain">{t('확정§상태')}</span>
-            )}
-            {반영 === undefined ? null : <span className="case-tag prd-changed">{t('{종류} · 반영 안 됨', { 종류: 종류글[반영] })}</span>}
-            {x.byPerson === true ? <span className="prd-plain">{t('사람이 고침')}</span> : null}
-          </span>
-          <span className="prd-caret" aria-hidden="true">
-            ▸
-          </span>
-        </button>
-        <추적칸 reqId={x.reqId} 추적={추적} 보류={보류} 케이스보나={케이스보나} />
-      </div>
-      {!폈나 ? null : 고치나 ? (
-        <div className="prd-detail">
-          <PrdItemForm
-            처음={{ feature: x.feature, text: x.text, basis: x.basis, status: x.status }}
-            기능들={기능들}
-            on저장={on저장}
-            on취소={on고치기닫기}
-            on지우기={() => on저장(null)}
-          />
-        </div>
-      ) : (
-        <div className="prd-detail">
-          <테스트구획 추적={추적} />
-          <거치는API 줄들={거치는} />
-          <section>
-            <h3>{t('근거')}</h3>
-            <dl className="prd-basis">
-              {x.basis.map((b, i) => (
-                <Fragment key={i}>
-                  <dt>
-                    {b.from}
-                    {b.ref === undefined ? null : <> · <span className="prd-id">{b.ref}</span></>}
-                  </dt>
-                  <dd>「{b.quote}」</dd>
-                </Fragment>
-              ))}
-            </dl>
-          </section>
-          <section>
-            <h3>{t('설계 미리보기')}</h3>
-            <설계미리보기 text={x.text} />
-          </section>
-          {쓰나 ? (
-            <div className="prd-acts">
-              <button className="btn ghost small" onClick={on고치기}>
-                {t('고치기')}
-              </button>
-              {x.status !== 'NEEDS_CHECK' ? null : (
-                <button
-                  className="btn ghost small"
-                  disabled={busy}
-                  onClick={() => {
-                    setBusy(true);
-                    void on확정().then(() => setBusy(false));
-                  }}
-                >
-                  {t('이 요구만 확정')}
-                </button>
-              )}
-            </div>
-          ) : null}
-        </div>
-      )}
-    </div>
   );
 }

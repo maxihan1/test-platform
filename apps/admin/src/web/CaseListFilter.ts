@@ -1,11 +1,13 @@
 // 케이스 목록의 검색 조건 상태 — 찾기 · 디바이스 · 표시 · 마지막 결과 · 설계 기법 · 종류 · 묶음 · 요구 번호 · 쪽 (SPEC §8.1 「검색 조건」 표가 정본)
 // CaseList 가 300줄에 닿아 상태만 떼어 냈다. 고른 것 · 고친 값 · 그리는 일은 CaseList 에 남는다
+// 조건은 주소에 남는다 — 상세 · 실행 결과에 갔다 뒤로 와도 그대로다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
 
 import { useState } from 'react';
 
 import { TECHNIQUES } from '@platform/kit/types';
 
-import type { CaseQuery, ItemStatus, Platform, 케이스축 } from './api.js';
+import { type CaseQuery, type ItemStatus, type Platform, type 케이스축, 케이스축들 } from './api.js';
+import { use주소조건, 주소조건 } from './leaveGuard.js';
 
 /** 설계 기법 고르개의 값 — 전체 · kit 기법 차례 · 기법 없음 (도메인/카탈로그 §8.1 「설계 기법」) */
 export const 기법고름들 = ['ALL', ...TECHNIQUES, 'none'] as const;
@@ -23,22 +25,50 @@ export interface 묶음조건 extends 묶음자리 {
   이름: string;
 }
 
+/** 주소의 글자가 고를 수 있는 값 가운데 하나면 그것, 아니면 기본값. 손으로 고친 주소가 화면에 없는 조건을 걸지 않게 한다 */
+function 고른값<T extends string>(글: string | null, 값들: readonly T[], 기본: T): T {
+  return 값들.find((값) => 값 === 글) ?? 기본;
+}
+
+function 주소묶음(주소: URLSearchParams): 묶음조건 | null {
+  const feature = 주소.get('g');
+  const 이름 = 주소.get('gn');
+  if (feature === null || 이름 === null) return null;
+  const screen = 주소.get('gs');
+  const part = 주소.get('gp');
+  return { feature, 이름, ...(screen === null ? {} : { screen }), ...(part === null ? {} : { part }) };
+}
+
 // 처음요구 — 「PRD 관리」에서 넘어온 주소의 요구 번호(도메인/카탈로그 §8.1 「맥락」). 화면에 따로 고르는 칸은 없다
 export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구?: string) {
-  const [typed, setTyped] = useState('');
-  const [q, setQ] = useState('');
-  const [page, setPage] = useState(1);
+  const [처음] = useState(주소조건);
+  const [typed, setTyped] = useState(처음.get('q') ?? '');
+  const [q, setQ] = useState(처음.get('q') ?? '');
+  const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(처음.get('page')) || 1)));
   // 마지막 결과만 빼고 서버가 거른다 (SPEC §8.1 표)
-  const [디바이스, set디바이스] = useState<Platform | 'ALL'>('ALL');
-  const [활성만, set활성만] = useState(true);
+  const [디바이스, set디바이스] = useState<Platform | 'ALL'>(() => 고른값(처음.get('dev'), ['desktop', 'mobile', 'android'] as const, 'ALL'));
+  const [활성만, set활성만] = useState(처음.get('all') !== '1');
   // 마지막 결과만 화면이 겹쳐 거른다 — 실행할 때마다 바뀌어 카탈로그가 알지 못한다
-  const [결과, set결과] = useState<ItemStatus | 'ALL'>('ALL');
+  const [결과, set결과] = useState<ItemStatus | 'ALL'>(() => 고른값(처음.get('last'), ['PASS', 'FAIL', 'NA'] as const, 'ALL'));
   // 종류를 바꾸면 목록이 새로 그려져(main.tsx key) 이것도 비워진다 — UI 목록에 보이지 않는 거르기가 남지 않는다
-  const [기법, set기법] = useState<기법고름>('ALL');
+  const [기법, set기법] = useState<기법고름>(() => (kind === 'FN' ? 고른값(처음.get('tech'), 기법고름들, 'ALL') : 'ALL'));
   // 종류 칩은 기능 목록에만 있다 — UI 목록은 전부 UI 라 거를 것이 없다
-  const [축, set축] = useState<케이스축 | 'ALL'>('ALL');
-  const [묶음, set묶음] = useState<묶음조건 | null>(null);
+  const [축, set축] = useState<케이스축 | 'ALL'>(() => (kind === 'FN' ? 고른값(처음.get('axis'), 케이스축들.filter((it) => it !== 'UI'), 'ALL') : 'ALL'));
+  const [묶음, set묶음] = useState(주소묶음(처음));
   const [요구, set요구] = useState<string | null>(처음요구 ?? null);
+
+  // 기본값인 조건은 적지 않는다. 요구 번호는 주소의 길(`/req/<번호>`)이 든다 — ✕ 로 풀면 길에서도 뺀다 (도메인/카탈로그 §8.1 조건 8)
+  const 종류글자 = kind === 'UI' ? 'ui' : 'fn';
+  use주소조건(요구 === null ? `#/cases/${종류글자}` : `#/cases/${종류글자}/req/${encodeURIComponent(요구)}`, {
+    ...(q === '' ? {} : { q }),
+    ...(page === 1 ? {} : { page: String(page) }),
+    ...(디바이스 === 'ALL' ? {} : { dev: 디바이스 }),
+    ...(활성만 ? {} : { all: '1' }),
+    ...(결과 === 'ALL' ? {} : { last: 결과 }),
+    ...(기법 === 'ALL' ? {} : { tech: 기법 }),
+    ...(축 === 'ALL' ? {} : { axis: 축 }),
+    ...(묶음 === null ? {} : { g: 묶음.feature, gn: 묶음.이름, ...(묶음.screen === undefined ? {} : { gs: 묶음.screen }), ...(묶음.part === undefined ? {} : { gp: 묶음.part }) }),
+  });
 
   const 조건: CaseQuery = {
     service,

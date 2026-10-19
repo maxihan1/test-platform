@@ -15,6 +15,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   window.location.hash = '';
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 describe('시험 실행 시작 전 막기', () => {
@@ -35,6 +36,18 @@ describe('시험 실행 시작 전 막기', () => {
     const 고르개 = screen.getByLabelText('대상 서버') as HTMLSelectElement;
     expect(고르개.options[0]?.value).toBe('');
     expect(고르개.options[0]?.textContent).toBe('선택하세요');
+  });
+
+  it('이 서비스에서 마지막에 고른 서버로 열리고, 빈 칸을 고르면 빈 칸으로 남는다 (공통/5-화면공통 §8)', async () => {
+    await 기존그리기();
+    서버고르기('stg');
+    cleanup();
+
+    await 기존그리기();
+    const 고르개 = screen.getByLabelText('대상 서버') as HTMLSelectElement;
+    expect(고르개.value).toBe('stg');
+    fireEvent.change(고르개, { target: { value: '' } });
+    expect(고르개.value).toBe('');
   });
 
   it('막힌 뒤 대상 서버를 고르면 먼저 고르라는 줄이 사라진다', async () => {

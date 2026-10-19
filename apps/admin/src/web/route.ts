@@ -51,7 +51,8 @@ function 풀기(조각: string): string | null {
 }
 
 export function route(hash: string): Route {
-  const parts = hash.replace(/^#\/?/, '').split('/').filter((part) => part !== '');
+  // `?` 뒤는 목록 조건이다 — 화면을 고르지 않는다 (leaveGuard 주소고치기 · 공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  const parts = hash.replace(/^#\/?/, '').split('?')[0]!.split('/').filter((part) => part !== '');
 
   if (parts.length === 1 && parts[0] === 'login') return { name: 'login' };
   if (parts.length === 1 && parts[0] === 'signup') return { name: 'signup' };

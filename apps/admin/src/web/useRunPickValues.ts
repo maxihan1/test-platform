@@ -19,7 +19,8 @@ export type 칸오류표 = Record<string, 칸글자 | undefined>;
  * @param 손댐 사람이 뭔가 손댔다. 창은 방금 누른 것에 대한 답과 옛 사유를 함께 치운다
  */
 export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자표 | undefined, 손댐: () => void) {
-  const [글자, set글자] = useState<글자표>(초기글자 ?? {});
+  const [처음글자] = useState<글자표>(초기글자 ?? {});
+  const [글자, set글자] = useState(처음글자);
   // 한 건 창에서 묶음 · 저장값을 저장하다 서버가 준 칸별 사유 (SPEC §8.2). 칸을 고치면 옛 사유라 걷는다
   const [서버오류, set서버오류] = useState<Record<string, string>>({});
 
@@ -124,5 +125,6 @@ export function useRunPickValues(케이스들: CaseRow[], 초기글자: 글자�
     });
   }
 
-  return { 칸들, 고친값, 오류, 글자of, 고치기, 불러오기, 칸오류, set서버오류 };
+  // 창에서 값을 고쳤나 — 고치면 늘 새 표가 된다. 목록 줄에서 고쳐 온 값은 고친 것으로 치지 않는다(창을 닫아도 목록에 남는다)
+  return { 칸들, 고친값, 오류, 글자of, 고치기, 불러오기, 칸오류, set서버오류, 고쳤나: 글자 !== 처음글자 };
 }

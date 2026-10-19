@@ -303,3 +303,19 @@ describe('PRD 관리 — 워드로 내려받기', () => {
     누름.mockRestore();
   });
 });
+
+describe('PRD 관리 — 찾기 글자는 주소에 남는다', () => {
+  it('주소의 찾기 글자로 처음부터 거르고, 고치면 방문 기록을 쌓지 않고 주소를 고친다', async () => {
+    window.history.replaceState(null, '', `#/prd?${new URLSearchParams({ q: '비밀번호' })}`);
+    render(<Prd service="MKT" 할수={쓰는사람} />);
+    const 칸 = (await screen.findByRole('textbox', { name: '요구 문장 · 번호 검색' })) as HTMLInputElement;
+    expect(칸.value).toBe('비밀번호');
+    expect(screen.queryByText(/MKT-REQ-031/)).toBeNull();
+
+    const 길이 = window.history.length;
+    fireEvent.change(칸, { target: { value: '' } });
+    expect(window.location.hash).toBe('#/prd');
+    expect(window.history.length).toBe(길이);
+    window.history.replaceState(null, '', '#/');
+  });
+});
