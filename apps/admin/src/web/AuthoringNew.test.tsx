@@ -96,15 +96,27 @@ describe('새 작성 요청 — 자료 목록', () => {
     expect(부름[3]?.값).toEqual({ id: 7 });
   });
 
-  it('보내고 나면 파일 칸을 새로 그린다. 같은 파일을 다시 골라도 바뀜이 난다', async () => {
+  it('보내고 나면 고른 파일 목록이 비고 같은 파일을 다시 고를 수 있다', async () => {
     let 넣었다 = 0;
     render(<AuthoringNew service="PAY" on넣었다={() => (넣었다 += 1)} />);
-    const 전 = screen.getByLabelText('PRD');
     파일을고른다('기획서.pdf');
     fireEvent.click(보내기());
 
     await waitFor(() => expect(넣었다).toBe(1));
-    expect(screen.getByLabelText('PRD')).not.toBe(전);
+    expect(screen.queryByText('기획서.pdf')).toBeNull();
+    expect((screen.getByLabelText('PRD') as HTMLInputElement).value).toBe('');
+    파일을고른다('기획서.pdf');
+    expect(screen.getByText('기획서.pdf')).toBeTruthy();
+  });
+
+  it('브라우저 파일 칸은 숨기고 「파일 첨부」 단추가 그 칸을 연다', () => {
+    render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
+    const 칸 = screen.getByLabelText('PRD') as HTMLInputElement;
+    const 열기 = vi.spyOn(칸, 'click');
+
+    expect(칸.hidden).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '파일 첨부' }));
+    expect(열기).toHaveBeenCalledOnce();
   });
 
   it('두 번 나눠 고르면 둘 다 남고 보내는 요청에 둘 다 실린다', async () => {

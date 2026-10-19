@@ -3,13 +3,13 @@
 import type { PrdBasis } from '@platform/kit';
 import { Fragment } from 'react';
 
-import { 직접작성 } from '../prd/rules.js';
+import { 직접작성, 화면에서 } from '../prd/rules.js';
 import { use말 } from './i18n.js';
 
 export function 근거목록({ basis }: { basis: PrdBasis[] }) {
   const t = use말();
   // 값은 그대로 두고 표시만 푼다. 자료 이름(문서 파일명 등)은 사람이 적은 그대로 보인다
-  const 풀이: Record<string, string> = { 화면: t('실제 화면에서 본 것'), [직접작성]: t('사람이 직접 적은 것') };
+  const 풀이: Record<string, string> = { [화면에서]: t('실제 화면에서 본 것'), [직접작성]: t('사람이 직접 적은 것') };
   return (
     <>
       <p className="hint">{t('이 요구사항을 어디서 읽었는지입니다')}</p>

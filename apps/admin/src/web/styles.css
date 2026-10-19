@@ -5467,7 +5467,11 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   min-height: 56px;
 }
 
+/* 칸 높이는 위 flex · min-height 가 정한다. svg 가 흐름에 있으면 칸이 안 늘어난 좁은 화면에서 100% 가 auto 로 풀려
+   viewBox 비율(100:40)로 커진다 — 칸 위에 얹어 높이를 안 보탠다 */
 .dash-trend-plot svg {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
