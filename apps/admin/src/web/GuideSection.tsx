@@ -16,7 +16,7 @@ export const 구획이름: Record<구획, string> = { intro: '애플리케이션
 
 const 확장자 = (이름: string) => 이름.slice(이름.lastIndexOf('.') + 1).toLowerCase();
 
-function 크기글(바이트: number): string {
+export function 크기글(바이트: number): string {
   if (바이트 < 1024) return `${바이트}B`;
   if (바이트 < 1024 * 1024) return `${Math.round(바이트 / 1024)}KB`;
   return `${(바이트 / 1024 / 1024).toFixed(1)}MB`;

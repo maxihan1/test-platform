@@ -107,6 +107,40 @@ describe('새 작성 요청 — 자료 목록', () => {
     expect(screen.getByLabelText('PRD')).not.toBe(전);
   });
 
+  it('두 번 나눠 고르면 둘 다 남고 보내는 요청에 둘 다 실린다', async () => {
+    let 넣었다 = 0;
+    render(<AuthoringNew service="PAY" on넣었다={() => (넣었다 += 1)} />);
+    파일을고른다('결제 기획서.pdf');
+    파일을고른다('화면정의서.docx');
+    expect(screen.getByText('결제 기획서.pdf')).toBeTruthy();
+    expect(screen.getByText('화면정의서.docx')).toBeTruthy();
+    fireEvent.click(보내기());
+
+    await waitFor(() => expect(넣었다).toBe(1));
+    expect(부름.filter((b) => b.무엇 === '올리기').map((b) => (b.값 as { 이름: string }).이름)).toEqual(['결제 기획서.pdf', '화면정의서.docx']);
+  });
+
+  it('낱개 제거는 그 파일만 목록과 요청에서 뺀다', async () => {
+    let 넣었다 = 0;
+    render(<AuthoringNew service="PAY" on넣었다={() => (넣었다 += 1)} />);
+    파일을고른다('결제 기획서.pdf', '화면정의서.docx');
+    fireEvent.click(screen.getByRole('button', { name: '결제 기획서.pdf 제거' }));
+    expect(screen.queryByText('결제 기획서.pdf')).toBeNull();
+    expect(screen.getByText('화면정의서.docx')).toBeTruthy();
+    fireEvent.click(보내기());
+
+    await waitFor(() => expect(넣었다).toBe(1));
+    expect(부름.filter((b) => b.무엇 === '올리기').map((b) => (b.값 as { 이름: string }).이름)).toEqual(['화면정의서.docx']);
+  });
+
+  it('같은 파일을 두 번 고르면 한 번만 남는다', () => {
+    render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
+    const 파일 = new File(['x'], '결제 기획서.pdf');
+    이파일들을고른다(파일);
+    이파일들을고른다(파일);
+    expect(screen.getAllByText('결제 기획서.pdf')).toHaveLength(1);
+  });
+
   it('파일도 피그마 주소도 없으면 버튼이 꺼져 있다', () => {
     render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
     피그마를적는다('   \n ');
@@ -149,7 +183,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     await screen.findByText(/이 요청은 대기열에 들어가지 못했습니다\. 새 요청으로 다시 넣으세요/);
     expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '올리기', '치우기']);
     expect(부름.at(-1)?.값).toEqual({ id: 7 });
-    expect(screen.getByText(/둘\.docx/)).toBeTruthy();
+    expect(screen.getByText(/\(둘\.docx — /)).toBeTruthy();
     expect(screen.queryByText(/목록에 남은 그 줄은 폐기하세요/)).toBeNull();
     expect(넣었다).toBe(0);
   });
@@ -167,7 +201,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
     파일을고른다('기획서.pdf', '회의록.hwp');
 
-    expect(screen.getByText(/회의록\.hwp/)).toBeTruthy();
+    expect(screen.getByText(/ — 회의록\.hwp/)).toBeTruthy();
     expect(screen.getByText(/지원하지 않는 파일입니다/)).toBeTruthy();
     expect(보내기()).toHaveProperty('disabled', true);
   });

@@ -10,6 +10,7 @@
 import { useState } from 'react';
 
 import { api, ApiError, type EnvRow } from './api.js';
+import { 크기글 } from './GuideSection.js';
 import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
 
@@ -19,6 +20,8 @@ export const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
 const 파일상한 = 20 * 1024 * 1024;
 // 정본: 도메인/작성 §7 「자료」 — 파일과 피그마를 합친 수. 서버 assetStore.ts 의 자료상한과 같은 값
 const 자료상한 = 20;
+
+const 같은파일 = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
 /**
  * 서버가 거절할 파일을 보내기 전에 거른다. 거절 이유(말 키)를 돌려준다.
@@ -197,9 +200,33 @@ export function AuthoringNew({
           type="file"
           multiple
           accept={받는종류}
-          onChange={(e) => set파일들(Array.from(e.target.files ?? []))}
+          onChange={(e) => {
+            // 앞에 고른 것에 이어 붙인다. 목록을 읽은 뒤 값을 비워야 같은 파일을 다시 골라도 change 가 난다
+            const 고른 = Array.from(e.target.files ?? []);
+            e.target.value = '';
+            set파일들((앞) => [...앞, ...고른.filter((f) => !앞.some((g) => 같은파일(f, g)))]);
+          }}
         />
       </label>
+      {파일들.length === 0 ? null : (
+        <ul className="guide-files authoring-field">
+          {파일들.map((f) => (
+            <li key={`${f.name}|${String(f.size)}|${String(f.lastModified)}`} className="guide-file">
+              <span className="guide-name">{f.name}</span>
+              <span className="guide-meta">{크기글(f.size)}</span>
+              <button
+                type="button"
+                className="btn ghost small"
+                disabled={보내는중}
+                aria-label={t('{이름} 제거', { 이름: f.name })}
+                onClick={() => set파일들((앞) => 앞.filter((g) => g !== f))}
+              >
+                {t('제거')}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <label className="authoring-field">
         <span>{t('피그마 주소')}</span>
         <textarea
