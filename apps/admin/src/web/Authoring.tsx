@@ -106,6 +106,8 @@ export function Authoring({ service, envs = [], 할수 }: { service: string; env
   // 「손이 필요한 것」만 — 입력 필요 · 중복 · 반영 대기 · 반영 실패가 남은 요청 (점검 11.2 · 도메인/작성 §7 ?todo=1)
   const [할일만, set할일만] = useState(() => 주소조건().get('todo') === '1');
   use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(page === 1 ? {} : { page: String(page) }) });
+  // 「PRD 관리」의 「이 화면들 테스트 작성」이 `?compare=1` 로 연다 — 아래 use주소조건이 조건을 정리하기 전에 한 번만 읽는다
+  const [대조처음] = useState(() => 주소조건().get('compare') === '1');
   // 방금 줄에 세운 요청. 시작 모달이 이것을 보인다 — 닫으면 null
   const [방금, set방금] = useState<number | null>(null);
   // 서비스를 바꾸면 첫 쪽으로. 안 그러면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
@@ -143,7 +145,7 @@ export function Authoring({ service, envs = [], 할수 }: { service: string; env
 
       <div className="screen list-screen">
         {!할수('작성요청') ? null : (
-          <AuthoringNew service={service} envs={envs} 운영자={할수('설정')} on넣었다={(id) => {
+          <AuthoringNew service={service} envs={envs} 운영자={할수('설정')} 대조처음={대조처음} on넣었다={(id) => {
               줄들.reload();
               set방금(id);
             }} />

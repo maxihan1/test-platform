@@ -61,6 +61,7 @@ export function AuthoringNew({
   service,
   envs = [],
   운영자 = false,
+  대조처음 = false,
   on넣었다,
 }: {
   service: string;
@@ -68,6 +69,8 @@ export function AuthoringNew({
   envs?: EnvRow[];
   /** 설정 메뉴를 볼 수 있는 사람(admin). 아니면 「운영자에게 요청하세요」로 안내한다 */
   운영자?: boolean;
+  /** 「실제 화면과 대조」를 켠 채 열린다 — 「PRD 에 없는 화면」에서 넘어올 때 */
+  대조처음?: boolean;
   /** 줄에 세운 요청 번호. 목록이 시작 모달을 연다 */
   on넣었다: (id: number) => void;
 }) {
@@ -80,7 +83,7 @@ export function AuthoringNew({
   // 파일 칸은 비제어라 state 를 비워도 옛 파일을 보인다. 같은 파일을 다시 고르면 change 도 안 난다 — 새로 그린다
   const [칸번호, set칸번호] = useState(0);
   // 역방향 (도메인/작성 §3.6 「★ 역방향」). 대상 서버는 고르지 않으면 첫 줄이다
-  const [대조, set대조] = useState(false);
+  const [대조, set대조] = useState(대조처음);
   const [고른서버, set고른서버] = useState<string | null>(null);
   const [시작주소, set시작주소] = useState('');
   // 고른 값이 지금 서비스의 목록에 있을 때만 쓴다 — 띠에서 서비스를 바꿔도 이 폼은 그대로 남아

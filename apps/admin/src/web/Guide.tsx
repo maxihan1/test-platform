@@ -72,7 +72,7 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
         제목={t('서비스 가이드')}
         부제={
           <>
-            {t('작성 에이전트가 테스트를 만들기 전에 읽습니다')} ·{' '}
+            {t('테스트를 작성할 때 참고하는 서비스 설명입니다')} ·{' '}
             {now.version === 0 ? t('아직 가이드가 없습니다') : t('버전 {버전} · 첨부 {건수}건', { 버전: now.version, 건수: now.files.length })}
           </>
         }
@@ -80,7 +80,7 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
           <>
             {now.version === 0 ? null : (
               <button className="btn ghost" aria-expanded={기록} onClick={() => set기록(!기록)}>
-                {t('변경 기록')}
+                {t('버전 기록')}
               </button>
             )}
             {쓰나 ? (
@@ -117,6 +117,15 @@ export function Guide({ service, 할수 }: { service: string; 할수: 판정 }) 
             : {})}
         />
       ))}
+      {/* 세 구획을 다 쓰고 나면 저장 단추가 맨 위에 있다 — 글 칸 아래에도 둔다 (점검 9.3) */}
+      {쓰나 ? (
+        <div className="guide-savebar">
+          {바뀜 ? <span className="note">{t('저장하지 않은 변경이 있습니다')}</span> : null}
+          <button className="btn" disabled={!바뀜 || busy} onClick={() => void 저장()}>
+            {t('저장')}
+          </button>
+        </div>
+      ) : null}
     </>
   );
 }

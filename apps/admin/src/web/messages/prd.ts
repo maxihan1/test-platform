@@ -8,8 +8,11 @@ export const 기획서말: Record<string, string> = {
   '버전 기록': 'Version history',
   '워드로 내려받기': 'Download as Word',
   '추적표 엑셀로 내려받기': 'Download traceability matrix',
+  내려받기: 'Download',
+  '테스트 작성 요청': 'Request test authoring',
   '요구 더하기': 'Add requirement',
-  '요구 더하기로 첫 요구를 적습니다': 'Use Add requirement to write the first one',
+  '테스트 작성 요청으로 기획서를 올리거나, 요구 더하기로 첫 요구를 직접 적습니다':
+    'Upload a spec with Request test authoring, or write the first requirement yourself with Add requirement',
   '저장했습니다 (버전 {버전})': 'Saved (version {버전})',
 
   // 할 일 두 칸
@@ -21,7 +24,8 @@ export const 기획서말: Record<string, string> = {
   '확인할 요구가 없습니다': 'Nothing to check',
   '{번호} 고르기': 'Select {번호}',
   '모두 고르기': 'Select all',
-  '확정하면 바로 새 버전으로 저장됩니다. PR 은 없습니다': 'Confirming saves a new version right away. No PR.',
+  '근거 {건수}개': '{건수} sources',
+  '확정하면 바로 새 버전으로 저장됩니다': 'Confirming saves a new version right away',
   '고른 {건수}건 확정': 'Confirm {건수} selected',
   '반영 안 됨 {건수}건': '{건수} not in tests',
   '고친 요구가 아직 테스트에 없습니다': 'Edited requirements are not in the tests yet',
@@ -43,8 +47,11 @@ export const 기획서말: Record<string, string> = {
     'Out of {전체} screens found · screens with no requirement or test yet',
   'PRD 에 없는 화면이 없습니다': 'Every screen found is in the PRD',
   '#{번호} 요청이 이 화면들을 작성하는 중입니다': 'Request #{번호} is writing these screens',
-  '테스트 작성에서 기획서 없이 「실제 화면과 대조」로 보내면 이 화면만 작성합니다':
-    'Send a request from Test authoring with Compare with the live screen and no spec, and only these screens are written',
+  '기획서 없이 「실제 화면과 대조」로 보내면 이 화면만 작성합니다':
+    'Send a request with Compare with the live screen and no spec, and only these screens are written',
+  'UI 실패 {건수}건 보기': 'View {건수} failing UI cases',
+  '이 화면들 테스트 작성': 'Author tests for these screens',
+  '{역할} 로그인': 'Signed in as {역할}',
 
   // 전체 요구
   '전체 요구': 'All requirements',
@@ -54,6 +61,11 @@ export const 기획서말: Record<string, string> = {
   '아직 요구가 없습니다': 'No requirements yet',
   '찾는 요구가 없습니다': 'No matching requirements',
   '{건수}건': '{건수}',
+  '모두 확인 필요': 'All need checking',
+  '모두 반영 안 됨': 'All not in tests',
+  '모두 보류': 'All on hold',
+  '모두 미작성': 'All not written',
+  '모두 실패': 'All failing',
   '확인 필요 · {나이}': 'Needs check · {나이}',
   // 상태 칸의 「확정」 — 버튼의 「확정」(Confirm)과 영어가 다르다
   '확정§상태': 'Confirmed',
@@ -98,6 +110,8 @@ export const 기획서말: Record<string, string> = {
   '원본 번호 · 화면 주소': 'Source ID or screen URL',
   '원본 문장': 'Source sentence',
   '근거 더하기': 'Add source',
+  '근거는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 고치기에서 더할 수 있습니다':
+    'The source is set to “직접 작성” (direct entry) automatically. After saving, add more from Edit on the requirement',
   '이 요구 지우기': 'Delete this requirement',
   // 「지우기 확인」은 입력값 지우기(Confirm clear)에 이미 쓰인다 — 여기는 요구를 지운다
   '지우기 확인§요구': 'Confirm delete',
@@ -122,11 +136,23 @@ export const 기획서말: Record<string, string> = {
   '이 버전으로 복원': 'Restore this version',
   '버전 {버전} 복원 확인': 'Confirm restoring version {버전}',
   '복원해도 새 버전으로 저장됩니다. 이전 버전은 남아 있습니다': 'A restore is saved as a new version. Earlier versions stay.',
+  // 바뀐 것은 앞 버전과 견줘 화면이 계산한다
+  '바뀐 것 보기': 'Show changes',
+  '처음 버전': 'First version',
+  '바뀐 요구 없음': 'No requirement changed',
+  '{종류} {건수}건': '{종류}: {건수}',
+  '버전 {버전}에서 바뀐 요구': 'Requirements changed in version {버전}',
+  '상태만 바뀜': 'Status only',
+  '확정으로 바뀜': 'Now confirmed',
+  '확인 필요로 바뀜': 'Now needs checking',
+  '근거가 바뀜': 'Source changed',
+  '기능 묶음 {앞} → {뒤}': 'Feature {앞} → {뒤}',
 
   // 서비스 지도 (PrdApis.tsx · 도메인/작성 §3.6 「서비스 지도」)
   '서비스 지도를 못 읽었습니다 — {까닭}': 'Could not read the service map — {까닭}',
   '거치는 API {건수}개': 'APIs used: {건수}',
   '{케이스} {단계}단계': '{케이스} step {단계}',
+  펴기: 'Expand',
   '케이스가 안 거친 API {건수}개': 'APIs no case calls: {건수}',
   '이 서비스에서 본 API {전체}개 중 아직 어떤 케이스도 부르지 않은 API 입니다': 'Of the {전체} APIs seen in this service, no case calls these yet',
   '본 API 를 모두 케이스가 거칩니다': 'A case calls every API seen',

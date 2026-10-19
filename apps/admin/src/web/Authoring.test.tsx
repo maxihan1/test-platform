@@ -143,6 +143,21 @@ describe('작성 목록 쪽은 주소에 남는다 (점검 11.4)', () => {
   });
 });
 
+describe('「PRD 에 없는 화면」에서 넘어오면 대조가 켜져 있다 (⑫ 점검 8.10)', () => {
+  it('?compare=1 이면 「실제 화면과 대조」를 켠 채 열리고 주소에서는 그 조건이 정리된다', async () => {
+    window.history.replaceState(null, '', '#/authoring?compare=1');
+    render(<Authoring service="PAY" 할수={() => true} />);
+    const 칸 = (await screen.findByLabelText('실제 화면과 대조')) as HTMLInputElement;
+    expect(칸.checked).toBe(true);
+    expect(window.location.hash).toBe('#/authoring');
+  });
+
+  it('조건이 없으면 꺼진 채 열린다', async () => {
+    render(<Authoring service="PAY" 할수={() => true} />);
+    expect(((await screen.findByLabelText('실제 화면과 대조')) as HTMLInputElement).checked).toBe(false);
+  });
+});
+
 describe('작성 목록 줄 제목과 할 일 (⑫ 점검 11.1 · 11.2 · N2)', () => {
   it('줄 제목은 넣은 자료 이름이다 — 여럿이면 「외 N개」, 자료가 없는 화면만 대조는 그렇게 적는다', async () => {
     줄들.push(줄({ id: 6120, rootId: 6120, assets: { first: '회원가입 기획서.docx', more: 2 } }));

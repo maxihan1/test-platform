@@ -79,3 +79,12 @@
 .guide-old {
   margin-top: 16px;
 }
+
+/* 글 칸 아래 저장 단추 — 맨 위 단추와 같은 일을 한다 (점검 9.3) */
+.guide-savebar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 24px;
+}

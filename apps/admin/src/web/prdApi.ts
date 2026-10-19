@@ -46,6 +46,8 @@ export const prdApi = {
   /** 서비스 지도 — API 마다 거친 케이스 · 화면. 요구사항은 now 의 cases 로 잇는다 */
   apis: (service: string) => call<{ apis: 지도API[] }>(`/prd/apis${꼬리(service)}`),
   versions: (service: string) => call<PrdVersionRow[]>(`/prd/versions${꼬리(service)}`),
+  /** 옛 버전 하나의 요구 전체. 버전 기록의 「바뀐 것」이 앞 버전과 견주려고 읽는다 */
+  version: (service: string, version: number) => call<{ version: number; items: PrdItem[] }>(`/prd/versions/${String(version)}${꼬리(service)}`),
   save: (service: string, baseVersion: number, items: PrdItemDraft[]) =>
     call<{ version: number }>(`/prd${꼬리(service)}`, { ...json({ baseVersion, items }), method: 'PUT' }),
   confirm: (service: string, baseVersion: number, reqIds: string[]) =>

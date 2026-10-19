@@ -1,9 +1,16 @@
 // 「PRD 관리」 할 일 칸 아래의 「PRD 에 없는 화면」 카드 — 찾은 화면 가운데 요구사항도 테스트도 없는 화면 (도메인/작성 §3.6 「사람이 고칠 때」)
 
+import { 로그인역할 } from '../prd/rules.js';
 import { use말 } from './i18n.js';
 import type { PrdNow } from './prdApi.js';
 
-export function PrdUncovered({ now }: { now: PrdNow }) {
+/** 크롤러가 적은 로그인 상태 「로그인:일반 회원」은 「일반 회원 로그인」으로 읽는다. 그 밖(「로그아웃」 등)은 그대로 */
+export function 상태글(state: string, t: (키: string, 값?: Record<string, string>) => string): string {
+  const 역할 = 로그인역할(state);
+  return 역할 === null ? state : t('{역할} 로그인', { 역할 });
+}
+
+export function PrdUncovered({ now, 쓰나 }: { now: PrdNow; 쓰나: boolean }) {
   const t = use말();
   const 화면들 = now.uncoveredScreens;
   return (
@@ -18,7 +25,7 @@ export function PrdUncovered({ now }: { now: PrdNow }) {
         <ul className="prd-screens">
           {화면들.map((x) => (
             <li key={`${x.state}\n${x.url}`}>
-              <span className="case-tag">{x.state}</span>
+              <span className="case-tag">{상태글(x.state, t)}</span>
               <span className="prd-id">{x.url}</span>
               <span className="prd-text">{x.name}</span>
             </li>
@@ -27,7 +34,15 @@ export function PrdUncovered({ now }: { now: PrdNow }) {
       )}
       <footer>
         {now.screensOpen.length === 0 ? (
-          <span className="note">{t('테스트 작성에서 기획서 없이 「실제 화면과 대조」로 보내면 이 화면만 작성합니다')}</span>
+          <>
+            <span className="note">{t('기획서 없이 「실제 화면과 대조」로 보내면 이 화면만 작성합니다')}</span>
+            {/* 테스트 작성 화면이 「실제 화면과 대조」를 켠 채 열린다 (점검 8.10) */}
+            {쓰나 && 화면들.length > 0 ? (
+              <a className="btn small" href="#/authoring?compare=1">
+                {t('이 화면들 테스트 작성')}
+              </a>
+            ) : null}
+          </>
         ) : (
           now.screensOpen.map((번호) => (
             <span key={번호} className="note">

@@ -550,3 +550,74 @@
     grid-column: 1 / 3;
   }
 }
+
+/* ⑫-12 — 내려받기 메뉴 · 맨 위 새 요구 칸 · 근거 펼침 · 접는 API · 버전 기록의 바뀐 것 (색은 토큰만) */
+.prd-menu {
+  position: relative;
+  display: inline-block;
+}
+.prd-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
+  display: grid;
+  gap: 4px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.prd-new-top {
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.prd-basis-toggle {
+  margin-left: 10px;
+}
+.prd-queue li > .prd-basis {
+  grid-column: 3 / 5;
+  margin: 2px 0 4px;
+}
+.prd-card > header .btn {
+  justify-self: start;
+  margin-top: 6px;
+}
+.prd-fold > summary {
+  cursor: pointer;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+.prd-vtable td.prd-vchange {
+  white-space: normal;
+}
+.prd-diff {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  min-width: 320px;
+  max-width: 560px;
+  white-space: normal;
+  font-size: 12.5px;
+}
+.prd-diff li {
+  display: grid;
+  grid-template-columns: 64px 104px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+.prd-diff del {
+  color: var(--ink-faint);
+}
+
+@media (max-width: 860px) {
+  .prd-queue li > .prd-basis {
+    grid-column: 2 / 4;
+  }
+}

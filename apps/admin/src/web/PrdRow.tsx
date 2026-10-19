@@ -2,13 +2,14 @@
 // PrdList 가 300줄을 넘어 떼어 냈다 (2026-10-19 ⑫-2)
 
 import type { PrdItem } from '@platform/kit';
-import { Fragment, useState } from 'react';
+import { useState } from 'react';
 
 import type { 줄보류 } from '../prd/heldText.js';
 import type { 추적 } from '../prd/trace.js';
 import { use말 } from './i18n.js';
 import type { PrdItemDraft } from './prdApi.js';
 import { 거치는API, type 거치는줄 } from './PrdApis.js';
+import { 근거목록 } from './PrdBasis.js';
 import { PrdItemForm } from './PrdItemForm.js';
 import { use나이글, use반영종류글 } from './PrdTodo.js';
 import { 설계미리보기, 추적칸, 테스트구획 } from './PrdTrace.js';
@@ -48,7 +49,7 @@ export function 요구줄({
   on고치기: () => void;
   on고치기닫기: () => void;
   기능들: string[];
-  on저장: (새것: PrdItemDraft | null) => Promise<boolean>;
+  on저장: (새것: PrdItemDraft | null, 실패: (글: string) => void) => Promise<boolean>;
   on확정: () => Promise<boolean>;
 }) {
   const t = use말();
@@ -64,11 +65,8 @@ export function 요구줄({
           <span className="prd-id">{x.reqId}</span>
           <span className="prd-text">{x.text}</span>
           <span className="prd-tags">
-            {x.status === 'NEEDS_CHECK' ? (
-              <span className="case-tag prd-check">{나이 === null ? t('확인 필요') : t('확인 필요 · {나이}', { 나이 })}</span>
-            ) : (
-              <span className="prd-plain">{t('확정§상태')}</span>
-            )}
+            {/* 확정은 기본 상태라 꼬리표를 달지 않는다 — 줄마다 붙으면 확인 필요가 묻힌다 (점검 8.12) */}
+            {x.status === 'NEEDS_CHECK' ? <span className="case-tag prd-check">{나이 === null ? t('확인 필요') : t('확인 필요 · {나이}', { 나이 })}</span> : null}
             {반영 === undefined ? null : <span className="case-tag prd-changed">{t('{종류} · 반영 안 됨', { 종류: 종류글[반영] })}</span>}
             {x.byPerson === true ? <span className="prd-plain">{t('사람이 고침')}</span> : null}
           </span>
@@ -86,7 +84,7 @@ export function 요구줄({
             기능들={기능들}
             on저장={on저장}
             on취소={on고치기닫기}
-            on지우기={() => on저장(null)}
+            on지우기={(실패) => on저장(null, 실패)}
           />
         </div>
       ) : (
@@ -95,17 +93,7 @@ export function 요구줄({
           <거치는API 줄들={거치는} />
           <section>
             <h3>{t('근거')}</h3>
-            <dl className="prd-basis">
-              {x.basis.map((b, i) => (
-                <Fragment key={i}>
-                  <dt>
-                    {b.from}
-                    {b.ref === undefined ? null : <> · <span className="prd-id">{b.ref}</span></>}
-                  </dt>
-                  <dd>「{b.quote}」</dd>
-                </Fragment>
-              ))}
-            </dl>
+            <근거목록 basis={x.basis} />
           </section>
           <section>
             <h3>{t('설계 미리보기')}</h3>

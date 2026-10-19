@@ -7,6 +7,12 @@ import type { PrdBasis, PrdItem, PrdStatus } from '@platform/kit';
 export const 상한 = { 항목: 999, 기능묶음: 100, 요구문장: 1000, 근거: 10, 근거자리: 200, 근거문장: 2000 } as const;
 export const 본문상한 = 4 * 1024 * 1024;
 
+/** 직접 쓴 요구의 근거 — 쓴 사람이 곧 출처라 자료 이름은 고정 글자고 원본 문장은 요구 문장이다. 저장되는 글자라 화면 번역 표를 타지 않는다 */
+export const 직접근거 = (text: string): PrdBasis[] => [{ from: '직접 작성', quote: text.slice(0, 상한.근거문장) }];
+
+/** 화면 기록의 상태 「로그인:<역할>」에서 역할을 뽑는다. 「로그아웃」 같은 그 밖의 상태는 null (scripts/authoring-screens-keep.ts `상태`) */
+export const 로그인역할 = (state: string): string | null => (state.startsWith('로그인:') ? state.slice('로그인:'.length) : null);
+
 /** 보낸 항목. 번호가 없으면 새 항목이다 — checkSince · byPerson 은 서버가 매기므로 받지 않는다 */
 export type 들어온항목 = Omit<PrdItem, 'reqId' | 'checkSince' | 'byPerson'> & { reqId?: string };
 

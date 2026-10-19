@@ -56,6 +56,14 @@ describe('추적하기', () => {
     );
     expect(추적.결과).toEqual({ 통과: 1, 실패: 1, 미실행: 2 });
   });
+
+  it('실패한 케이스가 기능 쪽인지 UI 쪽인지 따로 센다', () => {
+    const 추적 = 추적하기(
+      [케이스('MKT-FN-001', '정상'), 케이스('MKT-FN-002', '정상'), 케이스('MKT-UI-001', 'UI')],
+      결과표({ 'MKT-FN-001:desktop': 'FAIL', 'MKT-FN-002:desktop': 'PASS', 'MKT-UI-001:desktop': 'FAIL' }),
+    );
+    expect(추적.실패갈래).toEqual({ 기능: 1, UI: 1 });
+  });
 });
 
 describe('요구판정', () => {

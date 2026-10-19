@@ -49,7 +49,17 @@ export function 추적칸({ reqId, 추적, 보류, 케이스보나 }: { reqId: s
           <span key={g.kind}>{g.글}</span>
         ),
       )}
-      {셈 === null || 판정 === null ? null : (
+      {셈 === null || 판정 === null ? null : 판정 === 'FAIL' && 케이스보나 ? (
+        // 실패한 케이스만 거른 목록으로 간다 (점검 8.7). 기능 · UI 양쪽에 실패가 있으면 UI 쪽 고리를 하나 더 단다
+        <>
+          <a className={`verdict ${판정꼴[판정]}`} href={`${케이스주소(추적.실패갈래.기능 > 0 ? 'fn' : 'ui', reqId)}?last=FAIL`}>
+            {t('실패 {건수} / {전체}', { 건수: 셈.실패, 전체 })}
+          </a>
+          {추적.실패갈래.기능 > 0 && 추적.실패갈래.UI > 0 ? (
+            <a href={`${케이스주소('ui', reqId)}?last=FAIL`}>{t('UI 실패 {건수}건 보기', { 건수: 추적.실패갈래.UI })}</a>
+          ) : null}
+        </>
+      ) : (
         <span className={`verdict ${판정꼴[판정]}`}>
           {판정 === 'FAIL'
             ? t('실패 {건수} / {전체}', { 건수: 셈.실패, 전체 })
