@@ -108,7 +108,7 @@ describe('ScenarioList 줄', () => {
     expect(첫.querySelector('.title small')?.textContent).not.toContain('실행 전');
     expect(첫.querySelector('.title small')?.textContent).toContain('2026');
     expect(within(첫).getByText('통과')).toBeTruthy();
-    expect(within(첫).getByRole('link', { name: /통과/ }).getAttribute('href')).toBe('#/runs/90');
+    expect(within(첫).getByRole('link', { name: /통과/ }).getAttribute('href')).toBe('#/runs/90?from=scenarios');
   });
 
   it('도는 중이면 마지막 실행 칸도 결과 칸도 실행 중이고 판정 배지가 아니다', async () => {
@@ -121,7 +121,7 @@ describe('ScenarioList 줄', () => {
     expect(첫.querySelector('.title small')?.textContent).toBe('단계 3개 · v2 · 실행 중');
     expect(첫.querySelector('.verdict')).toBeNull();
     expect(첫.querySelector('.scenario-result')?.textContent).toBe('실행 중');
-    expect(첫.querySelector('a[href="#/runs/90"]')).toBeTruthy();
+    expect(첫.querySelector('a[href="#/runs/90?from=scenarios"]')).toBeTruthy();
   });
 
   it('통과 · 실패 · 미실행은 판정 배지다', async () => {
@@ -147,7 +147,7 @@ describe('ScenarioList 줄', () => {
     const 첫 = 행(container, 0);
     expect(첫.querySelector('.case-tag')?.textContent).toBe('미확정');
     expect(within(첫).getByText('통과')).toBeTruthy();
-    expect(첫.querySelector('a[href="#/runs/90"]')).toBeTruthy();
+    expect(첫.querySelector('a[href="#/runs/90?from=scenarios"]')).toBeTruthy();
     expect(within(행(container, 1)).getByText('실패')).toBeTruthy();
     expect(행(container, 1).querySelector('.case-tag')?.textContent).toBe('미확정');
   });
@@ -217,7 +217,7 @@ describe('ScenarioList 실행', () => {
     fireEvent.change(screen.getByRole('combobox', { name: '대상 서버' }), { target: { value: 'stg' } });
     fireEvent.click(within(행(container, 1)).getByRole('button', { name: '실행' }));
 
-    await waitFor(() => expect(window.location.hash).toBe('#/runs/55'));
+    await waitFor(() => expect(window.location.hash).toBe('#/runs/55?from=scenarios'));
     expect(실행).toHaveBeenCalledWith(2, 'stg');
   });
 

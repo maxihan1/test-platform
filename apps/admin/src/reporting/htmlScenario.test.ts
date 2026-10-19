@@ -115,7 +115,7 @@ describe('E2E 증적 HTML', () => {
   });
 
   it('건너뛴 준비 · 값 연결 · 단독 실행을 결과 화면 글자로 적는다', () => {
-    expect(html).toContain('준비 「로그인」 — 1번에서 이미 실행');
+    expect(html).toContain('사전 단계 「로그인」 — 1번에서 이미 실행');
     expect(html).toContain('값 주입');
     expect(html).toContain('orderId ← 1번 POST **/orders 응답의 id = 812');
     expect(html).toContain('단독 실행');
@@ -129,8 +129,8 @@ describe('E2E 증적 HTML', () => {
   });
 
   it('끝에 보낸 정리는 마지막 단계 뒤에 미룬 단계 번호와 함께', () => {
-    expect(html).toContain('정리 · 마지막에 실행 DELETE /api/orders/812 → 204 (3번이 미룸)');
-    expect(html.indexOf('정리 · 마지막에 실행')).toBeGreaterThan(html.indexOf('4단계'));
+    expect(html).toContain('테스트 데이터 정리 · 마지막에 실행 DELETE /api/orders/812 → 204 (3번이 미룸)');
+    expect(html.indexOf('테스트 데이터 정리 · 마지막에 실행')).toBeGreaterThan(html.indexOf('4단계'));
   });
 
   it('요청 · 응답 원문과 코드는 넣지 않는다', () => {
@@ -183,7 +183,7 @@ describe('E2E 증적 엑셀', () => {
     expect(본문.some((r) => String(r[1]).includes('값 주입 · orderId'))).toBe(true);
     expect(본문.some((r) => r[칸('절차명')] === '로그인' && r[칸('절차판정')] === '건너뜀')).toBe(true);
     expect(본문.some((r) => String(r[1]).startsWith('4단계') && r[칸('판정')] === '실행 안 됨')).toBe(true);
-    expect(String(본문.at(-1)?.[1])).toBe('정리 · 마지막에 실행 DELETE /api/orders/812 → 204 (3번이 미룸)');
+    expect(String(본문.at(-1)?.[1])).toBe('테스트 데이터 정리 · 마지막에 실행 DELETE /api/orders/812 → 204 (3번이 미룸)');
     expect(본문.at(-1)?.[칸('종류')]).toBe('E2E 시나리오');
   });
 });

@@ -1,10 +1,11 @@
 // E2E 시나리오 조립 화면 왼쪽의 단계 카드 목록 — 한 줄 요약 · 칩 · 모킹 구간 · 위로 · 아래로 · 빼기 (도메인/시나리오 §8.11)
 
 import type { ScenarioPart } from '@platform/kit';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import type { Platform } from './api.js';
 import { use말, use언어 } from './i18n.js';
+import { Modal } from './Modal.js';
 import { 모킹구간, 빼기, 순서바꾸기, 카드요약, 종류글, type 재료들 } from './scenarioView.js';
 import type { 조립탭 } from './ScenarioTabs.js';
 import { PLATFORM_LABEL } from './ui.js';
@@ -46,6 +47,8 @@ export function ScenarioCards({
   // 버튼이 새 자리에 다시 그려진 뒤에야 포커스를 줄 수 있어 다음 그리기에서 처리한다
   const 포커스 = useRef<{ 번호: number; 동작: 동작 } | null>(null);
   const 구간 = 모킹구간(단계들);
+  // ✕ 한 번에 설정까지 사라지면 되돌릴 길이 「저장하지 않고 떠나기」뿐이라 한 번 묻는다 (점검 10.7)
+  const [뺄번호, set뺄번호] = useState<number | null>(null);
 
   useEffect(() => {
     const 갈곳 = 포커스.current;
@@ -135,7 +138,7 @@ export function ScenarioCards({
                         ↓
                       </button>
                     )}
-                    <button type="button" className="scn-op" aria-label={t('{번호}번 빼기', { 번호 })} onClick={() => 빼내기(번호)}>
+                    <button type="button" className="scn-op" aria-label={t('{번호}번 삭제', { 번호 })} onClick={() => set뺄번호(번호)}>
                       ✕
                     </button>
                   </span>
@@ -146,6 +149,31 @@ export function ScenarioCards({
         </ol>
       )}
       {시험요약 === undefined ? null : <div className="scn-cards-trial">{시험요약}</div>}
+      {뺄번호 === null ? null : (
+        <Modal
+          제목={t('{번호}번 단계를 삭제할까요?', { 번호: 뺄번호 })}
+          onClose={() => set뺄번호(null)}
+          버튼={
+            <>
+              <button type="button" className="btn ghost" onClick={() => set뺄번호(null)}>
+                {t('취소')}
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  빼내기(뺄번호);
+                  set뺄번호(null);
+                }}
+              >
+                {t('삭제')}
+              </button>
+            </>
+          }
+        >
+          <p>{t('이 단계의 설정도 같이 사라집니다')}</p>
+        </Modal>
+      )}
     </div>
   );
 }

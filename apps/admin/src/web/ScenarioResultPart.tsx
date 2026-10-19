@@ -109,8 +109,8 @@ export function ScenarioResultPart({
             return (
               <div key={제목}>
                 {번호 === null
-                  ? t('준비 「{제목}」 건너뜀', { 제목 })
-                  : t('준비 「{제목}」 — {번호}번에서 이미 실행', { 제목, 번호 })}
+                  ? t('사전 단계 「{제목}」 건너뜀', { 제목 })
+                  : t('사전 단계 「{제목}」 — {번호}번에서 이미 실행', { 제목, 번호 })}
               </div>
             );
           })}
@@ -130,7 +130,7 @@ export function ScenarioResultPart({
         </세부>
       )}
       {part.cleanup.length === 0 ? null : (
-        <세부 라벨={t('정리')}>
+        <세부 라벨={t('테스트 데이터 정리')}>
           {part.cleanup.map((c, i) => (
             <div key={i}>
               {c.error === undefined

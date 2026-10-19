@@ -61,10 +61,10 @@ describe('ScenarioPalette 다음 단계 추천', () => {
     const 칸 = await screen.findByRole('region', { name: '다음 단계 추천' });
     expect(spy).toHaveBeenCalledWith('ZNX', 'ZNX-FN-009');
     expect(within(칸).getByText('2번 단계가 머무는 화면에서 이어지는 정상 케이스 2')).toBeTruthy();
-    expect(within(칸).getAllByRole('button').map((b) => b.textContent)).toEqual(['ZNX-FN-001 더하기', 'ZNX-FN-005 더하기']);
+    expect(within(칸).getAllByRole('button').map((b) => b.textContent)).toEqual(['ZNX-FN-001 추가', 'ZNX-FN-005 추가']);
     expect([...칸.querySelectorAll('.scn-pal-goes code')].map((c) => c.textContent)).toEqual(['/cart', '/order']);
 
-    fireEvent.click(within(칸).getByRole('button', { name: 'ZNX-FN-005 더하기' }));
+    fireEvent.click(within(칸).getByRole('button', { name: 'ZNX-FN-005 추가' }));
     expect(손.on케이스).toHaveBeenCalledWith('ZNX-FN-005');
   });
 
@@ -86,7 +86,7 @@ describe('ScenarioPalette 다음 단계 추천', () => {
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: '카드' } });
     const 칸 = screen.getByRole('region', { name: '다음 단계 추천' });
-    expect(within(칸).getAllByRole('button').map((b) => b.textContent)).toEqual(['ZNX-FN-005 더하기']);
+    expect(within(칸).getAllByRole('button').map((b) => b.textContent)).toEqual(['ZNX-FN-005 추가']);
   });
 
   it('추천을 못 불러오면 오류 글을 보이고 목록은 그대로 쓴다', async () => {

@@ -33,7 +33,7 @@ describe('ScenarioBuild 권한 · 치운 것 · 서비스', () => {
     await screen.findByLabelText('시나리오 이름');
 
     expect(screen.queryByRole('button', { name: '저장' })).toBeNull();
-    expect(screen.getByText('목록에서 치운 시나리오라 보기만 할 수 있습니다')).toBeTruthy();
+    expect(screen.getByText('삭제한 시나리오라 보기만 할 수 있습니다')).toBeTruthy();
     fireEvent.change(이름칸(), { target: { value: '고침' } });
     expect(screen.queryByText('저장 안 된 변경 있음')).toBeNull();
     await 해시가('#/runs');

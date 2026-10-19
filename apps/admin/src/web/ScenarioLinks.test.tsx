@@ -69,7 +69,7 @@ describe('ScenarioLinks 추가', () => {
 describe('ScenarioLinks 종류마다 칸', () => {
   it('안내 문장이 늘 보인다', () => {
     그리기(undefined);
-    expect(screen.getByText('값 연결은 첫 확인이 나오기 전 준비에서만 적용됩니다')).toBeTruthy();
+    expect(screen.getByText('값 연결은 첫 확인이 나오기 전 사전 단계에서만 적용됩니다')).toBeTruthy();
   });
 
   it('값 주입', () => {

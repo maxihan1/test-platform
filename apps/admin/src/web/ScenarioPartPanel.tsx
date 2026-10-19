@@ -3,12 +3,14 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { ScenarioLink, ScenarioPart } from '@platform/kit';
 
+import type { SavedInput } from './api.js';
 import { use말 } from './i18n.js';
 import type { CasePartMaterial } from './scenarioApi.js';
 import { ScenarioFields, 시작글자 } from './ScenarioFields.js';
 import { 넘겨받기끄기, 이미실행, 조립값, type 재료들 } from './scenarioView.js';
 import { schemaToFields } from './schema.js';
 import { Loading } from './ui.js';
+import { useSavedInput } from './useSavedInput.js';
 
 type CasePart = Extract<ScenarioPart, { kind: 'case' }>;
 
@@ -26,6 +28,7 @@ interface Props {
 
 export function ScenarioPartPanel(props: Props) {
   const t = use말();
+  const 저장 = useSavedInput(props.단계.tcId);
   const 값 = props.재료.get(props.단계.tcId);
   if (값 === undefined) return <Loading />;
   if (값 === null) {
@@ -38,14 +41,14 @@ export function ScenarioPartPanel(props: Props) {
             <button type="button" className="btn" onClick={props.on케이스바꾸기}>
               {t('케이스 바꾸기')}
             </button>
-            <p className="hint">{t('다른 케이스로 바꾸면 이 단계의 준비 · 입력값 설정은 처음부터 다시 합니다')}</p>
+            <p className="hint">{t('다른 케이스로 바꾸면 이 단계의 사전 단계 · 입력값 설정은 처음부터 다시 합니다')}</p>
           </>
         )}
       </div>
     );
   }
   // 칸 글자는 단계마다 따로 들고 번호나 케이스가 바뀌면 처음부터 다시 시작한다
-  return <PanelBody key={`${props.번호}-${props.단계.tcId}`} {...props} 케이스={값} />;
+  return <PanelBody key={`${props.번호}-${props.단계.tcId}`} {...props} 케이스={값} 저장={저장} />;
 }
 
 function PanelBody({
@@ -56,8 +59,9 @@ function PanelBody({
   쓰나,
   on바꿈,
   케이스,
+  저장,
   값연결,
-}: Props & { 케이스: CasePartMaterial }) {
+}: Props & { 케이스: CasePartMaterial; 저장: SavedInput | null }) {
   const t = use말();
   const 잠글까 = !쓰나;
   const 이어받나 = 단계.carryOver !== false;
@@ -66,6 +70,15 @@ function PanelBody({
   const 보일단계 = 이어받나 || 끄기전 === null ? 단계 : { ...단계, ...끄기전 };
   const 입력칸 = useMemo(() => schemaToFields(케이스.paramSchema), [케이스]);
   const 기대칸 = useMemo(() => schemaToFields(케이스.expectedSchema), [케이스]);
+  // 비워 둔 칸에 실제로 쓰일 값을 흐리게 보이려고 저장값을 얹은 칸들을 따로 만든다. 못 받았으면 만들지 않아 옛 글 그대로다
+  const 입력실제 = useMemo(
+    () => (저장 === null ? undefined : schemaToFields(케이스.paramSchema, 저장.params, 저장.savedSecrets.params)),
+    [케이스, 저장],
+  );
+  const 기대실제 = useMemo(
+    () => (저장 === null ? undefined : schemaToFields(케이스.expectedSchema, 저장.expected, 저장.savedSecrets.expected)),
+    [케이스, 저장],
+  );
   // 칸을 비우면 키가 빠져 되돌아오는 값이 없다. 글자를 여기서 들고 있어야 쓰는 중인 `1.` 이 안 날아간다
   const [입력글, set입력글] = useState(() => 시작글자(입력칸, 단계.params));
   const [기대글, set기대글] = useState(() => 시작글자(기대칸, 단계.expected));
@@ -110,7 +123,7 @@ function PanelBody({
 
       {케이스.precondition.length === 0 ? null : (
         <div className="scn-set-block">
-          <h4 className="scn-set-sub">{t('전제')}</h4>
+          <h4 className="scn-set-sub">{t('사전 조건')}</h4>
           <ul className="scn-set-list">
             {케이스.precondition.map((p, i) => (
               <li key={i}>{p}</li>
@@ -120,7 +133,7 @@ function PanelBody({
       )}
       {케이스.unconfirmed === null ? null : (
         <p className="scn-set-note">
-          {t('미확정 케이스입니다. 이 단계가 들어간 실행에는 「미확정」 꼬리표가 붙습니다')}
+          {t('미확정 케이스입니다. 이 단계가 들어간 실행에는 「미확정」 표시가 붙습니다')}
         </p>
       )}
 
@@ -141,15 +154,15 @@ function PanelBody({
           {t('앞 단계의 로그인 상태를 그대로 사용합니다. 끄면 새 창에서 단독으로 실행합니다')}
         </p>
         {이어받나 ? null : (
-          <p className="scn-set-note">{t('로그인 이어받기를 끄면 준비 건너뛰기와 값 연결을 쓸 수 없습니다')}</p>
+          <p className="scn-set-note">{t('로그인 이어받기를 끄면 사전 단계 건너뛰기와 값 연결을 쓸 수 없습니다')}</p>
         )}
       </div>
 
       {!케이스.r16 ? (
-        <p className="scn-set-note">{t('이 케이스는 준비가 분리되어 있지 않아 건너뛸 수 없습니다')}</p>
+        <p className="scn-set-note">{t('이 케이스는 사전 단계가 분리되어 있지 않아 건너뛸 수 없습니다')}</p>
       ) : (
         <fieldset className="scn-set-block scn-set-group">
-          <legend>{t('준비 — 체크한 것만 실행')}</legend>
+          <legend>{t('사전 단계 — 체크한 것만 실행')}</legend>
           {건너뛸것.map((s, i) => {
             const 앞번호 = 이미실행(단계들, 재료, 번호, s.title);
             return (
@@ -176,6 +189,7 @@ function PanelBody({
           <ScenarioFields
             idPrefix={`${아이디}-params`}
             fields={입력칸}
+            실제={입력실제}
             글={입력글}
             잠금={잠금}
             잠글까={잠글까}
@@ -190,6 +204,7 @@ function PanelBody({
           <ScenarioFields
             idPrefix={`${아이디}-expected`}
             fields={기대칸}
+            실제={기대실제}
             글={기대글}
             잠금={{}}
             잠글까={잠글까}

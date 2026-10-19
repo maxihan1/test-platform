@@ -130,7 +130,7 @@ describe('ScenarioBuild 기존 시나리오 불러오기', () => {
     expect(screen.getByText('SC-12')).toBeTruthy();
     expect(screen.getByText(`v3 · 홍길동 저장 · ${when('2026-10-06T00:10:00.000Z', 'ko')}`)).toBeTruthy();
     expect(container.querySelector('.scn-build')?.getAttribute('data-tab')).toBe('settings');
-    fireEvent.click(screen.getByRole('button', { name: '변경 이력' }));
+    fireEvent.click(screen.getByRole('tab', { name: '변경 이력' }));
     expect(container.querySelector('.scn-build')?.getAttribute('data-tab')).toBe('history');
   });
 

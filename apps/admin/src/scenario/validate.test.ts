@@ -232,7 +232,7 @@ describe('이어 주기 조립 (도메인/시나리오 §3.7 결정 12 · §7)',
       케이스('SHOP-001'),
       { kind: 'case', tcId: 'SHOP-001', params: {}, expected: {}, skipSteps, carryOver: false, links },
     ];
-    const 사유 = ['2번 단계: 로그인 이어받기를 끈 단계에는 준비 건너뛰기와 값 연결을 걸 수 없다'];
+    const 사유 = ['2번 단계: 로그인 이어받기를 끈 단계에는 사전 단계 건너뛰기와 값 연결을 걸 수 없다'];
     const 막기: ScenarioLink = { kind: 'block', method: 'DELETE', urlPattern: '**/a' };
     expect(검사(끈(['상품을 담는다'], []))).toEqual(사유);
     expect(검사(끈([], [막기]))).toEqual(사유);

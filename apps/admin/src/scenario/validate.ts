@@ -144,7 +144,7 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
       // 이어 주기 (§3.7 결정 12)
       const links = p.links ?? [];
       if (p.carryOver === false && (p.skipSteps.length > 0 || links.length > 0)) {
-        오류.push(`${자리}: 로그인 이어받기를 끈 단계에는 준비 건너뛰기와 값 연결을 걸 수 없다`);
+        오류.push(`${자리}: 로그인 이어받기를 끈 단계에는 사전 단계 건너뛰기와 값 연결을 걸 수 없다`);
       }
       const 꽂은칸 = new Set<string>();
       const 겹친칸 = new Set<string>();

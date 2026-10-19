@@ -13,12 +13,12 @@ describe('ScenarioLinks 칸 아래 문장', () => {
     그리기([{ kind: 'reuse', method: 'GET', urlPattern: '/a', fromSeq: 0 }]);
     const 고르개 = screen.getByLabelText('가져올 단계') as HTMLSelectElement;
     expect(고르개.value).toBe('');
-    expect(screen.getByText('가리키던 단계가 빠졌습니다')).toBeTruthy();
+    expect(screen.getByText('가져올 단계가 삭제됐습니다')).toBeTruthy();
   });
 
   it('가리킨 단계가 멀쩡하면 그 문장이 없다', () => {
     그리기([{ kind: 'reuse', method: 'GET', urlPattern: '/a', fromSeq: 1 }]);
-    expect(screen.queryByText('가리키던 단계가 빠졌습니다')).toBeNull();
+    expect(screen.queryByText('가져올 단계가 삭제됐습니다')).toBeNull();
   });
 
   it('빈 URL 패턴과 JSON 경로는 문장이 나오고 칸이 그 문장을 가리킨다', () => {

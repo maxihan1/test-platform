@@ -3,12 +3,14 @@
 import type { ScenarioPart } from '@platform/kit';
 import { useState, type ReactNode } from 'react';
 
+import type { 지도API } from '../prd/apiMap.js';
 import { ScenarioLinks } from './ScenarioLinks.js';
 import { ScenarioOtherPanel } from './ScenarioOtherPanel.js';
 import { ScenarioPalette } from './ScenarioPalette.js';
 import { ScenarioPartPanel } from './ScenarioPartPanel.js';
 import type { 조립탭 } from './ScenarioTabs.js';
 import { ScenarioVersions } from './ScenarioVersions.js';
+import { useServiceApis } from './useServiceApis.js';
 import { 뒤케이스 } from './scenarioView.js';
 import type { useScenarioDraft } from './useScenarioDraft.js';
 
@@ -35,6 +37,8 @@ export function ScenarioBuildTabs(props: Props) {
   // 찾기 글자가 지워진다. 한 번도 안 열었으면 안 그린다 — 설정만 보는 사람이 목록을 20쪽씩 받을 까닭이 없다
   const [열었나, set열었나] = useState(탭 === 'add');
   if (탭 === 'add' && !열었나) set열었나(true);
+  // 설정 탭을 처음 열 때 한 번만 받는다. 설정 탭을 오가도 다시 받지 않는다
+  const 지도 = useServiceApis(초안.서비스, 탭 === 'settings');
   return (
     <>
       {!쓰나 || !열었나 ? null : (
@@ -51,12 +55,13 @@ export function ScenarioBuildTabs(props: Props) {
           />
         </div>
       )}
-      {탭 === 'add' ? null : <TabBody {...props} />}
+      {탭 === 'add' ? null : <TabBody {...props} 지도={지도} />}
     </>
   );
 }
 
 function TabBody({
+  지도,
   id,
   탭,
   쓰나,
@@ -67,7 +72,7 @@ function TabBody({
   on되돌림,
   on칸오류,
   시험,
-}: Props) {
+}: Props & { 지도: 지도API[] | null }) {
   if (탭 === 'trial' && 쓰나) return <>{시험}</>;
   if (탭 === 'history' && id !== null) {
     return (
@@ -113,6 +118,7 @@ function TabBody({
           단계들={초안.단계들}
           재료={초안.재료}
           쓰나={쓰나 && !잠금}
+          지도={지도}
           on바꿈={(links) => on바꿈({ ...고른단계, links })}
         />
       )}
