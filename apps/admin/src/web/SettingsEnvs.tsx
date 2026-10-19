@@ -171,7 +171,7 @@ export function EnvEditor({ envs, onChange, 접두사 }: { envs: 줄[]; onChange
         ) : (
           <>
             <div className="hint">{t('테스트 계정은 실행과 테스트 작성에서 로그인할 때 사용합니다. 실서비스 서버로 체크하면 테스트 작성과 화면 탐색 대상에서 제외됩니다')}</div>
-            <div className="hint">{t('앱 파일 경로는 Android 앱 케이스를 돌릴 때 설치할 apk 입니다. 러너가 도는 PC 의 경로이고 비우면 러너를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
+            <div className="hint">{t('앱 파일 경로는 Android 앱 케이스를 돌릴 때 설치할 apk 입니다. 테스트 실행기가 도는 PC 의 경로이고 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다')}</div>
           </>
         )}
       </div>

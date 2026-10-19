@@ -82,7 +82,7 @@ export const 설정말: Record<string, string> = {
   '대상 서버 {번호} 실서비스 서버': 'Target server {번호} is a live service server',
   '대상 서버 {번호} 앱 파일 경로': 'Target server {번호} app file path',
   '앱 파일 경로 (Android 앱만)': 'App file path (Android apps only)',
-  '앱 파일 경로는 Android 앱 케이스를 돌릴 때 설치할 apk 입니다. 러너가 도는 PC 의 경로이고 비우면 러너를 켤 때 준 PLATFORM_APP 을 씁니다':
+  '앱 파일 경로는 Android 앱 케이스를 돌릴 때 설치할 apk 입니다. 테스트 실행기가 도는 PC 의 경로이고 비우면 테스트 실행기를 켤 때 준 PLATFORM_APP 을 씁니다':
     'The app file path is the apk installed when Android app cases run. It is a path on the PC the runner runs on. Leave it empty to use PLATFORM_APP given when the runner started',
   '역할 이름': 'Role name',
   '+ 역할 추가': '+ Add role',
@@ -143,7 +143,7 @@ export const 설정말: Record<string, string> = {
   '운영': 'Admin',
   '마지막 운영 계정이라 운영을 끌 수 없습니다. 먼저 다른 사람을 운영으로 올립니다':
     'The last admin cannot be turned off. Make someone else an admin first',
-  '운영 (배정된 서비스 전부 + 설정 · 머지)': 'Admin (all assigned services + Settings · merge)',
+  '운영 (배정된 서비스 전부 + 설정 · 반영)': 'Admin (all assigned services + Settings · apply)',
   '운영 계정은 배정된 서비스에서 모든 기능을 씁니다. 켜 둘 서비스만 고르세요.':
     'Admins use every feature in their assigned services. Pick only the services to turn on.',
   '서비스와 권한': 'Services and permissions',

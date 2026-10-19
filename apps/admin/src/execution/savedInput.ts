@@ -70,14 +70,15 @@ async function 저장한다(client: PoolClient, tcId: string, schemas: { paramSc
      RETURNING saved_at`,
     [tcId, JSON.stringify(남은입력), JSON.stringify(남은기대), savedBy],
   );
-  // 목록 응답과 같은 모양이다. 비밀값 원문은 실행을 만들 때 서버만 쓴다
+  // 목록 응답과 같은 모양이다 — 저장한 사람은 아이디가 아니라 계정 이름이다(없으면 아이디). 비밀값 원문은 실행을 만들 때 서버만 쓴다
+  const 이름 = await client.query<{ display_name: string }>('SELECT display_name FROM app_user WHERE username = $1', [savedBy]);
   const 입력 = 저장값나누기(schemas.paramSchema, 남은입력);
   const 기대 = 저장값나누기(schemas.expectedSchema, 남은기대);
   return {
     params: 입력.보일것,
     expected: 기대.보일것,
     savedSecrets: { params: 입력.비밀, expected: 기대.비밀 },
-    savedBy,
+    savedBy: 이름.rows[0]?.display_name ?? savedBy,
     savedAt: r.rows[0]!.saved_at.toISOString(),
   };
 }

@@ -77,7 +77,7 @@ export function PermissionPicker({
                 checked={운영}
                 onChange={(e) => onRole(e.target.checked ? 'admin' : 'member')}
               />
-              {t('운영 (배정된 서비스 전부 + 설정 · 머지)')}
+              {t('운영 (배정된 서비스 전부 + 설정 · 반영)')}
             </label>
           )}
           {운영 ? (
