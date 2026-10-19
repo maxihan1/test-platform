@@ -31,18 +31,20 @@ export interface 케이스부품재료 {
  * 받는 쪽이 비활성으로 친다. 던지면 한 건 때문에 그 서비스의 시나리오 목록 전체가 죽는다.
  * 뿌리 밖 경로는 막아야 할 값이라 서버 로그에만 남긴다. 내부 경로를 응답에 싣지 않는다.
  *
- * `service` 를 주면 그 접두사의 케이스만 읽는다. 남의 서비스 케이스 파일을 열 까닭이 없다.
+ * `service` 를 주면 그 접두사(여럿이면 그 가운데 하나)의 케이스만 읽는다. 남의 서비스 케이스 파일을 열 까닭이 없다.
+ * 여럿은 시작 애플리케이션과 같은 프로젝트의 접두사다 (SPEC 도메인/시나리오 §3.7 결정 13)
  */
 export async function 케이스재료(
   tcIds: Iterable<string>,
-  service?: string,
+  service?: string | readonly string[],
 ): Promise<{ 카탈로그: 카탈로그; 부품재료: Map<string, 케이스부품재료> }> {
   const 카탈로그재료: 카탈로그 = new Map();
   const 부품재료 = new Map<string, 케이스부품재료>();
   const 뿌리 = resolve(testsRoot());
+  const 허용 = service === undefined ? undefined : [service].flat();
 
   for (const tcId of new Set(tcIds)) {
-    if (service !== undefined && !tcId.startsWith(`${service}-`)) continue;
+    if (허용 !== undefined && !허용.some((접두사) => tcId.startsWith(`${접두사}-`))) continue;
     // UI 테스트는 E2E 부품이 아니다 — case-parts 는 404, 저장된 부품은 CASE_INACTIVE 로 드러난다
     if (tcId종류(tcId) === 'UI') continue;
     const 행 = await findCase(tcId);

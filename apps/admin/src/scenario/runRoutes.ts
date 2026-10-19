@@ -15,6 +15,7 @@ import { 항목실패를가른다 } from '../reporting/itemFailure.js';
 import { 정수 } from '../routeParams.js';
 import { 가린값들 } from '../web/mask.js';
 
+import { type 박제부품, 단계앱 } from './mixed.js';
 import { 시나리오분배 } from './runResult.js';
 import { 실행만들기, 시나리오실행오류 } from './runStore.js';
 import { type 부품기록, 부품비밀 } from './runTrace.js';
@@ -38,7 +39,7 @@ interface 부품행 {
   kind: ScenarioPart['kind'];
   tc_id: string | null;
   tc_name: string | null;
-  part: ScenarioPart;
+  part: 박제부품;
   status: ItemStatus;
   duration_ms: number | null;
   skipped_steps: string[];
@@ -99,6 +100,7 @@ export async function 시나리오결과(runId: number) {
     scenario_id: string;
     scenario_version: number;
     status: string;
+    prefix: string;
     platform: Platform;
     title: string;
     env: string;
@@ -108,9 +110,10 @@ export async function 시나리오결과(runId: number) {
     started_at: Date;
     finished_at: Date | null;
   }>(
-    `SELECT r.scenario_id, r.scenario_version, r.status, v.platform,
+    `SELECT r.scenario_id, r.scenario_version, r.status, v.platform, s.prefix,
             r.title, r.env, r.base_url, r.triggered_by, r.triggered_by_name, r.started_at, r.finished_at
        FROM test_run r
+       JOIN service s ON s.id = r.service_id
        JOIN scenario_version v ON v.scenario_id = r.scenario_id AND v.version = r.scenario_version
       WHERE r.run_id = $1 AND r.kind = 'SCENARIO'`,
     [runId],
@@ -178,8 +181,11 @@ export async function 시나리오결과(runId: number) {
     }),
   };
   // 머리 칸은 비밀이 아니다. 글자째 가리기에 넣으면 숫자 비밀(2026)이 시각 · 주소의 글자까지 지운다
+  const 가린것 = 가린다(본것, 긴것부터(비밀)) as typeof 본것;
   return {
-    ...(가린다(본것, 긴것부터(비밀)) as typeof 본것),
+    ...가린것,
+    // 애플리케이션 이름표와 돈 주소는 글자째 가리기에서 뺀다 — 머리 칸과 같은 까닭이다 (§3.7 결정 13)
+    parts: 가린것.parts.map((p, i) => ({ ...p, ...단계앱(부품.rows[i]!.part, 행.prefix, 행.base_url) })),
     title: 행.title,
     env: 행.env,
     baseUrl: 행.base_url,

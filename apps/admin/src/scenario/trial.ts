@@ -3,18 +3,19 @@
 import { lstat, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
+import type { BrowserPlatform, ScenarioDeleteStatus, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
 import type { Pool } from 'pg';
 
 import { findService } from '../catalog/store.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { callScenarioRunner, 켜진내컴퓨터러너 } from '../execution/runner.js';
 import { artifactsDir } from '../execution/routes.js';
-import { 대상서버계정 } from '../execution/savedInput.js';
 import { 가린다, 긴것부터, 비밀글자들, 시나리오시험, type 시나리오시험결과 } from '../execution/trial.js';
 import { 삭제코드를읽는다 } from '../prd/apiMap.js';
 import { 가린값들 } from '../web/mask.js';
 
+import { 같은프로젝트접두사, 단계주소, 쓰는앱읽기 } from './apps.js';
+import { 케이스접두사, 쓰는접두사 } from './mixed.js';
 import { type 케이스부품재료, 케이스재료 } from './parts.js';
 import { 부품채우기 } from './runStore.js';
 import { 꽂은값비밀, 실패부품trace, 시나리오trace경로, trace를지운다 } from './runTrace.js';
@@ -78,20 +79,18 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
 
   const 번호들 = 본문.parts.flatMap((p) => (p.kind === 'case' ? [p.tcId] : []));
   // 만들기와 같은 검사다 — 저장하면 거절될 조립을 시험으로 돌리게 두지 않는다
-  const { 카탈로그, 부품재료 } = await 케이스재료(번호들, 본문.service);
-  const 오류 = 조립검사(본문.parts, 본문.platform, 본문.service, 카탈로그);
+  // 시작 애플리케이션과 같은 프로젝트의 케이스까지 읽는다 (§3.7 결정 13)
+  const 허용 = await 같은프로젝트접두사(본문.service);
+  const { 카탈로그, 부품재료 } = await 케이스재료(번호들, 허용);
+  const 오류 = 조립검사(본문.parts, 본문.platform, 본문.service, 카탈로그, 허용);
   if (오류.length > 0) throw new 시험시작오류('INVALID_REQUEST', 오류.join(' · '));
 
   // 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (runStore.ts 와 같다)
   const pool = await db();
-  const 대상 = await pool.query<{ base_url: string }>(
-    'SELECT base_url FROM service_env WHERE service_id = $1 AND env = $2',
-    [서비스.id, 본문.env],
-  );
-  const baseUrl = 대상.rows[0]?.base_url;
-  if (baseUrl === undefined) {
-    throw new 시험시작오류('ENV_NOT_FOUND', `${본문.service} 서비스에 ${본문.env} 대상 서버가 없다`);
-  }
+  // 섞인 애플리케이션마다 같은 이름의 줄을 찾는다. 하나라도 없으면 거절한다 (§3.7 결정 13)
+  const { 앱들, 없음 } = await 쓰는앱읽기(쓰는접두사(본문.parts, 본문.service), 본문.env, pool);
+  if (없음 !== null) throw new 시험시작오류('ENV_NOT_FOUND', `${없음} 서비스에 ${본문.env} 대상 서버가 없다`);
+  const baseUrl = 앱들.get(본문.service)!.baseUrl;
 
   const 행 = await pool.query<{ tc_id: string; file_path: string; param_schema: unknown; expected_schema: unknown }>(
     'SELECT tc_id, file_path, param_schema, expected_schema FROM test_case WHERE tc_id = ANY($1::text[])',
@@ -99,11 +98,11 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
   );
   const 케이스들 = new Map(행.rows.map((r) => [r.tc_id, r]));
   // 진짜 실행과 같은 채우기다 — 조립에서 비운 비밀번호도 저장값 · 그 대상 서버 계정으로 러너에 간다. 채우면 커지므로 다시 잰다 (§7)
-  const 채운부품 = await 부품채우기(pool, 본문.parts, 케이스들, await 대상서버계정(pool, 서비스.id, 본문.env));
+  const 채운부품 = await 부품채우기(pool, 본문.parts, 케이스들, (tcId) => 앱들.get(케이스접두사(tcId))?.계정들 ?? []);
   const 크기사유 = 제한시간크기사유(채운부품);
   if (크기사유.length > 0) throw new 시험시작오류('INVALID_REQUEST', `저장값을 채운 뒤 ${크기사유.join(' · ')}`);
   const parts: ScenarioExecuteRequest['parts'] = 채운부품.map((p) =>
-    p.kind === 'case' ? { ...p, filePath: 케이스들.get(p.tcId)?.file_path } : p,
+    p.kind === 'case' ? { ...p, ...단계주소(p, 본문.service, 앱들), filePath: 케이스들.get(p.tcId)?.file_path } : { ...p, ...단계주소(p, 본문.service, 앱들) },
   );
 
   // 조립 본문이 아니라 채운 값으로 모은다 — 저장값에서 온 비밀번호는 본문에 없다
@@ -133,7 +132,7 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
           parts,
           timeoutMs: 시나리오제한시간(본문.parts),
           // 줄에서 기다리는 사이 trace 적재가 코드를 바꿀 수 있어 돌기 직전에 읽는다
-          deleteStatuses: await 삭제코드를읽는다(서비스.id),
+          deleteStatuses: await 모든삭제코드(앱들.values()),
         }, 내러너);
         console.info(`[scenario-trial] 끝 ${id} · ${내러너 === undefined ? '서버 러너' : '내 컴퓨터 러너'} · ${사람.username} · ${본문.service} · ${응답.status} · ${Date.now() - 시작}ms`);
         // 기록은 DB 없이 결과에 싣는다. 꽂은 값의 비밀도 자르기 전에 넣는다 — 본문을 2000자로 자른 뒤에 가리면 경계에 걸친 조각이 남는다 (§7 「실패 기록」)
@@ -155,6 +154,13 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
     console.error('[scenario-trial] 옛 시험 사진 폴더를 치우지 못했다', err);
   });
   return trialId;
+}
+
+// 섞인 애플리케이션 모두의 지도에서 읽는다. 러너 입구 상한(1000줄)까지만 싣는다 (§3.7 결정 13)
+async function 모든삭제코드(앱들: Iterable<{ serviceId: number }>): Promise<ScenarioDeleteStatus[]> {
+  const 줄: ScenarioDeleteStatus[] = [];
+  for (const 앱 of 앱들) 줄.push(...(await 삭제코드를읽는다(앱.serviceId)));
+  return 줄.slice(0, 1000);
 }
 
 /**

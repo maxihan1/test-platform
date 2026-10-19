@@ -6,6 +6,8 @@ import { z } from 'zod';
 
 import { tcId종류 } from '../catalog/rules.js';
 
+import { 섞였나 } from './mixed.js';
+
 // 러너 입구(apps/runner/src/routes.ts scenarioLink · responseRef)와 맞춘다 — 여기서 통과한 것을 러너가 400 으로 돌려보내면 저장만 되고 영영 못 돈다.
 // 바꿔 보내기 경로 규칙과 {} 개수는 사람 말 사유로 알려 주려고 조립검사가 본다
 const 메서드 = z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
@@ -40,6 +42,7 @@ const 부품모양 = z.discriminatedUnion('kind', [
     path: z.string(),
     body: z.unknown().optional(),
     expectStatus: z.number().int(),
+    service: z.string().optional(),
   }),
   z.object({
     kind: z.literal('mock'),
@@ -102,6 +105,9 @@ export function 제한시간크기사유(parts: ScenarioPart[]): string[] {
   return 사유;
 }
 
+// 짧은 무늬는 걸린 창의 주소로 풀려 어느 애플리케이션을 가리키는지 모호하다 (SPEC 도메인/시나리오 §3.7 결정 13)
+const 짧은무늬 = '시작 애플리케이션 밖의 단계가 섞인 시나리오는 / 로 시작하는 URL 패턴을 쓸 수 없다. **/ 로 시작하거나 주소 전체를 적는다';
+
 const 경로규칙 = '/ 로 시작하고 // 로 시작하지 않으며 \\ 와 제어문자가 없어야 한다';
 
 /** API 부품 경로와 바꿔 보내기 고치기 주소가 같은 규칙을 쓴다 (§7) */
@@ -111,18 +117,26 @@ function 바른경로(path: string): boolean {
   return path.startsWith('/') && !path.startsWith('//') && !/[\\\x00-\x1f\x7f]/.test(path);
 }
 
-/** 거절 사유를 사람 말로 모은다. 비면 통과다. 되돌리기는 이것을 안 건다 (§7 restore) */
-export function 조립검사(parts: ScenarioPart[], platform: Platform, service: string, 재료: 카탈로그): string[] {
+/**
+ * 거절 사유를 사람 말로 모은다. 비면 통과다. 되돌리기는 이것을 안 건다 (§7 restore)
+ * `허용` 은 섞을 수 있는 애플리케이션 접두사 — 시작 애플리케이션과 같은 프로젝트의 것이다 (결정 13). 안 주면 시작 애플리케이션 하나다
+ */
+export function 조립검사(parts: ScenarioPart[], platform: Platform, service: string, 재료: 카탈로그, 허용: readonly string[] = [service]): string[] {
   if (parts.length === 0) return ['단계가 하나도 없다'];
 
   const 오류: string[] = [];
+  const 섞임 = 섞였나(parts, service);
   const 켜진모킹 = new Set<string>();
   parts.forEach((p, i) => {
     const 자리 = `${i + 1}번 단계`;
     if (p.kind === 'case') {
       // 접두사부터 본다 — 남의 서비스 케이스가 있는지 없는지가 오류 문장으로 새지 않게
-      if (!p.tcId.startsWith(`${service}-`)) {
-        오류.push(`${자리}: ${p.tcId} 는 ${service} 서비스의 케이스가 아니다`);
+      if (!허용.some((접두사) => p.tcId.startsWith(`${접두사}-`))) {
+        오류.push(
+          허용.length === 1
+            ? `${자리}: ${p.tcId} 는 ${service} 서비스의 케이스가 아니다`
+            : `${자리}: ${p.tcId} 는 ${service} 서비스와 같은 프로젝트의 애플리케이션 케이스가 아니다`,
+        );
         return;
       }
       // 재료가 UI 를 빼 두므로 먼저 본다 — 아니면 「없거나 비활성」으로 잘못 말한다 (도메인/작성 §3.6 「★ 테스트 두 갈래」)
@@ -168,9 +182,14 @@ export function 조립검사(parts: ScenarioPart[], platform: Platform, service:
       for (const 칸 of 겹친칸) 오류.push(`${자리}: 「${칸}」 칸에 값 주입이 둘 이상이다`);
     } else if (p.kind === 'api') {
       if (!바른경로(p.path)) 오류.push(`${자리}: API 경로는 ${경로규칙}`);
+      if (p.service !== undefined && !허용.includes(p.service)) {
+        오류.push(`${자리}: API 호출의 애플리케이션 ${p.service} 는 ${service} 서비스와 같은 프로젝트가 아니다`);
+      }
     } else if (p.kind === 'mock') {
       켜진모킹.add(p.urlPattern);
+      if (섞임 && p.urlPattern.startsWith('/')) 오류.push(`${자리}: ${짧은무늬}`);
     } else if (p.kind === 'unmock') {
+      if (섞임 && p.urlPattern.startsWith('/')) 오류.push(`${자리}: ${짧은무늬}`);
       if (!켜진모킹.delete(p.urlPattern)) 오류.push(`${자리}: 켜져 있는 「${p.urlPattern}」 모킹이 없다`);
     } else if (p.ms <= 0 || p.ms > 대기상한) {
       오류.push(`${자리}: 대기는 1ms 부터 ${대기상한}ms 까지다`);
