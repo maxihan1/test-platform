@@ -2,9 +2,31 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { 앱화면읽기 } from './appScreen.js';
+import { 앱파일고르기, 앱화면읽기 } from './appScreen.js';
 
 const 답 = (몸: unknown, status = 200) => vi.fn(async () => new Response(JSON.stringify(몸), { status })) as unknown as typeof fetch;
+
+describe('앱파일고르기', () => {
+  const 줄들 = [
+    { env: 'dev', appPath: null },
+    { env: 'qa', appPath: '/apk/qa.apk' },
+    { env: 'stg', appPath: '/apk/stg.apk' },
+  ];
+
+  it('요청에 대상 서버가 있으면 그 줄의 경로다 — 다른 줄에 경로가 있어도 따지지 않는다', () => {
+    expect(앱파일고르기(줄들, 'stg')).toBe('/apk/stg.apk');
+    expect(앱파일고르기(줄들, 'dev')).toBeNull();
+  });
+
+  it('대상 서버가 없으면 경로가 있는 첫 줄(env 순)이다', () => {
+    expect(앱파일고르기(줄들, null)).toBe('/apk/qa.apk');
+  });
+
+  it('경로가 하나도 없으면 null — 앱이 없는 서비스', () => {
+    expect(앱파일고르기([{ env: 'dev', appPath: null }], null)).toBeNull();
+    expect(앱파일고르기([], 'dev')).toBeNull();
+  });
+});
 
 describe('앱화면읽기', () => {
   it('앱 파일 경로가 없으면 러너를 부르지 않고 까닭도 없이 비운다 — 앱이 없는 서비스', async () => {

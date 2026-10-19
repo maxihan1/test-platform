@@ -1,7 +1,7 @@
 // 앱 첫 화면을 자료 폴더에 받아 둔다 — AI 가 러너에 닿지 않고 요소 주소를 고르게 (도메인/작성 §3.6 「앱 화면」 · §7 「앱 화면 통로」)
 // 기대값의 근거가 아니다 — 자식 지침(tpx-author references/app.md)이 그렇게 읽는다
 
-import { writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { 인증헤더 } from './authoring-io.js';
@@ -17,10 +17,12 @@ export const 앱화면파일 = (자료: string): string => join(자료, 'app-scr
  * 러너가 앱을 띄우는 일이라 다시 걸지 않는다 — 한 번 더 걸면 앱이 두 번 켜진다
  */
 export async function 앱화면받기(서버: { 주소기지: string; 토큰: string }, 번호: number, 자료: string): Promise<앱화면 | undefined> {
+  // 이어받은 자료 폴더에는 앞 실행이 받은 화면이 남아 있다. 이번에 못 읽었는데 옛 화면이 보이면 안 된다
+  rmSync(앱화면파일(자료), { force: true });
   try {
     const 답 = await fetch(`${서버.주소기지}/api/authoring/requests/${String(번호)}/app-screen`, {
       headers: 인증헤더(서버.토큰),
-      signal: AbortSignal.timeout(120_000),
+      signal: AbortSignal.timeout(130_000),
     });
     const 몸 = (await 답.json().catch(() => null)) as { screen?: unknown; reason?: unknown } | null;
     if (!답.ok) return 로그만(번호, `서버 ${답.status}`);

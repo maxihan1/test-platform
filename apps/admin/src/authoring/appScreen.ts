@@ -11,6 +11,7 @@ import { 대상줄들읽기 } from './reverse.js';
 export type 앱화면답 = { screen: string | null; reason: string | null };
 
 // 러너의 연결 열기 60초 + 화면 받기 30초 + 닫기 10초에 여유를 더한다
+// 에이전트의 기다림(130초)이 이보다 길어야 러너가 폰을 읽는 중에 에이전트가 먼저 끊지 않는다
 const 러너_기다림_ms = 110_000;
 const 까닭_상한 = 200;
 
@@ -40,14 +41,17 @@ export async function 앱화면읽기(appPath: string | null, 러너: string | u
   }
 }
 
+/** 요청에 대상 서버가 있으면 그 줄의 앱 파일 경로, 없으면 앱 파일 경로가 있는 첫 줄(env 순) */
+export function 앱파일고르기(줄들: { env: string; appPath: string | null }[], env: string | null): string | null {
+  const 줄 = env === null ? 줄들.find((j) => j.appPath !== null) : 줄들.find((j) => j.env === env);
+  return 줄?.appPath ?? null;
+}
+
 export default async function appScreenAgentRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { id: string } }>('/authoring/requests/:id/app-screen', async (req, reply) => {
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
-    const 줄들 = await 대상줄들읽기(행.serviceId);
-    // 요청에 대상 서버가 있으면 그 줄, 없으면 앱 파일 경로가 있는 첫 줄
-    const 줄 = 행.env === null ? 줄들.find((j) => j.appPath !== null) : 줄들.find((j) => j.env === 행.env);
-    const appPath = 줄?.appPath ?? null;
+    const appPath = 앱파일고르기(await 대상줄들읽기(행.serviceId), 행.env);
     return 앱화면읽기(appPath, appPath === null ? undefined : await 켜진내컴퓨터러너());
   });
 }

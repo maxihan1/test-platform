@@ -54,6 +54,17 @@ describe('앱화면받기', () => {
     expect(existsSync(앱화면파일(자료))).toBe(false);
   });
 
+  it('앞 실행이 남긴 화면 파일은 이번에 못 읽었으면 지운다', async () => {
+    서버가({ screen: '옛 화면', reason: null });
+    await 앱화면받기(서버, 7, 자료);
+    expect(existsSync(앱화면파일(자료))).toBe(true);
+
+    서버가({ screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' });
+    await 앱화면받기(서버, 7, 자료);
+
+    expect(existsSync(앱화면파일(자료))).toBe(false);
+  });
+
   it('옛 서버(404) · 끊김은 프롬프트를 안 바꾼다 — 앱이 있는지도 모른다', async () => {
     서버가({ error: 'NOT_FOUND' }, 404);
     expect(await 앱화면받기(서버, 7, 자료)).toBeUndefined();
