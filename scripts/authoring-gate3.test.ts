@@ -5,7 +5,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { type 돌린기록, 기록남기며비우기, 끝돌려보기경고, 남은임시도우미, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
+import { type 돌린기록, 기록남기며비우기, 끝검사줄들, 끝돌려보기경고, 남은임시도우미, 살필케이스, 파일상태보기, 판들읽기 } from './authoring-gate3.js';
 
 describe('남은 임시 도우미 (작성 §3.6 팬아웃 · 2026-10-04)', () => {
   it('공용으로 옮기지 않은 draft 파일이 남으면 경고한다', () => {
@@ -178,6 +178,38 @@ describe('마지막 전체 돌려 보기 경고 (작성 §3.6 · 2026-10-19 사�
 
   it('볼 케이스가 없으면(표만 고친 작성) 기록이 없어도 경고하지 않는다', () => {
     expect(끝돌려보기경고([], {})).toBeNull();
+  });
+});
+
+describe('끝검사줄들 — 앱 케이스는 폰이 없어 돌지 않았다고 적는다 (작성 §3.6 「앱 화면」 · APP-F1-09)', () => {
+  const 앱케이스 = "export const spec = defineCase({ tcId: 'MDA-FN-002', platforms: ['android'] });\n";
+  const 웹케이스 = "export const spec = defineCase({ tcId: 'MDA-FN-003' });\n";
+
+  it('PC 프로젝트에서 건너뛴 앱 케이스를 3번 다 초록으로 세지 않는다', () => {
+    const 트리 = mkdtempSync(join(tmpdir(), 'gate3-트리-'));
+    const 기록 = mkdtempSync(join(tmpdir(), 'gate3-기록-'));
+    mkdirSync(join(트리, 'tests', 'mda'), { recursive: true });
+    writeFileSync(join(트리, 'tests', 'mda', 'MDA-FN-002.spec.ts'), 앱케이스);
+    writeFileSync(join(트리, 'tests', 'mda', 'MDA-FN-003.spec.ts'), 웹케이스);
+    const 나중 = new Date(Date.now() + 60_000).toISOString();
+    const 파일들 = { 'mda/MDA-FN-002.spec.ts': ['skipped', 'skipped', 'skipped'], 'mda/MDA-FN-003.spec.ts': 셋 };
+    writeFileSync(join(기록, 'gate3-final-1.json'), 결과(파일들, { startTime: 나중 }));
+
+    const 줄들 = 끝검사줄들(기록, 트리, 'mda', ['tests/mda/MDA-FN-002.spec.ts', 'tests/mda/MDA-FN-003.spec.ts']);
+
+    expect(줄들[0]).toBe('⚠️ 폰이 없어 돌려 보지 않은 앱 케이스 1개 — mda/MDA-FN-002.spec.ts');
+    expect(줄들.some((줄) => 줄.includes('규칙대로 돌지 않았다'))).toBe(false);
+  });
+
+  it('앱 케이스만 바꿨으면 돌려 본 기록이 없어도 앱 경고 하나만 낸다', () => {
+    const 트리 = mkdtempSync(join(tmpdir(), 'gate3-트리-'));
+    const 기록 = mkdtempSync(join(tmpdir(), 'gate3-기록-'));
+    mkdirSync(join(트리, 'tests', 'mda'), { recursive: true });
+    writeFileSync(join(트리, 'tests', 'mda', 'MDA-FN-002.spec.ts'), 앱케이스);
+
+    const 줄들 = 끝검사줄들(기록, 트리, 'mda', ['tests/mda/MDA-FN-002.spec.ts']);
+
+    expect(줄들.filter((줄) => 줄.startsWith('⚠️'))).toEqual(['⚠️ 폰이 없어 돌려 보지 않은 앱 케이스 1개 — mda/MDA-FN-002.spec.ts']);
   });
 });
 
