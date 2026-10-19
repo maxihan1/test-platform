@@ -2147,6 +2147,16 @@ input[type='file']::file-selector-button {
   font-size: 13px;
 }
 
+/* 비밀번호를 바꾼 뒤 돌아간 자리에서 5초 보이는 확인 한 줄. 알림 줄(`.nt-line`)과 같은 면이다 */
+.pw-done {
+  margin-bottom: 8px;
+  padding: 7px 14px;
+  border: 1px solid var(--line-2);
+  background: var(--head);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
 /* 언어 고르개는 헤더 · 내 메뉴와 같은 것을 쓴다. 사이드바 바닥의 구분선 · 여백만 걷는다 */
 .login-lang {
   margin-top: 0;

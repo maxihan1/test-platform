@@ -22,8 +22,13 @@ const 바꾼사람: User = {
   services: [],
 };
 
-function 그리기(강제 = false, onDone: (user: User) => void = () => undefined, onLogout: () => void = () => undefined) {
-  render(<PasswordChange 강제={강제} onDone={onDone} onLogout={onLogout} />);
+function 그리기(
+  강제 = false,
+  onDone: (user: User) => void = () => undefined,
+  onLogout: () => void = () => undefined,
+  onCancel: () => void = () => undefined,
+) {
+  render(<PasswordChange 강제={강제} onDone={onDone} onLogout={onLogout} onCancel={onCancel} />);
 }
 
 function 채운다(값: { 지금?: string; 새것?: string; 확인?: string }) {
@@ -54,6 +59,21 @@ describe('비밀번호 변경 화면', () => {
     expect(screen.getByText('처음 받은 비밀번호를 바꿔야 계속할 수 있습니다')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '로그아웃' }));
     expect(나감).toHaveBeenCalled();
+  });
+
+  it('스스로 바꿀 때는 취소가 있고 누르면 위로 알린다 — 로그아웃은 없다', () => {
+    const 취소 = vi.fn();
+    그리기(false, () => undefined, () => undefined, 취소);
+
+    expect(screen.queryByRole('button', { name: '로그아웃' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '취소' }));
+    expect(취소).toHaveBeenCalledTimes(1);
+  });
+
+  it('변경 강제면 취소가 없다 — 빠져나갈 길은 로그아웃 하나다', () => {
+    그리기(true);
+
+    expect(screen.queryByRole('button', { name: '취소' })).toBeNull();
   });
 
   it('스스로 바꿀 때는 강제 문구가 없다', () => {

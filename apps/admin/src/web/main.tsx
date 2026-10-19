@@ -1,7 +1,7 @@
 // 화면 전체의 진입점. 로그인 여부를 먼저 가르고, 들어왔으면 띠 안에 화면 하나를 그린다
 // 로그인하지 않은 채로 다른 화면 주소를 열면 로그인으로 보낸다 (SPEC §8.6)
 
-import { StrictMode, useEffect, useRef, useState } from 'react';
+import { StrictMode, useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { api, type ServiceRow, type User, 돌아갈자리를꺼낸다, 세션끊김을받는다 } from './api.js';
@@ -24,6 +24,7 @@ import {
 } from './layout.js';
 import { Login } from './Login.js';
 import { PasswordChange } from './PasswordChange.js';
+import { PasswordNotice } from './PasswordNotice.js';
 import { Guide } from './Guide.js';
 import { Prd } from './Prd.js';
 import { 기능보나, 판정을만든다 } from './role.js';
@@ -139,7 +140,15 @@ function Screen({
     case 'settings':
       return <Settings user={user} onMeChanged={onMeChanged} 자리={current.자리} />;
     case 'password':
-      return <PasswordChange 강제={false} onDone={on비밀번호바뀜} />;
+      return (
+        <PasswordChange
+          강제={false}
+          onDone={on비밀번호바뀜}
+          onCancel={() => {
+            window.location.hash = 집(user, service?.prefix ?? null);
+          }}
+        />
+      );
     default:
       return (
         <div className="screen">
@@ -159,6 +168,9 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   const [prefix, setPrefix] = useState<string | null>(() => 고른서비스를읽는다());
   // 스스로 비밀번호를 바꾼 뒤 돌아갈 자리. 들어가는 화면들은 기억하지 않는다 — 거기로 돌아가면 쓸 데가 없다
   const 직전 = useRef('');
+  // 스스로 바꾼 직후에만 돌아간 자리에서 확인 한 줄을 보인다. 강제로 바꾼 사람은 집으로 가며 그 줄이 없다
+  const [비밀번호바꿈, set비밀번호바꿈] = useState(false);
+  const 알림끄기 = useCallback(() => set비밀번호바꿈(false), []);
   useEffect(() => {
     if (!['password', 'login', 'signup'].includes(route(hash).name)) 직전.current = hash;
   }, [hash]);
@@ -244,6 +256,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // 바뀐 나를 받아 강제면 집으로, 스스로면 직전 자리로 (도메인/인증 §8.6). 세션은 그대로다
   const 비밀번호바뀜 = (user: User, 강제: boolean) => {
     set상태({ 어디: '안', user });
+    set비밀번호바꿈(!강제);
     const 고른 = 고른서비스(prefix, user.services)?.prefix ?? null;
     window.location.hash = 강제 ? 집(user, 고른) : 돌아갈자리(직전.current, user, 고른);
   };
@@ -273,6 +286,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
         return 지금자리(지금.name, 집(상태.user, 열린접두사), 'kind' in 지금 ? 지금.kind : undefined);
       })()}
     >
+      {비밀번호바꿈 ? <PasswordNotice onGone={알림끄기} /> : null}
       <Screen
         hash={hash}
         service={열린것}
