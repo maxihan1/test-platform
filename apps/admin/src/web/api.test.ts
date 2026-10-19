@@ -312,4 +312,12 @@ describe('앱 대시보드 (도메인/리포팅 §7 · §8.12)', () => {
     await api.dashboard('Asia/Seoul', 'running');
     expect(부름[0]?.url).toBe('/api/dashboard?tz=Asia%2FSeoul&only=running');
   });
+
+  it('서비스 번호와 기간을 고르면 service · days 를 붙이고, 안 고르면 안 붙인다', async () => {
+    답 = { status: 200, body: {} };
+    await api.dashboard('Asia/Seoul', undefined, { service: 3, days: 7 });
+    expect(부름[0]?.url).toBe('/api/dashboard?tz=Asia%2FSeoul&service=3&days=7');
+    await api.dashboard('Asia/Seoul', 'running', { service: 3 });
+    expect(부름[1]?.url).toBe('/api/dashboard?tz=Asia%2FSeoul&only=running&service=3');
+  });
 });

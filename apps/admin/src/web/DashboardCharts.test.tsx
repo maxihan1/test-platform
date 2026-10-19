@@ -242,8 +242,9 @@ describe('요구사항 커버리지', () => {
     const 줄 = container.querySelectorAll('.dash-cov-row')[0]!;
     expect(줄.textContent).toContain('ZDA 결제');
     const 링크 = within(줄 as HTMLElement).getByRole('link');
-    expect(링크.getAttribute('href')).toBe('#/authoring/12');
-    expect(링크.textContent).toContain('10월 5일');
+    expect(링크.getAttribute('href')).toBe('#/prd');
+    expect(링크.textContent).toBe('테스트 없는 요구 6건 보기');
+    expect(링크.getAttribute('title')).toBe('10월 5일 · 요청 #12');
     expect([...줄.querySelectorAll('.dash-cov-pair')].map((짝) => 짝.textContent)).toEqual(['기능80%', 'UI25%']);
     expect(줄.querySelectorAll('.dash-cov-bar i')).toHaveLength(2);
     expect(줄.querySelector('.dash-cov-bar.ui i')).not.toBeNull();

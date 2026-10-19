@@ -5,13 +5,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import { api, ApiError } from './api.js';
 import { 날짜글자 } from './dashboardView.js';
-import { 서비스별표, 신규실패표, 실행중줄, 안내판 } from './DashboardTables.js';
-import { 일별막대, 실패히트맵, 통과율선 } from './DashboardCharts.js';
+import { 고르개, 조건을요청으로, 조건을주소로, 주소에서조건, type 대시보드조건, type 이동재료 } from './DashboardPick.js';
+import { 신규실패표 } from './DashboardFail.js';
+import { 서비스별표, 실행중줄, 안내판 } from './DashboardTables.js';
+import { 일별막대, 통과율선 } from './DashboardCharts.js';
+import { 실패히트맵 } from './DashboardHeat.js';
 import { 요구커버리지 } from './DashboardCoverage.js';
 import { 통과율칸, 판칸, 합 } from './DashboardRate.js';
 import { 실패유형칸 } from './DashboardTypes.js';
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
+import { use주소조건 } from './leaveGuard.js';
 import { Loading, message } from './ui.js';
 
 type 자료 = 대시보드응답;
@@ -27,9 +31,10 @@ const 새로고침간격 = 15_000;
 
 /**
  * 열 때 집계를 한 번 · 도는 실행이 있으면 15초마다 실행 중 줄만 · 줄에서 빠진 실행이 있으면 집계를 한 번 더.
- * **화면을 갈아엎지 않는다** — 다시 받아도 `loading` 으로 돌아가지 않아 칸이 새로 그려지지 않고 등장 움직임이 다시 안 돈다
+ * **화면을 갈아엎지 않는다** — 다시 받아도 `loading` 으로 돌아가지 않아 칸이 새로 그려지지 않고 등장 움직임이 다시 안 돈다.
+ * 서비스 · 기간을 바꾸면 다른 자료라 `loading` 부터 다시 받는다
  */
-function use대시보드(시간대: string): 읽음 {
+function use대시보드(시간대: string, 조건: 대시보드조건): 읽음 {
   const 언어 = use언어();
   const [읽음, set읽음] = useState<읽음>({ 종류: 'loading' });
   const 최근 = useRef<자료 | null>(null);
@@ -39,6 +44,10 @@ function use대시보드(시간대: string): 읽음 {
   const [재시도, set재시도] = useState(false);
   // 집계는 무겁다. 서버가 느릴 때 15초마다 겹쳐 부르면 탭마다 부하를 보태고 늦게 온 옛 응답이 새것을 덮는다
   const 집계받는중 = useRef(false);
+  // 조건을 바꾸면 옛 조건의 응답이 늦게 와 새 응답을 덮을 수 있다. 가장 나중에 보낸 요청의 응답만 받는다
+  const 요청번호 = useRef(0);
+  const 요청조건 = 조건을요청으로(조건);
+  const 조건키 = `${조건.서비스 ?? ''}:${조건.일}`;
 
   useEffect(() => {
     살아있다.current = true;
@@ -48,22 +57,23 @@ function use대시보드(시간대: string): 읽음 {
   }, []);
 
   const 전체읽기 = (처음: boolean): void => {
-    if (집계받는중.current) return;
+    if (!처음 && 집계받는중.current) return;
     집계받는중.current = true;
+    const 내번호 = (요청번호.current += 1);
     api
-      .dashboard(시간대)
+      .dashboard(시간대, undefined, 요청조건)
       .finally(() => {
-        집계받는중.current = false;
+        if (내번호 === 요청번호.current) 집계받는중.current = false;
       })
       .then((값) => {
-        if (!살아있다.current) return;
+        if (!살아있다.current || 내번호 !== 요청번호.current) return;
         최근.current = 값;
         다시받아야함.current = false;
         set재시도(false);
         set읽음({ 종류: 'data', 값 });
       })
       .catch((err: unknown) => {
-        if (!살아있다.current) return;
+        if (!살아있다.current || 내번호 !== 요청번호.current) return;
         if (!처음) {
           console.error('[dashboard] reloading the summary failed; keeping the previous values and retrying on the next tick', err);
           다시받아야함.current = true;
@@ -81,8 +91,12 @@ function use대시보드(시간대: string): 읽음 {
   };
 
   useEffect(() => {
+    최근.current = null;
+    다시받아야함.current = false;
+    set재시도(false);
+    set읽음({ 종류: 'loading' });
     전체읽기(true);
-  }, [시간대]);
+  }, [시간대, 조건키]);
 
   const 도는중 = 읽음.종류 === 'data' && 읽음.값.running.length > 0;
   const 타이머필요 = 도는중 || 재시도;
@@ -93,11 +107,12 @@ function use대시보드(시간대: string): 읽음 {
         전체읽기(false);
         return;
       }
+      const 보낸번호 = 요청번호.current;
       api
-        .dashboard(시간대, 'running')
+        .dashboard(시간대, 'running', 요청조건)
         .then(({ running }) => {
           const 앞 = 최근.current;
-          if (!살아있다.current || 앞 === null) return;
+          if (!살아있다.current || 앞 === null || 보낸번호 !== 요청번호.current) return;
           const 끝난것이있다 = 앞.running.some((전) => !running.some((지금) => 지금.runId === 전.runId));
           최근.current = { ...앞, running };
           set읽음({ 종류: 'data', 값: 최근.current });
@@ -108,7 +123,7 @@ function use대시보드(시간대: string): 읽음 {
         });
     }, 새로고침간격);
     return () => clearInterval(타이머);
-  }, [타이머필요, 시간대]);
+  }, [타이머필요, 시간대, 조건키]);
 
   return 읽음;
 }
@@ -127,21 +142,46 @@ export function Dashboard({
 }) {
   const t = use말();
   const 시간대 = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
-  const 읽음 = use대시보드(시간대);
+  const [조건, set조건] = useState(주소에서조건);
+  // 기본값(전체 서비스 · 14일)은 주소에 적지 않는다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
+  use주소조건('#/dashboard', 조건을주소로(조건));
+  const 읽음 = use대시보드(시간대, 조건);
 
   const 값 = 읽음.종류 === 'data' ? 읽음.값 : null;
+  // 서비스 고르개의 재료는 서버가 좁히지 않고 주는 「볼 수 있는 서비스 전부」다. 읽는 동안에는 앞에서 받은 목록을 쓴다
+  const 앞서비스들 = useRef<자료['services']>([]);
+  if (값 !== null) 앞서비스들.current = 값.services;
+  const 서비스들 = 값 === null ? 앞서비스들.current : 값.services;
+  useEffect(() => {
+    // 주소의 서비스가 볼 수 있는 목록에 없으면(권한이 없거나 지워진 번호) 전체로 돌린다 — 빈 현황이 「데이터 없음」으로 읽히지 않게
+    if (값 !== null && 조건.서비스 !== null && !값.services.some((서비스) => 서비스.id === 조건.서비스)) {
+      set조건((앞) => ({ ...앞, 서비스: null }));
+    }
+  }, [값?.services]);
+  // 칸이 다른 화면으로 갈 때 맞출 서비스. 서비스를 고르지 않았어도 볼 수 있는 서비스가 하나뿐이면 그것이다
+  const 이동: 이동재료 = {
+    서비스번호: 조건.서비스 ?? (서비스들.length === 1 ? (서비스들[0]?.id ?? null) : null),
+    서비스열기,
+  };
+  const 고른서비스 = 조건.서비스 === null ? undefined : 서비스들.find((서비스) => 서비스.id === 조건.서비스);
   const 부제 =
     값 === null
       ? undefined
-      : t('서비스 {수}개 · 최근 {일}일 · {날짜} 기준', {
-          수: 값.services.length,
-          일: 값.window.days,
-          날짜: 날짜글자(값.window.today),
-        });
+      : 고른서비스 === undefined
+        ? t('서비스 {수}개 · 최근 {일}일 · {날짜} 기준', {
+            수: 값.services.length,
+            일: 값.window.days,
+            날짜: 날짜글자(값.window.today),
+          })
+        : t('{이름} · 최근 {일}일 · {날짜} 기준', {
+            이름: 고른서비스.name,
+            일: 값.window.days,
+            날짜: 날짜글자(값.window.today),
+          });
 
   return (
     <>
-      <Head 제목={t('품질 현황')} 부제={부제} />
+      <Head 제목={t('품질 현황')} 부제={부제} 행동={<고르개 조건={조건} 서비스들={서비스들} on바뀜={set조건} />} />
       {읽음.종류 === 'loading' ? (
         <div className="screen">
           <Loading />
@@ -165,20 +205,24 @@ export function Dashboard({
           ) : (
             // 순서가 화면 읽기 순서다. 넓은 화면 배치는 CSS 격자가 자리로 옮긴다
             <div className="dash-board">
-              <신규실패표 값={읽음.값} />
+              <신규실패표 값={읽음.값} 이동={이동} />
               <통과율칸 값={읽음.값}>
                 <통과율선 값={읽음.값} />
               </통과율칸>
-              <서비스별표 값={읽음.값} />
+              <서비스별표 값={읽음.값} 서비스열기={서비스열기} />
               <판칸 클래스="dash-daily" 제목={t('일별 테스트 결과')} 보조={t('막대 위 숫자는 실패 건수')}>
-                <일별막대 값={읽음.값} 설정갈수있나={설정갈수있나} />
+                <일별막대 값={읽음.값} 설정갈수있나={설정갈수있나} 이동={이동} />
               </판칸>
               <판칸 클래스="dash-heat" 제목={t('실패 히트맵')} 보조={t('최근 {일}일 실패가 많은 케이스', { 일: 읽음.값.window.days })}>
-                <실패히트맵 값={읽음.값} />
+                <실패히트맵 값={읽음.값} 이동={이동} />
               </판칸>
-              <실패유형칸 값={읽음.값} />
+              <실패유형칸 값={읽음.값} 이동={이동} />
               <판칸 클래스="dash-cov" 제목={t('요구사항 커버리지')} 보조={t('마지막 작성 기준')}>
-                <요구커버리지 값={읽음.값} 서비스열기={서비스열기} 작성서비스={작성서비스} />
+                <요구커버리지
+                  값={읽음.값}
+                  서비스열기={서비스열기}
+                  작성서비스={조건.서비스 === null ? 작성서비스 : 작성서비스.filter((서비스) => 서비스.id === 조건.서비스)}
+                />
               </판칸>
             </div>
           )}

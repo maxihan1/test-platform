@@ -29,7 +29,7 @@ describe('실패 유형 칸', () => {
     expect(칸.classList.contains('dash-flat')).toBe(true);
     expect(within(칸).getByRole('heading').textContent).toBe('실패 유형 10건');
     const 줄들 = [...칸.querySelectorAll('.dash-types-list > li')];
-    expect(줄들.map((줄) => 줄.querySelector('.dash-types-head > span')!.textContent)).toEqual([
+    expect(줄들.map((줄) => 줄.querySelector('.dash-types-head > :first-child')!.textContent)).toEqual([
       '기대 결과 불일치',
       '요소 미검출',
       '타임아웃',

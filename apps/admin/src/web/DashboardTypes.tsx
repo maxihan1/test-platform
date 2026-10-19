@@ -3,6 +3,7 @@
 import type { 대시보드응답 } from '../reporting/dashboardResults.js';
 import type { 실패유형 } from '../reporting/failureType.js';
 
+import { 실행목록주소, 이동속성, type 이동재료 } from './DashboardPick.js';
 import { use말 } from './i18n.js';
 
 type 자료 = 대시보드응답;
@@ -21,10 +22,10 @@ const 설명: Record<실패유형, string> = {
   notFound: '화면에서 버튼 · 입력 칸을 끝내 찾지 못함',
   timeout: '제한 시간 안에 끝나지 않음',
   environment: '대상 서버 · 러너에 닿지 못하거나 러너가 거절함',
-  other: '스크립트 오류 등 위 넷이 아닌 것',
+  other: '위 넷에 들지 않는 그 밖의 오류',
 };
 
-export function 실패유형칸({ 값 }: { 값: 자료 }) {
+export function 실패유형칸({ 값, 이동 }: { 값: 자료; 이동?: 이동재료 }) {
   const t = use말();
   const { types, stopped } = 값.failureTypes;
   const 전체 = types.reduce((합, 유형) => 합 + 유형.fail + 유형.notRun, 0);
@@ -67,7 +68,14 @@ export function 실패유형칸({ 값 }: { 값: 자료 }) {
               return (
                 <li key={유형.type}>
                   <span className="dash-types-head">
-                    <span>{t(실패유형이름[유형.type])}</span>
+                    {/* 유형으로 거르는 조건은 실행 기록에 없다 — 실패한 실행 목록으로 보낸다 */}
+                    {수 === 0 ? (
+                      <span>{t(실패유형이름[유형.type])}</span>
+                    ) : (
+                      <a className="dash-link" href={실행목록주소(값.window.days, { state: 'failed' })} {...이동속성(이동)}>
+                        {t(실패유형이름[유형.type])}
+                      </a>
+                    )}
                     <span>
                       <b className="num">{수}</b> <span className="dash-axis">{Math.round((수 / 전체) * 100)}%</span>
                     </span>
