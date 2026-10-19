@@ -42,9 +42,14 @@ describe('케이스문장읽기', () => {
         "await verify('every', ([a, b]).every(Boolean), true);",
         "await verify('목록 하나', await page.locator('li').allInnerTexts(), ['가', '나']);",
         "await verify('조건 하나', 글들.every((g) => g.ok), true);",
+        "await verify('둘 중 하나', [200, 201].includes(res.status()), true);",
+        "await verify('칸 하나', { 상태: res.status() }, { 상태: 200 });",
+        "await verify('목록 복사', [...목록], ['가']);",
+        "await verify('Promise.all', (await Promise.all([a(), b()])).every(Boolean), true);",
+        "await verify('as const', [a, b] as const, [true, true]);",
       ].join('\n'),
     );
-    expect(케이스문장읽기(글)?.묶은판정).toEqual(['배열', '객체', 'every']);
+    expect(케이스문장읽기(글)?.묶은판정).toEqual(['배열', '객체', 'every', 'Promise.all', 'as const']);
   });
 
   it('defineCase 가 없으면 null', () => {

@@ -1,4 +1,4 @@
-// 빠른 검사 명령 — 빠진 요구 · 타입 · 케이스 형식 · 케이스와 요구 목록 맞춰 보기 · 비밀번호 노출 점검을 한 번에 돌리고 틀린 것만 찍는다 (SPEC 도메인/작성 §3.6 「빠른 검사 명령」)
+// 빠른 검사 명령 — 빠진 요구 · 타입 · 케이스 형식 · 케이스와 요구 목록 맞춰 보기 · 확인 하나에 값 하나 · 비밀번호 노출 점검을 한 번에 돌리고 틀린 것만 찍는다 (SPEC 도메인/작성 §3.6 「빠른 검사 명령」)
 // 자식이 검사 명령을 하나씩 부르고 긴 로그를 읽고, 맞춰 보기는 417건을 눈으로 하던 일이다. 비밀번호 점검은 문서의 프로그램을 매번 베껴 만들었다
 // 실행: npm run authoring:check -- 마지막 <원장 사본> <접두사> <폴더> [더 볼 경로…] | 보조 <케이스 파일…> | 비밀번호 <경로…>
 
@@ -14,6 +14,7 @@ import { 환경비밀번호들 } from './authoring-accounts.js';
 import { 명세글, 속성, 읽기 } from './authoring-held-apply.js';
 import { 글모두 } from './authoring-reverse.js';
 import { 바뀐것 } from './authoring-run3.js';
+import { 묶었나 } from './authoring-one-value.js';
 import { 백틱벗기기, 표읽기 } from './authoring-md-table.js';
 
 export interface 케이스문장 {
@@ -27,15 +28,6 @@ export interface 케이스문장 {
 }
 
 const 글자 = (n: ts.Node | undefined): string | null => (n !== undefined && ts.isStringLiteralLike(n) ? n.text : null);
-
-const 벗기기 = (n: ts.Expression): ts.Expression => (ts.isParenthesizedExpression(n) || ts.isAwaitExpression(n) ? 벗기기(n.expression) : n);
-
-/** `[a, b]` · `{ a, b }` 와 `[a, b].every(Boolean)` — 실패하면 「기대 [true,true] · 실제 [false,true]」만 남아 무엇이 틀렸는지 안 보인다(MKT-FN-307). 화면에서 읽은 목록 하나(`allInnerTexts()`)는 값 하나라 아니다 */
-function 묶었나(n: ts.Expression): boolean {
-  const e = 벗기기(n);
-  if (ts.isArrayLiteralExpression(e) || ts.isObjectLiteralExpression(e)) return true;
-  return ts.isCallExpression(e) && ts.isPropertyAccessExpression(e.expression) && ts.isArrayLiteralExpression(벗기기(e.expression.expression));
-}
 
 /** 케이스 파일에서 맞춰 볼 문장 — `defineCase` 의 tcId · name · precondition, `test.step` 제목, `verify` 첫 인자. 글자가 아닌 것(템플릿 · 상수)은 못 읽어 빠진다 */
 export function 케이스문장읽기(글: string): 케이스문장 | null {
