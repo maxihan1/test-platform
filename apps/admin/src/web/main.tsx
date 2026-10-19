@@ -281,7 +281,8 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     return (
       <ProjectPick
         user={상태.user}
-        마지막={열린것}
+        // 한 번도 안 열어 본 브라우저는 마지막이 없다 — 첫 애플리케이션으로 열려도 「마지막에 연」 표시는 달지 않는다
+        마지막={상태.user.services.find((it) => it.prefix === prefix) ?? null}
         onPick={(접두사) => {
           고른서비스를적는다(접두사);
           setPrefix(접두사);
