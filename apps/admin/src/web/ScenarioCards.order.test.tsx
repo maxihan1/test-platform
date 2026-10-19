@@ -3,8 +3,13 @@
 
 import type { ScenarioLink } from '@platform/kit';
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { 케이스, 기록, 판, 고르기버튼 } from './ScenarioCards.fixture.js';
+
+function 지운다(번호: number) {
+  fireEvent.click(screen.getByRole('button', { name: `${번호}번 삭제` }));
+  fireEvent.click(within(screen.getByRole('dialog', { name: `${번호}번 단계를 삭제할까요?` })).getByRole('button', { name: '삭제' }));
+}
 
 afterEach(cleanup);
 
@@ -17,7 +22,7 @@ describe('ScenarioCards 순서 · 빼기', () => {
     expect(screen.getByRole('button', { name: '2번 위로' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '1번 아래로' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '3번 아래로' })).toBeNull();
-    expect(screen.getByRole('button', { name: '3번 빼기' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '3번 삭제' })).toBeTruthy();
   });
 
   it('쓰기가 아니면 위로 · 아래로 · 빼기 · + 단계 추가가 다 없다', () => {
@@ -66,10 +71,10 @@ describe('ScenarioCards 순서 · 빼기', () => {
 
   it('다른 카드를 앞에서 빼면 고른 번호가 하나 줄고, 고른 카드를 빼면 탭이 단계 추가로 간다', () => {
     render(<판 단계들={셋()} 고른번호={3} 탭="settings" />);
-    fireEvent.click(screen.getByRole('button', { name: '1번 빼기' }));
+    지운다(1);
     expect(screen.getByRole('tab', { name: '2번 설정' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: '2번 빼기' }));
+    지운다(2);
     expect(screen.queryByRole('tab', { name: /번 설정/ })).toBeNull();
     expect(screen.getByRole('tab', { name: '단계 추가' }).getAttribute('aria-selected')).toBe('true');
   });
@@ -77,18 +82,28 @@ describe('ScenarioCards 순서 · 빼기', () => {
   it('빼면 값 연결은 0 이 되고 포커스는 다음 카드로 가며 마지막을 빼면 앞 카드로, 다 빼면 단계 추가 버튼으로 간다', () => {
     const 연결: ScenarioLink = { kind: 'reuse', method: 'GET', urlPattern: '**/api/x', fromSeq: 2 };
     render(<판 단계들={[케이스('ZSB-001'), 케이스('ZSB-002'), 케이스('ZSB-003', { links: [연결] })]} />);
-    fireEvent.click(screen.getByRole('button', { name: '2번 빼기' }));
+    지운다(2);
 
     const 둘째 = 기록.단계들[1];
     expect(둘째?.kind === 'case' ? 둘째.links : null).toEqual([{ ...연결, fromSeq: 0 }]);
     expect(document.activeElement).toBe(고르기버튼(2));
     expect(고르기버튼(2).textContent).toContain('ZSB-003');
 
-    fireEvent.click(screen.getByRole('button', { name: '2번 빼기' }));
+    지운다(2);
     expect(document.activeElement).toBe(고르기버튼(1));
 
-    fireEvent.click(screen.getByRole('button', { name: '1번 빼기' }));
+    지운다(1);
     expect(document.activeElement).toBe(screen.getByRole('button', { name: '+ 단계 추가' }));
+  });
+
+  it('✕ 는 한 번 묻고, 취소하면 단계가 그대로다', () => {
+    render(<판 단계들={셋()} />);
+    fireEvent.click(screen.getByRole('button', { name: '2번 삭제' }));
+    const 상자 = screen.getByRole('dialog', { name: '2번 단계를 삭제할까요?' });
+    expect(within(상자).getByText('이 단계의 설정도 같이 사라집니다')).toBeTruthy();
+    fireEvent.click(within(상자).getByRole('button', { name: '취소' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('button', { name: '3번 삭제' })).toBeTruthy();
   });
 });
 

@@ -49,7 +49,8 @@ export function TrialControls({
           </option>
         ))}
       </select>
-      <button type="button" className="btn ghost" disabled={도는중} onClick={on시작}>
+      {/* 옆의 「실행」과 무엇이 다른지 단추에서 알 수 있게 한다 */}
+      <button type="button" className="btn ghost" title={t('기록 · 증적이 남지 않습니다')} disabled={도는중} onClick={on시작}>
         {도는중 ? t('시험 실행 중') : t('시험 실행')}
       </button>
     </>

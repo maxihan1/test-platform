@@ -75,12 +75,15 @@ export function 글칸({
   값,
   잠금,
   숫자,
+  자리,
   on글,
   ...속성
 }: {
   값: string;
   잠금: boolean;
   숫자?: boolean;
+  /** 빈 칸에 흐리게 보일 예 */
+  자리?: string;
   on글: (글: string) => void;
   id: string;
   'aria-describedby': string | undefined;
@@ -92,6 +95,7 @@ export function 글칸({
       inputMode={숫자 ? 'numeric' : undefined}
       autoComplete="off"
       value={값}
+      placeholder={자리}
       disabled={잠금}
       onChange={(e) => on글(e.target.value)}
     />
@@ -172,7 +176,7 @@ export function UnmockBody({ 아이디, 잠금, 단계, on바꿈, 앞 }: 몸Prop
   const 문장 =
     앞.length === 0 ? '앞에서 켠 모킹이 없습니다' : 앞.includes(단계.urlPattern) ? null : '앞에서 켜지 않은 모킹입니다';
   return (
-    <칸 아이디={`${아이디}-unmock`} 라벨="끌 모킹" 문장={문장}>
+    <칸 아이디={`${아이디}-unmock`} 라벨="해제할 모킹" 문장={문장}>
       {(속성) => (
         <select
           {...속성}

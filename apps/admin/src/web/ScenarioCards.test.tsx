@@ -23,7 +23,7 @@ describe('ScenarioCards 카드', () => {
     expect(screen.getByText('단계를 누르면 설정이 열립니다')).toBeTruthy();
     expect(screen.getByRole('button', { name: '+ 단계 추가' })).toBeTruthy();
     expect(고르기버튼(1).textContent).toContain('ZSB-001 ZSB-001 케이스');
-    expect(고르기버튼(1).textContent).toContain('준비 1개 건너뜀 · 입력값 1칸 직접 입력');
+    expect(고르기버튼(1).textContent).toContain('사전 단계 1개 건너뜀 · 입력값 1칸 직접 입력');
     expect(고르기버튼(2).textContent).toContain('GET /api/x → 200');
     expect(고르기버튼(3).textContent).toContain('**/api/y → 500');
     expect(고르기버튼(4).textContent).toContain('**/api/y');

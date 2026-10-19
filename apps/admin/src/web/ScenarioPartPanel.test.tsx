@@ -14,18 +14,18 @@ describe('ScenarioPartPanel 머리 · 전제 · 미확정', () => {
     그리기(단계('ZSB-001'), 재료('ZSB-001', { precondition: ['회원이 있다', '상품이 있다'] }));
 
     expect(screen.getByText('ZSB-001 ZSB-001 케이스')).toBeTruthy();
-    expect(screen.getByText('전제')).toBeTruthy();
+    expect(screen.getByText('사전 조건')).toBeTruthy();
     expect(screen.getByText('회원이 있다')).toBeTruthy();
     expect(screen.getByText('상품이 있다')).toBeTruthy();
   });
 
   it('전제가 없으면 전제 제목을 그리지 않는다', () => {
     그리기(단계('ZSB-001'), 재료('ZSB-001'));
-    expect(screen.queryByText('전제')).toBeNull();
+    expect(screen.queryByText('사전 조건')).toBeNull();
   });
 
   it('미확정 케이스에만 미확정 안내가 나온다', () => {
-    const 안내 = '미확정 케이스입니다. 이 단계가 들어간 실행에는 「미확정」 꼬리표가 붙습니다';
+    const 안내 = '미확정 케이스입니다. 이 단계가 들어간 실행에는 「미확정」 표시가 붙습니다';
     그리기(단계('ZSB-001'), 재료('ZSB-001', { unconfirmed: '화면에서 읽음' }));
     expect(screen.getByText(안내)).toBeTruthy();
     cleanup();
@@ -42,7 +42,7 @@ describe('ScenarioPartPanel 로그인 이어받기', () => {
     expect(스위치.getAttribute('aria-checked')).toBe('true');
     const 설명 = document.getElementById(스위치.getAttribute('aria-describedby') ?? '');
     expect(설명?.textContent).toBe('앞 단계의 로그인 상태를 그대로 사용합니다. 끄면 새 창에서 단독으로 실행합니다');
-    expect(screen.queryByText('로그인 이어받기를 끄면 준비 건너뛰기와 값 연결을 쓸 수 없습니다')).toBeNull();
+    expect(screen.queryByText('로그인 이어받기를 끄면 사전 단계 건너뛰기와 값 연결을 쓸 수 없습니다')).toBeNull();
   });
 
   it('끄면 carryOver false 에 건너뛰기와 값 연결이 비워져 올라간다', () => {
@@ -66,7 +66,7 @@ describe('ScenarioPartPanel 로그인 이어받기', () => {
     const 스위치 = screen.getByRole('switch', { name: '로그인 이어받기' });
 
     expect(스위치.getAttribute('aria-checked')).toBe('false');
-    expect(screen.getByText('로그인 이어받기를 끄면 준비 건너뛰기와 값 연결을 쓸 수 없습니다')).toBeTruthy();
+    expect(screen.getByText('로그인 이어받기를 끄면 사전 단계 건너뛰기와 값 연결을 쓸 수 없습니다')).toBeTruthy();
     for (const 체크 of screen.getAllByRole('checkbox')) expect((체크 as HTMLInputElement).disabled).toBe(true);
 
     fireEvent.click(스위치);
@@ -116,7 +116,7 @@ describe('ScenarioPartPanel 로그인 이어받기를 껐다 켜기', () => {
 describe('ScenarioPartPanel 준비', () => {
   it('묶음 이름이 있고 건너뛸 수 있는 절차만 체크박스로 나온다', () => {
     그리기(단계('ZSB-001'), 준비있는('ZSB-001'));
-    const 묶음 = screen.getByRole('group', { name: '준비 — 체크한 것만 실행' });
+    const 묶음 = screen.getByRole('group', { name: '사전 단계 — 체크한 것만 실행' });
     const 체크들 = within(묶음).getAllByRole('checkbox') as HTMLInputElement[];
 
     expect(체크들.map((c) => c.getAttribute('aria-label') ?? c.parentElement?.textContent)).toEqual([
@@ -166,7 +166,7 @@ describe('ScenarioPartPanel 준비', () => {
   it('r16 이 false 면 묶음 대신 건너뛸 수 없다는 문장이 나온다', () => {
     그리기(단계('ZSB-001'), 재료('ZSB-001'));
 
-    expect(screen.getByText('이 케이스는 준비가 분리되어 있지 않아 건너뛸 수 없습니다')).toBeTruthy();
-    expect(screen.queryByRole('group', { name: '준비 — 체크한 것만 실행' })).toBeNull();
+    expect(screen.getByText('이 케이스는 사전 단계가 분리되어 있지 않아 건너뛸 수 없습니다')).toBeTruthy();
+    expect(screen.queryByRole('group', { name: '사전 단계 — 체크한 것만 실행' })).toBeNull();
   });
 });

@@ -13,12 +13,12 @@ describe('ScenarioLinks 칸 아래 문장', () => {
     그리기([{ kind: 'reuse', method: 'GET', urlPattern: '/a', fromSeq: 0 }]);
     const 고르개 = screen.getByLabelText('가져올 단계') as HTMLSelectElement;
     expect(고르개.value).toBe('');
-    expect(screen.getByText('가리키던 단계가 빠졌습니다')).toBeTruthy();
+    expect(screen.getByText('가져올 단계가 삭제됐습니다')).toBeTruthy();
   });
 
   it('가리킨 단계가 멀쩡하면 그 문장이 없다', () => {
     그리기([{ kind: 'reuse', method: 'GET', urlPattern: '/a', fromSeq: 1 }]);
-    expect(screen.queryByText('가리키던 단계가 빠졌습니다')).toBeNull();
+    expect(screen.queryByText('가져올 단계가 삭제됐습니다')).toBeNull();
   });
 
   it('빈 URL 패턴과 JSON 경로는 문장이 나오고 칸이 그 문장을 가리킨다', () => {
@@ -98,12 +98,12 @@ describe('ScenarioLinks 고치기 · 빼기', () => {
     ]);
   });
 
-  it('값 연결 빼기는 그 값 연결만 뺀 배열을 올린다', () => {
+  it('값 연결 삭제는 그 값 연결만 뺀 배열을 올린다', () => {
     const 첫째: ScenarioLink = { kind: 'block', method: 'GET', urlPattern: '/a' };
     const 둘째: ScenarioLink = { kind: 'reuse', method: 'POST', urlPattern: '/b', fromSeq: 1 };
     const { on바꿈 } = 그리기([첫째, 둘째]);
     const 묶음 = screen.getByRole('group', { name: '요청 차단' });
-    fireEvent.click(within(묶음).getByRole('button', { name: '값 연결 빼기' }));
+    fireEvent.click(within(묶음).getByRole('button', { name: '값 연결 삭제' }));
     expect(마지막(on바꿈)).toEqual([둘째]);
   });
 });
@@ -112,7 +112,7 @@ describe('ScenarioLinks 읽기만', () => {
   it('쓰기가 아니면 추가 · 빼기 버튼이 없고 칸이 잠긴다', () => {
     그리기([{ kind: 'bind', param: 'orderId', value: 참조 }], { 쓰나: false });
     expect(screen.queryByRole('button', { name: '+ 값 연결 추가' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '값 연결 빼기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '값 연결 삭제' })).toBeNull();
     const 묶음 = screen.getByRole('group', { name: '값 주입' });
     const 칸들 = [...묶음.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')];
     expect(칸들).toHaveLength(5);

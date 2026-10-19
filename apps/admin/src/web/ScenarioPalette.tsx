@@ -139,7 +139,7 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
       <span className="scn-pal-name">{c.name}</span>
       {typeof c.unconfirmed === 'string' ? <span className="case-tag">{t('미확정')}</span> : null}
       <button type="button" className="btn ghost" onClick={() => on케이스(c.tcId)}>
-        {t('{번호} 더하기', { 번호: c.tcId })}
+        {t('{번호} 추가', { 번호: c.tcId })}
       </button>
       {/* 번호에 고리를 달지 않는다 — 누르면 저장 안 한 조립을 두고 「PRD 관리」로 떠난다 */}
       {PRD씀 ? <요구줄 row={c} 요구보나={false} 요구쓰나 /> : null}
@@ -168,15 +168,7 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
 
   return (
     <div className="scn-palette">
-      {바꿀번호 === null ? (
-        <div className="scn-link-kinds">
-          {다른단계들.map((x) => (
-            <button key={x.이름} type="button" className="btn ghost" onClick={() => on다른단계(x.단계())}>
-              {t(x.이름)}
-            </button>
-          ))}
-        </div>
-      ) : (
+      {바꿀번호 === null ? null : (
         <div className="scn-pal-swap">
           <p className="scn-set-sub">{t('{번호}번 단계를 바꿀 케이스를 고릅니다', { 번호: 바꿀번호 })}</p>
           <button type="button" className="btn ghost" onClick={on바꾸기취소}>
@@ -267,6 +259,20 @@ export function ScenarioPalette({ 서비스, 디바이스, 바꿀번호, 뒤, on
             </>
           )}
         </>
+      )}
+
+      {/* 케이스를 고르는 일이 대부분이라 드물게 쓰는 단계는 목록 아래에 둔다 (점검 10.7) */}
+      {바꿀번호 !== null ? null : (
+        <section className="scn-pal-group" aria-label={t('다른 단계')}>
+          <h3 className="scn-set-sub">{t('다른 단계')}</h3>
+          <div className="scn-link-kinds">
+            {다른단계들.map((x) => (
+              <button key={x.이름} type="button" className="btn ghost" onClick={() => on다른단계(x.단계())}>
+                {t(x.이름)}
+              </button>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

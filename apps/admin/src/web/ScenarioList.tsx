@@ -11,6 +11,8 @@ import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { Modal } from './Modal.js';
 import type { 판정 } from './role.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
+import { ScenarioWhy } from './ScenarioListWhy.js';
+import { 결과주소 } from './ScenarioResultNext.js';
 import { Failed, Loading, message, useAsync, Verdict, when } from './ui.js';
 
 type 마지막 = NonNullable<ScenarioRow['lastRun']>;
@@ -27,7 +29,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
   const [안내, set안내] = useState<{ id: number; 글: string } | null>(null);
   const [돌리는중, set돌리는중] = useState<number | null>(null);
   const [치울것, set치울것] = useState<ScenarioRow | null>(null);
-  // 치운 줄은 다시 받지 않고 화면에서 뺀다 — 다시 받기가 실패하면 목록 전체가 오류 화면으로 바뀐다
+  // 삭제한 줄은 다시 받지 않고 화면에서 뺀다 — 다시 받기가 실패하면 목록 전체가 오류 화면으로 바뀐다
   const [치운, set치운] = useState<number[]>([]);
   const list = useAsync(() => scenarioApi.list(service), [service]);
 
@@ -51,7 +53,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
     set돌리는중(id);
     try {
       const { runId } = await scenarioApi.run(id, env);
-      window.location.hash = `#/runs/${runId}`;
+      window.location.hash = 결과주소(runId, 'scenarios');
     } catch (err) {
       set안내({ id, 글: message(err, 언어) });
     } finally {
@@ -137,7 +139,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
   );
 }
 
-// 되살리는 통로가 없어 누르기 전에 한 번 묻는다 (DESIGN.md 「모달」 ①)
+// 서버는 지우지 않고 목록에서 빼지만(archive) 되살리는 통로가 없어 쓰는 사람에게는 삭제다. 누르기 전에 한 번 묻는다 (DESIGN.md 「모달」 ①)
 function 치우기확인({ 줄, onClose, on치움 }: { 줄: ScenarioRow; onClose: () => void; on치움: () => void }) {
   const t = use말();
   const 언어 = use언어();
@@ -149,7 +151,7 @@ function 치우기확인({ 줄, onClose, on치움 }: { 줄: ScenarioRow; onClose
   };
   return (
     <Modal
-      제목={t('SC-{번호} 시나리오를 목록에서 치울까요?', { 번호: 줄.id })}
+      제목={t('SC-{번호} 시나리오를 삭제할까요?', { 번호: 줄.id })}
       onClose={닫기}
       바깥눌러닫기={!치우는중}
       버튼={
@@ -178,7 +180,7 @@ function 치우기확인({ 줄, onClose, on치움 }: { 줄: ScenarioRow; onClose
                 });
             }}
           >
-            {치우는중 ? t('치우는 중') : t('치우기')}
+            {치우는중 ? t('삭제하는 중') : t('삭제')}
           </button>
         </>
       }
@@ -188,7 +190,7 @@ function 치우기확인({ 줄, onClose, on치움 }: { 줄: ScenarioRow; onClose
         <br />
         {t('지난 실행 기록과 증적은 그대로 남습니다.')}
         <br />
-        {t('치운 시나리오는 다시 꺼낼 수 없습니다.')}
+        {t('삭제한 시나리오는 되살릴 수 없습니다.')}
       </p>
       {오류 === null ? null : <p className="err">{오류}</p>}
     </Modal>
@@ -245,6 +247,7 @@ function 시나리오줄({
         </a>
         {!줄.needsCheck ? null : <span className="case-tag">{t('확인 필요')}</span>}
         {줄.runnable ? null : <span className="case-tag">{t('실행 불가')}</span>}
+        {줄.runnable && !줄.needsCheck ? null : <ScenarioWhy 줄={줄} />}
         <small>
           {t('단계 {수}개', { 수: 줄.partCount })} · v{줄.version} ·{' '}
           {지난 === null ? t('실행 전') : 지난.finishedAt === null ? t('실행 중') : when(지난.finishedAt, 언어)}
@@ -253,7 +256,7 @@ function 시나리오줄({
       <div className="right runright">
         <div className="scenario-result">
           {지난 === null ? null : (
-            <a href={`#/runs/${지난.runId}`}>
+            <a href={결과주소(지난.runId, 'scenarios')}>
               <결과 지난={지난} />
             </a>
           )}
@@ -263,10 +266,16 @@ function 시나리오줄({
             {t('실행')}
           </button>
         )}
-        {/* 실행 불가 줄도 치운다 — 못 도는 시나리오가 가장 먼저 치울 거리다 */}
+        {/* 못 도는 줄은 실행 자리에 수정을 둔다 — 까닭을 읽은 사람이 다음에 할 일이 그것이다 */}
+        {!쓰나 || 줄.runnable || !줄.isActive ? null : (
+          <a className="btn small ghost" href={`#/scenarios/${줄.id}`}>
+            {t('수정')}
+          </a>
+        )}
+        {/* 실행 불가 줄도 삭제한다 — 못 도는 시나리오가 가장 먼저 지울 거리다 */}
         {!쓰나 || !줄.isActive ? null : (
           <button type="button" className="btn small ghost" disabled={돌리는중} onClick={on치우기}>
-            {t('치우기')}
+            {t('삭제')}
           </button>
         )}
       </div>

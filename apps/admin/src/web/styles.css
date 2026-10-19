@@ -3333,6 +3333,35 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   color: inherit;
 }
 
+/* 실패한 결과의 다음 할 일 줄 — 멈춘 단계 · 수정 · 다시 실행 (도메인/시나리오 §8.11 「실행 결과」) */
+.scn-fail-guide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  margin: 0;
+  padding: 12px 24px;
+  background: var(--fail-soft);
+  border-bottom: 1px solid var(--line);
+}
+.scn-fail-guide p {
+  flex: 1 1 320px;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink);
+}
+.scn-fail-guide-act {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* 목록 줄의 실행 불가 · 확인 필요 까닭 */
+.scn-why {
+  display: block;
+  color: var(--fail-text);
+}
+
 .scn-running {
   margin: 0;
   padding: 10px 24px;
@@ -3552,8 +3581,9 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
 }
 
 .scn-name-input {
-  flex: 1 1 240px;
-  min-width: min(240px, 100%);
+  /* 「장바구니에서 주문까지 (모바일 쿠폰)」 같은 이름이 잘리지 않게 넉넉히 둔다 (점검 N10) */
+  flex: 1 1 380px;
+  min-width: min(380px, 100%);
   color: var(--ink);
   font-weight: 600;
 }

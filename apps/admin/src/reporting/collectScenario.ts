@@ -112,8 +112,8 @@ function 단계(runId: number, p: ScenarioRunPart, 결과: 결과): E2E단계 {
     건너뜀: p.skippedSteps.map((제목) => {
       const 번호 = 건너뜀번호(결과.parts, p.seq, 제목);
       return 번호 === null
-        ? t('준비 「{제목}」 건너뜀', 'ko', { 제목 })
-        : t('준비 「{제목}」 — {번호}번에서 이미 실행', 'ko', { 제목, 번호 });
+        ? t('사전 단계 「{제목}」 건너뜀', 'ko', { 제목 })
+        : t('사전 단계 「{제목}」 — {번호}번에서 이미 실행', 'ko', { 제목, 번호 });
     }),
     값연결: (케이스?.links ?? []).map((link) => 값연결글(link, p.bound, 'ko')),
     // 결과 화면이 보이는 문장이다 — 케이스 단계가 실패해도 적는다. 원문 스택은 안 싣는다
@@ -145,8 +145,8 @@ export function E2E모양(runId: number, 결과: 결과, 머리: { serviceName: 
     정리: 결과.parts.flatMap((p) =>
       p.cleanup.map((c) =>
         c.error === undefined
-          ? `정리 · 마지막에 실행 ${c.method} ${c.url} → ${c.status ?? '—'} (${p.seq}번이 미룸)`
-          : `정리 · 마지막에 실행 ${c.method} ${c.url} — ${c.error} (${p.seq}번이 미룸)`,
+          ? `테스트 데이터 정리 · 마지막에 실행 ${c.method} ${c.url} → ${c.status ?? '—'} (${p.seq}번이 미룸)`
+          : `테스트 데이터 정리 · 마지막에 실행 ${c.method} ${c.url} — ${c.error} (${p.seq}번이 미룸)`,
       ),
     ),
   };
