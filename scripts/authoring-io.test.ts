@@ -292,6 +292,18 @@ describe('거절된보고대신 — 끝났다는 보고가 400 이면 실패로 
     expect(거절된보고대신(413, null, 몸)).toEqual({ status: 'DONE', prUrl: 'p' });
     expect(거절된보고대신(413, null, { status: 'DONE' })).toBeNull();
   });
+  it('만든 케이스가 거절되면(BAD_CASES) 목록만 뺀 같은 몸을 보낸다 — 셈 · 보류는 남는다', () => {
+    const 몸 = { status: 'DONE', prUrl: 'p', result: { held: [], coverage: { total: 1 }, cases: [{ tcId: 'A-001' }] } };
+    expect(거절된보고대신(400, { error: 'BAD_CASES' }, 몸)).toEqual({ status: 'DONE', prUrl: 'p', result: { held: [], coverage: { total: 1 } } });
+    expect(거절된보고대신(400, { error: 'BAD_CASES' }, { status: 'DONE', prUrl: 'p', result: { cases: [] } })).toEqual({ status: 'DONE', prUrl: 'p' });
+  });
+  it('본문 상한(413)에 둘 다 실렸으면 케이스 목록을 먼저 뺀다', () => {
+    const 몸 = { status: 'DONE', result: { coverage: { total: 1 }, cases: [{ tcId: 'A-001' }] } };
+    expect(거절된보고대신(413, null, 몸)).toEqual({ status: 'DONE', result: { coverage: { total: 1 } } });
+  });
+  it('케이스 없는 몸의 BAD_CASES 는 다른 400 처럼 FAILED 다', () => {
+    expect(거절된보고대신(400, { error: 'BAD_CASES' }, { status: 'DONE', result: { coverage: { total: 1 } } })).toMatchObject({ status: 'FAILED' });
+  });
   it('셈이 없는 몸의 BAD_COVERAGE 는 다른 400 처럼 FAILED 다', () => {
     expect(거절된보고대신(400, { error: 'BAD_COVERAGE' }, { status: 'DONE' })).toMatchObject({ status: 'FAILED' });
   });

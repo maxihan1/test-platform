@@ -90,21 +90,24 @@ describe('보류 케이스 표', () => {
 
   it('줄마다 케이스 번호 · 칩 · 머리를 뗀 사유 · 상태를 보인다', () => {
     render(<AuthoringHeld service="MKT" 요청번호={7} held={[토스트, 배너, 삭제글]} 편집 reload={reload} />);
-    expect(screen.getByRole('heading', { name: /보류 케이스/ })).toBeTruthy();
+    expect(screen.getByRole('table', { name: '입력이 필요한 케이스' })).toBeTruthy();
+    expect(screen.queryByRole('heading')).toBeNull();
     expect(screen.getByText('MKT-030')).toBeTruthy();
-    expect(screen.getByText('판정 불가')).toBeTruthy();
-    expect(screen.getAllByText('보류')).toHaveLength(2);
+    expect(screen.getByText('기대값 없음')).toBeTruthy();
+    expect(screen.getAllByText('테스트 데이터 없음')).toHaveLength(2);
+    expect(screen.getByText('확인 내용')).toBeTruthy();
+    expect(screen.getByText('필요한 것')).toBeTruthy();
     expect(screen.getByText('알림이 사라졌다고 볼 기준이 기획서에 없다')).toBeTruthy();
     expect(screen.getByText('알림 토스트가 정해진 시간 뒤 사라진다')).toBeTruthy();
-    expect(screen.getByText('tests/mkt/toast.spec.ts').className).toContain('held-path');
-    expect(screen.getByText('tests/mkt/banner.spec.ts').className).not.toContain('held-path');
-    expect(screen.getAllByText('값 필요')).toHaveLength(2);
-    expect(screen.getByText('제거함')).toBeTruthy();
+    expect(screen.queryByText('tests/mkt/toast.spec.ts')).toBeNull();
+    expect(screen.getByText('tests/mkt/banner.spec.ts')).toBeTruthy();
+    expect(screen.getAllByText('입력 전')).toHaveLength(2);
+    expect(screen.getByText('제외함')).toBeTruthy();
   });
 
-  it('값 넣기로 펼치고 칸을 벗어나면 그 케이스의 입력 전체를 PUT 으로 보낸다', async () => {
+  it('입력으로 펼치고 칸을 벗어나면 그 케이스의 입력 전체를 PUT 으로 보낸다', async () => {
     render(<AuthoringHeld service="MKT" 요청번호={7} held={[토스트]} 편집 reload={reload} />);
-    fireEvent.click(screen.getByRole('button', { name: '값 넣기' }));
+    fireEvent.click(screen.getByRole('button', { name: '입력' }));
     expect(screen.getByText('넣을 값')).toBeTruthy();
     expect(screen.getByText('기대 결과')).toBeTruthy();
     const 칸 = screen.getByLabelText('토스트가 보이는 시간(초)');
@@ -118,7 +121,7 @@ describe('보류 케이스 표', () => {
 
   it('숫자 칸에 숫자가 아닌 것을 넣으면 보내지 않고 한 줄로 말한다', () => {
     render(<AuthoringHeld service="MKT" 요청번호={7} held={[토스트]} 편집 reload={reload} />);
-    fireEvent.click(screen.getByRole('button', { name: '값 넣기' }));
+    fireEvent.click(screen.getByRole('button', { name: '입력' }));
     const 칸 = screen.getByLabelText('토스트가 보이는 시간(초)');
     fireEvent.change(칸, { target: { value: '셋' } });
     fireEvent.blur(칸);
@@ -126,9 +129,9 @@ describe('보류 케이스 표', () => {
     expect(screen.getByText('숫자를 넣으세요')).toBeTruthy();
   });
 
-  it('제거는 확인 상자 없이 removed 를 보낸다', async () => {
+  it('케이스 제외는 확인 상자 없이 removed 를 보낸다', async () => {
     render(<AuthoringHeld service="MKT" 요청번호={7} held={[배너]} 편집 reload={reload} />);
-    fireEvent.click(screen.getByRole('button', { name: '제거' }));
+    fireEvent.click(screen.getByRole('button', { name: '케이스 제외' }));
     await vi.waitFor(() => expect(넣기).toHaveBeenCalledWith('MKT', 7, 'MKT-033', { removed: true }));
   });
 
@@ -138,10 +141,10 @@ describe('보류 케이스 표', () => {
     await vi.waitFor(() => expect(지우기).toHaveBeenCalledWith('MKT', 7, 'MKT-035'));
   });
 
-  it('칸이 없는 케이스는 값 넣기 없이 제거만 있다 · 편집 권한이 없으면 버튼이 없다', () => {
+  it('칸이 없는 케이스는 입력 없이 케이스 제외만 있다 · 편집 권한이 없으면 버튼이 없다', () => {
     const { rerender } = render(<AuthoringHeld service="MKT" 요청번호={7} held={[{ ...삭제글, input: null }]} 편집 reload={reload} />);
-    expect(screen.queryByRole('button', { name: '값 넣기' })).toBeNull();
-    expect(screen.getByRole('button', { name: '제거' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '입력' })).toBeNull();
+    expect(screen.getByRole('button', { name: '케이스 제외' })).toBeTruthy();
     rerender(<AuthoringHeld service="MKT" 요청번호={7} held={[토스트]} 편집={false} reload={reload} />);
     expect(screen.queryByRole('button')).toBeNull();
   });
@@ -150,34 +153,28 @@ describe('보류 케이스 표', () => {
 describe('다음 단계의 보류 진척과 반영', () => {
   it('남은 보류가 있으면 반영을 막고 이유를 한 줄로 말한다', () => {
     render(<AuthoringTodo service="MKT" 요청={줄({ held: [토스트, 배너, 삭제글], heldOpen: 2 })} 할수={운영} 차이수={0} reload={reload} />);
-    expect(screen.getByText('보류 케이스 3건 중 1건 처리')).toBeTruthy();
-    expect(screen.getByText('값 채움 0 · 제거 1')).toBeTruthy();
+    expect(screen.getByText('입력이 필요한 케이스 3건 중 1건 완료')).toBeTruthy();
+    expect(screen.getByText('입력 완료 0 · 제외 1')).toBeTruthy();
     const 버튼 = screen.getByRole('button', { name: '테스트 반영하기' });
     expect((버튼 as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText('보류 케이스 2건이 남아 있어 아직 반영할 수 없습니다.')).toBeTruthy();
+    expect(screen.getByText('입력이 필요한 케이스 2건이 남아 있어 아직 반영할 수 없습니다.')).toBeTruthy();
     expect(screen.queryByText(/3번 돌려/)).toBeNull();
     expect(screen.queryByLabelText('대상 서버')).toBeNull();
   });
 
-  it('보류 케이스로 가기는 해시 주소를 바꾸지 않고 표로 내려간다', () => {
-    const 내려감 = vi.fn();
-    Element.prototype.scrollIntoView = 내려감;
+  it('입력이 필요한 케이스 표는 그 단계 안에 펴져 있어 따로 내려가는 단추가 없다', () => {
     window.location.hash = '#/authoring/7';
-    render(
-      <>
-        <AuthoringTodo service="MKT" 요청={줄({ held: [배너], heldOpen: 1 })} 할수={운영} 차이수={0} reload={reload} />
-        <AuthoringHeld service="MKT" 요청번호={7} held={[배너]} 편집 reload={reload} />
-      </>,
-    );
-    fireEvent.click(screen.getByRole('button', { name: '보류 케이스로 가기' }));
+    render(<AuthoringTodo service="MKT" 요청={줄({ held: [배너], heldOpen: 1 })} 할수={운영} 차이수={0} reload={reload} />);
+    expect(screen.queryByRole('button', { name: '보류 케이스로 가기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '입력이 필요한 케이스로 가기' })).toBeNull();
+    expect(screen.getByRole('table', { name: '입력이 필요한 케이스' })).toBeTruthy();
     expect(window.location.hash).toBe('#/authoring/7');
-    expect(내려감).toHaveBeenCalled();
   });
 
   it('보류 목록을 못 읽었으면 반영을 막고 다시 작성하라고 말한다', () => {
     render(<AuthoringTodo service="MKT" 요청={줄({ held: [], heldOpen: 0, heldUnknown: true })} 할수={운영} 차이수={0} reload={reload} />);
     expect((screen.getByRole('button', { name: '테스트 반영하기' }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText('보류 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.')).toBeTruthy();
+    expect(screen.getByText('입력이 필요한 케이스를 읽지 못했습니다. 같은 자료로 다시 작성하세요.')).toBeTruthy();
   });
 
   it('테스트 계정 있는 대상 서버가 없으면 고르기 대신 한 줄로 말하고 반영을 막는다', () => {
@@ -191,7 +188,7 @@ describe('다음 단계의 보류 진척과 반영', () => {
 
   it('보류가 없으면 진척도 설명도 없고 반영은 대상 서버 없이 보낸다', async () => {
     render(<AuthoringTodo service="MKT" 요청={줄({ held: [], heldOpen: 0 })} 할수={운영} 차이수={0} reload={reload} />);
-    expect(screen.queryByText(/보류 케이스/)).toBeNull();
+    expect(screen.queryByText(/입력이 필요한 케이스/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '테스트 반영하기' }));
     await vi.waitFor(() => expect(머지).toHaveBeenCalledWith('MKT', 7, undefined));
   });
@@ -226,6 +223,6 @@ describe('다음 단계의 보류 진척과 반영', () => {
     머지.mockRejectedValueOnce(new ApiError(409, 'HELD_OPEN', ''));
     render(<AuthoringTodo service="MKT" 요청={줄({ held: [삭제글], heldOpen: 0 })} 할수={운영} 차이수={0} reload={reload} />);
     fireEvent.click(screen.getByRole('button', { name: '테스트 반영하기' }));
-    expect(await screen.findByText('보류 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요')).toBeTruthy();
+    expect(await screen.findByText('입력이 필요한 케이스가 남아 있어 아직 반영할 수 없습니다. 새로 고쳐 보세요')).toBeTruthy();
   });
 });

@@ -6,6 +6,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { 작성계정인가 } from '../auth/agentToken.js';
 import { 병합뒤훑기 } from '../catalog/scanRun.js';
 import { 자료목록 } from './assetStore.js';
+import { 끝내기케이스맞나 } from './cases.js';
 import { 끝내기겹침맞나, 집기겹침칸 } from './conflict-routes.js';
 import { 커버리지모양검사, 커버리지칸 } from './coverage.js';
 import { 행의고칠것 } from './edit.js';
@@ -203,7 +204,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     const 결과 = req.body?.result;
     const 결과칸 =
       typeof 결과 === 'object' && 결과 !== null
-        ? (결과 as { held?: unknown; heldUnknown?: unknown; coverage?: unknown; pulled?: unknown; conflicts?: unknown })
+        ? (결과 as { held?: unknown; heldUnknown?: unknown; coverage?: unknown; pulled?: unknown; conflicts?: unknown; cases?: unknown })
         : {};
     const 보류 = 결과칸.held === undefined ? [] : 보류모양검사(결과칸.held);
     if (보류 === null || (결과칸.heldUnknown !== undefined && 결과칸.heldUnknown !== true)) {
@@ -213,6 +214,7 @@ export default async function authoringAgentRoutes(app: FastifyInstance): Promis
     const 셈 = 결과칸.coverage === undefined ? null : 커버리지모양검사(결과칸.coverage);
     if (결과칸.coverage !== undefined && 셈 === null) return reply.code(400).send({ error: 'BAD_COVERAGE' });
     if (!끝내기겹침맞나(행.kind, status, 결과칸.conflicts)) return reply.code(400).send({ error: 'BAD_CONFLICTS' });
+    if (!끝내기케이스맞나(행.kind, status, 행.params, 결과칸.cases, req.query.service)) return reply.code(400).send({ error: 'BAD_CASES' });
     const error = req.body?.error;
     // 입력 옮기기와 끝내기를 뿌리 잠금 안의 한 UPDATE 로 — 사이에 들어온 PUT 을 덮거나, 옮기다 실패해 DONE 만 남지 않게.
     // 고치기 반영의 저장값 지우기도 같은 트랜잭션 — 지우다 실패하면 DONE 도 안 남아 에이전트가 다시 알린다

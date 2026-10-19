@@ -33,6 +33,7 @@ import { tcId별글, 원장판정 } from './authoring-ledger-verdict.js';
 import { 케이스글들 } from './authoring-ledger-io.js';
 import { type 셈재료, 커버리지싣는손 } from './authoring-coverage.js';
 import { 보류싣는손 } from './authoring-held.js';
+import { type 케이스재료, 바뀜풀기, 변경상태인자, 케이스싣는손 } from './authoring-cases.js';
 import { 모양보기, 트리실제 } from './authoring-child.js';
 import { type 자료, 자료출처, 화면만인가 } from './authoring-assets.js';
 import { type 보고손, type 판정기, 다시하며, 친다 } from './authoring-io.js';
@@ -79,7 +80,18 @@ export async function 올리기(
 ): Promise<void> {
   // 셈은 원장 대조 뒤에 선다 — 그 전의 끝내기에는 안 싣는다. 보류가 바깥이라 셈이 result.held 를 보고 보류를 센다 (§3.6 「★ 원장」)
   let 셈: 셈재료 | null = null;
-  const 손 = 보류싣는손(커버리지싣는손(원손, () => 셈), 자리, 원장재료.자식, 원장재료.폴더);
+  // 만든 케이스(result.cases)는 보류 스캔이 읽은 명세와 커밋 뒤에 서는 바뀐 파일 표로 센다 — 같은 스캔을 두 번 돌리지 않는다
+  let 명세들: unknown[] | null = null;
+  let 케이스자료: 케이스재료 | null = null;
+  const 손 = 보류싣는손(
+    케이스싣는손(커버리지싣는손(원손, () => 셈), () => ({ 명세들, 재료: 케이스자료 })),
+    자리,
+    원장재료.자식,
+    원장재료.폴더,
+    (읽은것) => {
+      명세들 = 읽은것;
+    },
+  );
   const 깃 = 사본환경(자리);
   // 거절 까닭은 화면과 이어받는 자식의 프롬프트로 간다 — 자식이 정한 파일 이름에 계정 원문이 섞일 수 있어 모두 거른다
   // 비밀번호는 일반 회원 · 역할 계정 전부다 — 반영 행도 역할 계정을 받는다 (§3.6 「★ 역할별 계정」)
@@ -166,6 +178,9 @@ export async function 올리기(
   const 바뀐틀 = 목록글 === null ? null : 바뀐틀들(목록글);
   const 화면지도 = 바뀐틀 === null || 바뀐틀.size === 0 ? null : 기준화면지도({ 깃: (인자) => 트리에서('git', 인자), 기준, 서비스, 폴더: 원장재료.폴더, 번호들: [] });
   const 바뀐줄 = 화면지도 === null || 바뀐틀 === null ? null : '까닭' in 화면지도 ? `⚠️ 바뀐 화면 케이스를 못 셌다 — ${화면지도.까닭}` : 바뀐화면줄(바뀐틀, 화면지도.케이스, new Set(전체));
+  const 바뀜표 = 트리에서('git', 변경상태인자(기준));
+  if (바뀜표.ok) 케이스자료 = { 바뀜: 바뀜풀기(바뀜표.낸것), 표글: 읽기(표), 접두사: 서비스, 읽기 };
+  else console.error(`[작성] ${것.id}번 바뀐 파일 상태를 못 읽어 만든 케이스를 싣지 않는다: ${바뀜표.까닭}`);
   // 원장 대조 — 메모리의 원장 · 올릴 트리의 표와 케이스로 본다. 빠져도 거절하지 않고 셈과 PR 본문 머리에 남긴다 (§3.6 「★ 원장」, 2026-09-30 게이트 1)
   const 추적 = 트리에서('git', ['ls-files', '-z', '--', `tests/${원장재료.폴더}`]);
   if (!추적.ok) return void (await 손.끝내기(거절(`원장 대조용 케이스 목록을 못 읽었다: ${추적.까닭}`)));

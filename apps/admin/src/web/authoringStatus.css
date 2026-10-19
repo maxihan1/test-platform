@@ -128,9 +128,8 @@
 /* 상세 페이지는 카드들이 제각각 떠 있다. 공용 .screen 의 판을 걷는다 — 판 위에 카드를 또 띄우면 테두리가 겹친다 */
 .screen.authoring-page { background: none; border: 0; box-shadow: none; overflow: visible; }
 
-/* 상세 두 단 — 왼쪽 카드 · 차이, 오른쪽 다음 단계 · 요청 정보 */
-.authoring-cols { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-.authoring-col { display: grid; gap: 16px; min-width: 0; }
+/* 상세는 한 줄 — 카드 → 다음 단계 → 만든 케이스 → 차이 → 요청 정보 → 실행 기록. 좁아도 차례가 같다 (시안 A · 점검 12.12) */
+.screen.authoring-page { display: grid; gap: 16px; min-width: 0; }
 .authoring-panel {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -166,7 +165,6 @@
 
 .authoring-panel .authoring-diffs-wrap { margin-top: 0; }
 /* 실행 기록 — 두 단 아래 온 폭. 지금 보이는 실행(맨 위 줄)만 바탕을 깐다 — 판정 색은 안 쓴다 (DESIGN.md 원칙 1) */
-.authoring-runs { margin-top: 16px; }
 .authoring-runs tr.now td { background: var(--rail-active); font-weight: 600; }
 
 /* 다음 단계 — 사람이 움직여야 하는 것만. 판정 색이 아니라 잉크 테두리로 앞에 세운다 */
@@ -181,6 +179,8 @@
 .authoring-todo h3 { margin: 0; font-size: 15px; font-weight: 600; }
 .authoring-todo ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
 .authoring-todo li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; }
+/* 입력 · 중복 표가 단계 안에 펴진다 — 칸이 줄어들 수 있어야 표만 옆으로 구른다 */
+.authoring-todo li > div { min-width: 0; }
 .authoring-todo .k {
   width: 22px;
   height: 22px;
@@ -212,9 +212,6 @@
 }
 .start-ok small { display: block; color: var(--ink-muted); font-size: 13px; }
 
-@media (max-width: 860px) {
-  .authoring-cols { grid-template-columns: minmax(0, 1fr); }
-}
 /* 차이 표는 좁은 판에서 칸이 글자 단위로 쪼개진다. 최소 폭을 줘 감싼 칸만 옆으로 구르게 한다 (DESIGN.md 「반응형」) */
 .authoring-panel .authoring-diffs { min-width: 640px; }
 
@@ -228,7 +225,7 @@
 }
 
 /* 보류 케이스 — 사람이 할 일이지 판정이 아니다. 칩 · 상태 모두 잉크와 --line-2 만 쓴다 (DESIGN.md 「작성 상태」 원칙 1) */
-.authoring-held { margin-top: 16px; }
+.authoring-held { display: grid; gap: 8px; }
 .authoring-held .dhist { min-width: 720px; }
 .authoring-held tr.open td { background: var(--rail-active); }
 .held-chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; background: var(--well); color: var(--ink-muted); border: 1px solid var(--line-2); white-space: nowrap; }
@@ -240,7 +237,6 @@
 .held-fields { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 .held-field { display: grid; gap: 4px; }
 .held-field input, .held-field select { max-width: 320px; }
-.held-path { font-size: 12px; color: var(--ink-faint); }
 .held-open { max-width: calc(100vw - 32px); }
 .held-side { font-size: 11.5px; letter-spacing: .04em; color: var(--ink-faint); }
 .held-bar { margin: 4px 0 8px; }
@@ -250,3 +246,16 @@
 .conflicts-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 .conflicts-head h3 { margin: 0; }
 .authoring-conflicts .held-chip + .held-chip { margin-left: 4px; }
+
+/* 만든 케이스 · 빠진 요구의 요구 번호 고리 — 여럿이 한 칸에 붙는다 */
+.made-req + .made-req { margin-left: 6px; }
+.made-reqs { margin: 0 0 8px; }
+.made-more summary { cursor: pointer; color: var(--ink-faint); font-size: 12px; }
+.made-more ul { margin: 4px 0 0; padding-left: 18px; }
+
+/* 중복 케이스 나란히 보기 — 왼쪽 이번에 만든 것, 오른쪽 main 에 있는 것. 같은 요구 번호에만 바탕을 깐다(판정 색이 아니다) */
+.side-by-side { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; max-width: calc(100vw - 32px); }
+.side-by-side > div { display: grid; gap: 4px; align-content: start; padding: 10px 12px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--well); min-width: 0; }
+.side-by-side ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--ink-muted); }
+.side-same { background: var(--rail-active); border-radius: 3px; padding: 0 3px; }
+.side-by-side .mono + .mono { margin-left: 6px; }

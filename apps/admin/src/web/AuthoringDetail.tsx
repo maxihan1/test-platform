@@ -1,4 +1,4 @@
-// 작성 요청 한 건 상세 페이지. 왼쪽은 Status 카드와 차이, 오른쪽은 다음 단계와 요청 정보, 아래는 실행 기록이다
+// 작성 요청 한 건 상세 페이지. 한 줄로 Status 카드 → 다음 단계 → 만든 케이스 → 차이 → 요청 정보 → 실행 기록이다
 // (도메인/작성 §3.6 · §7 · 도메인/인증 §7 「등급으로 갈리는 자리」 · DESIGN.md 「작성 상태」)
 
 import { useCallback, useEffect } from 'react';
@@ -6,8 +6,7 @@ import { useCallback, useEffect } from 'react';
 import { api, type AuthoringRow } from './api.js';
 import { 산출물설명, 자료고리 } from './AuthoringAssetParts.js';
 import { 고칠내용 } from './AuthoringEditParts.js';
-import { AuthoringConflicts } from './AuthoringConflicts.js';
-import { AuthoringHeld } from './AuthoringHeld.js';
+import { AuthoringCases } from './AuthoringCases.js';
 import { AuthoringMergeFailed } from './AuthoringMergeFailed.js';
 import { AuthoringRuns } from './AuthoringRuns.js';
 import { AuthoringStatusCard } from './AuthoringStatusCard.js';
@@ -16,6 +15,7 @@ import { 고칠것목록, 끝났나, 요청제목, 자료요약, 종류라벨, �
 import { Head } from './Head.js';
 import { use말, use언어 } from './i18n.js';
 import type { 판정 } from './role.js';
+import { 케이스주소 } from './route.js';
 import { Failed, Loading, useAsync, when } from './ui.js';
 
 export function AuthoringDetail({
@@ -108,6 +108,15 @@ export function AuthoringDetail({
   const 고치기 = 뿌리.kind === 'EDIT';
   // 반영이 실패했으면(다른 PR 과 충돌) 최신 버튼은 실패한 머지를 건너뛴 고치기 실행이다 — 거기서 다시 적용을 낸다 (작성 §3.6 「다시 적용」)
   const 반영실패 = 뿌리.runs?.[0]?.kind === 'MERGE' && 뿌리.runs[0].status === 'FAILED';
+  // 반영이 끝나야 케이스가 카탈로그에 있다 — 그 전의 케이스 고리는 빈 상세로 간다
+  const 반영됨 = 뿌리.runs?.[0]?.kind === 'MERGE' && 뿌리.runs[0].status === 'DONE';
+  // 반영 전에 사람이 뺀 케이스(입력 단계의 케이스 제외 · 중복의 새 케이스 제외)는 반영이 파일째 지운다 — 수 · 실행 · 고리에서 뺀다.
+  // ponytail: 반영이 병합되면 상세가 중복 결정을 더는 싣지 않아(최근 반영이 실패일 때만) 중복으로 뺀 것은 못 거른다 — 실행 창이 카탈로그에 없는 번호를 빼고 알린다
+  const 뺀번호 = new Set([
+    ...(작성.held ?? []).filter((h) => h.input?.removed === true).map((h) => h.tcId),
+    ...(작성.conflicts ?? []).filter((c) => c.input?.action === 'DROP').map((c) => c.tcId),
+  ]);
+  const 넣은것 = 작성.cases == null ? null : 작성.cases.filter((c) => !뺀번호.has(c.tcId));
   const 부제글 = 고치기
     ? 종류라벨('EDIT', 언어)
     : data.compare === true
@@ -151,138 +160,146 @@ export function AuthoringDetail({
         }
       />
 
+      {/* 한 줄로 놓는다 — 할 일이 맨 위에 오고 입력 · 중복 표가 그 단계 안에 펴진다. 두 칸일 때 좁은 화면에서 할 일이 맨 아래로 밀렸다 (시안 A · 점검 12.12) */}
       <div className="screen authoring-page">
-        <div className="authoring-cols">
-          <div className="authoring-col">
-            {/* 셈은 차이 표처럼 머지를 뺀 최신 작성 실행 것이다 — 머지 행에는 셈이 없다 */}
-            <AuthoringStatusCard
-              요청={data}
-              커버리지={작성.coverage ?? null}
-              지금={Date.now()}
-              service={service}
-              최신={뿌리.runs?.[0]}
-              뿌리종류={뿌리.kind}
-              운영자={할수('설정')}
-            />
-            {고치기 ? <고칠내용 목록={고칠것목록(뿌리.params) ?? []} /> : null}
+        {/* 셈은 차이 표처럼 머지를 뺀 최신 작성 실행 것이다 — 머지 행에는 셈이 없다 */}
+        <AuthoringStatusCard
+          요청={data}
+          커버리지={작성.coverage ?? null}
+          지금={Date.now()}
+          service={service}
+          최신={뿌리.runs?.[0]}
+          뿌리종류={뿌리.kind}
+          운영자={할수('설정')}
+        />
+        {고치기 ? <고칠내용 목록={고칠것목록(뿌리.params) ?? []} /> : null}
 
-            {차이들 === null ? null : (
-              <section className="authoring-panel">
-                <h3>
-                  {t('기획서와 화면의 차이')} · {t('{수}건', { 수: 차이들.length })}
-                </h3>
-                {/* 좁은 화면에서 일곱 칸이 쪼개지지 않게 표만 옆으로 구른다 (DESIGN.md 「반응형」) */}
-                <div className="authoring-diffs-wrap">
-                  <table className="dhist authoring-diffs" aria-label={t('기획서와 화면의 차이')}>
-                    <thead>
-                      <tr>
-                        <th>{t('번호')}</th>
-                        <th>{t('종류')}</th>
-                        <th>{t('자리')}</th>
-                        <th>{t('기획서')}</th>
-                        <th>{t('화면')}</th>
-                        <th>{t('케이스')}</th>
-                        <th>{t('표시')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {차이들.map((d, i) => (
-                        <tr key={`${d.no}-${String(i)}`}>
-                          <td className="mono">{d.no}</td>
-                          <td>{차이종류라벨(d.kind, 언어)}</td>
-                          <td>{d.where ?? '—'}</td>
-                          <td>{d.doc ?? '—'}</td>
-                          <td>{d.screen ?? '—'}</td>
-                          <td className="mono">{d.tcId ?? '—'}</td>
-                          {/* 표시 실패는 판정이 아니다 — 판정 색 없이 이유만 적는다 (DESIGN.md 「판정 표기」 원칙 1) */}
-                          <td>{d.marked ? t('표시함') : `${t('표시 못 함')} — ${d.markError ?? t('이유 기록 없음')}`}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
-          </div>
+        {/* 케이스 고치기는 자기 반영 실패 안내(다시 적용)가 있다 */}
+        {고치기 ? null : (
+          <AuthoringMergeFailed
+            service={service}
+            실행={뿌리.runs?.[0]}
+            원본={작성.kind === 'AUTHOR' ? 작성.id : (작성.sourceId ?? null)}
+            권한={할수('작성요청')}
+            반영권한={할수('작성머지')}
+            운영자={할수('설정')}
+            겹침수={data.conflicts?.length ?? 0}
+            reload={reload}
+          />
+        )}
+        <AuthoringTodo
+          service={service}
+          요청={data}
+          할수={할수}
+          차이수={차이들?.length ?? 0}
+          커버리지={작성.coverage ?? null}
+          고치기={고치기 ? { 반영실패 } : undefined}
+          만든것={넣은것}
+          reload={reload}
+        />
 
-          <div className="authoring-col">
-            {/* 케이스 고치기는 자기 반영 실패 안내(다시 적용)가 있다 */}
-            {고치기 ? null : (
-              <AuthoringMergeFailed
-                service={service}
-                실행={뿌리.runs?.[0]}
-                원본={작성.kind === 'AUTHOR' ? 작성.id : (작성.sourceId ?? null)}
-                권한={할수('작성요청')}
-                reload={reload}
-              />
-            )}
-            <AuthoringTodo
-              service={service}
-              요청={data}
-              할수={할수}
-              차이수={차이들?.length ?? 0}
-              커버리지={작성.coverage ?? null}
-              고치기={고치기 ? { 반영실패 } : undefined}
-              reload={reload}
-            />
+        {고치기 ? null : <AuthoringCases cases={작성.cases ?? null} prUrl={작성.prUrl} 등록됨={반영됨} 뺀번호={뺀번호} />}
 
-            <section className="authoring-panel" aria-label={t('요청 정보')}>
-              <h3>{t('요청 정보')}</h3>
-              <dl className="detail">
-                <dt>{t('요청한 사람')}</dt>
-                <dd>{data.requestedByName}</dd>
-                <dt>{t('요청한 시각')}</dt>
-                <dd>{when(data.createdAt, 언어)}</dd>
-                {/* 역방향 (도메인/작성 §3.6 「★ 역방향」). 계정은 이 응답에 없다 — 집기 응답에만 있다 */}
-                {data.compare === true ? (
-                  <>
-                    <dt>{t('대조할 화면')}</dt>
-                    <dd>
-                      {data.env ?? t('기록 없음')} · {data.startUrl ?? t('대상 서버 주소에서 시작')}
-                      {/* 재실행은 입력이 원본 요청에 있다 — 자기 입력이 비어도 화면만이 아니다 */}
-                      {data.kind === 'RERUN' ? (
-                        <small>{t('원본 요청 #{번호}의 입력을 그대로 씁니다', { 번호: data.sourceId ?? '—' })}</small>
-                      ) : 입력.length === 0 ? (
-                        <small>{t('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')}</small>
-                      ) : null}
-                    </dd>
-                  </>
-                ) : null}
-              </dl>
+        {차이들 === null ? null : (
+          <section id="diffs" className="authoring-panel" aria-labelledby="diffs-title">
+            <h3 id="diffs-title">
+              {t('기획서와 화면의 차이')} · {t('{수}건', { 수: 차이들.length })}
+            </h3>
+            {/* 좁은 화면에서 칸이 쪼개지지 않게 표만 옆으로 구른다 (DESIGN.md 「반응형」).
+                에이전트 안 번호 · 표시 성공 칸은 사람이 할 일과 상관없어 뺐다 (점검 12.11) */}
+            <div className="authoring-diffs-wrap">
+              <table className="dhist authoring-diffs" aria-label={t('기획서와 화면의 차이')}>
+                <thead>
+                  <tr>
+                    <th>{t('종류')}</th>
+                    <th>{t('자리')}</th>
+                    <th>{t('기획서')}</th>
+                    <th>{t('화면')}</th>
+                    <th>{t('케이스')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {차이들.map((d, i) => (
+                    <tr key={`${d.no}-${String(i)}`}>
+                      <td>{차이종류라벨(d.kind, 언어)}</td>
+                      <td>{d.where ?? '—'}</td>
+                      <td>{d.doc ?? '—'}</td>
+                      <td>{d.screen ?? '—'}</td>
+                      <td>
+                        {d.tcId == null ? (
+                          '—'
+                        ) : 반영됨 ? (
+                          <a className="mono" href={케이스주소(d.tcId)}>
+                            {d.tcId}
+                          </a>
+                        ) : (
+                          <span className="mono">{d.tcId}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="btns">
+              <a className="btn ghost" href="#/prd">
+                {t('PRD 관리에서 확인 필요 보기')}
+              </a>
+            </div>
+          </section>
+        )}
 
-              {입력.length === 0 ? null : (
-                <>
-                  <h3>{t('넣은 자료')}</h3>
-                  <ol className="authoring-assets" aria-label={t('입력 자료')}>
-                    {입력.map((a) => (
-                      <li key={a.id}>
-                        <자료고리 요청={뿌리.id} 자료={a} 글={a.name} />
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              )}
+        <section className="authoring-panel" aria-label={t('요청 정보')}>
+          <h3>{t('요청 정보')}</h3>
+          <dl className="detail">
+            <dt>{t('요청한 사람')}</dt>
+            <dd>{data.requestedByName}</dd>
+            <dt>{t('요청한 시각')}</dt>
+            <dd>{when(data.createdAt, 언어)}</dd>
+            {/* 역방향 (도메인/작성 §3.6 「★ 역방향」). 계정은 이 응답에 없다 — 집기 응답에만 있다 */}
+            {data.compare === true ? (
+              <>
+                <dt>{t('대조할 화면')}</dt>
+                <dd>
+                  {data.env ?? t('기록 없음')} · {data.startUrl ?? t('대상 서버 주소에서 시작')}
+                  {/* 재실행은 입력이 원본 요청에 있다 — 자기 입력이 비어도 화면만이 아니다 */}
+                  {data.kind === 'RERUN' ? (
+                    <small>{t('원본 요청 #{번호}의 입력을 그대로 씁니다', { 번호: data.sourceId ?? '—' })}</small>
+                  ) : 입력.length === 0 ? (
+                    <small>{t('화면만 — 기획서 없이 PRD 에 없는 화면만 작성합니다')}</small>
+                  ) : null}
+                </dd>
+              </>
+            ) : null}
+          </dl>
 
-              {산출물.length === 0 ? null : (
-                <>
-                  <h3>{t('산출물')}</h3>
-                  <ol className="authoring-assets" aria-label={t('산출물')}>
-                    {산출물.map((a) => (
-                      <li key={a.id}>
-                        <자료고리 요청={data.id} 자료={a} 글={a.name} />
-                        <small>{산출물설명(a, 자료들, data.kind === 'RERUN' ? data.sourceId ?? null : null, t)}</small>
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              )}
-            </section>
-          </div>
-        </div>
-        {/* 겹침은 반영이 겹침으로 실패한 뒤 그 반영의 원본(최신 끝난 작성 실행)에 붙는다 — 보류와 같은 행이다 */}
-        <AuthoringConflicts service={service} 요청번호={data.id} conflicts={data.conflicts ?? []} 편집={할수('작성요청')} reload={reload} />
-        {/* 보류는 최신 끝난 실행에 붙는다 — 서버가 그 행에만 입력을 받는다 (도메인/작성 §7) */}
-        <AuthoringHeld service={service} 요청번호={data.id} held={data.held ?? []} 편집={할수('작성요청')} reload={reload} />
+          {입력.length === 0 ? null : (
+            <>
+              <h3>{t('넣은 자료')}</h3>
+              <ol className="authoring-assets" aria-label={t('입력 자료')}>
+                {입력.map((a) => (
+                  <li key={a.id}>
+                    <자료고리 요청={뿌리.id} 자료={a} 글={a.name} />
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+
+          {산출물.length === 0 ? null : (
+            <>
+              <h3>{t('산출물')}</h3>
+              <ol className="authoring-assets" aria-label={t('산출물')}>
+                {산출물.map((a) => (
+                  <li key={a.id}>
+                    <자료고리 요청={data.id} 자료={a} 글={a.name} />
+                    <small>{산출물설명(a, 자료들, data.kind === 'RERUN' ? data.sourceId ?? null : null, t)}</small>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+        </section>
         <AuthoringRuns runs={뿌리.runs ?? []} 뿌리종류={뿌리.kind} 운영자={할수('설정')} />
       </div>
     </>

@@ -100,7 +100,7 @@ export const 실행말: Record<string, string> = {
   '실행할 디바이스를 하나 이상 고르세요.': 'Pick at least one device to run.',
   // 실행 창을 여는 다른 자리 — 실행 결과 · 항목 상세 (도메인/실행 §8.10)
   '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
-  '비활성이라 뺀 케이스 {목록}': 'Left out as inactive: {목록}',
+  '비활성이거나 없어 뺀 케이스 {목록}': 'Left out as inactive or missing: {목록}',
   '대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
     'Pick a target server. Evidence records which server was hit.',
   '묶음 이름': 'Set name',

@@ -627,6 +627,18 @@ export interface AuthoringRow {
   mergeEnvs?: string[];
   /** 기획서 요구 셈 (도메인/작성 §3.6 「★ 원장」). 상세에만 — null 이면 셈을 싣기 전의 실행이다 */
   coverage?: AuthoringCoverage | null;
+  /** 이 작성 실행이 새로 만들거나 바꾼 케이스 (도메인/작성 §7 finish result.cases). 상세에만 — null 이면 목록을 싣기 전의 에이전트다 */
+  cases?: AuthoringMadeCase[] | null;
+}
+
+/** 에이전트가 PR 브랜치 파일에서 센 케이스 한 건. reqs 는 요구사항 표 출처 칸의 요구 번호다 */
+export interface AuthoringMadeCase {
+  tcId: string;
+  name: string;
+  file: string;
+  change: 'NEW' | 'CHANGED';
+  verifies: string[];
+  reqs: string[];
 }
 
 /**
