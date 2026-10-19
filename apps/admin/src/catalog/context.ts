@@ -26,6 +26,8 @@ export interface CaseContext {
   feature: string | null;
   reqs: CaseReq[];
   screens: CaseScreen[];
+  /** 케이스를 실행해서 부른 호스트에 붙은 API 서버 이름 — 글자 순, 같은 이름은 한 번 (§8.1 「API 서버」). 없으면 [] */
+  apiServers: string[];
 }
 
 /** 목록이 접는 자리 하나 — 기능 묶음 > 화면 > 화면 조각. 화면 · 화면 조각은 파일 경로이고 없으면 null 이다 */
@@ -44,6 +46,8 @@ export interface 맥락재료 {
   prd: Pick<PrdItem, 'reqId' | 'feature' | 'text'>[];
   reqs: { reqId: string; tcId: string; axis: 종류 }[];
   screens: { tcId: string; file: string; url: string | null; name: string | null }[];
+  /** 없으면 API 서버 이름을 안 단다 — 목록 밖(실패 요구사항)이 요구만 짓는 데 쓴다 */
+  apis?: { tcId: string; name: string }[];
 }
 
 interface 자리 {
@@ -60,11 +64,11 @@ interface 자리 {
 
 export type 맥락표 = Map<string, CaseContext & { 자리: 자리 }>;
 
-const 빈맥락: CaseContext = { feature: null, reqs: [], screens: [] };
+const 빈맥락: CaseContext = { feature: null, reqs: [], screens: [], apiServers: [] };
 
 export function 맥락(표: 맥락표, tcId: string): CaseContext {
   const 것 = 표.get(tcId);
-  return 것 === undefined ? 빈맥락 : { feature: 것.feature, reqs: 것.reqs, screens: 것.screens };
+  return 것 === undefined ? 빈맥락 : { feature: 것.feature, reqs: 것.reqs, screens: 것.screens, apiServers: 것.apiServers };
 }
 
 const 화면순 = (s: CaseScreen) => s.url ?? s.file;
@@ -90,8 +94,11 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
     화면들.set(s.tcId, 줄);
   }
 
+  const 서버들 = new Map<string, Set<string>>();
+  for (const a of 재료.apis ?? []) 서버들.set(a.tcId, (서버들.get(a.tcId) ?? new Set()).add(a.name));
+
   const 표: 맥락표 = new Map();
-  for (const tcId of new Set([...요구들.keys(), ...화면들.keys()])) {
+  for (const tcId of new Set([...요구들.keys(), ...화면들.keys(), ...서버들.keys()])) {
     // 판의 차례가 앞인 요구가 먼저 — 그 요구의 기능 묶음이 케이스의 묶음이다(카탈로그 §7 계약 블록). 판에 없는 번호는 뒤에 번호 차례로
     const reqs = (요구들.get(tcId) ?? []).sort(
       (a, b) => (번호차례.get(a.reqId) ?? Infinity) - (번호차례.get(b.reqId) ?? Infinity) || a.reqId.localeCompare(b.reqId),
@@ -106,6 +113,7 @@ export function 맥락짓기(재료: 맥락재료): 맥락표 {
       feature,
       reqs,
       screens,
+      apiServers: [...(서버들.get(tcId) ?? [])].sort((a, b) => a.localeCompare(b)),
       자리: {
         차례: feature === null ? Infinity : 묶음차례.get(feature)!,
         화면차례: 화면 === null ? '' : 화면순(화면),
@@ -156,6 +164,8 @@ export interface 맥락조건 {
   part?: string;
   axis?: 종류;
   req?: string;
+  /** API 서버 이름 — 그 이름이 붙은 호스트를 실행해서 부른 케이스 (§8.1 「API 서버」). 모르는 이름은 빈 목록이다 */
+  apiServer?: string;
 }
 
 /** 「이것만 보기」는 묶음 자리를 그대로 거른다 — 케이스가 쓰는 다른 화면으로는 안 걸린다. 걸리면 고른 묶음에 다른 묶음 머리가 섞여 보인다 */
@@ -169,8 +179,14 @@ export function 맥락거르기(tcIds: string[], 표: 맥락표, 조건: 맥락�
     if (조건.part !== undefined && 곳.part !== 조건.part) return false;
     if (조건.axis !== undefined && !reqs.some((r) => r.axis === 조건.axis)) return false;
     if (조건.req !== undefined && !reqs.some((r) => r.reqId === 조건.req)) return false;
+    if (조건.apiServer !== undefined && !(것?.apiServers ?? []).includes(조건.apiServer)) return false;
     return true;
   });
+}
+
+/** 이름마다 맞은 케이스 수 — 칩 건수다. 조건에서 apiServer 를 뺀 맞은 번호를 넘긴다. 지금 조건에서 0건인 이름도 낸다(걸린 칩을 풀 길이 있어야 한다) */
+export function API서버세기(맞은: string[], 표: 맥락표, 이름들: string[]): { name: string; count: number }[] {
+  return 이름들.map((name) => ({ name, count: 맞은.filter((id) => 표.get(id)?.apiServers.includes(name) === true).length }));
 }
 
 /** 찾기 칸이 요구 번호 · 요구 문장에도 맞는 케이스 — 이름 · 번호 맞추기는 SQL 이 한다 */
@@ -180,7 +196,7 @@ export function 요구로찾기(표: 맥락표, q: string): string[] {
 }
 
 /** 쿼리 글자 그대로 — 같은 이름을 두 번 보내면 Fastify 가 배열로 준다 */
-export type 맥락글 = { feature?: unknown; screen?: unknown; part?: unknown; axis?: unknown; req?: unknown };
+export type 맥락글 = { feature?: unknown; screen?: unknown; part?: unknown; axis?: unknown; req?: unknown; apiServer?: unknown };
 
 // 배열이면 마지막 값을 쓴다 — 배열을 그대로 견주면 아무것도 안 맞아 조용히 빈 목록이 된다
 const 한글자 = (x: unknown): string | undefined => {
@@ -193,7 +209,7 @@ const 한글자 = (x: unknown): string | undefined => {
  * 모르는 종류는 null — 설계 기법과 같은 까닭으로 거르지 않고 전부 내지 않는다
  */
 export function 맥락조건읽기(q: 맥락글): 맥락조건 | null {
-  const [feature, screen, part, axis, req] = [q.feature, q.screen, q.part, q.axis, q.req].map(한글자);
+  const [feature, screen, part, axis, req, apiServer] = [q.feature, q.screen, q.part, q.axis, q.req, q.apiServer].map(한글자);
   const 있나 = (x: string | undefined): x is string => x !== undefined && x !== '';
   const 종류 = 종류들.find((a) => a === axis);
   if (있나(axis) && 종류 === undefined) return null;
@@ -203,6 +219,7 @@ export function 맥락조건읽기(q: 맥락글): 맥락조건 | null {
     ...(있나(part) ? { part } : {}),
     ...(종류 === undefined ? {} : { axis: 종류 }),
     ...(있나(req) ? { req } : {}),
+    ...(있나(apiServer) ? { apiServer } : {}),
   };
 }
 
@@ -211,7 +228,7 @@ export const 모르는종류 = (값: unknown) => ({ error: 'BAD_AXIS', detail: `
 /** 그 서비스의 지도 ① ② 와 표준 기획서 지금 판. 서비스 · 판이 없으면 빈 표다 */
 export async function 맥락읽기(prefix: string): Promise<맥락표> {
   const { pool } = await import('../db/index.js');
-  const [판, 요구, 화면] = await Promise.all([
+  const [판, 요구, 화면, 서버] = await Promise.all([
     pool.query<{ items: PrdItem[] }>(
       `SELECT pv.items FROM prd_version pv JOIN service s ON s.id = pv.service_id
         WHERE s.prefix = $1 ORDER BY pv.version DESC LIMIT 1`,
@@ -225,10 +242,21 @@ export async function 맥락읽기(prefix: string): Promise<맥락표> {
       'SELECT tc_id, file, screen_url, name FROM case_screen WHERE tc_id LIKE $1',
       [`${prefix}-%`],
     ),
+    // 케이스를 실행해서 부른 호스트의 이름만 — 크롤러가 본 호출(화면 줄)은 tc_id 가 비어 안 든다 (§8.1 「API 서버」)
+    pool.query<{ tc_id: string; name: string }>(
+      `SELECT DISTINCT u.tc_id, n.name
+         FROM service_api_use u
+         JOIN service_api a ON a.id = u.api_id
+         JOIN service s ON s.id = a.service_id
+         JOIN project_api_server n ON n.project_id = s.project_id AND n.host = a.host
+        WHERE s.prefix = $1 AND u.tc_id IS NOT NULL`,
+      [prefix],
+    ),
   ]);
   return 맥락짓기({
     prd: 판.rows[0]?.items ?? [],
     reqs: 요구.rows.map((r) => ({ reqId: r.req_id, tcId: r.tc_id, axis: r.axis })),
     screens: 화면.rows.map((r) => ({ tcId: r.tc_id, file: r.file, url: r.screen_url, name: r.name })),
+    apis: 서버.rows.map((r) => ({ tcId: r.tc_id, name: r.name })),
   });
 }

@@ -157,6 +157,8 @@ export const 등급표: Record<string, 표값> = {
   'GET /api/settings/projects': 'admin',
   'POST /api/settings/projects': 'admin',
   'PATCH /api/settings/projects/:id': 'admin',
+  'GET /api/settings/projects/:id/api-servers': 'admin',
+  'PUT /api/settings/projects/:id/api-servers': 'admin',
   'GET /api/settings/services': 'admin',
   'POST /api/settings/services': 'admin',
   'PATCH /api/settings/services/:id': 'admin',

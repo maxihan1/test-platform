@@ -41,7 +41,7 @@ describe('맥락짓기', () => {
         { reqId: 'XCL-REQ-003', text: '비밀번호는 8자 이상 20자 이하', axis: '경계' },
       ],
     });
-    expect(맥락(표, 'XCL-FN-004')).toEqual({ feature: null, reqs: [{ reqId: 'REQ-COM-006', text: null, axis: '예외' }], screens: [] });
+    expect(맥락(표, 'XCL-FN-004')).toEqual({ feature: null, reqs: [{ reqId: 'REQ-COM-006', text: null, axis: '예외' }], screens: [], apiServers: [] });
   });
 
   it('화면은 파일 이름 차례로 다 싣고 · 지도에 없는 케이스는 빈 맥락이다', () => {
@@ -49,7 +49,7 @@ describe('맥락짓기', () => {
       { file: 화면('login'), url: '/login', name: '로그인화면' },
       { file: 화면('signup'), url: '/signup', name: '회원가입화면' },
     ]);
-    expect(맥락(표, 'XCL-FN-099')).toEqual({ feature: null, reqs: [], screens: [] });
+    expect(맥락(표, 'XCL-FN-099')).toEqual({ feature: null, reqs: [], screens: [], apiServers: [] });
   });
 });
 
