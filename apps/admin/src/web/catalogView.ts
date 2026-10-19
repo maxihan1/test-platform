@@ -1,16 +1,6 @@
 // 케이스 목록 화면이 쓰는 판단 (SPEC §8.1). 화면 조각은 CaseList.tsx, 판단은 여기
-// 이름이 CaseList.ts 가 아닌 이유 — macOS 에서 대소문자만 다르면 같은 파일로 친다. 검색 조건 가운데 화면이 거르는 것은 하나뿐이다
-//
-// | # | 조건 | 거르는 곳 |
-// |---|------|----------|
-// | 1 | 글자 | 서버 (`?q=`) |
-// | 3 | 디바이스 | 서버 (`?platform=`) |
-// | 4 | 활성 여부 | 서버 (`?active=`) |
-// | 5 | 마지막 결과 | **화면** — 실행할 때마다 바뀌는 값이라 카탈로그가 알지 못한다 |
-// | 6 | 설계 기법 | 서버 (`?technique=`) — 기능 테스트 목록만 |
-//
-// 2번(기능 영역)은 2026-09-17 에 조건에서 빠졌다. 목록이 한 서비스로 좁혀지면
-// 그 안의 접두사는 전부 같아 거를 것이 없다 (§8)
+// 이름이 CaseList.ts 가 아닌 이유 — macOS 에서 대소문자만 다르면 같은 파일로 친다.
+// 검색 조건은 전부 서버가 거른다 — 마지막 결과도 2026-10-19 ⑫ 부터다(도메인/카탈로그 §7 `?last=`). 앞 판은 그것만 화면이 받은 쪽 안에서 걸러 2쪽의 실패가 안 보였다
 
 import { 케이스판정 } from '../prd/trace.js';
 import type { CaseRow, ItemStatus, LastResult, Platform } from './api.js';
@@ -29,43 +19,6 @@ export const keyOf = (tcId: string, platform: Platform): string => `${tcId}:${pl
  */
 export function 마지막판정(row: CaseRow, last: LastMap): ItemStatus {
   return 케이스판정(row.platforms.map((platform) => last[keyOf(row.tcId, platform)]?.status));
-}
-
-/** 집계 띠가 받는 네 숫자 */
-export interface 판정셈 {
-  전체: number;
-  통과: number;
-  실패: number;
-  미실행: number;
-}
-
-/**
- * 목록을 열자마자 「지금 이 서비스가 어떤 상태인가」를 말하는 네 숫자.
- *
- * **마지막 결과 배지 하나만 있을 때는 실패가 어제부터인지 2주 전부터인지 알 수 없었다.**
- * 세는 규칙은 `마지막판정` 그대로다 — 디바이스 한쪽만 깨져도 실패다.
- * 세는 일을 기계에 맡긴다. 화면이 손으로 세면 조건이 바뀔 때 조용히 틀려진다.
- */
-export function 판정개수(rows: CaseRow[], last: LastMap): 판정셈 {
-  const 셈: 판정셈 = { 전체: rows.length, 통과: 0, 실패: 0, 미실행: 0 };
-  for (const row of rows) {
-    const 판정 = 마지막판정(row, last);
-    if (판정 === 'PASS') 셈.통과 += 1;
-    else if (판정 === 'FAIL') 셈.실패 += 1;
-    else 셈.미실행 += 1;
-  }
-  return 셈;
-}
-
-/**
- * 마지막 결과 칩 (SPEC §8.1 조건 5).
- *
- * **이것만 화면이 거른다.** 나머지 셋은 케이스의 속성이라 서버가 건다 —
- * 이 값은 실행할 때마다 바뀌어서 카탈로그가 알 수 없다 (§3.1 컨텍스트 경계).
- */
-export function 마지막결과로거른다(rows: CaseRow[], last: LastMap, 칩: ItemStatus | 'ALL'): CaseRow[] {
-  if (칩 === 'ALL') return rows;
-  return rows.filter((row) => 마지막판정(row, last) === 칩);
 }
 
 export interface 빈화면 {

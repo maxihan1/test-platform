@@ -55,14 +55,6 @@ describe('줄과머리', () => {
     expect(모양(줄과머리(['X-001'].map(줄), undefined, new Set(), true))).toEqual(['X-001']);
   });
 
-  it('화면이 거른 줄(마지막 결과 칩)이 있으면 머리 건수는 보이는 줄로만 센다', () => {
-    const 이쪽 = ['X-001', 'X-002', 'X-003', 'X-004', 'X-005'];
-    const 보임 = ['X-003', 'X-005'];
-    expect(모양(줄과머리(보임.map(줄), 묶음들, new Set(이쪽), true, new Set(보임)))).toEqual([
-      '# 회원가입 1', `## ${화면} 1`, 'X-003', '# 없음 1', 'X-005',
-    ]);
-  });
-
   it('화면 없이 조각만 쓰는 자리는 「이것만 보기」에 화면 없음(빈 글자)까지 건다', () => {
     const 조각만: CaseGroup[] = [{ feature: '회원가입', screen: null, screenUrl: null, part: 조각, tcIds: ['X-009'] }];
     const 머리들 = 줄과머리([줄('X-009')], 조각만, new Set(['X-009']), true).flatMap((칸) => ('row' in 칸 ? [] : [칸.머리]));

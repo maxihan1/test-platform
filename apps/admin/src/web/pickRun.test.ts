@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CaseRow, LastResult, Platform } from './api.js';
-import { keyOf, type LastMap } from './catalogView.js';
+import type { CaseRow, Platform } from './api.js';
 import { 넘었나 } from './runPlan.js';
 import { 담을것, 몇건, 실행항목, 안드로이드있나, 지난값글자 } from './pickRun.js';
 import { schemaToFields } from './schema.js';
@@ -20,19 +19,6 @@ function 케이스(tcId: string, platforms: Platform[], isActive = true): CaseRo
   };
 }
 
-function 마지막(tcId: string, platform: Platform, status: 'PASS' | 'FAIL'): LastResult {
-  return {
-    tcId,
-    platform,
-    status,
-    historyId: 1,
-    runId: 1,
-    recent: [status],
-    durationMs: 100,
-    finishedAt: '2026-09-21T00:00:00.000Z',
-  };
-}
-
 const PC만 = 케이스('ZZP-0001', ['desktop']);
 const 둘다 = 케이스('ZZP-0002', ['desktop', 'mobile']);
 const 비활성 = 케이스('ZZP-0003', ['desktop'], false);
@@ -42,35 +28,20 @@ const 고름 = (...것들: CaseRow[]) => new Map(것들.map((c) => [c.tcId, c]))
 
 describe('담을것', () => {
   it('고른 것이 없으면 넘겨받은 목록 전부를 담는다', () => {
-    expect(담을것([PC만, 둘다], 아무것도안고름, 'ALL', {}).map((c) => c.tcId)).toEqual(['ZZP-0001', 'ZZP-0002']);
+    expect(담을것([PC만, 둘다], 아무것도안고름).map((c) => c.tcId)).toEqual(['ZZP-0001', 'ZZP-0002']);
   });
 
   it('고른 것이 있으면 그것만 담는다', () => {
-    expect(담을것([PC만, 둘다], 고름(둘다), 'ALL', {}).map((c) => c.tcId)).toEqual(['ZZP-0002']);
+    expect(담을것([PC만, 둘다], 고름(둘다)).map((c) => c.tcId)).toEqual(['ZZP-0002']);
   });
 
   it('고른 것은 목록에 없어도 담는다', () => {
-    expect(담을것([], 고름(PC만, 둘다), 'ALL', {}).map((c) => c.tcId)).toEqual(['ZZP-0001', 'ZZP-0002']);
+    expect(담을것([], 고름(PC만, 둘다)).map((c) => c.tcId)).toEqual(['ZZP-0001', 'ZZP-0002']);
   });
 
   it('비활성 케이스는 고른 것에 섞여 있어도 안 담는다', () => {
-    expect(담을것([PC만, 비활성], 고름(PC만, 비활성), 'ALL', {}).map((c) => c.tcId)).toEqual(['ZZP-0001']);
-    expect(담을것([PC만, 비활성], 아무것도안고름, 'ALL', {}).map((c) => c.tcId)).toEqual(['ZZP-0001']);
-  });
-
-  it('마지막 결과 조건은 아무것도 안 골랐을 때만 건다', () => {
-    const last: LastMap = {
-      [keyOf('ZZP-0001', 'desktop')]: 마지막('ZZP-0001', 'desktop', 'FAIL'),
-      [keyOf('ZZP-0002', 'desktop')]: 마지막('ZZP-0002', 'desktop', 'PASS'),
-      [keyOf('ZZP-0002', 'mobile')]: 마지막('ZZP-0002', 'mobile', 'PASS'),
-    };
-    expect(담을것([PC만, 둘다], 아무것도안고름, 'FAIL', last).map((c) => c.tcId)).toEqual(['ZZP-0001']);
-    expect(담을것([PC만, 둘다], 아무것도안고름, 'PASS', last).map((c) => c.tcId)).toEqual(['ZZP-0002']);
-    // 체크박스를 누른 것은 사람이 이름을 대고 지목한 것이다. 칩이 그것을 말없이 버리면 안 된다
-    expect(담을것([PC만, 둘다], 고름(PC만, 둘다), 'FAIL', last).map((c) => c.tcId)).toEqual([
-      'ZZP-0001',
-      'ZZP-0002',
-    ]);
+    expect(담을것([PC만, 비활성], 고름(PC만, 비활성)).map((c) => c.tcId)).toEqual(['ZZP-0001']);
+    expect(담을것([PC만, 비활성], 아무것도안고름).map((c) => c.tcId)).toEqual(['ZZP-0001']);
   });
 });
 

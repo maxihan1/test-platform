@@ -153,11 +153,11 @@
      (`상세`→`Details` · `실행`→`Run`). jsdom 은 폭을 0 으로 보고하므로 이 자리를 원리적으로 못 잰다
      (`docs/spec/공통/6-인프라.md`) — 검사가 초록인 채로 버튼이 칸을 넘는다. 둘을 가르지 않는다.
      남는 폭은 `1fr` 인 케이스명·실행 제목 칸이 받는다 */
-  --list-cols: 4px 20px 128px minmax(180px, 1fr) 190px 264px;
+  --list-cols: 4px 20px 128px minmax(180px, 1fr) 264px;
   --run-cols: 4px 128px minmax(0, 1fr) 264px;
 }
 
-/* 고정 폭 둘(190 + 264)과 최소 폭들을 더하면 표가 866px 을 밑돌 수 없다. 창이 1164px 보다
+/* 고정 폭과 최소 폭들을 더하면 표가 그 합을 밑돌 수 없다(케이스 목록 입력 칸이 있던 2026-09-22 에는 866px). 창이 1164px 보다
    좁으면 그만큼 **가로로 넘쳐** 판정과 버튼이 화면 밖으로 나간다 — 1024px 창에서 139px 이
    넘쳤다 (2026-09-22 자기검토가 잡았고 브라우저로 쟀다. 1680px 만 재서 놓쳤던 자리다).
 
@@ -806,20 +806,11 @@ input[type='file']::file-selector-button {
 /* 여러 건 고르기 (SPEC §8.1) — 고르는 칸은 왼쪽 거터 안, 판정 색 다음에 둔다.
    줄 내용 쪽 첫 칸에 두면 목록이 좁아 줄이 쌓일 때(아래 `.case-rows`)
    케이스명 위에 체크박스만 홀로 한 줄이 된다 */
-/* 케이스 줄은 입력 칸이 **케이스명과 다른 칸**이다 (SPEC §8.1, 2026-09-22).
-   케이스명에 최소 너비를 준다 — 칸이 하나 늘어 이름이 밀리는데,
-   두세 글자만 남으면 목록이 못 쓰게 된다.
-   **숫자는 `:root` 의 `--list-cols` 가 정본이다** — 여기 다시 적지 않는다 (CLAUDE.md §2.7 ⑤).
-   입력 칸에 위를 막아 두는 이유만 남긴다: 입력 칸 자체(`.pcell .field input`)는 136px 에서
-   안 늘어나는데 칸을 `1fr` 로 두면 사이드바를 접어 폭이 늘 때 그만큼 빈 칸이 된다.
-   남는 자리는 `1fr` 인 케이스명 칸이 대신 받는다 (2026-09-22, 사이드바 접었을 때 공백 지적) */
+/* 케이스명에 최소 너비를 준다 — 오른쪽 상세 칸이 열리면 목록이 좁아지는데 두세 글자만 남으면 못 쓴다.
+   입력 칸은 2026-10-19 ⑫ 시안 A 에서 상세 칸으로 옮겼다(SPEC §8.1).
+   **숫자는 `:root` 의 `--list-cols` 가 정본이다** — 여기 다시 적지 않는다 (CLAUDE.md §2.7 ⑤) */
 .row.pickable {
   grid-template-columns: var(--list-cols);
-}
-
-.params {
-  min-width: 0;
-  padding: 10px 0;
 }
 
 /* 표머리 — 칸 이름이 없으면 각 칸이 무엇인지 화면만 봐서는 모른다.
@@ -1663,9 +1654,9 @@ input[type='file']::file-selector-button {
   }
 }
 
-/* 케이스 목록이 좁으면 줄을 쌓는다 — 번호 → 케이스명 → 입력값 → 마지막 결과 · 버튼 (PR #159 시안 A).
-   왜 창이 아니라 목록 폭인지 · 무엇을 잃는지는 DESIGN.md 「반응형」이 정본이다.
-   기준 866 은 고정 열 최소 합(`--list-cols` 의 px 합 + 칸 사이 16 × 5)이고 `styles.test.ts` 가 둘이 같이 움직이는지 본다.
+/* 케이스 목록이 좁으면 줄을 쌓는다 — 번호 → 케이스명 → 마지막 결과 · 버튼 (PR #159 시안 A · 입력값 줄은 ⑫ 에서 상세 칸으로 갔다).
+   왜 창이 아니라 목록 폭인지 · 무엇을 잃는지는 DESIGN.md 「반응형」이 정본이다. 오른쪽 상세 칸이 열려 목록이 좁아져도 이 규칙이 받는다.
+   기준 660 은 고정 열 최소 합(`--list-cols` 의 px 합 + 칸 사이 16 × 4)이고 `styles.test.ts` 가 둘이 같이 움직이는지 본다.
    케이스 목록 상자(`.case-rows`)에만 건다 — 실행 기록 · 테스트 작성 표머리(`.runhead`)는 그대로다 */
 .case-rows {
   container: caselist / inline-size;
@@ -1676,7 +1667,7 @@ input[type='file']::file-selector-button {
   display: none;
 }
 
-@container caselist (max-width: 866px) {
+@container caselist (max-width: 660px) {
   /* 칸 이름만 감추고 전체 선택 한 줄은 남긴다 — 통째로 감추면 1024px 창에서도 여러 건 고르기가 사라진다.
      창 620px 규칙의 `.rowhead { display: none }` 보다 앞서야 해서 상자 이름까지 붙인다 */
   .case-rows .rowhead,
@@ -1702,9 +1693,9 @@ input[type='file']::file-selector-button {
     color: var(--ink-muted);
   }
 
-  /* **행을 넷 다 적는다** — `1 / -1` 은 명시한 행의 끝까지라 빠지면 거터가 위 줄만 덮는다 (LEARNINGS 2026-09-19) */
+  /* **행을 셋 다 적는다** — `1 / -1` 은 명시한 행의 끝까지라 빠지면 거터가 위 줄만 덮는다 (LEARNINGS 2026-09-19) */
   .row.pickable {
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto;
   }
 
   .row.pickable .gutter,
@@ -1712,7 +1703,7 @@ input[type='file']::file-selector-button {
     grid-row: 1 / -1;
   }
 
-  /* 체크박스는 번호 줄 높이에 둔다 — 쌓인 줄 한가운데면 옆 입력 칸에 딸린 것으로 읽힌다(누르는 칸은 그대로 줄 높이 전체) */
+  /* 체크박스는 번호 줄 높이에 둔다 — 쌓인 줄 한가운데면 이름 줄에 딸린 것으로 읽힌다(누르는 칸은 그대로 줄 높이 전체) */
   .row.pickable .pick {
     align-items: flex-start;
     padding-top: 13px;
@@ -1730,15 +1721,9 @@ input[type='file']::file-selector-button {
     padding: 2px 0 6px;
   }
 
-  .row.pickable .params {
-    grid-column: 3;
-    grid-row: 3;
-    padding: 0 16px 6px 0;
-  }
-
   .row.pickable .right {
     grid-column: 3;
-    grid-row: 4;
+    grid-row: 3;
     padding: 0 16px 12px 0;
     justify-content: flex-start;
   }
@@ -2660,77 +2645,7 @@ input[type='file']::file-selector-button {
   height: 16px;
 }
 
-/* ── 줄의 입력 칸 · 판정 흐름 · 펼침 패널 (2026-09-21 ②) ─────────────────────
-   값은 docs/design-mockup.html 이 정본이고 **자리는 제품 구조가 정본**이다.
-   목업의 그 칸은 <table><td> 이고 여기는 CSS 격자 줄이라 셀렉터가 다르다.
-   칸 자체는 Form 이 그린다 — .field 를 줄에서만 좁게 다시 잡는다 */
-
-.pcell {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-top: 6px;
-}
-
-/* 줄에서는 라벨 열을 84px 로 줄인다(2026-09-30, 62→84 — 짧은 이름 + 한 줄 줄임). 폼 화면의 132px 를 그대로 쓰면 케이스명이 밀린다 */
-.pcell .field {
-  grid-template-columns: 84px minmax(0, 1fr);
-  gap: 4px 9px;
-  padding: 0;
-}
-
-.pcell .field label {
-  font-size: 11.5px;
-  color: var(--ink-faint);
-  text-align: right;
-  /* 이름이 길면 한 줄에서 줄이고 전체는 마우스를 올려 본다 (`title`) */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pcell .field input,
-.pcell .field select {
-  font: inherit;
-  font-size: 12.5px;
-  padding: 6px 10px;
-  border: 1px solid var(--line-2);
-  border-radius: 4px;
-  background: var(--well);
-  color: var(--ink);
-  max-width: 136px;
-}
-
-/* 숫자·예/아니오 칸(`.narrow`)은 폼 화면에서 120px 고정이다. 줄에서는 라벨 열(84px)을 뺀 자리가 97px 라
-   그대로 두면 옆 「마지막 결과」 칸을 23px 덮었다 (2026-09-30 지적). 남는 자리에 맞춰 줄어들게 한다 */
-.pcell .field input.narrow,
-.pcell .field select.narrow {
-  width: 100%;
-}
-
-.pcell .field > div {
-  min-width: 0;
-}
-
-.pcell .field input:hover,
-.pcell .field select:hover {
-  border-color: var(--ink-faint);
-}
-
-.pcell .field input:focus,
-.pcell .field select:focus {
-  outline: 2px solid var(--ink-muted);
-  outline-offset: -1px;
-  background: var(--panel);
-}
-
-/* 줄에서는 기본값 줄을 감춘다. 칸마다 한 줄씩 더 붙으면 줄 높이가 두 배가 된다 —
-   「무엇에서 바꿨나」는 상세와 실행 모달이 그대로 보여준다 */
-.pcell .deflt {
-  display: none;
-}
-
-/* 줄 끝의 저장값 표시·「저장」 버튼 (도메인/실행 §8.2, 2026-09-29 시안 A) */
+/* 상세 칸의 저장값 표시·「모두에게 저장」 버튼 (도메인/실행 §8.2 · ⑫ 시안 A) */
 .saved-row {
   display: flex;
   flex-wrap: wrap;
@@ -2741,19 +2656,6 @@ input[type='file']::file-selector-button {
 .saved-tag {
   font-size: 11.5px;
   color: var(--pass-text);
-}
-
-/* 넘친 칸은 상세로 간다. 줄에 넷까지만 두는 규칙은 CaseRowParams.tsx 가 정본이다 */
-.pmore {
-  align-self: flex-start;
-  font: inherit;
-  font-size: 11.5px;
-  color: var(--link);
-  background: none;
-  border: 0;
-  padding: 2px 0;
-  cursor: pointer;
-  text-decoration: underline;
 }
 
 /* 최근 판정 흐름 — 네모 하나가 실행 한 번. 왼쪽이 오래된 것이 아니라 **맨 앞이 새 것**이다.
@@ -2858,19 +2760,6 @@ input[type='file']::file-selector-button {
   font-size: 13.5px;
   color: var(--ink-muted);
   line-height: 1.8;
-}
-
-.dcols {
-  display: flex;
-  gap: 32px;
-  flex-wrap: wrap;
-}
-
-/* 입력값·기대결과 칸 (Form 이 그린다, 2026-09-22 ②). 상자가 넓어져도 두 칸이
-   나란히 서게 기준 너비를 준다 — 없으면 칸마다 제 내용만큼만 차지해 들쑥날쑥해진다 */
-.dcols > div {
-  flex: 1 1 300px;
-  min-width: 260px;
 }
 
 .dsteps {

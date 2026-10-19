@@ -49,7 +49,6 @@ export function 표머리({ 고름상태, on모두고르기 }: { 고름상태?: 
       {/* 두 언어가 같은 글자라 표를 안 탄다 */}
       <span className="colname">TC ID</span>
       <span className="colname">{t('케이스명')}</span>
-      <span className="colname">{t('입력값')}</span>
       <span className="colname">{t('마지막 결과')}</span>
     </div>
   );

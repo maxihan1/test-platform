@@ -4,11 +4,10 @@
 
 import { useId } from 'react';
 
-import type { CaseRow, ItemStatus, Platform, 케이스축 } from './api.js';
-import { CaseDetail, use기법말 } from './CaseDetail.js';
+import type { CasePage, CaseRow, ItemStatus, Platform, 케이스축 } from './api.js';
+import { use기법말 } from './CaseDetail.js';
 import { 케이스맥락 } from './CaseListContext.js';
 import { 기법고름들, type 기법고름 } from './CaseListFilter.js';
-import { CaseRowParams, type 줄글자 } from './CaseRowParams.js';
 import { keyOf, type LastMap, 마지막판정 } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import { 아이콘 } from './icons.js';
@@ -74,6 +73,7 @@ export function 조건칩들({
   디바이스,
   활성만,
   결과,
+  건수,
   on디바이스,
   on활성만,
   on결과,
@@ -81,11 +81,15 @@ export function 조건칩들({
   디바이스: Platform | 'ALL';
   활성만: boolean;
   결과: ItemStatus | 'ALL';
+  /** 서버가 last 를 뺀 조건으로 센 수 — 칩을 걸어도 그대로다. 실행 read 가 없으면 null 이고 칩도 안 그린다 (도메인/카탈로그 §7) */
+  건수: CasePage['lastCounts'];
   on디바이스: (값: Platform | 'ALL') => void;
   on활성만: (값: boolean) => void;
   on결과: (값: ItemStatus | 'ALL') => void;
 }) {
   const t = use말();
+  const 칩수 = (값: ItemStatus | 'ALL'): number | undefined =>
+    건수 == null ? undefined : 값 === 'ALL' ? 건수.total : 값 === 'PASS' ? 건수.pass : 값 === 'FAIL' ? 건수.fail : 건수.na;
 
   // 라벨과 칩은 한 덩어리로 같이 다음 줄로 간다 — 라벨만 윗줄 끝에 홀로 남았다 (진행판 WEB-F2-11)
   return (
@@ -109,14 +113,17 @@ export function 조건칩들({
           {t('전체')}
         </button>
       </span>
-      <span className="filter-group">
-        <span className="filter-label">{t('마지막 결과')}</span>
-        {결과칩.map((값) => (
-          <button className="chip" key={값} aria-pressed={결과 === 값} onClick={() => on결과(값)}>
-            {t(결과라벨[값])}
-          </button>
-        ))}
-      </span>
+      {/* 집계 띠를 칩으로 합쳤다 — 띠가 50px 을 먹어 목록이 한두 줄만 보였다(점검 N1). 수는 쪽이 아니라 조건에 맞은 전부다 (⑫ 시안 A) */}
+      {건수 == null ? null : (
+        <span className="filter-group">
+          <span className="filter-label">{t('마지막 결과')}</span>
+          {결과칩.map((값) => (
+            <button className={값 === 'FAIL' && 건수.fail > 0 ? 'chip chip-fail' : 'chip'} key={값} aria-pressed={결과 === 값} onClick={() => on결과(값)}>
+              {t(결과라벨[값])} <span className="chip-n">{칩수(값)}</span>
+            </button>
+          ))}
+        </span>
+      )}
     </>
   );
 }
@@ -161,14 +168,9 @@ export function 케이스줄({
   마지막,
   고름,
   뒤집기,
-  글자,
-  폈나 = false,
+  열림 = false,
   on실행,
-  저장된다 = false,
-  고칠서비스,
-  on값,
-  on더보기,
-  on저장됨,
+  on열기,
   요구보나 = false,
   요구쓰나 = false,
 }: {
@@ -176,17 +178,11 @@ export function 케이스줄({
   마지막: LastMap;
   고름: boolean;
   뒤집기: (row: CaseRow) => void;
-  /** 이 줄에서 고쳐 넣은 값. 없으면 코드의 기본값으로 돈다 */
-  글자?: 줄글자;
-  폈나?: boolean;
+  /** 오른쪽 상세 칸에 이 케이스가 열려 있나 */
+  열림?: boolean;
   /** 줄의 ▶ — 그 한 건으로 실행 창을 연다. 고른 서비스에서 실행 쓰기가 아니면 오지 않고 버튼도 없다 (화면공통 §8) */
   on실행?: (row: CaseRow) => void;
-  저장된다?: boolean;
-  /** 작성 쓰기일 때만 온다 — 없으면 상세에 「코드 기본값 바꾸기 요청」 자리가 없다 (도메인/카탈로그 §8.1) */
-  고칠서비스?: string;
-  on값: (tcId: string, 어디: 'params' | 'expected', key: string, value: string) => void;
-  on더보기: (tcId: string) => void;
-  on저장됨?: (tcId: string) => void;
+  on열기: (tcId: string) => void;
   /** 작성 보기 권한 — 없으면 요구 번호가 「PRD 관리」 고리가 아니라 글자다 (도메인/카탈로그 §8.1 「맥락」) */
   요구보나?: boolean;
   /** 서비스가 PRD 를 쓴다 — 안 쓰면 「연결된 요구 없음」을 줄마다 달지 않는다 */
@@ -196,8 +192,7 @@ export function 케이스줄({
   const 언어 = use언어();
 
   return (
-    <>
-    <div className="row pickable">
+    <div className={열림 ? 'row pickable row-open' : 'row pickable'}>
       <div className="gutter" style={{ background: STATUS_COLOR[마지막판정(row, 마지막)] }} />
       {/* 고르는 칸은 왼쪽 거터 칸 안이다. 줄 내용 쪽 첫 요소로 두면 목록이 좁아
           줄이 쌓일 때 케이스명 위에 체크박스만 홀로 한 줄이 된다 (SPEC §8.1).
@@ -212,27 +207,23 @@ export function 케이스줄({
         />
       </label>
       <div className="tcid">{row.tcId}</div>
-      {/* 입력 칸은 **케이스명 칸 밖**이다 (SPEC §8.1, 2026-09-22).
-          안에 넣으면 이름 아래에 칸이 붙어 한 줄이 두 덩어리로 보이고 표머리를 달 수 없다 */}
+      {/* 입력 칸은 줄에서 뺐다 — 값은 오른쪽 상세 칸에서 고친다 (⑫ 시안 A · 도메인/카탈로그 §8.1).
+          이름을 누르면 그 칸이 열린다. 따로 「상세」 버튼을 두면 같은 일을 하는 자리가 둘이다 */}
       <div className="title">
-        {row.name}
-        {/* 사유 한 문장은 상세에서 본다. 줄에는 배지만 — 판정 색은 쓰지 않는다 (도메인/카탈로그 §8.1) */}
-        {typeof row.unconfirmed === 'string' ? <span className="case-tag">{t('미확정')}</span> : null}
+        <button
+          type="button"
+          id={`case-open-${row.tcId}`}
+          className="case-open"
+          aria-expanded={열림}
+          aria-controls="case-pane"
+          onClick={() => on열기(row.tcId)}
+        >
+          {row.name}
+        </button>
+        {/* 사유는 상세 칸 맨 위에 적는다. 줄에는 배지와 말풍선만 — 판정 색은 쓰지 않는다 (도메인/카탈로그 §8.1) */}
+        {typeof row.unconfirmed === 'string' ? <span className="case-tag" title={row.unconfirmed}>{t('미확정')}</span> : null}
         {/* 기법은 이름 옆이 아니라 아래 작은 줄에 — 이름 옆이면 기법이 둘일 때 둘째 태그가 다음 줄로 밀린다 (도메인/카탈로그 §8.1) */}
         <케이스맥락 row={row} 요구보나={요구보나} 요구쓰나={요구쓰나} />
-      </div>
-      <div className="params">
-        <CaseRowParams
-          tcId={row.tcId}
-          paramSchema={row.paramSchema}
-          expectedSchema={row.expectedSchema}
-          savedInput={row.savedInput}
-          글자={글자}
-          on값={(어디, key, value) => on값(row.tcId, 어디, key, value)}
-          on더보기={() => on더보기(row.tcId)}
-          저장된다={저장된다}
-          on저장됨={on저장됨 === undefined ? undefined : () => on저장됨(row.tcId)}
-        />
       </div>
       <div className="right">
         <div className="devices">
@@ -259,16 +250,6 @@ export function 케이스줄({
             );
           })}
         </div>
-        {/* 눌러서 여는 상자다. 화면을 안 보는 사람에게 「상자가 열린다」를 미리 알린다
-            (DESIGN.md 접근성 기준 · 2026-09-22 에 펼침에서 상자로) */}
-        <button
-          type="button"
-          className="btn small ghost"
-          aria-haspopup="dialog"
-          onClick={() => on더보기(row.tcId)}
-        >
-          {t('상세')}
-        </button>
         {/* 글자 대신 아이콘이다 — 영어 「Run」이 「Details」 아래로 밀려 내려갔다(진행판 WEB-F2-12). 이름은 화면 읽기가 말한다 */}
         {on실행 === undefined ? null : (
           <button
@@ -283,16 +264,5 @@ export function 케이스줄({
         )}
       </div>
     </div>
-    <CaseDetail
-      row={row}
-      폈나={폈나}
-      마지막={마지막[keyOf(row.tcId, row.platforms[0] ?? 'desktop')]}
-      글자={글자}
-      고칠서비스={고칠서비스}
-      요구보나={요구보나}
-      onClose={() => on더보기(row.tcId)}
-      on값={(어디, key, value) => on값(row.tcId, 어디, key, value)}
-    />
-    </>
   );
 }

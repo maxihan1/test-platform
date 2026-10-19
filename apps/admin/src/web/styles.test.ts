@@ -112,14 +112,6 @@ describe('화면 토큰 (DESIGN.md)', () => {
     expect(new Set(값들).size, '판정 셋의 높이가 서로 달라야 한다').toBe(3);
   });
 
-  it('줄의 입력칸이 바탕 위에서 읽힌다', () => {
-    // 줄 맨 앞에 선 것이 첫 정의다. 좁은 화면 재정의는 들여쓴 채로 **앞에** 나온다 —
-    // 그것을 잡으면 「규칙이 없다」고 거짓 실패한다 (2026-09-21, PR① 과 같은 함정)
-    const 블록 = /^\.pcell \.field input,[^{]*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
-    // 컨트롤 모서리는 4px 한 가지다 (DESIGN.md 「새 토큰」 크기 단계)
-    expect(블록, '줄의 입력칸 규칙이 없다').toMatch(/border-radius:\s*4px/);
-  });
-
   it('펼침 패널이 줄과 다른 바탕을 쓴다', () => {
     // 같은 바탕이면 어디까지가 그 줄의 상세인지 눈으로 못 가른다. 판 안의 우묵한 자리라 --well 이다
     const 블록 = /^\.detail\s*\{([^}]*)\}/m.exec(css)?.[1] ?? '';
@@ -632,19 +624,7 @@ describe('사이드바의 select 를 OS 가 그리지 않는다 (LEARNINGS 2026-
   });
 });
 
-describe('줄 칸 이름 · 판정 묶음 · 실행할 케이스 창 (2026-09-30)', () => {
-  it('줄의 라벨은 한 줄로 줄이고 폭이 84px 이다', () => {
-    const 블록 = 규칙('.pcell .field label');
-    expect(블록).toMatch(/text-overflow:\s*ellipsis/);
-    expect(블록).toMatch(/white-space:\s*nowrap/);
-    expect(규칙('.pcell .field')).toMatch(/grid-template-columns:\s*84px minmax\(0,\s*1fr\)/);
-  });
-
-  it('줄 안의 숫자·예/아니오 칸이 남은 자리에 맞춰 줄어들어 마지막 결과 칸을 안 덮는다', () => {
-    expect(규칙('.pcell .field select.narrow')).toMatch(/width:\s*100%/);
-    expect(규칙('.pcell .field > div')).toMatch(/min-width:\s*0/);
-  });
-
+describe('판정 묶음 · 화면 머리 (2026-09-30)', () => {
   it('판정 칸이 고정 폭이라 「실행 이력 없음」이 폭을 못 민다', () => {
     expect(규칙('.device')).toMatch(/(?:^|\s)width:\s*\d+px/);
     expect(규칙('.device')).toMatch(/flex:\s*none/);
@@ -669,7 +649,7 @@ describe('줄 칸 이름 · 판정 묶음 · 실행할 케이스 창 (2026-09-30
 });
 
 // 창 621~900px(사이드바를 편 상태)에서 열을 비율로 줄여 입력 칸 · 판정 · 버튼이 겹쳤다. 목록 폭이 고정 열 최소 합보다
-// 좁으면 줄을 번호 → 케이스명 → 입력값 → 마지막 결과 · 버튼으로 쌓는다(PR #159 시안 A). 배치는 jsdom 이 못 잰다 — 규칙만 본다
+// 좁으면 줄을 번호 → 케이스명 → 마지막 결과 · 버튼으로 쌓는다(PR #159 시안 A · 입력값은 ⑫ 에서 상세 칸으로). 배치는 jsdom 이 못 잰다 — 규칙만 본다
 describe('케이스 목록이 좁으면 줄을 쌓는다 (PR #159)', () => {
   const 쌓기 = /@container caselist \(max-width: (\d+)px\) \{([\s\S]*?)\n\}/.exec(css);
   const 블록 = 쌓기?.[2] ?? '';
@@ -687,9 +667,9 @@ describe('케이스 목록이 좁으면 줄을 쌓는다 (PR #159)', () => {
     expect(Number(쌓기?.[1])).toBe(합 + 간격 * (칸수 - 1));
   });
 
-  it('줄을 네 행으로 쌓고 거터 · 고르는 칸이 끝까지 덮는다', () => {
-    expect(블록).toMatch(/\.row\.pickable\s*\{[^}]*grid-template-rows:\s*auto auto auto auto/);
-    for (const [칸, 행] of [['tcid', 1], ['title', 2], ['params', 3], ['right', 4]] as const) {
+  it('줄을 세 행으로 쌓고 거터 · 고르는 칸이 끝까지 덮는다', () => {
+    expect(블록).toMatch(/\.row\.pickable\s*\{[^}]*grid-template-rows:\s*auto auto auto;/);
+    for (const [칸, 행] of [['tcid', 1], ['title', 2], ['right', 3]] as const) {
       expect(블록, `${칸} 이 ${행}행이 아니다`).toMatch(new RegExp(`\\.row\\.pickable \\.${칸}\\s*\\{[^}]*grid-row:\\s*${행};`));
     }
     expect(블록).toMatch(/\.row\.pickable \.gutter,\s*\.row\.pickable \.pick\s*\{[^}]*grid-row:\s*1 \/ -1/);

@@ -63,21 +63,19 @@ export function use묶음접기(groups: CaseGroup[] | undefined, 묶음보임: b
  * 쪽의 줄 사이에 머리를 끼운다.
  * 기능 묶음 머리는 서비스가 PRD 를 쓸 때만(묶음보임 — 서버 hasFeatures) — PRD 가 없는 서비스에서 「기능 묶음 없음」 머리 하나만 서면 줄 하나를 버린다.
  * 지금 조건에 걸린 묶음으로 가르면 「기능 묶음 없음」만 보기에서 머리가 사라진다.
- * 건수는 쪽이 아니라 서버가 준 묶음 번호표 전부로 센다. 단 화면이 거른 것(마지막 결과 칩)이 있으면 보이는 줄로만 센다 —
- * 그 칩은 이 쪽 안에서만 거르고, 안 맞추면 「12건」 머리 아래 줄이 하나뿐이다
+ * 건수는 쪽이 아니라 서버가 준 묶음 번호표 전부로 센다 — 마지막 결과 칩도 서버가 걸러 번호표가 그것을 따른다 (2026-10-19 ⑫)
  */
 export function 줄과머리(
   rows: CaseRow[],
   groups: CaseGroup[] | undefined,
   이쪽번호: ReadonlySet<string>,
   묶음보임: boolean,
-  보이는번호?: ReadonlySet<string>,
 ): 목록칸[] {
   if (groups === undefined || groups.length === 0) return rows.map((row) => ({ row, 위: [] }));
   const 자리 = new Map<string, CaseGroup>();
   for (const g of groups) for (const id of g.tcIds) 자리.set(id, g);
   const 모으기 = (같나: (g: CaseGroup) => boolean) =>
-    groups.filter(같나).flatMap((g) => g.tcIds).filter((id) => 보이는번호 === undefined || 보이는번호.has(id));
+    groups.filter(같나).flatMap((g) => g.tcIds);
 
   const 칸들: 목록칸[] = [];
   let 앞: CaseGroup | undefined;

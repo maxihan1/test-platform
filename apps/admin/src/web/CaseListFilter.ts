@@ -45,10 +45,10 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
   const [typed, setTyped] = useState(처음.get('q') ?? '');
   const [q, setQ] = useState(처음.get('q') ?? '');
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(처음.get('page')) || 1)));
-  // 마지막 결과만 빼고 서버가 거른다 (SPEC §8.1 표)
+  // 조건은 전부 서버가 거른다 (SPEC §8.1 표 — 마지막 결과도 2026-10-19 ⑫ 부터)
   const [디바이스, set디바이스] = useState<Platform | 'ALL'>(() => 고른값(처음.get('dev'), ['desktop', 'mobile', 'android'] as const, 'ALL'));
   const [활성만, set활성만] = useState(처음.get('all') !== '1');
-  // 마지막 결과만 화면이 겹쳐 거른다 — 실행할 때마다 바뀌어 카탈로그가 알지 못한다
+  // 판정은 실행 쪽 함수가 주고 카탈로그가 그것으로 거른다 — 쪽 안에서만 거르면 2쪽의 실패가 안 보였다 (도메인/카탈로그 §7 `?last=`)
   const [결과, set결과] = useState<ItemStatus | 'ALL'>(() => 고른값(처음.get('last'), ['PASS', 'FAIL', 'NA'] as const, 'ALL'));
   // 종류를 바꾸면 목록이 새로 그려져(main.tsx key) 이것도 비워진다 — UI 목록에 보이지 않는 거르기가 남지 않는다
   const [기법, set기법] = useState<기법고름>(() => (kind === 'FN' ? 고른값(처음.get('tech'), 기법고름들, 'ALL') : 'ALL'));
@@ -56,6 +56,8 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
   const [축, set축] = useState<케이스축 | 'ALL'>(() => (kind === 'FN' ? 고른값(처음.get('axis'), 케이스축들.filter((it) => it !== 'UI'), 'ALL') : 'ALL'));
   const [묶음, set묶음] = useState(주소묶음(처음));
   const [요구, set요구] = useState<string | null>(처음요구 ?? null);
+  // 오른쪽 상세 칸에 연 케이스. 조건이 아니라 「보고 있는 것」이라 조건을 지워도 그대로 둔다 (⑫ 시안 A)
+  const [열린, set열린] = useState<string | null>(처음.get('case'));
 
   // 기본값인 조건은 적지 않는다. 요구 번호는 주소의 길(`/req/<번호>`)이 든다 — ✕ 로 풀면 길에서도 뺀다 (도메인/카탈로그 §8.1 조건 8)
   const 종류글자 = kind === 'UI' ? 'ui' : 'fn';
@@ -68,6 +70,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     ...(기법 === 'ALL' ? {} : { tech: 기법 }),
     ...(축 === 'ALL' ? {} : { axis: 축 }),
     ...(묶음 === null ? {} : { g: 묶음.feature, gn: 묶음.이름, ...(묶음.screen === undefined ? {} : { gs: 묶음.screen }), ...(묶음.part === undefined ? {} : { gp: 묶음.part }) }),
+    ...(열린 === null ? {} : { case: 열린 }),
   });
 
   const 조건: CaseQuery = {
@@ -81,6 +84,7 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     ...(축 === 'ALL' ? {} : { axis: 축 }),
     ...(묶음 === null ? {} : { feature: 묶음.feature, ...(묶음.screen === undefined ? {} : { screen: 묶음.screen }), ...(묶음.part === undefined ? {} : { part: 묶음.part }) }),
     ...(요구 === null ? {} : { req: 요구 }),
+    ...(결과 === 'ALL' ? {} : { last: 결과 }),
   };
 
   // 조건을 바꾸면 늘 첫 쪽으로 간다. 3쪽에서 조건을 좁히면 빈 목록에 '3쪽' 이 뜬다
@@ -104,6 +108,8 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
     축,
     묶음,
     요구,
+    열린,
+    set열린,
     조건,
     건조건: q !== '' || 디바이스 !== 'ALL' || !활성만 || 결과 !== 'ALL' || 기법 !== 'ALL' || 축 !== 'ALL' || 묶음 !== null || 요구 !== null,
     on디바이스: 바꾸면첫쪽(set디바이스),
@@ -117,9 +123,10 @@ export function use검색조건(service: string, kind: 'UI' | 'FN', 처음요구
       setQ(term);
       setPage(1);
     },
-    /** 서비스를 바꿀 때 — 쪽과 검색어 · 묶음 · 요구 번호를 버린다(그 서비스 것이다). 디바이스 같은 조건은 서비스를 넘어 그대로 둔다 */
+    /** 서비스를 바꿀 때 — 쪽과 검색어 · 묶음 · 요구 번호 · 연 케이스를 버린다(그 서비스 것이다). 디바이스 같은 조건은 서비스를 넘어 그대로 둔다 */
     찾기비우기() {
       setPage(1);
+      set열린(null);
       setQ('');
       setTyped('');
       set묶음(null);

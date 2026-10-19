@@ -31,13 +31,14 @@ function 케이스(tcId: string): CaseRow {
   };
 }
 
-const 쪽: CasePage = { items: [케이스('ZCA-FN-001')], total: 120, page: 1, pageSize: 1, groups: [], hasFeatures: false };
+const 쪽: CasePage = { items: [케이스('ZCA-FN-001')], total: 120, page: 1, pageSize: 1, groups: [], hasFeatures: false, lastCounts: { total: 120, pass: 100, fail: 7, na: 13 } };
 const 전부된다: 판정 = () => true;
 
 async function 그리기(주소: string) {
   window.history.replaceState(null, '', 주소);
   vi.spyOn(api, 'lastScan').mockResolvedValue(null);
   vi.spyOn(api, 'lastByCase').mockResolvedValue({ items: [] });
+  vi.spyOn(api, 'caseHistory').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
   const 스파이 = vi.spyOn(api, 'cases').mockResolvedValue(쪽);
   render(<CaseList kind="FN" service="ZCA" 할수={전부된다} 결과보나 />);
   await waitFor(() => expect(스파이).toHaveBeenCalled());
@@ -52,10 +53,18 @@ describe('케이스 목록 조건을 주소에서 읽는다', () => {
     const 조건 = new URLSearchParams({ q: '로그인', page: '3', dev: 'mobile', all: '1', last: 'FAIL', tech: '경계값 분석', axis: '경계' });
     const 스파이 = await 그리기(`#/cases/fn?${조건}`);
 
-    expect(처음조건(스파이)).toMatchObject({ q: '로그인', page: 3, platform: 'mobile', active: false, technique: '경계값 분석', axis: '경계' });
+    expect(처음조건(스파이)).toMatchObject({ q: '로그인', page: 3, platform: 'mobile', active: false, technique: '경계값 분석', axis: '경계', last: 'FAIL' });
     expect((screen.getByPlaceholderText('케이스 이름이나 ID로 찾기') as HTMLInputElement).value).toBe('로그인');
     expect(screen.getByRole('button', { name: '모바일' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: '실패' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: '실패 7' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('주소의 case= 로 처음부터 오른쪽 상세 칸이 열려 있다', async () => {
+    await 그리기('#/cases/fn?case=ZCA-FN-001');
+
+    const 칸 = document.getElementById('case-pane');
+    expect(칸?.querySelector('h2')?.textContent).toBe('ZCA-FN-001 케이스');
+    expect(screen.getByRole('button', { name: 'ZCA-FN-001 케이스' }).getAttribute('aria-expanded')).toBe('true');
   });
 
   it('고를 수 없는 값은 버리고 기본값으로 부른다', async () => {
@@ -66,6 +75,7 @@ describe('케이스 목록 조건을 주소에서 읽는다', () => {
     expect(조건.platform).toBeUndefined();
     expect(조건.axis).toBeUndefined();
     expect(조건.technique).toBeUndefined();
+    expect(조건.last).toBeUndefined();
   });
 
   it('묶음 조건은 이름까지 주소에서 되살려 칩으로 보인다', async () => {
@@ -93,6 +103,35 @@ describe('케이스 목록 조건을 주소에 쓴다', () => {
     expect(window.history.length).toBe(길이);
 
     fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
+    expect(window.location.hash).toBe('#/cases/fn');
+  });
+
+  it('이름을 눌러 상세 칸을 열면 case= 가 붙고 닫으면 빠진다 — 방문 기록은 쌓지 않는다', async () => {
+    await 그리기('#/cases/fn?dev=mobile');
+    const 길이 = window.history.length;
+
+    fireEvent.click(screen.getByRole('button', { name: 'ZCA-FN-001 케이스' }));
+    expect(window.location.hash).toBe('#/cases/fn?dev=mobile&case=ZCA-FN-001');
+    fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
+    expect(window.location.hash).toBe('#/cases/fn?dev=mobile');
+    expect(window.history.length).toBe(길이);
+  });
+
+  it('조건 초기화를 눌러도 열어 둔 상세 칸은 그대로 둔다 — 조건이 아니라 보고 있는 것이다', async () => {
+    await 그리기('#/cases/fn?dev=mobile&case=ZCA-FN-001');
+
+    fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
+
+    expect(window.location.hash).toBe('#/cases/fn?case=ZCA-FN-001');
+    expect(document.getElementById('case-pane')).not.toBeNull();
+  });
+
+  it('마지막 결과 칩을 누르면 last 가 주소에 남고, 전체로 돌리면 빠진다', async () => {
+    await 그리기('#/cases/fn');
+
+    fireEvent.click(screen.getByRole('button', { name: '미실행 13' }));
+    expect(window.location.hash).toBe('#/cases/fn?last=NA');
+    fireEvent.click(screen.getByRole('button', { name: '전체 120' }));
     expect(window.location.hash).toBe('#/cases/fn');
   });
 

@@ -1,7 +1,7 @@
 // 케이스 상세의 「코드 기본값 바꾸기 요청」 — 기대값 · 삭제를 작성 에이전트에 요청한다 (도메인/카탈로그 §8.1 · 도메인/작성 §3.6 「★ 케이스 고치기」)
 //
 // 위의 기대결과 칸(이번 실행 값 · 저장값)과 **이름을 가른다.** 거기는 다음 실행에 쓸 값이고 여기는 저장소의 코드다 —
-// 섞이면 이번 실행만 바꾸려던 값이 PR 로 올라간다.
+// 섞이면 이번 실행만 바꾸려던 값이 코드에 반영된다.
 // 삭제는 상자가 아니라 **이 자리에서 두 번** 누른다. 이 상자는 「열어서 보는 상자」라 안에 가로막는 상자를 띄우지 않는다 (DESIGN.md 「모달」)
 
 import { useEffect, useRef, useState } from 'react';
@@ -67,7 +67,7 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
   return (
     <div className="dsec case-edit" role="group" aria-label={t('코드 기본값 바꾸기 요청')}>
       <div className="dlabel">{t('코드 기본값 바꾸기 요청')}</div>
-      <p className="hint">{t('테스트 코드에 적힌 기대결과입니다. 바꾼 칸만 PR 로 올라가고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다')}</p>
+      <p className="hint">{t('테스트 코드에 적힌 기대결과입니다. 바꾼 칸만 작성 요청으로 보내고, 반영하면 다음 실행부터 이 값이 기본값이 됩니다')}</p>
       {칸들.length === 0 ? (
         <p className="hint">{t('코드에서 바꿀 수 있는 기대결과 칸이 없습니다')}</p>
       ) : (
@@ -90,11 +90,14 @@ export function 코드기본값고치기({ row, service }: { row: CaseRow; servi
         </p>
       ) : (
         <>
-          <div className="btns">
-            <button className="btn" type="button" disabled={!보낼것있나 || 보내는중} onClick={기본값요청}>
-              {보내는중 ? t('보내는 중') : t('요청 보내기')}
-            </button>
-          </div>
+          {/* 바꿀 칸이 없는데 「요청 보내기」를 살려 두면 누를 수 없는 단추가 선다(점검 N8). 삭제 요청은 칸과 상관없이 남는다 */}
+          {칸들.length === 0 ? null : (
+            <div className="btns">
+              <button className="btn" type="button" disabled={!보낼것있나 || 보내는중} onClick={기본값요청}>
+                {보내는중 ? t('보내는 중') : t('요청 보내기')}
+              </button>
+            </div>
+          )}
           <div className="edit-delete">
             {/* 취소가 앞자리다 — 「케이스 삭제 요청」이 있던 자리에 「삭제 확인」이 서면 더블클릭 한 번이 두 번 누름이 된다 */}
             {지우려나 ? (

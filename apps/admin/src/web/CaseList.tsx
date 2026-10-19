@@ -1,25 +1,27 @@
 // 케이스 목록 화면 (SPEC §8.1). JSON 원문은 목록에 절대 노출하지 않는다
 // '마지막 결과' 칸과 줄의 판정 흐름 막대를 GET /api/runs/last-by-case 한 번으로 전부 채운다 (SPEC §7.1)
-// 목록은 케이스마다 이력을 따로 부르지 않는다. 상세 펼침만 예외이고 그것은 사람이 한 줄을 폈을 때다
+// 목록은 케이스마다 이력을 따로 부르지 않는다. 상세 칸만 예외이고 그것은 사람이 한 줄을 열었을 때다
+// 줄의 이름을 누르면 오른쪽에 상세 칸이 열린다 — 값 고치기 · 저장 · 실행도 거기서 한다 (2026-10-19 ⑫ 시안 A)
 // 한 건(줄의 ▶) · 여러 건을 거는 흐름은 useRunPick 이 통째로 들고 있다 — 둘 다 같은 실행 창을 연다 (SPEC §8.10)
 
 import { useRef, useState } from 'react';
 
 import { api, type CasePage } from './api.js';
 import { 고른것고치기 } from './CaseBulkEdit.js';
+import { CaseDetail } from './CaseDetail.js';
+import { 빈기억 } from './caseDetailView.js';
 import { use엑셀받기 } from './CaseExport.js';
 import { use검색조건 } from './CaseListFilter.js';
 import { 걸린칩들, 묶음머리줄 } from './CaseListContext.js';
 import { Empty, 목록부제 } from './CaseListNotes.js';
 import { 표머리 } from './CaseListHead.js';
-import { 결과라벨, 기법고르개, 조건칩들, 종류칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
+import { 기법고르개, 조건칩들, 종류칩들, 찾기폼, 케이스줄 } from './CaseListParts.js';
 import { use묶음접기, 번호들, 줄과머리 } from './caseGroups.js';
 import { Head } from './Head.js';
-import { keyOf, type LastMap, 마지막결과로거른다, 판정개수 } from './catalogView.js';
+import { keyOf, type LastMap } from './catalogView.js';
 import { use말, use언어 } from './i18n.js';
 import type { 글자표 } from './pickRun.js';
 import type { 판정 } from './role.js';
-import { 집계띠 } from './Summary.js';
 import { 다음이있나 } from './paging.js';
 import { RunPickModal } from './RunPickModal.js';
 import { Failed, Loading, message, useAsync } from './ui.js';
@@ -35,14 +37,14 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   const [본서비스, set본서비스] = useState(service);
   const [scanning, setScanning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  // 줄에서 고친 값. 모달도 같은 표를 쓴다 — 두 벌이면 두 자리가 다른 값을 보여준다 (SPEC §8.1)
+  // 상세 칸에서 고친 값. 실행 창도 같은 표를 쓴다 — 두 벌이면 두 자리가 다른 값을 보여준다 (SPEC §8.1)
   const [글자, set글자] = useState<글자표>({});
-  // 상세를 편 줄. 한 번에 여럿 펼 수 있고, 부른 것은 그 조각이 들고 있는다
-  const [편줄, set편줄] = useState<ReadonlySet<string>>(new Set());
+  // 상세 칸이 받아 온 이력 · 절차. 칸을 닫았다 열어도 다시 안 받는다 (도메인/카탈로그 §8.1)
+  const 기억 = useRef(빈기억());
   // 고치기 요청 상자를 닫으면 그 상자를 연 버튼이 고른 것과 같이 사라진다 — 포커스는 주 행동으로 보낸다
   const 실행단추 = useRef<HTMLButtonElement>(null);
 
-  const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 검색.기법, 검색.축, 검색.묶음, 검색.요구]);
+  const cases = useAsync<CasePage>(() => api.cases(조건), [service, 검색.q, page, 검색.디바이스, 검색.활성만, 결과, 검색.기법, 검색.축, 검색.묶음, 검색.요구]);
   const scan = useAsync(() => api.lastScan(service), [service]);
   const 요구쓰나 = cases.data?.hasFeatures ?? false;
   const 접기 = use묶음접기(cases.data?.groups, 요구쓰나);
@@ -52,7 +54,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
   for (const item of last.data?.items ?? []) lastMap[keyOf(item.tcId, item.platform)] = item;
 
   const 엑셀 = use엑셀받기(조건, cases.data?.total ?? null);
-  const 뽑기 = useRunPick({ service, 조건, 결과, 마지막: lastMap, 알림: setNotice });
+  const 뽑기 = useRunPick({ service, 조건, 알림: setNotice });
 
   // 서비스를 바꾸면 첫 페이지로 돌아간다. 3페이지에서 케이스가 적은 서비스로 옮기면
   // 빈 목록에 '3 / 1' 이 뜨고 사람은 목록이 비었다고 생각한다
@@ -63,14 +65,15 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
     뽑기.비우기();
     // 고친 값도 버린다. 칸 이름이 같으면(env·userId) 남의 서비스 케이스에 그대로 붙는다
     set글자({});
-    set편줄(new Set());
+    기억.current = 빈기억();
     접기.비우기();
   }
 
-  const 보일것 = 마지막결과로거른다(cases.data?.items ?? [], lastMap, 결과);
-  // 지금 보이는 것을 센다 — 칩을 걸면 숫자도 같이 좁혀져야 「보이는 것과 세는 것」이 갈리지 않는다
-  const 셈 = 판정개수(보일것, lastMap);
-  const 칸들 = 줄과머리(보일것, cases.data?.groups, 번호들(cases.data?.items ?? []), 요구쓰나, 결과 === 'ALL' ? undefined : 번호들(보일것));
+  // 마지막 결과도 서버가 거른다 — 받은 것이 곧 보일 것이다 (도메인/카탈로그 §7 `?last=`)
+  const 보일것 = cases.data?.items ?? [];
+  const 칸들 = 줄과머리(보일것, cases.data?.groups, 번호들(보일것), 요구쓰나);
+  // 연 케이스가 이 쪽에 없으면(쪽을 넘겼다 · 조건 밖) 칸을 안 그린다. 주소는 남겨 돌아오면 다시 열린다
+  const 연줄 = 보일것.find((row) => row.tcId === 검색.열린);
   // 머리 건수는 쪽 밖까지 세므로 실패도 서비스 전체 마지막 결과에서 센다 — 디바이스 한쪽만 깨져도 실패(마지막판정과 같다)
   const 실패한 = new Set((last.data?.items ?? []).filter((x) => x.status === 'FAIL').map((x) => x.tcId));
 
@@ -96,12 +99,14 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
     });
   }
 
-  function 더보기(tcId: string) {
-    set편줄((전) => {
-      const 다음 = new Set(전);
-      if (!다음.delete(tcId)) 다음.add(tcId);
-      return 다음;
-    });
+  // 같은 줄을 다시 누르면 닫는다. 닫으면 누른 이름으로 포커스가 돌아온다 (DESIGN.md 포커스 규칙)
+  function 열기(tcId: string) {
+    검색.set열린((전) => (전 === tcId ? null : tcId));
+  }
+  function 닫기() {
+    const tcId = 검색.열린;
+    검색.set열린(null);
+    if (tcId !== null) document.getElementById(`case-open-${tcId}`)?.focus();
   }
 
   // 총건수로 페이지 수를 계산하지 않는다. 그 값은 안내로만 쓴다 (SPEC §8.1)
@@ -144,26 +149,17 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             {/* 버튼은 하나이고 글자만 바뀐다. 둘로 나누면 같은 자리에서 같은 일을 하는 버튼이 둘이 된다 (SPEC §8.1) */}
             {!할수('실행') ? null : (
               <button className="btn" ref={실행단추} onClick={() => void 뽑기.모으기()} disabled={뽑기.모으는중}>
-                {뽑기.고른.size === 0 ? t('전체 실행') : t('선택한 {건수}건 실행', { 건수: 뽑기.고른.size })}
+                {/* 「전체」가 아니라 조건에 맞는 것만 건다 — 이름이 그렇게 말해야 한다(점검 7.8) */}
+                {뽑기.고른.size === 0 ? t('조건에 맞는 {건수}건 실행', { 건수: cases.data?.total ?? 0 }) : t('선택한 {건수}건 실행', { 건수: 뽑기.고른.size })}
               </button>
             )}
           </>
         }
       />
 
+      {/* 목록 | 오른쪽 상세 칸 — 실행 기록 A안과 같은 짜임이다 (⑫ 시안 A). 두 단이 저마다 스크롤한다 */}
+      <div className={연줄 === undefined ? 'cases-split' : 'cases-split has-pane'}>
       <div className="screen list-screen">
-      {/* 목록을 열자마자 「지금 이 서비스가 어떤 상태인가」가 먼저 온다.
-          배지 하나만 있을 때는 실패가 몇 건인지 세로로 훑어야 알았다 */}
-      {셈.전체 === 0 ? null : (
-        <집계띠
-          전체={셈.전체}
-          통과={셈.통과}
-          실패={셈.실패}
-          미실행={셈.미실행}
-          부제={{ 통과: t('마지막 실행 기준'), 미실행: t('실행한 적 없음') }}
-        />
-      )}
-
       {/* 찾기와 조건 칩이 한 줄에 선다 (2026-09-22). 두 줄이면 132px 을 먹었다.
           기능 목록은 설계 기법 고르개로 두 줄이 된다 — 받아들였다 (도메인/카탈로그 §8.1, 2026-10-05 게이트 2) */}
       <div className="toolbar">
@@ -179,6 +175,7 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
           디바이스={검색.디바이스}
           활성만={검색.활성만}
           결과={결과}
+          건수={cases.data?.lastCounts}
           on디바이스={검색.on디바이스}
           on활성만={검색.on활성만}
           on결과={검색.on결과}
@@ -197,14 +194,6 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
         <Failed error={cases.error} />
       ) : cases.data === null ? (
         <Loading />
-      ) : 보일것.length === 0 && 결과 !== 'ALL' && cases.data.items.length > 0 ? (
-        // 마지막 결과만 화면이 거른다. **서버가 나눠 준 이 쪽 안에서만** 걸러지므로
-        // 「없다」고 단정하면 다음 쪽에 있는 것을 없다고 말하게 된다 (SPEC §8.1 이
-        // 「케이스가 수백 건이 되면 서버 쪽으로 옮긴다」고 예고한 자리다)
-        <div className="empty">
-          {t('이 쪽에는 {결과}인 케이스가 없습니다', { 결과: t(결과라벨[결과]) })}
-          <small>{t('다음 쪽에 있을 수 있습니다. 나머지 조건은 서버가 전체에서 거릅니다')}</small>
-        </div>
       ) : 보일것.length === 0 ? (
         <Empty
           형편={{
@@ -250,17 +239,9 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
             마지막={lastMap}
             고름={뽑기.고른.has(row.tcId)}
             뒤집기={뽑기.뒤집기}
-            글자={글자[row.tcId]}
-            폈나={편줄.has(row.tcId)}
+            열림={연줄?.tcId === row.tcId}
             on실행={할수('실행') ? (row) => void 뽑기.하나열기(row) : undefined}
-            저장된다={할수('입력값저장')}
-            고칠서비스={할수('작성요청') ? service : undefined}
-            on값={값고침}
-            on더보기={더보기}
-            on저장됨={async (tcId) => {
-              // 저장값이 곧 칸의 새 시작값이다. 다시 읽기가 도착한 뒤에 비운다 — 먼저 비우면 도착 전까지 옛 값으로 돌아가 보인다
-              if (await cases.reload()) set글자((전) => ({ ...전, [tcId]: { params: {}, expected: {} } }));
-            }}
+            on열기={열기}
           />
           );
         })}
@@ -273,7 +254,12 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
           <button onClick={() => 검색.setPage((n) => n - 1)} disabled={page <= 1}>
             {t('이전')}
           </button>
-          <span>{t('{번호}쪽', { 번호: page })}</span>
+          {/* 전체 쪽 수는 안내다 — 다음 쪽이 있는지는 응답이 정한다(paging.ts). 근사치면 안 적는다 */}
+          <span>
+            {cases.data?.totalIsExact === true && cases.data.pageSize !== null
+              ? t('{번호} / {전체}쪽', { 번호: page, 전체: Math.max(1, Math.ceil(cases.data.total / cases.data.pageSize)) })
+              : t('{번호}쪽', { 번호: page })}
+          </span>
           <button onClick={() => 검색.setPage((n) => n + 1)} disabled={!더있나}>
             {t('다음')}
           </button>
@@ -293,6 +279,29 @@ export function CaseList({ service, 할수, 결과보나, 요구보나 = false, 
           on값고침={뽑기.사유지우기}
           on다시읽기={(tcId) => { void 뽑기.다시읽기(tcId); cases.reload(); }}
           onRun={(요청) => void 뽑기.실행걸기(요청)}
+        />
+      )}
+      </div>
+
+      {/* key — 다른 케이스를 열면 고른 디바이스 같은 칸 안 상태를 새로 시작한다 */}
+      {연줄 === undefined ? null : (
+        <CaseDetail
+          key={연줄.tcId}
+          row={연줄}
+          마지막={lastMap}
+          기억={기억.current}
+          글자={글자[연줄.tcId]}
+          고칠서비스={할수('작성요청') ? service : undefined}
+          요구보나={요구보나}
+          저장된다={할수('입력값저장')}
+          on실행={할수('실행') ? (row) => void 뽑기.하나열기(row) : undefined}
+          onClose={닫기}
+          on값={(어디, key, value) => 값고침(연줄.tcId, 어디, key, value)}
+          on저장됨={async () => {
+            // 저장값이 곧 칸의 새 시작값이다. 다시 읽기가 도착한 뒤에 비운다 — 먼저 비우면 도착 전까지 옛 값으로 돌아가 보인다
+            const tcId = 연줄.tcId;
+            if (await cases.reload()) set글자((전) => ({ ...전, [tcId]: { params: {}, expected: {} } }));
+          }}
         />
       )}
       </div>

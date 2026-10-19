@@ -8,7 +8,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
-import { api, ApiError, type CaseRow, type Paged, type Platform, type ServiceRow, type User } from './api.js';
+import { api, ApiError, type CasePage, type CaseQuery, type CaseRow, type Platform, type ServiceRow, type User } from './api.js';
 import { CaseList } from './CaseList.js';
 import { 언어함 } from './i18n.js';
 import type { 판정 } from './role.js';
@@ -41,9 +41,10 @@ function 케이스(tcId: string, platforms: Platform[] = ['desktop'], isActive =
 }
 
 // 한 쪽 크기를 2로 두면 2건짜리 쪽은 「더 있다」, 1건짜리 쪽은 「끝」이다 (paging.ts)
-const 쪽1: Paged<CaseRow> = { items: [케이스('ZPK-001'), 케이스('ZPK-002')], total: 3, page: 1, pageSize: 2 };
+const 칸수 = { total: 3, pass: 1, fail: 1, na: 1 };
+const 쪽1: CasePage = { items: [케이스('ZPK-001'), 케이스('ZPK-002')], total: 3, page: 1, pageSize: 2, lastCounts: 칸수 };
 // 디바이스 수가 다른 케이스를 섞는다. items 를 곱으로 세면 여기서 어긋난다
-const 쪽2: Paged<CaseRow> = { items: [케이스('ZPK-003', ['desktop', 'mobile'])], total: 3, page: 2, pageSize: 2 };
+const 쪽2: CasePage = { items: [케이스('ZPK-003', ['desktop', 'mobile'])], total: 3, page: 2, pageSize: 2, lastCounts: 칸수 };
 
 const 서비스: ServiceRow = {
   id: 1,
@@ -58,16 +59,17 @@ const 서비스: ServiceRow = {
 const 사람: User = { username: 'zpk', displayName: '검사', role: 'member', dashboard: 'read', mustChangePassword: false, services: [서비스] };
 
 /** 마운트에서 부르는 셋과 대상 서버를 읽는 통로를 막는다. cases 만 시험 대상이다 */
-function 모킹(cases: (page: number) => Promise<Paged<CaseRow>>) {
+function 모킹(cases: (page: number) => Promise<CasePage>) {
   vi.spyOn(api, 'lastScan').mockResolvedValue(null);
   vi.spyOn(api, 'lastByCase').mockResolvedValue({ items: [] });
   vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
+  vi.spyOn(api, 'caseHistory').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
   return vi.spyOn(api, 'cases').mockImplementation((q) => cases(q.page ?? 1));
 }
 
 const 쪽주기 = (page: number) => Promise.resolve(page === 1 ? 쪽1 : 쪽2);
 
-async function 그리기(cases: (page: number) => Promise<Paged<CaseRow>> = 쪽주기) {
+async function 그리기(cases: (page: number) => Promise<CasePage> = 쪽주기) {
   const 스파이 = 모킹(cases);
   const 것 = render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 />);
   await screen.findByText('ZPK-001');
@@ -90,19 +92,86 @@ const 실행버튼 = () => screen.getByRole('button', { name: /(전체|건) 실�
 // 모달의 버튼은 글자가 딱 '실행'이다. 목록 쪽은 앞에 '전체'·'선택한 N건'이 붙는다
 const 모달실행 = () => screen.getByRole('button', { name: '실행' });
 
-describe('CaseList 집계 띠', () => {
-  it('목록 위에 판정 넷이 숫자와 글자 라벨로 같이 뜬다', async () => {
+const 전체실행글 = '조건에 맞는 3건 실행';
+const 결과칩 = (글: string) => screen.getByRole('button', { name: new RegExp(`^${글} \\d+$`) });
+const 끝질의 = (스파이: { mock: { calls: [CaseQuery][] } }) => 스파이.mock.calls.at(-1)![0];
+
+// 집계 띠(판정 넷 숫자)는 없어졌다 — 같은 수를 마지막 결과 칩이 단다. 수는 쪽이 아니라 서버가 센 조건에 맞는 전부다 (⑫ 시안 A)
+describe('CaseList 마지막 결과 칩', () => {
+  it('집계 띠는 없고 칩마다 서버가 센 건수가 붙는다', async () => {
     await 그리기();
-    const 띠 = document.querySelector('.stats');
-    expect(띠).not.toBeNull();
-    const 글 = 띠?.textContent ?? '';
-    for (const 라벨 of ['전체', '통과', '실패', '미실행']) expect(글).toContain(라벨);
+
+    expect(document.querySelector('.stats')).toBeNull();
+    expect(결과칩('전체').textContent).toBe('전체 3');
+    expect(결과칩('통과').textContent).toBe('통과 1');
+    expect(결과칩('실패').textContent).toBe('실패 1');
+    expect(결과칩('미실행').textContent).toBe('미실행 1');
   });
 
-  it('숫자는 지금 보이는 것을 센다', async () => {
+  it('건수는 이 쪽의 줄 수가 아니라 응답의 lastCounts 다', async () => {
+    await 그리기(() => Promise.resolve({ ...쪽1, lastCounts: { total: 120, pass: 100, fail: 7, na: 13 } }));
+
+    expect(결과칩('전체').textContent).toBe('전체 120');
+    expect(결과칩('실패').textContent).toBe('실패 7');
+  });
+
+  it('실패가 있을 때만 실패 칩에 경고 색 표시가 붙는다', async () => {
+    const { unmount } = await 그리기();
+    expect(결과칩('실패').classList.contains('chip-fail')).toBe(true);
+    unmount();
+    await 그리기(() => Promise.resolve({ ...쪽1, lastCounts: { total: 3, pass: 3, fail: 0, na: 0 } }));
+    expect(결과칩('실패').classList.contains('chip-fail')).toBe(false);
+  });
+
+  it('lastCounts 가 null 이면(실행 읽기 권한 없음) 마지막 결과 칩 묶음을 안 그린다', async () => {
+    await 그리기(() => Promise.resolve({ ...쪽1, lastCounts: null }));
+
+    expect(screen.queryByRole('button', { name: /^(통과|실패|미실행) / })).toBeNull();
+    expect(screen.queryByRole('group', { name: '마지막 결과' })).toBeNull();
+    expect(document.querySelector('.toolbar .filter-label')?.textContent).not.toBe('마지막 결과');
+  });
+
+  it('칩을 누르면 api.cases 를 last 를 실어 첫 쪽부터 다시 부르고 주소에도 남는다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    await waitFor(() => expect(끝질의(스파이).page).toBe(2));
+
+    fireEvent.click(결과칩('실패'));
+
+    await waitFor(() => expect(끝질의(스파이)).toMatchObject({ last: 'FAIL', page: 1 }));
+    expect(결과칩('실패').getAttribute('aria-pressed')).toBe('true');
+    expect(window.location.hash).toContain('last=FAIL');
+  });
+
+  it('전체 칩으로 돌리면 질의에 last 를 안 싣는다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.click(결과칩('통과'));
+    await waitFor(() => expect(끝질의(스파이).last).toBe('PASS'));
+
+    fireEvent.click(결과칩('전체'));
+
+    await waitFor(() => expect(끝질의(스파이)).not.toHaveProperty('last'));
+  });
+
+  it('받은 줄을 화면이 다시 거르지 않는다 — 서버가 거른 대로 그린다', async () => {
     await 그리기();
-    const 칸들 = [...document.querySelectorAll('.stats .stat .v')].map((el) => el.textContent);
-    expect(칸들[0]).toBe('2');
+
+    fireEvent.click(결과칩('실패'));
+
+    await waitFor(() => expect(결과칩('실패').getAttribute('aria-pressed')).toBe('true'));
+    expect(screen.getByText('ZPK-001')).toBeTruthy();
+    expect(screen.getByText('ZPK-002')).toBeTruthy();
+    expect(screen.queryByText(/이 쪽에는 .* 케이스가 없습니다/)).toBeNull();
+  });
+
+  it('칩을 걸고 조건 초기화를 누르면 last 가 빠진다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.click(결과칩('미실행'));
+    await waitFor(() => expect(끝질의(스파이).last).toBe('NA'));
+
+    fireEvent.click(screen.getByRole('button', { name: '조건 초기화' }));
+
+    await waitFor(() => expect(끝질의(스파이)).not.toHaveProperty('last'));
   });
 });
 
@@ -160,6 +229,7 @@ describe('스캔 결과가 화면 머리에 있다 (SPEC §8.1, 2026-09-22)', ()
   async function 스캔그리기(값: unknown, 오류: unknown = null) {
     vi.spyOn(api, 'lastByCase').mockResolvedValue({ items: [] });
     vi.spyOn(api, 'me').mockResolvedValue({ user: 사람 });
+    vi.spyOn(api, 'caseHistory').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
     vi.spyOn(api, 'cases').mockImplementation((q) => 쪽주기(q.page ?? 1));
     if (오류 === null) {
       vi.spyOn(api, 'lastScan').mockResolvedValue(값 as never);
@@ -178,7 +248,7 @@ describe('스캔 결과가 화면 머리에 있다 (SPEC §8.1, 2026-09-22)', ()
   it('스캔 결과가 화면 머리 안에 있고 따로 줄을 만들지 않는다', async () => {
     await 스캔그리기(스캔);
     await waitFor(() => {
-      expect(document.querySelector('.head')?.textContent ?? '').toMatch(/갱신 11/);
+      expect(document.querySelector('.head')?.textContent ?? '').toMatch(/마지막 스캔/);
     });
     expect(document.querySelector('.scan'), '스캔 줄이 따로 서 있다').toBeNull();
   });
@@ -214,7 +284,7 @@ describe('CaseList 여러 건 고르기', () => {
 
     fireEvent.click(머리칸());
     expect(고르기칸().some((칸) => (칸 as HTMLInputElement).checked)).toBe(false);
-    expect(실행버튼().textContent).toBe('전체 실행');
+    expect(실행버튼().textContent).toBe(전체실행글);
   });
 
   it('일부만 골랐으면 머리 체크박스가 일부 선택 상태이고 누르면 나머지까지 고른다', async () => {
@@ -228,9 +298,14 @@ describe('CaseList 여러 건 고르기', () => {
     expect(머리칸().indeterminate).toBe(false);
   });
 
-  it('아무것도 안 고르면 버튼 글자가 전체 실행이다', async () => {
+  it('아무것도 안 고르면 버튼 글자가 「조건에 맞는 N건 실행」이고 N 은 응답의 total 이다', async () => {
     await 그리기();
-    expect(실행버튼().textContent).toBe('전체 실행');
+    expect(실행버튼().textContent).toBe(전체실행글);
+  });
+
+  it('조건을 걸면 N 이 그 조건에 맞는 total 로 바뀐다 — 「전체」라고 말하지 않는다', async () => {
+    await 그리기((page) => Promise.resolve(page === 1 ? { ...쪽1, total: 7 } : 쪽2));
+    expect(실행버튼().textContent).toBe('조건에 맞는 7건 실행');
   });
 
   it('고른 수만큼 버튼 글자가 바뀐다', async () => {
@@ -241,7 +316,7 @@ describe('CaseList 여러 건 고르기', () => {
     expect(실행버튼().textContent).toBe('선택한 2건 실행');
   });
 
-  it('전체 실행을 누르면 마지막 쪽까지 쪽마다 받아 모은다', async () => {
+  it('조건에 맞는 건 실행을 누르면 마지막 쪽까지 쪽마다 받아 모은다', async () => {
     const { 스파이 } = await 그리기();
     스파이.mockClear();
 
@@ -253,13 +328,25 @@ describe('CaseList 여러 건 고르기', () => {
     });
   });
 
+  it('마지막 결과 칩을 걸고 누르면 모으는 쪽마다 같은 last 조건이 실린다', async () => {
+    const { 스파이 } = await 그리기();
+    fireEvent.click(결과칩('실패'));
+    await waitFor(() => expect(끝질의(스파이).last).toBe('FAIL'));
+    스파이.mockClear();
+
+    fireEvent.click(실행버튼());
+
+    await screen.findByRole('dialog');
+    expect(스파이.mock.calls.map(([q]) => q.last)).toEqual(['FAIL', 'FAIL']);
+  });
+
   it('받는 동안 버튼이 막히고 그 사실이 화면 줄로 뜬다', async () => {
-    let 풀기: ((쪽: Paged<CaseRow>) => void) | null = null;
+    let 풀기: ((쪽: CasePage) => void) | null = null;
     // 두 번째 쪽을 손에 쥐고 있어야 「받는 중」 이 화면에 떠 있는 순간을 붙잡을 수 있다
     await 그리기((page) =>
       page === 1
         ? Promise.resolve(쪽1)
-        : new Promise<Paged<CaseRow>>((resolve) => {
+        : new Promise<CasePage>((resolve) => {
             풀기 = resolve;
           }),
     );
@@ -304,8 +391,8 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
     fireEvent.click(고르기칸()[0]!);
     fireEvent.click(고르기칸()[1]!);
 
-    // 칩은 「무엇을 볼까」이지 「무엇을 돌릴까」가 아니다. 마지막 결과가 없어 전부 미실행이다
-    fireEvent.click(screen.getByRole('button', { name: '실패' }));
+    // 칩은 「무엇을 볼까」이지 「무엇을 돌릴까」가 아니다. 서버가 거른 새 목록이 와도 고른 것은 줄 통째로 들고 있다
+    fireEvent.click(결과칩('실패'));
     expect(실행버튼().textContent).toBe('선택한 2건 실행');
     fireEvent.click(실행버튼());
 
@@ -321,7 +408,7 @@ describe('CaseList 고른 것을 줄 통째로 든다', () => {
     rerender(<CaseList kind="FN" service="ZPY" 할수={전부된다} 결과보나 />);
 
     // 남겨 두면 다른 서비스에서 「고른 1건」이라 말하고 누르면 사실이 아닌 이유를 보여준다
-    await waitFor(() => expect(실행버튼().textContent).toBe('전체 실행'));
+    await waitFor(() => expect(실행버튼().textContent).toBe(전체실행글));
   });
 });
 
@@ -534,30 +621,48 @@ describe('CaseList 여러 건 실행 걸기', () => {
   });
 });
 
-describe('CaseList 목록에서 고친 값', () => {
-  const 값있는케이스: CaseRow = {
-    ...케이스('ZPK-001'),
-    paramSchema: {
-      type: 'object',
-      properties: { currency: { type: 'string', description: '통화', default: 'KRW' } },
-    } as unknown as CaseRow['paramSchema'],
-  };
-  const 한쪽: Paged<CaseRow> = { items: [값있는케이스], total: 1, page: 1, pageSize: 2 };
+const 값있는케이스: CaseRow = {
+  ...케이스('ZPK-001'),
+  paramSchema: {
+    type: 'object',
+    properties: { currency: { type: 'string', description: '통화', default: 'KRW' } },
+  } as unknown as CaseRow['paramSchema'],
+};
+const 한쪽: CasePage = { items: [값있는케이스], total: 1, page: 1, pageSize: 2, lastCounts: 칸수 };
+const 이름버튼 = () => screen.getByRole('button', { name: 'ZPK-001 케이스' });
 
+describe('CaseList 상세 칸에서 고친 값', () => {
   async function 값을고치고() {
     모킹(() => Promise.resolve(한쪽));
     const 것 = render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 />);
-    await screen.findByText('ZPK-001 케이스');
-    fireEvent.change(screen.getByLabelText(/통화/), { target: { value: 'USD' } });
+    await screen.findByText('ZPK-001');
+    fireEvent.click(이름버튼());
+    fireEvent.change(await screen.findByLabelText(/통화/), { target: { value: 'USD' } });
     return 것;
   }
 
-  it('고친 값이 줄에 남는다', async () => {
-    await 값을고치고();
-    expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('USD');
+  it('줄에는 입력 칸이 없고 이름을 눌러야 상세 칸에 입력 칸이 뜬다', async () => {
+    모킹(() => Promise.resolve(한쪽));
+    render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 />);
+    await screen.findByText('ZPK-001');
+    expect(screen.queryByLabelText(/통화/)).toBeNull();
+
+    fireEvent.click(이름버튼());
+
+    expect((await screen.findByLabelText(/통화/) as HTMLInputElement).value).toBe('KRW');
   });
 
-  it('고친 값이 모달에 그대로 떠 있다', async () => {
+  it('고친 값은 칸을 닫았다 다시 열어도 남는다', async () => {
+    await 값을고치고();
+
+    fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
+    expect(screen.queryByLabelText(/통화/)).toBeNull();
+    fireEvent.click(이름버튼());
+
+    expect(((await screen.findByLabelText(/통화/)) as HTMLInputElement).value).toBe('USD');
+  });
+
+  it('고친 값이 목록 머리의 실행 창에 그대로 떠 있다', async () => {
     await 값을고치고();
 
     fireEvent.click(실행버튼());
@@ -565,6 +670,15 @@ describe('CaseList 목록에서 고친 값', () => {
 
     const 칸 = within(모달).getByLabelText(/통화/) as HTMLInputElement;
     expect(칸.value).toBe('USD');
+  });
+
+  it('칸의 「이 값으로 실행」은 고친 값을 실은 실행 창을 연다', async () => {
+    await 값을고치고();
+
+    fireEvent.click(screen.getByRole('button', { name: '이 값으로 실행' }));
+    const 모달 = await screen.findByRole('dialog');
+
+    expect((within(모달).getByLabelText(/통화/) as HTMLInputElement).value).toBe('USD');
   });
 
   it('고친 값이 실행 요청의 params 로 나간다', async () => {
@@ -582,13 +696,115 @@ describe('CaseList 목록에서 고친 값', () => {
     expect(걸기.mock.calls[0]![0].items[0]!.params).toEqual({ currency: 'USD' });
   });
 
-  it('서비스를 바꾸면 고친 값을 버린다', async () => {
+  it('서비스를 바꾸면 칸이 닫히고 고친 값도 버린다', async () => {
     const { rerender } = await 값을고치고();
 
     rerender(<CaseList kind="FN" service="ZQQ" 할수={전부된다} 결과보나 />);
-    await waitFor(() => {
-      expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('KRW');
-    });
+
+    await waitFor(() => expect(document.getElementById('case-pane')).toBeNull());
+    fireEvent.click(await screen.findByRole('button', { name: 'ZPK-001 케이스' }));
+    expect(((await screen.findByLabelText(/통화/)) as HTMLInputElement).value).toBe('KRW');
+  });
+});
+
+describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12)', () => {
+  const 칸 = () => document.getElementById('case-pane');
+
+  it('이름을 누르면 오른쪽 칸이 열리고 주소에 case= 가 남는다', async () => {
+    await 그리기();
+
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+
+    expect(칸()?.tagName).toBe('ASIDE');
+    expect(within(칸()!).getByRole('heading', { name: 'ZPK-001 케이스' })).toBeTruthy();
+    expect(window.location.hash).toContain('case=ZPK-001');
+    expect(document.querySelector('.cases-split')?.classList.contains('has-pane')).toBe(true);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('button', { name: 'ZPK-001 케이스' }).getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('button', { name: 'ZPK-002 케이스' }).getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('한 번에 한 건만 열린다 — 다른 이름을 누르면 칸이 그 케이스로 바뀐다', async () => {
+    await 그리기();
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-002 케이스' }));
+
+    expect(document.querySelectorAll('#case-pane')).toHaveLength(1);
+    expect(within(칸()!).getByRole('heading', { name: 'ZPK-002 케이스' })).toBeTruthy();
+    expect(window.location.hash).toContain('case=ZPK-002');
+    expect(window.location.hash).not.toContain('ZPK-001');
+  });
+
+  it('같은 이름을 다시 누르면 닫히고 주소에서 case= 가 빠진다', async () => {
+    await 그리기();
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+
+    expect(칸()).toBeNull();
+    expect(window.location.hash).not.toContain('case=');
+    expect(document.querySelector('.cases-split')?.classList.contains('has-pane')).toBe(false);
+  });
+
+  it('✕ 로 닫으면 포커스가 그 이름 버튼으로 돌아온다', async () => {
+    await 그리기();
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+
+    fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
+
+    expect(칸()).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+  });
+
+  it('칸을 열어도 목록 줄은 그대로 있고 고른 것도 안 풀린다', async () => {
+    await 그리기();
+    fireEvent.click(고르기칸()[0]!);
+
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-002 케이스' }));
+
+    expect(screen.getByText('ZPK-001')).toBeTruthy();
+    expect(실행버튼().textContent).toBe('선택한 1건 실행');
+  });
+
+  it('이 쪽에 없는 케이스가 열려 있으면 칸을 안 그리지만 주소는 남겨 돌아오면 다시 열린다', async () => {
+    window.location.hash = '#/cases/fn?case=ZPK-003';
+    모킹(쪽주기);
+    render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 />);
+    await screen.findByText('ZPK-001');
+
+    expect(칸()).toBeNull();
+    expect(window.location.hash).toContain('case=ZPK-003');
+
+    fireEvent.click(screen.getByRole('button', { name: '다음' }));
+    await screen.findByRole('button', { name: 'ZPK-003 케이스' });
+    expect(within(칸()!).getByRole('heading', { name: 'ZPK-003 케이스' })).toBeTruthy();
+  });
+
+  it('실행 쓰기가 없으면 칸에 실행 단추가 없고, 작성 쓰기가 없으면 코드 기본값 요청도 없다', async () => {
+    const 실행빼고: 판정 = (무엇) => 무엇 !== '실행' && 무엇 !== '작성요청';
+    모킹(() => Promise.resolve(한쪽));
+    render(<CaseList kind="FN" service="ZPK" 할수={실행빼고} 결과보나 />);
+    await screen.findByText('ZPK-001');
+
+    fireEvent.click(이름버튼());
+    await screen.findByLabelText(/통화/);
+
+    expect(screen.queryByRole('button', { name: '이 값으로 실행' })).toBeNull();
+    expect(screen.queryByText('코드 기본값 바꾸기 요청')).toBeNull();
+  });
+
+  it('칸 안의 실행 이력은 케이스마다 한 번만 받는다 — 닫았다 열어도 다시 안 받는다', async () => {
+    await 그리기();
+    const 이력 = vi.mocked(api.caseHistory);
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+    await waitFor(() => expect(이력).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('button', { name: '상세 닫기' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+    await screen.findByText('아직 기록이 없습니다');
+
+    expect(이력).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -658,19 +874,12 @@ describe('CaseList 권한 칸', () => {
   });
 });
 
-describe('CaseList 줄에서 저장값 저장', () => {
-  const 값있는케이스: CaseRow = {
-    ...케이스('ZPK-001'),
-    paramSchema: {
-      type: 'object',
-      properties: { currency: { type: 'string', description: '통화', default: 'KRW' } },
-    } as unknown as CaseRow['paramSchema'],
-  };
-  const 쪽 = (row: CaseRow): Paged<CaseRow> => ({ items: [row], total: 1, page: 1, pageSize: 2 });
+describe('CaseList 상세 칸에서 저장값 저장', () => {
+  const 쪽 = (row: CaseRow): CasePage => ({ items: [row], total: 1, page: 1, pageSize: 2, lastCounts: 칸수 });
 
   it('다시 읽기가 도착할 때까지 고친 값을 그대로 두고, 도착하면 저장값이 칸을 채운다', async () => {
-    let 도착: (page: Paged<CaseRow>) => void = () => undefined;
-    const 다시읽기 = new Promise<Paged<CaseRow>>((resolve) => {
+    let 도착: (page: CasePage) => void = () => undefined;
+    const 다시읽기 = new Promise<CasePage>((resolve) => {
       도착 = resolve;
     });
     let 부른수 = 0;
@@ -678,10 +887,12 @@ describe('CaseList 줄에서 저장값 저장', () => {
     const 저장 = vi.spyOn(api, 'saveInput').mockResolvedValue(null);
     render(<CaseList kind="FN" service="ZPK" 할수={전부된다} 결과보나 />);
     await screen.findByText('ZPK-001 케이스');
-    fireEvent.change(screen.getByLabelText(/통화/), { target: { value: 'USD' } });
+    fireEvent.click(이름버튼());
+    fireEvent.change(await screen.findByLabelText(/통화/), { target: { value: 'USD' } });
+    expect(screen.getByText('팀 모두와 정기 실행이 이 값을 씁니다')).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: '저장' }));
-    await waitFor(() => expect(저장).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: '모두에게 저장' }));
+    await waitFor(() => expect(저장).toHaveBeenCalledWith('ZPK-001', { params: { currency: 'USD' }, expected: {} }));
     await waitFor(() => expect(부른수).toBe(2));
     expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('USD');
 
@@ -689,8 +900,20 @@ describe('CaseList 줄에서 저장값 저장', () => {
       ...값있는케이스,
       savedInput: { params: { currency: 'USD' }, expected: {}, savedSecrets: { params: [], expected: [] }, savedBy: 'zpk', savedAt: '2026-09-29T00:00:00.000Z' },
     }));
-    await waitFor(() => expect(screen.queryByText('안 저장한 값이 있습니다')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('button', { name: '모두에게 저장' })).toBeNull());
     expect((screen.getByLabelText(/통화/) as HTMLInputElement).value).toBe('USD');
+  });
+
+  it('케이스 쓰기가 없으면 고쳐도 「모두에게 저장」이 없다', async () => {
+    const 쓰기빼고: 판정 = (무엇) => 무엇 !== '입력값저장';
+    모킹(() => Promise.resolve(쪽(값있는케이스)));
+    render(<CaseList kind="FN" service="ZPK" 할수={쓰기빼고} 결과보나 />);
+    await screen.findByText('ZPK-001 케이스');
+    fireEvent.click(이름버튼());
+
+    fireEvent.change(await screen.findByLabelText(/통화/), { target: { value: 'USD' } });
+
+    expect(screen.queryByRole('button', { name: '모두에게 저장' })).toBeNull();
   });
 });
 

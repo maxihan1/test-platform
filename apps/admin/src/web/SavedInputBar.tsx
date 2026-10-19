@@ -1,5 +1,5 @@
 // 케이스 저장값(case_input)을 저장·지우는 버튼과 「저장값 · 누가 · 언제」 표시 (도메인/실행 §8.2, 2026-09-29 시안 A)
-// 목록 줄과 실행 창(한 건)이 같이 쓴다. 창 · CaseList 가 300줄에 닿아 여기로 뺐다
+// 케이스 상세 칸과 실행 창(한 건)이 같이 쓴다. 창 · CaseList 가 300줄에 닿아 여기로 뺐다
 
 import { useState } from 'react';
 
@@ -25,8 +25,11 @@ export function 저장값표시({ saved, className = 'hint' }: { saved: SavedInp
   );
 }
 
-/** 목록 줄 끝. 고친 칸이 있으면 「저장」, 없으면 저장값이 누구 것인지 */
-export function 줄저장({
+/**
+ * 상세 칸의 저장. 고친 칸이 있으면 「모두에게 저장」, 없으면 저장값이 누구 것인지.
+ * 저장값은 팀 모두와 정기 실행이 쓴다 — **누르기 전에** 적는다. 앞 판은 목록 줄의 「저장」 뒤에 4초만 떴다(점검 7.6)
+ */
+export function 값저장({
   tcId,
   값,
   고침,
@@ -45,16 +48,12 @@ export function 줄저장({
   const 언어 = use언어();
   const [busy, setBusy] = useState(false);
   const [사유, set사유] = useState<string | null>(null);
-  const [저장함, set저장함] = useState(false);
 
   async function 저장() {
     setBusy(true);
     set사유(null);
     try {
       await api.saveInput(tcId, 값);
-      set저장함(true);
-      // 저장한 값이 나 혼자 것이 아니라는 것을 잠깐 알린다. 늘 떠 있으면 목록 줄마다 같은 글이 쌓인다
-      setTimeout(() => set저장함(false), 4000);
       on저장됨();
     } catch (err) {
       // 줄에는 칸별 자리가 없다. 첫 사유 한 줄이면 무엇을 고칠지 안다
@@ -66,16 +65,16 @@ export function 줄저장({
 
   const 버튼 = 고침 && 된다;
   const 저장값있나 = saved !== null && saved !== undefined;
-  if (!버튼 && !저장값있나 && !저장함 && 사유 === null) return null;
+  if (!버튼 && !저장값있나 && 사유 === null) return null;
 
   return (
     <div className="saved-row">
       {버튼 ? (
         <>
-          <button type="button" className="btn small ghost" onClick={() => void 저장()} disabled={busy}>
-            {t('저장')}
+          <span className="hint">{t('팀 모두와 정기 실행이 이 값을 씁니다')}</span>
+          <button type="button" className="btn ghost" onClick={() => void 저장()} disabled={busy}>
+            {t('모두에게 저장')}
           </button>
-          <span className="hint">{t('안 저장한 값이 있습니다')}</span>
         </>
       ) : 저장값있나 ? (
         <span className="saved-tag">
@@ -83,7 +82,6 @@ export function 줄저장({
           <저장값표시 saved={saved} className="" />
         </span>
       ) : null}
-      {저장함 ? <span className="hint">{t('팀 모두와 정기 실행에 쓰입니다')}</span> : null}
       {사유 === null ? null : <div className="err">{사유}</div>}
     </div>
   );

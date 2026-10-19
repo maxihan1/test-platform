@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import { api, ApiError, type CaseRow } from './api.js';
 import { CaseDetail } from './CaseDetail.js';
+import { 빈기억 } from './caseDetailView.js';
 import { 코드기본값고치기 } from './CaseEdit.js';
 import { scenarioApi, type ScenarioRow } from './scenarioApi.js';
 
@@ -119,8 +120,22 @@ describe('코드 기본값 바꾸기 요청', () => {
 
   it('비활성 케이스 상세에는 고치기 자리가 없다. 서버가 늘 거절한다', () => {
     vi.spyOn(api, 'caseHistory').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
-    render(<CaseDetail row={케이스({ isActive: false })} 폈나 마지막={undefined} 고칠서비스="XEW" onClose={() => {}} on값={() => {}} />);
-    expect(screen.queryByRole('group', { name: '코드 기본값 바꾸기 요청' })).toBeNull();
+    render(
+      <CaseDetail row={케이스({ isActive: false })} 마지막={{}} 기억={빈기억()} 고칠서비스="XEW" onClose={() => {}} on값={() => {}} on저장됨={() => {}} />,
+    );
+    expect(screen.queryByText('코드 기본값 바꾸기 요청')).toBeNull();
+    expect(screen.queryByRole('group', { name: '코드 기본값 바꾸기 요청', hidden: true })).toBeNull();
+  });
+
+  it('활성 케이스 상세에는 접힌 details 안에 고치기 자리가 있다', () => {
+    vi.spyOn(api, 'caseHistory').mockResolvedValue({ items: [], total: 0, page: 1, pageSize: 20 });
+    const { container } = render(
+      <CaseDetail row={케이스()} 마지막={{}} 기억={빈기억()} 고칠서비스="XEW" onClose={() => {}} on값={() => {}} on저장됨={() => {}} />,
+    );
+    const 접힘 = container.querySelector('details.case-edit-fold') as HTMLDetailsElement;
+    expect(접힘.open).toBe(false);
+    expect(접힘.querySelector('summary')?.textContent).toBe('코드 기본값 바꾸기 요청');
+    expect(within(접힘).getByRole('group', { name: '코드 기본값 바꾸기 요청', hidden: true })).toBeTruthy();
   });
 
   it('삭제는 두 번 눌러야 간다', async () => {

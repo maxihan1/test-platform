@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react';
 
 import type { CaseRow } from './api.js';
-import { 채운글자 } from './CaseRowParams.js';
+import { 채운글자 } from './caseValues.js';
 import type { 고친값표, 글자표 } from './pickRun.js';
 import { type Field, schemaToFields, toValues } from './schema.js';
 import { fieldErrors } from './validation.js';
