@@ -247,7 +247,7 @@ describe('칸에서 내려가기', () => {
     expect(서비스열기).toHaveBeenCalledWith(1);
   });
 
-  it('실행 목록 주소는 목록이 아는 기간(14 · 30)으로 맞춘다', () => {
+  it('실행 목록 주소는 창 길이를 그대로 싣는다', () => {
     expect(실행목록주소(7)).toBe('#/runs/fn?days=7');
     expect(실행목록주소(14, { state: 'failed' })).toBe('#/runs/fn?state=failed&days=14');
     expect(실행목록주소(30)).toBe('#/runs/fn?days=30');

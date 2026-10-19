@@ -69,7 +69,8 @@ export function 항목실행줄({ item, 판정하기 }: { item: RunItemDetail; �
 
   const 회차 = 회차글(item, 데이터.items);
   const 길 = 실패길(데이터.items);
-  const 지금 = 길.findIndex((it) => it.tcId === item.tcId && it.platform === item.platform);
+  // 통과한 회차를 열었으면 실패 목록의 하나가 아니다 — 순서 번호 없이 앞뒤 실패로만 간다
+  const 지금 = item.status !== 'FAIL' ? -1 : 길.findIndex((it) => it.tcId === item.tcId && it.platform === item.platform);
   const 앞 = 지금 === -1 ? [...길].reverse().find((it) => it.historyId < item.historyId) : 길[지금 - 1];
   const 뒤 = 지금 === -1 ? 길.find((it) => it.historyId > item.historyId) : 길[지금 + 1];
   const 주소 = (it: RunItemSummary) => `#/runs/${String(item.runId)}/items/${String(it.historyId)}`;

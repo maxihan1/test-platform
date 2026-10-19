@@ -104,6 +104,13 @@ describe('항목실행줄', () => {
     expect(screen.queryByRole('link', { name: '← 이전 실패' })).toBeNull();
   });
 
+  it('통과한 회차를 열면 순서 번호 없이 앞뒤 실패로만 간다', async () => {
+    그린다(상세({ ...실행항목들[3]!, status: 'PASS' }));
+
+    await screen.findByRole('link', { name: '다음 실패 →' });
+    expect(screen.queryByText(/건 중 .*번째/)).toBeNull();
+  });
+
   it('반복 실행이면 몇 번째 회차인지 적는다', async () => {
     그린다(상세(실행항목들[3]!));
 
