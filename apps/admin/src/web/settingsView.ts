@@ -50,6 +50,8 @@ export const 안쓰는서비스색 = '#6B7280';
 export function 서비스못보내는이유(
   입력: {
     새것: boolean;
+    /** 새 애플리케이션이 들어갈 프로젝트. 아직 안 골랐으면 null — 고칠 때는 안 넘긴다 */
+    프로젝트?: number | null;
     prefix: string;
     name: string;
     testsDir: string;
@@ -64,6 +66,7 @@ export function 서비스못보내는이유(
 ): string | null {
   // 고칠 때 접두사 칸은 잠겨 있다. 그것을 두고 「채우세요」라고 하면 할 수 없는 일을 시키는 것이다
   if (입력.새것) {
+    if (입력.프로젝트 === null) return t('프로젝트를 골라 주세요', 언어);
     if (입력.prefix === '') return t('접두사를 입력해 주세요', 언어);
     const 모양 = 접두사사유(입력.prefix, 언어);
     if (모양 !== null) return 모양;
@@ -174,17 +177,28 @@ export const 기능순서: 기능[] = ['cases', 'runs', 'authoring'];
 
 export type 계정요약값 =
   | { 운영: true }
-  | { 운영: false; 서비스: { 이름: string; 칸들: [기능, 칸][] }[]; 대시보드: 'none' | 'read' };
+  | { 운영: false; 프로젝트: { 이름: string; 칸들: [기능, 칸][] }[]; 대시보드: 'none' | 'read' };
+
+/** 권한 폼과 계정 목록이 쓰는 프로젝트 한 줄. `앱수` 는 그 프로젝트 안의 애플리케이션 수다 */
+export interface 프로젝트줄 {
+  id: number;
+  name: string;
+  앱수: number;
+}
+
+/** 설정이 읽어 온 프로젝트와 애플리케이션으로 `프로젝트줄` 목록을 만든다 */
+export function 프로젝트줄들(projects: { id: number; name: string }[], services: SettingsServiceRow[]): 프로젝트줄[] {
+  return projects.map((it) => ({ ...it, 앱수: services.filter((s) => s.projectId === it.id).length }));
+}
 
 /** 계정 목록 한 줄에 적을 권한 (도메인/인증 §8.8). admin 은 전부라 칸을 늘어놓지 않는다 */
-export function 계정요약(row: UserRow, services: SettingsServiceRow[]): 계정요약값 {
+export function 계정요약(row: UserRow, projects: 프로젝트줄[]): 계정요약값 {
   if (row.role === 'admin') return { 운영: true };
   return {
     운영: false,
-    // 서버가 projects 로 바뀌었다 — 화면은 PRJ-F1-03 이 고친다. 그 전까지 목록이 터지지 않게 빈 줄로 둔다
-    서비스: (row.services ?? []).map((it) => ({
-      // 내려 둔 서비스는 목록에 안 올 수 있다. 배정이 남아 있다는 것은 접두사로라도 보여준다
-      이름: services.find((s) => s.prefix === it.prefix)?.name ?? it.prefix,
+    프로젝트: (row.projects ?? []).map((it) => ({
+      // 비어 지워진 프로젝트의 줄은 서버가 같이 지운다. 그래도 이름을 못 찾으면 번호로라도 보여준다
+      이름: projects.find((p) => p.id === it.projectId)?.name ?? `#${it.projectId}`,
       칸들: 기능순서.map((f): [기능, 칸] => [f, it.permissions[f]]),
     })),
     대시보드: row.dashboard,
@@ -192,7 +206,7 @@ export function 계정요약(row: UserRow, services: SettingsServiceRow[]): 계�
 }
 
 /**
- * 한 서비스 묶음에 붙일 알림 (도메인/인증 §3.5 · §8.8).
+ * 한 프로젝트 묶음에 붙일 알림 (도메인/인증 §3.5 · §8.8).
  * `allOff` 은 서버가 400 PERMISSIONS_SHAPE 로 거절하는 모양이라 저장을 막는다.
  * `noCases` 은 막지 않는다 — 실행만 맡기는 사람도 있을 수 있어 알리기만 한다
  */

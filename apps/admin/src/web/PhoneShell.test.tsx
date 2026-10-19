@@ -13,7 +13,7 @@ const 결제: ServiceRow = {
   id: 1,
   prefix: 'ZPH',
   name: '결제 서비스',
-  color: '#3A5FCD',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [],
   hasSlackWebhook: false,
   permissions: { cases: 'write', runs: 'write', authoring: 'write' },

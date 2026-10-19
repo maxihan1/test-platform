@@ -7,7 +7,7 @@ import type { 권한칸 } from './role.js';
 import { route, 갈자리, 돌아갈자리, 실행기록주소, 집 } from './route.js';
 
 function 서비스(prefix: string, permissions: 권한칸): ServiceRow {
-  return { id: 1, prefix, name: prefix, color: '#000000', envs: [], hasSlackWebhook: false, permissions };
+  return { id: 1, prefix, name: prefix, color: '#000000', projectId: 1, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions };
 }
 
 function 사람(services: ServiceRow[]): User {

@@ -16,7 +16,7 @@ const 꺼진서비스: SettingsServiceRow = {
   id: 7,
   prefix: 'ZSC',
   name: '정기 실행 서비스',
-  color: '#3A5FCD',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [
     { env: 'qa', baseUrl: 'https://qa.example.com' },
     { env: 'demo', baseUrl: 'https://demo.example.com' },

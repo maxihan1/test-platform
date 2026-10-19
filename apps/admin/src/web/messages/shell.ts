@@ -21,6 +21,11 @@ export const 껍데기말: Record<string, string> = {
   '사이드바 펴기': 'Expand sidebar',
   '사이드바 접기': 'Collapse sidebar',
   '서비스 선택': 'Choose service',
+  '프로젝트 선택': 'Choose project',
+  '프로젝트를 고르세요': 'Choose a project',
+  '고른 프로젝트의 애플리케이션만 보입니다. 맨 위 헤더에서 언제든 바꿀 수 있습니다.':
+    'Only the applications in the chosen project are shown. You can change it any time in the header.',
+  '마지막에 연 프로젝트': 'Last opened project',
   '서비스 없음': 'No service',
   // 맨 위 헤더 (ShellHeader.tsx)
   '테스트 플랫폼 홈': 'Test Platform home',

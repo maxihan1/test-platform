@@ -16,7 +16,7 @@ const 서비스: SettingsServiceRow = {
   id: 1,
   prefix: 'ZSA',
   name: '역할 계정 서비스',
-  color: '#3A5FCD',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [
     {
       env: 'qa',

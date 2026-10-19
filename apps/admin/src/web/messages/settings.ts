@@ -137,16 +137,16 @@ export const 설정말: Record<string, string> = {
 
   // 계정 편집기
   '계정 추가': 'Add account',
-  '아직 자기 자신에게 배정한 서비스가 없습니다. 아래 자기 줄의 「편집」에서 배정합니다':
-    'You have no services assigned to yourself yet. Assign them from Edit on your own row below',
+  '아직 자기 자신에게 배정한 프로젝트가 없습니다. 아래 자기 줄의 「편집」에서 배정합니다':
+    'You have no projects assigned to yourself yet. Assign them from Edit on your own row below',
   '김철수': 'Jane Doe',
   '운영': 'Admin',
   '마지막 운영 계정이라 운영을 끌 수 없습니다. 먼저 다른 사람을 운영으로 올립니다':
     'The last admin cannot be turned off. Make someone else an admin first',
-  '운영 (배정된 서비스 전부 + 설정 · 반영)': 'Admin (all assigned services + Settings · apply)',
-  '운영 계정은 배정된 서비스에서 모든 기능을 씁니다. 켜 둘 서비스만 고르세요.':
-    'Admins use every feature in their assigned services. Pick only the services to turn on.',
-  '서비스와 권한': 'Services and permissions',
+  '운영 (배정된 프로젝트 전부 + 설정 · 반영)': 'Admin (all assigned projects + Settings · apply)',
+  '운영 계정은 배정된 프로젝트에서 모든 기능을 씁니다. 켜 둘 프로젝트만 고르세요.':
+    'Admins use every feature in their assigned projects. Pick only the projects to turn on.',
+  '프로젝트와 권한': 'Projects and permissions',
   '케이스': 'Cases',
   '실행§권한': 'Runs',
   '작성': 'Authoring',
@@ -160,10 +160,12 @@ export const 설정말: Record<string, string> = {
   '읽기': 'Read',
   '쓰기': 'Write',
   '이대로면 실행 설정에서 고를 케이스가 보이지 않습니다.': 'No cases will show up to pick in run setup.',
-  '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 서비스를 끄세요.':
-    'All three set to Off cannot be saved. To unassign, turn the service off.',
-  '먼저 서비스를 만듭니다': 'Create a service first',
-  '배정받지 않은 서비스는 그 사람의 서비스 선택 목록에 뜨지 않습니다': 'Services not assigned do not show up in their service picker',
+  '세 칸이 모두 「안 씀」이면 저장되지 않습니다. 배정을 풀려면 프로젝트를 끄세요.':
+    'All three set to Off cannot be saved. To unassign, turn the project off.',
+  '먼저 프로젝트를 만듭니다': 'Create a project first',
+  '프로젝트를 고르면 그 안의 애플리케이션이 모두 열리고, 새 애플리케이션이 들어와도 바로 열립니다. 배정받지 않은 프로젝트는 그 사람의 프로젝트 선택 목록에 뜨지 않습니다':
+    'Choosing a project opens every application in it, including ones added later. Projects not assigned do not show up in their project picker',
+  '애플리케이션 {수}개': '{수} applications',
   '비밀번호는 시스템이 만듭니다. 만든 직후': 'The system generates the password. It is shown',
   '한 번만': 'only once',
   '보여 줍니다': 'right after the account is created',
@@ -198,6 +200,24 @@ export const 설정말: Record<string, string> = {
   // 설정 안 메뉴와 서비스 구획 (2026-10-09 UI 개편 묶음 4 시안 A)
   '설정 메뉴': 'Settings menu',
   '+ 서비스 추가': '+ Add service',
+  '프로젝트': 'Projects',
+  '프로젝트§칸': 'Project',
+  '아직 프로젝트가 없습니다': 'No projects yet',
+  '+ 프로젝트 추가': '+ Add project',
+  '그런 프로젝트가 없습니다': 'No such project',
+  '새 프로젝트': 'New project',
+  '프로젝트 이름': 'Project name',
+  '데모마켓': 'Demo Market',
+  '프로젝트 추가': 'Add project',
+  '프로젝트 하나에 애플리케이션 여럿이 들어갑니다. 권한은 프로젝트마다 줍니다':
+    'A project holds several applications. Permissions are given per project',
+  '애플리케이션 옮기기': 'Move applications',
+  '옮기면 그 애플리케이션은 옮겨 간 프로젝트의 권한을 따릅니다. 모두 옮기면 빈 프로젝트는 저절로 사라집니다':
+    'A moved application follows the permissions of the project it moves to. A project left empty disappears on its own',
+  '아직 애플리케이션이 없습니다': 'No applications yet',
+  '옮길 프로젝트': 'Move to project',
+  '다른 프로젝트로 옮기려면 프로젝트 화면에서 합니다': 'To move it to another project, use the project screen',
+  '프로젝트를 골라 주세요': 'Choose a project',
   '사람': 'People',
   '기다리는 가입 신청이 없습니다': 'No sign-up requests waiting',
   '그런 서비스가 없습니다': 'No such service',

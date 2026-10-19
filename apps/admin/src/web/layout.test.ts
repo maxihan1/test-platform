@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ServiceRow, User } from './api.js';
-import { 고른서비스, 대시보드재료, 배정서비스접두사, 빈띠사유, 자리목록, 지금자리, 탭제목 } from './layout.js';
+import { 고른서비스, 대시보드재료, 배정서비스접두사, 배정프로젝트들, 빈띠사유, 자리목록, 지금자리, 탭제목, 프로젝트물을까, 프로젝트서비스들 } from './layout.js';
 
 const 결제: ServiceRow = {
   id: 1,
   prefix: 'PAY',
   name: '결제 서비스',
   color: '#667788',
+  projectId: 10,
+  projectName: '데모마켓',
   envs: [{ env: 'qa', baseUrl: 'https://qa.pay.test' }],
   hasSlackWebhook: true,
   permissions: { cases: 'write', runs: 'write', authoring: 'write' },
@@ -17,13 +19,15 @@ const 회원: ServiceRow = {
   prefix: 'MEM',
   name: '회원 서비스',
   color: '#556677',
+  projectId: 10,
+  projectName: '데모마켓',
   envs: [],
   hasSlackWebhook: false,
   permissions: { cases: 'read', runs: 'read', authoring: 'read' },
 };
 
 // 케이스는 못 보고 작성·실행만 본다
-const 정산: ServiceRow = { ...회원, id: 3, prefix: 'SET', name: '정산 서비스', permissions: { cases: 'none', runs: 'read', authoring: 'write' } };
+const 정산: ServiceRow = { ...회원, id: 3, prefix: 'SET', name: '정산 서비스', projectId: 20, projectName: '사내 포털', permissions: { cases: 'none', runs: 'read', authoring: 'write' } };
 
 function 사람(role: User['role'], services: ServiceRow[], dashboard: User['dashboard'] = 'read'): User {
   return { username: 'kim', displayName: '김철수', role, dashboard, mustChangePassword: false, services };
@@ -31,6 +35,39 @@ function 사람(role: User['role'], services: ServiceRow[], dashboard: User['das
 
 const 운영 = 사람('admin', [결제]);
 const 김 = 사람('member', [결제, 회원, 정산]);
+
+describe('프로젝트', () => {
+  it('배정받은 애플리케이션에서 프로젝트를 뽑는다. 같은 프로젝트는 한 번만, 처음 나온 순서대로', () => {
+    expect(배정프로젝트들([결제, 정산, 회원])).toEqual([
+      { id: 10, name: '데모마켓' },
+      { id: 20, name: '사내 포털' },
+    ]);
+  });
+
+  it('배정이 없으면 프로젝트도 없다', () => {
+    expect(배정프로젝트들([])).toEqual([]);
+  });
+
+  it('프로젝트를 고르면 그 안의 애플리케이션만 남는다', () => {
+    expect(프로젝트서비스들(10, [결제, 정산, 회원]).map((it) => it.prefix)).toEqual(['PAY', 'MEM']);
+    expect(프로젝트서비스들(99, [결제])).toEqual([]);
+  });
+});
+
+describe('로그인 직후 프로젝트 묻기', () => {
+  it('프로젝트가 둘 이상이고 막 로그인했으면 묻는다', () => {
+    expect(프로젝트물을까(null, [결제, 정산])).toBe(true);
+  });
+
+  it('프로젝트가 하나뿐이면 고를 것이 없어 묻지 않는다', () => {
+    expect(프로젝트물을까(null, [결제, 회원])).toBe(false);
+    expect(프로젝트물을까(null, [])).toBe(false);
+  });
+
+  it('끊겼다 돌아온 로그인은 가려던 자리로 간다 — 다시 묻지 않는다', () => {
+    expect(프로젝트물을까('#/runs', [결제, 정산])).toBe(false);
+  });
+});
 
 describe('탭 제목', () => {
   it('브라우저 탭에도 서비스 이름이 들어간다. 탭이 여럿일 때는 탭 글자만 보인다', () => {

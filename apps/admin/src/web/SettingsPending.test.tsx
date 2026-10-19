@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 
 import { api, ApiError, type SettingsServiceRow, type User, type UserRow } from './api.js';
+import type { 프로젝트줄 } from './settingsView.js';
 import { Settings } from './Settings.js';
 import { PendingSection } from './SettingsPending.js';
 
@@ -18,7 +19,7 @@ const 서비스: SettingsServiceRow = {
   id: 1,
   prefix: 'ZSP',
   name: 'ZSP 서비스',
-  color: '#3A5FCD',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   testsRepo: 'https://zsp.example.com',
   testsDir: 'zsp',
   isActive: true,
@@ -27,6 +28,8 @@ const 서비스: SettingsServiceRow = {
   caseCount: 0,
 };
 
+const 프로젝트들: 프로젝트줄[] = [{ id: 1, name: '데모마켓', 앱수: 1 }];
+
 const 운영자: UserRow = {
   username: 'zsp1',
   displayName: '김운영',
@@ -34,7 +37,7 @@ const 운영자: UserRow = {
   dashboard: 'read',
   isActive: true,
   isApproved: true,
-  services: [{ prefix: 'ZSP', permissions: { cases: 'write', runs: 'write', authoring: 'write' } }],
+  projects: [{ projectId: 1, permissions: { cases: 'write', runs: 'write', authoring: 'write' } }],
 };
 
 const 신청: UserRow = {
@@ -44,11 +47,11 @@ const 신청: UserRow = {
   dashboard: 'none',
   isActive: true,
   isApproved: false,
-  services: [],
+  projects: [],
 };
 
 function 묶음(rows: UserRow[] = [운영자, 신청], onDone: () => void = () => undefined) {
-  return render(<PendingSection rows={rows} services={[서비스]} onDone={onDone} />);
+  return render(<PendingSection rows={rows} projects={프로젝트들} onDone={onDone} />);
 }
 
 describe('승인 대기 묶음', () => {
@@ -67,29 +70,29 @@ describe('승인 대기 묶음', () => {
     expect(screen.queryByText('김운영')).toBeNull();
   });
 
-  it('수락하면 권한 고르개가 열리고 처음 값은 그래프(Grafana) 읽기 · 서비스 없음이다', () => {
+  it('수락하면 권한 고르개가 열리고 처음 값은 그래프(Grafana) 읽기 · 프로젝트 없음이다', () => {
     묶음();
     fireEvent.click(screen.getByRole('button', { name: '수락' }));
 
-    const 서비스칸 = screen.getByRole('checkbox', { name: /ZSP 서비스/ }) as HTMLInputElement;
+    const 서비스칸 = screen.getByRole('checkbox', { name: /데모마켓/ }) as HTMLInputElement;
     expect(서비스칸.checked).toBe(false);
     const 대시보드 = within(screen.getByRole('group', { name: '그래프(Grafana)' }));
     expect(대시보드.getByRole('button', { name: '읽기' }).getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('확정하면 고른 권한으로 수락을 부르고 목록을 다시 읽는다 — 서비스를 켜면 세 칸 모두 읽기다', async () => {
+  it('확정하면 고른 권한으로 수락을 부르고 목록을 다시 읽는다 — 프로젝트를 켜면 세 칸 모두 읽기다', async () => {
     const 수락 = vi.spyOn(api, 'approveUser').mockResolvedValue({ ok: true });
     const 다시 = vi.fn();
     묶음([운영자, 신청], 다시);
     fireEvent.click(screen.getByRole('button', { name: '수락' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: /ZSP 서비스/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /데모마켓/ }));
     fireEvent.click(screen.getByRole('button', { name: '수락한다' }));
 
     await waitFor(() => expect(다시).toHaveBeenCalled());
     expect(수락).toHaveBeenCalledWith('minsu', {
       role: 'member',
       dashboard: 'read',
-      services: [{ prefix: 'ZSP', permissions: { cases: 'read', runs: 'read', authoring: 'read' } }],
+      projects: [{ projectId: 1, permissions: { cases: 'read', runs: 'read', authoring: 'read' } }],
     });
   });
 
@@ -179,7 +182,7 @@ describe('두 번 누름과 빈 묶음', () => {
     fireEvent.click(screen.getByRole('button', { name: '지운다' }));
     await screen.findByText('다른 운영자가 먼저 처리했습니다');
 
-    rerender(<PendingSection rows={[운영자]} services={[서비스]} onDone={() => undefined} />);
+    rerender(<PendingSection rows={[운영자]} projects={프로젝트들} onDone={() => undefined} />);
 
     expect(screen.queryByText('승인 대기 0')).toBeNull();
     expect(container.textContent).toBe('');
@@ -193,6 +196,7 @@ describe('설정 화면에서의 자리', () => {
 
   // 2026-10-09 설정 안 메뉴(시안 A) — 승인 대기와 계정이 각자 자리다. 섞이지 않는다는 규칙은 그대로다
   it('가입 신청 자리에 승인 대기가 서고 계정 자리에는 안 섞인다', async () => {
+    vi.spyOn(api, 'settingsProjects').mockResolvedValue({ items: [{ id: 1, name: '데모마켓' }] });
     vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
     vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [운영자, 신청] });
     const { unmount } = render(<Settings user={사람()} onMeChanged={() => undefined} 자리="pending" />);

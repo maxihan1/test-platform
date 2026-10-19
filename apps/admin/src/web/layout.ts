@@ -131,6 +131,35 @@ export function 고른서비스(저장값: string | null, 배정: ServiceRow[]):
   return 찾은것 ?? 배정[0] ?? null;
 }
 
+export interface 프로젝트 {
+  id: number;
+  name: string;
+}
+
+/**
+ * 배정받은 애플리케이션에서 프로젝트를 뽑는다 — 프로젝트 목록 통로는 운영 전용이라 member 는 쓸 수 없고,
+ * 배정받지 않은 프로젝트는 이 길로 저절로 안 보인다 (도메인/인증 §7). 처음 나온 순서를 지킨다
+ */
+export function 배정프로젝트들(배정: ServiceRow[]): 프로젝트[] {
+  const 본 = new Map<number, 프로젝트>();
+  for (const 서비스 of 배정) {
+    if (!본.has(서비스.projectId)) 본.set(서비스.projectId, { id: 서비스.projectId, name: 서비스.projectName });
+  }
+  return [...본.values()];
+}
+
+/**
+ * 로그인한 직후 프로젝트를 먼저 물을까 (공통/1-제품과-구조 §2 「로그인하면 프로젝트부터 고른다」).
+ * 프로젝트가 하나뿐이면 고를 것이 없고, 끊겼다 돌아온 로그인(돌아갈 자리가 있다)은 보던 곳으로 간다
+ */
+export function 프로젝트물을까(돌아갈자리: string | null, 배정: ServiceRow[]): boolean {
+  return 돌아갈자리 === null && 배정프로젝트들(배정).length > 1;
+}
+
+export function 프로젝트서비스들(projectId: number, 배정: ServiceRow[]): ServiceRow[] {
+  return 배정.filter((service) => service.projectId === projectId);
+}
+
 /** 대시보드는 서비스를 번호로 준다. 배정 밖 번호면 고르지 않는다 — 고르개가 남의 서비스를 열면 서버가 403 을 낸다 */
 export function 배정서비스접두사(serviceId: number, 배정: ServiceRow[]): string | null {
   return 배정.find((service) => service.id === serviceId)?.prefix ?? null;

@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 
-import { api, ApiError, type ScheduleSetting, type SettingsServiceRow } from './api.js';
+import { api, ApiError, type ScheduleSetting, type SettingsProject, type SettingsServiceRow } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 떠나기상자 } from './leaveGuard.js';
 import {
@@ -17,7 +17,7 @@ import {
 import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
 import { ScheduleFields } from './SettingsSchedule.js';
-import { 구획, 비밀칸 } from './SettingsServiceParts.js';
+import { 구획, 비밀칸, 프로젝트칸 } from './SettingsServiceParts.js';
 import { ViewportSection } from './SettingsViewport.js';
 import { message } from './ui.js';
 
@@ -25,14 +25,29 @@ import { message } from './ui.js';
  * 고른 서비스 하나의 설정 — 구획마다 「어디에 쓰이나」를 한 줄로 단다 (2026-10-09 시안 A).
  * 앞 판은 목록 줄을 펴면 칸 열 개가 한 줄로 이어져 무슨 설정인지 안 읽혔다(2026-10-07 사용자)
  *
+ * @param projects 새로 만들 때 고를 프로젝트들. 고칠 때는 지금 프로젝트를 이름으로만 보인다
+ * @param 기본프로젝트 새로 만들 때 미리 고를 프로젝트 — 맨 위 헤더에서 보던 애플리케이션이 든 프로젝트
  * @param onDone 저장했다. 접두사를 넘긴다 — 새로 만들었으면 그 서비스로 옮겨 간다
  * @param 저장했다 방금 저장해 새로 읽은 칸이다. 저장 단추 곁에 「저장했습니다」를 보인다
  */
-export function ServicePanel({ row, onDone, 저장했다 = false }: { row?: SettingsServiceRow; onDone: (접두사: string) => void; 저장했다?: boolean }) {
+export function ServicePanel({
+  row,
+  projects = [],
+  기본프로젝트,
+  onDone,
+  저장했다 = false,
+}: {
+  row?: SettingsServiceRow;
+  projects?: SettingsProject[];
+  기본프로젝트?: number | undefined;
+  onDone: (접두사: string) => void;
+  저장했다?: boolean;
+}) {
   const t = use말();
   // 아래 판단 넷은 순수 모듈에 있어 훅을 못 쓴다. 언어를 여기서 꺼내 넘긴다
   const 언어 = use언어();
   const 새것 = row === undefined;
+  const [projectId, setProjectId] = useState<number | null>(row?.projectId ?? 기본프로젝트 ?? projects[0]?.id ?? null);
   const [prefix, setPrefix] = useState(row?.prefix ?? '');
   const [name, setName] = useState(row?.name ?? '');
   const [testsRepo, setTestsRepo] = useState(row?.testsRepo ?? '');
@@ -47,13 +62,13 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: { row?: Sett
   const [err, setErr] = useState<string | null>(null);
   const [비활성확인, set비활성확인] = useState(false);
   // 적다 만 것이 있으면 설정 메뉴 · 다른 화면으로 떠나기 전에 묻는다(점검 14.1). 처음 그린 값과 견준다
-  const 지금칸 = JSON.stringify({ prefix, name, testsRepo, testsDir, envs, 제외, webhook, figma, schedule });
+  const 지금칸 = JSON.stringify({ projectId, prefix, name, testsRepo, testsDir, envs, 제외, webhook, figma, schedule });
   const [처음칸] = useState(지금칸);
   // 저장한 칸. 칸이 새로 읽은 값으로 다시 그려지기 전에도(다시 읽기 실패 포함) 저장한 것을 두고는 묻지 않는다
   const [보낸칸, set보낸칸] = useState<string | null>(null);
 
   const 접두사틀림 = 접두사사유(prefix, 언어);
-  const 못보내는이유 = 서비스못보내는이유({ 새것, prefix, name, testsDir, envs, 제외, 정기실행: 새것 ? undefined : schedule }, 언어);
+  const 못보내는이유 = 서비스못보내는이유({ 새것, 프로젝트: 새것 ? projectId : undefined, prefix, name, testsDir, envs, 제외, 정기실행: 새것 ? undefined : schedule }, 언어);
 
   async function 보낸다() {
     if (못보내는이유 !== null) return;
@@ -62,7 +77,9 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: { row?: Sett
     try {
       const 같은칸 = { name, testsRepo, testsDir, envs: 보낼모양(envs), crawlExclude: 제외경로값(제외) };
       if (새것) {
+        if (projectId === null) return;
         await api.createService({
+          projectId,
           prefix,
           color: 안쓰는서비스색,
           ...같은칸,
@@ -121,6 +138,13 @@ export function ServicePanel({ row, onDone, 저장했다 = false }: { row?: Sett
       </h2>
 
       <구획 제목={t('기본 정보')} 쓰임={t('케이스 번호, 서비스 선택 목록, 스크립트 폴더에 사용되는 정보입니다')}>
+        <프로젝트칸
+          새것={새것}
+          projects={projects}
+          값={projectId}
+          바꾼다={setProjectId}
+          {...(row === undefined ? {} : { 지금: { id: row.projectId, name: row.projectName } })}
+        />
         <div className="field">
           <label htmlFor="sf-prefix">{t('접두사')}</label>
           <div>

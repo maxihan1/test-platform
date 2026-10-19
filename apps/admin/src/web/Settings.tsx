@@ -1,21 +1,23 @@
-// 설정 화면의 틀 (SPEC §8.8). 왼쪽 설정 메뉴(서비스마다 · 계정 · 가입 신청)와 고른 것 하나를 오른쪽에 얹는다. 운영 계정에게만 보인다
+// 설정 화면의 틀 (SPEC §8.8). 왼쪽 설정 메뉴(프로젝트마다 · 애플리케이션마다 · 계정 · 가입 신청)와 고른 것 하나를 오른쪽에 얹는다. 운영 계정에게만 보인다
 // 책상에서만 쓰는 화면이라 좁은 화면 대응을 하지 않는다 (§8)
 
 import { useState } from 'react';
 
-import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
+import { api, type SettingsProject, type SettingsServiceRow, type User, type UserRow } from './api.js';
 import { Head } from './Head.js';
 import { 고른서비스를읽는다 } from './layout.js';
 import { 떠나기로했다 } from './leaveGuard.js';
 import { use말 } from './i18n.js';
 import { 할수있나 } from './role.js';
 import { PendingSection } from './SettingsPending.js';
+import { ProjectPanel } from './SettingsProject.js';
 import { ServicePanel } from './SettingsService.js';
 import { UserSection } from './SettingsUser.js';
+import { 프로젝트줄들, type 프로젝트줄 } from './settingsView.js';
 import { Failed, Loading, useAsync } from './ui.js';
 
 /**
- * @param 자리 주소의 고른 것 — 서비스 접두사 · `users` · `pending` · `new`. 없으면 첫 서비스(없으면 새 서비스)다.
+ * @param 자리 주소의 고른 것 — 서비스 접두사 · `project-<번호>` · `project-new` · `users` · `pending` · `new`. 없으면 첫 서비스(없으면 새 서비스)다.
  *   한 페이지에 서비스 · 가입 신청 · 계정을 다 쌓아 두면 「무슨 설정인지 모르겠다」고 했다(2026-10-07 사용자 · 2026-10-09 시안 A)
  * @param onMeChanged `GET /auth/me` 가 주는 것이 바뀌었을 때. 화면 전체가 그 응답 하나를 보고
  *   띠·자리·실행 설정을 그린다.
@@ -28,6 +30,7 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
   const t = use말();
   // 등급을 먼저 보지 않는다 — 훅은 갈래에 따라 건너뛸 수 없다.
   // 못 닿는 등급이 주소를 직접 쳐도 서버 gate.ts 가 403 을 내므로 목록이 비어 올 뿐이다
+  const projects = useAsync<{ items: SettingsProject[] }>(() => api.settingsProjects(), []);
   const services = useAsync<{ items: SettingsServiceRow[] }>(() => api.settingsServices(), []);
   const users = useAsync<{ items: UserRow[] }>(() => api.settingsUsers(), []);
   // 저장한 서비스 칸을 새로 읽은 값으로 다시 그린다 — 안 그리면 적어 넣은 비밀값이 칸에 남아 다음 저장에 또 간다(2026-10-09 코드 검토)
@@ -49,17 +52,28 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
 
   // **둘 다 본다.** 계정 목록만 실패하면 `users.data` 가 영영 null 이라
   // 「불러오는 중입니다」에서 멈춘다 — 새로고침해도 같고 사람은 느린 줄 안다
-  const 오류 = services.error ?? users.error;
+  const 오류 = projects.error ?? services.error ?? users.error;
   if (오류 !== null) return <Failed error={오류} />;
-  if (services.data === null || users.data === null) return <Loading />;
+  if (projects.data === null || services.data === null || users.data === null) return <Loading />;
 
   const 서비스들 = services.data.items;
+  const 프로젝트들 = projects.data.items;
   // 접두사는 늘 대문자다. 손으로 친 소문자 주소도 그 서비스를 연다 — 메뉴 낱말(users · pending · new)만 그대로 둔다
   // 주소에 자리가 없으면 맨 위에서 고른 서비스로 연다. 그 서비스가 목록에 없으면 첫 서비스다 (점검 N13)
   const 헤더서비스 = 서비스들.find((it) => it.prefix === 고른서비스를읽는다())?.prefix;
+  // 프로젝트 자리는 접두사 모양(대문자·숫자)에 안 걸리게 `project-` 로 시작한다 — 대문자로 바꾸기 전에 먼저 가른다
+  const 프로젝트자리 = 자리 !== undefined && /^project-(new|\d+)$/i.test(자리);
   const 고른 =
-    자리 === undefined ? (헤더서비스 ?? 서비스들[0]?.prefix ?? 'new') : 메뉴낱말.has(자리) ? 자리 : 자리.toUpperCase();
+    자리 === undefined
+      ? (헤더서비스 ?? 서비스들[0]?.prefix ?? 'new')
+      : 프로젝트자리
+        ? 자리.toLowerCase()
+        : 메뉴낱말.has(자리)
+          ? 자리
+          : 자리.toUpperCase();
   const 서비스 = 서비스들.find((it) => it.prefix === 고른);
+  const 프로젝트 = 프로젝트들.find((it) => `project-${it.id}` === 고른);
+  const 프로젝트줄 = 프로젝트줄들(프로젝트들, 서비스들);
   const 대기수 = users.data.items.filter((it) => it.isApproved === false).length;
   // 서비스는 자기 것인지 가리지 않고 늘 다시 읽는다 — 이름·색·대상 서버·웹훅이 전부 /auth/me 에 실려 띠와 실행 창으로 간다.
   // **읽은 뒤에** 칸을 다시 그리고 옮긴다 — 먼저 옮기면 옛 목록에 새 접두사가 없어 「그런 서비스가 없습니다」가 깜빡였다
@@ -75,30 +89,52 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
     }
   };
 
+  // 프로젝트를 만들거나 이름을 바꾸거나 애플리케이션을 옮기면 /auth/me 의 프로젝트도 달라지고,
+  // 비어 지워진 프로젝트의 권한 줄은 서버가 같이 지우므로 계정 목록도 다시 읽는다
+  const 프로젝트다시 = async (옮길곳?: string) => {
+    onMeChanged();
+    const 읽음 = await Promise.all([projects.reload(), services.reload(), users.reload()]);
+    if (읽음.includes(false)) return;
+    set판((n) => n + 1);
+    if (옮길곳 !== undefined) {
+      떠나기로했다();
+      window.location.hash = `#/settings/${옮길곳}`;
+    }
+  };
+
   return (
     <>
       <Head 제목={t('설정')} 부제={t('운영 계정만 볼 수 있는 화면입니다')} />
 
       <div className="screen set-layout">
-        <설정메뉴 서비스들={서비스들} 고른={고른} 계정수={users.data.items.length - 대기수} 대기수={대기수} />
+        <설정메뉴 프로젝트들={프로젝트줄} 서비스들={서비스들} 고른={고른} 계정수={users.data.items.length - 대기수} 대기수={대기수} />
         <div className="set-main">
           {고른 === 'users' ? (
-            <UserSection rows={users.data.items} services={서비스들} me={user.username} onDone={users.reload} onSelf={onMeChanged} />
+            <UserSection rows={users.data.items} projects={프로젝트줄} me={user.username} onDone={users.reload} onSelf={onMeChanged} />
           ) : 고른 === 'pending' ? (
             대기수 === 0 ? (
               <div className="empty">{t('기다리는 가입 신청이 없습니다')}</div>
             ) : (
-              <PendingSection rows={users.data.items} services={서비스들} onDone={users.reload} />
+              <PendingSection rows={users.data.items} projects={프로젝트줄} onDone={users.reload} />
+            )
+          ) : 고른 === 'project-new' ? (
+            <ProjectPanel key="project-new" projects={프로젝트들} services={서비스들} onDone={(곳) => void 프로젝트다시(곳)} />
+          ) : 프로젝트자리 ? (
+            프로젝트 === undefined ? (
+              <div className="empty">{t('그런 프로젝트가 없습니다')}</div>
+            ) : (
+              <ProjectPanel key={`${프로젝트.id}-${판}`} row={프로젝트} projects={프로젝트들} services={서비스들} onDone={(곳) => void 프로젝트다시(곳)} />
             )
           ) : 고른 === 'new' ? (
             // 만든 서비스로 옮긴다. 새 서비스 칸에 남으면 같은 것을 또 만들려 한다
-            <ServicePanel key="new" onDone={(접두사) => void 서비스다시(접두사, true)} />
+            <ServicePanel key="new" projects={프로젝트들} 기본프로젝트={서비스들.find((it) => it.prefix === 헤더서비스)?.projectId} onDone={(접두사) => void 서비스다시(접두사, true)} />
           ) : 서비스 === undefined ? (
             <div className="empty">{t('그런 서비스가 없습니다')}</div>
           ) : (
             // 서비스마다 · 저장할 때마다 새로 그린다 — 앞 서비스에서 적다 만 글자가 다른 서비스 칸에 남으면 남의 서비스에 저장된다
             <ServicePanel
               key={`${서비스.id}-${판}`}
+              projects={프로젝트들}
               row={서비스}
               저장했다={저장한곳 === 서비스.prefix}
               onDone={(접두사) => void 서비스다시(접두사, false)}
@@ -113,12 +149,35 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
 const 메뉴낱말 = new Set(['users', 'pending', 'new']);
 
 /** 설정 안의 메뉴. 주소를 바꾸는 링크다 — 새로고침 · 뒤로 가기가 고른 것을 지킨다 */
-function 설정메뉴({ 서비스들, 고른, 계정수, 대기수 }: { 서비스들: SettingsServiceRow[]; 고른: string; 계정수: number; 대기수: number }) {
+function 설정메뉴({
+  프로젝트들,
+  서비스들,
+  고른,
+  계정수,
+  대기수,
+}: {
+  프로젝트들: 프로젝트줄[];
+  서비스들: SettingsServiceRow[];
+  고른: string;
+  계정수: number;
+  대기수: number;
+}) {
   const t = use말();
   const 자리 = (값: string) => (값 === 고른 ? { 'aria-current': 'page' as const } : {});
 
   return (
     <nav className="set-nav" aria-label={t('설정 메뉴')}>
+      <h2>{t('프로젝트')}</h2>
+      {프로젝트들.length === 0 ? <p className="hint">{t('아직 프로젝트가 없습니다')}</p> : null}
+      {프로젝트들.map((it) => (
+        <a key={it.id} href={`#/settings/project-${it.id}`} {...자리(`project-${it.id}`)}>
+          <span className="set-nav-name">{it.name}</span>
+          <span className="set-nav-sub">{t('애플리케이션 {수}개', { 수: it.앱수 })}</span>
+        </a>
+      ))}
+      <a href="#/settings/project-new" className="set-nav-add" {...자리('project-new')}>
+        {t('+ 프로젝트 추가')}
+      </a>
       <h2>{t('서비스')}</h2>
       {서비스들.length === 0 ? <p className="hint">{t('아직 서비스가 없습니다')}</p> : null}
       {서비스들.map((it) => (

@@ -16,7 +16,7 @@ const 서비스: SettingsServiceRow = {
   id: 9,
   prefix: 'ZVP',
   name: '화면 크기 서비스',
-  color: '#3A5FCD',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [
     { env: 'live', baseUrl: 'https://example.com', viewportKind: null, viewportJudgedAt: null },
     { env: 'qa', baseUrl: 'https://qa.example.com', viewportKind: 'responsive', viewportJudgedAt: '2026-10-16T10:40:00Z' },

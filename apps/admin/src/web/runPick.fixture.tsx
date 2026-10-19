@@ -22,7 +22,7 @@ export const 서비스: ServiceRow = {
   id: 1,
   prefix: 'ZRS',
   name: '실행 서비스',
-  color: '#3A5FCD',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [
     { env: 'qa', baseUrl: 'https://qa.example.com' },
     { env: 'stage', baseUrl: 'https://stage.example.com' },

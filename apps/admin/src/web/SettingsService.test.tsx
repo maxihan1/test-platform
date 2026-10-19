@@ -17,7 +17,7 @@ const 서비스: SettingsServiceRow = {
   id: 1,
   prefix: 'ZSS',
   name: '설정 서비스',
-  color: '#3A5FCD',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   envs: [{ env: 'qa', baseUrl: 'https://qa.example.com' }],
   hasSlackWebhook: false,
   testsRepo: 'https://github.com/example/tests',
@@ -25,6 +25,11 @@ const 서비스: SettingsServiceRow = {
   isActive: true,
   caseCount: 3,
 };
+
+const 프로젝트들 = [
+  { id: 1, name: '데모마켓' },
+  { id: 2, name: '사내 포털' },
+];
 
 function 그린다() {
   render(<ServicePanel row={서비스} onDone={() => {}} />);
@@ -126,9 +131,9 @@ describe('서비스 설정은 구획마다 「어디에 쓰이나」를 단다 (
   });
 
   it('새 서비스를 만들면 그 접두사를 넘긴다 — 틀이 그 서비스로 옮겨 간다', async () => {
-    vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
+    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
     const onDone = vi.fn();
-    render(<ServicePanel onDone={onDone} />);
+    render(<ServicePanel projects={프로젝트들} onDone={onDone} />);
 
     fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
     fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
@@ -136,6 +141,39 @@ describe('서비스 설정은 구획마다 「어디에 쓰이나」를 단다 (
     fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
 
     await waitFor(() => expect(onDone).toHaveBeenCalledWith('NEW'));
+    expect(만듦.mock.calls[0]?.[0]).toMatchObject({ projectId: 1 });
+  });
+
+  it('새 서비스는 맨 위 헤더에서 보던 프로젝트를 미리 고르고, 다른 프로젝트로 바꿔 보낼 수 있다', async () => {
+    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
+    render(<ServicePanel projects={프로젝트들} 기본프로젝트={2} onDone={() => {}} />);
+
+    expect((screen.getByLabelText('프로젝트') as HTMLSelectElement).value).toBe('2');
+    fireEvent.change(screen.getByLabelText('프로젝트'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'NEW' } });
+    fireEvent.change(screen.getByLabelText('이름'), { target: { value: '새것' } });
+    fireEvent.change(screen.getByLabelText('테스트 폴더'), { target: { value: 'new' } });
+    fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
+
+    await waitFor(() => expect(만듦).toHaveBeenCalledTimes(1));
+    expect(만듦.mock.calls[0]?.[0]).toMatchObject({ projectId: 1 });
+  });
+
+  it('프로젝트가 하나도 없으면 만들지 못하고 이유를 말한다 — 프로젝트부터 만든다', () => {
+    const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 3 });
+    render(<ServicePanel projects={[]} onDone={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '서비스 추가' }));
+
+    expect(만듦).not.toHaveBeenCalled();
+    expect(document.querySelector('.set-why')?.textContent).toBe('프로젝트를 골라 주세요');
+  });
+
+  it('고칠 때는 프로젝트를 고르지 않고 지금 프로젝트로 가는 링크만 보인다 — 옮기는 일은 프로젝트 화면이 한다', () => {
+    render(<ServicePanel row={서비스} projects={프로젝트들} onDone={() => {}} />);
+
+    expect(screen.queryByLabelText('프로젝트')).toBeNull();
+    expect(screen.getByRole('link', { name: '데모마켓' }).getAttribute('href')).toBe('#/settings/project-1');
   });
 });
 
@@ -313,7 +351,7 @@ describe('탐색 제외 경로 칸 (도메인/인증 §8.8 · 2026-10-04)', () =
 
   it('새 서비스를 만들 때도 crawlExclude 를 보낸다', async () => {
     const 만듦 = vi.spyOn(api, 'createService').mockResolvedValue({ id: 2 });
-    render(<ServicePanel onDone={() => {}} />);
+    render(<ServicePanel projects={프로젝트들} onDone={() => {}} />);
 
     fireEvent.change(screen.getByLabelText('접두사'), { target: { value: 'CDY' } });
     fireEvent.change(screen.getByLabelText('이름'), { target: { value: '청도' } });

@@ -4,13 +4,17 @@
 // **이 화면에는 그물이 없었다.** 안쪽 조각들(서비스·계정·비밀번호)은 각자 검사가 있는데
 // 틀에는 없어서, 등급이 낮은 사람에게 무엇을 보여주는지를 아무도 안 보고 있었다.
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { api, type SettingsServiceRow, type User, type UserRow } from './api.js';
 import { 고른서비스를적는다 } from './layout.js';
 import { useHash, 떠나기막기 } from './leaveGuard.js';
 import { Settings } from './Settings.js';
+
+beforeEach(() => {
+  vi.spyOn(api, 'settingsProjects').mockResolvedValue({ items: [{ id: 1, name: '데모마켓' }] });
+});
 
 afterEach(() => {
   떠나기막기(null);
@@ -23,7 +27,7 @@ const 서비스: SettingsServiceRow = {
   id: 1,
   prefix: 'ZST',
   name: 'ZST 서비스',
-  color: '#3A5FCD',
+  color: '#3A5FCD', projectId: 1, projectName: '데모마켓',
   testsRepo: 'https://zst.example.com',
   testsDir: 'zst',
   isActive: true,
@@ -38,7 +42,7 @@ const 계정: UserRow = {
   role: 'admin',
   dashboard: 'read',
   isActive: true,
-  services: [{ prefix: 'ZST', permissions: { cases: 'read', runs: 'read', authoring: 'read' } }],
+  projects: [{ projectId: 1, permissions: { cases: 'read', runs: 'read', authoring: 'read' } }],
 };
 
 function 사람(role: User['role']): User {
@@ -78,7 +82,7 @@ describe('설정 화면의 틀', () => {
 
 describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', () => {
   const 둘째: SettingsServiceRow = { ...서비스, id: 2, prefix: 'ZSU', name: 'ZSU 서비스' };
-  const 대기: UserRow = { ...계정, username: 'zst-new', displayName: '가입자', isApproved: false, services: [] };
+  const 대기: UserRow = { ...계정, username: 'zst-new', displayName: '가입자', isApproved: false, projects: [] };
 
   function 펼친다(자리?: string, 계정들: UserRow[] = [계정]) {
     vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스, 둘째] });
@@ -86,12 +90,68 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     return render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리={자리} />);
   }
 
-  it('메뉴에 서비스마다 · 서비스 추가 · 계정이 주소 링크로 선다', async () => {
+  it('메뉴에 프로젝트마다 · 프로젝트 추가 · 서비스마다 · 서비스 추가 · 계정이 주소 링크로 선다', async () => {
     펼친다();
     const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
 
     const 링크들 = [...메뉴.querySelectorAll('a')].map((a) => a.getAttribute('href'));
-    expect(링크들).toEqual(['#/settings/ZST', '#/settings/ZSU', '#/settings/new', '#/settings/users']);
+    expect(링크들).toEqual([
+      '#/settings/project-1',
+      '#/settings/project-new',
+      '#/settings/ZST',
+      '#/settings/ZSU',
+      '#/settings/new',
+      '#/settings/users',
+    ]);
+  });
+
+  it('프로젝트 줄에 그 안의 애플리케이션 수가 선다', async () => {
+    펼친다();
+    const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
+
+    expect(메뉴.querySelector('a[href="#/settings/project-1"]')?.textContent).toContain('애플리케이션 2개');
+  });
+
+  it('project-<번호> 면 그 프로젝트를, project-new 면 새 프로젝트 칸을 연다', async () => {
+    const { unmount } = 펼친다('project-1');
+    expect(await screen.findByRole('heading', { name: /데모마켓/ })).toBeTruthy();
+    expect((screen.getByLabelText('프로젝트 이름') as HTMLInputElement).value).toBe('데모마켓');
+    unmount();
+
+    펼친다('project-new');
+    expect(await screen.findByText('새 프로젝트')).toBeTruthy();
+    expect(screen.getByRole('link', { name: '+ 프로젝트 추가' }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('없는 프로젝트 번호면 그 사실을 적는다', async () => {
+    펼친다('project-99');
+
+    expect(await screen.findByText('그런 프로젝트가 없습니다')).toBeTruthy();
+  });
+
+  it('프로젝트 이름을 바꾸면 프로젝트 · 서비스 · 계정을 다시 읽고 맨 위 헤더 재료도 다시 읽는다', async () => {
+    const 고침 = vi.spyOn(api, 'renameProject').mockResolvedValue({ ok: true });
+    const 내재료 = vi.fn();
+    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    render(<Settings user={사람('admin')} onMeChanged={내재료} 자리="project-1" />);
+    fireEvent.change(await screen.findByLabelText('프로젝트 이름'), { target: { value: '데모몰' } });
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+
+    await waitFor(() => expect(고침).toHaveBeenCalledWith(1, '데모몰'));
+    expect(내재료).toHaveBeenCalled();
+  });
+
+  it('프로젝트를 만들면 그 프로젝트 주소로 옮긴다', async () => {
+    window.location.hash = '#/settings/project-new';
+    vi.spyOn(api, 'createProject').mockResolvedValue({ id: 7 });
+    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리="project-new" />);
+    fireEvent.change(await screen.findByLabelText('프로젝트 이름'), { target: { value: '새 제품' } });
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 추가' }));
+
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/project-7'));
   });
 
   it('자리가 없으면 첫 서비스를 연다', async () => {

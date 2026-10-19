@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 
+import type { SettingsProject } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import { 웹훅칸 } from './settingsView.js';
 
@@ -64,6 +65,52 @@ export function 비밀칸(p: {
           {p.값 === '' && !p.새것 ? p.비울때 : t('보안을 위해 저장한 값은 다시 표시하지 않습니다')}
         </div>
         {p.children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 애플리케이션이 속한 프로젝트 칸. 새로 만들 때만 고른다 — 옮기는 일은 프로젝트 화면이 맡는다
+ * (옮기면 그 프로젝트의 권한을 따르게 되어 한 자리에서만 하게 한다)
+ */
+export function 프로젝트칸({
+  새것,
+  projects,
+  값,
+  바꾼다,
+  지금,
+}: {
+  새것: boolean;
+  projects: SettingsProject[];
+  값: number | null;
+  바꾼다: (값: number) => void;
+  지금?: { id: number; name: string };
+}) {
+  const t = use말();
+  if (!새것 && 지금 !== undefined) {
+    return (
+      <div className="field">
+        <span className="field-label">{t('프로젝트§칸')}</span>
+        <div>
+          <a href={`#/settings/project-${지금.id}`}>{지금.name}</a>
+          <div className="hint">{t('다른 프로젝트로 옮기려면 프로젝트 화면에서 합니다')}</div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="field">
+      <label htmlFor="sf-project">{t('프로젝트§칸')}</label>
+      <div>
+        <select id="sf-project" value={값 ?? ''} onChange={(e) => 바꾼다(Number(e.target.value))}>
+          {값 === null ? <option value="">{t('먼저 프로젝트를 만듭니다')}</option> : null}
+          {projects.map((it) => (
+            <option key={it.id} value={it.id}>
+              {it.name}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );

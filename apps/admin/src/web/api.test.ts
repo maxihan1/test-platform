@@ -279,6 +279,7 @@ describe('서비스 설정의 피그마 토큰 (도메인/인증 §8.8)', () => 
   it('서비스를 만들 때 피그마 토큰을 싣는다', async () => {
     답 = { status: 201, body: { id: 1 } };
     await api.createService({
+      projectId: 1,
       prefix: 'PAY',
       name: '결제',
       color: '#2F6F8F',

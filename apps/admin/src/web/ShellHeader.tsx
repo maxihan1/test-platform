@@ -1,11 +1,11 @@
-// 화면 맨 위 헤더 — 제품 로고 · 서비스 선택 · 알림 버튼 자리 · 언어 · 계정 메뉴 (SPEC 공통/5-화면공통 §8 「껍데기」, 2026-10-13 시안 A)
+// 화면 맨 위 헤더 — 제품 로고 · 프로젝트와 애플리케이션 선택 · 알림 버튼 자리 · 언어 · 계정 메뉴 (SPEC 공통/5-화면공통 §8 「껍데기」, 2026-10-13 시안 A)
 
 import { useEffect, useRef, useState } from 'react';
 
 import type { ServiceRow, User } from './api.js';
 import { use말, type 언어 } from './i18n.js';
 import { 집 } from './route.js';
-import { 서비스고르개, 언어고르개 } from './ShellPickers.js';
+import { 서비스고르개, 언어고르개, 프로젝트고르개 } from './ShellPickers.js';
 
 interface Props {
   user: User;
@@ -31,6 +31,16 @@ export function ShellHeader({ user, service, onService, 언어, on언어, onLogo
       </a>
       <div className="hd-bar">
         {/* 대시보드에서도 둔다. 대시보드 내용은 서비스 전체를 모아 보여 주고, 이 칸은 다른 메뉴로 갈 때 쓸 서비스를 미리 고르는 용도다 */}
+        {service === null ? null : (
+          <>
+            <div className="hd-svc">
+              <프로젝트고르개 user={user} service={service} onService={onService} />
+            </div>
+            <span className="hd-chev" aria-hidden="true">
+              ›
+            </span>
+          </>
+        )}
         <div className="hd-svc">
           {service === null ? null : <span className="hd-svc-code">{service.prefix}</span>}
           <서비스고르개 user={user} service={service} onService={onService} />

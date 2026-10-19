@@ -25,8 +25,8 @@ describe('실행 결과의 권한은 그 실행의 서비스로', () => {
   const 김: User = {
     username: 'kim', displayName: '김철수', role: 'member', dashboard: 'read', mustChangePassword: false,
     services: [
-      { id: 1, prefix: 'PAY', name: '결제', color: '#000000', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'write', authoring: 'none' } },
-      { id: 2, prefix: 'MEM', name: '회원', color: '#000000', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'read', authoring: 'none' } },
+      { id: 1, prefix: 'PAY', name: '결제', color: '#000000', projectId: 1, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'write', authoring: 'none' } },
+      { id: 2, prefix: 'MEM', name: '회원', color: '#000000', projectId: 1, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions: { cases: 'read', runs: 'read', authoring: 'none' } },
     ],
   };
 

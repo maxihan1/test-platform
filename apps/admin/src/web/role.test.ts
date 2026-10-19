@@ -4,7 +4,7 @@ import type { ServiceRow, User } from './api.js';
 import { 기능보나, 서비스권한, 케이스서비스, 할수있나, type 권한칸 } from './role.js';
 
 function 서비스(prefix: string, permissions: 권한칸): ServiceRow {
-  return { id: 1, prefix, name: prefix, color: '#000000', envs: [], hasSlackWebhook: false, permissions };
+  return { id: 1, prefix, name: prefix, color: '#000000', projectId: 1, projectName: '데모마켓', envs: [], hasSlackWebhook: false, permissions };
 }
 
 const 전부읽기: 권한칸 = { cases: 'read', runs: 'read', authoring: 'read' };

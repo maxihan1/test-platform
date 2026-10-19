@@ -11,7 +11,7 @@ export const 서비스 = (prefix: string, runs: 'read' | 'write' = 'write'): Ser
   id: 1,
   prefix,
   name: `${prefix} 서비스`,
-  color: '#000',
+  color: '#000', projectId: 1, projectName: '데모마켓',
   envs: prefix === 'ZSB' ? [{ env: 'stg', baseUrl: 'https://stg.example' }, { env: 'prod', baseUrl: 'https://prod.example' }] : [],
   hasSlackWebhook: false,
   permissions: { cases: 'read', runs, authoring: 'read' },

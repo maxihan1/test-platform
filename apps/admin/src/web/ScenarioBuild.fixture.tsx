@@ -13,7 +13,7 @@ export const 서비스 = (prefix: string, runs: 'read' | 'write' = 'write'): Ser
   id: 1,
   prefix,
   name: `${prefix} 서비스`,
-  color: '#000',
+  color: '#000', projectId: 1, projectName: '데모마켓',
   envs: [],
   hasSlackWebhook: false,
   permissions: 칸(runs),
