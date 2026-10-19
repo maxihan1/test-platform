@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 여러 건 실행 모달의 실행 위치 고르개 검사 (SPEC §8.10) — RunPickModal.test.tsx 가 300줄을 넘어 떼어 냈다
+// 여러 건 실행 모달의 실행 위치 안내 검사 (SPEC §8.10) — RunPickModal.test.tsx 가 300줄을 넘어 떼어 냈다
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -51,24 +51,24 @@ const 실행버튼 = () => screen.getByRole('button', { name: '실행' });
 describe('RunPickModal 실행 위치 (SPEC §8.10)', () => {
   const 안드로이드케이스 = 케이스('ZPM-003', ['android'], 빈스키마);
 
-  it('고른 것에 Android 앱이 있으면 고르개가 보이고 실행 요청에 location: local 이 실린다', () => {
+  it('고른 것에 Android 앱이 있으면 안내 한 줄이 보이고 실행 요청에 location: local 이 실린다', () => {
     const { onRun } = 그리기([값없는케이스, 안드로이드케이스]);
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 
-    expect(screen.getByText('실행 위치')).toBeTruthy();
+    expect(screen.getByText('실행 위치 · 로컬')).toBeTruthy();
     expect((실행버튼() as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(실행버튼());
 
     expect(onRun).toHaveBeenCalledWith(expect.objectContaining({ location: 'local' }));
   });
 
-  it('브라우저만이면 고르개가 없고 location 을 싣지 않는다', () => {
+  it('브라우저만이면 안내가 없고 location 을 싣지 않는다', () => {
     const { onRun } = 그리기();
     fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'qa' } });
 
     fireEvent.click(실행버튼());
 
-    expect(screen.queryByText('실행 위치')).toBeNull();
+    expect(screen.queryByText(/실행 위치/)).toBeNull();
     expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
   });
 });

@@ -2535,15 +2535,16 @@ input[type='file']::file-selector-button {
 .picked {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  /* 고정 키를 두지 않는다. 남는 자리를 다 쓰고 모자라면 여기만 줄어든다 */
-  flex: 1;
-  min-height: 0;
+  /* 제 키(내용)만큼 서고, 창이 모자라면 줄어들어 여기서 스크롤한다. 기준이 0 이면 머리 칸이 많은 창에서 110px 짜리 작은 상자가 된다 (2026-10-19 N6).
+     바닥 키가 있어야 한 건 창에서도 값 칸이 한두 줄만 보이지 않는다 */
+  flex: 1 1 auto;
+  min-height: 160px;
   overflow-y: auto;
 }
 
 .prow {
   display: grid;
-  grid-template-columns: 72px 1fr auto auto;
+  grid-template-columns: 104px 1fr auto auto auto;
   gap: 0 10px;
   align-items: baseline;
   padding: 9px 0;
@@ -2558,6 +2559,8 @@ input[type='file']::file-selector-button {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-muted);
+  /* 「MKT-FN-」와 「014」로 쪼개지면 같은 번호가 두 개로 읽힌다 */
+  white-space: nowrap;
 }
 
 /* 이름이 길면 줄이지 않고 두 줄로 흐른다. 무엇이 걸리는지 보러 연 자리에서 가릴 수 없다 */
@@ -2588,6 +2591,12 @@ input[type='file']::file-selector-button {
   border-bottom: 1px solid var(--line);
 }
 
+/* 여러 건 창의 값 칸은 PC 에서도 접힌 채 시작한다 — `값` 을 누르면 편다. 휴대폰만 접던 것을 넓혔다 (2026-10-19 · 도메인/실행 §8.10).
+   한 건 창은 `값` 단추가 없어 이 규칙이 닿지 않는다 */
+.prow:has(.prow-fold) + .prow-edit:not(.open) {
+  display: none;
+}
+
 .mfoot {
   display: flex;
   align-items: center;
@@ -2601,9 +2610,30 @@ input[type='file']::file-selector-button {
   color: var(--ink-muted);
 }
 
-.mfoot input[type='text'] {
+.mfoot input[type='text'],
+.mfoot input[type='number'] {
   flex: none;
   width: 56px;
+}
+
+/* 창 바닥의 시험해 보기 · 실행 — 단추 아래에 기록이 남는지를 글자로 적는다 (2026-10-19) */
+.foot-act {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.foot-act .hint {
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+/* 시험해 보기 열 주소 — 개발자가 아니면 건드릴 일이 없어 접어 둔다 */
+.trial-adv > summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--ink-muted);
 }
 
 /* 한 건 창 (2026-10-09 UI 개편 묶음 4) — 한 건짜리 실행 설정 화면이 하던 칸이 창 안에 선다.

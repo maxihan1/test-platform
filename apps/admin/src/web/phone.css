@@ -233,11 +233,6 @@
   min-height: 46px;
 }
 
-/* 실행 창 값 칸을 펴는 버튼은 휴대폰에서만 — PC 에서는 칸을 접지 않는다 (도메인/실행 §8.10) */
-.prow-fold {
-  display: none;
-}
-
 /* 실행 결과의 「실패 N건 다시 실행」. PC 에서는 머리 행동 줄의 버튼 하나다 */
 .rerun-dock {
   display: contents;
@@ -285,15 +280,11 @@
     min-width: 46px;
   }
 
-  /* 여러 건 실행 창의 값 칸은 접는다 — `값` 을 누르거나 실행했는데 틀린 칸이 있으면 편다 (도메인/실행 §8.10 예외) */
+  /* 여러 건 실행 창의 `값` 단추를 손가락 크기로 키운다. 접는 규칙은 PC 와 같다(styles.css `.prow-edit`) */
   .prow-fold {
     display: inline-flex;
     align-items: center;
     min-height: 46px;
-  }
-
-  .prow:has(.prow-fold) + .prow-edit:not(.open) {
-    display: none;
   }
 
   /* 모달은 아래에서 올라오는 판이다. 좌우를 다 채우고 위 모서리만 둥글다 (DESIGN.md 「모달」) */

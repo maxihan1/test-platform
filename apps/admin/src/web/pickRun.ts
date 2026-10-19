@@ -87,3 +87,19 @@ export function 몇건(케이스들: CaseRow[], 반복: number): number {
     반복,
   );
 }
+
+/**
+ * 「케이스 3 × 디바이스 2 × 반복 1 = 6번」 풀이의 재료.
+ *
+ * 디바이스 수가 케이스마다 같을 때만 `디바이스` 가 숫자다 — 다르면 곱셈이 맞지 않아 null 이고 `디바이스합` 으로 풀어 쓴다(`몇건` 과 같은 이유).
+ * 총건수는 `몇건` 이 정본이라 여기서 다시 세지 않는다
+ */
+export function 건수재료(케이스들: CaseRow[]): { 케이스: number; 디바이스: number | null; 디바이스합: number } {
+  const 수들 = 케이스들.map((c) => c.platforms.length);
+  const 첫째 = 수들[0] ?? 0;
+  return {
+    케이스: 케이스들.length,
+    디바이스: 수들.every((n) => n === 첫째) ? 첫째 : null,
+    디바이스합: 수들.reduce((합, n) => 합 + n, 0),
+  };
+}

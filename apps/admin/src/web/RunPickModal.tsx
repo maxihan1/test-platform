@@ -7,11 +7,12 @@ import { ApiError, type CaseRow, type RunRequestItem, type ServiceRow, type User
 import { Form } from './Form.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
-import { type 글자표, 몇건, 실행항목, 안드로이드있나 } from './pickRun.js';
+import { type 글자표, 건수재료, 몇건, 실행항목, 안드로이드있나 } from './pickRun.js';
 import { 고른서버를적는다, 마지막서버 } from './layout.js';
 import { RunLocation } from './RunLocation.js';
-import { use닫기묻기, 반복과알림 } from './RunPickFoot.js';
-import { 한건값줄, 한건머리, use한건 } from './RunPickOne.js';
+import { use닫기묻기, 건수풀이, 반복과알림, 실행버튼들 } from './RunPickFoot.js';
+import { 한건머리, use한건 } from './RunPickOne.js';
+import { 저장한값줄 } from './RunPickSaved.js';
 import { 넘었나, 상한 } from './runPlan.js';
 import { use여러건시험, 열주소칸, 시험배지, 시험절차 } from './RunPickTrial.js';
 import { toValues } from './schema.js';
@@ -75,7 +76,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   const [notice, setNotice] = useState<string | null>(null);
   // 칸 아래 사유를 언제 보일까. 치는 동안 빨간 글이 따라다니면 다 적기도 전에 틀렸다고 말한다
   const [오류보임, set오류보임] = useState(false);
-  // 휴대폰에서 값 칸을 편 케이스. 저절로 접지 않는다 — 고치는 도중 사유가 사라졌다고 칸이 닫히면 안 된다 (도메인/실행 §8.10)
+  // 값 칸을 편 케이스(여러 건은 접힌 채 시작한다). 저절로 접지 않는다 — 고치는 도중 사유가 사라졌다고 칸이 닫히면 안 된다 (도메인/실행 §8.10)
   const [펼친, set펼친] = useState<ReadonlySet<string>>(new Set());
   const 뒤집기 = (tcId: string) => set펼친((전) => new Set(전.has(tcId) ? [...전].filter((it) => it !== tcId) : [...전, tcId]));
 
@@ -92,11 +93,13 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
   // 한 건이면 사람이 고른 디바이스로 돈다. 여러 건이면 케이스가 선언한 것을 전부 쓴다 (SPEC §8.10)
   const 돌릴것 = 한건 === null ? 케이스들 : [{ ...한건, platforms: 하나.디바이스 }];
 
-  const 건수 = 몇건(돌릴것, Number(repeat) || 1);
+  // 보내는 값과 같은 규칙으로 센다. 소수를 그대로 세면 화면 건수와 실제 항목 수가 갈린다
+  const 반복수 = Math.max(1, Math.floor(Number(repeat) || 1));
+  const 건수 = 몇건(돌릴것, 반복수);
   const 너무많나 = 넘었나(건수);
   const android = 안드로이드있나(돌릴것);
   const 주소 = service?.envs.find((it) => it.env === env)?.baseUrl ?? null;
-  // 「▶ 테스트 실행」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
+  // 「▶ 시험해 보기」 — 기록 없이 한 건씩 차례로 (도메인/실행 §8.10)
   const 시험 = use여러건시험({ 케이스들: 돌릴것, 고친값: 값.고친값, 대상주소: 주소, 알림: setNotice });
   /**
    * 한 줄이 넷을 겸한다 — 방금 누른 것에 대한 답 · 버튼을 죽인 이유 · **걸었다 거절당한 사유** · 건수 안내.
@@ -110,7 +113,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
     notice ??
     (너무많나
       ? t('한 번에 {상한}건까지 만들 수 있습니다 (지금 {지금}건)', { 상한, 지금: 건수 })
-      : (사유 ?? t('실행 항목이 {건수}건 생깁니다', { 건수 })));
+      : (사유 ?? 건수풀이(t, 건수재료(돌릴것), 반복수, 건수)));
   const 빨갛나 = notice !== null || 너무많나 || 사유 !== undefined;
 
   /** 서버가 칸별 사유를 주면 그 칸 아래에 붙인다. 아니면 창의 한 줄로 (SPEC §8.2) */
@@ -147,7 +150,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
     onRun({
       env,
       // 화면이 세는 것과 같은 값을 보낸다. 소수를 그대로 보내면 서버의 z.number().int() 가 400 을 낸다
-      repeat: Math.max(1, Math.floor(Number(repeat) || 1)),
+      repeat: 반복수,
       notifySlack,
       ...(android ? { location: 'local' as const } : {}),
       items: 실행항목(돌릴것, 값.고친값),
@@ -170,14 +173,12 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
           <button className="btn ghost" onClick={닫기.요청}>
             {t('취소')}
           </button>
-          {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
-          {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}
-          <button className="btn ghost" onClick={() => { if (값이맞나()) 시험.누름(); }}>
-            {t('▶ 테스트 실행')}
-          </button>
-          <button className="btn" onClick={실행} disabled={너무많나 || 거는중 === true}>
-            {거는중 === true ? t('실행을 시작하는 중') : t('실행')}
-          </button>
+          <실행버튼들
+            on시험={() => { if (값이맞나()) 시험.누름(); }}
+            on실행={실행}
+            실행막힘={너무많나}
+            거는중={거는중 === true}
+          />
         </>
         )
       }
@@ -209,8 +210,6 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         />
       )}
 
-      <열주소칸 값={시험.열주소} 오류={시험.주소오류} onChange={시험.바꾸기} />
-
       {/* 고른 것이 왜 줄었는지. 제목의 건수만 보면 어디서 사라졌는지 아무 데도 안 적힌다 */}
       {안내 === undefined ? null : <div className="mnote">{안내}</div>}
 
@@ -230,7 +229,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
                 {/* 여러 건이면 디바이스는 케이스가 선언한 것을 전부 쓴다. 여기서 고르지 않는다 (SPEC §8.10) */}
                 <span className="dev">{c.platforms.map((p) => PLATFORM_LABEL[p]).join(' · ')}</span>
                 <시험배지 줄={시험줄} />
-                {/* 휴대폰에서만 보인다 — 여러 건이면 값을 접어 「실행」을 가깝게 둔다 (도메인/실행 §8.10 · phone.css) */}
+                {/* 여러 건이면 값을 접어 두고 이 단추로 편다 — 「실행」을 가깝게 둔다 (도메인/실행 §8.10 · styles.css) */}
                 {한건 !== null || !값있나 ? null : (
                   <button type="button" className="btn small ghost prow-fold" aria-expanded={펼친.has(c.tcId)} onClick={() => 뒤집기(c.tcId)}>
                     {t('값')}
@@ -262,8 +261,8 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
                   )}
                 </div>
               )}
-              {한건 === null ? null : (
-                <한건값줄
+              {한건 === null || !값있나 ? null : (
+                <저장한값줄
                   케이스={한건}
                   user={user ?? null}
                   // 안 고친 칸도 보이는 값 그대로 저장한다. 고친 것만 싣으면 「이 값으로」가 빈 값을 저장한다
@@ -288,6 +287,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
         notifySlack={notifySlack}
         onSlack={setNotifySlack}
       />
+      <열주소칸 값={시험.열주소} 오류={시험.주소오류} onChange={시험.바꾸기} />
     </Modal>
   );
 }

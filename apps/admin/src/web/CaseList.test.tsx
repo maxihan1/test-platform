@@ -598,7 +598,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
     fireEvent.change(screen.getByLabelText('반복'), { target: { value: '2' } });
 
     // 값을 고친 뒤에도 옛 사유가 남아 있으면 방금 고친 것이 또 거절당한 것처럼 읽힌다
-    await waitFor(() => expect(within(모달).getByRole('status').textContent).toBe('실행 항목이 8건 생깁니다'));
+    await waitFor(() => expect(within(모달).getByRole('status').textContent).toBe('케이스 3 (디바이스 합계 4) × 반복 2 = 8번'));
   });
 
   it('모달을 닫으면 지난번 사유가 다음에 열 때 남지 않는다', async () => {
@@ -616,7 +616,7 @@ describe('CaseList 여러 건 실행 걸기', () => {
 
     const 다시 = await screen.findByRole('dialog');
     await waitFor(() =>
-      expect(within(다시).getByRole('status').textContent).toBe('실행 항목이 4건 생깁니다'),
+      expect(within(다시).getByRole('status').textContent).toBe('케이스 3 (디바이스 합계 4) × 반복 1 = 4번'),
     );
   });
 });

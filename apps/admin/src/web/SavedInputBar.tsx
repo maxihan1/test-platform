@@ -1,5 +1,5 @@
-// 케이스 저장값(case_input)을 저장·지우는 버튼과 「저장값 · 누가 · 언제」 표시 (도메인/실행 §8.2, 2026-09-29 시안 A)
-// 케이스 상세 칸과 실행 창(한 건)이 같이 쓴다. 창 · CaseList 가 300줄에 닿아 여기로 뺐다
+// 케이스 상세 칸의 저장값 저장 버튼과 「저장값 · 누가 · 언제」 표시 (도메인/실행 §8.2, 2026-09-29 시안 A)
+// 한 건 실행 창의 저장은 RunPickSaved 로 옮겼다
 
 import { useState } from 'react';
 
@@ -84,61 +84,5 @@ export function 값저장({
       ) : null}
       {사유 === null ? null : <div className="err">{사유}</div>}
     </div>
-  );
-}
-
-/** 한 건 실행 창의 버튼 줄. 실패는 화면이 칸 아래에 붙이도록 그대로 넘긴다 */
-export function 저장값버튼들({
-  tcId,
-  값,
-  saved,
-  on다시읽기,
-  on실패,
-}: {
-  tcId: string;
-  값: { params: 값들; expected: 값들 };
-  saved: SavedInput | null | undefined;
-  on다시읽기: () => void;
-  on실패: (err: unknown) => void;
-}) {
-  const t = use말();
-  const [busy, setBusy] = useState(false);
-  // 확인 상자 대신 그 자리에서 한 번 더 묻는다. 지운 뒤 되돌리기는 못 한다 — 화면이 저장된 비밀값을 모른다
-  const [확인중, set확인중] = useState(false);
-
-  async function 한다(일: () => Promise<unknown>) {
-    setBusy(true);
-    try {
-      await 일();
-      set확인중(false);
-      on다시읽기();
-    } catch (err) {
-      on실패(err);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <span className="hint">{t('팀 모두와 정기 실행에 쓰입니다')}</span>
-      {saved === null || saved === undefined ? null : 확인중 ? (
-        <>
-          <button className="btn ghost" onClick={() => void 한다(() => api.clearInput(tcId))} disabled={busy}>
-            {t('지우기 확인')}
-          </button>
-          <button className="btn ghost" onClick={() => set확인중(false)} disabled={busy}>
-            {t('취소')}
-          </button>
-        </>
-      ) : (
-        <button className="btn ghost" onClick={() => set확인중(true)}>
-          {t('코드 기본값으로')}
-        </button>
-      )}
-      <button className="btn ghost" onClick={() => void 한다(() => api.saveInput(tcId, 값))} disabled={busy}>
-        {t('다음에도 이 값으로 채우기')}
-      </button>
-    </>
   );
 }
