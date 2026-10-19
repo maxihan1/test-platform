@@ -36,6 +36,8 @@ export const 오류영어: Record<string, string> = {
   '한 번에 만들 수 있는 항목 수를 넘었습니다': 'Too many items for one run',
 
   // 설정
+  '그 프로젝트를 찾지 못했습니다. 다른 사람이 애플리케이션을 모두 옮겨 비었을 수 있습니다':
+    'That project was not found. Someone may have moved out all its applications',
   '그 접두사는 이미 다른 애플리케이션이 쓰고 있습니다': 'Another application already uses that prefix',
   '접두사 형식이 맞지 않습니다. 대문자로 시작하는 영문·숫자 12자 이내여야 합니다':
     'Bad prefix. Start with a capital letter, letters and digits, 12 characters or fewer.',

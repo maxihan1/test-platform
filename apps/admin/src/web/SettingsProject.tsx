@@ -71,8 +71,8 @@ export function ProjectPanel({
           onClick={() => {
             if (name.trim() === '') return;
             void 한다(async () => {
-              if (새것) return `project-${(await api.createProject(name)).id}`;
-              await api.renameProject(row.id, name);
+              if (새것) return `project-${(await api.createProject(name.trim())).id}`;
+              await api.renameProject(row.id, name.trim());
               return undefined;
             });
           }}

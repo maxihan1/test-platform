@@ -80,6 +80,7 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
   it('설정 화면이 쓰던 코드도 같은 표에 있다', () => {
     expect(요청오류문장('PREFIX_TAKEN', 'ko')).toContain('이미 다른 애플리케이션이');
     expect(요청오류문장('LAST_ADMIN', 'ko')).toContain('마지막 운영 계정');
+    expect(요청오류문장('PROJECT_NOT_FOUND', 'ko')).toContain('그 프로젝트를 찾지 못했습니다');
   });
 
   // 한국어 문장을 닫는 콜론으로 끝내지 않는다 (전역 규칙).

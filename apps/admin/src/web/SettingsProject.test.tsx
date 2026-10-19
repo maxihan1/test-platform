@@ -42,7 +42,7 @@ describe('프로젝트 만들기', () => {
     const 끝 = vi.fn();
     render(<ProjectPanel projects={프로젝트들} services={서비스들} onDone={끝} />);
 
-    fireEvent.change(screen.getByLabelText('프로젝트 이름'), { target: { value: '새 제품' } });
+    fireEvent.change(screen.getByLabelText('프로젝트 이름'), { target: { value: ' 새 제품 ' } });
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 추가' }));
 
     await waitFor(() => expect(끝).toHaveBeenCalledWith('project-7'));
