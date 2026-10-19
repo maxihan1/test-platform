@@ -1,0 +1,164 @@
+/* 실행 기록 A안 — 왼쪽 목록 + 오른쪽 결과 칸 (도메인/실행 §8.7 「A안」). 색은 토큰만 쓴다 */
+
+/* `.main` 이 남는 높이를 이 칸에 다 주고, 두 단이 저마다 스크롤한다 — 목록을 내려도 결과 칸이 안 밀린다 */
+.runs-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.runs-split > .runs-list {
+  min-width: 0;
+}
+
+.runs-list .toolbar {
+  padding: 12px 16px;
+}
+
+.runs-list .toolbar input[type='text'] {
+  flex: 1;
+  min-width: 140px;
+}
+
+.run-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.runs-out {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--line);
+}
+
+/* 줄 — 띠 · 제목과 작은 글 · 판정 덩어리. 목록 칸이 좁아 RUN 번호는 작은 글 맨 앞에 둔다 */
+.run-rowhead,
+.run-row {
+  grid-template-columns: 4px minmax(0, 1fr) 156px;
+}
+
+.run-rowhead {
+  padding-right: 16px;
+}
+
+.run-row {
+  width: 100%;
+  padding: 0 16px 0 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* 고른 줄. 판정 색이 아니라 「지금 고른 것」의 대표색이다 (DESIGN.md 원칙 1) */
+.run-row[aria-current='true'] {
+  background: var(--rail-active);
+  box-shadow: inset -3px 0 0 var(--accent);
+}
+
+.run-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 0;
+}
+
+.run-verdict .stripe {
+  margin: 0;
+  border-radius: 3px;
+}
+
+.run-verdict .tally {
+  gap: 8px;
+  font-size: 12px;
+}
+
+.run-verdict .unconf-line {
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+
+.run-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11.5px;
+}
+
+/* 결과 칸 — 머리(제목 · 부제 · 「실패 N건 다시 실행」 · 증적)는 고정, 요약 띠부터 스크롤한다 (도메인/실행 §8.3) */
+.run-pane {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.run-pane .box-head {
+  flex-shrink: 0;
+}
+
+.run-pane .box-head .tally {
+  margin-top: 10px;
+}
+
+.pane-title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.pane-run {
+  margin-left: 6px;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.screen.pane-results {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.screen.rr.pane-results {
+  overflow: hidden;
+}
+
+.pane-results .rr-scroll {
+  padding-right: 4px;
+}
+
+.pane-back {
+  display: none;
+  align-self: flex-start;
+}
+
+/* 창이 좁으면 한 단으로 접는다 — 고르기 전에는 목록, 고르면 결과와 「목록으로」 (도메인/실행 §8.7 「A안」) */
+@media (max-width: 1180px) {
+  .runs-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .runs-split:not(.picked) > .run-pane,
+  .runs-split.picked > .runs-list {
+    display: none;
+  }
+
+  .pane-back {
+    display: inline-flex;
+  }
+}

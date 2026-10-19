@@ -40,7 +40,7 @@ describe('실행 결과의 권한은 그 실행의 서비스로', () => {
   function 연다(tcId: string, status: string) {
     vi.spyOn(api, 'run').mockResolvedValue({ ...실행, status, items: [항목(tcId)], evidence: [] });
     vi.spyOn(api, 'progress').mockResolvedValue({ items: [], remainingMs: null });
-    render(<RunResult runId={RUN_ID} 판정하기={(접두사) => 판정을만든다(김, 접두사)} 상자안 />);
+    render(<RunResult runId={RUN_ID} 판정하기={(접두사) => 판정을만든다(김, 접두사)} 칸안 />);
   }
 
   it('실행 쓰기인 서비스의 실행이면 중단 버튼이 선다', async () => {
@@ -71,10 +71,10 @@ describe('시나리오 실행 번호면 E2E 결과 화면으로 갈아탄다', (
     startedAt: '2026-09-15T17:13:00.000Z', finishedAt: '2026-09-15T17:25:00.000Z', parts: [], evidence: [],
   };
 
-  it.each([false, true])('상자안=%s', async (상자안) => {
+  it.each([false, true])('칸안=%s', async (칸안) => {
     vi.spyOn(api, 'run').mockRejectedValue(new ApiError(404, 'SCENARIO_RUN', ''));
     const 부름 = vi.spyOn(scenarioApi, 'result').mockResolvedValue(시나리오답);
-    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안={상자안} />);
+    render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안={칸안} />);
 
     expect(await screen.findByText('단계별 결과')).toBeTruthy();
     expect(부름).toHaveBeenCalledWith(RUN_ID);

@@ -34,6 +34,9 @@ export type Route =
   | { name: 'item'; runId: number; historyId: number }
   | { name: 'unknown'; hash: string };
 
+/** 실행 기록에서 그 실행을 고른 주소 (도메인/실행 §8.7 「A안」). 종류는 케이스 번호가 말한다 — 서버 catalog/rules `tcId종류` 와 같은 꼴이다 */
+export const 실행기록주소 = (tcId: string, runId: number) => `#/runs/${/-UI-\d{3}$/.test(tcId) ? 'ui' : 'fn'}?run=${String(runId)}`;
+
 /** 「PRD 관리」의 그 항목 주소. 거기서 묶음을 펴고 그 줄로 간다 (도메인/카탈로그 §8.1 「맥락」) */
 export const PRD항목주소 = (reqId: string) => `#/prd/${encodeURIComponent(reqId)}`;
 

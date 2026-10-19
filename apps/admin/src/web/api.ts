@@ -142,10 +142,16 @@ export interface RunSummary {
   status: string;
   // 실행 하나에 한 종류다 (PR #131). 옛 가짜 응답을 안 고치려고 선택으로 둔다
   kind?: 'UI' | 'FN' | 'SCENARIO';
+  /** 시작 방식과 「실패 다시」의 원래 실행 (도메인/실행 §7 · 공통/4-데이터모델 「실행 시작 방식」). 옛 가짜 응답을 안 고치려고 선택으로 둔다 */
+  origin?: 'MANUAL' | 'SCHEDULED' | 'RERUN';
+  rerunOf?: number | null;
   startedAt: string;
   finishedAt: string | null;
   counts: RunCounts;
 }
+
+/** 실행 목록 줄 — 직전 실행 대비 케이스 수. 견줄 앞이 없거나 도는 중이면 null (도메인/실행 §7 `GET /api/runs`) */
+export type RunListRow = RunSummary & { change?: { newFail: number; stillFail: number } | null };
 
 /**
  * 실행 집계 (도메인/실행 §7). pass·fail·na·running 은 미확정까지 모든 항목이고, `unconfirmed` 는 그중 미확정 항목 수 하나다 (§3.2).
@@ -373,6 +379,9 @@ export interface RunQuery {
   q?: string;
   state?: 'running' | 'failed';
   env?: string;
+  origin?: 'manual' | 'scheduled' | 'rerun';
+  /** 최근 며칠. 없으면 전체 */
+  days?: number;
   /** 없으면 UI · 기능 둘 다 — 진행 카드가 그렇게 부른다 (실행 §7 `?kind=` · PR #131) */
   kind?: 'UI' | 'FN';
 }
@@ -973,7 +982,9 @@ export const api = {
     if (조건.state !== undefined) params.set('state', 조건.state);
     if (조건.env !== undefined && 조건.env !== '') params.set('env', 조건.env);
     if (조건.kind !== undefined) params.set('kind', 조건.kind === 'UI' ? 'ui' : 'fn');
-    return call<Paged<RunSummary> & { summary: RunTally }>(`/runs?${params.toString()}`);
+    if (조건.origin !== undefined) params.set('origin', 조건.origin);
+    if (조건.days !== undefined) params.set('days', String(조건.days));
+    return call<Paged<RunListRow> & { summary: RunTally }>(`/runs?${params.toString()}`);
   },
 
   run: (runId: number) =>
@@ -1014,6 +1025,8 @@ export const api = {
     notifySlack?: boolean;
     /** Android 앱이 있으면 반드시 싣는다 — 없으면 서버가 400 을 낸다 (SPEC §8.2). 브라우저만이면 싣지 않는다 */
     location?: 'local' | 'farm';
+    /** 「실패 N건 다시 실행」의 원래 실행. 그 실행에서 실패한 케이스만 담아야 한다 — 아니면 400 BAD_RERUN (도메인/실행 §7) */
+    rerunOf?: number;
     items: RunRequestItem[];
     // 실행자는 싣지 않는다. 로그인한 세션에서 서버가 채운다 —
     // 보내는 쪽이 정할 수 있으면 아무 이름이나 적을 수 있어 증적이 증적이 아니게 된다 (SPEC §3.5)

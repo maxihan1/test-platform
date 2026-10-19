@@ -162,7 +162,7 @@ describe('결과 화면 조립 — 요약 띠 · 카드 · 줄 · 옆 칸', () =
     expect(옆.textContent).not.toContain('해결');
   });
 
-  it('상자 안에서는 옆 칸이 접힌 줄 하나이고 실행 정보는 그리지 않는다', async () => {
+  it('결과 칸에서는 옆 칸이 접힌 줄 하나이고 실행 정보는 그리지 않는다', async () => {
     연다(섞인항목, 견줌, true);
     const 접기 = await waitFor(() => {
       const 칸 = document.querySelector('.rr-side details');

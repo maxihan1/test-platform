@@ -1,27 +1,34 @@
 // @vitest-environment jsdom
-// 실행 기록 목록 검사 (SPEC §8.7, 2026-09-22 신설).
+// 실행 기록 목록 검사 (SPEC §8.7, 2026-09-22 신설 · 2026-10-19 ⑫ A안 — 목록 + 오른쪽 결과 칸).
 //
-// **이 화면에는 그물이 없었다.** 검사 파일 없이 화면을 통째로 다시 그리면 회귀를 못 잡으므로,
-// 지금 지키고 있는 것 셋을 먼저 박는다 — ① 빈 목록 문장이 「이 서비스에서」로 갈린다
-// ② 총건수를 페이지 계산에 안 쓴다 ③ 색만으로 판정을 전달하지 않는다.
-// 그 위에 새로 생긴 것(머리 · 집계 띠 · 검색 · 거르개)을 얹는다.
+// 지키는 것 — ① 빈 목록 문장이 「이 서비스에서」로 갈린다 ② 총건수를 페이지 계산에 안 쓴다 ③ 색만으로 판정을 전달하지 않는다
+// ④ 거르는 일은 서버가 한다 ⑤ 고른 실행 · 거르개가 주소에 남는다 ⑥ 줄을 눌러도 화면을 떠나지 않는다
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { api, type Paged, type RunSummary, type RunTally } from './api.js';
+import { api, type EnvRow, type Paged, type RunListRow, type RunTally } from './api.js';
 import { RunList } from './RunList.js';
 import type { 판정 } from './role.js';
 
-// 옛 등급 셋의 판정을 그대로 옮긴 것 — 운영은 전부, 실행까지는 머지·설정 빼고, 보기만은 받기뿐
 const 운영: 판정 = () => true;
+const 서버들: EnvRow[] = [
+  { env: 'qa', baseUrl: 'https://qa.example.com' },
+  { env: 'stage', baseUrl: 'https://stage.example.com' },
+];
+
+beforeEach(() => {
+  window.location.hash = '#/runs/fn';
+  // 결과 칸은 따로 검사한다(RunResult*.test) — 여기서는 답을 안 줘 「불러오는 중」에 둔다
+  vi.spyOn(api, 'run').mockReturnValue(new Promise(() => {}));
+});
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
 
-function 실행(runId: number, fail: number): RunSummary {
+function 실행(runId: number, fail: number, 덮어쓸: Partial<RunListRow> = {}): RunListRow {
   return {
     runId,
     title: `ZRL 실행 ${runId}`,
@@ -31,204 +38,155 @@ function 실행(runId: number, fail: number): RunSummary {
     baseUrl: 'https://qa.example.com',
     serviceName: 'ZRL 서비스',
     status: 'FINISHED',
+    origin: 'MANUAL',
+    rerunOf: null,
     startedAt: '2026-09-22T00:00:00.000Z',
     finishedAt: '2026-09-22T00:10:00.000Z',
     counts: { total: 3, pass: 3 - fail, fail, na: 0, running: 0 },
+    change: null,
+    ...덮어쓸,
   };
 }
 
-const 집계: RunTally = {
-  runs: 42,
-  allPass: 31,
-  hasFail: 9,
-  durationOf: 41,
-  avgDurationMs: 684000,
-  maxDurationMs: 2880000,
-};
+const 빈집계: RunTally = { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 };
+type 답 = Paged<RunListRow> & { summary: RunTally };
 
 // 한 쪽 크기를 2 로 두면 2건짜리 쪽은 「더 있다」다 (paging.ts)
-const 한쪽: Paged<RunSummary> & { summary: RunTally } = {
-  items: [실행(2113, 1), 실행(2112, 0)],
-  total: 42,
-  page: 1,
-  pageSize: 2,
-  summary: 집계,
-};
+const 한쪽: 답 = { items: [실행(2113, 1), 실행(2112, 0)], total: 42, page: 1, pageSize: 2, summary: { ...빈집계, runs: 42 } };
+const 빈쪽: 답 = { items: [], total: 0, page: 1, pageSize: 2, summary: 빈집계 };
 
-const 빈쪽 = (summary: RunTally): Paged<RunSummary> & { summary: RunTally } => ({
-  items: [],
-  total: 0,
-  page: 1,
-  pageSize: 2,
-  summary,
-});
-
-const 빈집계: RunTally = { runs: 0, allPass: 0, hasFail: 0, durationOf: 0, avgDurationMs: 0, maxDurationMs: 0 };
-
-/**
- * 상자 안에서 그려지는 `RunResult` 가 받는 답. **진행 중인 실행이어야 한다.**
- *
- * 끝난 실행으로 두면 `RunResult` 가 진행 상자를 애초에 안 열어서
- * **가드를 지워도 검사가 초록이 된다** — 실제로 그랬다 (2026-09-22 자기검사 G8).
- */
-const 진행중상세 = {
-  ...실행(2113, 1),
-  status: 'RUNNING' as const,
-  finishedAt: null,
-  counts: { total: 3, pass: 1, fail: 0, na: 0, running: 2 },
-  items: [],
-  evidence: [],
-};
-
-function 모킹(답: Paged<RunSummary> & { summary: RunTally } = 한쪽) {
-  return vi.spyOn(api, 'runs').mockResolvedValue(답);
-}
-
-async function 그리기(답?: Paged<RunSummary> & { summary: RunTally }) {
-  const 스파이 = 모킹(답);
-  const 것 = render(<RunList kind="FN" service="ZRL" 할수={운영} />);
+async function 그리기(답: 답 = 한쪽, kind: 'UI' | 'FN' = 'FN') {
+  const 스파이 = vi.spyOn(api, 'runs').mockResolvedValue(답);
+  const 것 = render(<RunList kind={kind} service="ZRL" envs={서버들} 할수={운영} />);
   await waitFor(() => expect(스파이).toHaveBeenCalled());
   return { ...것, 스파이 };
 }
 
-describe('RunList 화면 머리', () => {
+const 줄 = (container: HTMLElement) => [...container.querySelectorAll<HTMLElement>('.run-row')];
+
+describe('RunList 머리', () => {
   it('제목이 h1 이고 본문 면 바깥에 선다', async () => {
     const { container } = await 그리기();
-    await screen.findByText(/ZRL 실행 2113/);
+    await screen.findByText('ZRL 실행 2113');
 
-    const 머리 = container.querySelector('.head');
-    expect(머리?.querySelector('h1')?.textContent).toBe('실행 기록');
+    expect(container.querySelector('.head h1')?.textContent).toBe('실행 기록');
     expect(container.querySelector('.screen .head')).toBeNull();
   });
 
-  it('머리에 증적 버튼을 두지 않는다', async () => {
-    await 그리기();
-    await screen.findByText(/ZRL 실행 2113/);
-
-    // 증적은 실행 하나마다 만든다 (§8.4). 목록에서 무엇을 받는지가 명세에 없어 확정 목업의
-    // 그 버튼을 뺐다 — 누르면 아무 일도 안 하는 버튼을 만들지 않는다 (2026-09-22 결정)
-    expect(screen.queryByRole('button', { name: /증적/ })).toBeNull();
-  });
-});
-
-describe('RunList 종류 (화면공통 §8 하위 메뉴 · PR #132)', () => {
   it('고른 종류로 부르고 부제 맨 앞에 종류를 적는다', async () => {
-    const 스파이 = 모킹();
-    const { container } = render(<RunList kind="UI" service="ZRL" 할수={운영} />);
-    await waitFor(() => expect(스파이).toHaveBeenCalledWith('ZRL', 1, { kind: 'UI' }));
-    await screen.findByText(/ZRL 실행 2113/);
-    expect(container.querySelector('.head')?.textContent).toMatch(/UI 테스트 · 모두/);
+    const { 스파이, container } = await 그리기(한쪽, 'UI');
+    expect(스파이).toHaveBeenCalledWith('ZRL', 1, { kind: 'UI' });
+    await screen.findByText('ZRL 실행 2113');
+    expect(container.querySelector('.head')?.textContent).toMatch(/UI 테스트 · 모두 42건/);
+  });
+
+  it('머리 집계 띠가 없다 — 평균 소요는 판단에 안 쓰였다 (점검 1.5)', async () => {
+    const { container } = await 그리기();
+    await screen.findByText('ZRL 실행 2113');
+
+    expect(container.querySelector('.stats')).toBeNull();
+    expect(screen.queryByText('평균 소요')).toBeNull();
   });
 });
 
-describe('RunList 미확정 (도메인/실행 §8.7)', () => {
-  it('미확정만 돈 실행도 통과 색을 칠하고 숫자를 그대로 보인다', async () => {
-    const 미확정만: RunSummary = {
-      ...실행(2130, 0),
-      title: 'ZRL 미확정만',
-      counts: { total: 2, pass: 2, fail: 0, na: 0, running: 0, unconfirmed: 2 },
-    };
-    const { container } = await 그리기({ ...한쪽, items: [미확정만], total: 1 });
-    await screen.findByText(/ZRL 미확정만/);
+describe('RunList 줄 (§8.7 「A안」)', () => {
+  it('왼쪽 띠 — 실패면 실패 색, 미실행이 섞이면 회색, 도는 중이면 진행 색, 전부 통과면 통과 색', async () => {
+    const { container } = await 그리기({
+      ...한쪽,
+      items: [
+        실행(1, 1),
+        실행(2, 0, { status: 'ABORTED', counts: { total: 960, pass: 0, fail: 0, na: 960, running: 0 } }),
+        실행(3, 0, { status: 'RUNNING', finishedAt: null, counts: { total: 3, pass: 1, fail: 0, na: 0, running: 2 } }),
+        실행(4, 0),
+      ],
+    });
+    await screen.findByText('ZRL 실행 4');
 
-    expect(container.querySelector<HTMLElement>('.row .gutter')?.style.background).toBe('var(--pass)');
-    expect(container.querySelector('.tally b')?.textContent).toBe('2');
-    expect(container.querySelector('.tally [aria-label="판정 없음"]')).toBeNull();
+    const 색 = 줄(container).map((el) => el.querySelector<HTMLElement>('.gutter')?.style.background);
+    expect(색).toEqual(['var(--fail)', 'var(--na)', 'var(--accent)', 'var(--pass)']);
   });
 
-  it('미확정 수는 「그중 미확정 N건」 한 줄이다 — 실패가 있으면 실패 색이다', async () => {
-    const 섞임: RunSummary = {
-      ...실행(2132, 0),
-      title: 'ZRL 섞임',
-      counts: { total: 3, pass: 1, fail: 2, na: 0, running: 0, unconfirmed: 2 },
-    };
-    const { container } = await 그리기({ ...한쪽, items: [섞임], total: 1 });
-    await screen.findByText(/ZRL 섞임/);
+  it('작은 글에 RUN 번호 · 시작 방식 · 대상 서버 · 실행자 · 소요가 있다', async () => {
+    const { container } = await 그리기({ ...한쪽, items: [실행(2120, 0, { origin: 'RERUN', rerunOf: 2113 })] });
+    await screen.findByText('ZRL 실행 2120');
+
+    const 글 = container.querySelector('.run-row small')?.textContent ?? '';
+    for (const 조각 of ['RUN 2120', '실패 다시 실행', 'qa', '김검사', '10분']) expect(글).toContain(조각);
+  });
+
+  it('직전 대비 꼬리표 — 0 인 것은 빼고, change 가 null 이면 없다', async () => {
+    const { container } = await 그리기({
+      ...한쪽,
+      items: [실행(2130, 3, { change: { newFail: 2, stillFail: 1 } }), 실행(2131, 0, { change: { newFail: 0, stillFail: 0 } })],
+    });
+    await screen.findByText('ZRL 실행 2130');
+
+    const [첫, 둘] = 줄(container);
+    expect(첫?.querySelector('.run-tags')?.textContent).toBe('신규 실패 2계속 실패 1');
+    expect(둘?.querySelector('.run-tags')).toBeNull();
+  });
+
+  it('미확정은 「그중 미확정 N건」 한 줄이고 없으면 쓰지 않는다', async () => {
+    const { container } = await 그리기({
+      ...한쪽,
+      items: [실행(2132, 2, { counts: { total: 3, pass: 1, fail: 2, na: 0, running: 0, unconfirmed: 2 } }), 실행(2133, 0)],
+    });
+    await screen.findByText('ZRL 실행 2132');
 
     expect(screen.getByText('그중 미확정 2건').className).toBe('unconf-line');
-    expect(container.querySelector<HTMLElement>('.row .gutter')?.style.background).toBe('var(--fail)');
+    expect(줄(container)[1]?.querySelector('.unconf-line')).toBeNull();
   });
 
-  it('미확정이 없으면 글을 쓰지 않는다', async () => {
-    const 확정만: RunSummary = { ...실행(2133, 0), title: 'ZRL 확정만', counts: { total: 3, pass: 3, fail: 0, na: 0, running: 0 } };
-    const { container } = await 그리기({ ...한쪽, items: [확정만], total: 1 });
-    await screen.findByText(/ZRL 확정만/);
-
-    expect(container.querySelector('.unconf-line')).toBeNull();
-  });
-});
-
-describe('RunList 집계 띠', () => {
-  it('넷을 숫자와 글자 라벨로 같이 낸다', async () => {
-    const { container } = await 그리기();
-    await screen.findByText(/ZRL 실행 2113/);
-
-    const 글 = container.querySelector('.stats')?.textContent ?? '';
-    for (const 라벨 of ['실행 횟수', '성공', '실패', '평균 소요']) expect(글).toContain(라벨);
-    expect(글).toContain('42');
-    expect(글).toContain('31');
-  });
-
-  it('평균 소요가 몇 회를 센 것인지 적는다', async () => {
+  it('판정을 색만으로 전달하지 않는다 — 통과 · 실패 · 미실행이 글자로 적힌다', async () => {
     await 그리기();
-    await screen.findByText(/ZRL 실행 2113/);
+    await screen.findByText('ZRL 실행 2113');
 
-    // 도는 실행은 소요가 없어 평균에서 빠진다. 안 적으면 42회의 평균으로 읽힌다
-    expect(screen.getByText(/끝난 41회/)).toBeTruthy();
-  });
-
-  it('판정이 아닌 칸에는 판정 색을 안 칠한다', async () => {
-    const { container } = await 그리기();
-    await screen.findByText(/ZRL 실행 2113/);
-
-    const 칸들 = [...container.querySelectorAll('.stat')];
-    expect(칸들[0]?.className).toBe('stat');
-    expect(칸들.at(-1)?.className).toBe('stat');
+    expect(screen.getAllByText('통과').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('미실행').length).toBeGreaterThan(0);
   });
 });
 
-describe('RunList 거르개', () => {
-  it('검색어를 넣으면 서버에 실어 보낸다 — 화면이 거르지 않는다', async () => {
+describe('RunList 거르개 — 거르는 일은 서버가 한다', () => {
+  it('검색어를 서버에 실어 보낸다 — 케이스 번호 · 이름에도 맞는다', async () => {
     const { 스파이 } = await 그리기();
-    await screen.findByText(/ZRL 실행 2113/);
+    await screen.findByText('ZRL 실행 2113');
 
-    fireEvent.change(screen.getByPlaceholderText(/실행 제목/), { target: { value: '결제' } });
+    fireEvent.change(screen.getByLabelText('케이스 · 제목으로 찾기'), { target: { value: 'ZRL-FN-007' } });
     fireEvent.submit(screen.getByRole('search'));
 
-    // 목록이 쪽으로 나뉘어 오므로 받은 쪽만 거르면 뒤쪽이 조용히 빠진다 (SPEC §8.7)
-    await waitFor(() => {
-      expect(스파이).toHaveBeenCalledWith('ZRL', 1, expect.objectContaining({ q: '결제' }));
-    });
+    await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZRL', 1, expect.objectContaining({ q: 'ZRL-FN-007' })));
   });
 
-  it('상태 거르개를 누르면 같이 실린다', async () => {
+  it('상태 · 대상 서버 · 시작 방식 · 기간을 고르면 같이 실린다', async () => {
     const { 스파이 } = await 그리기();
-    await screen.findByText(/ZRL 실행 2113/);
+    await screen.findByText('ZRL 실행 2113');
 
-    fireEvent.click(screen.getByRole('button', { name: '실패' }));
+    fireEvent.change(screen.getByLabelText('상태'), { target: { value: 'failed' } });
+    fireEvent.change(screen.getByLabelText('대상 서버'), { target: { value: 'stage' } });
+    fireEvent.change(screen.getByLabelText('시작 방식'), { target: { value: 'rerun' } });
+    fireEvent.change(screen.getByLabelText('기간'), { target: { value: '14' } });
 
-    await waitFor(() => {
-      expect(스파이).toHaveBeenCalledWith('ZRL', 1, expect.objectContaining({ state: 'failed' }));
-    });
+    await waitFor(() =>
+      expect(스파이).toHaveBeenLastCalledWith('ZRL', 1, { kind: 'FN', state: 'failed', env: 'stage', origin: 'rerun', days: 14 }),
+    );
+    expect(window.location.hash).toBe('#/runs/fn?state=failed&env=stage&origin=rerun&days=14');
+    expect(document.querySelector('.head')?.textContent).toMatch(/최근 14일 42건/);
   });
 });
 
 describe('RunList 빈 목록', () => {
   it('한 번도 안 돌린 사람에게는 서비스를 짚어 말한다', async () => {
-    await 그리기(빈쪽(빈집계));
-
+    await 그리기(빈쪽);
     expect(await screen.findByText(/이 서비스에서 아직 실행한 기록이 없습니다/)).toBeTruthy();
   });
 
   it('거르개에 안 걸린 사람에게는 다른 문장을 준다', async () => {
     const { 스파이 } = await 그리기();
-    await screen.findByText(/ZRL 실행 2113/);
+    await screen.findByText('ZRL 실행 2113');
 
-    스파이.mockResolvedValue(빈쪽(집계));
-    fireEvent.change(screen.getByPlaceholderText(/실행 제목/), { target: { value: '없을리없는것' } });
-    fireEvent.submit(screen.getByRole('search'));
+    스파이.mockResolvedValue(빈쪽);
+    fireEvent.change(screen.getByLabelText('시작 방식'), { target: { value: 'scheduled' } });
 
-    // 검색한 사람에게 「아직 실행한 기록이 없습니다」는 틀린 문장이다 (SPEC §8.1 과 같은 함정)
     expect(await screen.findByText(/조건에 맞는 실행이 없습니다/)).toBeTruthy();
   });
 });
@@ -237,68 +195,61 @@ describe('RunList 지킬 것', () => {
   it('총건수로 페이지 수를 계산하지 않는다', async () => {
     // total 42 · pageSize 2 · items 2 → 「다음」이 살아 있고, 총건수는 안내로만 쓴다
     await 그리기();
-    await screen.findByText(/ZRL 실행 2113/);
+    await screen.findByText('ZRL 실행 2113');
 
     expect(screen.getByRole('button', { name: '다음' }).hasAttribute('disabled')).toBe(false);
     expect(screen.queryByText(/21쪽/)).toBeNull();
   });
 
-  it('판정을 색만으로 전달하지 않는다', async () => {
+  it('칸마다 이름이 있다. 좁은 화면에서도 감추지 않는 자리다', async () => {
     await 그리기();
-    await screen.findByText(/ZRL 실행 2113/);
-
-    // 줄마다 통과·실패·미실행이 글자로 적힌다. 왼쪽 색 띠는 훑기 위한 것이다 (SPEC §8.7)
-    expect(screen.getAllByText('통과').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('실패').length).toBeGreaterThan(0);
+    await screen.findByText('ZRL 실행 2113');
+    expect(screen.getAllByRole('columnheader').map((el) => el.textContent)).toEqual(['실행', '판정']);
   });
 });
 
-// 화면을 갈아타면 돌아올 때 검색 조건이 풀리고 보던 자리를 잃는다 (SPEC §8.7, 2026-09-22).
-// 「상자가 뜬다」만 보면 **상자 안에서 또 상자가 뜨는 상태**도 통과한다 — 가두개가 겹치면
-// 키보드만 쓰는 사람이 빠져나올 길을 잃는다 (DESIGN.md 「모달」)
-describe('결과 보기는 상자로 연다 (SPEC §8.7)', () => {
-  it('칸마다 이름이 있다. 좁은 화면에서도 감추지 않는 자리다', async () => {
-    await 그리기();
-    const 이름들 = screen.getAllByRole('columnheader').map((el) => el.textContent);
-    expect(이름들).toEqual(['RUN', '실행 제목', '판정']);
+describe('RunList 오른쪽 결과 칸 (§8.7 「A안」)', () => {
+  it('주소에 실행이 없으면 맨 위 줄을 결과 칸에 연다 — 주소에는 적지 않는다', async () => {
+    const { container } = await 그리기();
+    await screen.findByText('ZRL 실행 2113');
+
+    expect(api.run).toHaveBeenCalledWith(2113);
+    expect(줄(container)[0]?.getAttribute('aria-current')).toBe('true');
+    expect(container.querySelector('.runs-split.picked')).toBeNull();
+    expect(window.location.hash).toBe('#/runs/fn');
   });
 
-  it('누르면 상자가 뜨고 화면이 안 갈아탄다', async () => {
-    const 전주소 = window.location.hash;
-    await 그리기();
-    vi.spyOn(api, 'run').mockResolvedValue(진행중상세);
+  it('줄을 누르면 화면을 떠나지 않고 결과 칸이 그 실행으로 바뀌며 주소에 남는다 — 상자는 없다', async () => {
+    const { container } = await 그리기();
+    await screen.findByText('ZRL 실행 2112');
 
-    fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
+    fireEvent.click(줄(container)[1]!);
 
-    expect(await screen.findByRole('dialog')).toBeTruthy();
-    expect(window.location.hash).toBe(전주소);
-  });
-
-  // **진행 중인 실행으로 연다.** 끝난 실행이면 `RunResult` 가 진행 상자를 애초에 안 열어
-  // 가드를 지워도 초록이 된다 — 구현이 어떻게 망가져도 참인 단언이 된다 (spec-review G8)
-  it('진행 중인 실행을 열어도 상자가 하나뿐이다', async () => {
-    await 그리기();
-    vi.spyOn(api, 'run').mockResolvedValue(진행중상세);
-
-    fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
-    await screen.findByRole('dialog');
-    // 상자 안의 `RunResult` 가 답을 받고 나서도 상자가 하나여야 한다
-    await waitFor(() => expect(screen.getByRole('dialog').textContent).toContain('진행 중'));
-
-    expect(screen.getAllByRole('dialog')).toHaveLength(1);
-  });
-
-  it('닫으면 검색 조건이 그대로 남는다', async () => {
-    await 그리기();
-
-    fireEvent.change(screen.getByPlaceholderText(/실행 제목/), { target: { value: '결제' } });
-    fireEvent.submit(screen.getByRole('search'));
-    vi.spyOn(api, 'run').mockResolvedValue(진행중상세);
-    fireEvent.click(screen.getAllByRole('button', { name: '결과 보기' })[0]!);
-    await screen.findByRole('dialog');
-    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
-
+    await waitFor(() => expect(api.run).toHaveBeenCalledWith(2112));
+    expect(window.location.hash).toBe('#/runs/fn?run=2112');
+    expect(줄(container)[1]?.getAttribute('aria-current')).toBe('true');
+    expect(container.querySelector('.runs-split.picked')).not.toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect((screen.getByPlaceholderText(/실행 제목/) as HTMLInputElement).value).toBe('결제');
+  });
+
+  it('주소의 실행과 거르개로 연다 — 항목 상세에 갔다 돌아와도 풀리지 않는다 (점검 2.9)', async () => {
+    window.location.hash = '#/runs/fn?run=2001&state=failed&page=2';
+    const { 스파이 } = await 그리기();
+
+    expect(스파이).toHaveBeenCalledWith('ZRL', 2, { kind: 'FN', state: 'failed' });
+    await waitFor(() => expect(api.run).toHaveBeenCalledWith(2001));
+    // 거르개에 걸려 목록에 없는 실행도 결과 칸은 그대로 연다 — 대신 까닭을 한 줄 적는다
+    expect(await screen.findByText('고른 실행은 지금 조건 밖입니다')).toBeTruthy();
+  });
+
+  it('「목록으로」를 누르면 고른 실행을 풀어 좁은 창에서 목록이 다시 보인다', async () => {
+    window.location.hash = '#/runs/fn?run=2112';
+    const { container } = await 그리기();
+    await screen.findByText('ZRL 실행 2112');
+
+    fireEvent.click(screen.getByRole('button', { name: '목록으로' }));
+
+    expect(container.querySelector('.runs-split.picked')).toBeNull();
+    expect(window.location.hash).toBe('#/runs/fn');
   });
 });

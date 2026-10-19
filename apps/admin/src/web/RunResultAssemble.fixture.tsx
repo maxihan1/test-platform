@@ -91,12 +91,12 @@ export const 섞인항목 = [
   항목줄(7, 'ZRR-005', 'mobile', 'FAIL', '기획서에 값이 없습니다'),
 ];
 
-export function 연다(items: RunItemSummary[], 인사이트: 비교값 = 첫실행, 상자안 = false, 증적들: EvidenceRow[] = []) {
+export function 연다(items: RunItemSummary[], 인사이트: 비교값 = 첫실행, 칸안 = false, 증적들: EvidenceRow[] = []) {
   vi.spyOn(api, 'run').mockResolvedValue(끝난실행(items, 증적들));
   vi.spyOn(api, 'insights').mockResolvedValue(인사이트);
   const 실패부름 = vi.spyOn(api, 'failures').mockResolvedValue({
     items: [카드응답('ZRR-001'), 카드응답('ZRR-005', 'desktop', '기획서에 값이 없습니다')], total: 2, page: 1, pageSize: 5,
   });
-  render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 상자안={상자안} />);
+  render(<RunResult runId={RUN_ID} 판정하기={() => 실행까지} 칸안={칸안} />);
   return 실패부름;
 }

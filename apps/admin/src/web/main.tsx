@@ -47,6 +47,7 @@ import './phone.css';
 import './prd.css';
 import './guide.css';
 import './itemTrace.css';
+import './runList.css';
 
 function Screen({
   hash,
@@ -113,7 +114,7 @@ function Screen({
     case 'runs':
       // E2E 는 시나리오 실행만 모으는 별도 화면이다 — 줄 모양과 거르개가 UI · 기능 목록과 다르다
       if (current.kind === 'E2E') return <ScenarioRunList key="E2E" service={prefix} 할수={할수} />;
-      return <RunList key={current.kind} kind={current.kind} service={prefix} 할수={할수} />;
+      return <RunList key={current.kind} kind={current.kind} service={prefix} envs={service?.envs ?? []} 할수={할수} />;
     case 'scenarios':
       // 서비스를 바꾸면 새로 그린다 — 고른 대상 서버와 앞 서비스의 실행 안내가 남으면 다른 서비스에 쏜다
       return <ScenarioList key={prefix} service={prefix} envs={service?.envs ?? []} 할수={할수} />;
