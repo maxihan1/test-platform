@@ -363,6 +363,40 @@ describe.skipIf(연결 === undefined)('대시보드 질의', () => {
     });
   });
 
+  describe('서비스 · 기간 고르기', () => {
+    it('service 로 좁히면 그 서비스 데이터만 오되 services 는 볼 수 있는 전부다', async () => {
+      const 결과 = await 대시보드('UTC', [A, B], [A, B], { 서비스: B });
+      expect(결과.services.map((s) => s.id)).toEqual([A, B]);
+      expect(결과.byService.map((s) => s.serviceId)).toEqual([B]);
+      expect(결과.running.map((r) => r.serviceId)).toEqual([B]);
+      expect(결과.coverage).toEqual([]);
+      expect(JSON.stringify(결과.newFailures)).not.toContain('XDQ-');
+      const 내것 = await 대시보드('UTC', [A, B], [A, B], { 서비스: A });
+      expect(내것.coverage.map((c) => c.serviceId)).toEqual([A]);
+    });
+
+    it('볼 수 있는 목록에 없는 service 번호는 아무것도 읽지 않는다', async () => {
+      const 결과 = await 대시보드('UTC', [A], [A], { 서비스: B });
+      expect(결과.services.map((s) => s.id)).toEqual([A]);
+      expect([결과.byService, 결과.newFailures, 결과.running, 결과.coverage]).toEqual([[], [], [], []]);
+      expect(결과.passRate.current).toEqual({ pass: 0, fail: 0, notRun: 0 });
+      expect((await 대시보드실행중('UTC', [A], B)).running).toEqual([]);
+      expect((await 대시보드실행중('UTC', [A, B], B)).running.map((r) => r.serviceId)).toEqual([B]);
+    });
+
+    it('날수가 창 길이이고 직전 창은 같은 길이다 — 7일이면 7일 안 실행만 이번에 든다', async () => {
+      const 칠일 = await 대시보드('UTC', [A], [A], { 날수: 7 });
+      expect(칠일.window.days).toBe(7);
+      expect(칠일.daily).toHaveLength(7);
+      expect(칠일.heatmap[0]?.cells).toHaveLength(7);
+      const 이십팔일 = await 대시보드('UTC', [A], [A], { 날수: 30 });
+      expect(이십팔일.daily).toHaveLength(30);
+      expect(칠일.passRate.current.pass + 칠일.passRate.current.fail + 칠일.passRate.current.notRun).toBeLessThanOrEqual(
+        이십팔일.passRate.current.pass + 이십팔일.passRate.current.fail + 이십팔일.passRate.current.notRun,
+      );
+    });
+  });
+
   describe('시간대', () => {
     it('같은 실행이 tz 에 따라 다른 날로 센다', async () => {
       const 지금 = new Date();
