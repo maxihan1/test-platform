@@ -111,7 +111,9 @@ function Screen({
     case 'authoringItem':
       // 번호마다 새로 그린다 — 요청 사이를 오갈 때(남은 요구 · 원본 고리) 앞 요청의 답과 버튼 상태가 남으면
       // 주소는 새 번호인데 앞 요청 화면이 보이고 다시 누를 수 있다 (2026-09-30 코드 검토)
-      return <AuthoringDetail key={current.id} service={prefix} id={current.id} 할수={할수} />;
+      return (
+        <AuthoringDetail key={current.id} service={prefix} id={current.id} 할수={할수} 서비스번호={service?.id} on서비스번호={on서비스번호} />
+      );
     case 'runs':
       // E2E 는 시나리오 실행만 모으는 별도 화면이다 — 줄 모양과 거르개가 UI · 기능 목록과 다르다
       if (current.kind === 'E2E') return <ScenarioRunList key="E2E" service={prefix} 할수={할수} />;

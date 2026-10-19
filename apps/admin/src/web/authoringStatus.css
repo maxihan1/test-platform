@@ -107,6 +107,15 @@
 .status-reason { background: var(--fail-soft); color: var(--fail-text); padding: 10px 12px; font-size: 13px; border-radius: 4px; white-space: pre-wrap; }
 /* 중단의 까닭(작성 중 끊김 · 올리기 거절)은 판정이 아니다 — 거터처럼 판정 색을 안 쓴다 (DESIGN.md 원칙 1) */
 .status-reason.stopped { background: var(--well); color: var(--ink); border: 1px solid var(--line-2); }
+/* 에이전트 원문은 접어 둔다 — 사람 말 한 줄이 먼저다 (⑫ · 점검 12.7) */
+.status-raw { margin-top: 6px; font-size: 12px; }
+.status-raw summary { cursor: pointer; }
+.status-raw pre { margin: 4px 0 0; white-space: pre-wrap; }
+
+/* 목록 줄의 할 일 칩 — 판정이 아니라 잉크다. 반영 실패만 실패 색 (DESIGN.md 원칙 1 · ⑫ 점검 11.2) */
+.authoring-todo-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.todo-chip { font-size: 12px; padding: 1px 8px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--ink); white-space: nowrap; }
+.todo-chip.fail { border-color: var(--fail); color: var(--fail-text); background: var(--fail-soft); }
 
 /* 목록 한 줄을 통째로 누른다 — 제목 링크를 줄 위로 늘린다. 버튼을 따로 두지 않아도 키보드는 링크 하나로 닿는다 */
 .row.authoring-row { position: relative; }

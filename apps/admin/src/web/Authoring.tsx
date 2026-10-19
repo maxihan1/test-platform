@@ -5,11 +5,11 @@
 
 import { useEffect, useState } from 'react';
 
-import { api, type AuthoringRow, type EnvRow, type Paged } from './api.js';
+import { api, type AuthoringListRow, type EnvRow, type Paged } from './api.js';
 import { AuthoringNew } from './AuthoringNew.js';
 import { AuthoringStartModal } from './AuthoringStartModal.js';
 import { 목록글 } from './authoringStatus.js';
-import { 종류라벨, 줄보임, 칩글, type 보임 } from './authoringView.js';
+import { 반영보임, 요청제목, 종류라벨, 줄보임, 칩글, 할일칩들, type 보임 } from './authoringView.js';
 import { Head } from './Head.js';
 import { 방식 } from './AuthoringRuns.js';
 import { use말, use언어 } from './i18n.js';
@@ -24,15 +24,15 @@ function 표머리() {
     <div className="rowhead runhead" role="row">
       <span aria-hidden="true" />
       <span role="columnheader">{t('번호')}</span>
-      <span role="columnheader">{t('진행 상황')}</span>
+      <span role="columnheader">{t('요청')}</span>
       <span role="columnheader">{t('상태')}</span>
       <span aria-hidden="true" />
     </div>
   );
 }
 
-/** 왼쪽 색 띠. 한눈에 훑기 위한 것이고 판정은 오른쪽 글자가 말한다 (SPEC §8.7 과 같은 규칙) */
-function 띠색(보: 보임): string {
+/** 왼쪽 색 띠. 한눈에 훑기 위한 것이고 판정은 오른쪽 글자가 말한다 (SPEC §8.7 과 같은 규칙). 반영 대기는 판정이 아니다 */
+function 띠색(보: 보임 | 'waiting'): string {
   if (보 === 'done') return 'var(--pass)';
   if (보 === 'failed' || 보 === 'stalled') return 'var(--fail)';
   // 중단은 판정이 아니다 — 사람이나 한도가 멈춘 것이라 판정 색을 쓰지 않는다 (DESIGN.md 「작성 상태」)
@@ -40,20 +40,25 @@ function 띠색(보: 보임): string {
   return 'var(--na)';
 }
 
-function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
+function 작성줄({ 것, 지금, 운영자 }: { 것: AuthoringListRow; 지금: number; 운영자: boolean }) {
   const t = use말();
   const 언어 = use언어();
   const 보 = 줄보임(것, 지금);
+  // 사람 손이 남았으면 상태 대신 할 일 칩을 단다 — 남았는데 초록 「완료」로 보이던 것을 고친다 (점검 11.2 · N2)
+  const 할일 = 할일칩들(것.todo, 언어);
+  const 보임 = 반영보임(보, 것.todo.apply);
   // 보이는 번호는 뿌리 하나다 — 줄은 그 요청의 최신 실행이고 몇 차인지 붙인다 (도메인/작성 §7 「실행 기록」)
   const 번호 = 것.rootId ?? 것.id;
   const 차 = 것.runCount ?? 1;
   return (
     <div className="row authoring-row">
-      <div className="gutter" style={{ background: 띠색(보) }} />
+      <div className="gutter" style={{ background: 띠색(보임) }} />
       <div className="tcid">#{번호}</div>
       <div className="title">
-        <a href={`#/authoring/${String(번호)}`}>{목록글(것, 언어)}</a>
+        {/* 제목은 넣은 자료 이름이다 — 번호 · 상태 문장만으로는 무엇을 요청했는지 몰랐다 (점검 11.1) */}
+        <a href={`#/authoring/${String(번호)}`}>{요청제목(것.assets, 것, 언어)}</a>
         <small>
+          {목록글(것, 언어, 운영자)} ·{' '}
           {차 > 1 ? (
             <>
               {t('{차}차', { 차 })} · {방식(것, t, 것.rootKind)}
@@ -77,7 +82,19 @@ function 작성줄({ 것, 지금 }: { 것: AuthoringRow; 지금: number }) {
           {것.compare === true ? ` · ${t('화면과 대조')}` : ''} · {t('요청한 사람')} {것.requestedByName} · {when(것.createdAt, 언어)}
         </small>
       </div>
-      <div className="right">{칩글(것, 보, 언어)}</div>
+      <div className="right">
+        {할일.length === 0 ? (
+          칩글(것, 보, 언어)
+        ) : (
+          <span className="authoring-todo-chips">
+            {할일.map((칩) => (
+              <span key={칩.글} className={칩.실패 ? 'todo-chip fail' : 'todo-chip'}>
+                {칩.글}
+              </span>
+            ))}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -86,7 +103,9 @@ export function Authoring({ service, envs = [], 할수 }: { service: string; env
   const t = use말();
   // 쪽은 주소에 남는다 — 상세에 갔다 뒤로 와도 그 쪽이다 (공통/5-화면공통 §8 「화면을 오가도 하던 일이 풀리지 않는다」)
   const [page, setPage] = useState(() => Math.max(1, Math.floor(Number(주소조건().get('page')) || 1)));
-  use주소조건('#/authoring', page === 1 ? {} : { page: String(page) });
+  // 「손이 필요한 것」만 — 값 필요 · 겹침 · 반영 대기 · 반영 실패가 남은 요청 (점검 11.2 · 도메인/작성 §7 ?todo=1)
+  const [할일만, set할일만] = useState(() => 주소조건().get('todo') === '1');
+  use주소조건('#/authoring', { ...(할일만 ? { todo: '1' } : {}), ...(page === 1 ? {} : { page: String(page) }) });
   // 방금 줄에 세운 요청. 시작 모달이 이것을 보인다 — 닫으면 null
   const [방금, set방금] = useState<number | null>(null);
   // 서비스를 바꾸면 첫 쪽으로. 안 그러면 다른 서비스에서 「없다」를 보여주고 왜인지 말하지 않는다
@@ -96,7 +115,11 @@ export function Authoring({ service, envs = [], 할수 }: { service: string; env
     setPage(1);
   }
 
-  const 줄들 = useAsync<Paged<AuthoringRow>>(() => api.authoringRequests(service, page), [service, page]);
+  const 줄들 = useAsync<Paged<AuthoringListRow>>(() => api.authoringRequests(service, page, 할일만), [service, page, 할일만]);
+  const 거르기 = (값: boolean) => {
+    set할일만(값);
+    setPage(1);
+  };
   const reload = 줄들.reload;
 
   // **맥이 뒤에서 이어 간다.** 안 읽으면 사람이 손으로 새로고침할 때까지 화면이
@@ -120,14 +143,28 @@ export function Authoring({ service, envs = [], 할수 }: { service: string; env
 
       <div className="screen list-screen">
         {!할수('작성요청') ? null : (
-          <AuthoringNew service={service} envs={envs} on넣었다={(id) => {
+          <AuthoringNew service={service} envs={envs} 운영자={할수('설정')} on넣었다={(id) => {
               줄들.reload();
               set방금(id);
             }} />
         )}
 
+        <div className="toolbar">
+          <span className="filter-group">
+            <span className="filter-label">{t('표시')}</span>
+            <button className="chip" type="button" aria-pressed={!할일만} onClick={() => 거르기(false)}>
+              {t('전체')}
+            </button>
+            <button className="chip" type="button" aria-pressed={할일만} onClick={() => 거르기(true)}>
+              {t('손이 필요한 것')}
+            </button>
+          </span>
+        </div>
+
         <div className="rows-scroll">
-          {줄들.data.items.length === 0 ? (
+          {줄들.data.items.length === 0 && 할일만 ? (
+            <div className="empty">{t('사람 손이 필요한 요청이 없습니다')}</div>
+          ) : 줄들.data.items.length === 0 ? (
             <div className="empty">
               {t('아직 작성을 요청한 기록이 없습니다')}
               <small>{t(할수('작성요청') ? '기획서를 넣으면 여기에 줄이 생깁니다' : '작성 요청이 들어오면 여기에 줄이 생깁니다')}</small>
@@ -136,7 +173,7 @@ export function Authoring({ service, envs = [], 할수 }: { service: string; env
             <>
               <표머리 />
               {줄들.data.items.map((것) => (
-                <작성줄 key={것.id} 것={것} 지금={지금} />
+                <작성줄 key={것.id} 것={것} 지금={지금} 운영자={할수('설정')} />
               ))}
             </>
           )}

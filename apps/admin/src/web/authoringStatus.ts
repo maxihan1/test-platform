@@ -1,11 +1,16 @@
 // 작성 요청 한 건을 Status 카드의 단계 막대 · 시간 막대로 바꾸는 판단. 그림은 AuthoringStatusCard.tsx (DESIGN.md 「작성 상태」)
 
 import type { AuthoringProgress, AuthoringRow } from './api.js';
+import { 실패글 } from './authoringFailText.js';
 import { 고치기실행인가 } from './authoringView.js';
 import { t, type 언어 } from './i18n.js';
 
-/** 단계 막대의 다섯 칸 (말 키) */
-export const 단계이름들 = ['준비', '자료 · PRD 읽기', '스크립트 작성', '저장 · PR 생성', '완료'] as const;
+/**
+ * 단계 막대의 칸 (말 키). PR 을 만든 뒤에도 사람이 할 일(값 채우기 · 겹침 · 반영)이 남는다 —
+ * 앞 판은 PR 칸 다음이 바로 「완료」라 반영 전에 다 끝난 것처럼 보였다 (2026-10-19 ⑫ · 점검 12.1)
+ */
+export const 단계이름들 = ['준비', '자료 · PRD 읽기', '스크립트 작성', '저장 · PR 생성', '반영', '케이스 등록'] as const;
+const 반영칸 = 4;
 
 export function 단계라벨(이름: (typeof 단계이름들)[number], 언어: 언어): string {
   return t(이름, 언어);
@@ -71,29 +76,30 @@ export function 아는단계글(stage: string): boolean {
   return Object.hasOwn(단계글, stage);
 }
 
-/** 머지 · 케이스 고치기는 자식을 안 띄워 이 다섯 칸을 안 밟는다 — null 이면 카드가 막대를 안 그린다 */
-export function 단계자리(행: AuthoringRow): 자리 | null {
-  if (행.kind === 'MERGE' || 고치기실행인가(행)) return null;
-  if (행.status === 'DONE') return { 끝난: 단계이름들.length, 지금: null, 멈춤: null };
+/**
+ * 케이스 고치기는 작성 칸을 안 밟는다 — null 이면 카드가 막대를 안 그린다.
+ * `최신` 은 뿌리의 최신 실행(실패한 반영 포함, 상세의 runs[0])이다 — 반영 칸은 그것으로 정한다. 안 주면 행 자신이다.
+ * 반영이 병합되면 서버가 그 서비스를 다시 훑어 케이스가 목록에 오른다 — 그래서 「케이스 등록」까지 끝난 것으로 본다
+ */
+export function 단계자리(
+  행: Omit<AuthoringRow, 'assets'>,
+  맥락: { 뿌리종류?: AuthoringRow['kind']; 최신?: Pick<AuthoringRow, 'kind' | 'status'> } = {},
+): 자리 | null {
+  if (맥락.뿌리종류 === 'EDIT' || 고치기실행인가(행)) return null;
+  const 최신 = 맥락.최신 ?? 행;
+  if (최신.kind === 'MERGE') {
+    if (최신.status === 'DONE') return { 끝난: 단계이름들.length, 지금: null, 멈춤: null };
+    const 멈춤 = 최신.status === 'FAILED' ? 'failed' : 최신.status === 'STOPPED' ? 'stopped' : null;
+    return { 끝난: 반영칸, 지금: 반영칸, 멈춤 };
+  }
+  // 작성은 끝났고 반영을 기다린다 — 사람이 값 · 겹침을 고르고 반영을 누를 차례다
+  if (행.status === 'DONE') return { 끝난: 반영칸, 지금: 반영칸, 멈춤: null };
   if (행.status === 'DRAFT' || 행.status === 'PENDING') return { 끝난: 0, 지금: null, 멈춤: null };
   // 집히기 전에 줄에서 뺀 것 — 준비 칸에서 멈춘 것처럼 그리면 시작한 적 있는 것으로 읽힌다
   if (행.status === 'STOPPED' && 행.startedAt === null) return { 끝난: 0, 지금: null, 멈춤: 'stopped' };
   const 칸 = 단계칸(행.stage, Boolean(행.progress));
   const 멈춤 = 행.status === 'FAILED' ? 'failed' : 행.status === 'STOPPED' ? 'stopped' : null;
   return { 끝난: 칸, 지금: 칸, 멈춤 };
-}
-
-/**
- * 번호는 지금(또는 멈춘) 단계, 비율은 **끝낸 단계 수**다 — 3단계가 도는 중이면 「3단계 진행 중 · 40%」.
- * 앞 판은 도는 칸까지 막대에 채워 60% 로 적었는데, 멈춘 것은 40% 라 같은 번호에 %가 둘이었다 (2026-09-28 화면 검사)
- */
-export function 진척(자리: 자리): { 번호: number; 비율: number } {
-  return { 번호: 자리.지금 === null ? 자리.끝난 : 자리.지금 + 1, 비율: 자리.끝난 / 단계이름들.length };
-}
-
-/** 마지막 활동 글. 에이전트가 흘릴줄 앞에 붙이는 표지(`· ` 도구 · `» ` 말)를 뗀다 */
-export function 활동글(글: string): string {
-  return 글.replace(/^[·»]\s*/u, '');
 }
 
 /** 숫자 칸 넷이 다 숫자인 진척만 쓴다 — 자식이 끝난 뒤 서버가 childRunning 만 내린 반쪽이 올 수 있다 */
@@ -142,15 +148,15 @@ export function 시간판(행: AuthoringRow, 지금: number): 시간 {
  * 목록 한 줄의 글. 에이전트의 날것 단계 글(`끝` · 빈 칸)을 그대로 보이지 않는다 —
  * 도는 것은 지금 하는 일, 끝난 것은 결과 한 문장이다 (2026-09-28 사용자 「워딩이 이상하다」)
  */
-export function 목록글(행: AuthoringRow, 언어: 언어): string {
+export function 목록글(행: Omit<AuthoringRow, 'assets'>, 언어: 언어, 운영자 = false): string {
   // 올리는 도중에도, 올리다 멈춰 버려진 뒤에도 DRAFT 다 — 둘 다에 맞는 말을 쓴다
   if (행.status === 'DRAFT') return t('자료 올리기가 끝나지 않았습니다', 언어);
   if (행.status === 'PENDING') return t('에이전트 순서를 기다리는 중', 언어);
   if (행.status === 'RUNNING') return 행.stage === null ? t('준비', 언어) : 단계글라벨(행.stage, 언어);
-  if (행.status === 'FAILED') return 행.error?.split('\n')[0] ?? t('실패', 언어);
+  if (행.status === 'FAILED') return 행.error == null ? t('실패', 언어) : 실패글(행.error, 언어, 운영자).글;
   if (행.status === 'STOPPED') {
     // 거절은 고칠 것이 까닭에 있다 — 몇 단계에서 멈췄는지보다 그것이 먼저다 (작성 §7 「이어하기」)
-    if (행.stopReason === 'REJECTED' && 행.error) return `${t('올리기 거절', 언어)} — ${행.error.split('\n')[0]}`;
+    if (행.stopReason === 'REJECTED' && 행.error) return `${t('올리기 거절', 언어)} — ${실패글(행.error, 언어, 운영자).글}`;
     if (행.startedAt === null) return t('시작 전에 멈췄습니다', 언어);
     // 고치기는 단계 막대가 없다 — 「준비 단계에서」라 하면 어디서 멈췄는지 거짓말을 한다
     if (고치기실행인가(행)) return t('고치는 중에 멈췄습니다', 언어);
@@ -162,13 +168,6 @@ export function 목록글(행: AuthoringRow, 언어: 언어): string {
   return 진척이찼나(행.progress)
     ? t('스크립트 파일 {수}개를 만들었습니다', 언어, { 수: 행.progress.caseFiles })
     : t('테스트 코드를 PR 로 올렸습니다', 언어);
-}
-
-const 줄임 = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
-
-/** 1234567 → 1.2M. 칸이 좁고 하한값이라 자릿수까지 셀 까닭이 없다 */
-export function 짧은수(n: number): string {
-  return 줄임.format(n);
 }
 
 /**

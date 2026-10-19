@@ -8,6 +8,7 @@ import { AuthoringNew } from './AuthoringNew.js';
 const 부름: { 무엇: string; 값: unknown }[] = [];
 let 만들기답: Promise<{ id: number }> = Promise.resolve({ id: 1 });
 let 올리기답: (이름: string) => Promise<{ id: number }> = () => Promise.resolve({ id: 1 });
+let 치우기답: Promise<unknown> = Promise.resolve({});
 
 vi.mock('./api.js', async () => {
   const 진짜 = await vi.importActual<typeof import('./api.js')>('./api.js');
@@ -22,6 +23,10 @@ vi.mock('./api.js', async () => {
         부름.push({ 무엇: '올리기', 값: { id, 이름: file.name } });
         return 올리기답(file.name);
       },
+      discardAuthoring: (_service: string, id: number) => {
+        부름.push({ 무엇: '치우기', 값: { id } });
+        return 치우기답;
+      },
       submitAuthoringRequest: (_service: string, id: number) => {
         부름.push({ 무엇: '세우기', 값: { id } });
         return Promise.resolve({ ok: true });
@@ -34,6 +39,7 @@ beforeEach(() => {
   부름.length = 0;
   만들기답 = Promise.resolve({ id: 7 });
   올리기답 = () => Promise.resolve({ id: 1 });
+  치우기답 = Promise.resolve({});
 });
 
 afterEach(() => {
@@ -131,7 +137,7 @@ describe('새 작성 요청 — 자료 목록', () => {
     풀기({ id: 1 });
   });
 
-  it('올리다 중간에 실패하면 줄에 세우지 않고 새 요청으로 다시 넣으라고 알린다', async () => {
+  it('올리다 중간에 실패하면 줄에 세우지 않고 그 요청을 치운 뒤 새 요청으로 다시 넣으라고 알린다 (⑫ 점검 11.6)', async () => {
     let 넣었다 = 0;
     올리기답 = (이름) =>
       이름 === '둘.docx' ? Promise.reject(new ApiError(413, 'Payload Too Large', '')) : Promise.resolve({ id: 1 });
@@ -141,9 +147,20 @@ describe('새 작성 요청 — 자료 목록', () => {
     fireEvent.click(보내기());
 
     await screen.findByText(/이 요청은 대기열에 들어가지 못했습니다\. 새 요청으로 다시 넣으세요/);
-    expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '올리기']);
+    expect(부름.map((b) => b.무엇)).toEqual(['만들기', '올리기', '올리기', '치우기']);
+    expect(부름.at(-1)?.값).toEqual({ id: 7 });
     expect(screen.getByText(/둘\.docx/)).toBeTruthy();
+    expect(screen.queryByText(/목록에 남은 그 줄은 폐기하세요/)).toBeNull();
     expect(넣었다).toBe(0);
+  });
+
+  it('치우기도 실패하면 남은 줄을 폐기하라고 덧붙인다 — 왜 줄이 남았는지 말한다', async () => {
+    올리기답 = () => Promise.reject(new ApiError(500, 'boom', ''));
+    치우기답 = Promise.reject(new ApiError(500, 'boom', ''));
+    render(<AuthoringNew service="PAY" on넣었다={() => {}} />);
+    파일을고른다('하나.pdf');
+    fireEvent.click(보내기());
+    expect(await screen.findByText(/목록에 남은 그 줄은 폐기하세요/)).toBeTruthy();
   });
 
   it('받지 않는 종류를 고르면 보내기 전에 이유를 보이고 버튼을 끈다', () => {

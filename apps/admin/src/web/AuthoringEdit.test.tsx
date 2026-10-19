@@ -29,7 +29,13 @@ vi.mock('./api.js', async () => {
         const 것 = 답들.get(id);
         return 것 === undefined ? Promise.reject(new Error(`없는 번호 ${String(id)}`)) : Promise.resolve(것);
       },
-      authoringRequests: () => Promise.resolve({ items: 줄들, total: 줄들.length, page: 1, pageSize: 50 }),
+      authoringRequests: () =>
+        Promise.resolve({
+          items: 줄들.map((x) => ({ ...x, assets: null, todo: { heldOpen: 0, conflictsOpen: 0, apply: null } })),
+          total: 줄들.length,
+          page: 1,
+          pageSize: 50,
+        }),
       createAuthoringMerge: () => Promise.resolve({ id: 2 }),
       stopAuthoring: () => Promise.resolve({ status: 'STOPPED' as const }),
       discardAuthoring: 폐기,
@@ -255,8 +261,9 @@ describe('작성 목록의 케이스 고치기 줄', () => {
     render(<Authoring service="PAY" 할수={() => true} />);
 
     expect(await screen.findByText(/2차 · 다시 적용/)).toBeTruthy();
-    expect(screen.getByText('스크립트를 고쳐 PR 을 만들었습니다')).toBeTruthy();
-    expect(screen.getAllByText(/케이스 고치기/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/스크립트를 고쳐 PR 을 만들었습니다/)).toBeTruthy();
+    // 자료가 없는 고치기 줄은 제목이 「케이스 고치기」다
+    expect(screen.getAllByRole('link', { name: '케이스 고치기' })).toHaveLength(2);
     expect(screen.getByText('고치는 중')).toBeTruthy();
   });
 });

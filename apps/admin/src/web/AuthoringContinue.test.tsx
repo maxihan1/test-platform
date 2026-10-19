@@ -220,7 +220,7 @@ describe('이어 작성 요청 — 원본 표시', () => {
         <AuthoringDetail service="MKT" id={5873} 할수={다됨} />
       </언어함>,
     );
-    await screen.findByText('#5873');
+    await screen.findByText(/#5873/);
     답들.set(5901, 뿌리());
     window.location.hash = '#/authoring/5901';
     화면.rerender(

@@ -58,7 +58,7 @@ describe('알림 줄', () => {
     expect(await screen.findByText('RUN 2113 실행 중 · 기능 전체 382건 · 기능 테스트 · 대상 서버 qa · 12 / 40 완료 · 실패 2')).toBeTruthy();
     expect(screen.getByText('남은 시간 계산 중')).toBeTruthy();
     expect(screen.getAllByRole('link', { name: '열기' }).map((a) => a.getAttribute('href'))).toEqual(['#/runs/2113', '#/authoring/5']);
-    expect(screen.getByText(/#5 작성 요청이 진행 중입니다 · 3 \/ 5 단계 스크립트 작성/)).toBeTruthy();
+    expect(screen.getByText(/#5 작성 요청이 진행 중입니다 · 3 \/ 6 단계 스크립트 작성/)).toBeTruthy();
     expect(screen.getAllByText('결제 서비스')).toHaveLength(2);
   });
 

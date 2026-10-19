@@ -521,8 +521,23 @@ export interface ScheduleSetting {
  * 서버 `authoring/store.ts` 의 `요청` 과 같은 모양이다 — 거기가 정본이고 여기는 화면이 읽는 쪽이다.
  * 화면이 안 쓰는 칸(기획서 본문·소스 스냅샷·사진 폴더)은 싣지 않는다.
  */
+/** 목록 줄의 사람이 할 일 (도메인/작성 §7 목록 todo · 2026-10-19 ⑫) */
+export interface AuthoringTodoCount {
+  heldOpen: number;
+  conflictsOpen: number;
+  apply: 'WAITING' | 'FAILED' | null;
+}
+
+/** 목록 줄 — assets 가 상세의 배열이 아니라 처음 넣은 자료 이름과 나머지 수다 (도메인/작성 §7 목록) */
+export type AuthoringListRow = Omit<AuthoringRow, 'assets'> & {
+  assets: { first: string; more: number } | null;
+  todo: AuthoringTodoCount;
+};
+
 export interface AuthoringRow {
   id: number;
+  /** 다른 서비스의 요청을 고리로 열면 화면이 그 서비스로 옮긴다 (점검 12.14) */
+  serviceId?: number;
   /** EDIT 는 케이스 고치기 (도메인/작성 §3.6 「★ 케이스 고치기」) — 작성 요청처럼 뿌리다 */
   kind: 'AUTHOR' | 'RERUN' | 'MERGE' | 'EDIT';
   sourceId: number | null;
@@ -1067,9 +1082,9 @@ export const api = {
 
   // 작성 대기줄 (SPEC §7 · 도메인/작성 §7). 넣기·읽기는 화면이 부르고
   // 집기·단계·끝내기는 맥이 부른다 — 화면은 그 넷을 안 부른다
-  authoringRequests: (service: string, page: number) =>
-    call<{ items: AuthoringRow[]; total: number; page: number; pageSize: number }>(
-      `/authoring/requests?service=${encodeURIComponent(service)}&page=${page}`,
+  authoringRequests: (service: string, page: number, 할일만 = false) =>
+    call<{ items: AuthoringListRow[]; total: number; page: number; pageSize: number }>(
+      `/authoring/requests?service=${encodeURIComponent(service)}&page=${page}${할일만 ? '&todo=1' : ''}`,
     ),
 
   authoringRequest: (service: string, id: number) =>
