@@ -97,28 +97,17 @@ describe('한 건 창 — 실행 걸기 (SPEC §8.2)', () => {
   });
 });
 
-describe('한 건 창 — 제목 · 디바이스 · 실행 위치', () => {
+describe('한 건 창 — 디바이스 · 실행 위치', () => {
   const 둘다: CaseRow = { ...케이스, platforms: ['desktop', 'mobile'] };
 
-  it('제목 칸은 「{tcId} 실행」으로 열리고 고친 값이 title 로 나간다', async () => {
+  it('실행 제목 칸이 없고 title 을 싣지 않는다 — 서버가 짓는다', async () => {
     const { onRun } = await 그린다();
     서버고르기();
-    expect((screen.getByLabelText('실행 제목') as HTMLInputElement).value).toBe('ZRS-001 실행');
+    expect(screen.queryByLabelText('실행 제목')).toBeNull();
 
-    fireEvent.change(screen.getByLabelText('실행 제목'), { target: { value: '  결제 회귀  ' } });
     fireEvent.click(실행버튼());
 
-    expect(onRun.mock.calls[0]?.[0].title).toBe('결제 회귀');
-  });
-
-  it('제목을 비우면 「{tcId} 실행」이 title 로 나간다', async () => {
-    const { onRun } = await 그린다();
-    서버고르기();
-
-    fireEvent.change(screen.getByLabelText('실행 제목'), { target: { value: '   ' } });
-    fireEvent.click(실행버튼());
-
-    expect(onRun.mock.calls[0]?.[0].title).toBe('ZRS-001 실행');
+    expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('title');
   });
 
   it('디바이스를 하나 끄면 켜 둔 것만 platforms 로 나간다', async () => {

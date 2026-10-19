@@ -3,8 +3,7 @@
 import { useState } from 'react';
 
 import { api } from './api.js';
-import { use말, use언어 } from './i18n.js';
-import { 실행제목 } from './pickRun.js';
+import { use언어 } from './i18n.js';
 import { 실행기록주소 } from './route.js';
 import type { 실행요청 } from './RunPickModal.js';
 import { message } from './ui.js';
@@ -20,7 +19,6 @@ import { message } from './ui.js';
  * 같은 목록에 남아 그 실행만 고른다(주소를 옮기면 목록이 조건을 다시 그려 고른 것을 덮는다)
  */
 export function useRunStart(on걸었다?: (runId: number) => void) {
-  const t = use말();
   const 언어 = use언어();
   // 걸었다 거절당한 사유. **목록 줄에 적으면 창 뒤에 깔린다** — 창 안에 적는다 (SPEC §8.10)
   const [사유, set사유] = useState<string | undefined>(undefined);
@@ -34,7 +32,8 @@ export function useRunStart(on걸었다?: (runId: number) => void) {
     set거는중(true);
     set사유(undefined);
     try {
-      const { runId } = await api.createRun({ ...요청, title: 요청.title ?? 실행제목(요청.items, t) });
+      // 제목은 서버가 짓는다 (도메인/실행 §7 「자동 제목」)
+      const { runId } = await api.createRun(요청);
       // 결과 화면 대신 실행 기록에서 그 실행을 고른 채 연다 — 뒤로 가면 떠난 목록의 조건이 그대로다 (도메인/실행 §8.7 「A안」)
       if (on걸었다 !== undefined) on걸었다(runId);
       else window.location.hash = 실행기록주소(요청.items[0]?.tcId ?? '', runId);

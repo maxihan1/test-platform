@@ -72,7 +72,6 @@ describe('케이스 줄의 ▶ 실행', () => {
     const 창 = within(await screen.findByRole('dialog', { name: '실행할 케이스 1건' }));
     expect(창.getByText('ZPK-002 케이스')).toBeTruthy();
     expect(창.queryByText('ZPK-001 케이스')).toBeNull();
-    expect((창.getByLabelText('실행 제목') as HTMLInputElement).value).toBe('ZPK-002 실행');
     expect(창.getByText('로그인되어 있다')).toBeTruthy();
     expect(창.getByText('실행자 검사')).toBeTruthy();
   });
@@ -89,7 +88,6 @@ describe('케이스 줄의 ▶ 실행', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/runs/fn?run=31'));
     expect(걸기.mock.calls[0]?.[0]).toMatchObject({
       env: 'qa',
-      title: 'ZPK-001 실행',
       items: [{ tcId: 'ZPK-001', platforms: ['desktop', 'mobile'] }],
     });
     expect(screen.queryByRole('dialog')).toBeNull();

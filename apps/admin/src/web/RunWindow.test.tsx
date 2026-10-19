@@ -128,7 +128,7 @@ describe('RunWindow', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     expect(window.location.hash).toBe('#/runs/fn?run=42');
     expect(만들기).toHaveBeenCalledTimes(1);
-    expect(만들기.mock.calls[0]?.[0]).toMatchObject({ env: 'qa', title: 'ZRS-001 실행', items: [{ tcId: 'ZRS-001', platforms: ['desktop'] }] });
+    expect(만들기.mock.calls[0]?.[0]).toMatchObject({ env: 'qa', items: [{ tcId: 'ZRS-001', platforms: ['desktop'] }] });
   });
 
   it('서버가 거절하면 사유가 창에 남고 창은 닫히지 않으며 다시 누를 수 있다', async () => {
