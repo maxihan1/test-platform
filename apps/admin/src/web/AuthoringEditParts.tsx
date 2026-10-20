@@ -9,6 +9,7 @@ import type { 고칠줄 } from './authoringView.js';
 import type { 기대값 } from '../authoring/edit.js';
 import { use말 } from './i18n.js';
 import type { 판정 } from './role.js';
+import { 기다림글자 } from './ui.js';
 
 /** 케이스마다 한 줄 — 삭제 · 기대값 · 확정. 옛 값은 요청에 없어 PR 본문에서 본다 */
 export function 고칠내용({ 목록 }: { 목록: 고칠줄[] }) {
@@ -64,7 +65,7 @@ export function 고치기할일({ service, 요청, 할수, 보내는중, 새줄�
           disabled={보내는중}
           onClick={() => 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 원본 }))}
         >
-          {보내는중 ? t('시작하는 중…') : t('다시 적용')}
+          <기다림글자 중={보내는중} 평소={t('다시 적용')} 기다림={t('시작하는 중…')} />
         </button>
       ) : null}
     </일>

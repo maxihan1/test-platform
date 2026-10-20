@@ -5,7 +5,7 @@ import { useState, type ReactNode } from 'react';
 
 import { api, type CaseQuery } from './api.js';
 import { use말, use언어 } from './i18n.js';
-import { message, 받을이름, 파일로저장 } from './ui.js';
+import { message, 기다림글자, 받을이름, 파일로저장 } from './ui.js';
 
 // 버튼은 검색 줄에, 알림은 목록 위에 선다 — 자리가 둘이라 조각 둘을 돌려준다
 export function use엑셀받기(조건: CaseQuery, 건수: number | null): { 버튼: ReactNode; 알림: ReactNode } {
@@ -30,7 +30,7 @@ export function use엑셀받기(조건: CaseQuery, 건수: number | null): { 버
   return {
     버튼: (
       <button className="btn ghost case-export" onClick={() => void 받기()} disabled={받는중 || (건수 ?? 0) === 0}>
-        {받는중 ? t('만드는 중…') : t('이 결과 엑셀로 ({건수}건)', { 건수: 건수 ?? 0 })}
+        <기다림글자 중={받는중} 평소={t('이 결과 엑셀로 ({건수}건)', { 건수: 건수 ?? 0 })} 기다림={t('만드는 중…')} />
       </button>
     ),
     알림:
