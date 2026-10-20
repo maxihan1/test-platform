@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
 
-import { 앱파일고르기, 앱화면읽기, type 폰잡기 } from './appScreen.js';
+import { 앱탐색주소, 앱파일고르기, 앱화면읽기, type 폰잡기 } from './appScreen.js';
 
 const 답 = (몸: unknown, status = 200) => vi.fn(async () => new Response(JSON.stringify(몸), { status })) as unknown as typeof fetch;
 
@@ -37,6 +37,24 @@ describe('앱파일고르기', () => {
   it('경로가 하나도 없으면 null — 앱이 없는 서비스', () => {
     expect(앱파일고르기([{ env: 'dev', appPath: null, isProd: false }], null)).toBeNull();
     expect(앱파일고르기([], 'dev')).toBeNull();
+  });
+});
+
+describe('앱탐색주소', () => {
+  it('앱 파일 경로와 팜이 다 있으면 팜의 Appium 주소(/wd/hub)와 앱 파일을 준다', () => {
+    expect(앱탐색주소('http://files/app.apk', 'http://host.docker.internal:4723')).toEqual({
+      url: 'http://host.docker.internal:4723/wd/hub',
+      app: 'http://files/app.apk',
+    });
+  });
+
+  it('팜 주소에 /wd/hub 가 이미 붙어 있으면 다시 붙이지 않는다 — SETUP 이 안내하는 꼴이다', () => {
+    expect(앱탐색주소('/apk/qa.apk', 'http://host.docker.internal:4723/wd/hub')?.url).toBe('http://host.docker.internal:4723/wd/hub');
+  });
+
+  it('앱이 없거나 팜이 없으면 null — AI 가 붙을 폰이 없다', () => {
+    expect(앱탐색주소(null, 'http://farm:4723')).toBeNull();
+    expect(앱탐색주소('/apk/qa.apk', undefined)).toBeNull();
   });
 });
 

@@ -11,6 +11,8 @@ import { 도는집은요청 } from '../prd/agentRoutes.js';
 import { 대상줄들읽기 } from './reverse.js';
 
 export type 앱화면답 = { screen: string | null; reason: string | null };
+/** 작성 AI 가 appium-cli 로 폰을 눌러 가며 읽을 때 붙을 팜 Appium 주소와 앱 파일 — 첫 화면을 못 읽었어도 준다 (§3.6 「앱 화면」 「눌러 가며 읽기」) */
+export type 앱탐색 = { url: string; app: string };
 
 /** 팜에서 폰을 잡아 그 번호로 일을 맡기고 놓는다 — 라우트는 팜폰으로, 검사는 가짜를 넘긴다 */
 export type 폰잡기 = (일: (udid: string) => Promise<앱화면답>, 못잡음: (까닭: string) => 앱화면답) => Promise<앱화면답>;
@@ -58,6 +60,14 @@ async function 러너에묻는다(appPath: string, udid: string, 러너: string,
   }
 }
 
+/**
+ * 앱이 있고 팜이 붙었을 때만. 팜 주소는 admin 이 보는 주소 그대로다 — 작성 컨테이너도 같은 이름으로 닿는다(docker-compose author extra_hosts).
+ * DEVICE_FARM_URL 은 `/wd/hub` 가 붙은 꼴로 안내한다(SETUP 「디바이스 팜」) — 붙었든 안 붙었든 한 번만 붙인다
+ */
+export function 앱탐색주소(appPath: string | null, 팜: string | undefined): 앱탐색 | null {
+  return appPath === null || 팜 === undefined ? null : { url: `${팜.replace(/\/wd\/hub$/, '')}/wd/hub`, app: appPath };
+}
+
 /** 요청에 대상 서버가 있으면 그 줄의 앱 파일 경로, 없으면 앱 파일 경로가 있는 첫 줄(env 순). 「운영 서버」 줄은 어느 쪽이든 건너뛴다 (§3.6 「★ 역할별 계정」 「운영 서버」) */
 export function 앱파일고르기(줄들: { env: string; appPath: string | null; isProd: boolean }[], env: string | null): string | null {
   const 줄 = 줄들.filter((j) => !j.isProd).find((j) => (env === null ? j.appPath !== null : j.env === env));
@@ -70,6 +80,7 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     if (행 === null) return reply;
     const appPath = 앱파일고르기(await 대상줄들읽기(행.serviceId), 행.env);
     const 팜 = 팜주소();
-    return 앱화면읽기(appPath, runnerUrl(), 팜 === undefined ? undefined : (일, 못잡음) => 팜폰으로(팜, 일, 못잡음));
+    const 답 = await 앱화면읽기(appPath, runnerUrl(), 팜 === undefined ? undefined : (일, 못잡음) => 팜폰으로(팜, 일, 못잡음));
+    return { ...답, appium: 앱탐색주소(appPath, 팜) };
   });
 }
