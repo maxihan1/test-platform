@@ -276,7 +276,7 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     const 만드는중 = await claim(runId, 'PDF');
     expect((await app.inject({ method: 'GET', url: `/api/evidence/${String(만드는중.id)}` })).statusCode).toBe(409);
 
-    await fail(만드는중.id, '증적 문서를 만들지 못했습니다');
+    await fail(만드는중.id, '리포트를 만들지 못했습니다');
     const 실패 = await app.inject({ method: 'GET', url: `/api/evidence/${String(만드는중.id)}` });
     expect(실패.statusCode).toBe(409);
     expect(실패.json().error).toBe('EVIDENCE_NOT_READY');

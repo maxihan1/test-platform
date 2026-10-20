@@ -50,7 +50,7 @@ export function TrialControls({
         ))}
       </select>
       {/* 옆의 「실행」과 무엇이 다른지 단추에서 알 수 있게 한다 */}
-      <button type="button" className="btn ghost" title={t('기록 · 증적이 남지 않습니다')} disabled={도는중} onClick={on시작}>
+      <button type="button" className="btn ghost" title={t('기록 · 리포트가 남지 않습니다')} disabled={도는중} onClick={on시작}>
         {도는중 ? t('시험 실행 중') : t('시험 실행')}
       </button>
     </>
@@ -97,7 +97,7 @@ export function TrialTab({ 시험, 단계들, 재료 }: { 시험: 시험상태; 
   return (
     <div className="scn-trial">
       <p className="scn-trial-intro">
-        {t('시험 실행은 기록에 남지 않고 증적도 만들지 않습니다. 저장하지 않은 변경 내용으로도 실행해 볼 수 있습니다')}
+        {t('시험 실행은 기록에 남지 않고 리포트도 만들지 않습니다. 저장하지 않은 변경 내용으로도 실행해 볼 수 있습니다')}
       </p>
       {시험.단계 === 'running' ? (
         <p className="scn-trial-intro" role="status">

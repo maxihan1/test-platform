@@ -16,10 +16,10 @@ export interface EvidenceRow {
   generatedAt: string;
 }
 
-/** 이미 만드는 중이면 EvidenceBusyError 를 던진다 */
+/** 이미 만드는 중이면 EvidenceBusyError 를 던진다. 글은 화면 문장 뒤에 붙는 짚음이라 무엇인지만 적는다(web/errorText.ts EVIDENCE_BUSY) */
 export class EvidenceBusyError extends Error {
   constructor(runId: number, format: EvidenceFormat) {
-    super(`실행 ${runId}의 ${format} 증적을 이미 만드는 중이다`);
+    super(`실행 ${runId}의 ${format} 리포트`);
     this.name = 'EvidenceBusyError';
   }
 }

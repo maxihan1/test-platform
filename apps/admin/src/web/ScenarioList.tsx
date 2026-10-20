@@ -46,7 +46,7 @@ export function ScenarioList({ service, envs, 할수 }: { service: string; envs:
   async function 실행(id: number) {
     if (env === '') {
       // 버튼을 잠그지 않고 누르면 사유를 보여준다 (SPEC §8.2)
-      set안내({ id, 글: t('대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.') });
+      set안내({ id, 글: t('대상 서버를 고르세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.') });
       return;
     }
     set안내(null);
@@ -188,7 +188,7 @@ function 치우기확인({ 줄, onClose, on치움 }: { 줄: ScenarioRow; onClose
       <p>
         {줄.name}
         <br />
-        {t('지난 실행 기록과 증적은 그대로 남습니다.')}
+        {t('지난 실행 기록과 리포트는 그대로 남습니다.')}
         <br />
         {t('삭제한 시나리오는 되살릴 수 없습니다.')}
       </p>
