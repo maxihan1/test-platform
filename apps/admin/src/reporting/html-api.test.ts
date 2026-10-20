@@ -80,6 +80,16 @@ describe('API 항목 원문', () => {
     expect(원문글({ request: {}, response: { status: 200, body: 'a'.repeat(1999) } }).response).not.toContain('잘림');
   });
 
+  it('잘림은 항목 비밀값을 가리기 전 길이로 보고, 가린 글에는 비밀값이 안 남는다', () => {
+    const 글 = 원문글({ request: {}, response: { status: 200, body: `${'a'.repeat(1990)}pin-123456` } }, ['pin-123456']);
+    expect(글.response).toBe(`200\n${'a'.repeat(1990)}********\n… 2000자에서 잘림`);
+  });
+
+  it('읽을 것이 없는 원문은 빈 글이고, 글이 아닌 응답 본문은 JSON 으로 편다', () => {
+    expect(원문글({ request: {}, response: {} })).toEqual({ request: '', response: '' });
+    expect(원문글({ request: null, response: { status: 200, body: { id: 1 } } }).response).toBe('200\n{\n  "id": 1\n}');
+  });
+
   it('HTML 은 절차 안에 원문을 접어 두고 확인 문장 아래 응답 형식 검사를 따로 보인다', () => {
     const html = renderHtml(문서([항목('NTF-001', { status: 'FAIL' })]), HTML);
     expect(html).toContain('<details class="trace-fold"><summary class="trace-line">요청 · 응답 원문</summary>');

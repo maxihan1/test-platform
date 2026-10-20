@@ -1,13 +1,13 @@
 // 실행 한 부를 읽어 증적 문서가 쓸 표시용 모델로 바꾼다 (SPEC §3.3)
 // test_case 는 한 줄도 읽지 않는다. 카탈로그를 섞으면 케이스를 고친 날 과거 증적이 같이 흔들린다
 
-import type { DeviceInfo, ItemStatus, Platform, ShapeCheck, StepResult } from '@platform/kit';
+import type { DeviceInfo, ItemStatus, Platform, ShapeCheck } from '@platform/kit';
 
 import type { Pool } from 'pg';
 import { 팜기록글 } from '../execution/farmEvidence.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
-import { type EvidenceTrace, 원문글 } from './apiTrace.js';
+import { api칸, type EvidenceTrace } from './apiTrace.js';
 import { 색코드 } from './failureType.js';
 import { 한줄로자른다 } from './insights.js';
 
@@ -100,7 +100,7 @@ interface RawRun {
   base_url: string;
   started_at: Date;
   kind: string;
-  /** 지운 애플리케이션이면 null — 화면 케이스처럼 원문을 안 싣는다 */
+  /** 실행에 박제하지 않고 읽는다 — 종류는 만들 때 정하고 못 바꾼다(settings/routes.ts) · 실행이 있는 애플리케이션은 외래키가 못 지우게 한다 */
   service_kind: 'SCREEN' | 'API' | null;
 }
 
@@ -140,7 +140,7 @@ interface RawStep {
   assertions: RawAssertion[];
   screenshot_path: string | null;
   error: unknown;
-  http_trace: StepResult['httpTrace'] | null;
+  http_trace: { request: unknown; response: unknown } | null;
   shape_checks: ShapeCheck[] | null;
 }
 
@@ -228,7 +228,6 @@ function toAssertion(a: RawAssertion): EvidenceAssertion {
   };
 }
 
-// 원문 · 형식 검사는 kit 이 가린 것을 항목 비밀값으로 한 번 더 가린다 — 실행 조회 응답(execution/queries.ts)과 같은 규칙이다
 function toStep(row: RawStep, 비밀: string[], api: boolean): EvidenceStep {
   return {
     seq: row.seq,
@@ -237,8 +236,7 @@ function toStep(row: RawStep, 비밀: string[], api: boolean): EvidenceStep {
     durationMs: row.duration_ms,
     assertions: 가린다(row.assertions.map(toAssertion), 비밀) as EvidenceAssertion[],
     screenshotPath: row.screenshot_path,
-    ...(!api || row.http_trace === null ? {} : { httpTrace: 원문글(가린다(row.http_trace, 비밀) as NonNullable<StepResult['httpTrace']>) }),
-    ...(!api || row.shape_checks === null ? {} : { shapeChecks: 가린다(row.shape_checks, 비밀) as ShapeCheck[] }),
+    ...api칸(row, 비밀, api),
   };
 }
 
