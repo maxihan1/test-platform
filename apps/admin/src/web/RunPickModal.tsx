@@ -142,7 +142,7 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
     }
     if (env === '') {
       // 버튼을 비활성화하지 않는다. 누르면 사유를 보여준다 (SPEC §8.2 · DESIGN.md)
-      setNotice(t('대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.'));
+      setNotice(t('대상 서버를 고르세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.'));
       return;
     }
     onRun({

@@ -323,7 +323,7 @@ describe('RunPickModal 테스트 실행', () => {
 
   it('시험해 보기에는 기록 · 증적이 남지 않는다고, 실행 곁에는 기록이 남는다고 화면 글자로 적는다', () => {
     그리기();
-    expect(screen.getByText('기록·증적이 남지 않습니다')).toBeTruthy();
+    expect(screen.getByText('기록·리포트가 남지 않습니다')).toBeTruthy();
     expect(screen.getByText('기록이 남습니다')).toBeTruthy();
     expect(테스트버튼().hasAttribute('title')).toBe(false);
   });

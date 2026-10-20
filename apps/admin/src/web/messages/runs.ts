@@ -18,7 +18,7 @@ export const 실행말: Record<string, string> = {
 
   // 테스트 실행 (실행 창)
   '▶ 시험해 보기': '▶ Try it',
-  '기록·증적이 남지 않습니다': 'Leaves no record or evidence',
+  '기록·리포트가 남지 않습니다': 'Leaves no record or report',
   '기록이 남습니다': 'Leaves a record',
   '고급 · 시험해 보기 설정': 'Advanced · try-it settings',
   '열 주소': 'Address to open',
@@ -98,8 +98,8 @@ export const 실행말: Record<string, string> = {
   // 실행 창을 여는 다른 자리 — 실행 결과 · 항목 상세 (도메인/실행 §8.10)
   '실패 {건수}건 다시 실행': 'Rerun {건수} failed',
   '비활성이거나 없어 뺀 케이스 {목록}': 'Left out as inactive or missing: {목록}',
-  '대상 서버를 고르세요. 증적에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
-    'Pick a target server. Evidence records which server was hit.',
+  '대상 서버를 고르세요. 리포트에는 어느 서버에서 실행했는지가 꼭 남아야 합니다.':
+    'Pick a target server. The report records which server was hit.',
   '묶음 이름': 'Set name',
   '{이름}으로 저장했습니다.': 'Saved as {이름}.',
   '입력값이 명세와 맞지 않습니다.': 'Inputs do not match the schema.',
@@ -208,7 +208,7 @@ export const 실행말: Record<string, string> = {
   '기대결과 없음': 'No expected result',
   '시험 절차': 'Test steps',
   '실행된 절차가 없습니다.': 'No steps were run.',
-  '이 화면의 구성이 증적 문서에 그대로 출력됩니다.': 'This layout is what the evidence document prints.',
+  '이 화면의 구성이 리포트에 그대로 출력됩니다.': 'This layout is what the report prints.',
   '실행 결과': 'Run results',
   '값 바꿔 재실행': 'Rerun with new values',
   '예': 'Yes',
