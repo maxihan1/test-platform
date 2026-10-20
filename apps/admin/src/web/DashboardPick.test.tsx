@@ -11,7 +11,7 @@ import { 실행목록주소, 조건을주소로, 주소에서조건 } from './Da
 
 const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const 건 = (pass: number, fail: number, notRun: number) => ({ pass, fail, notRun });
-const 기본재료 = { 케이스갈수있나: true, 설정갈수있나: false, 작성서비스: [{ id: 1, name: 'ZDA 결제' }, { id: 2, name: 'ZDA 회원' }] };
+const 기본재료 = { 케이스갈수있나: true, 설정갈수있나: false, 작성서비스: [{ id: 1, name: 'ZDA 결제' }, { id: 2, name: 'ZDA 회원' }], 프로젝트: null };
 
 function 신규(runId: number, tcId: string, serviceId: number, kind: 'UI' | 'FN') {
   return {
@@ -99,6 +99,22 @@ describe('애플리케이션 · 기간 고르기', () => {
     expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, { service: 2 });
     expect(window.location.hash).toBe('#/dashboard?service=2');
     expect((screen.getByRole('combobox', { name: '애플리케이션' }) as HTMLSelectElement).value).toBe('2');
+  });
+
+  it('헤더에서 고른 프로젝트 번호를 싣고, 프로젝트를 바꾸면 고른 애플리케이션을 비우고 다시 읽는다', async () => {
+    const 읽기 = vi.spyOn(api, 'dashboard').mockResolvedValue(응답() as never);
+    const { rerender } = render(<Dashboard 서비스열기={() => {}} {...기본재료} 프로젝트={10} />);
+    await screen.findByText(/애플리케이션 2개/);
+    expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, { project: 10 });
+    fireEvent.change(screen.getByRole('combobox', { name: '애플리케이션' }), { target: { value: '2' } });
+    await screen.findByText(/ZDA 회원 · 최근 14일/);
+    expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, { service: 2, project: 10 });
+
+    rerender(<Dashboard 서비스열기={() => {}} {...기본재료} 프로젝트={20} />);
+    await screen.findByText(/애플리케이션 2개/);
+    expect(읽기).toHaveBeenLastCalledWith(시간대, undefined, { project: 20 });
+    expect(읽기.mock.calls.some(([, , 조건]) => 조건?.project === 20 && 조건.service !== undefined)).toBe(false);
+    expect(window.location.hash).not.toContain('service=');
   });
 
   it('기간을 고르면 그 길이로 읽고 글자의 날 수도 따라간다 — 기본값 14 는 주소에서 빠진다', async () => {

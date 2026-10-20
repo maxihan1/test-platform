@@ -11,7 +11,7 @@ import { Dashboard } from './Dashboard.js';
 const 시간대 = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 /** main.tsx 가 사람의 권한에서 뽑아 넘기는 재료 — 케이스 자리가 있는 사람 · 작성 칸이 read 이상인 애플리케이션 */
-const 기본재료 = { 케이스갈수있나: true, 설정갈수있나: false, 작성서비스: [] as { id: number; name: string }[] };
+const 기본재료 = { 케이스갈수있나: true, 설정갈수있나: false, 작성서비스: [] as { id: number; name: string }[], 프로젝트: null };
 
 function 건(pass: number, fail: number, notRun: number) {
   return { pass, fail, notRun };
