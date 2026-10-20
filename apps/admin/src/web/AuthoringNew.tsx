@@ -10,70 +10,15 @@
 import { useRef, useState } from 'react';
 
 import { api, ApiError, type EnvRow } from './api.js';
+import { ApiDocFields, useApiDocs } from './AuthoringNewApi.js';
+import { 거절사유, 받는종류, 운영자작성오류, 자료상한, 작성오류, 피그마거절말 } from './authoringNewText.js';
 import { 크기글 } from './GuideSection.js';
 import { use말, use언어 } from './i18n.js';
 import { message, 기다림글자 } from './ui.js';
 
-// 서버의 받는 종류와 같다. 값의 정본은 도메인/작성 §7 「자료」 표다
-export const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
-// 정본: 도메인/작성 §7 「자료」 — 서버 assets.ts 의 파일상한과 같은 값
-const 파일상한 = 20 * 1024 * 1024;
-// 정본: 도메인/작성 §7 「자료」 — 파일과 피그마를 합친 수. 서버 assetStore.ts 의 자료상한과 같은 값
-const 자료상한 = 20;
+export { 거절사유, 받는종류 } from './authoringNewText.js';
 
 const 같은파일 = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
-
-/**
- * 서버가 거절할 파일을 보내기 전에 거른다. 거절 이유(말 키)를 돌려준다.
- * 보낸 뒤에 걸리면 이미 만든 요청이 「준비 중」으로 남고 되살릴 길이 없다 (§7 「자료」)
- */
-export function 거절사유(파일: File): string | null {
-  const 점 = 파일.name.lastIndexOf('.');
-  // 점이 맨 앞뿐인 이름(`.md`)은 서버의 extname 이 확장자 없음으로 읽는다. 여기서도 같게 본다
-  if (점 <= 0 || !받는종류.split(',').includes(파일.name.slice(점).toLowerCase())) {
-    return '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다';
-  }
-  // 서버 assets.ts 의 이름인가와 같은 규칙. `"` 를 \u0022 로 적은 것은 messages.test 의 글자 훑기가
-  // 정규식 안의 따옴표를 문자열 시작으로 읽기 때문이다
-  if (파일.name.includes('..') || /[\u0022/\\\u0000-\u001f\u007f]/.test(파일.name)) {
-    return '파일 이름에 쓸 수 없는 글자(따옴표 · 빗금 · ..)가 있습니다';
-  }
-  if (파일.size === 0) return '빈 파일은 올릴 수 없습니다';
-  if (파일.size > 파일상한) return '파일 크기가 한 파일 상한을 넘었습니다';
-  return null;
-}
-
-// 이 폼에서만 만나는 서버 코드. 모르면 공통 번역(message)으로 넘긴다
-const 작성오류: Record<string, string> = {
-  BAD_FIGMA_URL: '피그마 주소 형식이 맞지 않습니다. 피그마 디자인 파일의 링크를 넣으세요 (FigJam은 받지 않습니다)',
-  BAD_FILE_TYPE: '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다',
-  BAD_NAME: '파일 이름에 쓸 수 없는 글자(따옴표 · 빗금 · ..)가 있습니다',
-  TOO_MANY_ASSETS: '한 요청에 넣을 수 있는 자료 개수를 넘었습니다',
-  NO_ASSETS: '자료가 하나도 없습니다. 파일이나 피그마 주소를 넣으세요',
-  NOT_REQUESTER: '요청한 사람만 자료를 올릴 수 있습니다',
-  // 역방향 (도메인/작성 §7 AUTHOR 역방향). 화면은 계정 없는 줄을 미리 거르지 않는다 — 서버 거절을 풀어 준다.
-  // 설정 메뉴가 없는 사람에게 「설정 > 서비스」는 따라갈 수 없는 길이다 — 아래 `운영자작성오류` 가 덮는다 (점검 11.3)
-  BAD_ENV: '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 운영자에게 확인을 요청하세요',
-  BAD_START_URL: '시작 주소는 고른 대상 서버와 같은 주소(도메인 · 포트)여야 합니다',
-};
-const 운영자작성오류: Record<string, string> = {
-  BAD_ENV: '이 대상 서버에는 테스트 계정이 없거나 실서비스 서버로 체크돼 있습니다. 설정 > 애플리케이션에서 확인하세요',
-};
-
-// 피그마 토큰이 없을 때(폼 잠금 안내와 서버 거절 NO_TOKEN) · 피그마가 토큰을 안 받을 때(TOKEN)의 안내.
-// 고칠 곳이 설정이라 설정 메뉴를 볼 수 있는 사람(운영자)과 그 밖이 갈린다. 뒷말이 [운영자, 그 밖] 순이다
-const 토큰없음 = '이 애플리케이션에는 피그마 토큰이 없어 피그마 주소를 받을 수 없습니다.';
-const 토큰안내 = ['설정 > 애플리케이션에서 피그마 토큰을 넣으세요', '운영자에게 피그마 토큰을 넣어 달라고 요청하세요'] as const;
-const 토큰틀림 = '피그마가 이 애플리케이션의 토큰을 받아 주지 않습니다. 토큰이 틀렸거나 만료됐거나 읽기 권한이 모자랍니다.';
-const 토큰다시 = ['설정 > 애플리케이션에서 새 피그마 토큰을 넣으세요', '운영자에게 새 피그마 토큰을 넣어 달라고 요청하세요'] as const;
-
-/** 서버가 피그마를 못 열어 거절한 까닭(`FIGMA_DENIED` 의 detail — 도메인/작성 §7 「자료」 「미리 열어 보기」)을 문장으로 */
-function 피그마거절말(까닭: string, 운영자: boolean, t: ReturnType<typeof use말>): string {
-  const 칸 = 운영자 ? 0 : 1;
-  if (까닭 === 'NO_TOKEN') return `${t(토큰없음)} ${t(토큰안내[칸])}`;
-  if (까닭 === 'TOKEN') return `${t(토큰틀림)} ${t(토큰다시[칸])}`;
-  return t('피그마 파일을 열지 못했습니다. 파일이 없거나 이 토큰으로 볼 권한이 없습니다 ({주소})', { 주소: 까닭.replace(/^FILE:/, '') });
-}
 
 export function AuthoringNew({
   service,
@@ -81,9 +26,12 @@ export function AuthoringNew({
   운영자 = false,
   피그마토큰 = true,
   대조처음 = false,
+  serviceId,
   on넣었다,
 }: {
   service: string;
+  /** 이 애플리케이션의 번호. 있으면 API 종류인지 물어 API 문서 칸으로 바꾼다. 없으면 화면 폼이다 */
+  serviceId?: number;
   /** 띠의 서비스가 가진 대상 서버. 계정 여부는 모른다 — `/auth/me` 에는 안 온다 (도메인/인증 §7) */
   envs?: EnvRow[];
   /** 설정 메뉴를 볼 수 있는 사람(admin). 아니면 「운영자에게 요청하세요」로 안내한다 */
@@ -103,15 +51,22 @@ export function AuthoringNew({
   const [오류, set오류] = useState<string | null>(null);
   const 고르개 = useRef<HTMLInputElement>(null);
   // 역방향 (도메인/작성 §3.6 「★ 역방향」). 대상 서버는 고르지 않으면 첫 줄이다
-  const [대조, set대조] = useState(대조처음);
+  const [대조켜짐, set대조] = useState(대조처음);
   const [고른서버, set고른서버] = useState<string | null>(null);
   const [시작주소, set시작주소] = useState('');
   // 고른 값이 지금 서비스의 목록에 있을 때만 쓴다 — 띠에서 서비스를 바꿔도 이 폼은 그대로 남아
   // 옛 서비스에서 고른 서버를 들고 있다. 안 보면 화면에 보이는 서버와 다른 것을 보낸다 (2026-09-26 검사)
-  const 서버 = envs.some((it) => it.env === 고른서버) ? 고른서버 : (envs[0]?.env ?? null);
+  const 문서 = useApiDocs(serviceId);
+  const api모드 = 문서.버전들 !== null;
+  const [고른판, set고른판] = useState<number | null>(null);
+  // API 애플리케이션은 화면이 없다 — 대조도 피그마도 없고, 운영 서버는 작성 중 실행이 갈 곳이 아니다 (도메인/작성 §7)
+  const 후보 = api모드 ? envs.filter((it) => it.isProd !== true) : envs;
+  const 판 = 문서.버전들?.some((v) => v.version === 고른판) === true ? 고른판 : (문서.버전들?.[0]?.version ?? null);
+  const 대조 = !api모드 && 대조켜짐;
+  const 서버 = 후보.some((it) => it.env === 고른서버) ? 고른서버 : (후보[0]?.env ?? null);
   const 주소 = 시작주소.trim();
 
-  const 주소들 = (피그마토큰 ? 피그마 : '')
+  const 주소들 = (피그마토큰 && !api모드 ? 피그마 : '')
     .split('\n')
     .map((줄) => 줄.trim())
     .filter((줄) => 줄 !== '');
@@ -124,7 +79,8 @@ export function AuthoringNew({
   // 화면만(대조 + 자료 0)은 기획서 없이 그 화면을 훑는다 — 시작 주소가 없어도 크롤러가 대상 서버 주소에서 시작한다 (§7 submit)
   const 빈것 = 파일들.length === 0 && 주소들.length === 0 && !대조;
   const 서버없음 = 대조 && 서버 === null;
-  const 못보낸다 = 빈것 || 거절.size > 0 || 너무많다 || 서버없음;
+  const 못보낸다 =
+    문서.대기 || 거절.size > 0 || 너무많다 || (api모드 ? 판 === null || 서버 === null : 빈것 || 서버없음);
 
   function 사유(err: unknown): string {
     if (err instanceof ApiError && err.status === 413) return t('파일 크기가 한 파일 상한을 넘었습니다');
@@ -145,7 +101,12 @@ export function AuthoringNew({
       // 대조가 아니면 역방향 칸을 아예 싣지 않는다 — 서버는 대조 아닌 요청의 env·startUrl 을 거절한다
       const 역방향 =
         대조 && 서버 !== null ? { compare: true as const, env: 서버, ...(주소 === '' ? {} : { startUrl: 주소 }) } : {};
-      ({ id } = await api.createAuthoringRequest(service, { kind: 'AUTHOR', figma: 주소들, ...역방향 }));
+      ({ id } = await api.createAuthoringRequest(
+        service,
+        api모드 && 판 !== null && 서버 !== null
+          ? { kind: 'AUTHOR', figma: [], apiDoc: 판, env: 서버 }
+          : { kind: 'AUTHOR', figma: 주소들, ...역방향 },
+      ));
     } catch (err) {
       set오류(사유(err));
       set보내는중(false);
@@ -191,6 +152,19 @@ export function AuthoringNew({
         void 보낸다();
       }}
     >
+      {문서.버전들 === null ? null : (
+        <ApiDocFields
+          버전들={문서.버전들}
+          판={판}
+          on판={set고른판}
+          envs={후보}
+          서버={서버}
+          on서버={set고른서버}
+          운영자={운영자}
+          disabled={보내는중}
+        />
+      )}
+      {문서.오류 === null ? null : <span className="error-text">{문서.오류}</span>}
       {/* 브라우저 파일 칸은 숨기고 단추로 연다 — 값을 늘 비우므로 그대로 두면 파일을 골라도 「선택된 파일 없음」이 보인다(가이드 화면과 같은 꼴) */}
       <div className="authoring-field">
         <span>{t('PRD')}</span>
@@ -233,59 +207,63 @@ export function AuthoringNew({
           </ul>
         )}
       </div>
-      <label className="authoring-field">
-        <span>{t('피그마 주소')}</span>
-        <textarea
-          className="mono"
-          placeholder={t('한 줄에 하나씩')}
-          value={피그마토큰 ? 피그마 : ''}
-          rows={3}
-          disabled={!피그마토큰}
-          onChange={(e) => set피그마(e.target.value)}
-        />
-      </label>
-      {피그마토큰 ? null : <span className="error-text">{피그마거절말('NO_TOKEN', 운영자, t)}</span>}
-      <div className="authoring-field authoring-compare">
-        <label>
-          <input type="checkbox" checked={대조} onChange={(e) => set대조(e.target.checked)} />
-          {t('실제 화면과 대조')}
-        </label>
-        {대조 && envs.length === 0 ? (
-          <span className="error-text">
-            {운영자
-              ? t('이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요')
-              : t('이 애플리케이션에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요')}
-          </span>
-        ) : null}
-        {대조 && envs.length > 0 ? (
-          <>
-            <div className="authoring-sub">
-              <span aria-hidden="true">{t('대상 서버')}</span>
-              {/* 감싸는 label 로 이름을 주면 선택지 글자까지 이름에 섞인다 */}
-              <select aria-label={t('대상 서버')} value={서버 ?? ''} onChange={(e) => set고른서버(e.target.value)}>
-                {envs.map((it) => (
-                  <option key={it.env} value={it.env}>
-                    {it.env}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <label className="authoring-sub">
-              <span>{t('시작 주소')}</span>
-              <input
-                className="mono"
-                // url 로 두면 브라우저가 제 말풍선으로 막는다 — 거절은 서버가 하고 사유는 이 폼이 적는다
-                type="text"
-                inputMode="url"
-                value={시작주소}
-                placeholder={envs.find((it) => it.env === 서버)?.baseUrl ?? ''}
-                onChange={(e) => set시작주소(e.target.value)}
-              />
+      {api모드 ? null : (
+        <>
+          <label className="authoring-field">
+            <span>{t('피그마 주소')}</span>
+            <textarea
+              className="mono"
+              placeholder={t('한 줄에 하나씩')}
+              value={피그마토큰 ? 피그마 : ''}
+              rows={3}
+              disabled={!피그마토큰}
+              onChange={(e) => set피그마(e.target.value)}
+            />
+          </label>
+          {피그마토큰 ? null : <span className="error-text">{피그마거절말('NO_TOKEN', 운영자, t)}</span>}
+          <div className="authoring-field authoring-compare">
+            <label>
+              <input type="checkbox" checked={대조} onChange={(e) => set대조(e.target.checked)} />
+              {t('실제 화면과 대조')}
             </label>
-            <small>{t('기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다')}</small>
-          </>
-        ) : null}
-      </div>
+            {대조 && envs.length === 0 ? (
+              <span className="error-text">
+                {운영자
+                  ? t('이 애플리케이션에는 대상 서버가 없습니다. 설정 > 애플리케이션에서 먼저 넣으세요')
+                  : t('이 애플리케이션에는 대상 서버가 없습니다. 운영자에게 대상 서버를 넣어 달라고 요청하세요')}
+              </span>
+            ) : null}
+            {대조 && envs.length > 0 ? (
+              <>
+                <div className="authoring-sub">
+                  <span aria-hidden="true">{t('대상 서버')}</span>
+                  {/* 감싸는 label 로 이름을 주면 선택지 글자까지 이름에 섞인다 */}
+                  <select aria-label={t('대상 서버')} value={서버 ?? ''} onChange={(e) => set고른서버(e.target.value)}>
+                    {envs.map((it) => (
+                      <option key={it.env} value={it.env}>
+                        {it.env}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <label className="authoring-sub">
+                  <span>{t('시작 주소')}</span>
+                  <input
+                    className="mono"
+                    // url 로 두면 브라우저가 제 말풍선으로 막는다 — 거절은 서버가 하고 사유는 이 폼이 적는다
+                    type="text"
+                    inputMode="url"
+                    value={시작주소}
+                    placeholder={envs.find((it) => it.env === 서버)?.baseUrl ?? ''}
+                    onChange={(e) => set시작주소(e.target.value)}
+                  />
+                </label>
+                <small>{t('기획서가 있으면 기획서 화면을 먼저 작성하고, 반영되면 기획서에 없는 화면을 이어서 작성합니다. 기획서 없이 보내면 PRD 에 아직 없는 화면만 작성합니다')}</small>
+              </>
+            ) : null}
+          </div>
+        </>
+      )}
       <button className="btn" type="submit" disabled={못보낸다 || 보내는중}>
         <기다림글자 중={보내는중} 평소={t('테스트 작성 시작')} 기다림={t('시작하는 중…')} />
       </button>

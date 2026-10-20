@@ -178,6 +178,17 @@ describe('작성 한 건 상세', () => {
     expect(피그마?.getAttribute('rel')).toBe('noopener noreferrer');
   });
 
+  it('API 문서 자료는 내려받기가 아니라 그 판의 화면으로 가는 링크다', async () => {
+    답 = 줄({
+      assets: [{ id: 14, position: 1, kind: 'API_DOC', name: 'API 문서 판 3', figmaUrl: null, size: null }],
+    });
+    render(<AuthoringDetail service="PAY" id={7} 할수={보기만} />);
+
+    const 링크 = await screen.findByRole('link', { name: 'API 문서 버전 3' });
+    expect(링크.getAttribute('href')).toBe('#/api/docs/3');
+    expect(링크.hasAttribute('download')).toBe(false);
+  });
+
   it('준비 중(DRAFT) 요청에는 줄에 서지 않았으니 폐기하고 새 요청으로 다시 넣으라고 알린다', async () => {
     답 = 줄({ status: 'DRAFT', prUrl: null, finishedAt: null, startedAt: null, assets: [] });
     render(<AuthoringDetail service="PAY" id={7} 할수={운영} />);

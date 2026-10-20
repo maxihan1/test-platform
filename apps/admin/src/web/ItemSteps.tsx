@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { api, type StepResult } from './api.js';
 import { t, use말, use언어, type 언어 } from './i18n.js';
 import { 원문보기 } from './FailureWhy.js';
+import { ShapeChecks } from './ShapeChecks.js';
 import { seconds, useAsync, Verdict } from './ui.js';
 
 export const MARK = { PASS: '✓', FAIL: '✗', NA: '–' } as const;
@@ -76,6 +77,8 @@ export function Step({ step, tcId, runId, historyId, 코드 = true, 화면 = tru
           {index === firstFail ? attachments : null}
         </div>
       ))}
+
+      <ShapeChecks checks={step.shapeChecks} />
 
       {evidenceAtEnd ? attachments : null}
     </div>

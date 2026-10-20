@@ -26,6 +26,13 @@ export const 작성말: Record<string, string> = {
   '한 줄에 하나씩': 'One per line',
   '테스트 작성 시작': 'Start writing tests',
   '시작하는 중…': 'Starting…',
+  'API 문서 버전 {버전}': 'API doc version {버전}',
+  // API 애플리케이션의 새 요청 폼 (도메인/작성 §7 「AUTHOR API 문서 판」)
+  'API 문서': 'API doc',
+  '버전 {버전} (현재 버전)': 'Version {버전} (current)',
+  '버전 {버전}': 'Version {버전}',
+  'API 문서가 아직 없습니다. API 문서 화면에서 먼저 받습니다': 'There is no API doc yet. Fetch one on the API docs screen first',
+  'API 문서 화면으로': 'Go to the API docs screen',
   '지원하지 않는 파일입니다. PDF · 워드 · md · txt 만 올릴 수 있습니다': 'File type not accepted. Only PDF · Word · md · txt',
   '이 요청은 대기열에 들어가지 못했습니다. 새 요청으로 다시 넣으세요': 'This request was not queued. Submit a new request',
   '이 요청은 대기열에 들어가지 못했습니다. 폐기하고 새 요청으로 다시 넣으세요': 'This request was not queued. Discard it and submit a new request',

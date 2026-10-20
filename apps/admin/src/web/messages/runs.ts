@@ -220,6 +220,12 @@ export const 실행말: Record<string, string> = {
   '실행 중단§막음': 'Halted here',
   '{절차} 실패 시점 화면': 'Screenshot when {절차} failed',
   '요청·응답 원문': 'Raw request and response',
+  '응답 형식 검사': 'Response shape check',
+  '문서와 같습니다': 'Matches the doc',
+  '문서와 다릅니다': 'Differs from the doc',
+  '문서에 응답 형식 없음': 'No response shape in the doc',
+  '이 서버의 API 문서가 버전 {버전}과 다릅니다. 배포 전일 수 있습니다': "This server's API doc differs from version {버전}. It may not be deployed yet",
+  'API 문서를 받지 못했습니다': 'Could not fetch the API doc',
   '실패 지점 코드': 'Code at failure',
   '불러오는 중입니다.': 'Loading.',
 

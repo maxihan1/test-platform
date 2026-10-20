@@ -1,9 +1,16 @@
 // 작성 상세의 자료 고리와 산출물 설명 — AuthoringDetail.tsx 가 300줄을 넘어 뗐다 (2026-10-19 ⑫-9)
 
 import { api, type AuthoringAsset } from './api.js';
+import { use말 } from './i18n.js';
 
-/** 파일은 내려받기, 피그마는 저장된(정규화한) 주소로 연다 */
+/** 파일은 내려받기, 피그마는 저장된(정규화한) 주소로 연다. API 문서는 그 판의 화면으로 간다 */
 export function 자료고리({ 요청, 자료, 글 }: { 요청: number; 자료: AuthoringAsset; 글: string }) {
+  const t = use말();
+  if (자료.kind === 'API_DOC') {
+    // 서버는 판 번호를 따로 싣지 않고 이름을 「API 문서 판 N」으로 짓는다 (authoring/assetStore.ts)
+    const 판 = /(\d+)$/.exec(자료.name)?.[1];
+    if (판 !== undefined) return <a href={`#/api/docs/${판}`}>{t('API 문서 버전 {버전}', { 버전: 판 })}</a>;
+  }
   if (자료.kind === 'FIGMA') {
     return (
       <a href={자료.figmaUrl ?? 자료.name} target="_blank" rel="noopener noreferrer">
