@@ -147,6 +147,14 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/guide/files': 작성쓰기,
   'DELETE /api/guide/files/:fileId': 작성쓰기,
   // 서비스 가이드 받기 — 작성 에이전트가 부른다. 다른 에이전트 통로와 같은 무게다
+  // API 문서 — 주소에 authoring 이 없지만 작성 기능이다. 보기는 작성 read, 올리기 · 받기는 작성 write (도메인/API §7)
+  'GET /api/services/:id/api-docs': 작성읽기,
+  'GET /api/services/:id/api-docs/:version': 작성읽기,
+  'GET /api/services/:id/api-docs/compare': 작성읽기,
+  'GET /api/services/:id/api-coverage': 작성읽기,
+  'POST /api/services/:id/api-docs': 작성쓰기,
+  'POST /api/services/:id/api-docs/fetch': 작성쓰기,
+
   'GET /api/authoring/requests/:id/guide': 작성쓰기,
   'GET /api/authoring/requests/:id/guide/files/:fileId': 작성쓰기,
   // 앱 첫 화면 받기 — 작성 에이전트가 AI 를 띄우기 전에 부른다. 폰 옆 러너를 대신 부르는 중계다

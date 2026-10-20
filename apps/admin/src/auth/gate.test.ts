@@ -740,7 +740,8 @@ describe('등급 표', () => {
     const 경로의기능 = (틀: string): 기능 | null => {
       if (/^\/api\/(catalog|cases|param-sets)(\/|$)/.test(틀)) return 'cases';
       if (/^\/api\/(runs|evidence|screenshots|scenarios|scenario-trials)(\/|$)/.test(틀)) return 'runs';
-      if (/^\/api\/(authoring|prd|guide)(\/|$)/.test(틀)) return 'authoring';
+      // API 문서는 애플리케이션 번호 아래지만 작성 기능이다 (도메인/API §7)
+      if (/^\/api\/(authoring|prd|guide)(\/|$)/.test(틀) || /^\/api\/services\/:id\/api-/.test(틀)) return 'authoring';
       return null;
     };
     const 어긋난것: string[] = [];
