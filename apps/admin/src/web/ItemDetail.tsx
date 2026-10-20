@@ -4,6 +4,7 @@
 import { useState } from 'react';
 
 import { api, type RunItemPage } from './api.js';
+import { 팜증적 } from './FarmEvidence.js';
 import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { 항목실행줄 } from './ItemRunContext.js';
@@ -88,6 +89,7 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
         )}
       </div>
 
+      <팜증적 runId={item.runId} historyId={item.historyId} files={item.farm} />
       <ItemTraceSection trace={item.trace} />
 
       <div className="actions">

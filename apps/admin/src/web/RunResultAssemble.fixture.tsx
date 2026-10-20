@@ -30,7 +30,7 @@ export function 카드응답(tcId: string, platform: Platform = 'desktop', 미�
     reqs: [],
     judgment: null,
     devices: [{
-      platform, change: null, streak: null, recent: ['FAIL'], attempts: 1, failedAttempts: 1,
+      platform, change: null, streak: null, recent: ['FAIL'], attempts: 1, failedAttempts: 1, farm: [],
       item: {
         historyId: 900, runId: RUN_ID, runTitle: '결제 회귀', tcId, tcName: `이름-${tcId}`, platform, attempt: 1,
         params: {}, paramSchema: {}, status: 'FAIL', durationMs: 1000, error: null,

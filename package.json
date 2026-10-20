@@ -52,7 +52,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.1",
     "@vitejs/plugin-react": "^5.1.0",
-    "appium-cli": "github:maxihan1/appium-cli#v0.2.0",
+    "appium-cli": "github:maxihan1/appium-cli#v0.3.0",
     "jsdom": "^29.1.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",

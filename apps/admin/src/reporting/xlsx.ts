@@ -122,8 +122,8 @@ export async function renderXlsx(doc: EvidenceDocument, options: RenderOptions):
   // 머리행만 고정한다. 머리행 길이만큼 가로로 훑는 표라 머리가 흘러가면 무슨 칸인지 못 읽는다
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
   // 「기기」는 종류 뒤 맨 끝이다 — E2E 엑셀과 같이 쓰는 머리행에 끼우면 그쪽 칸 위치가 밀린다 (APP-F1-05)
-  sheet.addRow([...머리행, '기기']);
-  for (const item of doc.items) sheet.addRows(항목행들(doc, item).map((행) => [...행, doc.header.kind, item.device ?? null]));
+  sheet.addRow([...머리행, '기기', '팜 기록']);
+  for (const item of doc.items) sheet.addRows(항목행들(doc, item).map((행) => [...행, doc.header.kind, item.device ?? null, item.farm ?? null]));
 
   // exceljs 는 자기 모듈 안에 Buffer 를 따로 선언해 둔다. 노드 Buffer 로 맞춰 내보낸다
   return Buffer.from(await workbook.xlsx.writeBuffer());

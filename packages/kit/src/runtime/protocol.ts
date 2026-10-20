@@ -21,6 +21,12 @@ export const SCENARIO_CLEANUP_MARKER = '@@SCENARIO_CLEANUP@@';
 // 킷이 Appium 연결 번호를 적는 파일 이름. 실행 폴더 안에 둔다. 러너가 끊을 때 이 파일로 남은 연결을 닫는다 (러너 §5.2)
 export const APPIUM_SESSION_FILE = 'appium-session';
 
+// 위 파일은 닫으면 지운다. 팜 증적(영상 · logcat)은 닫은 뒤에야 받을 수 있어 번호를 따로 한 벌 남긴다. 러너가 받은 뒤 지운다 (러너 §5.2 「디바이스 팜 접속 방식」)
+export const APPIUM_SESSION_ID_FILE = 'appium-session-id';
+
+// 러너가 받은 팜 증적을 두는 실행 폴더 안 하위 폴더. admin 이 같은 이름으로 찾는다
+export const FARM_EVIDENCE_DIR = 'farm';
+
 // 앱 파일 칸(대상 서버 줄 · 러너 요청의 app)이 받는 값 — 파일 경로나 http(s) 주소다. 받는 쪽은 Appium 이 도는 PC(팜 PC)이고,
 // file:// 같은 다른 꼴은 그 PC 의 아무 파일이나 깔게 된다. admin 설정과 러너가 같은 규칙을 봐야 해서 여기 둔다 (러너 §5.2 「대상 서버마다 다른 앱 파일」)
 export function 앱파일값인가(값: string): boolean {

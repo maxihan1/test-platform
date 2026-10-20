@@ -4,6 +4,7 @@
 import type { DeviceInfo, ItemStatus, Platform } from '@platform/kit';
 
 import type { Pool } from 'pg';
+import { 팜기록글 } from '../execution/farmEvidence.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
 import { 색코드 } from './failureType.js';
@@ -39,6 +40,8 @@ export interface EvidenceItem {
   platform: Platform;
   /** 앱 항목을 돌린 폰 · 앱 판을 한 줄로(기기글). 브라우저 항목과 연결이 안 열린 앱 항목은 null (APP-F1-05) */
   device?: string | null;
+  /** 팜이 찍은 화면 영상 · logcat 이 실행 화면에 있다는 한 줄. 문서에는 영상을 못 넣는다 (도메인/러너 §5.2 · APP-F1-12) */
+  farm?: string | null;
   attempt: number;
   /** 'NOT_RUN' 은 돌지 못한 항목이다. finished_at 이 빈 행이 여기로 온다 */
   status: ItemStatus | 'NOT_RUN';
@@ -295,6 +298,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
   );
 
   const 기기들 = items.rows.map((row) => (row.device === null ? null : 기기글(row.device)));
+  const 팜들 = await Promise.all(items.rows.map((row) => (row.platform === 'android' ? 팜기록글(runId, Number(row.history_id)) : null)));
 
   return {
     runId: Number(run.run_id),
@@ -326,6 +330,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
         tcName: row.tc_name,
         platform: row.platform,
         device: 기기들[i] ?? null,
+        farm: 팜들[i] ?? null,
         attempt: row.attempt,
         status: 못돈사유 === null ? row.status : ('NOT_RUN' as const),
         // 중단 처리가 박아 넣은 duration_ms 0 은 「0밀리초 걸렸다」가 아니라 「안 돌았다」다
