@@ -13,7 +13,7 @@ import { artifactsDir } from '../execution/routes.js';
 import { 가린다, 긴것부터, 비밀글자들, 시나리오시험, type 시나리오시험결과 } from '../execution/trial.js';
 import { 가린값들 } from '../web/mask.js';
 
-import { 같은프로젝트접두사, 계정없음, 단계주소, 삭제코드합치기, 쓰는앱읽기 } from './apps.js';
+import { 같은프로젝트접두사, 계정없음, 단계인증, 단계주소, 삭제코드합치기, 쓰는앱읽기 } from './apps.js';
 import { 케이스접두사, 쓰는접두사 } from './mixed.js';
 import { type 케이스부품재료, 케이스재료 } from './parts.js';
 import { 부품채우기 } from './runStore.js';
@@ -101,7 +101,9 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
   const 크기사유 = 제한시간크기사유(채운부품);
   if (크기사유.length > 0) throw new 시험시작오류('INVALID_REQUEST', `저장값을 채운 뒤 ${크기사유.join(' · ')}`);
   const parts: ScenarioExecuteRequest['parts'] = 채운부품.map((p) =>
-    p.kind === 'case' ? { ...p, ...단계주소(p, 본문.service, 앱들), filePath: 케이스들.get(p.tcId)?.file_path } : { ...p, ...단계주소(p, 본문.service, 앱들) },
+    p.kind === 'case'
+      ? { ...p, ...단계주소(p, 본문.service, 앱들), ...단계인증(p, 앱들), filePath: 케이스들.get(p.tcId)?.file_path }
+      : { ...p, ...단계주소(p, 본문.service, 앱들) },
   );
 
   // 조립 본문이 아니라 채운 값으로 모은다 — 저장값에서 온 비밀번호는 본문에 없다

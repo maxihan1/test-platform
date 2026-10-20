@@ -4,7 +4,7 @@ import { 기본역할, type 역할계정 } from '@platform/kit/accounts';
 
 import type { PoolClient } from 'pg';
 
-import { 역할계정읽기 } from '../settings/envs.js';
+import { API인증읽기, type API인증, 역할계정읽기 } from '../settings/envs.js';
 
 /**
  * 시작 주소를 받을 수 있으면 **다시 조립한 href** 를, 아니면 null 을 준다.
@@ -42,11 +42,13 @@ export interface 대상줄 {
   계정들: 역할계정[];
   /** Android 앱 파일 경로(러너 컴퓨터 기준). 테스트 실행이 이 줄을 주소로 찾아 러너에 싣는다 (APP-F1-03) */
   appPath: string | null;
+  /** API 인증 — 비밀값 원문이다. 테스트 실행이 러너에 싣는다 (도메인/API §3.8) */
+  apiAuths: API인증[];
 }
 
 type 묻기 = Pick<PoolClient, 'query'>;
-type 줄행 = { env: string; base_url: string; login_id: string | null; login_password: string | null; is_prod: boolean; role_accounts: unknown; app_path: string | null };
-const 줄칸 = 'env, base_url, login_id, login_password, is_prod, role_accounts, app_path';
+type 줄행 = { env: string; base_url: string; login_id: string | null; login_password: string | null; is_prod: boolean; role_accounts: unknown; app_path: string | null; api_auths: unknown };
+const 줄칸 = 'env, base_url, login_id, login_password, is_prod, role_accounts, app_path, api_auths';
 
 const 줄로 = (행: 줄행): 대상줄 => ({
   env: 행.env,
@@ -57,6 +59,7 @@ const 줄로 = (행: 줄행): 대상줄 => ({
   계정들: [{ role: 기본역할, loginId: 행.login_id, loginPassword: 행.login_password }, ...역할계정읽기(행.role_accounts)],
   // 손으로 고친 빈 글자도 없음이다 — 그대로 보내면 러너가 400 으로 거절한다
   appPath: 행.app_path === '' ? null : 행.app_path,
+  apiAuths: API인증읽기(행.api_auths),
 });
 
 // 풀은 쓸 때 가져온다 — DATABASE_URL 없이 도는 검사가 이 파일의 순수 함수를 import 한다

@@ -158,6 +158,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         PLATFORM_ARTIFACTS_DIR: 산출물폴더(),
         PLATFORM_OUTPUT_ID: 출력,
         PLATFORM_TRACE: traceEnv(req),
+        // 늘 적는다 — 러너를 켠 셸에 이 값이 있으면 자식이 물려받는다. 토큰은 kit 이 받는다 (도메인/러너 §5.2 「API 케이스 실행」)
+        PLATFORM_API_AUTHS: JSON.stringify(req.apiAuths ?? []),
         // 대상 서버마다 apk 가 다르다. 요청이 실으면 러너를 켤 때 준 값보다 앞선다 (러너 §5.2 「앱 실행」 · APP-F1-03)
         ...(req.platform === 'android' && req.app !== undefined && { PLATFORM_APP: req.app }),
         // admin 이 팜에서 잡은 폰이다. 안 주면 팜이 잡힌 폰 아무것에나 붙인다 (러너 §5.2 「디바이스 팜 접속 방식」)

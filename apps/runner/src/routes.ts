@@ -20,6 +20,20 @@ const { version: playwrightVersion } = require('@playwright/test/package.json') 
 // 주소는 http(s) 만 받는다 — 규칙은 admin 설정과 같은 kit 의 것이다 (러너 §5.2 「대상 서버마다 다른 앱 파일」)
 const 앱파일경로 = z.string().min(1).refine(앱파일값인가, 'app 은 파일 경로나 http(s) 주소여야 한다');
 
+// 비밀값 원문이 지나간다. 모양만 보고 그대로 kit 에 넘긴다 — 토큰 받기는 kit 몫이다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」)
+const apiAuths = z
+  .array(
+    z.object({
+      name: z.string().min(1).max(20),
+      tokenUrl: z
+        .string()
+        .refine((u) => (u.startsWith('/') && !u.startsWith('//')) || /^https?:\/\//.test(u), '토큰 주소는 / 로 시작하거나 http(s) 주소여야 한다'),
+      clientId: z.string().min(1),
+      clientSecret: z.string(),
+    }),
+  )
+  .optional();
+
 const executeRequest = z.object({
   runId: z.number(),
   historyId: z.number(),
@@ -32,6 +46,7 @@ const executeRequest = z.object({
   timeoutMs: z.number().int().positive().default(300_000),
   app: 앱파일경로.optional(),
   udid: z.string().min(1).optional(),
+  apiAuths,
 });
 
 const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional() });
@@ -77,6 +92,7 @@ const scenarioPart = z.discriminatedUnion('kind', [
     filePath: z.string().min(1),
     // 시작 애플리케이션이 아닌 단계가 돌 주소. 없으면 요청 전체 baseUrl (SPEC 도메인/시나리오 §3.7 결정 13)
     baseUrl: z.string().url().optional(),
+    apiAuths,
   }),
   z.object({
     kind: z.literal('api'),

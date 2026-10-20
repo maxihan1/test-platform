@@ -141,6 +141,7 @@ describe.skipIf(연결 === undefined)('설정 API 의 API 애플리케이션 칸
       [인증('스물한 글자가 넘는 아주 긴 인증 이름이다', 비밀값A)],
       [인증('A', 비밀값A), 인증(' A ', 비밀값B)],
       [{ ...인증('A', 비밀값A), tokenUrl: 'auth.test/token' }],
+      [{ ...인증('A', 비밀값A), tokenUrl: '//auth.test/token' }],
       [{ ...인증('A', 비밀값A), clientId: '' }],
       [인증('A', 'short')],
       Array.from({ length: 11 }, (_, i) => 인증(`A${String(i)}`, 비밀값A)),

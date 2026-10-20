@@ -32,7 +32,8 @@ function API인증틀림(줄들: 인증줄[]): boolean {
         (이름들[i] ?? '').length < 1 ||
         (이름들[i] ?? '').length > 20 ||
         a.tokenUrl.length > 1000 ||
-        !(a.tokenUrl.startsWith('/') || /^https?:\/\/\S+$/.test(a.tokenUrl)) ||
+        // 「//」 로 시작하면 다른 호스트로 풀린다 — 러너 입구도 400 으로 막는다
+        !((a.tokenUrl.startsWith('/') && !a.tokenUrl.startsWith('//')) || /^https?:\/\/\S+$/.test(a.tokenUrl)) ||
         a.clientId.length < 1 ||
         a.clientId.length > 200 ||
         (a.clientSecret !== undefined && (a.clientSecret.length < 12 || a.clientSecret.length > 500)),

@@ -138,6 +138,7 @@ export async function callRunner(runId: number, item: PendingItem, 멈췄나: ()
     expected: item.expected,
     timeoutMs: item.timeoutMs,
     ...(item.app !== undefined && { app: item.app }),
+    ...(item.apiAuths !== undefined && { apiAuths: item.apiAuths }),
   };
 
   if (item.platform !== 'android') return 보낸다(item, body);

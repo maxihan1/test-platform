@@ -23,6 +23,8 @@ export const 볼파일들 = [
   'apps/admin/src/web/mask.ts',
   // 케이스 고치기가 비밀값 칸을 기대값으로 못 받게 거른다 (2026-10-01 · 도메인/작성 §3.6 「★ 케이스 고치기」)
   'apps/admin/src/authoring/edit.ts',
+  // kit 이 API 케이스 절차 기록을 남기기 전에 가린다 (2026-10-20 · 도메인/API §3.8 「API 인증」)
+  'packages/kit/src/runtime/http.ts',
 ];
 
 /** 파일 본문에서 SECRET_NAMES 배열 리터럴을 뽑는다. 못 찾으면 null */

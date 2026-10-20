@@ -55,6 +55,14 @@ export interface ExecuteRequest {
   timeoutMs: number;            // 기본 300000
   app?: string;                 // android 만. 그 대상 서버의 앱 파일 경로나 http(s) 주소(받는 쪽은 Appium 이 도는 PC). 없으면 러너 환경값 PLATFORM_APP (§5.2 · APP-F1-03)
   udid?: string;                // android 만. admin 이 디바이스 팜에서 잡은 폰. 없으면 러너 환경값 PLATFORM_DEVICE_UDID (§5.2 · APP-F1-10)
+  apiAuths?: ApiAuth[];         // 그 대상 서버 줄의 API 인증 전부. API 종류 애플리케이션 케이스만 (도메인/API §3.8 · API-F1-04)
+}
+
+export interface ApiAuth {      // 대상 서버 줄의 API 인증 하나 (service_env.api_auths). 러너 · kit 까지만 비밀값이 간다
+  name: string;                 // '고객사 A' — 케이스가 api(이름) 으로 부른다
+  tokenUrl: string;             // '/v1/oauth/token' 이면 케이스 요청과 같은 규칙(Playwright baseURL)으로 대상 서버 주소에 붙는다. 아니면 http(s) 주소 (도메인/API §3.8)
+  clientId: string;
+  clientSecret: string;
 }
 
 export interface ExecuteResponse {
@@ -120,8 +128,9 @@ export interface ScenarioExecuteRequest {          // POST /execute-scenario (�
   trialId?: string;                                // 시험 실행일 때만. admin 이 만든 UUID
   platform: BrowserPlatform;
   baseUrl: string;
-  parts: Array<ScenarioPart & { filePath?: string; baseUrl?: string }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다.
+  parts: Array<ScenarioPart & { filePath?: string; baseUrl?: string; apiAuths?: ApiAuth[] }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다.
                                                    // baseUrl 은 case · api 부품이 돌 주소 — 시작 애플리케이션이 아닌 단계에만 붙는다. 없으면 위 baseUrl (결정 13)
+                                                   // apiAuths 는 API 애플리케이션 case 부품에만 — 그 애플리케이션 · 짝지은 대상 서버의 인증. 부품 기록에는 안 넣는다 (도메인/API §3.8)
   timeoutMs: number;
   deleteStatuses?: ScenarioDeleteStatus[];         // 미룬 삭제에 줄 응답 코드. 없는 주소는 204 (도메인/시나리오 §3.7 결정 12)
 }
