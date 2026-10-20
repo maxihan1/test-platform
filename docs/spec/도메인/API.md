@@ -79,7 +79,7 @@
 - **모양** — 그 응답의 `application/json` 스키마(`$ref` 는 문서 안에서 푼다)를 zod `z.fromJSONSchema` 로 바꿔 본문을 견준다(OpenAPI 3.0 문서는 `defaultTarget: 'openapi-3.0'` — 새 패키지 없음).
   필수 칸 빠짐 · 형 다름 · `enum` 밖 값은 실패, 문서에 없는 추가 칸은 통과(결정 8). **문서가 `additionalProperties: false` 라고 적은 곳만 추가 칸을 막는다** — 문서가 그렇게 약속했기 때문이다. 스키마가 있는데 본문이 JSON 이 아니면 실패 「JSON 이 아닙니다」
 - **스키마가 없으면 코드만 본다** — 결과 `NO_SHAPE`, 화면 · 리포트에 「문서에 모양 없음」. 통과로 센다
-- **결과는 절차마다 `shapeChecks` 줄로 따로 싣는다**(공통/3 「API 테스트 타입」 `ShapeCheck`) — 케이스의 확인 문장과 섞지 않는다. 한 줄 = 요청 하나. 실패면 문제를 한 줄씩 최대 5개(「필수 칸 status 가 없다」 · 「total 은 integer 여야 하는데 string 이다」)
+- **결과는 절차마다 `shapeChecks` 줄로 따로 싣는다**(공통/3 「API 테스트 타입」 `ShapeCheck`) — 케이스의 확인 문장과 섞지 않는다. 한 줄 = 요청 하나. 저장은 `run_item_step.shape_checks` · `scenario_run_step.shape_checks`(공통/4-데이터모델 「API 테스트 표」)다. 실패면 문제를 한 줄씩 최대 5개(「필수 칸 status 가 없다」 · 「total 은 number 여야 하는데 string 이다」). 문제 줄에 응답 값은 enum 밖 값(50자까지)만 싣고, 저장 · 화면은 절차 기록처럼 가린 것을 본다
 - **모양 실패는 그 절차와 항목을 실패로 만든다.** 실행을 멈추지는 않는다(`blocker` 가 아니다). 실패 사유 한 줄(리포팅 §8.4 · 실행 §8.3)은 실패한 확인 문장이 먼저이고, 없으면 첫 모양 문제 「응답 모양이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 칸 status 가 없다」다
 
 #### API 커버리지 — API × 응답 코드
@@ -176,6 +176,8 @@ GET    /api/runs/:runId/items/:historyId              steps[] + shapeChecks (공
 영향:    작성(서버 — API-F1-07) · WS-B(실행 — API-F1-05) · WS-E(API-F1-08)
 상태:    대기
 ```
+
+> 위 블록 가운데 `GET /api/runs/:runId` 의 `apiDocVersion` · `apiDocNote` 와 항목 응답 `steps[].shapeChecks` 는 반영했다(2026-10-21, `apps/admin/src/execution/queries.ts` — API-F1-05). 다시 작성 통로(API-F1-07)가 들어오면 「반영 완료」로 바꾼다
 
 ---
 
