@@ -1,6 +1,9 @@
 // 설정·로그인 화면 글자의 영어 (SPEC §8.6·§8.8). 키는 한국어 원문이다
 
+import { 설정API말 } from './settingsApi.js';
+
 export const 설정말: Record<string, string> = {
+  ...설정API말,
   // 로그인 화면 (§8.6)
   '아이디와 비밀번호를 넣으면 맡은 애플리케이션이 열립니다.': 'Sign in to open the applications assigned to you.',
   '아이디': 'ID',

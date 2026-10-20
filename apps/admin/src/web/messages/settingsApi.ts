@@ -1,0 +1,40 @@
+// 설정 > 애플리케이션의 API 칸(종류 · API 문서 · API 인증) 글자의 영어 (API-F1-08). settings.ts 가 300줄에 닿지 않게 뗐다
+
+export const 설정API말: Record<string, string> = {
+  // 기본 정보 「종류」
+  '웹 · 앱': 'Web · App',
+  '생성할 때만 정할 수 있습니다. 케이스를 화면 테스트로 돌릴지 API 테스트로 돌릴지 정하므로 나중에 바꿀 수 없습니다':
+    'Set once at creation. It decides whether cases run as UI tests or API tests, so it cannot change later',
+  '생성 후에는 바꿀 수 없습니다': 'Cannot be changed after creation',
+
+  // 「API 문서」 구획
+  'API 문서': 'API document',
+  'Swagger 문서를 받아 오는 곳입니다. 테스트 작성과 응답 형식 검사에 사용합니다':
+    'Where the Swagger document is fetched from. Used for test authoring and response shape checks',
+  '문서 경로': 'Document path',
+  '대상 서버 주소 뒤에 붙여 받습니다': 'Appended to the target server address',
+  '기준 서버': 'Reference server',
+  '이 서버의 문서가 바뀔 때만 새 버전으로 저장합니다': 'A new version is saved only when this server’s document changes',
+  '문서 경로는 / 로 시작하고 500자까지 적을 수 있습니다': 'The document path must start with / and be at most 500 characters',
+  'API 문서의 기준 서버를 대상 서버 목록에서 고릅니다': 'Pick the API document reference server from the target servers',
+
+  // 대상 서버 줄의 「API 인증」
+  'API 인증': 'API auth',
+  '토큰 주소': 'Token URL',
+  '클라이언트 ID': 'Client ID',
+  '비밀값': 'Secret',
+  '대상 서버 {번호} API 인증 {순번} 이름': 'Target server {번호} API auth {순번} name',
+  '대상 서버 {번호} API 인증 {순번} 토큰 주소': 'Target server {번호} API auth {순번} token URL',
+  '대상 서버 {번호} API 인증 {순번} 클라이언트 ID': 'Target server {번호} API auth {순번} client ID',
+  '대상 서버 {번호} API 인증 {순번} 비밀값': 'Target server {번호} API auth {순번} secret',
+  '대상 서버 {번호} API 인증 {순번} 삭제': 'Delete target server {번호} API auth {순번}',
+  '대상 서버 {번호} API 인증 추가': 'Add API auth to target server {번호}',
+  '+ API 인증 추가': '+ Add API auth',
+  '보안을 위해 저장한 값은 다시 표시하지 않습니다 · 비밀값은 끝 4자리만 보입니다':
+    'Saved values are not shown again for security · Only the last 4 characters of a secret are shown',
+  '비밀값을 입력해 주세요. 새 인증이거나 이름 · 토큰 주소를 바꾸면 다시 넣어야 합니다':
+    'Enter the secret. A new auth, or one with a changed name or token URL, needs it again',
+  'API 인증에 비어 있는 칸이 있습니다. 입력하거나 해당 인증을 삭제해 주세요':
+    'An API auth has an empty field. Fill it in or delete that auth',
+  '새 API 인증은 비밀값을 입력해 주세요': 'Enter a secret for the new API auth',
+};

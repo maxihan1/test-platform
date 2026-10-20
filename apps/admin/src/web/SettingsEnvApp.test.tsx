@@ -14,7 +14,7 @@ describe('앱 파일 경로 칸', () => {
       { env: 'qa', baseUrl: 'https://qa.example.com', appPath: '/apk/qa.apk' },
       { env: 'dev', baseUrl: 'https://dev.example.com' },
     ]);
-    const 새줄 = { env: 'stage', baseUrl: 'https://stage.example.com', key: 'k', 원래키: null, 새비밀번호: '', 역할들: [] };
+    const 새줄 = { env: 'stage', baseUrl: 'https://stage.example.com', key: 'k', 원래키: null, 새비밀번호: '', 역할들: [], API인증들: [] };
     const 보냄 = 보낼모양([받음!, 옛줄!, 새줄]);
     expect([보냄[0]!.appPath, 'appPath' in 보냄[1]!, 보냄[2]!.appPath]).toEqual(['/apk/qa.apk', false, null]);
   });

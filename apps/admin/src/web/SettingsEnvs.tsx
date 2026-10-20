@@ -6,6 +6,7 @@ import { 운영이름인가 } from '../settings/roles.js';
 import type { EnvInput, EnvRow } from './api.js';
 import { use말 } from './i18n.js';
 import { prdApi } from './prdApi.js';
+import { API인증보낼모양, API인증줄로, API인증칸들, type API인증줄 } from './SettingsApiAuths.js';
 import { 비밀번호칸, 역할계정칸들, 역할보낼모양, 역할줄로, type 역할줄 } from './SettingsEnvAccounts.js';
 import { useAsync } from './ui.js';
 
@@ -26,6 +27,8 @@ export interface 줄 extends EnvRow {
   비밀번호지움?: boolean;
   /** 역할 계정 편집 상태. 받은 accounts 로 시작한다 */
   역할들: 역할줄[];
+  /** API 인증 편집 상태. API 종류 애플리케이션만 그리고 보낸다 (도메인/API §3.8) */
+  API인증들: API인증줄[];
 }
 
 let 줄번호 = 0;
@@ -36,16 +39,17 @@ function 새줄키(): string {
 }
 
 export const 줄로 = (envs: EnvRow[]): 줄[] =>
-  envs.map((it) => ({ ...it, key: 새줄키(), 원래키: it.env, 새비밀번호: null, 역할들: 역할줄로(it.accounts ?? []) }));
+  envs.map((it) => ({ ...it, key: 새줄키(), 원래키: it.env, 새비밀번호: null, 역할들: 역할줄로(it.accounts ?? []), API인증들: API인증줄로(it.apiAuths ?? []) }));
 
 /**
  * 서버로 보낼 줄. **아이디는 받은 대로 되돌려 보내고 비밀번호는 새로 넣었을 때만 싣는다** —
  * 안 실으면 서버가 지금 것을 유지한다 (도메인/인증 §7).
  * **새로 더한 줄은 빈 칸을 null 로 명시한다.** 같은 이름의 줄을 빼고 다시 더해 한 번에 저장하면
- * 키가 없는 칸을 서버가 옛 값으로 되살린다 — 화면은 빈 칸인데 저장은 옛 계정이 된다
+ * 키가 없는 칸을 서버가 옛 값으로 되살린다 — 화면은 빈 칸인데 저장은 옛 계정이 된다.
+ * **API 인증은 API 종류일 때만 싣는다** — 화면 종류가 보내면 서버가 400 NOT_API_SERVICE 를 낸다
  */
-export const 보낼모양 = (줄들: 줄[]): EnvInput[] =>
-  줄들.map(({ env, baseUrl, loginId, 새비밀번호, 원래키, 비밀번호지움, isProd, accounts, 역할들, appPath }) => {
+export const 보낼모양 = (줄들: 줄[], api = false): EnvInput[] =>
+  줄들.map(({ env, baseUrl, loginId, 새비밀번호, 원래키, 비밀번호지움, isProd, accounts, 역할들, appPath, API인증들 }) => {
     const 새줄 = 원래키 === null;
     const 새값 = 새비밀번호 !== null && 새비밀번호 !== '' ? 새비밀번호 : null;
     return {
@@ -57,6 +61,7 @@ export const 보낼모양 = (줄들: 줄[]): EnvInput[] =>
       ...(isProd !== undefined ? { isProd } : 새줄 ? { isProd: 운영이름인가(env) } : {}),
       ...(새줄 || accounts !== undefined || 역할들.length > 0 ? { accounts: 역할들.map(역할보낼모양) } : {}),
       ...(appPath !== undefined ? { appPath } : 새줄 ? { appPath: null } : {}),
+      ...(api ? { apiAuths: API인증들.map(API인증보낼모양) } : {}),
     };
   });
 
@@ -72,7 +77,7 @@ const 이름바꿈 = (it: 줄): boolean => {
 
 /** 대상 서버는 여러 줄이다. 환경변수 한 줄로는 서비스가 셋만 되어도 안 들어간다 (SPEC §8.8) */
 /** 「대상 서버」 구획 안에 선다 — 구획 제목이 칸 이름을 이미 말해 라벨 열 없이 한 줄을 다 쓴다 (도메인/인증 §8.8) */
-export function EnvEditor({ envs, onChange, 접두사 }: { envs: 줄[]; onChange: (next: 줄[]) => void; 접두사?: string }) {
+export function EnvEditor({ envs, onChange, 접두사, api = false }: { envs: 줄[]; onChange: (next: 줄[]) => void; 접두사?: string; api?: boolean }) {
   const t = use말();
   // PRD 가 기다리는 역할은 역할 이름 칸의 제안이다. 새 서비스 · 권한 없음 · PRD 없음은 제안이 없을 뿐 오류가 아니라 조용히 비운다 —
   // 제안은 덤이고 직접 쳐서 넣는 길이 그대로 있다 (점검 14.2)
@@ -156,12 +161,20 @@ export function EnvEditor({ envs, onChange, 접두사 }: { envs: 줄[]; onChange
               }}
               고친다={(역할들) => onChange(envs.map((v, k) => (k === i ? { ...v, 역할들 } : v)))}
             />
+            {api ? (
+              <API인증칸들
+                인증들={it.API인증들}
+                번호={i + 1}
+                서버이름바뀜={it.원래키 !== null && it.env !== it.원래키}
+                고친다={(API인증들) => onChange(envs.map((v, k) => (k === i ? { ...v, API인증들 } : v)))}
+              />
+            ) : null}
           </div>
         ))}
         <button
           className="btn ghost"
           onClick={() =>
-            onChange([...envs, { env: '', baseUrl: '', key: 새줄키(), 원래키: null, 새비밀번호: '', 역할들: [] }])
+            onChange([...envs, { env: '', baseUrl: '', key: 새줄키(), 원래키: null, 새비밀번호: '', 역할들: [], API인증들: [] }])
           }
         >
           {t('+ 대상 서버 추가')}
