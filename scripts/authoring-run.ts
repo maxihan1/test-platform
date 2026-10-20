@@ -27,7 +27,7 @@ import { 거절로, 끝낼상태, 자식제한, 진척누적기, 진척재기 } 
 import { type 박동, 박동손 } from './authoring-heartbeat.js';
 import { type 서비스설정 } from './authoring-token.js';
 import { 먼저가리기 } from './authoring-masking.js';
-import { 앱화면받기 } from './authoring-app-screen.js';
+import { 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
 import { 화면지도준비 } from './authoring-covered.js';
@@ -233,7 +233,7 @@ async function 사본에서(
     // 기준 SHA — 돌려 보기 명령이 에이전트 끝 검사와 같은 기준(기준과의 차이)으로 닿은 케이스를 고른다 (§3.6 「돌려 보기 명령」)
     ...(자식 === null ? {} : { HOME: 자리.집, TMPDIR: 자리.임시 }), AUTHORING_GATE3_DIR: 자리.임시, AUTHORING_BASE_SHA: 기준,
     // 역방향 — 대상 서버·테스트 계정은 환경 변수로만. 프롬프트·인자에는 값을 안 싣는다 (§7 ★)
-    ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)),
+    ...(것.target === undefined ? {} : 대상환경(것.target)), ...계정환경(것.accounts, (글) => console.log(`[작성] ${것.id}번 ${글}`)), ...탐색환경(앱화면),
   };
   const 역방향 = 것.target === undefined ? undefined : { 화면만: 화면만인가(것, 자료들), 산출물폴더: join(자리.자료, 'out'), 제외: 설정.제외 };
   const 인자 = 클로드인자(자리.자료, 판.모델, 자리.임시);
@@ -267,10 +267,8 @@ async function 사본에서(
   const 안떴다 = 돌린것.코드 === null && !돌린것.시간초과 && !돌린것.멈춤으로죽음;
   const 풀린 = 안떴다 ? 흐름풀기(돌린것.낸것) : await 사용량보고({ 주소기지, 토큰 }, 서비스, 것.id, 돌린것.낸것);
   // 검사 전에 자식이 남긴 것을 전부 죽인다 — 살아 있으면 검사한 뒤에 파일을 바꿔치기한다
-  if (!(await 자식거두기(자식))) {
-    await 손.끝내기({ status: 'FAILED', error: '자식이 남긴 프로세스를 거두지 못했다 — 올리지 않는다' });
-    return;
-  }
+  if (!(await 자식거두기(자식))) return void (await 손.끝내기({ status: 'FAILED', error: '자식이 남긴 프로세스를 거두지 못했다 — 올리지 않는다' }));
+  await 잡은폰놓기(자리.트리, 앱화면, 것.id); // AI 가 release 를 잊었으면 — 거둔 뒤라야 살아남은 자식이 다시 잡지 못한다 (§3.6 「앱 화면」)
   if (안떴다) {
     // 자식 stderr 에 계정 원문이 섞일 수 있다 — 사유는 화면과 서버 기록에 남는다
     const 끝줄 = 돌린것.오류.trim().split('\n').pop() ?? '';

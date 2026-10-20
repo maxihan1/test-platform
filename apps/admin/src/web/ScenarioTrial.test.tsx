@@ -121,7 +121,7 @@ describe('시험 결과 탭 · 왼쪽 요약', () => {
     fireEvent.click(screen.getByRole('tab', { name: '시험 결과' }));
     expect(탭(container)).toBe('trial');
     const 칸 = within(screen.getByRole('tabpanel'));
-    expect(칸.getByText('시험 실행은 기록에 남지 않고 증적도 만들지 않습니다. 저장하지 않은 변경 내용으로도 실행해 볼 수 있습니다')).toBeTruthy();
+    expect(칸.getByText('시험 실행은 기록에 남지 않고 리포트도 만들지 않습니다. 저장하지 않은 변경 내용으로도 실행해 볼 수 있습니다')).toBeTruthy();
     expect(칸.getByText('아직 시험 실행을 하지 않았습니다')).toBeTruthy();
   });
 

@@ -1,4 +1,4 @@
--- app_user 를 Auth_platform 계정(sub)에 묶는다. maxihan 계정으로 들어온 사람은 비밀번호가 없다 (docs/spec/도메인/인증.md §3.5 「maxihan 계정」)
+-- app_user 를 Auth_platform 계정(sub)에 묶는다. maxihan 계정(SSO)으로 들어온 사람은 비밀번호가 없다 (docs/spec/공통/4-데이터모델.md 「maxihan 계정」 문단)
 
 -- migrate:up
 

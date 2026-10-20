@@ -45,6 +45,7 @@ export const 기본단계 = (실제값: unknown = '없음'): StepResult[] => [
 export function 상세(historyId: number, platform: Platform, 덮을것: Partial<RunItemDetail> = {}): RunItemPage {
   return {
     trace: null,
+    farm: [],
     historyId,
     runId: RUN_ID,
     runTitle: '결제 회귀',
@@ -75,6 +76,7 @@ export function 장치(platform: Platform, historyId: number, 덮을것: Partial
     recent: ['FAIL', 'PASS', 'PASS'],
     attempts: 1,
     failedAttempts: 1,
+    farm: [],
     item: 상세(historyId, platform, 항목덮기),
     ...덮을것,
   };

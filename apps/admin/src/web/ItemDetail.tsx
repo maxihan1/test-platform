@@ -4,6 +4,7 @@
 import { useState } from 'react';
 
 import { api, type RunItemPage } from './api.js';
+import { 팜증적 } from './FarmEvidence.js';
 import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { use말, use언어 } from './i18n.js';
 import { 항목실행줄 } from './ItemRunContext.js';
@@ -88,10 +89,11 @@ export function ItemDetail({ runId, historyId, 판정하기 }: { runId: number; 
         )}
       </div>
 
+      <팜증적 runId={item.runId} historyId={item.historyId} files={item.farm} />
       <ItemTraceSection trace={item.trace} />
 
       <div className="actions">
-        <span className="note">{t말('이 화면의 구성이 증적 문서에 그대로 출력됩니다.')}</span>
+        <span className="note">{t말('이 화면의 구성이 리포트에 그대로 출력됩니다.')}</span>
         {/* 실행 기록에서 그 실행을 고른 채 연다 — 결과 화면을 새로 열면 목록으로 돌아갈 길이 없다 (도메인/실행 §8.7 「A안」) */}
         <a className="btn ghost" href={실행기록주소(item.tcId, item.runId)}>
           {t말('실행 결과')}

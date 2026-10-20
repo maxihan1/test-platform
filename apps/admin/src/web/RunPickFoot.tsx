@@ -112,7 +112,7 @@ export function 실행버튼들({
         <button className="btn ghost" onClick={on시험}>
           {t('▶ 시험해 보기')}
         </button>
-        <span className="hint">{t('기록·증적이 남지 않습니다')}</span>
+        <span className="hint">{t('기록·리포트가 남지 않습니다')}</span>
       </span>
       {/* 상한은 서버도 같은 것을 본다. 화면만 막으면 직접 찌르는 요청을 못 막는다 (SPEC §8.2) */}
       {/* 도는 동안 글자가 바뀌고 눌리지 않는다. 안 그러면 두 번째 누름이 조용히 무시된다 */}

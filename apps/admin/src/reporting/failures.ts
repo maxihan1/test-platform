@@ -2,6 +2,7 @@
 
 import type { ItemStatus, Platform } from '@platform/kit';
 
+import { 팜증적목록, type 팜파일 } from '../execution/farmEvidence.js';
 import { findItem } from '../execution/queries.js';
 import { 최근몇건 } from '../execution/history.js';
 import type { RunItemDetail } from '../execution/runTypes.js';
@@ -14,6 +15,8 @@ export interface FailureDevice extends Omit<실패디바이스, 'firstFailedHist
   streak: number | null;
   recent: ItemStatus[];
   item: RunItemDetail;
+  /** 러너가 받아 둔 팜 화면 영상 · logcat — 앱 항목이 통과하지 못했을 때만 있다 (도메인/러너 §5.2) */
+  farm: 팜파일[];
 }
 
 export interface FailureCase {
@@ -112,7 +115,7 @@ export async function 실패카드(runId: number, page: number, platform?: Platf
           const item = await findItem(runId, firstFailedHistoryId);
           if (item === null) throw new Error(`실패 카드의 항목 ${firstFailedHistoryId}을 실행 ${runId}에서 찾을 수 없다`);
           const recent = 흐름.get(`${c.tcId}|${나머지.platform}`) ?? [];
-          return { ...나머지, streak: 연속실패수(나머지.change, recent), recent, item };
+          return { ...나머지, streak: 연속실패수(나머지.change, recent), recent, item, farm: await 팜증적목록(runId, firstFailedHistoryId) };
         }),
       ),
     })),

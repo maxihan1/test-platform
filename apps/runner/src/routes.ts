@@ -10,6 +10,7 @@ import { z } from 'zod';
 
 import { 앱화면을읽는다, 화면을읽는중인가 } from './appScreen.js';
 import { abort, execute, resolveSpecPath, running, testsDir } from './execute.js';
+import { 팜증적받기를줄세운다 } from './farmEvidence.js';
 import { executeScenario } from './scenario.js';
 
 const require = createRequire(import.meta.url);
@@ -153,7 +154,10 @@ export function registerRoutes(app: FastifyInstance): void {
     }
 
     try {
-      return await execute(req, specPath);
+      const res = await execute(req, specPath);
+      // 큰 영상을 받느라 답이 늦으면 admin 의 디바이스 줄이 막힌다. 답한 뒤에 받는다 (SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」)
+      if (req.platform === 'android') 팜증적받기를줄세운다(req.runId, req.historyId, res.status);
+      return res;
     } catch (err) {
       // 자식 프로세스를 띄우지도 못한 경우다. 케이스 실패가 아니라 러너 고장이므로 500이다 (SPEC §5.2)
       const detail = err instanceof Error ? err.message : String(err);

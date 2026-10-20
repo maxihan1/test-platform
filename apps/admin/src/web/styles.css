@@ -5879,6 +5879,31 @@ details[open]:not(.ph-me)::details-content {
   border: 1px solid var(--line-2);
 }
 
+/* 디바이스 팜이 찍은 화면 영상 · logcat. 폰 화면이라 세로로 길다 — 높이를 묶고 좁으면 줄을 바꾼다 */
+.farm-ev {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.farm-ev-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.farm-ev-label {
+  color: var(--ink-muted);
+}
+
+.farm-ev-video {
+  max-height: 360px;
+  max-width: 100%;
+  border: 1px solid var(--line-2);
+}
+
 .fc-name-h {
   margin: 0;
   font-size: 16px;

@@ -178,6 +178,18 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     expect(await 확인(await 가짜요청('xfu1-dead'))).toBeNull();
   });
 
+  it('비밀번호가 없는 계정은 비밀번호 출입증으로 통과하지 못한다', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password)
+            VALUES ($1, '한비번없음', NULL, 'member', true, false)
+       ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = NULL, is_approved = true`,
+      ['xfu1-nopw'],
+    );
+    expect(await 확인(await 가짜요청('xfu1-nopw', ''))).toBeNull();
+    expect(await 확인(await 가짜요청('xfu1-nopw', null))).toBeNull();
+  });
+
   it('배정받은 서비스가 없으면 빈 목록이다', async () => {
     const { pool } = await import('../db/index.js');
     await pool.query(

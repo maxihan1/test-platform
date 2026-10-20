@@ -343,6 +343,13 @@ export interface ItemTrace {
 /** 항목 상세 통로만 trace 를 싣는다 — 실패 카드의 item 은 없다. null 이면 아직 안 풀었거나 이 기능 전 항목 */
 export interface RunItemPage extends RunItemDetail {
   trace: ItemTrace | null;
+  farm: 팜파일[];
+}
+
+/** 러너가 받아 둔 디바이스 팜 화면 영상 · logcat. 앱 항목이 통과하지 못했을 때만 있다 (도메인/러너 §5.2) */
+export interface 팜파일 {
+  name: string;
+  bytes: number;
 }
 
 /** 실패 카드의 디바이스 칸 하나 (SPEC §7 `GET /api/runs/:runId/failures`). change 는 새로깨짐 · 계속깨짐 만 오고 그 밖은 null */
@@ -357,6 +364,7 @@ export interface FailureDevice {
   failedAttempts: number;
   /** 처음 실패한 회차. 항목 상세와 같은 함수가 읽은 값이라 비밀값이 이미 가려져 있다 */
   item: RunItemDetail;
+  farm: 팜파일[];
 }
 
 /** 실패 카드의 「실패 원인」 판정. SCREEN 이 BUG 를 이긴다 */
@@ -1131,6 +1139,8 @@ export const api = {
   clearInput: (tcId: string) => call<void>(`/cases/${encodeURIComponent(tcId)}/saved-input`, { method: 'DELETE' }),
 
   screenshot: (runId: number, historyId: number, seq: number) => `/api/screenshots/${runId}/${historyId}/${seq}.png`,
+  farmFile: (runId: number, historyId: number, name: string) =>
+    `/api/runs/${runId}/items/${historyId}/farm/${encodeURIComponent(name)}`,
 
   // 작성 대기줄 (SPEC §7 · 도메인/작성 §7). 넣기·읽기는 화면이 부르고
   // 집기·단계·끝내기는 맥이 부른다 — 화면은 그 넷을 안 부른다
