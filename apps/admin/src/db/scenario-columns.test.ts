@@ -62,6 +62,7 @@ const 정본: Record<string, 칸[]> = {
     ['screenshot_path', 'text', 'YES', false],
     ['http_trace', 'jsonb', 'YES', false],
     ['error', 'jsonb', 'YES', false],
+    ['shape_checks', 'jsonb', 'YES', false],
   ],
 };
 const test_run새칸: 칸[] = [
