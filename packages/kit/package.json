@@ -9,6 +9,7 @@
     "./types": "./src/types.ts",
     "./accounts": "./src/accounts.ts",
     "./runtime": "./src/runtime/index.ts",
-    "./scenario": "./src/runtime/scenario.ts"
+    "./scenario": "./src/runtime/scenario.ts",
+    "./protocol": "./src/runtime/protocol.ts"
   }
 }

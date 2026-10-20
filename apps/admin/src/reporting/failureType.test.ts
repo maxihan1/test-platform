@@ -39,6 +39,13 @@ describe('원인을가른다', () => {
     expect(미실행('러너가 거절했다: CASE_NOT_FOUND — codyssey/CDY-FN-002.spec.ts')).toBe('environment');
   });
 
+  it('디바이스 팜이 없거나 폰을 못 내준 것도 환경 오류다 (APP-F1-10)', () => {
+    expect(미실행('이 서버에는 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않습니다')).toBe('environment');
+    expect(미실행('디바이스 팜에 빈 폰이 없습니다')).toBe('environment');
+    expect(미실행('디바이스 팜이 폰을 내주지 않았습니다: 다른 사용자(maxi)가 쓰는 중')).toBe('environment');
+    expect(미실행('디바이스 팜이 기기 목록을 주지 않았습니다 (HTTP 502)')).toBe('environment');
+  });
+
   it('기다리던 요소 이름에 「러너」가 들어 있어도 러너 고장이 아니라 요소 미검출이다', () => {
     expect(
       미실행('Test timeout of 30000ms exceeded.', "locator.click: Test timeout of 30000ms exceeded.\nCall log:\n  - waiting for getByText('러너 상태')"),

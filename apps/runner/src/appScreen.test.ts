@@ -159,21 +159,29 @@ describe('POST /app-screen', () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it('app 에 주소(://)를 주면 400 이다 — 러너 PC 가 아무 apk 나 내려받게 하지 않는다', async () => {
-    const res = await 보냄({ app: 'https://evil/x.apk' });
+  it('app 에 http(s) 밖의 주소(file:// 등)를 주면 400 이다 — Appium 이 도는 PC 의 아무 파일이나 깔게 하지 않는다', async () => {
+    const res = await 보냄({ app: 'file:///etc/x.apk' });
 
     expect(res.statusCode).toBe(400);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('돌고 있는 항목이 있으면 409 RUNNER_BUSY 다 — 폰 연결을 가로채지 않는다', async () => {
-    running.set(1, { child: {} as ChildProcess, killedBy: null });
+    running.set(1, { child: {} as ChildProcess, killedBy: null, platform: 'android' });
 
     const res = await 보냄({});
 
     expect(res.statusCode).toBe(409);
     expect(res.json().error).toBe('RUNNER_BUSY');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('브라우저 항목만 돌고 있으면 막지 않는다 — 폰을 안 쓴다 (APP-F1-10)', async () => {
+    running.set(1, { child: {} as ChildProcess, killedBy: null, platform: 'desktop' });
+
+    const res = await 보냄({});
+
+    expect(res.statusCode).not.toBe(409);
   });
 
   it('Appium 설정이 없으면 500 RUNNER_ERROR 에 까닭을 싣는다', async () => {

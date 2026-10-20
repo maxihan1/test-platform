@@ -34,9 +34,9 @@ export async function 정기실행을만든다(prefix: string, env: string, 로�
     return { runIds: [], 실패: true, 끝: Promise.resolve() };
   }
 
-  // 실행 위치를 고를 사람이 없다 — 팜이 붙기 전까지 뺀다 (§9.2)
-  const { 남은, 뺀수 } = 앱케이스를뺀다(목록.items);
-  if (뺀수 > 0) 로그.info(`[schedule] ${prefix} android 케이스 ${String(뺀수)}건은 정기 실행에서 뺐다 — 디바이스 팜이 붙기 전까지`);
+  // 팜이 없으면 앱 케이스를 돌릴 곳이 없다 (§9.2)
+  const { 남은, 뺀수 } = 앱케이스를뺀다(목록.items, process.env);
+  if (뺀수 > 0) 로그.info(`[schedule] ${prefix} android 케이스 ${String(뺀수)}건은 정기 실행에서 뺐다 — 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다`);
   if (남은.length === 0) {
     로그.info(`[schedule] ${prefix} 서비스에 정기 실행으로 돌릴 케이스가 없어 실행을 만들지 않았다`);
     return { runIds: [], 실패: false, 끝: Promise.resolve() };

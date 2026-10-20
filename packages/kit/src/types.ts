@@ -53,7 +53,8 @@ export interface ExecuteRequest {
   params: Record<string, unknown>;
   expected: Record<string, unknown>;
   timeoutMs: number;            // 기본 300000
-  app?: string;                 // android 만. 그 대상 서버의 앱 파일 경로(러너 컴퓨터 기준). 없으면 러너 환경값 PLATFORM_APP (§5.2 · APP-F1-03)
+  app?: string;                 // android 만. 그 대상 서버의 앱 파일 경로나 http(s) 주소(받는 쪽은 Appium 이 도는 PC). 없으면 러너 환경값 PLATFORM_APP (§5.2 · APP-F1-03)
+  udid?: string;                // android 만. admin 이 디바이스 팜에서 잡은 폰. 없으면 러너 환경값 PLATFORM_DEVICE_UDID (§5.2 · APP-F1-10)
 }
 
 export interface ExecuteResponse {

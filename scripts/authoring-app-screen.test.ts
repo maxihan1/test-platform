@@ -91,9 +91,9 @@ describe('줄프롬프트 — 앱 화면 절 (도메인/작성 §3.6 「앱 화�
   });
 
   it('못 읽었으면 까닭을 싣고 짐작하지 말라고 한다', () => {
-    const 글 = 부르기({ 못읽음: '내 컴퓨터 러너(LOCAL_RUNNER_URL)가 꺼져 있다' });
+    const 글 = 부르기({ 못읽음: '디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다' });
 
-    expect(글).toContain('폰 화면을 읽지 못했다(내 컴퓨터 러너(LOCAL_RUNNER_URL)가 꺼져 있다)');
+    expect(글).toContain('폰 화면을 읽지 못했다(디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다)');
     expect(글).toContain('짐작해 쓰지 말고');
   });
 

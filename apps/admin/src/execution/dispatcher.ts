@@ -55,7 +55,7 @@ export function markAborted(runId: number): void {
 async function runOne(runId: number, item: PendingItem): Promise<void> {
   if (멈춘실행.has(runId)) return;
 
-  const result = await callRunner(runId, item);
+  const result = await callRunner(runId, item, () => 멈춘실행.has(runId));
   try {
     await finishItem(item.historyId, result);
     // 기다리지 않는다 — 풀기는 실행을 늦추지 않게 따로 한 줄로 돈다 (SPEC 실행 §3.2 「trace」)

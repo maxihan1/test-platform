@@ -7,12 +7,12 @@ import https from 'node:https';
 import type {
   ExecuteRequest,
   ExecuteResponse,
-  Platform,
   RunningStep,
   ScenarioExecuteRequest,
   ScenarioExecuteResponse,
 } from '@platform/kit';
 
+import { 팜주소, 팜폰으로 } from './farm.js';
 import type { PendingItem } from './store.js';
 
 // 러너는 자기 제한 시간이 지나면 자식을 죽이고 200 + NA로 돌려준다. 이쪽이 먼저 끊으면 그 부분 결과가 사라진다
@@ -23,15 +23,8 @@ export function httpTimeoutMs(timeoutMs: number): number {
 }
 
 // 컨테이너에서는 compose가 http://runner:4000을 넣어 준다. 호스트에서 손으로 돌릴 때가 이 기본값이다
-function runnerUrl(): string {
+export function runnerUrl(): string {
   return process.env.RUNNER_URL ?? 'http://localhost:4000';
-}
-
-// android 항목은 개발자 컴퓨터의 로컬 러너가 맡는다 (SPEC 실행 §7). 값이 없는데 여기까지 왔다면 실행 요청 통로의 거절을
-// 지나친 것이다 — 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이므로 컨테이너로 돌리지 않고 NA 로 접는다
-function 러너주소(platform: Platform): string | undefined {
-  if (platform !== 'android') return runnerUrl();
-  return process.env.LOCAL_RUNNER_URL || undefined;
 }
 
 // 진행을 물을 러너들. 로컬 러너가 있고 컨테이너와 다를 때만 둘이다
@@ -46,12 +39,10 @@ function na(item: PendingItem, message: string, stack?: string): ExecuteResponse
 }
 
 // 돌고 있는 자식 프로세스를 그룹째 끊어 달라고 한다. 이미 끝났거나 러너가 모르는 historyId면 false다 —
-// 경합이지 고장이 아니므로 던지지 않는다 (SPEC §5.2). 그 항목을 맡은 러너 하나에만 보낸다 (SPEC 실행 §7)
-export async function abortRunner(historyId: number, platform: Platform): Promise<boolean> {
-  const 주소 = 러너주소(platform);
-  if (주소 === undefined) return false;
+// 경합이지 고장이 아니므로 던지지 않는다 (SPEC §5.2). 정식 실행은 android 도 서버 러너가 맡는다 (SPEC 실행 §7)
+export async function abortRunner(historyId: number): Promise<boolean> {
   try {
-    const res = await fetch(`${주소}/abort`, {
+    const res = await fetch(`${runnerUrl()}/abort`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ historyId }),
@@ -134,7 +125,8 @@ export function 러너에보낸다(경로: string, 본문: unknown, 제한ms: nu
   });
 }
 
-export async function callRunner(runId: number, item: PendingItem): Promise<ExecuteResponse> {
+// 멈췄나는 디스패처가 넘긴다. 팜에서 폰을 잡는 몇 초 사이에 멈추면 러너는 아직 그 항목을 몰라 중단을 못 받는다 — 잡은 뒤 한 번 더 본다
+export async function callRunner(runId: number, item: PendingItem, 멈췄나: () => boolean = () => false): Promise<ExecuteResponse> {
   const body: ExecuteRequest = {
     runId,
     historyId: item.historyId,
@@ -148,12 +140,23 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
     ...(item.app !== undefined && { app: item.app }),
   };
 
-  const 주소 = 러너주소(item.platform);
-  if (주소 === undefined) return na(item, '이 서버에는 Android 앱을 돌릴 로컬 러너(LOCAL_RUNNER_URL)가 없다');
+  if (item.platform !== 'android') return 보낸다(item, body);
+  // 앱 항목은 서버 러너가 팜에 붙어 돈다. 폰은 항목마다 잡고 놓는다 — 놓을 때 팜이 깐 앱을 지워 다음 항목이 깨끗한 폰에서 연다 (러너 §5.2 「디바이스 팜 접속 방식」).
+  // 팜 주소가 없는데 여기까지 왔다면 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 요청 통로가 FARM_OFF 로 거절한다
+  const 팜 = 팜주소();
+  if (팜 === undefined) return na(item, '이 서버에는 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
+  return 팜폰으로(
+    팜,
+    // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 finishItem 이 덮지 않는다(finished_at IS NULL)
+    async (udid) => (멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : 보낸다(item, { ...body, udid })),
+    (까닭) => na(item, 까닭),
+  );
+}
 
+async function 보낸다(item: PendingItem, body: ExecuteRequest): Promise<ExecuteResponse> {
   const startedAt = Date.now();
   try {
-    const res = await 러너에보낸다('/execute', body, httpTimeoutMs(item.timeoutMs), 주소);
+    const res = await 러너에보낸다('/execute', body, httpTimeoutMs(item.timeoutMs));
 
     if (res.status < 200 || res.status >= 300) {
       return { ...na(item, 거절사유(res.status, res.json)), durationMs: Date.now() - startedAt };

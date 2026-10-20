@@ -4,7 +4,7 @@
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import type { ScenarioLink, ScenarioPart, ScenarioResponseRef } from '@platform/kit';
+import { 앱파일값인가, type ScenarioLink, type ScenarioPart, type ScenarioResponseRef } from '@platform/kit';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
@@ -16,8 +16,8 @@ const require = createRequire(import.meta.url);
 // 이미지 태그와 라이브러리 버전이 어긋나면 브라우저를 못 찾는다. /health가 그 확인 창구다 (SPEC §9)
 const { version: playwrightVersion } = require('@playwright/test/package.json') as { version: string };
 
-// admin 설정과 같은 까닭으로 주소는 받지 않는다 — Appium 이 내려받아 폰에 깐다 (러너 §5.2 「대상 서버마다 다른 앱 파일」)
-const 앱파일경로 = z.string().min(1).refine((v) => !v.includes('://'), 'app 은 파일 경로여야 한다');
+// 주소는 http(s) 만 받는다 — 규칙은 admin 설정과 같은 kit 의 것이다 (러너 §5.2 「대상 서버마다 다른 앱 파일」)
+const 앱파일경로 = z.string().min(1).refine(앱파일값인가, 'app 은 파일 경로나 http(s) 주소여야 한다');
 
 const executeRequest = z.object({
   runId: z.number(),
@@ -30,6 +30,7 @@ const executeRequest = z.object({
   expected: z.record(z.string(), z.unknown()),
   timeoutMs: z.number().int().positive().default(300_000),
   app: 앱파일경로.optional(),
+  udid: z.string().min(1).optional(),
 });
 
 const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional() });
@@ -160,13 +161,14 @@ export function registerRoutes(app: FastifyInstance): void {
     }
   });
 
-  // 작성 AI 가 앱 케이스를 쓰려고 폰 화면을 읽는다. 돌고 있는 항목이 있으면 폰을 가로채니 막는다 (SPEC 도메인/러너 §5.2 「앱 화면 읽기」)
+  // 작성 AI 가 앱 케이스를 쓰려고 폰 화면을 읽는다. 돌고 있는 앱 항목이 있으면 폰을 가로채니 막는다 —
+  // 브라우저 항목은 폰을 안 쓴다. 서버 러너가 팜 폰을 읽게 된 뒤로 웹 실행 중에도 읽혀야 한다 (SPEC 도메인/러너 §5.2 「앱 화면 읽기」)
   app.post('/app-screen', async (request, reply) => {
     const parsed = appScreenRequest.safeParse(request.body ?? {});
     if (!parsed.success) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
-    if (running.size > 0 || 화면을읽는중인가()) {
+    if ([...running.values()].some((r) => r.platform === 'android') || 화면을읽는중인가()) {
       return reply.code(409).send({ error: 'RUNNER_BUSY', detail: '이 러너가 이미 실행이나 화면 읽기를 하고 있다' });
     }
     try {
