@@ -14,7 +14,7 @@ import { PrdNew } from './PrdNew.js';
 import { PrdTodo } from './PrdTodo.js';
 import { PrdVersions } from './PrdVersions.js';
 import type { 판정 } from './role.js';
-import { Failed, Loading, message, useAsync, 받을이름, 파일로저장 } from './ui.js';
+import { Failed, Loading, message, useAsync, 기다림글자, 받을이름, 파일로저장 } from './ui.js';
 
 /**
  * 새 판을 짓는 일 하나. 지금 판 번호를 넘겨 보낸다 — 그 사이 다른 저장이 있었으면 서버가 PRD_STALE 로 막는다.
@@ -115,7 +115,7 @@ export function Prd({
               <>
                 <span className="prd-menu">
                   <button className="btn ghost" aria-expanded={메뉴} aria-haspopup="true" onClick={() => set메뉴(!메뉴)} disabled={받는중 !== null}>
-                    {받는중 === null ? t('내려받기') : t('만드는 중…')}
+                    <기다림글자 중={받는중 !== null} 평소={t('내려받기')} 기다림={t('만드는 중…')} />
                     <span aria-hidden="true"> ▾</span>
                   </button>
                   {메뉴 ? (

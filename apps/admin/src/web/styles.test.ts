@@ -726,10 +726,10 @@ describe('움직임 (DESIGN.md 원칙 4, 2026-10-07)', () => {
     }
   });
 
-  it('되풀이 움직임은 실행 중 맥박 하나뿐이다', () => {
+  it('되풀이 움직임은 실행 중 맥박과 불러오는 중 뼈대 반짝임 둘뿐이다', () => {
     const 되풀이 = [...css.matchAll(/animation[\w-]*\s*:\s*([^;]*\binfinite\b[^;]*);/g)].map((m) => m[1]!);
     expect(되풀이.length, '맥박이 없다').toBeGreaterThan(0);
-    for (const 값 of 되풀이) expect(값, `${값} — 되풀이는 맥박(--dur-pulse)만 쓴다`).toMatch(/var\(--dur-pulse\)/);
+    for (const 값 of 되풀이) expect(값, `${값} — 되풀이는 맥박 · 뼈대 반짝임만 쓴다`).toMatch(/var\(--dur-(pulse|shimmer)\)/);
   });
 
   it('목록 판(.screen)은 투명도로만 나타난다 — transform 이 걸린 동안 포털 없는 모달이 판에 붙어 잘렸다', () => {

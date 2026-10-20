@@ -131,8 +131,12 @@
   --dur-intro: 0.5s;
   /* 숫자 올라가기 */
   --dur-count: 0.4s;
-  /* 실행 중 맥박 한 번 — 되풀이 움직임은 이것 하나뿐이다 */
+  /* 실행 중 맥박 한 번 — 되풀이 움직임은 이것과 아래 뼈대 반짝임 둘뿐이다 */
   --dur-pulse: 1.6s;
+  /* 불러오는 중 뼈대 위를 빛이 한 번 훑는 시간 — 불러오는 동안만 되풀이한다 (⑬-7) */
+  --dur-shimmer: 1.2s;
+  /* 펼침(details)이 높이 auto 까지 움직일 수 있게 한다. 못 알아보는 브라우저는 그냥 뚝 열린다 */
+  interpolate-size: allow-keywords;
 
   /* body 위아래 여백. `.wrap` 이 창 높이에서 그대로 뺀다(2026-09-22) — 숫자를 두 곳에 따로
      적으면 한쪽만 바뀌었을 때 사이드바가 창보다 짧거나 길어져 스크롤이 도로 새어 나간다.
@@ -4380,12 +4384,161 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   animation: 맥박 var(--dur-pulse) var(--ease) infinite;
 }
 
+/* ── ⑬-7 움직임 (2026-10-20 사용자 시안 C) ─────────────────────────────── */
+
+/* 불러오는 중 뼈대 — 글자 한 줄 대신 목록 줄 모양 회색 블록. 빛이 훑는 것은 불러오는 동안만이다 */
+@keyframes 훑기 {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+.skel {
+  padding: 8px 24px 16px;
+}
+
+.skel-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) 48px;
+  gap: 16px;
+  align-items: center;
+  height: 40px;
+  border-bottom: 1px solid var(--line);
+}
+
+.skel-row span {
+  height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--chart-track) 0%, var(--line-2) 50%, var(--chart-track) 100%);
+  background-size: 200% 100%;
+  animation: 훑기 var(--dur-shimmer) linear infinite;
+}
+
+.skel-row:nth-child(odd) span:nth-child(2) {
+  width: 60%;
+}
+
+/* 기다리는 버튼 — 두 글자를 한 칸에 겹쳐 폭을 지키고, 기다리는 동안 맥박 점이 붙는다 */
+.busy-label {
+  display: inline-grid;
+}
+
+.busy-label > span,
+.busy-label::after {
+  grid-area: 1 / 1;
+  text-align: center;
+}
+
+.busy-label::after {
+  content: attr(data-other);
+  visibility: hidden;
+  /* 숨은 기다림 글자에는 맥박 점 자리(8px + 오른쪽 10px)를 같이 잡는다 */
+  padding-left: 18px;
+}
+
+.busy-label[data-busy]::after {
+  padding-left: 0;
+}
+
+/* 주 버튼은 오렌지 바탕이라 대표색 점이 묻힌다 — 버튼 글자색을 따른다 */
+.busy-label .pulse,
+.busy-label .pulse::after {
+  background: currentColor;
+}
+
+/* 펼침 — 접힌 칸(details)이 높이 0 에서 내용 높이까지 열린다. 휴대폰 메뉴(.ph-me)는 떠 있는 목록이라 뺀다 */
+details:not(.ph-me)::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size var(--dur) var(--ease),
+    content-visibility var(--dur) allow-discrete;
+}
+
+details[open]:not(.ph-me)::details-content {
+  block-size: auto;
+}
+
+/* 메뉴 열림 — 「리포트 생성 ▾」 · 「내려받기 ▾」 목록이 단추 모서리에서 살짝 커지며 열린다. 닫을 때는 바로 사라진다 */
+@keyframes 열림 {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+
+.prd-menu-list {
+  transform-origin: top right;
+  animation: 열림 0.15s var(--ease);
+}
+
+/* 버튼으로 여는 출처 목록은 붙을 때 나타난다 */
+.prd-basis {
+  animation: 나타남 var(--dur) var(--ease);
+}
+
+/* 고른 칩의 면 — motion.ts 가 앞 칩 자리에서 새 칩 자리로 옮기고 지운다.
+   칩 위에 뜨지만 lighten 으로 섞여 면보다 밝은 칩 글자가 비친다 */
+.chip-face {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  box-sizing: border-box;
+  background: var(--rail-active);
+  border: 1px solid var(--ink-faint);
+  mix-blend-mode: lighten;
+  transform-origin: left center;
+}
+
+.chip.chip-arriving {
+  background: var(--panel);
+  border-color: var(--line-2);
+}
+
+/* 오류 흔들림 — 로그인 · 가입 · 비밀번호 변경 상자에 오류 글이 붙으면 한 번 흔들린다.
+   떠오름을 같이 적어야 오류가 사라질 때 떠오름이 다시 돌지 않는다 */
+@keyframes 흔들림 {
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.login-box:has(.login-err) {
+  animation:
+    떠오름 var(--dur) var(--ease),
+    흔들림 var(--dur) var(--ease);
+}
+
+/* 화면 이동 — 앞 화면과 새 화면이 겹쳐 바뀐다(View Transitions). motion.ts 가 다른 화면으로 갈 때만 건다 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur);
+  animation-timing-function: var(--ease);
+}
+
 /* 「움직임 줄이기」를 켠 사람에게는 끄고 바뀐 상태를 바로 보인다. 맥박 점은 멈춘 점으로 남아 실행 중을 계속 알린다 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation: none !important;
+    transition: none !important;
+  }
+
+  /* 따로 둔다 — 못 알아보는 브라우저는 선택자 목록 하나가 틀리면 규칙을 통째로 버린다 */
+  ::details-content {
     transition: none !important;
   }
 }

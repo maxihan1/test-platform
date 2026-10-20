@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { use말 } from './i18n.js';
 import { Modal } from './Modal.js';
+import { 화면을바꾼다 } from './motion.js';
 import { route } from './route.js';
 
 let 막는쪽: ((갈곳: string) => void) | null = null;
@@ -132,8 +133,9 @@ export function useHash(): string {
       if (온칸 === null) 칸적기(++지금칸);
       else 지금칸 = 온칸;
       한번통과 = false;
+      const 앞 = 이전;
       이전 = 새것;
-      setHash(새것);
+      화면을바꾼다(앞, 새것, () => setHash(새것));
     };
     window.addEventListener('hashchange', onChange);
     return () => window.removeEventListener('hashchange', onChange);

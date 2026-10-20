@@ -12,7 +12,7 @@ import { 줄보임 } from './authoringView.js';
 import { use말, use언어 } from './i18n.js';
 import { Modal } from './Modal.js';
 import type { 판정 } from './role.js';
-import { when } from './ui.js';
+import { when, 기다림글자 } from './ui.js';
 
 type 확인 = 'stop' | 'discard' | null;
 
@@ -179,7 +179,7 @@ export function AuthoringTodo({ service, 요청, 할수, 차이수, 커버리지
             disabled={보내는중}
             onClick={() => 새줄로(() => api.createAuthoringRequest(service, { kind: 'RERUN', sourceId: 원본 }))}
           >
-            {보내는중 ? t('시작하는 중…') : t('같은 자료로 다시 작성')}
+            <기다림글자 중={보내는중} 평소={t('같은 자료로 다시 작성')} 기다림={t('시작하는 중…')} />
           </button>
         ) : null}
       </일>
