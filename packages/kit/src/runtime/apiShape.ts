@@ -43,8 +43,13 @@ const 끝빗금뺌 = (길: string): string => (길.length > 1 ? 길.replace(/\/+
 function 틀찾기(문서: 객체, method: string, url: string): { path: string; op: 객체 } | undefined {
   const paths = 객체인가(문서.paths) ? 문서.paths : {};
   const 첫서버 = Array.isArray(문서.servers) && 객체인가(문서.servers[0]) ? 문서.servers[0].url : undefined;
-  // servers[0].url 에 경로가 있으면(https://api.x.com/v2 · /v2) 틀 앞에 붙는다
-  const 앞 = typeof 첫서버 === 'string' ? 끝빗금뺌(new URL(첫서버, 'http://x').pathname).replace(/^\/$/, '') : '';
+  // servers[0].url 에 경로가 있으면(https://api.x.com/v2 · /v2) 틀 앞에 붙는다. 서버 변수({port})는 주소로 못 읽어 0 으로 채워 읽는다
+  let 앞 = '';
+  try {
+    if (typeof 첫서버 === 'string') 앞 = 끝빗금뺌(new URL(첫서버.replace(/\{[^}]*\}/g, '0'), 'http://x').pathname).replace(/^\/$/, '');
+  } catch {
+    // 못 읽는 서버 주소면 앞을 안 붙인다 — 문서 쪽 한계로 케이스 요청이 터지지 않게
+  }
   const 받은 = 끝빗금뺌(new URL(url, 'http://x').pathname);
   let 고른: { path: string; op: 객체; 글자: number } | undefined;
   for (const [틀, 줄] of Object.entries(paths)) {
@@ -55,6 +60,17 @@ function 틀찾기(문서: 객체, method: string, url: string): { path: string;
     if (고른 === undefined || 글자 > 고른.글자) 고른 = { path: 틀, op, 글자 };
   }
   return 고른;
+}
+
+// 판은 항목 내내 같다 — 같은 스키마 객체를 응답마다 다시 옮기지 않게 판마다 쥔다
+const 옮긴것 = new WeakMap<객체, Map<unknown, z.ZodType>>();
+
+function 검사기(문서: 객체, 스키마: unknown): z.ZodType {
+  let 판 = 옮긴것.get(문서);
+  if (판 === undefined) 옮긴것.set(문서, (판 = new Map()));
+  let 값 = 판.get(스키마);
+  if (값 === undefined) 판.set(스키마, (값 = zod스키마(문서, 스키마)));
+  return 값;
 }
 
 /** OpenAPI 의 '#/components/…' 참조를 zod 가 푸는 '#/$defs/…' 꼴로 바꾼다 — zod 는 $defs · definitions 아래만 찾는다 */
@@ -101,6 +117,8 @@ function 문제글(issue: z.core.$ZodIssue): string {
     case 'invalid_type':
       return 받은 === undefined ? `필수 칸 ${칸} 가 없다` : `${칸} 은 ${issue.expected} 여야 하는데 ${형이름(받은)} 이다`;
     case 'invalid_value':
+      // enum · const 칸이 빠졌을 때도 이 코드다
+      if (받은 === undefined) return `필수 칸 ${칸} 가 없다`;
       // enum 밖 값은 짧은 이름이라 보여 준다. 길면 자른다 — 문제 줄은 절차 기록처럼 가린 뒤 저장 · 화면에 간다
       return `${칸} 값 ${JSON.stringify(받은).slice(0, 50)} 은 문서에 없는 값이다`;
     case 'unrecognized_keys':
@@ -149,7 +167,7 @@ export function 모양확인(문서: unknown, method: string, url: string, statu
   }
   let 검사: z.ZodType;
   try {
-    검사 = zod스키마(문서, 스키마);
+    검사 = 검사기(문서, 스키마);
   } catch (err) {
     // zod 가 못 읽는 스키마(not · if/then 같은 것)다. 문서 쪽 한계라 케이스를 깨지 않고 코드만 본 것으로 둔다
     console.error(`[kit] ${머리.method} ${머리.path} ${status} 응답 모양을 읽지 못해 코드만 본다: ${err instanceof Error ? err.message : String(err)}`);

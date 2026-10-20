@@ -10,7 +10,7 @@ import { 케이스판 } from '../apidoc/caseDoc.js';
 import { 대상줄들읽기, type 대상줄 } from '../authoring/reverse.js';
 import { caseSchemas } from './paramSets.js';
 import { 폰을놓는다, 폰을바로잡는다 } from './phone.js';
-import { 러너에보낸다, httpTimeoutMs } from './runner.js';
+import { na, 러너에보낸다, httpTimeoutMs } from './runner.js';
 import { 저장값을채운다 } from './savedInput.js';
 import { prefixOf } from './store.js';
 import { 시작한다, 읽는다, TrialBusyError } from './trial.js';
@@ -147,7 +147,7 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
         try {
           // 정식 실행과 같은 규칙 — 판이 없으면 러너에 안 보내고 미실행으로 닫는다 (도메인/API §3.8 「응답 모양 확인」)
           const 판 = await 케이스판(tcId);
-          if ('사유' in 판) return { historyId: 요청.historyId, status: 'NA', durationMs: 0, steps: [], error: { message: 판.사유 } };
+          if ('사유' in 판) return na(요청, 판.사유);
           return await 러너에서돌린다(러너주소, { ...요청, ...판 });
         } finally {
           if (폰씀) 폰을놓는다();

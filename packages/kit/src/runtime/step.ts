@@ -70,9 +70,9 @@ export async function runStep(
   if (failed) run.failed = true;
   if (stopped) run.stopped = true;
   if (failed && run.firstFailure === undefined) {
-    // 실패한 확인 문장이 먼저, 없으면 첫 모양 문제다
+    // 실패한 확인 문장이 먼저, 다음은 절차를 멈춘 예외, 없으면 첫 모양 문제다 — 터진 까닭을 모양 문제가 덮지 않게
     run.firstFailure =
-      scope.assertions.find((a) => a.status === 'FAIL')?.statement ?? (모양실패 === undefined ? undefined : 모양문장(모양실패)) ?? error?.message;
+      scope.assertions.find((a) => a.status === 'FAIL')?.statement ?? error?.message ?? (모양실패 === undefined ? undefined : 모양문장(모양실패));
   }
 
   // 통과한 화면은 아무도 열어보지 않는다. 실패했거나 증적용으로 지정한 절차만 찍는다 (SPEC §4)

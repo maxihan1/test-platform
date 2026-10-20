@@ -191,6 +191,17 @@ describe('runStep — 응답 모양 확인', () => {
     expect(run.firstFailure).toBe('상태가 SENT 다');
   });
 
+  it('본문을 못 읽었으면 모양 실패로 적지 않는다', async () => {
+    const { run, emitted } = makeRun(null);
+    const 못읽음 = { status: () => 201, text: async () => Promise.reject(new Error('닫힌 연결')) } as unknown as APIResponse;
+    await runStep(run, '푸시를 보낸다', async () => {
+      await traced({ post: async () => 못읽음 } as unknown as APIRequestContext, new Set(), 문서).post('/v1/pushes');
+    });
+
+    expect(emitted[0].status).toBe('PASS');
+    expect(emitted[0].shapeChecks).toBeUndefined();
+  });
+
   it('판이 없으면 모양 줄을 싣지 않는다', async () => {
     const { run, emitted } = makeRun(null);
     await runStep(run, '푸시를 보낸다', async () => {

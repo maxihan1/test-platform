@@ -193,7 +193,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
           케?.unconfirmed ?? null,
         ],
       );
-      요청부품.push(케 === undefined ? { ...p, ...주소 } : { ...p, ...주소, ...단계인증(p, 앱들), ...(await 부품판(p)), filePath: 케.file_path });
+      요청부품.push(케 === undefined ? { ...p, ...주소 } : { ...p, ...주소, ...단계인증(p, 앱들), ...(await 부품판(p, c)), filePath: 케.file_path });
     }
 
     // 확정 전에 쥔 손으로 읽는다 — 확정 뒤에 던지면 RUNNING 실행이 러너 없이 남는다

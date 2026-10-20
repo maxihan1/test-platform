@@ -35,7 +35,7 @@ function 러너들(): string[] {
   return 로컬 && 로컬 !== runnerUrl() ? [runnerUrl(), 로컬] : [runnerUrl()];
 }
 
-function na(item: PendingItem, message: string, stack?: string): ExecuteResponse {
+export function na(item: Pick<PendingItem, 'historyId'>, message: string, stack?: string): ExecuteResponse {
   // 판정할 근거가 없으면 NA다. 실패와 구분돼야 러너 고장과 케이스 실패가 섞이지 않는다 (SPEC §3.2)
   return { historyId: item.historyId, status: 'NA', durationMs: 0, steps: [], error: { message, stack } };
 }

@@ -49,8 +49,12 @@ export async function 판목록(serviceId: number) {
 }
 
 /** 판 원문. 판 번호가 없으면 마지막 판. 없으면 null */
-export async function 판원문(serviceId: number, version?: number): Promise<{ version: number; doc: Record<string, unknown> } | null> {
-  const r = await (await db()).query<{ version: number; doc: Record<string, unknown> }>(
+export async function 판원문(
+  serviceId: number,
+  version?: number,
+  q?: { query: Awaited<ReturnType<typeof db>>['query'] },
+): Promise<{ version: number; doc: Record<string, unknown> } | null> {
+  const r = await (q ?? (await db())).query<{ version: number; doc: Record<string, unknown> }>(
     `SELECT version, doc FROM api_doc_version
       WHERE service_id = $1 AND ($2::int IS NULL OR version = $2)
       ORDER BY version DESC LIMIT 1`,

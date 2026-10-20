@@ -183,4 +183,19 @@ describe('모양확인', () => {
     };
     expect(모양확인(넓은, 'GET', '/x', 200, '{}')?.problems).toHaveLength(5);
   });
+
+  it('enum 칸이 빠져도 필수 칸 문제로 적는다 — 던지지 않는다', () => {
+    const 열거 = {
+      openapi: '3.1.0',
+      paths: { '/s': { get: { responses: { '200': { content: { 'application/json': { schema: { type: 'object', required: ['s'], properties: { s: { enum: ['A', 'B'] } } } } } } } } } },
+    };
+    expect(모양확인(열거, 'GET', '/s', 200, '{}')?.problems).toEqual(['필수 칸 s 가 없다']);
+  });
+
+  it('서버 주소의 변수({port})는 채워 읽고, 못 읽는 주소면 앞을 안 붙인다', () => {
+    const 변수 = { ...문서, servers: [{ url: 'http://localhost:{port}/api' }] };
+    expect(모양확인(변수, 'POST', '/api/v1/pushes', 201, 본문({ id: 'a', status: 'SENT' }))?.result).toBe('PASS');
+    const 못읽음 = { ...문서, servers: [{ url: 'http://[bad' }] };
+    expect(모양확인(못읽음, 'POST', '/v1/pushes', 201, 본문({ id: 'a', status: 'SENT' }))?.result).toBe('PASS');
+  });
 });

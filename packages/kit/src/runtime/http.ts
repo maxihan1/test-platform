@@ -2,6 +2,8 @@
 
 import type { APIRequestContext, APIResponse } from '@playwright/test';
 
+import type { ShapeCheck } from '../types.js';
+
 import { 모양확인 } from './apiShape.js';
 import { stepScope } from './context.js';
 
@@ -78,10 +80,12 @@ async function traceResponse(
   // 모양은 자르기 전 본문으로 본다 — 절차 기록은 2000자에서 잘린다 (도메인/API §3.8 「응답 모양 확인」).
   // fetch 는 메서드를 옵션에 싣는다
   const scope = stepScope.getStore();
-  if (scope === undefined || 문서 === undefined) return;
+  // 본문을 못 읽었으면 견줄 것이 없다 — 읽지 못한 것을 모양 실패로 적지 않는다
+  if (scope === undefined || 문서 === undefined || 원문 === undefined) return;
   const 메서드 = method === 'fetch' && typeof options?.method === 'string' ? options.method : method === 'fetch' ? 'GET' : method;
-  const 확인 = 모양확인(문서, 메서드, url, response.status(), 원문 ?? '');
-  if (확인 !== undefined) (scope.shapeChecks ??= []).push(확인);
+  const 확인 = 모양확인(문서, 메서드, url, response.status(), 원문);
+  // 문제 줄의 enum 밖 응답 값도 절차 기록과 같은 규칙으로 가린 뒤 싣는다
+  if (확인 !== undefined) (scope.shapeChecks ??= []).push(가린다(확인, 비밀) as ShapeCheck);
 }
 
 /**
