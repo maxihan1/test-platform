@@ -6,6 +6,7 @@ import type { ServiceRow, User } from './api.js';
 import { use말, type 언어 } from './i18n.js';
 import { 집 } from './route.js';
 import { 서비스고르개, 언어고르개, 프로젝트고르개 } from './ShellPickers.js';
+import { useSSO } from './useSSO.js';
 
 interface Props {
   user: User;
@@ -72,6 +73,7 @@ export function ShellHeader({ user, service, onService, 언어, on언어, onLogo
 function 계정메뉴({ user, onLogout }: { user: User; onLogout: () => void }) {
   const t = use말();
   const [열림, set열림] = useState(false);
+  const sso = useSSO();
   const 상자 = useRef<HTMLDivElement>(null);
   const 버튼 = useRef<HTMLButtonElement>(null);
 
@@ -108,9 +110,12 @@ function 계정메뉴({ user, onLogout }: { user: User; onLogout: () => void }) 
       </button>
       {열림 ? (
         <div className="hd-me-menu" id="hd-me-menu">
-          <a href="#/password" onClick={() => set열림(false)}>
-            {t('비밀번호 변경')}
-          </a>
+          {/* maxihan 계정이면 비밀번호는 Auth_platform 이 가진다 (SPEC §8.6) */}
+          {sso === true ? null : (
+            <a href="#/password" onClick={() => set열림(false)}>
+              {t('비밀번호 변경')}
+            </a>
+          )}
           <button
             type="button"
             onClick={() => {

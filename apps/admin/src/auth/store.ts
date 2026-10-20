@@ -99,7 +99,7 @@ const 한사람 = `
 interface 한사람행 {
   display_name: string;
   role: 등급;
-  /** maxihan 계정(SSO)으로 들어온 계정은 비밀번호가 없다 (SPEC 공통/4-데이터모델 「maxihan 계정」) */
+  /** maxihan 계정(SSO)으로 들어온 계정은 비밀번호가 없다 (SPEC 도메인/인증 §3.5) */
   password_hash: string | null;
   perm_dashboard: 대시보드칸;
   must_change_password: boolean;

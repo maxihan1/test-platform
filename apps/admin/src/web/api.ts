@@ -1003,7 +1003,11 @@ export const api = {
   login: (username: string, password: string) =>
     call<{ user: User }>('/auth/login', json({ username, password })),
 
-  logout: () => call<void>('/auth/logout', { method: 'POST' }),
+  /** maxihan 계정(SSO)으로 나가면 Auth_platform 세션까지 끊을 주소가 온다. 비밀번호 로그인은 빈 답(204)이다 */
+  logout: () => call<{ redirect?: string } | undefined>('/auth/logout', { method: 'POST' }),
+
+  /** 로그인 화면이 그릴 모양 — maxihan 계정 버튼인가, 아이디 · 비밀번호 칸인가 (도메인/인증 §8.6) */
+  methods: () => call<{ sso: boolean }>('/auth/methods'),
 
   me: () => call<{ user: User }>('/auth/me'),
 

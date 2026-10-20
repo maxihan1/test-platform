@@ -1,11 +1,13 @@
-// 로그인·로그아웃·나·비밀번호 바꾸기 (SPEC 도메인/인증 §7 Auth). 가입은 옆 파일(signup.ts)을 여기서 붙인다
+// 로그인·로그아웃·나·비밀번호 바꾸기 (SPEC 도메인/인증 §7 Auth). 가입(signup.ts)과 maxihan 계정 로그인(sso.ts)을 여기서 붙인다
 
 import type { FastifyInstance } from 'fastify';
 
 import { 확인 } from './identify.js';
+import { SSO설정읽기, 로그아웃주소 } from './oidc.js';
 import { 검증, 해시 } from './password.js';
 import { 비밀번호최대, 비밀번호최소 } from './rules.js';
 import signupRoutes from './signup.js';
+import ssoRoutes from './sso.js';
 import { 로그인조회, 비밀번호도장, 비밀번호바꾸기, 사용자와해시 } from './store.js';
 
 interface 로그인본문 {
@@ -19,6 +21,31 @@ interface 비밀번호본문 {
 }
 
 export default async function authRoutes(app: FastifyInstance): Promise<void> {
+  // env 가 반만 채워졌으면 여기서 던져 기동이 멈춘다 (oidc.ts)
+  const sso = SSO설정읽기();
+
+  // 로그인 화면이 어느 모양을 그릴지 묻는다. 로그인 전에 부르므로 문이 그냥 통과시킨다 (gate.ts)
+  app.get('/auth/methods', async () => ({ sso: sso !== null }));
+
+  app.post('/auth/logout', async (req, reply) => {
+    const idToken = req.session.get('idToken');
+    req.session.delete();
+    // SSO 출입증이면 Auth_platform 세션까지 끊어야 다음 로그인에서 다시 묻는다. 화면이 이 주소로 옮겨 간다
+    if (sso !== null && idToken !== undefined) return { redirect: await 로그아웃주소(sso, idToken) };
+    return reply.code(204).send();
+  });
+
+  app.get('/auth/me', async (req, reply) => {
+    const user = await 확인(req);
+    if (user === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
+    return { user };
+  });
+
+  // SSO 가 켜진 설치는 비밀번호 길(로그인 · 가입 · 비밀번호 바꾸기)을 아예 안 붙인다 — 부르면 404 다 (2026-10-20 사용자)
+  if (sso !== null) {
+    await app.register(ssoRoutes, { sso });
+    return;
+  }
   await app.register(signupRoutes);
 
   app.post<{ Body: 로그인본문 }>('/auth/login', async (req, reply) => {
@@ -38,18 +65,10 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
 
     req.session.set('username', username);
     req.session.set('stamp', 비밀번호도장(찾은것.passwordHash));
+    // 앞서 SSO 로 구운 칸이 남아 있으면 SSO 를 다시 켰을 때 이 출입증이 SSO 출입증 행세를 한다
+    req.session.set('method', undefined);
+    req.session.set('idToken', undefined);
     return { user: 찾은것.user };
-  });
-
-  app.post('/auth/logout', async (req, reply) => {
-    req.session.delete();
-    return reply.code(204).send();
-  });
-
-  app.get('/auth/me', async (req, reply) => {
-    const user = await 확인(req);
-    if (user === null) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
-    return { user };
   });
 
   // /api/auth/** 는 문의 권한 판정을 건너뛴다. 그래서 로그인 확인을 이 라우트가 직접 한다.

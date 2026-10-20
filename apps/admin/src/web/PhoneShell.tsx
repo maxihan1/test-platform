@@ -10,6 +10,7 @@ import { 고른서비스를적는다, 자리목록, type 빈띠, type 자리 } f
 import { Notice } from './Notice.js';
 import { 휴대폰자리인가 } from './phone.js';
 import { 서비스고르개, 언어고르개, 프로젝트고르개 } from './ShellPickers.js';
+import { useSSO } from './useSSO.js';
 
 interface Props {
   user: User;
@@ -28,6 +29,7 @@ const 지금이면 = (맞나: boolean) => (맞나 ? { 'aria-current': 'page' as 
 
 export function PhoneShell({ user, service, onService, 언어, on언어, onLogout, current, 사유, children }: Props) {
   const t = use말();
+  const sso = useSSO();
   // 「알림」 버튼은 아래 탭의 한 칸이다. 줄 · 서랍과 열림 상태를 같이 쓰도록 Notice 가 이 자리에 버튼을 그린다
   const [알림자리, set알림자리] = useState<HTMLElement | null>(null);
   const 메뉴 = useRef<HTMLDetailsElement>(null);
@@ -89,7 +91,8 @@ export function PhoneShell({ user, service, onService, 언어, on언어, onLogou
             <div className="side-lang">
               <언어고르개 언어={언어} on언어={on언어} />
             </div>
-            <a href="#/password">{t('비밀번호 변경')}</a>
+            {/* maxihan 계정이면 비밀번호는 Auth_platform 이 가진다 (SPEC §8.6) */}
+            {sso === true ? null : <a href="#/password">{t('비밀번호 변경')}</a>}
             <button className="btn ghost" onClick={onLogout}>
               {t('로그아웃')}
             </button>

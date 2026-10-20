@@ -174,4 +174,11 @@ describe('PC 전용 화면 안내', () => {
   it.each(['#/cases/fn', '#/prd', '#/authoring', '#/scenarios', '#/settings'])('%s 는 PC 에서만 연다', (자리) => {
     expect(휴대폰자리인가(자리)).toBe(false);
   });
+  // useSSO 가 답을 기억하므로 맨 끝에 둔다 — 앞 검사들은 비밀번호 로그인 설치로 본다
+  it('maxihan 계정 설치는 사람 버튼 안에 비밀번호 변경이 없다', async () => {
+    vi.spyOn(api, 'methods').mockResolvedValue({ sso: true });
+    띄운다('#/runs/fn');
+    expect(await screen.findByRole('button', { name: '로그아웃' })).toBeTruthy();
+    await vi.waitFor(() => expect(screen.queryByRole('link', { name: '비밀번호 변경' })).toBeNull());
+  });
 });
