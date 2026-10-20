@@ -1,6 +1,6 @@
 // CI에는 postgres가 없다. DATABASE_URL이 있을 때만 돈다
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { 에이전트토큰만들기 } from './agentToken.js';
 import { 확인 } from './identify.js';
@@ -234,7 +234,7 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
     expect(JSON.stringify(user)).not.toContain('scrypt$');
 
     const 안쪽 = await 사용자와해시('xfu1-live');
-    expect(안쪽?.passwordHash.startsWith('scrypt$')).toBe(true);
+    expect(안쪽?.passwordHash?.startsWith('scrypt$')).toBe(true);
   });
 
   it('승인 대기 계정은 세션이 있어도 아무도 아니다', async () => {
@@ -256,7 +256,7 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
 
   it('출입증의 비밀번호 도장이 지금 해시와 맞으면 그 사람이다', async () => {
     const 안쪽 = await 사용자와해시('xfu1-live');
-    const user = await 확인(await 가짜요청('xfu1-live', 비밀번호도장(안쪽!.passwordHash)));
+    const user = await 확인(await 가짜요청('xfu1-live', 비밀번호도장(안쪽!.passwordHash!)));
     expect(user?.username).toBe('xfu1-live');
   });
 
@@ -266,5 +266,32 @@ describe.skipIf(연결 === undefined)('확인 함수', () => {
 
   it('도장이 없는 옛 출입증은 아무도 아니다 — 한 번 다시 로그인한다', async () => {
     expect(await 확인(await 가짜요청('xfu1-live', null))).toBeNull();
+  });
+
+  describe('maxihan 계정(SSO)이 켜진 설치', () => {
+    const SSO칸: Record<string, string> = { username: 'xfu1-live', method: 'sso' };
+    const SSO출입증 = { session: { get: (key: string) => SSO칸[key] } };
+    afterEach(() => vi.unstubAllEnvs());
+    const 켜기 = () => {
+      vi.stubEnv('AUTH_ISSUER', 'http://127.0.0.1:9');
+      vi.stubEnv('AUTH_CLIENT_ID', 'test-platform');
+      vi.stubEnv('AUTH_CLIENT_SECRET', 'xfu1-secret');
+      vi.stubEnv('PLATFORM_PUBLIC_URL', 'http://localhost:3000');
+    };
+
+    it('SSO 로 구운 출입증은 비밀번호 도장 없이 그 사람이다', async () => {
+      켜기();
+      expect((await 확인(SSO출입증))?.username).toBe('xfu1-live');
+    });
+
+    it('비밀번호로 구운 출입증은 도장이 맞아도 아무도 아니다', async () => {
+      const 비밀번호출입증 = await 가짜요청('xfu1-live');
+      켜기();
+      expect(await 확인(비밀번호출입증)).toBeNull();
+    });
+
+    it('SSO 를 끄면 SSO 출입증은 아무도 아니다', async () => {
+      expect(await 확인(SSO출입증)).toBeNull();
+    });
   });
 });
