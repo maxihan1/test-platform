@@ -236,7 +236,7 @@ export const 보낼항목 = (items: readonly 옮긴항목[]): 들어온항목[] 
  * 번호가 아직 없는 새 항목은 임시 번호로 든다. 설계(경계 · 예외)는 요구 문장으로 판정한다 — 원본 글이 아니다.
  * 확인 필요 항목은 표시해 둔다 — 그 항목을 덮는 줄은 화면 기준이라 미확정 표시를 단다(칸 번호를 가른다)
  */
-export function 표준원장(items: readonly 옮긴항목[]): 원장 | { 없음: string } {
+export function 표준원장(items: readonly 옮긴항목[], api: readonly 원장항목[] = []): 원장 | { 없음: string } {
   const 항목: 원장항목[] = items.flatMap((i) => {
     const 번호 = i.reqId ?? i.임시;
     if (번호 === undefined) return [];
@@ -249,6 +249,8 @@ export function 표준원장(items: readonly 옮긴항목[]): 원장 | { 없음:
       ...(설.경계.length + 설.예외.length > 0 ? { 설계: 설 } : {}),
     }];
   });
+  // API 애플리케이션은 판의 API × 응답 코드 줄을 뒤에 붙인다 — 표준 기획서가 비어도 원장이 선다 (도메인/API §3.8 「작성」 「원장」)
+  항목.push(...api);
   if (항목.length === 0) return { 없음: '표준 기획서에 항목이 없다' };
   const 가족들: Record<string, number> = {};
   for (const h of 항목) 가족들[가족(h.번호)] = (가족들[가족(h.번호)] ?? 0) + 1;

@@ -16,13 +16,18 @@ export interface 계정줄 {
  * 가릴 비밀번호 전부 — 일반 회원(target)과 역할 계정(accounts). 빈 값 · 같은 값은 뺀다.
  * **긴 것부터** 준다 — 짧은 비밀번호가 긴 것의 일부면 짧은 것을 먼저 가린 자리 뒤에 긴 것의 나머지 글자가 남는다
  */
-export function 비밀번호들(것: { target?: Pick<대상, 'loginPassword'>; accounts?: readonly Pick<계정줄, 'loginPassword'>[] }): string[] {
-  const 모두 = [것.target?.loginPassword, ...(것.accounts ?? []).map((a) => a.loginPassword)];
+export function 비밀번호들(것: {
+  target?: Pick<대상, 'loginPassword'>;
+  accounts?: readonly Pick<계정줄, 'loginPassword'>[];
+  /** API 애플리케이션의 인증 비밀값도 같은 목록으로 가린다 (도메인/API §3.8 「API 인증」 「작성 에이전트도 받는다」) */
+  api?: { 인증들: readonly { clientSecret: string }[] };
+}): string[] {
+  const 모두 = [것.target?.loginPassword, ...(것.accounts ?? []).map((a) => a.loginPassword), ...(것.api?.인증들 ?? []).map((a) => a.clientSecret)];
   return [...new Set(모두.filter((p): p is string => typeof p === 'string' && p !== ''))].sort((a, b) => b.length - a.length);
 }
 
 /**
- * 자식 쪽(크롤러)이 받은 환경 변수로 같은 목록을 만든다 — 에이전트가 넘긴 `TARGET_LOGIN_PASSWORD` · `PLATFORM_ACCOUNTS`.
+ * 자식 쪽(크롤러 · 빠른 검사)이 받은 환경 변수로 같은 목록을 만든다 — 에이전트가 넘긴 `TARGET_LOGIN_PASSWORD` · `PLATFORM_ACCOUNTS` · `PLATFORM_API_AUTHS`.
  * JSON 이 아니면 던진다 — 에이전트가 만든 값이라 깨졌으면 무엇을 가려야 할지 모른다. 문장에 값을 싣지 않는다
  */
 export function 환경비밀번호들(env: Record<string, string | undefined>): string[] {
@@ -36,9 +41,20 @@ export function 환경비밀번호들(env: Record<string, string | undefined>): 
   }
   if (!Array.isArray(계정들)) throw new Error('PLATFORM_ACCOUNTS 가 배열이 아니다');
   const 줄들 = 계정들.map((a: unknown) => (a as { loginPassword?: unknown } | null)?.loginPassword);
+  let 인증들: unknown = [];
+  if ((env.PLATFORM_API_AUTHS ?? '').trim() !== '') {
+    try {
+      인증들 = JSON.parse(env.PLATFORM_API_AUTHS ?? '');
+    } catch {
+      throw new Error('PLATFORM_API_AUTHS 가 JSON 이 아니다');
+    }
+  }
+  if (!Array.isArray(인증들)) throw new Error('PLATFORM_API_AUTHS 가 배열이 아니다');
+  const 비밀값들 = 인증들.map((a: unknown) => (a as { clientSecret?: unknown } | null)?.clientSecret);
   return 비밀번호들({
     target: { loginPassword: env.TARGET_LOGIN_PASSWORD },
     accounts: 줄들.map((p) => ({ loginPassword: typeof p === 'string' ? p : '' })),
+    api: { 인증들: 비밀값들.map((p) => ({ clientSecret: typeof p === 'string' ? p : '' })) },
   });
 }
 

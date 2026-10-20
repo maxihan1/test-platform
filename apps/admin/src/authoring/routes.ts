@@ -15,6 +15,7 @@ import { 행커버리지 } from './coverage.js';
 import { 피그마주소정규화 } from './figma.js';
 import { 피그마막힘 } from './figmaCheck.js';
 import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
+import { API칸판정, 재실행API } from './apiDoc.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
@@ -134,7 +135,12 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           if (정규 === null) return reply.code(400).send({ error: 'BAD_FIGMA_URL', detail: String(주소) });
           피그마.push(정규);
         }
-        const 대조 = await 역방향칸판정(req.body, 서비스);
+        // API 애플리케이션은 판 하나와 대상 서버를 받고 역방향 칸을 안 받는다 (§7 「AUTHOR API 문서 판」)
+        const api = await API칸판정(req.body, 서비스);
+        if ('error' in api) return reply.code(400).send({ error: api.error });
+        // API 판 자료 한 행도 개수 상한에 센다
+        if (api.api && 받은것.length + 1 > 자료상한) return reply.code(400).send({ error: 'TOO_MANY_ASSETS' });
+        const 대조 = api.api ? ({ compare: false } as const) : await 역방향칸판정(req.body, 서비스);
         if ('error' in 대조) return reply.code(400).send({ error: 대조.error });
         // 줄에 선 뒤 몇십 분 기다리다 실패하지 않게 여기서 연다 — 거절하면 DRAFT 도 안 남는다 (§7 「자료」 「미리 열어 보기」)
         const 막힘 = await 피그마막힘(서비스, 피그마);
@@ -146,6 +152,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           피그마,
           값,
           ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
+          ...(api.api ? { api: { env: api.env, 판id: api.판id, version: api.version } } : {}),
         });
         return reply.code(201).send({ id });
       }
@@ -180,6 +187,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         ? await 역방향칸판정({ compare: true, env: 행.env, startUrl: 행.startUrl }, 서비스)
         : ({ compare: false } as const);
       if ('error' in 대조) return reply.code(400).send({ error: 대조.error });
+      const api = await 재실행API(서비스, 행);
+      if ('error' in api) return reply.code(400).send({ error: api.error });
       try {
         // 같은 뿌리에 도는 실행이 있으면 둘이 같은 브랜치를 서로 덮는다 — 확인과 넣기를 뿌리 잠금 안에서 (§7 「실행 기록」)
         const id = await 뿌리잠그고(행.id, async () => (await 도는실행있나(행.id)) ? null : 줄세우기({
@@ -193,6 +202,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           누가,
           이름,
           ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
+          ...(api.env === undefined ? {} : { apiEnv: api.env }),
           ...(이어서 ? { 이어받기: 받은것.id } : {}),
         }));
         if (id === null) return reply.code(409).send({ error: 'RUN_ACTIVE' });

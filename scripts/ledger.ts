@@ -13,6 +13,7 @@ import type { PrdItem } from '@platform/kit/types';
 import type { 읽을자료 } from './authoring-assets.js';
 import { 기준재료이름, 원장사본이름, 표준원장사본 } from './authoring-ledger-io.js';
 import { 옮긴것읽기 } from './authoring-prd.js';
+import { API원장읽기 } from './authoring-api.js';
 import { type 원장, 원장만들기 } from './authoring-ledger.js';
 import { 설계글, 설계요약 } from './authoring-design.js';
 import { 설계대조 } from './authoring-design-check.js';
@@ -156,7 +157,15 @@ if (명령 === '뽑기') {
     console.log(`번호 없던 새 항목 ${String(자동.length)}개에 임시 번호를 적었다: ${자동.map(([, n]) => n).join(' · ')}`);
   }
   const 기준 = 재료.기준표 === null ? null : { 표글: 재료.기준표.표글, 있는케이스: new Set(재료.기준표.있는케이스) };
-  const r = 표준원장사본(지금.items, 옮긴몸, 재료.접두사, 기준);
+  // API 애플리케이션이면 자료 폴더의 판 파일로 API 줄을 붙인다 — 에이전트가 띄우기 전에 만든 원장과 같게 (도메인/API §3.8 「작성」)
+  let api: ReturnType<typeof API원장읽기>;
+  try {
+    api = API원장읽기(폴더);
+  } catch (e) {
+    console.log(`${e instanceof Error ? e.message : String(e)} — 지우거나 고친 뒤 다시 돌려라`);
+    process.exit(1);
+  }
+  const r = 표준원장사본(지금.items, 옮긴몸, 재료.접두사, 기준, api);
   // 에이전트가 쓴 사본은 root 파일일 수 있다 — 폴더가 자식 것이라 지우고 새로 쓴다
   rmSync(join(폴더, 원장사본이름), { force: true });
   writeFileSync(join(폴더, 원장사본이름), r.글);

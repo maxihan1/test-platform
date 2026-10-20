@@ -5,6 +5,7 @@ import { type 권한설정, type 자료, 셸허용됐나 } from './authoring-ass
 import { 크레딧키검사, 크레딧키이름 } from './authoring-billing.js';
 import { type 모델, 모델인자 } from './authoring-model.js';
 import type { 계정줄 } from './authoring-accounts.js';
+import type { API작성 } from './authoring-api.js';
 import { type 대상 } from './authoring-reverse.js';
 
 /** 설정 파일에서 우리가 보는 부분만. 나머지 키는 이 스크립트가 알 바가 아니다 */
@@ -164,6 +165,11 @@ export interface 집은것 {
   params?: unknown;
   /** 반영 행에만 온다 — 원본의 겹침 결정 전부. 모양은 authoring-conflicts-io 의 `결정들` 이 본다 (§3.6 「★ 반영 때 겹침 검사」) */
   conflicts?: unknown;
+  /**
+   * 서버가 싣지 않는다 — API 애플리케이션 행의 `target` · `apiDoc` 을 에이전트가 `API떼기` 로 옮겨 담은 것 (도메인/API §3.8 「작성」).
+   * 그때 `target` 은 지운다 — `target` 은 역방향 표지다
+   */
+  api?: API작성;
 }
 
 // 줄 프롬프트는 authoring-prompt.ts 로 뗐다 (2026-09-30 — 300줄). 부르는 쪽을 안 바꾸려고 다시 내보낸다

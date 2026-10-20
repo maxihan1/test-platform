@@ -11,6 +11,7 @@ import { 이어작성준비, 제출, 초안지우기 } from './assetStore.js';
 import { 자료파일복사, 자료폴더 } from './assets.js';
 import { 행커버리지 } from './coverage.js';
 import { 사슬식, 뿌리잠그고, 최신식 } from './history.js';
+import { 재실행API } from './apiDoc.js';
 import { 역방향칸판정 } from './reverse.js';
 import { db, type 요청 } from './store.js';
 
@@ -125,10 +126,13 @@ export async function 이어작성세우기(
   const 대조 = 원본.compare
     ? await 역방향칸판정({ compare: true, env: 원본.env, startUrl: 원본.startUrl }, 입력.서비스)
     : ({ compare: false } as const);
+  // API 애플리케이션 원본은 대조가 아니어도 env 를 물려받는다 — 재실행과 같은 판정 (§7 「AUTHOR API 문서 판」)
+  const api = await 재실행API(입력.서비스, 원본);
   const 결과 = await 뿌리잠그고(원본.id, async (손): Promise<{ code: number; error: string } | Awaited<ReturnType<typeof 이어작성준비>>> => {
     const 까닭 = 막는까닭(await 이어작성상태읽기(원본.id, 손));
     if (까닭 !== null) return { code: 409, error: 까닭 };
     if ('error' in 대조) return { code: 400, error: 대조.error };
+    if ('error' in api) return { code: 400, error: api.error };
     try {
       // 행은 잠금을 쥔 연결의 트랜잭션 안에서 — 다음 누름이 이 초안을 「이미 이어 작성함」으로 본다
       return await 이어작성준비(
@@ -138,6 +142,7 @@ export async function 이어작성세우기(
           누가: 입력.누가,
           이름: 입력.이름,
           ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
+          ...(api.env === undefined ? {} : { apiEnv: api.env }),
         },
         손,
       );

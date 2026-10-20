@@ -8,6 +8,7 @@ import { type 이어작성입력, 이어작성절 } from './authoring-continue.j
 import { type 반영입력, 반영요청인가, 반영절 } from './authoring-apply.js';
 import type { 표준기획서입력 } from './authoring-prd-io.js';
 import { 역방향절 } from './authoring-reverse.js';
+import { API절 } from './authoring-api.js';
 
 /**
  * 줄에서 집은 작성 요청으로 자식 세션에게 시킬 일.
@@ -30,6 +31,8 @@ export function 줄프롬프트(
   반영?: 반영입력,
   가이드?: { 판: number; 글: string },
   앱화면?: 앱화면,
+  /** 자료 폴더 — API 애플리케이션 행이면 판 파일 경로를 절에 싣는다 */
+  자료폴더?: string,
 ): string {
   return [
     `/tpx-author 아래 자료로 테스트케이스를 만들어줘. tcId 접두사는 ${서비스} 다.`,
@@ -67,6 +70,7 @@ export function 줄프롬프트(
     ...(반영 === undefined ? [] : 반영절(반영, 대상?.서버들)),
     ...(가이드 === undefined ? [] : 가이드절(가이드, 서비스)),
     ...(앱화면 === undefined ? [] : 앱화면절(앱화면)),
+    ...(것.api === undefined || 자료폴더 === undefined ? [] : API절(것.api, 자료폴더)),
   ].join('\n');
 }
 
