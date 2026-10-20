@@ -18,7 +18,7 @@ const SSO안내: Record<string, { 문장: string; 오류: boolean }> = {
 };
 
 /** maxihan 계정(SSO)이 켜진 설치의 로그인 화면 (SPEC §8.6). 버튼 하나 · 언어 고르개. 가입 · 비밀번호 칸은 없다 */
-function SSO로그인({ on언어, 결과 }: { on언어: (고른: 언어) => void; 결과: string | null }) {
+function SSO로그인({ on언어, 결과, 그래프 }: { on언어: (고른: 언어) => void; 결과: string | null; 그래프: string | null }) {
   const t = use말();
   const 언어 = use언어();
   const 안내 = 결과 === null ? undefined : SSO안내[결과];
@@ -29,8 +29,9 @@ function SSO로그인({ on언어, 결과 }: { on언어: (고른: 언어) => void
         <h1 className="login-greet">{t('로그인')}</h1>
         <p className="login-sub">{t('maxihan 계정으로 로그인하면 맡은 애플리케이션이 열립니다.')}</p>
         {안내 === undefined ? null : <p className={안내.오류 ? 'err login-err' : 'login-info'}>{t(안내.문장)}</p>}
-        {/* 서버가 Auth_platform 으로 보낸다. 화면 안 이동이 아니라 페이지 이동이다 */}
-        <a className="btn" href="/api/auth/sso/start">
+        {/* 서버가 Auth_platform 으로 보낸다. 화면 안 이동이 아니라 페이지 이동이다.
+            Grafana 에서 왔으면 돌아올 자리를 실어 보낸다 — 서버가 같은 규칙으로 다시 거른다 (auth/sso.ts) */}
+        <a className="btn" href={그래프 === null ? '/api/auth/sso/start' : `/api/auth/sso/start?next=${encodeURIComponent(그래프)}`}>
           {t('maxihan 계정으로 로그인')}
         </a>
         <div className="side-lang login-lang">
@@ -71,7 +72,10 @@ export function Login({
   // 묻는 동안은 아이디 · 비밀번호 칸을 그린다 — 대부분의 설치가 그 모양이고, 칸이 비어 보이는 것보다 낫다
   const sso = useSSO();
 
-  if (sso === true) return <SSO로그인 on언어={on언어} 결과={new URLSearchParams(window.location.search).get('sso')} />;
+  if (sso === true) {
+    const 주소칸 = window.location.search;
+    return <SSO로그인 on언어={on언어} 결과={new URLSearchParams(주소칸).get('sso')} 그래프={그래프로돌아갈곳(주소칸)} />;
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

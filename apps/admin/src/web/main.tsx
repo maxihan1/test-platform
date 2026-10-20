@@ -41,6 +41,7 @@ import { ScenarioRunList } from './ScenarioRunList.js';
 import { Settings } from './Settings.js';
 import { Shell } from './Shell.js';
 import { Signup } from './Signup.js';
+import { useSSO } from './useSSO.js';
 import { 칩움직임을건다 } from './motion.js';
 import { Loading } from './ui.js';
 import './styles.css';
@@ -74,6 +75,8 @@ function Screen({
 }) {
   const t = use말();
   const current = route(hash);
+  // maxihan 계정 설치는 비밀번호를 Auth_platform 이 가진다. 주소로 변경 화면을 열어도 없는 주소로 친다 (SPEC §8.6)
+  const sso = useSSO();
   // 띠가 서비스를 고르기 전에는 목록을 부르지 않는다. 빈 값으로 부르면 서버가 400 을 낸다
   const prefix = service?.prefix ?? '';
   // 케이스·작성·실행 칸은 고른 서비스의 것을 본다 (화면공통 §8)
@@ -146,6 +149,7 @@ function Screen({
     case 'settings':
       return <Settings user={user} onMeChanged={onMeChanged} 자리={current.자리} />;
     case 'password':
+      if (sso === true) break;
       return (
         <PasswordChange
           강제={false}
@@ -155,15 +159,14 @@ function Screen({
           }}
         />
       );
-    default:
-      return (
-        <div className="screen">
-          <div className="empty">
-            {t('없는 주소입니다.')} <a href={집(user, service?.prefix ?? null)}>{t('처음으로')}</a>
-          </div>
-        </div>
-      );
   }
+  return (
+    <div className="screen">
+      <div className="empty">
+        {t('없는 주소입니다.')} <a href={집(user, service?.prefix ?? null)}>{t('처음으로')}</a>
+      </div>
+    </div>
+  );
 }
 
 type 상태 = { 어디: '묻는중' } | { 어디: '밖' } | { 어디: '안'; user: User };
@@ -186,11 +189,26 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   // 새로고침해도 로그인 상태가 이어진다. 세션은 브라우저가 들고 다닌다 (SPEC §3.5)
   // 처음 열 때의 401 은 사고가 아니다. 서버가 안 뜬 것이든 로그인이 안 된 것이든
   // 사람이 할 수 있는 일은 로그인뿐이라 갈래를 나누지 않는다
+  // 막 로그인한 사람 — 비밀번호 로그인(Login 의 onLogin)과 maxihan 계정 왕복(아래 ?sso=ok)이 같이 쓴다
+  const 들어왔다 = (user: User) => {
+    set상태({ 어디: '안', user });
+    // 세션이 끊겨 로그인한 사람은 원래 가려던 화면으로 돌려보낸다 (SPEC §8.6).
+    // 기억해 둔 자리도 권한 판정을 탄다 — 그사이 칸이 none 이 됐을 수 있다
+    const 고른 = 고른서비스(prefix, user.services)?.prefix ?? null;
+    const 돌아감 = 돌아갈자리를꺼낸다();
+    set프로젝트묻기(프로젝트물을까(돌아감, user.services));
+    window.location.hash = 돌아갈자리(돌아감 ?? window.location.hash, user, 고른);
+  };
+
   useEffect(() => {
+    // maxihan 계정 왕복이 막 끝났으면 서버(auth/sso.ts)가 /?sso=ok 로 보낸다. 새로고침과 가르려고 표시를 읽고 바로 지운다
+    const 막로그인 = new URLSearchParams(window.location.search).get('sso') === 'ok';
+    if (막로그인) window.history.replaceState(null, '', window.location.pathname + window.location.hash);
     api
       .me()
-      .then(({ user }) => set상태({ 어디: '안', user }))
+      .then(({ user }) => (막로그인 ? 들어왔다(user) : set상태({ 어디: '안', user })))
       .catch(() => set상태({ 어디: '밖' }));
+    // 처음 열 때 한 번만 묻는다
   }, []);
 
   // 도중에 세션이 끊기면 api.ts 가 여기로 알린다.
@@ -241,15 +259,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
     return (
       <Login
         on언어={on언어}
-        onLogin={(user) => {
-          set상태({ 어디: '안', user });
-          // 세션이 끊겨 여기로 온 사람은 원래 가려던 화면으로 돌려보낸다 (SPEC §8.6).
-          // 기억해 둔 자리도 권한 판정을 탄다 — 그사이 칸이 none 이 됐을 수 있다
-          const 고른 = 고른서비스(prefix, user.services)?.prefix ?? null;
-          const 돌아감 = 돌아갈자리를꺼낸다();
-          set프로젝트묻기(프로젝트물을까(돌아감, user.services));
-          window.location.hash = 돌아갈자리(돌아감 ?? window.location.hash, user, 고른);
-        }}
+        onLogin={들어왔다}
       />
     );
   }

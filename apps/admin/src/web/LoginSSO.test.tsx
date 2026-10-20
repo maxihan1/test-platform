@@ -48,6 +48,13 @@ describe('maxihan 계정 로그인 화면', () => {
     expect((await screen.findByText(/버튼을 다시 누르면 됩니다/)).className).toContain('err');
   });
 
+  it('Grafana 에서 왔으면 돌아올 자리를 버튼에 실어 보낸다', async () => {
+    그리기('/?next=%2Fgrafana%2Fd%2Fabc');
+
+    const 버튼 = await screen.findByRole('link', { name: 'maxihan 계정으로 로그인' });
+    expect(버튼.getAttribute('href')).toBe('/api/auth/sso/start?next=%2Fgrafana%2Fd%2Fabc');
+  });
+
   it('모르는 결과 값은 아무 문장도 보이지 않는다', async () => {
     그리기('/?sso=<script>');
 
