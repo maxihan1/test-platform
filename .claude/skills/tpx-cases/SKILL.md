@@ -71,5 +71,6 @@ LLM 출력은 비결정적이다. 같은 기획서를 두 번 넣으면 두 번 
 | §5 흔들리지 않게 쓰기 — 기다리기 · 데이터 고르기 · 날짜 값 | `references/5-stable.md` | `.spec.ts` 를 쓰기 전 |
 | §5 입력값 칸 — 실행 때 바꿀 수 있게 | `references/5-inputs.md` | `.spec.ts` 를 쓰기 전 |
 | §5 케이스 작성 — 화면 묶음이 여럿이면 (서브에이전트 팬아웃) | `.claude/skills/tpx-author/references/fanout.md` | 표를 얼리고 tcId 를 다 매긴 뒤(작성 에이전트는 `npm run ledger:number`) · 화면 묶음 둘 이상 · 케이스 8건 이상 |
+| §1~§5 API 애플리케이션 — 건너뛰는 단계 · 근거 둘 · API 원장 줄 · 케이스 꼴 · 네거티브 묶음 · API 도우미 | `references/api.md` | 프롬프트에 `--- API 문서 ---` 절이 있을 때 표를 쓰기 전 |
 | §6 검증 관문 넷 — 관문 0 원장 대조와 관문 1~4 · 종료 조건 | `references/6-gates.md` | 표를 다 쓴 뒤 관문 0 한 번 · 케이스를 다 쓴 뒤 전부 |
 | §7 표 되채우기와 커밋 · §8 반환 · 막혔을 때 | `references/7-finish.md` | §6 관문을 전부 통과한 뒤, 또는 막혔을 때 |
