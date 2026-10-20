@@ -45,6 +45,7 @@ describe('문서읽기', () => {
     expect(문서읽기('[]')).toEqual({ reason: 'JSON 객체가 아닙니다' });
     expect(문서읽기('{"swagger":"2.0"}')).toEqual({ reason: 'Swagger 2.0 문서입니다 — OpenAPI 3 으로 변환해서 올려 주세요' });
     expect(문서읽기('{"openapi":"4.0"}')).toEqual({ reason: '최상위 openapi 가 3. 으로 시작하지 않습니다' });
+    expect(문서읽기('{"openapi":"3.0.0","info":{"title":"a\\u0000b"}}')).toEqual({ reason: '\\u0000 글자가 들어 있습니다' });
   });
 });
 
@@ -131,6 +132,24 @@ describe('판비교', () => {
       { method: 'GET', path: '/v1/pushes/{id}', change: 'CHANGED', breaking: true, notes: ['응답 404 가 없어졌다'] },
       { method: 'POST', path: '/v1/pushes', change: 'CHANGED', breaking: false, notes: ['설명이나 세부 규칙이 바뀌었다'] },
     ]);
+  });
+
+  it('같은 스키마를 겹겹이 가리키는 문서도 거듭제곱으로 불지 않고 끝난다', () => {
+    const schemas: Record<string, unknown> = { S7: { type: 'string' } };
+    for (let i = 0; i < 7; i++) {
+      schemas[`S${String(i)}`] = {
+        type: 'object',
+        properties: Object.fromEntries(Array.from({ length: 8 }, (_, k) => [`p${String(k)}`, { $ref: `#/components/schemas/S${String(i + 1)}` }])),
+      };
+    }
+    const 큰문서 = {
+      openapi: '3.1.0',
+      components: { schemas },
+      paths: { '/x': { get: { responses: { '200': { content: { 'application/json': { schema: { $ref: '#/components/schemas/S0' } } } } } } } },
+    };
+    const 시작 = Date.now();
+    expect(판비교(큰문서, 복사(큰문서))).toEqual([]);
+    expect(Date.now() - 시작).toBeLessThan(3000);
   });
 
   it('돌고 도는 참조에서 멈춘다', () => {

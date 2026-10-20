@@ -4,15 +4,14 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { 칸이되나 } from '../auth/permissions.js';
+import { 정수 } from '../routeParams.js';
 import { 문서받기, 문서상한, 문서읽기, 판비교 } from './doc.js';
 import { type 문서설정, 문서설정읽기, 커버리지, 판목록, 판올리기, 판원문 } from './store.js';
 
 type 경로 = { Params: { id: string } };
 
-// 열 자리 숫자 글자만 받는다(도메인/API §7). 열 자리는 BIGINT 애플리케이션 번호에 넉넉하다
-function 번호(글: unknown): number | null {
-  return typeof 글 === 'string' && /^\d{1,10}$/.test(글) && Number(글) >= 1 ? Number(글) : null;
-}
+// 애플리케이션 번호는 문(auth/scope.ts 번호로)과 같은 규칙인 정수()로 읽는다
+const 번호 = (글: unknown): number | null => (typeof 글 === 'string' ? 정수(글) : null);
 
 // 판 번호는 INTEGER 라 그 상한도 본다 — 넘으면 Postgres 범위 초과가 잡히지 않은 500 이 된다
 const 판번호 = (글: unknown): number | null => {
@@ -59,11 +58,12 @@ export default async function apiDocRoutes(app: FastifyInstance): Promise<void> 
     return (await 판원문(앱.id, version)) ?? reply.code(404).send({ error: 'NOT_FOUND' });
   });
 
-  app.post<경로 & { Querystring: { name?: string } }>('/services/:id/api-docs', async (req, reply) => {
+  app.post<경로 & { Querystring: { name?: unknown } }>('/services/:id/api-docs', async (req, reply) => {
     const 앱 = await API서비스(req, reply);
     if (앱 === null) return reply;
-    const 이름 = req.query.name?.trim() ?? '';
-    if (!Buffer.isBuffer(req.body) || 이름.length > 255) return reply.code(400).send({ error: 'INVALID_REQUEST' });
+    // 같은 키를 두 번 주면 배열로 온다
+    const 이름 = typeof req.query.name === 'string' ? req.query.name.trim() : req.query.name === undefined ? '' : null;
+    if (!Buffer.isBuffer(req.body) || 이름 === null || 이름.length > 255) return reply.code(400).send({ error: 'INVALID_REQUEST' });
     const 읽은것 = 문서읽기(req.body.toString('utf8'));
     if ('reason' in 읽은것) return reply.code(400).send({ error: 'BAD_API_DOC', reason: 읽은것.reason });
     const 곳 = { source: 'FILE' as const, fileName: 이름 === '' ? null : 이름 };

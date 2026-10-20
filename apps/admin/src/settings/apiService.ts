@@ -13,7 +13,7 @@ export const API인증줄 = z.object({
   clientSecret: z.string().optional(),
 });
 
-/** 보낸 칸. 종류는 BAD_KIND 로 따로 돌려주려고 스키마가 모양을 안 본다 */
+/** 보낸 칸. 종류(kind)는 만들기 스키마에만 있다 — 고치기는 KIND_IMMUTABLE 이다 */
 export const API칸 = {
   apiDocPath: z.string().nullable().optional(),
   apiDocEnv: z.string().nullable().optional(),
@@ -47,17 +47,17 @@ interface 보낸칸 {
 }
 
 export interface 지금칸 {
-  kind: unknown;
+  /** 만들기는 스키마가, 고치기는 DB CHECK 가 SCREEN · API 로 막는다 */
+  kind: string;
   apiDocEnv: string | null;
   envs: string[];
 }
 
 /**
  * 저장 전에 본다. 지금 값(고치기면 DB, 만들기면 본문의 kind)과 보낸 것을 합쳐 본다. 틀리면 오류 코드.
- * 차례가 곧 우선순위다 — 종류가 틀리면 나머지 칸 규칙이 뜻이 없다
+ * 차례가 곧 우선순위다 — 화면 애플리케이션이면 나머지 칸 규칙이 뜻이 없다
  */
 export function API칸오류(보낸것: 보낸칸, 지금: 지금칸): string | null {
-  if (지금.kind !== 'SCREEN' && 지금.kind !== 'API') return 'BAD_KIND';
   const 인증들 = (보낸것.envs ?? []).flatMap((e) => e.apiAuths ?? []);
   if (지금.kind === 'SCREEN' && (보낸것.apiDocPath != null || 보낸것.apiDocEnv != null || 인증들.length > 0)) return 'NOT_API_SERVICE';
   if ((보낸것.envs ?? []).some((e) => e.apiAuths !== undefined && API인증틀림(e.apiAuths))) return 'BAD_API_AUTH';

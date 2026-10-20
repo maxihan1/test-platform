@@ -130,7 +130,7 @@
 ## 7. API 문서 통로
 
 **권한** — 경로의 `:id` 로 애플리케이션을 짚고(그 애플리케이션 프로젝트의 권한 — 도메인/인증 §7 「인증 적용 범위」 표), 보기는 작성 `read`, 올리기 · 받기 · 다시 작성은 작성 `write`(도메인/인증 §3.5). 애플리케이션 종류 · 문서 경로 · 기준 서버 · API 인증은 설정 API(도메인/인증 §7)다 — admin 만.
-API 종류가 아닌 애플리케이션이면 모든 통로가 400 `{ error: 'NOT_API_SERVICE' }`. 경로의 번호는 열 자리 숫자 글자만 받는다(그 밖은 400 `INVALID_REQUEST`).
+API 종류가 아닌 애플리케이션이면 모든 통로가 400 `{ error: 'NOT_API_SERVICE' }`. 경로의 번호는 숫자 글자만 받는다 — 문과 같은 규칙(`routeParams.ts` 정수 · 판 번호는 INTEGER 상한까지), 그 밖은 400 `INVALID_REQUEST`.
 
 ```
 GET    /api/services/:id/api-docs                     판 목록 → 200 { docPath, docEnv, versions: [{ version, source, env, fileName, createdAt, createdBy }] }

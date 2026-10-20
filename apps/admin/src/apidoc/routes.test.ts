@@ -131,6 +131,13 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
       reason: 'Swagger 2.0 문서입니다 — OpenAPI 3 으로 변환해서 올려 주세요',
     });
     expect((await 올리기(Buffer.alloc(5 * 1024 * 1024 + 1, 32))).statusCode).toBe(413);
+    const 이름둘 = await app.inject({
+      method: 'POST',
+      url: `/api/services/${String(서비스)}/api-docs?name=a&name=b`,
+      headers: { 'content-type': 'application/octet-stream' },
+      payload: JSON.stringify(문서('1')),
+    });
+    expect(이름둘.json()).toEqual({ error: 'INVALID_REQUEST' });
   });
 
   it('지금 받기는 기준 서버 주소 + 문서 경로에서 받아 그 서버 이름으로 판을 올린다', async () => {

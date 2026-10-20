@@ -120,13 +120,14 @@ export const 라우트표: Record<string, 원천> = {
   '/api/prd/revert': { 종류: '질의' },
   '/api/prd/apply': { 종류: '질의' },
 
-  // 서비스 가이드 (도메인/작성 §7 「서비스 가이드 통로」). 라우트가 ?service= 의 서비스 것만 읽고 쓴다
   // API 문서 (도메인/API §7). 경로의 :id 가 애플리케이션 번호다
   '/api/services/:id/api-docs': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-docs/:version': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-docs/fetch': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-docs/compare': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-coverage': { 종류: '서비스', 칸: 'id' },
+
+  // 서비스 가이드 (도메인/작성 §7 「서비스 가이드 통로」). 라우트가 ?service= 의 서비스 것만 읽고 쓴다
   '/api/guide': { 종류: '질의' },
   '/api/guide/versions': { 종류: '질의' },
   '/api/guide/versions/:version': { 종류: '질의' },

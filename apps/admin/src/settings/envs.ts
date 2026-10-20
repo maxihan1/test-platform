@@ -85,12 +85,15 @@ export function API인증읽기(값: unknown): API인증[] {
   });
 }
 
-/** 보낸 목록으로 바꾼다. 비밀값이 없는 줄은 같은 name 의 옛 비밀값을 잇는다 — 화면은 비밀값을 받은 적이 없다 */
+/**
+ * 보낸 목록으로 바꾼다. 비밀값이 없는 줄은 같은 name 의 옛 비밀값을 잇는다 — 화면은 비밀값을 받은 적이 없다.
+ * 토큰 주소가 바뀌면 잇지 않는다 — 이으면 끝 4자리만 본 사람이 비밀값 원문을 아무 주소로나 보내게 할 수 있다
+ */
 function API인증이어받기(보낸것: API인증입력[] | undefined, 옛것: API인증[]): API인증[] {
   if (보낸것 === undefined) return 옛것;
   return 보낸것.map(({ name, tokenUrl, clientId, clientSecret }) => {
     const 이름 = name.trim();
-    const 비밀값 = clientSecret ?? 옛것.find((o) => o.name === 이름)?.clientSecret;
+    const 비밀값 = clientSecret ?? 옛것.find((o) => o.name === 이름 && o.tokenUrl === tokenUrl)?.clientSecret;
     if (비밀값 === undefined) throw new 설정오류('API_AUTH_SECRET_REQUIRED');
     return { name: 이름, tokenUrl, clientId, clientSecret: 비밀값 };
   });

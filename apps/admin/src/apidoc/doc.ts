@@ -16,6 +16,8 @@ export function 문서읽기(글: string): { 문서: 객체 } | { reason: string
     return { reason: 'JSON 이 아닙니다 — YAML 은 받지 않습니다' };
   }
   if (!객체인가(값)) return { reason: 'JSON 객체가 아닙니다' };
+  // Postgres JSONB 가 못 담는 글자다. 안 거르면 저장에서 터져 500 이 된다
+  if (/\\u0000/i.test(글)) return { reason: '\\u0000 글자가 들어 있습니다' };
   if (typeof 값.openapi === 'string' && 값.openapi.startsWith('3.')) return { 문서: 값 };
   return {
     reason: 'swagger' in 값 ? 'Swagger 2.0 문서입니다 — OpenAPI 3 으로 변환해서 올려 주세요' : '최상위 openapi 가 3. 으로 시작하지 않습니다',
@@ -47,20 +49,24 @@ export async function 문서받기(주소: string): Promise<{ 글: string } | { 
   }
 }
 
-/** 문서 안의 `$ref`(#/…)를 푼다. 돌고 도는 참조는 그 자리에 `$ref` 를 남긴다 */
-function 풀기(문서: 객체, v: unknown, 본것: ReadonlySet<string> = new Set()): unknown {
-  if (Array.isArray(v)) return v.map((x) => 풀기(문서, x, 본것));
+/**
+ * 문서 안의 `$ref`(#/…)를 푼다. 돌고 도는 참조는 그 자리에 `$ref` 를 남긴다.
+ * 여러 곳이 같은 스키마를 겹겹이 가리키면 푼 크기가 거듭제곱으로 불어서 예산을 둔다 — 다 쓰면 남은 참조는 `$ref` 그대로다.
+ * ponytail: 예산을 넘긴 깊은 곳의 바뀜은 판 비교가 못 본다. 그런 문서가 나오면 참조 이름 단위로 견준다
+ */
+function 풀기(문서: 객체, v: unknown, 예산: { 남음: number }, 본것: ReadonlySet<string> = new Set()): unknown {
+  if (Array.isArray(v)) return v.map((x) => 풀기(문서, x, 예산, 본것));
   if (!객체인가(v)) return v;
   const ref = v.$ref;
   if (typeof ref === 'string' && ref.startsWith('#/')) {
-    if (본것.has(ref)) return { $ref: ref };
+    if (본것.has(ref) || 예산.남음-- <= 0) return { $ref: ref };
     const 간곳 = ref
       .slice(2)
       .split('/')
       .reduce<unknown>((at, k) => (객체인가(at) ? at[k.replaceAll('~1', '/').replaceAll('~0', '~')] : undefined), 문서);
-    return 풀기(문서, 간곳, new Set([...본것, ref]));
+    return 풀기(문서, 간곳, 예산, new Set([...본것, ref]));
   }
-  return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, 풀기(문서, x, 본것)]));
+  return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, 풀기(문서, x, 예산, 본것)]));
 }
 
 const 메서드들 = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
@@ -77,8 +83,9 @@ interface 작업 {
 function 작업들(문서: 객체): Map<string, 작업> {
   const 결과 = new Map<string, 작업>();
   const paths = 객체인가(문서.paths) ? 문서.paths : {};
+  const 예산 = { 남음: 20_000 };
   for (const [path, 원래] of Object.entries(paths)) {
-    const 줄 = 풀기(문서, 원래);
+    const 줄 = 풀기(문서, 원래, 예산);
     if (!객체인가(줄)) continue;
     const 공통 = Array.isArray(줄.parameters) ? 줄.parameters.filter(객체인가) : [];
     for (const m of 메서드들) {

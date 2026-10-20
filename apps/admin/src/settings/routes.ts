@@ -73,7 +73,7 @@ const 새서비스 = z.object({
   slackWebhook: z.string().optional(),
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),
-  kind: z.unknown().optional(),
+  kind: z.enum(['SCREEN', 'API']).default('SCREEN'),
   ...API칸,
 });
 
@@ -193,16 +193,16 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
   app.post('/settings/services', async (req, reply) => {
     const parsed = 새서비스.safeParse(req.body);
     if (!parsed.success) {
+      if (parsed.error.issues.every((i) => i.path[0] === 'kind')) return reply.code(400).send({ error: 'BAD_KIND' });
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
     if (!접두사모양.test(parsed.data.prefix)) {
       return reply.code(400).send({ error: 'PREFIX_SHAPE', detail: parsed.data.prefix });
     }
     if (역할틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_ROLE' });
-    const kind = parsed.data.kind ?? 'SCREEN';
-    const API오류 = API칸오류(parsed.data, { kind, apiDocEnv: null, envs: [] });
+    const API오류 = API칸오류(parsed.data, { kind: parsed.data.kind, apiDocEnv: null, envs: [] });
     if (API오류 !== null) return reply.code(400).send({ error: API오류 });
-    return reply.code(201).send({ id: await 서비스만들기({ ...parsed.data, kind: kind as 'SCREEN' | 'API' }) });
+    return reply.code(201).send({ id: await 서비스만들기(parsed.data) });
   });
 
   app.patch<{ Params: { id: string }; Body: { prefix?: unknown } }>(

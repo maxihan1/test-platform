@@ -65,6 +65,7 @@ ALTER TABLE authoring_request ADD CONSTRAINT authoring_request_compare_check
 -- migrate:down
 
 ALTER TABLE authoring_request DROP CONSTRAINT authoring_request_compare_check;
+UPDATE authoring_request SET env = NULL WHERE NOT compare AND kind <> 'MERGE';
 ALTER TABLE authoring_request ADD CONSTRAINT authoring_request_compare_check
   CHECK (CASE WHEN compare THEN env IS NOT NULL AND kind IN ('AUTHOR', 'RERUN')
               WHEN kind = 'MERGE' THEN start_url IS NULL

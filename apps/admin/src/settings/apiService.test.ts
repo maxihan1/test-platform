@@ -114,10 +114,10 @@ describe.skipIf(연결 === undefined)('설정 API 의 API 애플리케이션 칸
     expect((await 고친다({ envs: [{ env: 'stg', baseUrl: 'http://127.0.0.1:3004' }] })).statusCode).toBe(200);
     expect((await 읽는다())?.envs[0]?.apiAuths.map((a) => a.clientSecretLast4)).toEqual(['0001', '0002']);
 
-    const res = await 고친다({ envs: [{ env: 'stg', baseUrl: 'http://127.0.0.1:3004', apiAuths: [{ ...인증('고객사 A'), tokenUrl: 'https://auth.test/token' }] }] });
+    const res = await 고친다({ envs: [{ env: 'stg', baseUrl: 'http://127.0.0.1:3004', apiAuths: [{ ...인증('고객사 A'), clientId: '새 아이디' }] }] });
     expect(res.statusCode).toBe(200);
     const 저장 = await (await pool()).query<{ api_auths: unknown }>('SELECT api_auths FROM service_env WHERE service_id = $1', [번호]);
-    expect(저장.rows[0]?.api_auths).toEqual([{ name: '고객사 A', tokenUrl: 'https://auth.test/token', clientId: '고객사 A-id', clientSecret: 비밀값A }]);
+    expect(저장.rows[0]?.api_auths).toEqual([{ name: '고객사 A', tokenUrl: '/oauth/token', clientId: '새 아이디', clientSecret: 비밀값A }]);
   });
 
   it('이어받을 비밀값이 없는 새 이름은 API_AUTH_SECRET_REQUIRED 이고 저장이 통째로 안 된다', async () => {
@@ -125,6 +125,13 @@ describe.skipIf(연결 === undefined)('설정 API 의 API 애플리케이션 칸
     expect(res.statusCode).toBe(400);
     expect(res.json()).toEqual({ error: 'API_AUTH_SECRET_REQUIRED' });
     expect((await 읽는다())?.envs[0]?.apiAuths).toHaveLength(2);
+  });
+
+  it('토큰 주소를 바꾸면서 비밀값을 안 보내면 옛 비밀값을 잇지 않는다 — 원문이 다른 주소로 가지 않게', async () => {
+    const res = await 고친다({
+      envs: [{ env: 'stg', baseUrl: 'http://127.0.0.1:3003', apiAuths: [{ ...인증('고객사 A'), tokenUrl: 'https://다른곳.test/token' }] }],
+    });
+    expect(res.json()).toEqual({ error: 'API_AUTH_SECRET_REQUIRED' });
   });
 
   it('인증 칸 규칙을 어기면 BAD_API_AUTH', async () => {
