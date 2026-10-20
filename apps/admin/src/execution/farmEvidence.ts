@@ -61,8 +61,10 @@ export async function 팜증적경로(app: FastifyInstance): Promise<void> {
       // 폴더에 실제로 있는 이름만 내준다 — 받은 이름으로 경로를 조립하지 않아 폴더 밖으로 못 나간다
       const 있음 = (await 팜증적목록(runId, historyId)).some((f) => f.name === req.params.name);
       if (!있음) return reply.code(404).send({ error: 'FARM_FILE_NOT_FOUND', detail: req.url });
-      // logcat 은 화면에 펼치지 않고 받게 한다. 이름은 팜이 지어 download 가 머리 글자를 안전하게 싼다
-      if (req.params.name.endsWith('.txt')) return reply.download(req.params.name, { root: 폴더(runId, historyId) });
+      // logcat 은 화면에 펼치지 않고 받게 한다. 이름은 팜이 지어 따옴표 · 한글이 섞여도 머리가 안 깨지게 RFC 5987 로 싼다
+      if (req.params.name.endsWith('.txt')) {
+        reply.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(req.params.name)}`);
+      }
       return reply.sendFile(req.params.name, 폴더(runId, historyId));
     },
   );

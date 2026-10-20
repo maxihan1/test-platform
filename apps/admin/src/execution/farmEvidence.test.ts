@@ -64,7 +64,7 @@ describe('GET /api/runs/:runId/items/:historyId/farm/:name', () => {
     const app = await 앱();
     const res = await app.inject({ method: 'GET', url: '/api/runs/3/items/9/farm/logcat.txt' });
     expect(res.statusCode).toBe(200);
-    expect(res.headers['content-disposition']).toBe('attachment; filename="logcat.txt"');
+    expect(res.headers['content-disposition']).toBe("attachment; filename*=UTF-8''logcat.txt");
   });
 
   it('팜 폴더에 없는 이름은 404 다 — 위 폴더의 스크린샷도 못 꺼낸다', async () => {
