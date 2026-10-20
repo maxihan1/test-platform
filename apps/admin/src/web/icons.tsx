@@ -1,6 +1,6 @@
 // 메뉴 아이콘 — 패키지 없이 SVG 를 직접 둔다 (DESIGN.md 원칙 5). 글자를 대신하지 않고 곁에 선다
 
-export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'authoring' | 'scenarios' | 'runs' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop';
+export type 아이콘이름 = 'dashboard' | 'cases' | 'prd' | 'api' | 'authoring' | 'scenarios' | 'runs' | 'graph' | 'settings' | 'run' | 'bell' | 'person' | 'desktop';
 
 // 24 격자 · 선 1.8 · 둥근 끝. 색은 글자를 따른다(currentColor) — 지금 자리면 글자와 같이 밝아진다
 const 그림: Record<아이콘이름, React.ReactNode> = {
@@ -30,6 +30,13 @@ const 그림: Record<아이콘이름, React.ReactNode> = {
     </>
   ),
   // 펜 — 기획서에서 테스트를 쓴다
+  // 중괄호 한 쌍 — 화면 없이 주고받는 API 문서
+  api: (
+    <>
+      <path d="M9 4H8a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h1" />
+      <path d="M15 4h1a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-1" />
+    </>
+  ),
   authoring: (
     <>
       <path d="M4 20h4L19 9l-4-4L4 16z" />

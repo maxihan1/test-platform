@@ -126,4 +126,18 @@ export const 오류영어: Record<string, string> = {
     'An apply request is already open. Merge or discard it, then try again',
   '이 실행에서 실패한 케이스가 아닙니다': 'This case did not fail in this run',
   '이 케이스와 연결된 요구가 표준 기획서에 없습니다': 'The requirements linked to this case are not in the PRD',
+  'API 애플리케이션이 아닙니다': 'Not an API application',
+  '설정에 API 문서 경로와 기준 서버가 없습니다. 설정에서 먼저 넣거나 파일을 첨부합니다':
+    'No API doc path or reference server in settings. Add them in settings or attach a file',
+  '기준 서버에서 API 문서를 받지 못했습니다': 'Could not fetch the API doc from the reference server',
+  '읽을 수 없는 API 문서입니다. OpenAPI 3 JSON 파일만 받습니다': 'Unreadable API doc. Only OpenAPI 3 JSON is accepted',
+  '현재 버전이 아닙니다. 새로 고침해서 최신 버전으로 다시 누릅니다': 'Not the current version. Refresh and try again with the latest version',
+  'API 애플리케이션은 API 문서 버전을 골라야 합니다': 'API applications need an API doc version',
+  '애플리케이션 종류가 맞지 않습니다': 'Invalid application type',
+  '종류는 만든 뒤에 바꿀 수 없습니다': 'The type cannot be changed after creation',
+  'API 문서 경로는 / 로 시작해야 하고, 기준 서버는 대상 서버 중 하나여야 합니다':
+    'The API doc path must start with / and the reference server must be one of the target servers',
+  'API 인증 칸이 맞지 않습니다. 이름은 1~20자이고 한 서버 안에서 겹치지 않아야 합니다':
+    'Invalid API auth. Names are 1–20 characters and must be unique per server',
+  '새 API 인증에는 비밀값을 넣어야 합니다': 'A new API auth needs a client secret',
 };

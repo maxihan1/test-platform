@@ -90,6 +90,18 @@ export const 오류말: Record<string, string> = {
   // detail 이 넘친 구획(intro · policy · rules)이다
   BAD_GUIDE: '글이 너무 깁니다. 구획마다 20,000자까지입니다',
   NO_TEXT: '글자를 뽑을 수 없는 파일입니다. 파일 이름을 눌러 내려받습니다',
+  // API 테스트 (도메인/API §7 · 도메인/인증 §7). 문서 받기 · 올리기 · 반영 · 설정 저장 · 작성 요청이 만난다. BAD_API_DOC · API_DOC_FETCH_FAILED 의 까닭은 detail 이 짚는다
+  NOT_API_SERVICE: 'API 애플리케이션이 아닙니다',
+  NO_API_DOC_URL: '설정에 API 문서 경로와 기준 서버가 없습니다. 설정에서 먼저 넣거나 파일을 첨부합니다',
+  API_DOC_FETCH_FAILED: '기준 서버에서 API 문서를 받지 못했습니다',
+  BAD_API_DOC: '읽을 수 없는 API 문서입니다. OpenAPI 3 JSON 파일만 받습니다',
+  NOT_LATEST_VERSION: '현재 버전이 아닙니다. 새로 고침해서 최신 버전으로 다시 누릅니다',
+  API_DOC_REQUIRED: 'API 애플리케이션은 API 문서 버전을 골라야 합니다',
+  BAD_KIND: '애플리케이션 종류가 맞지 않습니다',
+  KIND_IMMUTABLE: '종류는 만든 뒤에 바꿀 수 없습니다',
+  BAD_API_DOC_URL: 'API 문서 경로는 / 로 시작해야 하고, 기준 서버는 대상 서버 중 하나여야 합니다',
+  BAD_API_AUTH: 'API 인증 칸이 맞지 않습니다. 이름은 1~20자이고 한 서버 안에서 겹치지 않아야 합니다',
+  API_AUTH_SECRET_REQUIRED: '새 API 인증에는 비밀값을 넣어야 합니다',
 
   // 설정 화면이 쓰던 것. 표를 합쳐 둔다
   PROJECT_NOT_FOUND: '그 프로젝트를 찾지 못했습니다. 다른 사람이 애플리케이션을 모두 옮겨 비었을 수 있습니다',

@@ -112,6 +112,13 @@ describe('route', () => {
     expect(route('#/prd/guide')).toEqual({ name: 'prdGuide' });
   });
 
+  it('API 문서 — 버전 번호가 숫자면 그 버전을 펴서 연다', () => {
+    expect(route('#/api/docs')).toEqual({ name: 'apiDocs' });
+    expect(route('#/api/docs/3')).toEqual({ name: 'apiDocs', version: 3 });
+    expect(route('#/api/docs/0')).toEqual({ name: 'unknown', hash: '#/api/docs/0' });
+    expect(route('#/api/docs/3x')).toEqual({ name: 'unknown', hash: '#/api/docs/3x' });
+  });
+
   it('케이스 목록 — 「PRD 관리」에서 넘어온 요구 번호로 거른다 · 옛 표 번호도 받는다', () => {
     expect(route('#/cases/fn/req/MKT-REQ-003')).toEqual({ name: 'cases', kind: 'FN', req: 'MKT-REQ-003' });
     expect(route('#/cases/ui/req/REQ-COM-006')).toEqual({ name: 'cases', kind: 'UI', req: 'REQ-COM-006' });

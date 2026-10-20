@@ -112,7 +112,7 @@ export function Failed({ error }: { error: string }) {
   return <div className="empty" style={{ color: 'var(--fail-text)' }}>{error}</div>;
 }
 
-interface Async<T> {
+export interface Async<T> {
   data: T | null;
   error: string | null;
   /** 다시 읽고, 그 결과가 화면에 들어간 뒤 성공 여부로 풀린다. 도착한 뒤에 할 일(고친 글자 비우기 등)이 있을 때 기다린다 */

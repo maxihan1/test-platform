@@ -6,6 +6,7 @@ import { createRoot } from 'react-dom/client';
 
 import { api, type ServiceRow, type User, 돌아갈자리를꺼낸다, 세션끊김을받는다 } from './api.js';
 import { Authoring } from './Authoring.js';
+import { ApiDocs } from './ApiDocs.js';
 import { AuthoringDetail } from './AuthoringDetail.js';
 import { CaseList } from './CaseList.js';
 import { Dashboard } from './Dashboard.js';
@@ -53,6 +54,7 @@ import './noticeDrawer.css';
 import './drawer.css';
 import './phone.css';
 import './prd.css';
+import './apidoc.css';
 import './guide.css';
 import './itemTrace.css';
 import './runList.css';
@@ -116,6 +118,9 @@ function Screen({
     case 'prdGuide':
       // 서비스마다 새로 그린다 — 앞 서비스에서 고치던 글이 남으면 다른 서비스의 가이드에 저장된다
       return <Guide key={prefix} service={prefix} 할수={할수} />;
+    case 'apiDocs':
+      // 애플리케이션마다 새로 그린다 — 앞 애플리케이션의 버전 기록 · 펼친 줄이 남지 않게
+      return service === undefined || service === null ? <Loading /> : <ApiDocs key={`${prefix}:${String(current.version ?? '')}`} service={service} 할수={할수} 버전={current.version} 설정보나={할수('설정')} />;
     case 'authoring':
       return <Authoring service={prefix} envs={service?.envs ?? []} 피그마토큰={service?.hasFigmaToken !== false} 할수={할수} />;
     case 'authoringItem':

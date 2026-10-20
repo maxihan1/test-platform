@@ -28,6 +28,8 @@ export type Route =
   /** reqId — 케이스 목록의 요구 번호에서 왔다. 그 항목을 펴서 보인다 */
   | { name: 'prd'; reqId?: string }
   | { name: 'prdGuide' }
+  /** version — 작성 상세의 「API 문서 버전 N」 자료에서 왔다. 그 버전 원문을 펴서 보인다 (도메인/API §8.13) */
+  | { name: 'apiDocs'; version?: number }
   | { name: 'authoring' }
   | { name: 'authoringItem'; id: number }
   | { name: 'run'; runId: number }
@@ -99,6 +101,11 @@ export function route(hash: string): Route {
 
   if (parts.length === 1 && parts[0] === 'prd') return { name: 'prd' };
   if (parts.length === 2 && parts[0] === 'prd' && parts[1] === 'guide') return { name: 'prdGuide' };
+  if (parts[0] === 'api' && parts[1] === 'docs') {
+    if (parts.length === 2) return { name: 'apiDocs' };
+    // 번호는 숫자 글자만 받는다 — 작성 상세와 같은 규칙
+    if (parts.length === 3 && /^[1-9]\d{0,8}$/.test(parts[2]!)) return { name: 'apiDocs', version: Number(parts[2]) };
+  }
   // PRD 항목 번호는 늘 `<접두사>-REQ-<3자리>` 다(도메인/작성 §3.6 「칸과 번호」). 그 밖의 꼴은 없는 주소다
   if (parts.length === 2 && parts[0] === 'prd' && /^[A-Z][A-Z0-9]{0,11}-REQ-\d{3}$/.test(parts[1]!)) {
     return { name: 'prd', reqId: parts[1]! };
@@ -148,6 +155,8 @@ const 기능자리: Partial<Record<Route['name'], 기능>> = {
   // 표준 기획서는 작성 칸을 쓴다 (화면공통 §8 · 도메인/작성 §3.6 「★ 표준 기획서」)
   prd: 'authoring',
   prdGuide: 'authoring',
+  // API 문서도 작성이 읽는 기준 문서다 (화면공통 §8 「자리 목록」)
+  apiDocs: 'authoring',
   authoring: 'authoring',
   runs: 'runs',
   // 시나리오는 실행 칸을 쓴다 (도메인/시나리오 §7). 새 시나리오는 띠의 서비스에 만든다

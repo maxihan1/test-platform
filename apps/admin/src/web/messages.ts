@@ -2,6 +2,7 @@
 // 나누는 이유는 둘이다 — 한 파일에 전부 넣으면 300줄을 넘고(CLAUDE.md §3),
 // 옮기는 작업 넷이 같은 파일을 건드려 나란히 돌지 못한다
 
+import { API문서말 } from './messages/apidoc.js';
 import { 계정말 } from './messages/auth.js';
 import { 작성말 } from './messages/authoring.js';
 import { 작성할일말 } from './messages/authoringTodo.js';
@@ -30,4 +31,5 @@ export const 말: Record<string, string> = {
   ...대시보드말,
   ...기획서말,
   ...가이드말,
+  ...API문서말,
 };
