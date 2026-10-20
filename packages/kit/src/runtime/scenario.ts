@@ -25,6 +25,8 @@ export interface ScenarioCaseInput {
   phase?: ScenarioPhase;
   // 그 부품 애플리케이션 · 짝지은 대상 서버의 API 인증. 조립 목록의 부품 줄에서 온다 (도메인/러너 §5.2 「API 케이스 실행」)
   apiAuths?: readonly ApiAuth[];
+  // 토큰 받기에만 쓰는 감싸지 않은 도구 — request 는 이어 주기 · 모킹을 거쳐 토큰 요청이 가짜 응답이나 이어 주기 값이 될 수 있다
+  tokenRequest?: APIRequestContext;
 }
 
 export interface ScenarioCaseOutcome {

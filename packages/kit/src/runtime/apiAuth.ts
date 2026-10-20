@@ -24,9 +24,9 @@ interface 받은토큰 {
   만료?: number;
 }
 
-// RFC 6749 2.3.1 — 아이디 · 비밀값을 form 인코딩한 뒤 Basic 으로 싼다
-const 기본인증 = (인증: ApiAuth): string =>
-  `Basic ${Buffer.from(`${encodeURIComponent(인증.clientId)}:${encodeURIComponent(인증.clientSecret)}`).toString('base64')}`;
+// RFC 6749 2.3.1 은 form 인코딩을 먼저 하라지만 원문 그대로 싼다 — Postman · curl -u 가 그렇고, 풀지 않는 토큰 서버가 많아
+// base64 꼴 비밀값(+ / =)이 인코딩되면 401 이 난다
+const 기본인증 = (인증: ApiAuth): string => `Basic ${Buffer.from(`${인증.clientId}:${인증.clientSecret}`).toString('base64')}`;
 
 async function 토큰받기(인증: ApiAuth, 원래: APIRequestContext, 비밀: ReadonlySet<string>): Promise<받은토큰> {
   const 실패 = (까닭: string): Error => new Error(`API 인증 '${인증.name}' 토큰을 받지 못했습니다 — ${까닭}`);
@@ -51,7 +51,9 @@ async function 토큰받기(인증: ApiAuth, 원래: APIRequestContext, 비밀: 
   }
   const { access_token: 토큰, expires_in: 수명 } = (typeof 본문 === 'object' && 본문 !== null ? 본문 : {}) as Record<string, unknown>;
   if (typeof 토큰 !== 'string' || 토큰 === '') throw 실패('응답에 access_token 이 없습니다');
-  return { 값: 토큰, ...(typeof 수명 === 'number' && { 만료: Date.now() + 수명 * 1000 }) };
+  // 글자로 주는 서버도 있다('3600')
+  const 초 = typeof 수명 === 'number' || typeof 수명 === 'string' ? Number(수명) : NaN;
+  return { 값: 토큰, ...(Number.isFinite(초) && 수명 !== '' && { 만료: Date.now() + 초 * 1000 }) };
 }
 
 /**
@@ -64,15 +66,28 @@ export function api만들기(
   원래: APIRequestContext,
   비밀: Set<string>,
 ): (name: string) => APIRequestContext {
-  const 받음 = new Map<string, 받은토큰>();
+  // 받는 중인 약속을 쥔다 — 동시에 부른 요청들이 토큰을 하나씩 따로 받지 않게. 확인은 기다리지 않고 바로 한다
+  const 받음 = new Map<string, { 약속: Promise<string>; 끝남: boolean; 만료?: number }>();
 
-  const 토큰 = async (인증: ApiAuth): Promise<string> => {
+  const 토큰 = (인증: ApiAuth): Promise<string> => {
     const 있음 = 받음.get(인증.name);
-    if (있음 !== undefined && (있음.만료 === undefined || Date.now() < 있음.만료 - 다시받기여유ms)) return 있음.값;
-    const 새것 = await 토큰받기(인증, 원래, 비밀);
-    비밀.add(새것.값);
-    받음.set(인증.name, 새것);
-    return 새것.값;
+    if (있음 !== undefined && (!있음.끝남 || 있음.만료 === undefined || Date.now() < 있음.만료 - 다시받기여유ms)) return 있음.약속;
+    const 자리: { 약속: Promise<string>; 끝남: boolean; 만료?: number } = { 약속: Promise.resolve(''), 끝남: false };
+    자리.약속 = 토큰받기(인증, 원래, 비밀).then(
+      (새것) => {
+        비밀.add(새것.값);
+        자리.끝남 = true;
+        if (새것.만료 !== undefined) 자리.만료 = 새것.만료;
+        return 새것.값;
+      },
+      (err: unknown) => {
+        // 실패한 약속을 쥐고 있으면 다음 요청도 같은 실패를 받는다 — 비워서 다시 받게
+        if (받음.get(인증.name) === 자리) 받음.delete(인증.name);
+        throw err;
+      },
+    );
+    받음.set(인증.name, 자리);
+    return 자리.약속;
   };
 
   return (name) => {
@@ -83,7 +98,9 @@ export function api만들기(
         const original: unknown = Reflect.get(target, prop, receiver);
         if (typeof prop !== 'string' || !붙이는메서드.has(prop) || typeof original !== 'function') return original;
         return async (url: string, options?: Record<string, unknown>): Promise<APIResponse> => {
-          const headers = { ...(options?.headers as Record<string, string> | undefined), Authorization: `Bearer ${await 토큰(인증)}` };
+          // 케이스가 준 인증 머리는 대소문자와 상관없이 뺀다 — 둘이 함께 나가면 서버마다 고르는 쪽이 다르다
+          const 준머리 = Object.entries((options?.headers as Record<string, string> | undefined) ?? {}).filter(([k]) => k.toLowerCase() !== 'authorization');
+          const headers = { ...Object.fromEntries(준머리), Authorization: `Bearer ${await 토큰(인증)}` };
           return (original as ApiCall)(url, { ...options, headers });
         };
       },

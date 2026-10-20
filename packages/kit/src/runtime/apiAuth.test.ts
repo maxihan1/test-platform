@@ -112,6 +112,41 @@ describe('api(이름)', () => {
     expect(받은.at(-1)).toEqual(['/v1/pushes', { headers: { 'Idempotency-Key': 'k-1', Authorization: 'Bearer tok-1' }, data: { title: '안녕' } }]);
   });
 
+  it('비밀값을 인코딩하지 않고 원문 그대로 Basic 으로 싼다 — base64 꼴 비밀값도 그대로 간다', async () => {
+    const { 도구, 받은 } = 가짜요청(() => 응답(200, { access_token: 'tok-1' }));
+    const 인증 = { ...고객사A, clientSecret: 'abc+def/ghi=' };
+    await api만들기([인증], 도구, 도구, new Set())('고객사 A').get('/a');
+    expect(받은[0]![1]?.headers).toEqual({ Authorization: `Basic ${Buffer.from('client-a:abc+def/ghi=').toString('base64')}` });
+  });
+
+  it('동시에 불러도 토큰은 한 번만 받는다', async () => {
+    const { api, 받은 } = 차리기(() => 응답(200, { access_token: 'tok-1', expires_in: 300 }));
+    await Promise.all([api('고객사 A').get('/a'), api('고객사 A').get('/b'), api('고객사 A').get('/c')]);
+    expect(받은.filter(([url]) => url === 고객사A.tokenUrl)).toHaveLength(1);
+  });
+
+  it('글자로 준 expires_in 도 만료로 읽는다', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const { api, 받은 } = 차리기(() => 응답(200, { access_token: 'tok', expires_in: '60' }));
+    await api('고객사 A').get('/a');
+    vi.setSystemTime(Date.now() + 31_000);
+    await api('고객사 A').get('/b');
+    expect(받은.filter(([url]) => url === 고객사A.tokenUrl)).toHaveLength(2);
+  });
+
+  it('케이스가 준 인증 머리는 대소문자와 상관없이 뺀다 — 두 개가 나가지 않게', async () => {
+    const { api, 받은 } = 차리기(() => 응답(200, { access_token: 'tok-1' }));
+    await api('고객사 A').get('/a', { headers: { authorization: 'Bearer 내것', 'X-Trace': '1' } });
+    expect(받은.at(-1)?.[1]?.headers).toEqual({ 'X-Trace': '1', Authorization: 'Bearer tok-1' });
+  });
+
+  it('토큰을 못 받았으면 다음 요청에서 다시 받는다', async () => {
+    let n = 0;
+    const { api } = 차리기(() => (++n === 1 ? 응답(503, {}) : 응답(200, { access_token: 'tok-2' })));
+    await expect(api('고객사 A').get('/a')).rejects.toThrow('— 503');
+    await expect(api('고객사 A').get('/b')).resolves.toBeDefined();
+  });
+
   it('없는 이름은 부르는 자리에서 던진다', () => {
     const { api } = 차리기(() => 응답(200, { access_token: 'tok-1' }));
     expect(() => api('고객사 B')).toThrow("이 대상 서버에 API 인증 '고객사 B' 가 없습니다");
