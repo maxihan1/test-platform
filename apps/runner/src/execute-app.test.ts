@@ -1,6 +1,6 @@
 // 요청이 실은 앱 파일 경로가 러너 환경값 PLATFORM_APP 보다 앞서 자식에게 가는지 본다 (러너 §5.2 「앱 실행」 · APP-F1-03)
 
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -151,5 +151,49 @@ describe('execute 가 자식에게 넘기는 API 인증 (API-F1-04)', () => {
   it('요청에 없으면 빈 목록이다 — 러너를 켠 셸의 값을 물려받지 않는다', async () => {
     await execute(요청(), 'a.spec.ts');
     expect(받은인증()).toEqual([]);
+  });
+});
+
+describe('execute 가 자식에게 넘기는 API 문서 판 (API-F1-05)', () => {
+  let 폴더: string;
+  let 옛산출물: string | undefined;
+
+  beforeEach(() => {
+    폴더 = mkdtempSync(join(tmpdir(), 'runner-doc-'));
+    옛산출물 = process.env.PLATFORM_ARTIFACTS_DIR;
+    process.env.PLATFORM_ARTIFACTS_DIR = join(폴더, 'artifacts');
+    // 자식이 도는 동안 파일이 있는지 · 무엇이 들었는지 남긴다
+    스크립트.지금 = `printf %s "$PLATFORM_API_DOC_FILE" > '${join(폴더, 'path.txt')}'; [ -n "$PLATFORM_API_DOC_FILE" ] && cp "$PLATFORM_API_DOC_FILE" '${join(폴더, 'doc.json')}'; true`;
+  });
+
+  afterEach(() => {
+    if (옛산출물 === undefined) delete process.env.PLATFORM_ARTIFACTS_DIR;
+    else process.env.PLATFORM_ARTIFACTS_DIR = 옛산출물;
+    rmSync(폴더, { recursive: true, force: true });
+  });
+
+  const 요청 = (apiDoc?: ExecuteRequest['apiDoc']): ExecuteRequest => ({
+    runId: 5, historyId: 12, tcId: 'NTF-FN-001', platform: 'desktop', filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    ...(apiDoc !== undefined && { apiDoc }),
+  });
+
+  it('판 원문을 항목 폴더의 파일로 써서 경로를 넘기고, 끝나면 지운다', async () => {
+    const doc = { openapi: '3.1.0', paths: {} };
+    await execute(요청({ version: 4, doc }), 'a.spec.ts');
+
+    const 경로 = readFileSync(join(폴더, 'path.txt'), 'utf8');
+    expect(경로.startsWith(join(폴더, 'artifacts', 'runs', '5', '12', 'api-doc-'))).toBe(true);
+    expect(JSON.parse(readFileSync(join(폴더, 'doc.json'), 'utf8'))).toEqual(doc);
+    expect(existsSync(경로)).toBe(false);
+  });
+
+  it('판이 없으면 빈 값이다 — 러너를 켠 셸의 값을 물려받지 않는다', async () => {
+    process.env.PLATFORM_API_DOC_FILE = '/tmp/셸에-남은-것.json';
+    try {
+      await execute(요청(), 'a.spec.ts');
+    } finally {
+      delete process.env.PLATFORM_API_DOC_FILE;
+    }
+    expect(readFileSync(join(폴더, 'path.txt'), 'utf8')).toBe('');
   });
 });

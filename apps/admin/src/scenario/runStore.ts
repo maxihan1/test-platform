@@ -4,6 +4,7 @@ import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioPart } from '@pla
 import type { 역할계정 } from '@platform/kit/accounts';
 import type { Pool, PoolClient } from 'pg';
 
+import { 부품판 } from '../apidoc/caseDoc.js';
 import { 저장값을채운다 } from '../execution/savedInput.js';
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
 import { 같은프로젝트접두사, 계정없음, 단계인증, 단계주소, 삭제코드합치기, 쓰는앱읽기 } from './apps.js';
@@ -192,7 +193,7 @@ async function 잠그고만들기(id: number, env: string, 사람: 저장하는�
           케?.unconfirmed ?? null,
         ],
       );
-      요청부품.push(케 === undefined ? { ...p, ...주소 } : { ...p, ...주소, ...단계인증(p, 앱들), filePath: 케.file_path });
+      요청부품.push(케 === undefined ? { ...p, ...주소 } : { ...p, ...주소, ...단계인증(p, 앱들), ...(await 부품판(p, c)), filePath: 케.file_path });
     }
 
     // 확정 전에 쥔 손으로 읽는다 — 확정 뒤에 던지면 RUNNING 실행이 러너 없이 남는다

@@ -4,6 +4,7 @@ import { test as base, type APIRequestContext, type Page, type TestInfo } from '
 
 import type { ApiAuth, StepResult } from '../types.js';
 import { api만들기, 인증목록 } from './apiAuth.js';
+import { 판읽기 } from './apiShape.js';
 import { captureApp, closeApp, openApp, readDevice, type AppDriver } from './app.js';
 import { saveShot } from './artifacts.js';
 import { runScope, type RunScope } from './context.js';
@@ -49,6 +50,7 @@ function bodyArgs<P, E>(
   inputs: { params: P; expected: E },
   side: { page: Page } | { driver: AppDriver },
   인증들: readonly ApiAuth[],
+  문서: unknown,
   토큰도구: APIRequestContext = request,
 ): CaseBodyArgs<P, E> {
   const [missing, message] =
@@ -57,7 +59,8 @@ function bodyArgs<P, E>(
       : ['page', `${tcId}은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다`];
   // 비밀값은 처음부터, 받은 토큰은 받는 대로 더해진다
   const 비밀 = new Set(인증들.map((a) => a.clientSecret));
-  const 감싼 = traced(request, 비밀);
+  // 판 원문이 있으면 request · api(…) 의 모든 응답을 그 판과 견준다 (도메인/API §3.8 「응답 모양 확인」)
+  const 감싼 = traced(request, 비밀, 문서);
   const args = { request: 감싼, api: api만들기(인증들, 감싼, 토큰도구, 비밀), params: inputs.params, expected: inputs.expected, ...side };
   return Object.defineProperty(args, missing, {
     get(): never {
@@ -82,7 +85,7 @@ function errorOf(thrown: unknown): { message: string; stack?: string } {
 // E2E 시나리오의 부품 하나. 이 kit 인스턴스의 문맥으로 본체를 감싸야 본체 안 step() 이 문맥을 찾는다.
 // 부를 때마다 실패 표시·건너뛸 제목·결과 모으기를 새로 세운다 — 앞 부품의 것이 새면 안 된다 (SPEC 공통/3-공유계약 §5.1)
 function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): ScenarioCaseRunner {
-  return async ({ page, request, platform, params, expected, skipSteps, seq, phase, apiAuths, tokenRequest }) => {
+  return async ({ page, request, platform, params, expected, skipSteps, seq, phase, apiAuths, apiDoc, tokenRequest }) => {
     const steps: StepResult[] = [];
     const run: RunScope = {
       seq,
@@ -112,8 +115,8 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       const inputs = resolveInputs(spec, { params, expected });
       await runScope.run(run, async () => {
         try {
-          // 부품마다 그 부품 애플리케이션의 인증으로 새로 받는다 — 앞 부품의 토큰으로 다음 부품 서버를 부르지 않게
-          await body(bodyArgs(spec.tcId, request, inputs, { page }, apiAuths ?? [], tokenRequest));
+          // 부품마다 그 부품 애플리케이션의 인증으로 새로 받고 그 부품 판과 견준다 — 앞 부품의 토큰 · 판이 다음 부품에 새지 않게
+          await body(bodyArgs(spec.tcId, request, inputs, { page }, apiAuths ?? [], apiDoc, tokenRequest));
         } catch (thrown) {
           if (!(thrown instanceof StopTest)) throw thrown;
         }
@@ -210,7 +213,9 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
 
     await runScope.run(run, async () => {
       try {
-        await body(bodyArgs(spec.tcId, request, inputs, side, 인증목록(process.env.PLATFORM_API_AUTHS)));
+        await body(
+          bodyArgs(spec.tcId, request, inputs, side, 인증목록(process.env.PLATFORM_API_AUTHS), 판읽기(process.env.PLATFORM_API_DOC_FILE)),
+        );
       } catch (thrown) {
         // 멈춤 신호는 여기서 끝낸다. 진짜 예외는 Playwright가 위치까지 보여주도록 그대로 올린다
         if (!(thrown instanceof StopTest)) throw thrown;

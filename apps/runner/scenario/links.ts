@@ -5,7 +5,8 @@ import type { APIRequest, BrowserContext } from '@playwright/test';
 import type { ScenarioPhase } from '@platform/kit/scenario';
 import type { ScenarioDeleteStatus, ScenarioExecuteRequest, ScenarioLink, ScenarioMethod, ScenarioResponseRef } from '@platform/kit';
 
-export type CasePart = Extract<ScenarioExecuteRequest['parts'][number], { kind: 'case' }>;
+// apiDocFile — 러너가 판 원문 대신 부품 줄에 싣는 파일 경로 (SPEC 도메인/러너 §5.2 「API 케이스 실행」)
+export type CasePart = Extract<ScenarioExecuteRequest['parts'][number], { kind: 'case' }> & { apiDocFile?: string };
 
 export type 상태 = Awaited<ReturnType<BrowserContext['storageState']>>;   // 쿠키 · localStorage
 export interface 받은응답 { status: number; contentType: string; body: string }

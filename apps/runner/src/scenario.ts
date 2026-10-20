@@ -8,6 +8,7 @@ import { basename, dirname, resolve } from 'node:path';
 import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioExecuteResponse, ScenarioPartResult } from '@platform/kit';
 import { SCENARIO_CLEANUP_MARKER, SCENARIO_PART_MARKER } from '@platform/kit/scenario';
 
+import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { appRoot, tail } from './execute.js';
 import { killTree } from './kill.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
@@ -15,7 +16,7 @@ import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from '.
 const scenarioConfig = resolve(appRoot, 'apps/runner/scenario/playwright.config.ts');
 
 // 스크린샷 폴더를 kit 을 안 고치고 가른다 — 실제 실행 runs/<runId>/scenario/, 시험 실행 runs/trial/<trialId>/ (SPEC 도메인/러너 §5.2)
-export function scenarioEnv(req: ScenarioExecuteRequest): Record<string, string> {
+export function scenarioEnv(req: ScenarioExecuteRequest, parts: readonly unknown[] = req.parts): Record<string, string> {
   const 시험 = req.runId === null;
   // 창을 띄운 시험 실행만 사람이 눈으로 따라간다. 동작마다 1초 쉬게 한다 (SPEC 도메인/시나리오 §7 「시험 실행 규칙」)
   const 천천히 = 시험 && process.env.PLATFORM_HEADED === '1';
@@ -23,7 +24,7 @@ export function scenarioEnv(req: ScenarioExecuteRequest): Record<string, string>
     // 늘 적는다 — 러너를 켠 셸에 이 값이 있으면 자식이 물려받아 진짜 실행까지 늦춘다
     PLATFORM_SLOW_MO: 천천히 ? '1000' : '',
     PLATFORM_SCENARIO_MODE: '1',
-    PLATFORM_SCENARIO: JSON.stringify(req.parts),
+    PLATFORM_SCENARIO: JSON.stringify(parts),
     PLATFORM_BASE_URL: req.baseUrl,
     PLATFORM_DELETE_STATUSES: JSON.stringify(req.deleteStatuses ?? []),
     PLATFORM_RUN_ID: 시험 ? 'trial' : String(req.runId),
@@ -59,6 +60,27 @@ export async function trace를옮긴다(출력: string, req: ScenarioExecuteRequ
   } catch (err) {
     console.warn(`[runner] 시나리오 trace 를 옮기지 못했다: ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+/**
+ * 부품 판 원문을 파일로 쓰고 부품 줄에는 경로(apiDocFile)만 싣는다 — 시나리오는 한 프로세스라 환경값 한 칸으로 못 나누고
+ * 판 원문은 그 칸에 안 든다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」). 자리는 trace 옆이다
+ */
+export async function 판을파일로(req: ScenarioExecuteRequest): Promise<{ parts: unknown[]; 파일들: string[] }> {
+  const 폴더 = dirname(scenarioTraceDest(req));
+  const 파일들: string[] = [];
+  const parts: unknown[] = [];
+  for (const [i, part] of req.parts.entries()) {
+    if (part.kind !== 'case' || part.apiDoc === undefined) {
+      parts.push(part);
+      continue;
+    }
+    const { apiDoc, ...나머지 } = part;
+    const 경로 = await 판쓰기(resolve(폴더, `api-doc-${i + 1}.json`), apiDoc.doc);
+    파일들.push(경로);
+    parts.push({ ...나머지, apiDocFile: 경로 });
+  }
+  return { parts, 파일들 };
 }
 
 // 줄 맨 앞의 표시자만 읽는다. kit 이 흘리는 진행 줄(@@PROGRESS@@)은 historyId 가 숫자가 아니라 여기서 버린다.
@@ -147,13 +169,14 @@ export function finishScenario(
 export async function executeScenario(req: ScenarioExecuteRequest): Promise<ScenarioExecuteResponse> {
   const startedAt = Date.now();
   const 출력 = 출력폴더이름(req.runId ?? 'trial');
+  const 판 = await 판을파일로(req);
 
   const child = spawn(
     'npx',
     ['playwright', 'test', '--config', scenarioConfig, '--project', req.platform],
     {
       cwd: appRoot,
-      env: { ...process.env, ...scenarioEnv(req), PLATFORM_OUTPUT_ID: 출력 },
+      env: { ...process.env, ...scenarioEnv(req, 판.parts), PLATFORM_OUTPUT_ID: 출력 },
       stdio: ['ignore', 'pipe', 'pipe'],
       // 제한 시간에 브라우저까지 한 번에 끊으려면 자식이 자기 프로세스 그룹의 장이어야 한다 (kill.ts)
       detached: true,
@@ -178,7 +201,10 @@ export async function executeScenario(req: ScenarioExecuteRequest): Promise<Scen
   const code = await new Promise<number | null>((done, fail) => {
     child.on('error', fail);
     child.on('close', done);
-  }).finally(() => clearTimeout(timer));
+  }).finally(async () => {
+    clearTimeout(timer);
+    await 판지우기(판.파일들);
+  });
   await trace를옮긴다(출력, req);
   await 출력폴더를지운다(출력);
 

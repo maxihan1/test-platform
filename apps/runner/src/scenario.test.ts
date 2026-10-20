@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import type { ScenarioCleanup, ScenarioExecuteRequest, ScenarioPartResult } from '@platform/kit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { finishScenario, parseCleanup, parseParts, scenarioEnv, trace를옮긴다 } from './scenario.js';
+import { finishScenario, parseCleanup, parseParts, scenarioEnv, trace를옮긴다, 판을파일로 } from './scenario.js';
 
 const 줄 = (p: Partial<ScenarioPartResult> & { seq: number }): ScenarioPartResult => ({
   status: 'PASS', durationMs: 1, steps: [], mocks: [], ...p,
@@ -225,5 +225,35 @@ describe('trace를옮긴다', () => {
     await trace를옮긴다('없음', 기본);
 
     expect(existsSync(join(뿌리, 'runs'))).toBe(false);
+  });
+});
+
+describe('판을파일로', () => {
+  let 폴더: string;
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    rmSync(폴더, { recursive: true, force: true });
+  });
+
+  it('케이스 부품의 판 원문을 trace 옆 파일로 쓰고 부품 줄에는 경로만 싣는다 — 환경값 한 칸에 수 MB 가 안 든다', async () => {
+    폴더 = mkdtempSync(join(tmpdir(), 'runner-scn-doc-'));
+    vi.stubEnv('PLATFORM_ARTIFACTS_DIR', 폴더);
+    const doc = { openapi: '3.1.0', paths: {} };
+    const req = {
+      runId: 9, platform: 'desktop', baseUrl: 'https://x', timeoutMs: 1000,
+      parts: [
+        { kind: 'case', tcId: 'A-001', filePath: '/t/a.spec.ts', params: {}, expected: {}, skipSteps: [] },
+        { kind: 'case', tcId: 'B-001', filePath: '/t/b.spec.ts', params: {}, expected: {}, skipSteps: [], apiDoc: { version: 2, doc } },
+      ],
+    } as unknown as ScenarioExecuteRequest;
+
+    const { parts, 파일들 } = await 판을파일로(req);
+
+    expect(파일들).toEqual([join(폴더, 'runs', '9', 'scenario', 'api-doc-2.json')]);
+    expect(parts[0]).toBe(req.parts[0]);
+    expect(parts[1]).toEqual(expect.objectContaining({ tcId: 'B-001', apiDocFile: 파일들[0] }));
+    expect(parts[1]).not.toHaveProperty('apiDoc');
+    expect(JSON.parse(readFileSync(파일들[0] ?? '', 'utf8'))).toEqual(doc);
+    expect(JSON.parse(scenarioEnv(req, parts).PLATFORM_SCENARIO ?? '')[1]).not.toHaveProperty('apiDoc');
   });
 });

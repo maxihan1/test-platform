@@ -27,6 +27,8 @@ export interface DefineCaseInput<P extends CaseSchema, E extends CaseSchema> {
   expected: E;
   held?: string;
   techniques?: Technique[];
+  // API 케이스만 · 케이스를 만든 API 문서 판. 실행 때 그 판과 응답 모양을 견준다 (공통/2 §4 「API 케이스」)
+  apiDoc?: number;
 }
 
 // 선언에 쓴 zod 스키마 원본. 실행 시점에 주입값을 검증하려면 JSON Schema가 아니라 원본이 필요하다.
@@ -61,6 +63,14 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
     throw new Error(`${input.tcId}: android 는 다른 디바이스와 함께 선언하지 않는다`);
   }
 
+  if (input.apiDoc !== undefined) {
+    if (!Number.isInteger(input.apiDoc) || input.apiDoc < 1) throw new Error(`${input.tcId}: apiDoc 은 1 이상의 정수여야 한다`);
+    // 같은 API 를 디바이스마다 두 번 부르는 항목이 생기지 않게 (도메인/API §3.8 「꼬리표와 다르다」)
+    if (input.platforms !== undefined && input.platforms.some((p) => p !== 'desktop')) {
+      throw new Error(`${input.tcId}: apiDoc 을 단 케이스의 platforms 는 desktop 하나다`);
+    }
+  }
+
   const spec: CaseSpec = {
     tcId: input.tcId,
     name: input.name,
@@ -75,6 +85,7 @@ export function defineCase<P extends CaseSchema, E extends CaseSchema>(
   // 적은 차례가 달라도 DB · 엑셀에 같은 글자로 남게 목록 차례로 맞춘다
   const techniques = TECHNIQUES.filter((t) => input.techniques?.includes(t));
   if (techniques.length > 0) spec.techniques = techniques;
+  if (input.apiDoc !== undefined) spec.apiDoc = input.apiDoc;
 
   schemas.set(spec, { params: input.params, expected: input.expected });
 

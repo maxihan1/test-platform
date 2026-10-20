@@ -2,6 +2,9 @@
 
 import type { APIRequestContext, APIResponse } from '@playwright/test';
 
+import type { ShapeCheck } from '../types.js';
+
+import { 모양확인 } from './apiShape.js';
 import { stepScope } from './context.js';
 
 const 가림 = '********';
@@ -56,11 +59,14 @@ async function traceResponse(
   options: Record<string, unknown> | undefined,
   response: APIResponse,
   비밀: ReadonlySet<string>,
+  문서: unknown,
 ): Promise<void> {
+  let 원문: string | undefined;
   let body: string;
   try {
+    원문 = await response.text();
     // 가린 뒤에 자른다 — 먼저 자르면 잘린 자리에 걸친 비밀값 조각이 가림 무늬에 안 걸린다
-    body = 글가린다(await response.text(), 비밀).slice(0, TRACE_BODY_LIMIT);
+    body = 글가린다(원문, 비밀).slice(0, TRACE_BODY_LIMIT);
   } catch (err) {
     body = `본문을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -71,13 +77,23 @@ async function traceResponse(
     data: options?.data,
   };
   recordHttpTrace(가린다(request, 비밀), { status: response.status(), body });
+  // 모양은 자르기 전 본문으로 본다 — 절차 기록은 2000자에서 잘린다 (도메인/API §3.8 「응답 모양 확인」).
+  // fetch 는 메서드를 옵션에 싣는다
+  const scope = stepScope.getStore();
+  // 본문을 못 읽었으면 견줄 것이 없다 — 읽지 못한 것을 모양 실패로 적지 않는다
+  if (scope === undefined || 문서 === undefined || 원문 === undefined) return;
+  const 메서드 = method === 'fetch' && typeof options?.method === 'string' ? options.method : method === 'fetch' ? 'GET' : method;
+  const 확인 = 모양확인(문서, 메서드, url, response.status(), 원문);
+  // 문제 줄의 enum 밖 응답 값도 절차 기록과 같은 규칙으로 가린 뒤 싣는다
+  if (확인 !== undefined) (scope.shapeChecks ??= []).push(가린다(확인, 비밀) as ShapeCheck);
 }
 
 /**
  * 요청마다 절차 기록을 남기는 요청 도구. 비밀 모음은 부르는 쪽이 쥐고 있다가 받은 토큰을 더한다 — 그 뒤 기록부터 가려진다.
- * 요청이 던진 오류도 가린다 — Playwright 는 실패한 요청의 머리(Authorization)를 오류 글에 싣는다
+ * 요청이 던진 오류도 가린다 — Playwright 는 실패한 요청의 머리(Authorization)를 오류 글에 싣는다.
+ * 문서(케이스가 만들어진 판 원문)가 있으면 응답마다 모양을 견준다
  */
-export function traced(request: APIRequestContext, 비밀: ReadonlySet<string>): APIRequestContext {
+export function traced(request: APIRequestContext, 비밀: ReadonlySet<string>, 문서?: unknown): APIRequestContext {
   return new Proxy(request, {
     get(target, prop, receiver) {
       const original: unknown = Reflect.get(target, prop, receiver);
@@ -96,7 +112,7 @@ export function traced(request: APIRequestContext, 비밀: ReadonlySet<string>):
           }
           throw err;
         }
-        await traceResponse(prop, url, options, response, 비밀);
+        await traceResponse(prop, url, options, response, 비밀, 문서);
         return response;
       };
     },

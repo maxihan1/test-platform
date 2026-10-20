@@ -12,6 +12,7 @@ vi.mock('./runner.js', () => ({ callRunner: vi.fn() }));
 vi.mock('./store.js', () => ({ finishItem: vi.fn(async () => undefined), finishRun: vi.fn(async () => undefined) }));
 vi.mock('./notify.js', () => ({ notifyRun: vi.fn(async () => undefined) }));
 vi.mock('./traceIngest.js', () => ({ trace적재를맡긴다: vi.fn(async () => undefined) }));
+vi.mock('../apidoc/runCompare.js', () => ({ 실행문서견주기: vi.fn(async () => undefined) }));
 
 function 관찰기(): { 시작: () => void; 끝: () => void; 최대: () => number } {
   let 지금 = 0;

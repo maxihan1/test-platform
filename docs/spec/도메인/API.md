@@ -72,15 +72,18 @@
 
 #### 응답 모양 확인
 
-- **어느 판과 견주나** — 케이스가 만들어진 판이다. 케이스 머리 `apiDoc: <판>`(공통/2 §4 「API 케이스」)을 스캐너가 `test_case.api_doc` 에 담고, 서버가 실행 때 그 판 원문을 러너에 싣는다. 그 판이 없으면 그 항목을 러너에 보내지 않고 미실행(`NA`)으로 닫는다 — 「API 문서 판 9 가 없습니다」. **API 애플리케이션 케이스에 `apiDoc` 이 없어도**(손으로 썼거나 작성이 빠뜨림) 같이 미실행으로 닫는다 — 「케이스에 API 문서 판이 적혀 있지 않습니다」. 모양 확인 없이 조용히 통과하지 않게다
+- **어느 판과 견주나** — 케이스가 만들어진 판이다. 케이스 머리 `apiDoc: <판>`(공통/2 §4 「API 케이스」)을 스캐너가 `test_case.api_doc` 에 담고, 서버가 실행 때 그 판 원문을 러너에 싣는다. 그 판이 없으면 그 항목을 러너에 보내지 않고 미실행(`NA`)으로 닫는다 — 「API 문서 판 9 가 없습니다」. **API 애플리케이션 케이스에 `apiDoc` 이 없어도**(손으로 썼거나 작성이 빠뜨림) 같이 미실행으로 닫는다 — 「케이스에 API 문서 판이 적혀 있지 않습니다」. 모양 확인 없이 조용히 통과하지 않게다.
+  **E2E 시나리오의 case 부품은 판이 있으면 싣고, 없으면 모양 확인 없이 돈다**(1차) — 부품 하나 때문에 시나리오 전체를 미실행으로 닫지 않는다. 실행 시작 때 견주기를 E2E 에서 안 하는 것과 같은 1차 범위다
 - **무엇을 견주나** — 그 항목이 `request` · `api(…)` 로 보낸 모든 요청의 응답. kit 이 응답을 받은 자리에서 본다 — 절차 기록은 2000자에서 잘리지만 모양 확인은 잘리기 전 본문을 본다
 - **어느 API 인가** — 메서드와 경로로 문서의 `paths` 틀을 찾는다(`/v1/pushes/{id}`). 문서 `servers[0].url` 에 경로가 있으면 틀 앞에 붙여 맞춘다. 글자 구간이 많은 틀이 이긴다(`/v1/pushes/batch` 가 `/v1/pushes/{id}` 보다 먼저). **문서에 없는 경로는 견주지 않는다** — 토큰 주소처럼 문서 밖 요청이 있다
 - **어느 응답인가** — 받은 코드와 같은 줄 → `4XX` 같은 범위 줄 → `default` 차례로 찾는다. 셋 다 없으면 실패 「문서에 없는 응답 코드 418」
 - **모양** — 그 응답의 `application/json` 스키마(`$ref` 는 문서 안에서 푼다)를 zod `z.fromJSONSchema` 로 바꿔 본문을 견준다(OpenAPI 3.0 문서는 `defaultTarget: 'openapi-3.0'` — 새 패키지 없음).
   필수 칸 빠짐 · 형 다름 · `enum` 밖 값은 실패, 문서에 없는 추가 칸은 통과(결정 8). **문서가 `additionalProperties: false` 라고 적은 곳만 추가 칸을 막는다** — 문서가 그렇게 약속했기 때문이다. 스키마가 있는데 본문이 JSON 이 아니면 실패 「JSON 이 아닙니다」
-- **스키마가 없으면 코드만 본다** — 결과 `NO_SHAPE`, 화면 · 리포트에 「문서에 모양 없음」. 통과로 센다
-- **결과는 절차마다 `shapeChecks` 줄로 따로 싣는다**(공통/3 「API 테스트 타입」 `ShapeCheck`) — 케이스의 확인 문장과 섞지 않는다. 한 줄 = 요청 하나. 실패면 문제를 한 줄씩 최대 5개(「필수 칸 status 가 없다」 · 「total 은 integer 여야 하는데 string 이다」)
-- **모양 실패는 그 절차와 항목을 실패로 만든다.** 실행을 멈추지는 않는다(`blocker` 가 아니다). 실패 사유 한 줄(리포팅 §8.4 · 실행 §8.3)은 실패한 확인 문장이 먼저이고, 없으면 첫 모양 문제 「응답 모양이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 칸 status 가 없다」다
+- **스키마가 없으면 코드만 본다** — 결과 `NO_SHAPE`, 화면 · 리포트에 「문서에 모양 없음」. 통과로 센다.
+  zod 가 못 읽는 스키마(`not` · `if/then/else` · 문서 밖 `$ref`)도 같이 `NO_SHAPE` 다 — 문서 쪽 한계로 케이스를 깨지 않는다. kit 이 그 까닭을 표준 오류에 한 줄 남긴다
+  - 서버 주소 변수(`servers[0].url` 의 `{port}`)는 0 으로 채워 읽고, 그래도 못 읽으면 앞 경로를 안 붙인다
+- **결과는 절차마다 `shapeChecks` 줄로 따로 싣는다**(공통/3 「API 테스트 타입」 `ShapeCheck`) — 케이스의 확인 문장과 섞지 않는다. 한 줄 = 요청 하나. 저장은 `run_item_step.shape_checks` · `scenario_run_step.shape_checks`(공통/4-데이터모델 「API 테스트 표」)다. 실패면 문제를 한 줄씩 최대 5개(「필수 칸 status 가 없다」 · 「total 은 number 여야 하는데 string 이다」). 문제 줄에 응답 값은 enum 밖 값(50자까지)만 싣고, 저장 · 화면은 절차 기록처럼 가린 것을 본다
+- **모양 실패는 그 절차와 항목을 실패로 만든다.** 실행을 멈추지는 않는다(`blocker` 가 아니다). 실패 사유 한 줄(리포팅 §8.4 · 실행 §8.3)은 실패한 확인 문장이 먼저, 다음은 절차를 멈춘 예외이고, 둘 다 없으면 첫 모양 문제 「응답 모양이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 칸 status 가 없다」다
 
 #### API 커버리지 — API × 응답 코드
 
@@ -154,6 +157,7 @@ POST   /api/services/:id/api-docs/:version/rewrite    바뀐 API 만 다시 작�
 늘어나는 칸 — 이미 있는 통로
 GET    /api/runs/:runId                               + apiDocVersion · apiDocNote ('DIFFERS' | 'FETCH_FAILED' | null)   (실행 §7)
 GET    /api/runs/:runId/items/:historyId              steps[] + shapeChecks (공통/3 ShapeCheck) · steps[].httpTrace 는 지금처럼 가려 싣는다   (실행 §7)
+GET    /api/runs/:runId/scenario                      parts[].steps[] + shapeChecks — 위와 같은 모양 · 같은 가림   (시나리오 §7)
 ```
 
 ```
@@ -176,6 +180,8 @@ GET    /api/runs/:runId/items/:historyId              steps[] + shapeChecks (공
 영향:    작성(서버 — API-F1-07) · WS-B(실행 — API-F1-05) · WS-E(API-F1-08)
 상태:    대기
 ```
+
+> 위 블록 가운데 `GET /api/runs/:runId` 의 `apiDocVersion` · `apiDocNote` 와 항목 응답 `steps[].shapeChecks` 는 반영했다(2026-10-21, `apps/admin/src/execution/queries.ts` — API-F1-05). 다시 작성 통로(API-F1-07)가 들어오면 「반영 완료」로 바꾼다
 
 ---
 

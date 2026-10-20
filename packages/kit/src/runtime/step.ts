@@ -1,6 +1,6 @@
 // 절차 1단계를 돌리고 StepResult 한 건을 조립한다. 판정과 중단 규칙이 전부 여기 모인다 (SPEC §4)
 
-import type { ItemStatus, StepResult } from '../types.js';
+import type { ItemStatus, ShapeCheck, StepResult } from '../types.js';
 import { callerLine } from './callsite.js';
 import { runScope, stepScope, type RunScope, type StepScope } from './context.js';
 import { 알린다 } from './progress.js';
@@ -13,6 +13,10 @@ export class StopTest extends Error {
     this.name = 'StopTest';
   }
 }
+
+/** 실패 사유 한 줄 꼴 — 「응답 모양이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 칸 status 가 없다」 */
+export const 모양문장 = (c: ShapeCheck): string =>
+  `응답 모양이 API 문서와 다릅니다 — ${c.method} ${c.path} ${c.status} · ${c.problems?.[0] ?? ''}`;
 
 export interface StepOptions {
   // 검수 문서에 "이 화면이 이렇게 나왔다"를 넣어야 할 때 쓴다. 기본값은 false (SPEC §4)
@@ -59,12 +63,16 @@ export async function runStep(
   }
 
   const durationMs = Date.now() - startedAt;
-  const failed = error !== undefined || scope.assertions.some((a) => a.status === 'FAIL');
+  // 모양 실패도 그 절차를 실패로 만든다. 실행을 멈추지는 않는다 — blocker 가 아니다 (도메인/API §3.8)
+  const 모양실패 = scope.shapeChecks?.find((c) => c.result === 'FAIL');
+  const failed = error !== undefined || 모양실패 !== undefined || scope.assertions.some((a) => a.status === 'FAIL');
   const status: ItemStatus = failed ? 'FAIL' : 'PASS';
   if (failed) run.failed = true;
   if (stopped) run.stopped = true;
   if (failed && run.firstFailure === undefined) {
-    run.firstFailure = scope.assertions.find((a) => a.status === 'FAIL')?.statement ?? error?.message;
+    // 실패한 확인 문장이 먼저, 다음은 절차를 멈춘 예외, 없으면 첫 모양 문제다 — 터진 까닭을 모양 문제가 덮지 않게
+    run.firstFailure =
+      scope.assertions.find((a) => a.status === 'FAIL')?.statement ?? error?.message ?? (모양실패 === undefined ? undefined : 모양문장(모양실패));
   }
 
   // 통과한 화면은 아무도 열어보지 않는다. 실패했거나 증적용으로 지정한 절차만 찍는다 (SPEC §4)
@@ -74,6 +82,7 @@ export async function runStep(
   if (scope.line !== undefined) result.line = scope.line;
   if (screenshotPath !== undefined) result.screenshotPath = screenshotPath;
   if (scope.httpTrace !== undefined) result.httpTrace = scope.httpTrace;
+  if (scope.shapeChecks !== undefined) result.shapeChecks = scope.shapeChecks;
   if (error !== undefined) result.error = error;
 
   await run.emit(result);

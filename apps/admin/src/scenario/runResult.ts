@@ -146,8 +146,8 @@ async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartR
   for (const s of 결과.steps) {
     await c.query(
       `INSERT INTO scenario_run_step (part_id, seq, title, status, skipped, duration_ms, assertions, line, screenshot_path,
-                                      http_trace, error)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                                      http_trace, error, shape_checks)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        ON CONFLICT (part_id, seq) DO NOTHING`,
       [
         partId,
@@ -161,6 +161,7 @@ async function 부품적기(c: PoolClient, partId: string, 결과: ScenarioPartR
         s.screenshotPath ?? null,
         s.httpTrace === undefined ? null : JSON.stringify(s.httpTrace),
         s.error === undefined ? null : JSON.stringify(s.error),
+        s.shapeChecks === undefined ? null : JSON.stringify(s.shapeChecks),
       ],
     );
   }

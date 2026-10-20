@@ -11,8 +11,8 @@ async function db(): Promise<Pool> {
 }
 
 const INSERT_STEP = `
-  INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, line, screenshot_path, http_trace, error)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  INSERT INTO run_item_step (history_id, seq, title, status, duration_ms, assertions, line, screenshot_path, http_trace, error, shape_checks)
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
   ON CONFLICT (history_id, seq) DO NOTHING`;
 
 function stepValues(historyId: number, step: StepResult): unknown[] {
@@ -27,7 +27,29 @@ function stepValues(historyId: number, step: StepResult): unknown[] {
     step.screenshotPath ?? null,
     step.httpTrace === undefined ? null : JSON.stringify(step.httpTrace),
     step.error === undefined ? null : JSON.stringify(step.error),
+    step.shapeChecks === undefined ? null : JSON.stringify(step.shapeChecks),
   ];
+}
+
+// API × 응답 코드 사본 (도메인/API §3.8 「API 커버리지」). 케이스의 줄은 그 실행의 애플리케이션 것만 건드린다
+const API호출지우기 = `
+  DELETE FROM api_call_seen a USING run_item i JOIN test_run r ON r.run_id = i.run_id
+   WHERE i.history_id = $1 AND a.service_id = r.service_id AND a.tc_id = i.tc_id`;
+const API호출넣기 = `
+  INSERT INTO api_call_seen (service_id, tc_id, method, path, status, no_shape, run_id)
+  SELECT r.service_id, i.tc_id, x.method, x.path, x.status, x.no_shape, i.run_id
+    FROM run_item i JOIN test_run r ON r.run_id = i.run_id,
+         jsonb_to_recordset($2::jsonb) AS x(method text, path text, status int, no_shape boolean)
+   WHERE i.history_id = $1
+  ON CONFLICT (service_id, tc_id, method, path, status) DO UPDATE SET no_shape = EXCLUDED.no_shape, run_id = EXCLUDED.run_id, seen_at = now()`;
+
+/** 받은 API × 응답 코드. 같은 것을 여러 번 불렀어도 한 줄이다 */
+export function 받은API(steps: readonly StepResult[]): { method: string; path: string; status: number; no_shape: boolean }[] {
+  const 줄 = new Map<string, { method: string; path: string; status: number; no_shape: boolean }>();
+  for (const c of steps.flatMap((s) => s.shapeChecks ?? [])) {
+    줄.set(`${c.method} ${c.path} ${c.status}`, { method: c.method, path: c.path, status: c.status, no_shape: c.result === 'NO_SHAPE' });
+  }
+  return [...줄.values()];
 }
 
 export async function finishItem(historyId: number, result: ExecuteResponse): Promise<void> {
@@ -54,6 +76,13 @@ export async function finishItem(historyId: number, result: ExecuteResponse): Pr
     }
     for (const step of result.steps) {
       await client.query(INSERT_STEP, stepValues(historyId, step));
+    }
+    // 통과면 그 케이스 줄을 이번 것으로 갈아 끼운다 — 케이스를 고쳐 더 안 부르는 API 가 남지 않게.
+    // 실패면 지운다 — 깨진 케이스가 지난 통과로 덮은 것처럼 남지 않게. 미실행은 알 수 없어 그대로 둔다
+    if (result.status !== 'NA') {
+      await client.query(API호출지우기, [historyId]);
+      const 받은것 = result.status === 'PASS' ? 받은API(result.steps) : [];
+      if (받은것.length > 0) await client.query(API호출넣기, [historyId, JSON.stringify(받은것)]);
     }
     await client.query('COMMIT');
   } catch (err) {

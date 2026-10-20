@@ -143,13 +143,18 @@ export interface EvidenceSummary {
   generatedAt: string;
 }
 
+export interface RunApiDoc {
+  apiDocVersion: number | null;
+  apiDocNote: 'DIFFERS' | 'FETCH_FAILED' | null;
+}
+
 export async function findRun(
   runId: number,
-): Promise<(RunSummary & { items: RunItemSummary[]; evidence: EvidenceSummary[] }) | null> {
+): Promise<(RunSummary & RunApiDoc & { items: RunItemSummary[]; evidence: EvidenceSummary[] }) | null> {
   const pool = await db();
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
-  const runs = await pool.query<RawRun>(
-    `SELECT ${RUN_COLUMNS} FROM test_run r LEFT JOIN run_item i USING (run_id)
+  const runs = await pool.query<RawRun & { api_doc_version: number | null; api_doc_note: RunApiDoc['apiDocNote'] }>(
+    `SELECT ${RUN_COLUMNS}, r.api_doc_version, r.api_doc_note FROM test_run r LEFT JOIN run_item i USING (run_id)
       WHERE r.run_id = $1 AND ${종류조건('case')} GROUP BY r.run_id`,
     [runId],
   );
@@ -163,6 +168,9 @@ export async function findRun(
 
   return {
     ...toRun(row),
+    // API 애플리케이션 실행만 찬다 — 실행 시작 때 견준 문서 판 · 한 줄 (도메인/API §3.8 「실행 시작 때 견주기」)
+    apiDocVersion: row.api_doc_version,
+    apiDocNote: row.api_doc_note,
     items: items.rows.map((r) => toItem(r)),
     evidence: await 증적목록(runId),
   };
@@ -202,6 +210,7 @@ interface RawStep {
   screenshot_path: string | null;
   http_trace: StepResult['httpTrace'] | null;
   error: StepResult['error'] | null;
+  shape_checks: StepResult['shapeChecks'] | null;
 }
 
 // 저장할 때 StepResult를 컬럼으로 흩었으므로 읽을 때 같은 모양으로 되돌린다 (SPEC §5.1)
@@ -216,6 +225,8 @@ function toStep(row: RawStep, 비밀: string[]): StepResult {
     ...(row.screenshot_path === null ? {} : { screenshotPath: row.screenshot_path }),
     ...(row.http_trace === null ? {} : { httpTrace: 가린다(row.http_trace, 비밀) as StepResult['httpTrace'] }),
     ...(row.error === null ? {} : { error: 가린다(row.error, 비밀) as StepResult['error'] }),
+    // 문제 줄에 enum 밖 응답 값이 들 수 있어 절차 기록처럼 가린다 (도메인/API §3.8)
+    ...(row.shape_checks === null ? {} : { shapeChecks: 가린다(row.shape_checks, 비밀) as StepResult['shapeChecks'] }),
   };
 }
 
@@ -231,7 +242,7 @@ export async function findItem(runId: number, historyId: number): Promise<RunIte
   if (row === undefined) return null;
 
   const steps = await pool.query<RawStep>(
-    `SELECT seq, title, status, duration_ms, assertions, line, screenshot_path, http_trace, error
+    `SELECT seq, title, status, duration_ms, assertions, line, screenshot_path, http_trace, error, shape_checks
        FROM run_item_step WHERE history_id = $1 ORDER BY seq`,
     [historyId],
   );

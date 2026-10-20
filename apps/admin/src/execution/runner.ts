@@ -12,6 +12,8 @@ import type {
   ScenarioExecuteResponse,
 } from '@platform/kit';
 
+import { 케이스판 } from '../apidoc/caseDoc.js';
+
 import { 팜주소, 팜폰으로 } from './farm.js';
 import type { PendingItem } from './store.js';
 
@@ -33,7 +35,7 @@ function 러너들(): string[] {
   return 로컬 && 로컬 !== runnerUrl() ? [runnerUrl(), 로컬] : [runnerUrl()];
 }
 
-function na(item: PendingItem, message: string, stack?: string): ExecuteResponse {
+export function na(item: Pick<PendingItem, 'historyId'>, message: string, stack?: string): ExecuteResponse {
   // 판정할 근거가 없으면 NA다. 실패와 구분돼야 러너 고장과 케이스 실패가 섞이지 않는다 (SPEC §3.2)
   return { historyId: item.historyId, status: 'NA', durationMs: 0, steps: [], error: { message, stack } };
 }
@@ -127,6 +129,15 @@ export function 러너에보낸다(경로: string, 본문: unknown, 제한ms: nu
 
 // 멈췄나는 디스패처가 넘긴다. 팜에서 폰을 잡는 몇 초 사이에 멈추면 러너는 아직 그 항목을 몰라 중단을 못 받는다 — 잡은 뒤 한 번 더 본다
 export async function callRunner(runId: number, item: PendingItem, 멈췄나: () => boolean = () => false): Promise<ExecuteResponse> {
+  // API 애플리케이션 케이스는 그 케이스 판 원문을 싣는다. 판이 없으면 러너에 안 보내고 미실행으로 닫는다 (도메인/API §3.8 「응답 모양 확인」)
+  let 판: Awaited<ReturnType<typeof 케이스판>>;
+  try {
+    판 = await 케이스판(item.tcId);
+  } catch (err) {
+    return na(item, 'API 문서 판을 읽지 못했습니다', err instanceof Error ? err.message : String(err));
+  }
+  if ('사유' in 판) return na(item, 판.사유);
+
   const body: ExecuteRequest = {
     runId,
     historyId: item.historyId,
@@ -139,6 +150,7 @@ export async function callRunner(runId: number, item: PendingItem, 멈췄나: ()
     timeoutMs: item.timeoutMs,
     ...(item.app !== undefined && { app: item.app }),
     ...(item.apiAuths !== undefined && { apiAuths: item.apiAuths }),
+    ...판,
   };
 
   if (item.platform !== 'android') return 보낸다(item, body);

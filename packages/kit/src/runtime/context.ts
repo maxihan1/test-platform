@@ -3,13 +3,15 @@
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 
-import type { AssertionResult, StepResult } from '../types.js';
+import type { AssertionResult, ShapeCheck, StepResult } from '../types.js';
 
 export interface StepScope {
   assertions: AssertionResult[];
   // 첫 실패 문장의 소스 줄 번호. 화면의 코드 뷰가 이 줄을 중심으로 연다 (SPEC §8.4)
   line?: number;
   httpTrace?: { request: unknown; response: unknown };
+  // API 케이스가 보낸 요청마다 응답 모양 확인 한 줄 (도메인/API §3.8). 확인 문장과 섞지 않는다
+  shapeChecks?: ShapeCheck[];
 }
 
 // E2E 시나리오에서 러너가 만들어 건넨 표시판. kit 은 적기만 하고 러너의 가로채기가 읽는다 (SPEC 공통/3-공유계약 §5.1 ④)
