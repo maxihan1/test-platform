@@ -121,7 +121,7 @@ export const 오류영어: Record<string, string> = {
     'Attachment limit reached: 20 in the current version, 200 per application including removed ones',
   '글이 너무 깁니다. 구획마다 20,000자까지입니다': 'Too long. Each section takes up to 20,000 characters',
   '글자를 뽑을 수 없는 파일입니다. 파일 이름을 눌러 내려받습니다': 'This file has no readable text. Click the file name to download it',
-  '테스트에 반영할 바뀐 요구가 없습니다': 'No changed requirements to apply to tests',
+  '테스트에 반영할 바뀐 것이 없습니다': 'Nothing changed to apply to tests',
   '이미 열린 반영 요청이 있습니다. 그 요청을 반영하거나 폐기한 뒤 다시 누릅니다':
     'An apply request is already open. Merge or discard it, then try again',
   '이 실행에서 실패한 케이스가 아닙니다': 'This case did not fail in this run',

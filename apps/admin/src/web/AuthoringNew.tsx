@@ -59,11 +59,13 @@ export function AuthoringNew({
   const 문서 = useApiDocs(serviceId);
   const api모드 = 문서.버전들 !== null;
   const [고른판, set고른판] = useState<number | null>(null);
-  // API 애플리케이션은 화면이 없다 — 대조도 피그마도 없고, 운영 서버는 작성 중 실행이 갈 곳이 아니다 (도메인/작성 §7)
-  const 후보 = api모드 ? envs.filter((it) => it.isProd !== true) : envs;
+  // API 애플리케이션은 화면이 없다 — 대조도 피그마도 없다 (도메인/작성 §7).
+  // 「실서비스 서버」 표시는 /auth/me 에 안 와서 거를 수 없다 — 대신 기본값을 기준 서버(보통 stg)로 둔다. 실서비스를 고르면 서버가 BAD_ENV 로 막는다
+  const 후보 = envs;
+  const 기본서버 = api모드 && 문서.기준서버 !== null && envs.some((it) => it.env === 문서.기준서버) ? 문서.기준서버 : (후보[0]?.env ?? null);
   const 판 = 문서.버전들?.some((v) => v.version === 고른판) === true ? 고른판 : (문서.버전들?.[0]?.version ?? null);
   const 대조 = !api모드 && 대조켜짐;
-  const 서버 = 후보.some((it) => it.env === 고른서버) ? 고른서버 : (후보[0]?.env ?? null);
+  const 서버 = 후보.some((it) => it.env === 고른서버) ? 고른서버 : 기본서버;
   const 주소 = 시작주소.trim();
 
   const 주소들 = (피그마토큰 && !api모드 ? 피그마 : '')
@@ -75,7 +77,8 @@ export function AuthoringNew({
     const 이유 = 거절사유(f);
     if (이유 !== null) 거절.set(이유, [...(거절.get(이유) ?? []), f.name]);
   }
-  const 너무많다 = 파일들.length + 주소들.length > 자료상한;
+  // API 요청은 만들 때 서버가 API 문서 자료 한 행을 먼저 붙인다 — 그 한 칸도 상한에 센다 (도메인/작성 §7 「자료」)
+  const 너무많다 = 파일들.length + 주소들.length + (api모드 ? 1 : 0) > 자료상한;
   // 화면만(대조 + 자료 0)은 기획서 없이 그 화면을 훑는다 — 시작 주소가 없어도 크롤러가 대상 서버 주소에서 시작한다 (§7 submit)
   const 빈것 = 파일들.length === 0 && 주소들.length === 0 && !대조;
   const 서버없음 = 대조 && 서버 === null;

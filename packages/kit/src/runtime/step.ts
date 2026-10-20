@@ -14,9 +14,9 @@ export class StopTest extends Error {
   }
 }
 
-/** 실패 사유 한 줄 꼴 — 「응답 모양이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 칸 status 가 없다」 */
+/** 실패 사유 한 줄 꼴 — 「응답 형식이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 필드 없음 — status」. 화면 낱말은 도메인/API §8.13 */
 export const 모양문장 = (c: ShapeCheck): string =>
-  `응답 모양이 API 문서와 다릅니다 — ${c.method} ${c.path} ${c.status} · ${c.problems?.[0] ?? ''}`;
+  `응답 형식이 API 문서와 다릅니다 — ${c.method} ${c.path} ${c.status} · ${c.problems?.[0] ?? ''}`;
 
 export interface StepOptions {
   // 검수 문서에 "이 화면이 이렇게 나왔다"를 넣어야 할 때 쓴다. 기본값은 false (SPEC §4)

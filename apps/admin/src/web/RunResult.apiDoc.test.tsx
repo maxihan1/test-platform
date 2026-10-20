@@ -20,7 +20,7 @@ function 그린다(칸: { apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' 
 describe('실행 결과 머리 — API 문서 판 한 줄', () => {
   it('서버 문서가 판과 다르면 판 번호를 넣어 한 줄로 알린다', async () => {
     그린다({ apiDocVersion: 4, apiDocNote: 'DIFFERS' });
-    expect(await screen.findByText('이 서버의 API 문서가 버전 4과 다릅니다. 배포 전일 수 있습니다')).toBeTruthy();
+    expect(await screen.findByText('이 서버의 API 문서가 기준 서버 문서(버전 4)와 다릅니다. 배포 전일 수 있습니다')).toBeTruthy();
   });
 
   it('문서를 못 받았으면 못 받았다고만 알린다', async () => {

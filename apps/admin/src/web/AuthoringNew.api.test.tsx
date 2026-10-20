@@ -30,9 +30,10 @@ vi.mock('./api.js', async () => {
 vi.mock('./apiDocApi.js', () => ({ apiDocApi: { list: () => 목록답() } }));
 
 const 판 = (version: number) => ({ version, source: 'URL', env: 'stg', fileName: null, createdAt: '2026-10-20T00:00:00Z', createdBy: 'kim' });
+// /auth/me 의 대상 서버에는 「실서비스 서버」 표시가 없다 — 그래서 기본값은 설정의 기준 서버다
 const 서버들: EnvRow[] = [
+  { env: 'dev', baseUrl: 'https://dev.example.com' },
   { env: 'stg', baseUrl: 'https://stg.example.com' },
-  { env: 'prod', baseUrl: 'https://prod.example.com', isProd: true },
 ];
 
 beforeEach(() => {
@@ -55,7 +56,8 @@ describe('새 작성 요청 — API 애플리케이션', () => {
     expect(Array.from(고르개.querySelectorAll('option')).map((o) => o.textContent)).toEqual(['버전 3 (현재 버전)', '버전 2']);
     expect((고르개 as HTMLSelectElement).value).toBe('3');
     const 서버 = screen.getByRole('combobox', { name: '대상 서버' });
-    expect(Array.from(서버.querySelectorAll('option')).map((o) => o.textContent)).toEqual(['stg']);
+    expect(Array.from(서버.querySelectorAll('option')).map((o) => o.textContent)).toEqual(['dev', 'stg']);
+    expect((서버 as HTMLSelectElement).value).toBe('stg');
     expect(screen.queryByLabelText('피그마 주소')).toBeNull();
     expect(screen.queryByText('실제 화면과 대조')).toBeNull();
     expect(screen.getByLabelText('PRD')).toBeTruthy();

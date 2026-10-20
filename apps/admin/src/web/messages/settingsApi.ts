@@ -37,4 +37,8 @@ export const 설정API말: Record<string, string> = {
   'API 인증에 비어 있는 칸이 있습니다. 입력하거나 해당 인증을 삭제해 주세요':
     'An API auth has an empty field. Fill it in or delete that auth',
   '새 API 인증은 비밀값을 입력해 주세요': 'Enter a secret for the new API auth',
+  'API 인증 이름은 20자까지이고 한 대상 서버 안에서 겹치지 않아야 합니다 (서버마다 10개까지)':
+    'API auth names are up to 20 characters and unique per target server (up to 10 per server)',
+  '토큰 주소는 / 나 http(s):// 로 시작해야 합니다': 'The token URL must start with / or http(s)://',
+  '비밀값은 12자 이상 500자 이하로 입력해 주세요': 'Enter a client secret of 12 to 500 characters',
 };

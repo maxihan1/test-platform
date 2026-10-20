@@ -14,6 +14,26 @@ import { use말, use언어 } from './i18n.js';
 import type { 판정 } from './role.js';
 import { Failed, Loading, message, useAsync, 기다림글자 } from './ui.js';
 
+/** API 애플리케이션이 아니거나 아직 고른 애플리케이션이 없을 때 본문 한 줄 (§8.13 첫 줄) */
+export function API안내({ 설정보나 }: { 설정보나: boolean }) {
+  const t = use말();
+  return (
+    <>
+      <Head 위치={t('API')} 제목={t('API 문서')} />
+      <div className="screen">
+        <div className="empty">
+          {t('API 애플리케이션을 고르면 API 문서가 보입니다')}
+          {설정보나 ? (
+            <small>
+              <a href="#/settings">{t('설정에서 종류 보기')}</a>
+            </small>
+          ) : null}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // 화면 애플리케이션이면 서버가 NOT_API_SERVICE 를 낸다 — 오류가 아니라 안내 한 줄로 그린다 (§8.13 첫 줄)
 const 화면앱 = 'SCREEN' as const;
 
@@ -35,10 +55,12 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
   // 커버리지 · 원문 · 비교는 버전이 있어야 뜻이 있다. 버전이 바뀌면(받기 · 첨부) 다시 읽는다
   const 덮음 = useAsync(() => (판 === undefined ? Promise.resolve(null) : apiDocApi.coverage(id)), [id, 판]);
   const 원문 = useAsync(() => (판 === undefined ? Promise.resolve(null) : apiDocApi.doc(id, 판).then((x) => x.doc)), [id, 판]);
+  // 결과에 어느 두 버전인지 박아 둔다 — 새 버전을 받은 뒤 새 비교가 오기 전까지 옛 비교가 남아 새 버전 번호로 보내지 않게
   const 비교 = useAsync(
-    () => (판 === undefined || 앞 === undefined ? Promise.resolve(null) : apiDocApi.compare(id, 앞.version, 판).then((x) => x.changes)),
+    () => (판 === undefined || 앞 === undefined ? Promise.resolve(null) : apiDocApi.compare(id, 앞.version, 판).then((x) => ({ 앞: 앞.version, 뒤: 판, changes: x.changes }))),
     [id, 판, 앞?.version],
   );
+  const 맞는비교 = 비교.data !== null && 비교.data.앞 === 앞?.version && 비교.data.뒤 === 판 ? 비교.data.changes : null;
   const [이력, set이력] = useState(버전 !== undefined);
   const [알림, set알림] = useState<{ ok: boolean; 글: string } | null>(null);
   const [받는중, set받는중] = useState<'fetch' | 'upload' | null>(null);
@@ -48,23 +70,7 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
 
   if (목록.error !== null) return <Failed error={목록.error} />;
   if (목록.data === null) return <Loading />;
-  if (목록.data === 화면앱) {
-    return (
-      <>
-        <Head 위치={t('API')} 제목={t('API 문서')} />
-        <div className="screen">
-          <div className="empty">
-            {t('API 애플리케이션을 고르면 API 문서가 보입니다')}
-            {설정보나 ? (
-              <small>
-                <a href="#/settings">{t('설정에서 종류 보기')}</a>
-              </small>
-            ) : null}
-          </div>
-        </div>
-      </>
-    );
-  }
+  if (목록.data === 화면앱) return <API안내 설정보나={설정보나} />;
   const { docPath, docEnv, versions } = 목록.data;
 
   const 넣기 = async (어느: 'fetch' | 'upload', 일: () => Promise<{ version: number; created: boolean }>) => {
@@ -74,7 +80,7 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
       const { version, created } = await 일();
       set알림({
         ok: true,
-        글: created ? t('버전 {버전}으로 저장했습니다', { 버전: version }) : t('버전 {버전}과 같아 새 버전을 만들지 않았습니다', { 버전: version }),
+        글: created ? t('저장했습니다 (버전 {버전})', { 버전: version }) : t('현재 버전과 같아 새 버전을 만들지 않았습니다 (버전 {버전})', { 버전: version }),
       });
       await 목록.reload();
     } catch (err) {
@@ -152,7 +158,17 @@ export function ApiDocs({ service, 할수, 버전, 설정보나 }: { service: Se
           {이력 ? <ApiDocVersions id={id} versions={versions} 연버전={버전} /> : null}
           <div className="prd-todo">
             {앞 === undefined || 최신 === undefined ? null : (
-              <반영카드 id={id} 버전={최신.version} 앞버전={앞.version} 비교={비교} envs={service.envs} 쓰나={쓰나} />
+              // 버전마다 새로 그린다 — 앞 버전에서 세운 요청 안내 · 잠금이 새 버전 카드에 남지 않게
+              <반영카드
+                key={`${String(앞.version)}-${String(최신.version)}`}
+                id={id}
+                버전={최신.version}
+                앞버전={앞.version}
+                비교={{ ...비교, data: 맞는비교 }}
+                envs={service.envs}
+                기준서버={docEnv}
+                쓰나={쓰나}
+              />
             )}
             {덮음.data === null ? null : <안거친응답카드 coverage={덮음.data} />}
           </div>

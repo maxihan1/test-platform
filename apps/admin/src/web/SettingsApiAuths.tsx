@@ -53,6 +53,18 @@ export function API인증못보내는이유(
     return 말('API 인증에 비어 있는 칸이 있습니다. 입력하거나 해당 인증을 삭제해 주세요', 언어);
   }
   if (줄들.some(({ r, 바뀜 }) => 비밀값필요(r, 바뀜))) return 말('새 API 인증은 비밀값을 입력해 주세요', 언어);
+  // 아래는 서버 settings/apiService.ts `API인증틀림` 과 같은 규칙이다 — 서버는 BAD_API_AUTH 하나로만 답해 어느 칸인지 모른다
+  const 이름틀림 = envs.some((e) => {
+    const 이름들 = e.API인증들.map((r) => r.name.trim());
+    return 이름들.length > 10 || new Set(이름들).size !== 이름들.length || 이름들.some((이름) => 이름.length > 20);
+  });
+  if (이름틀림) return 말('API 인증 이름은 20자까지이고 한 대상 서버 안에서 겹치지 않아야 합니다 (서버마다 10개까지)', 언어);
+  if (줄들.some(({ r }) => !((r.tokenUrl.startsWith('/') && !r.tokenUrl.startsWith('//')) || /^https?:\/\/\S+$/.test(r.tokenUrl)))) {
+    return 말('토큰 주소는 / 나 http(s):// 로 시작해야 합니다', 언어);
+  }
+  if (줄들.some(({ r }) => r.새비밀값 !== '' && (r.새비밀값.length < 12 || r.새비밀값.length > 500))) {
+    return 말('비밀값은 12자 이상 500자 이하로 입력해 주세요', 언어);
+  }
   return null;
 }
 

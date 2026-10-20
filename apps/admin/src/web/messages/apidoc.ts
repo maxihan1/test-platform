@@ -12,8 +12,7 @@ export const API문서말: Record<string, string> = {
   '받는 중…': 'Fetching…',
   '올리는 중…': 'Uploading…',
   'API 문서 파일': 'API doc file',
-  '버전 {버전}으로 저장했습니다': 'Saved as version {버전}',
-  '버전 {버전}과 같아 새 버전을 만들지 않았습니다': 'Same as version {버전}, so no new version was made',
+  '현재 버전과 같아 새 버전을 만들지 않았습니다 (버전 {버전})': 'Same as version {버전}, so no new version was made',
   '문서 새로 받기로 기준 서버에서 받거나, 파일 첨부로 OpenAPI 3 JSON 파일을 올립니다':
     'Fetch the docs from the reference server, or attach an OpenAPI 3 JSON file',
   파일: 'File',
@@ -22,7 +21,7 @@ export const API문서말: Record<string, string> = {
 
   // 할 일 카드
   '버전 {버전}에서 바뀐 API 가 아직 테스트에 없습니다': 'APIs changed in version {버전} are not in the tests yet',
-  '버전 {버전}과 비교해 바뀐 API 가 없습니다': 'No API changed since version {버전}',
+  '앞 버전({버전})에서 바뀐 API 가 없습니다': 'No API changed since version {버전}',
   '기존 테스트가 실패할 수 있음': 'Existing tests may fail',
   '지운 API 를 쓰던 케이스는 지우지 않고 PR 에 삭제 제안으로 적습니다':
     'Cases that used a removed API are not deleted. The PR lists them as deletion suggestions',
@@ -52,4 +51,5 @@ export const API문서말: Record<string, string> = {
   '응답 형식 없음': 'No response format',
   '● 통과한 케이스가 받은 응답 · ○ 아직 안 받은 응답 · 「응답 형식 없음」 문서에 응답 형식이 적혀 있지 않은 코드':
     '● received by a passing case · ○ not received yet · "No response format": the doc gives no format for that code',
+  '테스트 작성 목록 보기': 'Open authoring list',
 };

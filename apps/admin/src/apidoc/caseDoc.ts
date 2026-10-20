@@ -54,9 +54,9 @@ export async function 케이스판(tcId: string, q?: 손): Promise<케이스판�
   );
   const 줄 = r.rows[0];
   if (줄 === undefined || 줄.kind !== 'API') return {};
-  if (줄.api_doc === null) return { 사유: '케이스에 API 문서 판이 적혀 있지 않습니다' };
+  if (줄.api_doc === null) return { 사유: '케이스에 API 문서 버전이 적혀 있지 않습니다' };
   const 판 = await 판가져오기(Number(줄.id), 줄.api_doc, 손잡이);
-  return 판 === null ? { 사유: `API 문서 판 ${줄.api_doc} 가 없습니다` } : { apiDoc: 판 };
+  return 판 === null ? { 사유: `API 문서 버전 ${줄.api_doc} 이(가) 없습니다` } : { apiDoc: 판 };
 }
 
 /**

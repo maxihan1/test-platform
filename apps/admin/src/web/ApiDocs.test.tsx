@@ -26,8 +26,8 @@ const 앱 = {
   prefix: 'NTF',
   name: '데모마켓 알림',
   envs: [
+    { env: 'dev', baseUrl: 'https://dev.notify.example' },
     { env: 'stg', baseUrl: 'https://stg.notify.example' },
-    { env: 'prod', baseUrl: 'https://notify.example', isProd: true },
   ],
 } as unknown as ServiceRow;
 
@@ -108,8 +108,8 @@ describe('API 문서 — 시안 C 할 일 먼저', () => {
     const 카드 = await screen.findByRole('region', { name: '반영 안 됨 2건' });
     expect(within(카드).getAllByText('기존 테스트가 실패할 수 있음')).toHaveLength(2);
     expect(within(카드).getByText('지운 API 를 쓰던 케이스는 지우지 않고 PR 에 삭제 제안으로 적습니다')).toBeTruthy();
-    // 실서비스 서버는 고를 수 없다
-    expect(within(카드).queryByRole('option', { name: 'prod' })).toBeNull();
+    // 「실서비스 서버」 표시는 /auth/me 에 없다 — 기본값은 설정의 기준 서버다
+    expect((within(카드).getByRole('combobox') as HTMLSelectElement).value).toBe('stg');
     fireEvent.click(within(카드).getByRole('button', { name: '바뀐 API 2건 테스트에 반영' }));
     expect(await within(카드).findByText(/작성 요청 41번을 만들었습니다/)).toBeTruthy();
     expect(반영).toHaveBeenCalledWith(7, 3, 2, 'stg', [
@@ -130,7 +130,7 @@ describe('API 문서 — 시안 C 할 일 먼저', () => {
   it('지금 받은 문서가 현재 버전과 같으면 새 버전을 만들지 않았다고 알린다', async () => {
     render(<ApiDocs service={앱} 할수={쓰는사람} 설정보나 />);
     fireEvent.click(await screen.findByRole('button', { name: '문서 새로 받기' }));
-    expect(await screen.findByText('버전 3과 같아 새 버전을 만들지 않았습니다')).toBeTruthy();
+    expect(await screen.findByText('현재 버전과 같아 새 버전을 만들지 않았습니다 (버전 3)')).toBeTruthy();
     expect(받기).toHaveBeenCalledWith(7);
   });
 

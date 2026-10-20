@@ -115,14 +115,14 @@ function 문제글(issue: z.core.$ZodIssue): string {
   const 받은 = 'input' in issue ? issue.input : undefined;
   switch (issue.code) {
     case 'invalid_type':
-      return 받은 === undefined ? `필수 칸 ${칸} 가 없다` : `${칸} 은 ${issue.expected} 여야 하는데 ${형이름(받은)} 이다`;
+      return 받은 === undefined ? `필수 필드 없음 — ${칸}` : `타입이 다름 — ${칸} (문서 ${issue.expected} · 받은 값 ${형이름(받은)})`;
     case 'invalid_value':
       // enum · const 칸이 빠졌을 때도 이 코드다
-      if (받은 === undefined) return `필수 칸 ${칸} 가 없다`;
+      if (받은 === undefined) return `필수 필드 없음 — ${칸}`;
       // enum 밖 값은 짧은 이름이라 보여 준다. 길면 자른다 — 문제 줄은 절차 기록처럼 가린 뒤 저장 · 화면에 간다
-      return `${칸} 값 ${JSON.stringify(받은).slice(0, 50)} 은 문서에 없는 값이다`;
+      return `문서에 없는 값 — ${칸} = ${JSON.stringify(받은).slice(0, 50)}`;
     case 'unrecognized_keys':
-      return `${칸} 에 문서가 막은 칸 ${issue.keys.join(' · ')} 이 있다`;
+      return `문서가 허용하지 않은 필드 — ${issue.keys.join(' · ')} (${칸})`;
     case 'invalid_format':
       return `${칸} 은 ${issue.format} 꼴이어야 한다`;
     case 'too_small':

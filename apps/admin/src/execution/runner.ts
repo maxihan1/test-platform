@@ -134,7 +134,7 @@ export async function callRunner(runId: number, item: PendingItem, 멈췄나: ()
   try {
     판 = await 케이스판(item.tcId);
   } catch (err) {
-    return na(item, 'API 문서 판을 읽지 못했습니다', err instanceof Error ? err.message : String(err));
+    return na(item, 'API 문서 버전을 읽지 못했습니다', err instanceof Error ? err.message : String(err));
   }
   if ('사유' in 판) return na(item, 판.사유);
 

@@ -215,7 +215,7 @@ function 케이스결과({
   // 실행이 쓴 판과 그 서버의 문서가 다르면 한 줄로 알린다 — 판단은 사람 몫이라 경고색을 쓰지 않는다 (도메인/API §3.8 「API 문서와 판」)
   const 문서줄 =
     data.apiDocNote === 'DIFFERS' ? (
-      <div className="hint">{t('이 서버의 API 문서가 버전 {버전}과 다릅니다. 배포 전일 수 있습니다', { 버전: data.apiDocVersion ?? '' })}</div>
+      <div className="hint">{t('이 서버의 API 문서가 기준 서버 문서(버전 {버전})와 다릅니다. 배포 전일 수 있습니다', { 버전: data.apiDocVersion ?? '' })}</div>
     ) : data.apiDocNote === 'FETCH_FAILED' ? (
       <div className="hint">{t('API 문서를 받지 못했습니다')}</div>
     ) : null;

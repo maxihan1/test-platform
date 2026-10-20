@@ -108,7 +108,7 @@ export async function 준비세우기(입력: {
       await client.query(
         `INSERT INTO authoring_asset (request_id, position, kind, name, api_doc_version_id)
          VALUES ($1, $2, 'API_DOC', $3, $4)`,
-        [id, 입력.피그마.length + 1, `API 문서 판 ${String(입력.api.version)}`, 입력.api.판id],
+        [id, 입력.피그마.length + 1, `API 문서 버전 ${String(입력.api.version)}`, 입력.api.판id],
       );
     }
     return id;

@@ -21,10 +21,10 @@ describe('항목실패를가른다', () => {
   });
 
   it('응답 모양만 틀린 실패는 기대 결과 불일치이고 한 줄은 첫 모양 문제다 (도메인/API §3.8)', () => {
-    const 모양 = { method: 'POST', path: '/v1/pushes', status: 201, result: 'FAIL' as const, problems: ['필수 칸 status 가 없다'] };
+    const 모양 = { method: 'POST', path: '/v1/pushes', status: 201, result: 'FAIL' as const, problems: ['필수 필드 없음 — status'] };
     expect(항목실패를가른다(재료({ steps: [{ assertions: [확인('응답 코드가 201 이다', 'PASS')], shapeChecks: [모양] }] }), 그대로)).toEqual({
       type: 'mismatch',
-      reason: '응답 모양이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 칸 status 가 없다',
+      reason: '응답 형식이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 필드 없음 — status',
     });
     // 실패한 확인 문장이 있으면 그것이 먼저다
     expect(

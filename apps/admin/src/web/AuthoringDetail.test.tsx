@@ -180,7 +180,7 @@ describe('작성 한 건 상세', () => {
 
   it('API 문서 자료는 내려받기가 아니라 그 판의 화면으로 가는 링크다', async () => {
     답 = 줄({
-      assets: [{ id: 14, position: 1, kind: 'API_DOC', name: 'API 문서 판 3', figmaUrl: null, size: null }],
+      assets: [{ id: 14, position: 1, kind: 'API_DOC', name: 'API 문서 버전 3', figmaUrl: null, size: null }],
     });
     render(<AuthoringDetail service="PAY" id={7} 할수={보기만} />);
 

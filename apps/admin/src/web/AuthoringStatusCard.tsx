@@ -96,12 +96,15 @@ export function AuthoringStatusCard({
   const 실패 = 요청.error === null ? null : 실패글(요청.error, 언어, 운영자);
 
   const 입력 = (요청.assets ?? []).filter((a) => (a.role ?? 'INPUT') === 'INPUT');
-  const 파일수 = 입력.filter((a) => a.kind !== 'FIGMA').length;
-  const 피그마수 = 입력.length - 파일수;
+  const 파일수 = 입력.filter((a) => a.kind === 'FILE').length;
+  const 피그마수 = 입력.filter((a) => a.kind === 'FIGMA').length;
+  // API 문서는 기획서가 아니다 — 이름(「API 문서 버전 3」)을 그대로 적는다
+  const API문서 = 입력.find((a) => a.kind === 'API_DOC')?.name ?? null;
   const 요약 = [
     service,
     파일수 > 0 ? t('기획서 {수}', { 수: 파일수 }) : null,
     피그마수 > 0 ? t('피그마 {수}', { 수: 피그마수 }) : null,
+    API문서,
     요청.compare === true ? t('화면과 대조') : null,
   ].filter((x): x is string => x !== null && x !== undefined);
 

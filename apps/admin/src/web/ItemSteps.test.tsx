@@ -85,7 +85,7 @@ describe('응답 형식 검사 줄', () => {
         path: '/v1/pushes/{id}',
         status: 200,
         result: 'FAIL',
-        problems: ['필수 칸 status 가 없다', 'total 은 number 여야 하는데 string 이다'],
+        problems: ['필수 필드 없음 — status', '타입이 다름 — total (문서 number · 받은 값 string)'],
       },
       { method: 'DELETE', path: '/v1/pushes/{id}', status: 204, result: 'NO_SHAPE' },
     ],
@@ -100,8 +100,8 @@ describe('응답 형식 검사 줄', () => {
     const 실패 = screen.getByText('GET /v1/pushes/{id} 200').parentElement;
     expect(실패?.textContent).toContain('✗');
     expect(실패?.textContent).toContain('문서와 다릅니다');
-    expect(screen.getByText('· 필수 칸 status 가 없다')).toBeTruthy();
-    expect(screen.getByText('· total 은 number 여야 하는데 string 이다')).toBeTruthy();
+    expect(screen.getByText('· 필수 필드 없음 — status')).toBeTruthy();
+    expect(screen.getByText('· 타입이 다름 — total (문서 number · 받은 값 string)')).toBeTruthy();
     const 없음 = screen.getByText('DELETE /v1/pushes/{id} 204').parentElement;
     expect(없음?.textContent).toContain('문서에 응답 형식 없음');
     expect(없음?.textContent).not.toMatch(/[✓✗]/);

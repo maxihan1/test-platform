@@ -11,6 +11,7 @@ interface 읽음 {
   id: number;
   /** null 이면 화면 애플리케이션이다 (NOT_API_SERVICE) */
   버전들: ApiDocVersionRow[] | null;
+  기준서버: string | null;
   오류: string | null;
 }
 
@@ -27,13 +28,13 @@ export function useApiDocs(serviceId: number | undefined) {
     let live = true;
     apiDocApi.list(serviceId).then(
       (r) => {
-        if (live) set읽음({ id: serviceId, 버전들: r.versions, 오류: null });
+        if (live) set읽음({ id: serviceId, 버전들: r.versions, 기준서버: r.docEnv, 오류: null });
       },
       (err: unknown) => {
         if (!live) return;
         // 화면 애플리케이션은 오류가 아니다. 그 밖의 오류는 화면 폼을 살려 둔 채 알린다
         const 화면앱 = err instanceof ApiError && err.code === 'NOT_API_SERVICE';
-        set읽음({ id: serviceId, 버전들: null, 오류: 화면앱 ? null : message(err, 언어) });
+        set읽음({ id: serviceId, 버전들: null, 기준서버: null, 오류: 화면앱 ? null : message(err, 언어) });
       },
     );
     return () => {
@@ -43,7 +44,7 @@ export function useApiDocs(serviceId: number | undefined) {
 
   // 서비스를 바꾸면 앞 서비스의 답을 버린다 — 안 그러면 새 답이 올 때까지 옛 폼이 남는다
   const 지금 = serviceId !== undefined && 읽음?.id === serviceId ? 읽음 : null;
-  return { 대기: serviceId !== undefined && 지금 === null, 버전들: 지금?.버전들 ?? null, 오류: 지금?.오류 ?? null };
+  return { 대기: serviceId !== undefined && 지금 === null, 버전들: 지금?.버전들 ?? null, 기준서버: 지금?.기준서버 ?? null, 오류: 지금?.오류 ?? null };
 }
 
 export function ApiDocFields({
@@ -59,7 +60,6 @@ export function ApiDocFields({
   버전들: ApiDocVersionRow[];
   판: number | null;
   on판: (판: number) => void;
-  /** 운영 서버(isProd)를 뺀 후보 */
   envs: EnvRow[];
   서버: string | null;
   on서버: (서버: string) => void;

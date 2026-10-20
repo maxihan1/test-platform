@@ -9,8 +9,6 @@ import { use말, use언어 } from './i18n.js';
 import { use반영종류글 } from './PrdTodo.js';
 import { message, type Async } from './ui.js';
 
-// 「실서비스 서버」 줄은 작성이 가지 않는다 — 서버가 BAD_ENV 로 막는 것을 고르기 전에 뺀다 (도메인/작성 §7 「AUTHOR API 문서 판」)
-const 돌려볼서버 = (envs: EnvRow[]) => envs.filter((e) => e.isProd !== true).map((e) => e.env);
 
 export function 반영카드({
   id,
@@ -18,6 +16,7 @@ export function 반영카드({
   앞버전,
   비교,
   envs,
+  기준서버,
   쓰나,
 }: {
   id: number;
@@ -25,15 +24,19 @@ export function 반영카드({
   앞버전: number;
   비교: Async<ApiDocChange[] | null>;
   envs: EnvRow[];
+  /** 설정의 기준 서버. 고르개의 첫 값이다 */
+  기준서버: string | null;
   쓰나: boolean;
 }) {
   const t = use말();
   const 언어 = use언어();
   const 종류글 = use반영종류글();
-  const 서버들 = 돌려볼서버(envs);
-  const [서버, set서버] = useState(서버들[0] ?? '');
+  // 「실서비스 서버」 표시는 /auth/me 에 안 와서 거를 수 없다 — 기준 서버(보통 stg)를 먼저 고른다. 실서비스를 고르면 서버가 BAD_ENV 로 막는다
+  const 서버들 = envs.map((e) => e.env);
+  const [서버, set서버] = useState(기준서버 !== null && 서버들.includes(기준서버) ? 기준서버 : (서버들[0] ?? ''));
   const [busy, setBusy] = useState(false);
-  const [결과, set결과] = useState<{ 글: string; 번호들: number[] } | null>(null);
+  // 잠금 — 세웠거나 이미 열린 요청이 있다. 다시 눌러도 같은 409 만 난다
+  const [결과, set결과] = useState<{ 글: string; 번호들: number[]; 잠금: boolean } | null>(null);
   const changes = 비교.data ?? [];
   const 반영 = 반영할줄(changes);
   const 지운 = changes.filter((c) => c.change === 'REMOVED');
@@ -42,11 +45,11 @@ export function 반영카드({
     setBusy(true);
     try {
       const { requestId } = await apiDocApi.rewrite(id, 버전, 앞버전, 서버, 반영.map(({ method, path }) => ({ method, path })));
-      set결과({ 글: t('작성 요청 {번호}번을 만들었습니다', { 번호: requestId }), 번호들: [requestId] });
+      set결과({ 글: t('작성 요청 {번호}번을 만들었습니다', { 번호: requestId }), 번호들: [requestId], 잠금: true });
     } catch (err) {
-      // 열린 반영 요청이 있으면 서버가 그 번호들을 detail 로 준다 — 그 요청으로 가는 고리를 단다 (PrdTodo 와 같다)
-      const 열린 = err instanceof ApiError && err.code === 'APPLY_OPEN' ? err.message.split(',').map(Number).filter(Number.isSafeInteger) : [];
-      set결과({ 글: message(err, 언어), 번호들: 열린 });
+      // API 다시 작성 통로의 APPLY_OPEN 은 열린 번호를 싣지 않는다(apidoc/routes.ts) — 작성 목록으로 보내고 버튼을 잠근다
+      const 열림 = err instanceof ApiError && err.code === 'APPLY_OPEN';
+      set결과({ 글: message(err, 언어), 번호들: [], 잠금: 열림 });
     } finally {
       setBusy(false);
     }
@@ -63,7 +66,7 @@ export function 반영카드({
       ) : 비교.data === null ? (
         <p className="prd-card-empty">…</p>
       ) : changes.length === 0 ? (
-        <p className="prd-card-empty">{t('버전 {버전}과 비교해 바뀐 API 가 없습니다', { 버전: 앞버전 })}</p>
+        <p className="prd-card-empty">{t('앞 버전({버전})에서 바뀐 API 가 없습니다', { 버전: 앞버전 })}</p>
       ) : (
         <ul className="prd-unapplied api-changes">
           {[...반영, ...지운].map((c) => (
@@ -92,6 +95,12 @@ export function 반영카드({
                   {t('#{번호} 요청 보기', { 번호 })}
                 </a>
               ))}
+              {결과.잠금 && 결과.번호들.length === 0 ? (
+                <a href="#/authoring">
+                  {' '}
+                  {t('테스트 작성 목록 보기')}
+                </a>
+              ) : null}
             </span>
           )}
           {서버들.length === 0 ? (
@@ -109,7 +118,7 @@ export function 반영카드({
             </label>
           )}
           {/* 세운 뒤 또 누르면 자기가 세운 요청에 APPLY_OPEN 이 난다 — 막아 둔다 (PrdTodo 와 같다) */}
-          <button className="btn small" disabled={busy || 서버 === '' || (결과 !== null && 결과.번호들.length > 0)} onClick={() => void 테스트에반영()}>
+          <button className="btn small" disabled={busy || 서버 === '' || 결과?.잠금 === true} onClick={() => void 테스트에반영()}>
             {t('바뀐 API {건수}건 테스트에 반영', { 건수: 반영.length })}
           </button>
         </footer>
