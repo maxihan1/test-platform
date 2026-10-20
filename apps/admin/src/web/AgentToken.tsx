@@ -31,7 +31,7 @@ export function AgentTokenBox({ 것, onClose }: { 것: 발급토큰; onClose: ()
       </div>
       <code>{것.token}</code>
       <div className="hint">
-        {t('서버 .env 의 AUTHORING_AGENT_TOKEN 에 넣습니다')}{' '}
+        {t('서버는 .env 의 AUTHORING_AGENT_TOKEN 에, 맥은 처음 켤 때 묻는 칸에 넣습니다')}{' '}
         <b>{t('닫으면 다시 볼 수 없습니다')}</b>
       </div>
       <button className="btn ghost" onClick={onClose}>

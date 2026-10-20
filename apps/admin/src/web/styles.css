@@ -2212,18 +2212,18 @@ input[type='file']::file-selector-button {
   background: none;
 }
 
-/* 서랍에서 고치는 중인 줄 — 서랍만 보고는 어느 계정인지 목록에서 다시 찾아야 했다 */
+/* 서랍에서 고치는 중인 줄 — 서랍만 보고는 어느 계정인지 목록에서 다시 찾아야 했다. 막대는 실행 기록 · 케이스 목록의 고른 줄과 같은 오른쪽이다 */
 .set-user-row.is-open {
   background: var(--rail-active);
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: inset -3px 0 0 var(--accent);
 }
 
 .set-user-row .set-name {
   flex-wrap: wrap;
 }
 
-/* 권한 고르개(세 칸 단추 셋)가 한 줄에 들어가는 폭이다 */
-.set-user-drawer {
+/* 권한 고르개(세 칸 단추 셋)가 한 줄에 들어가는 폭이다. drawer.css 가 이 파일 뒤에 읽혀 `.drawer` 의 480px 를 이기려면 둘 다 적는다 */
+.drawer.set-user-drawer {
   width: 560px;
 }
 

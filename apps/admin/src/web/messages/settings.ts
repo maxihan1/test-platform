@@ -199,7 +199,7 @@ export const 설정말: Record<string, string> = {
   '취소한다': 'Revoke now',
   '그만두기': 'Never mind',
   '의 작성 에이전트 토큰입니다. 선택해 복사하세요': "'s authoring agent token. Select it to copy",
-  '서버 .env 의 AUTHORING_AGENT_TOKEN 에 넣습니다': 'Put it in AUTHORING_AGENT_TOKEN in the server .env',
+  '서버는 .env 의 AUTHORING_AGENT_TOKEN 에, 맥은 처음 켤 때 묻는 칸에 넣습니다': 'On the server put it in AUTHORING_AGENT_TOKEN in .env; on a Mac paste it at the prompt on first start',
   // 설정 안 메뉴와 서비스 구획 (2026-10-09 UI 개편 묶음 4 시안 A)
   '설정 메뉴': 'Settings menu',
   '+ 애플리케이션 추가': '+ Add application',
