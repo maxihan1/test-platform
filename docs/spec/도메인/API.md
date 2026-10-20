@@ -146,6 +146,7 @@ GET    /api/services/:id/api-docs/compare?from=&to=   판 비교 → 200 { chang
 GET    /api/services/:id/api-coverage                 마지막 판 기준 커버리지 → 200 { version, total, covered,
                                                         operations: [{ method, path, codes: [{ status, seen, noShape, lastRunId }] }] }
                                                       판이 없으면 { version: null, total: 0, covered: 0, operations: [] }
+                                                      noShape 는 마지막 판 문서에 그 코드의 JSON 모양이 없다는 뜻이다 — api_call_seen.no_shape(그때 견준 판 기준)가 아니라 문서에서 센다
                                                       seen · noShape 는 커버리지라 작성 read 로 보인다. lastRunId 는 실행 결과를 가리켜 그 애플리케이션의 (실행, read) 가 있을 때만 싣고 없으면 null 이다(대시보드 coverage 와 같은 갈림 — 도메인/인증 §7)
 POST   /api/services/:id/api-docs/:version/rewrite    바뀐 API 만 다시 작성 { fromVersion, env, operations: [{ method, path }] } → 201 { requestId }
                                                       operations 가 비면 400 NOTHING_TO_APPLY · env 는 작성 중 돌려 볼 대상 서버 — 작성 요청 만들기의 API 판정과 같다(없거나 그 애플리케이션 줄이 아니거나 「실서비스 서버」면 400 BAD_ENV, 도메인/작성 §7 「AUTHOR API 문서 판」)
