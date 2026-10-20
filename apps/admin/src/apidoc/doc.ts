@@ -167,7 +167,10 @@ export interface 판변화 {
   notes: string[];
 }
 
-/** 두 판의 같은 API 를 견줘 사람 말 한 줄씩과 깨는 변경인지 낸다 (도메인/API §3.8 「바뀐 API 만 다시 작성」) */
+/**
+ * 두 판의 같은 API 를 견줘 사람 말 한 줄씩과 깨는 변경인지 낸다 (도메인/API §3.8 「바뀐 API 만 다시 작성」).
+ * 문구는 화면 「API 문서」에 그대로 뜬다 — 저장소 말(칸 · 형) 대신 화면 말(필드 · 타입 · 추가 · 삭제)로 적는다 (2026-10-21 사용자)
+ */
 function 견주기(전: 작업, 후: 작업): { notes: string[]; breaking: boolean } {
   const notes: string[] = [];
   let breaking = false;
@@ -179,29 +182,29 @@ function 견주기(전: 작업, 후: 작업): { notes: string[]; breaking: boole
   const 전요청 = 요청칸들(전);
   for (const [이름, 칸] of 요청칸들(후)) {
     const 옛 = 전요청.get(이름);
-    if (옛 !== undefined && 옛.형 !== 칸.형) 깸(`요청 칸 ${이름} 의 형이 ${옛.형} 에서 ${칸.형} 으로 바뀌었다`);
-    else if (칸.필수 && 옛?.필수 !== true) 깸(`요청 필수 칸 ${이름} 가 생겼다`);
-    else if (옛 === undefined) notes.push(`요청 칸 ${이름} 가 생겼다`);
+    if (옛 !== undefined && 옛.형 !== 칸.형) 깸(`요청 필드 ${이름} 타입 변경 (${옛.형} → ${칸.형})`);
+    else if (칸.필수 && 옛?.필수 !== true) 깸(`요청 필수 필드 ${이름} 추가`);
+    else if (옛 === undefined) notes.push(`요청 필드 ${이름} 추가`);
   }
   const 후요청 = 요청칸들(후);
-  for (const 이름 of 전요청.keys()) if (!후요청.has(이름)) notes.push(`요청 칸 ${이름} 가 없어졌다`);
+  for (const 이름 of 전요청.keys()) if (!후요청.has(이름)) notes.push(`요청 필드 ${이름} 삭제`);
 
-  for (const 코드 of Object.keys(전.responses)) if (!(코드 in 후.responses)) 깸(`응답 ${코드} 가 없어졌다`);
+  for (const 코드 of Object.keys(전.responses)) if (!(코드 in 후.responses)) 깸(`응답 ${코드} 삭제`);
   for (const 코드 of Object.keys(후.responses)) {
     if (!(코드 in 전.responses)) {
-      notes.push(`응답 ${코드} 가 생겼다`);
+      notes.push(`응답 ${코드} 추가`);
       continue;
     }
     const 옛칸 = 칸들(모양(전.responses[코드]));
     const 새칸 = 칸들(모양(후.responses[코드]));
     for (const [이름, 칸] of 옛칸) {
       const 새 = 새칸.get(이름);
-      if (새 === undefined) 깸(`응답 ${코드} 에서 칸 ${이름} 가 없어졌다`);
-      else if (새.형 !== 칸.형) 깸(`응답 ${코드} 칸 ${이름} 의 형이 ${칸.형} 에서 ${새.형} 으로 바뀌었다`);
+      if (새 === undefined) 깸(`응답 ${코드} 필드 ${이름} 삭제`);
+      else if (새.형 !== 칸.형) 깸(`응답 ${코드} 필드 ${이름} 타입 변경 (${칸.형} → ${새.형})`);
     }
-    for (const 이름 of 새칸.keys()) if (!옛칸.has(이름)) notes.push(`응답 ${코드} 에 칸 ${이름} 가 생겼다`);
+    for (const 이름 of 새칸.keys()) if (!옛칸.has(이름)) notes.push(`응답 ${코드} 필드 ${이름} 추가`);
   }
-  return { notes: notes.length > 0 ? notes : ['설명이나 세부 규칙이 바뀌었다'], breaking };
+  return { notes: notes.length > 0 ? notes : ['설명이나 세부 규칙 변경'], breaking };
 }
 
 /** 두 판의 API 마다 새 · 바뀜 · 없어짐. 같은 API 는 싣지 않는다. 메서드 · 경로 차례 */
@@ -215,7 +218,7 @@ export function 판비교(전문서: 객체, 후문서: 객체): 판변화[] {
     if (a === undefined && b !== undefined) {
       결과.push({ method: b.method, path: b.path, change: 'NEW', breaking: false, notes: [] });
     } else if (a !== undefined && b === undefined) {
-      결과.push({ method: a.method, path: a.path, change: 'REMOVED', breaking: true, notes: ['API 가 없어졌다'] });
+      결과.push({ method: a.method, path: a.path, change: 'REMOVED', breaking: true, notes: ['API 삭제'] });
     } else if (a !== undefined && b !== undefined && 지문(a) !== 지문(b)) {
       결과.push({ method: b.method, path: b.path, change: 'CHANGED', ...견주기(a, b) });
     }

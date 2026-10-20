@@ -77,7 +77,7 @@ describe('판비교', () => {
     delete (판2.paths['/v1/pushes/{id}'] as Record<string, unknown>).delete;
     판2.paths['/v1/devices'] = { post: { responses: { '201': {} } } };
     expect(판비교(판1, 판2)).toEqual([
-      { method: 'DELETE', path: '/v1/pushes/{id}', change: 'REMOVED', breaking: true, notes: ['API 가 없어졌다'] },
+      { method: 'DELETE', path: '/v1/pushes/{id}', change: 'REMOVED', breaking: true, notes: ['API 삭제'] },
       { method: 'POST', path: '/v1/devices', change: 'NEW', breaking: false, notes: [] },
     ]);
   });
@@ -93,7 +93,7 @@ describe('판비교', () => {
       path: '/v1/pushes',
       change: 'CHANGED',
       breaking: true,
-      notes: ['응답 201 에서 칸 status 가 없어졌다'],
+      notes: ['응답 201 필드 status 삭제'],
     });
   });
 
@@ -112,13 +112,13 @@ describe('판비교', () => {
       path: '/v1/pushes',
       change: 'CHANGED',
       breaking: true,
-      notes: ['요청 필수 칸 deviceId 가 생겼다', '응답 201 칸 total 의 형이 integer 에서 string 으로 바뀌었다', '응답 409 가 생겼다'],
+      notes: ['요청 필수 필드 deviceId 추가', '응답 201 필드 total 타입 변경 (integer → string)', '응답 409 추가'],
     });
 
     const 판3 = 복사(판1);
     (판3.paths['/v1/pushes/{id}'].get.responses as Record<string, unknown>)['410'] = {};
     expect(판비교(판1, 판3)).toEqual([
-      { method: 'GET', path: '/v1/pushes/{id}', change: 'CHANGED', breaking: false, notes: ['응답 410 가 생겼다'] },
+      { method: 'GET', path: '/v1/pushes/{id}', change: 'CHANGED', breaking: false, notes: ['응답 410 추가'] },
     ]);
   });
 
@@ -129,8 +129,8 @@ describe('판비교', () => {
     const 제목 = 판2.paths['/v1/pushes'].post.requestBody as { content: Record<string, { schema: { properties: { title: object } } }> };
     제목.content['application/json']!.schema.properties.title = { type: 'string', maxLength: 100 };
     expect(판비교(판1, 판2)).toEqual([
-      { method: 'GET', path: '/v1/pushes/{id}', change: 'CHANGED', breaking: true, notes: ['응답 404 가 없어졌다'] },
-      { method: 'POST', path: '/v1/pushes', change: 'CHANGED', breaking: false, notes: ['설명이나 세부 규칙이 바뀌었다'] },
+      { method: 'GET', path: '/v1/pushes/{id}', change: 'CHANGED', breaking: true, notes: ['응답 404 삭제'] },
+      { method: 'POST', path: '/v1/pushes', change: 'CHANGED', breaking: false, notes: ['설명이나 세부 규칙 변경'] },
     ]);
   });
 

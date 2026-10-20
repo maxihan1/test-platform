@@ -235,7 +235,7 @@ describe.skipIf(연결 === undefined)('API 문서 통로', { timeout: 30_000 }, 
           fromVersion: 1,
           toVersion: 2,
           operations: [
-            { method: 'DELETE', path: '/v1/old', change: 'REMOVED', breaking: true, notes: ['API 가 없어졌다'], tcIds: ['XAD-FN-001'] },
+            { method: 'DELETE', path: '/v1/old', change: 'REMOVED', breaking: true, notes: ['API 삭제'], tcIds: ['XAD-FN-001'] },
             { method: 'POST', path: '/v1/devices', change: 'NEW', breaking: false, notes: [], tcIds: [] },
           ],
         },
