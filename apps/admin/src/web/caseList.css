@@ -1,6 +1,6 @@
-/* 케이스 목록 ⑫ 시안 A — 왼쪽 목록 + 오른쪽 상세 칸 (도메인/카탈로그 §8.1 「상세 칸」). 색은 토큰만 쓴다 */
+/* 케이스 목록 ⑫ 시안 A — 목록 + 오른쪽 서랍의 상세 칸 (도메인/카탈로그 §8.1 「상세 칸」 · 서랍 자리는 drawer.css). 색은 토큰만 쓴다 */
 
-/* `.main` 이 남는 높이를 이 칸에 다 주고, 두 단이 저마다 스크롤한다 — 목록을 내려도 상세 칸이 안 밀린다 */
+/* `.main` 이 남는 높이를 이 칸에 다 주고 목록이 스스로 스크롤한다. 상세 칸은 서랍이라 따로 스크롤한다 */
 .cases-split {
   flex: 1;
   min-height: 0;
@@ -10,23 +10,20 @@
   gap: 16px;
 }
 
-.cases-split.has-pane {
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 460px);
-}
-
 .cases-split > .list-screen {
   min-width: 0;
 }
 
 .case-pane {
-  min-width: 0;
-  min-height: 0;
-  margin-bottom: 0;
-  overflow-y: auto;
   padding: 16px 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* 서랍 높이에 맞춰 구획이 눌리지 않게 한다 — 넘치면 서랍이 스크롤한다 */
+.case-pane > * {
+  flex-shrink: 0;
 }
 
 .case-pane .dsec {
@@ -151,15 +148,4 @@
 
 .chip.chip-fail .chip-n {
   color: var(--fail-text);
-}
-
-/* 창이 좁으면 한 단으로 접는다 — 칸이 열리면 상세가 목록 자리를 덮고 ✕ 로 목록에 돌아온다 */
-@media (max-width: 1100px) {
-  .cases-split.has-pane {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .cases-split.has-pane > .list-screen {
-    display: none;
-  }
 }

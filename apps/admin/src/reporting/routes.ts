@@ -39,8 +39,9 @@ async function 실행상태(runId: number, 시나리오도 = false): Promise<str
 }
 
 // 칸 판정은 last-by-case 와 같은 칸되는서비스 하나로 한다. 그것이 접두사를 주므로 대시보드 질의가 거르는 번호로 바꾼다
-function 읽기되는서비스번호(req: FastifyRequest, 어느기능: 기능): number[] {
-  const 배정 = req.user?.services ?? [];
+// 프로젝트를 주면 그 프로젝트의 앱만 남긴다 — 남의 프로젝트 번호면 빈 목록이라 권한 밖이 새지 않는다
+function 읽기되는서비스번호(req: FastifyRequest, 어느기능: 기능, 프로젝트?: number): number[] {
+  const 배정 = (req.user?.services ?? []).filter((s) => 프로젝트 === undefined || s.projectId === 프로젝트);
   const 되는곳 = new Set(칸되는서비스(배정, 어느기능, 'read'));
   return 배정.filter((s) => 되는곳.has(s.prefix)).map((s) => s.id);
 }
@@ -155,8 +156,8 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
   });
 
   // 서비스에 안 매인다. 문은 「배정 중 하나라도 실행 read」만 보므로 경계는 여기서 넘기는 번호 목록이 건다 (도메인/리포팅 §7 · 인증 §7)
-  app.get<{ Querystring: { tz?: unknown; only?: unknown; service?: unknown; days?: unknown } }>('/dashboard', async (req, reply) => {
-    const { tz, only, service, days } = req.query;
+  app.get<{ Querystring: { tz?: unknown; only?: unknown; service?: unknown; days?: unknown; project?: unknown } }>('/dashboard', async (req, reply) => {
+    const { tz, only, service, days, project } = req.query;
     // 같은 이름을 두 번 붙이면 배열로 온다. 글자 하나가 아니면 시간대로 읽지 않는다
     if (typeof tz !== 'string' || tz === '') {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: String(tz ?? '') });
@@ -168,10 +169,13 @@ export default async function reportingRoutes(app: FastifyInstance): Promise<voi
     if (날수 === null || (날수 !== undefined && !허용날수.includes(날수))) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: String(days) });
     }
-    const 실행서비스 = 읽기되는서비스번호(req, 'runs');
+    // project 는 헤더에서 고른 프로젝트 번호다. 안 보내면 프로젝트를 안 가린다
+    const 프로젝트 = project === undefined ? undefined : typeof project === 'string' ? 정수(project) : null;
+    if (프로젝트 === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: String(project) });
+    const 실행서비스 = 읽기되는서비스번호(req, 'runs', 프로젝트);
     try {
       if (only === 'running') return await 대시보드실행중(tz, 실행서비스, 서비스);
-      return await 대시보드(tz, 실행서비스, 읽기되는서비스번호(req, 'authoring'), { 서비스, 날수 });
+      return await 대시보드(tz, 실행서비스, 읽기되는서비스번호(req, 'authoring', 프로젝트), { 서비스, 날수 });
     } catch (err) {
       if (err instanceof 틀린시간대) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: err.받은값 });
       throw err;

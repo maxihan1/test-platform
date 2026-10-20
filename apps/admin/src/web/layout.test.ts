@@ -234,12 +234,19 @@ describe('대시보드 재료', () => {
     expect(대시보드재료(김, 'PAY').설정갈수있나).toBe(false);
   });
 
-  it('작성 애플리케이션은 작성 칸이 none 이 아닌 배정 애플리케이션만 번호와 이름으로 준다', () => {
+  it('작성 애플리케이션은 고른 프로젝트 안에서 작성 칸이 none 이 아닌 배정 애플리케이션만 번호와 이름으로 준다', () => {
     const 작성없음 = { ...회원, permissions: { cases: 'read' as const, runs: 'read' as const, authoring: 'none' as const } };
-    expect(대시보드재료(사람('member', [결제, 작성없음, 정산]), 'PAY').작성서비스).toEqual([
+    expect(대시보드재료(사람('member', [결제, 작성없음, 정산]), 'PAY').작성서비스).toEqual([{ id: 1, name: '결제 애플리케이션' }]);
+    expect(대시보드재료(사람('member', [결제, 작성없음, 정산]), null).작성서비스).toEqual([
       { id: 1, name: '결제 애플리케이션' },
       { id: 3, name: '정산 애플리케이션' },
     ]);
+  });
+
+  it('프로젝트는 고른 애플리케이션의 프로젝트이고, 고른 것이 없으면 null 이다', () => {
+    expect(대시보드재료(김, 'SET').프로젝트).toBe(20);
+    expect(대시보드재료(김, 'PAY').프로젝트).toBe(10);
+    expect(대시보드재료(김, null).프로젝트).toBe(null);
   });
 });
 

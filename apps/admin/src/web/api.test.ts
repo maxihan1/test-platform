@@ -320,5 +320,7 @@ describe('앱 대시보드 (도메인/리포팅 §7 · §8.12)', () => {
     expect(부름[0]?.url).toBe('/api/dashboard?tz=Asia%2FSeoul&service=3&days=7');
     await api.dashboard('Asia/Seoul', 'running', { service: 3 });
     expect(부름[1]?.url).toBe('/api/dashboard?tz=Asia%2FSeoul&only=running&service=3');
+    await api.dashboard('Asia/Seoul', undefined, { project: 10 });
+    expect(부름[2]?.url).toBe('/api/dashboard?tz=Asia%2FSeoul&project=10');
   });
 });
