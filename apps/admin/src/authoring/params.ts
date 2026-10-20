@@ -1,4 +1,4 @@
-// 작성 경로 번호를 읽는 한 자리. routes.ts 와 stop.ts 가 서로 부르지 않게 둘 아래에 둔다
+// 작성 경로 번호 · 재실행이 물려받는 params 를 읽는 한 자리. routes.ts 와 stop.ts 가 서로 부르지 않게 둘 아래에 둔다
 
 /**
  * 경로에 실린 번호는 **열 자리 숫자 글자만** 받는다.
@@ -14,3 +14,14 @@ export function 번호(값: unknown): number | null {
 
 /** 뿌리 params.uncoveredOf — 양의 정수만. 통로가 params 를 막지 않아 사람이 낸 값이 올 수 있다(표시 꼬리표뿐이라 막지 않는다) */
 export const 밖화면뿌리 = (값: unknown): number | null => (typeof 값 === 'number' && Number.isSafeInteger(값) && 값 > 0 ? 값 : null);
+
+/**
+ * 재실행이 원본에서 물려받는 params. 고칠 내용은 원본 것만 — 본문 params 로 다른 edits 를 실으면 검사 안 거친 고침이 줄에 선다.
+ * 반영 요청의 재실행은 같은 반영을 다시 한다 — 원본의 prdApply · screenRight · apiApply 를 물려받는다 (§7 「표준 기획서 통로」 · 도메인/API §7)
+ */
+export function 물려받을값(행: { kind: string; params: Record<string, unknown> }, 값: Record<string, unknown>): Record<string, unknown> {
+  const p = 행.params;
+  if (행.kind === 'EDIT') return { edits: p.edits };
+  if (p.prdApply === true) return { ...값, prdApply: true, ...(p.screenRight === undefined ? {} : { screenRight: p.screenRight }) };
+  return p.apiApply === undefined ? 값 : { ...값, apiApply: p.apiApply };
+}

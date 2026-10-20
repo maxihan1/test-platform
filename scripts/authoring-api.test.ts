@@ -1,4 +1,4 @@
-// API 애플리케이션 작성 — 집기 응답 떼기 · 점검 · 자식 환경 · 프롬프트 절 · 원장 API 줄 · 가림 목록 (도메인/API §3.8 「작성」)
+// API 애플리케이션 작성 — 집기 응답 떼기 · 점검 · 자식 환경 · 프롬프트 절 · 원장 API 줄 · 가림 목록 · 바뀐 API 만 다시 작성 (도메인/API §3.8 「작성」)
 
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { 비밀번호들, 환경비밀번호들 } from './authoring-accounts.js';
-import { API떼기, API원장읽기, API원장항목, API절, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
+import { API떼기, API반영줄, API원장읽기, API원장항목, API절, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
 import { 돌릴수있나, 입력만 } from './authoring-assets.js';
 import { 가족, 번호찾기 } from './authoring-ledger.js';
 import { 표준원장 } from './authoring-prd.js';
@@ -128,5 +128,43 @@ describe('원장의 API 줄', () => {
     expect(API원장읽기(폴더)).toHaveLength(4);
     writeFileSync(join(폴더, 'api-doc.json'), '{');
     expect(() => API원장읽기(폴더)).toThrow('API 문서 판 파일이 JSON 이 아니다');
+  });
+});
+
+describe('바뀐 API 만 다시 작성', () => {
+  const apiApply = {
+    fromVersion: 2,
+    toVersion: 3,
+    operations: [
+      { method: 'POST', path: '/v1/pushes', change: 'CHANGED', breaking: true, notes: ['응답 409 가 없어졌다'], tcIds: ['NTF-FN-001'] },
+      { method: 'DELETE', path: '/v1/old', change: 'REMOVED', breaking: true, notes: ['API 가 없어졌다'], tcIds: ['NTF-FN-007', 'NTF-FN-008'] },
+    ],
+  };
+
+  it('params.apiApply 를 api.반영 으로 옮기고, 사본에 맡을 API 마다 새 판의 원장 번호를 붙여 쓴다 — 없어진 API 는 번호가 없다', () => {
+    const 뗀 = API떼기(집은({ params: { apiApply } }));
+    expect(뗀.api?.반영).toEqual(apiApply);
+    expect(API점검(뗀.api!)).toBeNull();
+    const 폴더 = mkdtempSync(join(tmpdir(), 'api-apply-'));
+    expect(판파일쓰기(뗀.api!, 폴더)).toBe(true);
+    const 사본 = JSON.parse(readFileSync(join(폴더, 'api-apply.json'), 'utf8')) as { 작업: { 원장번호: string[] }[] };
+    expect(사본.작업.map((o) => o.원장번호)).toEqual([['API POST /v1/pushes 201', 'API POST /v1/pushes 400'], []]);
+    expect(API원장읽기(폴더).map((h) => h.번호)).toEqual(['API POST /v1/pushes 201', 'API POST /v1/pushes 400']);
+    expect(API절(뗀.api!, 폴더).join('\n')).toContain('--- 바뀐 API 만 다시 작성 ---');
+  });
+
+  it('PR 머리에 판 견줌과 없어진 API 케이스의 지우기 제안을 띄운다 — 보통 작성은 줄이 없다', () => {
+    expect(API반영줄(API떼기(집은({ params: { apiApply } })).api)).toEqual([
+      'API 문서 반영: 판 2 → 판 3 · 바뀜 1 · 새 API 0 · 없어진 API 1',
+      '지우기 제안 — DELETE /v1/old 가 없어졌다: NTF-FN-007 · NTF-FN-008',
+    ]);
+    expect(API반영줄(API떼기(집은()).api)).toEqual([]);
+    expect(API절(API떼기(집은()).api!, '/자료').join('\n')).not.toContain('바뀐 API 만 다시 작성');
+  });
+
+  it('칸 모양이 틀리거나 새 판이 자료의 판과 다르면 자식을 띄우기 전에 막는다', () => {
+    expect(API점검(API떼기(집은({ params: { apiApply: { ...apiApply, operations: [] } } })).api!)).toContain('모양이 틀렸다');
+    expect(API점검(API떼기(집은({ params: { apiApply: { ...apiApply, operations: [{ method: 'POST' }] } } })).api!)).toContain('모양이 틀렸다');
+    expect(API점검(API떼기(집은({ params: { apiApply: { ...apiApply, toVersion: 4 } } })).api!)).toContain('다르다');
   });
 });

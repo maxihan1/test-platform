@@ -17,7 +17,7 @@ import { 피그마막힘 } from './figmaCheck.js';
 import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
 import { API칸판정, 재실행API } from './apiDoc.js';
 import { 역방향칸판정 } from './reverse.js';
-import { 번호 } from './params.js';
+import { 번호, 물려받을값 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
 import { 밖화면뿌리읽기 } from './uncovered.js';
 import { 도는실행있나, 뿌리, 뿌리잠그고, 실행들, 최신실행, 한쪽 } from './history.js';
@@ -111,6 +111,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
       if (Object.hasOwn(값, 'edits')) return reply.code(400).send({ error: 'BAD_EDIT', detail: 'params.edits' });
       // prdApply · screenRight 는 반영 통로(POST /api/prd/apply)만 싣는다 — 여기로 실으면 실행 검사 없이 반영 · 화면이 맞음 요청이 선다
       if (Object.hasOwn(값, 'prdApply') || Object.hasOwn(값, 'screenRight')) return reply.code(400).send({ error: 'BAD_PRD_APPLY' });
+      // apiApply 는 「바뀐 API 만 다시 작성」 통로만 싣는다 — 맡길 케이스 목록을 서버가 채운다 (도메인/API §7)
+      if (Object.hasOwn(값, 'apiApply')) return reply.code(400).send({ error: 'BAD_API_APPLY' });
       // 부른 사람은 요청에 안 싣는다. 로그인한 세션에서 채운다 — 실행이 triggeredBy 를 그렇게 한다
       const 누가 = req.user?.username ?? '';
       const 이름 = req.user?.displayName ?? '';
@@ -196,9 +198,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           kind,
           원본: 행.id,
           기획서: null,
-          // 고칠 내용은 원본 것만 — 본문 params 로 다른 edits 를 실으면 검사 안 거친 고침이 줄에 선다.
-          // 반영 요청의 재실행은 같은 반영을 다시 한다 — 원본의 prdApply · screenRight 를 물려받는다 (§7 「표준 기획서 통로」)
-          값: 행.kind === 'EDIT' ? { edits: 행.params.edits } : 행.params.prdApply === true ? { ...값, prdApply: true, ...(행.params.screenRight === undefined ? {} : { screenRight: 행.params.screenRight }) } : 값,
+          값: 물려받을값(행, 값),
           누가,
           이름,
           ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),

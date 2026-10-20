@@ -204,7 +204,8 @@ export async function 이어작성준비(
       [
         입력.서비스,
         입력.원본.specText,
-        JSON.stringify(입력.원본.params),
+        // 바뀐 API 만 다시 작성은 뿌리 한 번만이다 — 이어 작성이 물려받으면 누를 때 박아 둔 케이스로 다시 쓴다 (도메인/API §3.8)
+        JSON.stringify(Object.fromEntries(Object.entries(입력.원본.params).filter(([k]) => k !== 'apiApply'))),
         입력.누가,
         입력.이름,
         입력.대조 !== undefined,

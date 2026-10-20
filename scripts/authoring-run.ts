@@ -30,7 +30,7 @@ import { 먼저가리기 } from './authoring-masking.js';
 import { 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
-import { API떼기, API원장항목, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
+import { API떼기, API반영줄, API원장항목, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
 import { 화면지도준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
 import { 반영요청인가, 실패trace받기, 안옮김뒤, 화면이맞음읽기 } from './authoring-screen-right.js';
@@ -216,7 +216,7 @@ async function 사본에서(
   const 옮긴다 = 이어작성원본 === null && !반영요청인가(것) && !(것.api !== undefined && 계획.length === 0); // API 판만 넣었으면 옮길 것이 없다
   // 가린 뒤 뽑는다 — 사본에 계정 원문이 안 남게. 판정은 메모리의 것으로. 기준 표는 트리가 아니라 기준 SHA 에서. 이어받은 폴더면 앞 결과 파일의 임시 번호를 잇는다
   const 깃 = (인자: string[]) => 친다('git', 인자, 자리.트리, undefined, 120_000, { env: 사본환경(자리) });
-  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것) } : undefined, 등록역할: new Set((것.accounts ?? []).map((a) => a.role)), api: 것.api === undefined ? [] : API원장항목(것.api.문서) });
+  const 원장 = 원장과남은번호({ 계획, 자료폴더: 자리.자료, 깃, 기준, 서비스, 폴더: 케이스자리, 이어작성원본, 지금: 기획서.앞판.items, 옮긴다, 옮긴몸: 옮긴다 ? 앞결과(자리, 기획서.앞판.items, 서비스) : undefined, 반영: 반영요청인가(것) ? { 지금판: 기획서.앞판.version, 기준판: 기획서.기준판, 화면이맞음: 화면이맞음읽기(것) } : undefined, 등록역할: new Set((것.accounts ?? []).map((a) => a.role)), api: 것.api === undefined ? [] : API원장항목(것.api.문서, 것.api.반영?.operations) });
   if ('막힘' in 원장) return void (await 손.끝내기({ status: 'FAILED', error: 원장.막힘 }));
   // 역방향은 기준 SHA 의 파일로 화면 ↔ 케이스 지도(바뀐 화면 케이스 — PRD-F6-04)를, 화면만은 PRD 에 이미 있는 화면도 센다. 화면만이 못 세면 기획서 화면을 또 쓰므로 실패, 대조는 바뀐 화면 케이스를 못 볼 뿐이다 (§3.6)
   const 화면지도 = 것.target === undefined ? null : 화면지도준비({ 깃, 기준, 서비스, 폴더: 케이스자리, 번호들: 기획서.앞판.번호들, 자료폴더: 자리.자료, 화면만: 화면만인가(것, 자료들) });
@@ -295,6 +295,6 @@ async function 사본에서(
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 손,
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 입력자료: 자료들 },
-    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준 }, 단계, 옮김.줄,
+    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준 }, 단계, [...API반영줄(것.api), ...옮김.줄],
   );
 }
