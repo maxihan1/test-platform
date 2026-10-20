@@ -207,6 +207,7 @@ describe.skipIf(연결 === undefined)('애플리케이션을 섞은 시나리오
       await vi.waitFor(() => expect(러너.요청).toHaveLength(1));
       expect((러너.요청[0] as ScenarioExecuteRequest).parts.map((p) => p.apiAuths)).toEqual([undefined, 인증, 인증, undefined]);
     } finally {
+      러너.요청.length = 0;
       await q("UPDATE service_env SET api_auths = '[]' WHERE service_id = $1", [서비스['XSM2']]);
     }
   });
