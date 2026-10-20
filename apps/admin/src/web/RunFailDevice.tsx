@@ -1,6 +1,7 @@
 // 실패 카드 안의 디바이스 칸 — 머리(변화 · 회차 · 소요 · 흐름 막대)와 사전조건 · 입력 · 절차 본문 (실행 §8.3)
 
 import { api, type FailureDevice, type RunItemDetail, type RunItemSummary, type 항목실패 } from './api.js';
+import { 팜증적 } from './FarmEvidence.js';
 import { 원문보기, 실패이유 } from './FailureWhy.js';
 import { 회차요약 } from './group.js';
 import { use말, use언어 } from './i18n.js';
@@ -121,6 +122,10 @@ export function RunFailDevice({
           )}
         </div>
       )}
+
+      {devices.map((d) => (
+        <팜증적 key={d.platform} runId={d.item.runId} historyId={d.item.historyId} files={d.farm} />
+      ))}
     </div>
   );
 }

@@ -18,6 +18,7 @@ const HISTORY_ID = 7701;
 
 const 항목: RunItemPage = {
   trace: null,
+  farm: [],
   runId: RUN_ID,
   runTitle: '결제 회귀',
   historyId: HISTORY_ID,
