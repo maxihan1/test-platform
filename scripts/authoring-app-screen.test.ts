@@ -1,5 +1,5 @@
 // 앱 첫 화면 받아 두기 검사 — 파일로 남기고 · 앱 없는 서비스는 아무것도 안 바꾸고 · 못 읽어도 작성은 가고 · 프롬프트 절을 싣는다
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -113,6 +113,54 @@ describe('눌러 가며 읽기 — 탐색 주소 · 폰 놓기 (도메인/작성
     expect(부름).toHaveBeenCalledOnce();
     expect(부름.mock.calls[0]?.[0]).toBe('http://host.docker.internal:4723/api/devices/R3CR10TCVCD/hold');
     expect(부름.mock.calls[0]?.[1].method).toBe('DELETE');
+  });
+
+  it('놓은 뒤 기록을 지운다 — 이어하기가 같은 폴더로 다시 끝나도 두 번 놓지 않는다', async () => {
+    mkdirSync(join(자료, '.appium-cli'));
+    writeFileSync(join(자료, '.appium-cli', 'held'), 'R3CR10TCVCD');
+    const 부름 = vi.fn(async () => new Response('', { status: 200 }));
+
+    await 잡은폰놓기(자료, { 글: 'x', 탐색 }, 7, 부름 as unknown as typeof fetch);
+    await 잡은폰놓기(자료, { 글: 'x', 탐색 }, 7, 부름 as unknown as typeof fetch);
+
+    expect(부름).toHaveBeenCalledOnce();
+    expect(existsSync(join(자료, '.appium-cli', 'held'))).toBe(false);
+  });
+
+  it('30분 넘은 기록은 놓지 않는다 — 팜이 이미 풀었고 그 폰을 지금 다른 실행이 잡았을 수 있다', async () => {
+    mkdirSync(join(자료, '.appium-cli'));
+    writeFileSync(join(자료, '.appium-cli', 'held'), 'R3CR10TCVCD');
+    const 부름 = vi.fn(async () => new Response('', { status: 200 }));
+
+    await 잡은폰놓기(자료, { 글: 'x', 탐색 }, 7, 부름 as unknown as typeof fetch, Date.now() + 31 * 60_000);
+
+    expect(부름).not.toHaveBeenCalled();
+    expect(existsSync(join(자료, '.appium-cli', 'held'))).toBe(false);
+  });
+
+  it('기록이 링크이거나 폰 번호 꼴이 아니면 읽은 것을 싣지 않는다 — 자식이 쓴 파일이다', async () => {
+    const 비밀 = join(자료, 'secret');
+    writeFileSync(비밀, 'AUTHORING_AGENT_TOKEN=abc');
+    mkdirSync(join(자료, '.appium-cli'));
+    symlinkSync(비밀, join(자료, '.appium-cli', 'held'));
+    const 부름 = vi.fn(async () => new Response('', { status: 200 }));
+
+    await 잡은폰놓기(자료, { 글: 'x', 탐색 }, 7, 부름 as unknown as typeof fetch);
+    rmSync(join(자료, '.appium-cli', 'held'));
+    writeFileSync(join(자료, '.appium-cli', 'held'), 'a/../../x?y');
+    await 잡은폰놓기(자료, { 글: 'x', 탐색 }, 7, 부름 as unknown as typeof fetch);
+
+    expect(부름).not.toHaveBeenCalled();
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toContain('abc');
+  });
+
+  it('팜이 실패 코드로 답하면 놓지 못했다고 적는다', async () => {
+    mkdirSync(join(자료, '.appium-cli'));
+    writeFileSync(join(자료, '.appium-cli', 'held'), 'R3CR10TCVCD');
+
+    await 잡은폰놓기(자료, { 글: 'x', 탐색 }, 7, vi.fn(async () => new Response('', { status: 500 })) as unknown as typeof fetch);
+
+    expect(vi.mocked(console.error).mock.calls.at(-1)?.[0]).toContain('놓지 못했다: HTTP 500');
   });
 
   it('잡은 폰이 없거나 탐색이 없으면 팜을 부르지 않는다 · 팜에 못 닿아도 던지지 않는다', async () => {

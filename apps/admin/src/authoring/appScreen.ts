@@ -60,9 +60,12 @@ async function 러너에묻는다(appPath: string, udid: string, 러너: string,
   }
 }
 
-/** 앱이 있고 팜이 붙었을 때만. 팜 주소는 admin 이 보는 주소 그대로다 — 작성 컨테이너도 같은 이름으로 닿는다(docker-compose author extra_hosts) */
+/**
+ * 앱이 있고 팜이 붙었을 때만. 팜 주소는 admin 이 보는 주소 그대로다 — 작성 컨테이너도 같은 이름으로 닿는다(docker-compose author extra_hosts).
+ * DEVICE_FARM_URL 은 `/wd/hub` 가 붙은 꼴로 안내한다(SETUP 「디바이스 팜」) — 붙었든 안 붙었든 한 번만 붙인다
+ */
 export function 앱탐색주소(appPath: string | null, 팜: string | undefined): 앱탐색 | null {
-  return appPath === null || 팜 === undefined ? null : { url: `${팜}/wd/hub`, app: appPath };
+  return appPath === null || 팜 === undefined ? null : { url: `${팜.replace(/\/wd\/hub$/, '')}/wd/hub`, app: appPath };
 }
 
 /** 요청에 대상 서버가 있으면 그 줄의 앱 파일 경로, 없으면 앱 파일 경로가 있는 첫 줄(env 순). 「운영 서버」 줄은 어느 쪽이든 건너뛴다 (§3.6 「★ 역할별 계정」 「운영 서버」) */

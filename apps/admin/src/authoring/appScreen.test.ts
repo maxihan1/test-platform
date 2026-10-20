@@ -48,6 +48,10 @@ describe('앱탐색주소', () => {
     });
   });
 
+  it('팜 주소에 /wd/hub 가 이미 붙어 있으면 다시 붙이지 않는다 — SETUP 이 안내하는 꼴이다', () => {
+    expect(앱탐색주소('/apk/qa.apk', 'http://host.docker.internal:4723/wd/hub')?.url).toBe('http://host.docker.internal:4723/wd/hub');
+  });
+
   it('앱이 없거나 팜이 없으면 null — AI 가 붙을 폰이 없다', () => {
     expect(앱탐색주소(null, 'http://farm:4723')).toBeNull();
     expect(앱탐색주소('/apk/qa.apk', undefined)).toBeNull();
