@@ -2193,6 +2193,49 @@ input[type='file']::file-selector-button {
 .set-row .btn {
   margin-left: auto;
 }
+
+/* 계정 목록은 칸을 맞춘 표다 — 줄마다 칸 너비가 달라 권한 요약이 들쭉날쭉했다 (WEB-F5-06 시안 A) */
+.set-user-row {
+  display: grid;
+  grid-template-columns: 200px 140px minmax(0, 1fr) auto;
+  cursor: pointer;
+}
+
+.set-user-head {
+  cursor: default;
+  font-size: 12px;
+  color: var(--ink-faint);
+  border-bottom-color: var(--line-2);
+}
+
+.set-user-head:hover {
+  background: none;
+}
+
+/* 서랍에서 고치는 중인 줄 — 서랍만 보고는 어느 계정인지 목록에서 다시 찾아야 했다. 막대는 실행 기록 · 케이스 목록의 고른 줄과 같은 오른쪽이다 */
+.set-user-row.is-open {
+  background: var(--rail-active);
+  box-shadow: inset -3px 0 0 var(--accent);
+}
+
+.set-user-row .set-name {
+  flex-wrap: wrap;
+}
+
+/* 권한 고르개(세 칸 단추 셋)가 한 줄에 들어가는 폭이다. drawer.css 가 이 파일 뒤에 읽혀 `.drawer` 의 480px 를 이기려면 둘 다 적는다 */
+.drawer.set-user-drawer {
+  width: 560px;
+}
+
+.set-user-drawer > .set-form,
+.set-user-drawer > .set-pw {
+  margin: 16px 20px;
+}
+
+.set-user-drawer .drawer-head .set-sub {
+  margin-left: 10px;
+  font-weight: 400;
+}
 .set-envs {
   display: grid;
   gap: 8px;

@@ -44,11 +44,11 @@ function 그리기(rows: UserRow[], onDone: () => void = () => {}) {
   return 결과;
 }
 
-describe('에이전트 토큰', () => {
+describe('작성 에이전트 토큰', () => {
   it('작성 에이전트 계정이 아니면 아무것도 그리지 않는다', () => {
     그리기([계정('kim')]);
 
-    expect(screen.queryByText('에이전트 토큰')).toBeNull();
+    expect(screen.queryByText('작성 에이전트 토큰')).toBeNull();
     expect(screen.queryByText('발급')).toBeNull();
   });
 
@@ -63,7 +63,7 @@ describe('에이전트 토큰', () => {
   it('비활성인 작성 에이전트 계정에도 그리지 않는다', () => {
     그리기([계정('agent', { isAuthoringAgent: true, isActive: false })]);
 
-    expect(screen.queryByText('에이전트 토큰')).toBeNull();
+    expect(screen.queryByText('작성 에이전트 토큰')).toBeNull();
   });
 
   it('토큰이 없으면 한 번 눌러 발급하고 상자에 토큰이 뜬다', async () => {
@@ -97,7 +97,7 @@ describe('에이전트 토큰', () => {
         onSelf={() => {}}
       />,
     );
-    fireEvent.click(screen.getByText('닫기'));
+    fireEvent.click(screen.getByLabelText('닫기'));
 
     expect(screen.getByRole('alert').textContent).toContain('agt-123');
     fireEvent.click(screen.getByText('적었습니다'));
@@ -110,9 +110,9 @@ describe('에이전트 토큰', () => {
 
     expect(screen.queryByText('토큰 있음')).not.toBeNull();
     fireEvent.click(screen.getByText('다시 발급'));
-    expect(screen.queryByText(/맥 에이전트가 지금 멈춥니다/)).not.toBeNull();
+    expect(screen.queryByText(/작성 에이전트가 지금 멈춥니다/)).not.toBeNull();
     fireEvent.click(screen.getByText('그만두기'));
-    expect(screen.queryByText(/맥 에이전트가 지금 멈춥니다/)).toBeNull();
+    expect(screen.queryByText(/작성 에이전트가 지금 멈춥니다/)).toBeNull();
     expect(발급).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText('다시 발급'));
@@ -127,7 +127,7 @@ describe('에이전트 토큰', () => {
     그리기([계정('agent', { isAuthoringAgent: true, hasAgentToken: true })], onDone);
 
     fireEvent.click(screen.getByText('토큰 취소'));
-    expect(screen.queryByText(/맥 에이전트가 지금 멈춥니다/)).not.toBeNull();
+    expect(screen.queryByText(/작성 에이전트가 지금 멈춥니다/)).not.toBeNull();
     fireEvent.click(screen.getByText('그만두기'));
     expect(취소).not.toHaveBeenCalled();
 
