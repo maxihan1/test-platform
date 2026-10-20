@@ -63,7 +63,7 @@ describe('callRunner — 어느 러너로 가는가', () => {
 
   async function 팜띄운다(불렸다: string[]): Promise<void> {
     const app = Fastify();
-    app.get('/wd/hub/api/devices', async () => ({ value: { devices: [{ serial: 'R3CR10TCVCD' }] } }));
+    app.get('/wd/hub/api/devices', async () => ({ value: { devices: [{ serial: 'R3CR10TCVCD', state: 'IDLE', detail: 'ready' }] } }));
     app.post('/wd/hub/api/devices/:serial/hold', async () => {
       불렸다.push('잡기');
       return { held: {} };
@@ -89,6 +89,16 @@ describe('callRunner — 어느 러너로 가는가', () => {
     expect(res.status).toBe('PASS');
     expect(불렸다).toEqual(['잡기', '서버', '놓기']);
     expect(받은요청[0]?.udid).toBe('R3CR10TCVCD');
+  });
+
+  it('폰을 잡는 사이에 실행이 멈췄으면 러너에 보내지 않고 폰을 놓는다', async () => {
+    const 불렸다: string[] = [];
+    await 이름띄운다(붙인다, 불렸다, '서버');
+    await 팜띄운다(불렸다);
+
+    const res = await callRunner(7, { ...항목, platform: 'android' }, () => true);
+    expect(불렸다).toEqual(['잡기', '놓기']);
+    expect(res.status).toBe('NA');
   });
 
   it('브라우저 항목은 폰 번호를 싣지 않고 팜을 부르지 않는다', async () => {

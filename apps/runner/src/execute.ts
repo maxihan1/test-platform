@@ -29,6 +29,8 @@ export interface Running {
   child: ChildProcess;
   // execute()의 지역 변수로 두면 abort()가 닿을 수 없다. 바깥에서 불리는 함수이기 때문이다
   killedBy: KilledBy | null;
+  // 앱 화면 읽기가 폰을 쓰는 항목만 피하려고 둔다. 서버 러너는 브라우저 항목도 같이 돌린다 (러너 §5.2 「앱 화면 읽기」)
+  platform?: ExecuteRequest['platform'];
   // 아직 절차를 알리지 않은 자식이 있으므로 선택 칸이다. 필수로 만들면 abort()가 읽는 같은 지도의
   // 기존 항목들이 전부 이 칸을 채워야 한다
   progress?: { step: StepProgress; 시작한때: number };
@@ -168,7 +170,7 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   );
 
   // 바깥에서 abort()가 찾을 수 있게 지도에 올린다. 사유를 지역 변수로 두면 그 함수가 닿지 못한다
-  const entry: Running = { child, killedBy: null };
+  const entry: Running = { child, killedBy: null, platform: req.platform };
   running.set(req.historyId, entry);
 
   // 조각마다 따로 풀면 경계에 걸린 한글 한 글자가 � 둘이 된다. 결과 줄의 절차 제목 · 검증 문장도 같은 길로 온다 (scenario.ts 와 같다)

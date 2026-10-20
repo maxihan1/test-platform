@@ -167,13 +167,21 @@ describe('POST /app-screen', () => {
   });
 
   it('돌고 있는 항목이 있으면 409 RUNNER_BUSY 다 — 폰 연결을 가로채지 않는다', async () => {
-    running.set(1, { child: {} as ChildProcess, killedBy: null });
+    running.set(1, { child: {} as ChildProcess, killedBy: null, platform: 'android' });
 
     const res = await 보냄({});
 
     expect(res.statusCode).toBe(409);
     expect(res.json().error).toBe('RUNNER_BUSY');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('브라우저 항목만 돌고 있으면 막지 않는다 — 폰을 안 쓴다 (APP-F1-10)', async () => {
+    running.set(1, { child: {} as ChildProcess, killedBy: null, platform: 'desktop' });
+
+    const res = await 보냄({});
+
+    expect(res.statusCode).not.toBe(409);
   });
 
   it('Appium 설정이 없으면 500 RUNNER_ERROR 에 까닭을 싣는다', async () => {

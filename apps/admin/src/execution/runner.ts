@@ -125,7 +125,8 @@ export function 러너에보낸다(경로: string, 본문: unknown, 제한ms: nu
   });
 }
 
-export async function callRunner(runId: number, item: PendingItem): Promise<ExecuteResponse> {
+// 멈췄나는 디스패처가 넘긴다. 팜에서 폰을 잡는 몇 초 사이에 멈추면 러너는 아직 그 항목을 몰라 중단을 못 받는다 — 잡은 뒤 한 번 더 본다
+export async function callRunner(runId: number, item: PendingItem, 멈췄나: () => boolean = () => false): Promise<ExecuteResponse> {
   const body: ExecuteRequest = {
     runId,
     historyId: item.historyId,
@@ -144,7 +145,12 @@ export async function callRunner(runId: number, item: PendingItem): Promise<Exec
   // 팜 주소가 없는데 여기까지 왔다면 요청을 받은 뒤 서버를 다시 띄우며 값을 지웠을 때뿐이다 — 실행 요청 통로가 FARM_OFF 로 거절한다
   const 팜 = 팜주소();
   if (팜 === undefined) return na(item, '이 서버에는 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
-  return 팜폰으로(팜, (udid) => 보낸다(item, { ...body, udid }), (까닭) => na(item, 까닭));
+  return 팜폰으로(
+    팜,
+    // 항목은 abortRun 이 이미 닫았다 — 이 NA 는 finishItem 이 덮지 않는다(finished_at IS NULL)
+    async (udid) => (멈췄나() ? na(item, '멈춘 실행이라 러너에 보내지 않았습니다') : 보낸다(item, { ...body, udid })),
+    (까닭) => na(item, 까닭),
+  );
 }
 
 async function 보낸다(item: PendingItem, body: ExecuteRequest): Promise<ExecuteResponse> {

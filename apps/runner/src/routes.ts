@@ -161,13 +161,14 @@ export function registerRoutes(app: FastifyInstance): void {
     }
   });
 
-  // 작성 AI 가 앱 케이스를 쓰려고 폰 화면을 읽는다. 돌고 있는 항목이 있으면 폰을 가로채니 막는다 (SPEC 도메인/러너 §5.2 「앱 화면 읽기」)
+  // 작성 AI 가 앱 케이스를 쓰려고 폰 화면을 읽는다. 돌고 있는 앱 항목이 있으면 폰을 가로채니 막는다 —
+  // 브라우저 항목은 폰을 안 쓴다. 서버 러너가 팜 폰을 읽게 된 뒤로 웹 실행 중에도 읽혀야 한다 (SPEC 도메인/러너 §5.2 「앱 화면 읽기」)
   app.post('/app-screen', async (request, reply) => {
     const parsed = appScreenRequest.safeParse(request.body ?? {});
     if (!parsed.success) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
-    if (running.size > 0 || 화면을읽는중인가()) {
+    if ([...running.values()].some((r) => r.platform === 'android') || 화면을읽는중인가()) {
       return reply.code(409).send({ error: 'RUNNER_BUSY', detail: '이 러너가 이미 실행이나 화면 읽기를 하고 있다' });
     }
     try {

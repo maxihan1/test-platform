@@ -22,9 +22,10 @@ export const 색코드 = /\u001b\[[0-9;]*m/g;
 // net::ERR_ABORTED 는 앱이 스스로 이동을 끊은 것이라 뺀다
 const 연결끊김 = /net::ERR_(?!ABORTED)|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH|socket hang up|fetch failed/;
 const 요소대기 = /waiting for (locator|getBy|selector)|element\(s\) not found|no such element|could not be located/i;
-// 서버가 미실행에 넣는 러너 사유(execution/runner.ts — 러너에 닿지 못함 · 러너가 거절 · 로컬 러너 없음). 글 머리만 본다 —
+// 서버가 미실행에 넣는 러너 사유(execution/runner.ts · farm.ts — 러너에 닿지 못함 · 러너가 거절 · 디바이스 팜 없음 · 팜이 폰을 못 내줌).
+// 「로컬 러너」는 2026-10-20 APP-F1-10 전 기록에 남은 글이다. 글 머리만 본다 —
 // 어디든 「러너」가 들어 있나로 보면 「러너 상태」 같은 요소를 기다린 케이스까지 러너 고장이 된다
-const 러너사유 = /^(러너에 닿지 못했습니다|러너가 |이 서버에는 .*로컬 러너)/;
+const 러너사유 = /^(러너에 닿지 못했습니다|러너가 |이 서버에는 .*(로컬 러너|디바이스 팜)|디바이스 팜)/;
 // 기다리던 요소를 찾고 나서(보이지 않음 · 누를 수 없음) 시간이 다 된 것은 「못 찾음」이 아니다
 const 요소찾음 = /resolved to/;
 const 시간초과 = /^TIMEOUT\b|Timeout \d+ms exceeded|Test timeout of/;
