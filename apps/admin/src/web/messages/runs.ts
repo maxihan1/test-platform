@@ -34,7 +34,6 @@ export const 실행말: Record<string, string> = {
   '실패 {수}': '{수} failed',
   '미실행 {수}': '{수} not run',
   '전체': 'All',
-  '통과§집계': 'All passed',
   '실패§실행': 'Has failures',
   '판정': 'Verdict',
   '디바이스': 'Device',

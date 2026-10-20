@@ -6,6 +6,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 
 import type { RunTally } from './api.js';
 import type { 판정 } from './role.js';
+import { 결과 as 시나리오결과 } from './ScenarioResult.fixture.js';
 import { E2E띠색 } from './scenarioResultView.js';
 import { scenarioApi, type ScenarioRunList as 목록답, type ScenarioRunRow } from './scenarioApi.js';
 import { ScenarioRunList } from './ScenarioRunList.js';
@@ -272,6 +273,17 @@ describe('ScenarioRunList 오른쪽 결과 칸 (실행 §8.7 「A안」)', () =>
     expect(스파이).toHaveBeenCalledWith('ZSL', 2, { state: 'failed' });
     await waitFor(() => expect(결과).toHaveBeenCalledWith(5));
     expect(await screen.findByText('고른 실행은 지금 조건 밖입니다')).toBeTruthy();
+  });
+
+  it('결과 칸에서 다시 실행하면 첫 쪽으로 돌아가 새 실행을 고른다 — 뒤쪽에 머물면 고른 줄이 목록에 없다', async () => {
+    window.location.hash = '#/runs/e2e?run=12&page=2';
+    const { 스파이, 결과 } = await 그리기();
+    결과.mockResolvedValue(시나리오결과());
+    vi.spyOn(scenarioApi, 'run').mockResolvedValue({ runId: 99 });
+    fireEvent.click(await screen.findByRole('button', { name: 'qa에서 다시 실행' }));
+
+    await waitFor(() => expect(스파이).toHaveBeenLastCalledWith('ZSL', 1, {}));
+    expect(window.location.hash).toBe('#/runs/e2e?run=99');
   });
 
   it('「목록으로」를 누르면 고른 실행을 풀어 좁은 창에서 목록이 다시 보인다', async () => {

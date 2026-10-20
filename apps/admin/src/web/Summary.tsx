@@ -1,60 +1,9 @@
-// 판정을 숫자와 막대로 그리는 조각 둘 — 숫자 띠와 최근 판정 흐름 (SPEC §8)
+// 판정을 막대로 그리는 조각 — 최근 판정 흐름 (SPEC §8). 숫자 띠(칸띠)는 2026-10-20 ⑬-5 에 마지막 쓰던 곳(E2E 집계 띠)이 빠져 지웠다
 // 색은 거들기만 한다 — 판정은 늘 글자로도 적고, 막대는 판정마다 높이가 다르다 (DESIGN.md 접근성)
 
 import type { ItemStatus } from './api.js';
 import { use말 } from './i18n.js';
 import { STATUS_LABEL } from './ui.js';
-
-/**
- * 띠의 칸 하나.
- *
- * **색은 `판정` 에서만 나온다.** 라벨에 색을 매어 두면 `실행 횟수`·`평균 소요` 같은
- * 판정이 아닌 칸에도 판정 색을 칠할 수 있게 된다 (DESIGN.md 원칙 1 — 색은 판정만 갖는다).
- */
-export interface 띠칸 {
-  라벨: string;
-  값: string;
-  판정?: ItemStatus;
-  부제?: string;
-}
-
-const 판정색: Record<ItemStatus, string> = { PASS: 'p', FAIL: 'f', NA: 'n' };
-
-/**
- * 숫자 몇 개를 큰 글자로 늘어놓는 띠 (SPEC §8).
- *
- * 판정 집계도 판정이 아닌 집계도 이것으로 그린다.
- * 두 벌을 만들면 한쪽이 색 규칙을 잃는다.
- */
-export function 칸띠({ 칸들, 비율 }: { 칸들: readonly 띠칸[]; 비율?: readonly { 판정: ItemStatus; 몫: number }[] }) {
-  return (
-    <div className="stats">
-      <div className="stats-row">
-        {칸들.map((칸) => {
-          const 색 = 칸.판정 === undefined ? '' : 판정색[칸.판정];
-          return (
-            <div key={칸.라벨} className={색 === '' ? 'stat' : `stat ${색}`}>
-              <span className="k">
-                {색 === '' ? null : <i />}
-                {칸.라벨}
-              </span>
-              <div className="v">{칸.값}</div>
-              {칸.부제 === undefined ? null : <div className="sub">{칸.부제}</div>}
-            </div>
-          );
-        })}
-      </div>
-      {/* 아무것도 없는데 막대만 그리면 0 을 비율로 읽게 된다 */}
-      {비율 === undefined || 비율.every((것) => 것.몫 === 0) ? null : (
-        <div className="ratio">
-          {비율.map((것) => (
-            <i key={것.판정} className={판정색[것.판정]} style={{ flexGrow: 것.몫 }} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 /** 판정 하나가 네모 하나. 색과 **높이**가 같이 바뀐다 — 색을 못 봐도 모양으로 읽힌다 */
 const 판정글자: Record<ItemStatus, string> = { PASS: 'p', FAIL: 'f', NA: 'n' };

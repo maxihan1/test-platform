@@ -62,6 +62,23 @@ describe('실행 결과 화면의 증적 버튼 (SPEC §8.4)', () => {
     }
   });
 
+  it('모든 형식이 만드는 중이면 머리 단추가 눌리지 않는다 (리포팅 §8.4)', async () => {
+    그리기('FINISHED', [증적('PDF', 'PENDING'), 증적('XLSX', 'PENDING'), 증적('HTML', 'PENDING')]);
+
+    expect((await screen.findByRole('button', { name: '리포트 생성 중' })).hasAttribute('disabled')).toBe(true);
+  });
+
+  it('리포트 메뉴는 Esc 로 닫힌다 — 떠 있는 목록이 본문을 덮은 채 남지 않는다', async () => {
+    그리기('FINISHED');
+
+    const 단추 = await screen.findByRole('button', { name: '리포트 생성' });
+    fireEvent.click(단추);
+    fireEvent.keyDown(screen.getByRole('button', { name: 'PDF' }), { key: 'Escape' });
+
+    expect(screen.queryByRole('button', { name: 'PDF' })).toBeNull();
+    expect(단추.getAttribute('aria-expanded')).toBe('false');
+  });
+
   it('메뉴에서 엑셀을 누르면 서버로 가는 형식도 엑셀이다', async () => {
     // 끝나지 않는 약속이라 눌린 뒤의 잠금 상태가 그대로 멈춰 선다.
     // 응답이 와서 다시 묻기까지 가면 그 사이 상태를 볼 수 없다

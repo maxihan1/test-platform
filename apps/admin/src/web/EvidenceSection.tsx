@@ -118,7 +118,16 @@ export function 증적만들기버튼들({ 칸 }: { 칸: 증적칸 }) {
   const 만드는중 = 칸.만드는중.length > 0 || 칸.버튼들.some((버튼) => !버튼.누를수있나);
   const 단추글 = 만드는중 ? t('리포트 생성 중') : t('리포트 생성');
   return (
-    <span className="prd-menu">
+    // 바깥을 누르거나(포커스가 메뉴 밖으로) Esc 를 누르면 닫는다 — 안 닫으면 떠 있는 목록이 아래 본문을 덮는다
+    <span
+      className="prd-menu"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) set열림(false);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') set열림(false);
+      }}
+    >
       <button className="btn ghost" aria-expanded={열림} aria-haspopup="true" disabled={!하나라도} onClick={() => set열림(!열림)}>
         {단추글}
         <span aria-hidden="true"> ▾</span>

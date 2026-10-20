@@ -14,6 +14,7 @@ import { FailGuide, RerunButton, useRerun, 멈춘단계, type 들어온곳 } fro
 import { ScenarioResultPart } from './ScenarioResultPart.js';
 import { 미확정있나, 접은판정 } from './scenarioResultView.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, when } from './ui.js';
+import { use보는실행알림 } from './viewedRun.js';
 
 export function ScenarioResult({
   runId,
@@ -30,6 +31,8 @@ export function ScenarioResult({
 }) {
   const t = use말();
   const 언어 = use언어();
+  // 머리가 진행을 적으니 알림 줄은 이 실행의 도는 줄을 뺀다 — 실행 기록 결과 칸도 같다 (공통/5-화면공통 §8 「알림」)
+  use보는실행알림(runId);
   const res = useAsync(() => scenarioApi.result(runId), [runId]);
   const data = res.data;
   const running = data?.status === 'RUNNING';

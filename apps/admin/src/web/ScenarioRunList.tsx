@@ -176,7 +176,9 @@ export function ScenarioRunList({ service, 할수 }: { service: string; 할수: 
               판정하기={() => 할수}
               칸안
               on새실행={(runId) => {
+                // 새 실행은 첫 쪽 맨 위에 선다 — 뒤쪽에 머물면 고른 줄이 목록 어디에도 없다
                 set고른(runId);
+                setPage(1);
                 runs.reload();
               }}
             />
