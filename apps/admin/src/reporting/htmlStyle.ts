@@ -126,6 +126,19 @@ details[open] > .fold-line::before{ transform:rotate(90deg); }
 .stmt{ flex:1; }
 .exp,.act{ width:132px; flex:none; color:var(--ink-muted); font-size:12.5px; }
 .blocker{ font-size:12px; font-weight:600; color:var(--fail); }
+/* API 항목의 응답 형식 검사와 요청 · 응답 원문 — 확인 문장과 같은 들여쓰기에 따로 둔다. 판정 배경을 안 깐다 (도메인/API §3.8) */
+.shape-label{ margin:4px 0 0 26px; font-size:12px; font-weight:600; color:var(--ink-faint); }
+.shape-row{ display:flex; align-items:baseline; gap:8px; padding:2px 6px 2px 26px; }
+.shape-ok .mark{ color:var(--pass); }
+.shape-bad .mark{ color:var(--fail); }
+.shape-none{ color:var(--ink-muted); padding-left:44px; }
+.shape-problem{ padding-left:44px; font-size:12.5px; color:var(--ink-muted); }
+.trace-fold{ margin:4px 0 0 26px; }
+.trace-line{ display:flex; gap:8px; font-size:12.5px; color:var(--ink-muted); text-decoration:none; cursor:pointer; margin:4px 0 0 26px; }
+.trace-fold > .trace-line{ margin:0; }
+.trace-k{ margin-top:6px; font-size:12px; font-weight:600; color:var(--ink-faint); }
+.trace{ margin:2px 0 0; padding:6px 8px; border:1px solid var(--rule-soft); font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; white-space:pre-wrap; word-break:break-all; }
+.app-trace{ border-top:1px solid var(--rule); padding:12px 0; }
 .shot{ display:block; max-width:120mm; margin:6px 0 8px 26px; border:1px solid var(--rule); }
 /* E2E 증적의 단계 — 판정이 아니라 차례라 테두리에 판정 색을 안 쓴다. 모킹 구간은 왼쪽 굵은 중립 선이다 (도메인/시나리오 §8.11) */
 .stage{ border:1px solid var(--rule); border-radius:4px; padding:10px 14px; margin-bottom:10px; }
