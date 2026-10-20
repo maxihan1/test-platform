@@ -187,21 +187,25 @@ describe.skipIf(연결 === undefined)('애플리케이션을 섞은 시나리오
     ]);
   });
 
-  it('API 인증은 그 애플리케이션 케이스 단계의 러너 요청에만 싣고 부품 기록에는 안 남긴다 — 시험 실행도 같다', async () => {
+  it('API 인증은 그 애플리케이션 케이스 단계와 인증을 고른 API 호출 단계의 러너 요청에만 싣고 부품 기록에는 안 남긴다 — 시험 실행도 같다', async () => {
     const 인증 = [{ name: '고객사 A', tokenUrl: '/oauth/token', clientId: 'client-a', clientSecret: 'xsm-secret-1234' }];
     await q('UPDATE service_env SET api_auths = $2 WHERE service_id = $1 AND env = $3', [서비스['XSM2'], JSON.stringify(인증), 'stg']);
     try {
-      const { id } = await 만들기(시작(), 'XSM API 인증', 'desktop', [케이스('XSM-001'), 케이스('XSM2-001')], 사람);
+      const API단계: ScenarioPart[] = [
+        { kind: 'api', method: 'GET', path: '/v1/pushes', expectStatus: 200, service: 'XSM2', auth: '고객사 A' },
+        { kind: 'api', method: 'GET', path: '/v1/pushes', expectStatus: 200, service: 'XSM2' },
+      ];
+      const { id } = await 만들기(시작(), 'XSM API 인증', 'desktop', [케이스('XSM-001'), 케이스('XSM2-001'), ...API단계], 사람);
       const { runId, 요청 } = await 실행만들기(id, 'stg', 사람);
 
-      expect(요청.parts.map((p) => p.apiAuths)).toEqual([undefined, 인증]);
+      expect(요청.parts.map((p) => p.apiAuths)).toEqual([undefined, 인증, 인증, undefined]);
       const 기록 = await q('SELECT part::text AS part FROM scenario_run_part WHERE run_id = $1', [runId]);
       expect(기록.rows.map((r) => (r as { part: string }).part).join('')).not.toContain('xsm-secret-1234');
 
       러너.요청.length = 0;
-      await 시험시작({ username: 'xsm' }, { service: 'XSM', env: 'stg', platform: 'desktop', parts: [케이스('XSM-001'), 케이스('XSM2-001')] });
+      await 시험시작({ username: 'xsm' }, { service: 'XSM', env: 'stg', platform: 'desktop', parts: [케이스('XSM-001'), 케이스('XSM2-001'), ...API단계] });
       await vi.waitFor(() => expect(러너.요청).toHaveLength(1));
-      expect((러너.요청[0] as ScenarioExecuteRequest).parts.map((p) => p.apiAuths)).toEqual([undefined, 인증]);
+      expect((러너.요청[0] as ScenarioExecuteRequest).parts.map((p) => p.apiAuths)).toEqual([undefined, 인증, 인증, undefined]);
     } finally {
       await q("UPDATE service_env SET api_auths = '[]' WHERE service_id = $1", [서비스['XSM2']]);
     }

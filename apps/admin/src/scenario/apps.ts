@@ -86,9 +86,10 @@ export async function 쓰는앱읽기(
   return { 앱들, 없음: null };
 }
 
-/** case 단계 애플리케이션의 API 인증. 없으면 빈 객체 — 러너 요청 부품에만 붙인다 */
-export function 단계인증(part: ScenarioPart, 앱들: ReadonlyMap<string, 쓰는앱>): { apiAuths?: API인증[] } {
-  const 인증들 = part.kind === 'case' ? (앱들.get(케이스접두사(part.tcId))?.apiAuths ?? []) : [];
+/** case 단계와 API 인증을 고른 api 단계 애플리케이션의 API 인증. 없으면 빈 객체 — 러너 요청 부품에만 붙인다 (도메인/시나리오 §3.7 결정 14) */
+export function 단계인증(part: ScenarioPart, 시작: string, 앱들: ReadonlyMap<string, 쓰는앱>): { apiAuths?: API인증[] } {
+  const 접두사 = part.kind === 'case' ? 케이스접두사(part.tcId) : part.kind === 'api' && part.auth !== undefined ? (part.service ?? 시작) : undefined;
+  const 인증들 = 접두사 === undefined ? [] : (앱들.get(접두사)?.apiAuths ?? []);
   return 인증들.length > 0 ? { apiAuths: 인증들 } : {};
 }
 

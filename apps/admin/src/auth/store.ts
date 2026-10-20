@@ -9,6 +9,8 @@ export type 등급 = 'member' | 'admin';
 export interface 대상서버 {
   env: string;
   baseUrl: string;
+  /** 그 대상 서버의 API 인증 이름. 비밀값은 안 온다 — E2E API 호출 단계의 「API 인증」 고르기가 읽는다 (도메인/시나리오 §3.7 결정 14) */
+  apiAuthNames: string[];
 }
 
 export interface 배정서비스 {
@@ -66,7 +68,8 @@ async function db(): Promise<Pool> {
 const 한사람 = `
   WITH 서버 AS (
     SELECT service_id,
-           json_agg(json_build_object('env', env, 'baseUrl', base_url) ORDER BY env) AS envs
+           json_agg(json_build_object('env', env, 'baseUrl', base_url,
+             'apiAuthNames', COALESCE((SELECT json_agg(a->>'name') FROM jsonb_array_elements(api_auths) a), '[]'::json)) ORDER BY env) AS envs
       FROM service_env
      GROUP BY service_id
   )

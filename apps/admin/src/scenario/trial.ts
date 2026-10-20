@@ -104,8 +104,8 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
   const parts: ScenarioExecuteRequest['parts'] = await Promise.all(
     채운부품.map(async (p) =>
       p.kind === 'case'
-        ? { ...p, ...단계주소(p, 본문.service, 앱들), ...단계인증(p, 앱들), ...(await 부품판(p)), filePath: 케이스들.get(p.tcId)?.file_path }
-        : { ...p, ...단계주소(p, 본문.service, 앱들) },
+        ? { ...p, ...단계주소(p, 본문.service, 앱들), ...단계인증(p, 본문.service, 앱들), ...(await 부품판(p)), filePath: 케이스들.get(p.tcId)?.file_path }
+        : { ...p, ...단계주소(p, 본문.service, 앱들), ...단계인증(p, 본문.service, 앱들) },
     ),
   );
 
