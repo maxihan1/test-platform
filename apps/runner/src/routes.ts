@@ -34,6 +34,12 @@ const apiAuths = z
   )
   .optional();
 
+// 케이스가 만들어진 판 원문. 모양 확인은 kit 몫이라 판 번호만 본다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」)
+const apiDoc = z.object({ version: z.number().int().min(1), doc: z.record(z.string(), z.unknown()) }).optional();
+
+// 판 원문이 5MB 까지라 Fastify 기본 상한(1MiB)이면 413 이 난다 (SPEC 도메인/러너 §5.2 「API 케이스 실행」)
+const 판상한 = { bodyLimit: 16 * 1024 * 1024 };
+
 const executeRequest = z.object({
   runId: z.number(),
   historyId: z.number(),
@@ -47,6 +53,7 @@ const executeRequest = z.object({
   app: 앱파일경로.optional(),
   udid: z.string().min(1).optional(),
   apiAuths,
+  apiDoc,
 });
 
 const appScreenRequest = z.object({ app: 앱파일경로.optional(), udid: z.string().min(1).optional() });
@@ -93,6 +100,7 @@ const scenarioPart = z.discriminatedUnion('kind', [
     // 시작 애플리케이션이 아닌 단계가 돌 주소. 없으면 요청 전체 baseUrl (SPEC 도메인/시나리오 §3.7 결정 13)
     baseUrl: z.string().url().optional(),
     apiAuths,
+    apiDoc,
   }),
   z.object({
     kind: z.literal('api'),
@@ -157,7 +165,7 @@ const abortRequest = z.object({ historyId: z.number() });
 export function registerRoutes(app: FastifyInstance): void {
   app.get('/health', async () => ({ ok: true, playwrightVersion }));
 
-  app.post('/execute', async (request, reply) => {
+  app.post('/execute', 판상한, async (request, reply) => {
     const parsed = executeRequest.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
@@ -200,7 +208,7 @@ export function registerRoutes(app: FastifyInstance): void {
   });
 
   // 시나리오 1개 = 프로세스 1개. 진행 알림과 중단 통로는 없다 — 제한 시간이 상한이다 (SPEC 도메인/러너 §5.2)
-  app.post('/execute-scenario', async (request, reply) => {
+  app.post('/execute-scenario', 판상한, async (request, reply) => {
     const parsed = scenarioRequest.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });

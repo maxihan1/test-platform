@@ -1,6 +1,7 @@
 // 시나리오 부품 창 — Playwright 창 · request 를 만들고 케이스가 쓰는 도구를 감싸 이어 주기 · 뒷정리 미루기를 건다. 판단은 links.ts 가 한다 (SPEC 도메인/러너 §5.2)
 // 감싸는 자리는 여기 한 곳이다 — 부품 request · page.request · 케이스가 직접 만든 창과 연결 (2026-10-06 게이트 0 사용자)
 
+import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 import type { APIRequest, APIRequestContext, APIResponse, Browser, BrowserContext, Route } from '@playwright/test';
@@ -227,6 +228,8 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
               request: 감싼도구(부품요청, 이음값, 묶음(이번.부품, () => 부품요청.storageState())),
               platform: 설정.platform, params, expected: part.expected, skipSteps: part.skipSteps, seq, phase,
               apiAuths: part.apiAuths ?? [],
+              // 그 부품 판으로 응답 모양을 본다. 없으면 안 본다 (도메인/API §3.8 「응답 모양 확인」)
+              ...(part.apiDocFile !== undefined && { apiDoc: JSON.parse(readFileSync(part.apiDocFile, 'utf8')) as unknown }),
               tokenRequest: 부품요청,
             });
             // 창을 닫으면 본문을 못 읽는다 — 이 부품이 잡은 자리를 다 읽을 때까지 기다린다(부품 한도 경주 안). 자리는 못 읽으면 사유 글자라 던지지 않는다

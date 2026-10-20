@@ -9,6 +9,7 @@ import { stripVTControlCharacters } from 'node:util';
 
 import type { ExecuteRequest, ExecuteResponse, ItemStatus, StepProgress } from '@platform/kit';
 
+import { 판쓰기, 판지우기 } from './apiDoc.js';
 import { 앱연결을닫는다 } from './appSession.js';
 import { killTree } from './kill.js';
 import { 산출물폴더, 출력폴더를지운다, 출력폴더이름 } from './outputDir.js';
@@ -139,6 +140,11 @@ export function traceEnv(req: Pick<ExecuteRequest, 'runId' | 'platform'>): '0' |
 export async function execute(req: ExecuteRequest, specPath: string): Promise<ExecuteResponse> {
   const startedAt = Date.now();
   const 출력 = 출력폴더이름(req.historyId);
+  // 시험 실행은 runId · historyId 가 0 이라 나란히 돌면 겹친다 — 출력 이름(무작위가 붙는다)으로 가른다
+  const 판파일 =
+    req.apiDoc === undefined
+      ? undefined
+      : await 판쓰기(resolve(산출물폴더(), 'runs', String(req.runId), String(req.historyId), `api-doc-${출력}.json`), req.apiDoc.doc);
 
   const child = spawn(
     'npx',
@@ -160,6 +166,8 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
         PLATFORM_TRACE: traceEnv(req),
         // 늘 적는다 — 러너를 켠 셸에 이 값이 있으면 자식이 물려받는다. 토큰은 kit 이 받는다 (도메인/러너 §5.2 「API 케이스 실행」)
         PLATFORM_API_AUTHS: JSON.stringify(req.apiAuths ?? []),
+        // 인증과 같은 까닭으로 늘 적는다. 비면 kit 이 모양을 안 본다 (도메인/API §3.8 「응답 모양 확인」)
+        PLATFORM_API_DOC_FILE: 판파일 ?? '',
         // 대상 서버마다 apk 가 다르다. 요청이 실으면 러너를 켤 때 준 값보다 앞선다 (러너 §5.2 「앱 실행」 · APP-F1-03)
         ...(req.platform === 'android' && req.app !== undefined && { PLATFORM_APP: req.app }),
         // admin 이 팜에서 잡은 폰이다. 안 주면 팜이 잡힌 폰 아무것에나 붙인다 (러너 §5.2 「디바이스 팜 접속 방식」)
@@ -194,9 +202,10 @@ export async function execute(req: ExecuteRequest, specPath: string): Promise<Ex
   const code = await new Promise<number | null>((done, fail) => {
     child.on('error', fail);
     child.on('close', done);
-  }).finally(() => {
+  }).finally(async () => {
     clearTimeout(timer);
     running.delete(req.historyId);
+    if (판파일 !== undefined) await 판지우기([판파일]);
   });
   await 출력폴더를지운다(출력);
 
