@@ -185,7 +185,7 @@ export function AuthoringNew({
 
   return (
     <form
-      className="toolbar authoring-new"
+      className="authoring-new"
       onSubmit={(e) => {
         e.preventDefault();
         void 보낸다();

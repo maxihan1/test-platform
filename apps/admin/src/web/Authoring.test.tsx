@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AuthoringListRow } from './api.js';
@@ -98,19 +98,36 @@ describe('작성 줄 목록', () => {
 describe('피그마 칸 잠금이 새 요청 폼까지 넘어간다', () => {
   it('피그마토큰={false} 면 피그마 칸이 잠긴다', async () => {
     render(<Authoring service="PAY" 피그마토큰={false} 할수={() => true} />);
-    expect((await screen.findByLabelText('피그마 주소')) as HTMLTextAreaElement).toHaveProperty('disabled', true);
+    fireEvent.click(await screen.findByRole('button', { name: '새 작성' }));
+    expect(screen.getByLabelText('피그마 주소') as HTMLTextAreaElement).toHaveProperty('disabled', true);
   });
 });
 
 describe('작성 권한 칸', () => {
-  it('작성 쓰기면 새 작성 폼이 선다', async () => {
+  it('작성 쓰기면 「새 작성」을 눌러 오른쪽 서랍에서 폼을 연다 — 처음에는 목록만 보인다', async () => {
     render(<Authoring service="PAY" 할수={() => true} />);
-    expect(await screen.findByText('테스트 작성 시작')).toBeTruthy();
+    const 단추 = await screen.findByRole('button', { name: '새 작성' });
+    expect(screen.queryByText('테스트 작성 시작')).toBeNull();
+    fireEvent.click(단추);
+    const 서랍 = screen.getByRole('complementary', { name: '새 작성 요청' });
+    expect(within(서랍).getByText('테스트 작성 시작')).toBeTruthy();
+    expect(단추.getAttribute('aria-expanded')).toBe('true');
   });
 
-  it('작성 읽기면 새 작성 폼이 없다', async () => {
+  it('서랍은 ✕ 와 Esc 로 닫힌다', async () => {
+    render(<Authoring service="PAY" 할수={() => true} />);
+    fireEvent.click(await screen.findByRole('button', { name: '새 작성' }));
+    fireEvent.click(screen.getByRole('button', { name: '닫기' }));
+    expect(screen.queryByRole('complementary', { name: '새 작성 요청' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '새 작성' }));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('complementary', { name: '새 작성 요청' })).toBeNull();
+  });
+
+  it('작성 읽기면 새 작성 단추도 폼도 없다', async () => {
     render(<Authoring service="PAY" 할수={(무엇) => 무엇 !== '작성요청'} />);
     await screen.findByText('아직 작성을 요청한 기록이 없습니다');
+    expect(screen.queryByRole('button', { name: '새 작성' })).toBeNull();
     expect(screen.queryByText('테스트 작성 시작')).toBeNull();
     expect(screen.queryByText('PRD')).toBeNull();
   });
@@ -151,7 +168,7 @@ describe('작성 목록 쪽은 주소에 남는다 (점검 11.4)', () => {
 });
 
 describe('「PRD 에 없는 화면」에서 넘어오면 대조가 켜져 있다 (⑫ 점검 8.10)', () => {
-  it('?compare=1 이면 「실제 화면과 대조」를 켠 채 열리고 주소에서는 그 조건이 정리된다', async () => {
+  it('?compare=1 이면 서랍이 열린 채 「실제 화면과 대조」를 켜고 뜨고 주소에서는 그 조건이 정리된다', async () => {
     window.history.replaceState(null, '', '#/authoring?compare=1');
     render(<Authoring service="PAY" 할수={() => true} />);
     const 칸 = (await screen.findByLabelText('실제 화면과 대조')) as HTMLInputElement;
@@ -159,9 +176,10 @@ describe('「PRD 에 없는 화면」에서 넘어오면 대조가 켜져 있다
     expect(window.location.hash).toBe('#/authoring');
   });
 
-  it('조건이 없으면 꺼진 채 열린다', async () => {
+  it('조건이 없으면 서랍을 열었을 때 꺼져 있다', async () => {
     render(<Authoring service="PAY" 할수={() => true} />);
-    expect(((await screen.findByLabelText('실제 화면과 대조')) as HTMLInputElement).checked).toBe(false);
+    fireEvent.click(await screen.findByRole('button', { name: '새 작성' }));
+    expect((screen.getByLabelText('실제 화면과 대조') as HTMLInputElement).checked).toBe(false);
   });
 });
 
