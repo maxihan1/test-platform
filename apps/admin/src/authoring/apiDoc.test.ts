@@ -1,8 +1,9 @@
-// API 애플리케이션 작성 요청 — 만들기 거절 · 판 자료 한 행 · 재실행 · 이어 작성이 env 를 물려받기 · 집기 응답의 target · apiDoc (도메인/작성 §7 「AUTHOR API 문서 판」)
+// API 애플리케이션 작성 요청 — 만들기 거절 · 판 자료 한 행 · 재실행 · 이어 작성이 env 를 물려받기 · 집기 응답의 target · apiDoc · 바뀐 API 만 다시 작성 (도메인/작성 §7 「AUTHOR API 문서 판」)
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { 다시작성세우기 } from '../apidoc/rewrite.js';
 import authoringAgentRoutes from './agentRoutes.js';
 import { 이어작성준비, 제출 } from './assetStore.js';
 import authoringRoutes from './routes.js';
@@ -128,5 +129,25 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     } finally {
       await q("UPDATE service_env SET is_prod = false WHERE service_id = $1 AND env = 'stg'", [서비스]);
     }
+  });
+
+  it('바뀐 API 만 다시 작성 요청 — 집기가 apiApply 와 새 판을 싣고, 재실행은 apiApply 를 물려받고, 본문으로 실으면 400 BAD_API_APPLY', async () => {
+    await 치우기();
+    const 새문서 = { ...문서, paths: { ...문서.paths, '/v1/devices': { post: { responses: { '201': { description: '됨' } } } } } };
+    await q("INSERT INTO api_doc_version (service_id, version, source, file_name, fingerprint, doc) VALUES ($1, 2, 'FILE', 'b.json', 'xaw2', $2)", [서비스, JSON.stringify(새문서)]);
+    const 세움 = await 다시작성세우기({ 서비스, from: 1, to: 2, 고른: [{ method: 'POST', path: '/v1/devices' }], env: 'stg', 누가: 맥, 이름: '맥' });
+    if (!('id' in 세움)) throw new Error(세움.error);
+    const apiApply = { fromVersion: 1, toVersion: 2, operations: [{ method: 'POST', path: '/v1/devices', change: 'NEW', breaking: false, notes: [], tcIds: [] }] };
+    const 집은 = (await 집기()).json<Record<string, unknown>>();
+    expect(집은).toMatchObject({ id: 세움.id, params: { apiApply }, apiDoc: { version: 2 }, target: { env: 'stg' } });
+
+    await q("UPDATE authoring_request SET status = 'DONE' WHERE id = $1", [세움.id]);
+    const 다시 = await app.inject({ method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'RERUN', sourceId: 세움.id } });
+    expect(다시.statusCode).toBe(201);
+    expect((await q<{ params: unknown }>('SELECT params FROM authoring_request WHERE id = $1', [다시.json<{ id: number }>().id])).rows[0]!.params).toEqual({ apiApply });
+
+    expect((await 만들기({ apiDoc: 1, env: 'stg', params: { apiApply } })).json()).toEqual({ error: 'BAD_API_APPLY' });
+    const 실음 = await app.inject({ method: 'POST', url: `/api/authoring/requests?service=${접두사}`, payload: { kind: 'RERUN', sourceId: 세움.id, params: { apiApply } } });
+    expect(실음.json()).toEqual({ error: 'BAD_API_APPLY' });
   });
 });

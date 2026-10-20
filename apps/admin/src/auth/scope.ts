@@ -128,6 +128,7 @@ export const 라우트표: Record<string, 원천> = {
   '/api/services/:id/api-docs/:version': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-docs/fetch': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-docs/compare': { 종류: '서비스', 칸: 'id' },
+  '/api/services/:id/api-docs/:version/rewrite': { 종류: '서비스', 칸: 'id' },
   '/api/services/:id/api-coverage': { 종류: '서비스', 칸: 'id' },
 
   // 서비스 가이드 (도메인/작성 §7 「서비스 가이드 통로」). 라우트가 ?service= 의 서비스 것만 읽고 쓴다
