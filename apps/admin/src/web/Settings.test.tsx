@@ -102,16 +102,16 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     render(<Settings user={사람('admin')} onMeChanged={() => undefined} />);
     const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
 
-    const 링크들 = [...메뉴.querySelectorAll('a')].map((a) => [a.getAttribute('href'), a.classList.contains('set-nav-app')]);
+    const 링크들 = [...메뉴.querySelectorAll('a')].map((a) => [a.getAttribute('href'), a.closest('[role="group"]')?.getAttribute('aria-label') ?? null]);
     expect(링크들).toEqual([
-      ['#/settings/project-1', false],
-      ['#/settings/ZST', true],
-      ['#/settings/ZSV', true],
-      ['#/settings/project-2', false],
-      ['#/settings/ZSU', true],
-      ['#/settings/project-new', false],
-      ['#/settings/new', false],
-      ['#/settings/users', false],
+      ['#/settings/project-1', null],
+      ['#/settings/ZST', '데모마켓'],
+      ['#/settings/ZSV', '데모마켓'],
+      ['#/settings/project-2', null],
+      ['#/settings/ZSU', '사내 포털'],
+      ['#/settings/project-new', null],
+      ['#/settings/new', null],
+      ['#/settings/users', null],
     ]);
     expect([...메뉴.querySelectorAll('h2')].map((h) => h.textContent)).toEqual(['프로젝트', '사람']);
   });

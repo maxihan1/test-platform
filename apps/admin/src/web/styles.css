@@ -2330,7 +2330,13 @@ input[type='file']::file-selector-button {
 }
 
 /* 프로젝트 아래 애플리케이션 — 들여 써서 어느 프로젝트 것인지 보인다 */
-.set-nav a.set-nav-app {
+.set-nav-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.set-nav-tree a {
   padding-left: 28px;
 }
 
