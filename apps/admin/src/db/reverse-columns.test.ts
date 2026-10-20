@@ -86,10 +86,8 @@ describe.skipIf(연결 === undefined)('역방향 칸', () => {
   });
 
   describe('대조 짝', () => {
-    it('대조를 안 켰는데 대상 서버가 있으면 거절한다', async () => {
-      await expect(요청넣기({ compare: false, env: 'demo' })).rejects.toThrow(
-        'authoring_request_compare_check',
-      );
+    it('대조를 안 켰는데 대상 서버만 있으면 받는다 — API 애플리케이션 작성이 그렇고, 화면 작성은 서버가 BAD_ENV 로 막는다', async () => {
+      await expect(요청넣기({ compare: false, env: 'demo' })).resolves.toBeGreaterThan(0);
     });
 
     it('대조를 안 켰는데 시작 주소만 있어도 거절한다', async () => {
