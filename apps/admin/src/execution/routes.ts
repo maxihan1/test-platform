@@ -20,6 +20,7 @@ import { findItem, findRun, listRuns, serviceExists } from './queries.js';
 import { abortRun, createRun, recoverRunning, RunInputError, unfinishedItems } from './store.js';
 import { validate } from './validate.js';
 import { trace기록을읽는다, 밀린trace를푼다 } from './traceIngest.js';
+import { 팜증적경로, 팜증적목록 } from './farmEvidence.js';
 import { 목록종류읽기 } from './runKind.js';
 import { 시작방식거르개 } from './runOrigin.js';
 import { runBody, 팜을본다 } from './location.js';
@@ -222,13 +223,16 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     const found = await findItem(runId, historyId);
     if (found === null) return reply.code(404).send({ error: 'RUN_ITEM_NOT_FOUND', detail: req.params.historyId });
     // 실패 카드도 findItem 을 쓴다. 세 기록은 상세에만 싣는다 — 가림은 넣을 때 이미 했다
-    return { ...found, trace: await trace기록을읽는다(historyId) };
+    return { ...found, trace: await trace기록을읽는다(historyId), farm: await 팜증적목록(runId, historyId) };
   });
 
   app.get<{ Params: { tcId: string }; Querystring: { platform?: string; page?: string } }>(
     '/cases/:tcId/history',
     async (req) => caseHistory(req.params.tcId, req.query.platform, page(req.query.page), PAGE_SIZE),
   );
+
+  // 영상 Range 를 받는 sendFile 이 따로 등록돼야 해서 플러그인 하나로 붙인다
+  await app.register(팜증적경로);
 
   app.get<{ Params: { runId: string; historyId: string; seq: string } }>(
     '/screenshots/:runId/:historyId/:seq.png',

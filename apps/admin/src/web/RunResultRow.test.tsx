@@ -125,6 +125,7 @@ describe('결과줄 (SPEC §8.3)', () => {
     function 상세(요약: RunItemSummary, 덮을것: Partial<RunItemDetail> = {}): RunItemPage {
       return {
         trace: null,
+        farm: [],
         ...요약,
         runId: 7,
         runTitle: '결제 회귀',

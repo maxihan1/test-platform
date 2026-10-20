@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { 기기글, type EvidenceDocument, type EvidenceHeader, type EvidenceItem } from './collect.js';
 import { 머리말 } from './html.js';
+import { 본문 } from './htmlItem.js';
 import { renderXlsx } from './xlsx.js';
 
 const 머리: EvidenceHeader = {
@@ -56,16 +57,25 @@ describe('증적 머리말의 「기기」 줄', () => {
 });
 
 describe('증적 엑셀의 「기기」 칸', () => {
-  it('맨 끝 칸에 그 항목의 기기를 적는다', async () => {
-    const doc: EvidenceDocument = { runId: 7, header: 머리, items: [항목('SM-G996N · Android 14 · 앱 1.4.2'), 항목(null)] };
+  it('끝에서 두 번째 칸에 그 항목의 기기를, 맨 끝 칸에 팜 기록을 적는다', async () => {
+    const 팜 = '화면 영상 2개 · logcat.txt — 실행 화면의 이 항목에서 받는다';
+    const doc: EvidenceDocument = { runId: 7, header: 머리, items: [{ ...항목('SM-G996N · Android 14 · 앱 1.4.2'), farm: 팜 }, 항목(null)] };
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(new Uint8Array(await renderXlsx(doc, { generatedAt: '2026-10-19T02:00:00.000Z' })).buffer);
     const ws = wb.worksheets[0]!;
     const 끝 = ws.getRow(1).cellCount;
-    expect([ws.getRow(1).getCell(끝).value, ws.getRow(2).getCell(끝).value, ws.getRow(3).getCell(끝).value ?? null]).toEqual([
-      '기기',
-      'SM-G996N · Android 14 · 앱 1.4.2',
-      null,
-    ]);
+    const 칸 = (열: number) => [1, 2, 3].map((줄) => ws.getRow(줄).getCell(열).value ?? null);
+    expect(칸(끝 - 1)).toEqual(['기기', 'SM-G996N · Android 14 · 앱 1.4.2', null]);
+    expect(칸(끝)).toEqual(['팜 기록', 팜, null]);
+  });
+});
+
+describe('증적 HTML 의 「팜 기록」 줄', () => {
+  it('팜 기록이 있으면 절차 뒤에 한 줄 선다 — 없으면 줄도 없다', () => {
+    const 팜 = '화면 영상 1개 · logcat.txt — 실행 화면의 이 항목에서 받는다';
+    const 있음 = 본문({ ...항목(null), farm: 팜 }).join('\n');
+    expect(있음).toContain(`<div class="row-k">팜 기록</div>`);
+    expect(있음).toContain(팜);
+    expect(본문(항목(null)).join('\n')).not.toContain('팜 기록');
   });
 });

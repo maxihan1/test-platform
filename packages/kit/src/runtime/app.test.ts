@@ -161,6 +161,12 @@ describe('openApp 연결 번호 파일', () => {
     expect(await exists(file())).toBe(false);
   });
 
+  it('closeApp 뒤에도 팜 증적을 받을 연결 번호는 남는다', async () => {
+    const driver = await openApp(OPEN_ENV);
+    await closeApp(driver);
+    expect((await readFile(join(artifacts, 'runs/7/9/appium-session-id'), 'utf8')).trim()).toBe('sess-1');
+  });
+
   it('closeApp 은 파일이 없어도 조용히 끝난다', async () => {
     const driver = await openApp(OPEN_ENV);
     await rm(file());

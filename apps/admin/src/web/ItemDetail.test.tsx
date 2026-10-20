@@ -18,6 +18,7 @@ const HISTORY_ID = 7701;
 
 const 항목: RunItemPage = {
   trace: null,
+  farm: [],
   runId: RUN_ID,
   runTitle: '결제 회귀',
   historyId: HISTORY_ID,
@@ -62,6 +63,13 @@ describe('항목 상세 (SPEC §8.4)', () => {
     그린다({ trace: { status: 'NONE', reason: null, network: [], actions: [], console: [] } });
     expect(await screen.findByText('네트워크 · 조작 · 콘솔')).toBeTruthy();
     expect(screen.getByText('기록 없음')).toBeTruthy();
+  });
+
+  it('팜 화면 영상 · logcat 을 받아 둔 항목은 절차 아래에 재생 칸과 받기 링크를 둔다', async () => {
+    그린다({ farm: [{ name: 'video-1.mp4', bytes: 2_428_030 }, { name: 'logcat.txt', bytes: 1_048_576 }] });
+    const 영상 = await screen.findByLabelText('화면 영상 1');
+    expect(영상.getAttribute('src')).toBe(`/api/runs/${String(RUN_ID)}/items/${String(HISTORY_ID)}/farm/video-1.mp4`);
+    expect(screen.getByRole('link', { name: 'logcat.txt 받기 (1.0MB)' })).toBeTruthy();
   });
 
   it('멈춰 닫힌 미실행은 서버가 이유를 안 줘도 「사용자가 멈춤」을 적는다', async () => {
