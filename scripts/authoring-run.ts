@@ -30,7 +30,7 @@ import { 먼저가리기 } from './authoring-masking.js';
 import { 앱화면받기, 잡은폰놓기, 탐색환경 } from './authoring-app-screen.js';
 import { type 바꾸기, 가이드받기, 가이드폴더 } from './authoring-guide.js';
 import { 원장과남은번호 } from './authoring-ledger-io.js';
-import { API떼기, API원장항목, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
+import { API떼기, API반영줄, API원장항목, API점검, API환경, 판파일쓰기 } from './authoring-api.js';
 import { 화면지도준비 } from './authoring-covered.js';
 import { 앞결과, 옮기기올리기, 판받기 } from './authoring-prd-io.js';
 import { 반영요청인가, 실패trace받기, 안옮김뒤, 화면이맞음읽기 } from './authoring-screen-right.js';
@@ -295,6 +295,6 @@ async function 사본에서(
   await 올리기(
     자리, 것, 서비스, 판.판정, 기준, 풀린.글, 손,
     역방향 === undefined ? undefined : { 주소기지, 토큰, 자식, 입력자료: 자료들 },
-    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준 }, 단계, 옮김.줄,
+    { 값: 옮김.원장, 폴더: 케이스자리, 자식, 기준: 옮김.기준 }, 단계, [...API반영줄(것.api), ...옮김.줄],
   );
 }
