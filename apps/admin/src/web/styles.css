@@ -1259,6 +1259,33 @@ input[type='file']::file-selector-button {
   margin-top: 6px;
 }
 
+/* 응답 형식 검사 줄 — 맞고 틀림은 판정색(--pass-text · --fail-text)이고 나머지는 중립이다 */
+.shape-checks {
+  margin: 6px 0 0 28px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line-2);
+  font-size: 12.5px;
+}
+
+.shape-label {
+  color: var(--ink-muted);
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.shape-row {
+  padding: 1px 0;
+}
+
+.shape-none {
+  color: var(--ink-faint);
+}
+
+.shape-problem {
+  margin-left: 18px;
+  color: var(--ink-muted);
+}
+
 .code summary {
   font-size: 12.5px;
   color: var(--ink-muted);
@@ -3380,7 +3407,9 @@ dl.detail dd small { display: block; margin-top: 2px; color: var(--ink-faint); f
   flex: 1 1 180px;
 }
 
-.set-env-login .hint {
+/* API 인증 줄의 「비밀값을 입력해 주세요」도 칸 옆에 끼지 않고 아래 한 줄을 다 쓴다 */
+.set-env-login .hint,
+.set-env-login .err {
   flex-basis: 100%;
   margin-top: 0;
 }

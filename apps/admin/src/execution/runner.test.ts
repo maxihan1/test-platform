@@ -101,7 +101,7 @@ describe('callRunner', () => {
   });
 
   it('판이 없으면 러너에 보내지 않고 사유를 단 미실행으로 닫는다', async () => {
-    vi.mocked(케이스판).mockResolvedValueOnce({ 사유: 'API 문서 판 9 가 없습니다' });
+    vi.mocked(케이스판).mockResolvedValueOnce({ 사유: 'API 문서 버전 9 이(가) 없습니다' });
     let 불렸나 = false;
     await 띄운다(() => {
       불렸나 = true;
@@ -110,7 +110,7 @@ describe('callRunner', () => {
 
     const res = await callRunner(7, 항목);
     expect(불렸나).toBe(false);
-    expect(res).toMatchObject({ historyId: 42, status: 'NA', steps: [], error: { message: 'API 문서 판 9 가 없습니다' } });
+    expect(res).toMatchObject({ historyId: 42, status: 'NA', steps: [], error: { message: 'API 문서 버전 9 이(가) 없습니다' } });
   });
 
   it('200이면 러너가 만든 판정을 그대로 돌려준다', async () => {

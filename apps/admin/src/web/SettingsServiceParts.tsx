@@ -1,4 +1,4 @@
-// 설정 > 서비스 화면의 구획 틀과 비밀값 칸 (SettingsService.tsx 가 300줄에 닿지 않게 뗐다)
+// 설정 > 서비스 화면의 구획 틀 · 비밀값 칸 · 프로젝트 칸 · 접두사 칸 (SettingsService.tsx 가 300줄에 닿지 않게 뗐다)
 
 import type { ReactNode } from 'react';
 
@@ -111,6 +111,25 @@ export function 프로젝트칸({
             </option>
           ))}
         </select>
+      </div>
+    </div>
+  );
+}
+
+/** 접두사 칸 — 만들 때만 적는다. 케이스 번호에 박혀 나중에 바꾸면 기존 케이스가 어느 애플리케이션 것도 아니게 된다 (SPEC §8.8) */
+export function 접두사칸({ 새것, 값, 바꾼다, 틀림 }: { 새것: boolean; 값: string; 바꾼다: (v: string) => void; 틀림: string | null }) {
+  const t = use말();
+  return (
+    <div className="field">
+      <label htmlFor="sf-prefix">{t('접두사')}</label>
+      <div>
+        <input id="sf-prefix" type="text" value={값} disabled={!새것} onChange={(e) => 바꾼다(e.target.value.toUpperCase())} placeholder="PAY" />
+        <div className="hint">
+          {새것
+            ? t('생성할 때만 정할 수 있습니다. 케이스 번호(PAY-001)에 사용되므로 나중에 바꿀 수 없습니다')
+            : t('생성 후에는 바꿀 수 없습니다. 케이스 번호에 이미 사용 중입니다')}
+        </div>
+        {틀림 === null ? null : <div className="err">{틀림}</div>}
       </div>
     </div>
   );

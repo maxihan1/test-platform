@@ -93,7 +93,7 @@ export async function 다시작성세우기(입력: {
     const 자료 = await client.query(
       `INSERT INTO authoring_asset (request_id, position, kind, name, api_doc_version_id)
        SELECT $1, 1, 'API_DOC', $2, id FROM api_doc_version WHERE service_id = $3 AND version = $4`,
-      [id, `API 문서 판 ${String(입력.to)}`, 입력.서비스, 입력.to],
+      [id, `API 문서 버전 ${String(입력.to)}`, 입력.서비스, 입력.to],
     );
     // 그 사이 판이 지워졌다 — 자료 없는 요청을 세우면 에이전트가 한참 뒤에 실패한다
     if (자료.rowCount !== 1) {

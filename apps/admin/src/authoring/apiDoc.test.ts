@@ -86,7 +86,7 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     const id = 답.json<{ id: number }>().id;
     expect(await 행(id)).toMatchObject({ env: 'stg', compare: false });
     const 자료 = await q<{ kind: string; name: string }>('SELECT kind, name FROM authoring_asset WHERE request_id = $1', [id]);
-    expect(자료.rows).toEqual([{ kind: 'API_DOC', name: 'API 문서 판 1' }]);
+    expect(자료.rows).toEqual([{ kind: 'API_DOC', name: 'API 문서 버전 1' }]);
     expect(await 제출(id)).toBe(true);
 
     const 집은 = (await 집기()).json<Record<string, unknown>>();

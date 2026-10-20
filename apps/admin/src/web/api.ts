@@ -449,6 +449,8 @@ export interface EnvRow {
   viewportJudgedAt?: string | null;
   /** Android 앱 파일 경로(러너가 도는 PC 기준). null 이면 러너 환경값 PLATFORM_APP. 설정 화면만 받는다 (APP-F1-03) */
   appPath?: string | null;
+  /** API 인증 (도메인/API §3.8). 비밀값은 끝 4자리만 온다. API 종류 애플리케이션만 담긴다 — 설정 화면만 받는다 (API-F1-03) */
+  apiAuths?: { name: string; tokenUrl: string; clientId: string; clientSecretLast4: string }[];
 }
 
 /** 설정 「화면 크기」 의 화면별 차이 — PC 와 모바일이 다른 화면만 앞 200장까지 오고 전체 수(differ) · 같은 화면 수(same)는 따로 온다 (도메인/인증 §7) */
@@ -472,6 +474,8 @@ export interface EnvInput {
   accounts?: { role: string; loginId?: string | null; loginPassword?: string | null }[];
   /** 계정 칸과 같다 — 키가 없으면 지금 것을 유지하고 null · 빈 글자면 지운다 */
   appPath?: string | null;
+  /** 보내면 그 목록으로 바꾼다. clientSecret 이 없는 줄은 같은 env · name · tokenUrl 의 옛 비밀값을 서버가 이어받는다 (도메인/인증 §7) */
+  apiAuths?: { name: string; tokenUrl: string; clientId: string; clientSecret?: string }[];
 }
 
 // 맨 위 띠의 서비스 목록이 이것이다. 배정받은 것만 온다 (SPEC §7 · §8)
@@ -528,6 +532,11 @@ export interface SettingsServiceRow extends Omit<ServiceRow, 'permissions'> {
   lastScheduled?: { at: string; runIds: number[] } | null;
   isActive: boolean;
   caseCount: number;
+  /** 애플리케이션 종류 (도메인/API §3.8). 선택으로 둔 것은 hasFigmaToken 과 같은 이유 — 없으면 SCREEN 으로 읽는다 */
+  kind?: 'SCREEN' | 'API';
+  /** Swagger 문서를 받을 경로와 기준 서버. API 종류만 쓴다 */
+  apiDocPath?: string | null;
+  apiDocEnv?: string | null;
 }
 
 /** 정기 실행 한 벌 — 시각(HH:MM)은 그 시간대 기준이다 (SPEC 공통/6-인프라 §9.2) */
@@ -761,7 +770,7 @@ export interface AuthoringProgress {
 export interface AuthoringAsset {
   id: number;
   position: number;
-  kind: 'FILE' | 'FIGMA';
+  kind: 'FILE' | 'FIGMA' | 'API_DOC';
   name: string;
   figmaUrl: string | null;
   size: number | null;
@@ -1074,7 +1083,9 @@ export const api = {
   },
 
   run: (runId: number) =>
-    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[] }>(`/runs/${runId}`),
+    call<RunSummary & { items: RunItemSummary[]; evidence: EvidenceRow[]; apiDocVersion?: number | null; apiDocNote?: 'DIFFERS' | 'FETCH_FAILED' | null }>(
+      `/runs/${runId}`,
+    ),
 
   /** 직전 실행과 견준 결과. 실행 상세 응답과 별개의 조회다 (SPEC §7) */
   insights: (runId: number) => call<RunInsights>(`/runs/${runId}/insights`),
@@ -1160,6 +1171,7 @@ export const api = {
     service: string,
     body:
       | { kind: 'AUTHOR'; figma: string[]; compare?: true; env?: string; startUrl?: string }
+      | { kind: 'AUTHOR'; figma: string[]; apiDoc: number; env: string }
       | { kind: 'RERUN'; sourceId: number; resume?: true }
       | { kind: 'AUTHOR'; continueFrom: number },
   ) => call<{ id: number }>(`/authoring/requests?service=${encodeURIComponent(service)}`, json(body)),
@@ -1257,6 +1269,11 @@ export const api = {
     slackWebhook?: string;
     figmaToken?: string;
     crawlExclude?: string[];
+    /** 만들 때만 보낸다 — 고칠 때 보내면 400 KIND_IMMUTABLE. 안 보내면 SCREEN */
+    kind?: 'SCREEN' | 'API';
+    /** API 종류만 받는다. 화면 종류가 보내면 400 NOT_API_SERVICE */
+    apiDocPath?: string | null;
+    apiDocEnv?: string | null;
   }) => call<{ id: number }>('/settings/services', json(body)),
 
   /**
@@ -1282,6 +1299,9 @@ export const api = {
       crawlExclude?: string[];
       /** 안 보내면 그대로 두고 `null` 이면 끈다 */
       schedule?: ScheduleSetting | null;
+      /** API 종류만. 안 보내면 그대로 두고 null 이면 비운다 */
+      apiDocPath?: string | null;
+      apiDocEnv?: string | null;
     },
   ) => call<{ ok: true }>(`/settings/services/${id}`, { ...json(body), method: 'PATCH' }),
 

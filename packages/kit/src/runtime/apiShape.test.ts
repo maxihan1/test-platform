@@ -78,9 +78,9 @@ describe('모양확인', () => {
     const 결과 = 모양확인(문서, 'POST', 'http://stg.example.com/v1/pushes', 201, 본문({ status: 'DONE', total: '3' }));
     expect(결과?.result).toBe('FAIL');
     expect(결과?.problems).toEqual([
-      '필수 칸 id 가 없다',
-      'status 값 "DONE" 은 문서에 없는 값이다',
-      'total 은 number 여야 하는데 string 이다',
+      '필수 필드 없음 — id',
+      '문서에 없는 값 — status = \"DONE\"',
+      '타입이 다름 — total (문서 number · 받은 값 string)',
     ]);
   });
 
@@ -90,8 +90,8 @@ describe('모양확인', () => {
 
   it('4XX 범위 줄과 default 줄을 차례로 찾는다 — 참조로 적은 응답 줄도 푼다', () => {
     expect(모양확인(문서, 'POST', '/v1/pushes', 400, 본문({ code: 'BAD' }))?.result).toBe('PASS');
-    expect(모양확인(문서, 'POST', '/v1/pushes', 400, 본문({}))?.problems).toEqual(['필수 칸 code 가 없다']);
-    expect(모양확인(문서, 'GET', '/v1/pushes/p1', 500, 본문({}))?.problems).toEqual(['필수 칸 code 가 없다']);
+    expect(모양확인(문서, 'POST', '/v1/pushes', 400, 본문({}))?.problems).toEqual(['필수 필드 없음 — code']);
+    expect(모양확인(문서, 'GET', '/v1/pushes/p1', 500, 본문({}))?.problems).toEqual(['필수 필드 없음 — code']);
   });
 
   it('그 코드에 모양이 없으면 NO_SHAPE — 본문은 안 본다', () => {
@@ -113,7 +113,7 @@ describe('모양확인', () => {
   });
 
   it('문서가 additionalProperties: false 라고 적은 곳만 추가 칸을 막는다 · application/json 뒤 charset 도 읽는다', () => {
-    expect(모양확인(문서, 'GET', '/v1/devices', 200, 본문({ name: 'a', model: 'x' }))?.problems).toEqual(['본문 에 문서가 막은 칸 model 이 있다']);
+    expect(모양확인(문서, 'GET', '/v1/devices', 200, 본문({ name: 'a', model: 'x' }))?.problems).toEqual(['문서가 허용하지 않은 필드 — model (본문)']);
   });
 
   it('servers[0].url 에 경로가 있으면 틀 앞에 붙여 맞춘다', () => {
@@ -143,7 +143,7 @@ describe('모양확인', () => {
       components: { schemas: { Row: { type: 'object', required: ['at'], properties: { at: { type: 'string', nullable: true } } } } },
     };
     expect(모양확인(옛, 'GET', '/v1/list', 200, 본문([{ at: null }]))?.result).toBe('PASS');
-    expect(모양확인(옛, 'GET', '/v1/list', 200, 본문([{ at: 'x' }, { at: 3 }]))?.problems).toEqual(['[1].at 은 string 여야 하는데 integer 이다']);
+    expect(모양확인(옛, 'GET', '/v1/list', 200, 본문([{ at: 'x' }, { at: 3 }]))?.problems).toEqual(['타입이 다름 — [1].at (문서 string · 받은 값 integer)']);
   });
 
   it('자기를 가리키는 스키마도 읽는다', () => {
@@ -155,7 +155,7 @@ describe('모양확인', () => {
       },
     };
     expect(모양확인(나무, 'GET', '/tree', 200, 본문({ name: 'a', kids: [{ name: 'b', kids: [] }] }))?.result).toBe('PASS');
-    expect(모양확인(나무, 'GET', '/tree', 200, 본문({ name: 'a', kids: [{ kids: [] }] }))?.problems).toEqual(['필수 칸 kids[0].name 가 없다']);
+    expect(모양확인(나무, 'GET', '/tree', 200, 본문({ name: 'a', kids: [{ kids: [] }] }))?.problems).toEqual(['필수 필드 없음 — kids[0].name']);
   });
 
   it('문제는 많아야 5개다', () => {
@@ -189,7 +189,7 @@ describe('모양확인', () => {
       openapi: '3.1.0',
       paths: { '/s': { get: { responses: { '200': { content: { 'application/json': { schema: { type: 'object', required: ['s'], properties: { s: { enum: ['A', 'B'] } } } } } } } } } },
     };
-    expect(모양확인(열거, 'GET', '/s', 200, '{}')?.problems).toEqual(['필수 칸 s 가 없다']);
+    expect(모양확인(열거, 'GET', '/s', 200, '{}')?.problems).toEqual(['필수 필드 없음 — s']);
   });
 
   it('서버 주소의 변수({port})는 채워 읽고, 못 읽는 주소면 앞을 안 붙인다', () => {

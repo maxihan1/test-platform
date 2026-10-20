@@ -1,4 +1,4 @@
-// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · 정기 실행 · 실행 알림 · 테스트 작성 · 화면 크기 · 서비스 비활성화 구획
+// 설정 화면의 서비스 하나 (SPEC §8.8). 기본 정보 · 대상 서버 · API 문서 · 정기 실행 · 실행 알림 · 테스트 작성 · 화면 크기 · 서비스 비활성화 구획
 // 지우지 않는다 — 비활성으로 내릴 뿐이다. 지우면 그 서비스로 돌린 과거 증적이 흔들린다
 
 import { useState } from 'react';
@@ -14,10 +14,12 @@ import {
   제외경로값,
   피그마설정주소,
 } from './settingsView.js';
+import { API인증못보내는이유 } from './SettingsApiAuths.js';
+import { API문서구획, API문서못보내는이유, 종류칸, type 앱종류 } from './SettingsApiService.js';
 import { CrawlExcludeField } from './SettingsCrawlExclude.js';
 import { EnvEditor, 보낼모양, 줄로, type 줄 } from './SettingsEnvs.js';
 import { ScheduleFields } from './SettingsSchedule.js';
-import { 구획, 비밀칸, 프로젝트칸 } from './SettingsServiceParts.js';
+import { 구획, 비밀칸, 접두사칸, 프로젝트칸 } from './SettingsServiceParts.js';
 import { ViewportSection } from './SettingsViewport.js';
 import { message } from './ui.js';
 
@@ -43,6 +45,11 @@ export function ServicePanel({ row, projects = [], 기본프로젝트, onDone, �
   const [testsRepo, setTestsRepo] = useState(row?.testsRepo ?? '');
   const [testsDir, setTestsDir] = useState(row?.testsDir ?? '');
   const [envs, setEnvs] = useState<줄[]>(() => 줄로(row?.envs ?? []));
+  // 종류는 만들 때만 고른다. 받은 행에 없으면 이 칸 전에 만든 화면 애플리케이션이다
+  const [kind, setKind] = useState<앱종류>(row?.kind ?? 'SCREEN');
+  const [apiDocPath, setApiDocPath] = useState(row?.apiDocPath ?? '');
+  const [apiDocEnv, setApiDocEnv] = useState(row?.apiDocEnv ?? '');
+  const API종류 = kind === 'API';
   const [제외, set제외] = useState((row?.crawlExclude ?? []).join('\n'));
   // 빈 글자와 「안 건드림」은 다르다. null 이면 서버에 아예 안 보낸다 (지금 것을 그대로 둔다)
   const [webhook, setWebhook] = useState<string | null>(새것 ? '' : null);
@@ -52,32 +59,38 @@ export function ServicePanel({ row, projects = [], 기본프로젝트, onDone, �
   const [err, setErr] = useState<string | null>(null);
   const [비활성확인, set비활성확인] = useState(false);
   // 적다 만 것이 있으면 설정 메뉴 · 다른 화면으로 떠나기 전에 묻는다(점검 14.1). 처음 그린 값과 견준다
-  const 지금칸 = JSON.stringify({ projectId, prefix, name, testsRepo, testsDir, envs, 제외, webhook, figma, schedule });
+  const 지금칸 = JSON.stringify({ projectId, prefix, name, testsRepo, testsDir, envs, 제외, webhook, figma, schedule, kind, apiDocPath, apiDocEnv });
   const [처음칸] = useState(지금칸);
   // 저장한 칸. 칸이 새로 읽은 값으로 다시 그려지기 전에도(다시 읽기 실패 포함) 저장한 것을 두고는 묻지 않는다
   const [보낸칸, set보낸칸] = useState<string | null>(null);
 
   const 접두사틀림 = 접두사사유(prefix, 언어);
-  const 못보내는이유 = 서비스못보내는이유({ 새것, 프로젝트: 새것 ? projectId : undefined, prefix, name, testsDir, envs, 제외, 정기실행: 새것 ? undefined : schedule }, 언어);
+  const 서버들 = envs.map((it) => it.env).filter((env) => env !== '');
+  const 못보내는이유 =
+    서비스못보내는이유({ 새것, 프로젝트: 새것 ? projectId : undefined, prefix, name, testsDir, envs, 제외, 정기실행: 새것 ? undefined : schedule }, 언어) ??
+    (API종류 ? (API문서못보내는이유({ 경로: apiDocPath, 기준: apiDocEnv, 서버들 }, 언어) ?? API인증못보내는이유(envs, 언어)) : null);
 
   async function 보낸다() {
     if (못보내는이유 !== null) return;
     set보내는중(true);
     setErr(null);
     try {
-      const 같은칸 = { name, testsRepo, testsDir, envs: 보낼모양(envs), crawlExclude: 제외경로값(제외) };
+      // API 칸은 API 종류만 보낸다 — 화면 종류가 보내면 서버가 400 NOT_API_SERVICE 를 낸다
+      const API칸 = API종류 ? { apiDocPath: apiDocPath === '' ? null : apiDocPath, apiDocEnv: apiDocEnv === '' ? null : apiDocEnv } : {};
+      const 같은칸 = { name, testsRepo, testsDir, envs: 보낼모양(envs, API종류), crawlExclude: 제외경로값(제외), ...API칸 };
       if (새것) {
         if (projectId === null) return;
         await api.createService({
           projectId,
           prefix,
+          kind,
           color: 안쓰는서비스색,
           ...같은칸,
           ...(webhook === null || webhook === '' ? {} : { slackWebhook: webhook }),
           ...(figma === null || figma === '' ? {} : { figmaToken: figma }),
         });
       } else {
-        // 접두사는 안 보낸다. 보내면 서버가 400 PREFIX_IMMUTABLE 을 낸다 (SPEC §8.8)
+        // 접두사 · 종류는 안 보낸다. 보내면 서버가 400 PREFIX_IMMUTABLE · KIND_IMMUTABLE 을 낸다 (SPEC §8.8)
         // 정기 실행은 고쳤을 때만 보낸다 — 「안 보내면 그대로」라 그사이 다른 사람이 바꾼 것을 덮지 않는다
         const 정기바뀜 = JSON.stringify(schedule) !== JSON.stringify(row.schedule ?? null);
         await api.updateService(row.id, {
@@ -135,25 +148,8 @@ export function ServicePanel({ row, projects = [], 기본프로젝트, onDone, �
           바꾼다={setProjectId}
           {...(row === undefined ? {} : { 지금: { id: row.projectId, name: row.projectName } })}
         />
-        <div className="field">
-          <label htmlFor="sf-prefix">{t('접두사')}</label>
-          <div>
-            <input
-              id="sf-prefix"
-              type="text"
-              value={prefix}
-              disabled={!새것}
-              onChange={(e) => setPrefix(e.target.value.toUpperCase())}
-              placeholder="PAY"
-            />
-            <div className="hint">
-              {새것
-                ? t('생성할 때만 정할 수 있습니다. 케이스 번호(PAY-001)에 사용되므로 나중에 바꿀 수 없습니다')
-                : t('생성 후에는 바꿀 수 없습니다. 케이스 번호에 이미 사용 중입니다')}
-            </div>
-            {접두사틀림 === null ? null : <div className="err">{접두사틀림}</div>}
-          </div>
-        </div>
+        <접두사칸 새것={새것} 값={prefix} 바꾼다={setPrefix} 틀림={접두사틀림} />
+        <종류칸 새것={새것} 값={kind} 바꾼다={setKind} />
 
         <div className="field">
           <label htmlFor="sf-name">{t('이름')}</label>
@@ -196,8 +192,10 @@ export function ServicePanel({ row, projects = [], 기본프로젝트, onDone, �
       </구획>
 
       <구획 제목={t('대상 서버')} 쓰임={t('테스트를 실행할 서버 목록입니다. 하나 이상 등록해야 실행할 수 있습니다')}>
-        <EnvEditor envs={envs} onChange={setEnvs} 접두사={row?.prefix} />
+        <EnvEditor envs={envs} onChange={setEnvs} 접두사={row?.prefix} api={API종류} />
       </구획>
+
+      {API종류 ? <API문서구획 경로={apiDocPath} 바꾼경로={setApiDocPath} 기준={apiDocEnv} 바꾼기준={setApiDocEnv} 서버들={서버들} /> : null}
 
       {/* 새 서비스에는 없다 — 케이스가 없는 서비스라 돌릴 것이 없다 (도메인/인증 §8.8) */}
       {새것 ? null : (
@@ -206,7 +204,7 @@ export function ServicePanel({ row, projects = [], 기본프로젝트, onDone, �
             값={schedule}
             저장된={row.schedule ?? null}
             바꾼다={setSchedule}
-            대상서버들={envs.map((it) => it.env).filter((env) => env !== '')}
+            대상서버들={서버들}
             마지막={row.lastScheduled ?? null}
           />
         </구획>

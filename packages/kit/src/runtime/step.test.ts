@@ -175,9 +175,9 @@ describe('runStep — 응답 모양 확인', () => {
     expect(outcome.stopped).toBe(false);
     expect(emitted[0].status).toBe('FAIL');
     expect(emitted[0].shapeChecks).toEqual([
-      { method: 'POST', path: '/v1/pushes', status: 201, result: 'FAIL', problems: ['필수 칸 status 가 없다'] },
+      { method: 'POST', path: '/v1/pushes', status: 201, result: 'FAIL', problems: ['필수 필드 없음 — status'] },
     ]);
-    expect(run.firstFailure).toBe('응답 모양이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 칸 status 가 없다');
+    expect(run.firstFailure).toBe('응답 형식이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 필드 없음 — status');
   });
 
   it('실패한 확인 문장이 모양 문제보다 먼저 사유가 된다 · 맞는 모양은 PASS 줄만 남긴다', async () => {

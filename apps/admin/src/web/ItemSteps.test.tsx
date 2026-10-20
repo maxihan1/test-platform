@@ -74,3 +74,41 @@ describe('절차 부품 (항목 상세 · 실패 카드 공용)', () => {
     expect(screen.getByText('요청·응답 원문')).toBeTruthy();
   });
 });
+
+describe('응답 형식 검사 줄', () => {
+  const 모양: StepResult = {
+    ...절차,
+    shapeChecks: [
+      { method: 'POST', path: '/v1/pushes', status: 201, result: 'PASS' },
+      {
+        method: 'GET',
+        path: '/v1/pushes/{id}',
+        status: 200,
+        result: 'FAIL',
+        problems: ['필수 필드 없음 — status', '타입이 다름 — total (문서 number · 받은 값 string)'],
+      },
+      { method: 'DELETE', path: '/v1/pushes/{id}', status: 204, result: 'NO_SHAPE' },
+    ],
+  };
+
+  it('통과 · 실패(문제 줄 포함) · 문서에 모양 없음을 줄마다 그린다', () => {
+    그린다({ step: 모양 });
+    expect(screen.getByText('응답 형식 검사')).toBeTruthy();
+    const 통과 = screen.getByText('POST /v1/pushes 201').parentElement;
+    expect(통과?.textContent).toContain('✓');
+    expect(통과?.textContent).toContain('문서와 같습니다');
+    const 실패 = screen.getByText('GET /v1/pushes/{id} 200').parentElement;
+    expect(실패?.textContent).toContain('✗');
+    expect(실패?.textContent).toContain('문서와 다릅니다');
+    expect(screen.getByText('· 필수 필드 없음 — status')).toBeTruthy();
+    expect(screen.getByText('· 타입이 다름 — total (문서 number · 받은 값 string)')).toBeTruthy();
+    const 없음 = screen.getByText('DELETE /v1/pushes/{id} 204').parentElement;
+    expect(없음?.textContent).toContain('문서에 응답 형식 없음');
+    expect(없음?.textContent).not.toMatch(/[✓✗]/);
+  });
+
+  it('shapeChecks 가 비면 블록을 안 그린다', () => {
+    그린다({ step: { ...모양, shapeChecks: [] } });
+    expect(screen.queryByText('응답 형식 검사')).toBeNull();
+  });
+});

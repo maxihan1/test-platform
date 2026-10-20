@@ -104,11 +104,11 @@ describe.skipIf(연결 === undefined)('응답 모양 확인 — 서버 쪽', { t
   });
 
   it('케이스판 — 화면 애플리케이션은 빈 객체, 판이 안 적혔거나 없으면 미실행 사유, 있으면 원문', async () => {
-    expect(await 케이스판('XAS-FN-001')).toEqual({ 사유: 'API 문서 판 1 가 없습니다' });
+    expect(await 케이스판('XAS-FN-001')).toEqual({ 사유: 'API 문서 버전 1 이(가) 없습니다' });
     await 판올리기(서비스, 문서('1'), { source: 'FILE', fileName: null }, null);
 
     expect(await 케이스판('XASS-FN-001')).toEqual({});
-    expect(await 케이스판('XAS-FN-002')).toEqual({ 사유: '케이스에 API 문서 판이 적혀 있지 않습니다' });
+    expect(await 케이스판('XAS-FN-002')).toEqual({ 사유: '케이스에 API 문서 버전이 적혀 있지 않습니다' });
     // 없는 판은 담아 두지 않는다 — 방금 올린 판 1 을 읽는다
     expect(await 케이스판('XAS-FN-001')).toEqual({ apiDoc: { version: 1, doc: 문서('1') } });
   });

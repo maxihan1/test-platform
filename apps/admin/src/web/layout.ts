@@ -75,6 +75,9 @@ export function 자리목록(user: User, prefix: string | null, 언어: 언어):
     const 이름 = t('PRD 관리', 언어);
     const 하위 = (글: string, 해시: string): 하위자리 => ({ 이름: t(글, 언어), 해시, 라벨: `${이름} · ${t(글, 언어)}` });
     목록.push({ 이름, 해시: '#/prd', 아이콘: 'prd', 하위: [하위('요구사항', '#/prd'), 하위('애플리케이션 가이드', '#/prd/guide')] });
+    // PRD 바로 다음 · 늘 보인다 — API 애플리케이션이 아니면 본문이 안내 한 줄이다 (화면공통 §8 「자리 목록」 · 도메인/API §3.8 결정 6)
+    const API이름 = t('API', 언어);
+    목록.push({ 이름: API이름, 해시: '#/api/docs', 아이콘: 'api', 하위: [{ 이름: t('API 문서', 언어), 해시: '#/api/docs', 라벨: `${API이름} · ${t('API 문서', 언어)}` }] });
     목록.push({ 이름: t('테스트 작성', 언어), 해시: '#/authoring', 아이콘: 'authoring' });
   }
   if (기능보나(user, prefix, 'cases')) {
@@ -112,6 +115,7 @@ export function 지금자리(name: string, 집: string, 종류?: 'UI' | 'FN' | '
   if (name === 'authoring' || name === 'authoringItem') return '#/authoring';
   if (name === 'prd') return '#/prd';
   if (name === 'prdGuide') return '#/prd/guide';
+  if (name === 'apiDocs') return '#/api/docs';
   if (name === 'scenarios' || name === 'scenarioNew' || name === 'scenario') return '#/scenarios';
   if (name === 'settings') return '#/settings';
   // 비밀번호 변경은 자리 목록에 없다. 집을 돌려주면 케이스에 밑줄이 가서 딴 화면처럼 보인다
