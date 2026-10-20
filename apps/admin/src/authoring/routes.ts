@@ -15,7 +15,7 @@ import { 행커버리지 } from './coverage.js';
 import { 피그마주소정규화 } from './figma.js';
 import { 피그마막힘 } from './figmaCheck.js';
 import { 머지보류판정, 보류상세, 보류통로 } from './held-routes.js';
-import { API대상줄인가, API서비스인가, API칸판정 } from './apiDoc.js';
+import { API칸판정, 재실행API } from './apiDoc.js';
 import { 역방향칸판정 } from './reverse.js';
 import { 번호 } from './params.js';
 import { 상세읽기, 중단통로 } from './stop.js';
@@ -187,10 +187,8 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
         ? await 역방향칸판정({ compare: true, env: 행.env, startUrl: 행.startUrl }, 서비스)
         : ({ compare: false } as const);
       if ('error' in 대조) return reply.code(400).send({ error: 대조.error });
-      // API 애플리케이션 작성 원본은 env 를 물려받아 다시 판정한다 — 안 물려받으면 집기 응답의 target 이 빈다 (§7 「AUTHOR API 문서 판」).
-      // 케이스 고치기(EDIT)는 자식 없이 고쳐 env 가 없다
-      const api = 행.kind === 'AUTHOR' && (await API서비스인가(서비스));
-      if (api && !(await API대상줄인가(서비스, 행.env))) return reply.code(400).send({ error: 'BAD_ENV' });
+      const api = await 재실행API(서비스, 행);
+      if ('error' in api) return reply.code(400).send({ error: api.error });
       try {
         // 같은 뿌리에 도는 실행이 있으면 둘이 같은 브랜치를 서로 덮는다 — 확인과 넣기를 뿌리 잠금 안에서 (§7 「실행 기록」)
         const id = await 뿌리잠그고(행.id, async () => (await 도는실행있나(행.id)) ? null : 줄세우기({
@@ -204,7 +202,7 @@ export default async function authoringRoutes(app: FastifyInstance): Promise<voi
           누가,
           이름,
           ...(대조.compare ? { 대조: { env: 대조.env, startUrl: 대조.startUrl } } : {}),
-          ...(api && 행.env !== null ? { apiEnv: 행.env } : {}),
+          ...(api.env === undefined ? {} : { apiEnv: api.env }),
           ...(이어서 ? { 이어받기: 받은것.id } : {}),
         }));
         if (id === null) return reply.code(409).send({ error: 'RUN_ACTIVE' });

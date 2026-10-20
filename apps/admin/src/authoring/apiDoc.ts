@@ -44,6 +44,15 @@ export async function API칸판정(본문: Record<string, unknown>, 서비스: n
   return { api: true, env: 본문.env as string, 판id: 판, version: 본문.apiDoc as number };
 }
 
+/**
+ * 재실행 · 이어서 작성 — API 애플리케이션 작성 원본의 env 를 물려받아 다시 판정한다. 안 물려받으면 집기 응답의 target 이 빈다 (§7 「AUTHOR API 문서 판」).
+ * 화면 애플리케이션과 케이스 고치기(EDIT — 자식 없이 고쳐 env 가 없다)는 빈 객체다
+ */
+export async function 재실행API(서비스: number, 원본: { kind: string; env: string | null }): Promise<{ env?: string } | { error: 'BAD_ENV' }> {
+  if (원본.kind !== 'AUTHOR' || !(await API서비스인가(서비스))) return {};
+  return (await API대상줄인가(서비스, 원본.env)) ? { env: 원본.env as string } : { error: 'BAD_ENV' };
+}
+
 async function 판번호(서비스: number, version: number): Promise<number | null> {
   const r = await (await db()).query<{ id: string }>('SELECT id FROM api_doc_version WHERE service_id = $1 AND version = $2', [서비스, version]);
   return r.rows[0] === undefined ? null : Number(r.rows[0].id);
