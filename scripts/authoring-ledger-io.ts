@@ -8,7 +8,7 @@ import type { PrdItem } from '@platform/kit/types';
 
 import { TCID } from '../apps/admin/src/catalog/rules.js';
 import type { 읽을자료 } from './authoring-assets.js';
-import { type 원장, 번호바꾸기, 번호찾기, 원장만들기 } from './authoring-ledger.js';
+import { type 원장, type 원장항목, 번호바꾸기, 번호찾기, 원장만들기 } from './authoring-ledger.js';
 import { type 기준결정, tcId들, 사람이뺀번호, 요구줄들, 제외번호들 } from './authoring-ledger-check.js';
 import { 제거함번호들 } from './authoring-ledger-hold.js';
 import { 표tcId들 } from './authoring-conflicts.js';
@@ -75,10 +75,12 @@ export function 표준원장사본(
   옮긴몸: unknown,
   접두사: string,
   기준: 기준표 | null,
+  /** API 애플리케이션 판의 API 줄 — `API원장항목` */
+  api: readonly 원장항목[] = [],
 ): { 원장: 원장 | { 없음: string }; 기준: 기준결정; 글: string } {
   const 옮긴 = 옮긴몸 === undefined ? null : 옮긴것읽기(옮긴몸, 접두사);
   const 항목들 = 옮긴 === null || '사유' in 옮긴 ? 지금 : 판합치기(지금, 옮긴).items;
-  const 원장값 = 표준원장(항목들);
+  const 원장값 = 표준원장(항목들, api);
   const 결정 = 기준결정만들기(기준 === null ? null : { ...기준, 접두사 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호), 옛번호지도(항목들));
   const 사본 = '없음' in 원장값 ? 원장값 : { 원장: 원장값, 사람이뺌: [...결정.사람이뺌], 다음요청: [...결정.다음요청], 제거함: [...(결정.제거함 ?? [])], 칸재료: 결정.칸재료 };
   return { 원장: 원장값, 기준: 결정, 글: JSON.stringify(사본, null, 2) };
@@ -198,8 +200,10 @@ export function 원장과남은번호(입력: {
   등록역할?: Set<string>;
   /** 반영 요청이면 지금 판 번호와 기준 판 · (화면이 맞음이면) 요청의 screenRight */
   반영?: { 지금판: number; 기준판: { version: number; items: PrdItem[] } | null; 화면이맞음?: 화면이맞음요청[] | null };
+  /** API 애플리케이션 판의 API 줄 (도메인/API §3.8 「작성」 「원장」) */
+  api?: readonly 원장항목[];
 }):
-  | { 원장: 원장 | { 없음: string }; 입력: 원장입력; 기준: 기준결정; 기준표: 기준표 | null; 원본원장: 원장 | { 없음: string }; 원본입력: 원장입력; 이어작성?: 이어작성입력; 반영?: 반영입력 }
+  | { 원장: 원장 | { 없음: string }; 입력: 원장입력; 기준: 기준결정; 기준표: 기준표 | null; 원본원장: 원장 | { 없음: string }; 원본입력: 원장입력; 이어작성?: 이어작성입력; 반영?: 반영입력; api: readonly 원장항목[] }
   | { 막힘: string } {
   const 기준 = 기준읽기(입력.깃, 입력.기준, 입력.서비스, 입력.폴더);
   if ('까닭' in 기준) {
@@ -209,7 +213,7 @@ export function 원장과남은번호(입력: {
   const 기준값 = '까닭' in 기준 ? null : 기준;
   // 자식이 결과 파일을 고친 뒤 원장을 다시 만들 재료 — 판정은 에이전트 메모리의 것으로 한다(자식이 고쳐도 안 흔들린다)
   const 재료 = { 접두사: 입력.서비스, 기준표: 기준값 === null ? null : { 표글: 기준값.표글, 있는케이스: [...기준값.있는케이스] } };
-  const 사본 = 표준원장사본(입력.지금, 입력.옮긴몸, 입력.서비스, 기준값);
+  const 사본 = 표준원장사본(입력.지금, 입력.옮긴몸, 입력.서비스, 기준값, 입력.api);
   const 사본자리 = join(입력.자료폴더, 원장사본이름);
   const 못씀 = !새로쓰기(join(입력.자료폴더, 기준재료이름), JSON.stringify(재료)) || !새로쓰기(사본자리, 사본.글);
   const 원본 = 입력.옮긴다 ? 원본원장준비(입력.계획, 입력.자료폴더) : { 원장: { 없음: '옮기지 않는 요청이다' }, 입력: { 없음: '옮기지 않는 요청이다' } };
@@ -229,6 +233,8 @@ export function 원장과남은번호(입력: {
     기준표: 기준값,
     원본원장: 원본.원장,
     원본입력: 원본.입력,
+    // 자식 뒤 원장을 다시 지을 때 같은 API 줄을 붙인다
+    api: 입력.api ?? [],
   };
   if (입력.이어작성원본 === null && 입력.반영 !== undefined && 기준값 !== null) {
     const 계획 = 반영계획만들기({ version: 입력.반영.지금판, items: 입력.지금 }, 입력.반영.기준판, 기준값.표글, 입력.서비스, 입력.반영.화면이맞음 ?? undefined);

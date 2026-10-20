@@ -39,8 +39,12 @@ const 번호식 = new RegExp(String.raw`(?<![A-Za-z0-9.\-])(${번호꼴})(?![A-Z
 const 범위뒤식 = new RegExp(String.raw`^\s*[~～]\s*(?:(${번호꼴})|(\d+))(?![A-Za-z0-9\-]|\.\d)`);
 const 범위상한 = 200;
 
-/** 번호의 가족 — 맨 끝 `-숫자` 앞. `REQ-COM-001` → `REQ-COM` */
+// API 애플리케이션 원장 줄 — `API POST /v1/pushes 201` (도메인/API §3.8 「작성」 「원장」). 경로에 빈칸 · 표 칸 · 백틱이 없다
+const API번호식 = /(?<![A-Za-z0-9])API (?:GET|PUT|POST|DELETE|PATCH|HEAD|OPTIONS|TRACE) \/[^\s|`]* [1-5]\d\d(?!\d)/g;
+
+/** 번호의 가족 — 맨 끝 `-숫자` 앞. `REQ-COM-001` → `REQ-COM`. API 줄은 모두 `API` 가족이다 */
 export function 가족(번호: string): string {
+  if (번호.startsWith('API ')) return 'API';
   return 번호.slice(0, 번호.lastIndexOf('-'));
 }
 
@@ -65,10 +69,30 @@ export function 번호바꾸기(글: string, 맞춤: ReadonlyMap<string, string>
   return 글.replace(번호식, (m) => 맞춤.get(m) ?? m);
 }
 
-/** 글에서 번호를 나온 순서대로 찾는다(중복 포함). 추출과 대조가 이 함수 하나를 쓴다 */
+/**
+ * 글에서 번호를 나온 순서대로 찾는다(중복 포함). 추출과 대조가 이 함수 하나를 쓴다.
+ * API 줄을 먼저 찾고 그 자리를 빈칸으로 덮은 글에서 요구 번호를 찾는다 — 경로 속 글자가 요구 번호로 또 잡히지 않게
+ */
 export function 번호찾기(글: string): { 번호들: string[]; 경고: string[] } {
+  const api = [...글.matchAll(API번호식)].map((m) => ({ 자리: m.index, 번호: m[0] }));
+  if (api.length === 0) return 요구번호찾기(글, () => 0);
+  const 덮은글 = 글.replace(API번호식, (m) => ' '.repeat(m.length));
+  const 자리들: number[] = [];
+  const 요구 = 요구번호찾기(덮은글, (자리) => 자리들.push(자리));
+  const 모두 = [...api, ...요구.번호들.map((번호, i) => ({ 자리: 자리들[i] ?? 0, 번호 }))].sort((a, b) => a.자리 - b.자리);
+  return { 번호들: 모두.map((x) => x.번호), 경고: 요구.경고 };
+}
+
+/** 요구 번호만 찾는다. `자리에` 는 번호 하나를 넣을 때마다 그 번호가 나온 글자 자리로 불린다(범위를 펼친 번호는 시작 자리) */
+function 요구번호찾기(글: string, 자리에: (자리: number) => unknown): { 번호들: string[]; 경고: string[] } {
   const 번호들: string[] = [];
   const 경고: string[] = [];
+  const 넣기 = (자리: number, ...더할: string[]) => {
+    for (const b of 더할) {
+      번호들.push(b);
+      자리에(자리);
+    }
+  };
   for (const m of 글.matchAll(번호식)) {
     const 시작 = m[1];
     if (시작 === undefined) continue;
@@ -78,16 +102,16 @@ export function 번호찾기(글: string): { 번호들: string[]; 경고: string
     if (/[~～]\s*$/.test(앞)) continue;
     const 뒤 = 범위뒤식.exec(글.slice(m.index + 시작.length));
     if (뒤 === null) {
-      번호들.push(시작);
+      넣기(m.index, 시작);
       continue;
     }
     const 끝 = 뒤[1] ?? `${가족(시작)}-${뒤[2] ?? ''}`;
     const 펼친것 = 펼치기(시작, 끝);
     if (펼친것 === null) {
-      번호들.push(시작, 끝);
+      넣기(m.index, 시작, 끝);
       경고.push(`범위 ${시작}~${끝} 를 펼치지 못해 양 끝만 넣었다`);
     } else {
-      번호들.push(...펼친것);
+      넣기(m.index, ...펼친것);
     }
   }
   return { 번호들, 경고 };

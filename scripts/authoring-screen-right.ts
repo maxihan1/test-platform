@@ -9,7 +9,7 @@ import type { PrdItem } from '@platform/kit/types';
 import { 요구같나 } from '../apps/admin/src/prd/rules.js';
 import type { 사본 } from './authoring-copy.js';
 import { 부른다 } from './authoring-io.js';
-import type { 원장 } from './authoring-ledger.js';
+import type { 원장, 원장항목 } from './authoring-ledger.js';
 import type { 기준결정 } from './authoring-ledger-check.js';
 import { type 기준표, 기준결정만들기 } from './authoring-ledger-io.js';
 import { type 옮긴것, 보낼항목, 옛번호지도, 표준원장 } from './authoring-prd.js';
@@ -77,6 +77,8 @@ export async function 안옮김뒤(
   원장: { 원장: 원장 | { 없음: string }; 기준: 기준결정; 기준표: 기준표 | null; 반영?: 반영입력 },
   비밀: { 피그마?: string; 계정?: readonly string[] },
   폴더: string,
+  /** API 애플리케이션 판의 API 줄 — 원장을 다시 지을 때 같이 붙인다 */
+  api: readonly 원장항목[] = [],
 ): Promise<뒤결과> {
   if (원장.반영 === undefined) return { 줄: [], 원장: 원장.원장, 기준: 원장.기준 };
   const 반영줄 = 반영뒤줄(원장.반영.계획, 자리.트리, 폴더);
@@ -105,7 +107,7 @@ export async function 안옮김뒤(
     }
     // 원장은 자식이 본 것과 같게 — 자식 앞 판(가린 항목)에 고친 번호를 넣는다. 올리기 판정이 새 문장으로 표를 본다
     const 항목들 = 화면대로합치기(앞.items, 읽음.옮긴, 고친).items;
-    const 원장값 = 표준원장(항목들);
+    const 원장값 = 표준원장(항목들, api);
     return {
       줄: [...반영줄, 화면이맞음줄(화면, 고친)],
       원장: 원장값,

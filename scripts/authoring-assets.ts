@@ -6,7 +6,7 @@ import { extname, join } from 'node:path';
 export interface 자료 {
   id: number;
   position: number;
-  kind: 'FILE' | 'FIGMA';
+  kind: 'FILE' | 'FIGMA' | 'API_DOC';
   name: string;
   figmaUrl: string | null;
   /** 사람 입력인지 에이전트 산출물인지 (§3.6 「★ 역방향」). 없으면 입력이다 — 옛 서버 응답 */
@@ -19,7 +19,8 @@ export interface 자료 {
  * (서버가 역방향 원본의 재실행을 409 로 막지만 에이전트는 서버를 믿지 않는다)
  */
 export function 입력만(자료들: 자료[]): 자료[] {
-  return 자료들.filter((자) => (자.role ?? 'INPUT') === 'INPUT');
+  // API 문서 판은 받을 파일이 아니다 — 판 원문은 집기 응답의 apiDoc 으로 따로 온다 (도메인/API §3.8 「작성」)
+  return 자료들.filter((자) => (자.role ?? 'INPUT') === 'INPUT' && 자.kind !== 'API_DOC');
 }
 
 /** 자료 하나를 자식에게 넘기기까지 할 일. 파일은 받아서(필요하면 바꿔서) 경로로, 피그마는 주소로 */
@@ -116,11 +117,11 @@ export function 화면만인가(것: { target?: unknown }, 자료들: readonly �
  * 옛 행(자료 0, 본문 있음)은 본문으로 돈다.
  */
 export function 돌릴수있나(
-  입력: { specText?: string | null; figmaToken?: string; 화면만?: boolean },
+  입력: { specText?: string | null; figmaToken?: string; 화면만?: boolean; api?: boolean },
   자료들: 자료[],
 ): string | null {
-  // 화면만(대조 + 시작 주소)은 기획서 없이 그 화면을 훑는다 — 자료 0 이 정상이다 (§7 submit)
-  if (자료들.length === 0 && !입력.specText && 입력.화면만 !== true) {
+  // 화면만(대조 + 시작 주소)은 기획서 없이 그 화면을 훑는다 — 자료 0 이 정상이다 (§7 submit). API 애플리케이션은 판만으로 돈다
+  if (자료들.length === 0 && !입력.specText && 입력.화면만 !== true && 입력.api !== true) {
     return '자료도 기획서 본문도 없다. 돌릴 것이 없어 claude 를 부르지 않았다.';
   }
   if (자료들.some((자) => 자.kind === 'FIGMA') && !입력.figmaToken) {

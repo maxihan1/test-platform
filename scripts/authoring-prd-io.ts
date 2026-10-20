@@ -10,7 +10,7 @@ import { 본문상한 } from '../apps/admin/src/prd/rules.js';
 import { 비밀섞였나 } from './authoring-chain.js';
 import type { 사본 } from './authoring-copy.js';
 import { 거절글, 부른다 } from './authoring-io.js';
-import { type 원장, 번호바꾸기 } from './authoring-ledger.js';
+import { type 원장, type 원장항목, 번호바꾸기 } from './authoring-ledger.js';
 import type { 기준결정 } from './authoring-ledger-check.js';
 import { type 기준표, 기준결정만들기, 옛표줄들, 표번호바꾸기 } from './authoring-ledger-io.js';
 import { type 옮긴것, 대조줄들, 보낼항목, 비밀번호꼴가리기, 새번호맞추기, 옛번호지도, 옮긴것읽기, 옮기기대조, 판줄들, 판합치기, 표준원장 } from './authoring-prd.js';
@@ -161,12 +161,14 @@ export async function 옮기기올리기(
   기준: 기준표 | null,
   /** 서비스 테스트 폴더 — 옛 표를 옮겼으면 남은 옛 케이스 파일을 본다 */
   폴더: string,
+  /** API 애플리케이션 판의 API 줄 — 원장을 다시 지을 때 같이 붙인다 */
+  api: readonly 원장항목[] = [],
 ): Promise<{ 줄: string[]; 원장: 원장 | { 없음: string }; 기준: 기준결정 } | { 거절: string; 줄: string[] }> {
   const 읽음 = 결과읽기(자리, 서비스, 비밀);
   if (읽음 === null) {
     if (크롤모두덮음(자리.자료) === null) return { 거절: `표준 기획서 결과(out/${결과이름})가 없다`, 줄: [] };
     // 크롤 목록이 전부 PRD 에 있으면 자식이 아무것도 안 쓴 것이 맞다 — 올릴 판이 없다. 올리기가 「기획서에 없는 화면이 없다」로 끝낸다 (PRD-F6-03)
-    const 원장값 = 표준원장(앞.items);
+    const 원장값 = 표준원장(앞.items, api);
     return { 줄: [], 원장: 원장값, 기준: 기준결정만들기(기준 === null ? null : { ...기준, 접두사: 서비스 }, '없음' in 원장값 ? [] : 원장값.항목.map((h) => h.번호), 옛번호지도(앞.items)) };
   }
   if ('거절' in 읽음) return { 거절: 읽음.거절, 줄: [] };
@@ -202,7 +204,7 @@ export async function 옮기기올리기(
     // 원장은 자식이 본 것과 같게 — 자식 앞 판에 결과 파일을 합친 항목에 받은 번호를 단다. 저장된 판으로 만들면 사람이 남긴 항목 ·
     // 그 사이 다른 저장이 차례를 밀어 칸 번호(원장 차례로 매긴다)가 어긋난다 (2026-10-10 코드 검토)
     const 항목들 = 판합치기(앞.items, 옮긴).items.map((i) => (i.임시 !== undefined && 맞춤.has(i.임시) ? { ...i, reqId: 맞춤.get(i.임시) } : i));
-    const 원장값 = 표준원장(항목들);
+    const 원장값 = 표준원장(항목들, api);
     const 사람것 = Array.isArray(받음.keptByPerson) ? 받음.keptByPerson.filter((v): v is string => typeof v === 'string') : [];
     return {
       줄: [...판줄들(받음.version, 옮긴, 합친, 사람것), ...대조, ...(기준 === null ? [] : 옛표줄들(자리.트리, 서비스, 폴더, 기준.표글))],
