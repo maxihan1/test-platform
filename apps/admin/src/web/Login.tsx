@@ -1,4 +1,5 @@
 // 로그인 화면 (SPEC §8.6). 아이디 칸, 비밀번호 칸, 로그인 버튼, 그 아래 회원가입 링크, 언어 고르개. 그 밖에 아무것도 없다
+// maxihan 계정(SSO)이 켜진 설치는 그 대신 버튼 하나다 (SSO로그인)
 // 가입은 승인 대기 계정만 만든다 — 문을 여는 판단은 여전히 운영자가 설정 화면에서 한다 (§8.8)
 
 import { useState } from 'react';
@@ -7,6 +8,38 @@ import { api, ApiError, type User } from './api.js';
 import { use말, use언어, type 언어 } from './i18n.js';
 import { 언어고르개 } from './ShellPickers.js';
 import { message } from './ui.js';
+import { useSSO } from './useSSO.js';
+
+/** 돌아온 결과(`/?sso=…`, 서버 auth/sso.ts)마다 보일 문장. 승인 대기는 잘못이 아니라 기다림이라 오류 모양으로 안 그린다 */
+const SSO안내: Record<string, { 문장: string; 오류: boolean }> = {
+  pending: { 문장: '가입 신청을 검토하고 있습니다. 운영자가 수락하면 로그인할 수 있습니다', 오류: false },
+  username: { 문장: '이 플랫폼에서 쓸 수 없는 아이디입니다. 운영자가 확인해야 합니다', 오류: true },
+  failed: { 문장: '로그인하지 못했습니다. 버튼을 다시 누르면 됩니다', 오류: true },
+};
+
+/** maxihan 계정(SSO)이 켜진 설치의 로그인 화면 (SPEC §8.6). 버튼 하나 · 언어 고르개. 가입 · 비밀번호 칸은 없다 */
+function SSO로그인({ on언어, 결과 }: { on언어: (고른: 언어) => void; 결과: string | null }) {
+  const t = use말();
+  const 언어 = use언어();
+  const 안내 = 결과 === null ? undefined : SSO안내[결과];
+  return (
+    <div className="login">
+      <div className="login-box">
+        <div className="login-title">QA Hub</div>
+        <h1 className="login-greet">{t('로그인')}</h1>
+        <p className="login-sub">{t('maxihan 계정으로 로그인하면 맡은 애플리케이션이 열립니다.')}</p>
+        {안내 === undefined ? null : <p className={안내.오류 ? 'err login-err' : 'login-info'}>{t(안내.문장)}</p>}
+        {/* 서버가 Auth_platform 으로 보낸다. 화면 안 이동이 아니라 페이지 이동이다 */}
+        <a className="btn" href="/api/auth/sso/start">
+          {t('maxihan 계정으로 로그인')}
+        </a>
+        <div className="side-lang login-lang">
+          <언어고르개 언어={언어} on언어={on언어} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Grafana 문이 로그인 화면으로 보낼 때 실어 준 돌아올 자리 (도메인/인증 §7 「Grafana 통로」).
@@ -35,6 +68,10 @@ export function Login({
   const [failed, setFailed] = useState<string | null>(null);
   const [기다림, set기다림] = useState(false);
   const [busy, setBusy] = useState(false);
+  // 묻는 동안은 아이디 · 비밀번호 칸을 그린다 — 대부분의 설치가 그 모양이고, 칸이 비어 보이는 것보다 낫다
+  const sso = useSSO();
+
+  if (sso === true) return <SSO로그인 on언어={on언어} 결과={new URLSearchParams(window.location.search).get('sso')} />;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

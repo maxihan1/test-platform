@@ -255,7 +255,7 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
   }
 
   const 나간다 = () => {
-    void api.logout().finally(() => {
+    const 정리 = () => {
       // 로그인 화면으로 가는 길을 저장 안 한 조립이 막으면 안 된다
       떠나기막기(null);
       set상태({ 어디: '밖' });
@@ -263,7 +263,14 @@ function App({ 언어, on언어 }: { 언어: 언어; on언어: (고른: 언어) 
       // 알림이 뜬 채 나가면 줄이 사라져 끄는 길(onGone)이 안 불린다. 남겨 두면 다음 로그인에 옛 알림이 뜬다
       set비밀번호바꿈(false);
       window.location.hash = '#/login';
-    });
+    };
+    void api.logout().then((답) => {
+      if (답?.redirect === undefined) return 정리();
+      // maxihan 계정이면 Auth_platform 세션도 끊어야 다음 로그인에서 다시 묻는다. 끊고 나면 첫 화면으로 돌아온다.
+      // 해시를 바꾸지 않는다 — 바꾸면 페이지를 떠나는 이동이 끊긴다
+      떠나기막기(null);
+      window.location.assign(답.redirect);
+    }, 정리);
   };
 
   // 바뀐 나를 받아 강제면 집으로, 스스로면 직전 자리로 (도메인/인증 §8.6). 세션은 그대로다
