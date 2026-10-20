@@ -1,10 +1,11 @@
 // 절차 실행 규칙(SPEC §4 verify 실패 규칙)을 Playwright 없이 검사한다. 스크린샷과 결과 전달은 가짜 함수로 바꿔 끼운다
 
+import type { APIRequestContext, APIResponse } from '@playwright/test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { StepResult } from '../types.js';
 import { runScope, type RunScope } from './context.js';
-import { recordHttpTrace } from './http.js';
+import { recordHttpTrace, traced } from './http.js';
 import { runStep, step } from './step.js';
 import { verify } from './verify.js';
 
@@ -138,6 +139,66 @@ describe('runStep', () => {
       request: { method: 'POST', url: 'https://example.test/posts' },
       response: { status: 201, body: '{}' },
     });
+  });
+});
+
+describe('runStep — 응답 모양 확인', () => {
+  const 문서 = {
+    openapi: '3.1.0',
+    paths: {
+      '/v1/pushes': {
+        post: {
+          responses: {
+            '201': {
+              content: {
+                'application/json': { schema: { type: 'object', required: ['status'], properties: { status: { type: 'string' } } } },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+  const 가짜도구 = (본문: unknown): APIRequestContext => {
+    // 절차 기록이 자르는 2000자보다 길게 — 잘린 본문으로 보면 JSON 이 아니라 깨진다
+    const 글 = JSON.stringify({ ...(본문 as object), note: 'x'.repeat(3000) });
+    const 응답 = { status: () => 201, text: async () => 글 } as unknown as APIResponse;
+    return { post: async () => 응답 } as unknown as APIRequestContext;
+  };
+
+  it('모양이 틀리면 확인 문장이 없어도 절차를 FAIL 로 만들고 멈추지 않는다 — 사유는 첫 모양 문제', async () => {
+    const { run, emitted } = makeRun(null);
+    const outcome = await runStep(run, '푸시를 보낸다', async () => {
+      await traced(가짜도구({ id: 'p1' }), new Set(), 문서).post('/v1/pushes');
+    });
+
+    expect(outcome.stopped).toBe(false);
+    expect(emitted[0].status).toBe('FAIL');
+    expect(emitted[0].shapeChecks).toEqual([
+      { method: 'POST', path: '/v1/pushes', status: 201, result: 'FAIL', problems: ['필수 칸 status 가 없다'] },
+    ]);
+    expect(run.firstFailure).toBe('응답 모양이 API 문서와 다릅니다 — POST /v1/pushes 201 · 필수 칸 status 가 없다');
+  });
+
+  it('실패한 확인 문장이 모양 문제보다 먼저 사유가 된다 · 맞는 모양은 PASS 줄만 남긴다', async () => {
+    const { run, emitted } = makeRun(null);
+    await runStep(run, '푸시를 보낸다', async () => {
+      await traced(가짜도구({ status: 'QUEUED' }), new Set(), 문서).post('/v1/pushes');
+      await verify('상태가 SENT 다', 'QUEUED', 'SENT');
+    });
+
+    expect(emitted[0].shapeChecks?.map((c) => c.result)).toEqual(['PASS']);
+    expect(run.firstFailure).toBe('상태가 SENT 다');
+  });
+
+  it('판이 없으면 모양 줄을 싣지 않는다', async () => {
+    const { run, emitted } = makeRun(null);
+    await runStep(run, '푸시를 보낸다', async () => {
+      await traced(가짜도구({}), new Set()).post('/v1/pushes');
+    });
+
+    expect(emitted[0].status).toBe('PASS');
+    expect(emitted[0].shapeChecks).toBeUndefined();
   });
 });
 

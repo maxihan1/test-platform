@@ -69,6 +69,22 @@ describe('defineCase', () => {
     ).toThrow('DEMO-005: android 는 다른 디바이스와 함께 선언하지 않는다');
   });
 
+  it('apiDoc 을 주면 명세에 싣고, 안 주면 키가 없다', () => {
+    const 기본 = { name: 'API 케이스', precondition: [], params: null, expected: null };
+    expect(defineCase({ ...기본, tcId: 'DEMO-020', apiDoc: 3 }).apiDoc).toBe(3);
+    expect('apiDoc' in defineCase({ ...기본, tcId: 'DEMO-021' })).toBe(false);
+  });
+
+  it('apiDoc 이 1 이상 정수가 아니거나 desktop 밖 디바이스와 같이 오면 던진다', () => {
+    const 기본 = { name: 'API 케이스', precondition: [], params: null, expected: null };
+    expect(() => defineCase({ ...기본, tcId: 'DEMO-022', apiDoc: 0 })).toThrow('DEMO-022: apiDoc 은 1 이상의 정수여야 한다');
+    expect(() => defineCase({ ...기본, tcId: 'DEMO-023', apiDoc: 1.5 })).toThrow('apiDoc 은 1 이상의 정수여야 한다');
+    expect(() => defineCase({ ...기본, tcId: 'DEMO-024', apiDoc: 2, platforms: ['desktop', 'mobile'] })).toThrow(
+      'DEMO-024: apiDoc 을 단 케이스의 platforms 는 desktop 하나다',
+    );
+    expect(defineCase({ ...기본, tcId: 'DEMO-025', apiDoc: 2, platforms: ['desktop'] }).platforms).toEqual(['desktop']);
+  });
+
   it('없다고 적은 자리는 빈 객체 스키마가 된다', () => {
     const spec = defineCase({
       tcId: 'DEMO-003',

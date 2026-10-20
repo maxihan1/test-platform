@@ -20,6 +20,7 @@ export interface CaseSpec {
   filePath: string;             // 소스 루트 기준 상대 경로
   held?: string;                // 있으면 보류 케이스 — 사람이 값을 채워야 돈다. 머리는 「판정 불가 — 」 또는 「보류 — 」
   techniques?: Technique[];     // 기능 테스트에만 · 칸의 설계 기법. 값은 DB · URL 에 그대로 가는 식별자라 바꾸지 않는다
+  apiDoc?: number;              // API 케이스만 · 케이스가 만들어진 API 문서 판. 없으면 키가 없다 (도메인/API §3.8)
 }
 
 export interface AssertionResult {
@@ -39,6 +40,7 @@ export interface StepResult {
   line?: number;                // 실패한 소스 줄 번호. 코드 뷰가 이 줄을 중심으로 연다
   screenshotPath?: string;      // 실패 시 자동, 또는 capture:true인 스텝
   httpTrace?: { request: unknown; response: unknown };  // API 테스트용
+  shapeChecks?: ShapeCheck[];   // 그 절차에서 보낸 요청의 응답 모양 확인. 하나라도 FAIL 이면 그 절차 status 는 FAIL (도메인/API §3.8)
   error?: { message: string; stack?: string };
   skipped?: true;               // 사람이 체크를 풀어 건너뛴 「만들기」 절차. 판정 없이 PASS 로 적는다 (E2E 시나리오)
 }
@@ -56,6 +58,7 @@ export interface ExecuteRequest {
   app?: string;                 // android 만. 그 대상 서버의 앱 파일 경로나 http(s) 주소(받는 쪽은 Appium 이 도는 PC). 없으면 러너 환경값 PLATFORM_APP (§5.2 · APP-F1-03)
   udid?: string;                // android 만. admin 이 디바이스 팜에서 잡은 폰. 없으면 러너 환경값 PLATFORM_DEVICE_UDID (§5.2 · APP-F1-10)
   apiAuths?: ApiAuth[];         // 그 대상 서버 줄의 API 인증 전부. API 종류 애플리케이션 케이스만 (도메인/API §3.8 · API-F1-04)
+  apiDoc?: ApiDocRef;           // 그 케이스의 판. CaseSpec.apiDoc 이 있을 때만 (도메인/API §3.8 · API-F1-05)
 }
 
 export interface ApiAuth {      // 대상 서버 줄의 API 인증 하나 (service_env.api_auths). 러너 · kit 까지만 비밀값이 간다
@@ -63,6 +66,19 @@ export interface ApiAuth {      // 대상 서버 줄의 API 인증 하나 (servi
   tokenUrl: string;             // '/v1/oauth/token' 이면 케이스 요청과 같은 규칙(Playwright baseURL)으로 대상 서버 주소에 붙는다. 아니면 http(s) 주소 (도메인/API §3.8)
   clientId: string;
   clientSecret: string;
+}
+
+export interface ApiDocRef {    // 케이스가 만들어진 판의 원문. 서버가 실행 때 싣는다
+  version: number;
+  doc: unknown;                 // OpenAPI 3.x JSON 그대로
+}
+
+export interface ShapeCheck {   // 요청 하나의 응답 모양 확인 (도메인/API §3.8 「응답 모양 확인」)
+  method: string;               // 'POST'
+  path: string;                 // 문서의 경로 틀 '/v1/pushes/{id}'
+  status: number;               // 받은 응답 코드
+  result: 'PASS' | 'FAIL' | 'NO_SHAPE';   // NO_SHAPE — 그 코드에 문서 모양이 없어 코드만 봤다(통과로 센다)
+  problems?: string[];          // FAIL 일 때만. 사람 말 한 줄씩, 많아야 5개
 }
 
 export interface ExecuteResponse {
@@ -128,9 +144,10 @@ export interface ScenarioExecuteRequest {          // POST /execute-scenario (�
   trialId?: string;                                // 시험 실행일 때만. admin 이 만든 UUID
   platform: BrowserPlatform;
   baseUrl: string;
-  parts: Array<ScenarioPart & { filePath?: string; baseUrl?: string; apiAuths?: ApiAuth[] }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다.
+  parts: Array<ScenarioPart & { filePath?: string; baseUrl?: string; apiAuths?: ApiAuth[]; apiDoc?: ApiDocRef }>;   // case 부품에만 filePath 를 admin 이 채워 보낸다.
                                                    // baseUrl 은 case · api 부품이 돌 주소 — 시작 애플리케이션이 아닌 단계에만 붙는다. 없으면 위 baseUrl (결정 13)
                                                    // apiAuths 는 API 애플리케이션 case 부품에만 — 그 애플리케이션 · 짝지은 대상 서버의 인증. 부품 기록에는 안 넣는다 (도메인/API §3.8)
+                                                   // apiDoc 은 그 case 부품 케이스가 만들어진 판. apiAuths 와 같이 부품 기록에는 안 넣는다
   timeoutMs: number;
   deleteStatuses?: ScenarioDeleteStatus[];         // 미룬 삭제에 줄 응답 코드. 없는 주소는 204 (도메인/시나리오 §3.7 결정 12)
 }
