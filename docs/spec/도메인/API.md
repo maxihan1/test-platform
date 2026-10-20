@@ -122,7 +122,11 @@
 #### 바뀐 API 만 다시 작성
 
 - **판 비교** — 두 판의 API(메서드 · 경로)마다 새 · 바뀜 · 없어짐과 깨는 변경 여부. 바뀜은 요청 칸 · 응답 코드 · 응답 스키마가 달라진 것. **깨는 변경** — API 없어짐 · 응답 코드 없어짐 · 요청 필수 칸 생김 · 응답 칸 없어짐 · 칸의 형 바뀜
-- **누를 때만 돈다**(결정 7) — 「바뀐 API 만 다시 작성」이 작성 요청 하나를 세운다. 자료는 새 판 하나, `params.apiApply = { fromVersion, toVersion, operations: [{ method, path }] }`. 자식은 그 API 의 케이스(`api_call_seen` 으로 찾는다)만 새 판으로 다시 쓰고 새 API 는 새로 쓴다 — 고친 요구만 다시 작성(도메인/작성 §3.6 「표준 기획서」 · PRD-F4-03)과 같은 흐름이다
+- **누를 때만 돈다**(결정 7) — 「바뀐 API 만 다시 작성」이 작성 요청 하나를 세운다. 자료는 새 판 하나, `params.apiApply = { fromVersion, toVersion, operations: [{ method, path, change, breaking, notes, tcIds }] }`. 자식은 그 API 의 케이스만 새 판으로 다시 쓰고 새 API 는 새로 쓴다 — 고친 요구만 다시 작성(도메인/작성 §3.6 「표준 기획서」 · PRD-F4-03)과 같은 흐름이다
+  - **서버가 누를 때 채운다** (2026-10-21 API-F1-07) — 고른 API 가운데 판 비교에 든 것만 남기고, 줄마다 판 비교 한 줄(`change` · `breaking` · `notes`)과 그때 그 API 를 부르던 활성 케이스(`api_call_seen` · `test_case.is_active` — 커버리지와 같은 규칙)를 `tcIds` 로 박아 둔다. 에이전트는 DB 를 안 보므로 이것이 자식이 받는 전부다. 돌려 본 적 없는 케이스는 `tcIds` 에 없다 — 자식이 그 API 를 부르는 케이스를 더 찾으면 같이 고친다
+  - 에이전트는 이 칸을 자료 폴더 `api-apply.json` 에 새 판의 그 API 원장 번호(`API POST /v1/pushes 201`)와 같이 쓰고 줄 프롬프트에 「바뀐 API 만 다시 작성」 절을 붙인다. 칸 모양이 틀리거나 `toVersion` 이 자료의 판과 다르면 자식을 안 띄우고 FAILED 다. 자식 지침은 `tpx-author` `references/apply.md` §6 이다
+  - PR 본문 머리 — `API 문서 반영: 판 a → 판 b · 바뀜 n · 새 API m · 없어진 API k` 와 없어진 API 마다 `지우기 제안 — <메서드> <경로> 가 없어졌다: <tcId 들>`
+  - 재실행 · 이어서 작성은 원본의 `apiApply` · env 를 물려받는다. 작성 요청 만들기 · 재실행 본문에 `apiApply` 를 실으면 400 `BAD_API_APPLY` 다(도메인/작성 §7)
 - **없어진 API 의 케이스는 지우지 않는다** — PR 본문에 「지우기 제안」으로만 적는다. 지우기는 사람이 케이스 고치기(도메인/작성 §3.6 「★ 케이스 고치기」)로 한다
 
 #### 리포트 — 원문을 접어 넣는다 (결정 10)
@@ -158,7 +162,8 @@ GET    /api/services/:id/api-coverage                 마지막 판 기준 커�
                                                       noShape 는 마지막 판 문서에 그 코드의 JSON 모양이 없다는 뜻이다 — api_call_seen.no_shape(그때 견준 판 기준)가 아니라 문서에서 센다
                                                       seen · noShape 는 커버리지라 작성 read 로 보인다. lastRunId 는 실행 결과를 가리켜 그 애플리케이션의 (실행, read) 가 있을 때만 싣고 없으면 null 이다(대시보드 coverage 와 같은 갈림 — 도메인/인증 §7)
 POST   /api/services/:id/api-docs/:version/rewrite    바뀐 API 만 다시 작성 { fromVersion, env, operations: [{ method, path }] } → 201 { requestId }
-                                                      operations 가 비면 400 NOTHING_TO_APPLY · env 는 작성 중 돌려 볼 대상 서버 — 작성 요청 만들기의 API 판정과 같다(없거나 그 애플리케이션 줄이 아니거나 「실서비스 서버」면 400 BAD_ENV, 도메인/작성 §7 「AUTHOR API 문서 판」)
+                                                      operations 가 비거나 판 비교(fromVersion → :version)에 든 API 가 하나도 없으면 400 NOTHING_TO_APPLY · 어느 판이 없으면 404 NOT_FOUND ·
+                                                      fromVersion 이 숫자가 아니거나 operations 줄에 method · path 글자가 없으면 400 INVALID_REQUEST. method 는 대문자로 읽는다 · env 는 작성 중 돌려 볼 대상 서버 — 작성 요청 만들기의 API 판정과 같다(없거나 그 애플리케이션 줄이 아니거나 「실서비스 서버」면 400 BAD_ENV, 도메인/작성 §7 「AUTHOR API 문서 판」)
 
 늘어나는 칸 — 이미 있는 통로
 GET    /api/runs/:runId                               + apiDocVersion · apiDocNote ('DIFFERS' | 'FETCH_FAILED' | null)   (실행 §7)
@@ -184,10 +189,8 @@ GET    /api/runs/:runId/scenario                      parts[].steps[] + shapeChe
 제안:    위 꼴. 다시 작성은 작성 write
 이유:    §3.8 결정 7 · 8 · 9 (2026-10-20 사용자 · API-F1-01 시작 질문 승인)
 영향:    작성(서버 — API-F1-07) · WS-B(실행 — API-F1-05) · WS-E(API-F1-08)
-상태:    대기
+상태:    반영 완료 (2026-10-21, apps/admin/src/execution/queries.ts — API-F1-05 · apps/admin/src/apidoc/rewrite.ts · scripts/authoring-api.ts — API-F1-07)
 ```
-
-> 위 블록 가운데 `GET /api/runs/:runId` 의 `apiDocVersion` · `apiDocNote` 와 항목 응답 `steps[].shapeChecks` 는 반영했다(2026-10-21, `apps/admin/src/execution/queries.ts` — API-F1-05). 다시 작성 통로(API-F1-07)가 들어오면 「반영 완료」로 바꾼다
 
 ---
 
