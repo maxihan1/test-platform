@@ -6,8 +6,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ExecuteRequest, ScenarioExecuteRequest } from '@platform/kit';
 
+import { 케이스판 } from '../apidoc/caseDoc.js';
+
 import { callRunner, callScenarioRunner, httpTimeoutMs, 러너에보낸다, 진행, 켜진내컴퓨터러너 } from './runner.js';
 import type { PendingItem } from './store.js';
+
+// 화면 애플리케이션 케이스로 둔다 — API 케이스 검사가 저마다 바꿔 낀다
+vi.mock('../apidoc/caseDoc.js', () => ({ 케이스판: vi.fn(async () => ({})) }));
 
 const 항목: PendingItem = {
   historyId: 42,
@@ -80,6 +85,32 @@ describe('callRunner', () => {
       expected: { 결과: true },
       timeoutMs: 5000,
     });
+  });
+
+  it('API 케이스면 그 케이스 판 원문을 싣는다 (도메인/API §3.8)', async () => {
+    const 판 = { version: 3, doc: { openapi: '3.1.0', paths: {} } };
+    vi.mocked(케이스판).mockResolvedValueOnce({ apiDoc: 판 });
+    let 받은것: ExecuteRequest | null = null;
+    await 띄운다((body) => {
+      받은것 = body;
+      return { historyId: body.historyId, status: 'PASS', durationMs: 1, steps: [] };
+    });
+
+    await callRunner(7, 항목);
+    expect(받은것).toMatchObject({ tcId: 'DEMO-001', apiDoc: 판 });
+  });
+
+  it('판이 없으면 러너에 보내지 않고 사유를 단 미실행으로 닫는다', async () => {
+    vi.mocked(케이스판).mockResolvedValueOnce({ 사유: 'API 문서 판 9 가 없습니다' });
+    let 불렸나 = false;
+    await 띄운다(() => {
+      불렸나 = true;
+      return {};
+    });
+
+    const res = await callRunner(7, 항목);
+    expect(불렸나).toBe(false);
+    expect(res).toMatchObject({ historyId: 42, status: 'NA', steps: [], error: { message: 'API 문서 판 9 가 없습니다' } });
   });
 
   it('200이면 러너가 만든 판정을 그대로 돌려준다', async () => {

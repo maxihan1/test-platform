@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import type { BrowserPlatform, ScenarioExecuteRequest, ScenarioPart } from '@platform/kit';
 import type { Pool } from 'pg';
 
+import { 부품판 } from '../apidoc/caseDoc.js';
 import { findService } from '../catalog/store.js';
 import { enqueue } from '../execution/dispatcher.js';
 import { callScenarioRunner, 켜진내컴퓨터러너 } from '../execution/runner.js';
@@ -100,10 +101,12 @@ export async function 시험시작(사람: { username: string }, 본문: 시험�
   const 채운부품 = await 부품채우기(pool, 본문.parts, 케이스들, (tcId) => 앱들.get(케이스접두사(tcId))?.계정들 ?? 계정없음);
   const 크기사유 = 제한시간크기사유(채운부품);
   if (크기사유.length > 0) throw new 시험시작오류('INVALID_REQUEST', `저장값을 채운 뒤 ${크기사유.join(' · ')}`);
-  const parts: ScenarioExecuteRequest['parts'] = 채운부품.map((p) =>
-    p.kind === 'case'
-      ? { ...p, ...단계주소(p, 본문.service, 앱들), ...단계인증(p, 앱들), filePath: 케이스들.get(p.tcId)?.file_path }
-      : { ...p, ...단계주소(p, 본문.service, 앱들) },
+  const parts: ScenarioExecuteRequest['parts'] = await Promise.all(
+    채운부품.map(async (p) =>
+      p.kind === 'case'
+        ? { ...p, ...단계주소(p, 본문.service, 앱들), ...단계인증(p, 앱들), ...(await 부품판(p)), filePath: 케이스들.get(p.tcId)?.file_path }
+        : { ...p, ...단계주소(p, 본문.service, 앱들) },
+    ),
   );
 
   // 조립 본문이 아니라 채운 값으로 모은다 — 저장값에서 온 비밀번호는 본문에 없다

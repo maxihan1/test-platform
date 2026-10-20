@@ -2,6 +2,8 @@
 // 대기줄은 모듈 전역이다. 실행 묶음마다 2개씩 돌면 두 사람이 동시에 누를 때 4개가 돈다 —
 // 대상 서버가 2코어라 그 이상은 느려지기만 한다 (SPEC §9)
 
+import { 실행문서견주기 } from '../apidoc/runCompare.js';
+
 import { notifyRun } from './notify.js';
 import { 폰차례 } from './phone.js';
 import { callRunner } from './runner.js';
@@ -69,6 +71,10 @@ async function runOne(runId: number, item: PendingItem): Promise<void> {
 
 // 요청을 받은 쪽은 기다리지 않는다. run_id만 돌려주고 실행은 여기서 계속된다 (SPEC §7)
 export async function dispatch(runId: number, items: PendingItem[]): Promise<void> {
+  // 항목을 기다리게 하지 않는다 — 항목은 케이스가 만들어진 판을 DB 에서 읽는다. 끝내기 전에만 기다린다 (도메인/API §3.8 「실행 시작 때 견주기」)
+  const 견주기 = 실행문서견주기(runId).catch((err: unknown) => {
+    console.error(`[execution] 실행 ${runId}의 API 문서를 견주지 못했다: ${err instanceof Error ? err.message : String(err)}`);
+  });
   // 같은 케이스 항목(반복 회차 · PC · 모바일)은 하나씩 돈다. 나란히 돌면 같은 데이터를 두고 부딪힌다 —
   // run 20903 에서 재고 1개 상품 · 서버 초기화 케이스가 짝 회차와 같은 시각에 깨졌다 (SPEC 실행 §3.2 · PRD-F9-36).
   // 케이스마다 앞 항목이 끝나야 다음을 대기줄에 넣으므로 회차는 케이스 순서로 한 바퀴씩 돌고, 다른 케이스는 상한까지 나란히 돈다
@@ -90,6 +96,7 @@ export async function dispatch(runId: number, items: PendingItem[]): Promise<voi
   // 멈춘 실행은 ABORTED 로 이미 닫혔다. finishRun 은 RUNNING 만 건드리므로 그대로 둬도 되지만,
   // 표시를 남겨 두면 다음 실행의 같은 번호에서 오판할 수 있어 여기서 치운다
   멈춘실행.delete(runId);
+  await 견주기;
   await finishRun(runId);
 
   // 알림 전송이 실패해도 실행은 실패가 아니다. 실행은 이미 끝났고 결과는 test_run 에 남아 있다 (SPEC §8.9)

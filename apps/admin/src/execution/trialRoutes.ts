@@ -6,6 +6,7 @@ import { 출처, type 역할계정 } from '@platform/kit/accounts';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { 케이스판 } from '../apidoc/caseDoc.js';
 import { 대상줄들읽기, type 대상줄 } from '../authoring/reverse.js';
 import { caseSchemas } from './paramSets.js';
 import { 폰을놓는다, 폰을바로잡는다 } from './phone.js';
@@ -144,7 +145,10 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
     try {
       const 일 = async (): Promise<ExecuteResponse> => {
         try {
-          return await 러너에서돌린다(러너주소, 요청);
+          // 정식 실행과 같은 규칙 — 판이 없으면 러너에 안 보내고 미실행으로 닫는다 (도메인/API §3.8 「응답 모양 확인」)
+          const 판 = await 케이스판(tcId);
+          if ('사유' in 판) return { historyId: 요청.historyId, status: 'NA', durationMs: 0, steps: [], error: { message: 판.사유 } };
+          return await 러너에서돌린다(러너주소, { ...요청, ...판 });
         } finally {
           if (폰씀) 폰을놓는다();
         }

@@ -2,12 +2,15 @@
 // 진짜 러너 · 팜 대신 같은 계약을 흉내내는 서버를 띄운다
 
 import Fastify, { type FastifyInstance } from 'fastify';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ExecuteRequest } from '@platform/kit';
 
 import { abortRunner, callRunner, 진행 } from './runner.js';
 import type { PendingItem } from './store.js';
+
+// 화면 애플리케이션 케이스로 둔다 — 판 읽기는 runner.test.ts 가 본다
+vi.mock('../apidoc/caseDoc.js', () => ({ 케이스판: vi.fn(async () => ({})) }));
 
 const 항목: PendingItem = {
   historyId: 42,
