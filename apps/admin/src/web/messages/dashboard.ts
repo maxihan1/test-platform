@@ -21,6 +21,7 @@ export const 대시보드말: Record<string, string> = {
   '새 실패가 없습니다': 'No new failures',
   '{수}건 더 있습니다': '{수} more',
   '실행 기록에서 보기': 'View in run history',
+  '이 실행에서 실패 카드를 찾지 못했습니다': 'Could not find the failure card in this run',
   '견줄 앞 실행이 없습니다': 'No earlier run to compare with',
 
   // 통과율
