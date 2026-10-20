@@ -132,14 +132,14 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     expect(줄().textContent).toBe('실행할 디바이스를 하나 이상 고르세요.');
   });
 
-  it('Android 앱을 고르면 실행 요청에 location: local 이 실린다', async () => {
+  it('Android 앱을 고르면 「디바이스 팜」 안내가 보이고 요청에는 location 을 싣지 않는다', async () => {
     const { onRun } = await 그린다({ ...케이스, platforms: ['android'] });
     서버고르기();
 
-    expect(screen.getByText('실행 위치 · 로컬')).toBeTruthy();
+    expect(screen.getByText('실행 위치 · 디바이스 팜')).toBeTruthy();
     fireEvent.click(실행버튼());
 
-    expect(onRun.mock.calls[0]?.[0].location).toBe('local');
+    expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
   });
 
   it('브라우저만 돌리면 location 을 싣지 않고 고르개도 없다', async () => {
@@ -149,7 +149,7 @@ describe('한 건 창 — 디바이스 · 실행 위치', () => {
     fireEvent.click(실행버튼());
 
     expect(screen.queryByText(/실행 위치/)).toBeNull();
-    expect(onRun.mock.calls[0]?.[0].location).toBeUndefined();
+    expect(onRun.mock.calls[0]?.[0]).not.toHaveProperty('location');
   });
 });
 

@@ -96,17 +96,36 @@ describe('POST /execute', () => {
     expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ app: '/apk/qa.apk' }), expect.any(String));
   });
 
-  it('앱 파일이 주소(://)면 400 이다 — Appium 이 내려받아 폰에 깔게 두지 않는다', async () => {
+  it('앱 파일은 http(s) 주소도 받는다 — 팜 PC 의 Appium 이 내려받는다', async () => {
     const res = await 서버().inject({
       method: 'POST',
       url: '/execute',
       payload: {
         runId: 1, historyId: 3, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
-        baseUrl: 'https://qa.example.com', params: {}, expected: {}, app: 'https://evil.example.com/a.apk',
+        baseUrl: 'https://qa.example.com', params: {}, expected: {}, app: 'https://apk.example.com/a.apk', udid: 'R3CR10TCVCD',
       },
     });
 
-    expect(res.statusCode).toBe(400);
+    expect(res.statusCode).not.toBe(400);
+    expect(execute).toHaveBeenLastCalledWith(
+      expect.objectContaining({ app: 'https://apk.example.com/a.apk', udid: 'R3CR10TCVCD' }),
+      expect.any(String),
+    );
+  });
+
+  it('http(s) 가 아닌 주소(file:// 등)나 빈 폰 번호는 400 이다', async () => {
+    const 보낸다 = (칸: Record<string, string>) =>
+      서버().inject({
+        method: 'POST',
+        url: '/execute',
+        payload: {
+          runId: 1, historyId: 4, tcId: 'TODO-001', platform: 'android', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', params: {}, expected: {}, ...칸,
+        },
+      });
+
+    expect((await 보낸다({ app: 'file:///etc/a.apk' })).statusCode).toBe(400);
+    expect((await 보낸다({ udid: '' })).statusCode).toBe(400);
   });
 });
 

@@ -69,7 +69,7 @@ export function 지난값글자(fields: Field[], 값들: Record<string, unknown>
   return 글자;
 }
 
-/** 실행 위치 칸을 보이고 요청에 location 을 실을지 가른다 (SPEC §8.10) */
+/** 실행 위치 안내 줄을 보일지 가른다 (SPEC §8.10) */
 export function 안드로이드있나(케이스들: CaseRow[]): boolean {
   return 케이스들.some((c) => c.platforms.includes('android'));
 }

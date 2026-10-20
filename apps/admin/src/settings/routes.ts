@@ -1,6 +1,7 @@
 // 설정 API (SPEC §7). 운영(admin) 등급만 닿는다 — 막는 것은 인증 미들웨어다 (auth/gate.ts).
 // 화면은 WS-E 가 만든다 (§8.8). 여기는 API 까지다
 
+import { 앱파일값인가 } from '@platform/kit/protocol';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
@@ -36,8 +37,9 @@ const 대상서버 = z.object({
   loginPassword: z.string().nullable().optional(),
   isProd: z.boolean().optional(),
   accounts: z.array(역할계정).optional(),
-  // 러너 PC 의 apk 경로다. 있는지는 안 본다(Appium 이 그 항목의 실패 사유로 말한다). 주소는 막는다 — Appium 이 받으면 러너 PC 가 아무 apk 나 내려받아 폰에 깐다 (APP-F1-03)
-  appPath: z.string().max(1000).refine((v) => !v.includes('://'), 'appPath 는 주소가 아니라 러너 PC 의 파일 경로여야 합니다').nullable().optional(),
+  // Appium 이 도는 PC(팜 PC)의 apk 경로나 http(s) 주소다. 있는지는 안 본다(Appium 이 그 항목의 실패 사유로 말한다).
+  // http(s) 밖의 주소(file:// 등)는 막는다 — 그 PC 의 아무 파일이나 폰에 깔게 된다 (APP-F1-03 · APP-F1-10)
+  appPath: z.string().max(1000).refine(앱파일값인가, 'appPath 는 파일 경로나 http(s) 주소여야 합니다').nullable().optional(),
 });
 
 // 한 줄이라도 어긋나면 저장 전체를 막는다. 어느 줄인지는 싣지 않는다 — 화면이 보내기 전에 같은 규칙으로 짚는다

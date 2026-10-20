@@ -22,7 +22,7 @@ import { validate } from './validate.js';
 import { trace기록을읽는다, 밀린trace를푼다 } from './traceIngest.js';
 import { 목록종류읽기 } from './runKind.js';
 import { 시작방식거르개 } from './runOrigin.js';
-import { runBody, 실행위치를본다 } from './location.js';
+import { runBody, 팜을본다 } from './location.js';
 
 const PAGE_SIZE = 50;
 
@@ -73,9 +73,8 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
 
-    // createRun 에는 위치를 넘기지 않는다 — DB 에 남기지 않는다 (SPEC 실행 §7)
-    const { location, ...실행본문 } = parsed.data;
-    const 거절 = 실행위치를본다(실행본문.items, location, process.env);
+    const 실행본문 = parsed.data;
+    const 거절 = 팜을본다(실행본문.items, process.env);
     if (거절) return reply.code(거절.status).send({ error: 거절.error, detail: 거절.detail });
 
     // 문(auth/gate.ts)이 모든 /api 앞에 서므로 여기 닿았으면 사람이 있다.
@@ -128,7 +127,7 @@ export default async function executionRoutes(app: FastifyInstance): Promise<voi
     markAborted(runId);
     // 돌고 있는 자식까지 끊는다. 대기 중인 것만 취소하면 5분짜리 케이스가 도는 중에는
     // 버튼이 아무 일도 안 하는 것처럼 보인다 (SPEC §8.3)
-    await Promise.all(미완.map((i) => abortRunner(i.historyId, i.platform)));
+    await Promise.all(미완.map((i) => abortRunner(i.historyId)));
 
     // 사람이 멈춘 것도 끝난 것이다. 알림이 실패해도 멈춤은 성립한다 (SPEC §8.9)
     try {

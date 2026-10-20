@@ -22,7 +22,7 @@ export async function 앱화면받기(서버: { 주소기지: string; 토큰: st
   try {
     const 답 = await fetch(`${서버.주소기지}/api/authoring/requests/${String(번호)}/app-screen`, {
       headers: 인증헤더(서버.토큰),
-      signal: AbortSignal.timeout(130_000),
+      signal: AbortSignal.timeout(180_000),
     });
     const 몸 = (await 답.json().catch(() => null)) as { screen?: unknown; reason?: unknown } | null;
     if (!답.ok) return 로그만(번호, `서버 ${답.status}`);

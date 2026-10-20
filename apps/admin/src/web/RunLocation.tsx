@@ -3,13 +3,12 @@
 import { use말 } from './i18n.js';
 
 /**
- * 고를 수 있는 값이 「로컬」 하나뿐이라 고르개가 아니라 안내 한 줄이다 — 요청에는 호출한 쪽이 상수 `'local'` 을 싣는다.
- * 디바이스 팜은 아직 없어 화면에 두지 않는다. 있는 척하는 라디오는 「왜 못 고르지」만 묻게 한다
+ * Android 앱 정식 실행은 늘 디바이스 팜에서 돈다 — 고를 값이 하나라 고르개가 아니라 안내 한 줄이고, 요청에는 아무것도 싣지 않는다 (2026-10-20 APP-F1-10)
  */
 export function RunLocation({ android }: { android: boolean }) {
   const t = use말();
 
   if (!android) return null;
 
-  return <div className="hint">{t('실행 위치 · 로컬')}</div>;
+  return <div className="hint">{t('실행 위치 · 디바이스 팜')}</div>;
 }

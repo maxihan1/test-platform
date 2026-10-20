@@ -1096,8 +1096,6 @@ export const api = {
     repeat?: number;
     /** 끝났을 때 Slack 으로 알릴지. 기본 꺼짐 (SPEC §8.9) */
     notifySlack?: boolean;
-    /** Android 앱이 있으면 반드시 싣는다 — 없으면 서버가 400 을 낸다 (SPEC §8.2). 브라우저만이면 싣지 않는다 */
-    location?: 'local' | 'farm';
     /** 「실패 N건 다시 실행」의 원래 실행. 그 실행에서 실패한 케이스만 담아야 한다 — 아니면 400 BAD_RERUN (도메인/실행 §7) */
     rerunOf?: number;
     items: RunRequestItem[];

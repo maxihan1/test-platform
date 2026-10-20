@@ -70,6 +70,42 @@ describe('execute 가 자식에게 넘기는 앱 파일', () => {
   });
 });
 
+describe('execute 가 자식에게 넘기는 폰 번호 (APP-F1-10)', () => {
+  let 폴더: string;
+  let 옛값: string | undefined;
+
+  beforeEach(() => {
+    폴더 = mkdtempSync(join(tmpdir(), 'runner-udid-'));
+    옛값 = process.env.PLATFORM_DEVICE_UDID;
+    process.env.PLATFORM_DEVICE_UDID = 'ENV-PHONE';
+    스크립트.지금 = `printf %s "$PLATFORM_DEVICE_UDID" > '${join(폴더, 'udid.txt')}'`;
+  });
+
+  afterEach(() => {
+    if (옛값 === undefined) delete process.env.PLATFORM_DEVICE_UDID;
+    else process.env.PLATFORM_DEVICE_UDID = 옛값;
+    rmSync(폴더, { recursive: true, force: true });
+  });
+
+  const 요청 = (platform: ExecuteRequest['platform'], udid?: string): ExecuteRequest => ({
+    runId: 5, historyId: 11, tcId: 'AND-001', platform, filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    ...(udid !== undefined && { udid }),
+  });
+  const 받은폰 = () => readFileSync(join(폴더, 'udid.txt'), 'utf8');
+
+  it('admin 이 팜에서 잡은 폰이 러너 환경값보다 앞선다', async () => {
+    await execute(요청('android', 'R3CR10TCVCD'), 'a.spec.ts');
+    expect(받은폰()).toBe('R3CR10TCVCD');
+  });
+
+  it('요청에 없거나 브라우저 항목이면 러너 환경값 그대로다', async () => {
+    await execute(요청('android'), 'a.spec.ts');
+    expect(받은폰()).toBe('ENV-PHONE');
+    await execute(요청('desktop', 'R3CR10TCVCD'), 'a.spec.ts');
+    expect(받은폰()).toBe('ENV-PHONE');
+  });
+});
+
 describe('execute 가 결과 줄의 기기 정보를 응답에 넘긴다 (APP-F1-05)', () => {
   it('device 를 그대로 싣는다', async () => {
     const 기기 = { model: 'SM-G996N', osVersion: '14', appVersion: '1.4.2' };
