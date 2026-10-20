@@ -15,7 +15,19 @@ import { ScenarioResultPart } from './ScenarioResultPart.js';
 import { 미확정있나, 접은판정 } from './scenarioResultView.js';
 import { Failed, Loading, PLATFORM_LABEL, seconds, useAsync, Verdict, when } from './ui.js';
 
-export function ScenarioResult({ runId, 판정하기, 상자안 = false }: { runId: number; 판정하기: 판정하기; 상자안?: boolean }) {
+export function ScenarioResult({
+  runId,
+  판정하기,
+  칸안 = false,
+  on새실행,
+}: {
+  runId: number;
+  판정하기: 판정하기;
+  /** 실행 기록 › E2E 의 오른쪽 결과 칸 안에 그린다 (도메인/실행 §8.7 「A안」) */
+  칸안?: boolean;
+  /** 칸 안에서 다시 실행하면 화면을 떠나지 않고 새 실행을 칸에 연다 */
+  on새실행?: (runId: number) => void;
+}) {
   const t = use말();
   const 언어 = use언어();
   const res = useAsync(() => scenarioApi.result(runId), [runId]);
@@ -38,9 +50,9 @@ export function ScenarioResult({ runId, 판정하기, 상자안 = false }: { run
   const 첫케이스 = data?.parts.find((p) => p.tcId !== null)?.tcId ?? null;
   const 할수 = 판정하기(첫케이스 === null ? null : 케이스서비스(첫케이스));
   const 증적칸 = use증적(data === null ? null : { runId, status: data.status, evidence: data.evidence }, 할수, reload);
-  // 상자 안(실행 기록 › E2E)은 돌아갈 곳이 상자를 닫는 것이라 주소를 안 본다
-  const 어디서 = 상자안 ? null : 들어온곳읽기();
-  const 다시실행 = useRerun(data?.scenarioId ?? 0, data?.env ?? '', 어디서);
+  // 결과 칸(실행 기록 › E2E)은 목록 옆이라 돌아갈 곳이 없다 — 주소를 안 본다
+  const 어디서 = 칸안 ? null : 들어온곳읽기();
+  const 다시실행 = useRerun(data?.scenarioId ?? 0, data?.env ?? '', 어디서, on새실행);
 
   if (res.error !== null) return <Failed error={res.error} />;
   if (data === null) return <Loading />;
@@ -80,11 +92,13 @@ export function ScenarioResult({ runId, 판정하기, 상자안 = false }: { run
 
   return (
     <>
-      {상자안 ? (
+      {칸안 ? (
+        // 케이스 결과 칸(RunResult)과 같은 머리 — 고른 줄과 같은 제목을 크게 단다
         <div className="box-head">
-          <div className="head-meta">
-            <b>{data.title}</b> · {부제}
-          </div>
+          <h2 className="pane-title">
+            {data.title} <span className="pane-run">RUN {runId}</span>
+          </h2>
+          <div className="head-meta">{부제}</div>
           {칩}
           {머리다시}
           <증적만들기버튼들 칸={증적칸} />
@@ -115,7 +129,8 @@ export function ScenarioResult({ runId, 판정하기, 상자안 = false }: { run
         </>
       )}
 
-      <div className={상자안 ? 'screen modal-results' : 'screen'}>
+      {/* 결과 칸에서는 머리를 고정하고 이 아래만 스크롤한다 (도메인/실행 §8.7 「A안」) */}
+      <div className={칸안 ? 'screen pane-results scn-pane' : 'screen'}>
         {!running ? null : (
           <p className="scn-running" role="status">
             {t('실행 중입니다. 끝나면 결과가 채워집니다')}
@@ -129,7 +144,7 @@ export function ScenarioResult({ runId, 판정하기, 상자안 = false }: { run
             {다시실행.오류}
           </p>
         )}
-        {상자안 ? null : <증적알림과목록 칸={증적칸} />}
+        {칸안 ? null : <증적알림과목록 칸={증적칸} />}
         <dl className="scn-info">
           {칸들.map(([라벨, 값]) => (
             <div key={라벨}>

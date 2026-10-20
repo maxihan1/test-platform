@@ -21,7 +21,8 @@ export function 멈춘단계(parts: ScenarioRunPart[]): ScenarioRunPart | null {
   return parts.find((p) => p.status === 'FAIL') ?? parts.find(그단계탓) ?? null;
 }
 
-export function useRerun(scenarioId: number, env: string, 어디서: 들어온곳) {
+/** `on새실행` 을 주면 주소를 옮기지 않고 넘긴다 — 실행 기록 결과 칸은 목록을 떠나지 않고 새 실행을 연다 */
+export function useRerun(scenarioId: number, env: string, 어디서: 들어온곳, on새실행?: (runId: number) => void) {
   const 언어 = use언어();
   const [도는중, set도는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
@@ -30,7 +31,8 @@ export function useRerun(scenarioId: number, env: string, 어디서: 들어온�
     set오류(null);
     try {
       const { runId } = await scenarioApi.run(scenarioId, env);
-      window.location.hash = 결과주소(runId, 어디서);
+      if (on새실행 === undefined) window.location.hash = 결과주소(runId, 어디서);
+      else on새실행(runId);
     } catch (err) {
       set오류(message(err, 언어));
     } finally {

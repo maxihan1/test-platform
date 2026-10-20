@@ -23,10 +23,12 @@ describe('머리', () => {
     expect(screen.getByRole('link', { name: '← 실행 기록 › E2E' }).getAttribute('href')).toBe('#/runs/e2e');
   });
 
-  it('상자 안에서는 뒤로 고리가 없다', async () => {
+  it('결과 칸에서는 뒤로 고리 없이 칸 머리에 제목과 RUN 번호가 선다', async () => {
     연다(결과(), true);
     await screen.findByText('단계별 결과');
     expect(screen.queryByRole('link', { name: '← 실행 기록 › E2E' })).toBeNull();
+    expect(document.querySelector('.box-head .pane-title')?.textContent).toBe('결제 시나리오 RUN 77');
+    expect(document.querySelector('.box-head .head-meta')?.textContent).toContain('SC-12');
   });
 
   it('실패는 판정 배지 · 끝난 실행은 형식마다 증적 만들기 버튼', async () => {
