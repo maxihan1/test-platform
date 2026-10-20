@@ -19,6 +19,12 @@ describe('화면 머리', () => {
     expect(screen.getByRole('heading', { level: 1, name: '실행 기록' })).toBeTruthy();
   });
 
+  it('하위 메뉴 화면은 제목 앞에 묶음 이름이 서서 지금 위치가 보인다', () => {
+    render(<Head 제목="기능 테스트" 위치="테스트 스크립트" />);
+
+    expect(screen.getByRole('heading', { level: 1, name: '테스트 스크립트 › 기능 테스트' })).toBeTruthy();
+  });
+
   it('부제를 주면 제목 아래에 같이 나온다', () => {
     render(<Head 제목="실행 기록" 부제="최근 30일 · 실행 42회" />);
 

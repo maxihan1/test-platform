@@ -30,7 +30,7 @@ describe('표준 기획서 워드', () => {
       항목('MKT-REQ-003', '회원가입'),
     ]);
     const 글 = 글만(xml);
-    expect(글.startsWith('MKT 표준 기획서|판 3 · 요구 3건 · 확인 필요 1건 · 2026-10-10 11:40 내려받음|회원가입|번호|요구 문장|상태|근거|MKT-REQ-001')).toBe(true);
+    expect(글.startsWith('MKT 표준 기획서|판 3 · 요구 3건 · 확인 필요 1건 · 2026-10-10 11:40 내려받음|회원가입|번호|요구 문장|상태|출처|MKT-REQ-001')).toBe(true);
     expect(글.indexOf('MKT-REQ-003')).toBeLessThan(글.indexOf('|로그인|'));
     expect(xml.match(/<w:tbl>/g)).toHaveLength(2);
     expect(xml.match(/w:val="Heading1"/g)).toHaveLength(2);

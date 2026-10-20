@@ -41,7 +41,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
   it('판이 없으면 빈 화면과 첫 요구를 적는 길을 보인다', async () => {
     지금.mockResolvedValue(판({ version: 0, items: [], unapplied: { changed: [], added: [], removed: [] }, needsCheck: { count: 0, oldestSince: null } }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    expect(await screen.findByText('테스트 작성 요청으로 기획서를 올리거나, 요구 더하기로 첫 요구를 직접 적습니다')).toBeTruthy();
+    expect(await screen.findByText('테스트 작성 요청으로 기획서를 올리거나, 요구사항 추가로 첫 요구를 직접 적습니다')).toBeTruthy();
     expect(screen.getByRole('link', { name: '테스트 작성 요청' }).getAttribute('href')).toBe('#/authoring');
     expect(screen.queryByRole('button', { name: '버전 기록' })).toBeNull();
     expect(screen.queryByRole('button', { name: '내려받기' })).toBeNull();
@@ -65,15 +65,18 @@ describe('PRD 관리 — 할 일 먼저', () => {
     expect(screen.getByRole('button', { name: '추적표 엑셀로 내려받기' })).toBeTruthy();
   });
 
-  it('확인 필요 줄에서 근거 개수를 누르면 자료 이름 · 원본 번호 · 인용 문장을 다 펴고 다시 누르면 접는다 (점검 8.2)', async () => {
+  it('확인 필요 줄에서 출처 개수를 누르면 자료 · 위치 · 원문을 다 펴고 다시 누르면 접는다 (점검 8.2)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     await screen.findByText('버전 12 · 요구 4건');
     const 줄 = within(확인칸()).getAllByRole('listitem')[0]!;
-    const 인용 = `「${로그인실패.basis[0]!.quote}」`;
+    const 인용 = `원문: 「${로그인실패.basis[0]!.quote}」`;
     expect(within(줄).queryByText(인용)).toBeNull();
-    fireEvent.click(within(줄).getByRole('button', { name: '근거 2개' }));
-    for (const b of 로그인실패.basis) expect(within(줄).getByText(`「${b.quote}」`)).toBeTruthy();
-    fireEvent.click(within(줄).getByRole('button', { name: '근거 2개' }));
+    fireEvent.click(within(줄).getByRole('button', { name: '출처 2개' }));
+    for (const b of 로그인실패.basis) expect(within(줄).getByText(`원문: 「${b.quote}」`)).toBeTruthy();
+    expect(within(줄).getByText('이 요구사항을 어디서 읽었는지입니다')).toBeTruthy();
+    expect(within(줄).getByText('자료: 실제 화면에서 본 것 · 위치:', { exact: false })).toBeTruthy();
+    expect(within(줄).getByText('자료: 기획서.docx · 위치:', { exact: false })).toBeTruthy();
+    fireEvent.click(within(줄).getByRole('button', { name: '출처 2개' }));
     expect(within(줄).queryByText(인용)).toBeNull();
   });
 
@@ -256,7 +259,7 @@ describe('PRD 관리 — 할 일 먼저', () => {
     await screen.findByText('버전 12 · 요구 4건');
     expect(screen.queryAllByRole('checkbox')).toEqual([]);
     expect(screen.queryByRole('button', { name: /확정/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: '요구 더하기' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '요구사항 추가' })).toBeNull();
     expect(screen.queryByRole('button', { name: /테스트에 반영/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /회원가입/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
@@ -282,7 +285,7 @@ describe('PRD 관리 — 전체 요구', () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /회원가입/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-031/ }));
-    expect(screen.getByText('「아이디: 영문 소문자·숫자 4~12자」')).toBeTruthy();
+    expect(screen.getByText('원문: 「아이디: 영문 소문자·숫자 4~12자」')).toBeTruthy();
     expect(['3자', '4자', '12자', '13자'].every((값) => screen.getByText(값))).toBe(true);
     expect(screen.getByText('동등 분할')).toBeTruthy();
   });
@@ -323,7 +326,7 @@ describe('PRD 관리 — 전체 요구', () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
     fireEvent.click(await screen.findByRole('button', { name: /로그인/ }));
     fireEvent.click(screen.getByRole('button', { name: /MKT-REQ-040/ }));
-    for (const b of 로그인실패.basis) expect(screen.getByText(`「${b.quote}」`)).toBeTruthy();
+    for (const b of 로그인실패.basis) expect(screen.getByText(`원문: 「${b.quote}」`)).toBeTruthy();
   });
 });
 

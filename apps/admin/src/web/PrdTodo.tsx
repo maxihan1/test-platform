@@ -115,7 +115,7 @@ export function PrdTodo({ service, now, 쓰나, 짓기 }: { service: string; now
                     aria-expanded={근거펼침.has(x.reqId)}
                     onClick={() => set근거펼침(뒤집은(근거펼침, x.reqId))}
                   >
-                    {t('근거 {건수}개', { 건수: x.basis.length })}
+                    {t('출처 {건수}개', { 건수: x.basis.length })}
                   </button>
                 </small>
                 {근거펼침.has(x.reqId) ? <근거목록 basis={x.basis} /> : null}

@@ -7,7 +7,8 @@ import type { 아이콘이름 } from './icons.js';
 import { 기능보나, 할수있나 } from './role.js';
 import { 대시보드보나 } from './route.js';
 
-const 제품이름 = '테스트 플랫폼';
+// 제품 이름은 고유 이름이라 어느 언어에서도 그대로 쓴다 (2026-10-20 사용자 — 10-19 에 「테스트 플랫폼」으로 바꾼 것을 되돌림)
+const 제품이름 = 'QA Hub';
 
 /** 고른 서비스를 브라우저에 남겨 두는 자리. 새로고침해도 보던 서비스가 유지된다 */
 const 고른서비스키 = '고른서비스';
@@ -31,9 +32,10 @@ export interface 하위자리 {
 }
 
 function 종류하위(묶음: string, 바탕: '#/cases' | '#/runs', 언어: 언어): 하위자리[] {
+  // 묶음을 누르면 기능으로 간다(route.ts — 종류 없는 주소는 기능). 첫 하위가 그 화면이어야 누른 자리와 열린 화면이 맞는다
   const 종류들 = [
-    ['UI 테스트', 'ui'],
     ['기능 테스트', 'fn'],
+    ['UI 테스트', 'ui'],
   ];
   // E2E 는 돌린 기록에만 있다. 시나리오는 케이스가 아니라 케이스 목록에 없다 (도메인/실행 §8.7)
   if (바탕 === '#/runs') 종류들.push(['E2E', 'e2e']);
@@ -45,9 +47,8 @@ function 종류하위(묶음: string, 바탕: '#/cases' | '#/runs', 언어: 언�
 }
 
 /** 탭이 여럿일 때는 탭 글자만 보인다. 어느 서비스를 보고 있는지가 거기 있어야 한다 (SPEC §8) */
-export function 탭제목(service: ServiceRow | null, 언어: 언어): string {
-  const 이름 = t(제품이름, 언어);
-  return service === null ? 이름 : `${service.name} · ${이름}`;
+export function 탭제목(service: ServiceRow | null): string {
+  return service === null ? 제품이름 : `${service.name} · ${제품이름}`;
 }
 
 /**
