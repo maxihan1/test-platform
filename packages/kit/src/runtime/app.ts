@@ -8,7 +8,7 @@ import type { Browser } from 'webdriverio';
 import type { DeviceInfo } from '../types.js';
 
 import { runDir, saveShot } from './artifacts.js';
-import { APPIUM_SESSION_FILE } from './protocol.js';
+import { APPIUM_SESSION_FILE, APPIUM_SESSION_ID_FILE } from './protocol.js';
 
 export type AppDriver = Browser;
 
@@ -67,6 +67,7 @@ async function writeSessionFile(sessionId: string): Promise<void> {
     const file = sessionFile();
     await mkdir(join(file, '..'), { recursive: true });
     await writeFile(file, `${sessionId}\n`);
+    await writeFile(join(file, '..', APPIUM_SESSION_ID_FILE), `${sessionId}\n`);
   } catch (err) {
     // 던지면 이미 열린 연결을 아무도 못 닫는다. 케이스는 그대로 돌고, 번호를 못 적었다는 것만 알린다
     console.error(`[kit] Appium 연결 번호를 적지 못했다: ${err instanceof Error ? err.message : String(err)}`);
