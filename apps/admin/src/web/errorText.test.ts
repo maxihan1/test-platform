@@ -62,6 +62,11 @@ describe('서버가 준 오류 코드를 사람 말로', () => {
     expect(요청오류문장('NOT_RESUMABLE', 'en')).not.toContain('NOT_RESUMABLE');
   });
 
+  it('같은 리포트를 이미 만드는 중이면 코드 대신 사람 말에 무엇인지를 붙인다', () => {
+    expect(요청오류문장('EVIDENCE_BUSY', 'ko', '실행 12의 PDF 리포트')).toBe('이미 만드는 중인 리포트입니다 — 실행 12의 PDF 리포트');
+    expect(요청오류문장('EVIDENCE_BUSY', 'en')).not.toContain('EVIDENCE_BUSY');
+  });
+
   it('짚어 준 것이 없으면 문장만 쓴다', () => {
     expect(요청오류문장('RUN_NOT_FOUND', 'ko')).not.toContain('—');
   });

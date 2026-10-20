@@ -26,6 +26,7 @@ export const 오류영어: Record<string, string> = {
     'Not found. Someone else may have removed it.',
 
   // 실행
+  '이미 만드는 중인 리포트입니다': 'That report is already being generated',
   '아직 진행 중인 실행입니다. 끝난 뒤에 리포트를 만듭니다':
     'This run is still going. Generate the report after it finishes.',
   '한 실행에는 한 애플리케이션의 케이스만 담을 수 있습니다': 'A run holds cases from one application only',
