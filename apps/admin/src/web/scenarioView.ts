@@ -59,7 +59,7 @@ export const 섞였나 = (parts: ScenarioPart[], 시작: string): boolean =>
 export interface 앱줄 {
   prefix: string;
   name: string;
-  envs: readonly { env: string }[];
+  envs: readonly { env: string; apiAuthNames?: readonly string[] }[];
 }
 
 /**

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { ScenarioPart } from '@platform/kit';
 
 import { use말 } from './i18n.js';
+import { ScenarioApiExtras } from './ScenarioApiExtras.js';
 import { MockBody, UnmockBody, WaitBody, 글칸, use칸오류, 바른경로, 정수, 칸, 코드문장, type 몸Props } from './ScenarioOtherParts.js';
 import { 모킹구간, 섞였나, type 앱줄 } from './scenarioView.js';
 
@@ -46,7 +47,7 @@ function PanelBody({ 번호, 단계, 단계들, 앱들 = [], 시작 = '', 쓰나
     <div className="scn-set">
       <h3 className="scn-set-title">{t(이름)}</h3>
       {단계.kind === 'api' ? (
-        <ApiBody {...{ 아이디, 잠금, 단계, on바꿈, on오류, 앱들, 시작 }} 모킹중={(모킹구간(단계들)[번호 - 1] ?? []).length > 0} />
+        <ApiBody {...{ 아이디, 잠금, 단계, on바꿈, on오류, 앱들, 시작, 번호, 단계들 }} 모킹중={(모킹구간(단계들)[번호 - 1] ?? []).length > 0} />
       ) : 단계.kind === 'mock' ? (
         <MockBody {...{ 아이디, 잠금, 단계, on바꿈, on오류 }} 섞임={섞였나(단계들, 시작)} />
       ) : 단계.kind === 'unmock' ? (
@@ -60,7 +61,7 @@ function PanelBody({ 번호, 단계, 단계들, 앱들 = [], 시작 = '', 쓰나
 
 const 경로문장 = '경로는 / 로 시작하고 // 로 시작하지 않아야 합니다';
 
-function ApiBody({ 아이디, 잠금, 단계, on바꿈, on오류, 모킹중, 앱들, 시작 }: 몸Props<ApiPart> & { 모킹중: boolean; 앱들: readonly 앱줄[]; 시작: string }) {
+function ApiBody({ 아이디, 잠금, 단계, on바꿈, on오류, 모킹중, 앱들, 시작, 번호, 단계들 }: 몸Props<ApiPart> & { 모킹중: boolean; 앱들: readonly 앱줄[]; 시작: string; 번호: number; 단계들: ScenarioPart[] }) {
   const t = use말();
   const [경로, set경로] = useState(단계.path);
   const [본문, set본문] = useState(단계.body === undefined ? '' : JSON.stringify(단계.body, null, 2));
@@ -70,8 +71,8 @@ function ApiBody({ 아이디, 잠금, 단계, on바꿈, on오류, 모킹중, 앱
 
   // 본문 키는 비우면 빠진다. 값이 undefined 인 키를 남기면 서버 검사가 다르게 본다
   function 본문넣기(글: string) {
-    const { kind, method, path, expectStatus, service } = 단계;
-    const 기본: ApiPart = { kind, method, path, expectStatus, ...(service === undefined ? {} : { service }) };
+    // 인증 · 값 주입 · 응답 값 확인 칸은 그대로 둔다
+    const { body: _앞, ...기본 } = 단계;
     const 읽음 = 글.trim() === '' ? undefined : 읽기(글);
     if (읽음 === undefined) on바꿈(기본);
     else if (읽음.ok) on바꿈({ ...기본, body: 읽음.값 });
@@ -165,6 +166,7 @@ function ApiBody({ 아이디, 잠금, 단계, on바꿈, on오류, 모킹중, 앱
           />
         )}
       </칸>
+      <ScenarioApiExtras {...{ 아이디, 번호, 단계, 단계들, 앱들, 시작, 잠금, on바꿈 }} />
     </>
   );
 }
