@@ -75,6 +75,8 @@ services:
       GRAFANA_URL: "${GRAFANA_URL:-http://grafana:3000}"
       # 케이스 「테스트 실행」이 브라우저 창을 띄울 러너 주소. 비면 테스트 실행이 꺼진다 — 켜는 법은 docs/SETUP.md 「내 컴퓨터 러너」
       LOCAL_RUNNER_URL: "${LOCAL_RUNNER_URL:-}"
+      # Android 앱 정식 실행 · 작성의 앱 첫 화면이 폰을 잡고 놓는 디바이스 팜. 비면 앱 정식 실행이 409 FARM_OFF 다 (SPEC 도메인/러너 §5.2 「디바이스 팜 접속 방식」)
+      DEVICE_FARM_URL: "${DEVICE_FARM_URL:-}"
     # 컨테이너에서 호스트(내 컴퓨터)의 러너에 닿는 이름. 맥 Docker Desktop 에서만 127.0.0.1 전용 러너에 닿는 것을 확인했다 —
     # 리눅스는 이 줄로 이름은 풀려도 브리지 주소라 안 닿을 수 있다 (docs/SETUP.md 「내 컴퓨터 러너」)
     extra_hosts:
@@ -82,7 +84,7 @@ services:
     volumes:
       - ./tests:/tests:ro      # 스캔과 실패 지점 코드 발췌가 소스를 읽는다
       - ./docs/cases:/cases:ro # 스캔이 요구사항 표 출처 칸에서 지도 ①(요구 ↔ 케이스)을 채운다 (SPEC 도메인/카탈로그 §3.1 「지도」)
-      # 스크린샷 서빙, 증적 문서 저장. 기본은 이름 붙은 볼륨이다 — 로컬 러너(Android 앱)를 쓰는 맥은 ./artifacts 를 적어
+      # 스크린샷 서빙, 증적 문서 저장. 기본은 이름 붙은 볼륨이다 — 로컬 러너로 Android 앱 테스트 실행을 하는 맥은 ./artifacts 를 적어
       # 그 러너가 쓰는 폴더를 같이 본다. 안 그러면 앱 스크린샷이 오류 없이 404 다 (SPEC 공통/6-인프라 §9.2)
       - ${PLATFORM_ARTIFACTS_VOLUME:-artifacts}:/artifacts
     # 작성 에이전트(author)는 authoring 망에서만 admin 에 닿는다 — 기본 망의 postgres·runner 에는 못 닿게.
@@ -102,6 +104,8 @@ services:
       PLATFORM_TESTS_DIR: /tests
       PLATFORM_ARTIFACTS_DIR: /artifacts
       PORT: "4000"
+      # 앱 항목이 붙는 Appium 주소 — admin 이 폰을 잡는 팜과 같은 값이다
+      PLATFORM_APPIUM_URL: "${DEVICE_FARM_URL:-}"
     volumes:
       - ./tests:/tests:ro      # 테스트 소스 읽기 전용 마운트
       - ${PLATFORM_ARTIFACTS_VOLUME:-artifacts}:/artifacts   # 스크린샷 공유 볼륨 (admin과 같은 값을 본다)

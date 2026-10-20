@@ -1,5 +1,5 @@
-// 두 러너(컨테이너 · 로컬) 중 어디로 보내고 끊고 진행을 묻는지 본다 (SPEC 실행 §3.2).
-// 진짜 러너 대신 같은 계약을 흉내내는 서버 둘을 띄운다
+// 두 러너(컨테이너 · 로컬) 중 어디로 보내고 끊고 진행을 묻는지, 앱 항목이 팜 폰을 잡고 놓는지 본다 (SPEC 실행 §3.2).
+// 진짜 러너 · 팜 대신 같은 계약을 흉내내는 서버를 띄운다
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -22,6 +22,7 @@ const 항목: PendingItem = {
 
 let 가짜러너: FastifyInstance | null = null;
 let 가짜로컬러너: FastifyInstance | null = null;
+let 가짜팜: FastifyInstance | null = null;
 
 async function 붙인다(app: FastifyInstance): Promise<void> {
   await app.listen({ port: 0, host: '127.0.0.1' });
@@ -42,71 +43,92 @@ afterEach(async () => {
   가짜러너 = null;
   await 가짜로컬러너?.close();
   가짜로컬러너 = null;
+  await 가짜팜?.close();
+  가짜팜 = null;
   delete process.env.RUNNER_URL;
   delete process.env.LOCAL_RUNNER_URL;
+  delete process.env.DEVICE_FARM_URL;
 });
 
 describe('callRunner — 어느 러너로 가는가', () => {
-  async function 이름띄운다(붙임: (app: FastifyInstance) => Promise<void>, 불렸다: string[], 이름: string): Promise<void> {
+  async function 이름띄운다(붙임: (app: FastifyInstance) => Promise<void>, 불렸다: string[], 이름: string, 받은요청: ExecuteRequest[] = []): Promise<void> {
     const app = Fastify();
     app.post('/execute', async (req) => {
       불렸다.push(이름);
+      받은요청.push(req.body as ExecuteRequest);
       return { historyId: (req.body as ExecuteRequest).historyId, status: 'PASS', durationMs: 1, steps: [] };
     });
     await 붙임(app);
   }
 
-  it('android 항목은 LOCAL_RUNNER_URL 로, desktop 은 RUNNER_URL 로 간다', async () => {
-    const 불렸다: string[] = [];
-    await 이름띄운다(붙인다, 불렸다, '컨테이너');
-    await 이름띄운다(로컬붙인다, 불렸다, '로컬');
+  async function 팜띄운다(불렸다: string[]): Promise<void> {
+    const app = Fastify();
+    app.get('/wd/hub/api/devices', async () => ({ value: { devices: [{ serial: 'R3CR10TCVCD' }] } }));
+    app.post('/wd/hub/api/devices/:serial/hold', async () => {
+      불렸다.push('잡기');
+      return { held: {} };
+    });
+    app.delete('/wd/hub/api/devices/:serial/hold', async () => {
+      불렸다.push('놓기');
+      return { released: true };
+    });
+    await app.listen({ port: 0, host: '127.0.0.1' });
+    const addr = app.server.address();
+    process.env.DEVICE_FARM_URL = `http://127.0.0.1:${typeof addr === 'object' && addr !== null ? addr.port : 0}/wd/hub`;
+    가짜팜 = app;
+  }
 
-    await callRunner(7, { ...항목, platform: 'android' });
-    expect(불렸다).toEqual(['로컬']);
-    await callRunner(7, 항목);
-    expect(불렸다).toEqual(['로컬', '컨테이너']);
+  it('android 항목은 팜에서 폰을 잡고 서버 러너(RUNNER_URL)에 그 번호를 실어 보낸 뒤 놓는다 — 로컬 러너는 안 부른다', async () => {
+    const 불렸다: string[] = [];
+    const 받은요청: ExecuteRequest[] = [];
+    await 이름띄운다(붙인다, 불렸다, '서버', 받은요청);
+    await 이름띄운다(로컬붙인다, 불렸다, '로컬');
+    await 팜띄운다(불렸다);
+
+    const res = await callRunner(7, { ...항목, platform: 'android' });
+    expect(res.status).toBe('PASS');
+    expect(불렸다).toEqual(['잡기', '서버', '놓기']);
+    expect(받은요청[0]?.udid).toBe('R3CR10TCVCD');
   });
 
-  it('android 인데 LOCAL_RUNNER_URL 이 비면 러너를 부르지 않고 NA 로 접는다', async () => {
+  it('브라우저 항목은 폰 번호를 싣지 않고 팜을 부르지 않는다', async () => {
     const 불렸다: string[] = [];
-    await 이름띄운다(붙인다, 불렸다, '컨테이너');
+    const 받은요청: ExecuteRequest[] = [];
+    await 이름띄운다(붙인다, 불렸다, '서버', 받은요청);
+    await 팜띄운다(불렸다);
+
+    await callRunner(7, 항목);
+    expect(불렸다).toEqual(['서버']);
+    expect(받은요청[0]).not.toHaveProperty('udid');
+  });
+
+  it('android 인데 DEVICE_FARM_URL 이 비면 러너를 부르지 않고 NA 로 접는다', async () => {
+    const 불렸다: string[] = [];
+    await 이름띄운다(붙인다, 불렸다, '서버');
 
     const res = await callRunner(7, { ...항목, platform: 'android' });
     expect(불렸다).toEqual([]);
     expect(res.status).toBe('NA');
     expect(res.historyId).toBe(42);
-    expect(res.error?.message).toBe('이 서버에는 Android 앱을 돌릴 로컬 러너(LOCAL_RUNNER_URL)가 없다');
+    expect(res.error?.message).toBe('이 서버에는 디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않습니다');
   });
 });
 
 describe('abortRunner', () => {
-  async function 끊김띄운다(붙임: (app: FastifyInstance) => Promise<void>, 받은것: number[]): Promise<void> {
-    const app = Fastify();
-    app.post('/abort', async (req) => {
-      받은것.push((req.body as { historyId: number }).historyId);
-      return { aborted: true };
-    });
-    await 붙임(app);
-  }
-
-  it('android 는 로컬 러너에만, desktop 은 컨테이너에만 보낸다', async () => {
-    const 컨테이너: number[] = [];
+  it('정식 실행의 중단은 앱 항목도 서버 러너에 보낸다', async () => {
+    const 받은것: number[] = [];
     const 로컬: number[] = [];
-    await 끊김띄운다(붙인다, 컨테이너);
-    await 끊김띄운다(로컬붙인다, 로컬);
+    for (const [붙임, 목록] of [[붙인다, 받은것], [로컬붙인다, 로컬]] as const) {
+      const app = Fastify();
+      app.post('/abort', async (req) => {
+        목록.push((req.body as { historyId: number }).historyId);
+        return { aborted: true };
+      });
+      await 붙임(app);
+    }
 
-    expect(await abortRunner(1, 'android')).toBe(true);
-    expect({ 컨테이너, 로컬 }).toEqual({ 컨테이너: [], 로컬: [1] });
-    expect(await abortRunner(2, 'desktop')).toBe(true);
-    expect({ 컨테이너, 로컬 }).toEqual({ 컨테이너: [2], 로컬: [1] });
-  });
-
-  it('android 인데 로컬 러너 주소가 없으면 어디에도 보내지 않고 false 다', async () => {
-    const 컨테이너: number[] = [];
-    await 끊김띄운다(붙인다, 컨테이너);
-
-    expect(await abortRunner(1, 'android')).toBe(false);
-    expect(컨테이너).toEqual([]);
+    expect(await abortRunner(1)).toBe(true);
+    expect({ 받은것, 로컬 }).toEqual({ 받은것: [1], 로컬: [] });
   });
 });
 

@@ -1,15 +1,19 @@
-// 작성 에이전트가 AI 를 띄우기 전에 부르는 통로 — 폰 옆 러너(LOCAL_RUNNER_URL)에서 앱 첫 화면을 읽어 온다 (도메인/작성 §7 「앱 화면 통로」)
+// 작성 에이전트가 AI 를 띄우기 전에 부르는 통로 — 서버 러너가 디바이스 팜의 폰에서 앱 첫 화면을 읽어 온다 (도메인/작성 §7 「앱 화면 통로」)
 // AI 는 러너에 닿지 않는다. 읽는 것은 에이전트이고 이 라우트가 중계한다
 
 import type { FastifyInstance } from 'fastify';
 
+import { 팜주소, 팜폰으로 } from '../execution/farm.js';
 import { 폰을놓는다, 폰을바로잡는다 } from '../execution/phone.js';
-import { 켜진내컴퓨터러너 } from '../execution/runner.js';
+import { runnerUrl } from '../execution/runner.js';
 import { 도는집은요청 } from '../prd/agentRoutes.js';
 
 import { 대상줄들읽기 } from './reverse.js';
 
 export type 앱화면답 = { screen: string | null; reason: string | null };
+
+/** 팜에서 폰을 잡아 그 번호로 일을 맡기고 놓는다 — 라우트는 팜폰으로, 검사는 가짜를 넘긴다 */
+export type 폰잡기 = (일: (udid: string) => Promise<앱화면답>, 못잡음: (까닭: string) => 앱화면답) => Promise<앱화면답>;
 
 // 러너의 연결 열기 60초 + 화면 받기 30초 + 닫기 10초에 여유를 더한다
 // 에이전트의 기다림(130초)이 이보다 길어야 러너가 폰을 읽는 중에 에이전트가 먼저 끊지 않는다
@@ -21,17 +25,26 @@ const 짧게 = (글: string): string => (글.length > 까닭_상한 ? `${글.sli
 /**
  * 러너에 화면을 부탁한다. 읽지 못하면 까닭을 돌려줄 뿐 던지지 않는다 — 작성은 화면 없이도 간다.
  * 앱 파일 경로가 없으면 앱이 없는 서비스다 — 까닭도 없이 비운다.
- * admin 의 폰 잠금(정식 실행의 디바이스 줄)을 쥐고 읽는다 — 안 쥐면 도는 android 실행의 연결을 가로챈다. 기다리지 않고 바쁘면 까닭만 돌려준다
+ * admin 의 폰 잠금(정식 실행의 디바이스 줄)을 쥐고 읽는다 — 안 쥐면 도는 android 실행의 연결을 가로챈다. 기다리지 않고 바쁘면 까닭만 돌려준다.
+ * 팜 폰은 잠금 안에서 잡고 놓는다 — 정식 실행과 같은 길이다 (러너 §5.2 「디바이스 팜 접속 방식」)
  */
-export async function 앱화면읽기(appPath: string | null, 러너: string | undefined, 부르기: typeof fetch = fetch): Promise<앱화면답> {
+export async function 앱화면읽기(appPath: string | null, 러너: string, 잡기: 폰잡기 | undefined, 부르기: typeof fetch = fetch): Promise<앱화면답> {
   if (appPath === null) return { screen: null, reason: null };
-  if (러너 === undefined) return { screen: null, reason: '내 컴퓨터 러너(LOCAL_RUNNER_URL)가 꺼져 있다' };
+  if (잡기 === undefined) return { screen: null, reason: '디바이스 팜(DEVICE_FARM_URL)이 연결되어 있지 않다' };
   if (!폰을바로잡는다()) return { screen: null, reason: '폰이 다른 실행에 쓰이는 중이다' };
+  try {
+    return await 잡기((udid) => 러너에묻는다(appPath, udid, 러너, 부르기), (까닭) => ({ screen: null, reason: 까닭 }));
+  } finally {
+    폰을놓는다();
+  }
+}
+
+async function 러너에묻는다(appPath: string, udid: string, 러너: string, 부르기: typeof fetch): Promise<앱화면답> {
   try {
     const res = await 부르기(`${러너}/app-screen`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ app: appPath }),
+      body: JSON.stringify({ app: appPath, udid }),
       signal: AbortSignal.timeout(러너_기다림_ms),
     });
     const 몸 = (await res.json().catch(() => null)) as { screen?: unknown; error?: unknown; detail?: unknown } | null;
@@ -41,8 +54,6 @@ export async function 앱화면읽기(appPath: string | null, 러너: string | u
     return { screen: null, reason: `러너가 화면을 못 읽었다: ${짧게(말)}` };
   } catch (err) {
     return { screen: null, reason: `러너에 닿지 못했다: ${짧게(err instanceof Error ? err.name : '알 수 없는 오류')}` };
-  } finally {
-    폰을놓는다();
   }
 }
 
@@ -57,6 +68,7 @@ export default async function appScreenAgentRoutes(app: FastifyInstance): Promis
     const 행 = await 도는집은요청(req, reply);
     if (행 === null) return reply;
     const appPath = 앱파일고르기(await 대상줄들읽기(행.serviceId), 행.env);
-    return 앱화면읽기(appPath, appPath === null ? undefined : await 켜진내컴퓨터러너());
+    const 팜 = 팜주소();
+    return 앱화면읽기(appPath, runnerUrl(), 팜 === undefined ? undefined : (일, 못잡음) => 팜폰으로(팜, 일, 못잡음));
   });
 }

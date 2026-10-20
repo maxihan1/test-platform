@@ -126,7 +126,7 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
     });
   });
 
-  it("android 케이스에 location 'farm' 으로 실행하면 409 FARM_OFF 이고 test_run 이 안 생긴다", async () => {
+  it('android 케이스를 디바이스 팜(DEVICE_FARM_URL) 없이 실행하면 409 FARM_OFF 이고 test_run 이 안 생긴다', async () => {
     const 세기 = "SELECT count(*)::int AS n FROM test_run WHERE service_id = (SELECT id FROM service WHERE prefix = 'XBR')";
     const 앞 = (await pool.query<{ n: number }>(세기)).rows[0]!.n;
     const res = await app.inject({
@@ -135,7 +135,6 @@ describe.skipIf(연결 === undefined)('진행 조회', () => {
       payload: {
         title: 'XBR 진행 위치 거절',
         env: 'qa',
-        location: 'farm',
         items: [{ tcId: 'XBR-010', platforms: ['android'] }],
       },
     });

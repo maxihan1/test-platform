@@ -38,7 +38,7 @@ export const 실행말: Record<string, string> = {
   '실패§실행': 'Has failures',
   '판정': 'Verdict',
   '디바이스': 'Device',
-  '실행 위치 · 로컬': 'Run location · Local',
+  '실행 위치 · 디바이스 팜': 'Run location · Device farm',
   '상태': 'Status',
 
   // 실행 기록 목록 (§8.7)

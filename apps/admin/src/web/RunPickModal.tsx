@@ -24,8 +24,6 @@ export interface 실행요청 {
   env: string;
   repeat: number;
   notifySlack: boolean;
-  /** Android 앱이 하나라도 있을 때만 싣는다. 서버가 없으면 400 이다 */
-  location?: 'local';
   items: RunRequestItem[];
 }
 
@@ -152,7 +150,6 @@ export function RunPickModal({ 케이스들, service, 초기글자, 초기서버
       // 화면이 세는 것과 같은 값을 보낸다. 소수를 그대로 보내면 서버의 z.number().int() 가 400 을 낸다
       repeat: 반복수,
       notifySlack,
-      ...(android ? { location: 'local' as const } : {}),
       items: 실행항목(돌릴것, 값.고친값),
     });
   }

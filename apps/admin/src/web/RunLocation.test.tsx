@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// 실행 위치 안내 검사 (SPEC §8.2) — 고를 수 있는 것이 로컬 하나뿐이라 고르개가 아니라 한 줄이다. 없는 디바이스 팜은 화면에 두지 않는다
+// 실행 위치 안내 검사 (SPEC §8.2) — 앱 정식 실행은 늘 디바이스 팜이라 고르개가 아니라 한 줄이다
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
@@ -16,17 +16,17 @@ describe('RunLocation', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('Android 앱이 있으면 「실행 위치 · 로컬」 한 줄이다', () => {
+  it('Android 앱이 있으면 「실행 위치 · 디바이스 팜」 한 줄이다', () => {
     render(<RunLocation android />);
 
-    expect(screen.getByText('실행 위치 · 로컬')).toBeTruthy();
+    expect(screen.getByText('실행 위치 · 디바이스 팜')).toBeTruthy();
   });
 
-  it('고르개가 아니다 — 라디오가 없고 디바이스 팜도 「준비 중」도 없다', () => {
+  it('고르개가 아니다 — 라디오가 없고 「로컬」도 「준비 중」도 없다', () => {
     render(<RunLocation android />);
 
     expect(screen.queryByRole('radio')).toBeNull();
-    expect(screen.queryByText(/디바이스 팜/)).toBeNull();
+    expect(screen.queryByText(/로컬/)).toBeNull();
     expect(screen.queryByText('준비 중')).toBeNull();
   });
 });

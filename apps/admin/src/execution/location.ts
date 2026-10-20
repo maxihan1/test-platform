@@ -1,6 +1,8 @@
-// POST /api/runs 요청 본문 스키마와 Android 실행 위치 판정 (SPEC 실행 §7)
+// POST /api/runs 요청 본문 스키마와 Android 앱 실행을 받을지 판정 (SPEC 실행 §7)
 
 import { z } from 'zod';
+
+import { 팜주소 } from './farm.js';
 
 // 기본값이 곧 상한이다 — 더 길게 주면 디바이스 잠금을 그만큼 쥔다(2026-10-07 게이트 0). 줄이는 데만 쓴다
 export const DEFAULT_TIMEOUT_MS = 300_000;
@@ -19,9 +21,7 @@ export const runBody = z.object({
   repeat: z.number().int().positive().default(1),
   // 기본은 꺼짐. 자기 확인용까지 팀 채널에 흘리면 채널이 소음이 된다 (SPEC §8.2 · §8.9)
   notifySlack: z.boolean().default(false),
-  // 스키마에 없는 칸은 zod 가 조용히 버리므로 반드시 적는다. 필수 여부는 스키마가 아니라
-  // 실행위치를본다가 판정한다 — 브라우저 항목만 있으면 이 칸을 안 본다
-  location: z.enum(['local', 'farm']).optional(),
+  // 실행 위치(location)는 받지 않는다 — android 정식 실행은 늘 디바이스 팜이다(2026-10-20 APP-F1-10). 옛 화면이 실어 보내면 zod 가 버린다
   items: z
     .array(
       z.object({
@@ -38,25 +38,13 @@ export const runBody = z.object({
 
 // 화면은 코드마다 자기 문장을 쓰고 detail 을 그 뒤에 붙인다(errorText.ts). 그래서 detail 에는 화면 문장이 말하지 않는 것만 싣는다 —
 // 같은 말을 실으면 화면에 두 번 뜬다(2026-10-07 실기기 확인)
-export type 거절 = { status: 400 | 409; error: 'INVALID_REQUEST' | 'FARM_OFF' | 'LOCAL_OFF'; detail?: string };
+export type 거절 = { status: 409; error: 'FARM_OFF'; detail: string };
 
-// 실행을 만들기 전에 부른다 — 거절되면 test_run 이 생기지 않는다. 위치는 DB 에 남기지 않는다
-export function 실행위치를본다(
-  items: { platforms: string[] }[],
-  location: 'local' | 'farm' | undefined,
-  env: Record<string, string | undefined>,
-): 거절 | null {
+// 실행을 만들기 전에 부른다 — 거절되면 test_run 이 생기지 않는다
+export function 팜을본다(items: { platforms: string[] }[], env: Record<string, string | undefined>): 거절 | null {
   if (!items.some((i) => i.platforms.includes('android'))) return null;
-  if (location === undefined) {
-    return { status: 400, error: 'INVALID_REQUEST', detail: 'Android 앱 케이스를 돌리려면 실행 위치(location)를 골라야 한다' };
-  }
-  if (location === 'farm') {
-    return { status: 409, error: 'FARM_OFF' };
-  }
-  if (!env.LOCAL_RUNNER_URL) {
-    // 운영자가 고칠 자리(환경값 이름)만 싣는다
-    return { status: 409, error: 'LOCAL_OFF', detail: 'LOCAL_RUNNER_URL 이 비어 있다' };
-  }
+  // 운영자가 고칠 자리(환경값 이름)만 싣는다
+  if (팜주소(env) === undefined) return { status: 409, error: 'FARM_OFF', detail: 'DEVICE_FARM_URL 이 비어 있다' };
   return null;
 }
 
@@ -75,8 +63,9 @@ export function 선언밖디바이스<P extends string>(
   return null;
 }
 
-// 정기 실행은 실행 위치를 고를 사람이 없다 — 그래서 앱 케이스는 팜이 붙기 전까지 뺀다 (SPEC 공통/6-인프라 §9.2)
-export function 앱케이스를뺀다<T extends { platforms: readonly string[] }>(items: T[]): { 남은: T[]; 뺀수: number } {
+// 팜이 없는 서버의 정기 실행은 앱 케이스를 뺀다 — 넣으면 매일 NA 만 쌓인다 (SPEC 공통/6-인프라 §9.2)
+export function 앱케이스를뺀다<T extends { platforms: readonly string[] }>(items: T[], env: Record<string, string | undefined>): { 남은: T[]; 뺀수: number } {
+  if (팜주소(env) !== undefined) return { 남은: items, 뺀수: 0 };
   const 남은 = items.filter((c) => !c.platforms.includes('android'));
   return { 남은, 뺀수: items.length - 남은.length };
 }
