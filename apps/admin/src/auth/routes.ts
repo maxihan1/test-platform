@@ -65,6 +65,9 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
 
     req.session.set('username', username);
     req.session.set('stamp', 비밀번호도장(찾은것.passwordHash));
+    // 앞서 SSO 로 구운 칸이 남아 있으면 SSO 를 다시 켰을 때 이 출입증이 SSO 출입증 행세를 한다
+    req.session.set('method', undefined);
+    req.session.set('idToken', undefined);
     return { user: 찾은것.user };
   });
 

@@ -15,7 +15,7 @@ declare module '@fastify/secure-session' {
     /** Auth_platform 로그아웃(/connect/logout)에 실어 보낼 id token (routes.ts 로그아웃) */
     idToken: string;
     /** SSO 로그인 왕복 중에만 있다 — authorize 로 보낸 state · nonce · PKCE verifier (sso.ts) */
-    sso: 왕복값;
+    sso: 왕복값 & { next?: string };
   }
 }
 

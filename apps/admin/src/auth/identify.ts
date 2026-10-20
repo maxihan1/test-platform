@@ -28,10 +28,11 @@ export async function 확인(req: 인증요청): Promise<사용자 | null> {
   const 찾은것 = await 사용자와해시(username);
   if (찾은것 === null) return null;
   // 토큰은 비밀번호와 따로 노는 열쇠라 출입증 검사를 안 한다 (SPEC 도메인/인증 §7)
-  if (토큰 === null && !출입증맞나(req, 찾은것.passwordHash)) return null;
+  const SSO켜짐 = SSO설정읽기() !== null;
+  if (토큰 === null && !출입증맞나(req, 찾은것.passwordHash, SSO켜짐)) return null;
   // SSO 설치에는 비밀번호 바꾸기 길이 없다 — 변경 강제를 남기면 묶인 기본 계정 admin 이 변경 화면에 갇힌다.
   // DB 값은 지우지 않는다. SSO 를 끄면 admin/admin 의 변경 강제가 되살아나야 한다
-  if (SSO설정읽기() !== null) return { ...찾은것.user, mustChangePassword: false };
+  if (SSO켜짐) return { ...찾은것.user, mustChangePassword: false };
   return 찾은것.user;
 }
 
@@ -39,7 +40,7 @@ export async function 확인(req: 인증요청): Promise<사용자 | null> {
  * SSO 가 켜진 설치는 SSO 로 구운 출입증만, 꺼진 설치는 비밀번호 도장이 맞는 출입증만 받는다.
  * 켜고 끄는 순간 반대쪽 출입증이 저절로 끊긴다. 비밀번호가 바뀌면 옛 도장의 출입증이 끊긴다 (SPEC 도메인/인증 §7)
  */
-function 출입증맞나(req: 인증요청, passwordHash: string | null): boolean {
-  if (SSO설정읽기() !== null) return req.session.get('method') === 'sso';
+function 출입증맞나(req: 인증요청, passwordHash: string | null, SSO켜짐: boolean): boolean {
+  if (SSO켜짐) return req.session.get('method') === 'sso';
   return passwordHash !== null && req.session.get('stamp') === 비밀번호도장(passwordHash);
 }

@@ -6,9 +6,15 @@ import type { FastifyInstance } from 'fastify';
 import { 작성계정인가 } from './agentToken.js';
 import { 교환, 시작, type SSO설정 } from './oidc.js';
 import { 아이디모양, 이름최대 } from './rules.js';
+import { 사용자와해시 } from './store.js';
 
-/** 첫 화면이 읽는 안내 칸. 값마다 로그인 화면의 문장이 하나다 (web/Login.tsx) */
-export type SSO결과 = 'pending' | 'username' | 'failed';
+/** 첫 화면이 읽는 칸. `ok` 는 막 들어왔다는 표시(web/main.tsx), 나머지는 로그인 화면의 문장 하나씩이다 (web/Login.tsx) */
+export type SSO결과 = 'ok' | 'pending' | 'username' | 'failed';
+
+/** Grafana 문이 보낸 돌아올 자리만 받는다 — 아무 주소나 받으면 이 통로가 남의 사이트로 보내는 발판이 된다 (grafanaGate.ts · web/Login.tsx 와 같은 규칙) */
+function 그래프자리(next: unknown): string | undefined {
+  return typeof next === 'string' && next.startsWith('/grafana/') ? next : undefined;
+}
 
 interface 묶인계정 {
   username: string;
@@ -52,37 +58,47 @@ export default async function ssoRoutes(app: FastifyInstance, opts: { sso: SSO�
   const { sso } = opts;
   const 첫화면 = (결과: SSO결과) => `/?sso=${결과}`;
 
-  app.get('/auth/sso/start', async (req, reply) => {
-    const { url, 왕복 } = await 시작(sso);
+  app.get<{ Querystring: { next?: unknown } }>('/auth/sso/start', async (req, reply) => {
+    let 시작값;
+    try {
+      시작값 = await 시작(sso);
+    } catch (err) {
+      // 페이지 이동이라 500 JSON 을 내면 사람이 그 글자 화면에 갇힌다. Auth_platform 이 꺼졌을 때가 대부분이다
+      req.log.warn({ err }, '[SSO] Auth_platform 에 닿지 못했다');
+      return reply.redirect(첫화면('failed'));
+    }
     // 왕복 값은 암호화된 출입증에 싣는다. 서버에 따로 둘 곳이 없어도 되고, 다른 브라우저가 가로채 쓰지 못한다
-    req.session.set('sso', 왕복);
-    return reply.redirect(url);
+    req.session.set('sso', { ...시작값.왕복, next: 그래프자리(req.query.next) });
+    return reply.redirect(시작값.url);
   });
 
   app.get('/auth/sso/callback', async (req, reply) => {
     const 왕복 = req.session.get('sso');
-    // 한 번 쓴 왕복 값은 바로 지운다 — 같은 code 로 두 번 들어오지 못하게
-    req.session.set('sso', undefined);
+    // 한 번 쓴 왕복 값은 바로 지운다 — 같은 code 로 두 번 들어오지 못하게.
+    // 앞사람 출입증도 여기서 지운다 — 남겨 두면 승인 대기 · 실패로 돌아온 사람이 앞사람 화면을 본다
+    for (const 칸 of ['sso', 'username', 'method', 'idToken', 'stamp'] as const) req.session.set(칸, undefined);
     if (왕복 === undefined) return reply.redirect(첫화면('failed'));
 
-    let 사람;
+    let 계정;
+    let idToken;
     try {
-      사람 = await 교환(sso, new URL(sso.publicUrl + req.url), 왕복);
+      const 사람 = await 교환(sso, new URL(sso.publicUrl + req.url), 왕복);
+      idToken = 사람.idToken;
+      계정 = await 계정찾기(사람.sub, 사람.username, 사람.displayName);
     } catch (err) {
-      // 사람에게는 「다시 시도」만 보인다. 원인(state 불일치 · Auth_platform 다운 · 서명 오류)은 로그에 남긴다
-      req.log.warn({ err }, '[SSO] code 교환 실패');
+      // 사람에게는 「다시 누르기」만 보인다. 원인(state 불일치 · Auth_platform 다운 · 서명 오류 · DB)은 로그에 남긴다
+      req.log.warn({ err }, '[SSO] 돌아온 로그인 처리 실패');
       return reply.redirect(첫화면('failed'));
     }
-
-    const 계정 = await 계정찾기(사람.sub, 사람.username, 사람.displayName);
     if (계정 === 'username') return reply.redirect(첫화면('username'));
     // 비활성 계정도 승인 대기와 같은 답이다 — 계정 상태를 밖으로 갈라 주지 않는다 (§7 로그인과 같은 규칙)
     if (!계정.is_approved || !계정.is_active) return reply.redirect(첫화면('pending'));
 
     req.session.set('username', 계정.username);
     req.session.set('method', 'sso');
-    req.session.set('idToken', 사람.idToken);
-    req.session.set('stamp', undefined);
-    return reply.redirect('/');
+    req.session.set('idToken', idToken);
+    // Grafana 에서 왔으면 그리로 돌려보낸다. 대시보드 칸이 없는 사람을 보내면 403 JSON 만 보고 멈춰서 앱 첫 화면으로 보낸다
+    if (왕복.next !== undefined && (await 사용자와해시(계정.username))?.user.dashboard === 'read') return reply.redirect(왕복.next);
+    return reply.redirect(첫화면('ok'));
   });
 }

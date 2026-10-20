@@ -16,7 +16,7 @@ vi.mock('./oidc.js', async (원본) => ({
 }));
 
 const 연결 = process.env.DATABASE_URL;
-const 계정들 = ['xso-new', 'xso-linked', 'xso-taken', 'xso-off'];
+const 계정들 = ['xso-new', 'xso-linked', 'xso-taken', 'xso-off', 'xso-wait'];
 
 describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
   let app: FastifyInstance;
@@ -69,10 +69,10 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
   };
 
   /** start 로 왕복 값을 실은 출입증을 받고, 그 출입증으로 돌아온다 */
-  async function 왕복(사람: 받은사람 | Error) {
+  async function 왕복(사람: 받은사람 | Error, 시작주소 = '/api/auth/sso/start', 앞쿠키: Record<string, string> = {}) {
     if (사람 instanceof Error) vi.mocked(교환).mockRejectedValueOnce(사람);
     else vi.mocked(교환).mockResolvedValueOnce(사람);
-    const start: LightMyRequestResponse = await app.inject({ method: 'GET', url: '/api/auth/sso/start' });
+    const start: LightMyRequestResponse = await app.inject({ method: 'GET', url: 시작주소, cookies: 앞쿠키 });
     const back: LightMyRequestResponse = await app.inject({
       method: 'GET',
       url: '/api/auth/sso/callback?code=xso-code&state=xso-state',
@@ -122,7 +122,7 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
     const { pool } = await import('../db/index.js');
     await pool.query("UPDATE app_user SET is_approved = true WHERE username = 'xso-new'");
     const { back } = await 왕복(사람('xso-sub-new', 'xso-new'));
-    expect(back.headers.location).toBe('/');
+    expect(back.headers.location).toBe('/?sso=ok');
     const me = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키(back) });
     expect(me.statusCode).toBe(200);
     expect(me.json<{ user: { username: string } }>().user.username).toBe('xso-new');
@@ -137,7 +137,7 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
 
   it('아직 안 묶인 같은 username 계정에 한 번 묶고 비밀번호 변경 강제와 상관없이 들어온다', async () => {
     const { back } = await 왕복(사람('xso-sub-linked', 'xso-linked'));
-    expect(back.headers.location).toBe('/');
+    expect(back.headers.location).toBe('/?sso=ok');
     expect((await 행('xso-linked')).auth_sub).toBe('xso-sub-linked');
     const me = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키(back) });
     expect(me.json<{ user: { mustChangePassword: boolean } }>().user.mustChangePassword).toBe(false);
@@ -162,6 +162,33 @@ describe.skipIf(연결 === undefined)('maxihan 계정(SSO) 로그인', () => {
   it('비활성 계정은 승인 대기와 같은 답이다', async () => {
     const { back } = await 왕복(사람('xso-sub-off', 'xso-off'));
     expect(back.headers.location).toBe('/?sso=pending');
+  });
+
+  it('Grafana 에서 왔고 대시보드 칸이 있으면 그 자리로 돌아간다', async () => {
+    const { back } = await 왕복(사람('xso-sub-linked', 'xso-linked'), '/api/auth/sso/start?next=%2Fgrafana%2Fd%2Fabc');
+    expect(back.headers.location).toBe('/grafana/d/abc');
+  });
+
+  it('대시보드 칸이 없으면 Grafana 자리 대신 첫 화면이고, Grafana 밖 주소는 받지 않는다', async () => {
+    expect((await 왕복(사람('xso-sub-new', 'xso-new'), '/api/auth/sso/start?next=%2Fgrafana%2F')).back.headers.location).toBe('/?sso=ok');
+    expect((await 왕복(사람('xso-sub-linked', 'xso-linked'), '/api/auth/sso/start?next=https%3A%2F%2Fevil.example')).back.headers.location).toBe(
+      '/?sso=ok',
+    );
+  });
+
+  it('Auth_platform 에 닿지 못하면 start 도 다시 누르기 안내로 간다', async () => {
+    vi.mocked(시작).mockRejectedValueOnce(new Error('discovery 실패'));
+    const start = await app.inject({ method: 'GET', url: '/api/auth/sso/start' });
+    expect(start.statusCode).toBe(302);
+    expect(start.headers.location).toBe('/?sso=failed');
+  });
+
+  it('앞사람 출입증이 있는 브라우저에서 승인 대기로 돌아오면 앞사람 출입증도 지운다', async () => {
+    const { back: 앞사람 } = await 왕복(사람('xso-sub-linked', 'xso-linked'));
+    const { back } = await 왕복(사람('xso-sub-wait', 'xso-wait'), '/api/auth/sso/start', 쿠키(앞사람));
+    expect(back.headers.location).toBe('/?sso=pending');
+    const me = await app.inject({ method: 'GET', url: '/api/auth/me', cookies: 쿠키(back) });
+    expect(me.statusCode).toBe(401);
   });
 
   it('교환이 실패하면 다시 시도 안내로 간다', async () => {
