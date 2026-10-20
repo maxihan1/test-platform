@@ -158,7 +158,14 @@ if (명령 === '뽑기') {
   }
   const 기준 = 재료.기준표 === null ? null : { 표글: 재료.기준표.표글, 있는케이스: new Set(재료.기준표.있는케이스) };
   // API 애플리케이션이면 자료 폴더의 판 파일로 API 줄을 붙인다 — 에이전트가 띄우기 전에 만든 원장과 같게 (도메인/API §3.8 「작성」)
-  const r = 표준원장사본(지금.items, 옮긴몸, 재료.접두사, 기준, API원장읽기(폴더));
+  let api: ReturnType<typeof API원장읽기>;
+  try {
+    api = API원장읽기(폴더);
+  } catch (e) {
+    console.log(`${e instanceof Error ? e.message : String(e)} — 지우거나 고친 뒤 다시 돌려라`);
+    process.exit(1);
+  }
+  const r = 표준원장사본(지금.items, 옮긴몸, 재료.접두사, 기준, api);
   // 에이전트가 쓴 사본은 root 파일일 수 있다 — 폴더가 자식 것이라 지우고 새로 쓴다
   rmSync(join(폴더, 원장사본이름), { force: true });
   writeFileSync(join(폴더, 원장사본이름), r.글);

@@ -47,9 +47,10 @@ function 인증들읽기(v: unknown): API인증[] {
  * 판(`apiDoc`)이 없는 행은 그대로다. 판은 있는데 대상 서버가 없으면 `api.env` 가 빈 글자라 `API점검` 이 막는다
  */
 export function API떼기(것: 집은것): 집은것 {
-  const 판 = (것 as { apiDoc?: unknown }).apiDoc;
-  if (!객체인가(판)) return 것;
+  const 판: unknown = (것 as { apiDoc?: unknown }).apiDoc;
   const t: Record<string, unknown> = 객체인가(것.target) ? (것.target as unknown as Record<string, unknown>) : {};
+  // 판 자료가 지워져 apiDoc 만 빠져도 target 의 apiAuths 로 API 행임을 안다 — 역방향으로 돌거나 비밀값을 안 가리면 안 된다
+  if (!객체인가(판) && !Array.isArray(t.apiAuths)) return 것;
   const { target: _뗌, ...나머지 } = 것;
   return {
     ...나머지,
@@ -57,8 +58,8 @@ export function API떼기(것: 집은것): 집은것 {
       env: typeof t.env === 'string' ? t.env : '',
       baseUrl: typeof t.baseUrl === 'string' ? t.baseUrl : null,
       인증들: 인증들읽기(t.apiAuths),
-      판: typeof 판.version === 'number' ? 판.version : 0,
-      문서: 판.doc,
+      판: 객체인가(판) && typeof 판.version === 'number' ? 판.version : 0,
+      문서: 객체인가(판) ? 판.doc : undefined,
       ...(t.isProd === true ? { isProd: true as const } : {}),
     },
   };
@@ -116,7 +117,8 @@ const 메서드들 = ['get', 'put', 'post', 'delete', 'patch', 'head', 'options'
 export function API원장항목(문서: unknown): 원장항목[] {
   const 경로들 = 객체인가(문서) && 객체인가(문서.paths) ? 문서.paths : {};
   return Object.entries(경로들).flatMap(([경로, 줄]) =>
-    !객체인가(줄) || /\s/.test(경로)
+    // 빈칸 · 표 칸 · 백틱이 든 경로는 표 출처 칸에서 한 번호로 못 읽는다 — 덮을 수 없는 줄을 만들지 않는다
+    !객체인가(줄) || /[\s|`]/.test(경로)
       ? []
       : 메서드들.flatMap((m) => {
           const 작업 = 줄[m];

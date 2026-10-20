@@ -4,7 +4,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import authoringAgentRoutes from './agentRoutes.js';
-import { 제출 } from './assetStore.js';
+import { 이어작성준비, 제출 } from './assetStore.js';
 import authoringRoutes from './routes.js';
 
 const 연결 = process.env.DATABASE_URL;
@@ -93,6 +93,20 @@ describe.skipIf(연결 === undefined)('API 애플리케이션 작성 요청', { 
     expect(집은.target).toEqual({ env: 'stg', baseUrl: 'http://127.0.0.1:3003', apiAuths: [인증] });
     expect(집은.apiDoc).toEqual({ version: 1, doc: 문서 });
     expect(집은).not.toHaveProperty('accounts');
+  });
+
+  it('남은 요구로 이어 작성은 판 자료 행과 env 를 복사한다', async () => {
+    const 원본 = Number((await q<{ id: string }>("SELECT id FROM authoring_request WHERE service_id = $1 AND kind = 'AUTHOR'", [서비스])).rows[0]!.id);
+    const 새것 = await 이어작성준비({ 서비스, 원본: { id: 원본, specText: null, params: {} }, 누가: 맥, 이름: '맥', apiEnv: 'stg' });
+    expect(await 행(새것.id)).toMatchObject({ env: 'stg', compare: false, status: 'DRAFT' });
+    const 자료 = await q<{ kind: string; same: boolean }>(
+      `SELECT n.kind, n.api_doc_version_id = o.api_doc_version_id AS same FROM authoring_asset n
+         JOIN authoring_asset o ON o.request_id = $2 AND o.kind = 'API_DOC' WHERE n.request_id = $1`,
+      [새것.id, 원본],
+    );
+    expect(자료.rows).toEqual([{ kind: 'API_DOC', same: true }]);
+    expect(새것.파일).toEqual([]);
+    await q('DELETE FROM authoring_request WHERE id = $1', [새것.id]);
   });
 
   it('재실행은 원본의 env 를 물려받고 원본 자료의 판을 싣는다 — 그 사이 실서비스 서버가 되면 400 BAD_ENV', async () => {

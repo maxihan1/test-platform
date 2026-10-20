@@ -73,7 +73,9 @@ export function 번호바꾸기(글: string, 맞춤: ReadonlyMap<string, string>
  * 글에서 번호를 나온 순서대로 찾는다(중복 포함). 추출과 대조가 이 함수 하나를 쓴다.
  * API 줄을 먼저 찾고 그 자리를 빈칸으로 덮은 글에서 요구 번호를 찾는다 — 경로 속 글자가 요구 번호로 또 잡히지 않게
  */
-export function 번호찾기(글: string): { 번호들: string[]; 경고: string[] } {
+export function 번호찾기(글: string, api줄도 = true): { 번호들: string[]; 경고: string[] } {
+  // 원본 자료(기획서 글자본)의 원장은 API 줄을 안 읽는다 — API 줄은 에이전트가 판에서만 만든다. 기획서에 엔드포인트 목록이 있어도 가족이 생기지 않게
+  if (!api줄도) return 요구번호찾기(글, () => 0);
   const api = [...글.matchAll(API번호식)].map((m) => ({ 자리: m.index, 번호: m[0] }));
   if (api.length === 0) return 요구번호찾기(글, () => 0);
   const 덮은글 = 글.replace(API번호식, (m) => ' '.repeat(m.length));
@@ -204,7 +206,7 @@ function 번호글들(글: string, 원장번호: Set<string>): { 글들: Map<str
   for (const 날줄 of 글.split(/\r?\n/)) {
     const 줄 = 날줄.trim().replace(행번호, '');
     if (줄 === '' || 테두리.test(줄) || /^\d+$/.test(줄)) continue;
-    const 번호들 = 번호찾기(줄).번호들.filter((n) => 원장번호.has(n));
+    const 번호들 = 번호찾기(줄, false).번호들.filter((n) => 원장번호.has(n));
     for (const 번호 of 번호들) 넣기(언급, 번호, 줄);
     const 첫 = 첫머리번호(줄);
     const 표줄 = /^[│|]/.test(줄);
@@ -243,7 +245,7 @@ function 설계칸(요구글: string, 로그인?: string): { 설계?: 설계 } {
 
 /** 자료 하나의 원장. 번호 가족이 없으면 문단 모드다. `머리` 는 문단 번호 앞말(P · P1 · P2) */
 export function 원장뽑기(글: string, 자료: string, 머리 = 'P'): 자료원장 {
-  const { 번호들, 경고 } = 번호찾기(글);
+  const { 번호들, 경고 } = 번호찾기(글, false);
   const 차례 = [...new Set(번호들)];
   const 셈: Record<string, number> = {};
   for (const 번호 of 차례) 셈[가족(번호)] = (셈[가족(번호)] ?? 0) + 1;

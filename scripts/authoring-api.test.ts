@@ -31,6 +31,13 @@ describe('API떼기', () => {
     expect(뗀.api).toEqual({ env: 'stg', baseUrl: 'http://127.0.0.1:3003', 인증들: [인증], 판: 3, 문서 });
   });
 
+  it('판 자료가 지워져 apiDoc 만 빠져도 apiAuths 로 API 행임을 알고 점검이 막는다 — 역방향으로 돌지 않고 비밀값도 가린다', () => {
+    const 뗀 = API떼기(집은({ apiDoc: undefined }));
+    expect(뗀.target).toBeUndefined();
+    expect(API점검(뗀.api!)).toContain('판 원문');
+    expect(비밀번호들(뗀)).toEqual([인증.clientSecret]);
+  });
+
   it('판이 없는 행(화면 애플리케이션 · 역방향)은 그대로다', () => {
     const 역방향 = { id: 1, kind: 'AUTHOR', target: { env: 'qa', baseUrl: 'http://x', loginId: 'u', loginPassword: 'p' } } as unknown as 집은것;
     expect(API떼기(역방향)).toBe(역방향);
@@ -93,6 +100,10 @@ describe('원장의 API 줄', () => {
     expect(API원장항목(문서)[0]).toMatchObject({ 자료: 'API 문서', 문장: 'POST /v1/pushes 가 201 로 응답한다 — 푸시 보내기' });
   });
 
+  it('빈칸 · 표 칸 · 백틱이 든 경로는 덮을 수 없어 줄을 만들지 않는다', () => {
+    expect(API원장항목({ paths: { '/v1/a|b': { get: { responses: { '200': {} } } }, '/v1/`c`': { get: { responses: { '200': {} } } } } })).toEqual([]);
+  });
+
   it('표준 기획서 항목 뒤에 붙고 API 가족으로 센다 — 기획서가 비어도 원장이 선다', () => {
     const r = 표준원장([{ reqId: 'NTF-REQ-001', feature: '푸시', text: '예약 발송은 5분 뒤부터다', basis: [], status: 'CONFIRMED' }], API원장항목(문서));
     expect('항목' in r && r.항목.map((h) => h.번호)[0]).toBe('NTF-REQ-001');
@@ -107,6 +118,7 @@ describe('원장의 API 줄', () => {
       'API POST /v1/pushes 201',
     ]);
     expect(가족('API POST /v1/pushes 201')).toBe('API');
+    expect(번호찾기('API POST /v1/pushes 201 · NTF-REQ-001', false).번호들).toEqual(['NTF-REQ-001']);
   });
 
   it('자식의 원장 다시 만들기는 자료 폴더의 판 파일을 읽고, 깨졌으면 던진다', () => {
