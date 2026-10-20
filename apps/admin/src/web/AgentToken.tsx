@@ -1,4 +1,4 @@
-// 설정 > 계정 편집의 에이전트 토큰 발급·다시 발급·취소 부품과 한 번만 보이는 토큰 상자
+// 설정 > 계정 편집의 작성 에이전트 토큰 발급·다시 발급·취소 부품과 한 번만 보이는 토큰 상자
 
 import { useEffect, useRef, useState } from 'react';
 
@@ -27,11 +27,11 @@ export function AgentTokenBox({ 것, onClose }: { 것: 발급토큰; onClose: ()
     // `ref` 가 맨 앞이어야 한다 — SettingsPassword.tsx 의 같은 자리 주석
     <div ref={상자} className="set-pw" tabIndex={-1} role="alert" aria-live="assertive">
       <div>
-        <b>{것.username}</b> {t('의 에이전트 토큰입니다. 선택해 복사하세요')}
+        <b>{것.username}</b> {t('의 작성 에이전트 토큰입니다. 선택해 복사하세요')}
       </div>
       <code>{것.token}</code>
       <div className="hint">
-        {t('맥 에이전트를 처음 켤 때 한 번 붙여넣습니다')}{' '}
+        {t('서버 .env 의 AUTHORING_AGENT_TOKEN 에 넣습니다')}{' '}
         <b>{t('닫으면 다시 볼 수 없습니다')}</b>
       </div>
       <button className="btn ghost" onClick={onClose}>
@@ -85,7 +85,7 @@ export function AgentToken({
   return (
     <div className="set-form">
       <div className="field">
-        <span className="field-label">{t('에이전트 토큰')}</span>
+        <span className="field-label">{t('작성 에이전트 토큰')}</span>
         <div>
           {확인 === null ? (
             <>
@@ -108,13 +108,15 @@ export function AgentToken({
                   {t('발급')}
                 </button>
               )}
+              {/* 「작성 에이전트가 왜 여기 나오나」를 사용자가 물었다(2026-10-20) — 무엇에 쓰는 토큰인지 한 줄로 말한다 */}
+              <div className="hint">{t('테스트를 대신 쓰는 AI 가 이 토큰으로 로그인합니다')}</div>
             </>
           ) : (
             // 결과를 먼저 말하고 확정 버튼은 글자가 다른 따로 된 버튼으로 둔다.
             // 같은 버튼을 두 번 누르게 하는 방식은 사용자가 헷갈렸다 (게이트 1)
             <div className="set-warn">
-              {t('맥 에이전트가 지금 멈춥니다.')}{' '}
-              {확인 === 'reissue' ? t('새 토큰을 맥에 다시 넣어야 합니다') : t('다시 발급할 때까지 작성이 멈춥니다')}{' '}
+              {t('작성 에이전트가 지금 멈춥니다.')}{' '}
+              {확인 === 'reissue' ? t('새 토큰을 다시 넣어야 합니다') : t('다시 발급할 때까지 작성이 멈춥니다')}{' '}
               <button
                 className="btn ghost set-warn"
                 disabled={보내는중}

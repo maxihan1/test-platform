@@ -4,6 +4,7 @@
 import { useState } from 'react';
 
 import { AgentToken, AgentTokenBox, type 발급토큰 } from './AgentToken.js';
+import { Drawer } from './Drawer.js';
 import { api, type UserRow, type 배정 } from './api.js';
 import { use말, use언어 } from './i18n.js';
 import type { 등급 } from './role.js';
@@ -37,6 +38,15 @@ export function UserSection({
   // 내가 배정받은 프로젝트가 없으면 그것부터 알린다. 첫 운영자가 이 화면에 오는 가장 흔한 이유다
   const 내배정없음 = rows.find((it) => it.username === me)?.projects?.length === 0;
 
+  const 연줄 = rows.find((it) => it.username === 여는것);
+  // 한 번만 보이는 상자는 서랍이 열려 있으면 서랍 안에 둔다 — 밖에 두면 서랍에 가려 놓친다
+  const 상자들 = (
+    <>
+      {임시비밀번호 === null ? null : <TempPassword 것={임시비밀번호} onClose={() => set임시비밀번호(null)} />}
+      {토큰 === null ? null : <AgentTokenBox 것={토큰} onClose={() => set토큰(null)} />}
+    </>
+  );
+
   return (
     <section className="sec">
       <div className="sec-h">
@@ -57,52 +67,74 @@ export function UserSection({
         </div>
       ) : null}
 
-      {임시비밀번호 === null ? null : <TempPassword 것={임시비밀번호} onClose={() => set임시비밀번호(null)} />}
-      {토큰 === null ? null : <AgentTokenBox 것={토큰} onClose={() => set토큰(null)} />}
+      {여는것 === null ? 상자들 : null}
 
-      {여는것 === 'new' ? (
-        <UserForm
-          projects={projects}
-          onCreated={(username, password) => {
-            set임시비밀번호({ username, password });
-            set여는것(null);
-            onDone();
-          }}
-        />
-      ) : null}
-
-      {rows.map((it) => (
-        <div key={it.username}>
-          <div className="set-row">
-            <span className="set-name">
-              {it.displayName}
-              {it.isActive ? null : <span className="set-off">{t('비활성')}</span>}
-            </span>
-            <span className="set-sub">{it.username}</span>
-            <PermissionSummary row={it} projects={projects} />
-            <button
-              className="btn ghost"
-              onClick={() => set여는것(여는것 === it.username ? null : it.username)}
-            >
-              {여는것 === it.username ? t('닫기') : t('편집')}
+      {/* 줄 밑에 폼을 펼치면 아래 계정이 밀려나 어느 계정을 고치는지 놓쳤다 — 테스트 작성 화면과 같은 오른쪽 서랍에서 고친다 (WEB-F5-06 시안 A) */}
+      {여는것 === 'new' || 연줄 !== undefined ? (
+        <Drawer className="set-user-drawer" aria-labelledby="set-user-title" onClose={() => set여는것(null)}>
+          <div className="drawer-head">
+            <h2 id="set-user-title">
+              {연줄 === undefined ? t('새 계정') : 연줄.displayName}
+              {연줄 === undefined ? null : <span className="set-sub">{연줄.username}</span>}
+            </h2>
+            <button type="button" className="btn ghost icon" aria-label={t('닫기')} onClick={() => set여는것(null)}>
+              ✕
             </button>
           </div>
-          {여는것 === it.username ? (
+          {상자들}
+          {연줄 === undefined ? (
             <UserForm
-              row={it}
-              rows={rows}
-              나다={it.username === me}
               projects={projects}
-              onDone={() => {
+              onCreated={(username, password) => {
+                set임시비밀번호({ username, password });
                 set여는것(null);
                 onDone();
-                // 자기 자신을 고쳤으면 띠와 등급도 다시 읽는다
-                if (it.username === me) onSelf();
               }}
-              onPassword={(password) => set임시비밀번호({ username: it.username, password })}
             />
-          ) : null}
-          {여는것 === it.username ? <AgentToken row={it} onIssued={set토큰} onChanged={onDone} /> : null}
+          ) : (
+            <>
+              <UserForm
+                key={연줄.username}
+                row={연줄}
+                rows={rows}
+                나다={연줄.username === me}
+                projects={projects}
+                onDone={() => {
+                  set여는것(null);
+                  onDone();
+                  // 자기 자신을 고쳤으면 띠와 등급도 다시 읽는다
+                  if (연줄.username === me) onSelf();
+                }}
+                onPassword={(password) => set임시비밀번호({ username: 연줄.username, password })}
+              />
+              <AgentToken row={연줄} onIssued={set토큰} onChanged={onDone} />
+            </>
+          )}
+        </Drawer>
+      ) : null}
+
+      <div className="set-row set-user-row set-user-head" aria-hidden="true">
+        <span>{t('이름')}</span>
+        <span>{t('아이디')}</span>
+        <span>{t('권한')}</span>
+      </div>
+      {rows.map((it) => (
+        // 줄 어디를 눌러도 연다. 키보드는 끝의 「편집」 버튼으로 온다
+        <div
+          key={it.username}
+          className={`set-row set-user-row${여는것 === it.username ? ' is-open' : ''}`}
+          onClick={() => set여는것(it.username)}
+        >
+          <span className="set-name">
+            {it.displayName}
+            {it.isActive ? null : <span className="set-off">{t('비활성')}</span>}
+            {it.isAuthoringAgent === true ? <span className="set-sub">{t('작성 에이전트 계정')}</span> : null}
+          </span>
+          <span className="set-sub">{it.username}</span>
+          <PermissionSummary row={it} projects={projects} />
+          <button className="btn ghost" onClick={() => set여는것(it.username)}>
+            {t('편집')}
+          </button>
         </div>
       ))}
     </section>
