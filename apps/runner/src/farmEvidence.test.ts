@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const farmArtifacts = vi.fn();
 vi.mock('appium-cli', () => ({ farmArtifacts: (...a: unknown[]) => farmArtifacts(...a) }));
 
-const { 팜증적을받는다 } = await import('./farmEvidence.js');
+const { 팜증적받기를줄세운다, 팜증적을받는다 } = await import('./farmEvidence.js');
 
 let 임시: string;
 const 폴더 = () => runDir('3', '9');
@@ -35,9 +35,17 @@ afterEach(() => {
 });
 
 describe('팜증적을받는다', () => {
-  it('실패 항목은 연결 번호로 받아 실행 폴더의 farm 에 두고 번호 파일을 지운다', async () => {
+  it('실패 항목은 연결 번호로 옆 폴더에 받고, 다 받은 뒤에야 farm 으로 옮기고 번호 파일을 지운다', async () => {
+    farmArtifacts.mockImplementation(async (_u: string, _s: string, 받는곳: string) => {
+      mkdirSync(받는곳, { recursive: true });
+      writeFileSync(join(받는곳, 'video-1.mp4'), '영상');
+      // 받는 동안 admin 이 보는 farm 폴더는 아직 없다
+      expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR))).toBe(false);
+      return { files: [], errors: [] };
+    });
     await 팜증적을받는다(3, 9, 'FAIL');
-    expect(farmArtifacts).toHaveBeenCalledWith('http://farm:4723/wd/hub', 'sess-1', join(폴더(), FARM_EVIDENCE_DIR));
+    expect(farmArtifacts).toHaveBeenCalledWith('http://farm:4723/wd/hub', 'sess-1', join(폴더(), `${FARM_EVIDENCE_DIR}.part`));
+    expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR, 'video-1.mp4'))).toBe(true);
     expect(existsSync(idFile())).toBe(false);
   });
 
@@ -74,6 +82,7 @@ describe('팜증적을받는다', () => {
     });
     await expect(팜증적을받는다(3, 9, 'FAIL')).resolves.toBeUndefined();
     expect(existsSync(join(폴더(), FARM_EVIDENCE_DIR))).toBe(false);
+    expect(existsSync(join(폴더(), `${FARM_EVIDENCE_DIR}.part`))).toBe(false);
     expect(existsSync(idFile())).toBe(false);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('HTTP 404'));
   });
@@ -82,5 +91,23 @@ describe('팜증적을받는다', () => {
     farmArtifacts.mockResolvedValue({ files: [], errors: ['녹화 실패: 폰이 뽑혔다'] });
     await 팜증적을받는다(3, 9, 'FAIL');
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('녹화 실패: 폰이 뽑혔다'));
+  });
+
+  it('줄 세운 받기는 앞 받기가 끝난 뒤에 시작한다', async () => {
+    mkdirSync(runDir('3', '10'), { recursive: true });
+    writeFileSync(join(runDir('3', '10'), APPIUM_SESSION_ID_FILE), 'sess-2\n');
+    let 놓기!: () => void;
+    const 차례: string[] = [];
+    farmArtifacts.mockImplementation(async (_u: string, sid: string) => {
+      차례.push(`시작 ${sid}`);
+      if (sid === 'sess-1') await new Promise<void>((ok) => { 놓기 = ok; });
+      차례.push(`끝 ${sid}`);
+      return { files: [], errors: [] };
+    });
+    팜증적받기를줄세운다(3, 9, 'FAIL');
+    팜증적받기를줄세운다(3, 10, 'FAIL');
+    await vi.waitFor(() => expect(차례).toEqual(['시작 sess-1']));
+    놓기();
+    await vi.waitFor(() => expect(차례).toEqual(['시작 sess-1', '끝 sess-1', '시작 sess-2', '끝 sess-2']));
   });
 });

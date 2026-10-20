@@ -65,6 +65,13 @@ describe('항목 상세 (SPEC §8.4)', () => {
     expect(screen.getByText('기록 없음')).toBeTruthy();
   });
 
+  it('팜 화면 영상 · logcat 을 받아 둔 항목은 절차 아래에 재생 칸과 받기 링크를 둔다', async () => {
+    그린다({ farm: [{ name: 'video-1.mp4', bytes: 2_428_030 }, { name: 'logcat.txt', bytes: 1_048_576 }] });
+    const 영상 = await screen.findByLabelText('화면 영상 1');
+    expect(영상.getAttribute('src')).toBe(`/api/runs/${String(RUN_ID)}/items/${String(HISTORY_ID)}/farm/video-1.mp4`);
+    expect(screen.getByRole('link', { name: 'logcat.txt 받기 (1.0MB)' })).toBeTruthy();
+  });
+
   it('멈춰 닫힌 미실행은 서버가 이유를 안 줘도 「사용자가 멈춤」을 적는다', async () => {
     그린다({ status: 'NA', error: { message: 'ABORTED' }, failure: null });
     expect(await screen.findByText('실패 이유')).toBeTruthy();
