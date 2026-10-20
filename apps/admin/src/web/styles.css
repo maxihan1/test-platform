@@ -2329,6 +2329,11 @@ input[type='file']::file-selector-button {
   font-size: 13px;
 }
 
+/* 프로젝트 아래 애플리케이션 — 들여 써서 어느 프로젝트 것인지 보인다 */
+.set-nav a.set-nav-app {
+  padding-left: 28px;
+}
+
 .set-panel {
   display: flex;
   flex-direction: column;
