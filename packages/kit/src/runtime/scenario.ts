@@ -3,7 +3,7 @@
 
 import type { APIRequestContext, Page } from '@playwright/test';
 
-import type { StepResult } from '../types.js';
+import type { ApiAuth, StepResult } from '../types.js';
 import type { ScenarioPhase } from './context.js';
 import { SCENARIO_CLEANUP_MARKER, SCENARIO_PART_MARKER } from './protocol.js';
 
@@ -23,6 +23,8 @@ export interface ScenarioCaseInput {
   seq: number;
   // 러너가 건넨 표시판. kit 이 적고 러너의 가로채기가 읽는다 (SPEC 공통/3-공유계약 §5.1 ④)
   phase?: ScenarioPhase;
+  // 그 부품 애플리케이션 · 짝지은 대상 서버의 API 인증. 조립 목록의 부품 줄에서 온다 (도메인/러너 §5.2 「API 케이스 실행」)
+  apiAuths?: readonly ApiAuth[];
 }
 
 export interface ScenarioCaseOutcome {

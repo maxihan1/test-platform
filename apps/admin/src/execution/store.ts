@@ -2,11 +2,12 @@
 // params·expected·케이스명·사전조건은 전부 실행 시점의 스냅샷이다. param_set을 참조만 하면
 // 나중에 값이 바뀌었을 때 과거 증적이 거짓이 된다
 
-import type { Platform } from '@platform/kit';
+import type { ApiAuth, Platform } from '@platform/kit';
 
 import type { Pool } from 'pg';
 
 import { 미확정사유SQL } from '../prd/unconfirmed.js';
+import { API인증읽기 } from '../settings/envs.js';
 
 import { DEFAULT_TIMEOUT_MS, 선언밖디바이스 } from './location.js';
 import { 대상서버계정, 저장값을채운다 } from './savedInput.js';
@@ -81,6 +82,8 @@ export interface PendingItem {
   timeoutMs: number;
   // android 항목만. 그 대상 서버 줄의 앱 파일 경로 — 없으면 러너가 자기 환경값을 쓴다 (러너 §5.2 · APP-F1-03)
   app?: string;
+  // 그 대상 서버 줄의 API 인증. 설정이 API 애플리케이션에만 넣게 하므로 있으면 API 케이스다 (도메인/API §3.8)
+  apiAuths?: ApiAuth[];
 }
 
 // tcId 접두사가 곧 서비스다. 요청이 서비스를 따로 싣게 두면 번호와 서비스가 어긋날 수 있다 (SPEC §7)
@@ -94,6 +97,7 @@ interface ServiceRow {
   tests_repo: string;
   base_url: string | null;
   app_path: string | null;
+  api_auths: unknown;
 }
 
 // DATABASE_URL이 없으면 db/index.ts가 import 시점에 던진다. 풀은 실제로 쓸 때 가져온다 (catalog/store.ts와 같은 방식)
@@ -170,7 +174,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
 
     // 서비스와 대상 주소는 표에서 찾는다. 요청이 주소를 싣게 두면 아무 데나 쏠 수 있다 (SPEC §6)
     const service = await client.query<ServiceRow>(
-      `SELECT s.id, s.name, s.tests_repo, e.base_url, NULLIF(e.app_path, '') AS app_path
+      `SELECT s.id, s.name, s.tests_repo, e.base_url, NULLIF(e.app_path, '') AS app_path, e.api_auths
          FROM service s
          LEFT JOIN service_env e ON e.service_id = s.id AND e.env = $2
         WHERE s.prefix = $1 AND s.is_active`,
@@ -183,6 +187,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
     if (found서비스.base_url === null) {
       throw new RunInputError('ENV_NOT_FOUND', `${prefix} 서비스에 ${input.env} 대상 서버가 없다`);
     }
+    const 인증들 = API인증읽기(found서비스.api_auths);
 
     // 케이스명·사전조건·파일 경로는 카탈로그가 채운 캐시에서 SQL로 읽는다. 카탈로그 코드를 import 하지 않는다.
     // 미확정 사유도 여기서 박제한다 — 확인 필요 항목이 나중에 확정돼도 그날 확정이 아니었다는 사실은 남아야 한다 (SPEC 실행 §3.2)
@@ -270,6 +275,7 @@ export async function createRun(input: CreateRunInput): Promise<{ runId: number;
             expected: item.expected,
             timeoutMs,
             ...(platform === 'android' && found서비스.app_path !== null && { app: found서비스.app_path }),
+            ...(인증들.length > 0 && { apiAuths: 인증들 }),
           });
         }
       }

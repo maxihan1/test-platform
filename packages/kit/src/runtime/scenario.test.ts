@@ -92,6 +92,11 @@ beforeAll(() => {
       찍는다('판정 뒤');
     });
   });
+  test(defineCase({ tcId: 'XKS-007', name: 'API 를 부른다', precondition: [], params: null, expected: null }), async ({ api }) => {
+    await test.step('푸시를 본다', async () => {
+      await api('고객사 A').get('/v1/pushes');
+    });
+  });
 });
 
 afterAll(() => {
@@ -119,6 +124,27 @@ describe('시나리오 모드', () => {
     await scenarioCase('XKS-001')!(입력({ params: { 이름: '민수' } }));
 
     expect(받은입력).toEqual([{ 이름: '검사' }, { 이름: '민수' }]);
+  });
+
+  it('API 인증은 그 부품 것으로 새로 받는다 — 앞 부품의 토큰을 다음 부품에 쓰지 않는다', async () => {
+    const 보낸머리: unknown[] = [];
+    let n = 0;
+    const 가짜 = {
+      post: async () => ({ ok: () => true, status: () => 200, json: async () => ({ access_token: `tok-${++n}` }) }),
+      get: async (_url: string, options?: { headers?: unknown }) => {
+        보낸머리.push(options?.headers);
+        return { status: () => 200, text: async () => '{}' };
+      },
+    } as unknown as APIRequestContext;
+    const 인증 = { name: '고객사 A', tokenUrl: '/token', clientId: 'a', clientSecret: 's' };
+
+    const 첫 = await scenarioCase('XKS-007')!(입력({ request: 가짜, apiAuths: [인증] }));
+    const 둘 = await scenarioCase('XKS-007')!(입력({ request: 가짜, apiAuths: [인증] }));
+    const 없음 = await scenarioCase('XKS-007')!(입력({ request: 가짜 }));
+
+    expect([첫.failed, 둘.failed]).toEqual([false, false]);
+    expect(보낸머리).toEqual([{ Authorization: 'Bearer tok-1' }, { Authorization: 'Bearer tok-2' }]);
+    expect(없음.steps[0]?.error?.message).toBe("이 대상 서버에 API 인증 '고객사 A' 가 없습니다");
   });
 
   it('건너뛸 제목은 그 호출에만 걸린다', async () => {

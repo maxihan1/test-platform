@@ -1,19 +1,14 @@
 // Playwright의 test를 감싼 래퍼. 케이스 명세와 주입된 입력값을 본문에 넘기고 절차 결과를 리포터로 흘린다 (SPEC §4)
 
-import {
-  test as base,
-  type APIRequestContext,
-  type APIResponse,
-  type Page,
-  type TestInfo,
-} from '@playwright/test';
+import { test as base, type APIRequestContext, type Page, type TestInfo } from '@playwright/test';
 
-import type { StepResult } from '../types.js';
+import type { ApiAuth, StepResult } from '../types.js';
+import { api만들기, 인증목록 } from './apiAuth.js';
 import { captureApp, closeApp, openApp, readDevice, type AppDriver } from './app.js';
 import { saveShot } from './artifacts.js';
 import { runScope, type RunScope } from './context.js';
 import type { CaseHandle } from './defineCase.js';
-import { recordHttpTrace } from './http.js';
+import { traced } from './http.js';
 import { injectedInputs, resolveInputs } from './inputs.js';
 import { DEVICE_ATTACHMENT, STEP_ATTACHMENT } from './protocol.js';
 import { registerScenarioCase, type ScenarioCaseRunner } from './scenario.js';
@@ -25,52 +20,13 @@ export interface CaseBodyArgs<P, E> {
   page: Page;
   driver: AppDriver;
   request: APIRequestContext;
+  // 그 이름 API 인증의 토큰을 붙인 요청 도구. request 는 「인증 없이」다 (도메인/API §3.8 「API 인증」)
+  api: (name: string) => APIRequestContext;
   params: P;
   expected: E;
 }
 
 export type CaseBody<P, E> = (args: CaseBodyArgs<P, E>) => Promise<void> | void;
-
-const TRACED_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'fetch']);
-const TRACE_BODY_LIMIT = 2000;
-
-type ApiCall = (url: string, options?: Record<string, unknown>) => Promise<APIResponse>;
-
-async function traceResponse(
-  method: string,
-  url: string,
-  options: Record<string, unknown> | undefined,
-  response: APIResponse,
-): Promise<void> {
-  let body: string;
-  try {
-    body = (await response.text()).slice(0, TRACE_BODY_LIMIT);
-  } catch (err) {
-    body = `본문을 읽지 못했다: ${err instanceof Error ? err.message : String(err)}`;
-  }
-  recordHttpTrace(
-    { method: method.toUpperCase(), url, data: options?.data },
-    { status: response.status(), body },
-  );
-}
-
-// API 케이스는 화면이 없다. 대신 요청·응답 원문을 절차에 남긴다 (SPEC §4)
-function traced(request: APIRequestContext): APIRequestContext {
-  return new Proxy(request, {
-    get(target, prop, receiver) {
-      const original: unknown = Reflect.get(target, prop, receiver);
-      if (typeof prop !== 'string' || !TRACED_METHODS.has(prop) || typeof original !== 'function') {
-        return original;
-      }
-      const call = (original as ApiCall).bind(target);
-      return async (url: string, options?: Record<string, unknown>): Promise<APIResponse> => {
-        const response = await call(url, options);
-        await traceResponse(prop, url, options, response);
-        return response;
-      };
-    },
-  });
-}
 
 async function capture(page: Page, seq: number): Promise<string | undefined> {
   // 화면을 연 적이 없는 케이스는 찍어봐야 흰 그림만 남는다
@@ -92,12 +48,16 @@ function bodyArgs<P, E>(
   request: APIRequestContext,
   inputs: { params: P; expected: E },
   side: { page: Page } | { driver: AppDriver },
+  인증들: readonly ApiAuth[],
 ): CaseBodyArgs<P, E> {
   const [missing, message] =
     'page' in side
       ? ['driver', `${tcId}은 브라우저 케이스라 driver 가 없다`]
       : ['page', `${tcId}은 Android 앱 케이스라 page 가 없다 — driver 를 쓴다`];
-  const args = { request, params: inputs.params, expected: inputs.expected, ...side };
+  // 비밀값은 처음부터, 받은 토큰은 받는 대로 더해진다
+  const 비밀 = new Set(인증들.map((a) => a.clientSecret));
+  const 감싼 = traced(request, 비밀);
+  const args = { request: 감싼, api: api만들기(인증들, 감싼, request, 비밀), params: inputs.params, expected: inputs.expected, ...side };
   return Object.defineProperty(args, missing, {
     get(): never {
       throw new Error(message);
@@ -121,7 +81,7 @@ function errorOf(thrown: unknown): { message: string; stack?: string } {
 // E2E 시나리오의 부품 하나. 이 kit 인스턴스의 문맥으로 본체를 감싸야 본체 안 step() 이 문맥을 찾는다.
 // 부를 때마다 실패 표시·건너뛸 제목·결과 모으기를 새로 세운다 — 앞 부품의 것이 새면 안 된다 (SPEC 공통/3-공유계약 §5.1)
 function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): ScenarioCaseRunner {
-  return async ({ page, request, platform, params, expected, skipSteps, seq, phase }) => {
+  return async ({ page, request, platform, params, expected, skipSteps, seq, phase, apiAuths }) => {
     const steps: StepResult[] = [];
     const run: RunScope = {
       seq,
@@ -151,7 +111,8 @@ function scenarioRunner<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): Sce
       const inputs = resolveInputs(spec, { params, expected });
       await runScope.run(run, async () => {
         try {
-          await body(bodyArgs(spec.tcId, traced(request), inputs, { page }));
+          // 부품마다 그 부품 애플리케이션의 인증으로 새로 받는다 — 앞 부품의 토큰으로 다음 부품 서버를 부르지 않게
+          await body(bodyArgs(spec.tcId, request, inputs, { page }, apiAuths ?? []));
         } catch (thrown) {
           if (!(thrown instanceof StopTest)) throw thrown;
         }
@@ -248,7 +209,7 @@ function defineTest<P, E>(spec: CaseHandle<P, E>, body: CaseBody<P, E>): void {
 
     await runScope.run(run, async () => {
       try {
-        await body(bodyArgs(spec.tcId, traced(request), inputs, side));
+        await body(bodyArgs(spec.tcId, request, inputs, side, 인증목록(process.env.PLATFORM_API_AUTHS)));
       } catch (thrown) {
         // 멈춤 신호는 여기서 끝낸다. 진짜 예외는 Playwright가 위치까지 보여주도록 그대로 올린다
         if (!(thrown instanceof StopTest)) throw thrown;

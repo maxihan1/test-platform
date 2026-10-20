@@ -226,6 +226,7 @@ export function 감싸기걸기(browser: Browser, 요청도구: APIRequest, 이�
               page,
               request: 감싼도구(부품요청, 이음값, 묶음(이번.부품, () => 부품요청.storageState())),
               platform: 설정.platform, params, expected: part.expected, skipSteps: part.skipSteps, seq, phase,
+              apiAuths: part.apiAuths ?? [],
             });
             // 창을 닫으면 본문을 못 읽는다 — 이 부품이 잡은 자리를 다 읽을 때까지 기다린다(부품 한도 경주 안). 자리는 못 읽으면 사유 글자라 던지지 않는다
             await Promise.all(이음값.응답.values());

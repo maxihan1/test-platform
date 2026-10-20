@@ -187,6 +187,26 @@ describe.skipIf(연결 === undefined)('애플리케이션을 섞은 시나리오
     ]);
   });
 
+  it('API 인증은 그 애플리케이션 케이스 단계의 러너 요청에만 싣고 부품 기록에는 안 남긴다 — 시험 실행도 같다', async () => {
+    const 인증 = [{ name: '고객사 A', tokenUrl: '/oauth/token', clientId: 'client-a', clientSecret: 'xsm-secret-1234' }];
+    await q('UPDATE service_env SET api_auths = $2 WHERE service_id = $1 AND env = $3', [서비스['XSM2'], JSON.stringify(인증), 'stg']);
+    try {
+      const { id } = await 만들기(시작(), 'XSM API 인증', 'desktop', [케이스('XSM-001'), 케이스('XSM2-001')], 사람);
+      const { runId, 요청 } = await 실행만들기(id, 'stg', 사람);
+
+      expect(요청.parts.map((p) => p.apiAuths)).toEqual([undefined, 인증]);
+      const 기록 = await q('SELECT part::text AS part FROM scenario_run_part WHERE run_id = $1', [runId]);
+      expect(기록.rows.map((r) => (r as { part: string }).part).join('')).not.toContain('xsm-secret-1234');
+
+      러너.요청.length = 0;
+      await 시험시작({ username: 'xsm' }, { service: 'XSM', env: 'stg', platform: 'desktop', parts: [케이스('XSM-001'), 케이스('XSM2-001')] });
+      await vi.waitFor(() => expect(러너.요청).toHaveLength(1));
+      expect((러너.요청[0] as ScenarioExecuteRequest).parts.map((p) => p.apiAuths)).toEqual([undefined, 인증]);
+    } finally {
+      await q("UPDATE service_env SET api_auths = '[]' WHERE service_id = $1", [서비스['XSM2']]);
+    }
+  });
+
   it('삭제 성공 코드는 러너 입구 상한(1000줄)을 애플리케이션 수로 나눠 자른다 — 앞 애플리케이션이 뒤 애플리케이션 몫을 먹지 않는다', async () => {
     await q(
       `INSERT INTO service_api (service_id, method, host, path, ok_status)

@@ -132,6 +132,8 @@ export default async function trialRoutes(app: FastifyInstance): Promise<void> {
       expected,
       timeoutMs: 제한ms,
       ...(앱 !== null && { app: 앱 }),
+      // 정식 실행과 같은 규칙 — 그 대상 서버 줄에 API 인증이 있으면 싣는다 (도메인/API §3.8)
+      ...(줄 !== undefined && 줄.apiAuths.length > 0 && { apiAuths: 줄.apiAuths }),
     };
     // 같은 디바이스에 연결 둘이 겹치면 뒤 연결이 앞을 가로챈다. 검증 전에 잡으면 400 경로에서 디바이스가 재기동 때까지 잠긴다
     const 폰씀 = platform === 'android';

@@ -7,6 +7,7 @@ import type { Pool, PoolClient } from 'pg';
 
 import { 대상서버계정 } from '../execution/savedInput.js';
 import { 삭제코드를읽는다 } from '../prd/apiMap.js';
+import { API인증읽기, type API인증 } from '../settings/envs.js';
 
 import { 케이스접두사 } from './mixed.js';
 
@@ -50,6 +51,8 @@ export interface 쓰는앱 {
   serviceId: number;
   baseUrl: string;
   계정들: 역할계정[];
+  // 비밀값 원문 — 러너 요청에만 싣고 부품 기록에는 안 넣는다 (도메인/API §3.8 「API 인증」 E2E)
+  apiAuths: API인증[];
 }
 
 /**
@@ -62,8 +65,8 @@ export async function 쓰는앱읽기(
   q?: 손,
 ): Promise<{ 앱들: Map<string, 쓰는앱>; 없음: string | null }> {
   const 손잡이 = q ?? (await db());
-  const r = await 손잡이.query<{ prefix: string; id: string; base_url: string | null }>(
-    `SELECT s.prefix, s.id, e.base_url FROM service s
+  const r = await 손잡이.query<{ prefix: string; id: string; base_url: string | null; api_auths: unknown }>(
+    `SELECT s.prefix, s.id, e.base_url, e.api_auths FROM service s
        LEFT JOIN service_env e ON e.service_id = s.id AND e.env = $2
       WHERE s.prefix = ANY($1::text[])`,
     [접두사들, env],
@@ -73,9 +76,20 @@ export async function 쓰는앱읽기(
   for (const prefix of 접두사들) {
     const x = 줄.get(prefix);
     if (x?.base_url == null) return { 앱들, 없음: prefix };
-    앱들.set(prefix, { serviceId: Number(x.id), baseUrl: x.base_url, 계정들: await 대상서버계정(손잡이, Number(x.id), env) });
+    앱들.set(prefix, {
+      serviceId: Number(x.id),
+      baseUrl: x.base_url,
+      계정들: await 대상서버계정(손잡이, Number(x.id), env),
+      apiAuths: API인증읽기(x.api_auths),
+    });
   }
   return { 앱들, 없음: null };
+}
+
+/** case 단계 애플리케이션의 API 인증. 없으면 빈 객체 — 러너 요청 부품에만 붙인다 */
+export function 단계인증(part: ScenarioPart, 앱들: ReadonlyMap<string, 쓰는앱>): { apiAuths?: API인증[] } {
+  const 인증들 = part.kind === 'case' ? (앱들.get(케이스접두사(part.tcId))?.apiAuths ?? []) : [];
+  return 인증들.length > 0 ? { apiAuths: 인증들 } : {};
 }
 
 /** 시작 애플리케이션이 아닌 case · api 단계의 주소. 그 밖은 빈 객체 — 요청 전체 주소로 돈다 */

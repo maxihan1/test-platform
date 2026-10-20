@@ -127,6 +127,36 @@ describe('POST /execute', () => {
     expect((await 보낸다({ app: 'file:///etc/a.apk' })).statusCode).toBe(400);
     expect((await 보낸다({ udid: '' })).statusCode).toBe(400);
   });
+
+  describe('API 인증 (도메인/러너 §5.2 「API 케이스 실행」)', () => {
+    const 인증 = { name: '고객사 A', tokenUrl: '/v1/oauth/token', clientId: 'client-a', clientSecret: 'secret-a' };
+    const 보낸다 = (apiAuths: unknown) =>
+      서버().inject({
+        method: 'POST',
+        url: '/execute',
+        payload: {
+          runId: 1, historyId: 5, tcId: 'TODO-001', platform: 'desktop', filePath: 'todo/TODO-001.spec.ts',
+          baseUrl: 'https://qa.example.com', params: {}, expected: {}, apiAuths,
+        },
+      });
+
+    it('버리지 않고 실행에 넘긴다 — 토큰 주소는 상대 경로도 http(s) 주소도 된다', async () => {
+      const 둘 = [인증, { ...인증, name: '고객사 B', tokenUrl: 'https://auth.example.com/token' }];
+      expect((await 보낸다(둘)).statusCode).not.toBe(400);
+      expect(execute).toHaveBeenLastCalledWith(expect.objectContaining({ apiAuths: 둘 }), expect.any(String));
+    });
+
+    it.each([
+      ['이름이 비었다', { name: '' }],
+      ['이름이 20자를 넘는다', { name: '가'.repeat(21) }],
+      ['토큰 주소가 // 로 시작한다 — 다른 호스트로 풀린다', { tokenUrl: '//evil.example/token' }],
+      ['토큰 주소가 http(s) 가 아니다', { tokenUrl: 'file:///etc/passwd' }],
+      ['클라이언트 아이디가 비었다', { clientId: '' }],
+      ['비밀값 칸이 없다', { clientSecret: undefined }],
+    ])('%s 이면 400 이다', async (_이름, 칸) => {
+      expect((await 보낸다([{ ...인증, ...칸 }])).statusCode).toBe(400);
+    });
+  });
 });
 
 describe('POST /abort', () => {
@@ -316,6 +346,16 @@ describe('POST /execute-scenario — 입구 검사', () => {
     expect(res.statusCode).toBe(200);
     expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({
       parts: [expect.not.objectContaining({ baseUrl: expect.anything() }), expect.objectContaining({ baseUrl: 어드민 }), expect.objectContaining({ baseUrl: 어드민 })],
+    }));
+  });
+
+  it('케이스 부품의 API 인증을 버리지 않고 실행에 넘긴다 — 부품마다 다를 수 있다', async () => {
+    const 인증 = [{ name: '고객사 A', tokenUrl: '/v1/oauth/token', clientId: 'client-a', clientSecret: 'secret-a' }];
+    const res = await 보냄(요청({ parts: [케이스('todo/TODO-001.spec.ts'), { ...케이스('todo/TODO-001.spec.ts'), apiAuths: 인증 }] }));
+
+    expect(res.statusCode).toBe(200);
+    expect(executeScenario).toHaveBeenCalledWith(expect.objectContaining({
+      parts: [expect.not.objectContaining({ apiAuths: expect.anything() }), expect.objectContaining({ apiAuths: 인증 })],
     }));
   });
 

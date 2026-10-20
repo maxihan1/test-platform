@@ -118,3 +118,38 @@ describe('execute 가 결과 줄의 기기 정보를 응답에 넘긴다 (APP-F1
     expect(응답.device).toEqual(기기);
   });
 });
+
+describe('execute 가 자식에게 넘기는 API 인증 (API-F1-04)', () => {
+  let 폴더: string;
+  let 옛값: string | undefined;
+
+  beforeEach(() => {
+    폴더 = mkdtempSync(join(tmpdir(), 'runner-auth-'));
+    옛값 = process.env.PLATFORM_API_AUTHS;
+    process.env.PLATFORM_API_AUTHS = '[{"name":"셸에 남은 것"}]';
+    스크립트.지금 = `printf %s "$PLATFORM_API_AUTHS" > '${join(폴더, 'auth.txt')}'`;
+  });
+
+  afterEach(() => {
+    if (옛값 === undefined) delete process.env.PLATFORM_API_AUTHS;
+    else process.env.PLATFORM_API_AUTHS = 옛값;
+    rmSync(폴더, { recursive: true, force: true });
+  });
+
+  const 요청 = (apiAuths?: ExecuteRequest['apiAuths']): ExecuteRequest => ({
+    runId: 5, historyId: 12, tcId: 'NTF-FN-001', platform: 'desktop', filePath: 'a.spec.ts', baseUrl: '', params: {}, expected: {}, timeoutMs: 10_000,
+    ...(apiAuths !== undefined && { apiAuths }),
+  });
+  const 받은인증 = () => JSON.parse(readFileSync(join(폴더, 'auth.txt'), 'utf8')) as unknown;
+
+  it('요청이 실은 인증을 JSON 으로 넘긴다', async () => {
+    const 인증 = [{ name: '고객사 A', tokenUrl: '/v1/oauth/token', clientId: 'client-a', clientSecret: 'secret-a' }];
+    await execute(요청(인증), 'a.spec.ts');
+    expect(받은인증()).toEqual(인증);
+  });
+
+  it('요청에 없으면 빈 목록이다 — 러너를 켠 셸의 값을 물려받지 않는다', async () => {
+    await execute(요청(), 'a.spec.ts');
+    expect(받은인증()).toEqual([]);
+  });
+});
