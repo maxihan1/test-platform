@@ -37,6 +37,10 @@ export const 등급표: Record<string, 표값> = {
   'POST /api/auth/password': 안따짐,
   // 가입은 로그인 없이 지나간다. 만드는 것은 아무것도 못 하는 승인 대기 계정뿐이다 (인증 §7 「인증 적용 범위」)
   'POST /api/auth/signup': 안따짐,
+  // 로그인 화면이 그릴 모양 · maxihan 계정 로그인 왕복. 셋 다 로그인 없이 지나간다 (auth/sso.ts)
+  'GET /api/auth/methods': 안따짐,
+  'GET /api/auth/sso/start': 안따짐,
+  'GET /api/auth/sso/callback': 안따짐,
 
   'GET /api/catalog/cases': 케이스읽기,
   'GET /api/catalog/export': 케이스읽기,

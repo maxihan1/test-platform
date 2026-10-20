@@ -113,6 +113,19 @@ describe.skipIf(연결 === undefined)('Auth API', () => {
     expect(res.json()).toEqual({ error: 'INVALID_CREDENTIALS' });
   });
 
+  it('비밀번호가 없는 계정(maxihan 계정으로 만들어진 계정)도 없는 계정과 같은 401이다', async () => {
+    const { pool } = await import('../db/index.js');
+    await pool.query(
+      `INSERT INTO app_user (username, display_name, password_hash, role, is_approved, must_change_password)
+            VALUES ($1, '한비번없음', NULL, 'member', true, false)
+       ON CONFLICT (username) DO UPDATE SET is_active = true, password_hash = NULL, is_approved = true`,
+      ['xfu2-nopw'],
+    );
+    const res = await 로그인('xfu2-nopw', '아무거나');
+    expect(res.statusCode).toBe(401);
+    expect(res.json()).toEqual({ error: 'INVALID_CREDENTIALS' });
+  });
+
   it('빈 요청에도 같은 401로 답한다', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/auth/login', payload: {} });
     expect(res.statusCode).toBe(401);

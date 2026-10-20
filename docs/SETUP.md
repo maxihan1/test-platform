@@ -184,7 +184,8 @@ openssl rand -hex 32
 |------|------|
 | `SESSION_SECRET` | 로그인 세션을 서명하는 키. **비어 있거나 32바이트보다 짧으면 admin이 기동을 거부한다** (`openssl rand -hex 32` 면 충분하다). 임시 키를 지어내면 재기동할 때마다 전원 로그아웃되고, 그 사실을 아무도 모른 채 「가끔 로그인이 풀린다」로 겪는다 |
 | `ADMIN_PORT` · `POSTGRES_PORT` | 바깥 포트. 비우면 `3000`·`5433`으로 뜬다. 한 서버에 다른 것과 같이 띄울 때만 바꾼다. **Grafana 는 바깥 포트가 없다** (2026-09-28) — 플랫폼에 로그인한 뒤 `그래프(Grafana) ↗`(같은 주소의 `/grafana/`)로 들어간다. 그래프(Grafana) 권한(설정 → 계정 → 그래프(Grafana) `읽기`)이 있는 사람만 열린다. 옛 `GRAFANA_PORT` 는 `.env` 에서 지워도 된다 |
-| `PLATFORM_PUBLIC_URL` | 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 「결과 보기」 링크가 이 값 위에 붙는다. **비워 두면 알림에 링크가 안 들어간다** — 틀린 주소를 보내는 것보다 없는 편이 낫다 |
+| `PLATFORM_PUBLIC_URL` | 이 플랫폼이 바깥에서 열리는 주소. Slack 알림의 「결과 보기」 링크가 이 값 위에 붙는다. **비워 두면 알림에 링크가 안 들어간다** — 틀린 주소를 보내는 것보다 없는 편이 낫다. **아래 maxihan 계정 로그인을 켜면 꼭 채운다** — 돌아올 주소가 이 위에 붙는다 |
+| `AUTH_ISSUER` · `AUTH_CLIENT_ID` · `AUTH_CLIENT_SECRET` | 선택 (2026-10-20). **maxihan 계정(Auth_platform)으로 로그인하게 한다.** Auth_platform 주소와, 거기에 이 플랫폼을 등록하고 받은 client id · secret 이다. 등록할 때 돌아올 주소는 `PLATFORM_PUBLIC_URL` + `/api/auth/sso/callback`, 로그아웃 뒤 돌아올 주소는 `PLATFORM_PUBLIC_URL` + `/` 다. **셋 다 채우면 켜지고 셋 다 비우면 비밀번호 로그인 그대로다. 일부만 채우면 admin 이 기동을 거부한다.** 켜면 로그인 화면이 버튼 하나가 되고 회원가입 · 비밀번호 변경이 사라진다. 기본 계정 `admin` 은 Auth_platform 의 같은 아이디 `admin` 으로 처음 들어올 때 이어진다 (SPEC 도메인/인증 §3.5 「maxihan 계정」) |
 
 **2026-09-17에 넷이 이 표에서 빠졌다.** `PLATFORM_INSTANCE_NAME`·`_COLOR`·`PLATFORM_TESTS_REPO`·`PLATFORM_ENV_URLS`.
 서비스 이름·색·저장소·대상 서버 주소는 설정 파일이 아니라 **화면에서 정하고 DB에 들어간다** (SPEC §8.8 · §6).
