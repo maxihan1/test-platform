@@ -109,10 +109,10 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     expect(정책칸().value).toBe('결제는 테스트 카드만 씁니다');
   });
 
-  it('파일 더하기는 그 구획과 지금 버전으로 보내고, 받지 않는 파일은 보내기 전에 막는다', async () => {
+  it('파일 첨부는 그 구획과 지금 버전으로 보내고, 받지 않는 파일은 보내기 전에 막는다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
-    const 고르개 = screen.getByLabelText('정책에 파일 더하기');
+    const 고르개 = screen.getByLabelText('정책에 파일 첨부');
     const 문서 = new File(['정책'], '환불 정책.docx');
     fireEvent.change(고르개, { target: { files: [문서] } });
     await vi.waitFor(() => expect(더하기).toHaveBeenCalledWith('MKT', 'policy', 3, 문서));
@@ -122,24 +122,24 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     expect(더하기).toHaveBeenCalledTimes(1);
   });
 
-  it('빼기는 그 파일 번호와 지금 버전으로 보낸다', async () => {
+  it('제거는 그 파일 번호와 지금 버전으로 보낸다', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
-    fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 빼기' }));
+    fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 제거' }));
     expect(빼기).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 빼기 확인' }));
+    fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 제거 확인' }));
     await vi.waitFor(() => expect(빼기).toHaveBeenCalledWith('MKT', 11, 3));
   });
 
-  it('빼기는 한 번 더 묻고, 취소하면 아무것도 보내지 않고 다시 빼기 단추로 돌아간다 (점검 9.2)', async () => {
+  it('제거는 한 번 더 묻고, 취소하면 아무것도 보내지 않고 다시 제거 단추로 돌아간다 (점검 9.2)', async () => {
     render(<Guide service="MKT" 할수={쓰는사람} />);
     await screen.findByText(/버전 3/);
-    fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 빼기' }));
+    fireEvent.click(screen.getByRole('button', { name: '운영 정책.docx 제거' }));
     const 정책 = screen.getByRole('region', { name: '정책' });
     fireEvent.click(within(정책).getByRole('button', { name: '취소' }));
     expect(빼기).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: '운영 정책.docx 빼기' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: '운영 정책.docx 빼기 확인' })).toBeNull();
+    expect(screen.getByRole('button', { name: '운영 정책.docx 제거' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '운영 정책.docx 제거 확인' })).toBeNull();
   });
 
   it('글 칸 아래에도 저장 단추가 있어 둘 다 같은 일을 한다 (점검 9.3)', async () => {
@@ -178,13 +178,13 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     expect(PDF.getAttribute('target')).toBe('_blank');
   });
 
-  it('보기 권한이면 글을 읽기만 하고 저장 · 파일 더하기 · 빼기가 없다', async () => {
+  it('보기 권한이면 글을 읽기만 하고 저장 · 파일 첨부 · 제거가 없다', async () => {
     render(<Guide service="MKT" 할수={보는사람} />);
     expect(await screen.findByText('테스트로 만든 주문 이름은 qa- 로 시작합니다')).toBeTruthy();
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.queryByRole('button', { name: '저장' })).toBeNull();
-    expect(screen.queryByRole('button', { name: '파일 더하기' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /빼기$/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: '파일 첨부' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /제거$/ })).toBeNull();
     expect(screen.getByText('적은 글이 없습니다')).toBeTruthy();
   });
 
@@ -213,7 +213,7 @@ describe('애플리케이션 가이드 — 시안 A', () => {
     expect(within(옛).getByText('옛 정책 글')).toBeTruthy();
     expect(within(옛).getByRole('link', { name: '옛 정책.docx' })).toBeTruthy();
     expect(within(옛).queryByRole('textbox')).toBeNull();
-    expect(within(옛).queryByRole('button', { name: /빼기$/ })).toBeNull();
+    expect(within(옛).queryByRole('button', { name: /제거$/ })).toBeNull();
   });
 });
 

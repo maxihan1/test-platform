@@ -136,7 +136,7 @@ describe('PRD 관리 — 요구사항 추적표 칸', () => {
       '경계값 분석 1',
       '동등 분할 2',
     ]);
-    expect(구획.nextElementSibling?.querySelector('h3')?.textContent).toBe('근거');
+    expect(구획.nextElementSibling?.querySelector('h3')?.textContent).toBe('출처');
   });
 
   it('실행 read 가 없으면 결과를 부르지 않고, 케이스 read 가 없으면 건수가 글자뿐이다', async () => {

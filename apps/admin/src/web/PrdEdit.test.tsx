@@ -111,9 +111,9 @@ describe('PRD 관리 — 고치기', () => {
     expect(저장).not.toHaveBeenCalled();
   });
 
-  it('근거를 더하고 빼며, 비운 원본 번호는 키째 빼고 보낸다', async () => {
+  it('출처를 더하고 빼며, 비운 원본 번호는 키째 빼고 보낸다', async () => {
     await 펴서고치기(/로그인/, /MKT-REQ-041/);
-    fireEvent.click(screen.getByRole('button', { name: '근거 더하기' }));
+    fireEvent.click(screen.getByRole('button', { name: '출처 더하기' }));
     const 이름칸 = screen.getAllByLabelText('자료 이름');
     expect(이름칸).toHaveLength(2);
     fireEvent.change(이름칸[1]!, { target: { value: '화면' } });
@@ -132,9 +132,9 @@ describe('PRD 관리 — 고치기', () => {
     expect(저장.mock.calls[0]![2].map((x) => x.reqId)).toEqual([아이디.reqId, 아이디칸.reqId, 잠금.reqId]);
   });
 
-  it('요구 더하기는 번호 없이 맨 뒤에 붙이고, 기능 묶음은 지금 판의 것을 고를 수 있다', async () => {
+  it('요구사항 추가는 번호 없이 맨 뒤에 붙이고, 기능 묶음은 지금 판의 것을 고를 수 있다', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '요구 더하기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     const 칸 = screen.getByRole('heading', { name: '새 요구' }).parentElement!;
     expect([...칸.querySelectorAll('datalist option')].map((o) => o.getAttribute('value'))).toEqual(['회원가입', '로그인']);
     fireEvent.change(within(칸).getByLabelText('기능 묶음'), { target: { value: '로그인' } });
@@ -152,12 +152,12 @@ describe('PRD 관리 — 고치기', () => {
     await vi.waitFor(() => expect(screen.queryByRole('heading', { name: '새 요구' })).toBeNull());
   });
 
-  it('새 요구에는 근거 칸이 없고 상태는 확정으로 시작하며, 확인 필요로 바꿔 저장할 수 있다 (점검 8.11)', async () => {
+  it('새 요구에는 출처 칸이 없고 상태는 확정으로 시작하며, 확인 필요로 바꿔 저장할 수 있다 (점검 8.11)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '요구 더하기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     const 칸 = screen.getByRole('heading', { name: '새 요구' }).parentElement!;
     expect(within(칸).queryByLabelText('자료 이름')).toBeNull();
-    expect(within(칸).queryByRole('button', { name: '근거 더하기' })).toBeNull();
+    expect(within(칸).queryByRole('button', { name: '출처 더하기' })).toBeNull();
     expect((within(칸).getByLabelText('상태') as HTMLSelectElement).value).toBe('CONFIRMED');
     fireEvent.change(within(칸).getByLabelText('기능 묶음'), { target: { value: '로그인' } });
     fireEvent.change(within(칸).getByLabelText('요구 문장'), { target: { value: '로그아웃하면 로그인 화면으로 간다' } });
@@ -167,9 +167,9 @@ describe('PRD 관리 — 고치기', () => {
     expect(저장.mock.calls[0]![2][4]).toMatchObject({ status: 'NEEDS_CHECK', basis: [{ from: '직접 작성' }] });
   });
 
-  it('요구 더하기 칸은 할 일 카드 위에서 열리고 기능 묶음 칸에 커서가 간다 (점검 8.5)', async () => {
+  it('요구사항 추가 칸은 할 일 카드 위에서 열리고 기능 묶음 칸에 커서가 간다 (점검 8.5)', async () => {
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '요구 더하기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     const 칸 = screen.getByRole('heading', { name: '새 요구' }).parentElement!;
     const 확인 = screen.getByRole('region', { name: /확인 필요 2건/ });
     expect(칸.compareDocumentPosition(확인) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -192,12 +192,12 @@ describe('PRD 관리 — 고치기', () => {
     await vi.waitFor(() => expect(within(칸).queryByRole('alert')).toBeNull());
   });
 
-  it('판이 없을 때 요구 더하기를 누르면 빈 화면 대신 새 요구 칸이 열린다', async () => {
+  it('판이 없을 때 요구사항 추가를 누르면 빈 화면 대신 새 요구 칸이 열린다', async () => {
     지금.mockResolvedValue(판({ version: 0, items: [], unapplied: { changed: [], added: [], removed: [] }, needsCheck: { count: 0, oldestSince: null } }));
     render(<Prd service="MKT" 할수={쓰는사람} />);
-    fireEvent.click(await screen.findByRole('button', { name: '요구 더하기' }));
+    fireEvent.click(await screen.findByRole('button', { name: '요구사항 추가' }));
     expect(screen.getByRole('heading', { name: '새 요구' })).toBeTruthy();
-    expect(screen.queryByText('테스트 작성 요청으로 기획서를 올리거나, 요구 더하기로 첫 요구를 직접 적습니다')).toBeNull();
+    expect(screen.queryByText('테스트 작성 요청으로 기획서를 올리거나, 요구사항 추가로 첫 요구를 직접 적습니다')).toBeNull();
   });
 });
 

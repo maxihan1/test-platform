@@ -95,6 +95,7 @@ export function Prd({
   return (
     <>
       <Head
+        위치={t('PRD 관리')}
         제목={t('요구사항')}
         부제={now.version === 0 ? t('아직 PRD 가 없습니다') : t('버전 {버전} · 요구 {건수}건', { 버전: now.version, 건수: now.items.length })}
         행동={
@@ -107,7 +108,7 @@ export function Prd({
             ) : null}
             {쓰나 ? (
               <button className="btn ghost" onClick={() => { set메뉴(false); set더하기(true); }} disabled={더하기}>
-                {t('요구 더하기')}
+                {t('요구사항 추가')}
               </button>
             ) : null}
             {now.version === 0 ? null : (
@@ -150,7 +151,7 @@ export function Prd({
         <div className="screen">
           <div className="empty">
             {t('아직 PRD 가 없습니다')}
-            {쓰나 ? <small>{t('테스트 작성 요청으로 기획서를 올리거나, 요구 더하기로 첫 요구를 직접 적습니다')}</small> : null}
+            {쓰나 ? <small>{t('테스트 작성 요청으로 기획서를 올리거나, 요구사항 추가로 첫 요구를 직접 적습니다')}</small> : null}
           </div>
         </div>
       ) : (

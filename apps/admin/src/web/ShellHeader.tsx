@@ -22,12 +22,14 @@ export function ShellHeader({ user, service, onService, 언어, on언어, onLogo
   const t = use말();
   return (
     <header className="hd">
-      <a className="hd-logo" href={집(user, service?.prefix ?? null)} aria-label={t('테스트 플랫폼 홈')}>
+      <a className="hd-logo" href={집(user, service?.prefix ?? null)} aria-label={t('QA Hub 홈')}>
         <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" className="hd-logo-mark">
           <rect width="28" height="28" rx="8" fill="var(--accent)" />
           <path d="M8 14.5l4 4 8-9" fill="none" stroke="var(--on-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <span className="hd-logo-text">{t('테스트 플랫폼')}</span>
+        <span className="hd-logo-text">
+          QA <b>Hub</b>
+        </span>
       </a>
       <div className="hd-bar">
         {/* 대시보드에서도 둔다. 대시보드 내용은 서비스 전체를 모아 보여 주고, 이 칸은 다른 메뉴로 갈 때 쓸 서비스를 미리 고르는 용도다 */}

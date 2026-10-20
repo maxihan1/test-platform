@@ -69,15 +69,16 @@ describe('RunList 머리', () => {
     const { container } = await 그리기();
     await screen.findByText('ZRL 실행 2113');
 
-    expect(container.querySelector('.head h1')?.textContent).toBe('실행 기록');
+    expect(container.querySelector('.head h1')?.textContent).toBe('실행 기록 › 기능 테스트');
     expect(container.querySelector('.screen .head')).toBeNull();
   });
 
-  it('고른 종류로 부르고 부제 맨 앞에 종류를 적는다', async () => {
+  it('고른 종류로 부르고 제목에 「실행 기록 › 종류」로 위치를 적는다', async () => {
     const { 스파이, container } = await 그리기(한쪽, 'UI');
     expect(스파이).toHaveBeenCalledWith('ZRL', 1, { kind: 'UI' });
     await screen.findByText('ZRL 실행 2113');
-    expect(container.querySelector('.head')?.textContent).toMatch(/UI 테스트 · 모두 42건/);
+    expect(screen.getByRole('heading', { level: 1, name: '실행 기록 › UI 테스트' })).toBeTruthy();
+    expect(container.querySelector('.head-meta')?.textContent).toBe('모두 42건');
   });
 
   it('머리 집계 띠가 없다 — 평균 소요는 판단에 안 쓰였다 (점검 1.5)', async () => {

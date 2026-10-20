@@ -10,8 +10,8 @@ export const 기획서말: Record<string, string> = {
   '추적표 엑셀로 내려받기': 'Download traceability matrix',
   내려받기: 'Download',
   '테스트 작성 요청': 'Request test authoring',
-  '요구 더하기': 'Add requirement',
-  '테스트 작성 요청으로 기획서를 올리거나, 요구 더하기로 첫 요구를 직접 적습니다':
+  '요구사항 추가': 'Add requirement',
+  '테스트 작성 요청으로 기획서를 올리거나, 요구사항 추가로 첫 요구를 직접 적습니다':
     'Upload a spec with Request test authoring, or write the first requirement yourself with Add requirement',
   '저장했습니다 (버전 {버전})': 'Saved (version {버전})',
 
@@ -24,7 +24,13 @@ export const 기획서말: Record<string, string> = {
   '확인할 요구가 없습니다': 'Nothing to check',
   '{번호} 고르기': 'Select {번호}',
   '모두 고르기': 'Select all',
-  '근거 {건수}개': '{건수} sources',
+  '출처 {건수}개': '{건수} sources',
+  '이 요구사항을 어디서 읽었는지입니다': 'Where this requirement was read from',
+  자료: 'Document',
+  위치: 'Location',
+  원문: 'Original text',
+  '실제 화면에서 본 것': 'Seen on the live screen',
+  '사람이 직접 적은 것': 'Written by a person',
   '확정하면 바로 새 버전으로 저장됩니다': 'Confirming saves a new version right away',
   '고른 {건수}건 확정': 'Confirm {건수} selected',
   '반영 안 됨 {건수}건': '{건수} not in tests',
@@ -71,7 +77,7 @@ export const 기획서말: Record<string, string> = {
   '확정§상태': 'Confirmed',
   '{종류} · 반영 안 됨': '{종류} · not in tests',
   '사람이 고침': 'Edited by a person',
-  근거: 'Source',
+  출처: 'Source',
   '설계 미리보기': 'Test design preview',
   '요구 문장에서 잡힌 경계 · 예외가 없습니다': 'No boundaries or exceptions found in this requirement',
   고치기: 'Edit',
@@ -109,8 +115,8 @@ export const 기획서말: Record<string, string> = {
   '원본 번호': 'Source ID',
   '원본 번호 · 화면 주소': 'Source ID or screen URL',
   '원본 문장': 'Source sentence',
-  '근거 더하기': 'Add source',
-  '근거는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 고치기에서 더할 수 있습니다':
+  '출처 더하기': 'Add source',
+  '출처는 「직접 작성」으로 자동으로 달립니다. 저장한 뒤 요구 줄의 고치기에서 더할 수 있습니다':
     'The source is set to “직접 작성” (direct entry) automatically. After saving, add more from Edit on the requirement',
   '이 요구 지우기': 'Delete this requirement',
   // 「지우기 확인」은 입력값 지우기(Confirm clear)에 이미 쓰인다 — 여기는 요구를 지운다
@@ -118,10 +124,10 @@ export const 기획서말: Record<string, string> = {
   '지우지 않기': 'Keep it',
   '기능 묶음을 적습니다': 'Enter a feature',
   '요구 문장을 적습니다': 'Enter the requirement',
-  '근거를 하나 이상 적습니다': 'Add at least one source',
-  '근거마다 자료 이름을 적습니다': 'Every source needs a document name',
-  '근거마다 원본 문장을 적습니다': 'Every source needs a sentence',
-  '글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 근거 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 근거 문장 {근거문장}자':
+  '출처를 하나 이상 적습니다': 'Add at least one source',
+  '출처마다 자료 이름을 적습니다': 'Every source needs a document name',
+  '출처마다 원본 문장을 적습니다': 'Every source needs a sentence',
+  '글자 수 상한을 넘었습니다 — 기능 묶음 {묶음}자 · 요구 문장 {문장}자 · 출처 {근거}개 · 자료 이름 · 원본 번호 {자리}자 · 출처 문장 {근거문장}자':
     'Too long. Limits: feature {묶음} chars · requirement {문장} chars · {근거} sources · document name and source ID {자리} chars · source sentence {근거문장} chars',
 
   // 버전 기록 — 사람이 보는 말은 「버전」이고 명세 · DB · 에이전트의 내부 용어는 「판」 그대로다 (2026-10-12 사용자)
@@ -145,7 +151,7 @@ export const 기획서말: Record<string, string> = {
   '상태만 바뀜': 'Status only',
   '확정으로 바뀜': 'Now confirmed',
   '확인 필요로 바뀜': 'Now needs checking',
-  '근거가 바뀜': 'Source changed',
+  '출처가 바뀜': 'Source changed',
   '기능 묶음 {앞} → {뒤}': 'Feature {앞} → {뒤}',
 
   // 서비스 지도 (PrdApis.tsx · 도메인/작성 §3.6 「서비스 지도」)

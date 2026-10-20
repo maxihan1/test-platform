@@ -63,14 +63,7 @@ export function ScenarioRunList({ service, 할수 }: { service: string; 할수: 
 
   return (
     <>
-      <Head
-        제목={t('실행 기록')}
-        부제={
-          <>
-            E2E · {t('모두 {건수}건', { 건수: runs.data.total })}
-          </>
-        }
-      />
+      <Head 위치={t('실행 기록')} 제목="E2E" 부제={t('모두 {건수}건', { 건수: runs.data.total })} />
 
       {runs.data.summary.runs === 0 ? null : <집계 것={runs.data.summary} />}
 

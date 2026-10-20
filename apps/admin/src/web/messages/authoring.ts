@@ -20,7 +20,6 @@ export const 작성말: Record<string, string> = {
   '작성 요청이 들어오면 여기에 줄이 생깁니다': 'A row appears here when authoring is requested',
 
   // 새 요청 폼 — 파일과 피그마 주소를 한 세트로 (도메인/작성 §7 「자료」)
-  '기획서 파일': 'Spec files',
   '피그마 주소': 'Figma links',
   '한 줄에 하나씩': 'One per line',
   '테스트 작성 시작': 'Start writing tests',

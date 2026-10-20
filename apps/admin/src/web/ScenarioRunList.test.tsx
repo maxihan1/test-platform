@@ -103,8 +103,8 @@ describe('ScenarioRunList 머리 · 표머리', () => {
     await screen.findByText(/ZSL 시나리오 11/);
 
     const 머리 = container.querySelector('.head');
-    expect(머리?.querySelector('h1')?.textContent).toBe('실행 기록');
-    expect(머리?.querySelector('.head-meta')?.textContent).toBe('E2E · 모두 10건');
+    expect(머리?.querySelector('h1')?.textContent).toBe('실행 기록 › E2E');
+    expect(머리?.querySelector('.head-meta')?.textContent).toBe('모두 10건');
   });
 
   it('표머리가 셋이다', async () => {

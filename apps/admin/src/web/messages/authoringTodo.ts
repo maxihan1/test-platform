@@ -3,8 +3,9 @@
 
 export const 작성할일말: Record<string, string> = {
   // ⑫-9 작성 목록과 상태 표시 (2026-10-19 · 점검 11.1 · 11.2 · 11.3 · 11.6 · 12.1 · 12.7 · 12.16 · N2)
-  '손이 필요한 것': 'Needs action',
-  '사람 손이 필요한 요청이 없습니다': 'No requests need action',
+  '필터': 'Filter',
+  '조치 필요': 'Needs action',
+  '조치가 필요한 요청이 없습니다': 'No requests need action',
   '반영 대기': 'Waiting to apply',
   '반영 실패': 'Apply failed',
   '반영 완료': 'Applied',

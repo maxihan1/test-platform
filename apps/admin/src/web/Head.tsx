@@ -9,11 +9,14 @@ import type { ReactNode } from 'react';
 
 export function Head({
   제목,
+  위치,
   부제,
   행동,
   클래스,
 }: {
   제목: string;
+  /** 하위 메뉴 화면이면 묶음 이름. 제목 앞에 「묶음 › 」로 서서 어느 메뉴 아래인지 보인다 (2026-10-20 사용자) */
+  위치?: string;
   /** 이 화면이 지금 무엇을 보여주고 있는지. 없으면 줄 자체를 안 만든다 */
   부제?: ReactNode;
   /** 이 화면에서 가장 흔한 다음 행동. 없으면 자리를 안 만든다 */
@@ -24,7 +27,10 @@ export function Head({
   return (
     <header className={클래스 === undefined ? 'head' : `head ${클래스}`}>
       <div className="head-title">
-        <h1>{제목}</h1>
+        <h1>
+          {위치 === undefined ? null : <span className="head-crumb">{위치} ›</span>}
+          {위치 === undefined ? 제목 : ` ${제목}`}
+        </h1>
         {부제 === undefined ? null : <div className="head-meta">{부제}</div>}
       </div>
       {행동 === undefined ? null : <div className="head-acts">{행동}</div>}

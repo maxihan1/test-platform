@@ -8,7 +8,10 @@ export const 상한 = { 항목: 999, 기능묶음: 100, 요구문장: 1000, 근�
 export const 본문상한 = 4 * 1024 * 1024;
 
 /** 직접 쓴 요구의 근거 — 쓴 사람이 곧 출처라 자료 이름은 고정 글자고 원본 문장은 요구 문장이다. 저장되는 글자라 화면 번역 표를 타지 않는다 */
-export const 직접근거 = (text: string): PrdBasis[] => [{ from: '직접 작성', quote: text.slice(0, 상한.근거문장) }];
+export const 직접작성 = '직접 작성';
+/** 화면에서 본 근거의 자료 이름. 작성 에이전트(`scripts/authoring-prd.ts`)가 적고 화면은 이 값으로 풀어 보인다 (kit `PrdBasis.from`) */
+export const 화면에서 = '화면';
+export const 직접근거 = (text: string): PrdBasis[] => [{ from: 직접작성, quote: text.slice(0, 상한.근거문장) }];
 
 /** 화면 기록의 상태 「로그인:<역할>」에서 역할을 뽑는다. 「로그아웃」 같은 그 밖의 상태는 null (scripts/authoring-screens-keep.ts `상태`) */
 export const 로그인역할 = (state: string): string | null => (state.startsWith('로그인:') ? state.slice('로그인:'.length) : null);

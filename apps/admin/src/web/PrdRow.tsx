@@ -92,7 +92,7 @@ export function 요구줄({
           <테스트구획 추적={추적} />
           <거치는API 줄들={거치는} />
           <section>
-            <h3>{t('근거')}</h3>
+            <h3>{t('출처')}</h3>
             <근거목록 basis={x.basis} />
           </section>
           <section>

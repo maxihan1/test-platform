@@ -107,13 +107,9 @@ export function RunList({ service, envs, 할수, kind }: { service: string; envs
   return (
     <>
       <Head
-        제목={t('실행 기록')}
-        부제={
-          <>
-            {kind === 'UI' ? t('UI 테스트') : t('기능 테스트')} ·{' '}
-            {days === undefined ? t('모두 {건수}건', { 건수: runs.data.total }) : t('최근 {일}일 {건수}건', { 일: days, 건수: runs.data.total })}
-          </>
-        }
+        위치={t('실행 기록')}
+        제목={kind === 'UI' ? t('UI 테스트') : t('기능 테스트')}
+        부제={days === undefined ? t('모두 {건수}건', { 건수: runs.data.total }) : t('최근 {일}일 {건수}건', { 일: days, 건수: runs.data.total })}
       />
 
       <div className={고른 === null ? 'runs-split' : 'runs-split picked'}>

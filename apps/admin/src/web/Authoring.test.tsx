@@ -112,7 +112,7 @@ describe('작성 권한 칸', () => {
     render(<Authoring service="PAY" 할수={(무엇) => 무엇 !== '작성요청'} />);
     await screen.findByText('아직 작성을 요청한 기록이 없습니다');
     expect(screen.queryByText('테스트 작성 시작')).toBeNull();
-    expect(screen.queryByText('기획서 파일')).toBeNull();
+    expect(screen.queryByText('PRD')).toBeNull();
   });
 
   it('작성 읽기면 빈 목록 안내가 못 하는 일을 권하지 않는다', async () => {
@@ -195,11 +195,11 @@ describe('작성 목록 줄 제목과 할 일 (⑫ 점검 11.1 · 11.2 · N2)', 
     expect(await screen.findByText('반영 완료')).toBeTruthy();
   });
 
-  it('「손이 필요한 것」을 누르면 서버에 그것만 묻고 주소에 남긴다 · 첫 쪽으로 간다', async () => {
+  it('「조치 필요」를 누르면 서버에 그것만 묻고 주소에 남긴다 · 첫 쪽으로 간다', async () => {
     window.history.replaceState(null, '', '#/authoring?page=2');
     render(<Authoring service="PAY" 할수={() => true} />);
-    fireEvent.click(await screen.findByRole('button', { name: '손이 필요한 것' }));
-    expect(await screen.findByText('사람 손이 필요한 요청이 없습니다')).toBeTruthy();
+    fireEvent.click(await screen.findByRole('button', { name: '조치 필요' }));
+    expect(await screen.findByText('조치가 필요한 요청이 없습니다')).toBeTruthy();
     expect(거른것.at(-1)).toBe(true);
     expect(부른쪽.at(-1)).toBe(1);
     expect(window.location.hash).toBe('#/authoring?todo=1');

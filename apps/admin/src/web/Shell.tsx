@@ -39,7 +39,7 @@ export function Shell({ user, service, onService, 언어, on언어, onLogout, cu
 
   // 대시보드는 서비스를 고르지 않는 화면이다 — 숨긴 고르개의 서비스 이름이 탭과 바닥 글에 남으면 그 서비스만 보는 것처럼 읽힌다
   const 대시보드인가 = current === '#/dashboard';
-  const 제목 = 탭제목(대시보드인가 ? null : service, 언어);
+  const 제목 = 탭제목(대시보드인가 ? null : service);
 
   useEffect(() => {
     document.title = 제목;

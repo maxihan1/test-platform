@@ -1,4 +1,4 @@
-// 기획서 파일과 피그마 주소를 한 세트로 넣어 작성을 요청하는 폼 (도메인/작성 §3.6 · §7 「자료」)
+// PRD 파일과 피그마 주소를 한 세트로 넣어 작성을 요청하는 폼 (도메인/작성 §3.6 · §7 「자료」)
 //
 // **경로가 아니라 파일 자체를 올린다.** 맥은 다른 기계라 이 서버의 파일 경로를 못 읽는다.
 // 앞 판은 같은 이유로 본문을 붙여 넣게 했는데 **기획서가 PDF·워드로 오고 피그마가 같이 와서** 접었다 —
@@ -7,9 +7,10 @@
 // 작성 시작은 세 걸음이다 — 만들기(DRAFT) → 파일마다 올리기 → 줄에 세우기.
 // 다 올리기 전에 줄에 서면 맥이 집어 가서 빈 것을 보고 실패한다
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { api, ApiError, type EnvRow } from './api.js';
+import { 크기글 } from './GuideSection.js';
 import { use말, use언어 } from './i18n.js';
 import { message } from './ui.js';
 
@@ -19,6 +20,8 @@ export const 받는종류 = '.pdf,.docx,.doc,.md,.txt';
 const 파일상한 = 20 * 1024 * 1024;
 // 정본: 도메인/작성 §7 「자료」 — 파일과 피그마를 합친 수. 서버 assetStore.ts 의 자료상한과 같은 값
 const 자료상한 = 20;
+
+const 같은파일 = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
 /**
  * 서버가 거절할 파일을 보내기 전에 거른다. 거절 이유(말 키)를 돌려준다.
@@ -98,8 +101,7 @@ export function AuthoringNew({
   const [피그마, set피그마] = useState('');
   const [보내는중, set보내는중] = useState(false);
   const [오류, set오류] = useState<string | null>(null);
-  // 파일 칸은 비제어라 state 를 비워도 옛 파일을 보인다. 같은 파일을 다시 고르면 change 도 안 난다 — 새로 그린다
-  const [칸번호, set칸번호] = useState(0);
+  const 고르개 = useRef<HTMLInputElement>(null);
   // 역방향 (도메인/작성 §3.6 「★ 역방향」). 대상 서버는 고르지 않으면 첫 줄이다
   const [대조, set대조] = useState(대조처음);
   const [고른서버, set고른서버] = useState<string | null>(null);
@@ -175,7 +177,6 @@ export function AuthoringNew({
       return;
     }
     set파일들([]);
-    set칸번호((n) => n + 1);
     set피그마('');
     set시작주소('');
     set보내는중(false);
@@ -190,16 +191,48 @@ export function AuthoringNew({
         void 보낸다();
       }}
     >
-      <label className="authoring-field">
-        <span>{t('기획서 파일')}</span>
+      {/* 브라우저 파일 칸은 숨기고 단추로 연다 — 값을 늘 비우므로 그대로 두면 파일을 골라도 「선택된 파일 없음」이 보인다(가이드 화면과 같은 꼴) */}
+      <div className="authoring-field">
+        <span>{t('PRD')}</span>
+        <div>
+          <button type="button" className="btn ghost small" disabled={보내는중} onClick={() => 고르개.current?.click()}>
+            {t('파일 첨부')}
+          </button>
+        </div>
         <input
-          key={칸번호}
+          ref={고르개}
           type="file"
+          hidden
           multiple
           accept={받는종류}
-          onChange={(e) => set파일들(Array.from(e.target.files ?? []))}
+          aria-label={t('PRD')}
+          onChange={(e) => {
+            // 앞에 고른 것에 이어 붙인다. 목록을 읽은 뒤 값을 비워야 같은 파일을 다시 골라도 change 가 난다
+            const 고른 = Array.from(e.target.files ?? []);
+            e.target.value = '';
+            set파일들((앞) => [...앞, ...고른.filter((f) => !앞.some((g) => 같은파일(f, g)))]);
+          }}
         />
-      </label>
+        {파일들.length === 0 ? null : (
+          <ul className="guide-files">
+            {파일들.map((f) => (
+              <li key={`${f.name}|${String(f.size)}|${String(f.lastModified)}`} className="guide-file">
+                <span className="guide-name">{f.name}</span>
+                <span className="guide-meta">{크기글(f.size)}</span>
+                <button
+                  type="button"
+                  className="btn ghost small"
+                  disabled={보내는중}
+                  aria-label={t('{이름} 제거', { 이름: f.name })}
+                  onClick={() => set파일들((앞) => 앞.filter((g) => g !== f))}
+                >
+                  {t('제거')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <label className="authoring-field">
         <span>{t('피그마 주소')}</span>
         <textarea
