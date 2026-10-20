@@ -130,13 +130,13 @@
 ## 7. API 문서 통로
 
 **권한** — 경로의 `:id` 로 애플리케이션을 짚고(그 애플리케이션 프로젝트의 권한 — 도메인/인증 §7 「인증 적용 범위」 표), 보기는 작성 `read`, 올리기 · 받기 · 다시 작성은 작성 `write`(도메인/인증 §3.5). 애플리케이션 종류 · 문서 경로 · 기준 서버 · API 인증은 설정 API(도메인/인증 §7)다 — admin 만.
-API 종류가 아닌 애플리케이션이면 모든 통로가 400 `{ error: 'NOT_API_SERVICE' }`. 경로의 번호는 열 자리 숫자 글자만 받는다(그 밖은 400 `INVALID_REQUEST`).
+API 종류가 아닌 애플리케이션이면 모든 통로가 400 `{ error: 'NOT_API_SERVICE' }`. 경로의 번호는 숫자 글자만 받는다 — 문과 같은 규칙(`routeParams.ts` 정수 · 판 번호는 INTEGER 상한까지), 그 밖은 400 `INVALID_REQUEST`.
 
 ```
 GET    /api/services/:id/api-docs                     판 목록 → 200 { docPath, docEnv, versions: [{ version, source, env, fileName, createdAt, createdBy }] }
                                                       versions 는 새 판이 먼저. source 'URL' | 'FILE'. env 는 URL 이면 받은 대상 서버, FILE 이면 null
 GET    /api/services/:id/api-docs/:version            판 원문 → 200 { version, doc } · 없으면 404
-POST   /api/services/:id/api-docs                     파일 올리기 (multipart, 칸 이름 file) → 201 { version, created }
+POST   /api/services/:id/api-docs?name=<파일 이름>     파일 올리기 (본문 그대로 application/octet-stream — 자료 · 가이드 올리기와 같은 꼴) → 201 { version, created }
                                                       created=false 는 마지막 판과 지문이 같아 판을 안 올렸다는 뜻(version 은 마지막 판).
                                                       400 BAD_API_DOC { reason } · 413
 POST   /api/services/:id/api-docs/fetch               기준 서버 주소에서 지금 받기 → 201 { version, created }
@@ -146,6 +146,7 @@ GET    /api/services/:id/api-docs/compare?from=&to=   판 비교 → 200 { chang
 GET    /api/services/:id/api-coverage                 마지막 판 기준 커버리지 → 200 { version, total, covered,
                                                         operations: [{ method, path, codes: [{ status, seen, noShape, lastRunId }] }] }
                                                       판이 없으면 { version: null, total: 0, covered: 0, operations: [] }
+                                                      noShape 는 마지막 판 문서에 그 코드의 JSON 모양이 없다는 뜻이다 — api_call_seen.no_shape(그때 견준 판 기준)가 아니라 문서에서 센다
                                                       seen · noShape 는 커버리지라 작성 read 로 보인다. lastRunId 는 실행 결과를 가리켜 그 애플리케이션의 (실행, read) 가 있을 때만 싣고 없으면 null 이다(대시보드 coverage 와 같은 갈림 — 도메인/인증 §7)
 POST   /api/services/:id/api-docs/:version/rewrite    바뀐 API 만 다시 작성 { fromVersion, env, operations: [{ method, path }] } → 201 { requestId }
                                                       operations 가 비면 400 NOTHING_TO_APPLY · env 는 작성 중 돌려 볼 대상 서버 — 작성 요청 만들기의 API 판정과 같다(없거나 그 애플리케이션 줄이 아니거나 「실서비스 서버」면 400 BAD_ENV, 도메인/작성 §7 「AUTHOR API 문서 판」)
@@ -157,11 +158,22 @@ GET    /api/runs/:runId/items/:historyId              steps[] + shapeChecks (공
 
 ```
 [계약 변경 필요]
-대상:    Admin API — 새 통로 /api/services/:id/api-docs · /api-docs/:version · /api-docs/fetch · /api-docs/compare · /api-coverage · /api-docs/:version/rewrite · GET /api/runs/:runId 와 항목 응답의 늘어나는 칸
-현재:    API 문서를 올리거나 판을 보거나 견줄 통로가 없다. 실행 응답에 문서 견주기 결과 · 모양 확인이 없다
-제안:    위 꼴. 보기는 작성 read, 올리기 · 받기 · 다시 작성은 작성 write. API 종류가 아니면 400 NOT_API_SERVICE
+대상:    Admin API — 새 통로 /api/services/:id/api-docs · /api-docs/:version · /api-docs/fetch · /api-docs/compare · /api-coverage
+현재:    API 문서를 올리거나 판을 보거나 견줄 통로가 없다
+제안:    위 꼴. 보기는 작성 read, 올리기 · 받기는 작성 write. API 종류가 아니면 400 NOT_API_SERVICE.
+         파일 올리기는 multipart 대신 본문 그대로다 — 새 패키지 없이 자료 · 가이드 올리기와 같은 꼴로 (2026-10-20 API-F1-03)
 이유:    §3.8 결정 4 · 6 · 7 (2026-10-20 사용자 · API-F1-01 시작 질문 승인)
-영향:    WS-B · 작성(서버 — API-F1-03 · 07) · WS-E(API › API 문서 화면 — API-F1-08)
+영향:    WS-B · 작성(서버) · WS-E(API › API 문서 화면 — API-F1-08)
+상태:    반영 완료 (2026-10-20, apps/admin/src/apidoc — API-F1-03)
+```
+
+```
+[계약 변경 필요]
+대상:    Admin API — /api/services/:id/api-docs/:version/rewrite · GET /api/runs/:runId 와 항목 응답의 늘어나는 칸
+현재:    바뀐 API 만 다시 작성할 통로가 없다. 실행 응답에 문서 견주기 결과 · 모양 확인이 없다
+제안:    위 꼴. 다시 작성은 작성 write
+이유:    §3.8 결정 7 · 8 · 9 (2026-10-20 사용자 · API-F1-01 시작 질문 승인)
+영향:    작성(서버 — API-F1-07) · WS-B(실행 — API-F1-05) · WS-E(API-F1-08)
 상태:    대기
 ```
 

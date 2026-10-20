@@ -18,6 +18,7 @@ export type 원천 =
   | { 종류: '입력값묶음'; 칸: string }
   | { 종류: '작성요청'; 칸: string } // params[칸] 이 대기줄 행 번호다. 그 행의 service_id 가 서비스다 (§6)
   | { 종류: '시나리오'; 칸: string } // params[칸] 이 시나리오 번호다. 그 행의 service_id 가 서비스다
+  | { 종류: '서비스'; 칸: string } // params[칸] 이 서비스(애플리케이션) 번호 자체다
   | { 종류: '시험'; 칸: string }; // params[칸] 이 시험 실행 번호다. 메모리 보관소가 시작한 사람에게만 서비스를 알려 준다
 
 /**
@@ -122,6 +123,13 @@ export const 라우트표: Record<string, 원천> = {
   '/api/prd/revert': { 종류: '질의' },
   '/api/prd/apply': { 종류: '질의' },
 
+  // API 문서 (도메인/API §7). 경로의 :id 가 애플리케이션 번호다
+  '/api/services/:id/api-docs': { 종류: '서비스', 칸: 'id' },
+  '/api/services/:id/api-docs/:version': { 종류: '서비스', 칸: 'id' },
+  '/api/services/:id/api-docs/fetch': { 종류: '서비스', 칸: 'id' },
+  '/api/services/:id/api-docs/compare': { 종류: '서비스', 칸: 'id' },
+  '/api/services/:id/api-coverage': { 종류: '서비스', 칸: 'id' },
+
   // 서비스 가이드 (도메인/작성 §7 「서비스 가이드 통로」). 라우트가 ?service= 의 서비스 것만 읽고 쓴다
   '/api/guide': { 종류: '질의' },
   '/api/guide/versions': { 종류: '질의' },
@@ -162,7 +170,7 @@ export function 케이스의서비스(tcId: unknown): string | null {
   return 접두사모양.test(접두사) ? 접두사 : null;
 }
 
-export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오'; 번호: number };
+export type 찾을것 = { 종류: '실행' | '증적' | '입력값묶음' | '작성요청' | '시나리오' | '서비스'; 번호: number };
 
 /** 번호 칸은 **라우트와 같은 엄격함**으로 읽는다. 느슨하면 문과 라우트가 다른 값을 본다 */
 export function 번호로(값: unknown): number | null {
@@ -188,6 +196,7 @@ const 질의: Record<찾을것['종류'], string> = {
     'SELECT s.prefix FROM authoring_request a JOIN service s ON s.id = a.service_id WHERE a.id = $1',
   // 시나리오도 service_id 가 NOT NULL 이다
   시나리오: 'SELECT s.prefix FROM scenario sc JOIN service s ON s.id = sc.service_id WHERE sc.id = $1',
+  서비스: 'SELECT prefix FROM service WHERE id = $1',
 };
 
 /**

@@ -8,14 +8,15 @@ import { z } from 'zod';
 import { 에이전트토큰만들기, 에이전트토큰지우기 } from '../auth/agentToken.js';
 import { 아이디모양 } from '../auth/rules.js';
 import { 화면크기목록 } from '../prd/screens.js';
-import { 시간대확인, 틀린시간대 } from '../reporting/dashboardResults.js';
 import { 정수 } from '../routeParams.js';
 
 import { API서버라우트 } from './apiServerRoutes.js';
+import { API인증줄, API칸, API칸오류, API칸지금 } from './apiService.js';
 import { 역할까닭찾기 } from './roles.js';
 import { 프로젝트만들기, 프로젝트목록, 프로젝트이름고치기 } from './projects.js';
 import { 제외경로정리 } from './rules.js';
-import { db, 서비스고치기, 서비스만들기, 서비스목록, 설정오류, 정기실행재료 } from './store.js';
+import { 정기실행틀린칸 } from './scheduleCheck.js';
+import { 서비스고치기, 서비스만들기, 서비스목록, 설정오류 } from './store.js';
 import { 계정거절, 계정고치기, 계정만들기, 계정목록, 계정수락, 비밀번호다시만들기 } from './users.js';
 
 // SPEC §2 의 접두사 모양을 코드가 복사해 둔 자리다. §2 를 고치면 여기도 같이 움직인다 (CLAUDE.md §2.7 ⑤).
@@ -40,6 +41,7 @@ const 대상서버 = z.object({
   // Appium 이 도는 PC(팜 PC)의 apk 경로나 http(s) 주소다. 있는지는 안 본다(Appium 이 그 항목의 실패 사유로 말한다).
   // http(s) 밖의 주소(file:// 등)는 막는다 — 그 PC 의 아무 파일이나 폰에 깔게 된다 (APP-F1-03 · APP-F1-10)
   appPath: z.string().max(1000).refine(앱파일값인가, 'appPath 는 파일 경로나 http(s) 주소여야 합니다').nullable().optional(),
+  apiAuths: z.array(API인증줄).optional(),
 });
 
 // 한 줄이라도 어긋나면 저장 전체를 막는다. 어느 줄인지는 싣지 않는다 — 화면이 보내기 전에 같은 규칙으로 짚는다
@@ -71,6 +73,8 @@ const 새서비스 = z.object({
   slackWebhook: z.string().optional(),
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),
+  kind: z.enum(['SCREEN', 'API']).default('SCREEN'),
+  ...API칸,
 });
 
 // 시간대는 DB 이름표라 스키마 밖에서 본다 — 대시보드 tz 와 같은 검사다 (도메인/인증 §7 「정기 실행」 계약 변경 블록)
@@ -92,6 +96,7 @@ const 서비스수정 = z.object({
   figmaToken: z.string().optional(),
   crawlExclude: 훑지않을경로.optional(),
   schedule: 정기실행.nullable().optional(),
+  ...API칸,
 });
 
 const 등급 = z.enum(['member', 'admin']);
@@ -188,12 +193,15 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
   app.post('/settings/services', async (req, reply) => {
     const parsed = 새서비스.safeParse(req.body);
     if (!parsed.success) {
+      if (parsed.error.issues.every((i) => i.path[0] === 'kind')) return reply.code(400).send({ error: 'BAD_KIND' });
       return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
     }
     if (!접두사모양.test(parsed.data.prefix)) {
       return reply.code(400).send({ error: 'PREFIX_SHAPE', detail: parsed.data.prefix });
     }
     if (역할틀림(parsed.data.envs)) return reply.code(400).send({ error: 'BAD_ROLE' });
+    const API오류 = API칸오류(parsed.data, { kind: parsed.data.kind, apiDocEnv: null, envs: [] });
+    if (API오류 !== null) return reply.code(400).send({ error: API오류 });
     return reply.code(201).send({ id: await 서비스만들기(parsed.data) });
   });
 
@@ -204,6 +212,10 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       if (req.body !== null && typeof req.body === 'object' && 'prefix' in req.body) {
         return reply.code(400).send({ error: 'PREFIX_IMMUTABLE' });
       }
+      // 종류도 같은 까닭이다 — 바꾸면 이미 있는 케이스가 화면 케이스인지 API 케이스인지 섞인다 (도메인/API §3.8)
+      if (req.body !== null && typeof req.body === 'object' && 'kind' in req.body) {
+        return reply.code(400).send({ error: 'KIND_IMMUTABLE' });
+      }
       const parsed = 서비스수정.safeParse(req.body);
       if (!parsed.success) {
         return reply.code(400).send({ error: 'INVALID_REQUEST', detail: parsed.error.message });
@@ -213,6 +225,9 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
       if (id === null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: req.params.id });
       const 틀린칸 = await 정기실행틀린칸(id, parsed.data);
       if (틀린칸 !== null) return reply.code(400).send({ error: 'INVALID_REQUEST', detail: 틀린칸 });
+      const 지금 = await API칸지금(id);
+      const API오류 = 지금 === null ? null : API칸오류(parsed.data, 지금);
+      if (API오류 !== null) return reply.code(400).send({ error: API오류 });
       await 서비스고치기(id, parsed.data);
       return { ok: true };
     },
@@ -274,29 +289,4 @@ export default async function settingsRoutes(app: FastifyInstance): Promise<void
     await 에이전트토큰지우기(req.params.username);
     return reply.code(204).send();
   });
-}
-
-/**
- * 정기 실행에서 스키마가 못 보는 두 칸 — 시간대 이름표와 대상 서버. 같이 보낸 envs 가 있으면 그것으로 본다.
- * envs 만 보내 켜 둔 정기 실행의 대상 서버를 빼도 막는다 — 안 막으면 다음 날부터 매일 실행을 못 만들고 로그에만 남는다
- */
-async function 정기실행틀린칸(
-  id: number,
-  본문: { schedule?: { tz: string; env: string } | null; envs?: { env: string }[] },
-): Promise<string | null> {
-  const 보낸것 = 본문.schedule;
-  if (보낸것 === null || (보낸것 === undefined && 본문.envs === undefined)) return null;
-  if (보낸것 !== undefined) {
-    try {
-      await 시간대확인(await db(), 보낸것.tz);
-    } catch (err) {
-      if (err instanceof 틀린시간대) return `schedule.tz: ${보낸것.tz}`;
-      throw err;
-    }
-  }
-  const 재료 = await 정기실행재료(id);
-  const 대상서버 = 보낸것?.env ?? 재료?.대상서버 ?? null;
-  if (재료 === null || 대상서버 === null) return null;
-  const 키들 = 본문.envs?.map((e) => e.env) ?? 재료.키들;
-  return 키들.includes(대상서버) ? null : `schedule.env: ${대상서버}`;
 }

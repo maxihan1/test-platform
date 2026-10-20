@@ -1,4 +1,4 @@
-// 대상 서버 줄 저장 — 계정 · 역할 계정 · 운영 서버 표시를 env 이름으로 이어받는다 (도메인/인증 §7 「envs[] 한 줄」)
+// 대상 서버 줄 저장 — 계정 · 역할 계정 · 운영 서버 표시 · API 인증을 env 이름으로 이어받는다 (도메인/인증 §7 「envs[] 한 줄」)
 // store.ts 가 300줄에 닿아 뗐다. 작성 집기 · 실행 채우기도 역할계정읽기 로 같은 칸을 읽는다
 
 import type { 역할계정 } from '@platform/kit/accounts';
@@ -7,6 +7,7 @@ import type { PoolClient } from 'pg';
 
 import type { 서비스판정 } from '../../../../scripts/authoring-crawl-viewport.js';
 
+import { 설정오류 } from './errors.js';
 import { 운영이름인가 } from './roles.js';
 
 // 응답 한 줄. 비밀번호는 되돌려 보여주지 않는다 — 웹훅·피그마 토큰과 같은 규칙 (SPEC 도메인/인증 §7)
@@ -23,7 +24,19 @@ export interface 대상서버 {
   viewportJudgedAt: string | null;
   /** Android 앱 파일 경로(러너 컴퓨터 기준). null 이면 러너 환경값 PLATFORM_APP 을 쓴다 (APP-F1-03) */
   appPath: string | null;
+  /** API 인증. 비밀값은 끝 4자리만 싣는다 (도메인/API §3.8 「API 인증」) */
+  apiAuths: { name: string; tokenUrl: string; clientId: string; clientSecretLast4: string }[];
 }
+
+/** service_env.api_auths 한 줄. 비밀값 원문이다 — 러너 · 작성 에이전트까지만 간다 */
+export interface API인증 {
+  name: string;
+  tokenUrl: string;
+  clientId: string;
+  clientSecret: string;
+}
+
+export type API인증입력 = Omit<API인증, 'clientSecret'> & { clientSecret?: string };
 
 export interface 역할계정입력 {
   role: string;
@@ -40,6 +53,7 @@ export interface 대상서버입력 {
   isProd?: boolean;
   accounts?: 역할계정입력[];
   appPath?: string | null;
+  apiAuths?: API인증입력[];
 }
 
 function 계정칸(보낸것: string | null | undefined, 옛것: string | null): string | null {
@@ -56,6 +70,32 @@ export function 역할계정읽기(값: unknown): 역할계정[] {
     if (typeof a !== 'object' || a === null) return [];
     const { role, loginId, loginPassword } = a as Record<string, unknown>;
     return typeof role === 'string' ? [{ role, loginId: 글자나널(loginId), loginPassword: 글자나널(loginPassword) }] : [];
+  });
+}
+
+/** service_env.api_auths 를 읽는다. 역할계정읽기 와 같은 까닭으로 모양을 다시 본다 */
+export function API인증읽기(값: unknown): API인증[] {
+  if (!Array.isArray(값)) return [];
+  return 값.flatMap((a: unknown) => {
+    if (typeof a !== 'object' || a === null) return [];
+    const { name, tokenUrl, clientId, clientSecret } = a as Record<string, unknown>;
+    return typeof name === 'string' && typeof tokenUrl === 'string' && typeof clientId === 'string' && typeof clientSecret === 'string'
+      ? [{ name, tokenUrl, clientId, clientSecret }]
+      : [];
+  });
+}
+
+/**
+ * 보낸 목록으로 바꾼다. 비밀값이 없는 줄은 같은 name 의 옛 비밀값을 잇는다 — 화면은 비밀값을 받은 적이 없다.
+ * 토큰 주소가 바뀌면 잇지 않는다 — 이으면 끝 4자리만 본 사람이 비밀값 원문을 아무 주소로나 보내게 할 수 있다
+ */
+function API인증이어받기(보낸것: API인증입력[] | undefined, 옛것: API인증[]): API인증[] {
+  if (보낸것 === undefined) return 옛것;
+  return 보낸것.map(({ name, tokenUrl, clientId, clientSecret }) => {
+    const 이름 = name.trim();
+    const 비밀값 = clientSecret ?? 옛것.find((o) => o.name === 이름 && o.tokenUrl === tokenUrl)?.clientSecret;
+    if (비밀값 === undefined) throw new 설정오류('API_AUTH_SECRET_REQUIRED');
+    return { name: 이름, tokenUrl, clientId, clientSecret: 비밀값 };
   });
 }
 
@@ -82,15 +122,16 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
     viewport_kind: string | null;
     viewport_judged_at: Date | null;
     app_path: string | null;
-  }>('SELECT env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path FROM service_env WHERE service_id = $1', [serviceId]);
+    api_auths: unknown;
+  }>('SELECT env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths FROM service_env WHERE service_id = $1', [serviceId]);
   const 옛계정 = new Map(옛것.rows.map((r) => [r.env, r]));
   await client.query('DELETE FROM service_env WHERE service_id = $1', [serviceId]);
-  for (const { env, baseUrl, loginId, loginPassword, isProd, accounts, appPath } of envs) {
+  for (const { env, baseUrl, loginId, loginPassword, isProd, accounts, appPath, apiAuths } of envs) {
     // 이름이 같은 줄만 이어받는다. 이름을 바꾸면 새 줄이라 계정을 다시 넣는다 (SPEC 도메인/인증 §7)
     const 전 = 옛계정.get(env);
     await client.query(
-      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      `INSERT INTO service_env (service_id, env, base_url, login_id, login_password, is_prod, role_accounts, viewport_kind, viewport_judged_at, app_path, api_auths)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
       [
         serviceId,
         env,
@@ -105,6 +146,7 @@ export async function 대상서버넣기(client: PoolClient, serviceId: number, 
         전?.base_url === baseUrl ? 전.viewport_judged_at : null,
         // 계정 칸과 같은 규칙 — 키가 없으면 옛 값, null · 빈 글자면 지운다. 앞뒤 공백은 경로가 아니라 실수다
         계정칸(typeof appPath === 'string' ? appPath.trim() : appPath, 전?.app_path ?? null),
+        JSON.stringify(API인증이어받기(apiAuths, API인증읽기(전?.api_auths))),
       ],
     );
     // 화면별 차이도 옛 서버 것이다 — 남기면 새 판정 옆에 옛 서버 화면이 섞여 보인다 (PRD-F10-08 코드 검토)
@@ -124,6 +166,10 @@ export const 대상서버칸식 = `json_build_object(
   'isProd', e.is_prod,
   'viewportKind', e.viewport_kind, 'viewportJudgedAt', e.viewport_judged_at,
   'appPath', e.app_path,
+  'apiAuths', (SELECT COALESCE(json_agg(json_build_object(
+                  'name', a.v->>'name', 'tokenUrl', a.v->>'tokenUrl', 'clientId', a.v->>'clientId',
+                  'clientSecretLast4', right(a.v->>'clientSecret', 4)) ORDER BY a.n), '[]')
+                 FROM jsonb_array_elements(e.api_auths) WITH ORDINALITY AS a(v, n)),
   'accounts', (SELECT COALESCE(json_agg(json_build_object(
                   'role', a.v->>'role', 'loginId', a.v->>'loginId',
                   'hasLoginPassword', COALESCE(a.v->>'loginPassword', '') <> '') ORDER BY a.n), '[]')

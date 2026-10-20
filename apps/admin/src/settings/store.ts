@@ -6,22 +6,9 @@ import type { Pool, PoolClient } from 'pg';
 import { 종류조건 } from '../execution/runKind.js';
 
 import { type 대상서버, type 대상서버입력, 대상서버넣기, 대상서버칸식 } from './envs.js';
+import { 설정오류 } from './errors.js';
 
-export type 오류코드 =
-  | 'PREFIX_TAKEN'
-  | 'USERNAME_TAKEN'
-  | 'LAST_ADMIN'
-  | 'NOT_FOUND'
-  | 'PROJECT_NOT_FOUND'
-  | 'ALREADY_APPROVED'
-  | 'APPROVED_USER'
-  | 'NOT_APPROVED';
-
-export class 설정오류 extends Error {
-  constructor(readonly code: 오류코드) {
-    super(code);
-  }
-}
+export { 설정오류, type 오류코드 } from './errors.js';
 
 // 정기 실행 설정 한 벌. 시각은 시간대 안의 HH:MM 이다 (SPEC 공통/6-인프라 §9.2 · 도메인/인증 §7)
 export interface 정기실행 {
@@ -39,6 +26,10 @@ export interface 서비스행 {
   projectName: string;
   testsRepo: string;
   testsDir: string;
+  /** 만들 때 정하고 바꾸지 않는다 (도메인/API §3.8) */
+  kind: 'SCREEN' | 'API';
+  apiDocPath: string | null;
+  apiDocEnv: string | null;
   isActive: boolean;
   caseCount: number;
   envs: 대상서버[];
@@ -74,6 +65,7 @@ export async function 한묶음<T>(일: (client: PoolClient) => Promise<T>): Pro
 // 케이스 수는 test_case 에 서비스 칸이 없어 접두사로 센다. 그 표에는 서비스 칸이 없고 앞으로도 없다 (SPEC §6)
 const 서비스들 = `
   SELECT s.id, s.prefix, s.name, s.color, s.project_id, p.name AS project_name, s.tests_repo, s.tests_dir, s.is_active, s.crawl_exclude,
+         s.kind, s.api_doc_path, s.api_doc_env,
          to_char(s.schedule_at, 'HH24:MI') AS schedule_at, s.schedule_tz, s.schedule_env, s.schedule_last,
          -- 같은 점검이 만든 UI · 기능 실행이 둘 다 마지막으로 돈 때 뒤에 생긴다 (SPEC 공통/6-인프라 §9.2)
          (SELECT COALESCE(json_agg(r.run_id ORDER BY r.run_id), '[]') FROM test_run r
@@ -99,6 +91,9 @@ interface 서비스원행 {
   project_name: string;
   tests_repo: string;
   tests_dir: string;
+  kind: 'SCREEN' | 'API';
+  api_doc_path: string | null;
+  api_doc_env: string | null;
   is_active: boolean;
   has_slack_webhook: boolean;
   has_figma_token: boolean;
@@ -126,6 +121,9 @@ export async function 서비스목록(): Promise<서비스행[]> {
     projectName: r.project_name,
     testsRepo: r.tests_repo,
     testsDir: r.tests_dir,
+    kind: r.kind,
+    apiDocPath: r.api_doc_path,
+    apiDocEnv: r.api_doc_env,
     isActive: r.is_active,
     caseCount: Number(r.case_count),
     envs: r.envs,
@@ -153,6 +151,9 @@ export interface 서비스입력 {
   slackWebhook?: string;
   figmaToken?: string;
   crawlExclude?: string[];
+  kind?: 'SCREEN' | 'API';
+  apiDocPath?: string | null;
+  apiDocEnv?: string | null;
 }
 
 async function 프로젝트확인(client: PoolClient, id: number): Promise<void> {
@@ -165,8 +166,8 @@ export async function 서비스만들기(입력: 서비스입력): Promise<numbe
   return 한묶음(async (client) => {
     if (입력.projectId !== undefined) await 프로젝트확인(client, 입력.projectId);
     const rows = await client.query<{ id: string }>(
-      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, slack_webhook, figma_token, crawl_exclude, project_id)
-            VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''), $8, $9)
+      `INSERT INTO service (prefix, name, color, tests_repo, tests_dir, slack_webhook, figma_token, crawl_exclude, project_id, kind, api_doc_path, api_doc_env)
+            VALUES ($1, $2, $3, $4, $5, NULLIF($6, ''), NULLIF($7, ''), $8, $9, $10, $11, $12)
        ON CONFLICT (prefix) DO NOTHING
          RETURNING id`,
       [
@@ -179,6 +180,9 @@ export async function 서비스만들기(입력: 서비스입력): Promise<numbe
         입력.figmaToken ?? '',
         입력.crawlExclude ?? [],
         입력.projectId ?? null,
+        입력.kind ?? 'SCREEN',
+        입력.apiDocPath ?? null,
+        입력.apiDocEnv ?? null,
       ],
     );
     const id = rows.rows[0]?.id === undefined ? undefined : Number(rows.rows[0].id);
@@ -204,6 +208,9 @@ export interface 서비스수정 {
   crawlExclude?: string[];
   /** 안 보내면 그대로, null 이면 끈다 */
   schedule?: 정기실행 | null;
+  /** 둘 다 안 보내면 그대로, null 이면 비운다 */
+  apiDocPath?: string | null;
+  apiDocEnv?: string | null;
 }
 
 /**
@@ -247,7 +254,9 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
               schedule_at  = CASE WHEN $10 THEN $11::time ELSE schedule_at END,
               schedule_tz  = CASE WHEN $10 THEN $12 ELSE schedule_tz END,
               schedule_env = CASE WHEN $10 THEN $13 ELSE schedule_env END,
-              project_id = COALESCE($14, project_id)
+              project_id = COALESCE($14, project_id),
+              api_doc_path = CASE WHEN $15 THEN $16 ELSE api_doc_path END,
+              api_doc_env  = CASE WHEN $17 THEN $18 ELSE api_doc_env END
         WHERE id = $1`,
       [
         id,
@@ -264,6 +273,10 @@ export async function 서비스고치기(id: number, 수정: 서비스수정): P
         수정.schedule?.tz ?? null,
         수정.schedule?.env ?? null,
         수정.projectId ?? null,
+        수정.apiDocPath !== undefined,
+        수정.apiDocPath ?? null,
+        수정.apiDocEnv !== undefined,
+        수정.apiDocEnv ?? null,
       ],
     );
     if (rows.rowCount === 0) throw new 설정오류('NOT_FOUND');
