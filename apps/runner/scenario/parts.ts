@@ -6,7 +6,8 @@
 import type { ScenarioCaseOutcome, ScenarioPhase } from '@platform/kit/scenario';
 import type { ItemStatus, ScenarioCleanup, ScenarioExecuteRequest, ScenarioPartResult, StepResult } from '@platform/kit';
 
-import { 꽂기, 새부품, 안걸린, 주소, type CasePart, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
+import { API단계, type 토큰모음 } from './apiPart.js';
+import { 꽂기, 새부품, 안걸린, type CasePart, type 미룬삭제, type 부품상태, type 상태, type 이음 } from './links.js';
 
 type Part = ScenarioExecuteRequest['parts'][number];
 
@@ -20,8 +21,12 @@ export interface 창 {
   route(url: string, handler: RouteHandler): Promise<void>;
   unroute(url: string, handler: RouteHandler): Promise<void>;
   waitForTimeout(ms: number): Promise<void>;
-  // 창의 request — 브라우저 로그인(쿠키)을 같이 쓴다 (2026-09-28 사용자). API 부품은 감싸지 않은 것을 쓴다
-  fetch(url: string, options: { method: string; data?: unknown }): Promise<{ status(): number }>;
+  // 창의 request — 브라우저 로그인(쿠키)을 같이 쓴다 (2026-09-28 사용자). API 부품은 감싸지 않은 것을 쓴다.
+  // 머리 · form 은 API 인증 토큰 받기와 Bearer 머리다 (SPEC 도메인/시나리오 §3.7 결정 14)
+  fetch(
+    url: string,
+    options: { method: string; data?: unknown; form?: Record<string, string>; headers?: Record<string, string> },
+  ): Promise<{ status(): number; text(): Promise<string>; headers(): Record<string, string> }>;
   runCase(part: CasePart, seq: number, phase: ScenarioPhase, params: Record<string, unknown>): Promise<ScenarioCaseOutcome>;
   // 쿠키 · localStorage. 다음 창이 이것만 이어받는다 (SPEC 도메인/시나리오 §3.7 결정 3)
   state(): Promise<상태>;
@@ -109,6 +114,7 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
   // 끄려면 걸 때의 핸들러가 있어야 한다. 무늬 하나에 하나만 — 같은 무늬를 또 걸면 옛 것을 먼저 푼다
   const 걸린 = new Map<string, RouteHandler>();
   const { 이음 } = deps;
+  const 토큰들: 토큰모음 = new Map();
 
   // 맨 앞이 API 부품이어도 쿠키를 쌓을 자리가 있게 빈 창 하나로 시작한다. 창은 연 쪽(러너)이 닫는다 — 실패로 멈춰도
   let 지금창 = await deps.newWindow(undefined, 걸린);
@@ -159,13 +165,11 @@ export async function runParts(parts: readonly Part[], deps: PartDeps): Promise<
             break;
           }
           case 'api': {
-            const res = await 지금창.fetch(주소(이음.부품주소.get(i + 1) ?? deps.baseUrl, part.path), {
-              method: part.method,
-              ...(part.body === undefined ? {} : { data: part.body }),
-            });
-            if (res.status() !== part.expectStatus) {
+            const 결과 = await API단계(지금창, 이음, part, i + 1, 이음.부품주소.get(i + 1) ?? deps.baseUrl, 토큰들);
+            bound = 결과.bound;
+            if (결과.error !== undefined) {
               status = 'FAIL';
-              error = { message: `응답 코드 ${res.status()} — 기대 ${part.expectStatus}` };
+              error = { message: 결과.error };
             }
             break;
           }

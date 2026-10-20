@@ -25,7 +25,7 @@ export function 창들(parts: Part[], 칸: { partTimeoutMs?: number; 창마다?:
         route: vi.fn(async () => {}),
         unroute: vi.fn(async () => {}),
         waitForTimeout: vi.fn(async () => {}),
-        fetch: vi.fn(async () => ({ status: () => 200 })),
+        fetch: vi.fn(async () => ({ status: () => 200, text: async () => "", headers: () => ({}) })),
         runCase: vi.fn(async (_part, seq: number) => ({
           seq: seq + 1,
           steps: [{ seq: seq + 1, title: '가', status: 'PASS' as const, durationMs: 1, assertions: [] }],

@@ -109,6 +109,11 @@ const scenarioPart = z.discriminatedUnion('kind', [
     body: z.unknown().optional(),
     expectStatus: z.number().int(),
     baseUrl: z.string().url().optional(),
+    // API 인증 이름 · 값 주입 · 응답 값 확인 (SPEC 도메인/시나리오 §3.7 결정 14). 이름이 인증 목록에 있는지는 부를 때 본다
+    auth: z.string().min(1).max(20).optional(),
+    values: z.array(z.object({ name: z.string().regex(/^[A-Za-z0-9_가-힣]{1,20}$/), value: responseRef })).optional(),
+    expectJson: z.array(z.object({ jsonPath: z.string().min(1), equals: z.unknown() })).optional(),
+    apiAuths,
   }),
   z.object({
     kind: z.literal('mock'),
@@ -127,6 +132,8 @@ type 빠진칸<K, Z> = Exclude<keyof K, keyof Z>;
 type 입구이어주기<K> = Extract<z.infer<typeof scenarioLink>, { kind: K }>;
 ({}) satisfies Record<
   | 빠진칸<Extract<ScenarioPart, { kind: 'case' }>, Extract<z.infer<typeof scenarioPart>, { kind: 'case' }>>
+  // service 는 admin 이 baseUrl 로 풀어 보낸다 — 러너는 안 받는다
+  | Exclude<빠진칸<Extract<ScenarioPart, { kind: 'api' }>, Extract<z.infer<typeof scenarioPart>, { kind: 'api' }>>, 'service'>
   | 빠진칸<Extract<ScenarioLink, { kind: 'reuse' }>, 입구이어주기<'reuse'>>
   | 빠진칸<Extract<ScenarioLink, { kind: 'block' }>, 입구이어주기<'block'>>
   | 빠진칸<Extract<ScenarioLink, { kind: 'rewrite' }>, 입구이어주기<'rewrite'>>

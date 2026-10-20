@@ -131,7 +131,7 @@ describe('API 부품의 호출 주소', () => {
     const 호출: string[] = [];
     const 창 = {
       route: async () => {}, unroute: async () => {}, waitForTimeout: async () => {},
-      fetch: vi.fn(async (url: string) => { 호출.push(url); return { status: () => 200 }; }),
+      fetch: vi.fn(async (url: string) => { 호출.push(url); return { status: () => 200, text: async () => "", headers: () => ({}) }; }),
       runCase: async () => { throw new Error('안 돈다'); }, state: async () => ({ cookies: [], origins: [] }), close: async () => {},
     };
     const parts: Part[] = [

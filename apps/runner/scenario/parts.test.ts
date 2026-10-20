@@ -15,7 +15,7 @@ function 가짜(칸: Partial<창> & { baseUrl?: string } = {}) {
     route: vi.fn(async () => {}),
     unroute: vi.fn(async () => {}),
     waitForTimeout: vi.fn(async () => {}),
-    fetch: vi.fn(async () => ({ status: () => 200 })),
+    fetch: vi.fn(async () => ({ status: () => 200, text: async () => "", headers: () => ({}) })),
     runCase: vi.fn(async (_part, seq: number) => ({
       seq: seq + 2,
       steps: [
@@ -100,7 +100,7 @@ describe('runParts', () => {
   it('API 부품은 대상 주소에 문자열로 이어 붙여 부르고 응답 코드가 다르면 거기서 멈춘다', async () => {
     const { deps, 지금창, 줄 } = 가짜({
       baseUrl: 'https://qa.example.com/shop/',
-      fetch: vi.fn(async () => ({ status: () => 500 })),
+      fetch: vi.fn(async () => ({ status: () => 500, text: async () => "", headers: () => ({}) })),
     });
 
     await runParts([{ kind: 'api', method: 'POST', path: '/api/cart', body: { id: 1 }, expectStatus: 201 }, 케이스()], deps);
