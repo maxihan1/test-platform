@@ -1,12 +1,13 @@
 // 실행 한 부를 읽어 증적 문서가 쓸 표시용 모델로 바꾼다 (SPEC §3.3)
 // test_case 는 한 줄도 읽지 않는다. 카탈로그를 섞으면 케이스를 고친 날 과거 증적이 같이 흔들린다
 
-import type { DeviceInfo, ItemStatus, Platform } from '@platform/kit';
+import type { DeviceInfo, ItemStatus, Platform, ShapeCheck, StepResult } from '@platform/kit';
 
 import type { Pool } from 'pg';
 import { 팜기록글 } from '../execution/farmEvidence.js';
 import { 종류조건 } from '../execution/runKind.js';
 import { 가린다, 항목비밀 } from '../execution/trial.js';
+import { type EvidenceTrace, 원문글 } from './apiTrace.js';
 import { 색코드 } from './failureType.js';
 import { 한줄로자른다 } from './insights.js';
 
@@ -30,6 +31,9 @@ export interface EvidenceStep {
   durationMs: number | null;
   assertions: EvidenceAssertion[];
   screenshotPath: string | null;
+  /** API 애플리케이션 항목만 — 가린 요청 · 응답 원문과 응답 형식 검사. 화면 케이스는 원문을 안 넣는다 (도메인/API §3.8) */
+  httpTrace?: EvidenceTrace;
+  shapeChecks?: ShapeCheck[];
   /** E2E 시나리오에서 사람이 체크를 풀어 건너뛴 「만들기」 절차. 판정 대신 「건너뜀」으로 적는다 (도메인/리포팅 §8.4) */
   skipped?: true;
 }
@@ -96,6 +100,8 @@ interface RawRun {
   base_url: string;
   started_at: Date;
   kind: string;
+  /** 지운 애플리케이션이면 null — 화면 케이스처럼 원문을 안 싣는다 */
+  service_kind: 'SCREEN' | 'API' | null;
 }
 
 interface RawItem {
@@ -134,6 +140,8 @@ interface RawStep {
   assertions: RawAssertion[];
   screenshot_path: string | null;
   error: unknown;
+  http_trace: StepResult['httpTrace'] | null;
+  shape_checks: ShapeCheck[] | null;
 }
 
 /** 박제 이전 행의 빈 칸. 지어내지 말고 모른다고 적는다 (SPEC §6) */
@@ -220,7 +228,8 @@ function toAssertion(a: RawAssertion): EvidenceAssertion {
   };
 }
 
-function toStep(row: RawStep, 비밀: string[]): EvidenceStep {
+// 원문 · 형식 검사는 kit 이 가린 것을 항목 비밀값으로 한 번 더 가린다 — 실행 조회 응답(execution/queries.ts)과 같은 규칙이다
+function toStep(row: RawStep, 비밀: string[], api: boolean): EvidenceStep {
   return {
     seq: row.seq,
     title: row.title,
@@ -228,6 +237,8 @@ function toStep(row: RawStep, 비밀: string[]): EvidenceStep {
     durationMs: row.duration_ms,
     assertions: 가린다(row.assertions.map(toAssertion), 비밀) as EvidenceAssertion[],
     screenshotPath: row.screenshot_path,
+    ...(!api || row.http_trace === null ? {} : { httpTrace: 원문글(가린다(row.http_trace, 비밀) as NonNullable<StepResult['httpTrace']>) }),
+    ...(!api || row.shape_checks === null ? {} : { shapeChecks: 가린다(row.shape_checks, 비밀) as ShapeCheck[] }),
   };
 }
 
@@ -276,7 +287,8 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
   const pool = await db();
   // 시나리오 실행은 run_item 이 없어 케이스 모양이 비어 나온다. 번호가 맞아도 없는 실행으로 본다 (도메인/시나리오 §3.7 결정 10)
   const runs = await pool.query<RawRun>(
-    `SELECT run_id, title, status, service_name, tests_repo, triggered_by_name, env, base_url, started_at, kind
+    `SELECT run_id, title, status, service_name, tests_repo, triggered_by_name, env, base_url, started_at, kind,
+            (SELECT kind FROM service WHERE id = test_run.service_id) AS service_kind
        FROM test_run WHERE run_id = $1 AND ${종류조건('case', '')}`,
     [runId],
   );
@@ -291,7 +303,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
   );
 
   const steps = await pool.query<RawStep>(
-    `SELECT s.history_id, s.seq, s.title, s.status, s.duration_ms, s.assertions, s.screenshot_path, s.error
+    `SELECT s.history_id, s.seq, s.title, s.status, s.duration_ms, s.assertions, s.screenshot_path, s.error, s.http_trace, s.shape_checks
        FROM run_item_step s JOIN run_item i ON i.history_id = s.history_id
       WHERE i.run_id = $1 ORDER BY s.seq`,
     [runId],
@@ -340,7 +352,7 @@ export async function collectRun(runId: number): Promise<EvidenceDocument | null
         precondition: row.precondition,
         params: toFields(row.params, row.param_schema),
         expected: toFields(row.expected, row.expected_schema),
-        steps: 절차들.map((s) => toStep(s, 비밀)),
+        steps: 절차들.map((s) => toStep(s, 비밀, run.service_kind === 'API')),
       };
     }),
   };

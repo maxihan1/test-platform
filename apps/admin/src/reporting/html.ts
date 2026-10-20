@@ -4,7 +4,7 @@
 import type { EvidenceDocument, EvidenceHeader, EvidenceItem } from './collect.js';
 import type { E2E요약줄 } from './e2eSummary.js';
 import { 디바이스순서, 케이스로묶는다 } from './failuresShape.js';
-import { 디바이스, 본문, 안전, 판정, 판정글자, 항목줄 } from './htmlItem.js';
+import { 디바이스, 본문, 안전, 원문몸, 판정, 판정글자, 항목줄 } from './htmlItem.js';
 import { 증적스타일 } from './htmlStyle.js';
 import { 판정줄 } from './summary.js';
 
@@ -97,8 +97,13 @@ function 케이스머리(c: 케이스): string {
   return `${판정(가장나쁜(c.칸들))}<span class="tc-id">${안전(c.tcId)}</span><span class="tc-name">${안전(c.tcName)}</span>`;
 }
 
-function 펼친항목(k: 칸, 덧말 = '', id = ''): string[] {
-  return [`  <div class="dev"${id}>`, `    <div class="dev-head">${항목줄(k.item, 덧말)}</div>`, ...본문(k.item), `  </div>`];
+/** PDF 의 API 원문 부록 고리 이름(`t-번호-절차`). HTML 은 그 자리에서 접으므로 고리가 없다 */
+function 원문고리(format: RenderOptions['format'], k: 칸): ((seq: number) => string) | undefined {
+  return format === 'PDF' ? (seq) => `t-${k.번호}-${seq}` : undefined;
+}
+
+function 펼친항목(k: 칸, format: RenderOptions['format'], 덧말 = '', id = ''): string[] {
+  return [`  <div class="dev"${id}>`, `    <div class="dev-head">${항목줄(k.item, 덧말)}</div>`, ...본문(k.item, 원문고리(format, k)), `  </div>`];
 }
 
 /**
@@ -117,7 +122,7 @@ function 카드(c: 케이스, format: RenderOptions['format']): string[] {
     `<section class="card">`,
     `  <h3 class="card-head">${케이스머리(c)}</h3>`,
     ...미확정줄(c),
-    ...c.펼침.flatMap((p) => 펼친항목(p.칸, p.회차글)),
+    ...c.펼침.flatMap((p) => 펼친항목(p.칸, format, p.회차글)),
     ...접힌칸들(c).flatMap((k) => 접힌줄(format, 항목줄(k.item), `i-${k.번호}`, () => 본문(k.item))),
     `</section>`,
   ];
@@ -158,7 +163,26 @@ function 부록(케이스들: 케이스[]): string[] {
       `<section class="app-case" id="c-${c.차례}">`,
       `  <h3 class="card-head">${케이스머리(c)}</h3>`,
       ...미확정줄(c),
-      ...칸들.flatMap((k) => 펼친항목(k, '', ` id="i-${k.번호}"`)),
+      ...칸들.flatMap((k) => 펼친항목(k, 'PDF', '', ` id="i-${k.번호}"`)),
+      `</section>`,
+    ]),
+    `</section>`,
+  ];
+}
+
+// API 항목의 절차 원문 — PDF 만. 카드 · 접힌 줄 · 부록 어디서 건 고리든 여기 한 곳으로 온다 (도메인/API §3.8 「리포트」)
+function 원문부록(케이스들: 케이스[]): string[] {
+  const 실을것 = 케이스들.flatMap((c) =>
+    c.칸들.flatMap((k) => k.item.steps.flatMap((s) => (s.httpTrace === undefined ? [] : [{ k, s, t: s.httpTrace }]))),
+  );
+  if (실을것.length === 0) return [];
+  return [
+    `<section class="appendix">`,
+    `<h2 class="sec">부록 — 요청 · 응답 원문</h2>`,
+    ...실을것.flatMap(({ k, s, t }) => [
+      `<section class="app-trace" id="t-${k.번호}-${s.seq}">`,
+      `  <div class="dev-head"><span class="tc-id">${안전(k.item.tcId)}</span>${항목줄(k.item)}<span class="step-title">${s.seq}. ${안전(s.title)}</span></div>`,
+      ...원문몸(t),
       `</section>`,
     ]),
     `</section>`,
@@ -257,9 +281,9 @@ export function renderHtml(doc: EvidenceDocument, options: RenderOptions): strin
       ? []
       : [
           `<h2 class="sec">통과 · 미실행 케이스 ${줄들.length}건</h2>`,
-          ...줄들.flatMap((c) => 접힌줄(options.format, 줄글(c), `c-${c.차례}`, () => c.칸들.flatMap((k) => 펼친항목(k)))),
+          ...줄들.flatMap((c) => 접힌줄(options.format, 줄글(c), `c-${c.차례}`, () => c.칸들.flatMap((k) => 펼친항목(k, options.format)))),
         ]),
     ...E2E요약절(options.e2e ?? []),
-    ...(options.format === 'PDF' ? 부록([...실패들, ...줄들]) : []),
+    ...(options.format === 'PDF' ? [...부록([...실패들, ...줄들]), ...원문부록([...실패들, ...줄들])] : []),
   ]);
 }
