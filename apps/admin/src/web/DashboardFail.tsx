@@ -83,13 +83,15 @@ export function 신규실패표({ 값, 이동 }: { 값: 자료; 이동: 이동�
                       className="ink"
                       href={실행기록주소(실패.tcId, 실패.runId, true)}
                       title={실패.tcName}
-                      {...서비스를열며(이동.서비스열기, 실패.serviceId)}
+                      onAuxClick={서비스를열며(이동.서비스열기, 실패.serviceId).onAuxClick}
                       onClick={(e) => {
-                        if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
                           이동.서비스열기(실패.serviceId);
                           return;
                         }
                         e.preventDefault();
+                        // Safari 는 눌러도 고리에 포커스를 안 준다 — 서랍이 닫힐 때 돌아올 자리를 먼저 잡아 둔다
+                        e.currentTarget.focus();
                         set연줄(실패);
                       }}
                     >

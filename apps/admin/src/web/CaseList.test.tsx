@@ -681,6 +681,17 @@ describe('CaseList 상세 칸에서 고친 값', () => {
     expect((within(모달).getByLabelText(/통화/) as HTMLInputElement).value).toBe('USD');
   });
 
+  it('서랍에서 연 실행 창이 떠 있으면 Esc 는 실행 창만 닫고 서랍은 남는다 (⑬-2)', async () => {
+    await 값을고치고();
+    fireEvent.click(screen.getByRole('button', { name: '이 값으로 실행' }));
+    await screen.findByRole('dialog');
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.getElementById('case-pane')).not.toBeNull();
+  });
+
   it('고친 값이 실행 요청의 params 로 나간다', async () => {
     const 걸기 = vi.spyOn(api, 'createRun').mockResolvedValue({ runId: 9 });
     await 값을고치고();
@@ -748,14 +759,23 @@ describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12 · ⑬-2 �
 
   it('서랍으로 들어오고 Esc 로 닫히면 포커스가 그 이름 버튼으로 돌아온다 (⑬-2)', async () => {
     await 그리기();
-    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+    const 이름 = screen.getByRole('button', { name: 'ZPK-001 케이스' });
+    이름.focus();
+    fireEvent.click(이름);
     expect(document.activeElement).toBe(칸());
 
     fireEvent.keyDown(document, { key: 'Escape' });
 
     expect(칸()).toBeNull();
     expect(window.location.hash).not.toContain('case=');
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+    expect(document.activeElement).toBe(이름);
+  });
+
+  it('포커스를 둔 자리 없이 열린 서랍(주소로 다시 열림)은 포커스를 빼앗지 않는다', async () => {
+    await 그리기();
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+
+    expect(document.activeElement).toBe(document.body);
   });
 
   it('✕ 로 닫으면 포커스가 그 이름 버튼으로 돌아온다', async () => {
