@@ -377,6 +377,29 @@ describe.skipIf(연결 === undefined)('증적 API', () => {
     expect(남의실행중.json()).toEqual({ running: [] });
   });
 
+  it('GET /api/dashboard — project 로 그 프로젝트의 앱만 모으고, 남의 프로젝트는 빈 데이터 · 틀리면 400 이다', async () => {
+    지금사람 = 사람(실행만);
+    const 내것 = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul&project=1' });
+    expect(내것.statusCode).toBe(200);
+    expect(내것.json().services).toEqual([{ id: 대시보드서비스, name: 'XDR 대시보드' }]);
+    expect(내것.json().running.map((r: { runId: number }) => r.runId)).toEqual([도는실행]);
+
+    const 남의 = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul&project=2' });
+    expect(남의.statusCode).toBe(200);
+    expect(남의.json().services).toEqual([]);
+    expect(남의.json().running).toEqual([]);
+    expect(남의.json().byService).toEqual([]);
+
+    const 남의실행중 = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul&only=running&project=2' });
+    expect(남의실행중.json()).toEqual({ running: [] });
+
+    for (const [쿼리, 받은값] of [['project=abc', 'abc'], ['project=', ''], ['project=1&project=2', '1,2']] as const) {
+      const res = await app.inject({ method: 'GET', url: `/api/dashboard?tz=Asia%2FSeoul&${쿼리}` });
+      expect(res.statusCode, 쿼리).toBe(400);
+      expect(res.json(), 쿼리).toEqual({ error: 'INVALID_REQUEST', detail: 받은값 });
+    }
+  });
+
   it('GET /api/dashboard?only=running — running 한 칸만 낸다', async () => {
     지금사람 = 사람(실행만);
     const res = await app.inject({ method: 'GET', url: '/api/dashboard?tz=Asia%2FSeoul&only=running' });

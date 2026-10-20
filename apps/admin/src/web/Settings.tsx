@@ -1,7 +1,7 @@
 // 설정 화면의 틀 (SPEC §8.8). 왼쪽 설정 메뉴(프로젝트마다 · 애플리케이션마다 · 계정 · 가입 신청)와 고른 것 하나를 오른쪽에 얹는다. 운영 계정에게만 보인다
 // 책상에서만 쓰는 화면이라 좁은 화면 대응을 하지 않는다 (§8)
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 
 import { api, type SettingsProject, type SettingsServiceRow, type User, type UserRow } from './api.js';
 import { Head } from './Head.js';
@@ -79,7 +79,8 @@ export function Settings({ user, onMeChanged, 자리 }: { user: User; onMeChange
   // **읽은 뒤에** 칸을 다시 그리고 옮긴다 — 먼저 옮기면 옛 목록에 새 접두사가 없어 「그런 서비스가 없습니다」가 깜빡였다
   const 서비스다시 = async (접두사: string, 옮기나: boolean) => {
     onMeChanged();
-    if (!(await services.reload())) return;
+    // 프로젝트도 같이 읽는다 — 메뉴는 애플리케이션을 제 프로젝트 줄 아래에 그려서, 다른 탭이 막 만든 프로젝트를 모르면 그 애플리케이션이 메뉴에서 빠진다
+    if ((await Promise.all([projects.reload(), services.reload()])).includes(false)) return;
     set판((n) => n + 1);
     set저장한곳(접두사);
     if (옮기나) {
@@ -169,24 +170,30 @@ function 설정메뉴({
     <nav className="set-nav" aria-label={t('설정 메뉴')}>
       <h2>{t('프로젝트')}</h2>
       {프로젝트들.length === 0 ? <p className="hint">{t('아직 프로젝트가 없습니다')}</p> : null}
+      {/* 애플리케이션은 제 프로젝트 아래에 들여 쓴다 — 나란히 두면 어느 프로젝트 것인지 안 보였다 (2026-10-20 ⑬-3) */}
       {프로젝트들.map((it) => (
-        <a key={it.id} href={`#/settings/project-${it.id}`} {...자리(`project-${it.id}`)}>
-          <span className="set-nav-name">{it.name}</span>
-          <span className="set-nav-sub">{t('애플리케이션 {수}개', { 수: it.앱수 })}</span>
-        </a>
+        <Fragment key={it.id}>
+          <a href={`#/settings/project-${it.id}`} {...자리(`project-${it.id}`)}>
+            <span className="set-nav-name">{it.name}</span>
+            <span className="set-nav-sub">{t('애플리케이션 {수}개', { 수: it.앱수 })}</span>
+          </a>
+          {/* 묶음 이름을 프로젝트로 달아 화면 읽기에도 어느 프로젝트 것인지 들린다 */}
+          <div className="set-nav-tree" role="group" aria-label={it.name}>
+            {서비스들
+              .filter((앱) => 앱.projectId === it.id)
+              .map((앱) => (
+                <a key={앱.id} href={`#/settings/${encodeURIComponent(앱.prefix)}`} {...자리(앱.prefix)}>
+                  <span className="set-nav-name">{앱.name}</span>
+                  {/* 접두사는 늘 둔다 — 주소와 케이스 번호에 쓰이는 이름이다. 비활성이면 곁에 그 사실을 더한다 */}
+                  <span className="set-nav-sub">{앱.isActive ? 앱.prefix : `${앱.prefix} · ${t('비활성')}`}</span>
+                </a>
+              ))}
+          </div>
+        </Fragment>
       ))}
       <a href="#/settings/project-new" className="set-nav-add" {...자리('project-new')}>
         {t('+ 프로젝트 추가')}
       </a>
-      <h2>{t('애플리케이션')}</h2>
-      {서비스들.length === 0 ? <p className="hint">{t('아직 애플리케이션이 없습니다')}</p> : null}
-      {서비스들.map((it) => (
-        <a key={it.id} href={`#/settings/${encodeURIComponent(it.prefix)}`} {...자리(it.prefix)}>
-          <span className="set-nav-name">{it.name}</span>
-          {/* 접두사는 늘 둔다 — 주소와 케이스 번호에 쓰이는 이름이다. 비활성이면 곁에 그 사실을 더한다 */}
-          <span className="set-nav-sub">{it.isActive ? it.prefix : `${it.prefix} · ${t('비활성')}`}</span>
-        </a>
-      ))}
       <a href="#/settings/new" className="set-nav-add" {...자리('new')}>
         {t('+ 애플리케이션 추가')}
       </a>

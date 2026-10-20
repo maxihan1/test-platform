@@ -1036,16 +1036,17 @@ export const api = {
    */
   caseHistory: (tcId: string) => call<Paged<HistoryRow>>(`/cases/${encodeURIComponent(tcId)}/history`),
 
-  /** 서비스를 가로지른 품질 현황. `only=running` 이면 실행 중 줄만 온다. `service` 는 서비스 번호 · `days` 는 7 · 14 · 30 (도메인/리포팅 §7 · §8.12) */
+  /** 서비스를 가로지른 품질 현황. `only=running` 이면 실행 중 줄만 온다. `service` 는 서비스 번호 · `days` 는 7 · 14 · 30 · `project` 는 프로젝트 번호 (도메인/리포팅 §7 · §8.12) */
   dashboard: <무엇 extends 'running' | undefined = undefined>(
     tz: string,
     only?: 무엇,
-    조건: { service?: number; days?: number } = {},
+    조건: { service?: number; days?: number; project?: number } = {},
   ) => {
     const 쿼리 = new URLSearchParams({ tz });
     if (only === 'running') 쿼리.set('only', 'running');
     if (조건.service !== undefined) 쿼리.set('service', String(조건.service));
     if (조건.days !== undefined) 쿼리.set('days', String(조건.days));
+    if (조건.project !== undefined) 쿼리.set('project', String(조건.project));
     return call<무엇 extends 'running' ? Pick<대시보드응답, 'running'> : 대시보드응답>(`/dashboard?${쿼리.toString()}`);
   },
 

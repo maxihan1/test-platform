@@ -90,19 +90,30 @@ describe('설정 안 메뉴 (도메인/인증 §8.8 · 2026-10-09 시안 A)', ()
     return render(<Settings user={사람('admin')} onMeChanged={() => undefined} 자리={자리} />);
   }
 
-  it('메뉴에 프로젝트마다 · 프로젝트 추가 · 애플리케이션마다 · 애플리케이션 추가 · 계정이 주소 링크로 선다', async () => {
-    펼친다();
+  it('메뉴는 프로젝트마다 그 아래에 그 프로젝트의 애플리케이션이 들여 써 서고, 프로젝트 추가 · 애플리케이션 추가 · 계정이 뒤따른다', async () => {
+    vi.spyOn(api, 'settingsProjects').mockResolvedValue({
+      items: [
+        { id: 1, name: '데모마켓' },
+        { id: 2, name: '사내 포털' },
+      ],
+    });
+    vi.spyOn(api, 'settingsServices').mockResolvedValue({ items: [서비스, { ...둘째, projectId: 2, projectName: '사내 포털' }, { ...둘째, id: 3, prefix: 'ZSV', name: 'ZSV 애플리케이션' }] });
+    vi.spyOn(api, 'settingsUsers').mockResolvedValue({ items: [계정] });
+    render(<Settings user={사람('admin')} onMeChanged={() => undefined} />);
     const 메뉴 = await screen.findByRole('navigation', { name: '설정 메뉴' });
 
-    const 링크들 = [...메뉴.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+    const 링크들 = [...메뉴.querySelectorAll('a')].map((a) => [a.getAttribute('href'), a.closest('[role="group"]')?.getAttribute('aria-label') ?? null]);
     expect(링크들).toEqual([
-      '#/settings/project-1',
-      '#/settings/project-new',
-      '#/settings/ZST',
-      '#/settings/ZSU',
-      '#/settings/new',
-      '#/settings/users',
+      ['#/settings/project-1', null],
+      ['#/settings/ZST', '데모마켓'],
+      ['#/settings/ZSV', '데모마켓'],
+      ['#/settings/project-2', null],
+      ['#/settings/ZSU', '사내 포털'],
+      ['#/settings/project-new', null],
+      ['#/settings/new', null],
+      ['#/settings/users', null],
     ]);
+    expect([...메뉴.querySelectorAll('h2')].map((h) => h.textContent)).toEqual(['프로젝트', '사람']);
   });
 
   it('프로젝트 줄에 그 안의 애플리케이션 수가 선다', async () => {
