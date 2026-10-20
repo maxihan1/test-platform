@@ -1,5 +1,4 @@
-// 케이스 상세 칸 — 목록 오른쪽에 열린다 (도메인/카탈로그 §8.1 「상세 칸」, 2026-10-19 ⑫ 시안 A)
-//
+// 케이스 상세 칸 — 오른쪽 서랍으로 미끄러져 들어온다 (도메인/카탈로그 §8.1 「상세 칸」, 2026-10-19 ⑫ 시안 A · 2026-10-20 ⑬-2 서랍)
 // **상자를 그만두고 칸으로 바꿨다.** 상자는 열 때마다 목록을 가려 여러 케이스를 훑기 어려웠고,
 // 길어서 절차 · 값 · 이력을 오가려면 상자 안에서 한참 내려가야 했다(점검 7.12). 실행 기록 A안과 같은 짜임이다.
 //
@@ -14,6 +13,7 @@ import type { Platform, Technique } from '@platform/kit/types';
 
 import { api, type CaseRow, type HistoryRow } from './api.js';
 import { 코드기본값고치기 } from './CaseEdit.js';
+import { Drawer } from './Drawer.js';
 import { 오류없음, 채운글자, type 줄글자 } from './caseValues.js';
 import { keyOf, type LastMap } from './catalogView.js';
 import { 이력열쇠, 실행마다묶기, 처음디바이스, type 상세기억 } from './caseDetailView.js';
@@ -127,7 +127,7 @@ export function CaseDetail({
   const 묶음 = 이력 == null ? 이력 : 실행마다묶기(이력);
 
   return (
-    <aside className="screen case-pane" id="case-pane" aria-labelledby="case-pane-title">
+    <Drawer className="case-pane" id="case-pane" aria-labelledby="case-pane-title" onClose={onClose}>
       <div className="case-pane-head">
         <div>
           <div className="tcid">{row.tcId}</div>
@@ -295,6 +295,6 @@ export function CaseDetail({
           <코드기본값고치기 row={row} service={고칠서비스} />
         </details>
       )}
-    </aside>
+    </Drawer>
   );
 }

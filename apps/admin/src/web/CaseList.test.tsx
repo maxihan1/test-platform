@@ -707,7 +707,7 @@ describe('CaseList 상세 칸에서 고친 값', () => {
   });
 });
 
-describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12)', () => {
+describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12 · ⑬-2 서랍)', () => {
   const 칸 = () => document.getElementById('case-pane');
 
   it('이름을 누르면 오른쪽 칸이 열리고 주소에 case= 가 남는다', async () => {
@@ -718,7 +718,7 @@ describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12)', () => {
     expect(칸()?.tagName).toBe('ASIDE');
     expect(within(칸()!).getByRole('heading', { name: 'ZPK-001 케이스' })).toBeTruthy();
     expect(window.location.hash).toContain('case=ZPK-001');
-    expect(document.querySelector('.cases-split')?.classList.contains('has-pane')).toBe(true);
+    expect(칸()?.classList.contains('drawer')).toBe(true);
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByRole('button', { name: 'ZPK-001 케이스' }).getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByRole('button', { name: 'ZPK-002 케이스' }).getAttribute('aria-expanded')).toBe('false');
@@ -744,7 +744,18 @@ describe('CaseList 오른쪽 상세 칸 (⑫ 시안 A · 점검 7.12)', () => {
 
     expect(칸()).toBeNull();
     expect(window.location.hash).not.toContain('case=');
-    expect(document.querySelector('.cases-split')?.classList.contains('has-pane')).toBe(false);
+  });
+
+  it('서랍으로 들어오고 Esc 로 닫히면 포커스가 그 이름 버튼으로 돌아온다 (⑬-2)', async () => {
+    await 그리기();
+    fireEvent.click(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
+    expect(document.activeElement).toBe(칸());
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(칸()).toBeNull();
+    expect(window.location.hash).not.toContain('case=');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'ZPK-001 케이스' }));
   });
 
   it('✕ 로 닫으면 포커스가 그 이름 버튼으로 돌아온다', async () => {

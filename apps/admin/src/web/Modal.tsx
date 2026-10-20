@@ -21,6 +21,11 @@ interface Props {
 /** 열려 있는 상자들, 나중에 열린 것이 뒤. Esc 한 번이 겹친 상자를 한꺼번에 닫지 않게 맨 위만 반응하려고 둔다 */
 const 열린상자들: symbol[] = [];
 
+/** 서랍(Drawer)이 Esc 를 상자에 양보하려고 묻는다 */
+export function 상자열렸나(): boolean {
+  return 열린상자들.length > 0;
+}
+
 /** 포커스를 가둘 때 훑을 것들 */
 const 포커스가능 = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 

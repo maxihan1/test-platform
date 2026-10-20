@@ -1,0 +1,72 @@
+/* 공용 오른쪽 서랍 (Drawer.tsx · DESIGN.md 「모달」). 알림 서랍(noticeDrawer.css)과 같은 자리 · 움직임이다. 색은 토큰만 쓴다 */
+
+/* 뒤를 어둡게 하지 않는다. 가로막는 상자가 아니다. 모달(뒷막)이 이 위에 뜬다 */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  width: 480px;
+  max-width: 100%;
+  overflow-y: auto;
+  background: var(--panel);
+  border-left: 1px solid var(--line-2);
+  box-shadow: -24px 0 60px -20px rgba(0, 0, 0, 0.8);
+  animation: drawer-slide var(--dur) var(--ease);
+}
+
+.drawer:focus {
+  outline: none;
+}
+
+@keyframes drawer-slide {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* 대시보드 신규 실패 서랍 — 머리 · 카드 · 아래 고리 */
+.fail-drawer {
+  display: flex;
+  flex-direction: column;
+}
+
+.fail-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.fail-drawer-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fail-drawer-body {
+  flex: 1;
+  padding: 16px;
+}
+
+.fail-drawer-foot {
+  margin: 0;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+/* 좁은 화면 — 서랍은 화면 폭을 다 쓴다 */
+@media (max-width: 620px) {
+  .drawer {
+    width: 100%;
+  }
+}

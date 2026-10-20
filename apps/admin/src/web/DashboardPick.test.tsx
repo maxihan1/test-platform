@@ -167,8 +167,10 @@ describe('통과율 비교 글', () => {
 });
 
 describe('칸에서 내려가기', () => {
-  it('신규 실패의 케이스 이름은 그 실행의 실패 카드까지 가는 주소이고, 누르면 그 애플리케이션을 고른다', async () => {
+  it('신규 실패의 케이스 이름은 그 실행의 실패 카드까지 가는 주소이고, 서랍의 「실행 기록에서 보기」가 그 애플리케이션을 고른다', async () => {
     vi.spyOn(api, 'dashboard').mockResolvedValue(응답() as never);
+    vi.spyOn(api, 'run').mockReturnValue(new Promise(() => {}));
+    vi.spyOn(api, 'failures').mockReturnValue(new Promise(() => {}));
     const 서비스열기 = vi.fn();
     render(<Dashboard 서비스열기={서비스열기} {...기본재료} />);
     const 칸 = (await screen.findByText('신규 실패')).closest('section')!;
@@ -177,6 +179,11 @@ describe('칸에서 내려가기', () => {
     const UI = within(칸).getByRole('link', { name: 'ZDA-UI-014 이름' });
     expect(UI.getAttribute('href')).toBe('#/runs/ui?run=6&tc=ZDA-UI-014');
     fireEvent.click(UI);
+    expect(서비스열기).not.toHaveBeenCalled();
+    const 서랍 = document.getElementById('fail-drawer')!;
+    const 고리 = within(서랍).getByRole('link', { name: '실행 기록에서 보기' });
+    expect(고리.getAttribute('href')).toBe('#/runs/ui?run=6&tc=ZDA-UI-014');
+    fireEvent.click(고리);
     expect(서비스열기).toHaveBeenCalledWith(2);
     expect(within(칸).getByText('ZDA 회원 · qa')).toBeTruthy();
   });

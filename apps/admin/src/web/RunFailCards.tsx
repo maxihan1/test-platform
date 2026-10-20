@@ -134,7 +134,7 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
         유형칸 === null ? <p className="empty">{t('실패한 케이스가 없습니다')}</p> : null
       ) : (
         보일카드.map((c) => (
-          <카드
+          <실패카드
             key={c.tcId}
             c={c}
             runId={runId}
@@ -164,7 +164,7 @@ function 카드목록({ runId, env, items, platform, 권한 = 권한없음, 유�
   );
 }
 
-function 카드({
+export function 실패카드({
   c,
   runId,
   env,

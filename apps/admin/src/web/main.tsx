@@ -48,6 +48,7 @@ import './noticeBar.css';
 import './header.css';
 import './projectPick.css';
 import './noticeDrawer.css';
+import './drawer.css';
 import './phone.css';
 import './prd.css';
 import './guide.css';
